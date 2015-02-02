@@ -1,78 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cnbjrel02.sonyericsson.com ([219.141.167.166]:10015 "EHLO
-	cnbjrel02.sonyericsson.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754803AbbBBEPM convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 1 Feb 2015 23:15:12 -0500
-From: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
-Date: Mon, 2 Feb 2015 11:55:03 +0800
-Subject: [RFC] change non-atomic bitops method
-Message-ID: <35FD53F367049845BC99AC72306C23D1044A02027E0A@CNBJMBX05.corpusers.net>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Received: from mail-la0-f54.google.com ([209.85.215.54]:64170 "EHLO
+	mail-la0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932966AbbBBMtm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Feb 2015 07:49:42 -0500
 MIME-Version: 1.0
+From: Ricardo Ribalda Delgado <ricardo.ribalda@gmail.com>
+Date: Mon, 2 Feb 2015 13:49:20 +0100
+Message-ID: <CAPybu_16LBPDjuhL-Vw-rqFK-13+gLHrRc-3KuYwUTi0XyDX7Q@mail.gmail.com>
+Subject: Can this be a invalid memory access? (was: Re: [PATCH] spi/xilinx:
+ Cast ioread32/iowrite32 function pointers)
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "'arnd@arndb.de'" <arnd@arndb.de>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux@arm.linux.org.uk'" <linux@arm.linux.org.uk>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20150202035503.uuj2QCRrlzyV_5Vp5lacnvtRBjtQtMNhPDrVBYqPAGk@z>
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
+Message-ID: <20150202124920.SFa-fSLEmasV5u4nEEO1GML5IweXJ59cMeXKOy_cAd8@z>
 
-This patch change non-atomic bitops,
-add a if() condition to test it, before set/clear the bit.
-so that we don't need dirty the cache line, if this bit
-have been set or clear. On SMP system, dirty cache line will
-need invalidate other processors cache line, this will have
-some impact on SMP systems.
+Hello
 
-Signed-off-by: Yalin Wang <yalin.wang@sonymobile.com>
----
- include/asm-generic/bitops/non-atomic.h | 13 +++++++++----
- 1 file changed, 9 insertions(+), 4 deletions(-)
+Regarding ioread8 et al.
 
-diff --git a/include/asm-generic/bitops/non-atomic.h b/include/asm-generic/bitops/non-atomic.h
-index 697cc2b..e4ef18a 100644
---- a/include/asm-generic/bitops/non-atomic.h
-+++ b/include/asm-generic/bitops/non-atomic.h
-@@ -17,7 +17,9 @@ static inline void __set_bit(int nr, volatile unsigned long *addr)
- 	unsigned long mask = BIT_MASK(nr);
- 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
- 
--	*p  |= mask;
-+	if ((*p & mask) == 0)
-+		*p  |= mask;
-+
- }
- 
- static inline void __clear_bit(int nr, volatile unsigned long *addr)
-@@ -25,7 +27,8 @@ static inline void __clear_bit(int nr, volatile unsigned long *addr)
- 	unsigned long mask = BIT_MASK(nr);
- 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
- 
--	*p &= ~mask;
-+	if ((*p & mask) != 0)
-+		*p &= ~mask;
- }
- 
- /**
-@@ -60,7 +63,8 @@ static inline int __test_and_set_bit(int nr, volatile unsigned long *addr)
- 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
- 	unsigned long old = *p;
- 
--	*p = old | mask;
-+	if ((old & mask) == 0)
-+		*p = old | mask;
- 	return (old & mask) != 0;
- }
- 
-@@ -79,7 +83,8 @@ static inline int __test_and_clear_bit(int nr, volatile unsigned long *addr)
- 	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
- 	unsigned long old = *p;
- 
--	*p = old & ~mask;
-+	if ((old & mask) != 0)
-+		*p = old & ~mask;
- 	return (old & mask) != 0;
- }
- 
+On include/asm-generic/io.h is defined as:
+extern unsigned int ioread8(void __iomem *);
+
+On include/asm-generic/io.h:
+static inline u8 ioread8(const volatile void __iomem *addr)
+
+Please ignore the qualifiers right now. The first function returns an
+unsigned integer, the second a u8.
+
+Through #ifdefs, different arches uses the first or the second definitions.
+
+If we consider this code:
+
+u8 varA;
+u8 varB;
+u8 varC;
+void * pvar=varB;
+*pvar = ioread8(valid_memory);
+
+Depending if ioread8 returns a u8 or a unsigned int, aren't we also
+accessing varC?
+
+Could not this be a problem?
+
+If I decide to send a patch and fix it, is there a clever script that
+I can run on my x86 computer to test if the patch works on all arches?
+
+
+Thanks
+
 -- 
-2.2.2
+Ricardo Ribalda
