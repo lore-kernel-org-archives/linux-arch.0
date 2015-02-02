@@ -1,50 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f50.google.com ([209.85.218.50]:38785 "EHLO
-	mail-oi0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965019AbbBBVHv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Feb 2015 16:07:51 -0500
-MIME-Version: 1.0
-In-Reply-To: <87pp9s48mz.wl-ysato@users.sourceforge.jp>
-References: <877fw093oa.wl-ysato@users.sourceforge.jp>
-	<CAMuHMdV8hyDWwz8V5rvrthcV8NyNk4J+9Opmxt3opqi5rtQoJw@mail.gmail.com>
-	<87pp9s48mz.wl-ysato@users.sourceforge.jp>
-Date: Mon, 2 Feb 2015 22:07:50 +0100
-Message-ID: <CAMuHMdWLJ=D1=Tw6CtXU6ke5+2NGZ+BchfZXTaDOzwrca-S9Hw@mail.gmail.com>
-Subject: Re: [PATCH] Add ARCH_MIGHT_HAVE_VGA_CONSOLE
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Received: from mail.linuxfoundation.org ([140.211.169.12]:35427 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752461AbbBBX3K (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Feb 2015 18:29:10 -0500
+Date: Mon, 2 Feb 2015 15:29:09 -0800
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [RFC] change non-atomic bitops method
+Message-ID: <20150202152909.13bfd11f192fb0268b2ab4bf@linux-foundation.org>
+In-Reply-To: <35FD53F367049845BC99AC72306C23D1044A02027E0A@CNBJMBX05.corpusers.net>
+References: <35FD53F367049845BC99AC72306C23D1044A02027E0A@CNBJMBX05.corpusers.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20150202210750.ahmFBI_CaVrFe3C3D9KRurcXLMo7VWVbPigiVqrReso@z>
+To: "Wang, Yalin" <Yalin.Wang@sonymobile.com>
+Cc: "'arnd@arndb.de'" <arnd@arndb.de>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux@arm.linux.org.uk'" <linux@arm.linux.org.uk>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20150202232909.8yhMM2w375s-WZ-149iFTjCDq-QiPF8EbYLMHnoq2cA@z>
 
-Hi Sato-san,
+On Mon, 2 Feb 2015 11:55:03 +0800 "Wang, Yalin" <Yalin.Wang@sonymobile.com> wrote:
 
-Your second version looks fine to me, except for this part:
+> This patch change non-atomic bitops,
+> add a if() condition to test it, before set/clear the bit.
+> so that we don't need dirty the cache line, if this bit
+> have been set or clear. On SMP system, dirty cache line will
+> need invalidate other processors cache line, this will have
+> some impact on SMP systems.
+> 
+> --- a/include/asm-generic/bitops/non-atomic.h
+> +++ b/include/asm-generic/bitops/non-atomic.h
+> @@ -17,7 +17,9 @@ static inline void __set_bit(int nr, volatile unsigned long *addr)
+>  	unsigned long mask = BIT_MASK(nr);
+>  	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
+>  
+> -	*p  |= mask;
+> +	if ((*p & mask) == 0)
+> +		*p  |= mask;
+> +
+>  }
 
-On Mon, Feb 2, 2015 at 4:48 PM, Yoshinori Sato
-<ysato@users.sourceforge.jp> wrote:
-> --- a/arch/um/Kconfig.common
-> +++ b/arch/um/Kconfig.common
-> @@ -9,6 +9,7 @@ config UML
->         select GENERIC_IO
->         select GENERIC_CLOCKEVENTS
->         select TTY # Needed for line.c
-> +       select ARCH_MIGHT_HAVE_VGA_CONSOLE
->
->  config MMU
->         bool
+hm, maybe.
 
-UML definitely doesn't have VGA support.
+It will speed up set_bit on an already-set bit.  But it will slow down
+set_bit on a not-set bit.  And the latter case is presumably much, much
+more common.
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+How do we know the patch is a net performance gain?
