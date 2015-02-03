@@ -1,59 +1,61 @@
-From: Andrey Ryabinin <a.ryabinin@samsung.com>
-Subject: [PATCH v11 17/19] kernel: add support for .init_array.* constructors
-Date: Tue, 03 Feb 2015 20:43:10 +0300
-Message-ID: <1422985392-28652-18-git-send-email-a.ryabinin@samsung.com>
-References: <1404905415-9046-1-git-send-email-a.ryabinin@samsung.com>
- <1422985392-28652-1-git-send-email-a.ryabinin@samsung.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-reply-to: <1422985392-28652-1-git-send-email-a.ryabinin@samsung.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Andrey Ryabinin <a.ryabinin@samsung.com>, Dmitry Vyukov <dvyukov@google.com>, Konstantin Serebryany <kcc@google.com>, Dmitry Chernenkov <dmitryc@google.com>, Andrey Konovalov <adech.fo@gmail.com>, Yuri Gribov <tetra2005@gmail.com>, Konstantin Khlebnikov <koct9i@gmail.com>, Sasha Levin <sasha.levin@oracle.com>, Christoph Lameter <cl@linux.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Dave Hansen <dave.hansen@intel.com>, Andi Kleen <andi@firstfloor.org>, x86@kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+From: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?=
+	<u.kleine-koenig@pengutronix.de>
+Subject: Re: [RFC] change non-atomic bitops method
+Date: Tue, 3 Feb 2015 20:10:38 +0100
+Message-ID: <20150203191038.GF10842@pengutronix.de>
+References: <20150202193154.GC10842@pengutronix.de>
+ <35FD53F367049845BC99AC72306C23D1044A02027E0A@CNBJMBX05.corpusers.net>
+ <30242.1422976483@warthog.procyon.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from metis.ext.pengutronix.de ([92.198.50.35]:58681 "EHLO
+	metis.ext.pengutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965698AbbBCTKp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Feb 2015 14:10:45 -0500
+Content-Disposition: inline
+In-Reply-To: <30242.1422976483@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux@arm.linux.org.uk'" <linux@arm.linux.org.uk>, "Wang, Yalin" <Yalin.Wang@sonymobile.com>, "'arnd@arndb.de'" <arnd@arndb.de>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
 
-KASan uses constructors for initializing redzones for global
-variables. Globals instrumentation in GCC 4.9.2 produces
-constructors with priority (.init_array.00099)
+Hello,
 
-Currently kernel ignores such constructors. Only constructors
-with default priority supported (.init_array)
+[added some more context again]
 
-This patch adds support for constructors with priorities.
-For kernel image we put pointers to constructors between
-__ctors_start/__ctors_end and do_ctors() will call them
-on start up.
-For modules we merge .init_array.* sections into resulting .init_array.
-Module code properly handles constructors in .init_array section.
+On Tue, Feb 03, 2015 at 03:14:43PM +0000, David Howells wrote:
+> > > -     *p  |=3D mask;
+> > > +     if ((*p & mask) =3D=3D 0)
+> > > +             *p  |=3D mask;
+> > Care to fix the double space here while touching the code?
+> >=20
+> > I think the more natural check here is:
+> >=20
+> >         if ((~*p & mask) !=3D 0)
+> >                 *p |=3D mask;
+> >
+> > Might be a matter of taste, but this check is equivalent to
+> >=20
+> > 	*p !=3D (*p | mask)
+> >=20
+> > which is what you really want to test for.
+> I would argue that this is less clear as to what's going on.
+OK, I admit that this equivalence is not obvious. Then maybe let the
+compiler find the equivalence and do:
 
-Signed-off-by: Andrey Ryabinin <a.ryabinin@samsung.com>
----
- include/asm-generic/vmlinux.lds.h | 1 +
- scripts/module-common.lds         | 3 +++
- 2 files changed, 4 insertions(+)
+-	*p  |=3D mask;
++	if (*p !=3D (*p | mask))
++		p |=3D mask;
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index bee5d68..ac78910 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -478,6 +478,7 @@
- #define KERNEL_CTORS()	. = ALIGN(8);			   \
- 			VMLINUX_SYMBOL(__ctors_start) = .; \
- 			*(.ctors)			   \
-+			*(SORT(.init_array.*))		   \
- 			*(.init_array)			   \
- 			VMLINUX_SYMBOL(__ctors_end) = .;
- #else
-diff --git a/scripts/module-common.lds b/scripts/module-common.lds
-index 0865b3e..01c5849 100644
---- a/scripts/module-common.lds
-+++ b/scripts/module-common.lds
-@@ -16,4 +16,7 @@ SECTIONS {
- 	__kcrctab_unused	: { *(SORT(___kcrctab_unused+*)) }
- 	__kcrctab_unused_gpl	: { *(SORT(___kcrctab_unused_gpl+*)) }
- 	__kcrctab_gpl_future	: { *(SORT(___kcrctab_gpl_future+*)) }
-+
-+	. = ALIGN(8);
-+	.init_array		: { *(SORT(.init_array.*)) *(.init_array) }
- }
--- 
-2.2.2
+?
+
+Best regards
+Uwe
+
+--=20
+Pengutronix e.K.                           | Uwe Kleine-K=F6nig        =
+    |
+Industrial Linux Solutions                 | http://www.pengutronix.de/=
+  |
