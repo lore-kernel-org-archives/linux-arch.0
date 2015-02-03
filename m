@@ -1,80 +1,111 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH] Add ARCH_MIGHT_HAVE_VGA_CONSOLE
-Date: Tue, 3 Feb 2015 11:08:49 +1100
-Message-ID: <20150203110849.7907f175@canb.auug.org.au>
-References: <877fw093oa.wl-ysato@users.sourceforge.jp>
-	<CAMuHMdV8hyDWwz8V5rvrthcV8NyNk4J+9Opmxt3opqi5rtQoJw@mail.gmail.com>
-	<87pp9s48mz.wl-ysato@users.sourceforge.jp>
-	<3429563.4px2PR9Zmy@wuerfel>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [RFC] change non-atomic bitops method
+Date: Tue, 3 Feb 2015 03:17:30 +0200
+Message-ID: <20150203011730.GA15653@node.dhcp.inet.fi>
+References: <35FD53F367049845BC99AC72306C23D1044A02027E0A@CNBJMBX05.corpusers.net>
+ <20150202152909.13bfd11f192fb0268b2ab4bf@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
- boundary="Sig_/AcdG120SF4I+AR.wY9HDmwk"; protocol="application/pgp-signature"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:36645 "EHLO ozlabs.org"
+Received: from mta-out1.inet.fi ([62.71.2.227]:53472 "EHLO kirsi1.inet.fi"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755313AbbBCAIz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 2 Feb 2015 19:08:55 -0500
-In-Reply-To: <3429563.4px2PR9Zmy@wuerfel>
+	id S1754951AbbBCBUa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Feb 2015 20:20:30 -0500
+Content-Disposition: inline
+In-Reply-To: <20150202152909.13bfd11f192fb0268b2ab4bf@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, Geert Uytterhoeven <geert@linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: "Wang, Yalin" <Yalin.Wang@sonymobile.com>, "'arnd@arndb.de'" <arnd@arndb.de>, "'linux-arch@vger.kernel.org'" <linux-arch@vger.kernel.org>, "'linux-kernel@vger.kernel.org'" <linux-kernel@vger.kernel.org>, "'linux@arm.linux.org.uk'" <linux@arm.linux.org.uk>, "'linux-arm-kernel@lists.infradead.org'" <linux-arm-kernel@lists.infradead.org>
 
---Sig_/AcdG120SF4I+AR.wY9HDmwk
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: quoted-printable
+On Mon, Feb 02, 2015 at 03:29:09PM -0800, Andrew Morton wrote:
+> On Mon, 2 Feb 2015 11:55:03 +0800 "Wang, Yalin" <Yalin.Wang@sonymobile.com> wrote:
+> 
+> > This patch change non-atomic bitops,
+> > add a if() condition to test it, before set/clear the bit.
+> > so that we don't need dirty the cache line, if this bit
+> > have been set or clear. On SMP system, dirty cache line will
+> > need invalidate other processors cache line, this will have
+> > some impact on SMP systems.
+> > 
+> > --- a/include/asm-generic/bitops/non-atomic.h
+> > +++ b/include/asm-generic/bitops/non-atomic.h
+> > @@ -17,7 +17,9 @@ static inline void __set_bit(int nr, volatile unsigned long *addr)
+> >  	unsigned long mask = BIT_MASK(nr);
+> >  	unsigned long *p = ((unsigned long *)addr) + BIT_WORD(nr);
+> >  
+> > -	*p  |= mask;
+> > +	if ((*p & mask) == 0)
+> > +		*p  |= mask;
+> > +
+> >  }
+> 
+> hm, maybe.
+> 
+> It will speed up set_bit on an already-set bit.  But it will slow down
+> set_bit on a not-set bit.  And the latter case is presumably much, much
+> more common.
+> 
+> How do we know the patch is a net performance gain?
 
-Hi Arnd,
+Let's try to measure. The micro benchmark:
 
-On Mon, 02 Feb 2015 21:11:50 +0100 Arnd Bergmann <arnd@arndb.de> wrote:
->
-> On Tuesday 03 February 2015 00:48:20 Yoshinori Sato wrote:
->=20
-> > --- a/arch/arm/Kconfig
-> > +++ b/arch/arm/Kconfig
-> > @@ -76,6 +76,7 @@ config ARM
-> >        select PERF_USE_VMALLOC
-> >        select RTC_LIB
-> >        select SYS_SUPPORTS_APM_EMULATION
-> >+       select ARCH_MIGHT_HAVE_VGA_CONSOLE if ARCH_FOOTBRIDGE || ARCH_IN=
-TEGRATOR || ARCH_NETWINDER
-> >        # Above selects are sorted alphabetically; please add new ones
-> >        # according to that.  Thanks.
-> >        help
->=20
-> You did not read the comment in the patch context: This list of selects is
-> sorted alphabetically in order to avoid merge conflicts. Please keep it t=
-his
-> way.
+	#include <stdio.h>
+	#include <time.h>
+	#include <sys/mman.h>
 
-Why would you not just put the "select ARCH_MIGHT_HAVE_VGA_CONSOLE"
-under each of those other config symbols and further restrict the
-possibility of conflicts?
+	#ifdef CACHE_HOT
+	#define SIZE (2UL << 20)
+	#define TIMES 10000000
+	#else
+	#define SIZE (1UL << 30)
+	#define TIMES 10000
+	#endif
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
+	int main(int argc, char **argv)
+	{
+		struct timespec a, b, diff;
+		unsigned long i, *p, times = TIMES;
 
---Sig_/AcdG120SF4I+AR.wY9HDmwk
-Content-Type: application/pgp-signature
-Content-Description: OpenPGP digital signature
+		p = mmap(NULL, SIZE, PROT_READ | PROT_WRITE,
+				MAP_ANONYMOUS | MAP_PRIVATE | MAP_POPULATE, -1, 0);
+		
+		clock_gettime(CLOCK_MONOTONIC, &a);
+		while (times--) {
+			for (i = 0; i < SIZE/64/sizeof(*p); i++) {
+	#ifdef CHECK_BEFORE_SET
+				if (p[i] != times)
+	#endif
+					p[i] = times;
+			}
+		}
+		clock_gettime(CLOCK_MONOTONIC, &b);
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
+		diff.tv_sec = b.tv_sec - a.tv_sec;
+		if (a.tv_nsec > b.tv_nsec) {
+			diff.tv_sec--;
+			diff.tv_nsec = 1000000000 + b.tv_nsec - a.tv_nsec;
+		} else
+			diff.tv_nsec = b.tv_nsec - a.tv_nsec;
 
-iQIcBAEBCAAGBQJU0BGVAAoJEMDTa8Ir7ZwVS8IP/RxbalUtrmQX6Rlh45qG23QV
-21iWJLNv2/DigamYKnJoQxNEDZGdL1aCwpX/44+JgBPDYzUtRiWE7BxtjfhT/Ebq
-9pjg+4zbdhqxhZmn3g//Kn6F8bWzqn96Zfdnulksw9Bmlgna+cPe4vN1/Ce/Inop
-jiTr0hvmEGeG8HDH3BEwbT3DD1hKGYFAuyEDGnfI/tnJWtQQpSfQRSE6NqVNdOYW
-XChOyWENn7Lo65R/mIhMsZ4mNKc8Ry7yN4Y5tBFxbtZRHK3M8n3k0xmbysZaSZab
-nHP8ag2yU2Jmk1xi5Voq27HhfKkxmJE7FmpII/vcEJ5R2Xue3iCZPbs+Y5GAd1Wm
-BXE5csJlQh9ssamQIaDlvuSIO2WjiFeN5CSwjRTDPbBjt7qwIw+QvI6kmevjZnZ/
-16zSbBPnknEPm1ukNJDDlN0hBCFOYrL+mRvgd4gPuDZgwW9IjvS0eRfQUawUSMub
-wFFwg/omYXE9yx+FJBLoELAuvxOKssuZLfmoJW7RSGOwXMIYQYNoV7eebkzDfuL3
-otGqtjlkCHz5IUPVo7hT/hfZ5sN9jvFeqDmJAcrBMNeBqKqH+thHt6rNaAUNzYDW
-cW1J52BbRqqWj8ARYSgVFiC0ToLEus6So/gHFgvSRauDGAheYE2MtUqgRwB5mRGz
-9dKAvWCuEO86N3j/DAh1
-=Nxmc
------END PGP SIGNATURE-----
+		printf("%lu.%09lu\n", diff.tv_sec, diff.tv_nsec);
+		return 0;
+	}
 
---Sig_/AcdG120SF4I+AR.wY9HDmwk--
+Results for 10 runs on my laptop -- i5-3427U (IvyBridge 1.8 Ghz, 2.8Ghz Turbo
+with 3MB LLC):
+
+				Avg		Stddev
+baseline			21.5351		0.5315
+-DCHECK_BEFORE_SET		21.9834		0.0789
+-DCACHE_HOT			14.9987		0.0365
+-DCACHE_HOT -DCHECK_BEFORE_SET	29.9010		0.0204
+
+Difference between -DCACHE_HOT and -DCACHE_HOT -DCHECK_BEFORE_SET appears
+huge, but if you recalculate it to CPU cycles per inner loop @ 2.8 Ghz,
+it's 1.02530 and 2.04401 CPU cycles respectively.
+
+Basically, the check is free on decent CPU. 
+
+-- 
+ Kirill A. Shutemov
