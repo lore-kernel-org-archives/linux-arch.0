@@ -1,65 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout4.w1.samsung.com ([210.118.77.14]:47179 "EHLO
-	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S966418AbbBCRnx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Feb 2015 12:43:53 -0500
-From: Andrey Ryabinin <a.ryabinin@samsung.com>
-Subject: [PATCH v11 17/19] kernel: add support for .init_array.* constructors
-Date: Tue, 03 Feb 2015 20:43:10 +0300
-Message-ID: <1422985392-28652-18-git-send-email-a.ryabinin@samsung.com>
-In-reply-to: <1422985392-28652-1-git-send-email-a.ryabinin@samsung.com>
-References: <1404905415-9046-1-git-send-email-a.ryabinin@samsung.com>
- <1422985392-28652-1-git-send-email-a.ryabinin@samsung.com>
+Received: from skprod2.natinst.com ([130.164.80.23]:53756 "EHLO ni.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S966015AbbBCT17 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 Feb 2015 14:27:59 -0500
+Date: Tue, 3 Feb 2015 13:27:30 -0600
+From: Josh Cartwright <joshc@ni.com>
+Subject: Re: __HAVE_ARCH_CMPXCHG on ARM?
+Message-ID: <20150203192730.GA10759@jcartwri.amer.corp.natinst.com>
+References: <20150129185618.GA31459@nathan3500-linux-VM>
+ <CAM2zO=CVCZFNiSukgcgNNT0==xgLK4w5HF3Pz=dcFmrEHPtLdw@mail.gmail.com>
+ <20150202133933.GD31847@arm.com>
+MIME-Version: 1.0
+In-Reply-To: <20150202133933.GD31847@arm.com>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Andrey Ryabinin <a.ryabinin@samsung.com>, Dmitry Vyukov <dvyukov@google.com>, Konstantin Serebryany <kcc@google.com>, Dmitry Chernenkov <dmitryc@google.com>, Andrey Konovalov <adech.fo@gmail.com>, Yuri Gribov <tetra2005@gmail.com>, Konstantin Khlebnikov <koct9i@gmail.com>, Sasha Levin <sasha.levin@oracle.com>, Christoph Lameter <cl@linux.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, Dave Hansen <dave.hansen@intel.com>, Andi Kleen <andi@firstfloor.org>, x86@kernel.org, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>
-Message-ID: <20150203174310.QcNW9YDK31oYaVJyLzKfijCCs4s4HqsTf393bMxs2FM@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Yong Zhang <yong.zhang0@gmail.com>, Yong Zhang <yong.zhang@windriver.com>, Nathan Sullivan <nathan.sullivan@ni.com>, linux-rt-users <linux-rt-users@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-arch@vger.kernel.org
+Message-ID: <20150203192730.Tx93783EUbqRTrQfvnGIHDEGkFt60e2cgjP-m5Mwjcs@z>
 
-KASan uses constructors for initializing redzones for global
-variables. Globals instrumentation in GCC 4.9.2 produces
-constructors with priority (.init_array.00099)
+On Mon, Feb 02, 2015 at 01:39:33PM +0000, Will Deacon wrote:
+> On Fri, Jan 30, 2015 at 08:44:48AM +0000, Yong Zhang wrote:
+> > On Fri, Jan 30, 2015 at 2:56 AM, Nathan Sullivan <nathan.sullivan@ni.com<mailto:nathan.sullivan@ni.com>> wrote:
+> > 
+> > While investigating a performance issue on RT 3.14, I noticed that
+> > __HAVE_ARCH_CMPXCHG is not defined for ARM.  This causes -rt locks to
+> > always use the slow path and impacts performance.  ARMv6 and above
+> > have a cmpxchg implementation already that will work just fine.
+> > 
+> > In 2012, Yong Zhang submitted a patch to fix this[1], but it mysteriously
+> > disappeared afterwards.  I did notice that the s-o-b line has a different
+> > email address than the windriver one.  Yong, do you mind re-submitting the
+> > 
+> > It actually doesn't matter. Anyway feel free to add another s-o-b to
+> > the patch:
+> > 
+> > Signed-off-by: Yong Zhang <yong.zhang@windriver.com<mailto:yong.zhang@windriver.com>>
 
-Currently kernel ignores such constructors. Only constructors
-with default priority supported (.init_array)
+I did a quick scan of architectures and looked at the various cmpxchg
+implementations.  Assuming that __HAVE_ARCH_CMPXCHG really means "this
+architecture implements a native cmpxchg which is faster than the
+generic implementation", I put what I found in the following table; note
+that I'm not 100% confident these are correct, as in some instances I
+had to make a judgement call as to whether the implementation is "fast",
+hopefully it's still useful :).
 
-This patch adds support for constructors with priorities.
-For kernel image we put pointers to constructors between
-__ctors_start/__ctors_end and do_ctors() will call them
-on start up.
-For modules we merge .init_array.* sections into resulting .init_array.
-Module code properly handles constructors in .init_array section.
+                 native         native
+                cmpxchg (UP)   cmpxchg (SMP)    __HAVE_ARCH_CMPXCHG
+          alpha     X               X                      X
+            arc     X[1]            X[1]
+arm (pre ARMv6)                    [2]
+   arm (ARMv6+)     X               X
+          arm64     X               X
+          avr32     X               X                      X
+       blackfin                     X
+            c6x                    [2]
+           cris                    [3]
+            frv     X               X
+        hexagon     X               X                      X
+           ia64     X               X                      X
+           m32r     X               X                      X
+           m68k     X[4]            X[4]                   X[4]
+          metag     X               X                      X
+     microblaze                    [2]
+           mips     X               X
+        mn10300                     X[5]
+          nios2                    [2]
+       openrisc                    [6]
+         parisc     X               X                      X
+        powerpc     X               X                      X
+           s390     X               X                      X
+          score    [7]             [7]                     X[7]
+             sh     X               X                      X
+          sparc     X               X                      X
+           tile     X               X
+      unicore32                    [2]
+            x86     X               X                      X
+         xtensa     X               X
 
-Signed-off-by: Andrey Ryabinin <a.ryabinin@samsung.com>
----
- include/asm-generic/vmlinux.lds.h | 1 +
- scripts/module-common.lds         | 3 +++
- 2 files changed, 4 insertions(+)
+1: Conditional on CONFIG_ARC_HAS_LLSC
+2: SMP not a supported configuration
+3: No cmpxchg() implementation at all?
+4: Conditional on CONFIG_RMW_INSNS
+5: Conditional on CONFIG_MN10300_HAS_ATOMIC_OPS_UNIT
+6: SMP not supported?  Uses generic cmpxchg.
+7: Should use generic cmpxchg/cmpxchg_local?  Setting __HAVE_ARCH_CMPXCHG a bug?
 
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index bee5d68..ac78910 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -478,6 +478,7 @@
- #define KERNEL_CTORS()	. = ALIGN(8);			   \
- 			VMLINUX_SYMBOL(__ctors_start) = .; \
- 			*(.ctors)			   \
-+			*(SORT(.init_array.*))		   \
- 			*(.init_array)			   \
- 			VMLINUX_SYMBOL(__ctors_end) = .;
- #else
-diff --git a/scripts/module-common.lds b/scripts/module-common.lds
-index 0865b3e..01c5849 100644
---- a/scripts/module-common.lds
-+++ b/scripts/module-common.lds
-@@ -16,4 +16,7 @@ SECTIONS {
- 	__kcrctab_unused	: { *(SORT(___kcrctab_unused+*)) }
- 	__kcrctab_unused_gpl	: { *(SORT(___kcrctab_unused_gpl+*)) }
- 	__kcrctab_gpl_future	: { *(SORT(___kcrctab_gpl_future+*)) }
-+
-+	. = ALIGN(8);
-+	.init_array		: { *(SORT(.init_array.*)) *(.init_array) }
- }
--- 
-2.2.2
+> > +#define __HAVE_ARCH_CMPXCHG 1
+> 
+> Is it even possible to have CONFIG_SMP=y on an architecture that doesn't
+> support native cmpxchg? Certainly, the asm-generic cmpxchg.h barfs if
+> SMP, so couldn't we just change/extend the __HAVE_ARCH_CMPXCHG check in
+> rtmutex.c to work automatically with SMP architectures? That would help
+> arm64 too.
 
+Looks like there are a few arch-specific conditionals that might need to
+be worked out for arc, m68k, and mn10300; but this could potentially
+work.
+
+If we don't go down that route, we should probably at least add
+__HAVE_ARCH_CMPXCHG for arm64, blackfin (on SMP), frv, mips, tile, and
+xtensa as well.
+
+  Josh
