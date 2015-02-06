@@ -1,508 +1,196 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from youngberry.canonical.com ([91.189.89.112]:41381 "EHLO
-	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756037AbbBFMDJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Feb 2015 07:03:09 -0500
-From: Luis Henriques <luis.henriques@canonical.com>
-Subject: [PATCH 3.16.y-ckt 116/135] vm: add VM_FAULT_SIGSEGV handling support
-Date: Fri,  6 Feb 2015 12:01:34 +0000
-Message-ID: <1423224113-10958-117-git-send-email-luis.henriques@canonical.com>
-In-Reply-To: <1423224113-10958-1-git-send-email-luis.henriques@canonical.com>
-References: <1423224113-10958-1-git-send-email-luis.henriques@canonical.com>
+Received: from mail-ob0-f176.google.com ([209.85.214.176]:37723 "EHLO
+	mail-ob0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752344AbbBFTXp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Feb 2015 14:23:45 -0500
+Received: by mail-ob0-f176.google.com with SMTP id wo20so15282308obc.7
+        for <linux-arch@vger.kernel.org>; Fri, 06 Feb 2015 11:23:45 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <CALCETrWTnqKDoatK+5FN=yYDOeENoW5=r5YMToYKhZ8Zfv5wWA@mail.gmail.com>
+References: <cover.1409954077.git.luto@amacapital.net>
+	<2df320a600020fda055fccf2b668145729dd0c04.1409954077.git.luto@amacapital.net>
+	<20150205211916.GA31367@altlinux.org>
+	<CAGXu5j+aXxt55LsxxbNkfGGF719ubXBZ2JAFwUPNARwKMVFgng@mail.gmail.com>
+	<20150205214027.GB31367@altlinux.org>
+	<CALCETrXFzcXngHsX=_72hYZqms32Zf7oFYDBgC3XNw7zOGdDCA@mail.gmail.com>
+	<CAGXu5jJtHT9o8WMoynifN13=uZoARt4G9iVcgZsc9xYOBEwWsg@mail.gmail.com>
+	<20150205233945.GA31540@altlinux.org>
+	<CAGXu5jLTH+mUF0JxeR2qA_r=ocWjPHPSK2OPgE0Fu_JKoQyQ9w@mail.gmail.com>
+	<CALCETrXsCUje+_V=Ud+TB4A2jH2M7yqyoCFMLEyxOD6pd7Di5w@mail.gmail.com>
+	<20150206023249.GB31540@altlinux.org>
+	<CALCETrWTnqKDoatK+5FN=yYDOeENoW5=r5YMToYKhZ8Zfv5wWA@mail.gmail.com>
+Date: Fri, 6 Feb 2015 11:23:44 -0800
+Message-ID: <CAGXu5j+nopAMFukwMu=Cy0GOapziOLTb-ryJhA-aywk_uerg9A@mail.gmail.com>
+Subject: Re: [PATCH v5 3/5] x86: Split syscall_trace_enter into two phases
+From: Kees Cook <keescook@chromium.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, stable@vger.kernel.org, kernel-team@lists.ubuntu.com
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Luis Henriques <luis.henriques@canonical.com>
-Message-ID: <20150206120134.OG2chTYG9Zur_KkNAtq6YMUirKk4yBbwlivWb1aplmc@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: "Dmitry V. Levin" <ldv@altlinux.org>, LKML <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>, "H. Peter Anvin" <hpa@zytor.com>, Frederic Weisbecker <fweisbec@gmail.com>, Michael Kerrisk-manpages <mtk.manpages@gmail.com>
+Message-ID: <20150206192344.aPMjgJlPmtvvlvTcUeDyDWVSMwegBQ4HcsWoYekcEbA@z>
 
-3.16.7-ckt6 -stable review patch.  If anyone has any objections, please let me know.
+On Thu, Feb 5, 2015 at 6:38 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+> On Thu, Feb 5, 2015 at 6:32 PM, Dmitry V. Levin <ldv@altlinux.org> wrote:
+>> On Thu, Feb 05, 2015 at 04:09:06PM -0800, Andy Lutomirski wrote:
+>>> On Thu, Feb 5, 2015 at 3:49 PM, Kees Cook <keescook@chromium.org> wrote:
+>>> > On Thu, Feb 5, 2015 at 3:39 PM, Dmitry V. Levin <ldv@altlinux.org> wrote:
+>> [...]
+>>> >> There is a clear difference: before these changes, SECCOMP_RET_ERRNO used
+>>> >> to keep the syscall number unchanged and suppress syscall-exit-stop event,
+>>> >> which was awful because userspace cannot distinguish syscall-enter-stop
+>>> >> from syscall-exit-stop and therefore relies on the kernel that
+>>> >> syscall-enter-stop is followed by syscall-exit-stop (or tracee's death, etc.).
+>>> >>
+>>> >> After these changes, SECCOMP_RET_ERRNO no longer causes syscall-exit-stop
+>>> >> events to be suppressed, but now the syscall number is lost.
+>>> >
+>>> > Ah-ha! Okay, thanks, I understand now. I think this means seccomp
+>>> > phase1 should not treat RET_ERRNO as a "skip" event. Andy, what do you
+>>> > think here?
+>>>
+>>> I still don't quite see how this change caused this.
+>>
+>> I have a test for this at
+>> http://sourceforge.net/p/strace/code/ci/HEAD/~/tree/test/seccomp.c
+>>
+>>> I can play with
+>>> it a bit more.  But RET_ERRNO *has* to be some kind of skip event,
+>>> because it needs to skip the syscall.
+>>>
+>>> We could change this by treating RET_ERRNO as an instruction to enter
+>>> phase 2 and then asking for a skip in phase 2 without changing
+>>> orig_ax, but IMO this is pretty ugly.
+>>>
+>>> I think this all kind of sucks.  We're trying to run ptrace after
+>>> seccomp, so ptrace is seeing the syscalls as transformed by seccomp.
+>>> That means that if we use RET_TRAP, then ptrace will see the
+>>> possibly-modified syscall, if we use RET_ERRNO, then ptrace is (IMO
+>>> correctly given the current design) showing syscall -1, and if we use
+>>> RET_KILL, then ptrace just sees the process mysteriously die.
+>>
+>> Userspace is usually not prepared to see syscall -1.
+>> For example, strace had to be patched, otherwise it just skipped such
+>> syscalls as "not a syscall" events or did other improper things:
+>> http://sourceforge.net/p/strace/code/ci/c3948327717c29b10b5e00a436dc138b4ab1a486
+>> http://sourceforge.net/p/strace/code/ci/8e398b6c4020fb2d33a5b3e40271ebf63199b891
+>>
+>
+> The x32 thing is a legit ABI bug, I'd argue.  I'd be happy to submit a
+> patch to fix that (clear the x32 bit if we're not x32).
+>
+>> A slightly different but related story: userspace is also not prepared
+>> to handle large errno values produced by seccomp filters like this:
+>> BPF_STMT(BPF_RET, SECCOMP_RET_ERRNO | SECCOMP_RET_DATA)
+>>
+>> For example, glibc assumes that syscalls do not return errno values greater than 0xfff:
+>> https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/x86_64/sysdep.h#l55
+>> https://sourceware.org/git/?p=glibc.git;a=blob;f=sysdeps/unix/sysv/linux/x86_64/syscall.S#l20
 
-------------------
+To save others the link reading: "Linus said he will make sure the no
+syscall returns a value in -1 .. -4095 as a valid result so we can
+savely test with -4095."
 
-From: Linus Torvalds <torvalds@linux-foundation.org>
+Strictly speaking (ISO C, "man 3 errno"), errno is supposed to be a
+full int, though digging around I find this in include/linux/err.h:
 
-commit 33692f27597fcab536d7cbbcc8f52905133e4aa7 upstream.
+/*
+ * Kernel pointers have redundant information, so we can use a
+ * scheme where we can return either an error code or a normal
+ * pointer with the same return value.
+ *
+ * This should be a per-architecture thing, to allow different
+ * error and pointer decisions.
+ */
+#define MAX_ERRNO       4095
 
-The core VM already knows about VM_FAULT_SIGBUS, but cannot return a
-"you should SIGSEGV" error, because the SIGSEGV case was generally
-handled by the caller - usually the architecture fault handler.
+#ifndef __ASSEMBLY__
 
-That results in lots of duplication - all the architecture fault
-handlers end up doing very similar "look up vma, check permissions, do
-retries etc" - but it generally works.  However, there are cases where
-the VM actually wants to SIGSEGV, and applications _expect_ SIGSEGV.
+#define IS_ERR_VALUE(x) unlikely((x) >= (unsigned long)-MAX_ERRNO)
 
-In particular, when accessing the stack guard page, libsigsegv expects a
-SIGSEGV.  And it usually got one, because the stack growth is handled by
-that duplicated architecture fault handler.
+But no architecture overrides this.
 
-However, when the generic VM layer started propagating the error return
-from the stack expansion in commit fee7e49d4514 ("mm: propagate error
-from stack expansion even for guard page"), that now exposed the
-existing VM_FAULT_SIGBUS result to user space.  And user space really
-expected SIGSEGV, not SIGBUS.
+>> If it isn't too late, I'd recommend changing SECCOMP_RET_DATA mask
+>> applied in SECCOMP_RET_ERRNO case from current 0xffff to 0xfff.
 
-To fix that case, we need to add a VM_FAULT_SIGSEGV, and teach all those
-duplicate architecture fault handlers about it.  They all already have
-the code to handle SIGSEGV, so it's about just tying that new return
-value to the existing code, but it's all a bit annoying.
+I'm not opposed to this. I would want to more explicitly document the
+4095 max value in man pages, though.
 
-This is the mindless minimal patch to do this.  A more extensive patch
-would be to try to gather up the mostly shared fault handling logic into
-one generic helper routine, and long-term we really should do that
-cleanup.
+> I think this is solidly in the "don't do that" category.  Seccomp lets
+> you tamper with syscalls.  If you tamper wrong, then you lose.
+>
+> Kees, what do you think about reversing the whole thing so that
+> ptracers always see the original syscall?
 
-Just from this patch, you can generally see that most architectures just
-copied (directly or indirectly) the old x86 way of doing things, but in
-the meantime that original x86 model has been improved to hold the VM
-semaphore for shorter times etc and to handle VM_FAULT_RETRY and other
-"newer" things, so it would be a good idea to bring all those
-improvements to the generic case and teach other architectures about
-them too.
+What do you mean by "reversing"? The interactions I see here are:
 
-Reported-and-tested-by: Takashi Iwai <tiwai@suse.de>
-Tested-by: Jan Engelhardt <jengelh@inai.de>
-Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com> # "s390 still compiles and boots"
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
-[ luis: backported to 3.16:
-  - file renamed: arch/powerpc/mm/copro_fault.c ->
-    arch/powerpc/platforms/cell/spu_fault.c
-  - dropped changes to arch/nios2/mm/fault.c ]
-Signed-off-by: Luis Henriques <luis.henriques@canonical.com>
----
- arch/alpha/mm/fault.c                        | 2 ++
- arch/arc/mm/fault.c                          | 2 ++
- arch/avr32/mm/fault.c                        | 2 ++
- arch/cris/mm/fault.c                         | 2 ++
- arch/frv/mm/fault.c                          | 2 ++
- arch/ia64/mm/fault.c                         | 2 ++
- arch/m32r/mm/fault.c                         | 2 ++
- arch/m68k/mm/fault.c                         | 2 ++
- arch/metag/mm/fault.c                        | 2 ++
- arch/microblaze/mm/fault.c                   | 2 ++
- arch/mips/mm/fault.c                         | 2 ++
- arch/mn10300/mm/fault.c                      | 2 ++
- arch/openrisc/mm/fault.c                     | 2 ++
- arch/parisc/mm/fault.c                       | 2 ++
- arch/powerpc/mm/fault.c                      | 2 ++
- arch/powerpc/platforms/cell/spu_fault.c      | 2 +-
- arch/s390/mm/fault.c                         | 6 ++++++
- arch/score/mm/fault.c                        | 2 ++
- arch/sh/mm/fault.c                           | 2 ++
- arch/sparc/mm/fault_32.c                     | 2 ++
- arch/sparc/mm/fault_64.c                     | 2 ++
- arch/tile/mm/fault.c                         | 2 ++
- arch/um/kernel/trap.c                        | 2 ++
- arch/x86/mm/fault.c                          | 2 ++
- arch/xtensa/mm/fault.c                       | 2 ++
- drivers/staging/lustre/lustre/llite/vvp_io.c | 2 +-
- include/linux/mm.h                           | 6 ++++--
- mm/gup.c                                     | 4 ++--
- mm/ksm.c                                     | 2 +-
- 29 files changed, 61 insertions(+), 7 deletions(-)
+PTRACE_SYSCALL
+SECCOMP_RET_ERRNO
+SECCOMP_RET_TRACE
+SECCOMP_RET_TRAP
 
-diff --git a/arch/alpha/mm/fault.c b/arch/alpha/mm/fault.c
-index 98838a05ba6d..9d0ac091a52a 100644
---- a/arch/alpha/mm/fault.c
-+++ b/arch/alpha/mm/fault.c
-@@ -156,6 +156,8 @@ retry:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/arc/mm/fault.c b/arch/arc/mm/fault.c
-index 9c69552350c4..15879a1f864c 100644
---- a/arch/arc/mm/fault.c
-+++ b/arch/arc/mm/fault.c
-@@ -162,6 +162,8 @@ good_area:
- 	/* TBD: switch to pagefault_out_of_memory() */
- 	if (fault & VM_FAULT_OOM)
- 		goto out_of_memory;
-+	else if (fault & VM_FAULT_SIGSEV)
-+		goto bad_area;
- 	else if (fault & VM_FAULT_SIGBUS)
- 		goto do_sigbus;
- 
-diff --git a/arch/avr32/mm/fault.c b/arch/avr32/mm/fault.c
-index 0eca93327195..d223a8b57c1e 100644
---- a/arch/avr32/mm/fault.c
-+++ b/arch/avr32/mm/fault.c
-@@ -142,6 +142,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/cris/mm/fault.c b/arch/cris/mm/fault.c
-index 1790f22e71a2..2686a7aa8ec8 100644
---- a/arch/cris/mm/fault.c
-+++ b/arch/cris/mm/fault.c
-@@ -176,6 +176,8 @@ retry:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/frv/mm/fault.c b/arch/frv/mm/fault.c
-index 9a66372fc7c7..ec4917ddf678 100644
---- a/arch/frv/mm/fault.c
-+++ b/arch/frv/mm/fault.c
-@@ -168,6 +168,8 @@ asmlinkage void do_page_fault(int datammu, unsigned long esr0, unsigned long ear
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/ia64/mm/fault.c b/arch/ia64/mm/fault.c
-index 7225dad87094..ba5ba7accd0d 100644
---- a/arch/ia64/mm/fault.c
-+++ b/arch/ia64/mm/fault.c
-@@ -172,6 +172,8 @@ retry:
- 		 */
- 		if (fault & VM_FAULT_OOM) {
- 			goto out_of_memory;
-+		} else if (fault & VM_FAULT_SIGSEGV) {
-+			goto bad_area;
- 		} else if (fault & VM_FAULT_SIGBUS) {
- 			signal = SIGBUS;
- 			goto bad_area;
-diff --git a/arch/m32r/mm/fault.c b/arch/m32r/mm/fault.c
-index e9c6a8014bd6..e3d4d4890104 100644
---- a/arch/m32r/mm/fault.c
-+++ b/arch/m32r/mm/fault.c
-@@ -200,6 +200,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/m68k/mm/fault.c b/arch/m68k/mm/fault.c
-index 2bd7487440c4..b2f04aee46ec 100644
---- a/arch/m68k/mm/fault.c
-+++ b/arch/m68k/mm/fault.c
-@@ -145,6 +145,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto map_err;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto bus_err;
- 		BUG();
-diff --git a/arch/metag/mm/fault.c b/arch/metag/mm/fault.c
-index 332680e5ebf2..2de5dc695a87 100644
---- a/arch/metag/mm/fault.c
-+++ b/arch/metag/mm/fault.c
-@@ -141,6 +141,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/microblaze/mm/fault.c b/arch/microblaze/mm/fault.c
-index fa4cf52aa7a6..d46a5ebb7570 100644
---- a/arch/microblaze/mm/fault.c
-+++ b/arch/microblaze/mm/fault.c
-@@ -224,6 +224,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/mips/mm/fault.c b/arch/mips/mm/fault.c
-index becc42bb1849..70ab5d664332 100644
---- a/arch/mips/mm/fault.c
-+++ b/arch/mips/mm/fault.c
-@@ -158,6 +158,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/mn10300/mm/fault.c b/arch/mn10300/mm/fault.c
-index 3516cbdf1ee9..0c2cc5d39c8e 100644
---- a/arch/mn10300/mm/fault.c
-+++ b/arch/mn10300/mm/fault.c
-@@ -262,6 +262,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/openrisc/mm/fault.c b/arch/openrisc/mm/fault.c
-index 0703acf7d327..230ac20ae794 100644
---- a/arch/openrisc/mm/fault.c
-+++ b/arch/openrisc/mm/fault.c
-@@ -171,6 +171,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/parisc/mm/fault.c b/arch/parisc/mm/fault.c
-index 3ca9c1131cfe..e5120e653240 100644
---- a/arch/parisc/mm/fault.c
-+++ b/arch/parisc/mm/fault.c
-@@ -256,6 +256,8 @@ good_area:
- 		 */
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto bad_area;
- 		BUG();
-diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
-index 51ab9e7e6c39..010fabf3828c 100644
---- a/arch/powerpc/mm/fault.c
-+++ b/arch/powerpc/mm/fault.c
-@@ -432,6 +432,8 @@ good_area:
- 	 */
- 	fault = handle_mm_fault(mm, vma, address, flags);
- 	if (unlikely(fault & (VM_FAULT_RETRY|VM_FAULT_ERROR))) {
-+		if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		rc = mm_fault_error(regs, address, fault);
- 		if (rc >= MM_FAULT_RETURN)
- 			goto bail;
-diff --git a/arch/powerpc/platforms/cell/spu_fault.c b/arch/powerpc/platforms/cell/spu_fault.c
-index 641e7273d75a..62f3e4e48a0b 100644
---- a/arch/powerpc/platforms/cell/spu_fault.c
-+++ b/arch/powerpc/platforms/cell/spu_fault.c
-@@ -75,7 +75,7 @@ int spu_handle_mm_fault(struct mm_struct *mm, unsigned long ea,
- 		if (*flt & VM_FAULT_OOM) {
- 			ret = -ENOMEM;
- 			goto out_unlock;
--		} else if (*flt & VM_FAULT_SIGBUS) {
-+		} else if (*flt & (VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV)) {
- 			ret = -EFAULT;
- 			goto out_unlock;
- 		}
-diff --git a/arch/s390/mm/fault.c b/arch/s390/mm/fault.c
-index 3f3b35403d0a..6da2b0bf6a32 100644
---- a/arch/s390/mm/fault.c
-+++ b/arch/s390/mm/fault.c
-@@ -374,6 +374,12 @@ static noinline void do_fault_error(struct pt_regs *regs, int fault)
- 				do_no_context(regs);
- 			else
- 				pagefault_out_of_memory();
-+		} else if (fault & VM_FAULT_SIGSEGV) {
-+			/* Kernel mode? Handle exceptions or die */
-+			if (!user_mode(regs))
-+				do_no_context(regs);
-+			else
-+				do_sigsegv(regs, SEGV_MAPERR);
- 		} else if (fault & VM_FAULT_SIGBUS) {
- 			/* Kernel mode? Handle exceptions or die */
- 			if (!user_mode(regs))
-diff --git a/arch/score/mm/fault.c b/arch/score/mm/fault.c
-index 52238983527d..6860beb2a280 100644
---- a/arch/score/mm/fault.c
-+++ b/arch/score/mm/fault.c
-@@ -114,6 +114,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/sh/mm/fault.c b/arch/sh/mm/fault.c
-index 541dc6101508..a58fec9b55e0 100644
---- a/arch/sh/mm/fault.c
-+++ b/arch/sh/mm/fault.c
-@@ -353,6 +353,8 @@ mm_fault_error(struct pt_regs *regs, unsigned long error_code,
- 	} else {
- 		if (fault & VM_FAULT_SIGBUS)
- 			do_sigbus(regs, error_code, address);
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			bad_area(regs, error_code, address);
- 		else
- 			BUG();
- 	}
-diff --git a/arch/sparc/mm/fault_32.c b/arch/sparc/mm/fault_32.c
-index 908e8c17c902..70d817154fe8 100644
---- a/arch/sparc/mm/fault_32.c
-+++ b/arch/sparc/mm/fault_32.c
-@@ -249,6 +249,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/sparc/mm/fault_64.c b/arch/sparc/mm/fault_64.c
-index 18fcd7167095..479823249429 100644
---- a/arch/sparc/mm/fault_64.c
-+++ b/arch/sparc/mm/fault_64.c
-@@ -446,6 +446,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/tile/mm/fault.c b/arch/tile/mm/fault.c
-index 6c0571216a9d..c6d2a76d91a8 100644
---- a/arch/tile/mm/fault.c
-+++ b/arch/tile/mm/fault.c
-@@ -444,6 +444,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/um/kernel/trap.c b/arch/um/kernel/trap.c
-index 5678c3571e7c..209617302df8 100644
---- a/arch/um/kernel/trap.c
-+++ b/arch/um/kernel/trap.c
-@@ -80,6 +80,8 @@ good_area:
- 		if (unlikely(fault & VM_FAULT_ERROR)) {
- 			if (fault & VM_FAULT_OOM) {
- 				goto out_of_memory;
-+			} else if (fault & VM_FAULT_SIGSEGV) {
-+				goto out;
- 			} else if (fault & VM_FAULT_SIGBUS) {
- 				err = -EACCES;
- 				goto out;
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 36642793e315..6d0e5472a5e5 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -902,6 +902,8 @@ mm_fault_error(struct pt_regs *regs, unsigned long error_code,
- 		if (fault & (VM_FAULT_SIGBUS|VM_FAULT_HWPOISON|
- 			     VM_FAULT_HWPOISON_LARGE))
- 			do_sigbus(regs, error_code, address, fault);
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			bad_area_nosemaphore(regs, error_code, address);
- 		else
- 			BUG();
- 	}
-diff --git a/arch/xtensa/mm/fault.c b/arch/xtensa/mm/fault.c
-index b57c4f91f487..9e3571a6535c 100644
---- a/arch/xtensa/mm/fault.c
-+++ b/arch/xtensa/mm/fault.c
-@@ -117,6 +117,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/drivers/staging/lustre/lustre/llite/vvp_io.c b/drivers/staging/lustre/lustre/llite/vvp_io.c
-index 0e0b404cb5e6..3ade29c40f79 100644
---- a/drivers/staging/lustre/lustre/llite/vvp_io.c
-+++ b/drivers/staging/lustre/lustre/llite/vvp_io.c
-@@ -629,7 +629,7 @@ static int vvp_io_kernel_fault(struct vvp_fault_io *cfio)
- 		return 0;
- 	}
- 
--	if (cfio->fault.ft_flags & VM_FAULT_SIGBUS) {
-+	if (cfio->fault.ft_flags & (VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV)) {
- 		CDEBUG(D_PAGE, "got addr %p - SIGBUS\n", vmf->virtual_address);
- 		return -EFAULT;
- 	}
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 663ad81d3c66..8ab91ce46487 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -1033,6 +1033,7 @@ static inline int page_mapped(struct page *page)
- #define VM_FAULT_WRITE	0x0008	/* Special case for get_user_pages */
- #define VM_FAULT_HWPOISON 0x0010	/* Hit poisoned small page */
- #define VM_FAULT_HWPOISON_LARGE 0x0020  /* Hit poisoned large page. Index encoded in upper bits */
-+#define VM_FAULT_SIGSEGV 0x0040
- 
- #define VM_FAULT_NOPAGE	0x0100	/* ->fault installed the pte, not return page */
- #define VM_FAULT_LOCKED	0x0200	/* ->fault locked the returned page */
-@@ -1041,8 +1042,9 @@ static inline int page_mapped(struct page *page)
- 
- #define VM_FAULT_HWPOISON_LARGE_MASK 0xf000 /* encodes hpage index for large hwpoison */
- 
--#define VM_FAULT_ERROR	(VM_FAULT_OOM | VM_FAULT_SIGBUS | VM_FAULT_HWPOISON | \
--			 VM_FAULT_FALLBACK | VM_FAULT_HWPOISON_LARGE)
-+#define VM_FAULT_ERROR	(VM_FAULT_OOM | VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV | \
-+			 VM_FAULT_HWPOISON | VM_FAULT_HWPOISON_LARGE | \
-+			 VM_FAULT_FALLBACK)
- 
- /* Encode hstate index for a hwpoisoned large page */
- #define VM_FAULT_SET_HINDEX(x) ((x) << 12)
-diff --git a/mm/gup.c b/mm/gup.c
-index cc5a9e7adea7..3840fdbad19e 100644
---- a/mm/gup.c
-+++ b/mm/gup.c
-@@ -283,7 +283,7 @@ static int faultin_page(struct task_struct *tsk, struct vm_area_struct *vma,
- 			return -ENOMEM;
- 		if (ret & (VM_FAULT_HWPOISON | VM_FAULT_HWPOISON_LARGE))
- 			return *flags & FOLL_HWPOISON ? -EHWPOISON : -EFAULT;
--		if (ret & VM_FAULT_SIGBUS)
-+		if (ret & (VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV))
- 			return -EFAULT;
- 		BUG();
- 	}
-@@ -551,7 +551,7 @@ int fixup_user_fault(struct task_struct *tsk, struct mm_struct *mm,
- 			return -ENOMEM;
- 		if (ret & (VM_FAULT_HWPOISON | VM_FAULT_HWPOISON_LARGE))
- 			return -EHWPOISON;
--		if (ret & VM_FAULT_SIGBUS)
-+		if (ret & (VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV))
- 			return -EFAULT;
- 		BUG();
- 	}
-diff --git a/mm/ksm.c b/mm/ksm.c
-index 346ddc9e4c0d..691f1bf55858 100644
---- a/mm/ksm.c
-+++ b/mm/ksm.c
-@@ -376,7 +376,7 @@ static int break_ksm(struct vm_area_struct *vma, unsigned long addr)
- 		else
- 			ret = VM_FAULT_WRITE;
- 		put_page(page);
--	} while (!(ret & (VM_FAULT_WRITE | VM_FAULT_SIGBUS | VM_FAULT_OOM)));
-+	} while (!(ret & (VM_FAULT_WRITE | VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV | VM_FAULT_OOM)));
- 	/*
- 	 * We must loop because handle_mm_fault() may back out if there's
- 	 * any difficulty e.g. if pte accessed bit gets updated concurrently.
+Both ptrace and seccomp will trigger via _TIF_WORK_SYSCALL_ENTRY. Only
+ptrace will trigger via _TIF_WORK_SYSCALL_EXIT.
+
+For SECCOMP_RET_ERRNO to work, we must skip the syscall, as mentioned earlier:
+
+arch/x86/kernel/entry_32.S ...
+syscall_trace_entry:
+        movl $-ENOSYS,PT_EAX(%esp)
+        movl %esp, %eax
+        call syscall_trace_enter
+        /* What it returned is what we'll actually use.  */
+        cmpl $(NR_syscalls), %eax
+        jnae syscall_call
+        jmp syscall_exit
+END(syscall_trace_entry)
+
+Both before and after the 2-phase change, syscall_trace_enter would
+return -1 if it hit SECCOMP_RET_ERRNO, before calling
+tracehook_report_syscall_entry. On exit, if PTRACE_SYSCALL, we'd hit
+tracehook_report_syscall_exit during syscall_trace_leave, which means
+a ptracer will see a syscall-exit-stop without a matching
+syscall-enter-stop.
+
+Using SECCOMP_RET_TRACE with PTRACE_SYSCALL in place seems totally
+crazy, as the ptracer would need to be the same program, and if it
+chose to skip a syscall, it would be in the same place: it would see
+PTRACE_EVENT_SECCOMP, then no syscall-enter-stop, then a
+syscall-exit-stop. I think we can ignore this pathological case.
+
+Using SECCOMP_RET_TRAP with PTRACE_SYSCALL also results in a skip,
+which produces the same "only syscall-exit-stop seen" problem.
+
+In the SECCOMP_RET_ERRNO case, the syscall nr doesn't change (and
+isn't executed). In the SECCOMP_RET_TRAP case, the syscall nr doesn't
+change (and isn't executed). In the SECCOMP_RET_TRACE, the syscall nr
+_could_ change, but the ptracer would be doing it, so the crazy
+situation around PTRACE_SYSCALL is probably safe to ignore (as long as
+we document what is expected to happen).
+
+So, the question is: should PTRACE_SYSCALL see a syscall that is _not_
+being executed (due to seccomp)? Audit doesn't see it currently, and
+neither does ptrace. I would argue that it should continue to not see
+the syscall. That said, if it shouldn't be shown, we also shouldn't
+trigger syscall-exit-stop. If you can convince me it should see
+syscall-enter-stop, then I have two questions:
+
+1) Do we accept that a ptracer can interfere with SECCOMP_RET_ERRNO? I
+think we probably must, since it can already interfere via
+syscall-exit-stop and change the errno. And especially since a ptracer
+can change syscalls during syscall-enter-stop to any syscall it wants,
+bypassing seccomp. This condition is already documented.
+
+2) What do we do with audit? Suddenly we have ptrace seeing a syscall
+that audit doesn't?
+
+And an unrelated thought:
+
+3) Can't we find some way to fix the inability of a ptracer to
+distinguish between syscall-enter-stop and syscall-exit-stop?
+
+-Kees
+
 -- 
-2.1.4
-
+Kees Cook
+Chrome OS Security
