@@ -1,53 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:46281 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755542AbbBFUMo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 6 Feb 2015 15:12:44 -0500
-Message-ID: <54D52000.40508@zytor.com>
-Date: Fri, 06 Feb 2015 12:11:44 -0800
-From: "H. Peter Anvin" <hpa@zytor.com>
+Received: from mail-lb0-f172.google.com ([209.85.217.172]:49527 "EHLO
+	mail-lb0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756112AbbBFUNE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Feb 2015 15:13:04 -0500
+Received: by mail-lb0-f172.google.com with SMTP id l4so20076126lbv.3
+        for <linux-arch@vger.kernel.org>; Fri, 06 Feb 2015 12:13:01 -0800 (PST)
 MIME-Version: 1.0
+In-Reply-To: <CAGXu5jJXspS_34KBJ5VxvyKuj4bA+zg267dNiEkqR1LuvjoA1Q@mail.gmail.com>
+References: <cover.1409954077.git.luto@amacapital.net> <2df320a600020fda055fccf2b668145729dd0c04.1409954077.git.luto@amacapital.net>
+ <20150205211916.GA31367@altlinux.org> <CAGXu5j+aXxt55LsxxbNkfGGF719ubXBZ2JAFwUPNARwKMVFgng@mail.gmail.com>
+ <20150205214027.GB31367@altlinux.org> <CALCETrXFzcXngHsX=_72hYZqms32Zf7oFYDBgC3XNw7zOGdDCA@mail.gmail.com>
+ <CAGXu5jJtHT9o8WMoynifN13=uZoARt4G9iVcgZsc9xYOBEwWsg@mail.gmail.com>
+ <20150205233945.GA31540@altlinux.org> <CAGXu5jLTH+mUF0JxeR2qA_r=ocWjPHPSK2OPgE0Fu_JKoQyQ9w@mail.gmail.com>
+ <CALCETrXsCUje+_V=Ud+TB4A2jH2M7yqyoCFMLEyxOD6pd7Di5w@mail.gmail.com>
+ <20150206023249.GB31540@altlinux.org> <CALCETrWTnqKDoatK+5FN=yYDOeENoW5=r5YMToYKhZ8Zfv5wWA@mail.gmail.com>
+ <CAGXu5j+nopAMFukwMu=Cy0GOapziOLTb-ryJhA-aywk_uerg9A@mail.gmail.com>
+ <CALCETrVaF+3ETn5nfcbvyWKUYb71jNXK-zo9V6uOK0cEW4TCNQ@mail.gmail.com> <CAGXu5jJXspS_34KBJ5VxvyKuj4bA+zg267dNiEkqR1LuvjoA1Q@mail.gmail.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Fri, 6 Feb 2015 12:12:41 -0800
+Message-ID: <CALCETrUmMA9sK4SJCSiF24iAiPLMBf=-JBw6TcLV+aLt_eN=Sw@mail.gmail.com>
 Subject: Re: [PATCH v5 3/5] x86: Split syscall_trace_enter into two phases
-References: <cover.1409954077.git.luto@amacapital.net>	<2df320a600020fda055fccf2b668145729dd0c04.1409954077.git.luto@amacapital.net>	<20150205211916.GA31367@altlinux.org>	<CAGXu5j+aXxt55LsxxbNkfGGF719ubXBZ2JAFwUPNARwKMVFgng@mail.gmail.com>	<20150205214027.GB31367@altlinux.org>	<CALCETrXFzcXngHsX=_72hYZqms32Zf7oFYDBgC3XNw7zOGdDCA@mail.gmail.com>	<CAGXu5jJtHT9o8WMoynifN13=uZoARt4G9iVcgZsc9xYOBEwWsg@mail.gmail.com>	<20150205233945.GA31540@altlinux.org>	<CAGXu5jLTH+mUF0JxeR2qA_r=ocWjPHPSK2OPgE0Fu_JKoQyQ9w@mail.gmail.com>	<CALCETrXsCUje+_V=Ud+TB4A2jH2M7yqyoCFMLEyxOD6pd7Di5w@mail.gmail.com>	<20150206023249.GB31540@altlinux.org>	<CALCETrWTnqKDoatK+5FN=yYDOeENoW5=r5YMToYKhZ8Zfv5wWA@mail.gmail.com> <CAGXu5j+nopAMFukwMu=Cy0GOapziOLTb-ryJhA-aywk_uerg9A@mail.gmail.com>
-In-Reply-To: <CAGXu5j+nopAMFukwMu=Cy0GOapziOLTb-ryJhA-aywk_uerg9A@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>
-Cc: "Dmitry V. Levin" <ldv@altlinux.org>, LKML <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>, Frederic Weisbecker <fweisbec@gmail.com>, Michael Kerrisk-manpages <mtk.manpages@gmail.com>
-Message-ID: <20150206201144.HKssPLv7M-2cTqUmKaDbCOEBuSWTI15vpyDC-kpWlKo@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: "Dmitry V. Levin" <ldv@altlinux.org>, LKML <linux-kernel@vger.kernel.org>, Will Drewry <wad@chromium.org>, Oleg Nesterov <oleg@redhat.com>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-arch <linux-arch@vger.kernel.org>, linux-security-module <linux-security-module@vger.kernel.org>, Alexei Starovoitov <ast@plumgrid.com>, "H. Peter Anvin" <hpa@zytor.com>, Frederic Weisbecker <fweisbec@gmail.com>, Michael Kerrisk-manpages <mtk.manpages@gmail.com>
+Message-ID: <20150206201241.ATDHFCw5mW7_m_zBGiM7TS97NWI4Wr0dfZjJ__Iperk@z>
 
-On 02/06/2015 11:23 AM, Kees Cook wrote:
-> 
-> Strictly speaking (ISO C, "man 3 errno"), errno is supposed to be a
-> full int, though digging around I find this in include/linux/err.h:
-> 
+On Fri, Feb 6, 2015 at 12:07 PM, Kees Cook <keescook@chromium.org> wrote:
+> On Fri, Feb 6, 2015 at 11:32 AM, Andy Lutomirski <luto@amacapital.net> wrote:
+>> On Fri, Feb 6, 2015 at 11:23 AM, Kees Cook <keescook@chromium.org> wrote:
+>>> And especially since a ptracer
+>>> can change syscalls during syscall-enter-stop to any syscall it wants,
+>>> bypassing seccomp. This condition is already documented.
+>>
+>> If a ptracer (using PTRACE_SYSCALL) were to get the entry callback
+>> before seccomp, then this oddity would go away, which might be a good
+>> thing.  A ptracer could change the syscall, but seccomp would based on
+>> what the ptracer changed the syscall to.
+>
+> I want kill events to trigger immediately. I don't want to leave the
+> ptrace surface available on a SECCOMP_RET_KILL. So maybe it can be
+> seccomp phase 1, then ptrace, then seccomp phase 2? And pass more
+> information between phases to determine how things should behave
+> beyond just "skip"?
 
-That doesn't mean the kernel has to support them.
+I thought so too, originally, but I'm far less convinced now, for two reasons:
 
-> /*
->  * Kernel pointers have redundant information, so we can use a
->  * scheme where we can return either an error code or a normal
->  * pointer with the same return value.
->  *
->  * This should be a per-architecture thing, to allow different
->  * error and pointer decisions.
->  */
-> #define MAX_ERRNO       4095
-> 
-> #ifndef __ASSEMBLY__
-> 
-> #define IS_ERR_VALUE(x) unlikely((x) >= (unsigned long)-MAX_ERRNO)
-> 
-> But no architecture overrides this.
-> 
+1. I think that a lot of filters these days use RET_ERRNO heavily, so
+this won't benefit them.
 
-We used to have a much lower value, that was per-architecture, in order
-to optimize the resulting assembly (e.g. 8-bit immediates on x86).  This
-didn't work as the number of errnos increased.  The other motivation was
-probably binary compatibility with other Unices, which was an idea for a
-while.
+2. I'm not convinced it really reduces the attack surface for anyone.
+Unless your filter is literally "return SECCOMP_RET_KILL", then the
+seccomp-filtered task can always cause the ptracer to get a pair of
+syscall notifications.  Also, the task can send itself signals (using
+page faults, breakpoints, etc) and cause ptrace events via other
+paths.
 
-	-hpa
-
+--Andy
