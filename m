@@ -1,42 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:53757 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751029AbbBKERG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Feb 2015 23:17:06 -0500
-Date: Wed, 11 Feb 2015 12:16:56 +0800
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH 3.18 04/57] vm: add VM_FAULT_SIGSEGV handling support
-Message-ID: <20150211041656.GA26265@kroah.com>
-References: <20150203231211.486950145@linuxfoundation.org>
- <20150203231212.223123220@linuxfoundation.org>
- <CALYGNiPVvgxMFyDTSFv4mUhkq-5Q+Gp2UEY5W9G0gEc8YajipQ@mail.gmail.com>
- <20150211034307.GA2932@kroah.com>
- <CA+55aFxWCxq59cfG9Uvm3AAx9MngWENjz1oRayPQMb8+8pVnMA@mail.gmail.com>
+Received: from mail-la0-f48.google.com ([209.85.215.48]:41622 "EHLO
+	mail-la0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751000AbbBKFeq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Feb 2015 00:34:46 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CA+55aFxWCxq59cfG9Uvm3AAx9MngWENjz1oRayPQMb8+8pVnMA@mail.gmail.com>
+In-Reply-To: <20150211034307.GA2932@kroah.com>
+References: <20150203231211.486950145@linuxfoundation.org>
+	<20150203231212.223123220@linuxfoundation.org>
+	<CALYGNiPVvgxMFyDTSFv4mUhkq-5Q+Gp2UEY5W9G0gEc8YajipQ@mail.gmail.com>
+	<20150211034307.GA2932@kroah.com>
+Date: Wed, 11 Feb 2015 09:34:44 +0400
+Message-ID: <CALYGNiN6isfggY-kjWAgP1UtGyvKYN+BhWyuk9x6CF3wDe97HA@mail.gmail.com>
+Subject: Re: [PATCH 3.18 04/57] vm: add VM_FAULT_SIGSEGV handling support
+From: Konstantin Khlebnikov <koct9i@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Konstantin Khlebnikov <koct9i@gmail.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Stable <stable@vger.kernel.org>, Jan Engelhardt <jengelh@inai.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
-Message-ID: <20150211041656.6L0kfTE_14-AgDv15Gu7NhAMumTkwpg7pXS7q4G_P5c@z>
+To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Stable <stable@vger.kernel.org>, Jan Engelhardt <jengelh@inai.de>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+Message-ID: <20150211053444.Dkhvl1NoPeUcZkPpwb-dimJs4voDyF3q1PWmXdnxsiA@z>
 
-On Tue, Feb 10, 2015 at 07:49:27PM -0800, Linus Torvalds wrote:
-> On Tue, Feb 10, 2015 at 7:43 PM, Greg Kroah-Hartman
-> <gregkh@linuxfoundation.org> wrote:
-> >
-> > Ah, nice, I missed that one.
-> 
-> Ugh, to be fair, I missed it too.
-> 
-> The alternative to backporting 7fb08eca4527 is to make the backport of
-> commit 33692f27597f use "bad_area()" instead of
-> "bad_area_nosemaphore()".
+On Wed, Feb 11, 2015 at 6:43 AM, Greg Kroah-Hartman
+<gregkh@linuxfoundation.org> wrote:
+> On Tue, Feb 10, 2015 at 12:22:41PM +0400, Konstantin Khlebnikov wrote:
+>> I've found regression:
+>>
+>> [  257.139907] ================================================
+>> [  257.139909] [ BUG: lock held when returning to user space! ]
+>> [  257.139912] 3.18.6-debug+ #161 Tainted: G     U
+>> [  257.139914] ------------------------------------------------
+>> [  257.139916] python/22843 is leaving the kernel with locks still held!
+>> [  257.139918] 1 lock held by python/22843:
+>> [  257.139920]  #0:  (&mm->mmap_sem){++++++}, at: [<ffffffff8104e4c2>]
+>> __do_page_fault+0x162/0x570
+>>
+>> upstream commit 7fb08eca45270d0ae86e1ad9d39c40b7a55d0190 must be backported too.
+>
+> Ah, nice, I missed that one.  How did you test this?
 
-33692f27597f already showed up in 3.18.6, so I can't go back and change
-that version :(
+I've catched hang on mmap_sem in some python self-test inside exherbo chroot.
+With that patch test has finished successfully.
 
-I'll just queue this one up, thanks.
+It seems the only way to tigger this is stack-overflow: for now VM_FAULT_SIGSEGV
+is returned only if kernel cannot add guard page when stack expands.
 
-greg k-h
+>
+> thanks,
+>
+> greg k-h
