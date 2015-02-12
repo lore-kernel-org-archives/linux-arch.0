@@ -1,282 +1,383 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f66.google.com ([74.125.82.66]:63564 "EHLO
-	mail-wg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751868AbbBLRqe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Feb 2015 12:46:34 -0500
+Received: from mail-wg0-f68.google.com ([74.125.82.68]:47903 "EHLO
+	mail-wg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752142AbbBLRqu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Feb 2015 12:46:50 -0500
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: [PATCH 07/14] clockevent: Add STM32 Timer driver
-Date: Thu, 12 Feb 2015 18:45:57 +0100
-Message-Id: <1423763164-5606-8-git-send-email-mcoquelin.stm32@gmail.com>
+Subject: [PATCH 12/14] ARM: dts: Introduce STM32F429 MCU
+Date: Thu, 12 Feb 2015 18:46:02 +0100
+Message-Id: <1423763164-5606-13-git-send-email-mcoquelin.stm32@gmail.com>
 In-Reply-To: <1423763164-5606-1-git-send-email-mcoquelin.stm32@gmail.com>
 References: <1423763164-5606-1-git-send-email-mcoquelin.stm32@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jonathan Corbet <corbet@lwn.net>, Maxime Coquelin <mcoquelin.stm32@gmail.com>, Rob Herring <robh+dt@kernel.org>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Philipp Zabel <p.zabel@pengutronix.de>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 
-STM32 MCUs feature 16 and 32 bits general purpose timers with prescalers.
-The drivers detects whether the time is 16 or 32 bits, and applies a
-1024 prescaler value if it is 16 bits.
+The STMicrolectornics's STM32F419 MCU has the following main features:
+ - Cortex-M4 core running up to @180MHz
+ - 2MB internal flash, 256KBytes internal RAM
+ - FMC controller to connect SDRAM, NOR and NAND memories
+ - SD/MMC/SDIO support
+ - Ethernet controller
+ - USB OTFG FS & HS controllers
+ - I2C, SPI, CAN busses support
+ - Several 16 & 32 bits general purpose timers
+ - Serial Audio interface
+ - LCD controller
 
 Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 ---
- .../devicetree/bindings/timer/st,stm32-timer.txt   |  19 +++
- drivers/clocksource/Kconfig                        |   9 +
- drivers/clocksource/Makefile                       |   1 +
- drivers/clocksource/timer-stm32.c                  | 187 +++++++++++++++++++++
- 4 files changed, 216 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/timer/st,stm32-timer.txt
- create mode 100644 drivers/clocksource/timer-stm32.c
+ arch/arm/boot/dts/Makefile            |   1 +
+ arch/arm/boot/dts/stm32f429-disco.dts |  41 +++++
+ arch/arm/boot/dts/stm32f429.dtsi      | 279 ++++++++++++++++++++++++++++++++++
+ 3 files changed, 321 insertions(+)
+ create mode 100644 arch/arm/boot/dts/stm32f429-disco.dts
+ create mode 100644 arch/arm/boot/dts/stm32f429.dtsi
 
-diff --git a/Documentation/devicetree/bindings/timer/st,stm32-timer.txt b/Documentation/devicetree/bindings/timer/st,stm32-timer.txt
+diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+index 91bd5bd..d7da0ef 100644
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -442,6 +442,7 @@ dtb-$(CONFIG_ARCH_STI)+= stih407-b2120.dtb \
+ 	stih416-b2000.dtb \
+ 	stih416-b2020.dtb \
+ 	stih416-b2020e.dtb
++dtb-$(CONFIG_ARCH_STM32)+= stm32f429-disco.dtb
+ dtb-$(CONFIG_MACH_SUN4I) += \
+ 	sun4i-a10-a1000.dtb \
+ 	sun4i-a10-ba10-tvbox.dtb \
+diff --git a/arch/arm/boot/dts/stm32f429-disco.dts b/arch/arm/boot/dts/stm32f429-disco.dts
 new file mode 100644
-index 0000000..7fffcd8
+index 0000000..0e79cc1
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/timer/st,stm32-timer.txt
-@@ -0,0 +1,19 @@
-+. STMicroelectronics STM32 timer
++++ b/arch/arm/boot/dts/stm32f429-disco.dts
+@@ -0,0 +1,41 @@
++/dts-v1/;
++#include "stm32f429.dtsi"
 +
-+The STM32 MCUs family has several general-purpose 16 and 32 bits timers.
++/ {
++	model = "STMicroelectronics's STM32F429i-DISCO board";
++	compatible = "st,stm32f429i-disco", "st,stm32f429";
 +
-+Required properties:
-+- compatible : Should be st,stm32-timer"
-+- reg : Address and length of the register set
-+- clocks : Reference on the timer input clock
-+- interrupts : Reference to the timer interrupt
++	chosen {
++		bootargs = "console=ttyS0,115200 root=/dev/ram rdinit=/linuxrc";
++		linux,stdout-path = &usart1;
++	};
 +
-+Example:
++	memory {
++		reg = <0xd0000000 0x800000>;
++	};
 +
-+timer5: timer@40000c00 {
-+	compatible = "st,stm32-timer";
-+	reg = <0x40000c00 0x400>;
-+	interrupts = <50>;
-+	resets = <&reset_apb1 3>;
-+	clocks = <&clk_pmtr1>;
++	aliases {
++		ttyS0 = &usart1;
++	};
++
++	soc {
++		usart1: usart@40011000 {
++			status = "okay";
++		};
++
++		leds {
++			compatible = "gpio-leds";
++			red {
++				#gpio-cells = <2>;
++				label = "Front Panel LED";
++				gpios = <&gpiog 14 0>;
++				linux,default-trigger = "heartbeat";
++			};
++			green {
++				#gpio-cells = <2>;
++				gpios = <&gpiog 13 0>;
++				default-state = "off";
++			};
++		};
++	};
 +};
-diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
-index f9fe4ac..74b60a7 100644
---- a/drivers/clocksource/Kconfig
-+++ b/drivers/clocksource/Kconfig
-@@ -91,6 +91,15 @@ config CLKSRC_EFM32
- 	  Support to use the timers of EFM32 SoCs as clock source and clock
- 	  event device.
- 
-+config CLKSRC_STM32
-+	bool "Clocksource for STM32 SoCs" if !ARCH_STM32
-+	depends on OF && ARM && (ARCH_STM32 || COMPILE_TEST)
-+	select CLKSRC_MMIO
-+	default ARCH_STM32
-+	help
-+	  Support to use the timers of STM32 SoCs as clock source and clock
-+	  event device.
-+
- config ARM_ARCH_TIMER
- 	bool
- 	select CLKSRC_OF if OF
-diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
-index 194400b..16a7c6c 100644
---- a/drivers/clocksource/Makefile
-+++ b/drivers/clocksource/Makefile
-@@ -33,6 +33,7 @@ obj-$(CONFIG_ARCH_NSPIRE)	+= zevio-timer.o
- obj-$(CONFIG_ARCH_BCM_MOBILE)	+= bcm_kona_timer.o
- obj-$(CONFIG_CADENCE_TTC_TIMER)	+= cadence_ttc_timer.o
- obj-$(CONFIG_CLKSRC_EFM32)	+= time-efm32.o
-+obj-$(CONFIG_CLKSRC_STM32)	+= timer-stm32.o
- obj-$(CONFIG_CLKSRC_EXYNOS_MCT)	+= exynos_mct.o
- obj-$(CONFIG_CLKSRC_SAMSUNG_PWM)	+= samsung_pwm_timer.o
- obj-$(CONFIG_FSL_FTM_TIMER)	+= fsl_ftm_timer.o
-diff --git a/drivers/clocksource/timer-stm32.c b/drivers/clocksource/timer-stm32.c
+diff --git a/arch/arm/boot/dts/stm32f429.dtsi b/arch/arm/boot/dts/stm32f429.dtsi
 new file mode 100644
-index 0000000..9839f57
+index 0000000..71293c2
 --- /dev/null
-+++ b/drivers/clocksource/timer-stm32.c
-@@ -0,0 +1,187 @@
++++ b/arch/arm/boot/dts/stm32f429.dtsi
+@@ -0,0 +1,279 @@
 +/*
-+ * Copyright (C) Maxime Coquelin 2015
-+ * Author:  Maxime Coquelin <mcoquelin.stm32@gmail.com>
-+ * License terms:  GNU General Public License (GPL), version 2
-+ *
-+ * Inspired by time-efm32.c from Uwe Kleine-Koenig
++ * Device tree for STM32F429
 + */
++#include "armv7-m.dtsi"
++#include <dt-bindings/pinctrl/pinctrl-stm32.h>
 +
-+#include <linux/kernel.h>
-+#include <linux/clocksource.h>
-+#include <linux/clockchips.h>
-+#include <linux/irq.h>
-+#include <linux/interrupt.h>
-+#include <linux/of.h>
-+#include <linux/of_address.h>
-+#include <linux/of_irq.h>
-+#include <linux/clk.h>
-+#include <linux/reset.h>
++/ {
 +
-+#define TIM_CR1		0x00
-+#define TIM_DIER	0x0c
-+#define TIM_SR		0x10
-+#define TIM_EGR		0x14
-+#define TIM_PSC		0x28
-+#define TIM_ARR		0x2c
++	aliases {
++		gpio0 = &gpioa;
++		gpio1 = &gpiob;
++		gpio2 = &gpioc;
++		gpio3 = &gpiod;
++		gpio4 = &gpioe;
++		gpio5 = &gpiof;
++		gpio6 = &gpiog;
++		gpio7 = &gpioh;
++		gpio8 = &gpioi;
++		gpio9 = &gpioj;
++		gpio10 = &gpiok;
++	};
 +
-+#define TIM_CR1_CEN	BIT(0)
-+#define TIM_CR1_OPM	BIT(3)
-+#define TIM_CR1_ARPE	BIT(7)
++	clocks {
++		clk_sysclk: clk-sysclk {
++			#clock-cells = <0>;
++			compatible = "fixed-clock";
++			clock-frequency = <180000000>;
++		};
 +
-+#define TIM_DIER_UIE	BIT(0)
++		clk_hclk: clk-hclk {
++			#clock-cells = <0>;
++			compatible = "fixed-clock";
++			clock-frequency = <180000000>;
++		};
 +
-+#define TIM_SR_UIF	BIT(0)
++		clk_pclk1: clk-pclk1 {
++			#clock-cells = <0>;
++			compatible = "fixed-clock";
++			clock-frequency = <45000000>;
++		};
 +
-+#define TIM_EGR_UG	BIT(0)
++		clk_pclk2: clk-pclk2 {
++			#clock-cells = <0>;
++			compatible = "fixed-clock";
++			clock-frequency = <90000000>;
++		};
 +
-+struct stm32_clock_event_ddata {
-+	struct clock_event_device evtdev;
-+	unsigned periodic_top;
-+	void __iomem *base;
++		clk_pmtr1: clk-pmtr1 {
++			#clock-cells = <0>;
++			compatible = "fixed-clock";
++			clock-frequency = <90000000>;
++		};
++
++		clk_pmtr2: clk-pmtr2 {
++			#clock-cells = <0>;
++			compatible = "fixed-clock";
++			clock-frequency = <180000000>;
++		};
++
++		clk_systick: clk-systick {
++			compatible = "fixed-factor-clock";
++			clocks = <&clk_hclk>;
++			#clock-cells = <0>;
++			clock-div = <8>;
++			clock-mult = <1>;
++		};
++	};
++
++	systick: system-timer {
++		clocks = <&clk_systick>;
++
++		status = "okay";
++	};
++
++	soc {
++		reset_ahb1: reset@40023810 {
++			#reset-cells = <1>;
++			compatible = "st,stm32-reset";
++			reg = <0x40023810 0x4>;
++		};
++
++		reset_ahb2: reset@40023814 {
++			#reset-cells = <1>;
++			compatible = "st,stm32-reset";
++			reg = <0x40023814 0x4>;
++		};
++
++		reset_ahb3: reset@40023818 {
++			#reset-cells = <1>;
++			compatible = "st,stm32-reset";
++			reg = <0x40023818 0x4>;
++		};
++
++		reset_apb1: reset@40023820 {
++			#reset-cells = <1>;
++			compatible = "st,stm32-reset";
++			reg = <0x40023820 0x4>;
++		};
++
++		reset_apb2: reset@40023824 {
++			#reset-cells = <1>;
++			compatible = "st,stm32-reset";
++			reg = <0x40023824 0x4>;
++		};
++
++		pin-controller {
++			#address-cells = <1>;
++			#size-cells = <1>;
++			compatible = "st,stm32-pinctrl";
++			ranges = <0 0x40020000 0x3000>;
++
++			gpioa: gpio@40020000 {
++				gpio-controller;
++				#gpio-cells = <2>;
++				reg = <0x0 0x400>;
++				resets = <&reset_ahb1 0>;
++				st,bank-name = "GPIOA";
++			};
++
++			gpiob: gpio@40020400 {
++				gpio-controller;
++				#gpio-cells = <2>;
++				reg = <0x400 0x400>;
++				resets = <&reset_ahb1 1>;
++				st,bank-name = "GPIOB";
++			};
++
++			gpioc: gpio@40020800 {
++				gpio-controller;
++				#gpio-cells = <2>;
++				reg = <0x800 0x400>;
++				resets = <&reset_ahb1 2>;
++				st,bank-name = "GPIOC";
++			};
++
++			gpiod: gpio@40020c00 {
++				gpio-controller;
++				#gpio-cells = <2>;
++				reg = <0xc00 0x400>;
++				resets = <&reset_ahb1 3>;
++				st,bank-name = "GPIOD";
++			};
++
++			gpioe: gpio@40021000 {
++				gpio-controller;
++				#gpio-cells = <2>;
++				reg = <0x1000 0x400>;
++				resets = <&reset_ahb1 4>;
++				st,bank-name = "GPIOE";
++			};
++
++			gpiof: gpio@40021400 {
++				gpio-controller;
++				#gpio-cells = <2>;
++				reg = <0x1400 0x400>;
++				resets = <&reset_ahb1 5>;
++				st,bank-name = "GPIOF";
++			};
++
++			gpiog: gpio@40021800 {
++				gpio-controller;
++				#gpio-cells = <2>;
++				reg = <0x1800 0x400>;
++				resets = <&reset_ahb1 6>;
++				st,bank-name = "GPIOG";
++			};
++
++			gpioh: gpio@40021c00 {
++				gpio-controller;
++				#gpio-cells = <2>;
++				reg = <0x1c00 0x400>;
++				resets = <&reset_ahb1 7>;
++				st,bank-name = "GPIOH";
++			};
++
++			gpioi: gpio@40022000 {
++				gpio-controller;
++				#gpio-cells = <2>;
++				reg = <0x2000 0x400>;
++				resets = <&reset_ahb1 8>;
++				st,bank-name = "GPIOI";
++			};
++
++			gpioj: gpio@40022400 {
++				gpio-controller;
++				#gpio-cells = <2>;
++				reg = <0x2400 0x400>;
++				resets = <&reset_ahb1 9>;
++				st,bank-name = "GPIOJ";
++			};
++
++			gpiok: gpio@40022800 {
++				gpio-controller;
++				#gpio-cells = <2>;
++				reg = <0x2800 0x400>;
++				resets = <&reset_ahb1 10>;
++				st,bank-name = "GPIOK";
++			};
++
++			usart1 {
++				pinctrl_usart1: usart1-0 {
++					st,pins {
++						tx = <&gpioa 9 ALT7 NO_PULL PUSH_PULL LOW_SPEED>;
++						rx = <&gpioa 10 ALT7 NO_PULL>;
++					};
++				};
++			};
++		};
++
++		timer2: timer@40000000 {
++			compatible = "st,stm32-timer";
++			reg = <0x40000000 0x400>;
++			interrupts = <28>;
++			resets = <&reset_apb1 0>;
++			clocks = <&clk_pmtr1>;
++
++			status = "disabled";
++		};
++
++		timer3: timer@40000400 {
++			compatible = "st,stm32-timer";
++			reg = <0x40000400 0x400>;
++			interrupts = <29>;
++			resets = <&reset_apb1 1>;
++			clocks = <&clk_pmtr1>;
++
++			status = "disabled";
++		};
++
++		timer4: timer@40000800 {
++			compatible = "st,stm32-timer";
++			reg = <0x40000800 0x400>;
++			interrupts = <30>;
++			resets = <&reset_apb1 2>;
++			clocks = <&clk_pmtr1>;
++
++			status = "disabled";
++		};
++
++		timer5: timer@40000c00 {
++			compatible = "st,stm32-timer";
++			reg = <0x40000c00 0x400>;
++			interrupts = <50>;
++			resets = <&reset_apb1 3>;
++			clocks = <&clk_pmtr1>;
++		};
++
++		timer6: timer@40001000 {
++			compatible = "st,stm32-timer";
++			reg = <0x40001000 0x400>;
++			interrupts = <55>;
++			resets = <&reset_apb1 4>;
++			clocks = <&clk_pmtr1>;
++
++			status = "disabled";
++		};
++
++		timer7: timer@40001400 {
++			compatible = "st,stm32-timer";
++			reg = <0x40001400 0x400>;
++			interrupts = <55>;
++			resets = <&reset_apb1 5>;
++			clocks = <&clk_pmtr1>;
++
++			status = "disabled";
++		};
++
++		usart1: usart@40011000 {
++			compatible = "st,stm32-usart";
++			reg = <0x40011000 0x400>;
++			interrupts = <37>;
++			clocks = <&clk_pclk2>;
++			pinctrl-names = "default";
++			pinctrl-0 = <&pinctrl_usart1>;
++
++			status = "disabled";
++		};
++	};
 +};
-+
-+static void stm32_clock_event_set_mode(enum clock_event_mode mode,
-+				       struct clock_event_device *evtdev)
-+{
-+	struct stm32_clock_event_ddata *data =
-+		container_of(evtdev, struct stm32_clock_event_ddata, evtdev);
-+	void *base = data->base;
-+
-+	switch (mode) {
-+	case CLOCK_EVT_MODE_PERIODIC:
-+		writel_relaxed(data->periodic_top, base + TIM_ARR);
-+		writel_relaxed(TIM_CR1_ARPE | TIM_CR1_CEN, base + TIM_CR1);
-+		break;
-+
-+	case CLOCK_EVT_MODE_ONESHOT:
-+	default:
-+		writel_relaxed(0, base + TIM_CR1);
-+		break;
-+	}
-+}
-+
-+static int stm32_clock_event_set_next_event(unsigned long evt,
-+					    struct clock_event_device *evtdev)
-+{
-+	struct stm32_clock_event_ddata *data =
-+		container_of(evtdev, struct stm32_clock_event_ddata, evtdev);
-+
-+	writel_relaxed(evt, data->base + TIM_ARR);
-+	writel_relaxed(TIM_CR1_ARPE | TIM_CR1_OPM | TIM_CR1_CEN,
-+		       data->base + TIM_CR1);
-+
-+	return 0;
-+}
-+
-+static irqreturn_t stm32_clock_event_handler(int irq, void *dev_id)
-+{
-+	struct stm32_clock_event_ddata *data = dev_id;
-+
-+	writel_relaxed(0, data->base + TIM_SR);
-+
-+	data->evtdev.event_handler(&data->evtdev);
-+
-+	return IRQ_HANDLED;
-+}
-+
-+static struct stm32_clock_event_ddata clock_event_ddata = {
-+	.evtdev = {
-+		.name = "stm32 clockevent",
-+		.features = CLOCK_EVT_FEAT_ONESHOT | CLOCK_EVT_FEAT_PERIODIC,
-+		.set_mode = stm32_clock_event_set_mode,
-+		.set_next_event = stm32_clock_event_set_next_event,
-+		.rating = 200,
-+	},
-+};
-+
-+static void __init stm32_clockevent_init(struct device_node *np)
-+{
-+	struct stm32_clock_event_ddata *data = &clock_event_ddata;
-+	struct clk *clk;
-+	struct reset_control *rstc;
-+	unsigned long rate, max_delta;
-+	int irq, ret, bits, prescaler = 1;
-+
-+	clk = of_clk_get(np, 0);
-+	if (IS_ERR(clk)) {
-+		ret = PTR_ERR(clk);
-+		pr_err("failed to get clock for clockevent (%d)\n", ret);
-+		goto err_clk_get;
-+	}
-+
-+	ret = clk_prepare_enable(clk);
-+	if (ret) {
-+		pr_err("failed to enable timer clock for clockevent (%d)\n",
-+		       ret);
-+		goto err_clk_enable;
-+	}
-+
-+	rate = clk_get_rate(clk);
-+
-+	rstc = of_reset_control_get(np, NULL);
-+	if (IS_ERR(rstc)) {
-+		pr_err("%s: Failed to get reset\n", np->full_name);
-+		return;
-+	}
-+
-+	reset_control_assert(rstc);
-+	reset_control_deassert(rstc);
-+
-+	data->base = of_iomap(np, 0);
-+	if (!data->base) {
-+		pr_err("failed to map registers for clockevent\n");
-+		goto err_iomap;
-+	}
-+
-+	irq = irq_of_parse_and_map(np, 0);
-+	if (!irq) {
-+		pr_err("%s: failed to get irq.\n", np->full_name);
-+		goto err_get_irq;
-+	}
-+
-+	/* Detect whether the timer is 16 or 32 bits */
-+	writel_relaxed(~0UL, data->base + TIM_ARR);
-+	max_delta = readl_relaxed(data->base + TIM_ARR);
-+	if (max_delta == ~0UL) {
-+		prescaler = 1;
-+		bits = 32;
-+	} else {
-+		prescaler = 1024;
-+		bits = 16;
-+	}
-+	writel_relaxed(0, data->base + TIM_ARR);
-+
-+	writel_relaxed(prescaler - 1, data->base + TIM_PSC);
-+	writel_relaxed(TIM_EGR_UG, data->base + TIM_EGR);
-+	writel_relaxed(TIM_DIER_UIE, data->base + TIM_DIER);
-+	writel_relaxed(0, data->base + TIM_SR);
-+
-+	data->periodic_top = DIV_ROUND_CLOSEST(rate, prescaler * HZ);
-+
-+	clockevents_config_and_register(&data->evtdev,
-+					DIV_ROUND_CLOSEST(rate, prescaler),
-+					0x1, max_delta);
-+
-+	ret = request_irq(irq, stm32_clock_event_handler, IRQF_TIMER,
-+			"stm32 clockevent", data);
-+	if (ret) {
-+		pr_err("%s: failed to request irq.\n", np->full_name);
-+		goto err_get_irq;
-+	}
-+
-+	pr_info("%s: STM32 clockevent driver initialized (%d bits)\n",
-+			np->full_name, bits);
-+
-+	return;
-+
-+err_get_irq:
-+	iounmap(data->base);
-+err_iomap:
-+	clk_disable_unprepare(clk);
-+err_clk_enable:
-+	clk_put(clk);
-+err_clk_get:
-+	return;
-+}
-+
-+CLOCKSOURCE_OF_DECLARE(stm32, "st,stm32-timer", stm32_clockevent_init);
 -- 
 1.9.1
 
