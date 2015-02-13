@@ -1,86 +1,57 @@
-From: Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>
-Subject: Re: [PATCH] compat: Fix endian issue in union sigval
-Date: Fri, 13 Feb 2015 16:00:43 +0800
-Message-ID: <54DDAF2B.2070707@huawei.com>
-References: <1423563011-12377-1-git-send-email-bamvor.zhangjian@huawei.com> <20150210122718.GC32052@e104818-lin.cambridge.arm.com> <54DB3B60.4050100@huawei.com> <20150211154054.GD9058@e104818-lin.cambridge.arm.com>
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Subject: Re: [PATCH 02/14] ARM: ARMv7M: Enlarge vector table to 256 entries
+Date: Fri, 13 Feb 2015 09:42:46 +0100
+Message-ID: <CALszF6BDa9pUb534YN2z9DbYA+hPCnG8XYy5YbjJwSiseKz4xg@mail.gmail.com>
+References: <1423763164-5606-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<1423763164-5606-3-git-send-email-mcoquelin.stm32@gmail.com>
+	<CAMuHMdWESyPktOSBfVoZCb35stUbhNpbbpzSW4JfORdObgg5jw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from szxga03-in.huawei.com ([119.145.14.66]:35778 "EHLO
-	szxga03-in.huawei.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751592AbbBMICK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Feb 2015 03:02:10 -0500
-In-Reply-To: <20150211154054.GD9058@e104818-lin.cambridge.arm.com>
+Received: from mail-wi0-f196.google.com ([209.85.212.196]:59807 "EHLO
+	mail-wi0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751792AbbBMIms (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Feb 2015 03:42:48 -0500
+In-Reply-To: <CAMuHMdWESyPktOSBfVoZCb35stUbhNpbbpzSW4JfORdObgg5jw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, Will Deacon <Will.Deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "lizefan@huawei.com" <lizefan@huawei.com>, "dingtianhong@huawei.com" <dingtianhong@huawei.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, ralf@linux-mips.org, cmetcalf@ezchip.com, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, jejb@parisc-linux.org, deller@gmx.de, davem@davemloft.net
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Jonathan Corbet <corbet@lwn.net>, Rob Herring <robh+dt@kernel.org>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Philipp Zabel <p.zabel@pengutronix.de>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees
 
-On 2015/2/11 23:40, Catalin Marinas wrote:
-> On Wed, Feb 11, 2015 at 07:22:08PM +0800, Bamvor Jian Zhang wrote:
->> On 2015/2/10 20:27, Catalin Marinas wrote:
->>> On Tue, Feb 10, 2015 at 10:10:11AM +0000, Zhang Jian(Bamvor) wrote:
-...
-> The native sigval_t is also a union but on 64-bit big endian, the
-> sival_int overlaps with the most significant 32-bit of the sival_ptr.
-> So reading sival_int would always be 0. When the compat siginfo is
-> copied to user, arm64 reads the native sival_ptr (si_ptr) and converts
-> it to the compat one, getting the correct 32-bit value. However, other
-> architectures access sival_int (si_int) instead which breaks with your
-> get_compat_sigevent() changes.
-> 
->>> I think the correct fix is in the arm64 code:
+Hi Geert,
+
+2015-02-12 21:34 GMT+01:00 Geert Uytterhoeven <geert@linux-m68k.org>:
+> On Thu, Feb 12, 2015 at 6:45 PM, Maxime Coquelin
+> <mcoquelin.stm32@gmail.com> wrote:
+>> From Cortex-M4 and M7 reference manuals, the nvic supports up to 240
+>> interrupts. So the number of entries in vectors table is 256.
 >>
->> The following code could fix my issue.
-> 
-> Without any parts of your patch?
-Yes. As you mentioned above, sival_int overlaps the most significant 32bit
-of the sival_ptr, it seems that your patch is right if sival_ptr is less than
-32bit.
+>> This patch adds the missing entries, and change the alignement, so that
+>> vector_table remains naturally aligned.
+>
+> Shouldn't this depend on ARCH_STM32, or some other M4 or M7 specific
+> Kconfig option, to avoid wasting the space on other CPUs?
 
-> I think that's correct fix since in the SIGEV_THREAD mq_notify case, we
-> would not deliver a signal as notification, so the sival_int value is
-> irrelevant (it would be 0 for big-endian compat tasks because of the
-> sigval_t union on 64-bit).
-> 
-> Your patch would work as well but you have to change all the other
-> architectures to use si_ptr when copying to a compat siginfo.
-Yeah, it seems that my patch is useful only if the sival_ptr is bigger
-than 32bit. It need the similar changes with following catalin's patch
-in the following 64bit architecture:
-x86:                 arch/x86/ia32/ia32_signal.c
-tile, s390:          arch/xxx/kernel/compat_signal.c
-parisc, sparc, mips: arch/xxx/kernel/signal32.c
-powerpc:             arch/xxx/kernel/signal_32.c
+Actually, the STM32F429 has 90 interrupts, so it would need 106
+entries in the vector table.
+The maximum of supported interrupts is not only for Cortex-M4 and M7,
+this is also true for Cortex-M3.
 
-cc these maintainers for input.
+I see two possibilities:
+ 1 - We declare the vector table for the maximum supported number of
+IRQs, as this patch does.
+        - Pro: it will be functionnal with all Cortex-M MCUs
+        - Con: Waste of less than 1KB for memory
+ 2 - We introduce a config flag that provides the number of interrupts
+        - Pro: No more memory waste
+        - Con: Need to declare a per MCU model config flag.
 
-regards
+Then, regarding the natural alignment, is there a way to ensure it
+depending on the value of a config flag?
+Or we should keep it at the maximum value possible?
 
-bamvor
+Any feedback will be appreciated, especially from Uwe who maintains
+the efm32 machine.
 
->>> diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
->>> index e299de396e9b..32601939a3c8 100644
->>> --- a/arch/arm64/kernel/signal32.c
->>> +++ b/arch/arm64/kernel/signal32.c
->>> @@ -154,8 +154,7 @@ int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from)
->>>  	case __SI_TIMER:
->>>  		 err |= __put_user(from->si_tid, &to->si_tid);
->>>  		 err |= __put_user(from->si_overrun, &to->si_overrun);
->>> -		 err |= __put_user((compat_uptr_t)(unsigned long)from->si_ptr,
->>> -				   &to->si_ptr);
->>> +		 err |= __put_user(from->si_int, &to->si_int);
->>>  		break;
->>>  	case __SI_POLL:
->>>  		err |= __put_user(from->si_band, &to->si_band);
->>> @@ -184,7 +183,7 @@ int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from)
->>>  	case __SI_MESGQ: /* But this is */
->>>  		err |= __put_user(from->si_pid, &to->si_pid);
->>>  		err |= __put_user(from->si_uid, &to->si_uid);
->>> -		err |= __put_user((compat_uptr_t)(unsigned long)from->si_ptr, &to->si_ptr);
->>> +		err |= __put_user(from->si_int, &to->si_int);
->>>  		break;
->>>  	case __SI_SYS:
->>>  		err |= __put_user((compat_uptr_t)(unsigned long)
-> 
+Kind regards,
+Maxime
