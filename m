@@ -1,107 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from metis.ext.pengutronix.de ([92.198.50.35]:47948 "EHLO
+Received: from metis.ext.pengutronix.de ([92.198.50.35]:48081 "EHLO
 	metis.ext.pengutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751806AbbBMKB5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Feb 2015 05:01:57 -0500
-Date: Fri, 13 Feb 2015 11:00:50 +0100
-From: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?=
-	<u.kleine-koenig@pengutronix.de>
-Subject: Re: [PATCH 02/14] ARM: ARMv7M: Enlarge vector table to 256 entries
-Message-ID: <20150213100050.GM10842@pengutronix.de>
+	with ESMTP id S1752767AbbBMLs7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Feb 2015 06:48:59 -0500
+Message-ID: <1423828078.4182.17.camel@pengutronix.de>
+Subject: Re: [PATCH 12/14] ARM: dts: Introduce STM32F429 MCU
+From: Philipp Zabel <p.zabel@pengutronix.de>
+Date: Fri, 13 Feb 2015 12:47:58 +0100
+In-Reply-To: <1423763164-5606-13-git-send-email-mcoquelin.stm32@gmail.com>
 References: <1423763164-5606-1-git-send-email-mcoquelin.stm32@gmail.com>
- <1423763164-5606-3-git-send-email-mcoquelin.stm32@gmail.com>
- <CAMuHMdWESyPktOSBfVoZCb35stUbhNpbbpzSW4JfORdObgg5jw@mail.gmail.com>
- <CALszF6BDa9pUb534YN2z9DbYA+hPCnG8XYy5YbjJwSiseKz4xg@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CALszF6BDa9pUb534YN2z9DbYA+hPCnG8XYy5YbjJwSiseKz4xg@mail.gmail.com>
+	 <1423763164-5606-13-git-send-email-mcoquelin.stm32@gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Jonathan Corbet <corbet@lwn.net>, Rob Herring <robh+dt@kernel.org>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Philipp Zabel <p.zabel@pengutronix.de>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
-Message-ID: <20150213100050.5lYmUdwLdXEmCL1t5nrCQAtLm3LGl6J878_GE1NWESQ@z>
+Cc: Jonathan Corbet <corbet@lwn.net>, Rob Herring <robh+dt@kernel.org>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20150213114758._YUeYlwLE_UyE-bIYk8fQsq_M0N5ZqqIg9OIfUzcm9o@z>
 
-On Fri, Feb 13, 2015 at 09:42:46AM +0100, Maxime Coquelin wrote:
-> Hi Geert,
-> 
-> 2015-02-12 21:34 GMT+01:00 Geert Uytterhoeven <geert@linux-m68k.org>:
-> > On Thu, Feb 12, 2015 at 6:45 PM, Maxime Coquelin
-> > <mcoquelin.stm32@gmail.com> wrote:
-> >> From Cortex-M4 and M7 reference manuals, the nvic supports up to 240
-> >> interrupts. So the number of entries in vectors table is 256.
-> >>
-> >> This patch adds the missing entries, and change the alignement, so that
-> >> vector_table remains naturally aligned.
-> >
-> > Shouldn't this depend on ARCH_STM32, or some other M4 or M7 specific
-> > Kconfig option, to avoid wasting the space on other CPUs?
-> 
-> Actually, the STM32F429 has 90 interrupts, so it would need 106
-> entries in the vector table.
-> The maximum of supported interrupts is not only for Cortex-M4 and M7,
-> this is also true for Cortex-M3.
-> 
-> I see two possibilities:
->  1 - We declare the vector table for the maximum supported number of
-> IRQs, as this patch does.
->         - Pro: it will be functionnal with all Cortex-M MCUs
->         - Con: Waste of less than 1KB for memory
->  2 - We introduce a config flag that provides the number of interrupts
->         - Pro: No more memory waste
->         - Con: Need to declare a per MCU model config flag.
-I'd vote for 2, something like:
+Hi Maxime,
 
-	config CPUV7M_NUM_IRQ
-		int
-		default 90 if STM32F429
-		default 38 if EFM32GG
-		default 240
+Am Donnerstag, den 12.02.2015, 18:46 +0100 schrieb Maxime Coquelin:
+[...]
+> +	soc {
+> +		reset_ahb1: reset@40023810 {
+> +			#reset-cells = <1>;
+> +			compatible = "st,stm32-reset";
+> +			reg = <0x40023810 0x4>;
+> +		};
+> +
+> +		reset_ahb2: reset@40023814 {
+> +			#reset-cells = <1>;
+> +			compatible = "st,stm32-reset";
+> +			reg = <0x40023814 0x4>;
+> +		};
+> +
+> +		reset_ahb3: reset@40023818 {
+> +			#reset-cells = <1>;
+> +			compatible = "st,stm32-reset";
+> +			reg = <0x40023818 0x4>;
+> +		};
+> +
+> +		reset_apb1: reset@40023820 {
+> +			#reset-cells = <1>;
+> +			compatible = "st,stm32-reset";
+> +			reg = <0x40023820 0x4>;
+> +		};
+> +
+> +		reset_apb2: reset@40023824 {
+> +			#reset-cells = <1>;
+> +			compatible = "st,stm32-reset";
+> +			reg = <0x40023824 0x4>;
+> +		};
 
-then there is a working default and platforms being short on memory can
-configure as appropriate. (The only down side is that if we create
-multi-platfrom images at some time in the future either all or none of
-the supported platforms must provide a value here.)
- 
-> Then, regarding the natural alignment, is there a way to ensure it
-> depending on the value of a config flag?
-The exact wording in ARMARMv7-M is:
+These are mostly consecutive, single registers. I wonder if these are
+part of the same IP block and thus should be grouped together into the
+same reset controller node?
 
-	The Vector table must be naturally aligned to a power of two
-	whose alignment value is greater than or equal
-	to (Number of Exceptions supported x 4), with a minimum
-	alignment of 128 bytes.
+regards
+Philipp
 
-> Or we should keep it at the maximum value possible?
-So we need:
-
-	.align x
-
-with x being max(7, ceil(log((CPUV7M_NUM_IRQ + 16) * 4, 2))). So the
-alignment needed is between 7 and 10.
-
-If the assembler supports an expression here I'd use that. But before
-adding strange hacks to generate the right value there better go for a
-static value like:
-
-	/* The vector table must be naturally aligned */
-	#if CONFIG_CPUV7M_NUM_IRQ <= 112
-	.align 9 /* log2((112 + 16) * 4) */
-	#else
-	.align 10
-	#endif
-
-Further steps would be:
-
-	CONFIG_CPUV7M_NUM_IRQ <= 48 -> .align 8
-	CONFIG_CPUV7M_NUM_IRQ <= 16 -> .align 7
-
-Probably it's not worth to add the respective #ifdefs here.
-
-Best regards
-Uwe
-
--- 
-Pengutronix e.K.                           | Uwe Kleine-König            |
-Industrial Linux Solutions                 | http://www.pengutronix.de/  |
