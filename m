@@ -1,113 +1,115 @@
-From: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?=
-	<u.kleine-koenig@pengutronix.de>
-Subject: Re: [PATCH 02/14] ARM: ARMv7M: Enlarge vector table to 256 entries
-Date: Fri, 13 Feb 2015 11:00:50 +0100
-Message-ID: <20150213100050.GM10842@pengutronix.de>
-References: <1423763164-5606-1-git-send-email-mcoquelin.stm32@gmail.com>
- <1423763164-5606-3-git-send-email-mcoquelin.stm32@gmail.com>
- <CAMuHMdWESyPktOSBfVoZCb35stUbhNpbbpzSW4JfORdObgg5jw@mail.gmail.com>
- <CALszF6BDa9pUb534YN2z9DbYA+hPCnG8XYy5YbjJwSiseKz4xg@mail.gmail.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH] compat: Fix endian issue in union sigval
+Date: Fri, 13 Feb 2015 10:44:56 +0000
+Message-ID: <20150213104455.GA3508@e104818-lin.cambridge.arm.com>
+References: <1423563011-12377-1-git-send-email-bamvor.zhangjian@huawei.com>
+ <20150210122718.GC32052@e104818-lin.cambridge.arm.com>
+ <54DB3B60.4050100@huawei.com>
+ <20150211154054.GD9058@e104818-lin.cambridge.arm.com>
+ <54DDAF2B.2070707@huawei.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-gpio-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss-mx-na.foss.arm.com ([217.140.108.86]:43517 "EHLO
+	foss-mx-na.foss.arm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752278AbbBMKpI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Feb 2015 05:45:08 -0500
 Content-Disposition: inline
-In-Reply-To: <CALszF6BDa9pUb534YN2z9DbYA+hPCnG8XYy5YbjJwSiseKz4xg@mail.gmail.com>
-Sender: linux-gpio-owner@vger.kernel.org
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Jonathan Corbet <corbet@lwn.net>, Rob Herring <robh+dt@kernel.org>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Philipp Zabel <p.zabel@pengutronix.de>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>R
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <54DDAF2B.2070707@huawei.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>
+Cc: linux-arch@vger.kernel.org, heiko.carstens@de.ibm.com, davem@davemloft.net, benh@kernel.crashing.org, deller@gmx.de, hpa@zytor.com, Will Deacon <Will.Deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, ralf@linux-mips.org, jejb@parisc-linux.org, cmetcalf@ezchip.com, "lizefan@huawei.com" <lizefan@huawei.com>, paulus@samba.org, mpe@ellerman.id.au, "dingtianhong@huawei.com" <dingtianhong@huawei.com>, schwidefsky@de.ibm.com, tglx@linutronix.de, mingo@redhat.com, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-On Fri, Feb 13, 2015 at 09:42:46AM +0100, Maxime Coquelin wrote:
-> Hi Geert,
->=20
-> 2015-02-12 21:34 GMT+01:00 Geert Uytterhoeven <geert@linux-m68k.org>:
-> > On Thu, Feb 12, 2015 at 6:45 PM, Maxime Coquelin
-> > <mcoquelin.stm32@gmail.com> wrote:
-> >> From Cortex-M4 and M7 reference manuals, the nvic supports up to 2=
-40
-> >> interrupts. So the number of entries in vectors table is 256.
+On Fri, Feb 13, 2015 at 04:00:43PM +0800, Bamvor Jian Zhang wrote:
+> On 2015/2/11 23:40, Catalin Marinas wrote:
+> > On Wed, Feb 11, 2015 at 07:22:08PM +0800, Bamvor Jian Zhang wrote:
+> >> On 2015/2/10 20:27, Catalin Marinas wrote:
+> >>> On Tue, Feb 10, 2015 at 10:10:11AM +0000, Zhang Jian(Bamvor) wrote:
+> ...
+> > The native sigval_t is also a union but on 64-bit big endian, the
+> > sival_int overlaps with the most significant 32-bit of the sival_ptr.
+> > So reading sival_int would always be 0. When the compat siginfo is
+> > copied to user, arm64 reads the native sival_ptr (si_ptr) and converts
+> > it to the compat one, getting the correct 32-bit value. However, other
+> > architectures access sival_int (si_int) instead which breaks with your
+> > get_compat_sigevent() changes.
+> > 
+> >>> I think the correct fix is in the arm64 code:
 > >>
-> >> This patch adds the missing entries, and change the alignement, so=
- that
-> >> vector_table remains naturally aligned.
-> >
-> > Shouldn't this depend on ARCH_STM32, or some other M4 or M7 specifi=
-c
-> > Kconfig option, to avoid wasting the space on other CPUs?
->=20
-> Actually, the STM32F429 has 90 interrupts, so it would need 106
-> entries in the vector table.
-> The maximum of supported interrupts is not only for Cortex-M4 and M7,
-> this is also true for Cortex-M3.
->=20
-> I see two possibilities:
->  1 - We declare the vector table for the maximum supported number of
-> IRQs, as this patch does.
->         - Pro: it will be functionnal with all Cortex-M MCUs
->         - Con: Waste of less than 1KB for memory
->  2 - We introduce a config flag that provides the number of interrupt=
-s
->         - Pro: No more memory waste
->         - Con: Need to declare a per MCU model config flag.
-I'd vote for 2, something like:
+> >> The following code could fix my issue.
+> > 
+> > Without any parts of your patch?
+> 
+> Yes. As you mentioned above, sival_int overlaps the most significant 32bit
+> of the sival_ptr, it seems that your patch is right if sival_ptr is less than
+> 32bit.
 
-	config CPUV7M_NUM_IRQ
-		int
-		default 90 if STM32F429
-		default 38 if EFM32GG
-		default 240
+I don't follow you here. sival_ptr is greater than 32-bit on a 64-bit
+kernel.
 
-then there is a working default and platforms being short on memory can
-configure as appropriate. (The only down side is that if we create
-multi-platfrom images at some time in the future either all or none of
-the supported platforms must provide a value here.)
-=20
-> Then, regarding the natural alignment, is there a way to ensure it
-> depending on the value of a config flag?
-The exact wording in ARMARMv7-M is:
+> > I think that's correct fix since in the SIGEV_THREAD mq_notify case, we
+> > would not deliver a signal as notification, so the sival_int value is
+> > irrelevant (it would be 0 for big-endian compat tasks because of the
+> > sigval_t union on 64-bit).
+> > 
+> > Your patch would work as well but you have to change all the other
+> > architectures to use si_ptr when copying to a compat siginfo.
+> 
+> Yeah, it seems that my patch is useful only if the sival_ptr is bigger
+> than 32bit. It need the similar changes with following catalin's patch
+> in the following 64bit architecture:
+> 
+> x86:                 arch/x86/ia32/ia32_signal.c
 
-	The Vector table must be naturally aligned to a power of two
-	whose alignment value is greater than or equal
-	to (Number of Exceptions supported x 4), with a minimum
-	alignment of 128 bytes.
+That's a little endian architecture and the use of ptr_to_compat() looks
+fine to me.
 
-> Or we should keep it at the maximum value possible?
-So we need:
+> tile, s390:          arch/xxx/kernel/compat_signal.c
 
-	.align x
+s390 uses si_int already, as in my proposed arm64 patch.
 
-with x being max(7, ceil(log((CPUV7M_NUM_IRQ + 16) * 4, 2))). So the
-alignment needed is between 7 and 10.
+tile seems to be bi-endian, though I couldn't see a Kconfig option, nor
+something defining __BIG_ENDIAN__ in headers or Makefile. I guess it's
+coming from the compiler directly. Anyway, on big endian tile, I we have
+the same issue as on big endian arm64.
 
-If the assembler supports an expression here I'd use that. But before
-adding strange hacks to generate the right value there better go for a
-static value like:
+> parisc, sparc, mips: arch/xxx/kernel/signal32.c
 
-	/* The vector table must be naturally aligned */
-	#if CONFIG_CPUV7M_NUM_IRQ <=3D 112
-	.align 9 /* log2((112 + 16) * 4) */
-	#else
-	.align 10
-	#endif
+paris, sparc and mips all use si_int instead of si_ptr, so that's fine.
 
-=46urther steps would be:
+> powerpc:             arch/xxx/kernel/signal_32.c
 
-	CONFIG_CPUV7M_NUM_IRQ <=3D 48 -> .align 8
-	CONFIG_CPUV7M_NUM_IRQ <=3D 16 -> .align 7
+Same for powerpc, it uses si_int instead of si_ptr.
 
-Probably it's not worth to add the respective #ifdefs here.
+> cc these maintainers for input.
 
-Best regards
-Uwe
+I think it's only tile that needs fixing for big endian, something like
+the arm64 patch below:
 
---=20
-Pengutronix e.K.                           | Uwe Kleine-K=F6nig        =
-    |
-Industrial Linux Solutions                 | http://www.pengutronix.de/=
-  |
---
-To unsubscribe from this list: send the line "unsubscribe linux-gpio" i=
-n
-the body of a message to majordomo@vger.kernel.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> >>> diff --git a/arch/arm64/kernel/signal32.c b/arch/arm64/kernel/signal32.c
+> >>> index e299de396e9b..32601939a3c8 100644
+> >>> --- a/arch/arm64/kernel/signal32.c
+> >>> +++ b/arch/arm64/kernel/signal32.c
+> >>> @@ -154,8 +154,7 @@ int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from)
+> >>>  	case __SI_TIMER:
+> >>>  		 err |= __put_user(from->si_tid, &to->si_tid);
+> >>>  		 err |= __put_user(from->si_overrun, &to->si_overrun);
+> >>> -		 err |= __put_user((compat_uptr_t)(unsigned long)from->si_ptr,
+> >>> -				   &to->si_ptr);
+> >>> +		 err |= __put_user(from->si_int, &to->si_int);
+> >>>  		break;
+> >>>  	case __SI_POLL:
+> >>>  		err |= __put_user(from->si_band, &to->si_band);
+> >>> @@ -184,7 +183,7 @@ int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from)
+> >>>  	case __SI_MESGQ: /* But this is */
+> >>>  		err |= __put_user(from->si_pid, &to->si_pid);
+> >>>  		err |= __put_user(from->si_uid, &to->si_uid);
+> >>> -		err |= __put_user((compat_uptr_t)(unsigned long)from->si_ptr, &to->si_ptr);
+> >>> +		err |= __put_user(from->si_int, &to->si_int);
+> >>>  		break;
+> >>>  	case __SI_SYS:
+> >>>  		err |= __put_user((compat_uptr_t)(unsigned long)
+
+-- 
+Catalin
