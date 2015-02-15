@@ -1,173 +1,557 @@
-From: =?windows-1252?Q?Andreas_F=E4rber?= <afaerber@suse.de>
-Subject: Re: [PATCH 00/14] Add support to STMicroelectronics STM32 family
-Date: Sun, 15 Feb 2015 16:14:12 +0100
-Message-ID: <54E0B7C4.7050900@suse.de>
-References: <1423763164-5606-1-git-send-email-mcoquelin.stm32@gmail.com>
+From: Paul Bolle <pebolle@tiscali.nl>
+Subject: Re: [PATCH v3 10/15] h8300: Build scripts
+Date: Sun, 15 Feb 2015 20:23:04 +0100
+Message-ID: <1424028184.9418.99.camel@x220>
+References: <1423986573-2329-1-git-send-email-ysato@users.sourceforge.jp>
+	 <1423986573-2329-11-git-send-email-ysato@users.sourceforge.jp>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="95i9U1kwvGuqWFIAJoHA3lRp5dcDBiePX"
-Return-path: <linux-gpio-owner@vger.kernel.org>
-In-Reply-To: <1423763164-5606-1-git-send-email-mcoquelin.stm32@gmail.com>
-Sender: linux-gpio-owner@vger.kernel.org
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Cc: Jonathan Corbet <corbet@lwn.net>, Rob Herring <robh+dt@kernel.org>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Philipp Zabel <p.zabel@pengutronix.de>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cpsmtpb-ews06.kpnxchange.com ([213.75.39.9]:54357 "EHLO
+	cpsmtpb-ews06.kpnxchange.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754403AbbBOTXI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 15 Feb 2015 14:23:08 -0500
+In-Reply-To: <1423986573-2329-11-git-send-email-ysato@users.sourceforge.jp>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
---95i9U1kwvGuqWFIAJoHA3lRp5dcDBiePX
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: quoted-printable
+On Sun, 2015-02-15 at 16:49 +0900, Yoshinori Sato wrote:
+> Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
+> ---
+>  arch/h8300/Kconfig              | 119 +++++++++++++++++++++++++++++++++++
+>  arch/h8300/Kconfig.cpu          | 136 ++++++++++++++++++++++++++++++++++++++++
+>  arch/h8300/Kconfig.debug        |  23 +++++++
+>  arch/h8300/Makefile             |  45 +++++++++++++
+>  arch/h8300/kernel/Makefile      |  16 +++++
+>  arch/h8300/kernel/vmlinux.lds.S |  85 +++++++++++++++++++++++++
+>  6 files changed, 424 insertions(+)
+>  create mode 100644 arch/h8300/Kconfig
+>  create mode 100644 arch/h8300/Kconfig.cpu
+>  create mode 100644 arch/h8300/Kconfig.debug
+>  create mode 100644 arch/h8300/Makefile
+>  create mode 100644 arch/h8300/kernel/Makefile
+>  create mode 100644 arch/h8300/kernel/vmlinux.lds.S
+> 
+> diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
+> new file mode 100644
+> index 0000000..828c356
+> --- /dev/null
+> +++ b/arch/h8300/Kconfig
+> @@ -0,0 +1,119 @@
+> +config H8300
+> +	bool
+> +	default y
+> +	select HAVE_IDE
+> +	select GENERIC_ATOMIC64
+> +	select HAVE_UID16
+> +	select VIRT_TO_BUS
+> +	select ARCH_WANT_IPC_PARSE_VERSION
+> +	select GENERIC_IRQ_SHOW
+> +	select FRAME_POINTER
+> +	select GENERIC_CPU_DEVICES
+> +	select MODULES_USE_ELF_RELA
+> +	select GENERIC_CLOCKEVENTS
+> +	select CLKDEV_LOOKUP
+> +	select COMMON_CLK
+> +	select HAVE_ARCH_TRACEHOOK
+> +	select ARCH_WANT_FRAME_POINTERS
+> +
+> +config MMU
+> +	bool
+> +	default n
+> +
+> +config SWAP
+> +	bool
+> +	default n
+> +
 
-Hi Maxime,
+MMU will always be 'n'. (So the entry for MMU is not strictly needed,
+but I guess it is clearer to explicitly set this to 'n'.) But that means
+there's no reason here to mask the global SWAP config (see
+init/Kconfig), as that will also always be 'n' for H8300.
 
-Am 12.02.2015 um 18:45 schrieb Maxime Coquelin:
-> This patchset adds basic support for STMicroelectronics STM32 series MC=
-Us.
->=20
-> STM32 MCUs are Cortex-M CPU, used in various applications (consumer
-> electronics, industrial applications, hobbyists...).
-> Datasheets, user and programming manuals are publicly available on
-> STMicroelectronics website.
->=20
-> With this series applied, the STM32F419 Discovery can boot succesfully.=
+> +config ZONE_DMA
+> +	bool
+> +	default y
+> +
+> +config FPU
+> +	bool
+> +	default n
 
->=20
-> Once this series accepted, next steps will be to add DMA support, as US=
-ART,
-> I2C and SPI IPs don't have any FIFO. Then will come the clock driver, a=
-s today
-> the bootloader has to be patched to enable the needed clocks.
+Why is this needed?
 
-This is somewhat unfortunate, as I have been working on the same thing
-and have demonstrated the STM32F429 Discovery Kit at ARM TechSymposium
-Europe in December and submitted a talk for LinuxCon Japan.
+> +
+> +config RWSEM_GENERIC_SPINLOCK
+> +	bool
+> +	default y
+> +
+> +config RWSEM_XCHGADD_ALGORITHM
+> +	bool
+> +	default n
 
-https://github.com/afaerber/afboot-stm32
-https://github.com/afaerber/linux/commits/stm32
+Not strictly needed.
 
-On a brief look, it seems you are further along in terms of code quality
-and documenting. Do you spot anything that's missing in your series and
-could be added from my branch? The clk controller maybe? Also I already
-started looking into gpio and usb drivers. Me too, I skipped DMA support
-though.
+> +config ARCH_HAS_ILOG2_U32
+> +	bool
+> +	default n
+> +
 
-Regards,
-Andreas
+Ditto.
 
->=20
-> Maxime Coquelin (14):
->   scripts: link-vmlinux: Don't pass page offset to kallsyms if XIP
->     Kernel
->   ARM: ARMv7M: Enlarge vector table to 256 entries
->   clocksource: Add ARM System timer driver
->   reset: Add reset_controller_of_init() function
->   ARM: call reset_controller_of_init from default time_init handler
->   drivers: reset: Add STM32 reset driver
->   clockevent: Add STM32 Timer driver
->   pinctrl: Add pinctrl driver for STM32 MCUs
->   serial: stm32-usart: Add STM32 USART Driver
->   ARM: Add STM32 family machine
->   ARM: dts: Add ARM System timer as clockevent in armv7m
->   ARM: dts: Introduce STM32F429 MCU
->   ARM: configs: Add STM32 defconfig
->   MAINTAINERS: Add entry for STM32 MCUs
->=20
->  Documentation/arm/stm32/overview.txt               |  32 +
->  Documentation/arm/stm32/stm32f429-overview.txt     |  22 +
->  .../devicetree/bindings/arm/system_timer.txt       |  15 +
->  .../devicetree/bindings/pinctrl/pinctrl-stm32.txt  |  99 +++
->  .../devicetree/bindings/reset/st,stm32-reset.txt   |  19 +
->  .../devicetree/bindings/serial/st,stm32-usart.txt  |  18 +
->  .../devicetree/bindings/timer/st,stm32-timer.txt   |  19 +
->  MAINTAINERS                                        |   7 +
->  arch/arm/Kconfig                                   |  22 +
->  arch/arm/Makefile                                  |   1 +
->  arch/arm/boot/dts/Makefile                         |   1 +
->  arch/arm/boot/dts/armv7-m.dtsi                     |   7 +
->  arch/arm/boot/dts/stm32f429-disco.dts              |  41 ++
->  arch/arm/boot/dts/stm32f429.dtsi                   | 279 ++++++++
->  arch/arm/configs/stm32_defconfig                   |  72 ++
->  arch/arm/kernel/entry-v7m.S                        |   8 +-
->  arch/arm/kernel/time.c                             |   4 +
->  arch/arm/mach-stm32/Makefile                       |   1 +
->  arch/arm/mach-stm32/Makefile.boot                  |   0
->  arch/arm/mach-stm32/board-dt.c                     |  19 +
->  drivers/clocksource/Kconfig                        |  16 +
->  drivers/clocksource/Makefile                       |   2 +
->  drivers/clocksource/arm_system_timer.c             |  74 ++
->  drivers/clocksource/timer-stm32.c                  | 187 +++++
->  drivers/pinctrl/Kconfig                            |   9 +
->  drivers/pinctrl/Makefile                           |   1 +
->  drivers/pinctrl/pinctrl-stm32.c                    | 779 +++++++++++++=
-++++++++
->  drivers/reset/Makefile                             |   1 +
->  drivers/reset/core.c                               |  20 +
->  drivers/reset/reset-stm32.c                        | 124 ++++
->  drivers/tty/serial/Kconfig                         |  17 +
->  drivers/tty/serial/Makefile                        |   1 +
->  drivers/tty/serial/stm32-usart.c                   | 695 +++++++++++++=
-+++++
->  include/asm-generic/vmlinux.lds.h                  |   4 +-
->  include/dt-bindings/pinctrl/pinctrl-stm32.h        |  43 ++
->  include/linux/reset-controller.h                   |   6 +
->  include/uapi/linux/serial_core.h                   |   3 +
->  scripts/link-vmlinux.sh                            |   2 +-
->  38 files changed, 2664 insertions(+), 6 deletions(-)
->  create mode 100644 Documentation/arm/stm32/overview.txt
->  create mode 100644 Documentation/arm/stm32/stm32f429-overview.txt
->  create mode 100644 Documentation/devicetree/bindings/arm/system_timer.=
-txt
->  create mode 100644 Documentation/devicetree/bindings/pinctrl/pinctrl-s=
-tm32.txt
->  create mode 100644 Documentation/devicetree/bindings/reset/st,stm32-re=
-set.txt
->  create mode 100644 Documentation/devicetree/bindings/serial/st,stm32-u=
-sart.txt
->  create mode 100644 Documentation/devicetree/bindings/timer/st,stm32-ti=
-mer.txt
->  create mode 100644 arch/arm/boot/dts/stm32f429-disco.dts
->  create mode 100644 arch/arm/boot/dts/stm32f429.dtsi
->  create mode 100644 arch/arm/configs/stm32_defconfig
->  create mode 100644 arch/arm/mach-stm32/Makefile
->  create mode 100644 arch/arm/mach-stm32/Makefile.boot
->  create mode 100644 arch/arm/mach-stm32/board-dt.c
->  create mode 100644 drivers/clocksource/arm_system_timer.c
->  create mode 100644 drivers/clocksource/timer-stm32.c
->  create mode 100644 drivers/pinctrl/pinctrl-stm32.c
->  create mode 100644 drivers/reset/reset-stm32.c
->  create mode 100644 drivers/tty/serial/stm32-usart.c
->  create mode 100644 include/dt-bindings/pinctrl/pinctrl-stm32.h
->=20
+> +config ARCH_HAS_ILOG2_U64
+> +	bool
+> +	default n
+> +
+
+Ditto.
+
+> +config GENERIC_HWEIGHT
+> +	bool
+> +	default y
+> +
+> +config GENERIC_CALIBRATE_DELAY
+> +	bool
+> +	default y
+> +
+> +config GENERIC_BUG
+> +        bool
+> +        depends on BUG
+> +
+
+GENERIC_BUG can never be set for H8300, so this entry is not needed.
+
+> +config TIME_LOW_RES
+> +	bool
+> +	default y
+> +
+> +config NO_IOPORT_MAP
+> +	def_bool y
+> +
+> +config NO_DMA
+> +	def_bool n
+
+Not needed (please note that only a few architectures have an entry for
+NO_DMA).
+
+> +config ISA
+> +        def_bool n
+> +
+> +config PCI
+> +	def_bool n
+> +
+
+Neither ISA nor PCI will ever be set, won't they? So you might as well
+drop these too.
+
+> +config HZ
+> +	int
+> +	default 100
+> +
+> +config NR_CPUS
+> +        int
+
+Eight spaces instead of one tab.
+
+> +	default 1
+> +
+> +source "init/Kconfig"
+> +
+> +source "kernel/Kconfig.freezer"
+> +
+> +source "arch/h8300/Kconfig.cpu"
+> +
+> +menu "Kernel Features"
+> +
+> +source "kernel/Kconfig.preempt"
+> +
+> +source "mm/Kconfig"
+> +
+> +endmenu
+> +
+> +menu "Executable file formats"
+> +
+> +source "fs/Kconfig.binfmt"
+> +
+> +endmenu
+> +
+> +source "net/Kconfig"
+> +
+> +source "drivers/Kconfig"
+> +
+> +source "fs/Kconfig"
+> +
+> +source "arch/h8300/Kconfig.debug"
+> +
+> +source "security/Kconfig"
+> +
+> +source "crypto/Kconfig"
+> +
+> +source "lib/Kconfig"
+> diff --git a/arch/h8300/Kconfig.cpu b/arch/h8300/Kconfig.cpu
+> new file mode 100644
+> index 0000000..2eaa797
+> --- /dev/null
+> +++ b/arch/h8300/Kconfig.cpu
+> @@ -0,0 +1,136 @@
+> +menu "Processor type and features"
+> +
+> +choice
+> +	prompt "H8/300 platform"
+> +
+> +config H8300_AE3068
+> +	bool "AE-3068/69"
+> +	select H83069
+> +	select RAMKERNEL
+> +	help
+> +	  AKI-H8/3068F / AKI-H8/3069F Flashmicom LAN Board Support
+> +	  More Information. (Japanese Only)
+> +	  <http://akizukidenshi.com/catalog/default.aspx>
+> +	  AE-3068/69 Evaluation Board Support
+> +	  More Information.
+> +	  <http://www.microtronique.com/ae3069lan.htm>
+> +
+> +config H8300_H8MAX
+> +	bool "H8MAX"
+> +	select H83069
+> +	select RAMKERNEL
+> +	help
+> +	  H8MAX Evaluation Board Support
+> +	  More Information. (Japanese Only)
+> +	  <http://strawberry-linux.com/h8/index.html>
+> +
+> +config H8300_KANEBEBE
+> +	bool "KaneBebe"
+> +	select H83069
+> +	select RAMKERNEL
+> +	help
+> +	  KaneBebe Evalition Board Support
+> +
+> +config H8300H_SIM
+> +	bool "H8/300H GDB Simulator"
+> +	select H83069
+> +	select ROMKERNEL
+> +	help
+> +	  GDB Simulator Support
+> +	  More Information.
+> +	  <http://sourceware.org/sid/>
+> +
+> +config H8S_EDOSK2674
+> +	bool "EDOSK-2674"
+> +	select H8S2678
+> +	select RAMKERNEL
+> +	help
+> +	  Renesas EDOSK-2674 Evaluation Board Support
+> +	  More Information.
+> +	  <http://www.azpower.com/H8-uClinux/index.html>
+> + 	  <http://www.renesas.eu/products/tools/introductory_evaluation_tools/evaluation_development_os_kits/edosk2674r/edosk2674r_software_tools_root.jsp>
+> +
+> +config H8S_SIM
+> +	bool "H8S GDB Simulator"
+> +	select H8S2678
+> +	select ROMKERNEL
+> +	help
+> +	  GDB Simulator Support
+> +	  More Information.
+> +	  <http://sourceware.org/sid/>
+> +
+> +endchoice
+> +
+> +choice
+> +	prompt "CPU Selection"
+> +
+> +config H83069
+> +	bool "H8/3065,3066,3067,3068,3069"
+> +	select CPU_H8300H
+> +	select H8300_TMR8
+> +	select H8300_TMR16
+> +
+> +config H8S2678
+> +	bool "H8S/2670,2673,2674R,2675,2676"
+> +	select CPU_H8S
+> +	select H8300_TMR8
+> +	select H8300_TPU
+> +
+> +endchoice
+> +
+
+All platforms either select H83069 or H8S2678. So this choice looks odd.
+Can't you just drop the choice wrapper, and make this two entries
+without prompt (ie, make it two symbols that are selected only, and
+never set manually)?
+
+Also note that H8300_TMR8 will always be set. So that it seems not
+really needed (ie, it's an alias for H8300).
+
+> +config CPU_CLOCK
+> +	int "CPU Clock Frequency"
+> +	depends on ROMKERNEL
+> +	default "200000000" if H8300H_AKI3068NET || H8300H_SIM
+
+There's no symbol H8300H_AKI3068NET. Why is that (optional) dependency
+added?
+
+> +	default "250000000" if H8300H_H8MAX || H8300H_KANEBEBE
+
+Neither symbols exist. Why is this default needed?
+
+> +	default "333333333" if H8S_EDOSK2674 || H8S_SIM
+> +	help
+> +	  CPU Clock Frequency
+> +
+> +choice
+> +	prompt "Kernel executes from"
+> +	---help---
+> +	  Choose the memory type that the kernel will be running in.
+> +
+> +config RAMKERNEL
+> +	bool "RAM"
+> +	help
+> +	  The kernel will be resident in RAM when running.
+> +
+> +config ROMKERNEL
+> +	bool "ROM"
+> +	help
+> +	  The kernel will be resident in FLASH/ROM when running.
+> +endchoice
+
+All platforms either select RAMKERNEL or ROMKERNEL. So this choice also
+looks odd. Can't you, again, drop the choice wrapper, and make these two
+entries without prompt?
+
+> +config CPU_H8300H
+> +	bool
+> +	depends on H83069
+> +	default y
+> +
+> +config CPU_H8S
+> +	bool
+> +	depends on H8S2678
+> +	default y
+> +
+> +config ROMSIZE
+> +	hex "ROM size"
+> +	depends on ROMKERNEL
+> +	default 0x200000
+> +
+> +config RAMBASE
+> +	hex "RAM base address"
+> +	default 0x400000
+> +
+> +config RAMSIZE
+> +	hex "RAM size"
+> +	depends on ROMKERNEL
+> +	default 0x200000 if H8300_AE3068 || H8300_H8MAX || H8300H_SIM
+> +	default 0x400000 if H8300_KANEBEBE
+> +	default 0x800000 if H8S_EDOSK2674 || H8S_SIM
+> +
+> +config OFFSET
+> +        hex "Load offset"
+
+Eight spaces instead of one tab?
+
+> +	default 0
+> +
+> +endmenu
+> diff --git a/arch/h8300/Kconfig.debug b/arch/h8300/Kconfig.debug
+> new file mode 100644
+> index 0000000..eb72b01
+> --- /dev/null
+> +++ b/arch/h8300/Kconfig.debug
+> @@ -0,0 +1,23 @@
+> +menu "Kernel hacking"
+> +
+> +source "lib/Kconfig.debug"
+> +
+> +config FULLDEBUG
+> +	bool "Full Symbolic/Source Debugging support"
+> +	help
+> +	  Enable debugging symbols on kernel build.
+> +
+> +config HIGHPROFILE
+> +	bool "Use fast second timer for profiling"
+> +	help
+> +	  Use a fast secondary clock to produce profiling information.
+> +
+> +config NO_KERNEL_MSG
+> +	bool "Suppress Kernel BUG Messages"
+> +	help
+> +	  Do not output any debug BUG messages within the kernel.
+> +
+> +config SH_STANDARD_BIOS
+> +       def_bool n
+> +
+
+I don't think this entry is needed.
+
+> +endmenu
+> diff --git a/arch/h8300/Makefile b/arch/h8300/Makefile
+> new file mode 100644
+> index 0000000..44e915c
+> --- /dev/null
+> +++ b/arch/h8300/Makefile
+> @@ -0,0 +1,45 @@
+> +#
+> +# arch/h8300/Makefile
+> +#
+> +# This file is subject to the terms and conditions of the GNU General Public
+> +# License.  See the file "COPYING" in the main directory of this archive
+> +# for more details.
+> +#
+> +# (C) Copyright 2002-2015 Yoshinori Sato <ysato@users.sourceforge.jp>
+> +#
+> +
+> +cflags-$(CONFIG_CPU_H8300H)	:= -mh
+> +aflags-$(CONFIG_CPU_H8300H)	:= -mh -Wa,--mach=h8300h
+> +ldflags-$(CONFIG_CPU_H8300H)	:= -mh8300helf_linux
+> +cflags-$(CONFIG_CPU_H8S)	:= -ms
+> +aflags-$(CONFIG_CPU_H8S)	:= -ms -Wa,--mach=h8300s
+> +ldflags-$(CONFIG_CPU_H8S)	:= -mh8300self_linux
+> +
+> +KBUILD_CFLAGS += $(cflags-y)
+> +KBUILD_CFLAGS += -mint32 -fno-builtin
+> +KBUILD_CFLAGS += -D__linux__
+> +KBUILD_CFLAGS += -DUTS_SYSNAME=\"uClinux\"
+> +KBUILD_AFLAGS += $(aflags-y)
+> +LDFLAGS += $(ldflags-y)
+> +
+> +CROSS_COMPILE := h8300-unknown-linux-
+> +
+> +core-y	+= arch/$(ARCH)/kernel/ arch/$(ARCH)/mm/
+> +
+> +libs-y	+= arch/$(ARCH)/lib/
+> +
+> +boot := arch/h8300/boot
+> +
+> +archmrproper:
+> +
+> +archclean:
+> +	$(Q)$(MAKE) $(clean)=$(boot)
+> +
+> +vmlinux.srec vmlinux.bin zImage uImage.bin: vmlinux
+> +	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
+> +
+> +define archhelp
+> +  @echo  'vmlinux.bin  - Create raw binary'
+> +  @echo  'vmlinux.srec - Create srec binary'
+> +  @echo  'zImage       - Compressed kernel image'
+> +endef
+> diff --git a/arch/h8300/kernel/Makefile b/arch/h8300/kernel/Makefile
+> new file mode 100644
+> index 0000000..0b5fe00
+> --- /dev/null
+> +++ b/arch/h8300/kernel/Makefile
+> @@ -0,0 +1,16 @@
+> +#
+> +# Makefile for the linux kernel.
+> +#
+> +
+> +extra-y := vmlinux.lds
+> +
+> +obj-y := process.o traps.o ptrace.o \
+> +	 signal.o setup.o syscalls.o \
+> +	 irq.o entry.o dma.o cpu/
+> +
+> +obj-$(CONFIG_ROMKERNEL) += head_rom.o
+> +obj-$(CONFIG_RAMKERNEL) += head_ram.o
+> +
+> +obj-$(CONFIG_MODULES) += module.o h8300_ksyms.o
+> +obj-$(CONFIG_H8300H_SIM) += sim-console.o
+> +obj-$(CONFIG_H8S_SIM) += sim-console.o
+> diff --git a/arch/h8300/kernel/vmlinux.lds.S b/arch/h8300/kernel/vmlinux.lds.S
+> new file mode 100644
+> index 0000000..e1b49aa
+> --- /dev/null
+> +++ b/arch/h8300/kernel/vmlinux.lds.S
+> @@ -0,0 +1,85 @@
+> +#include <asm-generic/vmlinux.lds.h>
+> +#include <asm/page.h>
+> +
+> +#define ROMTOP 0x000000
+> +#define RAMTOP CONFIG_RAMBASE
+> +
+> +jiffies = jiffies_64 + 4;
+> +
+> +ENTRY(_start)
+> +
+> +SECTIONS
+> +{
+> +#if defined(CONFIG_ROMKERNEL)
+> +	. = ROMTOP;
+> +	.vectors :
+> +	{
+> +	_vector = . ;
+> +		*(.vector*)
+> +	}
+> +#else
+> +	. = RAMTOP;
+> +	_ramstart = .;
+> +	. = . + CONFIG_OFFSET;
+> +#endif
+> +	_text = .;
+> +	HEAD_TEXT_SECTION
+> +	.text : {
+> +	_stext = . ;
+> +		TEXT_TEXT
+> +		SCHED_TEXT
+> +		LOCK_TEXT
+> +#if defined(CONFIG_ROMKERNEL)
+> +		*(.int_redirect)
+> +#endif
+> +	_etext = . ;
+> +	}
+> +	EXCEPTION_TABLE(16)
+> +	NOTES
+> +	RO_DATA(4)
+> +#if defined(CONFIG_ROMKERNEL)
+> +	.init.text : {
+> +		_sinittext = .;
+> +		INIT_TEXT
+> +		_einittext = .;
+> +	}
+> +	SECURITY_INIT
+> +#endif
+> +	ROMEND = .;
+> +#if defined(CONFIG_ROMKERNEL)
+> +	. = RAMTOP;
+> +	_ramstart = .;
+> +	.data :	AT(ROMEND)
+> +#else
+> +	.data :
+> +#endif
+> +	{
+> +	_sdata = . ;
+> +	__data_start = . ;
+> +		INIT_TASK_DATA(0x2000)
+> +		NOSAVE_DATA
+> +		PAGE_ALIGNED_DATA(0x1000)
+> +		CACHELINE_ALIGNED_DATA(0x0002)
+> +		READ_MOSTLY_DATA(0x0002)
+> +		DATA_DATA
+> +		CONSTRUCTORS
+> +	}
+> +	. = ALIGN(0x4) ;
+> +	__init_begin = .;
+> +#if defined(CONFIG_RAMKERNEL)
+> +	INIT_TEXT_SECTION(4)
+> +#endif
+> +	INIT_DATA_SECTION(4)
+> +#if defined(CONFIG_RAMKERNEL)
+> +	SECURITY_INIT
+> +#endif
+> +	__init_end = .;
+> +	_edata = . ;
+> +	_begin_data = LOADADDR(.data);
+> +	_sbss =.;
+> +	BSS_SECTION(4,4,4)
+> +	_ebss =.;
+> +	_ramend = .;
+> +	_end = .;
+> +	DISCARDS
+> +}
 
 
---=20
-SUSE Linux GmbH, Maxfeldstr. 5, 90409 N=FCrnberg, Germany
-GF: Felix Imend=F6rffer, Jane Smithard, Jennifer Guild, Dilip Upmanyu,
-Graham Norton; HRB 21284 (AG N=FCrnberg)
-
-
---95i9U1kwvGuqWFIAJoHA3lRp5dcDBiePX
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBAgAGBQJU4LfEAAoJEPou0S0+fgE//zYP/0EeKpvBKU08wt7+ELInpcJP
-ak50cp7i1usajMEgEjeEH7VeM+0MiGWLvEfFUOTnqidzo07aRG66svOL8orTVcW3
-GZL5MGm3zFsGGnZqff19CnRMcz2ys3BoqylCw4ya9iFD3tycqGthp7Zl6J7sZORD
-bi6Jk75LB4QEaMxAueQ8GbAQ/tswioGua7GByW0seRe2HiLS4/nDrgWnfkfdsobc
-TpyUvNCBz3HLg7/5VomZ+CfnEK0jjH2AJ3I3+y+RHVerbGN6QxcyPc7j1Lprre+N
-SafndVvs3pKb5jfgwDV4UUmzGxV4B0Tx4B336X+Zz0QhdzuWRJ4zfumQi1V8l6iD
-b8fh1TMxhluOcP6V0rwhpWLBFVzyOZjcA9hAJ+3ul0udLGvqVofGui6FCjpNNhVu
-BP8J4gb78HIao+bPImCs32xfSJ+EQdZIoGCXt6iFA6Co2pOUyn3dqoC200JqNoL3
-UOmU30VqfEvf3xyvyhSVl65XZnlkOw+HDKAbtJYaAFnHlNNzuxF4B7khcumbbPiz
-afWKJJXFfun50Y80SdZCzaf4E3kZ43j0c9KxjA0NZf1FlC1XqixQ6LkI9BRaaRnH
-GfHvjnBwPznT5/6F2DT2Na7GqbGkxCCKHNO01vZuJNX47sUPSTOO1Kkjszs6SrVt
-sbkXP7xSgMjDuE/BcIOg
-=yIcJ
------END PGP SIGNATURE-----
-
---95i9U1kwvGuqWFIAJoHA3lRp5dcDBiePX--
+Paul Bolle
