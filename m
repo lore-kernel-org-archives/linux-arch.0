@@ -1,746 +1,664 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.asahi-net.or.jp ([202.224.39.198]:18139 "EHLO
+Received: from mail2.asahi-net.or.jp ([202.224.39.198]:18137 "EHLO
 	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754582AbbBOHt4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Feb 2015 02:49:56 -0500
+	with ESMTP id S1754550AbbBOHtz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Feb 2015 02:49:55 -0500
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v3 05/15] h8300: Process and signal
-Date: Sun, 15 Feb 2015 16:49:23 +0900
-Message-ID: <1423986573-2329-6-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v3 04/15] h8300: kernel booting
+Date: Sun, 15 Feb 2015 16:49:22 +0900
+Message-ID: <1423986573-2329-5-git-send-email-ysato@users.sourceforge.jp>
 In-Reply-To: <1423986573-2329-1-git-send-email-ysato@users.sourceforge.jp>
 References: <1423986573-2329-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20150215074923.ip0r6E_AIRtxmwdcjGu3ii40W0uFUyeHymRoqXLeBpk@z>
+Message-ID: <20150215074922.lPg_wSiBT3DQeF5JGISrfKMgBTIDiWv7qxKf40isKNk@z>
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- arch/h8300/kernel/process.c | 170 +++++++++++++++++++++++
- arch/h8300/kernel/ptrace.c  | 203 +++++++++++++++++++++++++++
- arch/h8300/kernel/signal.c  | 326 ++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 699 insertions(+)
- create mode 100644 arch/h8300/kernel/process.c
- create mode 100644 arch/h8300/kernel/ptrace.c
- create mode 100644 arch/h8300/kernel/signal.c
+ arch/h8300/boot/Makefile               |  27 +++++
+ arch/h8300/boot/compressed/Makefile    |  37 +++++++
+ arch/h8300/boot/compressed/head.S      |  48 +++++++++
+ arch/h8300/boot/compressed/misc.c      |  74 ++++++++++++++
+ arch/h8300/boot/compressed/vmlinux.lds |  32 ++++++
+ arch/h8300/boot/compressed/vmlinux.scr |   9 ++
+ arch/h8300/kernel/head_ram.S           |  60 ++++++++++++
+ arch/h8300/kernel/head_rom.S           | 108 ++++++++++++++++++++
+ arch/h8300/kernel/setup.c              | 174 +++++++++++++++++++++++++++++++++
+ 9 files changed, 569 insertions(+)
+ create mode 100644 arch/h8300/boot/Makefile
+ create mode 100644 arch/h8300/boot/compressed/Makefile
+ create mode 100644 arch/h8300/boot/compressed/head.S
+ create mode 100644 arch/h8300/boot/compressed/misc.c
+ create mode 100644 arch/h8300/boot/compressed/vmlinux.lds
+ create mode 100644 arch/h8300/boot/compressed/vmlinux.scr
+ create mode 100644 arch/h8300/kernel/head_ram.S
+ create mode 100644 arch/h8300/kernel/head_rom.S
+ create mode 100644 arch/h8300/kernel/setup.c
 
-diff --git a/arch/h8300/kernel/process.c b/arch/h8300/kernel/process.c
+diff --git a/arch/h8300/boot/Makefile b/arch/h8300/boot/Makefile
 new file mode 100644
-index 0000000..c0f7511
+index 0000000..5072b36
 --- /dev/null
-+++ b/arch/h8300/kernel/process.c
-@@ -0,0 +1,170 @@
++++ b/arch/h8300/boot/Makefile
+@@ -0,0 +1,27 @@
++# arch/h8300/boot/Makefile
++
++targets := vmlinux.srec vmlinux.bin zImage
++subdir- := compressed
++
++OBJCOPYFLAGS_vmlinux.srec := -Osrec
++OBJCOPYFLAGS_vmlinux.bin  := -Obinary
++OBJCOPYFLAGS_zImage := -O binary -R .note -R .comment -R .stab -R .stabstr -S
++
++UIMAGE_LOADADDR = $(CONFIG_RAMBASE)
++UIMAGE_ENTRYADDR = $(shell /bin/bash -c 'printf "0x%08x" \
++	$$[$(CONFIG_RAMBASE) + $(CONFIG_OFFSET)]')
++
++$(obj)/vmlinux.srec $(obj)/vmlinux.bin:  vmlinux FORCE
++	$(call if_changed,objcopy)
++
++$(obj)/zImage: $(obj)/compressed/vmlinux FORCE
++	$(call if_changed,objcopy)
++
++$(obj)/compressed/vmlinux: FORCE
++	$(Q)$(MAKE) $(build)=$(obj)/compressed $@
++
++$(obj)/uImage.bin: $(obj)/vmlinux.bin
++	$(call if_changed,uimage,none)
++
++CLEAN_FILES += arch/$(ARCH)/vmlinux.bin arch/$(ARCH)/vmlinux.srec arch/$(ARCH)/uImage.bin
++
+diff --git a/arch/h8300/boot/compressed/Makefile b/arch/h8300/boot/compressed/Makefile
+new file mode 100644
+index 0000000..87d03b7
+--- /dev/null
++++ b/arch/h8300/boot/compressed/Makefile
+@@ -0,0 +1,37 @@
++#
++# linux/arch/sh/boot/compressed/Makefile
++#
++# create a compressed vmlinux image from the original vmlinux
++#
++
++targets		:= vmlinux vmlinux.bin vmlinux.bin.gz head.o misc.o piggy.o
++
++OBJECTS = $(obj)/head.o $(obj)/misc.o
++
++#
++# IMAGE_OFFSET is the load offset of the compression loader
++# Assign dummy values if these 2 variables are not defined,
++# in order to suppress error message.
++#
++CONFIG_MEMORY_START     ?= 0x00400000
++CONFIG_BOOT_LINK_OFFSET ?= 0x00140000
++IMAGE_OFFSET := $(shell printf "0x%08x" $$(($(CONFIG_MEMORY_START)+$(CONFIG_BOOT_LINK_OFFSET))))
++
++LIBGCC := $(shell $(CROSS-COMPILE)$(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
++LDFLAGS_vmlinux := -Ttext $(IMAGE_OFFSET) -estartup $(obj)/vmlinux.lds
++
++$(obj)/vmlinux: $(OBJECTS) $(obj)/piggy.o $(LIBGCC) FORCE
++	$(call if_changed,ld)
++	@:
++
++$(obj)/vmlinux.bin: vmlinux FORCE
++	$(call if_changed,objcopy)
++
++$(obj)/vmlinux.bin.gz: $(obj)/vmlinux.bin FORCE
++	$(call if_changed,gzip)
++
++LDFLAGS_piggy.o := -r --format binary --oformat elf32-h8300-linux -T
++OBJCOPYFLAGS := -O binary
++
++$(obj)/piggy.o: $(obj)/vmlinux.scr $(obj)/vmlinux.bin.gz FORCE
++	$(call if_changed,ld)
+diff --git a/arch/h8300/boot/compressed/head.S b/arch/h8300/boot/compressed/head.S
+new file mode 100644
+index 0000000..74c0d8cc
+--- /dev/null
++++ b/arch/h8300/boot/compressed/head.S
+@@ -0,0 +1,48 @@
 +/*
-+ *  linux/arch/h8300/kernel/process.c
++ *  linux/arch/h8300/boot/compressed/head.S
 + *
-+ * Yoshinori Sato <ysato@users.sourceforge.jp>
++ *  Copyright (C) 2006 Yoshinori Sato
++ */
++
++#include <linux/linkage.h>
++
++	.section	.text..startup,"ax"
++	.global	startup
++startup:
++	mov.l	er0, er4
++	mov.l	er0, sp
++	mov.l	#__sbss, er0
++	mov.l	#__ebss, er1
++	sub.l	er0, er1
++	shlr	er1
++	shlr	er1
++	sub.l	er2, er2
++1:
++	mov.l	er2, @er0
++	adds	#4, er0
++	dec.l	#1, er1
++	bne	1b
++	jsr	@decompress_kernel
++	mov.l	er4, er0
++	jmp	@0x400000
++
++	.align	9
++fake_headers_as_bzImage:
++	.word	0
++	.ascii	"HdrS"		; header signature
++	.word	0x0202		; header version number (>= 0x0105)
++				; or else old loadlin-1.5 will fail)
++	.word	0		; default_switch
++	.word	0		; SETUPSEG
++	.word	0x1000
++	.word	0		; pointing to kernel version string
++	.byte	0		; = 0, old one (LILO, Loadlin,
++				; 0xTV: T=0 for LILO
++				;       V = version
++	.byte	1		; Load flags bzImage=1
++	.word	0x8000		; size to move, when setup is not
++	.long	0x100000	; 0x100000 = default for big kernel
++	.long	0		; address of loaded ramdisk image
++	.long	0		; its size in bytes
++
++	.end
+diff --git a/arch/h8300/boot/compressed/misc.c b/arch/h8300/boot/compressed/misc.c
+new file mode 100644
+index 0000000..7042741
+--- /dev/null
++++ b/arch/h8300/boot/compressed/misc.c
+@@ -0,0 +1,74 @@
++/*
++ * arch/h8300/boot/compressed/misc.c
 + *
-+ *  Based on:
++ * This is a collection of several routines from gzip-1.0.3
++ * adapted for Linux.
 + *
-+ *  linux/arch/m68knommu/kernel/process.c
++ * malloc by Hannu Savolainen 1993 and Matthias Urlichs 1994
 + *
-+ *  Copyright (C) 1998  D. Jeff Dionne <jeff@ryeham.ee.ryerson.ca>,
-+ *                      Kenneth Albanowski <kjahds@kjahds.com>,
-+ *                      The Silver Hammer Group, Ltd.
++ * Adapted for h8300 by Yoshinori Sato 2006
++ */
++
++#include <asm/uaccess.h>
++
++/*
++ * gzip declarations
++ */
++
++#define OF(args)  args
++#define STATIC static
++
++#undef memset
++#undef memcpy
++#define memzero(s, n)     memset((s), (0), (n))
++
++extern int _end;
++static unsigned long free_mem_ptr;
++static unsigned long free_mem_end_ptr;
++
++extern char input_data[];
++extern int input_len;
++static unsigned char *output;
++
++#define HEAP_SIZE             0x10000
++
++#include "../../../../lib/decompress_inflate.c"
++
++void *memset(void *s, int c, size_t n)
++{
++	int i;
++	char *ss = (char *)s;
++
++	for (i = 0; i < n; i++)
++		ss[i] = c;
++	return s;
++}
++
++void *memcpy(void *dest, const void *src, size_t n)
++{
++	int i;
++	char *d = (char *)dest, *s = (char *)src;
++
++	for (i = 0; i < n; i++)
++		d[i] = s[i];
++	return dest;
++}
++
++static void error(char *x)
++{
++
++	while (1)
++		;	/* Halt */
++}
++
++#define STACK_SIZE (4096)
++long user_stack[STACK_SIZE];
++long *stack_start = &user_stack[STACK_SIZE];
++
++void decompress_kernel(void)
++{
++	free_mem_ptr = (unsigned long)&_end;
++	free_mem_end_ptr = free_mem_ptr + HEAP_SIZE;
++
++	decompress(input_data, input_len, NULL, NULL, output, NULL, error);
++}
+diff --git a/arch/h8300/boot/compressed/vmlinux.lds b/arch/h8300/boot/compressed/vmlinux.lds
+new file mode 100644
+index 0000000..a0a3a0e
+--- /dev/null
++++ b/arch/h8300/boot/compressed/vmlinux.lds
+@@ -0,0 +1,32 @@
++SECTIONS
++{
++        .text :
++        {
++        __stext = . ;
++	__text = .;
++	       *(.text..startup)
++	       *(.text)
++        __etext = . ;
++        }
++
++	.rodata :
++	{
++		*(.rodata)
++	}
++        .data :
++
++        {
++        __sdata = . ;
++        ___data_start = . ;
++                *(.data.*)
++	}
++        .bss :
++        {
++        . = ALIGN(0x4) ;
++        __sbss = . ;
++                *(.bss*)
++        . = ALIGN(0x4) ;
++        __ebss = . ;
++        __end = . ;
++        }
++}
+diff --git a/arch/h8300/boot/compressed/vmlinux.scr b/arch/h8300/boot/compressed/vmlinux.scr
+new file mode 100644
+index 0000000..a0849036
+--- /dev/null
++++ b/arch/h8300/boot/compressed/vmlinux.scr
+@@ -0,0 +1,9 @@
++SECTIONS
++{
++  .data : {
++	input_len = .;
++	LONG(input_data_end - input_data) input_data = .;
++	*(.data)
++	input_data_end = .;
++	}
++}
+diff --git a/arch/h8300/kernel/head_ram.S b/arch/h8300/kernel/head_ram.S
+new file mode 100644
+index 0000000..f64b3d9
+--- /dev/null
++++ b/arch/h8300/kernel/head_ram.S
+@@ -0,0 +1,60 @@
++
++#include <linux/sys.h>
++#include <linux/init.h>
++#include <asm/unistd.h>
++#include <asm/setup.h>
++#include <asm/segment.h>
++#include <asm/linkage.h>
++#include <asm/asm-offsets.h>
++#include <asm/thread_info.h>
++#include <asm/errno.h>
++
++#if defined(CONFIG_CPU_H8300H)
++	.h8300h
++#define SYSCR 0xfee012
++#define IRAMTOP 0xffff20
++#endif
++#if defined(CONFIG_CPU_H8S)
++	.h8300s
++#define INTCR 0xffff31
++#define IRAMTOP 0xffc000
++#endif
++
++	__HEAD
++	.global	_start
++_start:
++	mov.l	#IRAMTOP,sp
++	/* .bss clear */
++	mov.l	#_sbss,er5
++	mov.l	#_ebss,er4
++	sub.l	er5,er4
++	shlr	er4
++	shlr	er4
++	sub.l	er1,er1
++1:
++	mov.l	er1,@er5
++	adds	#4,er5
++	dec.l	#1,er4
++	bne	1b
++	jsr	@parse_bootparam
++
++	/* linux kernel start */
++#if defined(CONFIG_CPU_H8300H)
++	ldc	#0xd0,ccr	/* running kernel */
++	mov.l	#SYSCR,er0
++	bclr	#3,@er0
++#endif
++#if defined(CONFIG_CPU_H8S)
++	ldc	#0x07,exr
++	bclr	#4,@INTCR:8
++	bset	#5,@INTCR:8	/* Interrupt mode 2 */
++	ldc	#0x90,ccr	/* running kernel */
++#endif
++	mov.l	#init_thread_union,sp
++	add.l	#0x2000,sp
++	jsr	@start_kernel
++
++1:
++	bra	1b
++
++	.end
+diff --git a/arch/h8300/kernel/head_rom.S b/arch/h8300/kernel/head_rom.S
+new file mode 100644
+index 0000000..60ca8fa
+--- /dev/null
++++ b/arch/h8300/kernel/head_rom.S
+@@ -0,0 +1,108 @@
++#include <linux/init.h>
++#include <asm/thread_info.h>
++
++#if defined(CONFIG_CPU_H8300H)
++	.h8300h
++#define SYSCR 0xfee012
++#define IRAMTOP 0xffff20
++#define NR_INT 64
++#endif
++#if defined(CONFIG_CPU_H8S)
++	.h8300s
++#define INTCR 0xffff31
++#define IRAMTOP 0xffc000
++#define NR_INT 128
++#endif
++
++	__HEAD
++	.global	_start
++_start:
++	mov.l	#IRAMTOP,sp
++#if !defined(CONFIG_H8300H_SIM) && \
++    !defined(CONFIG_H8S_SIM)
++	jsr	@lowlevel_init
++
++	/* copy .data */
++	mov.l	#_begin_data,er5
++	mov.l	#_sdata,er6
++	mov.l	#_edata,er4
++	sub.l	er6,er4
++	shlr.l	er4
++	shlr.l	er4
++1:
++	mov.l	@er5+,er0
++	mov.l	er0,@er6
++	adds	#4,er6
++	dec.l	#1,er4
++	bne	1b
++	/* .bss clear */
++	mov.l	#_sbss,er5
++	mov.l	#_ebss,er4
++	sub.l	er5,er4
++	shlr	er4
++	shlr	er4
++	sub.l	er0,er0
++1:
++	mov.l	er0,@er5
++	adds	#4,er5
++	dec.l	#1,er4
++	bne	1b
++#else
++	/* get cmdline from gdb */
++	jsr	@0xcc
++	;; er0 - argc
++	;; er1 - argv
++	mov.l	#command_line,er3
++	adds	#4,er1
++	dec.l	#1,er0
++	beq	4f
++1:
++	mov.l	@er1+,er2
++2:
++	mov.b	@er2+,r4l
++	beq	3f
++	mov.b	r4l,@er3
++	adds	#1,er3
++	bra	2b
++3:
++	mov.b	#' ',r4l
++	mov.b	r4l,@er3
++	adds	#1,er3
++	dec.l	#1,er0
++	bne	1b
++	subs	#1,er3
++	mov.b	#0,r4l
++	mov.b	r4l,@er3
++4:
++#endif
++	/* linux kernel start */
++#if defined(CONFIG_CPU_H8300H)
++	ldc	#0xd0,ccr	/* running kernel */
++	mov.l	#SYSCR,er0
++	bclr	#3,@er0
++#endif
++#if defined(CONFIG_CPU_H8S)
++	ldc	#0x07,exr
++	bclr	#4,@INTCR:8
++	bset	#5,@INTCR:8	/* Interrupt mode 2 */
++	ldc	#0x90,ccr	/* running kernel */
++#endif
++	mov.l	#init_thread_union,sp
++	add.l	#0x2000,sp
++	jsr	@start_kernel
++
++1:
++	bra	1b
++
++#if defined(CONFIG_ROMKERNEL)
++	/* interrupt vector */
++	.section .vectors,"ax"
++	.long	_start
++	.long	_start
++vector	=	2
++	.rept	NR_INT - 2
++	.long	_interrupt_redirect_table+vector*4
++vector	=	vector + 1
++	.endr
++#endif
++	.end
+diff --git a/arch/h8300/kernel/setup.c b/arch/h8300/kernel/setup.c
+new file mode 100644
+index 0000000..812a55f
+--- /dev/null
++++ b/arch/h8300/kernel/setup.c
+@@ -0,0 +1,174 @@
++/*
++ *  linux/arch/h8300/kernel/setup.c
 + *
-+ *  linux/arch/m68k/kernel/process.c
-+ *
-+ *  Copyright (C) 1995  Hamish Macdonald
-+ *
-+ *  68060 fixes by Jesper Skov
++ *  Copyright (C) 2001-2014 Yoshinori Sato <ysato@users.sourceforge.jp>
 + */
 +
 +/*
-+ * This file handles the architecture-dependent parts of process handling..
++ * This file handles the architecture-dependent parts of system setup
 + */
 +
-+#include <linux/errno.h>
-+#include <linux/module.h>
-+#include <linux/sched.h>
 +#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/smp.h>
-+#include <linux/stddef.h>
-+#include <linux/unistd.h>
-+#include <linux/ptrace.h>
-+#include <linux/user.h>
++#include <linux/sched.h>
++#include <linux/delay.h>
 +#include <linux/interrupt.h>
-+#include <linux/reboot.h>
-+#include <linux/fs.h>
-+#include <linux/slab.h>
-+#include <linux/rcupdate.h>
-+
-+#include <asm/uaccess.h>
-+#include <asm/traps.h>
-+#include <asm/setup.h>
-+#include <asm/pgtable.h>
-+
-+void (*pm_power_off)(void) = NULL;
-+EXPORT_SYMBOL(pm_power_off);
-+
-+asmlinkage void ret_from_fork(void);
-+asmlinkage void ret_from_kernel_thread(void);
-+
-+/*
-+ * The idle loop on an H8/300..
-+ */
-+void arch_cpu_idle(void)
-+{
-+	local_irq_enable();
-+	__asm__("sleep");
-+}
-+
-+void machine_restart(char *__unused)
-+{
-+	local_irq_disable();
-+	__asm__("jmp @@0");
-+}
-+
-+void machine_halt(void)
-+{
-+	local_irq_disable();
-+	__asm__("sleep");
-+	for (;;)
-+		;
-+}
-+
-+void machine_power_off(void)
-+{
-+	local_irq_disable();
-+	__asm__("sleep");
-+	for (;;)
-+		;
-+}
-+
-+void show_regs(struct pt_regs *regs)
-+{
-+	show_regs_print_info(KERN_DEFAULT);
-+
-+	printk("\nPC: %08lx  Status: %02x",
-+	       regs->pc, regs->ccr);
-+	printk("\nORIG_ER0: %08lx ER0: %08lx ER1: %08lx",
-+	       regs->orig_er0, regs->er0, regs->er1);
-+	printk("\nER2: %08lx ER3: %08lx ER4: %08lx ER5: %08lx",
-+	       regs->er2, regs->er3, regs->er4, regs->er5);
-+	printk("\nER6' %08lx ", regs->er6);
-+	if (user_mode(regs))
-+		printk("USP: %08lx\n", rdusp());
-+	else
-+		printk("\n");
-+}
-+
-+void flush_thread(void)
-+{
-+}
-+
-+int copy_thread(unsigned long clone_flags,
-+		unsigned long usp, unsigned long topstk,
-+		struct task_struct *p)
-+{
-+	struct pt_regs *childregs;
-+
-+	childregs = (struct pt_regs *) (THREAD_SIZE + task_stack_page(p)) - 1;
-+
-+	if (unlikely(p->flags & PF_KTHREAD)) {
-+		memset(childregs, 0, sizeof(struct pt_regs));
-+		childregs->retpc = (unsigned long) ret_from_kernel_thread;
-+		childregs->er4 = topstk; /* arg */
-+		childregs->er5 = usp; /* fn */
-+	}  else {
-+		*childregs = *current_pt_regs();
-+		childregs->er0 = 0;
-+		childregs->retpc = (unsigned long) ret_from_fork;
-+		p->thread.usp = usp ?: rdusp();
-+	}
-+	p->thread.ksp = (unsigned long)childregs;
-+
-+	return 0;
-+}
-+
-+unsigned long thread_saved_pc(struct task_struct *tsk)
-+{
-+	return ((struct pt_regs *)tsk->thread.esp0)->pc;
-+}
-+
-+unsigned long get_wchan(struct task_struct *p)
-+{
-+	unsigned long fp, pc;
-+	unsigned long stack_page;
-+	int count = 0;
-+
-+	if (!p || p == current || p->state == TASK_RUNNING)
-+		return 0;
-+
-+	stack_page = (unsigned long)p;
-+	fp = ((struct pt_regs *)p->thread.ksp)->er6;
-+	do {
-+		if (fp < stack_page+sizeof(struct thread_info) ||
-+		    fp >= 8184+stack_page)
-+			return 0;
-+		pc = ((unsigned long *)fp)[1];
-+		if (!in_sched_functions(pc))
-+			return pc;
-+		fp = *(unsigned long *) fp;
-+	} while (count++ < 16);
-+	return 0;
-+}
-+
-+/* generic sys_clone is not enough registers */
-+asmlinkage int sys_clone(unsigned long __user *args)
-+{
-+	unsigned long clone_flags;
-+	unsigned long  newsp;
-+	uintptr_t parent_tidptr;
-+	uintptr_t child_tidptr;
-+
-+	get_user(clone_flags, &args[0]);
-+	get_user(newsp, &args[1]);
-+	get_user(parent_tidptr, &args[2]);
-+	get_user(child_tidptr, &args[3]);
-+	return do_fork(clone_flags, newsp, 0,
-+		       (int __user *)parent_tidptr, (int __user *)child_tidptr);
-+}
-diff --git a/arch/h8300/kernel/ptrace.c b/arch/h8300/kernel/ptrace.c
-new file mode 100644
-index 0000000..d27d00b
---- /dev/null
-+++ b/arch/h8300/kernel/ptrace.c
-@@ -0,0 +1,203 @@
-+/*
-+ *  linux/arch/h8300/kernel/ptrace.c
-+ *
-+ *  Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
-+ *
-+ * This file is subject to the terms and conditions of the GNU General
-+ * Public License.  See the file COPYING in the main directory of
-+ * this archive for more details.
-+ */
-+
-+#include <linux/kernel.h>
-+#include <linux/errno.h>
-+#include <linux/ptrace.h>
-+#include <linux/audit.h>
-+#include <linux/tracehook.h>
-+#include <linux/regset.h>
-+#include <linux/elf.h>
-+
-+#define CCR_MASK 0x6f    /* mode/imask not set */
-+#define EXR_MASK 0x80    /* modify only T */
-+
-+#define PT_REG(r) offsetof(struct pt_regs, r)
-+
-+extern void user_disable_single_step(struct task_struct *child);
-+
-+/* Mapping from PT_xxx to the stack offset at which the register is
-+   saved.  Notice that usp has no stack-slot and needs to be treated
-+   specially (see get_reg/put_reg below). */
-+static const int register_offset[] = {
-+	PT_REG(er1), PT_REG(er2), PT_REG(er3), PT_REG(er4),
-+	PT_REG(er5), PT_REG(er6), PT_REG(er0), -1,
-+	PT_REG(orig_er0), PT_REG(ccr), PT_REG(pc),
-+#if defined(CONFIG_CPU_H8S)
-+	PT_REG(exr),
-+#endif
-+};
-+
-+/* read register */
-+long h8300_get_reg(struct task_struct *task, int regno)
-+{
-+	switch (regno) {
-+	case PT_USP:
-+		return task->thread.usp + sizeof(long)*2;
-+	case PT_CCR:
-+	case PT_EXR:
-+	    return *(unsigned short *)(task->thread.esp0 +
-+				       register_offset[regno]);
-+	default:
-+	    return *(unsigned long *)(task->thread.esp0 +
-+				      register_offset[regno]);
-+	}
-+}
-+
-+int h8300_put_reg(struct task_struct *task, int regno, unsigned long data)
-+{
-+	unsigned short oldccr;
-+	unsigned short oldexr;
-+
-+	switch (regno) {
-+	case PT_USP:
-+		task->thread.usp = data - sizeof(long)*2;
-+	case PT_CCR:
-+		oldccr = *(unsigned short *)(task->thread.esp0 +
-+					     register_offset[regno]);
-+		oldccr &= ~CCR_MASK;
-+		data &= CCR_MASK;
-+		data |= oldccr;
-+		*(unsigned short *)(task->thread.esp0 +
-+				    register_offset[regno]) = data;
-+		break;
-+	case PT_EXR:
-+		oldexr = *(unsigned short *)(task->thread.esp0 +
-+					     register_offset[regno]);
-+		oldccr &= ~EXR_MASK;
-+		data &= EXR_MASK;
-+		data |= oldexr;
-+		*(unsigned short *)(task->thread.esp0 +
-+				    register_offset[regno]) = data;
-+		break;
-+	default:
-+		*(unsigned long *)(task->thread.esp0 +
-+				   register_offset[regno]) = data;
-+		break;
-+	}
-+	return 0;
-+}
-+
-+static int regs_get(struct task_struct *target,
-+		    const struct user_regset *regset,
-+		    unsigned int pos, unsigned int count,
-+		    void *kbuf, void __user *ubuf)
-+{
-+	int r;
-+	struct user_regs_struct regs;
-+	long *reg = (long *)&regs;
-+
-+	/* build user regs in buffer */
-+	for (r = 0; r < ARRAY_SIZE(register_offset); r++)
-+		*reg++ = h8300_get_reg(target, r);
-+
-+	return user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				   &regs, 0, sizeof(regs));
-+}
-+
-+static int regs_set(struct task_struct *target,
-+		    const struct user_regset *regset,
-+		    unsigned int pos, unsigned int count,
-+		    const void *kbuf, const void __user *ubuf)
-+{
-+	int r;
-+	int ret;
-+	struct user_regs_struct regs;
-+	long *reg;
-+
-+	/* build user regs in buffer */
-+	for (reg = (long *)&regs, r = 0; r < ARRAY_SIZE(register_offset); r++)
-+		*reg++ = h8300_get_reg(target, r);
-+
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 &regs, 0, sizeof(regs));
-+	if (ret)
-+		return ret;
-+	
-+	/* write back to pt_regs */
-+	for (reg = (long *)&regs, r = 0; r < ARRAY_SIZE(register_offset); r++)
-+		h8300_put_reg(target, r, *reg++);
-+	return 0;
-+}
-+
-+enum h8300_regset {
-+	REGSET_GENERAL,
-+};
-+
-+static const struct user_regset h8300_regsets[] = {
-+	[REGSET_GENERAL] = {
-+		.core_note_type	= NT_PRSTATUS,
-+		.n		= ELF_NGREG,
-+		.size		= sizeof(long),
-+		.align		= sizeof(long),
-+		.get		= regs_get,
-+		.set		= regs_set,
-+	},
-+};
-+
-+static const struct user_regset_view user_h8300_native_view = {
-+	.name = "h8300",
-+	.e_machine = EM_H8_300,
-+	.regsets = h8300_regsets,
-+	.n = ARRAY_SIZE(h8300_regsets),
-+};
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
-+{
-+	return &user_h8300_native_view;
-+}
-+
-+void ptrace_disable(struct task_struct *child)
-+{
-+	user_disable_single_step(child);
-+}
-+
-+long arch_ptrace(struct task_struct *child, long request,
-+		 unsigned long addr, unsigned long data)
-+{
-+	int ret;
-+
-+	switch (request) {
-+	default:
-+		ret = ptrace_request(child, request, addr, data);
-+		break;
-+	}
-+	return ret;
-+}
-+
-+asmlinkage long do_syscall_trace_enter(struct pt_regs *regs)
-+{
-+	long ret = 0;
-+
-+	if (test_thread_flag(TIF_SYSCALL_TRACE) &&
-+	    tracehook_report_syscall_entry(regs))
-+		/*
-+		 * Tracing decided this syscall should not happen.
-+		 * We'll return a bogus call number to get an ENOSYS
-+		 * error, but leave the original number in regs->regs[0].
-+		 */
-+		ret = -1L;
-+
-+	audit_syscall_entry(regs->er1, regs->er2, regs->er3,
-+			    regs->er4, regs->er5);
-+
-+	return ret ?: regs->er0;
-+}
-+
-+asmlinkage void do_syscall_trace_leave(struct pt_regs *regs)
-+{
-+	int step;
-+
-+	audit_syscall_exit(regs);
-+
-+	step = test_thread_flag(TIF_SINGLESTEP);
-+	if (step || test_thread_flag(TIF_SYSCALL_TRACE))
-+		tracehook_report_syscall_exit(regs, step);
-+}
-diff --git a/arch/h8300/kernel/signal.c b/arch/h8300/kernel/signal.c
-new file mode 100644
-index 0000000..1222783
---- /dev/null
-+++ b/arch/h8300/kernel/signal.c
-@@ -0,0 +1,326 @@
-+/*
-+ *  linux/arch/h8300/kernel/signal.c
-+ *
-+ *  Copyright (C) 1991, 1992  Linus Torvalds
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file COPYING in the main directory of this archive
-+ * for more details.
-+ */
-+
-+/*
-+ * uClinux H8/300 support by Yoshinori Sato <ysato@users.sourceforge.jp>
-+ *                and David McCullough <davidm@snapgear.com>
-+ *
-+ * Based on
-+ * Linux/m68k by Hamish Macdonald
-+ */
-+
-+/*
-+ * ++roman (07/09/96): implemented signal stacks (specially for tosemu on
-+ * Atari :-) Current limitation: Only one sigstack can be active at one time.
-+ * If a second signal with SA_ONSTACK set arrives while working on a sigstack,
-+ * SA_ONSTACK is ignored. This behaviour avoids lots of trouble with nested
-+ * signal handlers!
-+ */
-+
-+#include <linux/sched.h>
 +#include <linux/mm.h>
-+#include <linux/kernel.h>
-+#include <linux/signal.h>
-+#include <linux/syscalls.h>
++#include <linux/fs.h>
++#include <linux/console.h>
 +#include <linux/errno.h>
-+#include <linux/wait.h>
-+#include <linux/ptrace.h>
-+#include <linux/unistd.h>
-+#include <linux/stddef.h>
-+#include <linux/highuid.h>
-+#include <linux/personality.h>
-+#include <linux/tty.h>
-+#include <linux/binfmts.h>
-+#include <linux/tracehook.h>
++#include <linux/string.h>
++#include <linux/bootmem.h>
++#include <linux/seq_file.h>
++#include <linux/init.h>
++#include <linux/platform_device.h>
++#include <linux/module.h>
 +
 +#include <asm/setup.h>
-+#include <asm/uaccess.h>
++#include <asm/irq.h>
 +#include <asm/pgtable.h>
-+#include <asm/traps.h>
-+#include <asm/ucontext.h>
++#include <asm/sections.h>
++#include <asm/bootparams.h>
 +
-+/*
-+ * Do a signal return; undo the signal stack.
-+ *
-+ * Keep the return code on the stack quadword aligned!
-+ * That makes the cache flush below easier.
-+ */
-+
-+struct rt_sigframe {
-+	long dummy_er0;
-+	long dummy_vector;
-+#if defined(CONFIG_CPU_H8S)
-+	short dummy_exr;
++#if defined(CONFIG_CPU_H8300H)
++#define CPU "H8/300H"
++#elif defined(CONFIG_CPU_H8S)
++#define CPU "H8S"
++#else
++#define CPU "Unknown"
 +#endif
-+	long dummy_pc;
-+	char *pretcode;
-+	struct siginfo *pinfo;
-+	void *puc;
-+	unsigned char retcode[8];
-+	struct siginfo info;
-+	struct ucontext uc;
-+	int sig;
-+} __packed __aligned(2);
 +
-+static inline int
-+restore_sigcontext(struct sigcontext *usc, int *pd0)
++struct bootparams bootparams;
++unsigned long rom_length;
++unsigned long memory_start;
++unsigned long memory_end;
++EXPORT_SYMBOL(memory_end);
++
++char __initdata command_line[COMMAND_LINE_SIZE];
++
++extern unsigned long _ramend;
++void sim_console_register(void);
++int h8300_clk_init(unsigned long hz);
++
++void __init __attribute__((weak)) early_device_init(void)
 +{
-+	struct pt_regs *regs = current_pt_regs();
-+	int err = 0;
-+	unsigned int ccr;
-+	unsigned int usp;
-+	unsigned int er0;
-+
-+	/* Always make any pending restarted system calls return -EINTR */
-+	current_thread_info()->restart_block.fn = do_no_restart_syscall;
-+
-+#define COPY(r) err |= __get_user(regs->r, &usc->sc_##r)    /* restore passed registers */
-+	COPY(er1);
-+	COPY(er2);
-+	COPY(er3);
-+	COPY(er5);
-+	COPY(pc);
-+	ccr = regs->ccr & 0x10;
-+	COPY(ccr);
-+#undef COPY
-+	regs->ccr &= 0xef;
-+	regs->ccr |= ccr;
-+	regs->orig_er0 = -1;		/* disable syscall checks */
-+	err |= __get_user(usp, &usc->sc_usp);
-+	wrusp(usp);
-+
-+	err |= __get_user(er0, &usc->sc_er0);
-+	*pd0 = er0;
-+	return err;
 +}
 +
-+asmlinkage int sys_rt_sigreturn(void)
++void __init setup_arch(char **cmdline_p)
 +{
-+	unsigned long usp = rdusp();
-+	struct rt_sigframe *frame = (struct rt_sigframe *)(usp - 4);
-+	sigset_t set;
-+	int er0;
++	int bootmap_size;
 +
-+	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
-+		goto badframe;
-+	if (__copy_from_user(&set, &frame->uc.uc_sigmask, sizeof(set)))
-+		goto badframe;
++#if defined(CONFIG_ROMKERNEL)
++	bootparams.ram_end = CONFIG_RAMBASE + CONFIG_RAMSIZE;
++	bootparams.clock_freq = CONFIG_CPU_CLOCK;
++#endif
 +
-+	set_current_blocked(&set);
++	memory_start = (unsigned long) &_ramend;
 +
-+	if (restore_sigcontext(&frame->uc.uc_mcontext, &er0))
-+		goto badframe;
++	memory_start = PAGE_ALIGN(memory_start);
++	memory_end = bootparams.ram_end;
 +
-+	if (restore_altstack(&frame->uc.uc_stack))
-+		goto badframe;
++	init_mm.start_code = (unsigned long) _stext;
++	init_mm.end_code = (unsigned long) _etext;
++	init_mm.end_data = (unsigned long) _edata;
++	init_mm.brk = (unsigned long) 0;
 +
-+	return er0;
++	pr_notice("\r\n\nuClinux " CPU "\n");
++	pr_notice("Flat model support (C) 1998,1999 Kenneth Albanowski, D. Jeff Dionne\n");
 +
-+badframe:
-+	force_sig(SIGSEGV, current);
-+	return 0;
-+}
++	strcpy(boot_command_line, command_line);
++	*cmdline_p = command_line;
 +
-+static int setup_sigcontext(struct sigcontext __user *sc, struct pt_regs *regs,
-+			     unsigned long mask)
-+{
-+	int err = 0;
-+
-+	err |= __put_user(regs->er0, &sc->sc_er0);
-+	err |= __put_user(regs->er1, &sc->sc_er1);
-+	err |= __put_user(regs->er2, &sc->sc_er2);
-+	err |= __put_user(regs->er3, &sc->sc_er3);
-+	err |= __put_user(regs->er4, &sc->sc_er4);
-+	err |= __put_user(regs->er5, &sc->sc_er5);
-+	err |= __put_user(regs->er6, &sc->sc_er6);
-+	err |= __put_user(rdusp(),   &sc->sc_usp);
-+	err |= __put_user(regs->pc,  &sc->sc_pc);
-+	err |= __put_user(regs->ccr, &sc->sc_ccr);
-+	err |= __put_user(mask,      &sc->sc_mask);
-+
-+	return err;
-+}
-+
-+static inline void *
-+get_sigframe(struct k_sigaction *ka, struct pt_regs *regs, size_t frame_size)
-+{
-+	unsigned long usp;
-+
-+	/* Default to using normal stack.  */
-+	usp = rdusp();
-+
-+	/* This is the X/Open sanctioned signal stack switching.  */
-+	if (ka->sa.sa_flags & SA_ONSTACK) {
-+		if (!sas_ss_flags(usp))
-+			usp = current->sas_ss_sp + current->sas_ss_size;
-+	}
-+	return (void *)((usp - frame_size) & -8UL);
-+}
-+
-+static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
-+			  struct pt_regs *regs)
-+{
-+	struct rt_sigframe *frame;
-+	int err = 0;
-+	int usig;
-+	int sig = ksig->sig;
-+	unsigned char *ret;
-+
-+	frame = get_sigframe(&ksig->ka, regs, sizeof(*frame));
-+
-+	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
-+		return -EFAULT;
-+
-+	usig = current_thread_info()->exec_domain
-+		&& current_thread_info()->exec_domain->signal_invmap
-+		&& sig < 32
-+		? current_thread_info()->exec_domain->signal_invmap[sig]
-+		: sig;
-+
-+	err |= __put_user(usig, &frame->sig);
-+	if (err)
-+		return -EFAULT;
-+
-+	err |= __put_user(&frame->info, &frame->pinfo);
-+	err |= __put_user(&frame->uc, &frame->puc);
-+	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
-+	if (err)
-+		return -EFAULT;
-+
-+	/* Create the ucontext.  */
-+	err |= __put_user(0, &frame->uc.uc_flags);
-+	err |= __put_user(0, &frame->uc.uc_link);
-+	err |= __save_altstack(&frame->uc.uc_stack, rdusp());
-+	err |= setup_sigcontext(&frame->uc.uc_mcontext, regs, set->sig[0]);
-+	err |= copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
-+	if (err)
-+		return -EFAULTl
-+
-+	/* Set up to return from userspace.  */
-+	ret = frame->retcode;
-+	if (ksig->ka.sa.sa_flags & SA_RESTORER)
-+		ret = (unsigned char *)(ksig->ka.sa.sa_restorer);
-+	else {
-+		/* sub.l er0,er0; mov.b #__NR_rt_sigreturn,r0l; trapa #0 */
-+		err |= __put_user(0x1a80f800 + (__NR_rt_sigreturn & 0xff),
-+				  (unsigned long *)(frame->retcode + 0));
-+		err |= __put_user(0x5700,
-+				  (unsigned short *)(frame->retcode + 4));
-+	}
-+	err |= __put_user(ret, &frame->pretcode);
-+
-+	if (err)
-+		goto give_sigsegv;
-+
-+	/* Set up registers for signal handler */
-+	wrusp((unsigned long) frame);
-+	regs->pc  = (unsigned long) ksig->ka.sa.sa_handler;
-+	regs->er0 = (current_thread_info()->exec_domain
-+		     && current_thread_info()->exec_domain->signal_invmap
-+		     && sig < 32
-+		     ? current_thread_info()->exec_domain->signal_invmap[sig]
-+		     : sig);
-+	regs->er1 = (unsigned long)&(frame->info);
-+	regs->er2 = (unsigned long)&frame->uc;
-+	regs->er5 = current->mm->start_data;	/* GOT base */
-+
-+	return 0;
-+}
-+
-+static void
-+handle_restart(struct pt_regs *regs, struct k_sigaction *ka)
-+{
-+	switch (regs->er0) {
-+	case -ERESTARTNOHAND:
-+		if (!ka)
-+			goto do_restart;
-+		regs->er0 = -EINTR;
-+		break;
-+	case -ERESTART_RESTARTBLOCK:
-+		if (!ka) {
-+			regs->er0 = __NR_restart_syscall;
-+			regs->pc -= 2;
-+		} else
-+			regs->er0 = -EINTR;
-+		break;
-+	case -ERESTARTSYS:
-+		if (!(ka->sa.sa_flags & SA_RESTART)) {
-+			regs->er0 = -EINTR;
-+			break;
-+		}
-+		/* fallthrough */
-+	case -ERESTARTNOINTR:
-+do_restart:
-+		regs->er0 = regs->orig_er0;
-+		regs->pc -= 2;
-+		break;
-+	}
-+}
-+
-+/*
-+ * OK, we're invoking a handler
-+ */
-+static void
-+handle_signal(struct ksignal *ksig, struct pt_regs *regs)
-+{
-+	sigset_t *oldset = sigmask_to_save();
-+	int ret;
-+	/* are we from a system call? */
-+	if (regs->orig_er0 >= 0)
-+		handle_restart(regs, &ksig->ka);
-+
-+	ret = setup_rt_frame(ksig, oldset, regs);
-+
-+	signal_setup_done(ret, ksig, 0);
-+}
-+
-+/*
-+ * Note that 'init' is a special process: it doesn't get signals it doesn't
-+ * want to handle. Thus you cannot kill init even with a SIGKILL even by
-+ * mistake.
-+ */
-+static void do_signal(struct pt_regs *regs)
-+{
-+	struct ksignal ksig;
++	parse_early_param();
 +
 +	/*
-+	 * We want the common case to go fast, which
-+	 * is why we may in certain cases get here from
-+	 * kernel mode. Just return without doing anything
-+	 * if so.
++	 * give all the memory to the bootmap allocator,  tell it to put the
++	 * boot mem_map at the start of memory
 +	 */
-+	if ((regs->ccr & 0x10))
-+		return;
++	bootmap_size = init_bootmem_node(
++			NODE_DATA(0),
++			memory_start >> PAGE_SHIFT, /* map goes here */
++			PAGE_OFFSET >> PAGE_SHIFT,	/* 0 on coldfire */
++			memory_end >> PAGE_SHIFT);
++	/*
++	 * free the usable memory,  we have to make sure we do not free
++	 * the bootmem bitmap so we then reserve it after freeing it :-)
++	 */
++	free_bootmem(memory_start, memory_end - memory_start);
++	reserve_bootmem(memory_start, bootmap_size, BOOTMEM_DEFAULT);
++#if defined(CONFIG_H8300H_SIM) || defined(CONFIG_H8S_SIM)
++	sim_console_register();
++#endif
 +
-+	current->thread.esp0 = (unsigned long) regs;
-+
-+	if (get_signal(&ksig)) {
-+		/* Whee!  Actually deliver the signal.  */
-+		handle_signal(&ksig, regs);
-+		return;
-+	}
-+	/* Did we come from a system call? */
-+	if (regs->orig_er0 >= 0)
-+		handle_restart(regs, NULL);
-+
-+	/* If there's no signal to deliver, we just restore the saved mask.  */
-+	restore_saved_sigmask();
++	early_device_init();
++	early_platform_driver_probe("earlyprintk", 1, 0);
++	/*
++	 * get kmalloc into gear
++	 */
++	paging_init();
 +}
 +
-+asmlinkage void do_notify_resume(struct pt_regs *regs, u32 thread_info_flags)
-+{
-+	if (thread_info_flags & _TIF_SIGPENDING)
-+		do_signal(regs);
++/*
++ *	Get CPU information for use by the procfs.
++ */
 +
-+	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
-+		clear_thread_flag(TIF_NOTIFY_RESUME);
-+		tracehook_notify_resume(regs);
-+	}
++static int show_cpuinfo(struct seq_file *m, void *v)
++{
++	char *cpu;
++	u_long clockfreq;
++
++	cpu = CPU;
++	clockfreq = bootparams.clock_freq;
++
++	seq_printf(m,  "CPU:\t\t%s\n"
++		   "Clock:\t\t%lu.%1luMHz\n"
++		   "BogoMips:\t%lu.%02lu\n"
++		   "Calibration:\t%lu loops\n",
++		   cpu,
++		   clockfreq/1000, clockfreq%1000,
++		   (loops_per_jiffy*HZ)/500000,
++		   ((loops_per_jiffy*HZ)/5000)%100,
++		   (loops_per_jiffy*HZ));
++
++	return 0;
++}
++
++static void *c_start(struct seq_file *m, loff_t *pos)
++{
++	return *pos < num_possible_cpus() ?
++		((void *) 0x12345678) : NULL;
++}
++
++static void *c_next(struct seq_file *m, void *v, loff_t *pos)
++{
++	++*pos;
++	return c_start(m, pos);
++}
++
++static void c_stop(struct seq_file *m, void *v)
++{
++}
++
++const struct seq_operations cpuinfo_op = {
++	.start	= c_start,
++	.next	= c_next,
++	.stop	= c_stop,
++	.show	= show_cpuinfo,
++};
++
++void __init parse_bootparam(struct bootparams *bp)
++{
++	memcpy(&bootparams, bp, bp->size);
++	strncpy(command_line, bootparams.command_line, sizeof(command_line));
++}
++
++static void __init timer_setup(void)
++{
++	early_platform_driver_register_all("earlytimer");
++	early_platform_driver_probe("earlytimer", 1, 0);
++}
++
++void __init time_init(void)
++{
++	h8300_clk_init(bootparams.clock_freq);
++	late_time_init = timer_setup;
 +}
 -- 
 2.1.4
