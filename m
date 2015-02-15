@@ -1,68 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f172.google.com ([209.85.212.172]:47325 "EHLO
-	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752758AbbBOWnW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Feb 2015 17:43:22 -0500
-MIME-Version: 1.0
-In-Reply-To: <CALszF6BDa9pUb534YN2z9DbYA+hPCnG8XYy5YbjJwSiseKz4xg@mail.gmail.com>
+Received: from pandora.arm.linux.org.uk ([78.32.30.218]:43384 "EHLO
+	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750996AbbBOXOJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Feb 2015 18:14:09 -0500
+Date: Sun, 15 Feb 2015 23:12:51 +0000
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 05/14] ARM: call reset_controller_of_init from default
+ time_init handler
+Message-ID: <20150215231251.GL8656@n2100.arm.linux.org.uk>
 References: <1423763164-5606-1-git-send-email-mcoquelin.stm32@gmail.com>
- <1423763164-5606-3-git-send-email-mcoquelin.stm32@gmail.com>
- <CAMuHMdWESyPktOSBfVoZCb35stUbhNpbbpzSW4JfORdObgg5jw@mail.gmail.com> <CALszF6BDa9pUb534YN2z9DbYA+hPCnG8XYy5YbjJwSiseKz4xg@mail.gmail.com>
-From: Rob Herring <robherring2@gmail.com>
-Date: Sun, 15 Feb 2015 16:42:59 -0600
-Message-ID: <CAL_Jsq+rHFPXmWqByvdG435tpbO_+ODByiMcdxboULYpUfDUmg@mail.gmail.com>
-Subject: Re: [PATCH 02/14] ARM: ARMv7M: Enlarge vector table to 256 entries
-Content-Type: text/plain; charset=UTF-8
+ <1423763164-5606-6-git-send-email-mcoquelin.stm32@gmail.com>
+ <CAL_Jsq+Sk0C-1UHCKE18fEVwBbV=quV9mrJSKTO_UPXWcaYfCw@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAL_Jsq+Sk0C-1UHCKE18fEVwBbV=quV9mrJSKTO_UPXWcaYfCw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Jonathan Corbet <corbet@lwn.net>, Rob Herring <robh+dt@kernel.org>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Philipp Zabel <p.zabel@pengutronix.de>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>
-Message-ID: <20150215224259.5dQJ5OVas18NbQw6YaBxXoEX6UzZls9E62bOpS-6B_g@z>
+To: Rob Herring <robherring2@gmail.com>
+Cc: Maxime Coquelin <mcoquelin.stm32@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Rob Herring <robh+dt@kernel.org>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Philipp Zabel <p.zabel@pengutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
+Message-ID: <20150215231251.5kE2g3LyV_oLs6Sm4bGkZ22ZqVv62140VHqAN49l7fg@z>
 
-On Fri, Feb 13, 2015 at 2:42 AM, Maxime Coquelin
-<mcoquelin.stm32@gmail.com> wrote:
-> Hi Geert,
->
-> 2015-02-12 21:34 GMT+01:00 Geert Uytterhoeven <geert@linux-m68k.org>:
->> On Thu, Feb 12, 2015 at 6:45 PM, Maxime Coquelin
->> <mcoquelin.stm32@gmail.com> wrote:
->>> From Cortex-M4 and M7 reference manuals, the nvic supports up to 240
->>> interrupts. So the number of entries in vectors table is 256.
->>>
->>> This patch adds the missing entries, and change the alignement, so that
->>> vector_table remains naturally aligned.
->>
->> Shouldn't this depend on ARCH_STM32, or some other M4 or M7 specific
->> Kconfig option, to avoid wasting the space on other CPUs?
->
-> Actually, the STM32F429 has 90 interrupts, so it would need 106
-> entries in the vector table.
-> The maximum of supported interrupts is not only for Cortex-M4 and M7,
-> this is also true for Cortex-M3.
->
-> I see two possibilities:
->  1 - We declare the vector table for the maximum supported number of
-> IRQs, as this patch does.
->         - Pro: it will be functionnal with all Cortex-M MCUs
->         - Con: Waste of less than 1KB for memory
+On Sun, Feb 15, 2015 at 04:17:31PM -0600, Rob Herring wrote:
+> On Thu, Feb 12, 2015 at 11:45 AM, Maxime Coquelin
+> <mcoquelin.stm32@gmail.com> wrote:
+> > Some DT ARM platforms need the reset controllers to be initialized before
+> > the timers.
+> > This is the case of the stm32 and sunxi platforms.
+> 
+> I would say this is the exception, not the rule and therefore should
+> be handled in a machine desc function. Or it could be part of your
+> timer setup. Or is the bootloader's problem (like arch timer setup).
+> 
+> We just want to limit how much this mechanism gets used.
 
-The waste depends on the alignment size as well and could be up to
-almost 2KB worst case. It varies depending on the padding. We should
-try to place it so it always aligned and the wasted space is
-minimized.
+Can you clarify please - what is "this mechanism"?  Placing explicit
+calls at this location, or the whole OF_DECLARE_* stuff?
 
-Rob
+Sebastian suggested using the OF_DECLARE_* stuff for the Dove PMU -
+so maybe you have a comment on that too?
 
->  2 - We introduce a config flag that provides the number of interrupts
->         - Pro: No more memory waste
->         - Con: Need to declare a per MCU model config flag.
->
-> Then, regarding the natural alignment, is there a way to ensure it
-> depending on the value of a config flag?
-> Or we should keep it at the maximum value possible?
->
-> Any feedback will be appreciated, especially from Uwe who maintains
-> the efm32 machine.
->
-> Kind regards,
-> Maxime
+Thanks.
+
+-- 
+FTTC broadband for 0.8mile line: currently at 10.5Mbps down 400kbps up
+according to speedtest.net.
