@@ -1,737 +1,895 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.asahi-net.or.jp ([202.224.39.197]:11558 "EHLO
+Received: from mail1.asahi-net.or.jp ([202.224.39.197]:11560 "EHLO
 	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754646AbbBOHt4 (ORCPT
+	with ESMTP id S1754635AbbBOHt4 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Feb 2015 02:49:56 -0500
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v3 03/15] h8300: Exception and Interrupt handling
-Date: Sun, 15 Feb 2015 16:49:21 +0900
-Message-ID: <1423986573-2329-4-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v3 06/15] h8300 CPU depend helpers
+Date: Sun, 15 Feb 2015 16:49:24 +0900
+Message-ID: <1423986573-2329-7-git-send-email-ysato@users.sourceforge.jp>
 In-Reply-To: <1423986573-2329-1-git-send-email-ysato@users.sourceforge.jp>
 References: <1423986573-2329-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20150215074921.c_trOoRZDQEJtdCahdz9ml470cgl0OSvmDgxLPiwoKA@z>
+Message-ID: <20150215074924.IvzjRiPfc9fObXHktJNUN7S7SecUffwE_okmHPNq7bo@z>
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- arch/h8300/kernel/entry.S | 418 ++++++++++++++++++++++++++++++++++++++++++++++
- arch/h8300/kernel/irq.c   | 106 ++++++++++++
- arch/h8300/kernel/traps.c | 166 ++++++++++++++++++
- 3 files changed, 690 insertions(+)
- create mode 100644 arch/h8300/kernel/entry.S
- create mode 100644 arch/h8300/kernel/irq.c
- create mode 100644 arch/h8300/kernel/traps.c
+ arch/h8300/kernel/cpu/Makefile         |   5 +
+ arch/h8300/kernel/cpu/h83069/Makefile  |   1 +
+ arch/h8300/kernel/cpu/h83069/setup.c   | 202 ++++++++++++++++++++++++++
+ arch/h8300/kernel/cpu/h8s2678/Makefile |   1 +
+ arch/h8300/kernel/cpu/h8s2678/setup.c  | 161 +++++++++++++++++++++
+ arch/h8300/kernel/cpu/irq_h.c          |  62 ++++++++
+ arch/h8300/kernel/cpu/irq_s.c          |  70 +++++++++
+ arch/h8300/kernel/cpu/ptrace_h.c       | 256 +++++++++++++++++++++++++++++++++
+ arch/h8300/kernel/cpu/ptrace_s.c       |  42 ++++++
+ 9 files changed, 800 insertions(+)
+ create mode 100644 arch/h8300/kernel/cpu/Makefile
+ create mode 100644 arch/h8300/kernel/cpu/h83069/Makefile
+ create mode 100644 arch/h8300/kernel/cpu/h83069/setup.c
+ create mode 100644 arch/h8300/kernel/cpu/h8s2678/Makefile
+ create mode 100644 arch/h8300/kernel/cpu/h8s2678/setup.c
+ create mode 100644 arch/h8300/kernel/cpu/irq_h.c
+ create mode 100644 arch/h8300/kernel/cpu/irq_s.c
+ create mode 100644 arch/h8300/kernel/cpu/ptrace_h.c
+ create mode 100644 arch/h8300/kernel/cpu/ptrace_s.c
 
-diff --git a/arch/h8300/kernel/entry.S b/arch/h8300/kernel/entry.S
+diff --git a/arch/h8300/kernel/cpu/Makefile b/arch/h8300/kernel/cpu/Makefile
 new file mode 100644
-index 0000000..ba50639
+index 0000000..f6d19e6
 --- /dev/null
-+++ b/arch/h8300/kernel/entry.S
-@@ -0,0 +1,418 @@
++++ b/arch/h8300/kernel/cpu/Makefile
+@@ -0,0 +1,5 @@
++obj-$(CONFIG_CPU_H8300H) += ptrace_h.o irq_h.o
++obj-$(CONFIG_CPU_H8S) += ptrace_s.o irq_s.o
++obj-$(CONFIG_H83069) += h83069/
++obj-$(CONFIG_H8S2678) += h8s2678/
++
+diff --git a/arch/h8300/kernel/cpu/h83069/Makefile b/arch/h8300/kernel/cpu/h83069/Makefile
+new file mode 100644
+index 0000000..49d283e
+--- /dev/null
++++ b/arch/h8300/kernel/cpu/h83069/Makefile
+@@ -0,0 +1 @@
++obj-y = setup.o
+diff --git a/arch/h8300/kernel/cpu/h83069/setup.c b/arch/h8300/kernel/cpu/h83069/setup.c
+new file mode 100644
+index 0000000..99c2716
+--- /dev/null
++++ b/arch/h8300/kernel/cpu/h83069/setup.c
+@@ -0,0 +1,202 @@
 +/*
++ * H8/3069 Internal peripheral setup
 + *
-+ *  linux/arch/h8300/kernel/entry.S
++ *  Copyright (C) 2009,2014 Yoshinori Sato <ysato@users.sourceforge.jp>
 + *
-+ *  Yoshinori Sato <ysato@users.sourceforge.jp>
-+ *  David McCullough <davidm@snapgear.com>
-+ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
 + */
 +
++#include <linux/platform_device.h>
++#include <linux/serial_sci.h>
++#include <linux/init.h>
++#include <linux/io.h>
++#include <asm/timer.h>
++
++static struct resource sci0_resources[] = {
++	DEFINE_RES_MEM(0xffffb0, 8),
++	DEFINE_RES_IRQ(52),
++	DEFINE_RES_IRQ(53),
++	DEFINE_RES_IRQ(54),
++	DEFINE_RES_IRQ(55),
++};
++
++
++static struct plat_sci_port sci0_platform_data = {
++	.flags		= UPF_BOOT_AUTOCONF,
++	.scscr		= SCSCR_RE | SCSCR_TE,
++	.type		= PORT_SCI,
++};
++
++static struct resource sci1_resources[] = {
++	DEFINE_RES_MEM(0xffffb8, 8),
++	DEFINE_RES_IRQ(56),
++	DEFINE_RES_IRQ(57),
++	DEFINE_RES_IRQ(58),
++	DEFINE_RES_IRQ(59),
++};
++
++static struct plat_sci_port sci1_platform_data = {
++	.flags		= UPF_BOOT_AUTOCONF,
++	.scscr		= SCSCR_RE | SCSCR_TE,
++	.type		= PORT_SCI,
++};
++
++static struct platform_device sci0_device = {
++	.name		= "sh-sci",
++	.id		= 0,
++	.resource	= sci0_resources,
++	.num_resources	= ARRAY_SIZE(sci0_resources),
++	.dev		= {
++		.platform_data	= &sci0_platform_data,
++	},
++};
++
++static struct platform_device sci1_device = {
++	.name		= "sh-sci",
++	.id		= 1,
++	.resource	= sci1_resources,
++	.num_resources	= ARRAY_SIZE(sci1_resources),
++	.dev		= {
++		.platform_data	= &sci1_platform_data,
++	},
++};
++
++static struct h8300_timer8_config tm8_unit0_platform_data = {
++	.mode	= H8300_TMR8_CLKEVTDEV,
++	.div	= H8300_TMR8_DIV_8,
++};
++
++static struct resource tm8_unit0_resources[] = {
++	DEFINE_RES_MEM(0xffff80, 9),
++	DEFINE_RES_IRQ(36),
++	DEFINE_RES_IRQ(39),
++};
++
++static struct platform_device timer8_unit0_device = {
++	.name		= "h8300-8timer",
++	.id		= 0,
++	.dev = {
++		.platform_data	= &tm8_unit0_platform_data,
++	},
++	.resource	= tm8_unit0_resources,
++	.num_resources	= ARRAY_SIZE(tm8_unit0_resources),
++};
++
++static struct h8300_timer8_config tm8_unit1_platform_data = {
++	.mode	= H8300_TMR8_CLKSRC,
++	.div	= H8300_TMR8_DIV_8,
++};
++
++static struct resource tm8_unit1_resources[] = {
++	DEFINE_RES_MEM(0xffff90, 9),
++	DEFINE_RES_IRQ(40),
++	DEFINE_RES_IRQ(43),
++};
++
++static struct platform_device timer8_unit1_device = {
++	.name		= "h8300-8timer",
++	.id		= 1,
++	.dev = {
++		.platform_data	= &tm8_unit1_platform_data,
++	},
++	.resource	= tm8_unit1_resources,
++	.num_resources	= ARRAY_SIZE(tm8_unit1_resources),
++};
++
++
++static struct h8300_timer16_config timer16data0 = {
++	.enb	= 0,
++	.imfa	= 0,
++	.imiea	= 4,
++};
++
++static struct h8300_timer16_config timer16data1 = {
++	.enb	= 1,
++	.imfa	= 1,
++	.imiea	= 5,
++};
++
++static struct h8300_timer16_config timer16data2 = {
++	.enb	= 2,
++	.imfa	= 2,
++	.imiea	= 6,
++};
++
++static struct resource tm16ch0_resources[] = {
++	DEFINE_RES_MEM(0xffff68, 8),
++	DEFINE_RES_MEM(0xffff60, 7),
++	DEFINE_RES_IRQ(24),
++};
++
++static struct resource tm16ch1_resources[] = {
++	DEFINE_RES_MEM(0xffff70, 8),
++	DEFINE_RES_MEM(0xffff60, 7),
++	DEFINE_RES_IRQ(28),
++};
++
++static struct resource tm16ch2_resources[] = {
++	DEFINE_RES_MEM(0xffff78, 8),
++	DEFINE_RES_MEM(0xffff60, 7),
++	DEFINE_RES_IRQ(32),
++};
++
++static struct platform_device timer16_ch0_device = {
++	.name	= "h8300h-16timer",
++	.id		= 0,
++	.dev		= {
++		.platform_data	= &timer16data0,
++	},
++	.resource	= tm16ch0_resources,
++	.num_resources	= ARRAY_SIZE(tm16ch0_resources),
++};
++
++static struct platform_device timer16_ch1_device = {
++	.name	= "h8300h-16timer",
++	.id		= 1,
++	.dev		= {
++		.platform_data	= &timer16data1,
++	},
++	.resource	= tm16ch1_resources,
++	.num_resources	= ARRAY_SIZE(tm16ch1_resources),
++};
++
++static struct platform_device timer16_ch2_device = {
++	.name	= "h8300h-16timer",
++	.id		= 2,
++	.dev		= {
++		.platform_data	= &timer16data2,
++	},
++	.resource	= tm16ch2_resources,
++	.num_resources	= ARRAY_SIZE(tm16ch2_resources),
++};
++
++static struct platform_device *devices[] __initdata = {
++	&timer8_unit1_device,
++	&timer16_ch0_device,
++	&timer16_ch1_device,
++	&timer16_ch2_device,
++	&sci0_device,
++	&sci1_device,
++};
++
++static struct platform_device *early_devices[] __initdata = {
++	&timer8_unit0_device,
++	&sci0_device,
++	&sci1_device,
++};
++
++static int __init devices_register(void)
++{
++	return platform_add_devices(devices,
++				    ARRAY_SIZE(devices));
++}
++
++arch_initcall(devices_register);
++
++void __init early_device_init(void)
++{
++	early_platform_add_devices(early_devices,
++				   ARRAY_SIZE(early_devices));
++}
+diff --git a/arch/h8300/kernel/cpu/h8s2678/Makefile b/arch/h8300/kernel/cpu/h8s2678/Makefile
+new file mode 100644
+index 0000000..49d283e
+--- /dev/null
++++ b/arch/h8300/kernel/cpu/h8s2678/Makefile
+@@ -0,0 +1 @@
++obj-y = setup.o
+diff --git a/arch/h8300/kernel/cpu/h8s2678/setup.c b/arch/h8300/kernel/cpu/h8s2678/setup.c
+new file mode 100644
+index 0000000..ea743ec
+--- /dev/null
++++ b/arch/h8300/kernel/cpu/h8s2678/setup.c
+@@ -0,0 +1,161 @@
 +/*
-+ *  entry.S
-+ *  include exception/interrupt gateway
-+ *          system call entry
++ * H8S2678 Internal peripheral setup
++ *
++ *  Copyright (C) 2014  Yoshinori Sato <ysato@users.sourceforge.jp>
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
 + */
 +
-+#include <linux/sys.h>
-+#include <asm/unistd.h>
-+#include <asm/setup.h>
-+#include <asm/segment.h>
-+#include <asm/linkage.h>
-+#include <asm/asm-offsets.h>
-+#include <asm/thread_info.h>
-+#include <asm/errno.h>
++#include <linux/platform_device.h>
++#include <linux/serial_sci.h>
++#include <asm/timer.h>
 +
-+#if defined(CONFIG_CPU_H8300H)
-+#define USERRET 8
-+INTERRUPTS = 64
-+	.h8300h
-+	.macro	SHLL2 reg
-+	shll.l	\reg
-+	shll.l	\reg
-+	.endm
-+	.macro	SHLR2 reg
-+	shlr.l	\reg
-+	shlr.l	\reg
-+	.endm
-+	.macro	SAVEREGS
-+	mov.l	er0,@-sp
-+	mov.l	er1,@-sp
-+	mov.l	er2,@-sp
-+	mov.l	er3,@-sp
-+	.endm
-+	.macro	RESTOREREGS
-+	mov.l	@sp+,er3
-+	mov.l	@sp+,er2
-+	.endm
-+	.macro	SAVEEXR
-+	.endm
-+	.macro	RESTOREEXR
-+	.endm
-+#endif
-+#if defined(CONFIG_CPU_H8S)
-+#define USERRET 10
-+#define USEREXR 8
-+INTERRUPTS = 128
-+	.h8300s
-+	.macro	SHLL2 reg
-+	shll.l	#2,\reg
-+	.endm
-+	.macro	SHLR2 reg
-+	shlr.l	#2,\reg
-+	.endm
-+	.macro	SAVEREGS
-+	stm.l	er0-er3,@-sp
-+	.endm
-+	.macro	RESTOREREGS
-+	ldm.l	@sp+,er2-er3
-+	.endm
-+	.macro	SAVEEXR
-+	mov.w	@(USEREXR:16,er0),r1
-+	mov.w	r1,@(LEXR-LER3:16,sp)		/* copy EXR */
-+	.endm
-+	.macro	RESTOREEXR
-+	mov.w	@(LEXR-LER1:16,sp),r1		/* restore EXR */
-+	mov.b	r1l,r1h
-+	mov.w	r1,@(USEREXR:16,er0)
-+	.endm
-+#endif
++static struct resource sci0_resources[] = {
++	DEFINE_RES_MEM(0xffff78, 8),
++	DEFINE_RES_IRQ(88),
++	DEFINE_RES_IRQ(89),
++	DEFINE_RES_IRQ(90),
++	DEFINE_RES_IRQ(91),
++};
 +
 +
-+/* CPU context save/restore macros. */
++static struct plat_sci_port sci0_platform_data = {
++	.flags		= UPF_BOOT_AUTOCONF,
++	.scscr		= SCSCR_RE | SCSCR_TE,
++	.type		= PORT_SCI,
++};
 +
-+	.macro	SAVE_ALL
-+	mov.l	er0,@-sp
-+	stc	ccr,r0l				/* check kernel mode */
-+	btst	#4,r0l
-+	bne	5f
++static struct resource sci1_resources[] = {
++	DEFINE_RES_MEM(0xffff80, 8),
++	DEFINE_RES_IRQ(92),
++	DEFINE_RES_IRQ(93),
++	DEFINE_RES_IRQ(94),
++	DEFINE_RES_IRQ(95),
++};
 +
-+	/* user mode */
-+	mov.l	sp,@_sw_usp
-+	mov.l	@sp,er0				/* restore saved er0 */
-+	orc	#0x10,ccr			/* switch kernel stack */
-+	mov.l	@_sw_ksp,sp
-+	sub.l	#(LRET-LORIG),sp		/* allocate LORIG - LRET */
-+	SAVEREGS
-+	mov.l   @_sw_usp,er0
-+	mov.l   @(USERRET:16,er0),er1           /* copy the RET addr */
-+	mov.l   er1,@(LRET-LER3:16,sp)
-+	SAVEEXR
++static struct plat_sci_port sci1_platform_data = {
++	.flags		= UPF_BOOT_AUTOCONF,
++	.scscr		= SCSCR_RE | SCSCR_TE,
++	.type		= PORT_SCI,
++};
 +
-+	mov.l	@(LORIG-LER3:16,sp),er0
-+	mov.l	er0,@(LER0-LER3:16,sp)		/* copy ER0 */
-+	mov.w	e1,r1				/* e1 highbyte = ccr */
-+	and	#0xef,r1h			/* mask mode? flag */
-+	bra	6f
-+5:
-+	/* kernel mode */
-+	mov.l	@sp,er0				/* restore saved er0 */
-+	subs	#2,sp				/* set dummy ccr */
-+	subs	#4,sp				/* set dummp sp */
-+	SAVEREGS
-+	mov.w	@(LRET-LER3:16,sp),r1		/* copy old ccr */
-+6:
-+	mov.b	r1h,r1l
-+	mov.b	#0,r1h
-+	mov.w	r1,@(LCCR-LER3:16,sp)		/* set ccr */
-+	mov.l	@_sw_usp,er2
-+	mov.l	er2,@(LSP-LER3:16,sp)		/* set usp */
-+	mov.l	er6,@-sp			/* syscall arg #6 */
-+	mov.l	er5,@-sp			/* syscall arg #5 */
-+	mov.l	er4,@-sp			/* syscall arg #4 */
-+	.endm					/* r1 = ccr */
++static struct resource sci2_resources[] = {
++	DEFINE_RES_MEM(0xffff88, 8),
++	DEFINE_RES_IRQ(96),
++	DEFINE_RES_IRQ(97),
++	DEFINE_RES_IRQ(98),
++	DEFINE_RES_IRQ(99),
++};
 +
-+	.macro	RESTORE_ALL
-+	mov.l	@sp+,er4
-+	mov.l	@sp+,er5
-+	mov.l	@sp+,er6
-+	RESTOREREGS
-+	mov.w	@(LCCR-LER1:16,sp),r0		/* check kernel mode */
-+	btst	#4,r0l
-+	bne	7f
++static struct plat_sci_port sci2_platform_data = {
++	.flags		= UPF_BOOT_AUTOCONF,
++	.scscr		= SCSCR_RE | SCSCR_TE,
++	.type		= PORT_SCI,
++};
 +
-+	orc	#0xc0,ccr
-+	mov.l	@(LSP-LER1:16,sp),er0
-+	mov.l	@(LER0-LER1:16,sp),er1		/* restore ER0 */
-+	mov.l	er1,@er0
-+	RESTOREEXR
-+	mov.w	@(LCCR-LER1:16,sp),r1		/* restore the RET addr */
-+	mov.b	r1l,r1h
-+	mov.b	@(LRET+1-LER1:16,sp),r1l
-+	mov.w	r1,e1
-+	mov.w	@(LRET+2-LER1:16,sp),r1
-+	mov.l	er1,@(USERRET:16,er0)
++static struct platform_device sci0_device = {
++	.name		= "sh-sci",
++	.id		= 0,
++	.resource	= sci0_resources,
++	.num_resources	= ARRAY_SIZE(sci0_resources),
++	.dev		= {
++		.platform_data	= &sci0_platform_data,
++	},
++};
 +
-+	mov.l	@sp+,er1
-+	add.l	#(LRET-LER1),sp			/* remove LORIG - LRET */
-+	mov.l	sp,@_sw_ksp
-+	andc	#0xef,ccr			/* switch to user mode */
-+	mov.l	er0,sp
-+	bra	8f
-+7:
-+	mov.l	@sp+,er1
-+	add.l	#10,sp
-+8:
-+	mov.l	@sp+,er0
-+	adds	#4,sp				/* remove the sw created LVEC */
-+	rte
-+	.endm
++static struct platform_device sci1_device = {
++	.name		= "sh-sci",
++	.id		= 1,
++	.resource	= sci1_resources,
++	.num_resources	= ARRAY_SIZE(sci1_resources),
++	.dev		= {
++		.platform_data	= &sci1_platform_data,
++	},
++};
 +
-+.globl _system_call
-+.globl ret_from_exception
-+.globl ret_from_fork
-+.globl ret_from_kernel_thread
-+.globl ret_from_interrupt
-+.globl _interrupt_redirect_table
-+.globl _sw_ksp,_sw_usp
-+.globl _resume
-+.globl _interrupt_entry
-+.globl _trace_break
-+.globl _nmi
++static struct platform_device sci2_device = {
++	.name		= "sh-sci",
++	.id		= 2,
++	.resource	= sci2_resources,
++	.num_resources	= ARRAY_SIZE(sci2_resources),
++	.dev		= {
++		.platform_data	= &sci2_platform_data,
++	},
++};
 +
-+#if defined(CONFIG_ROMKERNEL)
-+	.section .int_redirect,"ax"
-+_interrupt_redirect_table:
-+#if defined(CONFIG_CPU_H8300H)
-+	.rept	7
-+	.long	0
-+	.endr
-+#endif
-+#if defined(CONFIG_CPU_H8S)
-+	.rept	5
-+	.long	0
-+	.endr
-+	jmp	@_trace_break
-+	.long	0
-+#endif
++static struct h8300_timer8_config timer8_platform_data = {
++	.mode	= H8300_TMR8_CLKEVTDEV,
++	.div	= H8300_TMR8_DIV_8,
++};
 +
-+	jsr	@_interrupt_entry		/* NMI */
-+	jmp	@_system_call			/* TRAPA #0 (System call) */
-+	.long	0
-+	.long	0
-+	jmp	@_trace_break			/* TRAPA #3 (breakpoint) */
-+	.rept	INTERRUPTS-12
-+	jsr	@_interrupt_entry
-+	.endr
-+#endif
-+#if defined(CONFIG_RAMKERNEL)
-+.globl _interrupt_redirect_table
-+	.section .bss
-+_interrupt_redirect_table:
-+	.space	4
-+#endif
++static struct resource tm8_unit0_resources[] = {
++	DEFINE_RES_MEM(0xffffb0, 10),
++	DEFINE_RES_IRQ(72),
++	DEFINE_RES_IRQ(75),
++};
 +
-+	.section .text
-+	.align	2
-+_interrupt_entry:
-+	SAVE_ALL
-+/* r1l is saved ccr */	
-+	mov.l	sp,er0
-+	add.l	#LVEC,er0
-+	btst	#4,r1l
-+	bne	1f
-+	/* user LVEC */
-+	mov.l	@_sw_usp,er0
-+	adds	#4,er0
-+1:
-+	mov.l	@er0,er0			/* LVEC address */
-+#if defined(CONFIG_ROMKERNEL)
-+	sub.l	#_interrupt_redirect_table,er0
-+#endif
-+#if defined(CONFIG_RAMKERNEL)
-+	mov.l	@_interrupt_redirect_table,er1
-+	sub.l	er1,er0
-+#endif
-+	SHLR2	er0
-+	dec.l	#1,er0
-+	mov.l	sp,er1
-+	subs	#4,er1				/* adjust ret_pc */
-+#if defined(CONFIG_CPU_H8S)
-+	orc	#7,exr
-+#endif
-+	jsr	@do_IRQ
-+	jmp	@ret_from_interrupt
++static struct platform_device tm8_unit0_device = {
++	.name		= "h8300-8timer",
++	.id		= 0,
++	.dev = {
++		.platform_data	= &timer8_platform_data,
++	},
++	.resource	= tm8_unit0_resources,
++	.num_resources	= ARRAY_SIZE(tm8_unit0_resources),
++};
 +
-+_system_call:
-+	subs	#4,sp				/* dummy LVEC */
-+	SAVE_ALL
-+	/* er0: syscall nr */
-+	andc	#0xbf,ccr
-+	mov.l	er0,er4
++static struct resource tpu12_resources[] = {
++	DEFINE_RES_MEM(0xffffe0, 16),
++	DEFINE_RES_MEM(0xfffff0, 12),
++};
 +
-+	/* save top of frame */
-+	mov.l	sp,er0
-+	jsr	@set_esp0
-+	mov.l	sp,er2
-+	and.w	#0xe000,r2
-+	mov.l	@(TI_FLAGS:16,er2),er2
-+	and.w	#_TIF_WORK_SYSCALL_MASK,r2
-+	beq	1f
-+	mov.l	sp,er0
-+	jsr	@do_syscall_trace_enter
-+1:
-+	cmp.l	#__NR_syscalls,er4
-+	bcc	badsys
-+	SHLL2	er4
-+	mov.l	#_sys_call_table,er0
-+	add.l	er4,er0
-+	mov.l	@er0,er4
-+	beq	ret_from_exception:16
-+	mov.l	@(LER1:16,sp),er0
-+	mov.l	@(LER2:16,sp),er1
-+	mov.l	@(LER3:16,sp),er2
-+	jsr	@er4
-+	mov.l	er0,@(LER0:16,sp)		/* save the return value */
-+	mov.l	sp,er2
-+	and.w	#0xe000,r2
-+	mov.l	@(TI_FLAGS:16,er2),er2
-+	and.w	#_TIF_WORK_SYSCALL_MASK,r2
-+	beq	2f
-+	mov.l	sp,er0
-+	jsr	@do_syscall_trace_leave
-+2:
-+	orc	#0xc0,ccr
-+	bra	resume_userspace
++static struct resource tpu45_resources[] = {
++	DEFINE_RES_MEM(0xfffe90, 16),
++	DEFINE_RES_MEM(0xfffea0, 12),
++};
 +
-+badsys:
-+	mov.l	#-ENOSYS,er0
-+	mov.l	er0,@(LER0:16,sp)
-+	bra	resume_userspace
++static struct platform_device tpu12_device = {
++	.name	= "h8s-tpu",
++	.id		= 0,
++	.resource	= tpu12_resources,
++	.num_resources	= ARRAY_SIZE(tpu12_resources),
++};
 +
-+#if !defined(CONFIG_PREEMPT)
-+#define resume_kernel restore_all
-+#endif
++static struct platform_device tpu45_device = {
++	.name	= "h8s-tpu",
++	.id		= 1,
++	.resource	= tpu45_resources,
++	.num_resources	= ARRAY_SIZE(tpu45_resources),
++};
 +
-+ret_from_exception:
-+#if defined(CONFIG_PREEMPT)
-+	orc	#0xc0,ccr
-+#endif
-+ret_from_interrupt:
-+	mov.b	@(LCCR+1:16,sp),r0l
-+	btst	#4,r0l
-+#if defined(CONFIG_PREEMPT)
-+	bne	resume_kernel:16	/* return from kernel */
-+#else
-+	bne	restore_all:16		/* return from kernel */
-+#endif
-+resume_userspace:
-+	andc	#0xbf,ccr
-+	mov.l	sp,er4
-+	and.w	#0xe000,r4		/* er4 <- current thread info */
-+	mov.l	@(TI_FLAGS:16,er4),er1
-+	and.l	#_TIF_WORK_MASK,er1
-+	beq	restore_all:8
-+work_pending:
-+	btst	#TIF_NEED_RESCHED,r1l
-+	bne	work_resched:8
-+	/* work notifysig */
-+	mov.l	sp,er0
-+	subs	#4,er0			/* er0: pt_regs */
-+	jsr	@do_notify_resume
-+	bra	restore_all:8
-+work_resched:
-+	mov.l	sp,er0
-+	jsr	@set_esp0
-+	jsr	@schedule
-+	bra	resume_userspace:8
-+restore_all:
-+	RESTORE_ALL			/* Does RTE */
++static struct platform_device *devices[] __initdata = {
++	&tpu12_device,
++	&tpu45_device,
++	&sci0_device,
++	&sci1_device,
++	&sci2_device,
++};
 +
-+#if defined(CONFIG_PREEMPT)
-+resume_kernel:
-+	mov.l	@(TI_PRE_COUNT:16,er4),er0
-+	bne	restore_all:8
-+need_resched:
-+	mov.l	@(TI_FLAGS:16,er4),er0
-+	btst	#TIF_NEED_RESCHED,r0l
-+	beq	restore_all:8
-+	mov.b	@(LCCR+1:16,sp),r0l	/* Interrupt Enabled? */
-+	bmi	restore_all:8
-+	mov.l	sp,er0
-+	jsr	@set_esp0
-+	jsr	@preempt_schedule_irq
-+	bra	need_resched:8
-+#endif
++static struct platform_device *early_devices[] __initdata = {
++	&tm8_unit0_device,
++	&sci0_device,
++	&sci1_device,
++	&sci2_device,
++};
 +
-+ret_from_fork:
-+	mov.l	er2,er0
-+	jsr	@schedule_tail
-+	jmp	@ret_from_exception
++static int __init devices_register(void)
++{
++	return platform_add_devices(devices,
++				    ARRAY_SIZE(devices));
++}
++arch_initcall(devices_register);
 +
-+ret_from_kernel_thread:
-+	mov.l	er2,er0
-+	jsr	@schedule_tail
-+	mov.l	@(LER4:16,sp),er0
-+	mov.l	@(LER5:16,sp),er1
-+	jsr	@er1
-+	jmp	@ret_from_exception
-+
-+_resume:
-+	/*
-+	 * Beware - when entering resume, offset of tss is in d1,
-+	 * prev (the current task) is in a0, next (the new task)
-+	 * is in a1 and d2.b is non-zero if the mm structure is
-+	 * shared between the tasks, so don't change these
-+	 * registers until their contents are no longer needed.
-+	 */
-+
-+	/* save sr */
-+	sub.w	r3,r3
-+	stc	ccr,r3l
-+	mov.w	r3,@(THREAD_CCR+2:16,er0)
-+
-+	/* disable interrupts */
-+	orc	#0xc0,ccr
-+	mov.l	@_sw_usp,er3
-+	mov.l	er3,@(THREAD_USP:16,er0)
-+	mov.l	sp,@(THREAD_KSP:16,er0)
-+
-+	/* Skip address space switching if they are the same. */
-+	/* FIXME: what did we hack out of here, this does nothing! */
-+
-+	mov.l	@(THREAD_USP:16,er1),er0
-+	mov.l	er0,@_sw_usp
-+	mov.l	@(THREAD_KSP:16,er1),sp
-+
-+	/* restore status register */
-+	mov.w	@(THREAD_CCR+2:16,er1),r3
-+
-+	ldc	r3l,ccr
-+	rts
-+
-+_trace_break:
-+	subs	#4,sp
-+	SAVE_ALL
-+	sub.l	er1,er1
-+	dec.l	#1,er1
-+	mov.l	er1,@(LORIG,sp)
-+	mov.l	sp,er0
-+	jsr	@set_esp0
-+	mov.l	@_sw_usp,er0
-+	mov.l	@er0,er1
-+	mov.w	@(-2:16,er1),r2
-+	cmp.w	#0x5730,r2
-+	beq	1f
-+	subs	#2,er1
-+	mov.l	er1,@er0
-+1:
-+	and.w	#0xff,e1
-+	mov.l	er1,er0
-+	jsr	@trace_trap
-+	jmp	@ret_from_exception
-+
-+_nmi:
-+	subs	#4, sp
-+	mov.l	er0, @-sp
-+	mov.l	@_interrupt_redirect_table, er0
-+	add.l	#8*4, er0
-+	mov.l	er0, @(4,sp)
-+	mov.l	@sp+, er0
-+	jmp	@_interrupt_entry
-+
-+	.section	.bss
-+_sw_ksp:
-+	.space	4
-+_sw_usp:
-+	.space	4
-+
-+	.end
-diff --git a/arch/h8300/kernel/irq.c b/arch/h8300/kernel/irq.c
++void __init early_device_init(void)
++{
++	/* SCI / Timer enable */
++	ctrl_outw(0x07f0, 0xffff40);
++	early_platform_add_devices(early_devices,
++				   ARRAY_SIZE(early_devices));
++}
+diff --git a/arch/h8300/kernel/cpu/irq_h.c b/arch/h8300/kernel/cpu/irq_h.c
 new file mode 100644
-index 0000000..dbff621
+index 0000000..90021d8
 --- /dev/null
-+++ b/arch/h8300/kernel/irq.c
-@@ -0,0 +1,106 @@
++++ b/arch/h8300/kernel/cpu/irq_h.c
+@@ -0,0 +1,62 @@
 +/*
-+ * linux/arch/h8300/kernel/irq.c
++ * linux/arch/h8300/kernel/irq_h.c
 + *
 + * Copyright 2014 Yoshinori Sato <ysato@users.sourceforge.jp>
 + */
 +
 +#include <linux/init.h>
-+#include <linux/interrupt.h>
 +#include <linux/irq.h>
-+#include <asm/traps.h>
++#include <asm/io.h>
 +
-+#ifdef CONFIG_RAMKERNEL
-+#define CPU_VECTOR ((unsigned long *)0x000000)
-+#define ADDR_MASK (0xffffff)
-+
-+extern unsigned long *_interrupt_redirect_table;
-+void _interrupt_entry(void);
-+
-+typedef void (*h8300_vector)(void);
-+
-+static const h8300_vector __initconst trap_table[] = {
-+	0, 0, 0, 0,
-+	_trace_break,
-+	0, 0,
-+	_nmi,
-+	_system_call,
-+	0, 0,
-+	_trace_break,
++static const char ipr_bit[] = {
++	 7,  6,  5,  5,
++	 4,  4,  4,  4,  3,  3,  3,  3,
++	 2,  2,  2,  2,  1,  1,  1,  1,
++	 0,  0,  0,  0, 15, 15, 15, 15,
++	14, 14, 14, 14, 13, 13, 13, 13,
++	-1, -1, -1, -1, 11, 11, 11, 11,
++	10, 10, 10, 10,  9,  9,  9,  9,
 +};
 +
-+static unsigned long __init *get_vector_address(void)
++#define IPR 0xffee18
++
++static void h8300h_disable_irq(struct irq_data *data)
 +{
-+	unsigned long *rom_vector = CPU_VECTOR;
-+	unsigned long base, tmp;
-+	int vec_no;
++	int bit;
++	int irq = data->irq - 12;
 +
-+	base = rom_vector[EXT_IRQ0] & ADDR_MASK;
-+
-+	/* check romvector format */
-+	for (vec_no = EXT_IRQ0 + 1; vec_no <= EXT_IRQ0+EXT_IRQS; vec_no++) {
-+		if ((base+(vec_no - EXT_IRQ0)*4) !=
-+		    (rom_vector[vec_no] & ADDR_MASK))
-+			return NULL;
++	bit = ipr_bit[irq];
++	if (bit >= 0) {
++		if (bit < 8)
++			ctrl_bclr(bit & 7, IPR);
++		else
++			ctrl_bclr(bit & 7, (IPR+1));
 +	}
-+
-+	/* ramvector base address */
-+	base -= EXT_IRQ0*4;
-+
-+	/* writerble? */
-+	tmp = ~(*(volatile unsigned long *)base);
-+	(*(volatile unsigned long *)base) = tmp;
-+	if ((*(volatile unsigned long *)base) != tmp)
-+		return NULL;
-+	return (unsigned long *)base;
 +}
 +
-+static void __init setup_vector(void)
++static void h8300h_enable_irq(struct irq_data *data)
 +{
-+	int i;
-+	unsigned long *ramvec, *ramvec_p;
-+	const h8300_vector *trap_entry;
++	int bit;
++	int irq = data->irq - 12;
 +
-+	ramvec = get_vector_address();
-+	if (ramvec == NULL)
-+		panic("interrupt vector serup failed.");
-+	else
-+		pr_debug("virtual vector at 0x%p\n", ramvec);
-+
-+	/* create redirect table */
-+	ramvec_p = ramvec;
-+	trap_entry = trap_table;
-+	for (i = 0; i < NR_IRQS; i++) {
-+		if (i < 12) {
-+			if (*trap_entry)
-+				*ramvec_p = VECTOR(*trap_entry);
-+			ramvec_p++;
-+			trap_entry++;
-+		} else
-+			*ramvec_p++ = REDIRECT(_interrupt_entry);
++	bit = ipr_bit[irq];
++	if (bit >= 0) {
++		if (bit < 8)
++			ctrl_bset(bit & 7, IPR);
++		else
++			ctrl_bset(bit & 7, (IPR+1));
 +	}
-+	_interrupt_redirect_table = ramvec;
 +}
-+#else
-+void setup_vector(void)
++
++struct irq_chip h8300h_irq_chip = {
++	.name		= "H8/300H-INTC",
++	.irq_enable	= h8300h_enable_irq,
++	.irq_disable	= h8300h_disable_irq,
++};
++
++void __init h8300_init_ipr(void)
 +{
-+	/* noting do */
++	/* All interrupt priority high */
++	ctrl_outb(0xff, IPR + 0);
++	ctrl_outb(0xee, IPR + 1);
 +}
-+#endif
-+
-+void __init init_IRQ(void)
-+{
-+	int c;
-+
-+	setup_vector();
-+	h8300_init_ipr();
-+
-+	for (c = 0; c < NR_IRQS; c++)
-+		irq_set_chip_and_handler(c, &IRQ_CHIP, handle_simple_irq);
-+}
-+
-+asmlinkage void do_IRQ(int irq)
-+{
-+	irq_enter();
-+	generic_handle_irq(irq);
-+	irq_exit();
-+}
-diff --git a/arch/h8300/kernel/traps.c b/arch/h8300/kernel/traps.c
+diff --git a/arch/h8300/kernel/cpu/irq_s.c b/arch/h8300/kernel/cpu/irq_s.c
 new file mode 100644
-index 0000000..5a15f42
+index 0000000..71c322e
 --- /dev/null
-+++ b/arch/h8300/kernel/traps.c
-@@ -0,0 +1,166 @@
++++ b/arch/h8300/kernel/cpu/irq_s.c
+@@ -0,0 +1,70 @@
 +/*
-+ * linux/arch/h8300/boot/traps.c -- general exception handling code
-+ * H8/300 support Yoshinori Sato <ysato@users.sourceforge.jp>
++ * linux/arch/h8300/kernel/irq_s.c
 + *
-+ * Cloned from Linux/m68k.
-+ *
-+ * No original Copyright holder listed,
-+ * Probable original (C) Roman Zippel (assigned DJD, 1999)
-+ *
-+ * Copyright 1999-2000 D. Jeff Dionne, <jeff@rt-control.com>
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file COPYING in the main directory of this archive
-+ * for more details.
++ * Copyright 2014 Yoshinori Sato <ysato@users.sourceforge.jp>
 + */
 +
-+#include <linux/types.h>
++#include <linux/irq.h>
++#include <asm/io.h>
++#define IPRA 0xfffe00
++
++static const unsigned char ipr_table[] = {
++	0x03, 0x02, 0x01, 0x00, 0x13, 0x12, 0x11, 0x10, /* 16 - 23 */
++	0x23, 0x22, 0x21, 0x20, 0x33, 0x32, 0x31, 0x30, /* 24 - 31 */
++	0x43, 0x42, 0x41, 0x40, 0x53, 0x53, 0x52, 0x52, /* 32 - 39 */
++	0x51, 0x51, 0x51, 0x51, 0x51, 0x51, 0x51, 0x51, /* 40 - 47 */
++	0x50, 0x50, 0x50, 0x50, 0x63, 0x63, 0x63, 0x63, /* 48 - 55 */
++	0x62, 0x62, 0x62, 0x62, 0x62, 0x62, 0x62, 0x62, /* 56 - 63 */
++	0x61, 0x61, 0x61, 0x61, 0x60, 0x60, 0x60, 0x60, /* 64 - 71 */
++	0x73, 0x73, 0x73, 0x73, 0x72, 0x72, 0x72, 0x72, /* 72 - 79 */
++	0x71, 0x71, 0x71, 0x71, 0x70, 0x83, 0x82, 0x81, /* 80 - 87 */
++	0x80, 0x80, 0x80, 0x80, 0x93, 0x93, 0x93, 0x93, /* 88 - 95 */
++	0x92, 0x92, 0x92, 0x92, 0x91, 0x91, 0x91, 0x91, /* 96 - 103 */
++	0x90, 0x90, 0x90, 0x90, 0xa3, 0xa3, 0xa3, 0xa3, /* 104 - 111 */
++	0xa2, 0xa2, 0xa2, 0xa2, 0xa1, 0xa1, 0xa1, 0xa1, /* 112 - 119 */
++	0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, /* 120 - 127 */
++};
++
++static void h8s_disable_irq(struct irq_data *data)
++{
++	int pos;
++	unsigned int addr;
++	unsigned short pri;
++	int irq = data->irq;
++
++	addr = IPRA + ((ipr_table[irq - 16] & 0xf0) >> 3);
++	pos = (ipr_table[irq - 16] & 0x0f) * 4;
++	pri = ~(0x000f << pos);
++	pri &= ctrl_inw(addr);
++	ctrl_outw(pri, addr);
++}
++
++static void h8s_enable_irq(struct irq_data *data)
++{
++	int pos;
++	unsigned int addr;
++	unsigned short pri;
++	int irq = data->irq;
++
++	addr = IPRA + ((ipr_table[irq - 16] & 0xf0) >> 3);
++	pos = (ipr_table[irq - 16] & 0x0f) * 4;
++	pri = ~(0x000f << pos);
++	pri &= ctrl_inw(addr);
++	pri |= 1 << pos;
++	ctrl_outw(pri, addr);
++}
++
++struct irq_chip h8s_irq_chip = {
++	.name		= "H8S-INTC",
++	.irq_enable	= h8s_enable_irq,
++	.irq_disable	= h8s_disable_irq,
++};
++
++void __init h8300_init_ipr(void)
++{
++	int n;
++	/* All interrupt priority is 1 */
++	/* IPRA to IPRK */
++	for (n = 0; n <= 'k' - 'a'; n++)
++		ctrl_outw(0x1111, IPRA + (n * 2));
++}
+diff --git a/arch/h8300/kernel/cpu/ptrace_h.c b/arch/h8300/kernel/cpu/ptrace_h.c
+new file mode 100644
+index 0000000..7721e93
+--- /dev/null
++++ b/arch/h8300/kernel/cpu/ptrace_h.c
+@@ -0,0 +1,256 @@
++/*
++ *    ptrace cpu depend helper functions
++ *
++ *  Copyright 2003, 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License.  See the file COPYING in the main directory of
++ * this archive for more details.
++ */
++
++#include <linux/linkage.h>
 +#include <linux/sched.h>
-+#include <linux/kernel.h>
++#include <asm/ptrace.h>
++
++#define BREAKINST 0x5730 /* trapa #3 */
++
++/* disable singlestep */
++void user_disable_single_step(struct task_struct *child)
++{
++	if ((long)child->thread.breakinfo.addr != -1L) {
++		*(child->thread.breakinfo.addr) = child->thread.breakinfo.inst;
++		child->thread.breakinfo.addr = (unsigned short *)-1L;
++	}
++}
++
++/* calculate next pc */
++enum jump_type {none,	 /* normal instruction */
++		jabs,	 /* absolute address jump */
++		ind,	 /* indirect address jump */
++		ret,	 /* return to subrutine */
++		reg,	 /* register indexed jump */
++		relb,	 /* pc relative jump (byte offset) */
++		relw,	 /* pc relative jump (word offset) */
++	       };
++
++/* opcode decode table define
++   ptn: opcode pattern
++   msk: opcode bitmask
++   len: instruction length (<0 next table index)
++   jmp: jump operation mode */
++struct optable {
++	unsigned char bitpattern;
++	unsigned char bitmask;
++	signed char length;
++	signed char type;
++} __packed __aligned(1);
++
++#define OPTABLE(ptn, msk, len, jmp)	\
++	{				\
++		.bitpattern = ptn,	\
++		.bitmask    = msk,	\
++		.length	    = len,	\
++		.type	    = jmp,	\
++	}
++
++static const struct optable optable_0[] = {
++	OPTABLE(0x00, 0xff,  1, none), /* 0x00 */
++	OPTABLE(0x01, 0xff, -1, none), /* 0x01 */
++	OPTABLE(0x02, 0xfe,  1, none), /* 0x02-0x03 */
++	OPTABLE(0x04, 0xee,  1, none), /* 0x04-0x05/0x14-0x15 */
++	OPTABLE(0x06, 0xfe,  1, none), /* 0x06-0x07 */
++	OPTABLE(0x08, 0xea,  1, none), /* 0x08-0x09/0x0c-0x0d/0x18-0x19/0x1c-0x1d */
++	OPTABLE(0x0a, 0xee,  1, none), /* 0x0a-0x0b/0x1a-0x1b */
++	OPTABLE(0x0e, 0xee,  1, none), /* 0x0e-0x0f/0x1e-0x1f */
++	OPTABLE(0x10, 0xfc,  1, none), /* 0x10-0x13 */
++	OPTABLE(0x16, 0xfe,  1, none), /* 0x16-0x17 */
++	OPTABLE(0x20, 0xe0,  1, none), /* 0x20-0x3f */
++	OPTABLE(0x40, 0xf0,  1, relb), /* 0x40-0x4f */
++	OPTABLE(0x50, 0xfc,  1, none), /* 0x50-0x53 */
++	OPTABLE(0x54, 0xfd,  1, ret), /* 0x54/0x56 */
++	OPTABLE(0x55, 0xff,  1, relb), /* 0x55 */
++	OPTABLE(0x57, 0xff,  1, none), /* 0x57 */
++	OPTABLE(0x58, 0xfb,  2, relw), /* 0x58/0x5c */
++	OPTABLE(0x59, 0xfb,  1, reg), /* 0x59/0x5b */
++	OPTABLE(0x5a, 0xfb,  2, jabs), /* 0x5a/0x5e */
++	OPTABLE(0x5b, 0xfb,  2, ind), /* 0x5b/0x5f */
++	OPTABLE(0x60, 0xe8,  1, none), /* 0x60-0x67/0x70-0x77 */
++	OPTABLE(0x68, 0xfa,  1, none), /* 0x68-0x69/0x6c-0x6d */
++	OPTABLE(0x6a, 0xfe, -2, none), /* 0x6a-0x6b */
++	OPTABLE(0x6e, 0xfe,  2, none), /* 0x6e-0x6f */
++	OPTABLE(0x78, 0xff,  4, none), /* 0x78 */
++	OPTABLE(0x79, 0xff,  2, none), /* 0x79 */
++	OPTABLE(0x7a, 0xff,  3, none), /* 0x7a */
++	OPTABLE(0x7b, 0xff,  2, none), /* 0x7b */
++	OPTABLE(0x7c, 0xfc,  2, none), /* 0x7c-0x7f */
++	OPTABLE(0x80, 0x80,  1, none), /* 0x80-0xff */
++};
++
++static const struct optable optable_1[] = {
++	OPTABLE(0x00, 0xff, -3, none), /* 0x0100 */
++	OPTABLE(0x40, 0xf0, -3, none), /* 0x0140-0x14f */
++	OPTABLE(0x80, 0xf0,  1, none), /* 0x0180-0x018f */
++	OPTABLE(0xc0, 0xc0,  2, none), /* 0x01c0-0x01ff */
++};
++
++static const struct optable optable_2[] = {
++	OPTABLE(0x00, 0x20,  2, none), /* 0x6a0?/0x6a8?/0x6b0?/0x6b8? */
++	OPTABLE(0x20, 0x20,  3, none), /* 0x6a2?/0x6aa?/0x6b2?/0x6ba? */
++};
++
++static const struct optable optable_3[] = {
++	OPTABLE(0x69, 0xfb,  2, none), /* 0x010069/0x01006d/014069/0x01406d */
++	OPTABLE(0x6b, 0xff, -4, none), /* 0x01006b/0x01406b */
++	OPTABLE(0x6f, 0xff,  3, none), /* 0x01006f/0x01406f */
++	OPTABLE(0x78, 0xff,  5, none), /* 0x010078/0x014078 */
++};
++
++static const struct optable optable_4[] = {
++/* 0x0100690?/0x01006d0?/0140690?/0x01406d0?/
++   0x0100698?/0x01006d8?/0140698?/0x01406d8? */
++	OPTABLE(0x00, 0x78, 3, none),
++/* 0x0100692?/0x01006d2?/0140692?/0x01406d2?/
++   0x010069a?/0x01006da?/014069a?/0x01406da? */
++	OPTABLE(0x20, 0x78, 4, none),
++};
++
++static const struct optables_list {
++	const struct optable *ptr;
++	int size;
++} optables[] = {
++#define OPTABLES(no)                                                   \
++	{                                                              \
++		.ptr  = optable_##no,                                  \
++		.size = sizeof(optable_##no) / sizeof(struct optable), \
++	}
++	OPTABLES(0),
++	OPTABLES(1),
++	OPTABLES(2),
++	OPTABLES(3),
++	OPTABLES(4),
++
++};
++
++const unsigned char condmask[] = {
++	0x00, 0x40, 0x01, 0x04, 0x02, 0x08, 0x10, 0x20
++};
++
++static int isbranch(struct task_struct *task, int reson)
++{
++	unsigned char cond = h8300_get_reg(task, PT_CCR);
++
++	/* encode complex conditions */
++	/* B4: N^V
++	   B5: Z|(N^V)
++	   B6: C|Z */
++	__asm__("bld #3,%w0\n\t"
++		"bxor #1,%w0\n\t"
++		"bst #4,%w0\n\t"
++		"bor #2,%w0\n\t"
++		"bst #5,%w0\n\t"
++		"bld #2,%w0\n\t"
++		"bor #0,%w0\n\t"
++		"bst #6,%w0\n\t"
++		: "=&r"(cond) : : "cc");
++	cond &= condmask[reson >> 1];
++	if (!(reson & 1))
++		return cond == 0;
++	else
++		return cond != 0;
++}
++
++static unsigned short *decode(struct task_struct *child, const struct optable *op,
++			      char *fetch_p, unsigned short *pc,
++			      unsigned char inst)
++{
++	unsigned long addr;
++	unsigned long *sp;
++	int regno;
++
++	switch (op->type) {
++	case none:
++		return (unsigned short *)pc + op->length;
++	case jabs:
++		addr = *(unsigned long *)pc;
++		return (unsigned short *)(addr & 0x00ffffff);
++	case ind:
++		addr = *pc & 0xff;
++		return (unsigned short *)(*(unsigned long *)addr);
++	case ret:
++		sp = (unsigned long *)h8300_get_reg(child, PT_USP);
++		/* user stack frames
++		   |   er0  | temporary saved
++		   +--------+
++		   |   exp  | exception stack frames
++		   +--------+
++		   | ret pc | userspace return address
++		*/
++		return (unsigned short *)(*(sp+2) & 0x00ffffff);
++	case reg:
++		regno = (*pc >> 4) & 0x07;
++		if (regno == 0)
++			addr = h8300_get_reg(child, PT_ER0);
++		else
++			addr = h8300_get_reg(child, regno-1 + PT_ER1);
++		return (unsigned short *)addr;
++	case relb:
++		if (inst == 0x55 || isbranch(child, inst & 0x0f))
++			pc = (unsigned short *)((unsigned long)pc +
++						((signed char)(*fetch_p)));
++		return pc+1; /* skip myself */
++	case relw:
++		if (inst == 0x5c || isbranch(child, (*fetch_p & 0xf0) >> 4))
++			pc = (unsigned short *)((unsigned long)pc +
++						((signed short)(*(pc+1))));
++		return pc+2; /* skip myself */
++	default:
++		return NULL;
++	}
++}
++
++static unsigned short *nextpc(struct task_struct *child, unsigned short *pc)
++{
++	const struct optable *op;
++	unsigned char *fetch_p;
++	int op_len;
++	unsigned char inst;
++
++	op = optables[0].ptr;
++	op_len = optables[0].size;
++	fetch_p = (unsigned char *)pc;
++	inst = *fetch_p++;
++	do {
++		if ((inst & op->bitmask) == op->bitpattern) {
++			if (op->length < 0) {
++				op = optables[-op->length].ptr;
++				op_len = optables[-op->length].size + 1;
++				inst = *fetch_p++;
++			} else
++				return decode(child, op, fetch_p, pc, inst);
++		} else
++			op++;
++	} while (--op_len > 0);
++	return NULL;
++}
++
++/* Set breakpoint(s) to simulate a single step from the current PC.  */
++
++void user_enable_single_step(struct task_struct *child)
++{
++	unsigned short *next;
++
++	next = nextpc(child, (unsigned short *)h8300_get_reg(child, PT_PC));
++	child->thread.breakinfo.addr = next;
++	child->thread.breakinfo.inst = *next;
++	*next = BREAKINST;
++}
++
++asmlinkage void trace_trap(unsigned long bp)
++{
++	if ((unsigned long)current->thread.breakinfo.addr == bp) {
++		user_disable_single_step(current);
++		force_sig(SIGTRAP, current);
++	} else
++		force_sig(SIGILL, current);
++}
++
+diff --git a/arch/h8300/kernel/cpu/ptrace_s.c b/arch/h8300/kernel/cpu/ptrace_s.c
+new file mode 100644
+index 0000000..7d0b634
+--- /dev/null
++++ b/arch/h8300/kernel/cpu/ptrace_s.c
+@@ -0,0 +1,42 @@
++/*
++ *  linux/arch/h8300/kernel/ptrace_h8s.c
++ *    ptrace cpu depend helper functions
++ *
++ *  Yoshinori Sato <ysato@users.sourceforge.jp>
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License.  See the file COPYING in the main directory of
++ * this archive for more details.
++ */
++
++#include <linux/linkage.h>
++#include <linux/sched.h>
 +#include <linux/errno.h>
-+#include <linux/init.h>
-+#include <linux/module.h>
-+#include <linux/bug.h>
++#include <asm/ptrace.h>
 +
-+#include <asm/irq.h>
-+#include <asm/traps.h>
-+#include <asm/page.h>
++#define CCR_MASK  0x6f
++#define EXR_TRACE 0x80
 +
-+static DEFINE_SPINLOCK(die_lock);
-+
-+/*
-+ * this must be called very early as the kernel might
-+ * use some instruction that are emulated on the 060
-+ */
-+
-+void __init base_trap_init(void)
++/* disable singlestep */
++void user_disable_single_step(struct task_struct *child)
 +{
++	unsigned char exr;
++	exr = h8300_get_reg(child, PT_EXR);
++	exr &= ~EXR_TRACE;
++	h8300_put_reg(child, PT_EXR,exr);
 +}
 +
-+void __init trap_init(void)
++/* enable singlestep */
++void user_enable_single_step(struct task_struct *child)
 +{
++	unsigned char exr;
++	exr = h8300_get_reg(child, PT_EXR);
++	exr |= EXR_TRACE;
++	h8300_put_reg(child, PT_EXR,exr);
 +}
 +
-+asmlinkage void set_esp0 (unsigned long ssp)
++asmlinkage void trace_trap(unsigned long bp)
 +{
-+	current->thread.esp0 = ssp;
-+}
-+
-+/*
-+ *	Generic dumping code. Used for panic and debug.
-+ */
-+
-+static void dump(struct pt_regs *fp)
-+{
-+	unsigned long	*sp;
-+	unsigned char	*tp;
-+	int		i;
-+
-+	pr_info("\nCURRENT PROCESS:\n\n");
-+	pr_info("COMM=%s PID=%d\n", current->comm, current->pid);
-+	if (current->mm) {
-+		pr_info("TEXT=%08x-%08x DATA=%08x-%08x BSS=%08x-%08x\n",
-+			(int) current->mm->start_code,
-+			(int) current->mm->end_code,
-+			(int) current->mm->start_data,
-+			(int) current->mm->end_data,
-+			(int) current->mm->end_data,
-+			(int) current->mm->brk);
-+		pr_info("USER-STACK=%08x  KERNEL-STACK=%08lx\n\n",
-+			(int) current->mm->start_stack,
-+			(int) PAGE_SIZE+(unsigned long)current);
-+	}
-+
-+	show_regs(fp);
-+	pr_info("\nCODE:");
-+	tp = ((unsigned char *) fp->pc) - 0x20;
-+	for (sp = (unsigned long *) tp, i = 0; (i < 0x40);  i += 4) {
-+		if ((i % 0x10) == 0)
-+			pr_info("\n%08x: ", (int) (tp + i));
-+		pr_info("%08x ", (int) *sp++);
-+	}
-+	pr_info("\n");
-+
-+	pr_info("\nKERNEL STACK:");
-+	tp = ((unsigned char *) fp) - 0x40;
-+	for (sp = (unsigned long *) tp, i = 0; (i < 0xc0); i += 4) {
-+		if ((i % 0x10) == 0)
-+			pr_info("\n%08x: ", (int) (tp + i));
-+		pr_info("%08x ", (int) *sp++);
-+	}
-+	pr_info("\n");
-+	if (STACK_MAGIC != *(unsigned long *)((unsigned long)current+PAGE_SIZE))
-+		pr_info("(Possibly corrupted stack page??)\n");
-+
-+	pr_info("\n\n");
-+}
-+
-+void die(const char *str, struct pt_regs *fp, unsigned long err)
-+{
-+	static int diecount;
-+
-+	oops_enter();
-+
-+	console_verbose();
-+	spin_lock_irq(&die_lock);
-+	report_bug(fp->pc, fp);
-+	pr_crit("%s: %04lx [#%d] ", str, err & 0xffff, ++diecount);
-+	dump(fp);
-+
-+	spin_unlock_irq(&die_lock);
-+	do_exit(SIGSEGV);
-+}
-+
-+extern char _start, _etext;
-+#define check_kernel_text(addr) \
-+	((addr >= (unsigned long)(&_start)) && \
-+	 (addr <  (unsigned long)(&_etext)))
-+
-+static int kstack_depth_to_print = 24;
-+
-+void show_stack(struct task_struct *task, unsigned long *esp)
-+{
-+	unsigned long *stack,  addr;
-+	int i;
-+
-+	if (esp == NULL)
-+		esp = (unsigned long *) &esp;
-+
-+	stack = esp;
-+
-+	pr_info("Stack from %08lx:", (unsigned long)stack);
-+	for (i = 0; i < kstack_depth_to_print; i++) {
-+		if (((unsigned long)stack & (THREAD_SIZE - 1)) == 0)
-+			break;
-+		if (i % 8 == 0)
-+			pr_info("\n       ");
-+		pr_info(" %08lx", *stack++);
-+	}
-+
-+	pr_info("\nCall Trace:");
-+	i = 0;
-+	stack = esp;
-+	while (((unsigned long)stack & (THREAD_SIZE - 1)) != 0) {
-+		addr = *stack++;
-+		/*
-+		 * If the address is either in the text segment of the
-+		 * kernel, or in the region which contains vmalloc'ed
-+		 * memory, it *may* be the address of a calling
-+		 * routine; if so, print it so that someone tracing
-+		 * down the cause of the crash will be able to figure
-+		 * out the call path that was taken.
-+		 */
-+		if (check_kernel_text(addr)) {
-+			if (i % 4 == 0)
-+				pr_info("\n       ");
-+			pr_info(" [<%08lx>]", addr);
-+			i++;
-+		}
-+	}
-+	pr_info("\n");
-+}
-+
-+void show_trace_task(struct task_struct *tsk)
-+{
-+	show_stack(tsk, (unsigned long *)tsk->thread.esp0);
++	(void)bp;
++	force_sig(SIGTRAP, current);
 +}
 -- 
 2.1.4
