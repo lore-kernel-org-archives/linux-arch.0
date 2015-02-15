@@ -1,7 +1,7 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v3 10/15] h8300: Build scripts
-Date: Sun, 15 Feb 2015 16:49:28 +0900
-Message-ID: <1423986573-2329-11-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v3 11/15] h8300: clock driver
+Date: Sun, 15 Feb 2015 16:49:29 +0900
+Message-ID: <1423986573-2329-12-git-send-email-ysato@users.sourceforge.jp>
 References: <1423986573-2329-1-git-send-email-ysato@users.sourceforge.jp>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1423986573-2329-1-git-send-email-ysato@users.sourceforge.jp>
@@ -12,479 +12,305 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- arch/h8300/Kconfig              | 119 +++++++++++++++++++++++++++++++++++
- arch/h8300/Kconfig.cpu          | 136 ++++++++++++++++++++++++++++++++++++++++
- arch/h8300/Kconfig.debug        |  23 +++++++
- arch/h8300/Makefile             |  45 +++++++++++++
- arch/h8300/kernel/Makefile      |  16 +++++
- arch/h8300/kernel/vmlinux.lds.S |  85 +++++++++++++++++++++++++
- 6 files changed, 424 insertions(+)
- create mode 100644 arch/h8300/Kconfig
- create mode 100644 arch/h8300/Kconfig.cpu
- create mode 100644 arch/h8300/Kconfig.debug
- create mode 100644 arch/h8300/Makefile
- create mode 100644 arch/h8300/kernel/Makefile
- create mode 100644 arch/h8300/kernel/vmlinux.lds.S
+ drivers/clk/Makefile            |   1 +
+ drivers/clk/h8300/Makefile      |   2 +
+ drivers/clk/h8300/clk-h83069.c  |  73 ++++++++++++++++++
+ drivers/clk/h8300/clk-h8s2678.c | 165 ++++++++++++++++++++++++++++++++++++++++
+ include/linux/clk-provider.h    |  12 +++
+ 5 files changed, 253 insertions(+)
+ create mode 100644 drivers/clk/h8300/Makefile
+ create mode 100644 drivers/clk/h8300/clk-h83069.c
+ create mode 100644 drivers/clk/h8300/clk-h8s2678.c
 
-diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
+diff --git a/drivers/clk/Makefile b/drivers/clk/Makefile
+index d5fba5b..37b6e87 100644
+--- a/drivers/clk/Makefile
++++ b/drivers/clk/Makefile
+@@ -68,3 +68,4 @@ obj-$(CONFIG_ARCH_U8500)		+= ux500/
+ obj-$(CONFIG_COMMON_CLK_VERSATILE)	+= versatile/
+ obj-$(CONFIG_X86)			+= x86/
+ obj-$(CONFIG_ARCH_ZYNQ)			+= zynq/
++obj-$(CONFIG_H8300)		+= h8300/
+diff --git a/drivers/clk/h8300/Makefile b/drivers/clk/h8300/Makefile
 new file mode 100644
-index 0000000..828c356
+index 0000000..82eab42
 --- /dev/null
-+++ b/arch/h8300/Kconfig
-@@ -0,0 +1,119 @@
-+config H8300
-+	bool
-+	default y
-+	select HAVE_IDE
-+	select GENERIC_ATOMIC64
-+	select HAVE_UID16
-+	select VIRT_TO_BUS
-+	select ARCH_WANT_IPC_PARSE_VERSION
-+	select GENERIC_IRQ_SHOW
-+	select FRAME_POINTER
-+	select GENERIC_CPU_DEVICES
-+	select MODULES_USE_ELF_RELA
-+	select GENERIC_CLOCKEVENTS
-+	select CLKDEV_LOOKUP
-+	select COMMON_CLK
-+	select HAVE_ARCH_TRACEHOOK
-+	select ARCH_WANT_FRAME_POINTERS
-+
-+config MMU
-+	bool
-+	default n
-+
-+config SWAP
-+	bool
-+	default n
-+
-+config ZONE_DMA
-+	bool
-+	default y
-+
-+config FPU
-+	bool
-+	default n
-+
-+config RWSEM_GENERIC_SPINLOCK
-+	bool
-+	default y
-+
-+config RWSEM_XCHGADD_ALGORITHM
-+	bool
-+	default n
-+
-+config ARCH_HAS_ILOG2_U32
-+	bool
-+	default n
-+
-+config ARCH_HAS_ILOG2_U64
-+	bool
-+	default n
-+
-+config GENERIC_HWEIGHT
-+	bool
-+	default y
-+
-+config GENERIC_CALIBRATE_DELAY
-+	bool
-+	default y
-+
-+config GENERIC_BUG
-+        bool
-+        depends on BUG
-+
-+config TIME_LOW_RES
-+	bool
-+	default y
-+
-+config NO_IOPORT_MAP
-+	def_bool y
-+
-+config NO_DMA
-+	def_bool n
-+
-+config ISA
-+        def_bool n
-+
-+config PCI
-+	def_bool n
-+
-+config HZ
-+	int
-+	default 100
-+
-+config NR_CPUS
-+        int
-+	default 1
-+
-+source "init/Kconfig"
-+
-+source "kernel/Kconfig.freezer"
-+
-+source "arch/h8300/Kconfig.cpu"
-+
-+menu "Kernel Features"
-+
-+source "kernel/Kconfig.preempt"
-+
-+source "mm/Kconfig"
-+
-+endmenu
-+
-+menu "Executable file formats"
-+
-+source "fs/Kconfig.binfmt"
-+
-+endmenu
-+
-+source "net/Kconfig"
-+
-+source "drivers/Kconfig"
-+
-+source "fs/Kconfig"
-+
-+source "arch/h8300/Kconfig.debug"
-+
-+source "security/Kconfig"
-+
-+source "crypto/Kconfig"
-+
-+source "lib/Kconfig"
-diff --git a/arch/h8300/Kconfig.cpu b/arch/h8300/Kconfig.cpu
++++ b/drivers/clk/h8300/Makefile
+@@ -0,0 +1,2 @@
++obj-$(CONFIG_H83069) += clk-h83069.o
++obj-$(CONFIG_H8S2678) += clk-h8s2678.o
+diff --git a/drivers/clk/h8300/clk-h83069.c b/drivers/clk/h8300/clk-h83069.c
 new file mode 100644
-index 0000000..2eaa797
+index 0000000..3334f49
 --- /dev/null
-+++ b/arch/h8300/Kconfig.cpu
-@@ -0,0 +1,136 @@
-+menu "Processor type and features"
++++ b/drivers/clk/h8300/clk-h83069.c
+@@ -0,0 +1,73 @@
++/*
++ * H8/3069 clock driver
++ *
++ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ */
 +
-+choice
-+	prompt "H8/300 platform"
++#include <linux/clk.h>
++#include <linux/clkdev.h>
++#include <linux/clk-provider.h>
++#include <linux/err.h>
++#include <linux/device.h>
++#include <linux/platform_device.h>
 +
-+config H8300_AE3068
-+	bool "AE-3068/69"
-+	select H83069
-+	select RAMKERNEL
-+	help
-+	  AKI-H8/3068F / AKI-H8/3069F Flashmicom LAN Board Support
-+	  More Information. (Japanese Only)
-+	  <http://akizukidenshi.com/catalog/default.aspx>
-+	  AE-3068/69 Evaluation Board Support
-+	  More Information.
-+	  <http://www.microtronique.com/ae3069lan.htm>
++static DEFINE_SPINLOCK(clklock);
 +
-+config H8300_H8MAX
-+	bool "H8MAX"
-+	select H83069
-+	select RAMKERNEL
-+	help
-+	  H8MAX Evaluation Board Support
-+	  More Information. (Japanese Only)
-+	  <http://strawberry-linux.com/h8/index.html>
++#define DIVCR (unsigned char *)0xfee01b
++#define DEVNAME "h83069-cpg"
 +
-+config H8300_KANEBEBE
-+	bool "KaneBebe"
-+	select H83069
-+	select RAMKERNEL
-+	help
-+	  KaneBebe Evalition Board Support
-+
-+config H8300H_SIM
-+	bool "H8/300H GDB Simulator"
-+	select H83069
-+	select ROMKERNEL
-+	help
-+	  GDB Simulator Support
-+	  More Information.
-+	  <http://sourceware.org/sid/>
-+
-+config H8S_EDOSK2674
-+	bool "EDOSK-2674"
-+	select H8S2678
-+	select RAMKERNEL
-+	help
-+	  Renesas EDOSK-2674 Evaluation Board Support
-+	  More Information.
-+	  <http://www.azpower.com/H8-uClinux/index.html>
-+ 	  <http://www.renesas.eu/products/tools/introductory_evaluation_tools/evaluation_development_os_kits/edosk2674r/edosk2674r_software_tools_root.jsp>
-+
-+config H8S_SIM
-+	bool "H8S GDB Simulator"
-+	select H8S2678
-+	select ROMKERNEL
-+	help
-+	  GDB Simulator Support
-+	  More Information.
-+	  <http://sourceware.org/sid/>
-+
-+endchoice
-+
-+choice
-+	prompt "CPU Selection"
-+
-+config H83069
-+	bool "H8/3065,3066,3067,3068,3069"
-+	select CPU_H8300H
-+	select H8300_TMR8
-+	select H8300_TMR16
-+
-+config H8S2678
-+	bool "H8S/2670,2673,2674R,2675,2676"
-+	select CPU_H8S
-+	select H8300_TMR8
-+	select H8300_TPU
-+
-+endchoice
-+
-+config CPU_CLOCK
-+	int "CPU Clock Frequency"
-+	depends on ROMKERNEL
-+	default "200000000" if H8300H_AKI3068NET || H8300H_SIM
-+	default "250000000" if H8300H_H8MAX || H8300H_KANEBEBE
-+	default "333333333" if H8S_EDOSK2674 || H8S_SIM
-+	help
-+	  CPU Clock Frequency
-+
-+choice
-+	prompt "Kernel executes from"
-+	---help---
-+	  Choose the memory type that the kernel will be running in.
-+
-+config RAMKERNEL
-+	bool "RAM"
-+	help
-+	  The kernel will be resident in RAM when running.
-+
-+config ROMKERNEL
-+	bool "ROM"
-+	help
-+	  The kernel will be resident in FLASH/ROM when running.
-+endchoice
-+
-+config CPU_H8300H
-+	bool
-+	depends on H83069
-+	default y
-+
-+config CPU_H8S
-+	bool
-+	depends on H8S2678
-+	default y
-+
-+config ROMSIZE
-+	hex "ROM size"
-+	depends on ROMKERNEL
-+	default 0x200000
-+
-+config RAMBASE
-+	hex "RAM base address"
-+	default 0x400000
-+
-+config RAMSIZE
-+	hex "RAM size"
-+	depends on ROMKERNEL
-+	default 0x200000 if H8300_AE3068 || H8300_H8MAX || H8300H_SIM
-+	default 0x400000 if H8300_KANEBEBE
-+	default 0x800000 if H8S_EDOSK2674 || H8S_SIM
-+
-+config OFFSET
-+        hex "Load offset"
-+	default 0
-+
-+endmenu
-diff --git a/arch/h8300/Kconfig.debug b/arch/h8300/Kconfig.debug
-new file mode 100644
-index 0000000..eb72b01
---- /dev/null
-+++ b/arch/h8300/Kconfig.debug
-@@ -0,0 +1,23 @@
-+menu "Kernel hacking"
-+
-+source "lib/Kconfig.debug"
-+
-+config FULLDEBUG
-+	bool "Full Symbolic/Source Debugging support"
-+	help
-+	  Enable debugging symbols on kernel build.
-+
-+config HIGHPROFILE
-+	bool "Use fast second timer for profiling"
-+	help
-+	  Use a fast secondary clock to produce profiling information.
-+
-+config NO_KERNEL_MSG
-+	bool "Suppress Kernel BUG Messages"
-+	help
-+	  Do not output any debug BUG messages within the kernel.
-+
-+config SH_STANDARD_BIOS
-+       def_bool n
-+
-+endmenu
-diff --git a/arch/h8300/Makefile b/arch/h8300/Makefile
-new file mode 100644
-index 0000000..44e915c
---- /dev/null
-+++ b/arch/h8300/Makefile
-@@ -0,0 +1,45 @@
-+#
-+# arch/h8300/Makefile
-+#
-+# This file is subject to the terms and conditions of the GNU General Public
-+# License.  See the file "COPYING" in the main directory of this archive
-+# for more details.
-+#
-+# (C) Copyright 2002-2015 Yoshinori Sato <ysato@users.sourceforge.jp>
-+#
-+
-+cflags-$(CONFIG_CPU_H8300H)	:= -mh
-+aflags-$(CONFIG_CPU_H8300H)	:= -mh -Wa,--mach=h8300h
-+ldflags-$(CONFIG_CPU_H8300H)	:= -mh8300helf_linux
-+cflags-$(CONFIG_CPU_H8S)	:= -ms
-+aflags-$(CONFIG_CPU_H8S)	:= -ms -Wa,--mach=h8300s
-+ldflags-$(CONFIG_CPU_H8S)	:= -mh8300self_linux
-+
-+KBUILD_CFLAGS += $(cflags-y)
-+KBUILD_CFLAGS += -mint32 -fno-builtin
-+KBUILD_CFLAGS += -D__linux__
-+KBUILD_CFLAGS += -DUTS_SYSNAME=\"uClinux\"
-+KBUILD_AFLAGS += $(aflags-y)
-+LDFLAGS += $(ldflags-y)
-+
-+CROSS_COMPILE := h8300-unknown-linux-
-+
-+core-y	+= arch/$(ARCH)/kernel/ arch/$(ARCH)/mm/
-+
-+libs-y	+= arch/$(ARCH)/lib/
-+
-+boot := arch/h8300/boot
-+
-+archmrproper:
-+
-+archclean:
-+	$(Q)$(MAKE) $(clean)=$(boot)
-+
-+vmlinux.srec vmlinux.bin zImage uImage.bin: vmlinux
-+	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
-+
-+define archhelp
-+  @echo  'vmlinux.bin  - Create raw binary'
-+  @echo  'vmlinux.srec - Create srec binary'
-+  @echo  'zImage       - Compressed kernel image'
-+endef
-diff --git a/arch/h8300/kernel/Makefile b/arch/h8300/kernel/Makefile
-new file mode 100644
-index 0000000..0b5fe00
---- /dev/null
-+++ b/arch/h8300/kernel/Makefile
-@@ -0,0 +1,16 @@
-+#
-+# Makefile for the linux kernel.
-+#
-+
-+extra-y := vmlinux.lds
-+
-+obj-y := process.o traps.o ptrace.o \
-+	 signal.o setup.o syscalls.o \
-+	 irq.o entry.o dma.o cpu/
-+
-+obj-$(CONFIG_ROMKERNEL) += head_rom.o
-+obj-$(CONFIG_RAMKERNEL) += head_ram.o
-+
-+obj-$(CONFIG_MODULES) += module.o h8300_ksyms.o
-+obj-$(CONFIG_H8300H_SIM) += sim-console.o
-+obj-$(CONFIG_H8S_SIM) += sim-console.o
-diff --git a/arch/h8300/kernel/vmlinux.lds.S b/arch/h8300/kernel/vmlinux.lds.S
-new file mode 100644
-index 0000000..e1b49aa
---- /dev/null
-+++ b/arch/h8300/kernel/vmlinux.lds.S
-@@ -0,0 +1,85 @@
-+#include <asm-generic/vmlinux.lds.h>
-+#include <asm/page.h>
-+
-+#define ROMTOP 0x000000
-+#define RAMTOP CONFIG_RAMBASE
-+
-+jiffies = jiffies_64 + 4;
-+
-+ENTRY(_start)
-+
-+SECTIONS
++static int clk_probe(struct platform_device *pdev)
 +{
-+#if defined(CONFIG_ROMKERNEL)
-+	. = ROMTOP;
-+	.vectors :
-+	{
-+	_vector = . ;
-+		*(.vector*)
++	struct clk *clk;
++	int *hz = dev_get_platdata(&pdev->dev);
++
++	clk = clk_register_fixed_rate(&pdev->dev, "master_clk", NULL,
++				      CLK_IS_ROOT, *hz);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
 +	}
-+#else
-+	. = RAMTOP;
-+	_ramstart = .;
-+	. = . + CONFIG_OFFSET;
-+#endif
-+	_text = .;
-+	HEAD_TEXT_SECTION
-+	.text : {
-+	_stext = . ;
-+		TEXT_TEXT
-+		SCHED_TEXT
-+		LOCK_TEXT
-+#if defined(CONFIG_ROMKERNEL)
-+		*(.int_redirect)
-+#endif
-+	_etext = . ;
++	clk_register_clkdev(clk, "master_clk", DEVNAME ".%d", 0);
++
++	clk = clk_register_divider(&pdev->dev, "core_clk", "master_clk",
++				   CLK_SET_RATE_GATE, DIVCR, 0, 2,
++				   CLK_DIVIDER_POWER_OF_TWO, &clklock);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
 +	}
-+	EXCEPTION_TABLE(16)
-+	NOTES
-+	RO_DATA(4)
-+#if defined(CONFIG_ROMKERNEL)
-+	.init.text : {
-+		_sinittext = .;
-+		INIT_TEXT
-+		_einittext = .;
-+	}
-+	SECURITY_INIT
-+#endif
-+	ROMEND = .;
-+#if defined(CONFIG_ROMKERNEL)
-+	. = RAMTOP;
-+	_ramstart = .;
-+	.data :	AT(ROMEND)
-+#else
-+	.data :
-+#endif
-+	{
-+	_sdata = . ;
-+	__data_start = . ;
-+		INIT_TASK_DATA(0x2000)
-+		NOSAVE_DATA
-+		PAGE_ALIGNED_DATA(0x1000)
-+		CACHELINE_ALIGNED_DATA(0x0002)
-+		READ_MOSTLY_DATA(0x0002)
-+		DATA_DATA
-+		CONSTRUCTORS
-+	}
-+	. = ALIGN(0x4) ;
-+	__init_begin = .;
-+#if defined(CONFIG_RAMKERNEL)
-+	INIT_TEXT_SECTION(4)
-+#endif
-+	INIT_DATA_SECTION(4)
-+#if defined(CONFIG_RAMKERNEL)
-+	SECURITY_INIT
-+#endif
-+	__init_end = .;
-+	_edata = . ;
-+	_begin_data = LOADADDR(.data);
-+	_sbss =.;
-+	BSS_SECTION(4,4,4)
-+	_ebss =.;
-+	_ramend = .;
-+	_end = .;
-+	DISCARDS
++	clk_register_clkdev(clk, "core_clk", DEVNAME ".%d", 0);
++
++	clk_add_alias("peripheral_clk", NULL, "core_clk", &pdev->dev);
++	return 0;
 +}
++
++static struct platform_driver cpg_driver = {
++	.driver = {
++		.name = DEVNAME,
++	},
++	.probe = clk_probe,
++};
++
++early_platform_init(DEVNAME, &cpg_driver);
++
++static struct platform_device clk_device = {
++	.name		= DEVNAME,
++	.id		= 0,
++};
++
++static struct platform_device *devices[] __initdata = {
++	&clk_device,
++};
++
++int __init h8300_clk_init(int hz)
++{
++	static int master_hz;
++	master_hz = hz;
++	clk_device.dev.platform_data = &master_hz;
++	early_platform_add_devices(devices,
++				   ARRAY_SIZE(devices));
++	early_platform_driver_register_all(DEVNAME);
++	early_platform_driver_probe(DEVNAME, 1, 0);
++	return 0;
++}
+diff --git a/drivers/clk/h8300/clk-h8s2678.c b/drivers/clk/h8300/clk-h8s2678.c
+new file mode 100644
+index 0000000..98cb28f
+--- /dev/null
++++ b/drivers/clk/h8300/clk-h8s2678.c
+@@ -0,0 +1,165 @@
++/*
++ * H8S2678 clock driver
++ *
++ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ */
++
++#include <linux/clk.h>
++#include <linux/clkdev.h>
++#include <linux/clk-provider.h>
++#include <linux/err.h>
++#include <linux/device.h>
++#include <linux/platform_device.h>
++
++static DEFINE_SPINLOCK(clklock);
++
++#define SCKCR 0xffff3b
++#define PLLCR 0xffff45
++#define DEVNAME "h8s2679-cpg"
++#define MAX_FREQ 33333333
++#define MIN_FREQ  8000000
++
++static unsigned long pll_recalc_rate(struct clk_hw *hw,
++		unsigned long parent_rate)
++{
++	int mul = 1 << (ctrl_inb(PLLCR) & 3);
++
++	return parent_rate * mul;
++}
++
++static long pll_round_rate(struct clk_hw *hw, unsigned long rate,
++				unsigned long *prate)
++{
++	int i, m = -1;
++	long offset[3];
++
++	if (rate > MAX_FREQ)
++		rate = MAX_FREQ;
++	if (rate < MIN_FREQ)
++		rate = MIN_FREQ;
++
++	for (i = 0; i < 3; i++)
++		offset[i] = abs(rate - (*prate * (1 << i)));
++	for (i = 0; i < 3; i++)
++		if (m < 0)
++			m = i;
++		else
++			m = (offset[i] < offset[m])?i:m;
++	
++	return *prate * (1 << m);
++}
++
++static int pll_set_rate(struct clk_hw *hw, unsigned long rate,
++			unsigned long parent_rate)
++{
++	int pll;
++	unsigned char val;
++	unsigned long flags;
++
++	pll = ((rate / parent_rate) / 2) & 0x03;
++	spin_lock_irqsave(&clklock, flags);
++	val = ctrl_inb(SCKCR);
++	val |= 0x08;
++	ctrl_outb(val, SCKCR);
++	val = ctrl_inb(PLLCR);
++	val &= ~0x03;
++	val |= pll;
++	ctrl_outb(val, PLLCR);
++	spin_unlock_irqrestore(&clklock, flags);
++	return 0;
++}
++
++const static struct clk_ops pll_ops = {
++	.recalc_rate = pll_recalc_rate,
++	.round_rate = pll_round_rate,
++	.set_rate = pll_set_rate,
++};
++
++static struct clk *pll_clk_register(struct device *dev, const char *name,
++				const char *parent)
++{
++	struct clk_hw *hw;
++	struct clk *clk;
++	struct clk_init_data init;
++
++	hw = kzalloc(sizeof(struct clk_hw), GFP_KERNEL);
++	if (!hw) {
++		dev_err(dev, "failed to allocate hw\n");
++		return ERR_PTR(-ENOMEM);
++	}
++	init.name = name;
++	init.ops = &pll_ops;
++	init.flags = CLK_IS_BASIC;
++	init.parent_names = &parent;
++	init.num_parents = 1;
++	hw->init = &init;
++
++	clk = clk_register(dev, hw);
++	if (IS_ERR(clk))
++		kfree(hw);
++
++	return clk;
++}
++	
++static int clk_probe(struct platform_device *pdev)
++{
++	struct clk *clk;
++	int *hz = dev_get_platdata(&pdev->dev);
++
++	clk = clk_register_fixed_rate(&pdev->dev, "master_clk", NULL,
++				      CLK_IS_ROOT, *hz);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "master_clk", DEVNAME ".%d", 0);
++
++	clk = pll_clk_register(&pdev->dev, "pll_clk", "master_clk");
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "pll_clk", DEVNAME ".%d", 0);
++	
++	clk = clk_register_divider(&pdev->dev, "core_clk", "pll_clk",
++				   CLK_SET_RATE_GATE, (unsigned char *)SCKCR,
++				   0, 3, CLK_DIVIDER_POWER_OF_TWO, &clklock);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "core_clk", DEVNAME ".%d", 0);
++
++	clk_add_alias("peripheral_clk", NULL, "core_clk", &pdev->dev);
++	return 0;
++}
++
++static struct platform_driver cpg_driver = {
++	.driver = {
++		.name = DEVNAME,
++	},
++	.probe = clk_probe,
++};
++
++early_platform_init(DEVNAME, &cpg_driver);
++
++static struct platform_device clk_device = {
++	.name		= DEVNAME,
++	.id		= 0,
++};
++
++static struct platform_device *devices[] __initdata = {
++	&clk_device,
++};
++
++int __init h8300_clk_init(int hz)
++{
++	static int master_hz;
++	master_hz = hz;
++	clk_device.dev.platform_data = &master_hz;
++	early_platform_add_devices(devices,
++				   ARRAY_SIZE(devices));
++	early_platform_driver_register_all(DEVNAME);
++	early_platform_driver_probe(DEVNAME, 1, 0);
++	return 0;
++}
+diff --git a/include/linux/clk-provider.h b/include/linux/clk-provider.h
+index d936409..d4a41b5 100644
+--- a/include/linux/clk-provider.h
++++ b/include/linux/clk-provider.h
+@@ -635,6 +635,18 @@ static inline void clk_writel(u32 val, u32 __iomem *reg)
+ 	iowrite32be(val, reg);
+ }
+ 
++#elif IS_ENABLED(CONFIG_H8300)
++
++static inline u32 clk_readl(u32 __iomem *reg)
++{
++	return readb(reg);
++}
++
++static inline void clk_writel(u32 val, u32 __iomem *reg)
++{
++	writeb(val, reg);
++}
++
+ #else	/* platform dependent I/O accessors */
+ 
+ static inline u32 clk_readl(u32 __iomem *reg)
 -- 
 2.1.4
