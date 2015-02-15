@@ -1,60 +1,48 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v3 01/15] h8300: Assembly headers.
-Date: Sun, 15 Feb 2015 10:11:58 +0100
-Message-ID: <CAMuHMdVyquFQJAiSqyP7iuP+7gxfNOgGv6OjT3b4B2d6TJfJPw@mail.gmail.com>
+From: Paul Bolle <pebolle@tiscali.nl>
+Subject: Re: [PATCH v3 05/15] h8300: Process and signal
+Date: Sun, 15 Feb 2015 11:33:25 +0100
+Message-ID: <1423996405.9418.62.camel@x220>
 References: <1423986573-2329-1-git-send-email-ysato@users.sourceforge.jp>
-	<1423986573-2329-2-git-send-email-ysato@users.sourceforge.jp>
+	 <1423986573-2329-6-git-send-email-ysato@users.sourceforge.jp>
+	 <871tlrr3um.wl-ysato@users.sourceforge.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f175.google.com ([209.85.214.175]:64508 "EHLO
-	mail-ob0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753693AbbBOJL7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Feb 2015 04:11:59 -0500
-In-Reply-To: <1423986573-2329-2-git-send-email-ysato@users.sourceforge.jp>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <871tlrr3um.wl-ysato@users.sourceforge.jp>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi Sato-san,
-
-On Sun, Feb 15, 2015 at 8:49 AM, Yoshinori Sato
-<ysato@users.sourceforge.jp> wrote:
+On Sun, 2015-02-15 at 17:11 +0900, Yoshinori Sato wrote:
+> Sorry. I send too old files.
+> This patch is correct.
+> 
+> Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
+> ---
+>  arch/h8300/kernel/process.c | 170 +++++++++++++++++++++++
+>  arch/h8300/kernel/ptrace.c  | 203 +++++++++++++++++++++++++++
+>  arch/h8300/kernel/signal.c  | 326 ++++++++++++++++++++++++++++++++++++++++++++
+>  3 files changed, 699 insertions(+)
+>  create mode 100644 arch/h8300/kernel/process.c
+>  create mode 100644 arch/h8300/kernel/ptrace.c
+>  create mode 100644 arch/h8300/kernel/signal.c
+> 
+>[...]
+> diff --git a/arch/h8300/kernel/signal.c b/arch/h8300/kernel/signal.c
+> new file mode 100644
+> index 0000000..1222783
 > --- /dev/null
-> +++ b/arch/h8300/include/asm/io.h
-> @@ -0,0 +1,372 @@
-> +#ifndef _H8300_IO_H
-> +#define _H8300_IO_H
-> +
-> +#ifdef __KERNEL__
-> +
-> +#include <linux/types.h>
-> +
-> +/*
-> + * These are for ISA/PCI shared memory _only_ and should never be used
-> + * on any other type of memory, including Zorro memory. They are meant to
-> + * access the bus in the bus byte order which is little-endian!.
-> + *
-> + * readX/writeX() are used to access memory mapped devices. On some
-> + * architectures the memory mapped IO stuff needs to be accessed
-> + * differently. On the m68k architecture, we just read/write the
-> + * memory location directly.
-> + */
-> +/* ++roman: The assignments to temp. vars avoid that gcc sometimes generates
-> + * two accesses to memory, which may be undesirable for some devices.
-> + */
+> +++ b/arch/h8300/kernel/signal.c
+> @@ -0,1 +1,326 @@
 
-While some of the above applies to h8300, I think you should remove
-the parts that don't apply.
+That line should read
+    @@ -0,0 +1,326 @@
 
-Gr{oetje,eeting}s,
+shouldn't it? At least, currently that line makes "git am" here barf
+with
+    fatal: new file arch/h8300/kernel/signal.c depends on old contents
 
-                        Geert
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Paul Bolle
