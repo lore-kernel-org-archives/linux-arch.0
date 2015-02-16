@@ -1,57 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f175.google.com ([209.85.212.175]:36344 "EHLO
-	mail-wi0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756247AbbBPPtV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Feb 2015 10:49:21 -0500
+Received: from mail.kapsi.fi ([217.30.184.167]:58850 "EHLO mail.kapsi.fi"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752830AbbBPXIP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 16 Feb 2015 18:08:15 -0500
+From: Mikko Rapeli <mikko.rapeli@iki.fi>
+Subject: [PATCH 45/45] include/uapi/asm-generic/ucontext.h: include signal.h and sigcontext.h
+Date: Tue, 17 Feb 2015 00:05:48 +0100
+Message-ID: <1424127948-22484-46-git-send-email-mikko.rapeli@iki.fi>
+In-Reply-To: <1424127948-22484-1-git-send-email-mikko.rapeli@iki.fi>
+References: <1424127948-22484-1-git-send-email-mikko.rapeli@iki.fi>
 MIME-Version: 1.0
-In-Reply-To: <20150215231251.GL8656@n2100.arm.linux.org.uk>
-References: <1423763164-5606-1-git-send-email-mcoquelin.stm32@gmail.com>
- <1423763164-5606-6-git-send-email-mcoquelin.stm32@gmail.com>
- <CAL_Jsq+Sk0C-1UHCKE18fEVwBbV=quV9mrJSKTO_UPXWcaYfCw@mail.gmail.com> <20150215231251.GL8656@n2100.arm.linux.org.uk>
-From: Rob Herring <robherring2@gmail.com>
-Date: Mon, 16 Feb 2015 09:48:58 -0600
-Message-ID: <CAL_JsqL=A+O+J_X4aeJWeWMNg5StMJM9oosqv0Q0BZH5t=aPHQ@mail.gmail.com>
-Subject: Re: [PATCH 05/14] ARM: call reset_controller_of_init from default
- time_init handler
 Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Maxime Coquelin <mcoquelin.stm32@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Rob Herring <robh+dt@kernel.org>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Philipp Zabel <p.zabel@pengutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
-Message-ID: <20150216154858.Ptc-daEyOyF8bHzWINt_ooLeQ5DR_DBOJHaao38brs4@z>
+To: linux-kernel@vger.kernel.org
+Cc: Mikko Rapeli <mikko.rapeli@iki.fi>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20150216230548.Y4VQOp6Yr1b6POd7Geqh_rfXs3DvHuz_CVguBgvTfCc@z>
 
-On Sun, Feb 15, 2015 at 5:12 PM, Russell King - ARM Linux
-<linux@arm.linux.org.uk> wrote:
-> On Sun, Feb 15, 2015 at 04:17:31PM -0600, Rob Herring wrote:
->> On Thu, Feb 12, 2015 at 11:45 AM, Maxime Coquelin
->> <mcoquelin.stm32@gmail.com> wrote:
->> > Some DT ARM platforms need the reset controllers to be initialized before
->> > the timers.
->> > This is the case of the stm32 and sunxi platforms.
->>
->> I would say this is the exception, not the rule and therefore should
->> be handled in a machine desc function. Or it could be part of your
->> timer setup. Or is the bootloader's problem (like arch timer setup).
->>
->> We just want to limit how much this mechanism gets used.
->
-> Can you clarify please - what is "this mechanism"?  Placing explicit
-> calls at this location, or the whole OF_DECLARE_* stuff?
+Fixes userspace compiler errors:
 
-Well, it is both really, but I guess OF_DECLARE_ linker sections are
-just an implementation detail of scattering various explicit init
-calls. My concern is we'll end up with another initcall like mechanism
-and the ordering problems associated with them. For example, what if
-another platform needs clocks initialized before the reset controller?
-I could see wanting to add gpio, pinctrl, syscon, etc. Another example
-is the Beagleboard Cape folks want to read an I2C EEPROM early to
-apply overlays before drivers probe. Where do we draw the line?
+error: unknown type name ‘stack_t’
+error: field ‘uc_mcontext’ has incomplete type
+struct sigcontext uc_mcontext;
+error: unknown type name ‘sigset_t’
 
-> Sebastian suggested using the OF_DECLARE_* stuff for the Dove PMU -
-> so maybe you have a comment on that too?
+Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
+---
+ include/uapi/asm-generic/ucontext.h | 3 +++
+ 1 file changed, 3 insertions(+)
 
-I have the same position that it is the exception, not the rule, so
-use the machine descriptor. I'm willing to be convinced otherwise, but
-I think these cases need to be questioned.
+diff --git a/include/uapi/asm-generic/ucontext.h b/include/uapi/asm-generic/ucontext.h
+index ad77343..31ece341 100644
+--- a/include/uapi/asm-generic/ucontext.h
++++ b/include/uapi/asm-generic/ucontext.h
+@@ -1,6 +1,9 @@
+ #ifndef __ASM_GENERIC_UCONTEXT_H
+ #define __ASM_GENERIC_UCONTEXT_H
+ 
++#include <asm-generic/signal.h>
++#include <asm/sigcontext.h>
++
+ struct ucontext {
+ 	unsigned long	  uc_flags;
+ 	struct ucontext  *uc_link;
+-- 
+2.1.4
 
-Rob
