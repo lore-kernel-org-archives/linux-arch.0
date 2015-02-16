@@ -1,86 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f47.google.com ([74.125.82.47]:43966 "EHLO
-	mail-wg0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752517AbbBPMVD convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Feb 2015 07:21:03 -0500
+Received: from mail-we0-f179.google.com ([74.125.82.179]:45273 "EHLO
+	mail-we0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932296AbbBPMZ0 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Feb 2015 07:25:26 -0500
 MIME-Version: 1.0
-In-Reply-To: <54E12F39.6030509@suse.de>
+In-Reply-To: <54E132D6.6010608@suse.de>
 References: <1423763164-5606-1-git-send-email-mcoquelin.stm32@gmail.com>
-	<1423763164-5606-4-git-send-email-mcoquelin.stm32@gmail.com>
-	<54E12F39.6030509@suse.de>
-Date: Mon, 16 Feb 2015 13:21:01 +0100
-Message-ID: <CALszF6DySx-j8hrXoSRC7uo7BcFQXgOu0SJD1q3NHKoD-NxhKQ@mail.gmail.com>
-Subject: Re: [PATCH 03/14] clocksource: Add ARM System timer driver
+	<1423763164-5606-7-git-send-email-mcoquelin.stm32@gmail.com>
+	<54E132D6.6010608@suse.de>
+Date: Mon, 16 Feb 2015 13:25:24 +0100
+Message-ID: <CALszF6Cc8CZk-tBQzB-YSsPNDhufoewBzEFz+uRHXqCsQG4BkQ@mail.gmail.com>
+Subject: Re: [PATCH 06/14] drivers: reset: Add STM32 reset driver
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>
-Cc: Rob Herring <robh+dt@kernel.org>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Philipp Zabel <p.zabel@pengutronix.de>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
-Message-ID: <20150216122101.XolkRuGwDmt6gklaH7cWjOuZ-wkulGZ6ZFIWw_1lgpc@z>
+Cc: Jonathan Corbet <corbet@lwn.net>, Rob Herring <robh+dt@kernel.org>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Philipp Zabel <p.zabel@pengutronix.de>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
+Message-ID: <20150216122524.tlFTQ7OWa3RuTRfBXVjRj9qdcflFrMww-Thb69zVSp4@z>
 
-2015-02-16 0:43 GMT+01:00 Andreas Färber <afaerber@suse.de>:
+2015-02-16 0:59 GMT+01:00 Andreas Färber <afaerber@suse.de>:
 > Am 12.02.2015 um 18:45 schrieb Maxime Coquelin:
->> This patch adds clocksource support for ARMv7-M's System timer,
->> also known as SysTick.
+>> The STM32 MCUs family IP can be reset by accessing some shared registers.
+>>
+>> The specificity is that some reset lines are used by the timers.
+>> At timer initialization time, the timer has to be reset, that's why
+>> we cannot use a regular driver.
 >>
 >> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 >> ---
->>  .../devicetree/bindings/arm/system_timer.txt       | 15 +++++
->>  drivers/clocksource/Kconfig                        |  7 ++
->>  drivers/clocksource/Makefile                       |  1 +
->>  drivers/clocksource/arm_system_timer.c             | 74 ++++++++++++++++++++++
->>  4 files changed, 97 insertions(+)
->>  create mode 100644 Documentation/devicetree/bindings/arm/system_timer.txt
->>  create mode 100644 drivers/clocksource/arm_system_timer.c
+>>  .../devicetree/bindings/reset/st,stm32-reset.txt   |  19 ++++
+>>  drivers/reset/Makefile                             |   1 +
+>>  drivers/reset/reset-stm32.c                        | 124 +++++++++++++++++++++
+>>  3 files changed, 144 insertions(+)
+>>  create mode 100644 Documentation/devicetree/bindings/reset/st,stm32-reset.txt
+>>  create mode 100644 drivers/reset/reset-stm32.c
 >>
->> diff --git a/Documentation/devicetree/bindings/arm/system_timer.txt b/Documentation/devicetree/bindings/arm/system_timer.txt
+>> diff --git a/Documentation/devicetree/bindings/reset/st,stm32-reset.txt b/Documentation/devicetree/bindings/reset/st,stm32-reset.txt
 >> new file mode 100644
->> index 0000000..35268b7
+>> index 0000000..add1298
 >> --- /dev/null
->> +++ b/Documentation/devicetree/bindings/arm/system_timer.txt
->> @@ -0,0 +1,15 @@
->> +* ARM System Timer
+>> +++ b/Documentation/devicetree/bindings/reset/st,stm32-reset.txt
+>> @@ -0,0 +1,19 @@
+>> +STMicroelectronics STM32 Peripheral Reset Controller
+>> +====================================================
 >> +
->> +ARMv7-M includes a system timer, known as SysTick. Current driver only
->> +implements the clocksource feature.
+>> +Please also refer to reset.txt in this directory for common reset
+>> +controller binding usage.
 >> +
 >> +Required properties:
->> +- compatible : Should be "arm,armv7m-systick"
->> +- reg             : The address range of the timer
->> +- clocks     : The input clock of the timer
+>> +- compatible: Should be "st,stm32-reset"
+>> +- reg: should be register base and length as documented in the
+>> +  datasheet
+>> +- #reset-cells: 1, see below
 >> +
->> +systick: system-timer {
->> +     compatible = "arm,armv7m-systick";
->> +     reg = <0xe000e010 0x10>;
->> +     clocks = <&clk_systick>;
+>> +example:
+>> +
+>> +reset_ahb1: reset@40023810 {
+>> +     #reset-cells = <1>;
+>> +     compatible = "st,stm32-reset";
+>> +     reg = <0x40023810 0x4>;
 >> +};
+> [snip]
 >
-> Binding documentation is supposed to go into its own patch:
-> https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/tree/Documentation/devicetree/bindings/submitting-patches.txt
-Ok, will change this in the v2.
-
+> RM0090 has two different chapters on the RCC IP:
+> * Reset and clock control for STM32F42xxx and STM32F43xxx (RCC)
+> * Reset and clock control for STM32F405xx/07xx and STM32F415xx/17xx(RCC)
 >
-...
->
-> I've used a SysTick based implementation on my stm32 branch myself, but
-> looking at efm32 I got the impression that it would be better to use one
-> of the 32-bit TIM2/TIM5 as clocksource and the other as clockevents?
->
-> Still this implementation will be handy to have, also for other targets.
+> I therefore feel it is wrong to use "stm32-" here; instead I used
+> "st,stm32f429-rcc" (also relates to 12/14 discussion). This may apply to
+> other identifiers, too.
 
-My view is that we should use as much generic parts of the Cortex-M as possible.
-Moreover, doing, that, we can keep one more IP instance under reset
-with associated clock gated,
-and so maybe reduce the power consumption a little (I haven't done any
-measurements)
+In this first version, the reset driver was really generic, and was
+compatible with the STM32 family.
+The only difference would have been in the device trees.
 
-Do you see a case where it could be better to use the STM32 timers?
-
+Now, from the discussion with Philipp, I will reconsider the
+implementation to add some named constants,
+so maybe I will reconsider the compatible, it will depend on how I
+will implement it.
 
 Thanks,
 Maxime
+
 >
 > Regards,
 > Andreas
