@@ -1,535 +1,176 @@
-From: Luis Henriques <luis.henriques@canonical.com>
-Subject: Re: [PATCH 3.18 04/57] vm: add VM_FAULT_SIGSEGV handling support
-Date: Mon, 16 Feb 2015 09:50:07 +0000
-Message-ID: <20150216095007.GA2129@charon>
-References: <20150203231211.486950145@linuxfoundation.org>
- <20150203231212.223123220@linuxfoundation.org>
- <CALYGNiPVvgxMFyDTSFv4mUhkq-5Q+Gp2UEY5W9G0gEc8YajipQ@mail.gmail.com>
+From: Maxime Coquelin <mcoquelin.stm32-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH 00/14] Add support to STMicroelectronics STM32 family
+Date: Mon, 16 Feb 2015 12:52:30 +0100
+Message-ID: <CALszF6By=YmzUTV29_6-OmqP-A4N=4tayS3vKQ=5+krNd_36eg@mail.gmail.com>
+References: <1423763164-5606-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<54E0B7C4.7050900@suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from youngberry.canonical.com ([91.189.89.112]:46825 "EHLO
-	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932255AbbBPJt1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Feb 2015 04:49:27 -0500
-Content-Disposition: inline
-In-Reply-To: <CALYGNiPVvgxMFyDTSFv4mUhkq-5Q+Gp2UEY5W9G0gEc8YajipQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Konstantin Khlebnikov <koct9i@gmail.com>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Stable <stable@vger.kernel.org>, Jan Engelhardt <jengelh@inai.de>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <54E0B7C4.7050900-l3A5Bk7waGM@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber-l3A5Bk7waGM@public.gmane.org>
+Cc: Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Pawel Moll <pawel.moll-5wv7dgnIgG8@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Ian Campbell <ijc+devicetree-KcIKpvwj1kUDXYZnReoRVg@public.gmane.org>, Kumar Gala <galak-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, Philipp Zabel <p.zabel-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, Jiri Slaby <jslaby-AlSwsSmVLrQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Mauro Carvalho Chehab <mchehab-JPH+aEBZ4P+UEJcrhfAQsw@public.gmane.org>, Joe Perches <joe-6d6DIl74uiNBDgjK7y7TUQ@public.gmane.org>, Antti Palosaari <crope-X3B1VOXEql0@public.gmane.org>, Tejun Heo <tj-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Nikolay Borisov <Nikolay.Borisov-5wv7dgnIgG8@public.gmane.org>, Rusty Russell <rusty-8n+1lVoiYb80n/F98K4Iww@public.gmane.org>, Kees
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 10, 2015 at 12:22:41PM +0400, Konstantin Khlebnikov wrote:
-> I've found regression:
->=20
-> [  257.139907] =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D
-> [  257.139909] [ BUG: lock held when returning to user space! ]
-> [  257.139912] 3.18.6-debug+ #161 Tainted: G     U
-> [  257.139914] ------------------------------------------------
-> [  257.139916] python/22843 is leaving the kernel with locks still he=
-ld!
-> [  257.139918] 1 lock held by python/22843:
-> [  257.139920]  #0:  (&mm->mmap_sem){++++++}, at: [<ffffffff8104e4c2>=
-]
-> __do_page_fault+0x162/0x570
->=20
-> upstream commit 7fb08eca45270d0ae86e1ad9d39c40b7a55d0190 must be back=
-ported too.
+Hi Andreas,
+
+2015-02-15 16:14 GMT+01:00 Andreas F=C3=A4rber <afaerber-l3A5Bk7waGM@public.gmane.org>:
+> Hi Maxime,
 >
+> Am 12.02.2015 um 18:45 schrieb Maxime Coquelin:
+>> This patchset adds basic support for STMicroelectronics STM32 series=
+ MCUs.
+>>
+>> STM32 MCUs are Cortex-M CPU, used in various applications (consumer
+>> electronics, industrial applications, hobbyists...).
+>> Datasheets, user and programming manuals are publicly available on
+>> STMicroelectronics website.
+>>
+>> With this series applied, the STM32F419 Discovery can boot succesful=
+ly.
+>>
+>> Once this series accepted, next steps will be to add DMA support, as=
+ USART,
+>> I2C and SPI IPs don't have any FIFO. Then will come the clock driver=
+, as today
+>> the bootloader has to be patched to enable the needed clocks.
+>
+> This is somewhat unfortunate, as I have been working on the same thin=
+g
+> and have demonstrated the STM32F429 Discovery Kit at ARM TechSymposiu=
+m
+> Europe in December and submitted a talk for LinuxCon Japan.
+>
+> https://github.com/afaerber/afboot-stm32
+> https://github.com/afaerber/linux/commits/stm32
 
-I guess the same regression can be found in the 3.16 kernel as it also
-includes a backport of 33692f27597f ("vm: add VM_FAULT_SIGSEGV
-handling support").  I'll queue 7fb08eca4527 ("x86: mm: move mmap_sem
-unlock from mm_fault_error() to caller") as well.
+Hmm, I wasn't aware you were also working on it.
+The good news is that we are not alone on this task :).
+I do it on my spare time, so any contribution is more than welcome.
 
-Cheers,
---
-Lu=EDs
+>
+> On a brief look, it seems you are further along in terms of code qual=
+ity
+> and documenting. Do you spot anything that's missing in your series a=
+nd
+> could be added from my branch? The clk controller maybe? Also I alrea=
+dy
+> started looking into gpio and usb drivers. Me too, I skipped DMA supp=
+ort
+> though.
 
-> On Wed, Feb 4, 2015 at 2:13 AM, Greg Kroah-Hartman
-> <gregkh@linuxfoundation.org> wrote:
-> > 3.18-stable review patch.  If anyone has any objections, please let=
- me know.
-> >
-> > ------------------
-> >
-> > From: Linus Torvalds <torvalds@linux-foundation.org>
-> >
-> > commit 33692f27597fcab536d7cbbcc8f52905133e4aa7 upstream.
-> >
-> > The core VM already knows about VM_FAULT_SIGBUS, but cannot return =
-a
-> > "you should SIGSEGV" error, because the SIGSEGV case was generally
-> > handled by the caller - usually the architecture fault handler.
-> >
-> > That results in lots of duplication - all the architecture fault
-> > handlers end up doing very similar "look up vma, check permissions,=
- do
-> > retries etc" - but it generally works.  However, there are cases wh=
-ere
-> > the VM actually wants to SIGSEGV, and applications _expect_ SIGSEGV=
+The GPIO support is already part of the pinctrl patch.
+The missing thing is the GPIO interrupt feature, but I am working on it=
 =2E
-> >
-> > In particular, when accessing the stack guard page, libsigsegv expe=
-cts a
-> > SIGSEGV.  And it usually got one, because the stack growth is handl=
-ed by
-> > that duplicated architecture fault handler.
-> >
-> > However, when the generic VM layer started propagating the error re=
-turn
-> > from the stack expansion in commit fee7e49d4514 ("mm: propagate err=
-or
-> > from stack expansion even for guard page"), that now exposed the
-> > existing VM_FAULT_SIGBUS result to user space.  And user space real=
-ly
-> > expected SIGSEGV, not SIGBUS.
-> >
-> > To fix that case, we need to add a VM_FAULT_SIGSEGV, and teach all =
-those
-> > duplicate architecture fault handlers about it.  They all already h=
-ave
-> > the code to handle SIGSEGV, so it's about just tying that new retur=
-n
-> > value to the existing code, but it's all a bit annoying.
-> >
-> > This is the mindless minimal patch to do this.  A more extensive pa=
-tch
-> > would be to try to gather up the mostly shared fault handling logic=
- into
-> > one generic helper routine, and long-term we really should do that
-> > cleanup.
-> >
-> > Just from this patch, you can generally see that most architectures=
- just
-> > copied (directly or indirectly) the old x86 way of doing things, bu=
-t in
-> > the meantime that original x86 model has been improved to hold the =
-VM
-> > semaphore for shorter times etc and to handle VM_FAULT_RETRY and ot=
-her
-> > "newer" things, so it would be a good idea to bring all those
-> > improvements to the generic case and teach other architectures abou=
-t
-> > them too.
-> >
-> > Reported-and-tested-by: Takashi Iwai <tiwai@suse.de>
-> > Tested-by: Jan Engelhardt <jengelh@inai.de>
-> > Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com> # "s390 still =
-compiles and boots"
-> > Cc: linux-arch@vger.kernel.org
-> > Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
-> > Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-> >
-> > ---
-> >  arch/alpha/mm/fault.c                        |    2 ++
-> >  arch/arc/mm/fault.c                          |    2 ++
-> >  arch/avr32/mm/fault.c                        |    2 ++
-> >  arch/cris/mm/fault.c                         |    2 ++
-> >  arch/frv/mm/fault.c                          |    2 ++
-> >  arch/ia64/mm/fault.c                         |    2 ++
-> >  arch/m32r/mm/fault.c                         |    2 ++
-> >  arch/m68k/mm/fault.c                         |    2 ++
-> >  arch/metag/mm/fault.c                        |    2 ++
-> >  arch/microblaze/mm/fault.c                   |    2 ++
-> >  arch/mips/mm/fault.c                         |    2 ++
-> >  arch/mn10300/mm/fault.c                      |    2 ++
-> >  arch/openrisc/mm/fault.c                     |    2 ++
-> >  arch/parisc/mm/fault.c                       |    2 ++
-> >  arch/powerpc/mm/copro_fault.c                |    2 +-
-> >  arch/powerpc/mm/fault.c                      |    2 ++
-> >  arch/s390/mm/fault.c                         |    6 ++++++
-> >  arch/score/mm/fault.c                        |    2 ++
-> >  arch/sh/mm/fault.c                           |    2 ++
-> >  arch/sparc/mm/fault_32.c                     |    2 ++
-> >  arch/sparc/mm/fault_64.c                     |    2 ++
-> >  arch/tile/mm/fault.c                         |    2 ++
-> >  arch/um/kernel/trap.c                        |    2 ++
-> >  arch/x86/mm/fault.c                          |    2 ++
-> >  arch/xtensa/mm/fault.c                       |    2 ++
-> >  drivers/staging/lustre/lustre/llite/vvp_io.c |    2 +-
-> >  include/linux/mm.h                           |    6 ++++--
-> >  mm/gup.c                                     |    4 ++--
-> >  mm/ksm.c                                     |    2 +-
-> >  29 files changed, 61 insertions(+), 7 deletions(-)
-> >
-> > --- a/arch/alpha/mm/fault.c
-> > +++ b/arch/alpha/mm/fault.c
-> > @@ -156,6 +156,8 @@ retry:
-> >         if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto do_sigbus;
-> >                 BUG();
-> > --- a/arch/arc/mm/fault.c
-> > +++ b/arch/arc/mm/fault.c
-> > @@ -161,6 +161,8 @@ good_area:
-> >
-> >         if (fault & VM_FAULT_OOM)
-> >                 goto out_of_memory;
-> > +       else if (fault & VM_FAULT_SIGSEV)
-> > +               goto bad_area;
-> >         else if (fault & VM_FAULT_SIGBUS)
-> >                 goto do_sigbus;
-> >
-> > --- a/arch/avr32/mm/fault.c
-> > +++ b/arch/avr32/mm/fault.c
-> > @@ -142,6 +142,8 @@ good_area:
-> >         if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto do_sigbus;
-> >                 BUG();
-> > --- a/arch/cris/mm/fault.c
-> > +++ b/arch/cris/mm/fault.c
-> > @@ -176,6 +176,8 @@ retry:
-> >         if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto do_sigbus;
-> >                 BUG();
-> > --- a/arch/frv/mm/fault.c
-> > +++ b/arch/frv/mm/fault.c
-> > @@ -168,6 +168,8 @@ asmlinkage void do_page_fault(int datamm
-> >         if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto do_sigbus;
-> >                 BUG();
-> > --- a/arch/ia64/mm/fault.c
-> > +++ b/arch/ia64/mm/fault.c
-> > @@ -172,6 +172,8 @@ retry:
-> >                  */
-> >                 if (fault & VM_FAULT_OOM) {
-> >                         goto out_of_memory;
-> > +               } else if (fault & VM_FAULT_SIGSEGV) {
-> > +                       goto bad_area;
-> >                 } else if (fault & VM_FAULT_SIGBUS) {
-> >                         signal =3D SIGBUS;
-> >                         goto bad_area;
-> > --- a/arch/m32r/mm/fault.c
-> > +++ b/arch/m32r/mm/fault.c
-> > @@ -200,6 +200,8 @@ good_area:
-> >         if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto do_sigbus;
-> >                 BUG();
-> > --- a/arch/m68k/mm/fault.c
-> > +++ b/arch/m68k/mm/fault.c
-> > @@ -145,6 +145,8 @@ good_area:
-> >         if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto map_err;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto bus_err;
-> >                 BUG();
-> > --- a/arch/metag/mm/fault.c
-> > +++ b/arch/metag/mm/fault.c
-> > @@ -141,6 +141,8 @@ good_area:
-> >         if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto do_sigbus;
-> >                 BUG();
-> > --- a/arch/microblaze/mm/fault.c
-> > +++ b/arch/microblaze/mm/fault.c
-> > @@ -224,6 +224,8 @@ good_area:
-> >         if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto do_sigbus;
-> >                 BUG();
-> > --- a/arch/mips/mm/fault.c
-> > +++ b/arch/mips/mm/fault.c
-> > @@ -158,6 +158,8 @@ good_area:
-> >         if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto do_sigbus;
-> >                 BUG();
-> > --- a/arch/mn10300/mm/fault.c
-> > +++ b/arch/mn10300/mm/fault.c
-> > @@ -262,6 +262,8 @@ good_area:
-> >         if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto do_sigbus;
-> >                 BUG();
-> > --- a/arch/openrisc/mm/fault.c
-> > +++ b/arch/openrisc/mm/fault.c
-> > @@ -171,6 +171,8 @@ good_area:
-> >         if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto do_sigbus;
-> >                 BUG();
-> > --- a/arch/parisc/mm/fault.c
-> > +++ b/arch/parisc/mm/fault.c
-> > @@ -256,6 +256,8 @@ good_area:
-> >                  */
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto bad_area;
-> >                 BUG();
-> > --- a/arch/powerpc/mm/copro_fault.c
-> > +++ b/arch/powerpc/mm/copro_fault.c
-> > @@ -76,7 +76,7 @@ int copro_handle_mm_fault(struct mm_stru
-> >                 if (*flt & VM_FAULT_OOM) {
-> >                         ret =3D -ENOMEM;
-> >                         goto out_unlock;
-> > -               } else if (*flt & VM_FAULT_SIGBUS) {
-> > +               } else if (*flt & (VM_FAULT_SIGBUS | VM_FAULT_SIGSE=
-GV)) {
-> >                         ret =3D -EFAULT;
-> >                         goto out_unlock;
-> >                 }
-> > --- a/arch/powerpc/mm/fault.c
-> > +++ b/arch/powerpc/mm/fault.c
-> > @@ -444,6 +444,8 @@ good_area:
-> >          */
-> >         fault =3D handle_mm_fault(mm, vma, address, flags);
-> >         if (unlikely(fault & (VM_FAULT_RETRY|VM_FAULT_ERROR))) {
-> > +               if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 rc =3D mm_fault_error(regs, address, fault);
-> >                 if (rc >=3D MM_FAULT_RETURN)
-> >                         goto bail;
-> > --- a/arch/s390/mm/fault.c
-> > +++ b/arch/s390/mm/fault.c
-> > @@ -374,6 +374,12 @@ static noinline void do_fault_error(stru
-> >                                 do_no_context(regs);
-> >                         else
-> >                                 pagefault_out_of_memory();
-> > +               } else if (fault & VM_FAULT_SIGSEGV) {
-> > +                       /* Kernel mode? Handle exceptions or die */
-> > +                       if (!user_mode(regs))
-> > +                               do_no_context(regs);
-> > +                       else
-> > +                               do_sigsegv(regs, SEGV_MAPERR);
-> >                 } else if (fault & VM_FAULT_SIGBUS) {
-> >                         /* Kernel mode? Handle exceptions or die */
-> >                         if (!user_mode(regs))
-> > --- a/arch/score/mm/fault.c
-> > +++ b/arch/score/mm/fault.c
-> > @@ -114,6 +114,8 @@ good_area:
-> >         if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto do_sigbus;
-> >                 BUG();
-> > --- a/arch/sh/mm/fault.c
-> > +++ b/arch/sh/mm/fault.c
-> > @@ -353,6 +353,8 @@ mm_fault_error(struct pt_regs *regs, uns
-> >         } else {
-> >                 if (fault & VM_FAULT_SIGBUS)
-> >                         do_sigbus(regs, error_code, address);
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       bad_area(regs, error_code, address);
-> >                 else
-> >                         BUG();
-> >         }
-> > --- a/arch/sparc/mm/fault_32.c
-> > +++ b/arch/sparc/mm/fault_32.c
-> > @@ -249,6 +249,8 @@ good_area:
-> >         if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto do_sigbus;
-> >                 BUG();
-> > --- a/arch/sparc/mm/fault_64.c
-> > +++ b/arch/sparc/mm/fault_64.c
-> > @@ -446,6 +446,8 @@ good_area:
-> >         if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto do_sigbus;
-> >                 BUG();
-> > --- a/arch/tile/mm/fault.c
-> > +++ b/arch/tile/mm/fault.c
-> > @@ -444,6 +444,8 @@ good_area:
-> >         if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto do_sigbus;
-> >                 BUG();
-> > --- a/arch/um/kernel/trap.c
-> > +++ b/arch/um/kernel/trap.c
-> > @@ -80,6 +80,8 @@ good_area:
-> >                 if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                         if (fault & VM_FAULT_OOM) {
-> >                                 goto out_of_memory;
-> > +                       } else if (fault & VM_FAULT_SIGSEGV) {
-> > +                               goto out;
-> >                         } else if (fault & VM_FAULT_SIGBUS) {
-> >                                 err =3D -EACCES;
-> >                                 goto out;
-> > --- a/arch/x86/mm/fault.c
-> > +++ b/arch/x86/mm/fault.c
-> > @@ -905,6 +905,8 @@ mm_fault_error(struct pt_regs *regs, uns
-> >                 if (fault & (VM_FAULT_SIGBUS|VM_FAULT_HWPOISON|
-> >                              VM_FAULT_HWPOISON_LARGE))
-> >                         do_sigbus(regs, error_code, address, fault)=
-;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       bad_area_nosemaphore(regs, error_code, addr=
-ess);
-> >                 else
-> >                         BUG();
-> >         }
-> > --- a/arch/xtensa/mm/fault.c
-> > +++ b/arch/xtensa/mm/fault.c
-> > @@ -117,6 +117,8 @@ good_area:
-> >         if (unlikely(fault & VM_FAULT_ERROR)) {
-> >                 if (fault & VM_FAULT_OOM)
-> >                         goto out_of_memory;
-> > +               else if (fault & VM_FAULT_SIGSEGV)
-> > +                       goto bad_area;
-> >                 else if (fault & VM_FAULT_SIGBUS)
-> >                         goto do_sigbus;
-> >                 BUG();
-> > --- a/drivers/staging/lustre/lustre/llite/vvp_io.c
-> > +++ b/drivers/staging/lustre/lustre/llite/vvp_io.c
-> > @@ -632,7 +632,7 @@ static int vvp_io_kernel_fault(struct vv
-> >                 return 0;
-> >         }
-> >
-> > -       if (cfio->fault.ft_flags & VM_FAULT_SIGBUS) {
-> > +       if (cfio->fault.ft_flags & (VM_FAULT_SIGBUS | VM_FAULT_SIGS=
-EGV)) {
-> >                 CDEBUG(D_PAGE, "got addr %p - SIGBUS\n", vmf->virtu=
-al_address);
-> >                 return -EFAULT;
-> >         }
-> > --- a/include/linux/mm.h
-> > +++ b/include/linux/mm.h
-> > @@ -1054,6 +1054,7 @@ static inline int page_mapped(struct pag
-> >  #define VM_FAULT_WRITE 0x0008  /* Special case for get_user_pages =
-*/
-> >  #define VM_FAULT_HWPOISON 0x0010       /* Hit poisoned small page =
-*/
-> >  #define VM_FAULT_HWPOISON_LARGE 0x0020  /* Hit poisoned large page=
-=2E Index encoded in upper bits */
-> > +#define VM_FAULT_SIGSEGV 0x0040
-> >
-> >  #define VM_FAULT_NOPAGE        0x0100  /* ->fault installed the pt=
-e, not return page */
-> >  #define VM_FAULT_LOCKED        0x0200  /* ->fault locked the retur=
-ned page */
-> > @@ -1062,8 +1063,9 @@ static inline int page_mapped(struct pag
-> >
-> >  #define VM_FAULT_HWPOISON_LARGE_MASK 0xf000 /* encodes hpage index=
- for large hwpoison */
-> >
-> > -#define VM_FAULT_ERROR (VM_FAULT_OOM | VM_FAULT_SIGBUS | VM_FAULT_=
-HWPOISON | \
-> > -                        VM_FAULT_FALLBACK | VM_FAULT_HWPOISON_LARG=
-E)
-> > +#define VM_FAULT_ERROR (VM_FAULT_OOM | VM_FAULT_SIGBUS | VM_FAULT_=
-SIGSEGV | \
-> > +                        VM_FAULT_HWPOISON | VM_FAULT_HWPOISON_LARG=
-E | \
-> > +                        VM_FAULT_FALLBACK)
-> >
-> >  /* Encode hstate index for a hwpoisoned large page */
-> >  #define VM_FAULT_SET_HINDEX(x) ((x) << 12)
-> > --- a/mm/gup.c
-> > +++ b/mm/gup.c
-> > @@ -296,7 +296,7 @@ static int faultin_page(struct task_stru
-> >                         return -ENOMEM;
-> >                 if (ret & (VM_FAULT_HWPOISON | VM_FAULT_HWPOISON_LA=
-RGE))
-> >                         return *flags & FOLL_HWPOISON ? -EHWPOISON =
-: -EFAULT;
-> > -               if (ret & VM_FAULT_SIGBUS)
-> > +               if (ret & (VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV))
-> >                         return -EFAULT;
-> >                 BUG();
-> >         }
-> > @@ -571,7 +571,7 @@ int fixup_user_fault(struct task_struct
-> >                         return -ENOMEM;
-> >                 if (ret & (VM_FAULT_HWPOISON | VM_FAULT_HWPOISON_LA=
-RGE))
-> >                         return -EHWPOISON;
-> > -               if (ret & VM_FAULT_SIGBUS)
-> > +               if (ret & (VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV))
-> >                         return -EFAULT;
-> >                 BUG();
-> >         }
-> > --- a/mm/ksm.c
-> > +++ b/mm/ksm.c
-> > @@ -376,7 +376,7 @@ static int break_ksm(struct vm_area_stru
-> >                 else
-> >                         ret =3D VM_FAULT_WRITE;
-> >                 put_page(page);
-> > -       } while (!(ret & (VM_FAULT_WRITE | VM_FAULT_SIGBUS | VM_FAU=
-LT_OOM)));
-> > +       } while (!(ret & (VM_FAULT_WRITE | VM_FAULT_SIGBUS | VM_FAU=
-LT_SIGSEGV | VM_FAULT_OOM)));
-> >         /*
-> >          * We must loop because handle_mm_fault() may back out if t=
-here's
-> >          * any difficulty e.g. if pte accessed bit gets updated con=
-currently.
-> >
-> >
-> > --
-> > To unsubscribe from this list: send the line "unsubscribe linux-ker=
-nel" in
-> > the body of a message to majordomo@vger.kernel.org
-> > More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> > Please read the FAQ at  http://www.tux.org/lkml/
+
+Maybe you could focus on the clock support, as I see its support is
+well advanced in you tree?
+I see one bug in it, the timer clocks should be 90MHz, but your patch
+indicates 45MHz.
+
+I see you have started the LCD controller driver, maybe that is
+another task you could handle?
+
+Regarding USB, have you made it to work?
+
+Kind regards,
+Maxime
+
+>
+> Regards,
+> Andreas
+>
+>>
+>> Maxime Coquelin (14):
+>>   scripts: link-vmlinux: Don't pass page offset to kallsyms if XIP
+>>     Kernel
+>>   ARM: ARMv7M: Enlarge vector table to 256 entries
+>>   clocksource: Add ARM System timer driver
+>>   reset: Add reset_controller_of_init() function
+>>   ARM: call reset_controller_of_init from default time_init handler
+>>   drivers: reset: Add STM32 reset driver
+>>   clockevent: Add STM32 Timer driver
+>>   pinctrl: Add pinctrl driver for STM32 MCUs
+>>   serial: stm32-usart: Add STM32 USART Driver
+>>   ARM: Add STM32 family machine
+>>   ARM: dts: Add ARM System timer as clockevent in armv7m
+>>   ARM: dts: Introduce STM32F429 MCU
+>>   ARM: configs: Add STM32 defconfig
+>>   MAINTAINERS: Add entry for STM32 MCUs
+>>
+>>  Documentation/arm/stm32/overview.txt               |  32 +
+>>  Documentation/arm/stm32/stm32f429-overview.txt     |  22 +
+>>  .../devicetree/bindings/arm/system_timer.txt       |  15 +
+>>  .../devicetree/bindings/pinctrl/pinctrl-stm32.txt  |  99 +++
+>>  .../devicetree/bindings/reset/st,stm32-reset.txt   |  19 +
+>>  .../devicetree/bindings/serial/st,stm32-usart.txt  |  18 +
+>>  .../devicetree/bindings/timer/st,stm32-timer.txt   |  19 +
+>>  MAINTAINERS                                        |   7 +
+>>  arch/arm/Kconfig                                   |  22 +
+>>  arch/arm/Makefile                                  |   1 +
+>>  arch/arm/boot/dts/Makefile                         |   1 +
+>>  arch/arm/boot/dts/armv7-m.dtsi                     |   7 +
+>>  arch/arm/boot/dts/stm32f429-disco.dts              |  41 ++
+>>  arch/arm/boot/dts/stm32f429.dtsi                   | 279 ++++++++
+>>  arch/arm/configs/stm32_defconfig                   |  72 ++
+>>  arch/arm/kernel/entry-v7m.S                        |   8 +-
+>>  arch/arm/kernel/time.c                             |   4 +
+>>  arch/arm/mach-stm32/Makefile                       |   1 +
+>>  arch/arm/mach-stm32/Makefile.boot                  |   0
+>>  arch/arm/mach-stm32/board-dt.c                     |  19 +
+>>  drivers/clocksource/Kconfig                        |  16 +
+>>  drivers/clocksource/Makefile                       |   2 +
+>>  drivers/clocksource/arm_system_timer.c             |  74 ++
+>>  drivers/clocksource/timer-stm32.c                  | 187 +++++
+>>  drivers/pinctrl/Kconfig                            |   9 +
+>>  drivers/pinctrl/Makefile                           |   1 +
+>>  drivers/pinctrl/pinctrl-stm32.c                    | 779 ++++++++++=
++++++++++++
+>>  drivers/reset/Makefile                             |   1 +
+>>  drivers/reset/core.c                               |  20 +
+>>  drivers/reset/reset-stm32.c                        | 124 ++++
+>>  drivers/tty/serial/Kconfig                         |  17 +
+>>  drivers/tty/serial/Makefile                        |   1 +
+>>  drivers/tty/serial/stm32-usart.c                   | 695 ++++++++++=
+++++++++
+>>  include/asm-generic/vmlinux.lds.h                  |   4 +-
+>>  include/dt-bindings/pinctrl/pinctrl-stm32.h        |  43 ++
+>>  include/linux/reset-controller.h                   |   6 +
+>>  include/uapi/linux/serial_core.h                   |   3 +
+>>  scripts/link-vmlinux.sh                            |   2 +-
+>>  38 files changed, 2664 insertions(+), 6 deletions(-)
+>>  create mode 100644 Documentation/arm/stm32/overview.txt
+>>  create mode 100644 Documentation/arm/stm32/stm32f429-overview.txt
+>>  create mode 100644 Documentation/devicetree/bindings/arm/system_tim=
+er.txt
+>>  create mode 100644 Documentation/devicetree/bindings/pinctrl/pinctr=
+l-stm32.txt
+>>  create mode 100644 Documentation/devicetree/bindings/reset/st,stm32=
+-reset.txt
+>>  create mode 100644 Documentation/devicetree/bindings/serial/st,stm3=
+2-usart.txt
+>>  create mode 100644 Documentation/devicetree/bindings/timer/st,stm32=
+-timer.txt
+>>  create mode 100644 arch/arm/boot/dts/stm32f429-disco.dts
+>>  create mode 100644 arch/arm/boot/dts/stm32f429.dtsi
+>>  create mode 100644 arch/arm/configs/stm32_defconfig
+>>  create mode 100644 arch/arm/mach-stm32/Makefile
+>>  create mode 100644 arch/arm/mach-stm32/Makefile.boot
+>>  create mode 100644 arch/arm/mach-stm32/board-dt.c
+>>  create mode 100644 drivers/clocksource/arm_system_timer.c
+>>  create mode 100644 drivers/clocksource/timer-stm32.c
+>>  create mode 100644 drivers/pinctrl/pinctrl-stm32.c
+>>  create mode 100644 drivers/reset/reset-stm32.c
+>>  create mode 100644 drivers/tty/serial/stm32-usart.c
+>>  create mode 100644 include/dt-bindings/pinctrl/pinctrl-stm32.h
+>>
+>
+>
 > --
-> To unsubscribe from this list: send the line "unsubscribe stable" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> SUSE Linux GmbH, Maxfeldstr. 5, 90409 N=C3=BCrnberg, Germany
+> GF: Felix Imend=C3=B6rffer, Jane Smithard, Jennifer Guild, Dilip Upma=
+nyu,
+> Graham Norton; HRB 21284 (AG N=C3=BCrnberg)
+>
