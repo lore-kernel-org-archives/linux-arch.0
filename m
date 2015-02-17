@@ -1,41 +1,72 @@
-From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Subject: Re: [PATCH 33/45] include/uapi/asm-generic/signal.h: include stdlib.h in userspace
-Date: Tue, 17 Feb 2015 10:44:48 +0100
-Message-ID: <2372547.aJh8O9JSDy@wuerfel>
-References: <1424127948-22484-1-git-send-email-mikko.rapeli@iki.fi> <1424127948-22484-34-git-send-email-mikko.rapeli@iki.fi>
+From: Paul Bolle <pebolle@tiscali.nl>
+Subject: Re: [PATCH v3 10/15] h8300: Build scripts
+Date: Tue, 17 Feb 2015 10:46:21 +0100
+Message-ID: <1424166381.7082.27.camel@x220>
+References: <1423986573-2329-1-git-send-email-ysato@users.sourceforge.jp>
+	 <1423986573-2329-11-git-send-email-ysato@users.sourceforge.jp>
+	 <1424028184.9418.99.camel@x220> <87vbj1kmvy.wl-ysato@users.sourceforge.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1424127948-22484-34-git-send-email-mikko.rapeli-X3B1VOXEql0@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Mikko Rapeli <mikko.rapeli-X3B1VOXEql0@public.gmane.org>
-Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <87vbj1kmvy.wl-ysato@users.sourceforge.jp>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 17 February 2015 00:05:36 Mikko Rapeli wrote:
-> Fixes compiler warning:
-> error: unknown type name =E2=80=98size_t=E2=80=99
->=20
-> Signed-off-by: Mikko Rapeli <mikko.rapeli-X3B1VOXEql0@public.gmane.org>
-> ---
->  include/uapi/asm-generic/signal.h | 4 ++++
->  1 file changed, 4 insertions(+)
->=20
-> diff --git a/include/uapi/asm-generic/signal.h b/include/uapi/asm-gen=
-eric/signal.h
-> index 9df61f1..8a341a2 100644
-> --- a/include/uapi/asm-generic/signal.h
-> +++ b/include/uapi/asm-generic/signal.h
-> @@ -3,6 +3,10 @@
-> =20
->  #include <linux/types.h>
-> =20
-> +#ifndef __KERNEL__
-> +#include <stdlib.h>
-> +#endif
-> +
+On Tue, 2015-02-17 at 16:39 +0900, Yoshinori Sato wrote:
+> At Sun, 15 Feb 2015 20:23:04 +0100,
+> Paul Bolle wrote:
+> > On Sun, 2015-02-15 at 16:49 +0900, Yoshinori Sato wrote:
+> > > diff --git a/arch/h8300/Kconfig.debug b/arch/h8300/Kconfig.debug
+> > > new file mode 100644
+> > > index 0000000..eb72b01
+> > > --- /dev/null
+> > > +++ b/arch/h8300/Kconfig.debug
+> > > @@ -0,0 +1,23 @@
+> > > +menu "Kernel hacking"
+> > > +
+> > > +source "lib/Kconfig.debug"
+> > > +
+> > > +config FULLDEBUG
+> > > +	bool "Full Symbolic/Source Debugging support"
+> > > +	help
+> > > +	  Enable debugging symbols on kernel build.
+> > > +
+> > > +config HIGHPROFILE
+> > > +	bool "Use fast second timer for profiling"
+> > > +	help
+> > > +	  Use a fast secondary clock to produce profiling information.
+> > > +
+> > > +config NO_KERNEL_MSG
+> > > +	bool "Suppress Kernel BUG Messages"
+> > > +	help
+> > > +	  Do not output any debug BUG messages within the kernel.
+> > > +
+> > > +config SH_STANDARD_BIOS
+> > > +       def_bool n
+> > > +
+> > 
+> > I don't think this entry is needed.
+> 
+> This entry using sh-sci. 
 
-Hmm, maybe we should use __kernel_size_t instead?
+This entry will always set SH_STANDARD_BIOS to 'n', and a line reading
+    # CONFIG_SH_STANDARD_BIOS is not set
 
-	Arnd
+will always be included in the generated .config for h8300. But for the
+three lines in drivers/tty/serial/sh-sci.c reading
+    #ifdef CONFIG_SH_STANDARD_BIOS
+            sh_bios_gdb_detach();
+    #endif
+
+that line has no effect. Even if there's no entry for SH_STANDARD_BIOS
+the preprocessor will still remove that call of sh_bios_gdb_detach().
+
+> > > +endmenu
+
+Thanks,
+
+
+Paul Bolle
