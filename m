@@ -1,79 +1,146 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cpsmtpb-ews02.kpnxchange.com ([213.75.39.5]:54336 "EHLO
-	cpsmtpb-ews02.kpnxchange.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752058AbbBQJqY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 17 Feb 2015 04:46:24 -0500
-Message-ID: <1424166381.7082.27.camel@x220>
-Subject: Re: [PATCH v3 10/15] h8300: Build scripts
-From: Paul Bolle <pebolle@tiscali.nl>
-Date: Tue, 17 Feb 2015 10:46:21 +0100
-In-Reply-To: <87vbj1kmvy.wl-ysato@users.sourceforge.jp>
-References: <1423986573-2329-1-git-send-email-ysato@users.sourceforge.jp>
-	 <1423986573-2329-11-git-send-email-ysato@users.sourceforge.jp>
-	 <1424028184.9418.99.camel@x220> <87vbj1kmvy.wl-ysato@users.sourceforge.jp>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mout.kundenserver.de ([212.227.17.10]:51407 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755028AbbBQNuo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Feb 2015 08:50:44 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [GIT PULL] asm-generic: uaccess.h cleanup
+Date: Tue, 17 Feb 2015 14:50:38 +0100
+Message-ID: <3437717.WY1JNmCCRA@wuerfel>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150217094621.DsCrpm7j0JGl8gBcXjVT-rNyhnjfW_a6M5lID6sI880@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>
+Message-ID: <20150217135038.0a5uQXcpd94CEIjwnSdp7IJJoyTdW8JlzYdYNe38B7Q@z>
 
-On Tue, 2015-02-17 at 16:39 +0900, Yoshinori Sato wrote:
-> At Sun, 15 Feb 2015 20:23:04 +0100,
-> Paul Bolle wrote:
-> > On Sun, 2015-02-15 at 16:49 +0900, Yoshinori Sato wrote:
-> > > diff --git a/arch/h8300/Kconfig.debug b/arch/h8300/Kconfig.debug
-> > > new file mode 100644
-> > > index 0000000..eb72b01
-> > > --- /dev/null
-> > > +++ b/arch/h8300/Kconfig.debug
-> > > @@ -0,0 +1,23 @@
-> > > +menu "Kernel hacking"
-> > > +
-> > > +source "lib/Kconfig.debug"
-> > > +
-> > > +config FULLDEBUG
-> > > +	bool "Full Symbolic/Source Debugging support"
-> > > +	help
-> > > +	  Enable debugging symbols on kernel build.
-> > > +
-> > > +config HIGHPROFILE
-> > > +	bool "Use fast second timer for profiling"
-> > > +	help
-> > > +	  Use a fast secondary clock to produce profiling information.
-> > > +
-> > > +config NO_KERNEL_MSG
-> > > +	bool "Suppress Kernel BUG Messages"
-> > > +	help
-> > > +	  Do not output any debug BUG messages within the kernel.
-> > > +
-> > > +config SH_STANDARD_BIOS
-> > > +       def_bool n
-> > > +
-> > 
-> > I don't think this entry is needed.
-> 
-> This entry using sh-sci. 
+The following changes since commit eaa27f34e91a14cdceed26ed6c6793ec1d186115:
 
-This entry will always set SH_STANDARD_BIOS to 'n', and a line reading
-    # CONFIG_SH_STANDARD_BIOS is not set
+  linux 3.19-rc4 (2015-01-11 12:44:53 -0800)
 
-will always be included in the generated .config for h8300. But for the
-three lines in drivers/tty/serial/sh-sci.c reading
-    #ifdef CONFIG_SH_STANDARD_BIOS
-            sh_bios_gdb_detach();
-    #endif
+are available in the git repository at:
 
-that line has no effect. Even if there's no entry for SH_STANDARD_BIOS
-the preprocessor will still remove that call of sh_bios_gdb_detach().
+  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic-for-linus
 
-> > > +endmenu
+for you to fetch changes up to 643165c8bbc8617d8222cb50c89e34fe64d226cf:
 
-Thanks,
+  Merge tag 'uaccess_for_upstream' of git://git.kernel.org/pub/scm/linux/kernel/git/mst/vhost into asm-generic (2015-01-14 23:17:49 +0100)
 
+----------------------------------------------------------------
+asm-generic: uaccess.h cleanup
 
-Paul Bolle
+Like in 3.19, I once more have a multi-stage cleanup for one asm-generic
+header file, this time the work was done by Michael Tsirkin and cleans
+up the uaccess.h file in asm-generic, as well as all architectures for
+which the respective maintainers did not pick up his patches directly.
+
+----------------------------------------------------------------
+
+Original pull request, merged as 643165c8bbc86:
+
+    uaccess: fix sparse warning on get/put_user for bitwise types
+    
+    At the moment, if p and x are both tagged as bitwise types,
+    some of get_user(x, p), put_user(x, p), __get_user(x, p), __put_user(x, p)
+    might produce a sparse warning on many architectures.
+    This is a false positive: *p on these architectures is loaded into long
+    (typically using asm), then cast back to typeof(*p).
+    
+    When typeof(*p) is a bitwise type (which is uncommon), such a cast needs
+    __force, otherwise sparse produces a warning.
+    
+    Some architectures already have the __force tag, add it
+    where it's missing.
+    
+    I verified that adding these __force casts does not supress any useful warnings.
+    
+    Specifically, vhost wants to read/write bitwise types in userspace memory
+    using get_user/put_user.
+    At the moment this triggers sparse errors, since the value is passed through an
+    integer.
+    
+    For example:
+        __le32 __user *p;
+        __u32 x;
+    
+    both
+        put_user(x, p);
+    and
+        get_user(x, p);
+    should be safe, but produce warnings on some architectures.
+    
+    While there, I noticed that a bunch of architectures violated
+    coding style rules within uaccess macros.
+    Included patches to fix them up.
+    
+    Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+
+---
+
+Arnd Bergmann (1):
+      Merge tag 'uaccess_for_upstream' of git://git.kernel.org/.../mst/vhost into asm-generic
+
+Michael S. Tsirkin (37):
+      x86/uaccess: fix sparse errors
+      alpha/uaccess: fix sparse errors
+      arm64/uaccess: fix sparse errors
+      avr32/uaccess: fix sparse errors
+      blackfin/uaccess: fix sparse errors
+      cris/uaccess: fix sparse errors
+      ia64/uaccess: fix sparse errors
+      m32r/uaccess: fix sparse errors
+      metag/uaccess: fix sparse errors
+      openrisc/uaccess: fix sparse errors
+      parisc/uaccess: fix sparse errors
+      sh/uaccess: fix sparse errors
+      sparc32/uaccess: fix sparse errors
+      sparc64/uaccess: fix sparse errors
+      m68k/uaccess: fix sparse errors
+      arm: fix put_user sparse errors
+      blackfin: fix put_user sparse errors
+      ia64: fix put_user sparse errors
+      metag: fix put_user sparse errors
+      sh: fix put_user sparse errors
+      avr32: whitespace fix
+      sparc32: uaccess_32 macro whitespace fixes
+      sparc64: uaccess_64 macro whitespace fixes
+      blackfin: macro whitespace fixes
+      alpha: macro whitespace fixes
+      arm: macro whitespace fixes
+      arm64: macro whitespace fixes
+      avr32: macro whitespace fixes
+      cris: macro whitespace fixes
+      frv: macro whitespace fixes
+      m32r: macro whitespace fixes
+      m68k: macro whitespace fixes
+      parisc: macro whitespace fixes
+      sh: macro whitespace fixes
+      xtensa: macro whitespace fixes
+      sparc64: nocheck uaccess coding style tweaks
+      sparc32: nocheck uaccess coding style tweaks
+
+ arch/alpha/include/asm/uaccess.h    |  86 ++++-----
+ arch/arm/include/asm/uaccess.h      |  96 +++++-----
+ arch/arm64/include/asm/uaccess.h    |   4 +-
+ arch/avr32/include/asm/uaccess.h    |  24 +--
+ arch/blackfin/include/asm/uaccess.h |  32 ++--
+ arch/cris/include/asm/uaccess.h     | 117 +++++++------
+ arch/frv/include/asm/segment.h      |   2 +-
+ arch/ia64/include/asm/uaccess.h     |  11 +-
+ arch/m32r/include/asm/uaccess.h     |  88 +++++-----
+ arch/m68k/include/asm/segment.h     |   2 +-
+ arch/m68k/include/asm/uaccess_mm.h  |  40 ++---
+ arch/metag/include/asm/uaccess.h    |  25 +--
+ arch/openrisc/include/asm/uaccess.h |   4 +-
+ arch/parisc/include/asm/uaccess.h   | 116 ++++++------
+ arch/sh/include/asm/segment.h       |   2 +-
+ arch/sh/include/asm/uaccess.h       |   4 +-
+ arch/sh/include/asm/uaccess_64.h    |   8 +-
+ arch/sparc/include/asm/uaccess_32.h | 339 +++++++++++++++++++++---------------
+ arch/sparc/include/asm/uaccess_64.h | 222 ++++++++++++-----------
+ arch/x86/include/asm/uaccess.h      |   2 +-
+ arch/xtensa/include/asm/uaccess.h   |  90 +++++-----
+ 21 files changed, 700 insertions(+), 614 deletions(-)
 
