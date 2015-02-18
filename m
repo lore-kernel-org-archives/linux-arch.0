@@ -1,30 +1,33 @@
-From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+From: Josh Cartwright <joshc@ni.com>
 Subject: Re: __HAVE_ARCH_CMPXCHG on ARM?
-Date: Wed, 18 Feb 2015 11:44:59 +0100
-Message-ID: <20150218104459.GD28763@linutronix.de>
+Date: Wed, 18 Feb 2015 10:34:12 -0600
+Message-ID: <20150218163412.GA23160@jcartwri.amer.corp.natinst.com>
 References: <20150129185618.GA31459@nathan3500-linux-VM>
  <CAM2zO=CVCZFNiSukgcgNNT0==xgLK4w5HF3Pz=dcFmrEHPtLdw@mail.gmail.com>
  <20150202133933.GD31847@arm.com>
  <20150203192730.GA10759@jcartwri.amer.corp.natinst.com>
+ <20150218104459.GD28763@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-rt-users-owner@vger.kernel.org>
+In-Reply-To: <20150218104459.GD28763@linutronix.de>
 Content-Disposition: inline
-In-Reply-To: <20150203192730.GA10759@jcartwri.amer.corp.natinst.com>
 Sender: linux-rt-users-owner@vger.kernel.org
-To: Josh Cartwright <joshc@ni.com>
+To: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Cc: Will Deacon <will.deacon@arm.com>, Yong Zhang <yong.zhang0@gmail.com>, Yong Zhang <yong.zhang@windriver.com>, Nathan Sullivan <nathan.sullivan@ni.com>, linux-rt-users <linux-rt-users@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-* Josh Cartwright | 2015-02-03 13:27:30 [-0600]:
+On Wed, Feb 18, 2015 at 11:44:59AM +0100, Sebastian Andrzej Siewior wrote:
+> * Josh Cartwright | 2015-02-03 13:27:30 [-0600]:
+> 
+> >                 native         native
+> >                cmpxchg (UP)   cmpxchg (SMP)    __HAVE_ARCH_CMPXCHG
+> >         xtensa     X               X
+> 
+> This one does not always have cmpxchg on UP (only the SMP variant which
+> provides atomic operation).
 
->                 native         native
->                cmpxchg (UP)   cmpxchg (SMP)    __HAVE_ARCH_CMPXCHG
->         xtensa     X               X
+Ah!  Thanks for double checking my work; my eyes started to glaze over
+after looking at the other 29 architectures.
 
-This one does not always have cmpxchg on UP (only the SMP variant which
-provides atomic operation).
-
->  Josh
-
-Sebastian
+  Josh
