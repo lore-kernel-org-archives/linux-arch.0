@@ -1,38 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from skprod2.natinst.com ([130.164.80.23]:49797 "EHLO ni.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751596AbbBRQet (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Feb 2015 11:34:49 -0500
-Date: Wed, 18 Feb 2015 10:34:12 -0600
-From: Josh Cartwright <joshc@ni.com>
-Subject: Re: __HAVE_ARCH_CMPXCHG on ARM?
-Message-ID: <20150218163412.GA23160@jcartwri.amer.corp.natinst.com>
-References: <20150129185618.GA31459@nathan3500-linux-VM>
- <CAM2zO=CVCZFNiSukgcgNNT0==xgLK4w5HF3Pz=dcFmrEHPtLdw@mail.gmail.com>
- <20150202133933.GD31847@arm.com>
- <20150203192730.GA10759@jcartwri.amer.corp.natinst.com>
- <20150218104459.GD28763@linutronix.de>
+Received: from mail-we0-f180.google.com ([74.125.82.180]:41570 "EHLO
+	mail-we0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751996AbbBSQNe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Feb 2015 11:13:34 -0500
 MIME-Version: 1.0
-In-Reply-To: <20150218104459.GD28763@linutronix.de>
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+In-Reply-To: <CAL_Jsq+rHFPXmWqByvdG435tpbO_+ODByiMcdxboULYpUfDUmg@mail.gmail.com>
+References: <1423763164-5606-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<1423763164-5606-3-git-send-email-mcoquelin.stm32@gmail.com>
+	<CAMuHMdWESyPktOSBfVoZCb35stUbhNpbbpzSW4JfORdObgg5jw@mail.gmail.com>
+	<CALszF6BDa9pUb534YN2z9DbYA+hPCnG8XYy5YbjJwSiseKz4xg@mail.gmail.com>
+	<CAL_Jsq+rHFPXmWqByvdG435tpbO_+ODByiMcdxboULYpUfDUmg@mail.gmail.com>
+Date: Thu, 19 Feb 2015 17:13:32 +0100
+Message-ID: <CALszF6DyVqaE6DLKSQHeuYWgSChzhEtCbmOsbjoTkvipquBivw@mail.gmail.com>
+Subject: Re: [PATCH 02/14] ARM: ARMv7M: Enlarge vector table to 256 entries
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
-Cc: Will Deacon <will.deacon@arm.com>, Yong Zhang <yong.zhang0@gmail.com>, Yong Zhang <yong.zhang@windriver.com>, Nathan Sullivan <nathan.sullivan@ni.com>, linux-rt-users <linux-rt-users@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-arch@vger.kernel.org
-Message-ID: <20150218163412.ep0EDHTHB72VWZK1IM5419zW6hsRzuCvIAe48rx4Wtg@z>
+To: Rob Herring <robherring2@gmail.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Jonathan Corbet <corbet@lwn.net>, Rob Herring <robh+dt@kernel.org>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Philipp Zabel <p.zabel@pengutronix.de>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>
+Message-ID: <20150219161332.1_UBdsv2_UBAf0Qsh_SuspST5VOySwu8QUMI2mToIr4@z>
 
-On Wed, Feb 18, 2015 at 11:44:59AM +0100, Sebastian Andrzej Siewior wrote:
-> * Josh Cartwright | 2015-02-03 13:27:30 [-0600]:
-> 
-> >                 native         native
-> >                cmpxchg (UP)   cmpxchg (SMP)    __HAVE_ARCH_CMPXCHG
-> >         xtensa     X               X
-> 
-> This one does not always have cmpxchg on UP (only the SMP variant which
-> provides atomic operation).
+Hi Rob,
 
-Ah!  Thanks for double checking my work; my eyes started to glaze over
-after looking at the other 29 architectures.
+2015-02-15 23:42 GMT+01:00 Rob Herring <robherring2@gmail.com>:
+> On Fri, Feb 13, 2015 at 2:42 AM, Maxime Coquelin
+> <mcoquelin.stm32@gmail.com> wrote:
+>> Hi Geert,
+>>
+>> 2015-02-12 21:34 GMT+01:00 Geert Uytterhoeven <geert@linux-m68k.org>:
+>>> On Thu, Feb 12, 2015 at 6:45 PM, Maxime Coquelin
+>>> <mcoquelin.stm32@gmail.com> wrote:
+>>>> From Cortex-M4 and M7 reference manuals, the nvic supports up to 240
+>>>> interrupts. So the number of entries in vectors table is 256.
+>>>>
+>>>> This patch adds the missing entries, and change the alignement, so that
+>>>> vector_table remains naturally aligned.
+>>>
+>>> Shouldn't this depend on ARCH_STM32, or some other M4 or M7 specific
+>>> Kconfig option, to avoid wasting the space on other CPUs?
+>>
+>> Actually, the STM32F429 has 90 interrupts, so it would need 106
+>> entries in the vector table.
+>> The maximum of supported interrupts is not only for Cortex-M4 and M7,
+>> this is also true for Cortex-M3.
+>>
+>> I see two possibilities:
+>>  1 - We declare the vector table for the maximum supported number of
+>> IRQs, as this patch does.
+>>         - Pro: it will be functionnal with all Cortex-M MCUs
+>>         - Con: Waste of less than 1KB for memory
+>
+> The waste depends on the alignment size as well and could be up to
+> almost 2KB worst case. It varies depending on the padding. We should
+> try to place it so it always aligned and the wasted space is
+> minimized.
 
-  Josh
+Sorry, I just notice I didn't replied to all. That was my question:
+
+Do you mean by forcing its location in the arch/arm/kernel/vmlinux.lds.S file?
+
+Regards,
+Maxime
+
+>
+> Rob
+>
+>>  2 - We introduce a config flag that provides the number of interrupts
+>>         - Pro: No more memory waste
+>>         - Con: Need to declare a per MCU model config flag.
+>>
+>> Then, regarding the natural alignment, is there a way to ensure it
+>> depending on the value of a config flag?
+>> Or we should keep it at the maximum value possible?
+>>
+>> Any feedback will be appreciated, especially from Uwe who maintains
+>> the efm32 machine.
+>>
+>> Kind regards,
+>> Maxime
