@@ -1,40 +1,76 @@
-From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2 0/5] Reenable might_sleep() checks for might_fault()
-Date: Thu, 19 Feb 2015 16:14:39 +0100
-Message-ID: <20150219161439.4aa444fe@thinkpad-w530>
-References: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
-	<20150112151911.4a51f09d@thinkpad-w530>
-	<20150209144217.GT5029@twins.programming.kicks-ass.net>
-	<20150219154805.2651257d@thinkpad-w530>
-	<20150219150723.GF21418@twins.programming.kicks-ass.net>
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Subject: Re: [PATCH 02/14] ARM: ARMv7M: Enlarge vector table to 256 entries
+Date: Thu, 19 Feb 2015 17:13:32 +0100
+Message-ID: <CALszF6DyVqaE6DLKSQHeuYWgSChzhEtCbmOsbjoTkvipquBivw@mail.gmail.com>
+References: <1423763164-5606-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<1423763164-5606-3-git-send-email-mcoquelin.stm32@gmail.com>
+	<CAMuHMdWESyPktOSBfVoZCb35stUbhNpbbpzSW4JfORdObgg5jw@mail.gmail.com>
+	<CALszF6BDa9pUb534YN2z9DbYA+hPCnG8XYy5YbjJwSiseKz4xg@mail.gmail.com>
+	<CAL_Jsq+rHFPXmWqByvdG435tpbO_+ODByiMcdxboULYpUfDUmg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp12.uk.ibm.com ([195.75.94.108]:39233 "EHLO
-	e06smtp12.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751647AbbBSPOu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Feb 2015 10:14:50 -0500
-Received: from /spool/local
-	by e06smtp12.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Thu, 19 Feb 2015 15:14:48 -0000
-In-Reply-To: <20150219150723.GF21418@twins.programming.kicks-ass.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-gpio-owner@vger.kernel.org>
+In-Reply-To: <CAL_Jsq+rHFPXmWqByvdG435tpbO_+ODByiMcdxboULYpUfDUmg@mail.gmail.com>
+Sender: linux-gpio-owner@vger.kernel.org
+To: Rob Herring <robherring2@gmail.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Jonathan Corbet <corbet@lwn.net>, Rob Herring <robh+dt@kernel.org>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Philipp Zabel <p.zabel@pengutronix.de>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>R
+List-Id: linux-arch.vger.kernel.org
 
-> On Thu, Feb 19, 2015 at 03:48:05PM +0100, David Hildenbrand wrote:
-> > Downside is that now that I have to touch all fault handlers, I have to go
-> > through all archs again.
-> 
-> You should be able to borrow from the -rt patches there. They have all
-> that.
-> 
+Hi Rob,
 
-Jup, that's what I partially did.
+2015-02-15 23:42 GMT+01:00 Rob Herring <robherring2@gmail.com>:
+> On Fri, Feb 13, 2015 at 2:42 AM, Maxime Coquelin
+> <mcoquelin.stm32@gmail.com> wrote:
+>> Hi Geert,
+>>
+>> 2015-02-12 21:34 GMT+01:00 Geert Uytterhoeven <geert@linux-m68k.org>:
+>>> On Thu, Feb 12, 2015 at 6:45 PM, Maxime Coquelin
+>>> <mcoquelin.stm32@gmail.com> wrote:
+>>>> From Cortex-M4 and M7 reference manuals, the nvic supports up to 240
+>>>> interrupts. So the number of entries in vectors table is 256.
+>>>>
+>>>> This patch adds the missing entries, and change the alignement, so that
+>>>> vector_table remains naturally aligned.
+>>>
+>>> Shouldn't this depend on ARCH_STM32, or some other M4 or M7 specific
+>>> Kconfig option, to avoid wasting the space on other CPUs?
+>>
+>> Actually, the STM32F429 has 90 interrupts, so it would need 106
+>> entries in the vector table.
+>> The maximum of supported interrupts is not only for Cortex-M4 and M7,
+>> this is also true for Cortex-M3.
+>>
+>> I see two possibilities:
+>>  1 - We declare the vector table for the maximum supported number of
+>> IRQs, as this patch does.
+>>         - Pro: it will be functionnal with all Cortex-M MCUs
+>>         - Con: Waste of less than 1KB for memory
+>
+> The waste depends on the alignment size as well and could be up to
+> almost 2KB worst case. It varies depending on the padding. We should
+> try to place it so it always aligned and the wasted space is
+> minimized.
 
-Thanks
+Sorry, I just notice I didn't replied to all. That was my question:
 
-David
+Do you mean by forcing its location in the arch/arm/kernel/vmlinux.lds.S file?
+
+Regards,
+Maxime
+
+>
+> Rob
+>
+>>  2 - We introduce a config flag that provides the number of interrupts
+>>         - Pro: No more memory waste
+>>         - Con: Need to declare a per MCU model config flag.
+>>
+>> Then, regarding the natural alignment, is there a way to ensure it
+>> depending on the value of a config flag?
+>> Or we should keep it at the maximum value possible?
+>>
+>> Any feedback will be appreciated, especially from Uwe who maintains
+>> the efm32 machine.
+>>
+>> Kind regards,
+>> Maxime
