@@ -1,500 +1,197 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f65.google.com ([74.125.82.65]:33526 "EHLO
-	mail-wg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932161AbbBTSCw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Feb 2015 13:02:52 -0500
+Received: from mail-wi0-f193.google.com ([209.85.212.193]:48420 "EHLO
+	mail-wi0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755043AbbBTSCN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Feb 2015 13:02:13 -0500
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: [PATCH v2 16/18] ARM: dts: Introduce STM32F429 MCU
-Date: Fri, 20 Feb 2015 19:01:15 +0100
-Message-Id: <1424455277-29983-17-git-send-email-mcoquelin.stm32@gmail.com>
+Subject: [PATCH v2 14/18] ARM: Add STM32 family machine
+Date: Fri, 20 Feb 2015 19:01:13 +0100
+Message-ID: <1424455277-29983-15-git-send-email-mcoquelin.stm32@gmail.com>
 In-Reply-To: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
 References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Maxime Coquelin <mcoquelin.stm32@gmail.com>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20150220180113.7vhPfSACEQWozYFXhC540h6zBgMB1QG2G0JuJY5fvpQ@z>
 
-The STMicrolectornics's STM32F419 MCU has the following main features:
- - Cortex-M4 core running up to @180MHz
- - 2MB internal flash, 256KBytes internal RAM
- - FMC controller to connect SDRAM, NOR and NAND memories
- - SD/MMC/SDIO support
- - Ethernet controller
- - USB OTFG FS & HS controllers
- - I2C, SPI, CAN busses support
- - Several 16 & 32 bits general purpose timers
- - Serial Audio interface
- - LCD controller
+STMicrolectronics's STM32 series is a family of Cortex-M
+microcontrollers. It is used in various applications, and
+proposes a wide range of peripherals.
 
 Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 ---
- arch/arm/boot/dts/Makefile            |   1 +
- arch/arm/boot/dts/stm32f429-disco.dts |  41 ++++
- arch/arm/boot/dts/stm32f429.dtsi      | 396 ++++++++++++++++++++++++++++++++++
- 3 files changed, 438 insertions(+)
- create mode 100644 arch/arm/boot/dts/stm32f429-disco.dts
- create mode 100644 arch/arm/boot/dts/stm32f429.dtsi
+ Documentation/arm/stm32/overview.txt           | 32 ++++++++++++++++++++++++++
+ Documentation/arm/stm32/stm32f429-overview.txt | 22 ++++++++++++++++++
+ arch/arm/Kconfig                               | 22 ++++++++++++++++++
+ arch/arm/Makefile                              |  1 +
+ arch/arm/mach-stm32/Makefile                   |  1 +
+ arch/arm/mach-stm32/Makefile.boot              |  0
+ arch/arm/mach-stm32/board-dt.c                 | 31 +++++++++++++++++++++++++
+ 7 files changed, 109 insertions(+)
+ create mode 100644 Documentation/arm/stm32/overview.txt
+ create mode 100644 Documentation/arm/stm32/stm32f429-overview.txt
+ create mode 100644 arch/arm/mach-stm32/Makefile
+ create mode 100644 arch/arm/mach-stm32/Makefile.boot
+ create mode 100644 arch/arm/mach-stm32/board-dt.c
 
-diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index 91bd5bd..d7da0ef 100644
---- a/arch/arm/boot/dts/Makefile
-+++ b/arch/arm/boot/dts/Makefile
-@@ -442,6 +442,7 @@ dtb-$(CONFIG_ARCH_STI)+= stih407-b2120.dtb \
- 	stih416-b2000.dtb \
- 	stih416-b2020.dtb \
- 	stih416-b2020e.dtb
-+dtb-$(CONFIG_ARCH_STM32)+= stm32f429-disco.dtb
- dtb-$(CONFIG_MACH_SUN4I) += \
- 	sun4i-a10-a1000.dtb \
- 	sun4i-a10-ba10-tvbox.dtb \
-diff --git a/arch/arm/boot/dts/stm32f429-disco.dts b/arch/arm/boot/dts/stm32f429-disco.dts
+diff --git a/Documentation/arm/stm32/overview.txt b/Documentation/arm/stm32/overview.txt
 new file mode 100644
-index 0000000..0e79cc1
+index 0000000..d8bf6bb
 --- /dev/null
-+++ b/arch/arm/boot/dts/stm32f429-disco.dts
-@@ -0,0 +1,41 @@
-+/dts-v1/;
-+#include "stm32f429.dtsi"
++++ b/Documentation/arm/stm32/overview.txt
+@@ -0,0 +1,32 @@
++			STM32 ARM Linux Overview
++			==========================
 +
-+/ {
-+	model = "STMicroelectronics's STM32F429i-DISCO board";
-+	compatible = "st,stm32f429i-disco", "st,stm32f429";
++Introduction
++------------
 +
-+	chosen {
-+		bootargs = "console=ttyS0,115200 root=/dev/ram rdinit=/linuxrc";
-+		linux,stdout-path = &usart1;
-+	};
++  The STMicroelectronics family of Cortex-M based MCUs are supported by the
++  'STM32' platform of ARM Linux. Currently only the STM32F429 is supported.
 +
-+	memory {
-+		reg = <0xd0000000 0x800000>;
-+	};
 +
-+	aliases {
-+		ttyS0 = &usart1;
-+	};
++Configuration
++-------------
 +
-+	soc {
-+		usart1: usart@40011000 {
-+			status = "okay";
-+		};
++  A generic configuration is provided for STM32 family, and can be used as the
++  default by
++	make stm32_defconfig
 +
-+		leds {
-+			compatible = "gpio-leds";
-+			red {
-+				#gpio-cells = <2>;
-+				label = "Front Panel LED";
-+				gpios = <&gpiog 14 0>;
-+				linux,default-trigger = "heartbeat";
-+			};
-+			green {
-+				#gpio-cells = <2>;
-+				gpios = <&gpiog 13 0>;
-+				default-state = "off";
-+			};
-+		};
-+	};
-+};
-diff --git a/arch/arm/boot/dts/stm32f429.dtsi b/arch/arm/boot/dts/stm32f429.dtsi
++Layout
++------
++
++  All the files for multiple machine families are located in the platform code
++  contained in arch/arm/mach-stm32
++
++  There is a generic board board-dt.c in the mach folder which support
++  Flattened Device Tree, which means, It works with any compatible board with
++  Device Trees.
++
++
++Document Author
++---------------
++
++  Maxime Coquelin <mcoquelin.stm32@gmail.com>
+diff --git a/Documentation/arm/stm32/stm32f429-overview.txt b/Documentation/arm/stm32/stm32f429-overview.txt
 new file mode 100644
-index 0000000..5b3442a
+index 0000000..5206822
 --- /dev/null
-+++ b/arch/arm/boot/dts/stm32f429.dtsi
-@@ -0,0 +1,396 @@
++++ b/Documentation/arm/stm32/stm32f429-overview.txt
+@@ -0,0 +1,22 @@
++			STM32F429 Overview
++			==================
++
++  Introduction
++  ------------
++	The STM32F429 is a Cortex-M4 MCU aimed at various applications.
++	It features:
++	- ARM Cortex-M4 up to 180MHz with FPU
++	- 2MB internal Flash Memory
++	- External memory support through FMC controller (PSRAM, SDRAM, NOR, NAND)
++	- I2C, SPI, SAI, CAN, USB OTG, Ethernet controllers
++	- LCD controller & Camera interface
++	- Cryptographic processor
++
++  Resources
++  ---------
++	Datasheet and reference manual are publicly available on ST website:
++	- http://www.st.com/web/en/catalog/mmc/FM141/SC1169/SS1577/LN1806?ecmp=stm32f429-439_pron_pr-ces2014_nov2013
++
++  Document Author
++  ---------------
++	Maxime Coquelin <mcoquelin.stm32@gmail.com>
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 97d07ed..cfd9532 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -774,6 +774,28 @@ config ARCH_OMAP1
+ 	help
+ 	  Support for older TI OMAP1 (omap7xx, omap15xx or omap16xx)
+ 
++config ARCH_STM32
++	bool "STMicrolectronics STM32"
++	depends on !MMU
++	select ARCH_REQUIRE_GPIOLIB
++	select ARM_NVIC
++	select AUTO_ZRELADDR
++	select ARCH_HAS_RESET_CONTROLLER
++	select RESET_CONTROLLER
++	select PINCTRL
++	select PINCTRL_STM32
++	select CLKSRC_OF
++	select ARMV7M_SYSTICK
++	select COMMON_CLK
++	select CPU_V7M
++	select GENERIC_CLOCKEVENTS
++	select NO_DMA
++	select NO_IOPORT_MAP
++	select SPARSE_IRQ
++	select USE_OF
++	help
++	  Support for STMicorelectronics STM32 processors.
++
+ endchoice
+ 
+ menu "Multiple platform selection"
+diff --git a/arch/arm/Makefile b/arch/arm/Makefile
+index c1785ee..7d00659 100644
+--- a/arch/arm/Makefile
++++ b/arch/arm/Makefile
+@@ -196,6 +196,7 @@ machine-$(CONFIG_ARCH_SHMOBILE) 	+= shmobile
+ machine-$(CONFIG_ARCH_SIRF)		+= prima2
+ machine-$(CONFIG_ARCH_SOCFPGA)		+= socfpga
+ machine-$(CONFIG_ARCH_STI)		+= sti
++machine-$(CONFIG_ARCH_STM32)		+= stm32
+ machine-$(CONFIG_ARCH_SUNXI)		+= sunxi
+ machine-$(CONFIG_ARCH_TEGRA)		+= tegra
+ machine-$(CONFIG_ARCH_U300)		+= u300
+diff --git a/arch/arm/mach-stm32/Makefile b/arch/arm/mach-stm32/Makefile
+new file mode 100644
+index 0000000..bd0b7b5
+--- /dev/null
++++ b/arch/arm/mach-stm32/Makefile
+@@ -0,0 +1 @@
++obj-y += board-dt.o
+diff --git a/arch/arm/mach-stm32/Makefile.boot b/arch/arm/mach-stm32/Makefile.boot
+new file mode 100644
+index 0000000..e69de29
+diff --git a/arch/arm/mach-stm32/board-dt.c b/arch/arm/mach-stm32/board-dt.c
+new file mode 100644
+index 0000000..1d681b3
+--- /dev/null
++++ b/arch/arm/mach-stm32/board-dt.c
+@@ -0,0 +1,31 @@
 +/*
-+ * Device tree for STM32F429
++ * Copyright (C) Maxime Coquelin 2015
++ * Author:  Maxime Coquelin <mcoquelin.stm32@gmail.com>
++ * License terms:  GNU General Public License (GPL), version 2
 + */
-+#include "armv7-m.dtsi"
-+#include <dt-bindings/pinctrl/pinctrl-stm32.h>
-+#include <dt-bindings/reset/st,stm32f429.h>
 +
-+/ {
++#include <linux/kernel.h>
++#include <linux/clk-provider.h>
++#include <linux/clocksource.h>
++#include <linux/reset-controller.h>
++#include <asm/v7m.h>
++#include <asm/mach/arch.h>
 +
-+	aliases {
-+		gpio0 = &gpioa;
-+		gpio1 = &gpiob;
-+		gpio2 = &gpioc;
-+		gpio3 = &gpiod;
-+		gpio4 = &gpioe;
-+		gpio5 = &gpiof;
-+		gpio6 = &gpiog;
-+		gpio7 = &gpioh;
-+		gpio8 = &gpioi;
-+		gpio9 = &gpioj;
-+		gpio10 = &gpiok;
-+	};
-+
-+	clocks {
-+		clk_sysclk: clk-sysclk {
-+			#clock-cells = <0>;
-+			compatible = "fixed-clock";
-+			clock-frequency = <180000000>;
-+		};
-+
-+		clk_hclk: clk-hclk {
-+			#clock-cells = <0>;
-+			compatible = "fixed-clock";
-+			clock-frequency = <180000000>;
-+		};
-+
-+		clk_pclk1: clk-pclk1 {
-+			#clock-cells = <0>;
-+			compatible = "fixed-clock";
-+			clock-frequency = <45000000>;
-+		};
-+
-+		clk_pclk2: clk-pclk2 {
-+			#clock-cells = <0>;
-+			compatible = "fixed-clock";
-+			clock-frequency = <90000000>;
-+		};
-+
-+		clk_pmtr1: clk-pmtr1 {
-+			#clock-cells = <0>;
-+			compatible = "fixed-clock";
-+			clock-frequency = <90000000>;
-+		};
-+
-+		clk_pmtr2: clk-pmtr2 {
-+			#clock-cells = <0>;
-+			compatible = "fixed-clock";
-+			clock-frequency = <180000000>;
-+		};
-+
-+		clk_systick: clk-systick {
-+			compatible = "fixed-factor-clock";
-+			clocks = <&clk_hclk>;
-+			#clock-cells = <0>;
-+			clock-div = <8>;
-+			clock-mult = <1>;
-+		};
-+	};
-+
-+	systick: timer@e000e010 {
-+		clocks = <&clk_systick>;
-+
-+		status = "okay";
-+	};
-+
-+	soc {
-+		reset: reset@40023810 {
-+			#reset-cells = <1>;
-+			compatible = "st,stm32-reset";
-+			reg = <0x40023810 0x18>;
-+		};
-+
-+		pin-controller {
-+			#address-cells = <1>;
-+			#size-cells = <1>;
-+			compatible = "st,stm32-pinctrl";
-+			ranges = <0 0x40020000 0x3000>;
-+
-+			gpioa: gpio@40020000 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x0 0x400>;
-+				resets = <&reset GPIOA_RESET>;
-+				st,bank-name = "GPIOA";
-+			};
-+
-+			gpiob: gpio@40020400 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x400 0x400>;
-+				resets = <&reset GPIOB_RESET>;
-+				st,bank-name = "GPIOB";
-+			};
-+
-+			gpioc: gpio@40020800 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x800 0x400>;
-+				resets = <&reset GPIOC_RESET>;
-+				st,bank-name = "GPIOC";
-+			};
-+
-+			gpiod: gpio@40020c00 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0xc00 0x400>;
-+				resets = <&reset GPIOD_RESET>;
-+				st,bank-name = "GPIOD";
-+			};
-+
-+			gpioe: gpio@40021000 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x1000 0x400>;
-+				resets = <&reset GPIOE_RESET>;
-+				st,bank-name = "GPIOE";
-+			};
-+
-+			gpiof: gpio@40021400 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x1400 0x400>;
-+				resets = <&reset GPIOF_RESET>;
-+				st,bank-name = "GPIOF";
-+			};
-+
-+			gpiog: gpio@40021800 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x1800 0x400>;
-+				resets = <&reset GPIOG_RESET>;
-+				st,bank-name = "GPIOG";
-+			};
-+
-+			gpioh: gpio@40021c00 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x1c00 0x400>;
-+				resets = <&reset GPIOH_RESET>;
-+				st,bank-name = "GPIOH";
-+			};
-+
-+			gpioi: gpio@40022000 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x2000 0x400>;
-+				resets = <&reset GPIOI_RESET>;
-+				st,bank-name = "GPIOI";
-+			};
-+
-+			gpioj: gpio@40022400 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x2400 0x400>;
-+				resets = <&reset GPIOJ_RESET>;
-+				st,bank-name = "GPIOJ";
-+			};
-+
-+			gpiok: gpio@40022800 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x2800 0x400>;
-+				resets = <&reset GPIOK_RESET>;
-+				st,bank-name = "GPIOK";
-+			};
-+
-+			usart1 {
-+				pinctrl_usart1: usart1-0 {
-+					st,pins {
-+						tx = <&gpioa 9 ALT7 NO_PULL PUSH_PULL LOW_SPEED>;
-+						rx = <&gpioa 10 ALT7 NO_PULL>;
-+					};
-+				};
-+			};
-+
-+			usart2 {
-+				pinctrl_usart2: usart2-0 {
-+					st,pins {
-+						tx = <&gpioa 2 ALT7 NO_PULL PUSH_PULL LOW_SPEED>;
-+						rx = <&gpioa 3 ALT7 NO_PULL>;
-+					};
-+				};
-+			};
-+
-+			usart3 {
-+				pinctrl_usart3: usart3-0 {
-+					st,pins {
-+						tx = <&gpiob 10 ALT7 NO_PULL PUSH_PULL LOW_SPEED>;
-+						rx = <&gpiob 11 ALT7 NO_PULL>;
-+					};
-+				};
-+			};
-+
-+			usart4 {
-+				pinctrl_usart4: usart4-0 {
-+					st,pins {
-+						tx = <&gpioa 0 ALT8 NO_PULL PUSH_PULL LOW_SPEED>;
-+						rx = <&gpioa 1 ALT8 NO_PULL>;
-+					};
-+				};
-+			};
-+
-+			usart5 {
-+				pinctrl_usart5: usart5-0 {
-+					st,pins {
-+						tx = <&gpioc 12 ALT8 NO_PULL PUSH_PULL LOW_SPEED>;
-+						rx = <&gpiod 2 ALT8 NO_PULL>;
-+					};
-+				};
-+			};
-+
-+			usart6 {
-+				pinctrl_usart6: usart6-0 {
-+					st,pins {
-+						tx = <&gpioc 6 ALT8 NO_PULL PUSH_PULL LOW_SPEED>;
-+						rx = <&gpioc 7 ALT8 NO_PULL>;
-+					};
-+				};
-+			};
-+
-+			usart7 {
-+				pinctrl_usart7: usart7-0 {
-+					st,pins {
-+						tx = <&gpioe 8 ALT8 NO_PULL PUSH_PULL LOW_SPEED>;
-+						rx = <&gpioe 7 ALT8 NO_PULL>;
-+					};
-+				};
-+			};
-+
-+			usart8 {
-+				pinctrl_usart8: usart8-0 {
-+					st,pins {
-+						tx = <&gpioe 1 ALT8 NO_PULL PUSH_PULL LOW_SPEED>;
-+						rx = <&gpioe 0 ALT8 NO_PULL>;
-+					};
-+				};
-+			};
-+		};
-+
-+		timer2: timer@40000000 {
-+			compatible = "st,stm32-timer";
-+			reg = <0x40000000 0x400>;
-+			interrupts = <28>;
-+			resets = <&reset TIM2_RESET>;
-+			clocks = <&clk_pmtr1>;
-+
-+			status = "disabled";
-+		};
-+
-+		timer3: timer@40000400 {
-+			compatible = "st,stm32-timer";
-+			reg = <0x40000400 0x400>;
-+			interrupts = <29>;
-+			resets = <&reset TIM3_RESET>;
-+			clocks = <&clk_pmtr1>;
-+
-+			status = "disabled";
-+		};
-+
-+		timer4: timer@40000800 {
-+			compatible = "st,stm32-timer";
-+			reg = <0x40000800 0x400>;
-+			interrupts = <30>;
-+			resets = <&reset TIM4_RESET>;
-+			clocks = <&clk_pmtr1>;
-+
-+			status = "disabled";
-+		};
-+
-+		timer5: timer@40000c00 {
-+			compatible = "st,stm32-timer";
-+			reg = <0x40000c00 0x400>;
-+			interrupts = <50>;
-+			resets = <&reset TIM5_RESET>;
-+			clocks = <&clk_pmtr1>;
-+		};
-+
-+		timer6: timer@40001000 {
-+			compatible = "st,stm32-timer";
-+			reg = <0x40001000 0x400>;
-+			interrupts = <54>;
-+			resets = <&reset TIM6_RESET>;
-+			clocks = <&clk_pmtr1>;
-+
-+			status = "disabled";
-+		};
-+
-+		timer7: timer@40001400 {
-+			compatible = "st,stm32-timer";
-+			reg = <0x40001400 0x400>;
-+			interrupts = <55>;
-+			resets = <&reset TIM7_RESET>;
-+			clocks = <&clk_pmtr1>;
-+
-+			status = "disabled";
-+		};
-+
-+		usart1: usart@40011000 {
-+			compatible = "st,stm32-usart";
-+			reg = <0x40011000 0x400>;
-+			interrupts = <37>;
-+			clocks = <&clk_pclk2>;
-+			pinctrl-names = "default";
-+			pinctrl-0 = <&pinctrl_usart1>;
-+
-+			status = "disabled";
-+		};
-+
-+		usart2: usart@40004400 {
-+			compatible = "st,stm32-usart";
-+			reg = <0x40004400 0x400>;
-+			interrupts = <38>;
-+			clocks = <&clk_pclk1>;
-+			pinctrl-names = "default";
-+			pinctrl-0 = <&pinctrl_usart1>;
-+
-+			status = "disabled";
-+		};
-+
-+		usart3: usart@40004800 {
-+			compatible = "st,stm32-usart";
-+			reg = <0x40004800 0x400>;
-+			interrupts = <39>;
-+			clocks = <&clk_pclk1>;
-+			pinctrl-names = "default";
-+			pinctrl-0 = <&pinctrl_usart1>;
-+
-+			status = "disabled";
-+		};
-+
-+		usart4: usart@40004c00 {
-+			compatible = "st,stm32-usart";
-+			reg = <0x40004c00 0x400>;
-+			interrupts = <52>;
-+			clocks = <&clk_pclk1>;
-+			pinctrl-names = "default";
-+			pinctrl-0 = <&pinctrl_usart1>;
-+
-+			status = "disabled";
-+		};
-+
-+		usart5: usart@40005000 {
-+			compatible = "st,stm32-usart";
-+			reg = <0x40005000 0x400>;
-+			interrupts = <53>;
-+			clocks = <&clk_pclk1>;
-+			pinctrl-names = "default";
-+			pinctrl-0 = <&pinctrl_usart1>;
-+
-+			status = "disabled";
-+		};
-+
-+		usart6: usart@40011400 {
-+			compatible = "st,stm32-usart";
-+			reg = <0x40011400 0x400>;
-+			interrupts = <71>;
-+			clocks = <&clk_pclk2>;
-+			pinctrl-names = "default";
-+			pinctrl-0 = <&pinctrl_usart1>;
-+
-+			status = "disabled";
-+		};
-+
-+		usart7: usart@40007800 {
-+			compatible = "st,stm32-usart";
-+			reg = <0x40007800 0x400>;
-+			interrupts = <82>;
-+			clocks = <&clk_pclk1>;
-+			pinctrl-names = "default";
-+			pinctrl-0 = <&pinctrl_usart1>;
-+
-+			status = "disabled";
-+		};
-+
-+		usart8: usart@40007c00 {
-+			compatible = "st,stm32-usart";
-+			reg = <0x40007c00 0x400>;
-+			interrupts = <83>;
-+			clocks = <&clk_pclk1>;
-+			pinctrl-names = "default";
-+			pinctrl-0 = <&pinctrl_usart1>;
-+
-+			status = "disabled";
-+		};
-+	};
++static const char *const stm32_compat[] __initconst = {
++	"st,stm32f429",
++	NULL
 +};
++
++static void __init stm32_timer_init(void)
++{
++	of_clk_init(NULL);
++	reset_controller_of_init();
++	clocksource_of_init();
++
++}
++
++DT_MACHINE_START(STM32DT, "STM32 (Device Tree Support)")
++	.init_time = stm32_timer_init,
++	.dt_compat = stm32_compat,
++	.restart = armv7m_restart,
++MACHINE_END
 -- 
 1.9.1
 
