@@ -1,105 +1,143 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f68.google.com ([74.125.82.68]:41901 "EHLO
-	mail-wg0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754805AbbBTSBr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Feb 2015 13:01:47 -0500
+Received: from mail-wi0-f196.google.com ([209.85.212.196]:38205 "EHLO
+	mail-wi0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754627AbbBTSBn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Feb 2015 13:01:43 -0500
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: [PATCH v2 05/18] reset: Add reset_controller_of_init() function
-Date: Fri, 20 Feb 2015 19:01:04 +0100
-Message-Id: <1424455277-29983-6-git-send-email-mcoquelin.stm32@gmail.com>
+Subject: [PATCH v2 04/18] clocksource: Add ARM System timer driver
+Date: Fri, 20 Feb 2015 19:01:03 +0100
+Message-Id: <1424455277-29983-5-git-send-email-mcoquelin.stm32@gmail.com>
 In-Reply-To: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
 References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Maxime Coquelin <mcoquelin.stm32@gmail.com>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 
-Some platforms need to initialize the reset controller before the timers.
-
-This patch introduces a reset_controller_of_init() function that can be
-called before the timers intialization.
+This patch adds clocksource support for ARMv7-M's System timer,
+also known as SysTick.
 
 Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 ---
- drivers/reset/core.c              | 27 +++++++++++++++++++++++++++
- include/asm-generic/vmlinux.lds.h |  4 +++-
- include/linux/reset-controller.h  |  6 ++++++
- 3 files changed, 36 insertions(+), 1 deletion(-)
+ drivers/clocksource/Kconfig          |  7 ++++
+ drivers/clocksource/Makefile         |  1 +
+ drivers/clocksource/armv7m_systick.c | 78 ++++++++++++++++++++++++++++++++++++
+ 3 files changed, 86 insertions(+)
+ create mode 100644 drivers/clocksource/armv7m_systick.c
 
-diff --git a/drivers/reset/core.c b/drivers/reset/core.c
-index 7955e00..7eef63e 100644
---- a/drivers/reset/core.c
-+++ b/drivers/reset/core.c
-@@ -86,6 +86,33 @@ void reset_controller_unregister(struct reset_controller_dev *rcdev)
- }
- EXPORT_SYMBOL_GPL(reset_controller_unregister);
+diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+index fc01ec2..fb6011e 100644
+--- a/drivers/clocksource/Kconfig
++++ b/drivers/clocksource/Kconfig
+@@ -124,6 +124,13 @@ config CLKSRC_ARM_GLOBAL_TIMER_SCHED_CLOCK
+ 	help
+ 	 Use ARM global timer clock source as sched_clock
  
-+extern struct of_device_id __reset_ctrl_of_table[];
++config ARMV7M_SYSTICK
++	bool
++	select CLKSRC_OF if OF
++	select CLKSRC_MMIO
++	help
++	  This options enables support for the ARMv7M system timer unit
 +
-+static const struct of_device_id __reset_ctrl_of_table_sentinel
-+	__used __section(__reset_ctrl_of_table_end);
-+
-+/**
-+ * reset_controller_of_init - scan and init reset controllers from the DT
-+ *
-+ * This function scas the device tree for matching reset controllers. It is
-+ * used on machines that need reset controls at early stage. To use it, the
-+ * controller driver has to be registred with RESET_CONTROLLER_OF_DECLARE().
+ config ATMEL_PIT
+ 	select CLKSRC_OF if OF
+ 	def_bool SOC_AT91SAM9 || SOC_SAMA5
+diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+index 94d90b2..eeea736 100644
+--- a/drivers/clocksource/Makefile
++++ b/drivers/clocksource/Makefile
+@@ -42,6 +42,7 @@ obj-$(CONFIG_MTK_TIMER)		+= mtk_timer.o
+ 
+ obj-$(CONFIG_ARM_ARCH_TIMER)		+= arm_arch_timer.o
+ obj-$(CONFIG_ARM_GLOBAL_TIMER)		+= arm_global_timer.o
++obj-$(CONFIG_ARMV7M_SYSTICK)		+= armv7m_systick.o
+ obj-$(CONFIG_CLKSRC_METAG_GENERIC)	+= metag_generic.o
+ obj-$(CONFIG_ARCH_HAS_TICK_BROADCAST)	+= dummy_timer.o
+ obj-$(CONFIG_ARCH_KEYSTONE)		+= timer-keystone.o
+diff --git a/drivers/clocksource/armv7m_systick.c b/drivers/clocksource/armv7m_systick.c
+new file mode 100644
+index 0000000..23d8249
+--- /dev/null
++++ b/drivers/clocksource/armv7m_systick.c
+@@ -0,0 +1,78 @@
++/*
++ * Copyright (C) Maxime Coquelin 2015
++ * Author:  Maxime Coquelin <mcoquelin.stm32@gmail.com>
++ * License terms:  GNU General Public License (GPL), version 2
 + */
-+void __init reset_controller_of_init(void)
++
++#include <linux/kernel.h>
++#include <linux/clocksource.h>
++#include <linux/clockchips.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/clk.h>
++#include <linux/bitops.h>
++
++#define SYST_CSR	0x00
++#define SYST_RVR	0x04
++#define SYST_CVR	0x08
++#define SYST_CALIB	0x0c
++
++#define SYST_CSR_ENABLE BIT(0)
++
++#define SYSTICK_LOAD_RELOAD_MASK 0x00FFFFFF
++
++static void __init system_timer_of_register(struct device_node *np)
 +{
-+	struct device_node *np;
-+	const struct of_device_id *match;
-+	of_init_fn_1 init_func;
++	struct clk *clk;
++	void __iomem *base;
++	u32 rate = 0;
++	int ret;
 +
-+	for_each_matching_node_and_match(np, __reset_ctrl_of_table, &match) {
-+		if (!of_device_is_available(np))
-+			continue;
-+
-+		init_func = match->data;
-+		init_func(np);
++	base = of_iomap(np, 0);
++	if (!base) {
++		pr_warn("system-timer: invalid base address\n");
++		return;
 +	}
++
++	clk = of_clk_get(np, 0);
++	if (!IS_ERR(clk)) {
++		ret = clk_prepare_enable(clk);
++		if (ret) {
++			clk_put(clk);
++			goto out_unmap;
++		}
++
++		rate = clk_get_rate(clk);
++	}
++
++	/* If no clock found, try to get clock-frequency property */
++	if (!rate) {
++		ret = of_property_read_u32(np, "clock-frequency", &rate);
++		if (ret)
++			goto out_unmap;
++	}
++
++	writel_relaxed(SYSTICK_LOAD_RELOAD_MASK, base + SYST_RVR);
++	writel_relaxed(SYST_CSR_ENABLE, base + SYST_CSR);
++
++	ret = clocksource_mmio_init(base + SYST_CVR, "arm_system_timer", rate,
++			200, 24, clocksource_mmio_readl_down);
++	if (ret) {
++		pr_err("failed to init clocksource (%d)\n", ret);
++		goto out_clk_disable;
++	}
++
++	pr_info("ARM System timer initialized as clocksource\n");
++
++	return;
++
++out_clk_disable:
++	if (!IS_ERR(clk))
++		clk_disable_unprepare(clk);
++out_unmap:
++	iounmap(base);
++	WARN(ret, "ARM System timer register failed (%d)\n", ret);
 +}
 +
- /**
-  * reset_control_reset - reset the controlled device
-  * @rstc: reset controller
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index bee5d68..1f96365 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -168,6 +168,7 @@
- #define RESERVEDMEM_OF_TABLES()	OF_TABLE(CONFIG_OF_RESERVED_MEM, reservedmem)
- #define CPU_METHOD_OF_TABLES()	OF_TABLE(CONFIG_SMP, cpu_method)
- #define EARLYCON_OF_TABLES()	OF_TABLE(CONFIG_SERIAL_EARLYCON, earlycon)
-+#define RESET_CTRL_OF_TABLES()	OF_TABLE(CONFIG_RESET_CONTROLLER, reset_ctrl)
- 
- #define KERNEL_DTB()							\
- 	STRUCT_ALIGN();							\
-@@ -502,7 +503,8 @@
- 	CPU_METHOD_OF_TABLES()						\
- 	KERNEL_DTB()							\
- 	IRQCHIP_OF_MATCH_TABLE()					\
--	EARLYCON_OF_TABLES()
-+	EARLYCON_OF_TABLES()						\
-+	RESET_CTRL_OF_TABLES()
- 
- #define INIT_TEXT							\
- 	*(.init.text)							\
-diff --git a/include/linux/reset-controller.h b/include/linux/reset-controller.h
-index ce6b962..f8a030a 100644
---- a/include/linux/reset-controller.h
-+++ b/include/linux/reset-controller.h
-@@ -51,4 +51,10 @@ struct reset_controller_dev {
- int reset_controller_register(struct reset_controller_dev *rcdev);
- void reset_controller_unregister(struct reset_controller_dev *rcdev);
- 
-+
-+#define RESET_CONTROLLER_OF_DECLARE(name, compat, fn) \
-+	OF_DECLARE_1(reset_ctrl, name, compat, fn)
-+
-+void reset_controller_of_init(void);
-+
- #endif
++CLOCKSOURCE_OF_DECLARE(arm_systick, "arm,armv7m-systick",
++			system_timer_of_register);
 -- 
 1.9.1
 
