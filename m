@@ -1,499 +1,900 @@
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: [PATCH v2 16/18] ARM: dts: Introduce STM32F429 MCU
-Date: Fri, 20 Feb 2015 19:01:15 +0100
-Message-ID: <1424455277-29983-17-git-send-email-mcoquelin.stm32__32801.2924561792$1424455449$gmane$org@gmail.com>
+Subject: [PATCH v2 11/18] pinctrl: Add pinctrl driver for STM32 MCUs
+Date: Fri, 20 Feb 2015 19:01:10 +0100
+Message-ID: <1424455277-29983-12-git-send-email-mcoquelin.stm32__41532.0573527881$1424455464$gmane$org@gmail.com>
 References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f65.google.com ([74.125.82.65]:33526 "EHLO
-	mail-wg0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932161AbbBTSCw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Feb 2015 13:02:52 -0500
+Received: from mail-wi0-f195.google.com ([209.85.212.195]:52106 "EHLO
+	mail-wi0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932083AbbBTSCj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Feb 2015 13:02:39 -0500
 In-Reply-To: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Maxime Coquelin <mcoquelin.stm32@gmail.com>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will
 
-The STMicrolectornics's STM32F419 MCU has the following main features:
- - Cortex-M4 core running up to @180MHz
- - 2MB internal flash, 256KBytes internal RAM
- - FMC controller to connect SDRAM, NOR and NAND memories
- - SD/MMC/SDIO support
- - Ethernet controller
- - USB OTFG FS & HS controllers
- - I2C, SPI, CAN busses support
- - Several 16 & 32 bits general purpose timers
- - Serial Audio interface
- - LCD controller
+This driver adds pinctrl and GPIO support to STMicrolectronic's
+STM32 family of MCUs.
+
+Pin muxing and GPIO handling have been tested on STM32F429
+based Discovery board.
 
 Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 ---
- arch/arm/boot/dts/Makefile            |   1 +
- arch/arm/boot/dts/stm32f429-disco.dts |  41 ++++
- arch/arm/boot/dts/stm32f429.dtsi      | 396 ++++++++++++++++++++++++++++++++++
- 3 files changed, 438 insertions(+)
- create mode 100644 arch/arm/boot/dts/stm32f429-disco.dts
- create mode 100644 arch/arm/boot/dts/stm32f429.dtsi
+ drivers/pinctrl/Kconfig                     |  10 +
+ drivers/pinctrl/Makefile                    |   1 +
+ drivers/pinctrl/pinctrl-stm32.c             | 779 ++++++++++++++++++++++++++++
+ include/dt-bindings/pinctrl/pinctrl-stm32.h |  43 ++
+ 4 files changed, 833 insertions(+)
+ create mode 100644 drivers/pinctrl/pinctrl-stm32.c
+ create mode 100644 include/dt-bindings/pinctrl/pinctrl-stm32.h
 
-diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index 91bd5bd..d7da0ef 100644
---- a/arch/arm/boot/dts/Makefile
-+++ b/arch/arm/boot/dts/Makefile
-@@ -442,6 +442,7 @@ dtb-$(CONFIG_ARCH_STI)+= stih407-b2120.dtb \
- 	stih416-b2000.dtb \
- 	stih416-b2020.dtb \
- 	stih416-b2020e.dtb
-+dtb-$(CONFIG_ARCH_STM32)+= stm32f429-disco.dtb
- dtb-$(CONFIG_MACH_SUN4I) += \
- 	sun4i-a10-a1000.dtb \
- 	sun4i-a10-ba10-tvbox.dtb \
-diff --git a/arch/arm/boot/dts/stm32f429-disco.dts b/arch/arm/boot/dts/stm32f429-disco.dts
+diff --git a/drivers/pinctrl/Kconfig b/drivers/pinctrl/Kconfig
+index d014f22..84cd081 100644
+--- a/drivers/pinctrl/Kconfig
++++ b/drivers/pinctrl/Kconfig
+@@ -125,6 +125,16 @@ config PINCTRL_ST
+ 	select PINCONF
+ 	select GPIOLIB_IRQCHIP
+ 
++config PINCTRL_STM32
++	bool "STMicroelectronics STM32 pinctrl driver"
++	depends on OF
++	depends on ARCH_STM32 || COMPILE_TEST
++	select PINMUX
++	select PINCONF
++	select GPIOLIB_IRQCHIP
++	help
++	  This selects the device tree based generic pinctrl driver for STM32.
++
+ config PINCTRL_TEGRA
+ 	bool
+ 	select PINMUX
+diff --git a/drivers/pinctrl/Makefile b/drivers/pinctrl/Makefile
+index c030b3d..06ef8ab 100644
+--- a/drivers/pinctrl/Makefile
++++ b/drivers/pinctrl/Makefile
+@@ -35,6 +35,7 @@ obj-$(CONFIG_PINCTRL_XWAY)	+= pinctrl-xway.o
+ obj-$(CONFIG_PINCTRL_LANTIQ)	+= pinctrl-lantiq.o
+ obj-$(CONFIG_PINCTRL_TB10X)	+= pinctrl-tb10x.o
+ obj-$(CONFIG_PINCTRL_ST) 	+= pinctrl-st.o
++obj-$(CONFIG_PINCTRL_STM32) 	+= pinctrl-stm32.o
+ 
+ obj-$(CONFIG_ARCH_BERLIN)	+= berlin/
+ obj-y				+= freescale/
+diff --git a/drivers/pinctrl/pinctrl-stm32.c b/drivers/pinctrl/pinctrl-stm32.c
 new file mode 100644
-index 0000000..0e79cc1
+index 0000000..5c474b0
 --- /dev/null
-+++ b/arch/arm/boot/dts/stm32f429-disco.dts
-@@ -0,0 +1,41 @@
-+/dts-v1/;
-+#include "stm32f429.dtsi"
-+
-+/ {
-+	model = "STMicroelectronics's STM32F429i-DISCO board";
-+	compatible = "st,stm32f429i-disco", "st,stm32f429";
-+
-+	chosen {
-+		bootargs = "console=ttyS0,115200 root=/dev/ram rdinit=/linuxrc";
-+		linux,stdout-path = &usart1;
-+	};
-+
-+	memory {
-+		reg = <0xd0000000 0x800000>;
-+	};
-+
-+	aliases {
-+		ttyS0 = &usart1;
-+	};
-+
-+	soc {
-+		usart1: usart@40011000 {
-+			status = "okay";
-+		};
-+
-+		leds {
-+			compatible = "gpio-leds";
-+			red {
-+				#gpio-cells = <2>;
-+				label = "Front Panel LED";
-+				gpios = <&gpiog 14 0>;
-+				linux,default-trigger = "heartbeat";
-+			};
-+			green {
-+				#gpio-cells = <2>;
-+				gpios = <&gpiog 13 0>;
-+				default-state = "off";
-+			};
-+		};
-+	};
-+};
-diff --git a/arch/arm/boot/dts/stm32f429.dtsi b/arch/arm/boot/dts/stm32f429.dtsi
-new file mode 100644
-index 0000000..5b3442a
---- /dev/null
-+++ b/arch/arm/boot/dts/stm32f429.dtsi
-@@ -0,0 +1,396 @@
++++ b/drivers/pinctrl/pinctrl-stm32.c
+@@ -0,0 +1,779 @@
 +/*
-+ * Device tree for STM32F429
++ * Copyright (C) Maxime Coquelin 2015
++ * Author:  Maxime Coquelin <mcoquelin.stm32@gmail.com>
++ * License terms:  GNU General Public License (GPL), version 2
++ *
++ * Heavily based on pinctrl-st.c from Srinivas Kandagatla
 + */
-+#include "armv7-m.dtsi"
-+#include <dt-bindings/pinctrl/pinctrl-stm32.h>
-+#include <dt-bindings/reset/st,stm32f429.h>
 +
-+/ {
++#include <linux/init.h>
++#include <linux/module.h>
++#include <linux/slab.h>
++#include <linux/err.h>
++#include <linux/io.h>
++#include <linux/of.h>
++#include <linux/of_gpio.h>
++#include <linux/of_address.h>
++#include <linux/pinctrl/pinctrl.h>
++#include <linux/pinctrl/pinmux.h>
++#include <linux/pinctrl/pinconf.h>
++#include <linux/platform_device.h>
++#include <linux/reset.h>
++#include "core.h"
 +
-+	aliases {
-+		gpio0 = &gpioa;
-+		gpio1 = &gpiob;
-+		gpio2 = &gpioc;
-+		gpio3 = &gpiod;
-+		gpio4 = &gpioe;
-+		gpio5 = &gpiof;
-+		gpio6 = &gpiog;
-+		gpio7 = &gpioh;
-+		gpio8 = &gpioi;
-+		gpio9 = &gpioj;
-+		gpio10 = &gpiok;
-+	};
++#define STM32_GPIO_MODER	0x00
++#define STM32_GPIO_TYPER	0x04
++#define STM32_GPIO_SPEEDR	0x08
++#define STM32_GPIO_PUPDR	0x0c
++#define STM32_GPIO_IDR		0x10
++#define STM32_GPIO_ODR		0x14
++#define STM32_GPIO_BSRR		0x18
++#define STM32_GPIO_LCKR		0x1c
++#define STM32_GPIO_AFRL		0x20
++#define STM32_GPIO_AFRH		0x24
 +
-+	clocks {
-+		clk_sysclk: clk-sysclk {
-+			#clock-cells = <0>;
-+			compatible = "fixed-clock";
-+			clock-frequency = <180000000>;
-+		};
++#define STM32_GPIO_PINS_PER_BANK 16
++#define OF_GPIO_ARGS_MIN 4
 +
-+		clk_hclk: clk-hclk {
-+			#clock-cells = <0>;
-+			compatible = "fixed-clock";
-+			clock-frequency = <180000000>;
-+		};
++#define STM32_PINCONF_UNPACK(conf, param)\
++				((conf >> STM32_PINCONF_ ##param ##_SHIFT) \
++				& STM32_PINCONF_ ##param ##_MASK)
 +
-+		clk_pclk1: clk-pclk1 {
-+			#clock-cells = <0>;
-+			compatible = "fixed-clock";
-+			clock-frequency = <45000000>;
-+		};
++#define STM32_PINCONF_PACK(conf, val, param)	(conf |=\
++				((val & STM32_PINCONF_ ##param ##_MASK) << \
++					STM32_PINCONF_ ##param ##_SHIFT))
 +
-+		clk_pclk2: clk-pclk2 {
-+			#clock-cells = <0>;
-+			compatible = "fixed-clock";
-+			clock-frequency = <90000000>;
-+		};
++#define STM32_PINCONF_SPEED_MASK		0x3
++#define STM32_PINCONF_SPEED_SHIFT		3
++#define STM32_PINCONF_UNPACK_SPEED(conf)\
++				STM32_PINCONF_UNPACK(conf, SPEED)
++#define STM32_PINCONF_PACK_SPEED(conf, val)\
++				STM32_PINCONF_PACK(conf, val, SPEED)
 +
-+		clk_pmtr1: clk-pmtr1 {
-+			#clock-cells = <0>;
-+			compatible = "fixed-clock";
-+			clock-frequency = <90000000>;
-+		};
++#define STM32_PINCONF_TYPE_MASK			0x1
++#define STM32_PINCONF_TYPE_SHIFT		2
++#define STM32_PINCONF_UNPACK_TYPE(conf)\
++				STM32_PINCONF_UNPACK(conf, TYPE)
++#define STM32_PINCONF_PACK_TYPE(conf, val)\
++				STM32_PINCONF_PACK(conf, val, TYPE)
 +
-+		clk_pmtr2: clk-pmtr2 {
-+			#clock-cells = <0>;
-+			compatible = "fixed-clock";
-+			clock-frequency = <180000000>;
-+		};
++#define STM32_PINCONF_PUPD_MASK			0x3
++#define STM32_PINCONF_PUPD_SHIFT		0
++#define STM32_PINCONF_UNPACK_PUPD(conf)\
++				STM32_PINCONF_UNPACK(conf, PUPD)
++#define STM32_PINCONF_PACK_PUPD(conf, val)\
++				STM32_PINCONF_PACK(conf, val, PUPD)
 +
-+		clk_systick: clk-systick {
-+			compatible = "fixed-factor-clock";
-+			clocks = <&clk_hclk>;
-+			#clock-cells = <0>;
-+			clock-div = <8>;
-+			clock-mult = <1>;
-+		};
-+	};
 +
-+	systick: timer@e000e010 {
-+		clocks = <&clk_systick>;
++#define STM32_PINCONF_ALT_MASK			0xf
++#define STM32_PINCONF_ALT_SHIFT		2
++#define STM32_PINCONF_UNPACK_ALT(conf)\
++				STM32_PINCONF_UNPACK(conf, ALT)
++#define STM32_PINCONF_PACK_ALT(conf, val)\
++				STM32_PINCONF_PACK(conf, val, ALT)
 +
-+		status = "okay";
-+	};
++#define STM32_PINCONF_MODE_MASK			0x3
++#define STM32_PINCONF_MODE_SHIFT		0
++#define STM32_PINCONF_UNPACK_MODE(conf)\
++				STM32_PINCONF_UNPACK(conf, MODE)
++#define STM32_PINCONF_PACK_MODE(conf, val)\
++				STM32_PINCONF_PACK(conf, val, MODE)
 +
-+	soc {
-+		reset: reset@40023810 {
-+			#reset-cells = <1>;
-+			compatible = "st,stm32-reset";
-+			reg = <0x40023810 0x18>;
-+		};
 +
-+		pin-controller {
-+			#address-cells = <1>;
-+			#size-cells = <1>;
-+			compatible = "st,stm32-pinctrl";
-+			ranges = <0 0x40020000 0x3000>;
 +
-+			gpioa: gpio@40020000 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x0 0x400>;
-+				resets = <&reset GPIOA_RESET>;
-+				st,bank-name = "GPIOA";
-+			};
++#define gpio_range_to_bank(chip) \
++		container_of(chip, struct stm32_gpio_bank, range)
 +
-+			gpiob: gpio@40020400 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x400 0x400>;
-+				resets = <&reset GPIOB_RESET>;
-+				st,bank-name = "GPIOB";
-+			};
++#define gpio_chip_to_bank(chip) \
++		container_of(chip, struct stm32_gpio_bank, gpio_chip)
 +
-+			gpioc: gpio@40020800 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x800 0x400>;
-+				resets = <&reset GPIOC_RESET>;
-+				st,bank-name = "GPIOC";
-+			};
-+
-+			gpiod: gpio@40020c00 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0xc00 0x400>;
-+				resets = <&reset GPIOD_RESET>;
-+				st,bank-name = "GPIOD";
-+			};
-+
-+			gpioe: gpio@40021000 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x1000 0x400>;
-+				resets = <&reset GPIOE_RESET>;
-+				st,bank-name = "GPIOE";
-+			};
-+
-+			gpiof: gpio@40021400 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x1400 0x400>;
-+				resets = <&reset GPIOF_RESET>;
-+				st,bank-name = "GPIOF";
-+			};
-+
-+			gpiog: gpio@40021800 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x1800 0x400>;
-+				resets = <&reset GPIOG_RESET>;
-+				st,bank-name = "GPIOG";
-+			};
-+
-+			gpioh: gpio@40021c00 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x1c00 0x400>;
-+				resets = <&reset GPIOH_RESET>;
-+				st,bank-name = "GPIOH";
-+			};
-+
-+			gpioi: gpio@40022000 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x2000 0x400>;
-+				resets = <&reset GPIOI_RESET>;
-+				st,bank-name = "GPIOI";
-+			};
-+
-+			gpioj: gpio@40022400 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x2400 0x400>;
-+				resets = <&reset GPIOJ_RESET>;
-+				st,bank-name = "GPIOJ";
-+			};
-+
-+			gpiok: gpio@40022800 {
-+				gpio-controller;
-+				#gpio-cells = <2>;
-+				reg = <0x2800 0x400>;
-+				resets = <&reset GPIOK_RESET>;
-+				st,bank-name = "GPIOK";
-+			};
-+
-+			usart1 {
-+				pinctrl_usart1: usart1-0 {
-+					st,pins {
-+						tx = <&gpioa 9 ALT7 NO_PULL PUSH_PULL LOW_SPEED>;
-+						rx = <&gpioa 10 ALT7 NO_PULL>;
-+					};
-+				};
-+			};
-+
-+			usart2 {
-+				pinctrl_usart2: usart2-0 {
-+					st,pins {
-+						tx = <&gpioa 2 ALT7 NO_PULL PUSH_PULL LOW_SPEED>;
-+						rx = <&gpioa 3 ALT7 NO_PULL>;
-+					};
-+				};
-+			};
-+
-+			usart3 {
-+				pinctrl_usart3: usart3-0 {
-+					st,pins {
-+						tx = <&gpiob 10 ALT7 NO_PULL PUSH_PULL LOW_SPEED>;
-+						rx = <&gpiob 11 ALT7 NO_PULL>;
-+					};
-+				};
-+			};
-+
-+			usart4 {
-+				pinctrl_usart4: usart4-0 {
-+					st,pins {
-+						tx = <&gpioa 0 ALT8 NO_PULL PUSH_PULL LOW_SPEED>;
-+						rx = <&gpioa 1 ALT8 NO_PULL>;
-+					};
-+				};
-+			};
-+
-+			usart5 {
-+				pinctrl_usart5: usart5-0 {
-+					st,pins {
-+						tx = <&gpioc 12 ALT8 NO_PULL PUSH_PULL LOW_SPEED>;
-+						rx = <&gpiod 2 ALT8 NO_PULL>;
-+					};
-+				};
-+			};
-+
-+			usart6 {
-+				pinctrl_usart6: usart6-0 {
-+					st,pins {
-+						tx = <&gpioc 6 ALT8 NO_PULL PUSH_PULL LOW_SPEED>;
-+						rx = <&gpioc 7 ALT8 NO_PULL>;
-+					};
-+				};
-+			};
-+
-+			usart7 {
-+				pinctrl_usart7: usart7-0 {
-+					st,pins {
-+						tx = <&gpioe 8 ALT8 NO_PULL PUSH_PULL LOW_SPEED>;
-+						rx = <&gpioe 7 ALT8 NO_PULL>;
-+					};
-+				};
-+			};
-+
-+			usart8 {
-+				pinctrl_usart8: usart8-0 {
-+					st,pins {
-+						tx = <&gpioe 1 ALT8 NO_PULL PUSH_PULL LOW_SPEED>;
-+						rx = <&gpioe 0 ALT8 NO_PULL>;
-+					};
-+				};
-+			};
-+		};
-+
-+		timer2: timer@40000000 {
-+			compatible = "st,stm32-timer";
-+			reg = <0x40000000 0x400>;
-+			interrupts = <28>;
-+			resets = <&reset TIM2_RESET>;
-+			clocks = <&clk_pmtr1>;
-+
-+			status = "disabled";
-+		};
-+
-+		timer3: timer@40000400 {
-+			compatible = "st,stm32-timer";
-+			reg = <0x40000400 0x400>;
-+			interrupts = <29>;
-+			resets = <&reset TIM3_RESET>;
-+			clocks = <&clk_pmtr1>;
-+
-+			status = "disabled";
-+		};
-+
-+		timer4: timer@40000800 {
-+			compatible = "st,stm32-timer";
-+			reg = <0x40000800 0x400>;
-+			interrupts = <30>;
-+			resets = <&reset TIM4_RESET>;
-+			clocks = <&clk_pmtr1>;
-+
-+			status = "disabled";
-+		};
-+
-+		timer5: timer@40000c00 {
-+			compatible = "st,stm32-timer";
-+			reg = <0x40000c00 0x400>;
-+			interrupts = <50>;
-+			resets = <&reset TIM5_RESET>;
-+			clocks = <&clk_pmtr1>;
-+		};
-+
-+		timer6: timer@40001000 {
-+			compatible = "st,stm32-timer";
-+			reg = <0x40001000 0x400>;
-+			interrupts = <54>;
-+			resets = <&reset TIM6_RESET>;
-+			clocks = <&clk_pmtr1>;
-+
-+			status = "disabled";
-+		};
-+
-+		timer7: timer@40001400 {
-+			compatible = "st,stm32-timer";
-+			reg = <0x40001400 0x400>;
-+			interrupts = <55>;
-+			resets = <&reset TIM7_RESET>;
-+			clocks = <&clk_pmtr1>;
-+
-+			status = "disabled";
-+		};
-+
-+		usart1: usart@40011000 {
-+			compatible = "st,stm32-usart";
-+			reg = <0x40011000 0x400>;
-+			interrupts = <37>;
-+			clocks = <&clk_pclk2>;
-+			pinctrl-names = "default";
-+			pinctrl-0 = <&pinctrl_usart1>;
-+
-+			status = "disabled";
-+		};
-+
-+		usart2: usart@40004400 {
-+			compatible = "st,stm32-usart";
-+			reg = <0x40004400 0x400>;
-+			interrupts = <38>;
-+			clocks = <&clk_pclk1>;
-+			pinctrl-names = "default";
-+			pinctrl-0 = <&pinctrl_usart1>;
-+
-+			status = "disabled";
-+		};
-+
-+		usart3: usart@40004800 {
-+			compatible = "st,stm32-usart";
-+			reg = <0x40004800 0x400>;
-+			interrupts = <39>;
-+			clocks = <&clk_pclk1>;
-+			pinctrl-names = "default";
-+			pinctrl-0 = <&pinctrl_usart1>;
-+
-+			status = "disabled";
-+		};
-+
-+		usart4: usart@40004c00 {
-+			compatible = "st,stm32-usart";
-+			reg = <0x40004c00 0x400>;
-+			interrupts = <52>;
-+			clocks = <&clk_pclk1>;
-+			pinctrl-names = "default";
-+			pinctrl-0 = <&pinctrl_usart1>;
-+
-+			status = "disabled";
-+		};
-+
-+		usart5: usart@40005000 {
-+			compatible = "st,stm32-usart";
-+			reg = <0x40005000 0x400>;
-+			interrupts = <53>;
-+			clocks = <&clk_pclk1>;
-+			pinctrl-names = "default";
-+			pinctrl-0 = <&pinctrl_usart1>;
-+
-+			status = "disabled";
-+		};
-+
-+		usart6: usart@40011400 {
-+			compatible = "st,stm32-usart";
-+			reg = <0x40011400 0x400>;
-+			interrupts = <71>;
-+			clocks = <&clk_pclk2>;
-+			pinctrl-names = "default";
-+			pinctrl-0 = <&pinctrl_usart1>;
-+
-+			status = "disabled";
-+		};
-+
-+		usart7: usart@40007800 {
-+			compatible = "st,stm32-usart";
-+			reg = <0x40007800 0x400>;
-+			interrupts = <82>;
-+			clocks = <&clk_pclk1>;
-+			pinctrl-names = "default";
-+			pinctrl-0 = <&pinctrl_usart1>;
-+
-+			status = "disabled";
-+		};
-+
-+		usart8: usart@40007c00 {
-+			compatible = "st,stm32-usart";
-+			reg = <0x40007c00 0x400>;
-+			interrupts = <83>;
-+			clocks = <&clk_pclk1>;
-+			pinctrl-names = "default";
-+			pinctrl-0 = <&pinctrl_usart1>;
-+
-+			status = "disabled";
-+		};
-+	};
++struct stm32_pinconf {
++	int		pin;
++	const char	*name;
++	unsigned long	config;
++	int		altfunc;
 +};
++
++struct stm32_pmx_func {
++	const char	*name;
++	const char	**groups;
++	unsigned	ngroups;
++};
++
++struct stm32_pctl_group {
++	const char		*name;
++	unsigned int		*pins;
++	unsigned		npins;
++	struct stm32_pinconf	*pin_conf;
++};
++
++struct stm32_gpio_bank {
++	void __iomem *base;
++	struct gpio_chip		gpio_chip;
++	struct pinctrl_gpio_range	range;
++	spinlock_t                      lock;
++};
++
++struct stm32_pinctrl {
++	struct device		*dev;
++	struct pinctrl_dev		*pctl;
++	struct stm32_gpio_bank	*banks;
++	int			nbanks;
++	struct stm32_pmx_func	*functions;
++	int			nfunctions;
++	struct stm32_pctl_group	*groups;
++	int			ngroups;
++};
++
++static inline int stm32_gpio_pin(int gpio)
++{
++	return gpio % STM32_GPIO_PINS_PER_BANK;
++}
++
++/* Pinconf  */
++static void stm32_pinconf_set_config(struct stm32_gpio_bank *bank,
++				int pin, unsigned long config)
++{
++	u32 type, speed, pupd, val;
++	unsigned long flags;
++
++	type = STM32_PINCONF_UNPACK_TYPE(config);
++	spin_lock_irqsave(&bank->lock, flags);
++	val = readl_relaxed(bank->base + STM32_GPIO_TYPER);
++	val &= ~BIT(pin);
++	val |= type << pin;
++	writel_relaxed(val, bank->base + STM32_GPIO_TYPER);
++	spin_unlock_irqrestore(&bank->lock, flags);
++
++	speed = STM32_PINCONF_UNPACK_SPEED(config);
++	spin_lock_irqsave(&bank->lock, flags);
++	val = readl_relaxed(bank->base + STM32_GPIO_SPEEDR);
++	val &= ~GENMASK(pin * 2 + 1, pin * 2);
++	val |= speed << (pin * 2);
++	writel_relaxed(val, bank->base + STM32_GPIO_SPEEDR);
++	spin_unlock_irqrestore(&bank->lock, flags);
++
++	pupd = STM32_PINCONF_UNPACK_PUPD(config);
++	spin_lock_irqsave(&bank->lock, flags);
++	val = readl_relaxed(bank->base + STM32_GPIO_PUPDR);
++	val &= ~GENMASK(pin * 2 + 1, pin * 2);
++	val |= pupd << (pin * 2);
++	writel_relaxed(val, bank->base + STM32_GPIO_PUPDR);
++	spin_unlock_irqrestore(&bank->lock, flags);
++}
++
++static void stm32_pinconf_get_config(struct stm32_gpio_bank *bank,
++				int pin, unsigned long *config)
++{
++	u32 val;
++
++	val = readl_relaxed(bank->base + STM32_GPIO_TYPER);
++	val = val >> pin;
++	STM32_PINCONF_PACK_TYPE(*config, val);
++
++	val = readl_relaxed(bank->base + STM32_GPIO_SPEEDR);
++	val = val >> (pin * 2);
++	STM32_PINCONF_PACK_SPEED(*config, val);
++
++	val = readl_relaxed(bank->base + STM32_GPIO_PUPDR);
++	val = val >> (pin * 2);
++	STM32_PINCONF_PACK_PUPD(*config, val);
++}
++
++static int stm32_pinconf_set(struct pinctrl_dev *pctldev, unsigned pin_id,
++			unsigned long *configs, unsigned num_configs)
++{
++	struct pinctrl_gpio_range *range =
++			 pinctrl_find_gpio_range_from_pin(pctldev, pin_id);
++	struct stm32_gpio_bank *bank = gpio_range_to_bank(range);
++	int pin = stm32_gpio_pin(pin_id);
++	int i;
++
++	for (i = 0; i < num_configs; i++)
++		stm32_pinconf_set_config(bank, pin, configs[i]);
++
++	return 0;
++}
++
++static int stm32_pinconf_get(struct pinctrl_dev *pctldev,
++			     unsigned pin_id, unsigned long *config)
++{
++	struct pinctrl_gpio_range *range =
++			 pinctrl_find_gpio_range_from_pin(pctldev, pin_id);
++	struct stm32_gpio_bank *bank = gpio_range_to_bank(range);
++	int pin = stm32_gpio_pin(pin_id);
++
++	*config = 0;
++	stm32_pinconf_get_config(bank, pin, config);
++
++	return 0;
++}
++
++static void stm32_pinconf_dbg_show(struct pinctrl_dev *pctldev,
++				   struct seq_file *s, unsigned pin_id)
++{
++	unsigned long config;
++
++	stm32_pinconf_get(pctldev, pin_id, &config);
++
++	seq_printf(s, "[PUPD:%ld,TYPE:%ld,SPEED:%ld]\n",
++		STM32_PINCONF_UNPACK_PUPD(config),
++		STM32_PINCONF_UNPACK_TYPE(config),
++		STM32_PINCONF_UNPACK_SPEED(config));
++}
++
++static struct pinconf_ops stm32_confops = {
++	.pin_config_get		= stm32_pinconf_get,
++	.pin_config_set		= stm32_pinconf_set,
++	.pin_config_dbg_show	= stm32_pinconf_dbg_show,
++};
++
++static void stm32_pctl_set_function(struct stm32_gpio_bank *bank,
++		int pin_id, int function)
++{
++	u32 mode, alt, val;
++	int pin = stm32_gpio_pin(pin_id);
++	int alt_shift = (pin % 8) * 4;
++	int alt_offset = STM32_GPIO_AFRL + (pin / 8) * 4;
++	unsigned long flags;
++
++	mode = STM32_PINCONF_UNPACK_MODE(function);
++	alt = STM32_PINCONF_UNPACK_ALT(function);
++
++	spin_lock_irqsave(&bank->lock, flags);
++
++	val = readl_relaxed(bank->base + alt_offset);
++	val &= ~GENMASK(alt_shift + 3, alt_shift);
++	val |= (alt << alt_shift);
++	writel_relaxed(val, bank->base + alt_offset);
++
++	val = readl_relaxed(bank->base + STM32_GPIO_MODER);
++	val &= ~GENMASK(pin * 2 + 1, pin * 2);
++	val |= mode << (pin * 2);
++	writel_relaxed(val, bank->base + STM32_GPIO_MODER);
++
++	spin_unlock_irqrestore(&bank->lock, flags);
++}
++
++/* Pinmux */
++static int stm32_pmx_get_funcs_count(struct pinctrl_dev *pctldev)
++{
++	struct stm32_pinctrl *info = pinctrl_dev_get_drvdata(pctldev);
++
++	return info->nfunctions;
++}
++
++static const char *stm32_pmx_get_fname(struct pinctrl_dev *pctldev,
++	unsigned selector)
++{
++	struct stm32_pinctrl *info = pinctrl_dev_get_drvdata(pctldev);
++
++	return info->functions[selector].name;
++}
++
++static int stm32_pmx_get_groups(struct pinctrl_dev *pctldev,
++	unsigned selector, const char * const **grps, unsigned * const ngrps)
++{
++	struct stm32_pinctrl *info = pinctrl_dev_get_drvdata(pctldev);
++	*grps = info->functions[selector].groups;
++	*ngrps = info->functions[selector].ngroups;
++
++	return 0;
++}
++
++static int stm32_pmx_set_mux(struct pinctrl_dev *pctldev, unsigned fselector,
++			unsigned group)
++{
++	struct pinctrl_gpio_range *range;
++	struct stm32_gpio_bank *bank;
++	struct stm32_pinctrl *info = pinctrl_dev_get_drvdata(pctldev);
++	struct stm32_pinconf *conf = info->groups[group].pin_conf;
++	int i;
++
++	for (i = 0; i < info->groups[group].npins; i++) {
++		range = pinctrl_find_gpio_range_from_pin(pctldev, conf[i].pin);
++		bank = gpio_range_to_bank(range);
++		stm32_pctl_set_function(bank, conf[i].pin, conf[i].altfunc);
++	}
++
++	return 0;
++}
++
++static int stm32_pmx_set_gpio_direction(struct pinctrl_dev *pctldev,
++			struct pinctrl_gpio_range *range, unsigned gpio,
++			bool input)
++{
++	struct stm32_gpio_bank *bank = gpio_range_to_bank(range);
++
++	stm32_pctl_set_function(bank, gpio, !input);
++
++	return 0;
++}
++
++static struct pinmux_ops stm32_pmxops = {
++	.get_functions_count	= stm32_pmx_get_funcs_count,
++	.get_function_name	= stm32_pmx_get_fname,
++	.get_function_groups	= stm32_pmx_get_groups,
++	.set_mux		= stm32_pmx_set_mux,
++	.gpio_set_direction	= stm32_pmx_set_gpio_direction,
++};
++
++/* Pinctrl Groups */
++static int stm32_pctl_get_groups_count(struct pinctrl_dev *pctldev)
++{
++	struct stm32_pinctrl *info = pinctrl_dev_get_drvdata(pctldev);
++
++	return info->ngroups;
++}
++
++static const char *stm32_pctl_get_group_name(struct pinctrl_dev *pctldev,
++				       unsigned selector)
++{
++	struct stm32_pinctrl *info = pinctrl_dev_get_drvdata(pctldev);
++
++	return info->groups[selector].name;
++}
++
++static int stm32_pctl_get_group_pins(struct pinctrl_dev *pctldev,
++	unsigned selector, const unsigned **pins, unsigned *npins)
++{
++	struct stm32_pinctrl *info = pinctrl_dev_get_drvdata(pctldev);
++
++	if (selector >= info->ngroups)
++		return -EINVAL;
++
++	*pins = info->groups[selector].pins;
++	*npins = info->groups[selector].npins;
++
++	return 0;
++}
++
++static const inline struct stm32_pctl_group *stm32_pctl_find_group_by_name(
++	const struct stm32_pinctrl *info, const char *name)
++{
++	int i;
++
++	for (i = 0; i < info->ngroups; i++) {
++		if (!strcmp(info->groups[i].name, name))
++			return &info->groups[i];
++	}
++
++	return NULL;
++}
++
++static int stm32_pctl_dt_node_to_map(struct pinctrl_dev *pctldev,
++	struct device_node *np, struct pinctrl_map **map, unsigned *num_maps)
++{
++	struct stm32_pinctrl *info = pinctrl_dev_get_drvdata(pctldev);
++	const struct stm32_pctl_group *grp;
++	struct pinctrl_map *new_map;
++	struct device_node *parent;
++	int map_num, i;
++
++	grp = stm32_pctl_find_group_by_name(info, np->name);
++	if (!grp) {
++		dev_err(info->dev, "unable to find group for node %s\n",
++			np->name);
++		return -EINVAL;
++	}
++
++	map_num = grp->npins + 1;
++	new_map = devm_kzalloc(pctldev->dev,
++				sizeof(*new_map) * map_num, GFP_KERNEL);
++	if (!new_map)
++		return -ENOMEM;
++
++	parent = of_get_parent(np);
++	if (!parent) {
++		devm_kfree(pctldev->dev, new_map);
++		return -EINVAL;
++	}
++
++	*map = new_map;
++	*num_maps = map_num;
++	new_map[0].type = PIN_MAP_TYPE_MUX_GROUP;
++	new_map[0].data.mux.function = parent->name;
++	new_map[0].data.mux.group = np->name;
++	of_node_put(parent);
++
++	/* create config map per pin */
++	new_map++;
++	for (i = 0; i < grp->npins; i++) {
++		new_map[i].type = PIN_MAP_TYPE_CONFIGS_PIN;
++		new_map[i].data.configs.group_or_pin =
++				pin_get_name(pctldev, grp->pins[i]);
++		new_map[i].data.configs.configs = &grp->pin_conf[i].config;
++		new_map[i].data.configs.num_configs = 1;
++	}
++	dev_info(pctldev->dev, "maps: function %s group %s num %d\n",
++		(*map)->data.mux.function, grp->name, map_num);
++
++	return 0;
++}
++
++static void stm32_pctl_dt_free_map(struct pinctrl_dev *pctldev,
++			struct pinctrl_map *map, unsigned num_maps)
++{
++}
++
++static struct pinctrl_ops stm32_pctlops = {
++	.get_groups_count	= stm32_pctl_get_groups_count,
++	.get_group_pins		= stm32_pctl_get_group_pins,
++	.get_group_name		= stm32_pctl_get_group_name,
++	.dt_node_to_map		= stm32_pctl_dt_node_to_map,
++	.dt_free_map		= stm32_pctl_dt_free_map,
++};
++
++static void stm32_pctl_dt_child_count(struct stm32_pinctrl *info,
++				     struct device_node *np)
++{
++	struct device_node *child;
++
++	for_each_child_of_node(np, child) {
++		if (of_property_read_bool(child, "gpio-controller")) {
++			info->nbanks++;
++		} else {
++			info->nfunctions++;
++			info->ngroups += of_get_child_count(child);
++		}
++	}
++}
++
++static int stm32_pctl_dt_parse_groups(struct device_node *np,
++	struct stm32_pctl_group *grp, struct stm32_pinctrl *info, int idx)
++{
++	const __be32 *list;
++	struct property *pp;
++	struct stm32_pinconf *conf;
++	struct device_node *pins;
++	int i = 0, npins = 0, nr_props;
++
++	pins = of_get_child_by_name(np, "st,pins");
++	if (!pins)
++		return -ENODATA;
++
++	for_each_property_of_node(pins, pp) {
++		/* Skip those we do not want to proceed */
++		if (!strcmp(pp->name, "name"))
++			continue;
++
++		if (pp  && (pp->length / sizeof(__be32)) >= OF_GPIO_ARGS_MIN) {
++			npins++;
++		} else {
++			pr_warn("Invalid st,pins in %s node\n", np->name);
++			return -EINVAL;
++		}
++	}
++
++	grp->npins = npins;
++	grp->name = np->name;
++	grp->pins = devm_kzalloc(info->dev, npins * sizeof(u32), GFP_KERNEL);
++	grp->pin_conf = devm_kzalloc(info->dev,
++					npins * sizeof(*conf), GFP_KERNEL);
++
++	if (!grp->pins || !grp->pin_conf)
++		return -ENOMEM;
++
++	/* <bank offset mux pull type speed> */
++	for_each_property_of_node(pins, pp) {
++		if (!strcmp(pp->name, "name"))
++			continue;
++		nr_props = pp->length / sizeof(u32);
++		list = pp->value;
++		conf = &grp->pin_conf[i];
++
++		/* bank & offset */
++		be32_to_cpup(list++);
++		be32_to_cpup(list++);
++		conf->pin = of_get_named_gpio(pins, pp->name, 0);
++		conf->name = pp->name;
++		grp->pins[i] = conf->pin;
++		/* mux */
++		conf->altfunc = be32_to_cpup(list++);
++		conf->config = 0;
++		/* pull-up/down */
++		conf->config |= be32_to_cpup(list++);
++		if (nr_props > OF_GPIO_ARGS_MIN) {
++			/* push-pull/open-drain */
++			conf->config |= be32_to_cpup(list++);
++			/* speed */
++			conf->config |= be32_to_cpup(list++);
++		}
++		i++;
++	}
++	of_node_put(pins);
++
++	return 0;
++}
++
++static int stm32_pctl_parse_functions(struct device_node *np,
++			struct stm32_pinctrl *info, u32 index, int *grp_index)
++{
++	struct device_node *child;
++	struct stm32_pmx_func *func;
++	struct stm32_pctl_group *grp;
++	int i = 0, ret;
++
++	func = &info->functions[index];
++	func->name = np->name;
++	func->ngroups = of_get_child_count(np);
++	if (func->ngroups == 0) {
++		dev_err(info->dev, "No groups defined\n");
++		return -EINVAL;
++	}
++	func->groups = devm_kzalloc(info->dev,
++			func->ngroups * sizeof(char *), GFP_KERNEL);
++	if (!func->groups)
++		return -ENOMEM;
++
++	for_each_child_of_node(np, child) {
++		func->groups[i] = child->name;
++		grp = &info->groups[*grp_index];
++		*grp_index += 1;
++		ret = stm32_pctl_dt_parse_groups(child, grp, info, i++);
++		if (ret)
++			return ret;
++	}
++	dev_info(info->dev, "Function[%d\t name:%s,\tgroups:%d]\n",
++				index, func->name, func->ngroups);
++
++	return 0;
++}
++
++static inline void __stm32_gpio_set(struct stm32_gpio_bank *bank,
++	unsigned offset, int value)
++{
++	if (!value)
++		offset += STM32_GPIO_PINS_PER_BANK;
++
++	writel_relaxed(BIT(offset), bank->base + STM32_GPIO_BSRR);
++}
++
++static int stm32_gpio_request(struct gpio_chip *chip, unsigned offset)
++{
++	return pinctrl_request_gpio(chip->base + offset);
++}
++
++static void stm32_gpio_free(struct gpio_chip *chip, unsigned offset)
++{
++	pinctrl_free_gpio(chip->base + offset);
++}
++
++static int stm32_gpio_get(struct gpio_chip *chip, unsigned offset)
++{
++	struct stm32_gpio_bank *bank = gpio_chip_to_bank(chip);
++
++	return !!(readl_relaxed(bank->base + STM32_GPIO_IDR) & BIT(offset));
++}
++
++static void stm32_gpio_set(struct gpio_chip *chip, unsigned offset, int value)
++{
++	struct stm32_gpio_bank *bank = gpio_chip_to_bank(chip);
++
++	__stm32_gpio_set(bank, offset, value);
++}
++
++static int stm32_gpio_direction_input(struct gpio_chip *chip, unsigned offset)
++{
++	pinctrl_gpio_direction_input(chip->base + offset);
++
++	return 0;
++}
++
++static int stm32_gpio_direction_output(struct gpio_chip *chip,
++	unsigned offset, int value)
++{
++	struct stm32_gpio_bank *bank = gpio_chip_to_bank(chip);
++
++	__stm32_gpio_set(bank, offset, value);
++	pinctrl_gpio_direction_output(chip->base + offset);
++
++	return 0;
++}
++
++static struct gpio_chip stm32_gpio_template = {
++	.request		= stm32_gpio_request,
++	.free			= stm32_gpio_free,
++	.get			= stm32_gpio_get,
++	.set			= stm32_gpio_set,
++	.direction_input	= stm32_gpio_direction_input,
++	.direction_output	= stm32_gpio_direction_output,
++	.ngpio			= STM32_GPIO_PINS_PER_BANK,
++};
++
++static int stm32_gpiolib_register_bank(struct stm32_pinctrl *info,
++	int bank_nr, struct device_node *np)
++{
++	struct stm32_gpio_bank *bank = &info->banks[bank_nr];
++	struct pinctrl_gpio_range *range = &bank->range;
++	struct device *dev = info->dev;
++	struct resource res;
++	struct reset_control *rstc;
++	int bank_num = of_alias_get_id(np, "gpio");
++	int err;
++
++	rstc = of_reset_control_get(np, NULL);
++	if (!IS_ERR(rstc))
++		reset_control_deassert(rstc);
++
++	if (of_address_to_resource(np, 0, &res))
++		return -ENODEV;
++
++	bank->base = devm_ioremap_resource(dev, &res);
++	if (IS_ERR(bank->base))
++		return PTR_ERR(bank->base);
++
++	bank->gpio_chip = stm32_gpio_template;
++	bank->gpio_chip.base = bank_num * STM32_GPIO_PINS_PER_BANK;
++	bank->gpio_chip.of_node = np;
++	bank->gpio_chip.dev = dev;
++	spin_lock_init(&bank->lock);
++
++	of_property_read_string(np, "st,bank-name", &range->name);
++	bank->gpio_chip.label = range->name;
++
++	range->id = bank_num;
++	range->pin_base = range->base = range->id * STM32_GPIO_PINS_PER_BANK;
++	range->npins = bank->gpio_chip.ngpio;
++	range->gc = &bank->gpio_chip;
++	err  = gpiochip_add(&bank->gpio_chip);
++	if (err) {
++		dev_err(dev, "Failed to add gpiochip(%d)!\n", bank_num);
++		return err;
++	}
++	dev_info(dev, "%s bank added.\n", range->name);
++
++	return 0;
++}
++
++static int stm32_pctl_probe_dt(struct platform_device *pdev,
++	struct pinctrl_desc *pctl_desc, struct stm32_pinctrl *info)
++{
++	struct device_node *np = pdev->dev.of_node;
++	struct pinctrl_pin_desc *pdesc;
++	struct device_node *child;
++	int grp_index = 0;
++	int i = 0, j = 0, k = 0, bank = 0,  ret = 0;
++
++	stm32_pctl_dt_child_count(info, np);
++	if (!info->nbanks) {
++		dev_err(&pdev->dev, "you need atleast one gpio bank\n");
++		return -EINVAL;
++	}
++
++	dev_info(&pdev->dev, "nbanks = %d\n", info->nbanks);
++	dev_info(&pdev->dev, "nfunctions = %d\n", info->nfunctions);
++	dev_info(&pdev->dev, "ngroups = %d\n", info->ngroups);
++
++	info->functions = devm_kzalloc(&pdev->dev,
++		info->nfunctions * sizeof(*info->functions), GFP_KERNEL);
++
++	info->groups = devm_kzalloc(&pdev->dev,
++			info->ngroups * sizeof(*info->groups), GFP_KERNEL);
++
++	info->banks = devm_kzalloc(&pdev->dev,
++			info->nbanks * sizeof(*info->banks), GFP_KERNEL);
++
++	if (!info->functions || !info->groups || !info->banks)
++		return -ENOMEM;
++
++	pctl_desc->npins = info->nbanks * STM32_GPIO_PINS_PER_BANK;
++	pdesc =	devm_kzalloc(&pdev->dev,
++			sizeof(*pdesc) * pctl_desc->npins, GFP_KERNEL);
++	if (!pdesc)
++		return -ENOMEM;
++
++	pctl_desc->pins = pdesc;
++
++	for_each_child_of_node(np, child) {
++		if (of_property_read_bool(child, "gpio-controller")) {
++			const char *bank_name;
++
++			ret = stm32_gpiolib_register_bank(info, bank, child);
++			if (ret)
++				return ret;
++
++			k = info->banks[bank].range.pin_base;
++			bank_name = info->banks[bank].range.name;
++			for (j = 0; j < STM32_GPIO_PINS_PER_BANK; j++, k++) {
++				pdesc->number = k;
++				pdesc->name = kasprintf(GFP_KERNEL, "%s[%d]",
++							bank_name, j);
++				pdesc++;
++			}
++			bank++;
++		} else {
++			ret = stm32_pctl_parse_functions(child, info,
++							i++, &grp_index);
++			if (ret) {
++				dev_err(&pdev->dev, "No functions found.\n");
++				return ret;
++			}
++		}
++	}
++
++	return 0;
++}
++
++static int stm32_pctl_probe(struct platform_device *pdev)
++{
++	struct stm32_pinctrl *info;
++	struct pinctrl_desc *pctl_desc;
++	int ret, i;
++
++	if (!pdev->dev.of_node) {
++		dev_err(&pdev->dev, "device not found.\n");
++		return -EINVAL;
++	}
++
++	pctl_desc = devm_kzalloc(&pdev->dev, sizeof(*pctl_desc), GFP_KERNEL);
++	if (!pctl_desc)
++		return -ENOMEM;
++
++	info = devm_kzalloc(&pdev->dev, sizeof(*info), GFP_KERNEL);
++	if (!info)
++		return -ENOMEM;
++
++	info->dev = &pdev->dev;
++	platform_set_drvdata(pdev, info);
++	ret = stm32_pctl_probe_dt(pdev, pctl_desc, info);
++	if (ret)
++		return ret;
++
++	pctl_desc->owner	= THIS_MODULE;
++	pctl_desc->pctlops	= &stm32_pctlops;
++	pctl_desc->pmxops	= &stm32_pmxops;
++	pctl_desc->confops	= &stm32_confops;
++	pctl_desc->name		= dev_name(&pdev->dev);
++
++	info->pctl = pinctrl_register(pctl_desc, &pdev->dev, info);
++	if (!info->pctl) {
++		dev_err(&pdev->dev, "Failed pinctrl registration\n");
++		return -EINVAL;
++	}
++
++	for (i = 0; i < info->nbanks; i++)
++		pinctrl_add_gpio_range(info->pctl, &info->banks[i].range);
++
++	return 0;
++}
++
++static struct of_device_id stm32_pctl_of_match[] = {
++	{ .compatible = "st,stm32-pinctrl" },
++	{ /* sentinel */ }
++};
++
++static struct platform_driver stm32_pctl_driver = {
++	.driver = {
++		.name = "stm32-pinctrl",
++		.owner = THIS_MODULE,
++		.of_match_table = stm32_pctl_of_match,
++	},
++	.probe = stm32_pctl_probe,
++};
++
++static int __init stm32_pctl_init(void)
++{
++	return platform_driver_register(&stm32_pctl_driver);
++}
++arch_initcall(stm32_pctl_init);
+diff --git a/include/dt-bindings/pinctrl/pinctrl-stm32.h b/include/dt-bindings/pinctrl/pinctrl-stm32.h
+new file mode 100644
+index 0000000..3e93a86
+--- /dev/null
++++ b/include/dt-bindings/pinctrl/pinctrl-stm32.h
+@@ -0,0 +1,43 @@
++#ifndef _DT_BINDINGS_PINCTRL_STM32_H
++#define _DT_BINDINGS_PINCTRL_STM32_H
++
++/* Modes */
++#define IN		0
++#define OUT		1
++#define ALT		2
++#define ANALOG		3
++
++/* Alternate functions */
++#define ALT0		((0 << 2) | ALT)
++#define ALT1		((1 << 2) | ALT)
++#define ALT2		((2 << 2) | ALT)
++#define ALT3		((3 << 2) | ALT)
++#define ALT4		((4 << 2) | ALT)
++#define ALT5		((5 << 2) | ALT)
++#define ALT6		((6 << 2) | ALT)
++#define ALT7		((7 << 2) | ALT)
++#define ALT8		((8 << 2) | ALT)
++#define ALT9		((9 << 2) | ALT)
++#define ALT10		((10 << 2) | ALT)
++#define ALT11		((11 << 2) | ALT)
++#define ALT12		((12 << 2) | ALT)
++#define ALT13		((13 << 2) | ALT)
++#define ALT14		((14 << 2) | ALT)
++#define ALT15		((15 << 2) | ALT)
++
++/* Pull-Up/Down */
++#define NO_PULL		0
++#define PULL_UP		1
++#define PULL_DOWN	2
++
++/* Type */
++#define PUSH_PULL	(0 << 2)
++#define OPEN_DRAIN	(1 << 2)
++
++/* Speed */
++#define LOW_SPEED	(0 << 3)
++#define MEDIUM_SPEED	(1 << 3)
++#define FAST_SPEED	(2 << 3)
++#define HIGH_SPEED	(3 << 3)
++
++#endif /* _DT_BINDINGS_PINCTRL_STM32_H */
 -- 
 1.9.1
