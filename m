@@ -1,85 +1,38 @@
-From: Rob Herring <robherring2@gmail.com>
-Subject: Re: [PATCH 02/14] ARM: ARMv7M: Enlarge vector table to 256 entries
-Date: Thu, 19 Feb 2015 10:35:49 -0600
-Message-ID: <CAL_Jsq+WPbUE7mqmyfi2kUreis0cXM2EC8dJLTD3HOBXsFAzuA@mail.gmail.com>
-References: <1423763164-5606-1-git-send-email-mcoquelin.stm32@gmail.com>
- <1423763164-5606-3-git-send-email-mcoquelin.stm32@gmail.com>
- <CAMuHMdWESyPktOSBfVoZCb35stUbhNpbbpzSW4JfORdObgg5jw@mail.gmail.com>
- <CALszF6BDa9pUb534YN2z9DbYA+hPCnG8XYy5YbjJwSiseKz4xg@mail.gmail.com>
- <CAL_Jsq+rHFPXmWqByvdG435tpbO_+ODByiMcdxboULYpUfDUmg@mail.gmail.com> <CALszF6DyVqaE6DLKSQHeuYWgSChzhEtCbmOsbjoTkvipquBivw@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <CALszF6DyVqaE6DLKSQHeuYWgSChzhEtCbmOsbjoTkvipquBivw@mail.gmail.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Jonathan Corbet <corbet@lwn.net>, Rob Herring <robh+dt@kernel.org>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Philipp Zabel <p.zabel@pengutronix.de>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>R
-List-Id: linux-arch.vger.kernel.org
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Subject: [PATCH v2 01/18] scripts: link-vmlinux: Don't pass page offset to kallsyms if XIP Kernel
+Date: Fri, 20 Feb 2015 19:01:00 +0100
+Message-ID: <1424455277-29983-2-git-send-email-mcoquelin.stm32@gmail.com>
+References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wi0-f196.google.com ([209.85.212.196]:34142 "EHLO
+	mail-wi0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752301AbbBTSBd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Feb 2015 13:01:33 -0500
+In-Reply-To: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Maxime Coquelin <mcoquelin.stm32@gmail.com>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will
 
-On Thu, Feb 19, 2015 at 10:13 AM, Maxime Coquelin
-<mcoquelin.stm32@gmail.com> wrote:
-> Hi Rob,
->
-> 2015-02-15 23:42 GMT+01:00 Rob Herring <robherring2@gmail.com>:
->> On Fri, Feb 13, 2015 at 2:42 AM, Maxime Coquelin
->> <mcoquelin.stm32@gmail.com> wrote:
->>> Hi Geert,
->>>
->>> 2015-02-12 21:34 GMT+01:00 Geert Uytterhoeven <geert@linux-m68k.org>:
->>>> On Thu, Feb 12, 2015 at 6:45 PM, Maxime Coquelin
->>>> <mcoquelin.stm32@gmail.com> wrote:
->>>>> From Cortex-M4 and M7 reference manuals, the nvic supports up to 240
->>>>> interrupts. So the number of entries in vectors table is 256.
->>>>>
->>>>> This patch adds the missing entries, and change the alignement, so that
->>>>> vector_table remains naturally aligned.
->>>>
->>>> Shouldn't this depend on ARCH_STM32, or some other M4 or M7 specific
->>>> Kconfig option, to avoid wasting the space on other CPUs?
->>>
->>> Actually, the STM32F429 has 90 interrupts, so it would need 106
->>> entries in the vector table.
->>> The maximum of supported interrupts is not only for Cortex-M4 and M7,
->>> this is also true for Cortex-M3.
->>>
->>> I see two possibilities:
->>>  1 - We declare the vector table for the maximum supported number of
->>> IRQs, as this patch does.
->>>         - Pro: it will be functionnal with all Cortex-M MCUs
->>>         - Con: Waste of less than 1KB for memory
->>
->> The waste depends on the alignment size as well and could be up to
->> almost 2KB worst case. It varies depending on the padding. We should
->> try to place it so it always aligned and the wasted space is
->> minimized.
->
-> Sorry, I just notice I didn't replied to all. That was my question:
->
-> Do you mean by forcing its location in the arch/arm/kernel/vmlinux.lds.S file?
+When Kernel is executed in place from ROM, the symbol addresses can be
+lower than the page offset.
 
-Yes, that is one way. Or we might be able to just be smarter about how
-we arrange the code. The first thing to do is figure out how much
-space we waste and what comes before it.
+Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+---
+ scripts/link-vmlinux.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-Rob
-
->
-> Regards,
-> Maxime
->
->>
->> Rob
->>
->>>  2 - We introduce a config flag that provides the number of interrupts
->>>         - Pro: No more memory waste
->>>         - Con: Need to declare a per MCU model config flag.
->>>
->>> Then, regarding the natural alignment, is there a way to ensure it
->>> depending on the value of a config flag?
->>> Or we should keep it at the maximum value possible?
->>>
->>> Any feedback will be appreciated, especially from Uwe who maintains
->>> the efm32 machine.
->>>
->>> Kind regards,
->>> Maxime
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index 86a4fe7..b055d9d 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -82,7 +82,7 @@ kallsyms()
+ 		kallsymopt="${kallsymopt} --all-symbols"
+ 	fi
+ 
+-	if [ -n "${CONFIG_ARM}" ] && [ -n "${CONFIG_PAGE_OFFSET}" ]; then
++	if [ -n "${CONFIG_ARM}" ] && [ -z "${CONFIG_XIP_KERNEL}" ] && [ -n "${CONFIG_PAGE_OFFSET}" ]; then
+ 		kallsymopt="${kallsymopt} --page-offset=$CONFIG_PAGE_OFFSET"
+ 	fi
+ 
+-- 
+1.9.1
