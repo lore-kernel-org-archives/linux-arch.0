@@ -1,298 +1,321 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v4 00/15] Revert h8300 architecture
-Date: Sat, 21 Feb 2015 16:53:44 +0900
-Message-ID: <1424505239-7082-1-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v4 11/15] h8300: clock driver
+Date: Sat, 21 Feb 2015 16:53:55 +0900
+Message-ID: <1424505239-7082-12-git-send-email-ysato@users.sourceforge.jp>
+References: <1424505239-7082-1-git-send-email-ysato@users.sourceforge.jp>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.asahi-net.or.jp ([202.224.39.198]:19164 "EHLO
+Received: from mail2.asahi-net.or.jp ([202.224.39.198]:19210 "EHLO
 	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751307AbbBUHyJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 21 Feb 2015 02:54:09 -0500
+	with ESMTP id S1752214AbbBUHyL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 21 Feb 2015 02:54:11 -0500
+In-Reply-To: <1424505239-7082-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 
-Changes for v4
-- Remove signal mapping
-- Organize Kconfig
-- Coding style fix
-
-Changes for v3
-- Fix clone
-- Add dma functions
-- Add missing library
-- Fix various errors
-
-Changes for v2
-- Use Common Clock Framework
-- Use common unistd.h
-- Use common ptrace function
-- clocksource driver move to drivers/clocksource
-- some cleanup
-
-Changes for latest relase (v3.12)
-- standard ELF toolchain (h8300-linux)
-- use common driver support
-- exception handling fix
-- too many cleanup
-
-git repository
-git://git.sourceforge.jp/gitroot/uclinux-h8/linux.git h8300
-
-Yoshinori Sato (15):
-  h8300: Assembly headers.
-  h8300: UAPI headers
-  h8300: Exception and Interrupt handling
-  h8300: kernel booting
-  h8300: Process and signal
-  h8300: CPU depend helpers
-  h8300: miscellaneous functions
-  h8300: Memory management
-  h8300: library functions
-  h8300: Build scripts
-  h8300: clock driver
-  h8300: clocksource
-  h8300: configs
-  serial: Add h8300
-  Add ELF machine
-
- arch/h8300/Kconfig                         |  73 +++++
- arch/h8300/Kconfig.cpu                     | 111 ++++++++
- arch/h8300/Makefile                        |  45 ++++
- arch/h8300/boot/Makefile                   |  26 ++
- arch/h8300/boot/compressed/Makefile        |  37 +++
- arch/h8300/boot/compressed/head.S          |  48 ++++
- arch/h8300/boot/compressed/misc.c          |  74 +++++
- arch/h8300/boot/compressed/vmlinux.lds     |  32 +++
- arch/h8300/boot/compressed/vmlinux.scr     |   9 +
- arch/h8300/configs/h8300h-sim_defconfig    |  53 ++++
- arch/h8300/configs/h8s-sim_defconfig       |  53 ++++
- arch/h8300/include/asm/Kbuild              |  66 +++++
- arch/h8300/include/asm/asm-offsets.h       |   1 +
- arch/h8300/include/asm/atomic.h            | 159 +++++++++++
- arch/h8300/include/asm/bitops.h            | 185 +++++++++++++
- arch/h8300/include/asm/bootparams.h        |  17 ++
- arch/h8300/include/asm/bug.h               |  12 +
- arch/h8300/include/asm/cache.h             |  11 +
- arch/h8300/include/asm/checksum.h          | 102 +++++++
- arch/h8300/include/asm/cmpxchg.h           |  65 +++++
- arch/h8300/include/asm/cputime.h           |   6 +
- arch/h8300/include/asm/delay.h             |  38 +++
- arch/h8300/include/asm/device.h            |   6 +
- arch/h8300/include/asm/dma-mapping.h       | 124 +++++++++
- arch/h8300/include/asm/elf.h               | 101 +++++++
- arch/h8300/include/asm/emergency-restart.h |   6 +
- arch/h8300/include/asm/flat.h              |  27 ++
- arch/h8300/include/asm/io.h                | 314 ++++++++++++++++++++++
- arch/h8300/include/asm/irq.h               |  26 ++
- arch/h8300/include/asm/irqflags.h          |  92 +++++++
- arch/h8300/include/asm/mc146818rtc.h       |   9 +
- arch/h8300/include/asm/mutex.h             |   9 +
- arch/h8300/include/asm/page.h              |  18 ++
- arch/h8300/include/asm/page_offset.h       |   2 +
- arch/h8300/include/asm/pci.h               |  19 ++
- arch/h8300/include/asm/pgtable.h           |  49 ++++
- arch/h8300/include/asm/processor.h         | 144 ++++++++++
- arch/h8300/include/asm/ptrace.h            |  36 +++
- arch/h8300/include/asm/segment.h           |  49 ++++
- arch/h8300/include/asm/sh_bios.h           |   4 +
- arch/h8300/include/asm/signal.h            |  22 ++
- arch/h8300/include/asm/smp.h               |   1 +
- arch/h8300/include/asm/spinlock.h          |   6 +
- arch/h8300/include/asm/string.h            |  17 ++
- arch/h8300/include/asm/switch_to.h         |  51 ++++
- arch/h8300/include/asm/syscall.h           |  56 ++++
- arch/h8300/include/asm/thread_info.h       | 119 ++++++++
- arch/h8300/include/asm/timer.h             |  31 +++
- arch/h8300/include/asm/tlb.h               |   8 +
- arch/h8300/include/asm/topology.h          |   6 +
- arch/h8300/include/asm/traps.h             |  41 +++
- arch/h8300/include/asm/uaccess.h           | 136 ++++++++++
- arch/h8300/include/asm/unaligned.h         |  11 +
- arch/h8300/include/asm/user.h              |  74 +++++
- arch/h8300/include/uapi/asm/Kbuild         |  29 ++
- arch/h8300/include/uapi/asm/auxvec.h       |   4 +
- arch/h8300/include/uapi/asm/byteorder.h    |   6 +
- arch/h8300/include/uapi/asm/ptrace.h       |  42 +++
- arch/h8300/include/uapi/asm/sigcontext.h   |  18 ++
- arch/h8300/include/uapi/asm/signal.h       | 115 ++++++++
- arch/h8300/include/uapi/asm/swab.h         |   1 +
- arch/h8300/include/uapi/asm/unistd.h       |   3 +
- arch/h8300/kernel/Makefile                 |  16 ++
- arch/h8300/kernel/asm-offsets.c            |  60 +++++
- arch/h8300/kernel/cpu/Makefile             |   4 +
- arch/h8300/kernel/cpu/h83069/Makefile      |   1 +
- arch/h8300/kernel/cpu/h83069/setup.c       | 202 ++++++++++++++
- arch/h8300/kernel/cpu/h8s2678/Makefile     |   1 +
- arch/h8300/kernel/cpu/h8s2678/setup.c      | 161 +++++++++++
- arch/h8300/kernel/cpu/irq_h.c              |  62 +++++
- arch/h8300/kernel/cpu/irq_s.c              |  70 +++++
- arch/h8300/kernel/cpu/ptrace_h.c           | 256 ++++++++++++++++++
- arch/h8300/kernel/cpu/ptrace_s.c           |  44 +++
- arch/h8300/kernel/dma.c                    |  95 +++++++
- arch/h8300/kernel/entry.S                  | 418 +++++++++++++++++++++++++++++
- arch/h8300/kernel/h8300_ksyms.c            |  34 +++
- arch/h8300/kernel/head_ram.S               |  60 +++++
- arch/h8300/kernel/head_rom.S               | 108 ++++++++
- arch/h8300/kernel/irq.c                    | 100 +++++++
- arch/h8300/kernel/module.c                 |  70 +++++
- arch/h8300/kernel/process.c                | 171 ++++++++++++
- arch/h8300/kernel/ptrace.c                 | 203 ++++++++++++++
- arch/h8300/kernel/setup.c                  | 174 ++++++++++++
- arch/h8300/kernel/signal.c                 | 308 +++++++++++++++++++++
- arch/h8300/kernel/sim-console.c            |  79 ++++++
- arch/h8300/kernel/syscalls.c               |  14 +
- arch/h8300/kernel/traps.c                  | 161 +++++++++++
- arch/h8300/kernel/vmlinux.lds.S            |  85 ++++++
- arch/h8300/lib/Makefile                    |   7 +
- arch/h8300/lib/abs.S                       |  20 ++
- arch/h8300/lib/ashldi3.c                   |  24 ++
- arch/h8300/lib/ashrdi3.c                   |  24 ++
- arch/h8300/lib/checksum.c                  | 167 ++++++++++++
- arch/h8300/lib/libgcc.h                    |  77 ++++++
- arch/h8300/lib/lshrdi3.c                   |  23 ++
- arch/h8300/lib/memcpy.S                    |  85 ++++++
- arch/h8300/lib/memset.S                    |  69 +++++
- arch/h8300/lib/moddivsi3.S                 |  72 +++++
- arch/h8300/lib/modsi3.S                    |  72 +++++
- arch/h8300/lib/muldi3.c                    |  44 +++
- arch/h8300/lib/mulsi3.S                    |  38 +++
- arch/h8300/lib/strncpy.S                   |  34 +++
- arch/h8300/lib/ucmpdi2.c                   |  17 ++
- arch/h8300/lib/udivsi3.S                   |  76 ++++++
- arch/h8300/mm/Makefile                     |   5 +
- arch/h8300/mm/fault.c                      |  57 ++++
- arch/h8300/mm/init.c                       | 133 +++++++++
- arch/h8300/mm/kmap.c                       |  61 +++++
- arch/h8300/mm/memory.c                     |  53 ++++
- drivers/clk/Makefile                       |   1 +
- drivers/clk/h8300/Makefile                 |   2 +
- drivers/clk/h8300/clk-h83069.c             |  74 +++++
- drivers/clk/h8300/clk-h8s2678.c            | 165 ++++++++++++
- drivers/clocksource/Kconfig                |   6 +
- drivers/clocksource/Makefile               |   3 +
- drivers/clocksource/h8300_timer16.c        | 332 +++++++++++++++++++++++
- drivers/clocksource/h8300_timer8.c         | 398 +++++++++++++++++++++++++++
- drivers/clocksource/h8300_tpu.c            | 203 ++++++++++++++
- drivers/tty/serial/Kconfig                 |   2 +-
- include/linux/clk-provider.h               |  12 +
- include/uapi/linux/elf-em.h                |   1 +
- 121 files changed, 8368 insertions(+), 1 deletion(-)
- create mode 100644 arch/h8300/Kconfig
- create mode 100644 arch/h8300/Kconfig.cpu
- create mode 100644 arch/h8300/Makefile
- create mode 100644 arch/h8300/boot/Makefile
- create mode 100644 arch/h8300/boot/compressed/Makefile
- create mode 100644 arch/h8300/boot/compressed/head.S
- create mode 100644 arch/h8300/boot/compressed/misc.c
- create mode 100644 arch/h8300/boot/compressed/vmlinux.lds
- create mode 100644 arch/h8300/boot/compressed/vmlinux.scr
- create mode 100644 arch/h8300/configs/h8300h-sim_defconfig
- create mode 100644 arch/h8300/configs/h8s-sim_defconfig
- create mode 100644 arch/h8300/include/asm/Kbuild
- create mode 100644 arch/h8300/include/asm/asm-offsets.h
- create mode 100644 arch/h8300/include/asm/atomic.h
- create mode 100644 arch/h8300/include/asm/bitops.h
- create mode 100644 arch/h8300/include/asm/bootparams.h
- create mode 100644 arch/h8300/include/asm/bug.h
- create mode 100644 arch/h8300/include/asm/cache.h
- create mode 100644 arch/h8300/include/asm/checksum.h
- create mode 100644 arch/h8300/include/asm/cmpxchg.h
- create mode 100644 arch/h8300/include/asm/cputime.h
- create mode 100644 arch/h8300/include/asm/delay.h
- create mode 100644 arch/h8300/include/asm/device.h
- create mode 100644 arch/h8300/include/asm/dma-mapping.h
- create mode 100644 arch/h8300/include/asm/elf.h
- create mode 100644 arch/h8300/include/asm/emergency-restart.h
- create mode 100644 arch/h8300/include/asm/flat.h
- create mode 100644 arch/h8300/include/asm/io.h
- create mode 100644 arch/h8300/include/asm/irq.h
- create mode 100644 arch/h8300/include/asm/irqflags.h
- create mode 100644 arch/h8300/include/asm/mc146818rtc.h
- create mode 100644 arch/h8300/include/asm/mutex.h
- create mode 100644 arch/h8300/include/asm/page.h
- create mode 100644 arch/h8300/include/asm/page_offset.h
- create mode 100644 arch/h8300/include/asm/pci.h
- create mode 100644 arch/h8300/include/asm/pgtable.h
- create mode 100644 arch/h8300/include/asm/processor.h
- create mode 100644 arch/h8300/include/asm/ptrace.h
- create mode 100644 arch/h8300/include/asm/segment.h
- create mode 100644 arch/h8300/include/asm/sh_bios.h
- create mode 100644 arch/h8300/include/asm/signal.h
- create mode 100644 arch/h8300/include/asm/smp.h
- create mode 100644 arch/h8300/include/asm/spinlock.h
- create mode 100644 arch/h8300/include/asm/string.h
- create mode 100644 arch/h8300/include/asm/switch_to.h
- create mode 100644 arch/h8300/include/asm/syscall.h
- create mode 100644 arch/h8300/include/asm/thread_info.h
- create mode 100644 arch/h8300/include/asm/timer.h
- create mode 100644 arch/h8300/include/asm/tlb.h
- create mode 100644 arch/h8300/include/asm/topology.h
- create mode 100644 arch/h8300/include/asm/traps.h
- create mode 100644 arch/h8300/include/asm/uaccess.h
- create mode 100644 arch/h8300/include/asm/unaligned.h
- create mode 100644 arch/h8300/include/asm/user.h
- create mode 100644 arch/h8300/include/uapi/asm/Kbuild
- create mode 100644 arch/h8300/include/uapi/asm/auxvec.h
- create mode 100644 arch/h8300/include/uapi/asm/byteorder.h
- create mode 100644 arch/h8300/include/uapi/asm/ptrace.h
- create mode 100644 arch/h8300/include/uapi/asm/sigcontext.h
- create mode 100644 arch/h8300/include/uapi/asm/signal.h
- create mode 100644 arch/h8300/include/uapi/asm/swab.h
- create mode 100644 arch/h8300/include/uapi/asm/unistd.h
- create mode 100644 arch/h8300/kernel/Makefile
- create mode 100644 arch/h8300/kernel/asm-offsets.c
- create mode 100644 arch/h8300/kernel/cpu/Makefile
- create mode 100644 arch/h8300/kernel/cpu/h83069/Makefile
- create mode 100644 arch/h8300/kernel/cpu/h83069/setup.c
- create mode 100644 arch/h8300/kernel/cpu/h8s2678/Makefile
- create mode 100644 arch/h8300/kernel/cpu/h8s2678/setup.c
- create mode 100644 arch/h8300/kernel/cpu/irq_h.c
- create mode 100644 arch/h8300/kernel/cpu/irq_s.c
- create mode 100644 arch/h8300/kernel/cpu/ptrace_h.c
- create mode 100644 arch/h8300/kernel/cpu/ptrace_s.c
- create mode 100644 arch/h8300/kernel/dma.c
- create mode 100644 arch/h8300/kernel/entry.S
- create mode 100644 arch/h8300/kernel/h8300_ksyms.c
- create mode 100644 arch/h8300/kernel/head_ram.S
- create mode 100644 arch/h8300/kernel/head_rom.S
- create mode 100644 arch/h8300/kernel/irq.c
- create mode 100644 arch/h8300/kernel/module.c
- create mode 100644 arch/h8300/kernel/process.c
- create mode 100644 arch/h8300/kernel/ptrace.c
- create mode 100644 arch/h8300/kernel/setup.c
- create mode 100644 arch/h8300/kernel/signal.c
- create mode 100644 arch/h8300/kernel/sim-console.c
- create mode 100644 arch/h8300/kernel/syscalls.c
- create mode 100644 arch/h8300/kernel/traps.c
- create mode 100644 arch/h8300/kernel/vmlinux.lds.S
- create mode 100644 arch/h8300/lib/Makefile
- create mode 100644 arch/h8300/lib/abs.S
- create mode 100644 arch/h8300/lib/ashldi3.c
- create mode 100644 arch/h8300/lib/ashrdi3.c
- create mode 100644 arch/h8300/lib/checksum.c
- create mode 100644 arch/h8300/lib/libgcc.h
- create mode 100644 arch/h8300/lib/lshrdi3.c
- create mode 100644 arch/h8300/lib/memcpy.S
- create mode 100644 arch/h8300/lib/memset.S
- create mode 100644 arch/h8300/lib/moddivsi3.S
- create mode 100644 arch/h8300/lib/modsi3.S
- create mode 100644 arch/h8300/lib/muldi3.c
- create mode 100644 arch/h8300/lib/mulsi3.S
- create mode 100644 arch/h8300/lib/strncpy.S
- create mode 100644 arch/h8300/lib/ucmpdi2.c
- create mode 100644 arch/h8300/lib/udivsi3.S
- create mode 100644 arch/h8300/mm/Makefile
- create mode 100644 arch/h8300/mm/fault.c
- create mode 100644 arch/h8300/mm/init.c
- create mode 100644 arch/h8300/mm/kmap.c
- create mode 100644 arch/h8300/mm/memory.c
+Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
+---
+ drivers/clk/Makefile            |   1 +
+ drivers/clk/h8300/Makefile      |   2 +
+ drivers/clk/h8300/clk-h83069.c  |  74 ++++++++++++++++++
+ drivers/clk/h8300/clk-h8s2678.c | 165 ++++++++++++++++++++++++++++++++++++++++
+ include/linux/clk-provider.h    |  12 +++
+ 5 files changed, 254 insertions(+)
  create mode 100644 drivers/clk/h8300/Makefile
  create mode 100644 drivers/clk/h8300/clk-h83069.c
  create mode 100644 drivers/clk/h8300/clk-h8s2678.c
- create mode 100644 drivers/clocksource/h8300_timer16.c
- create mode 100644 drivers/clocksource/h8300_timer8.c
- create mode 100644 drivers/clocksource/h8300_tpu.c
 
+diff --git a/drivers/clk/Makefile b/drivers/clk/Makefile
+index d5fba5b..37b6e87 100644
+--- a/drivers/clk/Makefile
++++ b/drivers/clk/Makefile
+@@ -68,3 +68,4 @@ obj-$(CONFIG_ARCH_U8500)		+= ux500/
+ obj-$(CONFIG_COMMON_CLK_VERSATILE)	+= versatile/
+ obj-$(CONFIG_X86)			+= x86/
+ obj-$(CONFIG_ARCH_ZYNQ)			+= zynq/
++obj-$(CONFIG_H8300)		+= h8300/
+diff --git a/drivers/clk/h8300/Makefile b/drivers/clk/h8300/Makefile
+new file mode 100644
+index 0000000..82eab42
+--- /dev/null
++++ b/drivers/clk/h8300/Makefile
+@@ -0,0 +1,2 @@
++obj-$(CONFIG_H83069) += clk-h83069.o
++obj-$(CONFIG_H8S2678) += clk-h8s2678.o
+diff --git a/drivers/clk/h8300/clk-h83069.c b/drivers/clk/h8300/clk-h83069.c
+new file mode 100644
+index 0000000..8d1b915
+--- /dev/null
++++ b/drivers/clk/h8300/clk-h83069.c
+@@ -0,0 +1,74 @@
++/*
++ * H8/3069 clock driver
++ *
++ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ */
++
++#include <linux/clk.h>
++#include <linux/clkdev.h>
++#include <linux/clk-provider.h>
++#include <linux/err.h>
++#include <linux/device.h>
++#include <linux/platform_device.h>
++
++static DEFINE_SPINLOCK(clklock);
++
++#define DIVCR ((unsigned char *)0xfee01b)
++#define DEVNAME "h83069-cpg"
++
++static int clk_probe(struct platform_device *pdev)
++{
++	struct clk *clk;
++	int *hz = dev_get_platdata(&pdev->dev);
++
++	clk = clk_register_fixed_rate(&pdev->dev, "master_clk", NULL,
++				      CLK_IS_ROOT, *hz);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "master_clk", DEVNAME ".%d", 0);
++
++	clk = clk_register_divider(&pdev->dev, "core_clk", "master_clk",
++				   CLK_SET_RATE_GATE, DIVCR, 0, 2,
++				   CLK_DIVIDER_POWER_OF_TWO, &clklock);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "core_clk", DEVNAME ".%d", 0);
++
++	clk_add_alias("peripheral_clk", NULL, "core_clk", &pdev->dev);
++	return 0;
++}
++
++static struct platform_driver cpg_driver = {
++	.driver = {
++		.name = DEVNAME,
++	},
++	.probe = clk_probe,
++};
++
++early_platform_init(DEVNAME, &cpg_driver);
++
++static struct platform_device clk_device = {
++	.name		= DEVNAME,
++	.id		= 0,
++};
++
++static struct platform_device *devices[] __initdata = {
++	&clk_device,
++};
++
++int __init h8300_clk_init(int hz)
++{
++	static int master_hz;
++
++	master_hz = hz;
++	clk_device.dev.platform_data = &master_hz;
++	early_platform_add_devices(devices,
++				   ARRAY_SIZE(devices));
++	early_platform_driver_register_all(DEVNAME);
++	early_platform_driver_probe(DEVNAME, 1, 0);
++	return 0;
++}
+diff --git a/drivers/clk/h8300/clk-h8s2678.c b/drivers/clk/h8300/clk-h8s2678.c
+new file mode 100644
+index 0000000..e110cff
+--- /dev/null
++++ b/drivers/clk/h8300/clk-h8s2678.c
+@@ -0,0 +1,165 @@
++/*
++ * H8S2678 clock driver
++ *
++ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ */
++
++#include <linux/clk.h>
++#include <linux/clkdev.h>
++#include <linux/clk-provider.h>
++#include <linux/err.h>
++#include <linux/device.h>
++#include <linux/platform_device.h>
++
++static DEFINE_SPINLOCK(clklock);
++
++#define SCKCR 0xffff3b
++#define PLLCR 0xffff45
++#define DEVNAME "h8s2679-cpg"
++#define MAX_FREQ 33333333
++#define MIN_FREQ  8000000
++
++static unsigned long pll_recalc_rate(struct clk_hw *hw,
++		unsigned long parent_rate)
++{
++	int mul = 1 << (ctrl_inb(PLLCR) & 3);
++
++	return parent_rate * mul;
++}
++
++static long pll_round_rate(struct clk_hw *hw, unsigned long rate,
++				unsigned long *prate)
++{
++	int i, m = -1;
++	long offset[3];
++
++	if (rate > MAX_FREQ)
++		rate = MAX_FREQ;
++	if (rate < MIN_FREQ)
++		rate = MIN_FREQ;
++
++	for (i = 0; i < 3; i++)
++		offset[i] = abs(rate - (*prate * (1 << i)));
++	for (i = 0; i < 3; i++)
++		if (m < 0)
++			m = i;
++		else
++			m = (offset[i] < offset[m])?i:m;
++
++	return *prate * (1 << m);
++}
++
++static int pll_set_rate(struct clk_hw *hw, unsigned long rate,
++			unsigned long parent_rate)
++{
++	int pll;
++	unsigned char val;
++	unsigned long flags;
++
++	pll = ((rate / parent_rate) / 2) & 0x03;
++	spin_lock_irqsave(&clklock, flags);
++	val = ctrl_inb(SCKCR);
++	val |= 0x08;
++	ctrl_outb(val, SCKCR);
++	val = ctrl_inb(PLLCR);
++	val &= ~0x03;
++	val |= pll;
++	ctrl_outb(val, PLLCR);
++	spin_unlock_irqrestore(&clklock, flags);
++	return 0;
++}
++
++static const struct clk_ops pll_ops = {
++	.recalc_rate = pll_recalc_rate,
++	.round_rate = pll_round_rate,
++	.set_rate = pll_set_rate,
++};
++
++static struct clk *pll_clk_register(struct device *dev, const char *name,
++				const char *parent)
++{
++	struct clk_hw *hw;
++	struct clk *clk;
++	struct clk_init_data init;
++
++	hw = kzalloc(sizeof(struct clk_hw), GFP_KERNEL);
++	if (!hw)
++		return ERR_PTR(-ENOMEM);
++
++	init.name = name;
++	init.ops = &pll_ops;
++	init.flags = CLK_IS_BASIC;
++	init.parent_names = &parent;
++	init.num_parents = 1;
++	hw->init = &init;
++
++	clk = clk_register(dev, hw);
++	if (IS_ERR(clk))
++		kfree(hw);
++
++	return clk;
++}
++
++static int clk_probe(struct platform_device *pdev)
++{
++	struct clk *clk;
++	int *hz = dev_get_platdata(&pdev->dev);
++
++	clk = clk_register_fixed_rate(&pdev->dev, "master_clk", NULL,
++				      CLK_IS_ROOT, *hz);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "master_clk", DEVNAME ".%d", 0);
++
++	clk = pll_clk_register(&pdev->dev, "pll_clk", "master_clk");
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "pll_clk", DEVNAME ".%d", 0);
++
++	clk = clk_register_divider(&pdev->dev, "core_clk", "pll_clk",
++				   CLK_SET_RATE_GATE, (unsigned char *)SCKCR,
++				   0, 3, CLK_DIVIDER_POWER_OF_TWO, &clklock);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "core_clk", DEVNAME ".%d", 0);
++
++	clk_add_alias("peripheral_clk", NULL, "core_clk", &pdev->dev);
++	return 0;
++}
++
++static struct platform_driver cpg_driver = {
++	.driver = {
++		.name = DEVNAME,
++	},
++	.probe = clk_probe,
++};
++
++early_platform_init(DEVNAME, &cpg_driver);
++
++static struct platform_device clk_device = {
++	.name		= DEVNAME,
++	.id		= 0,
++};
++
++static struct platform_device *devices[] __initdata = {
++	&clk_device,
++};
++
++int __init h8300_clk_init(int hz)
++{
++	static int master_hz;
++
++	master_hz = hz;
++	clk_device.dev.platform_data = &master_hz;
++	early_platform_add_devices(devices,
++				   ARRAY_SIZE(devices));
++	early_platform_driver_register_all(DEVNAME);
++	early_platform_driver_probe(DEVNAME, 1, 0);
++	return 0;
++}
+diff --git a/include/linux/clk-provider.h b/include/linux/clk-provider.h
+index d936409..3f86c1a 100644
+--- a/include/linux/clk-provider.h
++++ b/include/linux/clk-provider.h
+@@ -635,6 +635,18 @@ static inline void clk_writel(u32 val, u32 __iomem *reg)
+ 	iowrite32be(val, reg);
+ }
+ 
++#elif IS_ENABLED(CONFIG_H8300)
++
++static inline u32 clk_readl(u32 __iomem *reg)
++{
++	return __raw_readb(reg);
++}
++
++static inline void clk_writel(u32 val, u32 __iomem *reg)
++{
++	__raw_writeb(val, reg);
++}
++
+ #else	/* platform dependent I/O accessors */
+ 
+ static inline u32 clk_readl(u32 __iomem *reg)
 -- 
 2.1.4
