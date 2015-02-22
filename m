@@ -1,323 +1,146 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.asahi-net.or.jp ([202.224.39.198]:46744 "EHLO
-	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752082AbbBVGZ2 (ORCPT
+Received: from mail1.asahi-net.or.jp ([202.224.39.197]:37305 "EHLO
+	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752076AbbBVGZ2 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Feb 2015 01:25:28 -0500
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v5 11/15] h8300: clock driver
-Date: Sun, 22 Feb 2015 15:25:16 +0900
-Message-ID: <1424586320-3144-12-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v5 13/15] h8300: configs
+Date: Sun, 22 Feb 2015 15:25:18 +0900
+Message-ID: <1424586320-3144-14-git-send-email-ysato@users.sourceforge.jp>
 In-Reply-To: <1424586320-3144-1-git-send-email-ysato@users.sourceforge.jp>
 References: <1424586320-3144-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20150222062516.4UIR9cT14WEc0cP5snzc8EQVRcHPBgJ1wXhOqytOeJo@z>
+Message-ID: <20150222062518.GaxaLb8mulBc9hoKplA9SIYGy6BHDTRkVrpGofNAjpM@z>
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- drivers/clk/Makefile            |   1 +
- drivers/clk/h8300/Makefile      |   2 +
- drivers/clk/h8300/clk-h83069.c  |  74 ++++++++++++++++++
- drivers/clk/h8300/clk-h8s2678.c | 165 ++++++++++++++++++++++++++++++++++++++++
- include/linux/clk-provider.h    |  12 +++
- 5 files changed, 254 insertions(+)
- create mode 100644 drivers/clk/h8300/Makefile
- create mode 100644 drivers/clk/h8300/clk-h83069.c
- create mode 100644 drivers/clk/h8300/clk-h8s2678.c
+ arch/h8300/configs/h8300h-sim_defconfig | 53 +++++++++++++++++++++++++++++++++
+ arch/h8300/configs/h8s-sim_defconfig    | 53 +++++++++++++++++++++++++++++++++
+ 2 files changed, 106 insertions(+)
+ create mode 100644 arch/h8300/configs/h8300h-sim_defconfig
+ create mode 100644 arch/h8300/configs/h8s-sim_defconfig
 
-diff --git a/drivers/clk/Makefile b/drivers/clk/Makefile
-index d5fba5b..37b6e87 100644
---- a/drivers/clk/Makefile
-+++ b/drivers/clk/Makefile
-@@ -68,3 +68,4 @@ obj-$(CONFIG_ARCH_U8500)		+= ux500/
- obj-$(CONFIG_COMMON_CLK_VERSATILE)	+= versatile/
- obj-$(CONFIG_X86)			+= x86/
- obj-$(CONFIG_ARCH_ZYNQ)			+= zynq/
-+obj-$(CONFIG_H8300)		+= h8300/
-diff --git a/drivers/clk/h8300/Makefile b/drivers/clk/h8300/Makefile
+diff --git a/arch/h8300/configs/h8300h-sim_defconfig b/arch/h8300/configs/h8300h-sim_defconfig
 new file mode 100644
-index 0000000..82eab42
+index 0000000..bad1a1e
 --- /dev/null
-+++ b/drivers/clk/h8300/Makefile
-@@ -0,0 +1,2 @@
-+obj-$(CONFIG_H83069) += clk-h83069.o
-+obj-$(CONFIG_H8S2678) += clk-h8s2678.o
-diff --git a/drivers/clk/h8300/clk-h83069.c b/drivers/clk/h8300/clk-h83069.c
++++ b/arch/h8300/configs/h8300h-sim_defconfig
+@@ -0,0 +1,53 @@
++# CONFIG_LOCALVERSION_AUTO is not set
++# CONFIG_USELIB is not set
++# CONFIG_INIT_FALLBACK is not set
++CONFIG_CC_OPTIMIZE_FOR_SIZE=y
++# CONFIG_UID16 is not set
++# CONFIG_SYSFS_SYSCALL is not set
++# CONFIG_KALLSYMS is not set
++# CONFIG_BASE_FULL is not set
++# CONFIG_FUTEX is not set
++# CONFIG_EPOLL is not set
++# CONFIG_SIGNALFD is not set
++# CONFIG_TIMERFD is not set
++# CONFIG_EVENTFD is not set
++# CONFIG_AIO is not set
++# CONFIG_ADVISE_SYSCALLS is not set
++CONFIG_EMBEDDED=y
++# CONFIG_VM_EVENT_COUNTERS is not set
++# CONFIG_COMPAT_BRK is not set
++CONFIG_SLOB=y
++# CONFIG_BLOCK is not set
++CONFIG_H8300H_SIM=y
++CONFIG_CPU_CLOCK=20000000
++CONFIG_RAMSIZE=0x200000
++# CONFIG_BINFMT_SCRIPT is not set
++CONFIG_BINFMT_FLAT=y
++# CONFIG_COREDUMP is not set
++# CONFIG_UEVENT_HELPER is not set
++# CONFIG_STANDALONE is not set
++# CONFIG_PREVENT_FIRMWARE_BUILD is not set
++# CONFIG_FW_LOADER is not set
++# CONFIG_ALLOW_DEV_COREDUMP is not set
++# CONFIG_INPUT is not set
++# CONFIG_SERIO is not set
++# CONFIG_VT is not set
++# CONFIG_UNIX98_PTYS is not set
++# CONFIG_LEGACY_PTYS is not set
++# CONFIG_DEVKMEM is not set
++CONFIG_SERIAL_SH_SCI=y
++CONFIG_SERIAL_SH_SCI_CONSOLE=y
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++# CONFIG_USB_SUPPORT is not set
++# CONFIG_IOMMU_SUPPORT is not set
++# CONFIG_FILE_LOCKING is not set
++# CONFIG_DNOTIFY is not set
++# CONFIG_INOTIFY_USER is not set
++# CONFIG_PROC_FS is not set
++# CONFIG_SYSFS is not set
++# CONFIG_MISC_FILESYSTEMS is not set
++CONFIG_DEBUG_INFO=y
++# CONFIG_ENABLE_WARN_DEPRECATED is not set
++# CONFIG_ENABLE_MUST_CHECK is not set
++# CONFIG_CRC32 is not set
+diff --git a/arch/h8300/configs/h8s-sim_defconfig b/arch/h8300/configs/h8s-sim_defconfig
 new file mode 100644
-index 0000000..8d1b915
+index 0000000..025cdd8
 --- /dev/null
-+++ b/drivers/clk/h8300/clk-h83069.c
-@@ -0,0 +1,74 @@
-+/*
-+ * H8/3069 clock driver
-+ *
-+ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
-+ */
-+
-+#include <linux/clk.h>
-+#include <linux/clkdev.h>
-+#include <linux/clk-provider.h>
-+#include <linux/err.h>
-+#include <linux/device.h>
-+#include <linux/platform_device.h>
-+
-+static DEFINE_SPINLOCK(clklock);
-+
-+#define DIVCR ((unsigned char *)0xfee01b)
-+#define DEVNAME "h83069-cpg"
-+
-+static int clk_probe(struct platform_device *pdev)
-+{
-+	struct clk *clk;
-+	int *hz = dev_get_platdata(&pdev->dev);
-+
-+	clk = clk_register_fixed_rate(&pdev->dev, "master_clk", NULL,
-+				      CLK_IS_ROOT, *hz);
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "master_clk", DEVNAME ".%d", 0);
-+
-+	clk = clk_register_divider(&pdev->dev, "core_clk", "master_clk",
-+				   CLK_SET_RATE_GATE, DIVCR, 0, 2,
-+				   CLK_DIVIDER_POWER_OF_TWO, &clklock);
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "core_clk", DEVNAME ".%d", 0);
-+
-+	clk_add_alias("peripheral_clk", NULL, "core_clk", &pdev->dev);
-+	return 0;
-+}
-+
-+static struct platform_driver cpg_driver = {
-+	.driver = {
-+		.name = DEVNAME,
-+	},
-+	.probe = clk_probe,
-+};
-+
-+early_platform_init(DEVNAME, &cpg_driver);
-+
-+static struct platform_device clk_device = {
-+	.name		= DEVNAME,
-+	.id		= 0,
-+};
-+
-+static struct platform_device *devices[] __initdata = {
-+	&clk_device,
-+};
-+
-+int __init h8300_clk_init(int hz)
-+{
-+	static int master_hz;
-+
-+	master_hz = hz;
-+	clk_device.dev.platform_data = &master_hz;
-+	early_platform_add_devices(devices,
-+				   ARRAY_SIZE(devices));
-+	early_platform_driver_register_all(DEVNAME);
-+	early_platform_driver_probe(DEVNAME, 1, 0);
-+	return 0;
-+}
-diff --git a/drivers/clk/h8300/clk-h8s2678.c b/drivers/clk/h8300/clk-h8s2678.c
-new file mode 100644
-index 0000000..e110cff
---- /dev/null
-+++ b/drivers/clk/h8300/clk-h8s2678.c
-@@ -0,0 +1,165 @@
-+/*
-+ * H8S2678 clock driver
-+ *
-+ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
-+ */
-+
-+#include <linux/clk.h>
-+#include <linux/clkdev.h>
-+#include <linux/clk-provider.h>
-+#include <linux/err.h>
-+#include <linux/device.h>
-+#include <linux/platform_device.h>
-+
-+static DEFINE_SPINLOCK(clklock);
-+
-+#define SCKCR 0xffff3b
-+#define PLLCR 0xffff45
-+#define DEVNAME "h8s2679-cpg"
-+#define MAX_FREQ 33333333
-+#define MIN_FREQ  8000000
-+
-+static unsigned long pll_recalc_rate(struct clk_hw *hw,
-+		unsigned long parent_rate)
-+{
-+	int mul = 1 << (ctrl_inb(PLLCR) & 3);
-+
-+	return parent_rate * mul;
-+}
-+
-+static long pll_round_rate(struct clk_hw *hw, unsigned long rate,
-+				unsigned long *prate)
-+{
-+	int i, m = -1;
-+	long offset[3];
-+
-+	if (rate > MAX_FREQ)
-+		rate = MAX_FREQ;
-+	if (rate < MIN_FREQ)
-+		rate = MIN_FREQ;
-+
-+	for (i = 0; i < 3; i++)
-+		offset[i] = abs(rate - (*prate * (1 << i)));
-+	for (i = 0; i < 3; i++)
-+		if (m < 0)
-+			m = i;
-+		else
-+			m = (offset[i] < offset[m])?i:m;
-+
-+	return *prate * (1 << m);
-+}
-+
-+static int pll_set_rate(struct clk_hw *hw, unsigned long rate,
-+			unsigned long parent_rate)
-+{
-+	int pll;
-+	unsigned char val;
-+	unsigned long flags;
-+
-+	pll = ((rate / parent_rate) / 2) & 0x03;
-+	spin_lock_irqsave(&clklock, flags);
-+	val = ctrl_inb(SCKCR);
-+	val |= 0x08;
-+	ctrl_outb(val, SCKCR);
-+	val = ctrl_inb(PLLCR);
-+	val &= ~0x03;
-+	val |= pll;
-+	ctrl_outb(val, PLLCR);
-+	spin_unlock_irqrestore(&clklock, flags);
-+	return 0;
-+}
-+
-+static const struct clk_ops pll_ops = {
-+	.recalc_rate = pll_recalc_rate,
-+	.round_rate = pll_round_rate,
-+	.set_rate = pll_set_rate,
-+};
-+
-+static struct clk *pll_clk_register(struct device *dev, const char *name,
-+				const char *parent)
-+{
-+	struct clk_hw *hw;
-+	struct clk *clk;
-+	struct clk_init_data init;
-+
-+	hw = kzalloc(sizeof(struct clk_hw), GFP_KERNEL);
-+	if (!hw)
-+		return ERR_PTR(-ENOMEM);
-+
-+	init.name = name;
-+	init.ops = &pll_ops;
-+	init.flags = CLK_IS_BASIC;
-+	init.parent_names = &parent;
-+	init.num_parents = 1;
-+	hw->init = &init;
-+
-+	clk = clk_register(dev, hw);
-+	if (IS_ERR(clk))
-+		kfree(hw);
-+
-+	return clk;
-+}
-+
-+static int clk_probe(struct platform_device *pdev)
-+{
-+	struct clk *clk;
-+	int *hz = dev_get_platdata(&pdev->dev);
-+
-+	clk = clk_register_fixed_rate(&pdev->dev, "master_clk", NULL,
-+				      CLK_IS_ROOT, *hz);
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "master_clk", DEVNAME ".%d", 0);
-+
-+	clk = pll_clk_register(&pdev->dev, "pll_clk", "master_clk");
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "pll_clk", DEVNAME ".%d", 0);
-+
-+	clk = clk_register_divider(&pdev->dev, "core_clk", "pll_clk",
-+				   CLK_SET_RATE_GATE, (unsigned char *)SCKCR,
-+				   0, 3, CLK_DIVIDER_POWER_OF_TWO, &clklock);
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "core_clk", DEVNAME ".%d", 0);
-+
-+	clk_add_alias("peripheral_clk", NULL, "core_clk", &pdev->dev);
-+	return 0;
-+}
-+
-+static struct platform_driver cpg_driver = {
-+	.driver = {
-+		.name = DEVNAME,
-+	},
-+	.probe = clk_probe,
-+};
-+
-+early_platform_init(DEVNAME, &cpg_driver);
-+
-+static struct platform_device clk_device = {
-+	.name		= DEVNAME,
-+	.id		= 0,
-+};
-+
-+static struct platform_device *devices[] __initdata = {
-+	&clk_device,
-+};
-+
-+int __init h8300_clk_init(int hz)
-+{
-+	static int master_hz;
-+
-+	master_hz = hz;
-+	clk_device.dev.platform_data = &master_hz;
-+	early_platform_add_devices(devices,
-+				   ARRAY_SIZE(devices));
-+	early_platform_driver_register_all(DEVNAME);
-+	early_platform_driver_probe(DEVNAME, 1, 0);
-+	return 0;
-+}
-diff --git a/include/linux/clk-provider.h b/include/linux/clk-provider.h
-index d936409..3f86c1a 100644
---- a/include/linux/clk-provider.h
-+++ b/include/linux/clk-provider.h
-@@ -635,6 +635,18 @@ static inline void clk_writel(u32 val, u32 __iomem *reg)
- 	iowrite32be(val, reg);
- }
- 
-+#elif IS_ENABLED(CONFIG_H8300)
-+
-+static inline u32 clk_readl(u32 __iomem *reg)
-+{
-+	return __raw_readb(reg);
-+}
-+
-+static inline void clk_writel(u32 val, u32 __iomem *reg)
-+{
-+	__raw_writeb(val, reg);
-+}
-+
- #else	/* platform dependent I/O accessors */
- 
- static inline u32 clk_readl(u32 __iomem *reg)
++++ b/arch/h8300/configs/h8s-sim_defconfig
+@@ -0,0 +1,53 @@
++# CONFIG_LOCALVERSION_AUTO is not set
++# CONFIG_USELIB is not set
++# CONFIG_INIT_FALLBACK is not set
++CONFIG_CC_OPTIMIZE_FOR_SIZE=y
++# CONFIG_UID16 is not set
++# CONFIG_SYSFS_SYSCALL is not set
++# CONFIG_KALLSYMS is not set
++# CONFIG_BASE_FULL is not set
++# CONFIG_FUTEX is not set
++# CONFIG_EPOLL is not set
++# CONFIG_SIGNALFD is not set
++# CONFIG_TIMERFD is not set
++# CONFIG_EVENTFD is not set
++# CONFIG_AIO is not set
++# CONFIG_ADVISE_SYSCALLS is not set
++CONFIG_EMBEDDED=y
++# CONFIG_VM_EVENT_COUNTERS is not set
++# CONFIG_COMPAT_BRK is not set
++CONFIG_SLOB=y
++# CONFIG_BLOCK is not set
++CONFIG_H8S_SIM=y
++CONFIG_CPU_CLOCK=33333333
++CONFIG_RAMSIZE=0x200000
++# CONFIG_BINFMT_SCRIPT is not set
++CONFIG_BINFMT_FLAT=y
++# CONFIG_COREDUMP is not set
++# CONFIG_UEVENT_HELPER is not set
++# CONFIG_STANDALONE is not set
++# CONFIG_PREVENT_FIRMWARE_BUILD is not set
++# CONFIG_FW_LOADER is not set
++# CONFIG_ALLOW_DEV_COREDUMP is not set
++# CONFIG_INPUT is not set
++# CONFIG_SERIO is not set
++# CONFIG_VT is not set
++# CONFIG_UNIX98_PTYS is not set
++# CONFIG_LEGACY_PTYS is not set
++# CONFIG_DEVKMEM is not set
++CONFIG_SERIAL_SH_SCI=y
++CONFIG_SERIAL_SH_SCI_CONSOLE=y
++# CONFIG_HW_RANDOM is not set
++# CONFIG_HWMON is not set
++# CONFIG_USB_SUPPORT is not set
++# CONFIG_IOMMU_SUPPORT is not set
++# CONFIG_FILE_LOCKING is not set
++# CONFIG_DNOTIFY is not set
++# CONFIG_INOTIFY_USER is not set
++# CONFIG_PROC_FS is not set
++# CONFIG_SYSFS is not set
++# CONFIG_MISC_FILESYSTEMS is not set
++CONFIG_DEBUG_INFO=y
++# CONFIG_ENABLE_WARN_DEPRECATED is not set
++# CONFIG_ENABLE_MUST_CHECK is not set
++# CONFIG_CRC32 is not set
 -- 
 2.1.4
 
