@@ -1,60 +1,44 @@
-From: David Howells <dhowells@redhat.com>
-Subject: How best to write a series of related test_bit() calls?
-Date: Tue, 24 Feb 2015 14:58:37 +0000
-Message-ID: <22657.1424789917@warthog.procyon.org.uk>
+From: Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
+Subject: Re: nios2: is the ptrace ABI correct?
+Date: Tue, 24 Feb 2015 12:28:41 -0300
+Message-ID: <54EC98A9.9080203@vanguardiasur.com.ar>
+References: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com> <5636312.0WGrbVlVgB@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:33621 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750925AbbBXO6k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 Feb 2015 09:58:40 -0500
-Received: from int-mx13.intmail.prod.int.phx2.redhat.com (int-mx13.intmail.prod.int.phx2.redhat.com [10.5.11.26])
-	by mx1.redhat.com (8.14.4/8.14.4) with ESMTP id t1OEweic003015
-	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=FAIL)
-	for <linux-arch@vger.kernel.org>; Tue, 24 Feb 2015 09:58:40 -0500
-Content-ID: <22656.1424789917.1@warthog.procyon.org.uk>
+Received: from mail-wg0-f53.google.com ([74.125.82.53]:34672 "EHLO
+	mail-wg0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752440AbbBXPbC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Feb 2015 10:31:02 -0500
+Received: by wghn12 with SMTP id n12so6022492wgh.1
+        for <linux-arch@vger.kernel.org>; Tue, 24 Feb 2015 07:31:02 -0800 (PST)
+In-Reply-To: <5636312.0WGrbVlVgB@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: dhowells@redhat.com
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Tobias Klauser <tklauser@distanz.ch>, Chung-Ling Tang <cltang@codesourcery.com>, Walter Goossens <waltergoossens@home.nl>, Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-I have a situation where I want to do something that boils down to:
+Hi Arnd,
 
-	if (test_bit(BIT_A, &p->flags) {
-	   	...
-	} else if (test_bit(BIT_B, &p->flags) {
-		...
-	} else if (test_bit(BIT_C, &p->flags) {
-		...
-	} else if (test_bit(BIT_D, &p->flags) {
-		...
-	} else if (test_bit(BIT_E, &p->flags) {
-	}
+On 02/24/2015 05:54 AM, Arnd Bergmann wrote:
+> On Tuesday 24 February 2015 00:04:21 Ezequiel Garcia wrote:
+>> So, tried a different approach and removed pt_regs from the UAPI ptrace.h,
+>> replacing it with a new user_regs that describes how registers are passed
+>> to user. This however is also problematic, as pt_regs is already used
+>> by glibc (not really sure what for).
+>>
+> 
+> I've looked at glibc and could not find a use for pt_regs there. Where
+> did you find it? It's quite possible that it's incorrect as well
+> if the structures don't match.
+> 
 
-Note that all bits are in the same unsigned long and I don't necessarily
-expect the contents of p->flags to change whilst I'm looking at it.
+Gah, no, you are right. I got confused.
 
-Since the address parameter for test_bit() contains a 'volatile' keyword, the
-compiler will emit a separate load (or bit test) for each condition when in
-fact the most efficient way is almost certainly one load and a bunch of
-bitwise-and or bit-test-in-register instructions.
+So it would be OK to avoid remove pt_regs from the uapi headers?
+How does this affect the signal handling nios2 implementation?
 
-Is it worth adding a __test_bit() that doesn't have the volatile?  Or should I
-just rewrite it manually as?
-
-	unsigned long flags = p->flags;
-	if (test_bit(BIT_A, &flags) {
-	   	...
-	} else if (test_bit(BIT_B, &flags) {
-	...
-
-Or even:
-
-	unsigned long flags = p->flags;
-	if ((1 << BIT_A) & flags) {
-	   	...
-	} else if ((1 << BIT_B) & flags) {
-	...
-
-David
+-- 
+Ezequiel Garcia, VanguardiaSur
+www.vanguardiasur.com.ar
