@@ -1,15 +1,20 @@
 From: Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
 Subject: nios2: is the ptrace ABI correct?
-Date: Mon, 23 Feb 2015 23:30:16 -0300
-Message-ID: <54EBE238.8060400@vanguardiasur.com.ar>
+Date: Tue, 24 Feb 2015 00:04:21 -0300
+Message-ID: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Tobias Klauser <tklauser@distanz.ch>, Chung-Ling Tang <cltang@codesourcery.com>, Walter Goossens <waltergoossens@home.nl>, Ley Foon Tan <lftan@altera.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>
-Cc: linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wg0-f48.google.com ([74.125.82.48]:35934 "EHLO
+	mail-wg0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751875AbbBXDEX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Feb 2015 22:04:23 -0500
+Received: by wghk14 with SMTP id k14so2575574wgh.3
+        for <linux-arch@vger.kernel.org>; Mon, 23 Feb 2015 19:04:22 -0800 (PST)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tobias Klauser <tklauser@distanz.ch>, Chung-Ling Tang <cltang@codesourcery.com>, Walter Goossens <waltergoossens@home.nl>, Ley Foon Tan <lftan@altera.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
 Hi everyone,
 
@@ -23,7 +28,7 @@ struct pt_regs {
         unsigned long  r8;
         unsigned long  r9;
         unsigned long  r10;
-	[and so on]
+[and so on]
 }
 
 But the regset implementation in arch/nios2/kernel/ptrace.c
