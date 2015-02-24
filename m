@@ -1,25 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:57844 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751151AbbBXOOy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 Feb 2015 09:14:54 -0500
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
-References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
-Subject: Re: [PATCH v2 00/18] Add support to STMicroelectronics STM32 family
+Received: from mout.kundenserver.de ([212.227.17.13]:52752 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753590AbbBXTZz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Feb 2015 14:25:55 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: nios2: is the ptrace ABI correct?
+Date: Tue, 24 Feb 2015 20:25:39 +0100
+Message-ID: <10088870.tldQegtTla@wuerfel>
+In-Reply-To: <54EC98A9.9080203@vanguardiasur.com.ar>
+References: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com> <5636312.0WGrbVlVgB@wuerfel> <54EC98A9.9080203@vanguardiasur.com.ar>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 7Bit
 Content-Type: text/plain; charset="us-ascii"
-Content-ID: <21950.1424787288.1@warthog.procyon.org.uk>
-Date: Tue, 24 Feb 2015 14:14:48 +0000
-Message-ID: <21951.1424787288@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20150224141448.UrVs2aHSOxLQoSPUSiqFcON9x0ZqSoV4xwtiTlx_-y0@z>
+To: Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
+Cc: Tobias Klauser <tklauser@distanz.ch>, Chung-Ling Tang <cltang@codesourcery.com>, Walter Goossens <waltergoossens@home.nl>, Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20150224192539.W9fPn1kTzWNNAyKDCf7ZNBdI8LJ7775HObPinYgVcYo@z>
 
-Is support for this in upstream binutils and gcc?  What's the preferred target
-tuple?  I'll add support to Fedora's cross-binutils and cross-gcc sets if I
-can.
+On Tuesday 24 February 2015 12:28:41 Ezequiel Garcia wrote:
+> 
+> Gah, no, you are right. I got confused.
+> 
+> So it would be OK to avoid remove pt_regs from the uapi headers?
+> How does this affect the signal handling nios2 implementation?
+> 
 
-David
+We have a number of architectures that don't provide this structure:
+
+$ git grep -L pt_regs arch/*/include/uapi/asm/ptrace.h
+arch/frv/include/uapi/asm/ptrace.h
+arch/metag/include/uapi/asm/ptrace.h
+arch/openrisc/include/uapi/asm/ptrace.h
+arch/s390/include/uapi/asm/ptrace.h
+
+so I'd assume it's ok in general not to have it. However, on
+nios2, struct pt_regs is embedded inside of struct sigcontext.
+If I read the code in arch/nios2/kernel/signal.c correctly,
+this is actually a bug and you should use a different structure
+there too, because pt_regs does not match the layout of the
+stack either. This means that the (rare) user programs that
+would know about the architecture to modify signal stacks
+are currently broken.
+
+	Arnd
