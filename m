@@ -1,98 +1,31 @@
-From: Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
-Subject: nios2: is the ptrace ABI correct?
-Date: Tue, 24 Feb 2015 00:04:21 -0300
-Message-ID: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: nios2: is the ptrace ABI correct?
+Date: Tue, 24 Feb 2015 09:54:10 +0100
+Message-ID: <5636312.0WGrbVlVgB@wuerfel>
+References: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f48.google.com ([74.125.82.48]:35934 "EHLO
-	mail-wg0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751875AbbBXDEX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Feb 2015 22:04:23 -0500
-Received: by wghk14 with SMTP id k14so2575574wgh.3
-        for <linux-arch@vger.kernel.org>; Mon, 23 Feb 2015 19:04:22 -0800 (PST)
+Received: from mout.kundenserver.de ([212.227.126.130]:64139 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751973AbbBXIyW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Feb 2015 03:54:22 -0500
+In-Reply-To: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tobias Klauser <tklauser@distanz.ch>, Chung-Ling Tang <cltang@codesourcery.com>, Walter Goossens <waltergoossens@home.nl>, Ley Foon Tan <lftan@altera.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
+Cc: Tobias Klauser <tklauser@distanz.ch>, Chung-Ling Tang <cltang@codesourcery.com>, Walter Goossens <waltergoossens@home.nl>, Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-Hi everyone,
+On Tuesday 24 February 2015 00:04:21 Ezequiel Garcia wrote:
+> So, tried a different approach and removed pt_regs from the UAPI ptrace.h,
+> replacing it with a new user_regs that describes how registers are passed
+> to user. This however is also problematic, as pt_regs is already used
+> by glibc (not really sure what for).
+> 
 
-I've been trying to port strace to Nios-II, but came across some oddities
-in the ptrace ABI. The pt_regs structure is exposed to userspace through
-the ptrace.h UAPI header: arch/nios2/include/uapi/asm/ptrace.h
+I've looked at glibc and could not find a use for pt_regs there. Where
+did you find it? It's quite possible that it's incorrect as well
+if the structures don't match.
 
-Such pt_regs has the following layout:
-
-struct pt_regs {
-        unsigned long  r8;
-        unsigned long  r9;
-        unsigned long  r10;
-[and so on]
-}
-
-But the regset implementation in arch/nios2/kernel/ptrace.c
-pushes a different layout to userspace, as it uses the PTR_
-macros, also in the UAPI header:
-
-#define PTR_R0          0
-#define PTR_R1          1
-#define PTR_R2          2
-#define PTR_R3          3
-#define PTR_R4          4
-#define PTR_R5          5
-#define PTR_R6          6
-#define PTR_R7          7
-#define PTR_R8          8
-[..]
-
-In other words, the PTRACE_GETREGSET will pass to userspace register
-r8 at offset 8*4, but the pt_regs structure says it's at offset 0.
-
-This difference appears because ptrace returns one layout to userspace,
-and pushes the registers to the stack with another layout.
-
-I've fixed this and managed to port strace by changing the genregs_get
-implementation, so it returns a layout that matches pt_regs, and therefore
-matches the stack.
-
-Having this one-to-one correspondence, has a nice benefit. The implementation
-is trivial:
-
-static int genregs_get(struct task_struct *target,
-                       const struct user_regset *regset,
-                       unsigned int pos, unsigned int count,
-                       void *kbuf, void __user *ubuf)
-{
-        const struct pt_regs *regs = task_pt_regs(target);
-        const struct switch_stack *sw = (struct switch_stack *)regs - 1;
-        int ret;
-
-        ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-                                  regs, 0, PT_REGS_SIZE);
-        if (!ret)
-                ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-                                          sw, 0, SWITCH_STACK_SIZE);
-        return ret;
-}
-
-However, there's a problem. The ABI is already different, and current gdb
-seems to rely in the current layout. However, it does it by *not* using the
-pt_regs structure.
-
-Give the ABI is already used, I'm reluctant to change it as I don't want to
-break our beloved users.
-
-So, tried a different approach and removed pt_regs from the UAPI ptrace.h,
-replacing it with a new user_regs that describes how registers are passed
-to user. This however is also problematic, as pt_regs is already used
-by glibc (not really sure what for).
-
-In conclusion, I'm lost and have no clue how a proper fix
-would look like. (Or perhaps, I'm really lost and there's no fix needed.)
-
-Any ideas?
-
--- 
-Ezequiel Garcia, VanguardiaSur
-www.vanguardiasur.com.ar
+	Arnd
