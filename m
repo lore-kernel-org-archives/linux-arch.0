@@ -1,81 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f179.google.com ([209.85.212.179]:62457 "EHLO
-	mail-wi0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752239AbbBYMEt convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2015 07:04:49 -0500
+Received: from mout.kundenserver.de ([212.227.17.10]:62624 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751611AbbBYOHy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2015 09:07:54 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: nios2: is the ptrace ABI correct?
+Date: Wed, 25 Feb 2015 15:07:39 +0100
+Message-ID: <10841724.NbdcAaCe1a@wuerfel>
+In-Reply-To: <54EDB2FC.4050901@vanguardiasur.com.ar>
+References: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com> <10088870.tldQegtTla@wuerfel> <54EDB2FC.4050901@vanguardiasur.com.ar>
 MIME-Version: 1.0
-In-Reply-To: <1424468240.24292.5.camel@x220>
-References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
-	<1424455277-29983-15-git-send-email-mcoquelin.stm32@gmail.com>
-	<20150220200019.GU19388@pengutronix.de>
-	<1424468240.24292.5.camel@x220>
-Date: Wed, 25 Feb 2015 13:04:47 +0100
-Message-ID: <CALszF6CGT35V71QKTrDx+1Ltrctv5F7t8Zq6Tq15zn2bZGQXwQ@mail.gmail.com>
-Subject: Re: [PATCH v2 14/18] ARM: Add STM32 family machine
-From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Bolle <pebolle@tiscali.nl>
-Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
-Message-ID: <20150225120447._nLdcKY8fNlF1f0ip5FG5qDzH65cPo8QTPM0f2O1w5o@z>
+To: Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
+Cc: Tobias Klauser <tklauser@distanz.ch>, Chung-Ling Tang <cltang@codesourcery.com>, Walter Goossens <waltergoossens@home.nl>, Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20150225140739.86vm091dy_ulmi_vrgGjW_Vlmaj4_YyjNdyx1Qnm2Xc@z>
 
-2015-02-20 22:37 GMT+01:00 Paul Bolle <pebolle@tiscali.nl>:
-> On Fri, 2015-02-20 at 21:00 +0100, Uwe Kleine-König wrote:
->> On Fri, Feb 20, 2015 at 07:01:13PM +0100, Maxime Coquelin wrote:
->> > diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
->> > index 97d07ed..cfd9532 100644
->> > --- a/arch/arm/Kconfig
->> > +++ b/arch/arm/Kconfig
->> > @@ -774,6 +774,28 @@ config ARCH_OMAP1
->> >     help
->> >       Support for older TI OMAP1 (omap7xx, omap15xx or omap16xx)
->> >
->> > +config ARCH_STM32
->> > +   bool "STMicrolectronics STM32"
->> > +   depends on !MMU
->> > +   select ARCH_REQUIRE_GPIOLIB
->> > +   select ARM_NVIC
->> > +   select AUTO_ZRELADDR
->> > +   select ARCH_HAS_RESET_CONTROLLER
->> > +   select RESET_CONTROLLER
->> > +   select PINCTRL
->> > +   select PINCTRL_STM32
->> > +   select CLKSRC_OF
->> > +   select ARMV7M_SYSTICK
->> > +   select COMMON_CLK
->> > +   select CPU_V7M
->> > +   select GENERIC_CLOCKEVENTS
->> > +   select NO_DMA
->> > +   select NO_IOPORT_MAP
->> > +   select SPARSE_IRQ
->> > +   select USE_OF
->> Please sort this list alphabetically.
->
-> And drop
->     select NO_DMA
->
-> You copied that from ARCH_EFM32, but it's pointless on arm (as arch/arm/
-> doesn't provide a NO_DMA Kconfig symbol).
+On Wednesday 25 February 2015 08:33:16 Ezequiel Garcia wrote:
+> 
+> /me is more confused now
+> 
+> In arch/nios2/include/asm/ucontext.h
+> 
+> struct ucontext {
+>         unsigned long     uc_flags;
+>         struct ucontext  *uc_link;
+>         stack_t           uc_stack;
+>         struct mcontext   uc_mcontext;
+>         sigset_t          uc_sigmask;
+> };
+> 
+> And in include/uapi/asm-generic/ucontext.h:
+> 
+> struct ucontext {
+>         unsigned long     uc_flags;
+>         struct ucontext  *uc_link;
+>         stack_t           uc_stack;
+>         struct sigcontext uc_mcontext;
+>         sigset_t          uc_sigmask;
+> };
+> 
+> Which one is the one that userspace sees? And why does the kernel has
+> two different structures?
 
-You are right, I will drop NO_DMA in v3.
+Userspace sees the asm-generic header, which I assume is a bug
+in this case.
 
-Thanks,
-Maxime
+> Given this oddities, I'm wondering how troublesome would be to just
+> re-do this and break the ptrace and signal ABI. For instance, just
+> pushing pt_regs in PTRACE_GETREGSET would make things much clearer.
 
->
-> I submitted a patch last year to drop it from ARCH_EFM32, which Uwe
-> Acked, but then nothing happened. I'm to blame, as I should have sent a
-> reminder.
->
->> > +   help
->> > +     Support for STMicorelectronics STM32 processors.
->> > +
->> >  endchoice
->> >
->> >  menu "Multiple platform selection"
->
->
-> Paul Bolle
->
+Could you change pt_regs to match the layout you have for PTRACE_GETREGSET
+instead? It seems much more intuitive.
+
+> I guess Linus would burn me for even suggesting to breaking users... but
+> do we have any users at all? This arch has just been mainlined. Altera's
+> out-of-tree is already ABI-incompatible with mainline so that's not an
+> issue.
+> 
+> The only one using this ABI is gdb, which is easily fixed.
+
+You can change anything you like as long as nobody complains about
+regressions.
+
+	Arnd
