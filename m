@@ -1,68 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:62624 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751611AbbBYOHy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2015 09:07:54 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: nios2: is the ptrace ABI correct?
-Date: Wed, 25 Feb 2015 15:07:39 +0100
-Message-ID: <10841724.NbdcAaCe1a@wuerfel>
-In-Reply-To: <54EDB2FC.4050901@vanguardiasur.com.ar>
-References: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com> <10088870.tldQegtTla@wuerfel> <54EDB2FC.4050901@vanguardiasur.com.ar>
+Received: from www.linutronix.de ([62.245.132.108]:44781 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753123AbbBYR61 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Feb 2015 12:58:27 -0500
+Date: Wed, 25 Feb 2015 18:58:16 +0100
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Subject: Re: [PATCH] locking/rtmutex: drop usage of __HAVE_ARCH_CMPXCHG
+Message-ID: <20150225175816.GF6823@linutronix.de>
+References: <20150225175613.GE6823@linutronix.de>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20150225175613.GE6823@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
-Cc: Tobias Klauser <tklauser@distanz.ch>, Chung-Ling Tang <cltang@codesourcery.com>, Walter Goossens <waltergoossens@home.nl>, Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20150225140739.86vm091dy_ulmi_vrgGjW_Vlmaj4_YyjNdyx1Qnm2Xc@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, linux-rt-users@vger.kernel.org, will.deacon@arm.com, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150225175816.QF486bPS41NdKCB4kLZfRY0BsPKrkqEU6ELQ2FLi2oo@z>
 
-On Wednesday 25 February 2015 08:33:16 Ezequiel Garcia wrote:
-> 
-> /me is more confused now
-> 
-> In arch/nios2/include/asm/ucontext.h
-> 
-> struct ucontext {
->         unsigned long     uc_flags;
->         struct ucontext  *uc_link;
->         stack_t           uc_stack;
->         struct mcontext   uc_mcontext;
->         sigset_t          uc_sigmask;
-> };
-> 
-> And in include/uapi/asm-generic/ucontext.h:
-> 
-> struct ucontext {
->         unsigned long     uc_flags;
->         struct ucontext  *uc_link;
->         stack_t           uc_stack;
->         struct sigcontext uc_mcontext;
->         sigset_t          uc_sigmask;
-> };
-> 
-> Which one is the one that userspace sees? And why does the kernel has
-> two different structures?
+* Sebastian Andrzej Siewior | 2015-02-25 18:56:13 [+0100]:
 
-Userspace sees the asm-generic header, which I assume is a bug
-in this case.
+>To put some numbers on it: preempt -RT, am335x, 10 loops of
+>100000 invocations of rt_spin_lock() + rt_spin_unlock() (time "total" is
+>the average of the 10 loops for the 100000 invocations, "loop" is
+>"total / 100000 * 1000"):
 
-> Given this oddities, I'm wondering how troublesome would be to just
-> re-do this and break the ptrace and signal ABI. For instance, just
-> pushing pt_regs in PTRACE_GETREGSET would make things much clearer.
+This is the test code I was running.
 
-Could you change pt_regs to match the layout you have for PTRACE_GETREGSET
-instead? It seems much more intuitive.
-
-> I guess Linus would burn me for even suggesting to breaking users... but
-> do we have any users at all? This arch has just been mainlined. Altera's
-> out-of-tree is already ABI-incompatible with mainline so that's not an
-> issue.
-> 
-> The only one using this ABI is gdb, which is easily fixed.
-
-You can change anything you like as long as nobody complains about
-regressions.
-
-	Arnd
+diff --git a/init/main.c b/init/main.c
+index e7cb76c079d4..e74523feeddb 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -1004,6 +1004,29 @@ static noinline void __init kernel_init_freeable(void)
+ 
+ 	do_basic_setup();
+ 
++	{
++		spinlock_t main_l;
++		int loops;
++
++		spin_lock_init(&main_l);
++
++		for (loops = 0; loops < 10; loops++) {
++			ktime_t start, end;
++			int i;
++
++			local_irq_disable();
++			start = ktime_get();
++			for (i = 0; i <= 100000; i++) {
++				rt_spin_lock(&main_l);
++				rt_spin_unlock(&main_l);
++			}
++			end = ktime_get();
++			local_irq_enable();
++			pr_err("%s(%d) %lld\n", __func__, __LINE__,
++			       ktime_to_us(ktime_sub(end, start)));
++		}
++	}
++
+ 	/* Open the /dev/console on the rootfs, this should never fail */
+ 	if (sys_open((const char __user *) "/dev/console", O_RDWR, 0) < 0)
+ 		pr_err("Warning: unable to open an initial console.\n");
