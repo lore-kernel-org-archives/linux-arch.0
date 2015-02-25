@@ -1,63 +1,37 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: nios2: is the ptrace ABI correct?
-Date: Wed, 25 Feb 2015 15:07:39 +0100
-Message-ID: <10841724.NbdcAaCe1a@wuerfel>
-References: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com> <10088870.tldQegtTla@wuerfel> <54EDB2FC.4050901@vanguardiasur.com.ar>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH v2 00/18] Add support to STMicroelectronics STM32 family
+Date: Wed, 25 Feb 2015 16:34:10 +0000
+Message-ID: <25322.1424882050@warthog.procyon.org.uk>
+References: <CALszF6CKDjp-AK4OhjA7XcXqEMNBArvaQPpkXg8E3qDXcvo4LA@mail.gmail.com> <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com> <21951.1424787288@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <54EDB2FC.4050901@vanguardiasur.com.ar>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
-Cc: Tobias Klauser <tklauser@distanz.ch>, Chung-Ling Tang <cltang@codesourcery.com>, Walter Goossens <waltergoossens@home.nl>, Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:60457 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753213AbbBYQeR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 Feb 2015 11:34:17 -0500
+In-Reply-To: <CALszF6CKDjp-AK4OhjA7XcXqEMNBArvaQPpkXg8E3qDXcvo4LA@mail.gmail.com>
+Content-ID: <25321.1424882050.1@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Cc: dhowells@redhat.com, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On Wednesday 25 February 2015 08:33:16 Ezequiel Garcia wrote:
-> 
-> /me is more confused now
-> 
-> In arch/nios2/include/asm/ucontext.h
-> 
-> struct ucontext {
->         unsigned long     uc_flags;
->         struct ucontext  *uc_link;
->         stack_t           uc_stack;
->         struct mcontext   uc_mcontext;
->         sigset_t          uc_sigmask;
-> };
-> 
-> And in include/uapi/asm-generic/ucontext.h:
-> 
-> struct ucontext {
->         unsigned long     uc_flags;
->         struct ucontext  *uc_link;
->         stack_t           uc_stack;
->         struct sigcontext uc_mcontext;
->         sigset_t          uc_sigmask;
-> };
-> 
-> Which one is the one that userspace sees? And why does the kernel has
-> two different structures?
+Maxime Coquelin <mcoquelin.stm32@gmail.com> wrote:
 
-Userspace sees the asm-generic header, which I assume is a bug
-in this case.
-
-> Given this oddities, I'm wondering how troublesome would be to just
-> re-do this and break the ptrace and signal ABI. For instance, just
-> pushing pt_regs in PTRACE_GETREGSET would make things much clearer.
-
-Could you change pt_regs to match the layout you have for PTRACE_GETREGSET
-instead? It seems much more intuitive.
-
-> I guess Linus would burn me for even suggesting to breaking users... but
-> do we have any users at all? This arch has just been mainlined. Altera's
-> out-of-tree is already ABI-incompatible with mainline so that's not an
-> issue.
+> > Is support for this in upstream binutils and gcc?  What's the preferred
+> > target tuple?  I'll add support to Fedora's cross-binutils and cross-gcc
+> > sets if I can.
 > 
-> The only one using this ABI is gdb, which is easily fixed.
+> I just rebuilt using latest upstream binutils and gcc.
+> To compile Kernel and bootloader, I build a Bare Metal toolchain with
+> this configuration:
+> 
+> --target=arm-none-eabi --with-cpu=cortex-m4 --with-fpu=fpv4-sp-d16
+> --with-float=hard --with-mode=thumb
 
-You can change anything you like as long as nobody complains about
-regressions.
+Ah, no matter.  I thought this was a new arch.  I already have 32-bit and
+64-bit cross-compilers that should work.
 
-	Arnd
+Thanks anyway,
+David
