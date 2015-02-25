@@ -1,82 +1,33 @@
-From: Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
-Subject: Re: nios2: is the ptrace ABI correct?
-Date: Wed, 25 Feb 2015 08:33:16 -0300
-Message-ID: <54EDB2FC.4050901@vanguardiasur.com.ar>
-References: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com> <5636312.0WGrbVlVgB@wuerfel> <54EC98A9.9080203@vanguardiasur.com.ar> <10088870.tldQegtTla@wuerfel>
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Subject: Re: [PATCH v2 00/18] Add support to STMicroelectronics STM32 family
+Date: Wed, 25 Feb 2015 12:50:25 +0100
+Message-ID: <CALszF6CKDjp-AK4OhjA7XcXqEMNBArvaQPpkXg8E3qDXcvo4LA@mail.gmail.com>
+References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<21951.1424787288@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <10088870.tldQegtTla@wuerfel>
+In-Reply-To: <21951.1424787288@warthog.procyon.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Tobias Klauser <tklauser@distanz.ch>, Chung-Ling Tang <cltang@codesourcery.com>, Walter Goossens <waltergoossens@home.nl>, Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
+Hello David,
 
+2015-02-24 15:14 GMT+01:00 David Howells <dhowells@redhat.com>:
+> Is support for this in upstream binutils and gcc?  What's the preferred target
+> tuple?  I'll add support to Fedora's cross-binutils and cross-gcc sets if I
+> can.
 
-On 02/24/2015 04:25 PM, Arnd Bergmann wrote:
-> On Tuesday 24 February 2015 12:28:41 Ezequiel Garcia wrote:
->>
->> Gah, no, you are right. I got confused.
->>
->> So it would be OK to avoid remove pt_regs from the uapi headers?
->> How does this affect the signal handling nios2 implementation?
->>
-> 
-> We have a number of architectures that don't provide this structure:
-> 
-> $ git grep -L pt_regs arch/*/include/uapi/asm/ptrace.h
-> arch/frv/include/uapi/asm/ptrace.h
-> arch/metag/include/uapi/asm/ptrace.h
-> arch/openrisc/include/uapi/asm/ptrace.h
-> arch/s390/include/uapi/asm/ptrace.h
-> 
-> so I'd assume it's ok in general not to have it. However, on
-> nios2, struct pt_regs is embedded inside of struct sigcontext.
-> If I read the code in arch/nios2/kernel/signal.c correctly,
-> this is actually a bug and you should use a different structure
-> there too, because pt_regs does not match the layout of the
-> stack either. This means that the (rare) user programs that
-> would know about the architecture to modify signal stacks
-> are currently broken.
-> 
+I just rebuilt using latest upstream binutils and gcc.
+To compile Kernel and bootloader, I build a Bare Metal toolchain with
+this configuration:
 
-/me is more confused now
+--target=arm-none-eabi --with-cpu=cortex-m4 --with-fpu=fpv4-sp-d16
+--with-float=hard --with-mode=thumb
 
-In arch/nios2/include/asm/ucontext.h
-
-struct ucontext {
-        unsigned long     uc_flags;
-        struct ucontext  *uc_link;
-        stack_t           uc_stack;
-        struct mcontext   uc_mcontext;
-        sigset_t          uc_sigmask;
-};
-
-And in include/uapi/asm-generic/ucontext.h:
-
-struct ucontext {
-        unsigned long     uc_flags;
-        struct ucontext  *uc_link;
-        stack_t           uc_stack;
-        struct sigcontext uc_mcontext;
-        sigset_t          uc_sigmask;
-};
-
-Which one is the one that userspace sees? And why does the kernel has
-two different structures?
-
-Given this oddities, I'm wondering how troublesome would be to just
-re-do this and break the ptrace and signal ABI. For instance, just
-pushing pt_regs in PTRACE_GETREGSET would make things much clearer.
-
-I guess Linus would burn me for even suggesting to breaking users... but
-do we have any users at all? This arch has just been mainlined. Altera's
-out-of-tree is already ABI-incompatible with mainline so that's not an
-issue.
-
-The only one using this ABI is gdb, which is easily fixed.
--- 
-Ezequiel Garcia, VanguardiaSur
-www.vanguardiasur.com.ar
+BR,
+Maxime
+>
+> David
