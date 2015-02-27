@@ -1,51 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from metis.ext.pengutronix.de ([92.198.50.35]:34687 "EHLO
-	metis.ext.pengutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753526AbbBZKoF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Feb 2015 05:44:05 -0500
-Date: Thu, 26 Feb 2015 11:43:04 +0100
-From: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?=
-	<u.kleine-koenig@pengutronix.de>
-Subject: Re: [PATCH v2 02/18] ARM: ARMv7M: Enlarge vector table to 256 entries
-Message-ID: <20150226104304.GK7789@pengutronix.de>
-References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
- <1424455277-29983-3-git-send-email-mcoquelin.stm32@gmail.com>
- <20150220194756.GS19388@pengutronix.de>
- <CALszF6CB9YU7ashQ-y_zx58Mkf=sbrBfa2dAOdQm7FkmcuE7PA@mail.gmail.com>
- <CALszF6B6A=de_TK0e-iJHuW4MfD9xbd-yHZHaD-JmZXwZ9CW2A@mail.gmail.com>
+Received: from relay1.mentorg.com ([192.94.38.131]:62342 "EHLO
+	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752093AbbB0I5r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Feb 2015 03:57:47 -0500
+Message-ID: <54F03184.7080600@codesourcery.com>
+Date: Fri, 27 Feb 2015 16:57:40 +0800
+From: Chung-Lin Tang <cltang@codesourcery.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CALszF6B6A=de_TK0e-iJHuW4MfD9xbd-yHZHaD-JmZXwZ9CW2A@mail.gmail.com>
+Subject: Re: nios2: is the ptrace ABI correct?
+References: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com> <10088870.tldQegtTla@wuerfel> <54EDB2FC.4050901@vanguardiasur.com.ar> <10841724.NbdcAaCe1a@wuerfel>
+In-Reply-To: <10841724.NbdcAaCe1a@wuerfel>
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Cc: Andreas =?iso-8859-1?Q?F=E4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
-Message-ID: <20150226104304.JGgvEceAI_bdwfKGHV5kzm4vgjEEZYjbzxYTBWy83GM@z>
+To: Arnd Bergmann <arnd@arndb.de>, Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
+Cc: Tobias Klauser <tklauser@distanz.ch>, Walter Goossens <waltergoossens@home.nl>, Ley Foon Tan <lftan@altera.com>, linux-arch@vger.kernel.org, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20150227085740.HslICSIUiuiULsh21IUKQ1igCar-Pb5csrDT78vYgyQ@z>
 
-On Thu, Feb 26, 2015 at 11:29:52AM +0100, Maxime Coquelin wrote:
-> 2015-02-23 11:33 GMT+01:00 Maxime Coquelin <mcoquelin.stm32@gmail.com>:
-> > 2015-02-20 20:47 GMT+01:00 Uwe Kleine-König <u.kleine-koenig@pengutronix.de>:
-> >> Who do you target to apply this series?
-> >
-> > I guess it should go through Russell's Patch Tracking System?
+On 15/2/25 10:07 PM, Arnd Bergmann wrote:
+> On Wednesday 25 February 2015 08:33:16 Ezequiel Garcia wrote:
+>>
+>> /me is more confused now
+>>
+>> In arch/nios2/include/asm/ucontext.h
+>>
+>> struct ucontext {
+>>         unsigned long     uc_flags;
+>>         struct ucontext  *uc_link;
+>>         stack_t           uc_stack;
+>>         struct mcontext   uc_mcontext;
+>>         sigset_t          uc_sigmask;
+>> };
+>>
+>> And in include/uapi/asm-generic/ucontext.h:
+>>
+>> struct ucontext {
+>>         unsigned long     uc_flags;
+>>         struct ucontext  *uc_link;
+>>         stack_t           uc_stack;
+>>         struct sigcontext uc_mcontext;
+>>         sigset_t          uc_sigmask;
+>> };
+>>
+>> Which one is the one that userspace sees? And why does the kernel has
+>> two different structures?
 > 
-> Sorry, I answered your question too quickly.
-> I meant this patch should go through Russell's Patch Tracking System.
+> Userspace sees the asm-generic header, which I assume is a bug
+> in this case.
+
+Yes, I believe nios2 doesn't not need this asm-generic/ucontext.h
+header; OTOH it just isn't used; no real harm done, so easily fixed.
+
+>> Given this oddities, I'm wondering how troublesome would be to just
+>> re-do this and break the ptrace and signal ABI. For instance, just
+>> pushing pt_regs in PTRACE_GETREGSET would make things much clearer.
 > 
-> For the other patches, I think it should be picked by their respective
-> maintainers.
-> Or I can create an immutable tag (on github or kernel.org?) that will
-> be merged by the different sub-systems?
-> What would you advise?
-Depends on the interdependencies of your patches. If each maintainer can
-just pick up the patches affecting his area on top of (say) 4.0-rc1 that
-would be good.
+> Could you change pt_regs to match the layout you have for PTRACE_GETREGSET
+> instead? It seems much more intuitive.
 
-Best regards
-Uwe
+There is a reason for this pt_regs arrangement: the nios2 syscall
+interface uses r4-r9 for parameters, while the usual C conventions use
+only r4-r7, placing r8-r9 at the start of pt_regs creates a natural
+stack layout for entering C code after the asm shims in entry.S
 
--- 
-Pengutronix e.K.                           | Uwe Kleine-König            |
-Industrial Linux Solutions                 | http://www.pengutronix.de/  |
+>> I guess Linus would burn me for even suggesting to breaking users... but
+>> do we have any users at all? This arch has just been mainlined. Altera's
+>> out-of-tree is already ABI-incompatible with mainline so that's not an
+>> issue.
+>>
+>> The only one using this ABI is gdb, which is easily fixed.
+> 
+> You can change anything you like as long as nobody complains about
+> regressions.
+
+PTRACE_GET/SETREGSET is a new feature in nios2-linux that we're still
+about to support in upstream GDB, so things could be fixed if needed,
+but why can't you just use the [0...] ordering in userspace?
+
+BTW, it's even that way in signal stacks as well; nios2 does not
+use/export sigcontext inside struct ucontext. We just use a int[32]
+array there.
+
+Thanks,
+Chung-Lin
+
