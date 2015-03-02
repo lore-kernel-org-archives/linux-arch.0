@@ -1,45 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:54315 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750966AbbCBMcK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2015 07:32:10 -0500
-Date: Mon, 2 Mar 2015 13:31:49 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: PMD update corruption (sync question)
-Message-ID: <20150302123149.GK21418@twins.programming.kicks-ass.net>
-References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org>
- <54F06636.6080905@redhat.com>
- <54F3C6AD.50300@redhat.com>
- <938476184.27970130.1425275915893.JavaMail.zimbra@zmail15.collab.prod.int.phx2.redhat.com>
- <20150302105011.GD22541@e104818-lin.cambridge.arm.com>
- <1172437505.28092883.1425294374323.JavaMail.zimbra@zmail15.collab.prod.int.phx2.redhat.com>
+Received: from mail-oi0-f47.google.com ([209.85.218.47]:53642 "EHLO
+	mail-oi0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753614AbbCBMkH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2015 07:40:07 -0500
+Received: by mail-oi0-f47.google.com with SMTP id i138so26669246oig.6
+        for <linux-arch@vger.kernel.org>; Mon, 02 Mar 2015 04:40:06 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1172437505.28092883.1425294374323.JavaMail.zimbra@zmail15.collab.prod.int.phx2.redhat.com>
+In-Reply-To: <20150302123149.GK21418@twins.programming.kicks-ass.net>
+References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org>
+	<54F06636.6080905@redhat.com>
+	<54F3C6AD.50300@redhat.com>
+	<938476184.27970130.1425275915893.JavaMail.zimbra@zmail15.collab.prod.int.phx2.redhat.com>
+	<20150302105011.GD22541@e104818-lin.cambridge.arm.com>
+	<1172437505.28092883.1425294374323.JavaMail.zimbra@zmail15.collab.prod.int.phx2.redhat.com>
+	<20150302123149.GK21418@twins.programming.kicks-ass.net>
+Date: Mon, 2 Mar 2015 13:40:06 +0100
+Message-ID: <CAMuHMdVmL9HV5yBgnNtGWNmVN0NQa-EXtOsLkZ1G8PCkT9TWew@mail.gmail.com>
+Subject: Re: PMD update corruption (sync question)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jon Masters <jcm@redhat.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, gary.robertson@linaro.org, Steve Capper <steve.capper@linaro.org>, mark.rutland@arm.com, hughd@google.com, christoffer.dall@linaro.org, akpm@linux-foundation.org, mgorman@suse.de, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org, will.deacon@arm.com, dann.frazier@canonical.com, anders.roxell@linaro.org
-Message-ID: <20150302123149.1Vjk4woecpDNcXpLsgxXaKECpz2ujwD6HdKAkgNDyHI@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Jon Masters <jcm@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>, gary.robertson@linaro.org, Steve Capper <steve.capper@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Hugh Dickins <hughd@google.com>, christoffer.dall@linaro.org, Andrew Morton <akpm@linux-foundation.org>, Mel Gorman <mgorman@suse.de>, Russell King <linux@arm.linux.org.uk>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Will Deacon <will.deacon@arm.com>, dann.frazier@canonical.com, anders.roxell@linaro.org
+Message-ID: <20150302124006.zLJNTDF6KuMOTGKYuj3dmZUK2gs_uEJWyepSAfuifi4@z>
 
-On Mon, Mar 02, 2015 at 06:06:14AM -0500, Jon Masters wrote:
+On Mon, Mar 2, 2015 at 1:31 PM, Peter Zijlstra <peterz@infradead.org> wrote:
+> Q: What is the most annoying thing in e-mail?
 
-> 64-bit writes are /usually/ atomic but alignment or compiler emiting
-> 32-bit opcodes could also do it. I agree there are a few other pieces
-> to this we will chat about separately and come back to this thread.
+"Sent from my #ARM Powered Mobile Device" ;-)
 
-Looking at the asm will quickly tell you if its emitting 32bit stores or
-not. If it is, use WRITE_ONCE() (you should anyway I suppose) and see if
-that cures it, if not file a compiler bug, volatile stores should never
-be split.
+Gr{oetje,eeting}s,
 
-As to alignment, you can simply put a BUG_ON((unsigned long)ptep & 7);
-in there.
+                        Geert
 
-Also:
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-A: Because it messes up the order in which people normally read text.
-Q: Why is top-posting such a bad thing?
-A: Top-posting.
-Q: What is the most annoying thing in e-mail?
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
