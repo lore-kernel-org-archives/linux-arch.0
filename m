@@ -1,44 +1,39 @@
-From: Vladimir Murzin <vladimir.murzin@arm.com>
-Subject: [RFC PATCH 4/4] arm: add support for memtest
-Date: Mon,  2 Mar 2015 14:55:45 +0000
-Message-ID: <1425308145-20769-5-git-send-email-vladimir.murzin@arm.com>
+From: Baruch Siach <baruch@tkos.co.il>
+Subject: Re: [RFC PATCH 0/4] make memtest a generic kernel feature
+Date: Mon, 2 Mar 2015 17:14:00 +0200
+Message-ID: <20150302151400.GI15668@tarshish>
 References: <1425308145-20769-1-git-send-email-vladimir.murzin@arm.com>
-Content-Type: text/plain; charset=WINDOWS-1252
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from guitar.tcltek.co.il ([192.115.133.116]:58237 "EHLO
+	mx.tkos.co.il" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750966AbbCBPOI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Mar 2015 10:14:08 -0500
+Content-Disposition: inline
 In-Reply-To: <1425308145-20769-1-git-send-email-vladimir.murzin@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, akpm@linux-foundation.org, lauraa@codeaurora.org, catalin.marinas@arm.com, will.deacon@arm.com, linux@arm.linux.org.uk, arnd@arndb.de, mark.rutland@arm.com, ard.biesheuvel@linaro.org
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vladimir Murzin <vladimir.murzin@arm.com>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, mark.rutland@arm.com, lauraa@codeaurora.org, arnd@arndb.de, ard.biesheuvel@linaro.org, catalin.marinas@arm.com, will.deacon@arm.com, mingo@redhat.com, hpa@zytor.com, linux@arm.linux.org.uk, tglx@linutronix.de, akpm@linux-foundation.org
 
-Add support for memtest command line option.
+Hi Vladimir,
 
-Signed-off-by: Vladimir Murzin <vladimir.murzin@arm.com>
----
- arch/arm/mm/init.c |    3 +++
- 1 file changed, 3 insertions(+)
+On Mon, Mar 02, 2015 at 02:55:41PM +0000, Vladimir Murzin wrote:
+> Memtest is a simple feature which fills the memory with a given set of
+> patterns and validates memory contents, if bad memory regions is detected it
+> reserves them via memblock API. Since memblock API is widely used by other
+> architectures this feature can be enabled outside of x86 world.
+> 
+> This patch set promotes memtest to live under generic mm umbrella and enables
+> memtest feature for arm/arm64.
 
-diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
-index 1609b02..3d0e9ae 100644
---- a/arch/arm/mm/init.c
-+++ b/arch/arm/mm/init.c
-@@ -335,6 +335,9 @@ void __init bootmem_init(void)
-=20
- =09find_limits(&min, &max_low, &max_high);
-=20
-+=09early_memtest((phys_addr_t)min << PAGE_SHIFT,
-+=09=09      (phys_addr_t)max_low << PAGE_SHIFT);
-+
- =09/*
- =09 * Sparsemem tries to allocate bootmem in memory_present(),
- =09 * so must be done after the fixed reservations
---=20
-1.7.9.5
+Please update the architectures list in the 'memtest' entry at 
+Documentation/kernel-parameters.txt.
 
+baruch
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+     http://baruch.siach.name/blog/                  ~. .~   Tk Open Systems
+=}------------------------------------------------ooO--U--Ooo------------{=
+   - baruch@tkos.co.il - tel: +972.2.679.5364, http://www.tkos.co.il -
