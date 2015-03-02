@@ -1,35 +1,54 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH V4 0/6] RCU get_user_pages_fast and __get_user_pages_fast
-Date: Mon, 2 Mar 2015 14:16:04 +0000
-Message-ID: <20150302141604.GB16779@leverpostej>
-References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org>
- <54F06636.6080905@redhat.com>
- <20150227132000.GD9011@leverpostej>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Vladimir Murzin <vladimir.murzin@arm.com>
+Subject: [RFC PATCH 0/4] make memtest a generic kernel feature
+Date: Mon,  2 Mar 2015 14:55:41 +0000
+Message-ID: <1425308145-20769-1-git-send-email-vladimir.murzin@arm.com>
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:47208 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753722AbbCBOQe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 2 Mar 2015 09:16:34 -0500
-Content-Disposition: inline
-In-Reply-To: <20150227132000.GD9011@leverpostej>
+Received: from service87.mimecast.com ([91.220.42.44]:51868 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753984AbbCBOzz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2015 09:55:55 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "jcm@redhat.com" <jcm@redhat.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "dann.frazier@canonical.com" <dann.frazier@canonical.com>, Steve Capper <steve.capper@linaro.org>, "peterz@infradead.org" <peterz@infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "anders.roxell@linaro.org" <anders.roxell@linaro.org>, Will Deacon <Will.Deacon@arm.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "hughd@google.com" <hughd@google.com>, "christoffer.dall@linaro.org" <christoffer.dall@linaro.org>, "gary.robertson@linaro.org" <gary.robertson@linaro.org>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "mgorman@suse.de" <mgorman@suse.de>
+To: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, akpm@linux-foundation.org, lauraa@codeaurora.org, catalin.marinas@arm.com, will.deacon@arm.com, linux@arm.linux.org.uk, arnd@arndb.de, mark.rutland@arm.com, ard.biesheuvel@linaro.org
 
-> > Head's up: these patches are currently implicated in a rare-to-trigger
-> > hang that we are seeing on an internal kernel. An extensive effort is
-> > underway to confirm whether these are the cause. Will followup.
-> 
-> I'm currently investigating an intermittent memory corruption issue in
-> v4.0-rc1 I'm able to trigger on Seattle with 4K pages and 48-bit VA,
-> which may or may not be related. Sometimes it results in a hang (when
-> the vectors get corrupted and the CPUs get caught in a recursive
-> exception loop).
+Hi,
 
-FWIW my issue appears to be a bug in the old firmware I'm running.
-Sorry for the noise!
+Memtest is a simple feature which fills the memory with a given set of
+patterns and validates memory contents, if bad memory regions is detected i=
+t
+reserves them via memblock API. Since memblock API is widely used by other
+architectures this feature can be enabled outside of x86 world.
 
-Mark.
+This patch set promotes memtest to live under generic mm umbrella and enabl=
+es
+memtest feature for arm/arm64.
+
+Patches are built on top of 4.0-rc1
+
+Vladimir Murzin (4):
+  mm: move memtest under /mm
+  memtest: use phys_addr_t for physical addresses
+  arm64: add support for memtest
+  arm: add support for memtest
+
+ arch/arm/mm/init.c          |    3 ++
+ arch/arm64/mm/init.c        |    2 +
+ arch/x86/Kconfig            |   11 ----
+ arch/x86/include/asm/e820.h |    8 ---
+ arch/x86/mm/Makefile        |    2 -
+ arch/x86/mm/memtest.c       |  118 ---------------------------------------=
+----
+ include/linux/memblock.h    |    8 +++
+ lib/Kconfig.debug           |   11 ++++
+ mm/Makefile                 |    1 +
+ mm/memtest.c                |  118 +++++++++++++++++++++++++++++++++++++++=
+++++
+ 10 files changed, 143 insertions(+), 139 deletions(-)
+ delete mode 100644 arch/x86/mm/memtest.c
+ create mode 100644 mm/memtest.c
+
+--=20
+1.7.9.5
