@@ -1,39 +1,90 @@
-From: Baruch Siach <baruch@tkos.co.il>
-Subject: Re: [RFC PATCH 0/4] make memtest a generic kernel feature
-Date: Mon, 2 Mar 2015 17:14:00 +0200
-Message-ID: <20150302151400.GI15668@tarshish>
-References: <1425308145-20769-1-git-send-email-vladimir.murzin@arm.com>
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Subject: Re: [PATCH v2 04/18] clocksource: Add ARM System timer driver
+Date: Mon, 2 Mar 2015 17:53:09 +0100
+Message-ID: <CALszF6Bm_Y4ZLednjpmP-hMix3gA23FwLm5hViEjr1QojUY+Mg@mail.gmail.com>
+References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<1424455277-29983-5-git-send-email-mcoquelin.stm32@gmail.com>
+	<20150220195437.GT19388@pengutronix.de>
+	<1424468908.24292.10.camel@x220>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from guitar.tcltek.co.il ([192.115.133.116]:58237 "EHLO
-	mx.tkos.co.il" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750966AbbCBPOI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 2 Mar 2015 10:14:08 -0500
-Content-Disposition: inline
-In-Reply-To: <1425308145-20769-1-git-send-email-vladimir.murzin@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Vladimir Murzin <vladimir.murzin@arm.com>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org, mark.rutland@arm.com, lauraa@codeaurora.org, arnd@arndb.de, ard.biesheuvel@linaro.org, catalin.marinas@arm.com, will.deacon@arm.com, mingo@redhat.com, hpa@zytor.com, linux@arm.linux.org.uk, tglx@linutronix.de, akpm@linux-foundation.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1424468908.24292.10.camel@x220>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Paul Bolle <pebolle@tiscali.nl>, =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>
+Cc: =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Vladimir,
+Hi Paul, Uwe,
 
-On Mon, Mar 02, 2015 at 02:55:41PM +0000, Vladimir Murzin wrote:
-> Memtest is a simple feature which fills the memory with a given set of
-> patterns and validates memory contents, if bad memory regions is detected it
-> reserves them via memblock API. Since memblock API is widely used by other
-> architectures this feature can be enabled outside of x86 world.
-> 
-> This patch set promotes memtest to live under generic mm umbrella and enables
-> memtest feature for arm/arm64.
+2015-02-20 22:48 GMT+01:00 Paul Bolle <pebolle@tiscali.nl>:
+> On Fri, 2015-02-20 at 20:54 +0100, Uwe Kleine-K=C3=B6nig wrote:
+>> On Fri, Feb 20, 2015 at 07:01:03PM +0100, Maxime Coquelin wrote:
+>> > This patch adds clocksource support for ARMv7-M's System timer,
+>> > also known as SysTick.
+>> >
+>> > Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+>> > ---
+>> >  drivers/clocksource/Kconfig          |  7 ++++
+>> >  drivers/clocksource/Makefile         |  1 +
+>> >  drivers/clocksource/armv7m_systick.c | 78 +++++++++++++++++++++++=
++++++++++++++
+>> >  3 files changed, 86 insertions(+)
+>> >  create mode 100644 drivers/clocksource/armv7m_systick.c
+>> >
+>> > diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kco=
+nfig
+>> > index fc01ec2..fb6011e 100644
+>> > --- a/drivers/clocksource/Kconfig
+>> > +++ b/drivers/clocksource/Kconfig
+>> > @@ -124,6 +124,13 @@ config CLKSRC_ARM_GLOBAL_TIMER_SCHED_CLOCK
+>> >     help
+>> >      Use ARM global timer clock source as sched_clock
+>> >
+>> > +config ARMV7M_SYSTICK
+>> > +   bool
+>> I assume this symbol is enabled later in the series.
+>
+> Yes, I noticed it was selected in 14/18 ("ARM: Add STM32 family
+> machine").
+>
+>> Would it make sense
+>> to allow enabing the symbol for compile test coverage?
+>>
+>> > +   select CLKSRC_OF if OF
+>> What happens if ARMV7M_SYSTICK=3Dy but OF=3Dn? Doesn't the driver fa=
+il to
+>> compile?
+>>
+>> > +   select CLKSRC_MMIO
+>> > +   help
+>> > +     This options enables support for the ARMv7M system timer uni=
+t
+>> the right spelling is ARMv7-M.
+>
+> This Kconfig entry has no prompt, so no one is going to see this text
+> during make *config. Perhaps this should be made a comment. In that c=
+ase
+> the right spelling should still be used.
 
-Please update the architectures list in the 'memtest' entry at 
-Documentation/kernel-parameters.txt.
+Yes, you are right.
+Do you agree if I define it like this:
 
-baruch
+config ARMV7M_SYSTICK
+    bool "Clocksource driver for ARMv7-M System timer"
+    depends on OF && (CPU_V7M || COMPILE_TEST)
+    select CLKSRC_OF
+    select CLKSRC_MMIO
+    help
+      This options enables clocksource support for the ARMv7-M system
+      timer unit.
 
--- 
-     http://baruch.siach.name/blog/                  ~. .~   Tk Open Systems
-=}------------------------------------------------ooO--U--Ooo------------{=
-   - baruch@tkos.co.il - tel: +972.2.679.5364, http://www.tkos.co.il -
+Thanks,
+Maxime
+>
+> Thanks,
+>
+>
+> Paul Bolle
+>
