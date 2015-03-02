@@ -1,35 +1,64 @@
-From: "Mr. Juan Sebastian Morato" <noreply@popfax.com>
-Subject: Confidential Letter
-Date: Mon, 02 Mar 2015 01:34:36 +0100
-Message-ID: <20150302003442.1F04D3EE0FB__4107.91744147918$1425333089$gmane$org@mail.quartzbg.ro>
-Reply-To: juan_morato@yahoo.es
+From: Jon Masters <jcm@redhat.com>
+Subject: Re: PMD update corruption (sync question)
+Date: Mon, 02 Mar 2015 17:21:26 -0500
+Message-ID: <54F4E266.8090709@redhat.com>
+References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org> <54F06636.6080905@redhat.com> <54F3C6AD.50300@redhat.com> <938476184.27970130.1425275915893.JavaMail.zimbra@zmail15.collab.prod.int.phx2.redhat.com> <20150302105011.GD22541@e104818-lin.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.quartzbg.ro ([82.79.64.94]:52450 "EHLO mail.quartzbg.ro"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754143AbbCBVvS convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2015 16:51:18 -0500
-Content-Description: Mail message body
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <noreply@popfax.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20150302105011.GD22541@e104818-lin.cambridge.arm.com>
+Sender: owner-linux-mm@kvack.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, Steve Capper <steve.capper@linaro.org>, linux-mm@kvack.org, mark.rutland@arm.com, anders.roxell@linaro.org, peterz@infradead.org, gary.robertson@linaro.org, hughd@google.com, will.deacon@arm.com, mgorman@suse.de, dann.frazier@canonical.com, akpm@linux-foundation.org, christoffer.dall@linaro.org
+List-Id: linux-arch.vger.kernel.org
 
-Dear Friend, 
+On 03/02/2015 05:50 AM, Catalin Marinas wrote:
+> On Mon, Mar 02, 2015 at 12:58:36AM -0500, Jon Masters wrote:
 
-I am Mr. Juan Sebastian Morato, the Auditor General of Unicaja Bank Madrid. In the course of my auditing, I discovered a floating fund in an account, which was opened in 1990 at Cam Bank before it was bought over by Unicaja Group which I am the auditor belonging to a dead foreigner Mr. Kenny who died in 2004. Every effort made to track any member of his family or next of kin has since failed; hence I got in contact with you to stand as his next of kin since you bear the same last name. He died leaving no heir or a will.
+>> Test kernels running with an explicit DSB in all PTE update cases now
+>> running overnight. Just in case.
 
-My intention is to transfer this sum of 5.5M in the aforementioned account to a safe account. I am therefore proposing that you quietly partner with me and provide an account or set up a new one that will serve the purpose of receiving this fund. For your assistance in this venture, I am ready to part with a good percentage of the entire funds. After going through the deceased person's records and files, I discovered that:
+...and stay up after 19 hours. But that's just timing I'm sure.
 
-(1) No one has operated this account since 2004
-(2) He died without an heir; hence the money has been floating.
-(3) No other person knows about this account and there was no known beneficiary.
+> It could be hiding some other problems.
 
-If I do not remit this money urgently, it would be forfeited and subsequently converted to company's funds, which will benefit only the directors of my firm. This money can be approved to you legally as with all the necessary documentary approvals in your name. However, you would be required to show some proof of claim, which I will provide you with and also guide you on how to make your applications.
+I checked my GDB macros and they were correct BUT my debugger went out
+to lunch soon after that dump so I suspect it was just garbage :)
 
-Please do give me a reply on my private e-mail juan.morato1@1email.eu or fax 00 34 917 692 656 so that I can send you detailed information on the modalities of my proposition. I completely trust you to keep this proposition absolutely confidential. Kindly forward your telephone number where I can reach you easily. I look forward to your prompt response.
+Instead, for my immediate issue, I have a much more likely suspect. For
+anyone interested in the followup, you should know that hardware page
+table walkers generally do respond well when you feed them Makefiles:
 
-Best Regards,
-Mr. Juan Sebastian Morato
-Fax: 00 34 917 692 656
+0x43e81c0000: 20230a23 656b614d 656c6966 726f6620  : #.# Makefile for
+0x43e81c0010: 65687420 462d4920 6563726f 69726420  :  the I-Force dri
+0x43e81c0020: 0a726576 20230a23 4a207942 6e61686f  : ver.#.# By Johan
+0x43e81c0030: 6544206e 7875656e 6f6a3c20 6e6e6168  : n Deneux <johann
+0x43e81c0040: 6e65642e 40787565 69616d67 6f632e6c  : .deneux@gmail.co
+0x43e81c0050: 230a3e6d 626f0a0a 28242d6a 464e4f43  : m>.#..obj-$(CONF
+0x43e81c0060: 4a5f4749 5453594f 5f4b4349 524f4649  : IG_JOYSTICK_IFOR
+0x43e81c0070: 09294543 69203d2b 63726f66 0a6f2e65  : CE).+= iforce.o.
+0x43e81c0080: 6f66690a 2d656372 3d3a2079 6f666920  : .iforce-y := ifo
+0x43e81c0090: 2d656372 6f2e6666 6f666920 2d656372  : rce-ff.o iforce-
+0x43e81c00a0: 6e69616d 69206f2e 63726f66 61702d65  : main.o iforce-pa
+0x43e81c00b0: 74656b63 0a6f2e73 726f6669 242d6563  : ckets.o.iforce-$
+0x43e81c00c0: 4e4f4328 5f474946 53594f4a 4b434954  : (CONFIG_JOYSTICK
+0x43e81c00d0: 4f46495f 5f454352 29323332 203d2b09  : _IFORCE_232).+=
+0x43e81c00e0: 726f6669 732d6563 6f697265 690a6f2e  : iforce-serio.o.i
+0x43e81c00f0: 63726f66 28242d65 464e4f43 4a5f4749  : force-$(CONFIG_J
+0x43e81c0100: 5453594f 5f4b4349 524f4649 555f4543  : OYSTICK_IFORCE_U
+0x43e81c0110: 09294253 69203d2b 63726f66 73752d65  : SB).+= iforce-us
+0x43e81c0120: 0a6f2e62 00000000 00000000 00000000  : b.o.............
+
+So that explains why things were falling over. It is likely indeed the
+bad DMA I have been craving all along. And this time it was so gracious
+as to give me the answer in plain ASCII :) I suspect there will be a
+patch for a certain AHCI driver in the not too distant future.
+
+Jon.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
