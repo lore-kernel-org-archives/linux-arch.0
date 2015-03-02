@@ -1,94 +1,73 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: Generic page fault (Was: libsigsegv ....)
-Date: Sun, 01 Mar 2015 14:57:07 +1100
-Message-ID: <1425182227.4645.173.camel@kernel.crashing.org>
-References: <1422361485.6648.71.camel@opensuse.org>
-	 <54C78756.9090605@suse.cz>
-	 <alpine.LSU.2.11.1501271347440.30227@nerf60.vanv.qr>
-	 <1422364084.6648.82.camel@opensuse.org> <s5h7fw8hvdp.wl-tiwai@suse.de>
-	 <CA+55aFyzy_wYHHnr2gDcYr7qcgOKM2557bRdg6RBa=cxrynd+Q@mail.gmail.com>
-	 <CA+55aFxRnj97rpSQvvzLJhpo7C8TQ-F=eB1Ry2n53AV1rN8mwA@mail.gmail.com>
-	 <CAMo8BfLsKCV_2NfgMH4k9jGOHs_-3=NKjCD3o3KK1uH23-6RRg@mail.gmail.com>
-	 <CA+55aFzQ5QEZ1AYauWviq1gp5j=mqByAtt4fpteeK7amuxcyjw@mail.gmail.com>
-	 <1422836637.17302.9.camel@au1.ibm.com>
-	 <CA+55aFw9sg7pu9-2RbMGyPv5yUtcH54QowoH+5RhWqpPYg4YGQ@mail.gmail.com>
-	 <1425107567.4645.108.camel@kernel.crashing.org>
-	 <CA+55aFy5UvzSgOMKq09u4psz5twtC4aowuK6tofGKDEu-KFMJQ@mail.gmail.com>
-	 <1425158083.4645.139.camel@kernel.crashing.org>
-	 <1425161796.4645.149.camel@kernel.crashing.org>
-	 <1425164559.4645.157.camel@kernel.crashing.org>
-	 <CA+55aFw+K6aev6JPTiYxWjtJS0O8+MUwC-5=O4Gb+0mCd+tOfQ@mail.gmail.com>
+From: Jon Masters <jcm@redhat.com>
+Subject: PMD update corruption (sync question)
+Date: Sun, 01 Mar 2015 21:10:53 -0500
+Message-ID: <54F3C6AD.50300@redhat.com>
+References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org> <54F06636.6080905@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:38884 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752280AbbCAD5T (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 28 Feb 2015 22:57:19 -0500
-In-Reply-To: <CA+55aFw+K6aev6JPTiYxWjtJS0O8+MUwC-5=O4Gb+0mCd+tOfQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-mm <linux-mm@kvack.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <54F06636.6080905@redhat.com>
+Sender: owner-linux-mm@kvack.org
+To: Jon Masters <jcm@redhat.com>, Steve Capper <steve.capper@linaro.org>, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, dann.frazier@canonical.com, mark.rutland@arm.com, mgorman@suse.de, hughd@google.com
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, 2015-02-28 at 16:41 -0800, Linus Torvalds wrote:
-> On Sat, Feb 28, 2015 at 3:02 PM, Benjamin Herrenschmidt
-> <benh@kernel.crashing.org> wrote:
-> >
-> > Anyway, here's the current patch:
+Hi Folks,
+
+I've pulled a couple of all nighters reproducing this hard to trigger
+issue and got some data. It looks like the high half of the (note always
+userspace) PMD is all zeros or all ones, which makes me wonder if the
+logic in update_mmu_cache might be missing something on AArch64.
+
+When a kernel is built with 64K pages and 2 levels the PMD is
+effectively updated using set_pte_at, which explicitly won't perform a
+DSB if the address is userspace (it expects this to happen later, in
+update_mmu_cache as an example.
+
+Can anyone think of an obvious reason why we might not be properly
+flushing the changes prior to them being consumed by a hardware walker?
+
+Jon.
+
+On 02/27/2015 07:42 AM, Jon Masters wrote:
+> On 09/26/2014 10:03 AM, Steve Capper wrote:
 > 
-> Ok, I think I like this approach better.
+>> This series implements general forms of get_user_pages_fast and
+>> __get_user_pages_fast in core code and activates them for arm and arm64.
+>>
+>> These are required for Transparent HugePages to function correctly, as
+>> a futex on a THP tail will otherwise result in an infinite loop (due to
+>> the core implementation of __get_user_pages_fast always returning 0).
+>>
+>> Unfortunately, a futex on THP tail can be quite common for certain
+>> workloads; thus THP is unreliable without a __get_user_pages_fast
+>> implementation.
+>>
+>> This series may also be beneficial for direct-IO heavy workloads and
+>> certain KVM workloads.
+>>
+>> I appreciate that the merge window is coming very soon, and am posting
+>> this revision on the off-chance that it gets the nod for 3.18. (The changes
+>> thus far have been minimal and the feedback I've got has been mainly
+>> positive).
 > 
-> Your FAULT_FLAG_EXEC handling is wrong, though. It shouldn't check
-> VM_WRITE, it should check VM_EXEC. A bit too much copy-paste ;)
+> Head's up: these patches are currently implicated in a rare-to-trigger
+> hang that we are seeing on an internal kernel. An extensive effort is
+> underway to confirm whether these are the cause. Will followup.
+> 
+> Jon.
+> 
+> 
+> --
+> To unsubscribe, send a message with 'unsubscribe linux-mm' in
+> the body to majordomo@kvack.org.  For more info on Linux MM,
+> see: http://www.linux-mm.org/ .
+> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> 
 
-Ah yes indeed :) I would have caught that pretty quickly once I tried
-powerpc.
-
-> Btw, it's quite possible that we could just do all the PF_PROT
-> handling at the x86 level, before even calling the generic fault
-> handler. It's not like we even need the vma or the mm semaphore: if
-> it's a non-write protection fault, we always SIGSEGV. So why even
-> bother getting the locks and looking up the page tables etc?
-
-For non-write possibly, though that means we always end up going
-through handle_mm_fault for a non-present PTE before we decide
-that it wasn't actually accessible.
-
-Not a huge deal I suppose unless something (ab)uses mprotect + emulation
-for things like spying on MMIO accesses (been there) or god knows what
-other userspace based paging or GC might be out there. It's asking for
-trouble but the check in access_error() doesn't hurt much either.
-
-On the other hand, we are all about simplifying code here, aren't
-we ? :-) It's not like the early bail-out on x86 will buy us much and
-it's going to be more arch specific code since they'll all have a
-different variant of PF_PROT.
-
-One thing that worries me a bit, however, with the PF_PROT handling in
-the generic case is the case of archs who support
-present-but-not-accessible PTEs in "HW" (for us that basically means no
-_PAGE_USER), as these might use such fault for NUMA balancing, or
-software maintained "young" bit, and in those case, bailing out on
-PF_PROT is wrong. I'll have to figure out if that ever happens when I
-dig through more archs.
-
-> Now, that PF_PROT handling isn't exactly performance-critical, but it
-> might help to remove the odd x86 special case from the generic code.
-
-I don't think it's that odd on x86. If you look at what other archs do,
-there's a bit of everything out there. Just powerpc may or may not
-support exec permission for example depending on the CPU generation and
-when it doesn't it's basically similar to x86. I yet have to fully
-understand what ARM does (looks simple, just need to make sure it's what
-I think it is and check various ARM generations), sparc has its
-oddities, etc...
-
-None of that is terribly urgent and I'm pretty busy so give me a bit
-more time now that we have some kind of direction, to go through a few
-more archs and see where it takes us. I'll start gathering cross
-compilers and qemu debian images in the next few days.
-
-Cheers,
-Ben.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
