@@ -1,24 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:49006 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752221AbbCBCMM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 1 Mar 2015 21:12:12 -0500
-Message-ID: <54F3C6AD.50300@redhat.com>
-Date: Sun, 01 Mar 2015 21:10:53 -0500
+Received: from mx3-phx2.redhat.com ([209.132.183.24]:55123 "EHLO
+	mx3-phx2.redhat.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750758AbbCBF7r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2015 00:59:47 -0500
+Date: Mon, 2 Mar 2015 00:58:36 -0500 (EST)
+Subject: Re: PMD update corruption (sync question)
 From: Jon Masters <jcm@redhat.com>
 MIME-Version: 1.0
-Subject: PMD update corruption (sync question)
-References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org> <54F06636.6080905@redhat.com>
-In-Reply-To: <54F06636.6080905@redhat.com>
-Content-Type: text/plain; charset=windows-1252
+Message-ID: <938476184.27970130.1425275915893.JavaMail.zimbra@zmail15.collab.prod.int.phx2.redhat.com>
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
+In-Reply-To: <54F3C6AD.50300@redhat.com>
+References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org> <54F06636.6080905@redhat.com> <54F3C6AD.50300@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jon Masters <jcm@redhat.com>, Steve Capper <steve.capper@linaro.org>, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, dann.frazier@canonical.com, mark.rutland@arm.com, mgorman@suse.de, hughd@google.com
-Message-ID: <20150302021053.8o0BHIVCj4mROlQyg23RK2jEgkXT2CHrRL7rL6vf6wM@z>
+To: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, Steve Capper <steve.capper@linaro.org>, linux-mm@kvack.org, catalin.marinas@arm.com
+Cc: gary.robertson@linaro.org, mark.rutland@arm.com, hughd@google.com, akpm@linux-foundation.org, christoffer.dall@linaro.org, peterz@infradead.org, mgorman@suse.de, will.deacon@arm.com, dann.frazier@canonical.com, anders.roxell@linaro.org
+Message-ID: <20150302055836.qGOxsB4AKoRCQAuEEu8R6I-X04mp2kjo32iqScWIK0s@z>
 
-Hi Folks,
+Test kernels running with an explicit DSB in all PTE update cases now running overnight. Just in case.
+
+-- 
+Computer Architect | Sent from my #ARM Powered Mobile Device
+
+On Mar 1, 2015 9:10 PM, Jon Masters <jcm@redhat.com> wrote:
+>
+> Hi Folks, 
+>
+> I've pulled a couple of all nighters reproducing this hard to trHi Folks,
 
 I've pulled a couple of all nighters reproducing this hard to trigger
 issue and got some data. It looks like the high half of the (note always
