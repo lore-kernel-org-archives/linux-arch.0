@@ -1,19 +1,28 @@
 From: Jon Masters <jcm@redhat.com>
-Subject: PMD update corruption (sync question)
-Date: Sun, 01 Mar 2015 21:10:53 -0500
-Message-ID: <54F3C6AD.50300@redhat.com>
-References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org> <54F06636.6080905@redhat.com>
+Subject: Re: PMD update corruption (sync question)
+Date: Mon, 2 Mar 2015 00:58:36 -0500 (EST)
+Message-ID: <938476184.27970130.1425275915893.JavaMail.zimbra@zmail15.collab.prod.int.phx2.redhat.com>
+References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org> <54F06636.6080905@redhat.com> <54F3C6AD.50300@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <54F06636.6080905@redhat.com>
+In-Reply-To: <54F3C6AD.50300@redhat.com>
 Sender: owner-linux-mm@kvack.org
-To: Jon Masters <jcm@redhat.com>, Steve Capper <steve.capper@linaro.org>, linux-arm-kernel@lists.infradead.org, catalin.marinas@arm.com, linux@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: will.deacon@arm.com, gary.robertson@linaro.org, christoffer.dall@linaro.org, peterz@infradead.org, anders.roxell@linaro.org, akpm@linux-foundation.org, dann.frazier@canonical.com, mark.rutland@arm.com, mgorman@suse.de, hughd@google.com
+To: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, Steve Capper <steve.capper@linaro.org>, linux-mm@kvack.org, catalin.marinas@arm.com
+Cc: gary.robertson@linaro.org, mark.rutland@arm.com, hughd@google.com, akpm@linux-foundation.org, christoffer.dall@linaro.org, peterz@infradead.org, mgorman@suse.de, will.deacon@arm.com, dann.frazier@canonical.com, anders.roxell@linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Folks,
+Test kernels running with an explicit DSB in all PTE update cases now running overnight. Just in case.
+
+-- 
+Computer Architect | Sent from my #ARM Powered Mobile Device
+
+On Mar 1, 2015 9:10 PM, Jon Masters <jcm@redhat.com> wrote:
+>
+> Hi Folks, 
+>
+> I've pulled a couple of all nighters reproducing this hard to trHi Folks,
 
 I've pulled a couple of all nighters reproducing this hard to trigger
 issue and got some data. It looks like the high half of the (note always
