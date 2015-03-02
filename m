@@ -1,50 +1,35 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH 3/4] arm64: add support for memtest
-Date: Mon, 2 Mar 2015 18:56:07 +0000
-Message-ID: <20150302185607.GG7919@arm.com>
-References: <1425308145-20769-1-git-send-email-vladimir.murzin@arm.com>
- <1425308145-20769-4-git-send-email-vladimir.murzin@arm.com>
+From: "Mr. Juan Sebastian Morato" <noreply@popfax.com>
+Subject: Confidential Letter
+Date: Mon, 02 Mar 2015 01:34:36 +0100
+Message-ID: <20150302003442.1F04D3EE0FB__4107.91744147918$1425333089$gmane$org@mail.quartzbg.ro>
+Reply-To: juan_morato@yahoo.es
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:48389 "EHLO foss.arm.com"
+Received: from mail.quartzbg.ro ([82.79.64.94]:52450 "EHLO mail.quartzbg.ro"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753614AbbCBS4H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 2 Mar 2015 13:56:07 -0500
-Content-Disposition: inline
-In-Reply-To: <1425308145-20769-4-git-send-email-vladimir.murzin@arm.com>
-Content-Language: en-US
+	id S1754143AbbCBVvS convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Mar 2015 16:51:18 -0500
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vladimir Murzin <Vladimir.Murzin@arm.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "hpa@zytor.com" <hpa@zytor.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "lauraa@codeaurora.org" <lauraa@codeaurora.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "arnd@arndb.de" <arnd@arndb.de>, Mark Rutland <Mark.Rutland@arm.com>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>
+To: Recipients <noreply@popfax.com>
 
-On Mon, Mar 02, 2015 at 02:55:44PM +0000, Vladimir Murzin wrote:
-> Add support for memtest command line option.
-> 
-> Signed-off-by: Vladimir Murzin <vladimir.murzin@arm.com>
-> ---
->  arch/arm64/mm/init.c |    2 ++
->  1 file changed, 2 insertions(+)
-> 
-> diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
-> index ae85da6..597831b 100644
-> --- a/arch/arm64/mm/init.c
-> +++ b/arch/arm64/mm/init.c
-> @@ -190,6 +190,8 @@ void __init bootmem_init(void)
->  	min = PFN_UP(memblock_start_of_DRAM());
->  	max = PFN_DOWN(memblock_end_of_DRAM());
->  
-> +	early_memtest(min << PAGE_SHIFT, max << PAGE_SHIFT);
-> +
->  	/*
->  	 * Sparsemem tries to allocate bootmem in memory_present(), so must be
->  	 * done after the fixed reservations.
+Dear Friend, 
 
-This is really neat, thanks for doing this Vladimir!
+I am Mr. Juan Sebastian Morato, the Auditor General of Unicaja Bank Madrid. In the course of my auditing, I discovered a floating fund in an account, which was opened in 1990 at Cam Bank before it was bought over by Unicaja Group which I am the auditor belonging to a dead foreigner Mr. Kenny who died in 2004. Every effort made to track any member of his family or next of kin has since failed; hence I got in contact with you to stand as his next of kin since you bear the same last name. He died leaving no heir or a will.
 
-  Acked-by: Will Deacon <will.deacon@arm.com>
+My intention is to transfer this sum of 5.5M in the aforementioned account to a safe account. I am therefore proposing that you quietly partner with me and provide an account or set up a new one that will serve the purpose of receiving this fund. For your assistance in this venture, I am ready to part with a good percentage of the entire funds. After going through the deceased person's records and files, I discovered that:
 
-For the series, modulo Baruch's comments about Documentation updates.
+(1) No one has operated this account since 2004
+(2) He died without an heir; hence the money has been floating.
+(3) No other person knows about this account and there was no known beneficiary.
 
-Will
+If I do not remit this money urgently, it would be forfeited and subsequently converted to company's funds, which will benefit only the directors of my firm. This money can be approved to you legally as with all the necessary documentary approvals in your name. However, you would be required to show some proof of claim, which I will provide you with and also guide you on how to make your applications.
+
+Please do give me a reply on my private e-mail juan.morato1@1email.eu or fax 00 34 917 692 656 so that I can send you detailed information on the modalities of my proposition. I completely trust you to keep this proposition absolutely confidential. Kindly forward your telephone number where I can reach you easily. I look forward to your prompt response.
+
+Best Regards,
+Mr. Juan Sebastian Morato
+Fax: 00 34 917 692 656
