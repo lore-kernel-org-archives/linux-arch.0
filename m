@@ -1,63 +1,63 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC PATCH 3/4] arm64: add support for memtest
-Date: Tue, 3 Mar 2015 14:14:49 +0000
-Message-ID: <20150303141449.GM28951@e104818-lin.cambridge.arm.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [RFC PATCH 0/4] make memtest a generic kernel feature
+Date: Tue, 3 Mar 2015 16:37:40 +0000
+Message-ID: <20150303163740.GA10239@leverpostej>
 References: <1425308145-20769-1-git-send-email-vladimir.murzin@arm.com>
- <1425308145-20769-4-git-send-email-vladimir.murzin@arm.com>
- <20150302185607.GG7919@arm.com>
- <54F57E62.6050206@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:50926 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756621AbbCCOOz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Mar 2015 09:14:55 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <54F57E62.6050206@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Vladimir Murzin <vladimir.murzin@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Mark Rutland <Mark.Rutland@arm.com>, "lauraa@codeaurora.org" <lauraa@codeaurora.org>, "arnd@arndb.de" <arnd@arndb.de>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "x86@kernel.org" <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "mingo@redhat.com" <mingo@redhat.com>, "hpa@zytor.com" <hpa@zytor.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "tglx@linutronix.de" <tglx@linutronix.de>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+In-Reply-To: <1425308145-20769-1-git-send-email-vladimir.murzin@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Vladimir Murzin <Vladimir.Murzin@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "hpa@zytor.com" <hpa@zytor.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "lauraa@codeaurora.org" <lauraa@codeaurora.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "arnd@arndb.de" <arnd@arndb.de>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 03, 2015 at 09:26:58AM +0000, Vladimir Murzin wrote:
-> On 02/03/15 18:56, Will Deacon wrote:
-> > On Mon, Mar 02, 2015 at 02:55:44PM +0000, Vladimir Murzin wrote:
-> >> Add support for memtest command line option.
-> >>
-> >> Signed-off-by: Vladimir Murzin <vladimir.murzin@arm.com>
-> >> ---
-> >>  arch/arm64/mm/init.c |    2 ++
-> >>  1 file changed, 2 insertions(+)
-> >>
-> >> diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
-> >> index ae85da6..597831b 100644
-> >> --- a/arch/arm64/mm/init.c
-> >> +++ b/arch/arm64/mm/init.c
-> >> @@ -190,6 +190,8 @@ void __init bootmem_init(void)
-> >>  	min = PFN_UP(memblock_start_of_DRAM());
-> >>  	max = PFN_DOWN(memblock_end_of_DRAM());
-> >>  
-> >> +	early_memtest(min << PAGE_SHIFT, max << PAGE_SHIFT);
-> >> +
-> >>  	/*
-> >>  	 * Sparsemem tries to allocate bootmem in memory_present(), so must be
-> >>  	 * done after the fixed reservations.
-> > 
-> > This is really neat, thanks for doing this Vladimir!
-> > 
-> >   Acked-by: Will Deacon <will.deacon@arm.com>
-> > 
-> > For the series, modulo Baruch's comments about Documentation updates.
+On Mon, Mar 02, 2015 at 02:55:41PM +0000, Vladimir Murzin wrote:
+> Hi,
+
+Hi Vladimir,
+ 
+> Memtest is a simple feature which fills the memory with a given set of
+> patterns and validates memory contents, if bad memory regions is detected it
+> reserves them via memblock API. Since memblock API is widely used by other
+> architectures this feature can be enabled outside of x86 world.
 > 
-> Thanks Will! I'll wait for awhile for other comments and repost updated
-> version.
+> This patch set promotes memtest to live under generic mm umbrella and enables
+> memtest feature for arm/arm64.
 > 
-> I wonder which tree it might go?
+> Patches are built on top of 4.0-rc1
 
-Since it touches mm, x86, arm, arm64, I guess it could go in via the mm
-tree (akpm). We could take it via the arm64 tree as well if we have all
-the acks in place.
+Thanks for putting this together. I've found this extremely useful for
+tracking down an issue with some errant DMA on an arm64 platform. For
+the first three patches:
 
--- 
-Catalin
+Tested-by: Mark Rutland <mark.rutland@arm.com>
+
+Thanks,
+Mark.
+
+> 
+> Vladimir Murzin (4):
+>   mm: move memtest under /mm
+>   memtest: use phys_addr_t for physical addresses
+>   arm64: add support for memtest
+>   arm: add support for memtest
+> 
+>  arch/arm/mm/init.c          |    3 ++
+>  arch/arm64/mm/init.c        |    2 +
+>  arch/x86/Kconfig            |   11 ----
+>  arch/x86/include/asm/e820.h |    8 ---
+>  arch/x86/mm/Makefile        |    2 -
+>  arch/x86/mm/memtest.c       |  118 -------------------------------------------
+>  include/linux/memblock.h    |    8 +++
+>  lib/Kconfig.debug           |   11 ++++
+>  mm/Makefile                 |    1 +
+>  mm/memtest.c                |  118 +++++++++++++++++++++++++++++++++++++++++++
+>  10 files changed, 143 insertions(+), 139 deletions(-)
+>  delete mode 100644 arch/x86/mm/memtest.c
+>  create mode 100644 mm/memtest.c
+> 
+> -- 
+> 1.7.9.5
+> 
