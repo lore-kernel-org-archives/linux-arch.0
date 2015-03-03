@@ -1,273 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e33.co.us.ibm.com ([32.97.110.151]:46099 "EHLO
-	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757152AbbCCRn0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Mar 2015 12:43:26 -0500
-Received: from /spool/local
-	by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 3 Mar 2015 10:43:26 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH tip/core/rcu 01/20] smpboot: Add common code for notification from dying CPU
-Date: Tue,  3 Mar 2015 09:42:56 -0800
-Message-ID: <1425404595-17816-1-git-send-email-paulmck@linux.vnet.ibm.com>
-In-Reply-To: <20150303174144.GA13139@linux.vnet.ibm.com>
-References: <20150303174144.GA13139@linux.vnet.ibm.com>
+Received: from mail-we0-f181.google.com ([74.125.82.181]:33437 "EHLO
+	mail-we0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932174AbbCCR7M convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Mar 2015 12:59:12 -0500
+MIME-Version: 1.0
+In-Reply-To: <54F4A0F7.80606@suse.de>
+References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<1424455277-29983-17-git-send-email-mcoquelin.stm32@gmail.com>
+	<54F4A0F7.80606@suse.de>
+Date: Tue, 3 Mar 2015 18:59:10 +0100
+Message-ID: <CALszF6Bn7z+COs84BV622BXnpRSruLn-9y+vo51mQxrHkDdQyQ@mail.gmail.com>
+Subject: Re: [PATCH v2 16/18] ARM: dts: Introduce STM32F429 MCU
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: mingo@kernel.org, laijs@cn.fujitsu.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, josh@joshtriplett.org, tglx@linutronix.de, peterz@infradead.org, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, dvhart@linux.intel.com, fweisbec@gmail.com, oleg@redhat.com, bobby.prani@gmail.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150303174256.MbBm9QhiX-ssFbNKeD-P3Vs4adKV2Q35Z1F-ehFEf-Y@z>
+To: =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>
+Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
+Message-ID: <20150303175910.ut96UYO4RVzEDwAikaRxBZF0ZeR0jvVLls7MQIdp8zA@z>
 
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Hi Andreas,
 
-RCU ignores offlined CPUs, so they cannot safely run RCU read-side code.
-(They -can- use SRCU, but not RCU.)  This means that any use of RCU
-during or after the call to arch_cpu_idle_dead().  Unfortunately,
-commit 2ed53c0d6cc99 added a complete() call, which will contain RCU
-read-side critical sections if there is a task waiting to be awakened.
+Thanks for this detailed review.
 
-Which, as it turns out, there almost never is.  In my qemu/KVM testing,
-the to-be-awakened task is not yet asleep more than 99.5% of the time.
-In current mainline, failure is even harder to reproduce, requiring a
-virtualized environment that delays the outgoing CPU by at least three
-jiffies between the time it exits its stop_machine() task at CPU_DYING
-time and the time it calls arch_cpu_idle_dead() from the idle loop.
-However, this problem really can occur, especially in virtualized
-environments, and therefore really does need to be fixed
+2015-03-02 18:42 GMT+01:00 Andreas Färber <afaerber@suse.de>:
+> Hi Maxime,
+>
+> Please don't put the whole world in To, that makes replying to you much
+> harder. You can put maintainers in CC instead.
+Ok.
+>
+> Am 20.02.2015 um 19:01 schrieb Maxime Coquelin:
+>> The STMicrolectornics's STM32F419 MCU has the following main features:
+>>  - Cortex-M4 core running up to @180MHz
+>>  - 2MB internal flash, 256KBytes internal RAM
+>>  - FMC controller to connect SDRAM, NOR and NAND memories
+>>  - SD/MMC/SDIO support
+>>  - Ethernet controller
+>>  - USB OTFG FS & HS controllers
+>>  - I2C, SPI, CAN busses support
+>>  - Several 16 & 32 bits general purpose timers
+>>  - Serial Audio interface
+>>  - LCD controller
+>>
+>> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+>> ---
+>>  arch/arm/boot/dts/Makefile            |   1 +
+>>  arch/arm/boot/dts/stm32f429-disco.dts |  41 ++++
+>>  arch/arm/boot/dts/stm32f429.dtsi      | 396 ++++++++++++++++++++++++++++++++++
+>>  3 files changed, 438 insertions(+)
+>>  create mode 100644 arch/arm/boot/dts/stm32f429-disco.dts
+>>  create mode 100644 arch/arm/boot/dts/stm32f429.dtsi
+>>
+>> diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+>> index 91bd5bd..d7da0ef 100644
+>> --- a/arch/arm/boot/dts/Makefile
+>> +++ b/arch/arm/boot/dts/Makefile
+>> @@ -442,6 +442,7 @@ dtb-$(CONFIG_ARCH_STI)+= stih407-b2120.dtb \
+>>       stih416-b2000.dtb \
+>>       stih416-b2020.dtb \
+>>       stih416-b2020e.dtb
+>> +dtb-$(CONFIG_ARCH_STM32)+= stm32f429-disco.dtb
+>>  dtb-$(CONFIG_MACH_SUN4I) += \
+>>       sun4i-a10-a1000.dtb \
+>>       sun4i-a10-ba10-tvbox.dtb \
+>> diff --git a/arch/arm/boot/dts/stm32f429-disco.dts b/arch/arm/boot/dts/stm32f429-disco.dts
+>> new file mode 100644
+>> index 0000000..0e79cc1
+>> --- /dev/null
+>> +++ b/arch/arm/boot/dts/stm32f429-disco.dts
+>> @@ -0,0 +1,41 @@
+>
+> Add a suitable license header here? There had been attempts to
+> dual-license as GPL and MIT/X11.
 
-This suggests moving back to the polling loop, but using a much shorter
-wait, with gentle exponential backoff instead of the old 100-millisecond
-wait.  Most of the time, the loop will exit without waiting at all,
-and almost all of the remaining uses will wait only five microseconds.
-If the outgoing CPU is preempted, a loop will wait one jiffy, then
-increase the wait by a factor of 11/10ths, rounding up.  As before, there
-is a five-second timeout.
+I agree to add the dual GPL and MIT/X11 licence.
 
-This commit therefore provides common-code infrastructure to do the
-dying-to-surviving CPU handoff in a safe manner.  This code also
-provides an indication at CPU-online of whether the CPU to be onlined
-previously timed out on offline.  The new cpu_check_up_prepare() function
-returns -EBUSY if this CPU previously took more than five seconds to
-go offline, or -EAGAIN if it has not yet managed to go offline.  The
-rationale for -EAGAIN is that it might still be preempted, so an additional
-wait might well find it correctly offlined.  Architecture-specific code
-can decide how to handle these conditions.  Systems in which CPUs take
-themselves completely offline might respond to an -EBUSY return as if
-it was a zero (success) return.  Systems in which the surviving CPU must
-take some action might take it at this time, or might simply mark the
-other CPU as unusable.
+>
+>> +/dts-v1/;
+>> +#include "stm32f429.dtsi"
+>> +
+>> +/ {
+>> +     model = "STMicroelectronics's STM32F429i-DISCO board";
+>
+> "'s" seems uncommon here and "s's" looks wrong. Just use
+> "STMicroelectronics STM32F429I-DISCO board"?
 
-Note that architectures that take the easy way out and simply pass the
--EBUSY and -EAGAIN upwards will change the sysfs API.
+Ok, it will be fixed in v3.
 
-Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Cc: <linux-api@vger.kernel.org>
-Cc: <linux-arch@vger.kernel.org>
----
- include/linux/cpu.h |  12 ++++
- kernel/smpboot.c    | 156 ++++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 168 insertions(+)
+>
+>> +     compatible = "st,stm32f429i-disco", "st,stm32f429";
+>> +
+>> +     chosen {
+>> +             bootargs = "console=ttyS0,115200 root=/dev/ram rdinit=/linuxrc";
+>> +             linux,stdout-path = &usart1;
+>
+> I have actually been using USART3, following a guide I found on GitHub.
+> Which pins do you use for USART1, and is one better than the other?
 
-diff --git a/include/linux/cpu.h b/include/linux/cpu.h
-index 4260e8594bd7..4744ef915acd 100644
---- a/include/linux/cpu.h
-+++ b/include/linux/cpu.h
-@@ -95,6 +95,8 @@ enum {
- 					* Called on the new cpu, just before
- 					* enabling interrupts. Must not sleep,
- 					* must not fail */
-+#define CPU_BROKEN		0x000C /* CPU (unsigned)v did not die properly,
-+					* perhaps due to preemption. */
- 
- /* Used for CPU hotplug events occurring while tasks are frozen due to a suspend
-  * operation in progress
-@@ -271,4 +273,14 @@ void arch_cpu_idle_enter(void);
- void arch_cpu_idle_exit(void);
- void arch_cpu_idle_dead(void);
- 
-+DECLARE_PER_CPU(bool, cpu_dead_idle);
-+
-+int cpu_report_state(int cpu);
-+int cpu_check_up_prepare(int cpu);
-+void cpu_set_state_online(int cpu);
-+#ifdef CONFIG_HOTPLUG_CPU
-+bool cpu_wait_death(unsigned int cpu, int seconds);
-+bool cpu_report_death(void);
-+#endif /* #ifdef CONFIG_HOTPLUG_CPU */
-+
- #endif /* _LINUX_CPU_H_ */
-diff --git a/kernel/smpboot.c b/kernel/smpboot.c
-index 40190f28db35..065499f432ec 100644
---- a/kernel/smpboot.c
-+++ b/kernel/smpboot.c
-@@ -4,6 +4,7 @@
- #include <linux/cpu.h>
- #include <linux/err.h>
- #include <linux/smp.h>
-+#include <linux/delay.h>
- #include <linux/init.h>
- #include <linux/list.h>
- #include <linux/slab.h>
-@@ -314,3 +315,158 @@ void smpboot_unregister_percpu_thread(struct smp_hotplug_thread *plug_thread)
- 	put_online_cpus();
- }
- EXPORT_SYMBOL_GPL(smpboot_unregister_percpu_thread);
-+
-+static DEFINE_PER_CPU(atomic_t, cpu_hotplug_state) = ATOMIC_INIT(CPU_POST_DEAD);
-+
-+/*
-+ * Called to poll specified CPU's state, for example, when waiting for
-+ * a CPU to come online.
-+ */
-+int cpu_report_state(int cpu)
-+{
-+	return atomic_read(&per_cpu(cpu_hotplug_state, cpu));
-+}
-+
-+/*
-+ * If CPU has died properly, set its state to CPU_UP_PREPARE and
-+ * return success.  Otherwise, return -EBUSY if the CPU died after
-+ * cpu_wait_death() timed out.  And yet otherwise again, return -EAGAIN
-+ * if cpu_wait_death() timed out and the CPU still hasn't gotten around
-+ * to dying.  In the latter two cases, the CPU might not be set up
-+ * properly, but it is up to the arch-specific code to decide.
-+ * Finally, -EIO indicates an unanticipated problem.
-+ *
-+ * Note that it is permissible to omit this call entirely, as is
-+ * done in architectures that do no CPU-hotplug error checking.
-+ */
-+int cpu_check_up_prepare(int cpu)
-+{
-+	if (!IS_ENABLED(CONFIG_HOTPLUG_CPU)) {
-+		atomic_set(&per_cpu(cpu_hotplug_state, cpu), CPU_UP_PREPARE);
-+		return 0;
-+	}
-+
-+	switch (atomic_read(&per_cpu(cpu_hotplug_state, cpu))) {
-+
-+	case CPU_POST_DEAD:
-+
-+		/* The CPU died properly, so just start it up again. */
-+		atomic_set(&per_cpu(cpu_hotplug_state, cpu), CPU_UP_PREPARE);
-+		return 0;
-+
-+	case CPU_TASKS_FROZEN | CPU_DEAD:
-+
-+		/*
-+		 * Timeout during CPU death, so let caller know.
-+		 * The outgoing CPU completed its processing, but after
-+		 * cpu_wait_death() timed out and reported the error. The
-+		 * caller is free to proceed, in which case the state
-+		 * will be reset properly by cpu_set_state_online().
-+		 * Proceeding despite this -EBUSY return makes sense
-+		 * for systems where the outgoing CPUs take themselves
-+		 * offline, with no post-death manipulation required from
-+		 * a surviving CPU.
-+		 */
-+		return -EBUSY;
-+
-+	case CPU_BROKEN:
-+
-+		/*
-+		 * The most likely reason we got here is that there was
-+		 * a timeout during CPU death, and the outgoing CPU never
-+		 * did complete its processing.  This could happen on
-+		 * a virtualized system if the outgoing VCPU gets preempted
-+		 * for more than five seconds, and the user attempts to
-+		 * immediately online that same CPU.  Trying again later
-+		 * might return -EBUSY above, hence -EAGAIN.
-+		 */
-+		return -EAGAIN;
-+
-+	default:
-+
-+		/* Should not happen.  Famous last words. */
-+		return -EIO;
-+	}
-+}
-+
-+/*
-+ * Mark the specified CPU online.
-+ *
-+ * Note that it is permissible to omit this call entirely, as is
-+ * done in architectures that do no CPU-hotplug error checking.
-+ */
-+void cpu_set_state_online(int cpu)
-+{
-+	(void)atomic_xchg(&per_cpu(cpu_hotplug_state, cpu), CPU_ONLINE);
-+}
-+
-+#ifdef CONFIG_HOTPLUG_CPU
-+
-+/*
-+ * Wait for the specified CPU to exit the idle loop and die.
-+ */
-+bool cpu_wait_death(unsigned int cpu, int seconds)
-+{
-+	int jf_left = seconds * HZ;
-+	int oldstate;
-+	bool ret = true;
-+	int sleep_jf = 1;
-+
-+	might_sleep();
-+
-+	/* The outgoing CPU will normally get done quite quickly. */
-+	if (atomic_read(&per_cpu(cpu_hotplug_state, cpu)) == CPU_DEAD)
-+		goto update_state;
-+	udelay(5);
-+
-+	/* But if the outgoing CPU dawdles, wait increasingly long times. */
-+	while (atomic_read(&per_cpu(cpu_hotplug_state, cpu)) != CPU_DEAD) {
-+		schedule_timeout_uninterruptible(sleep_jf);
-+		jf_left -= sleep_jf;
-+		if (jf_left <= 0)
-+			break;
-+		sleep_jf = DIV_ROUND_UP(sleep_jf * 11, 10);
-+	}
-+update_state:
-+	oldstate = atomic_read(&per_cpu(cpu_hotplug_state, cpu));
-+	if (oldstate == CPU_DEAD) {
-+		/* Outgoing CPU died normally, update state. */
-+		smp_mb(); /* atomic_read() before update. */
-+		atomic_set(&per_cpu(cpu_hotplug_state, cpu), CPU_POST_DEAD);
-+	} else {
-+		/* Outgoing CPU still hasn't died, set state accordingly. */
-+		if (atomic_cmpxchg(&per_cpu(cpu_hotplug_state, cpu),
-+				   oldstate, CPU_BROKEN) != oldstate)
-+			goto update_state;
-+		ret = false;
-+	}
-+	return ret;
-+}
-+
-+/*
-+ * Called by the outgoing CPU to report its successful death.  Return
-+ * false if this report follows the surviving CPU's timing out.
-+ *
-+ * A separate "CPU_TASKS_FROZEN | CPU_DEAD" is used when the surviving
-+ * CPU timed out.  This approach allows architectures to omit calls to
-+ * cpu_check_up_prepare() and cpu_set_state_online() without defeating
-+ * the next cpu_wait_death()'s polling loop.
-+ */
-+bool cpu_report_death(void)
-+{
-+	int oldstate;
-+	int newstate;
-+	int cpu = smp_processor_id();
-+
-+	do {
-+		oldstate = atomic_read(&per_cpu(cpu_hotplug_state, cpu));
-+		if (oldstate == CPU_ONLINE)
-+			newstate = CPU_DEAD;
-+		else
-+			newstate = CPU_TASKS_FROZEN | CPU_DEAD;
-+	} while (atomic_cmpxchg(&per_cpu(cpu_hotplug_state, cpu),
-+				oldstate, newstate) != oldstate);
-+	return newstate == CPU_DEAD;
-+}
-+
-+#endif /* #ifdef CONFIG_HOTPLUG_CPU */
--- 
-1.8.1.5
-
+I used U-boot from Emcraft, which uses USART1, that is the only reason
+I used this one.
+Regarding USART3, I had a look at your boot-wrapper, and you configure
+the USART3 to PC10/PC11 pins.
