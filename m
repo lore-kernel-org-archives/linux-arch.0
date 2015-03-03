@@ -1,68 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:51362 "EHLO foss.arm.com"
+Received: from mx1.redhat.com ([209.132.183.28]:43370 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756764AbbCCQiK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Mar 2015 11:38:10 -0500
-Date: Tue, 3 Mar 2015 16:37:40 +0000
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [RFC PATCH 0/4] make memtest a generic kernel feature
-Message-ID: <20150303163740.GA10239@leverpostej>
-References: <1425308145-20769-1-git-send-email-vladimir.murzin@arm.com>
+	id S932263AbbCCRFC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 Mar 2015 12:05:02 -0500
+Message-ID: <54F5D769.4000805@redhat.com>
+Date: Tue, 03 Mar 2015 10:46:49 -0500
+From: Jon Masters <jcm@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1425308145-20769-1-git-send-email-vladimir.murzin@arm.com>
+Subject: Re: PMD update corruption (sync question)
+References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org> <20150302105011.GD22541@e104818-lin.cambridge.arm.com> <54F4E266.8090709@redhat.com> <8866266.2EELEveYhm@wuerfel>
+In-Reply-To: <8866266.2EELEveYhm@wuerfel>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vladimir Murzin <Vladimir.Murzin@arm.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "hpa@zytor.com" <hpa@zytor.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "lauraa@codeaurora.org" <lauraa@codeaurora.org>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "arnd@arndb.de" <arnd@arndb.de>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>
-Message-ID: <20150303163740.8SjItICxuGtMuThgbOZvZsXhh3Th2wYyXLnSNfBZdns@z>
+To: Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, mark.rutland@arm.com, Steve Capper <steve.capper@linaro.org>, peterz@infradead.org, gary.robertson@linaro.org, anders.roxell@linaro.org, hughd@google.com, christoffer.dall@linaro.org, will.deacon@arm.com, linux-mm@kvack.org, mgorman@suse.de, dann.frazier@canonical.com, linux@arm.linux.org.uk, akpm@linux-foundation.org
+Message-ID: <20150303154649.b8vLXh2Z2bR2nFGR8DHi8glZgYldB0-Pkq2P6bEAqa8@z>
 
-On Mon, Mar 02, 2015 at 02:55:41PM +0000, Vladimir Murzin wrote:
-> Hi,
+On 03/03/2015 04:06 AM, Arnd Bergmann wrote:
+> On Monday 02 March 2015 17:21:26 Jon Masters wrote:
+>> On 03/02/2015 05:50 AM, Catalin Marinas wrote:
+>>> On Mon, Mar 02, 2015 at 12:58:36AM -0500, Jon Masters wrote:
+>>
+>>>> Test kernels running with an explicit DSB in all PTE update cases now
+>>>> running overnight. Just in case.
+>>
+>> ...and stay up after 19 hours. But that's just timing I'm sure.
+>>
+>>> It could be hiding some other problems.
+>>
+>> I checked my GDB macros and they were correct BUT my debugger went out
+>> to lunch soon after that dump so I suspect it was just garbage 
+>>
+>> Instead, for my immediate issue, I have a much more likely suspect. For
+>> anyone interested in the followup, you should know that hardware page
+>> table walkers generally do respond well when you feed them Makefiles:
+>>
+>> 0x43e81c0000: 20230a23 656b614d 656c6966 726f6620  : #.# Makefile for
+>> 0x43e81c0010: 65687420 462d4920 6563726f 69726420  :  the I-Force dri
+>> 0x43e81c0020: 0a726576 20230a23 4a207942 6e61686f  : ver.#.# By Johan
+>> 0x43e81c0030: 6544206e 7875656e 6f6a3c20 6e6e6168  : n Deneux <johann
+>> 0x43e81c0040: 6e65642e 40787565 69616d67 6f632e6c  : .deneux@gmail.co
+>> 0x43e81c0050: 230a3e6d 626f0a0a 28242d6a 464e4f43  : m>.#..obj-$(CONF
+>> 0x43e81c0060: 4a5f4749 5453594f 5f4b4349 524f4649  : IG_JOYSTICK_IFOR
+>> 0x43e81c0070: 09294543 69203d2b 63726f66 0a6f2e65  : CE).+= iforce.o.
+>> 0x43e81c0080: 6f66690a 2d656372 3d3a2079 6f666920  : .iforce-y := ifo
+>> 0x43e81c0090: 2d656372 6f2e6666 6f666920 2d656372  : rce-ff.o iforce-
+>> 0x43e81c00a0: 6e69616d 69206f2e 63726f66 61702d65  : main.o iforce-pa
+>> 0x43e81c00b0: 74656b63 0a6f2e73 726f6669 242d6563  : ckets.o.iforce-$
+>> 0x43e81c00c0: 4e4f4328 5f474946 53594f4a 4b434954  : (CONFIG_JOYSTICK
+>> 0x43e81c00d0: 4f46495f 5f454352 29323332 203d2b09  : _IFORCE_232).+=
+>> 0x43e81c00e0: 726f6669 732d6563 6f697265 690a6f2e  : iforce-serio.o.i
+>> 0x43e81c00f0: 63726f66 28242d65 464e4f43 4a5f4749  : force-$(CONFIG_J
+>> 0x43e81c0100: 5453594f 5f4b4349 524f4649 555f4543  : OYSTICK_IFORCE_U
+>> 0x43e81c0110: 09294253 69203d2b 63726f66 73752d65  : SB).+= iforce-us
+>> 0x43e81c0120: 0a6f2e62 00000000 00000000 00000000  : b.o.............
+>>
+>> So that explains why things were falling over. It is likely indeed the
+>> bad DMA I have been craving all along. And this time it was so gracious
+>> as to give me the answer in plain ASCII  I suspect there will be a
+>> patch for a certain AHCI driver in the not too distant future.
+> 
+> I hope this kind of problem becomes easier to debug once we have
+> full iommu support working on arm64. When we had problems like this
+> on PowerPC, using iommu=force to ensure DMA would only be done to
+> pages that are currently mapped to the device was really helpful.
 
-Hi Vladimir,
- 
-> Memtest is a simple feature which fills the memory with a given set of
-> patterns and validates memory contents, if bad memory regions is detected it
-> reserves them via memblock API. Since memblock API is widely used by other
-> architectures this feature can be enabled outside of x86 world.
-> 
-> This patch set promotes memtest to live under generic mm umbrella and enables
-> memtest feature for arm/arm64.
-> 
-> Patches are built on top of 4.0-rc1
+Oh, you can imagine that I put my best Dr. Evil hat on this week and
+have my finger on the button already. In fact if I have my way future
+SBSA compliant systems will be required to use an IOMMU with no way to
+avoid having one. Whether that was before or after I was reduced to
+walking kernel memory one word at a time and using pen and paper to
+derive the above...We've a couple of years of "robustness investment"
+ahead on ARM servers to ensure that we catch all of these things. And we
+will catch all of them. And it will be utterly perfect.
 
-Thanks for putting this together. I've found this extremely useful for
-tracking down an issue with some errant DMA on an arm64 platform. For
-the first three patches:
+Jon.
 
-Tested-by: Mark Rutland <mark.rutland@arm.com>
-
-Thanks,
-Mark.
-
-> 
-> Vladimir Murzin (4):
->   mm: move memtest under /mm
->   memtest: use phys_addr_t for physical addresses
->   arm64: add support for memtest
->   arm: add support for memtest
-> 
->  arch/arm/mm/init.c          |    3 ++
->  arch/arm64/mm/init.c        |    2 +
->  arch/x86/Kconfig            |   11 ----
->  arch/x86/include/asm/e820.h |    8 ---
->  arch/x86/mm/Makefile        |    2 -
->  arch/x86/mm/memtest.c       |  118 -------------------------------------------
->  include/linux/memblock.h    |    8 +++
->  lib/Kconfig.debug           |   11 ++++
->  mm/Makefile                 |    1 +
->  mm/memtest.c                |  118 +++++++++++++++++++++++++++++++++++++++++++
->  10 files changed, 143 insertions(+), 139 deletions(-)
->  delete mode 100644 arch/x86/mm/memtest.c
->  create mode 100644 mm/memtest.c
-> 
-> -- 
-> 1.7.9.5
-> 
