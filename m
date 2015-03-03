@@ -1,67 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:60775 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754122AbbCBWa1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 2 Mar 2015 17:30:27 -0500
-Message-ID: <54F4E43C.2070406@redhat.com>
-Date: Mon, 02 Mar 2015 17:29:16 -0500
-From: Jon Masters <jcm@redhat.com>
+Received: from service87.mimecast.com ([91.220.42.44]:34986 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751445AbbCCJ1E convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Mar 2015 04:27:04 -0500
+Message-ID: <54F57E62.6050206@arm.com>
+Date: Tue, 03 Mar 2015 09:26:58 +0000
+From: Vladimir Murzin <vladimir.murzin@arm.com>
 MIME-Version: 1.0
-Subject: Re: PMD update corruption (sync question)
-References: <1411740233-28038-1-git-send-email-steve.capper@linaro.org> <54F06636.6080905@redhat.com> <54F3C6AD.50300@redhat.com> <938476184.27970130.1425275915893.JavaMail.zimbra@zmail15.collab.prod.int.phx2.redhat.com> <20150302105011.GD22541@e104818-lin.cambridge.arm.com> <54F4E266.8090709@redhat.com>
-In-Reply-To: <54F4E266.8090709@redhat.com>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Subject: Re: [RFC PATCH 3/4] arm64: add support for memtest
+References: <1425308145-20769-1-git-send-email-vladimir.murzin@arm.com> <1425308145-20769-4-git-send-email-vladimir.murzin@arm.com> <20150302185607.GG7919@arm.com>
+In-Reply-To: <20150302185607.GG7919@arm.com>
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, Steve Capper <steve.capper@linaro.org>, linux-mm@kvack.org, mark.rutland@arm.com, anders.roxell@linaro.org, peterz@infradead.org, gary.robertson@linaro.org, hughd@google.com, will.deacon@arm.com, mgorman@suse.de, dann.frazier@canonical.com, akpm@linux-foundation.org, christoffer.dall@linaro.org
-Message-ID: <20150302222916.I6paNfKaiqsl8QDjv1ib6IjOpY3fUyr7m1vocrNgbBE@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "hpa@zytor.com" <hpa@zytor.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "lauraa@codeaurora.org" <lauraa@codeaurora.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "arnd@arndb.de" <arnd@arndb.de>, Mark Rutland <Mark.Rutland@arm.com>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>
+Message-ID: <20150303092658.bP6jRQe2i-hkUbQ0zhnXVKT6ZuR0AVOzp_ut1cIs4IU@z>
 
-On 03/02/2015 05:21 PM, Jon Masters wrote:
-> On 03/02/2015 05:50 AM, Catalin Marinas wrote:
->> On Mon, Mar 02, 2015 at 12:58:36AM -0500, Jon Masters wrote:
+On 02/03/15 18:56, Will Deacon wrote:
+> On Mon, Mar 02, 2015 at 02:55:44PM +0000, Vladimir Murzin wrote:
+>> Add support for memtest command line option.
+>>
+>> Signed-off-by: Vladimir Murzin <vladimir.murzin@arm.com>
+>> ---
+>>  arch/arm64/mm/init.c |    2 ++
+>>  1 file changed, 2 insertions(+)
+>>
+>> diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
+>> index ae85da6..597831b 100644
+>> --- a/arch/arm64/mm/init.c
+>> +++ b/arch/arm64/mm/init.c
+>> @@ -190,6 +190,8 @@ void __init bootmem_init(void)
+>>  	min = PFN_UP(memblock_start_of_DRAM());
+>>  	max = PFN_DOWN(memblock_end_of_DRAM());
+>>  
+>> +	early_memtest(min << PAGE_SHIFT, max << PAGE_SHIFT);
+>> +
+>>  	/*
+>>  	 * Sparsemem tries to allocate bootmem in memory_present(), so must be
+>>  	 * done after the fixed reservations.
 > 
->>> Test kernels running with an explicit DSB in all PTE update cases now
->>> running overnight. Just in case.
+> This is really neat, thanks for doing this Vladimir!
 > 
-> ...and stay up after 19 hours. But that's just timing I'm sure.
+>   Acked-by: Will Deacon <will.deacon@arm.com>
 > 
->> It could be hiding some other problems.
+> For the series, modulo Baruch's comments about Documentation updates.
 > 
-> I checked my GDB macros and they were correct BUT my debugger went out
-> to lunch soon after that dump so I suspect it was just garbage :)
+> Will
 > 
-> Instead, for my immediate issue, I have a much more likely suspect. For
-> anyone interested in the followup, you should know that hardware page
-> table walkers generally do respond well when you feed them Makefiles:
-> 
-> 0x43e81c0000: 20230a23 656b614d 656c6966 726f6620  : #.# Makefile for
-> 0x43e81c0010: 65687420 462d4920 6563726f 69726420  :  the I-Force dri
-> 0x43e81c0020: 0a726576 20230a23 4a207942 6e61686f  : ver.#.# By Johan
-> 0x43e81c0030: 6544206e 7875656e 6f6a3c20 6e6e6168  : n Deneux <johann
-> 0x43e81c0040: 6e65642e 40787565 69616d67 6f632e6c  : .deneux@gmail.co
-> 0x43e81c0050: 230a3e6d 626f0a0a 28242d6a 464e4f43  : m>.#..obj-$(CONF
-> 0x43e81c0060: 4a5f4749 5453594f 5f4b4349 524f4649  : IG_JOYSTICK_IFOR
-> 0x43e81c0070: 09294543 69203d2b 63726f66 0a6f2e65  : CE).+= iforce.o.
-> 0x43e81c0080: 6f66690a 2d656372 3d3a2079 6f666920  : .iforce-y := ifo
-> 0x43e81c0090: 2d656372 6f2e6666 6f666920 2d656372  : rce-ff.o iforce-
-> 0x43e81c00a0: 6e69616d 69206f2e 63726f66 61702d65  : main.o iforce-pa
-> 0x43e81c00b0: 74656b63 0a6f2e73 726f6669 242d6563  : ckets.o.iforce-$
-> 0x43e81c00c0: 4e4f4328 5f474946 53594f4a 4b434954  : (CONFIG_JOYSTICK
-> 0x43e81c00d0: 4f46495f 5f454352 29323332 203d2b09  : _IFORCE_232).+=
-> 0x43e81c00e0: 726f6669 732d6563 6f697265 690a6f2e  : iforce-serio.o.i
-> 0x43e81c00f0: 63726f66 28242d65 464e4f43 4a5f4749  : force-$(CONFIG_J
-> 0x43e81c0100: 5453594f 5f4b4349 524f4649 555f4543  : OYSTICK_IFORCE_U
-> 0x43e81c0110: 09294253 69203d2b 63726f66 73752d65  : SB).+= iforce-us
-> 0x43e81c0120: 0a6f2e62 00000000 00000000 00000000  : b.o.............
-> 
-> So that explains why things were falling over. It is likely indeed the
-> bad DMA I have been craving all along. And this time it was so gracious
-> as to give me the answer in plain ASCII :) I suspect there will be a
-> patch for a certain AHCI driver in the not too distant future.
 
-Also if I have time machine, the ASCII for '#' never ended in 1'b1.
+Thanks Will! I'll wait for awhile for other comments and repost updated
+version.
 
-Jon.
+I wonder which tree it might go?
+
+Thanks
+Vladimir
+
+> --
+> To unsubscribe, send a message with 'unsubscribe linux-mm' in
+> the body to majordomo@kvack.org.  For more info on Linux MM,
+> see: http://www.linux-mm.org/ .
+> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> 
+> 
+
 
