@@ -1,51 +1,30 @@
-From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: Re: [PATCH v2 04/18] clocksource: Add ARM System timer driver
-Date: Wed, 4 Mar 2015 13:08:02 +0100
-Message-ID: <CALszF6AEThPrRe7c7nJ6q7yb2fhLMFuHJUV10sf=w0TMcqVVaw@mail.gmail.com>
-References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
-	<1424455277-29983-5-git-send-email-mcoquelin.stm32@gmail.com>
-	<20150220195437.GT19388@pengutronix.de>
-	<1424468908.24292.10.camel@x220>
-	<CALszF6Bm_Y4ZLednjpmP-hMix3gA23FwLm5hViEjr1QojUY+Mg@mail.gmail.com>
-	<1425411786.2606.24.camel@tiscali.nl>
+From: Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
+Subject: Re: nios2: is the ptrace ABI correct?
+Date: Wed, 04 Mar 2015 17:56:28 -0300
+Message-ID: <54F7717C.5070406@vanguardiasur.com.ar>
+References: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com> <10088870.tldQegtTla@wuerfel> <54EDB2FC.4050901@vanguardiasur.com.ar> <10841724.NbdcAaCe1a@wuerfel> <54F03184.7080600@codesourcery.com> <54F052B1.4070300@vanguardiasur.com.ar>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-gpio-owner@vger.kernel.org>
-In-Reply-To: <1425411786.2606.24.camel@tiscali.nl>
-Sender: linux-gpio-owner@vger.kernel.org
-To: Paul Bolle <pebolle@tiscali.nl>
-Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <54F052B1.4070300@vanguardiasur.com.ar>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Chung-Lin Tang <cltang@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>
+Cc: Tobias Klauser <tklauser@distanz.ch>, Walter Goossens <waltergoossens@home.nl>, linux-arch@vger.kernel.org, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-2015-03-03 20:43 GMT+01:00 Paul Bolle <pebolle@tiscali.nl>:
-> Maxime Coquelin schreef op ma 02-03-2015 om 17:53 [+0100]:
->> Do you agree if I define it like this:
->>
->> config ARMV7M_SYSTICK
->>     bool "Clocksource driver for ARMv7-M System timer"
->>     depends on OF && (CPU_V7M || COMPILE_TEST)
->>     select CLKSRC_OF
->>     select CLKSRC_MMIO
->>     help
->>       This options enables clocksource support for the ARMv7-M system
->>       timer unit.
->
-> I don't really have strong feelings on whatever way you choose to fix
-> the, well, minor problem I pointed out.
->
-> Having said that, if a Kconfig entry without a prompt (and therefor,
-> without help) actually does what you want it to do, why bother adding a
-> prompt and a one line help text?
+Hi all,
 
-This is because I added also support for COMPILE_TEST coverage as per
-Uwe advice,
-and thought it was necessary to have an entry for this.
-Maybe I'm just wrong?
+I have here a patch to rework most of the UAPI headers, so the info
+exported to userspace is sane. The ABI itself is left untouched.
 
-Thanks,
-Maxime
+This will allow to support strace (which is ready since a few weeks now)
+and will sanitize the UAPIs. The ABI itself is ugly as hell, but I don't
+want to break it.
 
->
->
-> Paul Bolle
->
+Given the lack of replies on this thread, I guess nobody cares much
+about nios2 mainline. Anyway... I'll try to submit a patchset soon and
+I'll appreciate if the libc can take a look and make sure everything is OK.
+-- 
+Ezequiel Garcia, VanguardiaSur
+www.vanguardiasur.com.ar
