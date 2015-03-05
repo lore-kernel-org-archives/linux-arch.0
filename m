@@ -1,64 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.outflux.net ([198.145.64.163]:47966 "EHLO smtp.outflux.net"
+Received: from smtp.outflux.net ([198.145.64.163]:34021 "EHLO smtp.outflux.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753337AbbCEBao (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Mar 2015 20:30:44 -0500
+	id S1753683AbbCEBaq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Mar 2015 20:30:46 -0500
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 5/8] parisc: switch to using asm-generic for seccomp.h
-Date: Wed,  4 Mar 2015 17:27:05 -0800
-Message-ID: <1425518828-16017-6-git-send-email-keescook@chromium.org>
-In-Reply-To: <1425518828-16017-1-git-send-email-keescook@chromium.org>
-References: <1425518828-16017-1-git-send-email-keescook@chromium.org>
+Subject: [PATCH v3 0/8] switch to using asm-generic for seccomp.h
+Date: Wed,  4 Mar 2015 17:27:00 -0800
+Message-ID: <1425518828-16017-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
 Cc: Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@arm.linux.org.uk>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Frederic Weisbecker <fweisbec@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Daniel Borkmann <dborkman@redhat.com>, Laura Abbott <lauraa@codeaurora.org>, James Hogan <james.hogan@imgtec.com>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150305012705.wQEQd7FnRXgdUPIvtsNBz4uxM7zmW4hTBozux8lzhRc@z>
+Message-ID: <20150305012700.TKb5wZw42gKvyqWdyGd-D95pzvB0ebcZ291vLub8H20@z>
 
-Switch to using the newly created asm-generic/seccomp.h for the seccomp
-strict mode syscall definitions. Definitions were identical.
+Most architectures don't need to do much special for the strict-mode
+seccomp syscall entries. Remove the redundant headers and reduce the
+others.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/parisc/include/asm/Kbuild    |  1 +
- arch/parisc/include/asm/seccomp.h | 16 ----------------
- 2 files changed, 1 insertion(+), 16 deletions(-)
- delete mode 100644 arch/parisc/include/asm/seccomp.h
-
-diff --git a/arch/parisc/include/asm/Kbuild b/arch/parisc/include/asm/Kbuild
-index 8686237a3c3c..12b341d04f88 100644
---- a/arch/parisc/include/asm/Kbuild
-+++ b/arch/parisc/include/asm/Kbuild
-@@ -20,6 +20,7 @@ generic-y += param.h
- generic-y += percpu.h
- generic-y += poll.h
- generic-y += preempt.h
-+generic-y += seccomp.h
- generic-y += segment.h
- generic-y += topology.h
- generic-y += trace_clock.h
-diff --git a/arch/parisc/include/asm/seccomp.h b/arch/parisc/include/asm/seccomp.h
-deleted file mode 100644
-index 015f7887aa29..000000000000
---- a/arch/parisc/include/asm/seccomp.h
-+++ /dev/null
-@@ -1,16 +0,0 @@
--#ifndef _ASM_PARISC_SECCOMP_H
--#define _ASM_PARISC_SECCOMP_H
--
--#include <linux/unistd.h>
--
--#define __NR_seccomp_read __NR_read
--#define __NR_seccomp_write __NR_write
--#define __NR_seccomp_exit __NR_exit
--#define __NR_seccomp_sigreturn __NR_rt_sigreturn
--
--#define __NR_seccomp_read_32 __NR_read
--#define __NR_seccomp_write_32 __NR_write
--#define __NR_seccomp_exit_32 __NR_exit
--#define __NR_seccomp_sigreturn_32 __NR_rt_sigreturn
--
--#endif	/* _ASM_PARISC_SECCOMP_H */
--- 
-1.9.1
+v3:
+- split patch series by architecture
+- fix up architectures that need sigreturn overrides (ingo)
+v2:
+- use Kbuild "generic-y" instead of explicit #include lines (sfr)
 
