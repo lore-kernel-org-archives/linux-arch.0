@@ -1,46 +1,60 @@
-From: Vladimir Murzin <vladimir.murzin@arm.com>
-Subject: [PATCH 6/6] Documentation: update arch list in the 'memtest' entry
-Date: Mon,  9 Mar 2015 10:27:10 +0000
-Message-ID: <1425896830-19705-7-git-send-email-vladimir.murzin@arm.com>
-References: <1425896830-19705-1-git-send-email-vladimir.murzin@arm.com>
-Content-Type: text/plain; charset=WINDOWS-1252
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1425896830-19705-1-git-send-email-vladimir.murzin@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, akpm@linux-foundation.org, lauraa@codeaurora.org, catalin.marinas@arm.com, will.deacon@arm.com, linux@arm.linux.org.uk, arnd@arndb.de, mark.rutland@arm.com, ard.biesheuvel@linaro.org, baruch@tkos.co.il, rdunlap@infradead.org
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH v2 16/18] ARM: dts: Introduce STM32F429 MCU
+Date: Mon, 9 Mar 2015 15:39:47 +0100
+Message-ID: <CACRpkdaW-OMgGfw8+ngia8AsmzRpW8z7922=dPpRGjgv79-gqw@mail.gmail.com>
+References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<1424455277-29983-17-git-send-email-mcoquelin.stm32@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1424455277-29983-17-git-send-email-mcoquelin.stm32@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Since arm64/arm support memtest command line option update the "memtest"
-entry.
+On Fri, Feb 20, 2015 at 7:01 PM, Maxime Coquelin
+<mcoquelin.stm32@gmail.com> wrote:
 
-Signed-off-by: Vladimir Murzin <vladimir.murzin@arm.com>
----
- Documentation/kernel-parameters.txt |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+> The STMicrolectornics's STM32F419 MCU has the following main features:
+>  - Cortex-M4 core running up to @180MHz
+>  - 2MB internal flash, 256KBytes internal RAM
+>  - FMC controller to connect SDRAM, NOR and NAND memories
+>  - SD/MMC/SDIO support
+>  - Ethernet controller
+>  - USB OTFG FS & HS controllers
+>  - I2C, SPI, CAN busses support
+>  - Several 16 & 32 bits general purpose timers
+>  - Serial Audio interface
+>  - LCD controller
+>
+> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+(...)
+> +       soc {
+> +               usart1: usart@40011000 {
+> +                       status = "okay";
+> +               };
+> +
+> +               leds {
+> +                       compatible = "gpio-leds";
+> +                       red {
+> +                               #gpio-cells = <2>;
+> +                               label = "Front Panel LED";
+> +                               gpios = <&gpiog 14 0>;
+> +                               linux,default-trigger = "heartbeat";
+> +                       };
+> +                       green {
+> +                               #gpio-cells = <2>;
+> +                               gpios = <&gpiog 13 0>;
+> +                               default-state = "off";
+> +                       };
+> +               };
+> +       };
 
-diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-par=
-ameters.txt
-index bfcb1a6..ea11c98 100644
---- a/Documentation/kernel-parameters.txt
-+++ b/Documentation/kernel-parameters.txt
-@@ -1988,7 +1988,7 @@ bytes respectively. Such letter suffixes can also be =
-entirely omitted.
- =09=09=09seconds.  Use this parameter to check at some
- =09=09=09other rate.  0 disables periodic checking.
-=20
--=09memtest=3D=09[KNL,X86] Enable memtest
-+=09memtest=3D=09[KNL,X86,ARM] Enable memtest
- =09=09=09Format: <integer>
- =09=09=09default : 0 <disable>
- =09=09=09Specifies the number of memtest passes to be
---=20
-1.7.9.5
+The LEDs are mounted on the board not the SoC, right?
 
+So move them outside of the soc node, to the top level
+of the DTS file.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Yours,
+Linus Walleij
