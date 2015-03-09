@@ -1,64 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f51.google.com ([74.125.82.51]:37687 "EHLO
-	mail-wg0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752896AbbCFJ5K (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Mar 2015 04:57:10 -0500
+Received: from mail.kmu-office.ch ([178.209.48.109]:50185 "EHLO
+	mail.kmu-office.ch" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752191AbbCIA3m (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 8 Mar 2015 20:29:42 -0400
 MIME-Version: 1.0
-In-Reply-To: <CACRpkdbuJ5B_GwvRXax2Y4V37ihh5e6H7=2no0fYTMZPXwDdCw@mail.gmail.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Date: Mon, 09 Mar 2015 01:29:28 +0100
+From: Stefan Agner <stefan@agner.ch>
+Subject: Re: [PATCH v2 02/18] ARM: ARMv7M: Enlarge vector table to 256 entries
+In-Reply-To: <1424455277-29983-3-git-send-email-mcoquelin.stm32@gmail.com>
 References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
-	<1424455277-29983-12-git-send-email-mcoquelin.stm32@gmail.com>
-	<CACRpkdbuJ5B_GwvRXax2Y4V37ihh5e6H7=2no0fYTMZPXwDdCw@mail.gmail.com>
-Date: Fri, 6 Mar 2015 10:57:08 +0100
-Message-ID: <CALszF6C2qESwxmZ=q+QKdAooQnttpv49yheAiWVUEaGWeGSubA@mail.gmail.com>
-Subject: Re: [PATCH v2 11/18] pinctrl: Add pinctrl driver for STM32 MCUs
-From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+ <1424455277-29983-3-git-send-email-mcoquelin.stm32@gmail.com>
+Message-ID: <1364122b3b72c50138d81ee4eec2a4c7@agner.ch>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
-Message-ID: <20150306095708.NJpN2SAQS4JexOqDVajpOsQfzeld5NVziZTVc8zLq8w@z>
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Cc: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20150309002928.Xw_d2g6Odg8RtRpM16djKyzTZ5_IN4EjxaeyO6fuXyQ@z>
 
-2015-03-06 10:24 GMT+01:00 Linus Walleij <linus.walleij@linaro.org>:
-> On Fri, Feb 20, 2015 at 7:01 PM, Maxime Coquelin
-> <mcoquelin.stm32@gmail.com> wrote:
->
->> This driver adds pinctrl and GPIO support to STMicrolectronic's
->> STM32 family of MCUs.
->>
->> Pin muxing and GPIO handling have been tested on STM32F429
->> based Discovery board.
->>
->> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
->
-> (...)
->> +config PINCTRL_STM32
->> +       bool "STMicroelectronics STM32 pinctrl driver"
->> +       depends on OF
->> +       depends on ARCH_STM32 || COMPILE_TEST
->> +       select PINMUX
->> +       select PINCONF
->> +       select GPIOLIB_IRQCHIP
->> +       help
->> +         This selects the device tree based generic pinctrl driver for STM32.
->
-> Good start! Especially that you use GPIOLIB_IRQCHIP.
->
-> But this (as discussed earlier) should select GENERIC_PINCONF
->
-> Stopping review here so you can reengineer it a bit using GENERIC_PINCONF
-> for next submission.
->
-> Also think about pinmux in single registers, whether you want to do this
-> with a single value for a register or using strings to identify groups
-> and functions.
+On 2015-02-20 19:01, Maxime Coquelin wrote:
+> From Cortex-M reference manuals, the nvic supports up to 240 interrupts.
+> So the number of entries in vectors table is up to 256.
+> 
+> This patch adds a new config flag to specify the number of external interrupts.
+> Some ifdeferies are added in order to respect the natural alignment without
+> wasting too much space on smaller systems.
+> 
+> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+> ---
+>  arch/arm/kernel/entry-v7m.S | 13 +++++++++----
+>  arch/arm/mm/Kconfig         | 15 +++++++++++++++
+>  2 files changed, 24 insertions(+), 4 deletions(-)
+> 
+> diff --git a/arch/arm/kernel/entry-v7m.S b/arch/arm/kernel/entry-v7m.S
+> index 8944f49..68cde36 100644
+> --- a/arch/arm/kernel/entry-v7m.S
+> +++ b/arch/arm/kernel/entry-v7m.S
+> @@ -117,9 +117,14 @@ ENTRY(__switch_to)
+>  ENDPROC(__switch_to)
+>  
+>  	.data
+> -	.align	8
+> +#if CONFIG_CPUV7M_NUM_IRQ <= 112
+> +	.align	9
+> +#else
+> +	.align	10
+> +#endif
+> +
+>  /*
+> - * Vector table (64 words => 256 bytes natural alignment)
+> + * Vector table (Natural alignment need to be ensured)
+>   */
+>  ENTRY(vector_table)
+>  	.long	0			@ 0 - Reset stack pointer
+> @@ -138,6 +143,6 @@ ENTRY(vector_table)
+>  	.long	__invalid_entry		@ 13 - Reserved
+>  	.long	__pendsv_entry		@ 14 - PendSV
+>  	.long	__invalid_entry		@ 15 - SysTick
+> -	.rept	64 - 16
+> -	.long	__irq_entry		@ 16..64 - External Interrupts
+> +	.rept	CONFIG_CPUV7M_NUM_IRQ
+> +	.long	__irq_entry		@ External Interrupts
+>  	.endr
+> diff --git a/arch/arm/mm/Kconfig b/arch/arm/mm/Kconfig
+> index c43c714..27eb835 100644
+> --- a/arch/arm/mm/Kconfig
+> +++ b/arch/arm/mm/Kconfig
+> @@ -604,6 +604,21 @@ config CPU_USE_DOMAINS
+>  	  This option enables or disables the use of domain switching
+>  	  via the set_fs() function.
+>  
+> +config CPUV7M_NUM_IRQ
+> +	int "Number of external interrupts connected to the NVIC"
+> +	depends on CPU_V7M
+> +	default 90 if ARCH_STM32
+> +	default 38 if ARCH_EFM32
+> +	default 240
+> +	help
+> +	  This option indicates the number of interrupts connected to the NVIC.
+> +	  The value can be larger than the real number of interrupts supported
+> +	  by the system, but must not be lower.
+> +	  The default value is 240, corresponding to the maximum number of
+> +	  interrupts supported by the NVIC on Cortex-M family.
+> +
+> +	  If unsure, keep default value.
+> +
+>  #
+>  # CPU supports 36-bit I/O
+>  #
 
-Thanks for the review.
-I will digest all this, and come back with another solution :)
+I sent a patch which extended that vector table some weeks ago:
+https://lkml.org/lkml/2014/12/29/296
 
-Best regards,
-Maxime
+But your solution is definitely more flexible, and given that we deal
+with small devices here, it's worth saving memory.
 
->
-> Yours,
-> Linus Walleij
+Acked-by: Stefan Agner <stefan@agner.ch>
+
