@@ -1,314 +1,373 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.asahi-net.or.jp ([202.224.39.197]:42707 "EHLO
+Received: from mail1.asahi-net.or.jp ([202.224.39.197]:42799 "EHLO
 	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753108AbbCIIrW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2015 04:47:22 -0400
+	with ESMTP id S1753467AbbCIIr0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2015 04:47:26 -0400
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v6 00/16] Revert h8300 archtecture support
-Date: Mon,  9 Mar 2015 17:46:54 +0900
-Message-ID: <1425890830-29399-1-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v6 08/16] h8300: Memory management
+Date: Mon,  9 Mar 2015 17:47:02 +0900
+Message-ID: <1425890830-29399-9-git-send-email-ysato@users.sourceforge.jp>
+In-Reply-To: <1425890830-29399-1-git-send-email-ysato@users.sourceforge.jp>
+References: <1425890830-29399-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20150309084654._5ffTryRyAiHoZlZ7wSNrhYa2ag5SP9Aa92G-qxag0o@z>
+Message-ID: <20150309084702.JgSVZOVi0l9QaKk_GG8rMGD8AVCpObTMBED84cCZXOI@z>
 
-Hello.
-
-I rewriting h8300 support.
-
-Changes for v6
-- rebase to v4.0-rc3
-- remove unused headers
-- optimized atomic operation
-- System.map cleanup
-
-Changes for v5
-- Signal handling fix
-- LD script cleanup
-
-Changes for v4
-- Remove signal mapping
-- Organize Kconfig
-- Coding style fix
-
-Changes for v3
-- Fix clone
-- Add dma functions
-- Add missing library
-- Fix various errors
-
-Changes for v2
-- Use Common Clock Framework
-- Use common unistd.h
-- Use common ptrace function
-- clocksource driver move to drivers/clocksource
-- some cleanup
-
-Changes for latest relase (v3.12)
-- standard ELF toolchain (h8300-linux)
-- use common driver support
-- exception handling fix
-- too many cleanup
-
-git repository
-git://git.sourceforge.jp/gitroot/uclinux-h8/linux.git h8300
-
-Yoshinori Sato (16):
-  h8300: Assembly headers.
-  h8300: UAPI headers
-  h8300: Exception and Interrupt handling
-  h8300: kernel booting
-  h8300: Process and signal
-  h8300: CPU depend helpers
-  h8300: miscellaneous functions
-  h8300: Memory management
-  h8300: library functions
-  h8300: Build scripts
-  h8300: clock driver
-  h8300: clocksource
-  h8300: configs
-  serial: Add h8300
-  Add ELF machine
-  mksysmap: Add h8300 local symbol pattern
-
- arch/h8300/Kconfig                         |  73 +++++
- arch/h8300/Kconfig.cpu                     | 111 ++++++++
- arch/h8300/Makefile                        |  45 ++++
- arch/h8300/boot/Makefile                   |  26 ++
- arch/h8300/boot/compressed/Makefile        |  37 +++
- arch/h8300/boot/compressed/head.S          |  48 ++++
- arch/h8300/boot/compressed/misc.c          |  74 ++++++
- arch/h8300/boot/compressed/vmlinux.lds     |  32 +++
- arch/h8300/boot/compressed/vmlinux.scr     |   9 +
- arch/h8300/configs/h8300h-sim_defconfig    |  53 ++++
- arch/h8300/configs/h8s-sim_defconfig       |  53 ++++
- arch/h8300/include/asm/Kbuild              |  66 +++++
- arch/h8300/include/asm/asm-offsets.h       |   1 +
- arch/h8300/include/asm/atomic.h            | 159 +++++++++++
- arch/h8300/include/asm/bitops.h            | 185 +++++++++++++
- arch/h8300/include/asm/bootparams.h        |  17 ++
- arch/h8300/include/asm/bug.h               |  12 +
- arch/h8300/include/asm/cache.h             |  11 +
- arch/h8300/include/asm/checksum.h          | 102 +++++++
- arch/h8300/include/asm/cmpxchg.h           |  65 +++++
- arch/h8300/include/asm/delay.h             |  38 +++
- arch/h8300/include/asm/device.h            |   6 +
- arch/h8300/include/asm/dma-mapping.h       | 124 +++++++++
- arch/h8300/include/asm/elf.h               | 101 +++++++
- arch/h8300/include/asm/emergency-restart.h |   6 +
- arch/h8300/include/asm/flat.h              |  27 ++
- arch/h8300/include/asm/io.h                | 314 ++++++++++++++++++++++
- arch/h8300/include/asm/irq.h               |  26 ++
- arch/h8300/include/asm/irqflags.h          |  96 +++++++
- arch/h8300/include/asm/mc146818rtc.h       |   9 +
- arch/h8300/include/asm/mutex.h             |   9 +
- arch/h8300/include/asm/page.h              |  18 ++
- arch/h8300/include/asm/page_offset.h       |   2 +
- arch/h8300/include/asm/pci.h               |  19 ++
- arch/h8300/include/asm/pgtable.h           |  49 ++++
- arch/h8300/include/asm/processor.h         | 144 ++++++++++
- arch/h8300/include/asm/ptrace.h            |  36 +++
- arch/h8300/include/asm/segment.h           |  49 ++++
- arch/h8300/include/asm/sh_bios.h           |   4 +
- arch/h8300/include/asm/signal.h            |  22 ++
- arch/h8300/include/asm/smp.h               |   1 +
- arch/h8300/include/asm/spinlock.h          |   6 +
- arch/h8300/include/asm/string.h            |  17 ++
- arch/h8300/include/asm/switch_to.h         |  51 ++++
- arch/h8300/include/asm/syscall.h           |  56 ++++
- arch/h8300/include/asm/thread_info.h       | 119 +++++++++
- arch/h8300/include/asm/timer.h             |  31 +++
- arch/h8300/include/asm/tlb.h               |   8 +
- arch/h8300/include/asm/topology.h          |   6 +
- arch/h8300/include/asm/traps.h             |  41 +++
- arch/h8300/include/asm/uaccess.h           | 136 ++++++++++
- arch/h8300/include/asm/unaligned.h         |  11 +
- arch/h8300/include/asm/user.h              |  74 ++++++
- arch/h8300/include/uapi/asm/Kbuild         |  29 ++
- arch/h8300/include/uapi/asm/auxvec.h       |   4 +
- arch/h8300/include/uapi/asm/byteorder.h    |   6 +
- arch/h8300/include/uapi/asm/ptrace.h       |  42 +++
- arch/h8300/include/uapi/asm/sigcontext.h   |  18 ++
- arch/h8300/include/uapi/asm/signal.h       | 115 ++++++++
- arch/h8300/include/uapi/asm/swab.h         |   1 +
- arch/h8300/include/uapi/asm/unistd.h       |   3 +
- arch/h8300/kernel/Makefile                 |  16 ++
- arch/h8300/kernel/asm-offsets.c            |  60 +++++
- arch/h8300/kernel/cpu/Makefile             |   4 +
- arch/h8300/kernel/cpu/h83069/Makefile      |   1 +
- arch/h8300/kernel/cpu/h83069/setup.c       | 202 ++++++++++++++
- arch/h8300/kernel/cpu/h8s2678/Makefile     |   1 +
- arch/h8300/kernel/cpu/h8s2678/setup.c      | 161 +++++++++++
- arch/h8300/kernel/cpu/irq_h.c              |  62 +++++
- arch/h8300/kernel/cpu/irq_s.c              |  70 +++++
- arch/h8300/kernel/cpu/ptrace_h.c           | 256 ++++++++++++++++++
- arch/h8300/kernel/cpu/ptrace_s.c           |  44 +++
- arch/h8300/kernel/dma.c                    |  95 +++++++
- arch/h8300/kernel/entry.S                  | 414 +++++++++++++++++++++++++++++
- arch/h8300/kernel/h8300_ksyms.c            |  34 +++
- arch/h8300/kernel/head_ram.S               |  60 +++++
- arch/h8300/kernel/head_rom.S               | 108 ++++++++
- arch/h8300/kernel/irq.c                    | 100 +++++++
- arch/h8300/kernel/module.c                 |  70 +++++
- arch/h8300/kernel/process.c                | 171 ++++++++++++
- arch/h8300/kernel/ptrace.c                 | 203 ++++++++++++++
- arch/h8300/kernel/setup.c                  | 174 ++++++++++++
- arch/h8300/kernel/signal.c                 | 289 ++++++++++++++++++++
- arch/h8300/kernel/sim-console.c            |  79 ++++++
- arch/h8300/kernel/syscalls.c               |  14 +
- arch/h8300/kernel/traps.c                  | 161 +++++++++++
- arch/h8300/kernel/vmlinux.lds.S            |  67 +++++
- arch/h8300/lib/Makefile                    |   7 +
- arch/h8300/lib/abs.S                       |  20 ++
- arch/h8300/lib/ashldi3.c                   |  24 ++
- arch/h8300/lib/ashrdi3.c                   |  24 ++
- arch/h8300/lib/checksum.c                  | 167 ++++++++++++
- arch/h8300/lib/libgcc.h                    |  77 ++++++
- arch/h8300/lib/lshrdi3.c                   |  23 ++
- arch/h8300/lib/memcpy.S                    |  85 ++++++
- arch/h8300/lib/memset.S                    |  69 +++++
- arch/h8300/lib/moddivsi3.S                 |  72 +++++
- arch/h8300/lib/modsi3.S                    |  72 +++++
- arch/h8300/lib/muldi3.c                    |  44 +++
- arch/h8300/lib/mulsi3.S                    |  38 +++
- arch/h8300/lib/strncpy.S                   |  34 +++
- arch/h8300/lib/ucmpdi2.c                   |  17 ++
- arch/h8300/lib/udivsi3.S                   |  76 ++++++
- arch/h8300/mm/Makefile                     |   5 +
- arch/h8300/mm/fault.c                      |  57 ++++
- arch/h8300/mm/init.c                       | 133 +++++++++
- arch/h8300/mm/kmap.c                       |  61 +++++
- arch/h8300/mm/memory.c                     |  53 ++++
- drivers/clk/Makefile                       |   1 +
- drivers/clk/h8300/Makefile                 |   2 +
- drivers/clk/h8300/clk-h83069.c             |  80 ++++++
- drivers/clk/h8300/clk-h8s2678.c            | 171 ++++++++++++
- drivers/clocksource/Kconfig                |   6 +
- drivers/clocksource/Makefile               |   3 +
- drivers/clocksource/h8300_timer16.c        | 332 +++++++++++++++++++++++
- drivers/clocksource/h8300_timer8.c         | 398 +++++++++++++++++++++++++++
- drivers/clocksource/h8300_tpu.c            | 203 ++++++++++++++
- drivers/tty/serial/Kconfig                 |   2 +-
- include/linux/clk-provider.h               |  12 +
- include/uapi/linux/elf-em.h                |   1 +
- scripts/mksysmap                           |   2 +-
- 121 files changed, 8338 insertions(+), 2 deletions(-)
- create mode 100644 arch/h8300/Kconfig
- create mode 100644 arch/h8300/Kconfig.cpu
- create mode 100644 arch/h8300/Makefile
- create mode 100644 arch/h8300/boot/Makefile
- create mode 100644 arch/h8300/boot/compressed/Makefile
- create mode 100644 arch/h8300/boot/compressed/head.S
- create mode 100644 arch/h8300/boot/compressed/misc.c
- create mode 100644 arch/h8300/boot/compressed/vmlinux.lds
- create mode 100644 arch/h8300/boot/compressed/vmlinux.scr
- create mode 100644 arch/h8300/configs/h8300h-sim_defconfig
- create mode 100644 arch/h8300/configs/h8s-sim_defconfig
- create mode 100644 arch/h8300/include/asm/Kbuild
- create mode 100644 arch/h8300/include/asm/asm-offsets.h
- create mode 100644 arch/h8300/include/asm/atomic.h
- create mode 100644 arch/h8300/include/asm/bitops.h
- create mode 100644 arch/h8300/include/asm/bootparams.h
- create mode 100644 arch/h8300/include/asm/bug.h
- create mode 100644 arch/h8300/include/asm/cache.h
- create mode 100644 arch/h8300/include/asm/checksum.h
- create mode 100644 arch/h8300/include/asm/cmpxchg.h
- create mode 100644 arch/h8300/include/asm/delay.h
- create mode 100644 arch/h8300/include/asm/device.h
- create mode 100644 arch/h8300/include/asm/dma-mapping.h
- create mode 100644 arch/h8300/include/asm/elf.h
- create mode 100644 arch/h8300/include/asm/emergency-restart.h
- create mode 100644 arch/h8300/include/asm/flat.h
- create mode 100644 arch/h8300/include/asm/io.h
- create mode 100644 arch/h8300/include/asm/irq.h
- create mode 100644 arch/h8300/include/asm/irqflags.h
- create mode 100644 arch/h8300/include/asm/mc146818rtc.h
- create mode 100644 arch/h8300/include/asm/mutex.h
- create mode 100644 arch/h8300/include/asm/page.h
- create mode 100644 arch/h8300/include/asm/page_offset.h
- create mode 100644 arch/h8300/include/asm/pci.h
- create mode 100644 arch/h8300/include/asm/pgtable.h
- create mode 100644 arch/h8300/include/asm/processor.h
- create mode 100644 arch/h8300/include/asm/ptrace.h
- create mode 100644 arch/h8300/include/asm/segment.h
- create mode 100644 arch/h8300/include/asm/sh_bios.h
- create mode 100644 arch/h8300/include/asm/signal.h
- create mode 100644 arch/h8300/include/asm/smp.h
- create mode 100644 arch/h8300/include/asm/spinlock.h
- create mode 100644 arch/h8300/include/asm/string.h
- create mode 100644 arch/h8300/include/asm/switch_to.h
- create mode 100644 arch/h8300/include/asm/syscall.h
- create mode 100644 arch/h8300/include/asm/thread_info.h
- create mode 100644 arch/h8300/include/asm/timer.h
- create mode 100644 arch/h8300/include/asm/tlb.h
- create mode 100644 arch/h8300/include/asm/topology.h
- create mode 100644 arch/h8300/include/asm/traps.h
- create mode 100644 arch/h8300/include/asm/uaccess.h
- create mode 100644 arch/h8300/include/asm/unaligned.h
- create mode 100644 arch/h8300/include/asm/user.h
- create mode 100644 arch/h8300/include/uapi/asm/Kbuild
- create mode 100644 arch/h8300/include/uapi/asm/auxvec.h
- create mode 100644 arch/h8300/include/uapi/asm/byteorder.h
- create mode 100644 arch/h8300/include/uapi/asm/ptrace.h
- create mode 100644 arch/h8300/include/uapi/asm/sigcontext.h
- create mode 100644 arch/h8300/include/uapi/asm/signal.h
- create mode 100644 arch/h8300/include/uapi/asm/swab.h
- create mode 100644 arch/h8300/include/uapi/asm/unistd.h
- create mode 100644 arch/h8300/kernel/Makefile
- create mode 100644 arch/h8300/kernel/asm-offsets.c
- create mode 100644 arch/h8300/kernel/cpu/Makefile
- create mode 100644 arch/h8300/kernel/cpu/h83069/Makefile
- create mode 100644 arch/h8300/kernel/cpu/h83069/setup.c
- create mode 100644 arch/h8300/kernel/cpu/h8s2678/Makefile
- create mode 100644 arch/h8300/kernel/cpu/h8s2678/setup.c
- create mode 100644 arch/h8300/kernel/cpu/irq_h.c
- create mode 100644 arch/h8300/kernel/cpu/irq_s.c
- create mode 100644 arch/h8300/kernel/cpu/ptrace_h.c
- create mode 100644 arch/h8300/kernel/cpu/ptrace_s.c
- create mode 100644 arch/h8300/kernel/dma.c
- create mode 100644 arch/h8300/kernel/entry.S
- create mode 100644 arch/h8300/kernel/h8300_ksyms.c
- create mode 100644 arch/h8300/kernel/head_ram.S
- create mode 100644 arch/h8300/kernel/head_rom.S
- create mode 100644 arch/h8300/kernel/irq.c
- create mode 100644 arch/h8300/kernel/module.c
- create mode 100644 arch/h8300/kernel/process.c
- create mode 100644 arch/h8300/kernel/ptrace.c
- create mode 100644 arch/h8300/kernel/setup.c
- create mode 100644 arch/h8300/kernel/signal.c
- create mode 100644 arch/h8300/kernel/sim-console.c
- create mode 100644 arch/h8300/kernel/syscalls.c
- create mode 100644 arch/h8300/kernel/traps.c
- create mode 100644 arch/h8300/kernel/vmlinux.lds.S
- create mode 100644 arch/h8300/lib/Makefile
- create mode 100644 arch/h8300/lib/abs.S
- create mode 100644 arch/h8300/lib/ashldi3.c
- create mode 100644 arch/h8300/lib/ashrdi3.c
- create mode 100644 arch/h8300/lib/checksum.c
- create mode 100644 arch/h8300/lib/libgcc.h
- create mode 100644 arch/h8300/lib/lshrdi3.c
- create mode 100644 arch/h8300/lib/memcpy.S
- create mode 100644 arch/h8300/lib/memset.S
- create mode 100644 arch/h8300/lib/moddivsi3.S
- create mode 100644 arch/h8300/lib/modsi3.S
- create mode 100644 arch/h8300/lib/muldi3.c
- create mode 100644 arch/h8300/lib/mulsi3.S
- create mode 100644 arch/h8300/lib/strncpy.S
- create mode 100644 arch/h8300/lib/ucmpdi2.c
- create mode 100644 arch/h8300/lib/udivsi3.S
+Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
+---
+ arch/h8300/mm/Makefile |   5 ++
+ arch/h8300/mm/fault.c  |  57 +++++++++++++++++++++
+ arch/h8300/mm/init.c   | 133 +++++++++++++++++++++++++++++++++++++++++++++++++
+ arch/h8300/mm/kmap.c   |  61 +++++++++++++++++++++++
+ arch/h8300/mm/memory.c |  53 ++++++++++++++++++++
+ 5 files changed, 309 insertions(+)
  create mode 100644 arch/h8300/mm/Makefile
  create mode 100644 arch/h8300/mm/fault.c
  create mode 100644 arch/h8300/mm/init.c
  create mode 100644 arch/h8300/mm/kmap.c
  create mode 100644 arch/h8300/mm/memory.c
- create mode 100644 drivers/clk/h8300/Makefile
- create mode 100644 drivers/clk/h8300/clk-h83069.c
- create mode 100644 drivers/clk/h8300/clk-h8s2678.c
- create mode 100644 drivers/clocksource/h8300_timer16.c
- create mode 100644 drivers/clocksource/h8300_timer8.c
- create mode 100644 drivers/clocksource/h8300_tpu.c
 
+diff --git a/arch/h8300/mm/Makefile b/arch/h8300/mm/Makefile
+new file mode 100644
+index 0000000..117d71f
+--- /dev/null
++++ b/arch/h8300/mm/Makefile
+@@ -0,0 +1,5 @@
++#
++# Makefile for the linux h8300-specific parts of the memory manager.
++#
++
++obj-y	 := init.o fault.o memory.o kmap.o
+diff --git a/arch/h8300/mm/fault.c b/arch/h8300/mm/fault.c
+new file mode 100644
+index 0000000..5924ff5
+--- /dev/null
++++ b/arch/h8300/mm/fault.c
+@@ -0,0 +1,57 @@
++/*
++ *  linux/arch/h8300/mm/fault.c
++ *
++ *  Copyright (C) 1998  D. Jeff Dionne <jeff@lineo.ca>,
++ *  Copyright (C) 2000  Lineo, Inc.  (www.lineo.com)
++ *
++ *  Based on:
++ *
++ *  linux/arch/m68knommu/mm/fault.c
++ *  linux/arch/m68k/mm/fault.c
++ *
++ *  Copyright (C) 1995  Hamish Macdonald
++ */
++
++#include <linux/mman.h>
++#include <linux/mm.h>
++#include <linux/kernel.h>
++#include <linux/ptrace.h>
++
++#include <asm/pgtable.h>
++
++void die(const char *str, struct pt_regs *fp, unsigned long err);
++
++/*
++ * This routine handles page faults.  It determines the problem, and
++ * then passes it off to one of the appropriate routines.
++ *
++ * error_code:
++ *	bit 0 == 0 means no page found, 1 means protection fault
++ *	bit 1 == 0 means read, 1 means write
++ *
++ * If this routine detects a bad access, it returns 1, otherwise it
++ * returns 0.
++ */
++asmlinkage int do_page_fault(struct pt_regs *regs, unsigned long address,
++			      unsigned long error_code)
++{
++#ifdef DEBUG
++	pr_debug("regs->sr=%#x, regs->pc=%#lx, address=%#lx, %ld\n",
++		 regs->sr, regs->pc, address, error_code);
++#endif
++
++/*
++ * Oops. The kernel tried to access some bad page. We'll have to
++ * terminate things with extreme prejudice.
++ */
++	if ((unsigned long) address < PAGE_SIZE)
++		pr_alert("Unable to handle kernel NULL pointer dereference");
++	else
++		pr_alert("Unable to handle kernel access");
++	printk(" at virtual address %08lx\n", address);
++	if (!user_mode(regs))
++		die("Oops", regs, error_code);
++	do_exit(SIGKILL);
++
++	return 1;
++}
+diff --git a/arch/h8300/mm/init.c b/arch/h8300/mm/init.c
+new file mode 100644
+index 0000000..98028b1
+--- /dev/null
++++ b/arch/h8300/mm/init.c
+@@ -0,0 +1,133 @@
++/*
++ *  linux/arch/h8300/mm/init.c
++ *
++ *  Copyright (C) 1998  D. Jeff Dionne <jeff@lineo.ca>,
++ *                      Kenneth Albanowski <kjahds@kjahds.com>,
++ *  Copyright (C) 2000  Lineo, Inc.  (www.lineo.com)
++ *
++ *  Based on:
++ *
++ *  linux/arch/m68knommu/mm/init.c
++ *  linux/arch/m68k/mm/init.c
++ *
++ *  Copyright (C) 1995  Hamish Macdonald
++ *
++ *  JAN/1999 -- hacked to support ColdFire (gerg@snapgear.com)
++ *  DEC/2000 -- linux 2.4 support <davidm@snapgear.com>
++ */
++
++#include <linux/signal.h>
++#include <linux/sched.h>
++#include <linux/kernel.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++#include <linux/types.h>
++#include <linux/ptrace.h>
++#include <linux/mman.h>
++#include <linux/mm.h>
++#include <linux/swap.h>
++#include <linux/init.h>
++#include <linux/highmem.h>
++#include <linux/pagemap.h>
++#include <linux/bootmem.h>
++#include <linux/gfp.h>
++
++#include <asm/setup.h>
++#include <asm/segment.h>
++#include <asm/page.h>
++#include <asm/pgtable.h>
++#include <asm/sections.h>
++
++/*
++ * BAD_PAGE is the page that is used for page faults when linux
++ * is out-of-memory. Older versions of linux just did a
++ * do_exit(), but using this instead means there is less risk
++ * for a process dying in kernel mode, possibly leaving a inode
++ * unused etc..
++ *
++ * BAD_PAGETABLE is the accompanying page-table: it is initialized
++ * to point to BAD_PAGE entries.
++ *
++ * ZERO_PAGE is a special page that is used for zero-initialized
++ * data and COW.
++ */
++static unsigned long empty_bad_page_table;
++static unsigned long empty_bad_page;
++unsigned long empty_zero_page;
++
++/*
++ * paging_init() continues the virtual memory environment setup which
++ * was begun by the code in arch/head.S.
++ * The parameters are pointers to where to stick the starting and ending
++ * addresses of available kernel virtual memory.
++ */
++void __init paging_init(void)
++{
++	/*
++	 * Make sure start_mem is page aligned,  otherwise bootmem and
++	 * page_alloc get different views og the world.
++	 */
++	unsigned long start_mem = PAGE_ALIGN(memory_start);
++	unsigned long end_mem   = memory_end & PAGE_MASK;
++
++	pr_debug("start_mem is %#lx\nvirtual_end is %#lx\n",
++		 start_mem, end_mem);
++
++	/*
++	 * Initialize the bad page table and bad page to point
++	 * to a couple of allocated pages.
++	 */
++	empty_bad_page_table = (unsigned long)alloc_bootmem_pages(PAGE_SIZE);
++	empty_bad_page = (unsigned long)alloc_bootmem_pages(PAGE_SIZE);
++	empty_zero_page = (unsigned long)alloc_bootmem_pages(PAGE_SIZE);
++	memset((void *)empty_zero_page, 0, PAGE_SIZE);
++
++	/*
++	 * Set up SFC/DFC registers (user data space).
++	 */
++	set_fs(USER_DS);
++
++	pr_debug("before free_area_init\n");
++
++	pr_debug("free_area_init -> start_mem is %#lx\nvirtual_end is %#lx\n",
++		 start_mem, end_mem);
++
++	{
++		unsigned long zones_size[MAX_NR_ZONES] = {0, };
++
++		zones_size[ZONE_NORMAL] = (end_mem - PAGE_OFFSET) >> PAGE_SHIFT;
++		free_area_init(zones_size);
++	}
++}
++
++void __init mem_init(void)
++{
++	unsigned long codesize = _etext - _stext;
++
++	pr_devel("Mem_init: start=%lx, end=%lx\n", memory_start, memory_end);
++
++	high_memory = (void *) (memory_end & PAGE_MASK);
++	max_mapnr = MAP_NR(high_memory);
++
++	/* this will put all low memory onto the freelists */
++	free_all_bootmem();
++
++	mem_init_print_info(NULL);
++	if (rom_length > 0 && rom_length > codesize)
++		pr_info("Memory available: %luK/%luK ROM\n",
++			(rom_length - codesize) >> 10, rom_length >> 10);
++}
++
++
++#ifdef CONFIG_BLK_DEV_INITRD
++void free_initrd_mem(unsigned long start, unsigned long end)
++{
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
++}
++#endif
++
++void
++free_initmem(void)
++{
++	free_initmem_default(-1);
++}
+diff --git a/arch/h8300/mm/kmap.c b/arch/h8300/mm/kmap.c
+new file mode 100644
+index 0000000..4315aa3
+--- /dev/null
++++ b/arch/h8300/mm/kmap.c
+@@ -0,0 +1,61 @@
++/*
++ *  linux/arch/h8300/mm/kmap.c
++ *
++ *  Based on
++ *  linux/arch/m68knommu/mm/kmap.c
++ *
++ *  Copyright (C) 2000 Lineo, <davidm@snapgear.com>
++ *  Copyright (C) 2000-2002 David McCullough <davidm@snapgear.com>
++ */
++
++#include <linux/mm.h>
++#include <linux/kernel.h>
++#include <linux/string.h>
++#include <linux/types.h>
++#include <linux/vmalloc.h>
++#include <linux/module.h>
++
++#include <asm/setup.h>
++#include <asm/segment.h>
++#include <asm/page.h>
++#include <asm/pgalloc.h>
++#include <asm/io.h>
++
++#undef DEBUG
++
++#define VIRT_OFFSET (0x01000000)
++
++/*
++ * Map some physical address range into the kernel address space.
++ */
++void *__ioremap(unsigned long physaddr, unsigned long size, int cacheflag)
++{
++	return (void *)(physaddr + VIRT_OFFSET);
++}
++EXPORT_SYMBOL(__ioremap);
++
++/*
++ * Unmap a ioremap()ed region again.
++ */
++void iounmap(void *addr)
++{
++}
++EXPORT_SYMBOL(iounmap);
++
++/*
++ * __iounmap unmaps nearly everything, so be careful
++ * it doesn't free currently pointer/page tables anymore but it
++ * wans't used anyway and might be added later.
++ */
++void __iounmap(void *addr, unsigned long size)
++{
++}
++
++/*
++ * Set new cache mode for some kernel address space.
++ * The caller must push data for that range itself, if such data may already
++ * be in the cache.
++ */
++void kernel_set_cachemode(void *addr, unsigned long size, int cmode)
++{
++}
+diff --git a/arch/h8300/mm/memory.c b/arch/h8300/mm/memory.c
+new file mode 100644
+index 0000000..4974aa4
+--- /dev/null
++++ b/arch/h8300/mm/memory.c
+@@ -0,0 +1,53 @@
++/*
++ *  linux/arch/h8300/mm/memory.c
++ *
++ *  Copyright (C) 2002  Yoshinori Sato <ysato@users.sourceforge.jp>,
++ *
++ *  Based on:
++ *
++ *  linux/arch/m68knommu/mm/memory.c
++ *
++ *  Copyright (C) 1998  Kenneth Albanowski <kjahds@kjahds.com>,
++ *  Copyright (C) 1999-2002, Greg Ungerer (gerg@snapgear.com)
++ *
++ *  Based on:
++ *
++ *  linux/arch/m68k/mm/memory.c
++ *
++ *  Copyright (C) 1995  Hamish Macdonald
++ */
++
++#include <linux/mm.h>
++#include <linux/kernel.h>
++#include <linux/string.h>
++#include <linux/types.h>
++
++#include <asm/setup.h>
++#include <asm/segment.h>
++#include <asm/page.h>
++#include <asm/pgtable.h>
++#include <asm/traps.h>
++#include <asm/io.h>
++
++void cache_clear(unsigned long paddr, int len)
++{
++}
++
++
++void cache_push(unsigned long paddr, int len)
++{
++}
++
++void cache_push_v(unsigned long vaddr, int len)
++{
++}
++
++/*
++ * Map some physical address range into the kernel address space.
++ */
++
++unsigned long kernel_map(unsigned long paddr, unsigned long size,
++			 int nocacheflag, unsigned long *memavailp)
++{
++	return paddr;
++}
 -- 
 2.1.4
 
