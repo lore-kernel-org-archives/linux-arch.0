@@ -1,73 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:50261 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754004AbbCIK1c (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2015 06:27:32 -0400
-From: Vladimir Murzin <vladimir.murzin@arm.com>
-Subject: [PATCH 0/6] make memtest a generic kernel feature
-Date: Mon,  9 Mar 2015 10:27:04 +0000
-Message-ID: <1425896830-19705-1-git-send-email-vladimir.murzin@arm.com>
-Content-Type: text/plain; charset=WINDOWS-1252
-Content-Transfer-Encoding: quoted-printable
+Received: from mail-ob0-f176.google.com ([209.85.214.176]:34327 "EHLO
+	mail-ob0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754499AbbCIOjs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2015 10:39:48 -0400
+Received: by obcwp18 with SMTP id wp18so22576016obc.1
+        for <linux-arch@vger.kernel.org>; Mon, 09 Mar 2015 07:39:48 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <1424455277-29983-17-git-send-email-mcoquelin.stm32@gmail.com>
+References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<1424455277-29983-17-git-send-email-mcoquelin.stm32@gmail.com>
+Date: Mon, 9 Mar 2015 15:39:47 +0100
+Message-ID: <CACRpkdaW-OMgGfw8+ngia8AsmzRpW8z7922=dPpRGjgv79-gqw@mail.gmail.com>
+Subject: Re: [PATCH v2 16/18] ARM: dts: Introduce STM32F429 MCU
+From: Linus Walleij <linus.walleij@linaro.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, akpm@linux-foundation.org, lauraa@codeaurora.org, catalin.marinas@arm.com, will.deacon@arm.com, linux@arm.linux.org.uk, arnd@arndb.de, mark.rutland@arm.com, ard.biesheuvel@linaro.org, baruch@tkos.co.il, rdunlap@infradead.org
-Message-ID: <20150309102704.dhZE91-Iv4_s5Z35c4aoq9Y8ZKUp7YfHs0Z4r8-Rx6w@z>
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-api@vger.kernel.org
+Message-ID: <20150309143947.3LkEOi9F4SIDW5f-DYPc_Iv8NK2eURr2PmQhj8W8eoY@z>
 
-Hi,
+On Fri, Feb 20, 2015 at 7:01 PM, Maxime Coquelin
+<mcoquelin.stm32@gmail.com> wrote:
 
-Memtest is a simple feature which fills the memory with a given set of
-patterns and validates memory contents, if bad memory regions is detected i=
-t
-reserves them via memblock API. Since memblock API is widely used by other
-architectures this feature can be enabled outside of x86 world.
+> The STMicrolectornics's STM32F419 MCU has the following main features:
+>  - Cortex-M4 core running up to @180MHz
+>  - 2MB internal flash, 256KBytes internal RAM
+>  - FMC controller to connect SDRAM, NOR and NAND memories
+>  - SD/MMC/SDIO support
+>  - Ethernet controller
+>  - USB OTFG FS & HS controllers
+>  - I2C, SPI, CAN busses support
+>  - Several 16 & 32 bits general purpose timers
+>  - Serial Audio interface
+>  - LCD controller
+>
+> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+(...)
+> +       soc {
+> +               usart1: usart@40011000 {
+> +                       status = "okay";
+> +               };
+> +
+> +               leds {
+> +                       compatible = "gpio-leds";
+> +                       red {
+> +                               #gpio-cells = <2>;
+> +                               label = "Front Panel LED";
+> +                               gpios = <&gpiog 14 0>;
+> +                               linux,default-trigger = "heartbeat";
+> +                       };
+> +                       green {
+> +                               #gpio-cells = <2>;
+> +                               gpios = <&gpiog 13 0>;
+> +                               default-state = "off";
+> +                       };
+> +               };
+> +       };
 
-This patch set promotes memtest to live under generic mm umbrella and enabl=
-es
-memtest feature for arm/arm64.
+The LEDs are mounted on the board not the SoC, right?
 
-It was reported that this patch set was useful for tracking down an issue w=
-ith
-some errant DMA on an arm64 platform.
+So move them outside of the soc node, to the top level
+of the DTS file.
 
-Since it touches x86 and mm bits it'd be great to get ACK/NAK for these bit=
-s.
-
-Changelog:
-
-    RFC -> v1
-        - updated kernel-parameters.txt for memtest entry
-        - updated number of test patterns in Kconfig menu
-        - added Acked/Tested tags for arm64 bits
-        - rebased on v4.0-rc3
-
-Vladimir Murzin (6):
-  mm: move memtest under /mm
-  memtest: use phys_addr_t for physical addresses
-  arm64: add support for memtest
-  arm: add support for memtest
-  Kconfig: memtest: update number of test patterns up to 17
-  Documentation: update arch list in the 'memtest' entry
-
- Documentation/kernel-parameters.txt |    2 +-
- arch/arm/mm/init.c                  |    3 +
- arch/arm64/mm/init.c                |    2 +
- arch/x86/Kconfig                    |   11 ----
- arch/x86/include/asm/e820.h         |    8 ---
- arch/x86/mm/Makefile                |    2 -
- arch/x86/mm/memtest.c               |  118 -------------------------------=
-----
- include/linux/memblock.h            |    8 +++
- lib/Kconfig.debug                   |   11 ++++
- mm/Makefile                         |    1 +
- mm/memtest.c                        |  118 +++++++++++++++++++++++++++++++=
-++++
- 11 files changed, 144 insertions(+), 140 deletions(-)
- delete mode 100644 arch/x86/mm/memtest.c
- create mode 100644 mm/memtest.c
-
---=20
-1.7.9.5
-
-
+Yours,
+Linus Walleij
