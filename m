@@ -1,53 +1,73 @@
-From: Jeff Kirsher <tarbal@gmail.com>
-Subject: Re: [PATCH v6 11/16] h8300: clock driver
-Date: Mon, 09 Mar 2015 02:13:31 -0700
-Message-ID: <54FD643B.7010309@gmail.com>
-References: <1425890830-29399-1-git-send-email-ysato@users.sourceforge.jp> <1425890830-29399-12-git-send-email-ysato@users.sourceforge.jp>
-Reply-To: jeffrey.t.kirsher@intel.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f46.google.com ([209.85.220.46]:42902 "EHLO
-	mail-pa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753767AbbCIJNg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2015 05:13:36 -0400
-In-Reply-To: <1425890830-29399-12-git-send-email-ysato@users.sourceforge.jp>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yoshinori Sato <ysato@users.sourceforge.jp>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+From: Vladimir Murzin <vladimir.murzin@arm.com>
+Subject: [PATCH 0/6] make memtest a generic kernel feature
+Date: Mon,  9 Mar 2015 10:27:04 +0000
+Message-ID: <1425896830-19705-1-git-send-email-vladimir.murzin@arm.com>
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, akpm@linux-foundation.org, lauraa@codeaurora.org, catalin.marinas@arm.com, will.deacon@arm.com, linux@arm.linux.org.uk, arnd@arndb.de, mark.rutland@arm.com, ard.biesheuvel@linaro.org, baruch@tkos.co.il, rdunlap@infradead.org
+List-Id: linux-arch.vger.kernel.org
 
------BEGIN PGP SIGNED MESSAGE-----
-Hash: SHA512
+Hi,
 
-On 03/09/2015 01:47 AM, Yoshinori Sato wrote:
-> Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp> --- 
-> drivers/clk/Makefile            |   1 + drivers/clk/h8300/Makefile
-> |   2 + drivers/clk/h8300/clk-h83069.c  |  80 +++++++++++++++++++ 
-> drivers/clk/h8300/clk-h8s2678.c | 171
-> ++++++++++++++++++++++++++++++++++++++++ 
-> include/linux/clk-provider.h    |  12 +++ 5 files changed, 266
-> insertions(+) create mode 100644 drivers/clk/h8300/Makefile create
-> mode 100644 drivers/clk/h8300/clk-h83069.c create mode 100644
-> drivers/clk/h8300/clk-h8s2678.c
+Memtest is a simple feature which fills the memory with a given set of
+patterns and validates memory contents, if bad memory regions is detected i=
+t
+reserves them via memblock API. Since memblock API is widely used by other
+architectures this feature can be enabled outside of x86 world.
 
-A lot of changes and no patch description?  A patch description needs
-to explain "why" the change.
+This patch set promotes memtest to live under generic mm umbrella and enabl=
+es
+memtest feature for arm/arm64.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
+It was reported that this patch set was useful for tracking down an issue w=
+ith
+some errant DMA on an arm64 platform.
 
-iQIcBAEBCgAGBQJU/WQ6AAoJEOVv75VaS+3OXawP/1XHsE3bRsgoj7ltL23+kuuh
-RKNOMd/RcjtZTr86pdvtbzLPvl7i/KOFTHGOqGIfzPKMKPF4a+QFQF0884zy4Cp8
-QVasL8pi+JmCZI3OPT0EUQ4lte8GUmqn0AXdcIokAS0SdU5iG7iaeO3RcZaxY8/F
-jxWnSPD/tHPJZ8r8ZQvbpcDAJ6kMxj4vdipJHO0y1VJPOm/80mDX6Gu9IwEp1zIv
-52HECPc/jmXHPPBshh33jZYlEztsQxyENR2TPNPW0YS74hdL6+LwkqZ04xHdXhLX
-XuRVBI3+ysjzcQOHB18ZGBnO4So7o/McGJBj6s39i6KT9q0mfFFHBTPgvCDIeg+e
-PNiILipr6RYv/K305Yu+z71o3M0jJ6+qSFpNDPPs/OwUfbAidM86+MDOOJDYaqmK
-ZWghA82w2IXebZcq/5V/RUzSkbSfKtTX++V7yNhY4d1aUo4olG0eUU6AKW/NpuRm
-1W4M55PD52I6u6cpS7W5B7FeNrdJtHqH1pJBW4e3AcC92S+aYSSsNxx9eXRAprZo
-Ya5JVhl3NmW/JI6Eq/+mWLofwk5TwjIaujysmZOdX1KIu3W4r8XVqrDsVPGIC9ro
-weGSddjE3cPV53KTX/Ld/hNq8/soRllqVZ/9Vtz7QkYqQsoW6HiVQ9f/KRC8oTTA
-qlFqIG8L5BaDyW1Ayxs/
-=NyEB
------END PGP SIGNATURE-----
+Since it touches x86 and mm bits it'd be great to get ACK/NAK for these bit=
+s.
+
+Changelog:
+
+    RFC -> v1
+        - updated kernel-parameters.txt for memtest entry
+        - updated number of test patterns in Kconfig menu
+        - added Acked/Tested tags for arm64 bits
+        - rebased on v4.0-rc3
+
+Vladimir Murzin (6):
+  mm: move memtest under /mm
+  memtest: use phys_addr_t for physical addresses
+  arm64: add support for memtest
+  arm: add support for memtest
+  Kconfig: memtest: update number of test patterns up to 17
+  Documentation: update arch list in the 'memtest' entry
+
+ Documentation/kernel-parameters.txt |    2 +-
+ arch/arm/mm/init.c                  |    3 +
+ arch/arm64/mm/init.c                |    2 +
+ arch/x86/Kconfig                    |   11 ----
+ arch/x86/include/asm/e820.h         |    8 ---
+ arch/x86/mm/Makefile                |    2 -
+ arch/x86/mm/memtest.c               |  118 -------------------------------=
+----
+ include/linux/memblock.h            |    8 +++
+ lib/Kconfig.debug                   |   11 ++++
+ mm/Makefile                         |    1 +
+ mm/memtest.c                        |  118 +++++++++++++++++++++++++++++++=
+++++
+ 11 files changed, 144 insertions(+), 140 deletions(-)
+ delete mode 100644 arch/x86/mm/memtest.c
+ create mode 100644 mm/memtest.c
+
+--=20
+1.7.9.5
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
