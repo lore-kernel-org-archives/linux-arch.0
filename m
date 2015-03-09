@@ -1,67 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f181.google.com ([209.85.212.181]:36359 "EHLO
-	mail-wi0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753007AbbCIRH6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2015 13:07:58 -0400
-Received: by wiwh11 with SMTP id h11so12553478wiw.1
-        for <linux-arch@vger.kernel.org>; Mon, 09 Mar 2015 10:07:57 -0700 (PDT)
-Message-ID: <54FDD2D8.8090509@vanguardiasur.com.ar>
-Date: Mon, 09 Mar 2015 14:05:28 -0300
-From: Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
+Received: from mail-we0-f178.google.com ([74.125.82.178]:40639 "EHLO
+	mail-we0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932278AbbCIRMI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2015 13:12:08 -0400
 MIME-Version: 1.0
-Subject: Re: nios2: is the ptrace ABI correct?
-References: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com> <10088870.tldQegtTla@wuerfel> <54EDB2FC.4050901@vanguardiasur.com.ar> <10841724.NbdcAaCe1a@wuerfel> <54F03184.7080600@codesourcery.com> <54F052B1.4070300@vanguardiasur.com.ar> <54FDD041.3080500@codesourcery.com> <54FDD219.1060707@gmail.com>
-In-Reply-To: <54FDD219.1060707@gmail.com>
-Content-Type: text/plain; charset=big5
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <1364122b3b72c50138d81ee4eec2a4c7@agner.ch>
+References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<1424455277-29983-3-git-send-email-mcoquelin.stm32@gmail.com>
+	<1364122b3b72c50138d81ee4eec2a4c7@agner.ch>
+Date: Mon, 9 Mar 2015 18:12:05 +0100
+Message-ID: <CALszF6C9rS=-mZtqrOFqEhWJb47infDmB9j1oxLsmh+O0tctXw@mail.gmail.com>
+Subject: Re: [PATCH v2 02/18] ARM: ARMv7M: Enlarge vector table to 256 entries
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chung-Lin Tang <chunglin.tang@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>, Tobias Klauser <tklauser@distanz.ch>, Ley Foon Tan <lftan@altera.com>
-Cc: Walter Goossens <waltergoossens@home.nl>, linux-arch@vger.kernel.org, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20150309170528.l-gwHGZ23yCkWdx19Q74U6BGhEpyWj9XzzbXRKfRc4A@z>
+To: Stefan Agner <stefan@agner.ch>
+Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
+Message-ID: <20150309171205.eU6EI0hP-pVQgOyTHYH4p7mU-2Yz-bb5wQoT-xc0Qy4@z>
 
-
-
-On 03/09/2015 02:02 PM, Chung-Lin Tang wrote:
-> On 2015/3/10 12:54 AM, Chung-Lin Tang wrote:
->> It appears that some of the ways nios2 has organized the
->> ucontext/pt_regs/etc. are remnants of the pre-generic code, some
->> basically because the port was based off m68k.
+2015-03-09 1:29 GMT+01:00 Stefan Agner <stefan@agner.ch>:
+> On 2015-02-20 19:01, Maxime Coquelin wrote:
+>> From Cortex-M reference manuals, the nvic supports up to 240 interrupts.
+>> So the number of entries in vectors table is up to 256.
 >>
->> I've re-organized the headers a bit: nios2/include/asm/ucontext.h is
->> deleted, and re-definition of struct sigcontext now allows use of
->> uapi/asm-generic/ucontext.h directly.  Note that the reorg, despite
->> effectively renaming some fields, is still binary compatible. I'll
->> probably update the corresponding glibc definitions later.
+>> This patch adds a new config flag to specify the number of external interrupts.
+>> Some ifdeferies are added in order to respect the natural alignment without
+>> wasting too much space on smaller systems.
 >>
->> struct pt_regs is now not exported, and all exported register sets are
->> now supposed to follow the 49 register set defined as in GDB now.
+>> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+>> ---
+>>  arch/arm/kernel/entry-v7m.S | 13 +++++++++----
+>>  arch/arm/mm/Kconfig         | 15 +++++++++++++++
+>>  2 files changed, 24 insertions(+), 4 deletions(-)
 >>
->> Tobias, Ley Foon, how do you think this looks?
-> 
-> Sorry, accidentally attached unrelated GCC patch instead, this one's the
-> correct one.
-> 
+>> diff --git a/arch/arm/kernel/entry-v7m.S b/arch/arm/kernel/entry-v7m.S
+>> index 8944f49..68cde36 100644
+>> --- a/arch/arm/kernel/entry-v7m.S
+>> +++ b/arch/arm/kernel/entry-v7m.S
+>> @@ -117,9 +117,14 @@ ENTRY(__switch_to)
+>>  ENDPROC(__switch_to)
+>>
+>>       .data
+>> -     .align  8
+>> +#if CONFIG_CPUV7M_NUM_IRQ <= 112
+>> +     .align  9
+>> +#else
+>> +     .align  10
+>> +#endif
+>> +
+>>  /*
+>> - * Vector table (64 words => 256 bytes natural alignment)
+>> + * Vector table (Natural alignment need to be ensured)
+>>   */
+>>  ENTRY(vector_table)
+>>       .long   0                       @ 0 - Reset stack pointer
+>> @@ -138,6 +143,6 @@ ENTRY(vector_table)
+>>       .long   __invalid_entry         @ 13 - Reserved
+>>       .long   __pendsv_entry          @ 14 - PendSV
+>>       .long   __invalid_entry         @ 15 - SysTick
+>> -     .rept   64 - 16
+>> -     .long   __irq_entry             @ 16..64 - External Interrupts
+>> +     .rept   CONFIG_CPUV7M_NUM_IRQ
+>> +     .long   __irq_entry             @ External Interrupts
+>>       .endr
+>> diff --git a/arch/arm/mm/Kconfig b/arch/arm/mm/Kconfig
+>> index c43c714..27eb835 100644
+>> --- a/arch/arm/mm/Kconfig
+>> +++ b/arch/arm/mm/Kconfig
+>> @@ -604,6 +604,21 @@ config CPU_USE_DOMAINS
+>>         This option enables or disables the use of domain switching
+>>         via the set_fs() function.
+>>
+>> +config CPUV7M_NUM_IRQ
+>> +     int "Number of external interrupts connected to the NVIC"
+>> +     depends on CPU_V7M
+>> +     default 90 if ARCH_STM32
+>> +     default 38 if ARCH_EFM32
+>> +     default 240
+>> +     help
+>> +       This option indicates the number of interrupts connected to the NVIC.
+>> +       The value can be larger than the real number of interrupts supported
+>> +       by the system, but must not be lower.
+>> +       The default value is 240, corresponding to the maximum number of
+>> +       interrupts supported by the NVIC on Cortex-M family.
+>> +
+>> +       If unsure, keep default value.
+>> +
+>>  #
+>>  # CPU supports 36-bit I/O
+>>  #
+>
+> I sent a patch which extended that vector table some weeks ago:
+> https://lkml.org/lkml/2014/12/29/296
 
-Looks good. I'm wondering if...
+I did something similar in my first version.
 
-+/* User structures for general purpose registers.  */
-+struct user_pt_regs {
-+	__u32		regs[49];
- };
+>
+> But your solution is definitely more flexible, and given that we deal
+> with small devices here, it's worth saving memory.
 
-Can we expose the registers explicitly here? Like this:
+Yes, it is worth for these small devices.
 
-struct user_pt_regs {
-	__u32 r0;
-	__u32 r1;
-	...
-	__u32 sp;
-	__u32 gp;
-	__u32 estatus;
-};
+>
+> Acked-by: Stefan Agner <stefan@agner.ch>
+>
 
-It looks self-documenting and thus easier to use.
--- 
-Ezequiel Garcia, VanguardiaSur
-www.vanguardiasur.com.ar
+Thanks for the review,
+Maxime
