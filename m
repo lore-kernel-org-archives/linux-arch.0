@@ -1,105 +1,75 @@
-From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: Re: [PATCH v2 02/18] ARM: ARMv7M: Enlarge vector table to 256 entries
-Date: Mon, 9 Mar 2015 18:12:05 +0100
-Message-ID: <CALszF6C9rS=-mZtqrOFqEhWJb47infDmB9j1oxLsmh+O0tctXw@mail.gmail.com>
-References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
-	<1424455277-29983-3-git-send-email-mcoquelin.stm32@gmail.com>
-	<1364122b3b72c50138d81ee4eec2a4c7@agner.ch>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH v6 06/16] h8300: CPU depend helpers
+Date: Mon, 9 Mar 2015 18:55:03 +0100
+Message-ID: <CAMuHMdVYC5pxzZssGo2EuytD6hbimDCQ+4COUGD==Tp_tH1zcA@mail.gmail.com>
+References: <1425890830-29399-1-git-send-email-ysato@users.sourceforge.jp>
+	<1425890830-29399-7-git-send-email-ysato@users.sourceforge.jp>
+	<1425918067.5428.10.camel@perches.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1364122b3b72c50138d81ee4eec2a4c7@agner.ch>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Stefan Agner <stefan@agner.ch>
-Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f52.google.com ([209.85.218.52]:39942 "EHLO
+	mail-oi0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750817AbbCIRzE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2015 13:55:04 -0400
+In-Reply-To: <1425918067.5428.10.camel@perches.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Joe Perches <joe@perches.com>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-2015-03-09 1:29 GMT+01:00 Stefan Agner <stefan@agner.ch>:
-> On 2015-02-20 19:01, Maxime Coquelin wrote:
->> From Cortex-M reference manuals, the nvic supports up to 240 interrupts.
->> So the number of entries in vectors table is up to 256.
->>
->> This patch adds a new config flag to specify the number of external interrupts.
->> Some ifdeferies are added in order to respect the natural alignment without
->> wasting too much space on smaller systems.
->>
->> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
->> ---
->>  arch/arm/kernel/entry-v7m.S | 13 +++++++++----
->>  arch/arm/mm/Kconfig         | 15 +++++++++++++++
->>  2 files changed, 24 insertions(+), 4 deletions(-)
->>
->> diff --git a/arch/arm/kernel/entry-v7m.S b/arch/arm/kernel/entry-v7m.S
->> index 8944f49..68cde36 100644
->> --- a/arch/arm/kernel/entry-v7m.S
->> +++ b/arch/arm/kernel/entry-v7m.S
->> @@ -117,9 +117,14 @@ ENTRY(__switch_to)
->>  ENDPROC(__switch_to)
->>
->>       .data
->> -     .align  8
->> +#if CONFIG_CPUV7M_NUM_IRQ <= 112
->> +     .align  9
->> +#else
->> +     .align  10
->> +#endif
->> +
->>  /*
->> - * Vector table (64 words => 256 bytes natural alignment)
->> + * Vector table (Natural alignment need to be ensured)
->>   */
->>  ENTRY(vector_table)
->>       .long   0                       @ 0 - Reset stack pointer
->> @@ -138,6 +143,6 @@ ENTRY(vector_table)
->>       .long   __invalid_entry         @ 13 - Reserved
->>       .long   __pendsv_entry          @ 14 - PendSV
->>       .long   __invalid_entry         @ 15 - SysTick
->> -     .rept   64 - 16
->> -     .long   __irq_entry             @ 16..64 - External Interrupts
->> +     .rept   CONFIG_CPUV7M_NUM_IRQ
->> +     .long   __irq_entry             @ External Interrupts
->>       .endr
->> diff --git a/arch/arm/mm/Kconfig b/arch/arm/mm/Kconfig
->> index c43c714..27eb835 100644
->> --- a/arch/arm/mm/Kconfig
->> +++ b/arch/arm/mm/Kconfig
->> @@ -604,6 +604,21 @@ config CPU_USE_DOMAINS
->>         This option enables or disables the use of domain switching
->>         via the set_fs() function.
->>
->> +config CPUV7M_NUM_IRQ
->> +     int "Number of external interrupts connected to the NVIC"
->> +     depends on CPU_V7M
->> +     default 90 if ARCH_STM32
->> +     default 38 if ARCH_EFM32
->> +     default 240
->> +     help
->> +       This option indicates the number of interrupts connected to the NVIC.
->> +       The value can be larger than the real number of interrupts supported
->> +       by the system, but must not be lower.
->> +       The default value is 240, corresponding to the maximum number of
->> +       interrupts supported by the NVIC on Cortex-M family.
->> +
->> +       If unsure, keep default value.
->> +
->>  #
->>  # CPU supports 36-bit I/O
->>  #
+On Mon, Mar 9, 2015 at 5:21 PM, Joe Perches <joe@perches.com> wrote:
+>>  arch/h8300/kernel/cpu/h83069/setup.c   | 202 ++++++++++++++++++++++++++
+> []
+>> diff --git a/arch/h8300/kernel/cpu/h83069/setup.c b/arch/h8300/kernel/cpu/h83069/setup.c
+> []
+>> +static struct resource sci0_resources[] = {
+>> +     DEFINE_RES_MEM(0xffffb0, 8),
+>> +     DEFINE_RES_IRQ(52),
+>> +     DEFINE_RES_IRQ(53),
+>> +     DEFINE_RES_IRQ(54),
+>> +     DEFINE_RES_IRQ(55),
+>> +}
 >
-> I sent a patch which extended that vector table some weeks ago:
-> https://lkml.org/lkml/2014/12/29/296
-
-I did something similar in my first version.
-
+> Perhaps most all of these might be const?
 >
-> But your solution is definitely more flexible, and given that we deal
-> with small devices here, it's worth saving memory.
+>> +static struct plat_sci_port sci0_platform_data = {
+> []
+>> +static struct resource sci1_resources[] = {
+> []
+>> +static struct plat_sci_port sci1_platform_data = {
+> []
+>> +static struct platform_device sci0_device = {
+> []
+>> +static struct platform_device sci1_device = {
+> []
+>> +static struct h8300_timer8_config tm8_unit0_platform_data = {
+> []
+>> +static struct resource tm8_unit0_resources[] = {
+> []
+>> +static struct platform_device timer8_unit0_device = {
+> []
+>> +static struct h8300_timer8_config tm8_unit1_platform_data = {
+> []
 
-Yes, it is worth for these small devices.
+Unfortunately not. device.platform_data and platform_device.resource are
+not const pointers.
 
->
-> Acked-by: Stefan Agner <stefan@agner.ch>
->
+They can only be const (and __initdata) when the platform devices are
+created using platform_device_register_resndata(), as that one copies the
+data.
 
-Thanks for the review,
-Maxime
+May still be a good idea to use that instead of static platform devices, though,
+especially for multi-platform kernels (because the __initdata data is reclaimed
+later).
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
