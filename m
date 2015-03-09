@@ -1,49 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f179.google.com ([209.85.214.179]:40360 "EHLO
-	mail-ob0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751797AbbCIQrl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2015 12:47:41 -0400
-Received: by obcuz6 with SMTP id uz6so8481628obc.7
-        for <linux-arch@vger.kernel.org>; Mon, 09 Mar 2015 09:47:40 -0700 (PDT)
+Received: from mail-we0-f176.google.com ([74.125.82.176]:38911 "EHLO
+	mail-we0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751193AbbCIQvn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2015 12:51:43 -0400
 MIME-Version: 1.0
-In-Reply-To: <CALszF6Bz978KA1DAxcKtmA55X=vJWEcVDa9fLOF=uNatYS+b+Q@mail.gmail.com>
-References: <1423763164-5606-1-git-send-email-mcoquelin.stm32@gmail.com>
-	<1423763164-5606-15-git-send-email-mcoquelin.stm32@gmail.com>
-	<CACRpkdaM0BwMcq77MO=0-dVaqwobD5Pt+11j7ZZ4c3yKM=AkeA@mail.gmail.com>
-	<CALszF6Bz978KA1DAxcKtmA55X=vJWEcVDa9fLOF=uNatYS+b+Q@mail.gmail.com>
-Date: Mon, 9 Mar 2015 17:47:40 +0100
-Message-ID: <CACRpkdaYVyH-y19yHYp2noq6VhDVJYQfqkevDtLr-7y8gVwdXw@mail.gmail.com>
-Subject: Re: [PATCH 14/14] MAINTAINERS: Add entry for STM32 MCUs
-From: Linus Walleij <linus.walleij@linaro.org>
+In-Reply-To: <CACRpkdaW-OMgGfw8+ngia8AsmzRpW8z7922=dPpRGjgv79-gqw@mail.gmail.com>
+References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<1424455277-29983-17-git-send-email-mcoquelin.stm32@gmail.com>
+	<CACRpkdaW-OMgGfw8+ngia8AsmzRpW8z7922=dPpRGjgv79-gqw@mail.gmail.com>
+Date: Mon, 9 Mar 2015 17:51:40 +0100
+Message-ID: <CALszF6DW4_2AmVgG3EBNqKTaP=cf-ZimZCR7_Cynqz5Uczs2+g@mail.gmail.com>
+Subject: Re: [PATCH v2 16/18] ARM: dts: Introduce STM32F429 MCU
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Cc: Jonathan Corbet <corbet@lwn.net>, Rob Herring <robh+dt@kernel.org>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Philipp Zabel <p.zabel@pengutronix.de>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
-Message-ID: <20150309164740.OpPX7h9Wk_Z6qmXj2RHYLa3FJWJRg-T5FPKKsHiiWIk@z>
+To: Linus Walleij <linus.walleij@linaro.org>
+Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
+Message-ID: <20150309165140.8X_jlzMhXNVWWW7uetzvNIsq-5x1wA9DjlZABXFC1sA@z>
 
-On Fri, Mar 6, 2015 at 10:55 AM, Maxime Coquelin
-<mcoquelin.stm32@gmail.com> wrote:
-> 2015-03-06 10:03 GMT+01:00 Linus Walleij <linus.walleij@linaro.org>:
->> On Thu, Feb 12, 2015 at 6:46 PM, Maxime Coquelin
->> <mcoquelin.stm32@gmail.com> wrote:
->>
->>> Add a MAINTAINER entry covering all STM32 machine and drivers files.
->>>
->>> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
->>
->> (...)
->>> +F:     drivers/clocksource/arm_system_timer.c
->>
->> Is that all? And that is not even a STM32 specific driver.
+2015-03-09 15:39 GMT+01:00 Linus Walleij <linus.walleij@linaro.org>:
+> On Fri, Feb 20, 2015 at 7:01 PM, Maxime Coquelin
+> <mcoquelin.stm32@gmail.com> wrote:
 >
-> For the ARM System Timer, I'm fine to add a new entry.
-> Or remove the line, and let the maintain-ship to clocksource maintainers.
+>> The STMicrolectornics's STM32F419 MCU has the following main features:
+>>  - Cortex-M4 core running up to @180MHz
+>>  - 2MB internal flash, 256KBytes internal RAM
+>>  - FMC controller to connect SDRAM, NOR and NAND memories
+>>  - SD/MMC/SDIO support
+>>  - Ethernet controller
+>>  - USB OTFG FS & HS controllers
+>>  - I2C, SPI, CAN busses support
+>>  - Several 16 & 32 bits general purpose timers
+>>  - Serial Audio interface
+>>  - LCD controller
+>>
+>> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+> (...)
+>> +       soc {
+>> +               usart1: usart@40011000 {
+>> +                       status = "okay";
+>> +               };
+>> +
+>> +               leds {
+>> +                       compatible = "gpio-leds";
+>> +                       red {
+>> +                               #gpio-cells = <2>;
+>> +                               label = "Front Panel LED";
+>> +                               gpios = <&gpiog 14 0>;
+>> +                               linux,default-trigger = "heartbeat";
+>> +                       };
+>> +                       green {
+>> +                               #gpio-cells = <2>;
+>> +                               gpios = <&gpiog 13 0>;
+>> +                               default-state = "off";
+>> +                       };
+>> +               };
+>> +       };
 >
-> All the STM32 files are covered by this line:
-> +N:     stm32
+> The LEDs are mounted on the board not the SoC, right?
+>
+> So move them outside of the soc node, to the top level
+> of the DTS file.
 
-Aha you're right, news2me, I'm old and stupid :/
+Yes, you are right.
+Andreas already made the same remark, and the top-level move is
+already here in the upcoming v3.
 
 Thanks,
-Linus Walleij
+Maxime
+>
+> Yours,
+> Linus Walleij
