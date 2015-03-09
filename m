@@ -1,179 +1,60 @@
-From: Chung-Lin Tang <chunglin.tang@gmail.com>
+From: Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
 Subject: Re: nios2: is the ptrace ABI correct?
-Date: Tue, 10 Mar 2015 01:02:17 +0800
-Message-ID: <54FDD219.1060707@gmail.com>
-References: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com> <10088870.tldQegtTla@wuerfel> <54EDB2FC.4050901@vanguardiasur.com.ar> <10841724.NbdcAaCe1a@wuerfel> <54F03184.7080600@codesourcery.com> <54F052B1.4070300@vanguardiasur.com.ar> <54FDD041.3080500@codesourcery.com>
+Date: Mon, 09 Mar 2015 14:05:28 -0300
+Message-ID: <54FDD2D8.8090509@vanguardiasur.com.ar>
+References: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com> <10088870.tldQegtTla@wuerfel> <54EDB2FC.4050901@vanguardiasur.com.ar> <10841724.NbdcAaCe1a@wuerfel> <54F03184.7080600@codesourcery.com> <54F052B1.4070300@vanguardiasur.com.ar> <54FDD041.3080500@codesourcery.com> <54FDD219.1060707@gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed;
- boundary="------------020706090403040601000808"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f180.google.com ([209.85.192.180]:44896 "EHLO
-	mail-pd0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750892AbbCIRCu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2015 13:02:50 -0400
-In-Reply-To: <54FDD041.3080500@codesourcery.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chung-Lin Tang <cltang@codesourcery.com>, Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>, Arnd Bergmann <arnd@arndb.de>, Tobias Klauser <tklauser@distanz.ch>, Ley Foon Tan <lftan@altera.com>
-Cc: Walter Goossens <waltergoossens@home.nl>, linux-arch@vger.kernel.org, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-
-This is a multi-part message in MIME format.
---------------020706090403040601000808
 Content-Type: text/plain; charset=big5
 Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <54FDD219.1060707@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Chung-Lin Tang <chunglin.tang@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>, Tobias Klauser <tklauser@distanz.ch>, Ley Foon Tan <lftan@altera.com>
+Cc: Walter Goossens <waltergoossens@home.nl>, linux-arch@vger.kernel.org, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 2015/3/10 12:54 AM, Chung-Lin Tang wrote:
-> It appears that some of the ways nios2 has organized the
-> ucontext/pt_regs/etc. are remnants of the pre-generic code, some
-> basically because the port was based off m68k.
+
+
+On 03/09/2015 02:02 PM, Chung-Lin Tang wrote:
+> On 2015/3/10 12:54 AM, Chung-Lin Tang wrote:
+>> It appears that some of the ways nios2 has organized the
+>> ucontext/pt_regs/etc. are remnants of the pre-generic code, some
+>> basically because the port was based off m68k.
+>>
+>> I've re-organized the headers a bit: nios2/include/asm/ucontext.h is
+>> deleted, and re-definition of struct sigcontext now allows use of
+>> uapi/asm-generic/ucontext.h directly.  Note that the reorg, despite
+>> effectively renaming some fields, is still binary compatible. I'll
+>> probably update the corresponding glibc definitions later.
+>>
+>> struct pt_regs is now not exported, and all exported register sets are
+>> now supposed to follow the 49 register set defined as in GDB now.
+>>
+>> Tobias, Ley Foon, how do you think this looks?
 > 
-> I've re-organized the headers a bit: nios2/include/asm/ucontext.h is
-> deleted, and re-definition of struct sigcontext now allows use of
-> uapi/asm-generic/ucontext.h directly.  Note that the reorg, despite
-> effectively renaming some fields, is still binary compatible. I'll
-> probably update the corresponding glibc definitions later.
+> Sorry, accidentally attached unrelated GCC patch instead, this one's the
+> correct one.
 > 
-> struct pt_regs is now not exported, and all exported register sets are
-> now supposed to follow the 49 register set defined as in GDB now.
-> 
-> Tobias, Ley Foon, how do you think this looks?
 
-Sorry, accidentally attached unrelated GCC patch instead, this one's the
-correct one.
+Looks good. I'm wondering if...
 
-Chung-Lin
++/* User structures for general purpose registers.  */
++struct user_pt_regs {
++	__u32		regs[49];
+ };
 
+Can we expose the registers explicitly here? Like this:
 
---------------020706090403040601000808
-Content-Type: text/plain; charset=Big5;
- name="x.diff"
-Content-Transfer-Encoding: base64
-Content-Disposition: attachment;
- filename="x.diff"
+struct user_pt_regs {
+	__u32 r0;
+	__u32 r1;
+	...
+	__u32 sp;
+	__u32 gp;
+	__u32 estatus;
+};
 
-ZGlmZiAtLWdpdCBhL2FyY2gvbmlvczIvaW5jbHVkZS9hc20vcHRyYWNlLmggYi9hcmNoL25p
-b3MyL2luY2x1ZGUvYXNtL3B0cmFjZS5oCmluZGV4IDIwZmIxY2YuLjY0MjQ2MjEgMTAwNjQ0
-Ci0tLSBhL2FyY2gvbmlvczIvaW5jbHVkZS9hc20vcHRyYWNlLmgKKysrIGIvYXJjaC9uaW9z
-Mi9pbmNsdWRlL2FzbS9wdHJhY2UuaApAQCAtMTUsNyArMTUsNTQgQEAKIAogI2luY2x1ZGUg
-PHVhcGkvYXNtL3B0cmFjZS5oPgogCisvKiBUaGlzIHN0cnVjdCBkZWZpbmVzIHRoZSB3YXkg
-dGhlIHJlZ2lzdGVycyBhcmUgc3RvcmVkIG9uIHRoZQorICAgc3RhY2sgZHVyaW5nIGEgc3lz
-dGVtIGNhbGwuICAqLworCiAjaWZuZGVmIF9fQVNTRU1CTFlfXworc3RydWN0IHB0X3JlZ3Mg
-eworCXVuc2lnbmVkIGxvbmcgIHI4OwkvKiByOC1yMTUgQ2FsbGVyLXNhdmVkIEdQIHJlZ2lz
-dGVycyAqLworCXVuc2lnbmVkIGxvbmcgIHI5OworCXVuc2lnbmVkIGxvbmcgIHIxMDsKKwl1
-bnNpZ25lZCBsb25nICByMTE7CisJdW5zaWduZWQgbG9uZyAgcjEyOworCXVuc2lnbmVkIGxv
-bmcgIHIxMzsKKwl1bnNpZ25lZCBsb25nICByMTQ7CisJdW5zaWduZWQgbG9uZyAgcjE1Owor
-CXVuc2lnbmVkIGxvbmcgIHIxOwkvKiBBc3NlbWJsZXIgdGVtcG9yYXJ5ICovCisJdW5zaWdu
-ZWQgbG9uZyAgcjI7CS8qIFJldHZhbCBMUyAzMmJpdHMgKi8KKwl1bnNpZ25lZCBsb25nICBy
-MzsJLyogUmV0dmFsIE1TIDMyYml0cyAqLworCXVuc2lnbmVkIGxvbmcgIHI0OwkvKiByNC1y
-NyBSZWdpc3RlciBhcmd1bWVudHMgKi8KKwl1bnNpZ25lZCBsb25nICByNTsKKwl1bnNpZ25l
-ZCBsb25nICByNjsKKwl1bnNpZ25lZCBsb25nICByNzsKKwl1bnNpZ25lZCBsb25nICBvcmln
-X3IyOwkvKiBDb3B5IG9mIHIyID8/ICovCisJdW5zaWduZWQgbG9uZyAgcmE7CS8qIFJldHVy
-biBhZGRyZXNzICovCisJdW5zaWduZWQgbG9uZyAgZnA7CS8qIEZyYW1lIHBvaW50ZXIgKi8K
-Kwl1bnNpZ25lZCBsb25nICBzcDsJLyogU3RhY2sgcG9pbnRlciAqLworCXVuc2lnbmVkIGxv
-bmcgIGdwOwkvKiBHbG9iYWwgcG9pbnRlciAqLworCXVuc2lnbmVkIGxvbmcgIGVzdGF0dXM7
-CisJdW5zaWduZWQgbG9uZyAgZWE7CS8qIEV4Y2VwdGlvbiByZXR1cm4gYWRkcmVzcyAocGMp
-ICovCisJdW5zaWduZWQgbG9uZyAgb3JpZ19yNzsKK307CisKKy8qCisgKiBUaGlzIGlzIHRo
-ZSBleHRlbmRlZCBzdGFjayB1c2VkIGJ5IHNpZ25hbCBoYW5kbGVycyBhbmQgdGhlIGNvbnRl
-eHQKKyAqIHN3aXRjaGVyOiBpdCdzIHB1c2hlZCBhZnRlciB0aGUgbm9ybWFsICJzdHJ1Y3Qg
-cHRfcmVncyIuCisgKi8KK3N0cnVjdCBzd2l0Y2hfc3RhY2sgeworCXVuc2lnbmVkIGxvbmcg
-IHIxNjsJLyogcjE2LXIyMyBDYWxsZWUtc2F2ZWQgR1AgcmVnaXN0ZXJzICovCisJdW5zaWdu
-ZWQgbG9uZyAgcjE3OworCXVuc2lnbmVkIGxvbmcgIHIxODsKKwl1bnNpZ25lZCBsb25nICBy
-MTk7CisJdW5zaWduZWQgbG9uZyAgcjIwOworCXVuc2lnbmVkIGxvbmcgIHIyMTsKKwl1bnNp
-Z25lZCBsb25nICByMjI7CisJdW5zaWduZWQgbG9uZyAgcjIzOworCXVuc2lnbmVkIGxvbmcg
-IGZwOworCXVuc2lnbmVkIGxvbmcgIGdwOworCXVuc2lnbmVkIGxvbmcgIHJhOworfTsKKwog
-I2RlZmluZSB1c2VyX21vZGUocmVncykJKCgocmVncyktPmVzdGF0dXMgJiBFU1RBVFVTX0VV
-KSkKIAogI2RlZmluZSBpbnN0cnVjdGlvbl9wb2ludGVyKHJlZ3MpCSgocmVncyktPnJhKQpk
-aWZmIC0tZ2l0IGEvYXJjaC9uaW9zMi9pbmNsdWRlL2FzbS91Y29udGV4dC5oIGIvYXJjaC9u
-aW9zMi9pbmNsdWRlL2FzbS91Y29udGV4dC5oCmRlbGV0ZWQgZmlsZSBtb2RlIDEwMDY0NApp
-bmRleCAyYzg3NjE0Li4wMDAwMDAwCi0tLSBhL2FyY2gvbmlvczIvaW5jbHVkZS9hc20vdWNv
-bnRleHQuaAorKysgL2Rldi9udWxsCkBAIC0xLDMyICswLDAgQEAKLS8qCi0gKiBDb3B5cmln
-aHQgKEMpIDIwMTAgVG9iaWFzIEtsYXVzZXIgPHRrbGF1c2VyQGRpc3RhbnouY2g+Ci0gKiBD
-b3B5cmlnaHQgKEMpIDIwMDQgTWljcm90cm9uaXggRGF0YWNvbSBMdGQKLSAqCi0gKiBUaGlz
-IGZpbGUgaXMgc3ViamVjdCB0byB0aGUgdGVybXMgYW5kIGNvbmRpdGlvbnMgb2YgdGhlIEdO
-VSBHZW5lcmFsIFB1YmxpYwotICogTGljZW5zZS4gIFNlZSB0aGUgZmlsZSAiQ09QWUlORyIg
-aW4gdGhlIG1haW4gZGlyZWN0b3J5IG9mIHRoaXMgYXJjaGl2ZQotICogZm9yIG1vcmUgZGV0
-YWlscy4KLSAqLwotCi0jaWZuZGVmIF9BU01fTklPUzJfVUNPTlRFWFRfSAotI2RlZmluZSBf
-QVNNX05JT1MyX1VDT05URVhUX0gKLQotdHlwZWRlZiBpbnQgZ3JlZ190OwotI2RlZmluZSBO
-R1JFRyAzMgotdHlwZWRlZiBncmVnX3QgZ3JlZ3NldF90W05HUkVHXTsKLQotc3RydWN0IG1j
-b250ZXh0IHsKLQlpbnQgdmVyc2lvbjsKLQlncmVnc2V0X3QgZ3JlZ3M7Ci19OwotCi0jZGVm
-aW5lIE1DT05URVhUX1ZFUlNJT04gMgotCi1zdHJ1Y3QgdWNvbnRleHQgewotCXVuc2lnbmVk
-IGxvbmcJICB1Y19mbGFnczsKLQlzdHJ1Y3QgdWNvbnRleHQgICp1Y19saW5rOwotCXN0YWNr
-X3QJCSAgdWNfc3RhY2s7Ci0Jc3RydWN0IG1jb250ZXh0CSAgdWNfbWNvbnRleHQ7Ci0Jc2ln
-c2V0X3QJICB1Y19zaWdtYXNrOwkvKiBtYXNrIGxhc3QgZm9yIGV4dGVuc2liaWxpdHkgKi8K
-LX07Ci0KLSNlbmRpZgpkaWZmIC0tZ2l0IGEvYXJjaC9uaW9zMi9pbmNsdWRlL3VhcGkvYXNt
-L0tidWlsZCBiL2FyY2gvbmlvczIvaW5jbHVkZS91YXBpL2FzbS9LYnVpbGQKaW5kZXggNGYw
-N2NhM2Y4Li4zNzYxMzExOSAxMDA2NDQKLS0tIGEvYXJjaC9uaW9zMi9pbmNsdWRlL3VhcGkv
-YXNtL0tidWlsZAorKysgYi9hcmNoL25pb3MyL2luY2x1ZGUvdWFwaS9hc20vS2J1aWxkCkBA
-IC0yLDMgKzIsNSBAQCBpbmNsdWRlIGluY2x1ZGUvdWFwaS9hc20tZ2VuZXJpYy9LYnVpbGQu
-YXNtCiAKIGhlYWRlci15ICs9IGVsZi5oCiBoZWFkZXIteSArPSB1Y29udGV4dC5oCisKK2dl
-bmVyaWMteSArPSB1Y29udGV4dC5oCmRpZmYgLS1naXQgYS9hcmNoL25pb3MyL2luY2x1ZGUv
-dWFwaS9hc20vZWxmLmggYi9hcmNoL25pb3MyL2luY2x1ZGUvdWFwaS9hc20vZWxmLmgKaW5k
-ZXggYTViOTFhZS4uNmYwNmQzYiAxMDA2NDQKLS0tIGEvYXJjaC9uaW9zMi9pbmNsdWRlL3Vh
-cGkvYXNtL2VsZi5oCisrKyBiL2FyY2gvbmlvczIvaW5jbHVkZS91YXBpL2FzbS9lbGYuaApA
-QCAtNTAsOSArNTAsNyBAQAogCiB0eXBlZGVmIHVuc2lnbmVkIGxvbmcgZWxmX2dyZWdfdDsK
-IAotI2RlZmluZSBFTEZfTkdSRUcJXAotCSgoc2l6ZW9mKHN0cnVjdCBwdF9yZWdzKSArIHNp
-emVvZihzdHJ1Y3Qgc3dpdGNoX3N0YWNrKSkgLwlcCi0JCXNpemVvZihlbGZfZ3JlZ190KSkK
-KyNkZWZpbmUgRUxGX05HUkVHCQk0OQogdHlwZWRlZiBlbGZfZ3JlZ190IGVsZl9ncmVnc2V0
-X3RbRUxGX05HUkVHXTsKIAogdHlwZWRlZiB1bnNpZ25lZCBsb25nIGVsZl9mcHJlZ3NldF90
-OwpkaWZmIC0tZ2l0IGEvYXJjaC9uaW9zMi9pbmNsdWRlL3VhcGkvYXNtL3B0cmFjZS5oIGIv
-YXJjaC9uaW9zMi9pbmNsdWRlL3VhcGkvYXNtL3B0cmFjZS5oCmluZGV4IGU4M2E3YzkuLjcx
-YTMzMDUgMTAwNjQ0Ci0tLSBhL2FyY2gvbmlvczIvaW5jbHVkZS91YXBpL2FzbS9wdHJhY2Uu
-aAorKysgYi9hcmNoL25pb3MyL2luY2x1ZGUvdWFwaS9hc20vcHRyYWNlLmgKQEAgLTY3LDUz
-ICs2Nyw5IEBACiAKICNkZWZpbmUgTlVNX1BUUkFDRV9SRUcgKFBUUl9UTEJNSVNDICsgMSkK
-IAotLyogdGhpcyBzdHJ1Y3QgZGVmaW5lcyB0aGUgd2F5IHRoZSByZWdpc3RlcnMgYXJlIHN0
-b3JlZCBvbiB0aGUKLSAgIHN0YWNrIGR1cmluZyBhIHN5c3RlbSBjYWxsLgotCi0gICBUaGVy
-ZSBpcyBhIGZha2VfcmVncyBpbiBzZXR1cC5jIHRoYXQgaGFzIHRvIG1hdGNoIHB0X3JlZ3Mu
-Ki8KLQotc3RydWN0IHB0X3JlZ3MgewotCXVuc2lnbmVkIGxvbmcgIHI4OwkJLyogcjgtcjE1
-IENhbGxlci1zYXZlZCBHUCByZWdpc3RlcnMgKi8KLQl1bnNpZ25lZCBsb25nICByOTsKLQl1
-bnNpZ25lZCBsb25nICByMTA7Ci0JdW5zaWduZWQgbG9uZyAgcjExOwotCXVuc2lnbmVkIGxv
-bmcgIHIxMjsKLQl1bnNpZ25lZCBsb25nICByMTM7Ci0JdW5zaWduZWQgbG9uZyAgcjE0Owot
-CXVuc2lnbmVkIGxvbmcgIHIxNTsKLQl1bnNpZ25lZCBsb25nICByMTsJCS8qIEFzc2VtYmxl
-ciB0ZW1wb3JhcnkgKi8KLQl1bnNpZ25lZCBsb25nICByMjsJCS8qIFJldHZhbCBMUyAzMmJp
-dHMgKi8KLQl1bnNpZ25lZCBsb25nICByMzsJCS8qIFJldHZhbCBNUyAzMmJpdHMgKi8KLQl1
-bnNpZ25lZCBsb25nICByNDsJCS8qIHI0LXI3IFJlZ2lzdGVyIGFyZ3VtZW50cyAqLwotCXVu
-c2lnbmVkIGxvbmcgIHI1OwotCXVuc2lnbmVkIGxvbmcgIHI2OwotCXVuc2lnbmVkIGxvbmcg
-IHI3OwotCXVuc2lnbmVkIGxvbmcgIG9yaWdfcjI7CQkvKiBDb3B5IG9mIHIyID8/ICovCi0J
-dW5zaWduZWQgbG9uZyAgcmE7CQkvKiBSZXR1cm4gYWRkcmVzcyAqLwotCXVuc2lnbmVkIGxv
-bmcgIGZwOwkJLyogRnJhbWUgcG9pbnRlciAqLwotCXVuc2lnbmVkIGxvbmcgIHNwOwkJLyog
-U3RhY2sgcG9pbnRlciAqLwotCXVuc2lnbmVkIGxvbmcgIGdwOwkJLyogR2xvYmFsIHBvaW50
-ZXIgKi8KLQl1bnNpZ25lZCBsb25nICBlc3RhdHVzOwotCXVuc2lnbmVkIGxvbmcgIGVhOwkJ
-LyogRXhjZXB0aW9uIHJldHVybiBhZGRyZXNzIChwYykgKi8KLQl1bnNpZ25lZCBsb25nICBv
-cmlnX3I3OwotfTsKLQotLyoKLSAqIFRoaXMgaXMgdGhlIGV4dGVuZGVkIHN0YWNrIHVzZWQg
-Ynkgc2lnbmFsIGhhbmRsZXJzIGFuZCB0aGUgY29udGV4dAotICogc3dpdGNoZXI6IGl0J3Mg
-cHVzaGVkIGFmdGVyIHRoZSBub3JtYWwgInN0cnVjdCBwdF9yZWdzIi4KLSAqLwotc3RydWN0
-IHN3aXRjaF9zdGFjayB7Ci0JdW5zaWduZWQgbG9uZyAgcjE2OwkJLyogcjE2LXIyMyBDYWxs
-ZWUtc2F2ZWQgR1AgcmVnaXN0ZXJzICovCi0JdW5zaWduZWQgbG9uZyAgcjE3OwotCXVuc2ln
-bmVkIGxvbmcgIHIxODsKLQl1bnNpZ25lZCBsb25nICByMTk7Ci0JdW5zaWduZWQgbG9uZyAg
-cjIwOwotCXVuc2lnbmVkIGxvbmcgIHIyMTsKLQl1bnNpZ25lZCBsb25nICByMjI7Ci0JdW5z
-aWduZWQgbG9uZyAgcjIzOwotCXVuc2lnbmVkIGxvbmcgIGZwOwotCXVuc2lnbmVkIGxvbmcg
-IGdwOwotCXVuc2lnbmVkIGxvbmcgIHJhOworLyogVXNlciBzdHJ1Y3R1cmVzIGZvciBnZW5l
-cmFsIHB1cnBvc2UgcmVnaXN0ZXJzLiAgKi8KK3N0cnVjdCB1c2VyX3B0X3JlZ3MgeworCV9f
-dTMyCQlyZWdzWzQ5XTsKIH07CiAKICNlbmRpZiAvKiBfX0FTU0VNQkxZX18gKi8KZGlmZiAt
-LWdpdCBhL2FyY2gvbmlvczIvaW5jbHVkZS91YXBpL2FzbS9zaWdjb250ZXh0LmggYi9hcmNo
-L25pb3MyL2luY2x1ZGUvdWFwaS9hc20vc2lnY29udGV4dC5oCmluZGV4IDdiOGJiNDEuLmI2
-Nzk0NGEgMTAwNjQ0Ci0tLSBhL2FyY2gvbmlvczIvaW5jbHVkZS91YXBpL2FzbS9zaWdjb250
-ZXh0LmgKKysrIGIvYXJjaC9uaW9zMi9pbmNsdWRlL3VhcGkvYXNtL3NpZ2NvbnRleHQuaApA
-QCAtMTUsMTQgKzE1LDE2IEBACiAgKiBkZXRhaWxzLgogICovCiAKLSNpZm5kZWYgX0FTTV9O
-SU9TMl9TSUdDT05URVhUX0gKLSNkZWZpbmUgX0FTTV9OSU9TMl9TSUdDT05URVhUX0gKKyNp
-Zm5kZWYgX1VBUElfX0FTTV9TSUdDT05URVhUX0gKKyNkZWZpbmUgX1VBUElfX0FTTV9TSUdD
-T05URVhUX0gKIAotI2luY2x1ZGUgPGFzbS9wdHJhY2UuaD4KKyNpbmNsdWRlIDxsaW51eC90
-eXBlcy5oPgorCisjZGVmaW5lIE1DT05URVhUX1ZFUlNJT04gMgogCiBzdHJ1Y3Qgc2lnY29u
-dGV4dCB7Ci0Jc3RydWN0IHB0X3JlZ3MgcmVnczsKLQl1bnNpZ25lZCBsb25nICBzY19tYXNr
-OwkvKiBvbGQgc2lnbWFzayAqLworCWludCB2ZXJzaW9uOworCXVuc2lnbmVkIGxvbmcgZ3Jl
-Z3NbMzJdOwogfTsKIAogI2VuZGlmCmRpZmYgLS1naXQgYS9hcmNoL25pb3MyL2tlcm5lbC9z
-aWduYWwuYyBiL2FyY2gvbmlvczIva2VybmVsL3NpZ25hbC5jCmluZGV4IDJkMGVhMjUuLmRk
-YTQxZTQgMTAwNjQ0Ci0tLSBhL2FyY2gvbmlvczIva2VybmVsL3NpZ25hbC5jCisrKyBiL2Fy
-Y2gvbmlvczIva2VybmVsL3NpZ25hbC5jCkBAIC0zOSw3ICszOSw3IEBAIHN0YXRpYyBpbmxp
-bmUgaW50IHJ0X3Jlc3RvcmVfdWNvbnRleHQoc3RydWN0IHB0X3JlZ3MgKnJlZ3MsCiAJCQkJ
-CXN0cnVjdCB1Y29udGV4dCAqdWMsIGludCAqcHIyKQogewogCWludCB0ZW1wOwotCWdyZWdf
-dCAqZ3JlZ3MgPSB1Yy0+dWNfbWNvbnRleHQuZ3JlZ3M7CisJdW5zaWduZWQgbG9uZyAqZ3Jl
-Z3MgPSB1Yy0+dWNfbWNvbnRleHQuZ3JlZ3M7CiAJaW50IGVycjsKIAogCS8qIEFsd2F5cyBt
-YWtlIGFueSBwZW5kaW5nIHJlc3RhcnRlZCBzeXN0ZW0gY2FsbHMgcmV0dXJuIC1FSU5UUiAq
-LwpAQCAtMTI3LDcgKzEyNyw3IEBAIGJhZGZyYW1lOgogc3RhdGljIGlubGluZSBpbnQgcnRf
-c2V0dXBfdWNvbnRleHQoc3RydWN0IHVjb250ZXh0ICp1Yywgc3RydWN0IHB0X3JlZ3MgKnJl
-Z3MpCiB7CiAJc3RydWN0IHN3aXRjaF9zdGFjayAqc3cgPSAoc3RydWN0IHN3aXRjaF9zdGFj
-ayAqKXJlZ3MgLSAxOwotCWdyZWdfdCAqZ3JlZ3MgPSB1Yy0+dWNfbWNvbnRleHQuZ3JlZ3M7
-CisJdW5zaWduZWQgbG9uZyAqZ3JlZ3MgPSB1Yy0+dWNfbWNvbnRleHQuZ3JlZ3M7CiAJaW50
-IGVyciA9IDA7CiAKIAllcnIgfD0gX19wdXRfdXNlcihNQ09OVEVYVF9WRVJTSU9OLCAmdWMt
-PnVjX21jb250ZXh0LnZlcnNpb24pOwo=
---------------020706090403040601000808--
+It looks self-documenting and thus easier to use.
+-- 
+Ezequiel Garcia, VanguardiaSur
+www.vanguardiasur.com.ar
