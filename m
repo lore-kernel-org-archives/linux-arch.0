@@ -1,65 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0156.hostedemail.com ([216.40.44.156]:54719 "EHLO
-	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1754144AbbCIQeW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2015 12:34:22 -0400
-Received: from smtprelay.hostedemail.com (10.5.19.251.rfc1918.com [10.5.19.251])
-	by smtpgrave08.hostedemail.com (Postfix) with ESMTP id 0B288211ADD
-	for <linux-arch@vger.kernel.org>; Mon,  9 Mar 2015 16:26:11 +0000 (UTC)
-Message-ID: <1425918067.5428.10.camel@perches.com>
-Subject: Re: [PATCH v6 06/16] h8300: CPU depend helpers
-From: Joe Perches <joe@perches.com>
-In-Reply-To: <1425890830-29399-7-git-send-email-ysato@users.sourceforge.jp>
-References: <1425890830-29399-1-git-send-email-ysato@users.sourceforge.jp>
-	 <1425890830-29399-7-git-send-email-ysato@users.sourceforge.jp>
-Content-Type: text/plain; charset="ISO-8859-1"
-Date: Mon, 09 Mar 2015 09:21:07 -0700
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-ob0-f179.google.com ([209.85.214.179]:40360 "EHLO
+	mail-ob0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751797AbbCIQrl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2015 12:47:41 -0400
+Received: by obcuz6 with SMTP id uz6so8481628obc.7
+        for <linux-arch@vger.kernel.org>; Mon, 09 Mar 2015 09:47:40 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <CALszF6Bz978KA1DAxcKtmA55X=vJWEcVDa9fLOF=uNatYS+b+Q@mail.gmail.com>
+References: <1423763164-5606-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<1423763164-5606-15-git-send-email-mcoquelin.stm32@gmail.com>
+	<CACRpkdaM0BwMcq77MO=0-dVaqwobD5Pt+11j7ZZ4c3yKM=AkeA@mail.gmail.com>
+	<CALszF6Bz978KA1DAxcKtmA55X=vJWEcVDa9fLOF=uNatYS+b+Q@mail.gmail.com>
+Date: Mon, 9 Mar 2015 17:47:40 +0100
+Message-ID: <CACRpkdaYVyH-y19yHYp2noq6VhDVJYQfqkevDtLr-7y8gVwdXw@mail.gmail.com>
+Subject: Re: [PATCH 14/14] MAINTAINERS: Add entry for STM32 MCUs
+From: Linus Walleij <linus.walleij@linaro.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150309162107.v9CGdOgD9-WKj-2YICUzE-QNkhLLiF099afwtWH8qOE@z>
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Cc: Jonathan Corbet <corbet@lwn.net>, Rob Herring <robh+dt@kernel.org>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Philipp Zabel <p.zabel@pengutronix.de>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
+Message-ID: <20150309164740.OpPX7h9Wk_Z6qmXj2RHYLa3FJWJRg-T5FPKKsHiiWIk@z>
 
-On Mon, 2015-03-09 at 17:47 +0900, Yoshinori Sato wrote:
-> Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
+On Fri, Mar 6, 2015 at 10:55 AM, Maxime Coquelin
+<mcoquelin.stm32@gmail.com> wrote:
+> 2015-03-06 10:03 GMT+01:00 Linus Walleij <linus.walleij@linaro.org>:
+>> On Thu, Feb 12, 2015 at 6:46 PM, Maxime Coquelin
+>> <mcoquelin.stm32@gmail.com> wrote:
+>>
+>>> Add a MAINTAINER entry covering all STM32 machine and drivers files.
+>>>
+>>> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+>>
+>> (...)
+>>> +F:     drivers/clocksource/arm_system_timer.c
+>>
+>> Is that all? And that is not even a STM32 specific driver.
+>
+> For the ARM System Timer, I'm fine to add a new entry.
+> Or remove the line, and let the maintain-ship to clocksource maintainers.
+>
+> All the STM32 files are covered by this line:
+> +N:     stm32
 
-trivia:
+Aha you're right, news2me, I'm old and stupid :/
 
->  arch/h8300/kernel/cpu/h83069/setup.c   | 202 ++++++++++++++++++++++++++
-[]
-> diff --git a/arch/h8300/kernel/cpu/h83069/setup.c b/arch/h8300/kernel/cpu/h83069/setup.c
-[]
-> +static struct resource sci0_resources[] = {
-> +	DEFINE_RES_MEM(0xffffb0, 8),
-> +	DEFINE_RES_IRQ(52),
-> +	DEFINE_RES_IRQ(53),
-> +	DEFINE_RES_IRQ(54),
-> +	DEFINE_RES_IRQ(55),
-> +}
-
-Perhaps most all of these might be const?
-
-> +static struct plat_sci_port sci0_platform_data = {
-[]
-> +static struct resource sci1_resources[] = {
-[]
-> +static struct plat_sci_port sci1_platform_data = {
-[]
-> +static struct platform_device sci0_device = {
-[]
-> +static struct platform_device sci1_device = {
-[]
-> +static struct h8300_timer8_config tm8_unit0_platform_data = {
-[]
-> +static struct resource tm8_unit0_resources[] = {
-[]
-> +static struct platform_device timer8_unit0_device = {
-[]
-> +static struct h8300_timer8_config tm8_unit1_platform_data = {
-[]
-
-etc..
-
-
+Thanks,
+Linus Walleij
