@@ -1,83 +1,82 @@
-From: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?=
-	<u.kleine-koenig@pengutronix.de>
-Subject: Re: [PATCH v2 04/18] clocksource: Add ARM System timer driver
-Date: Mon, 9 Mar 2015 23:17:52 +0100
-Message-ID: <20150309221752.GE7525@pengutronix.de>
-References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
- <1424455277-29983-5-git-send-email-mcoquelin.stm32@gmail.com>
- <20150220195437.GT19388@pengutronix.de>
- <1424468908.24292.10.camel@x220>
- <CALszF6Bm_Y4ZLednjpmP-hMix3gA23FwLm5hViEjr1QojUY+Mg@mail.gmail.com>
- <1425411786.2606.24.camel@tiscali.nl>
- <CALszF6AEThPrRe7c7nJ6q7yb2fhLMFuHJUV10sf=w0TMcqVVaw@mail.gmail.com>
- <1425935552.4244.6.camel@x220>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: nios2: is the ptrace ABI correct?
+Date: Tue, 10 Mar 2015 10:54:31 +0800
+Message-ID: <CAFiDJ5_gstXn-y8JSzi=gy+nRrrFqCaQA_R4CVg0+vhLz1EZPw@mail.gmail.com>
+References: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com>
+	<10088870.tldQegtTla@wuerfel>
+	<54EDB2FC.4050901@vanguardiasur.com.ar>
+	<10841724.NbdcAaCe1a@wuerfel>
+	<54F03184.7080600@codesourcery.com>
+	<54F052B1.4070300@vanguardiasur.com.ar>
+	<54FDD041.3080500@codesourcery.com>
+	<54FDD219.1060707@gmail.com>
+	<54FDD2D8.8090509@vanguardiasur.com.ar>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-doc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1425935552.4244.6.camel@x220>
-Sender: linux-doc-owner@vger.kernel.org
-To: Paul Bolle <pebolle@tiscali.nl>
-Cc: Maxime Coquelin <mcoquelin.stm32@gmail.com>, Andreas =?iso-8859-1?Q?F=E4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lb0-f169.google.com ([209.85.217.169]:45909 "EHLO
+	mail-lb0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751551AbbCJCyd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2015 22:54:33 -0400
+In-Reply-To: <54FDD2D8.8090509@vanguardiasur.com.ar>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
+Cc: Chung-Lin Tang <chunglin.tang@gmail.com>, Chung-Lin Tang <cltang@codesourcery.com>, Arnd Bergmann <arnd@arndb.de>, Tobias Klauser <tklauser@distanz.ch>, Walter Goossens <waltergoossens@home.nl>, Linux-Arch <linux-arch@vger.kernel.org>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-Hello,
+On Tue, Mar 10, 2015 at 1:05 AM, Ezequiel Garcia
+<ezequiel@vanguardiasur.com.ar> wrote:
+>
+>
+> On 03/09/2015 02:02 PM, Chung-Lin Tang wrote:
+>> On 2015/3/10 12:54 AM, Chung-Lin Tang wrote:
+>>> It appears that some of the ways nios2 has organized the
+>>> ucontext/pt_regs/etc. are remnants of the pre-generic code, some
+>>> basically because the port was based off m68k.
+>>>
+>>> I've re-organized the headers a bit: nios2/include/asm/ucontext.h is
+>>> deleted, and re-definition of struct sigcontext now allows use of
+>>> uapi/asm-generic/ucontext.h directly.  Note that the reorg, despite
+>>> effectively renaming some fields, is still binary compatible. I'll
+>>> probably update the corresponding glibc definitions later.
+>>>
+>>> struct pt_regs is now not exported, and all exported register sets are
+>>> now supposed to follow the 49 register set defined as in GDB now.
+>>>
+>>> Tobias, Ley Foon, how do you think this looks?
+>>
+>> Sorry, accidentally attached unrelated GCC patch instead, this one's the
+>> correct one.
+>>
+>
+> Looks good. I'm wondering if...
+>
+> +/* User structures for general purpose registers.  */
+> +struct user_pt_regs {
+> +       __u32           regs[49];
+>  };
+>
+> Can we expose the registers explicitly here? Like this:
+>
+> struct user_pt_regs {
+>         __u32 r0;
+>         __u32 r1;
+>         ...
+>         __u32 sp;
+>         __u32 gp;
+>         __u32 estatus;
+> };
+>
+> It looks self-documenting and thus easier to use.
 
-On Mon, Mar 09, 2015 at 10:12:32PM +0100, Paul Bolle wrote:
-> On Wed, 2015-03-04 at 13:08 +0100, Maxime Coquelin wrote:
-> > This is because I added also support for COMPILE_TEST coverage as p=
-er
-> > Uwe advice,
-> > and thought it was necessary to have an entry for this.
-> > Maybe I'm just wrong?
->=20
-> I missed that you added COMPILE_TEST.
->=20
-> A quick scan of your idea doesn't show any obvious issues. (Note that=
- I
-> don't really know how people actually use COMPILE_TEST. I guess thing=
-s
-> like "make allyesconfig" are involved.)
-Maybe this can clearify the purpose of COMPILE_TEST:
+Hi Chung-Lin,
 
-diff --git a/init/Kconfig b/init/Kconfig
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -67,6 +67,26 @@ config COMPILE_TEST
- 	  here. If you are a user/distributor, say N here to exclude useless
- 	  drivers to be distributed.
-=20
-+	# If you are a driver author consider to adjust your driver's
-+	# dependencies to make it buildable with minimal preconditions if
-+	# COMPILE_TEST is enabled. This helps contributers and maintainers
-+	# that might not have the necessary toolchain or kernel config handy =
-and
-+	# also increases compile test coverage. It's your advantage if others=
- can
-+	# build your driver more easily! So for a device that is only found o=
-n the
-+	# foo cpu use:
-+	#
-+	# 	depends on CPU_FOO || COMPILE_TEST
-+	#
-+	# . You might have to use
-+	#
-+	# 	depends on CPU_FOO || (COMPILE_TEST && COOKIE)
-+	#
-+	# or
-+	#
-+	#	depends on COOKIE && (CPU_FOO || COMPILE_TEST)
-+	#
-+	# if your driver uses features that are only available if COOKIE is o=
-n.
-+
- config LOCALVERSION
- 	string "Local version - append to kernel release"
- 	help
+Your patch look good to me.
+Do you have any problem to change the struct user_pt_regs based on
+Ezequiel's suggestion?
+If not, can you please resend the new patch.
+Thanks.
 
---=20
-Pengutronix e.K.                           | Uwe Kleine-K=F6nig        =
-    |
-Industrial Linux Solutions                 | http://www.pengutronix.de/=
-  |
+
+Regards
+Ley Foon
