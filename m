@@ -1,81 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:42236 "EHLO
-	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751452AbbCJGRd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Mar 2015 02:17:33 -0400
-Message-ID: <54FE8C79.2000104@codesourcery.com>
-Date: Tue, 10 Mar 2015 14:17:29 +0800
-From: Chung-Lin Tang <cltang@codesourcery.com>
+Received: from mout.kundenserver.de ([212.227.17.24]:58444 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751616AbbCJPBo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Mar 2015 11:01:44 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 05/18] reset: Add reset_controller_of_init() function
+Date: Tue, 10 Mar 2015 16:00:44 +0100
+Message-ID: <8729383.kvUZDm4dQz@wuerfel>
+In-Reply-To: <1424455277-29983-6-git-send-email-mcoquelin.stm32@gmail.com>
+References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com> <1424455277-29983-6-git-send-email-mcoquelin.stm32@gmail.com>
 MIME-Version: 1.0
-Subject: Re: nios2: is the ptrace ABI correct?
-References: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com>	<10088870.tldQegtTla@wuerfel>	<54EDB2FC.4050901@vanguardiasur.com.ar>	<10841724.NbdcAaCe1a@wuerfel>	<54F03184.7080600@codesourcery.com>	<54F052B1.4070300@vanguardiasur.com.ar>	<54FDD041.3080500@codesourcery.com>	<54FDD219.1060707@gmail.com>	<54FDD2D8.8090509@vanguardiasur.com.ar> <CAFiDJ5_gstXn-y8JSzi=gy+nRrrFqCaQA_R4CVg0+vhLz1EZPw@mail.gmail.com>
-In-Reply-To: <CAFiDJ5_gstXn-y8JSzi=gy+nRrrFqCaQA_R4CVg0+vhLz1EZPw@mail.gmail.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>, Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
-Cc: Chung-Lin Tang <chunglin.tang@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Tobias Klauser <tklauser@distanz.ch>, Walter Goossens <waltergoossens@home.nl>, Linux-Arch <linux-arch@vger.kernel.org>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20150310061729.y2TAKpFECnol1aYmXZY1e1Cb9ogLb4DNKjSGO-xlidY@z>
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Cc: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20150310150044.CFtQlS-lUQzhHv-3dx1nFRZBlfAazt1ojJfc8qmCRuE@z>
 
-On 2015/3/10 10:54 AM, Ley Foon Tan wrote:
-> On Tue, Mar 10, 2015 at 1:05 AM, Ezequiel Garcia
-> <ezequiel@vanguardiasur.com.ar> wrote:
->>
->>
->> On 03/09/2015 02:02 PM, Chung-Lin Tang wrote:
->>> On 2015/3/10 12:54 AM, Chung-Lin Tang wrote:
->>>> It appears that some of the ways nios2 has organized the
->>>> ucontext/pt_regs/etc. are remnants of the pre-generic code, some
->>>> basically because the port was based off m68k.
->>>>
->>>> I've re-organized the headers a bit: nios2/include/asm/ucontext.h is
->>>> deleted, and re-definition of struct sigcontext now allows use of
->>>> uapi/asm-generic/ucontext.h directly.  Note that the reorg, despite
->>>> effectively renaming some fields, is still binary compatible. I'll
->>>> probably update the corresponding glibc definitions later.
->>>>
->>>> struct pt_regs is now not exported, and all exported register sets are
->>>> now supposed to follow the 49 register set defined as in GDB now.
->>>>
->>>> Tobias, Ley Foon, how do you think this looks?
->>>
->>> Sorry, accidentally attached unrelated GCC patch instead, this one's the
->>> correct one.
->>>
->>
->> Looks good. I'm wondering if...
->>
->> +/* User structures for general purpose registers.  */
->> +struct user_pt_regs {
->> +       __u32           regs[49];
->>  };
->>
->> Can we expose the registers explicitly here? Like this:
->>
->> struct user_pt_regs {
->>         __u32 r0;
->>         __u32 r1;
->>         ...
->>         __u32 sp;
->>         __u32 gp;
->>         __u32 estatus;
->> };
->>
->> It looks self-documenting and thus easier to use.
+On Friday 20 February 2015 19:01:04 Maxime Coquelin wrote:
+> Some platforms need to initialize the reset controller before the timers.
 > 
-> Hi Chung-Lin,
+> This patch introduces a reset_controller_of_init() function that can be
+> called before the timers intialization.
 > 
-> Your patch look good to me.
-> Do you have any problem to change the struct user_pt_regs based on
-> Ezequiel's suggestion?
+> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+> 
 
-Well, exposing the register names like that sort of defeats the purpose of
-the PTR_* defines.
+Not sure about this. It seems like the cleanest approach if we get
+a lot of these, but then again it is probably very rare, and I'd
+like to avoid adding such infrastructure if it's just for one
+SoC. Could we add a hack in the machine initialization instead?
 
-Judging from the overall trend of style in arch/*/include/uapi/asm/ptrace.h
-across ports, I would prefer to stay with the array field.
+I think ideally this would be done in the boot loader before we
+even start Linux, but I don't know if that's possible for you.
 
-Thanks,
-Chung-Lin
-
+	Arnd
