@@ -1,79 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from metis.ext.pengutronix.de ([92.198.50.35]:34168 "EHLO
-	metis.ext.pengutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753363AbbCIWTE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Mar 2015 18:19:04 -0400
-Date: Mon, 9 Mar 2015 23:17:52 +0100
-From: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?=
-	<u.kleine-koenig@pengutronix.de>
-Subject: Re: [PATCH v2 04/18] clocksource: Add ARM System timer driver
-Message-ID: <20150309221752.GE7525@pengutronix.de>
-References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
- <1424455277-29983-5-git-send-email-mcoquelin.stm32@gmail.com>
- <20150220195437.GT19388@pengutronix.de>
- <1424468908.24292.10.camel@x220>
- <CALszF6Bm_Y4ZLednjpmP-hMix3gA23FwLm5hViEjr1QojUY+Mg@mail.gmail.com>
- <1425411786.2606.24.camel@tiscali.nl>
- <CALszF6AEThPrRe7c7nJ6q7yb2fhLMFuHJUV10sf=w0TMcqVVaw@mail.gmail.com>
- <1425935552.4244.6.camel@x220>
+Received: from relay1.mentorg.com ([192.94.38.131]:42236 "EHLO
+	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751452AbbCJGRd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Mar 2015 02:17:33 -0400
+Message-ID: <54FE8C79.2000104@codesourcery.com>
+Date: Tue, 10 Mar 2015 14:17:29 +0800
+From: Chung-Lin Tang <cltang@codesourcery.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <1425935552.4244.6.camel@x220>
+Subject: Re: nios2: is the ptrace ABI correct?
+References: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com>	<10088870.tldQegtTla@wuerfel>	<54EDB2FC.4050901@vanguardiasur.com.ar>	<10841724.NbdcAaCe1a@wuerfel>	<54F03184.7080600@codesourcery.com>	<54F052B1.4070300@vanguardiasur.com.ar>	<54FDD041.3080500@codesourcery.com>	<54FDD219.1060707@gmail.com>	<54FDD2D8.8090509@vanguardiasur.com.ar> <CAFiDJ5_gstXn-y8JSzi=gy+nRrrFqCaQA_R4CVg0+vhLz1EZPw@mail.gmail.com>
+In-Reply-To: <CAFiDJ5_gstXn-y8JSzi=gy+nRrrFqCaQA_R4CVg0+vhLz1EZPw@mail.gmail.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Bolle <pebolle@tiscali.nl>
-Cc: Maxime Coquelin <mcoquelin.stm32@gmail.com>, Andreas =?iso-8859-1?Q?F=E4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
-Message-ID: <20150309221752.1Kc8IbqOV116fuoGVsPxAssQ2XMPX_7Cl2gQr5yGGB0@z>
+To: Ley Foon Tan <lftan@altera.com>, Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>
+Cc: Chung-Lin Tang <chunglin.tang@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Tobias Klauser <tklauser@distanz.ch>, Walter Goossens <waltergoossens@home.nl>, Linux-Arch <linux-arch@vger.kernel.org>, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20150310061729.y2TAKpFECnol1aYmXZY1e1Cb9ogLb4DNKjSGO-xlidY@z>
 
-Hello,
-
-On Mon, Mar 09, 2015 at 10:12:32PM +0100, Paul Bolle wrote:
-> On Wed, 2015-03-04 at 13:08 +0100, Maxime Coquelin wrote:
-> > This is because I added also support for COMPILE_TEST coverage as per
-> > Uwe advice,
-> > and thought it was necessary to have an entry for this.
-> > Maybe I'm just wrong?
+On 2015/3/10 10:54 AM, Ley Foon Tan wrote:
+> On Tue, Mar 10, 2015 at 1:05 AM, Ezequiel Garcia
+> <ezequiel@vanguardiasur.com.ar> wrote:
+>>
+>>
+>> On 03/09/2015 02:02 PM, Chung-Lin Tang wrote:
+>>> On 2015/3/10 12:54 AM, Chung-Lin Tang wrote:
+>>>> It appears that some of the ways nios2 has organized the
+>>>> ucontext/pt_regs/etc. are remnants of the pre-generic code, some
+>>>> basically because the port was based off m68k.
+>>>>
+>>>> I've re-organized the headers a bit: nios2/include/asm/ucontext.h is
+>>>> deleted, and re-definition of struct sigcontext now allows use of
+>>>> uapi/asm-generic/ucontext.h directly.  Note that the reorg, despite
+>>>> effectively renaming some fields, is still binary compatible. I'll
+>>>> probably update the corresponding glibc definitions later.
+>>>>
+>>>> struct pt_regs is now not exported, and all exported register sets are
+>>>> now supposed to follow the 49 register set defined as in GDB now.
+>>>>
+>>>> Tobias, Ley Foon, how do you think this looks?
+>>>
+>>> Sorry, accidentally attached unrelated GCC patch instead, this one's the
+>>> correct one.
+>>>
+>>
+>> Looks good. I'm wondering if...
+>>
+>> +/* User structures for general purpose registers.  */
+>> +struct user_pt_regs {
+>> +       __u32           regs[49];
+>>  };
+>>
+>> Can we expose the registers explicitly here? Like this:
+>>
+>> struct user_pt_regs {
+>>         __u32 r0;
+>>         __u32 r1;
+>>         ...
+>>         __u32 sp;
+>>         __u32 gp;
+>>         __u32 estatus;
+>> };
+>>
+>> It looks self-documenting and thus easier to use.
 > 
-> I missed that you added COMPILE_TEST.
+> Hi Chung-Lin,
 > 
-> A quick scan of your idea doesn't show any obvious issues. (Note that I
-> don't really know how people actually use COMPILE_TEST. I guess things
-> like "make allyesconfig" are involved.)
-Maybe this can clearify the purpose of COMPILE_TEST:
+> Your patch look good to me.
+> Do you have any problem to change the struct user_pt_regs based on
+> Ezequiel's suggestion?
 
-diff --git a/init/Kconfig b/init/Kconfig
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -67,6 +67,26 @@ config COMPILE_TEST
- 	  here. If you are a user/distributor, say N here to exclude useless
- 	  drivers to be distributed.
- 
-+	# If you are a driver author consider to adjust your driver's
-+	# dependencies to make it buildable with minimal preconditions if
-+	# COMPILE_TEST is enabled. This helps contributers and maintainers
-+	# that might not have the necessary toolchain or kernel config handy and
-+	# also increases compile test coverage. It's your advantage if others can
-+	# build your driver more easily! So for a device that is only found on the
-+	# foo cpu use:
-+	#
-+	# 	depends on CPU_FOO || COMPILE_TEST
-+	#
-+	# . You might have to use
-+	#
-+	# 	depends on CPU_FOO || (COMPILE_TEST && COOKIE)
-+	#
-+	# or
-+	#
-+	#	depends on COOKIE && (CPU_FOO || COMPILE_TEST)
-+	#
-+	# if your driver uses features that are only available if COOKIE is on.
-+
- config LOCALVERSION
- 	string "Local version - append to kernel release"
- 	help
+Well, exposing the register names like that sort of defeats the purpose of
+the PTR_* defines.
 
--- 
-Pengutronix e.K.                           | Uwe Kleine-König            |
-Industrial Linux Solutions                 | http://www.pengutronix.de/  |
+Judging from the overall trend of style in arch/*/include/uapi/asm/ptrace.h
+across ports, I would prefer to stay with the array field.
+
+Thanks,
+Chung-Lin
+
