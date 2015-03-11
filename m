@@ -1,33 +1,43 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH] mm: kill kmemcheck
-Date: Wed, 11 Mar 2015 14:44:43 -0400 (EDT)
-Message-ID: <20150311.144443.1290707334236248572.davem@davemloft.net>
-References: <55004595.7020304@oracle.com>
-	<20150311.132052.205877953171712952.davem@davemloft.net>
-	<55007A9B.4010608@oracle.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v3 0/8] switch to using asm-generic for seccomp.h
+Date: Wed, 11 Mar 2015 11:59:55 -0700
+Message-ID: <CAGXu5j+PMBEPLTLiDVZ9XvnT9a2P+tOGPLXfE865crteeChDFQ@mail.gmail.com>
+References: <1425518828-16017-1-git-send-email-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:50033 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750779AbbCKSou (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Mar 2015 14:44:50 -0400
-In-Reply-To: <55007A9B.4010608@oracle.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: sasha.levin@oracle.com
-Cc: rostedt@goodmis.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-crypto@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1425518828-16017-1-git-send-email-keescook@chromium.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@arm.linux.org.uk>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Frederic Weisbecker <fweisbec@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Daniel Borkmann <dborkman@redhat.com>, Laura Abbott <lauraa@codeaurora.org>, James Hogan <james.hogan@imgtec.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, Linux MIPS Mailing List <linux-mips@linux-m>
+List-Id: linux-arch.vger.kernel.org
 
-From: Sasha Levin <sasha.levin@oracle.com>
-Date: Wed, 11 Mar 2015 13:25:47 -0400
+On Wed, Mar 4, 2015 at 5:27 PM, Kees Cook <keescook@chromium.org> wrote:
+> Most architectures don't need to do much special for the strict-mode
+> seccomp syscall entries. Remove the redundant headers and reduce the
+> others.
+>
+> Signed-off-by: Kees Cook <keescook@chromium.org>
 
-> You're probably wondering why there are changes to SPARC in that patchset? :)
+Hi Andrew,
 
-Libsanitizer doesn't even build have the time on sparc, the release
-manager has to hand patch it into building again every major release
-because of the way ASAN development is done out of tree and local
-commits to the gcc tree are basically written over during the
-next merge.
+Just a quick ping: are you able to pick up this series, or should I
+try to get this in on a per-arch basis?
 
-So I'm a little bit bitter about this, as you can see. :)
+Thanks!
+
+-Kees
+
+> ---
+> v3:
+> - split patch series by architecture
+> - fix up architectures that need sigreturn overrides (ingo)
+> v2:
+> - use Kbuild "generic-y" instead of explicit #include lines (sfr)
+>
+
+
+
+-- 
+Kees Cook
+Chrome OS Security
