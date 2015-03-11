@@ -1,319 +1,713 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.asahi-net.or.jp ([202.224.39.198]:26521 "EHLO
+Received: from mail2.asahi-net.or.jp ([202.224.39.198]:26524 "EHLO
 	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753236AbbCKOVQ (ORCPT
+	with ESMTP id S1752838AbbCKOVQ (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Mar 2015 10:21:16 -0400
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v7 00/17] Re-introduce h8300 architecture
-Date: Wed, 11 Mar 2015 23:20:51 +0900
-Message-ID: <1426083668-5011-1-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v7 05/17] h8300: process and signals
+Date: Wed, 11 Mar 2015 23:20:56 +0900
+Message-ID: <1426083668-5011-6-git-send-email-ysato@users.sourceforge.jp>
+In-Reply-To: <1426083668-5011-1-git-send-email-ysato@users.sourceforge.jp>
+References: <1426083668-5011-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20150311142051.Ahz4fgbifblrOi69oKxxXll79rLqHeCZk_C1gN6I4H4@z>
+Message-ID: <20150311142056.on2Ki0BALZ66ihpqt3d1H_o6Wy5FXpeJsmcXu7K3E4g@z>
 
-Hello.
-I will re-introducing h8300.
+process management helper and signal handling
 
-Changes for v7
-- Add MAINTAINERS
-
-Changes for v6
-- rebase to v4.0-rc3
-- remove unused headers
-- optimized atomic operation
-- System.map cleanup
-
-Changes for v5
-- Signal handling fix
-- LD script cleanup
-
-Changes for v4
-- Remove signal mapping
-- Organize Kconfig
-- Coding style fix
-
-Changes for v3
-- Fix clone
-- Add dma functions
-- Add missing library
-- Fix various errors
-
-Changes for v2
-- Use Common Clock Framework
-- Use common unistd.h
-- Use common ptrace function
-- clocksource driver move to drivers/clocksource
-- some cleanup
-
-Changes for latest relase (v3.12)
-- standard ELF toolchain (h8300-linux)
-- use common driver support
-- exception handling fix
-- too many cleanup
-
-git repository
-git://git.sourceforge.jp/gitroot/uclinux-h8/linux.git h8300
-
-Yoshinori Sato (17):
-  h8300: Assembly headers.
-  h8300: UAPI headers
-  h8300: Exception and Interrupt handling
-  h8300: kernel booting
-  h8300: process and signals
-  h8300: CPU depend helpers
-  h8300: miscellaneous functions
-  h8300: Memory management
-  h8300: library functions
-  h8300: Build scripts
-  h8300: clock driver
-  h8300: clocksource
-  h8300: configs
-  serial: Add H8300.
-  Add ELF machine
-  mksysmap: Add h8300 local symbol pattern
-  Add H8/300 entry
-
- CREDITS                                    |   5 -
- MAINTAINERS                                |  11 +
- arch/h8300/Kconfig                         |  73 +++++
- arch/h8300/Kconfig.cpu                     | 111 ++++++++
- arch/h8300/Makefile                        |  45 ++++
- arch/h8300/boot/Makefile                   |  26 ++
- arch/h8300/boot/compressed/Makefile        |  37 +++
- arch/h8300/boot/compressed/head.S          |  48 ++++
- arch/h8300/boot/compressed/misc.c          |  74 ++++++
- arch/h8300/boot/compressed/vmlinux.lds     |  32 +++
- arch/h8300/boot/compressed/vmlinux.scr     |   9 +
- arch/h8300/configs/h8300h-sim_defconfig    |  53 ++++
- arch/h8300/configs/h8s-sim_defconfig       |  53 ++++
- arch/h8300/include/asm/Kbuild              |  66 +++++
- arch/h8300/include/asm/asm-offsets.h       |   1 +
- arch/h8300/include/asm/atomic.h            | 159 +++++++++++
- arch/h8300/include/asm/bitops.h            | 185 +++++++++++++
- arch/h8300/include/asm/bootparams.h        |  17 ++
- arch/h8300/include/asm/bug.h               |  12 +
- arch/h8300/include/asm/cache.h             |  11 +
- arch/h8300/include/asm/checksum.h          | 102 +++++++
- arch/h8300/include/asm/cmpxchg.h           |  65 +++++
- arch/h8300/include/asm/delay.h             |  38 +++
- arch/h8300/include/asm/device.h            |   6 +
- arch/h8300/include/asm/dma-mapping.h       | 124 +++++++++
- arch/h8300/include/asm/elf.h               | 101 +++++++
- arch/h8300/include/asm/emergency-restart.h |   6 +
- arch/h8300/include/asm/flat.h              |  27 ++
- arch/h8300/include/asm/io.h                | 314 ++++++++++++++++++++++
- arch/h8300/include/asm/irq.h               |  26 ++
- arch/h8300/include/asm/irqflags.h          |  96 +++++++
- arch/h8300/include/asm/mc146818rtc.h       |   9 +
- arch/h8300/include/asm/mutex.h             |   9 +
- arch/h8300/include/asm/page.h              |  18 ++
- arch/h8300/include/asm/page_offset.h       |   2 +
- arch/h8300/include/asm/pci.h               |  19 ++
- arch/h8300/include/asm/pgtable.h           |  49 ++++
- arch/h8300/include/asm/processor.h         | 144 ++++++++++
- arch/h8300/include/asm/ptrace.h            |  36 +++
- arch/h8300/include/asm/segment.h           |  49 ++++
- arch/h8300/include/asm/sh_bios.h           |   4 +
- arch/h8300/include/asm/signal.h            |  22 ++
- arch/h8300/include/asm/smp.h               |   1 +
- arch/h8300/include/asm/spinlock.h          |   6 +
- arch/h8300/include/asm/string.h            |  17 ++
- arch/h8300/include/asm/switch_to.h         |  51 ++++
- arch/h8300/include/asm/syscall.h           |  56 ++++
- arch/h8300/include/asm/thread_info.h       | 119 +++++++++
- arch/h8300/include/asm/timer.h             |  31 +++
- arch/h8300/include/asm/tlb.h               |   8 +
- arch/h8300/include/asm/topology.h          |   6 +
- arch/h8300/include/asm/traps.h             |  41 +++
- arch/h8300/include/asm/uaccess.h           | 136 ++++++++++
- arch/h8300/include/asm/unaligned.h         |  11 +
- arch/h8300/include/asm/user.h              |  74 ++++++
- arch/h8300/include/uapi/asm/Kbuild         |  29 ++
- arch/h8300/include/uapi/asm/auxvec.h       |   4 +
- arch/h8300/include/uapi/asm/byteorder.h    |   6 +
- arch/h8300/include/uapi/asm/ptrace.h       |  42 +++
- arch/h8300/include/uapi/asm/sigcontext.h   |  18 ++
- arch/h8300/include/uapi/asm/signal.h       | 115 ++++++++
- arch/h8300/include/uapi/asm/swab.h         |   1 +
- arch/h8300/include/uapi/asm/unistd.h       |   3 +
- arch/h8300/kernel/Makefile                 |  16 ++
- arch/h8300/kernel/asm-offsets.c            |  60 +++++
- arch/h8300/kernel/cpu/Makefile             |   4 +
- arch/h8300/kernel/cpu/h83069/Makefile      |   1 +
- arch/h8300/kernel/cpu/h83069/setup.c       | 202 ++++++++++++++
- arch/h8300/kernel/cpu/h8s2678/Makefile     |   1 +
- arch/h8300/kernel/cpu/h8s2678/setup.c      | 161 +++++++++++
- arch/h8300/kernel/cpu/irq_h.c              |  62 +++++
- arch/h8300/kernel/cpu/irq_s.c              |  70 +++++
- arch/h8300/kernel/cpu/ptrace_h.c           | 256 ++++++++++++++++++
- arch/h8300/kernel/cpu/ptrace_s.c           |  44 +++
- arch/h8300/kernel/dma.c                    |  95 +++++++
- arch/h8300/kernel/entry.S                  | 414 +++++++++++++++++++++++++++++
- arch/h8300/kernel/h8300_ksyms.c            |  34 +++
- arch/h8300/kernel/head_ram.S               |  60 +++++
- arch/h8300/kernel/head_rom.S               | 108 ++++++++
- arch/h8300/kernel/irq.c                    | 100 +++++++
- arch/h8300/kernel/module.c                 |  70 +++++
- arch/h8300/kernel/process.c                | 171 ++++++++++++
- arch/h8300/kernel/ptrace.c                 | 203 ++++++++++++++
- arch/h8300/kernel/setup.c                  | 174 ++++++++++++
- arch/h8300/kernel/signal.c                 | 289 ++++++++++++++++++++
- arch/h8300/kernel/sim-console.c            |  79 ++++++
- arch/h8300/kernel/syscalls.c               |  14 +
- arch/h8300/kernel/traps.c                  | 161 +++++++++++
- arch/h8300/kernel/vmlinux.lds.S            |  67 +++++
- arch/h8300/lib/Makefile                    |   7 +
- arch/h8300/lib/abs.S                       |  20 ++
- arch/h8300/lib/ashldi3.c                   |  24 ++
- arch/h8300/lib/ashrdi3.c                   |  24 ++
- arch/h8300/lib/checksum.c                  | 167 ++++++++++++
- arch/h8300/lib/libgcc.h                    |  77 ++++++
- arch/h8300/lib/lshrdi3.c                   |  23 ++
- arch/h8300/lib/memcpy.S                    |  85 ++++++
- arch/h8300/lib/memset.S                    |  69 +++++
- arch/h8300/lib/moddivsi3.S                 |  72 +++++
- arch/h8300/lib/modsi3.S                    |  72 +++++
- arch/h8300/lib/muldi3.c                    |  44 +++
- arch/h8300/lib/mulsi3.S                    |  38 +++
- arch/h8300/lib/strncpy.S                   |  34 +++
- arch/h8300/lib/ucmpdi2.c                   |  17 ++
- arch/h8300/lib/udivsi3.S                   |  76 ++++++
- arch/h8300/mm/Makefile                     |   5 +
- arch/h8300/mm/fault.c                      |  57 ++++
- arch/h8300/mm/init.c                       | 133 +++++++++
- arch/h8300/mm/kmap.c                       |  61 +++++
- arch/h8300/mm/memory.c                     |  53 ++++
- drivers/clk/Makefile                       |   1 +
- drivers/clk/h8300/Makefile                 |   2 +
- drivers/clk/h8300/clk-h83069.c             |  80 ++++++
- drivers/clk/h8300/clk-h8s2678.c            | 171 ++++++++++++
- drivers/clocksource/Kconfig                |   6 +
- drivers/clocksource/Makefile               |   3 +
- drivers/clocksource/h8300_timer16.c        | 332 +++++++++++++++++++++++
- drivers/clocksource/h8300_timer8.c         | 398 +++++++++++++++++++++++++++
- drivers/clocksource/h8300_tpu.c            | 203 ++++++++++++++
- drivers/tty/serial/Kconfig                 |   2 +-
- include/linux/clk-provider.h               |  12 +
- include/uapi/linux/elf-em.h                |   1 +
- scripts/mksysmap                           |   2 +-
- 123 files changed, 8349 insertions(+), 7 deletions(-)
- create mode 100644 arch/h8300/Kconfig
- create mode 100644 arch/h8300/Kconfig.cpu
- create mode 100644 arch/h8300/Makefile
- create mode 100644 arch/h8300/boot/Makefile
- create mode 100644 arch/h8300/boot/compressed/Makefile
- create mode 100644 arch/h8300/boot/compressed/head.S
- create mode 100644 arch/h8300/boot/compressed/misc.c
- create mode 100644 arch/h8300/boot/compressed/vmlinux.lds
- create mode 100644 arch/h8300/boot/compressed/vmlinux.scr
- create mode 100644 arch/h8300/configs/h8300h-sim_defconfig
- create mode 100644 arch/h8300/configs/h8s-sim_defconfig
- create mode 100644 arch/h8300/include/asm/Kbuild
- create mode 100644 arch/h8300/include/asm/asm-offsets.h
- create mode 100644 arch/h8300/include/asm/atomic.h
- create mode 100644 arch/h8300/include/asm/bitops.h
- create mode 100644 arch/h8300/include/asm/bootparams.h
- create mode 100644 arch/h8300/include/asm/bug.h
- create mode 100644 arch/h8300/include/asm/cache.h
- create mode 100644 arch/h8300/include/asm/checksum.h
- create mode 100644 arch/h8300/include/asm/cmpxchg.h
- create mode 100644 arch/h8300/include/asm/delay.h
- create mode 100644 arch/h8300/include/asm/device.h
- create mode 100644 arch/h8300/include/asm/dma-mapping.h
- create mode 100644 arch/h8300/include/asm/elf.h
- create mode 100644 arch/h8300/include/asm/emergency-restart.h
- create mode 100644 arch/h8300/include/asm/flat.h
- create mode 100644 arch/h8300/include/asm/io.h
- create mode 100644 arch/h8300/include/asm/irq.h
- create mode 100644 arch/h8300/include/asm/irqflags.h
- create mode 100644 arch/h8300/include/asm/mc146818rtc.h
- create mode 100644 arch/h8300/include/asm/mutex.h
- create mode 100644 arch/h8300/include/asm/page.h
- create mode 100644 arch/h8300/include/asm/page_offset.h
- create mode 100644 arch/h8300/include/asm/pci.h
- create mode 100644 arch/h8300/include/asm/pgtable.h
- create mode 100644 arch/h8300/include/asm/processor.h
- create mode 100644 arch/h8300/include/asm/ptrace.h
- create mode 100644 arch/h8300/include/asm/segment.h
- create mode 100644 arch/h8300/include/asm/sh_bios.h
- create mode 100644 arch/h8300/include/asm/signal.h
- create mode 100644 arch/h8300/include/asm/smp.h
- create mode 100644 arch/h8300/include/asm/spinlock.h
- create mode 100644 arch/h8300/include/asm/string.h
- create mode 100644 arch/h8300/include/asm/switch_to.h
- create mode 100644 arch/h8300/include/asm/syscall.h
- create mode 100644 arch/h8300/include/asm/thread_info.h
- create mode 100644 arch/h8300/include/asm/timer.h
- create mode 100644 arch/h8300/include/asm/tlb.h
- create mode 100644 arch/h8300/include/asm/topology.h
- create mode 100644 arch/h8300/include/asm/traps.h
- create mode 100644 arch/h8300/include/asm/uaccess.h
- create mode 100644 arch/h8300/include/asm/unaligned.h
- create mode 100644 arch/h8300/include/asm/user.h
- create mode 100644 arch/h8300/include/uapi/asm/Kbuild
- create mode 100644 arch/h8300/include/uapi/asm/auxvec.h
- create mode 100644 arch/h8300/include/uapi/asm/byteorder.h
- create mode 100644 arch/h8300/include/uapi/asm/ptrace.h
- create mode 100644 arch/h8300/include/uapi/asm/sigcontext.h
- create mode 100644 arch/h8300/include/uapi/asm/signal.h
- create mode 100644 arch/h8300/include/uapi/asm/swab.h
- create mode 100644 arch/h8300/include/uapi/asm/unistd.h
- create mode 100644 arch/h8300/kernel/Makefile
- create mode 100644 arch/h8300/kernel/asm-offsets.c
- create mode 100644 arch/h8300/kernel/cpu/Makefile
- create mode 100644 arch/h8300/kernel/cpu/h83069/Makefile
- create mode 100644 arch/h8300/kernel/cpu/h83069/setup.c
- create mode 100644 arch/h8300/kernel/cpu/h8s2678/Makefile
- create mode 100644 arch/h8300/kernel/cpu/h8s2678/setup.c
- create mode 100644 arch/h8300/kernel/cpu/irq_h.c
- create mode 100644 arch/h8300/kernel/cpu/irq_s.c
- create mode 100644 arch/h8300/kernel/cpu/ptrace_h.c
- create mode 100644 arch/h8300/kernel/cpu/ptrace_s.c
- create mode 100644 arch/h8300/kernel/dma.c
- create mode 100644 arch/h8300/kernel/entry.S
- create mode 100644 arch/h8300/kernel/h8300_ksyms.c
- create mode 100644 arch/h8300/kernel/head_ram.S
- create mode 100644 arch/h8300/kernel/head_rom.S
- create mode 100644 arch/h8300/kernel/irq.c
- create mode 100644 arch/h8300/kernel/module.c
+Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
+---
+ arch/h8300/kernel/process.c | 171 ++++++++++++++++++++++++++
+ arch/h8300/kernel/ptrace.c  | 203 +++++++++++++++++++++++++++++++
+ arch/h8300/kernel/signal.c  | 289 ++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 663 insertions(+)
  create mode 100644 arch/h8300/kernel/process.c
  create mode 100644 arch/h8300/kernel/ptrace.c
- create mode 100644 arch/h8300/kernel/setup.c
  create mode 100644 arch/h8300/kernel/signal.c
- create mode 100644 arch/h8300/kernel/sim-console.c
- create mode 100644 arch/h8300/kernel/syscalls.c
- create mode 100644 arch/h8300/kernel/traps.c
- create mode 100644 arch/h8300/kernel/vmlinux.lds.S
- create mode 100644 arch/h8300/lib/Makefile
- create mode 100644 arch/h8300/lib/abs.S
- create mode 100644 arch/h8300/lib/ashldi3.c
- create mode 100644 arch/h8300/lib/ashrdi3.c
- create mode 100644 arch/h8300/lib/checksum.c
- create mode 100644 arch/h8300/lib/libgcc.h
- create mode 100644 arch/h8300/lib/lshrdi3.c
- create mode 100644 arch/h8300/lib/memcpy.S
- create mode 100644 arch/h8300/lib/memset.S
- create mode 100644 arch/h8300/lib/moddivsi3.S
- create mode 100644 arch/h8300/lib/modsi3.S
- create mode 100644 arch/h8300/lib/muldi3.c
- create mode 100644 arch/h8300/lib/mulsi3.S
- create mode 100644 arch/h8300/lib/strncpy.S
- create mode 100644 arch/h8300/lib/ucmpdi2.c
- create mode 100644 arch/h8300/lib/udivsi3.S
- create mode 100644 arch/h8300/mm/Makefile
- create mode 100644 arch/h8300/mm/fault.c
- create mode 100644 arch/h8300/mm/init.c
- create mode 100644 arch/h8300/mm/kmap.c
- create mode 100644 arch/h8300/mm/memory.c
- create mode 100644 drivers/clk/h8300/Makefile
- create mode 100644 drivers/clk/h8300/clk-h83069.c
- create mode 100644 drivers/clk/h8300/clk-h8s2678.c
- create mode 100644 drivers/clocksource/h8300_timer16.c
- create mode 100644 drivers/clocksource/h8300_timer8.c
- create mode 100644 drivers/clocksource/h8300_tpu.c
 
+diff --git a/arch/h8300/kernel/process.c b/arch/h8300/kernel/process.c
+new file mode 100644
+index 0000000..dee4125
+--- /dev/null
++++ b/arch/h8300/kernel/process.c
+@@ -0,0 +1,171 @@
++/*
++ *  linux/arch/h8300/kernel/process.c
++ *
++ * Yoshinori Sato <ysato@users.sourceforge.jp>
++ *
++ *  Based on:
++ *
++ *  linux/arch/m68knommu/kernel/process.c
++ *
++ *  Copyright (C) 1998  D. Jeff Dionne <jeff@ryeham.ee.ryerson.ca>,
++ *                      Kenneth Albanowski <kjahds@kjahds.com>,
++ *                      The Silver Hammer Group, Ltd.
++ *
++ *  linux/arch/m68k/kernel/process.c
++ *
++ *  Copyright (C) 1995  Hamish Macdonald
++ *
++ *  68060 fixes by Jesper Skov
++ */
++
++/*
++ * This file handles the architecture-dependent parts of process handling..
++ */
++
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/sched.h>
++#include <linux/kernel.h>
++#include <linux/mm.h>
++#include <linux/smp.h>
++#include <linux/stddef.h>
++#include <linux/unistd.h>
++#include <linux/ptrace.h>
++#include <linux/user.h>
++#include <linux/interrupt.h>
++#include <linux/reboot.h>
++#include <linux/fs.h>
++#include <linux/slab.h>
++#include <linux/rcupdate.h>
++
++#include <asm/uaccess.h>
++#include <asm/traps.h>
++#include <asm/setup.h>
++#include <asm/pgtable.h>
++
++void (*pm_power_off)(void) = NULL;
++EXPORT_SYMBOL(pm_power_off);
++
++asmlinkage void ret_from_fork(void);
++asmlinkage void ret_from_kernel_thread(void);
++
++/*
++ * The idle loop on an H8/300..
++ */
++void arch_cpu_idle(void)
++{
++	local_irq_enable();
++	__asm__("sleep");
++}
++
++void machine_restart(char *__unused)
++{
++	local_irq_disable();
++	__asm__("jmp @@0");
++}
++
++void machine_halt(void)
++{
++	local_irq_disable();
++	__asm__("sleep");
++	for (;;)
++		;
++}
++
++void machine_power_off(void)
++{
++	local_irq_disable();
++	__asm__("sleep");
++	for (;;)
++		;
++}
++
++void show_regs(struct pt_regs *regs)
++{
++	show_regs_print_info(KERN_DEFAULT);
++
++	pr_notice("\n");
++	pr_notice("PC: %08lx  Status: %02x\n",
++	       regs->pc, regs->ccr);
++	pr_notice("ORIG_ER0: %08lx ER0: %08lx ER1: %08lx\n",
++	       regs->orig_er0, regs->er0, regs->er1);
++	pr_notice("ER2: %08lx ER3: %08lx ER4: %08lx ER5: %08lx\n",
++	       regs->er2, regs->er3, regs->er4, regs->er5);
++	pr_notice("ER6' %08lx ", regs->er6);
++	if (user_mode(regs))
++		printk("USP: %08lx\n", rdusp());
++	else
++		printk("\n");
++}
++
++void flush_thread(void)
++{
++}
++
++int copy_thread(unsigned long clone_flags,
++		unsigned long usp, unsigned long topstk,
++		struct task_struct *p)
++{
++	struct pt_regs *childregs;
++
++	childregs = (struct pt_regs *) (THREAD_SIZE + task_stack_page(p)) - 1;
++
++	if (unlikely(p->flags & PF_KTHREAD)) {
++		memset(childregs, 0, sizeof(struct pt_regs));
++		childregs->retpc = (unsigned long) ret_from_kernel_thread;
++		childregs->er4 = topstk; /* arg */
++		childregs->er5 = usp; /* fn */
++	}  else {
++		*childregs = *current_pt_regs();
++		childregs->er0 = 0;
++		childregs->retpc = (unsigned long) ret_from_fork;
++		p->thread.usp = usp ?: rdusp();
++	}
++	p->thread.ksp = (unsigned long)childregs;
++
++	return 0;
++}
++
++unsigned long thread_saved_pc(struct task_struct *tsk)
++{
++	return ((struct pt_regs *)tsk->thread.esp0)->pc;
++}
++
++unsigned long get_wchan(struct task_struct *p)
++{
++	unsigned long fp, pc;
++	unsigned long stack_page;
++	int count = 0;
++
++	if (!p || p == current || p->state == TASK_RUNNING)
++		return 0;
++
++	stack_page = (unsigned long)p;
++	fp = ((struct pt_regs *)p->thread.ksp)->er6;
++	do {
++		if (fp < stack_page+sizeof(struct thread_info) ||
++		    fp >= 8184+stack_page)
++			return 0;
++		pc = ((unsigned long *)fp)[1];
++		if (!in_sched_functions(pc))
++			return pc;
++		fp = *(unsigned long *) fp;
++	} while (count++ < 16);
++	return 0;
++}
++
++/* generic sys_clone is not enough registers */
++asmlinkage int sys_clone(unsigned long __user *args)
++{
++	unsigned long clone_flags;
++	unsigned long  newsp;
++	uintptr_t parent_tidptr;
++	uintptr_t child_tidptr;
++
++	get_user(clone_flags, &args[0]);
++	get_user(newsp, &args[1]);
++	get_user(parent_tidptr, &args[2]);
++	get_user(child_tidptr, &args[3]);
++	return do_fork(clone_flags, newsp, 0,
++		       (int __user *)parent_tidptr, (int __user *)child_tidptr);
++}
+diff --git a/arch/h8300/kernel/ptrace.c b/arch/h8300/kernel/ptrace.c
+new file mode 100644
+index 0000000..9207554
+--- /dev/null
++++ b/arch/h8300/kernel/ptrace.c
+@@ -0,0 +1,203 @@
++/*
++ *  linux/arch/h8300/kernel/ptrace.c
++ *
++ *  Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License.  See the file COPYING in the main directory of
++ * this archive for more details.
++ */
++
++#include <linux/kernel.h>
++#include <linux/errno.h>
++#include <linux/ptrace.h>
++#include <linux/audit.h>
++#include <linux/tracehook.h>
++#include <linux/regset.h>
++#include <linux/elf.h>
++
++#define CCR_MASK 0x6f    /* mode/imask not set */
++#define EXR_MASK 0x80    /* modify only T */
++
++#define PT_REG(r) offsetof(struct pt_regs, r)
++
++extern void user_disable_single_step(struct task_struct *child);
++
++/* Mapping from PT_xxx to the stack offset at which the register is
++   saved.  Notice that usp has no stack-slot and needs to be treated
++   specially (see get_reg/put_reg below). */
++static const int register_offset[] = {
++	PT_REG(er1), PT_REG(er2), PT_REG(er3), PT_REG(er4),
++	PT_REG(er5), PT_REG(er6), PT_REG(er0), -1,
++	PT_REG(orig_er0), PT_REG(ccr), PT_REG(pc),
++#if defined(CONFIG_CPU_H8S)
++	PT_REG(exr),
++#endif
++};
++
++/* read register */
++long h8300_get_reg(struct task_struct *task, int regno)
++{
++	switch (regno) {
++	case PT_USP:
++		return task->thread.usp + sizeof(long)*2;
++	case PT_CCR:
++	case PT_EXR:
++	    return *(unsigned short *)(task->thread.esp0 +
++				       register_offset[regno]);
++	default:
++	    return *(unsigned long *)(task->thread.esp0 +
++				      register_offset[regno]);
++	}
++}
++
++int h8300_put_reg(struct task_struct *task, int regno, unsigned long data)
++{
++	unsigned short oldccr;
++	unsigned short oldexr;
++
++	switch (regno) {
++	case PT_USP:
++		task->thread.usp = data - sizeof(long)*2;
++	case PT_CCR:
++		oldccr = *(unsigned short *)(task->thread.esp0 +
++					     register_offset[regno]);
++		oldccr &= ~CCR_MASK;
++		data &= CCR_MASK;
++		data |= oldccr;
++		*(unsigned short *)(task->thread.esp0 +
++				    register_offset[regno]) = data;
++		break;
++	case PT_EXR:
++		oldexr = *(unsigned short *)(task->thread.esp0 +
++					     register_offset[regno]);
++		oldccr &= ~EXR_MASK;
++		data &= EXR_MASK;
++		data |= oldexr;
++		*(unsigned short *)(task->thread.esp0 +
++				    register_offset[regno]) = data;
++		break;
++	default:
++		*(unsigned long *)(task->thread.esp0 +
++				   register_offset[regno]) = data;
++		break;
++	}
++	return 0;
++}
++
++static int regs_get(struct task_struct *target,
++		    const struct user_regset *regset,
++		    unsigned int pos, unsigned int count,
++		    void *kbuf, void __user *ubuf)
++{
++	int r;
++	struct user_regs_struct regs;
++	long *reg = (long *)&regs;
++
++	/* build user regs in buffer */
++	for (r = 0; r < ARRAY_SIZE(register_offset); r++)
++		*reg++ = h8300_get_reg(target, r);
++
++	return user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				   &regs, 0, sizeof(regs));
++}
++
++static int regs_set(struct task_struct *target,
++		    const struct user_regset *regset,
++		    unsigned int pos, unsigned int count,
++		    const void *kbuf, const void __user *ubuf)
++{
++	int r;
++	int ret;
++	struct user_regs_struct regs;
++	long *reg;
++
++	/* build user regs in buffer */
++	for (reg = (long *)&regs, r = 0; r < ARRAY_SIZE(register_offset); r++)
++		*reg++ = h8300_get_reg(target, r);
++
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 &regs, 0, sizeof(regs));
++	if (ret)
++		return ret;
++
++	/* write back to pt_regs */
++	for (reg = (long *)&regs, r = 0; r < ARRAY_SIZE(register_offset); r++)
++		h8300_put_reg(target, r, *reg++);
++	return 0;
++}
++
++enum h8300_regset {
++	REGSET_GENERAL,
++};
++
++static const struct user_regset h8300_regsets[] = {
++	[REGSET_GENERAL] = {
++		.core_note_type	= NT_PRSTATUS,
++		.n		= ELF_NGREG,
++		.size		= sizeof(long),
++		.align		= sizeof(long),
++		.get		= regs_get,
++		.set		= regs_set,
++	},
++};
++
++static const struct user_regset_view user_h8300_native_view = {
++	.name = "h8300",
++	.e_machine = EM_H8_300,
++	.regsets = h8300_regsets,
++	.n = ARRAY_SIZE(h8300_regsets),
++};
++
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++{
++	return &user_h8300_native_view;
++}
++
++void ptrace_disable(struct task_struct *child)
++{
++	user_disable_single_step(child);
++}
++
++long arch_ptrace(struct task_struct *child, long request,
++		 unsigned long addr, unsigned long data)
++{
++	int ret;
++
++	switch (request) {
++	default:
++		ret = ptrace_request(child, request, addr, data);
++		break;
++	}
++	return ret;
++}
++
++asmlinkage long do_syscall_trace_enter(struct pt_regs *regs)
++{
++	long ret = 0;
++
++	if (test_thread_flag(TIF_SYSCALL_TRACE) &&
++	    tracehook_report_syscall_entry(regs))
++		/*
++		 * Tracing decided this syscall should not happen.
++		 * We'll return a bogus call number to get an ENOSYS
++		 * error, but leave the original number in regs->regs[0].
++		 */
++		ret = -1L;
++
++	audit_syscall_entry(regs->er1, regs->er2, regs->er3,
++			    regs->er4, regs->er5);
++
++	return ret ?: regs->er0;
++}
++
++asmlinkage void do_syscall_trace_leave(struct pt_regs *regs)
++{
++	int step;
++
++	audit_syscall_exit(regs);
++
++	step = test_thread_flag(TIF_SINGLESTEP);
++	if (step || test_thread_flag(TIF_SYSCALL_TRACE))
++		tracehook_report_syscall_exit(regs, step);
++}
+diff --git a/arch/h8300/kernel/signal.c b/arch/h8300/kernel/signal.c
+new file mode 100644
+index 0000000..380fffd
+--- /dev/null
++++ b/arch/h8300/kernel/signal.c
+@@ -0,0 +1,289 @@
++/*
++ *  linux/arch/h8300/kernel/signal.c
++ *
++ *  Copyright (C) 1991, 1992  Linus Torvalds
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file COPYING in the main directory of this archive
++ * for more details.
++ */
++
++/*
++ * uClinux H8/300 support by Yoshinori Sato <ysato@users.sourceforge.jp>
++ *                and David McCullough <davidm@snapgear.com>
++ *
++ * Based on
++ * Linux/m68k by Hamish Macdonald
++ */
++
++/*
++ * ++roman (07/09/96): implemented signal stacks (specially for tosemu on
++ * Atari :-) Current limitation: Only one sigstack can be active at one time.
++ * If a second signal with SA_ONSTACK set arrives while working on a sigstack,
++ * SA_ONSTACK is ignored. This behaviour avoids lots of trouble with nested
++ * signal handlers!
++ */
++
++#include <linux/sched.h>
++#include <linux/mm.h>
++#include <linux/kernel.h>
++#include <linux/signal.h>
++#include <linux/syscalls.h>
++#include <linux/errno.h>
++#include <linux/wait.h>
++#include <linux/ptrace.h>
++#include <linux/unistd.h>
++#include <linux/stddef.h>
++#include <linux/highuid.h>
++#include <linux/personality.h>
++#include <linux/tty.h>
++#include <linux/binfmts.h>
++#include <linux/tracehook.h>
++
++#include <asm/setup.h>
++#include <asm/uaccess.h>
++#include <asm/pgtable.h>
++#include <asm/traps.h>
++#include <asm/ucontext.h>
++
++/*
++ * Do a signal return; undo the signal stack.
++ *
++ * Keep the return code on the stack quadword aligned!
++ * That makes the cache flush below easier.
++ */
++
++struct rt_sigframe {
++	long dummy_er0;
++	long dummy_vector;
++#if defined(CONFIG_CPU_H8S)
++	short dummy_exr;
++#endif
++	long dummy_pc;
++	char *pretcode;
++	struct siginfo *pinfo;
++	void *puc;
++	unsigned char retcode[8];
++	struct siginfo info;
++	struct ucontext uc;
++	int sig;
++} __packed __aligned(2);
++
++static inline int
++restore_sigcontext(struct sigcontext *usc, int *pd0)
++{
++	struct pt_regs *regs = current_pt_regs();
++	int err = 0;
++	unsigned int ccr;
++	unsigned int usp;
++	unsigned int er0;
++
++	/* Always make any pending restarted system calls return -EINTR */
++	current_thread_info()->restart_block.fn = do_no_restart_syscall;
++
++	/* restore passed registers */
++#define COPY(r)  do { err |= get_user(regs->r, &usc->sc_##r); } while (0)
++	COPY(er1);
++	COPY(er2);
++	COPY(er3);
++	COPY(er5);
++	COPY(pc);
++	ccr = regs->ccr & 0x10;
++	COPY(ccr);
++#undef COPY
++	regs->ccr &= 0xef;
++	regs->ccr |= ccr;
++	regs->orig_er0 = -1;		/* disable syscall checks */
++	err |= __get_user(usp, &usc->sc_usp);
++	wrusp(usp);
++
++	err |= __get_user(er0, &usc->sc_er0);
++	*pd0 = er0;
++	return err;
++}
++
++asmlinkage int sys_rt_sigreturn(void)
++{
++	unsigned long usp = rdusp();
++	struct rt_sigframe *frame = (struct rt_sigframe *)(usp - 4);
++	sigset_t set;
++	int er0;
++
++	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
++		goto badframe;
++	if (__copy_from_user(&set, &frame->uc.uc_sigmask, sizeof(set)))
++		goto badframe;
++
++	set_current_blocked(&set);
++
++	if (restore_sigcontext(&frame->uc.uc_mcontext, &er0))
++		goto badframe;
++
++	if (restore_altstack(&frame->uc.uc_stack))
++		goto badframe;
++
++	return er0;
++
++badframe:
++	force_sig(SIGSEGV, current);
++	return 0;
++}
++
++static int setup_sigcontext(struct sigcontext __user *sc, struct pt_regs *regs,
++			     unsigned long mask)
++{
++	int err = 0;
++
++	err |= __put_user(regs->er0, &sc->sc_er0);
++	err |= __put_user(regs->er1, &sc->sc_er1);
++	err |= __put_user(regs->er2, &sc->sc_er2);
++	err |= __put_user(regs->er3, &sc->sc_er3);
++	err |= __put_user(regs->er4, &sc->sc_er4);
++	err |= __put_user(regs->er5, &sc->sc_er5);
++	err |= __put_user(regs->er6, &sc->sc_er6);
++	err |= __put_user(rdusp(),   &sc->sc_usp);
++	err |= __put_user(regs->pc,  &sc->sc_pc);
++	err |= __put_user(regs->ccr, &sc->sc_ccr);
++	err |= __put_user(mask,      &sc->sc_mask);
++
++	return err;
++}
++
++static inline void __user *
++get_sigframe(struct ksignal *ksig, struct pt_regs *regs, size_t frame_size)
++{
++	return (void __user *)((sigsp(rdusp(), ksig) - frame_size) & -8UL);
++}
++
++static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
++			  struct pt_regs *regs)
++{
++	struct rt_sigframe *frame;
++	int err = 0;
++	unsigned char *ret;
++
++	frame = get_sigframe(ksig, regs, sizeof(*frame));
++
++	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
++		return -EFAULT;
++
++	if (ksig->ka.sa.sa_flags & SA_SIGINFO)
++		err |= copy_siginfo_to_user(&frame->info, &ksig->info);
++
++	/* Create the ucontext.  */
++	err |= __put_user(0, &frame->uc.uc_flags);
++	err |= __put_user(0, &frame->uc.uc_link);
++	err |= __save_altstack(&frame->uc.uc_stack, rdusp());
++	err |= setup_sigcontext(&frame->uc.uc_mcontext, regs, set->sig[0]);
++	err |= copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
++	if (err)
++		return -EFAULT;
++
++	/* Set up to return from userspace.  */
++	ret = frame->retcode;
++	if (ksig->ka.sa.sa_flags & SA_RESTORER)
++		ret = (unsigned char *)(ksig->ka.sa.sa_restorer);
++	else {
++		/* sub.l er0,er0; mov.b #__NR_rt_sigreturn,r0l; trapa #0 */
++		err |= __put_user(0x1a80f800 + (__NR_rt_sigreturn & 0xff),
++				  (unsigned long *)(frame->retcode + 0));
++		err |= __put_user(0x5700,
++				  (unsigned short *)(frame->retcode + 4));
++	}
++	err |= __put_user(ret, &frame->pretcode);
++
++	if (err)
++		return -EFAULT;
++
++	/* Set up registers for signal handler */
++	wrusp((unsigned long) frame);
++	regs->pc  = (unsigned long) ksig->ka.sa.sa_handler;
++	regs->er0 = ksig->sig;
++	regs->er1 = (unsigned long)&(frame->info);
++	regs->er2 = (unsigned long)&frame->uc;
++	regs->er5 = current->mm->start_data;	/* GOT base */
++
++	return 0;
++}
++
++static void
++handle_restart(struct pt_regs *regs, struct k_sigaction *ka)
++{
++	switch (regs->er0) {
++	case -ERESTARTNOHAND:
++		if (!ka)
++			goto do_restart;
++		regs->er0 = -EINTR;
++		break;
++	case -ERESTART_RESTARTBLOCK:
++		if (!ka) {
++			regs->er0 = __NR_restart_syscall;
++			regs->pc -= 2;
++		} else
++			regs->er0 = -EINTR;
++		break;
++	case -ERESTARTSYS:
++		if (!(ka->sa.sa_flags & SA_RESTART)) {
++			regs->er0 = -EINTR;
++			break;
++		}
++		/* fallthrough */
++	case -ERESTARTNOINTR:
++do_restart:
++		regs->er0 = regs->orig_er0;
++		regs->pc -= 2;
++		break;
++	}
++}
++
++/*
++ * OK, we're invoking a handler
++ */
++static void
++handle_signal(struct ksignal *ksig, struct pt_regs *regs)
++{
++	sigset_t *oldset = sigmask_to_save();
++	int ret;
++	/* are we from a system call? */
++	if (regs->orig_er0 >= 0)
++		handle_restart(regs, &ksig->ka);
++
++	ret = setup_rt_frame(ksig, oldset, regs);
++
++	signal_setup_done(ret, ksig, 0);
++}
++
++/*
++ * Note that 'init' is a special process: it doesn't get signals it doesn't
++ * want to handle. Thus you cannot kill init even with a SIGKILL even by
++ * mistake.
++ */
++static void do_signal(struct pt_regs *regs)
++{
++	struct ksignal ksig;
++
++	current->thread.esp0 = (unsigned long) regs;
++
++	if (get_signal(&ksig)) {
++		/* Whee!  Actually deliver the signal.  */
++		handle_signal(&ksig, regs);
++		return;
++	}
++	/* Did we come from a system call? */
++	if (regs->orig_er0 >= 0)
++		handle_restart(regs, NULL);
++
++	/* If there's no signal to deliver, we just restore the saved mask.  */
++	restore_saved_sigmask();
++}
++
++asmlinkage void do_notify_resume(struct pt_regs *regs, u32 thread_info_flags)
++{
++	if (thread_info_flags & _TIF_SIGPENDING)
++		do_signal(regs);
++
++	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
++		clear_thread_flag(TIF_NOTIFY_RESUME);
++		tracehook_notify_resume(regs);
++	}
++}
 -- 
 2.1.4
 
