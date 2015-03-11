@@ -1,36 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from youngberry.canonical.com ([91.189.89.112]:51650 "EHLO
-	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751262AbbCKQpJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Mar 2015 12:45:09 -0400
-From: Kamal Mostafa <kamal@canonical.com>
-Subject: [3.13.y-ckt stable] Patch "vm: make stack guard page errors return VM_FAULT_SIGSEGV rather than SIGBUS" has been added to staging queue
-Date: Wed, 11 Mar 2015 09:45:03 -0700
-Message-ID: <1426092303-9659-1-git-send-email-kamal@canonical.com>
+Received: from aserp1040.oracle.com ([141.146.126.69]:32654 "EHLO
+	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752671AbbCKR0E (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Mar 2015 13:26:04 -0400
+Message-ID: <55007A9B.4010608@oracle.com>
+Date: Wed, 11 Mar 2015 13:25:47 -0400
+From: Sasha Levin <sasha.levin@oracle.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH] mm: kill kmemcheck
+References: <55003666.3020100@oracle.com>	<20150311084034.04ce6801@grimm.local.home>	<55004595.7020304@oracle.com> <20150311.132052.205877953171712952.davem@davemloft.net>
+In-Reply-To: <20150311.132052.205877953171712952.davem@davemloft.net>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, linux-arch@vger.kernel.org, Kamal Mostafa <kamal@canonical.com>, kernel-team@lists.ubuntu.com
-Message-ID: <20150311164503.uiTXx6eccRI4wlXXnwQ5V3nBt6CRlqSu-GPDI0XgPNE@z>
+To: David Miller <davem@davemloft.net>
+Cc: rostedt@goodmis.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-crypto@vger.kernel.org
+Message-ID: <20150311172547.q6ogzXULdM8ewrFh0Gngr12eynt_y26vyXPUNSuuGNc@z>
 
-This is a note to let you know that I have just added a patch titled
+On 03/11/2015 01:20 PM, David Miller wrote:
+> From: Sasha Levin <sasha.levin@oracle.com>
+> Date: Wed, 11 Mar 2015 09:39:33 -0400
+> 
+>> > On 03/11/2015 08:40 AM, Steven Rostedt wrote:
+>>> >> On Wed, 11 Mar 2015 08:34:46 -0400
+>>> >> Sasha Levin <sasha.levin@oracle.com> wrote:
+>>> >> 
+>>>>> >>> > Fair enough. We knew there are existing kmemcheck users, but KASan should be
+>>>>> >>> > superior both in performance and the scope of bugs it finds. It also shouldn't
+>>>>> >>> > impose new limitations beyond requiring gcc 4.9.2+.
+>>>>> >>> >
+>>> >> Ouch! OK, then I can't use it. I'm currently compiling with gcc 4.6.3.
+>>> >> 
+>>> >> It will be a while before I upgrade my build farm to something newer.
+>> > 
+>> > Are you actually compiling new kernels with 4.6.3, or are you using older
+>> > kernels as well?
+>> > 
+>> > There's no real hurry to kill kmemcheck right now, but we do want to stop
+>> > supporting that in favour of KASan.
+> Is the spectrum of CPU's supported by this GCC feature equal to all of the
+> CPU's supported by the kernel right now?
+> 
+> If not, removing kmemcheck will always be a regression for someone.
 
-    vm: make stack guard page errors return VM_FAULT_SIGSEGV rather than SIGBUS
+You're probably wondering why there are changes to SPARC in that patchset? :)
 
-to the linux-3.13.y-queue branch of the 3.13.y-ckt extended stable tree 
-which can be found at:
+I don't really know. Both kmemcheck and KASan run only on x86. I've also asked
+Vegard, who didn't know either... I guess it got copy-pasted from a different
+code.
 
- http://kernel.ubuntu.com/git?p=ubuntu/linux.git;a=shortlog;h=refs/heads/linux-3.13.y-queue
+As far as I know the only regression is requiring newer GCC.
 
-This patch is scheduled to be released in version 3.13.11-ckt17.
 
-If you, or anyone else, feels it should not be added to this tree, please 
-reply to this email.
-
-For more information about the 3.13.y-ckt tree, see
-https://wiki.ubuntu.com/Kernel/Dev/ExtendedStable
-
-Thanks.
--Kamal
-
-------
+Thanks,
+Sasha
