@@ -1,85 +1,53 @@
 From: Mikko Rapeli <mikko.rapeli@iki.fi>
-Subject: Re: [PATCH 33/45] include/uapi/asm-generic/signal.h: include
- stdlib.h in userspace
-Date: Wed, 11 Mar 2015 00:58:28 +0200
-Message-ID: <20150310225828.GZ12550@lakka.kapsi.fi>
+Subject: Re: [PATCH 34/45] include/uapi/asm-generic/signal.h: hide sigset_t
+ definition in userspace
+Date: Wed, 11 Mar 2015 02:05:16 +0200
+Message-ID: <20150311000516.GA12550@lakka.kapsi.fi>
 References: <1424127948-22484-1-git-send-email-mikko.rapeli@iki.fi>
- <1424127948-22484-34-git-send-email-mikko.rapeli@iki.fi>
- <2372547.aJh8O9JSDy@wuerfel>
+ <1424127948-22484-35-git-send-email-mikko.rapeli@iki.fi>
+ <2741317.tcRFXAy9C6@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kapsi.fi ([217.30.184.167]:49337 "EHLO mail.kapsi.fi"
+Received: from mail.kapsi.fi ([217.30.184.167]:47902 "EHLO mail.kapsi.fi"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750855AbbCJW6a (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Mar 2015 18:58:30 -0400
+	id S1750872AbbCKAFS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 10 Mar 2015 20:05:18 -0400
 Content-Disposition: inline
-In-Reply-To: <2372547.aJh8O9JSDy@wuerfel>
+In-Reply-To: <2741317.tcRFXAy9C6@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 
-On Tue, Feb 17, 2015 at 10:44:48AM +0100, Arnd Bergmann wrote:
-> On Tuesday 17 February 2015 00:05:36 Mikko Rapeli wrote:
-> > Fixes compiler warning:
-> > error: unknown type name =E2=80=98size_t=E2=80=99
-> >=20
-> > Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
-> > ---
-> >  include/uapi/asm-generic/signal.h | 4 ++++
-> >  1 file changed, 4 insertions(+)
-> >=20
-> > diff --git a/include/uapi/asm-generic/signal.h b/include/uapi/asm-g=
-eneric/signal.h
-> > index 9df61f1..8a341a2 100644
-> > --- a/include/uapi/asm-generic/signal.h
-> > +++ b/include/uapi/asm-generic/signal.h
-> > @@ -3,6 +3,10 @@
-> > =20
-> >  #include <linux/types.h>
-> > =20
-> > +#ifndef __KERNEL__
-> > +#include <stdlib.h>
-> > +#endif
-> > +
->=20
-> Hmm, maybe we should use __kernel_size_t instead?
+On Tue, Feb 17, 2015 at 10:16:09AM +0100, Arnd Bergmann wrote:
+> On Tuesday 17 February 2015 00:05:37 Mikko Rapeli wrote:
+> > +#ifdef __KERNEL__
+> > +/* already defined in userspace via stdlib.h */
+> >  typedef struct {
+> >         unsigned long sig[_NSIG_WORDS];
+> >  } sigset_t;
+> > +#endif /* __KERNEL__ */
+> 
+> I'm not sure here: Is this structure always identical to the one
+> we see in user space?
+> 
+> If not, we might want to rename the typedef to __kernel_sigset_t
+> instead and use that inside of the uapi headers.
 
-This problem is in several uapi header files on x86:
-
-asm-generic/shmbuf.h
-asm-generic/signal.h
-asm/signal.h
-drm/drm.h
-linux/agpgart.h
-linux/kexec.h
-linux/ncp_fs.h
-linux/nfc.h
-linux/omapfb.h
-linux/reiserfs_xattr.h
-linux/sysctl.h
-sound/asound.h
-
-so I guess using __kernel_size_t is the correct approach for all of the=
-m,
-right?
-
-linux/kexec.h seems suspicious though:
+I was copying this ifdef from the struct sigaction part in the same file:
 
 #ifndef __KERNEL__
-/*
- * This structure is used to hold the arguments that are used when
- * loading  kernel binaries.
- */
-struct kexec_segment {
-        const void *buf;
-        size_t bufsz;
-        const void *mem;
-        size_t memsz;
+struct sigaction {
+        __sighandler_t sa_handler;
+        unsigned long sa_flags;
+#ifdef SA_RESTORER
+        __sigrestore_t sa_restorer;
+#endif
+        sigset_t sa_mask;               /* mask last for extensibility */
 };
+#endif
 
-#endif /* __KERNEL__ */
+I assumed it had the same problems at some point.
 
 -Mikko
