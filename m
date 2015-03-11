@@ -1,1014 +1,666 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.asahi-net.or.jp ([202.224.39.197]:9586 "EHLO
-	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753264AbbCKOVS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Mar 2015 10:21:18 -0400
+Received: from mail2.asahi-net.or.jp ([202.224.39.198]:26523 "EHLO
+	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753189AbbCKOVQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Mar 2015 10:21:16 -0400
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v7 12/17] h8300: clocksource
-Date: Wed, 11 Mar 2015 23:21:03 +0900
-Message-ID: <1426083668-5011-13-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v7 04/17] h8300: kernel booting
+Date: Wed, 11 Mar 2015 23:20:55 +0900
+Message-ID: <1426083668-5011-5-git-send-email-ysato@users.sourceforge.jp>
 In-Reply-To: <1426083668-5011-1-git-send-email-ysato@users.sourceforge.jp>
 References: <1426083668-5011-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20150311142103.fgrtd5Eg4vklbN6-VqTMu3SvATTlsVWLd_lUuSZvm4w@z>
+Message-ID: <20150311142055.iHNBV4MV5Eyo0i9LeHfU3AgYr5xWnXCLlJ-JhM9z4dM@z>
 
-H8/300 internal timer driver.
-h8300_timer8 - 8bit Timer driver.
-h8300_timer16 - 16bit Timer driver (only H8/3069).
-h8300_tpu     - Timer Pulse Unit driver (only H8S2678).
+zImage startup / kernel entry point / arch depend startup
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- drivers/clocksource/Kconfig         |   6 +
- drivers/clocksource/Makefile        |   3 +
- drivers/clocksource/h8300_timer16.c | 332 ++++++++++++++++++++++++++++++
- drivers/clocksource/h8300_timer8.c  | 398 ++++++++++++++++++++++++++++++++++++
- drivers/clocksource/h8300_tpu.c     | 203 ++++++++++++++++++
- 5 files changed, 942 insertions(+)
- create mode 100644 drivers/clocksource/h8300_timer16.c
- create mode 100644 drivers/clocksource/h8300_timer8.c
- create mode 100644 drivers/clocksource/h8300_tpu.c
+ arch/h8300/boot/Makefile               |  26 +++++
+ arch/h8300/boot/compressed/Makefile    |  37 +++++++
+ arch/h8300/boot/compressed/head.S      |  48 +++++++++
+ arch/h8300/boot/compressed/misc.c      |  74 ++++++++++++++
+ arch/h8300/boot/compressed/vmlinux.lds |  32 ++++++
+ arch/h8300/boot/compressed/vmlinux.scr |   9 ++
+ arch/h8300/kernel/head_ram.S           |  60 ++++++++++++
+ arch/h8300/kernel/head_rom.S           | 108 ++++++++++++++++++++
+ arch/h8300/kernel/setup.c              | 174 +++++++++++++++++++++++++++++++++
+ 9 files changed, 568 insertions(+)
+ create mode 100644 arch/h8300/boot/Makefile
+ create mode 100644 arch/h8300/boot/compressed/Makefile
+ create mode 100644 arch/h8300/boot/compressed/head.S
+ create mode 100644 arch/h8300/boot/compressed/misc.c
+ create mode 100644 arch/h8300/boot/compressed/vmlinux.lds
+ create mode 100644 arch/h8300/boot/compressed/vmlinux.scr
+ create mode 100644 arch/h8300/kernel/head_ram.S
+ create mode 100644 arch/h8300/kernel/head_rom.S
+ create mode 100644 arch/h8300/kernel/setup.c
 
-diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
-index 68161f7..81707b8 100644
---- a/drivers/clocksource/Kconfig
-+++ b/drivers/clocksource/Kconfig
-@@ -250,4 +250,10 @@ config CLKSRC_PXA
- 	help
- 	  This enables OST0 support available on PXA and SA-11x0
- 	  platforms.
-+config H8300_TMR16
-+        bool
-+
-+config H8300_TPU
-+        bool
-+
- endmenu
-diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
-index 752d5c7..99b45f7 100644
---- a/drivers/clocksource/Makefile
-+++ b/drivers/clocksource/Makefile
-@@ -51,3 +51,6 @@ obj-$(CONFIG_ARCH_INTEGRATOR_AP)	+= timer-integrator-ap.o
- obj-$(CONFIG_CLKSRC_VERSATILE)		+= versatile.o
- obj-$(CONFIG_CLKSRC_MIPS_GIC)		+= mips-gic-timer.o
- obj-$(CONFIG_ASM9260_TIMER)		+= asm9260_timer.o
-+obj-$(CONFIG_H8300)			+= h8300_timer8.o
-+obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
-+obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
-diff --git a/drivers/clocksource/h8300_timer16.c b/drivers/clocksource/h8300_timer16.c
+diff --git a/arch/h8300/boot/Makefile b/arch/h8300/boot/Makefile
 new file mode 100644
-index 0000000..bf6a74c
+index 0000000..2f6393a
 --- /dev/null
-+++ b/drivers/clocksource/h8300_timer16.c
-@@ -0,0 +1,332 @@
++++ b/arch/h8300/boot/Makefile
+@@ -0,0 +1,26 @@
++# arch/h8300/boot/Makefile
++
++targets := vmlinux.srec vmlinux.bin zImage
++subdir- := compressed
++
++OBJCOPYFLAGS_vmlinux.srec := -Osrec
++OBJCOPYFLAGS_vmlinux.bin  := -Obinary
++OBJCOPYFLAGS_zImage := -O binary -R .note -R .comment -R .stab -R .stabstr -S
++
++UIMAGE_LOADADDR = $(CONFIG_RAMBASE)
++UIMAGE_ENTRYADDR = $(shell /bin/bash -c 'printf "0x%08x" \
++	$$[$(CONFIG_RAMBASE) + $(CONFIG_OFFSET)]')
++
++$(obj)/vmlinux.srec $(obj)/vmlinux.bin:  vmlinux FORCE
++	$(call if_changed,objcopy)
++
++$(obj)/zImage: $(obj)/compressed/vmlinux FORCE
++	$(call if_changed,objcopy)
++
++$(obj)/compressed/vmlinux: FORCE
++	$(Q)$(MAKE) $(build)=$(obj)/compressed $@
++
++$(obj)/uImage.bin: $(obj)/vmlinux.bin
++	$(call if_changed,uimage,none)
++
++CLEAN_FILES += arch/$(ARCH)/vmlinux.bin arch/$(ARCH)/vmlinux.srec arch/$(ARCH)/uImage.bin
+diff --git a/arch/h8300/boot/compressed/Makefile b/arch/h8300/boot/compressed/Makefile
+new file mode 100644
+index 0000000..87d03b7
+--- /dev/null
++++ b/arch/h8300/boot/compressed/Makefile
+@@ -0,0 +1,37 @@
++#
++# linux/arch/sh/boot/compressed/Makefile
++#
++# create a compressed vmlinux image from the original vmlinux
++#
++
++targets		:= vmlinux vmlinux.bin vmlinux.bin.gz head.o misc.o piggy.o
++
++OBJECTS = $(obj)/head.o $(obj)/misc.o
++
++#
++# IMAGE_OFFSET is the load offset of the compression loader
++# Assign dummy values if these 2 variables are not defined,
++# in order to suppress error message.
++#
++CONFIG_MEMORY_START     ?= 0x00400000
++CONFIG_BOOT_LINK_OFFSET ?= 0x00140000
++IMAGE_OFFSET := $(shell printf "0x%08x" $$(($(CONFIG_MEMORY_START)+$(CONFIG_BOOT_LINK_OFFSET))))
++
++LIBGCC := $(shell $(CROSS-COMPILE)$(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
++LDFLAGS_vmlinux := -Ttext $(IMAGE_OFFSET) -estartup $(obj)/vmlinux.lds
++
++$(obj)/vmlinux: $(OBJECTS) $(obj)/piggy.o $(LIBGCC) FORCE
++	$(call if_changed,ld)
++	@:
++
++$(obj)/vmlinux.bin: vmlinux FORCE
++	$(call if_changed,objcopy)
++
++$(obj)/vmlinux.bin.gz: $(obj)/vmlinux.bin FORCE
++	$(call if_changed,gzip)
++
++LDFLAGS_piggy.o := -r --format binary --oformat elf32-h8300-linux -T
++OBJCOPYFLAGS := -O binary
++
++$(obj)/piggy.o: $(obj)/vmlinux.scr $(obj)/vmlinux.bin.gz FORCE
++	$(call if_changed,ld)
+diff --git a/arch/h8300/boot/compressed/head.S b/arch/h8300/boot/compressed/head.S
+new file mode 100644
+index 0000000..74c0d8cc
+--- /dev/null
++++ b/arch/h8300/boot/compressed/head.S
+@@ -0,0 +1,48 @@
 +/*
-+ *  linux/arch/h8300/kernel/timer/timer16.c
++ *  linux/arch/h8300/boot/compressed/head.S
 + *
-+ *  Yoshinori Sato <ysato@users.sourcefoge.jp>
-+ *
-+ *  16bit Timer clockevent device
-+ *
++ *  Copyright (C) 2006 Yoshinori Sato
 + */
 +
-+#include <linux/errno.h>
-+#include <linux/kernel.h>
-+#include <linux/param.h>
-+#include <linux/string.h>
-+#include <linux/slab.h>
-+#include <linux/interrupt.h>
-+#include <linux/init.h>
-+#include <linux/platform_device.h>
-+#include <linux/clockchips.h>
-+#include <linux/module.h>
-+#include <linux/clk.h>
-+#include <linux/io.h>
++#include <linux/linkage.h>
 +
++	.section	.text..startup,"ax"
++	.global	startup
++startup:
++	mov.l	er0, er4
++	mov.l	er0, sp
++	mov.l	#__sbss, er0
++	mov.l	#__ebss, er1
++	sub.l	er0, er1
++	shlr	er1
++	shlr	er1
++	sub.l	er2, er2
++1:
++	mov.l	er2, @er0
++	adds	#4, er0
++	dec.l	#1, er1
++	bne	1b
++	jsr	@decompress_kernel
++	mov.l	er4, er0
++	jmp	@0x400000
++
++	.align	9
++fake_headers_as_bzImage:
++	.word	0
++	.ascii	"HdrS"		; header signature
++	.word	0x0202		; header version number (>= 0x0105)
++				; or else old loadlin-1.5 will fail)
++	.word	0		; default_switch
++	.word	0		; SETUPSEG
++	.word	0x1000
++	.word	0		; pointing to kernel version string
++	.byte	0		; = 0, old one (LILO, Loadlin,
++				; 0xTV: T=0 for LILO
++				;       V = version
++	.byte	1		; Load flags bzImage=1
++	.word	0x8000		; size to move, when setup is not
++	.long	0x100000	; 0x100000 = default for big kernel
++	.long	0		; address of loaded ramdisk image
++	.long	0		; its size in bytes
++
++	.end
+diff --git a/arch/h8300/boot/compressed/misc.c b/arch/h8300/boot/compressed/misc.c
+new file mode 100644
+index 0000000..7042741
+--- /dev/null
++++ b/arch/h8300/boot/compressed/misc.c
+@@ -0,0 +1,74 @@
++/*
++ * arch/h8300/boot/compressed/misc.c
++ *
++ * This is a collection of several routines from gzip-1.0.3
++ * adapted for Linux.
++ *
++ * malloc by Hannu Savolainen 1993 and Matthias Urlichs 1994
++ *
++ * Adapted for h8300 by Yoshinori Sato 2006
++ */
++
++#include <asm/uaccess.h>
++
++/*
++ * gzip declarations
++ */
++
++#define OF(args)  args
++#define STATIC static
++
++#undef memset
++#undef memcpy
++#define memzero(s, n)     memset((s), (0), (n))
++
++extern int _end;
++static unsigned long free_mem_ptr;
++static unsigned long free_mem_end_ptr;
++
++extern char input_data[];
++extern int input_len;
++static unsigned char *output;
++
++#define HEAP_SIZE             0x10000
++
++#include "../../../../lib/decompress_inflate.c"
++
++void *memset(void *s, int c, size_t n)
++{
++	int i;
++	char *ss = (char *)s;
++
++	for (i = 0; i < n; i++)
++		ss[i] = c;
++	return s;
++}
++
++void *memcpy(void *dest, const void *src, size_t n)
++{
++	int i;
++	char *d = (char *)dest, *s = (char *)src;
++
++	for (i = 0; i < n; i++)
++		d[i] = s[i];
++	return dest;
++}
++
++static void error(char *x)
++{
++
++	while (1)
++		;	/* Halt */
++}
++
++#define STACK_SIZE (4096)
++long user_stack[STACK_SIZE];
++long *stack_start = &user_stack[STACK_SIZE];
++
++void decompress_kernel(void)
++{
++	free_mem_ptr = (unsigned long)&_end;
++	free_mem_end_ptr = free_mem_ptr + HEAP_SIZE;
++
++	decompress(input_data, input_len, NULL, NULL, output, NULL, error);
++}
+diff --git a/arch/h8300/boot/compressed/vmlinux.lds b/arch/h8300/boot/compressed/vmlinux.lds
+new file mode 100644
+index 0000000..a0a3a0e
+--- /dev/null
++++ b/arch/h8300/boot/compressed/vmlinux.lds
+@@ -0,0 +1,32 @@
++SECTIONS
++{
++        .text :
++        {
++        __stext = . ;
++	__text = .;
++	       *(.text..startup)
++	       *(.text)
++        __etext = . ;
++        }
++
++	.rodata :
++	{
++		*(.rodata)
++	}
++        .data :
++
++        {
++        __sdata = . ;
++        ___data_start = . ;
++                *(.data.*)
++	}
++        .bss :
++        {
++        . = ALIGN(0x4) ;
++        __sbss = . ;
++                *(.bss*)
++        . = ALIGN(0x4) ;
++        __ebss = . ;
++        __end = . ;
++        }
++}
+diff --git a/arch/h8300/boot/compressed/vmlinux.scr b/arch/h8300/boot/compressed/vmlinux.scr
+new file mode 100644
+index 0000000..a0849036
+--- /dev/null
++++ b/arch/h8300/boot/compressed/vmlinux.scr
+@@ -0,0 +1,9 @@
++SECTIONS
++{
++  .data : {
++	input_len = .;
++	LONG(input_data_end - input_data) input_data = .;
++	*(.data)
++	input_data_end = .;
++	}
++}
+diff --git a/arch/h8300/kernel/head_ram.S b/arch/h8300/kernel/head_ram.S
+new file mode 100644
+index 0000000..f64b3d9
+--- /dev/null
++++ b/arch/h8300/kernel/head_ram.S
+@@ -0,0 +1,60 @@
++
++#include <linux/sys.h>
++#include <linux/init.h>
++#include <asm/unistd.h>
++#include <asm/setup.h>
 +#include <asm/segment.h>
-+#include <asm/irq.h>
-+#include <asm/timer.h>
++#include <asm/linkage.h>
++#include <asm/asm-offsets.h>
++#include <asm/thread_info.h>
++#include <asm/errno.h>
 +
-+#define TSTR	0
-+#define TSNC	1
-+#define TMDR	2
-+#define TOLR	3
-+#define TISRA	4
-+#define TISRB	5
-+#define TISRC	6
++#if defined(CONFIG_CPU_H8300H)
++	.h8300h
++#define SYSCR 0xfee012
++#define IRAMTOP 0xffff20
++#endif
++#if defined(CONFIG_CPU_H8S)
++	.h8300s
++#define INTCR 0xffff31
++#define IRAMTOP 0xffc000
++#endif
 +
-+#define TCR	0
-+#define TIOR	1
-+#define TCNT	2
-+#define GRA	4
-+#define GRB	6
++	__HEAD
++	.global	_start
++_start:
++	mov.l	#IRAMTOP,sp
++	/* .bss clear */
++	mov.l	#_sbss,er5
++	mov.l	#_ebss,er4
++	sub.l	er5,er4
++	shlr	er4
++	shlr	er4
++	sub.l	er1,er1
++1:
++	mov.l	er1,@er5
++	adds	#4,er5
++	dec.l	#1,er4
++	bne	1b
++	jsr	@parse_bootparam
 +
-+#define FLAG_REPROGRAM (1 << 0)
-+#define FLAG_SKIPEVENT (1 << 1)
-+#define FLAG_IRQCONTEXT (1 << 2)
-+#define FLAG_STARTED (1 << 3)
++	/* linux kernel start */
++#if defined(CONFIG_CPU_H8300H)
++	ldc	#0xd0,ccr	/* running kernel */
++	mov.l	#SYSCR,er0
++	bclr	#3,@er0
++#endif
++#if defined(CONFIG_CPU_H8S)
++	ldc	#0x07,exr
++	bclr	#4,@INTCR:8
++	bset	#5,@INTCR:8	/* Interrupt mode 2 */
++	ldc	#0x90,ccr	/* running kernel */
++#endif
++	mov.l	#init_thread_union,sp
++	add.l	#0x2000,sp
++	jsr	@start_kernel
 +
-+#define ONESHOT  0
-+#define PERIODIC 1
++1:
++	bra	1b
 +
-+#define RELATIVE 0
-+#define ABSOLUTE 1
-+
-+struct timer16_priv {
-+	struct platform_device *pdev;
-+	struct clock_event_device ced;
-+	struct irqaction irqaction;
-+	unsigned long mapbase;
-+	unsigned long mapcommon;
-+	unsigned long flags;
-+	unsigned int rate;
-+	unsigned short gra;
-+	unsigned char enb;
-+	unsigned char imfa;
-+	unsigned char imiea;
-+	unsigned char ovf;
-+	raw_spinlock_t lock;
-+	struct clk *clk;
-+};
-+
-+static unsigned long timer16_get_counter(struct timer16_priv *p)
-+{
-+	unsigned long v1, v2, v3;
-+	int o1, o2;
-+
-+	o1 = ctrl_inb(p->mapcommon + TISRC) & p->ovf;
-+
-+	/* Make sure the timer value is stable. Stolen from acpi_pm.c */
-+	do {
-+		o2 = o1;
-+		v1 = ctrl_inw(p->mapbase + TCNT);
-+		v2 = ctrl_inw(p->mapbase + TCNT);
-+		v3 = ctrl_inw(p->mapbase + TCNT);
-+		o1 = ctrl_inb(p->mapcommon + TISRC) & p->ovf;
-+	} while (unlikely((o1 != o2) || (v1 > v2 && v1 < v3)
-+			  || (v2 > v3 && v2 < v1) || (v3 > v1 && v3 < v2)));
-+
-+	v2 |= 0x10000;
-+	return v2;
-+}
-+
-+
-+static irqreturn_t timer16_interrupt(int irq, void *dev_id)
-+{
-+	struct timer16_priv *p = (struct timer16_priv *)dev_id;
-+
-+	ctrl_outb(ctrl_inb(p->mapcommon + TISRA) & ~p->imfa,
-+		  p->mapcommon + TISRA);
-+
-+	p->flags |= FLAG_IRQCONTEXT;
-+	ctrl_outw(p->gra, p->mapbase + GRA);
-+	if (!(p->flags & FLAG_SKIPEVENT)) {
-+		if (p->ced.mode == CLOCK_EVT_MODE_ONESHOT) {
-+			ctrl_outb(ctrl_inb(p->mapcommon + TSTR) & ~p->enb,
-+				  p->mapcommon + TISRA);
-+		}
-+		p->ced.event_handler(&p->ced);
-+	}
-+
-+	p->flags &= ~(FLAG_SKIPEVENT | FLAG_IRQCONTEXT);
-+
-+	return IRQ_HANDLED;
-+}
-+
-+static void timer16_set_next(struct timer16_priv *p, unsigned long delta)
-+{
-+	unsigned long flags;
-+	unsigned long now;
-+
-+	raw_spin_lock_irqsave(&p->lock, flags);
-+	if (delta >= 0x10000)
-+		dev_warn(&p->pdev->dev, "delta out of range\n");
-+	now = timer16_get_counter(p);
-+	p->gra = delta;
-+	ctrl_outb(ctrl_inb(p->mapcommon + TISRA) | p->imiea,
-+		  p->mapcommon + TISRA);
-+	if (delta > now)
-+		ctrl_outw(delta, p->mapbase + GRA);
-+	else
-+		ctrl_outw(now + 1, p->mapbase + GRA);
-+
-+	raw_spin_unlock_irqrestore(&p->lock, flags);
-+}
-+
-+static int timer16_enable(struct timer16_priv *p)
-+{
-+	p->rate = clk_get_rate(p->clk) / 8;
-+	ctrl_outw(0xffff, p->mapbase + GRA);
-+	ctrl_outw(0x0000, p->mapbase + TCNT);
-+	ctrl_outb(0xa3, p->mapbase + TCR);
-+	ctrl_outb(ctrl_inb(p->mapcommon + TSTR) | p->enb,
-+		  p->mapcommon + TSTR);
-+
-+	return 0;
-+}
-+
-+static int timer16_start(struct timer16_priv *p)
-+{
-+	int ret = 0;
-+	unsigned long flags;
-+
-+	raw_spin_lock_irqsave(&p->lock, flags);
-+
-+	if (!(p->flags & FLAG_STARTED))
-+		ret = timer16_enable(p);
-+
-+	if (ret)
-+		goto out;
-+	p->flags |= FLAG_STARTED;
-+
-+ out:
-+	raw_spin_unlock_irqrestore(&p->lock, flags);
-+
-+	return ret;
-+}
-+
-+static void timer16_stop(struct timer16_priv *p)
-+{
-+	unsigned long flags;
-+
-+	raw_spin_lock_irqsave(&p->lock, flags);
-+
-+	ctrl_outb(ctrl_inb(p->mapcommon + TSTR) & ~p->enb,
-+		  p->mapcommon + TSTR);
-+
-+	raw_spin_unlock_irqrestore(&p->lock, flags);
-+}
-+
-+static inline struct timer16_priv *ced_to_priv(struct clock_event_device *ced)
-+{
-+	return container_of(ced, struct timer16_priv, ced);
-+}
-+
-+static void timer16_clock_event_start(struct timer16_priv *p, int periodic)
-+{
-+	struct clock_event_device *ced = &p->ced;
-+
-+	timer16_start(p);
-+
-+	ced->shift = 32;
-+	ced->mult = div_sc(p->rate, NSEC_PER_SEC, ced->shift);
-+	ced->max_delta_ns = clockevent_delta2ns(0xffff, ced);
-+	ced->min_delta_ns = clockevent_delta2ns(0x0001, ced);
-+
-+	timer16_set_next(p, periodic?(p->rate + HZ/2) / HZ:0x10000);
-+}
-+
-+static void timer16_clock_event_mode(enum clock_event_mode mode,
-+				    struct clock_event_device *ced)
-+{
-+	struct timer16_priv *p = ced_to_priv(ced);
-+
-+	switch (mode) {
-+	case CLOCK_EVT_MODE_PERIODIC:
-+		dev_info(&p->pdev->dev, "used for periodic clock events\n");
-+		timer16_stop(p);
-+		timer16_clock_event_start(p, PERIODIC);
-+		break;
-+	case CLOCK_EVT_MODE_ONESHOT:
-+		dev_info(&p->pdev->dev, "used for oneshot clock events\n");
-+		timer16_stop(p);
-+		timer16_clock_event_start(p, ONESHOT);
-+		break;
-+	case CLOCK_EVT_MODE_SHUTDOWN:
-+	case CLOCK_EVT_MODE_UNUSED:
-+		timer16_stop(p);
-+		break;
-+	default:
-+		break;
-+	}
-+}
-+
-+static int timer16_clock_event_next(unsigned long delta,
-+				   struct clock_event_device *ced)
-+{
-+	struct timer16_priv *p = ced_to_priv(ced);
-+
-+	BUG_ON(ced->mode != CLOCK_EVT_MODE_ONESHOT);
-+	timer16_set_next(p, delta - 1);
-+
-+	return 0;
-+}
-+
-+#define REG_CH   0
-+#define REG_COMM 1
-+
-+static int timer16_setup(struct timer16_priv *p, struct platform_device *pdev)
-+{
-+	struct h8300_timer16_config *cfg = dev_get_platdata(&pdev->dev);
-+	struct resource *res[2];
-+	int ret, irq;
-+
-+	memset(p, 0, sizeof(*p));
-+	p->pdev = pdev;
-+
-+	res[REG_CH] = platform_get_resource(p->pdev,
-+					    IORESOURCE_MEM, REG_CH);
-+	res[REG_COMM] = platform_get_resource(p->pdev,
-+					      IORESOURCE_MEM, REG_COMM);
-+	if (!res[REG_CH] || !res[REG_COMM]) {
-+		dev_err(&p->pdev->dev, "failed to get I/O memory\n");
-+		return -ENXIO;
-+	}
-+	irq = platform_get_irq(p->pdev, 0);
-+	if (irq < 0) {
-+		dev_err(&p->pdev->dev, "failed to get irq\n");
-+		return irq;
-+	}
-+
-+	p->clk = clk_get(&p->pdev->dev, "peripheral_clk");
-+	if (IS_ERR(p->clk)) {
-+		dev_err(&p->pdev->dev, "can't get clk\n");
-+		return PTR_ERR(p->clk);
-+	}
-+
-+	p->pdev = pdev;
-+	p->mapbase = res[REG_CH]->start;
-+	p->mapcommon = res[REG_COMM]->start;
-+	p->enb = 1 << cfg->enb;
-+	p->imfa = 1 << cfg->imfa;
-+	p->imiea = 1 << cfg->imiea;
-+	p->ced.name = pdev->name;
-+	p->ced.features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT;
-+	p->ced.rating = 200;
-+	p->ced.cpumask = cpumask_of(0);
-+	p->ced.set_next_event = timer16_clock_event_next;
-+	p->ced.set_mode = timer16_clock_event_mode;
-+
-+	ret = request_irq(irq, timer16_interrupt,
-+			  IRQF_DISABLED | IRQF_TIMER, pdev->name, p);
-+	if (ret < 0) {
-+		dev_err(&p->pdev->dev, "failed to request irq %d\n", irq);
-+		return ret;
-+	}
-+
-+	clockevents_register_device(&p->ced);
-+
-+	return 0;
-+}
-+
-+static int timer16_probe(struct platform_device *pdev)
-+{
-+	struct timer16_priv *p = platform_get_drvdata(pdev);
-+
-+	if (p) {
-+		dev_info(&pdev->dev, "kept as earlytimer\n");
-+		return 0;
-+	}
-+
-+	p = devm_kzalloc(&pdev->dev, sizeof(*p), GFP_KERNEL);
-+	if (!p)
-+		return -ENOMEM;
-+
-+	return timer16_setup(p, pdev);
-+}
-+
-+static int timer16_remove(struct platform_device *pdev)
-+{
-+	return -EBUSY;
-+}
-+
-+static struct platform_driver timer16_driver = {
-+	.probe		= timer16_probe,
-+	.remove		= timer16_remove,
-+	.driver		= {
-+		.name	= "h8300h-16timer",
-+	}
-+};
-+
-+static int __init timer16_init(void)
-+{
-+	return platform_driver_register(&timer16_driver);
-+}
-+
-+static void __exit timer16_exit(void)
-+{
-+	platform_driver_unregister(&timer16_driver);
-+}
-+
-+subsys_initcall(timer16_init);
-+module_exit(timer16_exit);
-+MODULE_AUTHOR("Yoshinori Sato");
-+MODULE_DESCRIPTION("H8/300H 16bit Timer Driver");
-+MODULE_LICENSE("GPL v2");
-diff --git a/drivers/clocksource/h8300_timer8.c b/drivers/clocksource/h8300_timer8.c
++	.end
+diff --git a/arch/h8300/kernel/head_rom.S b/arch/h8300/kernel/head_rom.S
 new file mode 100644
-index 0000000..3d84b6c
+index 0000000..60ca8fa
 --- /dev/null
-+++ b/drivers/clocksource/h8300_timer8.c
-@@ -0,0 +1,398 @@
++++ b/arch/h8300/kernel/head_rom.S
+@@ -0,0 +1,108 @@
++#include <linux/init.h>
++#include <asm/thread_info.h>
++
++#if defined(CONFIG_CPU_H8300H)
++	.h8300h
++#define SYSCR 0xfee012
++#define IRAMTOP 0xffff20
++#define NR_INT 64
++#endif
++#if defined(CONFIG_CPU_H8S)
++	.h8300s
++#define INTCR 0xffff31
++#define IRAMTOP 0xffc000
++#define NR_INT 128
++#endif
++
++	__HEAD
++	.global	_start
++_start:
++	mov.l	#IRAMTOP,sp
++#if !defined(CONFIG_H8300H_SIM) && \
++    !defined(CONFIG_H8S_SIM)
++	jsr	@lowlevel_init
++
++	/* copy .data */
++	mov.l	#_begin_data,er5
++	mov.l	#_sdata,er6
++	mov.l	#_edata,er4
++	sub.l	er6,er4
++	shlr.l	er4
++	shlr.l	er4
++1:
++	mov.l	@er5+,er0
++	mov.l	er0,@er6
++	adds	#4,er6
++	dec.l	#1,er4
++	bne	1b
++	/* .bss clear */
++	mov.l	#_sbss,er5
++	mov.l	#_ebss,er4
++	sub.l	er5,er4
++	shlr	er4
++	shlr	er4
++	sub.l	er0,er0
++1:
++	mov.l	er0,@er5
++	adds	#4,er5
++	dec.l	#1,er4
++	bne	1b
++#else
++	/* get cmdline from gdb */
++	jsr	@0xcc
++	;; er0 - argc
++	;; er1 - argv
++	mov.l	#command_line,er3
++	adds	#4,er1
++	dec.l	#1,er0
++	beq	4f
++1:
++	mov.l	@er1+,er2
++2:
++	mov.b	@er2+,r4l
++	beq	3f
++	mov.b	r4l,@er3
++	adds	#1,er3
++	bra	2b
++3:
++	mov.b	#' ',r4l
++	mov.b	r4l,@er3
++	adds	#1,er3
++	dec.l	#1,er0
++	bne	1b
++	subs	#1,er3
++	mov.b	#0,r4l
++	mov.b	r4l,@er3
++4:
++#endif
++	/* linux kernel start */
++#if defined(CONFIG_CPU_H8300H)
++	ldc	#0xd0,ccr	/* running kernel */
++	mov.l	#SYSCR,er0
++	bclr	#3,@er0
++#endif
++#if defined(CONFIG_CPU_H8S)
++	ldc	#0x07,exr
++	bclr	#4,@INTCR:8
++	bset	#5,@INTCR:8	/* Interrupt mode 2 */
++	ldc	#0x90,ccr	/* running kernel */
++#endif
++	mov.l	#init_thread_union,sp
++	add.l	#0x2000,sp
++	jsr	@start_kernel
++
++1:
++	bra	1b
++
++#if defined(CONFIG_ROMKERNEL)
++	/* interrupt vector */
++	.section .vectors,"ax"
++	.long	_start
++	.long	_start
++vector	=	2
++	.rept	NR_INT - 2
++	.long	_interrupt_redirect_table+vector*4
++vector	=	vector + 1
++	.endr
++#endif
++	.end
+diff --git a/arch/h8300/kernel/setup.c b/arch/h8300/kernel/setup.c
+new file mode 100644
+index 0000000..95e7fb6
+--- /dev/null
++++ b/arch/h8300/kernel/setup.c
+@@ -0,0 +1,174 @@
 +/*
-+ *  linux/arch/h8300/kernel/cpu/timer/timer8.c
++ *  linux/arch/h8300/kernel/setup.c
 + *
-+ *  Yoshinori Sato <ysato@users.sourcefoge.jp>
-+ *
-+ *  8bit Timer driver
-+ *
++ *  Copyright (C) 2001-2014 Yoshinori Sato <ysato@users.sourceforge.jp>
 + */
 +
-+#include <linux/errno.h>
-+#include <linux/sched.h>
-+#include <linux/kernel.h>
-+#include <linux/interrupt.h>
-+#include <linux/init.h>
-+#include <linux/platform_device.h>
-+#include <linux/slab.h>
-+#include <linux/clocksource.h>
-+#include <linux/clockchips.h>
-+#include <linux/module.h>
-+#include <linux/clk.h>
-+#include <linux/io.h>
-+
-+#include <asm/irq.h>
-+#include <asm/timer.h>
-+
-+#define _8TCR	0
-+#define _8TCSR	2
-+#define TCORA	4
-+#define TCORB	6
-+#define _8TCNT	8
-+
-+#define FLAG_REPROGRAM (1 << 0)
-+#define FLAG_SKIPEVENT (1 << 1)
-+#define FLAG_IRQCONTEXT (1 << 2)
-+#define FLAG_STARTED (1 << 3)
-+
-+#define ONESHOT  0
-+#define PERIODIC 1
-+
-+#define RELATIVE 0
-+#define ABSOLUTE 1
-+
-+struct timer8_priv {
-+	struct platform_device *pdev;
-+	int mode;
-+	union {
-+		struct clocksource cs;
-+		struct clock_event_device ced;
-+	} clk;
-+	struct irqaction irqaction;
-+	unsigned long mapbase;
-+	raw_spinlock_t lock;
-+	unsigned long total_cycles;
-+	unsigned int cs_enabled;
-+	unsigned long flags;
-+	unsigned int rate;
-+	unsigned short tcora;
-+	unsigned short div;
-+	struct clk *pclk;
-+};
-+
-+static const int div_rate[] = {8, 64, 8192};
-+
-+static unsigned long timer8_get_counter(struct timer8_priv *p)
-+{
-+	unsigned long v1, v2, v3;
-+	int o1, o2;
-+
-+	o1 = ctrl_inb(p->mapbase + _8TCSR) & 0x20;
-+
-+	/* Make sure the timer value is stable. Stolen from acpi_pm.c */
-+	do {
-+		o2 = o1;
-+		v1 = ctrl_inw(p->mapbase + _8TCNT);
-+		v2 = ctrl_inw(p->mapbase + _8TCNT);
-+		v3 = ctrl_inw(p->mapbase + _8TCNT);
-+		o1 = ctrl_inb(p->mapbase + _8TCSR) & 0x20;
-+	} while (unlikely((o1 != o2) || (v1 > v2 && v1 < v3)
-+			  || (v2 > v3 && v2 < v1) || (v3 > v1 && v3 < v2)));
-+
-+	v2 |= o1 << 10;
-+	return v2;
-+}
-+
-+static irqreturn_t timer8_interrupt(int irq, void *dev_id)
-+{
-+	struct timer8_priv *p = dev_id;
-+
-+	switch (p->mode) {
-+	case H8300_TMR8_CLKSRC:
-+		ctrl_outb(ctrl_inb(p->mapbase + _8TCSR) & ~0x20,
-+			  p->mapbase + _8TCSR);
-+		p->total_cycles += 0x10000;
-+		break;
-+	case H8300_TMR8_CLKEVTDEV:
-+		ctrl_outb(ctrl_inb(p->mapbase + _8TCSR) & ~0x40,
-+			  p->mapbase + _8TCSR);
-+		p->flags |= FLAG_IRQCONTEXT;
-+		ctrl_outw(p->tcora, p->mapbase + TCORA);
-+		if (!(p->flags & FLAG_SKIPEVENT)) {
-+			if (p->clk.ced.mode == CLOCK_EVT_MODE_ONESHOT)
-+				ctrl_outw(0x0000, p->mapbase + _8TCR);
-+			p->clk.ced.event_handler(&p->clk.ced);
-+		}
-+		p->flags &= ~(FLAG_SKIPEVENT | FLAG_IRQCONTEXT);
-+		break;
-+	}
-+
-+	return IRQ_HANDLED;
-+}
-+
-+static inline struct timer8_priv *cs_to_priv(struct clocksource *cs)
-+{
-+	return container_of(cs, struct timer8_priv, clk.cs);
-+}
-+
-+static cycle_t timer8_clocksource_read(struct clocksource *cs)
-+{
-+	struct timer8_priv *p = cs_to_priv(cs);
-+	unsigned long flags, raw;
-+	unsigned long value;
-+
-+	raw_spin_lock_irqsave(&p->lock, flags);
-+	value = p->total_cycles;
-+	raw = timer8_get_counter(p);
-+	raw_spin_unlock_irqrestore(&p->lock, flags);
-+
-+	return value + raw;
-+}
-+
-+static int timer8_clocksource_enable(struct clocksource *cs)
-+{
-+	struct timer8_priv *p = cs_to_priv(cs);
-+
-+	WARN_ON(p->cs_enabled);
-+
-+	p->total_cycles = 0;
-+	ctrl_outw(0, p->mapbase + _8TCNT);
-+	ctrl_outw(0x2400 | p->div, p->mapbase + _8TCR);
-+
-+	p->cs_enabled = true;
-+	return 0;
-+}
-+
-+static void timer8_clocksource_disable(struct clocksource *cs)
-+{
-+	struct timer8_priv *p = cs_to_priv(cs);
-+
-+	WARN_ON(!p->cs_enabled);
-+
-+	ctrl_outb(0, p->mapbase + _8TCR);
-+	p->cs_enabled = false;
-+}
-+
-+static void timer8_set_next(struct timer8_priv *p, unsigned long delta)
-+{
-+	unsigned long flags;
-+	unsigned long now;
-+
-+	raw_spin_lock_irqsave(&p->lock, flags);
-+	if (delta >= 0x10000)
-+		dev_warn(&p->pdev->dev, "delta out of range\n");
-+	now = timer8_get_counter(p);
-+	p->tcora = delta;
-+	ctrl_outb(ctrl_inb(p->mapbase + _8TCR) | 0x40, p->mapbase + _8TCR);
-+	if (delta > now)
-+		ctrl_outw(delta, p->mapbase + TCORA);
-+	else
-+		ctrl_outw(now + 1, p->mapbase + TCORA);
-+
-+	raw_spin_unlock_irqrestore(&p->lock, flags);
-+}
-+
-+static int timer8_enable(struct timer8_priv *p)
-+{
-+	p->rate = clk_get_rate(p->pclk) / div_rate[p->div];
-+	ctrl_outw(0xffff, p->mapbase + TCORA);
-+	ctrl_outw(0x0000, p->mapbase + _8TCNT);
-+	ctrl_outw(0x0c01, p->mapbase + _8TCR);
-+
-+	return 0;
-+}
-+
-+static int timer8_start(struct timer8_priv *p)
-+{
-+	int ret = 0;
-+	unsigned long flags;
-+
-+	raw_spin_lock_irqsave(&p->lock, flags);
-+
-+	if (!(p->flags & FLAG_STARTED))
-+		ret = timer8_enable(p);
-+
-+	if (ret)
-+		goto out;
-+	p->flags |= FLAG_STARTED;
-+
-+ out:
-+	raw_spin_unlock_irqrestore(&p->lock, flags);
-+
-+	return ret;
-+}
-+
-+static void timer8_stop(struct timer8_priv *p)
-+{
-+	unsigned long flags;
-+
-+	raw_spin_lock_irqsave(&p->lock, flags);
-+
-+	ctrl_outw(0x0000, p->mapbase + _8TCR);
-+
-+	raw_spin_unlock_irqrestore(&p->lock, flags);
-+}
-+
-+static inline struct timer8_priv *ced_to_priv(struct clock_event_device *ced)
-+{
-+	return container_of(ced, struct timer8_priv, clk.ced);
-+}
-+
-+static void timer8_clock_event_start(struct timer8_priv *p, int periodic)
-+{
-+	struct clock_event_device *ced = &p->clk.ced;
-+
-+	timer8_start(p);
-+
-+	ced->shift = 32;
-+	ced->mult = div_sc(p->rate, NSEC_PER_SEC, ced->shift);
-+	ced->max_delta_ns = clockevent_delta2ns(0xffff, ced);
-+	ced->min_delta_ns = clockevent_delta2ns(0x0001, ced);
-+
-+	timer8_set_next(p, periodic?(p->rate + HZ/2) / HZ:0x10000);
-+}
-+
-+static void timer8_clock_event_mode(enum clock_event_mode mode,
-+				    struct clock_event_device *ced)
-+{
-+	struct timer8_priv *p = ced_to_priv(ced);
-+
-+	switch (mode) {
-+	case CLOCK_EVT_MODE_PERIODIC:
-+		dev_info(&p->pdev->dev, "used for periodic clock events\n");
-+		timer8_stop(p);
-+		timer8_clock_event_start(p, PERIODIC);
-+		break;
-+	case CLOCK_EVT_MODE_ONESHOT:
-+		dev_info(&p->pdev->dev, "used for oneshot clock events\n");
-+		timer8_stop(p);
-+		timer8_clock_event_start(p, ONESHOT);
-+		break;
-+	case CLOCK_EVT_MODE_SHUTDOWN:
-+	case CLOCK_EVT_MODE_UNUSED:
-+		timer8_stop(p);
-+		break;
-+	default:
-+		break;
-+	}
-+}
-+
-+static int timer8_clock_event_next(unsigned long delta,
-+				   struct clock_event_device *ced)
-+{
-+	struct timer8_priv *p = ced_to_priv(ced);
-+
-+	BUG_ON(ced->mode != CLOCK_EVT_MODE_ONESHOT);
-+	timer8_set_next(p, delta - 1);
-+
-+	return 0;
-+}
-+
-+#define CMI 0
-+#define OVI 1
-+static int __init timer8_setup(struct timer8_priv *p,
-+			       struct platform_device *pdev)
-+{
-+	struct h8300_timer8_config *cfg = dev_get_platdata(&pdev->dev);
-+	struct resource *res;
-+	int irq[2];
-+	int ret;
-+
-+	memset(p, 0, sizeof(*p));
-+	p->pdev = pdev;
-+
-+	res = platform_get_resource(p->pdev, IORESOURCE_MEM, 0);
-+	if (!res) {
-+		dev_err(&p->pdev->dev, "failed to get I/O memory\n");
-+		return -ENXIO;
-+	}
-+
-+	irq[CMI] = platform_get_irq(p->pdev, CMI);
-+	irq[OVI] = platform_get_irq(p->pdev, OVI);
-+	if (irq[CMI] < 0 || irq[OVI] < 0) {
-+		dev_err(&p->pdev->dev, "failed to get irq\n");
-+		return -ENXIO;
-+	}
-+
-+	p->mapbase = res->start;
-+
-+	p->irqaction.name = dev_name(&p->pdev->dev);
-+	p->irqaction.handler = timer8_interrupt;
-+	p->irqaction.dev_id = p;
-+	p->irqaction.flags = IRQF_DISABLED | IRQF_TIMER;
-+
-+	p->mode = cfg->mode;
-+	p->div = cfg->div;
-+
-+	p->pclk = clk_get(&p->pdev->dev, "peripheral_clk");
-+	if (IS_ERR(p->pclk)) {
-+		dev_err(&p->pdev->dev, "can't get clk\n");
-+		return PTR_ERR(p->pclk);
-+	}
-+
-+	switch (p->mode) {
-+	case H8300_TMR8_CLKSRC:
-+		p->clk.cs.name = pdev->name;
-+		p->clk.cs.rating = 200;
-+		p->clk.cs.read = timer8_clocksource_read;
-+		p->clk.cs.enable = timer8_clocksource_enable;
-+		p->clk.cs.disable = timer8_clocksource_disable;
-+		p->clk.cs.mask = CLOCKSOURCE_MASK(sizeof(unsigned long) * 8);
-+		p->clk.cs.flags = CLOCK_SOURCE_IS_CONTINUOUS;
-+
-+		ret = setup_irq(irq[OVI], &p->irqaction);
-+		if (ret < 0) {
-+			dev_err(&p->pdev->dev,
-+				"failed to request irq %d\n", irq[OVI]);
-+			return ret;
-+		}
-+		clocksource_register_hz(&p->clk.cs,
-+					clk_get_rate(p->pclk) / div_rate[p->div]);
-+		break;
-+	case H8300_TMR8_CLKEVTDEV:
-+		p->clk.ced.name = pdev->name;
-+		p->clk.ced.features = CLOCK_EVT_FEAT_PERIODIC |
-+					CLOCK_EVT_FEAT_ONESHOT;
-+		p->clk.ced.rating = 200;
-+		p->clk.ced.cpumask = cpumask_of(0);
-+		p->clk.ced.set_next_event = timer8_clock_event_next;
-+		p->clk.ced.set_mode = timer8_clock_event_mode;
-+
-+		ret = setup_irq(irq[CMI], &p->irqaction);
-+		if (ret < 0) {
-+			dev_err(&p->pdev->dev,
-+				"failed to request irq %d\n", irq[CMI]);
-+			return ret;
-+		}
-+		clockevents_register_device(&p->clk.ced);
-+		break;
-+	}
-+	platform_set_drvdata(pdev, p);
-+
-+	return 0;
-+}
-+
-+static int timer8_probe(struct platform_device *pdev)
-+{
-+	struct timer8_priv *p = platform_get_drvdata(pdev);
-+
-+	if (p) {
-+		dev_info(&pdev->dev, "kept as earlytimer\n");
-+		return 0;
-+	}
-+
-+	p = devm_kzalloc(&pdev->dev, sizeof(*p), GFP_KERNEL);
-+	if (!p)
-+		return -ENOMEM;
-+
-+	return timer8_setup(p, pdev);
-+}
-+
-+static int timer8_remove(struct platform_device *pdev)
-+{
-+	return -EBUSY;
-+}
-+
-+static struct platform_driver timer8_driver = {
-+	.probe		= timer8_probe,
-+	.remove		= timer8_remove,
-+	.driver		= {
-+		.name	= "h8300-8timer",
-+	}
-+};
-+
-+static int __init timer8_init(void)
-+{
-+	return platform_driver_register(&timer8_driver);
-+}
-+
-+static void __exit timer8_exit(void)
-+{
-+	platform_driver_unregister(&timer8_driver);
-+}
-+
-+early_platform_init("earlytimer", &timer8_driver);
-+subsys_initcall(timer8_init);
-+module_exit(timer8_exit);
-+MODULE_AUTHOR("Yoshinori Sato");
-+MODULE_DESCRIPTION("H8/300 8bit Timer Driver");
-+MODULE_LICENSE("GPL v2");
-diff --git a/drivers/clocksource/h8300_tpu.c b/drivers/clocksource/h8300_tpu.c
-new file mode 100644
-index 0000000..1aae8a7
---- /dev/null
-+++ b/drivers/clocksource/h8300_tpu.c
-@@ -0,0 +1,203 @@
 +/*
-+ *  linux/arch/h8300/kernel/cpu/timer/timer_tpu.c
-+ *
-+ *  Yoshinori Sato <ysato@users.sourcefoge.jp>
-+ *
-+ *  TPU driver
-+ *
++ * This file handles the architecture-dependent parts of system setup
 + */
 +
-+#include <linux/errno.h>
-+#include <linux/sched.h>
 +#include <linux/kernel.h>
++#include <linux/sched.h>
++#include <linux/delay.h>
 +#include <linux/interrupt.h>
++#include <linux/mm.h>
++#include <linux/fs.h>
++#include <linux/console.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++#include <linux/bootmem.h>
++#include <linux/seq_file.h>
 +#include <linux/init.h>
 +#include <linux/platform_device.h>
-+#include <linux/slab.h>
-+#include <linux/clocksource.h>
 +#include <linux/module.h>
-+#include <linux/clk.h>
-+#include <linux/io.h>
 +
++#include <asm/setup.h>
 +#include <asm/irq.h>
-+#include <asm/timer.h>
++#include <asm/pgtable.h>
++#include <asm/sections.h>
++#include <asm/bootparams.h>
++#include <asm/page.h>
 +
-+#define TCR	0
-+#define TMDR	1
-+#define TIOR	2
-+#define TER	4
-+#define TSR	5
-+#define TCNT	6
-+#define TGRA	8
-+#define TGRB	10
-+#define TGRC	12
-+#define TGRD	14
++#if defined(CONFIG_CPU_H8300H)
++#define CPU "H8/300H"
++#elif defined(CONFIG_CPU_H8S)
++#define CPU "H8S"
++#else
++#define CPU "Unknown"
++#endif
 +
-+struct tpu_priv {
-+	struct platform_device *pdev;
-+	struct clocksource cs;
-+	struct clk *clk;
-+	unsigned long mapbase1;
-+	unsigned long mapbase2;
-+	raw_spinlock_t lock;
-+	unsigned int cs_enabled;
-+};
++struct bootparams bootparams;
++unsigned long rom_length;
++unsigned long memory_start;
++unsigned long memory_end;
++EXPORT_SYMBOL(memory_end);
 +
-+static inline unsigned long read_tcnt32(struct tpu_priv *p)
++char __initdata command_line[COMMAND_LINE_SIZE];
++
++void sim_console_register(void);
++int h8300_clk_init(unsigned long hz);
++
++void __init __attribute__((weak)) early_device_init(void)
 +{
-+	unsigned long tcnt;
-+
-+	tcnt = ctrl_inw(p->mapbase1 + TCNT) << 16;
-+	tcnt |= ctrl_inw(p->mapbase2 + TCNT);
-+	return tcnt;
 +}
 +
-+static int tpu_get_counter(struct tpu_priv *p, unsigned long long *val)
++void __init setup_arch(char **cmdline_p)
 +{
-+	unsigned long v1, v2, v3;
-+	int o1, o2;
++	int bootmap_size;
 +
-+	o1 = ctrl_inb(p->mapbase1 + TSR) & 0x10;
++#if defined(CONFIG_ROMKERNEL)
++	bootparams.ram_end = CONFIG_RAMBASE + CONFIG_RAMSIZE;
++	bootparams.clock_freq = CONFIG_CPU_CLOCK;
++#endif
 +
-+	/* Make sure the timer value is stable. Stolen from acpi_pm.c */
-+	do {
-+		o2 = o1;
-+		v1 = read_tcnt32(p);
-+		v2 = read_tcnt32(p);
-+		v3 = read_tcnt32(p);
-+		o1 = ctrl_inb(p->mapbase1 + TSR) & 0x10;
-+	} while (unlikely((o1 != o2) || (v1 > v2 && v1 < v3)
-+			  || (v2 > v3 && v2 < v1) || (v3 > v1 && v3 < v2)));
++	memory_start = (unsigned long) &_ramend;
 +
-+	*val = v2;
-+	return o1;
++	memory_start = PAGE_ALIGN(memory_start);
++	memory_end = bootparams.ram_end;
++
++	init_mm.start_code = (unsigned long) _stext;
++	init_mm.end_code = (unsigned long) _etext;
++	init_mm.end_data = (unsigned long) _edata;
++	init_mm.brk = (unsigned long) 0;
++
++	pr_notice("\r\n\nuClinux " CPU "\n");
++	pr_notice("Flat model support (C) 1998,1999 Kenneth Albanowski, D. Jeff Dionne\n");
++
++	strcpy(boot_command_line, command_line);
++	*cmdline_p = command_line;
++
++	parse_early_param();
++
++	/*
++	 * give all the memory to the bootmap allocator,  tell it to put the
++	 * boot mem_map at the start of memory
++	 */
++	bootmap_size = init_bootmem_node(
++			NODE_DATA(0),
++			memory_start >> PAGE_SHIFT, /* map goes here */
++			PAGE_OFFSET >> PAGE_SHIFT,	/* 0 on coldfire */
++			memory_end >> PAGE_SHIFT);
++	/*
++	 * free the usable memory,  we have to make sure we do not free
++	 * the bootmem bitmap so we then reserve it after freeing it :-)
++	 */
++	free_bootmem(memory_start, memory_end - memory_start);
++	reserve_bootmem(memory_start, bootmap_size, BOOTMEM_DEFAULT);
++#if defined(CONFIG_H8300H_SIM) || defined(CONFIG_H8S_SIM)
++	sim_console_register();
++#endif
++
++	early_device_init();
++	early_platform_driver_probe("earlyprintk", 1, 0);
++	/*
++	 * get kmalloc into gear
++	 */
++	paging_init();
 +}
 +
-+static inline struct tpu_priv *cs_to_priv(struct clocksource *cs)
++/*
++ *	Get CPU information for use by the procfs.
++ */
++
++static int show_cpuinfo(struct seq_file *m, void *v)
 +{
-+	return container_of(cs, struct tpu_priv, cs);
-+}
++	char *cpu;
++	u_long clockfreq;
 +
-+static cycle_t tpu_clocksource_read(struct clocksource *cs)
-+{
-+	struct tpu_priv *p = cs_to_priv(cs);
-+	unsigned long flags;
-+	unsigned long long value;
++	cpu = CPU;
++	clockfreq = bootparams.clock_freq;
 +
-+	raw_spin_lock_irqsave(&p->lock, flags);
-+	if (tpu_get_counter(p, &value))
-+		value += 0x100000000;
-+	raw_spin_unlock_irqrestore(&p->lock, flags);
-+
-+	return value;
-+}
-+
-+static int tpu_clocksource_enable(struct clocksource *cs)
-+{
-+	struct tpu_priv *p = cs_to_priv(cs);
-+
-+	WARN_ON(p->cs_enabled);
-+
-+	ctrl_outw(0, p->mapbase1 + TCNT);
-+	ctrl_outw(0, p->mapbase2 + TCNT);
-+	ctrl_outb(0x0f, p->mapbase1 + TCR);
-+	ctrl_outb(0x03, p->mapbase2 + TCR);
-+
-+	p->cs_enabled = true;
-+	return 0;
-+}
-+
-+static void tpu_clocksource_disable(struct clocksource *cs)
-+{
-+	struct tpu_priv *p = cs_to_priv(cs);
-+
-+	WARN_ON(!p->cs_enabled);
-+
-+	ctrl_outb(0, p->mapbase1 + TCR);
-+	ctrl_outb(0, p->mapbase2 + TCR);
-+	p->cs_enabled = false;
-+}
-+
-+#define CH_L 0
-+#define CH_H 1
-+
-+static int __init tpu_setup(struct tpu_priv *p, struct platform_device *pdev)
-+{
-+	struct resource *res[2];
-+
-+	memset(p, 0, sizeof(*p));
-+	p->pdev = pdev;
-+
-+	res[CH_L] = platform_get_resource(p->pdev, IORESOURCE_MEM, CH_L);
-+	res[CH_H] = platform_get_resource(p->pdev, IORESOURCE_MEM, CH_H);
-+	if (!res[CH_L] || !res[CH_H]) {
-+		dev_err(&p->pdev->dev, "failed to get I/O memory\n");
-+		return -ENXIO;
-+	}
-+
-+	p->clk = clk_get(&p->pdev->dev, "peripheral_clk");
-+	if (IS_ERR(p->clk)) {
-+		dev_err(&p->pdev->dev, "can't get clk\n");
-+		return PTR_ERR(p->clk);
-+	}
-+
-+	p->mapbase1 = res[CH_L]->start;
-+	p->mapbase2 = res[CH_H]->start;
-+
-+	p->cs.name = pdev->name;
-+	p->cs.rating = 200;
-+	p->cs.read = tpu_clocksource_read;
-+	p->cs.enable = tpu_clocksource_enable;
-+	p->cs.disable = tpu_clocksource_disable;
-+	p->cs.mask = CLOCKSOURCE_MASK(sizeof(unsigned long) * 8);
-+	p->cs.flags = CLOCK_SOURCE_IS_CONTINUOUS;
-+	clocksource_register_hz(&p->cs, clk_get_rate(p->clk) / 64);
-+	platform_set_drvdata(pdev, p);
++	seq_printf(m,  "CPU:\t\t%s\n"
++		   "Clock:\t\t%lu.%1luMHz\n"
++		   "BogoMips:\t%lu.%02lu\n"
++		   "Calibration:\t%lu loops\n",
++		   cpu,
++		   clockfreq/1000, clockfreq%1000,
++		   (loops_per_jiffy*HZ)/500000,
++		   ((loops_per_jiffy*HZ)/5000)%100,
++		   (loops_per_jiffy*HZ));
 +
 +	return 0;
 +}
 +
-+static int tpu_probe(struct platform_device *pdev)
++static void *c_start(struct seq_file *m, loff_t *pos)
 +{
-+	struct tpu_priv *p = platform_get_drvdata(pdev);
-+
-+	if (p) {
-+		dev_info(&pdev->dev, "kept as earlytimer\n");
-+		return 0;
-+	}
-+
-+	p = devm_kzalloc(&pdev->dev, sizeof(*p), GFP_KERNEL);
-+	if (!p)
-+		return -ENOMEM;
-+
-+	return tpu_setup(p, pdev);
++	return *pos < num_possible_cpus() ?
++		((void *) 0x12345678) : NULL;
 +}
 +
-+static int tpu_remove(struct platform_device *pdev)
++static void *c_next(struct seq_file *m, void *v, loff_t *pos)
 +{
-+	return -EBUSY;
++	++*pos;
++	return c_start(m, pos);
 +}
 +
-+static struct platform_driver tpu_driver = {
-+	.probe		= tpu_probe,
-+	.remove		= tpu_remove,
-+	.driver		= {
-+		.name	= "h8s-tpu",
-+	}
++static void c_stop(struct seq_file *m, void *v)
++{
++}
++
++const struct seq_operations cpuinfo_op = {
++	.start	= c_start,
++	.next	= c_next,
++	.stop	= c_stop,
++	.show	= show_cpuinfo,
 +};
 +
-+static int __init tpu_init(void)
++void __init parse_bootparam(struct bootparams *bp)
 +{
-+	return platform_driver_register(&tpu_driver);
++	memcpy(&bootparams, bp, bp->size);
++	strncpy(command_line, bootparams.command_line, sizeof(command_line));
 +}
 +
-+static void __exit tpu_exit(void)
++static void __init timer_setup(void)
 +{
-+	platform_driver_unregister(&tpu_driver);
++	early_platform_driver_register_all("earlytimer");
++	early_platform_driver_probe("earlytimer", 1, 0);
 +}
 +
-+subsys_initcall(tpu_init);
-+module_exit(tpu_exit);
-+MODULE_AUTHOR("Yoshinori Sato");
-+MODULE_DESCRIPTION("H8S Timer Pulse Unit Driver");
-+MODULE_LICENSE("GPL v2");
++void __init time_init(void)
++{
++	h8300_clk_init(bootparams.clock_freq);
++	late_time_init = timer_setup;
++}
 -- 
 2.1.4
 
