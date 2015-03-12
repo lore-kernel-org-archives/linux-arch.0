@@ -1,102 +1,128 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: Alternative to signals/sys_membarrier() in liburcu
-Date: Thu, 12 Mar 2015 14:12:58 -0700
-Message-ID: <20150312211258.GX5412@linux.vnet.ibm.com>
-References: <666590480.287502.1426193588471.JavaMail.zimbra@efficios.com>
- <1243872207.287578.1426193760572.JavaMail.zimbra@efficios.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Subject: [PATCH v3  00/15] Add support to STMicroelectronics STM32 family
+Date: Thu, 12 Mar 2015 22:55:46 +0100
+Message-ID: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e31.co.us.ibm.com ([32.97.110.149]:43055 "EHLO
-	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754855AbbCLVND (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2015 17:13:03 -0400
-Received: from /spool/local
-	by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Thu, 12 Mar 2015 15:13:03 -0600
-Content-Disposition: inline
-In-Reply-To: <1243872207.287578.1426193760572.JavaMail.zimbra@efficios.com>
+Received: from mail-wg0-f44.google.com ([74.125.82.44]:34378 "EHLO
+	mail-wg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751826AbbCLV4Y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2015 17:56:24 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
-Cc: Michael Sullivan <sully@msully.net>, Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, lttng-dev@lists.lttng.org, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org
+To: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl
+Cc: Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kerne
 
-On Thu, Mar 12, 2015 at 08:56:00PM +0000, Mathieu Desnoyers wrote:
-> (sorry for re-send, my mail client tricked me into posting HTML
-> to lkml)
-> 
-> Hi, 
-> 
-> Michael Sullivan proposed a clever hack abusing mprotect() to 
-> perform the same effect as sys_membarrier() I submitted a few 
-> years ago ( https://lkml.org/lkml/2010/4/18/15 ). 
-> 
-> At that time, the sys_membarrier implementation was deemed 
-> technically sound, but there were not enough users of the system call 
-> to justify its inclusion. 
-> 
-> So far, the number of users of liburcu has increased, but liburcu 
-> still appears to be the only direct user of sys_membarrier. On this 
-> front, we could argue that many other system calls have only 
-> one user: glibc. In that respect, liburcu is quite similar to glibc. 
-> 
-> So the question as it stands appears to be: would you be comfortable 
-> having users abuse mprotect(), relying on its side-effect of issuing 
-> a smp_mb() on each targeted CPU for the TLB shootdown, as 
-> an effective implementation of process-wide memory barrier ? 
-> 
-> Thoughts ? 
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 
-Are there any architectures left that use hardware-assisted global
-TLB invalidation?  On such an architecture, you might not get a memory
-barrier except on the CPU executing the mprotect() or munmap().
+This third round tries to address most of the comments made on previous series.
 
-(Here is hoping that no one does -- it is a cute abuse^Whack otherwise!)
+It contains few less patches, as the reset_controller_of_init() patch has been
+removed, now that the bootlaoder handles the reset of the timers.
 
-							Thanx, Paul
+The pinctrl driver has also been removed after Linus review.
+It will be reworked to use the generic pinconf bindings, and may contain
+changes for other machines (Mediatek), to add support for pinmux property
+handling directly in pinconf-generic.
 
-> Thanks! 
-> 
-> Mathieu 
-> 
-> 
-> 
-> 
-> 
-> From: "Michael Sullivan" <sully@msully.net> 
-> To: "Mathieu Desnoyers" <mathieu.desnoyers@efficios.com> 
-> Cc: lttng-dev@lists.lttng.org 
-> Sent: Thursday, March 12, 2015 12:04:07 PM 
-> Subject: Re: [lttng-dev] Alternative to signals/sys_membarrier() in liburcu 
-> 
-> On Thu, Mar 12, 2015 at 10:57 AM, Mathieu Desnoyers < mathieu.desnoyers@efficios.com > wrote: 
-> 
-> 
-> 
-> 
-> Even though it depends on internal behavior not currently specified by mprotect, 
-> I'd very much like to see the prototype you have, 
-> 
-> 
-> I ended up posting my code at https://github.com/msullivan/userspace-rcu/tree/msync-barrier . 
-> The interesting patch is https://github.com/msullivan/userspace-rcu/commit/04656b468d418efbc5d934ab07954eb8395a7ab0 . 
-> 
-> Quick blog post I wrote about it at http://www.msully.net/blog/2015/02/24/forcing-memory-barriers-on-other-cpus-with-mprotect2/ . 
-> (I talked briefly about sys_membarrier in the post as best as I could piece together from LKML; if my comment on it is inaccurate I can edit the post.) 
-> 
-> -Michael Sullivan 
-> 
-> 
-> 
-> -- 
-> Mathieu Desnoyers 
-> EfficiOS Inc. 
-> http://www.efficios.com 
-> 
-> _______________________________________________
-> lttng-dev mailing list
-> lttng-dev@lists.lttng.org
-> http://lists.lttng.org/cgi-bin/mailman/listinfo/lttng-dev
-> 
+STM32 MCUs are Cortex-M CPU, used in various applications (consumer
+electronics, industrial applications, hobbyists...).
+Datasheets, user and programming manuals are publicly available on
+STMicroelectronics website.
+
+With this series applied, the STM32F419 Discovery can boot succesfully.
+
+
+Changes since v2:
+-----------------
+ - Remove pinctrl driver from the series. 
+ - Remove reset_controller_of_init(), and reset the timers in the bootloader
+ - Add HW flow contrl property for serial driver
+ - Lots of changes in the DTS file, as per Andreas recommendations
+ - Some Kconfig clean-ups
+ - Adapt the config to be compatible with Andreas' bootwrapper, except UART port.
+ - Various fixes in documentation
+
+Changes since v1:
+-----------------
+ - Move bindings documentation in their own patches (Andreas)
+ - Rename ARM System timer to armv7m-systick (Rob)
+ - Add clock-frequency property handling in armv7m-systick (Rob)
+ - Re-factor the reset controllers into a single controller (Philipp)
+ - Add kerneldoc to reset_controller_of_init (Philipp)
+ - Add named constants in include/dt-bindings/reset/ (Philipp)
+ - Make pinctrl driver to depend on ARCH_STM32 or COMPILE_TEST (Geert)
+ - Introduce CPUV7M_NUM_IRQ config flag to indicate the number of interrupts
+supported by the MCU, in order to limit memory waste in vectors' table (Uwe)
+
+
+Maxime Coquelin (15):
+  scripts: link-vmlinux: Don't pass page offset to kallsyms if XIP
+    Kernel
+  ARM: ARMv7-M: Enlarge vector table up to 256 entries
+  dt-bindings: Document the ARM System timer bindings
+  clocksource: Add ARM System timer driver
+  dt-bindings: Document the STM32 reset bindings
+  drivers: reset: Add STM32 reset driver
+  dt-bindings: Document the STM32 timer bindings
+  clockevent: Add STM32 Timer driver
+  dt-bindings: Document the STM32 USART bindings
+  serial: stm32-usart: Add STM32 USART Driver
+  ARM: Add STM32 family machine
+  ARM: dts: Add ARM System timer as clockevent in armv7m
+  ARM: dts: Introduce STM32F429 MCU
+  ARM: configs: Add STM32 defconfig
+  MAINTAINERS: Add entry for STM32 MCUs
+
+ Documentation/arm/stm32/overview.txt               |  32 +
+ Documentation/arm/stm32/stm32f429-overview.txt     |  22 +
+ .../devicetree/bindings/arm/armv7m_systick.txt     |  26 +
+ .../devicetree/bindings/reset/st,stm32-rcc.txt     | 102 +++
+ .../devicetree/bindings/serial/st,stm32-usart.txt  |  32 +
+ .../devicetree/bindings/timer/st,stm32-timer.txt   |  22 +
+ MAINTAINERS                                        |   8 +
+ arch/arm/Kconfig                                   |  18 +
+ arch/arm/Makefile                                  |   1 +
+ arch/arm/boot/dts/Makefile                         |   1 +
+ arch/arm/boot/dts/armv7-m.dtsi                     |   6 +
+ arch/arm/boot/dts/stm32f429-disco.dts              |  71 +++
+ arch/arm/boot/dts/stm32f429.dtsi                   | 226 +++++++
+ arch/arm/configs/stm32_defconfig                   |  71 +++
+ arch/arm/kernel/entry-v7m.S                        |  13 +-
+ arch/arm/mach-stm32/Makefile                       |   1 +
+ arch/arm/mach-stm32/Makefile.boot                  |   3 +
+ arch/arm/mach-stm32/board-dt.c                     |  19 +
+ arch/arm/mm/Kconfig                                |  15 +
+ drivers/clocksource/Kconfig                        |  15 +
+ drivers/clocksource/Makefile                       |   2 +
+ drivers/clocksource/armv7m_systick.c               |  78 +++
+ drivers/clocksource/timer-stm32.c                  | 184 ++++++
+ drivers/reset/Makefile                             |   1 +
+ drivers/reset/reset-stm32.c                        | 125 ++++
+ drivers/tty/serial/Kconfig                         |  17 +
+ drivers/tty/serial/Makefile                        |   1 +
+ drivers/tty/serial/stm32-usart.c                   | 695 +++++++++++++++++++++
+ include/uapi/linux/serial_core.h                   |   3 +
+ scripts/link-vmlinux.sh                            |   2 +-
+ 30 files changed, 1807 insertions(+), 5 deletions(-)
+ create mode 100644 Documentation/arm/stm32/overview.txt
+ create mode 100644 Documentation/arm/stm32/stm32f429-overview.txt
+ create mode 100644 Documentation/devicetree/bindings/arm/armv7m_systick.txt
+ create mode 100644 Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
+ create mode 100644 Documentation/devicetree/bindings/serial/st,stm32-usart.txt
+ create mode 100644 Documentation/devicetree/bindings/timer/st,stm32-timer.txt
+ create mode 100644 arch/arm/boot/dts/stm32f429-disco.dts
+ create mode 100644 arch/arm/boot/dts/stm32f429.dtsi
+ create mode 100644 arch/arm/configs/stm32_defconfig
+ create mode 100644 arch/arm/mach-stm32/Makefile
+ create mode 100644 arch/arm/mach-stm32/Makefile.boot
+ create mode 100644 arch/arm/mach-stm32/board-dt.c
+ create mode 100644 drivers/clocksource/armv7m_systick.c
+ create mode 100644 drivers/clocksource/timer-stm32.c
+ create mode 100644 drivers/reset/reset-stm32.c
+ create mode 100644 drivers/tty/serial/stm32-usart.c
+
+-- 
+1.9.1
