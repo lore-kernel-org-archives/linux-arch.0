@@ -1,139 +1,190 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f169.google.com ([74.125.82.169]:34629 "EHLO
-	mail-we0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755935AbbCLV4g (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2015 17:56:36 -0400
+Received: from mail-wi0-f193.google.com ([209.85.212.193]:35510 "EHLO
+	mail-wi0-f193.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756035AbbCLV4y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2015 17:56:54 -0400
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: [PATCH v3  05/15] dt-bindings: Document the STM32 reset bindings
-Date: Thu, 12 Mar 2015 22:55:51 +0100
-Message-ID: <1426197361-19290-6-git-send-email-maxime.coquelin@st.com>
+Subject: [PATCH v3  11/15] ARM: Add STM32 family machine
+Date: Thu, 12 Mar 2015 22:55:57 +0100
+Message-ID: <1426197361-19290-12-git-send-email-maxime.coquelin@st.com>
 In-Reply-To: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
 References: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl
 Cc: Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, mcoquelin.stm32@gmail.com
-Message-ID: <20150312215551.JBesZoQ1gjmyZL_L7-ZEacsLiHnW5gG_blcyT95gs98@z>
+Message-ID: <20150312215557.h4-pQeMIdIbHyRGzHiuYSwjq_ZIaxRzW5esf3R58IxQ@z>
 
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 
-This adds documentation of device tree bindings for the
-STM32 reset controller.
+STMicrolectronics's STM32 series is a family of Cortex-M
+microcontrollers. It is used in various applications, and
+proposes a wide range of peripherals.
 
 Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 ---
- .../devicetree/bindings/reset/st,stm32-rcc.txt     | 102 +++++++++++++++++++++
- 1 file changed, 102 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
+ Documentation/arm/stm32/overview.txt           | 32 ++++++++++++++++++++++++++
+ Documentation/arm/stm32/stm32f429-overview.txt | 22 ++++++++++++++++++
+ arch/arm/Kconfig                               | 18 +++++++++++++++
+ arch/arm/Makefile                              |  1 +
+ arch/arm/mach-stm32/Makefile                   |  1 +
+ arch/arm/mach-stm32/Makefile.boot              |  3 +++
+ arch/arm/mach-stm32/board-dt.c                 | 19 +++++++++++++++
+ 7 files changed, 96 insertions(+)
+ create mode 100644 Documentation/arm/stm32/overview.txt
+ create mode 100644 Documentation/arm/stm32/stm32f429-overview.txt
+ create mode 100644 arch/arm/mach-stm32/Makefile
+ create mode 100644 arch/arm/mach-stm32/Makefile.boot
+ create mode 100644 arch/arm/mach-stm32/board-dt.c
 
-diff --git a/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt b/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
+diff --git a/Documentation/arm/stm32/overview.txt b/Documentation/arm/stm32/overview.txt
 new file mode 100644
-index 0000000..962f961
+index 0000000..09aed55
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
-@@ -0,0 +1,102 @@
-+STMicroelectronics STM32 Peripheral Reset Controller
-+====================================================
++++ b/Documentation/arm/stm32/overview.txt
+@@ -0,0 +1,32 @@
++			STM32 ARM Linux Overview
++			========================
 +
-+The RCC IP is both a reset and a clock controller. This documentation only
-+document the reset part.
++Introduction
++------------
 +
-+Please also refer to reset.txt in this directory for common reset
-+controller binding usage.
++  The STMicroelectronics family of Cortex-M based MCUs are supported by the
++  'STM32' platform of ARM Linux. Currently only the STM32F429 is supported.
 +
-+Required properties:
-+- compatible: Should be "st,stm32-rcc"
-+- reg: should be register base and length as documented in the
-+  datasheet
-+- #reset-cells: 1, see below
 +
-+example:
++Configuration
++-------------
 +
-+rcc: reset@40023800 {
-+	#reset-cells = <1>;
-+	compatible = "st,stm32-rcc";
-+	reg = <0x40023800 0x400>;
++  A generic configuration is provided for STM32 family, and can be used as the
++  default by
++	make stm32_defconfig
++
++Layout
++------
++
++  All the files for multiple machine families are located in the platform code
++  contained in arch/arm/mach-stm32
++
++  There is a generic board board-dt.c in the mach folder which support
++  Flattened Device Tree, which means, it works with any compatible board with
++  Device Trees.
++
++
++Document Author
++---------------
++
++  Maxime Coquelin <mcoquelin.stm32@gmail.com>
+diff --git a/Documentation/arm/stm32/stm32f429-overview.txt b/Documentation/arm/stm32/stm32f429-overview.txt
+new file mode 100644
+index 0000000..5206822
+--- /dev/null
++++ b/Documentation/arm/stm32/stm32f429-overview.txt
+@@ -0,0 +1,22 @@
++			STM32F429 Overview
++			==================
++
++  Introduction
++  ------------
++	The STM32F429 is a Cortex-M4 MCU aimed at various applications.
++	It features:
++	- ARM Cortex-M4 up to 180MHz with FPU
++	- 2MB internal Flash Memory
++	- External memory support through FMC controller (PSRAM, SDRAM, NOR, NAND)
++	- I2C, SPI, SAI, CAN, USB OTG, Ethernet controllers
++	- LCD controller & Camera interface
++	- Cryptographic processor
++
++  Resources
++  ---------
++	Datasheet and reference manual are publicly available on ST website:
++	- http://www.st.com/web/en/catalog/mmc/FM141/SC1169/SS1577/LN1806?ecmp=stm32f429-439_pron_pr-ces2014_nov2013
++
++  Document Author
++  ---------------
++	Maxime Coquelin <mcoquelin.stm32@gmail.com>
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 9f1f09a..5b1157d 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -776,6 +776,24 @@ config ARCH_OMAP1
+ 	help
+ 	  Support for older TI OMAP1 (omap7xx, omap15xx or omap16xx)
+ 
++config ARCH_STM32
++	bool "STMicrolectronics STM32"
++	depends on !MMU
++	select ARCH_HAS_RESET_CONTROLLER
++	select ARM_NVIC
++	select ARMV7M_SYSTICK
++	select AUTO_ZRELADDR
++	select CLKSRC_OF
++	select COMMON_CLK
++	select CPU_V7M
++	select GENERIC_CLOCKEVENTS
++	select NO_IOPORT_MAP
++	select RESET_CONTROLLER
++	select SPARSE_IRQ
++	select USE_OF
++	help
++	  Support for STMicroelectronics STM32 processors.
++
+ endchoice
+ 
+ menu "Multiple platform selection"
+diff --git a/arch/arm/Makefile b/arch/arm/Makefile
+index 7f99cd6..982c104 100644
+--- a/arch/arm/Makefile
++++ b/arch/arm/Makefile
+@@ -196,6 +196,7 @@ machine-$(CONFIG_ARCH_SHMOBILE) 	+= shmobile
+ machine-$(CONFIG_ARCH_SIRF)		+= prima2
+ machine-$(CONFIG_ARCH_SOCFPGA)		+= socfpga
+ machine-$(CONFIG_ARCH_STI)		+= sti
++machine-$(CONFIG_ARCH_STM32)		+= stm32
+ machine-$(CONFIG_ARCH_SUNXI)		+= sunxi
+ machine-$(CONFIG_ARCH_TEGRA)		+= tegra
+ machine-$(CONFIG_ARCH_U300)		+= u300
+diff --git a/arch/arm/mach-stm32/Makefile b/arch/arm/mach-stm32/Makefile
+new file mode 100644
+index 0000000..bd0b7b5
+--- /dev/null
++++ b/arch/arm/mach-stm32/Makefile
+@@ -0,0 +1 @@
++obj-y += board-dt.o
+diff --git a/arch/arm/mach-stm32/Makefile.boot b/arch/arm/mach-stm32/Makefile.boot
+new file mode 100644
+index 0000000..eacfc3f
+--- /dev/null
++++ b/arch/arm/mach-stm32/Makefile.boot
+@@ -0,0 +1,3 @@
++# Empty file waiting for deletion once Makefile.boot isn't needed any more.
++# Patch waits for application at
++# http://www.arm.linux.org.uk/developer/patches/viewpatch.php?id=7889/1 .
+diff --git a/arch/arm/mach-stm32/board-dt.c b/arch/arm/mach-stm32/board-dt.c
+new file mode 100644
+index 0000000..f2ad772
+--- /dev/null
++++ b/arch/arm/mach-stm32/board-dt.c
+@@ -0,0 +1,19 @@
++/*
++ * Copyright (C) Maxime Coquelin 2015
++ * Author:  Maxime Coquelin <mcoquelin.stm32@gmail.com>
++ * License terms:  GNU General Public License (GPL), version 2
++ */
++
++#include <linux/kernel.h>
++#include <asm/v7m.h>
++#include <asm/mach/arch.h>
++
++static const char *const stm32_compat[] __initconst = {
++	"st,stm32f429",
++	NULL
 +};
 +
-+Specifying softreset control of devices
-+=======================================
-+
-+Device nodes should specify the reset channel required in their "resets"
-+property, containing a phandle to the reset device node and an index specifying
-+which channel to use.
-+
-+example:
-+
-+	timer2 {
-+		resets			= <&rcc 256>;
-+	};
-+
-+List of indexes for STM32F429:
-+ - gpioa: 128
-+ - gpiob: 129
-+ - gpioc: 130
-+ - gpiod: 131
-+ - gpioe: 132
-+ - gpiof: 133
-+ - gpiog: 134
-+ - gpioh: 135
-+ - gpioi: 136
-+ - gpioj: 137
-+ - gpiok: 138
-+ - crc: 140
-+ - dma1: 149
-+ - dma2: 150
-+ - dma2d: 151
-+ - ethmac: 153
-+ - otghs: 157
-+ - dcmi: 160
-+ - cryp: 164
-+ - hash: 165
-+ - rng: 166
-+ - otgfs: 167
-+ - fmc: 192
-+ - tim2: 256
-+ - tim3: 257
-+ - tim4: 258
-+ - tim5: 259
-+ - tim6: 260
-+ - tim7: 261
-+ - tim12: 262
-+ - tim13: 263
-+ - tim14: 264
-+ - wwdg: 267
-+ - spi2: 270
-+ - spi3: 271
-+ - uart2: 273
-+ - uart3: 274
-+ - uart4: 275
-+ - uart5: 276
-+ - i2c1: 277
-+ - i2c2: 278
-+ - i2c3: 279
-+ - can1: 281
-+ - can2: 282
-+ - pwr: 284
-+ - dac: 285
-+ - uart7: 286
-+ - uart8: 287
-+ - tim1: 288
-+ - tim8: 289
-+ - usart1: 292
-+ - usart6: 293
-+ - adc: 296
-+ - sdio: 299
-+ - spi1: 300
-+ - spi4: 301
-+ - syscfg: 302
-+ - tim9: 304
-+ - tim10: 305
-+ - tim11: 306
-+ - spi5: 308
-+ - spi6: 309
-+ - sai1: 310
-+ - ltdc: 31
-+
++DT_MACHINE_START(STM32DT, "STM32 (Device Tree Support)")
++	.dt_compat = stm32_compat,
++	.restart = armv7m_restart,
++MACHINE_END
 -- 
 1.9.1
 
