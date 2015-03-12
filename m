@@ -1,50 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f180.google.com ([209.85.220.180]:49483 "EHLO
-	mail-vc0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750820AbbCKS74 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Mar 2015 14:59:56 -0400
-Received: by mail-vc0-f180.google.com with SMTP id hq12so3711177vcb.11
-        for <linux-arch@vger.kernel.org>; Wed, 11 Mar 2015 11:59:55 -0700 (PDT)
+Received: from mail-ig0-f180.google.com ([209.85.213.180]:38270 "EHLO
+	mail-ig0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932400AbbCLQQn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2015 12:16:43 -0400
 MIME-Version: 1.0
-In-Reply-To: <1425518828-16017-1-git-send-email-keescook@chromium.org>
-References: <1425518828-16017-1-git-send-email-keescook@chromium.org>
-Date: Wed, 11 Mar 2015 11:59:55 -0700
-Message-ID: <CAGXu5j+PMBEPLTLiDVZ9XvnT9a2P+tOGPLXfE865crteeChDFQ@mail.gmail.com>
-Subject: Re: [PATCH v3 0/8] switch to using asm-generic for seccomp.h
-From: Kees Cook <keescook@chromium.org>
+In-Reply-To: <1426175534-29874-1-git-send-email-jslaby@suse.cz>
+References: <1426175534-29874-1-git-send-email-jslaby@suse.cz>
+Date: Thu, 12 Mar 2015 09:16:42 -0700
+Message-ID: <CA+55aFyxTvdC6u9RPdY2Pg=ALrHkHKHLt9+tY01RqKABP9cFPw@mail.gmail.com>
+Subject: Re: [patch added to the 3.12 stable tree] vm: add VM_FAULT_SIGSEGV
+ handling support
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@redhat.com>, Russell King <linux@arm.linux.org.uk>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Frederic Weisbecker <fweisbec@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Daniel Borkmann <dborkman@redhat.com>, Laura Abbott <lauraa@codeaurora.org>, James Hogan <james.hogan@imgtec.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, LKML <linux-kernel@vger.kernel.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-parisc <linux-parisc@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, sparclinux <sparclinux@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20150311185955.j6xYMph3d1ioGuS-3v17htwYyX3QAjYUkI2IGMK04gA@z>
+To: Jiri Slaby <jslaby@suse.cz>
+Cc: stable <stable@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20150312161642.OWWx2OWGaKxbUb8O5pGW9FsHOZdA6WGoBZtssAxpGsk@z>
 
-On Wed, Mar 4, 2015 at 5:27 PM, Kees Cook <keescook@chromium.org> wrote:
-> Most architectures don't need to do much special for the strict-mode
-> seccomp syscall entries. Remove the redundant headers and reduce the
-> others.
+On Thu, Mar 12, 2015 at 8:52 AM, Jiri Slaby <jslaby@suse.cz> wrote:
 >
-> Signed-off-by: Kees Cook <keescook@chromium.org>
+> diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+> index 5b90bbcad9f6..d9d8d91a64ff 100644
+> --- a/arch/x86/mm/fault.c
+> +++ b/arch/x86/mm/fault.c
+> @@ -873,6 +873,8 @@ mm_fault_error(struct pt_regs *regs, unsigned long error_code,
+>                 if (fault & (VM_FAULT_SIGBUS|VM_FAULT_HWPOISON|
+>                              VM_FAULT_HWPOISON_LARGE))
+>                         do_sigbus(regs, error_code, address, fault);
+> +               else if (fault & VM_FAULT_SIGSEGV)
+> +                       bad_area_nosemaphore(regs, error_code, address);
+>                 else
+>                         BUG();
+>         }
 
-Hi Andrew,
+Just double-checking that you are aware that this semantically depends
+on commit 7fb08eca4527 ("x86: mm: move mmap_sem unlock from
+mm_fault_error() to caller"). We had that back-porting bug at least
+twice, because it was so subtle.
 
-Just a quick ping: are you able to pick up this series, or should I
-try to get this in on a per-arch basis?
+So either you need to backport 7fb08eca4527 too before (so that we
+really have dropped the semaphore at this point), or that
+"bad_area_nosemaphore()" needs to be just a "bad_area()" instead,
+because we still hold the semaphore.
 
-Thanks!
+I didn't look at the rest of the series, so this *may* be ok as-is, I
+just wanted to make sure we didn't introduce this problem *again* in a
+backport.
 
--Kees
-
-> ---
-> v3:
-> - split patch series by architecture
-> - fix up architectures that need sigreturn overrides (ingo)
-> v2:
-> - use Kbuild "generic-y" instead of explicit #include lines (sfr)
->
-
-
-
--- 
-Kees Cook
-Chrome OS Security
+                                 Linus
