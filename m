@@ -1,52 +1,33 @@
-From: Jiri Slaby <jslaby@suse.cz>
-Subject: Re: [patch added to the 3.12 stable tree] vm: add VM_FAULT_SIGSEGV
- handling support
-Date: Thu, 12 Mar 2015 17:23:11 +0100
-Message-ID: <5501BD6F.6010903@suse.cz>
-References: <1426175534-29874-1-git-send-email-jslaby@suse.cz> <CA+55aFyxTvdC6u9RPdY2Pg=ALrHkHKHLt9+tY01RqKABP9cFPw@mail.gmail.com>
+From: Jonathan Corbet <corbet@lwn.net>
+Subject: Re: [PATCH] mm: kill kmemcheck
+Date: Thu, 12 Mar 2015 09:00:15 -0400
+Message-ID: <20150312090015.656c2f9c@lwn.net>
+References: <1426074547-21888-1-git-send-email-sasha.levin@oracle.com>
+ <55013B38.6040100@iki.fi>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <stable-owner@vger.kernel.org>
-In-Reply-To: <CA+55aFyxTvdC6u9RPdY2Pg=ALrHkHKHLt9+tY01RqKABP9cFPw@mail.gmail.com>
-Sender: stable-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: stable <stable@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <55013B38.6040100@iki.fi>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Pekka Enberg <penberg@iki.fi>
+Cc: Vladimir Davydov <vdavydov@parallels.com>, Geert Uytterhoeven <geert+renesas@glider.be>, "open list:SUPERH" <linux-sh@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Jianyu Zhan <nasa4836@gmail.com>, Paul Mackerras <paulus@samba.org>, Pavel Machek <pavel@ucw.cz>, Miklos Szeredi <mszeredi@suse.cz>, Christoph Lameter <cl@linux.com>, Marek Szyprowski <m.szyprowski@samsung.com>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, Russell King <linux@arm.linux.org.uk>, Jingoo Han <jg1.han@samsung.com>, James Morris <jmorris@namei.org>, Chris Bainbridge <chris.bainbridge@gmail.com>, Antti Palosaari <crope@iki.fi>, Mel Gorman <mgorman@suse.de>, Ritesh Harjani <ritesh.harjani@gmail.com>, Shaohua Li <shli@kernel.org>, Alexander Duyck <alexander.h.duyck@intel.com>, Wang Nan <wangnan0@huawei>
 List-Id: linux-arch.vger.kernel.org
 
-On 03/12/2015, 05:16 PM, Linus Torvalds wrote:
-> On Thu, Mar 12, 2015 at 8:52 AM, Jiri Slaby <jslaby@suse.cz> wrote:
->>
->> diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
->> index 5b90bbcad9f6..d9d8d91a64ff 100644
->> --- a/arch/x86/mm/fault.c
->> +++ b/arch/x86/mm/fault.c
->> @@ -873,6 +873,8 @@ mm_fault_error(struct pt_regs *regs, unsigned long error_code,
->>                 if (fault & (VM_FAULT_SIGBUS|VM_FAULT_HWPOISON|
->>                              VM_FAULT_HWPOISON_LARGE))
->>                         do_sigbus(regs, error_code, address, fault);
->> +               else if (fault & VM_FAULT_SIGSEGV)
->> +                       bad_area_nosemaphore(regs, error_code, address);
->>                 else
->>                         BUG();
->>         }
-> 
-> Just double-checking that you are aware that this semantically depends
-> on commit 7fb08eca4527 ("x86: mm: move mmap_sem unlock from
-> mm_fault_error() to caller"). We had that back-porting bug at least
-> twice, because it was so subtle.
-> 
-> So either you need to backport 7fb08eca4527 too before (so that we
-> really have dropped the semaphore at this point), or that
-> "bad_area_nosemaphore()" needs to be just a "bad_area()" instead,
-> because we still hold the semaphore.
-
-Thanks for the heads-up. Despite I saw that one coming along with the
-series to 3.10, I didn't include it due to a bit misleading commit
-message. From that, it occurred to me like a cleanup.
-
-Now included. Thanks.
-
--- 
-js
-suse labs
+T24gVGh1LCAxMiBNYXIgMjAxNSAwOTowNzozNiArMDIwMApQZWtrYSBFbmJlcmcgPHBlbmJlcmdA
+aWtpLmZpPiB3cm90ZToKCj4gQ2FuIHlvdSBlbGFib3JhdGUgb24gd2hhdCBleGFjdGx5IHdhcyBk
+aXNjdXNzZWQgYXQgTFNGL01NPyBQcmVmZXJhYmx5IGluIAo+IHRoZSBjb21taXQgbG9nLiA7LSkK
+CkknbGwgaGF2ZSB0aGUgcmVwb3J0IGZyb20gdGhhdCBzZXNzaW9uIHVwLCBob3BlZnVsbHkgYnkg
+dGhlIGVuZCBvZiB0aGUKd2Vlay4KClRoYW5rcywKCmpvbgpfX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fXwpMaW51eHBwYy1kZXYgbWFpbGluZyBsaXN0CkxpbnV4
+cHBjLWRldkBsaXN0cy5vemxhYnMub3JnCmh0dHBzOi8vbGlzdHMub3psYWJzLm9yZy9saXN0aW5m
+by9saW51eHBwYy1kZXY=
