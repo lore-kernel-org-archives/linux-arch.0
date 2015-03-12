@@ -1,68 +1,102 @@
-From: Maxime Coquelin <mcoquelin.stm32-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH v2 05/18] reset: Add reset_controller_of_init() function
-Date: Thu, 12 Mar 2015 22:08:13 +0100
-Message-ID: <CALszF6AiZ_9Hgz36hyVTSWdtf06QxHnWKjNEjVdU7v7j8m1GiA@mail.gmail.com>
-References: <1424455277-29983-1-git-send-email-mcoquelin.stm32@gmail.com>
-	<8729383.kvUZDm4dQz@wuerfel>
-	<CALszF6BkTOLR+VNkRKfvEBG5ZyaYL+9fZ4EAPVu5b_imCvEQoQ@mail.gmail.com>
-	<6773745.i9mx5zmPP4@wuerfel>
-	<CAL_Jsq+_ridpAaUwpqo91xB6Ea1ctCWfYTYUrcZ=gB_0FiBD4g@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: Alternative to signals/sys_membarrier() in liburcu
+Date: Thu, 12 Mar 2015 14:12:58 -0700
+Message-ID: <20150312211258.GX5412@linux.vnet.ibm.com>
+References: <666590480.287502.1426193588471.JavaMail.zimbra@efficios.com>
+ <1243872207.287578.1426193760572.JavaMail.zimbra@efficios.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <CAL_Jsq+_ridpAaUwpqo91xB6Ea1ctCWfYTYUrcZ=gB_0FiBD4g-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Rob Herring <robherring2-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Maxime Ripard <maxime.ripard-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public.gmane.org>, =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber-l3A5Bk7waGM@public.gmane.org>, Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Philipp Zabel <p.zabel-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Pawel Moll <pawel.moll-5wv7dgnIgG8@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Ian Campbell <ijc+devicetree-KcIKpvwj1kUDXYZnReoRVg@public.gmane.org>, Kumar Gala <galak-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, Jiri Slaby <jslaby-AlSwsSmVLrQ@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Mauro Carvalho Chehab <mchehab-JPH+aEBZ4P/iSf3S8Y7g3A@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e31.co.us.ibm.com ([32.97.110.149]:43055 "EHLO
+	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754855AbbCLVND (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2015 17:13:03 -0400
+Received: from /spool/local
+	by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Thu, 12 Mar 2015 15:13:03 -0600
+Content-Disposition: inline
+In-Reply-To: <1243872207.287578.1426193760572.JavaMail.zimbra@efficios.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Cc: Michael Sullivan <sully@msully.net>, Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, Steven Rostedt <rostedt@goodmis.org>, lttng-dev@lists.lttng.org, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org
 
-2015-03-10 22:30 GMT+01:00 Rob Herring <robherring2-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>:
-> On Tue, Mar 10, 2015 at 3:19 PM, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org> wrote:
->> On Tuesday 10 March 2015 16:28:44 Maxime Coquelin wrote:
->>> 2015-03-10 16:00 GMT+01:00 Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>:
->>> > On Friday 20 February 2015 19:01:04 Maxime Coquelin wrote:
->>> >> Some platforms need to initialize the reset controller before the timers.
->>> >>
->>> >> This patch introduces a reset_controller_of_init() function that can be
->>> >> called before the timers intialization.
->>> >>
->>> >> Signed-off-by: Maxime Coquelin <mcoquelin.stm32-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
->>> >>
->>> >
->>> > Not sure about this. It seems like the cleanest approach if we get
->>> > a lot of these, but then again it is probably very rare, and I'd
->>> > like to avoid adding such infrastructure if it's just for one
->>> > SoC. Could we add a hack in the machine initialization instead?
->>>
->>> Sun6i also need to initialize the reset controller early. Today, they
->>> hack the machine initialization.
->>> With two SoCs having the same need, what should we do?
->>
->> Good question, I'd like to hear some other opinions on this first.
->
-> 2 is still far from the common case.
->
->>> > I think ideally this would be done in the boot loader before we
->>> > even start Linux, but I don't know if that's possible for you.
->>>
->>> From what I understand, the only constraint is to perform it after the
->>> clock is enabled.
->>> So this should be possible to do it in the bootloader, but it means
->>> also adding timers clocks ungating in the bootloader.
->>
->> Ungating the timer clock input seems like a reasonable thing to
->> do for the bootloader, I think a lot of platforms rely on this
->> elsewhere (but enough of them don't, which is why we have the
->> early clk init).
->
-> +1
->
-> If the bootloader is u-boot, then you need a timer anyway.
+On Thu, Mar 12, 2015 at 08:56:00PM +0000, Mathieu Desnoyers wrote:
+> (sorry for re-send, my mail client tricked me into posting HTML
+> to lkml)
+> 
+> Hi, 
+> 
+> Michael Sullivan proposed a clever hack abusing mprotect() to 
+> perform the same effect as sys_membarrier() I submitted a few 
+> years ago ( https://lkml.org/lkml/2010/4/18/15 ). 
+> 
+> At that time, the sys_membarrier implementation was deemed 
+> technically sound, but there were not enough users of the system call 
+> to justify its inclusion. 
+> 
+> So far, the number of users of liburcu has increased, but liburcu 
+> still appears to be the only direct user of sys_membarrier. On this 
+> front, we could argue that many other system calls have only 
+> one user: glibc. In that respect, liburcu is quite similar to glibc. 
+> 
+> So the question as it stands appears to be: would you be comfortable 
+> having users abuse mprotect(), relying on its side-effect of issuing 
+> a smp_mb() on each targeted CPU for the TLB shootdown, as 
+> an effective implementation of process-wide memory barrier ? 
+> 
+> Thoughts ? 
 
-Ok, I moved it to the bootloader, and use the reset as optional in the
-timer driver.
+Are there any architectures left that use hardware-assisted global
+TLB invalidation?  On such an architecture, you might not get a memory
+barrier except on the CPU executing the mprotect() or munmap().
 
-Thanks,
-Maxime
->
-> Rob
+(Here is hoping that no one does -- it is a cute abuse^Whack otherwise!)
+
+							Thanx, Paul
+
+> Thanks! 
+> 
+> Mathieu 
+> 
+> 
+> 
+> 
+> 
+> From: "Michael Sullivan" <sully@msully.net> 
+> To: "Mathieu Desnoyers" <mathieu.desnoyers@efficios.com> 
+> Cc: lttng-dev@lists.lttng.org 
+> Sent: Thursday, March 12, 2015 12:04:07 PM 
+> Subject: Re: [lttng-dev] Alternative to signals/sys_membarrier() in liburcu 
+> 
+> On Thu, Mar 12, 2015 at 10:57 AM, Mathieu Desnoyers < mathieu.desnoyers@efficios.com > wrote: 
+> 
+> 
+> 
+> 
+> Even though it depends on internal behavior not currently specified by mprotect, 
+> I'd very much like to see the prototype you have, 
+> 
+> 
+> I ended up posting my code at https://github.com/msullivan/userspace-rcu/tree/msync-barrier . 
+> The interesting patch is https://github.com/msullivan/userspace-rcu/commit/04656b468d418efbc5d934ab07954eb8395a7ab0 . 
+> 
+> Quick blog post I wrote about it at http://www.msully.net/blog/2015/02/24/forcing-memory-barriers-on-other-cpus-with-mprotect2/ . 
+> (I talked briefly about sys_membarrier in the post as best as I could piece together from LKML; if my comment on it is inaccurate I can edit the post.) 
+> 
+> -Michael Sullivan 
+> 
+> 
+> 
+> -- 
+> Mathieu Desnoyers 
+> EfficiOS Inc. 
+> http://www.efficios.com 
+> 
+> _______________________________________________
+> lttng-dev mailing list
+> lttng-dev@lists.lttng.org
+> http://lists.lttng.org/cgi-bin/mailman/listinfo/lttng-dev
+> 
