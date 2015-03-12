@@ -1,130 +1,147 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f44.google.com ([74.125.82.44]:34378 "EHLO
-	mail-wg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751826AbbCLV4Y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2015 17:56:24 -0400
+Received: from mail-wi0-f169.google.com ([209.85.212.169]:39437 "EHLO
+	mail-wi0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755867AbbCLV4d (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2015 17:56:33 -0400
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: [PATCH v3  00/15] Add support to STMicroelectronics STM32 family
-Date: Thu, 12 Mar 2015 22:55:46 +0100
-Message-ID: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Subject: [PATCH v3  04/15] clocksource: Add ARM System timer driver
+Date: Thu, 12 Mar 2015 22:55:50 +0100
+Message-ID: <1426197361-19290-5-git-send-email-maxime.coquelin@st.com>
+In-Reply-To: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
+References: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl
 Cc: Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, mcoquelin.stm32@gmail.com
-Message-ID: <20150312215546.obwd4IGm_-wOlRwwAjaIcR2SUxAnzOkCZuJBc4Kz4i0@z>
+Message-ID: <20150312215550.bKeQsHyp2a6IIZJ_X0LioF6T7R6ljmgE4bGUHqUOuvo@z>
 
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 
-This third round tries to address most of the comments made on previous series.
+This patch adds clocksource support for ARMv7-M's System timer,
+also known as SysTick.
 
-It contains few less patches, as the reset_controller_of_init() patch has been
-removed, now that the bootlaoder handles the reset of the timers.
-
-The pinctrl driver has also been removed after Linus review.
-It will be reworked to use the generic pinconf bindings, and may contain
-changes for other machines (Mediatek), to add support for pinmux property
-handling directly in pinconf-generic.
-
-STM32 MCUs are Cortex-M CPU, used in various applications (consumer
-electronics, industrial applications, hobbyists...).
-Datasheets, user and programming manuals are publicly available on
-STMicroelectronics website.
-
-With this series applied, the STM32F419 Discovery can boot succesfully.
-
-
-Changes since v2:
------------------
- - Remove pinctrl driver from the series. 
- - Remove reset_controller_of_init(), and reset the timers in the bootloader
- - Add HW flow contrl property for serial driver
- - Lots of changes in the DTS file, as per Andreas recommendations
- - Some Kconfig clean-ups
- - Adapt the config to be compatible with Andreas' bootwrapper, except UART port.
- - Various fixes in documentation
-
-Changes since v1:
------------------
- - Move bindings documentation in their own patches (Andreas)
- - Rename ARM System timer to armv7m-systick (Rob)
- - Add clock-frequency property handling in armv7m-systick (Rob)
- - Re-factor the reset controllers into a single controller (Philipp)
- - Add kerneldoc to reset_controller_of_init (Philipp)
- - Add named constants in include/dt-bindings/reset/ (Philipp)
- - Make pinctrl driver to depend on ARCH_STM32 or COMPILE_TEST (Geert)
- - Introduce CPUV7M_NUM_IRQ config flag to indicate the number of interrupts
-supported by the MCU, in order to limit memory waste in vectors' table (Uwe)
-
-
-Maxime Coquelin (15):
-  scripts: link-vmlinux: Don't pass page offset to kallsyms if XIP
-    Kernel
-  ARM: ARMv7-M: Enlarge vector table up to 256 entries
-  dt-bindings: Document the ARM System timer bindings
-  clocksource: Add ARM System timer driver
-  dt-bindings: Document the STM32 reset bindings
-  drivers: reset: Add STM32 reset driver
-  dt-bindings: Document the STM32 timer bindings
-  clockevent: Add STM32 Timer driver
-  dt-bindings: Document the STM32 USART bindings
-  serial: stm32-usart: Add STM32 USART Driver
-  ARM: Add STM32 family machine
-  ARM: dts: Add ARM System timer as clockevent in armv7m
-  ARM: dts: Introduce STM32F429 MCU
-  ARM: configs: Add STM32 defconfig
-  MAINTAINERS: Add entry for STM32 MCUs
-
- Documentation/arm/stm32/overview.txt               |  32 +
- Documentation/arm/stm32/stm32f429-overview.txt     |  22 +
- .../devicetree/bindings/arm/armv7m_systick.txt     |  26 +
- .../devicetree/bindings/reset/st,stm32-rcc.txt     | 102 +++
- .../devicetree/bindings/serial/st,stm32-usart.txt  |  32 +
- .../devicetree/bindings/timer/st,stm32-timer.txt   |  22 +
- MAINTAINERS                                        |   8 +
- arch/arm/Kconfig                                   |  18 +
- arch/arm/Makefile                                  |   1 +
- arch/arm/boot/dts/Makefile                         |   1 +
- arch/arm/boot/dts/armv7-m.dtsi                     |   6 +
- arch/arm/boot/dts/stm32f429-disco.dts              |  71 +++
- arch/arm/boot/dts/stm32f429.dtsi                   | 226 +++++++
- arch/arm/configs/stm32_defconfig                   |  71 +++
- arch/arm/kernel/entry-v7m.S                        |  13 +-
- arch/arm/mach-stm32/Makefile                       |   1 +
- arch/arm/mach-stm32/Makefile.boot                  |   3 +
- arch/arm/mach-stm32/board-dt.c                     |  19 +
- arch/arm/mm/Kconfig                                |  15 +
- drivers/clocksource/Kconfig                        |  15 +
- drivers/clocksource/Makefile                       |   2 +
- drivers/clocksource/armv7m_systick.c               |  78 +++
- drivers/clocksource/timer-stm32.c                  | 184 ++++++
- drivers/reset/Makefile                             |   1 +
- drivers/reset/reset-stm32.c                        | 125 ++++
- drivers/tty/serial/Kconfig                         |  17 +
- drivers/tty/serial/Makefile                        |   1 +
- drivers/tty/serial/stm32-usart.c                   | 695 +++++++++++++++++++++
- include/uapi/linux/serial_core.h                   |   3 +
- scripts/link-vmlinux.sh                            |   2 +-
- 30 files changed, 1807 insertions(+), 5 deletions(-)
- create mode 100644 Documentation/arm/stm32/overview.txt
- create mode 100644 Documentation/arm/stm32/stm32f429-overview.txt
- create mode 100644 Documentation/devicetree/bindings/arm/armv7m_systick.txt
- create mode 100644 Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
- create mode 100644 Documentation/devicetree/bindings/serial/st,stm32-usart.txt
- create mode 100644 Documentation/devicetree/bindings/timer/st,stm32-timer.txt
- create mode 100644 arch/arm/boot/dts/stm32f429-disco.dts
- create mode 100644 arch/arm/boot/dts/stm32f429.dtsi
- create mode 100644 arch/arm/configs/stm32_defconfig
- create mode 100644 arch/arm/mach-stm32/Makefile
- create mode 100644 arch/arm/mach-stm32/Makefile.boot
- create mode 100644 arch/arm/mach-stm32/board-dt.c
+Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+---
+ drivers/clocksource/Kconfig          |  7 ++++
+ drivers/clocksource/Makefile         |  1 +
+ drivers/clocksource/armv7m_systick.c | 78 ++++++++++++++++++++++++++++++++++++
+ 3 files changed, 86 insertions(+)
  create mode 100644 drivers/clocksource/armv7m_systick.c
- create mode 100644 drivers/clocksource/timer-stm32.c
- create mode 100644 drivers/reset/reset-stm32.c
- create mode 100644 drivers/tty/serial/stm32-usart.c
 
+diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+index 1c2506f..b82e58b 100644
+--- a/drivers/clocksource/Kconfig
++++ b/drivers/clocksource/Kconfig
+@@ -134,6 +134,13 @@ config CLKSRC_ARM_GLOBAL_TIMER_SCHED_CLOCK
+ 	help
+ 	 Use ARM global timer clock source as sched_clock
+ 
++config ARMV7M_SYSTICK
++	bool
++	select CLKSRC_OF if OF
++	select CLKSRC_MMIO
++	help
++	  This options enables support for the ARMv7M system timer unit
++
+ config ATMEL_PIT
+ 	select CLKSRC_OF if OF
+ 	def_bool SOC_AT91SAM9 || SOC_SAMA5
+diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+index 752d5c7..1c9a643 100644
+--- a/drivers/clocksource/Makefile
++++ b/drivers/clocksource/Makefile
+@@ -44,6 +44,7 @@ obj-$(CONFIG_MTK_TIMER)		+= mtk_timer.o
+ 
+ obj-$(CONFIG_ARM_ARCH_TIMER)		+= arm_arch_timer.o
+ obj-$(CONFIG_ARM_GLOBAL_TIMER)		+= arm_global_timer.o
++obj-$(CONFIG_ARMV7M_SYSTICK)		+= armv7m_systick.o
+ obj-$(CONFIG_CLKSRC_METAG_GENERIC)	+= metag_generic.o
+ obj-$(CONFIG_ARCH_HAS_TICK_BROADCAST)	+= dummy_timer.o
+ obj-$(CONFIG_ARCH_KEYSTONE)		+= timer-keystone.o
+diff --git a/drivers/clocksource/armv7m_systick.c b/drivers/clocksource/armv7m_systick.c
+new file mode 100644
+index 0000000..23d8249
+--- /dev/null
++++ b/drivers/clocksource/armv7m_systick.c
+@@ -0,0 +1,78 @@
++/*
++ * Copyright (C) Maxime Coquelin 2015
++ * Author:  Maxime Coquelin <mcoquelin.stm32@gmail.com>
++ * License terms:  GNU General Public License (GPL), version 2
++ */
++
++#include <linux/kernel.h>
++#include <linux/clocksource.h>
++#include <linux/clockchips.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/clk.h>
++#include <linux/bitops.h>
++
++#define SYST_CSR	0x00
++#define SYST_RVR	0x04
++#define SYST_CVR	0x08
++#define SYST_CALIB	0x0c
++
++#define SYST_CSR_ENABLE BIT(0)
++
++#define SYSTICK_LOAD_RELOAD_MASK 0x00FFFFFF
++
++static void __init system_timer_of_register(struct device_node *np)
++{
++	struct clk *clk;
++	void __iomem *base;
++	u32 rate = 0;
++	int ret;
++
++	base = of_iomap(np, 0);
++	if (!base) {
++		pr_warn("system-timer: invalid base address\n");
++		return;
++	}
++
++	clk = of_clk_get(np, 0);
++	if (!IS_ERR(clk)) {
++		ret = clk_prepare_enable(clk);
++		if (ret) {
++			clk_put(clk);
++			goto out_unmap;
++		}
++
++		rate = clk_get_rate(clk);
++	}
++
++	/* If no clock found, try to get clock-frequency property */
++	if (!rate) {
++		ret = of_property_read_u32(np, "clock-frequency", &rate);
++		if (ret)
++			goto out_unmap;
++	}
++
++	writel_relaxed(SYSTICK_LOAD_RELOAD_MASK, base + SYST_RVR);
++	writel_relaxed(SYST_CSR_ENABLE, base + SYST_CSR);
++
++	ret = clocksource_mmio_init(base + SYST_CVR, "arm_system_timer", rate,
++			200, 24, clocksource_mmio_readl_down);
++	if (ret) {
++		pr_err("failed to init clocksource (%d)\n", ret);
++		goto out_clk_disable;
++	}
++
++	pr_info("ARM System timer initialized as clocksource\n");
++
++	return;
++
++out_clk_disable:
++	if (!IS_ERR(clk))
++		clk_disable_unprepare(clk);
++out_unmap:
++	iounmap(base);
++	WARN(ret, "ARM System timer register failed (%d)\n", ret);
++}
++
++CLOCKSOURCE_OF_DECLARE(arm_systick, "arm,armv7m-systick",
++			system_timer_of_register);
 -- 
 1.9.1
 
