@@ -1,177 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f171.google.com ([74.125.82.171]:44853 "EHLO
-	mail-we0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751724AbbCLV4j (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2015 17:56:39 -0400
+Received: from mail-we0-f176.google.com ([74.125.82.176]:44826 "EHLO
+	mail-we0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755491AbbCLV4b (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Mar 2015 17:56:31 -0400
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: [PATCH v3  06/15] drivers: reset: Add STM32 reset driver
-Date: Thu, 12 Mar 2015 22:55:52 +0100
-Message-ID: <1426197361-19290-7-git-send-email-maxime.coquelin@st.com>
+Subject: [PATCH v3  03/15] dt-bindings: Document the ARM System timer bindings
+Date: Thu, 12 Mar 2015 22:55:49 +0100
+Message-ID: <1426197361-19290-4-git-send-email-maxime.coquelin@st.com>
 In-Reply-To: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
 References: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl
 Cc: Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, mcoquelin.stm32@gmail.com
-Message-ID: <20150312215552.bNJrx6RSjCeXSyt4q6pmiZ2YsvOYR31l5EpFP7hQ-XY@z>
+Message-ID: <20150312215549.xOUxzLhFj3RcO27OemUlBXIEZs2IRD6FB8GmFNK699Q@z>
 
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 
-The STM32 MCUs family IP can be reset by accessing some shared registers.
-
-The specificity is that some reset lines are used by the timers.
-At timer initialization time, the timer has to be reset, that's why
-we cannot use a regular driver.
+This adds documentation of device tree bindings for the
+ARM System timer.
 
 Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 ---
- drivers/reset/Makefile      |   1 +
- drivers/reset/reset-stm32.c | 125 ++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 126 insertions(+)
- create mode 100644 drivers/reset/reset-stm32.c
+ .../devicetree/bindings/arm/armv7m_systick.txt     | 26 ++++++++++++++++++++++
+ 1 file changed, 26 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/arm/armv7m_systick.txt
 
-diff --git a/drivers/reset/Makefile b/drivers/reset/Makefile
-index 157d421..aed12d1 100644
---- a/drivers/reset/Makefile
-+++ b/drivers/reset/Makefile
-@@ -1,5 +1,6 @@
- obj-$(CONFIG_RESET_CONTROLLER) += core.o
- obj-$(CONFIG_ARCH_SOCFPGA) += reset-socfpga.o
- obj-$(CONFIG_ARCH_BERLIN) += reset-berlin.o
-+obj-$(CONFIG_ARCH_STM32) += reset-stm32.o
- obj-$(CONFIG_ARCH_SUNXI) += reset-sunxi.o
- obj-$(CONFIG_ARCH_STI) += sti/
-diff --git a/drivers/reset/reset-stm32.c b/drivers/reset/reset-stm32.c
+diff --git a/Documentation/devicetree/bindings/arm/armv7m_systick.txt b/Documentation/devicetree/bindings/arm/armv7m_systick.txt
 new file mode 100644
-index 0000000..0d389b1
+index 0000000..7cf4a24
 --- /dev/null
-+++ b/drivers/reset/reset-stm32.c
-@@ -0,0 +1,125 @@
-+/*
-+ * Copyright (C) Maxime Coquelin 2015
-+ * Author:  Maxime Coquelin <mcoquelin.stm32@gmail.com>
-+ * License terms:  GNU General Public License (GPL), version 2
-+ *
-+ * Heavily based on sunxi driver from Maxime Ripard.
-+ */
++++ b/Documentation/devicetree/bindings/arm/armv7m_systick.txt
+@@ -0,0 +1,26 @@
++* ARMv7M System Timer
 +
-+#include <linux/err.h>
-+#include <linux/io.h>
-+#include <linux/module.h>
-+#include <linux/of.h>
-+#include <linux/of_address.h>
-+#include <linux/platform_device.h>
-+#include <linux/reset-controller.h>
-+#include <linux/slab.h>
-+#include <linux/spinlock.h>
-+#include <linux/types.h>
++ARMv7-M includes a system timer, known as SysTick. Current driver only
++implements the clocksource feature.
 +
-+struct stm32_reset_data {
-+	spinlock_t			lock;
-+	void __iomem			*membase;
-+	struct reset_controller_dev	rcdev;
++Required properties:
++- compatible	  : Should be "arm,armv7m-systick"
++- reg		  : The address range of the timer
++
++Required clocking property, have to be one of:
++- clocks	  : The input clock of the timer
++- clock-frequency : The rate in HZ in input of the ARM SysTick
++
++Examples:
++
++systick: timer@e000e010 {
++	compatible = "arm,armv7m-systick";
++	reg = <0xe000e010 0x10>;
++	clocks = <&clk_systick>;
 +};
 +
-+static int stm32_reset_assert(struct reset_controller_dev *rcdev,
-+			      unsigned long id)
-+{
-+	struct stm32_reset_data *data = container_of(rcdev,
-+						     struct stm32_reset_data,
-+						     rcdev);
-+	int bank = id / BITS_PER_LONG;
-+	int offset = id % BITS_PER_LONG;
-+	unsigned long flags;
-+	u32 reg;
-+
-+	spin_lock_irqsave(&data->lock, flags);
-+
-+	reg = readl_relaxed(data->membase + (bank * 4));
-+	writel_relaxed(reg | BIT(offset), data->membase + (bank * 4));
-+
-+	spin_unlock_irqrestore(&data->lock, flags);
-+
-+	return 0;
-+}
-+
-+static int stm32_reset_deassert(struct reset_controller_dev *rcdev,
-+				unsigned long id)
-+{
-+	struct stm32_reset_data *data = container_of(rcdev,
-+						     struct stm32_reset_data,
-+						     rcdev);
-+	int bank = id / BITS_PER_LONG;
-+	int offset = id % BITS_PER_LONG;
-+	unsigned long flags;
-+	u32 reg;
-+
-+	spin_lock_irqsave(&data->lock, flags);
-+
-+	reg = readl_relaxed(data->membase + (bank * 4));
-+	writel_relaxed(reg & ~BIT(offset), data->membase + (bank * 4));
-+
-+	spin_unlock_irqrestore(&data->lock, flags);
-+
-+	return 0;
-+}
-+
-+static struct reset_control_ops stm32_reset_ops = {
-+	.assert		= stm32_reset_assert,
-+	.deassert	= stm32_reset_deassert,
++systick: timer@e000e010 {
++	compatible = "arm,armv7m-systick";
++	reg = <0xe000e010 0x10>;
++	clock-frequency = <90000000>;
 +};
-+
-+static const struct of_device_id stm32_reset_dt_ids[] = {
-+	 { .compatible = "st,stm32-rcc", },
-+	 { /* sentinel */ },
-+};
-+MODULE_DEVICE_TABLE(of, sstm32_reset_dt_ids);
-+
-+static int stm32_reset_probe(struct platform_device *pdev)
-+{
-+	struct stm32_reset_data *data;
-+	struct resource *res;
-+
-+	data = devm_kzalloc(&pdev->dev, sizeof(*data), GFP_KERNEL);
-+	if (!data)
-+		return -ENOMEM;
-+
-+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-+	data->membase = devm_ioremap_resource(&pdev->dev, res);
-+	if (IS_ERR(data->membase))
-+		return PTR_ERR(data->membase);
-+
-+	spin_lock_init(&data->lock);
-+
-+	data->rcdev.owner = THIS_MODULE;
-+	data->rcdev.nr_resets = resource_size(res) * 8;
-+	data->rcdev.ops = &stm32_reset_ops;
-+	data->rcdev.of_node = pdev->dev.of_node;
-+
-+	return reset_controller_register(&data->rcdev);
-+}
-+
-+static int stm32_reset_remove(struct platform_device *pdev)
-+{
-+	struct stm32_reset_data *data = platform_get_drvdata(pdev);
-+
-+	reset_controller_unregister(&data->rcdev);
-+
-+	return 0;
-+}
-+
-+static struct platform_driver stm32_reset_driver = {
-+	.probe	= stm32_reset_probe,
-+	.remove	= stm32_reset_remove,
-+	.driver = {
-+		.name		= "stm32-rcc-reset",
-+		.of_match_table	= stm32_reset_dt_ids,
-+	},
-+};
-+module_platform_driver(stm32_reset_driver);
-+
-+MODULE_AUTHOR("Maxime Coquelin <maxime.coquelin@gmail.com>");
-+MODULE_DESCRIPTION("STM32 MCUs Reset Controller Driver");
-+MODULE_LICENSE("GPL");
-+
 -- 
 1.9.1
 
