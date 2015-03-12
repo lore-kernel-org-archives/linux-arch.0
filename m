@@ -1,49 +1,63 @@
-From: Sasha Levin <sasha.levin@oracle.com>
-Subject: Re: [PATCH] mm: kill kmemcheck
-Date: Thu, 12 Mar 2015 08:51:08 -0400
-Message-ID: <55018BBC.6010903@oracle.com>
-References: <1426074547-21888-1-git-send-email-sasha.levin@oracle.com>
- <55013B38.6040100@iki.fi>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <55013B38.6040100@iki.fi>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Pekka Enberg <penberg@iki.fi>, linux-kernel@vger.kernel.org
-Cc: Vladimir Davydov <vdavydov@parallels.com>, Geert Uytterhoeven <geert+renesas@glider.be>, SUPERH <linux-sh@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Jianyu Zhan <nasa4836@gmail.com>, Paul Mackerras <paulus@samba.org>, Pavel Machek <pavel@ucw.cz>, Miklos Szeredi <mszeredi@suse.cz>, Christoph Lameter <cl@linux.com>, Marek Szyprowski <m.szyprowski@samsung.com>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, Russell King <linux@arm.linux.org.uk>, Jingoo Han <jg1.han@samsung.com>, James Morris <jmorris@namei.org>, Chris Bainbridge <chris.bainbridge@gmail.com>, Antti Palosaari <crope@iki.fi>, Mel Gorman <mgorman@suse.de>, Ritesh Harjani <ritesh.harjani@gmail.com>, Shaohua Li <shli@kernel.org>, Alexander Duyck <alexander.h.duyck@intel.com>, Wang Nan <wangnan0@huawei.com>, Jiri
-List-Id: linux-arch.vger.kernel.org
+From: Jiri Slaby <jslaby@suse.cz>
+Subject: [patch added to the 3.12 stable tree] vm: make stack guard page errors return VM_FAULT_SIGSEGV rather than SIGBUS
+Date: Thu, 12 Mar 2015 16:52:09 +0100
+Message-ID: <1426175534-29874-3-git-send-email-jslaby@suse.cz>
+References: <1426175534-29874-1-git-send-email-jslaby@suse.cz>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ip4-83-240-67-251.cust.nbox.cz ([83.240.67.251]:52620 "EHLO
+	ip4-83-240-18-248.cust.nbox.cz" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S932585AbbCLPwQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 12 Mar 2015 11:52:16 -0400
+In-Reply-To: <1426175534-29874-1-git-send-email-jslaby@suse.cz>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: stable@vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Jiri Slaby <jslaby@suse.cz>
 
-T24gMDMvMTIvMjAxNSAwMzowNyBBTSwgUGVra2EgRW5iZXJnIHdyb3RlOgo+IEhpIFNhc2hhLAo+
-IAo+IE9uIDMvMTEvMTUgMTo0MyBQTSwgU2FzaGEgTGV2aW4gd3JvdGU6Cj4+IEFzIGRpc2N1c3Nl
-ZCBvbiBMU0YvTU0sIGtpbGwga21lbWNoZWNrLgo+Pgo+PiBLQVNhbiBpcyBhIHJlcGxhY2VtZW50
-IHRoYXQgaXMgYWJsZSB0byB3b3JrIHdpdGhvdXQgdGhlIGxpbWl0YXRpb24gb2YKPj4ga21lbWNo
-ZWNrIChzaW5nbGUgQ1BVLCBzbG93KS4gS0FTYW4gaXMgYWxyZWFkeSB1cHN0cmVhbS4KPj4KPj4g
-V2UgYXJlIGFsc28gbm90IGF3YXJlIG9mIGFueSB1c2VycyBvZiBrbWVtY2hlY2sgKG9yIHVzZXJz
-IHdobyBkb24ndCBjb25zaWRlcgo+PiBLQVNhbiBhcyBhIHN1aXRhYmxlIHJlcGxhY2VtZW50KS4K
-Pj4KPj4gSSd2ZSBidWlsZCB0ZXN0ZWQgaXQgdXNpbmcgYWxsW3llcyxubyxtb2RdY29uZmlnIGFu
-ZCBmdXp6ZWQgYSBiaXQgd2l0aCB0aGlzCj4+IHBhdGNoIGFwcGxpZWQsIGRpZG4ndCBub3RpY2Ug
-YW55IGJhZCBiZWhhdmlvdXIuCj4+Cj4+IFNpZ25lZC1vZmYtYnk6IFNhc2hhIExldmluIDxzYXNo
-YS5sZXZpbkBvcmFjbGUuY29tPgo+IAo+IENhbiB5b3UgZWxhYm9yYXRlIG9uIHdoYXQgZXhhY3Rs
-eSB3YXMgZGlzY3Vzc2VkIGF0IExTRi9NTT8gUHJlZmVyYWJseSBpbiB0aGUgY29tbWl0IGxvZy4g
-Oy0pCgpUaGVyZSB3YXNuJ3QgYSBsb25nIGRpc2N1c3Npb24gYWJvdXQgcmVtb3Zpbmcga21lbWNo
-ZWNrLCBpdCBqdXN0IGZvbGxvd2VkIHVwCmEgS0FTYW4gdG9waWMgYW5kIHRoZSBxdWVzdGlvbiBv
-ZiB3aGV0aGVyIGttZW1jaGVjayBjYW4gYmUgZGVwcmVjYXRlZCBub3cKdGhhdCBLQVNhbiBpcyBt
-ZXJnZWQgY2FtZSB1cC4KCk5vIG9uZSBhdCB0aGUgcm9vbSBkaWRuJ3QgdXNlIGl0LCBrbmV3IGEg
-dXNlciBvZiBpdCwgb3IgY291bGRuJ3QgZGVzY3JpYmUgYQp1c2VjYXNlIHdoZXJlIGttZW1jaGVj
-ayB3YXMgc3VwZXJpb3IgdG8gS0FTYW4gLSBzbyB0aGUgY29uY2x1c2lvbiB3YXMgdG8gdHJ5CmFu
-ZCByZXBsYWNlIGl0LgoKVGhlIG9ubHkgdGhpbmcgSSBjYW4gcmVhbGx5IHB1dCBpbiB0aGUgY2hh
-bmdlbG9nIGlzIGEgcmVmZXJlbmNlIHRvIHRoZSBLQVNhbgpkb2NzIGFuZCB0byBhc2sgZm9sa3Mg
-dG8gY29tcGxhaW4gbG91ZGx5IGlmIHdlIG1pc3NlZCBhIHVzZWNhc2UuCgoKVGhhbmtzLApTYXNo
-YQpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpMaW51eHBw
-Yy1kZXYgbWFpbGluZyBsaXN0CkxpbnV4cHBjLWRldkBsaXN0cy5vemxhYnMub3JnCmh0dHBzOi8v
-bGlzdHMub3psYWJzLm9yZy9saXN0aW5mby9saW51eHBwYy1kZXY=
+From: Linus Torvalds <torvalds@linux-foundation.org>
+
+This patch has been added to the 3.12 stable tree. If you have any
+objections, please let us know.
+
+===============
+
+commit 9c145c56d0c8a0b62e48c8d71e055ad0fb2012ba upstream.
+
+The stack guard page error case has long incorrectly caused a SIGBUS
+rather than a SIGSEGV, but nobody actually noticed until commit
+fee7e49d4514 ("mm: propagate error from stack expansion even for guard
+page") because that error case was never actually triggered in any
+normal situations.
+
+Now that we actually report the error, people noticed the wrong signal
+that resulted.  So far, only the test suite of libsigsegv seems to have
+actually cared, but there are real applications that use libsigsegv, so
+let's not wait for any of those to break.
+
+Reported-and-tested-by: Takashi Iwai <tiwai@suse.de>
+Tested-by: Jan Engelhardt <jengelh@inai.de>
+Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com> # "s390 still compiles and boots"
+Cc: linux-arch@vger.kernel.org
+Cc: stable@vger.kernel.org
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+---
+ mm/memory.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mm/memory.c b/mm/memory.c
+index 7c11dd8b9571..9d6f692c49c3 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -3226,7 +3226,7 @@ static int do_anonymous_page(struct mm_struct *mm, struct vm_area_struct *vma,
+ 
+ 	/* Check if we need to add a guard page to the stack */
+ 	if (check_stack_guard_page(vma, address) < 0)
+-		return VM_FAULT_SIGBUS;
++		return VM_FAULT_SIGSEGV;
+ 
+ 	/* Use the zero-page for reads */
+ 	if (!(flags & FAULT_FLAG_WRITE)) {
+-- 
+2.3.0
