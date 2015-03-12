@@ -1,38 +1,65 @@
-From: Pekka Enberg <penberg@iki.fi>
-Subject: Re: [PATCH] mm: kill kmemcheck
-Date: Thu, 12 Mar 2015 09:07:36 +0200
-Message-ID: <55013B38.6040100@iki.fi>
-References: <1426074547-21888-1-git-send-email-sasha.levin@oracle.com>
+From: Tobias Klauser <tklauser@distanz.ch>
+Subject: Re: nios2: is the ptrace ABI correct?
+Date: Thu, 12 Mar 2015 12:07:22 +0100
+Message-ID: <20150312110722.GB894@distanz.ch>
+References: <CAAEAJfDjDYY-Z6cPyrddCXiFJzrjNx8jkSAJZuokeEM9NU6WWg@mail.gmail.com>
+ <10088870.tldQegtTla@wuerfel>
+ <54EDB2FC.4050901@vanguardiasur.com.ar>
+ <10841724.NbdcAaCe1a@wuerfel>
+ <54F03184.7080600@codesourcery.com>
+ <54F052B1.4070300@vanguardiasur.com.ar>
+ <54FDD041.3080500@codesourcery.com>
+ <54FDD219.1060707@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; Format="flowed"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <1426074547-21888-1-git-send-email-sasha.levin@oracle.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Sasha Levin <sasha.levin@oracle.com>, linux-kernel@vger.kernel.org
-Cc: Vladimir Davydov <vdavydov@parallels.com>, Geert Uytterhoeven <geert+renesas@glider.be>, SUPERH <linux-sh@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Jianyu Zhan <nasa4836@gmail.com>, Paul Mackerras <paulus@samba.org>, Pavel Machek <pavel@ucw.cz>, Miklos Szeredi <mszeredi@suse.cz>, Christoph Lameter <cl@linux.com>, Marek Szyprowski <m.szyprowski@samsung.com>, "open list:GENERIC INCLUDE/A..." <linux-arch@vger.kernel.org>, Andi Kleen <ak@linux.intel.com>, Russell King <linux@arm.linux.org.uk>, Jingoo Han <jg1.han@samsung.com>, James Morris <jmorris@namei.org>, Chris Bainbridge <chris.bainbridge@gmail.com>, Antti Palosaari <crope@iki.fi>, Mel Gorman <mgorman@suse.de>, Ritesh Harjani <ritesh.harjani@gmail.com>, Shaohua Li <shli@kernel.org>, Alexander Duyck <alexander.h.duyck@intel.com>, Wang Nan <wangnan0@huawei.com>, Jiri
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from sym2.noone.org ([178.63.92.236]:59377 "EHLO sym2.noone.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753132AbbCLLMd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 12 Mar 2015 07:12:33 -0400
+Content-Disposition: inline
+In-Reply-To: <54FDD219.1060707@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chung-Lin Tang <chunglin.tang@gmail.com>
+Cc: Chung-Lin Tang <cltang@codesourcery.com>, Ezequiel Garcia <ezequiel@vanguardiasur.com.ar>, Arnd Bergmann <arnd@arndb.de>, Ley Foon Tan <lftan@altera.com>, Walter Goossens <waltergoossens@home.nl>, linux-arch@vger.kernel.org, "nios2-dev@lists.rocketboards.org" <nios2-dev@lists.rocketboards.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-SGkgU2FzaGEsCgpPbiAzLzExLzE1IDE6NDMgUE0sIFNhc2hhIExldmluIHdyb3RlOgo+IEFzIGRp
-c2N1c3NlZCBvbiBMU0YvTU0sIGtpbGwga21lbWNoZWNrLgo+Cj4gS0FTYW4gaXMgYSByZXBsYWNl
-bWVudCB0aGF0IGlzIGFibGUgdG8gd29yayB3aXRob3V0IHRoZSBsaW1pdGF0aW9uIG9mCj4ga21l
-bWNoZWNrIChzaW5nbGUgQ1BVLCBzbG93KS4gS0FTYW4gaXMgYWxyZWFkeSB1cHN0cmVhbS4KPgo+
-IFdlIGFyZSBhbHNvIG5vdCBhd2FyZSBvZiBhbnkgdXNlcnMgb2Yga21lbWNoZWNrIChvciB1c2Vy
-cyB3aG8gZG9uJ3QgY29uc2lkZXIKPiBLQVNhbiBhcyBhIHN1aXRhYmxlIHJlcGxhY2VtZW50KS4K
-Pgo+IEkndmUgYnVpbGQgdGVzdGVkIGl0IHVzaW5nIGFsbFt5ZXMsbm8sbW9kXWNvbmZpZyBhbmQg
-ZnV6emVkIGEgYml0IHdpdGggdGhpcwo+IHBhdGNoIGFwcGxpZWQsIGRpZG4ndCBub3RpY2UgYW55
-IGJhZCBiZWhhdmlvdXIuCj4KPiBTaWduZWQtb2ZmLWJ5OiBTYXNoYSBMZXZpbiA8c2FzaGEubGV2
-aW5Ab3JhY2xlLmNvbT4KCkNhbiB5b3UgZWxhYm9yYXRlIG9uIHdoYXQgZXhhY3RseSB3YXMgZGlz
-Y3Vzc2VkIGF0IExTRi9NTT8gUHJlZmVyYWJseSBpbiAKdGhlIGNvbW1pdCBsb2cuIDstKQoKLSBQ
-ZWtrYQpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpMaW51
-eHBwYy1kZXYgbWFpbGluZyBsaXN0CkxpbnV4cHBjLWRldkBsaXN0cy5vemxhYnMub3JnCmh0dHBz
-Oi8vbGlzdHMub3psYWJzLm9yZy9saXN0aW5mby9saW51eHBwYy1kZXY=
+On 2015-03-09 at 18:02:17 +0100, Chung-Lin Tang <chunglin.tang@gmail.com> wrote:
+> On 2015/3/10 12:54 AM, Chung-Lin Tang wrote:
+> > It appears that some of the ways nios2 has organized the
+> > ucontext/pt_regs/etc. are remnants of the pre-generic code, some
+> > basically because the port was based off m68k.
+> > 
+> > I've re-organized the headers a bit: nios2/include/asm/ucontext.h is
+> > deleted, and re-definition of struct sigcontext now allows use of
+> > uapi/asm-generic/ucontext.h directly.  Note that the reorg, despite
+> > effectively renaming some fields, is still binary compatible. I'll
+> > probably update the corresponding glibc definitions later.
+> > 
+> > struct pt_regs is now not exported, and all exported register sets are
+> > now supposed to follow the 49 register set defined as in GDB now.
+> > 
+> > Tobias, Ley Foon, how do you think this looks?
+> 
+> Sorry, accidentally attached unrelated GCC patch instead, this one's the
+> correct one.
+
+Sorry for jumping into the discussion so late. The patch looks fine to
+me as well. Only one minor nit below. Since Ley Foon already applied it
+as is, I'll just send a followup patch.
+
+Thanks Ezequiel, Chung-Lin and Ley Foon for pushing this! Looking
+forward to have strace support on nios2.
+
+[...]
+> diff --git a/arch/nios2/include/uapi/asm/Kbuild b/arch/nios2/include/uapi/asm/Kbuild
+> index 4f07ca3f8..37613119 100644
+> --- a/arch/nios2/include/uapi/asm/Kbuild
+> +++ b/arch/nios2/include/uapi/asm/Kbuild
+> @@ -2,3 +2,5 @@ include include/uapi/asm-generic/Kbuild.asm
+>  
+>  header-y += elf.h
+>  header-y += ucontext.h
+
+This should no longer be needed now that the non-generic ucontext.h is
+gone.
