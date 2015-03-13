@@ -1,810 +1,261 @@
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Subject: Re: [PATCH v3 10/15] serial: stm32-usart: Add STM32 USART Driver
-Date: Fri, 13 Mar 2015 16:19:20 +0200
-Message-ID: <CAHp75Vd7+oLiLLuyocYh95TebtocWrRho6xNjuSUt8fYGp8npg@mail.gmail.com>
-References: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
-	<1426197361-19290-11-git-send-email-maxime.coquelin@st.com>
+From: Mkhize Mthembu <mkhizemthembu399@gmail.com>
+Subject: PLEASE GET BACK TO ME AS SOON AS YOU RECEIVE THIS EMAIL
+Date: Fri, 13 Mar 2015 21:44:27 +0000 (UTC)
+Message-ID: <1117750665.4285665.1426283067123.JavaMail.yahoo__42234.0621277273$1426283647$gmane$org@mail.yahoo.com>
+References: <1426192137.72270.YahooMailBasic@web120102.mail.ne1.yahoo.com> <2085002574.3582519.1426198857641.JavaMail.yahoo@mail.yahoo.com> <549752705.4222680.1426278954470.JavaMail.yahoo@mail.yahoo.com> <1023500844.4272251.1426283004103.JavaMail.yahoo@mail.yahoo.com> <1368102510.11588.1426283034729.JavaMail.yahoo@mail.yahoo.com>
+Reply-To: Mkhize Mthembu <mkhizemthembu50@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: multipart/mixed;
+	boundary="----=_Part_4285664_637764618.1426283067123"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yk0-f182.google.com ([209.85.160.182]:43885 "EHLO
-	mail-yk0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753046AbbCMOTW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Mar 2015 10:19:22 -0400
-In-Reply-To: <1426197361-19290-11-git-send-email-maxime.coquelin@st.com>
+Received: from nm42-vm6.bullet.mail.ne1.yahoo.com ([98.138.121.62]:40282 "EHLO
+	nm42-vm6.bullet.mail.ne1.yahoo.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754122AbbCMVxl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 13 Mar 2015 17:53:41 -0400
+In-Reply-To: <1368102510.11588.1426283034729.JavaMail.yahoo@mail.yahoo.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Cc: u.kleine-koenig@pengutronix.de, afaerber@suse.de, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>
 
-On Thu, Mar 12, 2015 at 11:55 PM, Maxime Coquelin
-<mcoquelin.stm32@gmail.com> wrote:
-> From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
->
-> This drivers adds support to the STM32 USART controller, which is a
-> standard serial driver.
-
-My comment below.
-
->
-> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-> ---
->  drivers/tty/serial/Kconfig       |  17 +
->  drivers/tty/serial/Makefile      |   1 +
->  drivers/tty/serial/stm32-usart.c | 695 +++++++++++++++++++++++++++++++++++++++
->  include/uapi/linux/serial_core.h |   3 +
->  4 files changed, 716 insertions(+)
->  create mode 100644 drivers/tty/serial/stm32-usart.c
->
-> diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-> index d2501f0..880cb4f 100644
-> --- a/drivers/tty/serial/Kconfig
-> +++ b/drivers/tty/serial/Kconfig
-> @@ -1611,6 +1611,23 @@ config SERIAL_SPRD_CONSOLE
->           with "earlycon" on the kernel command line. The console is
->           enabled when early_param is processed.
->
-> +config SERIAL_STM32
-> +       tristate "STMicroelectronics STM32 serial port support"
-> +       select SERIAL_CORE
-> +       depends on ARM || COMPILE_TEST
-> +       help
-> +         This driver is for the on-chip Serial Controller on
-> +         STMicroelectronics STM32 MCUs.
-> +         USART supports Rx & Tx functionality.
-> +         It support all industry standard baud rates.
-> +
-> +         If unsure, say N.
-> +
-> +config SERIAL_STM32_CONSOLE
-> +       bool "Support for console on STM32"
-> +       depends on SERIAL_STM32=y
-> +       select SERIAL_CORE_CONSOLE
-> +
->  endmenu
->
->  config SERIAL_MCTRL_GPIO
-> diff --git a/drivers/tty/serial/Makefile b/drivers/tty/serial/Makefile
-> index 599be4b..67c5023 100644
-> --- a/drivers/tty/serial/Makefile
-> +++ b/drivers/tty/serial/Makefile
-> @@ -95,6 +95,7 @@ obj-$(CONFIG_SERIAL_FSL_LPUART)       += fsl_lpuart.o
->  obj-$(CONFIG_SERIAL_CONEXANT_DIGICOLOR)        += digicolor-usart.o
->  obj-$(CONFIG_SERIAL_MEN_Z135)  += men_z135_uart.o
->  obj-$(CONFIG_SERIAL_SPRD) += sprd_serial.o
-> +obj-$(CONFIG_SERIAL_STM32)     += stm32-usart.o
->
->  # GPIOLIB helpers for modem control lines
->  obj-$(CONFIG_SERIAL_MCTRL_GPIO)        += serial_mctrl_gpio.o
-> diff --git a/drivers/tty/serial/stm32-usart.c b/drivers/tty/serial/stm32-usart.c
-> new file mode 100644
-> index 0000000..61bb065
-> --- /dev/null
-> +++ b/drivers/tty/serial/stm32-usart.c
-> @@ -0,0 +1,695 @@
-> +/*
-> + * Copyright (C) Maxime Coquelin 2015
-> + * Author:  Maxime Coquelin <mcoquelin.stm32@gmail.com>
-> + * License terms:  GNU General Public License (GPL), version 2
-> + *
-> + * Inspired by st-asc.c from STMicroelectronics (c)
-> + */
-> +
-> +#if defined(CONFIG_SERIAL_STM32_USART_CONSOLE) && defined(CONFIG_MAGIC_SYSRQ)
-> +#define SUPPORT_SYSRQ
-> +#endif
-> +
-> +#include <linux/module.h>
-> +#include <linux/serial.h>
-> +#include <linux/console.h>
-> +#include <linux/sysrq.h>
-> +#include <linux/platform_device.h>
-> +#include <linux/io.h>
-> +#include <linux/irq.h>
-> +#include <linux/tty.h>
-> +#include <linux/tty_flip.h>
-> +#include <linux/delay.h>
-> +#include <linux/spinlock.h>
-> +#include <linux/pm_runtime.h>
-> +#include <linux/of.h>
-> +#include <linux/of_platform.h>
-> +#include <linux/serial_core.h>
-> +#include <linux/clk.h>
-> +
-> +#define DRIVER_NAME "stm32-usart"
-> +
-> +/* Register offsets */
-> +#define USART_SR               0x00
-> +#define USART_DR               0x04
-> +#define USART_BRR              0x08
-> +#define USART_CR1              0x0c
-> +#define USART_CR2              0x10
-> +#define USART_CR3              0x14
-> +#define USART_GTPR             0x18
-> +
-> +/* USART_SR */
-> +#define USART_SR_PE            BIT(0)
-> +#define USART_SR_FE            BIT(1)
-> +#define USART_SR_NF            BIT(2)
-> +#define USART_SR_ORE           BIT(3)
-> +#define USART_SR_IDLE          BIT(4)
-> +#define USART_SR_RXNE          BIT(5)
-> +#define USART_SR_TC            BIT(6)
-> +#define USART_SR_TXE           BIT(7)
-> +#define USART_SR_LBD           BIT(8)
-> +#define USART_SR_CTS           BIT(9)
-> +#define USART_SR_ERR_MASK      (USART_SR_LBD | USART_SR_ORE | \
-> +                                USART_SR_FE | USART_SR_PE)
-> +/* Dummy bits */
-> +#define USART_SR_DUMMY_RX      BIT(16)
-> +
-> +/* USART_DR */
-> +#define USART_DR_MASK          GENMASK(8, 0)
-> +
-> +/* USART_BRR */
-> +#define USART_BRR_DIV_F_MASK   GENMASK(3, 0)
-> +#define USART_BRR_DIV_M_MASK   GENMASK(15, 4)
-> +#define USART_BRR_DIV_M_SHIFT  4
-> +
-> +/* USART_CR1 */
-> +#define USART_CR1_SBK          BIT(0)
-> +#define USART_CR1_RWU          BIT(1)
-> +#define USART_CR1_RE           BIT(2)
-> +#define USART_CR1_TE           BIT(3)
-> +#define USART_CR1_IDLEIE       BIT(4)
-> +#define USART_CR1_RXNEIE       BIT(5)
-> +#define USART_CR1_TCIE         BIT(6)
-> +#define USART_CR1_TXEIE                BIT(7)
-> +#define USART_CR1_PEIE         BIT(8)
-> +#define USART_CR1_PS           BIT(9)
-> +#define USART_CR1_PCE          BIT(10)
-> +#define USART_CR1_WAKE         BIT(11)
-> +#define USART_CR1_M            BIT(12)
-> +#define USART_CR1_UE           BIT(13)
-> +#define USART_CR1_OVER8                BIT(15)
-> +#define USART_CR1_IE_MASK      GENMASK(8, 4)
-> +
-> +/* USART_CR2 */
-> +#define USART_CR2_ADD_MASK     GENMASK(3, 0)
-> +#define USART_CR2_LBDL         BIT(5)
-> +#define USART_CR2_LBDIE                BIT(6)
-> +#define USART_CR2_LBCL         BIT(8)
-> +#define USART_CR2_CPHA         BIT(9)
-> +#define USART_CR2_CPOL         BIT(10)
-> +#define USART_CR2_CLKEN                BIT(11)
-> +#define USART_CR2_STOP_2B      BIT(13)
-> +#define USART_CR2_STOP_MASK    GENMASK(13, 12)
-> +#define USART_CR2_LINEN                BIT(14)
-> +
-> +/* USART_CR3 */
-> +#define USART_CR3_EIE          BIT(0)
-> +#define USART_CR3_IREN         BIT(1)
-> +#define USART_CR3_IRLP         BIT(2)
-> +#define USART_CR3_HDSEL                BIT(3)
-> +#define USART_CR3_NACK         BIT(4)
-> +#define USART_CR3_SCEN         BIT(5)
-> +#define USART_CR3_DMAR         BIT(6)
-> +#define USART_CR3_DMAT         BIT(7)
-> +#define USART_CR3_RTSE         BIT(8)
-> +#define USART_CR3_CTSE         BIT(9)
-> +#define USART_CR3_CTSIE                BIT(10)
-> +#define USART_CR3_ONEBIT       BIT(11)
-> +
-> +/* USART_GTPR */
-> +#define USART_GTPR_PSC_MASK    GENMASK(7, 0)
-> +#define USART_GTPR_GT_MASK     GENMASK(15, 8)
-> +
-> +#define DRIVER_NAME "stm32-usart"
-> +#define STM32_SERIAL_NAME "ttyS"
-> +#define STM32_MAX_PORTS 6
-> +
-> +struct stm32_port {
-> +       struct uart_port port;
-> +       struct clk *clk;
-> +};
-> +
-> +static struct stm32_port stm32_ports[STM32_MAX_PORTS];
-> +static struct uart_driver stm32_usart_driver;
-> +
-> +static void stm32_stop_tx(struct uart_port *port);
-> +
-> +static void stm32_set_bits(struct uart_port *port, u32 reg, u32 bits)
-> +{
-> +       u32 val;
-> +
-> +       val = readl_relaxed(port->membase + reg);
-> +       val |= bits;
-> +       writel_relaxed(val, port->membase + reg);
-> +}
-> +
-> +static void stm32_clr_bits(struct uart_port *port, u32 reg, u32 bits)
-> +{
-> +       u32 val;
-> +
-> +       val = readl_relaxed(port->membase + reg);
-> +       val &= ~bits;
-> +       writel_relaxed(val, port->membase + reg);
-> +}
-> +
-> +static void stm32_receive_chars(struct uart_port *port)
-> +{
-> +       struct tty_port *tport = &port->state->port;
-> +       unsigned long c;
-> +       u32 sr;
-> +       char flag;
-> +
-> +       if (port->irq_wake)
-> +               pm_wakeup_event(tport->tty->dev, 0);
-> +
-> +       while ((sr = readl_relaxed(port->membase + USART_SR)) & USART_SR_RXNE) {
-> +               sr |= USART_SR_DUMMY_RX;
-> +               c = readl_relaxed(port->membase + USART_DR);
-> +               flag = TTY_NORMAL;
-> +               port->icount.rx++;
-> +
-> +               if (sr & USART_SR_ERR_MASK) {
-> +                       if (sr & USART_SR_LBD) {
-> +                               port->icount.brk++;
-> +                               if (uart_handle_break(port))
-> +                                       continue;
-> +                       } else if (sr & USART_SR_ORE) {
-> +                               port->icount.overrun++;
-> +                       } else if (sr & USART_SR_PE) {
-> +                               port->icount.parity++;
-> +                       } else if (sr & USART_SR_FE) {
-> +                               port->icount.frame++;
-> +                       }
-> +
-> +                       sr &= port->read_status_mask;
-> +
-> +                       if (sr & USART_SR_LBD)
-> +                               flag = TTY_BREAK;
-> +                       else if (sr & USART_SR_PE)
-> +                               flag = TTY_PARITY;
-> +                       else if (sr & USART_SR_FE)
-> +                               flag = TTY_FRAME;
-> +               }
-> +
-> +               if (uart_handle_sysrq_char(port, c))
-> +                       continue;
-> +               uart_insert_char(port, sr, USART_SR_ORE, c, flag);
-> +       }
-> +
-> +       spin_unlock(&port->lock);
-> +       tty_flip_buffer_push(tport);
-> +       spin_lock(&port->lock);
-> +}
-> +
-> +static void stm32_transmit_chars(struct uart_port *port)
-> +{
-> +       struct circ_buf *xmit = &port->state->xmit;
-> +
-> +       if (port->x_char) {
-> +               writel_relaxed(port->x_char, port->membase + USART_DR);
-> +               port->x_char = 0;
-> +               port->icount.tx++;
-> +               return;
-> +       }
-> +
-> +       if (uart_tx_stopped(port)) {
-> +               stm32_stop_tx(port);
-> +               return;
-> +       }
-> +
-> +       if (uart_circ_empty(xmit)) {
-> +               stm32_stop_tx(port);
-> +               return;
-> +       }
-> +
-> +       writel_relaxed(xmit->buf[xmit->tail], port->membase + USART_DR);
-> +       xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
-> +       port->icount.tx++;
-> +
-> +       if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
-> +               uart_write_wakeup(port);
-> +
-> +       if (uart_circ_empty(xmit))
-> +               stm32_stop_tx(port);
-> +}
-> +
-> +static irqreturn_t stm32_interrupt(int irq, void *ptr)
-> +{
-> +       struct uart_port *port = ptr;
-> +       u32 sr;
-> +
-> +       spin_lock(&port->lock);
-> +
-> +       sr = readl_relaxed(port->membase + USART_SR);
-> +
-> +       if (sr & USART_SR_RXNE)
-> +               stm32_receive_chars(port);
-> +
-> +       if (sr & USART_SR_TXE)
-> +               stm32_transmit_chars(port);
-> +
-> +       spin_unlock(&port->lock);
-> +
-> +       return IRQ_HANDLED;
-> +}
-> +
-> +static unsigned int stm32_tx_empty(struct uart_port *port)
-> +{
-> +       return readl_relaxed(port->membase + USART_SR) & USART_SR_TXE;
-> +}
-> +
-> +static void stm32_set_mctrl(struct uart_port *port, unsigned int mctrl)
-> +{
-> +       /*
-> +        * This routine is used for seting signals of: DTR, DCD, CTS/RTS
-> +        * We use USART's hardware for CTS/RTS, so don't need any for that.
-> +        * Some boards have DTR and DCD implemented using PIO pins,
-> +        * code to do this should be hooked in here.
-> +        */
-> +}
-> +
-> +static unsigned int stm32_get_mctrl(struct uart_port *port)
-> +{
-> +       /*
-> +        * This routine is used for geting signals of: DTR, DCD, DSR, RI,
-> +        * and CTS/RTS
-> +        */
-> +       return TIOCM_CAR | TIOCM_DSR | TIOCM_CTS;
-> +}
-> +
-> +/* There are probably characters waiting to be transmitted. */
-> +static void stm32_start_tx(struct uart_port *port)
-> +{
-> +       struct circ_buf *xmit = &port->state->xmit;
-> +
-> +       if (uart_circ_empty(xmit))
-> +               return;
-> +
-> +       stm32_set_bits(port, USART_CR1, USART_CR1_TXEIE | USART_CR1_TE);
-> +}
-> +
-> +/* Transmit stop */
-> +static void stm32_stop_tx(struct uart_port *port)
-> +{
-> +       stm32_clr_bits(port, USART_CR1, USART_CR1_TXEIE);
-> +}
-> +
-> +/* Receive stop */
-> +static void stm32_stop_rx(struct uart_port *port)
-> +{
-> +       stm32_clr_bits(port, USART_CR1, USART_CR1_RXNEIE);
-> +}
-> +
-> +/* Handle breaks - ignored by us */
-> +static void stm32_break_ctl(struct uart_port *port, int break_state)
-> +{
-> +       /* Nothing here yet .. */
-> +}
-> +
-> +static int stm32_startup(struct uart_port *port)
-> +{
-> +       const char *name = to_platform_device(port->dev)->name;
-> +       u32 val;
-> +
-> +       if (request_irq(port->irq, stm32_interrupt, IRQF_NO_SUSPEND,
-> +                               name, port)) {
-> +               dev_err(port->dev, "cannot allocate irq %d\n", port->irq);
-> +               return -ENODEV;
-> +       }
-> +
-> +       val = USART_CR1_RXNEIE | USART_CR1_TE | USART_CR1_RE;
-> +       stm32_set_bits(port, USART_CR1, val);
-> +
-> +       return 0;
-> +}
-> +
-> +static void stm32_shutdown(struct uart_port *port)
-> +{
-> +       u32 val;
-> +
-> +       val = USART_CR1_TXEIE | USART_CR1_RXNEIE | USART_CR1_TE | USART_CR1_RE;
-> +       stm32_set_bits(port, USART_CR1, val);
-> +
-> +       free_irq(port->irq, port);
-> +}
-> +
-> +static void stm32_set_termios(struct uart_port *port, struct ktermios *termios,
-> +                           struct ktermios *old)
-> +{
-> +       unsigned int baud;
-> +       u32 usardiv, mantissa, fraction;
-> +       tcflag_t cflag;
-> +       u32 cr1, cr2, cr3;
-> +       unsigned long flags;
-> +
-> +       baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk / 16);
-> +       cflag = termios->c_cflag;
-> +
-> +       spin_lock_irqsave(&port->lock, flags);
-> +
-> +       /* Stop serial port and reset value */
-> +       writel_relaxed(0, port->membase + USART_CR1);
-> +
-> +       cr1 = USART_CR1_TE | USART_CR1_RE | USART_CR1_UE | USART_CR1_RXNEIE;
-> +
-> +       if (cflag & CSTOPB)
-> +               cr2 = USART_CR2_STOP_2B;
-> +
-> +       if (cflag & PARENB) {
-> +               cr1 |= USART_CR1_PCE;
-> +               if ((cflag & CSIZE) == CS8)
-> +                       cr1 |= USART_CR1_M;
-> +       }
-> +
-> +       if (cflag & PARODD)
-> +               cr1 |= USART_CR1_PS;
-> +
-> +       if (cflag & CRTSCTS)
-> +               cr3 = USART_CR3_RTSE | USART_CR3_CTSE;
-> +
-> +       usardiv = (port->uartclk * 25) / (baud * 4);
-> +       mantissa = (usardiv / 100) << USART_BRR_DIV_M_SHIFT;
-> +       fraction = DIV_ROUND_CLOSEST((usardiv % 100) * 16, 100);
-> +       if (fraction & ~USART_BRR_DIV_F_MASK) {
-> +               fraction = 0;
-> +               mantissa += (1 << USART_BRR_DIV_M_SHIFT);
-> +       }
-
-So, it's a fractional divider. right? Could it be then fractional
-divider clock in this first place (see
-drivers/clk/clk-fractional-divider.c)?
-
-> +
-> +       writel_relaxed(mantissa | fraction, port->membase + USART_BRR);
-> +
-> +       uart_update_timeout(port, cflag, baud);
-> +
-> +       port->read_status_mask = USART_SR_ORE;
-> +       if (termios->c_iflag & INPCK)
-> +               port->read_status_mask |= USART_SR_PE | USART_SR_FE;
-> +       if (termios->c_iflag & (IGNBRK | BRKINT | PARMRK))
-> +               port->read_status_mask |= USART_SR_LBD;
-> +
-> +       /* Characters to ignore */
-> +       port->ignore_status_mask = 0;
-> +       if (termios->c_iflag & IGNPAR)
-> +               port->ignore_status_mask = USART_SR_PE | USART_SR_FE;
-> +       if (termios->c_iflag & IGNBRK) {
-> +               port->ignore_status_mask |= USART_SR_LBD;
-> +               /*
-> +                * If we're ignoring parity and break indicators,
-> +                * ignore overruns too (for real raw support).
-> +                */
-> +               if (termios->c_iflag & IGNPAR)
-> +                       port->ignore_status_mask |= USART_SR_ORE;
-> +       }
-> +
-> +       /*
-> +        * Ignore all characters if CREAD is not set.
-> +        */
-> +       if ((termios->c_cflag & CREAD) == 0)
-> +               port->ignore_status_mask |= USART_SR_DUMMY_RX;
-> +
-> +       writel_relaxed(cr3, port->membase + USART_CR3);
-> +       writel_relaxed(cr2, port->membase + USART_CR2);
-> +       writel_relaxed(cr1, port->membase + USART_CR1);
-> +
-> +       spin_unlock_irqrestore(&port->lock, flags);
-> +}
-> +
-> +static const char *stm32_type(struct uart_port *port)
-> +{
-> +       return (port->type == PORT_STM32) ? DRIVER_NAME : NULL;
-> +}
-> +
-> +static void stm32_release_port(struct uart_port *port)
-> +{
-> +}
-> +
-> +static int stm32_request_port(struct uart_port *port)
-> +{
-> +       return 0;
-> +}
-> +
-> +static void stm32_config_port(struct uart_port *port, int flags)
-> +{
-> +       if ((flags & UART_CONFIG_TYPE))
-> +               port->type = PORT_STM32;
-> +}
-> +
-> +static int
-> +stm32_verify_port(struct uart_port *port, struct serial_struct *ser)
-> +{
-> +       /* No user changeable parameters */
-> +       return -EINVAL;
-> +}
-> +
-> +static void stm32_pm(struct uart_port *port, unsigned int state,
-> +               unsigned int oldstate)
-> +{
-> +       struct stm32_port *stm32port = container_of(port,
-> +                       struct stm32_port, port);
-> +       unsigned long flags = 0;
-> +
-> +       switch (state) {
-> +       case UART_PM_STATE_ON:
-> +               clk_prepare_enable(stm32port->clk);
-> +               break;
-> +       case UART_PM_STATE_OFF:
-> +               spin_lock_irqsave(&port->lock, flags);
-> +               stm32_clr_bits(port, USART_CR1, USART_CR1_UE);
-> +               spin_unlock_irqrestore(&port->lock, flags);
-> +               clk_disable_unprepare(stm32port->clk);
-> +               break;
-> +       }
-> +}
-> +
-> +static struct uart_ops stm32_uart_ops = {
-> +       .tx_empty       = stm32_tx_empty,
-> +       .set_mctrl      = stm32_set_mctrl,
-> +       .get_mctrl      = stm32_get_mctrl,
-> +       .start_tx       = stm32_start_tx,
-> +       .stop_tx        = stm32_stop_tx,
-> +       .stop_rx        = stm32_stop_rx,
-> +       .break_ctl      = stm32_break_ctl,
-> +       .startup        = stm32_startup,
-> +       .shutdown       = stm32_shutdown,
-> +       .set_termios    = stm32_set_termios,
-> +       .type           = stm32_type,
-> +       .release_port   = stm32_release_port,
-> +       .request_port   = stm32_request_port,
-> +       .config_port    = stm32_config_port,
-> +       .verify_port    = stm32_verify_port,
-> +       .pm             = stm32_pm,
-> +};
-> +
-> +static int stm32_init_port(struct stm32_port *stm32port,
-> +                         struct platform_device *pdev)
-> +{
-> +       struct uart_port *port = &stm32port->port;
-> +       struct resource *res;
-> +
-> +       port->iotype    = UPIO_MEM;
-> +       port->flags     = UPF_BOOT_AUTOCONF;
-> +       port->ops       = &stm32_uart_ops;
-> +       port->dev       = &pdev->dev;
-> +       port->irq       = platform_get_irq(pdev, 0);
-> +
-> +       res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-> +       port->membase = devm_ioremap_resource(&pdev->dev, res);
-> +       if (IS_ERR(port->membase))
-> +               return PTR_ERR(port->membase);
-> +       port->mapbase = res->start;
-> +
-> +       spin_lock_init(&port->lock);
-> +
-> +       stm32port->clk = devm_clk_get(&pdev->dev, NULL);
-> +
-> +       if (WARN_ON(IS_ERR(stm32port->clk)))
-> +               return -EINVAL;
-> +
-> +       /* ensure that clk rate is correct by enabling the clk */
-> +       clk_prepare_enable(stm32port->clk);
-> +       stm32port->port.uartclk = clk_get_rate(stm32port->clk);
-> +       WARN_ON(stm32port->port.uartclk == 0);
-> +       clk_disable_unprepare(stm32port->clk);
-> +
-> +       return 0;
-> +}
-> +
-> +static struct stm32_port *stm32_of_get_stm32_port(struct platform_device *pdev)
-> +{
-> +       struct device_node *np = pdev->dev.of_node;
-> +       int id;
-> +
-> +       if (!np)
-> +               return NULL;
-> +
-> +       id = of_alias_get_id(np, STM32_SERIAL_NAME);
-> +
-> +       if (id < 0)
-> +               id = 0;
-> +
-> +       if (WARN_ON(id >= STM32_MAX_PORTS))
-> +               return NULL;
-> +
-> +       stm32_ports[id].port.line = id;
-> +       return &stm32_ports[id];
-> +}
-> +
-> +#ifdef CONFIG_OF
-> +static const struct of_device_id stm32_match[] = {
-> +       { .compatible = "st,stm32-usart", },
-> +       {},
-> +};
-> +
-> +MODULE_DEVICE_TABLE(of, stm32_match);
-> +#endif
-> +
-> +static int stm32_serial_probe(struct platform_device *pdev)
-> +{
-> +       int ret;
-> +       struct stm32_port *stm32port;
-> +
-> +       stm32port = stm32_of_get_stm32_port(pdev);
-> +       if (!stm32port)
-> +               return -ENODEV;
-> +
-> +       ret = stm32_init_port(stm32port, pdev);
-> +       if (ret)
-> +               return ret;
-> +
-> +       ret = uart_add_one_port(&stm32_usart_driver, &stm32port->port);
-> +       if (ret)
-> +               return ret;
-> +
-> +       platform_set_drvdata(pdev, &stm32port->port);
-> +
-> +       return 0;
-> +}
-> +
-> +static int stm32_serial_remove(struct platform_device *pdev)
-> +{
-> +       struct uart_port *port = platform_get_drvdata(pdev);
-> +
-> +       return uart_remove_one_port(&stm32_usart_driver, port);
-> +}
-> +
-> +
-> +#ifdef CONFIG_SERIAL_STM32_CONSOLE
-> +static void stm32_console_putchar(struct uart_port *port, int ch)
-> +{
-> +       while (!(readl_relaxed(port->membase + USART_SR) & USART_SR_TXE))
-> +               cpu_relax();
-> +
-> +       writel_relaxed(ch, port->membase + USART_DR);
-> +}
-> +
-> +static void stm32_console_write(struct console *co, const char *s, unsigned cnt)
-> +{
-> +       struct uart_port *port = &stm32_ports[co->index].port;
-> +       unsigned long flags;
-> +       u32 old_cr1, new_cr1;
-> +       int locked = 1;
-> +
-> +       if (oops_in_progress) {
-> +               locked = spin_trylock_irqsave(&port->lock, flags);
-> +       } else {
-> +               locked = 1;
-> +               spin_lock_irqsave(&port->lock, flags);
-> +       }
-> +
-> +       /* Save and disable interrupts */
-> +       old_cr1 = readl_relaxed(port->membase + USART_CR1);
-> +       new_cr1 = old_cr1 & ~USART_CR1_IE_MASK;
-> +       writel_relaxed(new_cr1, port->membase + USART_CR1);
-> +
-> +       uart_console_write(port, s, cnt, stm32_console_putchar);
-> +
-> +       /* Restore interrupt state */
-> +       writel_relaxed(old_cr1, port->membase + USART_CR1);
-> +
-> +       if (locked)
-> +               spin_unlock_irqrestore(&port->lock, flags);
-> +}
-> +
-> +static int stm32_console_setup(struct console *co, char *options)
-> +{
-> +       struct stm32_port *stm32port;
-> +       int baud = 9600;
-> +       int bits = 8;
-> +       int parity = 'n';
-> +       int flow = 'n';
-> +
-> +       if (co->index >= STM32_MAX_PORTS)
-> +               return -ENODEV;
-> +
-> +       stm32port = &stm32_ports[co->index];
-> +
-> +       /*
-> +        * This driver does not support early console initialization
-> +        * (use ARM early printk support instead), so we only expect
-> +        * this to be called during the uart port registration when the
-> +        * driver gets probed and the port should be mapped at that point.
-> +        */
-> +       if (stm32port->port.mapbase == 0 || stm32port->port.membase == NULL)
-> +               return -ENXIO;
-> +
-> +       if (options)
-> +               uart_parse_options(options, &baud, &parity, &bits, &flow);
-> +
-> +       return uart_set_options(&stm32port->port, co, baud, parity, bits, flow);
-> +}
-> +
-> +static struct console stm32_console = {
-> +       .name           = STM32_SERIAL_NAME,
-> +       .device         = uart_console_device,
-> +       .write          = stm32_console_write,
-> +       .setup          = stm32_console_setup,
-> +       .flags          = CON_PRINTBUFFER,
-> +       .index          = -1,
-> +       .data           = &stm32_usart_driver,
-> +};
-> +
-> +#define STM32_SERIAL_CONSOLE (&stm32_console)
-> +
-> +#else
-> +#define STM32_SERIAL_CONSOLE NULL
-> +#endif /* CONFIG_SERIAL_STM32_CONSOLE */
-> +
-> +static struct uart_driver stm32_usart_driver = {
-> +       .owner          = THIS_MODULE,
-> +       .driver_name    = DRIVER_NAME,
-> +       .dev_name       = STM32_SERIAL_NAME,
-> +       .major          = 0,
-> +       .minor          = 0,
-> +       .nr             = STM32_MAX_PORTS,
-> +       .cons           = STM32_SERIAL_CONSOLE,
-> +};
-> +
-> +static struct platform_driver stm32_serial_driver = {
-> +       .probe          = stm32_serial_probe,
-> +       .remove         = stm32_serial_remove,
-> +       .driver = {
-> +               .name   = DRIVER_NAME,
-> +               .owner  = THIS_MODULE,
-> +               .of_match_table = of_match_ptr(stm32_match),
-> +       },
-> +};
-> +
-> +static int __init usart_init(void)
-> +{
-> +       int ret;
-> +       static char banner[] __initdata =
-> +               KERN_INFO "STM32 USART driver initialized\n";
-> +
-> +       printk(banner);
-> +
-> +       ret = uart_register_driver(&stm32_usart_driver);
-> +       if (ret)
-> +               return ret;
-> +
-> +       ret = platform_driver_register(&stm32_serial_driver);
-> +       if (ret)
-> +               uart_unregister_driver(&stm32_usart_driver);
-> +
-> +       return ret;
-> +}
-> +
-> +static void __exit usart_exit(void)
-> +{
-> +       platform_driver_unregister(&stm32_serial_driver);
-> +       uart_unregister_driver(&stm32_usart_driver);
-> +}
-> +
-> +module_init(usart_init);
-> +module_exit(usart_exit);
-> +
-> +MODULE_ALIAS("platform:" DRIVER_NAME);
-> +MODULE_DESCRIPTION("STMicroelectronics STM32 serial port driver");
-> +MODULE_LICENSE("GPL");
-> diff --git a/include/uapi/linux/serial_core.h b/include/uapi/linux/serial_core.h
-> index b212281..e22dee5 100644
-> --- a/include/uapi/linux/serial_core.h
-> +++ b/include/uapi/linux/serial_core.h
-> @@ -258,4 +258,7 @@
->  /* Cris v10 / v32 SoC */
->  #define PORT_CRIS      112
->
-> +/* STM32 USART */
-> +#define PORT_STM32     110
-> +
->  #endif /* _UAPILINUX_SERIAL_CORE_H */
-> --
-> 1.9.1
->
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+------=_Part_4285664_637764618.1426283067123
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
 
 
--- 
-With Best Regards,
-Andy Shevchenko
+------=_Part_4285664_637764618.1426283067123
+Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="Mkhize Mthembu.docx"
+Content-ID: <2d45825d-7e6a-7169-93e5-49999e6e3b83@yahoo.com>
+
+UEsDBBQABgAIAAAAIQDd/JU3ZgEAACAFAAATAAgCW0NvbnRlbnRfVHlwZXNdLnhtbCCiBAIooAAC
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAC0
+VMtuwjAQvFfqP0S+Vomhh6qqCBz6OLZIpR9g7A1Y9Uv28vr7bgJEVQtBKuUSKVnvzOzsxIPR2pps
+CTFp70rWL3osAye90m5Wso/JS37PsoTCKWG8g5JtILHR8PpqMNkESBl1u1SyOWJ44DzJOViRCh/A
+UaXy0Qqk1zjjQchPMQN+2+vdcekdgsMcaww2HDxBJRYGs+c1fd4qiWASyx63B2uukokQjJYCSSlf
+OvWDJd8xFNTZnElzHdINyWD8IENdOU6w63sja6JWkI1FxFdhSQZf+ai48nJhaYaiG+aATl9VWkLb
+X6OF6CWkRJ5bU7QVK7Tb6z+qI+HGQPp/FVvcLnrSOY4+JE57OZsf6s0rUDlZESCihnZ1x0cHRLLs
+EsPvkLvGb1KAlHfgzbN/tgcNzEnKin6JiZgaOJvvV/Ja6JMiVjB9v5j738C7hLT5kz7+wYz9dVF3
+H0gdb+634RcAAAD//wMAUEsDBBQABgAIAAAAIQAekRq38wAAAE4CAAALAAgCX3JlbHMvLnJlbHMg
+ogQCKKAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAjJLbSgNBDIbvBd9hyH032woi0tneSKF3IusDhJnsAXcOzKTavr2jILpQ217m9OfLT9ab
+g5vUO6c8Bq9hWdWg2JtgR99reG23iwdQWchbmoJnDUfOsGlub9YvPJGUoTyMMaui4rOGQSQ+ImYz
+sKNchci+VLqQHEkJU4+RzBv1jKu6vsf0VwOamabaWQ1pZ+9AtcdYNl/WDl03Gn4KZu/Yy4kVyAdh
+b9kuYipsScZyjWop9SwabDDPJZ2RYqwKNuBpotX1RP9fi46FLAmhCYnP83x1nANaXg902aJ5x687
+HyFZLBZ9e/tDg7MvaD4BAAD//wMAUEsDBBQABgAIAAAAIQDWZLNR+gAAADEDAAAcAAgBd29yZC9f
+cmVscy9kb2N1bWVudC54bWwucmVscyCiBAEooAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+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
+cy54bWxQSwUGAAAAAAsACwDBAgAAzy8AAAAA
+
+------=_Part_4285664_637764618.1426283067123--
