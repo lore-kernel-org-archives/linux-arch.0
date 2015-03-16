@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f177.google.com ([209.85.223.177]:34321 "EHLO
-	mail-ie0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S964990AbbCPS13 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Mar 2015 14:27:29 -0400
-Received: by iecsl2 with SMTP id sl2so177972723iec.1
-        for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2015 11:27:28 -0700 (PDT)
+Received: from mail-ig0-f176.google.com ([209.85.213.176]:36468 "EHLO
+	mail-ig0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932739AbbCPS1U (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Mar 2015 14:27:20 -0400
+Received: by igbue6 with SMTP id ue6so49903709igb.1
+        for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2015 11:27:20 -0700 (PDT)
 From: Milosz Tanski <milosz@adfin.com>
-Subject: [PATCH v7 5/5] xfs: add RWF_NONBLOCK support
-Date: Mon, 16 Mar 2015 14:27:15 -0400
-Message-ID: <0a6f2c2297bfbfd7220e3c4d6bce34fc42bc22fb.1426528417.git.milosz@adfin.com>
+Subject: [PATCH v7 1/5] vfs: Prepare for adding a new preadv/pwritev with user flags.
+Date: Mon, 16 Mar 2015 14:27:11 -0400
+Message-ID: <cbe6f9910ed4603916c1082c47944c96330d4a15.1426528417.git.milosz@adfin.com>
 In-Reply-To: <cover.1426528417.git.milosz@adfin.com>
 References: <cover.1426528417.git.milosz@adfin.com>
 In-Reply-To: <cover.1426528417.git.milosz@adfin.com>
@@ -16,76 +16,231 @@ References: <cover.1426528417.git.milosz@adfin.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Christoph Hellwig <hch@lst.de>, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20150316182715.7o2htrKUyIwwP9DbaOntkjNayy8xOQ4ElsayZTKwXWI@z>
+Cc: Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20150316182711.FgGHwgM1TZm-mDFfztsyCdXL-eY8qVZpw9Idx2wiht0@z>
 
-From: Christoph Hellwig <hch@lst.de>
+Plumbing the flags argument through the vfs code so they can be passed down to
+__generic_file_(read/write)_iter function that do the acctual work.
 
-Add support for non-blocking reads.  The guts are handled by the generic
-code, the only addition is a non-blocking variant of xfs_rw_ilock.
-
-Signed-off-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Milosz Tanski <milosz@adfin.com>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
+Reviewed-by: Jeff Moyer <jmoyer@redhat.com>
 ---
- fs/xfs/xfs_file.c | 32 +++++++++++++++++++++++++++-----
- 1 file changed, 27 insertions(+), 5 deletions(-)
+ drivers/target/target_core_file.c |  6 +++---
+ fs/nfsd/vfs.c                     |  4 ++--
+ fs/read_write.c                   | 27 +++++++++++++++------------
+ fs/splice.c                       |  2 +-
+ include/linux/aio.h               |  2 ++
+ include/linux/fs.h                |  4 ++--
+ 6 files changed, 25 insertions(+), 20 deletions(-)
 
-diff --git a/fs/xfs/xfs_file.c b/fs/xfs/xfs_file.c
-index a38ddc1..69333a7 100644
---- a/fs/xfs/xfs_file.c
-+++ b/fs/xfs/xfs_file.c
-@@ -59,6 +59,25 @@ xfs_rw_ilock(
- 	xfs_ilock(ip, type);
+diff --git a/drivers/target/target_core_file.c b/drivers/target/target_core_file.c
+index 44620fb..fdd0a10 100644
+--- a/drivers/target/target_core_file.c
++++ b/drivers/target/target_core_file.c
+@@ -351,9 +351,9 @@ static int fd_do_rw(struct se_cmd *cmd, struct scatterlist *sgl,
+ 	set_fs(get_ds());
+ 
+ 	if (is_write)
+-		ret = vfs_writev(fd, &iov[0], sgl_nents, &pos);
++		ret = vfs_writev(fd, &iov[0], sgl_nents, &pos, 0);
+ 	else
+-		ret = vfs_readv(fd, &iov[0], sgl_nents, &pos);
++		ret = vfs_readv(fd, &iov[0], sgl_nents, &pos, 0);
+ 
+ 	set_fs(old_fs);
+ 
+@@ -534,7 +534,7 @@ fd_execute_write_same(struct se_cmd *cmd)
+ 
+ 	old_fs = get_fs();
+ 	set_fs(get_ds());
+-	rc = vfs_writev(f, &iov[0], iov_num, &pos);
++	rc = vfs_writev(f, &iov[0], iov_num, &pos, 0);
+ 	set_fs(old_fs);
+ 
+ 	vfree(iov);
+diff --git a/fs/nfsd/vfs.c b/fs/nfsd/vfs.c
+index 3685265..1c6faaa 100644
+--- a/fs/nfsd/vfs.c
++++ b/fs/nfsd/vfs.c
+@@ -893,7 +893,7 @@ __be32 nfsd_readv(struct file *file, loff_t offset, struct kvec *vec, int vlen,
+ 
+ 	oldfs = get_fs();
+ 	set_fs(KERNEL_DS);
+-	host_err = vfs_readv(file, (struct iovec __user *)vec, vlen, &offset);
++	host_err = vfs_readv(file, (struct iovec __user *)vec, vlen, &offset, 0);
+ 	set_fs(oldfs);
+ 	return nfsd_finish_read(file, count, host_err);
+ }
+@@ -980,7 +980,7 @@ nfsd_vfs_write(struct svc_rqst *rqstp, struct svc_fh *fhp, struct file *file,
+ 
+ 	/* Write the data. */
+ 	oldfs = get_fs(); set_fs(KERNEL_DS);
+-	host_err = vfs_writev(file, (struct iovec __user *)vec, vlen, &pos);
++	host_err = vfs_writev(file, (struct iovec __user *)vec, vlen, &pos, 0);
+ 	set_fs(oldfs);
+ 	if (host_err < 0)
+ 		goto out_nfserr;
+diff --git a/fs/read_write.c b/fs/read_write.c
+index 8e1b687..b53bb59 100644
+--- a/fs/read_write.c
++++ b/fs/read_write.c
+@@ -711,7 +711,8 @@ unsigned long iov_shorten(struct iovec *iov, unsigned long nr_segs, size_t to)
+ EXPORT_SYMBOL(iov_shorten);
+ 
+ static ssize_t do_iter_readv_writev(struct file *filp, int rw, const struct iovec *iov,
+-		unsigned long nr_segs, size_t len, loff_t *ppos, iter_fn_t fn)
++		unsigned long nr_segs, size_t len, loff_t *ppos, iter_fn_t fn,
++		int flags)
+ {
+ 	struct kiocb kiocb;
+ 	struct iov_iter iter;
+@@ -720,6 +721,7 @@ static ssize_t do_iter_readv_writev(struct file *filp, int rw, const struct iove
+ 	init_sync_kiocb(&kiocb, filp);
+ 	kiocb.ki_pos = *ppos;
+ 	kiocb.ki_nbytes = len;
++	kiocb.ki_rwflags = flags;
+ 
+ 	iov_iter_init(&iter, rw, iov, nr_segs, len);
+ 	ret = fn(&kiocb, &iter);
+@@ -858,7 +860,8 @@ out:
+ 
+ static ssize_t do_readv_writev(int type, struct file *file,
+ 			       const struct iovec __user * uvector,
+-			       unsigned long nr_segs, loff_t *pos)
++			       unsigned long nr_segs, loff_t *pos,
++			       int flags)
+ {
+ 	size_t tot_len;
+ 	struct iovec iovstack[UIO_FASTIOV];
+@@ -892,7 +895,7 @@ static ssize_t do_readv_writev(int type, struct file *file,
+ 
+ 	if (iter_fn)
+ 		ret = do_iter_readv_writev(file, type, iov, nr_segs, tot_len,
+-						pos, iter_fn);
++						pos, iter_fn, flags);
+ 	else if (fnv)
+ 		ret = do_sync_readv_writev(file, iov, nr_segs, tot_len,
+ 						pos, fnv);
+@@ -915,27 +918,27 @@ out:
  }
  
-+static inline bool
-+xfs_rw_ilock_nowait(
-+	struct xfs_inode	*ip,
-+	int			type)
-+{
-+	if (type & XFS_IOLOCK_EXCL) {
-+		if (!mutex_trylock(&VFS_I(ip)->i_mutex))
-+			return false;
-+		if (!xfs_ilock_nowait(ip, type)) {
-+			mutex_unlock(&VFS_I(ip)->i_mutex);
-+			return false;
-+		}
-+	} else {
-+		if (!xfs_ilock_nowait(ip, type))
-+			return false;
-+	}
-+	return true;
-+}
-+
- static inline void
- xfs_rw_iunlock(
- 	struct xfs_inode	*ip,
-@@ -280,10 +299,6 @@ xfs_file_read_iter(
+ ssize_t vfs_readv(struct file *file, const struct iovec __user *vec,
+-		  unsigned long vlen, loff_t *pos)
++		  unsigned long vlen, loff_t *pos, int flags)
+ {
+ 	if (!(file->f_mode & FMODE_READ))
+ 		return -EBADF;
+ 	if (!(file->f_mode & FMODE_CAN_READ))
+ 		return -EINVAL;
  
- 	XFS_STATS_INC(xs_read_calls);
+-	return do_readv_writev(READ, file, vec, vlen, pos);
++	return do_readv_writev(READ, file, vec, vlen, pos, flags);
+ }
  
--	/* XXX: need a non-blocking iolock helper, shouldn't be too hard */
--	if (iocb->ki_rwflags & RWF_NONBLOCK)
--		return -EAGAIN;
--
- 	if (unlikely(file->f_flags & O_DIRECT))
- 		ioflags |= XFS_IO_ISDIRECT;
- 	if (file->f_mode & FMODE_NOCMTIME)
-@@ -321,7 +336,14 @@ xfs_file_read_iter(
- 	 * This allows the normal direct IO case of no page cache pages to
- 	 * proceeed concurrently without serialisation.
+ EXPORT_SYMBOL(vfs_readv);
+ 
+ ssize_t vfs_writev(struct file *file, const struct iovec __user *vec,
+-		   unsigned long vlen, loff_t *pos)
++		   unsigned long vlen, loff_t *pos, int flags)
+ {
+ 	if (!(file->f_mode & FMODE_WRITE))
+ 		return -EBADF;
+ 	if (!(file->f_mode & FMODE_CAN_WRITE))
+ 		return -EINVAL;
+ 
+-	return do_readv_writev(WRITE, file, vec, vlen, pos);
++	return do_readv_writev(WRITE, file, vec, vlen, pos, flags);
+ }
+ 
+ EXPORT_SYMBOL(vfs_writev);
+@@ -948,7 +951,7 @@ SYSCALL_DEFINE3(readv, unsigned long, fd, const struct iovec __user *, vec,
+ 
+ 	if (f.file) {
+ 		loff_t pos = file_pos_read(f.file);
+-		ret = vfs_readv(f.file, vec, vlen, &pos);
++		ret = vfs_readv(f.file, vec, vlen, &pos, 0);
+ 		if (ret >= 0)
+ 			file_pos_write(f.file, pos);
+ 		fdput_pos(f);
+@@ -968,7 +971,7 @@ SYSCALL_DEFINE3(writev, unsigned long, fd, const struct iovec __user *, vec,
+ 
+ 	if (f.file) {
+ 		loff_t pos = file_pos_read(f.file);
+-		ret = vfs_writev(f.file, vec, vlen, &pos);
++		ret = vfs_writev(f.file, vec, vlen, &pos, 0);
+ 		if (ret >= 0)
+ 			file_pos_write(f.file, pos);
+ 		fdput_pos(f);
+@@ -1000,7 +1003,7 @@ SYSCALL_DEFINE5(preadv, unsigned long, fd, const struct iovec __user *, vec,
+ 	if (f.file) {
+ 		ret = -ESPIPE;
+ 		if (f.file->f_mode & FMODE_PREAD)
+-			ret = vfs_readv(f.file, vec, vlen, &pos);
++			ret = vfs_readv(f.file, vec, vlen, &pos, 0);
+ 		fdput(f);
+ 	}
+ 
+@@ -1024,7 +1027,7 @@ SYSCALL_DEFINE5(pwritev, unsigned long, fd, const struct iovec __user *, vec,
+ 	if (f.file) {
+ 		ret = -ESPIPE;
+ 		if (f.file->f_mode & FMODE_PWRITE)
+-			ret = vfs_writev(f.file, vec, vlen, &pos);
++			ret = vfs_writev(f.file, vec, vlen, &pos, 0);
+ 		fdput(f);
+ 	}
+ 
+@@ -1072,7 +1075,7 @@ static ssize_t compat_do_readv_writev(int type, struct file *file,
+ 
+ 	if (iter_fn)
+ 		ret = do_iter_readv_writev(file, type, iov, nr_segs, tot_len,
+-						pos, iter_fn);
++						pos, iter_fn, 0);
+ 	else if (fnv)
+ 		ret = do_sync_readv_writev(file, iov, nr_segs, tot_len,
+ 						pos, fnv);
+diff --git a/fs/splice.c b/fs/splice.c
+index 7968da9..ee3fd4c 100644
+--- a/fs/splice.c
++++ b/fs/splice.c
+@@ -576,7 +576,7 @@ static ssize_t kernel_readv(struct file *file, const struct iovec *vec,
+ 	old_fs = get_fs();
+ 	set_fs(get_ds());
+ 	/* The cast to a user pointer is valid due to the set_fs() */
+-	res = vfs_readv(file, (const struct iovec __user *)vec, vlen, &pos);
++	res = vfs_readv(file, (const struct iovec __user *)vec, vlen, &pos, 0);
+ 	set_fs(old_fs);
+ 
+ 	return res;
+diff --git a/include/linux/aio.h b/include/linux/aio.h
+index d9c92da..9c1d499 100644
+--- a/include/linux/aio.h
++++ b/include/linux/aio.h
+@@ -52,6 +52,8 @@ struct kiocb {
+ 	 * this is the underlying eventfd context to deliver events to.
  	 */
--	xfs_rw_ilock(ip, XFS_IOLOCK_SHARED);
-+	if (iocb->ki_rwflags & RWF_NONBLOCK) {
-+		if (ioflags & XFS_IO_ISDIRECT)
-+			return -EAGAIN;
-+		if (!xfs_rw_ilock_nowait(ip, XFS_IOLOCK_SHARED))
-+			return -EAGAIN;
-+	} else {
-+		xfs_rw_ilock(ip, XFS_IOLOCK_SHARED);
-+	}
- 	if ((ioflags & XFS_IO_ISDIRECT) && inode->i_mapping->nrpages) {
- 		xfs_rw_iunlock(ip, XFS_IOLOCK_SHARED);
- 		xfs_rw_ilock(ip, XFS_IOLOCK_EXCL);
+ 	struct eventfd_ctx	*ki_eventfd;
++
++	int			ki_rwflags;
+ };
+ 
+ static inline bool is_sync_kiocb(struct kiocb *kiocb)
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index b4d71b5..c018335 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -1619,9 +1619,9 @@ extern ssize_t __vfs_read(struct file *, char __user *, size_t, loff_t *);
+ extern ssize_t vfs_read(struct file *, char __user *, size_t, loff_t *);
+ extern ssize_t vfs_write(struct file *, const char __user *, size_t, loff_t *);
+ extern ssize_t vfs_readv(struct file *, const struct iovec __user *,
+-		unsigned long, loff_t *);
++		unsigned long, loff_t *, int);
+ extern ssize_t vfs_writev(struct file *, const struct iovec __user *,
+-		unsigned long, loff_t *);
++		unsigned long, loff_t *, int);
+ 
+ struct super_operations {
+    	struct inode *(*alloc_inode)(struct super_block *sb);
 -- 
 1.9.1
 
