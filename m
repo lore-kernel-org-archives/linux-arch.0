@@ -1,55 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.citrix.com ([66.165.176.89]:48430 "EHLO SMTP.CITRIX.COM"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754448AbbCPOJL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 Mar 2015 10:09:11 -0400
-Message-ID: <5506E3FA.7040304@citrix.com>
-Date: Mon, 16 Mar 2015 14:08:58 +0000
-From: David Vrabel <david.vrabel@citrix.com>
-MIME-Version: 1.0
-Subject: Re: [Xen-devel] [PATCH 0/9] qspinlock stuff -v15
-References: <20150316131613.720617163@infradead.org>
-In-Reply-To: <20150316131613.720617163@infradead.org>
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
+Received: from mail-ig0-f180.google.com ([209.85.213.180]:36535 "EHLO
+	mail-ig0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933710AbbCPS1Z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Mar 2015 14:27:25 -0400
+Received: by igbue6 with SMTP id ue6so49905408igb.1
+        for <linux-arch@vger.kernel.org>; Mon, 16 Mar 2015 11:27:24 -0700 (PDT)
+From: Milosz Tanski <milosz@adfin.com>
+Subject: [PATCH v7 3/5] x86: wire up preadv2 and pwritev2
+Date: Mon, 16 Mar 2015 14:27:13 -0400
+Message-ID: <18a9557048c5f8b66d0cbcc54a31b95af5dfcfac.1426528417.git.milosz@adfin.com>
+In-Reply-To: <cover.1426528417.git.milosz@adfin.com>
+References: <cover.1426528417.git.milosz@adfin.com>
+In-Reply-To: <cover.1426528417.git.milosz@adfin.com>
+References: <cover.1426528417.git.milosz@adfin.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Waiman.Long@hp.com
-Cc: raghavendra.kt@linux.vnet.ibm.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, hpa@zytor.com, boris.ostrovsky@oracle.com, linux-arch@vger.kernel.org, x86@kernel.org, mingo@redhat.com, doug.hatch@hp.com, xen-devel@lists.xenproject.org, paulmck@linux.vnet.ibm.com, riel@redhat.com, scott.norton@hp.com, paolo.bonzini@gmail.com, tglx@linutronix.de, virtualization@lists.linux-foundation.org, oleg@redhat.com, luto@amacapital.net, david.vrabel@citrix.com, torvalds@linux-foundation.org
-Message-ID: <20150316140858.eb_4cnCYkIpLPL_oO8D6bapXLvQykD3zIzSZ1llv9aQ@z>
+To: linux-kernel@vger.kernel.org
+Cc: Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20150316182713.EV3IavagYJ5JR3JmvTNvfwwi0IdP10T8uAwD4RQjPqs@z>
 
-On 16/03/15 13:16, Peter Zijlstra wrote:
-> Hi Waiman,
-> 
-> As promised; here is the paravirt stuff I did during the trip to BOS last week.
-> 
-> All the !paravirt patches are more or less the same as before (the only real
-> change is the copyright lines in the first patch).
-> 
-> The paravirt stuff is 'simple' and KVM only -- the Xen code was a little more
-> convoluted and I've no real way to test that but it should be stright fwd to
-> make work.
-> 
-> I ran this using the virtme tool (thanks Andy) on my laptop with a 4x
-> overcommit on vcpus (16 vcpus as compared to the 4 my laptop actually has) and
-> it both booted and survived a hackbench run (perf bench sched messaging -g 20
-> -l 5000).
-> 
-> So while the paravirt code isn't the most optimal code ever conceived it does work.
-> 
-> Also, the paravirt patching includes replacing the call with "movb $0, %arg1"
-> for the native case, which should greatly reduce the cost of having
-> CONFIG_PARAVIRT_SPINLOCKS enabled on actual hardware.
-> 
-> I feel that if someone were to do a Xen patch we can go ahead and merge this
-> stuff (finally!).
+Signed-off-by: Milosz Tanski <milosz@adfin.com>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/x86/syscalls/syscall_32.tbl | 2 ++
+ arch/x86/syscalls/syscall_64.tbl | 2 ++
+ 2 files changed, 4 insertions(+)
 
-I can look at this.  It looks pretty straight-forward.
+diff --git a/arch/x86/syscalls/syscall_32.tbl b/arch/x86/syscalls/syscall_32.tbl
+index b3560ec..b37aa9c 100644
+--- a/arch/x86/syscalls/syscall_32.tbl
++++ b/arch/x86/syscalls/syscall_32.tbl
+@@ -365,3 +365,5 @@
+ 356	i386	memfd_create		sys_memfd_create
+ 357	i386	bpf			sys_bpf
+ 358	i386	execveat		sys_execveat			stub32_execveat
++359	i386	preadv2			sys_preadv2
++360	i386	pwritev2		sys_pwritev2
+diff --git a/arch/x86/syscalls/syscall_64.tbl b/arch/x86/syscalls/syscall_64.tbl
+index 8d656fb..3802ebf 100644
+--- a/arch/x86/syscalls/syscall_64.tbl
++++ b/arch/x86/syscalls/syscall_64.tbl
+@@ -329,6 +329,8 @@
+ 320	common	kexec_file_load		sys_kexec_file_load
+ 321	common	bpf			sys_bpf
+ 322	64	execveat		stub_execveat
++323	64	preadv2			sys_preadv2
++324	64	pwritev2		sys_pwritev2
+ 
+ #
+ # x32-specific system call numbers start at 512 to avoid cache impact
+-- 
+1.9.1
 
-> These patches do not implement the paravirt spinlock debug stats currently
-> implemented (separately) by KVM and Xen, but that should not be too hard to do
-> on top and in the 'generic' code -- no reason to duplicate all that.
-
-I think this is fine.
-
-David
