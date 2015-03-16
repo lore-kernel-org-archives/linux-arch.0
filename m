@@ -1,85 +1,152 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-db3on0092.outbound.protection.outlook.com ([157.55.234.92]:22208
-	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S934806AbbCPTXr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 Mar 2015 15:23:47 -0400
-Message-ID: <201503161908.t2GJ8fs5021877@farm-0002.internal.tilera.com>
-From: Chris Metcalf <cmetcalf@ezchip.com>
-Date: Mon, 16 Mar 2015 15:04:05 -0400
-Subject: [PATCH] tile: use si_int instead of si_ptr for compat_siginfo
-In-Reply-To: <20150225103750.GC22206@localhost>
-References: <20150225103750.GC22206@localhost>
-  <1423563011-12377-1-git-send-email-bamvor.zhangjian@huawei.com>
-  <20150210122718.GC32052@e104818-lin.cambridge.arm.com>
-  <54DB3B60.4050100@huawei.com>
-  <20150211154054.GD9058@e104818-lin.cambridge.arm.com>
-  <54DDAF2B.2070707@huawei.com>
-  <20150213104455.GA3508@e104818-lin.cambridge.arm.com>
-  <54DE730D.3090100@ezchip.com> <20150214112220.GB10246@MBP.local>
-  <54ECF309.3020509@ezchip.com>
+Received: from mga09.intel.com ([134.134.136.24]:47294 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754644AbbCPU2I (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 16 Mar 2015 16:28:08 -0400
+Subject: [RFC PATCH 0/7] evacuate struct page from the block layer
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Mon, 16 Mar 2015 16:25:25 -0400
+Message-ID: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, benh@kernel.crashing.org, davem@davemloft.net, mpe@ellerman.id.au, deller@gmx.de, hpa@zytor.com, heiko.carstens@de.ibm.com, Will Deacon <Will.Deacon@arm.com>, jejb@parisc-linux.org, "lizefan@huawei.com" <lizefan@huawei.com>, Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>, ralf@linux-mips.org, "dingtianhong@huawei.com" <dingtianhong@huawei.com>, schwidefsky@de.ibm.com, paulus@samba.org, tglx@linutronix.de, mingo@redhat.com, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20150316190405.GvvxFCZqnNKsMNHUgpe1xDwQObTltZeRpN-ANxpvq10@z>
+Cc: linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@lists.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, hch@infradead.org, linux-fsdevel@vger.kernel.org, Matthew Wilcox <willy@linux.intel.com>
+Message-ID: <20150316202525.CuuDfwKblXagI28flLAhsoJAWgoLqxd6_V58j-jG_cE@z>
 
-To be compatible with the generic get_compat_sigevent(), the
-copy_siginfo_to_user32() and thus copy_siginfo_from_user32()
-have to use si_int instead of si_ptr.  Using si_ptr means that
-for the case of ILP32 compat code running in big-endian mode,
-we would end up copying the high 32 bits of the pointer value
-into si_int instead of the desired low 32 bits.
+Avoid the impending disaster of requiring struct page coverage for what
+is expected to be ever increasing capacities of persistent memory.  In
+conversations with Rik van Riel, Mel Gorman, and Jens Axboe at the
+recently concluded Linux Storage Summit it became clear that struct page
+is not required in many places, it was simply convenient to re-use.
 
-Signed-off-by: Chris Metcalf <cmetcalf@ezchip.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
+Introduce helpers and infrastructure to remove struct page usage where
+it is not necessary.  One use case for these changes is to implement a
+write-back-cache in persistent memory for software-RAID.  Another use
+case for the scatterlist changes is RDMA to a pfn-range.
+
+This compiles and boots, but 0day-kbuild-robot coverage is needed before
+this set exits "RFC".  Obviously, the coccinelle script needs to be
+re-run on the block updates for kernel.next.  As is, this only includes
+the resulting auto-generated-patch against 4.0-rc3.
+
 ---
- arch/tile/kernel/compat_signal.c | 9 +++------
- 1 file changed, 3 insertions(+), 6 deletions(-)
 
-diff --git a/arch/tile/kernel/compat_signal.c b/arch/tile/kernel/compat_signal.c
-index 8c5abf2e4794..bca13054afb4 100644
---- a/arch/tile/kernel/compat_signal.c
-+++ b/arch/tile/kernel/compat_signal.c
-@@ -68,7 +68,7 @@ int copy_siginfo_to_user32(struct compat_siginfo __user *to, const siginfo_t *fr
- 	if (from->si_code < 0) {
- 		err |= __put_user(from->si_pid, &to->si_pid);
- 		err |= __put_user(from->si_uid, &to->si_uid);
--		err |= __put_user(ptr_to_compat(from->si_ptr), &to->si_ptr);
-+		err |= __put_user(from->si_int, &to->si_int);
- 	} else {
- 		/*
- 		 * First 32bits of unions are always present:
-@@ -93,8 +93,7 @@ int copy_siginfo_to_user32(struct compat_siginfo __user *to, const siginfo_t *fr
- 			break;
- 		case __SI_TIMER >> 16:
- 			err |= __put_user(from->si_overrun, &to->si_overrun);
--			err |= __put_user(ptr_to_compat(from->si_ptr),
--					  &to->si_ptr);
-+			err |= __put_user(from->si_int, &to->si_int);
- 			break;
- 			 /* This is not generated by the kernel as of now.  */
- 		case __SI_RT >> 16:
-@@ -110,7 +109,6 @@ int copy_siginfo_to_user32(struct compat_siginfo __user *to, const siginfo_t *fr
- int copy_siginfo_from_user32(siginfo_t *to, struct compat_siginfo __user *from)
- {
- 	int err;
--	u32 ptr32;
- 
- 	if (!access_ok(VERIFY_READ, from, sizeof(struct compat_siginfo)))
- 		return -EFAULT;
-@@ -121,8 +119,7 @@ int copy_siginfo_from_user32(siginfo_t *to, struct compat_siginfo __user *from)
- 
- 	err |= __get_user(to->si_pid, &from->si_pid);
- 	err |= __get_user(to->si_uid, &from->si_uid);
--	err |= __get_user(ptr32, &from->si_ptr);
--	to->si_ptr = compat_ptr(ptr32);
-+	err |= __get_user(to->si_int, &from->si_int);
- 
- 	return err;
- }
--- 
-2.1.2
+Dan Williams (6):
+      block: add helpers for accessing a bio_vec page
+      block: convert bio_vec.bv_page to bv_pfn
+      dma-mapping: allow archs to optionally specify a ->map_pfn() operation
+      scatterlist: use sg_phys()
+      x86: support dma_map_pfn()
+      block: base support for pfn i/o
 
+Matthew Wilcox (1):
+      scatterlist: support "page-less" (__pfn_t only) entries
+
+
+ arch/Kconfig                                 |    3 +
+ arch/arm/mm/dma-mapping.c                    |    2 -
+ arch/microblaze/kernel/dma.c                 |    2 -
+ arch/powerpc/sysdev/axonram.c                |    2 -
+ arch/x86/Kconfig                             |   12 +++
+ arch/x86/kernel/amd_gart_64.c                |   22 ++++--
+ arch/x86/kernel/pci-nommu.c                  |   22 ++++--
+ arch/x86/kernel/pci-swiotlb.c                |    4 +
+ arch/x86/pci/sta2x11-fixup.c                 |    4 +
+ arch/x86/xen/pci-swiotlb-xen.c               |    4 +
+ block/bio-integrity.c                        |    8 +-
+ block/bio.c                                  |   83 +++++++++++++++------
+ block/blk-core.c                             |    9 ++
+ block/blk-integrity.c                        |    7 +-
+ block/blk-lib.c                              |    2 -
+ block/blk-merge.c                            |   15 ++--
+ block/bounce.c                               |   26 +++----
+ drivers/block/aoe/aoecmd.c                   |    8 +-
+ drivers/block/brd.c                          |    2 -
+ drivers/block/drbd/drbd_bitmap.c             |    5 +
+ drivers/block/drbd/drbd_main.c               |    4 +
+ drivers/block/drbd/drbd_receiver.c           |    4 +
+ drivers/block/drbd/drbd_worker.c             |    3 +
+ drivers/block/floppy.c                       |    6 +-
+ drivers/block/loop.c                         |    8 +-
+ drivers/block/nbd.c                          |    8 +-
+ drivers/block/nvme-core.c                    |    2 -
+ drivers/block/pktcdvd.c                      |   11 ++-
+ drivers/block/ps3disk.c                      |    2 -
+ drivers/block/ps3vram.c                      |    2 -
+ drivers/block/rbd.c                          |    2 -
+ drivers/block/rsxx/dma.c                     |    3 +
+ drivers/block/umem.c                         |    2 -
+ drivers/block/zram/zram_drv.c                |   10 +--
+ drivers/dma/ste_dma40.c                      |    5 -
+ drivers/iommu/amd_iommu.c                    |   21 ++++-
+ drivers/iommu/intel-iommu.c                  |   26 +++++--
+ drivers/iommu/iommu.c                        |    2 -
+ drivers/md/bcache/btree.c                    |    4 +
+ drivers/md/bcache/debug.c                    |    6 +-
+ drivers/md/bcache/movinggc.c                 |    2 -
+ drivers/md/bcache/request.c                  |    6 +-
+ drivers/md/bcache/super.c                    |   10 +--
+ drivers/md/bcache/util.c                     |    5 +
+ drivers/md/bcache/writeback.c                |    2 -
+ drivers/md/dm-crypt.c                        |   12 ++-
+ drivers/md/dm-io.c                           |    2 -
+ drivers/md/dm-verity.c                       |    2 -
+ drivers/md/raid1.c                           |   50 +++++++------
+ drivers/md/raid10.c                          |   38 +++++-----
+ drivers/md/raid5.c                           |    6 +-
+ drivers/mmc/card/queue.c                     |    4 +
+ drivers/s390/block/dasd_diag.c               |    2 -
+ drivers/s390/block/dasd_eckd.c               |   14 ++--
+ drivers/s390/block/dasd_fba.c                |    6 +-
+ drivers/s390/block/dcssblk.c                 |    2 -
+ drivers/s390/block/scm_blk.c                 |    2 -
+ drivers/s390/block/scm_blk_cluster.c         |    2 -
+ drivers/s390/block/xpram.c                   |    2 -
+ drivers/scsi/mpt2sas/mpt2sas_transport.c     |    6 +-
+ drivers/scsi/mpt3sas/mpt3sas_transport.c     |    6 +-
+ drivers/scsi/sd_dif.c                        |    4 +
+ drivers/staging/android/ion/ion_chunk_heap.c |    4 +
+ drivers/staging/lustre/lustre/llite/lloop.c  |    2 -
+ drivers/xen/biomerge.c                       |    4 +
+ drivers/xen/swiotlb-xen.c                    |   29 +++++--
+ fs/btrfs/check-integrity.c                   |    6 +-
+ fs/btrfs/compression.c                       |   12 ++-
+ fs/btrfs/disk-io.c                           |    4 +
+ fs/btrfs/extent_io.c                         |    8 +-
+ fs/btrfs/file-item.c                         |    8 +-
+ fs/btrfs/inode.c                             |   18 +++--
+ fs/btrfs/raid56.c                            |    4 +
+ fs/btrfs/volumes.c                           |    2 -
+ fs/buffer.c                                  |    4 +
+ fs/direct-io.c                               |    2 -
+ fs/exofs/ore.c                               |    4 +
+ fs/exofs/ore_raid.c                          |    2 -
+ fs/ext4/page-io.c                            |    2 -
+ fs/f2fs/data.c                               |    4 +
+ fs/f2fs/segment.c                            |    2 -
+ fs/gfs2/lops.c                               |    4 +
+ fs/jfs/jfs_logmgr.c                          |    4 +
+ fs/logfs/dev_bdev.c                          |   10 +--
+ fs/mpage.c                                   |    2 -
+ fs/splice.c                                  |    2 -
+ include/asm-generic/dma-mapping-common.h     |   30 ++++++++
+ include/asm-generic/memory_model.h           |    4 +
+ include/asm-generic/scatterlist.h            |    6 ++
+ include/crypto/scatterwalk.h                 |   10 +++
+ include/linux/bio.h                          |   24 +++---
+ include/linux/blk_types.h                    |   21 +++++
+ include/linux/blkdev.h                       |    2 +
+ include/linux/dma-debug.h                    |   23 +++++-
+ include/linux/dma-mapping.h                  |    8 ++
+ include/linux/scatterlist.h                  |  101 ++++++++++++++++++++++++--
+ include/linux/swiotlb.h                      |    5 +
+ kernel/power/block_io.c                      |    2 -
+ lib/dma-debug.c                              |    4 +
+ lib/swiotlb.c                                |   20 ++++-
+ mm/iov_iter.c                                |   22 +++---
+ mm/page_io.c                                 |    8 +-
+ net/ceph/messenger.c                         |    2 -
+ 103 files changed, 658 insertions(+), 335 deletions(-)
