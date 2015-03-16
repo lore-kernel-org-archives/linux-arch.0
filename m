@@ -1,275 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e32.co.us.ibm.com ([32.97.110.150]:34034 "EHLO
-	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757156AbbCPSiT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Mar 2015 14:38:19 -0400
-Received: from /spool/local
-	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Mon, 16 Mar 2015 12:38:18 -0600
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: [PATCH v2 tip/core/rcu 01/22] smpboot: Add common code for notification from dying CPU
-Date: Mon, 16 Mar 2015 11:37:45 -0700
-Message-ID: <1426531086-23825-1-git-send-email-paulmck@linux.vnet.ibm.com>
-In-Reply-To: <20150316183743.GA21453@linux.vnet.ibm.com>
-References: <20150316183743.GA21453@linux.vnet.ibm.com>
+Received: from mail-db3on0092.outbound.protection.outlook.com ([157.55.234.92]:22208
+	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S934806AbbCPTXr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 16 Mar 2015 15:23:47 -0400
+Message-ID: <201503161908.t2GJ8fs5021877@farm-0002.internal.tilera.com>
+From: Chris Metcalf <cmetcalf@ezchip.com>
+Date: Mon, 16 Mar 2015 15:04:05 -0400
+Subject: [PATCH] tile: use si_int instead of si_ptr for compat_siginfo
+In-Reply-To: <20150225103750.GC22206@localhost>
+References: <20150225103750.GC22206@localhost>
+  <1423563011-12377-1-git-send-email-bamvor.zhangjian@huawei.com>
+  <20150210122718.GC32052@e104818-lin.cambridge.arm.com>
+  <54DB3B60.4050100@huawei.com>
+  <20150211154054.GD9058@e104818-lin.cambridge.arm.com>
+  <54DDAF2B.2070707@huawei.com>
+  <20150213104455.GA3508@e104818-lin.cambridge.arm.com>
+  <54DE730D.3090100@ezchip.com> <20150214112220.GB10246@MBP.local>
+  <54ECF309.3020509@ezchip.com>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: mingo@kernel.org, laijs@cn.fujitsu.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, josh@joshtriplett.org, tglx@linutronix.de, peterz@infradead.org, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, dvhart@linux.intel.com, fweisbec@gmail.com, oleg@redhat.com, bobby.prani@gmail.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150316183745.T6Ih9fucsTUbuQuxb0RXiMdyRtp0lEnKKocI_aO0MZA@z>
+Cc: linux-arch@vger.kernel.org, benh@kernel.crashing.org, davem@davemloft.net, mpe@ellerman.id.au, deller@gmx.de, hpa@zytor.com, heiko.carstens@de.ibm.com, Will Deacon <Will.Deacon@arm.com>, jejb@parisc-linux.org, "lizefan@huawei.com" <lizefan@huawei.com>, Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>, ralf@linux-mips.org, "dingtianhong@huawei.com" <dingtianhong@huawei.com>, schwidefsky@de.ibm.com, paulus@samba.org, tglx@linutronix.de, mingo@redhat.com, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20150316190405.GvvxFCZqnNKsMNHUgpe1xDwQObTltZeRpN-ANxpvq10@z>
 
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+To be compatible with the generic get_compat_sigevent(), the
+copy_siginfo_to_user32() and thus copy_siginfo_from_user32()
+have to use si_int instead of si_ptr.  Using si_ptr means that
+for the case of ILP32 compat code running in big-endian mode,
+we would end up copying the high 32 bits of the pointer value
+into si_int instead of the desired low 32 bits.
 
-RCU ignores offlined CPUs, so they cannot safely run RCU read-side code.
-(They -can- use SRCU, but not RCU.)  This means that any use of RCU
-during or after the call to arch_cpu_idle_dead().  Unfortunately,
-commit 2ed53c0d6cc99 added a complete() call, which will contain RCU
-read-side critical sections if there is a task waiting to be awakened.
-
-Which, as it turns out, there almost never is.  In my qemu/KVM testing,
-the to-be-awakened task is not yet asleep more than 99.5% of the time.
-In current mainline, failure is even harder to reproduce, requiring a
-virtualized environment that delays the outgoing CPU by at least three
-jiffies between the time it exits its stop_machine() task at CPU_DYING
-time and the time it calls arch_cpu_idle_dead() from the idle loop.
-However, this problem really can occur, especially in virtualized
-environments, and therefore really does need to be fixed
-
-This suggests moving back to the polling loop, but using a much shorter
-wait, with gentle exponential backoff instead of the old 100-millisecond
-wait.  Most of the time, the loop will exit without waiting at all,
-and almost all of the remaining uses will wait only five microseconds.
-If the outgoing CPU is preempted, a loop will wait one jiffy, then
-increase the wait by a factor of 11/10ths, rounding up.  As before, there
-is a five-second timeout.
-
-This commit therefore provides common-code infrastructure to do the
-dying-to-surviving CPU handoff in a safe manner.  This code also
-provides an indication at CPU-online of whether the CPU to be onlined
-previously timed out on offline.  The new cpu_check_up_prepare() function
-returns -EBUSY if this CPU previously took more than five seconds to
-go offline, or -EAGAIN if it has not yet managed to go offline.  The
-rationale for -EAGAIN is that it might still be preempted, so an additional
-wait might well find it correctly offlined.  Architecture-specific code
-can decide how to handle these conditions.  Systems in which CPUs take
-themselves completely offline might respond to an -EBUSY return as if
-it was a zero (success) return.  Systems in which the surviving CPU must
-take some action might take it at this time, or might simply mark the
-other CPU as unusable.
-
-Note that architectures that take the easy way out and simply pass the
--EBUSY and -EAGAIN upwards will change the sysfs API.
-
-Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Cc: <linux-api@vger.kernel.org>
-Cc: <linux-arch@vger.kernel.org>
-[ paulmck: Fixed state machine for architectures that don't check earlier
-  CPU-hotplug results as suggested by James Hogan. ]
+Signed-off-by: Chris Metcalf <cmetcalf@ezchip.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
 ---
- include/linux/cpu.h |  12 ++++
- kernel/smpboot.c    | 156 ++++++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 168 insertions(+)
+ arch/tile/kernel/compat_signal.c | 9 +++------
+ 1 file changed, 3 insertions(+), 6 deletions(-)
 
-diff --git a/include/linux/cpu.h b/include/linux/cpu.h
-index 4260e8594bd7..4744ef915acd 100644
---- a/include/linux/cpu.h
-+++ b/include/linux/cpu.h
-@@ -95,6 +95,8 @@ enum {
- 					* Called on the new cpu, just before
- 					* enabling interrupts. Must not sleep,
- 					* must not fail */
-+#define CPU_BROKEN		0x000C /* CPU (unsigned)v did not die properly,
-+					* perhaps due to preemption. */
+diff --git a/arch/tile/kernel/compat_signal.c b/arch/tile/kernel/compat_signal.c
+index 8c5abf2e4794..bca13054afb4 100644
+--- a/arch/tile/kernel/compat_signal.c
++++ b/arch/tile/kernel/compat_signal.c
+@@ -68,7 +68,7 @@ int copy_siginfo_to_user32(struct compat_siginfo __user *to, const siginfo_t *fr
+ 	if (from->si_code < 0) {
+ 		err |= __put_user(from->si_pid, &to->si_pid);
+ 		err |= __put_user(from->si_uid, &to->si_uid);
+-		err |= __put_user(ptr_to_compat(from->si_ptr), &to->si_ptr);
++		err |= __put_user(from->si_int, &to->si_int);
+ 	} else {
+ 		/*
+ 		 * First 32bits of unions are always present:
+@@ -93,8 +93,7 @@ int copy_siginfo_to_user32(struct compat_siginfo __user *to, const siginfo_t *fr
+ 			break;
+ 		case __SI_TIMER >> 16:
+ 			err |= __put_user(from->si_overrun, &to->si_overrun);
+-			err |= __put_user(ptr_to_compat(from->si_ptr),
+-					  &to->si_ptr);
++			err |= __put_user(from->si_int, &to->si_int);
+ 			break;
+ 			 /* This is not generated by the kernel as of now.  */
+ 		case __SI_RT >> 16:
+@@ -110,7 +109,6 @@ int copy_siginfo_to_user32(struct compat_siginfo __user *to, const siginfo_t *fr
+ int copy_siginfo_from_user32(siginfo_t *to, struct compat_siginfo __user *from)
+ {
+ 	int err;
+-	u32 ptr32;
  
- /* Used for CPU hotplug events occurring while tasks are frozen due to a suspend
-  * operation in progress
-@@ -271,4 +273,14 @@ void arch_cpu_idle_enter(void);
- void arch_cpu_idle_exit(void);
- void arch_cpu_idle_dead(void);
+ 	if (!access_ok(VERIFY_READ, from, sizeof(struct compat_siginfo)))
+ 		return -EFAULT;
+@@ -121,8 +119,7 @@ int copy_siginfo_from_user32(siginfo_t *to, struct compat_siginfo __user *from)
  
-+DECLARE_PER_CPU(bool, cpu_dead_idle);
-+
-+int cpu_report_state(int cpu);
-+int cpu_check_up_prepare(int cpu);
-+void cpu_set_state_online(int cpu);
-+#ifdef CONFIG_HOTPLUG_CPU
-+bool cpu_wait_death(unsigned int cpu, int seconds);
-+bool cpu_report_death(void);
-+#endif /* #ifdef CONFIG_HOTPLUG_CPU */
-+
- #endif /* _LINUX_CPU_H_ */
-diff --git a/kernel/smpboot.c b/kernel/smpboot.c
-index 40190f28db35..c697f73d82d6 100644
---- a/kernel/smpboot.c
-+++ b/kernel/smpboot.c
-@@ -4,6 +4,7 @@
- #include <linux/cpu.h>
- #include <linux/err.h>
- #include <linux/smp.h>
-+#include <linux/delay.h>
- #include <linux/init.h>
- #include <linux/list.h>
- #include <linux/slab.h>
-@@ -314,3 +315,158 @@ void smpboot_unregister_percpu_thread(struct smp_hotplug_thread *plug_thread)
- 	put_online_cpus();
+ 	err |= __get_user(to->si_pid, &from->si_pid);
+ 	err |= __get_user(to->si_uid, &from->si_uid);
+-	err |= __get_user(ptr32, &from->si_ptr);
+-	to->si_ptr = compat_ptr(ptr32);
++	err |= __get_user(to->si_int, &from->si_int);
+ 
+ 	return err;
  }
- EXPORT_SYMBOL_GPL(smpboot_unregister_percpu_thread);
-+
-+static DEFINE_PER_CPU(atomic_t, cpu_hotplug_state) = ATOMIC_INIT(CPU_POST_DEAD);
-+
-+/*
-+ * Called to poll specified CPU's state, for example, when waiting for
-+ * a CPU to come online.
-+ */
-+int cpu_report_state(int cpu)
-+{
-+	return atomic_read(&per_cpu(cpu_hotplug_state, cpu));
-+}
-+
-+/*
-+ * If CPU has died properly, set its state to CPU_UP_PREPARE and
-+ * return success.  Otherwise, return -EBUSY if the CPU died after
-+ * cpu_wait_death() timed out.  And yet otherwise again, return -EAGAIN
-+ * if cpu_wait_death() timed out and the CPU still hasn't gotten around
-+ * to dying.  In the latter two cases, the CPU might not be set up
-+ * properly, but it is up to the arch-specific code to decide.
-+ * Finally, -EIO indicates an unanticipated problem.
-+ *
-+ * Note that it is permissible to omit this call entirely, as is
-+ * done in architectures that do no CPU-hotplug error checking.
-+ */
-+int cpu_check_up_prepare(int cpu)
-+{
-+	if (!IS_ENABLED(CONFIG_HOTPLUG_CPU)) {
-+		atomic_set(&per_cpu(cpu_hotplug_state, cpu), CPU_UP_PREPARE);
-+		return 0;
-+	}
-+
-+	switch (atomic_read(&per_cpu(cpu_hotplug_state, cpu))) {
-+
-+	case CPU_POST_DEAD:
-+
-+		/* The CPU died properly, so just start it up again. */
-+		atomic_set(&per_cpu(cpu_hotplug_state, cpu), CPU_UP_PREPARE);
-+		return 0;
-+
-+	case CPU_DEAD_FROZEN:
-+
-+		/*
-+		 * Timeout during CPU death, so let caller know.
-+		 * The outgoing CPU completed its processing, but after
-+		 * cpu_wait_death() timed out and reported the error. The
-+		 * caller is free to proceed, in which case the state
-+		 * will be reset properly by cpu_set_state_online().
-+		 * Proceeding despite this -EBUSY return makes sense
-+		 * for systems where the outgoing CPUs take themselves
-+		 * offline, with no post-death manipulation required from
-+		 * a surviving CPU.
-+		 */
-+		return -EBUSY;
-+
-+	case CPU_BROKEN:
-+
-+		/*
-+		 * The most likely reason we got here is that there was
-+		 * a timeout during CPU death, and the outgoing CPU never
-+		 * did complete its processing.  This could happen on
-+		 * a virtualized system if the outgoing VCPU gets preempted
-+		 * for more than five seconds, and the user attempts to
-+		 * immediately online that same CPU.  Trying again later
-+		 * might return -EBUSY above, hence -EAGAIN.
-+		 */
-+		return -EAGAIN;
-+
-+	default:
-+
-+		/* Should not happen.  Famous last words. */
-+		return -EIO;
-+	}
-+}
-+
-+/*
-+ * Mark the specified CPU online.
-+ *
-+ * Note that it is permissible to omit this call entirely, as is
-+ * done in architectures that do no CPU-hotplug error checking.
-+ */
-+void cpu_set_state_online(int cpu)
-+{
-+	(void)atomic_xchg(&per_cpu(cpu_hotplug_state, cpu), CPU_ONLINE);
-+}
-+
-+#ifdef CONFIG_HOTPLUG_CPU
-+
-+/*
-+ * Wait for the specified CPU to exit the idle loop and die.
-+ */
-+bool cpu_wait_death(unsigned int cpu, int seconds)
-+{
-+	int jf_left = seconds * HZ;
-+	int oldstate;
-+	bool ret = true;
-+	int sleep_jf = 1;
-+
-+	might_sleep();
-+
-+	/* The outgoing CPU will normally get done quite quickly. */
-+	if (atomic_read(&per_cpu(cpu_hotplug_state, cpu)) == CPU_DEAD)
-+		goto update_state;
-+	udelay(5);
-+
-+	/* But if the outgoing CPU dawdles, wait increasingly long times. */
-+	while (atomic_read(&per_cpu(cpu_hotplug_state, cpu)) != CPU_DEAD) {
-+		schedule_timeout_uninterruptible(sleep_jf);
-+		jf_left -= sleep_jf;
-+		if (jf_left <= 0)
-+			break;
-+		sleep_jf = DIV_ROUND_UP(sleep_jf * 11, 10);
-+	}
-+update_state:
-+	oldstate = atomic_read(&per_cpu(cpu_hotplug_state, cpu));
-+	if (oldstate == CPU_DEAD) {
-+		/* Outgoing CPU died normally, update state. */
-+		smp_mb(); /* atomic_read() before update. */
-+		atomic_set(&per_cpu(cpu_hotplug_state, cpu), CPU_POST_DEAD);
-+	} else {
-+		/* Outgoing CPU still hasn't died, set state accordingly. */
-+		if (atomic_cmpxchg(&per_cpu(cpu_hotplug_state, cpu),
-+				   oldstate, CPU_BROKEN) != oldstate)
-+			goto update_state;
-+		ret = false;
-+	}
-+	return ret;
-+}
-+
-+/*
-+ * Called by the outgoing CPU to report its successful death.  Return
-+ * false if this report follows the surviving CPU's timing out.
-+ *
-+ * A separate "CPU_DEAD_FROZEN" is used when the surviving CPU
-+ * timed out.  This approach allows architectures to omit calls to
-+ * cpu_check_up_prepare() and cpu_set_state_online() without defeating
-+ * the next cpu_wait_death()'s polling loop.
-+ */
-+bool cpu_report_death(void)
-+{
-+	int oldstate;
-+	int newstate;
-+	int cpu = smp_processor_id();
-+
-+	do {
-+		oldstate = atomic_read(&per_cpu(cpu_hotplug_state, cpu));
-+		if (oldstate != CPU_BROKEN)
-+			newstate = CPU_DEAD;
-+		else
-+			newstate = CPU_DEAD_FROZEN;
-+	} while (atomic_cmpxchg(&per_cpu(cpu_hotplug_state, cpu),
-+				oldstate, newstate) != oldstate);
-+	return newstate == CPU_DEAD;
-+}
-+
-+#endif /* #ifdef CONFIG_HOTPLUG_CPU */
 -- 
-1.8.1.5
+2.1.2
 
