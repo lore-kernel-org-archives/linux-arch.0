@@ -1,58 +1,244 @@
-From: David Vrabel <david.vrabel@citrix.com>
-Subject: Re: [Xen-devel] [PATCH 0/9] qspinlock stuff -v15
-Date: Mon, 16 Mar 2015 14:08:58 +0000
-Message-ID: <5506E3FA.7040304@citrix.com>
-References: <20150316131613.720617163@infradead.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20150316131613.720617163@infradead.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Peter Zijlstra <peterz@infradead.org>, Waiman.Long@hp.com
-Cc: linux-arch@vger.kernel.org, riel@redhat.com, x86@kernel.org, kvm@vger.kernel.org, oleg@redhat.com, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, mingo@redhat.com, doug.hatch@hp.com, hpa@zytor.com, luto@amacapital.net, xen-devel@lists.xenproject.org, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, tglx@linutronix.de, david.vrabel@citrix.com
+From: Milosz Tanski <milosz@adfin.com>
+Subject: [PATCH v7 1/5] vfs: Prepare for adding a new preadv/pwritev with user flags.
+Date: Mon, 16 Mar 2015 14:27:11 -0400
+Message-ID: <cbe6f9910ed4603916c1082c47944c96330d4a15.1426528417.git.milosz@adfin.com>
+References: <cover.1426528417.git.milosz@adfin.com>
+Return-path: <owner-linux-aio@kvack.org>
+In-Reply-To: <cover.1426528417.git.milosz@adfin.com>
+In-Reply-To: <cover.1426528417.git.milosz@adfin.com>
+References: <cover.1426528417.git.milosz@adfin.com>
+Sender: owner-linux-aio@kvack.org
+To: linux-kernel@vger.kernel.org
+Cc: Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 16/03/15 13:16, Peter Zijlstra wrote:
-> Hi Waiman,
-> 
-> As promised; here is the paravirt stuff I did during the trip to BOS last week.
-> 
-> All the !paravirt patches are more or less the same as before (the only real
-> change is the copyright lines in the first patch).
-> 
-> The paravirt stuff is 'simple' and KVM only -- the Xen code was a little more
-> convoluted and I've no real way to test that but it should be stright fwd to
-> make work.
-> 
-> I ran this using the virtme tool (thanks Andy) on my laptop with a 4x
-> overcommit on vcpus (16 vcpus as compared to the 4 my laptop actually has) and
-> it both booted and survived a hackbench run (perf bench sched messaging -g 20
-> -l 5000).
-> 
-> So while the paravirt code isn't the most optimal code ever conceived it does work.
-> 
-> Also, the paravirt patching includes replacing the call with "movb $0, %arg1"
-> for the native case, which should greatly reduce the cost of having
-> CONFIG_PARAVIRT_SPINLOCKS enabled on actual hardware.
-> 
-> I feel that if someone were to do a Xen patch we can go ahead and merge this
-> stuff (finally!).
+Plumbing the flags argument through the vfs code so they can be passed down to
+__generic_file_(read/write)_iter function that do the acctual work.
 
-I can look at this.  It looks pretty straight-forward.
+Signed-off-by: Milosz Tanski <milosz@adfin.com>
+Reviewed-by: Christoph Hellwig <hch@lst.de>
+Reviewed-by: Jeff Moyer <jmoyer@redhat.com>
+---
+ drivers/target/target_core_file.c |  6 +++---
+ fs/nfsd/vfs.c                     |  4 ++--
+ fs/read_write.c                   | 27 +++++++++++++++------------
+ fs/splice.c                       |  2 +-
+ include/linux/aio.h               |  2 ++
+ include/linux/fs.h                |  4 ++--
+ 6 files changed, 25 insertions(+), 20 deletions(-)
 
-> These patches do not implement the paravirt spinlock debug stats currently
-> implemented (separately) by KVM and Xen, but that should not be too hard to do
-> on top and in the 'generic' code -- no reason to duplicate all that.
+diff --git a/drivers/target/target_core_file.c b/drivers/target/target_core_file.c
+index 44620fb..fdd0a10 100644
+--- a/drivers/target/target_core_file.c
++++ b/drivers/target/target_core_file.c
+@@ -351,9 +351,9 @@ static int fd_do_rw(struct se_cmd *cmd, struct scatterlist *sgl,
+ 	set_fs(get_ds());
+ 
+ 	if (is_write)
+-		ret = vfs_writev(fd, &iov[0], sgl_nents, &pos);
++		ret = vfs_writev(fd, &iov[0], sgl_nents, &pos, 0);
+ 	else
+-		ret = vfs_readv(fd, &iov[0], sgl_nents, &pos);
++		ret = vfs_readv(fd, &iov[0], sgl_nents, &pos, 0);
+ 
+ 	set_fs(old_fs);
+ 
+@@ -534,7 +534,7 @@ fd_execute_write_same(struct se_cmd *cmd)
+ 
+ 	old_fs = get_fs();
+ 	set_fs(get_ds());
+-	rc = vfs_writev(f, &iov[0], iov_num, &pos);
++	rc = vfs_writev(f, &iov[0], iov_num, &pos, 0);
+ 	set_fs(old_fs);
+ 
+ 	vfree(iov);
+diff --git a/fs/nfsd/vfs.c b/fs/nfsd/vfs.c
+index 3685265..1c6faaa 100644
+--- a/fs/nfsd/vfs.c
++++ b/fs/nfsd/vfs.c
+@@ -893,7 +893,7 @@ __be32 nfsd_readv(struct file *file, loff_t offset, struct kvec *vec, int vlen,
+ 
+ 	oldfs = get_fs();
+ 	set_fs(KERNEL_DS);
+-	host_err = vfs_readv(file, (struct iovec __user *)vec, vlen, &offset);
++	host_err = vfs_readv(file, (struct iovec __user *)vec, vlen, &offset, 0);
+ 	set_fs(oldfs);
+ 	return nfsd_finish_read(file, count, host_err);
+ }
+@@ -980,7 +980,7 @@ nfsd_vfs_write(struct svc_rqst *rqstp, struct svc_fh *fhp, struct file *file,
+ 
+ 	/* Write the data. */
+ 	oldfs = get_fs(); set_fs(KERNEL_DS);
+-	host_err = vfs_writev(file, (struct iovec __user *)vec, vlen, &pos);
++	host_err = vfs_writev(file, (struct iovec __user *)vec, vlen, &pos, 0);
+ 	set_fs(oldfs);
+ 	if (host_err < 0)
+ 		goto out_nfserr;
+diff --git a/fs/read_write.c b/fs/read_write.c
+index 8e1b687..b53bb59 100644
+--- a/fs/read_write.c
++++ b/fs/read_write.c
+@@ -711,7 +711,8 @@ unsigned long iov_shorten(struct iovec *iov, unsigned long nr_segs, size_t to)
+ EXPORT_SYMBOL(iov_shorten);
+ 
+ static ssize_t do_iter_readv_writev(struct file *filp, int rw, const struct iovec *iov,
+-		unsigned long nr_segs, size_t len, loff_t *ppos, iter_fn_t fn)
++		unsigned long nr_segs, size_t len, loff_t *ppos, iter_fn_t fn,
++		int flags)
+ {
+ 	struct kiocb kiocb;
+ 	struct iov_iter iter;
+@@ -720,6 +721,7 @@ static ssize_t do_iter_readv_writev(struct file *filp, int rw, const struct iove
+ 	init_sync_kiocb(&kiocb, filp);
+ 	kiocb.ki_pos = *ppos;
+ 	kiocb.ki_nbytes = len;
++	kiocb.ki_rwflags = flags;
+ 
+ 	iov_iter_init(&iter, rw, iov, nr_segs, len);
+ 	ret = fn(&kiocb, &iter);
+@@ -858,7 +860,8 @@ out:
+ 
+ static ssize_t do_readv_writev(int type, struct file *file,
+ 			       const struct iovec __user * uvector,
+-			       unsigned long nr_segs, loff_t *pos)
++			       unsigned long nr_segs, loff_t *pos,
++			       int flags)
+ {
+ 	size_t tot_len;
+ 	struct iovec iovstack[UIO_FASTIOV];
+@@ -892,7 +895,7 @@ static ssize_t do_readv_writev(int type, struct file *file,
+ 
+ 	if (iter_fn)
+ 		ret = do_iter_readv_writev(file, type, iov, nr_segs, tot_len,
+-						pos, iter_fn);
++						pos, iter_fn, flags);
+ 	else if (fnv)
+ 		ret = do_sync_readv_writev(file, iov, nr_segs, tot_len,
+ 						pos, fnv);
+@@ -915,27 +918,27 @@ out:
+ }
+ 
+ ssize_t vfs_readv(struct file *file, const struct iovec __user *vec,
+-		  unsigned long vlen, loff_t *pos)
++		  unsigned long vlen, loff_t *pos, int flags)
+ {
+ 	if (!(file->f_mode & FMODE_READ))
+ 		return -EBADF;
+ 	if (!(file->f_mode & FMODE_CAN_READ))
+ 		return -EINVAL;
+ 
+-	return do_readv_writev(READ, file, vec, vlen, pos);
++	return do_readv_writev(READ, file, vec, vlen, pos, flags);
+ }
+ 
+ EXPORT_SYMBOL(vfs_readv);
+ 
+ ssize_t vfs_writev(struct file *file, const struct iovec __user *vec,
+-		   unsigned long vlen, loff_t *pos)
++		   unsigned long vlen, loff_t *pos, int flags)
+ {
+ 	if (!(file->f_mode & FMODE_WRITE))
+ 		return -EBADF;
+ 	if (!(file->f_mode & FMODE_CAN_WRITE))
+ 		return -EINVAL;
+ 
+-	return do_readv_writev(WRITE, file, vec, vlen, pos);
++	return do_readv_writev(WRITE, file, vec, vlen, pos, flags);
+ }
+ 
+ EXPORT_SYMBOL(vfs_writev);
+@@ -948,7 +951,7 @@ SYSCALL_DEFINE3(readv, unsigned long, fd, const struct iovec __user *, vec,
+ 
+ 	if (f.file) {
+ 		loff_t pos = file_pos_read(f.file);
+-		ret = vfs_readv(f.file, vec, vlen, &pos);
++		ret = vfs_readv(f.file, vec, vlen, &pos, 0);
+ 		if (ret >= 0)
+ 			file_pos_write(f.file, pos);
+ 		fdput_pos(f);
+@@ -968,7 +971,7 @@ SYSCALL_DEFINE3(writev, unsigned long, fd, const struct iovec __user *, vec,
+ 
+ 	if (f.file) {
+ 		loff_t pos = file_pos_read(f.file);
+-		ret = vfs_writev(f.file, vec, vlen, &pos);
++		ret = vfs_writev(f.file, vec, vlen, &pos, 0);
+ 		if (ret >= 0)
+ 			file_pos_write(f.file, pos);
+ 		fdput_pos(f);
+@@ -1000,7 +1003,7 @@ SYSCALL_DEFINE5(preadv, unsigned long, fd, const struct iovec __user *, vec,
+ 	if (f.file) {
+ 		ret = -ESPIPE;
+ 		if (f.file->f_mode & FMODE_PREAD)
+-			ret = vfs_readv(f.file, vec, vlen, &pos);
++			ret = vfs_readv(f.file, vec, vlen, &pos, 0);
+ 		fdput(f);
+ 	}
+ 
+@@ -1024,7 +1027,7 @@ SYSCALL_DEFINE5(pwritev, unsigned long, fd, const struct iovec __user *, vec,
+ 	if (f.file) {
+ 		ret = -ESPIPE;
+ 		if (f.file->f_mode & FMODE_PWRITE)
+-			ret = vfs_writev(f.file, vec, vlen, &pos);
++			ret = vfs_writev(f.file, vec, vlen, &pos, 0);
+ 		fdput(f);
+ 	}
+ 
+@@ -1072,7 +1075,7 @@ static ssize_t compat_do_readv_writev(int type, struct file *file,
+ 
+ 	if (iter_fn)
+ 		ret = do_iter_readv_writev(file, type, iov, nr_segs, tot_len,
+-						pos, iter_fn);
++						pos, iter_fn, 0);
+ 	else if (fnv)
+ 		ret = do_sync_readv_writev(file, iov, nr_segs, tot_len,
+ 						pos, fnv);
+diff --git a/fs/splice.c b/fs/splice.c
+index 7968da9..ee3fd4c 100644
+--- a/fs/splice.c
++++ b/fs/splice.c
+@@ -576,7 +576,7 @@ static ssize_t kernel_readv(struct file *file, const struct iovec *vec,
+ 	old_fs = get_fs();
+ 	set_fs(get_ds());
+ 	/* The cast to a user pointer is valid due to the set_fs() */
+-	res = vfs_readv(file, (const struct iovec __user *)vec, vlen, &pos);
++	res = vfs_readv(file, (const struct iovec __user *)vec, vlen, &pos, 0);
+ 	set_fs(old_fs);
+ 
+ 	return res;
+diff --git a/include/linux/aio.h b/include/linux/aio.h
+index d9c92da..9c1d499 100644
+--- a/include/linux/aio.h
++++ b/include/linux/aio.h
+@@ -52,6 +52,8 @@ struct kiocb {
+ 	 * this is the underlying eventfd context to deliver events to.
+ 	 */
+ 	struct eventfd_ctx	*ki_eventfd;
++
++	int			ki_rwflags;
+ };
+ 
+ static inline bool is_sync_kiocb(struct kiocb *kiocb)
+diff --git a/include/linux/fs.h b/include/linux/fs.h
+index b4d71b5..c018335 100644
+--- a/include/linux/fs.h
++++ b/include/linux/fs.h
+@@ -1619,9 +1619,9 @@ extern ssize_t __vfs_read(struct file *, char __user *, size_t, loff_t *);
+ extern ssize_t vfs_read(struct file *, char __user *, size_t, loff_t *);
+ extern ssize_t vfs_write(struct file *, const char __user *, size_t, loff_t *);
+ extern ssize_t vfs_readv(struct file *, const struct iovec __user *,
+-		unsigned long, loff_t *);
++		unsigned long, loff_t *, int);
+ extern ssize_t vfs_writev(struct file *, const struct iovec __user *,
+-		unsigned long, loff_t *);
++		unsigned long, loff_t *, int);
+ 
+ struct super_operations {
+    	struct inode *(*alloc_inode)(struct super_block *sb);
+-- 
+1.9.1
 
-I think this is fine.
-
-David
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
