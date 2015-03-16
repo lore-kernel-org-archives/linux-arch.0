@@ -1,390 +1,138 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 9/9] qspinlock, x86,
-	kvm: Implement KVM support for paravirt qspinlock
-Date: Mon, 16 Mar 2015 14:16:22 +0100
-Message-ID: <20150316133112.333845162@infradead.org>
+Subject: [PATCH 2/9] qspinlock,
+	x86: Enable x86-64 to use queue spinlock
+Date: Mon, 16 Mar 2015 14:16:15 +0100
+Message-ID: <20150316133111.891791423@infradead.org>
 References: <20150316131613.720617163@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline; filename=peterz-qspinlock-paravirt-x86-crap.patch
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
+Return-path: <xen-devel-bounces@lists.xen.org>
+Content-Disposition: inline;
+	filename=waiman_long-qspinlock_x86-enable_x86-64_to_use_queue_spinlock.patch
+List-Unsubscribe: <http://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
+	<mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xen.org>
+List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
+List-Subscribe: <http://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
+	<mailto:xen-devel-request@lists.xen.org?subject=subscribe>
+Sender: xen-devel-bounces@lists.xen.org
+Errors-To: xen-devel-bounces@lists.xen.org
 To: Waiman.Long@hp.com
-Cc: raghavendra.kt@linux.vnet.ibm.com, kvm@vger.kernel.org, peterz@infradead.org, linux-kernel@vger.kernel.org, hpa@zytor.com, boris.ostrovsky@oracle.com, linux-arch@vger.kernel.org, x86@kernel.org, mingo@redhat.com, doug.hatch@hp.com, xen-devel@lists.xenproject.org, paulmck@linux.vnet.ibm.com, riel@redhat.com, konrad.wilk@oracle.com, scott.norton@hp.com, paolo.bonzini@gmail.com, tglx@linutronix.de, virtualization@lists.linux-foundation.org, oleg@redhat.com, luto@amacapital.net, david.vrabel@citrix.com, torvalds@linux-foundation.org
+Cc: raghavendra.kt@linux.vnet.ibm.com, kvm@vger.kernel.org, peterz@infradead.org, linux-kernel@vger.kernel.org, hpa@zytor.com, boris.ostrovsky@oracle.com, linux-arch@vger.kernel.org, x86@kernel.org, mingo@redhat.com, doug.hatch@hp.com, xen-devel@lists.xenproject.org, paulmck@linux.vnet.ibm.com, riel@redhat.com, scott.norton@hp.com, paolo.bonzini@gmail.com, tglx@linutronix.de, virtualization@lists.linux-foundation.org, oleg@redhat.com, luto@amacapital.net, david.vrabel@citrix.com, torvalds@linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
-Implement the paravirt qspinlock for x86-kvm.
+From: Waiman Long <Waiman.Long@hp.com>
 
-We use the regular paravirt call patching to switch between:
+This patch makes the necessary changes at the x86 architecture
+specific layer to enable the use of queue spinlock for x86-64. As
+x86-32 machines are typically not multi-socket. The benefit of queue
+spinlock may not be apparent. So queue spinlock is not enabled.
 
-  native_queue_spin_lock_slowpath()	__pv_queue_spin_lock_slowpath()
-  native_queue_spin_unlock()		__pv_queue_spin_unlock()
+Currently, there is some incompatibilities between the para-virtualized
+spinlock code (which hard-codes the use of ticket spinlock) and the
+queue spinlock. Therefore, the use of queue spinlock is disabled when
+the para-virtualized spinlock is enabled.
 
-We use a callee saved call for the unlock function which reduces the
-i-cache footprint and allows 'inlining' of SPIN_UNLOCK functions
-again.
+The arch/x86/include/asm/qspinlock.h header file includes some x86
+specific optimization which will make the queue spinlock code perform
+better than the generic implementation.
 
-We further optimize the unlock path by patching the direct call with a
-"movb $0,%arg1" if we are indeed using the native unlock code. This
-makes the unlock code almost as fast as the !PARAVIRT case.
-
-This significantly lowers the overhead of having
-CONFIG_PARAVIRT_SPINLOCKS enabled, even for native code.
-
-
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: David Vrabel <david.vrabel@citrix.com>
+Cc: Oleg Nesterov <oleg@redhat.com>
+Cc: Scott J Norton <scott.norton@hp.com>
+Cc: Paolo Bonzini <paolo.bonzini@gmail.com>
+Cc: Douglas Hatch <doug.hatch@hp.com>
+Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Rik van Riel <riel@redhat.com>
+Cc: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Link: http://lkml.kernel.org/r/1421784755-21945-3-git-send-email-Waiman.Long@hp.com
 ---
- arch/x86/Kconfig                      |    2 -
- arch/x86/include/asm/paravirt.h       |   28 ++++++++++++++++++++-
- arch/x86/include/asm/paravirt_types.h |   10 +++++++
- arch/x86/include/asm/qspinlock.h      |   22 ++++++++++++++++-
- arch/x86/kernel/kvm.c                 |   44 ++++++++++++++++++++++++++++++++++
- arch/x86/kernel/paravirt-spinlocks.c  |   24 +++++++++++++++++-
- arch/x86/kernel/paravirt_patch_32.c   |   22 +++++++++++++----
- arch/x86/kernel/paravirt_patch_64.c   |   22 +++++++++++++----
- kernel/Kconfig.locks                  |    2 -
- 9 files changed, 163 insertions(+), 13 deletions(-)
+ arch/x86/Kconfig                      |    1 +
+ arch/x86/include/asm/qspinlock.h      |   20 ++++++++++++++++++++
+ arch/x86/include/asm/spinlock.h       |    5 +++++
+ arch/x86/include/asm/spinlock_types.h |    4 ++++
+ 4 files changed, 30 insertions(+)
+ create mode 100644 arch/x86/include/asm/qspinlock.h
 
 --- a/arch/x86/Kconfig
 +++ b/arch/x86/Kconfig
-@@ -692,7 +692,7 @@ config PARAVIRT_DEBUG
- config PARAVIRT_SPINLOCKS
- 	bool "Paravirtualization layer for spinlocks"
- 	depends on PARAVIRT && SMP
--	select UNINLINE_SPIN_UNLOCK
-+	select UNINLINE_SPIN_UNLOCK if !QUEUE_SPINLOCK
- 	---help---
- 	  Paravirtualized spinlocks allow a pvops backend to replace the
- 	  spinlock implementation with something virtualization-friendly
---- a/arch/x86/include/asm/paravirt.h
-+++ b/arch/x86/include/asm/paravirt.h
-@@ -712,6 +712,30 @@ static inline void __set_fixmap(unsigned
- 
- #if defined(CONFIG_SMP) && defined(CONFIG_PARAVIRT_SPINLOCKS)
- 
-+#ifdef CONFIG_QUEUE_SPINLOCK
-+
-+static __always_inline void pv_queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
-+{
-+	PVOP_VCALL2(pv_lock_ops.queue_spin_lock_slowpath, lock, val);
-+}
-+
-+static __always_inline void pv_queue_spin_unlock(struct qspinlock *lock)
-+{
-+	PVOP_VCALLEE1(pv_lock_ops.queue_spin_unlock, lock);
-+}
-+
-+static __always_inline void pv_wait(u8 *ptr, u8 val)
-+{
-+	PVOP_VCALL2(pv_lock_ops.wait, ptr, val);
-+}
-+
-+static __always_inline void pv_kick(int cpu)
-+{
-+	PVOP_VCALL1(pv_lock_ops.kick, cpu);
-+}
-+
-+#else /* !CONFIG_QUEUE_SPINLOCK */
-+
- static __always_inline void __ticket_lock_spinning(struct arch_spinlock *lock,
- 							__ticket_t ticket)
- {
-@@ -724,7 +748,9 @@ static __always_inline void __ticket_unl
- 	PVOP_VCALL2(pv_lock_ops.unlock_kick, lock, ticket);
- }
- 
--#endif
-+#endif /* CONFIG_QUEUE_SPINLOCK */
-+
-+#endif /* SMP && PARAVIRT_SPINLOCKS */
- 
- #ifdef CONFIG_X86_32
- #define PV_SAVE_REGS "pushl %ecx; pushl %edx;"
---- a/arch/x86/include/asm/paravirt_types.h
-+++ b/arch/x86/include/asm/paravirt_types.h
-@@ -333,9 +333,19 @@ struct arch_spinlock;
- typedef u16 __ticket_t;
- #endif
- 
-+struct qspinlock;
-+
- struct pv_lock_ops {
-+#ifdef CONFIG_QUEUE_SPINLOCK
-+	void (*queue_spin_lock_slowpath)(struct qspinlock *lock, u32 val);
-+	struct paravirt_callee_save queue_spin_unlock;
-+
-+	void (*wait)(u8 *ptr, u8 val);
-+	void (*kick)(int cpu);
-+#else /* !CONFIG_QUEUE_SPINLOCK */
- 	struct paravirt_callee_save lock_spinning;
- 	void (*unlock_kick)(struct arch_spinlock *lock, __ticket_t ticket);
-+#endif /* !CONFIG_QUEUE_SPINLOCK */
- };
- 
- /* This contains all the paravirt structures: we get a convenient
---- a/arch/x86/include/asm/qspinlock.h
+@@ -125,6 +125,7 @@ config X86
+ 	select MODULES_USE_ELF_RELA if X86_64
+ 	select CLONE_BACKWARDS if X86_32
+ 	select ARCH_USE_BUILTIN_BSWAP
++	select ARCH_USE_QUEUE_SPINLOCK
+ 	select ARCH_USE_QUEUE_RWLOCK
+ 	select OLD_SIGSUSPEND3 if X86_32 || IA32_EMULATION
+ 	select OLD_SIGACTION if X86_32
+--- /dev/null
 +++ b/arch/x86/include/asm/qspinlock.h
-@@ -3,6 +3,7 @@
- 
- #include <asm/cpufeature.h>
- #include <asm-generic/qspinlock_types.h>
-+#include <asm/paravirt.h>
- 
- #define	queue_spin_unlock queue_spin_unlock
- /**
-@@ -11,11 +12,30 @@
-  *
-  * An smp_store_release() on the least-significant byte.
-  */
--static inline void queue_spin_unlock(struct qspinlock *lock)
-+static inline void native_queue_spin_unlock(struct qspinlock *lock)
- {
- 	smp_store_release((u8 *)lock, 0);
- }
- 
-+#ifdef CONFIG_PARAVIRT_SPINLOCKS
-+extern void native_queue_spin_lock_slowpath(struct qspinlock *lock, u32 val);
+@@ -0,0 +1,20 @@
++#ifndef _ASM_X86_QSPINLOCK_H
++#define _ASM_X86_QSPINLOCK_H
 +
-+static inline void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
-+{
-+	pv_queue_spin_lock_slowpath(lock, val);
-+}
++#include <asm-generic/qspinlock_types.h>
 +
++#define	queue_spin_unlock queue_spin_unlock
++/**
++ * queue_spin_unlock - release a queue spinlock
++ * @lock : Pointer to queue spinlock structure
++ *
++ * An smp_store_release() on the least-significant byte.
++ */
 +static inline void queue_spin_unlock(struct qspinlock *lock)
 +{
-+	pv_queue_spin_unlock(lock);
++	smp_store_release((u8 *)lock, 0);
 +}
-+#else
-+static inline void queue_spin_unlock(struct qspinlock *lock)
-+{
-+	native_queue_spin_unlock(lock);
-+}
-+#endif
 +
- #define virt_queue_spin_lock virt_queue_spin_lock
- 
- static inline bool virt_queue_spin_lock(struct qspinlock *lock)
---- a/arch/x86/kernel/kvm.c
-+++ b/arch/x86/kernel/kvm.c
-@@ -584,6 +584,41 @@ static void kvm_kick_cpu(int cpu)
- 	kvm_hypercall2(KVM_HC_KICK_CPU, flags, apicid);
- }
- 
++#include <asm-generic/qspinlock.h>
 +
++#endif /* _ASM_X86_QSPINLOCK_H */
+--- a/arch/x86/include/asm/spinlock.h
++++ b/arch/x86/include/asm/spinlock.h
+@@ -42,6 +42,10 @@
+ extern struct static_key paravirt_ticketlocks_enabled;
+ static __always_inline bool static_key_false(struct static_key *key);
+ 
 +#ifdef CONFIG_QUEUE_SPINLOCK
-+
 +#include <asm/qspinlock.h>
++#else
 +
-+PV_CALLEE_SAVE_REGS_THUNK(__pv_queue_spin_unlock);
-+
-+static void kvm_wait(u8 *ptr, u8 val)
-+{
-+	unsigned long flags;
-+
-+	if (in_nmi())
-+		return;
-+
-+	local_irq_save(flags);
-+
-+	if (READ_ONCE(*ptr) != val)
-+		goto out;
-+
-+	/*
-+	 * halt until it's our turn and kicked. Note that we do safe halt
-+	 * for irq enabled case to avoid hang when lock info is overwritten
-+	 * in irq spinlock slowpath and no spurious interrupt occur to save us.
-+	 */
-+	if (arch_irqs_disabled_flags(flags))
-+		halt();
-+	else
-+		safe_halt();
-+
-+out:
-+	local_irq_restore(flags);
-+}
-+
-+#else /* !CONFIG_QUEUE_SPINLOCK */
-+
- enum kvm_contention_stat {
- 	TAKEN_SLOW,
- 	TAKEN_SLOW_PICKUP,
-@@ -817,6 +852,8 @@ static void kvm_unlock_kick(struct arch_
+ #ifdef CONFIG_PARAVIRT_SPINLOCKS
+ 
+ static inline void __ticket_enter_slowpath(arch_spinlock_t *lock)
+@@ -196,6 +200,7 @@ static inline void arch_spin_unlock_wait
+ 		cpu_relax();
  	}
  }
++#endif /* CONFIG_QUEUE_SPINLOCK */
  
-+#endif /* !CONFIG_QUEUE_SPINLOCK */
-+
  /*
-  * Setup pv_lock_ops to exploit KVM_FEATURE_PV_UNHALT if present.
-  */
-@@ -828,8 +865,15 @@ void __init kvm_spinlock_init(void)
- 	if (!kvm_para_has_feature(KVM_FEATURE_PV_UNHALT))
- 		return;
+  * Read-write spinlocks, allowing multiple readers
+--- a/arch/x86/include/asm/spinlock_types.h
++++ b/arch/x86/include/asm/spinlock_types.h
+@@ -23,6 +23,9 @@ typedef u32 __ticketpair_t;
+ 
+ #define TICKET_SHIFT	(sizeof(__ticket_t) * 8)
  
 +#ifdef CONFIG_QUEUE_SPINLOCK
-+	pv_lock_ops.queue_spin_lock_slowpath = __pv_queue_spin_lock_slowpath;
-+	pv_lock_ops.queue_spin_unlock = PV_CALLEE_SAVE(__pv_queue_spin_unlock);
-+	pv_lock_ops.wait = kvm_wait;
-+	pv_lock_ops.kick = kvm_kick_cpu;
-+#else /* !CONFIG_QUEUE_SPINLOCK */
- 	pv_lock_ops.lock_spinning = PV_CALLEE_SAVE(kvm_lock_spinning);
- 	pv_lock_ops.unlock_kick = kvm_unlock_kick;
-+#endif
- }
++#include <asm-generic/qspinlock_types.h>
++#else
+ typedef struct arch_spinlock {
+ 	union {
+ 		__ticketpair_t head_tail;
+@@ -33,6 +36,7 @@ typedef struct arch_spinlock {
+ } arch_spinlock_t;
  
- static __init int kvm_spinlock_init_jump(void)
---- a/arch/x86/kernel/paravirt-spinlocks.c
-+++ b/arch/x86/kernel/paravirt-spinlocks.c
-@@ -8,11 +8,33 @@
+ #define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
++#endif /* CONFIG_QUEUE_SPINLOCK */
  
- #include <asm/paravirt.h>
- 
-+#ifdef CONFIG_QUEUE_SPINLOCK
-+__visible void __native_queue_spin_unlock(struct qspinlock *lock)
-+{
-+	native_queue_spin_unlock(lock);
-+}
-+
-+PV_CALLEE_SAVE_REGS_THUNK(__native_queue_spin_unlock);
-+
-+bool pv_is_native_spin_unlock(void)
-+{
-+	return pv_lock_ops.queue_spin_unlock.func ==
-+		__raw_callee_save___native_queue_spin_unlock;
-+}
-+#endif
-+
- struct pv_lock_ops pv_lock_ops = {
- #ifdef CONFIG_SMP
-+#ifdef CONFIG_QUEUE_SPINLOCK
-+	.queue_spin_lock_slowpath = native_queue_spin_lock_slowpath,
-+	.queue_spin_unlock = PV_CALLEE_SAVE(__native_queue_spin_unlock),
-+	.wait = paravirt_nop,
-+	.kick = paravirt_nop,
-+#else /* !CONFIG_QUEUE_SPINLOCK */
- 	.lock_spinning = __PV_IS_CALLEE_SAVE(paravirt_nop),
- 	.unlock_kick = paravirt_nop,
--#endif
-+#endif /* !CONFIG_QUEUE_SPINLOCK */
-+#endif /* SMP */
- };
- EXPORT_SYMBOL(pv_lock_ops);
- 
---- a/arch/x86/kernel/paravirt_patch_32.c
-+++ b/arch/x86/kernel/paravirt_patch_32.c
-@@ -12,6 +12,10 @@ DEF_NATIVE(pv_mmu_ops, read_cr3, "mov %c
- DEF_NATIVE(pv_cpu_ops, clts, "clts");
- DEF_NATIVE(pv_cpu_ops, read_tsc, "rdtsc");
- 
-+#if defined(CONFIG_PARAVIRT_SPINLOCKS) && defined(CONFIG_QUEUE_SPINLOCKS)
-+DEF_NATIVE(pv_lock_ops, queue_spin_unlock, "movb $0, (%eax)");
-+#endif
-+
- unsigned paravirt_patch_ident_32(void *insnbuf, unsigned len)
- {
- 	/* arg in %eax, return in %eax */
-@@ -24,6 +28,8 @@ unsigned paravirt_patch_ident_64(void *i
- 	return 0;
- }
- 
-+extern bool pv_is_native_spin_unlock(void);
-+
- unsigned native_patch(u8 type, u16 clobbers, void *ibuf,
- 		      unsigned long addr, unsigned len)
- {
-@@ -47,14 +53,22 @@ unsigned native_patch(u8 type, u16 clobb
- 		PATCH_SITE(pv_mmu_ops, write_cr3);
- 		PATCH_SITE(pv_cpu_ops, clts);
- 		PATCH_SITE(pv_cpu_ops, read_tsc);
--
--	patch_site:
--		ret = paravirt_patch_insns(ibuf, len, start, end);
--		break;
-+#if defined(CONFIG_PARAVIRT_SPINLOCKS) && defined(CONFIG_QUEUE_SPINLOCKS)
-+		case PARAVIRT_PATCH(pv_lock_ops.queue_spin_unlock):
-+			if (pv_is_native_spin_unlock()) {
-+				start = start_pv_lock_ops_queue_spin_unlock;
-+				end   = end_pv_lock_ops_queue_spin_unlock;
-+				goto patch_site;
-+			}
-+#endif
- 
- 	default:
- 		ret = paravirt_patch_default(type, clobbers, ibuf, addr, len);
- 		break;
-+
-+	patch_site:
-+		ret = paravirt_patch_insns(ibuf, len, start, end);
-+		break;
- 	}
- #undef PATCH_SITE
- 	return ret;
---- a/arch/x86/kernel/paravirt_patch_64.c
-+++ b/arch/x86/kernel/paravirt_patch_64.c
-@@ -21,6 +21,10 @@ DEF_NATIVE(pv_cpu_ops, swapgs, "swapgs")
- DEF_NATIVE(, mov32, "mov %edi, %eax");
- DEF_NATIVE(, mov64, "mov %rdi, %rax");
- 
-+#if defined(CONFIG_PARAVIRT_SPINLOCKS) && defined(CONFIG_QUEUE_SPINLOCK)
-+DEF_NATIVE(pv_lock_ops, queue_spin_unlock, "movb $0, (%rdi)");
-+#endif
-+
- unsigned paravirt_patch_ident_32(void *insnbuf, unsigned len)
- {
- 	return paravirt_patch_insns(insnbuf, len,
-@@ -33,6 +37,8 @@ unsigned paravirt_patch_ident_64(void *i
- 				    start__mov64, end__mov64);
- }
- 
-+extern bool pv_is_native_spin_unlock(void);
-+
- unsigned native_patch(u8 type, u16 clobbers, void *ibuf,
- 		      unsigned long addr, unsigned len)
- {
-@@ -59,14 +65,22 @@ unsigned native_patch(u8 type, u16 clobb
- 		PATCH_SITE(pv_cpu_ops, clts);
- 		PATCH_SITE(pv_mmu_ops, flush_tlb_single);
- 		PATCH_SITE(pv_cpu_ops, wbinvd);
--
--	patch_site:
--		ret = paravirt_patch_insns(ibuf, len, start, end);
--		break;
-+#if defined(CONFIG_PARAVIRT_SPINLOCKS) && defined(CONFIG_QUEUE_SPINLOCK)
-+		case PARAVIRT_PATCH(pv_lock_ops.queue_spin_unlock):
-+			if (pv_is_native_spin_unlock()) {
-+				start = start_pv_lock_ops_queue_spin_unlock;
-+				end   = end_pv_lock_ops_queue_spin_unlock;
-+				goto patch_site;
-+			}
-+#endif
- 
- 	default:
- 		ret = paravirt_patch_default(type, clobbers, ibuf, addr, len);
- 		break;
-+
-+	patch_site:
-+		ret = paravirt_patch_insns(ibuf, len, start, end);
-+		break;
- 	}
- #undef PATCH_SITE
- 	return ret;
---- a/kernel/Kconfig.locks
-+++ b/kernel/Kconfig.locks
-@@ -240,7 +240,7 @@ config ARCH_USE_QUEUE_SPINLOCK
- 
- config QUEUE_SPINLOCK
- 	def_bool y if ARCH_USE_QUEUE_SPINLOCK
--	depends on SMP && !PARAVIRT_SPINLOCKS
-+	depends on SMP
- 
- config ARCH_USE_QUEUE_RWLOCK
- 	bool
+ #include <asm-generic/qrwlock_types.h>
