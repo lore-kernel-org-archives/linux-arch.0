@@ -1,30 +1,25 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v2 tip/core/rcu 01/22] smpboot: Add common code for
  notification from dying CPU
-Date: Tue, 17 Mar 2015 09:34:58 -0700
-Message-ID: <20150317163457.GI3589@linux.vnet.ibm.com>
+Date: Tue, 17 Mar 2015 17:56:21 +0100
+Message-ID: <20150317165621.GF24151@twins.programming.kicks-ass.net>
 References: <20150316183743.GA21453@linux.vnet.ibm.com>
  <1426531086-23825-1-git-send-email-paulmck@linux.vnet.ibm.com>
  <20150317081807.GQ2896@worktop.programming.kicks-ass.net>
  <20150317113648.GC3589@linux.vnet.ibm.com>
  <20150317140846.GB23123@twins.programming.kicks-ass.net>
-Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e33.co.us.ibm.com ([32.97.110.151]:53586 "EHLO
-	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754314AbbCQQfJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Mar 2015 12:35:09 -0400
-Received: from /spool/local
-	by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 17 Mar 2015 10:35:08 -0600
+Received: from bombadil.infradead.org ([198.137.202.9]:56843 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754361AbbCQQ4l (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Mar 2015 12:56:41 -0400
 Content-Disposition: inline
 In-Reply-To: <20150317140846.GB23123@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Cc: linux-kernel@vger.kernel.org, mingo@kernel.org, laijs@cn.fujitsu.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, josh@joshtriplett.org, tglx@linutronix.de, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, dvhart@linux.intel.com, fweisbec@gmail.com, oleg@redhat.com, bobby.prani@gmail.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
 
 On Tue, Mar 17, 2015 at 03:08:46PM +0100, Peter Zijlstra wrote:
@@ -47,21 +42,8 @@ On Tue, Mar 17, 2015 at 03:08:46PM +0100, Peter Zijlstra wrote:
 > imply that calling complete() -- from a dead cpu -- which ends up in
 > try_to_wake_up() was the problem?
 
-Yep, that was the one.  At that point, the CPU can disappear without
-any chance to tell RCU anything, so RCU has to have started ignoring
-it beforehand.  This bug has existed for a long time, masked by RCU's
-waiting a jiffy before ignoring already-offline CPUs.  Which would be a
-problem if the CPU took longer than one jiffy to get from stop_machine()
-to arch_cpu_idle_dead().  Which could actually, happen, especially
-in a guest OS.
+Hmm, I'm thinking its select_task_rq_*(). And yes, 'fixing' this in the
+wake-up path will penalize everybody for the benefit of the very rare
+case someone is doing a hotplug.
 
-In addition, any tracing or printk()s on that code path (for example,
-via lockdep) can also result in RCU read-side critical sections from an
-offline CPU that RCU is ignoring.
-
-So you would like me to pull this info into the commit log?  Easy to
-do if so.
-
-Or am I missing your point?
-
-							Thanx, Paul
+So yeah, maybe this is the best solution.. Ulgy though :/
