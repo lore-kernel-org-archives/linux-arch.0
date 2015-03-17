@@ -1,70 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f182.google.com ([74.125.82.182]:33365 "EHLO
-	mail-we0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753807AbbCQPxN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Mar 2015 11:53:13 -0400
-Received: by weop45 with SMTP id p45so11085547weo.0
-        for <linux-arch@vger.kernel.org>; Tue, 17 Mar 2015 08:53:12 -0700 (PDT)
+Received: from mail-we0-f175.google.com ([74.125.82.175]:35167 "EHLO
+	mail-we0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932982AbbCQQ5w (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Mar 2015 12:57:52 -0400
 MIME-Version: 1.0
-In-Reply-To: <20150317130254.GC4003@linux.intel.com>
-References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20150316202537.33102.12944.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20150316230533.GH29656@ZenIV.linux.org.uk>
-	<20150317130254.GC4003@linux.intel.com>
-Date: Tue, 17 Mar 2015 08:53:11 -0700
-Message-ID: <CAPcyv4h=M19-ugydj0VN8RbNYyyMwYGLySujZXxUnef3J+_ftg@mail.gmail.com>
-Subject: Re: [RFC PATCH 2/7] block: convert bio_vec.bv_page to bv_pfn
-From: Dan Williams <dan.j.williams@intel.com>
+In-Reply-To: <55022AC0.7090403@samsung.com>
+References: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
+	<1426197361-19290-6-git-send-email-maxime.coquelin@st.com>
+	<55022AC0.7090403@samsung.com>
+Date: Tue, 17 Mar 2015 17:57:47 +0100
+Message-ID: <CALszF6AVKnSPzOhyBQaOnQJwo34gx-rwRdb3RgL_pDNaX1FpNg@mail.gmail.com>
+Subject: Re: [PATCH v3 05/15] dt-bindings: Document the STM32 reset bindings
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@linux.intel.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jens Axboe <axboe@kernel.dk>, riel@redhat.com, linux-nvdimm <linux-nvdimm@ml01.01.org>, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid <linux-raid@vger.kernel.org>, mgorman@suse.de, Christoph Hellwig <hch@infradead.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>
-Message-ID: <20150317155311.DaHFiRDbPSZVu0pJu_gdoma4ZJXJLIMqjZ-lD441-Z4@z>
+To: Chanwoo Choi <cw00.choi@samsung.com>
+Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
+Message-ID: <20150317165747.uAY_TM2ZQPBbyPzdXZi_pxKlsrWqZE_02vyLqirt8Z8@z>
 
-On Tue, Mar 17, 2015 at 6:02 AM, Matthew Wilcox <willy@linux.intel.com> wrote:
-> On Mon, Mar 16, 2015 at 11:05:33PM +0000, Al Viro wrote:
->> > diff --git a/mm/iov_iter.c b/mm/iov_iter.c
->> > index 827732047da1..be9a7c5b8703 100644
->> > --- a/mm/iov_iter.c
->> > +++ b/mm/iov_iter.c
->> > @@ -61,7 +61,7 @@
->> >     __p = i->bvec;                                  \
->> >     __v.bv_len = min_t(size_t, n, __p->bv_len - skip);      \
->> >     if (likely(__v.bv_len)) {                       \
->> > -           __v.bv_page = __p->bv_page;             \
->> > +           __v.bv_pfn = __p->bv_pfn;               \
->> >             __v.bv_offset = __p->bv_offset + skip;  \
->> >             (void)(STEP);                           \
->> >             skip += __v.bv_len;                     \
->> > @@ -72,7 +72,7 @@
->> >             __v.bv_len = min_t(size_t, n, __p->bv_len);     \
->> >             if (unlikely(!__v.bv_len))              \
->> >                     continue;                       \
->> > -           __v.bv_page = __p->bv_page;             \
->> > +           __v.bv_pfn = __p->bv_pfn;               \
->> >             __v.bv_offset = __p->bv_offset;         \
->> >             (void)(STEP);                           \
->> >             skip = __v.bv_len;                      \
->> > @@ -369,7 +369,7 @@ size_t copy_to_iter(void *addr, size_t bytes, struct iov_iter *i)
->> >     iterate_and_advance(i, bytes, v,
->> >             __copy_to_user(v.iov_base, (from += v.iov_len) - v.iov_len,
->> >                            v.iov_len),
->> > -           memcpy_to_page(v.bv_page, v.bv_offset,
->> > +           memcpy_to_page(bvec_page(&v), v.bv_offset,
+Hi Chanwoo,
+
+2015-03-13 1:09 GMT+01:00 Chanwoo Choi <cw00.choi@samsung.com>:
+> Hi Maxime,
+>
+> On 03/13/2015 06:55 AM, Maxime Coquelin wrote:
+>> From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 >>
->> How had memcpy_to_page(NULL, ...) worked for you?
->
->  static inline struct page *bvec_page(const struct bio_vec *bvec)
->  {
-> -       return bvec->bv_page;
-> +       return pfn_to_page(bvec->bv_pfn.pfn);
->  }
->
-> (yes, more work to be done here to make copy_to_iter work to a bvec that
-> is actually targetting a page-less address, but these are RFC patches
-> showing the direction we're heading in while keeping current code working)
->
+>> This adds documentation of device tree bindings for the
+>> STM32 reset controller.
+>>
+>> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+>> ---
+>>  .../devicetree/bindings/reset/st,stm32-rcc.txt     | 102 +++++++++++++++++++++
+>>  1 file changed, 102 insertions(+)
+>>  create mode 100644 Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
+>>
+>> diff --git a/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt b/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
+>> new file mode 100644
+>> index 0000000..962f961
+>> --- /dev/null
+>> +++ b/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
+<snip>
 
-Right, the next item to tackle is kmap() and kmap_atomic() before we
-can start converting paths to be "native" pfn-only.
+>> + - can1: 281
+>> + - can2: 282
+>> + - pwr: 284
+>> + - dac: 285
+>> + - uart7: 286
+>> + - uart8: 287
+>> + - tim1: 288
+>> + - tim8: 289
+>> + - usart1: 292
+>> + - usart6: 293
+>> + - adc: 296
+>> + - sdio: 299
+>> + - spi1: 300
+>> + - spi4: 301
+>> + - syscfg: 302
+>> + - tim9: 304
+>> + - tim10: 305
+>> + - tim11: 306
+>> + - spi5: 308
+>> + - spi6: 309
+>> + - sai1: 310
+>> + - ltdc: 31
+>> +
+>>
+>
+> Last line is un-necessary. When I applied this patch for test
+> "new blank line at EOF" happen.
+
+Thanks, that will be fixed in v4.
+
+Kind regards,
+Maxime
+>
+> +++ b/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
+> @@ -99,4 +99,3 @@ List of indexes for STM32F429:
+>   - spi6: 309
+>   - sai1: 310
+>   - ltdc: 31
+> -
+>
+> Thanks,
+> Chanwoo Choi
+>
