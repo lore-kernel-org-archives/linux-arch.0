@@ -1,55 +1,27 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH] mm: kill kmemcheck
-Date: Mon, 16 Mar 2015 22:33:18 -0400
-Message-ID: <20150316223318.02145751@grimm.local.home>
-References: <1426074547-21888-1-git-send-email-sasha.levin@oracle.com>
-	<20150311081909.552e2052@grimm.local.home>
-	<55003666.3020100@oracle.com>
-	<20150311084034.04ce6801@grimm.local.home>
-	<55004595.7020304@oracle.com>
-	<20150311102636.6b4110a8@gandalf.local.home>
-	<55005491.5080809@oracle.com>
-	<20150311105210.1855c95e@gandalf.local.home>
-	<550787E7.1030604@oracle.com>
+From: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+Subject: Re: [PATCH v2 tip/core/rcu 01/22] smpboot: Add common code for
+ notification from dying CPU
+Date: Tue, 17 Mar 2015 09:18:07 +0100
+Message-ID: <20150317081807.GQ2896@worktop.programming.kicks-ass.net>
+References: <20150316183743.GA21453@linux.vnet.ibm.com>
+ <1426531086-23825-1-git-send-email-paulmck@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <550787E7.1030604@oracle.com>
-Sender: owner-linux-mm@kvack.org
-To: Sasha Levin <sasha.levin@oracle.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-mm@kvack.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-crypto@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <1426531086-23825-1-git-send-email-paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "Paul E. McKenney" <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, laijs-BthXqXjhjHXQFUHtdCDX3A@public.gmane.org, dipankar-xthvdsQ13ZrQT0dZR+AlfA@public.gmane.org, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, mathieu.desnoyers-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org, josh-iaAMLnmF4UmaiuxdJuQwMA@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, rostedt-nx8X9YLhiw1AfugRpC6u6w@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, dvhart-VuQAYsv1563Yd54FQh9/CA@public.gmane.org, fweisbec-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, bobby.prani-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, 16 Mar 2015 21:48:23 -0400
-Sasha Levin <sasha.levin@oracle.com> wrote:
-
-
-> Steven,
+On Mon, Mar 16, 2015 at 11:37:45AM -0700, Paul E. McKenney wrote:
+> From: "Paul E. McKenney" <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
 > 
-> 
-> Since the only objection raised was the too-newiness of GCC 4.9.2/5.0, what
-> would you consider a good time-line for removal?
-> 
-> I haven't heard any "over my dead body" objections, so I guess that trying
-> to remove it while no distribution was shipping the compiler that would make
-> it possible was premature.
-> 
-> Although, on the other hand, I'd be happy if we can have a reasonable date
-> (that is before my kid goes to college), preferably even before the next
-> LSF/MM so that we could have a mission accomplished thingie with a round
-> of beers and commemorative t-shirts.
+> RCU ignores offlined CPUs, so they cannot safely run RCU read-side code.
+> (They -can- use SRCU, but not RCU.)  This means that any use of RCU
+> during or after the call to arch_cpu_idle_dead().  Unfortunately,
+> commit 2ed53c0d6cc99 added a complete() call, which will contain RCU
+> read-side critical sections if there is a task waiting to be awakened.
 
-Perhaps give it 2 years? With fair notice that it will soon be gone?
-
-In 2 years I should be up to gcc 4.9 ;-)
-
-I still need to test it out.
-
--- Steve
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Got a little more detail there?
