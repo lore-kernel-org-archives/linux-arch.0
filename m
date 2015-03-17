@@ -1,34 +1,58 @@
-From: "Paul E. McKenney" <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
-Subject: Re: [PATCH v2 tip/core/rcu 01/22] smpboot: Add common code for
- notification from dying CPU
-Date: Tue, 17 Mar 2015 04:36:48 -0700
-Message-ID: <20150317113648.GC3589@linux.vnet.ibm.com>
-References: <20150316183743.GA21453@linux.vnet.ibm.com>
- <1426531086-23825-1-git-send-email-paulmck@linux.vnet.ibm.com>
- <20150317081807.GQ2896@worktop.programming.kicks-ass.net>
-Reply-To: paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org
+From: Matthew Wilcox <willy@linux.intel.com>
+Subject: Re: [RFC PATCH 2/7] block: convert bio_vec.bv_page to bv_pfn
+Date: Tue, 17 Mar 2015 09:02:54 -0400
+Message-ID: <20150317130254.GC4003@linux.intel.com>
+References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150316202537.33102.12944.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150316230533.GH29656@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20150317081807.GQ2896-IIpfhp3q70z/8w/KjCw3T+5/BudmfyzbbVWyRVo5IupeoWH0uzbU5w@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, laijs-BthXqXjhjHXQFUHtdCDX3A@public.gmane.org, dipankar-xthvdsQ13ZrQT0dZR+AlfA@public.gmane.org, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, mathieu.desnoyers-vg+e7yoeK/dWk0Htik3J/w@public.gmane.org, josh-iaAMLnmF4UmaiuxdJuQwMA@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, rostedt-nx8X9YLhiw1AfugRpC6u6w@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, edumazet-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, dvhart-VuQAYsv1563Yd54FQh9/CA@public.gmane.org, fweisbec-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, oleg-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, bobby.prani-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+In-Reply-To: <20150316230533.GH29656@ZenIV.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, hch@infradead.org, linux-fsdevel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 17, 2015 at 09:18:07AM +0100, Peter Zijlstra wrote:
-> On Mon, Mar 16, 2015 at 11:37:45AM -0700, Paul E. McKenney wrote:
-> > From: "Paul E. McKenney" <paulmck-23VcF4HTsmIX0ybBhKVfKdBPR1lH4CV8@public.gmane.org>
-> > 
-> > RCU ignores offlined CPUs, so they cannot safely run RCU read-side code.
-> > (They -can- use SRCU, but not RCU.)  This means that any use of RCU
-> > during or after the call to arch_cpu_idle_dead().  Unfortunately,
-> > commit 2ed53c0d6cc99 added a complete() call, which will contain RCU
-> > read-side critical sections if there is a task waiting to be awakened.
+On Mon, Mar 16, 2015 at 11:05:33PM +0000, Al Viro wrote:
+> > diff --git a/mm/iov_iter.c b/mm/iov_iter.c
+> > index 827732047da1..be9a7c5b8703 100644
+> > --- a/mm/iov_iter.c
+> > +++ b/mm/iov_iter.c
+> > @@ -61,7 +61,7 @@
+> >  	__p = i->bvec;					\
+> >  	__v.bv_len = min_t(size_t, n, __p->bv_len - skip);	\
+> >  	if (likely(__v.bv_len)) {			\
+> > -		__v.bv_page = __p->bv_page;		\
+> > +		__v.bv_pfn = __p->bv_pfn;		\
+> >  		__v.bv_offset = __p->bv_offset + skip; 	\
+> >  		(void)(STEP);				\
+> >  		skip += __v.bv_len;			\
+> > @@ -72,7 +72,7 @@
+> >  		__v.bv_len = min_t(size_t, n, __p->bv_len);	\
+> >  		if (unlikely(!__v.bv_len))		\
+> >  			continue;			\
+> > -		__v.bv_page = __p->bv_page;		\
+> > +		__v.bv_pfn = __p->bv_pfn;		\
+> >  		__v.bv_offset = __p->bv_offset;		\
+> >  		(void)(STEP);				\
+> >  		skip = __v.bv_len;			\
+> > @@ -369,7 +369,7 @@ size_t copy_to_iter(void *addr, size_t bytes, struct iov_iter *i)
+> >  	iterate_and_advance(i, bytes, v,
+> >  		__copy_to_user(v.iov_base, (from += v.iov_len) - v.iov_len,
+> >  			       v.iov_len),
+> > -		memcpy_to_page(v.bv_page, v.bv_offset,
+> > +		memcpy_to_page(bvec_page(&v), v.bv_offset,
 > 
-> Got a little more detail there?
+> How had memcpy_to_page(NULL, ...) worked for you?
 
-Quite possibly.  But exactly what sort of detail are you looking for?
+ static inline struct page *bvec_page(const struct bio_vec *bvec)
+ {
+-       return bvec->bv_page;
++       return pfn_to_page(bvec->bv_pfn.pfn);
+ }
 
-							Thanx, Paul
+(yes, more work to be done here to make copy_to_iter work to a bvec that
+is actually targetting a page-less address, but these are RFC patches
+showing the direction we're heading in while keeping current code working)
