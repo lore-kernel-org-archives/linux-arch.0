@@ -1,51 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:34656 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933129AbbCPXFj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Mar 2015 19:05:39 -0400
-Date: Mon, 16 Mar 2015 23:05:33 +0000
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC PATCH 2/7] block: convert bio_vec.bv_page to bv_pfn
-Message-ID: <20150316230533.GH29656@ZenIV.linux.org.uk>
-References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20150316202537.33102.12944.stgit@dwillia2-desk3.amr.corp.intel.com>
+Received: from userp1040.oracle.com ([156.151.31.81]:30221 "EHLO
+	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752000AbbCQBse (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Mar 2015 21:48:34 -0400
+Message-ID: <550787E7.1030604@oracle.com>
+Date: Mon, 16 Mar 2015 21:48:23 -0400
+From: Sasha Levin <sasha.levin@oracle.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20150316202537.33102.12944.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: Re: [PATCH] mm: kill kmemcheck
+References: <1426074547-21888-1-git-send-email-sasha.levin@oracle.com>	<20150311081909.552e2052@grimm.local.home>	<55003666.3020100@oracle.com>	<20150311084034.04ce6801@grimm.local.home>	<55004595.7020304@oracle.com>	<20150311102636.6b4110a8@gandalf.local.home>	<55005491.5080809@oracle.com> <20150311105210.1855c95e@gandalf.local.home>
+In-Reply-To: <20150311105210.1855c95e@gandalf.local.home>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, hch@infradead.org, linux-fsdevel@vger.kernel.org, Matthew Wilcox <willy@linux.intel.com>
-Message-ID: <20150316230533.fbmLR_BcMd7yCdH_yVlX_3intdWnp_pZmQSsqC2n5_w@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-mm@kvack.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-crypto@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20150317014823.-0MhhxU33jEYpXI1lX0j_vbLpxP6CWRRFx1gvKueBx4@z>
 
-> diff --git a/mm/iov_iter.c b/mm/iov_iter.c
-> index 827732047da1..be9a7c5b8703 100644
-> --- a/mm/iov_iter.c
-> +++ b/mm/iov_iter.c
-> @@ -61,7 +61,7 @@
->  	__p = i->bvec;					\
->  	__v.bv_len = min_t(size_t, n, __p->bv_len - skip);	\
->  	if (likely(__v.bv_len)) {			\
-> -		__v.bv_page = __p->bv_page;		\
-> +		__v.bv_pfn = __p->bv_pfn;		\
->  		__v.bv_offset = __p->bv_offset + skip; 	\
->  		(void)(STEP);				\
->  		skip += __v.bv_len;			\
-> @@ -72,7 +72,7 @@
->  		__v.bv_len = min_t(size_t, n, __p->bv_len);	\
->  		if (unlikely(!__v.bv_len))		\
->  			continue;			\
-> -		__v.bv_page = __p->bv_page;		\
-> +		__v.bv_pfn = __p->bv_pfn;		\
->  		__v.bv_offset = __p->bv_offset;		\
->  		(void)(STEP);				\
->  		skip = __v.bv_len;			\
-> @@ -369,7 +369,7 @@ size_t copy_to_iter(void *addr, size_t bytes, struct iov_iter *i)
->  	iterate_and_advance(i, bytes, v,
->  		__copy_to_user(v.iov_base, (from += v.iov_len) - v.iov_len,
->  			       v.iov_len),
-> -		memcpy_to_page(v.bv_page, v.bv_offset,
-> +		memcpy_to_page(bvec_page(&v), v.bv_offset,
+On 03/11/2015 10:52 AM, Steven Rostedt wrote:
+>> > Could you try KASan for your use case and see if it potentially uncovers
+>> > anything new?
+> The problem is, I don't have a setup to build with the latest compiler.
+> 
+> I could build with my host compiler (that happens to be 4.9.2), but it
+> would take a while to build, and is not part of my work flow.
+> 
+> 4.9.2 is very new, I think it's a bit premature to declare that the
+> only way to test memory allocations is with the latest and greatest
+> kernel.
+> 
+> But if kmemcheck really doesn't work anymore, than perhaps we should
+> get rid of it.
 
-How had memcpy_to_page(NULL, ...) worked for you?
+Steven,
+
+
+Since the only objection raised was the too-newiness of GCC 4.9.2/5.0, what
+would you consider a good time-line for removal?
+
+I haven't heard any "over my dead body" objections, so I guess that trying
+to remove it while no distribution was shipping the compiler that would make
+it possible was premature.
+
+Although, on the other hand, I'd be happy if we can have a reasonable date
+(that is before my kid goes to college), preferably even before the next
+LSF/MM so that we could have a mission accomplished thingie with a round
+of beers and commemorative t-shirts.
+
+
+Thanks,
+Sasha
