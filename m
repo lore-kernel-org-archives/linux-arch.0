@@ -1,55 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cdptpa-outbound-snat.email.rr.com ([107.14.166.226]:8865 "EHLO
-	cdptpa-oedge-vip.email.rr.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751685AbbCQCca (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 Mar 2015 22:32:30 -0400
-Date: Mon, 16 Mar 2015 22:33:18 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH] mm: kill kmemcheck
-Message-ID: <20150316223318.02145751@grimm.local.home>
-In-Reply-To: <550787E7.1030604@oracle.com>
-References: <1426074547-21888-1-git-send-email-sasha.levin@oracle.com>
-	<20150311081909.552e2052@grimm.local.home>
-	<55003666.3020100@oracle.com>
-	<20150311084034.04ce6801@grimm.local.home>
-	<55004595.7020304@oracle.com>
-	<20150311102636.6b4110a8@gandalf.local.home>
-	<55005491.5080809@oracle.com>
-	<20150311105210.1855c95e@gandalf.local.home>
-	<550787E7.1030604@oracle.com>
+Received: from casper.infradead.org ([85.118.1.10]:47366 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752026AbbCQISP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Mar 2015 04:18:15 -0400
+Date: Tue, 17 Mar 2015 09:18:07 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 tip/core/rcu 01/22] smpboot: Add common code for
+ notification from dying CPU
+Message-ID: <20150317081807.GQ2896@worktop.programming.kicks-ass.net>
+References: <20150316183743.GA21453@linux.vnet.ibm.com>
+ <1426531086-23825-1-git-send-email-paulmck@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1426531086-23825-1-git-send-email-paulmck@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sasha Levin <sasha.levin@oracle.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-mm@kvack.org, netdev@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-crypto@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20150317023318.MacBverxOCLg9AUemfCfMj51dNg67zk7RBmWZZdea68@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, mingo@kernel.org, laijs@cn.fujitsu.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, josh@joshtriplett.org, tglx@linutronix.de, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, dvhart@linux.intel.com, fweisbec@gmail.com, oleg@redhat.com, bobby.prani@gmail.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20150317081807.WulhwJ413TujXHXyIPH2mBaULXM-mMag7v4ueEN2t4Y@z>
 
-On Mon, 16 Mar 2015 21:48:23 -0400
-Sasha Levin <sasha.levin@oracle.com> wrote:
-
-
-> Steven,
+On Mon, Mar 16, 2015 at 11:37:45AM -0700, Paul E. McKenney wrote:
+> From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 > 
-> 
-> Since the only objection raised was the too-newiness of GCC 4.9.2/5.0, what
-> would you consider a good time-line for removal?
-> 
-> I haven't heard any "over my dead body" objections, so I guess that trying
-> to remove it while no distribution was shipping the compiler that would make
-> it possible was premature.
-> 
-> Although, on the other hand, I'd be happy if we can have a reasonable date
-> (that is before my kid goes to college), preferably even before the next
-> LSF/MM so that we could have a mission accomplished thingie with a round
-> of beers and commemorative t-shirts.
+> RCU ignores offlined CPUs, so they cannot safely run RCU read-side code.
+> (They -can- use SRCU, but not RCU.)  This means that any use of RCU
+> during or after the call to arch_cpu_idle_dead().  Unfortunately,
+> commit 2ed53c0d6cc99 added a complete() call, which will contain RCU
+> read-side critical sections if there is a task waiting to be awakened.
 
-Perhaps give it 2 years? With fair notice that it will soon be gone?
-
-In 2 years I should be up to gcc 4.9 ;-)
-
-I still need to test it out.
-
--- Steve
+Got a little more detail there?
