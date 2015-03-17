@@ -1,90 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:54359 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932323AbbCQRUl convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Mar 2015 13:20:41 -0400
-Message-ID: <5508625F.6060600@arm.com>
-Date: Tue, 17 Mar 2015 17:20:31 +0000
-From: Vladimir Murzin <vladimir.murzin@arm.com>
+Received: from mail-wi0-f169.google.com ([209.85.212.169]:36510 "EHLO
+	mail-wi0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932524AbbCQRXn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Mar 2015 13:23:43 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH 0/6] make memtest a generic kernel feature
-References: <1425896830-19705-1-git-send-email-vladimir.murzin@arm.com> <20150317171822.GW8399@arm.com>
-In-Reply-To: <20150317171822.GW8399@arm.com>
-Content-Type: text/plain; charset=WINDOWS-1252
-Content-Transfer-Encoding: 8BIT
+In-Reply-To: <1426236895.3083.20.camel@pengutronix.de>
+References: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
+	<1426197361-19290-7-git-send-email-maxime.coquelin@st.com>
+	<1426236895.3083.20.camel@pengutronix.de>
+Date: Tue, 17 Mar 2015 18:23:41 +0100
+Message-ID: <CALszF6AS551JCxcfaKtPyeisbNt6OkdacS7uWaSEAEm3pRP95Q@mail.gmail.com>
+Subject: Re: [PATCH v3 06/15] drivers: reset: Add STM32 reset driver
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "hpa@zytor.com" <hpa@zytor.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "lauraa@codeaurora.org" <lauraa@codeaurora.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "arnd@arndb.de" <arnd@arndb.de>, Mark Rutland <Mark.Rutland@arm.com>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "baruch@tkos.co.il" <baruch@tkos.co.il>, "rdunlap@infradead.org" <rdunlap@infradead.org>
-Message-ID: <20150317172031.C5He2atgB6ymAiCZjBE94lWopnnhjzrKpfLDkE-yIms@z>
+To: Philipp Zabel <p.zabel@pengutronix.de>
+Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
+Message-ID: <20150317172341.dK3dlj-LFVg-Pp8VLzE_YxSczeLRTpJeQxD6XuiD0GA@z>
 
-On 17/03/15 17:18, Will Deacon wrote:
-> On Mon, Mar 09, 2015 at 10:27:04AM +0000, Vladimir Murzin wrote:
->> Memtest is a simple feature which fills the memory with a given set of
->> patterns and validates memory contents, if bad memory regions is detected it
->> reserves them via memblock API. Since memblock API is widely used by other
->> architectures this feature can be enabled outside of x86 world.
+2015-03-13 9:54 GMT+01:00 Philipp Zabel <p.zabel@pengutronix.de>:
+> Am Donnerstag, den 12.03.2015, 22:55 +0100 schrieb Maxime Coquelin:
+>> From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 >>
->> This patch set promotes memtest to live under generic mm umbrella and enables
->> memtest feature for arm/arm64.
+>> The STM32 MCUs family IP can be reset by accessing some shared registers.
 >>
->> It was reported that this patch set was useful for tracking down an issue with
->> some errant DMA on an arm64 platform.
->>
->> Since it touches x86 and mm bits it'd be great to get ACK/NAK for these bits.
-> 
-> Is your intention for akpm to merge this? I don't mind how it goes upstream,
-> but that seems like a sensible route to me.
-> 
+>> The specificity is that some reset lines are used by the timers.
+>> At timer initialization time, the timer has to be reset, that's why
+>> we cannot use a regular driver.
+>
+> But this is a regular driver now, should this comment be updated?
+>
 
-It is already in -mm tree.
+Indeed, I changed in v4 to:
+    The STM32 MCUs family IPs can be reset by accessing some registers
+    from the RCC block.
 
-Vladimir
+    The list of available reset lines is documented in the DT bindings.
 
-> Will
-> 
->> Changelog:
->>
->>     RFC -> v1
->>         - updated kernel-parameters.txt for memtest entry
->>         - updated number of test patterns in Kconfig menu
->>         - added Acked/Tested tags for arm64 bits
->>         - rebased on v4.0-rc3
->>
->> Vladimir Murzin (6):
->>   mm: move memtest under /mm
->>   memtest: use phys_addr_t for physical addresses
->>   arm64: add support for memtest
->>   arm: add support for memtest
->>   Kconfig: memtest: update number of test patterns up to 17
->>   Documentation: update arch list in the 'memtest' entry
->>
->>  Documentation/kernel-parameters.txt |    2 +-
->>  arch/arm/mm/init.c                  |    3 +
->>  arch/arm64/mm/init.c                |    2 +
->>  arch/x86/Kconfig                    |   11 ----
->>  arch/x86/include/asm/e820.h         |    8 ---
->>  arch/x86/mm/Makefile                |    2 -
->>  arch/x86/mm/memtest.c               |  118 -----------------------------------
->>  include/linux/memblock.h            |    8 +++
->>  lib/Kconfig.debug                   |   11 ++++
->>  mm/Makefile                         |    1 +
->>  mm/memtest.c                        |  118 +++++++++++++++++++++++++++++++++++
->>  11 files changed, 144 insertions(+), 140 deletions(-)
->>  delete mode 100644 arch/x86/mm/memtest.c
->>  create mode 100644 mm/memtest.c
->>
->> -- 
->> 1.7.9.5
->>
-> 
-> --
-> To unsubscribe, send a message with 'unsubscribe linux-mm' in
-> the body to majordomo@kvack.org.  For more info on Linux MM,
-> see: http://www.linux-mm.org/ .
-> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
-> 
-> 
-> 
-
-
+Thanks,
+Maxime
+>
+> regards
+> Philipp
+>
