@@ -1,45 +1,46 @@
-From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: Re: [PATCH v3 06/15] drivers: reset: Add STM32 reset driver
-Date: Tue, 17 Mar 2015 18:23:41 +0100
-Message-ID: <CALszF6AS551JCxcfaKtPyeisbNt6OkdacS7uWaSEAEm3pRP95Q@mail.gmail.com>
-References: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
-	<1426197361-19290-7-git-send-email-maxime.coquelin@st.com>
-	<1426236895.3083.20.camel@pengutronix.de>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 0/6] make memtest a generic kernel feature
+Date: Tue, 17 Mar 2015 17:31:11 +0000
+Message-ID: <20150317173111.GA8399@arm.com>
+References: <1425896830-19705-1-git-send-email-vladimir.murzin@arm.com>
+ <20150317171822.GW8399@arm.com>
+ <5508625F.6060600@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f169.google.com ([209.85.212.169]:36510 "EHLO
-	mail-wi0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932524AbbCQRXn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Mar 2015 13:23:43 -0400
-In-Reply-To: <1426236895.3083.20.camel@pengutronix.de>
+Received: from foss.arm.com ([217.140.101.70]:59744 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754173AbbCQRbR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 Mar 2015 13:31:17 -0400
+Content-Disposition: inline
+In-Reply-To: <5508625F.6060600@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Philipp Zabel <p.zabel@pengutronix.de>
-Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@os>
+To: Vladimir Murzin <Vladimir.Murzin@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "x86@kernel.org" <x86@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@redhat.com" <mingo@redhat.com>, "hpa@zytor.com" <hpa@zytor.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "lauraa@codeaurora.org" <lauraa@codeaurora.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "arnd@arndb.de" <arnd@arndb.de>, Mark Rutland <Mark.Rutland@arm.com>, "ard.biesheuvel@linaro.org" <ard.biesheuvel@linaro.org>, "baruch@tkos.co.il" <baruch@tkos.co.il>, "rdunlap@infradead.org" <rdunlap@infradead.org>
 
-2015-03-13 9:54 GMT+01:00 Philipp Zabel <p.zabel@pengutronix.de>:
-> Am Donnerstag, den 12.03.2015, 22:55 +0100 schrieb Maxime Coquelin:
->> From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
->>
->> The STM32 MCUs family IP can be reset by accessing some shared registers.
->>
->> The specificity is that some reset lines are used by the timers.
->> At timer initialization time, the timer has to be reset, that's why
->> we cannot use a regular driver.
->
-> But this is a regular driver now, should this comment be updated?
->
+On Tue, Mar 17, 2015 at 05:20:31PM +0000, Vladimir Murzin wrote:
+> On 17/03/15 17:18, Will Deacon wrote:
+> > On Mon, Mar 09, 2015 at 10:27:04AM +0000, Vladimir Murzin wrote:
+> >> Memtest is a simple feature which fills the memory with a given set of
+> >> patterns and validates memory contents, if bad memory regions is detected it
+> >> reserves them via memblock API. Since memblock API is widely used by other
+> >> architectures this feature can be enabled outside of x86 world.
+> >>
+> >> This patch set promotes memtest to live under generic mm umbrella and enables
+> >> memtest feature for arm/arm64.
+> >>
+> >> It was reported that this patch set was useful for tracking down an issue with
+> >> some errant DMA on an arm64 platform.
+> >>
+> >> Since it touches x86 and mm bits it'd be great to get ACK/NAK for these bits.
+> > 
+> > Is your intention for akpm to merge this? I don't mind how it goes upstream,
+> > but that seems like a sensible route to me.
+> > 
+> 
+> It is already in -mm tree.
 
-Indeed, I changed in v4 to:
-    The STM32 MCUs family IPs can be reset by accessing some registers
-    from the RCC block.
+Cracking, I missed the memo somehow.
 
-    The list of available reset lines is documented in the DT bindings.
-
-Thanks,
-Maxime
->
-> regards
-> Philipp
->
+Will
