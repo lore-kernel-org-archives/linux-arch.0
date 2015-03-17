@@ -1,44 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e33.co.us.ibm.com ([32.97.110.151]:51097 "EHLO
-	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753407AbbCQLgx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Mar 2015 07:36:53 -0400
-Received: from /spool/local
-	by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 17 Mar 2015 05:36:52 -0600
-Date: Tue, 17 Mar 2015 04:36:48 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2 tip/core/rcu 01/22] smpboot: Add common code for
- notification from dying CPU
-Message-ID: <20150317113648.GC3589@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20150316183743.GA21453@linux.vnet.ibm.com>
- <1426531086-23825-1-git-send-email-paulmck@linux.vnet.ibm.com>
- <20150317081807.GQ2896@worktop.programming.kicks-ass.net>
+Received: from mga14.intel.com ([192.55.52.115]:22999 "EHLO mga14.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932290AbbCQND5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 17 Mar 2015 09:03:57 -0400
+Date: Tue, 17 Mar 2015 09:02:54 -0400
+From: Matthew Wilcox <willy@linux.intel.com>
+Subject: Re: [RFC PATCH 2/7] block: convert bio_vec.bv_page to bv_pfn
+Message-ID: <20150317130254.GC4003@linux.intel.com>
+References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150316202537.33102.12944.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150316230533.GH29656@ZenIV.linux.org.uk>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20150317081807.GQ2896@worktop.programming.kicks-ass.net>
+In-Reply-To: <20150316230533.GH29656@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, mingo@kernel.org, laijs@cn.fujitsu.com, dipankar@in.ibm.com, akpm@linux-foundation.org, mathieu.desnoyers@efficios.com, josh@joshtriplett.org, tglx@linutronix.de, rostedt@goodmis.org, dhowells@redhat.com, edumazet@google.com, dvhart@linux.intel.com, fweisbec@gmail.com, oleg@redhat.com, bobby.prani@gmail.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150317113648.1OyTjsNEAZTZDaInXvkKe_QzGWWMjng-YUWd-w1Eqpo@z>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, hch@infradead.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20150317130254.MYQQfSITGAKRuSauaidvBUZ4w8XDRqd3tgcjwdhiqM0@z>
 
-On Tue, Mar 17, 2015 at 09:18:07AM +0100, Peter Zijlstra wrote:
-> On Mon, Mar 16, 2015 at 11:37:45AM -0700, Paul E. McKenney wrote:
-> > From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-> > 
-> > RCU ignores offlined CPUs, so they cannot safely run RCU read-side code.
-> > (They -can- use SRCU, but not RCU.)  This means that any use of RCU
-> > during or after the call to arch_cpu_idle_dead().  Unfortunately,
-> > commit 2ed53c0d6cc99 added a complete() call, which will contain RCU
-> > read-side critical sections if there is a task waiting to be awakened.
+On Mon, Mar 16, 2015 at 11:05:33PM +0000, Al Viro wrote:
+> > diff --git a/mm/iov_iter.c b/mm/iov_iter.c
+> > index 827732047da1..be9a7c5b8703 100644
+> > --- a/mm/iov_iter.c
+> > +++ b/mm/iov_iter.c
+> > @@ -61,7 +61,7 @@
+> >  	__p = i->bvec;					\
+> >  	__v.bv_len = min_t(size_t, n, __p->bv_len - skip);	\
+> >  	if (likely(__v.bv_len)) {			\
+> > -		__v.bv_page = __p->bv_page;		\
+> > +		__v.bv_pfn = __p->bv_pfn;		\
+> >  		__v.bv_offset = __p->bv_offset + skip; 	\
+> >  		(void)(STEP);				\
+> >  		skip += __v.bv_len;			\
+> > @@ -72,7 +72,7 @@
+> >  		__v.bv_len = min_t(size_t, n, __p->bv_len);	\
+> >  		if (unlikely(!__v.bv_len))		\
+> >  			continue;			\
+> > -		__v.bv_page = __p->bv_page;		\
+> > +		__v.bv_pfn = __p->bv_pfn;		\
+> >  		__v.bv_offset = __p->bv_offset;		\
+> >  		(void)(STEP);				\
+> >  		skip = __v.bv_len;			\
+> > @@ -369,7 +369,7 @@ size_t copy_to_iter(void *addr, size_t bytes, struct iov_iter *i)
+> >  	iterate_and_advance(i, bytes, v,
+> >  		__copy_to_user(v.iov_base, (from += v.iov_len) - v.iov_len,
+> >  			       v.iov_len),
+> > -		memcpy_to_page(v.bv_page, v.bv_offset,
+> > +		memcpy_to_page(bvec_page(&v), v.bv_offset,
 > 
-> Got a little more detail there?
+> How had memcpy_to_page(NULL, ...) worked for you?
 
-Quite possibly.  But exactly what sort of detail are you looking for?
+ static inline struct page *bvec_page(const struct bio_vec *bvec)
+ {
+-       return bvec->bv_page;
++       return pfn_to_page(bvec->bv_pfn.pfn);
+ }
 
-							Thanx, Paul
+(yes, more work to be done here to make copy_to_iter work to a bvec that
+is actually targetting a page-less address, but these are RFC patches
+showing the direction we're heading in while keeping current code working)
 
