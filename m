@@ -1,103 +1,37 @@
-From: Daniel Thompson <daniel.thompson@linaro.org>
-Subject: [PATCH] bug: Recursion avoidance for WARN_ONCE() and friends
-Date: Wed, 18 Mar 2015 16:51:27 +0000
-Message-ID: <1426697487-2515-1-git-send-email-daniel.thompson@linaro.org>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [RFC PATCH 0/7] evacuate struct page from the block layer
+Date: Wed, 18 Mar 2015 13:26:50 -0700
+Message-ID: <20150318132650.3336261c58829f49a9af8675@linux-foundation.org>
+References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f176.google.com ([74.125.82.176]:35977 "EHLO
-	mail-we0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S964962AbbCRQvo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Mar 2015 12:51:44 -0400
-Received: by wetk59 with SMTP id k59so37121454wet.3
-        for <linux-arch@vger.kernel.org>; Wed, 18 Mar 2015 09:51:43 -0700 (PDT)
+Received: from mail.linuxfoundation.org ([140.211.169.12]:38038 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754748AbbCRU0v (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Mar 2015 16:26:51 -0400
+In-Reply-To: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Daniel Thompson <daniel.thompson@linaro.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, patches@linaro.org, linaro-kernel@lists.linaro.org, John Stultz <john.stultz@linaro.org>, Sumit Semwal <sumit.semwal@linaro.org>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, hch@infradead.org, linux-fsdevel@vger.kernel.org, Matthew Wilcox <willy@linux.intel.com>
 
-Currently WARN_ONCE() and similar macros set __warned *after* calling
-the underlying macro. This risks infinite recursion if WARN_ONCE() is
-used to implement sanity tests in any code that can be called by printk.
+On Mon, 16 Mar 2015 16:25:25 -0400 Dan Williams <dan.j.williams@intel.com> wrote:
 
-This can be fixed by restructuring the macros to set __warned before
-calling further macros.
+> Avoid the impending disaster of requiring struct page coverage for what
+> is expected to be ever increasing capacities of persistent memory.  In
+> conversations with Rik van Riel, Mel Gorman, and Jens Axboe at the
+> recently concluded Linux Storage Summit it became clear that struct page
+> is not required in many places, it was simply convenient to re-use.
+> 
+> Introduce helpers and infrastructure to remove struct page usage where
+> it is not necessary.  One use case for these changes is to implement a
+> write-back-cache in persistent memory for software-RAID.  Another use
+> case for the scatterlist changes is RDMA to a pfn-range.
 
-Signed-off-by: Daniel Thompson <daniel.thompson@linaro.org>
----
+Those use-cases sound very thin.  If that's all we have then I'd say
+"find another way of implementing those things without creating
+pageframes for persistent memory".
 
-Notes:
-    I discovered this problem when I temporarily added sanity tests to the
-    irqflags macros during some of my development work but I suspect the
-    scope is a little wider. I admit I was tempted to throw this change
-    away after I had finished debugging but for two things prompted me to
-    post it.
-    
-     1. It did cost me a few minutes head scratching and I'd like to spare
-        others the pain.
-    
-     2. I realized the new code is potentially (and very fractionally) more
-        efficient: the register containing address of __warned can be reused
-        and a cache hit is a near certainty for the write.
-    
-    Don't get too excited about the efficiency gains though they are
-    extremely modest. Measures as code size benefit and using v4.0-rc4 the
-    results are:
-    
-    Kernel                  GCC version             Code size reduction
-    
-    arm multi_v7_defconfig  Linaro 4.8-2014.01      224 bytes
-    arm64 defconfig         Linaro 4.9-2014.09       32 bytes
-    i386_defconfig          Redhat 4.9.2-6           62 bytes
-    x86_64_defconfig        Redhat 4.9.2-6          380 bytes
-    
-
- include/asm-generic/bug.h | 21 ++++++++++++---------
- 1 file changed, 12 insertions(+), 9 deletions(-)
-
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 630dd2372238..f8c8a819c563 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -110,9 +110,10 @@ extern void warn_slowpath_null(const char *file, const int line);
- 	static bool __section(.data.unlikely) __warned;		\
- 	int __ret_warn_once = !!(condition);			\
- 								\
--	if (unlikely(__ret_warn_once))				\
--		if (WARN_ON(!__warned)) 			\
--			__warned = true;			\
-+	if (unlikely(__ret_warn_once) && !__warned) {		\
-+		__warned = true;				\
-+		WARN_ON(true);					\
-+	}							\
- 	unlikely(__ret_warn_once);				\
- })
-
-@@ -120,9 +121,10 @@ extern void warn_slowpath_null(const char *file, const int line);
- 	static bool __section(.data.unlikely) __warned;		\
- 	int __ret_warn_once = !!(condition);			\
- 								\
--	if (unlikely(__ret_warn_once))				\
--		if (WARN(!__warned, format)) 			\
--			__warned = true;			\
-+	if (unlikely(__ret_warn_once) && !__warned) {		\
-+		__warned = true;				\
-+		WARN(true, format);				\
-+	}							\
- 	unlikely(__ret_warn_once);				\
- })
-
-@@ -130,9 +132,10 @@ extern void warn_slowpath_null(const char *file, const int line);
- 	static bool __section(.data.unlikely) __warned;		\
- 	int __ret_warn_once = !!(condition);			\
- 								\
--	if (unlikely(__ret_warn_once))				\
--		if (WARN_TAINT(!__warned, taint, format))	\
--			__warned = true;			\
-+	if (unlikely(__ret_warn_once) && !__warned) {		\
-+		__warned = true;				\
-+		WARN_TAINT(true, taint, format);		\
-+	}							\
- 	unlikely(__ret_warn_once);				\
- })
-
---
-2.1.0
+IOW, please tell us much much much more about the value of this change.
