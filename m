@@ -1,60 +1,65 @@
-From: Matthew Wilcox <willy@linux.intel.com>
-Subject: Re: [RFC PATCH 0/7] evacuate struct page from the block layer
-Date: Thu, 19 Mar 2015 09:43:13 -0400
-Message-ID: <20150319134313.GF4003@linux.intel.com>
-References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20150318132650.3336261c58829f49a9af8675@linux-foundation.org>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 8/9] qspinlock: Generic paravirt support
+Date: Thu, 19 Mar 2015 14:43:36 +0100
+Message-ID: <20150319134336.GE11574@worktop.ger.corp.intel.com>
+References: <20150316131613.720617163@infradead.org>
+ <20150316133112.278511476@infradead.org>
+ <5509E51D.7040909@hp.com>
+ <20150319101242.GM21418@twins.programming.kicks-ass.net>
+ <20150319122536.GD11574@worktop.ger.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.9]:54484 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751191AbbCSNn4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Mar 2015 09:43:56 -0400
 Content-Disposition: inline
-In-Reply-To: <20150318132650.3336261c58829f49a9af8675@linux-foundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, hch@infradead.org, linux-fsdevel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20150319122536.GD11574@worktop.ger.corp.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Waiman Long <waiman.long@hp.com>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, scott.norton@hp.com, doug.hatch@hp.com, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, luto@amacapital.net
 
-On Wed, Mar 18, 2015 at 01:26:50PM -0700, Andrew Morton wrote:
-> On Mon, 16 Mar 2015 16:25:25 -0400 Dan Williams <dan.j.williams@intel.com> wrote:
-> 
-> > Avoid the impending disaster of requiring struct page coverage for what
-> > is expected to be ever increasing capacities of persistent memory.  In
-> > conversations with Rik van Riel, Mel Gorman, and Jens Axboe at the
-> > recently concluded Linux Storage Summit it became clear that struct page
-> > is not required in many places, it was simply convenient to re-use.
-> > 
-> > Introduce helpers and infrastructure to remove struct page usage where
-> > it is not necessary.  One use case for these changes is to implement a
-> > write-back-cache in persistent memory for software-RAID.  Another use
-> > case for the scatterlist changes is RDMA to a pfn-range.
-> 
-> Those use-cases sound very thin.  If that's all we have then I'd say
-> "find another way of implementing those things without creating
-> pageframes for persistent memory".
-> 
-> IOW, please tell us much much much more about the value of this change.
+On Thu, Mar 19, 2015 at 01:25:36PM +0100, Peter Zijlstra wrote:
+> +static struct qspinlock **pv_hash(struct qspinlock *lock)
+> +{
+> +	u32 hash = hash_ptr(lock, PV_LOCK_HASH_BITS);
+> +	struct pv_hash_bucket *hb, *end;
+> +
+> +	if (!hash)
+> +		hash = 1;
+> +
+> +	hb = &__pv_lock_hash[hash_align(hash)];
+> +	for (;;) {
+> +		for (end = hb + PV_HB_PER_LINE; hb < end; hb++) {
+> +			if (cmpxchg(&hb->lock, NULL, HB_RESERVED)) {
 
-Dan missed "Support O_DIRECT to a mapped DAX file".  More generally, if we
-want to be able to do any kind of I/O directly to persistent memory,
-and I think we do, we need to do one of:
+That should be: !cmpxchg(), bit disturbing that that booted.
 
-1. Construct struct pages for persistent memory
-1a. Permanently
-1b. While the pages are under I/O
-2. Teach the I/O layers to deal in PFNs instead of struct pages
-3. Replace struct page with some other structure that can represent both
-   DRAM and PMEM
-
-I'm personally a fan of #3, and I was looking at the scatterlist as
-my preferred data structure.  I now believe the scatterlist as it is
-currently defined isn't sufficient, so we probably end up needing a new
-data structure.  I think Dan's preferred method of replacing struct
-pages with PFNs is actually less instrusive, but doesn't give us as
-much advantage (an entirely new data structure would let us move to an
-extent based system at the same time, instead of sticking with an array
-of pages).  Clearly Boaz prefers 1a, which works well enough for the
-8GB NV-DIMMs, but not well enough for the 400GB NV-DIMMs.
-
-What's your preference?  I guess option 0 is "force all I/O to go
-through the page cache and then get copied", but that feels like a nasty
-performance hit.
+> +				WRITE_ONCE(hb->cpu, smp_processor_id());
+> +				/*
+> +				 * Since we must read lock first and cpu
+> +				 * second, we must write cpu first and lock
+> +				 * second, therefore use HB_RESERVE to mark an
+> +				 * entry in use before writing the values.
+> +				 *
+> +				 * This can cause hb_hash_find() to not find a
+> +				 * cpu even though _Q_SLOW_VAL, this is not a
+> +				 * problem since we re-check l->locked before
+> +				 * going to sleep and the unlock will have
+> +				 * cleared l->locked already.
+> +				 */
+> +				smp_wmb(); /* matches rmb from pv_hash_find */
+> +				WRITE_ONCE(hb->lock, lock);
+> +				goto done;
+> +			}
+> +		}
+> +
+> +		hash = lfsr(hash, PV_LOCK_HASH_BITS);
+> +		hb = &__pv_lock_hash[hash_align(hash)];
+> +	}
+> +
+> +done:
+> +	return &hb->lock;
+> +}
