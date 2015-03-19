@@ -1,138 +1,169 @@
-From: Chanwoo Choi <cw00.choi@samsung.com>
-Subject: Re: [PATCH v3  00/15] Add support to STMicroelectronics STM32 family
-Date: Thu, 19 Mar 2015 08:35:09 +0900
-Message-ID: <550A0BAD.2000104@samsung.com>
-References: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH 9/9] qspinlock, x86,
+	kvm: Implement KVM support for paravirt qspinlock
+Date: Wed, 18 Mar 2015 22:45:55 -0400
+Message-ID: <550A3863.2060808@hp.com>
+References: <20150316131613.720617163@infradead.org>
+	<20150316133112.333845162@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-gpio-owner@vger.kernel.org>
-In-reply-to: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
-Sender: linux-gpio-owner@vger.kernel.org
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Cc: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.>
+Content-Type: multipart/mixed; boundary="===============2596025477776393937=="
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20150316133112.333845162@infradead.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, riel@redhat.com, x86@kernel.org, kvm@vger.kernel.org, konrad.wilk@oracle.com, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, oleg@redhat.com, linux-kernel@vger.kernel.org, mingo@redhat.com, david.vrabel@citrix.com, hpa@zytor.com, luto@amacapital.net, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, boris.ostrovsky@oracle.com, virtualization@lists.linux-foundation.org, doug.hatch@hp.com
 List-Id: linux-arch.vger.kernel.org
 
-Hi Maxime,
+This is a multi-part message in MIME format.
+--===============2596025477776393937==
+Content-Type: multipart/alternative;
+ boundary="------------010900080506010607050409"
 
-I tested this patch-set on Linux 4.0-rc4 for STM32F429IDISCOVERY board.
-I completed the kernel booting successfully without any modification .
+This is a multi-part message in MIME format.
+--------------010900080506010607050409
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-Looks good to me for this patch-set.
+On 03/16/2015 09:16 AM, Peter Zijlstra wrote:
+> Implement the paravirt qspinlock for x86-kvm.
+>
+> We use the regular paravirt call patching to switch between:
+>
+>    native_queue_spin_lock_slowpath()	__pv_queue_spin_lock_slowpath()
+>    native_queue_spin_unlock()		__pv_queue_spin_unlock()
+>
+> We use a callee saved call for the unlock function which reduces the
+> i-cache footprint and allows 'inlining' of SPIN_UNLOCK functions
+> again.
+>
+> We further optimize the unlock path by patching the direct call with a
+> "movb $0,%arg1" if we are indeed using the native unlock code. This
+> makes the unlock code almost as fast as the !PARAVIRT case.
+>
+> This significantly lowers the overhead of having
+> CONFIG_PARAVIRT_SPINLOCKS enabled, even for native code.
+>
+>
+> Signed-off-by: Peter Zijlstra (Intel)<peterz@infradead.org>
 
-Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
+I do have some concern about this call site patching mechanism as the 
+modification is not atomic. The spin_unlock() calls are in many places 
+in the kernel. There is a possibility that a thread is calling a certain 
+spin_unlock call site while it is being patched by another one with the 
+alternative() function call.
 
-Best Regards,
-Chanwoo Choi
+So far, I don't see any problem with bare metal where 
+paravirt_patch_insns() is used to patch it to the move instruction. 
+However, in a virtual guest enivornment where paravirt_patch_call() was 
+used, there were situations where the system panic because of page fault 
+on some invalid memory in the kthread. If you look at the 
+paravirt_patch_call(), you will see:
 
-On 03/13/2015 06:55 AM, Maxime Coquelin wrote:
-> From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-> 
-> This third round tries to address most of the comments made on previous series.
-> 
-> It contains few less patches, as the reset_controller_of_init() patch has been
-> removed, now that the bootlaoder handles the reset of the timers.
-> 
-> The pinctrl driver has also been removed after Linus review.
-> It will be reworked to use the generic pinconf bindings, and may contain
-> changes for other machines (Mediatek), to add support for pinmux property
-> handling directly in pinconf-generic.
-> 
-> STM32 MCUs are Cortex-M CPU, used in various applications (consumer
-> electronics, industrial applications, hobbyists...).
-> Datasheets, user and programming manuals are publicly available on
-> STMicroelectronics website.
-> 
-> With this series applied, the STM32F419 Discovery can boot succesfully.
-> 
-> 
-> Changes since v2:
-> -----------------
->  - Remove pinctrl driver from the series. 
->  - Remove reset_controller_of_init(), and reset the timers in the bootloader
->  - Add HW flow contrl property for serial driver
->  - Lots of changes in the DTS file, as per Andreas recommendations
->  - Some Kconfig clean-ups
->  - Adapt the config to be compatible with Andreas' bootwrapper, except UART port.
->  - Various fixes in documentation
-> 
-> Changes since v1:
-> -----------------
->  - Move bindings documentation in their own patches (Andreas)
->  - Rename ARM System timer to armv7m-systick (Rob)
->  - Add clock-frequency property handling in armv7m-systick (Rob)
->  - Re-factor the reset controllers into a single controller (Philipp)
->  - Add kerneldoc to reset_controller_of_init (Philipp)
->  - Add named constants in include/dt-bindings/reset/ (Philipp)
->  - Make pinctrl driver to depend on ARCH_STM32 or COMPILE_TEST (Geert)
->  - Introduce CPUV7M_NUM_IRQ config flag to indicate the number of interrupts
-> supported by the MCU, in order to limit memory waste in vectors' table (Uwe)
-> 
-> 
-> Maxime Coquelin (15):
->   scripts: link-vmlinux: Don't pass page offset to kallsyms if XIP
->     Kernel
->   ARM: ARMv7-M: Enlarge vector table up to 256 entries
->   dt-bindings: Document the ARM System timer bindings
->   clocksource: Add ARM System timer driver
->   dt-bindings: Document the STM32 reset bindings
->   drivers: reset: Add STM32 reset driver
->   dt-bindings: Document the STM32 timer bindings
->   clockevent: Add STM32 Timer driver
->   dt-bindings: Document the STM32 USART bindings
->   serial: stm32-usart: Add STM32 USART Driver
->   ARM: Add STM32 family machine
->   ARM: dts: Add ARM System timer as clockevent in armv7m
->   ARM: dts: Introduce STM32F429 MCU
->   ARM: configs: Add STM32 defconfig
->   MAINTAINERS: Add entry for STM32 MCUs
-> 
->  Documentation/arm/stm32/overview.txt               |  32 +
->  Documentation/arm/stm32/stm32f429-overview.txt     |  22 +
->  .../devicetree/bindings/arm/armv7m_systick.txt     |  26 +
->  .../devicetree/bindings/reset/st,stm32-rcc.txt     | 102 +++
->  .../devicetree/bindings/serial/st,stm32-usart.txt  |  32 +
->  .../devicetree/bindings/timer/st,stm32-timer.txt   |  22 +
->  MAINTAINERS                                        |   8 +
->  arch/arm/Kconfig                                   |  18 +
->  arch/arm/Makefile                                  |   1 +
->  arch/arm/boot/dts/Makefile                         |   1 +
->  arch/arm/boot/dts/armv7-m.dtsi                     |   6 +
->  arch/arm/boot/dts/stm32f429-disco.dts              |  71 +++
->  arch/arm/boot/dts/stm32f429.dtsi                   | 226 +++++++
->  arch/arm/configs/stm32_defconfig                   |  71 +++
->  arch/arm/kernel/entry-v7m.S                        |  13 +-
->  arch/arm/mach-stm32/Makefile                       |   1 +
->  arch/arm/mach-stm32/Makefile.boot                  |   3 +
->  arch/arm/mach-stm32/board-dt.c                     |  19 +
->  arch/arm/mm/Kconfig                                |  15 +
->  drivers/clocksource/Kconfig                        |  15 +
->  drivers/clocksource/Makefile                       |   2 +
->  drivers/clocksource/armv7m_systick.c               |  78 +++
->  drivers/clocksource/timer-stm32.c                  | 184 ++++++
->  drivers/reset/Makefile                             |   1 +
->  drivers/reset/reset-stm32.c                        | 125 ++++
->  drivers/tty/serial/Kconfig                         |  17 +
->  drivers/tty/serial/Makefile                        |   1 +
->  drivers/tty/serial/stm32-usart.c                   | 695 +++++++++++++++++++++
->  include/uapi/linux/serial_core.h                   |   3 +
->  scripts/link-vmlinux.sh                            |   2 +-
->  30 files changed, 1807 insertions(+), 5 deletions(-)
->  create mode 100644 Documentation/arm/stm32/overview.txt
->  create mode 100644 Documentation/arm/stm32/stm32f429-overview.txt
->  create mode 100644 Documentation/devicetree/bindings/arm/armv7m_systick.txt
->  create mode 100644 Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
->  create mode 100644 Documentation/devicetree/bindings/serial/st,stm32-usart.txt
->  create mode 100644 Documentation/devicetree/bindings/timer/st,stm32-timer.txt
->  create mode 100644 arch/arm/boot/dts/stm32f429-disco.dts
->  create mode 100644 arch/arm/boot/dts/stm32f429.dtsi
->  create mode 100644 arch/arm/configs/stm32_defconfig
->  create mode 100644 arch/arm/mach-stm32/Makefile
->  create mode 100644 arch/arm/mach-stm32/Makefile.boot
->  create mode 100644 arch/arm/mach-stm32/board-dt.c
->  create mode 100644 drivers/clocksource/armv7m_systick.c
->  create mode 100644 drivers/clocksource/timer-stm32.c
->  create mode 100644 drivers/reset/reset-stm32.c
->  create mode 100644 drivers/tty/serial/stm32-usart.c
-> 
+     :
+b->opcode = 0xe8; /* call */
+b->delta = delta;
 
+If another CPU reads the instruction at the call site at the right 
+moment, it will get the modified call instruction, but not the new delta 
+value. It will then jump to a random location. I believe that was 
+causing the system panic that I saw.
+
+So I think it is kind of risky to use it here unless we can guarantee 
+that call site patching is atomic wrt other CPUs.
+
+-Longman
+
+
+--------------010900080506010607050409
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<html>
+  <head>
+    <meta content=3D"text/html; charset=3DUTF-8" http-equiv=3D"Content-Ty=
+pe">
+  </head>
+  <body bgcolor=3D"#FFFFFF" text=3D"#000000">
+    On 03/16/2015 09:16 AM, Peter Zijlstra wrote:
+    <blockquote cite=3D"mid:20150316133112.333845162@infradead.org"
+      type=3D"cite">
+      <div class=3D"moz-text-plain" wrap=3D"true" graphical-quote=3D"true=
+"
+        style=3D"font-family: -moz-fixed; font-size: 12px;"
+        lang=3D"x-unicode">
+        <pre wrap=3D"">Implement the paravirt qspinlock for x86-kvm.
+
+We use the regular paravirt call patching to switch between:
+
+  native_queue_spin_lock_slowpath()	__pv_queue_spin_lock_slowpath()
+  native_queue_spin_unlock()		__pv_queue_spin_unlock()
+
+We use a callee saved call for the unlock function which reduces the
+i-cache footprint and allows 'inlining' of SPIN_UNLOCK functions
+again.
+
+We further optimize the unlock path by patching the direct call with a
+"movb $0,%arg1" if we are indeed using the native unlock code. This
+makes the unlock code almost as fast as the !PARAVIRT case.
+
+This significantly lowers the overhead of having
+CONFIG_PARAVIRT_SPINLOCKS enabled, even for native code.
+
+
+Signed-off-by: Peter Zijlstra (Intel) <a moz-do-not-send=3D"true" class=3D=
+"moz-txt-link-rfc2396E" href=3D"mailto:peterz@infradead.org">&lt;peterz@i=
+nfradead.org&gt;</a></pre>
+      </div>
+    </blockquote>
+    <br>
+    I do have some concern about this call site patching mechanism as
+    the modification is not atomic. The spin_unlock() calls are in many
+    places in the kernel. There is a possibility that a thread is
+    calling a certain spin_unlock call site while it is being patched by
+    another one with the alternative() function call. <br>
+    <br>
+    So far, I don't see any problem with bare metal where
+    paravirt_patch_insns() is used to patch it to the move instruction.
+    However, in a virtual guest enivornment where paravirt_patch_call()
+    was used, there were situations where the system panic because of
+    page fault on some invalid memory in the kthread. If you look at the
+    paravirt_patch_call(), you will see:<br>
+    <br>
+    =C2=A0=C2=A0=C2=A0 :<br>
+    b-&gt;opcode =3D 0xe8; /* call */<br>
+    b-&gt;delta =3D delta;<br>
+    <br>
+    If another CPU reads the instruction at the call site at the right
+    moment, it will get the modified call instruction, but not the new
+    delta value. It will then jump to a random location. I believe that
+    was causing the system panic that I saw.<br>
+    <br>
+    So I think it is kind of risky to use it here unless we can
+    guarantee that call site patching is atomic wrt other CPUs.<br>
+    <br>
+    -Longman<br>
+    <br>
+  </body>
+</html>
+
+--------------010900080506010607050409--
+
+--===============2596025477776393937==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+_______________________________________________
+Virtualization mailing list
+Virtualization@lists.linux-foundation.org
+https://lists.linuxfoundation.org/mailman/listinfo/virtualization
+--===============2596025477776393937==--
