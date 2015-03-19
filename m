@@ -1,282 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:55963 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750915AbbCSMZ4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Mar 2015 08:25:56 -0400
-Date: Thu, 19 Mar 2015 13:25:36 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 8/9] qspinlock: Generic paravirt support
-Message-ID: <20150319122536.GD11574@worktop.ger.corp.intel.com>
-References: <20150316131613.720617163@infradead.org>
- <20150316133112.278511476@infradead.org>
- <5509E51D.7040909@hp.com>
- <20150319101242.GM21418@twins.programming.kicks-ass.net>
+Received: from mga11.intel.com ([192.55.52.93]:20227 "EHLO mga11.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753500AbbCSNnK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Mar 2015 09:43:10 -0400
+Date: Thu, 19 Mar 2015 09:43:13 -0400
+From: Matthew Wilcox <willy@linux.intel.com>
+Subject: Re: [RFC PATCH 0/7] evacuate struct page from the block layer
+Message-ID: <20150319134313.GF4003@linux.intel.com>
+References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150318132650.3336261c58829f49a9af8675@linux-foundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20150319101242.GM21418@twins.programming.kicks-ass.net>
+In-Reply-To: <20150318132650.3336261c58829f49a9af8675@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, scott.norton@hp.com, doug.hatch@hp.com, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, luto@amacapital.net
-Message-ID: <20150319122536.SmlULOVCCCqE0_EyRjaI8aP9EoWPtVTz-IvuaEGXQsw@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, hch@infradead.org, linux-fsdevel@vger.kernel.org
+Message-ID: <20150319134313.-FpnadqyVVgvStwwY9nAwNgLoAn2Q8H2_GNY8k4HLVE@z>
 
-On Thu, Mar 19, 2015 at 11:12:42AM +0100, Peter Zijlstra wrote:
-> So I was now thinking of hashing the lock pointer; let me go and quickly
-> put something together.
+On Wed, Mar 18, 2015 at 01:26:50PM -0700, Andrew Morton wrote:
+> On Mon, 16 Mar 2015 16:25:25 -0400 Dan Williams <dan.j.williams@intel.com> wrote:
+> 
+> > Avoid the impending disaster of requiring struct page coverage for what
+> > is expected to be ever increasing capacities of persistent memory.  In
+> > conversations with Rik van Riel, Mel Gorman, and Jens Axboe at the
+> > recently concluded Linux Storage Summit it became clear that struct page
+> > is not required in many places, it was simply convenient to re-use.
+> > 
+> > Introduce helpers and infrastructure to remove struct page usage where
+> > it is not necessary.  One use case for these changes is to implement a
+> > write-back-cache in persistent memory for software-RAID.  Another use
+> > case for the scatterlist changes is RDMA to a pfn-range.
+> 
+> Those use-cases sound very thin.  If that's all we have then I'd say
+> "find another way of implementing those things without creating
+> pageframes for persistent memory".
+> 
+> IOW, please tell us much much much more about the value of this change.
 
-A little something like so; ideally we'd allocate the hashtable since
-NR_CPUS is kinda bloated, but it shows the idea I think.
+Dan missed "Support O_DIRECT to a mapped DAX file".  More generally, if we
+want to be able to do any kind of I/O directly to persistent memory,
+and I think we do, we need to do one of:
 
-And while this has loops in (the rehashing thing) their fwd progress
-does not depend on other CPUs.
+1. Construct struct pages for persistent memory
+1a. Permanently
+1b. While the pages are under I/O
+2. Teach the I/O layers to deal in PFNs instead of struct pages
+3. Replace struct page with some other structure that can represent both
+   DRAM and PMEM
 
-And I suspect that for the typical lock contention scenarios its
-unlikely we ever really get into long rehashing chains.
+I'm personally a fan of #3, and I was looking at the scatterlist as
+my preferred data structure.  I now believe the scatterlist as it is
+currently defined isn't sufficient, so we probably end up needing a new
+data structure.  I think Dan's preferred method of replacing struct
+pages with PFNs is actually less instrusive, but doesn't give us as
+much advantage (an entirely new data structure would let us move to an
+extent based system at the same time, instead of sticking with an array
+of pages).  Clearly Boaz prefers 1a, which works well enough for the
+8GB NV-DIMMs, but not well enough for the 400GB NV-DIMMs.
 
----
- include/linux/lfsr.h                |   49 ++++++++++++
- kernel/locking/qspinlock_paravirt.h |  143 ++++++++++++++++++++++++++++++++----
- 2 files changed, 178 insertions(+), 14 deletions(-)
-
---- /dev/null
-+++ b/include/linux/lfsr.h
-@@ -0,0 +1,49 @@
-+#ifndef _LINUX_LFSR_H
-+#define _LINUX_LFSR_H
-+
-+/*
-+ * Simple Binary Galois Linear Feedback Shift Register
-+ *
-+ * http://en.wikipedia.org/wiki/Linear_feedback_shift_register
-+ *
-+ */
-+
-+extern void __lfsr_needs_more_taps(void);
-+
-+static __always_inline u32 lfsr_taps(int bits)
-+{
-+	if (bits ==  1) return 0x0001;
-+	if (bits ==  2) return 0x0001;
-+	if (bits ==  3) return 0x0003;
-+	if (bits ==  4) return 0x0009;
-+	if (bits ==  5) return 0x0012;
-+	if (bits ==  6) return 0x0021;
-+	if (bits ==  7) return 0x0041;
-+	if (bits ==  8) return 0x008E;
-+	if (bits ==  9) return 0x0108;
-+	if (bits == 10) return 0x0204;
-+	if (bits == 11) return 0x0402;
-+	if (bits == 12) return 0x0829;
-+	if (bits == 13) return 0x100D;
-+	if (bits == 14) return 0x2015;
-+
-+	/*
-+	 * For more taps see:
-+	 *   http://users.ece.cmu.edu/~koopman/lfsr/index.html
-+	 */
-+	__lfsr_needs_more_taps();
-+
-+	return 0;
-+}
-+
-+static inline u32 lfsr(u32 val, int bits)
-+{
-+	u32 bit = val & 1;
-+
-+	val >>= 1;
-+	if (bit)
-+		val ^= lfsr_taps(bits);
-+	return val;
-+}
-+
-+#endif /* _LINUX_LFSR_H */
---- a/kernel/locking/qspinlock_paravirt.h
-+++ b/kernel/locking/qspinlock_paravirt.h
-@@ -2,6 +2,9 @@
- #error "do not include this file"
- #endif
- 
-+#include <linux/hash.h>
-+#include <linux/lfsr.h>
-+
- /*
-  * Implement paravirt qspinlocks; the general idea is to halt the vcpus instead
-  * of spinning them.
-@@ -107,7 +110,120 @@ static void pv_kick_node(struct mcs_spin
- 		pv_kick(pn->cpu);
- }
- 
--static DEFINE_PER_CPU(struct qspinlock *, __pv_lock_wait);
-+/*
-+ * Hash table using open addressing with an LFSR probe sequence.
-+ *
-+ * Since we should not be holding locks from NMI context (very rare indeed) the
-+ * max load factor is 0.75, which is around the point where open addressing
-+ * breaks down.
-+ *
-+ * Instead of probing just the immediate bucket we probe all buckets in the
-+ * same cacheline.
-+ *
-+ * http://en.wikipedia.org/wiki/Hash_table#Open_addressing
-+ *
-+ */
-+
-+#define HB_RESERVED	((struct qspinlock *)1)
-+
-+struct pv_hash_bucket {
-+	struct qspinlock *lock;
-+	int cpu;
-+};
-+
-+/*
-+ * XXX dynamic allocate using nr_cpu_ids instead...
-+ */
-+#define PV_LOCK_HASH_BITS	(2 + NR_CPUS_BITS)
-+
-+#if PV_LOCK_HASH_BITS < 6
-+#undef PV_LOCK_HASH_BITS
-+#define PB_LOCK_HASH_BITS	6
-+#endif
-+
-+#define PV_LOCK_HASH_SIZE	(1 << PV_LOCK_HASH_BITS)
-+
-+static struct pv_hash_bucket __pv_lock_hash[PV_LOCK_HASH_SIZE] ____cacheline_aligned;
-+
-+#define PV_HB_PER_LINE		(SMP_CACHE_BYTES / sizeof(struct pv_hash_bucket))
-+
-+static inline u32 hash_align(u32 hash)
-+{
-+	return hash & ~(PV_HB_PER_LINE - 1);
-+}
-+
-+static struct qspinlock **pv_hash(struct qspinlock *lock)
-+{
-+	u32 hash = hash_ptr(lock, PV_LOCK_HASH_BITS);
-+	struct pv_hash_bucket *hb, *end;
-+
-+	if (!hash)
-+		hash = 1;
-+
-+	hb = &__pv_lock_hash[hash_align(hash)];
-+	for (;;) {
-+		for (end = hb + PV_HB_PER_LINE; hb < end; hb++) {
-+			if (cmpxchg(&hb->lock, NULL, HB_RESERVED)) {
-+				WRITE_ONCE(hb->cpu, smp_processor_id());
-+				/*
-+				 * Since we must read lock first and cpu
-+				 * second, we must write cpu first and lock
-+				 * second, therefore use HB_RESERVE to mark an
-+				 * entry in use before writing the values.
-+				 *
-+				 * This can cause hb_hash_find() to not find a
-+				 * cpu even though _Q_SLOW_VAL, this is not a
-+				 * problem since we re-check l->locked before
-+				 * going to sleep and the unlock will have
-+				 * cleared l->locked already.
-+				 */
-+				smp_wmb(); /* matches rmb from pv_hash_find */
-+				WRITE_ONCE(hb->lock, lock);
-+				goto done;
-+			}
-+		}
-+
-+		hash = lfsr(hash, PV_LOCK_HASH_BITS);
-+		hb = &__pv_lock_hash[hash_align(hash)];
-+	}
-+
-+done:
-+	return &hb->lock;
-+}
-+
-+static int pv_hash_find(struct qspinlock *lock)
-+{
-+	u64 hash = hash_ptr(lock, PV_LOCK_HASH_BITS);
-+	struct pv_hash_bucket *hb, *end;
-+	int cpu = -1;
-+
-+	if (!hash)
-+		hash = 1;
-+
-+	hb = &__pv_lock_hash[hash_align(hash)];
-+	for (;;) {
-+		for (end = hb + PV_HB_PER_LINE; hb < end; hb++) {
-+			struct qspinlock *l = READ_ONCE(hb->lock);
-+
-+			/*
-+			 * If we hit an unused bucket, there is no match.
-+			 */
-+			if (!l)
-+				goto done;
-+
-+			if (l == lock) {
-+				smp_rmb(); /* matches wmb from pv_hash() */
-+				cpu = READ_ONCE(hb->cpu);
-+				goto done;
-+			}
-+		}
-+
-+		hash = lfsr(hash, PV_LOCK_HASH_BITS);
-+		hb = &__pv_lock_hash[hash_align(hash)];
-+	}
-+done:
-+	return cpu;
-+}
- 
- /*
-  * Wait for l->locked to become clear; halt the vcpu after a short spin.
-@@ -116,6 +232,7 @@ static DEFINE_PER_CPU(struct qspinlock *
- static void pv_wait_head(struct qspinlock *lock)
- {
- 	struct __qspinlock *l = (void *)lock;
-+	struct qspinlock **lp = NULL;
- 	int loop;
- 
- 	for (;;) {
-@@ -126,13 +243,13 @@ static void pv_wait_head(struct qspinloc
- 			cpu_relax();
- 		}
- 
--		this_cpu_write(__pv_lock_wait, lock);
-+		lp = pv_hash(lock);
- 		/*
--		 * __pv_lock_wait must be set before setting _Q_SLOW_VAL
-+		 * lp  must be set before setting _Q_SLOW_VAL
- 		 *
--		 * [S] __pv_lock_wait = lock    [RmW] l = l->locked = 0
-+		 * [S] lp = lock                [RmW] l = l->locked = 0
- 		 *     MB                             MB
--		 * [S] l->locked = _Q_SLOW_VAL  [L]   __pv_lock_wait
-+		 * [S] l->locked = _Q_SLOW_VAL  [L]   lp
- 		 *
- 		 * Matches the xchg() in pv_queue_spin_unlock().
- 		 */
-@@ -142,7 +259,8 @@ static void pv_wait_head(struct qspinloc
- 		pv_wait(&l->locked, _Q_SLOW_VAL);
- 	}
- done:
--	this_cpu_write(__pv_lock_wait, NULL);
-+	if (lp)
-+		WRITE_ONCE(*lp, NULL);
- 
- 	/*
- 	 * Lock is unlocked now; the caller will acquire it without waiting.
-@@ -165,13 +283,10 @@ void __pv_queue_spin_unlock(struct qspin
- 
- 	/*
- 	 * At this point the memory pointed at by lock can be freed/reused,
--	 * however we can still use the pointer value to search in our cpu
--	 * array.
--	 *
--	 * XXX: get rid of this loop
-+	 * however we can still use the pointer value to search in our hash
-+	 * table.
- 	 */
--	for_each_possible_cpu(cpu) {
--		if (per_cpu(__pv_lock_wait, cpu) == lock)
--			pv_kick(cpu);
--	}
-+	cpu = pv_hash_find(lock);
-+	if (cpu >= 0)
-+		pv_kick(cpu);
- }
+What's your preference?  I guess option 0 is "force all I/O to go
+through the page cache and then get copied", but that feels like a nasty
+performance hit.
