@@ -1,55 +1,124 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f182.google.com ([209.85.212.182]:34996 "EHLO
-	mail-wi0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752624AbbCSRfc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Mar 2015 13:35:32 -0400
+Received: from smtp02.citrix.com ([66.165.176.63]:12183 "EHLO
+	SMTP02.CITRIX.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751767AbbCSSBm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Mar 2015 14:01:42 -0400
+Message-ID: <550B0EFE.1040309@citrix.com>
+Date: Thu, 19 Mar 2015 18:01:34 +0000
+From: David Vrabel <david.vrabel@citrix.com>
 MIME-Version: 1.0
-In-Reply-To: <550AE41C.8070803@hurleysoftware.com>
-References: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
-	<1426197361-19290-11-git-send-email-maxime.coquelin@st.com>
-	<CAHp75Vd7+oLiLLuyocYh95TebtocWrRho6xNjuSUt8fYGp8npg@mail.gmail.com>
-	<CALszF6BWuUYRh+3rWnSQLApkAHA5dQXw=6x6D_evRtb+5B_ukA@mail.gmail.com>
-	<CAHp75Vdf6=z1d5+eYJ+QGTko9kkZf-oPfoWaf8FRoTdqcdWxjw@mail.gmail.com>
-	<CALszF6A5Zu7i0hxSLTS-nfOAXmd0__jLjB=fHxK93Ex5Vbi9LA@mail.gmail.com>
-	<550AE41C.8070803@hurleysoftware.com>
-Date: Thu, 19 Mar 2015 18:35:30 +0100
-Message-ID: <CALszF6DX2pz_US6uqQwBjmZhfgjw5PP1UAy9H+c-_Kgkk_Z72w@mail.gmail.com>
-Subject: Re: [PATCH v3 10/15] serial: stm32-usart: Add STM32 USART Driver
-From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [Xen-devel] [PATCH 0/9] qspinlock stuff -v15
+References: <20150316131613.720617163@infradead.org>
+In-Reply-To: <20150316131613.720617163@infradead.org>
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Hurley <peter@hurleysoftware.com>
-Cc: Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, Linux Documentation List <linux-doc@vger.kernel.org>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, devicetree <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
-Message-ID: <20150319173530.fY28BxaCmV420TTowojs8q8IjfSBmH7nXLCaLFih4ZY@z>
+To: Peter Zijlstra <peterz@infradead.org>, Waiman.Long@hp.com
+Cc: raghavendra.kt@linux.vnet.ibm.com, kvm@vger.kernel.org, linux-kernel@vger.kernel.org, hpa@zytor.com, boris.ostrovsky@oracle.com, linux-arch@vger.kernel.org, x86@kernel.org, mingo@redhat.com, doug.hatch@hp.com, xen-devel@lists.xenproject.org, paulmck@linux.vnet.ibm.com, riel@redhat.com, scott.norton@hp.com, paolo.bonzini@gmail.com, tglx@linutronix.de, virtualization@lists.linux-foundation.org, oleg@redhat.com, luto@amacapital.net, david.vrabel@citrix.com, torvalds@linux-foundation.org
+Message-ID: <20150319180134.auqRuLZ1GBm3azrYUDO-70Ui1YCSjrkNcmVZws5U9uQ@z>
 
-2015-03-19 15:58 GMT+01:00 Peter Hurley <peter@hurleysoftware.com>:
-> On 03/19/2015 09:55 AM, Maxime Coquelin wrote:
->>>>>> +static void stm32_set_termios(struct uart_port *port, struct ktermios *termios,
->>>>>> +                           struct ktermios *old)
-> [...]
->>>>>> +       usardiv = (port->uartclk * 25) / (baud * 4);
->>>>>> +       mantissa = (usardiv / 100) << USART_BRR_DIV_M_SHIFT;
->>>>>> +       fraction = DIV_ROUND_CLOSEST((usardiv % 100) * 16, 100);
->>>>>> +       if (fraction & ~USART_BRR_DIV_F_MASK) {
->>>>>> +               fraction = 0;
->>>>>> +               mantissa += (1 << USART_BRR_DIV_M_SHIFT);
->>>>>> +       }
-> [...]
->> Really, I would prefer keeping this fractional divider as it is
->> implemented today.
->
-> You have to admit that's basically an unintelligible mess;
-> how would anyone ever be able to refactor and replace that with a
-> common divider implementation?
->
-> At the very least, please comment on the formula and format.
+On 16/03/15 13:16, Peter Zijlstra wrote:
+> 
+> I feel that if someone were to do a Xen patch we can go ahead and merge this
+> stuff (finally!).
 
-Ok, I will refactor the implementation, and comment it.
+This seems work for me, but I've not got time to give it a more thorough
+testing.
 
-Regards,
-Maxime
+You can fold this into your series.
 
->
-> Regards,
-> Peter Hurley
+There doesn't seem to be a way to disable QUEUE_SPINLOCKS when supported by
+the arch, is this intentional?  If so, the existing ticketlock code could go.
+
+David
+
+8<------------------------------
+x86/xen: paravirt support for qspinlocks
+
+Provide the wait and kick ops necessary for paravirt-aware queue
+spinlocks.
+
+Signed-off-by: David Vrabel <david.vrabel@citrix.com>
+---
+ arch/x86/xen/spinlock.c |   40 +++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 37 insertions(+), 3 deletions(-)
+
+diff --git a/arch/x86/xen/spinlock.c b/arch/x86/xen/spinlock.c
+index 956374c..b019b2a 100644
+--- a/arch/x86/xen/spinlock.c
++++ b/arch/x86/xen/spinlock.c
+@@ -95,17 +95,43 @@ static inline void spin_time_accum_blocked(u64 start)
+ }
+ #endif  /* CONFIG_XEN_DEBUG_FS */
+ 
++static DEFINE_PER_CPU(int, lock_kicker_irq) = -1;
++static DEFINE_PER_CPU(char *, irq_name);
++static bool xen_pvspin = true;
++
++#ifdef CONFIG_QUEUE_SPINLOCK
++
++#include <asm/qspinlock.h>
++
++PV_CALLEE_SAVE_REGS_THUNK(__pv_queue_spin_unlock);
++
++static void xen_qlock_wait(u8 *ptr, u8 val)
++{
++	int irq = __this_cpu_read(lock_kicker_irq);
++
++	xen_clear_irq_pending(irq);
++
++	barrier();
++
++	if (READ_ONCE(*ptr) == val)
++		xen_poll_irq(irq);
++}
++
++static void xen_qlock_kick(int cpu)
++{
++	xen_send_IPI_one(cpu, XEN_SPIN_UNLOCK_VECTOR);
++}
++
++#else
++
+ struct xen_lock_waiting {
+ 	struct arch_spinlock *lock;
+ 	__ticket_t want;
+ };
+ 
+-static DEFINE_PER_CPU(int, lock_kicker_irq) = -1;
+-static DEFINE_PER_CPU(char *, irq_name);
+ static DEFINE_PER_CPU(struct xen_lock_waiting, lock_waiting);
+ static cpumask_t waiting_cpus;
+ 
+-static bool xen_pvspin = true;
+ __visible void xen_lock_spinning(struct arch_spinlock *lock, __ticket_t want)
+ {
+ 	int irq = __this_cpu_read(lock_kicker_irq);
+@@ -217,6 +243,7 @@ static void xen_unlock_kick(struct arch_spinlock *lock, __ticket_t next)
+ 		}
+ 	}
+ }
++#endif /* !QUEUE_SPINLOCK */
+ 
+ static irqreturn_t dummy_handler(int irq, void *dev_id)
+ {
+@@ -280,8 +307,15 @@ void __init xen_init_spinlocks(void)
+ 		return;
+ 	}
+ 	printk(KERN_DEBUG "xen: PV spinlocks enabled\n");
++#ifdef CONFIG_QUEUE_SPINLOCK
++	pv_lock_ops.queue_spin_lock_slowpath = __pv_queue_spin_lock_slowpath;
++	pv_lock_ops.queue_spin_unlock = PV_CALLEE_SAVE(__pv_queue_spin_unlock);
++	pv_lock_ops.wait = xen_qlock_wait;
++	pv_lock_ops.kick = xen_qlock_kick;
++#else
+ 	pv_lock_ops.lock_spinning = PV_CALLEE_SAVE(xen_lock_spinning);
+ 	pv_lock_ops.unlock_kick = xen_unlock_kick;
++#endif
+ }
+ 
+ /*
+-- 
+1.7.10.4
+
