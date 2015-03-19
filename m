@@ -1,95 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f180.google.com ([209.85.212.180]:35601 "EHLO
-	mail-wi0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751144AbbCSPyS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Mar 2015 11:54:18 -0400
-Received: by wibdy8 with SMTP id dy8so121738531wib.0
-        for <linux-arch@vger.kernel.org>; Thu, 19 Mar 2015 08:54:17 -0700 (PDT)
-Message-ID: <550AF127.9010504@plexistor.com>
-Date: Thu, 19 Mar 2015 17:54:15 +0200
-From: Boaz Harrosh <boaz@plexistor.com>
+Received: from mail-wi0-f182.google.com ([209.85.212.182]:34996 "EHLO
+	mail-wi0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752624AbbCSRfc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Mar 2015 13:35:32 -0400
 MIME-Version: 1.0
-Subject: Re: [Linux-nvdimm] [RFC PATCH 0/7] evacuate struct page from the
- block layer
-References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com> <20150318132650.3336261c58829f49a9af8675@linux-foundation.org> <20150319134313.GF4003@linux.intel.com>
-In-Reply-To: <20150319134313.GF4003@linux.intel.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <550AE41C.8070803@hurleysoftware.com>
+References: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
+	<1426197361-19290-11-git-send-email-maxime.coquelin@st.com>
+	<CAHp75Vd7+oLiLLuyocYh95TebtocWrRho6xNjuSUt8fYGp8npg@mail.gmail.com>
+	<CALszF6BWuUYRh+3rWnSQLApkAHA5dQXw=6x6D_evRtb+5B_ukA@mail.gmail.com>
+	<CAHp75Vdf6=z1d5+eYJ+QGTko9kkZf-oPfoWaf8FRoTdqcdWxjw@mail.gmail.com>
+	<CALszF6A5Zu7i0hxSLTS-nfOAXmd0__jLjB=fHxK93Ex5Vbi9LA@mail.gmail.com>
+	<550AE41C.8070803@hurleysoftware.com>
+Date: Thu, 19 Mar 2015 18:35:30 +0100
+Message-ID: <CALszF6DX2pz_US6uqQwBjmZhfgjw5PP1UAy9H+c-_Kgkk_Z72w@mail.gmail.com>
+Subject: Re: [PATCH v3 10/15] serial: stm32-usart: Add STM32 USART Driver
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, hch@infradead.org, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-kernel@vger.kernel.org, linux-raid@vger.kernel.org, mgorman@suse.de, linux-fsdevel@vger.kernel.org
-Message-ID: <20150319155415.MZs1_clLLH7NlyoM1EIIhVv46TJOkRxgKDZ5rR05sEE@z>
+To: Peter Hurley <peter@hurleysoftware.com>
+Cc: Andy Shevchenko <andy.shevchenko@gmail.com>, =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, Linux Documentation List <linux-doc@vger.kernel.org>, linux-arm Mailing List <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, devicetree <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
+Message-ID: <20150319173530.fY28BxaCmV420TTowojs8q8IjfSBmH7nXLCaLFih4ZY@z>
 
-On 03/19/2015 03:43 PM, Matthew Wilcox wrote:
-<>
-> 
-> Dan missed "Support O_DIRECT to a mapped DAX file".  More generally, if we
-> want to be able to do any kind of I/O directly to persistent memory,
-> and I think we do, we need to do one of:
-> 
-> 1. Construct struct pages for persistent memory
-> 1a. Permanently
-> 1b. While the pages are under I/O
-> 2. Teach the I/O layers to deal in PFNs instead of struct pages
-> 3. Replace struct page with some other structure that can represent both
->    DRAM and PMEM
-> 
-> I'm personally a fan of #3, and I was looking at the scatterlist as
-> my preferred data structure.  I now believe the scatterlist as it is
-> currently defined isn't sufficient, so we probably end up needing a new
-> data structure.  I think Dan's preferred method of replacing struct
-> pages with PFNs is actually less instrusive, but doesn't give us as
-> much advantage (an entirely new data structure would let us move to an
-> extent based system at the same time, instead of sticking with an array
-> of pages).  Clearly Boaz prefers 1a, which works well enough for the
-> 8GB NV-DIMMs, but not well enough for the 400GB NV-DIMMs.
-> 
-> What's your preference?  I guess option 0 is "force all I/O to go
-> through the page cache and then get copied", but that feels like a nasty
-> performance hit.
+2015-03-19 15:58 GMT+01:00 Peter Hurley <peter@hurleysoftware.com>:
+> On 03/19/2015 09:55 AM, Maxime Coquelin wrote:
+>>>>>> +static void stm32_set_termios(struct uart_port *port, struct ktermios *termios,
+>>>>>> +                           struct ktermios *old)
+> [...]
+>>>>>> +       usardiv = (port->uartclk * 25) / (baud * 4);
+>>>>>> +       mantissa = (usardiv / 100) << USART_BRR_DIV_M_SHIFT;
+>>>>>> +       fraction = DIV_ROUND_CLOSEST((usardiv % 100) * 16, 100);
+>>>>>> +       if (fraction & ~USART_BRR_DIV_F_MASK) {
+>>>>>> +               fraction = 0;
+>>>>>> +               mantissa += (1 << USART_BRR_DIV_M_SHIFT);
+>>>>>> +       }
+> [...]
+>> Really, I would prefer keeping this fractional divider as it is
+>> implemented today.
+>
+> You have to admit that's basically an unintelligible mess;
+> how would anyone ever be able to refactor and replace that with a
+> common divider implementation?
+>
+> At the very least, please comment on the formula and format.
 
-Thanks Matthew, you have summarized it perfectly.
+Ok, I will refactor the implementation, and comment it.
 
-I think #1b might have merit, as well. I have a very surgical small
-"hack" that we can do with allocating on demand pages before IO.
-It involves adding a new MEMORY_MODEL policy that is derived from
-SPARSEMEM but lets you allocate individual pages on demand. And a new
-type of page say call it GP_emulated_page.
-(Tell me if you find this interesting. It is 1/117 in size of both
- #2 or #3)
+Regards,
+Maxime
 
-In anyway please reconsider a configurable #1a for people that do
-not mind sacrificing 1.2% of their pmem for real pages.
-
-Even at 6G page-structs with 400G pmem, people would love some of the stuff
-this gives them today. just few examples: direct_access from within a VM to
-an host defined pmem, is trivial with no extra code with my two simple #1a
-patches. RDMA memory brick targets, network shared memory FS and so on, the
-list will always be bigger then any of #1b #2 or #3. Yes for people that
-want to sacrifice the extra cost.
-
-In the Kernel it was always about choice and diversity. And what does it
-costs us. Nothing. Two small simple patches and a Kconfig option.
-Note that I made it in such a way that if pmem is configured without
-use of pages, then the mm code is *not* configured-in automatically.
-We can even add a runtime option that even if #1a is enabled, for certain
-pmem device may not want pages allocated. And so choose at runtime rather
-than compile time.
-
-I think this will only farther our cause and let people advance with
-their research and development with great new ideas about use of pmem.
-Then once there is a great demand for #1a and those large 512G devices
-come out, we can go the #1b or #3 route and save them the extra 1.2%
-memory, but once they have the appetite for it. (And Andrews question
-becomes clear)
-
-Our two ways need not be "either-or". They can be "have both". I think
-choice is a good thing for us here. Even with #3 available #1a still has
-merit in some configurations and they can co exist perfectly.
-
-Please think about it?
-
-Thanks
-Boaz
-
+>
+> Regards,
+> Peter Hurley
