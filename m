@@ -1,71 +1,56 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH 9/9] qspinlock, x86,
-	kvm: Implement KVM support for paravirt qspinlock
-Date: Thu, 19 Mar 2015 17:08:31 -0400
-Message-ID: <550B3ACF.4050908@hp.com>
-References: <20150316131613.720617163@infradead.org>
-	<20150316133112.333845162@infradead.org> <550A3863.2060808@hp.com>
-	<20150319100121.GL21418@twins.programming.kicks-ass.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20150319100121.GL21418@twins.programming.kicks-ass.net>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, riel@redhat.com, x86@kernel.org, kvm@vger.kernel.org, konrad.wilk@oracle.com, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, oleg@redhat.com, linux-kernel@vger.kernel.org, mingo@redhat.com, david.vrabel@citrix.com, hpa@zytor.com, luto@amacapital.net, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, boris.ostrovsky@oracle.com, virtualization@lists.linux-foundation.org, doug.hatch@hp.com
+From: Kamal Mostafa <kamal@canonical.com>
+Subject: [PATCH 3.13.y-ckt 19/80] vm: make stack guard page errors return VM_FAULT_SIGSEGV rather than SIGBUS
+Date: Thu, 19 Mar 2015 15:35:07 -0700
+Message-ID: <1426804568-2907-20-git-send-email-kamal@canonical.com>
+References: <1426804568-2907-1-git-send-email-kamal@canonical.com>
+Return-path: <stable-owner@vger.kernel.org>
+In-Reply-To: <1426804568-2907-1-git-send-email-kamal@canonical.com>
+Sender: stable-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, stable@vger.kernel.org, kernel-team@lists.ubuntu.com
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Kamal Mostafa <kamal@canonical.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 03/19/2015 06:01 AM, Peter Zijlstra wrote:
-> On Wed, Mar 18, 2015 at 10:45:55PM -0400, Waiman Long wrote:
->> On 03/16/2015 09:16 AM, Peter Zijlstra wrote:
->> I do have some concern about this call site patching mechanism as the
->> modification is not atomic. The spin_unlock() calls are in many places in
->> the kernel. There is a possibility that a thread is calling a certain
->> spin_unlock call site while it is being patched by another one with the
->> alternative() function call.
->>
->> So far, I don't see any problem with bare metal where paravirt_patch_insns()
->> is used to patch it to the move instruction. However, in a virtual guest
->> enivornment where paravirt_patch_call() was used, there were situations
->> where the system panic because of page fault on some invalid memory in the
->> kthread. If you look at the paravirt_patch_call(), you will see:
->>
->>      :
->> b->opcode = 0xe8; /* call */
->> b->delta = delta;
->>
->> If another CPU reads the instruction at the call site at the right moment,
->> it will get the modified call instruction, but not the new delta value. It
->> will then jump to a random location. I believe that was causing the system
->> panic that I saw.
->>
->> So I think it is kind of risky to use it here unless we can guarantee that
->> call site patching is atomic wrt other CPUs.
-> Just look at where the patching is done:
->
-> init/main.c:start_kernel()
->    check_bugs()
->      alternative_instructions()
->        apply_paravirt()
->
-> We're UP and not holding any locks, disable IRQs (see text_poke_early())
-> and have NMIs 'disabled'.
+3.13.11-ckt17 -stable review patch.  If anyone has any objections, please let me know.
 
-You are probably right. The initial apply_paravirt() was done before the 
-SMP boot. Subsequent ones were at kernel module load time. I put a 
-counter in the __native_queue_spin_unlock() and it registered 26949 
-unlock calls in a 16-cpu guest before it got patched out.
+------------------
 
-The panic that I observed before might be due to some coding error of my 
-own.
+From: Linus Torvalds <torvalds@linux-foundation.org>
 
--Longman
+commit 9c145c56d0c8a0b62e48c8d71e055ad0fb2012ba upstream.
+
+The stack guard page error case has long incorrectly caused a SIGBUS
+rather than a SIGSEGV, but nobody actually noticed until commit
+fee7e49d4514 ("mm: propagate error from stack expansion even for guard
+page") because that error case was never actually triggered in any
+normal situations.
+
+Now that we actually report the error, people noticed the wrong signal
+that resulted.  So far, only the test suite of libsigsegv seems to have
+actually cared, but there are real applications that use libsigsegv, so
+let's not wait for any of those to break.
+
+Reported-and-tested-by: Takashi Iwai <tiwai@suse.de>
+Tested-by: Jan Engelhardt <jengelh@inai.de>
+Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com> # "s390 still compiles and boots"
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Kamal Mostafa <kamal@canonical.com>
+---
+ mm/memory.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mm/memory.c b/mm/memory.c
+index b24ac03..9ddabd0 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -3239,7 +3239,7 @@ static int do_anonymous_page(struct mm_struct *mm, struct vm_area_struct *vma,
+ 
+ 	/* Check if we need to add a guard page to the stack */
+ 	if (check_stack_guard_page(vma, address) < 0)
+-		return VM_FAULT_SIGBUS;
++		return VM_FAULT_SIGSEGV;
+ 
+ 	/* Use the zero-page for reads */
+ 	if (!(flags & FAULT_FLAG_WRITE)) {
+-- 
+1.9.1
