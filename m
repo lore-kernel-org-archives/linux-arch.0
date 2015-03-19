@@ -1,70 +1,71 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [Linux-nvdimm] [RFC PATCH 0/7] evacuate struct page from the
- block layer
-Date: Thu, 19 Mar 2015 13:59:27 -0700
-Message-ID: <CAPcyv4j=M8V_36C-HhiJM7MHzNLFcpP=nec=LHnob5+qZ4xgYw@mail.gmail.com>
-References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20150318132650.3336261c58829f49a9af8675@linux-foundation.org>
-	<20150319134313.GF4003@linux.intel.com>
-	<550AF127.9010504@plexistor.com>
-	<20150319125917.6cc2bf02687aab542027d8ac@linux-foundation.org>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH 9/9] qspinlock, x86,
+	kvm: Implement KVM support for paravirt qspinlock
+Date: Thu, 19 Mar 2015 17:08:31 -0400
+Message-ID: <550B3ACF.4050908@hp.com>
+References: <20150316131613.720617163@infradead.org>
+	<20150316133112.333845162@infradead.org> <550A3863.2060808@hp.com>
+	<20150319100121.GL21418@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f48.google.com ([74.125.82.48]:36234 "EHLO
-	mail-wg0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750860AbbCSU72 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Mar 2015 16:59:28 -0400
-Received: by wgra20 with SMTP id a20so73099634wgr.3
-        for <linux-arch@vger.kernel.org>; Thu, 19 Mar 2015 13:59:27 -0700 (PDT)
-In-Reply-To: <20150319125917.6cc2bf02687aab542027d8ac@linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Boaz Harrosh <boaz@plexistor.com>, linux-arch@vger.kernel.org, Jens Axboe <axboe@kernel.dk>, riel@redhat.com, linux-raid <linux-raid@vger.kernel.org>, linux-nvdimm <linux-nvdimm@ml01.01.org>, Dave Hansen <dave.hansen@linux.intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Mel Gorman <mgorman@suse.de>, linux-fsdevel <linux-fsdevel@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20150319100121.GL21418@twins.programming.kicks-ass.net>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, riel@redhat.com, x86@kernel.org, kvm@vger.kernel.org, konrad.wilk@oracle.com, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, oleg@redhat.com, linux-kernel@vger.kernel.org, mingo@redhat.com, david.vrabel@citrix.com, hpa@zytor.com, luto@amacapital.net, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, boris.ostrovsky@oracle.com, virtualization@lists.linux-foundation.org, doug.hatch@hp.com
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 19, 2015 at 12:59 PM, Andrew Morton
-<akpm@linux-foundation.org> wrote:
-> On Thu, 19 Mar 2015 17:54:15 +0200 Boaz Harrosh <boaz@plexistor.com> wrote:
->
->> On 03/19/2015 03:43 PM, Matthew Wilcox wrote:
->> <>
->> >
->> > Dan missed "Support O_DIRECT to a mapped DAX file".  More generally, if we
->> > want to be able to do any kind of I/O directly to persistent memory,
->> > and I think we do, we need to do one of:
->> >
->> > 1. Construct struct pages for persistent memory
->> > 1a. Permanently
->> > 1b. While the pages are under I/O
->> > 2. Teach the I/O layers to deal in PFNs instead of struct pages
->> > 3. Replace struct page with some other structure that can represent both
->> >    DRAM and PMEM
->> >
->> > I'm personally a fan of #3, and I was looking at the scatterlist as
->> > my preferred data structure.  I now believe the scatterlist as it is
->> > currently defined isn't sufficient, so we probably end up needing a new
->> > data structure.  I think Dan's preferred method of replacing struct
->> > pages with PFNs is actually less instrusive, but doesn't give us as
->> > much advantage (an entirely new data structure would let us move to an
->> > extent based system at the same time, instead of sticking with an array
->> > of pages).  Clearly Boaz prefers 1a, which works well enough for the
->> > 8GB NV-DIMMs, but not well enough for the 400GB NV-DIMMs.
->> >
->> > What's your preference?  I guess option 0 is "force all I/O to go
->> > through the page cache and then get copied", but that feels like a nasty
->> > performance hit.
+On 03/19/2015 06:01 AM, Peter Zijlstra wrote:
+> On Wed, Mar 18, 2015 at 10:45:55PM -0400, Waiman Long wrote:
+>> On 03/16/2015 09:16 AM, Peter Zijlstra wrote:
+>> I do have some concern about this call site patching mechanism as the
+>> modification is not atomic. The spin_unlock() calls are in many places in
+>> the kernel. There is a possibility that a thread is calling a certain
+>> spin_unlock call site while it is being patched by another one with the
+>> alternative() function call.
 >>
->> Thanks Matthew, you have summarized it perfectly.
+>> So far, I don't see any problem with bare metal where paravirt_patch_insns()
+>> is used to patch it to the move instruction. However, in a virtual guest
+>> enivornment where paravirt_patch_call() was used, there were situations
+>> where the system panic because of page fault on some invalid memory in the
+>> kthread. If you look at the paravirt_patch_call(), you will see:
 >>
->> I think #1b might have merit, as well.
+>>      :
+>> b->opcode = 0xe8; /* call */
+>> b->delta = delta;
+>>
+>> If another CPU reads the instruction at the call site at the right moment,
+>> it will get the modified call instruction, but not the new delta value. It
+>> will then jump to a random location. I believe that was causing the system
+>> panic that I saw.
+>>
+>> So I think it is kind of risky to use it here unless we can guarantee that
+>> call site patching is atomic wrt other CPUs.
+> Just look at where the patching is done:
 >
-> It would be interesting to see what a 1b implementation looks like and
-> how it performs.  We already allocate a bunch of temporary things to
-> support in-flight IO (bio, request) and allocating pageframes on the
-> same basis seems a fairly logical fit.
+> init/main.c:start_kernel()
+>    check_bugs()
+>      alternative_instructions()
+>        apply_paravirt()
+>
+> We're UP and not holding any locks, disable IRQs (see text_poke_early())
+> and have NMIs 'disabled'.
 
-At least for block-i/o it seems the only place we really need struct
-page infrastructure is for kmap().  Given we already need a kmap_pfn()
-solution for option 2 a "dynamic allocation" stop along that
-development path may just naturally fall out.
+You are probably right. The initial apply_paravirt() was done before the 
+SMP boot. Subsequent ones were at kernel module load time. I put a 
+counter in the __native_queue_spin_unlock() and it registered 26949 
+unlock calls in a 16-cpu guest before it got patched out.
+
+The panic that I observed before might be due to some coding error of my 
+own.
+
+-Longman
