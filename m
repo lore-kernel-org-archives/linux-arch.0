@@ -1,68 +1,71 @@
-From: Matthew Wilcox <willy@linux.intel.com>
-Subject: Re: [RFC PATCH 0/7] evacuate struct page from the block layer
-Date: Thu, 19 Mar 2015 15:31:16 -0400
-Message-ID: <20150319193116.GH4003@linux.intel.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [Linux-nvdimm] [RFC PATCH 0/7] evacuate struct page from the
+ block layer
+Date: Thu, 19 Mar 2015 12:59:17 -0700
+Message-ID: <20150319125917.6cc2bf02687aab542027d8ac@linux-foundation.org>
 References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20150318132650.3336261c58829f49a9af8675@linux-foundation.org>
- <20150319134313.GF4003@linux.intel.com>
- <20150319181725.GA17411@infradead.org>
+	<20150318132650.3336261c58829f49a9af8675@linux-foundation.org>
+	<20150319134313.GF4003@linux.intel.com>
+	<550AF127.9010504@plexistor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:61004 "EHLO mga11.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750787AbbCSTbN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 19 Mar 2015 15:31:13 -0400
-Content-Disposition: inline
-In-Reply-To: <20150319181725.GA17411@infradead.org>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:54746 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750852AbbCST7T (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Mar 2015 15:59:19 -0400
+In-Reply-To: <550AF127.9010504@plexistor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, linux-fsdevel@vger.kernel.org
+To: Boaz Harrosh <boaz@plexistor.com>
+Cc: Matthew Wilcox <willy@linux.intel.com>, linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, hch@infradead.org, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-kernel@vger.kernel.org, linux-raid@vger.kernel.org, mgorman@suse.de, linux-fsdevel@vger.kernel.org
 
-On Thu, Mar 19, 2015 at 11:17:25AM -0700, Christoph Hellwig wrote:
-> On Thu, Mar 19, 2015 at 09:43:13AM -0400, Matthew Wilcox wrote:
+On Thu, 19 Mar 2015 17:54:15 +0200 Boaz Harrosh <boaz@plexistor.com> wrote:
+
+> On 03/19/2015 03:43 PM, Matthew Wilcox wrote:
+> <>
+> > 
+> > Dan missed "Support O_DIRECT to a mapped DAX file".  More generally, if we
+> > want to be able to do any kind of I/O directly to persistent memory,
+> > and I think we do, we need to do one of:
+> > 
 > > 1. Construct struct pages for persistent memory
 > > 1a. Permanently
 > > 1b. While the pages are under I/O
 > > 2. Teach the I/O layers to deal in PFNs instead of struct pages
 > > 3. Replace struct page with some other structure that can represent both
 > >    DRAM and PMEM
+> > 
+> > I'm personally a fan of #3, and I was looking at the scatterlist as
+> > my preferred data structure.  I now believe the scatterlist as it is
+> > currently defined isn't sufficient, so we probably end up needing a new
+> > data structure.  I think Dan's preferred method of replacing struct
+> > pages with PFNs is actually less instrusive, but doesn't give us as
+> > much advantage (an entirely new data structure would let us move to an
+> > extent based system at the same time, instead of sticking with an array
+> > of pages).  Clearly Boaz prefers 1a, which works well enough for the
+> > 8GB NV-DIMMs, but not well enough for the 400GB NV-DIMMs.
+> > 
+> > What's your preference?  I guess option 0 is "force all I/O to go
+> > through the page cache and then get copied", but that feels like a nasty
+> > performance hit.
 > 
-> In addition to the options there's also a time line.  At least for the
-> short term where we want to get something going 1a seems like the
-> absolutely be option.  It works perfectly fine for the lots of small
-(assuming "best option")
-> capacity dram-like nvdimms, and it works funtionally fine for the
-> special huge ones, although the resource use for it is highly annoying.
-> If it turns out to be too annoying we can also offer a no I/O possible
-> option for them in the short run.
+> Thanks Matthew, you have summarized it perfectly.
 > 
-> In the long run option 2) sounds like a good plan to me, but not as a
-> parallel I/O path, but as the main one.  Doing so will in fact give us
-> options to experiment with 3).  Given that we're moving towards an
-> increasinly huge page using world replacing the good old struct page
-> with something extent-like and/or temporary might be needed for dram
-> as well in the future.
+> I think #1b might have merit, as well.
 
-Dan's patches don't actually make it a "parallel I/O path", that was
-Boaz's mischaracterisation.  They move all scatterlists and bios over
-to using PFNs, at least on architectures which have been converted.
-Speaking of architectures not being converted, it is really past time for
-architectures to be switched to supporting SG chaining.  It was introduced
-in 2007, and not having it generically available causes problems for
-the crypto layer, as well as making further enhancements more tricky.
+It would be interesting to see what a 1b implementation looks like and
+how it performs.  We already allocate a bunch of temporary things to
+support in-flight IO (bio, request) and allocating pageframes on the
+same basis seems a fairly logical fit.
 
-Assuming 'select ARCH_HAS_SG_CHAIN' is sufficient to tell, the following
-architectures do support it:
+It is all a bit of a stopgap, designed to shoehorn
+direct-io-to-dax-mapped-memory into the existing world.  Longer term
+I'd expect us to move to something more powerful, but it's unclear what
+that will be at this time, so a stopgap isn't too bad?
 
-arm arm64 ia64 powerpc s390 sparc x86
 
-which means the following architectures are 8 years delinquent in
-adding support:
-
-alpha arc avr32 blackfin c6x cris frv hexagon m32r m68k metag microblaze
-mips mn10300 nios2 openrisc parisc score sh tile um unicore32 xtensa
-
-Perhaps we could deliberately make asm-generic/scatterlist.h not build
-for architectures that don't select it in order to make them convert ...
+This is all contingent upon the prevalence of machines which have vast
+amounts of nv memory and relatively small amounts of regular memory. 
+How confident are we that this really is the future?
