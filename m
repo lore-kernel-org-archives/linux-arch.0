@@ -1,42 +1,88 @@
-From: Peter Hurley <peter-WaGBZJeGNqdsbIuE7sb01tBPR1lH4CV8@public.gmane.org>
-Subject: Re: [PATCH v3 10/15] serial: stm32-usart: Add STM32 USART Driver
-Date: Thu, 19 Mar 2015 10:58:36 -0400
-Message-ID: <550AE41C.8070803@hurleysoftware.com>
-References: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>	<1426197361-19290-11-git-send-email-maxime.coquelin@st.com>	<CAHp75Vd7+oLiLLuyocYh95TebtocWrRho6xNjuSUt8fYGp8npg@mail.gmail.com>	<CALszF6BWuUYRh+3rWnSQLApkAHA5dQXw=6x6D_evRtb+5B_ukA@mail.gmail.com>	<CAHp75Vdf6=z1d5+eYJ+QGTko9kkZf-oPfoWaf8FRoTdqcdWxjw@mail.gmail.com> <CALszF6A5Zu7i0hxSLTS-nfOAXmd0__jLjB=fHxK93Ex5Vbi9LA@mail.gmail.com>
+From: Boaz Harrosh <boaz@plexistor.com>
+Subject: Re: [Linux-nvdimm] [RFC PATCH 0/7] evacuate struct page from the
+ block layer
+Date: Thu, 19 Mar 2015 17:54:15 +0200
+Message-ID: <550AF127.9010504@plexistor.com>
+References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com> <20150318132650.3336261c58829f49a9af8675@linux-foundation.org> <20150319134313.GF4003@linux.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <CALszF6A5Zu7i0hxSLTS-nfOAXmd0__jLjB=fHxK93Ex5Vbi9LA-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Maxime Coquelin <mcoquelin.stm32-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Andy Shevchenko <andy.shevchenko-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: =?UTF-8?B?VXdlIEtsZWluZS1Lw7ZuaWc=?= <u.kleine-koenig-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, =?UTF-8?B?QW5kcmVhcyBGw6RyYmVy?= <afaerber-l3A5Bk7waGM@public.gmane.org>, Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Philipp Zabel <p.zabel-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Stefan Agner <stefan-XLVq0VzYD2Y@public.gmane.org>, Peter Meerwald <pmeerw-jW+XmwGofnusTnJN9+BGXg@public.gmane.org>, Paul Bolle <pebolle-IWqWACnzNjzz+pZb47iToQ@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Pawel Moll <pawel.moll-5wv7dgnIgG8@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Ian Campbell <ijc+devicetree-KcIKpvwj1kUDXYZnReoRVg@public.gmane.org>, Kumar Gala <galak-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, Jiri Slaby <jslaby-AlSwsSmVLrQ@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "David S. Miller" <davem@davemlo>
+Return-path: <linux-fsdevel-owner@vger.kernel.org>
+In-Reply-To: <20150319134313.GF4003@linux.intel.com>
+Sender: linux-fsdevel-owner@vger.kernel.org
+To: Matthew Wilcox <willy@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, hch@infradead.org, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-kernel@vger.kernel.org, linux-raid@vger.kernel.org, mgorman@suse.de, linux-fsdevel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 03/19/2015 09:55 AM, Maxime Coquelin wrote:
->>>>> +static void stm32_set_termios(struct uart_port *port, struct ktermios *termios,
->>>>> +                           struct ktermios *old)
-[...]
->>>>> +       usardiv = (port->uartclk * 25) / (baud * 4);
->>>>> +       mantissa = (usardiv / 100) << USART_BRR_DIV_M_SHIFT;
->>>>> +       fraction = DIV_ROUND_CLOSEST((usardiv % 100) * 16, 100);
->>>>> +       if (fraction & ~USART_BRR_DIV_F_MASK) {
->>>>> +               fraction = 0;
->>>>> +               mantissa += (1 << USART_BRR_DIV_M_SHIFT);
->>>>> +       }
-[...]
-> Really, I would prefer keeping this fractional divider as it is
-> implemented today.
+On 03/19/2015 03:43 PM, Matthew Wilcox wrote:
+<>
+> 
+> Dan missed "Support O_DIRECT to a mapped DAX file".  More generally, if we
+> want to be able to do any kind of I/O directly to persistent memory,
+> and I think we do, we need to do one of:
+> 
+> 1. Construct struct pages for persistent memory
+> 1a. Permanently
+> 1b. While the pages are under I/O
+> 2. Teach the I/O layers to deal in PFNs instead of struct pages
+> 3. Replace struct page with some other structure that can represent both
+>    DRAM and PMEM
+> 
+> I'm personally a fan of #3, and I was looking at the scatterlist as
+> my preferred data structure.  I now believe the scatterlist as it is
+> currently defined isn't sufficient, so we probably end up needing a new
+> data structure.  I think Dan's preferred method of replacing struct
+> pages with PFNs is actually less instrusive, but doesn't give us as
+> much advantage (an entirely new data structure would let us move to an
+> extent based system at the same time, instead of sticking with an array
+> of pages).  Clearly Boaz prefers 1a, which works well enough for the
+> 8GB NV-DIMMs, but not well enough for the 400GB NV-DIMMs.
+> 
+> What's your preference?  I guess option 0 is "force all I/O to go
+> through the page cache and then get copied", but that feels like a nasty
+> performance hit.
 
-You have to admit that's basically an unintelligible mess;
-how would anyone ever be able to refactor and replace that with a
-common divider implementation?
+Thanks Matthew, you have summarized it perfectly.
 
-At the very least, please comment on the formula and format.
+I think #1b might have merit, as well. I have a very surgical small
+"hack" that we can do with allocating on demand pages before IO.
+It involves adding a new MEMORY_MODEL policy that is derived from
+SPARSEMEM but lets you allocate individual pages on demand. And a new
+type of page say call it GP_emulated_page.
+(Tell me if you find this interesting. It is 1/117 in size of both
+ #2 or #3)
 
-Regards,
-Peter Hurley
---
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+In anyway please reconsider a configurable #1a for people that do
+not mind sacrificing 1.2% of their pmem for real pages.
+
+Even at 6G page-structs with 400G pmem, people would love some of the stuff
+this gives them today. just few examples: direct_access from within a VM to
+an host defined pmem, is trivial with no extra code with my two simple #1a
+patches. RDMA memory brick targets, network shared memory FS and so on, the
+list will always be bigger then any of #1b #2 or #3. Yes for people that
+want to sacrifice the extra cost.
+
+In the Kernel it was always about choice and diversity. And what does it
+costs us. Nothing. Two small simple patches and a Kconfig option.
+Note that I made it in such a way that if pmem is configured without
+use of pages, then the mm code is *not* configured-in automatically.
+We can even add a runtime option that even if #1a is enabled, for certain
+pmem device may not want pages allocated. And so choose at runtime rather
+than compile time.
+
+I think this will only farther our cause and let people advance with
+their research and development with great new ideas about use of pmem.
+Then once there is a great demand for #1a and those large 512G devices
+come out, we can go the #1b or #3 route and save them the extra 1.2%
+memory, but once they have the appetite for it. (And Andrews question
+becomes clear)
+
+Our two ways need not be "either-or". They can be "have both". I think
+choice is a good thing for us here. Even with #3 available #1a still has
+merit in some configurations and they can co exist perfectly.
+
+Please think about it?
+
+Thanks
+Boaz
+
