@@ -1,39 +1,68 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [Xen-devel] [PATCH 0/9] qspinlock stuff -v15
-Date: Thu, 19 Mar 2015 19:32:20 +0100
-Message-ID: <20150319183220.GU23123@twins.programming.kicks-ass.net>
-References: <20150316131613.720617163@infradead.org>
-	<550B0EFE.1040309@citrix.com>
+From: Matthew Wilcox <willy@linux.intel.com>
+Subject: Re: [RFC PATCH 0/7] evacuate struct page from the block layer
+Date: Thu, 19 Mar 2015 15:31:16 -0400
+Message-ID: <20150319193116.GH4003@linux.intel.com>
+References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150318132650.3336261c58829f49a9af8675@linux-foundation.org>
+ <20150319134313.GF4003@linux.intel.com>
+ <20150319181725.GA17411@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga11.intel.com ([192.55.52.93]:61004 "EHLO mga11.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750787AbbCSTbN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Mar 2015 15:31:13 -0400
 Content-Disposition: inline
-In-Reply-To: <550B0EFE.1040309@citrix.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: David Vrabel <david.vrabel@citrix.com>
-Cc: Waiman.Long@hp.com, linux-arch@vger.kernel.org, riel@redhat.com, x86@kernel.org, kvm@vger.kernel.org, oleg@redhat.com, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, mingo@redhat.com, doug.hatch@hp.com, hpa@zytor.com, luto@amacapital.net, xen-devel@lists.xenproject.org, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, tglx@linutronix.de
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20150319181725.GA17411@infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Hellwig <hch@infradead.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, linux-fsdevel@vger.kernel.org
 
-On Thu, Mar 19, 2015 at 06:01:34PM +0000, David Vrabel wrote:
-> This seems work for me, but I've not got time to give it a more thorough
-> testing.
+On Thu, Mar 19, 2015 at 11:17:25AM -0700, Christoph Hellwig wrote:
+> On Thu, Mar 19, 2015 at 09:43:13AM -0400, Matthew Wilcox wrote:
+> > 1. Construct struct pages for persistent memory
+> > 1a. Permanently
+> > 1b. While the pages are under I/O
+> > 2. Teach the I/O layers to deal in PFNs instead of struct pages
+> > 3. Replace struct page with some other structure that can represent both
+> >    DRAM and PMEM
 > 
-> You can fold this into your series.
+> In addition to the options there's also a time line.  At least for the
+> short term where we want to get something going 1a seems like the
+> absolutely be option.  It works perfectly fine for the lots of small
+(assuming "best option")
+> capacity dram-like nvdimms, and it works funtionally fine for the
+> special huge ones, although the resource use for it is highly annoying.
+> If it turns out to be too annoying we can also offer a no I/O possible
+> option for them in the short run.
+> 
+> In the long run option 2) sounds like a good plan to me, but not as a
+> parallel I/O path, but as the main one.  Doing so will in fact give us
+> options to experiment with 3).  Given that we're moving towards an
+> increasinly huge page using world replacing the good old struct page
+> with something extent-like and/or temporary might be needed for dram
+> as well in the future.
 
-Thanks!
+Dan's patches don't actually make it a "parallel I/O path", that was
+Boaz's mischaracterisation.  They move all scatterlists and bios over
+to using PFNs, at least on architectures which have been converted.
+Speaking of architectures not being converted, it is really past time for
+architectures to be switched to supporting SG chaining.  It was introduced
+in 2007, and not having it generically available causes problems for
+the crypto layer, as well as making further enhancements more tricky.
 
-> There doesn't seem to be a way to disable QUEUE_SPINLOCKS when supported by
-> the arch, is this intentional?  If so, the existing ticketlock code could go.
+Assuming 'select ARCH_HAS_SG_CHAIN' is sufficient to tell, the following
+architectures do support it:
 
-Yeah, its left as a rudiment such that if we find issues with the
-qspinlock code we can 'revert' with a trivial patch. If no issues show
-up we can rip out all the old code in a subsequent release.
+arm arm64 ia64 powerpc s390 sparc x86
+
+which means the following architectures are 8 years delinquent in
+adding support:
+
+alpha arc avr32 blackfin c6x cris frv hexagon m32r m68k metag microblaze
+mips mn10300 nios2 openrisc parisc score sh tile um unicore32 xtensa
+
+Perhaps we could deliberately make asm-generic/scatterlist.h not build
+for architectures that don't select it in order to make them convert ...
