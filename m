@@ -1,62 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from youngberry.canonical.com ([91.189.89.112]:45988 "EHLO
-	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751476AbbCSWgl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Mar 2015 18:36:41 -0400
-From: Kamal Mostafa <kamal@canonical.com>
-Subject: [PATCH 3.13.y-ckt 19/80] vm: make stack guard page errors return VM_FAULT_SIGSEGV rather than SIGBUS
-Date: Thu, 19 Mar 2015 15:35:07 -0700
-Message-ID: <1426804568-2907-20-git-send-email-kamal@canonical.com>
-In-Reply-To: <1426804568-2907-1-git-send-email-kamal@canonical.com>
-References: <1426804568-2907-1-git-send-email-kamal@canonical.com>
+Received: from e28smtp02.in.ibm.com ([122.248.162.2]:40237 "EHLO
+	e28smtp02.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750969AbbCTIBN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Mar 2015 04:01:13 -0400
+Received: from /spool/local
+	by e28smtp02.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <raghavendra.kt@linux.vnet.ibm.com>;
+	Fri, 20 Mar 2015 13:31:10 +0530
+Message-ID: <550BCFBC.9000106@linux.vnet.ibm.com>
+Date: Fri, 20 Mar 2015 13:13:56 +0530
+From: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH 9/9] qspinlock,x86,kvm: Implement KVM support for paravirt
+ qspinlock
+References: <20150316131613.720617163@infradead.org> <20150316133112.333845162@infradead.org> <550A3863.2060808@hp.com> <20150319100121.GL21418@twins.programming.kicks-ass.net> <550B3ACF.4050908@hp.com>
+In-Reply-To: <550B3ACF.4050908@hp.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, stable@vger.kernel.org, kernel-team@lists.ubuntu.com
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Kamal Mostafa <kamal@canonical.com>
-Message-ID: <20150319223507.wbAjlNEFeUoQVtvTzLMwWJGoPb3UqeY4F_B92o_Ylpk@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, david.vrabel@citrix.com, oleg@redhat.com, scott.norton@hp.com, doug.hatch@hp.com, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, luto@amacapital.net
+Message-ID: <20150320074356.yxOxHYgRpZvUlfExZmwzcrJ1HbvjLAFYFyNn3B9eYIw@z>
 
-3.13.11-ckt17 -stable review patch.  If anyone has any objections, please let me know.
+On 03/20/2015 02:38 AM, Waiman Long wrote:
+> On 03/19/2015 06:01 AM, Peter Zijlstra wrote:
+[...]
+> You are probably right. The initial apply_paravirt() was done before the
+> SMP boot. Subsequent ones were at kernel module load time. I put a
+> counter in the __native_queue_spin_unlock() and it registered 26949
+> unlock calls in a 16-cpu guest before it got patched out.
 
-------------------
-
-From: Linus Torvalds <torvalds@linux-foundation.org>
-
-commit 9c145c56d0c8a0b62e48c8d71e055ad0fb2012ba upstream.
-
-The stack guard page error case has long incorrectly caused a SIGBUS
-rather than a SIGSEGV, but nobody actually noticed until commit
-fee7e49d4514 ("mm: propagate error from stack expansion even for guard
-page") because that error case was never actually triggered in any
-normal situations.
-
-Now that we actually report the error, people noticed the wrong signal
-that resulted.  So far, only the test suite of libsigsegv seems to have
-actually cared, but there are real applications that use libsigsegv, so
-let's not wait for any of those to break.
-
-Reported-and-tested-by: Takashi Iwai <tiwai@suse.de>
-Tested-by: Jan Engelhardt <jengelh@inai.de>
-Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com> # "s390 still compiles and boots"
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Kamal Mostafa <kamal@canonical.com>
----
- mm/memory.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/mm/memory.c b/mm/memory.c
-index b24ac03..9ddabd0 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3239,7 +3239,7 @@ static int do_anonymous_page(struct mm_struct *mm, struct vm_area_struct *vma,
- 
- 	/* Check if we need to add a guard page to the stack */
- 	if (check_stack_guard_page(vma, address) < 0)
--		return VM_FAULT_SIGBUS;
-+		return VM_FAULT_SIGSEGV;
- 
- 	/* Use the zero-page for reads */
- 	if (!(flags & FAULT_FLAG_WRITE)) {
--- 
-1.9.1
+because even printks take lock..
 
