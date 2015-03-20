@@ -1,86 +1,64 @@
-From: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-Subject: [PATCH 2/2] powerpc/mm: Tracking vDSO remap
-Date: Fri, 20 Mar 2015 16:53:28 +0100
-Message-ID: <462eda8901babf0a08b5ef642684ae1c6303bd5b.1426866405.git.ldufour@linux.vnet.ibm.com>
-References: <cover.1426866405.git.ldufour@linux.vnet.ibm.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <cover.1426866405.git.ldufour@linux.vnet.ibm.com>
-In-Reply-To: <cover.1426866405.git.ldufour@linux.vnet.ibm.com>
-References: <cover.1426866405.git.ldufour@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: cov@codeaurora.org, criu@openvz.org
+From: Rik van Riel <riel@redhat.com>
+Subject: Re: [Linux-nvdimm] [RFC PATCH 0/7] evacuate struct page from the
+ block layer
+Date: Fri, 20 Mar 2015 11:56:08 -0400
+Message-ID: <550C4318.8010200@redhat.com>
+References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com> <550957B9.5050803@gmail.com> <20150318130641.GD4003@linux.intel.com> <55098DFE.8080502@plexistor.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <55098DFE.8080502@plexistor.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Boaz Harrosh <boaz@plexistor.com>, Matthew Wilcox <willy@linux.intel.com>, Boaz Harrosh <openosd@gmail.com>
+Cc: axboe@kernel.dk, linux-arch@vger.kernel.org, linux-raid@vger.kernel.org, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-kernel@vger.kernel.org, hch@infradead.org, Linus Torvalds <torvalds@osdl.org>, Al Viro <viro@ZenIV.linux.org.uk>, linux-fsdevel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, mgorman@suse.de
 List-Id: linux-arch.vger.kernel.org
 
-Some processes (CRIU) are moving the vDSO area using the mremap system
-call. As a consequence the kernel reference to the vDSO base address is
-no more valid and the signal return frame built once the vDSO has been
-moved is not pointing to the new sigreturn address.
+On 03/18/2015 10:38 AM, Boaz Harrosh wrote:
+> On 03/18/2015 03:06 PM, Matthew Wilcox wrote:
 
-This patch handles vDSO remapping and unmapping.
+>>> I'm not the one afraid of hard work, if it was for a good cause, but for what?
+>>> really for what? The block layer, and RDMA, and networking, and spline, and what
+>>> ever the heck any one wants to imagine to do with pmem, already works perfectly
+>>> stable. right now!
+>>
+>> The overhead.  Allocating a struct page for every 4k page in a 400GB DIMM
+>> (the current capacity available from one NV-DIMM vendor) occupies 6.4GB.
+>> That's an unacceptable amount of overhead.
+>>
+> 
+> So lets fix the stacks to work nice with 2M pages. That said we can
+> allocate the struct page also from pmem if we need to. The fact remains
+> that we need state down the different stacks and this is the current
+> design over all.
 
-Signed-off-by: Laurent Dufour <ldufour@linux.vnet.ibm.com>
----
- arch/powerpc/include/asm/mmu_context.h | 35 +++++++++++++++++++++++++++++++++-
- 1 file changed, 34 insertions(+), 1 deletion(-)
+Fixing the stack to work with 2M pages will be just as invasive,
+and just as much work as making it work without a struct page.
 
-diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
-index 73382eba02dc..ce7fc93518ee 100644
---- a/arch/powerpc/include/asm/mmu_context.h
-+++ b/arch/powerpc/include/asm/mmu_context.h
-@@ -8,7 +8,6 @@
- #include <linux/spinlock.h>
- #include <asm/mmu.h>	
- #include <asm/cputable.h>
--#include <asm-generic/mm_hooks.h>
- #include <asm/cputhreads.h>
- 
- /*
-@@ -109,5 +108,39 @@ static inline void enter_lazy_tlb(struct mm_struct *mm,
- #endif
- }
- 
-+static inline void arch_dup_mmap(struct mm_struct *oldmm,
-+				 struct mm_struct *mm)
-+{
-+}
-+
-+static inline void arch_exit_mmap(struct mm_struct *mm)
-+{
-+}
-+
-+static inline void arch_unmap(struct mm_struct *mm,
-+			struct vm_area_struct *vma,
-+			unsigned long start, unsigned long end)
-+{
-+	if (start <= mm->context.vdso_base && mm->context.vdso_base < end)
-+		mm->context.vdso_base = 0;
-+}
-+
-+static inline void arch_bprm_mm_init(struct mm_struct *mm,
-+				     struct vm_area_struct *vma)
-+{
-+}
-+
-+static inline void arch_remap(struct mm_struct *mm,
-+			      unsigned long old_start, unsigned long old_end,
-+			      unsigned long new_start, unsigned long new_end)
-+{
-+	/*
-+	 * mremap don't allow moving multiple vma so we can limit the check
-+	 * to old_start == vdso_base.
-+	 */
-+	if (old_start == mm->context.vdso_base)
-+		mm->context.vdso_base = new_start;
-+}
-+
- #endif /* __KERNEL__ */
- #endif /* __ASM_POWERPC_MMU_CONTEXT_H */
+What state do you need, exactly?
+
+The struct page in the VM is mostly used for two things:
+1) to get a memory address of the data
+2) refcounting, to make sure the page does not go away
+   during an IO operation, copy, etc...
+
+Persistent memory cannot be paged out so (2) is not a concern, as
+long as we ensure the object the page belongs to does not go away.
+There are no seek times, so moving it around may not be necessary
+either, making (1) not a concern.
+
+The only case where (1) would be a concern is if we wanted to move
+data in persistent memory around for better NUMA locality. However,
+persistent memory DIMMs are on their way to being too large to move
+the memory, anyway - all we can usefully do is detect where programs
+are accessing memory, and move the programs there.
+
+What state do you need that is not already represented?
+
+1.5% overhead isn't a whole lot, but it appears to be unnecessary.
+
+If you have a convincing argument as to why we need a struct page,
+you might want to articulate it in order to convince us.
+
 -- 
-1.9.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+All rights reversed
