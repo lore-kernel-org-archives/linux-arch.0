@@ -1,149 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp12.uk.ibm.com ([195.75.94.108]:38666 "EHLO
-	e06smtp12.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751316AbbCTPxp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Mar 2015 11:53:45 -0400
-Received: from /spool/local
-	by e06smtp12.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <ldufour@linux.vnet.ibm.com>;
-	Fri, 20 Mar 2015 15:53:44 -0000
-From: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-Subject: [PATCH 1/2] mm: Introducing arch_remap hook
-Date: Fri, 20 Mar 2015 16:53:27 +0100
-Message-ID: <503499aae380db1c4673f146bcba6ad095021257.1426866405.git.ldufour@linux.vnet.ibm.com>
-In-Reply-To: <cover.1426866405.git.ldufour@linux.vnet.ibm.com>
-References: <cover.1426866405.git.ldufour@linux.vnet.ibm.com>
-In-Reply-To: <cover.1426866405.git.ldufour@linux.vnet.ibm.com>
-References: <cover.1426866405.git.ldufour@linux.vnet.ibm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:56800 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752122AbbCTP4P (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Mar 2015 11:56:15 -0400
+Message-ID: <550C4318.8010200@redhat.com>
+Date: Fri, 20 Mar 2015 11:56:08 -0400
+From: Rik van Riel <riel@redhat.com>
+MIME-Version: 1.0
+Subject: Re: [Linux-nvdimm] [RFC PATCH 0/7] evacuate struct page from the
+ block layer
+References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com> <550957B9.5050803@gmail.com> <20150318130641.GD4003@linux.intel.com> <55098DFE.8080502@plexistor.com>
+In-Reply-To: <55098DFE.8080502@plexistor.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: cov@codeaurora.org, criu@openvz.org
-Message-ID: <20150320155327.dXuyT8nePqM40P6YVjSCl8we3g5RX2VpuPuud6esnP8@z>
+To: Boaz Harrosh <boaz@plexistor.com>, Matthew Wilcox <willy@linux.intel.com>, Boaz Harrosh <openosd@gmail.com>
+Cc: axboe@kernel.dk, linux-arch@vger.kernel.org, linux-raid@vger.kernel.org, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-kernel@vger.kernel.org, hch@infradead.org, Linus Torvalds <torvalds@osdl.org>, Al Viro <viro@ZenIV.linux.org.uk>, linux-fsdevel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, mgorman@suse.de
+Message-ID: <20150320155608.axj0C3g1LJlCEF4_hiKgJABdj7qQ4ZbZpMenM_fPqX4@z>
 
-Some architecture would like to be triggered when a memory area is moved
-through the mremap system call.
+On 03/18/2015 10:38 AM, Boaz Harrosh wrote:
+> On 03/18/2015 03:06 PM, Matthew Wilcox wrote:
 
-This patch is introducing a new arch_remap mm hook which is placed in the
-path of mremap, and is called before the old area is unmapped (and the
-arch_unmap hook is called).
+>>> I'm not the one afraid of hard work, if it was for a good cause, but for what?
+>>> really for what? The block layer, and RDMA, and networking, and spline, and what
+>>> ever the heck any one wants to imagine to do with pmem, already works perfectly
+>>> stable. right now!
+>>
+>> The overhead.  Allocating a struct page for every 4k page in a 400GB DIMM
+>> (the current capacity available from one NV-DIMM vendor) occupies 6.4GB.
+>> That's an unacceptable amount of overhead.
+>>
+> 
+> So lets fix the stacks to work nice with 2M pages. That said we can
+> allocate the struct page also from pmem if we need to. The fact remains
+> that we need state down the different stacks and this is the current
+> design over all.
 
-To no break the build, this patch adds the empty hook definition to the
-architectures that were not using the generic hook's definition.
+Fixing the stack to work with 2M pages will be just as invasive,
+and just as much work as making it work without a struct page.
 
-Signed-off-by: Laurent Dufour <ldufour@linux.vnet.ibm.com>
----
- arch/s390/include/asm/mmu_context.h      | 6 ++++++
- arch/um/include/asm/mmu_context.h        | 5 +++++
- arch/unicore32/include/asm/mmu_context.h | 6 ++++++
- arch/x86/include/asm/mmu_context.h       | 6 ++++++
- include/asm-generic/mm_hooks.h           | 6 ++++++
- mm/mremap.c                              | 9 +++++++--
- 6 files changed, 36 insertions(+), 2 deletions(-)
+What state do you need, exactly?
 
-diff --git a/arch/s390/include/asm/mmu_context.h b/arch/s390/include/asm/mmu_context.h
-index 8fb3802f8fad..ddd861a490ba 100644
---- a/arch/s390/include/asm/mmu_context.h
-+++ b/arch/s390/include/asm/mmu_context.h
-@@ -131,4 +131,10 @@ static inline void arch_bprm_mm_init(struct mm_struct *mm,
- {
- }
- 
-+static inline void arch_remap(struct mm_struct *mm,
-+			      unsigned long old_start, unsigned long old_end,
-+			      unsigned long new_start, unsigned long new_end)
-+{
-+}
-+
- #endif /* __S390_MMU_CONTEXT_H */
-diff --git a/arch/um/include/asm/mmu_context.h b/arch/um/include/asm/mmu_context.h
-index 941527e507f7..f499b017c1f9 100644
---- a/arch/um/include/asm/mmu_context.h
-+++ b/arch/um/include/asm/mmu_context.h
-@@ -27,6 +27,11 @@ static inline void arch_bprm_mm_init(struct mm_struct *mm,
- 				     struct vm_area_struct *vma)
- {
- }
-+static inline void arch_remap(struct mm_struct *mm,
-+			      unsigned long old_start, unsigned long old_end,
-+			      unsigned long new_start, unsigned long new_end)
-+{
-+}
- /*
-  * end asm-generic/mm_hooks.h functions
-  */
-diff --git a/arch/unicore32/include/asm/mmu_context.h b/arch/unicore32/include/asm/mmu_context.h
-index 1cb5220afaf9..39a0a553172e 100644
---- a/arch/unicore32/include/asm/mmu_context.h
-+++ b/arch/unicore32/include/asm/mmu_context.h
-@@ -97,4 +97,10 @@ static inline void arch_bprm_mm_init(struct mm_struct *mm,
- {
- }
- 
-+static inline void arch_remap(struct mm_struct *mm,
-+			      unsigned long old_start, unsigned long old_end,
-+			      unsigned long new_start, unsigned long new_end)
-+{
-+}
-+
- #endif
-diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
-index 883f6b933fa4..75cb71f4be1e 100644
---- a/arch/x86/include/asm/mmu_context.h
-+++ b/arch/x86/include/asm/mmu_context.h
-@@ -172,4 +172,10 @@ static inline void arch_unmap(struct mm_struct *mm, struct vm_area_struct *vma,
- 		mpx_notify_unmap(mm, vma, start, end);
- }
- 
-+static inline void arch_remap(struct mm_struct *mm,
-+			      unsigned long old_start, unsigned long old_end,
-+			      unsigned long new_start, unsigned long new_end)
-+{
-+}
-+
- #endif /* _ASM_X86_MMU_CONTEXT_H */
-diff --git a/include/asm-generic/mm_hooks.h b/include/asm-generic/mm_hooks.h
-index 866aa461efa5..e507f4783a5b 100644
---- a/include/asm-generic/mm_hooks.h
-+++ b/include/asm-generic/mm_hooks.h
-@@ -26,4 +26,10 @@ static inline void arch_bprm_mm_init(struct mm_struct *mm,
- {
- }
- 
-+static inline void arch_remap(struct mm_struct *mm,
-+			      unsigned long old_start, unsigned long old_end,
-+			      unsigned long new_start, unsigned long new_end)
-+{
-+}
-+
- #endif	/* _ASM_GENERIC_MM_HOOKS_H */
-diff --git a/mm/mremap.c b/mm/mremap.c
-index 57dadc025c64..6a409ca09425 100644
---- a/mm/mremap.c
-+++ b/mm/mremap.c
-@@ -25,6 +25,7 @@
- 
- #include <asm/cacheflush.h>
- #include <asm/tlbflush.h>
-+#include <asm/mmu_context.h>
- 
- #include "internal.h"
- 
-@@ -286,8 +287,12 @@ static unsigned long move_vma(struct vm_area_struct *vma,
- 		old_len = new_len;
- 		old_addr = new_addr;
- 		new_addr = -ENOMEM;
--	} else if (vma->vm_file && vma->vm_file->f_op->mremap)
--		vma->vm_file->f_op->mremap(vma->vm_file, new_vma);
-+	} else {
-+		if (vma->vm_file && vma->vm_file->f_op->mremap)
-+			vma->vm_file->f_op->mremap(vma->vm_file, new_vma);
-+		arch_remap(mm, old_addr, old_addr+old_len,
-+			   new_addr, new_addr+new_len);
-+	}
- 
- 	/* Conceal VM_ACCOUNT so old reservation is not undone */
- 	if (vm_flags & VM_ACCOUNT) {
+The struct page in the VM is mostly used for two things:
+1) to get a memory address of the data
+2) refcounting, to make sure the page does not go away
+   during an IO operation, copy, etc...
+
+Persistent memory cannot be paged out so (2) is not a concern, as
+long as we ensure the object the page belongs to does not go away.
+There are no seek times, so moving it around may not be necessary
+either, making (1) not a concern.
+
+The only case where (1) would be a concern is if we wanted to move
+data in persistent memory around for better NUMA locality. However,
+persistent memory DIMMs are on their way to being too large to move
+the memory, anyway - all we can usefully do is detect where programs
+are accessing memory, and move the programs there.
+
+What state do you need that is not already represented?
+
+1.5% overhead isn't a whole lot, but it appears to be unnecessary.
+
+If you have a convincing argument as to why we need a struct page,
+you might want to articulate it in order to convince us.
+
 -- 
-1.9.1
-
+All rights reversed
