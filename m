@@ -1,37 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from auth-4.ukservers.net ([217.10.138.158]:44361 "EHLO
-	auth-4.ukservers.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751310AbbCTVR6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Mar 2015 17:17:58 -0400
-Message-ID: <550C8E82.2020309@youngman.org.uk>
-Date: Fri, 20 Mar 2015 21:17:54 +0000
-From: Wols Lists <antlists@youngman.org.uk>
+Received: from a.ns.miles-group.at ([95.130.255.143]:65276 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751361AbbCTXTt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Mar 2015 19:19:49 -0400
+Message-ID: <550CAB0A.8070402@nod.at>
+Date: Sat, 21 Mar 2015 00:19:38 +0100
+From: Richard Weinberger <richard@nod.at>
 MIME-Version: 1.0
-Subject: Re: [RFC PATCH 0/7] evacuate struct page from the block layer
-References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com> <20150318132650.3336261c58829f49a9af8675@linux-foundation.org> <20150319134313.GF4003@linux.intel.com> <550C490E.1080708@redhat.com> <20150320203136.GM4003@linux.intel.com>
-In-Reply-To: <20150320203136.GM4003@linux.intel.com>
-Content-Type: text/plain; charset=windows-1252
+Subject: Re: [PATCH 1/2] mm: Introducing arch_remap hook
+References: <cover.1426866405.git.ldufour@linux.vnet.ibm.com> <503499aae380db1c4673f146bcba6ad095021257.1426866405.git.ldufour@linux.vnet.ibm.com>
+In-Reply-To: <503499aae380db1c4673f146bcba6ad095021257.1426866405.git.ldufour@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=iso-8859-15
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@linux.intel.com>, Rik van Riel <riel@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, axboe@kernel.dk, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, hch@infradead.org, linux-fsdevel@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>
-Message-ID: <20150320211754.9CXlxS9ustyjK9B4PIkTrHLPp4XfpBy4-ESpO0tP41I@z>
+To: Laurent Dufour <ldufour@linux.vnet.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: cov@codeaurora.org, criu@openvz.org
+Message-ID: <20150320231938.f5bUFErwpICbO3VCCXHOliJ_8BhOEhSSMWvWO2o2jZ0@z>
 
-On 20/03/15 20:31, Matthew Wilcox wrote:
-> Ah!  I've looked at that a couple of times as well.  I asked our database
-> performance team what impact freeing up the memmap would have on their
-> performance.  They told me that doubling the amount of memory generally
-> resulted in approximately a 40% performance improvement.  So freeing up
-> 1.5% additional memory would result in about 0.6% performance improvement,
-> which I thought was probably too small a return on investment to justify
-> turning memmap into a two-level data structure.
+Am 20.03.2015 um 16:53 schrieb Laurent Dufour:
+> Some architecture would like to be triggered when a memory area is moved
+> through the mremap system call.
+> 
+> This patch is introducing a new arch_remap mm hook which is placed in the
+> path of mremap, and is called before the old area is unmapped (and the
+> arch_unmap hook is called).
+> 
+> To no break the build, this patch adds the empty hook definition to the
+> architectures that were not using the generic hook's definition.
 
-Don't get me started on databases! This is very much a relational
-problem, other databases don't suffer like this.
+Just wanted to point out that I like that new hook as UserModeLinux can benefit from it.
+UML has the concept of stub pages where the UML host process can inject commands to guest processes.
+Currently we play nasty games in the TLB code to make all this work.
+arch_unmap() could make this stuff more clear and less error prone.
 
-(imho relational theory is totally inappropriate for an engineering
-problem, like designing a database engine ...)
-
-Cheers,
-Wol
+Thanks,
+//richard
