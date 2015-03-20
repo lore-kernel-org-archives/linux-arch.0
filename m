@@ -1,69 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:56800 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752122AbbCTP4P (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Mar 2015 11:56:15 -0400
-Message-ID: <550C4318.8010200@redhat.com>
-Date: Fri, 20 Mar 2015 11:56:08 -0400
-From: Rik van Riel <riel@redhat.com>
+Received: from auth-3.ukservers.net ([217.10.138.152]:48548 "EHLO
+	auth-3.ukservers.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750920AbbCTRmq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Mar 2015 13:42:46 -0400
+Message-ID: <550C5993.9030104@youngman.org.uk>
+Date: Fri, 20 Mar 2015 17:32:03 +0000
+From: Wols Lists <antlists@youngman.org.uk>
 MIME-Version: 1.0
 Subject: Re: [Linux-nvdimm] [RFC PATCH 0/7] evacuate struct page from the
  block layer
-References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com> <550957B9.5050803@gmail.com> <20150318130641.GD4003@linux.intel.com> <55098DFE.8080502@plexistor.com>
-In-Reply-To: <55098DFE.8080502@plexistor.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>	<20150318132650.3336261c58829f49a9af8675@linux-foundation.org>	<20150319134313.GF4003@linux.intel.com>	<550AF127.9010504@plexistor.com> <20150319125917.6cc2bf02687aab542027d8ac@linux-foundation.org>
+In-Reply-To: <20150319125917.6cc2bf02687aab542027d8ac@linux-foundation.org>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Boaz Harrosh <boaz@plexistor.com>, Matthew Wilcox <willy@linux.intel.com>, Boaz Harrosh <openosd@gmail.com>
-Cc: axboe@kernel.dk, linux-arch@vger.kernel.org, linux-raid@vger.kernel.org, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-kernel@vger.kernel.org, hch@infradead.org, Linus Torvalds <torvalds@osdl.org>, Al Viro <viro@ZenIV.linux.org.uk>, linux-fsdevel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, mgorman@suse.de
-Message-ID: <20150320155608.axj0C3g1LJlCEF4_hiKgJABdj7qQ4ZbZpMenM_fPqX4@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Boaz Harrosh <boaz@plexistor.com>
+Cc: Matthew Wilcox <willy@linux.intel.com>, linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, hch@infradead.org, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-kernel@vger.kernel.org, linux-raid@vger.kernel.org, mgorman@suse.de, linux-fsdevel@vger.kernel.org
+Message-ID: <20150320173203.8-Wvto6mbbxpdIJXMWK9Ds3TtRGZn497aE0pEo_YGf8@z>
 
-On 03/18/2015 10:38 AM, Boaz Harrosh wrote:
-> On 03/18/2015 03:06 PM, Matthew Wilcox wrote:
+On 19/03/15 19:59, Andrew Morton wrote:
+> This is all contingent upon the prevalence of machines which have vast
+> amounts of nv memory and relatively small amounts of regular memory. 
+> How confident are we that this really is the future?
 
->>> I'm not the one afraid of hard work, if it was for a good cause, but for what?
->>> really for what? The block layer, and RDMA, and networking, and spline, and what
->>> ever the heck any one wants to imagine to do with pmem, already works perfectly
->>> stable. right now!
->>
->> The overhead.  Allocating a struct page for every 4k page in a 400GB DIMM
->> (the current capacity available from one NV-DIMM vendor) occupies 6.4GB.
->> That's an unacceptable amount of overhead.
->>
-> 
-> So lets fix the stacks to work nice with 2M pages. That said we can
-> allocate the struct page also from pmem if we need to. The fact remains
-> that we need state down the different stacks and this is the current
-> design over all.
+Somewhat off-topic, but it's also the past. I can't help thinking of the
+early Pick machines, which treated backing store as one giant permanent
+virtual memory. Back when 300Mb hard drives were HUGE.
 
-Fixing the stack to work with 2M pages will be just as invasive,
-and just as much work as making it work without a struct page.
+Cheers,
+Wol
 
-What state do you need, exactly?
 
-The struct page in the VM is mostly used for two things:
-1) to get a memory address of the data
-2) refcounting, to make sure the page does not go away
-   during an IO operation, copy, etc...
-
-Persistent memory cannot be paged out so (2) is not a concern, as
-long as we ensure the object the page belongs to does not go away.
-There are no seek times, so moving it around may not be necessary
-either, making (1) not a concern.
-
-The only case where (1) would be a concern is if we wanted to move
-data in persistent memory around for better NUMA locality. However,
-persistent memory DIMMs are on their way to being too large to move
-the memory, anyway - all we can usefully do is detect where programs
-are accessing memory, and move the programs there.
-
-What state do you need that is not already represented?
-
-1.5% overhead isn't a whole lot, but it appears to be unnecessary.
-
-If you have a convincing argument as to why we need a struct page,
-you might want to articulate it in order to convince us.
-
--- 
-All rights reversed
