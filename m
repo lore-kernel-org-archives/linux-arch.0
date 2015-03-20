@@ -1,35 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp02.in.ibm.com ([122.248.162.2]:40237 "EHLO
-	e28smtp02.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750969AbbCTIBN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Mar 2015 04:01:13 -0400
+Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:46132 "EHLO
+	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751281AbbCTPxo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Mar 2015 11:53:44 -0400
 Received: from /spool/local
-	by e28smtp02.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <raghavendra.kt@linux.vnet.ibm.com>;
-	Fri, 20 Mar 2015 13:31:10 +0530
-Message-ID: <550BCFBC.9000106@linux.vnet.ibm.com>
-Date: Fri, 20 Mar 2015 13:13:56 +0530
-From: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH 9/9] qspinlock,x86,kvm: Implement KVM support for paravirt
- qspinlock
-References: <20150316131613.720617163@infradead.org> <20150316133112.333845162@infradead.org> <550A3863.2060808@hp.com> <20150319100121.GL21418@twins.programming.kicks-ass.net> <550B3ACF.4050908@hp.com>
-In-Reply-To: <550B3ACF.4050908@hp.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <ldufour@linux.vnet.ibm.com>;
+	Fri, 20 Mar 2015 15:53:42 -0000
+From: Laurent Dufour <ldufour@linux.vnet.ibm.com>
+Subject: [PATCH 0/2] Tracking user space vDSO remaping
+Date: Fri, 20 Mar 2015 16:53:26 +0100
+Message-ID: <cover.1426866405.git.ldufour@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, david.vrabel@citrix.com, oleg@redhat.com, scott.norton@hp.com, doug.hatch@hp.com, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, luto@amacapital.net
-Message-ID: <20150320074356.yxOxHYgRpZvUlfExZmwzcrJ1HbvjLAFYFyNn3B9eYIw@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: cov@codeaurora.org, criu@openvz.org
+Message-ID: <20150320155326.8_fu9mxiBfLgBgRjSnh-UmVnn4nHeSJQarSLm7XRaPk@z>
 
-On 03/20/2015 02:38 AM, Waiman Long wrote:
-> On 03/19/2015 06:01 AM, Peter Zijlstra wrote:
-[...]
-> You are probably right. The initial apply_paravirt() was done before the
-> SMP boot. Subsequent ones were at kernel module load time. I put a
-> counter in the __native_queue_spin_unlock() and it registered 26949
-> unlock calls in a 16-cpu guest before it got patched out.
+CRIU is recreating the process memory layout by remapping the checkpointee
+memory area on top of the current process (criu). This includes remapping
+the vDSO to the place it has at checkpoint time.
 
-because even printks take lock..
+However some architectures like powerpc are keeping a reference to the vDSO
+base address to build the signal return stack frame by calling the vDSO
+sigreturn service. So once the vDSO has been moved, this reference is no
+more valid and the signal frame built later are not usable.
+
+This patch serie is introducing a new mm hook 'arch_remap' which is called
+when mremap is done and the mm lock still hold. The next patch is adding the
+vDSO remap and unmap tracking to the powerpc architecture.
+
+Laurent Dufour (2):
+  mm: Introducing arch_remap hook
+  powerpc/mm: Tracking vDSO remap
+
+ arch/powerpc/include/asm/mmu_context.h   | 35 +++++++++++++++++++++++++++++++-
+ arch/s390/include/asm/mmu_context.h      |  6 ++++++
+ arch/um/include/asm/mmu_context.h        |  5 +++++
+ arch/unicore32/include/asm/mmu_context.h |  6 ++++++
+ arch/x86/include/asm/mmu_context.h       |  6 ++++++
+ include/asm-generic/mm_hooks.h           |  6 ++++++
+ mm/mremap.c                              |  9 ++++++--
+ 7 files changed, 70 insertions(+), 3 deletions(-)
+
+-- 
+1.9.1
 
