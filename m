@@ -1,76 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f181.google.com ([209.85.212.181]:36598 "EHLO
-	mail-wi0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751724AbbCVQYy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Mar 2015 12:24:54 -0400
-Received: by wibg7 with SMTP id g7so28017971wib.1
-        for <linux-arch@vger.kernel.org>; Sun, 22 Mar 2015 09:24:53 -0700 (PDT)
-Message-ID: <550EECD2.4000604@plexistor.com>
-Date: Sun, 22 Mar 2015 18:24:50 +0200
+Received: from mail-we0-f175.google.com ([74.125.82.175]:35012 "EHLO
+	mail-we0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751705AbbCVRWE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Mar 2015 13:22:04 -0400
+Received: by webee49 with SMTP id ee49so10823069web.2
+        for <linux-arch@vger.kernel.org>; Sun, 22 Mar 2015 10:22:03 -0700 (PDT)
+Message-ID: <550EFA38.8030706@plexistor.com>
+Date: Sun, 22 Mar 2015 19:22:00 +0200
 From: Boaz Harrosh <boaz@plexistor.com>
 MIME-Version: 1.0
-Subject: Re: [RFC PATCH 0/7] evacuate struct page from the block layer
-References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com> <20150318132650.3336261c58829f49a9af8675@linux-foundation.org> <20150319134313.GF4003@linux.intel.com> <550C490E.1080708@redhat.com> <20150320203136.GM4003@linux.intel.com>
-In-Reply-To: <20150320203136.GM4003@linux.intel.com>
+Subject: Re: [Linux-nvdimm] [RFC PATCH 0/7] evacuate struct page from the
+ block layer
+References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>	<20150318132650.3336261c58829f49a9af8675@linux-foundation.org>	<20150319134313.GF4003@linux.intel.com>	<550AF127.9010504@plexistor.com>	<20150319125917.6cc2bf02687aab542027d8ac@linux-foundation.org> <CAPcyv4j=M8V_36C-HhiJM7MHzNLFcpP=nec=LHnob5+qZ4xgYw@mail.gmail.com>
+In-Reply-To: <CAPcyv4j=M8V_36C-HhiJM7MHzNLFcpP=nec=LHnob5+qZ4xgYw@mail.gmail.com>
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@linux.intel.com>, Rik van Riel <riel@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, axboe@kernel.dk, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, hch@infradead.org, linux-fsdevel@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>
-Message-ID: <20150322162450.9nD5avYldMXyD8inTQa2IWdd1qNNr868VG3fAglReLI@z>
+To: Dan Williams <dan.j.williams@intel.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Boaz Harrosh <boaz@plexistor.com>, linux-arch@vger.kernel.org, Jens Axboe <axboe@kernel.dk>, riel@redhat.com, linux-raid <linux-raid@vger.kernel.org>, linux-nvdimm <linux-nvdimm@ml01.01.org>, Dave Hansen <dave.hansen@linux.intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, Mel Gorman <mgorman@suse.de>, linux-fsdevel <linux-fsdevel@vger.kernel.org>
+Message-ID: <20150322172200.ro1laEf-6MhLHtPe2j3rDBdr66nl5UjuByQGTCXEQ6Q@z>
 
-On 03/20/2015 10:31 PM, Matthew Wilcox wrote:
-<>
+On 03/19/2015 10:59 PM, Dan Williams wrote:
+
 > 
-> There's a lot of code out there that relies on struct page being PAGE_SIZE
-> bytes.  
+> At least for block-i/o it seems the only place we really need struct
+> page infrastructure is for kmap().  Given we already need a kmap_pfn()
+> solution for option 2 a "dynamic allocation" stop along that
+> development path may just naturally fall out.
 
-Not so much really. Not at the lower end of the stack. You can actually feed
-a 
-	vp = kmalloc(64K);
-	bv_page = virt_to_page(vp)
-	bv_len = 64k
+Really? what about networked block-io, RDMA, FcOE emulated targets,
+mmaped pointers. virtual-machine bdev drivers
 
-And feed that to an hard drive. It works.
+Block layer sits in the middle of the stack not at the low end as you
+make it appear. There are lots of below the bio subsystems that tie into
+a page struct, which will now stop to operate, unless you do:
 
-The only last stronghold of PAGE_SIZE is at the page-cache and page-fault
-granularity where the minimum is the better. But it should not be hard
-to clean up the lower end of the stack. Even introduce a:
-	page_size(page)
+pfn_to_page() which means a page-less pfn will now crash or will need
+to be rejected so any where you have a
+	if (page_less_pfn())
+		... /* Fail or do some other code like copy */
+	else
+		page = pfn_to_page()
 
-You will find that every subsystem that can work with a sub-page size
-similar to above bv_len. Will also work well with bigger than PAGE_SIZE
-bv_len equivalent.
-
-Only the BUG_ONs need to convert to page_size(page) instead of PAGE_SIZE
-
-> I'm cool with replacing 'struct page' with 'struct superpage'
-> [1] in the biovec and auditing all of the code which touches it ... but
-> that's going to be a lot of code!  I'm not sure it's less code than
-> going directly to 'just do I/O on PFNs'.
-> 
-
-struct page already knows how to be a super-page. with the THP mechanics.
-All a page_size(page) needs is a call to its section, we do not need any
-added storage at page-struct. (And we can cache this as a flag we actually
-already have a flag)
-
-It looks like you are very trigger happy to change
-	"biovec and auditing all of the code which touches it"
-
-I believe long long term your #1b is the correct "full audit" path:
-
-	Page Is the virtual-2-page-2-physical descriptor + state.
-	It is variable size
- 
-> [1] Please, somebody come up with a better name!
-
-sure struct page *page.
-
-The one to kill is PAGE_SIZE. In most current code it can just be MIN_PAGE_SIZE
-and CACHE_PAGE_SIZE == MIN_PAGE_SIZE. Only novelty is enhance of the split_huge_page
-in the case of "page-fault-granularity".
+Is a double code path in the Kernel and is a nightmare to maintain.
+(I'm here for you believe me ;-) )
 
 Thanks
 Boaz
