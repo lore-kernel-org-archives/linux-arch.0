@@ -1,124 +1,164 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f178.google.com ([74.125.82.178]:32931 "EHLO
-	mail-we0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751726AbbCVKai (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Mar 2015 06:30:38 -0400
-Received: by weop45 with SMTP id p45so115552587weo.0
-        for <linux-arch@vger.kernel.org>; Sun, 22 Mar 2015 03:30:37 -0700 (PDT)
-Message-ID: <550E99CA.5090004@plexistor.com>
-Date: Sun, 22 Mar 2015 12:30:34 +0200
+Received: from mail-we0-f169.google.com ([74.125.82.169]:35143 "EHLO
+	mail-we0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751661AbbCVLxZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Mar 2015 07:53:25 -0400
+Received: by webee49 with SMTP id ee49so6954099web.2
+        for <linux-arch@vger.kernel.org>; Sun, 22 Mar 2015 04:53:23 -0700 (PDT)
+Message-ID: <550EAD31.8030505@plexistor.com>
+Date: Sun, 22 Mar 2015 13:53:21 +0200
 From: Boaz Harrosh <boaz@plexistor.com>
 MIME-Version: 1.0
 Subject: Re: [Linux-nvdimm] [RFC PATCH 0/7] evacuate struct page from the
  block layer
-References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>	<20150318132650.3336261c58829f49a9af8675@linux-foundation.org>	<20150319134313.GF4003@linux.intel.com>	<550AF127.9010504@plexistor.com> <20150319125917.6cc2bf02687aab542027d8ac@linux-foundation.org>
-In-Reply-To: <20150319125917.6cc2bf02687aab542027d8ac@linux-foundation.org>
+References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com> <550957B9.5050803@gmail.com> <20150318130641.GD4003@linux.intel.com> <55098DFE.8080502@plexistor.com> <550C4318.8010200@redhat.com>
+In-Reply-To: <550C4318.8010200@redhat.com>
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Matthew Wilcox <willy@linux.intel.com>, linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, hch@infradead.org, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-kernel@vger.kernel.org, linux-raid@vger.kernel.org, mgorman@suse.de, linux-fsdevel@vger.kernel.org
-Message-ID: <20150322103034.ba0JH9SYMUHgnzO6tXInFfBwPfWMpChS5pP9S5fX8nA@z>
+To: Rik van Riel <riel@redhat.com>, Matthew Wilcox <willy@linux.intel.com>, Boaz Harrosh <openosd@gmail.com>
+Cc: axboe@kernel.dk, linux-arch@vger.kernel.org, linux-raid@vger.kernel.org, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-kernel@vger.kernel.org, hch@infradead.org, Linus Torvalds <torvalds@osdl.org>, Al Viro <viro@ZenIV.linux.org.uk>, linux-fsdevel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, mgorman@suse.de
+Message-ID: <20150322115321.yc_8CGFiWgJSmdD5g2ns1h4Y0HVBmCV4dgH_tujbFhg@z>
 
-On 03/19/2015 09:59 PM, Andrew Morton wrote:
-> On Thu, 19 Mar 2015 17:54:15 +0200 Boaz Harrosh <boaz@plexistor.com> wrote:
+On 03/20/2015 05:56 PM, Rik van Riel wrote:
+> On 03/18/2015 10:38 AM, Boaz Harrosh wrote:
+>> On 03/18/2015 03:06 PM, Matthew Wilcox wrote:
 > 
->> On 03/19/2015 03:43 PM, Matthew Wilcox wrote:
->> <>
+>>>> I'm not the one afraid of hard work, if it was for a good cause, but for what?
+>>>> really for what? The block layer, and RDMA, and networking, and spline, and what
+>>>> ever the heck any one wants to imagine to do with pmem, already works perfectly
+>>>> stable. right now!
 >>>
->>> Dan missed "Support O_DIRECT to a mapped DAX file".  More generally, if we
->>> want to be able to do any kind of I/O directly to persistent memory,
->>> and I think we do, we need to do one of:
+>>> The overhead.  Allocating a struct page for every 4k page in a 400GB DIMM
+>>> (the current capacity available from one NV-DIMM vendor) occupies 6.4GB.
+>>> That's an unacceptable amount of overhead.
 >>>
->>> 1. Construct struct pages for persistent memory
->>> 1a. Permanently
->>> 1b. While the pages are under I/O
->>> 2. Teach the I/O layers to deal in PFNs instead of struct pages
->>> 3. Replace struct page with some other structure that can represent both
->>>    DRAM and PMEM
->>>
->>> I'm personally a fan of #3, and I was looking at the scatterlist as
->>> my preferred data structure.  I now believe the scatterlist as it is
->>> currently defined isn't sufficient, so we probably end up needing a new
->>> data structure.  I think Dan's preferred method of replacing struct
->>> pages with PFNs is actually less instrusive, but doesn't give us as
->>> much advantage (an entirely new data structure would let us move to an
->>> extent based system at the same time, instead of sticking with an array
->>> of pages).  Clearly Boaz prefers 1a, which works well enough for the
->>> 8GB NV-DIMMs, but not well enough for the 400GB NV-DIMMs.
->>>
->>> What's your preference?  I guess option 0 is "force all I/O to go
->>> through the page cache and then get copied", but that feels like a nasty
->>> performance hit.
 >>
->> Thanks Matthew, you have summarized it perfectly.
->>
->> I think #1b might have merit, as well.
+>> So lets fix the stacks to work nice with 2M pages. That said we can
+>> allocate the struct page also from pmem if we need to. The fact remains
+>> that we need state down the different stacks and this is the current
+>> design over all.
 > 
-> It would be interesting to see what a 1b implementation looks like and
-> how it performs.  We already allocate a bunch of temporary things to
-> support in-flight IO (bio, request) and allocating pageframes on the
-> same basis seems a fairly logical fit.
-
-There is a couple of ways we can do this, they are all kind of 
-"hacks" to me, along the line of how transparent huge pages is an
-hack, a very nice one at that, and every one that knows me knows
-I love hacks, be so it is never the less.
-
-So it is all about designating the page to mean something else
-at a set of a flag.
-
-And actually the transparent-huge-pages is the core of this.
-because there is already a switch on core page operations when
-it is present. (for example get/put_page )
-
-And because we do not want to allocate pages inline, as part of a
-section, we also need a bit of a memory_model.h new define.
-(May this can avoided I need to stare harder on this)
-
+> Fixing the stack to work with 2M pages will be just as invasive,
+> and just as much work as making it work without a struct page.
 > 
-> It is all a bit of a stopgap, designed to shoehorn
-> direct-io-to-dax-mapped-memory into the existing world.  Longer term
-> I'd expect us to move to something more powerful, but it's unclear what
-> that will be at this time, so a stopgap isn't too bad?
+> What state do you need, exactly?
 > 
 
-I'd bet real huge-pages is the long term. The one stop gap for
-huge-pages is that no one wants to dirty a full 2M for two changed
-bytes. 4k is kind of the IO performance granularity we all calculate
-for. This can be solved in couple of ways, all very invasive to lots
-of Kernel areas. 
+It is not me that needs state it is the Kernel. Let me show you
+what I can do now that uses state (and pages).
 
-Lots of times the problem is "where do you start?"
+block layer sends a bio via iscsi, in turn it goes around and
+sends it via networking stack. Here page-ref is used as well
+as all kind of page based management. (This is half the Kernel
+converted right here)
+Same thing but iser & RDMA. Same thing to a null-target, via
+the target stack, maybe via path-threw.
 
+Another big example:
+  At user-mode application I mmap a portion of pmem, I then
+use the libvirt API to designate a named shared-memory object.
+At vm I use the same API to retrieve a pointer to that pmem
+region and boom, I'm persistent. (Same can be done between
+two VMs)
+
+mmap(pmem) send it to network, to encryption, direct_io
+RDMA, anything copyless.
+
+So many subsystem use page_lock page->lru page-ref and are
+written to receive and manage pages. I do not like to be
+excluded from these systems, and I would very much hate
+to re-write them. block layer is an example.
+
+> The struct page in the VM is mostly used for two things:
+> 1) to get a memory address of the data
+> 2) refcounting, to make sure the page does not go away
+>    during an IO operation, copy, etc...
 > 
-> This is all contingent upon the prevalence of machines which have vast
-> amounts of nv memory and relatively small amounts of regular memory. 
-> How confident are we that this really is the future?
+> Persistent memory cannot be paged out so (2) is not a concern, as
+> long as we ensure the object the page belongs to does not go away.
+> There are no seek times, so moving it around may not be necessary
+> either, making (1) not a concern.
 > 
 
-One thing you guys are ignoring is that the 1.5% "waste" can come
-from nv-memory. If real ram is scarce and nv-ram is hips cheep,
-just allocate the pages from nvram then.
+I lost you sorry. I'm not sure what you meant here?
+Yes kmap/kunmap is mute. I do not see any use for highmem and
+any 32bitness with this thing.
 
-Do not forget that very soon after the availability of real
-nvram, I mean not the backed up one, but the real like mram
-or reram. Lots of machines will be 100% nv-ram + sram caches.
-This is nothing to do with storage speed, it is to do with
-power consumption. The machine shuts-off and picks up exactly
-where it was. (Even at power on they consume much less, no refreshes)
-In those machine a partition of storage say, the swap partition, will
-be the volatile memory section of the machine, zeroed out on boot and
-used as RAM.
+refcounting is used sure, even with pmem see above. Actually
+relaying on refcounting existence can solve us some stuff at
+the pmem management level, which exist today. (RDMA while truncate)
 
-So this future above does not exist. Pages can just be allocated
-from the cheapest memory you have and be done with it.
+> The only case where (1) would be a concern is if we wanted to move
+> data in persistent memory around for better NUMA locality. However,
+> persistent memory DIMMs are on their way to being too large to move
+> the memory, anyway - all we can usefully do is detect where programs
+> are accessing memory, and move the programs there.
+> 
 
-(BTW all this can already be done now, I have demonstrated it
- in the lab, a reserved NvDIMM memory region is memory_hot_plugged
- and is there after used as regular RAM)
+So actually I have hands on experience with this very problem.
+We have observed that NUMA kills us. Now going through memory_add_physaddr_to_nid()
+loop for every 4k operation was a pain, but caching it on page_to_nid()
+(As part of flags in 64bit) is very nice optimization, we do NUMA aware block
+allocation and it preforms much better. (Never like a single node but magnitude
+better then without)
 
-Thanks
+> What state do you need that is not already represented?
+> 
+
+Most of these subsystem you guys are focused on it is mostly read-only
+state. Except page-ref. But never the less the page has added information
+describing the pfn. Like nid mapping->ops flags etc ...
+
+And it is also a stop gap of translation.
+give me a page I now the pfn and vaddr, give me a pfn I know page
+give me a vaddr I know the page. So I can move between all these domains.
+
+Now I am sure that in hindsight we might have devised better structures
+and abstractions that could carry all this information in a more abstract
+and convenient way, throughout the Kernel. But for now this basic object
+is a page and is passed around like in a relay-race. Each subsystem with
+its own page based meta-structure. The only real global token is
+page-struct.
+
+You are saying: "not already represented" ? I'm saying exactly, sir
+it is already represented as a page-struct. Anything else is in the
+far far future. (if at all)
+
+> 1.5% overhead isn't a whole lot, but it appears to be unnecessary.
+> 
+
+unnecessary, in a theoretical future with every single Kernel
+subsystem changed (maybe for the better I'm not saying). And this
+future is not even at all clear what it is.
+
+But for current code structure it is very much necessary. For the
+very long present days, it is not 1.5% with or without. It is
+need-to-copy or direct(-1.5%)
+
+[For me it is not even the performance of a memcpy which exacly halves
+ my pmem performance, it is the latency and the extra nightmare locking
+ and management to keep in sync two copies of the same thing]
+
+> If you have a convincing argument as to why we need a struct page,
+> you might want to articulate it in order to convince us.
+> 
+
+The must simple convincing argument there is. "Existing code". Apparently
+page was needed, maybe we can all think of much better constructs. But
+for now this is what the Kernel is based on. Until such time that we
+better it it is there.
+
+Since when we refrain from new technologies and new fixtures because
+"A major cleanup is needed". I'm all for all the great 
+"change-every-file in Kernel" ideas some guys have, but while at it
+also change the small patch I added to support pmem.
+
+For me pmem is now, at clients systems. and I chose direct(-1.5%)
+over need-to-copy. Because it gives me the performance, and most
+important, latency that sales my products. What is your timetable?
+
+Cheers
 Boaz
 
