@@ -1,63 +1,81 @@
-From: Royal Finance and Loan Company <postmaster@agricom.co.jp>
-Subject: loan offer @3% intrest rate
-Date: Sun, 22 Mar 2015 23:33:35 +0800
-Message-ID: <05013cc5-a61b-400c-a971-59c8bae00f5a@AC-EX1.tokyo.icn-net.co.jp>
-Reply-To: <johniannuzzi22@hotmail.com>
+From: Boaz Harrosh <boaz@plexistor.com>
+Subject: Re: [RFC PATCH 0/7] evacuate struct page from the block layer
+Date: Sun, 22 Mar 2015 17:51:26 +0200
+Message-ID: <550EE4FE.1070009@plexistor.com>
+References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com> <20150318132650.3336261c58829f49a9af8675@linux-foundation.org> <20150319134313.GF4003@linux.intel.com> <550C490E.1080708@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-sg1hn0251.outbound.protection.outlook.com ([134.170.132.251]:63506
-	"EHLO APAC01-SG1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751669AbbCVPeA convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Mar 2015 11:34:00 -0400
-Content-Description: Mail message body
+Received: from mail-wi0-f176.google.com ([209.85.212.176]:36326 "EHLO
+	mail-wi0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751730AbbCVPva (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Mar 2015 11:51:30 -0400
+Received: by wibg7 with SMTP id g7so27587102wib.1
+        for <linux-arch@vger.kernel.org>; Sun, 22 Mar 2015 08:51:29 -0700 (PDT)
+In-Reply-To: <550C490E.1080708@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <postmaster@agricom.co.jp>
+To: Rik van Riel <riel@redhat.com>, Matthew Wilcox <willy@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, axboe@kernel.dk, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, hch@infradead.org, linux-fsdevel@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>
 
-Good day,
+On 03/20/2015 06:21 PM, Rik van Riel wrote:
+> On 03/19/2015 09:43 AM, Matthew Wilcox wrote:
+> 
+>> 1. Construct struct pages for persistent memory
+>> 1a. Permanently
+>> 1b. While the pages are under I/O
+> 
+> Michael Tsirkin and I have been doing some thinking about what
+> it would take to allocate struct pages per 2MB area permanently,
+> and allocate additional struct pages for 4kB pages on demand,
+> when a 2MB area is broken up into 4kB pages.
+> 
+> This should work for both DRAM and persistent memory.
+> 
 
-Welcome to Royal Finance Loan Company a financial refuge and hope to pe=
-ople in Need based in malaysia. Are you in need of adequate financing a=
-nd do not know how to go about it? Are you wallowing in debts or watchi=
-ng a sick relative die due to lack of financial assistance? Are you in =
-need of adequate financing to give your family that well deserved vacat=
-ion ?
+My thoughts as well, this need *not* be a huge evasive change. Is however
+a careful surgery in very core code. And lots of sleepless scary nights
+and testing to make sure all the side effects are wrinkled out.
 
-We are financial builders and gives out no credit check loans to all ra=
-nging from personal,commercial,business,venture,start up,consolidation,
-refinance and all form of loans with our amounts ranging from $3,500 to=
- $350,000,000.00 with a fixed and very low interest rate of 3% on an an=
-nual basis if intrested fillout borrower information attached bellow.
+BTW: Basic core block code may very well work with:
+	bv_page, bv_len > PAGE_SIZE bv_offset > PAGE_SIZE.
 
-personal borrower=E2=80=99s information which is thus stated below
+  Meaning bv_page-pfn is contiguous in physical space (and virtual
+  of course). So much so that there are already rumors that this suppose
+  to be supported, and there are already out-of-tree drivers that use
+  this today by kmalloc a page-order and feeding BIOs with bv_len=64K
 
-1.Names-----------------------
-2.Address------------------------------
-3.City-------------------------
-4.State--------------------------
-5.Country-----------------------------
-6.Telephone Number------------------------
-7.Fax Number--------------------------
-8.Occupation-------------------------------
-9.Income-----------------------------------
-10.Loan Amount---------------------------
-11. Loan Duration-------------------------
-12.Purpose of Loan-------------------------
+  But going out of block-layer and say to networking say via iscsi and
+  this breaks pretty fast. Lets fix that then lets introduce a:
+	page_size(page)
+  page already knows its size (ie belonging to a 2M THP)
 
-Apply for loan today at 3% interest rate.send application if intrested =
-to
-johniannuzzi2@hotmail.com
+> I am still not convinced it is worthwhile to have struct pages
+> for persistent memory though, but I am willing to change my mind.
+> 
 
+If we want copy-less, we need a common memory descriptor career. Today this
+is page-struct. So for me your above statement means:
+	"still not convinced I care about copy-less pmem"
 
-BEST REGARD,
-Mr.John Iannuzzi.
-Chief Executive Officer (CEO)
-Royal Finance and Loan Company (ALC)
-Email johniannuzzi2@hotmail.com
+Otherwise you either enhance what you have today or devise a new
+system, which means change the all Kernel.
 
----
-This email has been checked for viruses by Avast antivirus software.
-http://www.avast.com
+Lastly: Why does pmem need to wait out-of-tree. Even you say above that
+machines with lots of DRAM can enjoy the HUGE-to-4k split. So why
+not let pmem waist 4k pages like everyone else and fix it as above
+down the line, both for pmem and ram. And save both ways.
+Why do we need to first change the all Kernel, then have pmem. Why not
+use current infra structure, for good or for worth, and incrementally
+do better.
+
+May I call you on the phone to try and work things out. I believe the
+huge page thing + 4k on demand is not a very big change, as long as
+	struct page *page is left as is, everywhere.
+
+But may *now* carry a different physical/virtual contiguous payload
+bigger then 4k. Is not the PAGE_SIZE the real bug? lets fix that problem.
+
+Thanks
+Boaz
