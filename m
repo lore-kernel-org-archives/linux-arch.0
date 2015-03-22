@@ -1,38 +1,124 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:65276 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751361AbbCTXTt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Mar 2015 19:19:49 -0400
-Message-ID: <550CAB0A.8070402@nod.at>
-Date: Sat, 21 Mar 2015 00:19:38 +0100
-From: Richard Weinberger <richard@nod.at>
+Received: from mail-we0-f178.google.com ([74.125.82.178]:32931 "EHLO
+	mail-we0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751726AbbCVKai (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Mar 2015 06:30:38 -0400
+Received: by weop45 with SMTP id p45so115552587weo.0
+        for <linux-arch@vger.kernel.org>; Sun, 22 Mar 2015 03:30:37 -0700 (PDT)
+Message-ID: <550E99CA.5090004@plexistor.com>
+Date: Sun, 22 Mar 2015 12:30:34 +0200
+From: Boaz Harrosh <boaz@plexistor.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 1/2] mm: Introducing arch_remap hook
-References: <cover.1426866405.git.ldufour@linux.vnet.ibm.com> <503499aae380db1c4673f146bcba6ad095021257.1426866405.git.ldufour@linux.vnet.ibm.com>
-In-Reply-To: <503499aae380db1c4673f146bcba6ad095021257.1426866405.git.ldufour@linux.vnet.ibm.com>
-Content-Type: text/plain; charset=iso-8859-15
+Subject: Re: [Linux-nvdimm] [RFC PATCH 0/7] evacuate struct page from the
+ block layer
+References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>	<20150318132650.3336261c58829f49a9af8675@linux-foundation.org>	<20150319134313.GF4003@linux.intel.com>	<550AF127.9010504@plexistor.com> <20150319125917.6cc2bf02687aab542027d8ac@linux-foundation.org>
+In-Reply-To: <20150319125917.6cc2bf02687aab542027d8ac@linux-foundation.org>
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Laurent Dufour <ldufour@linux.vnet.ibm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Cc: cov@codeaurora.org, criu@openvz.org
-Message-ID: <20150320231938.f5bUFErwpICbO3VCCXHOliJ_8BhOEhSSMWvWO2o2jZ0@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Matthew Wilcox <willy@linux.intel.com>, linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, hch@infradead.org, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-kernel@vger.kernel.org, linux-raid@vger.kernel.org, mgorman@suse.de, linux-fsdevel@vger.kernel.org
+Message-ID: <20150322103034.ba0JH9SYMUHgnzO6tXInFfBwPfWMpChS5pP9S5fX8nA@z>
 
-Am 20.03.2015 um 16:53 schrieb Laurent Dufour:
-> Some architecture would like to be triggered when a memory area is moved
-> through the mremap system call.
+On 03/19/2015 09:59 PM, Andrew Morton wrote:
+> On Thu, 19 Mar 2015 17:54:15 +0200 Boaz Harrosh <boaz@plexistor.com> wrote:
 > 
-> This patch is introducing a new arch_remap mm hook which is placed in the
-> path of mremap, and is called before the old area is unmapped (and the
-> arch_unmap hook is called).
+>> On 03/19/2015 03:43 PM, Matthew Wilcox wrote:
+>> <>
+>>>
+>>> Dan missed "Support O_DIRECT to a mapped DAX file".  More generally, if we
+>>> want to be able to do any kind of I/O directly to persistent memory,
+>>> and I think we do, we need to do one of:
+>>>
+>>> 1. Construct struct pages for persistent memory
+>>> 1a. Permanently
+>>> 1b. While the pages are under I/O
+>>> 2. Teach the I/O layers to deal in PFNs instead of struct pages
+>>> 3. Replace struct page with some other structure that can represent both
+>>>    DRAM and PMEM
+>>>
+>>> I'm personally a fan of #3, and I was looking at the scatterlist as
+>>> my preferred data structure.  I now believe the scatterlist as it is
+>>> currently defined isn't sufficient, so we probably end up needing a new
+>>> data structure.  I think Dan's preferred method of replacing struct
+>>> pages with PFNs is actually less instrusive, but doesn't give us as
+>>> much advantage (an entirely new data structure would let us move to an
+>>> extent based system at the same time, instead of sticking with an array
+>>> of pages).  Clearly Boaz prefers 1a, which works well enough for the
+>>> 8GB NV-DIMMs, but not well enough for the 400GB NV-DIMMs.
+>>>
+>>> What's your preference?  I guess option 0 is "force all I/O to go
+>>> through the page cache and then get copied", but that feels like a nasty
+>>> performance hit.
+>>
+>> Thanks Matthew, you have summarized it perfectly.
+>>
+>> I think #1b might have merit, as well.
 > 
-> To no break the build, this patch adds the empty hook definition to the
-> architectures that were not using the generic hook's definition.
+> It would be interesting to see what a 1b implementation looks like and
+> how it performs.  We already allocate a bunch of temporary things to
+> support in-flight IO (bio, request) and allocating pageframes on the
+> same basis seems a fairly logical fit.
 
-Just wanted to point out that I like that new hook as UserModeLinux can benefit from it.
-UML has the concept of stub pages where the UML host process can inject commands to guest processes.
-Currently we play nasty games in the TLB code to make all this work.
-arch_unmap() could make this stuff more clear and less error prone.
+There is a couple of ways we can do this, they are all kind of 
+"hacks" to me, along the line of how transparent huge pages is an
+hack, a very nice one at that, and every one that knows me knows
+I love hacks, be so it is never the less.
 
-Thanks,
-//richard
+So it is all about designating the page to mean something else
+at a set of a flag.
+
+And actually the transparent-huge-pages is the core of this.
+because there is already a switch on core page operations when
+it is present. (for example get/put_page )
+
+And because we do not want to allocate pages inline, as part of a
+section, we also need a bit of a memory_model.h new define.
+(May this can avoided I need to stare harder on this)
+
+> 
+> It is all a bit of a stopgap, designed to shoehorn
+> direct-io-to-dax-mapped-memory into the existing world.  Longer term
+> I'd expect us to move to something more powerful, but it's unclear what
+> that will be at this time, so a stopgap isn't too bad?
+> 
+
+I'd bet real huge-pages is the long term. The one stop gap for
+huge-pages is that no one wants to dirty a full 2M for two changed
+bytes. 4k is kind of the IO performance granularity we all calculate
+for. This can be solved in couple of ways, all very invasive to lots
+of Kernel areas. 
+
+Lots of times the problem is "where do you start?"
+
+> 
+> This is all contingent upon the prevalence of machines which have vast
+> amounts of nv memory and relatively small amounts of regular memory. 
+> How confident are we that this really is the future?
+> 
+
+One thing you guys are ignoring is that the 1.5% "waste" can come
+from nv-memory. If real ram is scarce and nv-ram is hips cheep,
+just allocate the pages from nvram then.
+
+Do not forget that very soon after the availability of real
+nvram, I mean not the backed up one, but the real like mram
+or reram. Lots of machines will be 100% nv-ram + sram caches.
+This is nothing to do with storage speed, it is to do with
+power consumption. The machine shuts-off and picks up exactly
+where it was. (Even at power on they consume much less, no refreshes)
+In those machine a partition of storage say, the swap partition, will
+be the volatile memory section of the machine, zeroed out on boot and
+used as RAM.
+
+So this future above does not exist. Pages can just be allocated
+from the cheapest memory you have and be done with it.
+
+(BTW all this can already be done now, I have demonstrated it
+ in the lab, a reserved NvDIMM memory region is memory_hot_plugged
+ and is there after used as regular RAM)
+
+Thanks
+Boaz
+
