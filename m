@@ -1,125 +1,92 @@
-From: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-Subject: Re: [PATCH 1/2] mm: Introducing arch_remap hook
-Date: Mon, 23 Mar 2015 10:11:18 +0100
-Message-ID: <550FD8B6.305@linux.vnet.ibm.com>
-References: <cover.1426866405.git.ldufour@linux.vnet.ibm.com> <503499aae380db1c4673f146bcba6ad095021257.1426866405.git.ldufour@linux.vnet.ibm.com> <20150323085209.GA28965@gmail.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH] tile: use si_int instead of si_ptr for compat_siginfo
+Date: Mon, 23 Mar 2015 12:02:54 +0000
+Message-ID: <20150323120253.GA12757@e104818-lin.cambridge.arm.com>
+References: <1423563011-12377-1-git-send-email-bamvor.zhangjian@huawei.com>
+ <20150210122718.GC32052@e104818-lin.cambridge.arm.com>
+ <54DB3B60.4050100@huawei.com>
+ <20150211154054.GD9058@e104818-lin.cambridge.arm.com>
+ <54DDAF2B.2070707@huawei.com>
+ <20150213104455.GA3508@e104818-lin.cambridge.arm.com>
+ <54DE730D.3090100@ezchip.com>
+ <20150214112220.GB10246@MBP.local>
+ <54ECF309.3020509@ezchip.com>
+ <201503161908.t2GJ8fs5021877@farm-0002.internal.tilera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20150323085209.GA28965@gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org, cov@codeaurora.org, criu@openvz.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:45355 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752106AbbCWMD5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 Mar 2015 08:03:57 -0400
+Content-Disposition: inline
+In-Reply-To: <201503161908.t2GJ8fs5021877@farm-0002.internal.tilera.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Metcalf <cmetcalf@ezchip.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ralf@linux-mips.org, benh@kernel.crashing.org, deller@gmx.de, "dingtianhong@huawei.com" <dingtianhong@huawei.com>, heiko.carstens@de.ibm.com, jejb@parisc-linux.org, Will Deacon <Will.Deacon@arm.com>, "lizefan@huawei.com" <lizefan@huawei.com>, Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>, mpe@ellerman.id.au, hpa@zytor.com, schwidefsky@de.ibm.com, paulus@samba.org, tglx@linutronix.de, mingo@redhat.com, davem@davemloft.net, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-On 23/03/2015 09:52, Ingo Molnar wrote:
+On Mon, Mar 16, 2015 at 03:04:05PM -0400, Chris Metcalf wrote:
+> To be compatible with the generic get_compat_sigevent(), the
+> copy_siginfo_to_user32() and thus copy_siginfo_from_user32()
+> have to use si_int instead of si_ptr.  Using si_ptr means that
+> for the case of ILP32 compat code running in big-endian mode,
+> we would end up copying the high 32 bits of the pointer value
+> into si_int instead of the desired low 32 bits.
 > 
-> * Laurent Dufour <ldufour@linux.vnet.ibm.com> wrote:
+> Signed-off-by: Chris Metcalf <cmetcalf@ezchip.com>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> ---
+>  arch/tile/kernel/compat_signal.c | 9 +++------
+>  1 file changed, 3 insertions(+), 6 deletions(-)
 > 
->> Some architecture would like to be triggered when a memory area is moved
->> through the mremap system call.
->>
->> This patch is introducing a new arch_remap mm hook which is placed in the
->> path of mremap, and is called before the old area is unmapped (and the
->> arch_unmap hook is called).
->>
->> To no break the build, this patch adds the empty hook definition to the
->> architectures that were not using the generic hook's definition.
->>
->> Signed-off-by: Laurent Dufour <ldufour@linux.vnet.ibm.com>
->> ---
->>  arch/s390/include/asm/mmu_context.h      | 6 ++++++
->>  arch/um/include/asm/mmu_context.h        | 5 +++++
->>  arch/unicore32/include/asm/mmu_context.h | 6 ++++++
->>  arch/x86/include/asm/mmu_context.h       | 6 ++++++
->>  include/asm-generic/mm_hooks.h           | 6 ++++++
->>  mm/mremap.c                              | 9 +++++++--
->>  6 files changed, 36 insertions(+), 2 deletions(-)
->>
->> diff --git a/arch/s390/include/asm/mmu_context.h b/arch/s390/include/asm/mmu_context.h
->> index 8fb3802f8fad..ddd861a490ba 100644
->> --- a/arch/s390/include/asm/mmu_context.h
->> +++ b/arch/s390/include/asm/mmu_context.h
->> @@ -131,4 +131,10 @@ static inline void arch_bprm_mm_init(struct mm_struct *mm,
->>  {
->>  }
->>  
->> +static inline void arch_remap(struct mm_struct *mm,
->> +			      unsigned long old_start, unsigned long old_end,
->> +			      unsigned long new_start, unsigned long new_end)
->> +{
->> +}
->> +
->>  #endif /* __S390_MMU_CONTEXT_H */
->> diff --git a/arch/um/include/asm/mmu_context.h b/arch/um/include/asm/mmu_context.h
->> index 941527e507f7..f499b017c1f9 100644
->> --- a/arch/um/include/asm/mmu_context.h
->> +++ b/arch/um/include/asm/mmu_context.h
->> @@ -27,6 +27,11 @@ static inline void arch_bprm_mm_init(struct mm_struct *mm,
->>  				     struct vm_area_struct *vma)
->>  {
->>  }
->> +static inline void arch_remap(struct mm_struct *mm,
->> +			      unsigned long old_start, unsigned long old_end,
->> +			      unsigned long new_start, unsigned long new_end)
->> +{
->> +}
->>  /*
->>   * end asm-generic/mm_hooks.h functions
->>   */
->> diff --git a/arch/unicore32/include/asm/mmu_context.h b/arch/unicore32/include/asm/mmu_context.h
->> index 1cb5220afaf9..39a0a553172e 100644
->> --- a/arch/unicore32/include/asm/mmu_context.h
->> +++ b/arch/unicore32/include/asm/mmu_context.h
->> @@ -97,4 +97,10 @@ static inline void arch_bprm_mm_init(struct mm_struct *mm,
->>  {
->>  }
->>  
->> +static inline void arch_remap(struct mm_struct *mm,
->> +			      unsigned long old_start, unsigned long old_end,
->> +			      unsigned long new_start, unsigned long new_end)
->> +{
->> +}
->> +
->>  #endif
->> diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
->> index 883f6b933fa4..75cb71f4be1e 100644
->> --- a/arch/x86/include/asm/mmu_context.h
->> +++ b/arch/x86/include/asm/mmu_context.h
->> @@ -172,4 +172,10 @@ static inline void arch_unmap(struct mm_struct *mm, struct vm_area_struct *vma,
->>  		mpx_notify_unmap(mm, vma, start, end);
->>  }
->>  
->> +static inline void arch_remap(struct mm_struct *mm,
->> +			      unsigned long old_start, unsigned long old_end,
->> +			      unsigned long new_start, unsigned long new_end)
->> +{
->> +}
->> +
->>  #endif /* _ASM_X86_MMU_CONTEXT_H */
-> 
-> So instead of spreading these empty prototypes around mmu_context.h 
-> files, why not add something like this to the PPC definition:
-> 
->  #define __HAVE_ARCH_REMAP
-> 
-> and define the empty prototype for everyone else? It's a bit like how 
-> the __HAVE_ARCH_PTEP_* namespace works.
-> 
-> That should shrink this patch considerably.
+> diff --git a/arch/tile/kernel/compat_signal.c b/arch/tile/kernel/compat_signal.c
+> index 8c5abf2e4794..bca13054afb4 100644
+> --- a/arch/tile/kernel/compat_signal.c
+> +++ b/arch/tile/kernel/compat_signal.c
+> @@ -68,7 +68,7 @@ int copy_siginfo_to_user32(struct compat_siginfo __user *to, const siginfo_t *fr
+>  	if (from->si_code < 0) {
+>  		err |= __put_user(from->si_pid, &to->si_pid);
+>  		err |= __put_user(from->si_uid, &to->si_uid);
+> -		err |= __put_user(ptr_to_compat(from->si_ptr), &to->si_ptr);
+> +		err |= __put_user(from->si_int, &to->si_int);
+>  	} else {
+>  		/*
+>  		 * First 32bits of unions are always present:
+> @@ -93,8 +93,7 @@ int copy_siginfo_to_user32(struct compat_siginfo __user *to, const siginfo_t *fr
+>  			break;
+>  		case __SI_TIMER >> 16:
+>  			err |= __put_user(from->si_overrun, &to->si_overrun);
+> -			err |= __put_user(ptr_to_compat(from->si_ptr),
+> -					  &to->si_ptr);
+> +			err |= __put_user(from->si_int, &to->si_int);
+>  			break;
 
-My idea was to mimic the MMU hook's definition. This new hook is in the
-continuity of what have been done for arch_dup_mmap, arch_exit_mmap,
-arch_unmap and arch_bprm_mm_init.
+It's usually the __SI_TIMER and __SI_MESGQ cases that matters here (the
+latter already handled). I'm not entirely sure about the si_code < 0
+change.
 
-Do you think that there is a need to make this one in another way ?
+>  			 /* This is not generated by the kernel as of now.  */
+>  		case __SI_RT >> 16:
+> @@ -110,7 +109,6 @@ int copy_siginfo_to_user32(struct compat_siginfo __user *to, const siginfo_t *fr
+>  int copy_siginfo_from_user32(siginfo_t *to, struct compat_siginfo __user *from)
+>  {
+>  	int err;
+> -	u32 ptr32;
+>  
+>  	if (!access_ok(VERIFY_READ, from, sizeof(struct compat_siginfo)))
+>  		return -EFAULT;
+> @@ -121,8 +119,7 @@ int copy_siginfo_from_user32(siginfo_t *to, struct compat_siginfo __user *from)
+>  
+>  	err |= __get_user(to->si_pid, &from->si_pid);
+>  	err |= __get_user(to->si_uid, &from->si_uid);
+> -	err |= __get_user(ptr32, &from->si_ptr);
+> -	to->si_ptr = compat_ptr(ptr32);
+> +	err |= __get_user(to->si_int, &from->si_int);
 
-Thanks,
-Laurent.
+We have a memset(to, 0, sizeof(*to)) on arm64 in this function but I
+can't see it on tile. Some members or even half of si_ptr would be left
+uninitialised.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+Catalin
