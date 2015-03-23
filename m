@@ -1,77 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:44183 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752906AbbCWPTL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 23 Mar 2015 11:19:11 -0400
-Message-ID: <55102EEB.2090401@redhat.com>
-Date: Mon, 23 Mar 2015 11:19:07 -0400
-From: Rik van Riel <riel@redhat.com>
-MIME-Version: 1.0
+Received: from bombadil.infradead.org ([198.137.202.9]:42455 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752619AbbCWTaV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Mar 2015 15:30:21 -0400
+Date: Mon, 23 Mar 2015 12:30:17 -0700
+From: Christoph Hellwig <hch@infradead.org>
 Subject: Re: [RFC PATCH 0/7] evacuate struct page from the block layer
-References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com> <20150318132650.3336261c58829f49a9af8675@linux-foundation.org> <20150319134313.GF4003@linux.intel.com> <550C490E.1080708@redhat.com> <550EE4FE.1070009@plexistor.com>
-In-Reply-To: <550EE4FE.1070009@plexistor.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Message-ID: <20150323193017.GA14179@infradead.org>
+References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150318132650.3336261c58829f49a9af8675@linux-foundation.org>
+ <20150319134313.GF4003@linux.intel.com>
+ <550C490E.1080708@redhat.com>
+ <550EE4FE.1070009@plexistor.com>
+ <55102EEB.2090401@redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <55102EEB.2090401@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Boaz Harrosh <boaz@plexistor.com>, Matthew Wilcox <willy@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, axboe@kernel.dk, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, hch@infradead.org, linux-fsdevel@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>
-Message-ID: <20150323151907.62UBXbPAVOXVClhtbk5UmCJZ-eyPNJaSwSLXDVUhb5Y@z>
+To: Rik van Riel <riel@redhat.com>
+Cc: Boaz Harrosh <boaz@plexistor.com>, Matthew Wilcox <willy@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, axboe@kernel.dk, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, hch@infradead.org, linux-fsdevel@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>
+Message-ID: <20150323193017.lxF16H8ZKqwiqieNnCCRBGOTnVy2su6kwlrqSjDAdyg@z>
 
-On 03/22/2015 11:51 AM, Boaz Harrosh wrote:
-> On 03/20/2015 06:21 PM, Rik van Riel wrote:
->> On 03/19/2015 09:43 AM, Matthew Wilcox wrote:
->>
->>> 1. Construct struct pages for persistent memory
->>> 1a. Permanently
->>> 1b. While the pages are under I/O
->>
->> Michael Tsirkin and I have been doing some thinking about what
->> it would take to allocate struct pages per 2MB area permanently,
->> and allocate additional struct pages for 4kB pages on demand,
->> when a 2MB area is broken up into 4kB pages.
->>
->> This should work for both DRAM and persistent memory.
+On Mon, Mar 23, 2015 at 11:19:07AM -0400, Rik van Riel wrote:
+> There are two things going on here:
 > 
-> My thoughts as well, this need *not* be a huge evasive change. Is however
-> a careful surgery in very core code. And lots of sleepless scary nights
-> and testing to make sure all the side effects are wrinkled out.
-
-Even the above IS a huge invasive change, and I do not see it
-as much better than the work Dan and Matthew are doing.
-
-> If we want copy-less, we need a common memory descriptor career. Today this
-> is page-struct. So for me your above statement means:
-> 	"still not convinced I care about copy-less pmem"
+> 1) You want to keep using struct page for now, while there are
+>    subsystems that require it. This is perfectly legitimate.
 > 
-> Otherwise you either enhance what you have today or devise a new
-> system, which means change the all Kernel.
+> 2) Matthew and Dan are changing over some subsystems to no longer
+>    require struct page. This is perfectly legitimate.
+> 
+> I do not understand why either of you would have to object to what
+> the other is doing. There is room to keep using struct page until
+> the rest of the kernel no longer requires it.
 
-We do not necessarily need a common descriptor, as much as
-one that abstracts out what is happening. Something like a
-struct bio could be a good I/O descriptor, and releasing the
-backing memory after IO completion could be a function of the
-bio freeing function itself.
+*nod*
 
-> Lastly: Why does pmem need to wait out-of-tree. Even you say above that
-> machines with lots of DRAM can enjoy the HUGE-to-4k split. So why
-> not let pmem waist 4k pages like everyone else and fix it as above
-> down the line, both for pmem and ram. And save both ways.
-> Why do we need to first change the all Kernel, then have pmem. Why not
-> use current infra structure, for good or for worth, and incrementally
-> do better.
-
-There are two things going on here:
-
-1) You want to keep using struct page for now, while there are
-   subsystems that require it. This is perfectly legitimate.
-
-2) Matthew and Dan are changing over some subsystems to no longer
-   require struct page. This is perfectly legitimate.
-
-I do not understand why either of you would have to object to what
-the other is doing. There is room to keep using struct page until
-the rest of the kernel no longer requires it.
-
--- 
-All rights reversed
+I'd really like to merge the struct page based pmem driver ASAP.  We can
+then look into work that avoid the need for struct page, and I think Dan
+is doing some good work in that direction.
