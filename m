@@ -1,58 +1,129 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f179.google.com ([74.125.82.179]:34290 "EHLO
-	mail-we0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751800AbbCVRj4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Mar 2015 13:39:56 -0400
-Received: by wegp1 with SMTP id p1so120523632weg.1
-        for <linux-arch@vger.kernel.org>; Sun, 22 Mar 2015 10:39:55 -0700 (PDT)
-Message-ID: <550EFE68.6040007@plexistor.com>
-Date: Sun, 22 Mar 2015 19:39:52 +0200
-From: Boaz Harrosh <boaz@plexistor.com>
+Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:44198 "EHLO
+	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752182AbbCWJLg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Mar 2015 05:11:36 -0400
+Received: from /spool/local
+	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <ldufour@linux.vnet.ibm.com>;
+	Mon, 23 Mar 2015 09:11:34 -0000
+Message-ID: <550FD8B6.305@linux.vnet.ibm.com>
+Date: Mon, 23 Mar 2015 10:11:18 +0100
+From: Laurent Dufour <ldufour@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [RFC PATCH 0/7] evacuate struct page from the block layer
-References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com>	<20150318132650.3336261c58829f49a9af8675@linux-foundation.org>	<20150319134313.GF4003@linux.intel.com>	<550C490E.1080708@redhat.com>	<20150320203136.GM4003@linux.intel.com>	<550C8C47.5090002@redhat.com>	<550EF6B2.70506@plexistor.com> <CAPcyv4ieZjj6senh26BANA4KT54AdrU+O=o8zCAk7W=vA+SjnQ@mail.gmail.com>
-In-Reply-To: <CAPcyv4ieZjj6senh26BANA4KT54AdrU+O=o8zCAk7W=vA+SjnQ@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
+Subject: Re: [PATCH 1/2] mm: Introducing arch_remap hook
+References: <cover.1426866405.git.ldufour@linux.vnet.ibm.com> <503499aae380db1c4673f146bcba6ad095021257.1426866405.git.ldufour@linux.vnet.ibm.com> <20150323085209.GA28965@gmail.com>
+In-Reply-To: <20150323085209.GA28965@gmail.com>
+Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Rik van Riel <riel@redhat.com>, Matthew Wilcox <willy@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jens Axboe <axboe@kernel.dk>, linux-nvdimm <linux-nvdimm@ml01.01.org>, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid <linux-raid@vger.kernel.org>, Mel Gorman <mgorman@suse.de>, Christoph Hellwig <hch@infradead.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, "Michael S. Tsirkin" <mst@redhat.com>
-Message-ID: <20150322173952.SrKjSu01FJDWB9MQdxL62ordmmIwCkZ4_WUjlmMl7dY@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org, cov@codeaurora.org, criu@openvz.org
+Message-ID: <20150323091118.x5NG65HBcz1ZBe_gw2uMnn2Fz8MSWAku2iiHt10MpdA@z>
 
-On 03/22/2015 07:22 PM, Dan Williams wrote:
-> On Sun, Mar 22, 2015 at 10:06 AM, Boaz Harrosh <boaz@plexistor.com> wrote:
-<>
+On 23/03/2015 09:52, Ingo Molnar wrote:
+> 
+> * Laurent Dufour <ldufour@linux.vnet.ibm.com> wrote:
+> 
+>> Some architecture would like to be triggered when a memory area is moved
+>> through the mremap system call.
 >>
->> Moving to pfn's only means that all this unnamed code above that
->> "relies on struct page being PAGE_SIZE" is now not allowed to
->> interfaced with bio and sg list. Which in current code and in Dan's patches
->> means two tons of BUG_ONS and return -ENOTSUPP . For all these
->> subsystems below the bio and sglist that operate on page_structs
+>> This patch is introducing a new arch_remap mm hook which is placed in the
+>> path of mremap, and is called before the old area is unmapped (and the
+>> arch_unmap hook is called).
+>>
+>> To no break the build, this patch adds the empty hook definition to the
+>> architectures that were not using the generic hook's definition.
+>>
+>> Signed-off-by: Laurent Dufour <ldufour@linux.vnet.ibm.com>
+>> ---
+>>  arch/s390/include/asm/mmu_context.h      | 6 ++++++
+>>  arch/um/include/asm/mmu_context.h        | 5 +++++
+>>  arch/unicore32/include/asm/mmu_context.h | 6 ++++++
+>>  arch/x86/include/asm/mmu_context.h       | 6 ++++++
+>>  include/asm-generic/mm_hooks.h           | 6 ++++++
+>>  mm/mremap.c                              | 9 +++++++--
+>>  6 files changed, 36 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/arch/s390/include/asm/mmu_context.h b/arch/s390/include/asm/mmu_context.h
+>> index 8fb3802f8fad..ddd861a490ba 100644
+>> --- a/arch/s390/include/asm/mmu_context.h
+>> +++ b/arch/s390/include/asm/mmu_context.h
+>> @@ -131,4 +131,10 @@ static inline void arch_bprm_mm_init(struct mm_struct *mm,
+>>  {
+>>  }
+>>  
+>> +static inline void arch_remap(struct mm_struct *mm,
+>> +			      unsigned long old_start, unsigned long old_end,
+>> +			      unsigned long new_start, unsigned long new_end)
+>> +{
+>> +}
+>> +
+>>  #endif /* __S390_MMU_CONTEXT_H */
+>> diff --git a/arch/um/include/asm/mmu_context.h b/arch/um/include/asm/mmu_context.h
+>> index 941527e507f7..f499b017c1f9 100644
+>> --- a/arch/um/include/asm/mmu_context.h
+>> +++ b/arch/um/include/asm/mmu_context.h
+>> @@ -27,6 +27,11 @@ static inline void arch_bprm_mm_init(struct mm_struct *mm,
+>>  				     struct vm_area_struct *vma)
+>>  {
+>>  }
+>> +static inline void arch_remap(struct mm_struct *mm,
+>> +			      unsigned long old_start, unsigned long old_end,
+>> +			      unsigned long new_start, unsigned long new_end)
+>> +{
+>> +}
+>>  /*
+>>   * end asm-generic/mm_hooks.h functions
+>>   */
+>> diff --git a/arch/unicore32/include/asm/mmu_context.h b/arch/unicore32/include/asm/mmu_context.h
+>> index 1cb5220afaf9..39a0a553172e 100644
+>> --- a/arch/unicore32/include/asm/mmu_context.h
+>> +++ b/arch/unicore32/include/asm/mmu_context.h
+>> @@ -97,4 +97,10 @@ static inline void arch_bprm_mm_init(struct mm_struct *mm,
+>>  {
+>>  }
+>>  
+>> +static inline void arch_remap(struct mm_struct *mm,
+>> +			      unsigned long old_start, unsigned long old_end,
+>> +			      unsigned long new_start, unsigned long new_end)
+>> +{
+>> +}
+>> +
+>>  #endif
+>> diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
+>> index 883f6b933fa4..75cb71f4be1e 100644
+>> --- a/arch/x86/include/asm/mmu_context.h
+>> +++ b/arch/x86/include/asm/mmu_context.h
+>> @@ -172,4 +172,10 @@ static inline void arch_unmap(struct mm_struct *mm, struct vm_area_struct *vma,
+>>  		mpx_notify_unmap(mm, vma, start, end);
+>>  }
+>>  
+>> +static inline void arch_remap(struct mm_struct *mm,
+>> +			      unsigned long old_start, unsigned long old_end,
+>> +			      unsigned long new_start, unsigned long new_end)
+>> +{
+>> +}
+>> +
+>>  #endif /* _ASM_X86_MMU_CONTEXT_H */
 > 
-> I'm not convinced it will be that bad.  In hyperbolic terms,
-> continuing to overload struct page means we get to let floppy.c do i/o
-> from pmem, who needs that level of compatibility?
+> So instead of spreading these empty prototypes around mmu_context.h 
+> files, why not add something like this to the PPC definition:
 > 
-
-But you do need to make sure it does not crash. right?
-
-> Similar to sg_chain support I think it's fine to let sub-systems /
-> archs add pmem i/o support over time.  It's a scaling problem our
-> development model is good at.
+>  #define __HAVE_ARCH_REMAP
 > 
+> and define the empty prototype for everyone else? It's a bit like how 
+> the __HAVE_ARCH_PTEP_* namespace works.
+> 
+> That should shrink this patch considerably.
 
-You are so eager to do all this massive change, and willing to do it
-over a decade (Judging by your own example of sg-chain)
+My idea was to mimic the MMU hook's definition. This new hook is in the
+continuity of what have been done for arch_dup_mmap, arch_exit_mmap,
+arch_unmap and arch_bprm_mm_init.
 
-But you completely ignore the fact that what I'm saying is that
-nothing needs to fundamentally change at all. No support over time
-and no "scaling problem" at all. All we want to fix is that page-struct
-means NOT PAGE_SIZE but some other size.
+Do you think that there is a need to make this one in another way ?
 
-The much smaller change and full cross Kernel compatibility. What's
-not to like ?
-
-Cheers
-Boaz
+Thanks,
+Laurent.
 
