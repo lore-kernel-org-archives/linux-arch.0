@@ -1,131 +1,223 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f174.google.com ([209.85.212.174]:36163 "EHLO
-	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752196AbbCXJlm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Mar 2015 05:41:42 -0400
-Received: by wibg7 with SMTP id g7so69654706wib.1
-        for <linux-arch@vger.kernel.org>; Tue, 24 Mar 2015 02:41:40 -0700 (PDT)
-Message-ID: <55113151.7090304@plexistor.com>
-Date: Tue, 24 Mar 2015 11:41:37 +0200
-From: Boaz Harrosh <boaz@plexistor.com>
-MIME-Version: 1.0
-Subject: Re: [RFC PATCH 0/7] evacuate struct page from the block layer
-References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com> <20150318132650.3336261c58829f49a9af8675@linux-foundation.org> <20150319134313.GF4003@linux.intel.com> <550C490E.1080708@redhat.com> <550EE4FE.1070009@plexistor.com> <55102EEB.2090401@redhat.com>
-In-Reply-To: <55102EEB.2090401@redhat.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Received: from shonan.sfc.wide.ad.jp ([203.178.142.130]:60003 "EHLO
+	mail.sfc.wide.ad.jp" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752340AbbCXNVE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Mar 2015 09:21:04 -0400
+From: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
+Subject: [RFC PATCH 11/11] lib: tools used for test scripts
+Date: Tue, 24 Mar 2015 22:10:42 +0900
+Message-ID: <1427202642-1716-12-git-send-email-tazaki@sfc.wide.ad.jp>
+In-Reply-To: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>
+References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rik van Riel <riel@redhat.com>, Boaz Harrosh <boaz@plexistor.com>, Matthew Wilcox <willy@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, axboe@kernel.dk, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, hch@infradead.org, linux-fsdevel@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>
-Message-ID: <20150324094137.CXEkXR49NZlR4G6TmskRLFK2CaT8pfJe2OcsD8Mxty0@z>
+To: linux-arch@vger.kernel.org
+Cc: Hajime Tazaki <tazaki@sfc.wide.ad.jp>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Jhristoph Lameter <cl@linux.com>, Jekka Enberg <penberg@kernel.org>, Javid Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Jndrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Rusty Russell <rusty@rustcorp.com.au>, Mathieu Lacage <mathieu.lacage@gmail.com>
+Message-ID: <20150324131042.OPuFLP4Jg7D8hMio1RCLNKwzKBORipCNTr1T6EISHUQ@z>
 
-On 03/23/2015 05:19 PM, Rik van Riel wrote:
->>> Michael Tsirkin and I have been doing some thinking about what
->>> it would take to allocate struct pages per 2MB area permanently,
->>> and allocate additional struct pages for 4kB pages on demand,
->>> when a 2MB area is broken up into 4kB pages.
->>
->> My thoughts as well, this need *not* be a huge evasive change. Is however
->> a careful surgery in very core code. And lots of sleepless scary nights
->> and testing to make sure all the side effects are wrinkled out.
-> 
-> Even the above IS a huge invasive change, and I do not see it
-> as much better than the work Dan and Matthew are doing.
-> 
+These auxiliary files are used for make test ARCH=lib.
 
-You lost me again. Sorry for my slowness. The code I envision is not
-invasive at all. Nothing is touched at all, except a few core places
-at the page level.
+Signed-off-by: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
+---
+ tools/testing/libos/.gitignore   |  6 +++++
+ tools/testing/libos/Makefile     | 38 +++++++++++++++++++++++++++
+ tools/testing/libos/README       | 15 +++++++++++
+ tools/testing/libos/bisect.sh    | 10 +++++++
+ tools/testing/libos/dce-test.sh  | 23 ++++++++++++++++
+ tools/testing/libos/nuse-test.sh | 57 ++++++++++++++++++++++++++++++++++++++++
+ 6 files changed, 149 insertions(+)
+ create mode 100644 tools/testing/libos/.gitignore
+ create mode 100644 tools/testing/libos/Makefile
+ create mode 100644 tools/testing/libos/README
+ create mode 100755 tools/testing/libos/bisect.sh
+ create mode 100755 tools/testing/libos/dce-test.sh
+ create mode 100755 tools/testing/libos/nuse-test.sh
 
-The contract with Kernel stays the same:
-	page_to_pfn, pfn_to_page, page_address (which is kmap_atomic in 64bit)
-	virt_to_page, page_get/put and so on...
-
-So none of the Kernel code need change at all. You were saying that we
-might have a 2M page and on demand we can allocate a 4k page shove it down the
-stack, which does not change at all, and once back from io, the 4k pages can be
-freed and recycled for reuse with other IO. This is what I thought you said.
-
-This is doable, and not that much work and for the life of me I do not see any
-"invasive". (Yes a few core headers that make everything compile ;-))
-
-That said I do not even think we need that (2M split to 4k on demand) we can even
-do better and make sure 2M pages just work as is. It is very possible today
-(Tested) to push a 2M page into a bio and write to a bdev. Yes lots of side
-code will break, but the core path is clean. Let us fix that then.
-
-(Need I send code to show you how a 2M page is written with a single
- bvec?)
-
->> If we want copy-less, we need a common memory descriptor career. Today this
->> is page-struct. So for me your above statement means:
->> 	"still not convinced I care about copy-less pmem"
->>
->> Otherwise you either enhance what you have today or devise a new
->> system, which means change the all Kernel.
-> 
-> We do not necessarily need a common descriptor, as much as
-> one that abstracts out what is happening. Something like a
-> struct bio could be a good I/O descriptor, and releasing the
-> backing memory after IO completion could be a function of the
-> bio freeing function itself.
-> 
-
-Lost me again sorry. What backing memory. struct bio is already
-an I/O descriptor which gets freed after use. How is that relevant
-to pfn vs page ?
-
->> Lastly: Why does pmem need to wait out-of-tree. Even you say above that
->> machines with lots of DRAM can enjoy the HUGE-to-4k split. So why
->> not let pmem waist 4k pages like everyone else and fix it as above
->> down the line, both for pmem and ram. And save both ways.
->> Why do we need to first change the all Kernel, then have pmem. Why not
->> use current infra structure, for good or for worth, and incrementally
->> do better.
-> 
-> There are two things going on here:
-> 
-> 1) You want to keep using struct page for now, while there are
->    subsystems that require it. This is perfectly legitimate.
-> 
-> 2) Matthew and Dan are changing over some subsystems to no longer
->    require struct page. This is perfectly legitimate.
-> 
-
-How is this legitimate when you need to Interface the [1] subsystems
-under the [2] subsystem? A subsystem that expects pages is now not
-usable by [2].
-
-Today *All* the Kernel subsystems are [1] Period. How does it become
-legitimate to now start *two* competing, do the same differently, abstraction,
-in our kernel. We have two much diversity not to little.
-
-> I do not understand why either of you would have to object to what
-> the other is doing. There is room to keep using struct page until
-> the rest of the kernel no longer requires it.
-> 
-
-So this is your vision "until the rest of the kernel no longer requires
-pages" Really? Sigh, coming from other Kernels I thought pages were
-a breeze of fresh air. I thought it was very clever. And BTW good luck
-with that.
-
-BTW: you have not solved the basic problem yet. for one pfn_kmap() given a
-pfn what is its virtual address. would you like to loop through the
-Kernel's range tables to look for the registered ioremap ? its a long
-annoying loop. The page was invented exactly for this reason, to go through
-the section object. And actually it is not that easy because if it is an ioremap
-pointer it is in one list and if a page it is another way, and on top of
-all this, it is ARCH dependent. And you are trashing highmem, because the
-state and locks of that are at the page level. Not that I care about highmem
-but I hate double coding. For god sake what do you guys have with poor old
-pages, they were invented to exacly do this, abstract away management of a single
-pfn-to-virt.
-All I see is complains about page being 4K well it need not be. page can be any
-size, and hell it can be variable size. (And no we do not need to add an extra size
-member, all we need is the one bit)
-
-Cheers
-Boaz
+diff --git a/tools/testing/libos/.gitignore b/tools/testing/libos/.gitignore
+new file mode 100644
+index 0000000..57a74a0
+--- /dev/null
++++ b/tools/testing/libos/.gitignore
+@@ -0,0 +1,6 @@
++*.pcap
++files-*
++bake
++buildtop
++core
++exitprocs
+diff --git a/tools/testing/libos/Makefile b/tools/testing/libos/Makefile
+new file mode 100644
+index 0000000..3da25429
+--- /dev/null
++++ b/tools/testing/libos/Makefile
+@@ -0,0 +1,38 @@
++ADD_PARAM?=
++
++all: test
++
++bake:
++	hg clone http://code.nsnam.org/bake
++
++check_pkgs:
++	@./bake/bake.py check | grep Bazaar | grep OK || (echo "bzr is missing" && ./bake/bake.py check)
++	@./bake/bake.py check | grep autoreconf | grep OK || (echo "autotools is missing" && ./bake/bake.py check && exit 1)
++
++testbin: bake check_pkgs
++	@cp ../../../arch/lib/tools/bakeconf-linux.xml bake/bakeconf.xml
++	@mkdir -p buildtop/build/bin_dce
++	cd buildtop ; \
++	../bake/bake.py configure -e dce-linux-inkernel $(BAKECONF_PARAMS)
++	cd buildtop ; \
++	../bake/bake.py show --enabledTree | grep -v  -E "pygoocanvas|graphviz|python-dev" | grep Missing && (echo "required packages are missing") || echo ""
++	cd buildtop ; \
++	../bake/bake.py download ; \
++	../bake/bake.py update ; \
++	../bake/bake.py build
++
++test:
++	@./dce-test.sh ADD_PARAM=$(ADD_PARAM)
++
++test-valgrind:
++	@./dce-test.sh -g ADD_PARAM=$(ADD_PARAM)
++
++test-fault-injection:
++	@./dce-test.sh -f ADD_PARAM=$(ADD_PARAM)
++
++clean:
++#	@rm -rf buildtop
++	@rm -f *.pcap
++	@rm -rf files-*
++	@rm -f exitprocs
++	@rm -f core
+diff --git a/tools/testing/libos/README b/tools/testing/libos/README
+new file mode 100644
+index 0000000..51ac5a5
+--- /dev/null
++++ b/tools/testing/libos/README
+@@ -0,0 +1,15 @@
++
++- bisect.sh
++a sample script to bisect an issue of network stack code with the help
++of LibOS (and ns-3 network simulator). This was used to detect the issue
++for the following patch.
++
++http://patchwork.ozlabs.org/patch/436351/
++
++- dce-test.sh
++a test script invoked by 'make test ARCH=lib'. The contents of test
++scenario are implemented as test suites of ns-3 network simulator.
++
++- nuse-test.sh
++a simple test script for Network Stack in Userspace (NUSE).
++
+diff --git a/tools/testing/libos/bisect.sh b/tools/testing/libos/bisect.sh
+new file mode 100755
+index 0000000..9377ac3
+--- /dev/null
++++ b/tools/testing/libos/bisect.sh
+@@ -0,0 +1,10 @@
++#!/bin/sh
++
++git merge origin/nuse --no-commit
++make clean ARCH=lib
++make library ARCH=lib OPT=no
++make test ARCH=lib ADD_PARAM=" -s dce-umip"
++RET=$?
++git reset --hard
++
++exit $RET
+diff --git a/tools/testing/libos/dce-test.sh b/tools/testing/libos/dce-test.sh
+new file mode 100755
+index 0000000..e81e2d8
+--- /dev/null
++++ b/tools/testing/libos/dce-test.sh
+@@ -0,0 +1,23 @@
++#!/bin/sh
++
++set -e
++#set -x
++export LD_LOG=symbol-fail
++#VERBOSE="-v"
++VALGRIND=""
++FAULT_INJECTION=""
++
++if [ "$1" = "-g" ] ; then
++ VALGRIND="-g"
++# Not implemneted yet.
++#elif [ "$1" = "-f" ] ; then
++# FAULT_INJECTION="-f"
++fi
++
++# FIXME
++#export NS_ATTRIBUTE_DEFAULT='ns3::DceManagerHelper::LoaderFactory=ns3::\
++#DlmLoaderFactory[];ns3::TaskManager::FiberManagerType=UcontextFiberManager'
++
++cd buildtop/source/ns-3-dce
++LD_LIBRARY_PATH=${srctree} ./test.py -n ${VALGRIND} ${FAULT_INJECTION}\
++	   ${VERBOSE} ${ADD_PARAM}
+diff --git a/tools/testing/libos/nuse-test.sh b/tools/testing/libos/nuse-test.sh
+new file mode 100755
+index 0000000..198e7e4
+--- /dev/null
++++ b/tools/testing/libos/nuse-test.sh
+@@ -0,0 +1,57 @@
++#!/bin/bash -e
++
++LIBOS_TOOLS=arch/lib/tools
++
++IFNAME=`ip route |grep default | awk '{print $5}'`
++GW=`ip route |grep default | awk '{print $3}'`
++#XXX
++IPADDR=`echo $GW | sed -r "s/([0-9]+\.[0-9]+\.[0-9]+\.)([0-9]+)$/\1\`expr \2 + 10\`/"`
++
++# ip route
++# ip address
++# ip link
++
++NUSE_CONF=/tmp/nuse.conf
++
++cat > ${NUSE_CONF} << ENDCONF
++
++interface ${IFNAME}
++	address ${IPADDR}
++	netmask 255.255.255.0
++	macaddr 00:01:01:01:01:02
++	viftype RAW
++
++route
++	network 0.0.0.0
++	netmask 0.0.0.0
++	gateway ${GW}
++
++ENDCONF
++
++cd ${LIBOS_TOOLS}
++sudo NUSECONF=${NUSE_CONF} ./nuse ping 127.0.0.1 -c 2
++
++# rump test
++sudo NUSECONF=${NUSE_CONF} ./nuse sleep 5 &
++
++sleep 2
++PID_SLEEP=`/bin/ls -ltr /tmp/rump-server-nuse.* | tail -1 | awk '{print $9}' | sed -e "s/.*rump-server-nuse\.//g" | sed "s/=//"`
++RUMP_URL=unix:///tmp/rump-server-nuse.$PID_SLEEP
++# ls -ltr /tmp/*
++
++sudo chmod 777 /tmp/rump-server-nuse.$PID_SLEEP
++LD_PRELOAD=./libnuse-hijack.so  RUMPHIJACK=socket=all \
++    RUMP_SERVER=$RUMP_URL ip addr show
++
++wait %1
++
++if [ "$1" == "--extended" ] ; then
++sudo NUSECONF=${NUSE_CONF} ./nuse ping ${GW} -c 2
++sudo NUSECONF=${NUSE_CONF} ./nuse iperf -c ${GW} -p 2000 -t 3
++sudo NUSECONF=${NUSE_CONF} ./nuse iperf -c ${GW} -p 8 -u -t 3
++sudo NUSECONF=${NUSE_CONF} ./nuse dig www.google.com
++sudo NUSECONF=${NUSE_CONF} ./nuse host www.google.com
++sudo NUSECONF=${NUSE_CONF} ./nuse nslookup www.google.com
++#sudo NUSECONF=${NUSE_CONF} ./nuse nc www.google.com 80
++sudo NUSECONF=${NUSE_CONF} ./nuse wget www.google.com -O -
++fi
+-- 
+2.1.0
 
