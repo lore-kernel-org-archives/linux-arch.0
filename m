@@ -1,40 +1,64 @@
-From: Joe Perches <joe@perches.com>
-Subject: Re: [RFC PATCH 01/11] sysctl: make some functions unstatic to
- access by arch/lib
-Date: Tue, 24 Mar 2015 09:13:39 -0700
-Message-ID: <1427213619.5642.34.camel@perches.com>
-References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>
-	 <1427202642-1716-2-git-send-email-tazaki@sfc.wide.ad.jp>
+From: Rik van Riel <riel@redhat.com>
+Subject: Re: [RFC PATCH 0/7] evacuate struct page from the block layer
+Date: Tue, 24 Mar 2015 12:57:51 -0400
+Message-ID: <5511978F.6050100@redhat.com>
+References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com> <20150318132650.3336261c58829f49a9af8675@linux-foundation.org> <20150319134313.GF4003@linux.intel.com> <550C490E.1080708@redhat.com> <550EE4FE.1070009@plexistor.com> <55102EEB.2090401@redhat.com> <55113151.7090304@plexistor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1427202642-1716-2-git-send-email-tazaki@sfc.wide.ad.jp>
-Sender: owner-linux-mm@kvack.org
-To: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Jhristoph Lameter <cl@linux.com>, Jekka Enberg <penberg@kernel.org>, Javid Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Jndrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Rusty Russell <rusty@rustcorp.com.au>, Mathieu Lacage <mathieu.lacage@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <55113151.7090304@plexistor.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Boaz Harrosh <boaz@plexistor.com>, Matthew Wilcox <willy@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, axboe@kernel.dk, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, hch@infradead.org, linux-fsdevel@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2015-03-24 at 22:10 +0900, Hajime Tazaki wrote:
-> libos (arch/lib) emulates a sysctl-like interface by a function call of
-> userspace by enumerating sysctl tree from sysctl_table_root. It requires
-> to be publicly accessible to this symbol and related functions.
-[]
-> diff --git a/fs/proc/proc_sysctl.c b/fs/proc/proc_sysctl.c
-[]
-> @@ -77,7 +77,7 @@ static int namecmp(const char *name1, int len1, const char *name2, int len2)
->  }
->  
->  /* Called under sysctl_lock */
-> -static struct ctl_table *find_entry(struct ctl_table_header **phead,
-> +struct ctl_table *find_entry(struct ctl_table_header **phead,
+On 03/24/2015 05:41 AM, Boaz Harrosh wrote:
+> On 03/23/2015 05:19 PM, Rik van Riel wrote:
 
-find_entry and all of the <foo>_entry functions below it
-are overly generic names.  Maybe prefix with ctl_table_
+>> There are two things going on here:
+>>
+>> 1) You want to keep using struct page for now, while there are
+>>    subsystems that require it. This is perfectly legitimate.
+>>
+>> 2) Matthew and Dan are changing over some subsystems to no longer
+>>    require struct page. This is perfectly legitimate.
+>>
+> 
+> How is this legitimate when you need to Interface the [1] subsystems
+> under the [2] subsystem? A subsystem that expects pages is now not
+> usable by [2].
+> 
+> Today *All* the Kernel subsystems are [1] Period.
 
+That's not true. In the graphics subsystem it is very normal to
+mmap graphics memory without ever using a struct page. There are
+other callers of remap_pfn_range() too.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+In these cases, refcounting is done by keeping a refcount on the
+entire object, not on individual pages (since we have none).
+
+> How does it become
+> legitimate to now start *two* competing, do the same differently, abstraction,
+> in our kernel. We have two much diversity not to little.
+
+We are already able to refcount either the whole object, or an
+individual page.
+
+One issue is that not every subsystem can do the whole object
+refcounting, and that it would be nice to have the refcounting
+done by one single interface.
+
+If we want the code to be the same everywhere, we could achieve
+that just as well with an abstraction as with a single data
+structure.
+
+Maybe even something as simplistic as these, with the internals
+automatically taking and releasing a refcount on the proper object:
+
+get_reference(file, memory_address)
+
+put_reference(file, memory_address)
+
+-- 
+All rights reversed
