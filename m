@@ -1,123 +1,250 @@
-From: Boaz Harrosh <boaz@plexistor.com>
-Subject: Re: [RFC PATCH 0/7] evacuate struct page from the block layer
-Date: Tue, 24 Mar 2015 11:41:37 +0200
-Message-ID: <55113151.7090304@plexistor.com>
-References: <20150316201640.33102.33761.stgit@dwillia2-desk3.amr.corp.intel.com> <20150318132650.3336261c58829f49a9af8675@linux-foundation.org> <20150319134313.GF4003@linux.intel.com> <550C490E.1080708@redhat.com> <550EE4FE.1070009@plexistor.com> <55102EEB.2090401@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <55102EEB.2090401@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Rik van Riel <riel@redhat.com>, Boaz Harrosh <boaz@plexistor.com>, Matthew Wilcox <willy@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, axboe@kernel.dk, linux-nvdimm@ml01.01.org, Dave Hansen <dave.hansen@linux.intel.com>, linux-raid@vger.kernel.org, mgorman@suse.de, hch@infradead.org, linux-fsdevel@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>
+From: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
+Subject: [RFC PATCH 00/11] an introduction of library operating system for Linux (LibOS)
+Date: Tue, 24 Mar 2015 22:10:31 +0900
+Message-ID: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-arch@vger.kernel.org
+Cc: Hajime Tazaki <tazaki@sfc.wide.ad.jp>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Jhristoph Lameter <cl@linux.com>, Jekka Enberg <penberg@kernel.org>, Javid Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Jndrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Rusty Russell <rusty@rustcorp.com.au>, Mathieu Lacage <mathieu.lacage@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 03/23/2015 05:19 PM, Rik van Riel wrote:
->>> Michael Tsirkin and I have been doing some thinking about what
->>> it would take to allocate struct pages per 2MB area permanently,
->>> and allocate additional struct pages for 4kB pages on demand,
->>> when a 2MB area is broken up into 4kB pages.
->>
->> My thoughts as well, this need *not* be a huge evasive change. Is however
->> a careful surgery in very core code. And lots of sleepless scary nights
->> and testing to make sure all the side effects are wrinkled out.
-> 
-> Even the above IS a huge invasive change, and I do not see it
-> as much better than the work Dan and Matthew are doing.
-> 
+This is an introduction of library operating system (LibOS) for Linux.
 
-You lost me again. Sorry for my slowness. The code I envision is not
-invasive at all. Nothing is touched at all, except a few core places
-at the page level.
+Our objective is to build the kernel network stack as a shared library
+that can be linked to by userspace programs to provide network stack
+personalization and testing facilities, and allow researchers to more
+easily simulate complex network topologies of linux routers/hosts.
 
-The contract with Kernel stays the same:
-	page_to_pfn, pfn_to_page, page_address (which is kmap_atomic in 64bit)
-	virt_to_page, page_get/put and so on...
+Although the architecture itself can virtualize various things, the
+current design only focuses on the network stack. You can benefit
+network stack feature such as TCP, UDP, SCTP, DCCP (IPv4 and IPv6),
+Mobie IPv6, Multipath TCP (IPv4/IPv6, out-of-tree at the present
+moment), and netlink with various userspace applications (quagga,
+iproute2, iperf, wget, and thttpd).
 
-So none of the Kernel code need change at all. You were saying that we
-might have a 2M page and on demand we can allocate a 4k page shove it down the
-stack, which does not change at all, and once back from io, the 4k pages can be
-freed and recycled for reuse with other IO. This is what I thought you said.
+== What is LibOS ? ==
 
-This is doable, and not that much work and for the life of me I do not see any
-"invasive". (Yes a few core headers that make everything compile ;-))
+The library exposes an entry point as API, which is lib_init(), in
+order to connect userspace applications to the (userspace-version)
+kernel network stack. The clock source, virtual struct net_device, and
+scheduler are provided by caller while kernel resource like system
+calls is provided by callee.
 
-That said I do not even think we need that (2M split to 4k on demand) we can even
-do better and make sure 2M pages just work as is. It is very possible today
-(Tested) to push a 2M page into a bio and write to a bdev. Yes lots of side
-code will break, but the core path is clean. Let us fix that then.
+Once the LibOS is initialized via the API, userspace applications with
+POSIX socket can use the system calls defined in LibOS by replacing
+from the original socket-related symbols to the LibOS-specific
+one. Then application can benefit the network stack of LibOS without
+involving the host network stack.
 
-(Need I send code to show you how a 2M page is written with a single
- bvec?)
+Currently, there are two users of LibOS: Network Stack in Userspace
+(NUSE) and ns-3 network simulatior with Direct Code Execution
+(DCE). These codes are managed at an external repository(*1).
 
->> If we want copy-less, we need a common memory descriptor career. Today this
->> is page-struct. So for me your above statement means:
->> 	"still not convinced I care about copy-less pmem"
->>
->> Otherwise you either enhance what you have today or devise a new
->> system, which means change the all Kernel.
-> 
-> We do not necessarily need a common descriptor, as much as
-> one that abstracts out what is happening. Something like a
-> struct bio could be a good I/O descriptor, and releasing the
-> backing memory after IO completion could be a function of the
-> bio freeing function itself.
-> 
 
-Lost me again sorry. What backing memory. struct bio is already
-an I/O descriptor which gets freed after use. How is that relevant
-to pfn vs page ?
+== How to use it ? ==
 
->> Lastly: Why does pmem need to wait out-of-tree. Even you say above that
->> machines with lots of DRAM can enjoy the HUGE-to-4k split. So why
->> not let pmem waist 4k pages like everyone else and fix it as above
->> down the line, both for pmem and ram. And save both ways.
->> Why do we need to first change the all Kernel, then have pmem. Why not
->> use current infra structure, for good or for worth, and incrementally
->> do better.
-> 
-> There are two things going on here:
-> 
-> 1) You want to keep using struct page for now, while there are
->    subsystems that require it. This is perfectly legitimate.
-> 
-> 2) Matthew and Dan are changing over some subsystems to no longer
->    require struct page. This is perfectly legitimate.
-> 
+to build the library,
+% make {defconfig,menuconfig} ARCH=lib
 
-How is this legitimate when you need to Interface the [1] subsystems
-under the [2] subsystem? A subsystem that expects pages is now not
-usable by [2].
+then, build it.
+% make library ARCH=lib
 
-Today *All* the Kernel subsystems are [1] Period. How does it become
-legitimate to now start *two* competing, do the same differently, abstraction,
-in our kernel. We have two much diversity not to little.
+You will see liblinux-$(KERNELVERSION).so in the top directory.
 
-> I do not understand why either of you would have to object to what
-> the other is doing. There is room to keep using struct page until
-> the rest of the kernel no longer requires it.
-> 
+== More information ==
 
-So this is your vision "until the rest of the kernel no longer requires
-pages" Really? Sigh, coming from other Kernels I thought pages were
-a breeze of fresh air. I thought it was very clever. And BTW good luck
-with that.
+The crucial difference between UML (user-mode linux) and this approach
+is that we allow multiple network stack instances to co-exist within a
+single process with dlmopen(3) like linking for easy debugging.
 
-BTW: you have not solved the basic problem yet. for one pfn_kmap() given a
-pfn what is its virtual address. would you like to loop through the
-Kernel's range tables to look for the registered ioremap ? its a long
-annoying loop. The page was invented exactly for this reason, to go through
-the section object. And actually it is not that easy because if it is an ioremap
-pointer it is in one list and if a page it is another way, and on top of
-all this, it is ARCH dependent. And you are trashing highmem, because the
-state and locks of that are at the page level. Not that I care about highmem
-but I hate double coding. For god sake what do you guys have with poor old
-pages, they were invented to exacly do this, abstract away management of a single
-pfn-to-virt.
-All I see is complains about page being 4K well it need not be. page can be any
-size, and hell it can be variable size. (And no we do not need to add an extra size
-member, all we need is the one bit)
 
-Cheers
-Boaz
+These patches are also available on this branch:
+
+git://github.com/libos-nuse/net-next-nuse.git for-asm-upstream
+
+
+For further information, here is a slideset presented at the last
+netdev0.1 conference.
+
+http://www.slideshare.net/hajimetazaki/library-operating-system-for-linux-netdev01
+
+I would appreciate any kind of your feedback regarding to upstream
+this feature.
+
+*1 https://github.com/libos-nuse/linux-libos-tools
+
+
+Hajime Tazaki (11):
+  sysctl: make some functions unstatic to access by arch/lib
+  slab: add private memory allocator header for arch/lib
+  lib: public headers and API implementations for userspace programs
+  lib: memory management (kernel glue code)
+  lib: time handling (kernel glue code)
+  lib: context and scheduling handling (kernel glue code)
+  lib: sysctl handling (kernel glue code)
+  lib: other kernel glue layer code
+  lib: asm-generic files
+  lib: libos build scripts and documentation
+  lib: tools used for test scripts
+
+ Documentation/virtual/libos-howto.txt | 143 ++++++++
+ MAINTAINERS                           |   9 +
+ arch/lib/.gitignore                   |   8 +
+ arch/lib/Kconfig                      | 121 +++++++
+ arch/lib/Makefile                     | 248 +++++++++++++
+ arch/lib/Makefile.print               |  44 +++
+ arch/lib/cred.c                       |  16 +
+ arch/lib/dcache.c                     |  93 +++++
+ arch/lib/defconfig                    | 653 ++++++++++++++++++++++++++++++++++
+ arch/lib/filemap.c                    |  27 ++
+ arch/lib/fs.c                         | 287 +++++++++++++++
+ arch/lib/generate-linker-script.py    |  50 +++
+ arch/lib/glue.c                       | 336 +++++++++++++++++
+ arch/lib/hrtimer.c                    | 122 +++++++
+ arch/lib/include/asm/Kbuild           |  55 +++
+ arch/lib/include/asm/atomic.h         |  47 +++
+ arch/lib/include/asm/barrier.h        |   8 +
+ arch/lib/include/asm/bitsperlong.h    |  12 +
+ arch/lib/include/asm/current.h        |   7 +
+ arch/lib/include/asm/elf.h            |  10 +
+ arch/lib/include/asm/hardirq.h        |   8 +
+ arch/lib/include/asm/page.h           |  14 +
+ arch/lib/include/asm/pgtable.h        |  30 ++
+ arch/lib/include/asm/processor.h      |  19 +
+ arch/lib/include/asm/ptrace.h         |   4 +
+ arch/lib/include/asm/segment.h        |   6 +
+ arch/lib/include/asm/sembuf.h         |   4 +
+ arch/lib/include/asm/shmbuf.h         |   4 +
+ arch/lib/include/asm/shmparam.h       |   4 +
+ arch/lib/include/asm/sigcontext.h     |   6 +
+ arch/lib/include/asm/slab.h           |  21 ++
+ arch/lib/include/asm/stat.h           |   4 +
+ arch/lib/include/asm/statfs.h         |   4 +
+ arch/lib/include/asm/swab.h           |   7 +
+ arch/lib/include/asm/thread_info.h    |  35 ++
+ arch/lib/include/asm/uaccess.h        |  14 +
+ arch/lib/include/asm/unistd.h         |   4 +
+ arch/lib/include/sim-assert.h         |  23 ++
+ arch/lib/include/sim-init.h           | 134 +++++++
+ arch/lib/include/sim-printf.h         |  13 +
+ arch/lib/include/sim-types.h          |  53 +++
+ arch/lib/include/sim.h                |  51 +++
+ arch/lib/include/uapi/asm/byteorder.h |   6 +
+ arch/lib/inode.c                      | 146 ++++++++
+ arch/lib/lib-device.c                 | 187 ++++++++++
+ arch/lib/lib-socket.c                 | 410 +++++++++++++++++++++
+ arch/lib/lib.c                        | 289 +++++++++++++++
+ arch/lib/lib.h                        |  21 ++
+ arch/lib/modules.c                    |  36 ++
+ arch/lib/pid.c                        |  29 ++
+ arch/lib/print.c                      |  56 +++
+ arch/lib/proc.c                       | 164 +++++++++
+ arch/lib/processor.mk                 |   7 +
+ arch/lib/random.c                     |  53 +++
+ arch/lib/sched.c                      | 365 +++++++++++++++++++
+ arch/lib/security.c                   |  45 +++
+ arch/lib/seq.c                        | 122 +++++++
+ arch/lib/slab.c                       | 200 +++++++++++
+ arch/lib/softirq.c                    | 104 ++++++
+ arch/lib/splice.c                     |  20 ++
+ arch/lib/super.c                      | 210 +++++++++++
+ arch/lib/sysctl.c                     | 284 +++++++++++++++
+ arch/lib/sysfs.c                      |  83 +++++
+ arch/lib/tasklet-hrtimer.c            |  57 +++
+ arch/lib/tasklet.c                    |  76 ++++
+ arch/lib/time.c                       | 149 ++++++++
+ arch/lib/timer.c                      | 230 ++++++++++++
+ arch/lib/vmscan.c                     |  26 ++
+ arch/lib/workqueue.c                  | 242 +++++++++++++
+ fs/proc/proc_sysctl.c                 |  16 +-
+ include/linux/slab.h                  |  12 +
+ tools/testing/libos/.gitignore        |   6 +
+ tools/testing/libos/Makefile          |  38 ++
+ tools/testing/libos/README            |  15 +
+ tools/testing/libos/bisect.sh         |  10 +
+ tools/testing/libos/dce-test.sh       |  23 ++
+ tools/testing/libos/nuse-test.sh      |  57 +++
+ 77 files changed, 6544 insertions(+), 8 deletions(-)
+ create mode 100644 Documentation/virtual/libos-howto.txt
+ create mode 100644 arch/lib/.gitignore
+ create mode 100644 arch/lib/Kconfig
+ create mode 100644 arch/lib/Makefile
+ create mode 100644 arch/lib/Makefile.print
+ create mode 100644 arch/lib/cred.c
+ create mode 100644 arch/lib/dcache.c
+ create mode 100644 arch/lib/defconfig
+ create mode 100644 arch/lib/filemap.c
+ create mode 100644 arch/lib/fs.c
+ create mode 100755 arch/lib/generate-linker-script.py
+ create mode 100644 arch/lib/glue.c
+ create mode 100644 arch/lib/hrtimer.c
+ create mode 100644 arch/lib/include/asm/Kbuild
+ create mode 100644 arch/lib/include/asm/atomic.h
+ create mode 100644 arch/lib/include/asm/barrier.h
+ create mode 100644 arch/lib/include/asm/bitsperlong.h
+ create mode 100644 arch/lib/include/asm/current.h
+ create mode 100644 arch/lib/include/asm/elf.h
+ create mode 100644 arch/lib/include/asm/hardirq.h
+ create mode 100644 arch/lib/include/asm/page.h
+ create mode 100644 arch/lib/include/asm/pgtable.h
+ create mode 100644 arch/lib/include/asm/processor.h
+ create mode 100644 arch/lib/include/asm/ptrace.h
+ create mode 100644 arch/lib/include/asm/segment.h
+ create mode 100644 arch/lib/include/asm/sembuf.h
+ create mode 100644 arch/lib/include/asm/shmbuf.h
+ create mode 100644 arch/lib/include/asm/shmparam.h
+ create mode 100644 arch/lib/include/asm/sigcontext.h
+ create mode 100644 arch/lib/include/asm/slab.h
+ create mode 100644 arch/lib/include/asm/stat.h
+ create mode 100644 arch/lib/include/asm/statfs.h
+ create mode 100644 arch/lib/include/asm/swab.h
+ create mode 100644 arch/lib/include/asm/thread_info.h
+ create mode 100644 arch/lib/include/asm/uaccess.h
+ create mode 100644 arch/lib/include/asm/unistd.h
+ create mode 100644 arch/lib/include/sim-assert.h
+ create mode 100644 arch/lib/include/sim-init.h
+ create mode 100644 arch/lib/include/sim-printf.h
+ create mode 100644 arch/lib/include/sim-types.h
+ create mode 100644 arch/lib/include/sim.h
+ create mode 100644 arch/lib/include/uapi/asm/byteorder.h
+ create mode 100644 arch/lib/inode.c
+ create mode 100644 arch/lib/lib-device.c
+ create mode 100644 arch/lib/lib-socket.c
+ create mode 100644 arch/lib/lib.c
+ create mode 100644 arch/lib/lib.h
+ create mode 100644 arch/lib/modules.c
+ create mode 100644 arch/lib/pid.c
+ create mode 100644 arch/lib/print.c
+ create mode 100644 arch/lib/proc.c
+ create mode 100644 arch/lib/processor.mk
+ create mode 100644 arch/lib/random.c
+ create mode 100644 arch/lib/sched.c
+ create mode 100644 arch/lib/security.c
+ create mode 100644 arch/lib/seq.c
+ create mode 100644 arch/lib/slab.c
+ create mode 100644 arch/lib/softirq.c
+ create mode 100644 arch/lib/splice.c
+ create mode 100644 arch/lib/super.c
+ create mode 100644 arch/lib/sysctl.c
+ create mode 100644 arch/lib/sysfs.c
+ create mode 100644 arch/lib/tasklet-hrtimer.c
+ create mode 100644 arch/lib/tasklet.c
+ create mode 100644 arch/lib/time.c
+ create mode 100644 arch/lib/timer.c
+ create mode 100644 arch/lib/vmscan.c
+ create mode 100644 arch/lib/workqueue.c
+ create mode 100644 tools/testing/libos/.gitignore
+ create mode 100644 tools/testing/libos/Makefile
+ create mode 100644 tools/testing/libos/README
+ create mode 100755 tools/testing/libos/bisect.sh
+ create mode 100755 tools/testing/libos/dce-test.sh
+ create mode 100755 tools/testing/libos/nuse-test.sh
+
+-- 
+2.1.0
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
