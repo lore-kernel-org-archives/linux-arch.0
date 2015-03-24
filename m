@@ -1,41 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:65278 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753069AbbCXP15 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 Mar 2015 11:27:57 -0400
-Message-ID: <55118277.5070909@nod.at>
-Date: Tue, 24 Mar 2015 16:27:51 +0100
-From: Richard Weinberger <richard@nod.at>
-MIME-Version: 1.0
-Subject: Re: [RFC PATCH 00/11] an introduction of library operating system
- for Linux (LibOS)
-References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>	<551164ED.5000907@nod.at>	<m2twxacw13.wl@sfc.wide.ad.jp>	<55117565.6080002@nod.at> <m2sicuctb2.wl@sfc.wide.ad.jp>
-In-Reply-To: <m2sicuctb2.wl@sfc.wide.ad.jp>
-Content-Type: text/plain; charset=windows-1252
+Received: from smtprelay0127.hostedemail.com ([216.40.44.127]:41069 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1753008AbbCXQNq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 24 Mar 2015 12:13:46 -0400
+Message-ID: <1427213619.5642.34.camel@perches.com>
+Subject: Re: [RFC PATCH 01/11] sysctl: make some functions unstatic to
+ access by arch/lib
+From: Joe Perches <joe@perches.com>
+Date: Tue, 24 Mar 2015 09:13:39 -0700
+In-Reply-To: <1427202642-1716-2-git-send-email-tazaki@sfc.wide.ad.jp>
+References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>
+	 <1427202642-1716-2-git-send-email-tazaki@sfc.wide.ad.jp>
+Content-Type: text/plain; charset="ISO-8859-1"
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, cl@linux.com, penberg@kernel.org, rientjes@google.com, iamjoonsoo.kim@lge.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, jdike@addtoit.com, rusty@rustcorp.com.au, mathieu.lacage@gmail.com
-Message-ID: <20150324152751.SXuRXw_kdnC9_EbuII0R8SWk_Kx_qtO_UYVUrly_Iq4@z>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Jhristoph Lameter <cl@linux.com>, Jekka Enberg <penberg@kernel.org>, Javid Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Jndrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Rusty Russell <rusty@rustcorp.com.au>, Mathieu Lacage <mathieu.lacage@gmail.com>
+Message-ID: <20150324161339.Oc9RiSfyob9a-A9uBdQgwF4PmiG7R9GLBfm2Ylog4e0@z>
 
-Am 24.03.2015 um 16:24 schrieb Hajime Tazaki:
-> I was thinking that such 'architectural' differences in core
-> idea (like system call handling, execution model, process
-> context design, etc) is better to have a different architecture
-> even if some part of the code is similar.
-> 
-> Isn't it also the same to the other 'hardware-dependent'
-> architectures' case like between arm and arm64 ?
-> 
-> of course I'm also happy to share the code between us,
-> especially _pure_ userspace part like (virtual) NIC with
-> tap or pcap because we also need that part, but we kept such
-> code at an external codebase (i.e., linux-libos-tools).
+On Tue, 2015-03-24 at 22:10 +0900, Hajime Tazaki wrote:
+> libos (arch/lib) emulates a sysctl-like interface by a function call of
+> userspace by enumerating sysctl tree from sysctl_table_root. It requires
+> to be publicly accessible to this symbol and related functions.
+[]
+> diff --git a/fs/proc/proc_sysctl.c b/fs/proc/proc_sysctl.c
+[]
+> @@ -77,7 +77,7 @@ static int namecmp(const char *name1, int len1, const char *name2, int len2)
+>  }
+>  
+>  /* Called under sysctl_lock */
+> -static struct ctl_table *find_entry(struct ctl_table_header **phead,
+> +struct ctl_table *find_entry(struct ctl_table_header **phead,
 
-I'd say you should try hard to re-use/integrate your work in arch/um.
-With um we already have an architecture which targets userspace,
-having two needs a very good justification.
+find_entry and all of the <foo>_entry functions below it
+are overly generic names.  Maybe prefix with ctl_table_
 
-Thanks,
-//richard
+
