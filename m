@@ -1,39 +1,37 @@
-From: Richard Weinberger <richard@nod.at>
-Subject: Re: [RFC PATCH 00/11] an introduction of library operating system
- for Linux (LibOS)
-Date: Tue, 24 Mar 2015 16:27:51 +0100
-Message-ID: <55118277.5070909@nod.at>
-References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>	<551164ED.5000907@nod.at>	<m2twxacw13.wl@sfc.wide.ad.jp>	<55117565.6080002@nod.at> <m2sicuctb2.wl@sfc.wide.ad.jp>
+From: Joe Perches <joe@perches.com>
+Subject: Re: [RFC PATCH 01/11] sysctl: make some functions unstatic to
+ access by arch/lib
+Date: Tue, 24 Mar 2015 09:13:39 -0700
+Message-ID: <1427213619.5642.34.camel@perches.com>
+References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>
+	 <1427202642-1716-2-git-send-email-tazaki@sfc.wide.ad.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <m2sicuctb2.wl@sfc.wide.ad.jp>
+In-Reply-To: <1427202642-1716-2-git-send-email-tazaki@sfc.wide.ad.jp>
 Sender: owner-linux-mm@kvack.org
 To: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, cl@linux.com, penberg@kernel.org, rientjes@google.com, iamjoonsoo.kim@lge.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, jdike@addtoit.com, rusty@rustcorp.com.au, mathieu.lacage@gmail.com
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Jhristoph Lameter <cl@linux.com>, Jekka Enberg <penberg@kernel.org>, Javid Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Jndrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Rusty Russell <rusty@rustcorp.com.au>, Mathieu Lacage <mathieu.lacage@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Am 24.03.2015 um 16:24 schrieb Hajime Tazaki:
-> I was thinking that such 'architectural' differences in core
-> idea (like system call handling, execution model, process
-> context design, etc) is better to have a different architecture
-> even if some part of the code is similar.
-> 
-> Isn't it also the same to the other 'hardware-dependent'
-> architectures' case like between arm and arm64 ?
-> 
-> of course I'm also happy to share the code between us,
-> especially _pure_ userspace part like (virtual) NIC with
-> tap or pcap because we also need that part, but we kept such
-> code at an external codebase (i.e., linux-libos-tools).
+On Tue, 2015-03-24 at 22:10 +0900, Hajime Tazaki wrote:
+> libos (arch/lib) emulates a sysctl-like interface by a function call of
+> userspace by enumerating sysctl tree from sysctl_table_root. It requires
+> to be publicly accessible to this symbol and related functions.
+[]
+> diff --git a/fs/proc/proc_sysctl.c b/fs/proc/proc_sysctl.c
+[]
+> @@ -77,7 +77,7 @@ static int namecmp(const char *name1, int len1, const char *name2, int len2)
+>  }
+>  
+>  /* Called under sysctl_lock */
+> -static struct ctl_table *find_entry(struct ctl_table_header **phead,
+> +struct ctl_table *find_entry(struct ctl_table_header **phead,
 
-I'd say you should try hard to re-use/integrate your work in arch/um.
-With um we already have an architecture which targets userspace,
-having two needs a very good justification.
+find_entry and all of the <foo>_entry functions below it
+are overly generic names.  Maybe prefix with ctl_table_
 
-Thanks,
-//richard
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
