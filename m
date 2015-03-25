@@ -1,92 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f48.google.com ([74.125.82.48]:36777 "EHLO
-	mail-wg0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751673AbbCYMLZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Mar 2015 08:11:25 -0400
-Date: Wed, 25 Mar 2015 13:11:19 +0100
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2 2/2] powerpc/mm: Tracking vDSO remap
-Message-ID: <20150325121118.GA2542@gmail.com>
-References: <20150323085209.GA28965@gmail.com>
- <cover.1427280806.git.ldufour@linux.vnet.ibm.com>
- <25152b76585716dc635945c3455ab9b49e645f6d.1427280806.git.ldufour@linux.vnet.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <25152b76585716dc635945c3455ab9b49e645f6d.1427280806.git.ldufour@linux.vnet.ibm.com>
+Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:52637 "EHLO
+	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752071AbbCYNPn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Mar 2015 09:15:43 -0400
+Received: from /spool/local
+	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+	Wed, 25 Mar 2015 13:15:40 -0000
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: [PATCH/RFC 0/2] followup change for READ_ONCE/WRITE_ONCE
+Date: Wed, 25 Mar 2015 14:15:34 +0100
+Message-ID: <1427289336-22883-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org, cov@codeaurora.org, criu@openvz.org
-Message-ID: <20150325121119.iIDMJgnpgzkWuIGc-o0m_h_2d8D4PR36ZYlAfrxUeCg@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, torvalds@linux-foundation.org, paulmck@linux.vnet.ibm.com, linux-s390@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <20150325131534.Mpw6nBxHLhLQZB1tO3QRRH2DWKqDjuDl3ykU6XW2gew@z>
 
+Turns out that my last rework for the word size check broke it:
 
-* Laurent Dufour <ldufour@linux.vnet.ibm.com> wrote:
+I originally had the size > wordsize check in __read_once_size/
+/__write_once_size as empty extern function in a newly created file
+lib/access.c and marked it with a  __compiletime_warning.
 
-> Some processes (CRIU) are moving the vDSO area using the mremap system
-> call. As a consequence the kernel reference to the vDSO base address is
-> no more valid and the signal return frame built once the vDSO has been
-> moved is not pointing to the new sigreturn address.
-> 
-> This patch handles vDSO remapping and unmapping.
-> 
-> Signed-off-by: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-> ---
->  arch/powerpc/include/asm/mmu_context.h | 36 +++++++++++++++++++++++++++++++++-
->  1 file changed, 35 insertions(+), 1 deletion(-)
-> 
-> diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
-> index 73382eba02dc..be5dca3f7826 100644
-> --- a/arch/powerpc/include/asm/mmu_context.h
-> +++ b/arch/powerpc/include/asm/mmu_context.h
-> @@ -8,7 +8,6 @@
->  #include <linux/spinlock.h>
->  #include <asm/mmu.h>	
->  #include <asm/cputable.h>
-> -#include <asm-generic/mm_hooks.h>
->  #include <asm/cputhreads.h>
->  
->  /*
-> @@ -109,5 +108,40 @@ static inline void enter_lazy_tlb(struct mm_struct *mm,
->  #endif
->  }
->  
-> +static inline void arch_dup_mmap(struct mm_struct *oldmm,
-> +				 struct mm_struct *mm)
-> +{
-> +}
-> +
-> +static inline void arch_exit_mmap(struct mm_struct *mm)
-> +{
-> +}
-> +
-> +static inline void arch_unmap(struct mm_struct *mm,
-> +			struct vm_area_struct *vma,
-> +			unsigned long start, unsigned long end)
-> +{
-> +	if (start <= mm->context.vdso_base && mm->context.vdso_base < end)
-> +		mm->context.vdso_base = 0;
-> +}
-> +
-> +static inline void arch_bprm_mm_init(struct mm_struct *mm,
-> +				     struct vm_area_struct *vma)
-> +{
-> +}
-> +
-> +#define __HAVE_ARCH_REMAP
-> +static inline void arch_remap(struct mm_struct *mm,
-> +			      unsigned long old_start, unsigned long old_end,
-> +			      unsigned long new_start, unsigned long new_end)
-> +{
-> +	/*
-> +	 * mremap don't allow moving multiple vma so we can limit the check
-> +	 * to old_start == vdso_base.
+Unfortunately this broke arm rpcdefconfig due to this line
+CFLAGS_font.o := -Dstatic=
+in
+arch/arm/boot/compressed/Makefile.
+This define made it impossible for the compiler to get rid of
+the unused __write_once_size and __read_once_size and the linker
+complained about the missing data_access_exceeds_word_size
+as the compressed boot thing did not include lib/access.o.
 
-s/mremap don't allow moving multiple vma
-  mremap() doesn't allow moving multiple vmas
+So I wanted to be clever and changed data_access_exceeds_word_size
+to a static inline function. Turns out that this actually disabled
+the compiletime warning.
 
-right?
+Next try, have it as a weak function. This actually does enable
+the warning. It will create an empty data_access_exceeds_word_size
+function in each object file, though and it will trigger a warning
+for arm rpcdefconfig:
+  CC      arch/arm/boot/compressed/font.o
+include/linux/compiler.h: In function '__write_once_size':
+include/linux/compiler.h:231: warning: call to 'data_access_exceeds_word_size' declared with attribute warning: data access exceeds word size and won't be atomic
+include/linux/compiler.h: In function '__read_once_size':
+include/linux/compiler.h:214: warning: call to 'data_access_exceeds_word_size' declared with attribute warning: data access exceeds word size and won't be atomic
 
-Thanks,
+In addition this also causes a compiler error on s390 allyesconfig
+with GCOV enabled. (fixed in patch 1).
 
-	Ingo
+Christian Borntraeger (2):
+  s390/ebdic: disable gcov on ebcdic.o
+  compiler.h: Fix word size check for READ/WRITE_ONCE
+
+ arch/s390/kernel/Makefile | 4 ++++
+ include/linux/compiler.h  | 5 +----
+ 2 files changed, 5 insertions(+), 4 deletions(-)
+
+-- 
+2.1.4
+
