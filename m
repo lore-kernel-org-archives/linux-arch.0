@@ -1,119 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-db3on0066.outbound.protection.outlook.com ([157.55.234.66]:15088
-	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752212AbbCXUwN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 Mar 2015 16:52:13 -0400
-Message-ID: <5511CE58.3020507@ezchip.com>
-Date: Tue, 24 Mar 2015 16:51:36 -0400
-From: Chris Metcalf <cmetcalf@ezchip.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH] tile: use si_int instead of si_ptr for compat_siginfo
-References: <1423563011-12377-1-git-send-email-bamvor.zhangjian@huawei.com> <20150210122718.GC32052@e104818-lin.cambridge.arm.com> <54DB3B60.4050100@huawei.com> <20150211154054.GD9058@e104818-lin.cambridge.arm.com> <54DDAF2B.2070707@huawei.com> <20150213104455.GA3508@e104818-lin.cambridge.arm.com> <54DE730D.3090100@ezchip.com> <20150214112220.GB10246@MBP.local> <54ECF309.3020509@ezchip.com> <201503161908.t2GJ8fs5021877@farm-0002.internal.tilera.com> <20150323120253.GA12757@e104818-lin.cambridge.arm.com>
-In-Reply-To: <20150323120253.GA12757@e104818-lin.cambridge.arm.com>
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:43024 "EHLO
+	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752058AbbCYLGv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Mar 2015 07:06:51 -0400
+Received: from /spool/local
+	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <ldufour@linux.vnet.ibm.com>;
+	Wed, 25 Mar 2015 11:06:50 -0000
+From: Laurent Dufour <ldufour@linux.vnet.ibm.com>
+Subject: [PATCH v2 0/2] Tracking user space vDSO remaping
+Date: Wed, 25 Mar 2015 12:06:34 +0100
+Message-ID: <cover.1427280806.git.ldufour@linux.vnet.ibm.com>
+In-Reply-To: <20150323085209.GA28965@gmail.com>
+References: <20150323085209.GA28965@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ralf@linux-mips.org, benh@kernel.crashing.org, deller@gmx.de, "dingtianhong@huawei.com" <dingtianhong@huawei.com>, heiko.carstens@de.ibm.com, jejb@parisc-linux.org, Will Deacon <Will.Deacon@arm.com>, "lizefan@huawei.com" <lizefan@huawei.com>, Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>, mpe@ellerman.id.au, hpa@zytor.com, schwidefsky@de.ibm.com, paulus@samba.org, tglx@linutronix.de, mingo@redhat.com, davem@davemloft.net, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>Martin Schwidefsky <schwidefsky@de.ibm.com>Heiko Carstens <heiko.carstens@de.ibm.com>"James E.J. Bottomley" <jejb@parisc-linux.org>Helge Deller <deller@gmx.de>
-Message-ID: <20150324205136.AukoolCSYPYnfAoBcvhfEKRUdLMso3lbAx736rOEbBg@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: cov@codeaurora.org, criu@openvz.org
+Message-ID: <20150325110634.zqtGAGrF87heqNEPx2Bq_OtmBjT3w8WoFEN8EBgoLyA@z>
 
-(+s390 and parisc maintainers)
+CRIU is recreating the process memory layout by remapping the checkpointee
+memory area on top of the current process (criu). This includes remapping
+the vDSO to the place it has at checkpoint time.
 
-On 03/23/2015 08:02 AM, Catalin Marinas wrote:
-> On Mon, Mar 16, 2015 at 03:04:05PM -0400, Chris Metcalf wrote:
->> To be compatible with the generic get_compat_sigevent(), the
->> copy_siginfo_to_user32() and thus copy_siginfo_from_user32()
->> have to use si_int instead of si_ptr.  Using si_ptr means that
->> for the case of ILP32 compat code running in big-endian mode,
->> we would end up copying the high 32 bits of the pointer value
->> into si_int instead of the desired low 32 bits.
->>
->> Signed-off-by: Chris Metcalf <cmetcalf@ezchip.com>
->> Cc: Catalin Marinas <catalin.marinas@arm.com>
->> ---
->>   arch/tile/kernel/compat_signal.c | 9 +++------
->>   1 file changed, 3 insertions(+), 6 deletions(-)
->>
->> diff --git a/arch/tile/kernel/compat_signal.c b/arch/tile/kernel/compat_signal.c
->> index 8c5abf2e4794..bca13054afb4 100644
->> --- a/arch/tile/kernel/compat_signal.c
->> +++ b/arch/tile/kernel/compat_signal.c
->> @@ -68,7 +68,7 @@ int copy_siginfo_to_user32(struct compat_siginfo __user *to, const siginfo_t *fr
->>   	if (from->si_code < 0) {
->>   		err |= __put_user(from->si_pid, &to->si_pid);
->>   		err |= __put_user(from->si_uid, &to->si_uid);
->> -		err |= __put_user(ptr_to_compat(from->si_ptr), &to->si_ptr);
->> +		err |= __put_user(from->si_int, &to->si_int);
->>   	} else {
->>   		/*
->>   		 * First 32bits of unions are always present:
->> @@ -93,8 +93,7 @@ int copy_siginfo_to_user32(struct compat_siginfo __user *to, const siginfo_t *fr
->>   			break;
->>   		case __SI_TIMER >> 16:
->>   			err |= __put_user(from->si_overrun, &to->si_overrun);
->> -			err |= __put_user(ptr_to_compat(from->si_ptr),
->> -					  &to->si_ptr);
->> +			err |= __put_user(from->si_int, &to->si_int);
->>   			break;
-> It's usually the __SI_TIMER and __SI_MESGQ cases that matters here (the
-> latter already handled). I'm not entirely sure about the si_code < 0
-> change.
+However some architectures like powerpc are keeping a reference to the vDSO
+base address to build the signal return stack frame by calling the vDSO
+sigreturn service. So once the vDSO has been moved, this reference is no
+more valid and the signal frame built later are not usable.
 
-To be honest, I'm not even sure what path sets si_code < 0.  I see
-that that is SI_FROMUSER(), but I don't see where it gets set.
+This patch serie is introducing a new mm hook 'arch_remap' which is called
+when mremap is done and the mm lock still hold. The next patch is adding the
+vDSO remap and unmap tracking to the powerpc architecture.
 
-In any case, I guess a risk here is that of a 64-bit process doing a 
-sigqueue()
-targeting a 32-bit process.  It seems like an impossible problem for the
-32-bit process to know whether the 64-bit process wrote a 32-bit pointer
-to the 64-bit sival_ptr field (and thus we should deliver the second 32-bit
-word of the union sigval to the 32-bit user), or if the 64-bit process wrote
-a 32-bit value to the 32-bit sival_int field (and thus we should deliver 
-the
-first 32-bit word of the union sigval).  Little-endian makes some things
-a little bit easier :-)
+Changes in v2:
+--------------
+- Following the Ingo Molnar's advice, enabling the call to arch_remap through
+  the __HAVE_ARCH_REMAP macro. This reduces considerably the first patch.
 
-All that said, my inclination is to use si_int here just because that's what
-we're using elsewhere.  But I'm not entirely sure either.
+Laurent Dufour (2):
+  mm: Introducing arch_remap hook
+  powerpc/mm: Tracking vDSO remap
 
->>   			 /* This is not generated by the kernel as of now.  */
->>   		case __SI_RT >> 16:
->> @@ -110,7 +109,6 @@ int copy_siginfo_to_user32(struct compat_siginfo __user *to, const siginfo_t *fr
->>   int copy_siginfo_from_user32(siginfo_t *to, struct compat_siginfo __user *from)
->>   {
->>   	int err;
->> -	u32 ptr32;
->>   
->>   	if (!access_ok(VERIFY_READ, from, sizeof(struct compat_siginfo)))
->>   		return -EFAULT;
->> @@ -121,8 +119,7 @@ int copy_siginfo_from_user32(siginfo_t *to, struct compat_siginfo __user *from)
->>   
->>   	err |= __get_user(to->si_pid, &from->si_pid);
->>   	err |= __get_user(to->si_uid, &from->si_uid);
->> -	err |= __get_user(ptr32, &from->si_ptr);
->> -	to->si_ptr = compat_ptr(ptr32);
->> +	err |= __get_user(to->si_int, &from->si_int);
-> We have a memset(to, 0, sizeof(*to)) on arm64 in this function but I
-> can't see it on tile. Some members or even half of si_ptr would be left
-> uninitialised.
-
-So here we presumably have the reverse problem, which is a 32-bit
-process doing a sigqueue() to a 64-bit process.  If the 64-bit process
-inspects the sival_ptr, it does seem like it might find garbage in it.
-But it also doesn't seem portable in much the same way as the
-reverse direction; for a 32-bit process to signal a 64-bit process means
-the 64-bit process can't read si_ptr or it will get different values
-depending on what endianness is in force, so garbage is only part
-of the problem.
-
-I was modeling this code on the very similar code for parisc and s390.
-I've added their maintainers to the cc list for this email thread.
-I see that x86 uses si_ptr in its equivalent code, but of course it has no
-issues with big-endianness.
+ arch/powerpc/include/asm/mmu_context.h | 36 +++++++++++++++++++++++++++++++++-
+ mm/mremap.c                            | 11 +++++++++--
+ 2 files changed, 44 insertions(+), 3 deletions(-)
 
 -- 
-Chris Metcalf, EZChip Semiconductor
-http://www.ezchip.com
+1.9.1
 
