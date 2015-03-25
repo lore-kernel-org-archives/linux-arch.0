@@ -1,52 +1,63 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v3 2/2] powerpc/mm: Tracking vDSO remap
-Date: Wed, 25 Mar 2015 19:36:47 +0100
-Message-ID: <20150325183647.GA9331@gmail.com>
-References: <20150325121118.GA2542@gmail.com>
- <cover.1427289960.git.ldufour@linux.vnet.ibm.com>
- <b6ce07f8e1e0d654371aee70bd8eac310456d0df.1427289960.git.ldufour@linux.vnet.ibm.com>
- <20150325183316.GA9090@gmail.com>
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCH 0/9] qspinlock stuff -v15
+Date: Wed, 25 Mar 2015 15:47:39 -0400
+Message-ID: <20150325194739.GK25884@l.oracle.com>
+References: <20150316131613.720617163@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f53.google.com ([74.125.82.53]:35296 "EHLO
-	mail-wg0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750819AbbCYSgw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Mar 2015 14:36:52 -0400
+Received: from aserp1040.oracle.com ([141.146.126.69]:39849 "EHLO
+	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751238AbbCYTsa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Mar 2015 15:48:30 -0400
 Content-Disposition: inline
-In-Reply-To: <20150325183316.GA9090@gmail.com>
+In-Reply-To: <20150316131613.720617163@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org, cov@codeaurora.org, criu@openvz.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman.Long@hp.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, paolo.bonzini@gmail.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, scott.norton@hp.com, doug.hatch@hp.com, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, luto@amacapital.net
 
-
-* Ingo Molnar <mingo@kernel.org> wrote:
-
-> > +#define __HAVE_ARCH_REMAP
-> > +static inline void arch_remap(struct mm_struct *mm,
-> > +			      unsigned long old_start, unsigned long old_end,
-> > +			      unsigned long new_start, unsigned long new_end)
-> > +{
-> > +	/*
-> > +	 * mremap() doesn't allow moving multiple vmas so we can limit the
-> > +	 * check to old_start == vdso_base.
-> > +	 */
-> > +	if (old_start == mm->context.vdso_base)
-> > +		mm->context.vdso_base = new_start;
-> > +}
+On Mon, Mar 16, 2015 at 02:16:13PM +0100, Peter Zijlstra wrote:
+> Hi Waiman,
 > 
-> mremap() doesn't allow moving multiple vmas, but it allows the 
-> movement of multi-page vmas and it also allows partial mremap()s, 
-> where it will split up a vma.
+> As promised; here is the paravirt stuff I did during the trip to BOS last week.
+> 
+> All the !paravirt patches are more or less the same as before (the only real
+> change is the copyright lines in the first patch).
+> 
+> The paravirt stuff is 'simple' and KVM only -- the Xen code was a little more
+> convoluted and I've no real way to test that but it should be stright fwd to
+> make work.
+> 
+> I ran this using the virtme tool (thanks Andy) on my laptop with a 4x
+> overcommit on vcpus (16 vcpus as compared to the 4 my laptop actually has) and
+> it both booted and survived a hackbench run (perf bench sched messaging -g 20
+> -l 5000).
+> 
+> So while the paravirt code isn't the most optimal code ever conceived it does work.
+> 
+> Also, the paravirt patching includes replacing the call with "movb $0, %arg1"
+> for the native case, which should greatly reduce the cost of having
+> CONFIG_PARAVIRT_SPINLOCKS enabled on actual hardware.
 
-I.e. mremap() supports the shrinking (and growing) of vmas. In that 
-case mremap() will unmap the end of the vma and will shrink the 
-remaining vDSO vma.
+Ah nice. That could be spun out as a seperate patch to optimize the existing
+ticket locks I presume.
 
-Doesn't that result in a non-working vDSO that should zero out 
-vdso_base?
+Now with the old pv ticketlock code an vCPU would only go to sleep once and
+be woken up when it was its turn. With this new code it is woken up twice 
+(and twice it goes to sleep). With an overcommit scenario this would imply
+that we will have at least twice as many VMEXIT as with the previous code.
 
-Thanks,
+I presume when you did benchmarking this did not even register? Thought
+I wonder if it would if you ran the benchmark for a week or so.
 
-	Ingo
+> 
+> I feel that if someone were to do a Xen patch we can go ahead and merge this
+> stuff (finally!).
+> 
+> These patches do not implement the paravirt spinlock debug stats currently
+> implemented (separately) by KVM and Xen, but that should not be too hard to do
+> on top and in the 'generic' code -- no reason to duplicate all that.
+> 
+> Of course; once this lands people can look at improving the paravirt nonsense.
+> 
