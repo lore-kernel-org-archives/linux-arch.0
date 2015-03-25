@@ -1,50 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:43024 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752058AbbCYLGv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Mar 2015 07:06:51 -0400
+Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:49696 "EHLO
+	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752276AbbCYLG5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Mar 2015 07:06:57 -0400
 Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <ldufour@linux.vnet.ibm.com>;
-	Wed, 25 Mar 2015 11:06:50 -0000
+	Wed, 25 Mar 2015 11:06:55 -0000
 From: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-Subject: [PATCH v2 0/2] Tracking user space vDSO remaping
-Date: Wed, 25 Mar 2015 12:06:34 +0100
-Message-ID: <cover.1427280806.git.ldufour@linux.vnet.ibm.com>
-In-Reply-To: <20150323085209.GA28965@gmail.com>
-References: <20150323085209.GA28965@gmail.com>
+Subject: [PATCH v2 2/2] powerpc/mm: Tracking vDSO remap
+Date: Wed, 25 Mar 2015 12:06:36 +0100
+Message-ID: <25152b76585716dc635945c3455ab9b49e645f6d.1427280806.git.ldufour@linux.vnet.ibm.com>
+In-Reply-To: <cover.1427280806.git.ldufour@linux.vnet.ibm.com>
+References: <cover.1427280806.git.ldufour@linux.vnet.ibm.com>
+In-Reply-To: <cover.1427280806.git.ldufour@linux.vnet.ibm.com>
+References: <20150323085209.GA28965@gmail.com> <cover.1427280806.git.ldufour@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org
 Cc: cov@codeaurora.org, criu@openvz.org
-Message-ID: <20150325110634.zqtGAGrF87heqNEPx2Bq_OtmBjT3w8WoFEN8EBgoLyA@z>
+Message-ID: <20150325110636.mmuKPSB7nI2SnS5iHWMa_txZej7AR3ZRZ01yHz2lSFw@z>
 
-CRIU is recreating the process memory layout by remapping the checkpointee
-memory area on top of the current process (criu). This includes remapping
-the vDSO to the place it has at checkpoint time.
+Some processes (CRIU) are moving the vDSO area using the mremap system
+call. As a consequence the kernel reference to the vDSO base address is
+no more valid and the signal return frame built once the vDSO has been
+moved is not pointing to the new sigreturn address.
 
-However some architectures like powerpc are keeping a reference to the vDSO
-base address to build the signal return stack frame by calling the vDSO
-sigreturn service. So once the vDSO has been moved, this reference is no
-more valid and the signal frame built later are not usable.
+This patch handles vDSO remapping and unmapping.
 
-This patch serie is introducing a new mm hook 'arch_remap' which is called
-when mremap is done and the mm lock still hold. The next patch is adding the
-vDSO remap and unmap tracking to the powerpc architecture.
-
-Changes in v2:
---------------
-- Following the Ingo Molnar's advice, enabling the call to arch_remap through
-  the __HAVE_ARCH_REMAP macro. This reduces considerably the first patch.
-
-Laurent Dufour (2):
-  mm: Introducing arch_remap hook
-  powerpc/mm: Tracking vDSO remap
-
+Signed-off-by: Laurent Dufour <ldufour@linux.vnet.ibm.com>
+---
  arch/powerpc/include/asm/mmu_context.h | 36 +++++++++++++++++++++++++++++++++-
- mm/mremap.c                            | 11 +++++++++--
- 2 files changed, 44 insertions(+), 3 deletions(-)
+ 1 file changed, 35 insertions(+), 1 deletion(-)
 
+diff --git a/arch/powerpc/include/asm/mmu_context.h b/arch/powerpc/include/asm/mmu_context.h
+index 73382eba02dc..be5dca3f7826 100644
+--- a/arch/powerpc/include/asm/mmu_context.h
++++ b/arch/powerpc/include/asm/mmu_context.h
+@@ -8,7 +8,6 @@
+ #include <linux/spinlock.h>
+ #include <asm/mmu.h>	
+ #include <asm/cputable.h>
+-#include <asm-generic/mm_hooks.h>
+ #include <asm/cputhreads.h>
+ 
+ /*
+@@ -109,5 +108,40 @@ static inline void enter_lazy_tlb(struct mm_struct *mm,
+ #endif
+ }
+ 
++static inline void arch_dup_mmap(struct mm_struct *oldmm,
++				 struct mm_struct *mm)
++{
++}
++
++static inline void arch_exit_mmap(struct mm_struct *mm)
++{
++}
++
++static inline void arch_unmap(struct mm_struct *mm,
++			struct vm_area_struct *vma,
++			unsigned long start, unsigned long end)
++{
++	if (start <= mm->context.vdso_base && mm->context.vdso_base < end)
++		mm->context.vdso_base = 0;
++}
++
++static inline void arch_bprm_mm_init(struct mm_struct *mm,
++				     struct vm_area_struct *vma)
++{
++}
++
++#define __HAVE_ARCH_REMAP
++static inline void arch_remap(struct mm_struct *mm,
++			      unsigned long old_start, unsigned long old_end,
++			      unsigned long new_start, unsigned long new_end)
++{
++	/*
++	 * mremap don't allow moving multiple vma so we can limit the check
++	 * to old_start == vdso_base.
++	 */
++	if (old_start == mm->context.vdso_base)
++		mm->context.vdso_base = new_start;
++}
++
+ #endif /* __KERNEL__ */
+ #endif /* __ASM_POWERPC_MMU_CONTEXT_H */
 -- 
 1.9.1
 
