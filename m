@@ -1,68 +1,92 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH v3 2/2] powerpc/mm: Tracking vDSO remap
-Date: Thu, 26 Mar 2015 08:11:07 +1100
-Message-ID: <1427317867.6468.87.camel@kernel.crashing.org>
-References: <20150325121118.GA2542@gmail.com>
-	 <cover.1427289960.git.ldufour@linux.vnet.ibm.com>
-	 <b6ce07f8e1e0d654371aee70bd8eac310456d0df.1427289960.git.ldufour@linux.vnet.ibm.com>
-	 <20150325183316.GA9090@gmail.com> <20150325183647.GA9331@gmail.com>
+From: Richard Weinberger <richard@nod.at>
+Subject: Re: [RFC PATCH 00/11] an introduction of library operating system
+ for Linux (LibOS)
+Date: Wed, 25 Mar 2015 23:50:23 +0100
+Message-ID: <55133BAF.30301@nod.at>
+References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>	<551164ED.5000907@nod.at>	<m2twxacw13.wl@sfc.wide.ad.jp>	<55117565.6080002@nod.at>	<m2sicuctb2.wl@sfc.wide.ad.jp>	<55118277.5070909@nod.at> <m2bnjhcevt.wl@sfc.wide.ad.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20150325183647.GA9331@gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Laurent Dufour <ldufour@linux.vnet.ibm.com>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org, cov@codeaurora.org, criu@openvz.org
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <m2bnjhcevt.wl@sfc.wide.ad.jp>
+Sender: linux-doc-owner@vger.kernel.org
+To: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, cl@linux.com, penberg@kernel.org, rientjes@google.com, iamjoonsoo.kim@lge.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, jdike@addtoit.com, rusty@rustcorp.com.au, mathieu.lacage@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2015-03-25 at 19:36 +0100, Ingo Molnar wrote:
-> * Ingo Molnar <mingo@kernel.org> wrote:
+Hi!
+
+Am 25.03.2015 um 15:48 schrieb Hajime Tazaki:
 > 
-> > > +#define __HAVE_ARCH_REMAP
-> > > +static inline void arch_remap(struct mm_struct *mm,
-> > > +			      unsigned long old_start, unsigned long old_end,
-> > > +			      unsigned long new_start, unsigned long new_end)
-> > > +{
-> > > +	/*
-> > > +	 * mremap() doesn't allow moving multiple vmas so we can limit the
-> > > +	 * check to old_start == vdso_base.
-> > > +	 */
-> > > +	if (old_start == mm->context.vdso_base)
-> > > +		mm->context.vdso_base = new_start;
-> > > +}
-> > 
-> > mremap() doesn't allow moving multiple vmas, but it allows the 
-> > movement of multi-page vmas and it also allows partial mremap()s, 
-> > where it will split up a vma.
+> At Tue, 24 Mar 2015 16:27:51 +0100,
+> Richard Weinberger wrote:
+>>
+>> I'd say you should try hard to re-use/integrate your work in arch/um.
+>> With um we already have an architecture which targets userspace,
+>> having two needs a very good justification.
 > 
-> I.e. mremap() supports the shrinking (and growing) of vmas. In that 
-> case mremap() will unmap the end of the vma and will shrink the 
-> remaining vDSO vma.
+> in addition to the case of my previous email, libos is not
+> limited to run on user-mode: it is just a library which can
+> be used with various programs. thus it has a potential (not
+> implemented yet) to run on a hypervisor like OSv or MirageOS
+> does for application containment, or run on a bare-metal
+> machine as rumpkernel does. We already have a clear
+> interface for the underlying layer to be able to add such
+> backend.
 > 
-> Doesn't that result in a non-working vDSO that should zero out 
-> vdso_base?
-
-Right. Now we can't completely prevent the user from shooting itself in
-the foot I suppose, though there is a legit usage scenario which is to
-move the vDSO around which it would be nice to support. I think it's
-reasonable to put the onus on the user here to do the right thing.
-
-Cheers,
-Ben.
-
-> Thanks,
+> again, it's not only for user-mode.
 > 
-> 	Ingo
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+> mixing all the stuff in a single architecture may not only
+> mislead to users, but also introduce conceptual-disagreements
+> during code sharing of essential parts. 
+> 
+> I don't see any benefits to have a name 'um' with this idea.
+> 
+> # I'm not saying sharing a part of code is bad idea at all, btw.
 
+After digging into the source I know what you mean and I have the
+feeling that "lib" is the wrong name.
+It has not much do to with an architecture.
+Apart from that, I really like your idea!
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+You don't implement an architecture, you take some part of Linux
+(the networking stack) and create stubs around it to make it work.
+That means that we'd also have to duplicate kernel functions into
+arch/lib to keep it running.
+
+BTW: It does not build here:
+---cut---
+  LIB           liblinux-4.0.0-rc5.so
+Cloning into 'arch/lib/tools'...
+remote: Counting objects: 93, done.
+remote: Compressing objects: 100% (19/19), done.
+remote: Total 93 (delta 9), reused 0 (delta 0), pack-reused 74
+Receiving objects: 100% (93/93), 59.77 KiB | 0 bytes/s, done.
+Resolving deltas: 100% (43/43), done.
+Checking connectivity... done
+  CC       nuse-fiber.o
+  CC       nuse-vif.o
+  CC       nuse-hostcalls.o
+  CC       nuse-config.o
+  CC       nuse-vif-rawsock.o
+  CC       nuse-vif-tap.o
+  CC       nuse-glue.o
+  CC       nuse-vif-pipe.o
+  CC       nuse.o
+make[2]: *** No rule to make target `rump/lib/librumpuser/rumpuser_sp.c', needed by `rump/lib/librumpuser/rumpuser_sp.o'.  Stop.
+make[2]: *** Waiting for unfinished jobs....
+  CC       sim.o
+  GEN      git-sparse
+make[2]: *** No rule to make target `rump/lib/librumpclient/rumpclient.c', needed by `rump/lib/librumpclient/rumpclient.o'.  Stop.
+make[1]: *** [librumpclient.so] Error 2
+make[1]: *** Waiting for unfinished jobs....
+nuse.c: In function 'nuse_dev_rx':
+nuse.c:279:5: warning: unused variable 'hdr' [-Wunused-variable]
+  } *hdr = (struct ethhdr *)buf;
+     ^
+make[1]: *** [librumpserver.so] Error 2
+make: *** [arch/lib/tools] Error 2
+---cut---
+
+Thanks,
+//richard
