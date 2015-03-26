@@ -1,42 +1,72 @@
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache
- only)
-Date: Thu, 26 Mar 2015 04:55:14 -0700
-Message-ID: <20150326115514.GA12329@infradead.org>
-References: <cover.1426528417.git.milosz@adfin.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v3 2/2] powerpc/mm: Tracking vDSO remap
+Date: Thu, 26 Mar 2015 15:17:31 +0100
+Message-ID: <20150326141730.GA23060@gmail.com>
+References: <20150325121118.GA2542@gmail.com>
+ <cover.1427289960.git.ldufour@linux.vnet.ibm.com>
+ <b6ce07f8e1e0d654371aee70bd8eac310456d0df.1427289960.git.ldufour@linux.vnet.ibm.com>
+ <20150325183316.GA9090@gmail.com>
+ <20150325183647.GA9331@gmail.com>
+ <1427317867.6468.87.camel@kernel.crashing.org>
+ <20150326094330.GA15407@gmail.com>
+ <5513E16D.1030101@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-aio@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wi0-f170.google.com ([209.85.212.170]:33888 "EHLO
+	mail-wi0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752490AbbCZORk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Mar 2015 10:17:40 -0400
 Content-Disposition: inline
-In-Reply-To: <cover.1426528417.git.milosz@adfin.com>
-Sender: owner-linux-aio@kvack.org
-To: Milosz Tanski <milosz@adfin.com>
-Cc: linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>, Andrew Morton <akpm@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <5513E16D.1030101@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Laurent Dufour <ldufour@linux.vnet.ibm.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org, cov@codeaurora.org, criu@openvz.org
 
-On Mon, Mar 16, 2015 at 02:27:10PM -0400, Milosz Tanski wrote:
-> This patchset introduces two new syscalls preadv2 and pwritev2. They are the
-> same syscalls as preadv and pwrite but with a flag argument. Additionally,
-> preadv2 implements an extra RWF_NONBLOCK flag. 
 
-There was some arugment that we just don't wait and don't have the
-classic unix "blocking" semantics.  Maybe it's time to bite the bullet
-and rename it to RWF_DONTWAIT? (I personally dont really care).
+* Laurent Dufour <ldufour@linux.vnet.ibm.com> wrote:
 
-Second this probably needs to be on top of Al's for-next tree:
+> > I argue we should use the right condition to clear vdso_base: if 
+> > the vDSO gets at least partially unmapped. Otherwise there's 
+> > little point in the whole patch: either correctly track whether 
+> > the vDSO is OK, or don't ...
+> 
+> That's a good option, but it may be hard to achieve in the case the 
+> vDSO area has been splitted in multiple pieces.
+>
+> Not sure there is a right way to handle that, here this is a best 
+> effort, allowing a process to unmap its vDSO and having the 
+> sigreturn call done through the stack area (it has to make it 
+> executable).
+> 
+> Anyway I'll dig into that, assuming that the vdso_base pointer 
+> should be clear if a part of the vDSO is moved or unmapped. The 
+> patch will be larger since I'll have to get the vDSO size which is 
+> private to the vdso.c file.
 
-	https://git.kernel.org/cgit/linux/kernel/git/viro/vfs.git/log/?h=for-next
+At least for munmap() I don't think that's a worry: once unmapped 
+(even if just partially), vdso_base becomes zero and won't ever be set 
+again.
 
-Note that this has a flags field in struct kiocb, so we could just use
-that for the flags.
+So no need to track the zillion pieces, should there be any: Humpty 
+Dumpty won't be whole again, right?
 
-Otherwise this version look fine to me, let's get it merged!
+> > There's also the question of mprotect(): can users mprotect() the 
+> > vDSO on PowerPC?
+> 
+> Yes, mprotect() the vDSO is allowed on PowerPC, as it is on x86, and 
+> certainly all the other architectures. Furthermore, if it is done on 
+> a partial part of the vDSO it is splitting the vma...
 
-Al, are yo ready to pick this up?  I'd hate to miss another merge
-window.
+btw., CRIU's main purpose here is to reconstruct a vDSO that was 
+originally randomized, but whose address must now be reproduced as-is, 
+right?
 
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+In that sense detecting the 'good' mremap() as your patch does should 
+do the trick and is certainly not objectionable IMHO - I was just 
+wondering whether we could make a perfect job very simply.
+
+Thanks,
+
+	Ingo
