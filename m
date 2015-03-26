@@ -1,76 +1,221 @@
-From: Milosz Tanski <milosz@adfin.com>
-Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache only)
-Date: Thu, 26 Mar 2015 15:12:32 -0400
-Message-ID: <CANP1eJGpgXUv626KQb6kduJgMaOzU5hH9GLGBM-QSVUBagoG8w@mail.gmail.com>
-References: <cover.1426528417.git.milosz@adfin.com>
-	<20150326115514.GA12329@infradead.org>
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Subject: Re: [PATCH v3 04/15] clocksource: Add ARM System timer driver
+Date: Thu, 26 Mar 2015 21:19:58 +0100
+Message-ID: <CALszF6CtEf0w8AoaMwFzn34ACMjkW6obT5_MrduBdUOm7T=zNw@mail.gmail.com>
+References: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
+	<1426197361-19290-5-git-send-email-maxime.coquelin@st.com>
+	<5513D64A.7060702@linaro.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <20150326115514.GA12329@infradead.org>
-Sender: owner-linux-aio@kvack.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, Linux API <linux-api@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>, Andrew Morton <akpm@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wg0-f47.google.com ([74.125.82.47]:35100 "EHLO
+	mail-wg0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752544AbbCZUUA convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Mar 2015 16:20:00 -0400
+In-Reply-To: <5513D64A.7060702@linaro.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.sa>
 
-On Thu, Mar 26, 2015 at 7:55 AM, Christoph Hellwig <hch@infradead.org> wrote:
->
-> On Mon, Mar 16, 2015 at 02:27:10PM -0400, Milosz Tanski wrote:
-> > This patchset introduces two new syscalls preadv2 and pwritev2. They are the
-> > same syscalls as preadv and pwrite but with a flag argument. Additionally,
-> > preadv2 implements an extra RWF_NONBLOCK flag.
->
-> There was some arugment that we just don't wait and don't have the
-> classic unix "blocking" semantics.  Maybe it's time to bite the bullet
-> and rename it to RWF_DONTWAIT? (I personally dont really care).
+Hi Daniel,
 
+  Thanks for the review. Please find my answers below.
 
-Sure. It is in line with the MSG_DONTWAIT flag for sendmsg() which
-this whole idea is based on anyways.
-
->
->
-> Second this probably needs to be on top of Al's for-next tree:
->
->         https://git.kernel.org/cgit/linux/kernel/git/viro/vfs.git/log/?h=for-next
->
-> Note that this has a flags field in struct kiocb, so we could just use
-> that for the flags.
-
-
-Okay I started rebasing the patches on-top of that. I did see that
-there is a new flags field "ki_flags". I see that there's already a
-IOCB_EVENTFD flag.
-
-Did you see you Andres' question about making the flags a enum? I
-usually wouldn't do that, because C++ is stronger when it comes enums,
-you can't combine them then assignment them to an enum without a cast.
-But in the kernel this doesn't matter.
-
+2015-03-26 10:50 GMT+01:00 Daniel Lezcano <daniel.lezcano@linaro.org>:
+> On 03/12/2015 10:55 PM, Maxime Coquelin wrote:
+>>
+>> From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+>>
+>> This patch adds clocksource support for ARMv7-M's System timer,
+>> also known as SysTick.
+>>
+>> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 >
 >
-> Otherwise this version look fine to me, let's get it merged!
+> Hi Maxime,
 >
-> Al, are yo ready to pick this up?  I'd hate to miss another merge
-> window.
+> the driver looks good. Three comments below.
+>
+>   -- Daniel
+>
+>
+>> ---
+>>   drivers/clocksource/Kconfig          |  7 ++++
+>>   drivers/clocksource/Makefile         |  1 +
+>>   drivers/clocksource/armv7m_systick.c | 78
+>> ++++++++++++++++++++++++++++++++++++
+>>   3 files changed, 86 insertions(+)
+>>   create mode 100644 drivers/clocksource/armv7m_systick.c
+>>
+>> diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconf=
+ig
+>> index 1c2506f..b82e58b 100644
+>> --- a/drivers/clocksource/Kconfig
+>> +++ b/drivers/clocksource/Kconfig
+>> @@ -134,6 +134,13 @@ config CLKSRC_ARM_GLOBAL_TIMER_SCHED_CLOCK
+>>         help
+>>          Use ARM global timer clock source as sched_clock
+>>
+>> +config ARMV7M_SYSTICK
+>> +       bool
+>> +       select CLKSRC_OF if OF
+>> +       select CLKSRC_MMIO
+>> +       help
+>> +         This options enables support for the ARMv7M system timer u=
+nit
+>> +
+>>   config ATMEL_PIT
+>>         select CLKSRC_OF if OF
+>>         def_bool SOC_AT91SAM9 || SOC_SAMA5
+>> diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Make=
+file
+>> index 752d5c7..1c9a643 100644
+>> --- a/drivers/clocksource/Makefile
+>> +++ b/drivers/clocksource/Makefile
+>> @@ -44,6 +44,7 @@ obj-$(CONFIG_MTK_TIMER)               +=3D mtk_tim=
+er.o
+>>
+>>   obj-$(CONFIG_ARM_ARCH_TIMER)          +=3D arm_arch_timer.o
+>>   obj-$(CONFIG_ARM_GLOBAL_TIMER)                +=3D arm_global_time=
+r.o
+>> +obj-$(CONFIG_ARMV7M_SYSTICK)           +=3D armv7m_systick.o
+>>   obj-$(CONFIG_CLKSRC_METAG_GENERIC)    +=3D metag_generic.o
+>>   obj-$(CONFIG_ARCH_HAS_TICK_BROADCAST) +=3D dummy_timer.o
+>>   obj-$(CONFIG_ARCH_KEYSTONE)           +=3D timer-keystone.o
+>> diff --git a/drivers/clocksource/armv7m_systick.c
+>> b/drivers/clocksource/armv7m_systick.c
+>> new file mode 100644
+>> index 0000000..23d8249
+>> --- /dev/null
+>> +++ b/drivers/clocksource/armv7m_systick.c
+>> @@ -0,0 +1,78 @@
+>> +/*
+>> + * Copyright (C) Maxime Coquelin 2015
+>> + * Author:  Maxime Coquelin <mcoquelin.stm32@gmail.com>
+>> + * License terms:  GNU General Public License (GPL), version 2
+>> + */
+>> +
+>> +#include <linux/kernel.h>
+>> +#include <linux/clocksource.h>
+>> +#include <linux/clockchips.h>
+>> +#include <linux/of.h>
+>> +#include <linux/of_address.h>
+>> +#include <linux/clk.h>
+>> +#include <linux/bitops.h>
+>> +
+>> +#define SYST_CSR       0x00
+>> +#define SYST_RVR       0x04
+>> +#define SYST_CVR       0x08
+>> +#define SYST_CALIB     0x0c
+>> +
+>> +#define SYST_CSR_ENABLE BIT(0)
+>> +
+>> +#define SYSTICK_LOAD_RELOAD_MASK 0x00FFFFFF
+>> +
+>> +static void __init system_timer_of_register(struct device_node *np)
+>> +{
+>> +       struct clk *clk;
+>> +       void __iomem *base;
+>> +       u32 rate =3D 0;
+>> +       int ret;
+>> +
+>> +       base =3D of_iomap(np, 0);
+>> +       if (!base) {
+>> +               pr_warn("system-timer: invalid base address\n");
+>> +               return;
+>> +       }
+>> +
+>> +       clk =3D of_clk_get(np, 0);
+>> +       if (!IS_ERR(clk)) {
+>> +               ret =3D clk_prepare_enable(clk);
+>> +               if (ret) {
+>> +                       clk_put(clk);
+>> +                       goto out_unmap;
+>> +               }
+>> +
+>> +               rate =3D clk_get_rate(clk);
+>> +       }
+>> +
+>> +       /* If no clock found, try to get clock-frequency property */
+>> +       if (!rate) {
+>> +               ret =3D of_property_read_u32(np, "clock-frequency", =
+&rate);
+>> +               if (ret)
+>> +                       goto out_unmap;
+>
+>
+> Shouldn't be 'goto out_clk_disable' ?
 
+No, because I assumed !rate means we failed to get the clock.
+Actually, clk_get_rate could return 0, so relying on rate value is not =
+safe.
 
-Just got back from vacation today, I'll try to get this out before the
-end of the week. I also have to make some adjustments to xfs-tests (to
-push preadv2 into xfs_io).
+I propose to get clock-frequency property if IS_ERR(clk).
 
+Is it fine for you?
 
--- 
-Milosz Tanski
-CTO
-16 East 34th Street, 15th floor
-New York, NY 10016
+>
+>> +       }
+>> +
+>> +       writel_relaxed(SYSTICK_LOAD_RELOAD_MASK, base + SYST_RVR);
+>> +       writel_relaxed(SYST_CSR_ENABLE, base + SYST_CSR);
+>> +
+>> +       ret =3D clocksource_mmio_init(base + SYST_CVR, "arm_system_t=
+imer",
+>> rate,
+>> +                       200, 24, clocksource_mmio_readl_down);
+>> +       if (ret) {
+>> +               pr_err("failed to init clocksource (%d)\n", ret);
+>> +               goto out_clk_disable;
+>> +       }
+>> +
+>> +       pr_info("ARM System timer initialized as clocksource\n");
+>> +
+>> +       return;
+>> +
+>> +out_clk_disable:
+>> +       if (!IS_ERR(clk))
+>
+>
+> Why do you need this check ?
 
-p: 646-253-9055
-e: milosz@adfin.com
+To handle the case were no clock was found, but a clk-frequency value
+was provided.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+>
+> It isn't missing a clk_put ?
+
+Right, thanks for spotting this.
+
+I wonder if it makes sense to implement the error path.
+If we fail to initialize the clocksource, the system will be unusable.
+
+Maybe I should just perform a BUG_ON() in the error cases, as most of
+the other clocksource drivers do.
+What is your view?
+
+Regards,
+Maxime
+
+>
+>> +               clk_disable_unprepare(clk);
+>> +out_unmap:
+>> +       iounmap(base);
+>> +       WARN(ret, "ARM System timer register failed (%d)\n", ret);
+>> +}
+>> +
+>> +CLOCKSOURCE_OF_DECLARE(arm_systick, "arm,armv7m-systick",
+>> +                       system_timer_of_register);
+>>
+>
+>
+> --
+>  <http://www.linaro.org/> Linaro.org =E2=94=82 Open source software f=
+or ARM SoCs
+>
+> Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
+> <http://twitter.com/#!/linaroorg> Twitter |
+> <http://www.linaro.org/linaro-blog/> Blog
+>
