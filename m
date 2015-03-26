@@ -1,82 +1,52 @@
-From: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-Subject: Re: [PATCH v3 2/2] powerpc/mm: Tracking vDSO remap
-Date: Thu, 26 Mar 2015 15:32:06 +0100
-Message-ID: <55141866.6080007@linux.vnet.ibm.com>
-References: <20150325121118.GA2542@gmail.com> <cover.1427289960.git.ldufour@linux.vnet.ibm.com> <b6ce07f8e1e0d654371aee70bd8eac310456d0df.1427289960.git.ldufour@linux.vnet.ibm.com> <20150325183316.GA9090@gmail.com> <20150325183647.GA9331@gmail.com> <1427317867.6468.87.camel@kernel.crashing.org> <20150326094330.GA15407@gmail.com> <5513E16D.1030101@linux.vnet.ibm.com> <20150326141730.GA23060@gmail.com>
+From: Russell King - ARM Linux <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>
+Subject: Re: [PATCH v3  10/15] serial: stm32-usart: Add STM32 USART Driver
+Date: Thu, 26 Mar 2015 15:46:18 +0000
+Message-ID: <20150326154618.GO8656@n2100.arm.linux.org.uk>
+References: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>
+ <1426197361-19290-11-git-send-email-maxime.coquelin@st.com>
+ <5511ABAA.2010303@hurleysoftware.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20150326141730.GA23060@gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org, cov@codeaurora.org, criu@openvz.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <5511ABAA.2010303-WaGBZJeGNqdsbIuE7sb01tBPR1lH4CV8@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Peter Hurley <peter-WaGBZJeGNqdsbIuE7sb01tBPR1lH4CV8@public.gmane.org>
+Cc: Maxime Coquelin <mcoquelin.stm32-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, u.kleine-koenig-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org, afaerber-l3A5Bk7waGM@public.gmane.org, geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Philipp Zabel <p.zabel-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, stefan-XLVq0VzYD2Y@public.gmane.org, pmeerw-jW+XmwGofnusTnJN9+BGXg@public.gmane.org, pebolle-IWqWACnzNjzz+pZb47iToQ@public.gmane.org, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Pawel Moll <pawel.moll-5wv7dgnIgG8@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Ian Campbell <ijc+devicetree-KcIKpvwj1kUDXYZnReoRVg@public.gmane.org>, Kumar Gala <galak-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, Jiri Slaby <jslaby-AlSwsSmVLrQ@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Mauro Carvalho Chehab <mchehab-JPH+aEBZ4P+UEJcrhfAQsw@public.gmane.org>, Joe Perches <joe-6d6DIl74uiNBDgjK7y7TUQ@public.gmane.org>, Antti Palosaari <crope-X3B1VOXEql0@public.gmane.org>, Tejun Heo <tj@k>
 List-Id: linux-arch.vger.kernel.org
 
-On 26/03/2015 15:17, Ingo Molnar wrote:
+On Tue, Mar 24, 2015 at 02:23:38PM -0400, Peter Hurley wrote:
+> Hi Maxime,
 > 
-> * Laurent Dufour <ldufour@linux.vnet.ibm.com> wrote:
+> On 03/12/2015 05:55 PM, Maxime Coquelin wrote:
+> > +static unsigned int stm32_get_mctrl(struct uart_port *port)
+> > +{
+> > +	/*
+> > +	 * This routine is used for geting signals of: DTR, DCD, DSR, RI,
+> > +	 * and CTS/RTS
+
+It's also worth noting that this comment is wrong.  This is used to get
+the state of DCD, DSR, RI and CTS.  DTR and RTS are *not* included
+because the core tracks their state.
+
+...
+
+> > +	stm32port->clk = devm_clk_get(&pdev->dev, NULL);
+> > +
+> > +	if (WARN_ON(IS_ERR(stm32port->clk)))
 > 
->>> I argue we should use the right condition to clear vdso_base: if 
->>> the vDSO gets at least partially unmapped. Otherwise there's 
->>> little point in the whole patch: either correctly track whether 
->>> the vDSO is OK, or don't ...
->>
->> That's a good option, but it may be hard to achieve in the case the 
->> vDSO area has been splitted in multiple pieces.
->>
->> Not sure there is a right way to handle that, here this is a best 
->> effort, allowing a process to unmap its vDSO and having the 
->> sigreturn call done through the stack area (it has to make it 
->> executable).
->>
->> Anyway I'll dig into that, assuming that the vdso_base pointer 
->> should be clear if a part of the vDSO is moved or unmapped. The 
->> patch will be larger since I'll have to get the vDSO size which is 
->> private to the vdso.c file.
+> Do you really need a stack trace here? Could this be dev_err() instead?
 > 
-> At least for munmap() I don't think that's a worry: once unmapped 
-> (even if just partially), vdso_base becomes zero and won't ever be set 
-> again.
-> 
-> So no need to track the zillion pieces, should there be any: Humpty 
-> Dumpty won't be whole again, right?
+> > +		return -EINVAL;
 
-My idea is to clear vdso_base if at least part of the vdso is unmap.
-But since some part of the vdso may have been moved and unmapped later,
-to be complete, the patch has to handle partial mremap() of the vDSO
-too. Otherwise such a scenario will not be detected:
+Also, propagate the error code.
 
-	new_area = mremap(vdso_base + page_size, ....);
-	munmap(new_area,...);
+> > +
+> > +	/* ensure that clk rate is correct by enabling the clk */
+> > +	clk_prepare_enable(stm32port->clk);
 
->>> There's also the question of mprotect(): can users mprotect() the 
->>> vDSO on PowerPC?
->>
->> Yes, mprotect() the vDSO is allowed on PowerPC, as it is on x86, and 
->> certainly all the other architectures. Furthermore, if it is done on 
->> a partial part of the vDSO it is splitting the vma...
-> 
-> btw., CRIU's main purpose here is to reconstruct a vDSO that was 
-> originally randomized, but whose address must now be reproduced as-is, 
-> right?
+And remember to check the return value of clk_prepare_enable().
 
-You're right, CRIU has to move the vDSO to the same address it has at
-checkpoint time.
-
-> In that sense detecting the 'good' mremap() as your patch does should 
-> do the trick and is certainly not objectionable IMHO - I was just 
-> wondering whether we could make a perfect job very simply.
-
-I'd try to address the perfect job, this may complexify the patch,
-especially because the vdso's size is not recorded in the PowerPC
-mm_context structure. Not sure it is a good idea to extend that structure..
-
-Thanks,
-Laurent.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+FTTC broadband for 0.8mile line: currently at 10.5Mbps down 400kbps up
+according to speedtest.net.
