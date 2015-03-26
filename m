@@ -1,41 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:42187 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752197AbbCZLzR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Mar 2015 07:55:17 -0400
-Date: Thu, 26 Mar 2015 04:55:14 -0700
-From: Christoph Hellwig <hch@infradead.org>
-Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache
- only)
-Message-ID: <20150326115514.GA12329@infradead.org>
-References: <cover.1426528417.git.milosz@adfin.com>
+Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:45796 "EHLO
+	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752508AbbCZOcg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Mar 2015 10:32:36 -0400
+Received: from /spool/local
+	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <ldufour@linux.vnet.ibm.com>;
+	Thu, 26 Mar 2015 14:32:34 -0000
+Message-ID: <55141866.6080007@linux.vnet.ibm.com>
+Date: Thu, 26 Mar 2015 15:32:06 +0100
+From: Laurent Dufour <ldufour@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <cover.1426528417.git.milosz@adfin.com>
+Subject: Re: [PATCH v3 2/2] powerpc/mm: Tracking vDSO remap
+References: <20150325121118.GA2542@gmail.com> <cover.1427289960.git.ldufour@linux.vnet.ibm.com> <b6ce07f8e1e0d654371aee70bd8eac310456d0df.1427289960.git.ldufour@linux.vnet.ibm.com> <20150325183316.GA9090@gmail.com> <20150325183647.GA9331@gmail.com> <1427317867.6468.87.camel@kernel.crashing.org> <20150326094330.GA15407@gmail.com> <5513E16D.1030101@linux.vnet.ibm.com> <20150326141730.GA23060@gmail.com>
+In-Reply-To: <20150326141730.GA23060@gmail.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Milosz Tanski <milosz@adfin.com>
-Cc: linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20150326115514.aC8IXT8ZN7KXizZH31WEhAOQC_FPqTKt-UPlYIOw2q4@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org, cov@codeaurora.org, criu@openvz.org
+Message-ID: <20150326143206.ujA6N_VYt_imH3WWv6wZZkRHLIf4QUdfiV4n26ukRzM@z>
 
-On Mon, Mar 16, 2015 at 02:27:10PM -0400, Milosz Tanski wrote:
-> This patchset introduces two new syscalls preadv2 and pwritev2. They are the
-> same syscalls as preadv and pwrite but with a flag argument. Additionally,
-> preadv2 implements an extra RWF_NONBLOCK flag. 
+On 26/03/2015 15:17, Ingo Molnar wrote:
+> 
+> * Laurent Dufour <ldufour@linux.vnet.ibm.com> wrote:
+> 
+>>> I argue we should use the right condition to clear vdso_base: if 
+>>> the vDSO gets at least partially unmapped. Otherwise there's 
+>>> little point in the whole patch: either correctly track whether 
+>>> the vDSO is OK, or don't ...
+>>
+>> That's a good option, but it may be hard to achieve in the case the 
+>> vDSO area has been splitted in multiple pieces.
+>>
+>> Not sure there is a right way to handle that, here this is a best 
+>> effort, allowing a process to unmap its vDSO and having the 
+>> sigreturn call done through the stack area (it has to make it 
+>> executable).
+>>
+>> Anyway I'll dig into that, assuming that the vdso_base pointer 
+>> should be clear if a part of the vDSO is moved or unmapped. The 
+>> patch will be larger since I'll have to get the vDSO size which is 
+>> private to the vdso.c file.
+> 
+> At least for munmap() I don't think that's a worry: once unmapped 
+> (even if just partially), vdso_base becomes zero and won't ever be set 
+> again.
+> 
+> So no need to track the zillion pieces, should there be any: Humpty 
+> Dumpty won't be whole again, right?
 
-There was some arugment that we just don't wait and don't have the
-classic unix "blocking" semantics.  Maybe it's time to bite the bullet
-and rename it to RWF_DONTWAIT? (I personally dont really care).
+My idea is to clear vdso_base if at least part of the vdso is unmap.
+But since some part of the vdso may have been moved and unmapped later,
+to be complete, the patch has to handle partial mremap() of the vDSO
+too. Otherwise such a scenario will not be detected:
 
-Second this probably needs to be on top of Al's for-next tree:
+	new_area = mremap(vdso_base + page_size, ....);
+	munmap(new_area,...);
 
-	https://git.kernel.org/cgit/linux/kernel/git/viro/vfs.git/log/?h=for-next
+>>> There's also the question of mprotect(): can users mprotect() the 
+>>> vDSO on PowerPC?
+>>
+>> Yes, mprotect() the vDSO is allowed on PowerPC, as it is on x86, and 
+>> certainly all the other architectures. Furthermore, if it is done on 
+>> a partial part of the vDSO it is splitting the vma...
+> 
+> btw., CRIU's main purpose here is to reconstruct a vDSO that was 
+> originally randomized, but whose address must now be reproduced as-is, 
+> right?
 
-Note that this has a flags field in struct kiocb, so we could just use
-that for the flags.
+You're right, CRIU has to move the vDSO to the same address it has at
+checkpoint time.
 
-Otherwise this version look fine to me, let's get it merged!
+> In that sense detecting the 'good' mremap() as your patch does should 
+> do the trick and is certainly not objectionable IMHO - I was just 
+> wondering whether we could make a perfect job very simply.
 
-Al, are yo ready to pick this up?  I'd hate to miss another merge
-window.
+I'd try to address the perfect job, this may complexify the patch,
+especially because the vdso's size is not recorded in the PowerPC
+mm_context structure. Not sure it is a good idea to extend that structure..
+
+Thanks,
+Laurent.
+
