@@ -1,73 +1,76 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v4 2/2] powerpc/mm: Tracking vDSO remap
-Date: Thu, 26 Mar 2015 19:55:50 +0100
-Message-ID: <20150326185550.GA25547@gmail.com>
-References: <20150326141730.GA23060@gmail.com>
- <cover.1427390952.git.ldufour@linux.vnet.ibm.com>
- <7fdae652993cf88bdd633d65e5a8f81c7ad8a1e3.1427390952.git.ldufour@linux.vnet.ibm.com>
+From: Milosz Tanski <milosz@adfin.com>
+Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache only)
+Date: Thu, 26 Mar 2015 15:12:32 -0400
+Message-ID: <CANP1eJGpgXUv626KQb6kduJgMaOzU5hH9GLGBM-QSVUBagoG8w@mail.gmail.com>
+References: <cover.1426528417.git.milosz@adfin.com>
+	<20150326115514.GA12329@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <7fdae652993cf88bdd633d65e5a8f81c7ad8a1e3.1427390952.git.ldufour@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org, cov@codeaurora.org, criu@openvz.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <owner-linux-aio@kvack.org>
+In-Reply-To: <20150326115514.GA12329@infradead.org>
+Sender: owner-linux-aio@kvack.org
+To: Christoph Hellwig <hch@infradead.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, Linux API <linux-api@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>, Andrew Morton <akpm@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
+On Thu, Mar 26, 2015 at 7:55 AM, Christoph Hellwig <hch@infradead.org> wrote:
+>
+> On Mon, Mar 16, 2015 at 02:27:10PM -0400, Milosz Tanski wrote:
+> > This patchset introduces two new syscalls preadv2 and pwritev2. They are the
+> > same syscalls as preadv and pwrite but with a flag argument. Additionally,
+> > preadv2 implements an extra RWF_NONBLOCK flag.
+>
+> There was some arugment that we just don't wait and don't have the
+> classic unix "blocking" semantics.  Maybe it's time to bite the bullet
+> and rename it to RWF_DONTWAIT? (I personally dont really care).
 
-* Laurent Dufour <ldufour@linux.vnet.ibm.com> wrote:
 
-> +{
-> +	unsigned long vdso_end, vdso_start;
-> +
-> +	if (!mm->context.vdso_base)
-> +		return;
-> +	vdso_start = mm->context.vdso_base;
-> +
-> +#ifdef CONFIG_PPC64
-> +	/* Calling is_32bit_task() implies that we are dealing with the
-> +	 * current process memory. If there is a call path where mm is not
-> +	 * owned by the current task, then we'll have need to store the
-> +	 * vDSO size in the mm->context.
-> +	 */
-> +	BUG_ON(current->mm != mm);
-> +	if (is_32bit_task())
-> +		vdso_end = vdso_start + (vdso32_pages << PAGE_SHIFT);
-> +	else
-> +		vdso_end = vdso_start + (vdso64_pages << PAGE_SHIFT);
-> +#else
-> +	vdso_end = vdso_start + (vdso32_pages << PAGE_SHIFT);
-> +#endif
-> +	vdso_end += (1<<PAGE_SHIFT); /* data page */
-> +
-> +	/* Check if the vDSO is in the range of the remapped area */
-> +	if ((vdso_start <= old_start && old_start < vdso_end) ||
-> +	    (vdso_start < old_end && old_end <= vdso_end)  ||
-> +	    (old_start <= vdso_start && vdso_start < old_end)) {
-> +		/* Update vdso_base if the vDSO is entirely moved. */
-> +		if (old_start == vdso_start && old_end == vdso_end &&
-> +		    (old_end - old_start) == (new_end - new_start))
-> +			mm->context.vdso_base = new_start;
-> +		else
-> +			mm->context.vdso_base = 0;
-> +	}
-> +}
+Sure. It is in line with the MSG_DONTWAIT flag for sendmsg() which
+this whole idea is based on anyways.
 
-Oh my, that really looks awfully complex, as you predicted, and right 
-in every mremap() call.
+>
+>
+> Second this probably needs to be on top of Al's for-next tree:
+>
+>         https://git.kernel.org/cgit/linux/kernel/git/viro/vfs.git/log/?h=for-next
+>
+> Note that this has a flags field in struct kiocb, so we could just use
+> that for the flags.
 
-I'm fine with your original, imperfect, KISS approach. Sorry about 
-this detour ...
 
-Reviewed-by: Ingo Molnar <mingo@kernel.org>
+Okay I started rebasing the patches on-top of that. I did see that
+there is a new flags field "ki_flags". I see that there's already a
+IOCB_EVENTFD flag.
 
-Thanks,
+Did you see you Andres' question about making the flags a enum? I
+usually wouldn't do that, because C++ is stronger when it comes enums,
+you can't combine them then assignment them to an enum without a cast.
+But in the kernel this doesn't matter.
 
-	Ingo
+>
+>
+> Otherwise this version look fine to me, let's get it merged!
+>
+> Al, are yo ready to pick this up?  I'd hate to miss another merge
+> window.
+
+
+Just got back from vacation today, I'll try to get this out before the
+end of the week. I also have to make some adjustments to xfs-tests (to
+push preadv2 into xfs_io).
+
+
+-- 
+Milosz Tanski
+CTO
+16 East 34th Street, 15th floor
+New York, NY 10016
+
+p: 646-253-9055
+e: milosz@adfin.com
 
 --
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
