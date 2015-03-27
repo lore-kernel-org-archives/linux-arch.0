@@ -1,63 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fn.samba.org ([216.83.154.106]:45077 "EHLO mail.samba.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752776AbbC0QjN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Mar 2015 12:39:13 -0400
-Date: Fri, 27 Mar 2015 09:39:08 -0700
-From: Jeremy Allison <jra@samba.org>
-Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache
- only)
-Message-ID: <20150327163908.GB5548@samba2>
-Reply-To: Jeremy Allison <jra@samba.org>
-References: <cover.1426528417.git.milosz@adfin.com>
- <20150326202824.65d03787.akpm@linux-foundation.org>
- <20150327081822.GA28669@infradead.org>
- <20150327013516.8c6788be.akpm@linux-foundation.org>
- <20150327084833.GA7689@infradead.org>
- <20150327020159.eadd0ce1.akpm@linux-foundation.org>
- <20150327155854.GA5548@samba2>
- <20150327093046.53c2769a.akpm@linux-foundation.org>
+Received: from mail-la0-f53.google.com ([209.85.215.53]:33554 "EHLO
+	mail-la0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753454AbbC0Qiu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2015 12:38:50 -0400
+Received: by labto5 with SMTP id to5so74967941lab.0
+        for <linux-arch@vger.kernel.org>; Fri, 27 Mar 2015 09:38:49 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20150327093046.53c2769a.akpm@linux-foundation.org>
+In-Reply-To: <20150327155854.GA5548@samba2>
+References: <cover.1426528417.git.milosz@adfin.com>
+	<20150326202824.65d03787.akpm@linux-foundation.org>
+	<20150327081822.GA28669@infradead.org>
+	<20150327013516.8c6788be.akpm@linux-foundation.org>
+	<20150327084833.GA7689@infradead.org>
+	<20150327020159.eadd0ce1.akpm@linux-foundation.org>
+	<20150327155854.GA5548@samba2>
+Date: Fri, 27 Mar 2015 12:38:48 -0400
+Message-ID: <CANP1eJEjn-N9MRhwfXahLO8E=H60zE-GaF4X2VdaxrBM1_xy3Q@mail.gmail.com>
+Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache only)
+From: Milosz Tanski <milosz@adfin.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jeremy Allison <jra@samba.org>, Christoph Hellwig <hch@infradead.org>, Milosz Tanski <milosz@adfin.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>
-Message-ID: <20150327163908.g0IejMwVoU7eW5-C9Vtt7n2864jf8M0U3jt1B2DGCTU@z>
+To: Jeremy Allison <jra@samba.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Christoph Hellwig <hch@infradead.org>, LKML <linux-kernel@vger.kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, Linux API <linux-api@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>
+Message-ID: <20150327163848.8jJcOFt3nbQNkKs2zj5yfnlSXUs3UrfqtJFDjPxMKm4@z>
 
-On Fri, Mar 27, 2015 at 09:30:46AM -0700, Andrew Morton wrote:
-> 
-> But from an interface perspective the behaviour you're asking for is
-> insane, frankly - if the kernel copied out 8k of data then pread2()
-> should return 8k.  Otherwise there's no way for userspace to know that
-> the 8k copy actually happened and we have just wasted a great pile of
-> CPU doing a pointless memcpy.
+On Fri, Mar 27, 2015 at 11:58 AM, Jeremy Allison <jra@samba.org> wrote:
+> On Fri, Mar 27, 2015 at 02:01:59AM -0700, Andrew Morton wrote:
+>> On Fri, 27 Mar 2015 01:48:33 -0700 Christoph Hellwig <hch@infradead.org> wrote:
+>>
+>> > On Fri, Mar 27, 2015 at 01:35:16AM -0700, Andrew Morton wrote:
+>> > > fincore() doesn't have to be ugly.  Please address the design issues I
+>> > > raised.  How is pread2() useful to the class of applications which
+>> > > cannot proceed until all data is available?
+>> >
+>> > It actually makes them work correctly?  preadv2( ..., DONTWAIT) will
+>> > return -EGAIN, which causes them to bounce to the threadpool where
+>> > they call preadv(...).
+>>
+>> (I assume you mean RWF_NONBLOCK)
+>>
+>> That isn't how pread2() works.  If the leading one or more pages are
+>> uptodate, pread2() will return a partial read.  Now what?  Either the
+>> application reads the same data a second time via the worker thread
+>> (dumb, but it will usually be a rare case)
+>
+> The problem with the above is that we can't tell the difference
+> between pread2() returning a short read because the pages are not
+> in cache, or because someone truncated the file. So we need some
+> way to differentiate this.
+>
+> My preference from userspace would be for pread2() to return
+> EAGAIN if *all* the data requested is not available (where
+> 'all' can be less than the size requested if the file has
+> been truncated in the meantime).
+>
+> So:
+>
+> ret = pread2(fd, buf, size_wanted, RWF_NONBLOCK)
+>
+> if (ret == -1) {
+>         if (errno == EAGAIN) {
+>                 goto threadpool...
+>         }
+>         .. real error..
+> }
+>
+> if (ret == size_wanted) {
+>         .. normal read, file not truncated...
+> }
+>
+> if (ret < size_wanted) {
+>         .. file was truncated..
+> }
+>
+> The thing I want to avoid is the case where
+> ret < size_wanted means only part of the file
+> is in cache.
 
-Why would it do the copy in the first place if we asked (for example)
-for 16k, but only 8k was available ? Just return EAGAIN and have
-done with it.
+I very much like the short read behavior. It lets you overlap some CPU
+work partial data (like TLS and then sticking it network output
+buffer) with waiting for the test of the data (enequed in the thread
+pool).
 
-> I expect that this situation (first part in cache, latter part not in
-> cache) is rare - for reasonably small requests the common cases will be
-> "all cached" and "nothing cached".  So perhaps the best approach here
-> is for samba to add special handling for the short read, to work out
-> the reason for its occurrence.
+Short reads are the current behavior, if you call preadv2 a second
+time around at EOF it'll return 0 instead of EWOULDBLOCK today. I
+actually test for this in the preadv2 test in xfstest here:
+https://github.com/mtanski/xfstests/commit/688db24c292999c81ee17caf2b61fe8cf7bb3cd6#diff-114416ea98ce29dde3b5b3d145afbd2bR81.
 
-We can do that, but as Volker says this is a very hot code path.
+There's one caveat, that it's possible to get EWOULDBLOCK when reading
+at end of file if the file metadata is not paged in.
 
-> I take it from your comments that nobody has actually wired up pread2()
-> into samba yet?  That's a bit disturbing, because if we later want to
-> go and change something like this short-read behaviour, we're screwed -
-> it's a non back-compat userspace-visible change.
+-- 
+Milosz Tanski
+CTO
+16 East 34th Street, 15th floor
+New York, NY 10016
 
-It's been done as a test, so the code exists and has run (and improved
-perforamance as I recall). Not much point commiting it without kernel
-support :-).
-
-> And a note on cosmetics: why are we using EAGAIN here rather than
-> EWOULDBLOCK?  They have the same numerical value, but EWOULDBLOCK is a
-> better name - EAGAIN says "run it again", but that won't work.
-
-Sounds good to me !
+p: 646-253-9055
+e: milosz@adfin.com
