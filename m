@@ -1,59 +1,75 @@
-From: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>
-Subject: Re: [PATCH 0/9] qspinlock stuff -v15
-Date: Fri, 27 Mar 2015 12:10:48 +0530
-Message-ID: <5514FB70.4010600@linux.vnet.ibm.com>
-References: <20150316131613.720617163@infradead.org>
+From: Volker Lendecke <Volker.Lendecke-PS7XAnAlDA+VvDNblw4Uiw@public.gmane.org>
+Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache
+ only)
+Date: Fri, 27 Mar 2015 09:02:51 +0100
+Message-ID: <E1YbPEF-0088HN-S8@intern.SerNet.DE>
+References: <cover.1426528417.git.milosz@adfin.com>
+ <20150326202824.65d03787.akpm@linux-foundation.org>
+ <E1YbN1J-0084qO-3s@intern.SerNet.DE>
+ <20150326230833.4ccfaebb.akpm@linux-foundation.org>
+Reply-To: Volker.Lendecke-PS7XAnAlDA+VvDNblw4Uiw@public.gmane.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20150316131613.720617163@infradead.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Waiman.Long@hp.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, david.vrabel@citrix.com, oleg@redhat.com, scott.norton@hp.com, doug.hatch@hp.com, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, luto@amacapital.net
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20150326230833.4ccfaebb.akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Cc: Milosz Tanski <milosz-B5zB6C1i6pkAvxtiuMwx3w@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-aio-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Mel Gorman <mgorman-l3A5Bk7waGM@public.gmane.org>, Tejun Heo <tj-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Jeff Moyer <jmoyer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Theodore Ts'o <tytso-3s7WtUTddSA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Dave Chinner <david-FqsqvQoI3Ljby3iVrkZq2A@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 03/16/2015 06:46 PM, Peter Zijlstra wrote:
-> Hi Waiman,
->
-> As promised; here is the paravirt stuff I did during the trip to BOS last week.
->
-> All the !paravirt patches are more or less the same as before (the only real
-> change is the copyright lines in the first patch).
->
-> The paravirt stuff is 'simple' and KVM only -- the Xen code was a little more
-> convoluted and I've no real way to test that but it should be stright fwd to
-> make work.
->
-> I ran this using the virtme tool (thanks Andy) on my laptop with a 4x
-> overcommit on vcpus (16 vcpus as compared to the 4 my laptop actually has) and
-> it both booted and survived a hackbench run (perf bench sched messaging -g 20
-> -l 5000).
->
-> So while the paravirt code isn't the most optimal code ever conceived it does work.
->
-> Also, the paravirt patching includes replacing the call with "movb $0, %arg1"
-> for the native case, which should greatly reduce the cost of having
-> CONFIG_PARAVIRT_SPINLOCKS enabled on actual hardware.
->
-> I feel that if someone were to do a Xen patch we can go ahead and merge this
-> stuff (finally!).
->
-> These patches do not implement the paravirt spinlock debug stats currently
-> implemented (separately) by KVM and Xen, but that should not be too hard to do
-> on top and in the 'generic' code -- no reason to duplicate all that.
->
-> Of course; once this lands people can look at improving the paravirt nonsense.
->
+On Thu, Mar 26, 2015 at 11:08:33PM -0700, Andrew Morton wrote:
+> On Fri, 27 Mar 2015 06:41:25 +0100 Volker Lendecke <Volker.Lendecke@s=
+ernet.de> wrote:
+>=20
+> > On Thu, Mar 26, 2015 at 08:28:24PM -0700, Andrew Morton wrote:
+> > > A thing which bugs me about pread2() is that it is specifically
+> > > tailored to applications which are able to use a partial read res=
+ult.=20
+> > > ie, by sending it over the network.
+> >=20
+> > Can you explain what you mean by this? Samba gets a pread
+> > request from a client for some bytes. The client will be
+> > confused when we send less than requested although the file
+> > is long enough to satisfy all.
+>=20
+> Well it was my assumption that samba would be able to do something
+> useful with a partial read - pread() is allowed to return less than r=
+equested.
 
-last time I had reported some hangs in kvm case, and I can confirm that
-the current set of patches works fine.
+No, this is not the case. Maybe my whole understanding of
+pread is wrong: I always thought that it won't return short
+if the file spans the pread range. EINTR nonwithstanding.
 
-Feel free to add
-Tested-by: Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com> #kvm pv
+> 	if (it's all in cache)
 
-As far as performance is concerned (with my 16core +ht machine having
-16vcpu guests [ even w/ , w/o the lfsr hash patchset ]), I do not see
-any significant observations to report, though I understand that we
-could see much more benefit with large number of vcpus because of
-possible reduction in cache bouncing.
+I know I'm repeating myself: We have a race condition here.
+A small one, but it is racy. I've seen loaded systems where
+we spend seconds between becoming re-scheduled. In these
+systems, it will be the norm to block in later reads. And we
+don't have a good way to detect this situation afterwards
+and turn to threads as a precaution next time.
+
+> 		read it all now
+> 	else
+> 		ask a worker thread to read it all
+>=20
+
+> Bear in mind that these operations involve physical IO and large
+> memcpy's.  Yes, a fincore() approach will consume more CPU but the
+> additional overhead will be relatively small.
+
+We have to pay this price for every single chunk. Without
+oplocks we get 10-byte read requests. This is hard to
+swallow for many vendors with small CPUs.
+
+With best regards,
+
+Volker Lendecke
+
+--=20
+SerNet GmbH, Bahnhofsallee 1b, 37081 G=F6ttingen
+phone: +49-551-370000-0, fax: +49-551-370000-9
+AG G=F6ttingen, HRB 2816, GF: Dr. Johannes Loxen
+http://www.sernet.de, mailto:kontakt-3ekOc4rQMZmzQB+pC5nmwQ@public.gmane.org
