@@ -1,49 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:65277 "EHLO radon.swed.at"
+Received: from mail.SerNet.de ([193.175.80.2]:33523 "EHLO mail.SerNet.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751329AbbC0FwO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Mar 2015 01:52:14 -0400
-Message-ID: <5514F004.7030509@nod.at>
-Date: Fri, 27 Mar 2015 06:52:04 +0100
-From: Richard Weinberger <richard@nod.at>
+	id S1753123AbbC0GD6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 27 Mar 2015 02:03:58 -0400
+Date: Fri, 27 Mar 2015 06:41:25 +0100
+From: Volker Lendecke <Volker.Lendecke@SerNet.DE>
+Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache
+ only)
+Reply-To: Volker.Lendecke@SerNet.DE
+References: <cover.1426528417.git.milosz@adfin.com>
+ <20150326202824.65d03787.akpm@linux-foundation.org>
 MIME-Version: 1.0
-Subject: Re: [RFC PATCH 00/11] an introduction of library operating system
- for Linux (LibOS)
-References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>	<551164ED.5000907@nod.at>	<m2twxacw13.wl@sfc.wide.ad.jp>	<55117565.6080002@nod.at>	<m2sicuctb2.wl@sfc.wide.ad.jp>	<55118277.5070909@nod.at>	<m2bnjhcevt.wl@sfc.wide.ad.jp>	<55133BAF.30301@nod.at>	<m2h9t7bubh.wl@wide.ad.jp>	<5514560A.7040707@nod.at>	<87iodnqfp1.fsf@rustcorp.com.au> <CAMuHMdXYa2K8FH48A8_O-TsfduUC2A2WWD_bHhBgznf6FbN1Zw@mail.gmail.com>
-In-Reply-To: <CAMuHMdXYa2K8FH48A8_O-TsfduUC2A2WWD_bHhBgznf6FbN1Zw@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20150326202824.65d03787.akpm@linux-foundation.org>
+Message-ID: <E1YbN1J-0084qO-3s@intern.SerNet.DE>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Rusty Russell <rusty@rustcorp.com.au>
-Cc: Hajime Tazaki <tazaki@wide.ad.jp>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Christoph Lameter <cl@linux.com>, Pekka Enberg <penberg@kernel.org>, David Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Andrew Morton <akpm@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Jeff Dike <jdike@addtoit.com>, mathieu.lacage@gmail.com
-Message-ID: <20150327055204.6ngbwJykJQ3QHyExwe7qqOLR5RvVt_c9FsbZWTEsXTQ@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Milosz Tanski <milosz@adfin.com>, linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>
+Message-ID: <20150327054125.AX2dmJDqNG3Zglrw7c_Ir-xOXL_S207P-MDtpNXI-1M@z>
 
-Am 27.03.2015 um 04:49 schrieb Geert Uytterhoeven:
-> On Fri, Mar 27, 2015 at 4:31 AM, Rusty Russell <rusty@rustcorp.com.au> wrote:
->> Richard Weinberger <richard@nod.at> writes:
->>> This also infers that arch/lib will be broken most of the time as
->>> every time the networking stack references a new symbol it
->>> has to be duplicated into arch/lib.
->>>
->>> But this does not mean that your idea is bad, all I want to say that
->>> I'm not sure whether arch/lib is the right approach.
->>> Maybe Arnd has a better idea.
->>
->> Exactly why I look forward to getting this in-tree.  Jeremy Kerr and I
->> wrote nfsim back in 2005(!) which stubbed around the netfilter
->> infrastructure; with failtest and valgrind it found some nasty bugs.  It
->> was too much hassle to maintain out-of-tree though :(
->>
->> I look forward to a flood of great bugfixes from this work :)
+On Thu, Mar 26, 2015 at 08:28:24PM -0700, Andrew Morton wrote:
+> A thing which bugs me about pread2() is that it is specifically
+> tailored to applications which are able to use a partial read result. 
+> ie, by sending it over the network.
+
+Can you explain what you mean by this? Samba gets a pread
+request from a client for some bytes. The client will be
+confused when we send less than requested although the file
+is long enough to satisfy all.
+
+> And of course fincore could be used by Samba etc to avoid blocking on
+> reads.  It wouldn't perform quite as well as pread2(), but I bet it's
+> good enough.
 > 
-> IIRC, the ability to run UML under valgrind was also one of its key features?
-> And that's not limited to networking.
+> Bottom line: with pread2() there's still a need for fincore(), but with
+> fincore() there probably isn't a need for pread2().
 
-Sadly this feature went never mainline. You needed a rather invading patch
-for both Linux and valgrind.
+fincore would be a second syscall per pread, and it is not
+atomic. I've had discussions with MIPS based vendors who
+are worried about every single syscall. This is the #1
+hottest code path in Samba.
 
-But now with KASan we have a much more powerful feature to find issues.
+> And I'm doubtful about claims that it absolutely has to be non-blocking
+> 100% of the time.  I bet that 99.99% is good enough.  A fincore()
+> option to run mark_page_accessed() against present pages would help
+> with the race-with-reclaim situation.
 
-Thanks,
-//richard
+If you can make sure that after an fincore the pages remain
+in memory for x milliseconds the atomicity concern might go
+away.
+
+Volker
+
+-- 
+SerNet GmbH, Bahnhofsallee 1b, 37081 Göttingen
+phone: +49-551-370000-0, fax: +49-551-370000-9
+AG Göttingen, HRB 2816, GF: Dr. Johannes Loxen
+http://www.sernet.de, mailto:kontakt@sernet.de
