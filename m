@@ -1,100 +1,90 @@
-From: Milosz Tanski <milosz@adfin.com>
-Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache only)
-Date: Thu, 26 Mar 2015 22:29:07 -0400
-Message-ID: <CANP1eJHigCfSE-tT_RUfPBY3pg6G5ygx+CKvKkuwGVYgNtR=jw@mail.gmail.com>
+From: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache
+ only)
+Date: Thu, 26 Mar 2015 20:28:24 -0700
+Message-ID: <20150326202824.65d03787.akpm@linux-foundation.org>
 References: <cover.1426528417.git.milosz@adfin.com>
-	<20150326115514.GA12329@infradead.org>
-	<CANP1eJGpgXUv626KQb6kduJgMaOzU5hH9GLGBM-QSVUBagoG8w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <CANP1eJGpgXUv626KQb6kduJgMaOzU5hH9GLGBM-QSVUBagoG8w@mail.gmail.com>
-Sender: owner-linux-aio@kvack.org
-To: Christoph Hellwig <hch@infradead.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, Linux API <linux-api@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>, Andrew Morton <akpm@linux-foundation.org>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <cover.1426528417.git.milosz-B5zB6C1i6pkAvxtiuMwx3w@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Milosz Tanski <milosz-B5zB6C1i6pkAvxtiuMwx3w@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-aio-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Mel Gorman <mgorman-l3A5Bk7waGM@public.gmane.org>, Volker Lendecke <Volker.Lendecke-3ekOc4rQMZmzQB+pC5nmwQ@public.gmane.org>, Tejun Heo <tj-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Jeff Moyer <jmoyer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Theodore Ts'o <tytso-3s7WtUTddSA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Dave Chinner <david-FqsqvQoI3Ljby3iVrkZq2A@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 26, 2015 at 3:12 PM, Milosz Tanski <milosz@adfin.com> wrote:
-> On Thu, Mar 26, 2015 at 7:55 AM, Christoph Hellwig <hch@infradead.org> wrote:
->>
->> On Mon, Mar 16, 2015 at 02:27:10PM -0400, Milosz Tanski wrote:
->> > This patchset introduces two new syscalls preadv2 and pwritev2. They are the
->> > same syscalls as preadv and pwrite but with a flag argument. Additionally,
->> > preadv2 implements an extra RWF_NONBLOCK flag.
->>
->> There was some arugment that we just don't wait and don't have the
->> classic unix "blocking" semantics.  Maybe it's time to bite the bullet
->> and rename it to RWF_DONTWAIT? (I personally dont really care).
->
->
-> Sure. It is in line with the MSG_DONTWAIT flag for sendmsg() which
-> this whole idea is based on anyways.
+On Mon, 16 Mar 2015 14:27:10 -0400 Milosz Tanski <milosz-B5zB6C1i6pkAvxtiuMwx3w@public.gmane.org> wrote:
 
-Okay, It's RWF_DONTWAIT now. I also split it into two RWF_DONTWAIT for
-the userspace API and IOCB_DONTWAIT that goes into kiocb->ki_flags.
+> This patchset introduces two new syscalls preadv2 and pwritev2. They are the
+> same syscalls as preadv and pwrite but with a flag argument. Additionally,
+> preadv2 implements an extra RWF_NONBLOCK flag. 
 
->
->>
->>
->> Second this probably needs to be on top of Al's for-next tree:
->>
->>         https://git.kernel.org/cgit/linux/kernel/git/viro/vfs.git/log/?h=for-next
->>
->> Note that this has a flags field in struct kiocb, so we could just use
->> that for the flags.
->
->
-> Okay I started rebasing the patches on-top of that. I did see that
-> there is a new flags field "ki_flags". I see that there's already a
-> IOCB_EVENTFD flag.
->
-> Did you see you Andres' question about making the flags a enum? I
-> usually wouldn't do that, because C++ is stronger when it comes enums,
-> you can't combine them then assignment them to an enum without a cast.
-> But in the kernel this doesn't matter.
->
->>
->>
->> Otherwise this version look fine to me, let's get it merged!
->>
->> Al, are yo ready to pick this up?  I'd hate to miss another merge
->> window.
->
->
-> Just got back from vacation today, I'll try to get this out before the
-> end of the week. I also have to make some adjustments to xfs-tests (to
-> push preadv2 into xfs_io).
+I still don't understand why pwritev() exists.  We discussed this last
+time but it seems nothing has changed.  I'm not seeing here an adequate
+description of why it exists nor a justification for its addition.
 
-You'll see the patches and the pull request against  viro/for-next
-branch tomorrow. The rebase was a bit of work since you guys changed a
-fair amount of stuff.
+Also, why are we adding new syscalls instead of using O_NONBLOCK?  I
+think this might have been discussed before, but the changelogs haven't
+been updated to reflect it - please do so.
 
->
->
-> --
-> Milosz Tanski
-> CTO
-> 16 East 34th Street, 15th floor
-> New York, NY 10016
->
-> p: 646-253-9055
-> e: milosz@adfin.com
+> The RWF_NONBLOCK flag in preadv2 introduces an ability to perform a
+> non-blocking read from regular files in buffered IO mode. This works by only
+> for those filesystems that have data in the page cache.
+> 
+> We discussed these changes at this year's LSF/MM summit in Boston. More details
+> on the Samba use case, the numbers, and presentation is available at this link:
+> https://lists.samba.org/archive/samba-technical/2015-March/106290.html
 
-P.S: Sorry for the double email / HTML spam. I'm not a my primary
-computer and apparently gmail randomly forgets that a thread is plain
-text only. Thanks gmail.
+https://drive.google.com/file/d/0B3maCn0jCvYncndGbXJKbGlhejQ/view?usp=sharing
+talks about "sync" but I can't find a description of what this actually
+is.  It appears to perform better than anything else?
 
--- 
-Milosz Tanski
-CTO
-16 East 34th Street, 15th floor
-New York, NY 10016
 
-p: 646-253-9055
-e: milosz@adfin.com
+> Background:
+> 
+>  Using a threadpool to emulate non-blocking operations on regular buffered
+>  files is a common pattern today (samba, libuv, etc...) Applications split the
+>  work between network bound threads (epoll) and IO threadpool. Not every
+>  application can use sendfile syscall (TLS / post-processing).
+> 
+>  This common pattern leads to increased request latency. Latency can be due to
+>  additional synchronization between the threads or fast (cached data) request
+>  stuck behind slow request (large / uncached data).
+> 
+>  The preadv2 syscall with RWF_NONBLOCK lets userspace applications bypass
+>  enqueuing operation in the threadpool if it's already available in the
+>  pagecache.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+A thing which bugs me about pread2() is that it is specifically
+tailored to applications which are able to use a partial read result. 
+ie, by sending it over the network.
+
+But it is not very useful for the class of applications which require
+that the entire read be completed before they can proceed with using
+the data.  Such applications will have to run pread2(), see the short
+result, save away the partial data, perform some IO then fetch the
+remaining data then proceed.  By this time, the original partially read
+data may have fallen out of CPU cache (or we're on a different CPU) and
+the data will need to be fetched into cache a second time.
+
+Such applications would be better served if they were able to query for
+pagecache presence _before_ doing the big copy_to_user(), so they can
+ensure that all the data is in pagecache before copying it in.  ie:
+fincore(), perhaps supported by a synchronous POSIX_FADV_WILLNEED.
+
+And of course fincore could be used by Samba etc to avoid blocking on
+reads.  It wouldn't perform quite as well as pread2(), but I bet it's
+good enough.
+
+Bottom line: with pread2() there's still a need for fincore(), but with
+fincore() there probably isn't a need for pread2().
+
+And (again) we've discussed this before, but the patchset gets resent
+as if nothing had happened.
+
+
+And I'm doubtful about claims that it absolutely has to be non-blocking
+100% of the time.  I bet that 99.99% is good enough.  A fincore()
+option to run mark_page_accessed() against present pages would help
+with the race-with-reclaim situation.
