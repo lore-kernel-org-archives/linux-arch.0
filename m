@@ -1,166 +1,77 @@
-From: Milosz Tanski <milosz@adfin.com>
-Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache only)
-Date: Fri, 27 Mar 2015 11:21:26 -0400
-Message-ID: <CANP1eJEbDusq_Gda35dGKiacC+2tbvb_bQEEHpi6PmgnNoWDFw@mail.gmail.com>
-References: <cover.1426528417.git.milosz@adfin.com>
-	<20150326202824.65d03787.akpm@linux-foundation.org>
+From: Antti Kantee <pooka@iki.fi>
+Subject: Re: [RFC PATCH 00/11] an introduction of library operating system
+ for Linux (LibOS)
+Date: Fri, 27 Mar 2015 15:17:41 +0000
+Message-ID: <55157495.3050208@iki.fi>
+References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>	<551164ED.5000907@nod.at>	<m2twxacw13.wl@sfc.wide.ad.jp>	<55117565.6080002@nod.at>	<m2sicuctb2.wl@sfc.wide.ad.jp>	<55118277.5070909@nod.at>	<m2bnjhcevt.wl@sfc.wide.ad.jp>	<55133BAF.30301@nod.at>	<m <55152137.20405@nod.at>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <owner-linux-aio@kvack.org>
-In-Reply-To: <20150326202824.65d03787.akpm@linux-foundation.org>
-Sender: owner-linux-aio@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, Linux API <linux-api@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <55152137.20405@nod.at>
+Sender: linux-doc-owner@vger.kernel.org
+To: Richard Weinberger <richard@nod.at>, Hajime Tazaki <tazaki@wide.ad.jp>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, cl@linux.com, penberg@kernel.org, rientjes@google.com, iamjoonsoo.kim@lge.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 26, 2015 at 11:28 PM, Andrew Morton
-<akpm@linux-foundation.org> wrote:
-> On Mon, 16 Mar 2015 14:27:10 -0400 Milosz Tanski <milosz@adfin.com> wrote:
->
->> This patchset introduces two new syscalls preadv2 and pwritev2. They are the
->> same syscalls as preadv and pwrite but with a flag argument. Additionally,
->> preadv2 implements an extra RWF_NONBLOCK flag.
->
-> I still don't understand why pwritev() exists.  We discussed this last
-> time but it seems nothing has changed.  I'm not seeing here an adequate
-> description of why it exists nor a justification for its addition.
-
-In the "Forward Looking" section there's a description of why we want
-pwritev2 and what we're doing to do with it in the future. The goal is
-to have two additional flags for those calls RWF_DSYNC and
-RWF_NONBLOCK. As Christop mentioned modern network filesystem
-protocols have per operation sync flags. And there's use cases for
-guaranteeing of write dirtying pages without triggering a writeout.
-
-The consensus from our discussion at LSF fs tack was 1) that both
-preadv and pwritev should have flags to begin with, inline with the
-API syscall design guidelines 2) if we're adding preadv2 we should add
-a matching pwritev2 3) especially that we plan on introducing further
-flags to preadv in the near future.
-
->
-> Also, why are we adding new syscalls instead of using O_NONBLOCK?  I
-> think this might have been discussed before, but the changelogs haven't
-> been updated to reflect it - please do so.
-
-In a much earlier patch series we already had the discussion on why we
-can't use O_NONBLOCK for regular files. It comes down to that it
-breaks some userspace applications. Link for further reference to the
-thread:
-
-https://lkml.org/lkml/2014/9/22/294
-http://thread.gmane.org/gmane.linux.kernel.aio.general/4242
-
-I will include the background in the next patchset.
-
->
->> The RWF_NONBLOCK flag in preadv2 introduces an ability to perform a
->> non-blocking read from regular files in buffered IO mode. This works by only
->> for those filesystems that have data in the page cache.
+On 27/03/15 09:21, Richard Weinberger wrote:
+> Am 27.03.2015 um 07:34 schrieb Hajime Tazaki:
+>>>> it (arch/lib) is a hardware-independent architecture which
+>>>> provides necessary features to the remainder of kernel code,
+>>>> isn't it ?
+>>>
+>>> The stuff in arch/ is the code to glue the kernel to
+>>> a specific piece of hardware.
+>>> Your code does something between. You duplicate kernel core features
+>>> to make a specific piece of code work in userland.
 >>
->> We discussed these changes at this year's LSF/MM summit in Boston. More details
->> on the Samba use case, the numbers, and presentation is available at this link:
->> https://lists.samba.org/archive/samba-technical/2015-March/106290.html
+>> indeed, 'something between' would be an appropriate word.
 >
-> https://drive.google.com/file/d/0B3maCn0jCvYncndGbXJKbGlhejQ/view?usp=sharing
-> talks about "sync" but I can't find a description of what this actually
-> is.  It appears to perform better than anything else?
+> Just an idea popping out of my head...
 
-Sync is the samba mode where we do not use threadpool just service the
-IO request in the network thread. In a single client case if
-everything is in the page cache we are aiming to be as close in
-latency as sync. The reason it isn't is because the threadpool path in
-samba has some additional over head. I did bring it up to the Samba
-folks on their technical mailing list, they can investigate it further
-if they want it.
+Let me try to offer some insight.  I've been working on something 
+similar in mainline NetBSD for almost 8 years now, so in addition to 
+ideas popping into my head I've also tested them out in the real world. 
+  I do think that all operating systems should be structured to support 
+a lib mode, and hopefully integrating Hajime's work into Linux will get 
+on the right track.
 
-It's impractical to use Sync anywhere we have modern SMB3 clients that
-can multiplex > 100 operations over a single connection. Head-of-line
-blocking would kill performance, why we need the threadpool. With the
-threadpool we increase the mean (and tail) latency even if the data is
-handy and we can answer it right away.
-
-The cifs FIO engine that I wrote
-https://github.com/mtanski/fio/commits/samba does not let us multiplex
-multiple SMB3 request. That's not exposed in the samba client
-libraries.
-
+> What about putting libos into tools/testing/ and make it much more generic and framework alike.
+> With more generic I mean that libos could be a stubbing framework for the kernel.
+> i.e. you specify the subsystem you want to test/stub and the framework helps you doing so.
+> A lot of the stubs you're placing in arch/lib could be auto-generated as the
+> vast majority of all kernel methods you stub are no-ops which call only lib_assert(false).
 >
->
->> Background:
->>
->>  Using a threadpool to emulate non-blocking operations on regular buffered
->>  files is a common pattern today (samba, libuv, etc...) Applications split the
->>  work between network bound threads (epoll) and IO threadpool. Not every
->>  application can use sendfile syscall (TLS / post-processing).
->>
->>  This common pattern leads to increased request latency. Latency can be due to
->>  additional synchronization between the threads or fast (cached data) request
->>  stuck behind slow request (large / uncached data).
->>
->>  The preadv2 syscall with RWF_NONBLOCK lets userspace applications bypass
->>  enqueuing operation in the threadpool if it's already available in the
->>  pagecache.
->
-> A thing which bugs me about pread2() is that it is specifically
-> tailored to applications which are able to use a partial read result.
-> ie, by sending it over the network.
->
-> But it is not very useful for the class of applications which require
-> that the entire read be completed before they can proceed with using
-> the data.  Such applications will have to run pread2(), see the short
-> result, save away the partial data, perform some IO then fetch the
-> remaining data then proceed.  By this time, the original partially read
-> data may have fallen out of CPU cache (or we're on a different CPU) and
-> the data will need to be fetched into cache a second time.
->
-> Such applications would be better served if they were able to query for
-> pagecache presence _before_ doing the big copy_to_user(), so they can
-> ensure that all the data is in pagecache before copying it in.  ie:
-> fincore(), perhaps supported by a synchronous POSIX_FADV_WILLNEED.
->
-> And of course fincore could be used by Samba etc to avoid blocking on
-> reads.  It wouldn't perform quite as well as pread2(), but I bet it's
-> good enough.
+> Using that approach only very few kernel core components have to be duplicated and
+> actually implemented by hand.
+> Hence, less maintenance overhead and libos is not broken all the time.
 
-The RWF_NONBLOCK is aimed primarily at network applications. Some of
-them can send a partial result down the network, and then they can
-enqueue the rest in the threadpool. For applications that need the
-whole value, they clearly have to wait to read in the rest, but it's
-behavior that are opting into.
+Stubbing things might be the way to get things initially rolling, but 
+you don't want to aim for that or spend energy on fancy ways to do it. 
+Autogenerating stubs only means that the libos will build, not that it 
+won't be broken.  Figuring out how to make the libos as close to 
+zero-maintenance as possible is indeed the trick.
 
->
-> Bottom line: with pread2() there's still a need for fincore(), but with
-> fincore() there probably isn't a need for pread2().
+What I ended up doing is coining the term "anykernel architecture", 
+which simply means that in addition to the monolithic architecture, the 
+kernel can now be used as in exokernel, microkernel, multikernel, etc. 
+(which are really just different frontends for the lib mode).  I'd 
+recommend diving head-first into the issue and thinking "how can we 
+adjust the kernel architecture to support the libos mode" instead of 
+"how can we tip-toe around the kernel and invent clever ways to stub 
+things".  The anykernel is not really that different from a monolithic 
+kernel once you figure out which bits are important, and support will 
+not require a whole lot of "duplicated" code.  There are practically no 
+stubs in the NetBSD implementation; somewhere between 0 and 20 depending 
+on what you count as a stub.  There is a few thousand lines of 
+"duplicated" code, the majority of which is a direct result of the rump 
+kernel (which is the name of the libos mode) running on top of an 
+external thread scheduler, so that code from the monolithic kernel 
+doesn't apply.
 
-I see fincore() and preadv2() with RWF_NONBLOCK as tangential
-syscalls. You can implement a poor man's RWF_NONBLOCK in userspace
-with fincore() but not all of us are fine with it's racy nature or
-requiring 2 syscalls in the best case.
+Continuous testing is paramount.  Running the kernel as a lib provides 
+an unparalleled method for testing most of the kernel.  It will improve 
+testing capabilities dramatically, and on the flipside it will keep the 
+libos working.  Everyone wins.
 
->
-> And (again) we've discussed this before, but the patchset gets resent
-> as if nothing had happened.
->
->
-> And I'm doubtful about claims that it absolutely has to be non-blocking
-> 100% of the time.  I bet that 99.99% is good enough.  A fincore()
-> option to run mark_page_accessed() against present pages would help
-> with the race-with-reclaim situation.
-
-
-
--- 
-Milosz Tanski
-CTO
-16 East 34th Street, 15th floor
-New York, NY 10016
-
-p: 646-253-9055
-e: milosz@adfin.com
-
---
-To unsubscribe, send a message with 'unsubscribe linux-aio' in
-the body to majordomo@kvack.org.  For more info on Linux AIO,
-see: http://www.kvack.org/aio/
-Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
+   - antti
