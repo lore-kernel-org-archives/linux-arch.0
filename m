@@ -1,83 +1,96 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 0/5] Reenable might_sleep() checks for might_fault()
-Date: Fri, 27 Mar 2015 17:15:36 +0100
-Message-ID: <20150327161536.GH23123@twins.programming.kicks-ass.net>
-References: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
- <20150112151911.4a51f09d@thinkpad-w530>
- <20150209144217.GT5029@twins.programming.kicks-ass.net>
- <20150219154805.2651257d@thinkpad-w530>
- <20150219150723.GF21418@twins.programming.kicks-ass.net>
- <20150327164050.04693bff@thinkpad-w530>
+From: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache
+ only)
+Date: Fri, 27 Mar 2015 09:30:46 -0700
+Message-ID: <20150327093046.53c2769a.akpm@linux-foundation.org>
+References: <cover.1426528417.git.milosz@adfin.com>
+	<20150326202824.65d03787.akpm@linux-foundation.org>
+	<20150327081822.GA28669@infradead.org>
+	<20150327013516.8c6788be.akpm@linux-foundation.org>
+	<20150327084833.GA7689@infradead.org>
+	<20150327020159.eadd0ce1.akpm@linux-foundation.org>
+	<20150327155854.GA5548@samba2>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:42519 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752480AbbC0QPt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2015 12:15:49 -0400
-Content-Disposition: inline
-In-Reply-To: <20150327164050.04693bff@thinkpad-w530>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20150327155854.GA5548@samba2>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Jeremy Allison <jra-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
+Cc: Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Milosz Tanski <milosz-B5zB6C1i6pkAvxtiuMwx3w@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-aio-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Mel Gorman <mgorman-l3A5Bk7waGM@public.gmane.org>, Volker Lendecke <Volker.Lendecke-3ekOc4rQMZmzQB+pC5nmwQ@public.gmane.org>, Tejun Heo <tj-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Jeff Moyer <jmoyer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Theodore Ts'o <tytso-3s7WtUTddSA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Dave Chinner <david-FqsqvQoI3Ljby3iVrkZq2A@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 27, 2015 at 04:40:50PM +0100, David Hildenbrand wrote:
-> e.g. futex_atomic_op_inuser(): easy to fix, add preempt_enable/disable
-> respectively.
+On Fri, 27 Mar 2015 08:58:54 -0700 Jeremy Allison <jra-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org> wrote:
+
+> On Fri, Mar 27, 2015 at 02:01:59AM -0700, Andrew Morton wrote:
+> > On Fri, 27 Mar 2015 01:48:33 -0700 Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org> wrote:
+> > 
+> > > On Fri, Mar 27, 2015 at 01:35:16AM -0700, Andrew Morton wrote:
+> > > > fincore() doesn't have to be ugly.  Please address the design issues I
+> > > > raised.  How is pread2() useful to the class of applications which
+> > > > cannot proceed until all data is available?
+> > > 
+> > > It actually makes them work correctly?  preadv2( ..., DONTWAIT) will
+> > > return -EGAIN, which causes them to bounce to the threadpool where
+> > > they call preadv(...).
+> > 
+> > (I assume you mean RWF_NONBLOCK)
+> > 
+> > That isn't how pread2() works.  If the leading one or more pages are
+> > uptodate, pread2() will return a partial read.  Now what?  Either the
+> > application reads the same data a second time via the worker thread
+> > (dumb, but it will usually be a rare case)
 > 
-> e.g. futex_atomic_cmpxchg_inatomic(): not so easy / nice to fix.
+> The problem with the above is that we can't tell the difference
+> between pread2() returning a short read because the pages are not
+> in cache, or because someone truncated the file. So we need some
+> way to differentiate this.
 > 
-> The "inatomic" variants rely on the caller to make sure that preemption is
-> disabled.
+> My preference from userspace would be for pread2() to return
+> EAGAIN if *all* the data requested is not available (where
+> 'all' can be less than the size requested if the file has
+> been truncated in the meantime).
 > 
->         pagefault_disable();
->         ret = futex_atomic_cmpxchg_inatomic(curval, uaddr, uval, newval);
->         pagefault_enable();
-
-Typically the _inatomic() variants of functions have the exception
-tables required for fixups and can return -EFAULT. In that regard the
-futex_atomic_cmpxchg_inatomic() is consistently named.
-
-In specific the above is taken from cmpxchg_futex_value_locked(), which
-is private to futex.c, so we don't really need to worry about it.
-
-Furthermore, the futex.c helpers that wrap them in pagefault_disable()
-do so because they want to handle the fault themselves. I don't think we
-need to worry about that.
-
-> 1. We could simply add preempt_disable/enable to the calling code. However that
-> results in _all_ futex_atomic_cmpxchg_inatomic() running with disabled
-> preemption, although the implementation doesn't really need it. So there is not
-> really a "decoupling", but to counters to set.
-
-Not really needed, the few callsites where they are not already under a
-lock is where we want to explicitly handle the -EFAULT case ourselves.
-
-> 2. We could add the preempt_disable/enable to the implementations that only
-> need it, leaving calling code as is. However, then the name
-> "futex_atomic_cmpxchg_inatomic" is misleading, because it has nothing to do
-> with "inatomic" anymore.
-
-The _inatomic() naming is because it _can_ be called from atomic
-context, like __copy_to_user_inatomic(). It doesn't mean it has to.
-These functions work just fine outside of atomic regions.
-
-And they still can be used in atomic regions, but now
-pagefault_disable() will also trigger the exception fixup.
-
-I don't think we should worry too much about this.
-
-> The same applies to other "inatomic" functions. I think most of these functions
-> rely on pagefaults to be disabled in order to work correctly, not disabled
-> preemption.
+> ...
 > 
-> Any idea how to fix this or what would be the way to go?
+> The thing I want to avoid is the case where
+> ret < size_wanted means only part of the file
+> is in cache.
 
-I have the feeling you're over thinking this. _inatomic() has exception
-fixups and will return -EFAULT when it cannot do the pagefault in place,
-for whatever reason -- traditionally because of atomic context, now also
-pagefault_disable().
+From my reading of the code, pread2() will return -EAGAIN only when it
+copied zero bytes to userspace.  ie, the very first page wasn't in
+cache.  If pread2() does copy some data to userspace then it will
+return the amount of data copied.  This is traditional read()
+behaviour.
 
-And esp. things like futexes have been extensively used under -rt and
-are known good.
+Maybe there's some other code somewhere in the patch which converts
+that short read into -EAGAIN, dunno - the changelogs don't appear to
+mention it and the manpage update is ambiguous about this.
+
+But from an interface perspective the behaviour you're asking for is
+insane, frankly - if the kernel copied out 8k of data then pread2()
+should return 8k.  Otherwise there's no way for userspace to know that
+the 8k copy actually happened and we have just wasted a great pile of
+CPU doing a pointless memcpy.
+
+I expect that this situation (first part in cache, latter part not in
+cache) is rare - for reasonably small requests the common cases will be
+"all cached" and "nothing cached".  So perhaps the best approach here
+is for samba to add special handling for the short read, to work out
+the reason for its occurrence.
+
+Alternatively we could add another flag to pread2() to select this
+"throw away my data and return -EAGAIN" behaviour.  Presumably
+implemented with an i_size check, but it's gonna be racy.
+
+
+
+I take it from your comments that nobody has actually wired up pread2()
+into samba yet?  That's a bit disturbing, because if we later want to
+go and change something like this short-read behaviour, we're screwed -
+it's a non back-compat userspace-visible change.
+
+
+And a note on cosmetics: why are we using EAGAIN here rather than
+EWOULDBLOCK?  They have the same numerical value, but EWOULDBLOCK is a
+better name - EAGAIN says "run it again", but that won't work.
