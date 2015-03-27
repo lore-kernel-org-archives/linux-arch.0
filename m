@@ -1,77 +1,109 @@
-From: Antti Kantee <pooka@iki.fi>
-Subject: Re: [RFC PATCH 00/11] an introduction of library operating system
- for Linux (LibOS)
-Date: Fri, 27 Mar 2015 15:17:41 +0000
-Message-ID: <55157495.3050208@iki.fi>
-References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>	<551164ED.5000907@nod.at>	<m2twxacw13.wl@sfc.wide.ad.jp>	<55117565.6080002@nod.at>	<m2sicuctb2.wl@sfc.wide.ad.jp>	<55118277.5070909@nod.at>	<m2bnjhcevt.wl@sfc.wide.ad.jp>	<55133BAF.30301@nod.at>	<m <55152137.20405@nod.at>
+From: David Hildenbrand <dahi@linux.vnet.ibm.com>
+Subject: Re: [PATCH v2 0/5] Reenable might_sleep() checks for might_fault()
+Date: Fri, 27 Mar 2015 16:40:50 +0100
+Message-ID: <20150327164050.04693bff@thinkpad-w530>
+References: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
+	<20150112151911.4a51f09d@thinkpad-w530>
+	<20150209144217.GT5029@twins.programming.kicks-ass.net>
+	<20150219154805.2651257d@thinkpad-w530>
+	<20150219150723.GF21418@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <55152137.20405@nod.at>
-Sender: linux-doc-owner@vger.kernel.org
-To: Richard Weinberger <richard@nod.at>, Hajime Tazaki <tazaki@wide.ad.jp>
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, cl@linux.com, penberg@kernel.org, rientjes@google.com, iamjoonsoo.kim@lge.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20150219150723.GF21418@twins.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz
 List-Id: linux-arch.vger.kernel.org
 
-On 27/03/15 09:21, Richard Weinberger wrote:
-> Am 27.03.2015 um 07:34 schrieb Hajime Tazaki:
->>>> it (arch/lib) is a hardware-independent architecture which
->>>> provides necessary features to the remainder of kernel code,
->>>> isn't it ?
->>>
->>> The stuff in arch/ is the code to glue the kernel to
->>> a specific piece of hardware.
->>> Your code does something between. You duplicate kernel core features
->>> to make a specific piece of code work in userland.
->>
->> indeed, 'something between' would be an appropriate word.
->
-> Just an idea popping out of my head...
+> On Thu, Feb 19, 2015 at 03:48:05PM +0100, David Hildenbrand wrote:
+> > Downside is that now that I have to touch all fault handlers, I have to go
+> > through all archs again.
+> 
+> You should be able to borrow from the -rt patches there. They have all
+> that.
+> 
 
-Let me try to offer some insight.  I've been working on something 
-similar in mainline NetBSD for almost 8 years now, so in addition to 
-ideas popping into my head I've also tested them out in the real world. 
-  I do think that all operating systems should be structured to support 
-a lib mode, and hopefully integrating Hajime's work into Linux will get 
-on the right track.
+Hi Peter,
 
-> What about putting libos into tools/testing/ and make it much more generic and framework alike.
-> With more generic I mean that libos could be a stubbing framework for the kernel.
-> i.e. you specify the subsystem you want to test/stub and the framework helps you doing so.
-> A lot of the stubs you're placing in arch/lib could be auto-generated as the
-> vast majority of all kernel methods you stub are no-ops which call only lib_assert(false).
->
-> Using that approach only very few kernel core components have to be duplicated and
-> actually implemented by hand.
-> Hence, less maintenance overhead and libos is not broken all the time.
+I hadn't much time to work on this lately, and it seems like this will be much
+bigger that I expected.
 
-Stubbing things might be the way to get things initially rolling, but 
-you don't want to aim for that or spend energy on fancy ways to do it. 
-Autogenerating stubs only means that the libos will build, not that it 
-won't be broken.  Figuring out how to make the libos as close to 
-zero-maintenance as possible is indeed the trick.
+We have various places in the code that rely on pagefault_disable() to also
+disable preemtpion. Most of these places were ignored on -rt, because not
+supported.
 
-What I ended up doing is coining the term "anykernel architecture", 
-which simply means that in addition to the monolithic architecture, the 
-kernel can now be used as in exokernel, microkernel, multikernel, etc. 
-(which are really just different frontends for the lib mode).  I'd 
-recommend diving head-first into the issue and thinking "how can we 
-adjust the kernel architecture to support the libos mode" instead of 
-"how can we tip-toe around the kernel and invent clever ways to stub 
-things".  The anykernel is not really that different from a monolithic 
-kernel once you figure out which bits are important, and support will 
-not require a whole lot of "duplicated" code.  There are practically no 
-stubs in the NetBSD implementation; somewhere between 0 and 20 depending 
-on what you count as a stub.  There is a few thousand lines of 
-"duplicated" code, the majority of which is a direct result of the rump 
-kernel (which is the name of the libos mode) running on top of an 
-external thread scheduler, so that code from the monolithic kernel 
-doesn't apply.
+One of these places is e.g. powerpc's vmx based usercopy. While these places
+are easy to handle, I was struggeling e.g. with asm-generic futex functions.
 
-Continuous testing is paramount.  Running the kernel as a lib provides 
-an unparalleled method for testing most of the kernel.  It will improve 
-testing capabilities dramatically, and on the flipside it will keep the 
-libos working.  Everyone wins.
+e.g. futex_atomic_op_inuser(): easy to fix, add preempt_enable/disable
+respectively.
 
-   - antti
+e.g. futex_atomic_cmpxchg_inatomic(): not so easy / nice to fix.
+
+The "inatomic" variants rely on the caller to make sure that preemption is
+disabled.
+
+        pagefault_disable();
+        ret = futex_atomic_cmpxchg_inatomic(curval, uaddr, uval, newval);
+        pagefault_enable();
+
+1. We could simply add preempt_disable/enable to the calling code. However that
+results in _all_ futex_atomic_cmpxchg_inatomic() running with disabled
+preemption, although the implementation doesn't really need it. So there is not
+really a "decoupling", but to counters to set.
+
+2. We could add the preempt_disable/enable to the implementations that only
+need it, leaving calling code as is. However, then the name
+"futex_atomic_cmpxchg_inatomic" is misleading, because it has nothing to do
+with "inatomic" anymore.
+
+3. We could move the pagefault_ calls into the implementation and add
+the preempt_ calls to the calling code. Once again, functions that don't rely
+on preemption have it disabled.
+
+The "inatomic" part is now somewhat wrong. Because they can't be called from
+atomic context. They have to be called from a pagefault-disabled
+environment.The preemption part is implementation specific.
+So I wonder if what we really want is something like
+
+/* can be called from atomic context, but it's not required */
+int futex_atomic_cmpxchg_nopfault(...) {
+	int ret;
+
+	pagefault_disable();
+	ret = futex_atomic_cmpxchg_disabled_pfault(...)
+	pagefault_enable();
+	return ret;	
+}
+
+/* has to be called with disabled pagefaults */
+int futex_atomic_cmpxchg_disabled_pfault(...) {
+	int ret;
+
+	/* do architecture specific stuff */
+
+	return ret;	
+}
+
+/* has to be called with disabled pagefaults */
+int futex_atomic_cmpxchg_disabled_pfault(...) {
+	int ret;
+
+	preempt_disable()
+	/* do architecture common stuff as default */
+	preempt_enable()
+
+	return ret;	
+}
+
+The same applies to other "inatomic" functions. I think most of these functions
+rely on pagefaults to be disabled in order to work correctly, not disabled
+preemption.
+
+Any idea how to fix this or what would be the way to go?
+
+Thanks!
+
+David
