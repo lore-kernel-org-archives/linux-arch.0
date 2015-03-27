@@ -1,67 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.SerNet.de ([193.175.80.2]:44683 "EHLO mail.SerNet.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752724AbbC0Jo2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Mar 2015 05:44:28 -0400
-Date: Fri, 27 Mar 2015 10:44:09 +0100
-From: Volker Lendecke <Volker.Lendecke@SerNet.DE>
-Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache
- only)
-Reply-To: Volker.Lendecke@SerNet.DE
-References: <cover.1426528417.git.milosz@adfin.com>
- <20150326202824.65d03787.akpm@linux-foundation.org>
- <20150327081822.GA28669@infradead.org>
- <20150327013516.8c6788be.akpm@linux-foundation.org>
- <20150327084833.GA7689@infradead.org>
- <20150327020159.eadd0ce1.akpm@linux-foundation.org>
+Received: from mail-qc0-f175.google.com ([209.85.216.175]:34159 "EHLO
+	mail-qc0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752537AbbC0Lct (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2015 07:32:49 -0400
+Received: by qcay5 with SMTP id y5so13495990qca.1
+        for <linux-arch@vger.kernel.org>; Fri, 27 Mar 2015 04:32:48 -0700 (PDT)
+Message-ID: <55153FD2.7070304@hurleysoftware.com>
+Date: Fri, 27 Mar 2015 07:32:34 -0400
+From: Peter Hurley <peter@hurleysoftware.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20150327020159.eadd0ce1.akpm@linux-foundation.org>
-Message-ID: <E1YbQoP-008C4F-TU@intern.SerNet.DE>
+Subject: Re: [PATCH v3 10/15] serial: stm32-usart: Add STM32 USART Driver
+References: <1426197361-19290-1-git-send-email-maxime.coquelin@st.com>	<1426197361-19290-11-git-send-email-maxime.coquelin@st.com>	<5511ABAA.2010303@hurleysoftware.com> <CALszF6Ds5b9V35iuSzxnOYDL2sD3psYfYp3b+6a-2Atse6_w3Q@mail.gmail.com>
+In-Reply-To: <CALszF6Ds5b9V35iuSzxnOYDL2sD3psYfYp3b+6a-2Atse6_w3Q@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Christoph Hellwig <hch@infradead.org>, Milosz Tanski <milosz@adfin.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>
-Message-ID: <20150327094409.-yebFmt0Mn0SgfoASeuyAl6-1bK4i-_178O9Ifmlpd8@z>
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Cc: =?UTF-8?B?VXdlIEtsZWluZS1Lw7ZuaWc=?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?B?QW5kcmVhcyBGw6RyYmVy?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
+Message-ID: <20150327113234.xVB2R22ARj9TJ-uzx6TiwGUyGt9VdN770gxbmdoYQpI@z>
 
-On Fri, Mar 27, 2015 at 02:01:59AM -0700, Andrew Morton wrote:
-> On Fri, 27 Mar 2015 01:48:33 -0700 Christoph Hellwig <hch@infradead.org> wrote:
+On 03/26/2015 06:03 PM, Maxime Coquelin wrote:
+>>> +static void stm32_set_termios(struct uart_port *port, struct ktermios *termios,
+>>> +                         struct ktermios *old)
+>>> +{
+>>> +     unsigned int baud;
+>>> +     u32 usardiv, mantissa, fraction;
+>>> +     tcflag_t cflag;
+>>> +     u32 cr1, cr2, cr3;
+>>> +     unsigned long flags;
+>>> +
+>>> +     baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk / 16);
+>>> +     cflag = termios->c_cflag;
+>>> +
+>>> +     spin_lock_irqsave(&port->lock, flags);
+>>> +
+>>> +     /* Stop serial port and reset value */
+>>> +     writel_relaxed(0, port->membase + USART_CR1);
+>>> +
+>>> +     cr1 = USART_CR1_TE | USART_CR1_RE | USART_CR1_UE | USART_CR1_RXNEIE;
+>>> +
+>>> +     if (cflag & CSTOPB)
+>>> +             cr2 = USART_CR2_STOP_2B;
+>>> +
+>>> +     if (cflag & PARENB) {
+>>> +             cr1 |= USART_CR1_PCE;
+>>> +             if ((cflag & CSIZE) == CS8)
+>>> +                     cr1 |= USART_CR1_M;
+>>> +     }
+>>> +
+>>> +     if (cflag & PARODD)
+>>> +             cr1 |= USART_CR1_PS;
+>>> +
+>>> +     if (cflag & CRTSCTS)
+>>> +             cr3 = USART_CR3_RTSE | USART_CR3_CTSE;
+>>
+>> If this means autoflow control, then you need to define
+>> throttle()/unthrottle() methods, otherwise the serial core won't
+>> be able to throttle the remote when input buffers are about
+>> to overflow.
+>>
+>> And you should only enable the autoCTS and let the serial
+>> core enable autoRTS through set_mctrl(TIOCM_RTS).
+>>
+>> Just let me know if you need more info about how to do this.
 > 
-> > On Fri, Mar 27, 2015 at 01:35:16AM -0700, Andrew Morton wrote:
-> > > fincore() doesn't have to be ugly.  Please address the design issues I
-> > > raised.  How is pread2() useful to the class of applications which
-> > > cannot proceed until all data is available?
-> > 
-> > It actually makes them work correctly?  preadv2( ..., DONTWAIT) will
-> > return -EGAIN, which causes them to bounce to the threadpool where
-> > they call preadv(...).
+> Ok, let's see if I have well understood.
 > 
-> (I assume you mean RWF_NONBLOCK)
+> USART_CR3_RTSE should be set/cleared in set_mctrl(), depending on
+> TIOCM_RTS  value.
+> The throttle callback should disable the rx interrupt, and the
+> unthrottle enable it.
+> For CTS, it should be enabled in set_termios() if CRTSCTS, as done here.
 > 
-> That isn't how pread2() works.  If the leading one or more pages are
-> uptodate, pread2() will return a partial read.  Now what?  Either the
-> application reads the same data a second time via the worker thread
-> (dumb, but it will usually be a rare case) or it reads the remainder of
-> the data in the worker thread and splices the data back together. 
-> Which, as I said, will often result in a second load of the initial
-> read result into CPU cache.
+> Am I right?
 
-Sorry, but I don't have a good picture how we are supposed
-to use that. I'm fine with two syscalls, but I need a way to
-tell the kernel to either block or not. Or do you want Samba
-to do repeated pread calls for ever shorter blocks? Right
-now I don't see a way to tell pread to either give me a
-short result or really block. To me that's the core of
-preadv2. I'm perfectly find for a syscall to give me a short
-read instead of a global EWOULDBLOCK. I need a way to tell
-the kernel which behaviour I want.
+Yeah, basically. You also have to indicate to the serial core that you
+require throttle/unthrottle handling in this mode by setting port->status.
 
-Volker
+Your set_termios() method would look like:
 
--- 
-SerNet GmbH, Bahnhofsallee 1b, 37081 Göttingen
-phone: +49-551-370000-0, fax: +49-551-370000-9
-AG Göttingen, HRB 2816, GF: Dr. Johannes Loxen
-http://www.sernet.de, mailto:kontakt@sernet.de
+	port->status &= ~(UPSTAT_AUTOCTS | UPSTAT_AUTORTS);
+	if (cflag & CRTSCTS) {
+		port->status |= UPSTAT_AUTOCTS | UPSTAT_AUTORTS;
+		cr3 = USART_CR3_CTSE;
+	}
+
+and your set_mctrl() method would look like:
+
+	if ((mctrl & TIOCM_RTS) && (port->status & UPSTAT_AUTORTS))
+		stm32_set_bits(port, USART_CR3, USART_CR3_RTSE);
+	else
+		stm32_clear_bits(port, USART_CR3, USART_CR3_RTSE);
+
+The UPSTAT_AUTOCTS doesn't really do anything right now but please
+use it anyway to indicate this driver has that functionality.
+
+Regards,
+Peter Hurley
+
