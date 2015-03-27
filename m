@@ -1,109 +1,79 @@
-From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2 0/5] Reenable might_sleep() checks for might_fault()
-Date: Fri, 27 Mar 2015 16:40:50 +0100
-Message-ID: <20150327164050.04693bff@thinkpad-w530>
-References: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
-	<20150112151911.4a51f09d@thinkpad-w530>
-	<20150209144217.GT5029@twins.programming.kicks-ass.net>
-	<20150219154805.2651257d@thinkpad-w530>
-	<20150219150723.GF21418@twins.programming.kicks-ass.net>
+From: Jeremy Allison <jra@samba.org>
+Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache
+ only)
+Date: Fri, 27 Mar 2015 08:58:54 -0700
+Message-ID: <20150327155854.GA5548@samba2>
+References: <cover.1426528417.git.milosz@adfin.com>
+ <20150326202824.65d03787.akpm@linux-foundation.org>
+ <20150327081822.GA28669@infradead.org>
+ <20150327013516.8c6788be.akpm@linux-foundation.org>
+ <20150327084833.GA7689@infradead.org>
+ <20150327020159.eadd0ce1.akpm@linux-foundation.org>
+Reply-To: Jeremy Allison <jra@samba.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20150219150723.GF21418@twins.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-aio@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20150327020159.eadd0ce1.akpm@linux-foundation.org>
+Sender: owner-linux-aio@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Christoph Hellwig <hch@infradead.org>, Milosz Tanski <milosz@adfin.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>
 List-Id: linux-arch.vger.kernel.org
 
-> On Thu, Feb 19, 2015 at 03:48:05PM +0100, David Hildenbrand wrote:
-> > Downside is that now that I have to touch all fault handlers, I have to go
-> > through all archs again.
+On Fri, Mar 27, 2015 at 02:01:59AM -0700, Andrew Morton wrote:
+> On Fri, 27 Mar 2015 01:48:33 -0700 Christoph Hellwig <hch@infradead.org> wrote:
 > 
-> You should be able to borrow from the -rt patches there. They have all
-> that.
+> > On Fri, Mar 27, 2015 at 01:35:16AM -0700, Andrew Morton wrote:
+> > > fincore() doesn't have to be ugly.  Please address the design issues I
+> > > raised.  How is pread2() useful to the class of applications which
+> > > cannot proceed until all data is available?
+> > 
+> > It actually makes them work correctly?  preadv2( ..., DONTWAIT) will
+> > return -EGAIN, which causes them to bounce to the threadpool where
+> > they call preadv(...).
 > 
+> (I assume you mean RWF_NONBLOCK)
+> 
+> That isn't how pread2() works.  If the leading one or more pages are
+> uptodate, pread2() will return a partial read.  Now what?  Either the
+> application reads the same data a second time via the worker thread
+> (dumb, but it will usually be a rare case)
 
-Hi Peter,
+The problem with the above is that we can't tell the difference
+between pread2() returning a short read because the pages are not
+in cache, or because someone truncated the file. So we need some
+way to differentiate this.
 
-I hadn't much time to work on this lately, and it seems like this will be much
-bigger that I expected.
+My preference from userspace would be for pread2() to return
+EAGAIN if *all* the data requested is not available (where
+'all' can be less than the size requested if the file has
+been truncated in the meantime).
 
-We have various places in the code that rely on pagefault_disable() to also
-disable preemtpion. Most of these places were ignored on -rt, because not
-supported.
+So:
 
-One of these places is e.g. powerpc's vmx based usercopy. While these places
-are easy to handle, I was struggeling e.g. with asm-generic futex functions.
+ret = pread2(fd, buf, size_wanted, RWF_NONBLOCK)
 
-e.g. futex_atomic_op_inuser(): easy to fix, add preempt_enable/disable
-respectively.
-
-e.g. futex_atomic_cmpxchg_inatomic(): not so easy / nice to fix.
-
-The "inatomic" variants rely on the caller to make sure that preemption is
-disabled.
-
-        pagefault_disable();
-        ret = futex_atomic_cmpxchg_inatomic(curval, uaddr, uval, newval);
-        pagefault_enable();
-
-1. We could simply add preempt_disable/enable to the calling code. However that
-results in _all_ futex_atomic_cmpxchg_inatomic() running with disabled
-preemption, although the implementation doesn't really need it. So there is not
-really a "decoupling", but to counters to set.
-
-2. We could add the preempt_disable/enable to the implementations that only
-need it, leaving calling code as is. However, then the name
-"futex_atomic_cmpxchg_inatomic" is misleading, because it has nothing to do
-with "inatomic" anymore.
-
-3. We could move the pagefault_ calls into the implementation and add
-the preempt_ calls to the calling code. Once again, functions that don't rely
-on preemption have it disabled.
-
-The "inatomic" part is now somewhat wrong. Because they can't be called from
-atomic context. They have to be called from a pagefault-disabled
-environment.The preemption part is implementation specific.
-So I wonder if what we really want is something like
-
-/* can be called from atomic context, but it's not required */
-int futex_atomic_cmpxchg_nopfault(...) {
-	int ret;
-
-	pagefault_disable();
-	ret = futex_atomic_cmpxchg_disabled_pfault(...)
-	pagefault_enable();
-	return ret;	
+if (ret == -1) {
+	if (errno == EAGAIN) {
+		goto threadpool...
+	}
+	.. real error..
 }
 
-/* has to be called with disabled pagefaults */
-int futex_atomic_cmpxchg_disabled_pfault(...) {
-	int ret;
-
-	/* do architecture specific stuff */
-
-	return ret;	
+if (ret == size_wanted) {
+	.. normal read, file not truncated...
 }
 
-/* has to be called with disabled pagefaults */
-int futex_atomic_cmpxchg_disabled_pfault(...) {
-	int ret;
-
-	preempt_disable()
-	/* do architecture common stuff as default */
-	preempt_enable()
-
-	return ret;	
+if (ret < size_wanted) {
+	.. file was truncated..
 }
 
-The same applies to other "inatomic" functions. I think most of these functions
-rely on pagefaults to be disabled in order to work correctly, not disabled
-preemption.
+The thing I want to avoid is the case where
+ret < size_wanted means only part of the file
+is in cache.
 
-Any idea how to fix this or what would be the way to go?
-
-Thanks!
-
-David
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
