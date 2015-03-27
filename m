@@ -1,62 +1,166 @@
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [PATCH 0/9] qspinlock stuff -v15
-Date: Fri, 27 Mar 2015 10:07:37 -0400
-Message-ID: <20150327140737.GD22791@l.oracle.com>
-References: <20150316131613.720617163@infradead.org>
- <20150325194739.GK25884@l.oracle.com>
- <20150326202153.GD27490@worktop.programming.kicks-ass.net>
+From: Milosz Tanski <milosz@adfin.com>
+Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache only)
+Date: Fri, 27 Mar 2015 11:21:26 -0400
+Message-ID: <CANP1eJEbDusq_Gda35dGKiacC+2tbvb_bQEEHpi6PmgnNoWDFw@mail.gmail.com>
+References: <cover.1426528417.git.milosz@adfin.com>
+	<20150326202824.65d03787.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20150326202153.GD27490@worktop.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Waiman.Long@hp.com, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, paolo.bonzini@gmail.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, scott.norton@hp.com, doug.hatch@hp.com, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, luto@amacapital.net
+Content-Type: text/plain; charset=UTF-8
+Return-path: <owner-linux-aio@kvack.org>
+In-Reply-To: <20150326202824.65d03787.akpm@linux-foundation.org>
+Sender: owner-linux-aio@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@infradead.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, Linux API <linux-api@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 26, 2015 at 09:21:53PM +0100, Peter Zijlstra wrote:
-> On Wed, Mar 25, 2015 at 03:47:39PM -0400, Konrad Rzeszutek Wilk wrote:
-> > Ah nice. That could be spun out as a seperate patch to optimize the existing
-> > ticket locks I presume.
-> 
-> Yes I suppose we can do something similar for the ticket and patch in
-> the right increment. We'd need to restructure the code a bit, but
-> its not fundamentally impossible.
-> 
-> We could equally apply the head hashing to the current ticket
-> implementation and avoid the current bitmap iteration.
-> 
-> > Now with the old pv ticketlock code an vCPU would only go to sleep once and
-> > be woken up when it was its turn. With this new code it is woken up twice 
-> > (and twice it goes to sleep). With an overcommit scenario this would imply
-> > that we will have at least twice as many VMEXIT as with the previous code.
-> 
-> An astute observation, I had not considered that.
+On Thu, Mar 26, 2015 at 11:28 PM, Andrew Morton
+<akpm@linux-foundation.org> wrote:
+> On Mon, 16 Mar 2015 14:27:10 -0400 Milosz Tanski <milosz@adfin.com> wrote:
+>
+>> This patchset introduces two new syscalls preadv2 and pwritev2. They are the
+>> same syscalls as preadv and pwrite but with a flag argument. Additionally,
+>> preadv2 implements an extra RWF_NONBLOCK flag.
+>
+> I still don't understand why pwritev() exists.  We discussed this last
+> time but it seems nothing has changed.  I'm not seeing here an adequate
+> description of why it exists nor a justification for its addition.
 
-Thank you.
-> 
-> > I presume when you did benchmarking this did not even register? Thought
-> > I wonder if it would if you ran the benchmark for a week or so.
-> 
-> You presume I benchmarked :-) I managed to boot something virt and run
-> hackbench in it. I wouldn't know a representative virt setup if I ran
-> into it.
-> 
-> The thing is, we want this qspinlock for real hardware because its
-> faster and I really want to avoid having to carry two spinlock
-> implementations -- although I suppose that if we really really have to
-> we could.
+In the "Forward Looking" section there's a description of why we want
+pwritev2 and what we're doing to do with it in the future. The goal is
+to have two additional flags for those calls RWF_DSYNC and
+RWF_NONBLOCK. As Christop mentioned modern network filesystem
+protocols have per operation sync flags. And there's use cases for
+guaranteeing of write dirtying pages without triggering a writeout.
 
-In some way you already have that - for virtualized environments where you
-don't have an PV mechanism you just use the byte spinlock - which is good.
+The consensus from our discussion at LSF fs tack was 1) that both
+preadv and pwritev should have flags to begin with, inline with the
+API syscall design guidelines 2) if we're adding preadv2 we should add
+a matching pwritev2 3) especially that we plan on introducing further
+flags to preadv in the near future.
 
-And switching to PV ticketlock implementation after boot.. ugh. I feel your pain.
+>
+> Also, why are we adding new syscalls instead of using O_NONBLOCK?  I
+> think this might have been discussed before, but the changelogs haven't
+> been updated to reflect it - please do so.
 
-What if you used an PV bytelock implemenation? The code you posted already
-'sprays' all the vCPUS to wake up. And that is exactly what you need for PV
-bytelocks - well, you only need to wake up the vCPUS that have gone to sleep
-waiting on an specific 'struct spinlock' and just stash those in an per-cpu
-area. The old Xen spinlock code (Before 3.11?) had this.
+In a much earlier patch series we already had the discussion on why we
+can't use O_NONBLOCK for regular files. It comes down to that it
+breaks some userspace applications. Link for further reference to the
+thread:
 
-Just an idea thought.
+https://lkml.org/lkml/2014/9/22/294
+http://thread.gmane.org/gmane.linux.kernel.aio.general/4242
+
+I will include the background in the next patchset.
+
+>
+>> The RWF_NONBLOCK flag in preadv2 introduces an ability to perform a
+>> non-blocking read from regular files in buffered IO mode. This works by only
+>> for those filesystems that have data in the page cache.
+>>
+>> We discussed these changes at this year's LSF/MM summit in Boston. More details
+>> on the Samba use case, the numbers, and presentation is available at this link:
+>> https://lists.samba.org/archive/samba-technical/2015-March/106290.html
+>
+> https://drive.google.com/file/d/0B3maCn0jCvYncndGbXJKbGlhejQ/view?usp=sharing
+> talks about "sync" but I can't find a description of what this actually
+> is.  It appears to perform better than anything else?
+
+Sync is the samba mode where we do not use threadpool just service the
+IO request in the network thread. In a single client case if
+everything is in the page cache we are aiming to be as close in
+latency as sync. The reason it isn't is because the threadpool path in
+samba has some additional over head. I did bring it up to the Samba
+folks on their technical mailing list, they can investigate it further
+if they want it.
+
+It's impractical to use Sync anywhere we have modern SMB3 clients that
+can multiplex > 100 operations over a single connection. Head-of-line
+blocking would kill performance, why we need the threadpool. With the
+threadpool we increase the mean (and tail) latency even if the data is
+handy and we can answer it right away.
+
+The cifs FIO engine that I wrote
+https://github.com/mtanski/fio/commits/samba does not let us multiplex
+multiple SMB3 request. That's not exposed in the samba client
+libraries.
+
+>
+>
+>> Background:
+>>
+>>  Using a threadpool to emulate non-blocking operations on regular buffered
+>>  files is a common pattern today (samba, libuv, etc...) Applications split the
+>>  work between network bound threads (epoll) and IO threadpool. Not every
+>>  application can use sendfile syscall (TLS / post-processing).
+>>
+>>  This common pattern leads to increased request latency. Latency can be due to
+>>  additional synchronization between the threads or fast (cached data) request
+>>  stuck behind slow request (large / uncached data).
+>>
+>>  The preadv2 syscall with RWF_NONBLOCK lets userspace applications bypass
+>>  enqueuing operation in the threadpool if it's already available in the
+>>  pagecache.
+>
+> A thing which bugs me about pread2() is that it is specifically
+> tailored to applications which are able to use a partial read result.
+> ie, by sending it over the network.
+>
+> But it is not very useful for the class of applications which require
+> that the entire read be completed before they can proceed with using
+> the data.  Such applications will have to run pread2(), see the short
+> result, save away the partial data, perform some IO then fetch the
+> remaining data then proceed.  By this time, the original partially read
+> data may have fallen out of CPU cache (or we're on a different CPU) and
+> the data will need to be fetched into cache a second time.
+>
+> Such applications would be better served if they were able to query for
+> pagecache presence _before_ doing the big copy_to_user(), so they can
+> ensure that all the data is in pagecache before copying it in.  ie:
+> fincore(), perhaps supported by a synchronous POSIX_FADV_WILLNEED.
+>
+> And of course fincore could be used by Samba etc to avoid blocking on
+> reads.  It wouldn't perform quite as well as pread2(), but I bet it's
+> good enough.
+
+The RWF_NONBLOCK is aimed primarily at network applications. Some of
+them can send a partial result down the network, and then they can
+enqueue the rest in the threadpool. For applications that need the
+whole value, they clearly have to wait to read in the rest, but it's
+behavior that are opting into.
+
+>
+> Bottom line: with pread2() there's still a need for fincore(), but with
+> fincore() there probably isn't a need for pread2().
+
+I see fincore() and preadv2() with RWF_NONBLOCK as tangential
+syscalls. You can implement a poor man's RWF_NONBLOCK in userspace
+with fincore() but not all of us are fine with it's racy nature or
+requiring 2 syscalls in the best case.
+
+>
+> And (again) we've discussed this before, but the patchset gets resent
+> as if nothing had happened.
+>
+>
+> And I'm doubtful about claims that it absolutely has to be non-blocking
+> 100% of the time.  I bet that 99.99% is good enough.  A fincore()
+> option to run mark_page_accessed() against present pages would help
+> with the race-with-reclaim situation.
+
+
+
+-- 
+Milosz Tanski
+CTO
+16 East 34th Street, 15th floor
+New York, NY 10016
+
+p: 646-253-9055
+e: milosz@adfin.com
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-aio' in
+the body to majordomo@kvack.org.  For more info on Linux AIO,
+see: http://www.kvack.org/aio/
+Don't email: <a href=mailto:"aart@kvack.org">aart@kvack.org</a>
