@@ -1,67 +1,79 @@
-From: Volker Lendecke <Volker.Lendecke@SerNet.DE>
-Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache
- only)
-Date: Fri, 27 Mar 2015 10:44:09 +0100
-Message-ID: <E1YbQoP-008C4F-TU@intern.SerNet.DE>
-References: <cover.1426528417.git.milosz@adfin.com>
- <20150326202824.65d03787.akpm@linux-foundation.org>
- <20150327081822.GA28669@infradead.org>
- <20150327013516.8c6788be.akpm@linux-foundation.org>
- <20150327084833.GA7689@infradead.org>
- <20150327020159.eadd0ce1.akpm@linux-foundation.org>
-Reply-To: Volker.Lendecke@SerNet.DE
+From: Laurent Dufour <ldufour@linux.vnet.ibm.com>
+Subject: Re: [PATCH v4 2/2] powerpc/mm: Tracking vDSO remap
+Date: Fri, 27 Mar 2015 12:02:13 +0100
+Message-ID: <551538B5.2030507@linux.vnet.ibm.com>
+References: <20150326141730.GA23060@gmail.com> <cover.1427390952.git.ldufour@linux.vnet.ibm.com> <7fdae652993cf88bdd633d65e5a8f81c7ad8a1e3.1427390952.git.ldufour@linux.vnet.ibm.com> <20150326185550.GA25547@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20150327020159.eadd0ce1.akpm@linux-foundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Christoph Hellwig <hch@infradead.org>, Milosz Tanski <milosz@adfin.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:46438 "EHLO
+	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751284AbbC0LCX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2015 07:02:23 -0400
+Received: from /spool/local
+	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <ldufour@linux.vnet.ibm.com>;
+	Fri, 27 Mar 2015 11:02:21 -0000
+In-Reply-To: <20150326185550.GA25547@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org, cov@codeaurora.org, criu@openvz.org
 
-On Fri, Mar 27, 2015 at 02:01:59AM -0700, Andrew Morton wrote:
-> On Fri, 27 Mar 2015 01:48:33 -0700 Christoph Hellwig <hch@infradead.o=
-rg> wrote:
->=20
-> > On Fri, Mar 27, 2015 at 01:35:16AM -0700, Andrew Morton wrote:
-> > > fincore() doesn't have to be ugly.  Please address the design iss=
-ues I
-> > > raised.  How is pread2() useful to the class of applications whic=
-h
-> > > cannot proceed until all data is available?
-> >=20
-> > It actually makes them work correctly?  preadv2( ..., DONTWAIT) wil=
-l
-> > return -EGAIN, which causes them to bounce to the threadpool where
-> > they call preadv(...).
->=20
-> (I assume you mean RWF_NONBLOCK)
->=20
-> That isn't how pread2() works.  If the leading one or more pages are
-> uptodate, pread2() will return a partial read.  Now what?  Either the
-> application reads the same data a second time via the worker thread
-> (dumb, but it will usually be a rare case) or it reads the remainder =
-of
-> the data in the worker thread and splices the data back together.=20
-> Which, as I said, will often result in a second load of the initial
-> read result into CPU cache.
+On 26/03/2015 19:55, Ingo Molnar wrote:
+> 
+> * Laurent Dufour <ldufour@linux.vnet.ibm.com> wrote:
+> 
+>> +{
+>> +	unsigned long vdso_end, vdso_start;
+>> +
+>> +	if (!mm->context.vdso_base)
+>> +		return;
+>> +	vdso_start = mm->context.vdso_base;
+>> +
+>> +#ifdef CONFIG_PPC64
+>> +	/* Calling is_32bit_task() implies that we are dealing with the
+>> +	 * current process memory. If there is a call path where mm is not
+>> +	 * owned by the current task, then we'll have need to store the
+>> +	 * vDSO size in the mm->context.
+>> +	 */
+>> +	BUG_ON(current->mm != mm);
+>> +	if (is_32bit_task())
+>> +		vdso_end = vdso_start + (vdso32_pages << PAGE_SHIFT);
+>> +	else
+>> +		vdso_end = vdso_start + (vdso64_pages << PAGE_SHIFT);
+>> +#else
+>> +	vdso_end = vdso_start + (vdso32_pages << PAGE_SHIFT);
+>> +#endif
+>> +	vdso_end += (1<<PAGE_SHIFT); /* data page */
+>> +
+>> +	/* Check if the vDSO is in the range of the remapped area */
+>> +	if ((vdso_start <= old_start && old_start < vdso_end) ||
+>> +	    (vdso_start < old_end && old_end <= vdso_end)  ||
+>> +	    (old_start <= vdso_start && vdso_start < old_end)) {
+>> +		/* Update vdso_base if the vDSO is entirely moved. */
+>> +		if (old_start == vdso_start && old_end == vdso_end &&
+>> +		    (old_end - old_start) == (new_end - new_start))
+>> +			mm->context.vdso_base = new_start;
+>> +		else
+>> +			mm->context.vdso_base = 0;
+>> +	}
+>> +}
+> 
+> Oh my, that really looks awfully complex, as you predicted, and right 
+> in every mremap() call.
 
-Sorry, but I don't have a good picture how we are supposed
-to use that. I'm fine with two syscalls, but I need a way to
-tell the kernel to either block or not. Or do you want Samba
-to do repeated pread calls for ever shorter blocks? Right
-now I don't see a way to tell pread to either give me a
-short result or really block. To me that's the core of
-preadv2. I'm perfectly find for a syscall to give me a short
-read instead of a global EWOULDBLOCK. I need a way to tell
-the kernel which behaviour I want.
+I do agree, that's awfully complex ;)
 
-Volker
+> I'm fine with your original, imperfect, KISS approach. Sorry about 
+> this detour ...
+>
+> Reviewed-by: Ingo Molnar <mingo@kernel.org>
 
---=20
-SerNet GmbH, Bahnhofsallee 1b, 37081 G=F6ttingen
-phone: +49-551-370000-0, fax: +49-551-370000-9
-AG G=F6ttingen, HRB 2816, GF: Dr. Johannes Loxen
-http://www.sernet.de, mailto:kontakt@sernet.de
+No problem, so let's stay on the v3 version of the patch.
+Thanks for Reviewed-by statement which, I guess, applied to the v3 too.
+Should I resend the v3 ?
+
+Thanks,
+Laurent.
