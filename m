@@ -1,40 +1,56 @@
-From: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache
- only)
-Date: Fri, 27 Mar 2015 02:01:59 -0700
-Message-ID: <20150327020159.eadd0ce1.akpm@linux-foundation.org>
-References: <cover.1426528417.git.milosz@adfin.com>
-	<20150326202824.65d03787.akpm@linux-foundation.org>
-	<20150327081822.GA28669@infradead.org>
-	<20150327013516.8c6788be.akpm@linux-foundation.org>
-	<20150327084833.GA7689@infradead.org>
+From: Richard Weinberger <richard@nod.at>
+Subject: Re: [RFC PATCH 00/11] an introduction of library operating system
+ for Linux (LibOS)
+Date: Fri, 27 Mar 2015 10:21:59 +0100
+Message-ID: <55152137.20405@nod.at>
+References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>	<551164ED.5000907@nod.at>	<m2twxacw13.wl@sfc.wide.ad.jp>	<55117565.6080002@nod.at>	<m2sicuctb2.wl@sfc.wide.ad.jp>	<55118277.5070909@nod.at>	<m2bnjhcevt.wl@sfc.wide.ad.jp>	<55133BAF.30301@nod.at>	<m2h9t7bubh.wl@wide.ad.jp>	<5514560A.7040707@nod.at> <m28uejaqyn.wl@wide.ad.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20150327084833.GA7689-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
-Cc: Milosz Tanski <milosz-B5zB6C1i6pkAvxtiuMwx3w@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-aio-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Mel Gorman <mgorman-l3A5Bk7waGM@public.gmane.org>, Volker Lendecke <Volker.Lendecke-3ekOc4rQMZmzQB+pC5nmwQ@public.gmane.org>, Tejun Heo <tj-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Jeff Moyer <jmoyer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Theodore Ts'o <tytso-3s7WtUTddSA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Dave Chinner <david-FqsqvQoI3Ljby3iVrkZq2A@public.gmane.org>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <m28uejaqyn.wl@wide.ad.jp>
+Sender: owner-linux-mm@kvack.org
+To: Hajime Tazaki <tazaki@wide.ad.jp>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, cl@linux.com, penberg@kernel.org, rientjes@google.com, iamjoonsoo.kim@lge.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, jdike@addtoit.com, rusty@rustcorp.com.au, mathieu.lacage@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 27 Mar 2015 01:48:33 -0700 Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org> wrote:
+Am 27.03.2015 um 07:34 schrieb Hajime Tazaki:
+>>> it (arch/lib) is a hardware-independent architecture which
+>>> provides necessary features to the remainder of kernel code,
+>>> isn't it ?
+>>
+>> The stuff in arch/ is the code to glue the kernel to
+>> a specific piece of hardware.
+>> Your code does something between. You duplicate kernel core features
+>> to make a specific piece of code work in userland.
+>=20
+> indeed, 'something between' would be an appropriate word.
 
-> On Fri, Mar 27, 2015 at 01:35:16AM -0700, Andrew Morton wrote:
-> > fincore() doesn't have to be ugly.  Please address the design issues I
-> > raised.  How is pread2() useful to the class of applications which
-> > cannot proceed until all data is available?
-> 
-> It actually makes them work correctly?  preadv2( ..., DONTWAIT) will
-> return -EGAIN, which causes them to bounce to the threadpool where
-> they call preadv(...).
+Just an idea popping out of my head...
 
-(I assume you mean RWF_NONBLOCK)
+What about putting libos into tools/testing/ and make it much more generi=
+c and framework alike.
+With more generic I mean that libos could be a stubbing framework for the=
+ kernel.
+i.e. you specify the subsystem you want to test/stub and the framework he=
+lps you doing so.
+A lot of the stubs you're placing in arch/lib could be auto-generated as =
+the
+vast majority of all kernel methods you stub are no-ops which call only l=
+ib_assert(false).
 
-That isn't how pread2() works.  If the leading one or more pages are
-uptodate, pread2() will return a partial read.  Now what?  Either the
-application reads the same data a second time via the worker thread
-(dumb, but it will usually be a rare case) or it reads the remainder of
-the data in the worker thread and splices the data back together. 
-Which, as I said, will often result in a second load of the initial
-read result into CPU cache.
+Using that approach only very few kernel core components have to be dupli=
+cated and
+actually implemented by hand.
+Hence, less maintenance overhead and libos is not broken all the time.
+
+What do you think?
+
+Thanks,
+//richard
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
