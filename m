@@ -1,79 +1,281 @@
-From: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-Subject: Re: [PATCH v4 2/2] powerpc/mm: Tracking vDSO remap
-Date: Fri, 27 Mar 2015 12:02:13 +0100
-Message-ID: <551538B5.2030507@linux.vnet.ibm.com>
-References: <20150326141730.GA23060@gmail.com> <cover.1427390952.git.ldufour@linux.vnet.ibm.com> <7fdae652993cf88bdd633d65e5a8f81c7ad8a1e3.1427390952.git.ldufour@linux.vnet.ibm.com> <20150326185550.GA25547@gmail.com>
+From: "tip-bot for Paul E. McKenney" <tipbot@zytor.com>
+Subject: [tip:core/rcu] smpboot:
+  Add common code for notification from dying CPU
+Date: Fri, 27 Mar 2015 04:32:30 -0700
+Message-ID: <tip-8038dad7e888581266c76df15d70ca457a3c5910@git.kernel.org>
+Reply-To: hpa@zytor.com, paulmck@linux.vnet.ibm.com,
+	  linux-api@vger.kernel.org, linux-arch@vger.kernel.org,
+	  tglx@linutronix.de, mingo@kernel.org,
+	  linux-kernel@vger.kernel.org
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:46438 "EHLO
-	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751284AbbC0LCX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2015 07:02:23 -0400
-Received: from /spool/local
-	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <ldufour@linux.vnet.ibm.com>;
-	Fri, 27 Mar 2015 11:02:21 -0000
-In-Reply-To: <20150326185550.GA25547@gmail.com>
+Received: from terminus.zytor.com ([198.137.202.10]:36675 "EHLO
+	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751284AbbC0Lco (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2015 07:32:44 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net, linux-arch@vger.kernel.org, linux-mm@kvack.org, cov@codeaurora.org, criu@openvz.org
+To: linux-tip-commits@vger.kernel.org
+Cc: mingo@kernel.org, tglx@linutronix.de, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, hpa@zytor.com, paulmck@linux.vnet.ibm.com
 
-On 26/03/2015 19:55, Ingo Molnar wrote:
-> 
-> * Laurent Dufour <ldufour@linux.vnet.ibm.com> wrote:
-> 
->> +{
->> +	unsigned long vdso_end, vdso_start;
->> +
->> +	if (!mm->context.vdso_base)
->> +		return;
->> +	vdso_start = mm->context.vdso_base;
->> +
->> +#ifdef CONFIG_PPC64
->> +	/* Calling is_32bit_task() implies that we are dealing with the
->> +	 * current process memory. If there is a call path where mm is not
->> +	 * owned by the current task, then we'll have need to store the
->> +	 * vDSO size in the mm->context.
->> +	 */
->> +	BUG_ON(current->mm != mm);
->> +	if (is_32bit_task())
->> +		vdso_end = vdso_start + (vdso32_pages << PAGE_SHIFT);
->> +	else
->> +		vdso_end = vdso_start + (vdso64_pages << PAGE_SHIFT);
->> +#else
->> +	vdso_end = vdso_start + (vdso32_pages << PAGE_SHIFT);
->> +#endif
->> +	vdso_end += (1<<PAGE_SHIFT); /* data page */
->> +
->> +	/* Check if the vDSO is in the range of the remapped area */
->> +	if ((vdso_start <= old_start && old_start < vdso_end) ||
->> +	    (vdso_start < old_end && old_end <= vdso_end)  ||
->> +	    (old_start <= vdso_start && vdso_start < old_end)) {
->> +		/* Update vdso_base if the vDSO is entirely moved. */
->> +		if (old_start == vdso_start && old_end == vdso_end &&
->> +		    (old_end - old_start) == (new_end - new_start))
->> +			mm->context.vdso_base = new_start;
->> +		else
->> +			mm->context.vdso_base = 0;
->> +	}
->> +}
-> 
-> Oh my, that really looks awfully complex, as you predicted, and right 
-> in every mremap() call.
+Commit-ID:  8038dad7e888581266c76df15d70ca457a3c5910
+Gitweb:     http://git.kernel.org/tip/8038dad7e888581266c76df15d70ca457a3c5910
+Author:     Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+AuthorDate: Wed, 25 Feb 2015 10:34:39 -0800
+Committer:  Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+CommitDate: Wed, 11 Mar 2015 13:20:25 -0700
 
-I do agree, that's awfully complex ;)
+smpboot: Add common code for notification from dying CPU
 
-> I'm fine with your original, imperfect, KISS approach. Sorry about 
-> this detour ...
->
-> Reviewed-by: Ingo Molnar <mingo@kernel.org>
+RCU ignores offlined CPUs, so they cannot safely run RCU read-side code.
+(They -can- use SRCU, but not RCU.)  This means that any use of RCU
+during or after the call to arch_cpu_idle_dead().  Unfortunately,
+commit 2ed53c0d6cc99 added a complete() call, which will contain RCU
+read-side critical sections if there is a task waiting to be awakened.
 
-No problem, so let's stay on the v3 version of the patch.
-Thanks for Reviewed-by statement which, I guess, applied to the v3 too.
-Should I resend the v3 ?
+Which, as it turns out, there almost never is.  In my qemu/KVM testing,
+the to-be-awakened task is not yet asleep more than 99.5% of the time.
+In current mainline, failure is even harder to reproduce, requiring a
+virtualized environment that delays the outgoing CPU by at least three
+jiffies between the time it exits its stop_machine() task at CPU_DYING
+time and the time it calls arch_cpu_idle_dead() from the idle loop.
+However, this problem really can occur, especially in virtualized
+environments, and therefore really does need to be fixed
 
-Thanks,
-Laurent.
+This suggests moving back to the polling loop, but using a much shorter
+wait, with gentle exponential backoff instead of the old 100-millisecond
+wait.  Most of the time, the loop will exit without waiting at all,
+and almost all of the remaining uses will wait only five microseconds.
+If the outgoing CPU is preempted, a loop will wait one jiffy, then
+increase the wait by a factor of 11/10ths, rounding up.  As before, there
+is a five-second timeout.
+
+This commit therefore provides common-code infrastructure to do the
+dying-to-surviving CPU handoff in a safe manner.  This code also
+provides an indication at CPU-online of whether the CPU to be onlined
+previously timed out on offline.  The new cpu_check_up_prepare() function
+returns -EBUSY if this CPU previously took more than five seconds to
+go offline, or -EAGAIN if it has not yet managed to go offline.  The
+rationale for -EAGAIN is that it might still be preempted, so an additional
+wait might well find it correctly offlined.  Architecture-specific code
+can decide how to handle these conditions.  Systems in which CPUs take
+themselves completely offline might respond to an -EBUSY return as if
+it was a zero (success) return.  Systems in which the surviving CPU must
+take some action might take it at this time, or might simply mark the
+other CPU as unusable.
+
+Note that architectures that take the easy way out and simply pass the
+-EBUSY and -EAGAIN upwards will change the sysfs API.
+
+Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Cc: <linux-api@vger.kernel.org>
+Cc: <linux-arch@vger.kernel.org>
+[ paulmck: Fixed state machine for architectures that don't check earlier
+  CPU-hotplug results as suggested by James Hogan. ]
+---
+ include/linux/cpu.h |  12 ++++
+ kernel/smpboot.c    | 156 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 168 insertions(+)
+
+diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+index 4260e85..4744ef9 100644
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -95,6 +95,8 @@ enum {
+ 					* Called on the new cpu, just before
+ 					* enabling interrupts. Must not sleep,
+ 					* must not fail */
++#define CPU_BROKEN		0x000C /* CPU (unsigned)v did not die properly,
++					* perhaps due to preemption. */
+ 
+ /* Used for CPU hotplug events occurring while tasks are frozen due to a suspend
+  * operation in progress
+@@ -271,4 +273,14 @@ void arch_cpu_idle_enter(void);
+ void arch_cpu_idle_exit(void);
+ void arch_cpu_idle_dead(void);
+ 
++DECLARE_PER_CPU(bool, cpu_dead_idle);
++
++int cpu_report_state(int cpu);
++int cpu_check_up_prepare(int cpu);
++void cpu_set_state_online(int cpu);
++#ifdef CONFIG_HOTPLUG_CPU
++bool cpu_wait_death(unsigned int cpu, int seconds);
++bool cpu_report_death(void);
++#endif /* #ifdef CONFIG_HOTPLUG_CPU */
++
+ #endif /* _LINUX_CPU_H_ */
+diff --git a/kernel/smpboot.c b/kernel/smpboot.c
+index 40190f2..c697f73 100644
+--- a/kernel/smpboot.c
++++ b/kernel/smpboot.c
+@@ -4,6 +4,7 @@
+ #include <linux/cpu.h>
+ #include <linux/err.h>
+ #include <linux/smp.h>
++#include <linux/delay.h>
+ #include <linux/init.h>
+ #include <linux/list.h>
+ #include <linux/slab.h>
+@@ -314,3 +315,158 @@ void smpboot_unregister_percpu_thread(struct smp_hotplug_thread *plug_thread)
+ 	put_online_cpus();
+ }
+ EXPORT_SYMBOL_GPL(smpboot_unregister_percpu_thread);
++
++static DEFINE_PER_CPU(atomic_t, cpu_hotplug_state) = ATOMIC_INIT(CPU_POST_DEAD);
++
++/*
++ * Called to poll specified CPU's state, for example, when waiting for
++ * a CPU to come online.
++ */
++int cpu_report_state(int cpu)
++{
++	return atomic_read(&per_cpu(cpu_hotplug_state, cpu));
++}
++
++/*
++ * If CPU has died properly, set its state to CPU_UP_PREPARE and
++ * return success.  Otherwise, return -EBUSY if the CPU died after
++ * cpu_wait_death() timed out.  And yet otherwise again, return -EAGAIN
++ * if cpu_wait_death() timed out and the CPU still hasn't gotten around
++ * to dying.  In the latter two cases, the CPU might not be set up
++ * properly, but it is up to the arch-specific code to decide.
++ * Finally, -EIO indicates an unanticipated problem.
++ *
++ * Note that it is permissible to omit this call entirely, as is
++ * done in architectures that do no CPU-hotplug error checking.
++ */
++int cpu_check_up_prepare(int cpu)
++{
++	if (!IS_ENABLED(CONFIG_HOTPLUG_CPU)) {
++		atomic_set(&per_cpu(cpu_hotplug_state, cpu), CPU_UP_PREPARE);
++		return 0;
++	}
++
++	switch (atomic_read(&per_cpu(cpu_hotplug_state, cpu))) {
++
++	case CPU_POST_DEAD:
++
++		/* The CPU died properly, so just start it up again. */
++		atomic_set(&per_cpu(cpu_hotplug_state, cpu), CPU_UP_PREPARE);
++		return 0;
++
++	case CPU_DEAD_FROZEN:
++
++		/*
++		 * Timeout during CPU death, so let caller know.
++		 * The outgoing CPU completed its processing, but after
++		 * cpu_wait_death() timed out and reported the error. The
++		 * caller is free to proceed, in which case the state
++		 * will be reset properly by cpu_set_state_online().
++		 * Proceeding despite this -EBUSY return makes sense
++		 * for systems where the outgoing CPUs take themselves
++		 * offline, with no post-death manipulation required from
++		 * a surviving CPU.
++		 */
++		return -EBUSY;
++
++	case CPU_BROKEN:
++
++		/*
++		 * The most likely reason we got here is that there was
++		 * a timeout during CPU death, and the outgoing CPU never
++		 * did complete its processing.  This could happen on
++		 * a virtualized system if the outgoing VCPU gets preempted
++		 * for more than five seconds, and the user attempts to
++		 * immediately online that same CPU.  Trying again later
++		 * might return -EBUSY above, hence -EAGAIN.
++		 */
++		return -EAGAIN;
++
++	default:
++
++		/* Should not happen.  Famous last words. */
++		return -EIO;
++	}
++}
++
++/*
++ * Mark the specified CPU online.
++ *
++ * Note that it is permissible to omit this call entirely, as is
++ * done in architectures that do no CPU-hotplug error checking.
++ */
++void cpu_set_state_online(int cpu)
++{
++	(void)atomic_xchg(&per_cpu(cpu_hotplug_state, cpu), CPU_ONLINE);
++}
++
++#ifdef CONFIG_HOTPLUG_CPU
++
++/*
++ * Wait for the specified CPU to exit the idle loop and die.
++ */
++bool cpu_wait_death(unsigned int cpu, int seconds)
++{
++	int jf_left = seconds * HZ;
++	int oldstate;
++	bool ret = true;
++	int sleep_jf = 1;
++
++	might_sleep();
++
++	/* The outgoing CPU will normally get done quite quickly. */
++	if (atomic_read(&per_cpu(cpu_hotplug_state, cpu)) == CPU_DEAD)
++		goto update_state;
++	udelay(5);
++
++	/* But if the outgoing CPU dawdles, wait increasingly long times. */
++	while (atomic_read(&per_cpu(cpu_hotplug_state, cpu)) != CPU_DEAD) {
++		schedule_timeout_uninterruptible(sleep_jf);
++		jf_left -= sleep_jf;
++		if (jf_left <= 0)
++			break;
++		sleep_jf = DIV_ROUND_UP(sleep_jf * 11, 10);
++	}
++update_state:
++	oldstate = atomic_read(&per_cpu(cpu_hotplug_state, cpu));
++	if (oldstate == CPU_DEAD) {
++		/* Outgoing CPU died normally, update state. */
++		smp_mb(); /* atomic_read() before update. */
++		atomic_set(&per_cpu(cpu_hotplug_state, cpu), CPU_POST_DEAD);
++	} else {
++		/* Outgoing CPU still hasn't died, set state accordingly. */
++		if (atomic_cmpxchg(&per_cpu(cpu_hotplug_state, cpu),
++				   oldstate, CPU_BROKEN) != oldstate)
++			goto update_state;
++		ret = false;
++	}
++	return ret;
++}
++
++/*
++ * Called by the outgoing CPU to report its successful death.  Return
++ * false if this report follows the surviving CPU's timing out.
++ *
++ * A separate "CPU_DEAD_FROZEN" is used when the surviving CPU
++ * timed out.  This approach allows architectures to omit calls to
++ * cpu_check_up_prepare() and cpu_set_state_online() without defeating
++ * the next cpu_wait_death()'s polling loop.
++ */
++bool cpu_report_death(void)
++{
++	int oldstate;
++	int newstate;
++	int cpu = smp_processor_id();
++
++	do {
++		oldstate = atomic_read(&per_cpu(cpu_hotplug_state, cpu));
++		if (oldstate != CPU_BROKEN)
++			newstate = CPU_DEAD;
++		else
++			newstate = CPU_DEAD_FROZEN;
++	} while (atomic_cmpxchg(&per_cpu(cpu_hotplug_state, cpu),
++				oldstate, newstate) != oldstate);
++	return newstate == CPU_DEAD;
++}
++
++#endif /* #ifdef CONFIG_HOTPLUG_CPU */
