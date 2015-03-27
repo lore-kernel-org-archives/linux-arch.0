@@ -1,46 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:51956 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.9]:59194 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753201AbbC0IMt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2015 04:12:49 -0400
-Date: Fri, 27 Mar 2015 01:12:43 -0700
+	with ESMTP id S1752793AbbC0ISY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2015 04:18:24 -0400
+Date: Fri, 27 Mar 2015 01:18:22 -0700
 From: Christoph Hellwig <hch@infradead.org>
 Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache
  only)
-Message-ID: <20150327081243.GA26453@infradead.org>
+Message-ID: <20150327081822.GA28669@infradead.org>
 References: <cover.1426528417.git.milosz@adfin.com>
  <20150326202824.65d03787.akpm@linux-foundation.org>
- <E1YbN1J-0084qO-3s@intern.SerNet.DE>
- <20150326230833.4ccfaebb.akpm@linux-foundation.org>
- <E1YbPEF-0088HN-S8@intern.SerNet.DE>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <E1YbPEF-0088HN-S8@intern.SerNet.DE>
+In-Reply-To: <20150326202824.65d03787.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Volker Lendecke <Volker.Lendecke@SerNet.DE>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Milosz Tanski <milosz@adfin.com>, linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>
-Message-ID: <20150327081243.1Bbob-oPNWed0UwDwwaUdJZ8jKnTU62i0-fiHdkAUP0@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Milosz Tanski <milosz@adfin.com>, linux-kernel@vger.kernel.org, Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>
+Message-ID: <20150327081822.m4WvPBQV1PeXRJkd-n5k35WJcyDrN99aje2BYgPdEkE@z>
 
-On Fri, Mar 27, 2015 at 09:02:51AM +0100, Volker Lendecke wrote:
-> No, this is not the case. Maybe my whole understanding of
-> pread is wrong: I always thought that it won't return short
-> if the file spans the pread range. EINTR nonwithstanding.
+On Thu, Mar 26, 2015 at 08:28:24PM -0700, Andrew Morton wrote:
+> I still don't understand why pwritev() exists.  We discussed this last
+> time but it seems nothing has changed.  I'm not seeing here an adequate
+> description of why it exists nor a justification for its addition.
 
-Per Posix it could, however if we do it for regular file reads
-hell will break lose because no one expects it.  So in practice
-it can't.
+pwritev2?  I have patches to support per-I/O O_DSYNC with it, lots of
+folks including Samba and SCSI targets want this because their protocols
+support it.  The patches were posted with earlier versions of Miklos
+series.
 
-> 
-> > 	if (it's all in cache)
-> 
-> I know I'm repeating myself: We have a race condition here.
-> A small one, but it is racy. I've seen loaded systems where
-> we spend seconds between becoming re-scheduled. In these
-> systems, it will be the norm to block in later reads. And we
-> don't have a good way to detect this situation afterwards
-> and turn to threads as a precaution next time.
+It's cleaner to add the two system calls in go when we plan using them
+anyway and have symmetric infrastructure, and I did not hear any
+disagreement with that on LSF.  Did you skip this session?
 
-Exactly.  One that matters in real life, too.  Nevermind that
-preadv2 is a way cleaner interface than fincore.
+> And (again) we've discussed this before, but the patchset gets resent
+> as if nothing had happened.
+
+We had long discussiosn about it both here and at LSF.  We had everyone
+agree and nod there, and only your repeated argument here, so maybe it's
+not Miklos who is disonnected but you?
+
+Also that whole fincore argument is rather hypothetic - it's only been
+pushed in to ugly to live multiplexers that also expose things like
+pfns,  while with preadv2 we have a trivial and easy to use API read to
+merge, and various consumerms just waiting for it.
