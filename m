@@ -1,145 +1,59 @@
-From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2 0/5] Reenable might_sleep() checks for might_fault()
-Date: Fri, 27 Mar 2015 20:05:12 +0100
-Message-ID: <20150327200512.4309377d@thinkpad-w530>
-References: <1418221414-60110-1-git-send-email-dahi@linux.vnet.ibm.com>
-	<20150112151911.4a51f09d@thinkpad-w530>
-	<20150209144217.GT5029@twins.programming.kicks-ass.net>
-	<20150219154805.2651257d@thinkpad-w530>
-	<20150219150723.GF21418@twins.programming.kicks-ass.net>
-	<20150327164050.04693bff@thinkpad-w530>
-	<20150327161536.GH23123@twins.programming.kicks-ass.net>
+From: Richard Weinberger <richard@nod.at>
+Subject: Re: [RFC PATCH 00/11] an introduction of library operating system
+ for Linux (LibOS)
+Date: Sat, 28 Mar 2015 22:17:40 +0100
+Message-ID: <55171A74.1000707@nod.at>
+References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>	<551164ED.5000907@nod.at>	<m2twxacw13.wl@sfc.wide.ad.jp>	<55117565.6080002@nod.at>	<m2sicuctb2.wl@sfc.wide.ad.jp>	<55118277.5070909@nod.at>	<m2bnjhcevt.wl@sfc.wide.ad.jp>	<55133BAF.30301@nod.at>	<m <55152137.20405@nod.at> <55157495.3050208@iki.fi>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:54682 "EHLO
-	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750931AbbC0TFV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Mar 2015 15:05:21 -0400
-Received: from /spool/local
-	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Fri, 27 Mar 2015 19:05:20 -0000
-In-Reply-To: <20150327161536.GH23123@twins.programming.kicks-ass.net>
+Received: from a.ns.miles-group.at ([95.130.255.143]:65275 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752191AbbC1VRr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 28 Mar 2015 17:17:47 -0400
+In-Reply-To: <55157495.3050208@iki.fi>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, tglx@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz
+To: Antti Kantee <pooka@iki.fi>, Hajime Tazaki <tazaki@wide.ad.jp>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, cl@linux.com, penberg@kernel.org, rientjes@google.com, iamjoonsoo.kim@lge.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org
 
-> On Fri, Mar 27, 2015 at 04:40:50PM +0100, David Hildenbrand wrote:
-> > e.g. futex_atomic_op_inuser(): easy to fix, add preempt_enable/disable
-> > respectively.
-> > 
-> > e.g. futex_atomic_cmpxchg_inatomic(): not so easy / nice to fix.
-> > 
-> > The "inatomic" variants rely on the caller to make sure that preemption is
-> > disabled.
-> > 
-> >         pagefault_disable();
-> >         ret = futex_atomic_cmpxchg_inatomic(curval, uaddr, uval, newval);
-> >         pagefault_enable();
+Am 27.03.2015 um 16:17 schrieb Antti Kantee:
+> Let me try to offer some insight.  I've been working on something similar in mainline NetBSD for almost 8 years now, so in addition to ideas popping into my head I've also tested
+> them out in the real world.  I do think that all operating systems should be structured to support a lib mode, and hopefully integrating Hajime's work into Linux will get on the
+> right track.
+
+IMHO it depends on the maintenance burden.
+Linux source changes magnitudes faster than NetBSD's.
+
+>> What about putting libos into tools/testing/ and make it much more generic and framework alike.
+>> With more generic I mean that libos could be a stubbing framework for the kernel.
+>> i.e. you specify the subsystem you want to test/stub and the framework helps you doing so.
+>> A lot of the stubs you're placing in arch/lib could be auto-generated as the
+>> vast majority of all kernel methods you stub are no-ops which call only lib_assert(false).
+>>
+>> Using that approach only very few kernel core components have to be duplicated and
+>> actually implemented by hand.
+>> Hence, less maintenance overhead and libos is not broken all the time.
 > 
-> Typically the _inatomic() variants of functions have the exception
-> tables required for fixups and can return -EFAULT. In that regard the
-> futex_atomic_cmpxchg_inatomic() is consistently named.
+> Stubbing things might be the way to get things initially rolling, but you don't want to aim for that or spend energy on fancy ways to do it. Autogenerating stubs only means that
+> the libos will build, not that it won't be broken.  Figuring out how to make the libos as close to zero-maintenance as possible is indeed the trick.
 > 
-> In specific the above is taken from cmpxchg_futex_value_locked(), which
-> is private to futex.c, so we don't really need to worry about it.
-> 
-> Furthermore, the futex.c helpers that wrap them in pagefault_disable()
-> do so because they want to handle the fault themselves. I don't think we
-> need to worry about that.
+> What I ended up doing is coining the term "anykernel architecture", which simply means that in addition to the monolithic architecture, the kernel can now be used as in exokernel,
+> microkernel, multikernel, etc. (which are really just different frontends for the lib mode).  I'd recommend diving head-first into the issue and thinking "how can we adjust the
+> kernel architecture to support the libos mode" instead of "how can we tip-toe around the kernel and invent clever ways to stub things".  The anykernel is not really that different
+> from a monolithic kernel once you figure out which bits are important, and support will not require a whole lot of "duplicated" code.  There are practically no stubs in the NetBSD
+> implementation; somewhere between 0 and 20 depending on what you count as a stub.  There is a few thousand lines of "duplicated" code, the majority of which is a direct result of
+> the rump kernel (which is the name of the libos mode) running on top of an external thread scheduler, so that code from the monolithic kernel doesn't apply.
 
-I totally agree with pagefault_disable() and that -EFAULT logic to handle that
-themselves. I'm basically only concerned about implicitly used disabled
-preemption.
+I agree that this would be nice but without actual patches I'm very doubtful.
 
-> 
-> > 1. We could simply add preempt_disable/enable to the calling code. However that
-> > results in _all_ futex_atomic_cmpxchg_inatomic() running with disabled
-> > preemption, although the implementation doesn't really need it. So there is not
-> > really a "decoupling", but to counters to set.
-> 
-> Not really needed, the few callsites where they are not already under a
-> lock is where we want to explicitly handle the -EFAULT case ourselves.
-> 
-> > 2. We could add the preempt_disable/enable to the implementations that only
-> > need it, leaving calling code as is. However, then the name
-> > "futex_atomic_cmpxchg_inatomic" is misleading, because it has nothing to do
-> > with "inatomic" anymore.
-> 
-> The _inatomic() naming is because it _can_ be called from atomic
-> context, like __copy_to_user_inatomic(). It doesn't mean it has to.
+> Continuous testing is paramount.  Running the kernel as a lib provides an unparalleled method for testing most of the kernel.  It will improve testing capabilities dramatically,
+> and on the flipside it will keep the libos working.  Everyone wins.
 
-Well, they have to be called from an pagefault_disabled environment (for now
-atomic). Atomic context is optional, with a few exceptions (see next section).
+If it can be done cheap, yes. But our in-kernel tests improved over the years a lot.
+Now have lockdep, KASan, kmemleak, etc. to find *real-world* issues and the need for stubbed testing
+decreases.
 
-> These functions work just fine outside of atomic regions.
-
-To make clear what I'm worried about, have a look at the following code taken
-from include/asm-generic/futex.h):
-
-static inline int
-futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
-                              u32 oldval, u32 newval)
-{
-        u32 val;
-
-        if (unlikely(get_user(val, uaddr) != 0))
-                return -EFAULT;
-
-        if (val == oldval && unlikely(put_user(newval, uaddr) != 0))
-                return -EFAULT;
-
-        *uval = val;
-
-        return 0;
-}
-
-This _has to_ be called from an atomic context. Otherwise the logic is broken
-(mutual exclusion). Not adding a preempt_disable() somewhere in the calling code
-(or the function itself) will not allow this function to work properly. At
-least that's my understanding :)
-
-And we have exactly that case when we drop preempt_disable() from pagefault_disable()
-in the futex code.
-
-My quick hack for this special case would be to add preempt_disable/enable to
-that function body. But maybe I am totally wrong about that given code and
-preemption.
-
-> 
-> And they still can be used in atomic regions, but now
-> pagefault_disable() will also trigger the exception fixup.
-> 
-> I don't think we should worry too much about this.
-> 
-> > The same applies to other "inatomic" functions. I think most of these functions
-> > rely on pagefaults to be disabled in order to work correctly, not disabled
-> > preemption.
-
-I agree. The kmap_atomic stuff is another candidate I identified that needs
-additional preempt_disable().
-
-> > 
-> > Any idea how to fix this or what would be the way to go?
-> 
-> I have the feeling you're over thinking this. _inatomic() has exception
-> fixups and will return -EFAULT when it cannot do the pagefault in place,
-> for whatever reason -- traditionally because of atomic context, now also
-> pagefault_disable().
-
-Haha, well I don't want to break things. And places like the futex code look
-suspicious. That's why I better double check with an expert.
-
-> 
-> And esp. things like futexes have been extensively used under -rt and
-> are known good.
-
-Yes, on most configuration, but maybe not all (archs that use asm-generic code
-+ !CONFIG_SMP + CONFIG_PREEMPT)
-
-Thanks for your reply.
-
-David
+Thanks,
+//richard
