@@ -1,57 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:65278 "EHLO radon.swed.at"
+Received: from a.ns.miles-group.at ([95.130.255.143]:65277 "EHLO radon.swed.at"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752455AbbC2SRI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 29 Mar 2015 14:17:08 -0400
-Message-ID: <5518419E.8010007@nod.at>
-Date: Sun, 29 Mar 2015 20:17:02 +0200
+	id S1751654AbbC3GmT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 30 Mar 2015 02:42:19 -0400
+Message-ID: <5518F030.4040003@nod.at>
+Date: Mon, 30 Mar 2015 08:41:52 +0200
 From: Richard Weinberger <richard@nod.at>
 MIME-Version: 1.0
-Subject: Re: [RFC PATCH 08/11] lib: other kernel glue layer code
-References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp> <1427202642-1716-9-git-send-email-tazaki@sfc.wide.ad.jp>
-In-Reply-To: <1427202642-1716-9-git-send-email-tazaki@sfc.wide.ad.jp>
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Subject: Re: [RFC PATCH 00/11] an introduction of library operating system
+ for Linux (LibOS)
+References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>	<551164ED.5000907@nod.at>	<m2twxacw13.wl@sfc.wide.ad.jp>	<55117565.6080002@nod.at>	<m2sicuctb2.wl@sfc.wide.ad.jp>	<55118277.5070909@nod.at>	<m2bnjhcevt.wl@sfc.wide.ad.jp>	<55133BAF.30301@nod.at>	<m2h9t7bubh.wl@wide.ad.jp>	<5514560A.7040707@nod.at>	<m28uejaqyn.wl@wide.ad.jp>	<55152137.20405@nod.at> <m2sicnalnh.wl@sfc.wide.ad.jp>
+In-Reply-To: <m2sicnalnh.wl@sfc.wide.ad.jp>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hajime Tazaki <tazaki@sfc.wide.ad.jp>, linux-arch@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Jhristoph Lameter <cl@linux.com>, Jekka Enberg <penberg@kernel.org>, Javid Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Jndrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, Jeff Dike <jdike@addtoit.com>, Rusty Russell <rusty@rustcorp.com.au>, Mathieu Lacage <mathieu.lacage@gmail.com>, Christoph Paasch <christoph.paasch@gmail.com>
-Message-ID: <20150329181702.8_yWtl4s3ZTmZ92RdGhlCbyLEjIkKbJA-5z_lSSkNys@z>
+To: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, cl@linux.com, penberg@kernel.org, rientjes@google.com, iamjoonsoo.kim@lge.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, jdike@addtoit.com, rusty@rustcorp.com.au, mathieu.lacage@gmail.com
+Message-ID: <20150330064152.4hpD5LYCxUq-8oGrcgHQO_wk6izxnTsXBZjCtXu8hjg@z>
 
-Am 24.03.2015 um 14:10 schrieb Hajime Tazaki:
-> These files are used to provide the same function calls so that other
-> network stack code keeps untouched.
+Am 29.03.2015 um 17:06 schrieb Hajime Tazaki:
+>> What about putting libos into tools/testing/ and make it much more generic and framework alike.
 > 
-> Signed-off-by: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-> Signed-off-by: Christoph Paasch <christoph.paasch@gmail.com>
-> ---
->  arch/lib/cred.c     |  16 +++
->  arch/lib/dcache.c   |  93 +++++++++++++++
->  arch/lib/filemap.c  |  27 +++++
->  arch/lib/fs.c       | 287 ++++++++++++++++++++++++++++++++++++++++++++
->  arch/lib/glue.c     | 336 ++++++++++++++++++++++++++++++++++++++++++++++++++++
->  arch/lib/inode.c    | 146 +++++++++++++++++++++++
->  arch/lib/modules.c  |  36 ++++++
->  arch/lib/pid.c      |  29 +++++
->  arch/lib/print.c    |  56 +++++++++
->  arch/lib/proc.c     | 164 +++++++++++++++++++++++++
->  arch/lib/random.c   |  53 +++++++++
->  arch/lib/security.c |  45 +++++++
->  arch/lib/seq.c      | 122 +++++++++++++++++++
->  arch/lib/splice.c   |  20 ++++
->  arch/lib/super.c    | 210 ++++++++++++++++++++++++++++++++
->  arch/lib/sysfs.c    |  83 +++++++++++++
->  arch/lib/vmscan.c   |  26 ++++
->  17 files changed, 1749 insertions(+)
+> it's trivial though, libos is not only for the testing (i.e., NUSE).
+> # of course tools/libos or something can be the place.
 
-BTW: Why do you need these stub implementations at all?
-If I read your code correctly it is because you're linking against the whole net/ directory.
-Let's take register_filesystem() again as example. net/socket.c references it in sock_init().
-Maybe it would make sense to split socket.c into two files, net/socket.c and net/sockfs.c.
-Such that you could link only net/socket.o.
-Of course you'd have to convince networking folks first. :D
+Yep, tool/libos is also perfectly fine.
 
-By linking selectively objects files from net/ you could get rid of a lot unneeded stubs.
+>> With more generic I mean that libos could be a stubbing framework for the kernel.
+>> i.e. you specify the subsystem you want to test/stub and the framework helps you doing so.
+>> A lot of the stubs you're placing in arch/lib could be auto-generated as the
+>> vast majority of all kernel methods you stub are no-ops which call only lib_assert(false).
+> 
+> the issue here is the decision between 'no-ops' and
+> 'assert(false)' depends on the context. an auto-generated
+> mechanism needs some hand-written parameters I think.
+
+The questions is, why do you need stubs which are a no-op but not a
+lib_assert(false).
+Sounds more like these dependencies shouldn't be linked at all.
+Same applies to lib_assert(false) stubs. If they must not get
+called from libos better try hard to avoid these dependencies at all.
+
+> one more concern on the out-of-arch-tree design is that how
+> to handle our asm-generic-based header files
+> (arch/lib/include/asm). we have been heavily used
+> 'generic-y' in the Kbuild file to reuse header files.
+
+As noted before, libos is something in between. Maybe the asm-generic
+stuff needs some modifications to make it work for libos.
+
+> OTOH, I agree with you on the point of auto-generated glues
+> (stubs), or trying to avoid glues (reuse the originals as
+> much as possible) as Antti mentioned. that will definitely
+> be reduce the amount of maintenance effort.
+
+BTW: There is something really fishy wrt to your build process.
+I did a ARCH=i386 build due to my regular kernel work and later a ARCH=lib build.
+It seems to pickup old/unrelated object files.
+After a make clean ARCH=i386 it build fine.
+
+---cut---
+  LIB           liblinux-4.0.0-rc5.so
+/usr/lib64/gcc/x86_64-suse-linux/4.8/../../../../x86_64-suse-linux/bin/ld: Warning: size of symbol `skb_copy_bits' changed from 10 in ./kernel/bpf/core.o to 441 in ./net/core/skbuff.o
+./net/ipv6/fib6_rules.o: In function `fib6_rule_lookup':
+/home/rw/linux/net/ipv6/fib6_rules.c:34: multiple definition of `fib6_rule_lookup'
+./net/ipv6/ip6_fib.o:ip6_fib.c:(.text+0xd50): first defined here
+/usr/lib64/gcc/x86_64-suse-linux/4.8/../../../../x86_64-suse-linux/bin/ld: i386 architecture of input file `./kernel/sysctl.o' is incompatible with i386:x86-64 output
+/usr/lib64/gcc/x86_64-suse-linux/4.8/../../../../x86_64-suse-linux/bin/ld: i386 architecture of input file `./kernel/params.o' is incompatible with i386:x86-64 output
+/usr/lib64/gcc/x86_64-suse-linux/4.8/../../../../x86_64-suse-linux/bin/ld: i386 architecture of input file `./kernel/notifier.o' is incompatible with i386:x86-64 output
+/usr/lib64/gcc/x86_64-suse-linux/4.8/../../../../x86_64-suse-linux/bin/ld: i386 architecture of input file `./kernel/time/time.o' is incompatible with i386:x86-64 output
+/usr/lib64/gcc/x86_64-suse-linux/4.8/../../../../x86_64-suse-linux/bin/ld: i386 architecture of input file `./kernel/rcu/update.o' is incompatible with i386:x86-64 output
+/usr/lib64/gcc/x86_64-suse-linux/4.8/../../../../x86_64-suse-linux/bin/ld: i386 architecture of input file `./kernel/locking/mutex.o' is incompatible with i386:x86-64 output
+/usr/lib64/gcc/x86_64-suse-linux/4.8/../../../../x86_64-suse-linux/bin/ld: i386 architecture of input file `./kernel/locking/semaphore.o' is incompatible with i386:x86-64 output
+/usr/lib64/gcc/x86_64-suse-linux/4.8/../../../../x86_64-suse-linux/bin/ld: i386 architecture of input file `./kernel/locking/rwsem.o' is incompatible with i386:x86-64 output
+/usr/lib64/gcc/x86_64-suse-linux/4.8/../../../../x86_64-suse-linux/bin/ld: i386 architecture of input file `./kernel/bpf/core.o' is incompatible with i386:x86-64 output
+[...]
+./kernel/rcu/update.o:(.ref.data+0x20): undefined reference to `trace_event_raw_init'
+collect2: error: ld returned 1 exit status
+arch/lib/Makefile:223: recipe for target 'liblinux-4.0.0-rc5.so' failed
+make: *** [liblinux-4.0.0-rc5.so] Error 1
+---cut---
+
+While we're talking about the build process, how can I cross build libos?
+Say a i386 libos on x86_64. For UML we have use SUBARCH.
+i.e. make linux ARCH=um SUBARCH=i386
 
 Thanks,
 //richard
