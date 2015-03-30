@@ -1,111 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:55159 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753422AbbC3U01 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Mar 2015 16:26:27 -0400
-Date: Mon, 30 Mar 2015 13:26:25 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
+Received: from fn.samba.org ([216.83.154.106]:45856 "EHLO mail.samba.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751029AbbC3Utk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 30 Mar 2015 16:49:40 -0400
+Date: Mon, 30 Mar 2015 13:49:37 -0700
+From: Jeremy Allison <jra@samba.org>
 Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache
  only)
-Message-ID: <20150330132625.52b1250527ca3dcda79e349e@linux-foundation.org>
-In-Reply-To: <20150330073604.GB22229@infradead.org>
-References: <cover.1426528417.git.milosz@adfin.com>
-	<20150326202824.65d03787.akpm@linux-foundation.org>
-	<20150327081822.GA28669@infradead.org>
-	<20150327013516.8c6788be.akpm@linux-foundation.org>
-	<20150327084833.GA7689@infradead.org>
-	<20150327020159.eadd0ce1.akpm@linux-foundation.org>
-	<20150327155854.GA5548@samba2>
-	<20150330073604.GB22229@infradead.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Message-ID: <20150330204937.GB4987@samba2>
+Reply-To: Jeremy Allison <jra@samba.org>
+References: <20150326202824.65d03787.akpm@linux-foundation.org>
+ <20150327081822.GA28669@infradead.org>
+ <20150327013516.8c6788be.akpm@linux-foundation.org>
+ <20150327084833.GA7689@infradead.org>
+ <20150327020159.eadd0ce1.akpm@linux-foundation.org>
+ <20150327155854.GA5548@samba2>
+ <20150330073604.GB22229@infradead.org>
+ <20150330132625.52b1250527ca3dcda79e349e@linux-foundation.org>
+ <20150330203227.GA4987@samba2>
+ <20150330133758.d2788f6de72f121170ff0301@linux-foundation.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20150330133758.d2788f6de72f121170ff0301@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@infradead.org>
-Cc: Jeremy Allison <jra@samba.org>, Milosz Tanski <milosz@adfin.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>
-Message-ID: <20150330202625.F4MsnIKdsW5jQf3Q-jHJY_rBkj0jU4tFOnH14xbwuPw@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Jeremy Allison <jra@samba.org>, Christoph Hellwig <hch@infradead.org>, Milosz Tanski <milosz@adfin.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-aio@kvack.org, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, linux-api@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>
+Message-ID: <20150330204937.0sBPXaujZmXW0FzHWuYURL4bMLI6-Bo9qz9XmdXGfYU@z>
 
-On Mon, 30 Mar 2015 00:36:04 -0700 Christoph Hellwig <hch@infradead.org> wrote:
-
-> On Fri, Mar 27, 2015 at 08:58:54AM -0700, Jeremy Allison wrote:
-> > The problem with the above is that we can't tell the difference
-> > between pread2() returning a short read because the pages are not
-> > in cache, or because someone truncated the file. So we need some
-> > way to differentiate this.
+On Mon, Mar 30, 2015 at 01:37:58PM -0700, Andrew Morton wrote:
+> On Mon, 30 Mar 2015 13:32:27 -0700 Jeremy Allison <jra@samba.org> wrote:
 > 
-> Is a race vs truncate really that time critical that you can't
-> wait for the thread pool to do the second read to notice it?
+> > On Mon, Mar 30, 2015 at 01:26:25PM -0700, Andrew Morton wrote:
+> > > 
+> > > cons:
+> > > 
+> > > d) fincore() is more expensive
+> > > 
+> > > e) fincore() will very occasionally block
+> > 
+> > The above is the killer for Samba. If fincore
+> > returns true but when we schedule the pread
+> > we block, we're hosed.
+> > 
+> > Once we block, we're done serving clients on the main
+> > thread until this returns. That can cause unpredictable
+> > response times which can cause client timeouts.
+> > 
+> > A fincore+pread solution that blocks is simply unsafe
+> > to use for us. We'll have to stay with the threadpool :-(.
 > 
-> > My preference from userspace would be for pread2() to return
-> > EAGAIN if *all* the data requested is not available (where
-> > 'all' can be less than the size requested if the file has
-> > been truncated in the meantime).
+> Finally.  Thanks ;)
 > 
-> That is easily implementable, but I can see that for example web apps
-> would be happy to get as much as possible.  So if Samba can be ok
-> with short reads and only detecting the truncated case in the slow
-> path that would make life simpler.  Otherwise we might indeed need two
-> flags.
+> This implies that the samba main thread also has to avoid any memory
+> allocations both direct and within syscall and pagefault - those will
+> occasionally exhibit similar worse-case latency. Is this done now?
 
-The problem is that many applications (including samba!) want
-all-or-nothing behaviour, and preadv2() cannot provide it.  By the time
-preadv2() discovers a not-present page, it has already copied bulk data
-out to userspace.
-
-To fix this, preadv2() would need to take two passes across the pages,
-pinning them in between and somehow blocking out truncate.  That's a
-big change.
-
-With the current preadv2(), applications would have to do
-
-	nr_read = preadv2(..., offset, len, ...);
-	if (nr_read == len)
-		process data;
-	else
-		punt(offset + nr_read, len - nr_read);
-
-and the worker thread will later have to splice together the initial
-data and the later-arriving data, probably on another CPU, probably
-after the initial data has gone cache-cold.
-
-A cleaner solution is
-
-	if (fincore(fd, NULL, offset, len) == len) {
-		preadv(..., offset, len);
-		process data;
-	} else {
-		punt(offset, len);
-	}
-
-This way all the data gets copied in a single hit and is cache-hot when
-userspace processes it.
-
-Comparing fincore()+pread() to preadv2():
-
-pros:
-
-a) fincore() may be used to provide both all-or-nothing and
-   part-read-ok behaviour cleanly and with optimum cache behaviour.
-
-b) fincore() doesn't add overhead, complexity and stack depth to
-   core pagecache read() code.  Nor does it expand VFS data structures.
-
-c) with a non-NULL second argument, fincore provides the
-   mincore()-style page map.
-
-cons:
-
-d) fincore() is more expensive
-
-e) fincore() will very occasionally block
-
-
-Tradeoffs are involved.  To decide on the best path we should examine
-d).  I expect that the overhead will be significant for small reads but
-not significant for medium and large reads.  Needs quantifying.
-
-And I don't believe that e) will be a problem in the real world.  It's
-a significant increase in worst-case latency and a negligible increase
-in average latency.  I've asked at least three times for someone to
-explain why this is unacceptable and no explanation has been provided.
+We don't do anything special around allocations in syscall.
+For aio read we do talloc (internal memory allocator) the
+return chunk before going into the pthread pread, so I
+suppose this could block. Haven't seen this as a reported
+problem though. I suppose you can say "well exactly the
+same thing is true of fincore()" :-).
