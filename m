@@ -1,70 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:57691 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752383AbbC3Wuf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Mar 2015 18:50:35 -0400
-Date: Mon, 30 Mar 2015 15:50:33 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache
- only)
-Message-ID: <20150330155033.2cdc8d9a4a2c4ecf6a9ad154@linux-foundation.org>
-In-Reply-To: <CANP1eJH4BcZ0vgZ6pZdKOd4orEzfKUqjpKXb3m=WMy0mbK+PFA@mail.gmail.com>
+Received: from mail-la0-f49.google.com ([209.85.215.49]:34123 "EHLO
+	mail-la0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751933AbbC3XGr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Mar 2015 19:06:47 -0400
+Received: by lagg8 with SMTP id g8so198959lag.1
+        for <linux-arch@vger.kernel.org>; Mon, 30 Mar 2015 16:06:45 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <20150330155700.92f4c8a0bf13418aaf01ae04@linux-foundation.org>
 References: <cover.1426528417.git.milosz@adfin.com>
 	<20150326202824.65d03787.akpm@linux-foundation.org>
-	<CANP1eJEbDusq_Gda35dGKiacC+2tbvb_bQEEHpi6PmgnNoWDFw@mail.gmail.com>
-	<20150327100411.6823b9d7.akpm@linux-foundation.org>
-	<20150330074020.GC22229@infradead.org>
-	<20150330115414.f7900c7062fe6370cb2aea8d@linux-foundation.org>
-	<CANP1eJH4BcZ0vgZ6pZdKOd4orEzfKUqjpKXb3m=WMy0mbK+PFA@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+	<20150327081822.GA28669@infradead.org>
+	<20150327013516.8c6788be.akpm@linux-foundation.org>
+	<20150327084833.GA7689@infradead.org>
+	<20150327020159.eadd0ce1.akpm@linux-foundation.org>
+	<20150327155854.GA5548@samba2>
+	<20150330073604.GB22229@infradead.org>
+	<20150330132625.52b1250527ca3dcda79e349e@linux-foundation.org>
+	<20150330203227.GA4987@samba2>
+	<CANP1eJH5g0oWaLO0nD7XAcAO-rFHNTGUopF1aPLEifAbPnPOKQ@mail.gmail.com>
+	<20150330155700.92f4c8a0bf13418aaf01ae04@linux-foundation.org>
+Date: Mon, 30 Mar 2015 19:06:45 -0400
+Message-ID: <CANP1eJEjj-kGsMUi_YUZqdPC3JH0GWNAKvter2RM0DfeitWSbg@mail.gmail.com>
+Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache only)
+From: Milosz Tanski <milosz@adfin.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Milosz Tanski <milosz@adfin.com>
-Cc: Christoph Hellwig <hch@infradead.org>, LKML <linux-kernel@vger.kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, Linux API <linux-api@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>
-Message-ID: <20150330225033.thIuyJE22XSE-VjedZc9Y5ZjtTblq23ZdDr3Atpd6WY@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Jeremy Allison <jra@samba.org>, Christoph Hellwig <hch@infradead.org>, LKML <linux-kernel@vger.kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "linux-aio@kvack.org" <linux-aio@kvack.org>, Mel Gorman <mgorman@suse.de>, Volker Lendecke <Volker.Lendecke@sernet.de>, Tejun Heo <tj@kernel.org>, Jeff Moyer <jmoyer@redhat.com>, Theodore Ts'o <tytso@mit.edu>, Al Viro <viro@zeniv.linux.org.uk>, Linux API <linux-api@vger.kernel.org>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-arch@vger.kernel.org, Dave Chinner <david@fromorbit.com>
+Message-ID: <20150330230645.FLMWGSJXfbP0sQtiVurrFweV_KCdUohAAWRpCz0RbsM@z>
 
-On Mon, 30 Mar 2015 18:40:16 -0400 Milosz Tanski <milosz@adfin.com> wrote:
+On Mon, Mar 30, 2015 at 6:57 PM, Andrew Morton
+<akpm@linux-foundation.org> wrote:
+> On Mon, 30 Mar 2015 18:49:06 -0400 Milosz Tanski <milosz@adfin.com> wrote:
+>
+>> > A fincore+pread solution that blocks is simply unsafe
+>> > to use for us. We'll have to stay with the threadpool :-(.
+>>
+>> We're getting data from a network filesystem Ceph in our case, but it
+>> could be pNFS. In many cases those filesystems have some kind
+>> hierarchy and it's not uncommon for us to se requests that take 20 to
+>> 25 milliseconds to complete. In this case the miss becomes very
+>> expensive. And it's not just that one requests experiences the slow
+>> down all the request being serviced by that (single) epoll thread
+>> experience head-of-line blocking because of one stalled request.
+>>
+>> 10K request a second is a common load for many web services / video
+>> servers servings chunks of data. If we experience one miss a second,
+>> that 25 million stall will impact 250 other requests (all of them will
+>> have a 25ms latency tacked on).
+>
+> I'd expect a fincore() which doesn't do SetPageReferenced() to be
+> orders of magnitude better than this.  A fincore() which does use
+> SetPageReferenced() will be in the "basically never happens" region -
+> it would take massive and artificial memory stress to trigger.
 
-> On Mon, Mar 30, 2015 at 2:54 PM, Andrew Morton
-> <akpm@linux-foundation.org> wrote:
-> > On Mon, 30 Mar 2015 00:40:20 -0700 Christoph Hellwig <hch@infradead.org> wrote:
-> >
-> >> On Fri, Mar 27, 2015 at 10:04:11AM -0700, Andrew Morton wrote:
-> >> > mm...  I don't think we should be adding placeholders to the kernel API
-> >> > to support code which hasn't been written, tested, reviewed, merged,
-> >> > etc.  It's possible none of this will ever happen and we end up with a
-> >> > syscall nobody needs or uses.  Plus it's always possible that during
-> >> > this development we decide the pwrite2() interface needs alteration but
-> >> > it's too late.
-> >> >
-> >> > What would be the downside of deferring pwrite2() until it's all
-> >> > implemented?
-> >>
-> >> It _is_ implemented.  I just decided to submit it separately as Miklos
-> >> already has to deal with enough bikeshedding for his feature that I
-> >> don't want to put the burden of dealing with the BS for the one I wrote
-> >> on him.
-> >
-> > afacit the only difference between this pwritev2() and the existing
-> > pwritev() is that pwritev2() interprets pos==-1 as "current position",
-> > which duplicates writev()?
-> >
-> > Unless I've missed something, there's no point in merging this
-> > pwritev2() and it would be better to separate this syscall out into a
-> > pwritev2() patchset which can be considered and merged separately.  For
-> > the reasons described above.
-> >
-> 
-> At the LSF/MM session, the agreement form the active participants
-> (James Bottomley, Ted Tso, Christoph, and I forget the last guy's
-> name) that we should ship both syscalls in the first patch.
+I'm just responding to the upper bound you put out in an email a few
+back of 0.0001% miss. And, people run web caches (like Apache Traffic
+Server) at much higher rates than that.
 
-I was over in the mm session and probably wouldn't have objected either
-because because you can't sit down, think, carefully inspect code and
-evaluate arguments in such a context.
+-- 
+Milosz Tanski
+CTO
+16 East 34th Street, 15th floor
+New York, NY 10016
 
-I've explained my reasoning.  If there's something wrong with that
-reasoning or if there are contradictory reasons which I'm not aware of
-then let's hear them!
+p: 646-253-9055
+e: milosz@adfin.com
