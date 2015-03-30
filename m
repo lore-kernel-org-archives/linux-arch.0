@@ -1,39 +1,50 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH 0/9] qspinlock stuff -v15
-Date: Mon, 30 Mar 2015 12:43:39 -0400
-Message-ID: <55197D3B.4020701@hp.com>
-References: <20150316131613.720617163@infradead.org>
-	<20150325194739.GK25884@l.oracle.com> <551978E8.30904@hp.com>
-	<20150330162933.GC23123@twins.programming.kicks-ass.net>
+From: Jeremy Allison <jra-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
+Subject: Re: [PATCH v7 0/5] vfs: Non-blockling buffered fs read (page cache
+ only)
+Date: Mon, 30 Mar 2015 10:19:12 -0700
+Message-ID: <20150330171912.GB5835@samba2>
+References: <cover.1426528417.git.milosz@adfin.com>
+ <20150326202824.65d03787.akpm@linux-foundation.org>
+ <20150327081822.GA28669@infradead.org>
+ <20150327013516.8c6788be.akpm@linux-foundation.org>
+ <20150327084833.GA7689@infradead.org>
+ <20150327020159.eadd0ce1.akpm@linux-foundation.org>
+ <20150327155854.GA5548@samba2>
+ <20150330073604.GB22229@infradead.org>
+Reply-To: Jeremy Allison <jra-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20150330162933.GC23123@twins.programming.kicks-ass.net>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, riel@redhat.com, x86@kernel.org, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, scott.norton@hp.com, raghavendra.kt@linux.vnet.ibm.com, paolo.bonzini@gmail.com, oleg@redhat.com, linux-kernel@vger.kernel.org, mingo@redhat.com, david.vrabel@citrix.com, hpa@zytor.com, luto@amacapital.net, xen-devel@lists.xenproject.org, tglx@linutronix.de, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, boris.ostrovsky@oracle.com, virtualization@lists.linux-foundation.org, doug.hatch@hp.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20150330073604.GB22229-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Christoph Hellwig <hch-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>
+Cc: Jeremy Allison <jra-eUNUBHrolfbYtjvyW6yDsg@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Milosz Tanski <milosz-B5zB6C1i6pkAvxtiuMwx3w@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-fsdevel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-aio-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Mel Gorman <mgorman-l3A5Bk7waGM@public.gmane.org>, Volker Lendecke <Volker.Lendecke-3ekOc4rQMZmzQB+pC5nmwQ@public.gmane.org>, Tejun Heo <tj-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Jeff Moyer <jmoyer-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Theodore Ts'o <tytso-3s7WtUTddSA@public.gmane.org>, Al Viro <viro-RmSDqhL/yNMiFSDQTTA3OLVCufUGDwFn@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Dave Chinner <david-FqsqvQoI3Ljby3iVrkZq2A@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 03/30/2015 12:29 PM, Peter Zijlstra wrote:
-> On Mon, Mar 30, 2015 at 12:25:12PM -0400, Waiman Long wrote:
->> I did it differently in my PV portion of the qspinlock patch. Instead of
->> just waking up the CPU, the new lock holder will check if the new queue head
->> has been halted. If so, it will set the slowpath flag for the halted queue
->> head in the lock so as to wake it up at unlock time. This should eliminate
->> your concern of dong twice as many VMEXIT in an overcommitted scenario.
-> We can still do that on top of all this right? As you might have
-> realized I'm a fan of gradual complexity :-)
+On Mon, Mar 30, 2015 at 12:36:04AM -0700, Christoph Hellwig wrote:
+> On Fri, Mar 27, 2015 at 08:58:54AM -0700, Jeremy Allison wrote:
+> > The problem with the above is that we can't tell the difference
+> > between pread2() returning a short read because the pages are not
+> > in cache, or because someone truncated the file. So we need some
+> > way to differentiate this.
+> 
+> Is a race vs truncate really that time critical that you can't
+> wait for the thread pool to do the second read to notice it?
 
-Of course. I am just saying that the concern can be addressed with some 
-additional code change.
+Probably not, as this is the fallback path anyway.
 
--Longman
+> > My preference from userspace would be for pread2() to return
+> > EAGAIN if *all* the data requested is not available (where
+> > 'all' can be less than the size requested if the file has
+> > been truncated in the meantime).
+> 
+> That is easily implementable, but I can see that for example web apps
+> would be happy to get as much as possible.  So if Samba can be ok
+> with short reads and only detecting the truncated case in the slow
+> path that would make life simpler.  Otherwise we might indeed need two
+> flags.
+
+Simpler is better. I can live with the partial read+fallback.
+
+Jeremy.
