@@ -1,13 +1,13 @@
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: [PATCH v4 07/15] dt-bindings: Document the STM32 timer bindings
-Date: Tue, 31 Mar 2015 18:24:48 +0200
-Message-ID: <1427819096-31109-8-git-send-email-mcoquelin.stm32@gmail.com>
+Subject: [PATCH v4 09/15] dt-bindings: Document the STM32 USART bindings
+Date: Tue, 31 Mar 2015 18:24:50 +0200
+Message-ID: <1427819096-31109-10-git-send-email-mcoquelin.stm32@gmail.com>
 References: <1427819096-31109-1-git-send-email-mcoquelin.stm32@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f54.google.com ([74.125.82.54]:35378 "EHLO
-	mail-wg0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753816AbbCaQ1A (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Mar 2015 12:27:00 -0400
+Received: from mail-wi0-f170.google.com ([209.85.212.170]:38523 "EHLO
+	mail-wi0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754003AbbCaQ1E (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Mar 2015 12:27:04 -0400
 In-Reply-To: <1427819096-31109-1-git-send-email-mcoquelin.stm32@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -15,42 +15,52 @@ To: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob 
 Cc: Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.ke
 
 This adds documentation of device tree bindings for the
-STM32 timer.
+STM32 USART
 
 Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
 Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 ---
- .../devicetree/bindings/timer/st,stm32-timer.txt   | 22 ++++++++++++++++++++++
- 1 file changed, 22 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/timer/st,stm32-timer.txt
+ .../devicetree/bindings/serial/st,stm32-usart.txt  | 32 ++++++++++++++++++++++
+ 1 file changed, 32 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/serial/st,stm32-usart.txt
 
-diff --git a/Documentation/devicetree/bindings/timer/st,stm32-timer.txt b/Documentation/devicetree/bindings/timer/st,stm32-timer.txt
+diff --git a/Documentation/devicetree/bindings/serial/st,stm32-usart.txt b/Documentation/devicetree/bindings/serial/st,stm32-usart.txt
 new file mode 100644
-index 0000000..d3fdeb0
+index 0000000..090a3a4
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/timer/st,stm32-timer.txt
-@@ -0,0 +1,22 @@
-+. STMicroelectronics STM32 timer
-+
-+The STM32 MCUs family has several general-purpose 16 and 32 bits timers.
++++ b/Documentation/devicetree/bindings/serial/st,stm32-usart.txt
+@@ -0,0 +1,32 @@
++* STMicroelectronics STM32 USART
 +
 +Required properties:
-+- compatible : Should be st,stm32-timer"
-+- reg : Address and length of the register set
-+- clocks : Reference on the timer input clock
-+- interrupts : Reference to the timer interrupt
++- compatible: Can be either "st,stm32-usart" or "st,stm32-uart" depending on
++whether the device supports synchronous mode.
++- reg: The address and length of the peripheral registers space
++- interrupts: The interrupt line of the USART instance
++- clocks: The input clock of the USART instance
 +
 +Optional properties:
-+- resets: Reference to a reset controller asserting the timer
++- pinctrl: The reference on the pins configuration
++- st,hw-flow-ctrl: bool flag to enable hardware flow control.
 +
-+Example:
++Examples:
++usart4: serial@40004c00 {
++	compatible = "st,stm32-uart";
++	reg = <0x40004c00 0x400>;
++	interrupts = <52>;
++	clocks = <&clk_pclk1>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_usart4>;
++};
 +
-+timer5: timer@40000c00 {
-+	compatible = "st,stm32-timer";
-+	reg = <0x40000c00 0x400>;
-+	interrupts = <50>;
-+	resets = <&rrc 259>;
-+	clocks = <&clk_pmtr1>;
++usart2: serial@40004400 {
++	compatible = "st,stm32-usart", "st,stm32-uart";
++	reg = <0x40004400 0x400>;
++	interrupts = <38>;
++	clocks = <&clk_pclk1>;
++	st,hw-flow-ctrl;
++	pinctrl-names = "default";
++	pinctrl-0 = <&pinctrl_usart2 &pinctrl_usart2_rtscts>;
 +};
 -- 
 1.9.1
