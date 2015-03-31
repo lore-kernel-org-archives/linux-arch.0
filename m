@@ -1,43 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f169.google.com ([209.85.212.169]:35705 "EHLO
-	mail-wi0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754019AbbCaQ1O (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Mar 2015 12:27:14 -0400
+Received: from mail-wg0-f48.google.com ([74.125.82.48]:36577 "EHLO
+	mail-wg0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754043AbbCaQ1U (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Mar 2015 12:27:20 -0400
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: [PATCH v4 12/15] ARM: dts: Add ARM System timer as clockevent in armv7m
-Date: Tue, 31 Mar 2015 18:24:53 +0200
-Message-ID: <1427819096-31109-13-git-send-email-mcoquelin.stm32@gmail.com>
+Subject: [PATCH v4 14/15] ARM: configs: Add STM32 defconfig
+Date: Tue, 31 Mar 2015 18:24:55 +0200
+Message-ID: <1427819096-31109-15-git-send-email-mcoquelin.stm32@gmail.com>
 In-Reply-To: <1427819096-31109-1-git-send-email-mcoquelin.stm32@gmail.com>
 References: <1427819096-31109-1-git-send-email-mcoquelin.stm32@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl, peter@hurleysoftware.com, andy.shevchenko@gmail.com, cw00.choi@samsung.com, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>
 Cc: Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, mcoquelin.stm32@gmail.com
-Message-ID: <20150331162453.NhnPy_6YkW7dqmFC2dHPqr9qF-XlLDMwM9SolCp66t0@z>
+Message-ID: <20150331162455.t1KY_EUfeoElbKV0Jah8-2R3Nu3_8OeYM6Tg5GPWNOw@z>
+
+This patch adds a new config for STM32 MCUs.
+STM32F429 Discovery board boots successfully with this config applied.
 
 Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
 Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 ---
- arch/arm/boot/dts/armv7-m.dtsi | 6 ++++++
- 1 file changed, 6 insertions(+)
+ arch/arm/configs/stm32_defconfig | 71 ++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 71 insertions(+)
+ create mode 100644 arch/arm/configs/stm32_defconfig
 
-diff --git a/arch/arm/boot/dts/armv7-m.dtsi b/arch/arm/boot/dts/armv7-m.dtsi
-index 5a660d0..b1ad7cf 100644
---- a/arch/arm/boot/dts/armv7-m.dtsi
-+++ b/arch/arm/boot/dts/armv7-m.dtsi
-@@ -8,6 +8,12 @@
- 		reg = <0xe000e100 0xc00>;
- 	};
- 
-+	systick: timer@e000e010 {
-+		compatible = "arm,armv7m-systick";
-+		reg = <0xe000e010 0x10>;
-+		status = "disabled";
-+	};
-+
- 	soc {
- 		#address-cells = <1>;
- 		#size-cells = <1>;
+diff --git a/arch/arm/configs/stm32_defconfig b/arch/arm/configs/stm32_defconfig
+new file mode 100644
+index 0000000..412a9f9
+--- /dev/null
++++ b/arch/arm/configs/stm32_defconfig
+@@ -0,0 +1,71 @@
++CONFIG_HIGH_RES_TIMERS=y
++CONFIG_LOG_BUF_SHIFT=16
++CONFIG_BLK_DEV_INITRD=y
++CONFIG_INITRAMFS_SOURCE="./rootfs.cpio"
++CONFIG_CC_OPTIMIZE_FOR_SIZE=y
++# CONFIG_UID16 is not set
++# CONFIG_BASE_FULL is not set
++# CONFIG_FUTEX is not set
++# CONFIG_EPOLL is not set
++# CONFIG_SIGNALFD is not set
++# CONFIG_EVENTFD is not set
++# CONFIG_AIO is not set
++CONFIG_EMBEDDED=y
++# CONFIG_VM_EVENT_COUNTERS is not set
++# CONFIG_SLUB_DEBUG is not set
++# CONFIG_LBDAF is not set
++# CONFIG_BLK_DEV_BSG is not set
++# CONFIG_IOSCHED_DEADLINE is not set
++# CONFIG_IOSCHED_CFQ is not set
++# CONFIG_MMU is not set
++CONFIG_ARCH_STM32=y
++CONFIG_SET_MEM_PARAM=y
++CONFIG_DRAM_BASE=0x90000000
++CONFIG_FLASH_MEM_BASE=0x08000000
++CONFIG_FLASH_SIZE=0x00200000
++CONFIG_PREEMPT=y
++# CONFIG_ATAGS is not set
++CONFIG_ZBOOT_ROM_TEXT=0x0
++CONFIG_ZBOOT_ROM_BSS=0x0
++CONFIG_XIP_KERNEL=y
++CONFIG_XIP_PHYS_ADDR=0x08008000
++CONFIG_BINFMT_FLAT=y
++CONFIG_BINFMT_SHARED_FLAT=y
++# CONFIG_COREDUMP is not set
++CONFIG_DEVTMPFS=y
++CONFIG_DEVTMPFS_MOUNT=y
++# CONFIG_FW_LOADER is not set
++# CONFIG_BLK_DEV is not set
++CONFIG_EEPROM_93CX6=y
++# CONFIG_INPUT is not set
++# CONFIG_SERIO is not set
++# CONFIG_VT is not set
++# CONFIG_UNIX98_PTYS is not set
++# CONFIG_LEGACY_PTYS is not set
++CONFIG_SERIAL_NONSTANDARD=y
++# CONFIG_DEVKMEM is not set
++CONFIG_SERIAL_STM32=y
++CONFIG_SERIAL_STM32_CONSOLE=y
++# CONFIG_HW_RANDOM is not set
++CONFIG_GPIO_SYSFS=y
++# CONFIG_HWMON is not set
++CONFIG_USB=y
++CONFIG_USB_DWC2=y
++CONFIG_NEW_LEDS=y
++CONFIG_LEDS_CLASS=y
++CONFIG_LEDS_GPIO=y
++CONFIG_LEDS_TRIGGERS=y
++CONFIG_LEDS_TRIGGER_HEARTBEAT=y
++# CONFIG_FILE_LOCKING is not set
++# CONFIG_DNOTIFY is not set
++# CONFIG_INOTIFY_USER is not set
++CONFIG_PRINTK_TIME=y
++CONFIG_DEBUG_INFO=y
++# CONFIG_ENABLE_WARN_DEPRECATED is not set
++# CONFIG_ENABLE_MUST_CHECK is not set
++CONFIG_MAGIC_SYSRQ=y
++# CONFIG_SCHED_DEBUG is not set
++# CONFIG_DEBUG_BUGVERBOSE is not set
++# CONFIG_FTRACE is not set
++CONFIG_CRC_ITU_T=y
++CONFIG_CRC7=y
 -- 
 1.9.1
 
