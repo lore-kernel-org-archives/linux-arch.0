@@ -1,42 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f66.google.com ([74.125.82.66]:33427 "EHLO
-	mail-wg0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753816AbbCaQ0n (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Mar 2015 12:26:43 -0400
+Received: from mail-wg0-f50.google.com ([74.125.82.50]:35835 "EHLO
+	mail-wg0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754048AbbCaQ1W (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 31 Mar 2015 12:27:22 -0400
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: [PATCH v4 01/15] scripts: link-vmlinux: Don't pass page offset to kallsyms if XIP Kernel
-Date: Tue, 31 Mar 2015 18:24:42 +0200
-Message-ID: <1427819096-31109-2-git-send-email-mcoquelin.stm32@gmail.com>
+Subject: [PATCH v4 15/15] MAINTAINERS: Add entry for STM32 MCUs
+Date: Tue, 31 Mar 2015 18:24:56 +0200
+Message-ID: <1427819096-31109-16-git-send-email-mcoquelin.stm32@gmail.com>
 In-Reply-To: <1427819096-31109-1-git-send-email-mcoquelin.stm32@gmail.com>
 References: <1427819096-31109-1-git-send-email-mcoquelin.stm32@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl, peter@hurleysoftware.com, andy.shevchenko@gmail.com, cw00.choi@samsung.com, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>
 Cc: Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, mcoquelin.stm32@gmail.com
-Message-ID: <20150331162442.RWgDMqkjCMMVeAehNczcC1GGOJEL18S-lK_IgxZeRTU@z>
+Message-ID: <20150331162456.s7ElWxp8-TYL1z6212sk3P83YXNPmO1kNrxONIWi71M@z>
 
-When Kernel is executed in place from ROM, the symbol addresses can be
-lower than the page offset.
+Add a MAINTAINER entry covering all STM32 machine and drivers files.
 
-Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
 Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 ---
- scripts/link-vmlinux.sh | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ MAINTAINERS | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-index 86a4fe7..b055d9d 100755
---- a/scripts/link-vmlinux.sh
-+++ b/scripts/link-vmlinux.sh
-@@ -82,7 +82,7 @@ kallsyms()
- 		kallsymopt="${kallsymopt} --all-symbols"
- 	fi
+diff --git a/MAINTAINERS b/MAINTAINERS
+index ddc5a8c..08c08c4 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -1467,6 +1467,14 @@ F:	drivers/usb/host/ehci-st.c
+ F:	drivers/usb/host/ohci-st.c
+ F:	drivers/ata/ahci_st.c
  
--	if [ -n "${CONFIG_ARM}" ] && [ -n "${CONFIG_PAGE_OFFSET}" ]; then
-+	if [ -n "${CONFIG_ARM}" ] && [ -z "${CONFIG_XIP_KERNEL}" ] && [ -n "${CONFIG_PAGE_OFFSET}" ]; then
- 		kallsymopt="${kallsymopt} --page-offset=$CONFIG_PAGE_OFFSET"
- 	fi
- 
++ARM/STM32 ARCHITECTURE
++M:	Maxime Coquelin <mcoquelin.stm32@gmail.com>
++L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
++S:	Maintained
++T:	git git://git.kernel.org/pub/scm/linux/kernel/git/mcoquelin/stm32.git
++N:	stm32
++F:	drivers/clocksource/armv7m_systick.c
++
+ ARM/TECHNOLOGIC SYSTEMS TS7250 MACHINE SUPPORT
+ M:	Lennert Buytenhek <kernel@wantstofly.org>
+ L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
 -- 
 1.9.1
 
