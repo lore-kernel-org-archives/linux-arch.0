@@ -1,61 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f177.google.com ([209.85.212.177]:35582 "EHLO
-	mail-wi0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751044AbbDAJ1e (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Apr 2015 05:27:34 -0400
+Received: from g1t5425.austin.hp.com ([15.216.225.55]:53815 "EHLO
+	g1t5425.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753204AbbDAQUi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Apr 2015 12:20:38 -0400
+Message-ID: <551C1ACE.4090408@hp.com>
+Date: Wed, 01 Apr 2015 12:20:30 -0400
+From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
-In-Reply-To: <1427879123.3638.1.camel@pengutronix.de>
-References: <1427819096-31109-1-git-send-email-mcoquelin.stm32@gmail.com>
-	<1427819096-31109-6-git-send-email-mcoquelin.stm32@gmail.com>
-	<1427879123.3638.1.camel@pengutronix.de>
-Date: Wed, 1 Apr 2015 11:27:32 +0200
-Message-ID: <CALszF6B5YUCtT2RPfFef_BjJhDmTbgkHO=V6C7ikUt2jRrWxBQ@mail.gmail.com>
-Subject: Re: [PATCH v4 05/15] dt-bindings: Document the STM32 reset bindings
-From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Subject: Re: [PATCH 8/9] qspinlock: Generic paravirt support
+References: <20150316131613.720617163@infradead.org> <20150316133112.278511476@infradead.org> <5509E51D.7040909@hp.com> <20150319101242.GM21418@twins.programming.kicks-ass.net> <20150319122536.GD11574@worktop.ger.corp.intel.com>
+In-Reply-To: <20150319122536.GD11574@worktop.ger.corp.intel.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Philipp Zabel <p.zabel@pengutronix.de>
-Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>
-Message-ID: <20150401092732.j3QNA9AUK7RWQ7AiQ-f7wjk3-IpXaRp04EgVkSmGTHo@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, paolo.bonzini@gmail.com, konrad.wilk@oracle.com, boris.ostrovsky@oracle.com, paulmck@linux.vnet.ibm.com, riel@redhat.com, torvalds@linux-foundation.org, raghavendra.kt@linux.vnet.ibm.com, david.vrabel@citrix.com, oleg@redhat.com, scott.norton@hp.com, doug.hatch@hp.com, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, luto@amacapital.net
+Message-ID: <20150401162030.54NK2DZCT8wZfgGgQIX6_tfQo3znrovH-fiIcVsT6f4@z>
 
-Hello Philipp,
-
-2015-04-01 11:05 GMT+02:00 Philipp Zabel <p.zabel@pengutronix.de>:
-> Am Dienstag, den 31.03.2015, 18:24 +0200 schrieb Maxime Coquelin:
->> This adds documentation of device tree bindings for the
->> STM32 reset controller.
->>
->> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
->> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
->> ---
->>  .../devicetree/bindings/reset/st,stm32-rcc.txt     | 107 +++++++++++++++++++++
->>  1 file changed, 107 insertions(+)
->>  create mode 100644 Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
->>
->> diff --git a/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt b/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
->> new file mode 100644
->> index 0000000..e2e2f25
->> --- /dev/null
->> +++ b/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
->> @@ -0,0 +1,107 @@
->> +STMicroelectronics STM32 Peripheral Reset Controller
->> +====================================================
->> +
->> +The RCC IP is both a reset and a clock controller. This documentation only
->> +document the reset part.
+On 03/19/2015 08:25 AM, Peter Zijlstra wrote:
+> On Thu, Mar 19, 2015 at 11:12:42AM +0100, Peter Zijlstra wrote:
+>> So I was now thinking of hashing the lock pointer; let me go and quickly
+>> put something together.
+> A little something like so; ideally we'd allocate the hashtable since
+> NR_CPUS is kinda bloated, but it shows the idea I think.
 >
-> documents?
+> And while this has loops in (the rehashing thing) their fwd progress
+> does not depend on other CPUs.
 >
-> Otherwise,
-> Acked-by: Philipp Zabel <p.zabel@pengutronix.de>
+> And I suspect that for the typical lock contention scenarios its
+> unlikely we ever really get into long rehashing chains.
+>
+> ---
+>   include/linux/lfsr.h                |   49 ++++++++++++
+>   kernel/locking/qspinlock_paravirt.h |  143 ++++++++++++++++++++++++++++++++----
+>   2 files changed, 178 insertions(+), 14 deletions(-)
+>
+> --- /dev/null
+>
+> +
+> +static int pv_hash_find(struct qspinlock *lock)
+> +{
+> +	u64 hash = hash_ptr(lock, PV_LOCK_HASH_BITS);
+> +	struct pv_hash_bucket *hb, *end;
+> +	int cpu = -1;
+> +
+> +	if (!hash)
+> +		hash = 1;
+> +
+> +	hb =&__pv_lock_hash[hash_align(hash)];
+> +	for (;;) {
+> +		for (end = hb + PV_HB_PER_LINE; hb<  end; hb++) {
+> +			struct qspinlock *l = READ_ONCE(hb->lock);
+> +
+> +			/*
+> +			 * If we hit an unused bucket, there is no match.
+> +			 */
+> +			if (!l)
+> +				goto done;
 
-'s' added for v5, and Acked-by applied.
+After more careful reading, I think the assumption that the presence of 
+an unused bucket means there is no match is not true. Consider the scenario:
+
+1. cpu 0 puts lock1 into hb[0]
+2. cpu 1 puts lock2 into hb[1]
+3. cpu 2 clears hb[0]
+4. cpu 3 looks for lock2 and doesn't find it
+
+I was thinking about putting some USED flag in the buckets, but then we 
+will eventually fill them all up as used. If we put the entries into a 
+hashed linked list, we have to deal with the complicated synchronization 
+issues with link list update.
+
+At this point, I am thinking using back your previous idea of passing 
+the queue head information down the queue. I am now convinced that the 
+unlock call site patching should work. So I will incorporate that in my 
+next update.
+
+Please let me know if you think my reasoning is not correct.
 
 Thanks,
-Maxime
+Longman
 
->
-> regards
-> Philipp
->
