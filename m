@@ -1,42 +1,47 @@
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [RFC PATCH 00/11] an introduction of library operating system for Linux (LibOS)
-Date: Wed, 01 Apr 2015 11:59:39 +1030
-Message-ID: <87iodgocu4.fsf@rustcorp.com.au>
-References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp> <551164ED.5000907@nod.at> <m2twxacw13.wl@sfc.wide.ad.jp> <55117565.6080002@nod.at> <m2sicuctb2.wl@sfc.wide.ad.jp> <55118277.5070909@nod.at> <m2bnjhcevt.wl@sfc.wide.ad.jp> <55133BAF.30301@nod.at> <m2h9t7bubh.wl@wide.ad.jp> <5514560A.7040707@nod.at> <m28uejaqyn.wl@wide.ad.jp> <55152137.20405@nod.at> <m2sicnalnh.wl@sfc.wide.ad.jp>
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Subject: Re: [PATCH v4 10/15] serial: stm32-usart: Add STM32 USART Driver
+Date: Wed, 1 Apr 2015 10:36:58 +0200
+Message-ID: <CALszF6AKw-F1RVc5m2As7upp7ZuS7GpcJSoqixms3Dd4SNU9EQ@mail.gmail.com>
+References: <1427819096-31109-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<1427819096-31109-11-git-send-email-mcoquelin.stm32@gmail.com>
+	<CAHp75VeUzKUEo7NCaXUYKBPpG7JYCykB+76Wu5tBKj750Bi+Qg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <m2sicnalnh.wl@sfc.wide.ad.jp>
-Sender: owner-linux-mm@kvack.org
-To: Hajime Tazaki <tazaki@sfc.wide.ad.jp>, richard@nod.at
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, cl@linux.com, penberg@kernel.org, rientjes@google.com, iamjoonsoo.kim@lge.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, jdike@addtoit.com, mathieu.lacage@gmail.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wi0-f172.google.com ([209.85.212.172]:38691 "EHLO
+	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750793AbbDAIhA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Apr 2015 04:37:00 -0400
+In-Reply-To: <CAHp75VeUzKUEo7NCaXUYKBPpG7JYCykB+76Wu5tBKj750Bi+Qg@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andy Shevchenko <andy.shevchenko@gmail.com>
+Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>
 
-Hajime Tazaki <tazaki@sfc.wide.ad.jp> writes:
-> the issue here is the decision between 'no-ops' and
-> 'assert(false)' depends on the context. an auto-generated
-> mechanism needs some hand-written parameters I think.
+Hello Andy,
 
-Yes, I used auto-generated (fprintf, abort) stubs for similar testing in
-pettycoin, where if it failed to link it would generate such stubs
-for undefined symbols.
+2015-03-31 18:45 GMT+02:00 Andy Shevchenko <andy.shevchenko@gmail.com>:
+> On Tue, Mar 31, 2015 at 7:24 PM, Maxime Coquelin
+> <mcoquelin.stm32@gmail.com> wrote:
+>> This drivers adds support to the STM32 USART controller, which is a
+>> standard serial driver.
+>>
+>> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
+>> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+>
+> Few minor comments below.
 
-It's not a panacea, but it helps speed up rejiggin after code changes.
-Generating noop stubs can actually make that process slower, as you can
-get failures because you now need to do something in that stub.
+All your comments are valid, I will send a v5 shortly fixing this.
 
-> one more concern on the out-of-arch-tree design is that how
-> to handle our asm-generic-based header files
-> (arch/lib/include/asm). we have been heavily used
-> 'generic-y' in the Kbuild file to reuse header files.
+Thanks for the review,
+Maxime
 
-Yeah, the arch trick is clever.
-
-Cheers,
-Rusty.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+>
+>> ---
+>>  drivers/tty/serial/Kconfig       |  17 +
+>>  drivers/tty/serial/Makefile      |   1 +
+>>  drivers/tty/serial/stm32-usart.c | 743 +++++++++++++++++++++++++++++++++++++++
+>>  include/uapi/linux/serial_core.h |   3 +
+>>  4 files changed, 764 insertions(+)
+>>  create mode 100644 drivers/tty/serial/stm32-usart.c
+>>
