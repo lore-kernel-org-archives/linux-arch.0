@@ -1,107 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f52.google.com ([74.125.82.52]:34064 "EHLO
-	mail-wg0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753263AbbDCRC7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Apr 2015 13:02:59 -0400
+Received: from mail-wi0-f175.google.com ([209.85.212.175]:37534 "EHLO
+	mail-wi0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753320AbbDCRDG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Apr 2015 13:03:06 -0400
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: [PATCH v5 14/15] ARM: configs: Add STM32 defconfig
-Date: Fri,  3 Apr 2015 19:01:20 +0200
-Message-ID: <1428080481-18591-15-git-send-email-mcoquelin.stm32@gmail.com>
+Subject: [PATCH v5 15/15] MAINTAINERS: Add entry for STM32 MCUs
+Date: Fri,  3 Apr 2015 19:01:21 +0200
+Message-ID: <1428080481-18591-16-git-send-email-mcoquelin.stm32@gmail.com>
 In-Reply-To: <1428080481-18591-1-git-send-email-mcoquelin.stm32@gmail.com>
 References: <1428080481-18591-1-git-send-email-mcoquelin.stm32@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl, peter@hurleysoftware.com, andy.shevchenko@gmail.com, cw00.choi@samsung.com, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>
 Cc: Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, mcoquelin.stm32@gmail.com
-Message-ID: <20150403170120.E_3_tXoxW4582R7XhlEfVAqx4hUnF5fShxiS5cFrBiM@z>
+Message-ID: <20150403170121.EK8FgdSpPD9sdyGeyswFE35t2EQrTePYLR_CXZ1azj8@z>
 
-This patch adds a new config for STM32 MCUs.
-STM32F429 Discovery board boots successfully with this config applied.
+Add a MAINTAINER entry covering all STM32 machine and drivers files.
 
-Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
 Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 ---
- arch/arm/configs/stm32_defconfig | 71 ++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 71 insertions(+)
- create mode 100644 arch/arm/configs/stm32_defconfig
+ MAINTAINERS | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-diff --git a/arch/arm/configs/stm32_defconfig b/arch/arm/configs/stm32_defconfig
-new file mode 100644
-index 0000000..412a9f9
---- /dev/null
-+++ b/arch/arm/configs/stm32_defconfig
-@@ -0,0 +1,71 @@
-+CONFIG_HIGH_RES_TIMERS=y
-+CONFIG_LOG_BUF_SHIFT=16
-+CONFIG_BLK_DEV_INITRD=y
-+CONFIG_INITRAMFS_SOURCE="./rootfs.cpio"
-+CONFIG_CC_OPTIMIZE_FOR_SIZE=y
-+# CONFIG_UID16 is not set
-+# CONFIG_BASE_FULL is not set
-+# CONFIG_FUTEX is not set
-+# CONFIG_EPOLL is not set
-+# CONFIG_SIGNALFD is not set
-+# CONFIG_EVENTFD is not set
-+# CONFIG_AIO is not set
-+CONFIG_EMBEDDED=y
-+# CONFIG_VM_EVENT_COUNTERS is not set
-+# CONFIG_SLUB_DEBUG is not set
-+# CONFIG_LBDAF is not set
-+# CONFIG_BLK_DEV_BSG is not set
-+# CONFIG_IOSCHED_DEADLINE is not set
-+# CONFIG_IOSCHED_CFQ is not set
-+# CONFIG_MMU is not set
-+CONFIG_ARCH_STM32=y
-+CONFIG_SET_MEM_PARAM=y
-+CONFIG_DRAM_BASE=0x90000000
-+CONFIG_FLASH_MEM_BASE=0x08000000
-+CONFIG_FLASH_SIZE=0x00200000
-+CONFIG_PREEMPT=y
-+# CONFIG_ATAGS is not set
-+CONFIG_ZBOOT_ROM_TEXT=0x0
-+CONFIG_ZBOOT_ROM_BSS=0x0
-+CONFIG_XIP_KERNEL=y
-+CONFIG_XIP_PHYS_ADDR=0x08008000
-+CONFIG_BINFMT_FLAT=y
-+CONFIG_BINFMT_SHARED_FLAT=y
-+# CONFIG_COREDUMP is not set
-+CONFIG_DEVTMPFS=y
-+CONFIG_DEVTMPFS_MOUNT=y
-+# CONFIG_FW_LOADER is not set
-+# CONFIG_BLK_DEV is not set
-+CONFIG_EEPROM_93CX6=y
-+# CONFIG_INPUT is not set
-+# CONFIG_SERIO is not set
-+# CONFIG_VT is not set
-+# CONFIG_UNIX98_PTYS is not set
-+# CONFIG_LEGACY_PTYS is not set
-+CONFIG_SERIAL_NONSTANDARD=y
-+# CONFIG_DEVKMEM is not set
-+CONFIG_SERIAL_STM32=y
-+CONFIG_SERIAL_STM32_CONSOLE=y
-+# CONFIG_HW_RANDOM is not set
-+CONFIG_GPIO_SYSFS=y
-+# CONFIG_HWMON is not set
-+CONFIG_USB=y
-+CONFIG_USB_DWC2=y
-+CONFIG_NEW_LEDS=y
-+CONFIG_LEDS_CLASS=y
-+CONFIG_LEDS_GPIO=y
-+CONFIG_LEDS_TRIGGERS=y
-+CONFIG_LEDS_TRIGGER_HEARTBEAT=y
-+# CONFIG_FILE_LOCKING is not set
-+# CONFIG_DNOTIFY is not set
-+# CONFIG_INOTIFY_USER is not set
-+CONFIG_PRINTK_TIME=y
-+CONFIG_DEBUG_INFO=y
-+# CONFIG_ENABLE_WARN_DEPRECATED is not set
-+# CONFIG_ENABLE_MUST_CHECK is not set
-+CONFIG_MAGIC_SYSRQ=y
-+# CONFIG_SCHED_DEBUG is not set
-+# CONFIG_DEBUG_BUGVERBOSE is not set
-+# CONFIG_FTRACE is not set
-+CONFIG_CRC_ITU_T=y
-+CONFIG_CRC7=y
+diff --git a/MAINTAINERS b/MAINTAINERS
+index ddc5a8c..08c08c4 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -1467,6 +1467,14 @@ F:	drivers/usb/host/ehci-st.c
+ F:	drivers/usb/host/ohci-st.c
+ F:	drivers/ata/ahci_st.c
+ 
++ARM/STM32 ARCHITECTURE
++M:	Maxime Coquelin <mcoquelin.stm32@gmail.com>
++L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
++S:	Maintained
++T:	git git://git.kernel.org/pub/scm/linux/kernel/git/mcoquelin/stm32.git
++N:	stm32
++F:	drivers/clocksource/armv7m_systick.c
++
+ ARM/TECHNOLOGIC SYSTEMS TS7250 MACHINE SUPPORT
+ M:	Lennert Buytenhek <kernel@wantstofly.org>
+ L:	linux-arm-kernel@lists.infradead.org (moderated for non-subscribers)
 -- 
 1.9.1
 
