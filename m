@@ -1,31 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f180.google.com ([209.85.216.180]:33682 "EHLO
-	mail-qc0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751170AbbDCR3y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Apr 2015 13:29:54 -0400
-Received: by qcrf4 with SMTP id f4so80661658qcr.0
-        for <linux-arch@vger.kernel.org>; Fri, 03 Apr 2015 10:29:53 -0700 (PDT)
-Message-ID: <551ECE08.8040407@hurleysoftware.com>
-Date: Fri, 03 Apr 2015 13:29:44 -0400
-From: Peter Hurley <peter@hurleysoftware.com>
-MIME-Version: 1.0
+Received: from smtprelay0098.hostedemail.com ([216.40.44.98]:50528 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751335AbbDCRnf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Apr 2015 13:43:35 -0400
+Message-ID: <1428083006.13180.35.camel@perches.com>
 Subject: Re: [PATCH v5 10/15] serial: stm32-usart: Add STM32 USART Driver
-References: <1428080481-18591-1-git-send-email-mcoquelin.stm32@gmail.com> <1428080481-18591-11-git-send-email-mcoquelin.stm32@gmail.com>
+From: Joe Perches <joe@perches.com>
+Date: Fri, 03 Apr 2015 10:43:26 -0700
 In-Reply-To: <1428080481-18591-11-git-send-email-mcoquelin.stm32@gmail.com>
-Content-Type: text/plain; charset=utf-8
+References: <1428080481-18591-1-git-send-email-mcoquelin.stm32@gmail.com>
+	 <1428080481-18591-11-git-send-email-mcoquelin.stm32@gmail.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl, andy.shevchenko@gmail.com, cw00.choi@samsung.com, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150403172944.Pu56IkxTk3Fa3XtV--0wWfxTXY_8zxVl22z7WRTLBzk@z>
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Cc: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl, peter@hurleysoftware.com, andy.shevchenko@gmail.com, cw00.choi@samsung.com, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20150403174326.8PTXHLhm4XuoTM5um7OZ8SBzHMLQlKhPe8wM2bjvpV8@z>
 
-On 04/03/2015 01:01 PM, Maxime Coquelin wrote:
+On Fri, 2015-04-03 at 19:01 +0200, Maxime Coquelin wrote:
 > This drivers adds support to the STM32 USART controller, which is a
 > standard serial driver.
 
-Reviewed-by: Peter Hurley <peter@hurleysoftware.com>
+trivia:
 
-PS - I saw Rob's comment about 'hw-flow-ctrl' vs 'auto-flow-control'
-and I'm ok with either so feel free to and my review comment to a v6
-if that's the only change.
+> diff --git a/drivers/tty/serial/stm32-usart.c b/drivers/tty/serial/stm32-usart.c
+[]
+> +static struct uart_ops stm32_uart_ops = {
+
+could be const
+
+and it could be updated in a separate patch later too.
+
