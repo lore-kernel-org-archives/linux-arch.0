@@ -1,62 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f179.google.com ([209.85.212.179]:38085 "EHLO
-	mail-wi0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752785AbbDCRCO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Apr 2015 13:02:14 -0400
+Received: from mail-wg0-f51.google.com ([74.125.82.51]:33947 "EHLO
+	mail-wg0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753205AbbDCRCu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Apr 2015 13:02:50 -0400
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: [PATCH v5 03/15] dt-bindings: Document the ARM System timer bindings
-Date: Fri,  3 Apr 2015 19:01:09 +0200
-Message-ID: <1428080481-18591-4-git-send-email-mcoquelin.stm32@gmail.com>
+Subject: [PATCH v5 12/15] ARM: dts: Add ARM System timer as clockevent in armv7m
+Date: Fri,  3 Apr 2015 19:01:18 +0200
+Message-ID: <1428080481-18591-13-git-send-email-mcoquelin.stm32@gmail.com>
 In-Reply-To: <1428080481-18591-1-git-send-email-mcoquelin.stm32@gmail.com>
 References: <1428080481-18591-1-git-send-email-mcoquelin.stm32@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl, peter@hurleysoftware.com, andy.shevchenko@gmail.com, cw00.choi@samsung.com, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>
 Cc: Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Joe Perches <joe@perches.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, mcoquelin.stm32@gmail.com
-Message-ID: <20150403170109.Zr9shTxfM5-9LXaHum6uVtpLplS2j6H2nLNWt2kShN4@z>
-
-This adds documentation of device tree bindings for the
-ARM System timer.
+Message-ID: <20150403170118.YoGKN4TT84FsLALd76qq24STk5Uk4hXJAZddaP5BXX8@z>
 
 Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
 Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 ---
- .../devicetree/bindings/arm/armv7m_systick.txt     | 26 ++++++++++++++++++++++
- 1 file changed, 26 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/arm/armv7m_systick.txt
+ arch/arm/boot/dts/armv7-m.dtsi | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-diff --git a/Documentation/devicetree/bindings/arm/armv7m_systick.txt b/Documentation/devicetree/bindings/arm/armv7m_systick.txt
-new file mode 100644
-index 0000000..7cf4a24
---- /dev/null
-+++ b/Documentation/devicetree/bindings/arm/armv7m_systick.txt
-@@ -0,0 +1,26 @@
-+* ARMv7M System Timer
+diff --git a/arch/arm/boot/dts/armv7-m.dtsi b/arch/arm/boot/dts/armv7-m.dtsi
+index 5a660d0..b1ad7cf 100644
+--- a/arch/arm/boot/dts/armv7-m.dtsi
++++ b/arch/arm/boot/dts/armv7-m.dtsi
+@@ -8,6 +8,12 @@
+ 		reg = <0xe000e100 0xc00>;
+ 	};
+ 
++	systick: timer@e000e010 {
++		compatible = "arm,armv7m-systick";
++		reg = <0xe000e010 0x10>;
++		status = "disabled";
++	};
 +
-+ARMv7-M includes a system timer, known as SysTick. Current driver only
-+implements the clocksource feature.
-+
-+Required properties:
-+- compatible	  : Should be "arm,armv7m-systick"
-+- reg		  : The address range of the timer
-+
-+Required clocking property, have to be one of:
-+- clocks	  : The input clock of the timer
-+- clock-frequency : The rate in HZ in input of the ARM SysTick
-+
-+Examples:
-+
-+systick: timer@e000e010 {
-+	compatible = "arm,armv7m-systick";
-+	reg = <0xe000e010 0x10>;
-+	clocks = <&clk_systick>;
-+};
-+
-+systick: timer@e000e010 {
-+	compatible = "arm,armv7m-systick";
-+	reg = <0xe000e010 0x10>;
-+	clock-frequency = <90000000>;
-+};
+ 	soc {
+ 		#address-cells = <1>;
+ 		#size-cells = <1>;
 -- 
 1.9.1
 
