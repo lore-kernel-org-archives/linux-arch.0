@@ -1,70 +1,29 @@
-From: Rob Herring <robherring2@gmail.com>
-Subject: Re: [PATCH v6 09/15] dt-bindings: Document the STM32 USART bindings
-Date: Tue, 7 Apr 2015 14:26:56 -0500
-Message-ID: <CAL_JsqKiCDrwNq6CiWZvE0kiFT3v9sxvrrK62-JBRMSCvB5PHQ@mail.gmail.com>
-References: <1428424234-28572-1-git-send-email-mcoquelin.stm32@gmail.com> <1428424234-28572-10-git-send-email-mcoquelin.stm32@gmail.com>
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [RFC PATCH 00/11] an introduction of library operating system for Linux (LibOS)
+Date: Tue, 07 Apr 2015 10:55:51 +0930
+Message-ID: <87fv8c3f1c.fsf@rustcorp.com.au>
+References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp> <551164ED.5000907@nod.at> <m2twxacw13.wl@sfc.wide.ad.jp> <55117565.6080002@nod.at> <m2sicuctb2.wl@sfc.wide.ad.jp> <55118277.5070909@nod.at> <m2bnjhcevt.wl@sfc.wide.ad.jp> <55133BAF.30301@nod.at> <m2h9t7bubh.wl@wide.ad.jp> <5514560A.7040707@nod.at> <m28uejaqyn.wl@wide.ad.jp> <55152137.20405@nod.at> <m2sicnalnh.wl@sfc.wide.ad.jp> <87iodgocu4.fsf@rustcorp.com.au> <m2wq1uq944.wl@wide.ad.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-gpio-owner@vger.kernel.org>
-In-Reply-To: <1428424234-28572-10-git-send-email-mcoquelin.stm32@gmail.com>
-Sender: linux-gpio-owner@vger.kernel.org
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Joe Perches <joe@perches.com>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>
+Content-Type: text/plain
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <m2wq1uq944.wl@wide.ad.jp>
+Sender: owner-linux-mm@kvack.org
+To: Hajime Tazaki <tazaki@wide.ad.jp>
+Cc: richard@nod.at, linux-arch@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, cl@linux.com, penberg@kernel.org, rientjes@google.com, iamjoonsoo.kim@lge.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, jdike@addtoit.com, mathieu.lacage@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Apr 7, 2015 at 11:30 AM, Maxime Coquelin
-<mcoquelin.stm32@gmail.com> wrote:
-> This adds documentation of device tree bindings for the
-> STM32 USART
+Hajime Tazaki <tazaki@wide.ad.jp> writes:
+> is it the following ? it's really cool stuff !
 >
-> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
-> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+> https://github.com/rustyrussell/pettycoin/blob/master/test/mockup.sh
 
-Acked-by: Rob Herring <robh@kernel.org>
+Yep.  It's ugly, but it Works For Me(TM).
 
-> ---
->  .../devicetree/bindings/serial/st,stm32-usart.txt  | 32 ++++++++++++++++++++++
->  1 file changed, 32 insertions(+)
->  create mode 100644 Documentation/devicetree/bindings/serial/st,stm32-usart.txt
->
-> diff --git a/Documentation/devicetree/bindings/serial/st,stm32-usart.txt b/Documentation/devicetree/bindings/serial/st,stm32-usart.txt
-> new file mode 100644
-> index 0000000..8480a76
-> --- /dev/null
-> +++ b/Documentation/devicetree/bindings/serial/st,stm32-usart.txt
-> @@ -0,0 +1,32 @@
-> +* STMicroelectronics STM32 USART
-> +
-> +Required properties:
-> +- compatible: Can be either "st,stm32-usart" or "st,stm32-uart" depending on
-> +whether the device supports synchronous mode.
-> +- reg: The address and length of the peripheral registers space
-> +- interrupts: The interrupt line of the USART instance
-> +- clocks: The input clock of the USART instance
-> +
-> +Optional properties:
-> +- pinctrl: The reference on the pins configuration
-> +- auto-flow-control: bool flag to enable hardware flow control.
-> +
-> +Examples:
-> +usart4: serial@40004c00 {
-> +       compatible = "st,stm32-uart";
-> +       reg = <0x40004c00 0x400>;
-> +       interrupts = <52>;
-> +       clocks = <&clk_pclk1>;
-> +       pinctrl-names = "default";
-> +       pinctrl-0 = <&pinctrl_usart4>;
-> +};
-> +
-> +usart2: serial@40004400 {
-> +       compatible = "st,stm32-usart", "st,stm32-uart";
-> +       reg = <0x40004400 0x400>;
-> +       interrupts = <38>;
-> +       clocks = <&clk_pclk1>;
-> +       auto-flow-control;
-> +       pinctrl-names = "default";
-> +       pinctrl-0 = <&pinctrl_usart2 &pinctrl_usart2_rtscts>;
-> +};
-> --
-> 1.9.1
->
+Cheers,
+Rusty.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
