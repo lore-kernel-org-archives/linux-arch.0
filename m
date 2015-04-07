@@ -1,200 +1,242 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v15 05/15] qspinlock: Optimize for smaller NR_CPUS
-Date: Mon,  6 Apr 2015 22:55:40 -0400
-Message-ID: <1428375350-9213-6-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v15 13/15] pvqspinlock: Only kick CPU at unlock
+	time
+Date: Mon,  6 Apr 2015 22:55:48 -0400
+Message-ID: <1428375350-9213-14-git-send-email-Waiman.Long@hp.com>
 References: <1428375350-9213-1-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Return-path: <xen-devel-bounces@lists.xen.org>
 In-Reply-To: <1428375350-9213-1-git-send-email-Waiman.Long@hp.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-arch@vger.kernel.org, Waiman Long <Waiman.Long@hp.com>, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>, Daniel J Blueman <daniel@numascale.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Scott J Norton <scott.norton@hp.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Douglas Hatch <doug.hatch@hp.com>
+List-Unsubscribe: <http://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
+	<mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xen.org>
+List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
+List-Subscribe: <http://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
+	<mailto:xen-devel-request@lists.xen.org?subject=subscribe>
+Sender: xen-devel-bounces@lists.xen.org
+Errors-To: xen-devel-bounces@lists.xen.org
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, Waiman Long <Waiman.Long@hp.com>, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Daniel J Blueman <daniel@numascale.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Scott J Norton <scott.norton@hp.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Douglas Hatch <doug.hatch@hp.com>
 List-Id: linux-arch.vger.kernel.org
 
-From: Peter Zijlstra (Intel) <peterz@infradead.org>
+Before this patch, a CPU may have been kicked twice before getting
+the lock - one before it becomes queue head and once before it gets
+the lock. All these CPU kicking and halting (VMEXIT) can be expensive
+and slow down system performance, especially in an overcommitted guest.
 
-When we allow for a max NR_CPUS < 2^14 we can optimize the pending
-wait-acquire and the xchg_tail() operations.
+This patch add a new vCPU state (vcpu_hashed) which enables the code
+to delay CPU kicking until at unlock time. Once this state is set,
+the new lock holder will set _Q_SLOW_VAL and fill in the hash table
+on behalf of the halted queue head vCPU.
 
-By growing the pending bit to a byte, we reduce the tail to 16bit.
-This means we can use xchg16 for the tail part and do away with all
-the repeated compxchg() operations.
-
-This in turn allows us to unconditionally acquire; the locked state
-as observed by the wait loops cannot change. And because both locked
-and pending are now a full byte we can use simple stores for the
-state transition, obviating one atomic operation entirely.
-
-This optimization is needed to make the qspinlock achieve performance
-parity with ticket spinlock at light load.
-
-All this is horribly broken on Alpha pre EV56 (and any other arch that
-cannot do single-copy atomic byte stores).
-
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- include/asm-generic/qspinlock_types.h |   13 ++++++
- kernel/locking/qspinlock.c            |   69 ++++++++++++++++++++++++++++++++-
- 2 files changed, 81 insertions(+), 1 deletions(-)
+ kernel/locking/qspinlock.c          |   10 ++--
+ kernel/locking/qspinlock_paravirt.h |   76 +++++++++++++++++++++++++----------
+ 2 files changed, 59 insertions(+), 27 deletions(-)
 
-diff --git a/include/asm-generic/qspinlock_types.h b/include/asm-generic/qspinlock_types.h
-index ef36613..f01b55d 100644
---- a/include/asm-generic/qspinlock_types.h
-+++ b/include/asm-generic/qspinlock_types.h
-@@ -35,6 +35,14 @@ typedef struct qspinlock {
- /*
-  * Bitfields in the atomic value:
-  *
-+ * When NR_CPUS < 16K
-+ *  0- 7: locked byte
-+ *     8: pending
-+ *  9-15: not used
-+ * 16-17: tail index
-+ * 18-31: tail cpu (+1)
-+ *
-+ * When NR_CPUS >= 16K
-  *  0- 7: locked byte
-  *     8: pending
-  *  9-10: tail index
-@@ -47,7 +55,11 @@ typedef struct qspinlock {
- #define _Q_LOCKED_MASK		_Q_SET_MASK(LOCKED)
- 
- #define _Q_PENDING_OFFSET	(_Q_LOCKED_OFFSET + _Q_LOCKED_BITS)
-+#if CONFIG_NR_CPUS < (1U << 14)
-+#define _Q_PENDING_BITS		8
-+#else
- #define _Q_PENDING_BITS		1
-+#endif
- #define _Q_PENDING_MASK		_Q_SET_MASK(PENDING)
- 
- #define _Q_TAIL_IDX_OFFSET	(_Q_PENDING_OFFSET + _Q_PENDING_BITS)
-@@ -58,6 +70,7 @@ typedef struct qspinlock {
- #define _Q_TAIL_CPU_BITS	(32 - _Q_TAIL_CPU_OFFSET)
- #define _Q_TAIL_CPU_MASK	_Q_SET_MASK(TAIL_CPU)
- 
-+#define _Q_TAIL_OFFSET		_Q_TAIL_IDX_OFFSET
- #define _Q_TAIL_MASK		(_Q_TAIL_IDX_MASK | _Q_TAIL_CPU_MASK)
- 
- #define _Q_LOCKED_VAL		(1U << _Q_LOCKED_OFFSET)
 diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index 11f6ad9..bcc99e6 100644
+index 33b3f54..b9ba83b 100644
 --- a/kernel/locking/qspinlock.c
 +++ b/kernel/locking/qspinlock.c
-@@ -24,6 +24,7 @@
- #include <linux/percpu.h>
- #include <linux/hardirq.h>
- #include <linux/mutex.h>
-+#include <asm/byteorder.h>
- #include <asm/qspinlock.h>
+@@ -239,8 +239,8 @@ static __always_inline void set_locked(struct qspinlock *lock)
  
- /*
-@@ -56,6 +57,10 @@
-  * node; whereby avoiding the need to carry a node from lock to unlock, and
-  * preserving existing lock API. This also makes the unlock code simpler and
-  * faster.
-+ *
-+ * N.B. The current implementation only supports architectures that allow
-+ *      atomic operations on smaller 8-bit and 16-bit data types.
-+ *
-  */
+ static __always_inline void __pv_init_node(struct mcs_spinlock *node) { }
+ static __always_inline void __pv_wait_node(struct mcs_spinlock *node) { }
+-static __always_inline void __pv_kick_node(struct mcs_spinlock *node) { }
+-
++static __always_inline void __pv_scan_next(struct qspinlock *lock,
++					   struct mcs_spinlock *node) { }
+ static __always_inline void __pv_wait_head(struct qspinlock *lock,
+ 					   struct mcs_spinlock *node) { }
  
- #include "mcs_spinlock.h"
-@@ -96,6 +101,62 @@ static inline struct mcs_spinlock *decode_tail(u32 tail)
+@@ -248,7 +248,7 @@ static __always_inline void __pv_wait_head(struct qspinlock *lock,
  
- #define _Q_LOCKED_PENDING_MASK (_Q_LOCKED_MASK | _Q_PENDING_MASK)
+ #define pv_init_node		__pv_init_node
+ #define pv_wait_node		__pv_wait_node
+-#define pv_kick_node		__pv_kick_node
++#define pv_scan_next		__pv_scan_next
  
-+/*
-+ * By using the whole 2nd least significant byte for the pending bit, we
-+ * can allow better optimization of the lock acquisition for the pending
-+ * bit holder.
-+ */
-+#if _Q_PENDING_BITS == 8
-+
-+struct __qspinlock {
-+	union {
-+		atomic_t val;
-+		struct {
-+#ifdef __LITTLE_ENDIAN
-+			u16	locked_pending;
-+			u16	tail;
-+#else
-+			u16	tail;
-+			u16	locked_pending;
-+#endif
-+		};
-+	};
-+};
-+
-+/**
-+ * clear_pending_set_locked - take ownership and clear the pending bit.
-+ * @lock: Pointer to queue spinlock structure
-+ *
-+ * *,1,0 -> *,0,1
-+ *
-+ * Lock stealing is not allowed if this function is used.
-+ */
-+static __always_inline void clear_pending_set_locked(struct qspinlock *lock)
-+{
-+	struct __qspinlock *l = (void *)lock;
-+
-+	WRITE_ONCE(l->locked_pending, _Q_LOCKED_VAL);
-+}
-+
-+/*
-+ * xchg_tail - Put in the new queue tail code word & retrieve previous one
-+ * @lock : Pointer to queue spinlock structure
-+ * @tail : The new queue tail code word
-+ * Return: The previous queue tail code word
-+ *
-+ * xchg(lock, tail)
-+ *
-+ * p,*,* -> n,*,* ; prev = xchg(lock, node)
-+ */
-+static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
-+{
-+	struct __qspinlock *l = (void *)lock;
-+
-+	return (u32)xchg(&l->tail, tail >> _Q_TAIL_OFFSET) << _Q_TAIL_OFFSET;
-+}
-+
-+#else /* _Q_PENDING_BITS == 8 */
-+
- /**
-  * clear_pending_set_locked - take ownership and clear the pending bit.
-  * @lock: Pointer to queue spinlock structure
-@@ -131,6 +192,7 @@ static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
- 	}
- 	return old;
- }
-+#endif /* _Q_PENDING_BITS == 8 */
+ #define pv_wait_head		__pv_wait_head
  
- /**
-  * queue_spin_lock_slowpath - acquire the queue spinlock
-@@ -205,8 +267,13 @@ void queue_spin_lock_slowpath(struct qspinlock *lock, u32 val)
- 	 * we're pending, wait for the owner to go away.
- 	 *
- 	 * *,1,1 -> *,1,0
-+	 *
-+	 * this wait loop must be a load-acquire such that we match the
-+	 * store-release that clears the locked bit and create lock
-+	 * sequentiality; this is because not all clear_pending_set_locked()
-+	 * implementations imply full barriers.
- 	 */
--	while ((val = atomic_read(&lock->val)) & _Q_LOCKED_MASK)
-+	while ((val = smp_load_acquire(&lock->val.counter)) & _Q_LOCKED_MASK)
+@@ -441,7 +441,7 @@ queue:
  		cpu_relax();
  
+ 	arch_mcs_spin_unlock_contended(&next->locked);
+-	pv_kick_node(next);
++	pv_scan_next(lock, next);
+ 
+ release:
  	/*
+@@ -462,7 +462,7 @@ EXPORT_SYMBOL(queue_spin_lock_slowpath);
+ 
+ #undef pv_init_node
+ #undef pv_wait_node
+-#undef pv_kick_node
++#undef pv_scan_next
+ #undef pv_wait_head
+ 
+ #undef  queue_spin_lock_slowpath
+diff --git a/kernel/locking/qspinlock_paravirt.h b/kernel/locking/qspinlock_paravirt.h
+index 49dbd39..a210061 100644
+--- a/kernel/locking/qspinlock_paravirt.h
++++ b/kernel/locking/qspinlock_paravirt.h
+@@ -18,9 +18,16 @@
+ 
+ #define _Q_SLOW_VAL	(3U << _Q_LOCKED_OFFSET)
+ 
++/*
++ * The vcpu_hashed is a special state that is set by the new lock holder on
++ * the new queue head to indicate that _Q_SLOW_VAL is set and hash entry
++ * filled. With this state, the queue head CPU will always be kicked even
++ * if it is not halted to avoid potential racing condition.
++ */
+ enum vcpu_state {
+ 	vcpu_running = 0,
+ 	vcpu_halted,
++	vcpu_hashed
+ };
+ 
+ struct pv_node {
+@@ -97,7 +104,13 @@ static inline u32 hash_align(u32 hash)
+ 	return hash & ~(PV_HB_PER_LINE - 1);
+ }
+ 
+-static struct qspinlock **pv_hash(struct qspinlock *lock, struct pv_node *node)
++/*
++ * Set up an entry in the lock hash table
++ * This is not inlined to reduce size of generated code as it is included
++ * twice and is used only in the slowest path of handling CPU halting.
++ */
++static noinline struct qspinlock **
++pv_hash(struct qspinlock *lock, struct pv_node *node)
+ {
+ 	unsigned long init_hash, hash = hash_ptr(lock, pv_lock_hash_bits);
+ 	struct pv_hash_bucket *hb, *end;
+@@ -178,7 +191,8 @@ static void pv_init_node(struct mcs_spinlock *node)
+ 
+ /*
+  * Wait for node->locked to become true, halt the vcpu after a short spin.
+- * pv_kick_node() is used to wake the vcpu again.
++ * pv_scan_next() is used to set _Q_SLOW_VAL and fill in hash table on its
++ * behalf.
+  */
+ static void pv_wait_node(struct mcs_spinlock *node)
+ {
+@@ -189,7 +203,6 @@ static void pv_wait_node(struct mcs_spinlock *node)
+ 		for (loop = SPIN_THRESHOLD; loop; loop--) {
+ 			if (READ_ONCE(node->locked))
+ 				return;
+-
+ 			cpu_relax();
+ 		}
+ 
+@@ -198,17 +211,21 @@ static void pv_wait_node(struct mcs_spinlock *node)
+ 		 *
+ 		 * [S] pn->state = vcpu_halted	  [S] next->locked = 1
+ 		 *     MB			      MB
+-		 * [L] pn->locked		[RmW] pn->state = vcpu_running
++		 * [L] pn->locked		[RmW] pn->state = vcpu_hashed
+ 		 *
+-		 * Matches the xchg() from pv_kick_node().
++		 * Matches the cmpxchg() from pv_scan_next().
+ 		 */
+ 		(void)xchg(&pn->state, vcpu_halted);
+ 
+ 		if (!READ_ONCE(node->locked))
+ 			pv_wait(&pn->state, vcpu_halted);
+ 
+-		/* Make sure that state is correct for spurious wakeup */
+-		WRITE_ONCE(pn->state, vcpu_running);
++		/*
++		 * Reset the state except when vcpu_hashed is set. At this
++		 * state, node->locked should have been set already and it
++		 * needs to move on to pv_wait_head().
++		 */
++		(void)cmpxchg(&pn->state, vcpu_halted, vcpu_running);
+ 	}
+ 
+ 	/*
+@@ -219,24 +236,30 @@ static void pv_wait_node(struct mcs_spinlock *node)
+ }
+ 
+ /*
+- * Called after setting next->locked = 1, used to wake those stuck in
+- * pv_wait_node().
++ * Called after setting next->locked = 1 & lock acquired.
++ * Check if the the CPU has been halted. If so, set the _Q_SLOW_VAL flag
++ * and put an entry into the lock hash table to be waken up at unlock time.
+  */
+-static void pv_kick_node(struct mcs_spinlock *node)
++static void pv_scan_next(struct qspinlock *lock, struct mcs_spinlock *node)
+ {
+ 	struct pv_node *pn = (struct pv_node *)node;
++	struct __qspinlock *l = (void *)lock;
+ 
+ 	/*
+-	 * Note that because node->locked is already set, this actual
+-	 * mcs_spinlock entry could be re-used already.
+-	 *
+-	 * This should be fine however, kicking people for no reason is
+-	 * harmless.
+-	 *
+-	 * See the comment in pv_wait_node().
++	 * Transition CPU state: halted => hashed
++	 * Quit if the transition failed.
+ 	 */
+-	if (xchg(&pn->state, vcpu_running) == vcpu_halted)
+-		pv_kick(pn->cpu);
++	if (cmpxchg(&pn->state, vcpu_halted, vcpu_hashed) != vcpu_halted)
++		return;
++
++	/*
++	 * Put the lock into the hash table & set the _Q_SLOW_VAL in the lock.
++	 * As this is the same CPU that will check the _Q_SLOW_VAL value and
++	 * the hash table later on at unlock time, no atomic instruction is
++	 * needed.
++	 */
++	WRITE_ONCE(l->locked, _Q_SLOW_VAL);
++	(void)pv_hash(lock, pn);
+ }
+ 
+ /*
+@@ -259,7 +282,16 @@ static void pv_wait_head(struct qspinlock *lock, struct mcs_spinlock *node)
+ 			cpu_relax();
+ 		}
+ 
+-		WRITE_ONCE(pn->state, vcpu_halted);
++		/*
++		 * Go directly to pv_wait() if it has already been in the
++		 * hashed state - _Q_SLOW_VAL set & hash table filled.
++		 * This is to eliminate possible race condition of not
++		 * properly clearing the hash table entry.
++		 */
++		if (cmpxchg(&pn->state, vcpu_running, vcpu_halted)
++			    == vcpu_hashed)
++			goto wait_now;
++
+ 		if (!lp)
+ 			lp = pv_hash(lock, pn);
+ 		/*
+@@ -283,7 +315,7 @@ static void pv_wait_head(struct qspinlock *lock, struct mcs_spinlock *node)
+ 		} else if (slow_set && !READ_ONCE(l->locked))
+ 			return;
+ 		slow_set = true;
+-
++wait_now:
+ 		pv_wait(&l->locked, _Q_SLOW_VAL);
+ 	}
+ 	/*
+@@ -315,7 +347,7 @@ __visible void __pv_queue_spin_unlock(struct qspinlock *lock)
+ 	 * At this point the memory pointed at by lock can be freed/reused,
+ 	 * however we can still use the PV node to kick the CPU.
+ 	 */
+-	if (READ_ONCE(node->state) == vcpu_halted)
++	if (READ_ONCE(node->state) != vcpu_running)
+ 		pv_kick(node->cpu);
+ }
+ PV_CALLEE_SAVE_REGS_THUNK(__pv_queue_spin_unlock);
 -- 
 1.7.1
