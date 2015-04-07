@@ -1,120 +1,150 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3426.houston.hp.com ([15.201.208.54]:54315 "EHLO
-	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753334AbbDGC5U (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Apr 2015 22:57:20 -0400
+Received: from g2t1383g.austin.hp.com ([15.217.136.92]:57971 "EHLO
+	g2t1383g.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753416AbbDGC5c (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Apr 2015 22:57:32 -0400
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v15 14/15] pvqspinlock: Improve slowpath performance by avoiding cmpxchg
-Date: Mon,  6 Apr 2015 22:55:49 -0400
-Message-ID: <1428375350-9213-15-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v15 12/15] pvqspinlock, x86: Enable PV qspinlock for Xen
+Date: Mon,  6 Apr 2015 22:55:47 -0400
+Message-ID: <1428375350-9213-13-git-send-email-Waiman.Long@hp.com>
 In-Reply-To: <1428375350-9213-1-git-send-email-Waiman.Long@hp.com>
 References: <1428375350-9213-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
 Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Daniel J Blueman <daniel@numascale.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
-Message-ID: <20150407025549.Bqlv6DnLkUsE8JxWd6jF0qG19dDZYbESPWLIWJ_YBMg@z>
+Message-ID: <20150407025547.6EgNnMlCr_d7ae3PBS1-jWf27cggSoATlLXlpDVPiDo@z>
 
-In the pv_scan_next() function, the slow cmpxchg atomic operation is
-performed even if the other CPU is not even close to being halted. This
-extra cmpxchg can harm slowpath performance.
-
-This patch introduces the new mayhalt flag to indicate if the other
-spinning CPU is close to being halted or not. The current threshold
-for x86 is 2k cpu_relax() calls. If this flag is not set, the other
-spinning CPU will have at least 2k more cpu_relax() calls before
-it can enter the halt state. This should give enough time for the
-setting of the locked flag in struct mcs_spinlock to propagate to
-that CPU without using atomic op.
+This patch adds the necessary Xen specific code to allow Xen to
+support the CPU halting and kicking operations needed by the queue
+spinlock PV code.
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- kernel/locking/qspinlock_paravirt.h |   28 +++++++++++++++++++++++++---
- 1 files changed, 25 insertions(+), 3 deletions(-)
+ arch/x86/xen/spinlock.c |   63 ++++++++++++++++++++++++++++++++++++++++++++---
+ kernel/Kconfig.locks    |    2 +-
+ 2 files changed, 60 insertions(+), 5 deletions(-)
 
-diff --git a/kernel/locking/qspinlock_paravirt.h b/kernel/locking/qspinlock_paravirt.h
-index a210061..a9fe10d 100644
---- a/kernel/locking/qspinlock_paravirt.h
-+++ b/kernel/locking/qspinlock_paravirt.h
-@@ -16,7 +16,8 @@
-  * native_queue_spin_unlock().
-  */
+diff --git a/arch/x86/xen/spinlock.c b/arch/x86/xen/spinlock.c
+index 956374c..728b45b 100644
+--- a/arch/x86/xen/spinlock.c
++++ b/arch/x86/xen/spinlock.c
+@@ -17,6 +17,55 @@
+ #include "xen-ops.h"
+ #include "debugfs.h"
  
--#define _Q_SLOW_VAL	(3U << _Q_LOCKED_OFFSET)
-+#define _Q_SLOW_VAL		(3U << _Q_LOCKED_OFFSET)
-+#define MAYHALT_THRESHOLD	(SPIN_THRESHOLD >> 4)
- 
- /*
-  * The vcpu_hashed is a special state that is set by the new lock holder on
-@@ -36,6 +37,7 @@ struct pv_node {
- 
- 	int			cpu;
- 	u8			state;
-+	u8			mayhalt;
- };
- 
- /*
-@@ -187,6 +189,7 @@ static void pv_init_node(struct mcs_spinlock *node)
- 
- 	pn->cpu = smp_processor_id();
- 	pn->state = vcpu_running;
-+	pn->mayhalt = false;
- }
- 
- /*
-@@ -203,17 +206,27 @@ static void pv_wait_node(struct mcs_spinlock *node)
- 		for (loop = SPIN_THRESHOLD; loop; loop--) {
- 			if (READ_ONCE(node->locked))
- 				return;
-+			if (loop == MAYHALT_THRESHOLD)
-+				xchg(&pn->mayhalt, true);
- 			cpu_relax();
- 		}
- 
- 		/*
--		 * Order pn->state vs pn->locked thusly:
-+		 * Order pn->state/pn->mayhalt vs pn->locked thusly:
- 		 *
--		 * [S] pn->state = vcpu_halted	  [S] next->locked = 1
-+		 * [S] pn->mayhalt = 1		  [S] next->locked = 1
-+		 *     MB, delay		      barrier()
-+		 * [S] pn->state = vcpu_halted	  [L] pn->mayhalt
- 		 *     MB			      MB
- 		 * [L] pn->locked		[RmW] pn->state = vcpu_hashed
- 		 *
- 		 * Matches the cmpxchg() from pv_scan_next().
-+		 *
-+		 * As the new lock holder may quit (when pn->mayhalt is not
-+		 * set) without memory barrier, a sufficiently long delay is
-+		 * inserted between the setting of pn->mayhalt and pn->state
-+		 * to ensure that there is enough time for the new pn->locked
-+		 * value to be propagated here to be checked below.
- 		 */
- 		(void)xchg(&pn->state, vcpu_halted);
- 
-@@ -226,6 +239,7 @@ static void pv_wait_node(struct mcs_spinlock *node)
- 		 * needs to move on to pv_wait_head().
- 		 */
- 		(void)cmpxchg(&pn->state, vcpu_halted, vcpu_running);
-+		pn->mayhalt = false;
- 	}
- 
- 	/*
-@@ -246,6 +260,14 @@ static void pv_scan_next(struct qspinlock *lock, struct mcs_spinlock *node)
- 	struct __qspinlock *l = (void *)lock;
- 
- 	/*
-+	 * If mayhalt is not set, there is enough time for the just set value
-+	 * in pn->locked to be propagated to the other CPU before it is time
-+	 * to halt.
++static DEFINE_PER_CPU(int, lock_kicker_irq) = -1;
++static DEFINE_PER_CPU(char *, irq_name);
++static bool xen_pvspin = true;
++
++#ifdef CONFIG_QUEUE_SPINLOCK
++
++#include <asm/qspinlock.h>
++
++static void xen_qlock_kick(int cpu)
++{
++	xen_send_IPI_one(cpu, XEN_SPIN_UNLOCK_VECTOR);
++}
++
++/*
++ * Halt the current CPU & release it back to the host
++ */
++static void xen_qlock_wait(u8 *byte, u8 val)
++{
++	int irq = __this_cpu_read(lock_kicker_irq);
++
++	/* If kicker interrupts not initialized yet, just spin */
++	if (irq == -1)
++		return;
++
++	/* clear pending */
++	xen_clear_irq_pending(irq);
++
++	/*
++	 * We check the byte value after clearing pending IRQ to make sure
++	 * that we won't miss a wakeup event because of the clearing.
++	 *
++	 * The sync_clear_bit() call in xen_clear_irq_pending() is atomic.
++	 * So it is effectively a memory barrier for x86.
 +	 */
-+	if (!READ_ONCE(pn->mayhalt))
++	if (READ_ONCE(*byte) != val)
 +		return;
 +
 +	/*
- 	 * Transition CPU state: halted => hashed
- 	 * Quit if the transition failed.
- 	 */
++	 * If an interrupt happens here, it will leave the wakeup irq
++	 * pending, which will cause xen_poll_irq() to return
++	 * immediately.
++	 */
++
++	/* Block until irq becomes pending (or perhaps a spurious wakeup) */
++	xen_poll_irq(irq);
++}
++
++#else /* CONFIG_QUEUE_SPINLOCK */
++
+ enum xen_contention_stat {
+ 	TAKEN_SLOW,
+ 	TAKEN_SLOW_PICKUP,
+@@ -100,12 +149,9 @@ struct xen_lock_waiting {
+ 	__ticket_t want;
+ };
+ 
+-static DEFINE_PER_CPU(int, lock_kicker_irq) = -1;
+-static DEFINE_PER_CPU(char *, irq_name);
+ static DEFINE_PER_CPU(struct xen_lock_waiting, lock_waiting);
+ static cpumask_t waiting_cpus;
+ 
+-static bool xen_pvspin = true;
+ __visible void xen_lock_spinning(struct arch_spinlock *lock, __ticket_t want)
+ {
+ 	int irq = __this_cpu_read(lock_kicker_irq);
+@@ -217,6 +263,7 @@ static void xen_unlock_kick(struct arch_spinlock *lock, __ticket_t next)
+ 		}
+ 	}
+ }
++#endif /* CONFIG_QUEUE_SPINLOCK */
+ 
+ static irqreturn_t dummy_handler(int irq, void *dev_id)
+ {
+@@ -280,8 +327,16 @@ void __init xen_init_spinlocks(void)
+ 		return;
+ 	}
+ 	printk(KERN_DEBUG "xen: PV spinlocks enabled\n");
++#ifdef CONFIG_QUEUE_SPINLOCK
++	__pv_init_lock_hash();
++	pv_lock_ops.queue_spin_lock_slowpath = __pv_queue_spin_lock_slowpath;
++	pv_lock_ops.queue_spin_unlock = PV_CALLEE_SAVE(__pv_queue_spin_unlock);
++	pv_lock_ops.wait = xen_qlock_wait;
++	pv_lock_ops.kick = xen_qlock_kick;
++#else
+ 	pv_lock_ops.lock_spinning = PV_CALLEE_SAVE(xen_lock_spinning);
+ 	pv_lock_ops.unlock_kick = xen_unlock_kick;
++#endif
+ }
+ 
+ /*
+@@ -310,7 +365,7 @@ static __init int xen_parse_nopvspin(char *arg)
+ }
+ early_param("xen_nopvspin", xen_parse_nopvspin);
+ 
+-#ifdef CONFIG_XEN_DEBUG_FS
++#if defined(CONFIG_XEN_DEBUG_FS) && !defined(CONFIG_QUEUE_SPINLOCK)
+ 
+ static struct dentry *d_spin_debug;
+ 
+diff --git a/kernel/Kconfig.locks b/kernel/Kconfig.locks
+index 537b13e..0b42933 100644
+--- a/kernel/Kconfig.locks
++++ b/kernel/Kconfig.locks
+@@ -240,7 +240,7 @@ config ARCH_USE_QUEUE_SPINLOCK
+ 
+ config QUEUE_SPINLOCK
+ 	def_bool y if ARCH_USE_QUEUE_SPINLOCK
+-	depends on SMP && (!PARAVIRT_SPINLOCKS || !XEN)
++	depends on SMP
+ 
+ config ARCH_USE_QUEUE_RWLOCK
+ 	bool
 -- 
 1.7.1
 
