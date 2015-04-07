@@ -1,120 +1,209 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3427.houston.hp.com ([15.201.208.55]:54970 "EHLO
-	g4t3427.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752947AbbDGC5E (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Apr 2015 22:57:04 -0400
+Received: from g2t1383g.austin.hp.com ([15.217.136.92]:57876 "EHLO
+	g2t1383g.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753418AbbDGC5a (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Apr 2015 22:57:30 -0400
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v15 08/15] lfsr: a simple binary Galois linear feedback shift register
-Date: Mon,  6 Apr 2015 22:55:43 -0400
-Message-ID: <1428375350-9213-9-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v15 06/15] qspinlock: Use a simple write to grab the lock
+Date: Mon,  6 Apr 2015 22:55:41 -0400
+Message-ID: <1428375350-9213-7-git-send-email-Waiman.Long@hp.com>
 In-Reply-To: <1428375350-9213-1-git-send-email-Waiman.Long@hp.com>
 References: <1428375350-9213-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
 Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Daniel J Blueman <daniel@numascale.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
-Message-ID: <20150407025543.4OpN8AXLoxUYMvA8Srx3oHGOTjj9PWeZJLmC8gfMbNk@z>
+Message-ID: <20150407025541.HGow6MKPG-VKSdCsafthCNVDoOhFEIuKErAlA1oJ0Jg@z>
 
-This patch is based on the code sent out by Peter Zijstra as part
-of his queue spinlock patch to provide a hashing function with open
-addressing.  The lfsr() function can be used to return a sequence of
-numbers that cycle through all the bit patterns (2^n -1) of a given
-bit width n except the value 0 in a somewhat random fashion depending
-on the LFSR taps that is being used. Callers can provide their own
-taps value or use the default.
+Currently, atomic_cmpxchg() is used to get the lock. However, this
+is not really necessary if there is more than one task in the queue
+and the queue head don't need to reset the tail code. For that case,
+a simple write to set the lock bit is enough as the queue head will
+be the only one eligible to get the lock as long as it checks that
+both the lock and pending bits are not set. The current pending bit
+waiting code will ensure that the bit will not be set as soon as the
+tail code in the lock is set.
+
+With that change, the are some slight improvement in the performance
+of the queue spinlock in the 5M loop micro-benchmark run on a 4-socket
+Westere-EX machine as shown in the tables below.
+
+		[Standalone/Embedded - same node]
+  # of tasks	Before patch	After patch	%Change
+  ----------	-----------	----------	-------
+       3	 2324/2321	2248/2265	 -3%/-2%
+       4	 2890/2896	2819/2831	 -2%/-2%
+       5	 3611/3595	3522/3512	 -2%/-2%
+       6	 4281/4276	4173/4160	 -3%/-3%
+       7	 5018/5001	4875/4861	 -3%/-3%
+       8	 5759/5750	5563/5568	 -3%/-3%
+
+		[Standalone/Embedded - different nodes]
+  # of tasks	Before patch	After patch	%Change
+  ----------	-----------	----------	-------
+       3	12242/12237	12087/12093	 -1%/-1%
+       4	10688/10696	10507/10521	 -2%/-2%
+
+It was also found that this change produced a much bigger performance
+improvement in the newer IvyBridge-EX chip and was essentially to close
+the performance gap between the ticket spinlock and queue spinlock.
+
+The disk workload of the AIM7 benchmark was run on a 4-socket
+Westmere-EX machine with both ext4 and xfs RAM disks at 3000 users
+on a 3.14 based kernel. The results of the test runs were:
+
+                AIM7 XFS Disk Test
+  kernel                 JPM    Real Time   Sys Time    Usr Time
+  -----                  ---    ---------   --------    --------
+  ticketlock            5678233    3.17       96.61       5.81
+  qspinlock             5750799    3.13       94.83       5.97
+
+                AIM7 EXT4 Disk Test
+  kernel                 JPM    Real Time   Sys Time    Usr Time
+  -----                  ---    ---------   --------    --------
+  ticketlock            1114551   16.15      509.72       7.11
+  qspinlock             2184466    8.24      232.99       6.01
+
+The ext4 filesystem run had a much higher spinlock contention than
+the xfs filesystem run.
+
+The "ebizzy -m" test was also run with the following results:
+
+  kernel               records/s  Real Time   Sys Time    Usr Time
+  -----                ---------  ---------   --------    --------
+  ticketlock             2075       10.00      216.35       3.49
+  qspinlock              3023       10.00      198.20       4.80
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- include/linux/lfsr.h |   80 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 80 insertions(+), 0 deletions(-)
- create mode 100644 include/linux/lfsr.h
+ kernel/locking/qspinlock.c |   66 +++++++++++++++++++++++++++++++++----------
+ 1 files changed, 50 insertions(+), 16 deletions(-)
 
-diff --git a/include/linux/lfsr.h b/include/linux/lfsr.h
-new file mode 100644
-index 0000000..f570819
---- /dev/null
-+++ b/include/linux/lfsr.h
-@@ -0,0 +1,80 @@
-+#ifndef _LINUX_LFSR_H
-+#define _LINUX_LFSR_H
-+
-+/*
-+ * Simple Binary Galois Linear Feedback Shift Register
+diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
+index bcc99e6..99503ef 100644
+--- a/kernel/locking/qspinlock.c
++++ b/kernel/locking/qspinlock.c
+@@ -105,24 +105,37 @@ static inline struct mcs_spinlock *decode_tail(u32 tail)
+  * By using the whole 2nd least significant byte for the pending bit, we
+  * can allow better optimization of the lock acquisition for the pending
+  * bit holder.
 + *
-+ * http://en.wikipedia.org/wiki/Linear_feedback_shift_register
++ * This internal structure is also used by the set_locked function which
++ * is not restricted to _Q_PENDING_BITS == 8.
+  */
+-#if _Q_PENDING_BITS == 8
+-
+ struct __qspinlock {
+ 	union {
+ 		atomic_t val;
+-		struct {
+ #ifdef __LITTLE_ENDIAN
++		struct {
++			u8	locked;
++			u8	pending;
++		};
++		struct {
+ 			u16	locked_pending;
+ 			u16	tail;
++		};
+ #else
++		struct {
+ 			u16	tail;
+ 			u16	locked_pending;
+-#endif
+ 		};
++		struct {
++			u8	reserved[2];
++			u8	pending;
++			u8	locked;
++		};
++#endif
+ 	};
+ };
+ 
++#if _Q_PENDING_BITS == 8
+ /**
+  * clear_pending_set_locked - take ownership and clear the pending bit.
+  * @lock: Pointer to queue spinlock structure
+@@ -195,6 +208,19 @@ static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
+ #endif /* _Q_PENDING_BITS == 8 */
+ 
+ /**
++ * set_locked - Set the lock bit and own the lock
++ * @lock: Pointer to queue spinlock structure
 + *
-+ * This function only currently supports only bits values of 4-30. Callers
-+ * that doesn't pass in a constant bits value can optionally define
-+ * LFSR_MIN_BITS and LFSR_MAX_BITS before including the lfsr.h header file
-+ * to reduce the size of the jump table in the compiled code, if desired.
++ * *,*,0 -> *,0,1
 + */
-+#ifndef LFSR_MIN_BITS
-+#define LFSR_MIN_BITS	4
-+#endif
-+
-+#ifndef LFSR_MAX_BITS
-+#define LFSR_MAX_BITS	30
-+#endif
-+
-+static __always_inline u32 lfsr_taps(int bits)
++static __always_inline void set_locked(struct qspinlock *lock)
 +{
-+	BUG_ON((bits < LFSR_MIN_BITS) || (bits > LFSR_MAX_BITS));
-+	BUILD_BUG_ON((LFSR_MIN_BITS < 4) || (LFSR_MAX_BITS > 30));
++	struct __qspinlock *l = (void *)lock;
 +
-+#define _IF_BITS_EQ(x)	\
-+	if (((x) >= LFSR_MIN_BITS) && ((x) <= LFSR_MAX_BITS) && ((x) == bits))
-+
-+	/*
-+	 * Feedback terms copied from
-+	 * http://users.ece.cmu.edu/~koopman/lfsr/index.html
-+	 */
-+	_IF_BITS_EQ(4)  return 0x0009;
-+	_IF_BITS_EQ(5)  return 0x0012;
-+	_IF_BITS_EQ(6)  return 0x0021;
-+	_IF_BITS_EQ(7)  return 0x0041;
-+	_IF_BITS_EQ(8)  return 0x008E;
-+	_IF_BITS_EQ(9)  return 0x0108;
-+	_IF_BITS_EQ(10) return 0x0204;
-+	_IF_BITS_EQ(11) return 0x0402;
-+	_IF_BITS_EQ(12) return 0x0829;
-+	_IF_BITS_EQ(13) return 0x100D;
-+	_IF_BITS_EQ(14) return 0x2015;
-+	_IF_BITS_EQ(15) return 0x4122;
-+	_IF_BITS_EQ(16) return 0x8112;
-+	_IF_BITS_EQ(17) return 0x102C9;
-+	_IF_BITS_EQ(18) return 0x20195;
-+	_IF_BITS_EQ(19) return 0x403FE;
-+	_IF_BITS_EQ(20) return 0x80637;
-+	_IF_BITS_EQ(21) return 0x100478;
-+	_IF_BITS_EQ(22) return 0x20069E;
-+	_IF_BITS_EQ(23) return 0x4004B2;
-+	_IF_BITS_EQ(24) return 0x800B87;
-+	_IF_BITS_EQ(25) return 0x10004F3;
-+	_IF_BITS_EQ(26) return 0x200072D;
-+	_IF_BITS_EQ(27) return 0x40006AE;
-+	_IF_BITS_EQ(28) return 0x80009E3;
-+	_IF_BITS_EQ(29) return 0x10000583;
-+	_IF_BITS_EQ(30) return 0x20000C92;
-+#undef _IF_BITS_EQ
-+
-+	/* Unreachable */
-+	return 0;
++	WRITE_ONCE(l->locked, _Q_LOCKED_VAL);
 +}
 +
-+/*
-+ * Please note that LFSR doesn't work with a start state of 0.
-+ */
-+static inline u32 lfsr(u32 val, int bits, u32 taps)
-+{
-+	u32 bit = val & 1;
-+
-+	val >>= 1;
-+	if (bit)
-+		val ^= taps ? taps : lfsr_taps(bits);
-+	return val;
-+}
-+
-+#endif /* _LINUX_LFSR_H */
++/**
+  * queue_spin_lock_slowpath - acquire the queue spinlock
+  * @lock: Pointer to queue spinlock structure
+  * @val: Current value of the queue spinlock 32-bit word
+@@ -329,8 +355,14 @@ queue:
+ 	 * go away.
+ 	 *
+ 	 * *,x,y -> *,0,0
++	 *
++	 * this wait loop must use a load-acquire such that we match the
++	 * store-release that clears the locked bit and create lock
++	 * sequentiality; this is because the set_locked() function below
++	 * does not imply a full barrier.
++	 *
+ 	 */
+-	while ((val = atomic_read(&lock->val)) & _Q_LOCKED_PENDING_MASK)
++	while ((val = smp_load_acquire(&lock->val.counter)) & _Q_LOCKED_PENDING_MASK)
+ 		cpu_relax();
+ 
+ 	/*
+@@ -338,15 +370,19 @@ queue:
+ 	 *
+ 	 * n,0,0 -> 0,0,1 : lock, uncontended
+ 	 * *,0,0 -> *,0,1 : lock, contended
++	 *
++	 * If the queue head is the only one in the queue (lock value == tail),
++	 * clear the tail code and grab the lock. Otherwise, we only need
++	 * to grab the lock.
+ 	 */
+ 	for (;;) {
+-		new = _Q_LOCKED_VAL;
+-		if (val != tail)
+-			new |= val;
+-
+-		old = atomic_cmpxchg(&lock->val, val, new);
+-		if (old == val)
++		if (val != tail) {
++			set_locked(lock);
+ 			break;
++		}
++		old = atomic_cmpxchg(&lock->val, val, _Q_LOCKED_VAL);
++		if (old == val)
++			goto release;	/* No contention */
+ 
+ 		val = old;
+ 	}
+@@ -354,12 +390,10 @@ queue:
+ 	/*
+ 	 * contended path; wait for next, release.
+ 	 */
+-	if (new != _Q_LOCKED_VAL) {
+-		while (!(next = READ_ONCE(node->next)))
+-			cpu_relax();
++	while (!(next = READ_ONCE(node->next)))
++		cpu_relax();
+ 
+-		arch_mcs_spin_unlock_contended(&next->locked);
+-	}
++	arch_mcs_spin_unlock_contended(&next->locked);
+ 
+ release:
+ 	/*
 -- 
 1.7.1
 
