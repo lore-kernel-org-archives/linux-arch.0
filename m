@@ -1,203 +1,115 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v15 06/15] qspinlock: Use a simple write to grab the lock
-Date: Mon,  6 Apr 2015 22:55:41 -0400
-Message-ID: <1428375350-9213-7-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v15 15/15] pvqspinlock: Add debug code to check
+	for PV lock hash sanity
+Date: Mon,  6 Apr 2015 22:55:50 -0400
+Message-ID: <1428375350-9213-16-git-send-email-Waiman.Long@hp.com>
 References: <1428375350-9213-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <xen-devel-bounces@lists.xen.org>
 In-Reply-To: <1428375350-9213-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Daniel J Blueman <daniel@numascale.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>
+List-Unsubscribe: <http://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
+	<mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xen.org>
+List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
+List-Subscribe: <http://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
+	<mailto:xen-devel-request@lists.xen.org?subject=subscribe>
+Sender: xen-devel-bounces@lists.xen.org
+Errors-To: xen-devel-bounces@lists.xen.org
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, Waiman Long <Waiman.Long@hp.com>, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, kvm@vger.kernel.org, Daniel J Blueman <daniel@numascale.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Scott J Norton <scott.norton@hp.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Douglas Hatch <doug.hatch@hp.com>
 List-Id: linux-arch.vger.kernel.org
 
-Currently, atomic_cmpxchg() is used to get the lock. However, this
-is not really necessary if there is more than one task in the queue
-and the queue head don't need to reset the tail code. For that case,
-a simple write to set the lock bit is enough as the queue head will
-be the only one eligible to get the lock as long as it checks that
-both the lock and pending bits are not set. The current pending bit
-waiting code will ensure that the bit will not be set as soon as the
-tail code in the lock is set.
+The current code for PV lock hash table processing will panic the
+system if pv_hash_find() can't find the desired hash bucket. However,
+there is no check to see if there is more than one entry for a given
+lock which should never happen.
 
-With that change, the are some slight improvement in the performance
-of the queue spinlock in the 5M loop micro-benchmark run on a 4-socket
-Westere-EX machine as shown in the tables below.
-
-		[Standalone/Embedded - same node]
-  # of tasks	Before patch	After patch	%Change
-  ----------	-----------	----------	-------
-       3	 2324/2321	2248/2265	 -3%/-2%
-       4	 2890/2896	2819/2831	 -2%/-2%
-       5	 3611/3595	3522/3512	 -2%/-2%
-       6	 4281/4276	4173/4160	 -3%/-3%
-       7	 5018/5001	4875/4861	 -3%/-3%
-       8	 5759/5750	5563/5568	 -3%/-3%
-
-		[Standalone/Embedded - different nodes]
-  # of tasks	Before patch	After patch	%Change
-  ----------	-----------	----------	-------
-       3	12242/12237	12087/12093	 -1%/-1%
-       4	10688/10696	10507/10521	 -2%/-2%
-
-It was also found that this change produced a much bigger performance
-improvement in the newer IvyBridge-EX chip and was essentially to close
-the performance gap between the ticket spinlock and queue spinlock.
-
-The disk workload of the AIM7 benchmark was run on a 4-socket
-Westmere-EX machine with both ext4 and xfs RAM disks at 3000 users
-on a 3.14 based kernel. The results of the test runs were:
-
-                AIM7 XFS Disk Test
-  kernel                 JPM    Real Time   Sys Time    Usr Time
-  -----                  ---    ---------   --------    --------
-  ticketlock            5678233    3.17       96.61       5.81
-  qspinlock             5750799    3.13       94.83       5.97
-
-                AIM7 EXT4 Disk Test
-  kernel                 JPM    Real Time   Sys Time    Usr Time
-  -----                  ---    ---------   --------    --------
-  ticketlock            1114551   16.15      509.72       7.11
-  qspinlock             2184466    8.24      232.99       6.01
-
-The ext4 filesystem run had a much higher spinlock contention than
-the xfs filesystem run.
-
-The "ebizzy -m" test was also run with the following results:
-
-  kernel               records/s  Real Time   Sys Time    Usr Time
-  -----                ---------  ---------   --------    --------
-  ticketlock             2075       10.00      216.35       3.49
-  qspinlock              3023       10.00      198.20       4.80
+This patch adds a pv_hash_check_duplicate() function to do that which
+will only be enabled if CONFIG_DEBUG_SPINLOCK is defined because of
+the performance overhead it introduces.
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- kernel/locking/qspinlock.c |   66 +++++++++++++++++++++++++++++++++----------
- 1 files changed, 50 insertions(+), 16 deletions(-)
+ kernel/locking/qspinlock_paravirt.h |   58 +++++++++++++++++++++++++++++++++++
+ 1 files changed, 58 insertions(+), 0 deletions(-)
 
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index bcc99e6..99503ef 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -105,24 +105,37 @@ static inline struct mcs_spinlock *decode_tail(u32 tail)
-  * By using the whole 2nd least significant byte for the pending bit, we
-  * can allow better optimization of the lock acquisition for the pending
-  * bit holder.
-+ *
-+ * This internal structure is also used by the set_locked function which
-+ * is not restricted to _Q_PENDING_BITS == 8.
-  */
--#if _Q_PENDING_BITS == 8
--
- struct __qspinlock {
- 	union {
- 		atomic_t val;
--		struct {
- #ifdef __LITTLE_ENDIAN
-+		struct {
-+			u8	locked;
-+			u8	pending;
-+		};
-+		struct {
- 			u16	locked_pending;
- 			u16	tail;
-+		};
- #else
-+		struct {
- 			u16	tail;
- 			u16	locked_pending;
--#endif
- 		};
-+		struct {
-+			u8	reserved[2];
-+			u8	pending;
-+			u8	locked;
-+		};
-+#endif
- 	};
- };
+diff --git a/kernel/locking/qspinlock_paravirt.h b/kernel/locking/qspinlock_paravirt.h
+index a9fe10d..4d39c8b 100644
+--- a/kernel/locking/qspinlock_paravirt.h
++++ b/kernel/locking/qspinlock_paravirt.h
+@@ -107,6 +107,63 @@ static inline u32 hash_align(u32 hash)
+ }
  
-+#if _Q_PENDING_BITS == 8
- /**
-  * clear_pending_set_locked - take ownership and clear the pending bit.
-  * @lock: Pointer to queue spinlock structure
-@@ -195,6 +208,19 @@ static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
- #endif /* _Q_PENDING_BITS == 8 */
- 
- /**
-+ * set_locked - Set the lock bit and own the lock
-+ * @lock: Pointer to queue spinlock structure
-+ *
-+ * *,*,0 -> *,0,1
+ /*
++ * Hash table debugging code
 + */
-+static __always_inline void set_locked(struct qspinlock *lock)
-+{
-+	struct __qspinlock *l = (void *)lock;
++#ifdef CONFIG_DEBUG_SPINLOCK
 +
-+	WRITE_ONCE(l->locked, _Q_LOCKED_VAL);
++#define _NODE_IDX(pn)	((((unsigned long)pn) & (SMP_CACHE_BYTES - 1)) /\
++				sizeof(struct mcs_spinlock))
++/*
++ * Check if there is additional hash buckets with the same lock which
++ * should not happen.
++ */
++static inline void pv_hash_check_duplicate(struct qspinlock *lock)
++{
++	struct pv_hash_bucket *hb, *end, *hb1 = NULL;
++	int count = 0, used = 0;
++
++	end = &pv_lock_hash[1 << pv_lock_hash_bits];
++	for (hb = pv_lock_hash; hb < end; hb++) {
++		struct qspinlock *l = READ_ONCE(hb->lock);
++		struct pv_node *pn;
++
++		if (l)
++			used++;
++		if (l != lock)
++			continue;
++		if (++count == 1) {
++			hb1 = hb;
++			continue;
++		}
++		WARN_ON(count == 2);
++		if (hb1) {
++			pn = READ_ONCE(hb1->node);
++			printk(KERN_ERR "PV lock hash error: duplicated entry "
++			       "#%d - hash %ld, node %ld, cpu %d\n", 1,
++			       hb1 - pv_lock_hash, _NODE_IDX(pn),
++			       pn ? pn->cpu : -1);
++			hb1 = NULL;
++		}
++		pn = READ_ONCE(hb->node);
++		printk(KERN_ERR "PV lock hash error: duplicated entry #%d - "
++		       "hash %ld, node %ld, cpu %d\n", count, hb - pv_lock_hash,
++		       _NODE_IDX(pn), pn ? pn->cpu : -1);
++	}
++	/*
++	 * Warn if more than half of the buckets are used
++	 */
++	if (used > (1 << (pv_lock_hash_bits - 1)))
++		printk(KERN_WARNING "PV lock hash warning: "
++		       "%d hash entries used!\n", used);
 +}
 +
-+/**
-  * queue_spin_lock_slowpath - acquire the queue spinlock
-  * @lock: Pointer to queue spinlock structure
-  * @val: Current value of the queue spinlock 32-bit word
-@@ -329,8 +355,14 @@ queue:
- 	 * go away.
- 	 *
- 	 * *,x,y -> *,0,0
-+	 *
-+	 * this wait loop must use a load-acquire such that we match the
-+	 * store-release that clears the locked bit and create lock
-+	 * sequentiality; this is because the set_locked() function below
-+	 * does not imply a full barrier.
-+	 *
- 	 */
--	while ((val = atomic_read(&lock->val)) & _Q_LOCKED_PENDING_MASK)
-+	while ((val = smp_load_acquire(&lock->val.counter)) & _Q_LOCKED_PENDING_MASK)
- 		cpu_relax();
- 
- 	/*
-@@ -338,15 +370,19 @@ queue:
- 	 *
- 	 * n,0,0 -> 0,0,1 : lock, uncontended
- 	 * *,0,0 -> *,0,1 : lock, contended
-+	 *
-+	 * If the queue head is the only one in the queue (lock value == tail),
-+	 * clear the tail code and grab the lock. Otherwise, we only need
-+	 * to grab the lock.
- 	 */
- 	for (;;) {
--		new = _Q_LOCKED_VAL;
--		if (val != tail)
--			new |= val;
--
--		old = atomic_cmpxchg(&lock->val, val, new);
--		if (old == val)
-+		if (val != tail) {
-+			set_locked(lock);
- 			break;
-+		}
-+		old = atomic_cmpxchg(&lock->val, val, _Q_LOCKED_VAL);
-+		if (old == val)
-+			goto release;	/* No contention */
- 
- 		val = old;
++#else /* CONFIG_DEBUG_SPINLOCK */
++
++static inline void pv_hash_check_duplicate(struct qspinlock *lock) {}
++
++#endif /* CONFIG_DEBUG_SPINLOCK */
++
++/*
+  * Set up an entry in the lock hash table
+  * This is not inlined to reduce size of generated code as it is included
+  * twice and is used only in the slowest path of handling CPU halting.
+@@ -141,6 +198,7 @@ pv_hash(struct qspinlock *lock, struct pv_node *node)
  	}
-@@ -354,12 +390,10 @@ queue:
- 	/*
- 	 * contended path; wait for next, release.
- 	 */
--	if (new != _Q_LOCKED_VAL) {
--		while (!(next = READ_ONCE(node->next)))
--			cpu_relax();
-+	while (!(next = READ_ONCE(node->next)))
-+		cpu_relax();
  
--		arch_mcs_spin_unlock_contended(&next->locked);
--	}
-+	arch_mcs_spin_unlock_contended(&next->locked);
+ done:
++	pv_hash_check_duplicate(lock);
+ 	return &hb->lock;
+ }
  
- release:
- 	/*
 -- 
 1.7.1
