@@ -1,76 +1,93 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v15 13/15] pvqspinlock: Only kick CPU at unlock time
-Date: Thu, 9 Apr 2015 22:07:14 +0200
-Message-ID: <20150409200714.GV24151@twins.programming.kicks-ass.net>
-References: <1428375350-9213-1-git-send-email-Waiman.Long@hp.com>
-	<1428375350-9213-14-git-send-email-Waiman.Long@hp.com>
-	<20150409195721.GA5029@twins.programming.kicks-ass.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <20150409195721.GA5029@twins.programming.kicks-ass.net>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Daniel J Blueman <daniel@numascale.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Scott J Norton <scott.norton@hp.com>, Ingo Molnar <mingo@redhat.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Douglas Hatch <doug.hatch@hp.com>
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH] qrwlock: Fix bug in interrupt handling code
+Date: Thu,  9 Apr 2015 16:07:55 -0400
+Message-ID: <1428610075-38957-1-git-send-email-Waiman.Long@hp.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Apr 09, 2015 at 09:57:21PM +0200, Peter Zijlstra wrote:
-> On Mon, Apr 06, 2015 at 10:55:48PM -0400, Waiman Long wrote:
-> 
-> > @@ -219,24 +236,30 @@ static void pv_wait_node(struct mcs_spinlock *node)
-> >  }
-> >  
-> >  /*
-> > + * Called after setting next->locked = 1 & lock acquired.
-> > + * Check if the the CPU has been halted. If so, set the _Q_SLOW_VAL flag
-> > + * and put an entry into the lock hash table to be waken up at unlock time.
-> >   */
-> > -static void pv_kick_node(struct mcs_spinlock *node)
-> > +static void pv_scan_next(struct qspinlock *lock, struct mcs_spinlock *node)
-> 
-> I'm not too sure about that name change..
-> 
-> >  {
-> >  	struct pv_node *pn = (struct pv_node *)node;
-> > +	struct __qspinlock *l = (void *)lock;
-> >  
-> >  	/*
-> > +	 * Transition CPU state: halted => hashed
-> > +	 * Quit if the transition failed.
-> >  	 */
-> > +	if (cmpxchg(&pn->state, vcpu_halted, vcpu_hashed) != vcpu_halted)
-> > +		return;
-> > +
-> > +	/*
-> > +	 * Put the lock into the hash table & set the _Q_SLOW_VAL in the lock.
-> > +	 * As this is the same CPU that will check the _Q_SLOW_VAL value and
-> > +	 * the hash table later on at unlock time, no atomic instruction is
-> > +	 * needed.
-> > +	 */
-> > +	WRITE_ONCE(l->locked, _Q_SLOW_VAL);
-> > +	(void)pv_hash(lock, pn);
-> >  }
-> 
-> This is broken. The unlock path relies on:
-> 
->   pv_hash()
->    MB
->   l->locked = SLOW
-> 
-> such that when it observes SLOW, it must then also observe a consistent
-> bucket.
-> 
-> The above can have us do pv_hash_find() _before_ we actually hash the
-> lock, which will result in us triggering that BUG_ON() in there.
+The qrwlock is fair in the process context, but becoming unfair when
+in the interrupt context to support use cases like the tasklist_lock.
+However, the unfair code in the interrupt context has problem that
+may cause deadlock.
 
-Urgh, clearly its late and I cannot read. The comment explains it.
+The fast path increments the reader count. In the interrupt context,
+the reader in the slowpath will wait until the writer release the
+lock. However, if other readers have the lock and the writer is just
+in the waiting mode. It will never get the write lock because the
+that interrupt context reader has increment the count. This will
+cause deadlock.
+
+This patch fixes this problem by checking the state of the
+reader/writer count retrieved at the fast path. If the writer
+is in waiting mode, the reader will get the lock immediately and
+return. Otherwise, it will wait until the writer release the lock
+like before.
+
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+---
+ include/asm-generic/qrwlock.h |    4 ++--
+ kernel/locking/qrwlock.c      |   14 ++++++++------
+ 2 files changed, 10 insertions(+), 8 deletions(-)
+
+diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+index 6383d54..865d021 100644
+--- a/include/asm-generic/qrwlock.h
++++ b/include/asm-generic/qrwlock.h
+@@ -36,7 +36,7 @@
+ /*
+  * External function declarations
+  */
+-extern void queue_read_lock_slowpath(struct qrwlock *lock);
++extern void queue_read_lock_slowpath(struct qrwlock *lock, u32 cnts);
+ extern void queue_write_lock_slowpath(struct qrwlock *lock);
+ 
+ /**
+@@ -105,7 +105,7 @@ static inline void queue_read_lock(struct qrwlock *lock)
+ 		return;
+ 
+ 	/* The slowpath will decrement the reader count, if necessary. */
+-	queue_read_lock_slowpath(lock);
++	queue_read_lock_slowpath(lock, cnts);
+ }
+ 
+ /**
+diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+index f956ede..3fa4af2 100644
+--- a/kernel/locking/qrwlock.c
++++ b/kernel/locking/qrwlock.c
+@@ -43,22 +43,24 @@ rspin_until_writer_unlock(struct qrwlock *lock, u32 cnts)
+  * queue_read_lock_slowpath - acquire read lock of a queue rwlock
+  * @lock: Pointer to queue rwlock structure
+  */
+-void queue_read_lock_slowpath(struct qrwlock *lock)
++void queue_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
+ {
+-	u32 cnts;
+-
+ 	/*
+ 	 * Readers come here when they cannot get the lock without waiting
+ 	 */
+ 	if (unlikely(in_interrupt())) {
+ 		/*
+-		 * Readers in interrupt context will spin until the lock is
+-		 * available without waiting in the queue.
++		 * Readers in interrupt context will get the lock immediately
++		 * if the writer is just waiting (not holding the lock yet)
++		 * or they will spin until the lock is available without
++		 * waiting in the queue.
+ 		 */
+-		cnts = smp_load_acquire((u32 *)&lock->cnts);
++		if ((cnts & _QW_WMASK) != _QW_LOCKED)
++			return;
+ 		rspin_until_writer_unlock(lock, cnts);
+ 		return;
+ 	}
++
+ 	atomic_sub(_QR_BIAS, &lock->cnts);
+ 
+ 	/*
+-- 
+1.7.1
