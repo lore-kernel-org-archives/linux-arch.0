@@ -1,163 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f43.google.com ([74.125.82.43]:35175 "EHLO
-	mail-wg0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933366AbbDIKw7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2015 06:52:59 -0400
-Received: by wgyo15 with SMTP id o15so105118283wgy.2
-        for <linux-arch@vger.kernel.org>; Thu, 09 Apr 2015 03:52:58 -0700 (PDT)
-Message-ID: <55265A06.5020902@linaro.org>
-Date: Thu, 09 Apr 2015 12:52:54 +0200
-From: Daniel Lezcano <daniel.lezcano@linaro.org>
+Received: from relay1.mentorg.com ([192.94.38.131]:37252 "EHLO
+	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753974AbbDINFA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2015 09:05:00 -0400
+Message-ID: <552678E7.4040107@mentor.com>
+Date: Thu, 9 Apr 2015 16:04:39 +0300
+From: Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v6 04/15] clocksource/drivers: Add ARM System timer driver
-References: <1428424234-28572-1-git-send-email-mcoquelin.stm32@gmail.com> <1428424234-28572-5-git-send-email-mcoquelin.stm32@gmail.com>
-In-Reply-To: <1428424234-28572-5-git-send-email-mcoquelin.stm32@gmail.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Subject: Re: [PATCH v6 10/15] serial: stm32-usart: Add STM32 USART Driver
+References: <1428424234-28572-1-git-send-email-mcoquelin.stm32@gmail.com> <1428424234-28572-11-git-send-email-mcoquelin.stm32@gmail.com>
+In-Reply-To: <1428424234-28572-11-git-send-email-mcoquelin.stm32@gmail.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>, u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl, peter@hurleysoftware.com, andy.shevchenko@gmail.com, cw00.choi@samsung.com, Russell King <linux@arm.linux.org.uk>, joe@perches.com
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>, u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl, peter@hurleysoftware.com, andy.shevchenko@gmail.com, cw00.choi@samsung.com, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, joe@perches.com
 Cc: Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150409105254.qD6yfnpKvKsu642Hcfz5jIFanfPYnZIvySNtOG3ohJo@z>
+Message-ID: <20150409130439._S5fX3vt7nj_NU0MK4ZRsbTIQ3mWMDalG9gbavXTNMs@z>
 
-On 04/07/2015 06:30 PM, Maxime Coquelin wrote:
-> This patch adds clocksource support for ARMv7-M's System timer,
-> also known as SysTick.
->
+Hi Maxime,
+
+On 07.04.2015 19:30, Maxime Coquelin wrote:
+> This drivers adds support to the STM32 USART controller, which is a
+> standard serial driver.
+> 
 > Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
+> Reviewed-by: Peter Hurley <peter@hurleysoftware.com>
 > Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-
-Acked-by: Daniel Lezcano <daniel.lezcano@linaro.org>
-
 > ---
->   drivers/clocksource/Kconfig          |  7 ++++
->   drivers/clocksource/Makefile         |  1 +
->   drivers/clocksource/armv7m_systick.c | 79 ++++++++++++++++++++++++++++++++++++
->   3 files changed, 87 insertions(+)
->   create mode 100644 drivers/clocksource/armv7m_systick.c
->
-> diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
-> index 1c2506f..b82e58b 100644
-> --- a/drivers/clocksource/Kconfig
-> +++ b/drivers/clocksource/Kconfig
-> @@ -134,6 +134,13 @@ config CLKSRC_ARM_GLOBAL_TIMER_SCHED_CLOCK
->   	help
->   	 Use ARM global timer clock source as sched_clock
->
-> +config ARMV7M_SYSTICK
-> +	bool
-> +	select CLKSRC_OF if OF
-> +	select CLKSRC_MMIO
-> +	help
-> +	  This options enables support for the ARMv7M system timer unit
-> +
->   config ATMEL_PIT
->   	select CLKSRC_OF if OF
->   	def_bool SOC_AT91SAM9 || SOC_SAMA5
-> diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
-> index 752d5c7..1c9a643 100644
-> --- a/drivers/clocksource/Makefile
-> +++ b/drivers/clocksource/Makefile
-> @@ -44,6 +44,7 @@ obj-$(CONFIG_MTK_TIMER)		+= mtk_timer.o
->
->   obj-$(CONFIG_ARM_ARCH_TIMER)		+= arm_arch_timer.o
->   obj-$(CONFIG_ARM_GLOBAL_TIMER)		+= arm_global_timer.o
-> +obj-$(CONFIG_ARMV7M_SYSTICK)		+= armv7m_systick.o
->   obj-$(CONFIG_CLKSRC_METAG_GENERIC)	+= metag_generic.o
->   obj-$(CONFIG_ARCH_HAS_TICK_BROADCAST)	+= dummy_timer.o
->   obj-$(CONFIG_ARCH_KEYSTONE)		+= timer-keystone.o
-> diff --git a/drivers/clocksource/armv7m_systick.c b/drivers/clocksource/armv7m_systick.c
-> new file mode 100644
-> index 0000000..addfd2c
-> --- /dev/null
-> +++ b/drivers/clocksource/armv7m_systick.c
-> @@ -0,0 +1,79 @@
-> +/*
-> + * Copyright (C) Maxime Coquelin 2015
-> + * Author:  Maxime Coquelin <mcoquelin.stm32@gmail.com>
-> + * License terms:  GNU General Public License (GPL), version 2
-> + */
-> +
-> +#include <linux/kernel.h>
-> +#include <linux/clocksource.h>
-> +#include <linux/clockchips.h>
-> +#include <linux/of.h>
-> +#include <linux/of_address.h>
-> +#include <linux/clk.h>
-> +#include <linux/bitops.h>
-> +
-> +#define SYST_CSR	0x00
-> +#define SYST_RVR	0x04
-> +#define SYST_CVR	0x08
-> +#define SYST_CALIB	0x0c
-> +
-> +#define SYST_CSR_ENABLE BIT(0)
-> +
-> +#define SYSTICK_LOAD_RELOAD_MASK 0x00FFFFFF
-> +
-> +static void __init system_timer_of_register(struct device_node *np)
+>  drivers/tty/serial/Kconfig       |  17 +
+>  drivers/tty/serial/Makefile      |   1 +
+>  drivers/tty/serial/stm32-usart.c | 735 +++++++++++++++++++++++++++++++++++++++
+>  include/uapi/linux/serial_core.h |   3 +
+>  4 files changed, 756 insertions(+)
+>  create mode 100644 drivers/tty/serial/stm32-usart.c
+
+[snip]
+
+> +static void stm32_console_write(struct console *co, const char *s, unsigned cnt)
 > +{
-> +	struct clk *clk = NULL;
-> +	void __iomem *base;
-> +	u32 rate;
-> +	int ret;
+> +	struct uart_port *port = &stm32_ports[co->index].port;
+> +	unsigned long flags;
+> +	u32 old_cr1, new_cr1;
+> +	int locked = 1;
 > +
-> +	base = of_iomap(np, 0);
-> +	if (!base) {
-> +		pr_warn("system-timer: invalid base address\n");
-> +		return;
+> +	if (oops_in_progress) {
+> +		locked = spin_trylock_irqsave(&port->lock, flags);
+> +	} else {
+> +		locked = 1;
+
+locked = 1 is done from the declaration.
+
+Also do you want to add "if (port->sysrq) locked = 0;" check?
+
+> +		spin_lock_irqsave(&port->lock, flags);
 > +	}
 > +
-> +	ret = of_property_read_u32(np, "clock-frequency", &rate);
-> +	if (ret) {
-> +		clk = of_clk_get(np, 0);
-> +		if (IS_ERR(clk))
-> +			goto out_unmap;
-> +
-> +		ret = clk_prepare_enable(clk);
-> +		if (ret)
-> +			goto out_clk_put;
-> +
-> +		rate = clk_get_rate(clk);
-> +		if (!rate)
-> +			goto out_clk_disable;
-> +	}
-> +
-> +	writel_relaxed(SYSTICK_LOAD_RELOAD_MASK, base + SYST_RVR);
-> +	writel_relaxed(SYST_CSR_ENABLE, base + SYST_CSR);
-> +
-> +	ret = clocksource_mmio_init(base + SYST_CVR, "arm_system_timer", rate,
-> +			200, 24, clocksource_mmio_readl_down);
-> +	if (ret) {
-> +		pr_err("failed to init clocksource (%d)\n", ret);
-> +		if (clk)
-> +			goto out_clk_disable;
-> +		else
-> +			goto out_unmap;
-> +	}
-> +
-> +	pr_info("ARM System timer initialized as clocksource\n");
-> +
-> +	return;
-> +
-> +out_clk_disable:
-> +	clk_disable_unprepare(clk);
-> +out_clk_put:
-> +	clk_put(clk);
-> +out_unmap:
-> +	iounmap(base);
-> +	pr_warn("ARM System timer register failed (%d)\n", ret);
-> +}
-> +
-> +CLOCKSOURCE_OF_DECLARE(arm_systick, "arm,armv7m-systick",
-> +			system_timer_of_register);
->
 
+[snip]
 
--- 
-  <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
+Everything else is fine from point of view.
 
-Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
-<http://twitter.com/#!/linaroorg> Twitter |
-<http://www.linaro.org/linaro-blog/> Blog
+Reviewed-by: Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>
 
+--
+With best wishes,
+Vladimir
