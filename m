@@ -1,63 +1,163 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:43131 "EHLO mail.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755485AbbDII4Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Apr 2015 04:56:25 -0400
-From: lizf@kernel.org
-Subject: [PATCH 3.4 130/176] vm: make stack guard page errors return VM_FAULT_SIGSEGV rather than SIGBUS
-Date: Thu,  9 Apr 2015 16:46:18 +0800
-Message-ID: <1428569224-23820-130-git-send-email-lizf@kernel.org>
-In-Reply-To: <1428569028-23762-1-git-send-email-lizf@kernel.org>
-References: <1428569028-23762-1-git-send-email-lizf@kernel.org>
+Received: from mail-wg0-f43.google.com ([74.125.82.43]:35175 "EHLO
+	mail-wg0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933366AbbDIKw7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2015 06:52:59 -0400
+Received: by wgyo15 with SMTP id o15so105118283wgy.2
+        for <linux-arch@vger.kernel.org>; Thu, 09 Apr 2015 03:52:58 -0700 (PDT)
+Message-ID: <55265A06.5020902@linaro.org>
+Date: Thu, 09 Apr 2015 12:52:54 +0200
+From: Daniel Lezcano <daniel.lezcano@linaro.org>
+MIME-Version: 1.0
+Subject: Re: [PATCH v6 04/15] clocksource/drivers: Add ARM System timer driver
+References: <1428424234-28572-1-git-send-email-mcoquelin.stm32@gmail.com> <1428424234-28572-5-git-send-email-mcoquelin.stm32@gmail.com>
+In-Reply-To: <1428424234-28572-5-git-send-email-mcoquelin.stm32@gmail.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: stable@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Zefan Li <lizefan@huawei.com>
-Message-ID: <20150409084618.AfgScpNkFNqm17p4iu0CbLlDgcE1DwO7-qpolM_7vh8@z>
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>, u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl, peter@hurleysoftware.com, andy.shevchenko@gmail.com, cw00.choi@samsung.com, Russell King <linux@arm.linux.org.uk>, joe@perches.com
+Cc: Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20150409105254.qD6yfnpKvKsu642Hcfz5jIFanfPYnZIvySNtOG3ohJo@z>
 
-From: Linus Torvalds <torvalds@linux-foundation.org>
+On 04/07/2015 06:30 PM, Maxime Coquelin wrote:
+> This patch adds clocksource support for ARMv7-M's System timer,
+> also known as SysTick.
+>
+> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
+> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 
-3.4.107-rc1 review patch.  If anyone has any objections, please let me know.
+Acked-by: Daniel Lezcano <daniel.lezcano@linaro.org>
 
-------------------
+> ---
+>   drivers/clocksource/Kconfig          |  7 ++++
+>   drivers/clocksource/Makefile         |  1 +
+>   drivers/clocksource/armv7m_systick.c | 79 ++++++++++++++++++++++++++++++++++++
+>   3 files changed, 87 insertions(+)
+>   create mode 100644 drivers/clocksource/armv7m_systick.c
+>
+> diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+> index 1c2506f..b82e58b 100644
+> --- a/drivers/clocksource/Kconfig
+> +++ b/drivers/clocksource/Kconfig
+> @@ -134,6 +134,13 @@ config CLKSRC_ARM_GLOBAL_TIMER_SCHED_CLOCK
+>   	help
+>   	 Use ARM global timer clock source as sched_clock
+>
+> +config ARMV7M_SYSTICK
+> +	bool
+> +	select CLKSRC_OF if OF
+> +	select CLKSRC_MMIO
+> +	help
+> +	  This options enables support for the ARMv7M system timer unit
+> +
+>   config ATMEL_PIT
+>   	select CLKSRC_OF if OF
+>   	def_bool SOC_AT91SAM9 || SOC_SAMA5
+> diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+> index 752d5c7..1c9a643 100644
+> --- a/drivers/clocksource/Makefile
+> +++ b/drivers/clocksource/Makefile
+> @@ -44,6 +44,7 @@ obj-$(CONFIG_MTK_TIMER)		+= mtk_timer.o
+>
+>   obj-$(CONFIG_ARM_ARCH_TIMER)		+= arm_arch_timer.o
+>   obj-$(CONFIG_ARM_GLOBAL_TIMER)		+= arm_global_timer.o
+> +obj-$(CONFIG_ARMV7M_SYSTICK)		+= armv7m_systick.o
+>   obj-$(CONFIG_CLKSRC_METAG_GENERIC)	+= metag_generic.o
+>   obj-$(CONFIG_ARCH_HAS_TICK_BROADCAST)	+= dummy_timer.o
+>   obj-$(CONFIG_ARCH_KEYSTONE)		+= timer-keystone.o
+> diff --git a/drivers/clocksource/armv7m_systick.c b/drivers/clocksource/armv7m_systick.c
+> new file mode 100644
+> index 0000000..addfd2c
+> --- /dev/null
+> +++ b/drivers/clocksource/armv7m_systick.c
+> @@ -0,0 +1,79 @@
+> +/*
+> + * Copyright (C) Maxime Coquelin 2015
+> + * Author:  Maxime Coquelin <mcoquelin.stm32@gmail.com>
+> + * License terms:  GNU General Public License (GPL), version 2
+> + */
+> +
+> +#include <linux/kernel.h>
+> +#include <linux/clocksource.h>
+> +#include <linux/clockchips.h>
+> +#include <linux/of.h>
+> +#include <linux/of_address.h>
+> +#include <linux/clk.h>
+> +#include <linux/bitops.h>
+> +
+> +#define SYST_CSR	0x00
+> +#define SYST_RVR	0x04
+> +#define SYST_CVR	0x08
+> +#define SYST_CALIB	0x0c
+> +
+> +#define SYST_CSR_ENABLE BIT(0)
+> +
+> +#define SYSTICK_LOAD_RELOAD_MASK 0x00FFFFFF
+> +
+> +static void __init system_timer_of_register(struct device_node *np)
+> +{
+> +	struct clk *clk = NULL;
+> +	void __iomem *base;
+> +	u32 rate;
+> +	int ret;
+> +
+> +	base = of_iomap(np, 0);
+> +	if (!base) {
+> +		pr_warn("system-timer: invalid base address\n");
+> +		return;
+> +	}
+> +
+> +	ret = of_property_read_u32(np, "clock-frequency", &rate);
+> +	if (ret) {
+> +		clk = of_clk_get(np, 0);
+> +		if (IS_ERR(clk))
+> +			goto out_unmap;
+> +
+> +		ret = clk_prepare_enable(clk);
+> +		if (ret)
+> +			goto out_clk_put;
+> +
+> +		rate = clk_get_rate(clk);
+> +		if (!rate)
+> +			goto out_clk_disable;
+> +	}
+> +
+> +	writel_relaxed(SYSTICK_LOAD_RELOAD_MASK, base + SYST_RVR);
+> +	writel_relaxed(SYST_CSR_ENABLE, base + SYST_CSR);
+> +
+> +	ret = clocksource_mmio_init(base + SYST_CVR, "arm_system_timer", rate,
+> +			200, 24, clocksource_mmio_readl_down);
+> +	if (ret) {
+> +		pr_err("failed to init clocksource (%d)\n", ret);
+> +		if (clk)
+> +			goto out_clk_disable;
+> +		else
+> +			goto out_unmap;
+> +	}
+> +
+> +	pr_info("ARM System timer initialized as clocksource\n");
+> +
+> +	return;
+> +
+> +out_clk_disable:
+> +	clk_disable_unprepare(clk);
+> +out_clk_put:
+> +	clk_put(clk);
+> +out_unmap:
+> +	iounmap(base);
+> +	pr_warn("ARM System timer register failed (%d)\n", ret);
+> +}
+> +
+> +CLOCKSOURCE_OF_DECLARE(arm_systick, "arm,armv7m-systick",
+> +			system_timer_of_register);
+>
 
 
-commit 9c145c56d0c8a0b62e48c8d71e055ad0fb2012ba upstream.
-
-The stack guard page error case has long incorrectly caused a SIGBUS
-rather than a SIGSEGV, but nobody actually noticed until commit
-fee7e49d4514 ("mm: propagate error from stack expansion even for guard
-page") because that error case was never actually triggered in any
-normal situations.
-
-Now that we actually report the error, people noticed the wrong signal
-that resulted.  So far, only the test suite of libsigsegv seems to have
-actually cared, but there are real applications that use libsigsegv, so
-let's not wait for any of those to break.
-
-Reported-and-tested-by: Takashi Iwai <tiwai@suse.de>
-Tested-by: Jan Engelhardt <jengelh@inai.de>
-Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com> # "s390 still compiles and boots"
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Zefan Li <lizefan@huawei.com>
----
- mm/memory.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/mm/memory.c b/mm/memory.c
-index f573cec..45cd14f 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3175,7 +3175,7 @@ static int do_anonymous_page(struct mm_struct *mm, struct vm_area_struct *vma,
- 
- 	/* Check if we need to add a guard page to the stack */
- 	if (check_stack_guard_page(vma, address) < 0)
--		return VM_FAULT_SIGBUS;
-+		return VM_FAULT_SIGSEGV;
- 
- 	/* Use the zero-page for reads */
- 	if (!(flags & FAULT_FLAG_WRITE)) {
 -- 
-1.9.1
+  <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
+
+Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
+<http://twitter.com/#!/linaroorg> Twitter |
+<http://www.linaro.org/linaro-blog/> Blog
 
