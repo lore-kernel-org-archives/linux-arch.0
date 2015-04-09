@@ -1,68 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay1.mentorg.com ([192.94.38.131]:37252 "EHLO
-	relay1.mentorg.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753974AbbDINFA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2015 09:05:00 -0400
-Message-ID: <552678E7.4040107@mentor.com>
-Date: Thu, 9 Apr 2015 16:04:39 +0300
-From: Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>
+Received: from casper.infradead.org ([85.118.1.10]:55234 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753055AbbDIOOD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2015 10:14:03 -0400
+Date: Thu, 9 Apr 2015 16:13:48 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v15 16/16] unfair qspinlock: a queue based unfair lock
+Message-ID: <20150409141348.GX5029@twins.programming.kicks-ass.net>
+References: <1428517939-27968-1-git-send-email-Waiman.Long@hp.com>
+ <20150409070146.GL27490@worktop.programming.kicks-ass.net>
+ <55267BA8.9060009@redhat.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v6 10/15] serial: stm32-usart: Add STM32 USART Driver
-References: <1428424234-28572-1-git-send-email-mcoquelin.stm32@gmail.com> <1428424234-28572-11-git-send-email-mcoquelin.stm32@gmail.com>
-In-Reply-To: <1428424234-28572-11-git-send-email-mcoquelin.stm32@gmail.com>
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <55267BA8.9060009@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>, u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl, peter@hurleysoftware.com, andy.shevchenko@gmail.com, cw00.choi@samsung.com, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, joe@perches.com
-Cc: Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150409130439._S5fX3vt7nj_NU0MK4ZRsbTIQ3mWMDalG9gbavXTNMs@z>
+To: Rik van Riel <riel@redhat.com>
+Cc: Waiman Long <Waiman.Long@hp.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Daniel J Blueman <daniel@numascale.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+Message-ID: <20150409141348._yXgq7I4AiFchFBxYXqoA799eYnZYgb47fr5s33XLQ0@z>
 
-Hi Maxime,
-
-On 07.04.2015 19:30, Maxime Coquelin wrote:
-> This drivers adds support to the STM32 USART controller, which is a
-> standard serial driver.
+On Thu, Apr 09, 2015 at 09:16:24AM -0400, Rik van Riel wrote:
+> On 04/09/2015 03:01 AM, Peter Zijlstra wrote:
+> > On Wed, Apr 08, 2015 at 02:32:19PM -0400, Waiman Long wrote:
+> >> For a virtual guest with the qspinlock patch, a simple unfair byte lock
+> >> will be used if PV spinlock is not configured in or the hypervisor
+> >> isn't either KVM or Xen. The byte lock works fine with small guest
+> >> of just a few vCPUs. On a much larger guest, however, byte lock can
+> >> have serious performance problem.
+> > 
+> > Who cares?
 > 
-> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
-> Reviewed-by: Peter Hurley <peter@hurleysoftware.com>
-> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-> ---
->  drivers/tty/serial/Kconfig       |  17 +
->  drivers/tty/serial/Makefile      |   1 +
->  drivers/tty/serial/stm32-usart.c | 735 +++++++++++++++++++++++++++++++++++++++
->  include/uapi/linux/serial_core.h |   3 +
->  4 files changed, 756 insertions(+)
->  create mode 100644 drivers/tty/serial/stm32-usart.c
+> There are some people out there running guests with dozens
+> of vCPUs. If the code exists to make those setups run better,
+> is there a good reason not to use it?
 
-[snip]
+Well use paravirt, !paravirt stuff sucks performance wise anyhow.
 
-> +static void stm32_console_write(struct console *co, const char *s, unsigned cnt)
-> +{
-> +	struct uart_port *port = &stm32_ports[co->index].port;
-> +	unsigned long flags;
-> +	u32 old_cr1, new_cr1;
-> +	int locked = 1;
-> +
-> +	if (oops_in_progress) {
-> +		locked = spin_trylock_irqsave(&port->lock, flags);
-> +	} else {
-> +		locked = 1;
+The question really is: is the added complexity worth the maintenance
+burden. And I'm just not convinced !paravirt virt is a performance
+critical target.
 
-locked = 1 is done from the declaration.
+> Having said that, only KVM and Xen seem to support very
+> large guests, and PV spinlock is available there.
+> 
+> I believe both VMware and Hyperv have a 32 VCPU limit, anyway.
 
-Also do you want to add "if (port->sysrq) locked = 0;" check?
+Don't we have Hyperv paravirt drivers? They could add support for
+paravirt spinlocks too.
 
-> +		spin_lock_irqsave(&port->lock, flags);
-> +	}
-> +
 
-[snip]
-
-Everything else is fine from point of view.
-
-Reviewed-by: Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>
-
---
-With best wishes,
-Vladimir
