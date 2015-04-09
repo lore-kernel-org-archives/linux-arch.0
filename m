@@ -1,40 +1,49 @@
 From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v15 13/15] pvqspinlock: Only kick CPU at unlock time
-Date: Thu, 09 Apr 2015 18:06:01 -0400
-Message-ID: <5526F7C9.1020600@hp.com>
-References: <1428375350-9213-1-git-send-email-Waiman.Long@hp.com> <1428375350-9213-14-git-send-email-Waiman.Long@hp.com> <20150409195721.GA5029@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH] qrwlock: Fix bug in interrupt handling code
+Date: Thu, 09 Apr 2015 18:09:55 -0400
+Message-ID: <5526F8B3.3060903@hp.com>
+References: <1428610075-38957-1-git-send-email-Waiman.Long@hp.com> <20150409201405.GU21418@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t5425.austin.hp.com ([15.216.225.55]:39348 "EHLO
-	g1t5425.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750876AbbDIWGK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2015 18:06:10 -0400
-In-Reply-To: <20150409195721.GA5029@twins.programming.kicks-ass.net>
+Received: from g1t5424.austin.hp.com ([15.216.225.54]:52794 "EHLO
+	g1t5424.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753275AbbDIWKA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2015 18:10:00 -0400
+In-Reply-To: <20150409201405.GU21418@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Daniel J Blueman <daniel@numascale.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
 
-On 04/09/2015 03:57 PM, Peter Zijlstra wrote:
-> On Mon, Apr 06, 2015 at 10:55:48PM -0400, Waiman Long wrote:
->
->> @@ -219,24 +236,30 @@ static void pv_wait_node(struct mcs_spinlock *node)
->>   }
+On 04/09/2015 04:14 PM, Peter Zijlstra wrote:
+> On Thu, Apr 09, 2015 at 04:07:55PM -0400, Waiman Long wrote:
+>> The qrwlock is fair in the process context, but becoming unfair when
+>> in the interrupt context to support use cases like the tasklist_lock.
+>> However, the unfair code in the interrupt context has problem that
+>> may cause deadlock.
 >>
->>   /*
->> + * Called after setting next->locked = 1&  lock acquired.
->> + * Check if the the CPU has been halted. If so, set the _Q_SLOW_VAL flag
->> + * and put an entry into the lock hash table to be waken up at unlock time.
->>    */
->> -static void pv_kick_node(struct mcs_spinlock *node)
->> +static void pv_scan_next(struct qspinlock *lock, struct mcs_spinlock *node)
-> I'm not too sure about that name change..
+>> The fast path increments the reader count. In the interrupt context,
+>> the reader in the slowpath will wait until the writer release the
+>> lock. However, if other readers have the lock and the writer is just
+>> in the waiting mode. It will never get the write lock because the
+>> that interrupt context reader has increment the count. This will
+>> cause deadlock.
+>>
+>> This patch fixes this problem by checking the state of the
+>> reader/writer count retrieved at the fast path. If the writer
+>> is in waiting mode, the reader will get the lock immediately and
+>> return. Otherwise, it will wait until the writer release the lock
+>> like before.
+> A little word on how you found this issue would be nice.
 
-It is because the function will no longer kick the cpu. So I change the 
-name to reflect that. I am not good at naming. Please let me know if you 
-have a better name.
+It is not found by testing. I didn't see any problem with a running 
+Linux kernel so far.
 
-Cheers,
+I am in the process of trying to make the qrwlock lock unfair in virt. 
+When I inspect the code, I found out that the interrupt code didn't look 
+right. That is why I send out a patch to fix that.
+
+Regards,
 Longman
