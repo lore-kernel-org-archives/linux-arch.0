@@ -1,487 +1,162 @@
-From: lizf@kernel.org
-Subject: [PATCH 3.4 129/176] vm: add VM_FAULT_SIGSEGV handling support
-Date: Thu,  9 Apr 2015 16:46:17 +0800
-Message-ID: <1428569224-23820-129-git-send-email-lizf@kernel.org>
-References: <1428569028-23762-1-git-send-email-lizf@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:43121 "EHLO mail.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755483AbbDII4X (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Apr 2015 04:56:23 -0400
-In-Reply-To: <1428569028-23762-1-git-send-email-lizf@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: stable@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Ben Hutchings <ben@decadent.org.uk>, Zefan Li <lizefan@huawei.com>
+From: Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
+Subject: Re: [PATCH v6 04/15] clocksource/drivers: Add ARM System timer driver
+Date: Thu, 09 Apr 2015 12:52:54 +0200
+Message-ID: <55265A06.5020902@linaro.org>
+References: <1428424234-28572-1-git-send-email-mcoquelin.stm32@gmail.com> <1428424234-28572-5-git-send-email-mcoquelin.stm32@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1428424234-28572-5-git-send-email-mcoquelin.stm32-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Maxime Coquelin <mcoquelin.stm32-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, u.kleine-koenig-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org, afaerber-l3A5Bk7waGM@public.gmane.org, geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Philipp Zabel <p.zabel-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, stefan-XLVq0VzYD2Y@public.gmane.org, pmeerw-jW+XmwGofnusTnJN9+BGXg@public.gmane.org, pebolle-IWqWACnzNjzz+pZb47iToQ@public.gmane.org, peter-WaGBZJeGNqdsbIuE7sb01tBPR1lH4CV8@public.gmane.org, andy.shevchenko-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, cw00.choi-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, joe-6d6DIl74uiNBDgjK7y7TUQ@public.gmane.org
+Cc: Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Pawel Moll <pawel.moll-5wv7dgnIgG8@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Ian Campbell <ijc+devicetree-KcIKpvwj1kUDXYZnReoRVg@public.gmane.org>, Kumar Gala <galak-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, Jiri Slaby <jslaby-AlSwsSmVLrQ@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "David S. Miller" <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, Mauro Carvalho Chehab <mchehab-JPH+aEBZ4P+UEJcrhfAQsw@public.gmane.org>, Antti Palosaari <crope-X3B1VOXEql0@public.gmane.org>, Tejun Heo <tj-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>, Nikolay Borisov <Nikolay.Borisov-5wv7dgnIgG8@public.gmane.org>, Rusty Russell <rusty-8n+1lVoiYb80n/F98K4Iww@public.gmane.org>, Kees Cook <keescook-F7+t8E8rja9g9hUCZPvPmw@public.gmane.org>, Michal Marek <mmarek-AlSwsSmVLrQ@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-gpio-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-serial-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TZNg+MwTxZMZA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-From: Linus Torvalds <torvalds@linux-foundation.org>
+On 04/07/2015 06:30 PM, Maxime Coquelin wrote:
+> This patch adds clocksource support for ARMv7-M's System timer,
+> also known as SysTick.
+>
+> Tested-by: Chanwoo Choi <cw00.choi-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
+> Signed-off-by: Maxime Coquelin <mcoquelin.stm32-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
 
-3.4.107-rc1 review patch.  If anyone has any objections, please let me know.
+Acked-by: Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
 
-------------------
+> ---
+>   drivers/clocksource/Kconfig          |  7 ++++
+>   drivers/clocksource/Makefile         |  1 +
+>   drivers/clocksource/armv7m_systick.c | 79 +++++++++++++++++++++++++=
++++++++++++
+>   3 files changed, 87 insertions(+)
+>   create mode 100644 drivers/clocksource/armv7m_systick.c
+>
+> diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfi=
+g
+> index 1c2506f..b82e58b 100644
+> --- a/drivers/clocksource/Kconfig
+> +++ b/drivers/clocksource/Kconfig
+> @@ -134,6 +134,13 @@ config CLKSRC_ARM_GLOBAL_TIMER_SCHED_CLOCK
+>   	help
+>   	 Use ARM global timer clock source as sched_clock
+>
+> +config ARMV7M_SYSTICK
+> +	bool
+> +	select CLKSRC_OF if OF
+> +	select CLKSRC_MMIO
+> +	help
+> +	  This options enables support for the ARMv7M system timer unit
+> +
+>   config ATMEL_PIT
+>   	select CLKSRC_OF if OF
+>   	def_bool SOC_AT91SAM9 || SOC_SAMA5
+> diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makef=
+ile
+> index 752d5c7..1c9a643 100644
+> --- a/drivers/clocksource/Makefile
+> +++ b/drivers/clocksource/Makefile
+> @@ -44,6 +44,7 @@ obj-$(CONFIG_MTK_TIMER)		+=3D mtk_timer.o
+>
+>   obj-$(CONFIG_ARM_ARCH_TIMER)		+=3D arm_arch_timer.o
+>   obj-$(CONFIG_ARM_GLOBAL_TIMER)		+=3D arm_global_timer.o
+> +obj-$(CONFIG_ARMV7M_SYSTICK)		+=3D armv7m_systick.o
+>   obj-$(CONFIG_CLKSRC_METAG_GENERIC)	+=3D metag_generic.o
+>   obj-$(CONFIG_ARCH_HAS_TICK_BROADCAST)	+=3D dummy_timer.o
+>   obj-$(CONFIG_ARCH_KEYSTONE)		+=3D timer-keystone.o
+> diff --git a/drivers/clocksource/armv7m_systick.c b/drivers/clocksour=
+ce/armv7m_systick.c
+> new file mode 100644
+> index 0000000..addfd2c
+> --- /dev/null
+> +++ b/drivers/clocksource/armv7m_systick.c
+> @@ -0,0 +1,79 @@
+> +/*
+> + * Copyright (C) Maxime Coquelin 2015
+> + * Author:  Maxime Coquelin <mcoquelin.stm32-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+> + * License terms:  GNU General Public License (GPL), version 2
+> + */
+> +
+> +#include <linux/kernel.h>
+> +#include <linux/clocksource.h>
+> +#include <linux/clockchips.h>
+> +#include <linux/of.h>
+> +#include <linux/of_address.h>
+> +#include <linux/clk.h>
+> +#include <linux/bitops.h>
+> +
+> +#define SYST_CSR	0x00
+> +#define SYST_RVR	0x04
+> +#define SYST_CVR	0x08
+> +#define SYST_CALIB	0x0c
+> +
+> +#define SYST_CSR_ENABLE BIT(0)
+> +
+> +#define SYSTICK_LOAD_RELOAD_MASK 0x00FFFFFF
+> +
+> +static void __init system_timer_of_register(struct device_node *np)
+> +{
+> +	struct clk *clk =3D NULL;
+> +	void __iomem *base;
+> +	u32 rate;
+> +	int ret;
+> +
+> +	base =3D of_iomap(np, 0);
+> +	if (!base) {
+> +		pr_warn("system-timer: invalid base address\n");
+> +		return;
+> +	}
+> +
+> +	ret =3D of_property_read_u32(np, "clock-frequency", &rate);
+> +	if (ret) {
+> +		clk =3D of_clk_get(np, 0);
+> +		if (IS_ERR(clk))
+> +			goto out_unmap;
+> +
+> +		ret =3D clk_prepare_enable(clk);
+> +		if (ret)
+> +			goto out_clk_put;
+> +
+> +		rate =3D clk_get_rate(clk);
+> +		if (!rate)
+> +			goto out_clk_disable;
+> +	}
+> +
+> +	writel_relaxed(SYSTICK_LOAD_RELOAD_MASK, base + SYST_RVR);
+> +	writel_relaxed(SYST_CSR_ENABLE, base + SYST_CSR);
+> +
+> +	ret =3D clocksource_mmio_init(base + SYST_CVR, "arm_system_timer", =
+rate,
+> +			200, 24, clocksource_mmio_readl_down);
+> +	if (ret) {
+> +		pr_err("failed to init clocksource (%d)\n", ret);
+> +		if (clk)
+> +			goto out_clk_disable;
+> +		else
+> +			goto out_unmap;
+> +	}
+> +
+> +	pr_info("ARM System timer initialized as clocksource\n");
+> +
+> +	return;
+> +
+> +out_clk_disable:
+> +	clk_disable_unprepare(clk);
+> +out_clk_put:
+> +	clk_put(clk);
+> +out_unmap:
+> +	iounmap(base);
+> +	pr_warn("ARM System timer register failed (%d)\n", ret);
+> +}
+> +
+> +CLOCKSOURCE_OF_DECLARE(arm_systick, "arm,armv7m-systick",
+> +			system_timer_of_register);
+>
 
 
-commit 33692f27597fcab536d7cbbcc8f52905133e4aa7 upstream.
+--=20
+  <http://www.linaro.org/> Linaro.org =E2=94=82 Open source software fo=
+r ARM SoCs
 
-The core VM already knows about VM_FAULT_SIGBUS, but cannot return a
-"you should SIGSEGV" error, because the SIGSEGV case was generally
-handled by the caller - usually the architecture fault handler.
-
-That results in lots of duplication - all the architecture fault
-handlers end up doing very similar "look up vma, check permissions, do
-retries etc" - but it generally works.  However, there are cases where
-the VM actually wants to SIGSEGV, and applications _expect_ SIGSEGV.
-
-In particular, when accessing the stack guard page, libsigsegv expects a
-SIGSEGV.  And it usually got one, because the stack growth is handled by
-that duplicated architecture fault handler.
-
-However, when the generic VM layer started propagating the error return
-from the stack expansion in commit fee7e49d4514 ("mm: propagate error
-from stack expansion even for guard page"), that now exposed the
-existing VM_FAULT_SIGBUS result to user space.  And user space really
-expected SIGSEGV, not SIGBUS.
-
-To fix that case, we need to add a VM_FAULT_SIGSEGV, and teach all those
-duplicate architecture fault handlers about it.  They all already have
-the code to handle SIGSEGV, so it's about just tying that new return
-value to the existing code, but it's all a bit annoying.
-
-This is the mindless minimal patch to do this.  A more extensive patch
-would be to try to gather up the mostly shared fault handling logic into
-one generic helper routine, and long-term we really should do that
-cleanup.
-
-Just from this patch, you can generally see that most architectures just
-copied (directly or indirectly) the old x86 way of doing things, but in
-the meantime that original x86 model has been improved to hold the VM
-semaphore for shorter times etc and to handle VM_FAULT_RETRY and other
-"newer" things, so it would be a good idea to bring all those
-improvements to the generic case and teach other architectures about
-them too.
-
-Reported-and-tested-by: Takashi Iwai <tiwai@suse.de>
-Tested-by: Jan Engelhardt <jengelh@inai.de>
-Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com> # "s390 still compiles and boots"
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
-[bwh: Backported to 3.2:
- - Adjust filenames, context
- - Drop arc, metag, nios2 and lustre changes
- - For sh, patch both 32-bit and 64-bit implementations to use goto bad_area
- - For s390, pass int_code and trans_exc_code as arguments to do_no_context()
-   and do_sigsegv()]
-Signed-off-by: Ben Hutchings <ben@decadent.org.uk>
-[lizf: Backported to 3.4: adjust context in arch/power/mm/fault.c]
-Signed-off-by: Zefan Li <lizefan@huawei.com>
----
- arch/alpha/mm/fault.c                   | 2 ++
- arch/avr32/mm/fault.c                   | 2 ++
- arch/cris/mm/fault.c                    | 2 ++
- arch/frv/mm/fault.c                     | 2 ++
- arch/ia64/mm/fault.c                    | 2 ++
- arch/m32r/mm/fault.c                    | 2 ++
- arch/m68k/mm/fault.c                    | 2 ++
- arch/microblaze/mm/fault.c              | 2 ++
- arch/mips/mm/fault.c                    | 2 ++
- arch/mn10300/mm/fault.c                 | 2 ++
- arch/openrisc/mm/fault.c                | 2 ++
- arch/parisc/mm/fault.c                  | 2 ++
- arch/powerpc/mm/fault.c                 | 6 +++++-
- arch/powerpc/platforms/cell/spu_fault.c | 2 +-
- arch/s390/mm/fault.c                    | 7 +++++++
- arch/score/mm/fault.c                   | 2 ++
- arch/sh/mm/fault_32.c                   | 2 ++
- arch/sh/mm/tlbflush_64.c                | 2 ++
- arch/sparc/mm/fault_32.c                | 2 ++
- arch/sparc/mm/fault_64.c                | 2 ++
- arch/tile/mm/fault.c                    | 2 ++
- arch/um/kernel/trap.c                   | 2 ++
- arch/x86/mm/fault.c                     | 2 ++
- arch/xtensa/mm/fault.c                  | 2 ++
- include/linux/mm.h                      | 5 +++--
- mm/ksm.c                                | 2 +-
- mm/memory.c                             | 4 ++--
- 27 files changed, 61 insertions(+), 7 deletions(-)
-
-diff --git a/arch/alpha/mm/fault.c b/arch/alpha/mm/fault.c
-index 5eecab1..f153733 100644
---- a/arch/alpha/mm/fault.c
-+++ b/arch/alpha/mm/fault.c
-@@ -149,6 +149,8 @@ do_page_fault(unsigned long address, unsigned long mmcsr,
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/avr32/mm/fault.c b/arch/avr32/mm/fault.c
-index f7040a1..632b649 100644
---- a/arch/avr32/mm/fault.c
-+++ b/arch/avr32/mm/fault.c
-@@ -136,6 +136,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/cris/mm/fault.c b/arch/cris/mm/fault.c
-index b4760d8..b07c00c 100644
---- a/arch/cris/mm/fault.c
-+++ b/arch/cris/mm/fault.c
-@@ -167,6 +167,8 @@ do_page_fault(unsigned long address, struct pt_regs *regs,
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/frv/mm/fault.c b/arch/frv/mm/fault.c
-index 331c1e2..8545496 100644
---- a/arch/frv/mm/fault.c
-+++ b/arch/frv/mm/fault.c
-@@ -166,6 +166,8 @@ asmlinkage void do_page_fault(int datammu, unsigned long esr0, unsigned long ear
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/ia64/mm/fault.c b/arch/ia64/mm/fault.c
-index 02d29c2..3c820ea 100644
---- a/arch/ia64/mm/fault.c
-+++ b/arch/ia64/mm/fault.c
-@@ -162,6 +162,8 @@ ia64_do_page_fault (unsigned long address, unsigned long isr, struct pt_regs *re
- 		 */
- 		if (fault & VM_FAULT_OOM) {
- 			goto out_of_memory;
-+		} else if (fault & VM_FAULT_SIGSEGV) {
-+			goto bad_area;
- 		} else if (fault & VM_FAULT_SIGBUS) {
- 			signal = SIGBUS;
- 			goto bad_area;
-diff --git a/arch/m32r/mm/fault.c b/arch/m32r/mm/fault.c
-index 3cdfa9c..06827fc 100644
---- a/arch/m32r/mm/fault.c
-+++ b/arch/m32r/mm/fault.c
-@@ -198,6 +198,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/m68k/mm/fault.c b/arch/m68k/mm/fault.c
-index 6b020a8..8646409 100644
---- a/arch/m68k/mm/fault.c
-+++ b/arch/m68k/mm/fault.c
-@@ -146,6 +146,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto map_err;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto bus_err;
- 		BUG();
-diff --git a/arch/microblaze/mm/fault.c b/arch/microblaze/mm/fault.c
-index c38a265..c7fe3da 100644
---- a/arch/microblaze/mm/fault.c
-+++ b/arch/microblaze/mm/fault.c
-@@ -214,6 +214,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/mips/mm/fault.c b/arch/mips/mm/fault.c
-index c14f6df..5c9ba6a 100644
---- a/arch/mips/mm/fault.c
-+++ b/arch/mips/mm/fault.c
-@@ -155,6 +155,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/mn10300/mm/fault.c b/arch/mn10300/mm/fault.c
-index 90f346f..eb411b3 100644
---- a/arch/mn10300/mm/fault.c
-+++ b/arch/mn10300/mm/fault.c
-@@ -255,6 +255,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/openrisc/mm/fault.c b/arch/openrisc/mm/fault.c
-index a5dce82..162abfb 100644
---- a/arch/openrisc/mm/fault.c
-+++ b/arch/openrisc/mm/fault.c
-@@ -163,6 +163,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/parisc/mm/fault.c b/arch/parisc/mm/fault.c
-index 18162ce..a9b765a 100644
---- a/arch/parisc/mm/fault.c
-+++ b/arch/parisc/mm/fault.c
-@@ -210,6 +210,8 @@ good_area:
- 		 */
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto bad_area;
- 		BUG();
-diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
-index 08ffcf5..3d30a4a 100644
---- a/arch/powerpc/mm/fault.c
-+++ b/arch/powerpc/mm/fault.c
-@@ -419,7 +419,11 @@ good_area:
- 	 */
- 	fault = handle_mm_fault(mm, vma, address, flags);
- 	if (unlikely(fault & (VM_FAULT_RETRY|VM_FAULT_ERROR))) {
--		int rc = mm_fault_error(regs, address, fault);
-+		int rc;
-+
-+		if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
-+		rc = mm_fault_error(regs, address, fault);
- 		if (rc >= MM_FAULT_RETURN)
- 			return rc;
- 	}
-diff --git a/arch/powerpc/platforms/cell/spu_fault.c b/arch/powerpc/platforms/cell/spu_fault.c
-index 641e727..62f3e4e 100644
---- a/arch/powerpc/platforms/cell/spu_fault.c
-+++ b/arch/powerpc/platforms/cell/spu_fault.c
-@@ -75,7 +75,7 @@ int spu_handle_mm_fault(struct mm_struct *mm, unsigned long ea,
- 		if (*flt & VM_FAULT_OOM) {
- 			ret = -ENOMEM;
- 			goto out_unlock;
--		} else if (*flt & VM_FAULT_SIGBUS) {
-+		} else if (*flt & (VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV)) {
- 			ret = -EFAULT;
- 			goto out_unlock;
- 		}
-diff --git a/arch/s390/mm/fault.c b/arch/s390/mm/fault.c
-index f2b11ee..f22603d 100644
---- a/arch/s390/mm/fault.c
-+++ b/arch/s390/mm/fault.c
-@@ -237,6 +237,13 @@ static noinline void do_fault_error(struct pt_regs *regs, int fault)
- 				do_no_context(regs);
- 			else
- 				pagefault_out_of_memory();
-+		} else if (fault & VM_FAULT_SIGSEGV) {
-+			/* Kernel mode? Handle exceptions or die */
-+			if (!user_mode(regs))
-+				do_no_context(regs, int_code, trans_exc_code);
-+			else
-+				do_sigsegv(regs, int_code, SEGV_MAPERR,
-+					   trans_exc_code);
- 		} else if (fault & VM_FAULT_SIGBUS) {
- 			/* Kernel mode? Handle exceptions or die */
- 			if (!(regs->psw.mask & PSW_MASK_PSTATE))
-diff --git a/arch/score/mm/fault.c b/arch/score/mm/fault.c
-index 47b600e..b3744ca 100644
---- a/arch/score/mm/fault.c
-+++ b/arch/score/mm/fault.c
-@@ -110,6 +110,8 @@ survive:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/sh/mm/fault_32.c b/arch/sh/mm/fault_32.c
-index e99b104..a491963 100644
---- a/arch/sh/mm/fault_32.c
-+++ b/arch/sh/mm/fault_32.c
-@@ -206,6 +206,8 @@ good_area:
- 			goto out_of_memory;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		BUG();
- 	}
- 	if (fault & VM_FAULT_MAJOR) {
-diff --git a/arch/sh/mm/tlbflush_64.c b/arch/sh/mm/tlbflush_64.c
-index 11c5a18..92f0df9 100644
---- a/arch/sh/mm/tlbflush_64.c
-+++ b/arch/sh/mm/tlbflush_64.c
-@@ -194,6 +194,8 @@ good_area:
- 			goto out_of_memory;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		BUG();
- 	}
- 
-diff --git a/arch/sparc/mm/fault_32.c b/arch/sparc/mm/fault_32.c
-index df3155a..5c6238d 100644
---- a/arch/sparc/mm/fault_32.c
-+++ b/arch/sparc/mm/fault_32.c
-@@ -300,6 +300,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/sparc/mm/fault_64.c b/arch/sparc/mm/fault_64.c
-index 1387aca..0dc7b90 100644
---- a/arch/sparc/mm/fault_64.c
-+++ b/arch/sparc/mm/fault_64.c
-@@ -443,6 +443,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/tile/mm/fault.c b/arch/tile/mm/fault.c
-index 22e58f5..a362926 100644
---- a/arch/tile/mm/fault.c
-+++ b/arch/tile/mm/fault.c
-@@ -433,6 +433,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/arch/um/kernel/trap.c b/arch/um/kernel/trap.c
-index dafc947..f79ffc9 100644
---- a/arch/um/kernel/trap.c
-+++ b/arch/um/kernel/trap.c
-@@ -69,6 +69,8 @@ good_area:
- 		if (unlikely(fault & VM_FAULT_ERROR)) {
- 			if (fault & VM_FAULT_OOM) {
- 				goto out_of_memory;
-+			} else if (fault & VM_FAULT_SIGSEGV) {
-+				goto out;
- 			} else if (fault & VM_FAULT_SIGBUS) {
- 				err = -EACCES;
- 				goto out;
-diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
-index 4a0a2e8..b723f2e 100644
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -887,6 +887,8 @@ mm_fault_error(struct pt_regs *regs, unsigned long error_code,
- 		if (fault & (VM_FAULT_SIGBUS|VM_FAULT_HWPOISON|
- 			     VM_FAULT_HWPOISON_LARGE))
- 			do_sigbus(regs, error_code, address, fault);
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			bad_area_nosemaphore(regs, error_code, address);
- 		else
- 			BUG();
- 	}
-diff --git a/arch/xtensa/mm/fault.c b/arch/xtensa/mm/fault.c
-index b17885a..b3877be 100644
---- a/arch/xtensa/mm/fault.c
-+++ b/arch/xtensa/mm/fault.c
-@@ -108,6 +108,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index dacfd4a..ceebf63 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -841,6 +841,7 @@ static inline int page_mapped(struct page *page)
- #define VM_FAULT_WRITE	0x0008	/* Special case for get_user_pages */
- #define VM_FAULT_HWPOISON 0x0010	/* Hit poisoned small page */
- #define VM_FAULT_HWPOISON_LARGE 0x0020  /* Hit poisoned large page. Index encoded in upper bits */
-+#define VM_FAULT_SIGSEGV 0x0040
- 
- #define VM_FAULT_NOPAGE	0x0100	/* ->fault installed the pte, not return page */
- #define VM_FAULT_LOCKED	0x0200	/* ->fault locked the returned page */
-@@ -848,8 +849,8 @@ static inline int page_mapped(struct page *page)
- 
- #define VM_FAULT_HWPOISON_LARGE_MASK 0xf000 /* encodes hpage index for large hwpoison */
- 
--#define VM_FAULT_ERROR	(VM_FAULT_OOM | VM_FAULT_SIGBUS | VM_FAULT_HWPOISON | \
--			 VM_FAULT_HWPOISON_LARGE)
-+#define VM_FAULT_ERROR	(VM_FAULT_OOM | VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV | \
-+			 VM_FAULT_HWPOISON | VM_FAULT_HWPOISON_LARGE)
- 
- /* Encode hstate index for a hwpoisoned large page */
- #define VM_FAULT_SET_HINDEX(x) ((x) << 12)
-diff --git a/mm/ksm.c b/mm/ksm.c
-index 47c8853..77c7118 100644
---- a/mm/ksm.c
-+++ b/mm/ksm.c
-@@ -342,7 +342,7 @@ static int break_ksm(struct vm_area_struct *vma, unsigned long addr)
- 		else
- 			ret = VM_FAULT_WRITE;
- 		put_page(page);
--	} while (!(ret & (VM_FAULT_WRITE | VM_FAULT_SIGBUS | VM_FAULT_OOM)));
-+	} while (!(ret & (VM_FAULT_WRITE | VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV | VM_FAULT_OOM)));
- 	/*
- 	 * We must loop because handle_mm_fault() may back out if there's
- 	 * any difficulty e.g. if pte accessed bit gets updated concurrently.
-diff --git a/mm/memory.c b/mm/memory.c
-index c9c93e2..f573cec 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -1787,7 +1787,7 @@ int __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
- 						else
- 							return -EFAULT;
- 					}
--					if (ret & VM_FAULT_SIGBUS)
-+					if (ret & (VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV))
- 						return i ? i : -EFAULT;
- 					BUG();
- 				}
-@@ -1891,7 +1891,7 @@ int fixup_user_fault(struct task_struct *tsk, struct mm_struct *mm,
- 			return -ENOMEM;
- 		if (ret & (VM_FAULT_HWPOISON | VM_FAULT_HWPOISON_LARGE))
- 			return -EHWPOISON;
--		if (ret & VM_FAULT_SIGBUS)
-+		if (ret & (VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV))
- 			return -EFAULT;
- 		BUG();
- 	}
--- 
-1.9.1
+=46ollow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
+<http://twitter.com/#!/linaroorg> Twitter |
+<http://www.linaro.org/linaro-blog/> Blog
