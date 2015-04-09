@@ -1,27 +1,30 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v15 16/16] unfair qspinlock: a queue based unfair lock
-Date: Thu, 9 Apr 2015 09:01:46 +0200
-Message-ID: <20150409070146.GL27490@worktop.programming.kicks-ass.net>
-References: <1428517939-27968-1-git-send-email-Waiman.Long@hp.com>
+From: Richard Weinberger <richard@nod.at>
+Subject: Re: [RFC PATCH 00/11] an introduction of library operating system
+ for Linux (LibOS)
+Date: Thu, 09 Apr 2015 10:36:23 +0200
+Message-ID: <55263A07.6040508@nod.at>
+References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>	<551164ED.5000907@nod.at>	<m2twxacw13.wl@sfc.wide.ad.jp>	<55117565.6080002@nod.at>	<m2sicuctb2.wl@sfc.wide.ad.jp>	<55118277.5070909@nod.at>	<m2bnjhcevt.wl@sfc.wide.ad.jp>	<55133BAF.30301@nod.at>	<m2h9t7bubh.wl@wide.ad.jp>	<5514560A.7040707@nod.at>	<m28uejaqyn.wl@wide.ad.jp>	<55152137.20405@nod.at>	<m2sicnalnh.wl@sfc.wide.ad.jp>	<5518F030.4040003@nod.at> <m2y4md7gmb.wl@wide.ad.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:52372 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751470AbbDIHB5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2015 03:01:57 -0400
-Content-Disposition: inline
-In-Reply-To: <1428517939-27968-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Daniel J Blueman <daniel@numascale.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <m2y4md7gmb.wl@wide.ad.jp>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Hajime Tazaki <tazaki@wide.ad.jp>
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, cl@linux.com, penberg@kernel.org, rientjes@google.com, iamjoonsoo.kim@lge.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, jdike@addtoit.com, rusty@rustcorp.com.au, mathieu.lacage@gmail.com
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 08, 2015 at 02:32:19PM -0400, Waiman Long wrote:
-> For a virtual guest with the qspinlock patch, a simple unfair byte lock
-> will be used if PV spinlock is not configured in or the hypervisor
-> isn't either KVM or Xen. The byte lock works fine with small guest
-> of just a few vCPUs. On a much larger guest, however, byte lock can
-> have serious performance problem.
+Am 31.03.2015 um 09:47 schrieb Hajime Tazaki:
+> right now arch/lib/Makefile isn't fully on the Kbuild
+> system: build file dependency is not tracked at all.
+> 
+> while I should learn more about Kbuild, I'd be happy if you
+> would suggest how the Makefile should be.
 
-Who cares?
+You definitely have to use Kbuild.
+Please bite the bullet and dig into it. Maybe we
+need also new functions in Kbuild to support a library mode.
+Who knows? ;)
+
+Thanks,
+//richard
