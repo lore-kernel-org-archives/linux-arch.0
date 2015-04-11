@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:14392 "EHLO
+Received: from mail.sigma-star.at ([95.130.255.111]:14390 "EHLO
 	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755537AbbDKU5T (ORCPT
+	with ESMTP id S1755957AbbDKU5T (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Sat, 11 Apr 2015 16:57:19 -0400
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 17/24] tile: Remove signal translation and exec_domain
-Date: Sat, 11 Apr 2015 22:47:56 +0200
-Message-ID: <1428785283-20501-18-git-send-email-richard@nod.at>
+Subject: [PATCH 13/24] mn10300: Remove signal translation and exec_domain
+Date: Sat, 11 Apr 2015 22:47:52 +0200
+Message-ID: <1428785283-20501-14-git-send-email-richard@nod.at>
 In-Reply-To: <1428785283-20501-1-git-send-email-richard@nod.at>
 References: <1428785283-20501-1-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@arm.linux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, yasutake.koichi@jp.panasonic.com, lftan@altera.com, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, davem@davemloft.net, cmetcalf@ezchip.com, jdike@addtoit.com, akpm@linux-foundation.org, oleg@redhat.com, hch@infradead.org, viro@zeniv.linux.org.uk, torvalds@linux-foundation.org, Richard Weinberger <richard@nod.at>
-Message-ID: <20150411204756.7SU8TqkdDTBnU_-91adBdtQAEAFXv0f6ElrJp_8nRxU@z>
+Message-ID: <20150411204752.IxvPpV4tNFdjLcbisP0UCMDDf_DEBAVBiM-avPU0s1o@z>
 
 As execution domain support is gone we can remove
 signal translation from the signal code and remove
@@ -21,24 +21,24 @@ exec_domain from thread_info.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/tile/include/asm/thread_info.h | 2 --
- arch/tile/kernel/compat_signal.c    | 9 +--------
- arch/tile/kernel/signal.c           | 9 +--------
- 3 files changed, 2 insertions(+), 18 deletions(-)
+ arch/mn10300/include/asm/thread_info.h |  2 --
+ arch/mn10300/kernel/asm-offsets.c      |  2 --
+ arch/mn10300/kernel/signal.c           | 20 ++++----------------
+ 3 files changed, 4 insertions(+), 20 deletions(-)
 
-diff --git a/arch/tile/include/asm/thread_info.h b/arch/tile/include/asm/thread_info.h
-index 96c14c1..98ee10a 100644
---- a/arch/tile/include/asm/thread_info.h
-+++ b/arch/tile/include/asm/thread_info.h
-@@ -26,7 +26,6 @@
-  */
+diff --git a/arch/mn10300/include/asm/thread_info.h b/arch/mn10300/include/asm/thread_info.h
+index c1c374f..4861a78 100644
+--- a/arch/mn10300/include/asm/thread_info.h
++++ b/arch/mn10300/include/asm/thread_info.h
+@@ -40,7 +40,6 @@ typedef struct {
+ 
  struct thread_info {
  	struct task_struct	*task;		/* main task structure */
 -	struct exec_domain	*exec_domain;	/* execution domain */
+ 	struct pt_regs		*frame;		/* current exception frame */
  	unsigned long		flags;		/* low level flags */
- 	unsigned long		status;		/* thread-synchronous flags */
- 	__u32			homecache_cpu;	/* CPU we are homecached on */
-@@ -51,7 +50,6 @@ struct thread_info {
+ 	__u32			cpu;		/* current CPU */
+@@ -74,7 +73,6 @@ struct thread_info {
  #define INIT_THREAD_INFO(tsk)			\
  {						\
  	.task		= &tsk,			\
@@ -46,72 +46,76 @@ index 96c14c1..98ee10a 100644
  	.flags		= 0,			\
  	.cpu		= 0,			\
  	.preempt_count	= INIT_PREEMPT_COUNT,	\
-diff --git a/arch/tile/kernel/compat_signal.c b/arch/tile/kernel/compat_signal.c
-index 8c5abf2..5cbc864 100644
---- a/arch/tile/kernel/compat_signal.c
-+++ b/arch/tile/kernel/compat_signal.c
-@@ -196,19 +196,12 @@ int compat_setup_rt_frame(struct ksignal *ksig, sigset_t *set,
- 	unsigned long restorer;
- 	struct compat_rt_sigframe __user *frame;
- 	int err = 0, sig = ksig->sig;
--	int usig;
+diff --git a/arch/mn10300/kernel/asm-offsets.c b/arch/mn10300/kernel/asm-offsets.c
+index d780670..e5a61c6 100644
+--- a/arch/mn10300/kernel/asm-offsets.c
++++ b/arch/mn10300/kernel/asm-offsets.c
+@@ -22,7 +22,6 @@ void foo(void)
+ 	BLANK();
  
- 	frame = compat_get_sigframe(&ksig->ka, regs, sizeof(*frame));
+ 	OFFSET(TI_task,			thread_info, task);
+-	OFFSET(TI_exec_domain,		thread_info, exec_domain);
+ 	OFFSET(TI_frame,		thread_info, frame);
+ 	OFFSET(TI_flags,		thread_info, flags);
+ 	OFFSET(TI_cpu,			thread_info, cpu);
+@@ -85,7 +84,6 @@ void foo(void)
+ 	DEFINE(SIGCHLD_asm,		SIGCHLD);
+ 	BLANK();
+ 
+-	OFFSET(EXEC_DOMAIN_handler,	exec_domain, handler);
+ 	OFFSET(RT_SIGFRAME_sigcontext,	rt_sigframe, uc.uc_mcontext);
+ 
+ 	DEFINE(PAGE_SIZE_asm,		PAGE_SIZE);
+diff --git a/arch/mn10300/kernel/signal.c b/arch/mn10300/kernel/signal.c
+index 8609845..dfd0301 100644
+--- a/arch/mn10300/kernel/signal.c
++++ b/arch/mn10300/kernel/signal.c
+@@ -202,20 +202,14 @@ static int setup_frame(struct ksignal *ksig, sigset_t *set,
+ 		       struct pt_regs *regs)
+ {
+ 	struct sigframe __user *frame;
+-	int rsig, sig = ksig->sig;
++	int sig = ksig->sig;
+ 
+ 	frame = get_sigframe(ksig, regs, sizeof(*frame));
  
  	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
- 		goto err;
+ 		return -EFAULT;
  
--	usig = current_thread_info()->exec_domain
--		&& current_thread_info()->exec_domain->signal_invmap
--		&& sig < 32
--		? current_thread_info()->exec_domain->signal_invmap[sig]
--		: sig;
+-	rsig = sig;
+-	if (sig < 32 &&
+-	    current_thread_info()->exec_domain &&
+-	    current_thread_info()->exec_domain->signal_invmap)
+-		rsig = current_thread_info()->exec_domain->signal_invmap[sig];
 -
- 	/* Always write at least the signal number for the stack backtracer. */
- 	if (ksig->ka.sa.sa_flags & SA_SIGINFO) {
- 		/* At sigreturn time, restore the callee-save registers too. */
-@@ -243,7 +236,7 @@ int compat_setup_rt_frame(struct ksignal *ksig, sigset_t *set,
- 	regs->ex1 = PL_ICS_EX1(USER_PL, 1); /* set crit sec in handler */
- 	regs->sp = ptr_to_compat_reg(frame);
- 	regs->lr = restorer;
--	regs->regs[0] = (unsigned long) usig;
-+	regs->regs[0] = (unsigned long) sig;
- 	regs->regs[1] = ptr_to_compat_reg(&frame->info);
- 	regs->regs[2] = ptr_to_compat_reg(&frame->uc);
- 	regs->flags |= PT_FLAGS_CALLER_SAVES;
-diff --git a/arch/tile/kernel/signal.c b/arch/tile/kernel/signal.c
-index 8a524e3..87299a6 100644
---- a/arch/tile/kernel/signal.c
-+++ b/arch/tile/kernel/signal.c
-@@ -151,19 +151,12 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
- 	unsigned long restorer;
+-	if (__put_user(rsig, &frame->sig) < 0 ||
++	if (__put_user(sig, &frame->sig) < 0 ||
+ 	    __put_user(&frame->sc, &frame->psc) < 0)
+ 		return -EFAULT;
+ 
+@@ -270,20 +264,14 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
+ 			  struct pt_regs *regs)
+ {
  	struct rt_sigframe __user *frame;
- 	int err = 0, sig = ksig->sig;
--	int usig;
+-	int rsig, sig = ksig->sig;
++	int sig = ksig->sig;
  
- 	frame = get_sigframe(&ksig->ka, regs, sizeof(*frame));
+ 	frame = get_sigframe(ksig, regs, sizeof(*frame));
  
  	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
- 		goto err;
+ 		return -EFAULT;
  
--	usig = current_thread_info()->exec_domain
--		&& current_thread_info()->exec_domain->signal_invmap
--		&& sig < 32
--		? current_thread_info()->exec_domain->signal_invmap[sig]
--		: sig;
+-	rsig = sig;
+-	if (sig < 32 &&
+-	    current_thread_info()->exec_domain &&
+-	    current_thread_info()->exec_domain->signal_invmap)
+-		rsig = current_thread_info()->exec_domain->signal_invmap[sig];
 -
- 	/* Always write at least the signal number for the stack backtracer. */
- 	if (ksig->ka.sa.sa_flags & SA_SIGINFO) {
- 		/* At sigreturn time, restore the callee-save registers too. */
-@@ -198,7 +191,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
- 	regs->ex1 = PL_ICS_EX1(USER_PL, 1); /* set crit sec in handler */
- 	regs->sp = (unsigned long) frame;
- 	regs->lr = restorer;
--	regs->regs[0] = (unsigned long) usig;
-+	regs->regs[0] = (unsigned long) sig;
- 	regs->regs[1] = (unsigned long) &frame->info;
- 	regs->regs[2] = (unsigned long) &frame->uc;
- 	regs->flags |= PT_FLAGS_CALLER_SAVES;
+-	if (__put_user(rsig, &frame->sig) ||
++	if (__put_user(sig, &frame->sig) ||
+ 	    __put_user(&frame->info, &frame->pinfo) ||
+ 	    __put_user(&frame->uc, &frame->puc) ||
+ 	    copy_siginfo_to_user(&frame->info, &ksig->info))
 -- 
 1.8.4.5
 
