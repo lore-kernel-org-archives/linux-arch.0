@@ -1,7 +1,7 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 09/24] m32r: Autogenerate offsets in struct thread_info
-Date: Sat, 11 Apr 2015 22:47:48 +0200
-Message-ID: <1428785283-20501-10-git-send-email-richard@nod.at>
+Subject: [PATCH 06/24] blackfin: Autogenerate offsets in struct thread_info
+Date: Sat, 11 Apr 2015 22:47:45 +0200
+Message-ID: <1428785283-20501-7-git-send-email-richard@nod.at>
 References: <1428785283-20501-1-git-send-email-richard@nod.at>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1428785283-20501-1-git-send-email-richard@nod.at>
@@ -14,75 +14,59 @@ Maintaining offsets by hand is no fun.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/m32r/include/asm/asm-offsets.h |  1 +
- arch/m32r/include/asm/thread_info.h | 13 +------------
- arch/m32r/kernel/asm-offsets.c      | 15 ++++++++++++++-
- arch/m32r/kernel/entry.S            |  1 +
- 4 files changed, 17 insertions(+), 13 deletions(-)
- create mode 100644 arch/m32r/include/asm/asm-offsets.h
+ arch/blackfin/include/asm/thread_info.h | 9 ---------
+ arch/blackfin/kernel/asm-offsets.c      | 6 ++++++
+ arch/blackfin/kernel/traps.c            | 1 +
+ 3 files changed, 7 insertions(+), 9 deletions(-)
 
-diff --git a/arch/m32r/include/asm/asm-offsets.h b/arch/m32r/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/m32r/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/m32r/include/asm/thread_info.h b/arch/m32r/include/asm/thread_info.h
-index 32422d0..034d1ab 100644
---- a/arch/m32r/include/asm/thread_info.h
-+++ b/arch/m32r/include/asm/thread_info.h
-@@ -38,18 +38,7 @@ struct thread_info {
- 	__u8			supervisor_stack[0];
- };
+diff --git a/arch/blackfin/include/asm/thread_info.h b/arch/blackfin/include/asm/thread_info.h
+index 57c3a8b..962be3f 100644
+--- a/arch/blackfin/include/asm/thread_info.h
++++ b/arch/blackfin/include/asm/thread_info.h
+@@ -76,15 +76,6 @@ static inline struct thread_info *current_thread_info(void)
+ #endif				/* __ASSEMBLY__ */
  
--#else /* !__ASSEMBLY__ */
+ /*
+- * Offsets in thread_info structure, used in assembly code
+- */
+-#define TI_TASK		0
+-#define TI_EXECDOMAIN	4
+-#define TI_FLAGS	8
+-#define TI_CPU		12
+-#define TI_PREEMPT	16
 -
--/* offsets into the thread_info struct for assembly code access */
--#define TI_TASK		0x00000000
--#define TI_EXEC_DOMAIN	0x00000004
--#define TI_FLAGS	0x00000008
--#define TI_STATUS	0x0000000C
--#define TI_CPU		0x00000010
--#define TI_PRE_COUNT	0x00000014
--#define TI_ADDR_LIMIT	0x00000018
--
--#endif
-+#endif /* !__ASSEMBLY__ */
+-/*
+  * thread information flag bit numbers
+  */
+ #define TIF_SYSCALL_TRACE	0	/* syscall trace active */
+diff --git a/arch/blackfin/kernel/asm-offsets.c b/arch/blackfin/kernel/asm-offsets.c
+index 37fcae9..486560a 100644
+--- a/arch/blackfin/kernel/asm-offsets.c
++++ b/arch/blackfin/kernel/asm-offsets.c
+@@ -42,6 +42,12 @@ int main(void)
+ 	DEFINE(THREAD_PC, offsetof(struct thread_struct, pc));
+ 	DEFINE(KERNEL_STACK_SIZE, THREAD_SIZE);
  
- #define THREAD_SIZE		(PAGE_SIZE << 1)
- #define THREAD_SIZE_ORDER	1
-diff --git a/arch/m32r/kernel/asm-offsets.c b/arch/m32r/kernel/asm-offsets.c
-index 9e26311..cd3d2fc 100644
---- a/arch/m32r/kernel/asm-offsets.c
-+++ b/arch/m32r/kernel/asm-offsets.c
-@@ -1 +1,14 @@
--/* Dummy asm-offsets.c file. Required by kbuild and ready to be used - hint! */
-+#include <linux/thread_info.h>
-+#include <linux/kbuild.h>
-+
-+int foo(void)
-+{
++	/* offsets in thread_info struct */
 +	OFFSET(TI_TASK, thread_info, task);
 +	OFFSET(TI_FLAGS, thread_info, flags);
-+	OFFSET(TI_STATUS, thread_info, status);
 +	OFFSET(TI_CPU, thread_info, cpu);
-+	OFFSET(TI_PRE_COUNT, thread_info, preempt_count);
-+	OFFSET(TI_ADDR_LIMIT, thread_info, addr_limit);
++	OFFSET(TI_PREEMPT, thread_info, preempt_count);
 +
-+	return 0;
-+}
-diff --git a/arch/m32r/kernel/entry.S b/arch/m32r/kernel/entry.S
-index 7c3db99..c639bfa 100644
---- a/arch/m32r/kernel/entry.S
-+++ b/arch/m32r/kernel/entry.S
-@@ -65,6 +65,7 @@
- #include <asm/page.h>
- #include <asm/m32r.h>
- #include <asm/mmu_context.h>
+ 	/* offsets into the pt_regs */
+ 	DEFINE(PT_ORIG_R0, offsetof(struct pt_regs, orig_r0));
+ 	DEFINE(PT_ORIG_P0, offsetof(struct pt_regs, orig_p0));
+diff --git a/arch/blackfin/kernel/traps.c b/arch/blackfin/kernel/traps.c
+index de5c2c3..1ed85dd 100644
+--- a/arch/blackfin/kernel/traps.c
++++ b/arch/blackfin/kernel/traps.c
+@@ -18,6 +18,7 @@
+ #include <asm/fixed_code.h>
+ #include <asm/pseudo_instructions.h>
+ #include <asm/pda.h>
 +#include <asm/asm-offsets.h>
  
- #if !defined(CONFIG_MMU)
- #define sys_madvise		sys_ni_syscall
+ #ifdef CONFIG_KGDB
+ # include <linux/kgdb.h>
 -- 
 1.8.4.5
