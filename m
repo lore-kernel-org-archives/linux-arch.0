@@ -1,197 +1,179 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:14393 "EHLO
+Received: from mail.sigma-star.at ([95.130.255.111]:14390 "EHLO
 	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755994AbbDKU5T (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 11 Apr 2015 16:57:19 -0400
+	with ESMTP id S1755524AbbDKU5Q (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 11 Apr 2015 16:57:16 -0400
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 03/24] Remove execution domain support
-Date: Sat, 11 Apr 2015 22:47:42 +0200
-Message-ID: <1428785283-20501-4-git-send-email-richard@nod.at>
+Subject: [PATCH 01/24] arm: Remove RISC OS personality
+Date: Sat, 11 Apr 2015 22:47:40 +0200
+Message-ID: <1428785283-20501-2-git-send-email-richard@nod.at>
 In-Reply-To: <1428785283-20501-1-git-send-email-richard@nod.at>
 References: <1428785283-20501-1-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@arm.linux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, yasutake.koichi@jp.panasonic.com, lftan@altera.com, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, davem@davemloft.net, cmetcalf@ezchip.com, jdike@addtoit.com, akpm@linux-foundation.org, oleg@redhat.com, hch@infradead.org, viro@zeniv.linux.org.uk, torvalds@linux-foundation.org, Richard Weinberger <richard@nod.at>
-Message-ID: <20150411204742.MaVwAkqxtenkSkQ9fZzxJVru_SeIVrm3Vzj39qQ2iHo@z>
+Message-ID: <20150411204740.Qt76Kxeoj-ZBDvUXbq2BeAZL0jSZ75X8WRDS_bADN7g@z>
 
-All users of exec_domain are gone, now we can get rid
-of that abandoned feature.
-To not break existing userspace we keep a dummy
-/proc/execdomains file which will always contain
-"0-0     Linux                   [kernel]".
+The RISC OS personality seems to be unused and untested for a long time.
+It is doubtful whether this personality worked ever as expected.
+Let's rip it out.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
 ---
- kernel/exec_domain.c | 100 +--------------------------------------------------
- kernel/exit.c        |   2 --
- kernel/fork.c        |   4 ---
- 3 files changed, 1 insertion(+), 105 deletions(-)
+ arch/arm/Kconfig                  | 10 -----
+ arch/arm/configs/badge4_defconfig |  1 -
+ arch/arm/kernel/Makefile          |  1 -
+ arch/arm/kernel/arthur.c          | 94 ---------------------------------------
+ 4 files changed, 106 deletions(-)
+ delete mode 100644 arch/arm/kernel/arthur.c
 
-diff --git a/kernel/exec_domain.c b/kernel/exec_domain.c
-index 83d4382..b2fb57d 100644
---- a/kernel/exec_domain.c
-+++ b/kernel/exec_domain.c
-@@ -20,13 +20,7 @@
- #include <linux/types.h>
- #include <linux/fs_struct.h>
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index cf4c0c9..57a8df0 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -2126,16 +2126,6 @@ menu "Userspace binary formats"
  
--
- static void default_handler(int, struct pt_regs *);
--
--static struct exec_domain *exec_domains = &default_exec_domain;
--static DEFINE_RWLOCK(exec_domains_lock);
--
--
- static unsigned long ident_map[32] = {
- 	0,	1,	2,	3,	4,	5,	6,	7,
- 	8,	9,	10,	11,	12,	13,	14,	15,
-@@ -55,94 +49,9 @@ default_handler(int segment, struct pt_regs *regp)
- 		send_sig(SIGSEGV, current, 1);
- }
+ source "fs/Kconfig.binfmt"
  
--static struct exec_domain *
--lookup_exec_domain(unsigned int personality)
+-config ARTHUR
+-	tristate "RISC OS personality"
+-	depends on !AEABI
+-	help
+-	  Say Y here to include the kernel code necessary if you want to run
+-	  Acorn RISC OS/Arthur binaries under Linux. This code is still very
+-	  experimental; if this sounds frightening, say N and sleep in peace.
+-	  You can also say M here to compile this support as a module (which
+-	  will be called arthur).
+-
+ endmenu
+ 
+ menu "Power management options"
+diff --git a/arch/arm/configs/badge4_defconfig b/arch/arm/configs/badge4_defconfig
+index 0494c8f..d590098 100644
+--- a/arch/arm/configs/badge4_defconfig
++++ b/arch/arm/configs/badge4_defconfig
+@@ -12,7 +12,6 @@ CONFIG_CPU_FREQ_GOV_PERFORMANCE=y
+ CONFIG_FPE_NWFPE=y
+ CONFIG_BINFMT_AOUT=m
+ CONFIG_BINFMT_MISC=m
+-CONFIG_ARTHUR=m
+ CONFIG_NET=y
+ CONFIG_PACKET=y
+ CONFIG_UNIX=y
+diff --git a/arch/arm/kernel/Makefile b/arch/arm/kernel/Makefile
+index 902397d..d9d33fa 100644
+--- a/arch/arm/kernel/Makefile
++++ b/arch/arm/kernel/Makefile
+@@ -34,7 +34,6 @@ obj-$(CONFIG_CPU_IDLE)		+= cpuidle.o
+ obj-$(CONFIG_ISA_DMA_API)	+= dma.o
+ obj-$(CONFIG_FIQ)		+= fiq.o fiqasm.o
+ obj-$(CONFIG_MODULES)		+= armksyms.o module.o
+-obj-$(CONFIG_ARTHUR)		+= arthur.o
+ obj-$(CONFIG_ISA_DMA)		+= dma-isa.o
+ obj-$(CONFIG_PCI)		+= bios32.o isa.o
+ obj-$(CONFIG_ARM_CPU_SUSPEND)	+= sleep.o suspend.o
+diff --git a/arch/arm/kernel/arthur.c b/arch/arm/kernel/arthur.c
+deleted file mode 100644
+index 321c529..0000000
+--- a/arch/arm/kernel/arthur.c
++++ /dev/null
+@@ -1,94 +0,0 @@
+-/*
+- *  linux/arch/arm/kernel/arthur.c
+- *
+- *  Copyright (C) 1998, 1999, 2000, 2001 Philip Blundell
+- *
+- * Arthur personality
+- */
+-
+-/*
+- * This program is free software; you can redistribute it and/or
+- * modify it under the terms of the GNU General Public License
+- * as published by the Free Software Foundation; either version
+- * 2 of the License, or (at your option) any later version.
+- */
+-
+-#include <linux/module.h>
+-#include <linux/personality.h>
+-#include <linux/stddef.h>
+-#include <linux/signal.h>
+-#include <linux/init.h>
+-#include <linux/sched.h>
+-
+-#include <asm/ptrace.h>
+-
+-/* Arthur doesn't have many signals, and a lot of those that it does
+-   have don't map easily to any Linux equivalent.  Never mind.  */
+-
+-#define ARTHUR_SIGABRT		1
+-#define ARTHUR_SIGFPE		2
+-#define ARTHUR_SIGILL		3
+-#define ARTHUR_SIGINT		4
+-#define ARTHUR_SIGSEGV		5
+-#define ARTHUR_SIGTERM		6
+-#define ARTHUR_SIGSTAK		7
+-#define ARTHUR_SIGUSR1		8
+-#define ARTHUR_SIGUSR2		9
+-#define ARTHUR_SIGOSERROR	10
+-
+-static unsigned long arthur_to_linux_signals[32] = {
+-	0,	1,	2,	3,	4,	5,	6,	7,
+-	8,	9,	10,	11,	12,	13,	14,	15,
+-	16,	17,	18,	19,	20,	21,	22,	23,
+-	24,	25,	26,	27,	28,	29,	30,	31
+-};
+-
+-static unsigned long linux_to_arthur_signals[32] = {
+-	0,		-1,		ARTHUR_SIGINT,	-1,
+-       	ARTHUR_SIGILL,	5,		ARTHUR_SIGABRT,	7,
+-	ARTHUR_SIGFPE,	9,		ARTHUR_SIGUSR1,	ARTHUR_SIGSEGV,	
+-	ARTHUR_SIGUSR2,	13,		14,		ARTHUR_SIGTERM,
+-	16,		17,		18,		19,
+-	20,		21,		22,		23,
+-	24,		25,		26,		27,
+-	28,		29,		30,		31
+-};
+-
+-static void arthur_lcall7(int nr, struct pt_regs *regs)
 -{
--	unsigned int pers = personality(personality);
--	struct exec_domain *ep;
--
--	read_lock(&exec_domains_lock);
--	for (ep = exec_domains; ep; ep = ep->next) {
--		if (pers >= ep->pers_low && pers <= ep->pers_high)
--			if (try_module_get(ep->module))
--				goto out;
--	}
--
--#ifdef CONFIG_MODULES
--	read_unlock(&exec_domains_lock);
--	request_module("personality-%d", pers);
--	read_lock(&exec_domains_lock);
--
--	for (ep = exec_domains; ep; ep = ep->next) {
--		if (pers >= ep->pers_low && pers <= ep->pers_high)
--			if (try_module_get(ep->module))
--				goto out;
--	}
--#endif
--
--	ep = &default_exec_domain;
--out:
--	read_unlock(&exec_domains_lock);
--	return ep;
+-	struct siginfo info;
+-	info.si_signo = SIGSWI;
+-	info.si_errno = nr;
+-	/* Bounce it to the emulator */
+-	send_sig_info(SIGSWI, &info, current);
 -}
 -
--int
--register_exec_domain(struct exec_domain *ep)
+-static struct exec_domain arthur_exec_domain = {
+-	.name		= "Arthur",
+-	.handler	= arthur_lcall7,
+-	.pers_low	= PER_RISCOS,
+-	.pers_high	= PER_RISCOS,
+-	.signal_map	= arthur_to_linux_signals,
+-	.signal_invmap	= linux_to_arthur_signals,
+-	.module		= THIS_MODULE,
+-};
+-
+-/*
+- * We could do with some locking to stop Arthur being removed while
+- * processes are using it.
+- */
+-
+-static int __init arthur_init(void)
 -{
--	struct exec_domain	*tmp;
--	int			err = -EBUSY;
--
--	if (ep == NULL)
--		return -EINVAL;
--
--	if (ep->next != NULL)
--		return -EBUSY;
--
--	write_lock(&exec_domains_lock);
--	for (tmp = exec_domains; tmp; tmp = tmp->next) {
--		if (tmp == ep)
--			goto out;
--	}
--
--	ep->next = exec_domains;
--	exec_domains = ep;
--	err = 0;
--
--out:
--	write_unlock(&exec_domains_lock);
--	return err;
+-	return register_exec_domain(&arthur_exec_domain);
 -}
--EXPORT_SYMBOL(register_exec_domain);
 -
--int
--unregister_exec_domain(struct exec_domain *ep)
+-static void __exit arthur_exit(void)
 -{
--	struct exec_domain	**epp;
--
--	epp = &exec_domains;
--	write_lock(&exec_domains_lock);
--	for (epp = &exec_domains; *epp; epp = &(*epp)->next) {
--		if (ep == *epp)
--			goto unregister;
--	}
--	write_unlock(&exec_domains_lock);
--	return -EINVAL;
--
--unregister:
--	*epp = ep->next;
--	ep->next = NULL;
--	write_unlock(&exec_domains_lock);
--	return 0;
+-	unregister_exec_domain(&arthur_exec_domain);
 -}
--EXPORT_SYMBOL(unregister_exec_domain);
 -
- int __set_personality(unsigned int personality)
- {
--	struct exec_domain *oep = current_thread_info()->exec_domain;
+-module_init(arthur_init);
+-module_exit(arthur_exit);
 -
--	current_thread_info()->exec_domain = lookup_exec_domain(personality);
- 	current->personality = personality;
--	module_put(oep->module);
- 
- 	return 0;
- }
-@@ -151,14 +60,7 @@ EXPORT_SYMBOL(__set_personality);
- #ifdef CONFIG_PROC_FS
- static int execdomains_proc_show(struct seq_file *m, void *v)
- {
--	struct exec_domain	*ep;
--
--	read_lock(&exec_domains_lock);
--	for (ep = exec_domains; ep; ep = ep->next)
--		seq_printf(m, "%d-%d\t%-16s\t[%s]\n",
--			       ep->pers_low, ep->pers_high, ep->name,
--			       module_name(ep->module));
--	read_unlock(&exec_domains_lock);
-+	seq_puts(m, "0-0\tLinux           \t[kernel]\n");
- 	return 0;
- }
- 
-diff --git a/kernel/exit.c b/kernel/exit.c
-index feff10b..22fcc05 100644
---- a/kernel/exit.c
-+++ b/kernel/exit.c
-@@ -756,8 +756,6 @@ void do_exit(long code)
- 
- 	cgroup_exit(tsk);
- 
--	module_put(task_thread_info(tsk)->exec_domain->module);
--
- 	/*
- 	 * FIXME: do that only when needed, using sched_exit tracepoint
- 	 */
-diff --git a/kernel/fork.c b/kernel/fork.c
-index cf65139..f2c1e73 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -1279,9 +1279,6 @@ static struct task_struct *copy_process(unsigned long clone_flags,
- 	if (nr_threads >= max_threads)
- 		goto bad_fork_cleanup_count;
- 
--	if (!try_module_get(task_thread_info(p)->exec_domain->module))
--		goto bad_fork_cleanup_count;
--
- 	delayacct_tsk_init(p);	/* Must remain after dup_task_struct() */
- 	p->flags &= ~(PF_SUPERPRIV | PF_WQ_WORKER);
- 	p->flags |= PF_FORKNOEXEC;
-@@ -1590,7 +1587,6 @@ bad_fork_cleanup_threadgroup_lock:
- 	if (clone_flags & CLONE_THREAD)
- 		threadgroup_change_end(current);
- 	delayacct_tsk_free(p);
--	module_put(task_thread_info(p)->exec_domain->module);
- bad_fork_cleanup_count:
- 	atomic_dec(&p->cred->user->processes);
- 	exit_creds(p);
+-MODULE_LICENSE("GPL");
 -- 
 1.8.4.5
 
