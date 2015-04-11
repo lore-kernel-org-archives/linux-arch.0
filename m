@@ -1,7 +1,7 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 02/24] ia64: Remove Linux/x86 exec domain support
-Date: Sat, 11 Apr 2015 22:47:41 +0200
-Message-ID: <1428785283-20501-3-git-send-email-richard@nod.at>
+Subject: [PATCH 07/24] blackfin: Remove exec_domain usage
+Date: Sat, 11 Apr 2015 22:47:46 +0200
+Message-ID: <1428785283-20501-8-git-send-email-richard@nod.at>
 References: <1428785283-20501-1-git-send-email-richard@nod.at>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1428785283-20501-1-git-send-email-richard@nod.at>
@@ -10,49 +10,52 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@arm.linux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, yasutake.koichi@jp.panasonic.com, lftan@altera.com, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, davem@davemloft.net, cmetcalf@ezchip.com, jdike@addtoit.com, akpm@linux-foundation.org, oleg@redhat.com, hch@inf
 List-Id: linux-arch.vger.kernel.org
 
-As this series removes exec domain support we can
-get rid of this hack.
+As execution domain support is gone we can remove
+signal translation from the signal code and remove
+exec_domain from thread_info.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/ia64/mm/init.c | 25 -------------------------
- 1 file changed, 25 deletions(-)
+ arch/blackfin/include/asm/thread_info.h | 2 --
+ arch/blackfin/kernel/signal.c           | 6 +-----
+ 2 files changed, 1 insertion(+), 7 deletions(-)
 
-diff --git a/arch/ia64/mm/init.c b/arch/ia64/mm/init.c
-index 6b33457..a9b65cf 100644
---- a/arch/ia64/mm/init.c
-+++ b/arch/ia64/mm/init.c
-@@ -692,31 +692,6 @@ int arch_remove_memory(u64 start, u64 size)
- #endif
- #endif
+diff --git a/arch/blackfin/include/asm/thread_info.h b/arch/blackfin/include/asm/thread_info.h
+index 962be3f..2966b93 100644
+--- a/arch/blackfin/include/asm/thread_info.h
++++ b/arch/blackfin/include/asm/thread_info.h
+@@ -37,7 +37,6 @@ typedef unsigned long mm_segment_t;
  
--/*
-- * Even when CONFIG_IA32_SUPPORT is not enabled it is
-- * useful to have the Linux/x86 domain registered to
-- * avoid an attempted module load when emulators call
-- * personality(PER_LINUX32). This saves several milliseconds
-- * on each such call.
-- */
--static struct exec_domain ia32_exec_domain;
--
--static int __init
--per_linux32_init(void)
--{
--	ia32_exec_domain.name = "Linux/x86";
--	ia32_exec_domain.handler = NULL;
--	ia32_exec_domain.pers_low = PER_LINUX32;
--	ia32_exec_domain.pers_high = PER_LINUX32;
--	ia32_exec_domain.signal_map = default_exec_domain.signal_map;
--	ia32_exec_domain.signal_invmap = default_exec_domain.signal_invmap;
--	register_exec_domain(&ia32_exec_domain);
--
--	return 0;
--}
--
--__initcall(per_linux32_init);
--
- /**
-  * show_mem - give short summary of memory stats
-  *
+ struct thread_info {
+ 	struct task_struct *task;	/* main task structure */
+-	struct exec_domain *exec_domain;	/* execution domain */
+ 	unsigned long flags;	/* low level flags */
+ 	int cpu;		/* cpu we're on */
+ 	int preempt_count;	/* 0 => preemptable, <0 => BUG */
+@@ -53,7 +52,6 @@ struct thread_info {
+ #define INIT_THREAD_INFO(tsk)			\
+ {						\
+ 	.task		= &tsk,			\
+-	.exec_domain	= &default_exec_domain,	\
+ 	.flags		= 0,			\
+ 	.cpu		= 0,			\
+ 	.preempt_count	= INIT_PREEMPT_COUNT,	\
+diff --git a/arch/blackfin/kernel/signal.c b/arch/blackfin/kernel/signal.c
+index f2a8b54..1982a14 100644
+--- a/arch/blackfin/kernel/signal.c
++++ b/arch/blackfin/kernel/signal.c
+@@ -151,11 +151,7 @@ setup_rt_frame(struct ksignal *ksig, sigset_t *set, struct pt_regs *regs)
+ 
+ 	frame = get_sigframe(ksig, sizeof(*frame));
+ 
+-	err |= __put_user((current_thread_info()->exec_domain
+-			   && current_thread_info()->exec_domain->signal_invmap
+-			   && ksig->sig < 32
+-			   ? current_thread_info()->exec_domain->
+-			   signal_invmap[ksig->sig] : ksig->sig), &frame->sig);
++	err |= __put_user(sig->sig, &frame->sig);
+ 
+ 	err |= __put_user(&frame->info, &frame->pinfo);
+ 	err |= __put_user(&frame->uc, &frame->puc);
 -- 
 1.8.4.5
