@@ -1,7 +1,7 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 22/24] arc: Remove signal translation and exec_domain
-Date: Sat, 11 Apr 2015 22:48:01 +0200
-Message-ID: <1428785283-20501-23-git-send-email-richard@nod.at>
+Subject: [PATCH 21/24] xtensa: Remove signal translation and exec_domain
+Date: Sat, 11 Apr 2015 22:48:00 +0200
+Message-ID: <1428785283-20501-22-git-send-email-richard@nod.at>
 References: <1428785283-20501-1-git-send-email-richard@nod.at>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1428785283-20501-1-git-send-email-richard@nod.at>
@@ -16,61 +16,72 @@ exec_domain from thread_info.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/arc/include/asm/thread_info.h |  2 --
- arch/arc/kernel/signal.c           | 14 +-------------
- 2 files changed, 1 insertion(+), 15 deletions(-)
+ arch/xtensa/include/asm/thread_info.h |  2 --
+ arch/xtensa/kernel/signal.c           | 11 ++---------
+ 2 files changed, 2 insertions(+), 11 deletions(-)
 
-diff --git a/arch/arc/include/asm/thread_info.h b/arch/arc/include/asm/thread_info.h
-index 1163a18..aca0d5a 100644
---- a/arch/arc/include/asm/thread_info.h
-+++ b/arch/arc/include/asm/thread_info.h
-@@ -43,7 +43,6 @@ struct thread_info {
- 	int preempt_count;		/* 0 => preemptable, <0 => BUG */
- 	struct task_struct *task;	/* main task structure */
- 	mm_segment_t addr_limit;	/* thread address space */
--	struct exec_domain *exec_domain;/* execution domain */
- 	__u32 cpu;			/* current CPU */
- 	unsigned long thr_ptr;		/* TLS ptr */
- };
-@@ -56,7 +55,6 @@ struct thread_info {
+diff --git a/arch/xtensa/include/asm/thread_info.h b/arch/xtensa/include/asm/thread_info.h
+index a9b5d3b..d120278 100644
+--- a/arch/xtensa/include/asm/thread_info.h
++++ b/arch/xtensa/include/asm/thread_info.h
+@@ -44,7 +44,6 @@ typedef struct xtregs_coprocessor {
+ 
+ struct thread_info {
+ 	struct task_struct	*task;		/* main task structure */
+-	struct exec_domain	*exec_domain;	/* execution domain */
+ 	unsigned long		flags;		/* low level flags */
+ 	unsigned long		status;		/* thread-synchronous flags */
+ 	__u32			cpu;		/* current CPU */
+@@ -83,7 +82,6 @@ struct thread_info {
  #define INIT_THREAD_INFO(tsk)			\
  {						\
- 	.task       = &tsk,			\
--	.exec_domain    = &default_exec_domain,	\
- 	.flags      = 0,			\
- 	.cpu        = 0,			\
- 	.preempt_count  = INIT_PREEMPT_COUNT,	\
-diff --git a/arch/arc/kernel/signal.c b/arch/arc/kernel/signal.c
-index edda76f..2251fb4 100644
---- a/arch/arc/kernel/signal.c
-+++ b/arch/arc/kernel/signal.c
-@@ -171,18 +171,6 @@ static inline void __user *get_sigframe(struct ksignal *ksig,
- 	return frame;
- }
- 
--/*
-- * translate the signal
-- */
--static inline int map_sig(int sig)
--{
--	struct thread_info *thread = current_thread_info();
--	if (thread->exec_domain && thread->exec_domain->signal_invmap
--	    && sig < 32)
--		sig = thread->exec_domain->signal_invmap[sig];
--	return sig;
--}
--
- static int
- setup_rt_frame(struct ksignal *ksig, sigset_t *set, struct pt_regs *regs)
+ 	.task		= &tsk,			\
+-	.exec_domain	= &default_exec_domain,	\
+ 	.flags		= 0,			\
+ 	.cpu		= 0,			\
+ 	.preempt_count	= INIT_PREEMPT_COUNT,	\
+diff --git a/arch/xtensa/kernel/signal.c b/arch/xtensa/kernel/signal.c
+index 3d733ba..1785c4d 100644
+--- a/arch/xtensa/kernel/signal.c
++++ b/arch/xtensa/kernel/signal.c
+@@ -336,7 +336,6 @@ static int setup_frame(struct ksignal *ksig, sigset_t *set,
  {
-@@ -231,7 +219,7 @@ setup_rt_frame(struct ksignal *ksig, sigset_t *set, struct pt_regs *regs)
- 		return err;
+ 	struct rt_sigframe *frame;
+ 	int err = 0, sig = ksig->sig;
+-	int signal;
+ 	unsigned long sp, ra, tp;
  
- 	/* #1 arg to the user Signal handler */
--	regs->r0 = map_sig(ksig->sig);
-+	regs->r0 = ksig->sig;
+ 	sp = regs->areg[1];
+@@ -354,12 +353,6 @@ static int setup_frame(struct ksignal *ksig, sigset_t *set,
+ 		return -EFAULT;
+ 	}
  
- 	/* setup PC of user space signal handler */
- 	regs->ret = (unsigned long)ksig->ka.sa.sa_handler;
+-	signal = current_thread_info()->exec_domain
+-		&& current_thread_info()->exec_domain->signal_invmap
+-		&& sig < 32
+-		? current_thread_info()->exec_domain->signal_invmap[sig]
+-		: sig;
+-
+ 	if (ksig->ka.sa.sa_flags & SA_SIGINFO) {
+ 		err |= copy_siginfo_to_user(&frame->info, &ksig->info);
+ 	}
+@@ -400,7 +393,7 @@ static int setup_frame(struct ksignal *ksig, sigset_t *set,
+ 	 * Note: PS.CALLINC is set to one by start_thread
+ 	 */
+ 	regs->areg[4] = (((unsigned long) ra) & 0x3fffffff) | 0x40000000;
+-	regs->areg[6] = (unsigned long) signal;
++	regs->areg[6] = (unsigned long) sig;
+ 	regs->areg[7] = (unsigned long) &frame->info;
+ 	regs->areg[8] = (unsigned long) &frame->uc;
+ 	regs->threadptr = tp;
+@@ -412,7 +405,7 @@ static int setup_frame(struct ksignal *ksig, sigset_t *set,
+ 
+ #if DEBUG_SIG
+ 	printk("SIG rt deliver (%s:%d): signal=%d sp=%p pc=%08x\n",
+-		current->comm, current->pid, signal, frame, regs->pc);
++		current->comm, current->pid, sig, frame, regs->pc);
+ #endif
+ 
+ 	return 0;
 -- 
 1.8.4.5
