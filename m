@@ -1,94 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:14395 "EHLO
+Received: from mail.sigma-star.at ([95.130.255.111]:14399 "EHLO
 	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755548AbbDKU5Q (ORCPT
+	with ESMTP id S1755689AbbDKU5Q (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Sat, 11 Apr 2015 16:57:16 -0400
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 09/24] m32r: Autogenerate offsets in struct thread_info
-Date: Sat, 11 Apr 2015 22:47:48 +0200
-Message-ID: <1428785283-20501-10-git-send-email-richard@nod.at>
+Subject: [PATCH 14/24] s390: Remove signal translation and exec_domain
+Date: Sat, 11 Apr 2015 22:47:53 +0200
+Message-ID: <1428785283-20501-15-git-send-email-richard@nod.at>
 In-Reply-To: <1428785283-20501-1-git-send-email-richard@nod.at>
 References: <1428785283-20501-1-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@arm.linux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, yasutake.koichi@jp.panasonic.com, lftan@altera.com, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, davem@davemloft.net, cmetcalf@ezchip.com, jdike@addtoit.com, akpm@linux-foundation.org, oleg@redhat.com, hch@infradead.org, viro@zeniv.linux.org.uk, torvalds@linux-foundation.org, Richard Weinberger <richard@nod.at>
-Message-ID: <20150411204748.maVAc_6twu37iJ6WeLDwQw5b-Vgl9zdYWmwub8ymUwY@z>
+Message-ID: <20150411204753.Pce63P1l4Jac_5D3AFsBEsEAFhTRByNs92uoT8M3EsM@z>
 
-Maintaining offsets by hand is no fun.
+As execution domain support is gone we can remove
+signal translation from the signal code and remove
+exec_domain from thread_info.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/m32r/include/asm/asm-offsets.h |  1 +
- arch/m32r/include/asm/thread_info.h | 13 +------------
- arch/m32r/kernel/asm-offsets.c      | 15 ++++++++++++++-
- arch/m32r/kernel/entry.S            |  1 +
- 4 files changed, 17 insertions(+), 13 deletions(-)
- create mode 100644 arch/m32r/include/asm/asm-offsets.h
+ arch/s390/include/asm/thread_info.h |  2 --
+ arch/s390/kernel/asm-offsets.c      |  1 -
+ arch/s390/kernel/compat_signal.c    | 14 ++------------
+ arch/s390/kernel/signal.c           | 14 ++------------
+ 4 files changed, 4 insertions(+), 27 deletions(-)
 
-diff --git a/arch/m32r/include/asm/asm-offsets.h b/arch/m32r/include/asm/asm-offsets.h
-new file mode 100644
-index 0000000..d370ee3
---- /dev/null
-+++ b/arch/m32r/include/asm/asm-offsets.h
-@@ -0,0 +1 @@
-+#include <generated/asm-offsets.h>
-diff --git a/arch/m32r/include/asm/thread_info.h b/arch/m32r/include/asm/thread_info.h
-index 32422d0..034d1ab 100644
---- a/arch/m32r/include/asm/thread_info.h
-+++ b/arch/m32r/include/asm/thread_info.h
-@@ -38,18 +38,7 @@ struct thread_info {
- 	__u8			supervisor_stack[0];
- };
+diff --git a/arch/s390/include/asm/thread_info.h b/arch/s390/include/asm/thread_info.h
+index ef1df71..0a6dcff 100644
+--- a/arch/s390/include/asm/thread_info.h
++++ b/arch/s390/include/asm/thread_info.h
+@@ -34,7 +34,6 @@
+  */
+ struct thread_info {
+ 	struct task_struct	*task;		/* main task structure */
+-	struct exec_domain	*exec_domain;	/* execution domain */
+ 	unsigned long		flags;		/* low level flags */
+ 	unsigned long		sys_call_table;	/* System call table address */
+ 	unsigned int		cpu;		/* current CPU */
+@@ -51,7 +50,6 @@ struct thread_info {
+ #define INIT_THREAD_INFO(tsk)			\
+ {						\
+ 	.task		= &tsk,			\
+-	.exec_domain	= &default_exec_domain,	\
+ 	.flags		= 0,			\
+ 	.cpu		= 0,			\
+ 	.preempt_count	= INIT_PREEMPT_COUNT,	\
+diff --git a/arch/s390/kernel/asm-offsets.c b/arch/s390/kernel/asm-offsets.c
+index e07e916..e52a202 100644
+--- a/arch/s390/kernel/asm-offsets.c
++++ b/arch/s390/kernel/asm-offsets.c
+@@ -34,7 +34,6 @@ int main(void)
+ 	DEFINE(__THREAD_per_paid, offsetof(struct task_struct, thread.per_event.paid));
+ 	BLANK();
+ 	DEFINE(__TI_task, offsetof(struct thread_info, task));
+-	DEFINE(__TI_domain, offsetof(struct thread_info, exec_domain));
+ 	DEFINE(__TI_flags, offsetof(struct thread_info, flags));
+ 	DEFINE(__TI_sysc_table, offsetof(struct thread_info, sys_call_table));
+ 	DEFINE(__TI_cpu, offsetof(struct thread_info, cpu));
+diff --git a/arch/s390/kernel/compat_signal.c b/arch/s390/kernel/compat_signal.c
+index bc1df12..fe8d692 100644
+--- a/arch/s390/kernel/compat_signal.c
++++ b/arch/s390/kernel/compat_signal.c
+@@ -370,16 +370,6 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs * regs, size_t frame_size)
+ 	return (void __user *)((sp - frame_size) & -8ul);
+ }
  
--#else /* !__ASSEMBLY__ */
+-static inline int map_signal(int sig)
+-{
+-	if (current_thread_info()->exec_domain
+-	    && current_thread_info()->exec_domain->signal_invmap
+-	    && sig < 32)
+-		return current_thread_info()->exec_domain->signal_invmap[sig];
+-        else
+-		return sig;
+-}
 -
--/* offsets into the thread_info struct for assembly code access */
--#define TI_TASK		0x00000000
--#define TI_EXEC_DOMAIN	0x00000004
--#define TI_FLAGS	0x00000008
--#define TI_STATUS	0x0000000C
--#define TI_CPU		0x00000010
--#define TI_PRE_COUNT	0x00000014
--#define TI_ADDR_LIMIT	0x00000018
+ static int setup_frame32(struct ksignal *ksig, sigset_t *set,
+ 			 struct pt_regs *regs)
+ {
+@@ -449,7 +439,7 @@ static int setup_frame32(struct ksignal *ksig, sigset_t *set,
+ 		(regs->psw.mask & ~PSW_MASK_ASC);
+ 	regs->psw.addr = (__force __u64) ksig->ka.sa.sa_handler;
+ 
+-	regs->gprs[2] = map_signal(sig);
++	regs->gprs[2] = sig;
+ 	regs->gprs[3] = (__force __u64) &frame->sc;
+ 
+ 	/* We forgot to include these in the sigcontext.
+@@ -532,7 +522,7 @@ static int setup_rt_frame32(struct ksignal *ksig, sigset_t *set,
+ 		(regs->psw.mask & ~PSW_MASK_ASC);
+ 	regs->psw.addr = (__u64 __force) ksig->ka.sa.sa_handler;
+ 
+-	regs->gprs[2] = map_signal(ksig->sig);
++	regs->gprs[2] = ksig->sig;
+ 	regs->gprs[3] = (__force __u64) &frame->info;
+ 	regs->gprs[4] = (__force __u64) &frame->uc;
+ 	regs->gprs[5] = task_thread_info(current)->last_break;
+diff --git a/arch/s390/kernel/signal.c b/arch/s390/kernel/signal.c
+index b3ae6f7..c3f71c4 100644
+--- a/arch/s390/kernel/signal.c
++++ b/arch/s390/kernel/signal.c
+@@ -309,16 +309,6 @@ get_sigframe(struct k_sigaction *ka, struct pt_regs * regs, size_t frame_size)
+ 	return (void __user *)((sp - frame_size) & -8ul);
+ }
+ 
+-static inline int map_signal(int sig)
+-{
+-	if (current_thread_info()->exec_domain
+-	    && current_thread_info()->exec_domain->signal_invmap
+-	    && sig < 32)
+-		return current_thread_info()->exec_domain->signal_invmap[sig];
+-	else
+-		return sig;
+-}
 -
--#endif
-+#endif /* !__ASSEMBLY__ */
+ static int setup_frame(int sig, struct k_sigaction *ka,
+ 		       sigset_t *set, struct pt_regs * regs)
+ {
+@@ -386,7 +376,7 @@ static int setup_frame(int sig, struct k_sigaction *ka,
+ 		(regs->psw.mask & ~PSW_MASK_ASC);
+ 	regs->psw.addr = (unsigned long) ka->sa.sa_handler | PSW_ADDR_AMODE;
  
- #define THREAD_SIZE		(PAGE_SIZE << 1)
- #define THREAD_SIZE_ORDER	1
-diff --git a/arch/m32r/kernel/asm-offsets.c b/arch/m32r/kernel/asm-offsets.c
-index 9e26311..cd3d2fc 100644
---- a/arch/m32r/kernel/asm-offsets.c
-+++ b/arch/m32r/kernel/asm-offsets.c
-@@ -1 +1,14 @@
--/* Dummy asm-offsets.c file. Required by kbuild and ready to be used - hint! */
-+#include <linux/thread_info.h>
-+#include <linux/kbuild.h>
-+
-+int foo(void)
-+{
-+	OFFSET(TI_TASK, thread_info, task);
-+	OFFSET(TI_FLAGS, thread_info, flags);
-+	OFFSET(TI_STATUS, thread_info, status);
-+	OFFSET(TI_CPU, thread_info, cpu);
-+	OFFSET(TI_PRE_COUNT, thread_info, preempt_count);
-+	OFFSET(TI_ADDR_LIMIT, thread_info, addr_limit);
-+
-+	return 0;
-+}
-diff --git a/arch/m32r/kernel/entry.S b/arch/m32r/kernel/entry.S
-index 7c3db99..c639bfa 100644
---- a/arch/m32r/kernel/entry.S
-+++ b/arch/m32r/kernel/entry.S
-@@ -65,6 +65,7 @@
- #include <asm/page.h>
- #include <asm/m32r.h>
- #include <asm/mmu_context.h>
-+#include <asm/asm-offsets.h>
+-	regs->gprs[2] = map_signal(sig);
++	regs->gprs[2] = sig;
+ 	regs->gprs[3] = (unsigned long) &frame->sc;
  
- #if !defined(CONFIG_MMU)
- #define sys_madvise		sys_ni_syscall
+ 	/* We forgot to include these in the sigcontext.
+@@ -468,7 +458,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
+ 		(regs->psw.mask & ~PSW_MASK_ASC);
+ 	regs->psw.addr = (unsigned long) ksig->ka.sa.sa_handler | PSW_ADDR_AMODE;
+ 
+-	regs->gprs[2] = map_signal(ksig->sig);
++	regs->gprs[2] = ksig->sig;
+ 	regs->gprs[3] = (unsigned long) &frame->info;
+ 	regs->gprs[4] = (unsigned long) &frame->uc;
+ 	regs->gprs[5] = task_thread_info(current)->last_break;
 -- 
 1.8.4.5
 
