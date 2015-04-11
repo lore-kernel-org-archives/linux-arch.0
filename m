@@ -1,7 +1,7 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 20/24] x86: Remove signal translation and exec_domain
-Date: Sat, 11 Apr 2015 22:47:59 +0200
-Message-ID: <1428785283-20501-21-git-send-email-richard@nod.at>
+Subject: [PATCH 19/24] unicore32: Remove signal translation and exec_domain
+Date: Sat, 11 Apr 2015 22:47:58 +0200
+Message-ID: <1428785283-20501-20-git-send-email-richard@nod.at>
 References: <1428785283-20501-1-git-send-email-richard@nod.at>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1428785283-20501-1-git-send-email-richard@nod.at>
@@ -16,65 +16,68 @@ exec_domain from thread_info.
 
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/x86/include/asm/thread_info.h |  3 ---
- arch/x86/kernel/signal.c           | 16 +---------------
- 2 files changed, 1 insertion(+), 18 deletions(-)
+ arch/unicore32/include/asm/thread_info.h | 3 ---
+ arch/unicore32/kernel/asm-offsets.c      | 1 -
+ arch/unicore32/kernel/signal.c           | 7 -------
+ 3 files changed, 11 deletions(-)
 
-diff --git a/arch/x86/include/asm/thread_info.h b/arch/x86/include/asm/thread_info.h
-index 1d4e4f2..2df52ba 100644
---- a/arch/x86/include/asm/thread_info.h
-+++ b/arch/x86/include/asm/thread_info.h
-@@ -19,13 +19,11 @@
-  */
+diff --git a/arch/unicore32/include/asm/thread_info.h b/arch/unicore32/include/asm/thread_info.h
+index 63e2839..e79ad6d 100644
+--- a/arch/unicore32/include/asm/thread_info.h
++++ b/arch/unicore32/include/asm/thread_info.h
+@@ -24,7 +24,6 @@
  #ifndef __ASSEMBLY__
+ 
  struct task_struct;
 -struct exec_domain;
- #include <asm/processor.h>
- #include <linux/atomic.h>
  
- struct thread_info {
+ #include <asm/types.h>
+ 
+@@ -71,7 +70,6 @@ struct thread_info {
+ 						/* <0 => bug */
+ 	mm_segment_t		addr_limit;	/* address limit */
  	struct task_struct	*task;		/* main task structure */
 -	struct exec_domain	*exec_domain;	/* execution domain */
- 	__u32			flags;		/* low level flags */
- 	__u32			status;		/* thread synchronous flags */
- 	__u32			cpu;		/* current CPU */
-@@ -39,7 +37,6 @@ struct thread_info {
- #define INIT_THREAD_INFO(tsk)			\
- {						\
- 	.task		= &tsk,			\
--	.exec_domain	= &default_exec_domain,	\
- 	.flags		= 0,			\
- 	.cpu		= 0,			\
- 	.saved_preempt_count = INIT_PREEMPT_COUNT,	\
-diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
-index e504246..5ddc7ec 100644
---- a/arch/x86/kernel/signal.c
-+++ b/arch/x86/kernel/signal.c
-@@ -592,24 +592,10 @@ badframe:
- 	return 0;
- }
+ 	__u32			cpu;		/* cpu */
+ 	struct cpu_context_save	cpu_context;	/* cpu context */
+ 	__u32			syscall;	/* syscall number */
+@@ -84,7 +82,6 @@ struct thread_info {
+ #define INIT_THREAD_INFO(tsk)						\
+ {									\
+ 	.task		= &tsk,						\
+-	.exec_domain	= &default_exec_domain,				\
+ 	.flags		= 0,						\
+ 	.preempt_count	= INIT_PREEMPT_COUNT,				\
+ 	.addr_limit	= KERNEL_DS,					\
+diff --git a/arch/unicore32/kernel/asm-offsets.c b/arch/unicore32/kernel/asm-offsets.c
+index ffcbe75..80d50c4 100644
+--- a/arch/unicore32/kernel/asm-offsets.c
++++ b/arch/unicore32/kernel/asm-offsets.c
+@@ -42,7 +42,6 @@ int main(void)
+ 	DEFINE(TI_PREEMPT,	offsetof(struct thread_info, preempt_count));
+ 	DEFINE(TI_ADDR_LIMIT,	offsetof(struct thread_info, addr_limit));
+ 	DEFINE(TI_TASK,		offsetof(struct thread_info, task));
+-	DEFINE(TI_EXEC_DOMAIN,	offsetof(struct thread_info, exec_domain));
+ 	DEFINE(TI_CPU,		offsetof(struct thread_info, cpu));
+ 	DEFINE(TI_CPU_SAVE,	offsetof(struct thread_info, cpu_context));
+ 	DEFINE(TI_USED_CP,	offsetof(struct thread_info, used_cp));
+diff --git a/arch/unicore32/kernel/signal.c b/arch/unicore32/kernel/signal.c
+index d329f85..4ae51cf 100644
+--- a/arch/unicore32/kernel/signal.c
++++ b/arch/unicore32/kernel/signal.c
+@@ -330,13 +330,6 @@ static void handle_signal(struct ksignal *ksig, struct pt_regs *regs,
+ 	}
  
--/*
-- * OK, we're invoking a handler:
-- */
--static int signr_convert(int sig)
--{
--#ifdef CONFIG_X86_32
--	struct thread_info *info = current_thread_info();
+ 	/*
+-	 * translate the signal
+-	 */
+-	if (usig < 32 && thread->exec_domain
+-			&& thread->exec_domain->signal_invmap)
+-		usig = thread->exec_domain->signal_invmap[usig];
 -
--	if (info->exec_domain && info->exec_domain->signal_invmap && sig < 32)
--		return info->exec_domain->signal_invmap[sig];
--#endif /* CONFIG_X86_32 */
--	return sig;
--}
--
- static int
- setup_rt_frame(struct ksignal *ksig, struct pt_regs *regs)
- {
--	int usig = signr_convert(ksig->sig);
-+	int usig = ksig->sig;
- 	sigset_t *set = sigmask_to_save();
- 	compat_sigset_t *cset = (compat_sigset_t *) set;
- 
+-	/*
+ 	 * Set up the stack frame
+ 	 */
+ 	if (ksig->ka.sa.sa_flags & SA_SIGINFO)
 -- 
 1.8.4.5
