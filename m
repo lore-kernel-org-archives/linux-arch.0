@@ -1,33 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f170.google.com ([209.85.213.170]:34307 "EHLO
-	mail-ig0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756142AbbDKUwW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 11 Apr 2015 16:52:22 -0400
-MIME-Version: 1.0
+Received: from mail.sigma-star.at ([95.130.255.111]:14387 "EHLO
+	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755490AbbDKU5O (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 11 Apr 2015 16:57:14 -0400
+From: Richard Weinberger <richard@nod.at>
+Subject: [PATCH 18/24] um: Remove signal translation and exec_domain
+Date: Sat, 11 Apr 2015 22:47:57 +0200
+Message-ID: <1428785283-20501-19-git-send-email-richard@nod.at>
 In-Reply-To: <1428785283-20501-1-git-send-email-richard@nod.at>
 References: <1428785283-20501-1-git-send-email-richard@nod.at>
-Date: Sat, 11 Apr 2015 13:52:21 -0700
-Message-ID: <CA+55aFyXWGUYg7W5xZzh-3BT+NuCib-s5t_Ho3YTh3+QK26jSA@mail.gmail.com>
-Subject: Re: Remove execution domain support
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, hskinnemoen@gmail.com, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Miao Steven <realmz6@gmail.com>, Mark Salter <msalter@redhat.com>, "JACQUIOT-XID, Aurelien" <a-jacquiot@ti.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, yasutake.koichi@jp.panasonic.com, Ley Foon Tan <lftan@altera.com>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, liqin.linux@gmail.com, Lennox Wu <lennox.wu@gmail.com>, David Miller <davem@davemloft.net>, cmetcalf@ezchip.com, Jeff Dike <jdike@addtoit.com>, Andrew Morton <akpm@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, Christoph Hellwig <hch@infradead.org>, Al Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20150411205221._KlRj8YBslRDqg_m1cjbfEWW80jr2I_3cR3_6CRqw5k@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@arm.linux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, yasutake.koichi@jp.panasonic.com, lftan@altera.com, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, davem@davemloft.net, cmetcalf@ezchip.com, jdike@addtoit.com, akpm@linux-foundation.org, oleg@redhat.com, hch@infradead.org, viro@zeniv.linux.org.uk, torvalds@linux-foundation.org, Richard Weinberger <richard@nod.at>
+Message-ID: <20150411204757.mjrmOH_GqnqyeOrmmhXd_7xKRHZW4NwgYQl4ucAYTio@z>
 
-On Sat, Apr 11, 2015 at 1:47 PM, Richard Weinberger <richard@nod.at> wrote:
->
-> The removal will make architecutre specific signal handling easier
-> and there is no need to keep execuction domains as this feature is
-> obviously incomplete and abandoned
+As execution domain support is gone we can remove
+signal translation from the signal code and remove
+exec_domain from thread_info.
 
-Ack. The whole exec domain made some code code pretty inscrutable.
+Signed-off-by: Richard Weinberger <richard@nod.at>
+---
+ arch/um/include/asm/thread_info.h | 2 --
+ arch/x86/um/signal.c              | 7 -------
+ 2 files changed, 9 deletions(-)
 
-So I'd certainly be willing to pull this during the 4.1 merge window
-if nobody complains.
+diff --git a/arch/um/include/asm/thread_info.h b/arch/um/include/asm/thread_info.h
+index e04114c..b30c85b 100644
+--- a/arch/um/include/asm/thread_info.h
++++ b/arch/um/include/asm/thread_info.h
+@@ -14,7 +14,6 @@
+ 
+ struct thread_info {
+ 	struct task_struct	*task;		/* main task structure */
+-	struct exec_domain	*exec_domain;	/* execution domain */
+ 	unsigned long		flags;		/* low level flags */
+ 	__u32			cpu;		/* current CPU */
+ 	int			preempt_count;  /* 0 => preemptable,
+@@ -28,7 +27,6 @@ struct thread_info {
+ #define INIT_THREAD_INFO(tsk)			\
+ {						\
+ 	.task =		&tsk,			\
+-	.exec_domain =	&default_exec_domain,	\
+ 	.flags =		0,		\
+ 	.cpu =		0,			\
+ 	.preempt_count = INIT_PREEMPT_COUNT,	\
+diff --git a/arch/x86/um/signal.c b/arch/x86/um/signal.c
+index 0c8c32b..592491d 100644
+--- a/arch/x86/um/signal.c
++++ b/arch/x86/um/signal.c
+@@ -549,13 +549,6 @@ int setup_signal_stack_si(unsigned long stack_top, struct ksignal *ksig,
+ 	if (err)
+ 		return err;
+ 
+-	/* Set up registers for signal handler */
+-	{
+-		struct exec_domain *ed = current_thread_info()->exec_domain;
+-		if (unlikely(ed && ed->signal_invmap && sig < 32))
+-			sig = ed->signal_invmap[sig];
+-	}
+-
+ 	PT_REGS_SP(regs) = (unsigned long) frame;
+ 	PT_REGS_DI(regs) = sig;
+ 	/* In case the signal handler was declared without prototypes */
+-- 
+1.8.4.5
 
-Anybody?
-
-                        Linus
