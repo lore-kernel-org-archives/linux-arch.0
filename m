@@ -1,191 +1,71 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 03/24] Remove execution domain support
-Date: Sat, 11 Apr 2015 22:47:42 +0200
-Message-ID: <1428785283-20501-4-git-send-email-richard@nod.at>
-References: <1428785283-20501-1-git-send-email-richard@nod.at>
+Subject: Remove execution domain support
+Date: Sat, 11 Apr 2015 22:47:39 +0200
+Message-ID: <1428785283-20501-1-git-send-email-richard@nod.at>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1428785283-20501-1-git-send-email-richard@nod.at>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@arm.linux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, yasutake.koichi@jp.panasonic.com, lftan@altera.com, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, davem@davemloft.net, cmetcalf@ezchip.com, jdike@addtoit.com, akpm@linux-foundation.org, oleg@redhat.com, hch@inf
 List-Id: linux-arch.vger.kernel.org
 
-All users of exec_domain are gone, now we can get rid
-of that abandoned feature.
-To not break existing userspace we keep a dummy
-/proc/execdomains file which will always contain
-"0-0     Linux                   [kernel]".
+A long time ago there was the idea to support different ABIs on Linux
+Such that someone could use for example SCO UNIX binaries on Linux
+without emulation. While the linux-abi project existed mostly as
+out-of-tree patch it's core component, execution domains,
+went mainline. An execution domain allows to specify mappings between
+different ABIs, these mappings consist of signal, error, socket type,
+socket options and addess familiy mappings.
+Mainline has only support for signal mappings.
+The signal mapping happens in the architecutre specific signal code.
+Some archs support it, some not, most of them copy&pasted from i386.
 
-Signed-off-by: Richard Weinberger <richard@nod.at>
----
- kernel/exec_domain.c | 100 +--------------------------------------------------
- kernel/exit.c        |   2 --
- kernel/fork.c        |   4 ---
- 3 files changed, 1 insertion(+), 105 deletions(-)
+While the mapping support is incomplete we have two in-kernel users of
+execution domains.
 
-diff --git a/kernel/exec_domain.c b/kernel/exec_domain.c
-index 83d4382..b2fb57d 100644
---- a/kernel/exec_domain.c
-+++ b/kernel/exec_domain.c
-@@ -20,13 +20,7 @@
- #include <linux/types.h>
- #include <linux/fs_struct.h>
- 
--
- static void default_handler(int, struct pt_regs *);
--
--static struct exec_domain *exec_domains = &default_exec_domain;
--static DEFINE_RWLOCK(exec_domains_lock);
--
--
- static unsigned long ident_map[32] = {
- 	0,	1,	2,	3,	4,	5,	6,	7,
- 	8,	9,	10,	11,	12,	13,	14,	15,
-@@ -55,94 +49,9 @@ default_handler(int segment, struct pt_regs *regp)
- 		send_sig(SIGSEGV, current, 1);
- }
- 
--static struct exec_domain *
--lookup_exec_domain(unsigned int personality)
--{
--	unsigned int pers = personality(personality);
--	struct exec_domain *ep;
--
--	read_lock(&exec_domains_lock);
--	for (ep = exec_domains; ep; ep = ep->next) {
--		if (pers >= ep->pers_low && pers <= ep->pers_high)
--			if (try_module_get(ep->module))
--				goto out;
--	}
--
--#ifdef CONFIG_MODULES
--	read_unlock(&exec_domains_lock);
--	request_module("personality-%d", pers);
--	read_lock(&exec_domains_lock);
--
--	for (ep = exec_domains; ep; ep = ep->next) {
--		if (pers >= ep->pers_low && pers <= ep->pers_high)
--			if (try_module_get(ep->module))
--				goto out;
--	}
--#endif
--
--	ep = &default_exec_domain;
--out:
--	read_unlock(&exec_domains_lock);
--	return ep;
--}
--
--int
--register_exec_domain(struct exec_domain *ep)
--{
--	struct exec_domain	*tmp;
--	int			err = -EBUSY;
--
--	if (ep == NULL)
--		return -EINVAL;
--
--	if (ep->next != NULL)
--		return -EBUSY;
--
--	write_lock(&exec_domains_lock);
--	for (tmp = exec_domains; tmp; tmp = tmp->next) {
--		if (tmp == ep)
--			goto out;
--	}
--
--	ep->next = exec_domains;
--	exec_domains = ep;
--	err = 0;
--
--out:
--	write_unlock(&exec_domains_lock);
--	return err;
--}
--EXPORT_SYMBOL(register_exec_domain);
--
--int
--unregister_exec_domain(struct exec_domain *ep)
--{
--	struct exec_domain	**epp;
--
--	epp = &exec_domains;
--	write_lock(&exec_domains_lock);
--	for (epp = &exec_domains; *epp; epp = &(*epp)->next) {
--		if (ep == *epp)
--			goto unregister;
--	}
--	write_unlock(&exec_domains_lock);
--	return -EINVAL;
--
--unregister:
--	*epp = ep->next;
--	ep->next = NULL;
--	write_unlock(&exec_domains_lock);
--	return 0;
--}
--EXPORT_SYMBOL(unregister_exec_domain);
--
- int __set_personality(unsigned int personality)
- {
--	struct exec_domain *oep = current_thread_info()->exec_domain;
--
--	current_thread_info()->exec_domain = lookup_exec_domain(personality);
- 	current->personality = personality;
--	module_put(oep->module);
- 
- 	return 0;
- }
-@@ -151,14 +60,7 @@ EXPORT_SYMBOL(__set_personality);
- #ifdef CONFIG_PROC_FS
- static int execdomains_proc_show(struct seq_file *m, void *v)
- {
--	struct exec_domain	*ep;
--
--	read_lock(&exec_domains_lock);
--	for (ep = exec_domains; ep; ep = ep->next)
--		seq_printf(m, "%d-%d\t%-16s\t[%s]\n",
--			       ep->pers_low, ep->pers_high, ep->name,
--			       module_name(ep->module));
--	read_unlock(&exec_domains_lock);
-+	seq_puts(m, "0-0\tLinux           \t[kernel]\n");
- 	return 0;
- }
- 
-diff --git a/kernel/exit.c b/kernel/exit.c
-index feff10b..22fcc05 100644
---- a/kernel/exit.c
-+++ b/kernel/exit.c
-@@ -756,8 +756,6 @@ void do_exit(long code)
- 
- 	cgroup_exit(tsk);
- 
--	module_put(task_thread_info(tsk)->exec_domain->module);
--
- 	/*
- 	 * FIXME: do that only when needed, using sched_exit tracepoint
- 	 */
-diff --git a/kernel/fork.c b/kernel/fork.c
-index cf65139..f2c1e73 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -1279,9 +1279,6 @@ static struct task_struct *copy_process(unsigned long clone_flags,
- 	if (nr_threads >= max_threads)
- 		goto bad_fork_cleanup_count;
- 
--	if (!try_module_get(task_thread_info(p)->exec_domain->module))
--		goto bad_fork_cleanup_count;
--
- 	delayacct_tsk_init(p);	/* Must remain after dup_task_struct() */
- 	p->flags &= ~(PF_SUPERPRIV | PF_WQ_WORKER);
- 	p->flags |= PF_FORKNOEXEC;
-@@ -1590,7 +1587,6 @@ bad_fork_cleanup_threadgroup_lock:
- 	if (clone_flags & CLONE_THREAD)
- 		threadgroup_change_end(current);
- 	delayacct_tsk_free(p);
--	module_put(task_thread_info(p)->exec_domain->module);
- bad_fork_cleanup_count:
- 	atomic_dec(&p->cred->user->processes);
- 	exit_creds(p);
--- 
-1.8.4.5
+1. RISC OS personality on ARM.
+The Kconfig help message states that this feature is very experimental
+and it is likely that it never worked as expected.
+Russel is fine with the removal.
+
+2. ia32 support on ia64.
+This is a left over from:
+commit 32974ad4907cdde6c9de612cd1b2ee0568fb9409 ([IA64] Remove COMPAT_IA32 support)
+It registers a dummy Linux/x86 execdomain to make calls to
+personality(PER_LINUX32) faster as the execution domain core code
+would try to load a module.
+
+As both users can be removed there is no user left and we can remove
+execution domains support at all from the kernel.
+The removal will make architecutre specific signal handling easier
+and there is no need to keep execuction domains as this feature is
+obviously incomplete and abandoned.
+
+[PATCH 01/24] arm: Remove RISC OS personality
+[PATCH 02/24] ia64: Remove Linux/x86 exec domain support
+[PATCH 03/24] Remove execution domain support
+[PATCH 04/24] arm: Remove signal translation and exec_domain
+[PATCH 05/24] arm64: Remove signal translation and exec_domain
+[PATCH 06/24] blackfin: Autogenerate offsets in struct thread_info
+[PATCH 07/24] blackfin: Remove exec_domain usage
+[PATCH 08/24] frv: Remove signal translation and exec_domain
+[PATCH 09/24] m32r: Autogenerate offsets in struct thread_info
+[PATCH 10/24] m32r: Remove signal translation and exec_domain
+[PATCH 11/24] m68k: Remove signal translation and exec_domain
+[PATCH 12/24] microblaze: Remove signal translation and exec_domain
+[PATCH 13/24] mn10300: Remove signal translation and exec_domain
+[PATCH 14/24] s390: Remove signal translation and exec_domain
+[PATCH 15/24] sh: Remove signal translation and exec_domain
+[PATCH 16/24] sparc: Remove signal translation and exec_domain
+[PATCH 17/24] tile: Remove signal translation and exec_domain
+[PATCH 18/24] um: Remove signal translation and exec_domain
+[PATCH 19/24] unicore32: Remove signal translation and exec_domain
+[PATCH 20/24] x86: Remove signal translation and exec_domain
+[PATCH 21/24] xtensa: Remove signal translation and exec_domain
+[PATCH 22/24] arc: Remove signal translation and exec_domain
+[PATCH 23/24] arch: Remove exec_domain from remaining archs
+[PATCH 24/24] Remove rest of exec domains.
+
+git://git.kernel.org/pub/scm/linux/kernel/git/rw/misc.git exec_domain_rip_v1
+
+Thanks,
+//richard
