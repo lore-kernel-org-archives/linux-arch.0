@@ -1,45 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3425.houston.hp.com ([15.201.208.53]:25990 "EHLO
-	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751409AbbDIVwp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Apr 2015 17:52:45 -0400
-Message-ID: <5526F4A2.7040604@hp.com>
-Date: Thu, 09 Apr 2015 17:52:34 -0400
-From: Waiman Long <waiman.long@hp.com>
+Received: from mail-ig0-f170.google.com ([209.85.213.170]:34307 "EHLO
+	mail-ig0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756142AbbDKUwW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 11 Apr 2015 16:52:22 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH v15 16/16] unfair qspinlock: a queue based unfair lock
-References: <1428517939-27968-1-git-send-email-Waiman.Long@hp.com> <20150409070146.GL27490@worktop.programming.kicks-ass.net> <55267BA8.9060009@redhat.com> <20150409141348.GX5029@twins.programming.kicks-ass.net>
-In-Reply-To: <20150409141348.GX5029@twins.programming.kicks-ass.net>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <1428785283-20501-1-git-send-email-richard@nod.at>
+References: <1428785283-20501-1-git-send-email-richard@nod.at>
+Date: Sat, 11 Apr 2015 13:52:21 -0700
+Message-ID: <CA+55aFyXWGUYg7W5xZzh-3BT+NuCib-s5t_Ho3YTh3+QK26jSA@mail.gmail.com>
+Subject: Re: Remove execution domain support
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Rik van Riel <riel@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Daniel J Blueman <daniel@numascale.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
-Message-ID: <20150409215234.LC_x7hMisypDcW2wWA5_cHeZryvk8OP_CtDEUAiVLMk@z>
+To: Richard Weinberger <richard@nod.at>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, hskinnemoen@gmail.com, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Miao Steven <realmz6@gmail.com>, Mark Salter <msalter@redhat.com>, "JACQUIOT-XID, Aurelien" <a-jacquiot@ti.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, yasutake.koichi@jp.panasonic.com, Ley Foon Tan <lftan@altera.com>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, liqin.linux@gmail.com, Lennox Wu <lennox.wu@gmail.com>, David Miller <davem@davemloft.net>, cmetcalf@ezchip.com, Jeff Dike <jdike@addtoit.com>, Andrew Morton <akpm@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, Christoph Hellwig <hch@infradead.org>, Al Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20150411205221._KlRj8YBslRDqg_m1cjbfEWW80jr2I_3cR3_6CRqw5k@z>
 
-On 04/09/2015 10:13 AM, Peter Zijlstra wrote:
-> On Thu, Apr 09, 2015 at 09:16:24AM -0400, Rik van Riel wrote:
->> On 04/09/2015 03:01 AM, Peter Zijlstra wrote:
->>> On Wed, Apr 08, 2015 at 02:32:19PM -0400, Waiman Long wrote:
->>>> For a virtual guest with the qspinlock patch, a simple unfair byte lock
->>>> will be used if PV spinlock is not configured in or the hypervisor
->>>> isn't either KVM or Xen. The byte lock works fine with small guest
->>>> of just a few vCPUs. On a much larger guest, however, byte lock can
->>>> have serious performance problem.
->>> Who cares?
->> There are some people out there running guests with dozens
->> of vCPUs. If the code exists to make those setups run better,
->> is there a good reason not to use it?
-> Well use paravirt, !paravirt stuff sucks performance wise anyhow.
+On Sat, Apr 11, 2015 at 1:47 PM, Richard Weinberger <richard@nod.at> wrote:
 >
-> The question really is: is the added complexity worth the maintenance
-> burden. And I'm just not convinced !paravirt virt is a performance
-> critical target.
+> The removal will make architecutre specific signal handling easier
+> and there is no need to keep execuction domains as this feature is
+> obviously incomplete and abandoned
 
-I am just thinking that the unfair qspinlock is better performing than 
-the simple byte lock. However, my current priority is to get native and 
-PV qspinlock upstream. The unfair qspinlock can certainly wait.
+Ack. The whole exec domain made some code code pretty inscrutable.
 
-Cheers,
-Longman
+So I'd certainly be willing to pull this during the 4.1 merge window
+if nobody complains.
+
+Anybody?
+
+                        Linus
