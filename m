@@ -1,82 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.sigma-star.at ([95.130.255.111]:14385 "EHLO
-	mail.sigma-star.at" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932908AbbDKVCP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 11 Apr 2015 17:02:15 -0400
-From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 11/24] m68k: Remove signal translation and exec_domain
-Date: Sat, 11 Apr 2015 22:47:50 +0200
-Message-ID: <1428785283-20501-12-git-send-email-richard@nod.at>
-In-Reply-To: <1428785283-20501-1-git-send-email-richard@nod.at>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:37670 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755438AbbDKVEn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 11 Apr 2015 17:04:43 -0400
+Date: Sat, 11 Apr 2015 22:04:14 +0100
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: Remove execution domain support
+Message-ID: <20150411210413.GI889@ZenIV.linux.org.uk>
 References: <1428785283-20501-1-git-send-email-richard@nod.at>
+ <CA+55aFyXWGUYg7W5xZzh-3BT+NuCib-s5t_Ho3YTh3+QK26jSA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CA+55aFyXWGUYg7W5xZzh-3BT+NuCib-s5t_Ho3YTh3+QK26jSA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@arm.linux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, yasutake.koichi@jp.panasonic.com, lftan@altera.com, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, davem@davemloft.net, cmetcalf@ezchip.com, jdike@addtoit.com, akpm@linux-foundation.org, oleg@redhat.com, hch@infradead.org, viro@zeniv.linux.org.uk, torvalds@linux-foundation.org, Richard Weinberger <richard@nod.at>
-Message-ID: <20150411204750.IzaZKJYjQjKyeBm440eesLi79CVG4lOGCDj3-gkAkic@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Richard Weinberger <richard@nod.at>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, hskinnemoen@gmail.com, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Miao Steven <realmz6@gmail.com>, Mark Salter <msalter@redhat.com>, "JACQUIOT-XID, Aurelien" <a-jacquiot@ti.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, yasutake.koichi@jp.panasonic.com, Ley Foon Tan <lftan@altera.com>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, liqin.linux@gmail.com, Lennox Wu <lennox.wu@gmail.com>, David Miller <davem@davemloft.net>, cmetcalf@ezchip.com, Jeff Dike <jdike@addtoit.com>, Andrew Morton <akpm@linux-foundation.org>, Oleg Nesterov <oleg@redhat.com>, Christoph Hellwig <hch@infradead.org>
+Message-ID: <20150411210414.GGUuW0R7M00e-N5pxfZ2PJeGY973I8kL5tOhJT3DJPg@z>
 
-As execution domain support is gone we can remove
-signal translation from the signal code and remove
-exec_domain from thread_info.
+On Sat, Apr 11, 2015 at 01:52:21PM -0700, Linus Torvalds wrote:
+> On Sat, Apr 11, 2015 at 1:47 PM, Richard Weinberger <richard@nod.at> wrote:
+> >
+> > The removal will make architecutre specific signal handling easier
+> > and there is no need to keep execuction domains as this feature is
+> > obviously incomplete and abandoned
+> 
+> Ack. The whole exec domain made some code code pretty inscrutable.
+> 
+> So I'd certainly be willing to pull this during the 4.1 merge window
+> if nobody complains.
+> 
+> Anybody?
 
-Signed-off-by: Richard Weinberger <richard@nod.at>
----
- arch/m68k/include/asm/thread_info.h |  2 --
- arch/m68k/kernel/signal.c           | 14 ++------------
- 2 files changed, 2 insertions(+), 14 deletions(-)
+IIRC, only two places really used that thing - iBCS2 shite and RISCOS
+compat one.  The former isnot in the tree at all, and I've no idea
+how many users does the latter one have.  Probably not many, judging by this:
+config ARTHUR
+        tristate "RISC OS personality"
+        depends on !AEABI
+        help
+          Say Y here to include the kernel code necessary if you want to run
+          Acorn RISC OS/Arthur binaries under Linux. This code is still very
+          experimental; if this sounds frightening, say N and sleep in peace.
+          You can also say M here to compile this support as a module (which
+          will be called arthur).
 
-diff --git a/arch/m68k/include/asm/thread_info.h b/arch/m68k/include/asm/thread_info.h
-index c54256e..cee13c2 100644
---- a/arch/m68k/include/asm/thread_info.h
-+++ b/arch/m68k/include/asm/thread_info.h
-@@ -26,7 +26,6 @@
- struct thread_info {
- 	struct task_struct	*task;		/* main task structure */
- 	unsigned long		flags;
--	struct exec_domain	*exec_domain;	/* execution domain */
- 	mm_segment_t		addr_limit;	/* thread address space */
- 	int			preempt_count;	/* 0 => preemptable, <0 => BUG */
- 	__u32			cpu;		/* should always be 0 on m68k */
-@@ -37,7 +36,6 @@ struct thread_info {
- #define INIT_THREAD_INFO(tsk)			\
- {						\
- 	.task		= &tsk,			\
--	.exec_domain	= &default_exec_domain,	\
- 	.addr_limit	= KERNEL_DS,		\
- 	.preempt_count	= INIT_PREEMPT_COUNT,	\
- }
-diff --git a/arch/m68k/kernel/signal.c b/arch/m68k/kernel/signal.c
-index d717928..af1c4f3 100644
---- a/arch/m68k/kernel/signal.c
-+++ b/arch/m68k/kernel/signal.c
-@@ -863,12 +863,7 @@ static int setup_frame(struct ksignal *ksig, sigset_t *set,
- 	if (fsize)
- 		err |= copy_to_user (frame + 1, regs + 1, fsize);
- 
--	err |= __put_user((current_thread_info()->exec_domain
--			   && current_thread_info()->exec_domain->signal_invmap
--			   && sig < 32
--			   ? current_thread_info()->exec_domain->signal_invmap[sig]
--			   : sig),
--			  &frame->sig);
-+	err |= __put_user(sig, &frame->sig);
- 
- 	err |= __put_user(regs->vector, &frame->code);
- 	err |= __put_user(&frame->sc, &frame->psc);
-@@ -948,12 +943,7 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
- 	if (fsize)
- 		err |= copy_to_user (&frame->uc.uc_extra, regs + 1, fsize);
- 
--	err |= __put_user((current_thread_info()->exec_domain
--			   && current_thread_info()->exec_domain->signal_invmap
--			   && sig < 32
--			   ? current_thread_info()->exec_domain->signal_invmap[sig]
--			   : sig),
--			  &frame->sig);
-+	err |= __put_user(sig, &frame->sig);
- 	err |= __put_user(&frame->info, &frame->pinfo);
- 	err |= __put_user(&frame->uc, &frame->puc);
- 	err |= copy_siginfo_to_user(&frame->info, &ksig->info);
--- 
-1.8.4.5
-
+rmk might have a better idea of whether anyone gives a damn...
