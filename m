@@ -1,34 +1,41 @@
-From: Richard Weinberger <richard@nod.at>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: Remove execution domain support v2
-Date: Sun, 12 Apr 2015 23:17:06 +0200
-Message-ID: <552AE0D2.8070406@nod.at>
-References: <1428785283-20501-1-git-send-email-richard@nod.at>	<552ADC1D.5050206@nod.at> <20150413071312.5279b56e@canb.auug.org.au>
+Date: Sun, 12 Apr 2015 14:56:16 -0700
+Message-ID: <CA+55aFwx8AC-xF3BXTdb_hVYE8Twn0jJfskxLCnvvGkAYc37Tw@mail.gmail.com>
+References: <1428785283-20501-1-git-send-email-richard@nod.at>
+	<552ADC1D.5050206@nod.at>
+	<20150413071312.5279b56e@canb.auug.org.au>
+	<552AE0D2.8070406@nod.at>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:65275 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752053AbbDLVRR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 12 Apr 2015 17:17:17 -0400
-In-Reply-To: <20150413071312.5279b56e@canb.auug.org.au>
+Received: from mail-ig0-f181.google.com ([209.85.213.181]:35633 "EHLO
+	mail-ig0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751776AbbDLV4R (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 12 Apr 2015 17:56:17 -0400
+In-Reply-To: <552AE0D2.8070406@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@arm.linux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, lftan@altera.com, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, davem@davemloft.net, cmetcalf@ezchip.com, jdike@addtoit.com, akpm@linux-foundation.org, oleg@redhat.com, hch@infradead
+To: Richard Weinberger <richard@nod.at>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, =?UTF-8?Q?H=C3=A5vard_Skinnemoen?= <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Miao Steven <realmz6@gmail.com>, Mark Salter <msalter@redhat.com>, "JACQUIOT-XID, Aurelien" <a-jacquiot@ti.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
 
-Stephen,
-
-Am 12.04.2015 um 23:13 schrieb Stephen Rothwell:
-> Hi Richard,
-> 
-> On Sun, 12 Apr 2015 22:57:01 +0200 Richard Weinberger <richard@nod.at> wrote:
+On Sun, Apr 12, 2015 at 2:17 PM, Richard Weinberger <richard@nod.at> wrote:
 >>
->> Stephen, can you please add the tree to -next?
-> 
-> Added from today.  I'll remove it after Linus merges it, OK?
+>> On Sun, 12 Apr 2015 22:57:01 +0200 Richard Weinberger <richard@nod.at> wrote:
+>>>
+>>> Stephen, can you please add the tree to -next?
+>>
+>> Added from today.  I'll remove it after Linus merges it, OK?
+>
+> sure.
 
-sure.
+Richard, I'll do 4.0 today and start merging, but since this is going
+into -next, let's wait a few days to verify that there are no issues,
+and then please send me a "final" pull request mid next weeks or so.
 
-Thanks,
-//richard
+Otherwise I'll probably forget in the chaos that is the early merge
+window for me.
+
+Ok?
+
+                          Linus
