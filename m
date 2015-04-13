@@ -1,125 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g2t2354.austin.hp.com ([15.217.128.53]:56863 "EHLO
-	g2t2354.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932961AbbDMPvl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Apr 2015 11:51:41 -0400
-Message-ID: <552BE608.7000901@hp.com>
-Date: Mon, 13 Apr 2015 11:51:36 -0400
-From: Waiman Long <waiman.long@hp.com>
+Received: from cassarossa.samfundet.no ([193.35.52.29]:43644 "EHLO
+	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932219AbbDMQ6O (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Apr 2015 12:58:14 -0400
+Date: Mon, 13 Apr 2015 18:57:33 +0200
+From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Subject: Re: [PATCH 23/24] arch: Remove exec_domain from remaining archs
+Message-ID: <20150413165733.GE2040@samfundet.no>
+References: <1428785283-20501-1-git-send-email-richard@nod.at>
+ <1428785283-20501-24-git-send-email-richard@nod.at>
 MIME-Version: 1.0
-Subject: Re: [PATCH v15 09/15] pvqspinlock: Implement simple paravirt support
- for the qspinlock
-References: <1428375350-9213-1-git-send-email-Waiman.Long@hp.com> <1428375350-9213-10-git-send-email-Waiman.Long@hp.com> <20150409181327.GY5029@twins.programming.kicks-ass.net> <5526F218.2070909@hp.com> <20150413150832.GH5029@twins.programming.kicks-ass.net>
-In-Reply-To: <20150413150832.GH5029@twins.programming.kicks-ass.net>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1428785283-20501-24-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Daniel J Blueman <daniel@numascale.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
-Message-ID: <20150413155136.AggeSRc2JAS8TofkHhISFogd25ZVT1yz8v3ldinqHgs@z>
+To: Richard Weinberger <richard@nod.at>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@arm.linux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, yasutake.koichi@jp.panasonic.com, lftan@altera.com, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, davem@davemloft.net, cmetcalf@ezchip.com, jdike@addtoit.com, akpm@linux-foundation.org, oleg@redhat.com, hch@infradead.org, viro@zeniv.linux.org.uk, torvalds@linux-foundation.org
+Message-ID: <20150413165733.gE-PmqFKUFrx3sVpb6RyEo8h0Pp7DTI2p_fiJm6aTpo@z>
 
-On 04/13/2015 11:08 AM, Peter Zijlstra wrote:
-> On Thu, Apr 09, 2015 at 05:41:44PM -0400, Waiman Long wrote:
->
->>>> +static void pv_wait_head(struct qspinlock *lock, struct mcs_spinlock *node)
->>>> +{
->>>> +	struct __qspinlock *l = (void *)lock;
->>>> +	struct qspinlock **lp = NULL;
->>>> +	struct pv_node *pn = (struct pv_node *)node;
->>>> +	int slow_set = false;
->>>> +	int loop;
->>>> +
->>>> +	for (;;) {
->>>> +		for (loop = SPIN_THRESHOLD; loop; loop--) {
->>>> +			if (!READ_ONCE(l->locked))
->>>> +				return;
->>>> +
->>>> +			cpu_relax();
->>>> +		}
->>>> +
->>>> +		WRITE_ONCE(pn->state, vcpu_halted);
->>>> +		if (!lp)
->>>> +			lp = pv_hash(lock, pn);
->>>> +		/*
->>>> +		 * lp must be set before setting _Q_SLOW_VAL
->>>> +		 *
->>>> +		 * [S] lp = lock                [RmW] l = l->locked = 0
->>>> +		 *     MB                             MB
->>>> +		 * [S] l->locked = _Q_SLOW_VAL  [L]   lp
->>>> +		 *
->>>> +		 * Matches the cmpxchg() in pv_queue_spin_unlock().
->>>> +		 */
->>>> +		if (!slow_set&&
->>>> +		    !cmpxchg(&l->locked, _Q_LOCKED_VAL, _Q_SLOW_VAL)) {
->>>> +			/*
->>>> +			 * The lock is free and _Q_SLOW_VAL has never been
->>>> +			 * set. Need to clear the hash bucket before getting
->>>> +			 * the lock.
->>>> +			 */
->>>> +			WRITE_ONCE(*lp, NULL);
->>>> +			return;
->>>> +		} else if (slow_set&&   !READ_ONCE(l->locked))
->>>> +			return;
->>>> +		slow_set = true;
->>> I'm somewhat puzzled by the slow_set thing; what is wrong with the thing
->>> I had, namely:
->>>
->>> 		if (!lp) {
->>> 			lp = pv_hash(lock, pn);
->>>
->>> 			/*
->>> 			 * comment
->>> 			 */
->>> 			lv = cmpxchg(&l->locked, _Q_LOCKED_VAL, _Q_SLOW_VAL);
->>> 			if (lv != _Q_LOCKED_VAL) {
->>> 				/* we're woken, unhash and return */
->>> 				WRITE_ONCE(*lp, NULL);
->>> 				return;
->>> 			}
->>> 		}
->>>> +
->>>> +		pv_wait(&l->locked, _Q_SLOW_VAL);
->>> If we get a spurious wakeup (due to device interrupts or random kick)
->>> we'll loop around but ->locked will remain _Q_SLOW_VAL.
->> The purpose of the slow_set flag is not about the lock value. It is to make
->> sure that pv_hash_find() will always find a match. Consider the following
->> scenario:
->>
->> cpu1            cpu2                    cpu3
->> ----            ----                    ----
->> pv_wait
->> spurious wakeup
->> loop l->locked
->>
->>                  read _Q_SLOW_VAL
->>                  pv_hash_find()
->>                  unlock
->>
->>                                          pv_hash()<- same entry
->>
->> cmpxchg(&l->locked)
->> clear hash (?)
->>
->> Here, the entry for cpu3 will be removed leading to panic when
->> pv_hash_find() can find the entry. So the hash entry can only be
->> removed if the other cpu has no chance to see _Q_SLOW_VAL.
-> Still confused. Afaict that cannot happen with my code. We only do the
-> cmpxchg(, _Q_SLOW_VAL) _once_.
->
-> Only on the first time around that loop will we hash the lock and set
-> the slow flag. And cpu3 cannot come in on the same entry because we've
-> not yet released the lock when we find and unhash.
->
->
+Around Sat 11 Apr 2015 22:48:02 +0200 or thereabout, Richard Weinberger wrote:
+> Signed-off-by: Richard Weinberger <richard@nod.at>
+> ---
+>  arch/alpha/include/asm/thread_info.h    | 2 --
+>  arch/avr32/include/asm/thread_info.h    | 3 ---
+>  arch/avr32/kernel/asm-offsets.c         | 1 -
 
-Maybe I am not clear in my illustration. More than one locks can be 
-hashed to the same value. So cpu3 is accessing a different lock which 
-has the same hashed value as the lock used by cpu1 and cpu2.
+For the AVR32 related bits.
 
-Anyway, I remove the slow_set flag by unrolling the retry loop so that 
-after pv_wait(), it goes into the 2nd loop instead of going back to the 
-top. As a result, cmpxchg and pv_hash can only be called once.
+Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
 
-Cheers,
-Longman
+>  arch/c6x/include/asm/thread_info.h      | 2 --
+>  arch/cris/arch-v10/kernel/signal.c      | 2 --
+>  arch/cris/arch-v32/kernel/signal.c      | 2 --
+>  arch/cris/include/asm/thread_info.h     | 2 --
+>  arch/hexagon/include/asm/thread_info.h  | 2 --
+>  arch/ia64/include/asm/thread_info.h     | 2 --
+>  arch/metag/include/asm/thread_info.h    | 2 --
+>  arch/metag/kernel/irq.c                 | 2 --
+>  arch/mips/include/asm/thread_info.h     | 2 --
+>  arch/mips/kernel/asm-offsets.c          | 1 -
+>  arch/nios2/include/asm/thread_info.h    | 2 --
+>  arch/openrisc/include/asm/thread_info.h | 2 --
+>  arch/openrisc/kernel/signal.c           | 2 --
+>  arch/parisc/include/asm/thread_info.h   | 2 --
+>  arch/parisc/kernel/asm-offsets.c        | 1 -
+>  arch/powerpc/include/asm/thread_info.h  | 2 --
+>  arch/score/include/asm/thread_info.h    | 2 --
+>  arch/score/kernel/asm-offsets.c         | 1 -
+>  21 files changed, 39 deletions(-)
+
+<snipp diff>
+
+-- 
+BR, HcE
