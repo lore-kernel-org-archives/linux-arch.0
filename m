@@ -1,64 +1,55 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v15 09/15] pvqspinlock: Implement simple paravirt support
- for the qspinlock
-Date: Mon, 13 Apr 2015 12:19:14 -0400
-Message-ID: <552BEC82.8070809@hp.com>
-References: <1428375350-9213-1-git-send-email-Waiman.Long@hp.com> <1428375350-9213-10-git-send-email-Waiman.Long@hp.com> <20150409181327.GY5029@twins.programming.kicks-ass.net> <5526F218.2070909@hp.com> <20150413150934.GI5029@twins.programming.kicks-ass.net>
+From: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Subject: Re: [PATCH 23/24] arch: Remove exec_domain from remaining archs
+Date: Mon, 13 Apr 2015 18:57:33 +0200
+Message-ID: <20150413165733.GE2040@samfundet.no>
+References: <1428785283-20501-1-git-send-email-richard@nod.at>
+ <1428785283-20501-24-git-send-email-richard@nod.at>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3426.houston.hp.com ([15.201.208.54]:48308 "EHLO
-	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932275AbbDMQTX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Apr 2015 12:19:23 -0400
-In-Reply-To: <20150413150934.GI5029@twins.programming.kicks-ass.net>
+Received: from cassarossa.samfundet.no ([193.35.52.29]:43644 "EHLO
+	cassarossa.samfundet.no" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932219AbbDMQ6O (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Apr 2015 12:58:14 -0400
+Content-Disposition: inline
+In-Reply-To: <1428785283-20501-24-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Daniel J Blueman <daniel@numascale.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+To: Richard Weinberger <richard@nod.at>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, rth@twiddle.net, ink@jurassic.park.msu.ru, mattst88@gmail.com, vgupta@synopsys.com, linux@arm.linux.org.uk, catalin.marinas@arm.com, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, msalter@redhat.com, a-jacquiot@ti.com, starvik@axis.com, jesper.nilsson@axis.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, fenghua.yu@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, monstr@monstr.eu, ralf@linux-mips.org, yasutake.koichi@jp.panasonic.com, lftan@altera.com, jonas@southpole.se, jejb@parisc-linux.org, deller@gmx.de, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, liqin.linux@gmail.com, lennox.wu@gmail.com, davem@davemloft.net, cmetcalf@ezchip.com, jdike@addtoit.com, akpm@linux-foundation.org, oleg@redhat.comh
 
-On 04/13/2015 11:09 AM, Peter Zijlstra wrote:
-> On Thu, Apr 09, 2015 at 05:41:44PM -0400, Waiman Long wrote:
->>>> +__visible void __pv_queue_spin_unlock(struct qspinlock *lock)
->>>> +{
->>>> +	struct __qspinlock *l = (void *)lock;
->>>> +	struct pv_node *node;
->>>> +
->>>> +	if (likely(cmpxchg(&l->locked, _Q_LOCKED_VAL, 0) == _Q_LOCKED_VAL))
->>>> +		return;
->>>> +
->>>> +	/*
->>>> +	 * The queue head has been halted. Need to locate it and wake it up.
->>>> +	 */
->>>> +	node = pv_hash_find(lock);
->>>> +	smp_store_release(&l->locked, 0);
->>> Ah yes, clever that.
->>>
->>>> +	/*
->>>> +	 * At this point the memory pointed at by lock can be freed/reused,
->>>> +	 * however we can still use the PV node to kick the CPU.
->>>> +	 */
->>>> +	if (READ_ONCE(node->state) == vcpu_halted)
->>>> +		pv_kick(node->cpu);
->>>> +}
->>>> +PV_CALLEE_SAVE_REGS_THUNK(__pv_queue_spin_unlock);
->>> However I feel the PV_CALLEE_SAVE_REGS_THUNK thing belongs in the x86
->>> code.
->> That is why I originally put my version of the qspinlock_paravirt.h header
->> file under arch/x86/include/asm. Maybe we should move it back there. Putting
->> the thunk in arch/x86/kernel/kvm.c didn't work when you consider that the
->> Xen code also need that.
-> Well the function is 'generic' and belong here I think. Its just the
-> PV_CALLEE_SAVE_REGS_THUNK thing that arch specific. Should have live in
-> arch/x86/kernel/paravirt-spinlocks.c instead?
+Around Sat 11 Apr 2015 22:48:02 +0200 or thereabout, Richard Weinberger wrote:
+> Signed-off-by: Richard Weinberger <richard@nod.at>
+> ---
+>  arch/alpha/include/asm/thread_info.h    | 2 --
+>  arch/avr32/include/asm/thread_info.h    | 3 ---
+>  arch/avr32/kernel/asm-offsets.c         | 1 -
 
-Another alternative is to put the PV_CALLEE_SAVE_REGS_THUNK into a 
-separate asm/qspinlock_paravirt.h file and included in the generic 
-qspinlock_paravirt.h file. By putting the thunk with the 
-__pv_queue_spin_unlock together in the same file, we can make the thunk 
-and the unlock fast path (_Q_SLOW_VAL not set) go into two adjacent 
-instruction cachelines. I think that may help a bit in term of performance.
+For the AVR32 related bits.
 
-Cheers,
-Longman
+Acked-by: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+
+>  arch/c6x/include/asm/thread_info.h      | 2 --
+>  arch/cris/arch-v10/kernel/signal.c      | 2 --
+>  arch/cris/arch-v32/kernel/signal.c      | 2 --
+>  arch/cris/include/asm/thread_info.h     | 2 --
+>  arch/hexagon/include/asm/thread_info.h  | 2 --
+>  arch/ia64/include/asm/thread_info.h     | 2 --
+>  arch/metag/include/asm/thread_info.h    | 2 --
+>  arch/metag/kernel/irq.c                 | 2 --
+>  arch/mips/include/asm/thread_info.h     | 2 --
+>  arch/mips/kernel/asm-offsets.c          | 1 -
+>  arch/nios2/include/asm/thread_info.h    | 2 --
+>  arch/openrisc/include/asm/thread_info.h | 2 --
+>  arch/openrisc/kernel/signal.c           | 2 --
+>  arch/parisc/include/asm/thread_info.h   | 2 --
+>  arch/parisc/kernel/asm-offsets.c        | 1 -
+>  arch/powerpc/include/asm/thread_info.h  | 2 --
+>  arch/score/include/asm/thread_info.h    | 2 --
+>  arch/score/kernel/asm-offsets.c         | 1 -
+>  21 files changed, 39 deletions(-)
+
+<snipp diff>
+
+-- 
+BR, HcE
