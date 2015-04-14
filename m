@@ -1,40 +1,57 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 11/24] m68k: Remove signal translation and exec_domain
-Date: Tue, 14 Apr 2015 09:48:53 +0200
-Message-ID: <CAMuHMdULR65Jp+=03ykpTwvORVQtRywZizca0_4h6RPM298LPg@mail.gmail.com>
-References: <1428785283-20501-1-git-send-email-richard@nod.at>
-	<1428785283-20501-12-git-send-email-richard@nod.at>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH] arm64: Removed unused variable
+Date: Tue, 14 Apr 2015 09:40:56 +0100
+Message-ID: <20150414084056.GA26861@arm.com>
+References: <1428951138-26046-1-git-send-email-richard@nod.at>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f171.google.com ([209.85.220.171]:34297 "EHLO
-	mail-qk0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752447AbbDNHsz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Apr 2015 03:48:55 -0400
-In-Reply-To: <1428785283-20501-12-git-send-email-richard@nod.at>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1428951138-26046-1-git-send-email-richard@nod.at>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Richard Weinberger <richard@nod.at>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, =?UTF-8?Q?H=C3=A5vard_Skinnemoen?= <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Miao Steven <realmz6@gmail.com>, Mark Salter <msalter@redhat.com>, "a-jacquiot@ti.com" <a-jacquiot@ti.com>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "thierry.reding@gmail.com" <thierry.reding@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Apr 11, 2015 at 10:47 PM, Richard Weinberger <richard@nod.at> wrote:
-> As execution domain support is gone we can remove
-> signal translation from the signal code and remove
-> exec_domain from thread_info.
->
+On Mon, Apr 13, 2015 at 07:52:18PM +0100, Richard Weinberger wrote:
+> arch/arm64/kernel/signal.c: In function =E2=80=98handle_signal=E2=80=99=
+:
+> arch/arm64/kernel/signal.c:290:22: warning: unused variable =E2=80=98=
+thread=E2=80=99 [-Wunused-variable]
+>=20
+> Fixes: arm64: Remove signal translation and exec_domain
+> Reported-by: Thierry Reding <thierry.reding@gmail.com>
 > Signed-off-by: Richard Weinberger <richard@nod.at>
+> ---
+> Will be applied on top of my execdomain removal series.
 
-For the m68k changes:
+Sounds good, feel free to add my ack:
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+  Acked-by: Will Deacon <will.deacon@arm.com>
 
-Gr{oetje,eeting}s,
+Will
 
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+> Thanks,
+> //richard
+> ---
+>  arch/arm64/kernel/signal.c | 1 -
+>  1 file changed, 1 deletion(-)
+>=20
+> diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
+> index 9f28eaa..e18c48c 100644
+> --- a/arch/arm64/kernel/signal.c
+> +++ b/arch/arm64/kernel/signal.c
+> @@ -287,7 +287,6 @@ static void setup_restart_syscall(struct pt_regs =
+*regs)
+>   */
+>  static void handle_signal(struct ksignal *ksig, struct pt_regs *regs=
+)
+>  {
+> -	struct thread_info *thread =3D current_thread_info();
+>  	struct task_struct *tsk =3D current;
+>  	sigset_t *oldset =3D sigmask_to_save();
+>  	int usig =3D ksig->sig;
+> --=20
+> 1.8.4.5
+>=20
