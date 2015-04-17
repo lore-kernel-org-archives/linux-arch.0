@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shonan.sfc.wide.ad.jp ([203.178.142.130]:57497 "EHLO
+Received: from shonan.sfc.wide.ad.jp ([203.178.142.130]:57700 "EHLO
 	mail.sfc.wide.ad.jp" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1754004AbbDQJmZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Apr 2015 05:42:25 -0400
+	with ESMTP id S1753514AbbDQJuP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Apr 2015 05:50:15 -0400
 From: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-Subject: [RFC PATCH v2 11/11] lib: tools used for test scripts
-Date: Fri, 17 Apr 2015 18:36:14 +0900
-Message-ID: <1429263374-57517-12-git-send-email-tazaki@sfc.wide.ad.jp>
+Subject: [RFC PATCH v2 04/11] lib: memory management (kernel glue code)
+Date: Fri, 17 Apr 2015 18:36:07 +0900
+Message-ID: <1429263374-57517-5-git-send-email-tazaki@sfc.wide.ad.jp>
 In-Reply-To: <1429263374-57517-1-git-send-email-tazaki@sfc.wide.ad.jp>
 References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>
  <1429263374-57517-1-git-send-email-tazaki@sfc.wide.ad.jp>
@@ -14,211 +14,223 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Hajime Tazaki <tazaki@sfc.wide.ad.jp>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Jhristoph Lameter <cl@linux.com>, Jekka Enberg <penberg@kernel.org>, Javid Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Jndrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Rusty Russell <rusty@rustcorp.com.au>, Ryo Nakamura <upa@haeena.net>, Christoph Paasch <christoph.paasch@gmail.com>, Mathieu Lacage <mathieu.lacage@gmail.com>, libos-nuse@googlegroups.com
-Message-ID: <20150417093614.Ls_laAU2rVjUHUIdnxmfizfnfIiOz3NbAGtydZWkmvE@z>
-
-These auxiliary files are used for make test ARCH=lib.
+Message-ID: <20150417093607.zg73NVNOpGS8J8xXp9NQAOgLZXXsujgeIPaAh8kWlc8@z>
 
 Signed-off-by: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
 ---
- tools/testing/libos/.gitignore   |  6 +++++
- tools/testing/libos/Makefile     | 38 +++++++++++++++++++++++++++
- tools/testing/libos/README       | 15 +++++++++++
- tools/testing/libos/bisect.sh    | 10 +++++++
- tools/testing/libos/dce-test.sh  | 23 ++++++++++++++++
- tools/testing/libos/nuse-test.sh | 57 ++++++++++++++++++++++++++++++++++++++++
- 6 files changed, 149 insertions(+)
- create mode 100644 tools/testing/libos/.gitignore
- create mode 100644 tools/testing/libos/Makefile
- create mode 100644 tools/testing/libos/README
- create mode 100755 tools/testing/libos/bisect.sh
- create mode 100755 tools/testing/libos/dce-test.sh
- create mode 100755 tools/testing/libos/nuse-test.sh
+ arch/lib/slab.c | 203 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 203 insertions(+)
+ create mode 100644 arch/lib/slab.c
 
-diff --git a/tools/testing/libos/.gitignore b/tools/testing/libos/.gitignore
+diff --git a/arch/lib/slab.c b/arch/lib/slab.c
 new file mode 100644
-index 0000000..57a74a0
+index 0000000..a08f736
 --- /dev/null
-+++ b/tools/testing/libos/.gitignore
-@@ -0,0 +1,6 @@
-+*.pcap
-+files-*
-+bake
-+buildtop
-+core
-+exitprocs
-diff --git a/tools/testing/libos/Makefile b/tools/testing/libos/Makefile
-new file mode 100644
-index 0000000..3da25429
---- /dev/null
-+++ b/tools/testing/libos/Makefile
-@@ -0,0 +1,38 @@
-+ADD_PARAM?=
++++ b/arch/lib/slab.c
+@@ -0,0 +1,203 @@
++/*
++ * glue code for library version of Linux kernel
++ * Copyright (c) 2015 INRIA, Hajime Tazaki
++ *
++ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
++ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
++ */
 +
-+all: test
++#include "sim.h"
++#include "sim-assert.h"
++#include <linux/page-flags.h>
++#include <linux/types.h>
++#include <linux/slab.h>
 +
-+bake:
-+	hg clone http://code.nsnam.org/bake
++/* glues */
++struct kmem_cache *files_cachep;
 +
-+check_pkgs:
-+	@./bake/bake.py check | grep Bazaar | grep OK || (echo "bzr is missing" && ./bake/bake.py check)
-+	@./bake/bake.py check | grep autoreconf | grep OK || (echo "autotools is missing" && ./bake/bake.py check && exit 1)
++void kfree(const void *p)
++{
++	unsigned long start;
 +
-+testbin: bake check_pkgs
-+	@cp ../../../arch/lib/tools/bakeconf-linux.xml bake/bakeconf.xml
-+	@mkdir -p buildtop/build/bin_dce
-+	cd buildtop ; \
-+	../bake/bake.py configure -e dce-linux-inkernel $(BAKECONF_PARAMS)
-+	cd buildtop ; \
-+	../bake/bake.py show --enabledTree | grep -v  -E "pygoocanvas|graphviz|python-dev" | grep Missing && (echo "required packages are missing") || echo ""
-+	cd buildtop ; \
-+	../bake/bake.py download ; \
-+	../bake/bake.py update ; \
-+	../bake/bake.py build
++	if (p == 0)
++		return;
++	start = (unsigned long)p;
++	start -= sizeof(size_t);
++	lib_free((void *)start);
++}
++size_t ksize(const void *p)
++{
++	size_t *psize = (size_t *)p;
 +
-+test:
-+	@./dce-test.sh ADD_PARAM=$(ADD_PARAM)
++	psize--;
++	return *psize;
++}
++void *__kmalloc(size_t size, gfp_t flags)
++{
++	void *p = lib_malloc(size + sizeof(size));
++	unsigned long start;
 +
-+test-valgrind:
-+	@./dce-test.sh -g ADD_PARAM=$(ADD_PARAM)
++	if (!p)
++		return NULL;
 +
-+test-fault-injection:
-+	@./dce-test.sh -f ADD_PARAM=$(ADD_PARAM)
++	if (p != 0 && (flags & __GFP_ZERO))
++		lib_memset(p, 0, size + sizeof(size));
++	lib_memcpy(p, &size, sizeof(size));
++	start = (unsigned long)p;
++	return (void *)(start + sizeof(size));
++}
 +
-+clean:
-+#	@rm -rf buildtop
-+	@rm -f *.pcap
-+	@rm -rf files-*
-+	@rm -f exitprocs
-+	@rm -f core
-diff --git a/tools/testing/libos/README b/tools/testing/libos/README
-new file mode 100644
-index 0000000..51ac5a5
---- /dev/null
-+++ b/tools/testing/libos/README
-@@ -0,0 +1,15 @@
++void *__kmalloc_track_caller(size_t size, gfp_t flags, unsigned long caller)
++{
++	return kmalloc(size, flags);
++}
 +
-+- bisect.sh
-+a sample script to bisect an issue of network stack code with the help
-+of LibOS (and ns-3 network simulator). This was used to detect the issue
-+for the following patch.
++void *krealloc(const void *p, size_t new_size, gfp_t flags)
++{
++	void *ret;
 +
-+http://patchwork.ozlabs.org/patch/436351/
++	if (!new_size) {
++		kfree(p);
++		return ZERO_SIZE_PTR;
++	}
 +
-+- dce-test.sh
-+a test script invoked by 'make test ARCH=lib'. The contents of test
-+scenario are implemented as test suites of ns-3 network simulator.
++	ret = __kmalloc(new_size, flags);
++	if (ret && p != ret)
++		kfree(p);
 +
-+- nuse-test.sh
-+a simple test script for Network Stack in Userspace (NUSE).
++	return ret;
++}
 +
-diff --git a/tools/testing/libos/bisect.sh b/tools/testing/libos/bisect.sh
-new file mode 100755
-index 0000000..9377ac3
---- /dev/null
-+++ b/tools/testing/libos/bisect.sh
-@@ -0,0 +1,10 @@
-+#!/bin/sh
++struct kmem_cache *
++kmem_cache_create(const char *name, size_t size, size_t align,
++		  unsigned long flags, void (*ctor)(void *))
++{
++	struct kmem_cache *cache = kmalloc(sizeof(struct kmem_cache), flags);
 +
-+git merge origin/nuse --no-commit
-+make clean ARCH=lib
-+make library ARCH=lib OPT=no
-+make test ARCH=lib ADD_PARAM=" -s dce-umip"
-+RET=$?
-+git reset --hard
++	if (!cache)
++		return NULL;
++	cache->name = name;
++	cache->size = size;
++	cache->align = align;
++	cache->flags = flags;
++	cache->ctor = ctor;
++	return cache;
++}
++void kmem_cache_destroy(struct kmem_cache *cache)
++{
++	kfree(cache);
++}
++int kmem_cache_shrink(struct kmem_cache *cache)
++{
++	return 1;
++}
++const char *kmem_cache_name(struct kmem_cache *cache)
++{
++	return cache->name;
++}
++void *kmem_cache_alloc(struct kmem_cache *cache, gfp_t flags)
++{
++	void *p = kmalloc(cache->size, flags);
 +
-+exit $RET
-diff --git a/tools/testing/libos/dce-test.sh b/tools/testing/libos/dce-test.sh
-new file mode 100755
-index 0000000..e81e2d8
---- /dev/null
-+++ b/tools/testing/libos/dce-test.sh
-@@ -0,0 +1,23 @@
-+#!/bin/sh
++	if (p == 0)
++		return NULL;
++	if (cache->ctor)
++		(cache->ctor)(p);
++	return p;
 +
-+set -e
-+#set -x
-+export LD_LOG=symbol-fail
-+#VERBOSE="-v"
-+VALGRIND=""
-+FAULT_INJECTION=""
++}
++void kmem_cache_free(struct kmem_cache *cache, void *p)
++{
++	kfree(p);
++}
 +
-+if [ "$1" = "-g" ] ; then
-+ VALGRIND="-g"
-+# Not implemneted yet.
-+#elif [ "$1" = "-f" ] ; then
-+# FAULT_INJECTION="-f"
-+fi
++struct page *
++__alloc_pages_nodemask(gfp_t gfp_mask, unsigned int order,
++		       struct zonelist *zonelist, nodemask_t *nodemask)
++{
++	void *p;
++	struct page *page;
++	unsigned long pointer;
 +
-+# FIXME
-+#export NS_ATTRIBUTE_DEFAULT='ns3::DceManagerHelper::LoaderFactory=ns3::\
-+#DlmLoaderFactory[];ns3::TaskManager::FiberManagerType=UcontextFiberManager'
++	/* typically, called from networking code by alloc_page or */
++	/* directly with an order = 0. */
++	if (order)
++		return NULL;
++	p = lib_malloc(sizeof(struct page) + (1 << PAGE_SHIFT));
++	page = (struct page *)p;
 +
-+cd buildtop/source/ns-3-dce
-+LD_LIBRARY_PATH=${srctree} ./test.py -n ${VALGRIND} ${FAULT_INJECTION}\
-+	   ${VERBOSE} ${ADD_PARAM}
-diff --git a/tools/testing/libos/nuse-test.sh b/tools/testing/libos/nuse-test.sh
-new file mode 100755
-index 0000000..198e7e4
---- /dev/null
-+++ b/tools/testing/libos/nuse-test.sh
-@@ -0,0 +1,57 @@
-+#!/bin/bash -e
++	atomic_set(&page->_count, 1);
++	page->flags = 0;
++	pointer = (unsigned long)page;
++	pointer += sizeof(struct page);
++	page->virtual = (void *)pointer;
++	return page;
++}
++void __free_pages(struct page *page, unsigned int order)
++{
++	/* typically, called from networking code by __free_page */
++	lib_assert(order == 0);
++	lib_free(page);
++}
 +
-+LIBOS_TOOLS=arch/lib/tools
++void put_page(struct page *page)
++{
++	if (atomic_dec_and_test(&page->_count))
++		lib_free(page);
++}
++unsigned long get_zeroed_page(gfp_t gfp_mask)
++{
++	return __get_free_pages(gfp_mask | __GFP_ZERO, 0);
++}
 +
-+IFNAME=`ip route |grep default | awk '{print $5}'`
-+GW=`ip route |grep default | awk '{print $3}'`
-+#XXX
-+IPADDR=`echo $GW | sed -r "s/([0-9]+\.[0-9]+\.[0-9]+\.)([0-9]+)$/\1\`expr \2 + 10\`/"`
++void *alloc_pages_exact(size_t size, gfp_t gfp_mask)
++{
++	return alloc_pages(gfp_mask, get_order(size));
++}
 +
-+# ip route
-+# ip address
-+# ip link
++unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
++{
++	int size = (1 << order) * PAGE_SIZE;
++	void *p = kmalloc(size, gfp_mask);
 +
-+NUSE_CONF=/tmp/nuse.conf
++	return (unsigned long)p;
++}
++void free_pages(unsigned long addr, unsigned int order)
++{
++	if (addr != 0)
++		kfree((void *)addr);
++}
 +
-+cat > ${NUSE_CONF} << ENDCONF
-+
-+interface ${IFNAME}
-+	address ${IPADDR}
-+	netmask 255.255.255.0
-+	macaddr 00:01:01:01:01:02
-+	viftype RAW
-+
-+route
-+	network 0.0.0.0
-+	netmask 0.0.0.0
-+	gateway ${GW}
-+
-+ENDCONF
-+
-+cd ${LIBOS_TOOLS}
-+sudo NUSECONF=${NUSE_CONF} ./nuse ping 127.0.0.1 -c 2
-+
-+# rump test
-+sudo NUSECONF=${NUSE_CONF} ./nuse sleep 5 &
-+
-+sleep 2
-+PID_SLEEP=`/bin/ls -ltr /tmp/rump-server-nuse.* | tail -1 | awk '{print $9}' | sed -e "s/.*rump-server-nuse\.//g" | sed "s/=//"`
-+RUMP_URL=unix:///tmp/rump-server-nuse.$PID_SLEEP
-+# ls -ltr /tmp/*
-+
-+sudo chmod 777 /tmp/rump-server-nuse.$PID_SLEEP
-+LD_PRELOAD=./libnuse-hijack.so  RUMPHIJACK=socket=all \
-+    RUMP_SERVER=$RUMP_URL ip addr show
-+
-+wait %1
-+
-+if [ "$1" == "--extended" ] ; then
-+sudo NUSECONF=${NUSE_CONF} ./nuse ping ${GW} -c 2
-+sudo NUSECONF=${NUSE_CONF} ./nuse iperf -c ${GW} -p 2000 -t 3
-+sudo NUSECONF=${NUSE_CONF} ./nuse iperf -c ${GW} -p 8 -u -t 3
-+sudo NUSECONF=${NUSE_CONF} ./nuse dig www.google.com
-+sudo NUSECONF=${NUSE_CONF} ./nuse host www.google.com
-+sudo NUSECONF=${NUSE_CONF} ./nuse nslookup www.google.com
-+#sudo NUSECONF=${NUSE_CONF} ./nuse nc www.google.com 80
-+sudo NUSECONF=${NUSE_CONF} ./nuse wget www.google.com -O -
-+fi
++void *vmalloc(unsigned long size)
++{
++	return lib_malloc(size);
++}
++void *__vmalloc(unsigned long size, gfp_t gfp_mask, pgprot_t prot)
++{
++	return kmalloc(size, gfp_mask);
++}
++void vfree(const void *addr)
++{
++	lib_free((void *)addr);
++}
++void *vmalloc_node(unsigned long size, int node)
++{
++	return lib_malloc(size);
++}
++void vmalloc_sync_all(void)
++{
++}
++void *__alloc_percpu(size_t size, size_t align)
++{
++	return kzalloc(size, GFP_KERNEL);
++}
++void free_percpu(void __percpu *ptr)
++{
++	kfree(ptr);
++}
++void *__alloc_bootmem_nopanic(unsigned long size,
++			      unsigned long align,
++			      unsigned long goal)
++{
++	return kzalloc(size, GFP_KERNEL);
++}
 -- 
 2.1.0
 
