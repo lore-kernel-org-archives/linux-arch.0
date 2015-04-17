@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shonan.sfc.wide.ad.jp ([203.178.142.130]:57700 "EHLO
+Received: from shonan.sfc.wide.ad.jp ([203.178.142.130]:57701 "EHLO
 	mail.sfc.wide.ad.jp" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753514AbbDQJuP (ORCPT
+	with ESMTP id S1752515AbbDQJuP (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Apr 2015 05:50:15 -0400
 From: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-Subject: [RFC PATCH v2 04/11] lib: memory management (kernel glue code)
-Date: Fri, 17 Apr 2015 18:36:07 +0900
-Message-ID: <1429263374-57517-5-git-send-email-tazaki@sfc.wide.ad.jp>
+Subject: [RFC PATCH v2 09/11] lib: asm-generic files
+Date: Fri, 17 Apr 2015 18:36:12 +0900
+Message-ID: <1429263374-57517-10-git-send-email-tazaki@sfc.wide.ad.jp>
 In-Reply-To: <1429263374-57517-1-git-send-email-tazaki@sfc.wide.ad.jp>
 References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp>
  <1429263374-57517-1-git-send-email-tazaki@sfc.wide.ad.jp>
@@ -14,223 +14,543 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Hajime Tazaki <tazaki@sfc.wide.ad.jp>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Jhristoph Lameter <cl@linux.com>, Jekka Enberg <penberg@kernel.org>, Javid Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Jndrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Rusty Russell <rusty@rustcorp.com.au>, Ryo Nakamura <upa@haeena.net>, Christoph Paasch <christoph.paasch@gmail.com>, Mathieu Lacage <mathieu.lacage@gmail.com>, libos-nuse@googlegroups.com
-Message-ID: <20150417093607.zg73NVNOpGS8J8xXp9NQAOgLZXXsujgeIPaAh8kWlc8@z>
+Message-ID: <20150417093612.2nYv3gc82U5ovS8c5rl0Knm6vGdXcQMmGNNs_AdatQE@z>
 
 Signed-off-by: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
 ---
- arch/lib/slab.c | 203 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 203 insertions(+)
- create mode 100644 arch/lib/slab.c
+ arch/lib/include/asm/Kbuild           | 57 +++++++++++++++++++++++++++++++++++
+ arch/lib/include/asm/atomic.h         | 50 ++++++++++++++++++++++++++++++
+ arch/lib/include/asm/barrier.h        |  8 +++++
+ arch/lib/include/asm/bitsperlong.h    | 12 ++++++++
+ arch/lib/include/asm/current.h        |  7 +++++
+ arch/lib/include/asm/elf.h            | 10 ++++++
+ arch/lib/include/asm/hardirq.h        |  8 +++++
+ arch/lib/include/asm/page.h           | 14 +++++++++
+ arch/lib/include/asm/pgtable.h        | 30 ++++++++++++++++++
+ arch/lib/include/asm/processor.h      | 19 ++++++++++++
+ arch/lib/include/asm/ptrace.h         |  4 +++
+ arch/lib/include/asm/segment.h        |  6 ++++
+ arch/lib/include/asm/sembuf.h         |  4 +++
+ arch/lib/include/asm/shmbuf.h         |  4 +++
+ arch/lib/include/asm/shmparam.h       |  4 +++
+ arch/lib/include/asm/sigcontext.h     |  6 ++++
+ arch/lib/include/asm/slab.h           | 21 +++++++++++++
+ arch/lib/include/asm/stat.h           |  4 +++
+ arch/lib/include/asm/statfs.h         |  4 +++
+ arch/lib/include/asm/swab.h           |  7 +++++
+ arch/lib/include/asm/thread_info.h    | 36 ++++++++++++++++++++++
+ arch/lib/include/asm/uaccess.h        | 14 +++++++++
+ arch/lib/include/asm/unistd.h         |  4 +++
+ arch/lib/include/uapi/asm/byteorder.h |  6 ++++
+ 24 files changed, 339 insertions(+)
+ create mode 100644 arch/lib/include/asm/Kbuild
+ create mode 100644 arch/lib/include/asm/atomic.h
+ create mode 100644 arch/lib/include/asm/barrier.h
+ create mode 100644 arch/lib/include/asm/bitsperlong.h
+ create mode 100644 arch/lib/include/asm/current.h
+ create mode 100644 arch/lib/include/asm/elf.h
+ create mode 100644 arch/lib/include/asm/hardirq.h
+ create mode 100644 arch/lib/include/asm/page.h
+ create mode 100644 arch/lib/include/asm/pgtable.h
+ create mode 100644 arch/lib/include/asm/processor.h
+ create mode 100644 arch/lib/include/asm/ptrace.h
+ create mode 100644 arch/lib/include/asm/segment.h
+ create mode 100644 arch/lib/include/asm/sembuf.h
+ create mode 100644 arch/lib/include/asm/shmbuf.h
+ create mode 100644 arch/lib/include/asm/shmparam.h
+ create mode 100644 arch/lib/include/asm/sigcontext.h
+ create mode 100644 arch/lib/include/asm/slab.h
+ create mode 100644 arch/lib/include/asm/stat.h
+ create mode 100644 arch/lib/include/asm/statfs.h
+ create mode 100644 arch/lib/include/asm/swab.h
+ create mode 100644 arch/lib/include/asm/thread_info.h
+ create mode 100644 arch/lib/include/asm/uaccess.h
+ create mode 100644 arch/lib/include/asm/unistd.h
+ create mode 100644 arch/lib/include/uapi/asm/byteorder.h
 
-diff --git a/arch/lib/slab.c b/arch/lib/slab.c
+diff --git a/arch/lib/include/asm/Kbuild b/arch/lib/include/asm/Kbuild
 new file mode 100644
-index 0000000..a08f736
+index 0000000..c647b1c
 --- /dev/null
-+++ b/arch/lib/slab.c
-@@ -0,0 +1,203 @@
-+/*
-+ * glue code for library version of Linux kernel
-+ * Copyright (c) 2015 INRIA, Hajime Tazaki
-+ *
-+ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
-+ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-+ */
++++ b/arch/lib/include/asm/Kbuild
+@@ -0,0 +1,57 @@
++generic-y += auxvec.h
++generic-y += bitops.h
++generic-y += bug.h
++generic-y += cache.h
++generic-y += cacheflush.h
++generic-y += checksum.h
++generic-y += cputime.h
++generic-y += cmpxchg.h
++generic-y += delay.h
++generic-y += device.h
++generic-y += div64.h
++generic-y += dma.h
++generic-y += exec.h
++generic-y += emergency-restart.h
++generic-y += errno.h
++generic-y += fcntl.h
++generic-y += ftrace.h
++generic-y += io.h
++generic-y += ioctl.h
++generic-y += ioctls.h
++generic-y += ipcbuf.h
++generic-y += irq.h
++generic-y += irqflags.h
++generic-y += irq_regs.h
++generic-y += kdebug.h
++generic-y += kmap_types.h
++generic-y += linkage.h
++generic-y += local.h
++generic-y += mcs_spinlock.h
++generic-y += mman.h
++generic-y += mmu.h
++generic-y += mmu_context.h
++generic-y += module.h
++generic-y += mutex.h
++generic-y += param.h
++generic-y += pci.h
++generic-y += percpu.h
++generic-y += poll.h
++generic-y += posix_types.h
++generic-y += preempt.h
++generic-y += resource.h
++generic-y += scatterlist.h
++generic-y += sections.h
++generic-y += setup.h
++generic-y += signal.h
++generic-y += siginfo.h
++generic-y += socket.h
++generic-y += sockios.h
++generic-y += string.h
++generic-y += termbits.h
++generic-y += termios.h
++generic-y += timex.h
++generic-y += tlbflush.h
++generic-y += types.h
++generic-y += topology.h
++generic-y += trace_clock.h
++generic-y += unaligned.h
+diff --git a/arch/lib/include/asm/atomic.h b/arch/lib/include/asm/atomic.h
+new file mode 100644
+index 0000000..41a49285
+--- /dev/null
++++ b/arch/lib/include/asm/atomic.h
+@@ -0,0 +1,50 @@
++#ifndef _ASM_SIM_ATOMIC_H
++#define _ASM_SIM_ATOMIC_H
 +
-+#include "sim.h"
-+#include "sim-assert.h"
-+#include <linux/page-flags.h>
 +#include <linux/types.h>
-+#include <linux/slab.h>
 +
-+/* glues */
-+struct kmem_cache *files_cachep;
++#if !defined(CONFIG_64BIT)
++typedef struct {
++	volatile long long counter;
++} atomic64_t;
++#endif
 +
-+void kfree(const void *p)
-+{
-+	unsigned long start;
++#define ATOMIC64_INIT(i) { (i) }
 +
-+	if (p == 0)
-+		return;
-+	start = (unsigned long)p;
-+	start -= sizeof(size_t);
-+	lib_free((void *)start);
-+}
-+size_t ksize(const void *p)
++#define atomic64_read(v)        (*(volatile long *)&(v)->counter)
++void atomic64_add(long i, atomic64_t *v);
++static inline void atomic64_sub(long i, atomic64_t *v)
 +{
-+	size_t *psize = (size_t *)p;
++	v->counter -= i;
++}
++static inline void atomic64_inc(atomic64_t *v)
++{
++	v->counter++;
++}
++int atomic64_sub_and_test(long i, atomic64_t *v);
++#define atomic64_dec(v)			atomic64_sub(1LL, (v))
++int atomic64_dec_and_test(atomic64_t *v);
++int atomic64_inc_and_test(atomic64_t *v);
++int atomic64_add_negative(long i, atomic64_t *v);
++/* long atomic64_add_return(long i, atomic64_t *v); */
++static inline long atomic64_add_return(long i, atomic64_t *v)
++{
++	v->counter += i;
++	return v->counter;
++}
++static inline void atomic64_set(atomic64_t *v, long i)
++{
++	v->counter = i;
++}
++long atomic64_sub_return(long i, atomic64_t *v);
++long atomic64_inc_return(atomic64_t *v);
++long atomic64_dec_return(atomic64_t *v);
++long atomic64_cmpxchg(atomic64_t *v, long old, long new);
++long atomic64_xchg(atomic64_t *v, long new);
++int atomic64_add_unless(atomic64_t *v, long a, long u);
++int atomic64_inc_is_not_zero(atomic64_t *v);
++#define atomic64_inc_not_zero(v) 	atomic64_add_unless((v), 1LL, 0LL)
 +
-+	psize--;
-+	return *psize;
-+}
-+void *__kmalloc(size_t size, gfp_t flags)
++#include <asm-generic/atomic.h>
++
++#endif /* _ASM_SIM_ATOMIC_H */
+diff --git a/arch/lib/include/asm/barrier.h b/arch/lib/include/asm/barrier.h
+new file mode 100644
+index 0000000..47adcc6
+--- /dev/null
++++ b/arch/lib/include/asm/barrier.h
+@@ -0,0 +1,8 @@
++#include <asm-generic/barrier.h>
++
++#undef smp_store_release
++#define smp_store_release(p, v)						\
++	do {								\
++		smp_mb();						\
++		ACCESS_ONCE(*p) = (v);					\
++	} while (0)
+diff --git a/arch/lib/include/asm/bitsperlong.h b/arch/lib/include/asm/bitsperlong.h
+new file mode 100644
+index 0000000..c7592f9
+--- /dev/null
++++ b/arch/lib/include/asm/bitsperlong.h
+@@ -0,0 +1,12 @@
++#ifndef _ASM_SIM_BITSPERLONG_H
++#define _ASM_SIM_BITSPERLONG_H
++
++#ifdef CONFIG_64BIT
++#define BITS_PER_LONG 64
++#else
++#define BITS_PER_LONG 32
++#endif /* CONFIG_64BIT */
++
++#define __BITS_PER_LONG BITS_PER_LONG
++
++#endif /* _ASM_SIM_BITSPERLONG_H */
+diff --git a/arch/lib/include/asm/current.h b/arch/lib/include/asm/current.h
+new file mode 100644
+index 0000000..62489cd
+--- /dev/null
++++ b/arch/lib/include/asm/current.h
+@@ -0,0 +1,7 @@
++#ifndef _ASM_SIM_CURRENT_H
++#define _ASM_SIM_CURRENT_H
++
++struct task_struct *get_current(void);
++#define current get_current()
++
++#endif /* _ASM_SIM_CURRENT_H */
+diff --git a/arch/lib/include/asm/elf.h b/arch/lib/include/asm/elf.h
+new file mode 100644
+index 0000000..a7396c9
+--- /dev/null
++++ b/arch/lib/include/asm/elf.h
+@@ -0,0 +1,10 @@
++#ifndef _ASM_SIM_ELF_H
++#define _ASM_SIM_ELF_H
++
++#if defined(CONFIG_64BIT)
++#define ELF_CLASS ELFCLASS64
++#else
++#define ELF_CLASS ELFCLASS32
++#endif
++
++#endif /* _ASM_SIM_ELF_H */
+diff --git a/arch/lib/include/asm/hardirq.h b/arch/lib/include/asm/hardirq.h
+new file mode 100644
+index 0000000..47d47f9
+--- /dev/null
++++ b/arch/lib/include/asm/hardirq.h
+@@ -0,0 +1,8 @@
++#ifndef _ASM_SIM_HARDIRQ_H
++#define _ASM_SIM_HARDIRQ_H
++
++extern unsigned int interrupt_pending;
++
++#define local_softirq_pending() (interrupt_pending)
++
++#endif /* _ASM_SIM_HARDIRQ_H */
+diff --git a/arch/lib/include/asm/page.h b/arch/lib/include/asm/page.h
+new file mode 100644
+index 0000000..8c0aa74
+--- /dev/null
++++ b/arch/lib/include/asm/page.h
+@@ -0,0 +1,14 @@
++#ifndef _ASM_SIM_PAGE_H
++#define _ASM_SIM_PAGE_H
++
++typedef struct {} pud_t;
++
++#define THREAD_ORDER    1
++#define THREAD_SIZE  (PAGE_SIZE << THREAD_ORDER)
++
++#define WANT_PAGE_VIRTUAL 1
++
++#include <asm-generic/page.h>
++#include <asm-generic/getorder.h>
++
++#endif /* _ASM_SIM_PAGE_H */
+diff --git a/arch/lib/include/asm/pgtable.h b/arch/lib/include/asm/pgtable.h
+new file mode 100644
+index 0000000..ce599c8
+--- /dev/null
++++ b/arch/lib/include/asm/pgtable.h
+@@ -0,0 +1,30 @@
++#ifndef _ASM_SIM_PGTABLE_H
++#define _ASM_SIM_PGTABLE_H
++
++#define PAGE_KERNEL ((pgprot_t) {0 })
++
++#define arch_start_context_switch(prev) do {} while (0)
++
++#define kern_addr_valid(addr)(1)
++#define pte_file(pte)(1)
++/* Encode and de-code a swap entry */
++#define __swp_type(x)                   (((x).val >> 5) & 0x1f)
++#define __swp_offset(x)                 ((x).val >> 11)
++#define __swp_entry(type, offset) \
++	((swp_entry_t) {((type) << 5) | ((offset) << 11) })
++#define __pte_to_swp_entry(pte)         ((swp_entry_t) {pte_val((pte)) })
++#define __swp_entry_to_pte(x)           ((pte_t) {(x).val })
++#define pmd_page(pmd) (struct page *)(pmd_val(pmd) & PAGE_MASK)
++#define pgtable_cache_init()   do { } while (0)
++
++static inline int pte_swp_soft_dirty(pte_t pte)
 +{
-+	void *p = lib_malloc(size + sizeof(size));
-+	unsigned long start;
-+
-+	if (!p)
-+		return NULL;
-+
-+	if (p != 0 && (flags & __GFP_ZERO))
-+		lib_memset(p, 0, size + sizeof(size));
-+	lib_memcpy(p, &size, sizeof(size));
-+	start = (unsigned long)p;
-+	return (void *)(start + sizeof(size));
-+}
-+
-+void *__kmalloc_track_caller(size_t size, gfp_t flags, unsigned long caller)
-+{
-+	return kmalloc(size, flags);
-+}
-+
-+void *krealloc(const void *p, size_t new_size, gfp_t flags)
-+{
-+	void *ret;
-+
-+	if (!new_size) {
-+		kfree(p);
-+		return ZERO_SIZE_PTR;
-+	}
-+
-+	ret = __kmalloc(new_size, flags);
-+	if (ret && p != ret)
-+		kfree(p);
-+
-+	return ret;
-+}
-+
-+struct kmem_cache *
-+kmem_cache_create(const char *name, size_t size, size_t align,
-+		  unsigned long flags, void (*ctor)(void *))
-+{
-+	struct kmem_cache *cache = kmalloc(sizeof(struct kmem_cache), flags);
-+
-+	if (!cache)
-+		return NULL;
-+	cache->name = name;
-+	cache->size = size;
-+	cache->align = align;
-+	cache->flags = flags;
-+	cache->ctor = ctor;
-+	return cache;
-+}
-+void kmem_cache_destroy(struct kmem_cache *cache)
-+{
-+	kfree(cache);
-+}
-+int kmem_cache_shrink(struct kmem_cache *cache)
-+{
-+	return 1;
-+}
-+const char *kmem_cache_name(struct kmem_cache *cache)
-+{
-+	return cache->name;
-+}
-+void *kmem_cache_alloc(struct kmem_cache *cache, gfp_t flags)
-+{
-+	void *p = kmalloc(cache->size, flags);
-+
-+	if (p == 0)
-+		return NULL;
-+	if (cache->ctor)
-+		(cache->ctor)(p);
-+	return p;
-+
-+}
-+void kmem_cache_free(struct kmem_cache *cache, void *p)
-+{
-+	kfree(p);
-+}
-+
-+struct page *
-+__alloc_pages_nodemask(gfp_t gfp_mask, unsigned int order,
-+		       struct zonelist *zonelist, nodemask_t *nodemask)
-+{
-+	void *p;
-+	struct page *page;
-+	unsigned long pointer;
-+
-+	/* typically, called from networking code by alloc_page or */
-+	/* directly with an order = 0. */
-+	if (order)
-+		return NULL;
-+	p = lib_malloc(sizeof(struct page) + (1 << PAGE_SHIFT));
-+	page = (struct page *)p;
-+
-+	atomic_set(&page->_count, 1);
-+	page->flags = 0;
-+	pointer = (unsigned long)page;
-+	pointer += sizeof(struct page);
-+	page->virtual = (void *)pointer;
-+	return page;
-+}
-+void __free_pages(struct page *page, unsigned int order)
-+{
-+	/* typically, called from networking code by __free_page */
-+	lib_assert(order == 0);
-+	lib_free(page);
-+}
-+
-+void put_page(struct page *page)
-+{
-+	if (atomic_dec_and_test(&page->_count))
-+		lib_free(page);
-+}
-+unsigned long get_zeroed_page(gfp_t gfp_mask)
-+{
-+	return __get_free_pages(gfp_mask | __GFP_ZERO, 0);
-+}
-+
-+void *alloc_pages_exact(size_t size, gfp_t gfp_mask)
-+{
-+	return alloc_pages(gfp_mask, get_order(size));
-+}
-+
-+unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
-+{
-+	int size = (1 << order) * PAGE_SIZE;
-+	void *p = kmalloc(size, gfp_mask);
-+
-+	return (unsigned long)p;
-+}
-+void free_pages(unsigned long addr, unsigned int order)
-+{
-+	if (addr != 0)
-+		kfree((void *)addr);
++	return 0;
 +}
 +
-+void *vmalloc(unsigned long size)
++static inline pte_t pte_swp_clear_soft_dirty(pte_t pte)
 +{
-+	return lib_malloc(size);
++	return pte;
 +}
-+void *__vmalloc(unsigned long size, gfp_t gfp_mask, pgprot_t prot)
++
++#endif /* _ASM_SIM_PGTABLE_H */
+diff --git a/arch/lib/include/asm/processor.h b/arch/lib/include/asm/processor.h
+new file mode 100644
+index 0000000..b673ee0
+--- /dev/null
++++ b/arch/lib/include/asm/processor.h
+@@ -0,0 +1,19 @@
++#ifndef _ASM_SIM_PROCESSOR_H
++#define _ASM_SIM_PROCESSOR_H
++
++struct thread_struct {};
++
++#define cpu_relax()
++#define cpu_relax_lowlatency() cpu_relax()
++#define KSTK_ESP(tsk)	(0)
++
++void *current_text_addr(void);
++
++#define TASK_SIZE ((~(long)0))
++
++#define thread_saved_pc(x) (unsigned long)0
++#define task_pt_regs(t) NULL
++
++int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags);
++
++#endif /* _ASM_SIM_PROCESSOR_H */
+diff --git a/arch/lib/include/asm/ptrace.h b/arch/lib/include/asm/ptrace.h
+new file mode 100644
+index 0000000..ddd9708
+--- /dev/null
++++ b/arch/lib/include/asm/ptrace.h
+@@ -0,0 +1,4 @@
++#ifndef _ASM_SIM_PTRACE_H
++#define _ASM_SIM_PTRACE_H
++
++#endif /* _ASM_SIM_PTRACE_H */
+diff --git a/arch/lib/include/asm/segment.h b/arch/lib/include/asm/segment.h
+new file mode 100644
+index 0000000..e056922
+--- /dev/null
++++ b/arch/lib/include/asm/segment.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_SIM_SEGMENT_H
++#define _ASM_SIM_SEGMENT_H
++
++typedef struct { int seg; } mm_segment_t;
++
++#endif /* _ASM_SIM_SEGMENT_H */
+diff --git a/arch/lib/include/asm/sembuf.h b/arch/lib/include/asm/sembuf.h
+new file mode 100644
+index 0000000..d64927b
+--- /dev/null
++++ b/arch/lib/include/asm/sembuf.h
+@@ -0,0 +1,4 @@
++#ifndef _ASM_SIM_SEMBUF_H
++#define _ASM_SIM_SEMBUF_H
++
++#endif /* _ASM_SIM_SEMBUF_H */
+diff --git a/arch/lib/include/asm/shmbuf.h b/arch/lib/include/asm/shmbuf.h
+new file mode 100644
+index 0000000..42d0a71
+--- /dev/null
++++ b/arch/lib/include/asm/shmbuf.h
+@@ -0,0 +1,4 @@
++#ifndef _ASM_SIM_SHMBUF_H
++#define _ASM_SIM_SHMBUF_H
++
++#endif /* _ASM_SIM_SHMBUF_H */
+diff --git a/arch/lib/include/asm/shmparam.h b/arch/lib/include/asm/shmparam.h
+new file mode 100644
+index 0000000..3410f1b
+--- /dev/null
++++ b/arch/lib/include/asm/shmparam.h
+@@ -0,0 +1,4 @@
++#ifndef _ASM_SIM_SHMPARAM_H
++#define _ASM_SIM_SHMPARAM_H
++
++#endif /* _ASM_SIM_SHMPARAM_H */
+diff --git a/arch/lib/include/asm/sigcontext.h b/arch/lib/include/asm/sigcontext.h
+new file mode 100644
+index 0000000..230b4b5
+--- /dev/null
++++ b/arch/lib/include/asm/sigcontext.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_SIM_SIGCONTEXT_H
++#define _ASM_SIM_SIGCONTEXT_H
++
++struct sigcontext {};
++
++#endif /* _ASM_SIM_SIGCONTEXT_H */
+diff --git a/arch/lib/include/asm/slab.h b/arch/lib/include/asm/slab.h
+new file mode 100644
+index 0000000..a3f5d19
+--- /dev/null
++++ b/arch/lib/include/asm/slab.h
+@@ -0,0 +1,21 @@
++#ifndef _ASM_SIM_SLAB_H
++#define _ASM_SIM_SLAB_H
++
++
++struct kmem_cache {
++	unsigned int object_size;
++	const char *name;
++	size_t size;
++	size_t align;
++	unsigned long flags;
++	void (*ctor)(void *);
++};
++
++void *__kmalloc(size_t size, gfp_t flags);
++void *kmem_cache_alloc(struct kmem_cache *, gfp_t);
++static __always_inline void *kmalloc(size_t size, gfp_t flags)
 +{
-+	return kmalloc(size, gfp_mask);
++	return __kmalloc(size, flags);
 +}
-+void vfree(const void *addr)
++
++#endif /* _ASM_SIM_SLAB_H */
+diff --git a/arch/lib/include/asm/stat.h b/arch/lib/include/asm/stat.h
+new file mode 100644
+index 0000000..80fa2cb
+--- /dev/null
++++ b/arch/lib/include/asm/stat.h
+@@ -0,0 +1,4 @@
++#ifndef _ASM_SIM_STAT_H
++#define _ASM_SIM_STAT_H
++
++#endif /* _ASM_SIM_STAT_H */
+diff --git a/arch/lib/include/asm/statfs.h b/arch/lib/include/asm/statfs.h
+new file mode 100644
+index 0000000..881ce51
+--- /dev/null
++++ b/arch/lib/include/asm/statfs.h
+@@ -0,0 +1,4 @@
++#ifndef _ASM_SIM_STATFS_H
++#define _ASM_SIM_STATFS_H
++
++#endif /* _ASM_SIM_STATFS_H */
+diff --git a/arch/lib/include/asm/swab.h b/arch/lib/include/asm/swab.h
+new file mode 100644
+index 0000000..d81376a
+--- /dev/null
++++ b/arch/lib/include/asm/swab.h
+@@ -0,0 +1,7 @@
++#ifndef _ASM_SIM_SWAB_H
++#define _ASM_SIM_SWAB_H
++
++#include <linux/types.h>
++
++
++#endif /* _ASM_SIM_SWAB_H */
+diff --git a/arch/lib/include/asm/thread_info.h b/arch/lib/include/asm/thread_info.h
+new file mode 100644
+index 0000000..ec316c6
+--- /dev/null
++++ b/arch/lib/include/asm/thread_info.h
+@@ -0,0 +1,36 @@
++#ifndef _ASM_SIM_THREAD_INFO_H
++#define _ASM_SIM_THREAD_INFO_H
++
++#define TIF_NEED_RESCHED 1
++#define TIF_SIGPENDING 2
++#define TIF_MEMDIE 5
++
++struct thread_info {
++	__u32 flags;
++	int preempt_count;
++	struct task_struct *task;
++	struct restart_block restart_block;
++};
++
++struct thread_info *current_thread_info(void);
++struct thread_info *alloc_thread_info(struct task_struct *task);
++void free_thread_info(struct thread_info *ti);
++
++#define TS_RESTORE_SIGMASK      0x0008  /* restore signal mask in do_signal() */
++#define HAVE_SET_RESTORE_SIGMASK        1
++static inline void set_restore_sigmask(void)
 +{
-+	lib_free((void *)addr);
 +}
-+void *vmalloc_node(unsigned long size, int node)
-+{
-+	return lib_malloc(size);
-+}
-+void vmalloc_sync_all(void)
++static inline void clear_restore_sigmask(void)
 +{
 +}
-+void *__alloc_percpu(size_t size, size_t align)
++static inline bool test_restore_sigmask(void)
 +{
-+	return kzalloc(size, GFP_KERNEL);
++	return true;
 +}
-+void free_percpu(void __percpu *ptr)
++static inline bool test_and_clear_restore_sigmask(void)
 +{
-+	kfree(ptr);
++	return true;
 +}
-+void *__alloc_bootmem_nopanic(unsigned long size,
-+			      unsigned long align,
-+			      unsigned long goal)
-+{
-+	return kzalloc(size, GFP_KERNEL);
-+}
++
++#endif /* _ASM_SIM_THREAD_INFO_H */
+diff --git a/arch/lib/include/asm/uaccess.h b/arch/lib/include/asm/uaccess.h
+new file mode 100644
+index 0000000..74f973b
+--- /dev/null
++++ b/arch/lib/include/asm/uaccess.h
+@@ -0,0 +1,14 @@
++#ifndef _ASM_SIM_UACCESS_H
++#define _ASM_SIM_UACCESS_H
++
++#define KERNEL_DS ((mm_segment_t) {0 })
++#define USER_DS ((mm_segment_t) {0 })
++#define get_fs() KERNEL_DS
++#define get_ds() USER_DS
++#define set_fs(x) do {} while ((x.seg) != (x.seg))
++
++#define __access_ok(addr, size) (1)
++
++#include <asm-generic/uaccess.h>
++
++#endif /* _ASM_SIM_UACCESS_H */
+diff --git a/arch/lib/include/asm/unistd.h b/arch/lib/include/asm/unistd.h
+new file mode 100644
+index 0000000..6b482b4
+--- /dev/null
++++ b/arch/lib/include/asm/unistd.h
+@@ -0,0 +1,4 @@
++#ifndef _ASM_SIM_UNISTD_H
++#define _ASM_SIM_UNISTD_H
++
++#endif /* _ASM_SIM_UNISTD_H */
+diff --git a/arch/lib/include/uapi/asm/byteorder.h b/arch/lib/include/uapi/asm/byteorder.h
+new file mode 100644
+index 0000000..b13a7a8
+--- /dev/null
++++ b/arch/lib/include/uapi/asm/byteorder.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_X86_BYTEORDER_H
++#define _ASM_X86_BYTEORDER_H
++
++#include <linux/byteorder/little_endian.h>
++
++#endif /* _ASM_X86_BYTEORDER_H */
 -- 
 2.1.0
 
