@@ -1,35 +1,29 @@
-From: Chris Metcalf <cmetcalf@ezchip.com>
-Subject: Re: [PATCH] tile: use si_int instead of si_ptr for compat_siginfo
-Date: Fri, 17 Apr 2015 12:56:17 -0400
-Message-ID: <55313B31.6040803@ezchip.com>
-References: <1423563011-12377-1-git-send-email-bamvor.zhangjian@huawei.com> <20150210122718.GC32052@e104818-lin.cambridge.arm.com> <54DB3B60.4050100@huawei.com> <20150211154054.GD9058@e104818-lin.cambridge.arm.com> <54DDAF2B.2070707@huawei.com> <20150213104455.GA3508@e104818-lin.cambridge.arm.com> <54DE730D.3090100@ezchip.com> <20150214112220.GB10246@MBP.local> <54ECF309.3020509@ezchip.com> <201503161908.t2GJ8fs5021877@farm-0002.internal.tilera.com> <20150323120253.GA12757@e104818-lin.cambridge.arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20150323120253.GA12757@e104818-lin.cambridge.arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, ralf@linux-mips.org, benh@kernel.crashing.org, deller@gmx.de, "dingtianhong@huawei.com" <dingtianhong@huawei.com>, heiko.carstens@de.ibm.com, jejb@parisc-linux.org, Will Deacon <Will.Deacon@arm.com>, "lizefan@huawei.com" <lizefan@huawei.com>, Bamvor Jian Zhang <bamvor.zhangjian@huawei.com>, mpe@ellerman.id.au, hpa@zytor.com, schwidefsky@de.ibm.com, paulus@samba.org, tglx@linutronix.de, mingo@redhat.com, davem@davemloft.net, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+From: Christoph Lameter <cl@linux.com>
+Subject: Re: [RFC PATCH v2 02/11] slab: add private memory allocator header
+ for arch/lib
+Date: Fri, 17 Apr 2015 17:26:34 -0500 (CDT)
+Message-ID: <alpine.DEB.2.11.1504171725100.10545@gentwo.org>
+References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp> <1429263374-57517-1-git-send-email-tazaki@sfc.wide.ad.jp> <1429263374-57517-3-git-send-email-tazaki@sfc.wide.ad.jp> <alpine.DEB.2.11.1504170716380.20800@gentwo.org> <55310033.1060108@nod.at>
+ <m2h9se4x2b.wl@sfc.wide.ad.jp> <553121E6.5000005@nod.at>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <553121E6.5000005@nod.at>
+Sender: owner-linux-mm@kvack.org
+To: Richard Weinberger <richard@nod.at>
+Cc: Hajime Tazaki <tazaki@sfc.wide.ad.jp>, linux-arch@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, penberg@kernel.org, rientjes@google.com, iamjoonsoo.kim@lge.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, jdike@addtoit.com, rusty@rustcorp.com.au, upa@haeena.net, christoph.paasch@gmail.com, mathieu.lacage@gmail.com, libos-nuse@googlegroups.com
 List-Id: linux-arch.vger.kernel.org
 
-On 03/23/2015 08:02 AM, Catalin Marinas wrote:
->> @@ -121,8 +119,7 @@ int copy_siginfo_from_user32(siginfo_t *to, struct compat_siginfo __user *from)
->> >  
->> >  	err |= __get_user(to->si_pid, &from->si_pid);
->> >  	err |= __get_user(to->si_uid, &from->si_uid);
->> >-	err |= __get_user(ptr32, &from->si_ptr);
->> >-	to->si_ptr = compat_ptr(ptr32);
->> >+	err |= __get_user(to->si_int, &from->si_int);
-> We have a memset(to, 0, sizeof(*to)) on arm64 in this function but I
-> can't see it on tile. Some members or even half of si_ptr would be left
-> uninitialised.
+On Fri, 17 Apr 2015, Richard Weinberger wrote:
 
-In the end I added a memset() for the tile compat case like you suggest 
-for arm64.
+> SLUB is the unqueued SLAB and SLLB is the library SLAB. :D
 
-Thanks!
+Good that this convention is now so broadly known that I did not even
+have to explain what it meant. But I think you can give it any name you
+want. SLLB was just a way to tersely state how this is going to integrate
+into the overall scheme of things.
 
--- 
-Chris Metcalf, EZChip Semiconductor
-http://www.ezchip.com
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
