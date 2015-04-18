@@ -1,29 +1,35 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: [RFC PATCH v2 02/11] slab: add private memory allocator header
- for arch/lib
-Date: Fri, 17 Apr 2015 17:26:34 -0500 (CDT)
-Message-ID: <alpine.DEB.2.11.1504171725100.10545@gentwo.org>
-References: <1427202642-1716-1-git-send-email-tazaki@sfc.wide.ad.jp> <1429263374-57517-1-git-send-email-tazaki@sfc.wide.ad.jp> <1429263374-57517-3-git-send-email-tazaki@sfc.wide.ad.jp> <alpine.DEB.2.11.1504170716380.20800@gentwo.org> <55310033.1060108@nod.at>
- <m2h9se4x2b.wl@sfc.wide.ad.jp> <553121E6.5000005@nod.at>
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <553121E6.5000005@nod.at>
-Sender: owner-linux-mm@kvack.org
-To: Richard Weinberger <richard@nod.at>
-Cc: Hajime Tazaki <tazaki@sfc.wide.ad.jp>, linux-arch@vger.kernel.org, arnd@arndb.de, corbet@lwn.net, penberg@kernel.org, rientjes@google.com, iamjoonsoo.kim@lge.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, jdike@addtoit.com, rusty@rustcorp.com.au, upa@haeena.net, christoph.paasch@gmail.com, mathieu.lacage@gmail.com, libos-nuse@googlegroups.com
-List-Id: linux-arch.vger.kernel.org
+From: "Roy Cockrum " <silab@bvconline.com.ar>
+Subject: =?utf-8?b?SSdtIGRvbmF0aW5nIOKCrDcyMCwwMDAuMDAgdG8geW91?=
+Date: Sun, 19 Apr 2015 00:20:38 +0100
+Message-ID: <20150418232046.2F8B11B4671@listas.univates.br>
+Reply-To: 1648463859@qq.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from listas.univates.br ([177.44.240.34]:41414 "EHLO
+	listas.univates.br" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751342AbbDRXjJ convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 18 Apr 2015 19:39:09 -0400
+Received: from localhost (localhost [127.0.0.1])
+	by listas.univates.br (Postfix) with ESMTP id 2F8B11B4671
+	for <linux-arch@vger.kernel.org>; Sat, 18 Apr 2015 20:20:46 -0300 (BRT)
+Received: from listas.univates.br ([127.0.0.1])
+	by localhost (listas.univates.br [127.0.0.1]) (amavisd-new, port 10024)
+	with ESMTP id 2oqP+aaCPpLh for <linux-arch@vger.kernel.org>;
+	Sat, 18 Apr 2015 20:20:46 -0300 (BRT)
+Received: from [10.127.127.1] (unknown [41.203.69.4])
+	by listas.univates.br (Postfix) with ESMTPSA id 697A01B4620
+	for <linux-arch@vger.kernel.org>; Sat, 18 Apr 2015 20:20:43 -0300 (BRT)
+Content-Description: Mail message body
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-On Fri, 17 Apr 2015, Richard Weinberger wrote:
+I'm donating =E2=82=AC720,000.00 to you. Contact me via my private emai=
+l at
+(1648463859@qq.com) for further details.
 
-> SLUB is the unqueued SLAB and SLLB is the library SLAB. :D
-
-Good that this convention is now so broadly known that I did not even
-have to explain what it meant. But I think you can give it any name you
-want. SLLB was just a way to tersely state how this is going to integrate
-into the overall scheme of things.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Best Regards,
+Roy Cockrum
+Copyright (c)2015* The Roy Cockrum Foundation* All Rights Reserved*=20
