@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shonan.sfc.wide.ad.jp ([203.178.142.130]:56661 "EHLO
+Received: from shonan.sfc.wide.ad.jp ([203.178.142.130]:56502 "EHLO
 	mail.sfc.wide.ad.jp" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753942AbbDSN33 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Apr 2015 09:29:29 -0400
+	with ESMTP id S1752511AbbDSN2u (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Apr 2015 09:28:50 -0400
 From: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-Subject: [RFC PATCH v3 10/10] lib: tools used for test scripts
-Date: Sun, 19 Apr 2015 22:28:24 +0900
-Message-ID: <1429450104-47619-11-git-send-email-tazaki@sfc.wide.ad.jp>
+Subject: [RFC PATCH v3 01/10] sysctl: make some functions unstatic to access by arch/lib
+Date: Sun, 19 Apr 2015 22:28:15 +0900
+Message-ID: <1429450104-47619-2-git-send-email-tazaki@sfc.wide.ad.jp>
 In-Reply-To: <1429450104-47619-1-git-send-email-tazaki@sfc.wide.ad.jp>
 References: <1429263374-57517-1-git-send-email-tazaki@sfc.wide.ad.jp>
  <1429450104-47619-1-git-send-email-tazaki@sfc.wide.ad.jp>
@@ -14,212 +14,165 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Hajime Tazaki <tazaki@sfc.wide.ad.jp>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Christoph Lameter <cl@linux.com>, Jekka Enberg <penberg@kernel.org>, Javid Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Jndrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Rusty Russell <rusty@rustcorp.com.au>, Ryo Nakamura <upa@haeena.net>, Christoph Paasch <christoph.paasch@gmail.com>, Mathieu Lacage <mathieu.lacage@gmail.com>, libos-nuse@googlegroups.com
-Message-ID: <20150419132824.YFbhROCwghWNx4MZ3ruM1ajDWh9X3uiu2YsQmMiOZj0@z>
+Message-ID: <20150419132815.pPZtVdBeOlv8nMcrALY-GgCk6X4pN9HxSJdPiNaI3jU@z>
 
-These auxiliary files are used for testing and debugging of net/ code
-with libos. a simple test is implemented with make test ARCH=lib.
+libos (arch/lib) emulates a sysctl-like interface by a function call of
+userspace by enumerating sysctl tree from sysctl_table_root. It requires
+to be publicly accessible to this symbol and related functions.
 
 Signed-off-by: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
 ---
- tools/testing/libos/.gitignore   |  6 +++++
- tools/testing/libos/Makefile     | 38 +++++++++++++++++++++++++++
- tools/testing/libos/README       | 15 +++++++++++
- tools/testing/libos/bisect.sh    | 10 +++++++
- tools/testing/libos/dce-test.sh  | 23 ++++++++++++++++
- tools/testing/libos/nuse-test.sh | 57 ++++++++++++++++++++++++++++++++++++++++
- 6 files changed, 149 insertions(+)
- create mode 100644 tools/testing/libos/.gitignore
- create mode 100644 tools/testing/libos/Makefile
- create mode 100644 tools/testing/libos/README
- create mode 100755 tools/testing/libos/bisect.sh
- create mode 100755 tools/testing/libos/dce-test.sh
- create mode 100755 tools/testing/libos/nuse-test.sh
+ fs/proc/proc_sysctl.c | 36 +++++++++++++++++++-----------------
+ 1 file changed, 19 insertions(+), 17 deletions(-)
 
-diff --git a/tools/testing/libos/.gitignore b/tools/testing/libos/.gitignore
-new file mode 100644
-index 0000000..57a74a0
---- /dev/null
-+++ b/tools/testing/libos/.gitignore
-@@ -0,0 +1,6 @@
-+*.pcap
-+files-*
-+bake
-+buildtop
-+core
-+exitprocs
-diff --git a/tools/testing/libos/Makefile b/tools/testing/libos/Makefile
-new file mode 100644
-index 0000000..3da25429
---- /dev/null
-+++ b/tools/testing/libos/Makefile
-@@ -0,0 +1,38 @@
-+ADD_PARAM?=
-+
-+all: test
-+
-+bake:
-+	hg clone http://code.nsnam.org/bake
-+
-+check_pkgs:
-+	@./bake/bake.py check | grep Bazaar | grep OK || (echo "bzr is missing" && ./bake/bake.py check)
-+	@./bake/bake.py check | grep autoreconf | grep OK || (echo "autotools is missing" && ./bake/bake.py check && exit 1)
-+
-+testbin: bake check_pkgs
-+	@cp ../../../arch/lib/tools/bakeconf-linux.xml bake/bakeconf.xml
-+	@mkdir -p buildtop/build/bin_dce
-+	cd buildtop ; \
-+	../bake/bake.py configure -e dce-linux-inkernel $(BAKECONF_PARAMS)
-+	cd buildtop ; \
-+	../bake/bake.py show --enabledTree | grep -v  -E "pygoocanvas|graphviz|python-dev" | grep Missing && (echo "required packages are missing") || echo ""
-+	cd buildtop ; \
-+	../bake/bake.py download ; \
-+	../bake/bake.py update ; \
-+	../bake/bake.py build
-+
-+test:
-+	@./dce-test.sh ADD_PARAM=$(ADD_PARAM)
-+
-+test-valgrind:
-+	@./dce-test.sh -g ADD_PARAM=$(ADD_PARAM)
-+
-+test-fault-injection:
-+	@./dce-test.sh -f ADD_PARAM=$(ADD_PARAM)
-+
-+clean:
-+#	@rm -rf buildtop
-+	@rm -f *.pcap
-+	@rm -rf files-*
-+	@rm -f exitprocs
-+	@rm -f core
-diff --git a/tools/testing/libos/README b/tools/testing/libos/README
-new file mode 100644
-index 0000000..51ac5a5
---- /dev/null
-+++ b/tools/testing/libos/README
-@@ -0,0 +1,15 @@
-+
-+- bisect.sh
-+a sample script to bisect an issue of network stack code with the help
-+of LibOS (and ns-3 network simulator). This was used to detect the issue
-+for the following patch.
-+
-+http://patchwork.ozlabs.org/patch/436351/
-+
-+- dce-test.sh
-+a test script invoked by 'make test ARCH=lib'. The contents of test
-+scenario are implemented as test suites of ns-3 network simulator.
-+
-+- nuse-test.sh
-+a simple test script for Network Stack in Userspace (NUSE).
-+
-diff --git a/tools/testing/libos/bisect.sh b/tools/testing/libos/bisect.sh
-new file mode 100755
-index 0000000..9377ac3
---- /dev/null
-+++ b/tools/testing/libos/bisect.sh
-@@ -0,0 +1,10 @@
-+#!/bin/sh
-+
-+git merge origin/nuse --no-commit
-+make clean ARCH=lib
-+make library ARCH=lib OPT=no
-+make test ARCH=lib ADD_PARAM=" -s dce-umip"
-+RET=$?
-+git reset --hard
-+
-+exit $RET
-diff --git a/tools/testing/libos/dce-test.sh b/tools/testing/libos/dce-test.sh
-new file mode 100755
-index 0000000..e81e2d8
---- /dev/null
-+++ b/tools/testing/libos/dce-test.sh
-@@ -0,0 +1,23 @@
-+#!/bin/sh
-+
-+set -e
-+#set -x
-+export LD_LOG=symbol-fail
-+#VERBOSE="-v"
-+VALGRIND=""
-+FAULT_INJECTION=""
-+
-+if [ "$1" = "-g" ] ; then
-+ VALGRIND="-g"
-+# Not implemneted yet.
-+#elif [ "$1" = "-f" ] ; then
-+# FAULT_INJECTION="-f"
-+fi
-+
-+# FIXME
-+#export NS_ATTRIBUTE_DEFAULT='ns3::DceManagerHelper::LoaderFactory=ns3::\
-+#DlmLoaderFactory[];ns3::TaskManager::FiberManagerType=UcontextFiberManager'
-+
-+cd buildtop/source/ns-3-dce
-+LD_LIBRARY_PATH=${srctree} ./test.py -n ${VALGRIND} ${FAULT_INJECTION}\
-+	   ${VERBOSE} ${ADD_PARAM}
-diff --git a/tools/testing/libos/nuse-test.sh b/tools/testing/libos/nuse-test.sh
-new file mode 100755
-index 0000000..198e7e4
---- /dev/null
-+++ b/tools/testing/libos/nuse-test.sh
-@@ -0,0 +1,57 @@
-+#!/bin/bash -e
-+
-+LIBOS_TOOLS=arch/lib/tools
-+
-+IFNAME=`ip route |grep default | awk '{print $5}'`
-+GW=`ip route |grep default | awk '{print $3}'`
-+#XXX
-+IPADDR=`echo $GW | sed -r "s/([0-9]+\.[0-9]+\.[0-9]+\.)([0-9]+)$/\1\`expr \2 + 10\`/"`
-+
-+# ip route
-+# ip address
-+# ip link
-+
-+NUSE_CONF=/tmp/nuse.conf
-+
-+cat > ${NUSE_CONF} << ENDCONF
-+
-+interface ${IFNAME}
-+	address ${IPADDR}
-+	netmask 255.255.255.0
-+	macaddr 00:01:01:01:01:02
-+	viftype RAW
-+
-+route
-+	network 0.0.0.0
-+	netmask 0.0.0.0
-+	gateway ${GW}
-+
-+ENDCONF
-+
-+cd ${LIBOS_TOOLS}
-+sudo NUSECONF=${NUSE_CONF} ./nuse ping 127.0.0.1 -c 2
-+
-+# rump test
-+sudo NUSECONF=${NUSE_CONF} ./nuse sleep 5 &
-+
-+sleep 2
-+PID_SLEEP=`/bin/ls -ltr /tmp/rump-server-nuse.* | tail -1 | awk '{print $9}' | sed -e "s/.*rump-server-nuse\.//g" | sed "s/=//"`
-+RUMP_URL=unix:///tmp/rump-server-nuse.$PID_SLEEP
-+# ls -ltr /tmp/*
-+
-+sudo chmod 777 /tmp/rump-server-nuse.$PID_SLEEP
-+LD_PRELOAD=./libnuse-hijack.so  RUMPHIJACK=socket=all \
-+    RUMP_SERVER=$RUMP_URL ip addr show
-+
-+wait %1
-+
-+if [ "$1" == "--extended" ] ; then
-+sudo NUSECONF=${NUSE_CONF} ./nuse ping ${GW} -c 2
-+sudo NUSECONF=${NUSE_CONF} ./nuse iperf -c ${GW} -p 2000 -t 3
-+sudo NUSECONF=${NUSE_CONF} ./nuse iperf -c ${GW} -p 8 -u -t 3
-+sudo NUSECONF=${NUSE_CONF} ./nuse dig www.google.com
-+sudo NUSECONF=${NUSE_CONF} ./nuse host www.google.com
-+sudo NUSECONF=${NUSE_CONF} ./nuse nslookup www.google.com
-+#sudo NUSECONF=${NUSE_CONF} ./nuse nc www.google.com 80
-+sudo NUSECONF=${NUSE_CONF} ./nuse wget www.google.com -O -
-+fi
+diff --git a/fs/proc/proc_sysctl.c b/fs/proc/proc_sysctl.c
+index f92d5dd..56feec7 100644
+--- a/fs/proc/proc_sysctl.c
++++ b/fs/proc/proc_sysctl.c
+@@ -35,7 +35,7 @@ static struct ctl_table root_table[] = {
+ 	},
+ 	{ }
+ };
+-static struct ctl_table_root sysctl_table_root = {
++struct ctl_table_root sysctl_table_root = {
+ 	.default_set.dir.header = {
+ 		{{.count = 1,
+ 		  .nreg = 1,
+@@ -77,8 +77,9 @@ static int namecmp(const char *name1, int len1, const char *name2, int len2)
+ }
+ 
+ /* Called under sysctl_lock */
+-static struct ctl_table *find_entry(struct ctl_table_header **phead,
+-	struct ctl_dir *dir, const char *name, int namelen)
++struct ctl_table *ctl_table_find_entry(struct ctl_table_header **phead,
++				       struct ctl_dir *dir, const char *name,
++				       int namelen)
+ {
+ 	struct ctl_table_header *head;
+ 	struct ctl_table *entry;
+@@ -300,7 +301,7 @@ static struct ctl_table *lookup_entry(struct ctl_table_header **phead,
+ 	struct ctl_table *entry;
+ 
+ 	spin_lock(&sysctl_lock);
+-	entry = find_entry(&head, dir, name, namelen);
++	entry = ctl_table_find_entry(&head, dir, name, namelen);
+ 	if (entry && use_table(head))
+ 		*phead = head;
+ 	else
+@@ -321,7 +322,7 @@ static struct ctl_node *first_usable_entry(struct rb_node *node)
+ 	return NULL;
+ }
+ 
+-static void first_entry(struct ctl_dir *dir,
++void ctl_table_first_entry(struct ctl_dir *dir,
+ 	struct ctl_table_header **phead, struct ctl_table **pentry)
+ {
+ 	struct ctl_table_header *head = NULL;
+@@ -339,7 +340,7 @@ static void first_entry(struct ctl_dir *dir,
+ 	*pentry = entry;
+ }
+ 
+-static void next_entry(struct ctl_table_header **phead, struct ctl_table **pentry)
++void ctl_table_next_entry(struct ctl_table_header **phead, struct ctl_table **pentry)
+ {
+ 	struct ctl_table_header *head = *phead;
+ 	struct ctl_table *entry = *pentry;
+@@ -670,7 +671,8 @@ static int proc_sys_readdir(struct file *file, struct dir_context *ctx)
+ 
+ 	pos = 2;
+ 
+-	for (first_entry(ctl_dir, &h, &entry); h; next_entry(&h, &entry)) {
++	for (ctl_table_first_entry(ctl_dir, &h, &entry); h;
++	     ctl_table_next_entry(&h, &entry)) {
+ 		if (!scan(h, entry, &pos, file, ctx)) {
+ 			sysctl_head_finish(h);
+ 			break;
+@@ -828,7 +830,7 @@ static struct ctl_dir *find_subdir(struct ctl_dir *dir,
+ 	struct ctl_table_header *head;
+ 	struct ctl_table *entry;
+ 
+-	entry = find_entry(&head, dir, name, namelen);
++	entry = ctl_table_find_entry(&head, dir, name, namelen);
+ 	if (!entry)
+ 		return ERR_PTR(-ENOENT);
+ 	if (!S_ISDIR(entry->mode))
+@@ -924,13 +926,13 @@ failed:
+ 	return subdir;
+ }
+ 
+-static struct ctl_dir *xlate_dir(struct ctl_table_set *set, struct ctl_dir *dir)
++struct ctl_dir *ctl_table_xlate_dir(struct ctl_table_set *set, struct ctl_dir *dir)
+ {
+ 	struct ctl_dir *parent;
+ 	const char *procname;
+ 	if (!dir->header.parent)
+ 		return &set->dir;
+-	parent = xlate_dir(set, dir->header.parent);
++	parent = ctl_table_xlate_dir(set, dir->header.parent);
+ 	if (IS_ERR(parent))
+ 		return parent;
+ 	procname = dir->header.ctl_table[0].procname;
+@@ -951,13 +953,13 @@ static int sysctl_follow_link(struct ctl_table_header **phead,
+ 	spin_lock(&sysctl_lock);
+ 	root = (*pentry)->data;
+ 	set = lookup_header_set(root, namespaces);
+-	dir = xlate_dir(set, (*phead)->parent);
++	dir = ctl_table_xlate_dir(set, (*phead)->parent);
+ 	if (IS_ERR(dir))
+ 		ret = PTR_ERR(dir);
+ 	else {
+ 		const char *procname = (*pentry)->procname;
+ 		head = NULL;
+-		entry = find_entry(&head, dir, procname, strlen(procname));
++		entry = ctl_table_find_entry(&head, dir, procname, strlen(procname));
+ 		ret = -ENOENT;
+ 		if (entry && use_table(head)) {
+ 			unuse_table(*phead);
+@@ -1069,7 +1071,7 @@ static bool get_links(struct ctl_dir *dir,
+ 	/* Are there links available for every entry in table? */
+ 	for (entry = table; entry->procname; entry++) {
+ 		const char *procname = entry->procname;
+-		link = find_entry(&head, dir, procname, strlen(procname));
++		link = ctl_table_find_entry(&head, dir, procname, strlen(procname));
+ 		if (!link)
+ 			return false;
+ 		if (S_ISDIR(link->mode) && S_ISDIR(entry->mode))
+@@ -1082,7 +1084,7 @@ static bool get_links(struct ctl_dir *dir,
+ 	/* The checks passed.  Increase the registration count on the links */
+ 	for (entry = table; entry->procname; entry++) {
+ 		const char *procname = entry->procname;
+-		link = find_entry(&head, dir, procname, strlen(procname));
++		link = ctl_table_find_entry(&head, dir, procname, strlen(procname));
+ 		head->nreg++;
+ 	}
+ 	return true;
+@@ -1098,7 +1100,7 @@ static int insert_links(struct ctl_table_header *head)
+ 	if (head->set == root_set)
+ 		return 0;
+ 
+-	core_parent = xlate_dir(root_set, head->parent);
++	core_parent = ctl_table_xlate_dir(root_set, head->parent);
+ 	if (IS_ERR(core_parent))
+ 		return 0;
+ 
+@@ -1479,7 +1481,7 @@ static void put_links(struct ctl_table_header *header)
+ 	if (header->set == root_set)
+ 		return;
+ 
+-	core_parent = xlate_dir(root_set, parent);
++	core_parent = ctl_table_xlate_dir(root_set, parent);
+ 	if (IS_ERR(core_parent))
+ 		return;
+ 
+@@ -1488,7 +1490,7 @@ static void put_links(struct ctl_table_header *header)
+ 		struct ctl_table *link;
+ 		const char *name = entry->procname;
+ 
+-		link = find_entry(&link_head, core_parent, name, strlen(name));
++		link = ctl_table_find_entry(&link_head, core_parent, name, strlen(name));
+ 		if (link &&
+ 		    ((S_ISDIR(link->mode) && S_ISDIR(entry->mode)) ||
+ 		     (S_ISLNK(link->mode) && (link->data == root)))) {
 -- 
 2.1.0
 
