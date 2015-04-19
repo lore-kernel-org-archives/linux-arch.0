@@ -1,255 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shonan.sfc.wide.ad.jp ([203.178.142.130]:56483 "EHLO
+Received: from shonan.sfc.wide.ad.jp ([203.178.142.130]:56661 "EHLO
 	mail.sfc.wide.ad.jp" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752179AbbDSN2r (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Apr 2015 09:28:47 -0400
+	with ESMTP id S1753942AbbDSN33 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 19 Apr 2015 09:29:29 -0400
 From: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-Subject: [RFC PATCH v3 00/10] an introduction of library operating system for Linux (LibOS)
-Date: Sun, 19 Apr 2015 22:28:14 +0900
-Message-ID: <1429450104-47619-1-git-send-email-tazaki@sfc.wide.ad.jp>
-In-Reply-To: <1429263374-57517-1-git-send-email-tazaki@sfc.wide.ad.jp>
+Subject: [RFC PATCH v3 10/10] lib: tools used for test scripts
+Date: Sun, 19 Apr 2015 22:28:24 +0900
+Message-ID: <1429450104-47619-11-git-send-email-tazaki@sfc.wide.ad.jp>
+In-Reply-To: <1429450104-47619-1-git-send-email-tazaki@sfc.wide.ad.jp>
 References: <1429263374-57517-1-git-send-email-tazaki@sfc.wide.ad.jp>
+ <1429450104-47619-1-git-send-email-tazaki@sfc.wide.ad.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Hajime Tazaki <tazaki@sfc.wide.ad.jp>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Christoph Lameter <cl@linux.com>, Jekka Enberg <penberg@kernel.org>, Javid Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Jndrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Rusty Russell <rusty@rustcorp.com.au>, Ryo Nakamura <upa@haeena.net>, Christoph Paasch <christoph.paasch@gmail.com>, Mathieu Lacage <mathieu.lacage@gmail.com>, libos-nuse@googlegroups.com
-Message-ID: <20150419132814.IH_OgWwyWbJgoT2aUVh7vqesNHIW_LS9Pc-a2q_OATY@z>
+Message-ID: <20150419132824.YFbhROCwghWNx4MZ3ruM1ajDWh9X3uiu2YsQmMiOZj0@z>
 
-changes from v2:
-- Patch 02/11 ("slab: add private memory allocator header for arch/lib")
-* add new allocator named SLIB (Library Allocator): Patch 04/11 is integrated
-  to 02 (commented by Christoph Lameter)
-- Overall
-* rewrite commit log messages
+These auxiliary files are used for testing and debugging of net/ code
+with libos. a simple test is implemented with make test ARCH=lib.
 
-changes from v1:
-- Patch 01/11 ("sysctl: make some functions unstatic to access by arch/lib"):
-* add prefix ctl_table_ to newly publiced functions (commented by Joe Perches)
-- Patch 08/11 ("lib: other kernel glue layer code"):
-* significantly reduce glue codes (stubs) (commented by Richard Weinberger)
-- Others
-* adapt to linux-4.0.0
-* detect make dependency by Kbuild .cmd files
-
-patchset history
------------------
-[v2] : https://lkml.org/lkml/2015/4/17/140
-[v1] : https://lkml.org/lkml/2015/3/24/254
-
-This is an introduction of library operating system (LibOS) for Linux.
-
-Our objective is to build the kernel network stack as a shared library
-that can be linked to by userspace programs to provide network stack
-personalization and testing facilities, and allow researchers to more
-easily simulate complex network topologies of linux routers/hosts.
-
-Although the architecture itself can virtualize various things, the
-current design only focuses on the network stack. You can benefit
-network stack feature such as TCP, UDP, SCTP, DCCP (IPv4 and IPv6),
-Mobie IPv6, Multipath TCP (IPv4/IPv6, out-of-tree at the present
-moment), and netlink with various userspace applications (quagga,
-iproute2, iperf, wget, and thttpd).
-
-== What is LibOS ? ==
-
-The library exposes an entry point as API, which is lib_init(), in
-order to connect userspace applications to the (userspace-version)
-kernel network stack. The clock source, virtual struct net_device, and
-scheduler are provided by caller while kernel resource like system
-calls is provided by callee.
-
-Once the LibOS is initialized via the API, userspace applications with
-POSIX socket can use the system calls defined in LibOS by replacing
-from the original socket-related symbols to the LibOS-specific
-one. Then application can benefit the network stack of LibOS without
-involving the host network stack.
-
-Currently, there are two users of LibOS: Network Stack in Userspace
-(NUSE) and ns-3 network simulatior with Direct Code Execution
-(DCE). These codes are managed at an external repository(*1).
-
-
-== How to use it ? ==
-
-to build the library,
-% make {defconfig,menuconfig} ARCH=lib
-
-then, build it.
-% make library ARCH=lib
-
-You will see liblinux-$(KERNELVERSION).so in the top directory.
-
-== More information ==
-
-The crucial difference between UML (user-mode linux) and this approach
-is that we allow multiple network stack instances to co-exist within a
-single process with dlmopen(3) like linking for easy debugging.
-
-
-These patches are also available on this branch:
-
-git://github.com/libos-nuse/net-next-nuse.git for-asm-upstream-v3
-
-
-For further information, here is a slideset presented at the last
-netdev0.1 conference.
-
-http://www.slideshare.net/hajimetazaki/library-operating-system-for-linux-netdev01
-
-I would appreciate any kind of your feedback regarding to upstream
-this feature.
-
-*1 https://github.com/libos-nuse/linux-libos-tools
-
-Hajime Tazaki (10):
-  sysctl: make some functions unstatic to access by arch/lib
-  slab: add SLIB (Library memory allocator) for arch/lib
-  lib: public headers and API implementations for userspace programs
-  lib: time handling (kernel glue code)
-  lib: context and scheduling functions (kernel glue code) for libos
-  lib: sysctl handling (kernel glue code)
-  lib: other kernel glue layer code
-  lib: auxially files for auto-generated asm-generic files of libos
-  lib: libos build scripts and documentation
-  lib: tools used for test scripts
-
- Documentation/virtual/libos-howto.txt | 144 ++++++++
- MAINTAINERS                           |   9 +
- arch/lib/.gitignore                   |   8 +
- arch/lib/Kconfig                      | 124 +++++++
- arch/lib/Makefile                     | 251 +++++++++++++
- arch/lib/Makefile.print               |  45 +++
- arch/lib/capability.c                 |  47 +++
- arch/lib/defconfig                    | 653 ++++++++++++++++++++++++++++++++++
- arch/lib/filemap.c                    |  32 ++
- arch/lib/fs.c                         |  70 ++++
- arch/lib/generate-linker-script.py    |  50 +++
- arch/lib/glue.c                       | 283 +++++++++++++++
- arch/lib/hrtimer.c                    | 122 +++++++
- arch/lib/include/asm/Kbuild           |  57 +++
- arch/lib/include/asm/atomic.h         |  50 +++
- arch/lib/include/asm/barrier.h        |   8 +
- arch/lib/include/asm/bitsperlong.h    |  12 +
- arch/lib/include/asm/current.h        |   7 +
- arch/lib/include/asm/elf.h            |  10 +
- arch/lib/include/asm/hardirq.h        |   8 +
- arch/lib/include/asm/page.h           |  14 +
- arch/lib/include/asm/pgtable.h        |  30 ++
- arch/lib/include/asm/processor.h      |  19 +
- arch/lib/include/asm/ptrace.h         |   4 +
- arch/lib/include/asm/segment.h        |   6 +
- arch/lib/include/asm/sembuf.h         |   4 +
- arch/lib/include/asm/shmbuf.h         |   4 +
- arch/lib/include/asm/shmparam.h       |   4 +
- arch/lib/include/asm/sigcontext.h     |   6 +
- arch/lib/include/asm/stat.h           |   4 +
- arch/lib/include/asm/statfs.h         |   4 +
- arch/lib/include/asm/swab.h           |   7 +
- arch/lib/include/asm/thread_info.h    |  36 ++
- arch/lib/include/asm/uaccess.h        |  14 +
- arch/lib/include/asm/unistd.h         |   4 +
- arch/lib/include/sim-assert.h         |  23 ++
- arch/lib/include/sim-init.h           | 134 +++++++
- arch/lib/include/sim-printf.h         |  13 +
- arch/lib/include/sim-types.h          |  53 +++
- arch/lib/include/sim.h                |  51 +++
- arch/lib/include/uapi/asm/byteorder.h |   6 +
- arch/lib/lib-device.c                 | 187 ++++++++++
- arch/lib/lib-socket.c                 | 410 +++++++++++++++++++++
- arch/lib/lib.c                        | 294 +++++++++++++++
- arch/lib/lib.h                        |  21 ++
- arch/lib/modules.c                    |  36 ++
- arch/lib/pid.c                        |  29 ++
- arch/lib/print.c                      |  56 +++
- arch/lib/proc.c                       |  34 ++
- arch/lib/processor.mk                 |   7 +
- arch/lib/random.c                     |  53 +++
- arch/lib/sched.c                      | 406 +++++++++++++++++++++
- arch/lib/softirq.c                    | 108 ++++++
- arch/lib/sysctl.c                     | 270 ++++++++++++++
- arch/lib/sysfs.c                      |  83 +++++
- arch/lib/tasklet-hrtimer.c            |  57 +++
- arch/lib/tasklet.c                    |  76 ++++
- arch/lib/time.c                       | 144 ++++++++
- arch/lib/timer.c                      | 238 +++++++++++++
- arch/lib/vmscan.c                     |  26 ++
- arch/lib/workqueue.c                  | 242 +++++++++++++
- fs/proc/proc_sysctl.c                 |  36 +-
- include/linux/slab.h                  |   6 +-
- include/linux/slib_def.h              |  21 ++
- init/Kconfig                          |   8 +
- mm/Makefile                           |   1 +
- mm/slab.h                             |   4 +
- mm/slib.c                             | 205 +++++++++++
- tools/testing/libos/.gitignore        |   6 +
- tools/testing/libos/Makefile          |  38 ++
- tools/testing/libos/README            |  15 +
- tools/testing/libos/bisect.sh         |  10 +
- tools/testing/libos/dce-test.sh       |  23 ++
- tools/testing/libos/nuse-test.sh      |  57 +++
- 74 files changed, 5619 insertions(+), 18 deletions(-)
- create mode 100644 Documentation/virtual/libos-howto.txt
- create mode 100644 arch/lib/.gitignore
- create mode 100644 arch/lib/Kconfig
- create mode 100644 arch/lib/Makefile
- create mode 100644 arch/lib/Makefile.print
- create mode 100644 arch/lib/capability.c
- create mode 100644 arch/lib/defconfig
- create mode 100644 arch/lib/filemap.c
- create mode 100644 arch/lib/fs.c
- create mode 100755 arch/lib/generate-linker-script.py
- create mode 100644 arch/lib/glue.c
- create mode 100644 arch/lib/hrtimer.c
- create mode 100644 arch/lib/include/asm/Kbuild
- create mode 100644 arch/lib/include/asm/atomic.h
- create mode 100644 arch/lib/include/asm/barrier.h
- create mode 100644 arch/lib/include/asm/bitsperlong.h
- create mode 100644 arch/lib/include/asm/current.h
- create mode 100644 arch/lib/include/asm/elf.h
- create mode 100644 arch/lib/include/asm/hardirq.h
- create mode 100644 arch/lib/include/asm/page.h
- create mode 100644 arch/lib/include/asm/pgtable.h
- create mode 100644 arch/lib/include/asm/processor.h
- create mode 100644 arch/lib/include/asm/ptrace.h
- create mode 100644 arch/lib/include/asm/segment.h
- create mode 100644 arch/lib/include/asm/sembuf.h
- create mode 100644 arch/lib/include/asm/shmbuf.h
- create mode 100644 arch/lib/include/asm/shmparam.h
- create mode 100644 arch/lib/include/asm/sigcontext.h
- create mode 100644 arch/lib/include/asm/stat.h
- create mode 100644 arch/lib/include/asm/statfs.h
- create mode 100644 arch/lib/include/asm/swab.h
- create mode 100644 arch/lib/include/asm/thread_info.h
- create mode 100644 arch/lib/include/asm/uaccess.h
- create mode 100644 arch/lib/include/asm/unistd.h
- create mode 100644 arch/lib/include/sim-assert.h
- create mode 100644 arch/lib/include/sim-init.h
- create mode 100644 arch/lib/include/sim-printf.h
- create mode 100644 arch/lib/include/sim-types.h
- create mode 100644 arch/lib/include/sim.h
- create mode 100644 arch/lib/include/uapi/asm/byteorder.h
- create mode 100644 arch/lib/lib-device.c
- create mode 100644 arch/lib/lib-socket.c
- create mode 100644 arch/lib/lib.c
- create mode 100644 arch/lib/lib.h
- create mode 100644 arch/lib/modules.c
- create mode 100644 arch/lib/pid.c
- create mode 100644 arch/lib/print.c
- create mode 100644 arch/lib/proc.c
- create mode 100644 arch/lib/processor.mk
- create mode 100644 arch/lib/random.c
- create mode 100644 arch/lib/sched.c
- create mode 100644 arch/lib/softirq.c
- create mode 100644 arch/lib/sysctl.c
- create mode 100644 arch/lib/sysfs.c
- create mode 100644 arch/lib/tasklet-hrtimer.c
- create mode 100644 arch/lib/tasklet.c
- create mode 100644 arch/lib/time.c
- create mode 100644 arch/lib/timer.c
- create mode 100644 arch/lib/vmscan.c
- create mode 100644 arch/lib/workqueue.c
- create mode 100644 include/linux/slib_def.h
- create mode 100644 mm/slib.c
+Signed-off-by: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
+---
+ tools/testing/libos/.gitignore   |  6 +++++
+ tools/testing/libos/Makefile     | 38 +++++++++++++++++++++++++++
+ tools/testing/libos/README       | 15 +++++++++++
+ tools/testing/libos/bisect.sh    | 10 +++++++
+ tools/testing/libos/dce-test.sh  | 23 ++++++++++++++++
+ tools/testing/libos/nuse-test.sh | 57 ++++++++++++++++++++++++++++++++++++++++
+ 6 files changed, 149 insertions(+)
  create mode 100644 tools/testing/libos/.gitignore
  create mode 100644 tools/testing/libos/Makefile
  create mode 100644 tools/testing/libos/README
@@ -257,6 +35,191 @@ Hajime Tazaki (10):
  create mode 100755 tools/testing/libos/dce-test.sh
  create mode 100755 tools/testing/libos/nuse-test.sh
 
+diff --git a/tools/testing/libos/.gitignore b/tools/testing/libos/.gitignore
+new file mode 100644
+index 0000000..57a74a0
+--- /dev/null
++++ b/tools/testing/libos/.gitignore
+@@ -0,0 +1,6 @@
++*.pcap
++files-*
++bake
++buildtop
++core
++exitprocs
+diff --git a/tools/testing/libos/Makefile b/tools/testing/libos/Makefile
+new file mode 100644
+index 0000000..3da25429
+--- /dev/null
++++ b/tools/testing/libos/Makefile
+@@ -0,0 +1,38 @@
++ADD_PARAM?=
++
++all: test
++
++bake:
++	hg clone http://code.nsnam.org/bake
++
++check_pkgs:
++	@./bake/bake.py check | grep Bazaar | grep OK || (echo "bzr is missing" && ./bake/bake.py check)
++	@./bake/bake.py check | grep autoreconf | grep OK || (echo "autotools is missing" && ./bake/bake.py check && exit 1)
++
++testbin: bake check_pkgs
++	@cp ../../../arch/lib/tools/bakeconf-linux.xml bake/bakeconf.xml
++	@mkdir -p buildtop/build/bin_dce
++	cd buildtop ; \
++	../bake/bake.py configure -e dce-linux-inkernel $(BAKECONF_PARAMS)
++	cd buildtop ; \
++	../bake/bake.py show --enabledTree | grep -v  -E "pygoocanvas|graphviz|python-dev" | grep Missing && (echo "required packages are missing") || echo ""
++	cd buildtop ; \
++	../bake/bake.py download ; \
++	../bake/bake.py update ; \
++	../bake/bake.py build
++
++test:
++	@./dce-test.sh ADD_PARAM=$(ADD_PARAM)
++
++test-valgrind:
++	@./dce-test.sh -g ADD_PARAM=$(ADD_PARAM)
++
++test-fault-injection:
++	@./dce-test.sh -f ADD_PARAM=$(ADD_PARAM)
++
++clean:
++#	@rm -rf buildtop
++	@rm -f *.pcap
++	@rm -rf files-*
++	@rm -f exitprocs
++	@rm -f core
+diff --git a/tools/testing/libos/README b/tools/testing/libos/README
+new file mode 100644
+index 0000000..51ac5a5
+--- /dev/null
++++ b/tools/testing/libos/README
+@@ -0,0 +1,15 @@
++
++- bisect.sh
++a sample script to bisect an issue of network stack code with the help
++of LibOS (and ns-3 network simulator). This was used to detect the issue
++for the following patch.
++
++http://patchwork.ozlabs.org/patch/436351/
++
++- dce-test.sh
++a test script invoked by 'make test ARCH=lib'. The contents of test
++scenario are implemented as test suites of ns-3 network simulator.
++
++- nuse-test.sh
++a simple test script for Network Stack in Userspace (NUSE).
++
+diff --git a/tools/testing/libos/bisect.sh b/tools/testing/libos/bisect.sh
+new file mode 100755
+index 0000000..9377ac3
+--- /dev/null
++++ b/tools/testing/libos/bisect.sh
+@@ -0,0 +1,10 @@
++#!/bin/sh
++
++git merge origin/nuse --no-commit
++make clean ARCH=lib
++make library ARCH=lib OPT=no
++make test ARCH=lib ADD_PARAM=" -s dce-umip"
++RET=$?
++git reset --hard
++
++exit $RET
+diff --git a/tools/testing/libos/dce-test.sh b/tools/testing/libos/dce-test.sh
+new file mode 100755
+index 0000000..e81e2d8
+--- /dev/null
++++ b/tools/testing/libos/dce-test.sh
+@@ -0,0 +1,23 @@
++#!/bin/sh
++
++set -e
++#set -x
++export LD_LOG=symbol-fail
++#VERBOSE="-v"
++VALGRIND=""
++FAULT_INJECTION=""
++
++if [ "$1" = "-g" ] ; then
++ VALGRIND="-g"
++# Not implemneted yet.
++#elif [ "$1" = "-f" ] ; then
++# FAULT_INJECTION="-f"
++fi
++
++# FIXME
++#export NS_ATTRIBUTE_DEFAULT='ns3::DceManagerHelper::LoaderFactory=ns3::\
++#DlmLoaderFactory[];ns3::TaskManager::FiberManagerType=UcontextFiberManager'
++
++cd buildtop/source/ns-3-dce
++LD_LIBRARY_PATH=${srctree} ./test.py -n ${VALGRIND} ${FAULT_INJECTION}\
++	   ${VERBOSE} ${ADD_PARAM}
+diff --git a/tools/testing/libos/nuse-test.sh b/tools/testing/libos/nuse-test.sh
+new file mode 100755
+index 0000000..198e7e4
+--- /dev/null
++++ b/tools/testing/libos/nuse-test.sh
+@@ -0,0 +1,57 @@
++#!/bin/bash -e
++
++LIBOS_TOOLS=arch/lib/tools
++
++IFNAME=`ip route |grep default | awk '{print $5}'`
++GW=`ip route |grep default | awk '{print $3}'`
++#XXX
++IPADDR=`echo $GW | sed -r "s/([0-9]+\.[0-9]+\.[0-9]+\.)([0-9]+)$/\1\`expr \2 + 10\`/"`
++
++# ip route
++# ip address
++# ip link
++
++NUSE_CONF=/tmp/nuse.conf
++
++cat > ${NUSE_CONF} << ENDCONF
++
++interface ${IFNAME}
++	address ${IPADDR}
++	netmask 255.255.255.0
++	macaddr 00:01:01:01:01:02
++	viftype RAW
++
++route
++	network 0.0.0.0
++	netmask 0.0.0.0
++	gateway ${GW}
++
++ENDCONF
++
++cd ${LIBOS_TOOLS}
++sudo NUSECONF=${NUSE_CONF} ./nuse ping 127.0.0.1 -c 2
++
++# rump test
++sudo NUSECONF=${NUSE_CONF} ./nuse sleep 5 &
++
++sleep 2
++PID_SLEEP=`/bin/ls -ltr /tmp/rump-server-nuse.* | tail -1 | awk '{print $9}' | sed -e "s/.*rump-server-nuse\.//g" | sed "s/=//"`
++RUMP_URL=unix:///tmp/rump-server-nuse.$PID_SLEEP
++# ls -ltr /tmp/*
++
++sudo chmod 777 /tmp/rump-server-nuse.$PID_SLEEP
++LD_PRELOAD=./libnuse-hijack.so  RUMPHIJACK=socket=all \
++    RUMP_SERVER=$RUMP_URL ip addr show
++
++wait %1
++
++if [ "$1" == "--extended" ] ; then
++sudo NUSECONF=${NUSE_CONF} ./nuse ping ${GW} -c 2
++sudo NUSECONF=${NUSE_CONF} ./nuse iperf -c ${GW} -p 2000 -t 3
++sudo NUSECONF=${NUSE_CONF} ./nuse iperf -c ${GW} -p 8 -u -t 3
++sudo NUSECONF=${NUSE_CONF} ./nuse dig www.google.com
++sudo NUSECONF=${NUSE_CONF} ./nuse host www.google.com
++sudo NUSECONF=${NUSE_CONF} ./nuse nslookup www.google.com
++#sudo NUSECONF=${NUSE_CONF} ./nuse nc www.google.com 80
++sudo NUSECONF=${NUSE_CONF} ./nuse wget www.google.com -O -
++fi
 -- 
 2.1.0
 
