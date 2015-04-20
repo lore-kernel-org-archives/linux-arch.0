@@ -1,38 +1,337 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v8 16/17] mksysmap: Add h8300 local symbol pattern
-Date: Mon, 20 Apr 2015 15:13:32 +0900
-Message-ID: <1429510413-14869-17-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v8 11/17] h8300: clock driver
+Date: Mon, 20 Apr 2015 15:13:27 +0900
+Message-ID: <1429510413-14869-12-git-send-email-ysato@users.sourceforge.jp>
 References: <1429510413-14869-1-git-send-email-ysato@users.sourceforge.jp>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail2.asahi-net.or.jp ([202.224.39.198]:34533 "EHLO
+	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751520AbbDTGd4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Apr 2015 02:33:56 -0400
 In-Reply-To: <1429510413-14869-1-git-send-email-ysato@users.sourceforge.jp>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-List-Id: linux-arch.vger.kernel.org
 
-h8300's nm output have a lot of local symbols.
-ex)
-00000000 N .Lframe0
-00000013 N .LLST1
-00000026 N .LLST2
-00000039 N .LLST3
-0000004c N .LLST4
-Added new pattern " .L" to filter rule.
+h8300 clock generator drivers.
+H8/3069 is simple oscillator.
+H8S2678 is PLL multiplier support.
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- scripts/mksysmap | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ drivers/clk/Makefile            |   1 +
+ drivers/clk/h8300/Makefile      |   2 +
+ drivers/clk/h8300/clk-h83069.c  |  80 +++++++++++++++++++
+ drivers/clk/h8300/clk-h8s2678.c | 171 ++++++++++++++++++++++++++++++++++++++++
+ include/linux/clk-provider.h    |  12 +++
+ 5 files changed, 266 insertions(+)
+ create mode 100644 drivers/clk/h8300/Makefile
+ create mode 100644 drivers/clk/h8300/clk-h83069.c
+ create mode 100644 drivers/clk/h8300/clk-h8s2678.c
 
-diff --git a/scripts/mksysmap b/scripts/mksysmap
-index 7ada35a..a35acc0 100755
---- a/scripts/mksysmap
-+++ b/scripts/mksysmap
-@@ -41,4 +41,4 @@
- # so we just ignore them to let readprofile continue to work.
- # (At least sparc64 has __crc_ in the middle).
+diff --git a/drivers/clk/Makefile b/drivers/clk/Makefile
+index d478ceb..593b09c 100644
+--- a/drivers/clk/Makefile
++++ b/drivers/clk/Makefile
+@@ -70,3 +70,4 @@ obj-$(CONFIG_ARCH_U8500)		+= ux500/
+ obj-$(CONFIG_COMMON_CLK_VERSATILE)	+= versatile/
+ obj-$(CONFIG_X86)			+= x86/
+ obj-$(CONFIG_ARCH_ZYNQ)			+= zynq/
++obj-$(CONFIG_H8300)		+= h8300/
+diff --git a/drivers/clk/h8300/Makefile b/drivers/clk/h8300/Makefile
+new file mode 100644
+index 0000000..82eab42
+--- /dev/null
++++ b/drivers/clk/h8300/Makefile
+@@ -0,0 +1,2 @@
++obj-$(CONFIG_H83069) += clk-h83069.o
++obj-$(CONFIG_H8S2678) += clk-h8s2678.o
+diff --git a/drivers/clk/h8300/clk-h83069.c b/drivers/clk/h8300/clk-h83069.c
+new file mode 100644
+index 0000000..0a20dd5
+--- /dev/null
++++ b/drivers/clk/h8300/clk-h83069.c
+@@ -0,0 +1,80 @@
++/*
++ * H8/3069 clock driver
++ *
++ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ */
++
++#include <linux/clk.h>
++#include <linux/clkdev.h>
++#include <linux/clk-provider.h>
++#include <linux/err.h>
++#include <linux/device.h>
++#include <linux/platform_device.h>
++
++static DEFINE_SPINLOCK(clklock);
++
++#define DIVCR ((unsigned char *)0xfee01b)
++#define DEVNAME "h83069-cpg"
++
++static int clk_probe(struct platform_device *pdev)
++{
++	struct clk *clk;
++	int *hz = dev_get_platdata(&pdev->dev);
++
++	clk = clk_register_fixed_rate(&pdev->dev, "master_clk", NULL,
++				      CLK_IS_ROOT, *hz);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "master_clk", DEVNAME ".%d", 0);
++
++	clk = clk_register_divider(&pdev->dev, "core_clk", "master_clk",
++				   CLK_SET_RATE_GATE, DIVCR, 0, 2,
++				   CLK_DIVIDER_POWER_OF_TWO, &clklock);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "core_clk", DEVNAME ".%d", 0);
++
++	clk = clk_register_fixed_factor(&pdev->dev, "peripheral_clk", "core_clk",
++					0, 1, 1);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "peripheral_clk", NULL);
++	return 0;
++}
++
++static struct platform_driver cpg_driver = {
++	.driver = {
++		.name = DEVNAME,
++	},
++	.probe = clk_probe,
++};
++
++early_platform_init(DEVNAME, &cpg_driver);
++
++static struct platform_device clk_device = {
++	.name		= DEVNAME,
++	.id		= 0,
++};
++
++static struct platform_device *devices[] __initdata = {
++	&clk_device,
++};
++
++int __init h8300_clk_init(int hz)
++{
++	static int master_hz;
++
++	master_hz = hz;
++	clk_device.dev.platform_data = &master_hz;
++	early_platform_add_devices(devices,
++				   ARRAY_SIZE(devices));
++	early_platform_driver_register_all(DEVNAME);
++	early_platform_driver_probe(DEVNAME, 1, 0);
++	return 0;
++}
+diff --git a/drivers/clk/h8300/clk-h8s2678.c b/drivers/clk/h8300/clk-h8s2678.c
+new file mode 100644
+index 0000000..55b490c
+--- /dev/null
++++ b/drivers/clk/h8300/clk-h8s2678.c
+@@ -0,0 +1,171 @@
++/*
++ * H8S2678 clock driver
++ *
++ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ */
++
++#include <linux/clk.h>
++#include <linux/clkdev.h>
++#include <linux/clk-provider.h>
++#include <linux/err.h>
++#include <linux/device.h>
++#include <linux/platform_device.h>
++
++static DEFINE_SPINLOCK(clklock);
++
++#define SCKCR 0xffff3b
++#define PLLCR 0xffff45
++#define DEVNAME "h8s2678-cpg"
++#define MAX_FREQ 33333333
++#define MIN_FREQ  8000000
++
++static unsigned long pll_recalc_rate(struct clk_hw *hw,
++		unsigned long parent_rate)
++{
++	int mul = 1 << (ctrl_inb(PLLCR) & 3);
++
++	return parent_rate * mul;
++}
++
++static long pll_round_rate(struct clk_hw *hw, unsigned long rate,
++				unsigned long *prate)
++{
++	int i, m = -1;
++	long offset[3];
++
++	if (rate > MAX_FREQ)
++		rate = MAX_FREQ;
++	if (rate < MIN_FREQ)
++		rate = MIN_FREQ;
++
++	for (i = 0; i < 3; i++)
++		offset[i] = abs(rate - (*prate * (1 << i)));
++	for (i = 0; i < 3; i++)
++		if (m < 0)
++			m = i;
++		else
++			m = (offset[i] < offset[m])?i:m;
++
++	return *prate * (1 << m);
++}
++
++static int pll_set_rate(struct clk_hw *hw, unsigned long rate,
++			unsigned long parent_rate)
++{
++	int pll;
++	unsigned char val;
++	unsigned long flags;
++
++	pll = ((rate / parent_rate) / 2) & 0x03;
++	spin_lock_irqsave(&clklock, flags);
++	val = ctrl_inb(SCKCR);
++	val |= 0x08;
++	ctrl_outb(val, SCKCR);
++	val = ctrl_inb(PLLCR);
++	val &= ~0x03;
++	val |= pll;
++	ctrl_outb(val, PLLCR);
++	spin_unlock_irqrestore(&clklock, flags);
++	return 0;
++}
++
++static const struct clk_ops pll_ops = {
++	.recalc_rate = pll_recalc_rate,
++	.round_rate = pll_round_rate,
++	.set_rate = pll_set_rate,
++};
++
++static struct clk *pll_clk_register(struct device *dev, const char *name,
++				const char *parent)
++{
++	struct clk_hw *hw;
++	struct clk *clk;
++	struct clk_init_data init;
++
++	hw = kzalloc(sizeof(struct clk_hw), GFP_KERNEL);
++	if (!hw)
++		return ERR_PTR(-ENOMEM);
++
++	init.name = name;
++	init.ops = &pll_ops;
++	init.flags = CLK_IS_BASIC;
++	init.parent_names = &parent;
++	init.num_parents = 1;
++	hw->init = &init;
++
++	clk = clk_register(dev, hw);
++	if (IS_ERR(clk))
++		kfree(hw);
++
++	return clk;
++}
++
++static int clk_probe(struct platform_device *pdev)
++{
++	struct clk *clk;
++	int *hz = dev_get_platdata(&pdev->dev);
++
++	clk = clk_register_fixed_rate(&pdev->dev, "master_clk", NULL,
++				      CLK_IS_ROOT, *hz);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "master_clk", DEVNAME ".%d", 0);
++
++	clk = pll_clk_register(&pdev->dev, "pll_clk", "master_clk");
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "pll_clk", DEVNAME ".%d", 0);
++
++	clk = clk_register_divider(&pdev->dev, "core_clk", "pll_clk",
++				   CLK_SET_RATE_GATE, (unsigned char *)SCKCR,
++				   0, 3, CLK_DIVIDER_POWER_OF_TWO, &clklock);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "core_clk", DEVNAME ".%d", 0);
++
++	clk = clk_register_fixed_factor(&pdev->dev, "peripheral_clk", "core_clk",
++					0, 1, 1);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "peripheral_clk", NULL);
++	return 0;
++}
++
++static struct platform_driver cpg_driver = {
++	.driver = {
++		.name = DEVNAME,
++	},
++	.probe = clk_probe,
++};
++
++early_platform_init(DEVNAME, &cpg_driver);
++
++static struct platform_device clk_device = {
++	.name		= DEVNAME,
++	.id		= 0,
++};
++
++static struct platform_device *devices[] __initdata = {
++	&clk_device,
++};
++
++int __init h8300_clk_init(int hz)
++{
++	static int master_hz;
++
++	master_hz = hz;
++	clk_device.dev.platform_data = &master_hz;
++	early_platform_add_devices(devices,
++				   ARRAY_SIZE(devices));
++	early_platform_driver_register_all(DEVNAME);
++	early_platform_driver_probe(DEVNAME, 1, 0);
++	return 0;
++}
+diff --git a/include/linux/clk-provider.h b/include/linux/clk-provider.h
+index 5591ea7..6059414 100644
+--- a/include/linux/clk-provider.h
++++ b/include/linux/clk-provider.h
+@@ -675,6 +675,18 @@ static inline void clk_writel(u32 val, u32 __iomem *reg)
+ 	iowrite32be(val, reg);
+ }
  
--$NM -n $1 | grep -v '\( [aNUw] \)\|\(__crc_\)\|\( \$[adt]\)' > $2
-+$NM -n $1 | grep -v '\( [aNUw] \)\|\(__crc_\)\|\( \$[adt]\)\|\( .L\)' > $2
++#elif IS_ENABLED(CONFIG_H8300)
++
++static inline u32 clk_readl(u32 __iomem *reg)
++{
++	return __raw_readb(reg);
++}
++
++static inline void clk_writel(u32 val, u32 __iomem *reg)
++{
++	__raw_writeb(val, reg);
++}
++
+ #else	/* platform dependent I/O accessors */
+ 
+ static inline u32 clk_readl(u32 __iomem *reg)
 -- 
 2.1.4
