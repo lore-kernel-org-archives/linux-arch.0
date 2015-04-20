@@ -1,87 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sym2.noone.org ([178.63.92.236]:32768 "EHLO sym2.noone.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755024AbbDTOAh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Apr 2015 10:00:37 -0400
-Date: Mon, 20 Apr 2015 16:00:34 +0200
-From: Tobias Klauser <tklauser@distanz.ch>
-Subject: Re: [PATCH v8 01/17] h8300: Assembly headers.
-Message-ID: <20150420140034.GB9990@distanz.ch>
-References: <1429510413-14869-1-git-send-email-ysato@users.sourceforge.jp>
- <1429510413-14869-2-git-send-email-ysato@users.sourceforge.jp>
+Received: from www.linutronix.de ([62.245.132.108]:55544 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752667AbbDTT7N (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Apr 2015 15:59:13 -0400
+Date: Mon, 20 Apr 2015 21:59:01 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH 01/11] linux/time64.h:Introduce the 'struct itimerspec64'
+ for 64bit
+In-Reply-To: <alpine.DEB.2.11.1504202112130.13914@nanos>
+Message-ID: <alpine.DEB.2.11.1504202154430.13914@nanos>
+References: <1429509459-17068-1-git-send-email-baolin.wang@linaro.org> <1429509459-17068-2-git-send-email-baolin.wang@linaro.org> <alpine.DEB.2.11.1504202112130.13914@nanos>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1429510413-14869-2-git-send-email-ysato@users.sourceforge.jp>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150420140034._K38udIBYyhPXknd8Ud-SRR-7gmyCnHf74jR-KMdDMI@z>
+To: Baolin Wang <baolin.wang@linaro.org>
+Cc: arnd@arndb.de, john.stultz@linaro.org, heenasirwani@gmail.com, pang.xunlei@linaro.org, peterz@infradead.org, rafael.j.wysocki@intel.com, gregkh@linuxfoundation.org, richardcochran@gmail.com, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, fweisbec@gmail.com, ahh@google.com, pjt@google.com, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, y2038@lists.linaro.org
+Message-ID: <20150420195901.i28LAD_J9ufj3ML_43XUDvbeb_AH5U2rJ-hGE6PNano@z>
 
-On 2015-04-20 at 08:13:17 +0200, Yoshinori Sato <ysato@users.sourceforge.jp> wrote:
-[...]
-> diff --git a/arch/h8300/include/asm/pgtable.h b/arch/h8300/include/asm/pgtable.h
-> new file mode 100644
-> index 0000000..8341db6
-> --- /dev/null
-> +++ b/arch/h8300/include/asm/pgtable.h
-> @@ -0,0 +1,49 @@
-> +#ifndef _H8300_PGTABLE_H
-> +#define _H8300_PGTABLE_H
-> +#include <asm-generic/pgtable-nopud.h>
-> +#include <asm-generic/pgtable.h>
-> +#define pgtable_cache_init()   do { } while (0)
-> +extern void paging_init(void);
-> +#define PAGE_NONE		__pgprot(0)    /* these mean nothing to NO_MM */
-> +#define PAGE_SHARED		__pgprot(0)    /* these mean nothing to NO_MM */
-> +#define PAGE_COPY		__pgprot(0)    /* these mean nothing to NO_MM */
-> +#define PAGE_READONLY	__pgprot(0)    /* these mean nothing to NO_MM */
-> +#define PAGE_KERNEL		__pgprot(0)    /* these mean nothing to NO_MM */
-> +#define __swp_type(x)		(0)
-> +#define __swp_offset(x)		(0)
-> +#define __swp_entry(typ, off)	((swp_entry_t) { ((typ) | ((off) << 7)) })
-> +#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
-> +#define __swp_entry_to_pte(x)	((pte_t) { (x).val })
-> +#define kern_addr_valid(addr)	(1)
-> +#define pgprot_writecombine(prot)  (prot)
-> +#define pgprot_noncached pgprot_writecombine
-> +
-> +static inline int pte_file(pte_t pte) { return 0; }
+On Mon, 20 Apr 2015, Thomas Gleixner wrote:
+> On Mon, 20 Apr 2015, Baolin Wang wrote:
+> > This patch introduces the 'struct itimerspec64' for 64bit to replace itimerspec,
+> > and also introduces the conversion methods: itimerspec64_to_itimerspec() and
+> > itimerspec_to_itimerspec64(), that makes itimerspec to ready for 2038 year.
+> > 
+> > Signed-off-by: Baolin Wang <baolin.wang@linaro.org>
+> > ---
+> >  include/linux/time64.h |   13 +++++++++++++
+> >  1 file changed, 13 insertions(+)
+> > 
+> > diff --git a/include/linux/time64.h b/include/linux/time64.h
+> > index a383147..3647bdd 100644
+> > --- a/include/linux/time64.h
+> > +++ b/include/linux/time64.h
+> > @@ -18,6 +18,11 @@ struct timespec64 {
+> >  };
+> >  #endif
+> >  
+> > +struct itimerspec64 {
+> > +	struct timespec64 it_interval;  /* timer period */
+> > +	struct timespec64 it_value;     /* timer expiration */
+> > +};
 
-No need to define pte_file() anymore, remap_file_pages(2) implementation
-was replaced by emulation.
+Aside of the macro mess. This really wants to be conditional on 64/32
+but in the same way as we have the different implementations for
+timespec64.
 
-> +#define swapper_pg_dir ((pgd_t *) 0)
-> +/*
-> + * ZERO_PAGE is a global shared page that is always zero: used
-> + * for zero-mapped memory areas etc..
-> + */
-> +#define ZERO_PAGE(vaddr)	(virt_to_page(0))
-> +
-> +/*
-> + * These would be in other places but having them here reduces the diffs.
-> + */
-> +extern unsigned int kobjsize(const void *objp);
+Your patch enforces a useless conversion from and to itimerspec64 even
+on 64 bit because the compiler cannot map the types.
 
-This prototypes doesn't need to be defined here, it's already in
-linux/mm.h which is included where kobjsize is used.
+Sigh. timespec64 is a proper guidance here.
 
-> +extern int is_in_rom(unsigned long);
+Thanks,
 
-This function is no longer defined nor used in the rest of the tree, no
-need for this prototype as well.
-
-[...]
-> diff --git a/arch/h8300/include/asm/sh_bios.h b/arch/h8300/include/asm/sh_bios.h
-> new file mode 100644
-> index 0000000..9ce513c
-> --- /dev/null
-> +++ b/arch/h8300/include/asm/sh_bios.h
-> @@ -0,0 +1,4 @@
-> +#ifndef SH_BIOS_H
-> +#define SH_BIOS_H
-> +
-> +#endif
-
-Why this empty header? Can it be removed?
+	tglx
