@@ -1,337 +1,418 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v8 11/17] h8300: clock driver
-Date: Mon, 20 Apr 2015 15:13:27 +0900
-Message-ID: <1429510413-14869-12-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v8 07/17] h8300: miscellaneous functions
+Date: Mon, 20 Apr 2015 15:13:23 +0900
+Message-ID: <1429510413-14869-8-git-send-email-ysato@users.sourceforge.jp>
 References: <1429510413-14869-1-git-send-email-ysato@users.sourceforge.jp>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.asahi-net.or.jp ([202.224.39.198]:34533 "EHLO
-	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751520AbbDTGd4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Apr 2015 02:33:56 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1429510413-14869-1-git-send-email-ysato@users.sourceforge.jp>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-
-h8300 clock generator drivers.
-H8/3069 is simple oscillator.
-H8S2678 is PLL multiplier support.
+List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- drivers/clk/Makefile            |   1 +
- drivers/clk/h8300/Makefile      |   2 +
- drivers/clk/h8300/clk-h83069.c  |  80 +++++++++++++++++++
- drivers/clk/h8300/clk-h8s2678.c | 171 ++++++++++++++++++++++++++++++++++++++++
- include/linux/clk-provider.h    |  12 +++
- 5 files changed, 266 insertions(+)
- create mode 100644 drivers/clk/h8300/Makefile
- create mode 100644 drivers/clk/h8300/clk-h83069.c
- create mode 100644 drivers/clk/h8300/clk-h8s2678.c
+ arch/h8300/kernel/asm-offsets.c | 60 ++++++++++++++++++++++++++
+ arch/h8300/kernel/dma.c         | 95 +++++++++++++++++++++++++++++++++++++++++
+ arch/h8300/kernel/h8300_ksyms.c | 34 +++++++++++++++
+ arch/h8300/kernel/module.c      | 70 ++++++++++++++++++++++++++++++
+ arch/h8300/kernel/sim-console.c | 79 ++++++++++++++++++++++++++++++++++
+ arch/h8300/kernel/syscalls.c    | 14 ++++++
+ 6 files changed, 352 insertions(+)
+ create mode 100644 arch/h8300/kernel/asm-offsets.c
+ create mode 100644 arch/h8300/kernel/dma.c
+ create mode 100644 arch/h8300/kernel/h8300_ksyms.c
+ create mode 100644 arch/h8300/kernel/module.c
+ create mode 100644 arch/h8300/kernel/sim-console.c
+ create mode 100644 arch/h8300/kernel/syscalls.c
 
-diff --git a/drivers/clk/Makefile b/drivers/clk/Makefile
-index d478ceb..593b09c 100644
---- a/drivers/clk/Makefile
-+++ b/drivers/clk/Makefile
-@@ -70,3 +70,4 @@ obj-$(CONFIG_ARCH_U8500)		+= ux500/
- obj-$(CONFIG_COMMON_CLK_VERSATILE)	+= versatile/
- obj-$(CONFIG_X86)			+= x86/
- obj-$(CONFIG_ARCH_ZYNQ)			+= zynq/
-+obj-$(CONFIG_H8300)		+= h8300/
-diff --git a/drivers/clk/h8300/Makefile b/drivers/clk/h8300/Makefile
+diff --git a/arch/h8300/kernel/asm-offsets.c b/arch/h8300/kernel/asm-offsets.c
 new file mode 100644
-index 0000000..82eab42
+index 0000000..9fb9d49
 --- /dev/null
-+++ b/drivers/clk/h8300/Makefile
-@@ -0,0 +1,2 @@
-+obj-$(CONFIG_H83069) += clk-h83069.o
-+obj-$(CONFIG_H8S2678) += clk-h8s2678.o
-diff --git a/drivers/clk/h8300/clk-h83069.c b/drivers/clk/h8300/clk-h83069.c
-new file mode 100644
-index 0000000..0a20dd5
---- /dev/null
-+++ b/drivers/clk/h8300/clk-h83069.c
-@@ -0,0 +1,80 @@
++++ b/arch/h8300/kernel/asm-offsets.c
+@@ -0,0 +1,60 @@
 +/*
-+ * H8/3069 clock driver
++ * This program is used to generate definitions needed by
++ * assembly language modules.
 + *
-+ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ * We use the technique used in the OSF Mach kernel code:
++ * generate asm statements containing #defines,
++ * compile this file to assembler, and then extract the
++ * #defines from the assembly-language output.
 + */
 +
-+#include <linux/clk.h>
-+#include <linux/clkdev.h>
-+#include <linux/clk-provider.h>
-+#include <linux/err.h>
++#include <linux/stddef.h>
++#include <linux/sched.h>
++#include <linux/kernel_stat.h>
++#include <linux/ptrace.h>
++#include <linux/hardirq.h>
++#include <linux/kbuild.h>
++#include <asm/irq.h>
++#include <asm/ptrace.h>
++
++int main(void)
++{
++	/* offsets into the task struct */
++	DEFINE(TASK_STATE, offsetof(struct task_struct, state));
++	DEFINE(TASK_FLAGS, offsetof(struct task_struct, flags));
++	DEFINE(TASK_PTRACE, offsetof(struct task_struct, ptrace));
++	DEFINE(TASK_BLOCKED, offsetof(struct task_struct, blocked));
++	DEFINE(TASK_THREAD, offsetof(struct task_struct, thread));
++	DEFINE(TASK_THREAD_INFO, offsetof(struct task_struct, stack));
++	DEFINE(TASK_MM, offsetof(struct task_struct, mm));
++	DEFINE(TASK_ACTIVE_MM, offsetof(struct task_struct, active_mm));
++
++	/* offsets into the irq_cpustat_t struct */
++	DEFINE(CPUSTAT_SOFTIRQ_PENDING, offsetof(irq_cpustat_t, __softirq_pending));
++
++	/* offsets into the thread struct */
++	DEFINE(THREAD_KSP, offsetof(struct thread_struct, ksp));
++	DEFINE(THREAD_USP, offsetof(struct thread_struct, usp));
++	DEFINE(THREAD_CCR, offsetof(struct thread_struct, ccr));
++
++	/* offsets into the pt_regs struct */
++	DEFINE(LER0,  offsetof(struct pt_regs, er0)      - sizeof(long));
++	DEFINE(LER1,  offsetof(struct pt_regs, er1)      - sizeof(long));
++	DEFINE(LER2,  offsetof(struct pt_regs, er2)      - sizeof(long));
++	DEFINE(LER3,  offsetof(struct pt_regs, er3)      - sizeof(long));
++	DEFINE(LER4,  offsetof(struct pt_regs, er4)      - sizeof(long));
++	DEFINE(LER5,  offsetof(struct pt_regs, er5)      - sizeof(long));
++	DEFINE(LER6,  offsetof(struct pt_regs, er6)      - sizeof(long));
++	DEFINE(LORIG, offsetof(struct pt_regs, orig_er0) - sizeof(long));
++	DEFINE(LSP,  offsetof(struct pt_regs, sp)        - sizeof(long));
++	DEFINE(LCCR,  offsetof(struct pt_regs, ccr)      - sizeof(long));
++	DEFINE(LVEC,  offsetof(struct pt_regs, vector)   - sizeof(long));
++#if defined(CONFIG_CPU_H8S)
++	DEFINE(LEXR,  offsetof(struct pt_regs, exr)      - sizeof(long));
++#endif
++	DEFINE(LRET,  offsetof(struct pt_regs, pc)       - sizeof(long));
++
++	DEFINE(PT_PTRACED, PT_PTRACED);
++
++	return 0;
++}
+diff --git a/arch/h8300/kernel/dma.c b/arch/h8300/kernel/dma.c
+new file mode 100644
+index 0000000..061f3c3
+--- /dev/null
++++ b/arch/h8300/kernel/dma.c
+@@ -0,0 +1,95 @@
++/*
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file COPYING in the main directory of this archive
++ * for more details.
++ */
++
++#undef DEBUG
++
++#include <linux/dma-mapping.h>
 +#include <linux/device.h>
++#include <linux/kernel.h>
++#include <linux/scatterlist.h>
++#include <linux/slab.h>
++#include <linux/vmalloc.h>
++#include <linux/export.h>
++
++#include <asm/pgalloc.h>
++
++void *dma_alloc_coherent(struct device *dev, size_t size,
++			   dma_addr_t *dma_handle, gfp_t gfp)
++{
++	void *ret;
++	/* ignore region specifiers */
++	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
++
++	if (dev == NULL || (*dev->dma_mask < 0xffffffff))
++		gfp |= GFP_DMA;
++	ret = (void *)__get_free_pages(gfp, get_order(size));
++
++	if (ret != NULL) {
++		memset(ret, 0, size);
++		*dma_handle = virt_to_phys(ret);
++	}
++	return ret;
++}
++EXPORT_SYMBOL(dma_alloc_coherent);
++
++void dma_free_coherent(struct device *dev, size_t size,
++			 void *vaddr, dma_addr_t dma_handle)
++{
++	free_pages((unsigned long)vaddr, get_order(size));
++}
++EXPORT_SYMBOL(dma_free_coherent);
++
++void dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
++				size_t size, enum dma_data_direction dir)
++{
++}
++EXPORT_SYMBOL(dma_sync_single_for_device);
++
++void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
++			    int nents, enum dma_data_direction dir)
++{
++	int i;
++
++	for (i = 0; i < nents; sg++, i++)
++		dma_sync_single_for_device(dev, sg->dma_address,
++					   sg->length, dir);
++}
++EXPORT_SYMBOL(dma_sync_sg_for_device);
++
++dma_addr_t dma_map_single(struct device *dev, void *addr, size_t size,
++			  enum dma_data_direction dir)
++{
++	dma_addr_t handle = virt_to_bus(addr);
++
++	dma_sync_single_for_device(dev, handle, size, dir);
++	return handle;
++}
++EXPORT_SYMBOL(dma_map_single);
++
++dma_addr_t dma_map_page(struct device *dev, struct page *page,
++			unsigned long offset, size_t size,
++			enum dma_data_direction dir)
++{
++	dma_addr_t handle = page_to_phys(page) + offset;
++
++	dma_sync_single_for_device(dev, handle, size, dir);
++	return handle;
++}
++EXPORT_SYMBOL(dma_map_page);
++
++int dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
++	       enum dma_data_direction dir)
++{
++	int i;
++
++	for (i = 0; i < nents; sg++, i++) {
++		sg->dma_address = sg_phys(sg);
++		dma_sync_single_for_device(dev, sg->dma_address,
++					   sg->length, dir);
++	}
++	return nents;
++}
++EXPORT_SYMBOL(dma_map_sg);
+diff --git a/arch/h8300/kernel/h8300_ksyms.c b/arch/h8300/kernel/h8300_ksyms.c
+new file mode 100644
+index 0000000..33bf96a
+--- /dev/null
++++ b/arch/h8300/kernel/h8300_ksyms.c
+@@ -0,0 +1,34 @@
++#include <linux/module.h>
++#include <linux/linkage.h>
++
++/*
++ * libgcc functions - functions that are used internally by the
++ * compiler...  (prototypes are not correct though, but that
++ * doesn't really matter since they're not versioned).
++ */
++asmlinkage long long __ashldi3(long long, int);
++asmlinkage long long __ashrdi3(long long, int);
++asmlinkage long long __lshrdi3(long long, int);
++asmlinkage long __divsi3(long, long);
++asmlinkage long __modsi3(long, long);
++asmlinkage unsigned long __umodsi3(unsigned long, unsigned long);
++asmlinkage long long __muldi3(long long, long long);
++asmlinkage long __mulsi3(long, long);
++asmlinkage long __udivsi3(long, long);
++asmlinkage void *memcpy(void *, const void *, size_t);
++asmlinkage void *memset(void *, int, size_t);
++asmlinkage long strncpy_from_user(void *to, void *from, size_t n);
++
++	/* gcc lib functions */
++EXPORT_SYMBOL(__ashldi3);
++EXPORT_SYMBOL(__ashrdi3);
++EXPORT_SYMBOL(__lshrdi3);
++EXPORT_SYMBOL(__divsi3);
++EXPORT_SYMBOL(__modsi3);
++EXPORT_SYMBOL(__umodsi3);
++EXPORT_SYMBOL(__muldi3);
++EXPORT_SYMBOL(__mulsi3);
++EXPORT_SYMBOL(__udivsi3);
++EXPORT_SYMBOL(memcpy);
++EXPORT_SYMBOL(memset);
++EXPORT_SYMBOL(strncpy_from_user);
+diff --git a/arch/h8300/kernel/module.c b/arch/h8300/kernel/module.c
+new file mode 100644
+index 0000000..515f6c4
+--- /dev/null
++++ b/arch/h8300/kernel/module.c
+@@ -0,0 +1,70 @@
++#include <linux/moduleloader.h>
++#include <linux/elf.h>
++#include <linux/vmalloc.h>
++#include <linux/fs.h>
++#include <linux/string.h>
++#include <linux/kernel.h>
++
++int apply_relocate_add(Elf32_Shdr *sechdrs,
++		       const char *strtab,
++		       unsigned int symindex,
++		       unsigned int relsec,
++		       struct module *me)
++{
++	unsigned int i;
++	Elf32_Rela *rela = (void *)sechdrs[relsec].sh_addr;
++
++	pr_debug("Applying relocate section %u to %u\n", relsec,
++	       sechdrs[relsec].sh_info);
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rela); i++) {
++		/* This is where to make the change */
++		uint32_t *loc =
++			(uint32_t *)(sechdrs[sechdrs[relsec].sh_info].sh_addr
++					     + rela[i].r_offset);
++		/* This is the symbol it is referring to.  Note that all
++		   undefined symbols have been resolved.  */
++		Elf32_Sym *sym = (Elf32_Sym *)sechdrs[symindex].sh_addr
++			+ ELF32_R_SYM(rela[i].r_info);
++		uint32_t v = sym->st_value + rela[i].r_addend;
++
++		switch (ELF32_R_TYPE(rela[i].r_info)) {
++		case R_H8_DIR24R8:
++			loc = (uint32_t *)((uint32_t)loc - 1);
++			*loc = (*loc & 0xff000000) | ((*loc & 0xffffff) + v);
++			break;
++		case R_H8_DIR24A8:
++			if (ELF32_R_SYM(rela[i].r_info))
++				*loc += v;
++			break;
++		case R_H8_DIR32:
++		case R_H8_DIR32A16:
++			*loc += v;
++			break;
++		case R_H8_PCREL16:
++			v -= (unsigned long)loc + 2;
++			if ((Elf32_Sword)v > 0x7fff ||
++			    (Elf32_Sword)v < -(Elf32_Sword)0x8000)
++				goto overflow;
++			else
++				*(unsigned short *)loc = v;
++			break;
++		case R_H8_PCREL8:
++			v -= (unsigned long)loc + 1;
++			if ((Elf32_Sword)v > 0x7f ||
++			    (Elf32_Sword)v < -(Elf32_Sword)0x80)
++				goto overflow;
++			else
++				*(unsigned char *)loc = v;
++			break;
++		default:
++			pr_err("module %s: Unknown relocation: %u\n",
++			       me->name, ELF32_R_TYPE(rela[i].r_info));
++			return -ENOEXEC;
++		}
++	}
++	return 0;
++ overflow:
++	pr_err("module %s: relocation offset overflow: %08x\n",
++	       me->name, rela[i].r_offset);
++	return -ENOEXEC;
++}
+diff --git a/arch/h8300/kernel/sim-console.c b/arch/h8300/kernel/sim-console.c
+new file mode 100644
+index 0000000..a15edf0
+--- /dev/null
++++ b/arch/h8300/kernel/sim-console.c
+@@ -0,0 +1,79 @@
++/*
++ * arch/h8300/kernel/early_printk.c
++ *
++ *  Copyright (C) 2009 Yoshinori Sato <ysato@users.sourceforge.jp>
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++#include <linux/console.h>
++#include <linux/tty.h>
++#include <linux/init.h>
++#include <linux/io.h>
 +#include <linux/platform_device.h>
 +
-+static DEFINE_SPINLOCK(clklock);
-+
-+#define DIVCR ((unsigned char *)0xfee01b)
-+#define DEVNAME "h83069-cpg"
-+
-+static int clk_probe(struct platform_device *pdev)
++static void sim_write(struct console *co, const char *ptr,
++				 unsigned len)
 +{
-+	struct clk *clk;
-+	int *hz = dev_get_platdata(&pdev->dev);
++	register const int fd __asm__("er0") = 1; /* stdout */
++	register const char *_ptr __asm__("er1") = ptr;
++	register const unsigned _len __asm__("er2") = len;
 +
-+	clk = clk_register_fixed_rate(&pdev->dev, "master_clk", NULL,
-+				      CLK_IS_ROOT, *hz);
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "master_clk", DEVNAME ".%d", 0);
++	__asm__(".byte 0x5e,0x00,0x00,0xc7\n\t" /* jsr @0xc7 (sys_write) */
++		: : "g"(fd), "g"(_ptr), "g"(_len));
++}
 +
-+	clk = clk_register_divider(&pdev->dev, "core_clk", "master_clk",
-+				   CLK_SET_RATE_GATE, DIVCR, 0, 2,
-+				   CLK_DIVIDER_POWER_OF_TWO, &clklock);
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "core_clk", DEVNAME ".%d", 0);
++static struct console sim_console = {
++	.name		= "sim_console",
++	.write		= sim_write,
++	.setup		= NULL,
++	.flags		= CON_PRINTBUFFER,
++	.index		= -1,
++};
 +
-+	clk = clk_register_fixed_factor(&pdev->dev, "peripheral_clk", "core_clk",
-+					0, 1, 1);
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "peripheral_clk", NULL);
++static char sim_console_buf[32];
++
++static int sim_probe(struct platform_device *pdev)
++{
++	if (sim_console.data)
++		return -EEXIST;
++
++	if (!strstr(sim_console_buf, "keep"))
++		sim_console.flags |= CON_BOOT;
++
++	register_console(&sim_console);
 +	return 0;
 +}
 +
-+static struct platform_driver cpg_driver = {
-+	.driver = {
-+		.name = DEVNAME,
++static int sim_remove(struct platform_device *pdev)
++{
++	return 0;
++}
++
++static struct platform_driver sim_driver = {
++	.probe		= sim_probe,
++	.remove		= sim_remove,
++	.driver		= {
++		.name	= "h8300-sim",
++		.owner	= THIS_MODULE,
 +	},
-+	.probe = clk_probe,
 +};
 +
-+early_platform_init(DEVNAME, &cpg_driver);
++early_platform_init_buffer("earlyprintk", &sim_driver,
++			   sim_console_buf, ARRAY_SIZE(sim_console_buf));
 +
-+static struct platform_device clk_device = {
-+	.name		= DEVNAME,
++static struct platform_device sim_console_device = {
++	.name		= "h8300-sim",
 +	.id		= 0,
 +};
 +
 +static struct platform_device *devices[] __initdata = {
-+	&clk_device,
++	&sim_console_device,
 +};
 +
-+int __init h8300_clk_init(int hz)
++void __init sim_console_register(void)
 +{
-+	static int master_hz;
-+
-+	master_hz = hz;
-+	clk_device.dev.platform_data = &master_hz;
 +	early_platform_add_devices(devices,
 +				   ARRAY_SIZE(devices));
-+	early_platform_driver_register_all(DEVNAME);
-+	early_platform_driver_probe(DEVNAME, 1, 0);
-+	return 0;
 +}
-diff --git a/drivers/clk/h8300/clk-h8s2678.c b/drivers/clk/h8300/clk-h8s2678.c
+diff --git a/arch/h8300/kernel/syscalls.c b/arch/h8300/kernel/syscalls.c
 new file mode 100644
-index 0000000..55b490c
+index 0000000..1f9123a
 --- /dev/null
-+++ b/drivers/clk/h8300/clk-h8s2678.c
-@@ -0,0 +1,171 @@
-+/*
-+ * H8S2678 clock driver
-+ *
-+ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
-+ */
++++ b/arch/h8300/kernel/syscalls.c
+@@ -0,0 +1,14 @@
++#include <linux/syscalls.h>
++#include <linux/signal.h>
++#include <linux/unistd.h>
 +
-+#include <linux/clk.h>
-+#include <linux/clkdev.h>
-+#include <linux/clk-provider.h>
-+#include <linux/err.h>
-+#include <linux/device.h>
-+#include <linux/platform_device.h>
++#undef __SYSCALL
++#define __SYSCALL(nr, call) [nr] = (call),
 +
-+static DEFINE_SPINLOCK(clklock);
++#define sys_mmap2 sys_mmap_pgoff
 +
-+#define SCKCR 0xffff3b
-+#define PLLCR 0xffff45
-+#define DEVNAME "h8s2678-cpg"
-+#define MAX_FREQ 33333333
-+#define MIN_FREQ  8000000
++asmlinkage int sys_rt_sigreturn(void);
 +
-+static unsigned long pll_recalc_rate(struct clk_hw *hw,
-+		unsigned long parent_rate)
-+{
-+	int mul = 1 << (ctrl_inb(PLLCR) & 3);
-+
-+	return parent_rate * mul;
-+}
-+
-+static long pll_round_rate(struct clk_hw *hw, unsigned long rate,
-+				unsigned long *prate)
-+{
-+	int i, m = -1;
-+	long offset[3];
-+
-+	if (rate > MAX_FREQ)
-+		rate = MAX_FREQ;
-+	if (rate < MIN_FREQ)
-+		rate = MIN_FREQ;
-+
-+	for (i = 0; i < 3; i++)
-+		offset[i] = abs(rate - (*prate * (1 << i)));
-+	for (i = 0; i < 3; i++)
-+		if (m < 0)
-+			m = i;
-+		else
-+			m = (offset[i] < offset[m])?i:m;
-+
-+	return *prate * (1 << m);
-+}
-+
-+static int pll_set_rate(struct clk_hw *hw, unsigned long rate,
-+			unsigned long parent_rate)
-+{
-+	int pll;
-+	unsigned char val;
-+	unsigned long flags;
-+
-+	pll = ((rate / parent_rate) / 2) & 0x03;
-+	spin_lock_irqsave(&clklock, flags);
-+	val = ctrl_inb(SCKCR);
-+	val |= 0x08;
-+	ctrl_outb(val, SCKCR);
-+	val = ctrl_inb(PLLCR);
-+	val &= ~0x03;
-+	val |= pll;
-+	ctrl_outb(val, PLLCR);
-+	spin_unlock_irqrestore(&clklock, flags);
-+	return 0;
-+}
-+
-+static const struct clk_ops pll_ops = {
-+	.recalc_rate = pll_recalc_rate,
-+	.round_rate = pll_round_rate,
-+	.set_rate = pll_set_rate,
++void *_sys_call_table[__NR_syscalls] = {
++#include <asm/unistd.h>
 +};
-+
-+static struct clk *pll_clk_register(struct device *dev, const char *name,
-+				const char *parent)
-+{
-+	struct clk_hw *hw;
-+	struct clk *clk;
-+	struct clk_init_data init;
-+
-+	hw = kzalloc(sizeof(struct clk_hw), GFP_KERNEL);
-+	if (!hw)
-+		return ERR_PTR(-ENOMEM);
-+
-+	init.name = name;
-+	init.ops = &pll_ops;
-+	init.flags = CLK_IS_BASIC;
-+	init.parent_names = &parent;
-+	init.num_parents = 1;
-+	hw->init = &init;
-+
-+	clk = clk_register(dev, hw);
-+	if (IS_ERR(clk))
-+		kfree(hw);
-+
-+	return clk;
-+}
-+
-+static int clk_probe(struct platform_device *pdev)
-+{
-+	struct clk *clk;
-+	int *hz = dev_get_platdata(&pdev->dev);
-+
-+	clk = clk_register_fixed_rate(&pdev->dev, "master_clk", NULL,
-+				      CLK_IS_ROOT, *hz);
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "master_clk", DEVNAME ".%d", 0);
-+
-+	clk = pll_clk_register(&pdev->dev, "pll_clk", "master_clk");
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "pll_clk", DEVNAME ".%d", 0);
-+
-+	clk = clk_register_divider(&pdev->dev, "core_clk", "pll_clk",
-+				   CLK_SET_RATE_GATE, (unsigned char *)SCKCR,
-+				   0, 3, CLK_DIVIDER_POWER_OF_TWO, &clklock);
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "core_clk", DEVNAME ".%d", 0);
-+
-+	clk = clk_register_fixed_factor(&pdev->dev, "peripheral_clk", "core_clk",
-+					0, 1, 1);
-+	if (IS_ERR(clk)) {
-+		dev_err(&pdev->dev, "failed to register clock");
-+		return PTR_ERR(clk);
-+	}
-+	clk_register_clkdev(clk, "peripheral_clk", NULL);
-+	return 0;
-+}
-+
-+static struct platform_driver cpg_driver = {
-+	.driver = {
-+		.name = DEVNAME,
-+	},
-+	.probe = clk_probe,
-+};
-+
-+early_platform_init(DEVNAME, &cpg_driver);
-+
-+static struct platform_device clk_device = {
-+	.name		= DEVNAME,
-+	.id		= 0,
-+};
-+
-+static struct platform_device *devices[] __initdata = {
-+	&clk_device,
-+};
-+
-+int __init h8300_clk_init(int hz)
-+{
-+	static int master_hz;
-+
-+	master_hz = hz;
-+	clk_device.dev.platform_data = &master_hz;
-+	early_platform_add_devices(devices,
-+				   ARRAY_SIZE(devices));
-+	early_platform_driver_register_all(DEVNAME);
-+	early_platform_driver_probe(DEVNAME, 1, 0);
-+	return 0;
-+}
-diff --git a/include/linux/clk-provider.h b/include/linux/clk-provider.h
-index 5591ea7..6059414 100644
---- a/include/linux/clk-provider.h
-+++ b/include/linux/clk-provider.h
-@@ -675,6 +675,18 @@ static inline void clk_writel(u32 val, u32 __iomem *reg)
- 	iowrite32be(val, reg);
- }
- 
-+#elif IS_ENABLED(CONFIG_H8300)
-+
-+static inline u32 clk_readl(u32 __iomem *reg)
-+{
-+	return __raw_readb(reg);
-+}
-+
-+static inline void clk_writel(u32 val, u32 __iomem *reg)
-+{
-+	__raw_writeb(val, reg);
-+}
-+
- #else	/* platform dependent I/O accessors */
- 
- static inline u32 clk_readl(u32 __iomem *reg)
 -- 
 2.1.4
