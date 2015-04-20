@@ -1,35 +1,113 @@
-From: Richard Weinberger <richard.weinberger@gmail.com>
-Subject: Re: [PATCH v8 01/17] h8300: Assembly headers.
-Date: Mon, 20 Apr 2015 09:54:09 +0200
-Message-ID: <CAFLxGvyRSDbnuGta-WQoYmZ_XNy11ONtFynFq2vO95MinnPdHg@mail.gmail.com>
-References: <1429510413-14869-1-git-send-email-ysato@users.sourceforge.jp>
-	<1429510413-14869-2-git-send-email-ysato@users.sourceforge.jp>
-	<CAFLxGvxXpgAS6gJDyPe5pjM8n+x2wFNQT0JtyUuGmdBOi9aa+w@mail.gmail.com>
-	<20150420174757.11a4155b@canb.auug.org.au>
+From: Richard Cochran <richardcochran@gmail.com>
+Subject: Re: [PATCH 11/11] k_clock:Remove the 32bit methods with timespec type
+Date: Mon, 20 Apr 2015 10:42:30 +0200
+Message-ID: <20150420084229.GA4608@localhost.localdomain>
+References: <1429509459-17068-1-git-send-email-baolin.wang@linaro.org>
+ <1429509459-17068-12-git-send-email-baolin.wang@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20150420174757.11a4155b@canb.auug.org.au>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wi0-f175.google.com ([209.85.212.175]:35589 "EHLO
+	mail-wi0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753984AbbDTImh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Apr 2015 04:42:37 -0400
+Content-Disposition: inline
+In-Reply-To: <1429509459-17068-12-git-send-email-baolin.wang@linaro.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Baolin Wang <baolin.wang@linaro.org>
+Cc: tglx@linutronix.de, arnd@arndb.de, john.stultz@linaro.org, heenasirwani@gmail.com, pang.xunlei@linaro.org, peterz@infradead.org, rafael.j.wysocki@intel.com, gregkh@linuxfoundation.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, fweisbec@gmail.com, ahh@google.com, pjt@google.com, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, y2038@lists.linaro.org
 
-On Mon, Apr 20, 2015 at 9:47 AM, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
-> Hi Richard,
->
-> On Mon, 20 Apr 2015 09:17:30 +0200 Richard Weinberger <richard.weinberger@gmail.com> wrote:
->>
->
-> *tons removed*
->
-> Please edit quoted text in your replies down to the essentials.  That
-> one was so large that I could not even find what you had commented
-> on.  :-(
+On Mon, Apr 20, 2015 at 01:57:39PM +0800, Baolin Wang wrote:
 
-I'm sorry Stephen. Gmail hides such stuff from me.
-I'll take more care next time.
+> @@ -911,18 +907,14 @@ retry:
+>  		return -EINVAL;
+>  
+>  	kc = clockid_to_kclock(timr->it_clock);
+> -	if (WARN_ON_ONCE(!kc || (!kc->timer_set && !kc->timer_set64))) {
+> +	if (WARN_ON_ONCE(!kc || !kc->timer_set64)) {
+>  		error = -EINVAL;
+>  	} else {
+> -		if (kc->timer_set64) {
+> -			new_spec64 = itimerspec_to_itimerspec64(new_spec);
+> -			error = kc->timer_set64(timr, flags, &new_spec64,
+> -						&old_spec64);
+> -			if (old_setting)
+> -				old_spec = itimerspec64_to_itimerspec(old_spec64);
+> -		} else {
+> -			error = kc->timer_set(timr, flags, &new_spec, rtn);
+> -		}
+> +		new_spec64 = itimerspec_to_itimerspec64(new_spec);
+> +		error = kc->timer_set64(timr, flags, &new_spec64,
+> +					&old_spec64);
 
--- 
+This statement can fit on one line.
+
+> +		if (old_setting)
+> +			old_spec = itimerspec64_to_itimerspec(old_spec64);
+>  	}
+>  
+>  	unlock_timer(timr, flag);
+
+> @@ -1057,14 +1045,13 @@ SYSCALL_DEFINE2(clock_gettime, const clockid_t, which_clock,
+>  	if (!kc)
+>  		return -EINVAL;
+>  
+> -	if (kc->clock_get64) {
+> -		error = kc->clock_get64(which_clock, &kernel_tp64);
+> -		kernel_tp = timespec64_to_timespec(kernel_tp64);
+> -	} else {
+> -		error = kc->clock_get(which_clock, &kernel_tp);
+> -	}
+> +	error = kc->clock_get64(which_clock, &kernel_tp64);
+> +	if (!error)
+> +		return error;
+
+Wrong test, should be: if (error) ...
+
+> +
+> +	kernel_tp = timespec64_to_timespec(kernel_tp64);
+>  
+> -	if (!error && copy_to_user(tp, &kernel_tp, sizeof (kernel_tp)))
+
+The (!error && ...) was correct here!
+
+> +	if (copy_to_user(tp, &kernel_tp, sizeof (kernel_tp)))
+>  		error = -EFAULT;
+>  
+>  	return error;
+
+You can simplify this like so:
+
+	return copy_to_user(tp, &kernel_tp, sizeof(kernel_tp)) ? -EFAULT : 0;
+
+> @@ -1104,14 +1091,13 @@ SYSCALL_DEFINE2(clock_getres, const clockid_t, which_clock,
+>  	if (!kc)
+>  		return -EINVAL;
+>  
+> -	if (kc->clock_getres64) {
+> -		error = kc->clock_getres64(which_clock, &rtn_tp64);
+> -		rtn_tp = timespec64_to_timespec(rtn_tp64);
+> -	} else {
+> -		error = kc->clock_getres(which_clock, &rtn_tp);
+> -	}
+> +	error = kc->clock_getres64(which_clock, &rtn_tp64);
+> +	if (!error)
+> +		return error;
+
+Also wrong.
+
+> +
+> +	rtn_tp = timespec64_to_timespec(rtn_tp64);
+>  
+> -	if (!error && tp && copy_to_user(tp, &rtn_tp, sizeof (rtn_tp)))
+> +	if (tp && copy_to_user(tp, &rtn_tp, sizeof (rtn_tp)))
+>  		error = -EFAULT;
+>  
+>  	return error;
+> -- 
+> 1.7.9.5
+> 
+
 Thanks,
-//richard
+Richard
