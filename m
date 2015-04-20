@@ -1,7 +1,7 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v8 12/17] h8300: clocksource
-Date: Mon, 20 Apr 2015 15:13:28 +0900
-Message-ID: <1429510413-14869-13-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v8 05/17] h8300: process and signals
+Date: Mon, 20 Apr 2015 15:13:21 +0900
+Message-ID: <1429510413-14869-6-git-send-email-ysato@users.sourceforge.jp>
 References: <1429510413-14869-1-git-send-email-ysato@users.sourceforge.jp>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1429510413-14869-1-git-send-email-ysato@users.sourceforge.jp>
@@ -10,999 +10,698 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 List-Id: linux-arch.vger.kernel.org
 
-H8/300 internal timer driver.
-h8300_timer8 - 8bit Timer driver.
-h8300_timer16 - 16bit Timer driver (only H8/3069).
-h8300_tpu     - Timer Pulse Unit driver (only H8S2678).
+process management helper and signal handling
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- drivers/clocksource/Kconfig         |   6 +
- drivers/clocksource/Makefile        |   3 +
- drivers/clocksource/h8300_timer16.c | 332 ++++++++++++++++++++++++++++++
- drivers/clocksource/h8300_timer8.c  | 398 ++++++++++++++++++++++++++++++++++++
- drivers/clocksource/h8300_tpu.c     | 203 ++++++++++++++++++
- 5 files changed, 942 insertions(+)
- create mode 100644 drivers/clocksource/h8300_timer16.c
- create mode 100644 drivers/clocksource/h8300_timer8.c
- create mode 100644 drivers/clocksource/h8300_tpu.c
+ arch/h8300/kernel/process.c | 171 ++++++++++++++++++++++++++
+ arch/h8300/kernel/ptrace.c  | 203 +++++++++++++++++++++++++++++++
+ arch/h8300/kernel/signal.c  | 289 ++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 663 insertions(+)
+ create mode 100644 arch/h8300/kernel/process.c
+ create mode 100644 arch/h8300/kernel/ptrace.c
+ create mode 100644 arch/h8300/kernel/signal.c
 
-diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
-index a0b036c..fef959a 100644
---- a/drivers/clocksource/Kconfig
-+++ b/drivers/clocksource/Kconfig
-@@ -253,4 +253,10 @@ config CLKSRC_PXA
- 	help
- 	  This enables OST0 support available on PXA and SA-11x0
- 	  platforms.
-+config H8300_TMR16
-+        bool
-+
-+config H8300_TPU
-+        bool
-+
- endmenu
-diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
-index 752d5c7..99b45f7 100644
---- a/drivers/clocksource/Makefile
-+++ b/drivers/clocksource/Makefile
-@@ -51,3 +51,6 @@ obj-$(CONFIG_ARCH_INTEGRATOR_AP)	+= timer-integrator-ap.o
- obj-$(CONFIG_CLKSRC_VERSATILE)		+= versatile.o
- obj-$(CONFIG_CLKSRC_MIPS_GIC)		+= mips-gic-timer.o
- obj-$(CONFIG_ASM9260_TIMER)		+= asm9260_timer.o
-+obj-$(CONFIG_H8300)			+= h8300_timer8.o
-+obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
-+obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
-diff --git a/drivers/clocksource/h8300_timer16.c b/drivers/clocksource/h8300_timer16.c
+diff --git a/arch/h8300/kernel/process.c b/arch/h8300/kernel/process.c
 new file mode 100644
-index 0000000..bf6a74c
+index 0000000..dee4125
 --- /dev/null
-+++ b/drivers/clocksource/h8300_timer16.c
-@@ -0,0 +1,332 @@
++++ b/arch/h8300/kernel/process.c
+@@ -0,0 +1,171 @@
 +/*
-+ *  linux/arch/h8300/kernel/timer/timer16.c
++ *  linux/arch/h8300/kernel/process.c
 + *
-+ *  Yoshinori Sato <ysato@users.sourcefoge.jp>
++ * Yoshinori Sato <ysato@users.sourceforge.jp>
 + *
-+ *  16bit Timer clockevent device
++ *  Based on:
 + *
++ *  linux/arch/m68knommu/kernel/process.c
++ *
++ *  Copyright (C) 1998  D. Jeff Dionne <jeff@ryeham.ee.ryerson.ca>,
++ *                      Kenneth Albanowski <kjahds@kjahds.com>,
++ *                      The Silver Hammer Group, Ltd.
++ *
++ *  linux/arch/m68k/kernel/process.c
++ *
++ *  Copyright (C) 1995  Hamish Macdonald
++ *
++ *  68060 fixes by Jesper Skov
++ */
++
++/*
++ * This file handles the architecture-dependent parts of process handling..
 + */
 +
 +#include <linux/errno.h>
-+#include <linux/kernel.h>
-+#include <linux/param.h>
-+#include <linux/string.h>
-+#include <linux/slab.h>
-+#include <linux/interrupt.h>
-+#include <linux/init.h>
-+#include <linux/platform_device.h>
-+#include <linux/clockchips.h>
 +#include <linux/module.h>
-+#include <linux/clk.h>
-+#include <linux/io.h>
-+
-+#include <asm/segment.h>
-+#include <asm/irq.h>
-+#include <asm/timer.h>
-+
-+#define TSTR	0
-+#define TSNC	1
-+#define TMDR	2
-+#define TOLR	3
-+#define TISRA	4
-+#define TISRB	5
-+#define TISRC	6
-+
-+#define TCR	0
-+#define TIOR	1
-+#define TCNT	2
-+#define GRA	4
-+#define GRB	6
-+
-+#define FLAG_REPROGRAM (1 << 0)
-+#define FLAG_SKIPEVENT (1 << 1)
-+#define FLAG_IRQCONTEXT (1 << 2)
-+#define FLAG_STARTED (1 << 3)
-+
-+#define ONESHOT  0
-+#define PERIODIC 1
-+
-+#define RELATIVE 0
-+#define ABSOLUTE 1
-+
-+struct timer16_priv {
-+	struct platform_device *pdev;
-+	struct clock_event_device ced;
-+	struct irqaction irqaction;
-+	unsigned long mapbase;
-+	unsigned long mapcommon;
-+	unsigned long flags;
-+	unsigned int rate;
-+	unsigned short gra;
-+	unsigned char enb;
-+	unsigned char imfa;
-+	unsigned char imiea;
-+	unsigned char ovf;
-+	raw_spinlock_t lock;
-+	struct clk *clk;
-+};
-+
-+static unsigned long timer16_get_counter(struct timer16_priv *p)
-+{
-+	unsigned long v1, v2, v3;
-+	int o1, o2;
-+
-+	o1 = ctrl_inb(p->mapcommon + TISRC) & p->ovf;
-+
-+	/* Make sure the timer value is stable. Stolen from acpi_pm.c */
-+	do {
-+		o2 = o1;
-+		v1 = ctrl_inw(p->mapbase + TCNT);
-+		v2 = ctrl_inw(p->mapbase + TCNT);
-+		v3 = ctrl_inw(p->mapbase + TCNT);
-+		o1 = ctrl_inb(p->mapcommon + TISRC) & p->ovf;
-+	} while (unlikely((o1 != o2) || (v1 > v2 && v1 < v3)
-+			  || (v2 > v3 && v2 < v1) || (v3 > v1 && v3 < v2)));
-+
-+	v2 |= 0x10000;
-+	return v2;
-+}
-+
-+
-+static irqreturn_t timer16_interrupt(int irq, void *dev_id)
-+{
-+	struct timer16_priv *p = (struct timer16_priv *)dev_id;
-+
-+	ctrl_outb(ctrl_inb(p->mapcommon + TISRA) & ~p->imfa,
-+		  p->mapcommon + TISRA);
-+
-+	p->flags |= FLAG_IRQCONTEXT;
-+	ctrl_outw(p->gra, p->mapbase + GRA);
-+	if (!(p->flags & FLAG_SKIPEVENT)) {
-+		if (p->ced.mode == CLOCK_EVT_MODE_ONESHOT) {
-+			ctrl_outb(ctrl_inb(p->mapcommon + TSTR) & ~p->enb,
-+				  p->mapcommon + TISRA);
-+		}
-+		p->ced.event_handler(&p->ced);
-+	}
-+
-+	p->flags &= ~(FLAG_SKIPEVENT | FLAG_IRQCONTEXT);
-+
-+	return IRQ_HANDLED;
-+}
-+
-+static void timer16_set_next(struct timer16_priv *p, unsigned long delta)
-+{
-+	unsigned long flags;
-+	unsigned long now;
-+
-+	raw_spin_lock_irqsave(&p->lock, flags);
-+	if (delta >= 0x10000)
-+		dev_warn(&p->pdev->dev, "delta out of range\n");
-+	now = timer16_get_counter(p);
-+	p->gra = delta;
-+	ctrl_outb(ctrl_inb(p->mapcommon + TISRA) | p->imiea,
-+		  p->mapcommon + TISRA);
-+	if (delta > now)
-+		ctrl_outw(delta, p->mapbase + GRA);
-+	else
-+		ctrl_outw(now + 1, p->mapbase + GRA);
-+
-+	raw_spin_unlock_irqrestore(&p->lock, flags);
-+}
-+
-+static int timer16_enable(struct timer16_priv *p)
-+{
-+	p->rate = clk_get_rate(p->clk) / 8;
-+	ctrl_outw(0xffff, p->mapbase + GRA);
-+	ctrl_outw(0x0000, p->mapbase + TCNT);
-+	ctrl_outb(0xa3, p->mapbase + TCR);
-+	ctrl_outb(ctrl_inb(p->mapcommon + TSTR) | p->enb,
-+		  p->mapcommon + TSTR);
-+
-+	return 0;
-+}
-+
-+static int timer16_start(struct timer16_priv *p)
-+{
-+	int ret = 0;
-+	unsigned long flags;
-+
-+	raw_spin_lock_irqsave(&p->lock, flags);
-+
-+	if (!(p->flags & FLAG_STARTED))
-+		ret = timer16_enable(p);
-+
-+	if (ret)
-+		goto out;
-+	p->flags |= FLAG_STARTED;
-+
-+ out:
-+	raw_spin_unlock_irqrestore(&p->lock, flags);
-+
-+	return ret;
-+}
-+
-+static void timer16_stop(struct timer16_priv *p)
-+{
-+	unsigned long flags;
-+
-+	raw_spin_lock_irqsave(&p->lock, flags);
-+
-+	ctrl_outb(ctrl_inb(p->mapcommon + TSTR) & ~p->enb,
-+		  p->mapcommon + TSTR);
-+
-+	raw_spin_unlock_irqrestore(&p->lock, flags);
-+}
-+
-+static inline struct timer16_priv *ced_to_priv(struct clock_event_device *ced)
-+{
-+	return container_of(ced, struct timer16_priv, ced);
-+}
-+
-+static void timer16_clock_event_start(struct timer16_priv *p, int periodic)
-+{
-+	struct clock_event_device *ced = &p->ced;
-+
-+	timer16_start(p);
-+
-+	ced->shift = 32;
-+	ced->mult = div_sc(p->rate, NSEC_PER_SEC, ced->shift);
-+	ced->max_delta_ns = clockevent_delta2ns(0xffff, ced);
-+	ced->min_delta_ns = clockevent_delta2ns(0x0001, ced);
-+
-+	timer16_set_next(p, periodic?(p->rate + HZ/2) / HZ:0x10000);
-+}
-+
-+static void timer16_clock_event_mode(enum clock_event_mode mode,
-+				    struct clock_event_device *ced)
-+{
-+	struct timer16_priv *p = ced_to_priv(ced);
-+
-+	switch (mode) {
-+	case CLOCK_EVT_MODE_PERIODIC:
-+		dev_info(&p->pdev->dev, "used for periodic clock events\n");
-+		timer16_stop(p);
-+		timer16_clock_event_start(p, PERIODIC);
-+		break;
-+	case CLOCK_EVT_MODE_ONESHOT:
-+		dev_info(&p->pdev->dev, "used for oneshot clock events\n");
-+		timer16_stop(p);
-+		timer16_clock_event_start(p, ONESHOT);
-+		break;
-+	case CLOCK_EVT_MODE_SHUTDOWN:
-+	case CLOCK_EVT_MODE_UNUSED:
-+		timer16_stop(p);
-+		break;
-+	default:
-+		break;
-+	}
-+}
-+
-+static int timer16_clock_event_next(unsigned long delta,
-+				   struct clock_event_device *ced)
-+{
-+	struct timer16_priv *p = ced_to_priv(ced);
-+
-+	BUG_ON(ced->mode != CLOCK_EVT_MODE_ONESHOT);
-+	timer16_set_next(p, delta - 1);
-+
-+	return 0;
-+}
-+
-+#define REG_CH   0
-+#define REG_COMM 1
-+
-+static int timer16_setup(struct timer16_priv *p, struct platform_device *pdev)
-+{
-+	struct h8300_timer16_config *cfg = dev_get_platdata(&pdev->dev);
-+	struct resource *res[2];
-+	int ret, irq;
-+
-+	memset(p, 0, sizeof(*p));
-+	p->pdev = pdev;
-+
-+	res[REG_CH] = platform_get_resource(p->pdev,
-+					    IORESOURCE_MEM, REG_CH);
-+	res[REG_COMM] = platform_get_resource(p->pdev,
-+					      IORESOURCE_MEM, REG_COMM);
-+	if (!res[REG_CH] || !res[REG_COMM]) {
-+		dev_err(&p->pdev->dev, "failed to get I/O memory\n");
-+		return -ENXIO;
-+	}
-+	irq = platform_get_irq(p->pdev, 0);
-+	if (irq < 0) {
-+		dev_err(&p->pdev->dev, "failed to get irq\n");
-+		return irq;
-+	}
-+
-+	p->clk = clk_get(&p->pdev->dev, "peripheral_clk");
-+	if (IS_ERR(p->clk)) {
-+		dev_err(&p->pdev->dev, "can't get clk\n");
-+		return PTR_ERR(p->clk);
-+	}
-+
-+	p->pdev = pdev;
-+	p->mapbase = res[REG_CH]->start;
-+	p->mapcommon = res[REG_COMM]->start;
-+	p->enb = 1 << cfg->enb;
-+	p->imfa = 1 << cfg->imfa;
-+	p->imiea = 1 << cfg->imiea;
-+	p->ced.name = pdev->name;
-+	p->ced.features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT;
-+	p->ced.rating = 200;
-+	p->ced.cpumask = cpumask_of(0);
-+	p->ced.set_next_event = timer16_clock_event_next;
-+	p->ced.set_mode = timer16_clock_event_mode;
-+
-+	ret = request_irq(irq, timer16_interrupt,
-+			  IRQF_DISABLED | IRQF_TIMER, pdev->name, p);
-+	if (ret < 0) {
-+		dev_err(&p->pdev->dev, "failed to request irq %d\n", irq);
-+		return ret;
-+	}
-+
-+	clockevents_register_device(&p->ced);
-+
-+	return 0;
-+}
-+
-+static int timer16_probe(struct platform_device *pdev)
-+{
-+	struct timer16_priv *p = platform_get_drvdata(pdev);
-+
-+	if (p) {
-+		dev_info(&pdev->dev, "kept as earlytimer\n");
-+		return 0;
-+	}
-+
-+	p = devm_kzalloc(&pdev->dev, sizeof(*p), GFP_KERNEL);
-+	if (!p)
-+		return -ENOMEM;
-+
-+	return timer16_setup(p, pdev);
-+}
-+
-+static int timer16_remove(struct platform_device *pdev)
-+{
-+	return -EBUSY;
-+}
-+
-+static struct platform_driver timer16_driver = {
-+	.probe		= timer16_probe,
-+	.remove		= timer16_remove,
-+	.driver		= {
-+		.name	= "h8300h-16timer",
-+	}
-+};
-+
-+static int __init timer16_init(void)
-+{
-+	return platform_driver_register(&timer16_driver);
-+}
-+
-+static void __exit timer16_exit(void)
-+{
-+	platform_driver_unregister(&timer16_driver);
-+}
-+
-+subsys_initcall(timer16_init);
-+module_exit(timer16_exit);
-+MODULE_AUTHOR("Yoshinori Sato");
-+MODULE_DESCRIPTION("H8/300H 16bit Timer Driver");
-+MODULE_LICENSE("GPL v2");
-diff --git a/drivers/clocksource/h8300_timer8.c b/drivers/clocksource/h8300_timer8.c
-new file mode 100644
-index 0000000..3d84b6c
---- /dev/null
-+++ b/drivers/clocksource/h8300_timer8.c
-@@ -0,0 +1,398 @@
-+/*
-+ *  linux/arch/h8300/kernel/cpu/timer/timer8.c
-+ *
-+ *  Yoshinori Sato <ysato@users.sourcefoge.jp>
-+ *
-+ *  8bit Timer driver
-+ *
-+ */
-+
-+#include <linux/errno.h>
 +#include <linux/sched.h>
 +#include <linux/kernel.h>
++#include <linux/mm.h>
++#include <linux/smp.h>
++#include <linux/stddef.h>
++#include <linux/unistd.h>
++#include <linux/ptrace.h>
++#include <linux/user.h>
 +#include <linux/interrupt.h>
-+#include <linux/init.h>
-+#include <linux/platform_device.h>
++#include <linux/reboot.h>
++#include <linux/fs.h>
 +#include <linux/slab.h>
-+#include <linux/clocksource.h>
-+#include <linux/clockchips.h>
-+#include <linux/module.h>
-+#include <linux/clk.h>
-+#include <linux/io.h>
++#include <linux/rcupdate.h>
 +
-+#include <asm/irq.h>
-+#include <asm/timer.h>
++#include <asm/uaccess.h>
++#include <asm/traps.h>
++#include <asm/setup.h>
++#include <asm/pgtable.h>
 +
-+#define _8TCR	0
-+#define _8TCSR	2
-+#define TCORA	4
-+#define TCORB	6
-+#define _8TCNT	8
++void (*pm_power_off)(void) = NULL;
++EXPORT_SYMBOL(pm_power_off);
 +
-+#define FLAG_REPROGRAM (1 << 0)
-+#define FLAG_SKIPEVENT (1 << 1)
-+#define FLAG_IRQCONTEXT (1 << 2)
-+#define FLAG_STARTED (1 << 3)
++asmlinkage void ret_from_fork(void);
++asmlinkage void ret_from_kernel_thread(void);
 +
-+#define ONESHOT  0
-+#define PERIODIC 1
-+
-+#define RELATIVE 0
-+#define ABSOLUTE 1
-+
-+struct timer8_priv {
-+	struct platform_device *pdev;
-+	int mode;
-+	union {
-+		struct clocksource cs;
-+		struct clock_event_device ced;
-+	} clk;
-+	struct irqaction irqaction;
-+	unsigned long mapbase;
-+	raw_spinlock_t lock;
-+	unsigned long total_cycles;
-+	unsigned int cs_enabled;
-+	unsigned long flags;
-+	unsigned int rate;
-+	unsigned short tcora;
-+	unsigned short div;
-+	struct clk *pclk;
-+};
-+
-+static const int div_rate[] = {8, 64, 8192};
-+
-+static unsigned long timer8_get_counter(struct timer8_priv *p)
++/*
++ * The idle loop on an H8/300..
++ */
++void arch_cpu_idle(void)
 +{
-+	unsigned long v1, v2, v3;
-+	int o1, o2;
-+
-+	o1 = ctrl_inb(p->mapbase + _8TCSR) & 0x20;
-+
-+	/* Make sure the timer value is stable. Stolen from acpi_pm.c */
-+	do {
-+		o2 = o1;
-+		v1 = ctrl_inw(p->mapbase + _8TCNT);
-+		v2 = ctrl_inw(p->mapbase + _8TCNT);
-+		v3 = ctrl_inw(p->mapbase + _8TCNT);
-+		o1 = ctrl_inb(p->mapbase + _8TCSR) & 0x20;
-+	} while (unlikely((o1 != o2) || (v1 > v2 && v1 < v3)
-+			  || (v2 > v3 && v2 < v1) || (v3 > v1 && v3 < v2)));
-+
-+	v2 |= o1 << 10;
-+	return v2;
++	local_irq_enable();
++	__asm__("sleep");
 +}
 +
-+static irqreturn_t timer8_interrupt(int irq, void *dev_id)
++void machine_restart(char *__unused)
 +{
-+	struct timer8_priv *p = dev_id;
-+
-+	switch (p->mode) {
-+	case H8300_TMR8_CLKSRC:
-+		ctrl_outb(ctrl_inb(p->mapbase + _8TCSR) & ~0x20,
-+			  p->mapbase + _8TCSR);
-+		p->total_cycles += 0x10000;
-+		break;
-+	case H8300_TMR8_CLKEVTDEV:
-+		ctrl_outb(ctrl_inb(p->mapbase + _8TCSR) & ~0x40,
-+			  p->mapbase + _8TCSR);
-+		p->flags |= FLAG_IRQCONTEXT;
-+		ctrl_outw(p->tcora, p->mapbase + TCORA);
-+		if (!(p->flags & FLAG_SKIPEVENT)) {
-+			if (p->clk.ced.mode == CLOCK_EVT_MODE_ONESHOT)
-+				ctrl_outw(0x0000, p->mapbase + _8TCR);
-+			p->clk.ced.event_handler(&p->clk.ced);
-+		}
-+		p->flags &= ~(FLAG_SKIPEVENT | FLAG_IRQCONTEXT);
-+		break;
-+	}
-+
-+	return IRQ_HANDLED;
++	local_irq_disable();
++	__asm__("jmp @@0");
 +}
 +
-+static inline struct timer8_priv *cs_to_priv(struct clocksource *cs)
++void machine_halt(void)
 +{
-+	return container_of(cs, struct timer8_priv, clk.cs);
++	local_irq_disable();
++	__asm__("sleep");
++	for (;;)
++		;
 +}
 +
-+static cycle_t timer8_clocksource_read(struct clocksource *cs)
++void machine_power_off(void)
 +{
-+	struct timer8_priv *p = cs_to_priv(cs);
-+	unsigned long flags, raw;
-+	unsigned long value;
-+
-+	raw_spin_lock_irqsave(&p->lock, flags);
-+	value = p->total_cycles;
-+	raw = timer8_get_counter(p);
-+	raw_spin_unlock_irqrestore(&p->lock, flags);
-+
-+	return value + raw;
++	local_irq_disable();
++	__asm__("sleep");
++	for (;;)
++		;
 +}
 +
-+static int timer8_clocksource_enable(struct clocksource *cs)
++void show_regs(struct pt_regs *regs)
 +{
-+	struct timer8_priv *p = cs_to_priv(cs);
++	show_regs_print_info(KERN_DEFAULT);
 +
-+	WARN_ON(p->cs_enabled);
-+
-+	p->total_cycles = 0;
-+	ctrl_outw(0, p->mapbase + _8TCNT);
-+	ctrl_outw(0x2400 | p->div, p->mapbase + _8TCR);
-+
-+	p->cs_enabled = true;
-+	return 0;
-+}
-+
-+static void timer8_clocksource_disable(struct clocksource *cs)
-+{
-+	struct timer8_priv *p = cs_to_priv(cs);
-+
-+	WARN_ON(!p->cs_enabled);
-+
-+	ctrl_outb(0, p->mapbase + _8TCR);
-+	p->cs_enabled = false;
-+}
-+
-+static void timer8_set_next(struct timer8_priv *p, unsigned long delta)
-+{
-+	unsigned long flags;
-+	unsigned long now;
-+
-+	raw_spin_lock_irqsave(&p->lock, flags);
-+	if (delta >= 0x10000)
-+		dev_warn(&p->pdev->dev, "delta out of range\n");
-+	now = timer8_get_counter(p);
-+	p->tcora = delta;
-+	ctrl_outb(ctrl_inb(p->mapbase + _8TCR) | 0x40, p->mapbase + _8TCR);
-+	if (delta > now)
-+		ctrl_outw(delta, p->mapbase + TCORA);
++	pr_notice("\n");
++	pr_notice("PC: %08lx  Status: %02x\n",
++	       regs->pc, regs->ccr);
++	pr_notice("ORIG_ER0: %08lx ER0: %08lx ER1: %08lx\n",
++	       regs->orig_er0, regs->er0, regs->er1);
++	pr_notice("ER2: %08lx ER3: %08lx ER4: %08lx ER5: %08lx\n",
++	       regs->er2, regs->er3, regs->er4, regs->er5);
++	pr_notice("ER6' %08lx ", regs->er6);
++	if (user_mode(regs))
++		printk("USP: %08lx\n", rdusp());
 +	else
-+		ctrl_outw(now + 1, p->mapbase + TCORA);
-+
-+	raw_spin_unlock_irqrestore(&p->lock, flags);
++		printk("\n");
 +}
 +
-+static int timer8_enable(struct timer8_priv *p)
++void flush_thread(void)
 +{
-+	p->rate = clk_get_rate(p->pclk) / div_rate[p->div];
-+	ctrl_outw(0xffff, p->mapbase + TCORA);
-+	ctrl_outw(0x0000, p->mapbase + _8TCNT);
-+	ctrl_outw(0x0c01, p->mapbase + _8TCR);
++}
++
++int copy_thread(unsigned long clone_flags,
++		unsigned long usp, unsigned long topstk,
++		struct task_struct *p)
++{
++	struct pt_regs *childregs;
++
++	childregs = (struct pt_regs *) (THREAD_SIZE + task_stack_page(p)) - 1;
++
++	if (unlikely(p->flags & PF_KTHREAD)) {
++		memset(childregs, 0, sizeof(struct pt_regs));
++		childregs->retpc = (unsigned long) ret_from_kernel_thread;
++		childregs->er4 = topstk; /* arg */
++		childregs->er5 = usp; /* fn */
++	}  else {
++		*childregs = *current_pt_regs();
++		childregs->er0 = 0;
++		childregs->retpc = (unsigned long) ret_from_fork;
++		p->thread.usp = usp ?: rdusp();
++	}
++	p->thread.ksp = (unsigned long)childregs;
 +
 +	return 0;
 +}
 +
-+static int timer8_start(struct timer8_priv *p)
++unsigned long thread_saved_pc(struct task_struct *tsk)
 +{
-+	int ret = 0;
-+	unsigned long flags;
-+
-+	raw_spin_lock_irqsave(&p->lock, flags);
-+
-+	if (!(p->flags & FLAG_STARTED))
-+		ret = timer8_enable(p);
-+
-+	if (ret)
-+		goto out;
-+	p->flags |= FLAG_STARTED;
-+
-+ out:
-+	raw_spin_unlock_irqrestore(&p->lock, flags);
-+
-+	return ret;
++	return ((struct pt_regs *)tsk->thread.esp0)->pc;
 +}
 +
-+static void timer8_stop(struct timer8_priv *p)
++unsigned long get_wchan(struct task_struct *p)
 +{
-+	unsigned long flags;
++	unsigned long fp, pc;
++	unsigned long stack_page;
++	int count = 0;
 +
-+	raw_spin_lock_irqsave(&p->lock, flags);
-+
-+	ctrl_outw(0x0000, p->mapbase + _8TCR);
-+
-+	raw_spin_unlock_irqrestore(&p->lock, flags);
-+}
-+
-+static inline struct timer8_priv *ced_to_priv(struct clock_event_device *ced)
-+{
-+	return container_of(ced, struct timer8_priv, clk.ced);
-+}
-+
-+static void timer8_clock_event_start(struct timer8_priv *p, int periodic)
-+{
-+	struct clock_event_device *ced = &p->clk.ced;
-+
-+	timer8_start(p);
-+
-+	ced->shift = 32;
-+	ced->mult = div_sc(p->rate, NSEC_PER_SEC, ced->shift);
-+	ced->max_delta_ns = clockevent_delta2ns(0xffff, ced);
-+	ced->min_delta_ns = clockevent_delta2ns(0x0001, ced);
-+
-+	timer8_set_next(p, periodic?(p->rate + HZ/2) / HZ:0x10000);
-+}
-+
-+static void timer8_clock_event_mode(enum clock_event_mode mode,
-+				    struct clock_event_device *ced)
-+{
-+	struct timer8_priv *p = ced_to_priv(ced);
-+
-+	switch (mode) {
-+	case CLOCK_EVT_MODE_PERIODIC:
-+		dev_info(&p->pdev->dev, "used for periodic clock events\n");
-+		timer8_stop(p);
-+		timer8_clock_event_start(p, PERIODIC);
-+		break;
-+	case CLOCK_EVT_MODE_ONESHOT:
-+		dev_info(&p->pdev->dev, "used for oneshot clock events\n");
-+		timer8_stop(p);
-+		timer8_clock_event_start(p, ONESHOT);
-+		break;
-+	case CLOCK_EVT_MODE_SHUTDOWN:
-+	case CLOCK_EVT_MODE_UNUSED:
-+		timer8_stop(p);
-+		break;
-+	default:
-+		break;
-+	}
-+}
-+
-+static int timer8_clock_event_next(unsigned long delta,
-+				   struct clock_event_device *ced)
-+{
-+	struct timer8_priv *p = ced_to_priv(ced);
-+
-+	BUG_ON(ced->mode != CLOCK_EVT_MODE_ONESHOT);
-+	timer8_set_next(p, delta - 1);
-+
-+	return 0;
-+}
-+
-+#define CMI 0
-+#define OVI 1
-+static int __init timer8_setup(struct timer8_priv *p,
-+			       struct platform_device *pdev)
-+{
-+	struct h8300_timer8_config *cfg = dev_get_platdata(&pdev->dev);
-+	struct resource *res;
-+	int irq[2];
-+	int ret;
-+
-+	memset(p, 0, sizeof(*p));
-+	p->pdev = pdev;
-+
-+	res = platform_get_resource(p->pdev, IORESOURCE_MEM, 0);
-+	if (!res) {
-+		dev_err(&p->pdev->dev, "failed to get I/O memory\n");
-+		return -ENXIO;
-+	}
-+
-+	irq[CMI] = platform_get_irq(p->pdev, CMI);
-+	irq[OVI] = platform_get_irq(p->pdev, OVI);
-+	if (irq[CMI] < 0 || irq[OVI] < 0) {
-+		dev_err(&p->pdev->dev, "failed to get irq\n");
-+		return -ENXIO;
-+	}
-+
-+	p->mapbase = res->start;
-+
-+	p->irqaction.name = dev_name(&p->pdev->dev);
-+	p->irqaction.handler = timer8_interrupt;
-+	p->irqaction.dev_id = p;
-+	p->irqaction.flags = IRQF_DISABLED | IRQF_TIMER;
-+
-+	p->mode = cfg->mode;
-+	p->div = cfg->div;
-+
-+	p->pclk = clk_get(&p->pdev->dev, "peripheral_clk");
-+	if (IS_ERR(p->pclk)) {
-+		dev_err(&p->pdev->dev, "can't get clk\n");
-+		return PTR_ERR(p->pclk);
-+	}
-+
-+	switch (p->mode) {
-+	case H8300_TMR8_CLKSRC:
-+		p->clk.cs.name = pdev->name;
-+		p->clk.cs.rating = 200;
-+		p->clk.cs.read = timer8_clocksource_read;
-+		p->clk.cs.enable = timer8_clocksource_enable;
-+		p->clk.cs.disable = timer8_clocksource_disable;
-+		p->clk.cs.mask = CLOCKSOURCE_MASK(sizeof(unsigned long) * 8);
-+		p->clk.cs.flags = CLOCK_SOURCE_IS_CONTINUOUS;
-+
-+		ret = setup_irq(irq[OVI], &p->irqaction);
-+		if (ret < 0) {
-+			dev_err(&p->pdev->dev,
-+				"failed to request irq %d\n", irq[OVI]);
-+			return ret;
-+		}
-+		clocksource_register_hz(&p->clk.cs,
-+					clk_get_rate(p->pclk) / div_rate[p->div]);
-+		break;
-+	case H8300_TMR8_CLKEVTDEV:
-+		p->clk.ced.name = pdev->name;
-+		p->clk.ced.features = CLOCK_EVT_FEAT_PERIODIC |
-+					CLOCK_EVT_FEAT_ONESHOT;
-+		p->clk.ced.rating = 200;
-+		p->clk.ced.cpumask = cpumask_of(0);
-+		p->clk.ced.set_next_event = timer8_clock_event_next;
-+		p->clk.ced.set_mode = timer8_clock_event_mode;
-+
-+		ret = setup_irq(irq[CMI], &p->irqaction);
-+		if (ret < 0) {
-+			dev_err(&p->pdev->dev,
-+				"failed to request irq %d\n", irq[CMI]);
-+			return ret;
-+		}
-+		clockevents_register_device(&p->clk.ced);
-+		break;
-+	}
-+	platform_set_drvdata(pdev, p);
-+
-+	return 0;
-+}
-+
-+static int timer8_probe(struct platform_device *pdev)
-+{
-+	struct timer8_priv *p = platform_get_drvdata(pdev);
-+
-+	if (p) {
-+		dev_info(&pdev->dev, "kept as earlytimer\n");
++	if (!p || p == current || p->state == TASK_RUNNING)
 +		return 0;
-+	}
 +
-+	p = devm_kzalloc(&pdev->dev, sizeof(*p), GFP_KERNEL);
-+	if (!p)
-+		return -ENOMEM;
-+
-+	return timer8_setup(p, pdev);
++	stack_page = (unsigned long)p;
++	fp = ((struct pt_regs *)p->thread.ksp)->er6;
++	do {
++		if (fp < stack_page+sizeof(struct thread_info) ||
++		    fp >= 8184+stack_page)
++			return 0;
++		pc = ((unsigned long *)fp)[1];
++		if (!in_sched_functions(pc))
++			return pc;
++		fp = *(unsigned long *) fp;
++	} while (count++ < 16);
++	return 0;
 +}
 +
-+static int timer8_remove(struct platform_device *pdev)
++/* generic sys_clone is not enough registers */
++asmlinkage int sys_clone(unsigned long __user *args)
 +{
-+	return -EBUSY;
++	unsigned long clone_flags;
++	unsigned long  newsp;
++	uintptr_t parent_tidptr;
++	uintptr_t child_tidptr;
++
++	get_user(clone_flags, &args[0]);
++	get_user(newsp, &args[1]);
++	get_user(parent_tidptr, &args[2]);
++	get_user(child_tidptr, &args[3]);
++	return do_fork(clone_flags, newsp, 0,
++		       (int __user *)parent_tidptr, (int __user *)child_tidptr);
 +}
-+
-+static struct platform_driver timer8_driver = {
-+	.probe		= timer8_probe,
-+	.remove		= timer8_remove,
-+	.driver		= {
-+		.name	= "h8300-8timer",
-+	}
-+};
-+
-+static int __init timer8_init(void)
-+{
-+	return platform_driver_register(&timer8_driver);
-+}
-+
-+static void __exit timer8_exit(void)
-+{
-+	platform_driver_unregister(&timer8_driver);
-+}
-+
-+early_platform_init("earlytimer", &timer8_driver);
-+subsys_initcall(timer8_init);
-+module_exit(timer8_exit);
-+MODULE_AUTHOR("Yoshinori Sato");
-+MODULE_DESCRIPTION("H8/300 8bit Timer Driver");
-+MODULE_LICENSE("GPL v2");
-diff --git a/drivers/clocksource/h8300_tpu.c b/drivers/clocksource/h8300_tpu.c
+diff --git a/arch/h8300/kernel/ptrace.c b/arch/h8300/kernel/ptrace.c
 new file mode 100644
-index 0000000..1aae8a7
+index 0000000..9207554
 --- /dev/null
-+++ b/drivers/clocksource/h8300_tpu.c
++++ b/arch/h8300/kernel/ptrace.c
 @@ -0,0 +1,203 @@
 +/*
-+ *  linux/arch/h8300/kernel/cpu/timer/timer_tpu.c
++ *  linux/arch/h8300/kernel/ptrace.c
 + *
-+ *  Yoshinori Sato <ysato@users.sourcefoge.jp>
++ *  Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
 + *
-+ *  TPU driver
-+ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License.  See the file COPYING in the main directory of
++ * this archive for more details.
 + */
 +
-+#include <linux/errno.h>
-+#include <linux/sched.h>
 +#include <linux/kernel.h>
-+#include <linux/interrupt.h>
-+#include <linux/init.h>
-+#include <linux/platform_device.h>
-+#include <linux/slab.h>
-+#include <linux/clocksource.h>
-+#include <linux/module.h>
-+#include <linux/clk.h>
-+#include <linux/io.h>
++#include <linux/errno.h>
++#include <linux/ptrace.h>
++#include <linux/audit.h>
++#include <linux/tracehook.h>
++#include <linux/regset.h>
++#include <linux/elf.h>
 +
-+#include <asm/irq.h>
-+#include <asm/timer.h>
++#define CCR_MASK 0x6f    /* mode/imask not set */
++#define EXR_MASK 0x80    /* modify only T */
 +
-+#define TCR	0
-+#define TMDR	1
-+#define TIOR	2
-+#define TER	4
-+#define TSR	5
-+#define TCNT	6
-+#define TGRA	8
-+#define TGRB	10
-+#define TGRC	12
-+#define TGRD	14
++#define PT_REG(r) offsetof(struct pt_regs, r)
 +
-+struct tpu_priv {
-+	struct platform_device *pdev;
-+	struct clocksource cs;
-+	struct clk *clk;
-+	unsigned long mapbase1;
-+	unsigned long mapbase2;
-+	raw_spinlock_t lock;
-+	unsigned int cs_enabled;
++extern void user_disable_single_step(struct task_struct *child);
++
++/* Mapping from PT_xxx to the stack offset at which the register is
++   saved.  Notice that usp has no stack-slot and needs to be treated
++   specially (see get_reg/put_reg below). */
++static const int register_offset[] = {
++	PT_REG(er1), PT_REG(er2), PT_REG(er3), PT_REG(er4),
++	PT_REG(er5), PT_REG(er6), PT_REG(er0), -1,
++	PT_REG(orig_er0), PT_REG(ccr), PT_REG(pc),
++#if defined(CONFIG_CPU_H8S)
++	PT_REG(exr),
++#endif
 +};
 +
-+static inline unsigned long read_tcnt32(struct tpu_priv *p)
++/* read register */
++long h8300_get_reg(struct task_struct *task, int regno)
 +{
-+	unsigned long tcnt;
-+
-+	tcnt = ctrl_inw(p->mapbase1 + TCNT) << 16;
-+	tcnt |= ctrl_inw(p->mapbase2 + TCNT);
-+	return tcnt;
++	switch (regno) {
++	case PT_USP:
++		return task->thread.usp + sizeof(long)*2;
++	case PT_CCR:
++	case PT_EXR:
++	    return *(unsigned short *)(task->thread.esp0 +
++				       register_offset[regno]);
++	default:
++	    return *(unsigned long *)(task->thread.esp0 +
++				      register_offset[regno]);
++	}
 +}
 +
-+static int tpu_get_counter(struct tpu_priv *p, unsigned long long *val)
++int h8300_put_reg(struct task_struct *task, int regno, unsigned long data)
 +{
-+	unsigned long v1, v2, v3;
-+	int o1, o2;
++	unsigned short oldccr;
++	unsigned short oldexr;
 +
-+	o1 = ctrl_inb(p->mapbase1 + TSR) & 0x10;
-+
-+	/* Make sure the timer value is stable. Stolen from acpi_pm.c */
-+	do {
-+		o2 = o1;
-+		v1 = read_tcnt32(p);
-+		v2 = read_tcnt32(p);
-+		v3 = read_tcnt32(p);
-+		o1 = ctrl_inb(p->mapbase1 + TSR) & 0x10;
-+	} while (unlikely((o1 != o2) || (v1 > v2 && v1 < v3)
-+			  || (v2 > v3 && v2 < v1) || (v3 > v1 && v3 < v2)));
-+
-+	*val = v2;
-+	return o1;
-+}
-+
-+static inline struct tpu_priv *cs_to_priv(struct clocksource *cs)
-+{
-+	return container_of(cs, struct tpu_priv, cs);
-+}
-+
-+static cycle_t tpu_clocksource_read(struct clocksource *cs)
-+{
-+	struct tpu_priv *p = cs_to_priv(cs);
-+	unsigned long flags;
-+	unsigned long long value;
-+
-+	raw_spin_lock_irqsave(&p->lock, flags);
-+	if (tpu_get_counter(p, &value))
-+		value += 0x100000000;
-+	raw_spin_unlock_irqrestore(&p->lock, flags);
-+
-+	return value;
-+}
-+
-+static int tpu_clocksource_enable(struct clocksource *cs)
-+{
-+	struct tpu_priv *p = cs_to_priv(cs);
-+
-+	WARN_ON(p->cs_enabled);
-+
-+	ctrl_outw(0, p->mapbase1 + TCNT);
-+	ctrl_outw(0, p->mapbase2 + TCNT);
-+	ctrl_outb(0x0f, p->mapbase1 + TCR);
-+	ctrl_outb(0x03, p->mapbase2 + TCR);
-+
-+	p->cs_enabled = true;
++	switch (regno) {
++	case PT_USP:
++		task->thread.usp = data - sizeof(long)*2;
++	case PT_CCR:
++		oldccr = *(unsigned short *)(task->thread.esp0 +
++					     register_offset[regno]);
++		oldccr &= ~CCR_MASK;
++		data &= CCR_MASK;
++		data |= oldccr;
++		*(unsigned short *)(task->thread.esp0 +
++				    register_offset[regno]) = data;
++		break;
++	case PT_EXR:
++		oldexr = *(unsigned short *)(task->thread.esp0 +
++					     register_offset[regno]);
++		oldccr &= ~EXR_MASK;
++		data &= EXR_MASK;
++		data |= oldexr;
++		*(unsigned short *)(task->thread.esp0 +
++				    register_offset[regno]) = data;
++		break;
++	default:
++		*(unsigned long *)(task->thread.esp0 +
++				   register_offset[regno]) = data;
++		break;
++	}
 +	return 0;
 +}
 +
-+static void tpu_clocksource_disable(struct clocksource *cs)
++static int regs_get(struct task_struct *target,
++		    const struct user_regset *regset,
++		    unsigned int pos, unsigned int count,
++		    void *kbuf, void __user *ubuf)
 +{
-+	struct tpu_priv *p = cs_to_priv(cs);
++	int r;
++	struct user_regs_struct regs;
++	long *reg = (long *)&regs;
 +
-+	WARN_ON(!p->cs_enabled);
++	/* build user regs in buffer */
++	for (r = 0; r < ARRAY_SIZE(register_offset); r++)
++		*reg++ = h8300_get_reg(target, r);
 +
-+	ctrl_outb(0, p->mapbase1 + TCR);
-+	ctrl_outb(0, p->mapbase2 + TCR);
-+	p->cs_enabled = false;
++	return user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				   &regs, 0, sizeof(regs));
 +}
 +
-+#define CH_L 0
-+#define CH_H 1
-+
-+static int __init tpu_setup(struct tpu_priv *p, struct platform_device *pdev)
++static int regs_set(struct task_struct *target,
++		    const struct user_regset *regset,
++		    unsigned int pos, unsigned int count,
++		    const void *kbuf, const void __user *ubuf)
 +{
-+	struct resource *res[2];
++	int r;
++	int ret;
++	struct user_regs_struct regs;
++	long *reg;
 +
-+	memset(p, 0, sizeof(*p));
-+	p->pdev = pdev;
++	/* build user regs in buffer */
++	for (reg = (long *)&regs, r = 0; r < ARRAY_SIZE(register_offset); r++)
++		*reg++ = h8300_get_reg(target, r);
 +
-+	res[CH_L] = platform_get_resource(p->pdev, IORESOURCE_MEM, CH_L);
-+	res[CH_H] = platform_get_resource(p->pdev, IORESOURCE_MEM, CH_H);
-+	if (!res[CH_L] || !res[CH_H]) {
-+		dev_err(&p->pdev->dev, "failed to get I/O memory\n");
-+		return -ENXIO;
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 &regs, 0, sizeof(regs));
++	if (ret)
++		return ret;
++
++	/* write back to pt_regs */
++	for (reg = (long *)&regs, r = 0; r < ARRAY_SIZE(register_offset); r++)
++		h8300_put_reg(target, r, *reg++);
++	return 0;
++}
++
++enum h8300_regset {
++	REGSET_GENERAL,
++};
++
++static const struct user_regset h8300_regsets[] = {
++	[REGSET_GENERAL] = {
++		.core_note_type	= NT_PRSTATUS,
++		.n		= ELF_NGREG,
++		.size		= sizeof(long),
++		.align		= sizeof(long),
++		.get		= regs_get,
++		.set		= regs_set,
++	},
++};
++
++static const struct user_regset_view user_h8300_native_view = {
++	.name = "h8300",
++	.e_machine = EM_H8_300,
++	.regsets = h8300_regsets,
++	.n = ARRAY_SIZE(h8300_regsets),
++};
++
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++{
++	return &user_h8300_native_view;
++}
++
++void ptrace_disable(struct task_struct *child)
++{
++	user_disable_single_step(child);
++}
++
++long arch_ptrace(struct task_struct *child, long request,
++		 unsigned long addr, unsigned long data)
++{
++	int ret;
++
++	switch (request) {
++	default:
++		ret = ptrace_request(child, request, addr, data);
++		break;
 +	}
++	return ret;
++}
 +
-+	p->clk = clk_get(&p->pdev->dev, "peripheral_clk");
-+	if (IS_ERR(p->clk)) {
-+		dev_err(&p->pdev->dev, "can't get clk\n");
-+		return PTR_ERR(p->clk);
++asmlinkage long do_syscall_trace_enter(struct pt_regs *regs)
++{
++	long ret = 0;
++
++	if (test_thread_flag(TIF_SYSCALL_TRACE) &&
++	    tracehook_report_syscall_entry(regs))
++		/*
++		 * Tracing decided this syscall should not happen.
++		 * We'll return a bogus call number to get an ENOSYS
++		 * error, but leave the original number in regs->regs[0].
++		 */
++		ret = -1L;
++
++	audit_syscall_entry(regs->er1, regs->er2, regs->er3,
++			    regs->er4, regs->er5);
++
++	return ret ?: regs->er0;
++}
++
++asmlinkage void do_syscall_trace_leave(struct pt_regs *regs)
++{
++	int step;
++
++	audit_syscall_exit(regs);
++
++	step = test_thread_flag(TIF_SINGLESTEP);
++	if (step || test_thread_flag(TIF_SYSCALL_TRACE))
++		tracehook_report_syscall_exit(regs, step);
++}
+diff --git a/arch/h8300/kernel/signal.c b/arch/h8300/kernel/signal.c
+new file mode 100644
+index 0000000..380fffd
+--- /dev/null
++++ b/arch/h8300/kernel/signal.c
+@@ -0,0 +1,289 @@
++/*
++ *  linux/arch/h8300/kernel/signal.c
++ *
++ *  Copyright (C) 1991, 1992  Linus Torvalds
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file COPYING in the main directory of this archive
++ * for more details.
++ */
++
++/*
++ * uClinux H8/300 support by Yoshinori Sato <ysato@users.sourceforge.jp>
++ *                and David McCullough <davidm@snapgear.com>
++ *
++ * Based on
++ * Linux/m68k by Hamish Macdonald
++ */
++
++/*
++ * ++roman (07/09/96): implemented signal stacks (specially for tosemu on
++ * Atari :-) Current limitation: Only one sigstack can be active at one time.
++ * If a second signal with SA_ONSTACK set arrives while working on a sigstack,
++ * SA_ONSTACK is ignored. This behaviour avoids lots of trouble with nested
++ * signal handlers!
++ */
++
++#include <linux/sched.h>
++#include <linux/mm.h>
++#include <linux/kernel.h>
++#include <linux/signal.h>
++#include <linux/syscalls.h>
++#include <linux/errno.h>
++#include <linux/wait.h>
++#include <linux/ptrace.h>
++#include <linux/unistd.h>
++#include <linux/stddef.h>
++#include <linux/highuid.h>
++#include <linux/personality.h>
++#include <linux/tty.h>
++#include <linux/binfmts.h>
++#include <linux/tracehook.h>
++
++#include <asm/setup.h>
++#include <asm/uaccess.h>
++#include <asm/pgtable.h>
++#include <asm/traps.h>
++#include <asm/ucontext.h>
++
++/*
++ * Do a signal return; undo the signal stack.
++ *
++ * Keep the return code on the stack quadword aligned!
++ * That makes the cache flush below easier.
++ */
++
++struct rt_sigframe {
++	long dummy_er0;
++	long dummy_vector;
++#if defined(CONFIG_CPU_H8S)
++	short dummy_exr;
++#endif
++	long dummy_pc;
++	char *pretcode;
++	struct siginfo *pinfo;
++	void *puc;
++	unsigned char retcode[8];
++	struct siginfo info;
++	struct ucontext uc;
++	int sig;
++} __packed __aligned(2);
++
++static inline int
++restore_sigcontext(struct sigcontext *usc, int *pd0)
++{
++	struct pt_regs *regs = current_pt_regs();
++	int err = 0;
++	unsigned int ccr;
++	unsigned int usp;
++	unsigned int er0;
++
++	/* Always make any pending restarted system calls return -EINTR */
++	current_thread_info()->restart_block.fn = do_no_restart_syscall;
++
++	/* restore passed registers */
++#define COPY(r)  do { err |= get_user(regs->r, &usc->sc_##r); } while (0)
++	COPY(er1);
++	COPY(er2);
++	COPY(er3);
++	COPY(er5);
++	COPY(pc);
++	ccr = regs->ccr & 0x10;
++	COPY(ccr);
++#undef COPY
++	regs->ccr &= 0xef;
++	regs->ccr |= ccr;
++	regs->orig_er0 = -1;		/* disable syscall checks */
++	err |= __get_user(usp, &usc->sc_usp);
++	wrusp(usp);
++
++	err |= __get_user(er0, &usc->sc_er0);
++	*pd0 = er0;
++	return err;
++}
++
++asmlinkage int sys_rt_sigreturn(void)
++{
++	unsigned long usp = rdusp();
++	struct rt_sigframe *frame = (struct rt_sigframe *)(usp - 4);
++	sigset_t set;
++	int er0;
++
++	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
++		goto badframe;
++	if (__copy_from_user(&set, &frame->uc.uc_sigmask, sizeof(set)))
++		goto badframe;
++
++	set_current_blocked(&set);
++
++	if (restore_sigcontext(&frame->uc.uc_mcontext, &er0))
++		goto badframe;
++
++	if (restore_altstack(&frame->uc.uc_stack))
++		goto badframe;
++
++	return er0;
++
++badframe:
++	force_sig(SIGSEGV, current);
++	return 0;
++}
++
++static int setup_sigcontext(struct sigcontext __user *sc, struct pt_regs *regs,
++			     unsigned long mask)
++{
++	int err = 0;
++
++	err |= __put_user(regs->er0, &sc->sc_er0);
++	err |= __put_user(regs->er1, &sc->sc_er1);
++	err |= __put_user(regs->er2, &sc->sc_er2);
++	err |= __put_user(regs->er3, &sc->sc_er3);
++	err |= __put_user(regs->er4, &sc->sc_er4);
++	err |= __put_user(regs->er5, &sc->sc_er5);
++	err |= __put_user(regs->er6, &sc->sc_er6);
++	err |= __put_user(rdusp(),   &sc->sc_usp);
++	err |= __put_user(regs->pc,  &sc->sc_pc);
++	err |= __put_user(regs->ccr, &sc->sc_ccr);
++	err |= __put_user(mask,      &sc->sc_mask);
++
++	return err;
++}
++
++static inline void __user *
++get_sigframe(struct ksignal *ksig, struct pt_regs *regs, size_t frame_size)
++{
++	return (void __user *)((sigsp(rdusp(), ksig) - frame_size) & -8UL);
++}
++
++static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
++			  struct pt_regs *regs)
++{
++	struct rt_sigframe *frame;
++	int err = 0;
++	unsigned char *ret;
++
++	frame = get_sigframe(ksig, regs, sizeof(*frame));
++
++	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
++		return -EFAULT;
++
++	if (ksig->ka.sa.sa_flags & SA_SIGINFO)
++		err |= copy_siginfo_to_user(&frame->info, &ksig->info);
++
++	/* Create the ucontext.  */
++	err |= __put_user(0, &frame->uc.uc_flags);
++	err |= __put_user(0, &frame->uc.uc_link);
++	err |= __save_altstack(&frame->uc.uc_stack, rdusp());
++	err |= setup_sigcontext(&frame->uc.uc_mcontext, regs, set->sig[0]);
++	err |= copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
++	if (err)
++		return -EFAULT;
++
++	/* Set up to return from userspace.  */
++	ret = frame->retcode;
++	if (ksig->ka.sa.sa_flags & SA_RESTORER)
++		ret = (unsigned char *)(ksig->ka.sa.sa_restorer);
++	else {
++		/* sub.l er0,er0; mov.b #__NR_rt_sigreturn,r0l; trapa #0 */
++		err |= __put_user(0x1a80f800 + (__NR_rt_sigreturn & 0xff),
++				  (unsigned long *)(frame->retcode + 0));
++		err |= __put_user(0x5700,
++				  (unsigned short *)(frame->retcode + 4));
 +	}
++	err |= __put_user(ret, &frame->pretcode);
 +
-+	p->mapbase1 = res[CH_L]->start;
-+	p->mapbase2 = res[CH_H]->start;
++	if (err)
++		return -EFAULT;
 +
-+	p->cs.name = pdev->name;
-+	p->cs.rating = 200;
-+	p->cs.read = tpu_clocksource_read;
-+	p->cs.enable = tpu_clocksource_enable;
-+	p->cs.disable = tpu_clocksource_disable;
-+	p->cs.mask = CLOCKSOURCE_MASK(sizeof(unsigned long) * 8);
-+	p->cs.flags = CLOCK_SOURCE_IS_CONTINUOUS;
-+	clocksource_register_hz(&p->cs, clk_get_rate(p->clk) / 64);
-+	platform_set_drvdata(pdev, p);
++	/* Set up registers for signal handler */
++	wrusp((unsigned long) frame);
++	regs->pc  = (unsigned long) ksig->ka.sa.sa_handler;
++	regs->er0 = ksig->sig;
++	regs->er1 = (unsigned long)&(frame->info);
++	regs->er2 = (unsigned long)&frame->uc;
++	regs->er5 = current->mm->start_data;	/* GOT base */
 +
 +	return 0;
 +}
 +
-+static int tpu_probe(struct platform_device *pdev)
++static void
++handle_restart(struct pt_regs *regs, struct k_sigaction *ka)
 +{
-+	struct tpu_priv *p = platform_get_drvdata(pdev);
-+
-+	if (p) {
-+		dev_info(&pdev->dev, "kept as earlytimer\n");
-+		return 0;
++	switch (regs->er0) {
++	case -ERESTARTNOHAND:
++		if (!ka)
++			goto do_restart;
++		regs->er0 = -EINTR;
++		break;
++	case -ERESTART_RESTARTBLOCK:
++		if (!ka) {
++			regs->er0 = __NR_restart_syscall;
++			regs->pc -= 2;
++		} else
++			regs->er0 = -EINTR;
++		break;
++	case -ERESTARTSYS:
++		if (!(ka->sa.sa_flags & SA_RESTART)) {
++			regs->er0 = -EINTR;
++			break;
++		}
++		/* fallthrough */
++	case -ERESTARTNOINTR:
++do_restart:
++		regs->er0 = regs->orig_er0;
++		regs->pc -= 2;
++		break;
 +	}
-+
-+	p = devm_kzalloc(&pdev->dev, sizeof(*p), GFP_KERNEL);
-+	if (!p)
-+		return -ENOMEM;
-+
-+	return tpu_setup(p, pdev);
 +}
 +
-+static int tpu_remove(struct platform_device *pdev)
++/*
++ * OK, we're invoking a handler
++ */
++static void
++handle_signal(struct ksignal *ksig, struct pt_regs *regs)
 +{
-+	return -EBUSY;
++	sigset_t *oldset = sigmask_to_save();
++	int ret;
++	/* are we from a system call? */
++	if (regs->orig_er0 >= 0)
++		handle_restart(regs, &ksig->ka);
++
++	ret = setup_rt_frame(ksig, oldset, regs);
++
++	signal_setup_done(ret, ksig, 0);
 +}
 +
-+static struct platform_driver tpu_driver = {
-+	.probe		= tpu_probe,
-+	.remove		= tpu_remove,
-+	.driver		= {
-+		.name	= "h8s-tpu",
++/*
++ * Note that 'init' is a special process: it doesn't get signals it doesn't
++ * want to handle. Thus you cannot kill init even with a SIGKILL even by
++ * mistake.
++ */
++static void do_signal(struct pt_regs *regs)
++{
++	struct ksignal ksig;
++
++	current->thread.esp0 = (unsigned long) regs;
++
++	if (get_signal(&ksig)) {
++		/* Whee!  Actually deliver the signal.  */
++		handle_signal(&ksig, regs);
++		return;
 +	}
-+};
++	/* Did we come from a system call? */
++	if (regs->orig_er0 >= 0)
++		handle_restart(regs, NULL);
 +
-+static int __init tpu_init(void)
-+{
-+	return platform_driver_register(&tpu_driver);
++	/* If there's no signal to deliver, we just restore the saved mask.  */
++	restore_saved_sigmask();
 +}
 +
-+static void __exit tpu_exit(void)
++asmlinkage void do_notify_resume(struct pt_regs *regs, u32 thread_info_flags)
 +{
-+	platform_driver_unregister(&tpu_driver);
-+}
++	if (thread_info_flags & _TIF_SIGPENDING)
++		do_signal(regs);
 +
-+subsys_initcall(tpu_init);
-+module_exit(tpu_exit);
-+MODULE_AUTHOR("Yoshinori Sato");
-+MODULE_DESCRIPTION("H8S Timer Pulse Unit Driver");
-+MODULE_LICENSE("GPL v2");
++	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
++		clear_thread_flag(TIF_NOTIFY_RESUME);
++		tracehook_notify_resume(regs);
++	}
++}
 -- 
 2.1.4
