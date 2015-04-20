@@ -1,197 +1,304 @@
-From: Baolin Wang <baolin.wang@linaro.org>
-Subject: [PATCH 11/11] k_clock:Remove the 32bit methods with timespec type
-Date: Mon, 20 Apr 2015 13:57:39 +0800
-Message-ID: <1429509459-17068-12-git-send-email-baolin.wang@linaro.org>
-References: <1429509459-17068-1-git-send-email-baolin.wang@linaro.org>
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <1429509459-17068-1-git-send-email-baolin.wang@linaro.org>
-Sender: netdev-owner@vger.kernel.org
-To: tglx@linutronix.de
-Cc: arnd@arndb.de, john.stultz@linaro.org, heenasirwani@gmail.com, pang.xunlei@linaro.org, peterz@infradead.org, rafael.j.wysocki@intel.com, gregkh@linuxfoundation.org, richardcochran@gmail.com, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, fweisbec@gmail.com, ahh@google.com, pjt@google.com, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, baolin.wang@linaro.org, y2038@lists.linaro.org
-List-Id: linux-arch.vger.kernel.org
+From: Yoshinori Sato <ysato@users.sourceforge.jp>
+Subject: [PATCH v8 02/17] h8300: UAPI headers
+Date: Mon, 20 Apr 2015 15:13:18 +0900
+Message-ID: <1429510413-14869-3-git-send-email-ysato@users.sourceforge.jp>
+References: <1429510413-14869-1-git-send-email-ysato@users.sourceforge.jp>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail2.asahi-net.or.jp ([202.224.39.198]:34542 "EHLO
+	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751471AbbDTGd4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Apr 2015 02:33:56 -0400
+In-Reply-To: <1429510413-14869-1-git-send-email-ysato@users.sourceforge.jp>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 
-All of the k_clock users have been converted to the new methods. This patch
-removes the older methods with timepsec/itimerspec type.  As a result, the k_clock
-structure is ready for the year 2038.
-
-Signed-off-by: Baolin Wang <baolin.wang@linaro.org>
+Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- include/linux/posix-timers.h |    9 ------
- kernel/time/posix-timers.c   |   72 +++++++++++++++++-------------------------
- 2 files changed, 29 insertions(+), 52 deletions(-)
+ arch/h8300/include/uapi/asm/Kbuild       |  29 ++++++++
+ arch/h8300/include/uapi/asm/auxvec.h     |   4 ++
+ arch/h8300/include/uapi/asm/byteorder.h  |   6 ++
+ arch/h8300/include/uapi/asm/ptrace.h     |  42 +++++++++++
+ arch/h8300/include/uapi/asm/sigcontext.h |  18 +++++
+ arch/h8300/include/uapi/asm/signal.h     | 115 +++++++++++++++++++++++++++++++
+ arch/h8300/include/uapi/asm/swab.h       |   1 +
+ arch/h8300/include/uapi/asm/unistd.h     |   3 +
+ 8 files changed, 218 insertions(+)
+ create mode 100644 arch/h8300/include/uapi/asm/Kbuild
+ create mode 100644 arch/h8300/include/uapi/asm/auxvec.h
+ create mode 100644 arch/h8300/include/uapi/asm/byteorder.h
+ create mode 100644 arch/h8300/include/uapi/asm/ptrace.h
+ create mode 100644 arch/h8300/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/h8300/include/uapi/asm/signal.h
+ create mode 100644 arch/h8300/include/uapi/asm/swab.h
+ create mode 100644 arch/h8300/include/uapi/asm/unistd.h
 
-diff --git a/include/linux/posix-timers.h b/include/linux/posix-timers.h
-index 35786c5..7c3dae2 100644
---- a/include/linux/posix-timers.h
-+++ b/include/linux/posix-timers.h
-@@ -97,29 +97,20 @@ struct k_itimer {
- };
- 
- struct k_clock {
--	int (*clock_getres) (const clockid_t which_clock, struct timespec *tp);
- 	int (*clock_getres64) (const clockid_t which_clock, struct timespec64 *tp);
--	int (*clock_set) (const clockid_t which_clock,
--			  const struct timespec *tp);
- 	int (*clock_set64) (const clockid_t which_clock,
- 			    const struct timespec64 *tp);
--	int (*clock_get) (const clockid_t which_clock, struct timespec * tp);
- 	int (*clock_get64) (const clockid_t which_clock, struct timespec64 *tp);
- 	int (*clock_adj) (const clockid_t which_clock, struct timex *tx);
- 	int (*timer_create) (struct k_itimer *timer);
- 	int (*nsleep) (const clockid_t which_clock, int flags,
- 		       struct timespec *, struct timespec __user *);
- 	long (*nsleep_restart) (struct restart_block *restart_block);
--	int (*timer_set) (struct k_itimer * timr, int flags,
--			  struct itimerspec * new_setting,
--			  struct itimerspec * old_setting);
- 	int (*timer_set64) (struct k_itimer *timr, int flags,
- 			    struct itimerspec64 *new_setting,
- 			    struct itimerspec64 *old_setting);
- 	int (*timer_del) (struct k_itimer * timr);
- #define TIMER_RETRY 1
--	void (*timer_get) (struct k_itimer * timr,
--			   struct itimerspec * cur_setting);
- 	void (*timer_get64) (struct k_itimer *timr,
- 			     struct itimerspec64 *cur_setting);
- };
-diff --git a/kernel/time/posix-timers.c b/kernel/time/posix-timers.c
-index 47d1abf..3196ec0 100644
---- a/kernel/time/posix-timers.c
-+++ b/kernel/time/posix-timers.c
-@@ -528,13 +528,13 @@ void posix_timers_register_clock(const clockid_t clock_id,
- 		return;
- 	}
- 
--	if (!new_clock->clock_get && !new_clock->clock_get64) {
--		printk(KERN_WARNING "POSIX clock id %d lacks clock_get() and clock_get64()\n",
-+	if (!new_clock->clock_get64) {
-+		printk(KERN_WARNING "POSIX clock id %d lacks clock_get64()\n",
- 		       clock_id);
- 		return;
- 	}
--	if (!new_clock->clock_getres && !new_clock->clock_getres64) {
--		printk(KERN_WARNING "POSIX clock id %d lacks clock_getres() and clock_getres64()\n",
-+	if (!!new_clock->clock_getres64) {
-+		printk(KERN_WARNING "POSIX clock id %d lacks clock_getres64()\n",
- 		       clock_id);
- 		return;
- 	}
-@@ -585,7 +585,7 @@ static struct k_clock *clockid_to_kclock(const clockid_t id)
- 		return (id & CLOCKFD_MASK) == CLOCKFD ?
- 			&clock_posix_dynamic : &clock_posix_cpu;
- 
--	if (id >= MAX_CLOCKS || (!posix_clocks[id].clock_getres && !posix_clocks[id].clock_getres64))
-+	if (id >= MAX_CLOCKS || !posix_clocks[id].clock_getres64)
- 		return NULL;
- 	return &posix_clocks[id];
- }
-@@ -788,15 +788,11 @@ SYSCALL_DEFINE2(timer_gettime, timer_t, timer_id,
- 		return -EINVAL;
- 
- 	kc = clockid_to_kclock(timr->it_clock);
--	if (WARN_ON_ONCE(!kc || (!kc->timer_get && !kc->timer_get64))) {
-+	if (WARN_ON_ONCE(!kc || !kc->timer_get64)) {
- 		ret = -EINVAL;
- 	} else {
--		if (kc->timer_get64) {
--			kc->timer_get64(timr, &cur_setting64);
--			cur_setting = itimerspec64_to_itimerspec(cur_setting64);
--		} else {
--			kc->timer_get(timr, &cur_setting);
--		}
-+		kc->timer_get64(timr, &cur_setting64);
-+		cur_setting = itimerspec64_to_itimerspec(cur_setting64);
- 	}
- 
- 	unlock_timer(timr, flags);
-@@ -911,18 +907,14 @@ retry:
- 		return -EINVAL;
- 
- 	kc = clockid_to_kclock(timr->it_clock);
--	if (WARN_ON_ONCE(!kc || (!kc->timer_set && !kc->timer_set64))) {
-+	if (WARN_ON_ONCE(!kc || !kc->timer_set64)) {
- 		error = -EINVAL;
- 	} else {
--		if (kc->timer_set64) {
--			new_spec64 = itimerspec_to_itimerspec64(new_spec);
--			error = kc->timer_set64(timr, flags, &new_spec64,
--						&old_spec64);
--			if (old_setting)
--				old_spec = itimerspec64_to_itimerspec(old_spec64);
--		} else {
--			error = kc->timer_set(timr, flags, &new_spec, rtn);
--		}
-+		new_spec64 = itimerspec_to_itimerspec64(new_spec);
-+		error = kc->timer_set64(timr, flags, &new_spec64,
-+					&old_spec64);
-+		if (old_setting)
-+			old_spec = itimerspec64_to_itimerspec(old_spec64);
- 	}
- 
- 	unlock_timer(timr, flag);
-@@ -1032,18 +1024,14 @@ SYSCALL_DEFINE2(clock_settime, const clockid_t, which_clock,
- 	struct timespec new_tp;
- 	struct timespec64 new_tp64;
- 
--	if (!kc || (!kc->clock_set && !kc->clock_set64))
-+	if (!kc || !kc->clock_set64)
- 		return -EINVAL;
- 
- 	if (copy_from_user(&new_tp, tp, sizeof (*tp)))
- 		return -EFAULT;
- 
--	if (kc->clock_set64) {
--		new_tp64 = timespec_to_timespec64(new_tp);
--		return kc->clock_set64(which_clock, &new_tp64);
--	} else {
--		return kc->clock_set(which_clock, &new_tp);
--	}
-+	new_tp64 = timespec_to_timespec64(new_tp);
-+	return kc->clock_set64(which_clock, &new_tp64);
- }
- 
- SYSCALL_DEFINE2(clock_gettime, const clockid_t, which_clock,
-@@ -1057,14 +1045,13 @@ SYSCALL_DEFINE2(clock_gettime, const clockid_t, which_clock,
- 	if (!kc)
- 		return -EINVAL;
- 
--	if (kc->clock_get64) {
--		error = kc->clock_get64(which_clock, &kernel_tp64);
--		kernel_tp = timespec64_to_timespec(kernel_tp64);
--	} else {
--		error = kc->clock_get(which_clock, &kernel_tp);
--	}
-+	error = kc->clock_get64(which_clock, &kernel_tp64);
-+	if (!error)
-+		return error;
+diff --git a/arch/h8300/include/uapi/asm/Kbuild b/arch/h8300/include/uapi/asm/Kbuild
+new file mode 100644
+index 0000000..077e720
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/Kbuild
+@@ -0,0 +1,29 @@
++# UAPI Header export list
++include include/uapi/asm-generic/Kbuild.asm
 +
-+	kernel_tp = timespec64_to_timespec(kernel_tp64);
- 
--	if (!error && copy_to_user(tp, &kernel_tp, sizeof (kernel_tp)))
-+	if (copy_to_user(tp, &kernel_tp, sizeof (kernel_tp)))
- 		error = -EFAULT;
- 
- 	return error;
-@@ -1104,14 +1091,13 @@ SYSCALL_DEFINE2(clock_getres, const clockid_t, which_clock,
- 	if (!kc)
- 		return -EINVAL;
- 
--	if (kc->clock_getres64) {
--		error = kc->clock_getres64(which_clock, &rtn_tp64);
--		rtn_tp = timespec64_to_timespec(rtn_tp64);
--	} else {
--		error = kc->clock_getres(which_clock, &rtn_tp);
--	}
-+	error = kc->clock_getres64(which_clock, &rtn_tp64);
-+	if (!error)
-+		return error;
++header-y += auxvec.h
++header-y += bitsperlong.h
++header-y += errno.h
++header-y += fcntl.h
++header-y += ioctl.h
++header-y += ioctls.h
++header-y += ipcbuf.h
++header-y += kvm_para.h
++header-y += mman.h
++header-y += msgbuf.h
++header-y += param.h
++header-y += poll.h
++header-y += posix_types.h
++header-y += resource.h
++header-y += sembuf.h
++header-y += setup.h
++header-y += shmbuf.h
++header-y += siginfo.h
++header-y += socket.h
++header-y += sockios.h
++header-y += stat.h
++header-y += statfs.h
++header-y += termbits.h
++header-y += termios.h
++header-y += types.h
++header-y += unistd.h
+diff --git a/arch/h8300/include/uapi/asm/auxvec.h b/arch/h8300/include/uapi/asm/auxvec.h
+new file mode 100644
+index 0000000..1d36fe38
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/auxvec.h
+@@ -0,0 +1,4 @@
++#ifndef __ASMH8300_AUXVEC_H
++#define __ASMH8300_AUXVEC_H
 +
-+	rtn_tp = timespec64_to_timespec(rtn_tp64);
- 
--	if (!error && tp && copy_to_user(tp, &rtn_tp, sizeof (rtn_tp)))
-+	if (tp && copy_to_user(tp, &rtn_tp, sizeof (rtn_tp)))
- 		error = -EFAULT;
- 
- 	return error;
++#endif
+diff --git a/arch/h8300/include/uapi/asm/byteorder.h b/arch/h8300/include/uapi/asm/byteorder.h
+new file mode 100644
+index 0000000..13539da
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/byteorder.h
+@@ -0,0 +1,6 @@
++#ifndef _H8300_BYTEORDER_H
++#define _H8300_BYTEORDER_H
++
++#include <linux/byteorder/big_endian.h>
++
++#endif /* _H8300_BYTEORDER_H */
+diff --git a/arch/h8300/include/uapi/asm/ptrace.h b/arch/h8300/include/uapi/asm/ptrace.h
+new file mode 100644
+index 0000000..e132670d
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/ptrace.h
+@@ -0,0 +1,42 @@
++#ifndef _UAPI_H8300_PTRACE_H
++#define _UAPI_H8300_PTRACE_H
++
++#ifndef __ASSEMBLY__
++
++#define PT_ER1	   0
++#define PT_ER2	   1
++#define PT_ER3	   2
++#define PT_ER4	   3
++#define PT_ER5	   4
++#define PT_ER6	   5
++#define PT_ER0	   6
++#define PT_USP	   7
++#define PT_ORIG_ER0	   8
++#define PT_CCR	   9
++#define PT_PC	   10
++#define PT_EXR     11
++
++/* this struct defines the way the registers are stored on the
++   stack during a system call. */
++
++struct pt_regs {
++	long     retpc;
++	long     er4;
++	long     er5;
++	long     er6;
++	long     er3;
++	long     er2;
++	long     er1;
++	long     orig_er0;
++	long	 sp;
++	unsigned short	 ccr;
++	long     er0;
++	long     vector;
++#if defined(__H8300S__)
++	unsigned short	 exr;
++#endif
++	unsigned long  pc;
++} __attribute__((aligned(2), packed));
++
++#endif /* __ASSEMBLY__ */
++#endif /* _UAPI_H8300_PTRACE_H */
+diff --git a/arch/h8300/include/uapi/asm/sigcontext.h b/arch/h8300/include/uapi/asm/sigcontext.h
+new file mode 100644
+index 0000000..c41fdaa
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/sigcontext.h
+@@ -0,0 +1,18 @@
++#ifndef _ASM_H8300_SIGCONTEXT_H
++#define _ASM_H8300_SIGCONTEXT_H
++
++struct sigcontext {
++	unsigned long  sc_mask;		/* old sigmask */
++	unsigned long  sc_usp;		/* old user stack pointer */
++	unsigned long  sc_er0;
++	unsigned long  sc_er1;
++	unsigned long  sc_er2;
++	unsigned long  sc_er3;
++	unsigned long  sc_er4;
++	unsigned long  sc_er5;
++	unsigned long  sc_er6;
++	unsigned short sc_ccr;
++	unsigned long  sc_pc;
++};
++
++#endif
+diff --git a/arch/h8300/include/uapi/asm/signal.h b/arch/h8300/include/uapi/asm/signal.h
+new file mode 100644
+index 0000000..af3a6c3
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/signal.h
+@@ -0,0 +1,115 @@
++#ifndef _UAPI_H8300_SIGNAL_H
++#define _UAPI_H8300_SIGNAL_H
++
++#include <linux/types.h>
++
++/* Avoid too many header ordering problems.  */
++struct siginfo;
++
++#ifndef __KERNEL__
++/* Here we must cater to libcs that poke about in kernel headers.  */
++
++#define NSIG		32
++typedef unsigned long sigset_t;
++
++#endif /* __KERNEL__ */
++
++#define SIGHUP		 1
++#define SIGINT		 2
++#define SIGQUIT		 3
++#define SIGILL		 4
++#define SIGTRAP		 5
++#define SIGABRT		 6
++#define SIGIOT		 6
++#define SIGBUS		 7
++#define SIGFPE		 8
++#define SIGKILL		 9
++#define SIGUSR1		10
++#define SIGSEGV		11
++#define SIGUSR2		12
++#define SIGPIPE		13
++#define SIGALRM		14
++#define SIGTERM		15
++#define SIGSTKFLT	16
++#define SIGCHLD		17
++#define SIGCONT		18
++#define SIGSTOP		19
++#define SIGTSTP		20
++#define SIGTTIN		21
++#define SIGTTOU		22
++#define SIGURG		23
++#define SIGXCPU		24
++#define SIGXFSZ		25
++#define SIGVTALRM	26
++#define SIGPROF		27
++#define SIGWINCH	28
++#define SIGIO		29
++#define SIGPOLL		SIGIO
++/*
++#define SIGLOST		29
++*/
++#define SIGPWR		30
++#define SIGSYS		31
++#define	SIGUNUSED	31
++
++/* These should not be considered constants from userland.  */
++#define SIGRTMIN	32
++#define SIGRTMAX	_NSIG
++
++/*
++ * SA_FLAGS values:
++ *
++ * SA_ONSTACK indicates that a registered stack_t will be used.
++ * SA_RESTART flag to get restarting signals (which were the default long ago)
++ * SA_NOCLDSTOP flag to turn off SIGCHLD when children stop.
++ * SA_RESETHAND clears the handler when the signal is delivered.
++ * SA_NOCLDWAIT flag on SIGCHLD to inhibit zombies.
++ * SA_NODEFER prevents the current signal from being masked in the handler.
++ *
++ * SA_ONESHOT and SA_NOMASK are the historical Linux names for the Single
++ * Unix names RESETHAND and NODEFER respectively.
++ */
++#define SA_NOCLDSTOP	0x00000001
++#define SA_NOCLDWAIT	0x00000002 /* not supported yet */
++#define SA_SIGINFO	0x00000004
++#define SA_ONSTACK	0x08000000
++#define SA_RESTART	0x10000000
++#define SA_NODEFER	0x40000000
++#define SA_RESETHAND	0x80000000
++
++#define SA_NOMASK	SA_NODEFER
++#define SA_ONESHOT	SA_RESETHAND
++
++#define SA_RESTORER	0x04000000
++
++#define MINSIGSTKSZ	2048
++#define SIGSTKSZ	8192
++
++#include <asm-generic/signal-defs.h>
++
++#ifndef __KERNEL__
++/* Here we must cater to libcs that poke about in kernel headers.  */
++
++struct sigaction {
++	union {
++	  __sighandler_t _sa_handler;
++	  void (*_sa_sigaction)(int, struct siginfo *, void *);
++	} _u;
++	sigset_t sa_mask;
++	unsigned long sa_flags;
++	void (*sa_restorer)(void);
++};
++
++#define sa_handler	_u._sa_handler
++#define sa_sigaction	_u._sa_sigaction
++
++#endif /* __KERNEL__ */
++
++typedef struct sigaltstack {
++	void *ss_sp;
++	int ss_flags;
++	size_t ss_size;
++} stack_t;
++
++
++#endif /* _UAPI_H8300_SIGNAL_H */
+diff --git a/arch/h8300/include/uapi/asm/swab.h b/arch/h8300/include/uapi/asm/swab.h
+new file mode 100644
+index 0000000..7847e56
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/swab.h
+@@ -0,0 +1 @@
++#include <asm-generic/swab.h>
+diff --git a/arch/h8300/include/uapi/asm/unistd.h b/arch/h8300/include/uapi/asm/unistd.h
+new file mode 100644
+index 0000000..7a2eb69
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/unistd.h
+@@ -0,0 +1,3 @@
++#define __ARCH_NOMMU
++
++#include <asm-generic/unistd.h>
 -- 
-1.7.9.5
+2.1.4
