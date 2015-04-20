@@ -1,424 +1,1014 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.asahi-net.or.jp ([202.224.39.198]:34544 "EHLO
-	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752217AbbDTGd4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Apr 2015 02:33:56 -0400
+Received: from mail1.asahi-net.or.jp ([202.224.39.197]:39956 "EHLO
+	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754582AbbDTGfQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Apr 2015 02:35:16 -0400
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v8 07/17] h8300: miscellaneous functions
-Date: Mon, 20 Apr 2015 15:13:23 +0900
-Message-ID: <1429510413-14869-8-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v8 12/17] h8300: clocksource
+Date: Mon, 20 Apr 2015 15:13:28 +0900
+Message-ID: <1429510413-14869-13-git-send-email-ysato@users.sourceforge.jp>
 In-Reply-To: <1429510413-14869-1-git-send-email-ysato@users.sourceforge.jp>
 References: <1429510413-14869-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20150420061323.fJAEbGdkBqR_zIfj5U6GKnDVFLjYvMSuJ87NCpp0M_A@z>
+Message-ID: <20150420061328.FoFPWjaJ2LNq8pJq2xOgXphGS9M58d3OZieU_teXiiw@z>
+
+H8/300 internal timer driver.
+h8300_timer8 - 8bit Timer driver.
+h8300_timer16 - 16bit Timer driver (only H8/3069).
+h8300_tpu     - Timer Pulse Unit driver (only H8S2678).
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- arch/h8300/kernel/asm-offsets.c | 60 ++++++++++++++++++++++++++
- arch/h8300/kernel/dma.c         | 95 +++++++++++++++++++++++++++++++++++++++++
- arch/h8300/kernel/h8300_ksyms.c | 34 +++++++++++++++
- arch/h8300/kernel/module.c      | 70 ++++++++++++++++++++++++++++++
- arch/h8300/kernel/sim-console.c | 79 ++++++++++++++++++++++++++++++++++
- arch/h8300/kernel/syscalls.c    | 14 ++++++
- 6 files changed, 352 insertions(+)
- create mode 100644 arch/h8300/kernel/asm-offsets.c
- create mode 100644 arch/h8300/kernel/dma.c
- create mode 100644 arch/h8300/kernel/h8300_ksyms.c
- create mode 100644 arch/h8300/kernel/module.c
- create mode 100644 arch/h8300/kernel/sim-console.c
- create mode 100644 arch/h8300/kernel/syscalls.c
+ drivers/clocksource/Kconfig         |   6 +
+ drivers/clocksource/Makefile        |   3 +
+ drivers/clocksource/h8300_timer16.c | 332 ++++++++++++++++++++++++++++++
+ drivers/clocksource/h8300_timer8.c  | 398 ++++++++++++++++++++++++++++++++++++
+ drivers/clocksource/h8300_tpu.c     | 203 ++++++++++++++++++
+ 5 files changed, 942 insertions(+)
+ create mode 100644 drivers/clocksource/h8300_timer16.c
+ create mode 100644 drivers/clocksource/h8300_timer8.c
+ create mode 100644 drivers/clocksource/h8300_tpu.c
 
-diff --git a/arch/h8300/kernel/asm-offsets.c b/arch/h8300/kernel/asm-offsets.c
+diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+index a0b036c..fef959a 100644
+--- a/drivers/clocksource/Kconfig
++++ b/drivers/clocksource/Kconfig
+@@ -253,4 +253,10 @@ config CLKSRC_PXA
+ 	help
+ 	  This enables OST0 support available on PXA and SA-11x0
+ 	  platforms.
++config H8300_TMR16
++        bool
++
++config H8300_TPU
++        bool
++
+ endmenu
+diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+index 752d5c7..99b45f7 100644
+--- a/drivers/clocksource/Makefile
++++ b/drivers/clocksource/Makefile
+@@ -51,3 +51,6 @@ obj-$(CONFIG_ARCH_INTEGRATOR_AP)	+= timer-integrator-ap.o
+ obj-$(CONFIG_CLKSRC_VERSATILE)		+= versatile.o
+ obj-$(CONFIG_CLKSRC_MIPS_GIC)		+= mips-gic-timer.o
+ obj-$(CONFIG_ASM9260_TIMER)		+= asm9260_timer.o
++obj-$(CONFIG_H8300)			+= h8300_timer8.o
++obj-$(CONFIG_H8300_TMR16)		+= h8300_timer16.o
++obj-$(CONFIG_H8300_TPU)			+= h8300_tpu.o
+diff --git a/drivers/clocksource/h8300_timer16.c b/drivers/clocksource/h8300_timer16.c
 new file mode 100644
-index 0000000..9fb9d49
+index 0000000..bf6a74c
 --- /dev/null
-+++ b/arch/h8300/kernel/asm-offsets.c
-@@ -0,0 +1,60 @@
++++ b/drivers/clocksource/h8300_timer16.c
+@@ -0,0 +1,332 @@
 +/*
-+ * This program is used to generate definitions needed by
-+ * assembly language modules.
++ *  linux/arch/h8300/kernel/timer/timer16.c
 + *
-+ * We use the technique used in the OSF Mach kernel code:
-+ * generate asm statements containing #defines,
-+ * compile this file to assembler, and then extract the
-+ * #defines from the assembly-language output.
++ *  Yoshinori Sato <ysato@users.sourcefoge.jp>
++ *
++ *  16bit Timer clockevent device
++ *
 + */
 +
-+#include <linux/stddef.h>
-+#include <linux/sched.h>
-+#include <linux/kernel_stat.h>
-+#include <linux/ptrace.h>
-+#include <linux/hardirq.h>
-+#include <linux/kbuild.h>
++#include <linux/errno.h>
++#include <linux/kernel.h>
++#include <linux/param.h>
++#include <linux/string.h>
++#include <linux/slab.h>
++#include <linux/interrupt.h>
++#include <linux/init.h>
++#include <linux/platform_device.h>
++#include <linux/clockchips.h>
++#include <linux/module.h>
++#include <linux/clk.h>
++#include <linux/io.h>
++
++#include <asm/segment.h>
 +#include <asm/irq.h>
-+#include <asm/ptrace.h>
++#include <asm/timer.h>
 +
-+int main(void)
++#define TSTR	0
++#define TSNC	1
++#define TMDR	2
++#define TOLR	3
++#define TISRA	4
++#define TISRB	5
++#define TISRC	6
++
++#define TCR	0
++#define TIOR	1
++#define TCNT	2
++#define GRA	4
++#define GRB	6
++
++#define FLAG_REPROGRAM (1 << 0)
++#define FLAG_SKIPEVENT (1 << 1)
++#define FLAG_IRQCONTEXT (1 << 2)
++#define FLAG_STARTED (1 << 3)
++
++#define ONESHOT  0
++#define PERIODIC 1
++
++#define RELATIVE 0
++#define ABSOLUTE 1
++
++struct timer16_priv {
++	struct platform_device *pdev;
++	struct clock_event_device ced;
++	struct irqaction irqaction;
++	unsigned long mapbase;
++	unsigned long mapcommon;
++	unsigned long flags;
++	unsigned int rate;
++	unsigned short gra;
++	unsigned char enb;
++	unsigned char imfa;
++	unsigned char imiea;
++	unsigned char ovf;
++	raw_spinlock_t lock;
++	struct clk *clk;
++};
++
++static unsigned long timer16_get_counter(struct timer16_priv *p)
 +{
-+	/* offsets into the task struct */
-+	DEFINE(TASK_STATE, offsetof(struct task_struct, state));
-+	DEFINE(TASK_FLAGS, offsetof(struct task_struct, flags));
-+	DEFINE(TASK_PTRACE, offsetof(struct task_struct, ptrace));
-+	DEFINE(TASK_BLOCKED, offsetof(struct task_struct, blocked));
-+	DEFINE(TASK_THREAD, offsetof(struct task_struct, thread));
-+	DEFINE(TASK_THREAD_INFO, offsetof(struct task_struct, stack));
-+	DEFINE(TASK_MM, offsetof(struct task_struct, mm));
-+	DEFINE(TASK_ACTIVE_MM, offsetof(struct task_struct, active_mm));
++	unsigned long v1, v2, v3;
++	int o1, o2;
 +
-+	/* offsets into the irq_cpustat_t struct */
-+	DEFINE(CPUSTAT_SOFTIRQ_PENDING, offsetof(irq_cpustat_t, __softirq_pending));
++	o1 = ctrl_inb(p->mapcommon + TISRC) & p->ovf;
 +
-+	/* offsets into the thread struct */
-+	DEFINE(THREAD_KSP, offsetof(struct thread_struct, ksp));
-+	DEFINE(THREAD_USP, offsetof(struct thread_struct, usp));
-+	DEFINE(THREAD_CCR, offsetof(struct thread_struct, ccr));
++	/* Make sure the timer value is stable. Stolen from acpi_pm.c */
++	do {
++		o2 = o1;
++		v1 = ctrl_inw(p->mapbase + TCNT);
++		v2 = ctrl_inw(p->mapbase + TCNT);
++		v3 = ctrl_inw(p->mapbase + TCNT);
++		o1 = ctrl_inb(p->mapcommon + TISRC) & p->ovf;
++	} while (unlikely((o1 != o2) || (v1 > v2 && v1 < v3)
++			  || (v2 > v3 && v2 < v1) || (v3 > v1 && v3 < v2)));
 +
-+	/* offsets into the pt_regs struct */
-+	DEFINE(LER0,  offsetof(struct pt_regs, er0)      - sizeof(long));
-+	DEFINE(LER1,  offsetof(struct pt_regs, er1)      - sizeof(long));
-+	DEFINE(LER2,  offsetof(struct pt_regs, er2)      - sizeof(long));
-+	DEFINE(LER3,  offsetof(struct pt_regs, er3)      - sizeof(long));
-+	DEFINE(LER4,  offsetof(struct pt_regs, er4)      - sizeof(long));
-+	DEFINE(LER5,  offsetof(struct pt_regs, er5)      - sizeof(long));
-+	DEFINE(LER6,  offsetof(struct pt_regs, er6)      - sizeof(long));
-+	DEFINE(LORIG, offsetof(struct pt_regs, orig_er0) - sizeof(long));
-+	DEFINE(LSP,  offsetof(struct pt_regs, sp)        - sizeof(long));
-+	DEFINE(LCCR,  offsetof(struct pt_regs, ccr)      - sizeof(long));
-+	DEFINE(LVEC,  offsetof(struct pt_regs, vector)   - sizeof(long));
-+#if defined(CONFIG_CPU_H8S)
-+	DEFINE(LEXR,  offsetof(struct pt_regs, exr)      - sizeof(long));
-+#endif
-+	DEFINE(LRET,  offsetof(struct pt_regs, pc)       - sizeof(long));
++	v2 |= 0x10000;
++	return v2;
++}
 +
-+	DEFINE(PT_PTRACED, PT_PTRACED);
++
++static irqreturn_t timer16_interrupt(int irq, void *dev_id)
++{
++	struct timer16_priv *p = (struct timer16_priv *)dev_id;
++
++	ctrl_outb(ctrl_inb(p->mapcommon + TISRA) & ~p->imfa,
++		  p->mapcommon + TISRA);
++
++	p->flags |= FLAG_IRQCONTEXT;
++	ctrl_outw(p->gra, p->mapbase + GRA);
++	if (!(p->flags & FLAG_SKIPEVENT)) {
++		if (p->ced.mode == CLOCK_EVT_MODE_ONESHOT) {
++			ctrl_outb(ctrl_inb(p->mapcommon + TSTR) & ~p->enb,
++				  p->mapcommon + TISRA);
++		}
++		p->ced.event_handler(&p->ced);
++	}
++
++	p->flags &= ~(FLAG_SKIPEVENT | FLAG_IRQCONTEXT);
++
++	return IRQ_HANDLED;
++}
++
++static void timer16_set_next(struct timer16_priv *p, unsigned long delta)
++{
++	unsigned long flags;
++	unsigned long now;
++
++	raw_spin_lock_irqsave(&p->lock, flags);
++	if (delta >= 0x10000)
++		dev_warn(&p->pdev->dev, "delta out of range\n");
++	now = timer16_get_counter(p);
++	p->gra = delta;
++	ctrl_outb(ctrl_inb(p->mapcommon + TISRA) | p->imiea,
++		  p->mapcommon + TISRA);
++	if (delta > now)
++		ctrl_outw(delta, p->mapbase + GRA);
++	else
++		ctrl_outw(now + 1, p->mapbase + GRA);
++
++	raw_spin_unlock_irqrestore(&p->lock, flags);
++}
++
++static int timer16_enable(struct timer16_priv *p)
++{
++	p->rate = clk_get_rate(p->clk) / 8;
++	ctrl_outw(0xffff, p->mapbase + GRA);
++	ctrl_outw(0x0000, p->mapbase + TCNT);
++	ctrl_outb(0xa3, p->mapbase + TCR);
++	ctrl_outb(ctrl_inb(p->mapcommon + TSTR) | p->enb,
++		  p->mapcommon + TSTR);
 +
 +	return 0;
 +}
-diff --git a/arch/h8300/kernel/dma.c b/arch/h8300/kernel/dma.c
-new file mode 100644
-index 0000000..061f3c3
---- /dev/null
-+++ b/arch/h8300/kernel/dma.c
-@@ -0,0 +1,95 @@
-+/*
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file COPYING in the main directory of this archive
-+ * for more details.
-+ */
 +
-+#undef DEBUG
-+
-+#include <linux/dma-mapping.h>
-+#include <linux/device.h>
-+#include <linux/kernel.h>
-+#include <linux/scatterlist.h>
-+#include <linux/slab.h>
-+#include <linux/vmalloc.h>
-+#include <linux/export.h>
-+
-+#include <asm/pgalloc.h>
-+
-+void *dma_alloc_coherent(struct device *dev, size_t size,
-+			   dma_addr_t *dma_handle, gfp_t gfp)
++static int timer16_start(struct timer16_priv *p)
 +{
-+	void *ret;
-+	/* ignore region specifiers */
-+	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
++	int ret = 0;
++	unsigned long flags;
 +
-+	if (dev == NULL || (*dev->dma_mask < 0xffffffff))
-+		gfp |= GFP_DMA;
-+	ret = (void *)__get_free_pages(gfp, get_order(size));
++	raw_spin_lock_irqsave(&p->lock, flags);
 +
-+	if (ret != NULL) {
-+		memset(ret, 0, size);
-+		*dma_handle = virt_to_phys(ret);
-+	}
++	if (!(p->flags & FLAG_STARTED))
++		ret = timer16_enable(p);
++
++	if (ret)
++		goto out;
++	p->flags |= FLAG_STARTED;
++
++ out:
++	raw_spin_unlock_irqrestore(&p->lock, flags);
++
 +	return ret;
 +}
-+EXPORT_SYMBOL(dma_alloc_coherent);
 +
-+void dma_free_coherent(struct device *dev, size_t size,
-+			 void *vaddr, dma_addr_t dma_handle)
++static void timer16_stop(struct timer16_priv *p)
 +{
-+	free_pages((unsigned long)vaddr, get_order(size));
++	unsigned long flags;
++
++	raw_spin_lock_irqsave(&p->lock, flags);
++
++	ctrl_outb(ctrl_inb(p->mapcommon + TSTR) & ~p->enb,
++		  p->mapcommon + TSTR);
++
++	raw_spin_unlock_irqrestore(&p->lock, flags);
 +}
-+EXPORT_SYMBOL(dma_free_coherent);
 +
-+void dma_sync_single_for_device(struct device *dev, dma_addr_t handle,
-+				size_t size, enum dma_data_direction dir)
++static inline struct timer16_priv *ced_to_priv(struct clock_event_device *ced)
 +{
++	return container_of(ced, struct timer16_priv, ced);
 +}
-+EXPORT_SYMBOL(dma_sync_single_for_device);
 +
-+void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
-+			    int nents, enum dma_data_direction dir)
++static void timer16_clock_event_start(struct timer16_priv *p, int periodic)
 +{
-+	int i;
++	struct clock_event_device *ced = &p->ced;
 +
-+	for (i = 0; i < nents; sg++, i++)
-+		dma_sync_single_for_device(dev, sg->dma_address,
-+					   sg->length, dir);
++	timer16_start(p);
++
++	ced->shift = 32;
++	ced->mult = div_sc(p->rate, NSEC_PER_SEC, ced->shift);
++	ced->max_delta_ns = clockevent_delta2ns(0xffff, ced);
++	ced->min_delta_ns = clockevent_delta2ns(0x0001, ced);
++
++	timer16_set_next(p, periodic?(p->rate + HZ/2) / HZ:0x10000);
 +}
-+EXPORT_SYMBOL(dma_sync_sg_for_device);
 +
-+dma_addr_t dma_map_single(struct device *dev, void *addr, size_t size,
-+			  enum dma_data_direction dir)
++static void timer16_clock_event_mode(enum clock_event_mode mode,
++				    struct clock_event_device *ced)
 +{
-+	dma_addr_t handle = virt_to_bus(addr);
++	struct timer16_priv *p = ced_to_priv(ced);
 +
-+	dma_sync_single_for_device(dev, handle, size, dir);
-+	return handle;
-+}
-+EXPORT_SYMBOL(dma_map_single);
-+
-+dma_addr_t dma_map_page(struct device *dev, struct page *page,
-+			unsigned long offset, size_t size,
-+			enum dma_data_direction dir)
-+{
-+	dma_addr_t handle = page_to_phys(page) + offset;
-+
-+	dma_sync_single_for_device(dev, handle, size, dir);
-+	return handle;
-+}
-+EXPORT_SYMBOL(dma_map_page);
-+
-+int dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
-+	       enum dma_data_direction dir)
-+{
-+	int i;
-+
-+	for (i = 0; i < nents; sg++, i++) {
-+		sg->dma_address = sg_phys(sg);
-+		dma_sync_single_for_device(dev, sg->dma_address,
-+					   sg->length, dir);
++	switch (mode) {
++	case CLOCK_EVT_MODE_PERIODIC:
++		dev_info(&p->pdev->dev, "used for periodic clock events\n");
++		timer16_stop(p);
++		timer16_clock_event_start(p, PERIODIC);
++		break;
++	case CLOCK_EVT_MODE_ONESHOT:
++		dev_info(&p->pdev->dev, "used for oneshot clock events\n");
++		timer16_stop(p);
++		timer16_clock_event_start(p, ONESHOT);
++		break;
++	case CLOCK_EVT_MODE_SHUTDOWN:
++	case CLOCK_EVT_MODE_UNUSED:
++		timer16_stop(p);
++		break;
++	default:
++		break;
 +	}
-+	return nents;
 +}
-+EXPORT_SYMBOL(dma_map_sg);
-diff --git a/arch/h8300/kernel/h8300_ksyms.c b/arch/h8300/kernel/h8300_ksyms.c
-new file mode 100644
-index 0000000..33bf96a
---- /dev/null
-+++ b/arch/h8300/kernel/h8300_ksyms.c
-@@ -0,0 +1,34 @@
-+#include <linux/module.h>
-+#include <linux/linkage.h>
 +
-+/*
-+ * libgcc functions - functions that are used internally by the
-+ * compiler...  (prototypes are not correct though, but that
-+ * doesn't really matter since they're not versioned).
-+ */
-+asmlinkage long long __ashldi3(long long, int);
-+asmlinkage long long __ashrdi3(long long, int);
-+asmlinkage long long __lshrdi3(long long, int);
-+asmlinkage long __divsi3(long, long);
-+asmlinkage long __modsi3(long, long);
-+asmlinkage unsigned long __umodsi3(unsigned long, unsigned long);
-+asmlinkage long long __muldi3(long long, long long);
-+asmlinkage long __mulsi3(long, long);
-+asmlinkage long __udivsi3(long, long);
-+asmlinkage void *memcpy(void *, const void *, size_t);
-+asmlinkage void *memset(void *, int, size_t);
-+asmlinkage long strncpy_from_user(void *to, void *from, size_t n);
-+
-+	/* gcc lib functions */
-+EXPORT_SYMBOL(__ashldi3);
-+EXPORT_SYMBOL(__ashrdi3);
-+EXPORT_SYMBOL(__lshrdi3);
-+EXPORT_SYMBOL(__divsi3);
-+EXPORT_SYMBOL(__modsi3);
-+EXPORT_SYMBOL(__umodsi3);
-+EXPORT_SYMBOL(__muldi3);
-+EXPORT_SYMBOL(__mulsi3);
-+EXPORT_SYMBOL(__udivsi3);
-+EXPORT_SYMBOL(memcpy);
-+EXPORT_SYMBOL(memset);
-+EXPORT_SYMBOL(strncpy_from_user);
-diff --git a/arch/h8300/kernel/module.c b/arch/h8300/kernel/module.c
-new file mode 100644
-index 0000000..515f6c4
---- /dev/null
-+++ b/arch/h8300/kernel/module.c
-@@ -0,0 +1,70 @@
-+#include <linux/moduleloader.h>
-+#include <linux/elf.h>
-+#include <linux/vmalloc.h>
-+#include <linux/fs.h>
-+#include <linux/string.h>
-+#include <linux/kernel.h>
-+
-+int apply_relocate_add(Elf32_Shdr *sechdrs,
-+		       const char *strtab,
-+		       unsigned int symindex,
-+		       unsigned int relsec,
-+		       struct module *me)
++static int timer16_clock_event_next(unsigned long delta,
++				   struct clock_event_device *ced)
 +{
-+	unsigned int i;
-+	Elf32_Rela *rela = (void *)sechdrs[relsec].sh_addr;
++	struct timer16_priv *p = ced_to_priv(ced);
 +
-+	pr_debug("Applying relocate section %u to %u\n", relsec,
-+	       sechdrs[relsec].sh_info);
-+	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rela); i++) {
-+		/* This is where to make the change */
-+		uint32_t *loc =
-+			(uint32_t *)(sechdrs[sechdrs[relsec].sh_info].sh_addr
-+					     + rela[i].r_offset);
-+		/* This is the symbol it is referring to.  Note that all
-+		   undefined symbols have been resolved.  */
-+		Elf32_Sym *sym = (Elf32_Sym *)sechdrs[symindex].sh_addr
-+			+ ELF32_R_SYM(rela[i].r_info);
-+		uint32_t v = sym->st_value + rela[i].r_addend;
++	BUG_ON(ced->mode != CLOCK_EVT_MODE_ONESHOT);
++	timer16_set_next(p, delta - 1);
 +
-+		switch (ELF32_R_TYPE(rela[i].r_info)) {
-+		case R_H8_DIR24R8:
-+			loc = (uint32_t *)((uint32_t)loc - 1);
-+			*loc = (*loc & 0xff000000) | ((*loc & 0xffffff) + v);
-+			break;
-+		case R_H8_DIR24A8:
-+			if (ELF32_R_SYM(rela[i].r_info))
-+				*loc += v;
-+			break;
-+		case R_H8_DIR32:
-+		case R_H8_DIR32A16:
-+			*loc += v;
-+			break;
-+		case R_H8_PCREL16:
-+			v -= (unsigned long)loc + 2;
-+			if ((Elf32_Sword)v > 0x7fff ||
-+			    (Elf32_Sword)v < -(Elf32_Sword)0x8000)
-+				goto overflow;
-+			else
-+				*(unsigned short *)loc = v;
-+			break;
-+		case R_H8_PCREL8:
-+			v -= (unsigned long)loc + 1;
-+			if ((Elf32_Sword)v > 0x7f ||
-+			    (Elf32_Sword)v < -(Elf32_Sword)0x80)
-+				goto overflow;
-+			else
-+				*(unsigned char *)loc = v;
-+			break;
-+		default:
-+			pr_err("module %s: Unknown relocation: %u\n",
-+			       me->name, ELF32_R_TYPE(rela[i].r_info));
-+			return -ENOEXEC;
-+		}
++	return 0;
++}
++
++#define REG_CH   0
++#define REG_COMM 1
++
++static int timer16_setup(struct timer16_priv *p, struct platform_device *pdev)
++{
++	struct h8300_timer16_config *cfg = dev_get_platdata(&pdev->dev);
++	struct resource *res[2];
++	int ret, irq;
++
++	memset(p, 0, sizeof(*p));
++	p->pdev = pdev;
++
++	res[REG_CH] = platform_get_resource(p->pdev,
++					    IORESOURCE_MEM, REG_CH);
++	res[REG_COMM] = platform_get_resource(p->pdev,
++					      IORESOURCE_MEM, REG_COMM);
++	if (!res[REG_CH] || !res[REG_COMM]) {
++		dev_err(&p->pdev->dev, "failed to get I/O memory\n");
++		return -ENXIO;
 +	}
-+	return 0;
-+ overflow:
-+	pr_err("module %s: relocation offset overflow: %08x\n",
-+	       me->name, rela[i].r_offset);
-+	return -ENOEXEC;
-+}
-diff --git a/arch/h8300/kernel/sim-console.c b/arch/h8300/kernel/sim-console.c
-new file mode 100644
-index 0000000..a15edf0
---- /dev/null
-+++ b/arch/h8300/kernel/sim-console.c
-@@ -0,0 +1,79 @@
-+/*
-+ * arch/h8300/kernel/early_printk.c
-+ *
-+ *  Copyright (C) 2009 Yoshinori Sato <ysato@users.sourceforge.jp>
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+#include <linux/console.h>
-+#include <linux/tty.h>
-+#include <linux/init.h>
-+#include <linux/io.h>
-+#include <linux/platform_device.h>
++	irq = platform_get_irq(p->pdev, 0);
++	if (irq < 0) {
++		dev_err(&p->pdev->dev, "failed to get irq\n");
++		return irq;
++	}
 +
-+static void sim_write(struct console *co, const char *ptr,
-+				 unsigned len)
-+{
-+	register const int fd __asm__("er0") = 1; /* stdout */
-+	register const char *_ptr __asm__("er1") = ptr;
-+	register const unsigned _len __asm__("er2") = len;
++	p->clk = clk_get(&p->pdev->dev, "peripheral_clk");
++	if (IS_ERR(p->clk)) {
++		dev_err(&p->pdev->dev, "can't get clk\n");
++		return PTR_ERR(p->clk);
++	}
 +
-+	__asm__(".byte 0x5e,0x00,0x00,0xc7\n\t" /* jsr @0xc7 (sys_write) */
-+		: : "g"(fd), "g"(_ptr), "g"(_len));
-+}
++	p->pdev = pdev;
++	p->mapbase = res[REG_CH]->start;
++	p->mapcommon = res[REG_COMM]->start;
++	p->enb = 1 << cfg->enb;
++	p->imfa = 1 << cfg->imfa;
++	p->imiea = 1 << cfg->imiea;
++	p->ced.name = pdev->name;
++	p->ced.features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT;
++	p->ced.rating = 200;
++	p->ced.cpumask = cpumask_of(0);
++	p->ced.set_next_event = timer16_clock_event_next;
++	p->ced.set_mode = timer16_clock_event_mode;
 +
-+static struct console sim_console = {
-+	.name		= "sim_console",
-+	.write		= sim_write,
-+	.setup		= NULL,
-+	.flags		= CON_PRINTBUFFER,
-+	.index		= -1,
-+};
++	ret = request_irq(irq, timer16_interrupt,
++			  IRQF_DISABLED | IRQF_TIMER, pdev->name, p);
++	if (ret < 0) {
++		dev_err(&p->pdev->dev, "failed to request irq %d\n", irq);
++		return ret;
++	}
 +
-+static char sim_console_buf[32];
++	clockevents_register_device(&p->ced);
 +
-+static int sim_probe(struct platform_device *pdev)
-+{
-+	if (sim_console.data)
-+		return -EEXIST;
-+
-+	if (!strstr(sim_console_buf, "keep"))
-+		sim_console.flags |= CON_BOOT;
-+
-+	register_console(&sim_console);
 +	return 0;
 +}
 +
-+static int sim_remove(struct platform_device *pdev)
++static int timer16_probe(struct platform_device *pdev)
 +{
-+	return 0;
++	struct timer16_priv *p = platform_get_drvdata(pdev);
++
++	if (p) {
++		dev_info(&pdev->dev, "kept as earlytimer\n");
++		return 0;
++	}
++
++	p = devm_kzalloc(&pdev->dev, sizeof(*p), GFP_KERNEL);
++	if (!p)
++		return -ENOMEM;
++
++	return timer16_setup(p, pdev);
 +}
 +
-+static struct platform_driver sim_driver = {
-+	.probe		= sim_probe,
-+	.remove		= sim_remove,
++static int timer16_remove(struct platform_device *pdev)
++{
++	return -EBUSY;
++}
++
++static struct platform_driver timer16_driver = {
++	.probe		= timer16_probe,
++	.remove		= timer16_remove,
 +	.driver		= {
-+		.name	= "h8300-sim",
-+		.owner	= THIS_MODULE,
-+	},
++		.name	= "h8300h-16timer",
++	}
 +};
 +
-+early_platform_init_buffer("earlyprintk", &sim_driver,
-+			   sim_console_buf, ARRAY_SIZE(sim_console_buf));
-+
-+static struct platform_device sim_console_device = {
-+	.name		= "h8300-sim",
-+	.id		= 0,
-+};
-+
-+static struct platform_device *devices[] __initdata = {
-+	&sim_console_device,
-+};
-+
-+void __init sim_console_register(void)
++static int __init timer16_init(void)
 +{
-+	early_platform_add_devices(devices,
-+				   ARRAY_SIZE(devices));
++	return platform_driver_register(&timer16_driver);
 +}
-diff --git a/arch/h8300/kernel/syscalls.c b/arch/h8300/kernel/syscalls.c
++
++static void __exit timer16_exit(void)
++{
++	platform_driver_unregister(&timer16_driver);
++}
++
++subsys_initcall(timer16_init);
++module_exit(timer16_exit);
++MODULE_AUTHOR("Yoshinori Sato");
++MODULE_DESCRIPTION("H8/300H 16bit Timer Driver");
++MODULE_LICENSE("GPL v2");
+diff --git a/drivers/clocksource/h8300_timer8.c b/drivers/clocksource/h8300_timer8.c
 new file mode 100644
-index 0000000..1f9123a
+index 0000000..3d84b6c
 --- /dev/null
-+++ b/arch/h8300/kernel/syscalls.c
-@@ -0,0 +1,14 @@
-+#include <linux/syscalls.h>
-+#include <linux/signal.h>
-+#include <linux/unistd.h>
++++ b/drivers/clocksource/h8300_timer8.c
+@@ -0,0 +1,398 @@
++/*
++ *  linux/arch/h8300/kernel/cpu/timer/timer8.c
++ *
++ *  Yoshinori Sato <ysato@users.sourcefoge.jp>
++ *
++ *  8bit Timer driver
++ *
++ */
 +
-+#undef __SYSCALL
-+#define __SYSCALL(nr, call) [nr] = (call),
++#include <linux/errno.h>
++#include <linux/sched.h>
++#include <linux/kernel.h>
++#include <linux/interrupt.h>
++#include <linux/init.h>
++#include <linux/platform_device.h>
++#include <linux/slab.h>
++#include <linux/clocksource.h>
++#include <linux/clockchips.h>
++#include <linux/module.h>
++#include <linux/clk.h>
++#include <linux/io.h>
 +
-+#define sys_mmap2 sys_mmap_pgoff
++#include <asm/irq.h>
++#include <asm/timer.h>
 +
-+asmlinkage int sys_rt_sigreturn(void);
++#define _8TCR	0
++#define _8TCSR	2
++#define TCORA	4
++#define TCORB	6
++#define _8TCNT	8
 +
-+void *_sys_call_table[__NR_syscalls] = {
-+#include <asm/unistd.h>
++#define FLAG_REPROGRAM (1 << 0)
++#define FLAG_SKIPEVENT (1 << 1)
++#define FLAG_IRQCONTEXT (1 << 2)
++#define FLAG_STARTED (1 << 3)
++
++#define ONESHOT  0
++#define PERIODIC 1
++
++#define RELATIVE 0
++#define ABSOLUTE 1
++
++struct timer8_priv {
++	struct platform_device *pdev;
++	int mode;
++	union {
++		struct clocksource cs;
++		struct clock_event_device ced;
++	} clk;
++	struct irqaction irqaction;
++	unsigned long mapbase;
++	raw_spinlock_t lock;
++	unsigned long total_cycles;
++	unsigned int cs_enabled;
++	unsigned long flags;
++	unsigned int rate;
++	unsigned short tcora;
++	unsigned short div;
++	struct clk *pclk;
 +};
++
++static const int div_rate[] = {8, 64, 8192};
++
++static unsigned long timer8_get_counter(struct timer8_priv *p)
++{
++	unsigned long v1, v2, v3;
++	int o1, o2;
++
++	o1 = ctrl_inb(p->mapbase + _8TCSR) & 0x20;
++
++	/* Make sure the timer value is stable. Stolen from acpi_pm.c */
++	do {
++		o2 = o1;
++		v1 = ctrl_inw(p->mapbase + _8TCNT);
++		v2 = ctrl_inw(p->mapbase + _8TCNT);
++		v3 = ctrl_inw(p->mapbase + _8TCNT);
++		o1 = ctrl_inb(p->mapbase + _8TCSR) & 0x20;
++	} while (unlikely((o1 != o2) || (v1 > v2 && v1 < v3)
++			  || (v2 > v3 && v2 < v1) || (v3 > v1 && v3 < v2)));
++
++	v2 |= o1 << 10;
++	return v2;
++}
++
++static irqreturn_t timer8_interrupt(int irq, void *dev_id)
++{
++	struct timer8_priv *p = dev_id;
++
++	switch (p->mode) {
++	case H8300_TMR8_CLKSRC:
++		ctrl_outb(ctrl_inb(p->mapbase + _8TCSR) & ~0x20,
++			  p->mapbase + _8TCSR);
++		p->total_cycles += 0x10000;
++		break;
++	case H8300_TMR8_CLKEVTDEV:
++		ctrl_outb(ctrl_inb(p->mapbase + _8TCSR) & ~0x40,
++			  p->mapbase + _8TCSR);
++		p->flags |= FLAG_IRQCONTEXT;
++		ctrl_outw(p->tcora, p->mapbase + TCORA);
++		if (!(p->flags & FLAG_SKIPEVENT)) {
++			if (p->clk.ced.mode == CLOCK_EVT_MODE_ONESHOT)
++				ctrl_outw(0x0000, p->mapbase + _8TCR);
++			p->clk.ced.event_handler(&p->clk.ced);
++		}
++		p->flags &= ~(FLAG_SKIPEVENT | FLAG_IRQCONTEXT);
++		break;
++	}
++
++	return IRQ_HANDLED;
++}
++
++static inline struct timer8_priv *cs_to_priv(struct clocksource *cs)
++{
++	return container_of(cs, struct timer8_priv, clk.cs);
++}
++
++static cycle_t timer8_clocksource_read(struct clocksource *cs)
++{
++	struct timer8_priv *p = cs_to_priv(cs);
++	unsigned long flags, raw;
++	unsigned long value;
++
++	raw_spin_lock_irqsave(&p->lock, flags);
++	value = p->total_cycles;
++	raw = timer8_get_counter(p);
++	raw_spin_unlock_irqrestore(&p->lock, flags);
++
++	return value + raw;
++}
++
++static int timer8_clocksource_enable(struct clocksource *cs)
++{
++	struct timer8_priv *p = cs_to_priv(cs);
++
++	WARN_ON(p->cs_enabled);
++
++	p->total_cycles = 0;
++	ctrl_outw(0, p->mapbase + _8TCNT);
++	ctrl_outw(0x2400 | p->div, p->mapbase + _8TCR);
++
++	p->cs_enabled = true;
++	return 0;
++}
++
++static void timer8_clocksource_disable(struct clocksource *cs)
++{
++	struct timer8_priv *p = cs_to_priv(cs);
++
++	WARN_ON(!p->cs_enabled);
++
++	ctrl_outb(0, p->mapbase + _8TCR);
++	p->cs_enabled = false;
++}
++
++static void timer8_set_next(struct timer8_priv *p, unsigned long delta)
++{
++	unsigned long flags;
++	unsigned long now;
++
++	raw_spin_lock_irqsave(&p->lock, flags);
++	if (delta >= 0x10000)
++		dev_warn(&p->pdev->dev, "delta out of range\n");
++	now = timer8_get_counter(p);
++	p->tcora = delta;
++	ctrl_outb(ctrl_inb(p->mapbase + _8TCR) | 0x40, p->mapbase + _8TCR);
++	if (delta > now)
++		ctrl_outw(delta, p->mapbase + TCORA);
++	else
++		ctrl_outw(now + 1, p->mapbase + TCORA);
++
++	raw_spin_unlock_irqrestore(&p->lock, flags);
++}
++
++static int timer8_enable(struct timer8_priv *p)
++{
++	p->rate = clk_get_rate(p->pclk) / div_rate[p->div];
++	ctrl_outw(0xffff, p->mapbase + TCORA);
++	ctrl_outw(0x0000, p->mapbase + _8TCNT);
++	ctrl_outw(0x0c01, p->mapbase + _8TCR);
++
++	return 0;
++}
++
++static int timer8_start(struct timer8_priv *p)
++{
++	int ret = 0;
++	unsigned long flags;
++
++	raw_spin_lock_irqsave(&p->lock, flags);
++
++	if (!(p->flags & FLAG_STARTED))
++		ret = timer8_enable(p);
++
++	if (ret)
++		goto out;
++	p->flags |= FLAG_STARTED;
++
++ out:
++	raw_spin_unlock_irqrestore(&p->lock, flags);
++
++	return ret;
++}
++
++static void timer8_stop(struct timer8_priv *p)
++{
++	unsigned long flags;
++
++	raw_spin_lock_irqsave(&p->lock, flags);
++
++	ctrl_outw(0x0000, p->mapbase + _8TCR);
++
++	raw_spin_unlock_irqrestore(&p->lock, flags);
++}
++
++static inline struct timer8_priv *ced_to_priv(struct clock_event_device *ced)
++{
++	return container_of(ced, struct timer8_priv, clk.ced);
++}
++
++static void timer8_clock_event_start(struct timer8_priv *p, int periodic)
++{
++	struct clock_event_device *ced = &p->clk.ced;
++
++	timer8_start(p);
++
++	ced->shift = 32;
++	ced->mult = div_sc(p->rate, NSEC_PER_SEC, ced->shift);
++	ced->max_delta_ns = clockevent_delta2ns(0xffff, ced);
++	ced->min_delta_ns = clockevent_delta2ns(0x0001, ced);
++
++	timer8_set_next(p, periodic?(p->rate + HZ/2) / HZ:0x10000);
++}
++
++static void timer8_clock_event_mode(enum clock_event_mode mode,
++				    struct clock_event_device *ced)
++{
++	struct timer8_priv *p = ced_to_priv(ced);
++
++	switch (mode) {
++	case CLOCK_EVT_MODE_PERIODIC:
++		dev_info(&p->pdev->dev, "used for periodic clock events\n");
++		timer8_stop(p);
++		timer8_clock_event_start(p, PERIODIC);
++		break;
++	case CLOCK_EVT_MODE_ONESHOT:
++		dev_info(&p->pdev->dev, "used for oneshot clock events\n");
++		timer8_stop(p);
++		timer8_clock_event_start(p, ONESHOT);
++		break;
++	case CLOCK_EVT_MODE_SHUTDOWN:
++	case CLOCK_EVT_MODE_UNUSED:
++		timer8_stop(p);
++		break;
++	default:
++		break;
++	}
++}
++
++static int timer8_clock_event_next(unsigned long delta,
++				   struct clock_event_device *ced)
++{
++	struct timer8_priv *p = ced_to_priv(ced);
++
++	BUG_ON(ced->mode != CLOCK_EVT_MODE_ONESHOT);
++	timer8_set_next(p, delta - 1);
++
++	return 0;
++}
++
++#define CMI 0
++#define OVI 1
++static int __init timer8_setup(struct timer8_priv *p,
++			       struct platform_device *pdev)
++{
++	struct h8300_timer8_config *cfg = dev_get_platdata(&pdev->dev);
++	struct resource *res;
++	int irq[2];
++	int ret;
++
++	memset(p, 0, sizeof(*p));
++	p->pdev = pdev;
++
++	res = platform_get_resource(p->pdev, IORESOURCE_MEM, 0);
++	if (!res) {
++		dev_err(&p->pdev->dev, "failed to get I/O memory\n");
++		return -ENXIO;
++	}
++
++	irq[CMI] = platform_get_irq(p->pdev, CMI);
++	irq[OVI] = platform_get_irq(p->pdev, OVI);
++	if (irq[CMI] < 0 || irq[OVI] < 0) {
++		dev_err(&p->pdev->dev, "failed to get irq\n");
++		return -ENXIO;
++	}
++
++	p->mapbase = res->start;
++
++	p->irqaction.name = dev_name(&p->pdev->dev);
++	p->irqaction.handler = timer8_interrupt;
++	p->irqaction.dev_id = p;
++	p->irqaction.flags = IRQF_DISABLED | IRQF_TIMER;
++
++	p->mode = cfg->mode;
++	p->div = cfg->div;
++
++	p->pclk = clk_get(&p->pdev->dev, "peripheral_clk");
++	if (IS_ERR(p->pclk)) {
++		dev_err(&p->pdev->dev, "can't get clk\n");
++		return PTR_ERR(p->pclk);
++	}
++
++	switch (p->mode) {
++	case H8300_TMR8_CLKSRC:
++		p->clk.cs.name = pdev->name;
++		p->clk.cs.rating = 200;
++		p->clk.cs.read = timer8_clocksource_read;
++		p->clk.cs.enable = timer8_clocksource_enable;
++		p->clk.cs.disable = timer8_clocksource_disable;
++		p->clk.cs.mask = CLOCKSOURCE_MASK(sizeof(unsigned long) * 8);
++		p->clk.cs.flags = CLOCK_SOURCE_IS_CONTINUOUS;
++
++		ret = setup_irq(irq[OVI], &p->irqaction);
++		if (ret < 0) {
++			dev_err(&p->pdev->dev,
++				"failed to request irq %d\n", irq[OVI]);
++			return ret;
++		}
++		clocksource_register_hz(&p->clk.cs,
++					clk_get_rate(p->pclk) / div_rate[p->div]);
++		break;
++	case H8300_TMR8_CLKEVTDEV:
++		p->clk.ced.name = pdev->name;
++		p->clk.ced.features = CLOCK_EVT_FEAT_PERIODIC |
++					CLOCK_EVT_FEAT_ONESHOT;
++		p->clk.ced.rating = 200;
++		p->clk.ced.cpumask = cpumask_of(0);
++		p->clk.ced.set_next_event = timer8_clock_event_next;
++		p->clk.ced.set_mode = timer8_clock_event_mode;
++
++		ret = setup_irq(irq[CMI], &p->irqaction);
++		if (ret < 0) {
++			dev_err(&p->pdev->dev,
++				"failed to request irq %d\n", irq[CMI]);
++			return ret;
++		}
++		clockevents_register_device(&p->clk.ced);
++		break;
++	}
++	platform_set_drvdata(pdev, p);
++
++	return 0;
++}
++
++static int timer8_probe(struct platform_device *pdev)
++{
++	struct timer8_priv *p = platform_get_drvdata(pdev);
++
++	if (p) {
++		dev_info(&pdev->dev, "kept as earlytimer\n");
++		return 0;
++	}
++
++	p = devm_kzalloc(&pdev->dev, sizeof(*p), GFP_KERNEL);
++	if (!p)
++		return -ENOMEM;
++
++	return timer8_setup(p, pdev);
++}
++
++static int timer8_remove(struct platform_device *pdev)
++{
++	return -EBUSY;
++}
++
++static struct platform_driver timer8_driver = {
++	.probe		= timer8_probe,
++	.remove		= timer8_remove,
++	.driver		= {
++		.name	= "h8300-8timer",
++	}
++};
++
++static int __init timer8_init(void)
++{
++	return platform_driver_register(&timer8_driver);
++}
++
++static void __exit timer8_exit(void)
++{
++	platform_driver_unregister(&timer8_driver);
++}
++
++early_platform_init("earlytimer", &timer8_driver);
++subsys_initcall(timer8_init);
++module_exit(timer8_exit);
++MODULE_AUTHOR("Yoshinori Sato");
++MODULE_DESCRIPTION("H8/300 8bit Timer Driver");
++MODULE_LICENSE("GPL v2");
+diff --git a/drivers/clocksource/h8300_tpu.c b/drivers/clocksource/h8300_tpu.c
+new file mode 100644
+index 0000000..1aae8a7
+--- /dev/null
++++ b/drivers/clocksource/h8300_tpu.c
+@@ -0,0 +1,203 @@
++/*
++ *  linux/arch/h8300/kernel/cpu/timer/timer_tpu.c
++ *
++ *  Yoshinori Sato <ysato@users.sourcefoge.jp>
++ *
++ *  TPU driver
++ *
++ */
++
++#include <linux/errno.h>
++#include <linux/sched.h>
++#include <linux/kernel.h>
++#include <linux/interrupt.h>
++#include <linux/init.h>
++#include <linux/platform_device.h>
++#include <linux/slab.h>
++#include <linux/clocksource.h>
++#include <linux/module.h>
++#include <linux/clk.h>
++#include <linux/io.h>
++
++#include <asm/irq.h>
++#include <asm/timer.h>
++
++#define TCR	0
++#define TMDR	1
++#define TIOR	2
++#define TER	4
++#define TSR	5
++#define TCNT	6
++#define TGRA	8
++#define TGRB	10
++#define TGRC	12
++#define TGRD	14
++
++struct tpu_priv {
++	struct platform_device *pdev;
++	struct clocksource cs;
++	struct clk *clk;
++	unsigned long mapbase1;
++	unsigned long mapbase2;
++	raw_spinlock_t lock;
++	unsigned int cs_enabled;
++};
++
++static inline unsigned long read_tcnt32(struct tpu_priv *p)
++{
++	unsigned long tcnt;
++
++	tcnt = ctrl_inw(p->mapbase1 + TCNT) << 16;
++	tcnt |= ctrl_inw(p->mapbase2 + TCNT);
++	return tcnt;
++}
++
++static int tpu_get_counter(struct tpu_priv *p, unsigned long long *val)
++{
++	unsigned long v1, v2, v3;
++	int o1, o2;
++
++	o1 = ctrl_inb(p->mapbase1 + TSR) & 0x10;
++
++	/* Make sure the timer value is stable. Stolen from acpi_pm.c */
++	do {
++		o2 = o1;
++		v1 = read_tcnt32(p);
++		v2 = read_tcnt32(p);
++		v3 = read_tcnt32(p);
++		o1 = ctrl_inb(p->mapbase1 + TSR) & 0x10;
++	} while (unlikely((o1 != o2) || (v1 > v2 && v1 < v3)
++			  || (v2 > v3 && v2 < v1) || (v3 > v1 && v3 < v2)));
++
++	*val = v2;
++	return o1;
++}
++
++static inline struct tpu_priv *cs_to_priv(struct clocksource *cs)
++{
++	return container_of(cs, struct tpu_priv, cs);
++}
++
++static cycle_t tpu_clocksource_read(struct clocksource *cs)
++{
++	struct tpu_priv *p = cs_to_priv(cs);
++	unsigned long flags;
++	unsigned long long value;
++
++	raw_spin_lock_irqsave(&p->lock, flags);
++	if (tpu_get_counter(p, &value))
++		value += 0x100000000;
++	raw_spin_unlock_irqrestore(&p->lock, flags);
++
++	return value;
++}
++
++static int tpu_clocksource_enable(struct clocksource *cs)
++{
++	struct tpu_priv *p = cs_to_priv(cs);
++
++	WARN_ON(p->cs_enabled);
++
++	ctrl_outw(0, p->mapbase1 + TCNT);
++	ctrl_outw(0, p->mapbase2 + TCNT);
++	ctrl_outb(0x0f, p->mapbase1 + TCR);
++	ctrl_outb(0x03, p->mapbase2 + TCR);
++
++	p->cs_enabled = true;
++	return 0;
++}
++
++static void tpu_clocksource_disable(struct clocksource *cs)
++{
++	struct tpu_priv *p = cs_to_priv(cs);
++
++	WARN_ON(!p->cs_enabled);
++
++	ctrl_outb(0, p->mapbase1 + TCR);
++	ctrl_outb(0, p->mapbase2 + TCR);
++	p->cs_enabled = false;
++}
++
++#define CH_L 0
++#define CH_H 1
++
++static int __init tpu_setup(struct tpu_priv *p, struct platform_device *pdev)
++{
++	struct resource *res[2];
++
++	memset(p, 0, sizeof(*p));
++	p->pdev = pdev;
++
++	res[CH_L] = platform_get_resource(p->pdev, IORESOURCE_MEM, CH_L);
++	res[CH_H] = platform_get_resource(p->pdev, IORESOURCE_MEM, CH_H);
++	if (!res[CH_L] || !res[CH_H]) {
++		dev_err(&p->pdev->dev, "failed to get I/O memory\n");
++		return -ENXIO;
++	}
++
++	p->clk = clk_get(&p->pdev->dev, "peripheral_clk");
++	if (IS_ERR(p->clk)) {
++		dev_err(&p->pdev->dev, "can't get clk\n");
++		return PTR_ERR(p->clk);
++	}
++
++	p->mapbase1 = res[CH_L]->start;
++	p->mapbase2 = res[CH_H]->start;
++
++	p->cs.name = pdev->name;
++	p->cs.rating = 200;
++	p->cs.read = tpu_clocksource_read;
++	p->cs.enable = tpu_clocksource_enable;
++	p->cs.disable = tpu_clocksource_disable;
++	p->cs.mask = CLOCKSOURCE_MASK(sizeof(unsigned long) * 8);
++	p->cs.flags = CLOCK_SOURCE_IS_CONTINUOUS;
++	clocksource_register_hz(&p->cs, clk_get_rate(p->clk) / 64);
++	platform_set_drvdata(pdev, p);
++
++	return 0;
++}
++
++static int tpu_probe(struct platform_device *pdev)
++{
++	struct tpu_priv *p = platform_get_drvdata(pdev);
++
++	if (p) {
++		dev_info(&pdev->dev, "kept as earlytimer\n");
++		return 0;
++	}
++
++	p = devm_kzalloc(&pdev->dev, sizeof(*p), GFP_KERNEL);
++	if (!p)
++		return -ENOMEM;
++
++	return tpu_setup(p, pdev);
++}
++
++static int tpu_remove(struct platform_device *pdev)
++{
++	return -EBUSY;
++}
++
++static struct platform_driver tpu_driver = {
++	.probe		= tpu_probe,
++	.remove		= tpu_remove,
++	.driver		= {
++		.name	= "h8s-tpu",
++	}
++};
++
++static int __init tpu_init(void)
++{
++	return platform_driver_register(&tpu_driver);
++}
++
++static void __exit tpu_exit(void)
++{
++	platform_driver_unregister(&tpu_driver);
++}
++
++subsys_initcall(tpu_init);
++module_exit(tpu_exit);
++MODULE_AUTHOR("Yoshinori Sato");
++MODULE_DESCRIPTION("H8S Timer Pulse Unit Driver");
++MODULE_LICENSE("GPL v2");
 -- 
 2.1.4
 
