@@ -1,133 +1,64 @@
-From: Tobias Klauser <tklauser@distanz.ch>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
 Subject: Re: [PATCH v8 01/17] h8300: Assembly headers.
-Date: Mon, 20 Apr 2015 09:44:46 +0200
-Message-ID: <20150420074446.GC3870@distanz.ch>
+Date: Mon, 20 Apr 2015 17:47:57 +1000
+Message-ID: <20150420174757.11a4155b@canb.auug.org.au>
 References: <1429510413-14869-1-git-send-email-ysato@users.sourceforge.jp>
- <1429510413-14869-2-git-send-email-ysato@users.sourceforge.jp>
+	<1429510413-14869-2-git-send-email-ysato@users.sourceforge.jp>
+	<CAFLxGvxXpgAS6gJDyPe5pjM8n+x2wFNQT0JtyUuGmdBOi9aa+w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1429510413-14869-2-git-send-email-ysato@users.sourceforge.jp>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha256;
+ boundary="Sig_/y/988LgLcFdG5z3GsB8sSo2"; protocol="application/pgp-signature"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([103.22.144.67]:58980 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752848AbbDTHsE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Apr 2015 03:48:04 -0400
+In-Reply-To: <CAFLxGvxXpgAS6gJDyPe5pjM8n+x2wFNQT0JtyUuGmdBOi9aa+w@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Richard Weinberger <richard.weinberger@gmail.com>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On 2015-04-20 at 08:13:17 +0200, Yoshinori Sato <ysato@users.sourceforge.jp> wrote:
-[...]
-> diff --git a/arch/h8300/include/asm/elf.h b/arch/h8300/include/asm/elf.h
-> new file mode 100644
-> index 0000000..09031d0
-> --- /dev/null
-> +++ b/arch/h8300/include/asm/elf.h
-> @@ -0,0 +1,101 @@
-> +#ifndef __ASM_H8300_ELF_H
-> +#define __ASM_H8300_ELF_H
-> +
-> +/*
-> + * ELF register definitions..
-> + */
-> +
-> +#include <asm/ptrace.h>
-> +#include <asm/user.h>
-> +
-> +typedef unsigned long elf_greg_t;
-> +
-> +#define ELF_NGREG (sizeof(struct user_regs_struct) / sizeof(elf_greg_t))
-> +typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-> +typedef unsigned long elf_fpregset_t;
-> +
-> +/*
-> + * This is used to ensure we don't load something for the wrong architecture.
-> + */
-> +#define elf_check_arch(x) ((x)->e_machine == EM_H8_300)
+--Sig_/y/988LgLcFdG5z3GsB8sSo2
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: quoted-printable
 
-EM_H8_300 is used here but only introduced in patch 15/17. Please change
-the order of the patches such that the patch adding EM_H8_300 comes
-before the ones using it.
+Hi Richard,
 
-> +
-> +/*
-> + * These are used to set parameters in the core dumps.
-> + */
-> +#define ELF_CLASS	ELFCLASS32
-> +#define ELF_DATA	ELFDATA2MSB
-> +#define ELF_ARCH	EM_H8_300
+On Mon, 20 Apr 2015 09:17:30 +0200 Richard Weinberger <richard.weinberger@g=
+mail.com> wrote:
+>
 
-It's used here again.
+*tons removed*
 
-> +#if defined(CONFIG_CPU_H8300H)
-> +#define ELF_CORE_EFLAGS 0x810000
-> +#endif
-> +#if defined(CONFIG_CPU_H8S)
-> +#define ELF_CORE_EFLAGS 0x820000
-> +#endif
-> +
-> +#define ELF_PLAT_INIT(_r) do { (_r)->er1 = 0; } while (0)
-> +
-> +#define ELF_EXEC_PAGESIZE	4096
-> +
-> +/* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-> +   use of this is to invoke "./ld.so someprog" to test out a new version of
-> +   the loader.  We need to make sure that it is out of the way of the program
-> +   that it will "exec", and that there is sufficient room for the brk.  */
-> +
-> +#define ELF_ET_DYN_BASE         0xD0000000UL
-> +
-> +/* This yields a mask that user programs can use to figure out what
-> +   instruction set this cpu supports.  */
-> +
-> +#define ELF_HWCAP	(0)
-> +
-> +/* This yields a string that ld.so will use to load implementation
-> +   specific libraries for optimization.  This is more specific in
-> +   intent than poking at uname or /proc/cpuinfo.  */
-> +
-> +#define ELF_PLATFORM  (NULL)
-> +
-> +#define R_H8_NONE       0
-> +#define R_H8_DIR32      1
-> +#define R_H8_DIR32_28   2
-> +#define R_H8_DIR32_24   3
-> +#define R_H8_DIR32_16   4
-> +#define R_H8_DIR32U     6
-> +#define R_H8_DIR32U_28  7
-> +#define R_H8_DIR32U_24  8
-> +#define R_H8_DIR32U_20  9
-> +#define R_H8_DIR32U_16 10
-> +#define R_H8_DIR24     11
-> +#define R_H8_DIR24_20  12
-> +#define R_H8_DIR24_16  13
-> +#define R_H8_DIR24U    14
-> +#define R_H8_DIR24U_20 15
-> +#define R_H8_DIR24U_16 16
-> +#define R_H8_DIR16     17
-> +#define R_H8_DIR16U    18
-> +#define R_H8_DIR16S_32 19
-> +#define R_H8_DIR16S_28 20
-> +#define R_H8_DIR16S_24 21
-> +#define R_H8_DIR16S_20 22
-> +#define R_H8_DIR16S    23
-> +#define R_H8_DIR8      24
-> +#define R_H8_DIR8U     25
-> +#define R_H8_DIR8Z_32  26
-> +#define R_H8_DIR8Z_28  27
-> +#define R_H8_DIR8Z_24  28
-> +#define R_H8_DIR8Z_20  29
-> +#define R_H8_DIR8Z_16  30
-> +#define R_H8_PCREL16   31
-> +#define R_H8_PCREL8    32
-> +#define R_H8_BPOS      33
-> +#define R_H8_PCREL32   34
-> +#define R_H8_GOT32O    35
-> +#define R_H8_GOT16O    36
-> +#define R_H8_DIR16A8   59
-> +#define R_H8_DIR16R8   60
-> +#define R_H8_DIR24A8   61
-> +#define R_H8_DIR24R8   62
-> +#define R_H8_DIR32A16  63
-> +#define R_H8_ABS32     65
-> +#define R_H8_ABS32A16 127
-> +
-> +#endif
+Please edit quoted text in your replies down to the essentials.  That
+one was so large that I could not even find what you had commented
+on.  :-(
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+
+--Sig_/y/988LgLcFdG5z3GsB8sSo2
+Content-Type: application/pgp-signature
+Content-Description: OpenPGP digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBCAAGBQJVNK8yAAoJEMDTa8Ir7ZwV/xcQAIYpLmE1ss/RKHiiQJZjhixQ
+thzhrB8Cdco5ogvAI0GWU2t+iGBfeuJGa3xs6tKY+et41Utg8SqBhtrrFF49FU5e
+/D6KiQ7Qd0NG0UEK3syhE4JbhKYokjKsfoV3XNyZlveSMwrdbOT/rNe7vmTzoRrK
+nuKqgxLRlXBhebXFMX8/jRW/nToUgh16UHtOBgS6q//d5bmWJLorc3V3oe8rde4C
+5oACEHE0hyR4/8Ek8fjpsq+VpsD6P0gRHHCBvmIzTYwL4jLfyu+q71NKAf5dTL6D
+Q5xwodTpGck181zwW04b7Nhk5k5ZN4BjPhsyQ3KNr76C+LRtBTVz0Nw0Goyjs9pv
+w4Qm7fJr1wUVYhiCLBJNirl5ITdesP5o3yvYvdsunraw7jx/4NMOvpwczp/mMwEG
+oY5vAfgbXpU6kVwqKR8YkjoLNts/AOeTpJP7igd9tmZBp/GVo2bsHhmXN9jxdsgc
+aPNousPkwFyu38YWBT4w1UwIFkp8gw1wq0WYdjRiJe31TQlMrZEBygX/iCGtst+P
+IaML86OiiKYTHEYIU3s2wXZvYqvhccPpRfSc93/TdQ5ZrRbR68AJJbKirwx1eLWV
+3zWIYuW+3UMWqyipKK+8109pLZM8PB+rGkouxZ3+m8Y8GuaNbbq0OzTRrwq5cOwA
+H482fF6zxPt9sPl/l0Sm
+=qyP3
+-----END PGP SIGNATURE-----
+
+--Sig_/y/988LgLcFdG5z3GsB8sSo2--
