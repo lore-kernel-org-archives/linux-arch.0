@@ -1,138 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from sym2.noone.org ([178.63.92.236]:57221 "EHLO sym2.noone.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752637AbbDTHwN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Apr 2015 03:52:13 -0400
-Date: Mon, 20 Apr 2015 09:44:46 +0200
-From: Tobias Klauser <tklauser@distanz.ch>
-Subject: Re: [PATCH v8 01/17] h8300: Assembly headers.
-Message-ID: <20150420074446.GC3870@distanz.ch>
-References: <1429510413-14869-1-git-send-email-ysato@users.sourceforge.jp>
- <1429510413-14869-2-git-send-email-ysato@users.sourceforge.jp>
+Received: from mail-vn0-f44.google.com ([209.85.216.44]:34151 "EHLO
+	mail-vn0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753633AbbDTHyK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Apr 2015 03:54:10 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1429510413-14869-2-git-send-email-ysato@users.sourceforge.jp>
+In-Reply-To: <20150420174757.11a4155b@canb.auug.org.au>
+References: <1429510413-14869-1-git-send-email-ysato@users.sourceforge.jp>
+	<1429510413-14869-2-git-send-email-ysato@users.sourceforge.jp>
+	<CAFLxGvxXpgAS6gJDyPe5pjM8n+x2wFNQT0JtyUuGmdBOi9aa+w@mail.gmail.com>
+	<20150420174757.11a4155b@canb.auug.org.au>
+Date: Mon, 20 Apr 2015 09:54:09 +0200
+Message-ID: <CAFLxGvyRSDbnuGta-WQoYmZ_XNy11ONtFynFq2vO95MinnPdHg@mail.gmail.com>
+Subject: Re: [PATCH v8 01/17] h8300: Assembly headers.
+From: Richard Weinberger <richard.weinberger@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150420074446.0a-YLEiRXr8AqXaWFpnxpDkcwC6SP173s4FfbG559rI@z>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, LKML <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20150420075409.ihNnWYMGeDL4YWBB20IWW2DmeqrFTYTyLpeSmmINVHE@z>
 
-On 2015-04-20 at 08:13:17 +0200, Yoshinori Sato <ysato@users.sourceforge.jp> wrote:
-[...]
-> diff --git a/arch/h8300/include/asm/elf.h b/arch/h8300/include/asm/elf.h
-> new file mode 100644
-> index 0000000..09031d0
-> --- /dev/null
-> +++ b/arch/h8300/include/asm/elf.h
-> @@ -0,0 +1,101 @@
-> +#ifndef __ASM_H8300_ELF_H
-> +#define __ASM_H8300_ELF_H
-> +
-> +/*
-> + * ELF register definitions..
-> + */
-> +
-> +#include <asm/ptrace.h>
-> +#include <asm/user.h>
-> +
-> +typedef unsigned long elf_greg_t;
-> +
-> +#define ELF_NGREG (sizeof(struct user_regs_struct) / sizeof(elf_greg_t))
-> +typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-> +typedef unsigned long elf_fpregset_t;
-> +
-> +/*
-> + * This is used to ensure we don't load something for the wrong architecture.
-> + */
-> +#define elf_check_arch(x) ((x)->e_machine == EM_H8_300)
+On Mon, Apr 20, 2015 at 9:47 AM, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+> Hi Richard,
+>
+> On Mon, 20 Apr 2015 09:17:30 +0200 Richard Weinberger <richard.weinberger@gmail.com> wrote:
+>>
+>
+> *tons removed*
+>
+> Please edit quoted text in your replies down to the essentials.  That
+> one was so large that I could not even find what you had commented
+> on.  :-(
 
-EM_H8_300 is used here but only introduced in patch 15/17. Please change
-the order of the patches such that the patch adding EM_H8_300 comes
-before the ones using it.
+I'm sorry Stephen. Gmail hides such stuff from me.
+I'll take more care next time.
 
-> +
-> +/*
-> + * These are used to set parameters in the core dumps.
-> + */
-> +#define ELF_CLASS	ELFCLASS32
-> +#define ELF_DATA	ELFDATA2MSB
-> +#define ELF_ARCH	EM_H8_300
-
-It's used here again.
-
-> +#if defined(CONFIG_CPU_H8300H)
-> +#define ELF_CORE_EFLAGS 0x810000
-> +#endif
-> +#if defined(CONFIG_CPU_H8S)
-> +#define ELF_CORE_EFLAGS 0x820000
-> +#endif
-> +
-> +#define ELF_PLAT_INIT(_r) do { (_r)->er1 = 0; } while (0)
-> +
-> +#define ELF_EXEC_PAGESIZE	4096
-> +
-> +/* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-> +   use of this is to invoke "./ld.so someprog" to test out a new version of
-> +   the loader.  We need to make sure that it is out of the way of the program
-> +   that it will "exec", and that there is sufficient room for the brk.  */
-> +
-> +#define ELF_ET_DYN_BASE         0xD0000000UL
-> +
-> +/* This yields a mask that user programs can use to figure out what
-> +   instruction set this cpu supports.  */
-> +
-> +#define ELF_HWCAP	(0)
-> +
-> +/* This yields a string that ld.so will use to load implementation
-> +   specific libraries for optimization.  This is more specific in
-> +   intent than poking at uname or /proc/cpuinfo.  */
-> +
-> +#define ELF_PLATFORM  (NULL)
-> +
-> +#define R_H8_NONE       0
-> +#define R_H8_DIR32      1
-> +#define R_H8_DIR32_28   2
-> +#define R_H8_DIR32_24   3
-> +#define R_H8_DIR32_16   4
-> +#define R_H8_DIR32U     6
-> +#define R_H8_DIR32U_28  7
-> +#define R_H8_DIR32U_24  8
-> +#define R_H8_DIR32U_20  9
-> +#define R_H8_DIR32U_16 10
-> +#define R_H8_DIR24     11
-> +#define R_H8_DIR24_20  12
-> +#define R_H8_DIR24_16  13
-> +#define R_H8_DIR24U    14
-> +#define R_H8_DIR24U_20 15
-> +#define R_H8_DIR24U_16 16
-> +#define R_H8_DIR16     17
-> +#define R_H8_DIR16U    18
-> +#define R_H8_DIR16S_32 19
-> +#define R_H8_DIR16S_28 20
-> +#define R_H8_DIR16S_24 21
-> +#define R_H8_DIR16S_20 22
-> +#define R_H8_DIR16S    23
-> +#define R_H8_DIR8      24
-> +#define R_H8_DIR8U     25
-> +#define R_H8_DIR8Z_32  26
-> +#define R_H8_DIR8Z_28  27
-> +#define R_H8_DIR8Z_24  28
-> +#define R_H8_DIR8Z_20  29
-> +#define R_H8_DIR8Z_16  30
-> +#define R_H8_PCREL16   31
-> +#define R_H8_PCREL8    32
-> +#define R_H8_BPOS      33
-> +#define R_H8_PCREL32   34
-> +#define R_H8_GOT32O    35
-> +#define R_H8_GOT16O    36
-> +#define R_H8_DIR16A8   59
-> +#define R_H8_DIR16R8   60
-> +#define R_H8_DIR24A8   61
-> +#define R_H8_DIR24R8   62
-> +#define R_H8_DIR32A16  63
-> +#define R_H8_ABS32     65
-> +#define R_H8_ABS32A16 127
-> +
-> +#endif
+-- 
+Thanks,
+//richard
