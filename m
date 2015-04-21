@@ -1,78 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f42.google.com ([209.85.215.42]:34796 "EHLO
-	mail-la0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755686AbbDUPnL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Apr 2015 11:43:11 -0400
-From: Johan Hovold <johan@kernel.org>
-Subject: [PATCH 00/23] gpio: sysfs: fixes and clean ups
-Date: Tue, 21 Apr 2015 17:42:08 +0200
-Message-ID: <1429630951-27082-1-git-send-email-johan@kernel.org>
+Received: from www.linutronix.de ([62.245.132.108]:59906 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932501AbbDUUN7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Apr 2015 16:13:59 -0400
+Date: Tue, 21 Apr 2015 22:13:42 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [Y2038] [PATCH 04/11] posix timers:Introduce the 64bit methods
+ with timespec64 type for k_clock structure
+In-Reply-To: <2819798.f0KhjY3UAe@wuerfel>
+Message-ID: <alpine.DEB.2.11.1504212204130.13914@nanos>
+References: <1429509459-17068-1-git-send-email-baolin.wang@linaro.org> <3231171.5TrYVVBLh4@wuerfel> <alpine.DEB.2.11.1504211701140.13914@nanos> <2819798.f0KhjY3UAe@wuerfel>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: Alexandre Courbot <gnurou@gmail.com>, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, Johan Hovold <johan@kernel.org>, Jonathan Corbet <corbet@lwn.net>, Harry Wei <harryxiyou@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-doc@vger.kernel.org, linux-kernel@zh-kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150421154208.6uPEIiODKVUsnSiB6i-ibIgJhlfERq0nY8hpvYVmEMk@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: y2038@lists.linaro.org, Baolin Wang <baolin.wang@linaro.org>, pang.xunlei@linaro.org, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, paulus@samba.org, cl@linux.com, heenasirwani@gmail.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, mpe@ellerman.id.au, rafael.j.wysocki@intel.com, ahh@google.com, fweisbec@gmail.com, pjt@google.com, riel@redhat.com, richardcochran@gmail.com, schwidefsky@de.ibm.com, john.stultz@linaro.org, rth@twiddle.net, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, tj@kernel.org, linux390@de.ibm.com, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20150421201342.Ta22ZwwxVoRujmnN1Wryfetc0HhmnXcYt3k6Kw9Coj4@z>
 
-These patches fix a number of issues with the gpio sysfs interface,
-including
+On Tue, 21 Apr 2015, Arnd Bergmann wrote:
+> I know there are concerns about this, in particular because C11 and
+> POSIX both require tv_nsec to be 'long', unlike timeval->tv_usec,
+> which is a 'suseconds_t' and can be defined as 'long long'.
+>
+> a)
+> 
+> struct timespec {
+> 	time_t tv_sec;
+> 	long long tv_nsec; /* or typedef long long snseconds_t */
+> };
+> 
+> This is not directly compatible with C11 or POSIX.1-2008, but it
+> matches what we do inside of 64-bit kernels, so probably has the
+> highest chance of working correctly in practice
 
- - fix memory leaks and crashes on device hotplug
- - straighten out the convoluted locking
- - reduce sysfs-interface latencies through more fine-grained locking
- - more clearly separate the sysfs-interface implementation from gpiolib
-   core
+After reading Linus rant in the x32 thread again (thanks for the
+reminder), and looking at b/c/d - which rate between ugly and butt
+ugly - I think we should go for a) and screw POSIX and C11 as those
+committee dinosaurs seem to completely ignore the 2038 problem on
+32bit machines. At least I have not found any hint that these folks
+care at all. So why should we comply to something which is completely
+useless?
 
-The first patch is marked for stable and could go into 4.1. 
+That also makes the question about the upper 32bits check moot, so
+it's the simplest and clearest of the possible solutions.
 
-Unfortunately we can't just kill the gpio sysfs interface, but these
-patches will make it more manageable and should allow us to implement a
-new user-space interface while maintaining the old one (for a while at
-least) without losing our sanity.
+Thanks,
 
-Note that there is still a race between chip remove and gpiod_request (and
-therefore sysfs export), which needs to be fixed separately (for instance as
-part of a generic solution to chip hotplugging).
+	tglx
 
-Johan
-
-
-Johan Hovold (23):
-  gpio: sysfs: fix memory leaks and device hotplug
-  gpio: clean up gpiochip_remove
-  gpio: sysfs: drop redundant lock-as-irq
-  gpio: sysfs: preparatory clean ups
-  gpio: sysfs: reduce gpiochip-export locking scope
-  gpio: sysfs: clean up chip class-device handling
-  gpio: sysfs: rename gpiochip registration functions
-  gpio: remove gpiod_sysfs_set_active_low
-  gpio: sysfs: use DEVICE_ATTR macros
-  gpio: sysfs: release irq after class-device deregistration
-  gpio: sysfs: remove redundant export tests
-  gpio: sysfs: add gpiod class-device data
-  gpio: sysfs: remove redundant gpio-descriptor parameters
-  gpio: sysfs: clean up interrupt-interface implementation
-  gpio: sysfs: only call irq helper if needed
-  gpio: sysfs: split irq allocation and deallocation
-  gpio: sysfs: clean up edge_store
-  gpio: sysfs: clean up gpiod_export_link locking
-  gpio: sysfs: use per-gpio locking
-  gpio: sysfs: fix race between gpiod export and unexport
-  gpio: sysfs: rename active-low helper
-  gpio: sysfs: remove FLAG_SYSFS_DIR
-  gpio: sysfs: move irq trigger flags to class-device data
-
- Documentation/gpio/gpio-legacy.txt |   9 -
- Documentation/gpio/sysfs.txt       |   8 -
- Documentation/zh_CN/gpio.txt       |   8 -
- drivers/gpio/gpiolib-sysfs.c       | 561 +++++++++++++++++--------------------
- drivers/gpio/gpiolib.c             |  18 +-
- drivers/gpio/gpiolib.h             |  16 +-
- include/asm-generic/gpio.h         |   5 -
- include/linux/gpio.h               |   7 -
- include/linux/gpio/consumer.h      |   6 -
- include/linux/gpio/driver.h        |   4 +-
- 10 files changed, 273 insertions(+), 369 deletions(-)
-
--- 
-2.0.5
 
