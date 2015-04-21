@@ -1,139 +1,79 @@
-From: Eric B Munson <emunson@akamai.com>
-Subject: [PATCH v7 6/6] mips: Add entry for new mlock2 syscall
-Date: Sun,  9 Aug 2015 01:22:56 -0400
-Message-ID: <1439097776-27695-7-git-send-email-emunson@akamai.com>
-References: <1439097776-27695-1-git-send-email-emunson@akamai.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: [PATCH] kexec: allocate the kexec control page with KEXEC_CONTROL_MEMORY_GFP
+Date: Tue, 21 Apr 2015 14:06:32 +0200
+Message-ID: <1429617992-31686-2-git-send-email-schwidefsky@de.ibm.com>
+References: <1429617992-31686-1-git-send-email-schwidefsky@de.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a23-79-238-175.deploy.static.akamaitechnologies.com ([23.79.238.175]:51949
-	"EHLO prod-mail-xrelay07.akamai.com" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1751345AbbHIFXB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Aug 2015 01:23:01 -0400
-In-Reply-To: <1439097776-27695-1-git-send-email-emunson@akamai.com>
+Received: from e18.ny.us.ibm.com ([129.33.205.208]:48775 "EHLO
+	e18.ny.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933153AbbHISnT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Aug 2015 14:43:19 -0400
+Received: from /spool/local
+	by e18.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+	Sun, 9 Aug 2015 14:43:18 -0400
+In-Reply-To: <1429617992-31686-1-git-send-email-schwidefsky@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Eric B Munson <emunson@akamai.com>, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+To: Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Vivek Goyal <vgoyal@redhat.com>, kexec@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-A previous commit introduced the new mlock2 syscall, add entries for the
-MIPS architecture.
+Introduce KEXEC_CONTROL_MEMORY_GFP to allow the architecture code
+to override the gfp flags of the allocation for the kexec control
+page. The loop in kimage_alloc_normal_control_pages allocates pages
+with GFP_KERNEL until a page is found that happens to have an
+address smaller than the KEXEC_CONTROL_MEMORY_LIMIT. On systems
+with a large memory size but a small KEXEC_CONTROL_MEMORY_LIMIT
+the loop will keep allocating memory until the oom killer steps in.
 
-Signed-off-by: Eric B Munson <emunson@akamai.com>
-Acked-by: Ralf Baechle <ralf@linux-mips.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-mips@linux-mips.org
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mm@kvack.org
-Cc: linux-kernel@vger.kernel.org
+Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
 ---
- arch/mips/include/uapi/asm/unistd.h | 15 +++++++++------
- arch/mips/kernel/scall32-o32.S      |  1 +
- arch/mips/kernel/scall64-64.S       |  1 +
- arch/mips/kernel/scall64-n32.S      |  1 +
- arch/mips/kernel/scall64-o32.S      |  1 +
- 5 files changed, 13 insertions(+), 6 deletions(-)
+ arch/s390/include/asm/kexec.h | 3 +++
+ include/linux/kexec.h         | 4 ++++
+ kernel/kexec.c                | 2 +-
+ 3 files changed, 8 insertions(+), 1 deletion(-)
 
-diff --git a/arch/mips/include/uapi/asm/unistd.h b/arch/mips/include/uapi/asm/unistd.h
-index c03088f..d0bdfaa 100644
---- a/arch/mips/include/uapi/asm/unistd.h
-+++ b/arch/mips/include/uapi/asm/unistd.h
-@@ -377,16 +377,17 @@
- #define __NR_memfd_create		(__NR_Linux + 354)
- #define __NR_bpf			(__NR_Linux + 355)
- #define __NR_execveat			(__NR_Linux + 356)
-+#define __NR_mlock2			(__NR_Linux + 357)
+diff --git a/arch/s390/include/asm/kexec.h b/arch/s390/include/asm/kexec.h
+index 694bcd6..2f924bc 100644
+--- a/arch/s390/include/asm/kexec.h
++++ b/arch/s390/include/asm/kexec.h
+@@ -26,6 +26,9 @@
+ /* Not more than 2GB */
+ #define KEXEC_CONTROL_MEMORY_LIMIT (1UL<<31)
  
- /*
-  * Offset of the last Linux o32 flavoured syscall
-  */
--#define __NR_Linux_syscalls		356
-+#define __NR_Linux_syscalls		357
++/* Allocate control page with GFP_DMA */
++#define KEXEC_CONTROL_MEMORY_GFP GFP_DMA
++
+ /* Maximum address we can use for the crash control pages */
+ #define KEXEC_CRASH_CONTROL_MEMORY_LIMIT (-1UL)
  
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
+diff --git a/include/linux/kexec.h b/include/linux/kexec.h
+index e60a745..e804306 100644
+--- a/include/linux/kexec.h
++++ b/include/linux/kexec.h
+@@ -40,6 +40,10 @@
+ #error KEXEC_CONTROL_MEMORY_LIMIT not defined
+ #endif
  
- #define __NR_O32_Linux			4000
--#define __NR_O32_Linux_syscalls		356
-+#define __NR_O32_Linux_syscalls		357
++#ifndef KEXEC_CONTROL_MEMORY_GFP
++#define KEXEC_CONTROL_MEMORY_GFP GFP_KERNEL
++#endif
++
+ #ifndef KEXEC_CONTROL_PAGE_SIZE
+ #error KEXEC_CONTROL_PAGE_SIZE not defined
+ #endif
+diff --git a/kernel/kexec.c b/kernel/kexec.c
+index 38c25b1..7a36fdc 100644
+--- a/kernel/kexec.c
++++ b/kernel/kexec.c
+@@ -707,7 +707,7 @@ static struct page *kimage_alloc_normal_control_pages(struct kimage *image,
+ 	do {
+ 		unsigned long pfn, epfn, addr, eaddr;
  
- #if _MIPS_SIM == _MIPS_SIM_ABI64
- 
-@@ -711,16 +712,17 @@
- #define __NR_memfd_create		(__NR_Linux + 314)
- #define __NR_bpf			(__NR_Linux + 315)
- #define __NR_execveat			(__NR_Linux + 316)
-+#define __NR_mlock2			(__NR_Linux + 317)
- 
- /*
-  * Offset of the last Linux 64-bit flavoured syscall
-  */
--#define __NR_Linux_syscalls		316
-+#define __NR_Linux_syscalls		317
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI64 */
- 
- #define __NR_64_Linux			5000
--#define __NR_64_Linux_syscalls		316
-+#define __NR_64_Linux_syscalls		317
- 
- #if _MIPS_SIM == _MIPS_SIM_NABI32
- 
-@@ -1049,15 +1051,16 @@
- #define __NR_memfd_create		(__NR_Linux + 318)
- #define __NR_bpf			(__NR_Linux + 319)
- #define __NR_execveat			(__NR_Linux + 320)
-+#define __NR_mlock2			(__NR_Linux + 321)
- 
- /*
-  * Offset of the last N32 flavoured syscall
-  */
--#define __NR_Linux_syscalls		320
-+#define __NR_Linux_syscalls		321
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_NABI32 */
- 
- #define __NR_N32_Linux			6000
--#define __NR_N32_Linux_syscalls		320
-+#define __NR_N32_Linux_syscalls		321
- 
- #endif /* _UAPI_ASM_UNISTD_H */
-diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
-index 4cc1350..b0b377a 100644
---- a/arch/mips/kernel/scall32-o32.S
-+++ b/arch/mips/kernel/scall32-o32.S
-@@ -599,3 +599,4 @@ EXPORT(sys_call_table)
- 	PTR	sys_memfd_create
- 	PTR	sys_bpf				/* 4355 */
- 	PTR	sys_execveat
-+	PTR	sys_mlock2
-diff --git a/arch/mips/kernel/scall64-64.S b/arch/mips/kernel/scall64-64.S
-index ad4d4463..97aaf51 100644
---- a/arch/mips/kernel/scall64-64.S
-+++ b/arch/mips/kernel/scall64-64.S
-@@ -436,4 +436,5 @@ EXPORT(sys_call_table)
- 	PTR	sys_memfd_create
- 	PTR	sys_bpf				/* 5315 */
- 	PTR	sys_execveat
-+	PTR	sys_mlock2
- 	.size	sys_call_table,.-sys_call_table
-diff --git a/arch/mips/kernel/scall64-n32.S b/arch/mips/kernel/scall64-n32.S
-index 446cc65..e36f21e 100644
---- a/arch/mips/kernel/scall64-n32.S
-+++ b/arch/mips/kernel/scall64-n32.S
-@@ -429,4 +429,5 @@ EXPORT(sysn32_call_table)
- 	PTR	sys_memfd_create
- 	PTR	sys_bpf
- 	PTR	compat_sys_execveat		/* 6320 */
-+	PTR	sys_mlock2
- 	.size	sysn32_call_table,.-sysn32_call_table
-diff --git a/arch/mips/kernel/scall64-o32.S b/arch/mips/kernel/scall64-o32.S
-index f543ff4..7a8b2df 100644
---- a/arch/mips/kernel/scall64-o32.S
-+++ b/arch/mips/kernel/scall64-o32.S
-@@ -584,4 +584,5 @@ EXPORT(sys32_call_table)
- 	PTR	sys_memfd_create
- 	PTR	sys_bpf				/* 4355 */
- 	PTR	compat_sys_execveat
-+	PTR	sys_mlock2
- 	.size	sys32_call_table,.-sys32_call_table
+-		pages = kimage_alloc_pages(GFP_KERNEL, order);
++		pages = kimage_alloc_pages(KEXEC_CONTROL_MEMORY_GFP, order);
+ 		if (!pages)
+ 			break;
+ 		pfn   = page_to_pfn(pages);
 -- 
 1.9.1
