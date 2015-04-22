@@ -1,8 +1,8 @@
-From: Richard Cochran <richardcochran@gmail.com>
+From: Luc Van Oostenryck <luc.vanoostenryck@gmail.com>
 Subject: Re: [Y2038] [PATCH 04/11] posix timers:Introduce the 64bit methods
  with timespec64 type for k_clock structure
-Date: Wed, 22 Apr 2015 16:54:32 +0200
-Message-ID: <20150422145432.GA31405@localhost.localdomain>
+Date: Wed, 22 Apr 2015 17:14:47 +0200
+Message-ID: <20150422151445.GA2165@macpro.local>
 References: <1429509459-17068-1-git-send-email-baolin.wang@linaro.org>
  <alpine.DEB.2.11.1504220946460.13914@nanos>
  <2233518.Z2Q4dpO62C@wuerfel>
@@ -10,24 +10,23 @@ References: <1429509459-17068-1-git-send-email-baolin.wang@linaro.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f173.google.com ([209.85.212.173]:36694 "EHLO
-	mail-wi0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932874AbbDVOyl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Apr 2015 10:54:41 -0400
+Received: from mail-wi0-f195.google.com ([209.85.212.195]:36107 "EHLO
+	mail-wi0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755952AbbDVPO6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Apr 2015 11:14:58 -0400
 Content-Disposition: inline
 In-Reply-To: <2500914.bVUENZ0dAZ@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: y2038@lists.linaro.org, pang.xunlei@linaro.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, cl@linux.com, Ingo Molnar <mingo@kernel.org>, heenasirwani@gmail.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, mpe@ellerman.id.au, rafael.j.wysocki@intel.com, ahh@google.com, Frederic Weisbecker <fweisbec@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, pjt@google.com, riel@redhat.com, Martin Schwidefsky <schwidefsky@de.ibm.com>, John Stultz <john.stultz@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, rth@twiddle.net, Baolin Wang <baolin.wang@linaro.org>, gregkh@linuxfoundation.org, LKML <linux-kernel@vger.kernel.org>, netdev@vger.kernel.org, Tejun Heo <tj@kernel.org>, linux390@de.ibm.com, linuxppc-dev@lists.ozlabs.org
+Cc: y2038@lists.linaro.org, pang.xunlei@linaro.org, Peter Zijlstra <peterz@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mackerras <paulus@samba.org>, cl@linux.com, Ingo Molnar <mingo@kernel.org>, heenasirwani@gmail.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, mpe@ellerman.id.au, rafael.j.wysocki@intel.com, ahh@google.com, Frederic Weisbecker <fweisbec@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, pjt@google.com, riel@redhat.com, richardcochran@gmail.com, Martin Schwidefsky <schwidefsky@de.ibm.com>, John Stultz <john.stultz@linaro.org>, Thomas Gleixner <tglx@linutronix.de>, rth@twiddle.net, Baolin Wang <baolin.wang@linaro.org>, gregkh@linuxfoundation.org, LKML <linux-kernel@vger.kernel.org>, netdev@vger.kernel.org, Tejun Heo <tj@kernel.org>, linux390@de.ibm.com, linuxppc-
 
 On Wed, Apr 22, 2015 at 03:50:45PM +0200, Arnd Bergmann wrote:
-> time, stime, gettimeofday, settimeofday, adjtimex, nanosleep,
-> getitimer, setitimer:
->  all deprecated => wontfix
+> On Wednesday 22 April 2015 13:07:44 Arnd Bergmann wrote:
+...
+> select, old_selct, pselect6: deprecated
 
-If adjtimex is deprecated, what will replace it?  It is really
-important for ntp.
+Small, copy&paste error here for pselect6.
 
-Thanks,
-Richard
+
+Luc
