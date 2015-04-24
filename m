@@ -1,203 +1,113 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v16 06/14] qspinlock: Use a simple write to grab the lock
-Date: Fri, 24 Apr 2015 14:56:35 -0400
-Message-ID: <1429901803-29771-7-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v16 13/14] pvqspinlock: Improve slowpath performance by avoiding cmpxchg
+Date: Fri, 24 Apr 2015 14:56:42 -0400
+Message-ID: <1429901803-29771-14-git-send-email-Waiman.Long@hp.com>
 References: <1429901803-29771-1-git-send-email-Waiman.Long@hp.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1429901803-29771-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Daniel J Blueman <daniel@numascale.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>
+To: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Daniel J Blueman <daniel@numascale.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
 List-Id: linux-arch.vger.kernel.org
 
-Currently, atomic_cmpxchg() is used to get the lock. However, this
-is not really necessary if there is more than one task in the queue
-and the queue head don't need to reset the tail code. For that case,
-a simple write to set the lock bit is enough as the queue head will
-be the only one eligible to get the lock as long as it checks that
-both the lock and pending bits are not set. The current pending bit
-waiting code will ensure that the bit will not be set as soon as the
-tail code in the lock is set.
+In the pv_scan_next() function, the slow cmpxchg atomic operation is
+performed even if the other CPU is not even close to being halted. This
+extra cmpxchg can harm slowpath performance.
 
-With that change, the are some slight improvement in the performance
-of the queue spinlock in the 5M loop micro-benchmark run on a 4-socket
-Westere-EX machine as shown in the tables below.
-
-		[Standalone/Embedded - same node]
-  # of tasks	Before patch	After patch	%Change
-  ----------	-----------	----------	-------
-       3	 2324/2321	2248/2265	 -3%/-2%
-       4	 2890/2896	2819/2831	 -2%/-2%
-       5	 3611/3595	3522/3512	 -2%/-2%
-       6	 4281/4276	4173/4160	 -3%/-3%
-       7	 5018/5001	4875/4861	 -3%/-3%
-       8	 5759/5750	5563/5568	 -3%/-3%
-
-		[Standalone/Embedded - different nodes]
-  # of tasks	Before patch	After patch	%Change
-  ----------	-----------	----------	-------
-       3	12242/12237	12087/12093	 -1%/-1%
-       4	10688/10696	10507/10521	 -2%/-2%
-
-It was also found that this change produced a much bigger performance
-improvement in the newer IvyBridge-EX chip and was essentially to close
-the performance gap between the ticket spinlock and queue spinlock.
-
-The disk workload of the AIM7 benchmark was run on a 4-socket
-Westmere-EX machine with both ext4 and xfs RAM disks at 3000 users
-on a 3.14 based kernel. The results of the test runs were:
-
-                AIM7 XFS Disk Test
-  kernel                 JPM    Real Time   Sys Time    Usr Time
-  -----                  ---    ---------   --------    --------
-  ticketlock            5678233    3.17       96.61       5.81
-  qspinlock             5750799    3.13       94.83       5.97
-
-                AIM7 EXT4 Disk Test
-  kernel                 JPM    Real Time   Sys Time    Usr Time
-  -----                  ---    ---------   --------    --------
-  ticketlock            1114551   16.15      509.72       7.11
-  qspinlock             2184466    8.24      232.99       6.01
-
-The ext4 filesystem run had a much higher spinlock contention than
-the xfs filesystem run.
-
-The "ebizzy -m" test was also run with the following results:
-
-  kernel               records/s  Real Time   Sys Time    Usr Time
-  -----                ---------  ---------   --------    --------
-  ticketlock             2075       10.00      216.35       3.49
-  qspinlock              3023       10.00      198.20       4.80
+This patch introduces the new mayhalt flag to indicate if the other
+spinning CPU is close to being halted or not. The current threshold
+for x86 is 2k cpu_relax() calls. If this flag is not set, the other
+spinning CPU will have at least 2k more cpu_relax() calls before
+it can enter the halt state. This should give enough time for the
+setting of the locked flag in struct mcs_spinlock to propagate to
+that CPU without using atomic op.
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- kernel/locking/qspinlock.c |   66 +++++++++++++++++++++++++++++++++----------
- 1 files changed, 50 insertions(+), 16 deletions(-)
+ kernel/locking/qspinlock_paravirt.h |   28 +++++++++++++++++++++++++---
+ 1 files changed, 25 insertions(+), 3 deletions(-)
 
-diff --git a/kernel/locking/qspinlock.c b/kernel/locking/qspinlock.c
-index bcc99e6..99503ef 100644
---- a/kernel/locking/qspinlock.c
-+++ b/kernel/locking/qspinlock.c
-@@ -105,24 +105,37 @@ static inline struct mcs_spinlock *decode_tail(u32 tail)
-  * By using the whole 2nd least significant byte for the pending bit, we
-  * can allow better optimization of the lock acquisition for the pending
-  * bit holder.
-+ *
-+ * This internal structure is also used by the set_locked function which
-+ * is not restricted to _Q_PENDING_BITS == 8.
+diff --git a/kernel/locking/qspinlock_paravirt.h b/kernel/locking/qspinlock_paravirt.h
+index 9b4ac3d..41ee033 100644
+--- a/kernel/locking/qspinlock_paravirt.h
++++ b/kernel/locking/qspinlock_paravirt.h
+@@ -19,7 +19,8 @@
+  * native_queue_spin_unlock().
   */
--#if _Q_PENDING_BITS == 8
--
- struct __qspinlock {
- 	union {
- 		atomic_t val;
--		struct {
- #ifdef __LITTLE_ENDIAN
-+		struct {
-+			u8	locked;
-+			u8	pending;
-+		};
-+		struct {
- 			u16	locked_pending;
- 			u16	tail;
-+		};
- #else
-+		struct {
- 			u16	tail;
- 			u16	locked_pending;
--#endif
- 		};
-+		struct {
-+			u8	reserved[2];
-+			u8	pending;
-+			u8	locked;
-+		};
-+#endif
- 	};
+ 
+-#define _Q_SLOW_VAL	(3U << _Q_LOCKED_OFFSET)
++#define _Q_SLOW_VAL		(3U << _Q_LOCKED_OFFSET)
++#define MAYHALT_THRESHOLD	(SPIN_THRESHOLD >> 4)
+ 
+ /*
+  * The vcpu_hashed is a special state that is set by the new lock holder on
+@@ -39,6 +40,7 @@ struct pv_node {
+ 
+ 	int			cpu;
+ 	u8			state;
++	u8			mayhalt;
  };
  
-+#if _Q_PENDING_BITS == 8
- /**
-  * clear_pending_set_locked - take ownership and clear the pending bit.
-  * @lock: Pointer to queue spinlock structure
-@@ -195,6 +208,19 @@ static __always_inline u32 xchg_tail(struct qspinlock *lock, u32 tail)
- #endif /* _Q_PENDING_BITS == 8 */
+ /*
+@@ -198,6 +200,7 @@ static void pv_init_node(struct mcs_spinlock *node)
  
- /**
-+ * set_locked - Set the lock bit and own the lock
-+ * @lock: Pointer to queue spinlock structure
-+ *
-+ * *,*,0 -> *,0,1
-+ */
-+static __always_inline void set_locked(struct qspinlock *lock)
-+{
-+	struct __qspinlock *l = (void *)lock;
+ 	pn->cpu = smp_processor_id();
+ 	pn->state = vcpu_running;
++	pn->mayhalt = false;
+ }
+ 
+ /*
+@@ -214,23 +217,34 @@ static void pv_wait_node(struct mcs_spinlock *node)
+ 		for (loop = SPIN_THRESHOLD; loop; loop--) {
+ 			if (READ_ONCE(node->locked))
+ 				return;
++			if (loop == MAYHALT_THRESHOLD)
++				xchg(&pn->mayhalt, true);
+ 			cpu_relax();
+ 		}
+ 
+ 		/*
+-		 * Order pn->state vs pn->locked thusly:
++		 * Order pn->state/pn->mayhalt vs pn->locked thusly:
+ 		 *
+-		 * [S] pn->state = vcpu_halted	  [S] next->locked = 1
++		 * [S] pn->mayhalt = 1            [S] next->locked = 1
++		 *     MB, delay                      barrier()
++		 * [S] pn->state = vcpu_halted    [L] pn->mayhalt
+ 		 *     MB			      MB
+ 		 * [L] pn->locked		[RmW] pn->state = vcpu_hashed
+ 		 *
+ 		 * Matches the cmpxchg() from pv_scan_next().
++		 *
++		 * As the new lock holder may quit (when pn->mayhalt is not
++		 * set) without memory barrier, a sufficiently long delay is
++		 * inserted between the setting of pn->mayhalt and pn->state
++		 * to ensure that there is enough time for the new pn->locked
++		 * value to be propagated here to be checked below.
+ 		 */
+ 		(void)xchg(&pn->state, vcpu_halted);
+ 
+ 		if (!READ_ONCE(node->locked))
+ 			pv_wait(&pn->state, vcpu_halted);
+ 
++		pn->mayhalt = false;
+ 		/*
+ 		 * Reset the state except when vcpu_hashed is set.
+ 		 */
+@@ -263,6 +277,14 @@ static void pv_scan_next(struct qspinlock *lock, struct mcs_spinlock *node)
+ 	struct __qspinlock *l = (void *)lock;
+ 
+ 	/*
++	 * If mayhalt is not set, there is enough time for the just set value
++	 * in pn->locked to be propagated to the other CPU before it is time
++	 * to halt.
++	 */
++	if (!READ_ONCE(pn->mayhalt))
++		return;
 +
-+	WRITE_ONCE(l->locked, _Q_LOCKED_VAL);
-+}
-+
-+/**
-  * queue_spin_lock_slowpath - acquire the queue spinlock
-  * @lock: Pointer to queue spinlock structure
-  * @val: Current value of the queue spinlock 32-bit word
-@@ -329,8 +355,14 @@ queue:
- 	 * go away.
- 	 *
- 	 * *,x,y -> *,0,0
-+	 *
-+	 * this wait loop must use a load-acquire such that we match the
-+	 * store-release that clears the locked bit and create lock
-+	 * sequentiality; this is because the set_locked() function below
-+	 * does not imply a full barrier.
-+	 *
++	/*
+ 	 * Transition CPU state: halted => hashed
+ 	 * Quit if the transition failed.
  	 */
--	while ((val = atomic_read(&lock->val)) & _Q_LOCKED_PENDING_MASK)
-+	while ((val = smp_load_acquire(&lock->val.counter)) & _Q_LOCKED_PENDING_MASK)
- 		cpu_relax();
- 
- 	/*
-@@ -338,15 +370,19 @@ queue:
- 	 *
- 	 * n,0,0 -> 0,0,1 : lock, uncontended
- 	 * *,0,0 -> *,0,1 : lock, contended
-+	 *
-+	 * If the queue head is the only one in the queue (lock value == tail),
-+	 * clear the tail code and grab the lock. Otherwise, we only need
-+	 * to grab the lock.
- 	 */
- 	for (;;) {
--		new = _Q_LOCKED_VAL;
--		if (val != tail)
--			new |= val;
--
--		old = atomic_cmpxchg(&lock->val, val, new);
--		if (old == val)
-+		if (val != tail) {
-+			set_locked(lock);
- 			break;
-+		}
-+		old = atomic_cmpxchg(&lock->val, val, _Q_LOCKED_VAL);
-+		if (old == val)
-+			goto release;	/* No contention */
- 
- 		val = old;
- 	}
-@@ -354,12 +390,10 @@ queue:
- 	/*
- 	 * contended path; wait for next, release.
- 	 */
--	if (new != _Q_LOCKED_VAL) {
--		while (!(next = READ_ONCE(node->next)))
--			cpu_relax();
-+	while (!(next = READ_ONCE(node->next)))
-+		cpu_relax();
- 
--		arch_mcs_spin_unlock_contended(&next->locked);
--	}
-+	arch_mcs_spin_unlock_contended(&next->locked);
- 
- release:
- 	/*
 -- 
 1.7.1
