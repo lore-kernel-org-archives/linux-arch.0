@@ -1,23 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:40758 "EHLO
+Received: from mail.linuxfoundation.org ([140.211.169.12]:40952 "EHLO
 	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751928AbbDZNus (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Apr 2015 09:50:48 -0400
+	with ESMTP id S1754110AbbDZODm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Apr 2015 10:03:42 -0400
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 3.10 29/31] vm: make stack guard page errors return VM_FAULT_SIGSEGV rather than SIGBUS
-Date: Sun, 26 Apr 2015 15:49:27 +0200
-Message-ID: <20150426134210.615526786@linuxfoundation.org>
-In-Reply-To: <20150426134209.255099785@linuxfoundation.org>
-References: <20150426134209.255099785@linuxfoundation.org>
+Subject: [PATCH 3.14 36/42] vm: make stack guard page errors return VM_FAULT_SIGSEGV rather than SIGBUS
+Date: Sun, 26 Apr 2015 16:01:55 +0200
+Message-ID: <20150426134249.733487085@linuxfoundation.org>
+In-Reply-To: <20150426134248.160161895@linuxfoundation.org>
+References: <20150426134248.160161895@linuxfoundation.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-15
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Jan Engelhardt <jengelh@inai.de>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20150426134927.poVnvMLMavF4tkyiYy8IeWznNbf09_vJXNjokuwgQJc@z>
+Message-ID: <20150426140155.sQ-YF1eAOaNZgkDXurS1bSS0XKr_K6BFIb0wvMJD5Rc@z>
 
-3.10-stable review patch.  If anyone has any objections, please let me know.
+3.14-stable review patch.  If anyone has any objections, please let me know.
 
 ------------------
 
@@ -50,7 +50,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 --- a/mm/memory.c
 +++ b/mm/memory.c
-@@ -3232,7 +3232,7 @@ static int do_anonymous_page(struct mm_s
+@@ -3236,7 +3236,7 @@ static int do_anonymous_page(struct mm_s
  
  	/* Check if we need to add a guard page to the stack */
  	if (check_stack_guard_page(vma, address) < 0)
