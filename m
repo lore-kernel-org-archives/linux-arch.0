@@ -1,110 +1,57 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v9 11/17] h8300: clock driver
-Date: Mon, 27 Apr 2015 11:04:19 +0200
-Message-ID: <2321574.fdIMjhZdv2@wuerfel>
-References: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp> <1430112924-1134-12-git-send-email-ysato@users.sourceforge.jp>
+Subject: Re: [PATCH v9 01/17] h8300: Assembly headers.
+Date: Mon, 27 Apr 2015 09:48:39 +0200
+Message-ID: <4430626.HbYtNkMCT0@wuerfel>
+References: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp> <1430112924-1134-2-git-send-email-ysato@users.sourceforge.jp> <20150427074241.GA11048@distanz.ch>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:54615 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.24]:49156 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932169AbbD0JEZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2015 05:04:25 -0400
-In-Reply-To: <1430112924-1134-12-git-send-email-ysato@users.sourceforge.jp>
+	with ESMTP id S932507AbbD0JJH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2015 05:09:07 -0400
+In-Reply-To: <20150427074241.GA11048@distanz.ch>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Tobias Klauser <tklauser@distanz.ch>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Monday 27 April 2015 14:35:18 Yoshinori Sato wrote:
-> +static struct platform_driver cpg_driver = {
-> +	.driver = {
-> +		.name = DEVNAME,
-> +	},
-> +	.probe = clk_probe,
-> +};
-> +
-> +early_platform_init(DEVNAME, &cpg_driver);
-> +
-> +static struct platform_device clk_device = {
-> +	.name		= DEVNAME,
-> +	.id		= 0,
-> +};
-> +
-> +static struct platform_device *devices[] __initdata = {
-> +	&clk_device,
-> +};
-> +
-> +int __init h8300_clk_init(int hz)
-> +{
-> +	static int master_hz;
-> +
-> +	master_hz = hz;
-> +	clk_device.dev.platform_data = &master_hz;
-> +	early_platform_add_devices(devices,
-> +				   ARRAY_SIZE(devices));
-> +	early_platform_driver_register_all(DEVNAME);
-> +	early_platform_driver_probe(DEVNAME, 1, 0);
-> +	return 0;
-> +}
+On Monday 27 April 2015 09:42:41 Tobias Klauser wrote:
+> > diff --git a/arch/h8300/include/asm/elf.h b/arch/h8300/include/asm/elf.h
+> > new file mode 100644
+> > index 0000000..09031d0
+> > --- /dev/null
+> > +++ b/arch/h8300/include/asm/elf.h
+> > @@ -0,0 +1,101 @@
+> > +#ifndef __ASM_H8300_ELF_H
+> > +#define __ASM_H8300_ELF_H
+> > +
+> > +/*
+> > + * ELF register definitions..
+> > + */
+> > +
+> > +#include <asm/ptrace.h>
+> > +#include <asm/user.h>
+> > +
+> > +typedef unsigned long elf_greg_t;
+> > +
+> > +#define ELF_NGREG (sizeof(struct user_regs_struct) / sizeof(elf_greg_t))
+> > +typedef elf_greg_t elf_gregset_t[ELF_NGREG];
+> > +typedef unsigned long elf_fpregset_t;
+> > +
+> > +/*
+> > + * This is used to ensure we don't load something for the wrong architecture.
+> > + */
+> > +#define elf_check_arch(x) ((x)->e_machine == EM_H8_300)
+> 
+> EM_H8_300 is still used before it is introduced in patch 15/17, please
+> change the patch order. Otherwise you break bisectability.
 
-Clock drivers are generally not 'platform_drivers'. Please do one of two
-things:
+While that is true in principle, I really wouldn't care about that
+when introducing a new architecture: There is no way to use this
+code unless you introduce all code first.
 
-a) use CLK_OF_DECLARE() to register a probe function, and use a device
-   tree for describing your hardware
-
-b) rename clk_probe() to h8300_clk_init() and just call that function
-   from the architecture code.
-
-
-> +int __init h8300_clk_init(int hz)
-> +{
-> +	static int master_hz;
-> +
-> +	master_hz = hz;
-> +	clk_device.dev.platform_data = &master_hz;
-> +	early_platform_add_devices(devices,
-> +				   ARRAY_SIZE(devices));
-> +	early_platform_driver_register_all(DEVNAME);
-> +	early_platform_driver_probe(DEVNAME, 1, 0);
-> +	return 0;
-> +}
-
-Here you have the same code again, which means the two files are mutually
-exclusive. This is generally not a good idea. Instead, it's better to
-make it possible to build a kernel that supports all the hardware, even
-if in practice you would not want to run that kernel.
-
-If you use CLK_OF_DECLARE(), it becomes trivial to make the two files
-coexist, otherwise use two different function names here and make the
-architecture code decide which one to call.
-
-> diff --git a/include/linux/clk-provider.h b/include/linux/clk-provider.h
-> index df69531..931860b 100644
-> --- a/include/linux/clk-provider.h
-> +++ b/include/linux/clk-provider.h
-> @@ -675,6 +675,18 @@ static inline void clk_writel(u32 val, u32 __iomem *reg)
->  	iowrite32be(val, reg);
->  }
->  
-> +#elif IS_ENABLED(CONFIG_H8300)
-> +
-> +static inline u32 clk_readl(u32 __iomem *reg)
-> +{
-> +	return __raw_readb(reg);
-> +}
-> +
-> +static inline void clk_writel(u32 val, u32 __iomem *reg)
-> +{
-> +	__raw_writeb(val, reg);
-> +}
-> +
->  #else	/* platform dependent I/O accessors */
-
-Why not use the same code as powerpc here? Drivers should normally
-not use __raw_* accessors, and the ioread32be on powerpc should work here
-as well.
+For any later add-ons, bisectability should of course be maintained.
 
 	Arnd
