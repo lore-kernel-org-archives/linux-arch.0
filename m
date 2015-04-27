@@ -1,41 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.asahi-net.or.jp ([202.224.39.198]:42952 "EHLO
-	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752616AbbD0Ffl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2015 01:35:41 -0400
+Received: from mail1.asahi-net.or.jp ([202.224.39.197]:60134 "EHLO
+	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752590AbbD0Ffe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2015 01:35:34 -0400
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v9 14/17] serial: Add H8300.
-Date: Mon, 27 Apr 2015 14:35:21 +0900
-Message-ID: <1430112924-1134-15-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v9 16/17] mksysmap: Add h8300 local symbol pattern
+Date: Mon, 27 Apr 2015 14:35:23 +0900
+Message-ID: <1430112924-1134-17-git-send-email-ysato@users.sourceforge.jp>
 In-Reply-To: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp>
 References: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20150427053521.oYU2iIadYStcTrc9g0kFdQUZFDstnn93qirKShkOTAk@z>
+Message-ID: <20150427053523.UOuRzvM2fa-5f3MUMnXvCmQ3HTUVor39k2M7qjxpiUY@z>
 
-h8300 internal serial controller of same as sh-sci.
-So h8300 use SH_SCI.
+h8300's nm output have a lot of local symbols.
+ex)
+00000000 N .Lframe0
+00000013 N .LLST1
+00000026 N .LLST2
+00000039 N .LLST3
+0000004c N .LLST4
+Added new pattern " .L" to filter rule.
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- drivers/tty/serial/Kconfig | 2 +-
+ scripts/mksysmap | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index f8120c1..130f201 100644
---- a/drivers/tty/serial/Kconfig
-+++ b/drivers/tty/serial/Kconfig
-@@ -728,7 +728,7 @@ config SERIAL_IP22_ZILOG_CONSOLE
+diff --git a/scripts/mksysmap b/scripts/mksysmap
+index 7ada35a..a35acc0 100755
+--- a/scripts/mksysmap
++++ b/scripts/mksysmap
+@@ -41,4 +41,4 @@
+ # so we just ignore them to let readprofile continue to work.
+ # (At least sparc64 has __crc_ in the middle).
  
- config SERIAL_SH_SCI
- 	tristate "SuperH SCI(F) serial port support"
--	depends on SUPERH || ARCH_SHMOBILE || COMPILE_TEST
-+	depends on SUPERH || ARCH_SHMOBILE || H8300 || COMPILE_TEST 
- 	select SERIAL_CORE
- 
- config SERIAL_SH_SCI_NR_UARTS
+-$NM -n $1 | grep -v '\( [aNUw] \)\|\(__crc_\)\|\( \$[adt]\)' > $2
++$NM -n $1 | grep -v '\( [aNUw] \)\|\(__crc_\)\|\( \$[adt]\)\|\( .L\)' > $2
 -- 
 2.1.4
 
