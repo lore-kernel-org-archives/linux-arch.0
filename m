@@ -1,47 +1,98 @@
-From: Richard Weinberger <richard@nod.at>
-Subject: Re: [PATCH v4 00/10] an introduction of Linux library operating system
- (LibOS)
-Date: Mon, 27 Apr 2015 09:39:20 +0200
-Message-ID: <553DE7A8.8060706@nod.at>
-References: <1429450104-47619-1-git-send-email-tazaki@sfc.wide.ad.jp> <1430103618-10832-1-git-send-email-tazaki@sfc.wide.ad.jp> <553DE54D.9030301@nod.at>
+From: Tobias Klauser <tklauser@distanz.ch>
+Subject: Re: [PATCH v9 01/17] h8300: Assembly headers.
+Date: Mon, 27 Apr 2015 09:42:41 +0200
+Message-ID: <20150427074241.GA11048@distanz.ch>
+References: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp>
+ <1430112924-1134-2-git-send-email-ysato@users.sourceforge.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <553DE54D.9030301@nod.at>
-Sender: linux-doc-owner@vger.kernel.org
-To: Hajime Tazaki <tazaki@sfc.wide.ad.jp>, linux-arch@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Christoph Lameter <cl@linux.com>, Jekka Enberg <penberg@kernel.org>, Javid Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Jndrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, Jeff Dike <jdike@addtoit.com>, Rusty Russell <rusty@rustcorp.com.au>, Ryo Nakamura <upa@haeena.net>, Christoph Paasch <christoph.paasch@gmail.com>, Mathieu Lacage <mathieu.lacage@gmail.com>, libos-nuse@googlegroups.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from sym2.noone.org ([178.63.92.236]:35491 "EHLO sym2.noone.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932122AbbD0Hmn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 27 Apr 2015 03:42:43 -0400
+Content-Disposition: inline
+In-Reply-To: <1430112924-1134-2-git-send-email-ysato@users.sourceforge.jp>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Am 27.04.2015 um 09:29 schrieb Richard Weinberger:
-> Hi!
-> 
-> Am 27.04.2015 um 05:00 schrieb Hajime Tazaki:
->> This is the 4th version of Linux LibOS patchset which reflects a
->> couple of comments received from people.
->>
->> changes from v3:
->> - Patch 09/10 ("lib: libos build scripts and documentation")
->> 1) Remove RFC (now it's a proposal)
->> 2) build environment cleanup (commented by Paul Bolle)
->> - Overall
->> 3) change based tree from arnd/asm-generic to torvalds/linux.git
->>    (commented by Richard Weinberger)
->> 4) rebased to Linux 4.1-rc1 (b787f68c36d49bb1d9236f403813641efa74a031)
-> 
-> Hmm, it still does not build. This time I got:
-> 
->   CC      kernel/time/time.o
-> In file included from kernel/time/time.c:44:0:
-> kernel/time/timeconst.h:11:2: error: #error "kernel/timeconst.h has the wrong HZ value!"
->  #error "kernel/timeconst.h has the wrong HZ value!"
->   ^
-> arch/lib/Makefile:187: recipe for target 'kernel/time/time.o' failed
-> make: *** [kernel/time/time.o] Error 1
+On 2015-04-27 at 07:35:08 +0200, Yoshinori Sato <ysato@users.sourceforge.jp> wrote:
+[...]
+> diff --git a/arch/h8300/include/asm/elf.h b/arch/h8300/include/asm/elf.h
+> new file mode 100644
+> index 0000000..09031d0
+> --- /dev/null
+> +++ b/arch/h8300/include/asm/elf.h
+> @@ -0,0 +1,101 @@
+> +#ifndef __ASM_H8300_ELF_H
+> +#define __ASM_H8300_ELF_H
+> +
+> +/*
+> + * ELF register definitions..
+> + */
+> +
+> +#include <asm/ptrace.h>
+> +#include <asm/user.h>
+> +
+> +typedef unsigned long elf_greg_t;
+> +
+> +#define ELF_NGREG (sizeof(struct user_regs_struct) / sizeof(elf_greg_t))
+> +typedef elf_greg_t elf_gregset_t[ELF_NGREG];
+> +typedef unsigned long elf_fpregset_t;
+> +
+> +/*
+> + * This is used to ensure we don't load something for the wrong architecture.
+> + */
+> +#define elf_check_arch(x) ((x)->e_machine == EM_H8_300)
 
-A make mrproper made the issue go away.
-Please use kbuild. :)
+EM_H8_300 is still used before it is introduced in patch 15/17, please
+change the patch order. Otherwise you break bisectability.
 
-Thanks,
-//richard
+[...]
+> diff --git a/arch/h8300/include/asm/pgtable.h b/arch/h8300/include/asm/pgtable.h
+> new file mode 100644
+> index 0000000..8341db6
+> --- /dev/null
+> +++ b/arch/h8300/include/asm/pgtable.h
+> @@ -0,0 +1,49 @@
+> +#ifndef _H8300_PGTABLE_H
+> +#define _H8300_PGTABLE_H
+> +#include <asm-generic/pgtable-nopud.h>
+> +#include <asm-generic/pgtable.h>
+> +#define pgtable_cache_init()   do { } while (0)
+> +extern void paging_init(void);
+> +#define PAGE_NONE		__pgprot(0)    /* these mean nothing to NO_MM */
+> +#define PAGE_SHARED		__pgprot(0)    /* these mean nothing to NO_MM */
+> +#define PAGE_COPY		__pgprot(0)    /* these mean nothing to NO_MM */
+> +#define PAGE_READONLY	__pgprot(0)    /* these mean nothing to NO_MM */
+> +#define PAGE_KERNEL		__pgprot(0)    /* these mean nothing to NO_MM */
+> +#define __swp_type(x)		(0)
+> +#define __swp_offset(x)		(0)
+> +#define __swp_entry(typ, off)	((swp_entry_t) { ((typ) | ((off) << 7)) })
+> +#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
+> +#define __swp_entry_to_pte(x)	((pte_t) { (x).val })
+> +#define kern_addr_valid(addr)	(1)
+> +#define pgprot_writecombine(prot)  (prot)
+> +#define pgprot_noncached pgprot_writecombine
+> +
+> +static inline int pte_file(pte_t pte) { return 0; }
+
+No need to define pte_file() anymore. Please see my review comments for
+v8.
+
+> +#define swapper_pg_dir ((pgd_t *) 0)
+> +/*
+> + * ZERO_PAGE is a global shared page that is always zero: used
+> + * for zero-mapped memory areas etc..
+> + */
+> +#define ZERO_PAGE(vaddr)	(virt_to_page(0))
+> +
+> +/*
+> + * These would be in other places but having them here reduces the diffs.
+> + */
+> +extern unsigned int kobjsize(const void *objp);
+> +extern int is_in_rom(unsigned long);
+
+These aren't needed as well, as mentioned in my earlier review comments.
