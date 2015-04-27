@@ -1,98 +1,75 @@
-From: Tobias Klauser <tklauser@distanz.ch>
-Subject: Re: [PATCH v9 01/17] h8300: Assembly headers.
-Date: Mon, 27 Apr 2015 09:42:41 +0200
-Message-ID: <20150427074241.GA11048@distanz.ch>
-References: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp>
- <1430112924-1134-2-git-send-email-ysato@users.sourceforge.jp>
+From: Johan Hovold <johan@kernel.org>
+Subject: Re: [PATCH 08/23] gpio: remove gpiod_sysfs_set_active_low
+Date: Mon, 27 Apr 2015 10:16:29 +0200
+Message-ID: <20150427081629.GA27877@localhost>
+References: <1429630951-27082-1-git-send-email-johan@kernel.org>
+ <1429630951-27082-9-git-send-email-johan@kernel.org>
+ <CAAVeFuLc8U_fhmb=oyr+hTsH8XgkQU0Z-oSS4K3CRObqv_P_AQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sym2.noone.org ([178.63.92.236]:35491 "EHLO sym2.noone.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932122AbbD0Hmn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Apr 2015 03:42:43 -0400
+Received: from mail-lb0-f172.google.com ([209.85.217.172]:36713 "EHLO
+	mail-lb0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752085AbbD0IQa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2015 04:16:30 -0400
 Content-Disposition: inline
-In-Reply-To: <1430112924-1134-2-git-send-email-ysato@users.sourceforge.jp>
+In-Reply-To: <CAAVeFuLc8U_fhmb=oyr+hTsH8XgkQU0Z-oSS4K3CRObqv_P_AQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Alexandre Courbot <gnurou@gmail.com>
+Cc: Johan Hovold <johan@kernel.org>, Linus Walleij <linus.walleij@linaro.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, Harry Wei <harryxiyou@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, linux-kernel@zh-kernel.org, linux-arch <linux-arch@vger.kernel.org>
 
-On 2015-04-27 at 07:35:08 +0200, Yoshinori Sato <ysato@users.sourceforge.jp> wrote:
-[...]
-> diff --git a/arch/h8300/include/asm/elf.h b/arch/h8300/include/asm/elf.h
-> new file mode 100644
-> index 0000000..09031d0
-> --- /dev/null
-> +++ b/arch/h8300/include/asm/elf.h
-> @@ -0,0 +1,101 @@
-> +#ifndef __ASM_H8300_ELF_H
-> +#define __ASM_H8300_ELF_H
-> +
-> +/*
-> + * ELF register definitions..
-> + */
-> +
-> +#include <asm/ptrace.h>
-> +#include <asm/user.h>
-> +
-> +typedef unsigned long elf_greg_t;
-> +
-> +#define ELF_NGREG (sizeof(struct user_regs_struct) / sizeof(elf_greg_t))
-> +typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-> +typedef unsigned long elf_fpregset_t;
-> +
-> +/*
-> + * This is used to ensure we don't load something for the wrong architecture.
-> + */
-> +#define elf_check_arch(x) ((x)->e_machine == EM_H8_300)
+On Mon, Apr 27, 2015 at 12:54:15PM +0900, Alexandre Courbot wrote:
+> On Wed, Apr 22, 2015 at 12:42 AM, Johan Hovold <johan@kernel.org> wrote:
+> > Remove gpiod_sysfs_set_active_low (and gpio_sysfs_set_active_low) which
+> > allowed code to change the polarity of a gpio line even after it had
+> > been exported through sysfs.
+> >
+> > Drivers should not care, and generally does not know, about gpio-line
+> > polarity which is a hardware feature that needs to be described by
+> > firmware.
+> >
+> > It is currently possible to define gpio-line polarity in device-tree and
+> > acpi firmware or using platform data. Userspace can also change the
+> > polarity through sysfs.
+> >
+> > Note that drivers using the legacy gpio interface could still use
+> > GPIOF_ACTIVE_LOW to change the polarity before exporting the gpio.
+> >
+> > There are no in-kernel users of this interface.
+> >
+> > Cc: Jonathan Corbet <corbet@lwn.net>
+> > Cc: Harry Wei <harryxiyou@gmail.com>
+> > Cc: Arnd Bergmann <arnd@arndb.de>
+> > Cc: linux-doc@vger.kernel.org
+> > Cc: linux-kernel@zh-kernel.org
+> > Cc: linux-arch@vger.kernel.org
+> > Signed-off-by: Johan Hovold <johan@kernel.org>
+> > ---
 
-EM_H8_300 is still used before it is introduced in patch 15/17, please
-change the patch order. Otherwise you break bisectability.
+> > diff --git a/drivers/gpio/gpiolib-sysfs.c b/drivers/gpio/gpiolib-sysfs.c
+> > index 31434c5a90ef..8a95a954f514 100644
+> > --- a/drivers/gpio/gpiolib-sysfs.c
+> > +++ b/drivers/gpio/gpiolib-sysfs.c
+> > @@ -293,8 +293,8 @@ static int sysfs_set_active_low(struct gpio_desc *desc, struct device *dev,
+> >                 clear_bit(FLAG_ACTIVE_LOW, &desc->flags);
+> >
+> >         /* reconfigure poll(2) support if enabled on one edge only */
+> > -       if (dev != NULL && (!!test_bit(FLAG_TRIG_RISE, &desc->flags) ^
+> > -                               !!test_bit(FLAG_TRIG_FALL, &desc->flags))) {
+> > +       if (!!test_bit(FLAG_TRIG_RISE, &desc->flags) ^
+> > +                               !!test_bit(FLAG_TRIG_FALL, &desc->flags)) {
+> 
+> This change seems to be unrelated to this patch...
 
-[...]
-> diff --git a/arch/h8300/include/asm/pgtable.h b/arch/h8300/include/asm/pgtable.h
-> new file mode 100644
-> index 0000000..8341db6
-> --- /dev/null
-> +++ b/arch/h8300/include/asm/pgtable.h
-> @@ -0,0 +1,49 @@
-> +#ifndef _H8300_PGTABLE_H
-> +#define _H8300_PGTABLE_H
-> +#include <asm-generic/pgtable-nopud.h>
-> +#include <asm-generic/pgtable.h>
-> +#define pgtable_cache_init()   do { } while (0)
-> +extern void paging_init(void);
-> +#define PAGE_NONE		__pgprot(0)    /* these mean nothing to NO_MM */
-> +#define PAGE_SHARED		__pgprot(0)    /* these mean nothing to NO_MM */
-> +#define PAGE_COPY		__pgprot(0)    /* these mean nothing to NO_MM */
-> +#define PAGE_READONLY	__pgprot(0)    /* these mean nothing to NO_MM */
-> +#define PAGE_KERNEL		__pgprot(0)    /* these mean nothing to NO_MM */
-> +#define __swp_type(x)		(0)
-> +#define __swp_offset(x)		(0)
-> +#define __swp_entry(typ, off)	((swp_entry_t) { ((typ) | ((off) << 7)) })
-> +#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
-> +#define __swp_entry_to_pte(x)	((pte_t) { (x).val })
-> +#define kern_addr_valid(addr)	(1)
-> +#define pgprot_writecombine(prot)  (prot)
-> +#define pgprot_noncached pgprot_writecombine
-> +
-> +static inline int pte_file(pte_t pte) { return 0; }
+This helper is now only called from the attribute operation and dev
+will never be NULL.
 
-No need to define pte_file() anymore. Please see my review comments for
-v8.
+On the other hand, it was never called with a NULL argument before this
+patch either (the test has always been bogus). Let me know if you prefer
+this bit to be a separate patch.
 
-> +#define swapper_pg_dir ((pgd_t *) 0)
-> +/*
-> + * ZERO_PAGE is a global shared page that is always zero: used
-> + * for zero-mapped memory areas etc..
-> + */
-> +#define ZERO_PAGE(vaddr)	(virt_to_page(0))
-> +
-> +/*
-> + * These would be in other places but having them here reduces the diffs.
-> + */
-> +extern unsigned int kobjsize(const void *objp);
-> +extern int is_in_rom(unsigned long);
+> Otherwise, I agree and good riddance!
 
-These aren't needed as well, as mentioned in my earlier review comments.
+Thanks,
+Johan
