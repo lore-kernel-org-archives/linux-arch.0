@@ -1,43 +1,371 @@
-From: Alexandre Courbot <gnurou@gmail.com>
-Subject: Re: [PATCH 00/23] gpio: sysfs: fixes and clean ups
-Date: Mon, 27 Apr 2015 12:58:17 +0900
-Message-ID: <CAAVeFu+fJk9TCXapNF=Vmwzh7oAHz+Lz6h+mJe75pws+-T6k8g@mail.gmail.com>
-References: <1429630951-27082-1-git-send-email-johan@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-gpio-owner@vger.kernel.org>
-In-Reply-To: <1429630951-27082-1-git-send-email-johan@kernel.org>
-Sender: linux-gpio-owner@vger.kernel.org
-To: Johan Hovold <johan@kernel.org>
-Cc: Linus Walleij <linus.walleij@linaro.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, Harry Wei <harryxiyou@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, linux-kernel@zh-kernel.org, linux-arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+From: Yoshinori Sato <ysato@users.sourceforge.jp>
+Subject: [PATCH v9 08/17] h8300: Memory management
+Date: Mon, 27 Apr 2015 14:35:15 +0900
+Message-ID: <1430112924-1134-9-git-send-email-ysato@users.sourceforge.jp>
+References: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail1.asahi-net.or.jp ([202.224.39.197]:60052 "EHLO
+	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751478AbbD0Ff3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2015 01:35:29 -0400
+In-Reply-To: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 
-On Wed, Apr 22, 2015 at 12:42 AM, Johan Hovold <johan@kernel.org> wrote:
-> These patches fix a number of issues with the gpio sysfs interface,
-> including
->
->  - fix memory leaks and crashes on device hotplug
->  - straighten out the convoluted locking
->  - reduce sysfs-interface latencies through more fine-grained locking
->  - more clearly separate the sysfs-interface implementation from gpiolib
->    core
->
-> The first patch is marked for stable and could go into 4.1.
->
-> Unfortunately we can't just kill the gpio sysfs interface, but these
-> patches will make it more manageable and should allow us to implement a
-> new user-space interface while maintaining the old one (for a while at
-> least) without losing our sanity.
->
-> Note that there is still a race between chip remove and gpiod_request (and
-> therefore sysfs export), which needs to be fixed separately (for instance as
-> part of a generic solution to chip hotplugging).
+Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
+---
+ arch/h8300/mm/Makefile |   5 ++
+ arch/h8300/mm/fault.c  |  57 +++++++++++++++++++++
+ arch/h8300/mm/init.c   | 133 +++++++++++++++++++++++++++++++++++++++++++++++++
+ arch/h8300/mm/kmap.c   |  61 +++++++++++++++++++++++
+ arch/h8300/mm/memory.c |  53 ++++++++++++++++++++
+ 5 files changed, 309 insertions(+)
+ create mode 100644 arch/h8300/mm/Makefile
+ create mode 100644 arch/h8300/mm/fault.c
+ create mode 100644 arch/h8300/mm/init.c
+ create mode 100644 arch/h8300/mm/kmap.c
+ create mode 100644 arch/h8300/mm/memory.c
 
-Thanks a lot for this great series. To my embarrassment I could not
-find anything big to say about it. It simply fixes some of the biggest
-issues with the sysfs interface and makes things much more
-maintainable.
-
-I made a few minor comments, but globally I like this very much.
-
-Reviewed-by: Alexandre Courbot <acourbot@nvidia.com>
+diff --git a/arch/h8300/mm/Makefile b/arch/h8300/mm/Makefile
+new file mode 100644
+index 0000000..117d71f
+--- /dev/null
++++ b/arch/h8300/mm/Makefile
+@@ -0,0 +1,5 @@
++#
++# Makefile for the linux h8300-specific parts of the memory manager.
++#
++
++obj-y	 := init.o fault.o memory.o kmap.o
+diff --git a/arch/h8300/mm/fault.c b/arch/h8300/mm/fault.c
+new file mode 100644
+index 0000000..5924ff5
+--- /dev/null
++++ b/arch/h8300/mm/fault.c
+@@ -0,0 +1,57 @@
++/*
++ *  linux/arch/h8300/mm/fault.c
++ *
++ *  Copyright (C) 1998  D. Jeff Dionne <jeff@lineo.ca>,
++ *  Copyright (C) 2000  Lineo, Inc.  (www.lineo.com)
++ *
++ *  Based on:
++ *
++ *  linux/arch/m68knommu/mm/fault.c
++ *  linux/arch/m68k/mm/fault.c
++ *
++ *  Copyright (C) 1995  Hamish Macdonald
++ */
++
++#include <linux/mman.h>
++#include <linux/mm.h>
++#include <linux/kernel.h>
++#include <linux/ptrace.h>
++
++#include <asm/pgtable.h>
++
++void die(const char *str, struct pt_regs *fp, unsigned long err);
++
++/*
++ * This routine handles page faults.  It determines the problem, and
++ * then passes it off to one of the appropriate routines.
++ *
++ * error_code:
++ *	bit 0 == 0 means no page found, 1 means protection fault
++ *	bit 1 == 0 means read, 1 means write
++ *
++ * If this routine detects a bad access, it returns 1, otherwise it
++ * returns 0.
++ */
++asmlinkage int do_page_fault(struct pt_regs *regs, unsigned long address,
++			      unsigned long error_code)
++{
++#ifdef DEBUG
++	pr_debug("regs->sr=%#x, regs->pc=%#lx, address=%#lx, %ld\n",
++		 regs->sr, regs->pc, address, error_code);
++#endif
++
++/*
++ * Oops. The kernel tried to access some bad page. We'll have to
++ * terminate things with extreme prejudice.
++ */
++	if ((unsigned long) address < PAGE_SIZE)
++		pr_alert("Unable to handle kernel NULL pointer dereference");
++	else
++		pr_alert("Unable to handle kernel access");
++	printk(" at virtual address %08lx\n", address);
++	if (!user_mode(regs))
++		die("Oops", regs, error_code);
++	do_exit(SIGKILL);
++
++	return 1;
++}
+diff --git a/arch/h8300/mm/init.c b/arch/h8300/mm/init.c
+new file mode 100644
+index 0000000..98028b1
+--- /dev/null
++++ b/arch/h8300/mm/init.c
+@@ -0,0 +1,133 @@
++/*
++ *  linux/arch/h8300/mm/init.c
++ *
++ *  Copyright (C) 1998  D. Jeff Dionne <jeff@lineo.ca>,
++ *                      Kenneth Albanowski <kjahds@kjahds.com>,
++ *  Copyright (C) 2000  Lineo, Inc.  (www.lineo.com)
++ *
++ *  Based on:
++ *
++ *  linux/arch/m68knommu/mm/init.c
++ *  linux/arch/m68k/mm/init.c
++ *
++ *  Copyright (C) 1995  Hamish Macdonald
++ *
++ *  JAN/1999 -- hacked to support ColdFire (gerg@snapgear.com)
++ *  DEC/2000 -- linux 2.4 support <davidm@snapgear.com>
++ */
++
++#include <linux/signal.h>
++#include <linux/sched.h>
++#include <linux/kernel.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++#include <linux/types.h>
++#include <linux/ptrace.h>
++#include <linux/mman.h>
++#include <linux/mm.h>
++#include <linux/swap.h>
++#include <linux/init.h>
++#include <linux/highmem.h>
++#include <linux/pagemap.h>
++#include <linux/bootmem.h>
++#include <linux/gfp.h>
++
++#include <asm/setup.h>
++#include <asm/segment.h>
++#include <asm/page.h>
++#include <asm/pgtable.h>
++#include <asm/sections.h>
++
++/*
++ * BAD_PAGE is the page that is used for page faults when linux
++ * is out-of-memory. Older versions of linux just did a
++ * do_exit(), but using this instead means there is less risk
++ * for a process dying in kernel mode, possibly leaving a inode
++ * unused etc..
++ *
++ * BAD_PAGETABLE is the accompanying page-table: it is initialized
++ * to point to BAD_PAGE entries.
++ *
++ * ZERO_PAGE is a special page that is used for zero-initialized
++ * data and COW.
++ */
++static unsigned long empty_bad_page_table;
++static unsigned long empty_bad_page;
++unsigned long empty_zero_page;
++
++/*
++ * paging_init() continues the virtual memory environment setup which
++ * was begun by the code in arch/head.S.
++ * The parameters are pointers to where to stick the starting and ending
++ * addresses of available kernel virtual memory.
++ */
++void __init paging_init(void)
++{
++	/*
++	 * Make sure start_mem is page aligned,  otherwise bootmem and
++	 * page_alloc get different views og the world.
++	 */
++	unsigned long start_mem = PAGE_ALIGN(memory_start);
++	unsigned long end_mem   = memory_end & PAGE_MASK;
++
++	pr_debug("start_mem is %#lx\nvirtual_end is %#lx\n",
++		 start_mem, end_mem);
++
++	/*
++	 * Initialize the bad page table and bad page to point
++	 * to a couple of allocated pages.
++	 */
++	empty_bad_page_table = (unsigned long)alloc_bootmem_pages(PAGE_SIZE);
++	empty_bad_page = (unsigned long)alloc_bootmem_pages(PAGE_SIZE);
++	empty_zero_page = (unsigned long)alloc_bootmem_pages(PAGE_SIZE);
++	memset((void *)empty_zero_page, 0, PAGE_SIZE);
++
++	/*
++	 * Set up SFC/DFC registers (user data space).
++	 */
++	set_fs(USER_DS);
++
++	pr_debug("before free_area_init\n");
++
++	pr_debug("free_area_init -> start_mem is %#lx\nvirtual_end is %#lx\n",
++		 start_mem, end_mem);
++
++	{
++		unsigned long zones_size[MAX_NR_ZONES] = {0, };
++
++		zones_size[ZONE_NORMAL] = (end_mem - PAGE_OFFSET) >> PAGE_SHIFT;
++		free_area_init(zones_size);
++	}
++}
++
++void __init mem_init(void)
++{
++	unsigned long codesize = _etext - _stext;
++
++	pr_devel("Mem_init: start=%lx, end=%lx\n", memory_start, memory_end);
++
++	high_memory = (void *) (memory_end & PAGE_MASK);
++	max_mapnr = MAP_NR(high_memory);
++
++	/* this will put all low memory onto the freelists */
++	free_all_bootmem();
++
++	mem_init_print_info(NULL);
++	if (rom_length > 0 && rom_length > codesize)
++		pr_info("Memory available: %luK/%luK ROM\n",
++			(rom_length - codesize) >> 10, rom_length >> 10);
++}
++
++
++#ifdef CONFIG_BLK_DEV_INITRD
++void free_initrd_mem(unsigned long start, unsigned long end)
++{
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
++}
++#endif
++
++void
++free_initmem(void)
++{
++	free_initmem_default(-1);
++}
+diff --git a/arch/h8300/mm/kmap.c b/arch/h8300/mm/kmap.c
+new file mode 100644
+index 0000000..4315aa3
+--- /dev/null
++++ b/arch/h8300/mm/kmap.c
+@@ -0,0 +1,61 @@
++/*
++ *  linux/arch/h8300/mm/kmap.c
++ *
++ *  Based on
++ *  linux/arch/m68knommu/mm/kmap.c
++ *
++ *  Copyright (C) 2000 Lineo, <davidm@snapgear.com>
++ *  Copyright (C) 2000-2002 David McCullough <davidm@snapgear.com>
++ */
++
++#include <linux/mm.h>
++#include <linux/kernel.h>
++#include <linux/string.h>
++#include <linux/types.h>
++#include <linux/vmalloc.h>
++#include <linux/module.h>
++
++#include <asm/setup.h>
++#include <asm/segment.h>
++#include <asm/page.h>
++#include <asm/pgalloc.h>
++#include <asm/io.h>
++
++#undef DEBUG
++
++#define VIRT_OFFSET (0x01000000)
++
++/*
++ * Map some physical address range into the kernel address space.
++ */
++void *__ioremap(unsigned long physaddr, unsigned long size, int cacheflag)
++{
++	return (void *)(physaddr + VIRT_OFFSET);
++}
++EXPORT_SYMBOL(__ioremap);
++
++/*
++ * Unmap a ioremap()ed region again.
++ */
++void iounmap(void *addr)
++{
++}
++EXPORT_SYMBOL(iounmap);
++
++/*
++ * __iounmap unmaps nearly everything, so be careful
++ * it doesn't free currently pointer/page tables anymore but it
++ * wans't used anyway and might be added later.
++ */
++void __iounmap(void *addr, unsigned long size)
++{
++}
++
++/*
++ * Set new cache mode for some kernel address space.
++ * The caller must push data for that range itself, if such data may already
++ * be in the cache.
++ */
++void kernel_set_cachemode(void *addr, unsigned long size, int cmode)
++{
++}
+diff --git a/arch/h8300/mm/memory.c b/arch/h8300/mm/memory.c
+new file mode 100644
+index 0000000..4974aa4
+--- /dev/null
++++ b/arch/h8300/mm/memory.c
+@@ -0,0 +1,53 @@
++/*
++ *  linux/arch/h8300/mm/memory.c
++ *
++ *  Copyright (C) 2002  Yoshinori Sato <ysato@users.sourceforge.jp>,
++ *
++ *  Based on:
++ *
++ *  linux/arch/m68knommu/mm/memory.c
++ *
++ *  Copyright (C) 1998  Kenneth Albanowski <kjahds@kjahds.com>,
++ *  Copyright (C) 1999-2002, Greg Ungerer (gerg@snapgear.com)
++ *
++ *  Based on:
++ *
++ *  linux/arch/m68k/mm/memory.c
++ *
++ *  Copyright (C) 1995  Hamish Macdonald
++ */
++
++#include <linux/mm.h>
++#include <linux/kernel.h>
++#include <linux/string.h>
++#include <linux/types.h>
++
++#include <asm/setup.h>
++#include <asm/segment.h>
++#include <asm/page.h>
++#include <asm/pgtable.h>
++#include <asm/traps.h>
++#include <asm/io.h>
++
++void cache_clear(unsigned long paddr, int len)
++{
++}
++
++
++void cache_push(unsigned long paddr, int len)
++{
++}
++
++void cache_push_v(unsigned long vaddr, int len)
++{
++}
++
++/*
++ * Map some physical address range into the kernel address space.
++ */
++
++unsigned long kernel_map(unsigned long paddr, unsigned long size,
++			 int nocacheflag, unsigned long *memavailp)
++{
++	return paddr;
++}
+-- 
+2.1.4
