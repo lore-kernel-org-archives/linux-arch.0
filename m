@@ -1,304 +1,719 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v9 02/17] h8300: UAPI headers
-Date: Mon, 27 Apr 2015 14:35:09 +0900
-Message-ID: <1430112924-1134-3-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v9 03/17] h8300: Exception and Interrupt handling
+Date: Mon, 27 Apr 2015 14:35:10 +0900
+Message-ID: <1430112924-1134-4-git-send-email-ysato@users.sourceforge.jp>
 References: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.asahi-net.or.jp ([202.224.39.198]:42739 "EHLO
-	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751919AbbD0Ffa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2015 01:35:30 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+List-Id: linux-arch.vger.kernel.org
+
+h8300 exception entry and exception / interrupt handling
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- arch/h8300/include/uapi/asm/Kbuild       |  29 ++++++++
- arch/h8300/include/uapi/asm/auxvec.h     |   4 ++
- arch/h8300/include/uapi/asm/byteorder.h  |   6 ++
- arch/h8300/include/uapi/asm/ptrace.h     |  42 +++++++++++
- arch/h8300/include/uapi/asm/sigcontext.h |  18 +++++
- arch/h8300/include/uapi/asm/signal.h     | 115 +++++++++++++++++++++++++++++++
- arch/h8300/include/uapi/asm/swab.h       |   1 +
- arch/h8300/include/uapi/asm/unistd.h     |   3 +
- 8 files changed, 218 insertions(+)
- create mode 100644 arch/h8300/include/uapi/asm/Kbuild
- create mode 100644 arch/h8300/include/uapi/asm/auxvec.h
- create mode 100644 arch/h8300/include/uapi/asm/byteorder.h
- create mode 100644 arch/h8300/include/uapi/asm/ptrace.h
- create mode 100644 arch/h8300/include/uapi/asm/sigcontext.h
- create mode 100644 arch/h8300/include/uapi/asm/signal.h
- create mode 100644 arch/h8300/include/uapi/asm/swab.h
- create mode 100644 arch/h8300/include/uapi/asm/unistd.h
+ arch/h8300/kernel/entry.S | 414 ++++++++++++++++++++++++++++++++++++++++++++++
+ arch/h8300/kernel/irq.c   | 100 +++++++++++
+ arch/h8300/kernel/traps.c | 161 ++++++++++++++++++
+ 3 files changed, 675 insertions(+)
+ create mode 100644 arch/h8300/kernel/entry.S
+ create mode 100644 arch/h8300/kernel/irq.c
+ create mode 100644 arch/h8300/kernel/traps.c
 
-diff --git a/arch/h8300/include/uapi/asm/Kbuild b/arch/h8300/include/uapi/asm/Kbuild
+diff --git a/arch/h8300/kernel/entry.S b/arch/h8300/kernel/entry.S
 new file mode 100644
-index 0000000..077e720
+index 0000000..797dfa8
 --- /dev/null
-+++ b/arch/h8300/include/uapi/asm/Kbuild
-@@ -0,0 +1,29 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
++++ b/arch/h8300/kernel/entry.S
+@@ -0,0 +1,414 @@
++/*
++ *
++ *  linux/arch/h8300/kernel/entry.S
++ *
++ *  Yoshinori Sato <ysato@users.sourceforge.jp>
++ *  David McCullough <davidm@snapgear.com>
++ *
++ */
 +
-+header-y += auxvec.h
-+header-y += bitsperlong.h
-+header-y += errno.h
-+header-y += fcntl.h
-+header-y += ioctl.h
-+header-y += ioctls.h
-+header-y += ipcbuf.h
-+header-y += kvm_para.h
-+header-y += mman.h
-+header-y += msgbuf.h
-+header-y += param.h
-+header-y += poll.h
-+header-y += posix_types.h
-+header-y += resource.h
-+header-y += sembuf.h
-+header-y += setup.h
-+header-y += shmbuf.h
-+header-y += siginfo.h
-+header-y += socket.h
-+header-y += sockios.h
-+header-y += stat.h
-+header-y += statfs.h
-+header-y += termbits.h
-+header-y += termios.h
-+header-y += types.h
-+header-y += unistd.h
-diff --git a/arch/h8300/include/uapi/asm/auxvec.h b/arch/h8300/include/uapi/asm/auxvec.h
-new file mode 100644
-index 0000000..1d36fe38
---- /dev/null
-+++ b/arch/h8300/include/uapi/asm/auxvec.h
-@@ -0,0 +1,4 @@
-+#ifndef __ASMH8300_AUXVEC_H
-+#define __ASMH8300_AUXVEC_H
++/*
++ *  entry.S
++ *  include exception/interrupt gateway
++ *          system call entry
++ */
 +
++#include <linux/sys.h>
++#include <asm/unistd.h>
++#include <asm/setup.h>
++#include <asm/segment.h>
++#include <asm/linkage.h>
++#include <asm/asm-offsets.h>
++#include <asm/thread_info.h>
++#include <asm/errno.h>
++
++#if defined(CONFIG_CPU_H8300H)
++#define USERRET 8
++INTERRUPTS = 64
++	.h8300h
++	.macro	SHLL2 reg
++	shll.l	\reg
++	shll.l	\reg
++	.endm
++	.macro	SHLR2 reg
++	shlr.l	\reg
++	shlr.l	\reg
++	.endm
++	.macro	SAVEREGS
++	mov.l	er0,@-sp
++	mov.l	er1,@-sp
++	mov.l	er2,@-sp
++	mov.l	er3,@-sp
++	.endm
++	.macro	RESTOREREGS
++	mov.l	@sp+,er3
++	mov.l	@sp+,er2
++	.endm
++	.macro	SAVEEXR
++	.endm
++	.macro	RESTOREEXR
++	.endm
 +#endif
-diff --git a/arch/h8300/include/uapi/asm/byteorder.h b/arch/h8300/include/uapi/asm/byteorder.h
-new file mode 100644
-index 0000000..13539da
---- /dev/null
-+++ b/arch/h8300/include/uapi/asm/byteorder.h
-@@ -0,0 +1,6 @@
-+#ifndef _H8300_BYTEORDER_H
-+#define _H8300_BYTEORDER_H
-+
-+#include <linux/byteorder/big_endian.h>
-+
-+#endif /* _H8300_BYTEORDER_H */
-diff --git a/arch/h8300/include/uapi/asm/ptrace.h b/arch/h8300/include/uapi/asm/ptrace.h
-new file mode 100644
-index 0000000..e132670d
---- /dev/null
-+++ b/arch/h8300/include/uapi/asm/ptrace.h
-@@ -0,0 +1,42 @@
-+#ifndef _UAPI_H8300_PTRACE_H
-+#define _UAPI_H8300_PTRACE_H
-+
-+#ifndef __ASSEMBLY__
-+
-+#define PT_ER1	   0
-+#define PT_ER2	   1
-+#define PT_ER3	   2
-+#define PT_ER4	   3
-+#define PT_ER5	   4
-+#define PT_ER6	   5
-+#define PT_ER0	   6
-+#define PT_USP	   7
-+#define PT_ORIG_ER0	   8
-+#define PT_CCR	   9
-+#define PT_PC	   10
-+#define PT_EXR     11
-+
-+/* this struct defines the way the registers are stored on the
-+   stack during a system call. */
-+
-+struct pt_regs {
-+	long     retpc;
-+	long     er4;
-+	long     er5;
-+	long     er6;
-+	long     er3;
-+	long     er2;
-+	long     er1;
-+	long     orig_er0;
-+	long	 sp;
-+	unsigned short	 ccr;
-+	long     er0;
-+	long     vector;
-+#if defined(__H8300S__)
-+	unsigned short	 exr;
++#if defined(CONFIG_CPU_H8S)
++#define USERRET 10
++#define USEREXR 8
++INTERRUPTS = 128
++	.h8300s
++	.macro	SHLL2 reg
++	shll.l	#2,\reg
++	.endm
++	.macro	SHLR2 reg
++	shlr.l	#2,\reg
++	.endm
++	.macro	SAVEREGS
++	stm.l	er0-er3,@-sp
++	.endm
++	.macro	RESTOREREGS
++	ldm.l	@sp+,er2-er3
++	.endm
++	.macro	SAVEEXR
++	mov.w	@(USEREXR:16,er0),r1
++	mov.w	r1,@(LEXR-LER3:16,sp)		/* copy EXR */
++	.endm
++	.macro	RESTOREEXR
++	mov.w	@(LEXR-LER1:16,sp),r1		/* restore EXR */
++	mov.b	r1l,r1h
++	mov.w	r1,@(USEREXR:16,er0)
++	.endm
 +#endif
-+	unsigned long  pc;
-+} __attribute__((aligned(2), packed));
 +
-+#endif /* __ASSEMBLY__ */
-+#endif /* _UAPI_H8300_PTRACE_H */
-diff --git a/arch/h8300/include/uapi/asm/sigcontext.h b/arch/h8300/include/uapi/asm/sigcontext.h
++
++/* CPU context save/restore macros. */
++
++	.macro	SAVE_ALL
++	mov.l	er0,@-sp
++	stc	ccr,r0l				/* check kernel mode */
++	btst	#4,r0l
++	bne	5f
++
++	/* user mode */
++	mov.l	sp,@_sw_usp
++	mov.l	@sp,er0				/* restore saved er0 */
++	orc	#0x10,ccr			/* switch kernel stack */
++	mov.l	@_sw_ksp,sp
++	sub.l	#(LRET-LORIG),sp		/* allocate LORIG - LRET */
++	SAVEREGS
++	mov.l   @_sw_usp,er0
++	mov.l   @(USERRET:16,er0),er1           /* copy the RET addr */
++	mov.l   er1,@(LRET-LER3:16,sp)
++	SAVEEXR
++
++	mov.l	@(LORIG-LER3:16,sp),er0
++	mov.l	er0,@(LER0-LER3:16,sp)		/* copy ER0 */
++	mov.w	e1,r1				/* e1 highbyte = ccr */
++	and	#0xef,r1h			/* mask mode? flag */
++	bra	6f
++5:
++	/* kernel mode */
++	mov.l	@sp,er0				/* restore saved er0 */
++	subs	#2,sp				/* set dummy ccr */
++	subs	#4,sp				/* set dummp sp */
++	SAVEREGS
++	mov.w	@(LRET-LER3:16,sp),r1		/* copy old ccr */
++6:
++	mov.b	r1h,r1l
++	mov.b	#0,r1h
++	mov.w	r1,@(LCCR-LER3:16,sp)		/* set ccr */
++	mov.l	@_sw_usp,er2
++	mov.l	er2,@(LSP-LER3:16,sp)		/* set usp */
++	mov.l	er6,@-sp			/* syscall arg #6 */
++	mov.l	er5,@-sp			/* syscall arg #5 */
++	mov.l	er4,@-sp			/* syscall arg #4 */
++	.endm					/* r1 = ccr */
++
++	.macro	RESTORE_ALL
++	mov.l	@sp+,er4
++	mov.l	@sp+,er5
++	mov.l	@sp+,er6
++	RESTOREREGS
++	mov.w	@(LCCR-LER1:16,sp),r0		/* check kernel mode */
++	btst	#4,r0l
++	bne	7f
++
++	orc	#0xc0,ccr
++	mov.l	@(LSP-LER1:16,sp),er0
++	mov.l	@(LER0-LER1:16,sp),er1		/* restore ER0 */
++	mov.l	er1,@er0
++	RESTOREEXR
++	mov.w	@(LCCR-LER1:16,sp),r1		/* restore the RET addr */
++	mov.b	r1l,r1h
++	mov.b	@(LRET+1-LER1:16,sp),r1l
++	mov.w	r1,e1
++	mov.w	@(LRET+2-LER1:16,sp),r1
++	mov.l	er1,@(USERRET:16,er0)
++
++	mov.l	@sp+,er1
++	add.l	#(LRET-LER1),sp			/* remove LORIG - LRET */
++	mov.l	sp,@_sw_ksp
++	andc	#0xef,ccr			/* switch to user mode */
++	mov.l	er0,sp
++	bra	8f
++7:
++	mov.l	@sp+,er1
++	add.l	#10,sp
++8:
++	mov.l	@sp+,er0
++	adds	#4,sp				/* remove the sw created LVEC */
++	rte
++	.endm
++
++.globl _system_call
++.globl ret_from_exception
++.globl ret_from_fork
++.globl ret_from_kernel_thread
++.globl ret_from_interrupt
++.globl _interrupt_redirect_table
++.globl _sw_ksp,_sw_usp
++.globl _resume
++.globl _interrupt_entry
++.globl _trace_break
++.globl _nmi
++
++#if defined(CONFIG_ROMKERNEL)
++	.section .int_redirect,"ax"
++_interrupt_redirect_table:
++#if defined(CONFIG_CPU_H8300H)
++	.rept	7
++	.long	0
++	.endr
++#endif
++#if defined(CONFIG_CPU_H8S)
++	.rept	5
++	.long	0
++	.endr
++	jmp	@_trace_break
++	.long	0
++#endif
++
++	jsr	@_interrupt_entry		/* NMI */
++	jmp	@_system_call			/* TRAPA #0 (System call) */
++	.long	0
++	.long	0
++	jmp	@_trace_break			/* TRAPA #3 (breakpoint) */
++	.rept	INTERRUPTS-12
++	jsr	@_interrupt_entry
++	.endr
++#endif
++#if defined(CONFIG_RAMKERNEL)
++.globl _interrupt_redirect_table
++	.section .bss
++_interrupt_redirect_table:
++	.space	4
++#endif
++
++	.section .text
++	.align	2
++_interrupt_entry:
++	SAVE_ALL
++/* r1l is saved ccr */
++	mov.l	sp,er0
++	add.l	#LVEC,er0
++	btst	#4,r1l
++	bne	1f
++	/* user LVEC */
++	mov.l	@_sw_usp,er0
++	adds	#4,er0
++1:
++	mov.l	@er0,er0			/* LVEC address */
++#if defined(CONFIG_ROMKERNEL)
++	sub.l	#_interrupt_redirect_table,er0
++#endif
++#if defined(CONFIG_RAMKERNEL)
++	mov.l	@_interrupt_redirect_table,er1
++	sub.l	er1,er0
++#endif
++	SHLR2	er0
++	dec.l	#1,er0
++	mov.l	sp,er1
++	subs	#4,er1				/* adjust ret_pc */
++#if defined(CONFIG_CPU_H8S)
++	orc	#7,exr
++#endif
++	jsr	@do_IRQ
++	jmp	@ret_from_interrupt
++
++_system_call:
++	subs	#4,sp				/* dummy LVEC */
++	SAVE_ALL
++	/* er0: syscall nr */
++	andc	#0xbf,ccr
++	mov.l	er0,er4
++
++	/* save top of frame */
++	mov.l	sp,er0
++	jsr	@set_esp0
++	mov.l	sp,er2
++	and.w	#0xe000,r2
++	mov.l	@(TI_FLAGS:16,er2),er2
++	and.w	#_TIF_WORK_SYSCALL_MASK,r2
++	beq	1f
++	mov.l	sp,er0
++	jsr	@do_syscall_trace_enter
++1:
++	cmp.l	#__NR_syscalls,er4
++	bcc	badsys
++	SHLL2	er4
++	mov.l	#_sys_call_table,er0
++	add.l	er4,er0
++	mov.l	@er0,er4
++	beq	ret_from_exception:16
++	mov.l	@(LER1:16,sp),er0
++	mov.l	@(LER2:16,sp),er1
++	mov.l	@(LER3:16,sp),er2
++	jsr	@er4
++	mov.l	er0,@(LER0:16,sp)		/* save the return value */
++	mov.l	sp,er2
++	and.w	#0xe000,r2
++	mov.l	@(TI_FLAGS:16,er2),er2
++	and.w	#_TIF_WORK_SYSCALL_MASK,r2
++	beq	2f
++	mov.l	sp,er0
++	jsr	@do_syscall_trace_leave
++2:
++	orc	#0xc0,ccr
++	bra	resume_userspace
++
++badsys:
++	mov.l	#-ENOSYS,er0
++	mov.l	er0,@(LER0:16,sp)
++	bra	resume_userspace
++
++#if !defined(CONFIG_PREEMPT)
++#define resume_kernel restore_all
++#endif
++
++ret_from_exception:
++#if defined(CONFIG_PREEMPT)
++	orc	#0xc0,ccr
++#endif
++ret_from_interrupt:
++	mov.b	@(LCCR+1:16,sp),r0l
++	btst	#4,r0l
++	bne	resume_kernel:16	/* return from kernel */
++resume_userspace:
++	andc	#0xbf,ccr
++	mov.l	sp,er4
++	and.w	#0xe000,r4		/* er4 <- current thread info */
++	mov.l	@(TI_FLAGS:16,er4),er1
++	and.l	#_TIF_WORK_MASK,er1
++	beq	restore_all:8
++work_pending:
++	btst	#TIF_NEED_RESCHED,r1l
++	bne	work_resched:8
++	/* work notifysig */
++	mov.l	sp,er0
++	subs	#4,er0			/* er0: pt_regs */
++	jsr	@do_notify_resume
++	bra	resume_userspace:8
++work_resched:
++	mov.l	sp,er0
++	jsr	@set_esp0
++	jsr	@schedule
++	bra	resume_userspace:8
++restore_all:
++	RESTORE_ALL			/* Does RTE */
++
++#if defined(CONFIG_PREEMPT)
++resume_kernel:
++	mov.l	@(TI_PRE_COUNT:16,er4),er0
++	bne	restore_all:8
++need_resched:
++	mov.l	@(TI_FLAGS:16,er4),er0
++	btst	#TIF_NEED_RESCHED,r0l
++	beq	restore_all:8
++	mov.b	@(LCCR+1:16,sp),r0l	/* Interrupt Enabled? */
++	bmi	restore_all:8
++	mov.l	sp,er0
++	jsr	@set_esp0
++	jsr	@preempt_schedule_irq
++	bra	need_resched:8
++#endif
++
++ret_from_fork:
++	mov.l	er2,er0
++	jsr	@schedule_tail
++	jmp	@ret_from_exception
++
++ret_from_kernel_thread:
++	mov.l	er2,er0
++	jsr	@schedule_tail
++	mov.l	@(LER4:16,sp),er0
++	mov.l	@(LER5:16,sp),er1
++	jsr	@er1
++	jmp	@ret_from_exception
++
++_resume:
++	/*
++	 * Beware - when entering resume, offset of tss is in d1,
++	 * prev (the current task) is in a0, next (the new task)
++	 * is in a1 and d2.b is non-zero if the mm structure is
++	 * shared between the tasks, so don't change these
++	 * registers until their contents are no longer needed.
++	 */
++
++	/* save sr */
++	sub.w	r3,r3
++	stc	ccr,r3l
++	mov.w	r3,@(THREAD_CCR+2:16,er0)
++
++	/* disable interrupts */
++	orc	#0xc0,ccr
++	mov.l	@_sw_usp,er3
++	mov.l	er3,@(THREAD_USP:16,er0)
++	mov.l	sp,@(THREAD_KSP:16,er0)
++
++	/* Skip address space switching if they are the same. */
++	/* FIXME: what did we hack out of here, this does nothing! */
++
++	mov.l	@(THREAD_USP:16,er1),er0
++	mov.l	er0,@_sw_usp
++	mov.l	@(THREAD_KSP:16,er1),sp
++
++	/* restore status register */
++	mov.w	@(THREAD_CCR+2:16,er1),r3
++
++	ldc	r3l,ccr
++	rts
++
++_trace_break:
++	subs	#4,sp
++	SAVE_ALL
++	sub.l	er1,er1
++	dec.l	#1,er1
++	mov.l	er1,@(LORIG,sp)
++	mov.l	sp,er0
++	jsr	@set_esp0
++	mov.l	@_sw_usp,er0
++	mov.l	@er0,er1
++	mov.w	@(-2:16,er1),r2
++	cmp.w	#0x5730,r2
++	beq	1f
++	subs	#2,er1
++	mov.l	er1,@er0
++1:
++	and.w	#0xff,e1
++	mov.l	er1,er0
++	jsr	@trace_trap
++	jmp	@ret_from_exception
++
++_nmi:
++	subs	#4, sp
++	mov.l	er0, @-sp
++	mov.l	@_interrupt_redirect_table, er0
++	add.l	#8*4, er0
++	mov.l	er0, @(4,sp)
++	mov.l	@sp+, er0
++	jmp	@_interrupt_entry
++
++	.section	.bss
++_sw_ksp:
++	.space	4
++_sw_usp:
++	.space	4
++
++	.end
+diff --git a/arch/h8300/kernel/irq.c b/arch/h8300/kernel/irq.c
 new file mode 100644
-index 0000000..c41fdaa
+index 0000000..56adef5
 --- /dev/null
-+++ b/arch/h8300/include/uapi/asm/sigcontext.h
-@@ -0,0 +1,18 @@
-+#ifndef _ASM_H8300_SIGCONTEXT_H
-+#define _ASM_H8300_SIGCONTEXT_H
++++ b/arch/h8300/kernel/irq.c
+@@ -0,0 +1,100 @@
++/*
++ * linux/arch/h8300/kernel/irq.c
++ *
++ * Copyright 2014 Yoshinori Sato <ysato@users.sourceforge.jp>
++ */
 +
-+struct sigcontext {
-+	unsigned long  sc_mask;		/* old sigmask */
-+	unsigned long  sc_usp;		/* old user stack pointer */
-+	unsigned long  sc_er0;
-+	unsigned long  sc_er1;
-+	unsigned long  sc_er2;
-+	unsigned long  sc_er3;
-+	unsigned long  sc_er4;
-+	unsigned long  sc_er5;
-+	unsigned long  sc_er6;
-+	unsigned short sc_ccr;
-+	unsigned long  sc_pc;
++#include <linux/init.h>
++#include <linux/interrupt.h>
++#include <linux/irq.h>
++#include <asm/traps.h>
++
++#ifdef CONFIG_RAMKERNEL
++typedef void (*h8300_vector)(void);
++
++static const h8300_vector __initconst trap_table[] = {
++	0, 0, 0, 0,
++	_trace_break,
++	0, 0,
++	_nmi,
++	_system_call,
++	0, 0,
++	_trace_break,
 +};
 +
++static unsigned long __init *get_vector_address(void)
++{
++	unsigned long *rom_vector = CPU_VECTOR;
++	unsigned long base, tmp;
++	int vec_no;
++
++	base = rom_vector[EXT_IRQ0] & ADDR_MASK;
++
++	/* check romvector format */
++	for (vec_no = EXT_IRQ0 + 1; vec_no <= EXT_IRQ0+EXT_IRQS; vec_no++) {
++		if ((base+(vec_no - EXT_IRQ0)*4) !=
++		    (rom_vector[vec_no] & ADDR_MASK))
++			return NULL;
++	}
++
++	/* ramvector base address */
++	base -= EXT_IRQ0*4;
++
++	/* writerble? */
++	tmp = ~(*(volatile unsigned long *)base);
++	(*(volatile unsigned long *)base) = tmp;
++	if ((*(volatile unsigned long *)base) != tmp)
++		return NULL;
++	return (unsigned long *)base;
++}
++
++static void __init setup_vector(void)
++{
++	int i;
++	unsigned long *ramvec, *ramvec_p;
++	const h8300_vector *trap_entry;
++
++	ramvec = get_vector_address();
++	if (ramvec == NULL)
++		panic("interrupt vector serup failed.");
++	else
++		pr_debug("virtual vector at 0x%p\n", ramvec);
++
++	/* create redirect table */
++	ramvec_p = ramvec;
++	trap_entry = trap_table;
++	for (i = 0; i < NR_IRQS; i++) {
++		if (i < 12) {
++			if (*trap_entry)
++				*ramvec_p = VECTOR(*trap_entry);
++			ramvec_p++;
++			trap_entry++;
++		} else
++			*ramvec_p++ = REDIRECT(_interrupt_entry);
++	}
++	_interrupt_redirect_table = ramvec;
++}
++#else
++void setup_vector(void)
++{
++	/* noting do */
++}
 +#endif
-diff --git a/arch/h8300/include/uapi/asm/signal.h b/arch/h8300/include/uapi/asm/signal.h
++
++void __init init_IRQ(void)
++{
++	int c;
++
++	setup_vector();
++	h8300_init_ipr();
++
++	for (c = 0; c < NR_IRQS; c++)
++		irq_set_chip_and_handler(c, &IRQ_CHIP, handle_simple_irq);
++}
++
++asmlinkage void do_IRQ(int irq)
++{
++	irq_enter();
++	generic_handle_irq(irq);
++	irq_exit();
++}
+diff --git a/arch/h8300/kernel/traps.c b/arch/h8300/kernel/traps.c
 new file mode 100644
-index 0000000..af3a6c3
+index 0000000..1b2d7cd
 --- /dev/null
-+++ b/arch/h8300/include/uapi/asm/signal.h
-@@ -0,0 +1,115 @@
-+#ifndef _UAPI_H8300_SIGNAL_H
-+#define _UAPI_H8300_SIGNAL_H
++++ b/arch/h8300/kernel/traps.c
+@@ -0,0 +1,161 @@
++/*
++ * linux/arch/h8300/boot/traps.c -- general exception handling code
++ * H8/300 support Yoshinori Sato <ysato@users.sourceforge.jp>
++ *
++ * Cloned from Linux/m68k.
++ *
++ * No original Copyright holder listed,
++ * Probable original (C) Roman Zippel (assigned DJD, 1999)
++ *
++ * Copyright 1999-2000 D. Jeff Dionne, <jeff@rt-control.com>
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file COPYING in the main directory of this archive
++ * for more details.
++ */
 +
 +#include <linux/types.h>
++#include <linux/sched.h>
++#include <linux/kernel.h>
++#include <linux/errno.h>
++#include <linux/init.h>
++#include <linux/module.h>
++#include <linux/bug.h>
 +
-+/* Avoid too many header ordering problems.  */
-+struct siginfo;
++#include <asm/irq.h>
++#include <asm/traps.h>
++#include <asm/page.h>
 +
-+#ifndef __KERNEL__
-+/* Here we must cater to libcs that poke about in kernel headers.  */
-+
-+#define NSIG		32
-+typedef unsigned long sigset_t;
-+
-+#endif /* __KERNEL__ */
-+
-+#define SIGHUP		 1
-+#define SIGINT		 2
-+#define SIGQUIT		 3
-+#define SIGILL		 4
-+#define SIGTRAP		 5
-+#define SIGABRT		 6
-+#define SIGIOT		 6
-+#define SIGBUS		 7
-+#define SIGFPE		 8
-+#define SIGKILL		 9
-+#define SIGUSR1		10
-+#define SIGSEGV		11
-+#define SIGUSR2		12
-+#define SIGPIPE		13
-+#define SIGALRM		14
-+#define SIGTERM		15
-+#define SIGSTKFLT	16
-+#define SIGCHLD		17
-+#define SIGCONT		18
-+#define SIGSTOP		19
-+#define SIGTSTP		20
-+#define SIGTTIN		21
-+#define SIGTTOU		22
-+#define SIGURG		23
-+#define SIGXCPU		24
-+#define SIGXFSZ		25
-+#define SIGVTALRM	26
-+#define SIGPROF		27
-+#define SIGWINCH	28
-+#define SIGIO		29
-+#define SIGPOLL		SIGIO
-+/*
-+#define SIGLOST		29
-+*/
-+#define SIGPWR		30
-+#define SIGSYS		31
-+#define	SIGUNUSED	31
-+
-+/* These should not be considered constants from userland.  */
-+#define SIGRTMIN	32
-+#define SIGRTMAX	_NSIG
++static DEFINE_SPINLOCK(die_lock);
 +
 +/*
-+ * SA_FLAGS values:
-+ *
-+ * SA_ONSTACK indicates that a registered stack_t will be used.
-+ * SA_RESTART flag to get restarting signals (which were the default long ago)
-+ * SA_NOCLDSTOP flag to turn off SIGCHLD when children stop.
-+ * SA_RESETHAND clears the handler when the signal is delivered.
-+ * SA_NOCLDWAIT flag on SIGCHLD to inhibit zombies.
-+ * SA_NODEFER prevents the current signal from being masked in the handler.
-+ *
-+ * SA_ONESHOT and SA_NOMASK are the historical Linux names for the Single
-+ * Unix names RESETHAND and NODEFER respectively.
++ * this must be called very early as the kernel might
++ * use some instruction that are emulated on the 060
 + */
-+#define SA_NOCLDSTOP	0x00000001
-+#define SA_NOCLDWAIT	0x00000002 /* not supported yet */
-+#define SA_SIGINFO	0x00000004
-+#define SA_ONSTACK	0x08000000
-+#define SA_RESTART	0x10000000
-+#define SA_NODEFER	0x40000000
-+#define SA_RESETHAND	0x80000000
 +
-+#define SA_NOMASK	SA_NODEFER
-+#define SA_ONESHOT	SA_RESETHAND
++void __init base_trap_init(void)
++{
++}
 +
-+#define SA_RESTORER	0x04000000
++void __init trap_init(void)
++{
++}
 +
-+#define MINSIGSTKSZ	2048
-+#define SIGSTKSZ	8192
++asmlinkage void set_esp0(unsigned long ssp)
++{
++	current->thread.esp0 = ssp;
++}
 +
-+#include <asm-generic/signal-defs.h>
++/*
++ *	Generic dumping code. Used for panic and debug.
++ */
 +
-+#ifndef __KERNEL__
-+/* Here we must cater to libcs that poke about in kernel headers.  */
++static void dump(struct pt_regs *fp)
++{
++	unsigned long	*sp;
++	unsigned char	*tp;
++	int		i;
 +
-+struct sigaction {
-+	union {
-+	  __sighandler_t _sa_handler;
-+	  void (*_sa_sigaction)(int, struct siginfo *, void *);
-+	} _u;
-+	sigset_t sa_mask;
-+	unsigned long sa_flags;
-+	void (*sa_restorer)(void);
-+};
++	pr_info("\nCURRENT PROCESS:\n\n");
++	pr_info("COMM=%s PID=%d\n", current->comm, current->pid);
++	if (current->mm) {
++		pr_info("TEXT=%08x-%08x DATA=%08x-%08x BSS=%08x-%08x\n",
++			(int) current->mm->start_code,
++			(int) current->mm->end_code,
++			(int) current->mm->start_data,
++			(int) current->mm->end_data,
++			(int) current->mm->end_data,
++			(int) current->mm->brk);
++		pr_info("USER-STACK=%08x  KERNEL-STACK=%08lx\n\n",
++			(int) current->mm->start_stack,
++			(int) PAGE_SIZE+(unsigned long)current);
++	}
 +
-+#define sa_handler	_u._sa_handler
-+#define sa_sigaction	_u._sa_sigaction
++	show_regs(fp);
++	pr_info("\nCODE:");
++	tp = ((unsigned char *) fp->pc) - 0x20;
++	for (sp = (unsigned long *) tp, i = 0; (i < 0x40);  i += 4) {
++		if ((i % 0x10) == 0)
++			pr_info("\n%08x: ", (int) (tp + i));
++		pr_info("%08x ", (int) *sp++);
++	}
++	pr_info("\n");
 +
-+#endif /* __KERNEL__ */
++	pr_info("\nKERNEL STACK:");
++	tp = ((unsigned char *) fp) - 0x40;
++	for (sp = (unsigned long *) tp, i = 0; (i < 0xc0); i += 4) {
++		if ((i % 0x10) == 0)
++			pr_info("\n%08x: ", (int) (tp + i));
++		pr_info("%08x ", (int) *sp++);
++	}
++	pr_info("\n");
++	if (STACK_MAGIC != *(unsigned long *)((unsigned long)current+PAGE_SIZE))
++		pr_info("(Possibly corrupted stack page??)\n");
 +
-+typedef struct sigaltstack {
-+	void *ss_sp;
-+	int ss_flags;
-+	size_t ss_size;
-+} stack_t;
++	pr_info("\n\n");
++}
 +
++void die(const char *str, struct pt_regs *fp, unsigned long err)
++{
++	static int diecount;
 +
-+#endif /* _UAPI_H8300_SIGNAL_H */
-diff --git a/arch/h8300/include/uapi/asm/swab.h b/arch/h8300/include/uapi/asm/swab.h
-new file mode 100644
-index 0000000..7847e56
---- /dev/null
-+++ b/arch/h8300/include/uapi/asm/swab.h
-@@ -0,0 +1 @@
-+#include <asm-generic/swab.h>
-diff --git a/arch/h8300/include/uapi/asm/unistd.h b/arch/h8300/include/uapi/asm/unistd.h
-new file mode 100644
-index 0000000..7a2eb69
---- /dev/null
-+++ b/arch/h8300/include/uapi/asm/unistd.h
-@@ -0,0 +1,3 @@
-+#define __ARCH_NOMMU
++	oops_enter();
 +
-+#include <asm-generic/unistd.h>
++	console_verbose();
++	spin_lock_irq(&die_lock);
++	report_bug(fp->pc, fp);
++	pr_crit("%s: %04lx [#%d] ", str, err & 0xffff, ++diecount);
++	dump(fp);
++
++	spin_unlock_irq(&die_lock);
++	do_exit(SIGSEGV);
++}
++
++static int kstack_depth_to_print = 24;
++
++void show_stack(struct task_struct *task, unsigned long *esp)
++{
++	unsigned long *stack,  addr;
++	int i;
++
++	if (esp == NULL)
++		esp = (unsigned long *) &esp;
++
++	stack = esp;
++
++	pr_info("Stack from %08lx:", (unsigned long)stack);
++	for (i = 0; i < kstack_depth_to_print; i++) {
++		if (((unsigned long)stack & (THREAD_SIZE - 1)) == 0)
++			break;
++		if (i % 8 == 0)
++			pr_info("\n       ");
++		pr_info(" %08lx", *stack++);
++	}
++
++	pr_info("\nCall Trace:");
++	i = 0;
++	stack = esp;
++	while (((unsigned long)stack & (THREAD_SIZE - 1)) != 0) {
++		addr = *stack++;
++		/*
++		 * If the address is either in the text segment of the
++		 * kernel, or in the region which contains vmalloc'ed
++		 * memory, it *may* be the address of a calling
++		 * routine; if so, print it so that someone tracing
++		 * down the cause of the crash will be able to figure
++		 * out the call path that was taken.
++		 */
++		if (check_kernel_text(addr)) {
++			if (i % 4 == 0)
++				pr_info("\n       ");
++			pr_info(" [<%08lx>]", addr);
++			i++;
++		}
++	}
++	pr_info("\n");
++}
++
++void show_trace_task(struct task_struct *tsk)
++{
++	show_stack(tsk, (unsigned long *)tsk->thread.esp0);
++}
 -- 
 2.1.4
