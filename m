@@ -1,48 +1,339 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f173.google.com ([209.85.223.173]:35705 "EHLO
-	mail-ie0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751769AbbD0D6j (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Apr 2015 23:58:39 -0400
-MIME-Version: 1.0
-In-Reply-To: <1429630951-27082-1-git-send-email-johan@kernel.org>
-References: <1429630951-27082-1-git-send-email-johan@kernel.org>
-From: Alexandre Courbot <gnurou@gmail.com>
-Date: Mon, 27 Apr 2015 12:58:17 +0900
-Message-ID: <CAAVeFu+fJk9TCXapNF=Vmwzh7oAHz+Lz6h+mJe75pws+-T6k8g@mail.gmail.com>
-Subject: Re: [PATCH 00/23] gpio: sysfs: fixes and clean ups
-Content-Type: text/plain; charset=UTF-8
+Received: from mail1.asahi-net.or.jp ([202.224.39.197]:60098 "EHLO
+	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752419AbbD0Ffc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2015 01:35:32 -0400
+From: Yoshinori Sato <ysato@users.sourceforge.jp>
+Subject: [PATCH v9 11/17] h8300: clock driver
+Date: Mon, 27 Apr 2015 14:35:18 +0900
+Message-ID: <1430112924-1134-12-git-send-email-ysato@users.sourceforge.jp>
+In-Reply-To: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp>
+References: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Johan Hovold <johan@kernel.org>
-Cc: Linus Walleij <linus.walleij@linaro.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, Harry Wei <harryxiyou@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, linux-kernel@zh-kernel.org, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20150427035817.2w_6px_Sg7Z91iGAtw5tZzMihgSA6yWsQT3II2J7lmo@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Message-ID: <20150427053518.Y-mNP0PJlQOSNwjB7cxDCjVGilwdk67AWiZ1qsGhk98@z>
 
-On Wed, Apr 22, 2015 at 12:42 AM, Johan Hovold <johan@kernel.org> wrote:
-> These patches fix a number of issues with the gpio sysfs interface,
-> including
->
->  - fix memory leaks and crashes on device hotplug
->  - straighten out the convoluted locking
->  - reduce sysfs-interface latencies through more fine-grained locking
->  - more clearly separate the sysfs-interface implementation from gpiolib
->    core
->
-> The first patch is marked for stable and could go into 4.1.
->
-> Unfortunately we can't just kill the gpio sysfs interface, but these
-> patches will make it more manageable and should allow us to implement a
-> new user-space interface while maintaining the old one (for a while at
-> least) without losing our sanity.
->
-> Note that there is still a race between chip remove and gpiod_request (and
-> therefore sysfs export), which needs to be fixed separately (for instance as
-> part of a generic solution to chip hotplugging).
+h8300 clock generator drivers.
+H8/3069 is simple oscillator.
+H8S2678 is PLL multiplier support.
 
-Thanks a lot for this great series. To my embarrassment I could not
-find anything big to say about it. It simply fixes some of the biggest
-issues with the sysfs interface and makes things much more
-maintainable.
+Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
+---
+ drivers/clk/Makefile            |   1 +
+ drivers/clk/h8300/Makefile      |   2 +
+ drivers/clk/h8300/clk-h83069.c  |  80 +++++++++++++++++++
+ drivers/clk/h8300/clk-h8s2678.c | 171 ++++++++++++++++++++++++++++++++++++++++
+ include/linux/clk-provider.h    |  12 +++
+ 5 files changed, 266 insertions(+)
+ create mode 100644 drivers/clk/h8300/Makefile
+ create mode 100644 drivers/clk/h8300/clk-h83069.c
+ create mode 100644 drivers/clk/h8300/clk-h8s2678.c
 
-I made a few minor comments, but globally I like this very much.
+diff --git a/drivers/clk/Makefile b/drivers/clk/Makefile
+index 3d00c25..9df871d 100644
+--- a/drivers/clk/Makefile
++++ b/drivers/clk/Makefile
+@@ -73,3 +73,4 @@ obj-$(CONFIG_ARCH_U8500)		+= ux500/
+ obj-$(CONFIG_COMMON_CLK_VERSATILE)	+= versatile/
+ obj-$(CONFIG_X86)			+= x86/
+ obj-$(CONFIG_ARCH_ZYNQ)			+= zynq/
++obj-$(CONFIG_H8300)		+= h8300/
+diff --git a/drivers/clk/h8300/Makefile b/drivers/clk/h8300/Makefile
+new file mode 100644
+index 0000000..82eab42
+--- /dev/null
++++ b/drivers/clk/h8300/Makefile
+@@ -0,0 +1,2 @@
++obj-$(CONFIG_H83069) += clk-h83069.o
++obj-$(CONFIG_H8S2678) += clk-h8s2678.o
+diff --git a/drivers/clk/h8300/clk-h83069.c b/drivers/clk/h8300/clk-h83069.c
+new file mode 100644
+index 0000000..0a20dd5
+--- /dev/null
++++ b/drivers/clk/h8300/clk-h83069.c
+@@ -0,0 +1,80 @@
++/*
++ * H8/3069 clock driver
++ *
++ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ */
++
++#include <linux/clk.h>
++#include <linux/clkdev.h>
++#include <linux/clk-provider.h>
++#include <linux/err.h>
++#include <linux/device.h>
++#include <linux/platform_device.h>
++
++static DEFINE_SPINLOCK(clklock);
++
++#define DIVCR ((unsigned char *)0xfee01b)
++#define DEVNAME "h83069-cpg"
++
++static int clk_probe(struct platform_device *pdev)
++{
++	struct clk *clk;
++	int *hz = dev_get_platdata(&pdev->dev);
++
++	clk = clk_register_fixed_rate(&pdev->dev, "master_clk", NULL,
++				      CLK_IS_ROOT, *hz);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "master_clk", DEVNAME ".%d", 0);
++
++	clk = clk_register_divider(&pdev->dev, "core_clk", "master_clk",
++				   CLK_SET_RATE_GATE, DIVCR, 0, 2,
++				   CLK_DIVIDER_POWER_OF_TWO, &clklock);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "core_clk", DEVNAME ".%d", 0);
++
++	clk = clk_register_fixed_factor(&pdev->dev, "peripheral_clk", "core_clk",
++					0, 1, 1);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "peripheral_clk", NULL);
++	return 0;
++}
++
++static struct platform_driver cpg_driver = {
++	.driver = {
++		.name = DEVNAME,
++	},
++	.probe = clk_probe,
++};
++
++early_platform_init(DEVNAME, &cpg_driver);
++
++static struct platform_device clk_device = {
++	.name		= DEVNAME,
++	.id		= 0,
++};
++
++static struct platform_device *devices[] __initdata = {
++	&clk_device,
++};
++
++int __init h8300_clk_init(int hz)
++{
++	static int master_hz;
++
++	master_hz = hz;
++	clk_device.dev.platform_data = &master_hz;
++	early_platform_add_devices(devices,
++				   ARRAY_SIZE(devices));
++	early_platform_driver_register_all(DEVNAME);
++	early_platform_driver_probe(DEVNAME, 1, 0);
++	return 0;
++}
+diff --git a/drivers/clk/h8300/clk-h8s2678.c b/drivers/clk/h8300/clk-h8s2678.c
+new file mode 100644
+index 0000000..55b490c
+--- /dev/null
++++ b/drivers/clk/h8300/clk-h8s2678.c
+@@ -0,0 +1,171 @@
++/*
++ * H8S2678 clock driver
++ *
++ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ */
++
++#include <linux/clk.h>
++#include <linux/clkdev.h>
++#include <linux/clk-provider.h>
++#include <linux/err.h>
++#include <linux/device.h>
++#include <linux/platform_device.h>
++
++static DEFINE_SPINLOCK(clklock);
++
++#define SCKCR 0xffff3b
++#define PLLCR 0xffff45
++#define DEVNAME "h8s2678-cpg"
++#define MAX_FREQ 33333333
++#define MIN_FREQ  8000000
++
++static unsigned long pll_recalc_rate(struct clk_hw *hw,
++		unsigned long parent_rate)
++{
++	int mul = 1 << (ctrl_inb(PLLCR) & 3);
++
++	return parent_rate * mul;
++}
++
++static long pll_round_rate(struct clk_hw *hw, unsigned long rate,
++				unsigned long *prate)
++{
++	int i, m = -1;
++	long offset[3];
++
++	if (rate > MAX_FREQ)
++		rate = MAX_FREQ;
++	if (rate < MIN_FREQ)
++		rate = MIN_FREQ;
++
++	for (i = 0; i < 3; i++)
++		offset[i] = abs(rate - (*prate * (1 << i)));
++	for (i = 0; i < 3; i++)
++		if (m < 0)
++			m = i;
++		else
++			m = (offset[i] < offset[m])?i:m;
++
++	return *prate * (1 << m);
++}
++
++static int pll_set_rate(struct clk_hw *hw, unsigned long rate,
++			unsigned long parent_rate)
++{
++	int pll;
++	unsigned char val;
++	unsigned long flags;
++
++	pll = ((rate / parent_rate) / 2) & 0x03;
++	spin_lock_irqsave(&clklock, flags);
++	val = ctrl_inb(SCKCR);
++	val |= 0x08;
++	ctrl_outb(val, SCKCR);
++	val = ctrl_inb(PLLCR);
++	val &= ~0x03;
++	val |= pll;
++	ctrl_outb(val, PLLCR);
++	spin_unlock_irqrestore(&clklock, flags);
++	return 0;
++}
++
++static const struct clk_ops pll_ops = {
++	.recalc_rate = pll_recalc_rate,
++	.round_rate = pll_round_rate,
++	.set_rate = pll_set_rate,
++};
++
++static struct clk *pll_clk_register(struct device *dev, const char *name,
++				const char *parent)
++{
++	struct clk_hw *hw;
++	struct clk *clk;
++	struct clk_init_data init;
++
++	hw = kzalloc(sizeof(struct clk_hw), GFP_KERNEL);
++	if (!hw)
++		return ERR_PTR(-ENOMEM);
++
++	init.name = name;
++	init.ops = &pll_ops;
++	init.flags = CLK_IS_BASIC;
++	init.parent_names = &parent;
++	init.num_parents = 1;
++	hw->init = &init;
++
++	clk = clk_register(dev, hw);
++	if (IS_ERR(clk))
++		kfree(hw);
++
++	return clk;
++}
++
++static int clk_probe(struct platform_device *pdev)
++{
++	struct clk *clk;
++	int *hz = dev_get_platdata(&pdev->dev);
++
++	clk = clk_register_fixed_rate(&pdev->dev, "master_clk", NULL,
++				      CLK_IS_ROOT, *hz);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "master_clk", DEVNAME ".%d", 0);
++
++	clk = pll_clk_register(&pdev->dev, "pll_clk", "master_clk");
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "pll_clk", DEVNAME ".%d", 0);
++
++	clk = clk_register_divider(&pdev->dev, "core_clk", "pll_clk",
++				   CLK_SET_RATE_GATE, (unsigned char *)SCKCR,
++				   0, 3, CLK_DIVIDER_POWER_OF_TWO, &clklock);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "core_clk", DEVNAME ".%d", 0);
++
++	clk = clk_register_fixed_factor(&pdev->dev, "peripheral_clk", "core_clk",
++					0, 1, 1);
++	if (IS_ERR(clk)) {
++		dev_err(&pdev->dev, "failed to register clock");
++		return PTR_ERR(clk);
++	}
++	clk_register_clkdev(clk, "peripheral_clk", NULL);
++	return 0;
++}
++
++static struct platform_driver cpg_driver = {
++	.driver = {
++		.name = DEVNAME,
++	},
++	.probe = clk_probe,
++};
++
++early_platform_init(DEVNAME, &cpg_driver);
++
++static struct platform_device clk_device = {
++	.name		= DEVNAME,
++	.id		= 0,
++};
++
++static struct platform_device *devices[] __initdata = {
++	&clk_device,
++};
++
++int __init h8300_clk_init(int hz)
++{
++	static int master_hz;
++
++	master_hz = hz;
++	clk_device.dev.platform_data = &master_hz;
++	early_platform_add_devices(devices,
++				   ARRAY_SIZE(devices));
++	early_platform_driver_register_all(DEVNAME);
++	early_platform_driver_probe(DEVNAME, 1, 0);
++	return 0;
++}
+diff --git a/include/linux/clk-provider.h b/include/linux/clk-provider.h
+index df69531..931860b 100644
+--- a/include/linux/clk-provider.h
++++ b/include/linux/clk-provider.h
+@@ -675,6 +675,18 @@ static inline void clk_writel(u32 val, u32 __iomem *reg)
+ 	iowrite32be(val, reg);
+ }
+ 
++#elif IS_ENABLED(CONFIG_H8300)
++
++static inline u32 clk_readl(u32 __iomem *reg)
++{
++	return __raw_readb(reg);
++}
++
++static inline void clk_writel(u32 val, u32 __iomem *reg)
++{
++	__raw_writeb(val, reg);
++}
++
+ #else	/* platform dependent I/O accessors */
+ 
+ static inline u32 clk_readl(u32 __iomem *reg)
+-- 
+2.1.4
 
-Reviewed-by: Alexandre Courbot <acourbot@nvidia.com>
