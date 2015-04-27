@@ -1,286 +1,52 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v9 01/17] h8300: Assembly headers.
-Date: Mon, 27 Apr 2015 10:40:51 +0200
-Message-ID: <4089883.fMGB79uPeA@wuerfel>
-References: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp> <1430112924-1134-2-git-send-email-ysato@users.sourceforge.jp>
+Subject: Re: [PATCH v9 02/17] h8300: UAPI headers
+Date: Mon, 27 Apr 2015 10:43:14 +0200
+Message-ID: <43964209.HMXbXhrAJP@wuerfel>
+References: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp> <1430112924-1134-3-git-send-email-ysato@users.sourceforge.jp>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:61868 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.131]:53017 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751989AbbD0IlJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2015 04:41:09 -0400
-In-Reply-To: <1430112924-1134-2-git-send-email-ysato@users.sourceforge.jp>
+	with ESMTP id S1751915AbbD0In1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Apr 2015 04:43:27 -0400
+In-Reply-To: <1430112924-1134-3-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yoshinori Sato <ysato@users.sourceforge.jp>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Monday 27 April 2015 14:35:08 Yoshinori Sato wrote:
-> diff --git a/arch/h8300/include/asm/asm-offsets.h b/arch/h8300/include/asm/asm-offsets.h
+On Monday 27 April 2015 14:35:09 Yoshinori Sato wrote:
+> diff --git a/arch/h8300/include/uapi/asm/auxvec.h b/arch/h8300/include/uapi/asm/auxvec.h
 > new file mode 100644
-> index 0000000..d370ee3
+> index 0000000..1d36fe38
 > --- /dev/null
-> +++ b/arch/h8300/include/asm/asm-offsets.h
+> +++ b/arch/h8300/include/uapi/asm/auxvec.h
+> @@ -0,0 +1,4 @@
+> +#ifndef __ASMH8300_AUXVEC_H
+> +#define __ASMH8300_AUXVEC_H
+> +
+> +#endif
+
+> diff --git a/arch/h8300/include/uapi/asm/swab.h b/arch/h8300/include/uapi/asm/swab.h
+> new file mode 100644
+> index 0000000..7847e56
+> --- /dev/null
+> +++ b/arch/h8300/include/uapi/asm/swab.h
 > @@ -0,0 +1 @@
-> +#include <generated/asm-offsets.h>
+> +#include <asm-generic/swab.h>
 
-Could you add a file with these contents to include/asm-generic and use that
-instead of providing your own copy?
 
-> diff --git a/arch/h8300/include/asm/delay.h b/arch/h8300/include/asm/delay.h
+Two more files that you can just use in the generic version here.
+
+> diff --git a/arch/h8300/include/uapi/asm/signal.h b/arch/h8300/include/uapi/asm/signal.h
 > new file mode 100644
-> index 0000000..2bdde59
+> index 0000000..af3a6c3
 > --- /dev/null
-> +++ b/arch/h8300/include/asm/delay.h
-> @@ -0,0 +1,38 @@
-> +#ifndef _H8300_DELAY_H
-> +#define _H8300_DELAY_H
-> +
-> +#include <asm/param.h>
-> +
-> +/*
-> + * Copyright (C) 2002 Yoshinori Sato <ysato@sourceforge.jp>
-> + *
-> + * Delay routines, using a pre-computed "loops_per_second" value.
-> + */
-> +
-> +static inline void __delay(unsigned long loops)
-> +{
-> +	__asm__ __volatile__ ("1:\n\t"
-> +			      "dec.l #1,%0\n\t"
-> +			      "bne 1b"
-> +			      : "=r" (loops) : "0"(loops));
-> +}
-> +
+> +++ b/arch/h8300/include/uapi/asm/signal.h
 
-This could be optimized by using the clocksource instead, if that is
-accurate enough. Doing so will speed up the boot as well, because you
-can avoid calibrating the delay loop.
-
-> +#endif /* _H8300_DELAY_H */
-> diff --git a/arch/h8300/include/asm/device.h b/arch/h8300/include/asm/device.h
-> new file mode 100644
-> index 0000000..06746c5
-> --- /dev/null
-> +++ b/arch/h8300/include/asm/device.h
-> @@ -0,0 +1,6 @@
-> +/*
-> + * Arch specific extensions to struct device
-> + *
-> + * This file is released under the GPLv2
-> + */
-> +#include <asm-generic/device.h>
-
-This one can obviously just use 'generic-y' isntead of including the file.
-
-> diff --git a/arch/h8300/include/asm/emergency-restart.h b/arch/h8300/include/asm/emergency-restart.h
-> new file mode 100644
-> index 0000000..108d8c4
-> --- /dev/null
-> +++ b/arch/h8300/include/asm/emergency-restart.h
-> @@ -0,0 +1,6 @@
-> +#ifndef _ASM_EMERGENCY_RESTART_H
-> +#define _ASM_EMERGENCY_RESTART_H
-> +
-> +#include <asm-generic/emergency-restart.h>
-> +
-> +#endif /* _ASM_EMERGENCY_RESTART_H */
-
-Same here.
-
-> diff --git a/arch/h8300/include/asm/io.h b/arch/h8300/include/asm/io.h
-> new file mode 100644
-> index 0000000..51ee096
-> --- /dev/null
-> +++ b/arch/h8300/include/asm/io.h
-> @@ -0,0 +1,314 @@
-> +#ifndef _H8300_IO_H
-> +#define _H8300_IO_H
-> +
-> +#ifdef __KERNEL__
-> +
-> +#include <linux/types.h>
-> +
-> +#define __raw_readb(addr) ({ u8 __v = *(volatile u8 *)(addr); __v; })
-> +
-> +#define __raw_readw(addr) ({ u16 __v = *(volatile u16 *)(addr); __v; })
-> +
-> +#define __raw_readl(addr) ({ u32 __v = *(volatile u32 *)(addr); __v; })
-> +
-> +#define __raw_writeb(b, addr) (void)((*(volatile u8 *)(addr)) = (b))
-> +
-> +#define __raw_writew(b, addr) (void)((*(volatile u16 *)(addr)) = (b))
-> +
-> +#define __raw_writel(b, addr) (void)((*(volatile u32 *)(addr)) = (b))
-> +
-> +#define readb __raw_readb
-> +#define readw __raw_readw
-> +#define readl __raw_readl
-> +#define writeb __raw_writeb
-> +#define writew __raw_writew
-> +#define writel __raw_writel
-
-We have recently changed this so you now have to provide readl_relaxed()
-and writel_relaxed() as well.
-
-As a side-note: The current definition here prevents you from ever
-using PCI devices, which are by definition little-endian. If there is
-any chance that you might need to support PCI devices later, better
-don't use the readl/writel family of accessors for platform specific
-drivers and use ioread_be32/iowrite_be32 (or an h8300-specific variant
-thereof) for any big-endian devices, and define read() etc to do a
-byte swap.
-
-> +#if defined(CONFIG_H83069)
-> +#define ABWCR  0xFEE020
-> +#elif defined(CONFIG_H8S2678)
-> +#define ABWCR  0xFFFEC0
-> +#endif
-> +
-> +#ifdef CONFIG_H8300_BUBSSWAP
-> +#define _swapw(x) __builtin_bswap16(x)
-> +#define _swapl(x) __builtin_bswap32(x)
-> +#else
-> +#define _swapw(x) (x)
-> +#define _swapl(x) (x)
-> +#endif
-
-Is this swapping configurable by software? The best way to do this
-is normally not to do any bus swapping in hardware at all but
-let the drivers take care of it, otherwise you will get things
-wrong in the end.
-
-> +static inline void io_outsw(unsigned int addr, const void *buf, int len)
-> +{
-> +	volatile unsigned short *ap = (volatile unsigned short *) addr;
-> +	unsigned short *bp = (unsigned short *) buf;
-> +
-> +	while (len--)
-> +		*ap = _swapw(*bp++);
-> +}
-> +
-> +static inline void io_outsl(unsigned int addr, const void *buf, int len)
-> +{
-> +	volatile unsigned short *ap = (volatile unsigned short *) addr;
-> +	unsigned short *bp = (unsigned short *) buf;
-> +
-> +	while (len--) {
-> +		*(ap + 1) = _swapw(*(bp + 0));
-> +		*(ap + 0) = _swapw(*(bp + 1));
-> +		bp += 2;
-> +	}
-> +}
-
-In particular, the outsw/insw/readsw/writesw/iowrite16_rep/ioread16_rep()
-family of function is assumed to never perform any byte swapping, because
-they are used to access FIFO registers from a lot of the drivers. These
-FIFOs normally contain byte streams in memory order, and Linux drivers
-are written to assume that normal mmio registers may need byte swaps while
-fifo registers don't.
-
-What you have here is basically doing the opposite: you assume that
-mmio registers are configured to be the same endianess as the CPU
-by using an extra hardware bus swap, while the fifos will need to be
-swapped back as a side effect of the hardware swap.
-
-This can work if none of your drivers are shared with other architectures,
-but the more you share, the more problems it will cause.
-
-> +
-> +#define inb(addr)    ((h8300_buswidth(addr)) ? \
-> +		      __raw_readw((addr) & ~1) & 0xff:__raw_readb(addr))
-> +#define inw(addr)    _swapw(__raw_readw(addr))
-> +#define inl(addr)    (_swapw(__raw_readw(addr) << 16 | \
-> +			     _swapw(__raw_readw(addr + 2))))
-> +#define outb(x, addr) ((void)((h8300_buswidth(addr) && ((addr) & 1)) ? \
-> +			      __raw_writeb(x, (addr) & ~1) : \
-> +			      __raw_writeb(x, addr)))
-> +#define outw(x, addr) ((void) __raw_writew(_swapw(x), addr))
-> +#define outl(x, addr) \
-> +		((void) __raw_writel(_swapw(x & 0xffff) | \
-> +				      _swapw(x >> 16) << 16, addr))
-> +
-> +#define inb_p(addr)    inb(addr)
-> +#define inw_p(addr)    inw(addr)
-> +#define inl_p(addr)    inl(addr)
-> +#define outb_p(x, addr) outb(x, addr)
-> +#define outw_p(x, addr) outw(x, addr)
-> +#define outl_p(x, addr) outl(x, addr)
-> +
-> +#define outsb(a, b, l) io_outsb(a, b, l)
-> +#define outsw(a, b, l) io_outsw(a, b, l)
-> +#define outsl(a, b, l) io_outsl(a, b, l)
-> +
-> +#define insb(a, b, l) io_insb(a, b, l)
-> +#define insw(a, b, l) io_insw(a, b, l)
-> +#define insl(a, b, l) io_insl(a, b, l)
-
-It's probably better not to define these macros if you do not have
-PCI devices. They have a very specific meaning on PCI, and you
-don't seem to use them this way.
-
-> +#define IO_SPACE_LIMIT 0xffffff
-
-In particular, you don't enforce the IO_SPACE_LIMIT for the
-addresses: What you normally have is one part of the physical
-address space that maps to PCI I/O ports, so your inb would look
-like
-
-#define inb(addr) (readl(IO_SPACE_START + (addr & IO_SPACE_LIMIT))
-
-> +#define ioread8(a)		__raw_readb(a)
-> +#define ioread16(a)		__raw_readw(a)
-> +#define ioread32(a)		__raw_readl(a)
-> +
-> +#define iowrite8(v, a)		__raw_writeb((v), (a))
-> +#define iowrite16(v, a)		__raw_writew((v), (a))
-> +#define iowrite32(v, a)		__raw_writel((v), (a))
-> +
-> +#define ioread8_rep(p, d, c)	insb(p, d, c)
-> +#define ioread16_rep(p, d, c)	insw(p, d, c)
-> +#define ioread32_rep(p, d, c)	insl(p, d, c)
-> +#define iowrite8_rep(p, s, c)	outsb(p, s, c)
-> +#define iowrite16_rep(p, s, c)	outsw(p, s, c)
-> +#define iowrite32_rep(p, s, c)	outsl(p, s, c)
-
-
-> diff --git a/arch/h8300/include/asm/smp.h b/arch/h8300/include/asm/smp.h
-> new file mode 100644
-> index 0000000..9e9bd7e
-> --- /dev/null
-> +++ b/arch/h8300/include/asm/smp.h
-> @@ -0,0 +1 @@
-> +/* nothing required here yet */
-> diff --git a/arch/h8300/include/asm/spinlock.h b/arch/h8300/include/asm/spinlock.h
-> new file mode 100644
-> index 0000000..d5407fa
-> --- /dev/null
-> +++ b/arch/h8300/include/asm/spinlock.h
-> @@ -0,0 +1,6 @@
-> +#ifndef __H8300_SPINLOCK_H
-> +#define __H8300_SPINLOCK_H
-> +
-> +#error "H8/300 doesn't do SMP yet"
-> +
-> +#endif
-
-generic file?
-
-> diff --git a/arch/h8300/include/asm/topology.h b/arch/h8300/include/asm/topology.h
-> new file mode 100644
-> index 0000000..fdc1219
-> --- /dev/null
-> +++ b/arch/h8300/include/asm/topology.h
-> @@ -0,0 +1,6 @@
-> +#ifndef _ASM_H8300_TOPOLOGY_H
-> +#define _ASM_H8300_TOPOLOGY_H
-> +
-> +#include <asm-generic/topology.h>
-> +
-> +#endif /* _ASM_H8300_TOPOLOGY_H */
-
-same here
+I think you should use the asm-generic version here, not just to make your
+code smaller, but also to ensure you have the gneeric ABI.
 
 	Arnd
