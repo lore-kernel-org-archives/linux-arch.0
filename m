@@ -1,451 +1,275 @@
-From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [PATCH 3.14 35/42] vm: add VM_FAULT_SIGSEGV handling support
-Date: Sun, 26 Apr 2015 16:01:54 +0200
-Message-ID: <20150426134249.699481956@linuxfoundation.org>
-References: <20150426134248.160161895@linuxfoundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15
-Return-path: <stable-owner@vger.kernel.org>
-In-Reply-To: <20150426134248.160161895@linuxfoundation.org>
-Sender: stable-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, stable@vger.kernel.org, Jan Engelhardt <jengelh@inai.de>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Sheng Yong <shengyong1@huawei.com>
+From: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
+Subject: [PATCH v4 00/10] an introduction of Linux library operating system (LibOS)
+Date: Mon, 27 Apr 2015 12:00:08 +0900
+Message-ID: <1430103618-10832-1-git-send-email-tazaki@sfc.wide.ad.jp>
+References: <1429450104-47619-1-git-send-email-tazaki@sfc.wide.ad.jp>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1429450104-47619-1-git-send-email-tazaki@sfc.wide.ad.jp>
+Sender: owner-linux-mm@kvack.org
+To: linux-arch@vger.kernel.org
+Cc: Hajime Tazaki <tazaki@sfc.wide.ad.jp>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Christoph Lameter <cl@linux.com>, Jekka Enberg <penberg@kernel.org>, Javid Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Jndrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Rusty Russell <rusty@rustcorp.com.au>, Ryo Nakamura <upa@haeena.net>, Christoph Paasch <christoph.paasch@gmail.com>, Mathieu Lacage <mathieu.lacage@gmail.com>, libos-nuse@googlegroups.com
 List-Id: linux-arch.vger.kernel.org
 
-3.14-stable review patch.  If anyone has any objections, please let me know.
+This is the 4th version of Linux LibOS patchset which reflects a
+couple of comments received from people.
 
-------------------
+changes from v3:
+- Patch 09/10 ("lib: libos build scripts and documentation")
+1) Remove RFC (now it's a proposal)
+2) build environment cleanup (commented by Paul Bolle)
+- Overall
+3) change based tree from arnd/asm-generic to torvalds/linux.git
+   (commented by Richard Weinberger)
+4) rebased to Linux 4.1-rc1 (b787f68c36d49bb1d9236f403813641efa74a031)
+5) change the title of cover letter a bit
 
-From: Linus Torvalds <torvalds@linux-foundation.org>
+changes from v2:
+- Patch 02/11 ("slab: add private memory allocator header for arch/lib")
+1) add new allocator named SLIB (Library Allocator): Patch 04/11 is integrated
+   to 02 (commented by Christoph Lameter)
+- Overall
+2) rewrite commit log messages
 
-commit 33692f27597fcab536d7cbbcc8f52905133e4aa7 upstream.
+changes from v1:
+- Patch 01/11 ("sysctl: make some functions unstatic to access by arch/lib"):
+1) add prefix ctl_table_ to newly publiced functions (commented by Joe Perches)
+- Patch 08/11 ("lib: other kernel glue layer code"):
+2) significantly reduce glue codes (stubs) (commented by Richard Weinberger)
+- Others
+3) adapt to linux-4.0.0
+4) detect make dependency by Kbuild .cmd files
 
-The core VM already knows about VM_FAULT_SIGBUS, but cannot return a
-"you should SIGSEGV" error, because the SIGSEGV case was generally
-handled by the caller - usually the architecture fault handler.
+patchset history
+-----------------
+[v3] : https://lkml.org/lkml/2015/4/19/63
+[v2] : https://lkml.org/lkml/2015/4/17/140
+[v1] : https://lkml.org/lkml/2015/3/24/254
 
-That results in lots of duplication - all the architecture fault
-handlers end up doing very similar "look up vma, check permissions, do
-retries etc" - but it generally works.  However, there are cases where
-the VM actually wants to SIGSEGV, and applications _expect_ SIGSEGV.
+This is an introduction of Linux library operating system (LibOS).
 
-In particular, when accessing the stack guard page, libsigsegv expects a
-SIGSEGV.  And it usually got one, because the stack growth is handled by
-that duplicated architecture fault handler.
+Our objective is to build the kernel network stack as a shared library
+that can be linked to by userspace programs to provide network stack
+personalization and testing facilities, and allow researchers to more
+easily simulate complex network topologies of linux routers/hosts.
 
-However, when the generic VM layer started propagating the error return
-from the stack expansion in commit fee7e49d4514 ("mm: propagate error
-from stack expansion even for guard page"), that now exposed the
-existing VM_FAULT_SIGBUS result to user space.  And user space really
-expected SIGSEGV, not SIGBUS.
+Although the architecture itself can virtualize various things, the
+current design only focuses on the network stack. You can benefit
+network stack feature such as TCP, UDP, SCTP, DCCP (IPv4 and IPv6),
+Mobie IPv6, Multipath TCP (IPv4/IPv6, out-of-tree at the present
+moment), and netlink with various userspace applications (quagga,
+iproute2, iperf, wget, and thttpd).
 
-To fix that case, we need to add a VM_FAULT_SIGSEGV, and teach all those
-duplicate architecture fault handlers about it.  They all already have
-the code to handle SIGSEGV, so it's about just tying that new return
-value to the existing code, but it's all a bit annoying.
+== What is LibOS ? ==
 
-This is the mindless minimal patch to do this.  A more extensive patch
-would be to try to gather up the mostly shared fault handling logic into
-one generic helper routine, and long-term we really should do that
-cleanup.
+The library exposes an entry point as API, which is lib_init(), in
+order to connect userspace applications to the (userspace-version)
+kernel network stack. The clock source, virtual struct net_device, and
+scheduler are provided by caller while kernel resource like system
+calls is provided by callee.
 
-Just from this patch, you can generally see that most architectures just
-copied (directly or indirectly) the old x86 way of doing things, but in
-the meantime that original x86 model has been improved to hold the VM
-semaphore for shorter times etc and to handle VM_FAULT_RETRY and other
-"newer" things, so it would be a good idea to bring all those
-improvements to the generic case and teach other architectures about
-them too.
+Once the LibOS is initialized via the API, userspace applications with
+POSIX socket can use the system calls defined in LibOS by replacing
+from the original socket-related symbols to the LibOS-specific
+one. Then application can benefit the network stack of LibOS without
+involving the host network stack.
 
-Reported-and-tested-by: Takashi Iwai <tiwai@suse.de>
-Tested-by: Jan Engelhardt <jengelh@inai.de>
-Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com> # "s390 still compiles and boots"
-Cc: linux-arch@vger.kernel.org
-Cc: stable@vger.kernel.org
-Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
-[shengyong: Backport to 3.14
- - adjust context
- - ignore modification for arch nios2, because 3.14 does not support it
- - add SIGSEGV handling to powerpc/cell spu_fault.c, because 3.14 does not
-   separate it to copro_fault.c
- - add SIGSEGV handling to mm/memory.c, because 3.14 does not separate it
-   to gup.c
-]
-Signed-off-by: Sheng Yong <shengyong1@huawei.com>
-Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
----
- arch/alpha/mm/fault.c                        |    2 ++
- arch/arc/mm/fault.c                          |    2 ++
- arch/avr32/mm/fault.c                        |    2 ++
- arch/cris/mm/fault.c                         |    2 ++
- arch/frv/mm/fault.c                          |    2 ++
- arch/ia64/mm/fault.c                         |    2 ++
- arch/m32r/mm/fault.c                         |    2 ++
- arch/m68k/mm/fault.c                         |    2 ++
- arch/metag/mm/fault.c                        |    2 ++
- arch/microblaze/mm/fault.c                   |    2 ++
- arch/mips/mm/fault.c                         |    2 ++
- arch/mn10300/mm/fault.c                      |    2 ++
- arch/openrisc/mm/fault.c                     |    2 ++
- arch/parisc/mm/fault.c                       |    2 ++
- arch/powerpc/mm/fault.c                      |    2 ++
- arch/powerpc/platforms/cell/spu_fault.c      |    2 +-
- arch/s390/mm/fault.c                         |    6 ++++++
- arch/score/mm/fault.c                        |    2 ++
- arch/sh/mm/fault.c                           |    2 ++
- arch/sparc/mm/fault_32.c                     |    2 ++
- arch/sparc/mm/fault_64.c                     |    2 ++
- arch/tile/mm/fault.c                         |    2 ++
- arch/um/kernel/trap.c                        |    2 ++
- arch/x86/mm/fault.c                          |    2 ++
- arch/xtensa/mm/fault.c                       |    2 ++
- drivers/staging/lustre/lustre/llite/vvp_io.c |    2 +-
- include/linux/mm.h                           |    6 ++++--
- mm/ksm.c                                     |    2 +-
- mm/memory.c                                  |    5 +++--
- 29 files changed, 62 insertions(+), 7 deletions(-)
+Currently, there are two users of LibOS: Network Stack in Userspace
+(NUSE) and ns-3 network simulatior with Direct Code Execution
+(DCE). These codes are managed at an external repository(*1).
 
---- a/arch/alpha/mm/fault.c
-+++ b/arch/alpha/mm/fault.c
-@@ -156,6 +156,8 @@ retry:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
---- a/arch/arc/mm/fault.c
-+++ b/arch/arc/mm/fault.c
-@@ -162,6 +162,8 @@ good_area:
- 	/* TBD: switch to pagefault_out_of_memory() */
- 	if (fault & VM_FAULT_OOM)
- 		goto out_of_memory;
-+	else if (fault & VM_FAULT_SIGSEV)
-+		goto bad_area;
- 	else if (fault & VM_FAULT_SIGBUS)
- 		goto do_sigbus;
- 
---- a/arch/avr32/mm/fault.c
-+++ b/arch/avr32/mm/fault.c
-@@ -142,6 +142,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
---- a/arch/cris/mm/fault.c
-+++ b/arch/cris/mm/fault.c
-@@ -176,6 +176,8 @@ retry:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
---- a/arch/frv/mm/fault.c
-+++ b/arch/frv/mm/fault.c
-@@ -168,6 +168,8 @@ asmlinkage void do_page_fault(int datamm
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
---- a/arch/ia64/mm/fault.c
-+++ b/arch/ia64/mm/fault.c
-@@ -172,6 +172,8 @@ retry:
- 		 */
- 		if (fault & VM_FAULT_OOM) {
- 			goto out_of_memory;
-+		} else if (fault & VM_FAULT_SIGSEGV) {
-+			goto bad_area;
- 		} else if (fault & VM_FAULT_SIGBUS) {
- 			signal = SIGBUS;
- 			goto bad_area;
---- a/arch/m32r/mm/fault.c
-+++ b/arch/m32r/mm/fault.c
-@@ -200,6 +200,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
---- a/arch/m68k/mm/fault.c
-+++ b/arch/m68k/mm/fault.c
-@@ -145,6 +145,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto map_err;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto bus_err;
- 		BUG();
---- a/arch/metag/mm/fault.c
-+++ b/arch/metag/mm/fault.c
-@@ -141,6 +141,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
---- a/arch/microblaze/mm/fault.c
-+++ b/arch/microblaze/mm/fault.c
-@@ -224,6 +224,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
---- a/arch/mips/mm/fault.c
-+++ b/arch/mips/mm/fault.c
-@@ -158,6 +158,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
---- a/arch/mn10300/mm/fault.c
-+++ b/arch/mn10300/mm/fault.c
-@@ -262,6 +262,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
---- a/arch/openrisc/mm/fault.c
-+++ b/arch/openrisc/mm/fault.c
-@@ -171,6 +171,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
---- a/arch/parisc/mm/fault.c
-+++ b/arch/parisc/mm/fault.c
-@@ -256,6 +256,8 @@ good_area:
- 		 */
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto bad_area;
- 		BUG();
---- a/arch/powerpc/mm/fault.c
-+++ b/arch/powerpc/mm/fault.c
-@@ -432,6 +432,8 @@ good_area:
- 	 */
- 	fault = handle_mm_fault(mm, vma, address, flags);
- 	if (unlikely(fault & (VM_FAULT_RETRY|VM_FAULT_ERROR))) {
-+		if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		rc = mm_fault_error(regs, address, fault);
- 		if (rc >= MM_FAULT_RETURN)
- 			goto bail;
---- a/arch/powerpc/platforms/cell/spu_fault.c
-+++ b/arch/powerpc/platforms/cell/spu_fault.c
-@@ -75,7 +75,7 @@ int spu_handle_mm_fault(struct mm_struct
- 		if (*flt & VM_FAULT_OOM) {
- 			ret = -ENOMEM;
- 			goto out_unlock;
--		} else if (*flt & VM_FAULT_SIGBUS) {
-+		} else if (*flt & (VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV)) {
- 			ret = -EFAULT;
- 			goto out_unlock;
- 		}
---- a/arch/s390/mm/fault.c
-+++ b/arch/s390/mm/fault.c
-@@ -239,6 +239,12 @@ static noinline void do_fault_error(stru
- 				do_no_context(regs);
- 			else
- 				pagefault_out_of_memory();
-+		} else if (fault & VM_FAULT_SIGSEGV) {
-+			/* Kernel mode? Handle exceptions or die */
-+			if (!user_mode(regs))
-+				do_no_context(regs);
-+			else
-+				do_sigsegv(regs, SEGV_MAPERR);
- 		} else if (fault & VM_FAULT_SIGBUS) {
- 			/* Kernel mode? Handle exceptions or die */
- 			if (!user_mode(regs))
---- a/arch/score/mm/fault.c
-+++ b/arch/score/mm/fault.c
-@@ -114,6 +114,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
---- a/arch/sh/mm/fault.c
-+++ b/arch/sh/mm/fault.c
-@@ -353,6 +353,8 @@ mm_fault_error(struct pt_regs *regs, uns
- 	} else {
- 		if (fault & VM_FAULT_SIGBUS)
- 			do_sigbus(regs, error_code, address);
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			bad_area(regs, error_code, address);
- 		else
- 			BUG();
- 	}
---- a/arch/sparc/mm/fault_32.c
-+++ b/arch/sparc/mm/fault_32.c
-@@ -252,6 +252,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
---- a/arch/sparc/mm/fault_64.c
-+++ b/arch/sparc/mm/fault_64.c
-@@ -448,6 +448,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
---- a/arch/tile/mm/fault.c
-+++ b/arch/tile/mm/fault.c
-@@ -444,6 +444,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
---- a/arch/um/kernel/trap.c
-+++ b/arch/um/kernel/trap.c
-@@ -80,6 +80,8 @@ good_area:
- 		if (unlikely(fault & VM_FAULT_ERROR)) {
- 			if (fault & VM_FAULT_OOM) {
- 				goto out_of_memory;
-+			} else if (fault & VM_FAULT_SIGSEGV) {
-+				goto out;
- 			} else if (fault & VM_FAULT_SIGBUS) {
- 				err = -EACCES;
- 				goto out;
---- a/arch/x86/mm/fault.c
-+++ b/arch/x86/mm/fault.c
-@@ -894,6 +894,8 @@ mm_fault_error(struct pt_regs *regs, uns
- 		if (fault & (VM_FAULT_SIGBUS|VM_FAULT_HWPOISON|
- 			     VM_FAULT_HWPOISON_LARGE))
- 			do_sigbus(regs, error_code, address, fault);
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			bad_area_nosemaphore(regs, error_code, address);
- 		else
- 			BUG();
- 	}
---- a/arch/xtensa/mm/fault.c
-+++ b/arch/xtensa/mm/fault.c
-@@ -117,6 +117,8 @@ good_area:
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-+		else if (fault & VM_FAULT_SIGSEGV)
-+			goto bad_area;
- 		else if (fault & VM_FAULT_SIGBUS)
- 			goto do_sigbus;
- 		BUG();
---- a/drivers/staging/lustre/lustre/llite/vvp_io.c
-+++ b/drivers/staging/lustre/lustre/llite/vvp_io.c
-@@ -642,7 +642,7 @@ static int vvp_io_kernel_fault(struct vv
- 		return 0;
- 	}
- 
--	if (cfio->fault.ft_flags & VM_FAULT_SIGBUS) {
-+	if (cfio->fault.ft_flags & (VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV)) {
- 		CDEBUG(D_PAGE, "got addr %p - SIGBUS\n", vmf->virtual_address);
- 		return -EFAULT;
- 	}
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -1009,6 +1009,7 @@ static inline int page_mapped(struct pag
- #define VM_FAULT_WRITE	0x0008	/* Special case for get_user_pages */
- #define VM_FAULT_HWPOISON 0x0010	/* Hit poisoned small page */
- #define VM_FAULT_HWPOISON_LARGE 0x0020  /* Hit poisoned large page. Index encoded in upper bits */
-+#define VM_FAULT_SIGSEGV 0x0040
- 
- #define VM_FAULT_NOPAGE	0x0100	/* ->fault installed the pte, not return page */
- #define VM_FAULT_LOCKED	0x0200	/* ->fault locked the returned page */
-@@ -1017,8 +1018,9 @@ static inline int page_mapped(struct pag
- 
- #define VM_FAULT_HWPOISON_LARGE_MASK 0xf000 /* encodes hpage index for large hwpoison */
- 
--#define VM_FAULT_ERROR	(VM_FAULT_OOM | VM_FAULT_SIGBUS | VM_FAULT_HWPOISON | \
--			 VM_FAULT_FALLBACK | VM_FAULT_HWPOISON_LARGE)
-+#define VM_FAULT_ERROR	(VM_FAULT_OOM | VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV | \
-+			 VM_FAULT_HWPOISON | VM_FAULT_HWPOISON_LARGE | \
-+			 VM_FAULT_FALLBACK)
- 
- /* Encode hstate index for a hwpoisoned large page */
- #define VM_FAULT_SET_HINDEX(x) ((x) << 12)
---- a/mm/ksm.c
-+++ b/mm/ksm.c
-@@ -376,7 +376,7 @@ static int break_ksm(struct vm_area_stru
- 		else
- 			ret = VM_FAULT_WRITE;
- 		put_page(page);
--	} while (!(ret & (VM_FAULT_WRITE | VM_FAULT_SIGBUS | VM_FAULT_OOM)));
-+	} while (!(ret & (VM_FAULT_WRITE | VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV | VM_FAULT_OOM)));
- 	/*
- 	 * We must loop because handle_mm_fault() may back out if there's
- 	 * any difficulty e.g. if pte accessed bit gets updated concurrently.
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -1836,7 +1836,8 @@ long __get_user_pages(struct task_struct
- 						else
- 							return -EFAULT;
- 					}
--					if (ret & VM_FAULT_SIGBUS)
-+					if (ret & (VM_FAULT_SIGBUS |
-+						   VM_FAULT_SIGSEGV))
- 						return i ? i : -EFAULT;
- 					BUG();
- 				}
-@@ -1946,7 +1947,7 @@ int fixup_user_fault(struct task_struct
- 			return -ENOMEM;
- 		if (ret & (VM_FAULT_HWPOISON | VM_FAULT_HWPOISON_LARGE))
- 			return -EHWPOISON;
--		if (ret & VM_FAULT_SIGBUS)
-+		if (ret & (VM_FAULT_SIGBUS | VM_FAULT_SIGSEGV))
- 			return -EFAULT;
- 		BUG();
- 	}
+
+== How to use it ? ==
+
+to build the library,
+% make {defconfig,menuconfig} ARCH=lib
+
+then, build it.
+% make library ARCH=lib
+
+You will see liblinux-$(KERNELVERSION).so in the top directory.
+
+== More information ==
+
+The crucial difference between UML (user-mode linux) and this approach
+is that we allow multiple network stack instances to co-exist within a
+single process with dlmopen(3) like linking for easy debugging.
+
+
+These patches are also available on this branch:
+
+git://github.com/libos-nuse/net-next-nuse.git for-linus-upstream-libos-v4
+
+(based on the commit b787f68c36d49bb1d9236f403813641efa74a031 of torvalds/linux.git)
+
+
+For further information, here is a slideset presented at the last
+netdev0.1 conference.
+
+http://www.slideshare.net/hajimetazaki/library-operating-system-for-linux-netdev01
+
+I would appreciate any kind of your feedback regarding to upstream
+this feature.
+
+*1 https://github.com/libos-nuse/linux-libos-tools
+
+Hajime Tazaki (10):
+  sysctl: make some functions unstatic to access by arch/lib
+  slab: add SLIB (Library memory allocator) for  arch/lib
+  lib: public headers and API implementations for userspace programs
+  lib: time handling (kernel glue code)
+  lib: context and scheduling functions (kernel glue code) for libos
+  lib: sysctl handling (kernel glue code)
+  lib: other kernel glue layer code
+  lib: auxially files for auto-generated asm-generic files of libos
+  lib: libos build scripts and documentation
+  lib: tools used for test scripts
+
+ Documentation/virtual/libos-howto.txt | 144 ++++++++
+ MAINTAINERS                           |   9 +
+ arch/lib/.gitignore                   |   3 +
+ arch/lib/Kconfig                      | 124 +++++++
+ arch/lib/Makefile                     | 224 ++++++++++++
+ arch/lib/Makefile.print               |  45 +++
+ arch/lib/capability.c                 |  25 ++
+ arch/lib/defconfig                    | 653 ++++++++++++++++++++++++++++++++++
+ arch/lib/filemap.c                    |  32 ++
+ arch/lib/fs.c                         |  70 ++++
+ arch/lib/generate-linker-script.py    |  50 +++
+ arch/lib/glue.c                       | 289 +++++++++++++++
+ arch/lib/hrtimer.c                    | 122 +++++++
+ arch/lib/include/asm/Kbuild           |  57 +++
+ arch/lib/include/asm/atomic.h         |  50 +++
+ arch/lib/include/asm/barrier.h        |   8 +
+ arch/lib/include/asm/bitsperlong.h    |  16 +
+ arch/lib/include/asm/current.h        |   7 +
+ arch/lib/include/asm/elf.h            |  10 +
+ arch/lib/include/asm/hardirq.h        |   8 +
+ arch/lib/include/asm/page.h           |  14 +
+ arch/lib/include/asm/pgtable.h        |  30 ++
+ arch/lib/include/asm/processor.h      |  19 +
+ arch/lib/include/asm/ptrace.h         |   4 +
+ arch/lib/include/asm/segment.h        |   6 +
+ arch/lib/include/asm/sembuf.h         |   4 +
+ arch/lib/include/asm/shmbuf.h         |   4 +
+ arch/lib/include/asm/shmparam.h       |   4 +
+ arch/lib/include/asm/sigcontext.h     |   6 +
+ arch/lib/include/asm/stat.h           |   4 +
+ arch/lib/include/asm/statfs.h         |   4 +
+ arch/lib/include/asm/swab.h           |   7 +
+ arch/lib/include/asm/thread_info.h    |  36 ++
+ arch/lib/include/asm/uaccess.h        |  14 +
+ arch/lib/include/asm/unistd.h         |   4 +
+ arch/lib/include/sim-assert.h         |  23 ++
+ arch/lib/include/sim-init.h           | 134 +++++++
+ arch/lib/include/sim-printf.h         |  13 +
+ arch/lib/include/sim-types.h          |  53 +++
+ arch/lib/include/sim.h                |  51 +++
+ arch/lib/include/uapi/asm/byteorder.h |   6 +
+ arch/lib/lib-device.c                 | 187 ++++++++++
+ arch/lib/lib-socket.c                 | 410 +++++++++++++++++++++
+ arch/lib/lib.c                        | 294 +++++++++++++++
+ arch/lib/lib.h                        |  21 ++
+ arch/lib/modules.c                    |  36 ++
+ arch/lib/pid.c                        |  29 ++
+ arch/lib/print.c                      |  56 +++
+ arch/lib/proc.c                       |  34 ++
+ arch/lib/random.c                     |  53 +++
+ arch/lib/sched.c                      | 406 +++++++++++++++++++++
+ arch/lib/softirq.c                    | 108 ++++++
+ arch/lib/sysctl.c                     | 270 ++++++++++++++
+ arch/lib/sysfs.c                      |  83 +++++
+ arch/lib/tasklet-hrtimer.c            |  57 +++
+ arch/lib/tasklet.c                    |  76 ++++
+ arch/lib/time.c                       | 144 ++++++++
+ arch/lib/timer.c                      | 238 +++++++++++++
+ arch/lib/vmscan.c                     |  26 ++
+ arch/lib/workqueue.c                  | 242 +++++++++++++
+ fs/proc/proc_sysctl.c                 |  36 +-
+ include/linux/slab.h                  |   6 +-
+ include/linux/slib_def.h              |  21 ++
+ mm/Makefile                           |   1 +
+ mm/slab.h                             |   4 +
+ mm/slib.c                             | 205 +++++++++++
+ tools/testing/libos/.gitignore        |   6 +
+ tools/testing/libos/Makefile          |  38 ++
+ tools/testing/libos/README            |  15 +
+ tools/testing/libos/bisect.sh         |  10 +
+ tools/testing/libos/dce-test.sh       |  23 ++
+ tools/testing/libos/nuse-test.sh      |  57 +++
+ 72 files changed, 5560 insertions(+), 18 deletions(-)
+ create mode 100644 Documentation/virtual/libos-howto.txt
+ create mode 100644 arch/lib/.gitignore
+ create mode 100644 arch/lib/Kconfig
+ create mode 100644 arch/lib/Makefile
+ create mode 100644 arch/lib/Makefile.print
+ create mode 100644 arch/lib/capability.c
+ create mode 100644 arch/lib/defconfig
+ create mode 100644 arch/lib/filemap.c
+ create mode 100644 arch/lib/fs.c
+ create mode 100755 arch/lib/generate-linker-script.py
+ create mode 100644 arch/lib/glue.c
+ create mode 100644 arch/lib/hrtimer.c
+ create mode 100644 arch/lib/include/asm/Kbuild
+ create mode 100644 arch/lib/include/asm/atomic.h
+ create mode 100644 arch/lib/include/asm/barrier.h
+ create mode 100644 arch/lib/include/asm/bitsperlong.h
+ create mode 100644 arch/lib/include/asm/current.h
+ create mode 100644 arch/lib/include/asm/elf.h
+ create mode 100644 arch/lib/include/asm/hardirq.h
+ create mode 100644 arch/lib/include/asm/page.h
+ create mode 100644 arch/lib/include/asm/pgtable.h
+ create mode 100644 arch/lib/include/asm/processor.h
+ create mode 100644 arch/lib/include/asm/ptrace.h
+ create mode 100644 arch/lib/include/asm/segment.h
+ create mode 100644 arch/lib/include/asm/sembuf.h
+ create mode 100644 arch/lib/include/asm/shmbuf.h
+ create mode 100644 arch/lib/include/asm/shmparam.h
+ create mode 100644 arch/lib/include/asm/sigcontext.h
+ create mode 100644 arch/lib/include/asm/stat.h
+ create mode 100644 arch/lib/include/asm/statfs.h
+ create mode 100644 arch/lib/include/asm/swab.h
+ create mode 100644 arch/lib/include/asm/thread_info.h
+ create mode 100644 arch/lib/include/asm/uaccess.h
+ create mode 100644 arch/lib/include/asm/unistd.h
+ create mode 100644 arch/lib/include/sim-assert.h
+ create mode 100644 arch/lib/include/sim-init.h
+ create mode 100644 arch/lib/include/sim-printf.h
+ create mode 100644 arch/lib/include/sim-types.h
+ create mode 100644 arch/lib/include/sim.h
+ create mode 100644 arch/lib/include/uapi/asm/byteorder.h
+ create mode 100644 arch/lib/lib-device.c
+ create mode 100644 arch/lib/lib-socket.c
+ create mode 100644 arch/lib/lib.c
+ create mode 100644 arch/lib/lib.h
+ create mode 100644 arch/lib/modules.c
+ create mode 100644 arch/lib/pid.c
+ create mode 100644 arch/lib/print.c
+ create mode 100644 arch/lib/proc.c
+ create mode 100644 arch/lib/random.c
+ create mode 100644 arch/lib/sched.c
+ create mode 100644 arch/lib/softirq.c
+ create mode 100644 arch/lib/sysctl.c
+ create mode 100644 arch/lib/sysfs.c
+ create mode 100644 arch/lib/tasklet-hrtimer.c
+ create mode 100644 arch/lib/tasklet.c
+ create mode 100644 arch/lib/time.c
+ create mode 100644 arch/lib/timer.c
+ create mode 100644 arch/lib/vmscan.c
+ create mode 100644 arch/lib/workqueue.c
+ create mode 100644 include/linux/slib_def.h
+ create mode 100644 mm/slib.c
+ create mode 100644 tools/testing/libos/.gitignore
+ create mode 100644 tools/testing/libos/Makefile
+ create mode 100644 tools/testing/libos/README
+ create mode 100755 tools/testing/libos/bisect.sh
+ create mode 100755 tools/testing/libos/dce-test.sh
+ create mode 100755 tools/testing/libos/nuse-test.sh
+
+-- 
+2.1.0
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
