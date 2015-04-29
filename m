@@ -1,37 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f44.google.com ([74.125.82.44]:35752 "EHLO
-	mail-wg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S966189AbbD2HbE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Apr 2015 03:31:04 -0400
-Received: by wgyo15 with SMTP id o15so18387812wgy.2
-        for <linux-arch@vger.kernel.org>; Wed, 29 Apr 2015 00:31:03 -0700 (PDT)
-Message-ID: <554088B4.2020804@plexistor.com>
-Date: Wed, 29 Apr 2015 10:31:00 +0300
-From: Boaz Harrosh <boaz@plexistor.com>
+Received: from bh-25.webhostbox.net ([208.91.199.152]:44984 "EHLO
+	bh-25.webhostbox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1422971AbbD2NYp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Apr 2015 09:24:45 -0400
+Received: from mailnull by bh-25.webhostbox.net with sa-checked (Exim 4.85)
+	(envelope-from <linux@roeck-us.net>)
+	id 1YnRym-003FTA-7s
+	for linux-arch@vger.kernel.org; Wed, 29 Apr 2015 13:24:44 +0000
+Message-ID: <5540DB99.1070800@roeck-us.net>
+Date: Wed, 29 Apr 2015 06:24:41 -0700
+From: Guenter Roeck <linux@roeck-us.net>
 MIME-Version: 1.0
-Subject: Re: [PATCH] scatterlist: enable sg chaining for all architectures
-References: <1429973776-7499-1-git-send-email-akinobu.mita@gmail.com>	 <20150428142743.578d1c930aca013b596d7546@linux-foundation.org>	 <1430259419.2181.26.camel@HansenPartnership.com>	 <CAC5umyhM6s4dgJt6BQMhVihh3C8uYd+s2XEZB9UTQKK63OXxfQ@mail.gmail.com> <1430273746.2181.49.camel@HansenPartnership.com>
-In-Reply-To: <1430273746.2181.49.camel@HansenPartnership.com>
-Content-Type: text/plain; charset=utf-8
+Subject: Re: [PATCH v9 00/17] Re-introduce h8300 architecture
+References: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp>	<20150428132210.GA7499@roeck-us.net>	<87pp6oi2qy.wl-ysato@users.sourceforge.jp>	<55405F08.7020508@roeck-us.net> <87lhhbihcf.wl-ysato@users.sourceforge.jp>
+In-Reply-To: <87lhhbihcf.wl-ysato@users.sourceforge.jp>
+Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>, Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Christoph Hellwig <hch@lst.de>, "linux-scsi@vger.kernel.org" <linux-scsi@vger.kernel.org>, "Nicholas A. Bellinger" <nab@linux-iscsi.org>, target-devel@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>
-Message-ID: <20150429073100.KcnYI3xb82JccVmRInu-MJCYXb05urZuUDQpcTidfcc@z>
+To: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20150429132441.KdD0_eR2EQGbA3o2TzjdpWxcKdiOjJLxEkZTQWe_e80@z>
 
-On 04/29/2015 05:15 AM, James Bottomley wrote:
-> 
-> Perhaps the best thing to do is just fix target and call it quits?
-> 
+On 04/28/2015 11:22 PM, Yoshinori Sato wrote:
 
-Right! drivers write code for sg_chaining and on ARCHs that do not
-support it the code just works.
-Only the max_sg is smaller and the chaining code never kicks in
-and is dead code for these ARCHs.
+>
+> OK.
+> I made h8300-*-linux target patch for release version.
+> Please apply and rebuild to "h8300-unknown-linux"
+> http://sourceforge.jp/projects/uclinux-h8/releases/p14625
+>
+The binutils patch is similar to the one upstream, but I think
+you might want to check if the latest upstream code is still
+working as intended. The patch was later augmented with
+'Fix recent h8300 configury changes' which, among other changes,
+removed the GENSCRIPTS lines.
 
-> James
-
-Cheers
-Boaz
+Thanks,
+Guenter
 
