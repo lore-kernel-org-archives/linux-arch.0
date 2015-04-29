@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:59146 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:59117 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751414AbbD2TWo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 29 Apr 2015 15:22:44 -0400
-Subject: [PATCH 11/13] test_taint() should return bool
+	id S1751414AbbD2TWi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 29 Apr 2015 15:22:38 -0400
+Subject: [PATCH 10/13] Use bool with jbd2_journal_cancel_revoke()
 From: David Howells <dhowells@redhat.com>
-Date: Wed, 29 Apr 2015 20:22:40 +0100
-Message-ID: <20150429192240.24909.93842.stgit@warthog.procyon.org.uk>
+Date: Wed, 29 Apr 2015 20:22:34 +0100
+Message-ID: <20150429192233.24909.16973.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20150429192133.24909.43184.stgit@warthog.procyon.org.uk>
 References: <20150429192133.24909.43184.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,43 +16,68 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org
-Message-ID: <20150429192240.657Nlq6cGqmowtcjAVNJDZcaREomUfqqjtmUPbfJVA0@z>
+Message-ID: <20150429192234.qWUu8dW59pH5cbRjp4wppDcjHIeT30bXrbmqtvqZCak@z>
 
-test_taint() should return bool as it returns a boolean value.  This allows
-gcc to make better decisions about using the return value, though it might
-make test_taint() itself slightly bigger.
+jbd2_journal_cancel_revoke() should return a bool as it returns a boolean
+value only, and should use bool type for a couple of internal variables.  This
+allows gcc to make better decisions.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- include/linux/kernel.h |    2 +-
- kernel/panic.c         |    2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ fs/jbd2/revoke.c     |   10 +++++-----
+ include/linux/jbd2.h |    2 +-
+ 2 files changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/include/linux/kernel.h b/include/linux/kernel.h
-index 3a5b48e52a9e..77670ddcd686 100644
---- a/include/linux/kernel.h
-+++ b/include/linux/kernel.h
-@@ -453,7 +453,7 @@ enum lockdep_ok {
- 	LOCKDEP_NOW_UNRELIABLE
- };
- extern void add_taint(unsigned flag, enum lockdep_ok);
--extern int test_taint(unsigned flag);
-+extern bool test_taint(unsigned flag);
- extern unsigned long get_taint(void);
- extern int root_mountflags;
- 
-diff --git a/kernel/panic.c b/kernel/panic.c
-index 8136ad76e5fd..17f056eab21a 100644
---- a/kernel/panic.c
-+++ b/kernel/panic.c
-@@ -272,7 +272,7 @@ const char *print_tainted(void)
- 	return buf;
- }
- 
--int test_taint(unsigned flag)
-+bool test_taint(unsigned flag)
+diff --git a/fs/jbd2/revoke.c b/fs/jbd2/revoke.c
+index c6cbaef2bda1..587b4947f0d0 100644
+--- a/fs/jbd2/revoke.c
++++ b/fs/jbd2/revoke.c
+@@ -417,12 +417,12 @@ int jbd2_journal_revoke(handle_t *handle, unsigned long long blocknr,
+  * do not trust the Revoked bit on buffers unless RevokeValid is also
+  * set.
+  */
+-int jbd2_journal_cancel_revoke(handle_t *handle, struct journal_head *jh)
++bool jbd2_journal_cancel_revoke(handle_t *handle, struct journal_head *jh)
  {
- 	return test_bit(flag, &tainted_mask);
- }
+ 	struct jbd2_revoke_record_s *record;
+ 	journal_t *journal = handle->h_transaction->t_journal;
+-	int need_cancel;
+-	int did_revoke = 0;	/* akpm: debug */
++	bool need_cancel;
++	int did_revoke = false;	/* akpm: debug */
+ 	struct buffer_head *bh = jh2bh(jh);
+ 
+ 	jbd_debug(4, "journal_head %p, cancelling revoke\n", jh);
+@@ -434,7 +434,7 @@ int jbd2_journal_cancel_revoke(handle_t *handle, struct journal_head *jh)
+ 	if (test_set_buffer_revokevalid(bh)) {
+ 		need_cancel = test_clear_buffer_revoked(bh);
+ 	} else {
+-		need_cancel = 1;
++		need_cancel = true;
+ 		clear_buffer_revoked(bh);
+ 	}
+ 
+@@ -447,7 +447,7 @@ int jbd2_journal_cancel_revoke(handle_t *handle, struct journal_head *jh)
+ 			list_del(&record->hash);
+ 			spin_unlock(&journal->j_revoke_lock);
+ 			kmem_cache_free(jbd2_revoke_record_cache, record);
+-			did_revoke = 1;
++			did_revoke = true;
+ 		}
+ 	}
+ 
+diff --git a/include/linux/jbd2.h b/include/linux/jbd2.h
+index 20e7f78041c8..716f1d15e83d 100644
+--- a/include/linux/jbd2.h
++++ b/include/linux/jbd2.h
+@@ -1219,7 +1219,7 @@ extern int	   jbd2_journal_init_revoke_caches(void);
+ 
+ extern void	   jbd2_journal_destroy_revoke(journal_t *);
+ extern int	   jbd2_journal_revoke (handle_t *, unsigned long long, struct buffer_head *);
+-extern int	   jbd2_journal_cancel_revoke(handle_t *, struct journal_head *);
++extern bool	   jbd2_journal_cancel_revoke(handle_t *, struct journal_head *);
+ extern void	   jbd2_journal_write_revoke_records(journal_t *journal,
+ 						     transaction_t *transaction,
+ 						     struct list_head *log_bufs,
 
