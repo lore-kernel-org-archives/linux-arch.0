@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53227 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:59082 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751341AbbD2TVt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 29 Apr 2015 15:21:49 -0400
-Subject: [PATCH 02/13] Make bitmap functions that return boolean values
- return a bool type
+	id S1751414AbbD2TWc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 29 Apr 2015 15:22:32 -0400
+Subject: [PATCH 09/13] input: Use bool and don't use !! on test_bit
 From: David Howells <dhowells@redhat.com>
-Date: Wed, 29 Apr 2015 20:21:46 +0100
-Message-ID: <20150429192146.24909.20484.stgit@warthog.procyon.org.uk>
+Date: Wed, 29 Apr 2015 20:22:28 +0100
+Message-ID: <20150429192228.24909.7027.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20150429192133.24909.43184.stgit@warthog.procyon.org.uk>
 References: <20150429192133.24909.43184.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -17,209 +16,92 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org
-Message-ID: <20150429192146.igAtCQGoa3zjH7ymees9Z2ZxrDdqy9hvQ4eiI3O8sMs@z>
+Message-ID: <20150429192228.euAn6Z-D7PRyhgvDkwQcYICI94AbPId6U0sseu2O8Ho@z>
 
-Make bitmap functions that return boolean values return a bool type.  This
-permits gcc to make better choices and produce fewer warnings.
+Make is_event_supported() return a bool as it returns a boolean value.  This
+will allow gcc to make better decisions.
+
+Don't use '!!' on test_bit() as test_bit() now returns a bool.  This avoids
+gcc-5 warnings about using '!' operators on the LHS of a comparison.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- include/linux/bitmap.h |   30 +++++++++++++++---------------
- lib/bitmap.c           |   32 ++++++++++++++++----------------
- 2 files changed, 31 insertions(+), 31 deletions(-)
+ drivers/hid/hid-input.c |    4 ++--
+ drivers/input/input.c   |   12 ++++++------
+ 2 files changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/include/linux/bitmap.h b/include/linux/bitmap.h
-index ea17cca9e685..46c6cca6fcb4 100644
---- a/include/linux/bitmap.h
-+++ b/include/linux/bitmap.h
-@@ -87,9 +87,9 @@
-  * lib/bitmap.c provides these functions:
-  */
+diff --git a/drivers/hid/hid-input.c b/drivers/hid/hid-input.c
+index 008e89bf6f3c..b470913fdedb 100644
+--- a/drivers/hid/hid-input.c
++++ b/drivers/hid/hid-input.c
+@@ -1157,7 +1157,7 @@ void hidinput_hid_event(struct hid_device *hid, struct hid_field *field, struct
+ 		return;
  
--extern int __bitmap_empty(const unsigned long *bitmap, unsigned int nbits);
--extern int __bitmap_full(const unsigned long *bitmap, unsigned int nbits);
--extern int __bitmap_equal(const unsigned long *bitmap1,
-+extern bool __bitmap_empty(const unsigned long *bitmap, unsigned int nbits);
-+extern bool __bitmap_full(const unsigned long *bitmap, unsigned int nbits);
-+extern bool __bitmap_equal(const unsigned long *bitmap1,
- 			  const unsigned long *bitmap2, unsigned int nbits);
- extern void __bitmap_complement(unsigned long *dst, const unsigned long *src,
- 			unsigned int nbits);
-@@ -97,17 +97,17 @@ extern void __bitmap_shift_right(unsigned long *dst, const unsigned long *src,
- 				unsigned int shift, unsigned int nbits);
- extern void __bitmap_shift_left(unsigned long *dst, const unsigned long *src,
- 				unsigned int shift, unsigned int nbits);
--extern int __bitmap_and(unsigned long *dst, const unsigned long *bitmap1,
--			const unsigned long *bitmap2, unsigned int nbits);
-+extern bool __bitmap_and(unsigned long *dst, const unsigned long *bitmap1,
-+			 const unsigned long *bitmap2, unsigned int nbits);
- extern void __bitmap_or(unsigned long *dst, const unsigned long *bitmap1,
- 			const unsigned long *bitmap2, unsigned int nbits);
- extern void __bitmap_xor(unsigned long *dst, const unsigned long *bitmap1,
- 			const unsigned long *bitmap2, unsigned int nbits);
--extern int __bitmap_andnot(unsigned long *dst, const unsigned long *bitmap1,
-+extern bool __bitmap_andnot(unsigned long *dst, const unsigned long *bitmap1,
- 			const unsigned long *bitmap2, unsigned int nbits);
--extern int __bitmap_intersects(const unsigned long *bitmap1,
-+extern bool __bitmap_intersects(const unsigned long *bitmap1,
- 			const unsigned long *bitmap2, unsigned int nbits);
--extern int __bitmap_subset(const unsigned long *bitmap1,
-+extern bool __bitmap_subset(const unsigned long *bitmap1,
- 			const unsigned long *bitmap2, unsigned int nbits);
- extern int __bitmap_weight(const unsigned long *bitmap, unsigned int nbits);
+ 	/* report the usage code as scancode if the key status has changed */
+-	if (usage->type == EV_KEY && !!test_bit(usage->code, input->key) != value)
++	if (usage->type == EV_KEY && test_bit(usage->code, input->key) != value)
+ 		input_event(input, EV_MSC, MSC_SCAN, usage->hid);
  
-@@ -209,7 +209,7 @@ static inline void bitmap_copy(unsigned long *dst, const unsigned long *src,
- 	}
+ 	input_event(input, usage->type, usage->code, value);
+@@ -1411,7 +1411,7 @@ static bool hidinput_has_been_populated(struct hid_input *hidinput)
+ 	for (i = 0; i < BITS_TO_LONGS(SW_CNT); i++)
+ 		r |= hidinput->input->swbit[i];
+ 
+-	return !!r;
++	return r != 0;
  }
  
--static inline int bitmap_and(unsigned long *dst, const unsigned long *src1,
-+static inline bool bitmap_and(unsigned long *dst, const unsigned long *src1,
- 			const unsigned long *src2, unsigned int nbits)
+ static void hidinput_cleanup_hidinput(struct hid_device *hid,
+diff --git a/drivers/input/input.c b/drivers/input/input.c
+index cc357f1516a7..49bf0cadcc6b 100644
+--- a/drivers/input/input.c
++++ b/drivers/input/input.c
+@@ -50,8 +50,8 @@ static DEFINE_MUTEX(input_mutex);
+ 
+ static const struct input_value input_value_sync = { EV_SYN, SYN_REPORT, 1 };
+ 
+-static inline int is_event_supported(unsigned int code,
+-				     unsigned long *bm, unsigned int max)
++static inline bool is_event_supported(unsigned int code,
++				      unsigned long *bm, unsigned int max)
  {
- 	if (small_const_nbits(nbits))
-@@ -235,7 +235,7 @@ static inline void bitmap_xor(unsigned long *dst, const unsigned long *src1,
- 		__bitmap_xor(dst, src1, src2, nbits);
+ 	return code <= max && test_bit(code, bm);
  }
+@@ -294,7 +294,7 @@ static int input_get_disposition(struct input_dev *dev,
+ 				break;
+ 			}
  
--static inline int bitmap_andnot(unsigned long *dst, const unsigned long *src1,
-+static inline bool bitmap_andnot(unsigned long *dst, const unsigned long *src1,
- 			const unsigned long *src2, unsigned int nbits)
- {
- 	if (small_const_nbits(nbits))
-@@ -252,7 +252,7 @@ static inline void bitmap_complement(unsigned long *dst, const unsigned long *sr
- 		__bitmap_complement(dst, src, nbits);
- }
+-			if (!!test_bit(code, dev->key) != !!value) {
++			if (test_bit(code, dev->key) != !!value) {
  
--static inline int bitmap_equal(const unsigned long *src1,
-+static inline bool bitmap_equal(const unsigned long *src1,
- 			const unsigned long *src2, unsigned int nbits)
- {
- 	if (small_const_nbits(nbits))
-@@ -261,7 +261,7 @@ static inline int bitmap_equal(const unsigned long *src1,
- 		return __bitmap_equal(src1, src2, nbits);
- }
+ 				__change_bit(code, dev->key);
+ 				disposition = INPUT_PASS_TO_HANDLERS;
+@@ -304,7 +304,7 @@ static int input_get_disposition(struct input_dev *dev,
  
--static inline int bitmap_intersects(const unsigned long *src1,
-+static inline bool bitmap_intersects(const unsigned long *src1,
- 			const unsigned long *src2, unsigned int nbits)
- {
- 	if (small_const_nbits(nbits))
-@@ -270,7 +270,7 @@ static inline int bitmap_intersects(const unsigned long *src1,
- 		return __bitmap_intersects(src1, src2, nbits);
- }
+ 	case EV_SW:
+ 		if (is_event_supported(code, dev->swbit, SW_MAX) &&
+-		    !!test_bit(code, dev->sw) != !!value) {
++		    test_bit(code, dev->sw) != !!value) {
  
--static inline int bitmap_subset(const unsigned long *src1,
-+static inline bool bitmap_subset(const unsigned long *src1,
- 			const unsigned long *src2, unsigned int nbits)
- {
- 	if (small_const_nbits(nbits))
-@@ -279,7 +279,7 @@ static inline int bitmap_subset(const unsigned long *src1,
- 		return __bitmap_subset(src1, src2, nbits);
- }
+ 			__change_bit(code, dev->sw);
+ 			disposition = INPUT_PASS_TO_HANDLERS;
+@@ -331,7 +331,7 @@ static int input_get_disposition(struct input_dev *dev,
  
--static inline int bitmap_empty(const unsigned long *src, unsigned nbits)
-+static inline bool bitmap_empty(const unsigned long *src, unsigned nbits)
- {
- 	if (small_const_nbits(nbits))
- 		return ! (*src & BITMAP_LAST_WORD_MASK(nbits));
-@@ -287,7 +287,7 @@ static inline int bitmap_empty(const unsigned long *src, unsigned nbits)
- 	return find_first_bit(src, nbits) == nbits;
- }
+ 	case EV_LED:
+ 		if (is_event_supported(code, dev->ledbit, LED_MAX) &&
+-		    !!test_bit(code, dev->led) != !!value) {
++		    test_bit(code, dev->led) != !!value) {
  
--static inline int bitmap_full(const unsigned long *src, unsigned int nbits)
-+static inline bool bitmap_full(const unsigned long *src, unsigned int nbits)
- {
- 	if (small_const_nbits(nbits))
- 		return ! (~(*src) & BITMAP_LAST_WORD_MASK(nbits));
-diff --git a/lib/bitmap.c b/lib/bitmap.c
-index 64c0926f5dd8..663a82df8f38 100644
---- a/lib/bitmap.c
-+++ b/lib/bitmap.c
-@@ -42,19 +42,19 @@
-  * for the best explanations of this ordering.
-  */
+ 			__change_bit(code, dev->led);
+ 			disposition = INPUT_PASS_TO_ALL;
+@@ -341,7 +341,7 @@ static int input_get_disposition(struct input_dev *dev,
+ 	case EV_SND:
+ 		if (is_event_supported(code, dev->sndbit, SND_MAX)) {
  
--int __bitmap_equal(const unsigned long *bitmap1,
-+bool __bitmap_equal(const unsigned long *bitmap1,
- 		const unsigned long *bitmap2, unsigned int bits)
- {
- 	unsigned int k, lim = bits/BITS_PER_LONG;
- 	for (k = 0; k < lim; ++k)
- 		if (bitmap1[k] != bitmap2[k])
--			return 0;
-+			return false;
- 
- 	if (bits % BITS_PER_LONG)
- 		if ((bitmap1[k] ^ bitmap2[k]) & BITMAP_LAST_WORD_MASK(bits))
--			return 0;
-+			return false;
- 
--	return 1;
-+	return true;
- }
- EXPORT_SYMBOL(__bitmap_equal);
- 
-@@ -150,7 +150,7 @@ void __bitmap_shift_left(unsigned long *dst, const unsigned long *src,
- }
- EXPORT_SYMBOL(__bitmap_shift_left);
- 
--int __bitmap_and(unsigned long *dst, const unsigned long *bitmap1,
-+bool __bitmap_and(unsigned long *dst, const unsigned long *bitmap1,
- 				const unsigned long *bitmap2, unsigned int bits)
- {
- 	unsigned int k;
-@@ -188,7 +188,7 @@ void __bitmap_xor(unsigned long *dst, const unsigned long *bitmap1,
- }
- EXPORT_SYMBOL(__bitmap_xor);
- 
--int __bitmap_andnot(unsigned long *dst, const unsigned long *bitmap1,
-+bool __bitmap_andnot(unsigned long *dst, const unsigned long *bitmap1,
- 				const unsigned long *bitmap2, unsigned int bits)
- {
- 	unsigned int k;
-@@ -204,33 +204,33 @@ int __bitmap_andnot(unsigned long *dst, const unsigned long *bitmap1,
- }
- EXPORT_SYMBOL(__bitmap_andnot);
- 
--int __bitmap_intersects(const unsigned long *bitmap1,
--			const unsigned long *bitmap2, unsigned int bits)
-+bool __bitmap_intersects(const unsigned long *bitmap1,
-+			 const unsigned long *bitmap2, unsigned int bits)
- {
- 	unsigned int k, lim = bits/BITS_PER_LONG;
- 	for (k = 0; k < lim; ++k)
- 		if (bitmap1[k] & bitmap2[k])
--			return 1;
-+			return true;
- 
- 	if (bits % BITS_PER_LONG)
- 		if ((bitmap1[k] & bitmap2[k]) & BITMAP_LAST_WORD_MASK(bits))
--			return 1;
--	return 0;
-+			return true;
-+	return false;
- }
- EXPORT_SYMBOL(__bitmap_intersects);
- 
--int __bitmap_subset(const unsigned long *bitmap1,
--		    const unsigned long *bitmap2, unsigned int bits)
-+bool __bitmap_subset(const unsigned long *bitmap1,
-+		     const unsigned long *bitmap2, unsigned int bits)
- {
- 	unsigned int k, lim = bits/BITS_PER_LONG;
- 	for (k = 0; k < lim; ++k)
- 		if (bitmap1[k] & ~bitmap2[k])
--			return 0;
-+			return false;
- 
- 	if (bits % BITS_PER_LONG)
- 		if ((bitmap1[k] & ~bitmap2[k]) & BITMAP_LAST_WORD_MASK(bits))
--			return 0;
--	return 1;
-+			return false;
-+	return true;
- }
- EXPORT_SYMBOL(__bitmap_subset);
- 
+-			if (!!test_bit(code, dev->snd) != !!value)
++			if (test_bit(code, dev->snd) != !!value)
+ 				__change_bit(code, dev->snd);
+ 			disposition = INPUT_PASS_TO_ALL;
+ 		}
 
