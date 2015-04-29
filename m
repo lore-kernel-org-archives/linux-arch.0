@@ -1,39 +1,46 @@
 From: Guenter Roeck <linux@roeck-us.net>
-Subject: Re: [v9,14/17] serial: Add H8300.
-Date: Wed, 29 Apr 2015 09:47:54 -0700
-Message-ID: <20150429164754.GA1695@roeck-us.net>
-References: <1430112924-1134-15-git-send-email-ysato@users.sourceforge.jp>
+Subject: Re: [PATCH v9 00/17] Re-introduce h8300 architecture
+Date: Wed, 29 Apr 2015 10:07:45 -0700
+Message-ID: <20150429170745.GA15041@roeck-us.net>
+References: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp>
+ <20150428132210.GA7499@roeck-us.net>
+ <87pp6oi2qy.wl-ysato@users.sourceforge.jp>
+ <55405F08.7020508@roeck-us.net>
+ <87lhhbihcf.wl-ysato@users.sourceforge.jp>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1430112924-1134-15-git-send-email-ysato@users.sourceforge.jp>
+In-Reply-To: <87lhhbihcf.wl-ysato@users.sourceforge.jp>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Yoshinori Sato <ysato@users.sourceforge.jp>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 27, 2015 at 02:35:21PM +0900, Yoshinori Sato wrote:
-> h8300 internal serial controller of same as sh-sci.
-> So h8300 use SH_SCI.
+On Wed, Apr 29, 2015 at 03:22:40PM +0900, Yoshinori Sato wrote:
+[ ... ]
 > 
-> Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
+> OK.
+> I made h8300-*-linux target patch for release version.
+> Please apply and rebuild to "h8300-unknown-linux"
+> http://sourceforge.jp/projects/uclinux-h8/releases/p14625
 > 
-> ---
-> drivers/tty/serial/Kconfig | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
+> My toolchain configure options bellow
+> * binutils
+> ../configure --prefix=/home/ysato/h8-linux --target=h8300-unknown-linux
 > 
-> diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-> index f8120c1..130f201 100644
-> --- a/drivers/tty/serial/Kconfig
-> +++ b/drivers/tty/serial/Kconfig
-> @@ -728,7 +728,7 @@ config SERIAL_IP22_ZILOG_CONSOLE
->  
->  config SERIAL_SH_SCI
->  	tristate "SuperH SCI(F) serial port support"
-> -	depends on SUPERH || ARCH_SHMOBILE || COMPILE_TEST
-> +	depends on SUPERH || ARCH_SHMOBILE || H8300 || COMPILE_TEST 
+> * gcc
+> ../configure --target=h8300-unknown-linux --prefix=/home/ysato/h8-linux \
+> --disable-ssp --disable-libssp --disable-mpc --disable-gmp --disable-mpfr \
+> --disable-threads --disable-shared --disable-libmudflap --disable-libgomp \
+> --disable-zlib --disable-libquadmath --without-libc --disable-libatomic \
+> --enable-languages=c
+> 
+Compilation passes with those patches - thanks a lot!
 
-This adds a trailing whitespace.
+I get lots of warnings if I compile with C=1. Might be worthwhile looking at
+those. It might also be a good idea to provide the functions found missing
+when building "make allyesconfig".
 
+Thanks,
 Guenter
