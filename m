@@ -1,7 +1,7 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 09/13] input: Use bool and don't use !! on test_bit
-Date: Wed, 29 Apr 2015 20:22:28 +0100
-Message-ID: <20150429192228.24909.7027.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 11/13] test_taint() should return bool
+Date: Wed, 29 Apr 2015 20:22:40 +0100
+Message-ID: <20150429192240.24909.93842.stgit@warthog.procyon.org.uk>
 References: <20150429192133.24909.43184.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -13,89 +13,40 @@ To: linux-arch@vger.kernel.org
 Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Make is_event_supported() return a bool as it returns a boolean value.  This
-will allow gcc to make better decisions.
-
-Don't use '!!' on test_bit() as test_bit() now returns a bool.  This avoids
-gcc-5 warnings about using '!' operators on the LHS of a comparison.
+test_taint() should return bool as it returns a boolean value.  This allows
+gcc to make better decisions about using the return value, though it might
+make test_taint() itself slightly bigger.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- drivers/hid/hid-input.c |    4 ++--
- drivers/input/input.c   |   12 ++++++------
- 2 files changed, 8 insertions(+), 8 deletions(-)
+ include/linux/kernel.h |    2 +-
+ kernel/panic.c         |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/hid/hid-input.c b/drivers/hid/hid-input.c
-index 008e89bf6f3c..b470913fdedb 100644
---- a/drivers/hid/hid-input.c
-+++ b/drivers/hid/hid-input.c
-@@ -1157,7 +1157,7 @@ void hidinput_hid_event(struct hid_device *hid, struct hid_field *field, struct
- 		return;
+diff --git a/include/linux/kernel.h b/include/linux/kernel.h
+index 3a5b48e52a9e..77670ddcd686 100644
+--- a/include/linux/kernel.h
++++ b/include/linux/kernel.h
+@@ -453,7 +453,7 @@ enum lockdep_ok {
+ 	LOCKDEP_NOW_UNRELIABLE
+ };
+ extern void add_taint(unsigned flag, enum lockdep_ok);
+-extern int test_taint(unsigned flag);
++extern bool test_taint(unsigned flag);
+ extern unsigned long get_taint(void);
+ extern int root_mountflags;
  
- 	/* report the usage code as scancode if the key status has changed */
--	if (usage->type == EV_KEY && !!test_bit(usage->code, input->key) != value)
-+	if (usage->type == EV_KEY && test_bit(usage->code, input->key) != value)
- 		input_event(input, EV_MSC, MSC_SCAN, usage->hid);
- 
- 	input_event(input, usage->type, usage->code, value);
-@@ -1411,7 +1411,7 @@ static bool hidinput_has_been_populated(struct hid_input *hidinput)
- 	for (i = 0; i < BITS_TO_LONGS(SW_CNT); i++)
- 		r |= hidinput->input->swbit[i];
- 
--	return !!r;
-+	return r != 0;
+diff --git a/kernel/panic.c b/kernel/panic.c
+index 8136ad76e5fd..17f056eab21a 100644
+--- a/kernel/panic.c
++++ b/kernel/panic.c
+@@ -272,7 +272,7 @@ const char *print_tainted(void)
+ 	return buf;
  }
  
- static void hidinput_cleanup_hidinput(struct hid_device *hid,
-diff --git a/drivers/input/input.c b/drivers/input/input.c
-index cc357f1516a7..49bf0cadcc6b 100644
---- a/drivers/input/input.c
-+++ b/drivers/input/input.c
-@@ -50,8 +50,8 @@ static DEFINE_MUTEX(input_mutex);
- 
- static const struct input_value input_value_sync = { EV_SYN, SYN_REPORT, 1 };
- 
--static inline int is_event_supported(unsigned int code,
--				     unsigned long *bm, unsigned int max)
-+static inline bool is_event_supported(unsigned int code,
-+				      unsigned long *bm, unsigned int max)
+-int test_taint(unsigned flag)
++bool test_taint(unsigned flag)
  {
- 	return code <= max && test_bit(code, bm);
+ 	return test_bit(flag, &tainted_mask);
  }
-@@ -294,7 +294,7 @@ static int input_get_disposition(struct input_dev *dev,
- 				break;
- 			}
- 
--			if (!!test_bit(code, dev->key) != !!value) {
-+			if (test_bit(code, dev->key) != !!value) {
- 
- 				__change_bit(code, dev->key);
- 				disposition = INPUT_PASS_TO_HANDLERS;
-@@ -304,7 +304,7 @@ static int input_get_disposition(struct input_dev *dev,
- 
- 	case EV_SW:
- 		if (is_event_supported(code, dev->swbit, SW_MAX) &&
--		    !!test_bit(code, dev->sw) != !!value) {
-+		    test_bit(code, dev->sw) != !!value) {
- 
- 			__change_bit(code, dev->sw);
- 			disposition = INPUT_PASS_TO_HANDLERS;
-@@ -331,7 +331,7 @@ static int input_get_disposition(struct input_dev *dev,
- 
- 	case EV_LED:
- 		if (is_event_supported(code, dev->ledbit, LED_MAX) &&
--		    !!test_bit(code, dev->led) != !!value) {
-+		    test_bit(code, dev->led) != !!value) {
- 
- 			__change_bit(code, dev->led);
- 			disposition = INPUT_PASS_TO_ALL;
-@@ -341,7 +341,7 @@ static int input_get_disposition(struct input_dev *dev,
- 	case EV_SND:
- 		if (is_event_supported(code, dev->sndbit, SND_MAX)) {
- 
--			if (!!test_bit(code, dev->snd) != !!value)
-+			if (test_bit(code, dev->snd) != !!value)
- 				__change_bit(code, dev->snd);
- 			disposition = INPUT_PASS_TO_ALL;
- 		}
