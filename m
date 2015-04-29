@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53679 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:39789 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752277AbbD2TVz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 29 Apr 2015 15:21:55 -0400
-Subject: [PATCH 03/13] Make generic bitops return bool
+	id S1751341AbbD2TVo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 29 Apr 2015 15:21:44 -0400
+Subject: [PATCH 01/13] Make the x86 bitops like test_bit() return bool
 From: David Howells <dhowells@redhat.com>
-Date: Wed, 29 Apr 2015 20:21:52 +0100
-Message-ID: <20150429192152.24909.61753.stgit@warthog.procyon.org.uk>
+Date: Wed, 29 Apr 2015 20:21:40 +0100
+Message-ID: <20150429192140.24909.56052.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20150429192133.24909.43184.stgit@warthog.procyon.org.uk>
 References: <20150429192133.24909.43184.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,79 +16,152 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org
-Message-ID: <20150429192152.auQesJEvHIbc1TUk52leHV_v_nynt32ExDf1EHr5joY@z>
+Message-ID: <20150429192140.VSW-P-mUU0hjw2o6QASQ6iLAgOzzV0BKJF1jV8KbGy0@z>
 
-Make generic bit handling functions return a bool type when they're returning
-a simple boolean value.  This allows gcc to make better choices and produce
-better warnings.
-
-Signed-off-by: David Howells <dhowells@redhat.com>
+Make the x86 bitop functions like test_bit() return bool rather than an
+integer.  This permits gcc-5 to make better choices and can reduce the code
+size overall and allows some warnings to be evaded.
 ---
 
- include/asm-generic/bitops/ext2-atomic.h |    4 ++--
- include/asm-generic/bitops/le.h          |   10 +++++-----
- 2 files changed, 7 insertions(+), 7 deletions(-)
+ arch/x86/include/asm/bitops.h |   28 ++++++++++++++--------------
+ arch/x86/include/asm/rmwcc.h  |    4 ++--
+ 2 files changed, 16 insertions(+), 16 deletions(-)
 
-diff --git a/include/asm-generic/bitops/ext2-atomic.h b/include/asm-generic/bitops/ext2-atomic.h
-index 87f0f109d7f1..8048f8b38720 100644
---- a/include/asm-generic/bitops/ext2-atomic.h
-+++ b/include/asm-generic/bitops/ext2-atomic.h
-@@ -7,7 +7,7 @@
+diff --git a/arch/x86/include/asm/bitops.h b/arch/x86/include/asm/bitops.h
+index cfe3b954d5e4..7bbcce00b43d 100644
+--- a/arch/x86/include/asm/bitops.h
++++ b/arch/x86/include/asm/bitops.h
+@@ -201,7 +201,7 @@ static inline void change_bit(long nr, volatile unsigned long *addr)
+  * This operation is atomic and cannot be reordered.
+  * It also implies a memory barrier.
+  */
+-static inline int test_and_set_bit(long nr, volatile unsigned long *addr)
++static inline bool test_and_set_bit(long nr, volatile unsigned long *addr)
+ {
+ 	GEN_BINARY_RMWcc(LOCK_PREFIX "bts", *addr, "Ir", nr, "%0", "c");
+ }
+@@ -213,7 +213,7 @@ static inline int test_and_set_bit(long nr, volatile unsigned long *addr)
+  *
+  * This is the same as test_and_set_bit on x86.
+  */
+-static __always_inline int
++static __always_inline bool
+ test_and_set_bit_lock(long nr, volatile unsigned long *addr)
+ {
+ 	return test_and_set_bit(nr, addr);
+@@ -228,7 +228,7 @@ test_and_set_bit_lock(long nr, volatile unsigned long *addr)
+  * If two examples of this operation race, one can appear to succeed
+  * but actually fail.  You must protect multiple accesses with a lock.
+  */
+-static inline int __test_and_set_bit(long nr, volatile unsigned long *addr)
++static inline bool __test_and_set_bit(long nr, volatile unsigned long *addr)
+ {
+ 	int oldbit;
  
- #define ext2_set_bit_atomic(lock, nr, addr)		\
- 	({						\
--		int ret;				\
-+		bool ret;				\
- 		spin_lock(lock);			\
- 		ret = __test_and_set_bit_le(nr, addr);	\
- 		spin_unlock(lock);			\
-@@ -16,7 +16,7 @@
+@@ -236,7 +236,7 @@ static inline int __test_and_set_bit(long nr, volatile unsigned long *addr)
+ 	    "sbb %0,%0"
+ 	    : "=r" (oldbit), ADDR
+ 	    : "Ir" (nr));
+-	return oldbit;
++	return oldbit != 0;
+ }
  
- #define ext2_clear_bit_atomic(lock, nr, addr)		\
- 	({						\
--		int ret;				\
-+		bool ret;				\
- 		spin_lock(lock);			\
- 		ret = __test_and_clear_bit_le(nr, addr);	\
- 		spin_unlock(lock);			\
-diff --git a/include/asm-generic/bitops/le.h b/include/asm-generic/bitops/le.h
-index 61731543c00e..c610b9943a08 100644
---- a/include/asm-generic/bitops/le.h
-+++ b/include/asm-generic/bitops/le.h
-@@ -49,7 +49,7 @@ extern unsigned long find_next_bit_le(const void *addr,
- #error "Please fix <asm/byteorder.h>"
+ /**
+@@ -247,7 +247,7 @@ static inline int __test_and_set_bit(long nr, volatile unsigned long *addr)
+  * This operation is atomic and cannot be reordered.
+  * It also implies a memory barrier.
+  */
+-static inline int test_and_clear_bit(long nr, volatile unsigned long *addr)
++static inline bool test_and_clear_bit(long nr, volatile unsigned long *addr)
+ {
+ 	GEN_BINARY_RMWcc(LOCK_PREFIX "btr", *addr, "Ir", nr, "%0", "c");
+ }
+@@ -268,7 +268,7 @@ static inline int test_and_clear_bit(long nr, volatile unsigned long *addr)
+  * accessed from a hypervisor on the same CPU if running in a VM: don't change
+  * this without also updating arch/x86/kernel/kvm.c
+  */
+-static inline int __test_and_clear_bit(long nr, volatile unsigned long *addr)
++static inline bool __test_and_clear_bit(long nr, volatile unsigned long *addr)
+ {
+ 	int oldbit;
+ 
+@@ -276,11 +276,11 @@ static inline int __test_and_clear_bit(long nr, volatile unsigned long *addr)
+ 		     "sbb %0,%0"
+ 		     : "=r" (oldbit), ADDR
+ 		     : "Ir" (nr));
+-	return oldbit;
++	return oldbit != 0;
+ }
+ 
+ /* WARNING: non atomic and it can be reordered! */
+-static inline int __test_and_change_bit(long nr, volatile unsigned long *addr)
++static inline bool __test_and_change_bit(long nr, volatile unsigned long *addr)
+ {
+ 	int oldbit;
+ 
+@@ -289,7 +289,7 @@ static inline int __test_and_change_bit(long nr, volatile unsigned long *addr)
+ 		     : "=r" (oldbit), ADDR
+ 		     : "Ir" (nr) : "memory");
+ 
+-	return oldbit;
++	return oldbit != 0;
+ }
+ 
+ /**
+@@ -300,18 +300,18 @@ static inline int __test_and_change_bit(long nr, volatile unsigned long *addr)
+  * This operation is atomic and cannot be reordered.
+  * It also implies a memory barrier.
+  */
+-static inline int test_and_change_bit(long nr, volatile unsigned long *addr)
++static inline bool test_and_change_bit(long nr, volatile unsigned long *addr)
+ {
+ 	GEN_BINARY_RMWcc(LOCK_PREFIX "btc", *addr, "Ir", nr, "%0", "c");
+ }
+ 
+-static __always_inline int constant_test_bit(long nr, const volatile unsigned long *addr)
++static __always_inline bool constant_test_bit(long nr, const volatile unsigned long *addr)
+ {
+ 	return ((1UL << (nr & (BITS_PER_LONG-1))) &
+ 		(addr[nr >> _BITOPS_LONG_SHIFT])) != 0;
+ }
+ 
+-static inline int variable_test_bit(long nr, volatile const unsigned long *addr)
++static inline bool variable_test_bit(long nr, volatile const unsigned long *addr)
+ {
+ 	int oldbit;
+ 
+@@ -320,7 +320,7 @@ static inline int variable_test_bit(long nr, volatile const unsigned long *addr)
+ 		     : "=r" (oldbit)
+ 		     : "m" (*(unsigned long *)addr), "Ir" (nr));
+ 
+-	return oldbit;
++	return oldbit != 0;
+ }
+ 
+ #if 0 /* Fool kernel-doc since it doesn't do macros yet */
+@@ -329,7 +329,7 @@ static inline int variable_test_bit(long nr, volatile const unsigned long *addr)
+  * @nr: bit number to test
+  * @addr: Address to start counting from
+  */
+-static int test_bit(int nr, const volatile unsigned long *addr);
++static bool test_bit(int nr, const volatile unsigned long *addr);
  #endif
  
--static inline int test_bit_le(int nr, const void *addr)
-+static inline bool test_bit_le(int nr, const void *addr)
- {
- 	return test_bit(nr ^ BITOP_LE_SWIZZLE, addr);
- }
-@@ -74,22 +74,22 @@ static inline void __clear_bit_le(int nr, void *addr)
- 	__clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
- }
+ #define test_bit(nr, addr)			\
+diff --git a/arch/x86/include/asm/rmwcc.h b/arch/x86/include/asm/rmwcc.h
+index 8f7866a5b9a4..a712ef68541f 100644
+--- a/arch/x86/include/asm/rmwcc.h
++++ b/arch/x86/include/asm/rmwcc.h
+@@ -8,9 +8,9 @@ do {									\
+ 	asm_volatile_goto (fullop "; j" cc " %l[cc_label]"		\
+ 			: : "m" (var), ## __VA_ARGS__ 			\
+ 			: "memory" : cc_label);				\
+-	return 0;							\
++	return false;							\
+ cc_label:								\
+-	return 1;							\
++	return true;							\
+ } while (0)
  
--static inline int test_and_set_bit_le(int nr, void *addr)
-+static inline bool test_and_set_bit_le(int nr, void *addr)
- {
- 	return test_and_set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
- }
- 
--static inline int test_and_clear_bit_le(int nr, void *addr)
-+static inline bool test_and_clear_bit_le(int nr, void *addr)
- {
- 	return test_and_clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
- }
- 
--static inline int __test_and_set_bit_le(int nr, void *addr)
-+static inline bool __test_and_set_bit_le(int nr, void *addr)
- {
- 	return __test_and_set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
- }
- 
--static inline int __test_and_clear_bit_le(int nr, void *addr)
-+static inline bool __test_and_clear_bit_le(int nr, void *addr)
- {
- 	return __test_and_clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
- }
+ #define GEN_UNARY_RMWcc(op, var, arg0, cc) 				\
 
