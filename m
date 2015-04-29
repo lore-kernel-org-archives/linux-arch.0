@@ -1,87 +1,55 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH] scatterlist: enable sg chaining for all architectures
-Date: Tue, 28 Apr 2015 19:15:46 -0700
-Message-ID: <1430273746.2181.49.camel@HansenPartnership.com>
-References: <1429973776-7499-1-git-send-email-akinobu.mita@gmail.com>
-	 <20150428142743.578d1c930aca013b596d7546@linux-foundation.org>
-	 <1430259419.2181.26.camel@HansenPartnership.com>
-	 <CAC5umyhM6s4dgJt6BQMhVihh3C8uYd+s2XEZB9UTQKK63OXxfQ@mail.gmail.com>
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: Re: [PATCH v9 00/17] Re-introduce h8300 architecture
+Date: Tue, 28 Apr 2015 21:33:12 -0700
+Message-ID: <55405F08.7020508@roeck-us.net>
+References: <1430112924-1134-1-git-send-email-ysato@users.sourceforge.jp>	<20150428132210.GA7499@roeck-us.net> <87pp6oi2qy.wl-ysato@users.sourceforge.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:34984 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1031377AbbD2CPs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 28 Apr 2015 22:15:48 -0400
-In-Reply-To: <CAC5umyhM6s4dgJt6BQMhVihh3C8uYd+s2XEZB9UTQKK63OXxfQ@mail.gmail.com>
+Received: from bh-25.webhostbox.net ([208.91.199.152]:41288 "EHLO
+	bh-25.webhostbox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751371AbbD2EdP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Apr 2015 00:33:15 -0400
+Received: from mailnull by bh-25.webhostbox.net with sa-checked (Exim 4.85)
+	(envelope-from <linux@roeck-us.net>)
+	id 1YnJgQ-000Elo-BC
+	for linux-arch@vger.kernel.org; Wed, 29 Apr 2015 04:33:14 +0000
+In-Reply-To: <87pp6oi2qy.wl-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Christoph Hellwig <hch@lst.de>, "linux-scsi@vger.kernel.org" <linux-scsi@vger.kernel.org>, "Nicholas A. Bellinger" <nab@linux-iscsi.org>, target-devel@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>
+To: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Wed, 2015-04-29 at 09:34 +0900, Akinobu Mita wrote:
-> 2015-04-29 7:16 GMT+09:00 James Bottomley
-> <James.Bottomley@hansenpartnership.com>:
-> > On Tue, 2015-04-28 at 14:27 -0700, Andrew Morton wrote:
-> >> On Sat, 25 Apr 2015 23:56:16 +0900 Akinobu Mita <akinobu.mita@gmail.com> wrote:
-> >>
-> >> > Some architectures enable sg chaining option while others do not.
-> >> >
-> >> > The requirement to enable sg chaining is that pages must be aligned
-> >> > at a 32-bit boundary in order to overload the LSB of the pointer.
-> >> > Regardless of whether ARCH_HAS_SG_CHAIN is defined or not, the above
-> >> > requirement is always chacked by BUG_ON() in sg_assign_page.  So
-> >> > all architectures can enable sg chaining.
-> >> >
-> >> > As you can see from the changes in drivers/target/target_core_rd.c,
-> >> > enabling SG chaining for all architectures allows us to allocate
-> >> > discontiguous scatterlist tables which can be traversed throughout
-> >> > by sg_next() without a special handling for some architectures.
-> >>
-> >> Thanks, I'll grab this.  If anyone has concerns, speak now or hold both
-> >> pieces!
-> >
-> > It breaks a host of architectures doesn't it?  I can specifically speak
-> > for PARISC:  The problem is the way our iommus are consuming
-> > scatterlists.  They're assuming we can dereference the scatterlist as an
-> > array (like this code in ccio-dma.c):
-> >
-> > static int
-> > ccio_map_sg(struct device *dev, struct scatterlist *sglist, int nents,
-> >             enum dma_data_direction direction)
-> > [...]
-> >         for(i = 0; i < nents; i++)
-> >                 prev_len += sglist[i].length;
-> >
-> > If you turn on sg chaining on our architecture, we'll run off the end of
-> > that array dereference and crash.
-> >
-> > This can all be fixed by making our architecture dma mapping code use
-> > iterators instead of array lists, but that needs more code than this
-> > patch provides.  I assume there are similar issues on a lot of other
-> > architectures, so before you can contemplate a patch like this, surely
-> > all the architecture consumers have to be converted to iterator instead
-> > of array format?
-> >
-> > The first place to start would be a survey of who's still using the
-> > array format.
-> 
-> Agreed.  I could find similar issues in arch/m68k/kernel/dma.c.
-> (git grep '[^a-z]sg++' shows that there are a lot of similar issues)
+On 04/28/2015 10:25 AM, Yoshinori Sato wrote:
+> At Tue, 28 Apr 2015 06:22:10 -0700,
+> Guenter Roeck wrote:
+>>
+>> On Mon, Apr 27, 2015 at 02:35:07PM +0900, Yoshinori Sato wrote:
+>>> Hello.
+>>> I will re-introducing h8300.
+>>>
+>>
+>> Hi,
+>>
+>> can you provide a link to a working toolchain, or provide directions
+>> on how to build one ?
+>
+> h8300-unknown-linux in gcc / binutils development version.
+> Patch of a release version has not been prepared yet.
+>
 
-OK, so the original idea of the chained SG lists was that most of the
-older architectures have fixed length lists for their IOMMUs, or simply
-wouldn't see a benefit with IO lengths > 0.5MB (which was the default
-before chaining) so there wasn't much point converting them to chaining
-if they wouldn't see any benefit from it.
+Hi,
 
-ARCH_HAS_SG_CHAIN is supposed to be completely transparent to all driver
-side consumers, so there was never thought to be much point removing it.
-It looks like there's some sort of cockup going on in the target driver
-but otherwise, your removal patch is pretty empty, confirming this.
+With a toolchain based on binutils 2.25 (patched), gcc 5.1 (unpatched), and newlib 1.20
+(unpatched), I get for both h8300h-sim_defconfig and h8s-sim_defconfig:
 
-Perhaps the best thing to do is just fix target and call it quits?
+./arch/h8300/kernel/vmlinux.lds:247: undefined symbol `jiffies_64' referenced in expression
 
-James
+I had to modify arch/h8300/Makefile a bit since the linker does not understand
+-mh8300helf_linux and -mh8300self_linux; I had to use -mh8300helf and -mh8300self
+instead. Maybe I am missing a binutils patch. I also had to use h8300-linux-elf
+as target to convince gcc to accept it as valid target. Both should not result
+in the undefined symbol error, though.
+
+Guenter
