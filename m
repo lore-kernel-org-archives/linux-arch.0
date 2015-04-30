@@ -1,359 +1,150 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-db3on0087.outbound.protection.outlook.com ([157.55.234.87]:64256
-	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750710AbbD3QQ5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Apr 2015 12:16:57 -0400
-From: Chris Metcalf <cmetcalf@ezchip.com>
-Subject: [PATCH 1/3] Make asm/word-at-a-time.h available on all architectures
-Date: Thu, 30 Apr 2015 12:01:15 -0400
-Message-ID: <1430409677-13284-2-git-send-email-cmetcalf@ezchip.com>
-In-Reply-To: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com>
-References: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com>
+Received: from mail-wi0-f180.google.com ([209.85.212.180]:36728 "EHLO
+	mail-wi0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750710AbbD3QUx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2015 12:20:53 -0400
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Subject: [PATCH v7 00/15] Add support to STMicroelectronics STM32 family
+Date: Thu, 30 Apr 2015 18:20:29 +0200
+Message-ID: <1430410844-16062-1-git-send-email-mcoquelin.stm32@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Chris Metcalf <cmetcalf@ezchip.com>, Al Viro <viro@zeniv.linux.org.uk>, Fabian Frederick <fabf@skynet.be>, Randy Dunlap <rdunlap@infradead.org>, Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>, gregkh@linuxfoundation.org, Peter Zijlstra <peterz@infradead.org>, "David S. Miller" <davem@davemloft.net>, Frederic Weisbecker <fweisbec@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Theodore Ts'o <tytso@mit.edu>, Grant Likely <grant.likely@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20150430160115.oXbSVlvKgE2QLUbgf7ZOETFHW0P5Ejtkl_cliFXrHws@z>
+To: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl, peter@hurleysoftware.com, andy.shevchenko@gmail.com, cw00.choi@samsung.com, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, joe@perches.com, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>
+Cc: Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, mcoquelin.stm32@gmail.com, Nicolae Rosia <nicolae.rosia@gmail.com>, Kamil Lulko <rev13@wp.pl>, Daniel Thompson <daniel.thompson@linaro.org>
+Message-ID: <20150430162029.33iiSXeRP_FpmLCk9wE1q5XNXdnTJN7_wNYztzTIuD0@z>
 
-Added the x86 implementation of word-at-a-time to the
-generic version, which previously only supported big-endian.
+In this seventh round, the series has been rebased on top of 4.1-rc1.
+The series also fixes sysrq support in serial driver.
 
-Omitted the x86-specific load_unaligned_zeropad(), which in
-any case is also not present for the existing BE-only
-implementation of a word-at-a-time, and is only used under
-CONFIG_DCACHE_WORD_ACCESS.
+STM32 MCUs are Cortex-M CPU, used in various applications (consumer
+electronics, industrial applications, hobbyists...).
+Datasheets, user and programming manuals are publicly available on
+STMicroelectronics website.
 
-Added as a "generic-y" to the Kbuilds of all architectures
-that didn't previously have it.
+With this series applied, the STM32F419 Discovery can boot succesfully.
 
-Signed-off-by: Chris Metcalf <cmetcalf@ezchip.com>
----
- arch/arc/include/asm/Kbuild          |  1 +
- arch/avr32/include/asm/Kbuild        |  1 +
- arch/blackfin/include/asm/Kbuild     |  1 +
- arch/c6x/include/asm/Kbuild          |  1 +
- arch/cris/include/asm/Kbuild         |  1 +
- arch/frv/include/asm/Kbuild          |  1 +
- arch/hexagon/include/asm/Kbuild      |  1 +
- arch/ia64/include/asm/Kbuild         |  1 +
- arch/m32r/include/asm/Kbuild         |  1 +
- arch/metag/include/asm/Kbuild        |  1 +
- arch/microblaze/include/asm/Kbuild   |  1 +
- arch/mips/include/asm/Kbuild         |  1 +
- arch/mn10300/include/asm/Kbuild      |  1 +
- arch/nios2/include/asm/Kbuild        |  1 +
- arch/powerpc/include/asm/Kbuild      |  1 +
- arch/s390/include/asm/Kbuild         |  1 +
- arch/score/include/asm/Kbuild        |  1 +
- arch/tile/include/asm/Kbuild         |  1 +
- arch/um/include/asm/Kbuild           |  1 +
- arch/unicore32/include/asm/Kbuild    |  1 +
- arch/xtensa/include/asm/Kbuild       |  1 +
- include/asm-generic/word-at-a-time.h | 80 ++++++++++++++++++++++++++++++++----
- 22 files changed, 93 insertions(+), 8 deletions(-)
+Changes since v6:
+-----------------
+ - serial: Fix locking in case of sysrq (Vladimir)
+ - Rebase on top of v4.1-rc1
+ - Apply Acked-by and Reviewed-by
+ - Clean-up stm32_defconfig
 
-diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
-index be0c39e76f7c..be895ef03a51 100644
---- a/arch/arc/include/asm/Kbuild
-+++ b/arch/arc/include/asm/Kbuild
-@@ -49,4 +49,5 @@ generic-y += types.h
- generic-y += ucontext.h
- generic-y += user.h
- generic-y += vga.h
-+generic-y += word-at-a-time.h
- generic-y += xor.h
-diff --git a/arch/avr32/include/asm/Kbuild b/arch/avr32/include/asm/Kbuild
-index 528d70d47a54..10dd6e8470bd 100644
---- a/arch/avr32/include/asm/Kbuild
-+++ b/arch/avr32/include/asm/Kbuild
-@@ -20,4 +20,5 @@ generic-y += sections.h
- generic-y += topology.h
- generic-y += trace_clock.h
- generic-y += vga.h
-+generic-y += word-at-a-time.h
- generic-y += xor.h
-diff --git a/arch/blackfin/include/asm/Kbuild b/arch/blackfin/include/asm/Kbuild
-index 4bd3c3cfc9ab..9705a527b7b0 100644
---- a/arch/blackfin/include/asm/Kbuild
-+++ b/arch/blackfin/include/asm/Kbuild
-@@ -46,4 +46,5 @@ generic-y += types.h
- generic-y += ucontext.h
- generic-y += unaligned.h
- generic-y += user.h
-+generic-y += word-at-a-time.h
- generic-y += xor.h
-diff --git a/arch/c6x/include/asm/Kbuild b/arch/c6x/include/asm/Kbuild
-index ae0a51f5376c..535efdb0692d 100644
---- a/arch/c6x/include/asm/Kbuild
-+++ b/arch/c6x/include/asm/Kbuild
-@@ -59,4 +59,5 @@ generic-y += types.h
- generic-y += ucontext.h
- generic-y += user.h
- generic-y += vga.h
-+generic-y += word-at-a-time.h
- generic-y += xor.h
-diff --git a/arch/cris/include/asm/Kbuild b/arch/cris/include/asm/Kbuild
-index 057e51859b0a..4991539a25f6 100644
---- a/arch/cris/include/asm/Kbuild
-+++ b/arch/cris/include/asm/Kbuild
-@@ -26,4 +26,5 @@ generic-y += sections.h
- generic-y += topology.h
- generic-y += trace_clock.h
- generic-y += vga.h
-+generic-y += word-at-a-time.h
- generic-y += xor.h
-diff --git a/arch/frv/include/asm/Kbuild b/arch/frv/include/asm/Kbuild
-index e3f81b53578e..ca34d1cf2cdf 100644
---- a/arch/frv/include/asm/Kbuild
-+++ b/arch/frv/include/asm/Kbuild
-@@ -7,3 +7,4 @@ generic-y += mcs_spinlock.h
- generic-y += preempt.h
- generic-y += scatterlist.h
- generic-y += trace_clock.h
-+generic-y += word-at-a-time.h
-diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
-index c7a99f860b40..872920fba0a6 100644
---- a/arch/hexagon/include/asm/Kbuild
-+++ b/arch/hexagon/include/asm/Kbuild
-@@ -58,4 +58,5 @@ generic-y += types.h
- generic-y += ucontext.h
- generic-y += unaligned.h
- generic-y += vga.h
-+generic-y += word-at-a-time.h
- generic-y += xor.h
-diff --git a/arch/ia64/include/asm/Kbuild b/arch/ia64/include/asm/Kbuild
-index 9b41b4bcc073..614579fa1e49 100644
---- a/arch/ia64/include/asm/Kbuild
-+++ b/arch/ia64/include/asm/Kbuild
-@@ -8,3 +8,4 @@ generic-y += preempt.h
- generic-y += scatterlist.h
- generic-y += trace_clock.h
- generic-y += vtime.h
-+generic-y += word-at-a-time.h
-diff --git a/arch/m32r/include/asm/Kbuild b/arch/m32r/include/asm/Kbuild
-index 2edc793372fc..36f850dd4a1e 100644
---- a/arch/m32r/include/asm/Kbuild
-+++ b/arch/m32r/include/asm/Kbuild
-@@ -9,3 +9,4 @@ generic-y += preempt.h
- generic-y += scatterlist.h
- generic-y += sections.h
- generic-y += trace_clock.h
-+generic-y += word-at-a-time.h
-diff --git a/arch/metag/include/asm/Kbuild b/arch/metag/include/asm/Kbuild
-index 0bf5d525b945..a291b3b2529e 100644
---- a/arch/metag/include/asm/Kbuild
-+++ b/arch/metag/include/asm/Kbuild
-@@ -54,4 +54,5 @@ generic-y += ucontext.h
- generic-y += unaligned.h
- generic-y += user.h
- generic-y += vga.h
-+generic-y += word-at-a-time.h
- generic-y += xor.h
-diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
-index ab564a6db5c3..966f221b2d67 100644
---- a/arch/microblaze/include/asm/Kbuild
-+++ b/arch/microblaze/include/asm/Kbuild
-@@ -10,3 +10,4 @@ generic-y += preempt.h
- generic-y += scatterlist.h
- generic-y += syscalls.h
- generic-y += trace_clock.h
-+generic-y += word-at-a-time.h
-diff --git a/arch/mips/include/asm/Kbuild b/arch/mips/include/asm/Kbuild
-index 526539cbc99f..c3cfb83aca1d 100644
---- a/arch/mips/include/asm/Kbuild
-+++ b/arch/mips/include/asm/Kbuild
-@@ -18,4 +18,5 @@ generic-y += serial.h
- generic-y += trace_clock.h
- generic-y += ucontext.h
- generic-y += user.h
-+generic-y += word-at-a-time.h
- generic-y += xor.h
-diff --git a/arch/mn10300/include/asm/Kbuild b/arch/mn10300/include/asm/Kbuild
-index f892d9de47d9..30a06e2d6e42 100644
---- a/arch/mn10300/include/asm/Kbuild
-+++ b/arch/mn10300/include/asm/Kbuild
-@@ -9,3 +9,4 @@ generic-y += preempt.h
- generic-y += scatterlist.h
- generic-y += sections.h
- generic-y += trace_clock.h
-+generic-y += word-at-a-time.h
-diff --git a/arch/nios2/include/asm/Kbuild b/arch/nios2/include/asm/Kbuild
-index 24b3d8999ac7..bc87081c0669 100644
---- a/arch/nios2/include/asm/Kbuild
-+++ b/arch/nios2/include/asm/Kbuild
-@@ -61,4 +61,5 @@ generic-y += types.h
- generic-y += unaligned.h
- generic-y += user.h
- generic-y += vga.h
-+generic-y += word-at-a-time.h
- generic-y += xor.h
-diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
-index 4b87205c230c..dfc61a151890 100644
---- a/arch/powerpc/include/asm/Kbuild
-+++ b/arch/powerpc/include/asm/Kbuild
-@@ -9,3 +9,4 @@ generic-y += rwsem.h
- generic-y += scatterlist.h
- generic-y += trace_clock.h
- generic-y += vtime.h
-+generic-y += word-at-a-time.h
-diff --git a/arch/s390/include/asm/Kbuild b/arch/s390/include/asm/Kbuild
-index c631f98fd524..27c37b3d1dad 100644
---- a/arch/s390/include/asm/Kbuild
-+++ b/arch/s390/include/asm/Kbuild
-@@ -6,3 +6,4 @@ generic-y += mcs_spinlock.h
- generic-y += preempt.h
- generic-y += scatterlist.h
- generic-y += trace_clock.h
-+generic-y += word-at-a-time.h
-diff --git a/arch/score/include/asm/Kbuild b/arch/score/include/asm/Kbuild
-index 83ed116d414c..16958f529aa7 100644
---- a/arch/score/include/asm/Kbuild
-+++ b/arch/score/include/asm/Kbuild
-@@ -13,3 +13,4 @@ generic-y += sections.h
- generic-y += trace_clock.h
- generic-y += xor.h
- generic-y += serial.h
-+generic-y += word-at-a-time.h
-diff --git a/arch/tile/include/asm/Kbuild b/arch/tile/include/asm/Kbuild
-index f5433e0e34e0..0804122e579a 100644
---- a/arch/tile/include/asm/Kbuild
-+++ b/arch/tile/include/asm/Kbuild
-@@ -39,4 +39,5 @@ generic-y += termbits.h
- generic-y += termios.h
- generic-y += trace_clock.h
- generic-y += types.h
-+generic-y += word-at-a-time.h
- generic-y += xor.h
-diff --git a/arch/um/include/asm/Kbuild b/arch/um/include/asm/Kbuild
-index 9176fa11d49b..ee02364d8922 100644
---- a/arch/um/include/asm/Kbuild
-+++ b/arch/um/include/asm/Kbuild
-@@ -26,4 +26,5 @@ generic-y += sections.h
- generic-y += switch_to.h
- generic-y += topology.h
- generic-y += trace_clock.h
-+generic-y += word-at-a-time.h
- generic-y += xor.h
-diff --git a/arch/unicore32/include/asm/Kbuild b/arch/unicore32/include/asm/Kbuild
-index 3e0c19d0f4c5..f456bfa1dd54 100644
---- a/arch/unicore32/include/asm/Kbuild
-+++ b/arch/unicore32/include/asm/Kbuild
-@@ -62,4 +62,5 @@ generic-y += ucontext.h
- generic-y += unaligned.h
- generic-y += user.h
- generic-y += vga.h
-+generic-y += word-at-a-time.h
- generic-y += xor.h
-diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
-index 86a9ab2e2ca9..6ac0a9ab3ea3 100644
---- a/arch/xtensa/include/asm/Kbuild
-+++ b/arch/xtensa/include/asm/Kbuild
-@@ -29,4 +29,5 @@ generic-y += statfs.h
- generic-y += termios.h
- generic-y += topology.h
- generic-y += trace_clock.h
-+generic-y += word-at-a-time.h
- generic-y += xor.h
-diff --git a/include/asm-generic/word-at-a-time.h b/include/asm-generic/word-at-a-time.h
-index 94f9ea8abcae..011dde083f23 100644
---- a/include/asm-generic/word-at-a-time.h
-+++ b/include/asm-generic/word-at-a-time.h
-@@ -1,15 +1,10 @@
- #ifndef _ASM_WORD_AT_A_TIME_H
- #define _ASM_WORD_AT_A_TIME_H
- 
--/*
-- * This says "generic", but it's actually big-endian only.
-- * Little-endian can use more efficient versions of these
-- * interfaces, see for example
-- *	 arch/x86/include/asm/word-at-a-time.h
-- * for those.
-- */
--
- #include <linux/kernel.h>
-+#include <asm/byteorder.h>
-+
-+#ifdef __BIG_ENDIAN
- 
- struct word_at_a_time {
- 	const unsigned long high_bits, low_bits;
-@@ -53,4 +48,73 @@ static inline bool has_zero(unsigned long val, unsigned long *data, const struct
- #define zero_bytemask(mask) (~1ul << __fls(mask))
- #endif
- 
-+#else
-+
-+/*
-+ * The optimal byte mask counting is probably going to be something
-+ * that is architecture-specific. If you have a reliably fast
-+ * bit count instruction, that might be better than the multiply
-+ * and shift, for example.
-+ */
-+struct word_at_a_time {
-+	const unsigned long one_bits, high_bits;
-+};
-+
-+#define WORD_AT_A_TIME_CONSTANTS { REPEAT_BYTE(0x01), REPEAT_BYTE(0x80) }
-+
-+#ifdef CONFIG_64BIT
-+
-+/*
-+ * Jan Achrenius on G+: microoptimized version of
-+ * the simpler "(mask & ONEBYTES) * ONEBYTES >> 56"
-+ * that works for the bytemasks without having to
-+ * mask them first.
-+ */
-+static inline long count_masked_bytes(unsigned long mask)
-+{
-+	return mask*0x0001020304050608ul >> 56;
-+}
-+
-+#else	/* 32-bit case */
-+
-+/* Carl Chatfield / Jan Achrenius G+ version for 32-bit */
-+static inline long count_masked_bytes(long mask)
-+{
-+	/* (000000 0000ff 00ffff ffffff) -> ( 1 1 2 3 ) */
-+	long a = (0x0ff0001+mask) >> 23;
-+	/* Fix the 1 for 00 case */
-+	return a & mask;
-+}
-+
-+#endif
-+
-+/* Return nonzero if it has a zero */
-+static inline unsigned long has_zero(unsigned long a, unsigned long *bits, const struct word_at_a_time *c)
-+{
-+	unsigned long mask = ((a - c->one_bits) & ~a) & c->high_bits;
-+	*bits = mask;
-+	return mask;
-+}
-+
-+static inline unsigned long prep_zero_mask(unsigned long a, unsigned long bits, const struct word_at_a_time *c)
-+{
-+	return bits;
-+}
-+
-+static inline unsigned long create_zero_mask(unsigned long bits)
-+{
-+	bits = (bits - 1) & ~bits;
-+	return bits >> 7;
-+}
-+
-+/* The mask we created is directly usable as a bytemask */
-+#define zero_bytemask(mask) (mask)
-+
-+static inline unsigned long find_zero(unsigned long mask)
-+{
-+	return count_masked_bytes(mask);
-+}
-+
-+#endif /* __BIG_ENDIAN */
-+
- #endif /* _ASM_WORD_AT_A_TIME_H */
+Changes since v5:
+-----------------
+ - Change st,hw-flow-ctrl property to auto-flow-control (Rob)
+ - Constify stm32_uart_ops (Joe)
+ - Propagate request_irq error in USART driver (Andy)
+ - Applies Acked-by and Reviewed-by (Rob, Peter)
+
+Changes since v4:
+-----------------
+ - Cosmetic changes in USART driver (Andy)
+ - Apply Acks on reset driver & bindings (Philipp & Rob)
+
+Changes since v3:
+-----------------
+ - Fix and simplify error path in ARMv7-M Systick driver (Daniel)
+ - Improve reset bindings documentation (Philipp)
+ - Fix trailing lines anf typos in reset driver & doc (Philipp & Chanwoo)
+ - Fix MODULE_LICENCE in USART driver (Paul)
+ - Refactor USART baudrate calculation (Peter & Andy)
+ - Fix error path in USART init (Peter & Russell)
+ - Fix HW flow control in USART driver (Peter)
+ - Fix serial port type number to unused one (Peter)
+ - Applies Chanwoo's Tested-by on the series
+
+Changes since v2:
+-----------------
+ - Remove pinctrl driver from the series. 
+ - Remove reset_controller_of_init(), and reset the timers in the bootloader
+ - Add HW flow contrl property for serial driver
+ - Lots of changes in the DTS file, as per Andreas recommendations
+ - Some Kconfig clean-ups
+ - Adapt the config to be compatible with Andreas' bootwrapper, except UART port.
+ - Various fixes in documentation
+
+Changes since v1:
+-----------------
+ - Move bindings documentation in their own patches (Andreas)
+ - Rename ARM System timer to armv7m-systick (Rob)
+ - Add clock-frequency property handling in armv7m-systick (Rob)
+ - Re-factor the reset controllers into a single controller (Philipp)
+ - Add kerneldoc to reset_controller_of_init (Philipp)
+ - Add named constants in include/dt-bindings/reset/ (Philipp)
+ - Make pinctrl driver to depend on ARCH_STM32 or COMPILE_TEST (Geert)
+ - Introduce CPUV7M_NUM_IRQ config flag to indicate the number of interrupts
+supported by the MCU, in order to limit memory waste in vectors' table (Uwe)
+
+Maxime Coquelin (15):
+  scripts: link-vmlinux: Don't pass page offset to kallsyms if XIP
+    Kernel
+  ARM: ARMv7-M: Enlarge vector table up to 256 entries
+  dt-bindings: Document the ARM System timer bindings
+  clocksource/drivers: Add ARM System timer driver
+  dt-bindings: Document the STM32 reset bindings
+  drivers: reset: Add STM32 reset driver
+  dt-bindings: Document the STM32 timer bindings
+  clockevents/drivers: Add STM32 Timer driver
+  dt-bindings: Document the STM32 USART bindings
+  serial: stm32-usart: Add STM32 USART Driver
+  ARM: Add STM32 family machine
+  ARM: dts: Add ARM System timer as clocksource in armv7m
+  ARM: dts: Introduce STM32F429 MCU
+  ARM: configs: Add STM32 defconfig
+  MAINTAINERS: Add entry for STM32 MCUs
+
+ Documentation/arm/stm32/overview.txt               |  32 +
+ Documentation/arm/stm32/stm32f429-overview.txt     |  22 +
+ .../devicetree/bindings/arm/armv7m_systick.txt     |  26 +
+ .../devicetree/bindings/reset/st,stm32-rcc.txt     | 107 +++
+ .../devicetree/bindings/serial/st,stm32-usart.txt  |  32 +
+ .../devicetree/bindings/timer/st,stm32-timer.txt   |  22 +
+ MAINTAINERS                                        |   8 +
+ arch/arm/Kconfig                                   |  18 +
+ arch/arm/Makefile                                  |   1 +
+ arch/arm/boot/dts/Makefile                         |   1 +
+ arch/arm/boot/dts/armv7-m.dtsi                     |   6 +
+ arch/arm/boot/dts/stm32f429-disco.dts              |  71 ++
+ arch/arm/boot/dts/stm32f429.dtsi                   | 226 +++++++
+ arch/arm/configs/stm32_defconfig                   |  69 ++
+ arch/arm/kernel/entry-v7m.S                        |  13 +-
+ arch/arm/mach-stm32/Makefile                       |   1 +
+ arch/arm/mach-stm32/Makefile.boot                  |   3 +
+ arch/arm/mach-stm32/board-dt.c                     |  19 +
+ arch/arm/mm/Kconfig                                |  15 +
+ drivers/clocksource/Kconfig                        |  15 +
+ drivers/clocksource/Makefile                       |   2 +
+ drivers/clocksource/armv7m_systick.c               |  79 +++
+ drivers/clocksource/timer-stm32.c                  | 184 +++++
+ drivers/reset/Makefile                             |   1 +
+ drivers/reset/reset-stm32.c                        | 124 ++++
+ drivers/tty/serial/Kconfig                         |  17 +
+ drivers/tty/serial/Makefile                        |   1 +
+ drivers/tty/serial/stm32-usart.c                   | 737 +++++++++++++++++++++
+ include/uapi/linux/serial_core.h                   |   3 +
+ scripts/link-vmlinux.sh                            |   2 +-
+ 30 files changed, 1852 insertions(+), 5 deletions(-)
+ create mode 100644 Documentation/arm/stm32/overview.txt
+ create mode 100644 Documentation/arm/stm32/stm32f429-overview.txt
+ create mode 100644 Documentation/devicetree/bindings/arm/armv7m_systick.txt
+ create mode 100644 Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
+ create mode 100644 Documentation/devicetree/bindings/serial/st,stm32-usart.txt
+ create mode 100644 Documentation/devicetree/bindings/timer/st,stm32-timer.txt
+ create mode 100644 arch/arm/boot/dts/stm32f429-disco.dts
+ create mode 100644 arch/arm/boot/dts/stm32f429.dtsi
+ create mode 100644 arch/arm/configs/stm32_defconfig
+ create mode 100644 arch/arm/mach-stm32/Makefile
+ create mode 100644 arch/arm/mach-stm32/Makefile.boot
+ create mode 100644 arch/arm/mach-stm32/board-dt.c
+ create mode 100644 drivers/clocksource/armv7m_systick.c
+ create mode 100644 drivers/clocksource/timer-stm32.c
+ create mode 100644 drivers/reset/reset-stm32.c
+ create mode 100644 drivers/tty/serial/stm32-usart.c
+
 -- 
-2.1.2
+1.9.1
 
