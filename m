@@ -1,63 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f180.google.com ([209.85.212.180]:32992 "EHLO
-	mail-wi0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750710AbbD3QVC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2015 12:21:02 -0400
-From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: [PATCH v7 03/15] dt-bindings: Document the ARM System timer bindings
-Date: Thu, 30 Apr 2015 18:20:32 +0200
-Message-ID: <1430410844-16062-4-git-send-email-mcoquelin.stm32@gmail.com>
-In-Reply-To: <1430410844-16062-1-git-send-email-mcoquelin.stm32@gmail.com>
-References: <1430410844-16062-1-git-send-email-mcoquelin.stm32@gmail.com>
+Received: from g2t1383g.austin.hp.com ([15.217.136.92]:39005 "EHLO
+	g2t1383g.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752626AbbD3Std (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2015 14:49:33 -0400
+Message-ID: <55427936.4080900@hp.com>
+Date: Thu, 30 Apr 2015 14:49:26 -0400
+From: Waiman Long <waiman.long@hp.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH v16 13/14] pvqspinlock: Improve slowpath performance by
+ avoiding cmpxchg
+References: <1429901803-29771-1-git-send-email-Waiman.Long@hp.com> <1429901803-29771-14-git-send-email-Waiman.Long@hp.com> <20150429181112.GI23123@twins.programming.kicks-ass.net>
+In-Reply-To: <20150429181112.GI23123@twins.programming.kicks-ass.net>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl, peter@hurleysoftware.com, andy.shevchenko@gmail.com, cw00.choi@samsung.com, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, joe@perches.com, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>
-Cc: Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, mcoquelin.stm32@gmail.com, Nicolae Rosia <nicolae.rosia@gmail.com>, Kamil Lulko <rev13@wp.pl>, Daniel Thompson <daniel.thompson@linaro.org>
-Message-ID: <20150430162032.xzRxtp_GnJVTP_K93XEw5WfD5SRdaATpa7fS4u7IqiA@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, xen-devel@lists.xenproject.org, kvm@vger.kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, David Vrabel <david.vrabel@citrix.com>, Oleg Nesterov <oleg@redhat.com>, Daniel J Blueman <daniel@numascale.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+Message-ID: <20150430184926.mfrAFGZGQo5C-q7XAEADCEcWED7x_qstlXuuYuG3alc@z>
 
-This adds documentation of device tree bindings for the
-ARM System timer.
+On 04/29/2015 02:11 PM, Peter Zijlstra wrote:
+> On Fri, Apr 24, 2015 at 02:56:42PM -0400, Waiman Long wrote:
+>> In the pv_scan_next() function, the slow cmpxchg atomic operation is
+>> performed even if the other CPU is not even close to being halted. This
+>> extra cmpxchg can harm slowpath performance.
+>>
+>> This patch introduces the new mayhalt flag to indicate if the other
+>> spinning CPU is close to being halted or not. The current threshold
+>> for x86 is 2k cpu_relax() calls. If this flag is not set, the other
+>> spinning CPU will have at least 2k more cpu_relax() calls before
+>> it can enter the halt state. This should give enough time for the
+>> setting of the locked flag in struct mcs_spinlock to propagate to
+>> that CPU without using atomic op.
+> Yuck! I'm not at all sure you can make assumptions like that. And the
+> worst part is, if it goes wrong the borkage is subtle and painful.
 
-Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
-Acked-by: Rob Herring <robh@kernel.org>
-Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
----
- .../devicetree/bindings/arm/armv7m_systick.txt     | 26 ++++++++++++++++++++++
- 1 file changed, 26 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/arm/armv7m_systick.txt
+I do think the code is OK. However, you are right that if my reasoning 
+is incorrect, the resulting bug will be really subtle. So I am going to 
+withdraw this particular patch as it has no functional impact to the 
+overall patch series. Please let me know if you have any other comments 
+on other parts of the series and I will send send out a new series 
+without this particular patch.
 
-diff --git a/Documentation/devicetree/bindings/arm/armv7m_systick.txt b/Documentation/devicetree/bindings/arm/armv7m_systick.txt
-new file mode 100644
-index 0000000..7cf4a24
---- /dev/null
-+++ b/Documentation/devicetree/bindings/arm/armv7m_systick.txt
-@@ -0,0 +1,26 @@
-+* ARMv7M System Timer
-+
-+ARMv7-M includes a system timer, known as SysTick. Current driver only
-+implements the clocksource feature.
-+
-+Required properties:
-+- compatible	  : Should be "arm,armv7m-systick"
-+- reg		  : The address range of the timer
-+
-+Required clocking property, have to be one of:
-+- clocks	  : The input clock of the timer
-+- clock-frequency : The rate in HZ in input of the ARM SysTick
-+
-+Examples:
-+
-+systick: timer@e000e010 {
-+	compatible = "arm,armv7m-systick";
-+	reg = <0xe000e010 0x10>;
-+	clocks = <&clk_systick>;
-+};
-+
-+systick: timer@e000e010 {
-+	compatible = "arm,armv7m-systick";
-+	reg = <0xe000e010 0x10>;
-+	clock-frequency = <90000000>;
-+};
--- 
-1.9.1
-
+Cheers,
+Longman
