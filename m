@@ -1,152 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f54.google.com ([209.85.220.54]:34685 "EHLO
-	mail-pa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751308AbbD3IXZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Apr 2015 04:23:25 -0400
-Received: by pacyx8 with SMTP id yx8so53041566pac.1
-        for <linux-arch@vger.kernel.org>; Thu, 30 Apr 2015 01:23:24 -0700 (PDT)
-From: Baolin Wang <baolin.wang@linaro.org>
-Subject: [PATCH v2 13/15] cputime:Introduce the cputime_to_timespec64/timespec64_to_cputime function
-Date: Thu, 30 Apr 2015 16:23:09 +0800
-Message-ID: <1430382189-26706-1-git-send-email-baolin.wang@linaro.org>
+Received: from mail-am1on0064.outbound.protection.outlook.com ([157.56.112.64]:50758
+	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751613AbbD3QBo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Apr 2015 12:01:44 -0400
+From: Chris Metcalf <cmetcalf@ezchip.com>
+Subject: [PATCH 3/3] tile: use global strscpy() rather than private copy
+Date: Thu, 30 Apr 2015 12:01:17 -0400
+Message-ID: <1430409677-13284-4-git-send-email-cmetcalf@ezchip.com>
+In-Reply-To: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com>
+References: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: benh@kernel.crashing.org
-Cc: arnd@arndb.de, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, fweisbec@gmail.com, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, baolin.wang@linaro.org, y2038@lists.linaro.org
-Message-ID: <20150430082309.ZJybLB0A7XsPsE00820Arzi1um6yV-JX2yS0zRuXINk@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Chris Metcalf <cmetcalf@ezchip.com>, Al Viro <viro@zeniv.linux.org.uk>, Fabian Frederick <fabf@skynet.be>, Randy Dunlap <rdunlap@infradead.org>, Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>, gregkh@linuxfoundation.org, Peter Zijlstra <peterz@infradead.org>, "David S. Miller" <davem@davemloft.net>, Frederic Weisbecker <fweisbec@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Theodore Ts'o <tytso@mit.edu>, Grant Likely <grant.likely@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20150430160117.zg9xZRI9B_TiFTx0yVk3Q5V2d24PItPrsZx9AaDE9bA@z>
 
-This patch introduces some functions for converting cputime to timespec64 and back,
-that repalce the timespec type with timespec64 type, as well as for arch/s390 and
-arch/powerpc architecture.
+Now that strscpy() is a standard API, remove the local copy.
 
-And these new methods will replace the old cputime_to_timespec/timespec_to_cputime
-function to ready for 2038 issue. The cputime_to_timespec/timespec_to_cputime functions
-are moved to include/linux/cputime.h file for removing conveniently.
-
-Signed-off-by: Baolin Wang <baolin.wang@linaro.org>
+Signed-off-by: Chris Metcalf <cmetcalf@ezchip.com>
 ---
- arch/powerpc/include/asm/cputime.h    |    6 +++---
- arch/s390/include/asm/cputime.h       |    8 ++++----
- include/asm-generic/cputime_jiffies.h |   10 +++++-----
- include/asm-generic/cputime_nsecs.h   |    4 ++--
- include/linux/cputime.h               |   15 +++++++++++++++
- 5 files changed, 29 insertions(+), 14 deletions(-)
+ arch/tile/gxio/mpipe.c | 33 ++++-----------------------------
+ 1 file changed, 4 insertions(+), 29 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/cputime.h b/arch/powerpc/include/asm/cputime.h
-index e245255..5dda5c0 100644
---- a/arch/powerpc/include/asm/cputime.h
-+++ b/arch/powerpc/include/asm/cputime.h
-@@ -154,9 +154,9 @@ static inline cputime_t secs_to_cputime(const unsigned long sec)
- }
+diff --git a/arch/tile/gxio/mpipe.c b/arch/tile/gxio/mpipe.c
+index ee186e13dfe6..f102048d9c0e 100644
+--- a/arch/tile/gxio/mpipe.c
++++ b/arch/tile/gxio/mpipe.c
+@@ -19,6 +19,7 @@
+ #include <linux/errno.h>
+ #include <linux/io.h>
+ #include <linux/module.h>
++#include <linux/string.h>
  
- /*
-- * Convert cputime <-> timespec
-+ * Convert cputime <-> timespec64
-  */
--static inline void cputime_to_timespec(const cputime_t ct, struct timespec *p)
-+static inline void cputime_to_timespec64(const cputime_t ct, struct timespec64 *p)
+ #include <gxio/iorpc_globals.h>
+ #include <gxio/iorpc_mpipe.h>
+@@ -29,32 +30,6 @@
+ /* HACK: Avoid pointless "shadow" warnings. */
+ #define link link_shadow
+ 
+-/**
+- * strscpy - Copy a C-string into a sized buffer, but only if it fits
+- * @dest: Where to copy the string to
+- * @src: Where to copy the string from
+- * @size: size of destination buffer
+- *
+- * Use this routine to avoid copying too-long strings.
+- * The routine returns the total number of bytes copied
+- * (including the trailing NUL) or zero if the buffer wasn't
+- * big enough.  To ensure that programmers pay attention
+- * to the return code, the destination has a single NUL
+- * written at the front (if size is non-zero) when the
+- * buffer is not big enough.
+- */
+-static size_t strscpy(char *dest, const char *src, size_t size)
+-{
+-	size_t len = strnlen(src, size) + 1;
+-	if (len > size) {
+-		if (size)
+-			dest[0] = '\0';
+-		return 0;
+-	}
+-	memcpy(dest, src, len);
+-	return len;
+-}
+-
+ int gxio_mpipe_init(gxio_mpipe_context_t *context, unsigned int mpipe_index)
  {
- 	u64 x = (__force u64) ct;
- 	unsigned int frac;
-@@ -168,7 +168,7 @@ static inline void cputime_to_timespec(const cputime_t ct, struct timespec *p)
- 	p->tv_nsec = x;
- }
+ 	char file[32];
+@@ -540,7 +515,7 @@ int gxio_mpipe_link_instance(const char *link_name)
+ 	if (!context)
+ 		return GXIO_ERR_NO_DEVICE;
  
--static inline cputime_t timespec_to_cputime(const struct timespec *p)
-+static inline cputime_t timespec64_to_cputime(const struct timespec64 *p)
- {
- 	u64 ct;
+-	if (strscpy(name.name, link_name, sizeof(name.name)) == 0)
++	if (strscpy(name.name, link_name, sizeof(name.name)) < 0)
+ 		return GXIO_ERR_NO_DEVICE;
  
-diff --git a/arch/s390/include/asm/cputime.h b/arch/s390/include/asm/cputime.h
-index b91e960..1266697 100644
---- a/arch/s390/include/asm/cputime.h
-+++ b/arch/s390/include/asm/cputime.h
-@@ -89,16 +89,16 @@ static inline cputime_t secs_to_cputime(const unsigned int s)
- }
+ 	return gxio_mpipe_info_instance_aux(context, name);
+@@ -559,7 +534,7 @@ int gxio_mpipe_link_enumerate_mac(int idx, char *link_name, uint8_t *link_mac)
  
- /*
-- * Convert cputime to timespec and back.
-+ * Convert cputime to timespec64 and back.
-  */
--static inline cputime_t timespec_to_cputime(const struct timespec *value)
-+static inline cputime_t timespec64_to_cputime(const struct timespec64 *value)
- {
- 	unsigned long long ret = value->tv_sec * CPUTIME_PER_SEC;
- 	return (__force cputime_t)(ret + __div(value->tv_nsec * CPUTIME_PER_USEC, NSEC_PER_USEC));
- }
+ 	rv = gxio_mpipe_info_enumerate_aux(context, idx, &name, &mac);
+ 	if (rv >= 0) {
+-		if (strscpy(link_name, name.name, sizeof(name.name)) == 0)
++		if (strscpy(link_name, name.name, sizeof(name.name)) < 0)
+ 			return GXIO_ERR_INVAL_MEMORY_SIZE;
+ 		memcpy(link_mac, mac.mac, sizeof(mac.mac));
+ 	}
+@@ -576,7 +551,7 @@ int gxio_mpipe_link_open(gxio_mpipe_link_t *link,
+ 	_gxio_mpipe_link_name_t name;
+ 	int rv;
  
--static inline void cputime_to_timespec(const cputime_t cputime,
--				       struct timespec *value)
-+static inline void cputime_to_timespec64(const cputime_t cputime,
-+				       struct timespec64 *value)
- {
- 	unsigned long long __cputime = (__force unsigned long long) cputime;
- #ifndef CONFIG_64BIT
-diff --git a/include/asm-generic/cputime_jiffies.h b/include/asm-generic/cputime_jiffies.h
-index fe386fc..54e034c 100644
---- a/include/asm-generic/cputime_jiffies.h
-+++ b/include/asm-generic/cputime_jiffies.h
-@@ -44,12 +44,12 @@ typedef u64 __nocast cputime64_t;
- #define secs_to_cputime(sec)		jiffies_to_cputime((sec) * HZ)
+-	if (strscpy(name.name, link_name, sizeof(name.name)) == 0)
++	if (strscpy(name.name, link_name, sizeof(name.name)) < 0)
+ 		return GXIO_ERR_NO_DEVICE;
  
- /*
-- * Convert cputime to timespec and back.
-+ * Convert cputime to timespec64 and back.
-  */
--#define timespec_to_cputime(__val)	\
--	jiffies_to_cputime(timespec_to_jiffies(__val))
--#define cputime_to_timespec(__ct,__val)	\
--	jiffies_to_timespec(cputime_to_jiffies(__ct),__val)
-+#define timespec64_to_cputime(__val)	\
-+	jiffies_to_cputime(timespec64_to_jiffies(__val))
-+#define cputime_to_timespec64(__ct,__val)	\
-+	jiffies_to_timespec64(cputime_to_jiffies(__ct),__val)
- 
- /*
-  * Convert cputime to timeval and back.
-diff --git a/include/asm-generic/cputime_nsecs.h b/include/asm-generic/cputime_nsecs.h
-index 0419485..65c875b 100644
---- a/include/asm-generic/cputime_nsecs.h
-+++ b/include/asm-generic/cputime_nsecs.h
-@@ -73,12 +73,12 @@ typedef u64 __nocast cputime64_t;
- /*
-  * Convert cputime <-> timespec (nsec)
-  */
--static inline cputime_t timespec_to_cputime(const struct timespec *val)
-+static inline cputime_t timespec64_to_cputime(const struct timespec64 *val)
- {
- 	u64 ret = val->tv_sec * NSEC_PER_SEC + val->tv_nsec;
- 	return (__force cputime_t) ret;
- }
--static inline void cputime_to_timespec(const cputime_t ct, struct timespec *val)
-+static inline void cputime_to_timespec64(const cputime_t ct, struct timespec64 *val)
- {
- 	u32 rem;
- 
-diff --git a/include/linux/cputime.h b/include/linux/cputime.h
-index f2eb2ee..f01896f 100644
---- a/include/linux/cputime.h
-+++ b/include/linux/cputime.h
-@@ -13,4 +13,19 @@
- 	usecs_to_cputime((__nsecs) / NSEC_PER_USEC)
- #endif
- 
-+static inline cputime_t timespec_to_cputime(const struct timespec *ts)
-+{
-+	struct timespec64 ts64 = timespec_to_timespec64(*ts);
-+	return timespec64_to_cputime(&ts64);
-+}
-+
-+static inline void cputime_to_timespec(const cputime_t cputime,
-+					struct timespec *value)
-+{
-+	struct timespec64 *ts64;
-+
-+	*ts64 = timespec_to_timespec64(*value);
-+	cputime_to_timespec64(cputime, ts64);
-+}
-+
- #endif /* __LINUX_CPUTIME_H */
+ 	rv = gxio_mpipe_link_open_aux(context, name, flags);
 -- 
-1.7.9.5
+2.1.2
 
