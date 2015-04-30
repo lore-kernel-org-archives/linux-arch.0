@@ -1,108 +1,94 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH] scatterlist: enable sg chaining for all architectures
-Date: Thu, 30 Apr 2015 07:55:07 -0700
-Message-ID: <1430405707.2167.13.camel@HansenPartnership.com>
-References: <1429973776-7499-1-git-send-email-akinobu.mita@gmail.com>
-	 <20150428142743.578d1c930aca013b596d7546@linux-foundation.org>
-	 <1430259419.2181.26.camel@HansenPartnership.com>
-	 <CAC5umyhM6s4dgJt6BQMhVihh3C8uYd+s2XEZB9UTQKK63OXxfQ@mail.gmail.com>
-	 <1430273746.2181.49.camel@HansenPartnership.com>
-	 <1430380782.24121.99.camel@haakon3.risingtidesystems.com>
+From: Chris Metcalf <cmetcalf@ezchip.com>
+Subject: [PATCH 0/3] add new strscpy() API for string copy
+Date: Thu, 30 Apr 2015 12:01:14 -0400
+Message-ID: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com>
+References: <CA+55aFwbRZe5gVsTyHvjKqE5eA3zQ_58_UQW7KACCt7V7FpZbQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:40599 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752891AbbD3OzK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Apr 2015 10:55:10 -0400
-In-Reply-To: <1430380782.24121.99.camel@haakon3.risingtidesystems.com>
+Received: from mail-am1on0090.outbound.protection.outlook.com ([157.56.112.90]:5554
+	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1750823AbbD3QBb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Apr 2015 12:01:31 -0400
+In-Reply-To: <CA+55aFwbRZe5gVsTyHvjKqE5eA3zQ_58_UQW7KACCt7V7FpZbQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Nicholas A. Bellinger" <nab@linux-iscsi.org>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Christoph Hellwig <hch@lst.de>, "linux-scsi@vger.kernel.org" <linux-scsi@vger.kernel.org>, target-devel@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Chris Metcalf <cmetcalf@ezchip.com>, Al Viro <viro@zeniv.linux.org.uk>, Fabian Frederick <fabf@skynet.be>, Randy Dunlap <rdunlap@infradead.org>, Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>, gregkh@linuxfoundation.org, Peter Zijlstra <peterz@infradead.org>, "David S. Miller" <davem@davemloft.net>, Frederic Weisbecker <fweisbec@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Theodore Ts'o <tytso@mit.edu>, Grant Likely <grant.likely@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
-On Thu, 2015-04-30 at 00:59 -0700, Nicholas A. Bellinger wrote:
-> On Tue, 2015-04-28 at 19:15 -0700, James Bottomley wrote:
-> > On Wed, 2015-04-29 at 09:34 +0900, Akinobu Mita wrote:
-> > > 2015-04-29 7:16 GMT+09:00 James Bottomley
-> > > <James.Bottomley@hansenpartnership.com>:
-> > > > On Tue, 2015-04-28 at 14:27 -0700, Andrew Morton wrote:
-> > > >> On Sat, 25 Apr 2015 23:56:16 +0900 Akinobu Mita <akinobu.mita@gmail.com> wrote:
-> > > >>
-> > > >> > Some architectures enable sg chaining option while others do not.
-> > > >> >
-> > > >> > The requirement to enable sg chaining is that pages must be aligned
-> > > >> > at a 32-bit boundary in order to overload the LSB of the pointer.
-> > > >> > Regardless of whether ARCH_HAS_SG_CHAIN is defined or not, the above
-> > > >> > requirement is always chacked by BUG_ON() in sg_assign_page.  So
-> > > >> > all architectures can enable sg chaining.
-> > > >> >
-> > > >> > As you can see from the changes in drivers/target/target_core_rd.c,
-> > > >> > enabling SG chaining for all architectures allows us to allocate
-> > > >> > discontiguous scatterlist tables which can be traversed throughout
-> > > >> > by sg_next() without a special handling for some architectures.
-> > > >>
-> > > >> Thanks, I'll grab this.  If anyone has concerns, speak now or hold both
-> > > >> pieces!
-> > > >
-> > > > It breaks a host of architectures doesn't it?  I can specifically speak
-> > > > for PARISC:  The problem is the way our iommus are consuming
-> > > > scatterlists.  They're assuming we can dereference the scatterlist as an
-> > > > array (like this code in ccio-dma.c):
-> > > >
-> > > > static int
-> > > > ccio_map_sg(struct device *dev, struct scatterlist *sglist, int nents,
-> > > >             enum dma_data_direction direction)
-> > > > [...]
-> > > >         for(i = 0; i < nents; i++)
-> > > >                 prev_len += sglist[i].length;
-> > > >
-> > > > If you turn on sg chaining on our architecture, we'll run off the end of
-> > > > that array dereference and crash.
-> > > >
-> > > > This can all be fixed by making our architecture dma mapping code use
-> > > > iterators instead of array lists, but that needs more code than this
-> > > > patch provides.  I assume there are similar issues on a lot of other
-> > > > architectures, so before you can contemplate a patch like this, surely
-> > > > all the architecture consumers have to be converted to iterator instead
-> > > > of array format?
-> > > >
-> > > > The first place to start would be a survey of who's still using the
-> > > > array format.
-> > > 
-> > > Agreed.  I could find similar issues in arch/m68k/kernel/dma.c.
-> > > (git grep '[^a-z]sg++' shows that there are a lot of similar issues)
-> > 
-> > OK, so the original idea of the chained SG lists was that most of the
-> > older architectures have fixed length lists for their IOMMUs, or simply
-> > wouldn't see a benefit with IO lengths > 0.5MB (which was the default
-> > before chaining) so there wasn't much point converting them to chaining
-> > if they wouldn't see any benefit from it.
-> > 
-> > ARCH_HAS_SG_CHAIN is supposed to be completely transparent to all driver
-> > side consumers, so there was never thought to be much point removing it.
-> > It looks like there's some sort of cockup going on in the target driver
-> > but otherwise, your removal patch is pretty empty, confirming this.
-> > 
-> > Perhaps the best thing to do is just fix target and call it quits?
-> > 
-> 
-> So the ARCH_HAS_SG_CHAIN usage in target_core_rd.c was recently added so
-> target DIF emulation could use standard SGL iterators and correctly
-> handle boundaries across T10-PI metadata SGL tables in the ramdisk
-> backend.
->
-> The SGLs in question are never actually mapped to a HW IOMMU, and
-> Akinobu's current changes in mainline do support both arch cases and
-> make common sbc_dif_copy_prot() code a bit simpler too.
-> 
-> That said, I'd rather to keep the hack around for now so that both
-> ARCH_HAS_SG_CHAIN types can still work, short of a full arch conversion
-> of course..
+This patch series addresses limitations in strncpy() and strlcpy();
+both the old APIs are unpleasant, as Linus nicely summarized here
+a couple of days ago:
 
-It looks like you might not have needed the hack if you'd used the
-existing sg chain allocators ....
+  https://lkml.org/lkml/2015/4/28/570
 
-James
+and of course as other folks (Greg K-H and Linus again) said last year:
+
+  https://plus.google.com/+gregkroahhartman/posts/1amLbuhWbh5
+
+The proposed new API (strscpy(), for "s"afe string copy) has an
+easy-to-use API for detecting buffer overflow, avoids unsafe truncation
+by default, and isn't subject to thread-safety attacks like the current
+strlcpy implementation.  See patch 2/3 for more on why strscpy() is a
+good thing.
+
+To make strscpy() work more efficiently I did the minimum tweaking
+necessary to allow <asm/word-at-a-time.h> to work on all architectures,
+though of course individual maintainers can still make their versions
+more efficient as needed.
+
+It's likely not necessary for per-architecture implementations of
+strscpy() to be written, but I stuck with the standard __HAVE_ARCH_XXX
+model just for consistency with the rest of <linux/string.h>.
+
+I tested the implementation with a simple user-space harness, so I
+believe it is correct for the corner cases I could think of.  In
+particular I pairwise-tested all the unaligned values of source and
+dest, and tested the restriction on src page-crossing at all
+unaligned offsets approaching the page boundary.
+
+This builds on an earlier version of strscpy() submitted as
+a file-static method in the arch/tile/gxio tree last year, after
+an attempt to gather interest in a new generic strscpy failed:
+
+  https://lkml.org/lkml/2014/8/7/368
+
+The patch series is available to be pulled from
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/cmetcalf/linux-tile.git strscpy
+
+Chris Metcalf (3):
+  Make asm/word-at-a-time.h available on all architectures
+  string: provide strscpy() and strscpy_truncate()
+  tile: use global strscpy() rather than private copy
+
+ arch/arc/include/asm/Kbuild          |   1 +
+ arch/avr32/include/asm/Kbuild        |   1 +
+ arch/blackfin/include/asm/Kbuild     |   1 +
+ arch/c6x/include/asm/Kbuild          |   1 +
+ arch/cris/include/asm/Kbuild         |   1 +
+ arch/frv/include/asm/Kbuild          |   1 +
+ arch/hexagon/include/asm/Kbuild      |   1 +
+ arch/ia64/include/asm/Kbuild         |   1 +
+ arch/m32r/include/asm/Kbuild         |   1 +
+ arch/metag/include/asm/Kbuild        |   1 +
+ arch/microblaze/include/asm/Kbuild   |   1 +
+ arch/mips/include/asm/Kbuild         |   1 +
+ arch/mn10300/include/asm/Kbuild      |   1 +
+ arch/nios2/include/asm/Kbuild        |   1 +
+ arch/powerpc/include/asm/Kbuild      |   1 +
+ arch/s390/include/asm/Kbuild         |   1 +
+ arch/score/include/asm/Kbuild        |   1 +
+ arch/tile/gxio/mpipe.c               |  33 ++---------
+ arch/tile/include/asm/Kbuild         |   1 +
+ arch/um/include/asm/Kbuild           |   1 +
+ arch/unicore32/include/asm/Kbuild    |   1 +
+ arch/xtensa/include/asm/Kbuild       |   1 +
+ include/asm-generic/word-at-a-time.h |  80 ++++++++++++++++++++++---
+ include/linux/string.h               |   6 ++
+ lib/string.c                         | 109 +++++++++++++++++++++++++++++++++++
+ 25 files changed, 212 insertions(+), 37 deletions(-)
+
+-- 
+2.1.2
