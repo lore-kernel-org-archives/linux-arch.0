@@ -1,50 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f177.google.com ([209.85.214.177]:35422 "EHLO
-	mail-ob0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751378AbbEAJH3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2015 05:07:29 -0400
-MIME-Version: 1.0
-In-Reply-To: <1430462846-12022-1-git-send-email-akinobu.mita@gmail.com>
-References: <1430462846-12022-1-git-send-email-akinobu.mita@gmail.com>
-Date: Fri, 1 May 2015 11:07:28 +0200
-Message-ID: <CAMuHMdURwUnHtp2Q327m8y9Cqud=gyfkpUbTC_+7Y7v=nogLkw@mail.gmail.com>
-Subject: Re: [PATCH 1/5] m68k: use for_each_sg()
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Received: from mail-pd0-f179.google.com ([209.85.192.179]:35868 "EHLO
+	mail-pd0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753806AbbEAN5E (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2015 09:57:04 -0400
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: [PATCH v2 03/10] metag: use for_each_sg()
+Date: Fri,  1 May 2015 22:56:36 +0900
+Message-ID: <1430488603-11055-3-git-send-email-akinobu.mita@gmail.com>
+In-Reply-To: <1430488603-11055-1-git-send-email-akinobu.mita@gmail.com>
+References: <1430488603-11055-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20150501090728.CoQ2ZrxnBpBOja7hFGX7G3CFSyYJo-qArZDABy8HeBI@z>
+To: linux-kernel@vger.kernel.org, akpm@linux-foundation.org
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20150501135636.X1WHaMdkdXF9zkkioV4s7hVg034V0noZWUeZGoNU_uw@z>
 
-Hi Mita-san,
+This replaces the plain loop over the sglist array with for_each_sg()
+macro which consists of sg_next() function calls.  Since metag doesn't
+select ARCH_HAS_SG_CHAIN, it is not necessary to use for_each_sg() in
+order to loop over each sg element.  But this can help find problems
+with drivers that do not properly initialize their sg tables when
+CONFIG_DEBUG_SG is enabled.
 
-On Fri, May 1, 2015 at 8:47 AM, Akinobu Mita <akinobu.mita@gmail.com> wrote:
-> Since m68k doesn't select ARCH_HAS_SG_CHAIN, it is not necessary to
-> use for_each_sg() in order to loop over each sg element.  But this can
-> help find problems with drivers that do not properly initialize their
-> sg tables when CONFIG_DEBUG_SG is enabled.
->
-> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: linux-m68k@lists.linux-m68k.org
-> Cc: linux-arch@vger.kernel.org
+Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
+Cc: James Hogan <james.hogan@imgtec.com>
+Cc: linux-metag@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+---
+* Changes from v1
+- Update commit log
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+ arch/metag/include/asm/dma-mapping.h | 14 +++++++++-----
+ 1 file changed, 9 insertions(+), 5 deletions(-)
 
-Do you want me to queue this up for v4.2, or do you want to handle these
-changes yourself, together with "[PATCH] scatterlist: enable sg chaining
-for all architectures"?
+diff --git a/arch/metag/include/asm/dma-mapping.h b/arch/metag/include/asm/dma-mapping.h
+index 14b23ef..eb5cdec 100644
+--- a/arch/metag/include/asm/dma-mapping.h
++++ b/arch/metag/include/asm/dma-mapping.h
+@@ -134,20 +134,24 @@ dma_sync_single_range_for_device(struct device *dev, dma_addr_t dma_handle,
+ }
+ 
+ static inline void
+-dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg, int nelems,
++dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sglist, int nelems,
+ 		    enum dma_data_direction direction)
+ {
+ 	int i;
+-	for (i = 0; i < nelems; i++, sg++)
++	struct scatterlist *sg;
++
++	for_each_sg(sglist, sg, nelems, i)
+ 		dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
+ }
+ 
+ static inline void
+-dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg, int nelems,
+-		       enum dma_data_direction direction)
++dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist,
++		       int nelems, enum dma_data_direction direction)
+ {
+ 	int i;
+-	for (i = 0; i < nelems; i++, sg++)
++	struct scatterlist *sg;
++
++	for_each_sg(sglist, sg, nelems, i)
+ 		dma_sync_for_device(sg_virt(sg), sg->length, direction);
+ }
+ 
+-- 
+1.9.1
 
-Thanks!
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
