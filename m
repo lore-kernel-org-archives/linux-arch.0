@@ -1,72 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f179.google.com ([209.85.192.179]:35868 "EHLO
-	mail-pd0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753806AbbEAN5E (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2015 09:57:04 -0400
+Received: from mail-pa0-f41.google.com ([209.85.220.41]:35883 "EHLO
+	mail-pa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753800AbbEAN50 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2015 09:57:26 -0400
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v2 03/10] metag: use for_each_sg()
-Date: Fri,  1 May 2015 22:56:36 +0900
-Message-ID: <1430488603-11055-3-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v2 09/10] sparc: use for_each_sg()
+Date: Fri,  1 May 2015 22:56:42 +0900
+Message-ID: <1430488603-11055-9-git-send-email-akinobu.mita@gmail.com>
 In-Reply-To: <1430488603-11055-1-git-send-email-akinobu.mita@gmail.com>
 References: <1430488603-11055-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150501135636.X1WHaMdkdXF9zkkioV4s7hVg034V0noZWUeZGoNU_uw@z>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20150501135642.0HSlia6Tqk8nlzoCZWMmsMvp_S1JFpNOp9xIjN9q2BY@z>
 
 This replaces the plain loop over the sglist array with for_each_sg()
-macro which consists of sg_next() function calls.  Since metag doesn't
-select ARCH_HAS_SG_CHAIN, it is not necessary to use for_each_sg() in
-order to loop over each sg element.  But this can help find problems
-with drivers that do not properly initialize their sg tables when
+macro which consists of sg_next() function calls.  Since sparc does
+select ARCH_HAS_SG_CHAIN, it is necessary to use for_each_sg() in
+order to loop over each sg element.  This also help find problems with
+drivers that do not properly initialize their sg tables when
 CONFIG_DEBUG_SG is enabled.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: James Hogan <james.hogan@imgtec.com>
-Cc: linux-metag@vger.kernel.org
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: sparclinux@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 ---
-* Changes from v1
-- Update commit log
+* New patch from v2
 
- arch/metag/include/asm/dma-mapping.h | 14 +++++++++-----
- 1 file changed, 9 insertions(+), 5 deletions(-)
+ arch/sparc/kernel/ldc.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
 
-diff --git a/arch/metag/include/asm/dma-mapping.h b/arch/metag/include/asm/dma-mapping.h
-index 14b23ef..eb5cdec 100644
---- a/arch/metag/include/asm/dma-mapping.h
-+++ b/arch/metag/include/asm/dma-mapping.h
-@@ -134,20 +134,24 @@ dma_sync_single_range_for_device(struct device *dev, dma_addr_t dma_handle,
- }
+diff --git a/arch/sparc/kernel/ldc.c b/arch/sparc/kernel/ldc.c
+index 7d3ca30..1ae5eb1 100644
+--- a/arch/sparc/kernel/ldc.c
++++ b/arch/sparc/kernel/ldc.c
+@@ -2086,6 +2086,7 @@ int ldc_map_sg(struct ldc_channel *lp,
+ 	struct cookie_state state;
+ 	struct ldc_iommu *iommu;
+ 	int err;
++	struct scatterlist *s;
  
- static inline void
--dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg, int nelems,
-+dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sglist, int nelems,
- 		    enum dma_data_direction direction)
- {
- 	int i;
--	for (i = 0; i < nelems; i++, sg++)
-+	struct scatterlist *sg;
-+
-+	for_each_sg(sglist, sg, nelems, i)
- 		dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
- }
+ 	if (map_perm & ~LDC_MAP_ALL)
+ 		return -EINVAL;
+@@ -2112,9 +2113,10 @@ int ldc_map_sg(struct ldc_channel *lp,
+ 	state.pte_idx = (base - iommu->page_table);
+ 	state.nc = 0;
  
- static inline void
--dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg, int nelems,
--		       enum dma_data_direction direction)
-+dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist,
-+		       int nelems, enum dma_data_direction direction)
- {
- 	int i;
--	for (i = 0; i < nelems; i++, sg++)
-+	struct scatterlist *sg;
-+
-+	for_each_sg(sglist, sg, nelems, i)
- 		dma_sync_for_device(sg_virt(sg), sg->length, direction);
- }
+-	for (i = 0; i < num_sg; i++)
+-		fill_cookies(&state, page_to_pfn(sg_page(&sg[i])) << PAGE_SHIFT,
+-			     sg[i].offset, sg[i].length);
++	for_each_sg(sg, s, num_sg, i) {
++		fill_cookies(&state, page_to_pfn(sg_page(s)) << PAGE_SHIFT,
++			     s->offset, s->length);
++	}
  
+ 	return state.nc;
+ }
 -- 
 1.9.1
 
