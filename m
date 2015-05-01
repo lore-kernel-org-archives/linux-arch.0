@@ -1,64 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f48.google.com ([209.85.220.48]:33073 "EHLO
-	mail-pa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753424AbbEAGrn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2015 02:47:43 -0400
+Received: from mail-pa0-f50.google.com ([209.85.220.50]:33132 "EHLO
+	mail-pa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752887AbbEAGrq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 May 2015 02:47:46 -0400
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH 2/5] arc: use for_each_sg()
-Date: Fri,  1 May 2015 15:47:23 +0900
-Message-ID: <1430462846-12022-2-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH 3/5] metag: use for_each_sg()
+Date: Fri,  1 May 2015 15:47:24 +0900
+Message-ID: <1430462846-12022-3-git-send-email-akinobu.mita@gmail.com>
 In-Reply-To: <1430462846-12022-1-git-send-email-akinobu.mita@gmail.com>
 References: <1430462846-12022-1-git-send-email-akinobu.mita@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Vineet Gupta <vgupta@synopsys.com>, linux-arch@vger.kernel.org
-Message-ID: <20150501064723.YwqA70QsCLlw3vixtw8HnJmjusv7UItN1zJgey8-Sg4@z>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, James Hogan <james.hogan@imgtec.com>, linux-metag@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20150501064724.G4w0XPqVMW0m1qsRo-RLuQB3-yF-IHvY0FlmB8KfsWY@z>
 
-Since arc doesn't select ARCH_HAS_SG_CHAIN, it is not necessary to
+Since metag doesn't select ARCH_HAS_SG_CHAIN, it is not necessary to
 use for_each_sg() in order to loop over each sg element.  But this can
 help find problems with drivers that do not properly initialize their
 sg tables when CONFIG_DEBUG_SG is enabled.
 
 Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Vineet Gupta <vgupta@synopsys.com>
+Cc: James Hogan <james.hogan@imgtec.com>
+Cc: linux-metag@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 ---
- arch/arc/include/asm/dma-mapping.h | 12 +++++++-----
- 1 file changed, 7 insertions(+), 5 deletions(-)
+ arch/metag/include/asm/dma-mapping.h | 14 +++++++++-----
+ 1 file changed, 9 insertions(+), 5 deletions(-)
 
-diff --git a/arch/arc/include/asm/dma-mapping.h b/arch/arc/include/asm/dma-mapping.h
-index 45b8e0c..f787894 100644
---- a/arch/arc/include/asm/dma-mapping.h
-+++ b/arch/arc/include/asm/dma-mapping.h
-@@ -178,22 +178,24 @@ dma_sync_single_range_for_device(struct device *dev, dma_addr_t dma_handle,
+diff --git a/arch/metag/include/asm/dma-mapping.h b/arch/metag/include/asm/dma-mapping.h
+index 14b23ef..eb5cdec 100644
+--- a/arch/metag/include/asm/dma-mapping.h
++++ b/arch/metag/include/asm/dma-mapping.h
+@@ -134,20 +134,24 @@ dma_sync_single_range_for_device(struct device *dev, dma_addr_t dma_handle,
  }
  
  static inline void
 -dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg, int nelems,
 +dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sglist, int nelems,
- 		    enum dma_data_direction dir)
+ 		    enum dma_data_direction direction)
  {
  	int i;
-+	struct scatterlist *sg;
- 
 -	for (i = 0; i < nelems; i++, sg++)
++	struct scatterlist *sg;
++
 +	for_each_sg(sglist, sg, nelems, i)
- 		_dma_cache_sync((unsigned int)sg_virt(sg), sg->length, dir);
+ 		dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
  }
  
  static inline void
 -dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg, int nelems,
--		       enum dma_data_direction dir)
+-		       enum dma_data_direction direction)
 +dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist,
-+		       int nelems, enum dma_data_direction dir)
++		       int nelems, enum dma_data_direction direction)
  {
  	int i;
-+	struct scatterlist *sg;
- 
 -	for (i = 0; i < nelems; i++, sg++)
++	struct scatterlist *sg;
++
 +	for_each_sg(sglist, sg, nelems, i)
- 		_dma_cache_sync((unsigned int)sg_virt(sg), sg->length, dir);
+ 		dma_sync_for_device(sg_virt(sg), sg->length, direction);
  }
  
 -- 
