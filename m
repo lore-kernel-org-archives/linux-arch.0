@@ -1,57 +1,66 @@
 From: Akinobu Mita <akinobu.mita@gmail.com>
-Subject: [PATCH v2 09/10] sparc: use for_each_sg()
-Date: Fri,  1 May 2015 22:56:42 +0900
-Message-ID: <1430488603-11055-9-git-send-email-akinobu.mita@gmail.com>
+Subject: [PATCH v2 08/10] powerpc: use for_each_sg()
+Date: Fri,  1 May 2015 22:56:41 +0900
+Message-ID: <1430488603-11055-8-git-send-email-akinobu.mita@gmail.com>
 References: <1430488603-11055-1-git-send-email-akinobu.mita@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 In-Reply-To: <1430488603-11055-1-git-send-email-akinobu.mita@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 To: linux-kernel@vger.kernel.org, akpm@linux-foundation.org
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Akinobu Mita <akinobu.mita@gmail.com>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-This replaces the plain loop over the sglist array with for_each_sg()
-macro which consists of sg_next() function calls.  Since sparc does
-select ARCH_HAS_SG_CHAIN, it is necessary to use for_each_sg() in
-order to loop over each sg element.  This also help find problems with
-drivers that do not properly initialize their sg tables when
-CONFIG_DEBUG_SG is enabled.
-
-Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: sparclinux@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
----
-* New patch from v2
-
- arch/sparc/kernel/ldc.c | 8 +++++---
- 1 file changed, 5 insertions(+), 3 deletions(-)
-
-diff --git a/arch/sparc/kernel/ldc.c b/arch/sparc/kernel/ldc.c
-index 7d3ca30..1ae5eb1 100644
---- a/arch/sparc/kernel/ldc.c
-+++ b/arch/sparc/kernel/ldc.c
-@@ -2086,6 +2086,7 @@ int ldc_map_sg(struct ldc_channel *lp,
- 	struct cookie_state state;
- 	struct ldc_iommu *iommu;
- 	int err;
-+	struct scatterlist *s;
- 
- 	if (map_perm & ~LDC_MAP_ALL)
- 		return -EINVAL;
-@@ -2112,9 +2113,10 @@ int ldc_map_sg(struct ldc_channel *lp,
- 	state.pte_idx = (base - iommu->page_table);
- 	state.nc = 0;
- 
--	for (i = 0; i < num_sg; i++)
--		fill_cookies(&state, page_to_pfn(sg_page(&sg[i])) << PAGE_SHIFT,
--			     sg[i].offset, sg[i].length);
-+	for_each_sg(sg, s, num_sg, i) {
-+		fill_cookies(&state, page_to_pfn(sg_page(s)) << PAGE_SHIFT,
-+			     s->offset, s->length);
-+	}
- 
- 	return state.nc;
- }
--- 
-1.9.1
+VGhpcyByZXBsYWNlcyB0aGUgcGxhaW4gbG9vcCBvdmVyIHRoZSBzZ2xpc3QgYXJyYXkgd2l0aCBm
+b3JfZWFjaF9zZygpCm1hY3JvIHdoaWNoIGNvbnNpc3RzIG9mIHNnX25leHQoKSBmdW5jdGlvbiBj
+YWxscy4gIFNpbmNlIHBvd2VycGMgZG9lcwpzZWxlY3QgQVJDSF9IQVNfU0dfQ0hBSU4sIGl0IGlz
+IG5lY2Vzc2FyeSB0byB1c2UgZm9yX2VhY2hfc2coKSBpbgpvcmRlciB0byBsb29wIG92ZXIgZWFj
+aCBzZyBlbGVtZW50LiAgVGhpcyBhbHNvIGhlbHAgZmluZCBwcm9ibGVtcyB3aXRoCmRyaXZlcnMg
+dGhhdCBkbyBub3QgcHJvcGVybHkgaW5pdGlhbGl6ZSB0aGVpciBzZyB0YWJsZXMgd2hlbgpDT05G
+SUdfREVCVUdfU0cgaXMgZW5hYmxlZC4KClNpZ25lZC1vZmYtYnk6IEFraW5vYnUgTWl0YSA8YWtp
+bm9idS5taXRhQGdtYWlsLmNvbT4KQ2M6IEJlbmphbWluIEhlcnJlbnNjaG1pZHQgPGJlbmhAa2Vy
+bmVsLmNyYXNoaW5nLm9yZz4KQ2M6IFBhdWwgTWFja2VycmFzIDxwYXVsdXNAc2FtYmEub3JnPgpD
+YzogTWljaGFlbCBFbGxlcm1hbiA8bXBlQGVsbGVybWFuLmlkLmF1PgpDYzogbGludXhwcGMtZGV2
+QGxpc3RzLm96bGFicy5vcmcKQ2M6IGxpbnV4LWFyY2hAdmdlci5rZXJuZWwub3JnCi0tLQoqIE5l
+dyBwYXRjaCBmcm9tIHYyCgogYXJjaC9wb3dlcnBjL2tlcm5lbC92aW8uYyB8IDEwICsrKysrLS0t
+LS0KIDEgZmlsZSBjaGFuZ2VkLCA1IGluc2VydGlvbnMoKyksIDUgZGVsZXRpb25zKC0pCgpkaWZm
+IC0tZ2l0IGEvYXJjaC9wb3dlcnBjL2tlcm5lbC92aW8uYyBiL2FyY2gvcG93ZXJwYy9rZXJuZWwv
+dmlvLmMKaW5kZXggNWJmZGFiOS4uYjdhNjg0NCAxMDA2NDQKLS0tIGEvYXJjaC9wb3dlcnBjL2tl
+cm5lbC92aW8uYworKysgYi9hcmNoL3Bvd2VycGMva2VybmVsL3Zpby5jCkBAIC01NTcsMTEgKzU1
+NywxMSBAQCBzdGF0aWMgaW50IHZpb19kbWFfaW9tbXVfbWFwX3NnKHN0cnVjdCBkZXZpY2UgKmRl
+diwgc3RydWN0IHNjYXR0ZXJsaXN0ICpzZ2xpc3QsCiAJc3RydWN0IHZpb19kZXYgKnZpb2RldiA9
+IHRvX3Zpb19kZXYoZGV2KTsKIAlzdHJ1Y3QgaW9tbXVfdGFibGUgKnRibDsKIAlzdHJ1Y3Qgc2Nh
+dHRlcmxpc3QgKnNnbDsKLQlpbnQgcmV0LCBjb3VudCA9IDA7CisJaW50IHJldCwgY291bnQ7CiAJ
+c2l6ZV90IGFsbG9jX3NpemUgPSAwOwogCiAJdGJsID0gZ2V0X2lvbW11X3RhYmxlX2Jhc2UoZGV2
+KTsKLQlmb3IgKHNnbCA9IHNnbGlzdDsgY291bnQgPCBuZWxlbXM7IGNvdW50KyssIHNnbCsrKQor
+CWZvcl9lYWNoX3NnKHNnbGlzdCwgc2dsLCBuZWxlbXMsIGNvdW50KQogCQlhbGxvY19zaXplICs9
+IHJvdW5kdXAoc2dsLT5sZW5ndGgsIElPTU1VX1BBR0VfU0laRSh0YmwpKTsKIAogCWlmICh2aW9f
+Y21vX2FsbG9jKHZpb2RldiwgYWxsb2Nfc2l6ZSkpIHsKQEAgLTU3Nyw3ICs1NzcsNyBAQCBzdGF0
+aWMgaW50IHZpb19kbWFfaW9tbXVfbWFwX3NnKHN0cnVjdCBkZXZpY2UgKmRldiwgc3RydWN0IHNj
+YXR0ZXJsaXN0ICpzZ2xpc3QsCiAJCXJldHVybiByZXQ7CiAJfQogCi0JZm9yIChzZ2wgPSBzZ2xp
+c3QsIGNvdW50ID0gMDsgY291bnQgPCByZXQ7IGNvdW50KyssIHNnbCsrKQorCWZvcl9lYWNoX3Nn
+KHNnbGlzdCwgc2dsLCByZXQsIGNvdW50KQogCQlhbGxvY19zaXplIC09IHJvdW5kdXAoc2dsLT5k
+bWFfbGVuZ3RoLCBJT01NVV9QQUdFX1NJWkUodGJsKSk7CiAJaWYgKGFsbG9jX3NpemUpCiAJCXZp
+b19jbW9fZGVhbGxvYyh2aW9kZXYsIGFsbG9jX3NpemUpOwpAQCAtNTk0LDEwICs1OTQsMTAgQEAg
+c3RhdGljIHZvaWQgdmlvX2RtYV9pb21tdV91bm1hcF9zZyhzdHJ1Y3QgZGV2aWNlICpkZXYsCiAJ
+c3RydWN0IGlvbW11X3RhYmxlICp0Ymw7CiAJc3RydWN0IHNjYXR0ZXJsaXN0ICpzZ2w7CiAJc2l6
+ZV90IGFsbG9jX3NpemUgPSAwOwotCWludCBjb3VudCA9IDA7CisJaW50IGNvdW50OwogCiAJdGJs
+ID0gZ2V0X2lvbW11X3RhYmxlX2Jhc2UoZGV2KTsKLQlmb3IgKHNnbCA9IHNnbGlzdDsgY291bnQg
+PCBuZWxlbXM7IGNvdW50KyssIHNnbCsrKQorCWZvcl9lYWNoX3NnKHNnbGlzdCwgc2dsLCBuZWxl
+bXMsIGNvdW50KQogCQlhbGxvY19zaXplICs9IHJvdW5kdXAoc2dsLT5kbWFfbGVuZ3RoLCBJT01N
+VV9QQUdFX1NJWkUodGJsKSk7CiAKIAlkbWFfaW9tbXVfb3BzLnVubWFwX3NnKGRldiwgc2dsaXN0
+LCBuZWxlbXMsIGRpcmVjdGlvbiwgYXR0cnMpOwotLSAKMS45LjEKCl9fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCkxpbnV4cHBjLWRldiBtYWlsaW5nIGxpc3QK
+TGludXhwcGMtZGV2QGxpc3RzLm96bGFicy5vcmcKaHR0cHM6Ly9saXN0cy5vemxhYnMub3JnL2xp
+c3RpbmZvL2xpbnV4cHBjLWRldg==
