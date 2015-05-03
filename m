@@ -1,157 +1,171 @@
-From: Daniel Thompson <daniel.thompson@linaro.org>
-Subject: Re: [PATCH v7 05/15] dt-bindings: Document the STM32 reset bindings
-Date: Sat, 02 May 2015 11:01:13 +0100
-Message-ID: <5544A069.5000808@linaro.org>
-References: <1430410844-16062-1-git-send-email-mcoquelin.stm32@gmail.com>	<1430410844-16062-6-git-send-email-mcoquelin.stm32@gmail.com>	<55433467.2010603@linaro.org> <CALszF6Bw900E9MtpaVmvkFxsrOODRkNg+RxRXz5V3WghHtsxbw@mail.gmail.com>
+From: =?windows-1252?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
+Subject: [PATCH] arm64: Preserve the user r/w register tpidr_el0 on context
+ switch and fork in compat mode
+Date: Sun, 03 May 2015 18:24:18 +0200
+Message-ID: <55464BB2.7030401@dawncrow.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-gpio-owner@vger.kernel.org>
-In-Reply-To: <CALszF6Bw900E9MtpaVmvkFxsrOODRkNg+RxRXz5V3WghHtsxbw@mail.gmail.com>
-Sender: linux-gpio-owner@vger.kernel.org
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Cc: =?UTF-8?B?VXdlIEtsZWluZS1Lw7ZuaWc=?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?B?QW5kcmVhcyBGw6RyYmVy?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Joe Perches <joe@perches.com>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@c>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mo4-p00-ob.smtp.rzone.de ([81.169.146.220]:13712 "EHLO
+	mo4-p00-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750899AbbECQY5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 May 2015 12:24:57 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Will Deacon <will.deacon@arm.com>, Jonathan Austin <jonathan.austin@arm.com>, Nathan Lynch <nathan_lynch@mentor.com>
 
-On 02/05/15 08:55, Maxime Coquelin wrote:
-> 2015-05-01 10:08 GMT+02:00 Daniel Thompson <daniel.thompson@linaro.org>:
->> On 30/04/15 17:20, Maxime Coquelin wrote:
->>>
->>> This adds documentation of device tree bindings for the
->>> STM32 reset controller.
->>>
->>> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
->>> Acked-by: Philipp Zabel <p.zabel@pengutronix.de>
->>> Acked-by: Rob Herring <robh@kernel.org>
->>> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
->>> ---
->>>    .../devicetree/bindings/reset/st,stm32-rcc.txt     | 107
->>> +++++++++++++++++++++
->>>    1 file changed, 107 insertions(+)
->>>    create mode 100644
->>> Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
->>>
->>> diff --git a/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
->>> b/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
->>> new file mode 100644
->>> index 0000000..c1b0f8d
->>> --- /dev/null
->>> +++ b/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
->>> @@ -0,0 +1,107 @@
->>> +STMicroelectronics STM32 Peripheral Reset Controller
->>> +====================================================
->>> +
->>> +The RCC IP is both a reset and a clock controller. This documentation
->>> only
->>> +documents the reset part.
->>> +
->>> +Please also refer to reset.txt in this directory for common reset
->>> +controller binding usage.
->>> +
->>> +Required properties:
->>> +- compatible: Should be "st,stm32-rcc"
->>> +- reg: should be register base and length as documented in the
->>> +  datasheet
->>> +- #reset-cells: 1, see below
->>> +
->>> +example:
->>> +
->>> +rcc: reset@40023800 {
->>> +       #reset-cells = <1>;
->>> +       compatible = "st,stm32-rcc";
->>
->>
->> Do you intend the clock driver to use the same compatible string (given it
->> is the same bit of hardware).
->>
->> If so, is it better to use st,stm32f4-rcc here? It seems unlikey to me that
->> the register layout of the PLLs and dividers can be the same on the f7 parts
->> (and later).
->
-> I agree we need a compatible dedicate to f4 series for clocks, and
-> maybe even one for f429 (to be checked).
-> For the reset part, we don't have this need.
->
-> So either we use only "st,stm32f4" as you suggest, or we can have both
-> in device tree:
->
-> rcc: reset@40023800 {
->      #reset-cells = <1>;
->      compatible = "st,stm32f4-rcc", "st,stm32-rcc";
->      reg = <0x40023800 0x400>;
-> };
->
-> What do you think?
+=46rom: Andr=E9 Hentschel <nerv@dawncrow.de>
 
-Having both makes sense. The reset driver probably doesn't care about 
-differences between F4 and F7 (I know very little about F7 but I can't 
-think of any obvious h/ware evolution that would confuse the current 
-reset driver).
+Since commit a4780adeefd042482f624f5e0d577bf9cdcbb760 the user writeabl=
+e TLS
+register on ARM is preserved per thread.
 
+This patch does it analogous to the ARM patch, but for compat mode on A=
+RM64.
 
->>> +       reg = <0x40023800 0x400>;
->>> +};
->>> +
->>> +Specifying softreset control of devices
->>> +=======================================
->>> +
->>> +Device nodes should specify the reset channel required in their "resets"
->>> +property, containing a phandle to the reset device node and an index
->>> specifying
->>> +which channel to use.
->>> +The index is the bit number within the RCC registers bank, starting from
->>> RCC
->>> +base address.
->>> +It is calculated as: index = register_offset / 4 * 32 + bit_offset.
->>> +Where bit_offset is the bit offset within the register.
->>> +For example, for CRC reset:
->>> +  crc = AHB1RSTR_offset / 4 * 32 + CRCRST_bit_offset = 0x10 / 4 * 32 + 12
->>> = 140
->>> +
->>> +example:
->>> +
->>> +       timer2 {
->>> +               resets                  = <&rcc 256>;
->>> +       };
->>> +
->>> +List of valid indices for STM32F429:
->>> + - gpioa: 128
->>> + - gpiob: 129
->>> ...
->>> <snip>
->>> ...
->>> + - sai1: 310
->>> + - ltdc: 314
->>
->>
->> These numbers are stable for all STM32F4 family parts. Should this table go
->> into a dt-bindings header file?
->>
->
-> This has already been discussed with Philipp and Arnd in earlier
-> versions of this series [0].
-> I initially created a header file, and we  decided going this way finally.
+Signed-off-by: Andr=E9 Hentschel <nerv@dawncrow.de>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Jonathan Austin <jonathan.austin@arm.com>=20
 
-Thanks for the link. I had overlooked that (I only really started paying 
-attention at v5; I should probably have looked further back before 
-commenting).
+---
+This patch is against Linux 4.1-rc1 (b787f68c36d49bb1d9236f403813641efa=
+74a031)
 
-However...
-
-Arnd's concerns about mergability of headers can also be met by using 
-h/ware values in the header file can't there. To be honest my comment 
-was pretty heavily influenced after having read a recent patch from Rob 
-Herring ( https://lkml.org/lkml/2015/5/1/14 ) which does exactly this.
-
-The main reason I got interested in having a header is that the reset 
-bits and the clock gate bits are encoded using the same bit patterns so 
-I wondering it we could express that only once.
-
-I guess it doesn't matter that much, especially given there is only one 
-.dtsi file, and we can add a header later and remain binary compatible. 
-However if the same number set does end up repeated in different .dtsi 
-files I think that would motivate adding a header for F4 family.
-
-
-Daniel.
-
+diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/as=
+m/processor.h
+index 20e9591..cd7b8c9 100644
+--- a/arch/arm64/include/asm/processor.h
++++ b/arch/arm64/include/asm/processor.h
+@@ -78,7 +78,7 @@ struct cpu_context {
+=20
+ struct thread_struct {
+ 	struct cpu_context	cpu_context;	/* cpu context */
+-	unsigned long		tp_value;
++	unsigned long		tp_value[2];	/* TLS registers */
+ 	struct fpsimd_state	fpsimd_state;
+ 	unsigned long		fault_address;	/* fault info */
+ 	unsigned long		fault_code;	/* ESR_EL1 value */
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+index c6b1f3b..fc7cc6bc 100644
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -218,7 +218,8 @@ static void tls_thread_flush(void)
+ 	asm ("msr tpidr_el0, xzr");
+=20
+ 	if (is_compat_task()) {
+-		current->thread.tp_value =3D 0;
++		current->thread.tp_value[0] =3D 0;
++		current->thread.tp_value[1] =3D 0;
+=20
+ 		/*
+ 		 * We need to ensure ordering between the shadow state and the
+@@ -254,7 +255,7 @@ int copy_thread(unsigned long clone_flags, unsigned=
+ long stack_start,
+ 		unsigned long stk_sz, struct task_struct *p)
+ {
+ 	struct pt_regs *childregs =3D task_pt_regs(p);
+-	unsigned long tls =3D p->thread.tp_value;
++	unsigned long tls =3D p->thread.tp_value[0];
+=20
+ 	memset(&p->thread.cpu_context, 0, sizeof(struct cpu_context));
+=20
+@@ -283,6 +284,11 @@ int copy_thread(unsigned long clone_flags, unsigne=
+d long stack_start,
+ 		 */
+ 		if (clone_flags & CLONE_SETTLS)
+ 			tls =3D childregs->regs[3];
++		if (is_compat_thread(task_thread_info(p))) {
++			unsigned long tpuser;
++			asm("mrs %0, tpidr_el0" : "=3Dr" (tpuser));
++			p->thread.tp_value[1] =3D tpuser;
++		}
+ 	} else {
+ 		memset(childregs, 0, sizeof(struct pt_regs));
+ 		childregs->pstate =3D PSR_MODE_EL1h;
+@@ -291,7 +297,7 @@ int copy_thread(unsigned long clone_flags, unsigned=
+ long stack_start,
+ 	}
+ 	p->thread.cpu_context.pc =3D (unsigned long)ret_from_fork;
+ 	p->thread.cpu_context.sp =3D (unsigned long)childregs;
+-	p->thread.tp_value =3D tls;
++	p->thread.tp_value[0] =3D tls;
+=20
+ 	ptrace_hw_copy_thread(p);
+=20
+@@ -302,16 +308,17 @@ static void tls_thread_switch(struct task_struct =
+*next)
+ {
+ 	unsigned long tpidr, tpidrro;
+=20
+-	if (!is_compat_task()) {
+-		asm("mrs %0, tpidr_el0" : "=3Dr" (tpidr));
+-		current->thread.tp_value =3D tpidr;
+-	}
++	asm("mrs %0, tpidr_el0" : "=3Dr" (tpidr));
++	if (is_compat_task())
++		current->thread.tp_value[1] =3D tpidr;
++	else
++		current->thread.tp_value[0] =3D tpidr;
+=20
+ 	if (is_compat_thread(task_thread_info(next))) {
+-		tpidr =3D 0;
+-		tpidrro =3D next->thread.tp_value;
++		tpidr =3D next->thread.tp_value[1];
++		tpidrro =3D next->thread.tp_value[0];
+ 	} else {
+-		tpidr =3D next->thread.tp_value;
++		tpidr =3D next->thread.tp_value[0];
+ 		tpidrro =3D 0;
+ 	}
+=20
+diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
+index d882b83..1eec962 100644
+--- a/arch/arm64/kernel/ptrace.c
++++ b/arch/arm64/kernel/ptrace.c
+@@ -533,7 +533,7 @@ static int tls_get(struct task_struct *target, cons=
+t struct user_regset *regset,
+ 		   unsigned int pos, unsigned int count,
+ 		   void *kbuf, void __user *ubuf)
+ {
+-	unsigned long *tls =3D &target->thread.tp_value;
++	unsigned long *tls =3D &target->thread.tp_value[0];
+ 	return user_regset_copyout(&pos, &count, &kbuf, &ubuf, tls, 0, -1);
+ }
+=20
+@@ -548,7 +548,7 @@ static int tls_set(struct task_struct *target, cons=
+t struct user_regset *regset,
+ 	if (ret)
+ 		return ret;
+=20
+-	target->thread.tp_value =3D tls;
++	target->thread.tp_value[0] =3D tls;
+ 	return ret;
+ }
+=20
+@@ -1061,7 +1061,7 @@ long compat_arch_ptrace(struct task_struct *child=
+, compat_long_t request,
+ 			break;
+=20
+ 		case COMPAT_PTRACE_GET_THREAD_AREA:
+-			ret =3D put_user((compat_ulong_t)child->thread.tp_value,
++			ret =3D put_user((compat_ulong_t)child->thread.tp_value[0],
+ 				       (compat_ulong_t __user *)datap);
+ 			break;
+=20
+diff --git a/arch/arm64/kernel/sys_compat.c b/arch/arm64/kernel/sys_com=
+pat.c
+index 28c511b..fd4330c 100644
+--- a/arch/arm64/kernel/sys_compat.c
++++ b/arch/arm64/kernel/sys_compat.c
+@@ -87,7 +87,7 @@ long compat_arm_syscall(struct pt_regs *regs)
+ 		return do_compat_cache_op(regs->regs[0], regs->regs[1], regs->regs[2=
+]);
+=20
+ 	case __ARM_NR_compat_set_tls:
+-		current->thread.tp_value =3D regs->regs[0];
++		current->thread.tp_value[0] =3D regs->regs[0];
+=20
+ 		/*
+ 		 * Protect against register corruption from context switch.
