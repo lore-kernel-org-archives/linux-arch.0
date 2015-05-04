@@ -1,71 +1,57 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v10 04/19] sh-sci: Add H8/300 SCI.
-Date: Mon,  4 May 2015 19:41:47 +0900
-Message-ID: <1430736122-20929-6-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v10 01/19] MAINTENRS: Add h8300
+Date: Mon,  4 May 2015 19:41:44 +0900
+Message-ID: <1430736122-20929-3-git-send-email-ysato@users.sourceforge.jp>
 References: <1430736122-20929-2-git-send-email-ysato@users.sourceforge.jp>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.asahi-net.or.jp ([202.224.39.198]:56191 "EHLO
-	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752642AbbEDKmm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2015 06:42:42 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1430736122-20929-2-git-send-email-ysato@users.sourceforge.jp>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-sh@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-
-H8/300 internal serial controller of same as sh-sci.
-So h8300 use SH_SCI.
-And add sci bindings.
+List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- Documentation/devicetree/bindings/serial/renesas,sci-serial.txt | 1 +
- drivers/tty/serial/Kconfig                                      | 2 +-
- drivers/tty/serial/sh-sci.c                                     | 6 ++++++
- 3 files changed, 8 insertions(+), 1 deletion(-)
+ CREDITS     |  5 -----
+ MAINTAINERS | 11 +++++++++++
+ 2 files changed, 11 insertions(+), 5 deletions(-)
 
-diff --git a/Documentation/devicetree/bindings/serial/renesas,sci-serial.txt b/Documentation/devicetree/bindings/serial/renesas,sci-serial.txt
-index ae73bb0..7534d46 100644
---- a/Documentation/devicetree/bindings/serial/renesas,sci-serial.txt
-+++ b/Documentation/devicetree/bindings/serial/renesas,sci-serial.txt
-@@ -29,6 +29,7 @@ Required properties:
-     - "renesas,scifa" for generic SCIFA compatible UART.
-     - "renesas,scifb" for generic SCIFB compatible UART.
-     - "renesas,hscif" for generic HSCIF compatible UART.
-+    - "renesas,sci" for generic SCI compatible UART.
+diff --git a/CREDITS b/CREDITS
+index 40cc4bf..e88b597 100644
+--- a/CREDITS
++++ b/CREDITS
+@@ -3219,11 +3219,6 @@ N: Dipankar Sarma
+ E: dipankar@in.ibm.com
+ D: RCU
  
-     When compatible with the generic version, nodes must list the
-     SoC-specific version corresponding to the platform first followed by the
-diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index f8120c1..dea1eff 100644
---- a/drivers/tty/serial/Kconfig
-+++ b/drivers/tty/serial/Kconfig
-@@ -728,7 +728,7 @@ config SERIAL_IP22_ZILOG_CONSOLE
+-N: Yoshinori Sato
+-E: ysato@users.sourceforge.jp
+-D: uClinux for Renesas H8/300 (H8300)
+-D: http://uclinux-h8.sourceforge.jp/
+-
+ N: Hannu Savolainen
+ E: hannu@opensound.com
+ D: Maintainer of the sound drivers until 2.1.x days.
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 781e099..8ea1fb8 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -4480,6 +4480,17 @@ T:	git git://linuxtv.org/media_tree.git
+ S:	Maintained
+ F:	drivers/media/usb/stk1160/
  
- config SERIAL_SH_SCI
- 	tristate "SuperH SCI(F) serial port support"
--	depends on SUPERH || ARCH_SHMOBILE || COMPILE_TEST
-+	depends on SUPERH || ARCH_SHMOBILE || H8300 || COMPILE_TEST
- 	select SERIAL_CORE
- 
- config SERIAL_SH_SCI_NR_UARTS
-diff --git a/drivers/tty/serial/sh-sci.c b/drivers/tty/serial/sh-sci.c
-index e7d6566..1468ec5 100644
---- a/drivers/tty/serial/sh-sci.c
-+++ b/drivers/tty/serial/sh-sci.c
-@@ -2536,6 +2536,12 @@ static const struct of_device_id of_sci_match[] = {
- 			.regtype = SCIx_HSCIF_REGTYPE,
- 		},
- 	}, {
-+		.compatible = "renesas,sci",
-+		.data = &(const struct sci_port_info) {
-+			.type = PORT_SCI,
-+			.regtype = SCIx_SCI_REGTYPE,
-+		},
-+	}, {
- 		/* Terminator */
- 	},
- };
++H8/300 ARCHITECTURE
++M:	Yoshinori Sato <ysato@users.sourceforge.jp>
++L:	uclinux-h8-devel@lists.sourceforge.jp
++W:	http://uclinux-h8.sourceforge.jp
++T:	git git://git.sourceforge.jp/gitroot/uclinux-h8/linux.git
++S:	Maintained
++F:	arch/h8300/
++F:	drivers/clocksource/h8300/
++F:	drivers/clk/h8300
++
+ HARD DRIVE ACTIVE PROTECTION SYSTEM (HDAPS) DRIVER
+ M:	Frank Seidel <frank@f-seidel.de>
+ L:	platform-driver-x86@vger.kernel.org
 -- 
 2.1.4
