@@ -1,47 +1,58 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v2 01/10] m68k: use for_each_sg()
-Date: Mon, 4 May 2015 11:04:31 +0200
-Message-ID: <CAMuHMdVT6wMjj3kf64T12KiVXYwET3LySNbmbgUyOXX3UpO1oQ@mail.gmail.com>
-References: <1430488603-11055-1-git-send-email-akinobu.mita@gmail.com>
+From: Philipp Zabel <p.zabel@pengutronix.de>
+Subject: Re: [PATCH v7 05/15] dt-bindings: Document the STM32 reset bindings
+Date: Mon, 04 May 2015 12:28:40 +0200
+Message-ID: <1430735320.3722.34.camel@pengutronix.de>
+References: <1430410844-16062-1-git-send-email-mcoquelin.stm32@gmail.com>
+		<1430410844-16062-6-git-send-email-mcoquelin.stm32@gmail.com>
+		<55433467.2010603@linaro.org>
+	 <CALszF6Bw900E9MtpaVmvkFxsrOODRkNg+RxRXz5V3WghHtsxbw@mail.gmail.com>
+	 <5544A069.5000808@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f52.google.com ([209.85.218.52]:33478 "EHLO
-	mail-oi0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751576AbbEDJEb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2015 05:04:31 -0400
-In-Reply-To: <1430488603-11055-1-git-send-email-akinobu.mita@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-gpio-owner@vger.kernel.org>
+In-Reply-To: <5544A069.5000808@linaro.org>
+Sender: linux-gpio-owner@vger.kernel.org
+To: Daniel Thompson <daniel.thompson@linaro.org>
+Cc: Maxime Coquelin <mcoquelin.stm32@gmail.com>, Uwe =?ISO-8859-1?Q?Kleine-K=F6nig?= <u.kleine-koenig@pengutronix.de>, Andreas =?ISO-8859-1?Q?F=E4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Joe Perches <joe@perches.com>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <ga>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, May 1, 2015 at 3:56 PM, Akinobu Mita <akinobu.mita@gmail.com> wrote:
-> This replaces the plain loop over the sglist array with for_each_sg()
-> macro which consists of sg_next() function calls.  Since m68k doesn't
-> select ARCH_HAS_SG_CHAIN, it is not necessary to use for_each_sg() in
-> order to loop over each sg element.  But this can help find problems
-> with drivers that do not properly initialize their sg tables when
-> CONFIG_DEBUG_SG is enabled.
->
-> Signed-off-by: Akinobu Mita <akinobu.mita@gmail.com>
-> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: linux-m68k@lists.linux-m68k.org
-> Cc: linux-arch@vger.kernel.org
-> ---
-> * Changes from v1
-> - Update commit log
+Am Samstag, den 02.05.2015, 11:01 +0100 schrieb Daniel Thompson:
+> On 02/05/15 08:55, Maxime Coquelin wrote:
+> > 2015-05-01 10:08 GMT+02:00 Daniel Thompson <daniel.thompson@linaro.org>:
+[...]
+> >> Do you intend the clock driver to use the same compatible string (given it
+> >> is the same bit of hardware).
+> >>
+> >> If so, is it better to use st,stm32f4-rcc here? It seems unlikey to me that
+> >> the register layout of the PLLs and dividers can be the same on the f7 parts
+> >> (and later).
+> >
+> > I agree we need a compatible dedicate to f4 series for clocks, and
+> > maybe even one for f429 (to be checked).
+> > For the reset part, we don't have this need.
+> >
+> > So either we use only "st,stm32f4" as you suggest, or we can have both
+> > in device tree:
+> >
+> > rcc: reset@40023800 {
+> >      #reset-cells = <1>;
+> >      compatible = "st,stm32f4-rcc", "st,stm32-rcc";
+> >      reg = <0x40023800 0x400>;
+> > };
+> >
+> > What do you think?
+> 
+> Having both makes sense. The reset driver probably doesn't care about 
+> differences between F4 and F7 (I know very little about F7 but I can't 
+> think of any obvious h/ware evolution that would confuse the current 
+> reset driver).
 
-Thanks, applied, and queued for v4.2.
+Seconded, this is exactly the way compatible string lists are supposed
+to be used.
 
-Gr{oetje,eeting}s,
+[...]
 
-                        Geert
+regards
+Philipp
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
