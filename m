@@ -1,210 +1,479 @@
-From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: Re: [PATCH v7 05/15] dt-bindings: Document the STM32 reset bindings
-Date: Mon, 4 May 2015 13:25:17 +0200
-Message-ID: <CALszF6BTb0Ce6jfT5gY4eEtSep6+8XqOxu1LbpUXHmPYX9PmgQ@mail.gmail.com>
-References: <1430410844-16062-1-git-send-email-mcoquelin.stm32@gmail.com>
-	<1430410844-16062-6-git-send-email-mcoquelin.stm32@gmail.com>
-	<55433467.2010603@linaro.org>
-	<CALszF6Bw900E9MtpaVmvkFxsrOODRkNg+RxRXz5V3WghHtsxbw@mail.gmail.com>
-	<5544A069.5000808@linaro.org>
+From: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+Subject: Re: [PATCH v10 19/19] h8300: devicetree source
+Date: Mon, 4 May 2015 14:40:43 +0200
+Message-ID: <CAMuHMdX8KoGR1_yPgofCPkMma=chc7mQfP5-9T6e9bbqx=aRoA@mail.gmail.com>
+References: <1430736122-20929-2-git-send-email-ysato@users.sourceforge.jp>
+	<1430736122-20929-21-git-send-email-ysato@users.sourceforge.jp>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f48.google.com ([74.125.82.48]:33115 "EHLO
-	mail-wg0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751862AbbEDLZT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2015 07:25:19 -0400
-In-Reply-To: <5544A069.5000808@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Daniel Thompson <daniel.thompson@linaro.org>, Philipp Zabel <p.zabel@pengutronix.de>
-Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Joe Perches <joe@perches.com>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linu>
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1430736122-20929-21-git-send-email-ysato-Rn4VEauK+AKRv+LV9MX5uooqe+aC9MnS@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Yoshinori Sato <ysato-Rn4VEauK+AKRv+LV9MX5uooqe+aC9MnS@public.gmane.org>
+Cc: "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux-Arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-2015-05-02 12:01 GMT+02:00 Daniel Thompson <daniel.thompson@linaro.org>:
-> On 02/05/15 08:55, Maxime Coquelin wrote:
->>
->> 2015-05-01 10:08 GMT+02:00 Daniel Thompson <daniel.thompson@linaro.org>:
->>>
->>> On 30/04/15 17:20, Maxime Coquelin wrote:
->>>>
->>>>
->>>> This adds documentation of device tree bindings for the
->>>> STM32 reset controller.
->>>>
->>>> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
->>>> Acked-by: Philipp Zabel <p.zabel@pengutronix.de>
->>>> Acked-by: Rob Herring <robh@kernel.org>
->>>> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
->>>> ---
->>>>    .../devicetree/bindings/reset/st,stm32-rcc.txt     | 107
->>>> +++++++++++++++++++++
->>>>    1 file changed, 107 insertions(+)
->>>>    create mode 100644
->>>> Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
->>>>
->>>> diff --git a/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
->>>> b/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
->>>> new file mode 100644
->>>> index 0000000..c1b0f8d
->>>> --- /dev/null
->>>> +++ b/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
->>>> @@ -0,0 +1,107 @@
->>>> +STMicroelectronics STM32 Peripheral Reset Controller
->>>> +====================================================
->>>> +
->>>> +The RCC IP is both a reset and a clock controller. This documentation
->>>> only
->>>> +documents the reset part.
->>>> +
->>>> +Please also refer to reset.txt in this directory for common reset
->>>> +controller binding usage.
->>>> +
->>>> +Required properties:
->>>> +- compatible: Should be "st,stm32-rcc"
->>>> +- reg: should be register base and length as documented in the
->>>> +  datasheet
->>>> +- #reset-cells: 1, see below
->>>> +
->>>> +example:
->>>> +
->>>> +rcc: reset@40023800 {
->>>> +       #reset-cells = <1>;
->>>> +       compatible = "st,stm32-rcc";
->>>
->>>
->>>
->>> Do you intend the clock driver to use the same compatible string (given
->>> it
->>> is the same bit of hardware).
->>>
->>> If so, is it better to use st,stm32f4-rcc here? It seems unlikey to me
->>> that
->>> the register layout of the PLLs and dividers can be the same on the f7
->>> parts
->>> (and later).
->>
->>
->> I agree we need a compatible dedicate to f4 series for clocks, and
->> maybe even one for f429 (to be checked).
->> For the reset part, we don't have this need.
->>
->> So either we use only "st,stm32f4" as you suggest, or we can have both
->> in device tree:
->>
->> rcc: reset@40023800 {
->>      #reset-cells = <1>;
->>      compatible = "st,stm32f4-rcc", "st,stm32-rcc";
->>      reg = <0x40023800 0x400>;
->> };
->>
->> What do you think?
->
->
-> Having both makes sense. The reset driver probably doesn't care about
-> differences between F4 and F7 (I know very little about F7 but I can't think
-> of any obvious h/ware evolution that would confuse the current reset
-> driver).
->
->
->>>> +       reg = <0x40023800 0x400>;
->>>> +};
->>>> +
->>>> +Specifying softreset control of devices
->>>> +=======================================
->>>> +
->>>> +Device nodes should specify the reset channel required in their
->>>> "resets"
->>>> +property, containing a phandle to the reset device node and an index
->>>> specifying
->>>> +which channel to use.
->>>> +The index is the bit number within the RCC registers bank, starting
->>>> from
->>>> RCC
->>>> +base address.
->>>> +It is calculated as: index = register_offset / 4 * 32 + bit_offset.
->>>> +Where bit_offset is the bit offset within the register.
->>>> +For example, for CRC reset:
->>>> +  crc = AHB1RSTR_offset / 4 * 32 + CRCRST_bit_offset = 0x10 / 4 * 32 +
->>>> 12
->>>> = 140
->>>> +
->>>> +example:
->>>> +
->>>> +       timer2 {
->>>> +               resets                  = <&rcc 256>;
->>>> +       };
->>>> +
->>>> +List of valid indices for STM32F429:
->>>> + - gpioa: 128
->>>> + - gpiob: 129
->>>> ...
->>>> <snip>
->>>> ...
->>>> + - sai1: 310
->>>> + - ltdc: 314
->>>
->>>
->>>
->>> These numbers are stable for all STM32F4 family parts. Should this table
->>> go
->>> into a dt-bindings header file?
->>>
->>
->> This has already been discussed with Philipp and Arnd in earlier
->> versions of this series [0].
->> I initially created a header file, and we  decided going this way finally.
->
->
-> Thanks for the link. I had overlooked that (I only really started paying
-> attention at v5; I should probably have looked further back before
-> commenting).
->
-> However...
->
-> Arnd's concerns about mergability of headers can also be met by using h/ware
-> values in the header file can't there. To be honest my comment was pretty
-> heavily influenced after having read a recent patch from Rob Herring (
-> https://lkml.org/lkml/2015/5/1/14 ) which does exactly this.
->
-> The main reason I got interested in having a header is that the reset bits
-> and the clock gate bits are encoded using the same bit patterns so I
-> wondering it we could express that only once.
+CC devicetree
 
-Ok, I understand your need, and it makes sense.
-The problem is that the values defined today cannot be re-used
-directly for clocks.
-Since the calculation is starting from rcc base, there is a 128 offset.
-
-To re-use the same values, maybe we should create a mfd dt-binding header file.
-It would contain the bits definition starting from 0, and  define
-macros for both reset and clocks to add the offsets.
-
-For example, includes/dt-bindings/mfd/stm32f4-rcc.h would look like:
-
-#define GPIOA 0
-#define GPIOB 1
-...
-#define LTDC 186
-
-#define STM32F4_RESET(x) (x + 128)
-#define STM32F4_CLOCK(x) (x + 384)
-
-Then, in DT, a reset would be described like this:
-
-timer2 {
-    resets = <&rcc STM32F4_RESET(TIM2)>;
-};
-
-Phillip, Daniel, does that look acceptable to you?
-
-Kind regards,
-Maxime
+On Mon, May 4, 2015 at 12:42 PM, Yoshinori Sato
+<ysato-Rn4VEauK+AKRv+LV9MX5uooqe+aC9MnS@public.gmane.org> wrote:
+> Signed-off-by: Yoshinori Sato <ysato-Rn4VEauK+AKRv+LV9MX5uooqe+aC9MnS@public.gmane.org>
+> ---
+>  Documentation/devicetree/bindings/h8300/cpu.txt    |  17 ++++
+>  .../interrupt-controller/renesas,h8300h-intc.txt   |  20 ++++
+>  .../interrupt-controller/renesas,h8s-intc.txt      |  20 ++++
+>  arch/h8300/boot/dts/Makefile                       |  11 ++
+>  arch/h8300/boot/dts/dt-bindings                    |   1 +
+>  arch/h8300/boot/dts/edosk2674.dts                  | 111 +++++++++++++++++++++
+>  arch/h8300/boot/dts/h8300h_sim.dts                 |  97 ++++++++++++++++++
+>  arch/h8300/boot/dts/h8s_sim.dts                    | 103 +++++++++++++++++++
+>  8 files changed, 380 insertions(+)
+>  create mode 100644 Documentation/devicetree/bindings/h8300/cpu.txt
+>  create mode 100644 Documentation/devicetree/bindings/interrupt-controller/renesas,h8300h-intc.txt
+>  create mode 100644 Documentation/devicetree/bindings/interrupt-controller/renesas,h8s-intc.txt
+>  create mode 100644 arch/h8300/boot/dts/Makefile
+>  create mode 120000 arch/h8300/boot/dts/dt-bindings
+>  create mode 100644 arch/h8300/boot/dts/edosk2674.dts
+>  create mode 100644 arch/h8300/boot/dts/h8300h_sim.dts
+>  create mode 100644 arch/h8300/boot/dts/h8s_sim.dts
 >
-> I guess it doesn't matter that much, especially given there is only one
-> .dtsi file, and we can add a header later and remain binary compatible.
-> However if the same number set does end up repeated in different .dtsi files
-> I think that would motivate adding a header for F4 family.
+> diff --git a/Documentation/devicetree/bindings/h8300/cpu.txt b/Documentation/devicetree/bindings/h8300/cpu.txt
+> new file mode 100644
+> index 0000000..f1287e0
+> --- /dev/null
+> +++ b/Documentation/devicetree/bindings/h8300/cpu.txt
+> @@ -0,0 +1,17 @@
+> +* H8/300 CPU bindings
+> +
+> +Required properties:
+> +
+> +- compatible: Compatible property value should be "renesas,h8300".
+> +- reg: Contains CPU index.
+> +- clock-frequency: Contains the clock frequency for CPU, in Hz.
+> +- renesas,bus-width: Contain the memory bus width.
+> +
+> +Example:
+> +
+> +               cpu@0 {
+> +                       compatible = "renesas,h8300";
+> +                       reg = <0>;
+> +                       clock-frequency = <20000000>;
+> +                       renesas,bus-width = <16>;
+> +               };
+> diff --git a/Documentation/devicetree/bindings/interrupt-controller/renesas,h8300h-intc.txt b/Documentation/devicetree/bindings/interrupt-controller/renesas,h8300h-intc.txt
+> new file mode 100644
+> index 0000000..79053dd
+> --- /dev/null
+> +++ b/Documentation/devicetree/bindings/interrupt-controller/renesas,h8300h-intc.txt
+> @@ -0,0 +1,20 @@
+> +* H8/300H Interrupt controller
+> +
+> +Required properties:
+> +
+> +- compatible: has to be "renesas,h8300h-intc", "renesas,h8300-intc" as fallback.
+> +- #interrupt-cells: has to be <1>: an interrupt index and flags, as defined in
+> +  interrupts.txt in this directory
+> +
+> +Optional properties:
+> +
+> +- any properties, listed in interrupts.txt, and any standard resource allocation
+> +  properties
+> +
+> +Example:
+> +
+> +       h8intc: intc@0 {
+> +               compatible = "renesas,h8300h-intc", "renesas,h8300-intc";
+> +               #interrupt-cells = <1>;
+> +               interrupt-controller;
+> +       };
+> diff --git a/Documentation/devicetree/bindings/interrupt-controller/renesas,h8s-intc.txt b/Documentation/devicetree/bindings/interrupt-controller/renesas,h8s-intc.txt
+> new file mode 100644
+> index 0000000..1206191
+> --- /dev/null
+> +++ b/Documentation/devicetree/bindings/interrupt-controller/renesas,h8s-intc.txt
+> @@ -0,0 +1,20 @@
+> +* H8S Interrupt controller
+> +
+> +Required properties:
+> +
+> +- compatible: has to be "renesas,h8s-intc", "renesas,h8300-intc" as fallback.
+> +- #interrupt-cells: has to be <1>: an interrupt index and flags, as defined in
+> +  interrupts.txt in this directory
+> +
+> +Optional properties:
+> +
+> +- any properties, listed in interrupts.txt, and any standard resource allocation
+> +  properties
+> +
+> +Example:
+> +
+> +       h8intc: intc@0 {
+> +               compatible = "renesas,h8s-intc", "renesas,h8300-intc";
+> +               #interrupt-cells = <1>;
+> +               interrupt-controller;
+> +       };
+> diff --git a/arch/h8300/boot/dts/Makefile b/arch/h8300/boot/dts/Makefile
+> new file mode 100644
+> index 0000000..bb123fa
+> --- /dev/null
+> +++ b/arch/h8300/boot/dts/Makefile
+> @@ -0,0 +1,11 @@
+> +ifneq '$(CONFIG_H8300_BUILTIN_DTB)' '""'
+> +BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_H8300_BUILTIN_DTB)).dtb.o
+> +endif
+> +
+> +obj-y += $(BUILTIN_DTB)
+> +
+> +dtb-$(CONFIG_H8300H_SIM) := h8300h_sim.dtb
+> +dtb-$(CONFIG_H8S_SIM) := h8s_sim.dtb
+> +dtb-$(CONFIG_EDOSK2674) := edosk2674.dtb
+> +
+> +clean-files := *.dtb.S
+> diff --git a/arch/h8300/boot/dts/dt-bindings b/arch/h8300/boot/dts/dt-bindings
+> new file mode 120000
+> index 0000000..0cecb3d
+> --- /dev/null
+> +++ b/arch/h8300/boot/dts/dt-bindings
+> @@ -0,0 +1 @@
+> +../../../../include/dt-bindings
+> \ No newline at end of file
+> diff --git a/arch/h8300/boot/dts/edosk2674.dts b/arch/h8300/boot/dts/edosk2674.dts
+> new file mode 100644
+> index 0000000..fe3c334
+> --- /dev/null
+> +++ b/arch/h8300/boot/dts/edosk2674.dts
+> @@ -0,0 +1,111 @@
+> +#include <dt-bindings/clock/renesas,8bit-timer.h>
+> +
+> +/dts-v1/;
+> +/ {
+> +       compatible = "renesas,edosk2674";
+> +       #address-cells = <1>;
+> +       #size-cells = <1>;
+> +       interrupt-parent = <&h8intc>;
+> +
+> +       chosen {
+> +               bootargs = "console=ttySC2,38400";
+> +       };
+> +       aliases {
+> +               serial0 = &sci0;
+> +               serial1 = &sci1;
+> +               serial2 = &sci2;
+> +       };
+> +
+> +       clocks {
+> +               ranges;
+> +               #address-cells = <1>;
+> +               #size-cells = <1>;
+> +               xclk: xclk {
+> +                       #clock-cells = <0>;
+> +                       compatible = "fixed-clock";
+> +                       clock-frequency = <33333333>;
+> +                       clock-output-names = "xtal";
+> +               };
+> +               pllclk: pllclk {
+> +                       compatible = "renesas,h8s2678-pll-clock";
+> +                       clocks = <&xclk>;
+> +                       #clock-cells = <0>;
+> +                       reg = <0xfee03b 2>, <0xfee045 2>;
+> +               };
+> +               cclk: cclk {
+> +                       compatible = "renesas,h8300-div-clock";
+> +                       clocks = <&pllclk>;
+> +                       #clock-cells = <0>;
+> +                       reg = <0xfee03b 2>;
+> +                       renesas,width = <3>;
+> +               };
+> +               pclk: pclk {
+> +                       compatible = "fixed-factor-clock";
+> +                       clocks = <&cclk>;
+> +                       #clock-cells = <0>;
+> +                       clock-div = <1>;
+> +                       clock-mult = <1>;
+> +               };
+> +       };
+> +
+> +       memory@0 {
+> +               device_type = "memory";
+> +               reg = <0x400000 0x800000>;
+> +       };
+> +
+> +       cpus {
+> +               #address-cells = <1>;
+> +               #size-cells = <0>;
+> +               cpu@0 {
+> +                       compatible = "renesas,h8300";
+> +                       reg = <0>;
+> +                       renesas,bus-width = <16>;
+> +                       clock-frequency = <33333333>;
+> +                       bus-width = <16>;
+> +               };
+> +       };
+> +
+> +       h8intc: intc@0 {
+> +               compatible = "renesas,h8s-intc", "renesas,h8300-intc";
+> +               #interrupt-cells = <1>;
+> +               interrupt-controller;
+> +       };
+> +       tpu: tpu@ffffe0 {
+> +               compatible = "renesas,tpu";
+> +               reg = <0xffffe0 16>, <0xfffff0 12>;
+> +               clocks = <&pclk>;
+> +               clock-names = "peripheral_clk";
+> +       };
+> +
+> +       timer8: timer@ffffb0 {
+> +               compatible = "renesas,8bit-timer";
+> +               reg = <0xffff80 10>;
+> +               interrupts = <72 75>;
+> +               clocks = <&pclk>;
+> +               clock-names = "peripheral_clk";
+> +               renesas,mode = <CLOCKEVENTDEVICE>;
+> +               renesas,div = <DIV_8>;
+> +       };
+> +
+> +       sci0: serial@ffff78 {
+> +               compatible = "renesas,sci";
+> +               reg = <0xffff78 8>;
+> +               interrupts = <88 89 90 91>;
+> +               clocks = <&pclk>;
+> +               clock-names = "peripheral_clk";
+> +       };
+> +       sci1: serial@ffff80 {
+> +               compatible = "renesas,sci";
+> +               reg = <0xffff80 8>;
+> +               interrupts = <92 93 94 95>;
+> +               clocks = <&pclk>;
+> +               clock-names = "peripheral_clk";
+> +       };
+> +       sci2: serial@ffff88 {
+> +               compatible = "renesas,sci";
+> +               reg = <0xffff88 8>;
+> +               interrupts = <96 97 98 99>;
+> +               clocks = <&pclk>;
+> +               clock-names = "peripheral_clk";
+> +       };
+> +};
+> diff --git a/arch/h8300/boot/dts/h8300h_sim.dts b/arch/h8300/boot/dts/h8300h_sim.dts
+> new file mode 100644
+> index 0000000..bd150fb
+> --- /dev/null
+> +++ b/arch/h8300/boot/dts/h8300h_sim.dts
+> @@ -0,0 +1,97 @@
+> +#include <dt-bindings/clock/renesas,8bit-timer.h>
+> +
+> +/dts-v1/;
+> +/ {
+> +       compatible = "gnu,gdbsim";
+> +       #address-cells = <1>;
+> +       #size-cells = <1>;
+> +       interrupt-parent = <&h8intc>;
+> +
+> +       chosen {
+> +               bootargs = "console=ttySC0";
+> +       };
+> +       aliases {
+> +               serial0 = &sci0;
+> +               serial1 = &sci1;
+> +       };
+> +
+> +       clocks {
+> +               ranges;
+> +               #address-cells = <1>;
+> +               #size-cells = <1>;
+> +               xclk: xclk {
+> +                       #clock-cells = <0>;
+> +                       compatible = "fixed-clock";
+> +                       clock-frequency = <20000000>;
+> +                       clock-output-names = "xtal";
+> +               };
+> +               cclk: cclk {
+> +                       compatible = "renesas,h8300-div-clock";
+> +                       clocks = <&xclk>;
+> +                       #clock-cells = <0>;
+> +                       reg = <0xfee01b 2>;
+> +                       renesas,width = <2>;
+> +               };
+> +               pclk: pclk {
+> +                       compatible = "fixed-factor-clock";
+> +                       clocks = <&cclk>;
+> +                       #clock-cells = <0>;
+> +                       clock-div = <1>;
+> +                       clock-mult = <1>;
+> +               };
+> +       };
+> +
+> +       memory@0 {
+> +               device_type = "memory";
+> +               reg = <0x400000 0x400000>;
+> +       };
+> +
+> +       cpus {
+> +               #address-cells = <1>;
+> +               #size-cells = <0>;
+> +               cpu@0 {
+> +                       compatible = "renesas,h8300";
+> +                       reg = <0>;
+> +                       clock-frequency = <20000000>;
+> +                       renesas,bus-width = <16>;
+> +               };
+> +       };
+> +
+> +       h8intc: intc@0 {
+> +               compatible = "renesas,h8300h-intc", "renesas,h8300-intc";
+> +               #interrupt-cells = <1>;
+> +               interrupt-controller;
+> +       };
+> +       timer8: timer@ffff80 {
+> +               compatible = "renesas,8bit-timer";
+> +               reg = <0xffff80 10>;
+> +               interrupts = <36 39>;
+> +               clocks = <&pclk>;
+> +               clock-names = "peripheral_clk";
+> +               renesas,mode = <CLOCKSOURCE>;
+> +               renesas,div = <DIV_8>;
+> +       };
+> +       timer16: timer@ffff68 {
+> +               compatible = "renesas,16bit-timer";
+> +               reg = <0xffff68 8>, <0xffff60 8>;
+> +               interrupts = <24>;
+> +               renesas,channel = <0>;
+> +               clocks = <&pclk>;
+> +               clock-names = "peripheral_clk";
+> +       };
+> +
+> +       sci0: serial@ffffb0 {
+> +               compatible = "renesas,sci";
+> +               reg = <0xffffb0 8>;
+> +               interrupts = <52 53 54 55>;
+> +               clocks = <&pclk>;
+> +               clock-names = "peripheral_clk";
+> +       };
+> +       sci1: serial@ffffb8 {
+> +               compatible = "renesas,sci";
+> +               reg = <0xffffb8 8>;
+> +               interrupts = <56 57 58 59>;
+> +               clocks = <&pclk>;
+> +               clock-names = "peripheral_clk";
+> +       };
+> +};
+> diff --git a/arch/h8300/boot/dts/h8s_sim.dts b/arch/h8300/boot/dts/h8s_sim.dts
+> new file mode 100644
+> index 0000000..26b653d
+> --- /dev/null
+> +++ b/arch/h8300/boot/dts/h8s_sim.dts
+> @@ -0,0 +1,103 @@
+> +#include <dt-bindings/clock/renesas,8bit-timer.h>
+> +
+> +/dts-v1/;
+> +/ {
+> +       compatible = "gnu,gdbsim";
+> +       #address-cells = <1>;
+> +       #size-cells = <1>;
+> +       interrupt-parent = <&h8intc>;
+> +
+> +       chosen {
+> +               bootargs = "console=ttySC0";
+> +       };
+> +       aliases {
+> +               serial0 = &sci0;
+> +               serial1 = &sci1;
+> +       };
+> +
+> +       clocks {
+> +               ranges;
+> +               #address-cells = <1>;
+> +               #size-cells = <1>;
+> +               xclk: xclk {
+> +                       #clock-cells = <0>;
+> +                       compatible = "fixed-clock";
+> +                       clock-frequency = <33333333>;
+> +                       clock-output-names = "xtal";
+> +               };
+> +               pllclk: pllclk {
+> +                       compatible = "renesas,h8s2678-pll-clock";
+> +                       clocks = <&xclk>;
+> +                       #clock-cells = <0>;
+> +                       reg = <0xfee03b 2>, <0xfee045 2>;
+> +               };
+> +               cclk: cclk {
+> +                       compatible = "renesas,h8300-div-clock";
+> +                       clocks = <&pllclk>;
+> +                       #clock-cells = <0>;
+> +                       reg = <0xfee03b 2>;
+> +                       renesas,width = <3>;
+> +               };
+> +               pclk: pclk {
+> +                       compatible = "fixed-factor-clock";
+> +                       clocks = <&cclk>;
+> +                       #clock-cells = <0>;
+> +                       clock-div = <1>;
+> +                       clock-mult = <1>;
+> +               };
+> +       };
+> +
+> +       memory@0 {
+> +               device_type = "memory";
+> +               reg = <0x400000 0x800000>;
+> +       };
+> +
+> +       cpus {
+> +               #address-cells = <1>;
+> +               #size-cells = <0>;
+> +               cpu@0 {
+> +                       compatible = "renesas,h8300";
+> +                       reg = <0>;
+> +                       renesas,bus-width = <16>;
+> +                       clock-frequency = <33333333>;
+> +                       bus-width = <16>;
+> +               };
+> +       };
+> +
+> +       h8intc: intc@0 {
+> +               compatible = "renesas,h8s-intc", "renesas,h8300-intc";
+> +               #interrupt-cells = <1>;
+> +               interrupt-controller;
+> +       };
+> +       tpu: tpu@ffffe0 {
+> +               compatible = "renesas,tpu";
+> +               reg = <0xffffe0 16>, <0xfffff0 12>;
+> +               clocks = <&pclk>;
+> +               clock-names = "peripheral_clk";
+> +       };
+> +
+> +       timer8: timer@ffffb0 {
+> +               compatible = "renesas,8bit-timer";
+> +               reg = <0xffff80 10>;
+> +               interrupts = <72 75>;
+> +               clocks = <&pclk>;
+> +               clock-names = "peripheral_clk";
+> +               renesas,mode = <CLOCKEVENTDEVICE>;
+> +               renesas,div = <DIV_8>;
+> +       };
+> +
+> +       sci0: serial@ffff78 {
+> +               compatible = "renesas,sci";
+> +               reg = <0xffff78 8>;
+> +               interrupts = <88 89 90 91>;
+> +               clocks = <&pclk>;
+> +               clock-names = "peripheral_clk";
+> +       };
+> +       sci1: serial@ffff80 {
+> +               compatible = "renesas,sci";
+> +               reg = <0xffff80 8>;
+> +               interrupts = <92 93 94 95>;
+> +               clocks = <&pclk>;
+> +               clock-names = "peripheral_clk";
+> +       };
+> +};
+> --
+> 2.1.4
 >
->
-> Daniel.
->
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+--
+To unsubscribe from this list: send the line "unsubscribe devicetree" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
