@@ -1,86 +1,68 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v10 04/19] sh-sci: Add H8/300 SCI.
-Date: Mon, 4 May 2015 15:58:17 +0200
-Message-ID: <CAMuHMdXK==yacRPHqZe3JqP83GPCk+TJsCH6OPETwcB8mOxNfw@mail.gmail.com>
-References: <1430736122-20929-2-git-send-email-ysato@users.sourceforge.jp>
-	<1430736122-20929-6-git-send-email-ysato@users.sourceforge.jp>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v16 13/14] pvqspinlock: Improve slowpath performance by
+	avoiding cmpxchg
+Date: Mon, 4 May 2015 16:05:51 +0200
+Message-ID: <20150504140551.GJ23123@twins.programming.kicks-ass.net>
+References: <1429901803-29771-1-git-send-email-Waiman.Long@hp.com>
+	<1429901803-29771-14-git-send-email-Waiman.Long@hp.com>
+	<20150429181112.GI23123@twins.programming.kicks-ass.net>
+	<55427936.4080900@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f50.google.com ([209.85.218.50]:34428 "EHLO
-	mail-oi0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751252AbbEDN6R (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2015 09:58:17 -0400
-In-Reply-To: <1430736122-20929-6-git-send-email-ysato@users.sourceforge.jp>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <55427936.4080900@hp.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Waiman Long <waiman.long@hp.com>
+Cc: linux-arch@vger.kernel.org, Rik van Riel <riel@redhat.com>, Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com>, Oleg Nesterov <oleg@redhat.com>, kvm@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Daniel J Blueman <daniel@numascale.com>, x86@kernel.org, Paolo Bonzini <paolo.bonzini@gmail.com>, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org, Scott J Norton <scott.norton@hp.com>, Ingo Molnar <mingo@redhat.com>, David Vrabel <david.vrabel@citrix.com>, "H. Peter Anvin" <hpa@zytor.com>, xen-devel@lists.xenproject.org, Thomas Gleixner <tglx@linutronix.de>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, Douglas Hatch <doug.hatch@hp.com>
+List-Id: linux-arch.vger.kernel.org
 
-CC devicetree
+On Thu, Apr 30, 2015 at 02:49:26PM -0400, Waiman Long wrote:
+> On 04/29/2015 02:11 PM, Peter Zijlstra wrote:
+> >On Fri, Apr 24, 2015 at 02:56:42PM -0400, Waiman Long wrote:
+> >>In the pv_scan_next() function, the slow cmpxchg atomic operation is
+> >>performed even if the other CPU is not even close to being halted. This
+> >>extra cmpxchg can harm slowpath performance.
+> >>
+> >>This patch introduces the new mayhalt flag to indicate if the other
+> >>spinning CPU is close to being halted or not. The current threshold
+> >>for x86 is 2k cpu_relax() calls. If this flag is not set, the other
+> >>spinning CPU will have at least 2k more cpu_relax() calls before
+> >>it can enter the halt state. This should give enough time for the
+> >>setting of the locked flag in struct mcs_spinlock to propagate to
+> >>that CPU without using atomic op.
+> >Yuck! I'm not at all sure you can make assumptions like that. And the
+> >worst part is, if it goes wrong the borkage is subtle and painful.
+> 
+> I do think the code is OK. However, you are right that if my reasoning is
+> incorrect, the resulting bug will be really subtle. 
 
-On Mon, May 4, 2015 at 12:41 PM, Yoshinori Sato
-<ysato@users.sourceforge.jp> wrote:
-> H8/300 internal serial controller of same as sh-sci.
-> So h8300 use SH_SCI.
-> And add sci bindings.
->
-> Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
+So I do not think its correct, imagine the fabrics used for the 4096 cpu
+SGI machine, now add some serious traffic to them. There is no saying
+your random 2k relax loop will be enough to propagate the change.
 
-Acked-by: Geert Uytterhoeven <geert+renesas@glider.be>
+Equally, another arch (this is generic code) might have starvation
+issues on its inter-cpu fabric and delay the store just long enough.
 
-> ---
->  Documentation/devicetree/bindings/serial/renesas,sci-serial.txt | 1 +
->  drivers/tty/serial/Kconfig                                      | 2 +-
->  drivers/tty/serial/sh-sci.c                                     | 6 ++++++
->  3 files changed, 8 insertions(+), 1 deletion(-)
->
-> diff --git a/Documentation/devicetree/bindings/serial/renesas,sci-serial.txt b/Documentation/devicetree/bindings/serial/renesas,sci-serial.txt
-> index ae73bb0..7534d46 100644
-> --- a/Documentation/devicetree/bindings/serial/renesas,sci-serial.txt
-> +++ b/Documentation/devicetree/bindings/serial/renesas,sci-serial.txt
-> @@ -29,6 +29,7 @@ Required properties:
->      - "renesas,scifa" for generic SCIFA compatible UART.
->      - "renesas,scifb" for generic SCIFB compatible UART.
->      - "renesas,hscif" for generic HSCIF compatible UART.
-> +    - "renesas,sci" for generic SCI compatible UART.
->
->      When compatible with the generic version, nodes must list the
->      SoC-specific version corresponding to the platform first followed by the
-> diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-> index f8120c1..dea1eff 100644
-> --- a/drivers/tty/serial/Kconfig
-> +++ b/drivers/tty/serial/Kconfig
-> @@ -728,7 +728,7 @@ config SERIAL_IP22_ZILOG_CONSOLE
->
->  config SERIAL_SH_SCI
->         tristate "SuperH SCI(F) serial port support"
-> -       depends on SUPERH || ARCH_SHMOBILE || COMPILE_TEST
-> +       depends on SUPERH || ARCH_SHMOBILE || H8300 || COMPILE_TEST
->         select SERIAL_CORE
->
->  config SERIAL_SH_SCI_NR_UARTS
-> diff --git a/drivers/tty/serial/sh-sci.c b/drivers/tty/serial/sh-sci.c
-> index e7d6566..1468ec5 100644
-> --- a/drivers/tty/serial/sh-sci.c
-> +++ b/drivers/tty/serial/sh-sci.c
-> @@ -2536,6 +2536,12 @@ static const struct of_device_id of_sci_match[] = {
->                         .regtype = SCIx_HSCIF_REGTYPE,
->                 },
->         }, {
-> +               .compatible = "renesas,sci",
-> +               .data = &(const struct sci_port_info) {
-> +                       .type = PORT_SCI,
-> +                       .regtype = SCIx_SCI_REGTYPE,
-> +               },
-> +       }, {
->                 /* Terminator */
->         },
->  };
-> --
-> 2.1.4
->
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+The thing is, one should _never_ rely on timing for correctness, _ever_.
+
+> So I am going to
+> withdraw this particular patch as it has no functional impact to the overall
+> patch series. Please let me know if you have any other comments on other
+> parts of the series and I will send send out a new series without this
+> particular patch.
+
+Please wait a little while, I've queued the 'basic' patches, once that
+settles in tip we can look at the others.
+
+Also, I have some local changes (sorry, I could not help mysef) I should
+post, I've been somewhat delayed by illness.
