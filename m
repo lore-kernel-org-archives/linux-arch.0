@@ -1,500 +1,403 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v10 11/19] h8300: CPU depend helpers
-Date: Mon,  4 May 2015 19:41:54 +0900
-Message-ID: <1430736122-20929-13-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v10 12/19] h8300: miscellaneous functions
+Date: Mon,  4 May 2015 19:41:55 +0900
+Message-ID: <1430736122-20929-14-git-send-email-ysato@users.sourceforge.jp>
 References: <1430736122-20929-2-git-send-email-ysato@users.sourceforge.jp>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.asahi-net.or.jp ([202.224.39.197]:58957 "EHLO
+Received: from mail1.asahi-net.or.jp ([202.224.39.197]:58966 "EHLO
 	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752719AbbEDKmy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2015 06:42:54 -0400
+	with ESMTP id S1752723AbbEDKmz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2015 06:42:55 -0400
 In-Reply-To: <1430736122-20929-2-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 
-H8/3069 and H8S2678 have little different specification
-(interrupt and trace).
-Its difference is absorbed here.
-
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- arch/h8300/kernel/cpu/Makefile   |   2 +
- arch/h8300/kernel/cpu/irq_h.c    |  62 ++++++++++
- arch/h8300/kernel/cpu/irq_s.c    |  70 +++++++++++
- arch/h8300/kernel/cpu/ptrace_h.c | 256 +++++++++++++++++++++++++++++++++++++++
- arch/h8300/kernel/cpu/ptrace_s.c |  44 +++++++
- 5 files changed, 434 insertions(+)
- create mode 100644 arch/h8300/kernel/cpu/Makefile
- create mode 100644 arch/h8300/kernel/cpu/irq_h.c
- create mode 100644 arch/h8300/kernel/cpu/irq_s.c
- create mode 100644 arch/h8300/kernel/cpu/ptrace_h.c
- create mode 100644 arch/h8300/kernel/cpu/ptrace_s.c
+ arch/h8300/kernel/asm-offsets.c | 67 ++++++++++++++++++++++++++++++++++
+ arch/h8300/kernel/dma.c         | 69 +++++++++++++++++++++++++++++++++++
+ arch/h8300/kernel/h8300_ksyms.c | 34 ++++++++++++++++++
+ arch/h8300/kernel/module.c      | 70 ++++++++++++++++++++++++++++++++++++
+ arch/h8300/kernel/sim-console.c | 79 +++++++++++++++++++++++++++++++++++++++++
+ arch/h8300/kernel/syscalls.c    | 14 ++++++++
+ 6 files changed, 333 insertions(+)
+ create mode 100644 arch/h8300/kernel/asm-offsets.c
+ create mode 100644 arch/h8300/kernel/dma.c
+ create mode 100644 arch/h8300/kernel/h8300_ksyms.c
+ create mode 100644 arch/h8300/kernel/module.c
+ create mode 100644 arch/h8300/kernel/sim-console.c
+ create mode 100644 arch/h8300/kernel/syscalls.c
 
-diff --git a/arch/h8300/kernel/cpu/Makefile b/arch/h8300/kernel/cpu/Makefile
+diff --git a/arch/h8300/kernel/asm-offsets.c b/arch/h8300/kernel/asm-offsets.c
 new file mode 100644
-index 0000000..1318128
+index 0000000..dc2d16c
 --- /dev/null
-+++ b/arch/h8300/kernel/cpu/Makefile
-@@ -0,0 +1,2 @@
-+obj-$(CONFIG_CPU_H8300H) += ptrace_h.o irq_h.o
-+obj-$(CONFIG_CPU_H8S) += ptrace_s.o irq_s.o
-diff --git a/arch/h8300/kernel/cpu/irq_h.c b/arch/h8300/kernel/cpu/irq_h.c
-new file mode 100644
-index 0000000..f95ae42
---- /dev/null
-+++ b/arch/h8300/kernel/cpu/irq_h.c
-@@ -0,0 +1,62 @@
++++ b/arch/h8300/kernel/asm-offsets.c
+@@ -0,0 +1,67 @@
 +/*
-+ * linux/arch/h8300/kernel/irq_h.c
++ * This program is used to generate definitions needed by
++ * assembly language modules.
 + *
-+ * Copyright 2014 Yoshinori Sato <ysato@users.sourceforge.jp>
++ * We use the technique used in the OSF Mach kernel code:
++ * generate asm statements containing #defines,
++ * compile this file to assembler, and then extract the
++ * #defines from the assembly-language output.
 + */
 +
-+#include <linux/init.h>
-+#include <linux/irq.h>
-+#include <asm/io.h>
++#include <linux/stddef.h>
++#include <linux/sched.h>
++#include <linux/kernel_stat.h>
++#include <linux/ptrace.h>
++#include <linux/hardirq.h>
++#include <linux/kbuild.h>
++#include <asm/irq.h>
++#include <asm/ptrace.h>
 +
-+static const char ipr_bit[] = {
-+	 7,  6,  5,  5,
-+	 4,  4,  4,  4,  3,  3,  3,  3,
-+	 2,  2,  2,  2,  1,  1,  1,  1,
-+	 0,  0,  0,  0, 15, 15, 15, 15,
-+	14, 14, 14, 14, 13, 13, 13, 13,
-+	-1, -1, -1, -1, 11, 11, 11, 11,
-+	10, 10, 10, 10,  9,  9,  9,  9,
-+};
-+
-+#define IPR 0xffee18
-+
-+static void h8300h_disable_irq(struct irq_data *data)
++int main(void)
 +{
-+	int bit;
-+	int irq = data->irq - 12;
++	/* offsets into the task struct */
++	OFFSET(TASK_STATE, task_struct, state);
++	OFFSET(TASK_FLAGS, task_struct, flags);
++	OFFSET(TASK_PTRACE, task_struct, ptrace);
++	OFFSET(TASK_BLOCKED, task_struct, blocked);
++	OFFSET(TASK_THREAD, task_struct, thread);
++	OFFSET(TASK_THREAD_INFO, task_struct, stack);
++	OFFSET(TASK_MM, task_struct, mm);
++	OFFSET(TASK_ACTIVE_MM, task_struct, active_mm);
 +
-+	bit = ipr_bit[irq];
-+	if (bit >= 0) {
-+		if (bit < 8)
-+			ctrl_bclr(bit & 7, IPR);
-+		else
-+			ctrl_bclr(bit & 7, (IPR+1));
-+	}
++	/* offsets into the irq_cpustat_t struct */
++	DEFINE(CPUSTAT_SOFTIRQ_PENDING, offsetof(irq_cpustat_t,
++						 __softirq_pending));
++
++	/* offsets into the thread struct */
++	OFFSET(THREAD_KSP, thread_struct, ksp);
++	OFFSET(THREAD_USP, thread_struct, usp);
++	OFFSET(THREAD_CCR, thread_struct, ccr);
++
++	/* offsets into the pt_regs struct */
++	DEFINE(LER0,  offsetof(struct pt_regs, er0)      - sizeof(long));
++	DEFINE(LER1,  offsetof(struct pt_regs, er1)      - sizeof(long));
++	DEFINE(LER2,  offsetof(struct pt_regs, er2)      - sizeof(long));
++	DEFINE(LER3,  offsetof(struct pt_regs, er3)      - sizeof(long));
++	DEFINE(LER4,  offsetof(struct pt_regs, er4)      - sizeof(long));
++	DEFINE(LER5,  offsetof(struct pt_regs, er5)      - sizeof(long));
++	DEFINE(LER6,  offsetof(struct pt_regs, er6)      - sizeof(long));
++	DEFINE(LORIG, offsetof(struct pt_regs, orig_er0) - sizeof(long));
++	DEFINE(LSP,   offsetof(struct pt_regs, sp)       - sizeof(long));
++	DEFINE(LCCR,  offsetof(struct pt_regs, ccr)      - sizeof(long));
++	DEFINE(LVEC,  offsetof(struct pt_regs, vector)   - sizeof(long));
++#if defined(CONFIG_CPU_H8S)
++	DEFINE(LEXR,  offsetof(struct pt_regs, exr)      - sizeof(long));
++#endif
++	DEFINE(LRET,  offsetof(struct pt_regs, pc)       - sizeof(long));
++
++	DEFINE(PT_PTRACED, PT_PTRACED);
++
++	/* offsets in thread_info structure */
++	OFFSET(TI_TASK, thread_info, task);
++	OFFSET(TI_FLAGS, thread_info, flags);
++	OFFSET(TI_CPU, thread_info, cpu);
++	OFFSET(TI_PRE, thread_info, preempt_count);
++
++	return 0;
 +}
-+
-+static void h8300h_enable_irq(struct irq_data *data)
-+{
-+	int bit;
-+	int irq = data->irq - 12;
-+
-+	bit = ipr_bit[irq];
-+	if (bit >= 0) {
-+		if (bit < 8)
-+			ctrl_bset(bit & 7, IPR);
-+		else
-+			ctrl_bset(bit & 7, (IPR+1));
-+	}
-+}
-+
-+struct irq_chip h8300_irq_chip = {
-+	.name		= "H8/300H-INTC",
-+	.irq_enable	= h8300h_enable_irq,
-+	.irq_disable	= h8300h_disable_irq,
-+};
-+
-+void __init h8300_init_ipr(void)
-+{
-+	/* All interrupt priority high */
-+	ctrl_outb(0xff, IPR + 0);
-+	ctrl_outb(0xee, IPR + 1);
-+}
-diff --git a/arch/h8300/kernel/cpu/irq_s.c b/arch/h8300/kernel/cpu/irq_s.c
+diff --git a/arch/h8300/kernel/dma.c b/arch/h8300/kernel/dma.c
 new file mode 100644
-index 0000000..2c811fe
+index 0000000..eeb13d3
 --- /dev/null
-+++ b/arch/h8300/kernel/cpu/irq_s.c
++++ b/arch/h8300/kernel/dma.c
+@@ -0,0 +1,69 @@
++/*
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file COPYING in the main directory of this archive
++ * for more details.
++ */
++
++#include <linux/dma-mapping.h>
++#include <linux/kernel.h>
++#include <linux/scatterlist.h>
++#include <linux/module.h>
++#include <asm/pgalloc.h>
++
++static void *dma_alloc(struct device *dev, size_t size,
++		       dma_addr_t *dma_handle, gfp_t gfp,
++		       struct dma_attrs *attrs)
++{
++	void *ret;
++
++	/* ignore region specifiers */
++	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
++
++	if (dev == NULL || (*dev->dma_mask < 0xffffffff))
++		gfp |= GFP_DMA;
++	ret = (void *)__get_free_pages(gfp, get_order(size));
++
++	if (ret != NULL) {
++		memset(ret, 0, size);
++		*dma_handle = virt_to_phys(ret);
++	}
++	return ret;
++}
++
++static void dma_free(struct device *dev, size_t size,
++		     void *vaddr, dma_addr_t dma_handle,
++		     struct dma_attrs *attrs)
++
++{
++	free_pages((unsigned long)vaddr, get_order(size));
++}
++
++static dma_addr_t map_page(struct device *dev, struct page *page,
++				  unsigned long offset, size_t size,
++				  enum dma_data_direction direction,
++				  struct dma_attrs *attrs)
++{
++	return page_to_phys(page) + offset;
++}
++
++static int map_sg(struct device *dev, struct scatterlist *sgl,
++		  int nents, enum dma_data_direction direction,
++		  struct dma_attrs *attrs)
++{
++	struct scatterlist *sg;
++	int i;
++
++	for_each_sg(sgl, sg, nents, i) {
++		sg->dma_address = sg_phys(sg);
++	}
++
++	return nents;
++}
++
++struct dma_map_ops h8300_dma_map_ops = {
++	.alloc = dma_alloc,
++	.free = dma_free,
++	.map_page = map_page,
++	.map_sg = map_sg,
++};
++EXPORT_SYMBOL(h8300_dma_map_ops);
+diff --git a/arch/h8300/kernel/h8300_ksyms.c b/arch/h8300/kernel/h8300_ksyms.c
+new file mode 100644
+index 0000000..33bf96a
+--- /dev/null
++++ b/arch/h8300/kernel/h8300_ksyms.c
+@@ -0,0 +1,34 @@
++#include <linux/module.h>
++#include <linux/linkage.h>
++
++/*
++ * libgcc functions - functions that are used internally by the
++ * compiler...  (prototypes are not correct though, but that
++ * doesn't really matter since they're not versioned).
++ */
++asmlinkage long long __ashldi3(long long, int);
++asmlinkage long long __ashrdi3(long long, int);
++asmlinkage long long __lshrdi3(long long, int);
++asmlinkage long __divsi3(long, long);
++asmlinkage long __modsi3(long, long);
++asmlinkage unsigned long __umodsi3(unsigned long, unsigned long);
++asmlinkage long long __muldi3(long long, long long);
++asmlinkage long __mulsi3(long, long);
++asmlinkage long __udivsi3(long, long);
++asmlinkage void *memcpy(void *, const void *, size_t);
++asmlinkage void *memset(void *, int, size_t);
++asmlinkage long strncpy_from_user(void *to, void *from, size_t n);
++
++	/* gcc lib functions */
++EXPORT_SYMBOL(__ashldi3);
++EXPORT_SYMBOL(__ashrdi3);
++EXPORT_SYMBOL(__lshrdi3);
++EXPORT_SYMBOL(__divsi3);
++EXPORT_SYMBOL(__modsi3);
++EXPORT_SYMBOL(__umodsi3);
++EXPORT_SYMBOL(__muldi3);
++EXPORT_SYMBOL(__mulsi3);
++EXPORT_SYMBOL(__udivsi3);
++EXPORT_SYMBOL(memcpy);
++EXPORT_SYMBOL(memset);
++EXPORT_SYMBOL(strncpy_from_user);
+diff --git a/arch/h8300/kernel/module.c b/arch/h8300/kernel/module.c
+new file mode 100644
+index 0000000..515f6c4
+--- /dev/null
++++ b/arch/h8300/kernel/module.c
 @@ -0,0 +1,70 @@
-+/*
-+ * linux/arch/h8300/kernel/irq_s.c
-+ *
-+ * Copyright 2014 Yoshinori Sato <ysato@users.sourceforge.jp>
-+ */
++#include <linux/moduleloader.h>
++#include <linux/elf.h>
++#include <linux/vmalloc.h>
++#include <linux/fs.h>
++#include <linux/string.h>
++#include <linux/kernel.h>
 +
-+#include <linux/irq.h>
-+#include <asm/io.h>
-+#define IPRA 0xfffe00
-+
-+static const unsigned char ipr_table[] = {
-+	0x03, 0x02, 0x01, 0x00, 0x13, 0x12, 0x11, 0x10, /* 16 - 23 */
-+	0x23, 0x22, 0x21, 0x20, 0x33, 0x32, 0x31, 0x30, /* 24 - 31 */
-+	0x43, 0x42, 0x41, 0x40, 0x53, 0x53, 0x52, 0x52, /* 32 - 39 */
-+	0x51, 0x51, 0x51, 0x51, 0x51, 0x51, 0x51, 0x51, /* 40 - 47 */
-+	0x50, 0x50, 0x50, 0x50, 0x63, 0x63, 0x63, 0x63, /* 48 - 55 */
-+	0x62, 0x62, 0x62, 0x62, 0x62, 0x62, 0x62, 0x62, /* 56 - 63 */
-+	0x61, 0x61, 0x61, 0x61, 0x60, 0x60, 0x60, 0x60, /* 64 - 71 */
-+	0x73, 0x73, 0x73, 0x73, 0x72, 0x72, 0x72, 0x72, /* 72 - 79 */
-+	0x71, 0x71, 0x71, 0x71, 0x70, 0x83, 0x82, 0x81, /* 80 - 87 */
-+	0x80, 0x80, 0x80, 0x80, 0x93, 0x93, 0x93, 0x93, /* 88 - 95 */
-+	0x92, 0x92, 0x92, 0x92, 0x91, 0x91, 0x91, 0x91, /* 96 - 103 */
-+	0x90, 0x90, 0x90, 0x90, 0xa3, 0xa3, 0xa3, 0xa3, /* 104 - 111 */
-+	0xa2, 0xa2, 0xa2, 0xa2, 0xa1, 0xa1, 0xa1, 0xa1, /* 112 - 119 */
-+	0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, /* 120 - 127 */
-+};
-+
-+static void h8s_disable_irq(struct irq_data *data)
++int apply_relocate_add(Elf32_Shdr *sechdrs,
++		       const char *strtab,
++		       unsigned int symindex,
++		       unsigned int relsec,
++		       struct module *me)
 +{
-+	int pos;
-+	unsigned int addr;
-+	unsigned short pri;
-+	int irq = data->irq;
++	unsigned int i;
++	Elf32_Rela *rela = (void *)sechdrs[relsec].sh_addr;
 +
-+	addr = IPRA + ((ipr_table[irq - 16] & 0xf0) >> 3);
-+	pos = (ipr_table[irq - 16] & 0x0f) * 4;
-+	pri = ~(0x000f << pos);
-+	pri &= ctrl_inw(addr);
-+	ctrl_outw(pri, addr);
++	pr_debug("Applying relocate section %u to %u\n", relsec,
++	       sechdrs[relsec].sh_info);
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rela); i++) {
++		/* This is where to make the change */
++		uint32_t *loc =
++			(uint32_t *)(sechdrs[sechdrs[relsec].sh_info].sh_addr
++					     + rela[i].r_offset);
++		/* This is the symbol it is referring to.  Note that all
++		   undefined symbols have been resolved.  */
++		Elf32_Sym *sym = (Elf32_Sym *)sechdrs[symindex].sh_addr
++			+ ELF32_R_SYM(rela[i].r_info);
++		uint32_t v = sym->st_value + rela[i].r_addend;
++
++		switch (ELF32_R_TYPE(rela[i].r_info)) {
++		case R_H8_DIR24R8:
++			loc = (uint32_t *)((uint32_t)loc - 1);
++			*loc = (*loc & 0xff000000) | ((*loc & 0xffffff) + v);
++			break;
++		case R_H8_DIR24A8:
++			if (ELF32_R_SYM(rela[i].r_info))
++				*loc += v;
++			break;
++		case R_H8_DIR32:
++		case R_H8_DIR32A16:
++			*loc += v;
++			break;
++		case R_H8_PCREL16:
++			v -= (unsigned long)loc + 2;
++			if ((Elf32_Sword)v > 0x7fff ||
++			    (Elf32_Sword)v < -(Elf32_Sword)0x8000)
++				goto overflow;
++			else
++				*(unsigned short *)loc = v;
++			break;
++		case R_H8_PCREL8:
++			v -= (unsigned long)loc + 1;
++			if ((Elf32_Sword)v > 0x7f ||
++			    (Elf32_Sword)v < -(Elf32_Sword)0x80)
++				goto overflow;
++			else
++				*(unsigned char *)loc = v;
++			break;
++		default:
++			pr_err("module %s: Unknown relocation: %u\n",
++			       me->name, ELF32_R_TYPE(rela[i].r_info));
++			return -ENOEXEC;
++		}
++	}
++	return 0;
++ overflow:
++	pr_err("module %s: relocation offset overflow: %08x\n",
++	       me->name, rela[i].r_offset);
++	return -ENOEXEC;
 +}
-+
-+static void h8s_enable_irq(struct irq_data *data)
-+{
-+	int pos;
-+	unsigned int addr;
-+	unsigned short pri;
-+	int irq = data->irq;
-+
-+	addr = IPRA + ((ipr_table[irq - 16] & 0xf0) >> 3);
-+	pos = (ipr_table[irq - 16] & 0x0f) * 4;
-+	pri = ~(0x000f << pos);
-+	pri &= ctrl_inw(addr);
-+	pri |= 1 << pos;
-+	ctrl_outw(pri, addr);
-+}
-+
-+struct irq_chip h8300_irq_chip = {
-+	.name		= "H8S-INTC",
-+	.irq_enable	= h8s_enable_irq,
-+	.irq_disable	= h8s_disable_irq,
-+};
-+
-+void __init h8300_init_ipr(void)
-+{
-+	int n;
-+	/* All interrupt priority is 1 */
-+	/* IPRA to IPRK */
-+	for (n = 0; n <= 'k' - 'a'; n++)
-+		ctrl_outw(0x1111, IPRA + (n * 2));
-+}
-diff --git a/arch/h8300/kernel/cpu/ptrace_h.c b/arch/h8300/kernel/cpu/ptrace_h.c
+diff --git a/arch/h8300/kernel/sim-console.c b/arch/h8300/kernel/sim-console.c
 new file mode 100644
-index 0000000..fe3b567
+index 0000000..a15edf0
 --- /dev/null
-+++ b/arch/h8300/kernel/cpu/ptrace_h.c
-@@ -0,0 +1,256 @@
++++ b/arch/h8300/kernel/sim-console.c
+@@ -0,0 +1,79 @@
 +/*
-+ *    ptrace cpu depend helper functions
++ * arch/h8300/kernel/early_printk.c
 + *
-+ *  Copyright 2003, 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ *  Copyright (C) 2009 Yoshinori Sato <ysato@users.sourceforge.jp>
 + *
-+ * This file is subject to the terms and conditions of the GNU General
-+ * Public License.  See the file COPYING in the main directory of
-+ * this archive for more details.
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
 + */
++#include <linux/console.h>
++#include <linux/tty.h>
++#include <linux/init.h>
++#include <linux/io.h>
++#include <linux/platform_device.h>
 +
-+#include <linux/linkage.h>
-+#include <linux/sched.h>
-+#include <asm/ptrace.h>
-+
-+#define BREAKINST 0x5730 /* trapa #3 */
-+
-+/* disable singlestep */
-+void user_disable_single_step(struct task_struct *child)
++static void sim_write(struct console *co, const char *ptr,
++				 unsigned len)
 +{
-+	if ((long)child->thread.breakinfo.addr != -1L) {
-+		*(child->thread.breakinfo.addr) = child->thread.breakinfo.inst;
-+		child->thread.breakinfo.addr = (unsigned short *)-1L;
-+	}
++	register const int fd __asm__("er0") = 1; /* stdout */
++	register const char *_ptr __asm__("er1") = ptr;
++	register const unsigned _len __asm__("er2") = len;
++
++	__asm__(".byte 0x5e,0x00,0x00,0xc7\n\t" /* jsr @0xc7 (sys_write) */
++		: : "g"(fd), "g"(_ptr), "g"(_len));
 +}
 +
-+/* calculate next pc */
-+enum jump_type {none,	 /* normal instruction */
-+		jabs,	 /* absolute address jump */
-+		ind,	 /* indirect address jump */
-+		ret,	 /* return to subrutine */
-+		reg,	 /* register indexed jump */
-+		relb,	 /* pc relative jump (byte offset) */
-+		relw,	 /* pc relative jump (word offset) */
-+	       };
-+
-+/* opcode decode table define
-+   ptn: opcode pattern
-+   msk: opcode bitmask
-+   len: instruction length (<0 next table index)
-+   jmp: jump operation mode */
-+struct optable {
-+	unsigned char bitpattern;
-+	unsigned char bitmask;
-+	signed char length;
-+	signed char type;
-+} __packed __aligned(1);
-+
-+#define OPTABLE(ptn, msk, len, jmp)	\
-+	{				\
-+		.bitpattern = ptn,	\
-+		.bitmask    = msk,	\
-+		.length	    = len,	\
-+		.type	    = jmp,	\
-+	}
-+
-+static const struct optable optable_0[] = {
-+	OPTABLE(0x00, 0xff,  1, none), /* 0x00 */
-+	OPTABLE(0x01, 0xff, -1, none), /* 0x01 */
-+	OPTABLE(0x02, 0xfe,  1, none), /* 0x02-0x03 */
-+	OPTABLE(0x04, 0xee,  1, none), /* 0x04-0x05/0x14-0x15 */
-+	OPTABLE(0x06, 0xfe,  1, none), /* 0x06-0x07 */
-+	OPTABLE(0x08, 0xea,  1, none), /* 0x08-0x09/0x0c-0x0d/0x18-0x19/0x1c-0x1d */
-+	OPTABLE(0x0a, 0xee,  1, none), /* 0x0a-0x0b/0x1a-0x1b */
-+	OPTABLE(0x0e, 0xee,  1, none), /* 0x0e-0x0f/0x1e-0x1f */
-+	OPTABLE(0x10, 0xfc,  1, none), /* 0x10-0x13 */
-+	OPTABLE(0x16, 0xfe,  1, none), /* 0x16-0x17 */
-+	OPTABLE(0x20, 0xe0,  1, none), /* 0x20-0x3f */
-+	OPTABLE(0x40, 0xf0,  1, relb), /* 0x40-0x4f */
-+	OPTABLE(0x50, 0xfc,  1, none), /* 0x50-0x53 */
-+	OPTABLE(0x54, 0xfd,  1, ret), /* 0x54/0x56 */
-+	OPTABLE(0x55, 0xff,  1, relb), /* 0x55 */
-+	OPTABLE(0x57, 0xff,  1, none), /* 0x57 */
-+	OPTABLE(0x58, 0xfb,  2, relw), /* 0x58/0x5c */
-+	OPTABLE(0x59, 0xfb,  1, reg), /* 0x59/0x5b */
-+	OPTABLE(0x5a, 0xfb,  2, jabs), /* 0x5a/0x5e */
-+	OPTABLE(0x5b, 0xfb,  2, ind), /* 0x5b/0x5f */
-+	OPTABLE(0x60, 0xe8,  1, none), /* 0x60-0x67/0x70-0x77 */
-+	OPTABLE(0x68, 0xfa,  1, none), /* 0x68-0x69/0x6c-0x6d */
-+	OPTABLE(0x6a, 0xfe, -2, none), /* 0x6a-0x6b */
-+	OPTABLE(0x6e, 0xfe,  2, none), /* 0x6e-0x6f */
-+	OPTABLE(0x78, 0xff,  4, none), /* 0x78 */
-+	OPTABLE(0x79, 0xff,  2, none), /* 0x79 */
-+	OPTABLE(0x7a, 0xff,  3, none), /* 0x7a */
-+	OPTABLE(0x7b, 0xff,  2, none), /* 0x7b */
-+	OPTABLE(0x7c, 0xfc,  2, none), /* 0x7c-0x7f */
-+	OPTABLE(0x80, 0x80,  1, none), /* 0x80-0xff */
++static struct console sim_console = {
++	.name		= "sim_console",
++	.write		= sim_write,
++	.setup		= NULL,
++	.flags		= CON_PRINTBUFFER,
++	.index		= -1,
 +};
 +
-+static const struct optable optable_1[] = {
-+	OPTABLE(0x00, 0xff, -3, none), /* 0x0100 */
-+	OPTABLE(0x40, 0xf0, -3, none), /* 0x0140-0x14f */
-+	OPTABLE(0x80, 0xf0,  1, none), /* 0x0180-0x018f */
-+	OPTABLE(0xc0, 0xc0,  2, none), /* 0x01c0-0x01ff */
-+};
++static char sim_console_buf[32];
 +
-+static const struct optable optable_2[] = {
-+	OPTABLE(0x00, 0x20,  2, none), /* 0x6a0?/0x6a8?/0x6b0?/0x6b8? */
-+	OPTABLE(0x20, 0x20,  3, none), /* 0x6a2?/0x6aa?/0x6b2?/0x6ba? */
-+};
-+
-+static const struct optable optable_3[] = {
-+	OPTABLE(0x69, 0xfb,  2, none), /* 0x010069/0x01006d/014069/0x01406d */
-+	OPTABLE(0x6b, 0xff, -4, none), /* 0x01006b/0x01406b */
-+	OPTABLE(0x6f, 0xff,  3, none), /* 0x01006f/0x01406f */
-+	OPTABLE(0x78, 0xff,  5, none), /* 0x010078/0x014078 */
-+};
-+
-+static const struct optable optable_4[] = {
-+/* 0x0100690?/0x01006d0?/0140690?/0x01406d0?/
-+   0x0100698?/0x01006d8?/0140698?/0x01406d8? */
-+	OPTABLE(0x00, 0x78, 3, none),
-+/* 0x0100692?/0x01006d2?/0140692?/0x01406d2?/
-+   0x010069a?/0x01006da?/014069a?/0x01406da? */
-+	OPTABLE(0x20, 0x78, 4, none),
-+};
-+
-+static const struct optables_list {
-+	const struct optable *ptr;
-+	int size;
-+} optables[] = {
-+#define OPTABLES(no)                                                   \
-+	{                                                              \
-+		.ptr  = optable_##no,                                  \
-+		.size = sizeof(optable_##no) / sizeof(struct optable), \
-+	}
-+	OPTABLES(0),
-+	OPTABLES(1),
-+	OPTABLES(2),
-+	OPTABLES(3),
-+	OPTABLES(4),
-+
-+};
-+
-+const unsigned char condmask[] = {
-+	0x00, 0x40, 0x01, 0x04, 0x02, 0x08, 0x10, 0x20
-+};
-+
-+static int isbranch(struct task_struct *task, int reson)
++static int sim_probe(struct platform_device *pdev)
 +{
-+	unsigned char cond = h8300_get_reg(task, PT_CCR);
++	if (sim_console.data)
++		return -EEXIST;
 +
-+	/* encode complex conditions */
-+	/* B4: N^V
-+	   B5: Z|(N^V)
-+	   B6: C|Z */
-+	__asm__("bld #3,%w0\n\t"
-+		"bxor #1,%w0\n\t"
-+		"bst #4,%w0\n\t"
-+		"bor #2,%w0\n\t"
-+		"bst #5,%w0\n\t"
-+		"bld #2,%w0\n\t"
-+		"bor #0,%w0\n\t"
-+		"bst #6,%w0\n\t"
-+		: "=&r"(cond) : "0"(cond) : "cc");
-+	cond &= condmask[reson >> 1];
-+	if (!(reson & 1))
-+		return cond == 0;
-+	else
-+		return cond != 0;
++	if (!strstr(sim_console_buf, "keep"))
++		sim_console.flags |= CON_BOOT;
++
++	register_console(&sim_console);
++	return 0;
 +}
 +
-+static unsigned short *decode(struct task_struct *child,
-+			      const struct optable *op,
-+			      char *fetch_p, unsigned short *pc,
-+			      unsigned char inst)
++static int sim_remove(struct platform_device *pdev)
 +{
-+	unsigned long addr;
-+	unsigned long *sp;
-+	int regno;
-+
-+	switch (op->type) {
-+	case none:
-+		return (unsigned short *)pc + op->length;
-+	case jabs:
-+		addr = *(unsigned long *)pc;
-+		return (unsigned short *)(addr & 0x00ffffff);
-+	case ind:
-+		addr = *pc & 0xff;
-+		return (unsigned short *)(*(unsigned long *)addr);
-+	case ret:
-+		sp = (unsigned long *)h8300_get_reg(child, PT_USP);
-+		/* user stack frames
-+		   |   er0  | temporary saved
-+		   +--------+
-+		   |   exp  | exception stack frames
-+		   +--------+
-+		   | ret pc | userspace return address
-+		*/
-+		return (unsigned short *)(*(sp+2) & 0x00ffffff);
-+	case reg:
-+		regno = (*pc >> 4) & 0x07;
-+		if (regno == 0)
-+			addr = h8300_get_reg(child, PT_ER0);
-+		else
-+			addr = h8300_get_reg(child, regno-1 + PT_ER1);
-+		return (unsigned short *)addr;
-+	case relb:
-+		if (inst == 0x55 || isbranch(child, inst & 0x0f))
-+			pc = (unsigned short *)((unsigned long)pc +
-+						((signed char)(*fetch_p)));
-+		return pc+1; /* skip myself */
-+	case relw:
-+		if (inst == 0x5c || isbranch(child, (*fetch_p & 0xf0) >> 4))
-+			pc = (unsigned short *)((unsigned long)pc +
-+						((signed short)(*(pc+1))));
-+		return pc+2; /* skip myself */
-+	default:
-+		return NULL;
-+	}
++	return 0;
 +}
 +
-+static unsigned short *nextpc(struct task_struct *child, unsigned short *pc)
++static struct platform_driver sim_driver = {
++	.probe		= sim_probe,
++	.remove		= sim_remove,
++	.driver		= {
++		.name	= "h8300-sim",
++		.owner	= THIS_MODULE,
++	},
++};
++
++early_platform_init_buffer("earlyprintk", &sim_driver,
++			   sim_console_buf, ARRAY_SIZE(sim_console_buf));
++
++static struct platform_device sim_console_device = {
++	.name		= "h8300-sim",
++	.id		= 0,
++};
++
++static struct platform_device *devices[] __initdata = {
++	&sim_console_device,
++};
++
++void __init sim_console_register(void)
 +{
-+	const struct optable *op;
-+	unsigned char *fetch_p;
-+	int op_len;
-+	unsigned char inst;
-+
-+	op = optables[0].ptr;
-+	op_len = optables[0].size;
-+	fetch_p = (unsigned char *)pc;
-+	inst = *fetch_p++;
-+	do {
-+		if ((inst & op->bitmask) == op->bitpattern) {
-+			if (op->length < 0) {
-+				op = optables[-op->length].ptr;
-+				op_len = optables[-op->length].size + 1;
-+				inst = *fetch_p++;
-+			} else
-+				return decode(child, op, fetch_p, pc, inst);
-+		} else
-+			op++;
-+	} while (--op_len > 0);
-+	return NULL;
++	early_platform_add_devices(devices,
++				   ARRAY_SIZE(devices));
 +}
-+
-+/* Set breakpoint(s) to simulate a single step from the current PC.  */
-+
-+void user_enable_single_step(struct task_struct *child)
-+{
-+	unsigned short *next;
-+
-+	next = nextpc(child, (unsigned short *)h8300_get_reg(child, PT_PC));
-+	child->thread.breakinfo.addr = next;
-+	child->thread.breakinfo.inst = *next;
-+	*next = BREAKINST;
-+}
-+
-+asmlinkage void trace_trap(unsigned long bp)
-+{
-+	if ((unsigned long)current->thread.breakinfo.addr == bp) {
-+		user_disable_single_step(current);
-+		force_sig(SIGTRAP, current);
-+	} else
-+		force_sig(SIGILL, current);
-+}
-diff --git a/arch/h8300/kernel/cpu/ptrace_s.c b/arch/h8300/kernel/cpu/ptrace_s.c
+diff --git a/arch/h8300/kernel/syscalls.c b/arch/h8300/kernel/syscalls.c
 new file mode 100644
-index 0000000..ef5a9c1
+index 0000000..1f9123a
 --- /dev/null
-+++ b/arch/h8300/kernel/cpu/ptrace_s.c
-@@ -0,0 +1,44 @@
-+/*
-+ *  linux/arch/h8300/kernel/ptrace_h8s.c
-+ *    ptrace cpu depend helper functions
-+ *
-+ *  Yoshinori Sato <ysato@users.sourceforge.jp>
-+ *
-+ * This file is subject to the terms and conditions of the GNU General
-+ * Public License.  See the file COPYING in the main directory of
-+ * this archive for more details.
-+ */
++++ b/arch/h8300/kernel/syscalls.c
+@@ -0,0 +1,14 @@
++#include <linux/syscalls.h>
++#include <linux/signal.h>
++#include <linux/unistd.h>
 +
-+#include <linux/linkage.h>
-+#include <linux/sched.h>
-+#include <linux/errno.h>
-+#include <asm/ptrace.h>
++#undef __SYSCALL
++#define __SYSCALL(nr, call) [nr] = (call),
 +
-+#define CCR_MASK  0x6f
-+#define EXR_TRACE 0x80
++#define sys_mmap2 sys_mmap_pgoff
 +
-+/* disable singlestep */
-+void user_disable_single_step(struct task_struct *child)
-+{
-+	unsigned char exr;
++asmlinkage int sys_rt_sigreturn(void);
 +
-+	exr = h8300_get_reg(child, PT_EXR);
-+	exr &= ~EXR_TRACE;
-+	h8300_put_reg(child, PT_EXR, exr);
-+}
-+
-+/* enable singlestep */
-+void user_enable_single_step(struct task_struct *child)
-+{
-+	unsigned char exr;
-+
-+	exr = h8300_get_reg(child, PT_EXR);
-+	exr |= EXR_TRACE;
-+	h8300_put_reg(child, PT_EXR, exr);
-+}
-+
-+asmlinkage void trace_trap(unsigned long bp)
-+{
-+	(void)bp;
-+	force_sig(SIGTRAP, current);
-+}
++void *_sys_call_table[__NR_syscalls] = {
++#include <asm/unistd.h>
++};
 -- 
 2.1.4
