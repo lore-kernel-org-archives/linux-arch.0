@@ -1,325 +1,293 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v10 16/19] h8300: clock driver
-Date: Mon,  4 May 2015 19:41:59 +0900
-Message-ID: <1430736122-20929-18-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v10 13/19] h8300: Memory management
+Date: Mon,  4 May 2015 19:41:56 +0900
+Message-ID: <1430736122-20929-15-git-send-email-ysato@users.sourceforge.jp>
 References: <1430736122-20929-2-git-send-email-ysato@users.sourceforge.jp>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.asahi-net.or.jp ([202.224.39.197]:59226 "EHLO
-	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752766AbbEDKnJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2015 06:43:09 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1430736122-20929-2-git-send-email-ysato@users.sourceforge.jp>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-
-H8/300 clock driver
-clk-div: common clock divier
-clk-h8s2678: PLL driver
+List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- .../bindings/clock/renesas,h8300-div-clock.txt     |  24 ++++
- .../bindings/clock/renesas,h8s2678-pll-clock.txt   |  23 ++++
- drivers/clk/Makefile                               |   1 +
- drivers/clk/h8300/Makefile                         |   2 +
- drivers/clk/h8300/clk-div.c                        |  53 ++++++++
- drivers/clk/h8300/clk-h8s2678.c                    | 147 +++++++++++++++++++++
- 6 files changed, 250 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/clock/renesas,h8300-div-clock.txt
- create mode 100644 Documentation/devicetree/bindings/clock/renesas,h8s2678-pll-clock.txt
- create mode 100644 drivers/clk/h8300/Makefile
- create mode 100644 drivers/clk/h8300/clk-div.c
- create mode 100644 drivers/clk/h8300/clk-h8s2678.c
+ arch/h8300/mm/Makefile |   5 ++
+ arch/h8300/mm/fault.c  |  57 ++++++++++++++++++++++
+ arch/h8300/mm/init.c   | 128 +++++++++++++++++++++++++++++++++++++++++++++++++
+ arch/h8300/mm/memory.c |  53 ++++++++++++++++++++
+ 4 files changed, 243 insertions(+)
+ create mode 100644 arch/h8300/mm/Makefile
+ create mode 100644 arch/h8300/mm/fault.c
+ create mode 100644 arch/h8300/mm/init.c
+ create mode 100644 arch/h8300/mm/memory.c
 
-diff --git a/Documentation/devicetree/bindings/clock/renesas,h8300-div-clock.txt b/Documentation/devicetree/bindings/clock/renesas,h8300-div-clock.txt
+diff --git a/arch/h8300/mm/Makefile b/arch/h8300/mm/Makefile
 new file mode 100644
-index 0000000..36c2b52
+index 0000000..508697f
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/clock/renesas,h8300-div-clock.txt
-@@ -0,0 +1,24 @@
-+* Renesas H8/300 divider clock
++++ b/arch/h8300/mm/Makefile
+@@ -0,0 +1,5 @@
++#
++# Makefile for the linux h8300-specific parts of the memory manager.
++#
 +
-+Required Properties:
-+
-+  - compatible: Must be "renesas,sh73a0-h8300-div-clock"
-+
-+  - clocks: Reference to the parent clocks ("extal1" and "extal2")
-+
-+  - #clock-cells: Must be 1
-+
-+  - reg: Base address and length of the divide rate selector
-+
-+  - renesas,width: bit width of selector
-+
-+Example
-+-------
-+
-+		cclk: cclk {
-+			compatible = "renesas,h8300-div-clock";
-+			clocks = <&xclk>;
-+			#clock-cells = <0>;
-+			reg = <0xfee01b 2>;
-+			renesas,width = <2>;
-+		};
-diff --git a/Documentation/devicetree/bindings/clock/renesas,h8s2678-pll-clock.txt b/Documentation/devicetree/bindings/clock/renesas,h8s2678-pll-clock.txt
++obj-y	 := init.o fault.o memory.o
+diff --git a/arch/h8300/mm/fault.c b/arch/h8300/mm/fault.c
 new file mode 100644
-index 0000000..500cdadb
+index 0000000..5924ff5
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/clock/renesas,h8s2678-pll-clock.txt
-@@ -0,0 +1,23 @@
-+Renesas H8S2678 PLL clock
++++ b/arch/h8300/mm/fault.c
+@@ -0,0 +1,57 @@
++/*
++ *  linux/arch/h8300/mm/fault.c
++ *
++ *  Copyright (C) 1998  D. Jeff Dionne <jeff@lineo.ca>,
++ *  Copyright (C) 2000  Lineo, Inc.  (www.lineo.com)
++ *
++ *  Based on:
++ *
++ *  linux/arch/m68knommu/mm/fault.c
++ *  linux/arch/m68k/mm/fault.c
++ *
++ *  Copyright (C) 1995  Hamish Macdonald
++ */
 +
-+This device is Clock multiplyer
++#include <linux/mman.h>
++#include <linux/mm.h>
++#include <linux/kernel.h>
++#include <linux/ptrace.h>
 +
-+Required Properties:
++#include <asm/pgtable.h>
 +
-+  - compatible: Must be "renesas,h8s2678-pll-clock"
++void die(const char *str, struct pt_regs *fp, unsigned long err);
 +
-+  - clocks: Reference to the parent clocks
++/*
++ * This routine handles page faults.  It determines the problem, and
++ * then passes it off to one of the appropriate routines.
++ *
++ * error_code:
++ *	bit 0 == 0 means no page found, 1 means protection fault
++ *	bit 1 == 0 means read, 1 means write
++ *
++ * If this routine detects a bad access, it returns 1, otherwise it
++ * returns 0.
++ */
++asmlinkage int do_page_fault(struct pt_regs *regs, unsigned long address,
++			      unsigned long error_code)
++{
++#ifdef DEBUG
++	pr_debug("regs->sr=%#x, regs->pc=%#lx, address=%#lx, %ld\n",
++		 regs->sr, regs->pc, address, error_code);
++#endif
 +
-+  - #clock-cells: Must be 0
++/*
++ * Oops. The kernel tried to access some bad page. We'll have to
++ * terminate things with extreme prejudice.
++ */
++	if ((unsigned long) address < PAGE_SIZE)
++		pr_alert("Unable to handle kernel NULL pointer dereference");
++	else
++		pr_alert("Unable to handle kernel access");
++	printk(" at virtual address %08lx\n", address);
++	if (!user_mode(regs))
++		die("Oops", regs, error_code);
++	do_exit(SIGKILL);
 +
-+  - reg: Two rate selector (Multiply / Divide) register address
-+
-+Example
-+-------
-+
-+		pllclk: pllclk {
-+			compatible = "renesas,h8s2678-pll-clock";
-+			clocks = <&xclk>;
-+			#clock-cells = <0>;
-+			reg = <0xfee03b 2>, <0xfee045 2>;
-+		};
-diff --git a/drivers/clk/Makefile b/drivers/clk/Makefile
-index 3d00c25..9df871d 100644
---- a/drivers/clk/Makefile
-+++ b/drivers/clk/Makefile
-@@ -73,3 +73,4 @@ obj-$(CONFIG_ARCH_U8500)		+= ux500/
- obj-$(CONFIG_COMMON_CLK_VERSATILE)	+= versatile/
- obj-$(CONFIG_X86)			+= x86/
- obj-$(CONFIG_ARCH_ZYNQ)			+= zynq/
-+obj-$(CONFIG_H8300)		+= h8300/
-diff --git a/drivers/clk/h8300/Makefile b/drivers/clk/h8300/Makefile
++	return 1;
++}
+diff --git a/arch/h8300/mm/init.c b/arch/h8300/mm/init.c
 new file mode 100644
-index 0000000..b86427c3
+index 0000000..495a3d6
 --- /dev/null
-+++ b/drivers/clk/h8300/Makefile
-@@ -0,0 +1,2 @@
-+obj-y += clk-div.o
-+obj-$(CONFIG_H8S2678) += clk-h8s2678.o
-diff --git a/drivers/clk/h8300/clk-div.c b/drivers/clk/h8300/clk-div.c
++++ b/arch/h8300/mm/init.c
+@@ -0,0 +1,128 @@
++/*
++ *  linux/arch/h8300/mm/init.c
++ *
++ *  Copyright (C) 1998  D. Jeff Dionne <jeff@lineo.ca>,
++ *                      Kenneth Albanowski <kjahds@kjahds.com>,
++ *  Copyright (C) 2000  Lineo, Inc.  (www.lineo.com)
++ *
++ *  Based on:
++ *
++ *  linux/arch/m68knommu/mm/init.c
++ *  linux/arch/m68k/mm/init.c
++ *
++ *  Copyright (C) 1995  Hamish Macdonald
++ *
++ *  JAN/1999 -- hacked to support ColdFire (gerg@snapgear.com)
++ *  DEC/2000 -- linux 2.4 support <davidm@snapgear.com>
++ */
++
++#include <linux/signal.h>
++#include <linux/sched.h>
++#include <linux/kernel.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++#include <linux/types.h>
++#include <linux/ptrace.h>
++#include <linux/mman.h>
++#include <linux/mm.h>
++#include <linux/swap.h>
++#include <linux/init.h>
++#include <linux/highmem.h>
++#include <linux/pagemap.h>
++#include <linux/bootmem.h>
++#include <linux/gfp.h>
++
++#include <asm/setup.h>
++#include <asm/segment.h>
++#include <asm/page.h>
++#include <asm/pgtable.h>
++#include <asm/sections.h>
++
++/*
++ * BAD_PAGE is the page that is used for page faults when linux
++ * is out-of-memory. Older versions of linux just did a
++ * do_exit(), but using this instead means there is less risk
++ * for a process dying in kernel mode, possibly leaving a inode
++ * unused etc..
++ *
++ * BAD_PAGETABLE is the accompanying page-table: it is initialized
++ * to point to BAD_PAGE entries.
++ *
++ * ZERO_PAGE is a special page that is used for zero-initialized
++ * data and COW.
++ */
++static unsigned long empty_bad_page_table;
++static unsigned long empty_bad_page;
++unsigned long empty_zero_page;
++
++/*
++ * paging_init() continues the virtual memory environment setup which
++ * was begun by the code in arch/head.S.
++ * The parameters are pointers to where to stick the starting and ending
++ * addresses of available kernel virtual memory.
++ */
++void __init paging_init(void)
++{
++	/*
++	 * Make sure start_mem is page aligned,  otherwise bootmem and
++	 * page_alloc get different views og the world.
++	 */
++	unsigned long start_mem = PAGE_ALIGN(memory_start);
++	unsigned long end_mem   = memory_end & PAGE_MASK;
++
++	pr_debug("start_mem is %#lx\nvirtual_end is %#lx\n",
++		 start_mem, end_mem);
++
++	/*
++	 * Initialize the bad page table and bad page to point
++	 * to a couple of allocated pages.
++	 */
++	empty_bad_page_table = (unsigned long)alloc_bootmem_pages(PAGE_SIZE);
++	empty_bad_page = (unsigned long)alloc_bootmem_pages(PAGE_SIZE);
++	empty_zero_page = (unsigned long)alloc_bootmem_pages(PAGE_SIZE);
++	memset((void *)empty_zero_page, 0, PAGE_SIZE);
++
++	/*
++	 * Set up SFC/DFC registers (user data space).
++	 */
++	set_fs(USER_DS);
++
++	pr_debug("before free_area_init\n");
++
++	pr_debug("free_area_init -> start_mem is %#lx\nvirtual_end is %#lx\n",
++		 start_mem, end_mem);
++
++	{
++		unsigned long zones_size[MAX_NR_ZONES] = {0, };
++
++		zones_size[ZONE_NORMAL] = (end_mem - PAGE_OFFSET) >> PAGE_SHIFT;
++		free_area_init(zones_size);
++	}
++}
++
++void __init mem_init(void)
++{
++	pr_devel("Mem_init: start=%lx, end=%lx\n", memory_start, memory_end);
++
++	high_memory = (void *) (memory_end & PAGE_MASK);
++	max_mapnr = MAP_NR(high_memory);
++
++	/* this will put all low memory onto the freelists */
++	free_all_bootmem();
++
++	mem_init_print_info(NULL);
++}
++
++
++#ifdef CONFIG_BLK_DEV_INITRD
++void free_initrd_mem(unsigned long start, unsigned long end)
++{
++	free_reserved_area((void *)start, (void *)end, -1, "initrd");
++}
++#endif
++
++void
++free_initmem(void)
++{
++	free_initmem_default(-1);
++}
+diff --git a/arch/h8300/mm/memory.c b/arch/h8300/mm/memory.c
 new file mode 100644
-index 0000000..56f9eba
+index 0000000..4974aa4
 --- /dev/null
-+++ b/drivers/clk/h8300/clk-div.c
++++ b/arch/h8300/mm/memory.c
 @@ -0,0 +1,53 @@
 +/*
-+ * H8/300 divide clock driver
++ *  linux/arch/h8300/mm/memory.c
 + *
-+ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ *  Copyright (C) 2002  Yoshinori Sato <ysato@users.sourceforge.jp>,
++ *
++ *  Based on:
++ *
++ *  linux/arch/m68knommu/mm/memory.c
++ *
++ *  Copyright (C) 1998  Kenneth Albanowski <kjahds@kjahds.com>,
++ *  Copyright (C) 1999-2002, Greg Ungerer (gerg@snapgear.com)
++ *
++ *  Based on:
++ *
++ *  linux/arch/m68k/mm/memory.c
++ *
++ *  Copyright (C) 1995  Hamish Macdonald
 + */
 +
-+#include <linux/clk.h>
-+#include <linux/clkdev.h>
-+#include <linux/clk-provider.h>
-+#include <linux/err.h>
-+#include <linux/of.h>
-+#include <linux/of_address.h>
++#include <linux/mm.h>
++#include <linux/kernel.h>
++#include <linux/string.h>
++#include <linux/types.h>
 +
-+static DEFINE_SPINLOCK(clklock);
++#include <asm/setup.h>
++#include <asm/segment.h>
++#include <asm/page.h>
++#include <asm/pgtable.h>
++#include <asm/traps.h>
++#include <asm/io.h>
 +
-+static void __init h8300_div_clk_setup(struct device_node *node)
++void cache_clear(unsigned long paddr, int len)
 +{
-+	unsigned int num_parents;
-+	struct clk *clk;
-+	const char *clk_name = node->name;
-+	const char *parent_name;
-+	void __iomem *divcr = NULL;
-+	int width;
-+
-+	num_parents = of_clk_get_parent_count(node);
-+	if (num_parents < 1) {
-+		pr_err("%s: no parent found", clk_name);
-+		return;
-+	}
-+
-+	divcr = of_iomap(node, 0);
-+	if (divcr == NULL) {
-+		pr_err("%s: failed to map divide register", clk_name);
-+		goto error;
-+	}
-+
-+	parent_name = of_clk_get_parent_name(node, 0);
-+	of_property_read_u32(node, "renesas,width", &width);
-+	clk = clk_register_divider(NULL, clk_name, parent_name,
-+				   CLK_SET_RATE_GATE, divcr, 0, width,
-+				   CLK_DIVIDER_POWER_OF_TWO, &clklock);
-+	if (!IS_ERR(clk)) {
-+		of_clk_add_provider(node, of_clk_src_simple_get, clk);
-+		return;
-+	}
-+	pr_err("%s: failed to register %s div clock (%ld)\n",
-+	       __func__, clk_name, PTR_ERR(clk));
-+error:
-+	if (divcr)
-+		iounmap(divcr);
 +}
 +
-+CLK_OF_DECLARE(h8300_div_clk, "renesas,h8300-div-clock", h8300_div_clk_setup);
-diff --git a/drivers/clk/h8300/clk-h8s2678.c b/drivers/clk/h8300/clk-h8s2678.c
-new file mode 100644
-index 0000000..4de7ee5
---- /dev/null
-+++ b/drivers/clk/h8300/clk-h8s2678.c
-@@ -0,0 +1,147 @@
++
++void cache_push(unsigned long paddr, int len)
++{
++}
++
++void cache_push_v(unsigned long vaddr, int len)
++{
++}
++
 +/*
-+ * H8S2678 clock driver
-+ *
-+ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ * Map some physical address range into the kernel address space.
 + */
 +
-+#include <linux/clk.h>
-+#include <linux/clkdev.h>
-+#include <linux/clk-provider.h>
-+#include <linux/err.h>
-+#include <linux/device.h>
-+#include <linux/of_address.h>
-+
-+static DEFINE_SPINLOCK(clklock);
-+
-+#define MAX_FREQ 33333333
-+#define MIN_FREQ  8000000
-+
-+struct pll_clock {
-+	struct clk_hw hw;
-+	void __iomem *sckcr;
-+	void __iomem *pllcr;
-+};
-+
-+#define to_pll_clock(_hw) container_of(_hw, struct pll_clock, hw)
-+
-+static unsigned long pll_recalc_rate(struct clk_hw *hw,
-+		unsigned long parent_rate)
++unsigned long kernel_map(unsigned long paddr, unsigned long size,
++			 int nocacheflag, unsigned long *memavailp)
 +{
-+	struct pll_clock *pll_clock = to_pll_clock(hw);
-+	int mul = 1 << (ctrl_inb((unsigned long)pll_clock->pllcr) & 3);
-+
-+	return parent_rate * mul;
++	return paddr;
 +}
-+
-+static long pll_round_rate(struct clk_hw *hw, unsigned long rate,
-+				unsigned long *prate)
-+{
-+	int i, m = -1;
-+	long offset[3];
-+
-+	if (rate > MAX_FREQ)
-+		rate = MAX_FREQ;
-+	if (rate < MIN_FREQ)
-+		rate = MIN_FREQ;
-+
-+	for (i = 0; i < 3; i++)
-+		offset[i] = abs(rate - (*prate * (1 << i)));
-+	for (i = 0; i < 3; i++)
-+		if (m < 0)
-+			m = i;
-+		else
-+			m = (offset[i] < offset[m])?i:m;
-+
-+	return *prate * (1 << m);
-+}
-+
-+static int pll_set_rate(struct clk_hw *hw, unsigned long rate,
-+			unsigned long parent_rate)
-+{
-+	int pll;
-+	unsigned char val;
-+	unsigned long flags;
-+	struct pll_clock *pll_clock = to_pll_clock(hw);
-+
-+	pll = ((rate / parent_rate) / 2) & 0x03;
-+	spin_lock_irqsave(&clklock, flags);
-+	val = ctrl_inb((unsigned long)pll_clock->sckcr);
-+	val |= 0x08;
-+	ctrl_outb(val, (unsigned long)pll_clock->sckcr);
-+	val = ctrl_inb((unsigned long)pll_clock->pllcr);
-+	val &= ~0x03;
-+	val |= pll;
-+	ctrl_outb(val, (unsigned long)pll_clock->pllcr);
-+	spin_unlock_irqrestore(&clklock, flags);
-+	return 0;
-+}
-+
-+static const struct clk_ops pll_ops = {
-+	.recalc_rate = pll_recalc_rate,
-+	.round_rate = pll_round_rate,
-+	.set_rate = pll_set_rate,
-+};
-+
-+static void __init h8s2678_pll_clk_setup(struct device_node *node)
-+{
-+	unsigned int num_parents;
-+	struct clk *clk;
-+	const char *clk_name = node->name;
-+	const char *parent_name;
-+	struct pll_clock *pll_clock;
-+	struct clk_init_data init;
-+
-+	num_parents = of_clk_get_parent_count(node);
-+	if (num_parents < 1) {
-+		pr_err("%s: no parent found", clk_name);
-+		return;
-+	}
-+
-+
-+	pll_clock = kzalloc(sizeof(struct pll_clock), GFP_KERNEL);
-+	if (!pll_clock) {
-+		pr_err("%s: failed to alloc memory", clk_name);
-+		return;
-+	}
-+
-+	pll_clock->sckcr = of_iomap(node, 0);
-+	if (pll_clock->sckcr == NULL) {
-+		pr_err("%s: failed to map divide register", clk_name);
-+		goto error;
-+	}
-+
-+	pll_clock->pllcr = of_iomap(node, 1);
-+	if (pll_clock->pllcr == NULL) {
-+		pr_err("%s: failed to map multiply register", clk_name);
-+		goto error;
-+	}
-+
-+	parent_name = of_clk_get_parent_name(node, 0);
-+	init.name = clk_name;
-+	init.ops = &pll_ops;
-+	init.flags = CLK_IS_BASIC;
-+	init.parent_names = &parent_name;
-+	init.num_parents = 1;
-+	pll_clock->hw.init = &init;
-+
-+	clk = clk_register(NULL, &pll_clock->hw);
-+	if (IS_ERR(clk))
-+		kfree(pll_clock);
-+	if (!IS_ERR(clk)) {
-+		of_clk_add_provider(node, of_clk_src_simple_get, clk);
-+		return;
-+	}
-+	pr_err("%s: failed to register %s div clock (%ld)\n",
-+	       __func__, clk_name, PTR_ERR(clk));
-+error:
-+	if (pll_clock) {
-+		if (pll_clock->sckcr)
-+			iounmap(pll_clock->sckcr);
-+		if (pll_clock->pllcr)
-+			iounmap(pll_clock->pllcr);
-+		kfree(pll_clock);
-+	}
-+}
-+
-+CLK_OF_DECLARE(h8s2678_div_clk, "renesas,h8s2678-pll-clock",
-+	       h8s2678_pll_clk_setup);
 -- 
 2.1.4
