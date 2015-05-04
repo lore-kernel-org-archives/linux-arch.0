@@ -1,744 +1,325 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v10 08/19] h8300: Exception and Interrupt handling
-Date: Mon,  4 May 2015 19:41:51 +0900
-Message-ID: <1430736122-20929-10-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v10 16/19] h8300: clock driver
+Date: Mon,  4 May 2015 19:41:59 +0900
+Message-ID: <1430736122-20929-18-git-send-email-ysato@users.sourceforge.jp>
 References: <1430736122-20929-2-git-send-email-ysato@users.sourceforge.jp>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.asahi-net.or.jp ([202.224.39.198]:56237 "EHLO
-	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752698AbbEDKmu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2015 06:42:50 -0400
+Received: from mail1.asahi-net.or.jp ([202.224.39.197]:59226 "EHLO
+	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752766AbbEDKnJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2015 06:43:09 -0400
 In-Reply-To: <1430736122-20929-2-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 
-h8300 exception entry and exception / interrupt handling
+H8/300 clock driver
+clk-div: common clock divier
+clk-h8s2678: PLL driver
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- arch/h8300/kernel/entry.S | 414 ++++++++++++++++++++++++++++++++++++++++++++++
- arch/h8300/kernel/irq.c   | 121 ++++++++++++++
- arch/h8300/kernel/traps.c | 161 ++++++++++++++++++
- 3 files changed, 696 insertions(+)
- create mode 100644 arch/h8300/kernel/entry.S
- create mode 100644 arch/h8300/kernel/irq.c
- create mode 100644 arch/h8300/kernel/traps.c
+ .../bindings/clock/renesas,h8300-div-clock.txt     |  24 ++++
+ .../bindings/clock/renesas,h8s2678-pll-clock.txt   |  23 ++++
+ drivers/clk/Makefile                               |   1 +
+ drivers/clk/h8300/Makefile                         |   2 +
+ drivers/clk/h8300/clk-div.c                        |  53 ++++++++
+ drivers/clk/h8300/clk-h8s2678.c                    | 147 +++++++++++++++++++++
+ 6 files changed, 250 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/clock/renesas,h8300-div-clock.txt
+ create mode 100644 Documentation/devicetree/bindings/clock/renesas,h8s2678-pll-clock.txt
+ create mode 100644 drivers/clk/h8300/Makefile
+ create mode 100644 drivers/clk/h8300/clk-div.c
+ create mode 100644 drivers/clk/h8300/clk-h8s2678.c
 
-diff --git a/arch/h8300/kernel/entry.S b/arch/h8300/kernel/entry.S
+diff --git a/Documentation/devicetree/bindings/clock/renesas,h8300-div-clock.txt b/Documentation/devicetree/bindings/clock/renesas,h8300-div-clock.txt
 new file mode 100644
-index 0000000..797dfa8
+index 0000000..36c2b52
 --- /dev/null
-+++ b/arch/h8300/kernel/entry.S
-@@ -0,0 +1,414 @@
-+/*
-+ *
-+ *  linux/arch/h8300/kernel/entry.S
-+ *
-+ *  Yoshinori Sato <ysato@users.sourceforge.jp>
-+ *  David McCullough <davidm@snapgear.com>
-+ *
-+ */
++++ b/Documentation/devicetree/bindings/clock/renesas,h8300-div-clock.txt
+@@ -0,0 +1,24 @@
++* Renesas H8/300 divider clock
 +
-+/*
-+ *  entry.S
-+ *  include exception/interrupt gateway
-+ *          system call entry
-+ */
++Required Properties:
 +
-+#include <linux/sys.h>
-+#include <asm/unistd.h>
-+#include <asm/setup.h>
-+#include <asm/segment.h>
-+#include <asm/linkage.h>
-+#include <asm/asm-offsets.h>
-+#include <asm/thread_info.h>
-+#include <asm/errno.h>
++  - compatible: Must be "renesas,sh73a0-h8300-div-clock"
 +
-+#if defined(CONFIG_CPU_H8300H)
-+#define USERRET 8
-+INTERRUPTS = 64
-+	.h8300h
-+	.macro	SHLL2 reg
-+	shll.l	\reg
-+	shll.l	\reg
-+	.endm
-+	.macro	SHLR2 reg
-+	shlr.l	\reg
-+	shlr.l	\reg
-+	.endm
-+	.macro	SAVEREGS
-+	mov.l	er0,@-sp
-+	mov.l	er1,@-sp
-+	mov.l	er2,@-sp
-+	mov.l	er3,@-sp
-+	.endm
-+	.macro	RESTOREREGS
-+	mov.l	@sp+,er3
-+	mov.l	@sp+,er2
-+	.endm
-+	.macro	SAVEEXR
-+	.endm
-+	.macro	RESTOREEXR
-+	.endm
-+#endif
-+#if defined(CONFIG_CPU_H8S)
-+#define USERRET 10
-+#define USEREXR 8
-+INTERRUPTS = 128
-+	.h8300s
-+	.macro	SHLL2 reg
-+	shll.l	#2,\reg
-+	.endm
-+	.macro	SHLR2 reg
-+	shlr.l	#2,\reg
-+	.endm
-+	.macro	SAVEREGS
-+	stm.l	er0-er3,@-sp
-+	.endm
-+	.macro	RESTOREREGS
-+	ldm.l	@sp+,er2-er3
-+	.endm
-+	.macro	SAVEEXR
-+	mov.w	@(USEREXR:16,er0),r1
-+	mov.w	r1,@(LEXR-LER3:16,sp)		/* copy EXR */
-+	.endm
-+	.macro	RESTOREEXR
-+	mov.w	@(LEXR-LER1:16,sp),r1		/* restore EXR */
-+	mov.b	r1l,r1h
-+	mov.w	r1,@(USEREXR:16,er0)
-+	.endm
-+#endif
++  - clocks: Reference to the parent clocks ("extal1" and "extal2")
 +
++  - #clock-cells: Must be 1
 +
-+/* CPU context save/restore macros. */
++  - reg: Base address and length of the divide rate selector
 +
-+	.macro	SAVE_ALL
-+	mov.l	er0,@-sp
-+	stc	ccr,r0l				/* check kernel mode */
-+	btst	#4,r0l
-+	bne	5f
++  - renesas,width: bit width of selector
 +
-+	/* user mode */
-+	mov.l	sp,@_sw_usp
-+	mov.l	@sp,er0				/* restore saved er0 */
-+	orc	#0x10,ccr			/* switch kernel stack */
-+	mov.l	@_sw_ksp,sp
-+	sub.l	#(LRET-LORIG),sp		/* allocate LORIG - LRET */
-+	SAVEREGS
-+	mov.l   @_sw_usp,er0
-+	mov.l   @(USERRET:16,er0),er1           /* copy the RET addr */
-+	mov.l   er1,@(LRET-LER3:16,sp)
-+	SAVEEXR
++Example
++-------
 +
-+	mov.l	@(LORIG-LER3:16,sp),er0
-+	mov.l	er0,@(LER0-LER3:16,sp)		/* copy ER0 */
-+	mov.w	e1,r1				/* e1 highbyte = ccr */
-+	and	#0xef,r1h			/* mask mode? flag */
-+	bra	6f
-+5:
-+	/* kernel mode */
-+	mov.l	@sp,er0				/* restore saved er0 */
-+	subs	#2,sp				/* set dummy ccr */
-+	subs	#4,sp				/* set dummp sp */
-+	SAVEREGS
-+	mov.w	@(LRET-LER3:16,sp),r1		/* copy old ccr */
-+6:
-+	mov.b	r1h,r1l
-+	mov.b	#0,r1h
-+	mov.w	r1,@(LCCR-LER3:16,sp)		/* set ccr */
-+	mov.l	@_sw_usp,er2
-+	mov.l	er2,@(LSP-LER3:16,sp)		/* set usp */
-+	mov.l	er6,@-sp			/* syscall arg #6 */
-+	mov.l	er5,@-sp			/* syscall arg #5 */
-+	mov.l	er4,@-sp			/* syscall arg #4 */
-+	.endm					/* r1 = ccr */
-+
-+	.macro	RESTORE_ALL
-+	mov.l	@sp+,er4
-+	mov.l	@sp+,er5
-+	mov.l	@sp+,er6
-+	RESTOREREGS
-+	mov.w	@(LCCR-LER1:16,sp),r0		/* check kernel mode */
-+	btst	#4,r0l
-+	bne	7f
-+
-+	orc	#0xc0,ccr
-+	mov.l	@(LSP-LER1:16,sp),er0
-+	mov.l	@(LER0-LER1:16,sp),er1		/* restore ER0 */
-+	mov.l	er1,@er0
-+	RESTOREEXR
-+	mov.w	@(LCCR-LER1:16,sp),r1		/* restore the RET addr */
-+	mov.b	r1l,r1h
-+	mov.b	@(LRET+1-LER1:16,sp),r1l
-+	mov.w	r1,e1
-+	mov.w	@(LRET+2-LER1:16,sp),r1
-+	mov.l	er1,@(USERRET:16,er0)
-+
-+	mov.l	@sp+,er1
-+	add.l	#(LRET-LER1),sp			/* remove LORIG - LRET */
-+	mov.l	sp,@_sw_ksp
-+	andc	#0xef,ccr			/* switch to user mode */
-+	mov.l	er0,sp
-+	bra	8f
-+7:
-+	mov.l	@sp+,er1
-+	add.l	#10,sp
-+8:
-+	mov.l	@sp+,er0
-+	adds	#4,sp				/* remove the sw created LVEC */
-+	rte
-+	.endm
-+
-+.globl _system_call
-+.globl ret_from_exception
-+.globl ret_from_fork
-+.globl ret_from_kernel_thread
-+.globl ret_from_interrupt
-+.globl _interrupt_redirect_table
-+.globl _sw_ksp,_sw_usp
-+.globl _resume
-+.globl _interrupt_entry
-+.globl _trace_break
-+.globl _nmi
-+
-+#if defined(CONFIG_ROMKERNEL)
-+	.section .int_redirect,"ax"
-+_interrupt_redirect_table:
-+#if defined(CONFIG_CPU_H8300H)
-+	.rept	7
-+	.long	0
-+	.endr
-+#endif
-+#if defined(CONFIG_CPU_H8S)
-+	.rept	5
-+	.long	0
-+	.endr
-+	jmp	@_trace_break
-+	.long	0
-+#endif
-+
-+	jsr	@_interrupt_entry		/* NMI */
-+	jmp	@_system_call			/* TRAPA #0 (System call) */
-+	.long	0
-+	.long	0
-+	jmp	@_trace_break			/* TRAPA #3 (breakpoint) */
-+	.rept	INTERRUPTS-12
-+	jsr	@_interrupt_entry
-+	.endr
-+#endif
-+#if defined(CONFIG_RAMKERNEL)
-+.globl _interrupt_redirect_table
-+	.section .bss
-+_interrupt_redirect_table:
-+	.space	4
-+#endif
-+
-+	.section .text
-+	.align	2
-+_interrupt_entry:
-+	SAVE_ALL
-+/* r1l is saved ccr */
-+	mov.l	sp,er0
-+	add.l	#LVEC,er0
-+	btst	#4,r1l
-+	bne	1f
-+	/* user LVEC */
-+	mov.l	@_sw_usp,er0
-+	adds	#4,er0
-+1:
-+	mov.l	@er0,er0			/* LVEC address */
-+#if defined(CONFIG_ROMKERNEL)
-+	sub.l	#_interrupt_redirect_table,er0
-+#endif
-+#if defined(CONFIG_RAMKERNEL)
-+	mov.l	@_interrupt_redirect_table,er1
-+	sub.l	er1,er0
-+#endif
-+	SHLR2	er0
-+	dec.l	#1,er0
-+	mov.l	sp,er1
-+	subs	#4,er1				/* adjust ret_pc */
-+#if defined(CONFIG_CPU_H8S)
-+	orc	#7,exr
-+#endif
-+	jsr	@do_IRQ
-+	jmp	@ret_from_interrupt
-+
-+_system_call:
-+	subs	#4,sp				/* dummy LVEC */
-+	SAVE_ALL
-+	/* er0: syscall nr */
-+	andc	#0xbf,ccr
-+	mov.l	er0,er4
-+
-+	/* save top of frame */
-+	mov.l	sp,er0
-+	jsr	@set_esp0
-+	mov.l	sp,er2
-+	and.w	#0xe000,r2
-+	mov.l	@(TI_FLAGS:16,er2),er2
-+	and.w	#_TIF_WORK_SYSCALL_MASK,r2
-+	beq	1f
-+	mov.l	sp,er0
-+	jsr	@do_syscall_trace_enter
-+1:
-+	cmp.l	#__NR_syscalls,er4
-+	bcc	badsys
-+	SHLL2	er4
-+	mov.l	#_sys_call_table,er0
-+	add.l	er4,er0
-+	mov.l	@er0,er4
-+	beq	ret_from_exception:16
-+	mov.l	@(LER1:16,sp),er0
-+	mov.l	@(LER2:16,sp),er1
-+	mov.l	@(LER3:16,sp),er2
-+	jsr	@er4
-+	mov.l	er0,@(LER0:16,sp)		/* save the return value */
-+	mov.l	sp,er2
-+	and.w	#0xe000,r2
-+	mov.l	@(TI_FLAGS:16,er2),er2
-+	and.w	#_TIF_WORK_SYSCALL_MASK,r2
-+	beq	2f
-+	mov.l	sp,er0
-+	jsr	@do_syscall_trace_leave
-+2:
-+	orc	#0xc0,ccr
-+	bra	resume_userspace
-+
-+badsys:
-+	mov.l	#-ENOSYS,er0
-+	mov.l	er0,@(LER0:16,sp)
-+	bra	resume_userspace
-+
-+#if !defined(CONFIG_PREEMPT)
-+#define resume_kernel restore_all
-+#endif
-+
-+ret_from_exception:
-+#if defined(CONFIG_PREEMPT)
-+	orc	#0xc0,ccr
-+#endif
-+ret_from_interrupt:
-+	mov.b	@(LCCR+1:16,sp),r0l
-+	btst	#4,r0l
-+	bne	resume_kernel:16	/* return from kernel */
-+resume_userspace:
-+	andc	#0xbf,ccr
-+	mov.l	sp,er4
-+	and.w	#0xe000,r4		/* er4 <- current thread info */
-+	mov.l	@(TI_FLAGS:16,er4),er1
-+	and.l	#_TIF_WORK_MASK,er1
-+	beq	restore_all:8
-+work_pending:
-+	btst	#TIF_NEED_RESCHED,r1l
-+	bne	work_resched:8
-+	/* work notifysig */
-+	mov.l	sp,er0
-+	subs	#4,er0			/* er0: pt_regs */
-+	jsr	@do_notify_resume
-+	bra	resume_userspace:8
-+work_resched:
-+	mov.l	sp,er0
-+	jsr	@set_esp0
-+	jsr	@schedule
-+	bra	resume_userspace:8
-+restore_all:
-+	RESTORE_ALL			/* Does RTE */
-+
-+#if defined(CONFIG_PREEMPT)
-+resume_kernel:
-+	mov.l	@(TI_PRE_COUNT:16,er4),er0
-+	bne	restore_all:8
-+need_resched:
-+	mov.l	@(TI_FLAGS:16,er4),er0
-+	btst	#TIF_NEED_RESCHED,r0l
-+	beq	restore_all:8
-+	mov.b	@(LCCR+1:16,sp),r0l	/* Interrupt Enabled? */
-+	bmi	restore_all:8
-+	mov.l	sp,er0
-+	jsr	@set_esp0
-+	jsr	@preempt_schedule_irq
-+	bra	need_resched:8
-+#endif
-+
-+ret_from_fork:
-+	mov.l	er2,er0
-+	jsr	@schedule_tail
-+	jmp	@ret_from_exception
-+
-+ret_from_kernel_thread:
-+	mov.l	er2,er0
-+	jsr	@schedule_tail
-+	mov.l	@(LER4:16,sp),er0
-+	mov.l	@(LER5:16,sp),er1
-+	jsr	@er1
-+	jmp	@ret_from_exception
-+
-+_resume:
-+	/*
-+	 * Beware - when entering resume, offset of tss is in d1,
-+	 * prev (the current task) is in a0, next (the new task)
-+	 * is in a1 and d2.b is non-zero if the mm structure is
-+	 * shared between the tasks, so don't change these
-+	 * registers until their contents are no longer needed.
-+	 */
-+
-+	/* save sr */
-+	sub.w	r3,r3
-+	stc	ccr,r3l
-+	mov.w	r3,@(THREAD_CCR+2:16,er0)
-+
-+	/* disable interrupts */
-+	orc	#0xc0,ccr
-+	mov.l	@_sw_usp,er3
-+	mov.l	er3,@(THREAD_USP:16,er0)
-+	mov.l	sp,@(THREAD_KSP:16,er0)
-+
-+	/* Skip address space switching if they are the same. */
-+	/* FIXME: what did we hack out of here, this does nothing! */
-+
-+	mov.l	@(THREAD_USP:16,er1),er0
-+	mov.l	er0,@_sw_usp
-+	mov.l	@(THREAD_KSP:16,er1),sp
-+
-+	/* restore status register */
-+	mov.w	@(THREAD_CCR+2:16,er1),r3
-+
-+	ldc	r3l,ccr
-+	rts
-+
-+_trace_break:
-+	subs	#4,sp
-+	SAVE_ALL
-+	sub.l	er1,er1
-+	dec.l	#1,er1
-+	mov.l	er1,@(LORIG,sp)
-+	mov.l	sp,er0
-+	jsr	@set_esp0
-+	mov.l	@_sw_usp,er0
-+	mov.l	@er0,er1
-+	mov.w	@(-2:16,er1),r2
-+	cmp.w	#0x5730,r2
-+	beq	1f
-+	subs	#2,er1
-+	mov.l	er1,@er0
-+1:
-+	and.w	#0xff,e1
-+	mov.l	er1,er0
-+	jsr	@trace_trap
-+	jmp	@ret_from_exception
-+
-+_nmi:
-+	subs	#4, sp
-+	mov.l	er0, @-sp
-+	mov.l	@_interrupt_redirect_table, er0
-+	add.l	#8*4, er0
-+	mov.l	er0, @(4,sp)
-+	mov.l	@sp+, er0
-+	jmp	@_interrupt_entry
-+
-+	.section	.bss
-+_sw_ksp:
-+	.space	4
-+_sw_usp:
-+	.space	4
-+
-+	.end
-diff --git a/arch/h8300/kernel/irq.c b/arch/h8300/kernel/irq.c
++		cclk: cclk {
++			compatible = "renesas,h8300-div-clock";
++			clocks = <&xclk>;
++			#clock-cells = <0>;
++			reg = <0xfee01b 2>;
++			renesas,width = <2>;
++		};
+diff --git a/Documentation/devicetree/bindings/clock/renesas,h8s2678-pll-clock.txt b/Documentation/devicetree/bindings/clock/renesas,h8s2678-pll-clock.txt
 new file mode 100644
-index 0000000..dbe8544
+index 0000000..500cdadb
 --- /dev/null
-+++ b/arch/h8300/kernel/irq.c
-@@ -0,0 +1,121 @@
++++ b/Documentation/devicetree/bindings/clock/renesas,h8s2678-pll-clock.txt
+@@ -0,0 +1,23 @@
++Renesas H8S2678 PLL clock
++
++This device is Clock multiplyer
++
++Required Properties:
++
++  - compatible: Must be "renesas,h8s2678-pll-clock"
++
++  - clocks: Reference to the parent clocks
++
++  - #clock-cells: Must be 0
++
++  - reg: Two rate selector (Multiply / Divide) register address
++
++Example
++-------
++
++		pllclk: pllclk {
++			compatible = "renesas,h8s2678-pll-clock";
++			clocks = <&xclk>;
++			#clock-cells = <0>;
++			reg = <0xfee03b 2>, <0xfee045 2>;
++		};
+diff --git a/drivers/clk/Makefile b/drivers/clk/Makefile
+index 3d00c25..9df871d 100644
+--- a/drivers/clk/Makefile
++++ b/drivers/clk/Makefile
+@@ -73,3 +73,4 @@ obj-$(CONFIG_ARCH_U8500)		+= ux500/
+ obj-$(CONFIG_COMMON_CLK_VERSATILE)	+= versatile/
+ obj-$(CONFIG_X86)			+= x86/
+ obj-$(CONFIG_ARCH_ZYNQ)			+= zynq/
++obj-$(CONFIG_H8300)		+= h8300/
+diff --git a/drivers/clk/h8300/Makefile b/drivers/clk/h8300/Makefile
+new file mode 100644
+index 0000000..b86427c3
+--- /dev/null
++++ b/drivers/clk/h8300/Makefile
+@@ -0,0 +1,2 @@
++obj-y += clk-div.o
++obj-$(CONFIG_H8S2678) += clk-h8s2678.o
+diff --git a/drivers/clk/h8300/clk-div.c b/drivers/clk/h8300/clk-div.c
+new file mode 100644
+index 0000000..56f9eba
+--- /dev/null
++++ b/drivers/clk/h8300/clk-div.c
+@@ -0,0 +1,53 @@
 +/*
-+ * linux/arch/h8300/kernel/irq.c
++ * H8/300 divide clock driver
 + *
-+ * Copyright 2014-2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
 + */
 +
-+#include <linux/init.h>
-+#include <linux/interrupt.h>
-+#include <linux/irq.h>
-+#include <linux/irqdomain.h>
++#include <linux/clk.h>
++#include <linux/clkdev.h>
++#include <linux/clk-provider.h>
++#include <linux/err.h>
 +#include <linux/of.h>
-+#include <asm/traps.h>
++#include <linux/of_address.h>
 +
-+#ifdef CONFIG_RAMKERNEL
-+typedef void (*h8300_vector)(void);
++static DEFINE_SPINLOCK(clklock);
 +
-+static const h8300_vector __initconst trap_table[] = {
-+	0, 0, 0, 0,
-+	_trace_break,
-+	0, 0,
-+	_nmi,
-+	_system_call,
-+	0, 0,
-+	_trace_break,
++static void __init h8300_div_clk_setup(struct device_node *node)
++{
++	unsigned int num_parents;
++	struct clk *clk;
++	const char *clk_name = node->name;
++	const char *parent_name;
++	void __iomem *divcr = NULL;
++	int width;
++
++	num_parents = of_clk_get_parent_count(node);
++	if (num_parents < 1) {
++		pr_err("%s: no parent found", clk_name);
++		return;
++	}
++
++	divcr = of_iomap(node, 0);
++	if (divcr == NULL) {
++		pr_err("%s: failed to map divide register", clk_name);
++		goto error;
++	}
++
++	parent_name = of_clk_get_parent_name(node, 0);
++	of_property_read_u32(node, "renesas,width", &width);
++	clk = clk_register_divider(NULL, clk_name, parent_name,
++				   CLK_SET_RATE_GATE, divcr, 0, width,
++				   CLK_DIVIDER_POWER_OF_TWO, &clklock);
++	if (!IS_ERR(clk)) {
++		of_clk_add_provider(node, of_clk_src_simple_get, clk);
++		return;
++	}
++	pr_err("%s: failed to register %s div clock (%ld)\n",
++	       __func__, clk_name, PTR_ERR(clk));
++error:
++	if (divcr)
++		iounmap(divcr);
++}
++
++CLK_OF_DECLARE(h8300_div_clk, "renesas,h8300-div-clock", h8300_div_clk_setup);
+diff --git a/drivers/clk/h8300/clk-h8s2678.c b/drivers/clk/h8300/clk-h8s2678.c
+new file mode 100644
+index 0000000..4de7ee5
+--- /dev/null
++++ b/drivers/clk/h8300/clk-h8s2678.c
+@@ -0,0 +1,147 @@
++/*
++ * H8S2678 clock driver
++ *
++ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ */
++
++#include <linux/clk.h>
++#include <linux/clkdev.h>
++#include <linux/clk-provider.h>
++#include <linux/err.h>
++#include <linux/device.h>
++#include <linux/of_address.h>
++
++static DEFINE_SPINLOCK(clklock);
++
++#define MAX_FREQ 33333333
++#define MIN_FREQ  8000000
++
++struct pll_clock {
++	struct clk_hw hw;
++	void __iomem *sckcr;
++	void __iomem *pllcr;
 +};
 +
-+static unsigned long __init *get_vector_address(void)
++#define to_pll_clock(_hw) container_of(_hw, struct pll_clock, hw)
++
++static unsigned long pll_recalc_rate(struct clk_hw *hw,
++		unsigned long parent_rate)
 +{
-+	unsigned long *rom_vector = CPU_VECTOR;
-+	unsigned long base, tmp;
-+	int vec_no;
++	struct pll_clock *pll_clock = to_pll_clock(hw);
++	int mul = 1 << (ctrl_inb((unsigned long)pll_clock->pllcr) & 3);
 +
-+	base = rom_vector[EXT_IRQ0] & ADDR_MASK;
-+
-+	/* check romvector format */
-+	for (vec_no = EXT_IRQ0 + 1; vec_no <= EXT_IRQ0+EXT_IRQS; vec_no++) {
-+		if ((base+(vec_no - EXT_IRQ0)*4) !=
-+		    (rom_vector[vec_no] & ADDR_MASK))
-+			return NULL;
-+	}
-+
-+	/* ramvector base address */
-+	base -= EXT_IRQ0*4;
-+
-+	/* writerble? */
-+	tmp = ~(*(volatile unsigned long *)base);
-+	(*(volatile unsigned long *)base) = tmp;
-+	if ((*(volatile unsigned long *)base) != tmp)
-+		return NULL;
-+	return (unsigned long *)base;
++	return parent_rate * mul;
 +}
 +
-+static void __init setup_vector(void)
++static long pll_round_rate(struct clk_hw *hw, unsigned long rate,
++				unsigned long *prate)
 +{
-+	int i;
-+	unsigned long *ramvec, *ramvec_p;
-+	const h8300_vector *trap_entry;
++	int i, m = -1;
++	long offset[3];
 +
-+	ramvec = get_vector_address();
-+	if (ramvec == NULL)
-+		panic("interrupt vector serup failed.");
-+	else
-+		pr_debug("virtual vector at 0x%p\n", ramvec);
++	if (rate > MAX_FREQ)
++		rate = MAX_FREQ;
++	if (rate < MIN_FREQ)
++		rate = MIN_FREQ;
 +
-+	/* create redirect table */
-+	ramvec_p = ramvec;
-+	trap_entry = trap_table;
-+	for (i = 0; i < NR_IRQS; i++) {
-+		if (i < 12) {
-+			if (*trap_entry)
-+				*ramvec_p = VECTOR(*trap_entry);
-+			ramvec_p++;
-+			trap_entry++;
-+		} else
-+			*ramvec_p++ = REDIRECT(_interrupt_entry);
-+	}
-+	_interrupt_redirect_table = ramvec;
++	for (i = 0; i < 3; i++)
++		offset[i] = abs(rate - (*prate * (1 << i)));
++	for (i = 0; i < 3; i++)
++		if (m < 0)
++			m = i;
++		else
++			m = (offset[i] < offset[m])?i:m;
++
++	return *prate * (1 << m);
 +}
-+#else
-+void setup_vector(void)
-+{
-+	/* noting do */
-+}
-+#endif
 +
-+extern struct irq_chip h8300_irq_chip;
-+static int irq_map(struct irq_domain *h, unsigned int virq,
-+			  irq_hw_number_t hw_irq_num)
++static int pll_set_rate(struct clk_hw *hw, unsigned long rate,
++			unsigned long parent_rate)
 +{
-+	irq_set_chip_and_handler(virq, &h8300_irq_chip, handle_simple_irq);
++	int pll;
++	unsigned char val;
++	unsigned long flags;
++	struct pll_clock *pll_clock = to_pll_clock(hw);
 +
++	pll = ((rate / parent_rate) / 2) & 0x03;
++	spin_lock_irqsave(&clklock, flags);
++	val = ctrl_inb((unsigned long)pll_clock->sckcr);
++	val |= 0x08;
++	ctrl_outb(val, (unsigned long)pll_clock->sckcr);
++	val = ctrl_inb((unsigned long)pll_clock->pllcr);
++	val &= ~0x03;
++	val |= pll;
++	ctrl_outb(val, (unsigned long)pll_clock->pllcr);
++	spin_unlock_irqrestore(&clklock, flags);
 +	return 0;
 +}
 +
-+static struct irq_domain_ops irq_ops = {
-+	.map	= irq_map,
-+	.xlate	= irq_domain_xlate_onecell,
++static const struct clk_ops pll_ops = {
++	.recalc_rate = pll_recalc_rate,
++	.round_rate = pll_round_rate,
++	.set_rate = pll_set_rate,
 +};
 +
-+void __init init_IRQ(void)
++static void __init h8s2678_pll_clk_setup(struct device_node *node)
 +{
-+	struct irq_domain *domain;
-+	struct device_node *node;
++	unsigned int num_parents;
++	struct clk *clk;
++	const char *clk_name = node->name;
++	const char *parent_name;
++	struct pll_clock *pll_clock;
++	struct clk_init_data init;
 +
-+	setup_vector();
-+	h8300_init_ipr();
-+
-+	node = of_find_compatible_node(NULL, NULL, "renesas,h8300-intc");
-+	BUG_ON(!node);
-+	domain = irq_domain_add_linear(node, NR_IRQS, &irq_ops, NULL);
-+	BUG_ON(!domain);
-+	irq_set_default_host(domain);
-+	of_node_put(node);
-+}
-+
-+asmlinkage void do_IRQ(int irq)
-+{
-+	irq_enter();
-+	generic_handle_irq(irq);
-+	irq_exit();
-+}
-diff --git a/arch/h8300/kernel/traps.c b/arch/h8300/kernel/traps.c
-new file mode 100644
-index 0000000..1b2d7cd
---- /dev/null
-+++ b/arch/h8300/kernel/traps.c
-@@ -0,0 +1,161 @@
-+/*
-+ * linux/arch/h8300/boot/traps.c -- general exception handling code
-+ * H8/300 support Yoshinori Sato <ysato@users.sourceforge.jp>
-+ *
-+ * Cloned from Linux/m68k.
-+ *
-+ * No original Copyright holder listed,
-+ * Probable original (C) Roman Zippel (assigned DJD, 1999)
-+ *
-+ * Copyright 1999-2000 D. Jeff Dionne, <jeff@rt-control.com>
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file COPYING in the main directory of this archive
-+ * for more details.
-+ */
-+
-+#include <linux/types.h>
-+#include <linux/sched.h>
-+#include <linux/kernel.h>
-+#include <linux/errno.h>
-+#include <linux/init.h>
-+#include <linux/module.h>
-+#include <linux/bug.h>
-+
-+#include <asm/irq.h>
-+#include <asm/traps.h>
-+#include <asm/page.h>
-+
-+static DEFINE_SPINLOCK(die_lock);
-+
-+/*
-+ * this must be called very early as the kernel might
-+ * use some instruction that are emulated on the 060
-+ */
-+
-+void __init base_trap_init(void)
-+{
-+}
-+
-+void __init trap_init(void)
-+{
-+}
-+
-+asmlinkage void set_esp0(unsigned long ssp)
-+{
-+	current->thread.esp0 = ssp;
-+}
-+
-+/*
-+ *	Generic dumping code. Used for panic and debug.
-+ */
-+
-+static void dump(struct pt_regs *fp)
-+{
-+	unsigned long	*sp;
-+	unsigned char	*tp;
-+	int		i;
-+
-+	pr_info("\nCURRENT PROCESS:\n\n");
-+	pr_info("COMM=%s PID=%d\n", current->comm, current->pid);
-+	if (current->mm) {
-+		pr_info("TEXT=%08x-%08x DATA=%08x-%08x BSS=%08x-%08x\n",
-+			(int) current->mm->start_code,
-+			(int) current->mm->end_code,
-+			(int) current->mm->start_data,
-+			(int) current->mm->end_data,
-+			(int) current->mm->end_data,
-+			(int) current->mm->brk);
-+		pr_info("USER-STACK=%08x  KERNEL-STACK=%08lx\n\n",
-+			(int) current->mm->start_stack,
-+			(int) PAGE_SIZE+(unsigned long)current);
++	num_parents = of_clk_get_parent_count(node);
++	if (num_parents < 1) {
++		pr_err("%s: no parent found", clk_name);
++		return;
 +	}
 +
-+	show_regs(fp);
-+	pr_info("\nCODE:");
-+	tp = ((unsigned char *) fp->pc) - 0x20;
-+	for (sp = (unsigned long *) tp, i = 0; (i < 0x40);  i += 4) {
-+		if ((i % 0x10) == 0)
-+			pr_info("\n%08x: ", (int) (tp + i));
-+		pr_info("%08x ", (int) *sp++);
-+	}
-+	pr_info("\n");
 +
-+	pr_info("\nKERNEL STACK:");
-+	tp = ((unsigned char *) fp) - 0x40;
-+	for (sp = (unsigned long *) tp, i = 0; (i < 0xc0); i += 4) {
-+		if ((i % 0x10) == 0)
-+			pr_info("\n%08x: ", (int) (tp + i));
-+		pr_info("%08x ", (int) *sp++);
-+	}
-+	pr_info("\n");
-+	if (STACK_MAGIC != *(unsigned long *)((unsigned long)current+PAGE_SIZE))
-+		pr_info("(Possibly corrupted stack page??)\n");
-+
-+	pr_info("\n\n");
-+}
-+
-+void die(const char *str, struct pt_regs *fp, unsigned long err)
-+{
-+	static int diecount;
-+
-+	oops_enter();
-+
-+	console_verbose();
-+	spin_lock_irq(&die_lock);
-+	report_bug(fp->pc, fp);
-+	pr_crit("%s: %04lx [#%d] ", str, err & 0xffff, ++diecount);
-+	dump(fp);
-+
-+	spin_unlock_irq(&die_lock);
-+	do_exit(SIGSEGV);
-+}
-+
-+static int kstack_depth_to_print = 24;
-+
-+void show_stack(struct task_struct *task, unsigned long *esp)
-+{
-+	unsigned long *stack,  addr;
-+	int i;
-+
-+	if (esp == NULL)
-+		esp = (unsigned long *) &esp;
-+
-+	stack = esp;
-+
-+	pr_info("Stack from %08lx:", (unsigned long)stack);
-+	for (i = 0; i < kstack_depth_to_print; i++) {
-+		if (((unsigned long)stack & (THREAD_SIZE - 1)) == 0)
-+			break;
-+		if (i % 8 == 0)
-+			pr_info("\n       ");
-+		pr_info(" %08lx", *stack++);
++	pll_clock = kzalloc(sizeof(struct pll_clock), GFP_KERNEL);
++	if (!pll_clock) {
++		pr_err("%s: failed to alloc memory", clk_name);
++		return;
 +	}
 +
-+	pr_info("\nCall Trace:");
-+	i = 0;
-+	stack = esp;
-+	while (((unsigned long)stack & (THREAD_SIZE - 1)) != 0) {
-+		addr = *stack++;
-+		/*
-+		 * If the address is either in the text segment of the
-+		 * kernel, or in the region which contains vmalloc'ed
-+		 * memory, it *may* be the address of a calling
-+		 * routine; if so, print it so that someone tracing
-+		 * down the cause of the crash will be able to figure
-+		 * out the call path that was taken.
-+		 */
-+		if (check_kernel_text(addr)) {
-+			if (i % 4 == 0)
-+				pr_info("\n       ");
-+			pr_info(" [<%08lx>]", addr);
-+			i++;
-+		}
++	pll_clock->sckcr = of_iomap(node, 0);
++	if (pll_clock->sckcr == NULL) {
++		pr_err("%s: failed to map divide register", clk_name);
++		goto error;
 +	}
-+	pr_info("\n");
++
++	pll_clock->pllcr = of_iomap(node, 1);
++	if (pll_clock->pllcr == NULL) {
++		pr_err("%s: failed to map multiply register", clk_name);
++		goto error;
++	}
++
++	parent_name = of_clk_get_parent_name(node, 0);
++	init.name = clk_name;
++	init.ops = &pll_ops;
++	init.flags = CLK_IS_BASIC;
++	init.parent_names = &parent_name;
++	init.num_parents = 1;
++	pll_clock->hw.init = &init;
++
++	clk = clk_register(NULL, &pll_clock->hw);
++	if (IS_ERR(clk))
++		kfree(pll_clock);
++	if (!IS_ERR(clk)) {
++		of_clk_add_provider(node, of_clk_src_simple_get, clk);
++		return;
++	}
++	pr_err("%s: failed to register %s div clock (%ld)\n",
++	       __func__, clk_name, PTR_ERR(clk));
++error:
++	if (pll_clock) {
++		if (pll_clock->sckcr)
++			iounmap(pll_clock->sckcr);
++		if (pll_clock->pllcr)
++			iounmap(pll_clock->pllcr);
++		kfree(pll_clock);
++	}
 +}
 +
-+void show_trace_task(struct task_struct *tsk)
-+{
-+	show_stack(tsk, (unsigned long *)tsk->thread.esp0);
-+}
++CLK_OF_DECLARE(h8s2678_div_clk, "renesas,h8s2678-pll-clock",
++	       h8s2678_pll_clk_setup);
 -- 
 2.1.4
