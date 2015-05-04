@@ -1,13 +1,13 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v10 19/19] h8300: devicetree source
-Date: Mon,  4 May 2015 19:42:02 +0900
-Message-ID: <1430736122-20929-21-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v10 07/19] h8300: UAPI assembly headers.
+Date: Mon,  4 May 2015 19:41:50 +0900
+Message-ID: <1430736122-20929-9-git-send-email-ysato@users.sourceforge.jp>
 References: <1430736122-20929-2-git-send-email-ysato@users.sourceforge.jp>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.asahi-net.or.jp ([202.224.39.197]:59344 "EHLO
+Received: from mail1.asahi-net.or.jp ([202.224.39.197]:58908 "EHLO
 	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752441AbbEDKnS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2015 06:43:18 -0400
+	with ESMTP id S1752679AbbEDKmt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2015 06:42:49 -0400
 In-Reply-To: <1430736122-20929-2-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -16,452 +16,269 @@ Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- Documentation/devicetree/bindings/h8300/cpu.txt    |  17 ++++
- .../interrupt-controller/renesas,h8300h-intc.txt   |  20 ++++
- .../interrupt-controller/renesas,h8s-intc.txt      |  20 ++++
- arch/h8300/boot/dts/Makefile                       |  11 ++
- arch/h8300/boot/dts/dt-bindings                    |   1 +
- arch/h8300/boot/dts/edosk2674.dts                  | 111 +++++++++++++++++++++
- arch/h8300/boot/dts/h8300h_sim.dts                 |  97 ++++++++++++++++++
- arch/h8300/boot/dts/h8s_sim.dts                    | 103 +++++++++++++++++++
- 8 files changed, 380 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/h8300/cpu.txt
- create mode 100644 Documentation/devicetree/bindings/interrupt-controller/renesas,h8300h-intc.txt
- create mode 100644 Documentation/devicetree/bindings/interrupt-controller/renesas,h8s-intc.txt
- create mode 100644 arch/h8300/boot/dts/Makefile
- create mode 120000 arch/h8300/boot/dts/dt-bindings
- create mode 100644 arch/h8300/boot/dts/edosk2674.dts
- create mode 100644 arch/h8300/boot/dts/h8300h_sim.dts
- create mode 100644 arch/h8300/boot/dts/h8s_sim.dts
+ arch/h8300/include/uapi/asm/Kbuild       |  30 ++++++++
+ arch/h8300/include/uapi/asm/byteorder.h  |   6 ++
+ arch/h8300/include/uapi/asm/ptrace.h     |  42 +++++++++++
+ arch/h8300/include/uapi/asm/sigcontext.h |  18 +++++
+ arch/h8300/include/uapi/asm/signal.h     | 115 +++++++++++++++++++++++++++++++
+ arch/h8300/include/uapi/asm/unistd.h     |   3 +
+ 6 files changed, 214 insertions(+)
+ create mode 100644 arch/h8300/include/uapi/asm/Kbuild
+ create mode 100644 arch/h8300/include/uapi/asm/byteorder.h
+ create mode 100644 arch/h8300/include/uapi/asm/ptrace.h
+ create mode 100644 arch/h8300/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/h8300/include/uapi/asm/signal.h
+ create mode 100644 arch/h8300/include/uapi/asm/unistd.h
 
-diff --git a/Documentation/devicetree/bindings/h8300/cpu.txt b/Documentation/devicetree/bindings/h8300/cpu.txt
+diff --git a/arch/h8300/include/uapi/asm/Kbuild b/arch/h8300/include/uapi/asm/Kbuild
 new file mode 100644
-index 0000000..f1287e0
+index 0000000..fb6101a
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/h8300/cpu.txt
-@@ -0,0 +1,17 @@
-+* H8/300 CPU bindings
++++ b/arch/h8300/include/uapi/asm/Kbuild
+@@ -0,0 +1,30 @@
++# UAPI Header export list
++include include/uapi/asm-generic/Kbuild.asm
 +
-+Required properties:
-+
-+- compatible: Compatible property value should be "renesas,h8300".
-+- reg: Contains CPU index.
-+- clock-frequency: Contains the clock frequency for CPU, in Hz.
-+- renesas,bus-width: Contain the memory bus width.
-+
-+Example:
-+
-+		cpu@0 {
-+			compatible = "renesas,h8300";
-+			reg = <0>;
-+			clock-frequency = <20000000>;
-+			renesas,bus-width = <16>;
-+		};
-diff --git a/Documentation/devicetree/bindings/interrupt-controller/renesas,h8300h-intc.txt b/Documentation/devicetree/bindings/interrupt-controller/renesas,h8300h-intc.txt
++header-y += auxvec.h
++header-y += bitsperlong.h
++header-y += errno.h
++header-y += fcntl.h
++header-y += ioctl.h
++header-y += ioctls.h
++header-y += ipcbuf.h
++header-y += kvm_para.h
++header-y += mman.h
++header-y += msgbuf.h
++header-y += param.h
++header-y += poll.h
++header-y += posix_types.h
++header-y += resource.h
++header-y += sembuf.h
++header-y += setup.h
++header-y += shmbuf.h
++header-y += siginfo.h
++header-y += socket.h
++header-y += sockios.h
++header-y += stat.h
++header-y += statfs.h
++header-y += swab.h
++header-y += termbits.h
++header-y += termios.h
++header-y += types.h
++header-y += unistd.h
+diff --git a/arch/h8300/include/uapi/asm/byteorder.h b/arch/h8300/include/uapi/asm/byteorder.h
 new file mode 100644
-index 0000000..79053dd
+index 0000000..13539da
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/interrupt-controller/renesas,h8300h-intc.txt
-@@ -0,0 +1,20 @@
-+* H8/300H Interrupt controller
++++ b/arch/h8300/include/uapi/asm/byteorder.h
+@@ -0,0 +1,6 @@
++#ifndef _H8300_BYTEORDER_H
++#define _H8300_BYTEORDER_H
 +
-+Required properties:
++#include <linux/byteorder/big_endian.h>
 +
-+- compatible: has to be "renesas,h8300h-intc", "renesas,h8300-intc" as fallback.
-+- #interrupt-cells: has to be <1>: an interrupt index and flags, as defined in
-+  interrupts.txt in this directory
-+
-+Optional properties:
-+
-+- any properties, listed in interrupts.txt, and any standard resource allocation
-+  properties
-+
-+Example:
-+
-+	h8intc: intc@0 {
-+		compatible = "renesas,h8300h-intc", "renesas,h8300-intc";
-+		#interrupt-cells = <1>;
-+		interrupt-controller;
-+	};
-diff --git a/Documentation/devicetree/bindings/interrupt-controller/renesas,h8s-intc.txt b/Documentation/devicetree/bindings/interrupt-controller/renesas,h8s-intc.txt
++#endif /* _H8300_BYTEORDER_H */
+diff --git a/arch/h8300/include/uapi/asm/ptrace.h b/arch/h8300/include/uapi/asm/ptrace.h
 new file mode 100644
-index 0000000..1206191
+index 0000000..e132670d
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/interrupt-controller/renesas,h8s-intc.txt
-@@ -0,0 +1,20 @@
-+* H8S Interrupt controller
++++ b/arch/h8300/include/uapi/asm/ptrace.h
+@@ -0,0 +1,42 @@
++#ifndef _UAPI_H8300_PTRACE_H
++#define _UAPI_H8300_PTRACE_H
 +
-+Required properties:
++#ifndef __ASSEMBLY__
 +
-+- compatible: has to be "renesas,h8s-intc", "renesas,h8300-intc" as fallback.
-+- #interrupt-cells: has to be <1>: an interrupt index and flags, as defined in
-+  interrupts.txt in this directory
++#define PT_ER1	   0
++#define PT_ER2	   1
++#define PT_ER3	   2
++#define PT_ER4	   3
++#define PT_ER5	   4
++#define PT_ER6	   5
++#define PT_ER0	   6
++#define PT_USP	   7
++#define PT_ORIG_ER0	   8
++#define PT_CCR	   9
++#define PT_PC	   10
++#define PT_EXR     11
 +
-+Optional properties:
++/* this struct defines the way the registers are stored on the
++   stack during a system call. */
 +
-+- any properties, listed in interrupts.txt, and any standard resource allocation
-+  properties
++struct pt_regs {
++	long     retpc;
++	long     er4;
++	long     er5;
++	long     er6;
++	long     er3;
++	long     er2;
++	long     er1;
++	long     orig_er0;
++	long	 sp;
++	unsigned short	 ccr;
++	long     er0;
++	long     vector;
++#if defined(__H8300S__)
++	unsigned short	 exr;
++#endif
++	unsigned long  pc;
++} __attribute__((aligned(2), packed));
 +
-+Example:
-+
-+	h8intc: intc@0 {
-+		compatible = "renesas,h8s-intc", "renesas,h8300-intc";
-+		#interrupt-cells = <1>;
-+		interrupt-controller;
-+	};
-diff --git a/arch/h8300/boot/dts/Makefile b/arch/h8300/boot/dts/Makefile
++#endif /* __ASSEMBLY__ */
++#endif /* _UAPI_H8300_PTRACE_H */
+diff --git a/arch/h8300/include/uapi/asm/sigcontext.h b/arch/h8300/include/uapi/asm/sigcontext.h
 new file mode 100644
-index 0000000..bb123fa
+index 0000000..c41fdaa
 --- /dev/null
-+++ b/arch/h8300/boot/dts/Makefile
-@@ -0,0 +1,11 @@
-+ifneq '$(CONFIG_H8300_BUILTIN_DTB)' '""'
-+BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_H8300_BUILTIN_DTB)).dtb.o
-+endif
++++ b/arch/h8300/include/uapi/asm/sigcontext.h
+@@ -0,0 +1,18 @@
++#ifndef _ASM_H8300_SIGCONTEXT_H
++#define _ASM_H8300_SIGCONTEXT_H
 +
-+obj-y += $(BUILTIN_DTB)
-+
-+dtb-$(CONFIG_H8300H_SIM) := h8300h_sim.dtb
-+dtb-$(CONFIG_H8S_SIM) := h8s_sim.dtb
-+dtb-$(CONFIG_EDOSK2674) := edosk2674.dtb
-+
-+clean-files := *.dtb.S
-diff --git a/arch/h8300/boot/dts/dt-bindings b/arch/h8300/boot/dts/dt-bindings
-new file mode 120000
-index 0000000..0cecb3d
---- /dev/null
-+++ b/arch/h8300/boot/dts/dt-bindings
-@@ -0,0 +1 @@
-+../../../../include/dt-bindings
-\ No newline at end of file
-diff --git a/arch/h8300/boot/dts/edosk2674.dts b/arch/h8300/boot/dts/edosk2674.dts
-new file mode 100644
-index 0000000..fe3c334
---- /dev/null
-+++ b/arch/h8300/boot/dts/edosk2674.dts
-@@ -0,0 +1,111 @@
-+#include <dt-bindings/clock/renesas,8bit-timer.h>
-+
-+/dts-v1/;
-+/ {
-+	compatible = "renesas,edosk2674";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&h8intc>;
-+
-+	chosen {
-+		bootargs = "console=ttySC2,38400";
-+	};
-+	aliases {
-+		serial0 = &sci0;
-+		serial1 = &sci1;
-+		serial2 = &sci2;
-+	};
-+
-+	clocks {
-+		ranges;
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+		xclk: xclk {
-+			#clock-cells = <0>;
-+			compatible = "fixed-clock";
-+			clock-frequency = <33333333>;
-+			clock-output-names = "xtal";
-+		};
-+		pllclk: pllclk {
-+			compatible = "renesas,h8s2678-pll-clock";
-+			clocks = <&xclk>;
-+			#clock-cells = <0>;
-+			reg = <0xfee03b 2>, <0xfee045 2>;
-+		};
-+		cclk: cclk {
-+			compatible = "renesas,h8300-div-clock";
-+			clocks = <&pllclk>;
-+			#clock-cells = <0>;
-+			reg = <0xfee03b 2>;
-+			renesas,width = <3>;
-+		};
-+		pclk: pclk {
-+			compatible = "fixed-factor-clock";
-+			clocks = <&cclk>;
-+			#clock-cells = <0>;
-+			clock-div = <1>;
-+			clock-mult = <1>;
-+		};
-+	};
-+
-+	memory@0 {
-+		device_type = "memory";
-+		reg = <0x400000 0x800000>;
-+	};
-+
-+	cpus {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+		cpu@0 {
-+			compatible = "renesas,h8300";
-+			reg = <0>;
-+			renesas,bus-width = <16>;
-+			clock-frequency = <33333333>;
-+			bus-width = <16>;
-+		};
-+	};
-+
-+	h8intc: intc@0 {
-+		compatible = "renesas,h8s-intc", "renesas,h8300-intc";
-+		#interrupt-cells = <1>;
-+		interrupt-controller;
-+	};
-+	tpu: tpu@ffffe0 {
-+		compatible = "renesas,tpu";
-+		reg = <0xffffe0 16>, <0xfffff0 12>;
-+		clocks = <&pclk>;
-+		clock-names = "peripheral_clk";
-+	};
-+
-+	timer8: timer@ffffb0 {
-+		compatible = "renesas,8bit-timer";
-+		reg = <0xffff80 10>;
-+		interrupts = <72 75>;
-+		clocks = <&pclk>;
-+		clock-names = "peripheral_clk";
-+		renesas,mode = <CLOCKEVENTDEVICE>;
-+		renesas,div = <DIV_8>;
-+	};
-+
-+	sci0: serial@ffff78 {
-+		compatible = "renesas,sci";
-+		reg = <0xffff78 8>;
-+		interrupts = <88 89 90 91>;
-+		clocks = <&pclk>;
-+		clock-names = "peripheral_clk";
-+	};
-+	sci1: serial@ffff80 {
-+		compatible = "renesas,sci";
-+		reg = <0xffff80 8>;
-+		interrupts = <92 93 94 95>;
-+		clocks = <&pclk>;
-+		clock-names = "peripheral_clk";
-+	};
-+	sci2: serial@ffff88 {
-+		compatible = "renesas,sci";
-+		reg = <0xffff88 8>;
-+		interrupts = <96 97 98 99>;
-+		clocks = <&pclk>;
-+		clock-names = "peripheral_clk";
-+	};
++struct sigcontext {
++	unsigned long  sc_mask;		/* old sigmask */
++	unsigned long  sc_usp;		/* old user stack pointer */
++	unsigned long  sc_er0;
++	unsigned long  sc_er1;
++	unsigned long  sc_er2;
++	unsigned long  sc_er3;
++	unsigned long  sc_er4;
++	unsigned long  sc_er5;
++	unsigned long  sc_er6;
++	unsigned short sc_ccr;
++	unsigned long  sc_pc;
 +};
-diff --git a/arch/h8300/boot/dts/h8300h_sim.dts b/arch/h8300/boot/dts/h8300h_sim.dts
++
++#endif
+diff --git a/arch/h8300/include/uapi/asm/signal.h b/arch/h8300/include/uapi/asm/signal.h
 new file mode 100644
-index 0000000..bd150fb
+index 0000000..af3a6c3
 --- /dev/null
-+++ b/arch/h8300/boot/dts/h8300h_sim.dts
-@@ -0,0 +1,97 @@
-+#include <dt-bindings/clock/renesas,8bit-timer.h>
++++ b/arch/h8300/include/uapi/asm/signal.h
+@@ -0,0 +1,115 @@
++#ifndef _UAPI_H8300_SIGNAL_H
++#define _UAPI_H8300_SIGNAL_H
 +
-+/dts-v1/;
-+/ {
-+	compatible = "gnu,gdbsim";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&h8intc>;
++#include <linux/types.h>
 +
-+	chosen {
-+		bootargs = "console=ttySC0";
-+	};
-+	aliases {
-+		serial0 = &sci0;
-+		serial1 = &sci1;
-+	};
++/* Avoid too many header ordering problems.  */
++struct siginfo;
 +
-+	clocks {
-+		ranges;
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+		xclk: xclk {
-+			#clock-cells = <0>;
-+			compatible = "fixed-clock";
-+			clock-frequency = <20000000>;
-+			clock-output-names = "xtal";
-+		};
-+		cclk: cclk {
-+			compatible = "renesas,h8300-div-clock";
-+			clocks = <&xclk>;
-+			#clock-cells = <0>;
-+			reg = <0xfee01b 2>;
-+			renesas,width = <2>;
-+		};
-+		pclk: pclk {
-+			compatible = "fixed-factor-clock";
-+			clocks = <&cclk>;
-+			#clock-cells = <0>;
-+			clock-div = <1>;
-+			clock-mult = <1>;
-+		};
-+	};
++#ifndef __KERNEL__
++/* Here we must cater to libcs that poke about in kernel headers.  */
 +
-+	memory@0 {
-+		device_type = "memory";
-+		reg = <0x400000 0x400000>;
-+	};
++#define NSIG		32
++typedef unsigned long sigset_t;
 +
-+	cpus {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+		cpu@0 {
-+			compatible = "renesas,h8300";
-+			reg = <0>;
-+			clock-frequency = <20000000>;
-+			renesas,bus-width = <16>;
-+		};
-+	};
++#endif /* __KERNEL__ */
 +
-+	h8intc: intc@0 {
-+		compatible = "renesas,h8300h-intc", "renesas,h8300-intc";
-+		#interrupt-cells = <1>;
-+		interrupt-controller;
-+	};
-+	timer8: timer@ffff80 {
-+		compatible = "renesas,8bit-timer";
-+		reg = <0xffff80 10>;
-+		interrupts = <36 39>;
-+		clocks = <&pclk>;
-+		clock-names = "peripheral_clk";
-+		renesas,mode = <CLOCKSOURCE>;
-+		renesas,div = <DIV_8>;
-+	};
-+	timer16: timer@ffff68 {
-+		compatible = "renesas,16bit-timer";
-+		reg = <0xffff68 8>, <0xffff60 8>;
-+		interrupts = <24>;
-+		renesas,channel = <0>;
-+		clocks = <&pclk>;
-+		clock-names = "peripheral_clk";
-+	};
++#define SIGHUP		 1
++#define SIGINT		 2
++#define SIGQUIT		 3
++#define SIGILL		 4
++#define SIGTRAP		 5
++#define SIGABRT		 6
++#define SIGIOT		 6
++#define SIGBUS		 7
++#define SIGFPE		 8
++#define SIGKILL		 9
++#define SIGUSR1		10
++#define SIGSEGV		11
++#define SIGUSR2		12
++#define SIGPIPE		13
++#define SIGALRM		14
++#define SIGTERM		15
++#define SIGSTKFLT	16
++#define SIGCHLD		17
++#define SIGCONT		18
++#define SIGSTOP		19
++#define SIGTSTP		20
++#define SIGTTIN		21
++#define SIGTTOU		22
++#define SIGURG		23
++#define SIGXCPU		24
++#define SIGXFSZ		25
++#define SIGVTALRM	26
++#define SIGPROF		27
++#define SIGWINCH	28
++#define SIGIO		29
++#define SIGPOLL		SIGIO
++/*
++#define SIGLOST		29
++*/
++#define SIGPWR		30
++#define SIGSYS		31
++#define	SIGUNUSED	31
 +
-+	sci0: serial@ffffb0 {
-+		compatible = "renesas,sci";
-+		reg = <0xffffb0 8>;
-+		interrupts = <52 53 54 55>;
-+		clocks = <&pclk>;
-+		clock-names = "peripheral_clk";
-+	};
-+	sci1: serial@ffffb8 {
-+		compatible = "renesas,sci";
-+		reg = <0xffffb8 8>;
-+		interrupts = <56 57 58 59>;
-+		clocks = <&pclk>;
-+		clock-names = "peripheral_clk";
-+	};
++/* These should not be considered constants from userland.  */
++#define SIGRTMIN	32
++#define SIGRTMAX	_NSIG
++
++/*
++ * SA_FLAGS values:
++ *
++ * SA_ONSTACK indicates that a registered stack_t will be used.
++ * SA_RESTART flag to get restarting signals (which were the default long ago)
++ * SA_NOCLDSTOP flag to turn off SIGCHLD when children stop.
++ * SA_RESETHAND clears the handler when the signal is delivered.
++ * SA_NOCLDWAIT flag on SIGCHLD to inhibit zombies.
++ * SA_NODEFER prevents the current signal from being masked in the handler.
++ *
++ * SA_ONESHOT and SA_NOMASK are the historical Linux names for the Single
++ * Unix names RESETHAND and NODEFER respectively.
++ */
++#define SA_NOCLDSTOP	0x00000001
++#define SA_NOCLDWAIT	0x00000002 /* not supported yet */
++#define SA_SIGINFO	0x00000004
++#define SA_ONSTACK	0x08000000
++#define SA_RESTART	0x10000000
++#define SA_NODEFER	0x40000000
++#define SA_RESETHAND	0x80000000
++
++#define SA_NOMASK	SA_NODEFER
++#define SA_ONESHOT	SA_RESETHAND
++
++#define SA_RESTORER	0x04000000
++
++#define MINSIGSTKSZ	2048
++#define SIGSTKSZ	8192
++
++#include <asm-generic/signal-defs.h>
++
++#ifndef __KERNEL__
++/* Here we must cater to libcs that poke about in kernel headers.  */
++
++struct sigaction {
++	union {
++	  __sighandler_t _sa_handler;
++	  void (*_sa_sigaction)(int, struct siginfo *, void *);
++	} _u;
++	sigset_t sa_mask;
++	unsigned long sa_flags;
++	void (*sa_restorer)(void);
 +};
-diff --git a/arch/h8300/boot/dts/h8s_sim.dts b/arch/h8300/boot/dts/h8s_sim.dts
++
++#define sa_handler	_u._sa_handler
++#define sa_sigaction	_u._sa_sigaction
++
++#endif /* __KERNEL__ */
++
++typedef struct sigaltstack {
++	void *ss_sp;
++	int ss_flags;
++	size_t ss_size;
++} stack_t;
++
++
++#endif /* _UAPI_H8300_SIGNAL_H */
+diff --git a/arch/h8300/include/uapi/asm/unistd.h b/arch/h8300/include/uapi/asm/unistd.h
 new file mode 100644
-index 0000000..26b653d
+index 0000000..7a2eb69
 --- /dev/null
-+++ b/arch/h8300/boot/dts/h8s_sim.dts
-@@ -0,0 +1,103 @@
-+#include <dt-bindings/clock/renesas,8bit-timer.h>
++++ b/arch/h8300/include/uapi/asm/unistd.h
+@@ -0,0 +1,3 @@
++#define __ARCH_NOMMU
 +
-+/dts-v1/;
-+/ {
-+	compatible = "gnu,gdbsim";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&h8intc>;
-+
-+	chosen {
-+		bootargs = "console=ttySC0";
-+	};
-+	aliases {
-+		serial0 = &sci0;
-+		serial1 = &sci1;
-+	};
-+
-+	clocks {
-+		ranges;
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+		xclk: xclk {
-+			#clock-cells = <0>;
-+			compatible = "fixed-clock";
-+			clock-frequency = <33333333>;
-+			clock-output-names = "xtal";
-+		};
-+		pllclk: pllclk {
-+			compatible = "renesas,h8s2678-pll-clock";
-+			clocks = <&xclk>;
-+			#clock-cells = <0>;
-+			reg = <0xfee03b 2>, <0xfee045 2>;
-+		};
-+		cclk: cclk {
-+			compatible = "renesas,h8300-div-clock";
-+			clocks = <&pllclk>;
-+			#clock-cells = <0>;
-+			reg = <0xfee03b 2>;
-+			renesas,width = <3>;
-+		};
-+		pclk: pclk {
-+			compatible = "fixed-factor-clock";
-+			clocks = <&cclk>;
-+			#clock-cells = <0>;
-+			clock-div = <1>;
-+			clock-mult = <1>;
-+		};
-+	};
-+
-+	memory@0 {
-+		device_type = "memory";
-+		reg = <0x400000 0x800000>;
-+	};
-+
-+	cpus {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+		cpu@0 {
-+			compatible = "renesas,h8300";
-+			reg = <0>;
-+			renesas,bus-width = <16>;
-+			clock-frequency = <33333333>;
-+			bus-width = <16>;
-+		};
-+	};
-+
-+	h8intc: intc@0 {
-+		compatible = "renesas,h8s-intc", "renesas,h8300-intc";
-+		#interrupt-cells = <1>;
-+		interrupt-controller;
-+	};
-+	tpu: tpu@ffffe0 {
-+		compatible = "renesas,tpu";
-+		reg = <0xffffe0 16>, <0xfffff0 12>;
-+		clocks = <&pclk>;
-+		clock-names = "peripheral_clk";
-+	};
-+
-+	timer8: timer@ffffb0 {
-+		compatible = "renesas,8bit-timer";
-+		reg = <0xffff80 10>;
-+		interrupts = <72 75>;
-+		clocks = <&pclk>;
-+		clock-names = "peripheral_clk";
-+		renesas,mode = <CLOCKEVENTDEVICE>;
-+		renesas,div = <DIV_8>;
-+	};
-+
-+	sci0: serial@ffff78 {
-+		compatible = "renesas,sci";
-+		reg = <0xffff78 8>;
-+		interrupts = <88 89 90 91>;
-+		clocks = <&pclk>;
-+		clock-names = "peripheral_clk";
-+	};
-+	sci1: serial@ffff80 {
-+		compatible = "renesas,sci";
-+		reg = <0xffff80 8>;
-+		interrupts = <92 93 94 95>;
-+		clocks = <&pclk>;
-+		clock-names = "peripheral_clk";
-+	};
-+};
++#include <asm-generic/unistd.h>
 -- 
 2.1.4
