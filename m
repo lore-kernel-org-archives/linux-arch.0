@@ -1,86 +1,46 @@
-From: Guenter Roeck <linux@roeck-us.net>
-Subject: Re: [PATCH v10 00/19] Re-introduce h8300 architecture
-Date: Mon, 4 May 2015 19:27:00 -0700
-Message-ID: <20150505022700.GA26383@roeck-us.net>
-References: <1430736122-20929-2-git-send-email-ysato@users.sourceforge.jp>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH] arm64: Preserve the user r/w register tpidr_el0 on
+ context switch and fork in compat mode
+Date: Tue, 5 May 2015 11:51:11 +0100
+Message-ID: <20150505105111.GB1550@arm.com>
+References: <55464BB2.7030401@dawncrow.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bh-25.webhostbox.net ([208.91.199.152]:49566 "EHLO
-	bh-25.webhostbox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755014AbbEEC1O (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 May 2015 22:27:14 -0400
-Received: from mailnull by bh-25.webhostbox.net with sa-checked (Exim 4.85)
-	(envelope-from <linux@roeck-us.net>)
-	id 1YpSZl-0037Lq-IE
-	for linux-arch@vger.kernel.org; Tue, 05 May 2015 02:27:13 +0000
+Received: from foss.arm.com ([217.140.101.70]:44373 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753400AbbEEKvR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 5 May 2015 06:51:17 -0400
 Content-Disposition: inline
-In-Reply-To: <1430736122-20929-2-git-send-email-ysato@users.sourceforge.jp>
+In-Reply-To: <55464BB2.7030401@dawncrow.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Jonathan Austin <Jonathan.Austin@arm.com>, Nathan Lynch <nathan_lynch@mentor.com>
 
-On Mon, May 04, 2015 at 07:41:43PM +0900, Yoshinori Sato wrote:
-> Hello.
-> I will re-introducing h8300.
-> 
+On Sun, May 03, 2015 at 05:24:18PM +0100, Andr=E9 Hentschel wrote:
+> From: Andr=E9 Hentschel <nerv@dawncrow.de>
+>=20
+> Since commit a4780adeefd042482f624f5e0d577bf9cdcbb760 the user writea=
+ble TLS
+> register on ARM is preserved per thread.
+>=20
+> This patch does it analogous to the ARM patch, but for compat mode on=
+ ARM64.
+>=20
+> Signed-off-by: Andr=E9 Hentschel <nerv@dawncrow.de>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Jonathan Austin <jonathan.austin@arm.com>=20
+>=20
+> ---
+> This patch is against Linux 4.1-rc1 (b787f68c36d49bb1d9236f403813641e=
+fa74a031)
 
-Hi,
+Curious, but why do you need this? iirc, we added this for arch/arm/ be=
+cause
+of some windows rt (?) emulation in wine. Is that still the case here a=
+nd is
+anybody actually using that?
 
-With "make ARCH=h8300 edosk2674_defconfig; make ARCH=h8300",
-I see the following build error:
-
-scripts/Makefile.build:44: arch/h8300/boot/dtb/Makefile: No such file or directory
-make[1]: *** No rule to make target 'arch/h8300/boot/dtb/Makefile'.  Stop.
-
-After fixing this up with
-
-diff --git a/arch/h8300/Makefile b/arch/h8300/Makefile
-index c2b24c9..f547870 100644
---- a/arch/h8300/Makefile
-+++ b/arch/h8300/Makefile
-@@ -26,7 +26,7 @@ CROSS_COMPILE := h8300-unknown-linux-
-
- core-y += arch/$(ARCH)/kernel/ arch/$(ARCH)/mm/ arch/h8300/boot/dts/
- ifneq '$(CONFIG_H8300_BUILTIN_DTB)' '""'
--core-y += arch/h8300/boot/dtb/
-+core-y += arch/h8300/boot/dts/
- endif
-     
- libs-y += arch/$(ARCH)/lib/
-
-I get
-
-arch/h8300/boot/dts/built-in.o: In function `__dtb_edosk2674_end':
-(.dtb.init.rodata+0x8fb): multiple definition of `__dtb_edosk2674_end'
-arch/h8300/boot/dts/built-in.o:(.dtb.init.rodata+0x8fb): first defined here
-arch/h8300/boot/dts/built-in.o: In function `__dtb_edosk2674_begin':
-(.dtb.init.rodata+0x0): multiple definition of `__dtb_edosk2674_begin'
-arch/h8300/boot/dts/built-in.o:(.dtb.init.rodata+0x0): first defined here
-Makefile:932: recipe for target 'vmlinux' failed
-
-This is with compiler and binutils built as you had provided earlier.
-
----
-
-Other configurations fail to build with
-
-h8300-unknown-linux-ld: cannot find arch/h8300/boot/dts/built-in.o: No such file or directory
-Makefile:932: recipe for target 'vmlinux' failed
-make: *** [vmlinux] Error 1
-
----
-
-Switching from edosk2674_defconfig to h8300h-sim_defconfig without "make
-mrproper" results in:
-
-h8300-unknown-linux-ld: h8300s architecture of input file
-`arch/h8300/boot/dts/built-in.o' is incompatible with h8300h output
-
----
-
-Results are with git://git.sourceforge.jp/gitroot/uclinux-h8/linux.git,
-branch h8300.
-
-Guenter
+Will
