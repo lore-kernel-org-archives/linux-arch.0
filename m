@@ -1,92 +1,53 @@
-From: Daniel Thompson <daniel.thompson@linaro.org>
-Subject: Re: [PATCH v7 05/15] dt-bindings: Document the STM32 reset bindings
-Date: Tue, 05 May 2015 17:07:29 +0100
-Message-ID: <5548EAC1.7010002@linaro.org>
-References: <1430410844-16062-1-git-send-email-mcoquelin.stm32@gmail.com>	
- <1430410844-16062-6-git-send-email-mcoquelin.stm32@gmail.com>	
- <55433467.2010603@linaro.org>	
- <CALszF6Bw900E9MtpaVmvkFxsrOODRkNg+RxRXz5V3WghHtsxbw@mail.gmail.com>	
- <5544A069.5000808@linaro.org>	
- <CALszF6BTb0Ce6jfT5gY4eEtSep6+8XqOxu1LbpUXHmPYX9PmgQ@mail.gmail.com>	
- <5548CEA2.8020807@linaro.org>	
- <CALszF6DyUA7Wr2qo4sASFBTRwwjhGAkFKRYnY+1UwHmf4nTj5w@mail.gmail.com>
- <1430840557.3035.60.camel@pengutronix.de>
+From: =?windows-1252?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
+Subject: Re: [PATCH] arm64: Preserve the user r/w register tpidr_el0 on context
+ switch and fork in compat mode
+Date: Tue, 05 May 2015 19:09:57 +0200
+Message-ID: <5548F965.9070302@dawncrow.de>
+References: <55464BB2.7030401@dawncrow.de> <20150505105111.GB1550@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1430840557.3035.60.camel@pengutronix.de>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Philipp Zabel <p.zabel@pengutronix.de>, Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Cc: Mark Rutland <mark.rutland@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Will Deacon <will.deacon@arm.com>, Stefan Agner <stefan@agner.ch>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Peter Meerwald <pmeerw@pmeerw.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Jiri Slaby <jslaby@suse.cz>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Linux-Arch <linux-arch@vger.kernel.org>, Russell King <linux@arm.linux.org.uk>, Pawel Moll <pawel.moll@arm.com>, Jonathan Corbet <corbet@lwn.net>, Lee Jones <lee.jones@linaro.org>, Daniel Lezcano <daniel.lezcano@linaro.org>, Chanwoo Choi <cw00.choi@samsung.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Antti Palosaari <crope@iki.fi>, Geert Uytterhoeven <geert@linux-m68k.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, =?UTF-8?B?VXdlIEtsZ
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20150505105111.GB1550@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Jonathan Austin <Jonathan.Austin@arm.com>, Nathan Lynch <nathan_lynch@mentor.com>, Catalin Marinas <catalin.marinas@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 05/05/15 16:42, Philipp Zabel wrote:
-> Am Dienstag, den 05.05.2015, 17:19 +0200 schrieb Maxime Coquelin:
->>>> For example, includes/dt-bindings/mfd/stm32f4-rcc.h would look like:
->>>>
->>>> #define GPIOA 0
->>>> #define GPIOB 1
->>>> ...
->>>> #define LTDC 186
->
-> That looks a bit fragile.
-> At least the defines for the indices should be properly namespaced,
-> check out include/dt-bindings/gpio/tegra-gpio.h for a similar case.
-
-Good point.
-
->>>> #define STM32F4_RESET(x) (x + 128)
->>>> #define STM32F4_CLOCK(x) (x + 384)
-
-Thinking more about this point, if we are going to follow hardware if 
-might be better to have:
-
-#define STM32F4_RCC_AHB1_GPIOA 0
-#define STM32F4_RCC_AHB1_GPIOA 1
-...
-#define STM32F4_RCC_APB2_LTDC 26
-
-
-#define STM32F4_AHB1_RESET(x) (STM32F4_RCC_AHB1_##x##_BIT + (0x10 * 8))
-#define STM32F4_AHB2_RESET(x) (STM32F4_RCC_AHB2_##x##_BIT + (0x14 * 8))
-...
-#define STM32F4_APB2_RESET(x) (STM32F4_RCC_APB2_##x##_BIT + (0x24 * 8))
-
-Its more typing (or copy 'n pasting) by at least every number now maps 
-directly to the datasheet.
-
-
->>>>
->>>> Then, in DT, a reset would be described like this:
->>>>
->>>> timer2 {
->>>>       resets = <&rcc STM32F4_RESET(TIM2)>;
->>>> };
->>>>
->>>> Phillip, Daniel, does that look acceptable to you?
->>>
->>>
->>> Doesn't look unreasonable.
->>>
->>> I am a little uneasy simply because there are very few similar header files
->>> in that directory but I haven't thought of a better idea.
+Am 05.05.2015 um 12:51 schrieb Will Deacon:
+> On Sun, May 03, 2015 at 05:24:18PM +0100, Andr=E9 Hentschel wrote:
+>> From: Andr=E9 Hentschel <nerv@dawncrow.de>
 >>
->> Since this file will be shared by both clock and reset drivers, I
->> don't see better option.
->> I will implement it in v8 if Philipp agrees.
->
-> Are the device tree maintainers happy with this idiom spreading?
-> Except for the point above, I think this is acceptable.
->
-> regards
-> Philipp
->
+>> Since commit a4780adeefd042482f624f5e0d577bf9cdcbb760 the user write=
+able TLS
+>> register on ARM is preserved per thread.
+>>
+>> This patch does it analogous to the ARM patch, but for compat mode o=
+n ARM64.
+>>
+>> Signed-off-by: Andr=E9 Hentschel <nerv@dawncrow.de>
+>> Cc: Will Deacon <will.deacon@arm.com>
+>> Cc: Jonathan Austin <jonathan.austin@arm.com>=20
+>>
+>> ---
+>> This patch is against Linux 4.1-rc1 (b787f68c36d49bb1d9236f403813641=
+efa74a031)
+>=20
+> Curious, but why do you need this? iirc, we added this for arch/arm/ =
+because
+> of some windows rt (?) emulation in wine. Is that still the case here=
+ and is
+> anybody actually using that?
+
+Yes, Windows ARM binaries are the well known use case, but also the com=
+pat mode should do
+what the arm kernel is doing I=92d think and the code wasn't adjusted y=
+et.
+
+What i'm curious about is why the main TLS register on arm64 is the use=
+r writeable,
+I'm not an security expert but this looks odd. I could easily provoke a=
+ crash by writing
+to it...
+
+CCing Catalin Marinas
