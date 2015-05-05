@@ -1,256 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f173.google.com ([209.85.212.173]:34977 "EHLO
-	mail-wi0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S2993358AbbEEPT3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 May 2015 11:19:29 -0400
+Received: from foss.arm.com ([217.140.101.70]:45525 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1762162AbbEERgb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 5 May 2015 13:36:31 -0400
+Date: Tue, 5 May 2015 18:36:26 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH] arm64: Preserve the user r/w register tpidr_el0 on
+ context switch and fork in compat mode
+Message-ID: <20150505173626.GQ1550@arm.com>
+References: <55464BB2.7030401@dawncrow.de>
+ <20150505105111.GB1550@arm.com>
+ <5548F965.9070302@dawncrow.de>
+ <20150505171558.GO1550@arm.com>
+ <5548FB9C.4090208@dawncrow.de>
 MIME-Version: 1.0
-In-Reply-To: <5548CEA2.8020807@linaro.org>
-References: <1430410844-16062-1-git-send-email-mcoquelin.stm32@gmail.com>
-	<1430410844-16062-6-git-send-email-mcoquelin.stm32@gmail.com>
-	<55433467.2010603@linaro.org>
-	<CALszF6Bw900E9MtpaVmvkFxsrOODRkNg+RxRXz5V3WghHtsxbw@mail.gmail.com>
-	<5544A069.5000808@linaro.org>
-	<CALszF6BTb0Ce6jfT5gY4eEtSep6+8XqOxu1LbpUXHmPYX9PmgQ@mail.gmail.com>
-	<5548CEA2.8020807@linaro.org>
-Date: Tue, 5 May 2015 17:19:27 +0200
-Message-ID: <CALszF6DyUA7Wr2qo4sASFBTRwwjhGAkFKRYnY+1UwHmf4nTj5w@mail.gmail.com>
-Subject: Re: [PATCH v7 05/15] dt-bindings: Document the STM32 reset bindings
-From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <5548FB9C.4090208@dawncrow.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Daniel Thompson <daniel.thompson@linaro.org>
-Cc: Philipp Zabel <p.zabel@pengutronix.de>, =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Joe Perches <joe@perches.com>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Nicolae Rosia <nicolae.rosia@gmail.com>, Kamil Lulko <rev13@wp.pl>, Lee Jones <lee.jones@linaro.org>
-Message-ID: <20150505151927.4KUACj6x7lc1Bfv-4RP7A40Jdlb4XqGzE6sQzHdedcg@z>
+To: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Jonathan Austin <Jonathan.Austin@arm.com>, Nathan Lynch <nathan_lynch@mentor.com>, Catalin Marinas <Catalin.Marinas@arm.com>
+Message-ID: <20150505173626.1ys8dvceTLTF3vjqOIaB6n8kX6oFmLXkaGqjFtJ97sw@z>
 
-2015-05-05 16:07 GMT+02:00 Daniel Thompson <daniel.thompson@linaro.org>:
-> On 04/05/15 12:25, Maxime Coquelin wrote:
->>
->> 2015-05-02 12:01 GMT+02:00 Daniel Thompson <daniel.thompson@linaro.org>:
->>>
->>> On 02/05/15 08:55, Maxime Coquelin wrote:
->>>>
->>>>
->>>> 2015-05-01 10:08 GMT+02:00 Daniel Thompson <daniel.thompson@linaro.org>:
->>>>>
->>>>>
->>>>> On 30/04/15 17:20, Maxime Coquelin wrote:
->>>>>>
->>>>>>
->>>>>>
->>>>>> This adds documentation of device tree bindings for the
->>>>>> STM32 reset controller.
->>>>>>
->>>>>> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
->>>>>> Acked-by: Philipp Zabel <p.zabel@pengutronix.de>
->>>>>> Acked-by: Rob Herring <robh@kernel.org>
->>>>>> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
->>>>>> ---
->>>>>>     .../devicetree/bindings/reset/st,stm32-rcc.txt     | 107
->>>>>> +++++++++++++++++++++
->>>>>>     1 file changed, 107 insertions(+)
->>>>>>     create mode 100644
->>>>>> Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
->>>>>>
->>>>>> diff --git a/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
->>>>>> b/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
->>>>>> new file mode 100644
->>>>>> index 0000000..c1b0f8d
->>>>>> --- /dev/null
->>>>>> +++ b/Documentation/devicetree/bindings/reset/st,stm32-rcc.txt
->>>>>> @@ -0,0 +1,107 @@
->>>>>> +STMicroelectronics STM32 Peripheral Reset Controller
->>>>>> +====================================================
->>>>>> +
->>>>>> +The RCC IP is both a reset and a clock controller. This documentation
->>>>>> only
->>>>>> +documents the reset part.
->>>>>> +
->>>>>> +Please also refer to reset.txt in this directory for common reset
->>>>>> +controller binding usage.
->>>>>> +
->>>>>> +Required properties:
->>>>>> +- compatible: Should be "st,stm32-rcc"
->>>>>> +- reg: should be register base and length as documented in the
->>>>>> +  datasheet
->>>>>> +- #reset-cells: 1, see below
->>>>>> +
->>>>>> +example:
->>>>>> +
->>>>>> +rcc: reset@40023800 {
->>>>>> +       #reset-cells = <1>;
->>>>>> +       compatible = "st,stm32-rcc";
->>>>>
->>>>>
->>>>>
->>>>>
->>>>> Do you intend the clock driver to use the same compatible string (given
->>>>> it
->>>>> is the same bit of hardware).
->>>>>
->>>>> If so, is it better to use st,stm32f4-rcc here? It seems unlikey to me
->>>>> that
->>>>> the register layout of the PLLs and dividers can be the same on the f7
->>>>> parts
->>>>> (and later).
->>>>
->>>>
->>>>
->>>> I agree we need a compatible dedicate to f4 series for clocks, and
->>>> maybe even one for f429 (to be checked).
->>>> For the reset part, we don't have this need.
->>>>
->>>> So either we use only "st,stm32f4" as you suggest, or we can have both
->>>> in device tree:
->>>>
->>>> rcc: reset@40023800 {
->>>>       #reset-cells = <1>;
->>>>       compatible = "st,stm32f4-rcc", "st,stm32-rcc";
->>>>       reg = <0x40023800 0x400>;
->>>> };
->>>>
->>>> What do you think?
->>>
->>>
->>>
->>> Having both makes sense. The reset driver probably doesn't care about
->>> differences between F4 and F7 (I know very little about F7 but I can't
->>> think
->>> of any obvious h/ware evolution that would confuse the current reset
->>> driver).
->>>
->>>
->>>>>> +       reg = <0x40023800 0x400>;
->>>>>> +};
->>>>>> +
->>>>>> +Specifying softreset control of devices
->>>>>> +=======================================
->>>>>> +
->>>>>> +Device nodes should specify the reset channel required in their
->>>>>> "resets"
->>>>>> +property, containing a phandle to the reset device node and an index
->>>>>> specifying
->>>>>> +which channel to use.
->>>>>> +The index is the bit number within the RCC registers bank, starting
->>>>>> from
->>>>>> RCC
->>>>>> +base address.
->>>>>> +It is calculated as: index = register_offset / 4 * 32 + bit_offset.
->>>>>> +Where bit_offset is the bit offset within the register.
->>>>>> +For example, for CRC reset:
->>>>>> +  crc = AHB1RSTR_offset / 4 * 32 + CRCRST_bit_offset = 0x10 / 4 * 32
->>>>>> +
->>>>>> 12
->>>>>> = 140
->>>>>> +
->>>>>> +example:
->>>>>> +
->>>>>> +       timer2 {
->>>>>> +               resets                  = <&rcc 256>;
->>>>>> +       };
->>>>>> +
->>>>>> +List of valid indices for STM32F429:
->>>>>> + - gpioa: 128
->>>>>> + - gpiob: 129
->>>>>> ...
->>>>>> <snip>
->>>>>> ...
->>>>>> + - sai1: 310
->>>>>> + - ltdc: 314
->>>>>
->>>>>
->>>>>
->>>>>
->>>>> These numbers are stable for all STM32F4 family parts. Should this
->>>>> table
->>>>> go
->>>>> into a dt-bindings header file?
->>>>>
->>>>
->>>> This has already been discussed with Philipp and Arnd in earlier
->>>> versions of this series [0].
->>>> I initially created a header file, and we  decided going this way
->>>> finally.
->>>
->>>
->>>
->>> Thanks for the link. I had overlooked that (I only really started paying
->>> attention at v5; I should probably have looked further back before
->>> commenting).
->>>
->>> However...
->>>
->>> Arnd's concerns about mergability of headers can also be met by using
->>> h/ware
->>> values in the header file can't there. To be honest my comment was pretty
->>> heavily influenced after having read a recent patch from Rob Herring (
->>> https://lkml.org/lkml/2015/5/1/14 ) which does exactly this.
->>>
->>> The main reason I got interested in having a header is that the reset
->>> bits
->>> and the clock gate bits are encoded using the same bit patterns so I
->>> wondering it we could express that only once.
->>
->>
->> Ok, I understand your need, and it makes sense.
->> The problem is that the values defined today cannot be re-used
->> directly for clocks.
->> Since the calculation is starting from rcc base, there is a 128 offset.
->>
->> To re-use the same values, maybe we should create a mfd dt-binding header
->> file.
->> It would contain the bits definition starting from 0, and  define
->> macros for both reset and clocks to add the offsets.
->>
->> For example, includes/dt-bindings/mfd/stm32f4-rcc.h would look like:
->>
->> #define GPIOA 0
->> #define GPIOB 1
->> ...
->> #define LTDC 186
->>
->> #define STM32F4_RESET(x) (x + 128)
->> #define STM32F4_CLOCK(x) (x + 384)
->>
->> Then, in DT, a reset would be described like this:
->>
->> timer2 {
->>      resets = <&rcc STM32F4_RESET(TIM2)>;
->> };
->>
->> Phillip, Daniel, does that look acceptable to you?
->
->
-> Doesn't look unreasonable.
->
-> I am a little uneasy simply because there are very few similar header files
-> in that directory but I haven't thought of a better idea.
+On Tue, May 05, 2015 at 06:19:24PM +0100, André Hentschel wrote:
+> Am 05.05.2015 um 19:15 schrieb Will Deacon:
+> > On Tue, May 05, 2015 at 06:09:57PM +0100, André Hentschel wrote:
+> >> Am 05.05.2015 um 12:51 schrieb Will Deacon:
+> >>> On Sun, May 03, 2015 at 05:24:18PM +0100, André Hentschel wrote:
+> >>> Curious, but why do you need this? iirc, we added this for arch/arm/ because
+> >>> of some windows rt (?) emulation in wine. Is that still the case here and is
+> >>> anybody actually using that?
+> >>
+> >> Yes, Windows ARM binaries are the well known use case, but also the compat
+> >> mode should do what the arm kernel is doing I’d think and the code wasn't
+> >> adjusted yet.
+> > 
+> > Sure, I was just curious.
+> 
+> OK :)
+> So what about the patch?
 
-Since this file will be shared by both clock and reset drivers, I
-don't see better option.
-I will implement it in v8 if Philipp agrees.
+I'll need to take a proper look (it's on the list).
 
-Thanks,
-Maxime
+> >> What i'm curious about is why the main TLS register on arm64 is the user
+> >> writeable, I'm not an security expert but this looks odd. I could easily
+> >> provoke a crash by writing to it...
+> > 
+> > You've probably got the wrong TLS. Allowing a program to clobber it's own
+> > thread-local storage is no worse than allowing it to write to its general
+> > purpose registers, pc, etc.
+> > 
+> > I'm assuming the crash you saw was just a userspace crash, rather than
+> > the kernel?
+> > 
+> 
+> True, but the system became horribly instable, files were overwritten by
+> others, very strange. It was in a remote KVM VM on bare metal aarch64...
+> I don't dare to try it again because it causes others some trouble, but if
+> someone wants to try it out: https://github.com/AndreRH/tpidrurw-test
 
->
->
-> Daniel.
->
->
->
->>
->> Kind regards,
->> Maxime
->>>
->>>
->>> I guess it doesn't matter that much, especially given there is only one
->>> .dtsi file, and we can add a header later and remain binary compatible.
->>> However if the same number set does end up repeated in different .dtsi
->>> files
->>> I think that would motivate adding a header for F4 family.
->>>
->>>
->>> Daniel.
->>>
->
+Seems fine to me running both as 32-bit and 64-bit binary under an arm64
+4.1-rc2 kernel.
+
+The former just has test failures (because we don't context switch the
+TLS):
+
+  [...]
+  ERROR: TPIDRURW is 00000000, expected cafebabe
+  [...]
+
+whilst the latter SEGVs:
+
+  tpidrurw-test[1691]: unhandled level 1 translation fault (11) at
+  0xdeadbac2, esr 0x92000005
+  pgd = ffffffc079079000
+  [deadbac2] *pgd=0000000000000000, *pud=0000000000000000
+  [...]
+
+Will
