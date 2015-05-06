@@ -1,24 +1,16 @@
 From: "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>
 Subject: [PATCH 1/3] procfs: add guest steal time in /proc/<pid>/stat
 Date: Wed,  6 May 2015 16:28:43 +0530
-Message-ID: <4201f462f6e0ce67a7c822e62999ac58e59f3ffd.1429696326.git.naveen.n.rao__11489.2400721603$1430909956$gmane$org@linux.vnet.ibm.com>
+Message-ID: <4201f462f6e0ce67a7c822e62999ac58e59f3ffd.1429696326.git.naveen.n.rao__10364.290214102$1430909959$gmane$org@linux.vnet.ibm.com>
 References: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp01.in.ibm.com ([122.248.162.1]:48151 "EHLO
-	e28smtp01.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750865AbbEFK6y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 May 2015 06:58:54 -0400
-Received: from /spool/local
-	by e28smtp01.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <naveen.n.rao@linux.vnet.ibm.com>;
-	Wed, 6 May 2015 16:28:51 +0530
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
 In-Reply-To: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
 References: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org
 Cc: paulus@samba.org, mpe@ellerman.id.au, agraf@suse.de, mingo@redhat.com, ego@linux.vnet.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
 Introduce a field in /proc/<pid>/stat to expose guest steal time.
 
