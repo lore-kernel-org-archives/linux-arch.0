@@ -1,416 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:37167 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751398AbbEFRuw (ORCPT
+Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:45117 "EHLO
+	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752719AbbEFRuw (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 May 2015 13:50:52 -0400
 Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Wed, 6 May 2015 18:50:50 +0100
+	Wed, 6 May 2015 18:50:51 +0100
 From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [PATCH RFC 04/15] mm: explicitly disable/enable preemption in kmap_atomic_*
-Date: Wed,  6 May 2015 19:50:28 +0200
-Message-ID: <1430934639-2131-5-git-send-email-dahi@linux.vnet.ibm.com>
+Subject: [PATCH RFC 07/15] drm/i915: use pagefault_disabled() to check for disabled pagefaults
+Date: Wed,  6 May 2015 19:50:31 +0200
+Message-ID: <1430934639-2131-8-git-send-email-dahi@linux.vnet.ibm.com>
 In-Reply-To: <1430934639-2131-1-git-send-email-dahi@linux.vnet.ibm.com>
 References: <1430934639-2131-1-git-send-email-dahi@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: dahi@linux.vnet.ibm.com, mingo@redhat.com, peterz@infradead.org, yang.shi@windriver.com, bigeasy@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20150506175028.JIdgTsOvF_iirI-gks8NrNX0Oev__L_-J1by5j_3X8Q@z>
+Message-ID: <20150506175031.hEh3BLWV4RJKARZQ4vAgalCJCj3QjX5Cqi1XVGCIvqQ@z>
 
-The existing code relies on pagefault_disable() implicitly disabling
-preemption, so that no schedule will happen between kmap_atomic() and
-kunmap_atomic().
-
-Let's make this explicit, to prepare for pagefault_disable() not
-touching preemption anymore.
+Now that the pagefault disabled counter is in place, we can replace
+the in_atomic() check by a pagefault_disabled() checks.
 
 Signed-off-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
 ---
- arch/arm/mm/highmem.c                | 3 +++
- arch/frv/mm/highmem.c                | 2 ++
- arch/metag/mm/highmem.c              | 4 +++-
- arch/microblaze/mm/highmem.c         | 4 +++-
- arch/mips/mm/highmem.c               | 5 ++++-
- arch/mn10300/include/asm/highmem.h   | 3 +++
- arch/parisc/include/asm/cacheflush.h | 2 ++
- arch/powerpc/mm/highmem.c            | 4 +++-
- arch/sparc/mm/highmem.c              | 4 +++-
- arch/tile/mm/highmem.c               | 3 ++-
- arch/x86/mm/highmem_32.c             | 3 ++-
- arch/x86/mm/iomap_32.c               | 2 ++
- arch/xtensa/mm/highmem.c             | 2 ++
- include/linux/highmem.h              | 2 ++
- include/linux/io-mapping.h           | 2 ++
- 15 files changed, 38 insertions(+), 7 deletions(-)
+ drivers/gpu/drm/i915/i915_gem_execbuffer.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arm/mm/highmem.c b/arch/arm/mm/highmem.c
-index b98895d..ee8dfa7 100644
---- a/arch/arm/mm/highmem.c
-+++ b/arch/arm/mm/highmem.c
-@@ -59,6 +59,7 @@ void *kmap_atomic(struct page *page)
- 	void *kmap;
- 	int type;
+diff --git a/drivers/gpu/drm/i915/i915_gem_execbuffer.c b/drivers/gpu/drm/i915/i915_gem_execbuffer.c
+index 7ab63d9..98dc211 100644
+--- a/drivers/gpu/drm/i915/i915_gem_execbuffer.c
++++ b/drivers/gpu/drm/i915/i915_gem_execbuffer.c
+@@ -32,6 +32,7 @@
+ #include "i915_trace.h"
+ #include "intel_drv.h"
+ #include <linux/dma_remapping.h>
++#include <linux/uaccess.h>
  
-+	preempt_disable();
- 	pagefault_disable();
- 	if (!PageHighMem(page))
- 		return page_address(page);
-@@ -121,6 +122,7 @@ void __kunmap_atomic(void *kvaddr)
- 		kunmap_high(pte_page(pkmap_page_table[PKMAP_NR(vaddr)]));
- 	}
- 	pagefault_enable();
-+	preempt_enable();
- }
- EXPORT_SYMBOL(__kunmap_atomic);
- 
-@@ -130,6 +132,7 @@ void *kmap_atomic_pfn(unsigned long pfn)
- 	int idx, type;
- 	struct page *page = pfn_to_page(pfn);
- 
-+	preempt_disable();
- 	pagefault_disable();
- 	if (!PageHighMem(page))
- 		return page_address(page);
-diff --git a/arch/frv/mm/highmem.c b/arch/frv/mm/highmem.c
-index bed9a9b..785344b 100644
---- a/arch/frv/mm/highmem.c
-+++ b/arch/frv/mm/highmem.c
-@@ -42,6 +42,7 @@ void *kmap_atomic(struct page *page)
- 	unsigned long paddr;
- 	int type;
- 
-+	preempt_disable();
- 	pagefault_disable();
- 	type = kmap_atomic_idx_push();
- 	paddr = page_to_phys(page);
-@@ -85,5 +86,6 @@ void __kunmap_atomic(void *kvaddr)
- 	}
- 	kmap_atomic_idx_pop();
- 	pagefault_enable();
-+	preempt_enable();
- }
- EXPORT_SYMBOL(__kunmap_atomic);
-diff --git a/arch/metag/mm/highmem.c b/arch/metag/mm/highmem.c
-index d71f621..807f1b1 100644
---- a/arch/metag/mm/highmem.c
-+++ b/arch/metag/mm/highmem.c
-@@ -43,7 +43,7 @@ void *kmap_atomic(struct page *page)
- 	unsigned long vaddr;
- 	int type;
- 
--	/* even !CONFIG_PREEMPT needs this, for in_atomic in do_page_fault */
-+	preempt_disable();
- 	pagefault_disable();
- 	if (!PageHighMem(page))
- 		return page_address(page);
-@@ -82,6 +82,7 @@ void __kunmap_atomic(void *kvaddr)
+ #define  __EXEC_OBJECT_HAS_PIN (1<<31)
+ #define  __EXEC_OBJECT_HAS_FENCE (1<<30)
+@@ -458,7 +459,7 @@ i915_gem_execbuffer_relocate_entry(struct drm_i915_gem_object *obj,
  	}
  
- 	pagefault_enable();
-+	preempt_enable();
- }
- EXPORT_SYMBOL(__kunmap_atomic);
+ 	/* We can't wait for rendering with pagefaults disabled */
+-	if (obj->active && in_atomic())
++	if (obj->active && pagefault_disabled())
+ 		return -EFAULT;
  
-@@ -95,6 +96,7 @@ void *kmap_atomic_pfn(unsigned long pfn)
- 	unsigned long vaddr;
- 	int type;
- 
-+	preempt_disable();
- 	pagefault_disable();
- 
- 	type = kmap_atomic_idx_push();
-diff --git a/arch/microblaze/mm/highmem.c b/arch/microblaze/mm/highmem.c
-index 5a92576..2fcc5a5 100644
---- a/arch/microblaze/mm/highmem.c
-+++ b/arch/microblaze/mm/highmem.c
-@@ -37,7 +37,7 @@ void *kmap_atomic_prot(struct page *page, pgprot_t prot)
- 	unsigned long vaddr;
- 	int idx, type;
- 
--	/* even !CONFIG_PREEMPT needs this, for in_atomic in do_page_fault */
-+	preempt_disable();
- 	pagefault_disable();
- 	if (!PageHighMem(page))
- 		return page_address(page);
-@@ -63,6 +63,7 @@ void __kunmap_atomic(void *kvaddr)
- 
- 	if (vaddr < __fix_to_virt(FIX_KMAP_END)) {
- 		pagefault_enable();
-+		preempt_enable();
- 		return;
- 	}
- 
-@@ -84,5 +85,6 @@ void __kunmap_atomic(void *kvaddr)
- #endif
- 	kmap_atomic_idx_pop();
- 	pagefault_enable();
-+	preempt_enable();
- }
- EXPORT_SYMBOL(__kunmap_atomic);
-diff --git a/arch/mips/mm/highmem.c b/arch/mips/mm/highmem.c
-index da815d2..11661cb 100644
---- a/arch/mips/mm/highmem.c
-+++ b/arch/mips/mm/highmem.c
-@@ -47,7 +47,7 @@ void *kmap_atomic(struct page *page)
- 	unsigned long vaddr;
- 	int idx, type;
- 
--	/* even !CONFIG_PREEMPT needs this, for in_atomic in do_page_fault */
-+	preempt_disable();
- 	pagefault_disable();
- 	if (!PageHighMem(page))
- 		return page_address(page);
-@@ -72,6 +72,7 @@ void __kunmap_atomic(void *kvaddr)
- 
- 	if (vaddr < FIXADDR_START) { // FIXME
- 		pagefault_enable();
-+		preempt_enable();
- 		return;
- 	}
- 
-@@ -92,6 +93,7 @@ void __kunmap_atomic(void *kvaddr)
- #endif
- 	kmap_atomic_idx_pop();
- 	pagefault_enable();
-+	preempt_enable();
- }
- EXPORT_SYMBOL(__kunmap_atomic);
- 
-@@ -104,6 +106,7 @@ void *kmap_atomic_pfn(unsigned long pfn)
- 	unsigned long vaddr;
- 	int idx, type;
- 
-+	preempt_disable();
- 	pagefault_disable();
- 
- 	type = kmap_atomic_idx_push();
-diff --git a/arch/mn10300/include/asm/highmem.h b/arch/mn10300/include/asm/highmem.h
-index 2fbbe4d..1ddea5a 100644
---- a/arch/mn10300/include/asm/highmem.h
-+++ b/arch/mn10300/include/asm/highmem.h
-@@ -75,6 +75,7 @@ static inline void *kmap_atomic(struct page *page)
- 	unsigned long vaddr;
- 	int idx, type;
- 
-+	preempt_disable();
- 	pagefault_disable();
- 	if (page < highmem_start_page)
- 		return page_address(page);
-@@ -98,6 +99,7 @@ static inline void __kunmap_atomic(unsigned long vaddr)
- 
- 	if (vaddr < FIXADDR_START) { /* FIXME */
- 		pagefault_enable();
-+		preempt_enable();
- 		return;
- 	}
- 
-@@ -122,6 +124,7 @@ static inline void __kunmap_atomic(unsigned long vaddr)
- 
- 	kmap_atomic_idx_pop();
- 	pagefault_enable();
-+	preempt_enable();
- }
- #endif /* __KERNEL__ */
- 
-diff --git a/arch/parisc/include/asm/cacheflush.h b/arch/parisc/include/asm/cacheflush.h
-index de65f66..ec2df4b 100644
---- a/arch/parisc/include/asm/cacheflush.h
-+++ b/arch/parisc/include/asm/cacheflush.h
-@@ -142,6 +142,7 @@ static inline void kunmap(struct page *page)
- 
- static inline void *kmap_atomic(struct page *page)
- {
-+	preempt_disable();
- 	pagefault_disable();
- 	return page_address(page);
- }
-@@ -150,6 +151,7 @@ static inline void __kunmap_atomic(void *addr)
- {
- 	flush_kernel_dcache_page_addr(addr);
- 	pagefault_enable();
-+	preempt_enable();
- }
- 
- #define kmap_atomic_prot(page, prot)	kmap_atomic(page)
-diff --git a/arch/powerpc/mm/highmem.c b/arch/powerpc/mm/highmem.c
-index e7450bd..e292c8a 100644
---- a/arch/powerpc/mm/highmem.c
-+++ b/arch/powerpc/mm/highmem.c
-@@ -34,7 +34,7 @@ void *kmap_atomic_prot(struct page *page, pgprot_t prot)
- 	unsigned long vaddr;
- 	int idx, type;
- 
--	/* even !CONFIG_PREEMPT needs this, for in_atomic in do_page_fault */
-+	preempt_disable();
- 	pagefault_disable();
- 	if (!PageHighMem(page))
- 		return page_address(page);
-@@ -59,6 +59,7 @@ void __kunmap_atomic(void *kvaddr)
- 
- 	if (vaddr < __fix_to_virt(FIX_KMAP_END)) {
- 		pagefault_enable();
-+		preempt_enable();
- 		return;
- 	}
- 
-@@ -82,5 +83,6 @@ void __kunmap_atomic(void *kvaddr)
- 
- 	kmap_atomic_idx_pop();
- 	pagefault_enable();
-+	preempt_enable();
- }
- EXPORT_SYMBOL(__kunmap_atomic);
-diff --git a/arch/sparc/mm/highmem.c b/arch/sparc/mm/highmem.c
-index 449f864..a454ec5 100644
---- a/arch/sparc/mm/highmem.c
-+++ b/arch/sparc/mm/highmem.c
-@@ -53,7 +53,7 @@ void *kmap_atomic(struct page *page)
- 	unsigned long vaddr;
- 	long idx, type;
- 
--	/* even !CONFIG_PREEMPT needs this, for in_atomic in do_page_fault */
-+	preempt_disable();
- 	pagefault_disable();
- 	if (!PageHighMem(page))
- 		return page_address(page);
-@@ -91,6 +91,7 @@ void __kunmap_atomic(void *kvaddr)
- 
- 	if (vaddr < FIXADDR_START) { // FIXME
- 		pagefault_enable();
-+		preempt_enable();
- 		return;
- 	}
- 
-@@ -126,5 +127,6 @@ void __kunmap_atomic(void *kvaddr)
- 
- 	kmap_atomic_idx_pop();
- 	pagefault_enable();
-+	preempt_enable();
- }
- EXPORT_SYMBOL(__kunmap_atomic);
-diff --git a/arch/tile/mm/highmem.c b/arch/tile/mm/highmem.c
-index 6aa2f26..fcd5450 100644
---- a/arch/tile/mm/highmem.c
-+++ b/arch/tile/mm/highmem.c
-@@ -201,7 +201,7 @@ void *kmap_atomic_prot(struct page *page, pgprot_t prot)
- 	int idx, type;
- 	pte_t *pte;
- 
--	/* even !CONFIG_PREEMPT needs this, for in_atomic in do_page_fault */
-+	preempt_disable();
- 	pagefault_disable();
- 
- 	/* Avoid icache flushes by disallowing atomic executable mappings. */
-@@ -259,6 +259,7 @@ void __kunmap_atomic(void *kvaddr)
- 	}
- 
- 	pagefault_enable();
-+	preempt_enable();
- }
- EXPORT_SYMBOL(__kunmap_atomic);
- 
-diff --git a/arch/x86/mm/highmem_32.c b/arch/x86/mm/highmem_32.c
-index 4500142..eecb207a 100644
---- a/arch/x86/mm/highmem_32.c
-+++ b/arch/x86/mm/highmem_32.c
-@@ -35,7 +35,7 @@ void *kmap_atomic_prot(struct page *page, pgprot_t prot)
- 	unsigned long vaddr;
- 	int idx, type;
- 
--	/* even !CONFIG_PREEMPT needs this, for in_atomic in do_page_fault */
-+	preempt_disable();
- 	pagefault_disable();
- 
- 	if (!PageHighMem(page))
-@@ -100,6 +100,7 @@ void __kunmap_atomic(void *kvaddr)
- #endif
- 
- 	pagefault_enable();
-+	preempt_enable();
- }
- EXPORT_SYMBOL(__kunmap_atomic);
- 
-diff --git a/arch/x86/mm/iomap_32.c b/arch/x86/mm/iomap_32.c
-index 9ca35fc..2b7ece0 100644
---- a/arch/x86/mm/iomap_32.c
-+++ b/arch/x86/mm/iomap_32.c
-@@ -59,6 +59,7 @@ void *kmap_atomic_prot_pfn(unsigned long pfn, pgprot_t prot)
- 	unsigned long vaddr;
- 	int idx, type;
- 
-+	preempt_disable();
- 	pagefault_disable();
- 
- 	type = kmap_atomic_idx_push();
-@@ -117,5 +118,6 @@ iounmap_atomic(void __iomem *kvaddr)
- 	}
- 
- 	pagefault_enable();
-+	preempt_enable();
- }
- EXPORT_SYMBOL_GPL(iounmap_atomic);
-diff --git a/arch/xtensa/mm/highmem.c b/arch/xtensa/mm/highmem.c
-index 8cfb71e..184cead 100644
---- a/arch/xtensa/mm/highmem.c
-+++ b/arch/xtensa/mm/highmem.c
-@@ -42,6 +42,7 @@ void *kmap_atomic(struct page *page)
- 	enum fixed_addresses idx;
- 	unsigned long vaddr;
- 
-+	preempt_disable();
- 	pagefault_disable();
- 	if (!PageHighMem(page))
- 		return page_address(page);
-@@ -79,6 +80,7 @@ void __kunmap_atomic(void *kvaddr)
- 	}
- 
- 	pagefault_enable();
-+	preempt_enable();
- }
- EXPORT_SYMBOL(__kunmap_atomic);
- 
-diff --git a/include/linux/highmem.h b/include/linux/highmem.h
-index 9286a46..6aefcd0 100644
---- a/include/linux/highmem.h
-+++ b/include/linux/highmem.h
-@@ -65,6 +65,7 @@ static inline void kunmap(struct page *page)
- 
- static inline void *kmap_atomic(struct page *page)
- {
-+	preempt_disable();
- 	pagefault_disable();
- 	return page_address(page);
- }
-@@ -73,6 +74,7 @@ static inline void *kmap_atomic(struct page *page)
- static inline void __kunmap_atomic(void *addr)
- {
- 	pagefault_enable();
-+	preempt_enable();
- }
- 
- #define kmap_atomic_pfn(pfn)	kmap_atomic(pfn_to_page(pfn))
-diff --git a/include/linux/io-mapping.h b/include/linux/io-mapping.h
-index 657fab4..c27dde7 100644
---- a/include/linux/io-mapping.h
-+++ b/include/linux/io-mapping.h
-@@ -141,6 +141,7 @@ static inline void __iomem *
- io_mapping_map_atomic_wc(struct io_mapping *mapping,
- 			 unsigned long offset)
- {
-+	preempt_disable();
- 	pagefault_disable();
- 	return ((char __force __iomem *) mapping) + offset;
- }
-@@ -149,6 +150,7 @@ static inline void
- io_mapping_unmap_atomic(void __iomem *vaddr)
- {
- 	pagefault_enable();
-+	preempt_enable();
- }
- 
- /* Non-atomic map/unmap */
+ 	if (use_cpu_reloc(obj))
 -- 
 2.1.4
 
