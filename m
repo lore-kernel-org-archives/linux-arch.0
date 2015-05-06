@@ -1,81 +1,178 @@
 From: "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>
-Subject: [PATCH 1/3] procfs: add guest steal time in /proc/<pid>/stat
-Date: Wed,  6 May 2015 16:28:43 +0530
-Message-ID: <4201f462f6e0ce67a7c822e62999ac58e59f3ffd.1429696326.git.naveen.n.rao__41367.9644385867$1430910242$gmane$org@linux.vnet.ibm.com>
+Subject: Re: [PATCH 0/3] Report guest steal time in host
+Date: Wed, 6 May 2015 17:25:17 +0530
+Message-ID: <20150506115517.GA26540@naverao1-tp.in.ibm.com>
 References: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e28smtp08.in.ibm.com ([122.248.162.8]:48461 "EHLO
+	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752122AbbEFLzt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 May 2015 07:55:49 -0400
+Received: from /spool/local
+	by e28smtp08.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <naveen.n.rao@linux.vnet.ibm.com>;
+	Wed, 6 May 2015 17:25:46 +0530
+Content-Disposition: inline
 In-Reply-To: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
-In-Reply-To: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
-References: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org
-Cc: mingo@redhat.com, paulus@samba.org, agraf@suse.de, ego@linux.vnet.ibm.com
-List-Id: linux-arch.vger.kernel.org
+Cc: paulus@samba.org, mpe@ellerman.id.au, agraf@suse.de, mingo@redhat.com, ego@linux.vnet.ibm.com
 
-SW50cm9kdWNlIGEgZmllbGQgaW4gL3Byb2MvPHBpZD4vc3RhdCB0byBleHBvc2UgZ3Vlc3Qgc3Rl
-YWwgdGltZS4KClNpZ25lZC1vZmYtYnk6IE5hdmVlbiBOLiBSYW8gPG5hdmVlbi5uLnJhb0BsaW51
-eC52bmV0LmlibS5jb20+Ci0tLQogZnMvcHJvYy9hcnJheS5jICAgICAgIHwgNiArKysrKysKIGlu
-Y2x1ZGUvbGludXgvc2NoZWQuaCB8IDcgKysrKysrKwoga2VybmVsL2ZvcmsuYyAgICAgICAgIHwg
-MiArLQogMyBmaWxlcyBjaGFuZ2VkLCAxNCBpbnNlcnRpb25zKCspLCAxIGRlbGV0aW9uKC0pCgpk
-aWZmIC0tZ2l0IGEvZnMvcHJvYy9hcnJheS5jIGIvZnMvcHJvYy9hcnJheS5jCmluZGV4IDEyOTVh
-MDAuLmQ4NmYwMGUgMTAwNjQ0Ci0tLSBhL2ZzL3Byb2MvYXJyYXkuYworKysgYi9mcy9wcm9jL2Fy
-cmF5LmMKQEAgLTM2Myw2ICszNjMsNyBAQCBzdGF0aWMgaW50IGRvX3Rhc2tfc3RhdChzdHJ1Y3Qg
-c2VxX2ZpbGUgKm0sIHN0cnVjdCBwaWRfbmFtZXNwYWNlICpucywKIAl1bnNpZ25lZCBsb25nIHJz
-c2xpbSA9IDA7CiAJY2hhciB0Y29tbVtzaXplb2YodGFzay0+Y29tbSldOwogCXVuc2lnbmVkIGxv
-bmcgZmxhZ3M7CisJY3B1dGltZV90IGdzdGltZTsKIAogCXN0YXRlID0gKmdldF90YXNrX3N0YXRl
-KHRhc2spOwogCXZzaXplID0gZWlwID0gZXNwID0gMDsKQEAgLTM4Miw2ICszODMsNyBAQCBzdGF0
-aWMgaW50IGRvX3Rhc2tfc3RhdChzdHJ1Y3Qgc2VxX2ZpbGUgKm0sIHN0cnVjdCBwaWRfbmFtZXNw
-YWNlICpucywKIAlzaWdlbXB0eXNldCgmc2lnY2F0Y2gpOwogCWN1dGltZSA9IGNzdGltZSA9IHV0
-aW1lID0gc3RpbWUgPSAwOwogCWNndGltZSA9IGd0aW1lID0gMDsKKwlnc3RpbWUgPSAwOwogCiAJ
-aWYgKGxvY2tfdGFza19zaWdoYW5kKHRhc2ssICZmbGFncykpIHsKIAkJc3RydWN0IHNpZ25hbF9z
-dHJ1Y3QgKnNpZyA9IHRhc2stPnNpZ25hbDsKQEAgLTQxMCw2ICs0MTIsNyBAQCBzdGF0aWMgaW50
-IGRvX3Rhc2tfc3RhdChzdHJ1Y3Qgc2VxX2ZpbGUgKm0sIHN0cnVjdCBwaWRfbmFtZXNwYWNlICpu
-cywKIAkJCQltaW5fZmx0ICs9IHQtPm1pbl9mbHQ7CiAJCQkJbWFqX2ZsdCArPSB0LT5tYWpfZmx0
-OwogCQkJCWd0aW1lICs9IHRhc2tfZ3RpbWUodCk7CisJCQkJZ3N0aW1lICs9IHRhc2tfZ3N0aW1l
-KHQpOwogCQkJfSB3aGlsZV9lYWNoX3RocmVhZCh0YXNrLCB0KTsKIAogCQkJbWluX2ZsdCArPSBz
-aWctPm1pbl9mbHQ7CkBAIC00MzIsNiArNDM1LDcgQEAgc3RhdGljIGludCBkb190YXNrX3N0YXQo
-c3RydWN0IHNlcV9maWxlICptLCBzdHJ1Y3QgcGlkX25hbWVzcGFjZSAqbnMsCiAJCW1hal9mbHQg
-PSB0YXNrLT5tYWpfZmx0OwogCQl0YXNrX2NwdXRpbWVfYWRqdXN0ZWQodGFzaywgJnV0aW1lLCAm
-c3RpbWUpOwogCQlndGltZSA9IHRhc2tfZ3RpbWUodGFzayk7CisJCWdzdGltZSA9IHRhc2tfZ3N0
-aW1lKHRhc2spOwogCX0KIAogCS8qIHNjYWxlIHByaW9yaXR5IGFuZCBuaWNlIHZhbHVlcyBmcm9t
-IHRpbWVzbGljZXMgdG8gLTIwLi4yMCAqLwpAQCAtNTA1LDYgKzUwOSw4IEBAIHN0YXRpYyBpbnQg
-ZG9fdGFza19zdGF0KHN0cnVjdCBzZXFfZmlsZSAqbSwgc3RydWN0IHBpZF9uYW1lc3BhY2UgKm5z
-LAogCWVsc2UKIAkJc2VxX3B1dF9kZWNpbWFsX2xsKG0sICcgJywgMCk7CiAKKwlzZXFfcHV0X2Rl
-Y2ltYWxfdWxsKG0sICcgJywgY3B1dGltZV90b19jbG9ja190KGdzdGltZSkpOworCiAJc2VxX3B1
-dGMobSwgJ1xuJyk7CiAJaWYgKG1tKQogCQltbXB1dChtbSk7CmRpZmYgLS1naXQgYS9pbmNsdWRl
-L2xpbnV4L3NjaGVkLmggYi9pbmNsdWRlL2xpbnV4L3NjaGVkLmgKaW5kZXggMGVhYmFiOS4uY2I1
-Nzk1NCAxMDA2NDQKLS0tIGEvaW5jbHVkZS9saW51eC9zY2hlZC5oCisrKyBiL2luY2x1ZGUvbGlu
-dXgvc2NoZWQuaApAQCAtMTQyOSw2ICsxNDI5LDcgQEAgc3RydWN0IHRhc2tfc3RydWN0IHsKIAog
-CWNwdXRpbWVfdCB1dGltZSwgc3RpbWUsIHV0aW1lc2NhbGVkLCBzdGltZXNjYWxlZDsKIAljcHV0
-aW1lX3QgZ3RpbWU7CisJY3B1dGltZV90IGdzdGltZTsKICNpZm5kZWYgQ09ORklHX1ZJUlRfQ1BV
-X0FDQ09VTlRJTkdfTkFUSVZFCiAJc3RydWN0IGNwdXRpbWUgcHJldl9jcHV0aW1lOwogI2VuZGlm
-CkBAIC0xOTU1LDYgKzE5NTYsMTIgQEAgc3RhdGljIGlubGluZSBjcHV0aW1lX3QgdGFza19ndGlt
-ZShzdHJ1Y3QgdGFza19zdHJ1Y3QgKnQpCiAJcmV0dXJuIHQtPmd0aW1lOwogfQogI2VuZGlmCisK
-K3N0YXRpYyBpbmxpbmUgY3B1dGltZV90IHRhc2tfZ3N0aW1lKHN0cnVjdCB0YXNrX3N0cnVjdCAq
-dCkKK3sKKwlyZXR1cm4gdC0+Z3N0aW1lOworfQorCiBleHRlcm4gdm9pZCB0YXNrX2NwdXRpbWVf
-YWRqdXN0ZWQoc3RydWN0IHRhc2tfc3RydWN0ICpwLCBjcHV0aW1lX3QgKnV0LCBjcHV0aW1lX3Qg
-KnN0KTsKIGV4dGVybiB2b2lkIHRocmVhZF9ncm91cF9jcHV0aW1lX2FkanVzdGVkKHN0cnVjdCB0
-YXNrX3N0cnVjdCAqcCwgY3B1dGltZV90ICp1dCwgY3B1dGltZV90ICpzdCk7CiAKZGlmZiAtLWdp
-dCBhL2tlcm5lbC9mb3JrLmMgYi9rZXJuZWwvZm9yay5jCmluZGV4IGNmNjUxMzkuLjUyOWViZTUg
-MTAwNjQ0Ci0tLSBhL2tlcm5lbC9mb3JrLmMKKysrIGIva2VybmVsL2ZvcmsuYwpAQCAtMTI5Myw3
-ICsxMjkzLDcgQEAgc3RhdGljIHN0cnVjdCB0YXNrX3N0cnVjdCAqY29weV9wcm9jZXNzKHVuc2ln
-bmVkIGxvbmcgY2xvbmVfZmxhZ3MsCiAKIAlpbml0X3NpZ3BlbmRpbmcoJnAtPnBlbmRpbmcpOwog
-Ci0JcC0+dXRpbWUgPSBwLT5zdGltZSA9IHAtPmd0aW1lID0gMDsKKwlwLT51dGltZSA9IHAtPnN0
-aW1lID0gcC0+Z3RpbWUgPSBwLT5nc3RpbWUgPSAwOwogCXAtPnV0aW1lc2NhbGVkID0gcC0+c3Rp
-bWVzY2FsZWQgPSAwOwogI2lmbmRlZiBDT05GSUdfVklSVF9DUFVfQUNDT1VOVElOR19OQVRJVkUK
-IAlwLT5wcmV2X2NwdXRpbWUudXRpbWUgPSBwLT5wcmV2X2NwdXRpbWUuc3RpbWUgPSAwOwotLSAK
-Mi4zLjUKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fCkxp
-bnV4cHBjLWRldiBtYWlsaW5nIGxpc3QKTGludXhwcGMtZGV2QGxpc3RzLm96bGFicy5vcmcKaHR0
-cHM6Ly9saXN0cy5vemxhYnMub3JnL2xpc3RpbmZvL2xpbnV4cHBjLWRldg==
+Arrgh! Sorry about the headers. Please ignore this set. Will repost in a 
+separate thread.
+
+
+- Naveen
+
+
+On 2015/05/06 04:28PM, Naveen N Rao wrote:
+> Steal time accounts the time duration during which a guest vcpu was ready to
+> run, but was not scheduled to run by the hypervisor. This is particularly
+> relevant in cloud environment where customers would want to use this as an
+> indicator that their guests are being throttled. However, as it stands today,
+> guest steal time information is not visible from the hypervisor.
+> 
+> For cloud service providers, this is problematic since they would want to
+> overcommit cpu resources to achieve optimum resource utilization while at the
+> same time ensuring guests are not throttled. It is useful for service providers
+> to have access to the guest steal time data so that they can base their
+> overcommit/guest packing decisions on this. Higher guest steal time can be used
+> as a trigger to change how the guests are scheduled, or even migrate guests out
+> of a system.
+> 
+> This patchset attempts to make the guest steal times available in the host.
+> This is achieved by introducing a new field in per-task statistics
+> (/proc/<pid>/stat and /proc/<pid>/task/<pid>/stat) to accumulate per-vcpu steal
+> time. Programs (such as pidstat) can then be enhanced to report this
+> information on a per-thread basis.
+> 
+> This should also work for nested virtualization: steal time information for the
+> guest is readable via /proc/stat, while steal time information for guests
+> hosted on this hypervisor is readable via /proc/<pid>/task/*/stat.
+> 
+> Also, mpstat always shows steal time information for current (self) guest on a
+> per-cpu basis. And pidstat can be enhanced to report the same for the hosted
+> guests on a per-vcpu basis.
+> 
+> As an example:
+> 
+> Guest (self) steal time information using mpstat:
+> ------------------------------------------------
+> 
+> mpstat is run from within the guest.
+> 
+> [root@rhel7-img ~]# mpstat -P ALL 1
+> Linux 3.19.0nnr (rhel7-img) 	04/15/2015 	_ppc64_	(4 CPU)
+> 
+> 03:13:23 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
+> 03:13:24 PM  all   12.25    0.00    1.25    0.00    1.00    2.25   13.75    0.00    0.00   69.50
+> 03:13:24 PM    0   46.53    0.00    0.00    0.00    0.00    4.95   45.54    0.00    0.00    2.97
+> 03:13:24 PM    1    0.00    0.00    0.00    0.00    0.00    4.04    3.03    0.00    0.00   92.93
+> 03:13:24 PM    2    0.00    0.00    0.00    0.00    3.96    0.99    2.97    0.00    0.00   92.08
+> 03:13:24 PM    3    3.00    0.00    4.00    0.00    0.00    0.00    4.00    0.00    0.00   89.00
+> 
+> 03:13:24 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
+> 03:13:25 PM  all   12.59    0.00    0.00    0.00    0.00    0.25   12.35    0.00    0.00   74.81
+> 03:13:25 PM    0   50.00    0.00    0.00    0.00    0.00    0.98   49.02    0.00    0.00    0.00
+> 03:13:25 PM    1    0.98    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   99.02
+> 03:13:25 PM    2    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+> 03:13:25 PM    3    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+> 
+> 03:13:25 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
+> 03:13:26 PM  all   12.99    0.00    0.00    0.00    0.25    0.00   12.75    0.00    0.00   74.02
+> 03:13:26 PM    0   51.96    0.00    0.00    0.00    0.00    0.00   48.04    0.00    0.00    0.00
+> 03:13:26 PM    1    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+> 03:13:26 PM    2    0.00    0.00    0.00    0.00    0.98    0.00    2.94    0.00    0.00   96.08
+> 03:13:26 PM    3    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+> 
+> 03:13:26 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
+> 03:13:27 PM  all   12.53    0.00    1.00    0.25    0.00    0.25   12.03    0.00    0.00   73.93
+> 03:13:27 PM    0   51.02    0.00    0.00    0.00    0.00    0.00   48.98    0.00    0.00    0.00
+> 03:13:27 PM    1    0.00    0.00    4.04    0.00    0.00    0.00    0.00    0.00    0.00   95.96
+> 03:13:27 PM    2    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+> 03:13:27 PM    3    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
+> 
+> Average:     CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
+> Average:     all   12.91    0.00    0.54    0.01    0.04    0.12   12.39    0.00    0.00   74.00
+> Average:       0   51.36    0.00    0.03    0.00    0.03    0.26   48.27    0.00    0.00    0.05
+> Average:       1    0.02    0.00    1.54    0.02    0.02    0.15    0.36    0.00    0.00   97.89
+> Average:       2    0.00    0.00    0.52    0.00    0.09    0.02    0.36    0.00    0.00   99.02
+> Average:       3    0.05    0.00    0.07    0.00    0.02    0.09    0.34    0.00    0.00   99.43
+> 
+> Steal time information for hosted guests in host using (locally modified) pidstat:
+> ---------------------------------------------------------------------------------
+> 
+> pidstat is being run in the host.
+> 
+> [naveen@xxxxxxxxxx sysstat]$ ./pidstat -C qemu -tIu 1
+> Linux 3.19.0nnr (xxxxxxxxxx.in.ibm.com) 	04/15/2015 	_ppc64_	(64 CPU)
+> 
+> 04:43:20 AM   UID      TGID       TID    %usr %system  %guest    %CPU  %steal   CPU  Command
+> 04:43:22 AM  1008      3001         -    0.00    0.00   54.21    3.39   45.79    12  qemu-system-ppc
+> 04:43:22 AM  1008         -      3005    0.00    0.00   54.21    3.39    0.00    12  |__qemu-system-ppc
+> 
+> 04:43:22 AM   UID      TGID       TID    %usr %system  %guest    %CPU  %steal   CPU  Command
+> 04:43:23 AM  1008      3001         -    0.00    0.00   52.00    3.25   46.00    12  qemu-system-ppc
+> 04:43:23 AM  1008         -      3003    0.00    0.00    2.00    0.12   46.00    12  |__qemu-system-ppc
+> 04:43:23 AM  1008         -      3005    0.00    0.00   45.00    2.81    0.00    12  |__qemu-system-ppc
+> 04:43:23 AM  1008         -      3006    0.00    0.00    6.00    0.38    0.00    12  |__qemu-system-ppc
+> 
+> 04:43:23 AM   UID      TGID       TID    %usr %system  %guest    %CPU  %steal   CPU  Command
+> 04:43:24 AM  1008      3001         -    0.00    2.00   50.00    3.25   67.00    12  qemu-system-ppc
+> 04:43:24 AM  1008         -      3001    0.00    1.00    0.00    0.06    0.00    12  |__qemu-system-ppc
+> 04:43:24 AM  1008         -      3003    0.00    0.00    8.00    0.50   49.00    12  |__qemu-system-ppc
+> 04:43:24 AM  1008         -      3004    0.00    0.00    2.00    0.12    5.00    12  |__qemu-system-ppc
+> 04:43:24 AM  1008         -      3005    0.00    0.00   38.00    2.38    3.00    12  |__qemu-system-ppc
+> 04:43:24 AM  1008         -      3006    0.00    1.00    0.00    0.06    8.00    12  |__qemu-system-ppc
+> 
+> 04:43:24 AM   UID      TGID       TID    %usr %system  %guest    %CPU  %steal   CPU  Command
+> 04:43:25 AM  1008      3001         -    0.00    0.00   51.00    3.19   47.00    12  qemu-system-ppc
+> 04:43:25 AM  1008         -      3003    0.00    0.00   27.00    1.69   47.00    12  |__qemu-system-ppc
+> 04:43:25 AM  1008         -      3004    0.00    1.00    0.00    0.06    0.00    12  |__qemu-system-ppc
+> 04:43:25 AM  1008         -      3005    0.00    1.00   23.00    1.50    0.00    12  |__qemu-system-ppc
+> 04:43:25 AM  1008         -      3006    0.00    0.00    2.00    0.12    0.00    12  |__qemu-system-ppc
+> 
+> 04:43:25 AM   UID      TGID       TID    %usr %system  %guest    %CPU  %steal   CPU  Command
+> 04:43:26 AM  1008      3001         -    0.00    0.00   51.00    3.18   53.00    12  qemu-system-ppc
+> 04:43:26 AM  1008         -      3003    0.00    0.00    9.00    0.56   50.00    12  |__qemu-system-ppc
+> 04:43:26 AM  1008         -      3005    0.00    0.00   16.00    1.00    3.00    12  |__qemu-system-ppc
+> 04:43:26 AM  1008         -      3006    0.00    0.00   26.00    1.62    0.00    12  |__qemu-system-ppc
+> 
+> Average:      UID      TGID       TID    %usr %system  %guest    %CPU  %steal   CPU  Command
+> Average:     1008      3001         -    0.00    0.18   51.54    3.23   50.12     -  qemu-system-ppc
+> Average:     1008         -      3001    0.02    0.02    0.00    0.00    0.00     -  |__qemu-system-ppc
+> Average:     1008         -      3003    0.00    0.03   15.89    0.99   48.24     -  |__qemu-system-ppc
+> Average:     1008         -      3004    0.00    0.05   11.70    0.73    0.56     -  |__qemu-system-ppc
+> Average:     1008         -      3005    0.00    0.06   20.03    1.26    0.58     -  |__qemu-system-ppc
+> Average:     1008         -      3006    0.00    0.03    3.93    0.25    0.72     -  |__qemu-system-ppc
+> 
+> 
+> Thanks!
+> - Naveen
+> 
+> ------
+> Changes since RFC: Updated description to clarify few aspects that I got
+> questions about. No code changes.
+> 
+> 
+> Naveen N. Rao (3):
+>   procfs: add guest steal time in /proc/<pid>/stat
+>   kvm/x86: report guest steal time in host
+>   kvm/powerpc: report guest steal time in host
+> 
+>  arch/powerpc/include/asm/kvm_host.h     | 1 +
+>  arch/powerpc/kernel/asm-offsets.c       | 1 +
+>  arch/powerpc/kvm/book3s_hv.c            | 2 ++
+>  arch/powerpc/kvm/book3s_hv_rmhandlers.S | 3 +++
+>  arch/x86/kvm/x86.c                      | 1 +
+>  fs/proc/array.c                         | 6 ++++++
+>  include/linux/sched.h                   | 7 +++++++
+>  kernel/fork.c                           | 2 +-
+>  8 files changed, 22 insertions(+), 1 deletion(-)
+> 
+> -- 
+> 2.3.5
+> 
