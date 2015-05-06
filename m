@@ -1,83 +1,122 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp01.in.ibm.com ([122.248.162.1]:43607 "EHLO
-	e28smtp01.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751197AbbEFQmb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 May 2015 12:42:31 -0400
-Received: from /spool/local
-	by e28smtp01.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <naveen.n.rao@linux.vnet.ibm.com>;
-	Wed, 6 May 2015 22:12:28 +0530
-Date: Wed, 6 May 2015 22:12:15 +0530
-From: "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>
-Subject: Re: [PATCH 3/3] kvm/powerpc: report guest steal time in host
-Message-ID: <20150506164215.GB26540@naverao1-tp.in.ibm.com>
-References: <cover.1430913087.git.naveen.n.rao@linux.vnet.ibm.com>
- <c0db7eafdd13fcec26a0398e2ad0b7225c3998e9.1430913088.git.naveen.n.rao@linux.vnet.ibm.com>
- <554A0D0D.8090209@de.ibm.com>
+Received: from foss.arm.com ([217.140.101.70]:48224 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750816AbbEFRFH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 May 2015 13:05:07 -0400
+Date: Wed, 6 May 2015 18:05:03 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH] arm64: Preserve the user r/w register tpidr_el0 on
+ context switch and fork in compat mode
+Message-ID: <20150506170503.GF14922@arm.com>
+References: <55464BB2.7030401@dawncrow.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
 Content-Disposition: inline
-In-Reply-To: <554A0D0D.8090209@de.ibm.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <55464BB2.7030401@dawncrow.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, paulus@samba.org, mpe@ellerman.id.au, agraf@suse.de, mingo@redhat.com, ego@linux.vnet.ibm.com, warrier@linux.vnet.ibm.com
-Message-ID: <20150506164215.L6d2VwQ3ZD8mUetDoathWduyTPQykPWf1p8PsftI7fA@z>
+To: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Jonathan Austin <Jonathan.Austin@arm.com>, Nathan Lynch <nathan_lynch@mentor.com>
+Message-ID: <20150506170503.g9vspukYJ4CaNIlGfHpKlXrJIOQIUVERo6hZvPFW0c0@z>
 
-On 2015/05/06 02:46PM, Christian Borntraeger wrote:
-> Am 06.05.2015 um 13:56 schrieb Naveen N. Rao:
-> > On powerpc, kvm tracks both the guest steal time as well as the time
-> > when guest was idle and this gets sent in to the guest through DTL. The
-> > guest accounts these entries as either steal time or idle time based on
-> > the last running task. Since the true guest idle status is not visible
-> > to the host, we can't accurately expose the guest steal time in the
-> > host.
-> > 
-> > However, tracking the guest vcpu cede status can get us a reasonable
-> > (within 5% variation) vcpu steal time since guest vcpus cede the
-> > processor on entering the idle task. To do this, we introduce a new
-> > field ceded_st in kvm_vcpu_arch structure to accurately track the guest
-> > vcpu cede status (this is needed since the existing ceded field is
-> > modified before we can use it). During DTL entry creation, we check this
-> > flag and account the time as stolen if the guest vcpu had not ceded.
+On Sun, May 03, 2015 at 05:24:18PM +0100, André Hentschel wrote:
+> From: André Hentschel <nerv@dawncrow.de>
 > 
-> I think this is more or less a question about the semantic:
+> Since commit a4780adeefd042482f624f5e0d577bf9cdcbb760 the user writeable TLS
+> register on ARM is preserved per thread.
 > 
-> What would happen if you use  current->sched_info.run_delay like x86 also
-> on power? How far are the numbers away?
-
-The numbers were quite off and didn't quite make sense.
-
-> My feeling is, that the semantics
-> of "steal time" inside the guest is somewhat different on each platform. 
+> This patch does it analogous to the ARM patch, but for compat mode on ARM64.
 > 
-> This brings me to a 2nd question:
-> Do you need to match the host view of guest steal time with the guest view
-> or do we want to have a host view that translates as "this is the time that
-> the guest was runnable but we were too busy to schedule him"?
+> Signed-off-by: André Hentschel <nerv@dawncrow.de>
+> Cc: Will Deacon <will.deacon@arm.com>
+> Cc: Jonathan Austin <jonathan.austin@arm.com> 
+> 
+> ---
+> This patch is against Linux 4.1-rc1 (b787f68c36d49bb1d9236f403813641efa74a031)
+> 
+> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
+> index 20e9591..cd7b8c9 100644
+> --- a/arch/arm64/include/asm/processor.h
+> +++ b/arch/arm64/include/asm/processor.h
+> @@ -78,7 +78,7 @@ struct cpu_context {
+>  
+>  struct thread_struct {
+>  	struct cpu_context	cpu_context;	/* cpu context */
+> -	unsigned long		tp_value;
+> +	unsigned long		tp_value[2];	/* TLS registers */
 
-Very good point. This is probably good enough for our purpose and I'd 
-like to think my current patchset does something similar for powerpc. We 
-don't report the exact steal time as seen from within the guest, but a 
-close approximation of it. We count all time that a vcpu was not-idle as 
-steal. This includes time we were doing something in the host on behalf 
-of the vcpu as well as time when we were just doing something else. I 
-don't know if we can separate these two or if that would be desirable.  
-The scheduler statistics don't seem to accurately reflect this on ppc.
+I think I'd rather have a separate field for the user-writable TLS,
+predicated on #ifdef COMPAT. It also removes confusion between the two tls
+registers, which are also present on arm64.
 
-> For the former x86 has the best solution, as the host tells the guest its
-> understanding of steal - so both match. For the latter we actually try to
-> give guest steal a meaning in the host context  - the overload.
-> Would /proc/<pid>/schedstat value 2 (time spent waiting on a runqueue)
-> meet your requirements from the cover-letter?
+>  	struct fpsimd_state	fpsimd_state;
+>  	unsigned long		fault_address;	/* fault info */
+>  	unsigned long		fault_code;	/* ESR_EL1 value */
+> diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+> index c6b1f3b..fc7cc6bc 100644
+> --- a/arch/arm64/kernel/process.c
+> +++ b/arch/arm64/kernel/process.c
+> @@ -218,7 +218,8 @@ static void tls_thread_flush(void)
+>  	asm ("msr tpidr_el0, xzr");
+>  
+>  	if (is_compat_task()) {
+> -		current->thread.tp_value = 0;
+> +		current->thread.tp_value[0] = 0;
+> +		current->thread.tp_value[1] = 0;
+>  
+>  		/*
+>  		 * We need to ensure ordering between the shadow state and the
+> @@ -254,7 +255,7 @@ int copy_thread(unsigned long clone_flags, unsigned long stack_start,
+>  		unsigned long stk_sz, struct task_struct *p)
+>  {
+>  	struct pt_regs *childregs = task_pt_regs(p);
+> -	unsigned long tls = p->thread.tp_value;
+> +	unsigned long tls = p->thread.tp_value[0];
+>  
+>  	memset(&p->thread.cpu_context, 0, sizeof(struct cpu_context));
+>  
+> @@ -283,6 +284,11 @@ int copy_thread(unsigned long clone_flags, unsigned long stack_start,
+>  		 */
+>  		if (clone_flags & CLONE_SETTLS)
+>  			tls = childregs->regs[3];
+> +		if (is_compat_thread(task_thread_info(p))) {
+> +			unsigned long tpuser;
+> +			asm("mrs %0, tpidr_el0" : "=r" (tpuser));
+> +			p->thread.tp_value[1] = tpuser;
+> +		}
 
-This looks to be the same as sched_info.run_delay, which doesn't seem to 
-reflect the wait on the runqueue. I will recheck this on ppc tomorrow.
+Can't this hunk be in the is_compat_thread(...) block slightly earlier
+on in the function? In fact, we're reading tpidr_el0 for both the compat and
+native cases, so really this all be unconditional.
 
-As an aside, do you happen to know if /proc/<pid>/schedstat accurately 
-reports the "overload" on s390?
+>  	} else {
+>  		memset(childregs, 0, sizeof(struct pt_regs));
+>  		childregs->pstate = PSR_MODE_EL1h;
+> @@ -291,7 +297,7 @@ int copy_thread(unsigned long clone_flags, unsigned long stack_start,
+>  	}
+>  	p->thread.cpu_context.pc = (unsigned long)ret_from_fork;
+>  	p->thread.cpu_context.sp = (unsigned long)childregs;
+> -	p->thread.tp_value = tls;
+> +	p->thread.tp_value[0] = tls;
+>  
+>  	ptrace_hw_copy_thread(p);
+>  
+> @@ -302,16 +308,17 @@ static void tls_thread_switch(struct task_struct *next)
+>  {
+>  	unsigned long tpidr, tpidrro;
+>  
+> -	if (!is_compat_task()) {
+> -		asm("mrs %0, tpidr_el0" : "=r" (tpidr));
+> -		current->thread.tp_value = tpidr;
+> -	}
+> +	asm("mrs %0, tpidr_el0" : "=r" (tpidr));
+> +	if (is_compat_task())
+> +		current->thread.tp_value[1] = tpidr;
+> +	else
+> +		current->thread.tp_value[0] = tpidr;
 
+Maybe we could have a macro thread_user_tls(thread) so that we could just
+do thread_user_tls(current->thread) = tpidr;
 
-Thanks!
-- Naveen
-
+Will
