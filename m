@@ -1,164 +1,95 @@
 From: "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>
-Subject: [PATCH 0/3] Report guest steal time in host
-Date: Wed,  6 May 2015 16:28:42 +0530
-Message-ID: <cover.1429696326.git.naveen.n.rao__21318.9259208322$1430910030$gmane$org@linux.vnet.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp01.in.ibm.com ([122.248.162.1]:48163 "EHLO
-	e28smtp01.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750756AbbEFK64 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 May 2015 06:58:56 -0400
-Received: from /spool/local
-	by e28smtp01.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <naveen.n.rao@linux.vnet.ibm.com>;
-	Wed, 6 May 2015 16:28:52 +0530
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH 3/3] kvm/powerpc: report guest steal time in host
+Date: Wed,  6 May 2015 16:28:45 +0530
+Message-ID: <38967aead35e9772f2f49ef80a069476dccdbe5d.1429696326.git.naveen.n.rao__30987.2780846947$1430910072$gmane$org@linux.vnet.ibm.com>
+References: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+In-Reply-To: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
+In-Reply-To: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
+References: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org
-Cc: paulus@samba.org, mpe@ellerman.id.au, agraf@suse.de, mingo@redhat.com, ego@linux.vnet.ibm.com
+Cc: mingo@redhat.com, paulus@samba.org, agraf@suse.de, ego@linux.vnet.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
-Steal time accounts the time duration during which a guest vcpu was ready to
-run, but was not scheduled to run by the hypervisor. This is particularly
-relevant in cloud environment where customers would want to use this as an
-indicator that their guests are being throttled. However, as it stands today,
-guest steal time information is not visible from the hypervisor.
-
-For cloud service providers, this is problematic since they would want to
-overcommit cpu resources to achieve optimum resource utilization while at the
-same time ensuring guests are not throttled. It is useful for service providers
-to have access to the guest steal time data so that they can base their
-overcommit/guest packing decisions on this. Higher guest steal time can be used
-as a trigger to change how the guests are scheduled, or even migrate guests out
-of a system.
-
-This patchset attempts to make the guest steal times available in the host.
-This is achieved by introducing a new field in per-task statistics
-(/proc/<pid>/stat and /proc/<pid>/task/<pid>/stat) to accumulate per-vcpu steal
-time. Programs (such as pidstat) can then be enhanced to report this
-information on a per-thread basis.
-
-This should also work for nested virtualization: steal time information for the
-guest is readable via /proc/stat, while steal time information for guests
-hosted on this hypervisor is readable via /proc/<pid>/task/*/stat.
-
-Also, mpstat always shows steal time information for current (self) guest on a
-per-cpu basis. And pidstat can be enhanced to report the same for the hosted
-guests on a per-vcpu basis.
-
-As an example:
-
-Guest (self) steal time information using mpstat:
-------------------------------------------------
-
-mpstat is run from within the guest.
-
-[root@rhel7-img ~]# mpstat -P ALL 1
-Linux 3.19.0nnr (rhel7-img) 	04/15/2015 	_ppc64_	(4 CPU)
-
-03:13:23 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
-03:13:24 PM  all   12.25    0.00    1.25    0.00    1.00    2.25   13.75    0.00    0.00   69.50
-03:13:24 PM    0   46.53    0.00    0.00    0.00    0.00    4.95   45.54    0.00    0.00    2.97
-03:13:24 PM    1    0.00    0.00    0.00    0.00    0.00    4.04    3.03    0.00    0.00   92.93
-03:13:24 PM    2    0.00    0.00    0.00    0.00    3.96    0.99    2.97    0.00    0.00   92.08
-03:13:24 PM    3    3.00    0.00    4.00    0.00    0.00    0.00    4.00    0.00    0.00   89.00
-
-03:13:24 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
-03:13:25 PM  all   12.59    0.00    0.00    0.00    0.00    0.25   12.35    0.00    0.00   74.81
-03:13:25 PM    0   50.00    0.00    0.00    0.00    0.00    0.98   49.02    0.00    0.00    0.00
-03:13:25 PM    1    0.98    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   99.02
-03:13:25 PM    2    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-03:13:25 PM    3    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-
-03:13:25 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
-03:13:26 PM  all   12.99    0.00    0.00    0.00    0.25    0.00   12.75    0.00    0.00   74.02
-03:13:26 PM    0   51.96    0.00    0.00    0.00    0.00    0.00   48.04    0.00    0.00    0.00
-03:13:26 PM    1    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-03:13:26 PM    2    0.00    0.00    0.00    0.00    0.98    0.00    2.94    0.00    0.00   96.08
-03:13:26 PM    3    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-
-03:13:26 PM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
-03:13:27 PM  all   12.53    0.00    1.00    0.25    0.00    0.25   12.03    0.00    0.00   73.93
-03:13:27 PM    0   51.02    0.00    0.00    0.00    0.00    0.00   48.98    0.00    0.00    0.00
-03:13:27 PM    1    0.00    0.00    4.04    0.00    0.00    0.00    0.00    0.00    0.00   95.96
-03:13:27 PM    2    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-03:13:27 PM    3    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-
-Average:     CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
-Average:     all   12.91    0.00    0.54    0.01    0.04    0.12   12.39    0.00    0.00   74.00
-Average:       0   51.36    0.00    0.03    0.00    0.03    0.26   48.27    0.00    0.00    0.05
-Average:       1    0.02    0.00    1.54    0.02    0.02    0.15    0.36    0.00    0.00   97.89
-Average:       2    0.00    0.00    0.52    0.00    0.09    0.02    0.36    0.00    0.00   99.02
-Average:       3    0.05    0.00    0.07    0.00    0.02    0.09    0.34    0.00    0.00   99.43
-
-Steal time information for hosted guests in host using (locally modified) pidstat:
----------------------------------------------------------------------------------
-
-pidstat is being run in the host.
-
-[naveen@xxxxxxxxxx sysstat]$ ./pidstat -C qemu -tIu 1
-Linux 3.19.0nnr (xxxxxxxxxx.in.ibm.com) 	04/15/2015 	_ppc64_	(64 CPU)
-
-04:43:20 AM   UID      TGID       TID    %usr %system  %guest    %CPU  %steal   CPU  Command
-04:43:22 AM  1008      3001         -    0.00    0.00   54.21    3.39   45.79    12  qemu-system-ppc
-04:43:22 AM  1008         -      3005    0.00    0.00   54.21    3.39    0.00    12  |__qemu-system-ppc
-
-04:43:22 AM   UID      TGID       TID    %usr %system  %guest    %CPU  %steal   CPU  Command
-04:43:23 AM  1008      3001         -    0.00    0.00   52.00    3.25   46.00    12  qemu-system-ppc
-04:43:23 AM  1008         -      3003    0.00    0.00    2.00    0.12   46.00    12  |__qemu-system-ppc
-04:43:23 AM  1008         -      3005    0.00    0.00   45.00    2.81    0.00    12  |__qemu-system-ppc
-04:43:23 AM  1008         -      3006    0.00    0.00    6.00    0.38    0.00    12  |__qemu-system-ppc
-
-04:43:23 AM   UID      TGID       TID    %usr %system  %guest    %CPU  %steal   CPU  Command
-04:43:24 AM  1008      3001         -    0.00    2.00   50.00    3.25   67.00    12  qemu-system-ppc
-04:43:24 AM  1008         -      3001    0.00    1.00    0.00    0.06    0.00    12  |__qemu-system-ppc
-04:43:24 AM  1008         -      3003    0.00    0.00    8.00    0.50   49.00    12  |__qemu-system-ppc
-04:43:24 AM  1008         -      3004    0.00    0.00    2.00    0.12    5.00    12  |__qemu-system-ppc
-04:43:24 AM  1008         -      3005    0.00    0.00   38.00    2.38    3.00    12  |__qemu-system-ppc
-04:43:24 AM  1008         -      3006    0.00    1.00    0.00    0.06    8.00    12  |__qemu-system-ppc
-
-04:43:24 AM   UID      TGID       TID    %usr %system  %guest    %CPU  %steal   CPU  Command
-04:43:25 AM  1008      3001         -    0.00    0.00   51.00    3.19   47.00    12  qemu-system-ppc
-04:43:25 AM  1008         -      3003    0.00    0.00   27.00    1.69   47.00    12  |__qemu-system-ppc
-04:43:25 AM  1008         -      3004    0.00    1.00    0.00    0.06    0.00    12  |__qemu-system-ppc
-04:43:25 AM  1008         -      3005    0.00    1.00   23.00    1.50    0.00    12  |__qemu-system-ppc
-04:43:25 AM  1008         -      3006    0.00    0.00    2.00    0.12    0.00    12  |__qemu-system-ppc
-
-04:43:25 AM   UID      TGID       TID    %usr %system  %guest    %CPU  %steal   CPU  Command
-04:43:26 AM  1008      3001         -    0.00    0.00   51.00    3.18   53.00    12  qemu-system-ppc
-04:43:26 AM  1008         -      3003    0.00    0.00    9.00    0.56   50.00    12  |__qemu-system-ppc
-04:43:26 AM  1008         -      3005    0.00    0.00   16.00    1.00    3.00    12  |__qemu-system-ppc
-04:43:26 AM  1008         -      3006    0.00    0.00   26.00    1.62    0.00    12  |__qemu-system-ppc
-
-Average:      UID      TGID       TID    %usr %system  %guest    %CPU  %steal   CPU  Command
-Average:     1008      3001         -    0.00    0.18   51.54    3.23   50.12     -  qemu-system-ppc
-Average:     1008         -      3001    0.02    0.02    0.00    0.00    0.00     -  |__qemu-system-ppc
-Average:     1008         -      3003    0.00    0.03   15.89    0.99   48.24     -  |__qemu-system-ppc
-Average:     1008         -      3004    0.00    0.05   11.70    0.73    0.56     -  |__qemu-system-ppc
-Average:     1008         -      3005    0.00    0.06   20.03    1.26    0.58     -  |__qemu-system-ppc
-Average:     1008         -      3006    0.00    0.03    3.93    0.25    0.72     -  |__qemu-system-ppc
-
-
-Thanks!
-- Naveen
-
-------
-Changes since RFC: Updated description to clarify few aspects that I got
-questions about. No code changes.
-
-
-Naveen N. Rao (3):
-  procfs: add guest steal time in /proc/<pid>/stat
-  kvm/x86: report guest steal time in host
-  kvm/powerpc: report guest steal time in host
-
- arch/powerpc/include/asm/kvm_host.h     | 1 +
- arch/powerpc/kernel/asm-offsets.c       | 1 +
- arch/powerpc/kvm/book3s_hv.c            | 2 ++
- arch/powerpc/kvm/book3s_hv_rmhandlers.S | 3 +++
- arch/x86/kvm/x86.c                      | 1 +
- fs/proc/array.c                         | 6 ++++++
- include/linux/sched.h                   | 7 +++++++
- kernel/fork.c                           | 2 +-
- 8 files changed, 22 insertions(+), 1 deletion(-)
-
--- 
-2.3.5
+T24gcG93ZXJwYywga3ZtIHRyYWNrcyBib3RoIHRoZSBndWVzdCBzdGVhbCB0aW1lIGFzIHdlbGwg
+YXMgdGhlIHRpbWUKd2hlbiBndWVzdCB3YXMgaWRsZSBhbmQgdGhpcyBnZXRzIHNlbnQgaW4gdG8g
+dGhlIGd1ZXN0IHRocm91Z2ggRFRMLiBUaGUKZ3Vlc3QgYWNjb3VudHMgdGhlc2UgZW50cmllcyBh
+cyBlaXRoZXIgc3RlYWwgdGltZSBvciBpZGxlIHRpbWUgYmFzZWQgb24KdGhlIGxhc3QgcnVubmlu
+ZyB0YXNrLiBTaW5jZSB0aGUgdHJ1ZSBndWVzdCBpZGxlIHN0YXR1cyBpcyBub3QgdmlzaWJsZQp0
+byB0aGUgaG9zdCwgd2UgY2FuJ3QgYWNjdXJhdGVseSBleHBvc2UgdGhlIGd1ZXN0IHN0ZWFsIHRp
+bWUgaW4gdGhlCmhvc3QuCgpIb3dldmVyLCB0cmFja2luZyB0aGUgZ3Vlc3QgdmNwdSBjZWRlIHN0
+YXR1cyBjYW4gZ2V0IHVzIGEgcmVhc29uYWJsZQood2l0aGluIDUlIHZhcmlhdGlvbikgdmNwdSBz
+dGVhbCB0aW1lIHNpbmNlIGd1ZXN0IHZjcHVzIGNlZGUgdGhlCnByb2Nlc3NvciBvbiBlbnRlcmlu
+ZyB0aGUgaWRsZSB0YXNrLiBUbyBkbyB0aGlzLCB3ZSBpbnRyb2R1Y2UgYSBuZXcKZmllbGQgY2Vk
+ZWRfc3QgaW4ga3ZtX3ZjcHVfYXJjaCBzdHJ1Y3R1cmUgdG8gYWNjdXJhdGVseSB0cmFjayB0aGUg
+Z3Vlc3QKdmNwdSBjZWRlIHN0YXR1cyAodGhpcyBpcyBuZWVkZWQgc2luY2UgdGhlIGV4aXN0aW5n
+IGNlZGVkIGZpZWxkIGlzCm1vZGlmaWVkIGJlZm9yZSB3ZSBjYW4gdXNlIGl0KS4gRHVyaW5nIERU
+TCBlbnRyeSBjcmVhdGlvbiwgd2UgY2hlY2sgdGhpcwpmbGFnIGFuZCBhY2NvdW50IHRoZSB0aW1l
+IGFzIHN0b2xlbiBpZiB0aGUgZ3Vlc3QgdmNwdSBoYWQgbm90IGNlZGVkLgoKU2lnbmVkLW9mZi1i
+eTogTmF2ZWVuIE4uIFJhbyA8bmF2ZWVuLm4ucmFvQGxpbnV4LnZuZXQuaWJtLmNvbT4KLS0tClRl
+c3RzIHNob3cgdGhhdCB0aGUgc3RlYWwgdGltZSBiZWluZyByZXBvcnRlZCBpbiB0aGUgaG9zdCB3
+aXRoIHRoaXMgYXBwcm9hY2ggaXMKYXJvdW5kIDUlIGhpZ2hlciB0aGFuIHRoZSBzdGVhbCB0aW1l
+IHNob3duIGluIGd1ZXN0LiBJJ2QgYmUgaW50ZXJlc3RlZCB0byBrbm93CmlmIHRoZXJlIGFyZSB3
+YXlzIHRvIGFjaGlldmUgYmV0dGVyIGFjY291bnRpbmcgb2YgdGhlIGd1ZXN0IHN0ZWFsIHRpbWUg
+aW4gaG9zdC4KCiBhcmNoL3Bvd2VycGMvaW5jbHVkZS9hc20va3ZtX2hvc3QuaCAgICAgfCAxICsK
+IGFyY2gvcG93ZXJwYy9rZXJuZWwvYXNtLW9mZnNldHMuYyAgICAgICB8IDEgKwogYXJjaC9wb3dl
+cnBjL2t2bS9ib29rM3NfaHYuYyAgICAgICAgICAgIHwgMiArKwogYXJjaC9wb3dlcnBjL2t2bS9i
+b29rM3NfaHZfcm1oYW5kbGVycy5TIHwgMyArKysKIDQgZmlsZXMgY2hhbmdlZCwgNyBpbnNlcnRp
+b25zKCspCgpkaWZmIC0tZ2l0IGEvYXJjaC9wb3dlcnBjL2luY2x1ZGUvYXNtL2t2bV9ob3N0Lmgg
+Yi9hcmNoL3Bvd2VycGMvaW5jbHVkZS9hc20va3ZtX2hvc3QuaAppbmRleCA4ZWYwNTEyLi43ZGI0
+OGM0IDEwMDY0NAotLS0gYS9hcmNoL3Bvd2VycGMvaW5jbHVkZS9hc20va3ZtX2hvc3QuaAorKysg
+Yi9hcmNoL3Bvd2VycGMvaW5jbHVkZS9hc20va3ZtX2hvc3QuaApAQCAtNjU1LDYgKzY1NSw3IEBA
+IHN0cnVjdCBrdm1fdmNwdV9hcmNoIHsKIAl1NjQgYnVzeV9wcmVlbXB0OwogCiAJdTMyIGVtdWxf
+aW5zdDsKKwl1OCBjZWRlZF9zdDsKICNlbmRpZgogfTsKIApkaWZmIC0tZ2l0IGEvYXJjaC9wb3dl
+cnBjL2tlcm5lbC9hc20tb2Zmc2V0cy5jIGIvYXJjaC9wb3dlcnBjL2tlcm5lbC9hc20tb2Zmc2V0
+cy5jCmluZGV4IDQ3MTc4NTkuLjc2NWM3YzQgMTAwNjQ0Ci0tLSBhL2FyY2gvcG93ZXJwYy9rZXJu
+ZWwvYXNtLW9mZnNldHMuYworKysgYi9hcmNoL3Bvd2VycGMva2VybmVsL2FzbS1vZmZzZXRzLmMK
+QEAgLTUyMSw2ICs1MjEsNyBAQCBpbnQgbWFpbih2b2lkKQogCURFRklORShWQ1BVX0RFQ19FWFBJ
+UkVTLCBvZmZzZXRvZihzdHJ1Y3Qga3ZtX3ZjcHUsIGFyY2guZGVjX2V4cGlyZXMpKTsKIAlERUZJ
+TkUoVkNQVV9QRU5ESU5HX0VYQywgb2Zmc2V0b2Yoc3RydWN0IGt2bV92Y3B1LCBhcmNoLnBlbmRp
+bmdfZXhjZXB0aW9ucykpOwogCURFRklORShWQ1BVX0NFREVELCBvZmZzZXRvZihzdHJ1Y3Qga3Zt
+X3ZjcHUsIGFyY2guY2VkZWQpKTsKKwlERUZJTkUoVkNQVV9DRURFRF9TVCwgb2Zmc2V0b2Yoc3Ry
+dWN0IGt2bV92Y3B1LCBhcmNoLmNlZGVkX3N0KSk7CiAJREVGSU5FKFZDUFVfUFJPRERFRCwgb2Zm
+c2V0b2Yoc3RydWN0IGt2bV92Y3B1LCBhcmNoLnByb2RkZWQpKTsKIAlERUZJTkUoVkNQVV9NTUNS
+LCBvZmZzZXRvZihzdHJ1Y3Qga3ZtX3ZjcHUsIGFyY2gubW1jcikpOwogCURFRklORShWQ1BVX1BN
+Qywgb2Zmc2V0b2Yoc3RydWN0IGt2bV92Y3B1LCBhcmNoLnBtYykpOwpkaWZmIC0tZ2l0IGEvYXJj
+aC9wb3dlcnBjL2t2bS9ib29rM3NfaHYuYyBiL2FyY2gvcG93ZXJwYy9rdm0vYm9vazNzX2h2LmMK
+aW5kZXggZGU3NDc1Ni4uYWQ3YzBlMyAxMDA2NDQKLS0tIGEvYXJjaC9wb3dlcnBjL2t2bS9ib29r
+M3NfaHYuYworKysgYi9hcmNoL3Bvd2VycGMva3ZtL2Jvb2szc19odi5jCkBAIC01NDUsNiArNTQ1
+LDggQEAgc3RhdGljIHZvaWQga3ZtcHBjX2NyZWF0ZV9kdGxfZW50cnkoc3RydWN0IGt2bV92Y3B1
+ICp2Y3B1LAogCXNwaW5fbG9ja19pcnEoJnZjcHUtPmFyY2gudGJhY2N0X2xvY2spOwogCXN0b2xl
+biArPSB2Y3B1LT5hcmNoLmJ1c3lfc3RvbGVuOwogCXZjcHUtPmFyY2guYnVzeV9zdG9sZW4gPSAw
+OworCWlmICghdmNwdS0+YXJjaC5jZWRlZF9zdCAmJiBzdG9sZW4pCisJCShwaWRfdGFzayh2Y3B1
+LT5waWQsIFBJRFRZUEVfUElEKSktPmdzdGltZSArPSBzdG9sZW47CiAJc3Bpbl91bmxvY2tfaXJx
+KCZ2Y3B1LT5hcmNoLnRiYWNjdF9sb2NrKTsKIAlpZiAoIWR0IHx8ICF2cGEpCiAJCXJldHVybjsK
+ZGlmZiAtLWdpdCBhL2FyY2gvcG93ZXJwYy9rdm0vYm9vazNzX2h2X3JtaGFuZGxlcnMuUyBiL2Fy
+Y2gvcG93ZXJwYy9rdm0vYm9vazNzX2h2X3JtaGFuZGxlcnMuUwppbmRleCA2Y2JmMTYzLi4yOGYz
+MDRlIDEwMDY0NAotLS0gYS9hcmNoL3Bvd2VycGMva3ZtL2Jvb2szc19odl9ybWhhbmRsZXJzLlMK
+KysrIGIvYXJjaC9wb3dlcnBjL2t2bS9ib29rM3NfaHZfcm1oYW5kbGVycy5TCkBAIC04NzMsNiAr
+ODczLDcgQEAgZGVsaXZlcl9ndWVzdF9pbnRlcnJ1cHQ6CiBmYXN0X2d1ZXN0X3JldHVybjoKIAls
+aQlyMCwwCiAJc3RiCXIwLFZDUFVfQ0VERUQocjQpCS8qIGNhbmNlbCBjZWRlICovCisJc3RiCXIw
+LFZDUFVfQ0VERURfU1QocjQpCS8qIGNhbmNlbCBjZWRlICovCiAJbXRzcHIJU1BSTl9IU1JSMCxy
+MTAKIAltdHNwcglTUFJOX0hTUlIxLHIxMQogCkBAIC0xODg5LDYgKzE4OTAsNyBAQCBfR0xPQkFM
+KGt2bXBwY19oX2NlZGUpCiAJc3RkCXIxMSxWQ1BVX01TUihyMykKIAlsaQlyMCwxCiAJc3RiCXIw
+LFZDUFVfQ0VERUQocjMpCisJc3RiCXIwLFZDUFVfQ0VERURfU1QocjMpCiAJc3luYwkJCS8qIG9y
+ZGVyIHNldHRpbmcgY2VkZWQgdnMuIHRlc3RpbmcgcHJvZGRlZCAqLwogCWxieglyNSxWQ1BVX1BS
+T0RERUQocjMpCiAJY21wd2kJcjUsMApAQCAtMjA1Miw2ICsyMDU0LDcgQEAga3ZtX2NlZGVfcHJv
+ZGRlZDoKIAlzdGIJcjAsVkNQVV9QUk9EREVEKHIzKQogCXN5bmMJCQkvKiBvcmRlciB0ZXN0aW5n
+IHByb2RkZWQgdnMuIGNsZWFyaW5nIGNlZGVkICovCiAJc3RiCXIwLFZDUFVfQ0VERUQocjMpCisJ
+c3RiCXIwLFZDUFVfQ0VERURfU1QocjMpCiAJbGkJcjMsSF9TVUNDRVNTCiAJYmxyCiAKLS0gCjIu
+My41CgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpMaW51
+eHBwYy1kZXYgbWFpbGluZyBsaXN0CkxpbnV4cHBjLWRldkBsaXN0cy5vemxhYnMub3JnCmh0dHBz
+Oi8vbGlzdHMub3psYWJzLm9yZy9saXN0aW5mby9saW51eHBwYy1kZXY=
