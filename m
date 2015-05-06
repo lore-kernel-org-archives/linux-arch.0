@@ -1,7 +1,7 @@
 From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [PATCH RFC 08/15] futex: UP futex_atomic_op_inuser() relies on disabled preemption
-Date: Wed,  6 May 2015 19:50:32 +0200
-Message-ID: <1430934639-2131-9-git-send-email-dahi@linux.vnet.ibm.com>
+Subject: [PATCH RFC 11/15] arm/futex: UP futex_atomic_op_inuser() relies on disabled preemption
+Date: Wed,  6 May 2015 19:50:35 +0200
+Message-ID: <1430934639-2131-12-git-send-email-dahi@linux.vnet.ibm.com>
 References: <1430934639-2131-1-git-send-email-dahi@linux.vnet.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1430934639-2131-1-git-send-email-dahi@linux.vnet.ibm.com>
@@ -10,47 +10,49 @@ To: linux-kernel@vger.kernel.org
 Cc: dahi@linux.vnet.ibm.com, mingo@redhat.com, peterz@infradead.org, yang.shi@windriver.com, bigeasy@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Let's explicitly disable/enable preemption in the !CONFIG_SMP version
-of futex_atomic_op_inuser, to prepare for pagefault_disable() not
-touching preemption anymore.
+The !CONFIG_SMP implementation of futex_atomic_op_inuser() seems to rely
+on disabled preemption to guarantee mutual exclusion.
 
-Otherwise we might break mutual exclusion when relying on a get_user()/
-put_user() implementation.
+From commit e589ed23dd27:
+    "For UP it's enough to disable preemption to ensure mutual exclusion..."
+From the code itself:
+    "!SMP, we can work around lack of atomic ops by disabling preemption"
+
+Let's make this explicit, to prepare for pagefault_disable() not
+touching preemption anymore.
 
 Signed-off-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
 ---
- include/asm-generic/futex.h | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+ arch/arm/include/asm/futex.h | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
 
-diff --git a/include/asm-generic/futex.h b/include/asm-generic/futex.h
-index b59b5a5..3586017 100644
---- a/include/asm-generic/futex.h
-+++ b/include/asm-generic/futex.h
-@@ -8,8 +8,7 @@
- #ifndef CONFIG_SMP
- /*
-  * The following implementation only for uniprocessor machines.
-- * For UP, it's relies on the fact that pagefault_disable() also disables
-- * preemption to ensure mutual exclusion.
-+ * It relies on preempt_disable() ensuring mutual exclusion.
-  *
-  */
+diff --git a/arch/arm/include/asm/futex.h b/arch/arm/include/asm/futex.h
+index 255bfd1..5eed828 100644
+--- a/arch/arm/include/asm/futex.h
++++ b/arch/arm/include/asm/futex.h
+@@ -127,7 +127,10 @@ futex_atomic_op_inuser (int encoded_op, u32 __user *uaddr)
+ 	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
+ 		return -EFAULT;
  
-@@ -38,6 +37,7 @@ futex_atomic_op_inuser(int encoded_op, u32 __user *uaddr)
- 	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
- 		oparg = 1 << oparg;
- 
+-	pagefault_disable();	/* implies preempt_disable() */
++#ifndef CONFIG_SMP
 +	preempt_disable();
- 	pagefault_disable();
++#endif
++	pagefault_disable();
  
- 	ret = -EFAULT;
-@@ -72,6 +72,7 @@ futex_atomic_op_inuser(int encoded_op, u32 __user *uaddr)
+ 	switch (op) {
+ 	case FUTEX_OP_SET:
+@@ -149,7 +152,10 @@ futex_atomic_op_inuser (int encoded_op, u32 __user *uaddr)
+ 		ret = -ENOSYS;
+ 	}
  
- out_pagefault_enable:
- 	pagefault_enable();
+-	pagefault_enable();	/* subsumes preempt_enable() */
++	pagefault_enable();
++#ifndef CONFIG_SMP
 +	preempt_enable();
++#endif
  
- 	if (ret == 0) {
+ 	if (!ret) {
  		switch (cmp) {
 -- 
 2.1.4
