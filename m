@@ -1,11 +1,11 @@
 From: "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>
 Subject: [PATCH 0/3] Report guest steal time in host
 Date: Wed,  6 May 2015 16:28:42 +0530
-Message-ID: <cover.1429696326.git.naveen.n.rao__30165.1596827016$1430910146$gmane$org@linux.vnet.ibm.com>
+Message-ID: <cover.1429696326.git.naveen.n.rao__13896.308563608$1430910161$gmane$org@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
 List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
 List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
@@ -13,9 +13,9 @@ List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
 List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
 List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
 Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+ <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org
 Cc: mingo@redhat.com, paulus@samba.org, agraf@suse.de, ego@linux.vnet.ibm.com
 List-Id: linux-arch.vger.kernel.org
