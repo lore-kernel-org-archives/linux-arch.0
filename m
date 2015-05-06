@@ -1,12 +1,12 @@
 From: "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>
 Subject: [PATCH 3/3] kvm/powerpc: report guest steal time in host
 Date: Wed,  6 May 2015 16:28:45 +0530
-Message-ID: <38967aead35e9772f2f49ef80a069476dccdbe5d.1429696326.git.naveen.n.rao__30987.2780846947$1430910072$gmane$org@linux.vnet.ibm.com>
+Message-ID: <38967aead35e9772f2f49ef80a069476dccdbe5d.1429696326.git.naveen.n.rao__9626.38075366176$1430910101$gmane$org@linux.vnet.ibm.com>
 References: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Return-path: <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
 In-Reply-To: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
 In-Reply-To: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
 References: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
@@ -17,9 +17,9 @@ List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
 List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
 List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
  <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Errors-To: linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org
 Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+ <linuxppc-dev-bounces+glppd-linuxppc64-dev=m.gmane.org@lists.ozlabs.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org
 Cc: mingo@redhat.com, paulus@samba.org, agraf@suse.de, ego@linux.vnet.ibm.com
 List-Id: linux-arch.vger.kernel.org
