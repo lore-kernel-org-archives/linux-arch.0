@@ -1,66 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:60792 "EHLO
-	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752754AbbEFRuy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 May 2015 13:50:54 -0400
+Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:33973 "EHLO
+	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752741AbbEFRux (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 May 2015 13:50:53 -0400
 Received: from /spool/local
-	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Wed, 6 May 2015 18:50:52 +0100
+	Wed, 6 May 2015 18:50:51 +0100
 From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [PATCH RFC 08/15] futex: UP futex_atomic_op_inuser() relies on disabled preemption
-Date: Wed,  6 May 2015 19:50:32 +0200
-Message-ID: <1430934639-2131-9-git-send-email-dahi@linux.vnet.ibm.com>
+Subject: [PATCH RFC 05/15] mips: kmap_coherent relies on disabled preemption
+Date: Wed,  6 May 2015 19:50:29 +0200
+Message-ID: <1430934639-2131-6-git-send-email-dahi@linux.vnet.ibm.com>
 In-Reply-To: <1430934639-2131-1-git-send-email-dahi@linux.vnet.ibm.com>
 References: <1430934639-2131-1-git-send-email-dahi@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: dahi@linux.vnet.ibm.com, mingo@redhat.com, peterz@infradead.org, yang.shi@windriver.com, bigeasy@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20150506175032.400vEhCscwkEt-Vd69UNH_OI7oIsR2eeU8xnyDo-QVM@z>
+Message-ID: <20150506175029.rU-CjLdmvixdBUxRCjVKwb8zGpmVCEBvjZhbYxM6QS0@z>
 
-Let's explicitly disable/enable preemption in the !CONFIG_SMP version
-of futex_atomic_op_inuser, to prepare for pagefault_disable() not
+k(un)map_coherent relies on pagefault_disable() to also disable
+preemption.
+
+Let's make this explicit, to prepare for pagefault_disable() not
 touching preemption anymore.
 
-Otherwise we might break mutual exclusion when relying on a get_user()/
-put_user() implementation.
+This patch is based on a patch by Yang Shi on the -rt tree:
+"k{un}map_coherent are just called when cpu_has_dc_aliases == 1 with VIPT
+cache. However, actually, the most modern MIPS processors have PIPT dcache
+without dcache alias issue. In such case, k{un}map_atomic will be called
+with preempt enabled."
 
 Signed-off-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
 ---
- include/asm-generic/futex.h | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+ arch/mips/mm/init.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/include/asm-generic/futex.h b/include/asm-generic/futex.h
-index b59b5a5..3586017 100644
---- a/include/asm-generic/futex.h
-+++ b/include/asm-generic/futex.h
-@@ -8,8 +8,7 @@
- #ifndef CONFIG_SMP
- /*
-  * The following implementation only for uniprocessor machines.
-- * For UP, it's relies on the fact that pagefault_disable() also disables
-- * preemption to ensure mutual exclusion.
-+ * It relies on preempt_disable() ensuring mutual exclusion.
-  *
-  */
+diff --git a/arch/mips/mm/init.c b/arch/mips/mm/init.c
+index faa5c98..198a314 100644
+--- a/arch/mips/mm/init.c
++++ b/arch/mips/mm/init.c
+@@ -90,6 +90,7 @@ static void *__kmap_pgprot(struct page *page, unsigned long addr, pgprot_t prot)
  
-@@ -38,6 +37,7 @@ futex_atomic_op_inuser(int encoded_op, u32 __user *uaddr)
- 	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
- 		oparg = 1 << oparg;
+ 	BUG_ON(Page_dcache_dirty(page));
  
 +	preempt_disable();
  	pagefault_disable();
- 
- 	ret = -EFAULT;
-@@ -72,6 +72,7 @@ futex_atomic_op_inuser(int encoded_op, u32 __user *uaddr)
- 
- out_pagefault_enable:
+ 	idx = (addr >> PAGE_SHIFT) & (FIX_N_COLOURS - 1);
+ 	idx += in_interrupt() ? FIX_N_COLOURS : 0;
+@@ -152,6 +153,7 @@ void kunmap_coherent(void)
+ 	write_c0_entryhi(old_ctx);
+ 	local_irq_restore(flags);
  	pagefault_enable();
 +	preempt_enable();
+ }
  
- 	if (ret == 0) {
- 		switch (cmp) {
+ void copy_user_highpage(struct page *to, struct page *from,
 -- 
 2.1.4
 
