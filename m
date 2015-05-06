@@ -1,46 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp04.in.ibm.com ([122.248.162.4]:42570 "EHLO
-	e28smtp04.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752149AbbEFL4s (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 May 2015 07:56:48 -0400
+Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:43054 "EHLO
+	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751334AbbEFMqM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 May 2015 08:46:12 -0400
 Received: from /spool/local
-	by e28smtp04.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <naveen.n.rao@linux.vnet.ibm.com>;
-	Wed, 6 May 2015 17:26:45 +0530
-From: "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>
-Subject: [PATCH 2/3] kvm/x86: report guest steal time in host
-Date: Wed,  6 May 2015 17:26:35 +0530
-Message-ID: <356cdc25b8339ab742b349d1432c69fbdeeb204d.1430913087.git.naveen.n.rao@linux.vnet.ibm.com>
-In-Reply-To: <cover.1430913087.git.naveen.n.rao@linux.vnet.ibm.com>
-References: <cover.1430913087.git.naveen.n.rao@linux.vnet.ibm.com>
-In-Reply-To: <cover.1430913087.git.naveen.n.rao@linux.vnet.ibm.com>
-References: <cover.1430913087.git.naveen.n.rao@linux.vnet.ibm.com>
+	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+	Wed, 6 May 2015 13:46:10 +0100
+Message-ID: <554A0D0D.8090209@de.ibm.com>
+Date: Wed, 06 May 2015 14:46:05 +0200
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH 3/3] kvm/powerpc: report guest steal time in host
+References: <cover.1430913087.git.naveen.n.rao@linux.vnet.ibm.com> <c0db7eafdd13fcec26a0398e2ad0b7225c3998e9.1430913088.git.naveen.n.rao@linux.vnet.ibm.com>
+In-Reply-To: <c0db7eafdd13fcec26a0398e2ad0b7225c3998e9.1430913088.git.naveen.n.rao@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org
+To: "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org
 Cc: paulus@samba.org, mpe@ellerman.id.au, agraf@suse.de, mingo@redhat.com, ego@linux.vnet.ibm.com, warrier@linux.vnet.ibm.com
-Message-ID: <20150506115635.Po6bfI7H9-mQJ97ULyzSMjH95a_Qb1ChJzDAegguj5o@z>
+Message-ID: <20150506124605.nCBgvY0ODg9qkjykYrY2trelIg7tpT53NpegSdO6boQ@z>
 
-Report guest steal time in host task statistics. On x86, this is just
-the scheduler run_delay.
+Am 06.05.2015 um 13:56 schrieb Naveen N. Rao:
+> On powerpc, kvm tracks both the guest steal time as well as the time
+> when guest was idle and this gets sent in to the guest through DTL. The
+> guest accounts these entries as either steal time or idle time based on
+> the last running task. Since the true guest idle status is not visible
+> to the host, we can't accurately expose the guest steal time in the
+> host.
+> 
+> However, tracking the guest vcpu cede status can get us a reasonable
+> (within 5% variation) vcpu steal time since guest vcpus cede the
+> processor on entering the idle task. To do this, we introduce a new
+> field ceded_st in kvm_vcpu_arch structure to accurately track the guest
+> vcpu cede status (this is needed since the existing ceded field is
+> modified before we can use it). During DTL entry creation, we check this
+> flag and account the time as stolen if the guest vcpu had not ceded.
 
-Signed-off-by: Naveen N. Rao <naveen.n.rao@linux.vnet.ibm.com>
----
- arch/x86/kvm/x86.c | 1 +
- 1 file changed, 1 insertion(+)
+I think this is more or less a question about the semantic:
 
-diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
-index c73efcd..7107b7d 100644
---- a/arch/x86/kvm/x86.c
-+++ b/arch/x86/kvm/x86.c
-@@ -2128,6 +2128,7 @@ static void record_steal_time(struct kvm_vcpu *vcpu)
- 
- 	vcpu->arch.st.steal.steal += vcpu->arch.st.accum_steal;
- 	vcpu->arch.st.steal.version += 2;
-+	current->gstime += vcpu->arch.st.accum_steal;
- 	vcpu->arch.st.accum_steal = 0;
- 
- 	kvm_write_guest_cached(vcpu->kvm, &vcpu->arch.st.stime,
--- 
-2.3.7
+What would happen if you use  current->sched_info.run_delay like x86 also
+on power? How far are the numbers away? My feeling is, that the semantics
+of "steal time" inside the guest is somewhat different on each platform. 
+
+This brings me to a 2nd question:
+Do you need to match the host view of guest steal time with the guest view
+or do we want to have a host view that translates as "this is the time that
+the guest was runnable but we were too busy to schedule him"?
+For the former x86 has the best solution, as the host tells the guest its
+understanding of steal - so both match. For the latter we actually try to
+give guest steal a meaning in the host context  - the overload.
+Would /proc/<pid>/schedstat value 2 (time spent waiting on a runqueue)
+meet your requirements from the cover-letter?
+
+Christian
+
 
