@@ -1,41 +1,44 @@
 From: "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>
 Subject: [PATCH 2/3] kvm/x86: report guest steal time in host
 Date: Wed,  6 May 2015 16:28:44 +0530
-Message-ID: <eb56ce41d29c43529bc390d5ea2d5aaab191c918.1429696326.git.naveen.n.rao__17527.2166649394$1430910002$gmane$org@linux.vnet.ibm.com>
+Message-ID: <eb56ce41d29c43529bc390d5ea2d5aaab191c918.1429696326.git.naveen.n.rao__42899.9303178445$1430910006$gmane$org@linux.vnet.ibm.com>
 References: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e28smtp02.in.ibm.com ([122.248.162.2]:36797 "EHLO
+	e28smtp02.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751506AbbEFK64 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 May 2015 06:58:56 -0400
+Received: from /spool/local
+	by e28smtp02.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <naveen.n.rao@linux.vnet.ibm.com>;
+	Wed, 6 May 2015 16:28:53 +0530
 In-Reply-To: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
 In-Reply-To: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
 References: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org
-Cc: mingo@redhat.com, paulus@samba.org, agraf@suse.de, ego@linux.vnet.ibm.com
-List-Id: linux-arch.vger.kernel.org
+Cc: paulus@samba.org, mpe@ellerman.id.au, agraf@suse.de, mingo@redhat.com, ego@linux.vnet.ibm.com
 
-UmVwb3J0IGd1ZXN0IHN0ZWFsIHRpbWUgaW4gaG9zdCB0YXNrIHN0YXRpc3RpY3MuIE9uIHg4Niwg
-dGhpcyBpcyBqdXN0CnRoZSBzY2hlZHVsZXIgcnVuX2RlbGF5LgoKU2lnbmVkLW9mZi1ieTogTmF2
-ZWVuIE4uIFJhbyA8bmF2ZWVuLm4ucmFvQGxpbnV4LnZuZXQuaWJtLmNvbT4KLS0tCiBhcmNoL3g4
-Ni9rdm0veDg2LmMgfCAxICsKIDEgZmlsZSBjaGFuZ2VkLCAxIGluc2VydGlvbigrKQoKZGlmZiAt
-LWdpdCBhL2FyY2gveDg2L2t2bS94ODYuYyBiL2FyY2gveDg2L2t2bS94ODYuYwppbmRleCAwZWU3
-MjVmLi43MzdiMGU0IDEwMDY0NAotLS0gYS9hcmNoL3g4Ni9rdm0veDg2LmMKKysrIGIvYXJjaC94
-ODYva3ZtL3g4Ni5jCkBAIC0yMDk0LDYgKzIwOTQsNyBAQCBzdGF0aWMgdm9pZCByZWNvcmRfc3Rl
-YWxfdGltZShzdHJ1Y3Qga3ZtX3ZjcHUgKnZjcHUpCiAKIAl2Y3B1LT5hcmNoLnN0LnN0ZWFsLnN0
-ZWFsICs9IHZjcHUtPmFyY2guc3QuYWNjdW1fc3RlYWw7CiAJdmNwdS0+YXJjaC5zdC5zdGVhbC52
-ZXJzaW9uICs9IDI7CisJY3VycmVudC0+Z3N0aW1lICs9IHZjcHUtPmFyY2guc3QuYWNjdW1fc3Rl
-YWw7CiAJdmNwdS0+YXJjaC5zdC5hY2N1bV9zdGVhbCA9IDA7CiAKIAlrdm1fd3JpdGVfZ3Vlc3Rf
-Y2FjaGVkKHZjcHUtPmt2bSwgJnZjcHUtPmFyY2guc3Quc3RpbWUsCi0tIAoyLjMuNQoKX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KTGludXhwcGMtZGV2IG1h
-aWxpbmcgbGlzdApMaW51eHBwYy1kZXZAbGlzdHMub3psYWJzLm9yZwpodHRwczovL2xpc3RzLm96
-bGFicy5vcmcvbGlzdGluZm8vbGludXhwcGMtZGV2
+Report guest steal time in host task statistics. On x86, this is just
+the scheduler run_delay.
+
+Signed-off-by: Naveen N. Rao <naveen.n.rao@linux.vnet.ibm.com>
+---
+ arch/x86/kvm/x86.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
+index 0ee725f..737b0e4 100644
+--- a/arch/x86/kvm/x86.c
++++ b/arch/x86/kvm/x86.c
+@@ -2094,6 +2094,7 @@ static void record_steal_time(struct kvm_vcpu *vcpu)
+ 
+ 	vcpu->arch.st.steal.steal += vcpu->arch.st.accum_steal;
+ 	vcpu->arch.st.steal.version += 2;
++	current->gstime += vcpu->arch.st.accum_steal;
+ 	vcpu->arch.st.accum_steal = 0;
+ 
+ 	kvm_write_guest_cached(vcpu->kvm, &vcpu->arch.st.stime,
+-- 
+2.3.5
