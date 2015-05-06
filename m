@@ -1,129 +1,215 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH] arm64: Preserve the user r/w register tpidr_el0 on
- context switch and fork in compat mode
-Date: Wed, 6 May 2015 18:05:03 +0100
-Message-ID: <20150506170503.GF14922@arm.com>
-References: <55464BB2.7030401@dawncrow.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <55464BB2.7030401@dawncrow.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: =?iso-8859-1?Q?Andr=E9?= Hentschel <nerv@dawncrow.de>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Jonathan Austin <Jonathan.Austin@arm.com>, Nathan Lynch <nathan_lynch@mentor.com>
-List-Id: linux-arch.vger.kernel.org
+From: David Hildenbrand <dahi@linux.vnet.ibm.com>
+Subject: [PATCH RFC 00/15] decouple pagefault_disable() from preempt_disable()
+Date: Wed,  6 May 2015 19:50:24 +0200
+Message-ID: <1430934639-2131-1-git-send-email-dahi@linux.vnet.ibm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:37158 "EHLO
+	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751052AbbEFRus (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 May 2015 13:50:48 -0400
+Received: from /spool/local
+	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
+	Wed, 6 May 2015 18:50:46 +0100
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: dahi@linux.vnet.ibm.com, mingo@redhat.com, peterz@infradead.org, yang.shi@windriver.com, bigeasy@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org
 
-On Sun, May 03, 2015 at 05:24:18PM +0100, Andr=E9 Hentschel wrote:
-> From: Andr=E9 Hentschel <nerv@dawncrow.de>
->=20
-> Since commit a4780adeefd042482f624f5e0d577bf9cdcbb760 the user writea=
-ble TLS
-> register on ARM is preserved per thread.
->=20
-> This patch does it analogous to the ARM patch, but for compat mode on=
- ARM64.
->=20
-> Signed-off-by: Andr=E9 Hentschel <nerv@dawncrow.de>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: Jonathan Austin <jonathan.austin@arm.com>=20
->=20
-> ---
-> This patch is against Linux 4.1-rc1 (b787f68c36d49bb1d9236f403813641e=
-fa74a031)
->=20
-> diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/=
-asm/processor.h
-> index 20e9591..cd7b8c9 100644
-> --- a/arch/arm64/include/asm/processor.h
-> +++ b/arch/arm64/include/asm/processor.h
-> @@ -78,7 +78,7 @@ struct cpu_context {
-> =20
->  struct thread_struct {
->  	struct cpu_context	cpu_context;	/* cpu context */
-> -	unsigned long		tp_value;
-> +	unsigned long		tp_value[2];	/* TLS registers */
+As Peter asked me to also do the decoupling in one shot, this is
+the new series.
 
-I think I'd rather have a separate field for the user-writable TLS,
-predicated on #ifdef COMPAT. It also removes confusion between the two =
-tls
-registers, which are also present on arm64.
+I recently discovered that might_fault() doesn't call might_sleep()
+anymore. Therefore bugs like:
 
->  	struct fpsimd_state	fpsimd_state;
->  	unsigned long		fault_address;	/* fault info */
->  	unsigned long		fault_code;	/* ESR_EL1 value */
-> diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.=
-c
-> index c6b1f3b..fc7cc6bc 100644
-> --- a/arch/arm64/kernel/process.c
-> +++ b/arch/arm64/kernel/process.c
-> @@ -218,7 +218,8 @@ static void tls_thread_flush(void)
->  	asm ("msr tpidr_el0, xzr");
-> =20
->  	if (is_compat_task()) {
-> -		current->thread.tp_value =3D 0;
-> +		current->thread.tp_value[0] =3D 0;
-> +		current->thread.tp_value[1] =3D 0;
-> =20
->  		/*
->  		 * We need to ensure ordering between the shadow state and the
-> @@ -254,7 +255,7 @@ int copy_thread(unsigned long clone_flags, unsign=
-ed long stack_start,
->  		unsigned long stk_sz, struct task_struct *p)
->  {
->  	struct pt_regs *childregs =3D task_pt_regs(p);
-> -	unsigned long tls =3D p->thread.tp_value;
-> +	unsigned long tls =3D p->thread.tp_value[0];
-> =20
->  	memset(&p->thread.cpu_context, 0, sizeof(struct cpu_context));
-> =20
-> @@ -283,6 +284,11 @@ int copy_thread(unsigned long clone_flags, unsig=
-ned long stack_start,
->  		 */
->  		if (clone_flags & CLONE_SETTLS)
->  			tls =3D childregs->regs[3];
-> +		if (is_compat_thread(task_thread_info(p))) {
-> +			unsigned long tpuser;
-> +			asm("mrs %0, tpidr_el0" : "=3Dr" (tpuser));
-> +			p->thread.tp_value[1] =3D tpuser;
-> +		}
+  spin_lock(&lock);
+  rc = copy_to_user(...);
+  spin_unlock(&lock);
 
-Can't this hunk be in the is_compat_thread(...) block slightly earlier
-on in the function? In fact, we're reading tpidr_el0 for both the compa=
-t and
-native cases, so really this all be unconditional.
+would not be detected with CONFIG_DEBUG_ATOMIC_SLEEP. The code was
+changed to disable false positives for code like:
 
->  	} else {
->  		memset(childregs, 0, sizeof(struct pt_regs));
->  		childregs->pstate =3D PSR_MODE_EL1h;
-> @@ -291,7 +297,7 @@ int copy_thread(unsigned long clone_flags, unsign=
-ed long stack_start,
->  	}
->  	p->thread.cpu_context.pc =3D (unsigned long)ret_from_fork;
->  	p->thread.cpu_context.sp =3D (unsigned long)childregs;
-> -	p->thread.tp_value =3D tls;
-> +	p->thread.tp_value[0] =3D tls;
-> =20
->  	ptrace_hw_copy_thread(p);
-> =20
-> @@ -302,16 +308,17 @@ static void tls_thread_switch(struct task_struc=
-t *next)
->  {
->  	unsigned long tpidr, tpidrro;
-> =20
-> -	if (!is_compat_task()) {
-> -		asm("mrs %0, tpidr_el0" : "=3Dr" (tpidr));
-> -		current->thread.tp_value =3D tpidr;
-> -	}
-> +	asm("mrs %0, tpidr_el0" : "=3Dr" (tpidr));
-> +	if (is_compat_task())
-> +		current->thread.tp_value[1] =3D tpidr;
-> +	else
-> +		current->thread.tp_value[0] =3D tpidr;
+  pagefault_disable();
+  rc = copy_to_user(...);
+  pagefault_enable();
 
-Maybe we could have a macro thread_user_tls(thread) so that we could ju=
-st
-do thread_user_tls(current->thread) =3D tpidr;
+Whereby the caller wants do deal with failures.
 
-Will
+If we schedule while holding a spinlock, bad things can happen.
+Preemption is disabled, but we still preempt - on s390 this can lead
+to spinlocks never getting unlocked (as unlocking code checks for the
+cpu id that locke the spinlock), therefore resulting in a deadlock.
+
+Until now, pagefault_(dis|en)nable) simply modified the preempt count,
+therefore telling the pagefault handler that the context is atomic and
+sleeping is disallowed.
+
+With !CONFIG_PREEMPT_COUNT, the preempt count does not exist.
+So preempt_disable() as well es pagefault_disable() is a NOP.
+in_atomic() checks the preempt count. So we can't detect in_atomic on
+systems without preemption.
+That is also mentioned in the comment of in_atomic():
+
+  "WARNING: this macro cannot always detect atomic context; in particular,
+   it cannot know about held spinlocks in non-preemptible kernels."
+
+We automatically have !CONFIG_PREEMPT_COUNT with !CONFIG_PREEMPT
+and !CONFIG_DEBUG_ATOMIC_SLEEP, so on a system with disabled pagefaults.
+
+All fault handlers currently rely on in_atomic() to check for disabled
+pagefaults.
+
+This series therefore does 2 things:
+
+
+1. Decouple pagefault_disable() from preempt_enable()
+
+pagefault_(dis|en)able() modifies an own counter and doesn't touch
+preemption anymore. The fault handlers now only check for
+disabled pagefaults.
+
+I checked (hopefully) every caller of pagefault_disable(), if they
+implicitly rely on preempt_disable() -  and if so added these calls.
+Hope I haven't missed some cases.
+
+I didn't check all users of preempt_disable() if they relied on them
+disabling pagefaults. My assumption is that such code is broken
+either way (on non-preemptible systems). Pagefaults would only be
+disabled with CONFIG_PREEMPT_COUNT.
+
+I also thought about leaving the in_atomic() check inside the
+fault handlers in addition to the new check. In my opinion that
+can only hide bugs that would happen with !CONFIG_PREEMPT_COUNT.
+
+We could even add a warning at that place like
+  WARN_ONCE(in_atomic() && !pagefault_disabled())
+
+But most of these cases should be found with the following part.
+
+
+2. Reenable might_sleep() checks for might_fault()
+
+As we can now decide if we really have pagefaults disabled,
+we can reenable the might_sleep() check in might_fault().
+
+So this should now work:
+
+  spin_lock(&lock); /* also if left away */
+  pagefault_disable()
+  rc = copy_to_user(...);
+  pagefault_enable();
+  spin_unlock(&lock);
+
+And this should report a warning again:
+
+  spin_lock(&lock);
+  rc = copy_to_user(...);
+  spin_unlock(&lock);
+
+
+Cross compiled on powerpc, arm, sparc, sparc64, arm64, x86_64, i386,
+mips, alpha, ia64, xtensa, m68k, microblaze.
+
+Tested on s390x.
+
+Any feedback very welcome!
+
+Thanks!
+
+
+David Hildenbrand (15):
+  uaccess: count pagefault_disable() levels in pagefault_disabled
+  mm, uaccess: trigger might_sleep() in might_fault() with disabled
+    pagefaults
+  uaccess: clarify that uaccess may only sleep if pagefaults are enabled
+  mm: explicitly disable/enable preemption in kmap_atomic_*
+  mips: kmap_coherent relies on disabled preemption
+  mm: use pagefault_disabled() to check for disabled pagefaults
+  drm/i915: use pagefault_disabled() to check for disabled pagefaults
+  futex: UP futex_atomic_op_inuser() relies on disabled preemption
+  futex: UP futex_atomic_cmpxchg_inatomic() relies on disabled
+    preemption
+  arm/futex: UP futex_atomic_cmpxchg_inatomic() relies on disabled
+    preemption
+  arm/futex: UP futex_atomic_op_inuser() relies on disabled preemption
+  futex: clarify that preemption doesn't have to be disabled
+  powerpc: enable_kernel_altivec() requires disabled preemption
+  mips: properly lock access to the fpu
+  uaccess: decouple preemption from the pagefault logic
+
+ arch/alpha/mm/fault.c                      |  5 ++--
+ arch/arc/include/asm/futex.h               | 10 +++----
+ arch/arc/mm/fault.c                        |  2 +-
+ arch/arm/include/asm/futex.h               | 13 +++++++--
+ arch/arm/mm/fault.c                        |  2 +-
+ arch/arm/mm/highmem.c                      |  3 ++
+ arch/arm64/include/asm/futex.h             |  4 +--
+ arch/arm64/mm/fault.c                      |  2 +-
+ arch/avr32/include/asm/uaccess.h           | 12 +++++---
+ arch/avr32/mm/fault.c                      |  4 +--
+ arch/cris/mm/fault.c                       |  4 +--
+ arch/frv/mm/fault.c                        |  4 +--
+ arch/frv/mm/highmem.c                      |  2 ++
+ arch/hexagon/include/asm/uaccess.h         |  3 +-
+ arch/ia64/mm/fault.c                       |  4 +--
+ arch/m32r/include/asm/uaccess.h            | 30 +++++++++++++-------
+ arch/m32r/mm/fault.c                       |  4 +--
+ arch/m68k/mm/fault.c                       |  4 +--
+ arch/metag/mm/fault.c                      |  2 +-
+ arch/metag/mm/highmem.c                    |  4 ++-
+ arch/microblaze/include/asm/uaccess.h      |  6 ++--
+ arch/microblaze/mm/fault.c                 |  6 ++--
+ arch/microblaze/mm/highmem.c               |  4 ++-
+ arch/mips/include/asm/uaccess.h            | 45 ++++++++++++++++++++----------
+ arch/mips/kernel/signal-common.h           |  9 ++----
+ arch/mips/mm/fault.c                       |  4 +--
+ arch/mips/mm/highmem.c                     |  5 +++-
+ arch/mips/mm/init.c                        |  2 ++
+ arch/mn10300/include/asm/highmem.h         |  3 ++
+ arch/mn10300/mm/fault.c                    |  4 +--
+ arch/nios2/mm/fault.c                      |  2 +-
+ arch/parisc/include/asm/cacheflush.h       |  2 ++
+ arch/parisc/kernel/traps.c                 |  4 +--
+ arch/parisc/mm/fault.c                     |  4 +--
+ arch/powerpc/lib/vmx-helper.c              | 11 ++++----
+ arch/powerpc/mm/fault.c                    |  9 +++---
+ arch/powerpc/mm/highmem.c                  |  4 ++-
+ arch/s390/include/asm/uaccess.h            | 15 ++++++----
+ arch/s390/mm/fault.c                       |  2 +-
+ arch/score/include/asm/uaccess.h           | 15 ++++++----
+ arch/score/mm/fault.c                      |  3 +-
+ arch/sh/mm/fault.c                         |  3 +-
+ arch/sparc/mm/fault_32.c                   |  4 +--
+ arch/sparc/mm/fault_64.c                   |  4 +--
+ arch/sparc/mm/highmem.c                    |  4 ++-
+ arch/sparc/mm/init_64.c                    |  2 +-
+ arch/tile/include/asm/uaccess.h            | 18 ++++++++----
+ arch/tile/mm/fault.c                       |  4 +--
+ arch/tile/mm/highmem.c                     |  3 +-
+ arch/um/kernel/trap.c                      |  4 +--
+ arch/unicore32/mm/fault.c                  |  2 +-
+ arch/x86/include/asm/uaccess.h             | 15 ++++++----
+ arch/x86/include/asm/uaccess_32.h          |  6 ++--
+ arch/x86/lib/usercopy_32.c                 |  6 ++--
+ arch/x86/mm/fault.c                        |  5 ++--
+ arch/x86/mm/highmem_32.c                   |  3 +-
+ arch/x86/mm/iomap_32.c                     |  2 ++
+ arch/xtensa/mm/fault.c                     |  4 +--
+ arch/xtensa/mm/highmem.c                   |  2 ++
+ drivers/crypto/vmx/aes.c                   |  8 +++++-
+ drivers/crypto/vmx/aes_cbc.c               |  6 ++++
+ drivers/crypto/vmx/ghash.c                 |  8 ++++++
+ drivers/gpu/drm/i915/i915_gem_execbuffer.c |  3 +-
+ include/asm-generic/futex.h                |  7 +++--
+ include/linux/highmem.h                    |  2 ++
+ include/linux/io-mapping.h                 |  2 ++
+ include/linux/kernel.h                     |  3 +-
+ include/linux/sched.h                      |  1 +
+ include/linux/uaccess.h                    | 36 +++++++++++++++---------
+ kernel/fork.c                              |  3 ++
+ lib/strnlen_user.c                         |  6 ++--
+ mm/memory.c                                | 18 ++++--------
+ 72 files changed, 302 insertions(+), 169 deletions(-)
+
+-- 
+2.1.4
