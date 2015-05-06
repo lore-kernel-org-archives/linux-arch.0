@@ -1,16 +1,24 @@
 From: "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>
 Subject: [PATCH 3/3] kvm/powerpc: report guest steal time in host
 Date: Wed,  6 May 2015 16:28:45 +0530
-Message-ID: <38967aead35e9772f2f49ef80a069476dccdbe5d.1429696326.git.naveen.n.rao__39267.2317605049$1430909983$gmane$org@linux.vnet.ibm.com>
+Message-ID: <38967aead35e9772f2f49ef80a069476dccdbe5d.1429696326.git.naveen.n.rao__16220.9242386327$1430909996$gmane$org@linux.vnet.ibm.com>
 References: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e28smtp08.in.ibm.com ([122.248.162.8]:48458 "EHLO
+	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751591AbbEFK66 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 May 2015 06:58:58 -0400
+Received: from /spool/local
+	by e28smtp08.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <naveen.n.rao@linux.vnet.ibm.com>;
+	Wed, 6 May 2015 16:28:55 +0530
 In-Reply-To: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
 In-Reply-To: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
 References: <cover.1429696326.git.naveen.n.rao@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org
 Cc: paulus@samba.org, mpe@ellerman.id.au, agraf@suse.de, mingo@redhat.com, ego@linux.vnet.ibm.com
-List-Id: linux-arch.vger.kernel.org
 
 On powerpc, kvm tracks both the guest steal time as well as the time
 when guest was idle and this gets sent in to the guest through DTL. The
