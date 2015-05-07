@@ -1,66 +1,46 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH RFC 00/15] decouple pagefault_disable() from
- preempt_disable()
-Date: Thu, 7 May 2015 11:48:19 +0200
-Message-ID: <20150507094819.GC4734@gmail.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH RFC 01/15] uaccess: count pagefault_disable() levels in
+ pagefault_disabled
+Date: Thu, 7 May 2015 12:22:54 +0200
+Message-ID: <20150507102254.GE23123@twins.programming.kicks-ass.net>
 References: <1430934639-2131-1-git-send-email-dahi@linux.vnet.ibm.com>
- <20150506150158.0a927470007e8ea5f3278956@linux-foundation.org>
+ <1430934639-2131-2-git-send-email-dahi@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20150506150158.0a927470007e8ea5f3278956@linux-foundation.org>
+In-Reply-To: <1430934639-2131-2-git-send-email-dahi@linux.vnet.ibm.com>
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: David Hildenbrand <dahi@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, mingo@redhat.com, peterz@infradead.org, yang.shi@windriver.com, bigeasy@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org
+To: David Hildenbrand <dahi@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, mingo@redhat.com, yang.shi@windriver.com, bigeasy@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+On Wed, May 06, 2015 at 07:50:25PM +0200, David Hildenbrand wrote:
+> +/*
+> + * Is the pagefault handler disabled? If so, user access methods will not sleep.
+> + */
+> +#define pagefault_disabled() (current->pagefault_disabled != 0)
 
-* Andrew Morton <akpm@linux-foundation.org> wrote:
+So -RT has:
 
-> On Wed,  6 May 2015 19:50:24 +0200 David Hildenbrand <dahi@linux.vnet.ibm.com> wrote:
-> 
-> > As Peter asked me to also do the decoupling in one shot, this is
-> > the new series.
-> > 
-> > I recently discovered that might_fault() doesn't call might_sleep()
-> > anymore. Therefore bugs like:
-> > 
-> >   spin_lock(&lock);
-> >   rc = copy_to_user(...);
-> >   spin_unlock(&lock);
-> > 
-> > would not be detected with CONFIG_DEBUG_ATOMIC_SLEEP. The code was
-> > changed to disable false positives for code like:
-> > 
-> >   pagefault_disable();
-> >   rc = copy_to_user(...);
-> >   pagefault_enable();
-> > 
-> > Whereby the caller wants do deal with failures.
-> 
-> hm, that was a significant screwup.  I wonder how many bugs we
-> subsequently added.
+static inline bool pagefault_disabled(void)
+{
+	return current->pagefault_disabled || in_atomic();
+}
 
-So I'm wondering what the motivation was to allow things like:
+AFAICR we did this to avoid having to do both:
 
-   pagefault_disable();
-   rc = copy_to_user(...);
-   pagefault_enable();
+	preempt_disable();
+	pagefault_disable();
 
-and to declare it a false positive?
+in a fair number of places -- just like this patch-set does, this is
+touching two cachelines where one would have been enough.
 
-AFAICS most uses are indeed atomic:
+Also, removing in_atomic() from fault handlers like you did
+significantly changes semantics for interrupts (soft, hard and NMI).
 
-        pagefault_disable();
-        ret = futex_atomic_cmpxchg_inatomic(curval, uaddr, uval, newval);
-        pagefault_enable();
-
-so why not make it explicitly atomic again?
-
-Thanks,
-
-	Ingo
+So while I agree with most of these patches, I'm very hesitant on the
+above little detail.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
