@@ -1,50 +1,69 @@
-From: Dan Carpenter <dan.carpenter@oracle.com>
-Subject: Re: [PATCH 2/3] string: provide strscpy() and strscpy_truncate()
-Date: Thu, 7 May 2015 12:00:34 +0300
-Message-ID: <20150507090034.GV16501@mwanda>
-References: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com>
- <1430409677-13284-3-git-send-email-cmetcalf@ezchip.com>
- <20150506150140.GB12986@mwanda>
- <554A3161.3030609@ezchip.com>
- <20150506155951.GS16501@mwanda>
- <CAMuHMdUuaRGn10_k+Gm7vG5P_=QfSw7Mao3oB_u2Poy=PeiGtg@mail.gmail.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH RFC 00/15] decouple pagefault_disable() from
+ preempt_disable()
+Date: Thu, 7 May 2015 11:48:19 +0200
+Message-ID: <20150507094819.GC4734@gmail.com>
+References: <1430934639-2131-1-git-send-email-dahi@linux.vnet.ibm.com>
+ <20150506150158.0a927470007e8ea5f3278956@linux-foundation.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:48665 "EHLO
-	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750959AbbEGJBk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 May 2015 05:01:40 -0400
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <CAMuHMdUuaRGn10_k+Gm7vG5P_=QfSw7Mao3oB_u2Poy=PeiGtg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Chris Metcalf <cmetcalf@ezchip.com>, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Fabian Frederick <fabf@skynet.be>, Randy Dunlap <rdunlap@infradead.org>, Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>, Greg KH <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, "David S. Miller" <davem@davemloft.net>, Frederic Weisbecker <fweisbec@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Theodore Ts'o <tytso@mit.edu>, Grant Likely <grant.likely@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+In-Reply-To: <20150506150158.0a927470007e8ea5f3278956@linux-foundation.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: David Hildenbrand <dahi@linux.vnet.ibm.com>, linux-kernel@vger.kernel.org, mingo@redhat.com, peterz@infradead.org, yang.shi@windriver.com, bigeasy@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 06, 2015 at 06:45:56PM +0200, Geert Uytterhoeven wrote:
-> On Wed, May 6, 2015 at 5:59 PM, Dan Carpenter <dan.carpenter@oracle.com> wrote:
-> > We actually do have a __must_check tag so it's easy enough to force
-> > people to check.  A different option is we could make it trigger a
+
+* Andrew Morton <akpm@linux-foundation.org> wrote:
+
+> On Wed,  6 May 2015 19:50:24 +0200 David Hildenbrand <dahi@linux.vnet.ibm.com> wrote:
 > 
-> People tend to ignore compiler warnings...
-
-We're doing a lot better these days with zero day build testing.  There
-is not even one ignored __must_check return in my allmodconfig.
-
+> > As Peter asked me to also do the decoupling in one shot, this is
+> > the new series.
+> > 
+> > I recently discovered that might_fault() doesn't call might_sleep()
+> > anymore. Therefore bugs like:
+> > 
+> >   spin_lock(&lock);
+> >   rc = copy_to_user(...);
+> >   spin_unlock(&lock);
+> > 
+> > would not be detected with CONFIG_DEBUG_ATOMIC_SLEEP. The code was
+> > changed to disable false positives for code like:
+> > 
+> >   pagefault_disable();
+> >   rc = copy_to_user(...);
+> >   pagefault_enable();
+> > 
+> > Whereby the caller wants do deal with failures.
 > 
-> > WARN_ONCE().
-> >
-> > #define strXcpy(dest, src, len) (({                             \
-> >         ssize_t __ret = strscpy_truncate(dest, src, len);       \
-> >         WARN_ONCE(__ret < 0, "strXcpy trancates\n");            \
-> >         __ret; }))
-> 
-> Which will probably trigger only in extreme cases in the wild, not during
-> development.
+> hm, that was a significant screwup.  I wonder how many bugs we
+> subsequently added.
 
-It's less subtle than just putting an empty string there so we're more
-likely to get bug reports than with the original code.
+So I'm wondering what the motivation was to allow things like:
 
-regards,
-dan carpenter
+   pagefault_disable();
+   rc = copy_to_user(...);
+   pagefault_enable();
+
+and to declare it a false positive?
+
+AFAICS most uses are indeed atomic:
+
+        pagefault_disable();
+        ret = futex_atomic_cmpxchg_inatomic(curval, uaddr, uval, newval);
+        pagefault_enable();
+
+so why not make it explicitly atomic again?
+
+Thanks,
+
+	Ingo
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
