@@ -1,60 +1,101 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH RFC 01/15] uaccess: count pagefault_disable() levels in
- pagefault_disabled
-Date: Thu, 7 May 2015 13:51:18 +0200
-Message-ID: <20150507115118.GT21418@twins.programming.kicks-ass.net>
-References: <1430934639-2131-1-git-send-email-dahi@linux.vnet.ibm.com>
- <1430934639-2131-2-git-send-email-dahi@linux.vnet.ibm.com>
- <20150507102254.GE23123@twins.programming.kicks-ass.net>
- <20150507125053.5d2e8f0a@thinkpad-w530>
- <20150507111231.GF23123@twins.programming.kicks-ass.net>
- <20150507134030.137deeb2@thinkpad-w530>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: Re: [PATCH 3/3] kvm/powerpc: report guest steal time in host
+Date: Thu, 07 May 2015 14:04:18 +0200
+Message-ID: <554B54C2.70903@de.ibm.com>
+References: <cover.1430913087.git.naveen.n.rao@linux.vnet.ibm.com> <c0db7eafdd13fcec26a0398e2ad0b7225c3998e9.1430913088.git.naveen.n.rao@linux.vnet.ibm.com> <554A0D0D.8090209@de.ibm.com> <20150506164215.GB26540@naverao1-tp.in.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20150507134030.137deeb2@thinkpad-w530>
-Sender: owner-linux-mm@kvack.org
-To: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, mingo@redhat.com, yang.shi@windriver.com, bigeasy@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:46474 "EHLO
+	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751429AbbEGMEY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 May 2015 08:04:24 -0400
+Received: from /spool/local
+	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+	Thu, 7 May 2015 13:04:23 +0100
+In-Reply-To: <20150506164215.GB26540@naverao1-tp.in.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Naveen N. Rao" <naveen.n.rao@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, paulus@samba.org, mpe@ellerman.id.au, agraf@suse.de, mingo@redhat.com, ego@linux.vnet.ibm.com, warrier@linux.vnet.ibm.com
 
-On Thu, May 07, 2015 at 01:40:30PM +0200, David Hildenbrand wrote:
-> But anyhow, opinions seem to differ how to best handle that whole stuff.
+Am 06.05.2015 um 18:42 schrieb Naveen N. Rao:
+> On 2015/05/06 02:46PM, Christian Borntraeger wrote:
+>> Am 06.05.2015 um 13:56 schrieb Naveen N. Rao:
+>>> On powerpc, kvm tracks both the guest steal time as well as the time
+>>> when guest was idle and this gets sent in to the guest through DTL. The
+>>> guest accounts these entries as either steal time or idle time based on
+>>> the last running task. Since the true guest idle status is not visible
+>>> to the host, we can't accurately expose the guest steal time in the
+>>> host.
+>>>
+>>> However, tracking the guest vcpu cede status can get us a reasonable
+>>> (within 5% variation) vcpu steal time since guest vcpus cede the
+>>> processor on entering the idle task. To do this, we introduce a new
+>>> field ceded_st in kvm_vcpu_arch structure to accurately track the guest
+>>> vcpu cede status (this is needed since the existing ceded field is
+>>> modified before we can use it). During DTL entry creation, we check this
+>>> flag and account the time as stolen if the guest vcpu had not ceded.
+>>
+>> I think this is more or less a question about the semantic:
+>>
+>> What would happen if you use  current->sched_info.run_delay like x86 also
+>> on power? How far are the numbers away?
 > 
-> I think a separate counter just makes sense, as we are dealing with two
-> different concepts and we don't want to lose the preempt_disable =^ NOP
-> for !CONFIG_PREEMPT.
+> The numbers were quite off and didn't quite make sense.
+
+Strange. I would expect to match at least the wall clock time between
+runnable and running. Maybe its just a bug?
+
+
 > 
-> I also think that
+>> My feeling is, that the semantics
+>> of "steal time" inside the guest is somewhat different on each platform. 
+>>
+>> This brings me to a 2nd question:
+>> Do you need to match the host view of guest steal time with the guest view
+>> or do we want to have a host view that translates as "this is the time that
+>> the guest was runnable but we were too busy to schedule him"?
 > 
-> pagefault_disable()
-> rt = copy_from_user()
-> pagefault_enable()
+> Very good point. This is probably good enough for our purpose and I'd 
+> like to think my current patchset does something similar for powerpc. We 
+> don't report the exact steal time as seen from within the guest, but a 
+> close approximation of it. We count all time that a vcpu was not-idle as 
+> steal. This includes time we were doing something in the host on behalf 
+> of the vcpu as well as time when we were just doing something else. I 
+> don't know if we can separate these two or if that would be desirable.  
+> The scheduler statistics don't seem to accurately reflect this on ppc.
 > 
-> is a valid use case.
+>> For the former x86 has the best solution, as the host tells the guest its
+>> understanding of steal - so both match. For the latter we actually try to
+>> give guest steal a meaning in the host context  - the overload.
+>> Would /proc/<pid>/schedstat value 2 (time spent waiting on a runqueue)
+>> meet your requirements from the cover-letter?
 > 
-> So any suggestions how to continue?
+> This looks to be the same as sched_info.run_delay, which doesn't seem to 
+> reflect the wait on the runqueue. I will recheck this on ppc tomorrow.
+> 
+> As an aside, do you happen to know if /proc/<pid>/schedstat accurately 
+> reports the "overload" on s390?
 
+Things are usually even more complicated as we always have the LPAR hypervisor
+below the KVM or z/VM hypervisor (KVM or z/VM guests are always nested so to
+speak). Depending on the overcommit on LPAR level the wall clock times might 
+indicate a problem in a "wrong" place. 
 
-static inline bool __pagefault_disabled(void)
-{
-	return current->pagefault_disabled;
-}
+Now the steal time in a kvm guest is actually precise as the hardware will
+step the guest cpu timer only when both LPAR and KVM have this CPU scheduled.
+This will also cause "steal" when KVM emulates an instruction for the guest - 
+unless we correct the guest view - which we dont right now.
+The Linux in LPAR also sees the steal time it got stolen by LPAR.
 
-static inline bool pagefault_disabled(void)
-{
-	return in_atomic() || __pagefault_disabled();
-}
+I really have not looked closely at run_delay. My assumption is that
+it boils down to "wall clock time between runnable and running". If the
+admin does overcommit in KVM and LPAR is just slightly  overcommitted this
+is probably good enough. If the overcommit happens at LPAR then the value
+might be confusing. I would assume that people overcommit at the z/VM or KVM
+level and the LPAR is managed with less overcommit - but thats not a given.
 
-And leave the preempt_disable() + pagefault_disable() for now. You're
-right in that that is clearest.
-
-If we ever get to the point where that really is an issue, I'll try and
-be clever then :-)
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Christian
