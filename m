@@ -1,62 +1,51 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH RFC 01/15] uaccess: count pagefault_disable() levels in
- pagefault_disabled
-Date: Thu, 7 May 2015 14:32:08 +0200
-Message-ID: <20150507123208.GJ23123@twins.programming.kicks-ass.net>
-References: <1430934639-2131-1-git-send-email-dahi@linux.vnet.ibm.com>
- <1430934639-2131-2-git-send-email-dahi@linux.vnet.ibm.com>
- <20150507102254.GE23123@twins.programming.kicks-ass.net>
- <20150507125053.5d2e8f0a@thinkpad-w530>
- <20150507111231.GF23123@twins.programming.kicks-ass.net>
- <20150507134030.137deeb2@thinkpad-w530>
- <20150507115118.GT21418@twins.programming.kicks-ass.net>
- <20150507141439.160cb979@thinkpad-w530>
+From: Chris Metcalf <cmetcalf@ezchip.com>
+Subject: Re: [PATCH 2/3] string: provide strscpy() and strscpy_truncate()
+Date: Thu, 7 May 2015 11:10:55 -0400
+Message-ID: <554B807F.60902@ezchip.com>
+References: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com> <1430409677-13284-3-git-send-email-cmetcalf@ezchip.com> <20150506150140.GB12986@mwanda> <554A3161.3030609@ezchip.com> <20150506155951.GS16501@mwanda> <CAMuHMdUuaRGn10_k+Gm7vG5P_=QfSw7Mao3oB_u2Poy=PeiGtg@mail.gmail.com> <20150507090034.GV16501@mwanda>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:41451 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750806AbbEGMch (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 May 2015 08:32:37 -0400
-Content-Disposition: inline
-In-Reply-To: <20150507141439.160cb979@thinkpad-w530>
+Received: from mail-am1on0100.outbound.protection.outlook.com ([157.56.112.100]:20000
+	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751040AbbEGPLR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 May 2015 11:11:17 -0400
+In-Reply-To: <20150507090034.GV16501@mwanda>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Cc: linux-kernel@vger.kernel.org, mingo@redhat.com, yang.shi@windriver.com, bigeasy@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org
+To: Dan Carpenter <dan.carpenter@oracle.com>, Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Fabian Frederick <fabf@skynet.be>, Randy Dunlap <rdunlap@infradead.org>, Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>, Greg KH <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, "David S. Miller" <davem@davemloft.net>, Frederic Weisbecker <fweisbec@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Theodore Ts'o <tytso@mit.edu>, Grant Likely <grant.likely@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Thu, May 07, 2015 at 02:14:39PM +0200, David Hildenbrand wrote:
-> Thanks :), well just to make sure I got your opinion on this correctly:
-> 
-> 1. You think that 2 counters is the way to go for now
+On 05/07/2015 05:00 AM, Dan Carpenter wrote:
+> On Wed, May 06, 2015 at 06:45:56PM +0200, Geert Uytterhoeven wrote:
+>> On Wed, May 6, 2015 at 5:59 PM, Dan Carpenter <dan.carpenter@oracle.com> wrote:
+>>> We actually do have a __must_check tag so it's easy enough to force
+>>> people to check.  A different option is we could make it trigger a
+>> People tend to ignore compiler warnings...
+> We're doing a lot better these days with zero day build testing.  There
+> is not even one ignored __must_check return in my allmodconfig.
 
-ack
+If we keep the strscpy/strscpy_truncate distinction, I agree that having
+__must_check on strscpy seems like a good idea.
 
-> 2. You agree that we can't replace preempt_disable()+pagefault_disable() with
-> preempt_disable() (CONFIG_PREEMPT stuff), so we need to have them separately
+>>> WARN_ONCE().
+>>>
+>>> #define strXcpy(dest, src, len) (({                             \
+>>>          ssize_t __ret = strscpy_truncate(dest, src, len);       \
+>>>          WARN_ONCE(__ret < 0, "strXcpy trancates\n");            \
+>>>          __ret; }))
+>> Which will probably trigger only in extreme cases in the wild, not during
+>> development.
+> It's less subtle than just putting an empty string there so we're more
+> likely to get bug reports than with the original code.
 
-ack
+The problem with WARN_ONCE() here is that we may be using strscpy()
+to take user input of some kind.  If so, we don't want to warn if we
+are truncating the string - we just want to return a suitable error up
+the call stack.
 
-> 3. We need in_atomic() (in the fault handlers only!) in addition to make sure we
-> don't mess with irq contexts (In that case I would add a good comment to that
-> place, describing why preempt_disable() won't help)
-
-ack
-
-> I think this is the right way to go because:
-> 
-> a) This way we don't have to modify preempt_disable() logic (including
-> PREEMPT_COUNT).
-> 
-> b) There are not that many users relying on
-> preempt_disable()+pagefault_disable()  (compared to pure preempt_disable() or
-> pagefault_disable() users), so the performance overhead of two cache lines
-> should be small. Users only making use of one of them should see no difference
-> in performance.
-
-indeed.
-
-> c) We correctly decouple preemption and pagefault logic. Therefore we can now
-> preempt when pagefaults are disabled, which feels right.
-
-Right, that's always been the intent of introducing pagefault_disable().
+-- 
+Chris Metcalf, EZChip Semiconductor
+http://www.ezchip.com
