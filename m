@@ -1,12 +1,12 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v11 02/19] mksysmap: Add h8300 local symbol pattern
-Date: Sat,  9 May 2015 00:04:22 +0900
-Message-ID: <1431097479-21101-3-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v11 03/19] Add ELF machine
+Date: Sat,  9 May 2015 00:04:23 +0900
+Message-ID: <1431097479-21101-4-git-send-email-ysato@users.sourceforge.jp>
 References: <1431097479-21101-1-git-send-email-ysato@users.sourceforge.jp>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.asahi-net.or.jp ([202.224.39.198]:14384 "EHLO
-	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752963AbbEHPEw (ORCPT
+Received: from mail1.asahi-net.or.jp ([202.224.39.197]:53457 "EHLO
+	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752907AbbEHPEw (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 May 2015 11:04:52 -0400
 In-Reply-To: <1431097479-21101-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
@@ -14,29 +14,22 @@ List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 
-h8300's nm output have a lot of local symbols.
-ex)
-00000000 N .Lframe0
-00000013 N .LLST1
-00000026 N .LLST2
-00000039 N .LLST3
-0000004c N .LLST4
-Added new pattern " .L" to filter rule.
-
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- scripts/mksysmap | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/uapi/linux/elf-em.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/scripts/mksysmap b/scripts/mksysmap
-index 7ada35a..a35acc0 100755
---- a/scripts/mksysmap
-+++ b/scripts/mksysmap
-@@ -41,4 +41,4 @@
- # so we just ignore them to let readprofile continue to work.
- # (At least sparc64 has __crc_ in the middle).
- 
--$NM -n $1 | grep -v '\( [aNUw] \)\|\(__crc_\)\|\( \$[adt]\)' > $2
-+$NM -n $1 | grep -v '\( [aNUw] \)\|\(__crc_\)\|\( \$[adt]\)\|\( .L\)' > $2
+diff --git a/include/uapi/linux/elf-em.h b/include/uapi/linux/elf-em.h
+index ae99f77..b088296 100644
+--- a/include/uapi/linux/elf-em.h
++++ b/include/uapi/linux/elf-em.h
+@@ -25,6 +25,7 @@
+ #define EM_ARM		40	/* ARM 32 bit */
+ #define EM_SH		42	/* SuperH */
+ #define EM_SPARCV9	43	/* SPARC v9 64-bit */
++#define EM_H8_300	46	/* Renesas H8/300 */
+ #define EM_IA_64	50	/* HP/Intel IA-64 */
+ #define EM_X86_64	62	/* AMD x86-64 */
+ #define EM_S390		22	/* IBM S/390 */
 -- 
 2.1.4
