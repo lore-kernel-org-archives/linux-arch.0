@@ -1,12 +1,12 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v11 13/19] h8300: Memory management
-Date: Sat,  9 May 2015 00:04:33 +0900
-Message-ID: <1431097479-21101-14-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v11 12/19] h8300: miscellaneous functions
+Date: Sat,  9 May 2015 00:04:32 +0900
+Message-ID: <1431097479-21101-13-git-send-email-ysato@users.sourceforge.jp>
 References: <1431097479-21101-1-git-send-email-ysato@users.sourceforge.jp>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.asahi-net.or.jp ([202.224.39.197]:53471 "EHLO
-	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753114AbbEHPEz (ORCPT
+Received: from mail2.asahi-net.or.jp ([202.224.39.198]:14394 "EHLO
+	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753119AbbEHPEz (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 May 2015 11:04:55 -0400
 In-Reply-To: <1431097479-21101-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
@@ -16,282 +16,388 @@ Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- arch/h8300/mm/Makefile |   5 ++
- arch/h8300/mm/fault.c  |  57 ++++++++++++++++++++++
- arch/h8300/mm/init.c   | 128 +++++++++++++++++++++++++++++++++++++++++++++++++
- arch/h8300/mm/memory.c |  53 ++++++++++++++++++++
- 4 files changed, 243 insertions(+)
- create mode 100644 arch/h8300/mm/Makefile
- create mode 100644 arch/h8300/mm/fault.c
- create mode 100644 arch/h8300/mm/init.c
- create mode 100644 arch/h8300/mm/memory.c
+ arch/h8300/kernel/asm-offsets.c | 67 ++++++++++++++++++++++++++++++++++
+ arch/h8300/kernel/dma.c         | 69 +++++++++++++++++++++++++++++++++++
+ arch/h8300/kernel/h8300_ksyms.c | 34 ++++++++++++++++++
+ arch/h8300/kernel/module.c      | 70 ++++++++++++++++++++++++++++++++++++
+ arch/h8300/kernel/sim-console.c | 79 +++++++++++++++++++++++++++++++++++++++++
+ arch/h8300/kernel/syscalls.c    | 14 ++++++++
+ 6 files changed, 333 insertions(+)
+ create mode 100644 arch/h8300/kernel/asm-offsets.c
+ create mode 100644 arch/h8300/kernel/dma.c
+ create mode 100644 arch/h8300/kernel/h8300_ksyms.c
+ create mode 100644 arch/h8300/kernel/module.c
+ create mode 100644 arch/h8300/kernel/sim-console.c
+ create mode 100644 arch/h8300/kernel/syscalls.c
 
-diff --git a/arch/h8300/mm/Makefile b/arch/h8300/mm/Makefile
+diff --git a/arch/h8300/kernel/asm-offsets.c b/arch/h8300/kernel/asm-offsets.c
 new file mode 100644
-index 0000000..508697f
+index 0000000..dc2d16c
 --- /dev/null
-+++ b/arch/h8300/mm/Makefile
-@@ -0,0 +1,5 @@
-+#
-+# Makefile for the linux h8300-specific parts of the memory manager.
-+#
-+
-+obj-y	 := init.o fault.o memory.o
-diff --git a/arch/h8300/mm/fault.c b/arch/h8300/mm/fault.c
-new file mode 100644
-index 0000000..5924ff5
---- /dev/null
-+++ b/arch/h8300/mm/fault.c
-@@ -0,0 +1,57 @@
++++ b/arch/h8300/kernel/asm-offsets.c
+@@ -0,0 +1,67 @@
 +/*
-+ *  linux/arch/h8300/mm/fault.c
++ * This program is used to generate definitions needed by
++ * assembly language modules.
 + *
-+ *  Copyright (C) 1998  D. Jeff Dionne <jeff@lineo.ca>,
-+ *  Copyright (C) 2000  Lineo, Inc.  (www.lineo.com)
-+ *
-+ *  Based on:
-+ *
-+ *  linux/arch/m68knommu/mm/fault.c
-+ *  linux/arch/m68k/mm/fault.c
-+ *
-+ *  Copyright (C) 1995  Hamish Macdonald
++ * We use the technique used in the OSF Mach kernel code:
++ * generate asm statements containing #defines,
++ * compile this file to assembler, and then extract the
++ * #defines from the assembly-language output.
 + */
 +
-+#include <linux/mman.h>
-+#include <linux/mm.h>
-+#include <linux/kernel.h>
-+#include <linux/ptrace.h>
-+
-+#include <asm/pgtable.h>
-+
-+void die(const char *str, struct pt_regs *fp, unsigned long err);
-+
-+/*
-+ * This routine handles page faults.  It determines the problem, and
-+ * then passes it off to one of the appropriate routines.
-+ *
-+ * error_code:
-+ *	bit 0 == 0 means no page found, 1 means protection fault
-+ *	bit 1 == 0 means read, 1 means write
-+ *
-+ * If this routine detects a bad access, it returns 1, otherwise it
-+ * returns 0.
-+ */
-+asmlinkage int do_page_fault(struct pt_regs *regs, unsigned long address,
-+			      unsigned long error_code)
-+{
-+#ifdef DEBUG
-+	pr_debug("regs->sr=%#x, regs->pc=%#lx, address=%#lx, %ld\n",
-+		 regs->sr, regs->pc, address, error_code);
-+#endif
-+
-+/*
-+ * Oops. The kernel tried to access some bad page. We'll have to
-+ * terminate things with extreme prejudice.
-+ */
-+	if ((unsigned long) address < PAGE_SIZE)
-+		pr_alert("Unable to handle kernel NULL pointer dereference");
-+	else
-+		pr_alert("Unable to handle kernel access");
-+	printk(" at virtual address %08lx\n", address);
-+	if (!user_mode(regs))
-+		die("Oops", regs, error_code);
-+	do_exit(SIGKILL);
-+
-+	return 1;
-+}
-diff --git a/arch/h8300/mm/init.c b/arch/h8300/mm/init.c
-new file mode 100644
-index 0000000..495a3d6
---- /dev/null
-+++ b/arch/h8300/mm/init.c
-@@ -0,0 +1,128 @@
-+/*
-+ *  linux/arch/h8300/mm/init.c
-+ *
-+ *  Copyright (C) 1998  D. Jeff Dionne <jeff@lineo.ca>,
-+ *                      Kenneth Albanowski <kjahds@kjahds.com>,
-+ *  Copyright (C) 2000  Lineo, Inc.  (www.lineo.com)
-+ *
-+ *  Based on:
-+ *
-+ *  linux/arch/m68knommu/mm/init.c
-+ *  linux/arch/m68k/mm/init.c
-+ *
-+ *  Copyright (C) 1995  Hamish Macdonald
-+ *
-+ *  JAN/1999 -- hacked to support ColdFire (gerg@snapgear.com)
-+ *  DEC/2000 -- linux 2.4 support <davidm@snapgear.com>
-+ */
-+
-+#include <linux/signal.h>
++#include <linux/stddef.h>
 +#include <linux/sched.h>
-+#include <linux/kernel.h>
-+#include <linux/errno.h>
-+#include <linux/string.h>
-+#include <linux/types.h>
++#include <linux/kernel_stat.h>
 +#include <linux/ptrace.h>
-+#include <linux/mman.h>
-+#include <linux/mm.h>
-+#include <linux/swap.h>
-+#include <linux/init.h>
-+#include <linux/highmem.h>
-+#include <linux/pagemap.h>
-+#include <linux/bootmem.h>
-+#include <linux/gfp.h>
++#include <linux/hardirq.h>
++#include <linux/kbuild.h>
++#include <asm/irq.h>
++#include <asm/ptrace.h>
 +
-+#include <asm/setup.h>
-+#include <asm/segment.h>
-+#include <asm/page.h>
-+#include <asm/pgtable.h>
-+#include <asm/sections.h>
-+
-+/*
-+ * BAD_PAGE is the page that is used for page faults when linux
-+ * is out-of-memory. Older versions of linux just did a
-+ * do_exit(), but using this instead means there is less risk
-+ * for a process dying in kernel mode, possibly leaving a inode
-+ * unused etc..
-+ *
-+ * BAD_PAGETABLE is the accompanying page-table: it is initialized
-+ * to point to BAD_PAGE entries.
-+ *
-+ * ZERO_PAGE is a special page that is used for zero-initialized
-+ * data and COW.
-+ */
-+static unsigned long empty_bad_page_table;
-+static unsigned long empty_bad_page;
-+unsigned long empty_zero_page;
-+
-+/*
-+ * paging_init() continues the virtual memory environment setup which
-+ * was begun by the code in arch/head.S.
-+ * The parameters are pointers to where to stick the starting and ending
-+ * addresses of available kernel virtual memory.
-+ */
-+void __init paging_init(void)
++int main(void)
 +{
-+	/*
-+	 * Make sure start_mem is page aligned,  otherwise bootmem and
-+	 * page_alloc get different views og the world.
-+	 */
-+	unsigned long start_mem = PAGE_ALIGN(memory_start);
-+	unsigned long end_mem   = memory_end & PAGE_MASK;
++	/* offsets into the task struct */
++	OFFSET(TASK_STATE, task_struct, state);
++	OFFSET(TASK_FLAGS, task_struct, flags);
++	OFFSET(TASK_PTRACE, task_struct, ptrace);
++	OFFSET(TASK_BLOCKED, task_struct, blocked);
++	OFFSET(TASK_THREAD, task_struct, thread);
++	OFFSET(TASK_THREAD_INFO, task_struct, stack);
++	OFFSET(TASK_MM, task_struct, mm);
++	OFFSET(TASK_ACTIVE_MM, task_struct, active_mm);
 +
-+	pr_debug("start_mem is %#lx\nvirtual_end is %#lx\n",
-+		 start_mem, end_mem);
++	/* offsets into the irq_cpustat_t struct */
++	DEFINE(CPUSTAT_SOFTIRQ_PENDING, offsetof(irq_cpustat_t,
++						 __softirq_pending));
 +
-+	/*
-+	 * Initialize the bad page table and bad page to point
-+	 * to a couple of allocated pages.
-+	 */
-+	empty_bad_page_table = (unsigned long)alloc_bootmem_pages(PAGE_SIZE);
-+	empty_bad_page = (unsigned long)alloc_bootmem_pages(PAGE_SIZE);
-+	empty_zero_page = (unsigned long)alloc_bootmem_pages(PAGE_SIZE);
-+	memset((void *)empty_zero_page, 0, PAGE_SIZE);
++	/* offsets into the thread struct */
++	OFFSET(THREAD_KSP, thread_struct, ksp);
++	OFFSET(THREAD_USP, thread_struct, usp);
++	OFFSET(THREAD_CCR, thread_struct, ccr);
 +
-+	/*
-+	 * Set up SFC/DFC registers (user data space).
-+	 */
-+	set_fs(USER_DS);
-+
-+	pr_debug("before free_area_init\n");
-+
-+	pr_debug("free_area_init -> start_mem is %#lx\nvirtual_end is %#lx\n",
-+		 start_mem, end_mem);
-+
-+	{
-+		unsigned long zones_size[MAX_NR_ZONES] = {0, };
-+
-+		zones_size[ZONE_NORMAL] = (end_mem - PAGE_OFFSET) >> PAGE_SHIFT;
-+		free_area_init(zones_size);
-+	}
-+}
-+
-+void __init mem_init(void)
-+{
-+	pr_devel("Mem_init: start=%lx, end=%lx\n", memory_start, memory_end);
-+
-+	high_memory = (void *) (memory_end & PAGE_MASK);
-+	max_mapnr = MAP_NR(high_memory);
-+
-+	/* this will put all low memory onto the freelists */
-+	free_all_bootmem();
-+
-+	mem_init_print_info(NULL);
-+}
-+
-+
-+#ifdef CONFIG_BLK_DEV_INITRD
-+void free_initrd_mem(unsigned long start, unsigned long end)
-+{
-+	free_reserved_area((void *)start, (void *)end, -1, "initrd");
-+}
++	/* offsets into the pt_regs struct */
++	DEFINE(LER0,  offsetof(struct pt_regs, er0)      - sizeof(long));
++	DEFINE(LER1,  offsetof(struct pt_regs, er1)      - sizeof(long));
++	DEFINE(LER2,  offsetof(struct pt_regs, er2)      - sizeof(long));
++	DEFINE(LER3,  offsetof(struct pt_regs, er3)      - sizeof(long));
++	DEFINE(LER4,  offsetof(struct pt_regs, er4)      - sizeof(long));
++	DEFINE(LER5,  offsetof(struct pt_regs, er5)      - sizeof(long));
++	DEFINE(LER6,  offsetof(struct pt_regs, er6)      - sizeof(long));
++	DEFINE(LORIG, offsetof(struct pt_regs, orig_er0) - sizeof(long));
++	DEFINE(LSP,   offsetof(struct pt_regs, sp)       - sizeof(long));
++	DEFINE(LCCR,  offsetof(struct pt_regs, ccr)      - sizeof(long));
++	DEFINE(LVEC,  offsetof(struct pt_regs, vector)   - sizeof(long));
++#if defined(CONFIG_CPU_H8S)
++	DEFINE(LEXR,  offsetof(struct pt_regs, exr)      - sizeof(long));
 +#endif
++	DEFINE(LRET,  offsetof(struct pt_regs, pc)       - sizeof(long));
 +
-+void
-+free_initmem(void)
-+{
-+	free_initmem_default(-1);
++	DEFINE(PT_PTRACED, PT_PTRACED);
++
++	/* offsets in thread_info structure */
++	OFFSET(TI_TASK, thread_info, task);
++	OFFSET(TI_FLAGS, thread_info, flags);
++	OFFSET(TI_CPU, thread_info, cpu);
++	OFFSET(TI_PRE, thread_info, preempt_count);
++
++	return 0;
 +}
-diff --git a/arch/h8300/mm/memory.c b/arch/h8300/mm/memory.c
+diff --git a/arch/h8300/kernel/dma.c b/arch/h8300/kernel/dma.c
 new file mode 100644
-index 0000000..4974aa4
+index 0000000..eeb13d3
 --- /dev/null
-+++ b/arch/h8300/mm/memory.c
-@@ -0,0 +1,53 @@
++++ b/arch/h8300/kernel/dma.c
+@@ -0,0 +1,69 @@
 +/*
-+ *  linux/arch/h8300/mm/memory.c
-+ *
-+ *  Copyright (C) 2002  Yoshinori Sato <ysato@users.sourceforge.jp>,
-+ *
-+ *  Based on:
-+ *
-+ *  linux/arch/m68knommu/mm/memory.c
-+ *
-+ *  Copyright (C) 1998  Kenneth Albanowski <kjahds@kjahds.com>,
-+ *  Copyright (C) 1999-2002, Greg Ungerer (gerg@snapgear.com)
-+ *
-+ *  Based on:
-+ *
-+ *  linux/arch/m68k/mm/memory.c
-+ *
-+ *  Copyright (C) 1995  Hamish Macdonald
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file COPYING in the main directory of this archive
++ * for more details.
 + */
 +
-+#include <linux/mm.h>
++#include <linux/dma-mapping.h>
 +#include <linux/kernel.h>
-+#include <linux/string.h>
-+#include <linux/types.h>
++#include <linux/scatterlist.h>
++#include <linux/module.h>
++#include <asm/pgalloc.h>
 +
-+#include <asm/setup.h>
-+#include <asm/segment.h>
-+#include <asm/page.h>
-+#include <asm/pgtable.h>
-+#include <asm/traps.h>
-+#include <asm/io.h>
-+
-+void cache_clear(unsigned long paddr, int len)
++static void *dma_alloc(struct device *dev, size_t size,
++		       dma_addr_t *dma_handle, gfp_t gfp,
++		       struct dma_attrs *attrs)
 +{
++	void *ret;
++
++	/* ignore region specifiers */
++	gfp &= ~(__GFP_DMA | __GFP_HIGHMEM);
++
++	if (dev == NULL || (*dev->dma_mask < 0xffffffff))
++		gfp |= GFP_DMA;
++	ret = (void *)__get_free_pages(gfp, get_order(size));
++
++	if (ret != NULL) {
++		memset(ret, 0, size);
++		*dma_handle = virt_to_phys(ret);
++	}
++	return ret;
 +}
 +
++static void dma_free(struct device *dev, size_t size,
++		     void *vaddr, dma_addr_t dma_handle,
++		     struct dma_attrs *attrs)
 +
-+void cache_push(unsigned long paddr, int len)
 +{
++	free_pages((unsigned long)vaddr, get_order(size));
 +}
 +
-+void cache_push_v(unsigned long vaddr, int len)
++static dma_addr_t map_page(struct device *dev, struct page *page,
++				  unsigned long offset, size_t size,
++				  enum dma_data_direction direction,
++				  struct dma_attrs *attrs)
 +{
++	return page_to_phys(page) + offset;
 +}
++
++static int map_sg(struct device *dev, struct scatterlist *sgl,
++		  int nents, enum dma_data_direction direction,
++		  struct dma_attrs *attrs)
++{
++	struct scatterlist *sg;
++	int i;
++
++	for_each_sg(sgl, sg, nents, i) {
++		sg->dma_address = sg_phys(sg);
++	}
++
++	return nents;
++}
++
++struct dma_map_ops h8300_dma_map_ops = {
++	.alloc = dma_alloc,
++	.free = dma_free,
++	.map_page = map_page,
++	.map_sg = map_sg,
++};
++EXPORT_SYMBOL(h8300_dma_map_ops);
+diff --git a/arch/h8300/kernel/h8300_ksyms.c b/arch/h8300/kernel/h8300_ksyms.c
+new file mode 100644
+index 0000000..33bf96a
+--- /dev/null
++++ b/arch/h8300/kernel/h8300_ksyms.c
+@@ -0,0 +1,34 @@
++#include <linux/module.h>
++#include <linux/linkage.h>
 +
 +/*
-+ * Map some physical address range into the kernel address space.
++ * libgcc functions - functions that are used internally by the
++ * compiler...  (prototypes are not correct though, but that
++ * doesn't really matter since they're not versioned).
 + */
++asmlinkage long long __ashldi3(long long, int);
++asmlinkage long long __ashrdi3(long long, int);
++asmlinkage long long __lshrdi3(long long, int);
++asmlinkage long __divsi3(long, long);
++asmlinkage long __modsi3(long, long);
++asmlinkage unsigned long __umodsi3(unsigned long, unsigned long);
++asmlinkage long long __muldi3(long long, long long);
++asmlinkage long __mulsi3(long, long);
++asmlinkage long __udivsi3(long, long);
++asmlinkage void *memcpy(void *, const void *, size_t);
++asmlinkage void *memset(void *, int, size_t);
++asmlinkage long strncpy_from_user(void *to, void *from, size_t n);
 +
-+unsigned long kernel_map(unsigned long paddr, unsigned long size,
-+			 int nocacheflag, unsigned long *memavailp)
++	/* gcc lib functions */
++EXPORT_SYMBOL(__ashldi3);
++EXPORT_SYMBOL(__ashrdi3);
++EXPORT_SYMBOL(__lshrdi3);
++EXPORT_SYMBOL(__divsi3);
++EXPORT_SYMBOL(__modsi3);
++EXPORT_SYMBOL(__umodsi3);
++EXPORT_SYMBOL(__muldi3);
++EXPORT_SYMBOL(__mulsi3);
++EXPORT_SYMBOL(__udivsi3);
++EXPORT_SYMBOL(memcpy);
++EXPORT_SYMBOL(memset);
++EXPORT_SYMBOL(strncpy_from_user);
+diff --git a/arch/h8300/kernel/module.c b/arch/h8300/kernel/module.c
+new file mode 100644
+index 0000000..515f6c4
+--- /dev/null
++++ b/arch/h8300/kernel/module.c
+@@ -0,0 +1,70 @@
++#include <linux/moduleloader.h>
++#include <linux/elf.h>
++#include <linux/vmalloc.h>
++#include <linux/fs.h>
++#include <linux/string.h>
++#include <linux/kernel.h>
++
++int apply_relocate_add(Elf32_Shdr *sechdrs,
++		       const char *strtab,
++		       unsigned int symindex,
++		       unsigned int relsec,
++		       struct module *me)
 +{
-+	return paddr;
++	unsigned int i;
++	Elf32_Rela *rela = (void *)sechdrs[relsec].sh_addr;
++
++	pr_debug("Applying relocate section %u to %u\n", relsec,
++	       sechdrs[relsec].sh_info);
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rela); i++) {
++		/* This is where to make the change */
++		uint32_t *loc =
++			(uint32_t *)(sechdrs[sechdrs[relsec].sh_info].sh_addr
++					     + rela[i].r_offset);
++		/* This is the symbol it is referring to.  Note that all
++		   undefined symbols have been resolved.  */
++		Elf32_Sym *sym = (Elf32_Sym *)sechdrs[symindex].sh_addr
++			+ ELF32_R_SYM(rela[i].r_info);
++		uint32_t v = sym->st_value + rela[i].r_addend;
++
++		switch (ELF32_R_TYPE(rela[i].r_info)) {
++		case R_H8_DIR24R8:
++			loc = (uint32_t *)((uint32_t)loc - 1);
++			*loc = (*loc & 0xff000000) | ((*loc & 0xffffff) + v);
++			break;
++		case R_H8_DIR24A8:
++			if (ELF32_R_SYM(rela[i].r_info))
++				*loc += v;
++			break;
++		case R_H8_DIR32:
++		case R_H8_DIR32A16:
++			*loc += v;
++			break;
++		case R_H8_PCREL16:
++			v -= (unsigned long)loc + 2;
++			if ((Elf32_Sword)v > 0x7fff ||
++			    (Elf32_Sword)v < -(Elf32_Sword)0x8000)
++				goto overflow;
++			else
++				*(unsigned short *)loc = v;
++			break;
++		case R_H8_PCREL8:
++			v -= (unsigned long)loc + 1;
++			if ((Elf32_Sword)v > 0x7f ||
++			    (Elf32_Sword)v < -(Elf32_Sword)0x80)
++				goto overflow;
++			else
++				*(unsigned char *)loc = v;
++			break;
++		default:
++			pr_err("module %s: Unknown relocation: %u\n",
++			       me->name, ELF32_R_TYPE(rela[i].r_info));
++			return -ENOEXEC;
++		}
++	}
++	return 0;
++ overflow:
++	pr_err("module %s: relocation offset overflow: %08x\n",
++	       me->name, rela[i].r_offset);
++	return -ENOEXEC;
 +}
+diff --git a/arch/h8300/kernel/sim-console.c b/arch/h8300/kernel/sim-console.c
+new file mode 100644
+index 0000000..a15edf0
+--- /dev/null
++++ b/arch/h8300/kernel/sim-console.c
+@@ -0,0 +1,79 @@
++/*
++ * arch/h8300/kernel/early_printk.c
++ *
++ *  Copyright (C) 2009 Yoshinori Sato <ysato@users.sourceforge.jp>
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++#include <linux/console.h>
++#include <linux/tty.h>
++#include <linux/init.h>
++#include <linux/io.h>
++#include <linux/platform_device.h>
++
++static void sim_write(struct console *co, const char *ptr,
++				 unsigned len)
++{
++	register const int fd __asm__("er0") = 1; /* stdout */
++	register const char *_ptr __asm__("er1") = ptr;
++	register const unsigned _len __asm__("er2") = len;
++
++	__asm__(".byte 0x5e,0x00,0x00,0xc7\n\t" /* jsr @0xc7 (sys_write) */
++		: : "g"(fd), "g"(_ptr), "g"(_len));
++}
++
++static struct console sim_console = {
++	.name		= "sim_console",
++	.write		= sim_write,
++	.setup		= NULL,
++	.flags		= CON_PRINTBUFFER,
++	.index		= -1,
++};
++
++static char sim_console_buf[32];
++
++static int sim_probe(struct platform_device *pdev)
++{
++	if (sim_console.data)
++		return -EEXIST;
++
++	if (!strstr(sim_console_buf, "keep"))
++		sim_console.flags |= CON_BOOT;
++
++	register_console(&sim_console);
++	return 0;
++}
++
++static int sim_remove(struct platform_device *pdev)
++{
++	return 0;
++}
++
++static struct platform_driver sim_driver = {
++	.probe		= sim_probe,
++	.remove		= sim_remove,
++	.driver		= {
++		.name	= "h8300-sim",
++		.owner	= THIS_MODULE,
++	},
++};
++
++early_platform_init_buffer("earlyprintk", &sim_driver,
++			   sim_console_buf, ARRAY_SIZE(sim_console_buf));
++
++static struct platform_device sim_console_device = {
++	.name		= "h8300-sim",
++	.id		= 0,
++};
++
++static struct platform_device *devices[] __initdata = {
++	&sim_console_device,
++};
++
++void __init sim_console_register(void)
++{
++	early_platform_add_devices(devices,
++				   ARRAY_SIZE(devices));
++}
+diff --git a/arch/h8300/kernel/syscalls.c b/arch/h8300/kernel/syscalls.c
+new file mode 100644
+index 0000000..1f9123a
+--- /dev/null
++++ b/arch/h8300/kernel/syscalls.c
+@@ -0,0 +1,14 @@
++#include <linux/syscalls.h>
++#include <linux/signal.h>
++#include <linux/unistd.h>
++
++#undef __SYSCALL
++#define __SYSCALL(nr, call) [nr] = (call),
++
++#define sys_mmap2 sys_mmap_pgoff
++
++asmlinkage int sys_rt_sigreturn(void);
++
++void *_sys_call_table[__NR_syscalls] = {
++#include <asm/unistd.h>
++};
 -- 
 2.1.4
