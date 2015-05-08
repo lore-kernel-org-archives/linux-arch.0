@@ -1,35 +1,31 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v11 03/19] Add ELF machine
-Date: Sat,  9 May 2015 00:04:23 +0900
-Message-ID: <1431097479-21101-4-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v11 05/19] asm-generic: Add common asm-offsets.h
+Date: Sat,  9 May 2015 00:04:25 +0900
+Message-ID: <1431097479-21101-6-git-send-email-ysato@users.sourceforge.jp>
 References: <1431097479-21101-1-git-send-email-ysato@users.sourceforge.jp>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.asahi-net.or.jp ([202.224.39.197]:53457 "EHLO
-	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752907AbbEHPEw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 May 2015 11:04:52 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1431097479-21101-1-git-send-email-ysato@users.sourceforge.jp>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+List-Id: linux-arch.vger.kernel.org
+
+All architecture use same asm-offsets.h
+So it generic header.
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- include/uapi/linux/elf-em.h | 1 +
+ include/asm-generic/asm-offsets.h | 1 +
  1 file changed, 1 insertion(+)
+ create mode 100644 include/asm-generic/asm-offsets.h
 
-diff --git a/include/uapi/linux/elf-em.h b/include/uapi/linux/elf-em.h
-index ae99f77..b088296 100644
---- a/include/uapi/linux/elf-em.h
-+++ b/include/uapi/linux/elf-em.h
-@@ -25,6 +25,7 @@
- #define EM_ARM		40	/* ARM 32 bit */
- #define EM_SH		42	/* SuperH */
- #define EM_SPARCV9	43	/* SPARC v9 64-bit */
-+#define EM_H8_300	46	/* Renesas H8/300 */
- #define EM_IA_64	50	/* HP/Intel IA-64 */
- #define EM_X86_64	62	/* AMD x86-64 */
- #define EM_S390		22	/* IBM S/390 */
+diff --git a/include/asm-generic/asm-offsets.h b/include/asm-generic/asm-offsets.h
+new file mode 100644
+index 0000000..d370ee3
+--- /dev/null
++++ b/include/asm-generic/asm-offsets.h
+@@ -0,0 +1 @@
++#include <generated/asm-offsets.h>
 -- 
 2.1.4
