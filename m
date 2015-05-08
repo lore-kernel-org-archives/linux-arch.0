@@ -1,299 +1,408 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v11 15/19] h8300: Build scripts
-Date: Sat,  9 May 2015 00:04:35 +0900
-Message-ID: <1431097479-21101-16-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v11 10/19] h8300: Process and signal
+Date: Sat,  9 May 2015 00:04:30 +0900
+Message-ID: <1431097479-21101-11-git-send-email-ysato@users.sourceforge.jp>
 References: <1431097479-21101-1-git-send-email-ysato@users.sourceforge.jp>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.asahi-net.or.jp ([202.224.39.197]:53470 "EHLO
-	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753104AbbEHPEy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 May 2015 11:04:54 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1431097479-21101-1-git-send-email-ysato@users.sourceforge.jp>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-
-h8300's Makefile, Kconfig and memory layout.
+List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- arch/h8300/Kconfig         | 75 +++++++++++++++++++++++++++++++++++
- arch/h8300/Kconfig.cpu     | 97 ++++++++++++++++++++++++++++++++++++++++++++++
- arch/h8300/Makefile        | 55 ++++++++++++++++++++++++++
- arch/h8300/kernel/Makefile | 16 ++++++++
- 4 files changed, 243 insertions(+)
- create mode 100644 arch/h8300/Kconfig
- create mode 100644 arch/h8300/Kconfig.cpu
- create mode 100644 arch/h8300/Makefile
- create mode 100644 arch/h8300/kernel/Makefile
+ arch/h8300/kernel/process.c | 171 +++++++++++++++++++++++++++++++++++++
+ arch/h8300/kernel/ptrace.c  | 203 ++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 374 insertions(+)
+ create mode 100644 arch/h8300/kernel/process.c
+ create mode 100644 arch/h8300/kernel/ptrace.c
 
-diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
+diff --git a/arch/h8300/kernel/process.c b/arch/h8300/kernel/process.c
 new file mode 100644
-index 0000000..f2ea4e1
+index 0000000..dee4125
 --- /dev/null
-+++ b/arch/h8300/Kconfig
-@@ -0,0 +1,75 @@
-+config H8300
-+        def_bool y
-+	select GENERIC_ATOMIC64
-+	select HAVE_UID16
-+	select VIRT_TO_BUS
-+	select ARCH_WANT_IPC_PARSE_VERSION
-+	select GENERIC_IRQ_SHOW
-+	select FRAME_POINTER
-+	select GENERIC_CPU_DEVICES
-+	select MODULES_USE_ELF_RELA
-+	select GENERIC_CLOCKEVENTS
-+	select CLKDEV_LOOKUP
-+	select COMMON_CLK
-+	select ARCH_WANT_FRAME_POINTERS
-+	select OF
-+	select OF_EARLY_FLATTREE
-+	select HAVE_MEMBLOCK
-+	select IRQ_DOMAIN
-+	select HANDLE_DOMAIN_IRQ
-+	select HAVE_DMA_ATTRS
++++ b/arch/h8300/kernel/process.c
+@@ -0,0 +1,171 @@
++/*
++ *  linux/arch/h8300/kernel/process.c
++ *
++ * Yoshinori Sato <ysato@users.sourceforge.jp>
++ *
++ *  Based on:
++ *
++ *  linux/arch/m68knommu/kernel/process.c
++ *
++ *  Copyright (C) 1998  D. Jeff Dionne <jeff@ryeham.ee.ryerson.ca>,
++ *                      Kenneth Albanowski <kjahds@kjahds.com>,
++ *                      The Silver Hammer Group, Ltd.
++ *
++ *  linux/arch/m68k/kernel/process.c
++ *
++ *  Copyright (C) 1995  Hamish Macdonald
++ *
++ *  68060 fixes by Jesper Skov
++ */
 +
-+config RWSEM_GENERIC_SPINLOCK
-+	def_bool y
++/*
++ * This file handles the architecture-dependent parts of process handling..
++ */
 +
-+config GENERIC_HWEIGHT
-+	def_bool y
++#include <linux/errno.h>
++#include <linux/module.h>
++#include <linux/sched.h>
++#include <linux/kernel.h>
++#include <linux/mm.h>
++#include <linux/smp.h>
++#include <linux/stddef.h>
++#include <linux/unistd.h>
++#include <linux/ptrace.h>
++#include <linux/user.h>
++#include <linux/interrupt.h>
++#include <linux/reboot.h>
++#include <linux/fs.h>
++#include <linux/slab.h>
++#include <linux/rcupdate.h>
 +
-+config NO_IOPORT_MAP
-+	def_bool y
++#include <asm/uaccess.h>
++#include <asm/traps.h>
++#include <asm/setup.h>
++#include <asm/pgtable.h>
 +
-+config HZ
-+	int
-+	default 100
++void (*pm_power_off)(void) = NULL;
++EXPORT_SYMBOL(pm_power_off);
 +
-+config NR_CPUS
-+	int
-+	default 1
++asmlinkage void ret_from_fork(void);
++asmlinkage void ret_from_kernel_thread(void);
 +
-+source "init/Kconfig"
++/*
++ * The idle loop on an H8/300..
++ */
++void arch_cpu_idle(void)
++{
++	local_irq_enable();
++	__asm__("sleep");
++}
 +
-+source "kernel/Kconfig.freezer"
++void machine_restart(char *__unused)
++{
++	local_irq_disable();
++	__asm__("jmp @@0");
++}
 +
-+source "arch/h8300/Kconfig.cpu"
++void machine_halt(void)
++{
++	local_irq_disable();
++	__asm__("sleep");
++	for (;;)
++		;
++}
 +
-+menu "Kernel Features"
++void machine_power_off(void)
++{
++	local_irq_disable();
++	__asm__("sleep");
++	for (;;)
++		;
++}
 +
-+source "kernel/Kconfig.preempt"
++void show_regs(struct pt_regs *regs)
++{
++	show_regs_print_info(KERN_DEFAULT);
 +
-+source "mm/Kconfig"
++	pr_notice("\n");
++	pr_notice("PC: %08lx  Status: %02x\n",
++	       regs->pc, regs->ccr);
++	pr_notice("ORIG_ER0: %08lx ER0: %08lx ER1: %08lx\n",
++	       regs->orig_er0, regs->er0, regs->er1);
++	pr_notice("ER2: %08lx ER3: %08lx ER4: %08lx ER5: %08lx\n",
++	       regs->er2, regs->er3, regs->er4, regs->er5);
++	pr_notice("ER6' %08lx ", regs->er6);
++	if (user_mode(regs))
++		printk("USP: %08lx\n", rdusp());
++	else
++		printk("\n");
++}
 +
-+endmenu
++void flush_thread(void)
++{
++}
 +
-+menu "Executable file formats"
++int copy_thread(unsigned long clone_flags,
++		unsigned long usp, unsigned long topstk,
++		struct task_struct *p)
++{
++	struct pt_regs *childregs;
 +
-+source "fs/Kconfig.binfmt"
++	childregs = (struct pt_regs *) (THREAD_SIZE + task_stack_page(p)) - 1;
 +
-+endmenu
++	if (unlikely(p->flags & PF_KTHREAD)) {
++		memset(childregs, 0, sizeof(struct pt_regs));
++		childregs->retpc = (unsigned long) ret_from_kernel_thread;
++		childregs->er4 = topstk; /* arg */
++		childregs->er5 = usp; /* fn */
++	}  else {
++		*childregs = *current_pt_regs();
++		childregs->er0 = 0;
++		childregs->retpc = (unsigned long) ret_from_fork;
++		p->thread.usp = usp ?: rdusp();
++	}
++	p->thread.ksp = (unsigned long)childregs;
 +
-+source "net/Kconfig"
++	return 0;
++}
 +
-+source "drivers/Kconfig"
++unsigned long thread_saved_pc(struct task_struct *tsk)
++{
++	return ((struct pt_regs *)tsk->thread.esp0)->pc;
++}
 +
-+source "fs/Kconfig"
++unsigned long get_wchan(struct task_struct *p)
++{
++	unsigned long fp, pc;
++	unsigned long stack_page;
++	int count = 0;
 +
-+menu "Kernel hacking"
++	if (!p || p == current || p->state == TASK_RUNNING)
++		return 0;
 +
-+source "lib/Kconfig.debug"
++	stack_page = (unsigned long)p;
++	fp = ((struct pt_regs *)p->thread.ksp)->er6;
++	do {
++		if (fp < stack_page+sizeof(struct thread_info) ||
++		    fp >= 8184+stack_page)
++			return 0;
++		pc = ((unsigned long *)fp)[1];
++		if (!in_sched_functions(pc))
++			return pc;
++		fp = *(unsigned long *) fp;
++	} while (count++ < 16);
++	return 0;
++}
 +
-+endmenu
++/* generic sys_clone is not enough registers */
++asmlinkage int sys_clone(unsigned long __user *args)
++{
++	unsigned long clone_flags;
++	unsigned long  newsp;
++	uintptr_t parent_tidptr;
++	uintptr_t child_tidptr;
 +
-+source "security/Kconfig"
-+
-+source "crypto/Kconfig"
-+
-+source "lib/Kconfig"
-diff --git a/arch/h8300/Kconfig.cpu b/arch/h8300/Kconfig.cpu
++	get_user(clone_flags, &args[0]);
++	get_user(newsp, &args[1]);
++	get_user(parent_tidptr, &args[2]);
++	get_user(child_tidptr, &args[3]);
++	return do_fork(clone_flags, newsp, 0,
++		       (int __user *)parent_tidptr, (int __user *)child_tidptr);
++}
+diff --git a/arch/h8300/kernel/ptrace.c b/arch/h8300/kernel/ptrace.c
 new file mode 100644
-index 0000000..5f25d6d
+index 0000000..9207554
 --- /dev/null
-+++ b/arch/h8300/Kconfig.cpu
-@@ -0,0 +1,97 @@
-+config CPU_H8300H
-+	bool
++++ b/arch/h8300/kernel/ptrace.c
+@@ -0,0 +1,203 @@
++/*
++ *  linux/arch/h8300/kernel/ptrace.c
++ *
++ *  Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License.  See the file COPYING in the main directory of
++ * this archive for more details.
++ */
 +
-+config CPU_H8S
-+	bool
++#include <linux/kernel.h>
++#include <linux/errno.h>
++#include <linux/ptrace.h>
++#include <linux/audit.h>
++#include <linux/tracehook.h>
++#include <linux/regset.h>
++#include <linux/elf.h>
 +
-+config H83069
-+	bool
-+	select CPU_H8300H
-+	select H8300_TMR16
++#define CCR_MASK 0x6f    /* mode/imask not set */
++#define EXR_MASK 0x80    /* modify only T */
 +
-+config H8S2678
-+	bool
-+	select CPU_H8S
-+	select H8300_TPU
++#define PT_REG(r) offsetof(struct pt_regs, r)
 +
-+config RAMKERNEL
-+	bool
++extern void user_disable_single_step(struct task_struct *child);
 +
-+config ROMKERNEL
-+	bool
++/* Mapping from PT_xxx to the stack offset at which the register is
++   saved.  Notice that usp has no stack-slot and needs to be treated
++   specially (see get_reg/put_reg below). */
++static const int register_offset[] = {
++	PT_REG(er1), PT_REG(er2), PT_REG(er3), PT_REG(er4),
++	PT_REG(er5), PT_REG(er6), PT_REG(er0), -1,
++	PT_REG(orig_er0), PT_REG(ccr), PT_REG(pc),
++#if defined(CONFIG_CPU_H8S)
++	PT_REG(exr),
++#endif
++};
 +
-+menu "Processor type and features"
++/* read register */
++long h8300_get_reg(struct task_struct *task, int regno)
++{
++	switch (regno) {
++	case PT_USP:
++		return task->thread.usp + sizeof(long)*2;
++	case PT_CCR:
++	case PT_EXR:
++	    return *(unsigned short *)(task->thread.esp0 +
++				       register_offset[regno]);
++	default:
++	    return *(unsigned long *)(task->thread.esp0 +
++				      register_offset[regno]);
++	}
++}
 +
-+choice
-+prompt "H8/300 platform"
++int h8300_put_reg(struct task_struct *task, int regno, unsigned long data)
++{
++	unsigned short oldccr;
++	unsigned short oldexr;
 +
-+config H8300_AE3068
-+	bool "AE-3068/69"
-+	select H83069
-+	select RAMKERNEL
-+	help
-+	  AKI-H8/3068F / AKI-H8/3069F Flashmicom LAN Board Support
-+	  More Information. (Japanese Only)
-+	  <http://akizukidenshi.com/catalog/default.aspx>
-+	  AE-3068/69 Evaluation Board Support
-+	  More Information.
-+	  <http://www.microtronique.com/ae3069lan.htm>
++	switch (regno) {
++	case PT_USP:
++		task->thread.usp = data - sizeof(long)*2;
++	case PT_CCR:
++		oldccr = *(unsigned short *)(task->thread.esp0 +
++					     register_offset[regno]);
++		oldccr &= ~CCR_MASK;
++		data &= CCR_MASK;
++		data |= oldccr;
++		*(unsigned short *)(task->thread.esp0 +
++				    register_offset[regno]) = data;
++		break;
++	case PT_EXR:
++		oldexr = *(unsigned short *)(task->thread.esp0 +
++					     register_offset[regno]);
++		oldccr &= ~EXR_MASK;
++		data &= EXR_MASK;
++		data |= oldexr;
++		*(unsigned short *)(task->thread.esp0 +
++				    register_offset[regno]) = data;
++		break;
++	default:
++		*(unsigned long *)(task->thread.esp0 +
++				   register_offset[regno]) = data;
++		break;
++	}
++	return 0;
++}
 +
-+config H8300_H8MAX
-+	bool "H8MAX"
-+	select H83069
-+	select RAMKERNEL
-+	select HAVE_IDE
-+	help
-+	  H8MAX Evaluation Board Support
-+	  More Information. (Japanese Only)
-+	  <http://strawberry-linux.com/h8/index.html>
++static int regs_get(struct task_struct *target,
++		    const struct user_regset *regset,
++		    unsigned int pos, unsigned int count,
++		    void *kbuf, void __user *ubuf)
++{
++	int r;
++	struct user_regs_struct regs;
++	long *reg = (long *)&regs;
 +
-+config H8300_KANEBEBE
-+	bool "KaneBebe"
-+	select H83069
-+	select RAMKERNEL
-+	help
-+	  KaneBebe Evalition Board Support
-+	  More Information. (Japanese Only)
-+	  <http://www.nissin-tech.com/2009/10/uclinuxkane-bebe-h83069f.html>
++	/* build user regs in buffer */
++	for (r = 0; r < ARRAY_SIZE(register_offset); r++)
++		*reg++ = h8300_get_reg(target, r);
 +
-+config H8300H_SIM
-+	bool "H8/300H GDB Simulator"
-+	select H83069
-+	select ROMKERNEL
-+	help
-+	  GDB Simulator Support
-+	  More Information.
-+	  <http://sourceware.org/sid/>
++	return user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				   &regs, 0, sizeof(regs));
++}
 +
-+config H8S_EDOSK2674
-+	bool "EDOSK-2674"
-+	select H8S2678
-+	select RAMKERNEL
-+	help
-+	  Renesas EDOSK-2674 Evaluation Board Support
-+	  More Information.
-+	  <http://www.azpower.com/H8-uClinux/index.html>
-+	  <http://www.renesas.eu/products/tools/introductory_evaluation_tools/evaluation_development_os_kits/edosk2674r/edosk2674r_software_tools_root.jsp>
++static int regs_set(struct task_struct *target,
++		    const struct user_regset *regset,
++		    unsigned int pos, unsigned int count,
++		    const void *kbuf, const void __user *ubuf)
++{
++	int r;
++	int ret;
++	struct user_regs_struct regs;
++	long *reg;
 +
-+config H8S_SIM
-+	bool "H8S GDB Simulator"
-+	select H8S2678
-+	select ROMKERNEL
-+	help
-+	  GDB Simulator Support
-+	  More Information.
-+	  <http://sourceware.org/sid/>
++	/* build user regs in buffer */
++	for (reg = (long *)&regs, r = 0; r < ARRAY_SIZE(register_offset); r++)
++		*reg++ = h8300_get_reg(target, r);
 +
-+endchoice
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 &regs, 0, sizeof(regs));
++	if (ret)
++		return ret;
 +
-+config H8300_BUILTIN_DTB
-+        string "Builtin DTB"
-+	default ""
++	/* write back to pt_regs */
++	for (reg = (long *)&regs, r = 0; r < ARRAY_SIZE(register_offset); r++)
++		h8300_put_reg(target, r, *reg++);
++	return 0;
++}
 +
-+config OFFSET
-+        hex "Load offset"
-+	default 0
++enum h8300_regset {
++	REGSET_GENERAL,
++};
 +
-+endmenu
-diff --git a/arch/h8300/Makefile b/arch/h8300/Makefile
-new file mode 100644
-index 0000000..0d2d96e
---- /dev/null
-+++ b/arch/h8300/Makefile
-@@ -0,0 +1,55 @@
-+#
-+# arch/h8300/Makefile
-+#
-+# This file is subject to the terms and conditions of the GNU General Public
-+# License.  See the file "COPYING" in the main directory of this archive
-+# for more details.
-+#
-+# (C) Copyright 2002-2015 Yoshinori Sato <ysato@users.sourceforge.jp>
-+#
++static const struct user_regset h8300_regsets[] = {
++	[REGSET_GENERAL] = {
++		.core_note_type	= NT_PRSTATUS,
++		.n		= ELF_NGREG,
++		.size		= sizeof(long),
++		.align		= sizeof(long),
++		.get		= regs_get,
++		.set		= regs_set,
++	},
++};
 +
-+cflags-$(CONFIG_CPU_H8300H)	:= -mh
-+aflags-$(CONFIG_CPU_H8300H)	:= -mh -Wa,--mach=h8300h
-+ldflags-$(CONFIG_CPU_H8300H)	:= -mh8300helf_linux
-+cflags-$(CONFIG_CPU_H8S)	:= -ms
-+aflags-$(CONFIG_CPU_H8S)	:= -ms -Wa,--mach=h8300s
-+ldflags-$(CONFIG_CPU_H8S)	:= -mh8300self_linux
++static const struct user_regset_view user_h8300_native_view = {
++	.name = "h8300",
++	.e_machine = EM_H8_300,
++	.regsets = h8300_regsets,
++	.n = ARRAY_SIZE(h8300_regsets),
++};
 +
-+KBUILD_CFLAGS += $(cflags-y)
-+KBUILD_CFLAGS += -mint32 -fno-builtin
-+KBUILD_CFLAGS += -D__linux__
-+KBUILD_CFLAGS += -DUTS_SYSNAME=\"uClinux\"
-+KBUILD_AFLAGS += $(aflags-y)
-+LDFLAGS += $(ldflags-y)
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++{
++	return &user_h8300_native_view;
++}
 +
-+CROSS_COMPILE := h8300-unknown-linux-
++void ptrace_disable(struct task_struct *child)
++{
++	user_disable_single_step(child);
++}
 +
-+core-y	+= arch/$(ARCH)/kernel/ arch/$(ARCH)/mm/
-+ifneq '$(CONFIG_H8300_BUILTIN_DTB)' '""'
-+core-y += arch/h8300/boot/dts/
-+endif
++long arch_ptrace(struct task_struct *child, long request,
++		 unsigned long addr, unsigned long data)
++{
++	int ret;
 +
-+libs-y	+= arch/$(ARCH)/lib/
++	switch (request) {
++	default:
++		ret = ptrace_request(child, request, addr, data);
++		break;
++	}
++	return ret;
++}
 +
-+boot := arch/h8300/boot
++asmlinkage long do_syscall_trace_enter(struct pt_regs *regs)
++{
++	long ret = 0;
 +
-+%.dtb %.dtb.S %.dtb.o: | scripts
-+	$(Q)$(MAKE) $(build)=arch/h8300/boot/dts arch/h8300/boot/dts/$@
++	if (test_thread_flag(TIF_SYSCALL_TRACE) &&
++	    tracehook_report_syscall_entry(regs))
++		/*
++		 * Tracing decided this syscall should not happen.
++		 * We'll return a bogus call number to get an ENOSYS
++		 * error, but leave the original number in regs->regs[0].
++		 */
++		ret = -1L;
 +
-+PHONY += dtbs
-+dtbs: scripts
-+	$(Q)$(MAKE) $(build)=arch/h8300/boot/dts
++	audit_syscall_entry(regs->er1, regs->er2, regs->er3,
++			    regs->er4, regs->er5);
 +
-+archmrproper:
++	return ret ?: regs->er0;
++}
 +
-+archclean:
-+	$(Q)$(MAKE) $(clean)=$(boot)
++asmlinkage void do_syscall_trace_leave(struct pt_regs *regs)
++{
++	int step;
 +
-+vmlinux.srec vmlinux.bin zImage uImage.bin: vmlinux
-+	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
++	audit_syscall_exit(regs);
 +
-+define archhelp
-+  @echo  'vmlinux.bin  - Create raw binary'
-+  @echo  'vmlinux.srec - Create srec binary'
-+  @echo  'zImage       - Compressed kernel image'
-+endef
-diff --git a/arch/h8300/kernel/Makefile b/arch/h8300/kernel/Makefile
-new file mode 100644
-index 0000000..0b5fe00
---- /dev/null
-+++ b/arch/h8300/kernel/Makefile
-@@ -0,0 +1,16 @@
-+#
-+# Makefile for the linux kernel.
-+#
-+
-+extra-y := vmlinux.lds
-+
-+obj-y := process.o traps.o ptrace.o \
-+	 signal.o setup.o syscalls.o \
-+	 irq.o entry.o dma.o cpu/
-+
-+obj-$(CONFIG_ROMKERNEL) += head_rom.o
-+obj-$(CONFIG_RAMKERNEL) += head_ram.o
-+
-+obj-$(CONFIG_MODULES) += module.o h8300_ksyms.o
-+obj-$(CONFIG_H8300H_SIM) += sim-console.o
-+obj-$(CONFIG_H8S_SIM) += sim-console.o
++	step = test_thread_flag(TIF_SINGLESTEP);
++	if (step || test_thread_flag(TIF_SYSCALL_TRACE))
++		tracehook_report_syscall_exit(regs, step);
++}
 -- 
 2.1.4
