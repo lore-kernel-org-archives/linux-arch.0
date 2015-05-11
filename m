@@ -1,322 +1,280 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v12 09/21] h8300: kernel startup
-Date: Mon, 11 May 2015 15:26:28 +0900
-Message-ID: <1431325600-12333-10-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v12 07/21] h8300: UAPI headers
+Date: Mon, 11 May 2015 15:26:26 +0900
+Message-ID: <1431325600-12333-8-git-send-email-ysato@users.sourceforge.jp>
 References: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- Documentation/devicetree/bindings/h8300/cpu.txt    |  13 ++
- .../memory-controllers/renesas,h8300-bsc.txt       |  12 +
- arch/h8300/kernel/setup.c                          | 255 +++++++++++++++++++++
- 3 files changed, 280 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/h8300/cpu.txt
- create mode 100644 Documentation/devicetree/bindings/memory-controllers/renesas,h8300-bsc.txt
- create mode 100644 arch/h8300/kernel/setup.c
+ arch/h8300/include/uapi/asm/Kbuild       |  30 ++++++++
+ arch/h8300/include/uapi/asm/byteorder.h  |   6 ++
+ arch/h8300/include/uapi/asm/ptrace.h     |  42 +++++++++++
+ arch/h8300/include/uapi/asm/sigcontext.h |  18 +++++
+ arch/h8300/include/uapi/asm/signal.h     | 115 +++++++++++++++++++++++++++++++
+ arch/h8300/include/uapi/asm/unistd.h     |   3 +
+ 6 files changed, 214 insertions(+)
+ create mode 100644 arch/h8300/include/uapi/asm/Kbuild
+ create mode 100644 arch/h8300/include/uapi/asm/byteorder.h
+ create mode 100644 arch/h8300/include/uapi/asm/ptrace.h
+ create mode 100644 arch/h8300/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/h8300/include/uapi/asm/signal.h
+ create mode 100644 arch/h8300/include/uapi/asm/unistd.h
 
-diff --git a/Documentation/devicetree/bindings/h8300/cpu.txt b/Documentation/devicetree/bindings/h8300/cpu.txt
+diff --git a/arch/h8300/include/uapi/asm/Kbuild b/arch/h8300/include/uapi/asm/Kbuild
 new file mode 100644
-index 0000000..70cd586
+index 0000000..fb6101a
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/h8300/cpu.txt
-@@ -0,0 +1,13 @@
-+* H8/300 CPU bindings
++++ b/arch/h8300/include/uapi/asm/Kbuild
+@@ -0,0 +1,30 @@
++# UAPI Header export list
++include include/uapi/asm-generic/Kbuild.asm
 +
-+Required properties:
-+
-+- compatible: Compatible property value should be "renesas,h8300".
-+- clock-frequency: Contains the clock frequency for CPU, in Hz.
-+
-+Example:
-+
-+		cpu@0 {
-+			compatible = "renesas,h8300";
-+			clock-frequency = <20000000>;
-+		};
-diff --git a/Documentation/devicetree/bindings/memory-controllers/renesas,h8300-bsc.txt b/Documentation/devicetree/bindings/memory-controllers/renesas,h8300-bsc.txt
++header-y += auxvec.h
++header-y += bitsperlong.h
++header-y += errno.h
++header-y += fcntl.h
++header-y += ioctl.h
++header-y += ioctls.h
++header-y += ipcbuf.h
++header-y += kvm_para.h
++header-y += mman.h
++header-y += msgbuf.h
++header-y += param.h
++header-y += poll.h
++header-y += posix_types.h
++header-y += resource.h
++header-y += sembuf.h
++header-y += setup.h
++header-y += shmbuf.h
++header-y += siginfo.h
++header-y += socket.h
++header-y += sockios.h
++header-y += stat.h
++header-y += statfs.h
++header-y += swab.h
++header-y += termbits.h
++header-y += termios.h
++header-y += types.h
++header-y += unistd.h
+diff --git a/arch/h8300/include/uapi/asm/byteorder.h b/arch/h8300/include/uapi/asm/byteorder.h
 new file mode 100644
-index 0000000..cdf406c
+index 0000000..13539da
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/memory-controllers/renesas,h8300-bsc.txt
-@@ -0,0 +1,12 @@
-+* H8/300 bus controller
++++ b/arch/h8300/include/uapi/asm/byteorder.h
+@@ -0,0 +1,6 @@
++#ifndef _H8300_BYTEORDER_H
++#define _H8300_BYTEORDER_H
 +
-+Required properties:
-+  - compatible: Must be "renesas,h8300-bsc".
-+  - reg: Base address and length of BSC registers.
++#include <linux/byteorder/big_endian.h>
 +
-+Example.
-+	bsc: memory-controller@fee01e {
-+		compatible = "renesas,h8300h-bsc", "renesas,h8300-bsc";
-+		reg = <0xfee01e 8>;
-+	};
-+
-diff --git a/arch/h8300/kernel/setup.c b/arch/h8300/kernel/setup.c
++#endif /* _H8300_BYTEORDER_H */
+diff --git a/arch/h8300/include/uapi/asm/ptrace.h b/arch/h8300/include/uapi/asm/ptrace.h
 new file mode 100644
-index 0000000..0fd1fe6
+index 0000000..e132670d
 --- /dev/null
-+++ b/arch/h8300/kernel/setup.c
-@@ -0,0 +1,255 @@
-+/*
-+ *  linux/arch/h8300/kernel/setup.c
-+ *
-+ *  Copyright (C) 2001-2014 Yoshinori Sato <ysato@users.sourceforge.jp>
-+ */
++++ b/arch/h8300/include/uapi/asm/ptrace.h
+@@ -0,0 +1,42 @@
++#ifndef _UAPI_H8300_PTRACE_H
++#define _UAPI_H8300_PTRACE_H
 +
-+/*
-+ * This file handles the architecture-dependent parts of system setup
-+ */
++#ifndef __ASSEMBLY__
 +
-+#include <linux/kernel.h>
-+#include <linux/sched.h>
-+#include <linux/delay.h>
-+#include <linux/interrupt.h>
-+#include <linux/mm.h>
-+#include <linux/fs.h>
-+#include <linux/console.h>
-+#include <linux/errno.h>
-+#include <linux/string.h>
-+#include <linux/bootmem.h>
-+#include <linux/seq_file.h>
-+#include <linux/init.h>
-+#include <linux/platform_device.h>
-+#include <linux/module.h>
-+#include <linux/of.h>
-+#include <linux/of_fdt.h>
-+#include <linux/of_platform.h>
-+#include <linux/of_address.h>
-+#include <linux/clk-provider.h>
-+#include <linux/memblock.h>
-+#include <linux/screen_info.h>
++#define PT_ER1	   0
++#define PT_ER2	   1
++#define PT_ER3	   2
++#define PT_ER4	   3
++#define PT_ER5	   4
++#define PT_ER6	   5
++#define PT_ER0	   6
++#define PT_USP	   7
++#define PT_ORIG_ER0	   8
++#define PT_CCR	   9
++#define PT_PC	   10
++#define PT_EXR     11
 +
-+#include <asm/setup.h>
-+#include <asm/irq.h>
-+#include <asm/pgtable.h>
-+#include <asm/sections.h>
-+#include <asm/page.h>
++/* this struct defines the way the registers are stored on the
++   stack during a system call. */
 +
-+#if defined(CONFIG_CPU_H8300H)
-+#define CPU "H8/300H"
-+#elif defined(CONFIG_CPU_H8S)
-+#define CPU "H8S"
-+#else
-+#define CPU "Unknown"
++struct pt_regs {
++	long     retpc;
++	long     er4;
++	long     er5;
++	long     er6;
++	long     er3;
++	long     er2;
++	long     er1;
++	long     orig_er0;
++	long	 sp;
++	unsigned short	 ccr;
++	long     er0;
++	long     vector;
++#if defined(__H8300S__)
++	unsigned short	 exr;
 +#endif
++	unsigned long  pc;
++} __attribute__((aligned(2), packed));
 +
-+unsigned long memory_start;
-+unsigned long memory_end;
-+EXPORT_SYMBOL(memory_end);
-+static unsigned long freq;
-+extern char __dtb_start[];
++#endif /* __ASSEMBLY__ */
++#endif /* _UAPI_H8300_PTRACE_H */
+diff --git a/arch/h8300/include/uapi/asm/sigcontext.h b/arch/h8300/include/uapi/asm/sigcontext.h
+new file mode 100644
+index 0000000..c41fdaa
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/sigcontext.h
+@@ -0,0 +1,18 @@
++#ifndef _ASM_H8300_SIGCONTEXT_H
++#define _ASM_H8300_SIGCONTEXT_H
 +
-+#ifdef CONFIG_VT
-+struct screen_info screen_info;
-+#endif
-+
-+char __initdata command_line[COMMAND_LINE_SIZE];
-+
-+void sim_console_register(void);
-+
-+void __init h8300_fdt_init(void *fdt, char *bootargs)
-+{
-+	if (!fdt)
-+		fdt = __dtb_start;
-+	else
-+		strcpy(command_line, bootargs);
-+
-+	early_init_dt_scan(fdt);
-+	memblock_allow_resize();
-+}
-+
-+static void __init bootmem_init(void)
-+{
-+	int bootmap_size;
-+	unsigned long ram_start_pfn;
-+	unsigned long free_ram_start_pfn;
-+	unsigned long ram_end_pfn;
-+	struct memblock_region *region;
-+
-+	memory_end = memory_start = 0;
-+
-+	/* Find main memory where is the kernel */
-+	for_each_memblock(memory, region) {
-+		memory_start = region->base;
-+		memory_end = region->base + region->size;
-+	}
-+
-+	if (!memory_end)
-+		panic("No memory!");
-+
-+	ram_start_pfn = PFN_UP(memory_start);
-+	/* free_ram_start_pfn is first page after kernel */
-+	free_ram_start_pfn = PFN_UP(__pa(_end));
-+	ram_end_pfn = PFN_DOWN(memblock_end_of_DRAM());
-+
-+	max_pfn = ram_end_pfn;
-+
-+	/*
-+	 * give all the memory to the bootmap allocator,  tell it to put the
-+	 * boot mem_map at the start of memory
-+	 */
-+	bootmap_size = init_bootmem_node(NODE_DATA(0),
-+					 free_ram_start_pfn,
-+					 0,
-+					 ram_end_pfn);
-+	/*
-+	 * free the usable memory,  we have to make sure we do not free
-+	 * the bootmem bitmap so we then reserve it after freeing it :-)
-+	 */
-+	free_bootmem(PFN_PHYS(free_ram_start_pfn),
-+		     (ram_end_pfn - free_ram_start_pfn) << PAGE_SHIFT);
-+	reserve_bootmem(PFN_PHYS(free_ram_start_pfn), bootmap_size,
-+			BOOTMEM_DEFAULT);
-+
-+	for_each_memblock(reserved, region) {
-+		reserve_bootmem(region->base, region->size, BOOTMEM_DEFAULT);
-+	}
-+}
-+
-+void __init setup_arch(char **cmdline_p)
-+{
-+	unflatten_and_copy_device_tree();
-+
-+	init_mm.start_code = (unsigned long) _stext;
-+	init_mm.end_code = (unsigned long) _etext;
-+	init_mm.end_data = (unsigned long) _edata;
-+	init_mm.brk = (unsigned long) 0;
-+
-+	pr_notice("\r\n\nuClinux " CPU "\n");
-+	pr_notice("Flat model support (C) 1998,1999 Kenneth Albanowski, D. Jeff Dionne\n");
-+
-+	if (*command_line)
-+		strcpy(boot_command_line, command_line);
-+	*cmdline_p = boot_command_line;
-+
-+	parse_early_param();
-+
-+	bootmem_init();
-+#if defined(CONFIG_H8300H_SIM) || defined(CONFIG_H8S_SIM)
-+	sim_console_register();
-+#endif
-+
-+	early_platform_driver_probe("earlyprintk", 1, 0);
-+	/*
-+	 * get kmalloc into gear
-+	 */
-+	paging_init();
-+}
-+
-+/*
-+ *	Get CPU information for use by the procfs.
-+ */
-+
-+static int show_cpuinfo(struct seq_file *m, void *v)
-+{
-+	char *cpu;
-+
-+	cpu = CPU;
-+
-+	seq_printf(m,  "CPU:\t\t%s\n"
-+		   "Clock:\t\t%lu.%1luMHz\n"
-+		   "BogoMips:\t%lu.%02lu\n"
-+		   "Calibration:\t%lu loops\n",
-+		   cpu,
-+		   freq/1000, freq%1000,
-+		   (loops_per_jiffy*HZ)/500000,
-+		   ((loops_per_jiffy*HZ)/5000)%100,
-+		   (loops_per_jiffy*HZ));
-+
-+	return 0;
-+}
-+
-+static void *c_start(struct seq_file *m, loff_t *pos)
-+{
-+	return *pos < num_possible_cpus() ?
-+		((void *) 0x12345678) : NULL;
-+}
-+
-+static void *c_next(struct seq_file *m, void *v, loff_t *pos)
-+{
-+	++*pos;
-+	return c_start(m, pos);
-+}
-+
-+static void c_stop(struct seq_file *m, void *v)
-+{
-+}
-+
-+const struct seq_operations cpuinfo_op = {
-+	.start	= c_start,
-+	.next	= c_next,
-+	.stop	= c_stop,
-+	.show	= show_cpuinfo,
++struct sigcontext {
++	unsigned long  sc_mask;		/* old sigmask */
++	unsigned long  sc_usp;		/* old user stack pointer */
++	unsigned long  sc_er0;
++	unsigned long  sc_er1;
++	unsigned long  sc_er2;
++	unsigned long  sc_er3;
++	unsigned long  sc_er4;
++	unsigned long  sc_er5;
++	unsigned long  sc_er6;
++	unsigned short sc_ccr;
++	unsigned long  sc_pc;
 +};
 +
-+static int __init device_probe(void)
-+{
-+	of_platform_populate(NULL, NULL, NULL, NULL);
-+
-+	return 0;
-+}
-+
-+device_initcall(device_probe);
-+
-+#if defined(CONFIG_CPU_H8300H)
-+#define get_wait(base, addr) ({		\
-+	int baddr;			\
-+	baddr = ((addr) / 0x200000 * 2);			     \
-+	w *= (ctrl_inw((unsigned long)(base) + 2) & (3 << baddr)) + 1;	\
-+	})
 +#endif
-+#if defined(CONFIG_CPU_H8S)
-+#define get_wait(base, addr) ({		\
-+	int baddr;			\
-+	baddr = ((addr) / 0x200000 * 16);			     \
-+	w *= (ctrl_inl((unsigned long)(base) + 2) & (7 << baddr)) + 1;	\
-+	})
-+#endif
+diff --git a/arch/h8300/include/uapi/asm/signal.h b/arch/h8300/include/uapi/asm/signal.h
+new file mode 100644
+index 0000000..af3a6c3
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/signal.h
+@@ -0,0 +1,115 @@
++#ifndef _UAPI_H8300_SIGNAL_H
++#define _UAPI_H8300_SIGNAL_H
 +
-+static __init int access_timing(void)
-+{
-+	struct device_node *bsc;
-+	void __iomem *base;
-+	unsigned long addr = (unsigned long)&__delay;
-+	int bit = 1 << (addr / 0x200000);
-+	int w;
++#include <linux/types.h>
 +
-+	bsc = of_find_compatible_node(NULL, NULL, "renesas,h8300-bsc");
-+	base = of_iomap(bsc, 0);
-+	w = (ctrl_inb((unsigned long)base + 0) & bit)?2:1;
-+	if (ctrl_inb((unsigned long)base + 1) & bit)
-+		w *= get_wait(base, addr);
-+	else
-+		w *= 2;
-+	return w * 3 / 2;
-+}
++/* Avoid too many header ordering problems.  */
++struct siginfo;
 +
-+void __init calibrate_delay(void)
-+{
-+	struct device_node *cpu;
-+	int freq;
++#ifndef __KERNEL__
++/* Here we must cater to libcs that poke about in kernel headers.  */
 +
-+	cpu = of_find_compatible_node(NULL, NULL, "renesas,h8300");
-+	of_property_read_s32(cpu, "clock-frequency", &freq);
-+	loops_per_jiffy = freq / HZ / (access_timing() * 2);
-+	pr_cont("%lu.%02lu BogoMIPS (lpj=%lu)\n",
-+		loops_per_jiffy / (500000 / HZ),
-+		(loops_per_jiffy / (5000 / HZ)) % 100, loops_per_jiffy);
-+}
++#define NSIG		32
++typedef unsigned long sigset_t;
++
++#endif /* __KERNEL__ */
++
++#define SIGHUP		 1
++#define SIGINT		 2
++#define SIGQUIT		 3
++#define SIGILL		 4
++#define SIGTRAP		 5
++#define SIGABRT		 6
++#define SIGIOT		 6
++#define SIGBUS		 7
++#define SIGFPE		 8
++#define SIGKILL		 9
++#define SIGUSR1		10
++#define SIGSEGV		11
++#define SIGUSR2		12
++#define SIGPIPE		13
++#define SIGALRM		14
++#define SIGTERM		15
++#define SIGSTKFLT	16
++#define SIGCHLD		17
++#define SIGCONT		18
++#define SIGSTOP		19
++#define SIGTSTP		20
++#define SIGTTIN		21
++#define SIGTTOU		22
++#define SIGURG		23
++#define SIGXCPU		24
++#define SIGXFSZ		25
++#define SIGVTALRM	26
++#define SIGPROF		27
++#define SIGWINCH	28
++#define SIGIO		29
++#define SIGPOLL		SIGIO
++/*
++#define SIGLOST		29
++*/
++#define SIGPWR		30
++#define SIGSYS		31
++#define	SIGUNUSED	31
++
++/* These should not be considered constants from userland.  */
++#define SIGRTMIN	32
++#define SIGRTMAX	_NSIG
++
++/*
++ * SA_FLAGS values:
++ *
++ * SA_ONSTACK indicates that a registered stack_t will be used.
++ * SA_RESTART flag to get restarting signals (which were the default long ago)
++ * SA_NOCLDSTOP flag to turn off SIGCHLD when children stop.
++ * SA_RESETHAND clears the handler when the signal is delivered.
++ * SA_NOCLDWAIT flag on SIGCHLD to inhibit zombies.
++ * SA_NODEFER prevents the current signal from being masked in the handler.
++ *
++ * SA_ONESHOT and SA_NOMASK are the historical Linux names for the Single
++ * Unix names RESETHAND and NODEFER respectively.
++ */
++#define SA_NOCLDSTOP	0x00000001
++#define SA_NOCLDWAIT	0x00000002 /* not supported yet */
++#define SA_SIGINFO	0x00000004
++#define SA_ONSTACK	0x08000000
++#define SA_RESTART	0x10000000
++#define SA_NODEFER	0x40000000
++#define SA_RESETHAND	0x80000000
++
++#define SA_NOMASK	SA_NODEFER
++#define SA_ONESHOT	SA_RESETHAND
++
++#define SA_RESTORER	0x04000000
++
++#define MINSIGSTKSZ	2048
++#define SIGSTKSZ	8192
++
++#include <asm-generic/signal-defs.h>
++
++#ifndef __KERNEL__
++/* Here we must cater to libcs that poke about in kernel headers.  */
++
++struct sigaction {
++	union {
++	  __sighandler_t _sa_handler;
++	  void (*_sa_sigaction)(int, struct siginfo *, void *);
++	} _u;
++	sigset_t sa_mask;
++	unsigned long sa_flags;
++	void (*sa_restorer)(void);
++};
++
++#define sa_handler	_u._sa_handler
++#define sa_sigaction	_u._sa_sigaction
++
++#endif /* __KERNEL__ */
++
++typedef struct sigaltstack {
++	void *ss_sp;
++	int ss_flags;
++	size_t ss_size;
++} stack_t;
 +
 +
-+void __init time_init(void)
-+{
-+	of_clk_init(NULL);
-+}
++#endif /* _UAPI_H8300_SIGNAL_H */
+diff --git a/arch/h8300/include/uapi/asm/unistd.h b/arch/h8300/include/uapi/asm/unistd.h
+new file mode 100644
+index 0000000..7a2eb69
+--- /dev/null
++++ b/arch/h8300/include/uapi/asm/unistd.h
+@@ -0,0 +1,3 @@
++#define __ARCH_NOMMU
++
++#include <asm-generic/unistd.h>
 -- 
 2.1.4
