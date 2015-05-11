@@ -1,7 +1,7 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v12 02/21] mksysmap: Add h8300 local symbol pattern
-Date: Mon, 11 May 2015 15:26:21 +0900
-Message-ID: <1431325600-12333-3-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v12 05/21] asm-generic: Add common asm-offsets.h
+Date: Mon, 11 May 2015 15:26:24 +0900
+Message-ID: <1431325600-12333-6-git-send-email-ysato@users.sourceforge.jp>
 References: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
@@ -10,29 +10,22 @@ To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 List-Id: linux-arch.vger.kernel.org
 
-h8300's nm output have a lot of local symbols.
-ex)
-00000000 N .Lframe0
-00000013 N .LLST1
-00000026 N .LLST2
-00000039 N .LLST3
-0000004c N .LLST4
-Added new pattern " .L" to filter rule.
+All architecture use same asm-offsets.h
+So it generic header.
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- scripts/mksysmap | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/asm-generic/asm-offsets.h | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 include/asm-generic/asm-offsets.h
 
-diff --git a/scripts/mksysmap b/scripts/mksysmap
-index 7ada35a..a35acc0 100755
---- a/scripts/mksysmap
-+++ b/scripts/mksysmap
-@@ -41,4 +41,4 @@
- # so we just ignore them to let readprofile continue to work.
- # (At least sparc64 has __crc_ in the middle).
- 
--$NM -n $1 | grep -v '\( [aNUw] \)\|\(__crc_\)\|\( \$[adt]\)' > $2
-+$NM -n $1 | grep -v '\( [aNUw] \)\|\(__crc_\)\|\( \$[adt]\)\|\( .L\)' > $2
+diff --git a/include/asm-generic/asm-offsets.h b/include/asm-generic/asm-offsets.h
+new file mode 100644
+index 0000000..d370ee3
+--- /dev/null
++++ b/include/asm-generic/asm-offsets.h
+@@ -0,0 +1 @@
++#include <generated/asm-offsets.h>
 -- 
 2.1.4
