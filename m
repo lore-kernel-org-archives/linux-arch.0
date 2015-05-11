@@ -1,214 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:52581 "EHLO
-	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753519AbbEKPws (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2015 11:52:48 -0400
-Received: from /spool/local
-	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Mon, 11 May 2015 16:52:46 +0100
-From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [PATCH v1 00/15] decouple pagefault_disable() from preempt_disable()
-Date: Mon, 11 May 2015 17:52:05 +0200
-Message-ID: <1431359540-32227-1-git-send-email-dahi@linux.vnet.ibm.com>
+Received: from bh-25.webhostbox.net ([208.91.199.152]:40008 "EHLO
+	bh-25.webhostbox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752019AbbEKRuj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2015 13:50:39 -0400
+Received: from mailnull by bh-25.webhostbox.net with sa-checked (Exim 4.85)
+	(envelope-from <linux@roeck-us.net>)
+	id 1Yrrqg-000jFL-Hb
+	for linux-arch@vger.kernel.org; Mon, 11 May 2015 17:50:38 +0000
+Date: Mon, 11 May 2015 10:50:27 -0700
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: Re: [PATCH v12 00/21] Re-introduce h8300 architecture
+Message-ID: <20150511175027.GA31125@roeck-us.net>
+References: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: mingo@redhat.com, yang.shi@windriver.com, bigeasy@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, peterz@infradead.org, dahi@linux.vnet.ibm.com
-Message-ID: <20150511155205.5bpUGd8ARVuNxCFmIKTPwYyf87xK3TRei5qfR_A_BLU@z>
+To: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20150511175027.MWHtsB0QslUdUWY7xSODmakFdInmi2NROy4z4nb2QPs@z>
 
-RFC -> v1:
-- keep the in_atomic() in the fault handlers (via faulthandler_disabled() ) to
-  not break fault handler in irq context (Peter)
+On Mon, May 11, 2015 at 03:26:19PM +0900, Yoshinori Sato wrote:
+> Changes for v12
+> - IRQ chip convert to OF
+> - dts cleanup
+> - some headers use generic
+> - rebase to v4.1-rc3
+> 
+Configurations in arch/h8300/configs shtill build ok.
 
--------------------------------------------------------------------------
+make allmodoconfig, after fixing the spi build error, results in
 
-I recently discovered that might_fault() doesn't call might_sleep()
-anymore. Therefore bugs like:
+ERROR: "csum_partial_copy_nocheck" [net/ipv6/ipv6.ko] undefined!
+ERROR: "ip_compute_csum" [net/ipv6/ip6_gre.ko] undefined!
+ERROR: "ip_fast_csum" [net/ipv4/xfrm4_mode_beet.ko] undefined!
+ERROR: "ip_compute_csum" [net/bridge/bridge.ko] undefined!
+ERROR: "ip_fast_csum" [net/bridge/bridge.ko] undefined!
+ERROR: "ip_fast_csum" [net/bridge/br_netfilter.ko] undefined!
+ERROR: "ip_fast_csum" [net/atm/mpoa.ko] undefined!
+ERROR: "__ucmpdi2" [fs/btrfs/btrfs.ko] undefined!
+ERROR: "ip_compute_csum" [drivers/scsi/scsi_debug.ko] undefined!
+ERROR: "ip_fast_csum" [drivers/net/slip/slhc.ko] undefined!
+ERROR: "__ucmpdi2" [drivers/md/bcache/bcache.ko] undefined!
+ERROR: "__ucmpdi2" [drivers/iio/imu/inv_mpu6050/inv-mpu6050.ko] undefined!
 
-  spin_lock(&lock);
-  rc = copy_to_user(...);
-  spin_unlock(&lock);
+csum_partial_copy_nocheck, ip_compute_csum, and ip_fast_csum need to be exported
+from arch/h8300/lib/checksum.c. No idea what to do about the missing __ucmpdi2
+symbol, or what causes it.
 
-would not be detected with CONFIG_DEBUG_ATOMIC_SLEEP. The code was
-changed to disable false positives for code like:
-
-  pagefault_disable();
-  rc = copy_to_user(...);
-  pagefault_enable();
-
-Whereby the caller wants do deal with failures.
-
-If we schedule while holding a spinlock, bad things can happen.
-Preemption is disabled, but we still preempt - on s390 this can lead
-to spinlocks never getting unlocked (as unlocking code checks for the
-cpu id that locke the spinlock), therefore resulting in a deadlock.
-
-Until now, pagefault_(dis|en)nable) simply modified the preempt count,
-therefore telling the pagefault handler that the context is atomic and
-sleeping is disallowed.
-
-With !CONFIG_PREEMPT_COUNT, the preempt count does not exist.
-So preempt_disable() as well es pagefault_disable() is a NOP.
-in_atomic() checks the preempt count. So we can't detect in_atomic on
-systems without preemption.
-That is also mentioned in the comment of in_atomic():
-
-  "WARNING: this macro cannot always detect atomic context; in particular,
-   it cannot know about held spinlocks in non-preemptible kernels."
-
-We automatically have !CONFIG_PREEMPT_COUNT with !CONFIG_PREEMPT
-and !CONFIG_DEBUG_ATOMIC_SLEEP, so on a system with disabled pagefaults.
-
-All fault handlers currently rely on in_atomic() to check for disabled
-pagefaults.
-
-This series therefore does 2 things:
-
-
-1. Decouple pagefault_disable() from preempt_enable()
-
-pagefault_(dis|en)able() modifies an own counter and doesn't touch
-preemption anymore. The fault handlers now only check for
-disabled pagefaults.
-
-I checked (hopefully) every caller of pagefault_disable(), if they
-implicitly rely on preempt_disable() -  and if so added these calls.
-Hope I haven't missed some cases.
-
-I didn't check all users of preempt_disable() if they relied on them
-disabling pagefaults. My assumption is that such code is broken
-either way (on non-preemptible systems). Pagefaults would only be
-disabled with CONFIG_PREEMPT_COUNT (exception: irq context).
-
-in_atomic() checks are left in the fault handlers to detect irq context.
-
-
-2. Reenable might_sleep() checks for might_fault()
-
-As we can now decide if we really have pagefaults disabled,
-we can reenable the might_sleep() check in might_fault().
-
-So this should now work:
-
-  spin_lock(&lock); /* also if left away */
-  pagefault_disable()
-  rc = copy_to_user(...);
-  pagefault_enable();
-  spin_unlock(&lock);
-
-And this should report a warning again:
-
-  spin_lock(&lock);
-  rc = copy_to_user(...);
-  spin_unlock(&lock);
-
-
-Cross compiled on powerpc, arm, sparc, sparc64, arm64, x86_64, i386,
-mips, alpha, ia64, xtensa, m68k, microblaze.
-
-Tested on s390x.
-
-Any feedback very welcome!
-
-Thanks!
-
-
-David Hildenbrand (15):
-  uaccess: count pagefault_disable() levels in pagefault_disabled
-  mm, uaccess: trigger might_sleep() in might_fault() with disabled
-    pagefaults
-  uaccess: clarify that uaccess may only sleep if pagefaults are enabled
-  mm: explicitly disable/enable preemption in kmap_atomic_*
-  mips: kmap_coherent relies on disabled preemption
-  mm: use pagefault_disable() to check for disabled pagefaults in the
-    handler
-  drm/i915: use pagefault_disabled() to check for disabled pagefaults
-  futex: UP futex_atomic_op_inuser() relies on disabled preemption
-  futex: UP futex_atomic_cmpxchg_inatomic() relies on disabled
-    preemption
-  arm/futex: UP futex_atomic_cmpxchg_inatomic() relies on disabled
-    preemption
-  arm/futex: UP futex_atomic_op_inuser() relies on disabled preemption
-  futex: clarify that preemption doesn't have to be disabled
-  powerpc: enable_kernel_altivec() requires disabled preemption
-  mips: properly lock access to the fpu
-  uaccess: decouple preemption from the pagefault logic
-
- arch/alpha/mm/fault.c                      |  5 ++--
- arch/arc/include/asm/futex.h               | 10 +++----
- arch/arc/mm/fault.c                        |  2 +-
- arch/arm/include/asm/futex.h               | 13 ++++++--
- arch/arm/mm/fault.c                        |  2 +-
- arch/arm/mm/highmem.c                      |  3 ++
- arch/arm64/include/asm/futex.h             |  4 +--
- arch/arm64/mm/fault.c                      |  2 +-
- arch/avr32/include/asm/uaccess.h           | 12 +++++---
- arch/avr32/mm/fault.c                      |  4 +--
- arch/cris/mm/fault.c                       |  6 ++--
- arch/frv/mm/fault.c                        |  4 +--
- arch/frv/mm/highmem.c                      |  2 ++
- arch/hexagon/include/asm/uaccess.h         |  3 +-
- arch/ia64/mm/fault.c                       |  4 +--
- arch/m32r/include/asm/uaccess.h            | 30 ++++++++++++-------
- arch/m32r/mm/fault.c                       |  8 ++---
- arch/m68k/mm/fault.c                       |  4 +--
- arch/metag/mm/fault.c                      |  2 +-
- arch/metag/mm/highmem.c                    |  4 ++-
- arch/microblaze/include/asm/uaccess.h      |  6 ++--
- arch/microblaze/mm/fault.c                 |  8 ++---
- arch/microblaze/mm/highmem.c               |  4 ++-
- arch/mips/include/asm/uaccess.h            | 45 ++++++++++++++++++----------
- arch/mips/kernel/signal-common.h           |  9 ++----
- arch/mips/mm/fault.c                       |  4 +--
- arch/mips/mm/highmem.c                     |  5 +++-
- arch/mips/mm/init.c                        |  2 ++
- arch/mn10300/include/asm/highmem.h         |  3 ++
- arch/mn10300/mm/fault.c                    |  4 +--
- arch/nios2/mm/fault.c                      |  2 +-
- arch/parisc/include/asm/cacheflush.h       |  2 ++
- arch/parisc/kernel/traps.c                 |  4 +--
- arch/parisc/mm/fault.c                     |  4 +--
- arch/powerpc/lib/vmx-helper.c              | 11 +++----
- arch/powerpc/mm/fault.c                    |  9 +++---
- arch/powerpc/mm/highmem.c                  |  4 ++-
- arch/s390/include/asm/uaccess.h            | 15 ++++++----
- arch/s390/mm/fault.c                       |  2 +-
- arch/score/include/asm/uaccess.h           | 15 ++++++----
- arch/score/mm/fault.c                      |  3 +-
- arch/sh/mm/fault.c                         |  5 ++--
- arch/sparc/mm/fault_32.c                   |  4 +--
- arch/sparc/mm/fault_64.c                   |  4 +--
- arch/sparc/mm/highmem.c                    |  4 ++-
- arch/sparc/mm/init_64.c                    |  2 +-
- arch/tile/include/asm/uaccess.h            | 18 +++++++----
- arch/tile/mm/fault.c                       |  4 +--
- arch/tile/mm/highmem.c                     |  3 +-
- arch/um/kernel/trap.c                      |  4 +--
- arch/unicore32/mm/fault.c                  |  2 +-
- arch/x86/include/asm/uaccess.h             | 15 ++++++----
- arch/x86/include/asm/uaccess_32.h          |  6 ++--
- arch/x86/lib/usercopy_32.c                 |  6 ++--
- arch/x86/mm/fault.c                        |  5 ++--
- arch/x86/mm/highmem_32.c                   |  3 +-
- arch/x86/mm/iomap_32.c                     |  2 ++
- arch/xtensa/mm/fault.c                     |  4 +--
- arch/xtensa/mm/highmem.c                   |  2 ++
- drivers/crypto/vmx/aes.c                   |  8 ++++-
- drivers/crypto/vmx/aes_cbc.c               |  6 ++++
- drivers/crypto/vmx/ghash.c                 |  8 +++++
- drivers/gpu/drm/i915/i915_gem_execbuffer.c |  3 +-
- include/asm-generic/futex.h                |  7 +++--
- include/linux/highmem.h                    |  2 ++
- include/linux/io-mapping.h                 |  2 ++
- include/linux/kernel.h                     |  3 +-
- include/linux/sched.h                      |  1 +
- include/linux/uaccess.h                    | 48 ++++++++++++++++++++++--------
- kernel/fork.c                              |  3 ++
- lib/strnlen_user.c                         |  6 ++--
- mm/memory.c                                | 18 ++++-------
- 72 files changed, 319 insertions(+), 174 deletions(-)
-
--- 
-2.1.4
-
+Guenter
