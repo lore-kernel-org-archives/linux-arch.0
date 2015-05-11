@@ -1,96 +1,69 @@
-From: Eric B Munson <emunson@akamai.com>
-Subject: Re: [PATCH 0/3] Allow user to request memory to be locked on page
- fault
-Date: Mon, 11 May 2015 14:06:31 -0400
-Message-ID: <20150511180631.GA1227@akamai.com>
-References: <1431113626-19153-1-git-send-email-emunson@akamai.com>
- <20150508124203.6679b1d35ad9555425003929@linux-foundation.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v12 00/21] Re-introduce h8300 architecture
+Date: Mon, 11 May 2015 21:04:30 +0200
+Message-ID: <16018199.XO2Ye1J7R2@wuerfel>
+References: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp> <20150511175027.GA31125@roeck-us.net>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="+QahgC5+KEYLbs62"
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20150508124203.6679b1d35ad9555425003929@linux-foundation.org>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Shuah Khan <shuahkh@osg.samsung.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20150511175027.GA31125@roeck-us.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Guenter Roeck <linux@roeck-us.net>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+On Monday 11 May 2015 10:50:27 Guenter Roeck wrote:
+> On Mon, May 11, 2015 at 03:26:19PM +0900, Yoshinori Sato wrote:
+> > Changes for v12
+> > - IRQ chip convert to OF
+> > - dts cleanup
+> > - some headers use generic
+> > - rebase to v4.1-rc3
+> > 
+> Configurations in arch/h8300/configs shtill build ok.
+> 
+> make allmodoconfig, after fixing the spi build error, results in
+> 
+> ERROR: "csum_partial_copy_nocheck" [net/ipv6/ipv6.ko] undefined!
+> ERROR: "ip_compute_csum" [net/ipv6/ip6_gre.ko] undefined!
+> ERROR: "ip_fast_csum" [net/ipv4/xfrm4_mode_beet.ko] undefined!
+> ERROR: "ip_compute_csum" [net/bridge/bridge.ko] undefined!
+> ERROR: "ip_fast_csum" [net/bridge/bridge.ko] undefined!
+> ERROR: "ip_fast_csum" [net/bridge/br_netfilter.ko] undefined!
+> ERROR: "ip_fast_csum" [net/atm/mpoa.ko] undefined!
+> ERROR: "__ucmpdi2" [fs/btrfs/btrfs.ko] undefined!
+> ERROR: "ip_compute_csum" [drivers/scsi/scsi_debug.ko] undefined!
+> ERROR: "ip_fast_csum" [drivers/net/slip/slhc.ko] undefined!
+> ERROR: "__ucmpdi2" [drivers/md/bcache/bcache.ko] undefined!
+> ERROR: "__ucmpdi2" [drivers/iio/imu/inv_mpu6050/inv-mpu6050.ko] undefined!
+> 
+> csum_partial_copy_nocheck, ip_compute_csum, and ip_fast_csum need to be exported
+> from arch/h8300/lib/checksum.c.
 
---+QahgC5+KEYLbs62
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Interesting. From what I can see, the  arch/h8300/lib/checksum.c file
+contains a completely generic implementation of the IP checksum code.
+That should not be necessary at all, and is more likely to lead to
+subtle errors like the one you see here.
 
-On Fri, 08 May 2015, Andrew Morton wrote:
+It would be better to do one of two things:
 
-> On Fri,  8 May 2015 15:33:43 -0400 Eric B Munson <emunson@akamai.com> wro=
-te:
->=20
-> > mlock() allows a user to control page out of program memory, but this
-> > comes at the cost of faulting in the entire mapping when it is
-> > allocated.  For large mappings where the entire area is not necessary
-> > this is not ideal.
-> >=20
-> > This series introduces new flags for mmap() and mlockall() that allow a
-> > user to specify that the covered are should not be paged out, but only
-> > after the memory has been used the first time.
->=20
-> Please tell us much much more about the value of these changes: the use
-> cases, the behavioural improvements and performance results which the
-> patchset brings to those use cases, etc.
->=20
+a) use the code from lib/checksum.c that is known to work well, and that
+   contains all the necessary exports. It seems that the h8300 is
+   almost an except copy of the generic code, it just misses a few
+   improvements that were done already in the kernel.
 
-To illustrate the proposed use case I wrote a quick program that mmaps
-a 5GB file which is filled with random data and accesses 150,000 pages
-=66rom that mapping.  Setup and processing were timed separately to
-illustrate the differences between the three tested approaches.  the
-setup portion is simply the call to mmap, the processing is the
-accessing of the various locations in  that mapping.  The following
-values are in milliseconds and are the averages of 20 runs each with a
-call to echo 3 > /proc/sys/vm/drop_caches between each run.
+b) provide an optimized implementation written in assembly where necessary.
+   This can provide a significant performance improvement for TCP/IP
+   networking.
 
-The first mapping was made with MAP_PRIVATE | MAP_LOCKED as a baseline:
-Startup average:    9476.506
-Processing average: 3.573
+> No idea what to do about the missing __ucmpdi2
+> symbol, or what causes it.
 
-The second mapping was simply MAP_PRIVATE but each page was passed to
-mlock() before being read:
-Startup average:    0.051
-Processing average: 721.859
+This is a libgcc symbol provided by arch/h8300/lib/ucmpdi2.c in patch
+15. The other similar functions are written in assembly and exported
+from arch/h8300/kernel/h8300_ksyms.c, while this one is written in C
+and missing the export. It should be added in the file that defines
+the function.
 
-The final mapping was MAP_PRIVATE | MAP_LOCKONFAULT:
-Startup average:    0.084
-Processing average: 42.125
-
-
-
---+QahgC5+KEYLbs62
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAEBAgAGBQJVUO+mAAoJELbVsDOpoOa9NTQP/2wouTuGwUNtVMFtzfwXaw9K
-VqgrTohALyWDKXY4YiEVXyru5Mi7BJvzwBzjXo2eNFNBHj5DwILwKk/9ONw1l7kC
-KCAMPqxGumpbM0dYJwaDYmYCsSmfTuFfv4G/Y/p7q43+mtfr6fCKAu+iIKvZpjve
-T374ZgnngXdn43b4lC7Abk4SakIEz7bj2gzX7B6WTRJ5/WZUDe/WkA4k+9bO58yQ
-M2GKbVNdCbFS2yL8awktB+NCUw5wmUreswog6c9E1h7HHTI0u0TzXa3E+NYZ4DGu
-rmsFzaojbtuNHvvuDIDLeBw1Dc6BlwdWTk+OgAUnseXrbTB+L7KKZS4on56W+zIi
-AIDTZ1oEvYsUZg06tPmKhLAgLA+FvpcsNYYjRwGlHEwjcwLL2LjF1gAMGZk1n8UP
-uTuhOR/Q0WtRRQks706KG47OkVs0glntwFRwpZ0/a5iACKMhQhIL6LJjDmR5jSFI
-cA70pVY49xmBKQ/vY2gMrKwGuHA00kvLaVVwUqga9AUgD0zisklvSPfzs3ihxkLL
-b61PtZJJ4rggU6HgH/aNVaKIsGiy8SnGZPgnkinlB0QQFrbrfmgk7/imIHT09pDQ
-K0o/U3KOitLxnvS1mSk6l4rCxYQ5037KrlGU15pqp5WIOuAiad6dpoUN4iLN/nuk
-RMNxTjQZKYW0XS2oLyRI
-=2v7D
------END PGP SIGNATURE-----
-
---+QahgC5+KEYLbs62--
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+	Arnd
