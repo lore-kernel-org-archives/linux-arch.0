@@ -1,109 +1,210 @@
-From: Chris Metcalf <cmetcalf@ezchip.com>
-Subject: Re: [PATCH 0/3] add new strscpy() API for string copy
-Date: Mon, 11 May 2015 11:37:42 -0400
-Message-ID: <5550CCC6.40200@ezchip.com>
-References: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-db3on0091.outbound.protection.outlook.com ([157.55.234.91]:13238
-	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752758AbbEKPiD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 May 2015 11:38:03 -0400
-In-Reply-To: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Fabian Frederick <fabf@skynet.be>, Randy Dunlap <rdunlap@infradead.org>, Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>, gregkh@linuxfoundation.org, Peter Zijlstra <peterz@infradead.org>, "David S. Miller" <davem@davemloft.net>, Frederic Weisbecker <fweisbec@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Theodore Ts'o <tytso@mit.edu>, Grant Likely <grant.likely@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+From: David Hildenbrand <dahi@linux.vnet.ibm.com>
+Subject: [PATCH v1 00/15] decouple pagefault_disable() from preempt_disable()
+Date: Mon, 11 May 2015 17:52:05 +0200
+Message-ID: <1431359540-32227-1-git-send-email-dahi@linux.vnet.ibm.com>
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org
+Cc: mingo@redhat.com, yang.shi@windriver.com, bigeasy@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, peterz@infradead.org, dahi@linux.vnet.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
-Ping!  There was a little feedback on the strscpy() patch series,
-but I think at this point it boiled down to adding a __must_check
-on strscpy(), which I've done.  Any further opinions?  Would
-anyone like to volunteer to take this into their tree?  Or Linus,
-are you ready to pull it directly when the merge window opens?
+RFC -> v1:
+- keep the in_atomic() in the fault handlers (via faulthandler_disabled() ) to
+  not break fault handler in irq context (Peter)
 
-git://git.kernel.org/pub/scm/linux/kernel/git/cmetcalf/linux-tile.git 
-strscpy
+-------------------------------------------------------------------------
+
+I recently discovered that might_fault() doesn't call might_sleep()
+anymore. Therefore bugs like:
+
+  spin_lock(&lock);
+  rc = copy_to_user(...);
+  spin_unlock(&lock);
+
+would not be detected with CONFIG_DEBUG_ATOMIC_SLEEP. The code was
+changed to disable false positives for code like:
+
+  pagefault_disable();
+  rc = copy_to_user(...);
+  pagefault_enable();
+
+Whereby the caller wants do deal with failures.
+
+If we schedule while holding a spinlock, bad things can happen.
+Preemption is disabled, but we still preempt - on s390 this can lead
+to spinlocks never getting unlocked (as unlocking code checks for the
+cpu id that locke the spinlock), therefore resulting in a deadlock.
+
+Until now, pagefault_(dis|en)nable) simply modified the preempt count,
+therefore telling the pagefault handler that the context is atomic and
+sleeping is disallowed.
+
+With !CONFIG_PREEMPT_COUNT, the preempt count does not exist.
+So preempt_disable() as well es pagefault_disable() is a NOP.
+in_atomic() checks the preempt count. So we can't detect in_atomic on
+systems without preemption.
+That is also mentioned in the comment of in_atomic():
+
+  "WARNING: this macro cannot always detect atomic context; in particular,
+   it cannot know about held spinlocks in non-preemptible kernels."
+
+We automatically have !CONFIG_PREEMPT_COUNT with !CONFIG_PREEMPT
+and !CONFIG_DEBUG_ATOMIC_SLEEP, so on a system with disabled pagefaults.
+
+All fault handlers currently rely on in_atomic() to check for disabled
+pagefaults.
+
+This series therefore does 2 things:
+
+
+1. Decouple pagefault_disable() from preempt_enable()
+
+pagefault_(dis|en)able() modifies an own counter and doesn't touch
+preemption anymore. The fault handlers now only check for
+disabled pagefaults.
+
+I checked (hopefully) every caller of pagefault_disable(), if they
+implicitly rely on preempt_disable() -  and if so added these calls.
+Hope I haven't missed some cases.
+
+I didn't check all users of preempt_disable() if they relied on them
+disabling pagefaults. My assumption is that such code is broken
+either way (on non-preemptible systems). Pagefaults would only be
+disabled with CONFIG_PREEMPT_COUNT (exception: irq context).
+
+in_atomic() checks are left in the fault handlers to detect irq context.
+
+
+2. Reenable might_sleep() checks for might_fault()
+
+As we can now decide if we really have pagefaults disabled,
+we can reenable the might_sleep() check in might_fault().
+
+So this should now work:
+
+  spin_lock(&lock); /* also if left away */
+  pagefault_disable()
+  rc = copy_to_user(...);
+  pagefault_enable();
+  spin_unlock(&lock);
+
+And this should report a warning again:
+
+  spin_lock(&lock);
+  rc = copy_to_user(...);
+  spin_unlock(&lock);
+
+
+Cross compiled on powerpc, arm, sparc, sparc64, arm64, x86_64, i386,
+mips, alpha, ia64, xtensa, m68k, microblaze.
+
+Tested on s390x.
+
+Any feedback very welcome!
 
 Thanks!
 
-On 04/30/2015 12:01 PM, Chris Metcalf wrote:
-> This patch series addresses limitations in strncpy() and strlcpy();
-> both the old APIs are unpleasant, as Linus nicely summarized here
-> a couple of days ago:
->
->    https://lkml.org/lkml/2015/4/28/570
->
-> and of course as other folks (Greg K-H and Linus again) said last year:
->
->    https://plus.google.com/+gregkroahhartman/posts/1amLbuhWbh5
->
-> The proposed new API (strscpy(), for "s"afe string copy) has an
-> easy-to-use API for detecting buffer overflow, avoids unsafe truncation
-> by default, and isn't subject to thread-safety attacks like the current
-> strlcpy implementation.  See patch 2/3 for more on why strscpy() is a
-> good thing.
->
-> To make strscpy() work more efficiently I did the minimum tweaking
-> necessary to allow <asm/word-at-a-time.h> to work on all architectures,
-> though of course individual maintainers can still make their versions
-> more efficient as needed.
->
-> It's likely not necessary for per-architecture implementations of
-> strscpy() to be written, but I stuck with the standard __HAVE_ARCH_XXX
-> model just for consistency with the rest of <linux/string.h>.
->
-> I tested the implementation with a simple user-space harness, so I
-> believe it is correct for the corner cases I could think of.  In
-> particular I pairwise-tested all the unaligned values of source and
-> dest, and tested the restriction on src page-crossing at all
-> unaligned offsets approaching the page boundary.
->
-> This builds on an earlier version of strscpy() submitted as
-> a file-static method in the arch/tile/gxio tree last year, after
-> an attempt to gather interest in a new generic strscpy failed:
->
->    https://lkml.org/lkml/2014/8/7/368
->
-> The patch series is available to be pulled from
->
->    git://git.kernel.org/pub/scm/linux/kernel/git/cmetcalf/linux-tile.git strscpy
->
-> Chris Metcalf (3):
->    Make asm/word-at-a-time.h available on all architectures
->    string: provide strscpy() and strscpy_truncate()
->    tile: use global strscpy() rather than private copy
->
->   arch/arc/include/asm/Kbuild          |   1 +
->   arch/avr32/include/asm/Kbuild        |   1 +
->   arch/blackfin/include/asm/Kbuild     |   1 +
->   arch/c6x/include/asm/Kbuild          |   1 +
->   arch/cris/include/asm/Kbuild         |   1 +
->   arch/frv/include/asm/Kbuild          |   1 +
->   arch/hexagon/include/asm/Kbuild      |   1 +
->   arch/ia64/include/asm/Kbuild         |   1 +
->   arch/m32r/include/asm/Kbuild         |   1 +
->   arch/metag/include/asm/Kbuild        |   1 +
->   arch/microblaze/include/asm/Kbuild   |   1 +
->   arch/mips/include/asm/Kbuild         |   1 +
->   arch/mn10300/include/asm/Kbuild      |   1 +
->   arch/nios2/include/asm/Kbuild        |   1 +
->   arch/powerpc/include/asm/Kbuild      |   1 +
->   arch/s390/include/asm/Kbuild         |   1 +
->   arch/score/include/asm/Kbuild        |   1 +
->   arch/tile/gxio/mpipe.c               |  33 ++---------
->   arch/tile/include/asm/Kbuild         |   1 +
->   arch/um/include/asm/Kbuild           |   1 +
->   arch/unicore32/include/asm/Kbuild    |   1 +
->   arch/xtensa/include/asm/Kbuild       |   1 +
->   include/asm-generic/word-at-a-time.h |  80 ++++++++++++++++++++++---
->   include/linux/string.h               |   6 ++
->   lib/string.c                         | 109 +++++++++++++++++++++++++++++++++++
->   25 files changed, 212 insertions(+), 37 deletions(-)
->
+
+David Hildenbrand (15):
+  uaccess: count pagefault_disable() levels in pagefault_disabled
+  mm, uaccess: trigger might_sleep() in might_fault() with disabled
+    pagefaults
+  uaccess: clarify that uaccess may only sleep if pagefaults are enabled
+  mm: explicitly disable/enable preemption in kmap_atomic_*
+  mips: kmap_coherent relies on disabled preemption
+  mm: use pagefault_disable() to check for disabled pagefaults in the
+    handler
+  drm/i915: use pagefault_disabled() to check for disabled pagefaults
+  futex: UP futex_atomic_op_inuser() relies on disabled preemption
+  futex: UP futex_atomic_cmpxchg_inatomic() relies on disabled
+    preemption
+  arm/futex: UP futex_atomic_cmpxchg_inatomic() relies on disabled
+    preemption
+  arm/futex: UP futex_atomic_op_inuser() relies on disabled preemption
+  futex: clarify that preemption doesn't have to be disabled
+  powerpc: enable_kernel_altivec() requires disabled preemption
+  mips: properly lock access to the fpu
+  uaccess: decouple preemption from the pagefault logic
+
+ arch/alpha/mm/fault.c                      |  5 ++--
+ arch/arc/include/asm/futex.h               | 10 +++----
+ arch/arc/mm/fault.c                        |  2 +-
+ arch/arm/include/asm/futex.h               | 13 ++++++--
+ arch/arm/mm/fault.c                        |  2 +-
+ arch/arm/mm/highmem.c                      |  3 ++
+ arch/arm64/include/asm/futex.h             |  4 +--
+ arch/arm64/mm/fault.c                      |  2 +-
+ arch/avr32/include/asm/uaccess.h           | 12 +++++---
+ arch/avr32/mm/fault.c                      |  4 +--
+ arch/cris/mm/fault.c                       |  6 ++--
+ arch/frv/mm/fault.c                        |  4 +--
+ arch/frv/mm/highmem.c                      |  2 ++
+ arch/hexagon/include/asm/uaccess.h         |  3 +-
+ arch/ia64/mm/fault.c                       |  4 +--
+ arch/m32r/include/asm/uaccess.h            | 30 ++++++++++++-------
+ arch/m32r/mm/fault.c                       |  8 ++---
+ arch/m68k/mm/fault.c                       |  4 +--
+ arch/metag/mm/fault.c                      |  2 +-
+ arch/metag/mm/highmem.c                    |  4 ++-
+ arch/microblaze/include/asm/uaccess.h      |  6 ++--
+ arch/microblaze/mm/fault.c                 |  8 ++---
+ arch/microblaze/mm/highmem.c               |  4 ++-
+ arch/mips/include/asm/uaccess.h            | 45 ++++++++++++++++++----------
+ arch/mips/kernel/signal-common.h           |  9 ++----
+ arch/mips/mm/fault.c                       |  4 +--
+ arch/mips/mm/highmem.c                     |  5 +++-
+ arch/mips/mm/init.c                        |  2 ++
+ arch/mn10300/include/asm/highmem.h         |  3 ++
+ arch/mn10300/mm/fault.c                    |  4 +--
+ arch/nios2/mm/fault.c                      |  2 +-
+ arch/parisc/include/asm/cacheflush.h       |  2 ++
+ arch/parisc/kernel/traps.c                 |  4 +--
+ arch/parisc/mm/fault.c                     |  4 +--
+ arch/powerpc/lib/vmx-helper.c              | 11 +++----
+ arch/powerpc/mm/fault.c                    |  9 +++---
+ arch/powerpc/mm/highmem.c                  |  4 ++-
+ arch/s390/include/asm/uaccess.h            | 15 ++++++----
+ arch/s390/mm/fault.c                       |  2 +-
+ arch/score/include/asm/uaccess.h           | 15 ++++++----
+ arch/score/mm/fault.c                      |  3 +-
+ arch/sh/mm/fault.c                         |  5 ++--
+ arch/sparc/mm/fault_32.c                   |  4 +--
+ arch/sparc/mm/fault_64.c                   |  4 +--
+ arch/sparc/mm/highmem.c                    |  4 ++-
+ arch/sparc/mm/init_64.c                    |  2 +-
+ arch/tile/include/asm/uaccess.h            | 18 +++++++----
+ arch/tile/mm/fault.c                       |  4 +--
+ arch/tile/mm/highmem.c                     |  3 +-
+ arch/um/kernel/trap.c                      |  4 +--
+ arch/unicore32/mm/fault.c                  |  2 +-
+ arch/x86/include/asm/uaccess.h             | 15 ++++++----
+ arch/x86/include/asm/uaccess_32.h          |  6 ++--
+ arch/x86/lib/usercopy_32.c                 |  6 ++--
+ arch/x86/mm/fault.c                        |  5 ++--
+ arch/x86/mm/highmem_32.c                   |  3 +-
+ arch/x86/mm/iomap_32.c                     |  2 ++
+ arch/xtensa/mm/fault.c                     |  4 +--
+ arch/xtensa/mm/highmem.c                   |  2 ++
+ drivers/crypto/vmx/aes.c                   |  8 ++++-
+ drivers/crypto/vmx/aes_cbc.c               |  6 ++++
+ drivers/crypto/vmx/ghash.c                 |  8 +++++
+ drivers/gpu/drm/i915/i915_gem_execbuffer.c |  3 +-
+ include/asm-generic/futex.h                |  7 +++--
+ include/linux/highmem.h                    |  2 ++
+ include/linux/io-mapping.h                 |  2 ++
+ include/linux/kernel.h                     |  3 +-
+ include/linux/sched.h                      |  1 +
+ include/linux/uaccess.h                    | 48 ++++++++++++++++++++++--------
+ kernel/fork.c                              |  3 ++
+ lib/strnlen_user.c                         |  6 ++--
+ mm/memory.c                                | 18 ++++-------
+ 72 files changed, 319 insertions(+), 174 deletions(-)
 
 -- 
-Chris Metcalf, EZChip Semiconductor
-http://www.ezchip.com
+2.1.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
