@@ -1,7 +1,7 @@
 From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [PATCH v1 03/15] uaccess: clarify that uaccess may only sleep if pagefaults are enabled
-Date: Mon, 11 May 2015 17:52:08 +0200
-Message-ID: <1431359540-32227-4-git-send-email-dahi@linux.vnet.ibm.com>
+Subject: [PATCH v1 06/15] mm: use pagefault_disable() to check for disabled pagefaults in the handler
+Date: Mon, 11 May 2015 17:52:11 +0200
+Message-ID: <1431359540-32227-7-git-send-email-dahi@linux.vnet.ibm.com>
 References: <1431359540-32227-1-git-send-email-dahi@linux.vnet.ibm.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1431359540-32227-1-git-send-email-dahi@linux.vnet.ibm.com>
@@ -10,666 +10,707 @@ To: linux-kernel@vger.kernel.org
 Cc: mingo@redhat.com, yang.shi@windriver.com, bigeasy@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, peterz@infradead.org, dahi@linux.vnet.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-In general, non-atomic variants of user access functions must not sleep
-if pagefaults are disabled.
+Introduce faulthandler_disabled() and use it to check for irq context and
+disabled pagefaults (via pagefault_disable()) in the pagefault handlers.
 
-Let's update all relevant comments in uaccess code. This also reflects
-the might_sleep() checks in might_fault().
+Please note that we keep the in_atomic() checks in place - to detect
+whether in irq context (in which case preemption is always properly
+disabled).
+
+In contrast, preempt_disable() should never be used to disable pagefaults.
+With !CONFIG_PREEMPT_COUNT, preempt_disable() doesn't modify the preempt
+counter, and therefore the result of in_atomic() differs.
+We validate that condition by using might_fault() checks when calling
+might_sleep().
+
+Therefore, add a comment to faulthandler_disabled(), describing why this
+is needed.
+
+faulthandler_disabled() and pagefault_disable() are defined in
+linux/uaccess.h, so let's properly add that include to all relevant files.
+
+This patch is based on a patch from Thomas Gleixner.
 
 Signed-off-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
 ---
- arch/avr32/include/asm/uaccess.h      | 12 ++++++----
- arch/hexagon/include/asm/uaccess.h    |  3 ++-
- arch/m32r/include/asm/uaccess.h       | 30 +++++++++++++++--------
- arch/microblaze/include/asm/uaccess.h |  6 +++--
- arch/mips/include/asm/uaccess.h       | 45 +++++++++++++++++++++++------------
- arch/s390/include/asm/uaccess.h       | 15 ++++++++----
- arch/score/include/asm/uaccess.h      | 15 ++++++++----
- arch/tile/include/asm/uaccess.h       | 18 +++++++++-----
- arch/x86/include/asm/uaccess.h        | 15 ++++++++----
- arch/x86/include/asm/uaccess_32.h     |  6 +++--
- arch/x86/lib/usercopy_32.c            |  6 +++--
- lib/strnlen_user.c                    |  6 +++--
- 12 files changed, 118 insertions(+), 59 deletions(-)
+ arch/alpha/mm/fault.c      |  5 ++---
+ arch/arc/mm/fault.c        |  2 +-
+ arch/arm/mm/fault.c        |  2 +-
+ arch/arm64/mm/fault.c      |  2 +-
+ arch/avr32/mm/fault.c      |  4 ++--
+ arch/cris/mm/fault.c       |  6 +++---
+ arch/frv/mm/fault.c        |  4 ++--
+ arch/ia64/mm/fault.c       |  4 ++--
+ arch/m32r/mm/fault.c       |  8 ++++----
+ arch/m68k/mm/fault.c       |  4 ++--
+ arch/metag/mm/fault.c      |  2 +-
+ arch/microblaze/mm/fault.c |  8 ++++----
+ arch/mips/mm/fault.c       |  4 ++--
+ arch/mn10300/mm/fault.c    |  4 ++--
+ arch/nios2/mm/fault.c      |  2 +-
+ arch/parisc/kernel/traps.c |  4 ++--
+ arch/parisc/mm/fault.c     |  4 ++--
+ arch/powerpc/mm/fault.c    |  9 +++++----
+ arch/s390/mm/fault.c       |  2 +-
+ arch/score/mm/fault.c      |  3 ++-
+ arch/sh/mm/fault.c         |  5 +++--
+ arch/sparc/mm/fault_32.c   |  4 ++--
+ arch/sparc/mm/fault_64.c   |  4 ++--
+ arch/sparc/mm/init_64.c    |  2 +-
+ arch/tile/mm/fault.c       |  4 ++--
+ arch/um/kernel/trap.c      |  4 ++--
+ arch/unicore32/mm/fault.c  |  2 +-
+ arch/x86/mm/fault.c        |  5 +++--
+ arch/xtensa/mm/fault.c     |  4 ++--
+ include/linux/uaccess.h    | 12 ++++++++++++
+ 30 files changed, 72 insertions(+), 57 deletions(-)
 
-diff --git a/arch/avr32/include/asm/uaccess.h b/arch/avr32/include/asm/uaccess.h
-index a46f7cf..68cf638 100644
---- a/arch/avr32/include/asm/uaccess.h
-+++ b/arch/avr32/include/asm/uaccess.h
-@@ -97,7 +97,8 @@ static inline __kernel_size_t __copy_from_user(void *to,
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -116,7 +117,8 @@ static inline __kernel_size_t __copy_from_user(void *to,
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -136,7 +138,8 @@ static inline __kernel_size_t __copy_from_user(void *to,
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -158,7 +161,8 @@ static inline __kernel_size_t __copy_from_user(void *to,
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-diff --git a/arch/hexagon/include/asm/uaccess.h b/arch/hexagon/include/asm/uaccess.h
-index e4127e4..f000a38 100644
---- a/arch/hexagon/include/asm/uaccess.h
-+++ b/arch/hexagon/include/asm/uaccess.h
-@@ -36,7 +36,8 @@
-  * @addr: User space pointer to start of block to check
-  * @size: Size of block to check
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Checks if a pointer to a block of memory in user space is valid.
-  *
-diff --git a/arch/m32r/include/asm/uaccess.h b/arch/m32r/include/asm/uaccess.h
-index 71adff2..cac7014 100644
---- a/arch/m32r/include/asm/uaccess.h
-+++ b/arch/m32r/include/asm/uaccess.h
-@@ -91,7 +91,8 @@ static inline void set_fs(mm_segment_t s)
-  * @addr: User space pointer to start of block to check
-  * @size: Size of block to check
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Checks if a pointer to a block of memory in user space is valid.
-  *
-@@ -155,7 +156,8 @@ extern int fixup_exception(struct pt_regs *regs);
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -175,7 +177,8 @@ extern int fixup_exception(struct pt_regs *regs);
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -194,7 +197,8 @@ extern int fixup_exception(struct pt_regs *regs);
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -274,7 +278,8 @@ do {									\
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -568,7 +573,8 @@ unsigned long __generic_copy_from_user(void *, const void __user *, unsigned lon
-  * @from: Source address, in kernel space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from kernel space to user space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -588,7 +594,8 @@ unsigned long __generic_copy_from_user(void *, const void __user *, unsigned lon
-  * @from: Source address, in kernel space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from kernel space to user space.
-  *
-@@ -606,7 +613,8 @@ unsigned long __generic_copy_from_user(void *, const void __user *, unsigned lon
-  * @from: Source address, in user space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from user space to kernel space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -626,7 +634,8 @@ unsigned long __generic_copy_from_user(void *, const void __user *, unsigned lon
-  * @from: Source address, in user space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from user space to kernel space.
-  *
-@@ -677,7 +686,8 @@ unsigned long clear_user(void __user *mem, unsigned long len);
-  * strlen_user: - Get the size of a string in user space.
-  * @str: The string to measure.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Get the size of a NUL-terminated string in user space.
-  *
-diff --git a/arch/microblaze/include/asm/uaccess.h b/arch/microblaze/include/asm/uaccess.h
-index 62942fd..331b0d3 100644
---- a/arch/microblaze/include/asm/uaccess.h
-+++ b/arch/microblaze/include/asm/uaccess.h
-@@ -178,7 +178,8 @@ extern long __user_bad(void);
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -290,7 +291,8 @@ extern long __user_bad(void);
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-diff --git a/arch/mips/include/asm/uaccess.h b/arch/mips/include/asm/uaccess.h
-index bf8b324..9722357 100644
---- a/arch/mips/include/asm/uaccess.h
-+++ b/arch/mips/include/asm/uaccess.h
-@@ -103,7 +103,8 @@ extern u64 __ua_limit;
-  * @addr: User space pointer to start of block to check
-  * @size: Size of block to check
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Checks if a pointer to a block of memory in user space is valid.
-  *
-@@ -138,7 +139,8 @@ extern u64 __ua_limit;
-  * @x:	 Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -157,7 +159,8 @@ extern u64 __ua_limit;
-  * @x:	 Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -177,7 +180,8 @@ extern u64 __ua_limit;
-  * @x:	 Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -199,7 +203,8 @@ extern u64 __ua_limit;
-  * @x:	 Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -498,7 +503,8 @@ extern void __put_user_unknown(void);
-  * @x:	 Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -517,7 +523,8 @@ extern void __put_user_unknown(void);
-  * @x:	 Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -537,7 +544,8 @@ extern void __put_user_unknown(void);
-  * @x:	 Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -559,7 +567,8 @@ extern void __put_user_unknown(void);
-  * @x:	 Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -815,7 +824,8 @@ extern size_t __copy_user(void *__to, const void *__from, size_t __n);
-  * @from: Source address, in kernel space.
-  * @n:	  Number of bytes to copy.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from kernel space to user space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -888,7 +898,8 @@ extern size_t __copy_user_inatomic(void *__to, const void *__from, size_t __n);
-  * @from: Source address, in kernel space.
-  * @n:	  Number of bytes to copy.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from kernel space to user space.
-  *
-@@ -1075,7 +1086,8 @@ extern size_t __copy_in_user_eva(void *__to, const void *__from, size_t __n);
-  * @from: Source address, in user space.
-  * @n:	  Number of bytes to copy.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from user space to kernel space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -1107,7 +1119,8 @@ extern size_t __copy_in_user_eva(void *__to, const void *__from, size_t __n);
-  * @from: Source address, in user space.
-  * @n:	  Number of bytes to copy.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from user space to kernel space.
-  *
-@@ -1329,7 +1342,8 @@ strncpy_from_user(char *__to, const char __user *__from, long __len)
-  * strlen_user: - Get the size of a string in user space.
-  * @str: The string to measure.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Get the size of a NUL-terminated string in user space.
-  *
-@@ -1398,7 +1412,8 @@ static inline long __strnlen_user(const char __user *s, long n)
-  * strnlen_user: - Get the size of a string in user space.
-  * @str: The string to measure.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Get the size of a NUL-terminated string in user space.
-  *
-diff --git a/arch/s390/include/asm/uaccess.h b/arch/s390/include/asm/uaccess.h
-index d64a7a6..9dd4cc4 100644
---- a/arch/s390/include/asm/uaccess.h
-+++ b/arch/s390/include/asm/uaccess.h
-@@ -98,7 +98,8 @@ static inline unsigned long extable_fixup(const struct exception_table_entry *x)
-  * @from: Source address, in user space.
-  * @n:	  Number of bytes to copy.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from user space to kernel space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -118,7 +119,8 @@ unsigned long __must_check __copy_from_user(void *to, const void __user *from,
-  * @from: Source address, in kernel space.
-  * @n:	  Number of bytes to copy.
-  *
-- * Context: User context only.	This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from kernel space to user space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -264,7 +266,8 @@ int __get_user_bad(void) __attribute__((noreturn));
-  * @from: Source address, in kernel space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from kernel space to user space.
-  *
-@@ -290,7 +293,8 @@ __compiletime_warning("copy_from_user() buffer size is not provably correct")
-  * @from: Source address, in user space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from user space to kernel space.
-  *
-@@ -348,7 +352,8 @@ static inline unsigned long strnlen_user(const char __user *src, unsigned long n
-  * strlen_user: - Get the size of a string in user space.
-  * @str: The string to measure.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Get the size of a NUL-terminated string in user space.
-  *
-diff --git a/arch/score/include/asm/uaccess.h b/arch/score/include/asm/uaccess.h
-index ab66ddd..20a3591 100644
---- a/arch/score/include/asm/uaccess.h
-+++ b/arch/score/include/asm/uaccess.h
-@@ -36,7 +36,8 @@
-  * @addr: User space pointer to start of block to check
-  * @size: Size of block to check
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Checks if a pointer to a block of memory in user space is valid.
-  *
-@@ -61,7 +62,8 @@
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -79,7 +81,8 @@
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -98,7 +101,8 @@
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -119,7 +123,8 @@
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-diff --git a/arch/tile/include/asm/uaccess.h b/arch/tile/include/asm/uaccess.h
-index d598c11..0a9c4265 100644
---- a/arch/tile/include/asm/uaccess.h
-+++ b/arch/tile/include/asm/uaccess.h
-@@ -85,7 +85,8 @@ int __range_ok(unsigned long addr, unsigned long size);
-  * @addr: User space pointer to start of block to check
-  * @size: Size of block to check
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Checks if a pointer to a block of memory in user space is valid.
-  *
-@@ -199,7 +200,8 @@ extern int __get_user_bad(void)
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -281,7 +283,8 @@ extern int __put_user_bad(void)
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -337,7 +340,8 @@ extern int __put_user_bad(void)
-  * @from: Source address, in kernel space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from kernel space to user space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -373,7 +377,8 @@ copy_to_user(void __user *to, const void *from, unsigned long n)
-  * @from: Source address, in user space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from user space to kernel space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -444,7 +449,8 @@ static inline unsigned long __must_check copy_from_user(void *to,
-  * @from: Source address, in user space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from user space to user space.  Caller must check
-  * the specified blocks with access_ok() before calling this function.
-diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
-index ace9dec..a8df874 100644
---- a/arch/x86/include/asm/uaccess.h
-+++ b/arch/x86/include/asm/uaccess.h
-@@ -74,7 +74,8 @@ static inline bool __chk_range_not_ok(unsigned long addr, unsigned long size, un
-  * @addr: User space pointer to start of block to check
-  * @size: Size of block to check
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Checks if a pointer to a block of memory in user space is valid.
-  *
-@@ -145,7 +146,8 @@ __typeof__(__builtin_choose_expr(sizeof(x) > sizeof(0UL), 0ULL, 0UL))
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -240,7 +242,8 @@ extern void __put_user_8(void);
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-@@ -455,7 +458,8 @@ struct __large_struct { unsigned long buf[100]; };
-  * @x:   Variable to store result.
-  * @ptr: Source address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple variable from user space to kernel
-  * space.  It supports simple types like char and int, but not larger
-@@ -479,7 +483,8 @@ struct __large_struct { unsigned long buf[100]; };
-  * @x:   Value to copy to user space.
-  * @ptr: Destination address, in user space.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * This macro copies a single simple value from kernel space to user
-  * space.  It supports simple types like char and int, but not larger
-diff --git a/arch/x86/include/asm/uaccess_32.h b/arch/x86/include/asm/uaccess_32.h
-index 0ed5504..f5dcb52 100644
---- a/arch/x86/include/asm/uaccess_32.h
-+++ b/arch/x86/include/asm/uaccess_32.h
-@@ -74,7 +74,8 @@ __copy_to_user_inatomic(void __user *to, const void *from, unsigned long n)
-  * @from: Source address, in kernel space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from kernel space to user space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-@@ -121,7 +122,8 @@ __copy_from_user_inatomic(void *to, const void __user *from, unsigned long n)
-  * @from: Source address, in user space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from user space to kernel space.  Caller must check
-  * the specified block with access_ok() before calling this function.
-diff --git a/arch/x86/lib/usercopy_32.c b/arch/x86/lib/usercopy_32.c
-index e2f5e21..91d93b9 100644
---- a/arch/x86/lib/usercopy_32.c
-+++ b/arch/x86/lib/usercopy_32.c
-@@ -647,7 +647,8 @@ EXPORT_SYMBOL(__copy_from_user_ll_nocache_nozero);
-  * @from: Source address, in kernel space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from kernel space to user space.
-  *
-@@ -668,7 +669,8 @@ EXPORT_SYMBOL(_copy_to_user);
-  * @from: Source address, in user space.
-  * @n:    Number of bytes to copy.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Copy data from user space to kernel space.
-  *
-diff --git a/lib/strnlen_user.c b/lib/strnlen_user.c
-index a28df52..36c15a2 100644
---- a/lib/strnlen_user.c
-+++ b/lib/strnlen_user.c
-@@ -84,7 +84,8 @@ static inline long do_strnlen_user(const char __user *src, unsigned long count,
-  * @str: The string to measure.
-  * @count: Maximum count (including NUL character)
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Get the size of a NUL-terminated string in user space.
-  *
-@@ -113,7 +114,8 @@ EXPORT_SYMBOL(strnlen_user);
-  * strlen_user: - Get the size of a user string INCLUDING final NUL.
-  * @str: The string to measure.
-  *
-- * Context: User context only.  This function may sleep.
-+ * Context: User context only. This function may sleep if pagefaults are
-+ *          enabled.
-  *
-  * Get the size of a NUL-terminated string in user space.
-  *
+diff --git a/arch/alpha/mm/fault.c b/arch/alpha/mm/fault.c
+index 9d0ac09..4a905bd 100644
+--- a/arch/alpha/mm/fault.c
++++ b/arch/alpha/mm/fault.c
+@@ -23,8 +23,7 @@
+ #include <linux/smp.h>
+ #include <linux/interrupt.h>
+ #include <linux/module.h>
+-
+-#include <asm/uaccess.h>
++#include <linux/uaccess.h>
+ 
+ extern void die_if_kernel(char *,struct pt_regs *,long, unsigned long *);
+ 
+@@ -107,7 +106,7 @@ do_page_fault(unsigned long address, unsigned long mmcsr,
+ 
+ 	/* If we're in an interrupt context, or have no user context,
+ 	   we must not take the fault.  */
+-	if (!mm || in_atomic())
++	if (!mm || faulthandler_disabled())
+ 		goto no_context;
+ 
+ #ifdef CONFIG_ALPHA_LARGE_VMALLOC
+diff --git a/arch/arc/mm/fault.c b/arch/arc/mm/fault.c
+index 6a2e006..d948e4e 100644
+--- a/arch/arc/mm/fault.c
++++ b/arch/arc/mm/fault.c
+@@ -86,7 +86,7 @@ void do_page_fault(unsigned long address, struct pt_regs *regs)
+ 	 * If we're in an interrupt or have no user
+ 	 * context, we must not take the fault..
+ 	 */
+-	if (in_atomic() || !mm)
++	if (faulthandler_disabled() || !mm)
+ 		goto no_context;
+ 
+ 	if (user_mode(regs))
+diff --git a/arch/arm/mm/fault.c b/arch/arm/mm/fault.c
+index 6333d9c..0d629b8 100644
+--- a/arch/arm/mm/fault.c
++++ b/arch/arm/mm/fault.c
+@@ -276,7 +276,7 @@ do_page_fault(unsigned long addr, unsigned int fsr, struct pt_regs *regs)
+ 	 * If we're in an interrupt or have no user
+ 	 * context, we must not take the fault..
+ 	 */
+-	if (in_atomic() || !mm)
++	if (faulthandler_disabled() || !mm)
+ 		goto no_context;
+ 
+ 	if (user_mode(regs))
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+index 96da131..0948d32 100644
+--- a/arch/arm64/mm/fault.c
++++ b/arch/arm64/mm/fault.c
+@@ -211,7 +211,7 @@ static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
+ 	 * If we're in an interrupt or have no user context, we must not take
+ 	 * the fault.
+ 	 */
+-	if (in_atomic() || !mm)
++	if (faulthandler_disabled() || !mm)
+ 		goto no_context;
+ 
+ 	if (user_mode(regs))
+diff --git a/arch/avr32/mm/fault.c b/arch/avr32/mm/fault.c
+index d223a8b..c035339 100644
+--- a/arch/avr32/mm/fault.c
++++ b/arch/avr32/mm/fault.c
+@@ -14,11 +14,11 @@
+ #include <linux/pagemap.h>
+ #include <linux/kdebug.h>
+ #include <linux/kprobes.h>
++#include <linux/uaccess.h>
+ 
+ #include <asm/mmu_context.h>
+ #include <asm/sysreg.h>
+ #include <asm/tlb.h>
+-#include <asm/uaccess.h>
+ 
+ #ifdef CONFIG_KPROBES
+ static inline int notify_page_fault(struct pt_regs *regs, int trap)
+@@ -81,7 +81,7 @@ asmlinkage void do_page_fault(unsigned long ecr, struct pt_regs *regs)
+ 	 * If we're in an interrupt or have no user context, we must
+ 	 * not take the fault...
+ 	 */
+-	if (in_atomic() || !mm || regs->sr & SYSREG_BIT(GM))
++	if (faulthandler_disabled() || !mm || regs->sr & SYSREG_BIT(GM))
+ 		goto no_context;
+ 
+ 	local_irq_enable();
+diff --git a/arch/cris/mm/fault.c b/arch/cris/mm/fault.c
+index 83f12f2..3066d40 100644
+--- a/arch/cris/mm/fault.c
++++ b/arch/cris/mm/fault.c
+@@ -8,7 +8,7 @@
+ #include <linux/interrupt.h>
+ #include <linux/module.h>
+ #include <linux/wait.h>
+-#include <asm/uaccess.h>
++#include <linux/uaccess.h>
+ #include <arch/system.h>
+ 
+ extern int find_fixup_code(struct pt_regs *);
+@@ -109,11 +109,11 @@ do_page_fault(unsigned long address, struct pt_regs *regs,
+ 	info.si_code = SEGV_MAPERR;
+ 
+ 	/*
+-	 * If we're in an interrupt or "atomic" operation or have no
++	 * If we're in an interrupt, have pagefaults disabled or have no
+ 	 * user context, we must not take the fault.
+ 	 */
+ 
+-	if (in_atomic() || !mm)
++	if (faulthandler_disabled() || !mm)
+ 		goto no_context;
+ 
+ 	if (user_mode(regs))
+diff --git a/arch/frv/mm/fault.c b/arch/frv/mm/fault.c
+index ec4917d..61d9976 100644
+--- a/arch/frv/mm/fault.c
++++ b/arch/frv/mm/fault.c
+@@ -19,9 +19,9 @@
+ #include <linux/kernel.h>
+ #include <linux/ptrace.h>
+ #include <linux/hardirq.h>
++#include <linux/uaccess.h>
+ 
+ #include <asm/pgtable.h>
+-#include <asm/uaccess.h>
+ #include <asm/gdb-stub.h>
+ 
+ /*****************************************************************************/
+@@ -78,7 +78,7 @@ asmlinkage void do_page_fault(int datammu, unsigned long esr0, unsigned long ear
+ 	 * If we're in an interrupt or have no user
+ 	 * context, we must not take the fault..
+ 	 */
+-	if (in_atomic() || !mm)
++	if (faulthandler_disabled() || !mm)
+ 		goto no_context;
+ 
+ 	if (user_mode(__frame))
+diff --git a/arch/ia64/mm/fault.c b/arch/ia64/mm/fault.c
+index ba5ba7a..70b40d1 100644
+--- a/arch/ia64/mm/fault.c
++++ b/arch/ia64/mm/fault.c
+@@ -11,10 +11,10 @@
+ #include <linux/kprobes.h>
+ #include <linux/kdebug.h>
+ #include <linux/prefetch.h>
++#include <linux/uaccess.h>
+ 
+ #include <asm/pgtable.h>
+ #include <asm/processor.h>
+-#include <asm/uaccess.h>
+ 
+ extern int die(char *, struct pt_regs *, long);
+ 
+@@ -96,7 +96,7 @@ ia64_do_page_fault (unsigned long address, unsigned long isr, struct pt_regs *re
+ 	/*
+ 	 * If we're in an interrupt or have no user context, we must not take the fault..
+ 	 */
+-	if (in_atomic() || !mm)
++	if (faulthandler_disabled() || !mm)
+ 		goto no_context;
+ 
+ #ifdef CONFIG_VIRTUAL_MEM_MAP
+diff --git a/arch/m32r/mm/fault.c b/arch/m32r/mm/fault.c
+index e3d4d48901..8f9875b 100644
+--- a/arch/m32r/mm/fault.c
++++ b/arch/m32r/mm/fault.c
+@@ -24,9 +24,9 @@
+ #include <linux/vt_kern.h>		/* For unblank_screen() */
+ #include <linux/highmem.h>
+ #include <linux/module.h>
++#include <linux/uaccess.h>
+ 
+ #include <asm/m32r.h>
+-#include <asm/uaccess.h>
+ #include <asm/hardirq.h>
+ #include <asm/mmu_context.h>
+ #include <asm/tlbflush.h>
+@@ -111,10 +111,10 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long error_code,
+ 	mm = tsk->mm;
+ 
+ 	/*
+-	 * If we're in an interrupt or have no user context or are running in an
+-	 * atomic region then we must not take the fault..
++	 * If we're in an interrupt or have no user context or have pagefaults
++	 * disabled then we must not take the fault.
+ 	 */
+-	if (in_atomic() || !mm)
++	if (faulthandler_disabled() || !mm)
+ 		goto bad_area_nosemaphore;
+ 
+ 	if (error_code & ACE_USERMODE)
+diff --git a/arch/m68k/mm/fault.c b/arch/m68k/mm/fault.c
+index b2f04ae..6a94cdd 100644
+--- a/arch/m68k/mm/fault.c
++++ b/arch/m68k/mm/fault.c
+@@ -10,10 +10,10 @@
+ #include <linux/ptrace.h>
+ #include <linux/interrupt.h>
+ #include <linux/module.h>
++#include <linux/uaccess.h>
+ 
+ #include <asm/setup.h>
+ #include <asm/traps.h>
+-#include <asm/uaccess.h>
+ #include <asm/pgalloc.h>
+ 
+ extern void die_if_kernel(char *, struct pt_regs *, long);
+@@ -81,7 +81,7 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
+ 	 * If we're in an interrupt or have no user
+ 	 * context, we must not take the fault..
+ 	 */
+-	if (in_atomic() || !mm)
++	if (faulthandler_disabled() || !mm)
+ 		goto no_context;
+ 
+ 	if (user_mode(regs))
+diff --git a/arch/metag/mm/fault.c b/arch/metag/mm/fault.c
+index 2de5dc6..f57edca 100644
+--- a/arch/metag/mm/fault.c
++++ b/arch/metag/mm/fault.c
+@@ -105,7 +105,7 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
+ 
+ 	mm = tsk->mm;
+ 
+-	if (in_atomic() || !mm)
++	if (faulthandler_disabled() || !mm)
+ 		goto no_context;
+ 
+ 	if (user_mode(regs))
+diff --git a/arch/microblaze/mm/fault.c b/arch/microblaze/mm/fault.c
+index d46a5eb..177dfc0 100644
+--- a/arch/microblaze/mm/fault.c
++++ b/arch/microblaze/mm/fault.c
+@@ -107,14 +107,14 @@ void do_page_fault(struct pt_regs *regs, unsigned long address,
+ 	if ((error_code & 0x13) == 0x13 || (error_code & 0x11) == 0x11)
+ 		is_write = 0;
+ 
+-	if (unlikely(in_atomic() || !mm)) {
++	if (unlikely(faulthandler_disabled() || !mm)) {
+ 		if (kernel_mode(regs))
+ 			goto bad_area_nosemaphore;
+ 
+-		/* in_atomic() in user mode is really bad,
++		/* faulthandler_disabled() in user mode is really bad,
+ 		   as is current->mm == NULL. */
+-		pr_emerg("Page fault in user mode with in_atomic(), mm = %p\n",
+-									mm);
++		pr_emerg("Page fault in user mode with faulthandler_disabled(), mm = %p\n",
++			 mm);
+ 		pr_emerg("r15 = %lx  MSR = %lx\n",
+ 		       regs->r15, regs->msr);
+ 		die("Weird page fault", regs, SIGSEGV);
+diff --git a/arch/mips/mm/fault.c b/arch/mips/mm/fault.c
+index 7ff8637..36c0f26 100644
+--- a/arch/mips/mm/fault.c
++++ b/arch/mips/mm/fault.c
+@@ -21,10 +21,10 @@
+ #include <linux/module.h>
+ #include <linux/kprobes.h>
+ #include <linux/perf_event.h>
++#include <linux/uaccess.h>
+ 
+ #include <asm/branch.h>
+ #include <asm/mmu_context.h>
+-#include <asm/uaccess.h>
+ #include <asm/ptrace.h>
+ #include <asm/highmem.h>		/* For VMALLOC_END */
+ #include <linux/kdebug.h>
+@@ -94,7 +94,7 @@ static void __kprobes __do_page_fault(struct pt_regs *regs, unsigned long write,
+ 	 * If we're in an interrupt or have no user
+ 	 * context, we must not take the fault..
+ 	 */
+-	if (in_atomic() || !mm)
++	if (faulthandler_disabled() || !mm)
+ 		goto bad_area_nosemaphore;
+ 
+ 	if (user_mode(regs))
+diff --git a/arch/mn10300/mm/fault.c b/arch/mn10300/mm/fault.c
+index 0c2cc5d..4a1d181 100644
+--- a/arch/mn10300/mm/fault.c
++++ b/arch/mn10300/mm/fault.c
+@@ -23,8 +23,8 @@
+ #include <linux/interrupt.h>
+ #include <linux/init.h>
+ #include <linux/vt_kern.h>		/* For unblank_screen() */
++#include <linux/uaccess.h>
+ 
+-#include <asm/uaccess.h>
+ #include <asm/pgalloc.h>
+ #include <asm/hardirq.h>
+ #include <asm/cpu-regs.h>
+@@ -168,7 +168,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long fault_code,
+ 	 * If we're in an interrupt or have no user
+ 	 * context, we must not take the fault..
+ 	 */
+-	if (in_atomic() || !mm)
++	if (faulthandler_disabled() || !mm)
+ 		goto no_context;
+ 
+ 	if ((fault_code & MMUFCR_xFC_ACCESS) == MMUFCR_xFC_ACCESS_USR)
+diff --git a/arch/nios2/mm/fault.c b/arch/nios2/mm/fault.c
+index 0c9b6af..b51878b 100644
+--- a/arch/nios2/mm/fault.c
++++ b/arch/nios2/mm/fault.c
+@@ -77,7 +77,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long cause,
+ 	 * If we're in an interrupt or have no user
+ 	 * context, we must not take the fault..
+ 	 */
+-	if (in_atomic() || !mm)
++	if (faulthandler_disabled() || !mm)
+ 		goto bad_area_nosemaphore;
+ 
+ 	if (user_mode(regs))
+diff --git a/arch/parisc/kernel/traps.c b/arch/parisc/kernel/traps.c
+index 47ee620..6548fd1 100644
+--- a/arch/parisc/kernel/traps.c
++++ b/arch/parisc/kernel/traps.c
+@@ -26,9 +26,9 @@
+ #include <linux/console.h>
+ #include <linux/bug.h>
+ #include <linux/ratelimit.h>
++#include <linux/uaccess.h>
+ 
+ #include <asm/assembly.h>
+-#include <asm/uaccess.h>
+ #include <asm/io.h>
+ #include <asm/irq.h>
+ #include <asm/traps.h>
+@@ -800,7 +800,7 @@ void notrace handle_interruption(int code, struct pt_regs *regs)
+ 	     * unless pagefault_disable() was called before.
+ 	     */
+ 
+-	    if (fault_space == 0 && !in_atomic())
++	    if (fault_space == 0 && !faulthandler_disabled())
+ 	    {
+ 		pdc_chassis_send_status(PDC_CHASSIS_DIRECT_PANIC);
+ 		parisc_terminate("Kernel Fault", regs, code, fault_address);
+diff --git a/arch/parisc/mm/fault.c b/arch/parisc/mm/fault.c
+index e5120e6..15503ad 100644
+--- a/arch/parisc/mm/fault.c
++++ b/arch/parisc/mm/fault.c
+@@ -15,8 +15,8 @@
+ #include <linux/sched.h>
+ #include <linux/interrupt.h>
+ #include <linux/module.h>
++#include <linux/uaccess.h>
+ 
+-#include <asm/uaccess.h>
+ #include <asm/traps.h>
+ 
+ /* Various important other fields */
+@@ -207,7 +207,7 @@ void do_page_fault(struct pt_regs *regs, unsigned long code,
+ 	int fault;
+ 	unsigned int flags;
+ 
+-	if (in_atomic())
++	if (pagefault_disabled())
+ 		goto no_context;
+ 
+ 	tsk = current;
+diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
+index b396868..6d53597 100644
+--- a/arch/powerpc/mm/fault.c
++++ b/arch/powerpc/mm/fault.c
+@@ -33,13 +33,13 @@
+ #include <linux/ratelimit.h>
+ #include <linux/context_tracking.h>
+ #include <linux/hugetlb.h>
++#include <linux/uaccess.h>
+ 
+ #include <asm/firmware.h>
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/mmu.h>
+ #include <asm/mmu_context.h>
+-#include <asm/uaccess.h>
+ #include <asm/tlbflush.h>
+ #include <asm/siginfo.h>
+ #include <asm/debug.h>
+@@ -272,15 +272,16 @@ int __kprobes do_page_fault(struct pt_regs *regs, unsigned long address,
+ 	if (!arch_irq_disabled_regs(regs))
+ 		local_irq_enable();
+ 
+-	if (in_atomic() || mm == NULL) {
++	if (faulthandler_disabled() || mm == NULL) {
+ 		if (!user_mode(regs)) {
+ 			rc = SIGSEGV;
+ 			goto bail;
+ 		}
+-		/* in_atomic() in user mode is really bad,
++		/* faulthandler_disabled() in user mode is really bad,
+ 		   as is current->mm == NULL. */
+ 		printk(KERN_EMERG "Page fault in user mode with "
+-		       "in_atomic() = %d mm = %p\n", in_atomic(), mm);
++		       "faulthandler_disabled() = %d mm = %p\n",
++		       faulthandler_disabled(), mm);
+ 		printk(KERN_EMERG "NIP = %lx  MSR = %lx\n",
+ 		       regs->nip, regs->msr);
+ 		die("Weird page fault", regs, SIGSEGV);
+diff --git a/arch/s390/mm/fault.c b/arch/s390/mm/fault.c
+index 76515bc..4c8f5d7 100644
+--- a/arch/s390/mm/fault.c
++++ b/arch/s390/mm/fault.c
+@@ -399,7 +399,7 @@ static inline int do_exception(struct pt_regs *regs, int access)
+ 	 * user context.
+ 	 */
+ 	fault = VM_FAULT_BADCONTEXT;
+-	if (unlikely(!user_space_fault(regs) || in_atomic() || !mm))
++	if (unlikely(!user_space_fault(regs) || faulthandler_disabled() || !mm))
+ 		goto out;
+ 
+ 	address = trans_exc_code & __FAIL_ADDR_MASK;
+diff --git a/arch/score/mm/fault.c b/arch/score/mm/fault.c
+index 6860beb..37a6c2e 100644
+--- a/arch/score/mm/fault.c
++++ b/arch/score/mm/fault.c
+@@ -34,6 +34,7 @@
+ #include <linux/string.h>
+ #include <linux/types.h>
+ #include <linux/ptrace.h>
++#include <linux/uaccess.h>
+ 
+ /*
+  * This routine handles page faults.  It determines the address,
+@@ -73,7 +74,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long write,
+ 	* If we're in an interrupt or have no user
+ 	* context, we must not take the fault..
+ 	*/
+-	if (in_atomic() || !mm)
++	if (pagefault_disabled() || !mm)
+ 		goto bad_area_nosemaphore;
+ 
+ 	if (user_mode(regs))
+diff --git a/arch/sh/mm/fault.c b/arch/sh/mm/fault.c
+index a58fec9..79d8276 100644
+--- a/arch/sh/mm/fault.c
++++ b/arch/sh/mm/fault.c
+@@ -17,6 +17,7 @@
+ #include <linux/kprobes.h>
+ #include <linux/perf_event.h>
+ #include <linux/kdebug.h>
++#include <linux/uaccess.h>
+ #include <asm/io_trapped.h>
+ #include <asm/mmu_context.h>
+ #include <asm/tlbflush.h>
+@@ -438,9 +439,9 @@ asmlinkage void __kprobes do_page_fault(struct pt_regs *regs,
+ 
+ 	/*
+ 	 * If we're in an interrupt, have no user context or are running
+-	 * in an atomic region then we must not take the fault:
++	 * with pagefaults disabled then we must not take the fault:
+ 	 */
+-	if (unlikely(in_atomic() || !mm)) {
++	if (unlikely(faulthandler_disabled() || !mm)) {
+ 		bad_area_nosemaphore(regs, error_code, address);
+ 		return;
+ 	}
+diff --git a/arch/sparc/mm/fault_32.c b/arch/sparc/mm/fault_32.c
+index 70d8171..c399e7b 100644
+--- a/arch/sparc/mm/fault_32.c
++++ b/arch/sparc/mm/fault_32.c
+@@ -21,6 +21,7 @@
+ #include <linux/perf_event.h>
+ #include <linux/interrupt.h>
+ #include <linux/kdebug.h>
++#include <linux/uaccess.h>
+ 
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+@@ -29,7 +30,6 @@
+ #include <asm/setup.h>
+ #include <asm/smp.h>
+ #include <asm/traps.h>
+-#include <asm/uaccess.h>
+ 
+ #include "mm_32.h"
+ 
+@@ -196,7 +196,7 @@ asmlinkage void do_sparc_fault(struct pt_regs *regs, int text_fault, int write,
+ 	 * If we're in an interrupt or have no user
+ 	 * context, we must not take the fault..
+ 	 */
+-	if (in_atomic() || !mm)
++	if (pagefault_disabled() || !mm)
+ 		goto no_context;
+ 
+ 	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
+diff --git a/arch/sparc/mm/fault_64.c b/arch/sparc/mm/fault_64.c
+index 4798232..e9268ea 100644
+--- a/arch/sparc/mm/fault_64.c
++++ b/arch/sparc/mm/fault_64.c
+@@ -22,12 +22,12 @@
+ #include <linux/kdebug.h>
+ #include <linux/percpu.h>
+ #include <linux/context_tracking.h>
++#include <linux/uaccess.h>
+ 
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/openprom.h>
+ #include <asm/oplib.h>
+-#include <asm/uaccess.h>
+ #include <asm/asi.h>
+ #include <asm/lsu.h>
+ #include <asm/sections.h>
+@@ -330,7 +330,7 @@ asmlinkage void __kprobes do_sparc64_fault(struct pt_regs *regs)
+ 	 * If we're in an interrupt or have no user
+ 	 * context, we must not take the fault..
+ 	 */
+-	if (in_atomic() || !mm)
++	if (faulthandler_disabled() || !mm)
+ 		goto intr_or_no_mm;
+ 
+ 	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, address);
+diff --git a/arch/sparc/mm/init_64.c b/arch/sparc/mm/init_64.c
+index 4ca0d6b..cee9b77 100644
+--- a/arch/sparc/mm/init_64.c
++++ b/arch/sparc/mm/init_64.c
+@@ -2706,7 +2706,7 @@ void hugetlb_setup(struct pt_regs *regs)
+ 	struct mm_struct *mm = current->mm;
+ 	struct tsb_config *tp;
+ 
+-	if (in_atomic() || !mm) {
++	if (faulthandler_disabled() || !mm) {
+ 		const struct exception_table_entry *entry;
+ 
+ 		entry = search_exception_tables(regs->tpc);
+diff --git a/arch/tile/mm/fault.c b/arch/tile/mm/fault.c
+index e83cc99..3f4f58d 100644
+--- a/arch/tile/mm/fault.c
++++ b/arch/tile/mm/fault.c
+@@ -354,9 +354,9 @@ static int handle_page_fault(struct pt_regs *regs,
+ 
+ 	/*
+ 	 * If we're in an interrupt, have no user context or are running in an
+-	 * atomic region then we must not take the fault.
++	 * region with pagefaults disabled then we must not take the fault.
+ 	 */
+-	if (in_atomic() || !mm) {
++	if (pagefault_disabled() || !mm) {
+ 		vma = NULL;  /* happy compiler */
+ 		goto bad_area_nosemaphore;
+ 	}
+diff --git a/arch/um/kernel/trap.c b/arch/um/kernel/trap.c
+index 8e4daf4..f9c9e5a 100644
+--- a/arch/um/kernel/trap.c
++++ b/arch/um/kernel/trap.c
+@@ -35,10 +35,10 @@ int handle_page_fault(unsigned long address, unsigned long ip,
+ 	*code_out = SEGV_MAPERR;
+ 
+ 	/*
+-	 * If the fault was during atomic operation, don't take the fault, just
++	 * If the fault was with pagefaults disabled, don't take the fault, just
+ 	 * fail.
+ 	 */
+-	if (in_atomic())
++	if (faulthandler_disabled())
+ 		goto out_nosemaphore;
+ 
+ 	if (is_user)
+diff --git a/arch/unicore32/mm/fault.c b/arch/unicore32/mm/fault.c
+index 0dc922d..afccef552 100644
+--- a/arch/unicore32/mm/fault.c
++++ b/arch/unicore32/mm/fault.c
+@@ -218,7 +218,7 @@ static int do_pf(unsigned long addr, unsigned int fsr, struct pt_regs *regs)
+ 	 * If we're in an interrupt or have no user
+ 	 * context, we must not take the fault..
+ 	 */
+-	if (in_atomic() || !mm)
++	if (faulthandler_disabled() || !mm)
+ 		goto no_context;
+ 
+ 	if (user_mode(regs))
+diff --git a/arch/x86/mm/fault.c b/arch/x86/mm/fault.c
+index 181c53b..9dc9098 100644
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@ -13,6 +13,7 @@
+ #include <linux/hugetlb.h>		/* hstate_index_to_shift	*/
+ #include <linux/prefetch.h>		/* prefetchw			*/
+ #include <linux/context_tracking.h>	/* exception_enter(), ...	*/
++#include <linux/uaccess.h>		/* faulthandler_disabled()	*/
+ 
+ #include <asm/traps.h>			/* dotraplinkage, ...		*/
+ #include <asm/pgalloc.h>		/* pgd_*(), ...			*/
+@@ -1126,9 +1127,9 @@ __do_page_fault(struct pt_regs *regs, unsigned long error_code,
+ 
+ 	/*
+ 	 * If we're in an interrupt, have no user context or are running
+-	 * in an atomic region then we must not take the fault:
++	 * in a region with pagefaults disabled then we must not take the fault
+ 	 */
+-	if (unlikely(in_atomic() || !mm)) {
++	if (unlikely(faulthandler_disabled() || !mm)) {
+ 		bad_area_nosemaphore(regs, error_code, address);
+ 		return;
+ 	}
+diff --git a/arch/xtensa/mm/fault.c b/arch/xtensa/mm/fault.c
+index 9e3571a..83a44a3 100644
+--- a/arch/xtensa/mm/fault.c
++++ b/arch/xtensa/mm/fault.c
+@@ -15,10 +15,10 @@
+ #include <linux/mm.h>
+ #include <linux/module.h>
+ #include <linux/hardirq.h>
++#include <linux/uaccess.h>
+ #include <asm/mmu_context.h>
+ #include <asm/cacheflush.h>
+ #include <asm/hardirq.h>
+-#include <asm/uaccess.h>
+ #include <asm/pgalloc.h>
+ 
+ DEFINE_PER_CPU(unsigned long, asid_cache) = ASID_USER_FIRST;
+@@ -57,7 +57,7 @@ void do_page_fault(struct pt_regs *regs)
+ 	/* If we're in an interrupt or have no user
+ 	 * context, we must not take the fault..
+ 	 */
+-	if (in_atomic() || !mm) {
++	if (faulthandler_disabled() || !mm) {
+ 		bad_page_fault(regs, address, SIGSEGV);
+ 		return;
+ 	}
+diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+index 23290cc..90786d2 100644
+--- a/include/linux/uaccess.h
++++ b/include/linux/uaccess.h
+@@ -59,6 +59,18 @@ static inline void pagefault_enable(void)
+  */
+ #define pagefault_disabled() (current->pagefault_disabled != 0)
+ 
++/*
++ * The pagefault handler is in general disabled by pagefault_disable() or
++ * when in irq context (via in_atomic()).
++ *
++ * This function should only be used by the fault handlers. Other users should
++ * stick to pagefault_disabled().
++ * Please NEVER use preempt_disable() to disable the fault handler. With
++ * !CONFIG_PREEMPT_COUNT, this is like a NOP. So the handler won't be disabled.
++ * in_atomic() will report different values based on !CONFIG_PREEMPT_COUNT.
++ */
++#define faulthandler_disabled() (pagefault_disabled() || in_atomic())
++
+ #ifndef ARCH_HAS_NOCACHE_UACCESS
+ 
+ static inline unsigned long __copy_from_user_inatomic_nocache(void *to,
 -- 
 2.1.4
 
