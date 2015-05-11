@@ -1,23 +1,23 @@
-From: Richard Weinberger <richard@nod.at>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: VERIFY_READ/WRITE in uaccess.h?
-Date: Mon, 11 May 2015 23:26:49 +0200
-Message-ID: <55511E99.5070806@nod.at>
-References: <554F288C.3000300@nod.at> <55511989.2010407@zytor.com>
+Date: Mon, 11 May 2015 14:42:27 -0700
+Message-ID: <CA+55aFzF+Wo7EVSoJSaarbsQCNw5St4JH27t6vxNJivJnBQ0Sg@mail.gmail.com>
+References: <554F288C.3000300@nod.at>
+	<55511989.2010407@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:65276 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751348AbbEKV0y (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 May 2015 17:26:54 -0400
+Received: from mail-ig0-f174.google.com ([209.85.213.174]:33356 "EHLO
+	mail-ig0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752012AbbEKVm2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2015 17:42:28 -0400
 In-Reply-To: <55511989.2010407@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>, Linux-Arch <linux-arch@vger.kernel.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Richard Weinberger <richard@nod.at>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
 
-Am 11.05.2015 um 23:05 schrieb H. Peter Anvin:
+On Mon, May 11, 2015 at 2:05 PM, H. Peter Anvin <hpa@zytor.com> wrote:
 > On 05/10/2015 02:44 AM, Richard Weinberger wrote:
 >> Hi!
 >>
@@ -32,15 +32,20 @@ Am 11.05.2015 um 23:05 schrieb H. Peter Anvin:
 >> from it or just because nobody cared enough to do a tree-wide cleanup?
 >> I fear it is the latter... ;)
 >>
-> 
+>
 > Or, perhaps, nobody noticed?
 
-Also possible.
+Not a future architecture. A historical one.
 
-While we are at it, access_ok() is IMHO a horrible name. Historic?
-Today it is used to find out whether an address is in an
-architecture defined range and therefore valid.
-Maybe valid_address() would be a better name...
+I think the only architecture that needed the VERIFY_READ/WRITE
+distinction was the now-dropped i386, where it was used to decide if
+we needed to do the manual COW because the 80386 couldn't do COW
+correctly in kernel mode.
 
-Thanks,
-//richard
+That one - for the same reasons - also checked the actual accesses,
+not just that the range was in user mode. Exactly because it needed to
+pre-COW the pages (even if that was then obviously racy in threaded
+environments - in practice it worked, and we tried to support the
+fundamentally broken i386 hardware protection model for a long time).
+
+                         Linus
