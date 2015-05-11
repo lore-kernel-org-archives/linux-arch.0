@@ -1,61 +1,144 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:50751 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932172AbbEKPww (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2015 11:52:52 -0400
+Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:38395 "EHLO
+	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753561AbbEKPwt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2015 11:52:49 -0400
 Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Mon, 11 May 2015 16:52:50 +0100
+	Mon, 11 May 2015 16:52:47 +0100
 From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [PATCH v1 05/15] mips: kmap_coherent relies on disabled preemption
-Date: Mon, 11 May 2015 17:52:10 +0200
-Message-ID: <1431359540-32227-6-git-send-email-dahi@linux.vnet.ibm.com>
+Subject: [PATCH v1 01/15] uaccess: count pagefault_disable() levels in pagefault_disabled
+Date: Mon, 11 May 2015 17:52:06 +0200
+Message-ID: <1431359540-32227-2-git-send-email-dahi@linux.vnet.ibm.com>
 In-Reply-To: <1431359540-32227-1-git-send-email-dahi@linux.vnet.ibm.com>
 References: <1431359540-32227-1-git-send-email-dahi@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: mingo@redhat.com, yang.shi@windriver.com, bigeasy@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, peterz@infradead.org, dahi@linux.vnet.ibm.com
-Message-ID: <20150511155210.H__nh6lTCBB6k8E5MDabnU6cN9xoTINiu3qfSG1BKJc@z>
+Message-ID: <20150511155206.qtv6hLy-71qsVi54CplCEh_DiJkQ6yEtbyshLO1Vr0M@z>
 
-k(un)map_coherent relies on pagefault_disable() to also disable
-preemption.
+Until now, pagefault_disable()/pagefault_enabled() used the preempt
+count to track whether in an environment with pagefaults disabled (can
+be queried via in_atomic()).
 
-Let's make this explicit, to prepare for pagefault_disable() not
-touching preemption anymore.
+This patch introduces a separate counter in task_struct to count the
+level of pagefault_disable() calls. We'll keep manipulating the preempt
+count to retain compatibility to existing pagefault handlers.
 
-This patch is based on a patch by Yang Shi on the -rt tree:
-"k{un}map_coherent are just called when cpu_has_dc_aliases == 1 with VIPT
-cache. However, actually, the most modern MIPS processors have PIPT dcache
-without dcache alias issue. In such case, k{un}map_atomic will be called
-with preempt enabled."
+It is now possible to verify whether in a pagefault_disable() envionment
+by calling pagefault_disabled(). In contrast to in_atomic() it will not
+be influenced by preempt_enable()/preempt_disable().
+
+This patch is based on a patch from Ingo Molnar.
 
 Signed-off-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
 ---
- arch/mips/mm/init.c | 2 ++
- 1 file changed, 2 insertions(+)
+ include/linux/sched.h   |  1 +
+ include/linux/uaccess.h | 36 +++++++++++++++++++++++++++++-------
+ kernel/fork.c           |  3 +++
+ 3 files changed, 33 insertions(+), 7 deletions(-)
 
-diff --git a/arch/mips/mm/init.c b/arch/mips/mm/init.c
-index faa5c98..198a314 100644
---- a/arch/mips/mm/init.c
-+++ b/arch/mips/mm/init.c
-@@ -90,6 +90,7 @@ static void *__kmap_pgprot(struct page *page, unsigned long addr, pgprot_t prot)
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index af01e3c..6df2790 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -1792,6 +1792,7 @@ struct task_struct {
+ #ifdef CONFIG_DEBUG_ATOMIC_SLEEP
+ 	unsigned long	task_state_change;
+ #endif
++	int pagefault_disabled;
+ };
  
- 	BUG_ON(Page_dcache_dirty(page));
+ /* Future-safe accessor for struct task_struct's cpus_allowed. */
+diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+index ecd3319..23290cc 100644
+--- a/include/linux/uaccess.h
++++ b/include/linux/uaccess.h
+@@ -2,20 +2,36 @@
+ #define __LINUX_UACCESS_H__
  
-+	preempt_disable();
- 	pagefault_disable();
- 	idx = (addr >> PAGE_SHIFT) & (FIX_N_COLOURS - 1);
- 	idx += in_interrupt() ? FIX_N_COLOURS : 0;
-@@ -152,6 +153,7 @@ void kunmap_coherent(void)
- 	write_c0_entryhi(old_ctx);
- 	local_irq_restore(flags);
- 	pagefault_enable();
-+	preempt_enable();
+ #include <linux/preempt.h>
++#include <linux/sched.h>
+ #include <asm/uaccess.h>
+ 
++static __always_inline void pagefault_disabled_inc(void)
++{
++	current->pagefault_disabled++;
++}
++
++static __always_inline void pagefault_disabled_dec(void)
++{
++	current->pagefault_disabled--;
++	WARN_ON(current->pagefault_disabled < 0);
++}
++
+ /*
+- * These routines enable/disable the pagefault handler in that
+- * it will not take any locks and go straight to the fixup table.
++ * These routines enable/disable the pagefault handler. If disabled, it will
++ * not take any locks and go straight to the fixup table.
++ *
++ * We increase the preempt and the pagefault count, to be able to distinguish
++ * whether we run in simple atomic context or in a real pagefault_disable()
++ * context.
++ *
++ * For now, after pagefault_disabled() has been called, we run in atomic
++ * context. User access methods will not sleep.
+  *
+- * They have great resemblance to the preempt_disable/enable calls
+- * and in fact they are identical; this is because currently there is
+- * no other way to make the pagefault handlers do this. So we do
+- * disable preemption but we don't necessarily care about that.
+  */
+ static inline void pagefault_disable(void)
+ {
+ 	preempt_count_inc();
++	pagefault_disabled_inc();
+ 	/*
+ 	 * make sure to have issued the store before a pagefault
+ 	 * can hit.
+@@ -25,18 +41,24 @@ static inline void pagefault_disable(void)
+ 
+ static inline void pagefault_enable(void)
+ {
+-#ifndef CONFIG_PREEMPT
+ 	/*
+ 	 * make sure to issue those last loads/stores before enabling
+ 	 * the pagefault handler again.
+ 	 */
+ 	barrier();
++	pagefault_disabled_dec();
++#ifndef CONFIG_PREEMPT
+ 	preempt_count_dec();
+ #else
+ 	preempt_enable();
+ #endif
  }
  
- void copy_user_highpage(struct page *to, struct page *from,
++/*
++ * Is the pagefault handler disabled? If so, user access methods will not sleep.
++ */
++#define pagefault_disabled() (current->pagefault_disabled != 0)
++
+ #ifndef ARCH_HAS_NOCACHE_UACCESS
+ 
+ static inline unsigned long __copy_from_user_inatomic_nocache(void *to,
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 2e67086..0bb88b5 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -1393,6 +1393,9 @@ static struct task_struct *copy_process(unsigned long clone_flags,
+ 	p->hardirq_context = 0;
+ 	p->softirq_context = 0;
+ #endif
++
++	p->pagefault_disabled = 0;
++
+ #ifdef CONFIG_LOCKDEP
+ 	p->lockdep_depth = 0; /* no locks held yet */
+ 	p->curr_chain_key = 0;
 -- 
 2.1.4
 
