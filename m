@@ -1,378 +1,296 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v12 16/21] h8300: Build scripts
-Date: Mon, 11 May 2015 15:26:35 +0900
-Message-ID: <1431325600-12333-17-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v12 11/21] h8300: compressed image support
+Date: Mon, 11 May 2015 15:26:30 +0900
+Message-ID: <1431325600-12333-12-git-send-email-ysato@users.sourceforge.jp>
 References: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.asahi-net.or.jp ([202.224.39.197]:35945 "EHLO
+Received: from mail1.asahi-net.or.jp ([202.224.39.197]:35906 "EHLO
 	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752412AbbEKG0u (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2015 02:26:50 -0400
+	with ESMTP id S1752376AbbEKG0t (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2015 02:26:49 -0400
 In-Reply-To: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 
-h8300's Makefile, Kconfig and memory layout.
-
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- arch/h8300/Kconfig              | 74 ++++++++++++++++++++++++++++++
- arch/h8300/Kconfig.cpu          | 99 +++++++++++++++++++++++++++++++++++++++++
- arch/h8300/Makefile             | 55 +++++++++++++++++++++++
- arch/h8300/kernel/Makefile      | 19 ++++++++
- arch/h8300/kernel/vmlinux.lds.S | 67 ++++++++++++++++++++++++++++
- 5 files changed, 314 insertions(+)
- create mode 100644 arch/h8300/Kconfig
- create mode 100644 arch/h8300/Kconfig.cpu
- create mode 100644 arch/h8300/Makefile
- create mode 100644 arch/h8300/kernel/Makefile
- create mode 100644 arch/h8300/kernel/vmlinux.lds.S
+ arch/h8300/boot/Makefile               | 26 ++++++++++++
+ arch/h8300/boot/compressed/Makefile    | 37 +++++++++++++++++
+ arch/h8300/boot/compressed/head.S      | 48 ++++++++++++++++++++++
+ arch/h8300/boot/compressed/misc.c      | 74 ++++++++++++++++++++++++++++++++++
+ arch/h8300/boot/compressed/vmlinux.lds | 32 +++++++++++++++
+ arch/h8300/boot/compressed/vmlinux.scr |  9 +++++
+ 6 files changed, 226 insertions(+)
+ create mode 100644 arch/h8300/boot/Makefile
+ create mode 100644 arch/h8300/boot/compressed/Makefile
+ create mode 100644 arch/h8300/boot/compressed/head.S
+ create mode 100644 arch/h8300/boot/compressed/misc.c
+ create mode 100644 arch/h8300/boot/compressed/vmlinux.lds
+ create mode 100644 arch/h8300/boot/compressed/vmlinux.scr
 
-diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
+diff --git a/arch/h8300/boot/Makefile b/arch/h8300/boot/Makefile
 new file mode 100644
-index 0000000..119a17c
+index 0000000..2f6393a
 --- /dev/null
-+++ b/arch/h8300/Kconfig
++++ b/arch/h8300/boot/Makefile
+@@ -0,0 +1,26 @@
++# arch/h8300/boot/Makefile
++
++targets := vmlinux.srec vmlinux.bin zImage
++subdir- := compressed
++
++OBJCOPYFLAGS_vmlinux.srec := -Osrec
++OBJCOPYFLAGS_vmlinux.bin  := -Obinary
++OBJCOPYFLAGS_zImage := -O binary -R .note -R .comment -R .stab -R .stabstr -S
++
++UIMAGE_LOADADDR = $(CONFIG_RAMBASE)
++UIMAGE_ENTRYADDR = $(shell /bin/bash -c 'printf "0x%08x" \
++	$$[$(CONFIG_RAMBASE) + $(CONFIG_OFFSET)]')
++
++$(obj)/vmlinux.srec $(obj)/vmlinux.bin:  vmlinux FORCE
++	$(call if_changed,objcopy)
++
++$(obj)/zImage: $(obj)/compressed/vmlinux FORCE
++	$(call if_changed,objcopy)
++
++$(obj)/compressed/vmlinux: FORCE
++	$(Q)$(MAKE) $(build)=$(obj)/compressed $@
++
++$(obj)/uImage.bin: $(obj)/vmlinux.bin
++	$(call if_changed,uimage,none)
++
++CLEAN_FILES += arch/$(ARCH)/vmlinux.bin arch/$(ARCH)/vmlinux.srec arch/$(ARCH)/uImage.bin
+diff --git a/arch/h8300/boot/compressed/Makefile b/arch/h8300/boot/compressed/Makefile
+new file mode 100644
+index 0000000..87d03b7
+--- /dev/null
++++ b/arch/h8300/boot/compressed/Makefile
+@@ -0,0 +1,37 @@
++#
++# linux/arch/sh/boot/compressed/Makefile
++#
++# create a compressed vmlinux image from the original vmlinux
++#
++
++targets		:= vmlinux vmlinux.bin vmlinux.bin.gz head.o misc.o piggy.o
++
++OBJECTS = $(obj)/head.o $(obj)/misc.o
++
++#
++# IMAGE_OFFSET is the load offset of the compression loader
++# Assign dummy values if these 2 variables are not defined,
++# in order to suppress error message.
++#
++CONFIG_MEMORY_START     ?= 0x00400000
++CONFIG_BOOT_LINK_OFFSET ?= 0x00140000
++IMAGE_OFFSET := $(shell printf "0x%08x" $$(($(CONFIG_MEMORY_START)+$(CONFIG_BOOT_LINK_OFFSET))))
++
++LIBGCC := $(shell $(CROSS-COMPILE)$(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
++LDFLAGS_vmlinux := -Ttext $(IMAGE_OFFSET) -estartup $(obj)/vmlinux.lds
++
++$(obj)/vmlinux: $(OBJECTS) $(obj)/piggy.o $(LIBGCC) FORCE
++	$(call if_changed,ld)
++	@:
++
++$(obj)/vmlinux.bin: vmlinux FORCE
++	$(call if_changed,objcopy)
++
++$(obj)/vmlinux.bin.gz: $(obj)/vmlinux.bin FORCE
++	$(call if_changed,gzip)
++
++LDFLAGS_piggy.o := -r --format binary --oformat elf32-h8300-linux -T
++OBJCOPYFLAGS := -O binary
++
++$(obj)/piggy.o: $(obj)/vmlinux.scr $(obj)/vmlinux.bin.gz FORCE
++	$(call if_changed,ld)
+diff --git a/arch/h8300/boot/compressed/head.S b/arch/h8300/boot/compressed/head.S
+new file mode 100644
+index 0000000..74c0d8cc
+--- /dev/null
++++ b/arch/h8300/boot/compressed/head.S
+@@ -0,0 +1,48 @@
++/*
++ *  linux/arch/h8300/boot/compressed/head.S
++ *
++ *  Copyright (C) 2006 Yoshinori Sato
++ */
++
++#include <linux/linkage.h>
++
++	.section	.text..startup,"ax"
++	.global	startup
++startup:
++	mov.l	er0, er4
++	mov.l	er0, sp
++	mov.l	#__sbss, er0
++	mov.l	#__ebss, er1
++	sub.l	er0, er1
++	shlr	er1
++	shlr	er1
++	sub.l	er2, er2
++1:
++	mov.l	er2, @er0
++	adds	#4, er0
++	dec.l	#1, er1
++	bne	1b
++	jsr	@decompress_kernel
++	mov.l	er4, er0
++	jmp	@0x400000
++
++	.align	9
++fake_headers_as_bzImage:
++	.word	0
++	.ascii	"HdrS"		; header signature
++	.word	0x0202		; header version number (>= 0x0105)
++				; or else old loadlin-1.5 will fail)
++	.word	0		; default_switch
++	.word	0		; SETUPSEG
++	.word	0x1000
++	.word	0		; pointing to kernel version string
++	.byte	0		; = 0, old one (LILO, Loadlin,
++				; 0xTV: T=0 for LILO
++				;       V = version
++	.byte	1		; Load flags bzImage=1
++	.word	0x8000		; size to move, when setup is not
++	.long	0x100000	; 0x100000 = default for big kernel
++	.long	0		; address of loaded ramdisk image
++	.long	0		; its size in bytes
++
++	.end
+diff --git a/arch/h8300/boot/compressed/misc.c b/arch/h8300/boot/compressed/misc.c
+new file mode 100644
+index 0000000..7042741
+--- /dev/null
++++ b/arch/h8300/boot/compressed/misc.c
 @@ -0,0 +1,74 @@
-+config H8300
-+        def_bool y
-+	select GENERIC_ATOMIC64
-+	select HAVE_UID16
-+	select VIRT_TO_BUS
-+	select ARCH_WANT_IPC_PARSE_VERSION
-+	select GENERIC_IRQ_SHOW
-+	select FRAME_POINTER
-+	select GENERIC_CPU_DEVICES
-+	select MODULES_USE_ELF_RELA
-+	select GENERIC_CLOCKEVENTS
-+	select CLKDEV_LOOKUP
-+	select COMMON_CLK
-+	select ARCH_WANT_FRAME_POINTERS
-+	select OF
-+	select OF_IRQ
-+	select OF_EARLY_FLATTREE
-+	select HAVE_MEMBLOCK
-+	select HAVE_DMA_ATTRS
++/*
++ * arch/h8300/boot/compressed/misc.c
++ *
++ * This is a collection of several routines from gzip-1.0.3
++ * adapted for Linux.
++ *
++ * malloc by Hannu Savolainen 1993 and Matthias Urlichs 1994
++ *
++ * Adapted for h8300 by Yoshinori Sato 2006
++ */
 +
-+config RWSEM_GENERIC_SPINLOCK
-+	def_bool y
++#include <asm/uaccess.h>
 +
-+config GENERIC_HWEIGHT
-+	def_bool y
++/*
++ * gzip declarations
++ */
 +
-+config NO_IOPORT_MAP
-+	def_bool y
++#define OF(args)  args
++#define STATIC static
 +
-+config HZ
-+	int
-+	default 100
++#undef memset
++#undef memcpy
++#define memzero(s, n)     memset((s), (0), (n))
 +
-+config NR_CPUS
-+	int
-+	default 1
++extern int _end;
++static unsigned long free_mem_ptr;
++static unsigned long free_mem_end_ptr;
 +
-+source "init/Kconfig"
++extern char input_data[];
++extern int input_len;
++static unsigned char *output;
 +
-+source "kernel/Kconfig.freezer"
++#define HEAP_SIZE             0x10000
 +
-+source "arch/h8300/Kconfig.cpu"
++#include "../../../../lib/decompress_inflate.c"
 +
-+menu "Kernel Features"
++void *memset(void *s, int c, size_t n)
++{
++	int i;
++	char *ss = (char *)s;
 +
-+source "kernel/Kconfig.preempt"
++	for (i = 0; i < n; i++)
++		ss[i] = c;
++	return s;
++}
 +
-+source "mm/Kconfig"
++void *memcpy(void *dest, const void *src, size_t n)
++{
++	int i;
++	char *d = (char *)dest, *s = (char *)src;
 +
-+endmenu
++	for (i = 0; i < n; i++)
++		d[i] = s[i];
++	return dest;
++}
 +
-+menu "Executable file formats"
++static void error(char *x)
++{
 +
-+source "fs/Kconfig.binfmt"
++	while (1)
++		;	/* Halt */
++}
 +
-+endmenu
++#define STACK_SIZE (4096)
++long user_stack[STACK_SIZE];
++long *stack_start = &user_stack[STACK_SIZE];
 +
-+source "net/Kconfig"
++void decompress_kernel(void)
++{
++	free_mem_ptr = (unsigned long)&_end;
++	free_mem_end_ptr = free_mem_ptr + HEAP_SIZE;
 +
-+source "drivers/Kconfig"
-+
-+source "fs/Kconfig"
-+
-+menu "Kernel hacking"
-+
-+source "lib/Kconfig.debug"
-+
-+endmenu
-+
-+source "security/Kconfig"
-+
-+source "crypto/Kconfig"
-+
-+source "lib/Kconfig"
-diff --git a/arch/h8300/Kconfig.cpu b/arch/h8300/Kconfig.cpu
++	decompress(input_data, input_len, NULL, NULL, output, NULL, error);
++}
+diff --git a/arch/h8300/boot/compressed/vmlinux.lds b/arch/h8300/boot/compressed/vmlinux.lds
 new file mode 100644
-index 0000000..8d0ff20c7
+index 0000000..a0a3a0e
 --- /dev/null
-+++ b/arch/h8300/Kconfig.cpu
-@@ -0,0 +1,99 @@
-+config CPU_H8300H
-+	bool
-+
-+config CPU_H8S
-+	bool
-+
-+config H83069
-+	bool
-+	select CPU_H8300H
-+	select H8300_TMR16
-+	select RENESAS_H8300H_INTC
-+
-+config H8S2678
-+	bool
-+	select CPU_H8S
-+	select H8300_TPU
-+	select RENESAS_H8S_INTC
-+
-+config RAMKERNEL
-+	bool
-+
-+config ROMKERNEL
-+	bool
-+
-+menu "Processor type and features"
-+
-+choice
-+prompt "H8/300 platform"
-+
-+config H8300_AE3068
-+	bool "AE-3068/69"
-+	select H83069
-+	select RAMKERNEL
-+	help
-+	  AKI-H8/3068F / AKI-H8/3069F Flashmicom LAN Board Support
-+	  More Information. (Japanese Only)
-+	  <http://akizukidenshi.com/catalog/default.aspx>
-+	  AE-3068/69 Evaluation Board Support
-+	  More Information.
-+	  <http://www.microtronique.com/ae3069lan.htm>
-+
-+config H8300_H8MAX
-+	bool "H8MAX"
-+	select H83069
-+	select RAMKERNEL
-+	select HAVE_IDE
-+	help
-+	  H8MAX Evaluation Board Support
-+	  More Information. (Japanese Only)
-+	  <http://strawberry-linux.com/h8/index.html>
-+
-+config H8300_KANEBEBE
-+	bool "KaneBebe"
-+	select H83069
-+	select RAMKERNEL
-+	help
-+	  KaneBebe Evalition Board Support
-+	  More Information. (Japanese Only)
-+	  <http://www.nissin-tech.com/2009/10/uclinuxkane-bebe-h83069f.html>
-+
-+config H8300H_SIM
-+	bool "H8/300H GDB Simulator"
-+	select H83069
-+	select ROMKERNEL
-+	help
-+	  GDB Simulator Support
-+	  More Information.
-+	  <http://sourceware.org/sid/>
-+
-+config H8S_EDOSK2674
-+	bool "EDOSK-2674"
-+	select H8S2678
-+	select RAMKERNEL
-+	help
-+	  Renesas EDOSK-2674 Evaluation Board Support
-+	  More Information.
-+	  <http://www.azpower.com/H8-uClinux/index.html>
-+	  <http://www.renesas.eu/products/tools/introductory_evaluation_tools/evaluation_development_os_kits/edosk2674r/edosk2674r_software_tools_root.jsp>
-+
-+config H8S_SIM
-+	bool "H8S GDB Simulator"
-+	select H8S2678
-+	select ROMKERNEL
-+	help
-+	  GDB Simulator Support
-+	  More Information.
-+	  <http://sourceware.org/sid/>
-+
-+endchoice
-+
-+config H8300_BUILTIN_DTB
-+        string "Builtin DTB"
-+	default ""
-+
-+config OFFSET
-+        hex "Load offset"
-+	default 0
-+
-+endmenu
-diff --git a/arch/h8300/Makefile b/arch/h8300/Makefile
-new file mode 100644
-index 0000000..0d2d96e
---- /dev/null
-+++ b/arch/h8300/Makefile
-@@ -0,0 +1,55 @@
-+#
-+# arch/h8300/Makefile
-+#
-+# This file is subject to the terms and conditions of the GNU General Public
-+# License.  See the file "COPYING" in the main directory of this archive
-+# for more details.
-+#
-+# (C) Copyright 2002-2015 Yoshinori Sato <ysato@users.sourceforge.jp>
-+#
-+
-+cflags-$(CONFIG_CPU_H8300H)	:= -mh
-+aflags-$(CONFIG_CPU_H8300H)	:= -mh -Wa,--mach=h8300h
-+ldflags-$(CONFIG_CPU_H8300H)	:= -mh8300helf_linux
-+cflags-$(CONFIG_CPU_H8S)	:= -ms
-+aflags-$(CONFIG_CPU_H8S)	:= -ms -Wa,--mach=h8300s
-+ldflags-$(CONFIG_CPU_H8S)	:= -mh8300self_linux
-+
-+KBUILD_CFLAGS += $(cflags-y)
-+KBUILD_CFLAGS += -mint32 -fno-builtin
-+KBUILD_CFLAGS += -D__linux__
-+KBUILD_CFLAGS += -DUTS_SYSNAME=\"uClinux\"
-+KBUILD_AFLAGS += $(aflags-y)
-+LDFLAGS += $(ldflags-y)
-+
-+CROSS_COMPILE := h8300-unknown-linux-
-+
-+core-y	+= arch/$(ARCH)/kernel/ arch/$(ARCH)/mm/
-+ifneq '$(CONFIG_H8300_BUILTIN_DTB)' '""'
-+core-y += arch/h8300/boot/dts/
-+endif
-+
-+libs-y	+= arch/$(ARCH)/lib/
-+
-+boot := arch/h8300/boot
-+
-+%.dtb %.dtb.S %.dtb.o: | scripts
-+	$(Q)$(MAKE) $(build)=arch/h8300/boot/dts arch/h8300/boot/dts/$@
-+
-+PHONY += dtbs
-+dtbs: scripts
-+	$(Q)$(MAKE) $(build)=arch/h8300/boot/dts
-+
-+archmrproper:
-+
-+archclean:
-+	$(Q)$(MAKE) $(clean)=$(boot)
-+
-+vmlinux.srec vmlinux.bin zImage uImage.bin: vmlinux
-+	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
-+
-+define archhelp
-+  @echo  'vmlinux.bin  - Create raw binary'
-+  @echo  'vmlinux.srec - Create srec binary'
-+  @echo  'zImage       - Compressed kernel image'
-+endef
-diff --git a/arch/h8300/kernel/Makefile b/arch/h8300/kernel/Makefile
-new file mode 100644
-index 0000000..5bc33f2
---- /dev/null
-+++ b/arch/h8300/kernel/Makefile
-@@ -0,0 +1,19 @@
-+#
-+# Makefile for the linux kernel.
-+#
-+
-+extra-y := vmlinux.lds
-+
-+obj-y := process.o traps.o ptrace.o \
-+	 signal.o setup.o syscalls.o \
-+	 irq.o entry.o dma.o
-+
-+obj-$(CONFIG_ROMKERNEL) += head_rom.o
-+obj-$(CONFIG_RAMKERNEL) += head_ram.o
-+
-+obj-$(CONFIG_MODULES) += module.o h8300_ksyms.o
-+obj-$(CONFIG_H8300H_SIM) += sim-console.o
-+obj-$(CONFIG_H8S_SIM) += sim-console.o
-+
-+obj-$(CONFIG_CPU_H8300H) += ptrace_h.o
-+obj-$(CONFIG_CPU_H8S) += ptrace_s.o
-diff --git a/arch/h8300/kernel/vmlinux.lds.S b/arch/h8300/kernel/vmlinux.lds.S
-new file mode 100644
-index 0000000..7c302dc
---- /dev/null
-+++ b/arch/h8300/kernel/vmlinux.lds.S
-@@ -0,0 +1,67 @@
-+#include <asm-generic/vmlinux.lds.h>
-+#include <asm/page.h>
-+
-+#define ROMTOP 0x000000
-+#define RAMTOP 0x400000
-+
-+jiffies = jiffies_64 + 4;
-+
-+ENTRY(_start)
-+
++++ b/arch/h8300/boot/compressed/vmlinux.lds
+@@ -0,0 +1,32 @@
 +SECTIONS
 +{
-+#if defined(CONFIG_ROMKERNEL)
-+	. = ROMTOP;
-+	.vectors :
++        .text :
++        {
++        __stext = . ;
++	__text = .;
++	       *(.text..startup)
++	       *(.text)
++        __etext = . ;
++        }
++
++	.rodata :
 +	{
-+	_vector = . ;
-+		*(.vector*)
++		*(.rodata)
 +	}
-+#else
-+	. = RAMTOP;
-+	_ramstart = .;
-+	. = . + CONFIG_OFFSET;
-+#endif
-+	_text = .;
-+	HEAD_TEXT_SECTION
-+	.text : {
-+	_stext = . ;
-+		TEXT_TEXT
-+		SCHED_TEXT
-+		LOCK_TEXT
-+#if defined(CONFIG_ROMKERNEL)
-+		*(.int_redirect)
-+#endif
-+	_etext = . ;
++        .data :
++
++        {
++        __sdata = . ;
++        ___data_start = . ;
++                *(.data.*)
 +	}
-+	EXCEPTION_TABLE(16)
-+	NOTES
-+	RO_DATA_SECTION(4)
-+	ROMEND = .;
-+#if defined(CONFIG_ROMKERNEL)
-+	. = RAMTOP;
-+	_ramstart = .;
-+#define ADDR(x) ROMEND
-+#else
-+#endif
-+	_sdata = . ;
-+	__data_start = . ;
-+	RW_DATA_SECTION(0,0,0)
-+#if defined(CONFIG_ROMKERNEL)
-+#undef ADDR
-+#endif
-+	. = ALIGN(0x4) ;
-+	__init_begin = .;
-+	INIT_TEXT_SECTION(4)
-+	INIT_DATA_SECTION(4)
-+	SECURITY_INIT
-+	__init_end = .;
-+	_edata = . ;
-+	_begin_data = LOADADDR(.data);
-+	_sbss =.;
-+	BSS_SECTION(0, 0 ,0)
-+	_ebss =.;
-+	_ramend = .;
-+	_end = .;
-+	DISCARDS
++        .bss :
++        {
++        . = ALIGN(0x4) ;
++        __sbss = . ;
++                *(.bss*)
++        . = ALIGN(0x4) ;
++        __ebss = . ;
++        __end = . ;
++        }
++}
+diff --git a/arch/h8300/boot/compressed/vmlinux.scr b/arch/h8300/boot/compressed/vmlinux.scr
+new file mode 100644
+index 0000000..a0849036
+--- /dev/null
++++ b/arch/h8300/boot/compressed/vmlinux.scr
+@@ -0,0 +1,9 @@
++SECTIONS
++{
++  .data : {
++	input_len = .;
++	LONG(input_data_end - input_data) input_data = .;
++	*(.data)
++	input_data_end = .;
++	}
 +}
 -- 
 2.1.4
