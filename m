@@ -1,62 +1,38 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v12 01/21] MAINTAINERS: Add H8/300 entry
-Date: Mon, 11 May 2015 15:26:20 +0900
-Message-ID: <1431325600-12333-2-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v12 02/21] mksysmap: Add h8300 local symbol pattern
+Date: Mon, 11 May 2015 15:26:21 +0900
+Message-ID: <1431325600-12333-3-git-send-email-ysato@users.sourceforge.jp>
 References: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.asahi-net.or.jp ([202.224.39.197]:35884 "EHLO
-	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752345AbbEKG0s (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2015 02:26:48 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+List-Id: linux-arch.vger.kernel.org
+
+h8300's nm output have a lot of local symbols.
+ex)
+00000000 N .Lframe0
+00000013 N .LLST1
+00000026 N .LLST2
+00000039 N .LLST3
+0000004c N .LLST4
+Added new pattern " .L" to filter rule.
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- CREDITS     |  5 -----
- MAINTAINERS | 11 +++++++++++
- 2 files changed, 11 insertions(+), 5 deletions(-)
+ scripts/mksysmap | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/CREDITS b/CREDITS
-index ec7e6c7..4df764e 100644
---- a/CREDITS
-+++ b/CREDITS
-@@ -3219,11 +3219,6 @@ N: Dipankar Sarma
- E: dipankar@in.ibm.com
- D: RCU
+diff --git a/scripts/mksysmap b/scripts/mksysmap
+index 7ada35a..a35acc0 100755
+--- a/scripts/mksysmap
++++ b/scripts/mksysmap
+@@ -41,4 +41,4 @@
+ # so we just ignore them to let readprofile continue to work.
+ # (At least sparc64 has __crc_ in the middle).
  
--N: Yoshinori Sato
--E: ysato@users.sourceforge.jp
--D: uClinux for Renesas H8/300 (H8300)
--D: http://uclinux-h8.sourceforge.jp/
--
- N: Hannu Savolainen
- E: hannu@opensound.com
- D: Maintainer of the sound drivers until 2.1.x days.
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 590304b..3d1ea1b 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -4486,6 +4486,17 @@ T:	git git://linuxtv.org/media_tree.git
- S:	Maintained
- F:	drivers/media/usb/stk1160/
- 
-+H8/300 ARCHITECTURE
-+M:	Yoshinori Sato <ysato@users.sourceforge.jp>
-+L:	uclinux-h8-devel@lists.sourceforge.jp
-+W:	http://uclinux-h8.sourceforge.jp
-+T:	git git://git.sourceforge.jp/gitroot/uclinux-h8/linux.git
-+S:	Maintained
-+F:	arch/h8300/
-+F:	drivers/clocksource/h8300_*.c
-+F:	drivers/clk/h8300/
-+F:	drivers/irqchip/irq-renesas-h8*.c
-+
- HARD DRIVE ACTIVE PROTECTION SYSTEM (HDAPS) DRIVER
- M:	Frank Seidel <frank@f-seidel.de>
- L:	platform-driver-x86@vger.kernel.org
+-$NM -n $1 | grep -v '\( [aNUw] \)\|\(__crc_\)\|\( \$[adt]\)' > $2
++$NM -n $1 | grep -v '\( [aNUw] \)\|\(__crc_\)\|\( \$[adt]\)\|\( .L\)' > $2
 -- 
 2.1.4
