@@ -1,122 +1,109 @@
-From: Eric B Munson <emunson@akamai.com>
-Subject: Re: [PATCH 0/3] Allow user to request memory to be locked on page
- fault
-Date: Mon, 11 May 2015 10:36:18 -0400
-Message-ID: <20150511143618.GA30570@akamai.com>
-References: <1431113626-19153-1-git-send-email-emunson@akamai.com>
- <20150508124203.6679b1d35ad9555425003929@linux-foundation.org>
- <20150508200610.GB29933@akamai.com>
- <20150508131523.f970d13a213bca63bd6f2619@linux-foundation.org>
+From: Chris Metcalf <cmetcalf@ezchip.com>
+Subject: Re: [PATCH 0/3] add new strscpy() API for string copy
+Date: Mon, 11 May 2015 11:37:42 -0400
+Message-ID: <5550CCC6.40200@ezchip.com>
+References: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="6TrnltStXW4iwmi0"
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20150508131523.f970d13a213bca63bd6f2619@linux-foundation.org>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Shuah Khan <shuahkh@osg.samsung.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-db3on0091.outbound.protection.outlook.com ([157.55.234.91]:13238
+	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752758AbbEKPiD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 May 2015 11:38:03 -0400
+In-Reply-To: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Fabian Frederick <fabf@skynet.be>, Randy Dunlap <rdunlap@infradead.org>, Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>, gregkh@linuxfoundation.org, Peter Zijlstra <peterz@infradead.org>, "David S. Miller" <davem@davemloft.net>, Frederic Weisbecker <fweisbec@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Theodore Ts'o <tytso@mit.edu>, Grant Likely <grant.likely@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
+Ping!  There was a little feedback on the strscpy() patch series,
+but I think at this point it boiled down to adding a __must_check
+on strscpy(), which I've done.  Any further opinions?  Would
+anyone like to volunteer to take this into their tree?  Or Linus,
+are you ready to pull it directly when the merge window opens?
 
---6TrnltStXW4iwmi0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+git://git.kernel.org/pub/scm/linux/kernel/git/cmetcalf/linux-tile.git 
+strscpy
 
-On Fri, 08 May 2015, Andrew Morton wrote:
+Thanks!
 
-> On Fri, 8 May 2015 16:06:10 -0400 Eric B Munson <emunson@akamai.com> wrot=
-e:
->=20
-> > On Fri, 08 May 2015, Andrew Morton wrote:
-> >=20
-> > > On Fri,  8 May 2015 15:33:43 -0400 Eric B Munson <emunson@akamai.com>=
- wrote:
-> > >=20
-> > > > mlock() allows a user to control page out of program memory, but th=
-is
-> > > > comes at the cost of faulting in the entire mapping when it is
-> > > > allocated.  For large mappings where the entire area is not necessa=
-ry
-> > > > this is not ideal.
-> > > >=20
-> > > > This series introduces new flags for mmap() and mlockall() that all=
-ow a
-> > > > user to specify that the covered are should not be paged out, but o=
-nly
-> > > > after the memory has been used the first time.
-> > >=20
-> > > Please tell us much much more about the value of these changes: the u=
-se
-> > > cases, the behavioural improvements and performance results which the
-> > > patchset brings to those use cases, etc.
-> > >=20
-> >=20
-> > The primary use case is for mmaping large files read only.  The process
-> > knows that some of the data is necessary, but it is unlikely that the
-> > entire file will be needed.  The developer only wants to pay the cost to
-> > read the data in once.  Unfortunately developer must choose between
-> > allowing the kernel to page in the memory as needed and guaranteeing
-> > that the data will only be read from disk once.  The first option runs
-> > the risk of having the memory reclaimed if the system is under memory
-> > pressure, the second forces the memory usage and startup delay when
-> > faulting in the entire file.
->=20
-> Why can't the application mmap only those parts of the file which it
-> wants and mlock those?
+On 04/30/2015 12:01 PM, Chris Metcalf wrote:
+> This patch series addresses limitations in strncpy() and strlcpy();
+> both the old APIs are unpleasant, as Linus nicely summarized here
+> a couple of days ago:
+>
+>    https://lkml.org/lkml/2015/4/28/570
+>
+> and of course as other folks (Greg K-H and Linus again) said last year:
+>
+>    https://plus.google.com/+gregkroahhartman/posts/1amLbuhWbh5
+>
+> The proposed new API (strscpy(), for "s"afe string copy) has an
+> easy-to-use API for detecting buffer overflow, avoids unsafe truncation
+> by default, and isn't subject to thread-safety attacks like the current
+> strlcpy implementation.  See patch 2/3 for more on why strscpy() is a
+> good thing.
+>
+> To make strscpy() work more efficiently I did the minimum tweaking
+> necessary to allow <asm/word-at-a-time.h> to work on all architectures,
+> though of course individual maintainers can still make their versions
+> more efficient as needed.
+>
+> It's likely not necessary for per-architecture implementations of
+> strscpy() to be written, but I stuck with the standard __HAVE_ARCH_XXX
+> model just for consistency with the rest of <linux/string.h>.
+>
+> I tested the implementation with a simple user-space harness, so I
+> believe it is correct for the corner cases I could think of.  In
+> particular I pairwise-tested all the unaligned values of source and
+> dest, and tested the restriction on src page-crossing at all
+> unaligned offsets approaching the page boundary.
+>
+> This builds on an earlier version of strscpy() submitted as
+> a file-static method in the arch/tile/gxio tree last year, after
+> an attempt to gather interest in a new generic strscpy failed:
+>
+>    https://lkml.org/lkml/2014/8/7/368
+>
+> The patch series is available to be pulled from
+>
+>    git://git.kernel.org/pub/scm/linux/kernel/git/cmetcalf/linux-tile.git strscpy
+>
+> Chris Metcalf (3):
+>    Make asm/word-at-a-time.h available on all architectures
+>    string: provide strscpy() and strscpy_truncate()
+>    tile: use global strscpy() rather than private copy
+>
+>   arch/arc/include/asm/Kbuild          |   1 +
+>   arch/avr32/include/asm/Kbuild        |   1 +
+>   arch/blackfin/include/asm/Kbuild     |   1 +
+>   arch/c6x/include/asm/Kbuild          |   1 +
+>   arch/cris/include/asm/Kbuild         |   1 +
+>   arch/frv/include/asm/Kbuild          |   1 +
+>   arch/hexagon/include/asm/Kbuild      |   1 +
+>   arch/ia64/include/asm/Kbuild         |   1 +
+>   arch/m32r/include/asm/Kbuild         |   1 +
+>   arch/metag/include/asm/Kbuild        |   1 +
+>   arch/microblaze/include/asm/Kbuild   |   1 +
+>   arch/mips/include/asm/Kbuild         |   1 +
+>   arch/mn10300/include/asm/Kbuild      |   1 +
+>   arch/nios2/include/asm/Kbuild        |   1 +
+>   arch/powerpc/include/asm/Kbuild      |   1 +
+>   arch/s390/include/asm/Kbuild         |   1 +
+>   arch/score/include/asm/Kbuild        |   1 +
+>   arch/tile/gxio/mpipe.c               |  33 ++---------
+>   arch/tile/include/asm/Kbuild         |   1 +
+>   arch/um/include/asm/Kbuild           |   1 +
+>   arch/unicore32/include/asm/Kbuild    |   1 +
+>   arch/xtensa/include/asm/Kbuild       |   1 +
+>   include/asm-generic/word-at-a-time.h |  80 ++++++++++++++++++++++---
+>   include/linux/string.h               |   6 ++
+>   lib/string.c                         | 109 +++++++++++++++++++++++++++++++++++
+>   25 files changed, 212 insertions(+), 37 deletions(-)
+>
 
-There are a number of problems with this approach.  The first is it
-presumes the program will know what portions are needed a head of time.
-In many cases this is simply not true.  The second problem is the number
-of syscalls required.  With my patches, a single mmap() or mlockall()
-call is needed to setup the required locking.  Without it, a separate
-mmap call must be made for each piece of data that is needed.  This also
-opens up problems for data that is arranged assuming it is contiguous in
-memory.  With the single mmap call, the user gets a contiguous VMA
-without having to know about it.  mmap() with MAP_FIXED could address
-the problem, but this introduces a new failure mode of your map
-colliding with another that was placed by the kernel.
-
-Another use case for the LOCKONFAULT flag is the security use of
-mlock().  If an application will be using data that cannot be written
-to swap, but the exact size is unknown until run time (all we have a
-build time is the maximum size the buffer can be).  The LOCKONFAULT flag
-allows the developer to create the buffer and guarantee that the
-contents are never written to swap without ever consuming more memory
-than is actually needed.
-
->=20
-> > I am working on getting startup times with and without this change for
-> > an application, I will post them as soon as I have them.
->=20
-
---6TrnltStXW4iwmi0
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAEBAgAGBQJVUL5iAAoJELbVsDOpoOa9+rIP/AtdiaAVRSAXFkS8FoN053Gp
-X9V3dAR/tJhrcsK0YFQcYBdG/e2doGqbJq6ni9iHdiABQ/dWmC6LZIRugSGltzGw
-WN3WSPpzLAHLS6TbH5KPydvrbne32pCI02McxTCSJ+IKARHZvUz3JWaq0z1/Tuqa
-U6pKp0qOo+1CD/YYgew2vyVWTZozPG379QhIkolLAtd4/FnL1DL8tW9gwgP6/pSF
-lfKNZNc2RFTRBnONckDDctDVbV8MZJCzPbPk4lBvhqc8VS11GWPylocZFB76C/w4
-Jcj5+JRUXgqGuIb+hwnQcnv/jAn2yjXW//6vB8qG0r1oXfCF7QwAVQegbjV7VAyT
-iQj3785JaeFIWUy8WLIk+BqP8tTzB/hphDTiV4dqTeHDSZGYw1ioFbzXcqkrapdm
-Ycqq4oTBxl7OkqDW5UQvvAWv4q9YP/E1KJK7O/HccybRcofVNGyO4hH+lgeFazMw
-5Id9Ptd/+qLxHP7jX0G53facKx5M8xtUT1DfsHi/nmCLD/uFdFOueaHKzQiVVGcp
-C8SgvCWcBQrHtgcn/JOyKH211sKOszOHFxg3TkglDl6s3th5zd+SAjYGRjKYizPe
-FoZ1FWhjyvsuybV8KFs5LRZ6et3kD06bCZrGS8JMrNo6R4BA4z7o88EVUxkSXx+z
-s7IIi8UpQrCbKJra0ucm
-=R9vZ
------END PGP SIGNATURE-----
-
---6TrnltStXW4iwmi0--
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+Chris Metcalf, EZChip Semiconductor
+http://www.ezchip.com
