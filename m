@@ -1,150 +1,122 @@
-From: Baolin Wang <baolin.wang@linaro.org>
-Subject: [PATCH v3 20/22] cputime:Introduce the cputime_to_timespec64/timespec64_to_cputime function
-Date: Mon, 11 May 2015 19:28:25 +0800
-Message-ID: <1431343705-30158-1-git-send-email-baolin.wang@linaro.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f175.google.com ([209.85.192.175]:34635 "EHLO
-	mail-pd0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753884AbbEKL2h (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2015 07:28:37 -0400
-Received: by pdbqa5 with SMTP id qa5so142129886pdb.1
-        for <linux-arch@vger.kernel.org>; Mon, 11 May 2015 04:28:36 -0700 (PDT)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, fweisbec@gmail.com, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, baolin.wang@linaro.org, y2038@lists.linaro.org
+From: Eric B Munson <emunson@akamai.com>
+Subject: Re: [PATCH 0/3] Allow user to request memory to be locked on page
+ fault
+Date: Mon, 11 May 2015 10:36:18 -0400
+Message-ID: <20150511143618.GA30570@akamai.com>
+References: <1431113626-19153-1-git-send-email-emunson@akamai.com>
+ <20150508124203.6679b1d35ad9555425003929@linux-foundation.org>
+ <20150508200610.GB29933@akamai.com>
+ <20150508131523.f970d13a213bca63bd6f2619@linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="6TrnltStXW4iwmi0"
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20150508131523.f970d13a213bca63bd6f2619@linux-foundation.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Shuah Khan <shuahkh@osg.samsung.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-This patch introduces some functions for converting cputime to timespec64 and back,
-that repalce the timespec type with timespec64 type, as well as for arch/s390 and
-arch/powerpc architecture.
 
-And these new methods will replace the old cputime_to_timespec/timespec_to_cputime
-function to ready for 2038 issue. The cputime_to_timespec/timespec_to_cputime functions
-are moved to include/linux/cputime.h file for removing conveniently.
+--6TrnltStXW4iwmi0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Signed-off-by: Baolin Wang <baolin.wang@linaro.org>
----
- arch/powerpc/include/asm/cputime.h    |    6 +++---
- arch/s390/include/asm/cputime.h       |    8 ++++----
- include/asm-generic/cputime_jiffies.h |   10 +++++-----
- include/asm-generic/cputime_nsecs.h   |    4 ++--
- include/linux/cputime.h               |   15 +++++++++++++++
- 5 files changed, 29 insertions(+), 14 deletions(-)
+On Fri, 08 May 2015, Andrew Morton wrote:
 
-diff --git a/arch/powerpc/include/asm/cputime.h b/arch/powerpc/include/asm/cputime.h
-index e245255..5dda5c0 100644
---- a/arch/powerpc/include/asm/cputime.h
-+++ b/arch/powerpc/include/asm/cputime.h
-@@ -154,9 +154,9 @@ static inline cputime_t secs_to_cputime(const unsigned long sec)
- }
- 
- /*
-- * Convert cputime <-> timespec
-+ * Convert cputime <-> timespec64
-  */
--static inline void cputime_to_timespec(const cputime_t ct, struct timespec *p)
-+static inline void cputime_to_timespec64(const cputime_t ct, struct timespec64 *p)
- {
- 	u64 x = (__force u64) ct;
- 	unsigned int frac;
-@@ -168,7 +168,7 @@ static inline void cputime_to_timespec(const cputime_t ct, struct timespec *p)
- 	p->tv_nsec = x;
- }
- 
--static inline cputime_t timespec_to_cputime(const struct timespec *p)
-+static inline cputime_t timespec64_to_cputime(const struct timespec64 *p)
- {
- 	u64 ct;
- 
-diff --git a/arch/s390/include/asm/cputime.h b/arch/s390/include/asm/cputime.h
-index b91e960..1266697 100644
---- a/arch/s390/include/asm/cputime.h
-+++ b/arch/s390/include/asm/cputime.h
-@@ -89,16 +89,16 @@ static inline cputime_t secs_to_cputime(const unsigned int s)
- }
- 
- /*
-- * Convert cputime to timespec and back.
-+ * Convert cputime to timespec64 and back.
-  */
--static inline cputime_t timespec_to_cputime(const struct timespec *value)
-+static inline cputime_t timespec64_to_cputime(const struct timespec64 *value)
- {
- 	unsigned long long ret = value->tv_sec * CPUTIME_PER_SEC;
- 	return (__force cputime_t)(ret + __div(value->tv_nsec * CPUTIME_PER_USEC, NSEC_PER_USEC));
- }
- 
--static inline void cputime_to_timespec(const cputime_t cputime,
--				       struct timespec *value)
-+static inline void cputime_to_timespec64(const cputime_t cputime,
-+				       struct timespec64 *value)
- {
- 	unsigned long long __cputime = (__force unsigned long long) cputime;
- #ifndef CONFIG_64BIT
-diff --git a/include/asm-generic/cputime_jiffies.h b/include/asm-generic/cputime_jiffies.h
-index fe386fc..54e034c 100644
---- a/include/asm-generic/cputime_jiffies.h
-+++ b/include/asm-generic/cputime_jiffies.h
-@@ -44,12 +44,12 @@ typedef u64 __nocast cputime64_t;
- #define secs_to_cputime(sec)		jiffies_to_cputime((sec) * HZ)
- 
- /*
-- * Convert cputime to timespec and back.
-+ * Convert cputime to timespec64 and back.
-  */
--#define timespec_to_cputime(__val)	\
--	jiffies_to_cputime(timespec_to_jiffies(__val))
--#define cputime_to_timespec(__ct,__val)	\
--	jiffies_to_timespec(cputime_to_jiffies(__ct),__val)
-+#define timespec64_to_cputime(__val)	\
-+	jiffies_to_cputime(timespec64_to_jiffies(__val))
-+#define cputime_to_timespec64(__ct,__val)	\
-+	jiffies_to_timespec64(cputime_to_jiffies(__ct),__val)
- 
- /*
-  * Convert cputime to timeval and back.
-diff --git a/include/asm-generic/cputime_nsecs.h b/include/asm-generic/cputime_nsecs.h
-index 0419485..65c875b 100644
---- a/include/asm-generic/cputime_nsecs.h
-+++ b/include/asm-generic/cputime_nsecs.h
-@@ -73,12 +73,12 @@ typedef u64 __nocast cputime64_t;
- /*
-  * Convert cputime <-> timespec (nsec)
-  */
--static inline cputime_t timespec_to_cputime(const struct timespec *val)
-+static inline cputime_t timespec64_to_cputime(const struct timespec64 *val)
- {
- 	u64 ret = val->tv_sec * NSEC_PER_SEC + val->tv_nsec;
- 	return (__force cputime_t) ret;
- }
--static inline void cputime_to_timespec(const cputime_t ct, struct timespec *val)
-+static inline void cputime_to_timespec64(const cputime_t ct, struct timespec64 *val)
- {
- 	u32 rem;
- 
-diff --git a/include/linux/cputime.h b/include/linux/cputime.h
-index f2eb2ee..f01896f 100644
---- a/include/linux/cputime.h
-+++ b/include/linux/cputime.h
-@@ -13,4 +13,19 @@
- 	usecs_to_cputime((__nsecs) / NSEC_PER_USEC)
- #endif
- 
-+static inline cputime_t timespec_to_cputime(const struct timespec *ts)
-+{
-+	struct timespec64 ts64 = timespec_to_timespec64(*ts);
-+	return timespec64_to_cputime(&ts64);
-+}
-+
-+static inline void cputime_to_timespec(const cputime_t cputime,
-+					struct timespec *value)
-+{
-+	struct timespec64 *ts64;
-+
-+	*ts64 = timespec_to_timespec64(*value);
-+	cputime_to_timespec64(cputime, ts64);
-+}
-+
- #endif /* __LINUX_CPUTIME_H */
--- 
-1.7.9.5
+> On Fri, 8 May 2015 16:06:10 -0400 Eric B Munson <emunson@akamai.com> wrot=
+e:
+>=20
+> > On Fri, 08 May 2015, Andrew Morton wrote:
+> >=20
+> > > On Fri,  8 May 2015 15:33:43 -0400 Eric B Munson <emunson@akamai.com>=
+ wrote:
+> > >=20
+> > > > mlock() allows a user to control page out of program memory, but th=
+is
+> > > > comes at the cost of faulting in the entire mapping when it is
+> > > > allocated.  For large mappings where the entire area is not necessa=
+ry
+> > > > this is not ideal.
+> > > >=20
+> > > > This series introduces new flags for mmap() and mlockall() that all=
+ow a
+> > > > user to specify that the covered are should not be paged out, but o=
+nly
+> > > > after the memory has been used the first time.
+> > >=20
+> > > Please tell us much much more about the value of these changes: the u=
+se
+> > > cases, the behavioural improvements and performance results which the
+> > > patchset brings to those use cases, etc.
+> > >=20
+> >=20
+> > The primary use case is for mmaping large files read only.  The process
+> > knows that some of the data is necessary, but it is unlikely that the
+> > entire file will be needed.  The developer only wants to pay the cost to
+> > read the data in once.  Unfortunately developer must choose between
+> > allowing the kernel to page in the memory as needed and guaranteeing
+> > that the data will only be read from disk once.  The first option runs
+> > the risk of having the memory reclaimed if the system is under memory
+> > pressure, the second forces the memory usage and startup delay when
+> > faulting in the entire file.
+>=20
+> Why can't the application mmap only those parts of the file which it
+> wants and mlock those?
+
+There are a number of problems with this approach.  The first is it
+presumes the program will know what portions are needed a head of time.
+In many cases this is simply not true.  The second problem is the number
+of syscalls required.  With my patches, a single mmap() or mlockall()
+call is needed to setup the required locking.  Without it, a separate
+mmap call must be made for each piece of data that is needed.  This also
+opens up problems for data that is arranged assuming it is contiguous in
+memory.  With the single mmap call, the user gets a contiguous VMA
+without having to know about it.  mmap() with MAP_FIXED could address
+the problem, but this introduces a new failure mode of your map
+colliding with another that was placed by the kernel.
+
+Another use case for the LOCKONFAULT flag is the security use of
+mlock().  If an application will be using data that cannot be written
+to swap, but the exact size is unknown until run time (all we have a
+build time is the maximum size the buffer can be).  The LOCKONFAULT flag
+allows the developer to create the buffer and guarantee that the
+contents are never written to swap without ever consuming more memory
+than is actually needed.
+
+>=20
+> > I am working on getting startup times with and without this change for
+> > an application, I will post them as soon as I have them.
+>=20
+
+--6TrnltStXW4iwmi0
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQIcBAEBAgAGBQJVUL5iAAoJELbVsDOpoOa9+rIP/AtdiaAVRSAXFkS8FoN053Gp
+X9V3dAR/tJhrcsK0YFQcYBdG/e2doGqbJq6ni9iHdiABQ/dWmC6LZIRugSGltzGw
+WN3WSPpzLAHLS6TbH5KPydvrbne32pCI02McxTCSJ+IKARHZvUz3JWaq0z1/Tuqa
+U6pKp0qOo+1CD/YYgew2vyVWTZozPG379QhIkolLAtd4/FnL1DL8tW9gwgP6/pSF
+lfKNZNc2RFTRBnONckDDctDVbV8MZJCzPbPk4lBvhqc8VS11GWPylocZFB76C/w4
+Jcj5+JRUXgqGuIb+hwnQcnv/jAn2yjXW//6vB8qG0r1oXfCF7QwAVQegbjV7VAyT
+iQj3785JaeFIWUy8WLIk+BqP8tTzB/hphDTiV4dqTeHDSZGYw1ioFbzXcqkrapdm
+Ycqq4oTBxl7OkqDW5UQvvAWv4q9YP/E1KJK7O/HccybRcofVNGyO4hH+lgeFazMw
+5Id9Ptd/+qLxHP7jX0G53facKx5M8xtUT1DfsHi/nmCLD/uFdFOueaHKzQiVVGcp
+C8SgvCWcBQrHtgcn/JOyKH211sKOszOHFxg3TkglDl6s3th5zd+SAjYGRjKYizPe
+FoZ1FWhjyvsuybV8KFs5LRZ6et3kD06bCZrGS8JMrNo6R4BA4z7o88EVUxkSXx+z
+s7IIi8UpQrCbKJra0ucm
+=R9vZ
+-----END PGP SIGNATURE-----
+
+--6TrnltStXW4iwmi0--
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
