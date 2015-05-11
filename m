@@ -1,102 +1,122 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f176.google.com ([209.85.192.176]:33218 "EHLO
-	mail-pd0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753240AbbEKLGl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2015 07:06:41 -0400
-Received: by pdbnk13 with SMTP id nk13so143992129pdb.0
-        for <linux-arch@vger.kernel.org>; Mon, 11 May 2015 04:06:40 -0700 (PDT)
-From: Baolin Wang <baolin.wang@linaro.org>
-Subject: [PATCH v3 00/22] Convert the posix_clock_operations and k_clock structure to ready for 2038
-Date: Mon, 11 May 2015 19:06:25 +0800
-Message-ID: <1431342385-29319-1-git-send-email-baolin.wang@linaro.org>
+Received: from prod-mail-xrelay02.akamai.com ([72.246.2.14]:45242 "EHLO
+	prod-mail-xrelay02.akamai.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752350AbbEKOgU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 May 2015 10:36:20 -0400
+Date: Mon, 11 May 2015 10:36:18 -0400
+From: Eric B Munson <emunson@akamai.com>
+Subject: Re: [PATCH 0/3] Allow user to request memory to be locked on page
+ fault
+Message-ID: <20150511143618.GA30570@akamai.com>
+References: <1431113626-19153-1-git-send-email-emunson@akamai.com>
+ <20150508124203.6679b1d35ad9555425003929@linux-foundation.org>
+ <20150508200610.GB29933@akamai.com>
+ <20150508131523.f970d13a213bca63bd6f2619@linux-foundation.org>
+MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="6TrnltStXW4iwmi0"
+Content-Disposition: inline
+In-Reply-To: <20150508131523.f970d13a213bca63bd6f2619@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de
-Cc: arnd@arndb.de, john.stultz@linaro.org, heenasirwani@gmail.com, pang.xunlei@linaro.org, peterz@infradead.org, rafael.j.wysocki@intel.com, gregkh@linuxfoundation.org, richardcochran@gmail.com, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, fweisbec@gmail.com, ahh@google.com, pjt@google.com, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, baolin.wang@linaro.org, y2038@lists.linaro.org
-Message-ID: <20150511110625.oVrgke7KY8trfkOwR_q60fKrOuvOUCuq6R3WvonRkqc@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Shuah Khan <shuahkh@osg.samsung.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20150511143618.sYLzuFp00n608thBFYI843AGNbirHSAG1ITnqyoqJ4E@z>
 
-This patch series changes the 32-bit time type (timespec/itimerspec) to the 64-bit one
-(timespec64/itimerspec64), since 32-bit time types will break in the year 2038.
 
-This patch series introduces new methods with timespec64/itimerspec64 type,
-and removes the old ones with timespec/itimerspec type for posix_clock_operations
-and k_clock structure.
+--6TrnltStXW4iwmi0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Also introduces some new functions with timespec64/itimerspec64 type, like current_kernel_time64(),
-hrtimer_get_res64(), cputime_to_timespec64() and timespec64_to_cputime().
+On Fri, 08 May 2015, Andrew Morton wrote:
 
-Changes since v2:
-     	-Split the syscall conversion patch into small some patches.
+> On Fri, 8 May 2015 16:06:10 -0400 Eric B Munson <emunson@akamai.com> wrot=
+e:
+>=20
+> > On Fri, 08 May 2015, Andrew Morton wrote:
+> >=20
+> > > On Fri,  8 May 2015 15:33:43 -0400 Eric B Munson <emunson@akamai.com>=
+ wrote:
+> > >=20
+> > > > mlock() allows a user to control page out of program memory, but th=
+is
+> > > > comes at the cost of faulting in the entire mapping when it is
+> > > > allocated.  For large mappings where the entire area is not necessa=
+ry
+> > > > this is not ideal.
+> > > >=20
+> > > > This series introduces new flags for mmap() and mlockall() that all=
+ow a
+> > > > user to specify that the covered are should not be paged out, but o=
+nly
+> > > > after the memory has been used the first time.
+> > >=20
+> > > Please tell us much much more about the value of these changes: the u=
+se
+> > > cases, the behavioural improvements and performance results which the
+> > > patchset brings to those use cases, etc.
+> > >=20
+> >=20
+> > The primary use case is for mmaping large files read only.  The process
+> > knows that some of the data is necessary, but it is unlikely that the
+> > entire file will be needed.  The developer only wants to pay the cost to
+> > read the data in once.  Unfortunately developer must choose between
+> > allowing the kernel to page in the memory as needed and guaranteeing
+> > that the data will only be read from disk once.  The first option runs
+> > the risk of having the memory reclaimed if the system is under memory
+> > pressure, the second forces the memory usage and startup delay when
+> > faulting in the entire file.
+>=20
+> Why can't the application mmap only those parts of the file which it
+> wants and mlock those?
 
-*** BLURB HERE ***
+There are a number of problems with this approach.  The first is it
+presumes the program will know what portions are needed a head of time.
+In many cases this is simply not true.  The second problem is the number
+of syscalls required.  With my patches, a single mmap() or mlockall()
+call is needed to setup the required locking.  Without it, a separate
+mmap call must be made for each piece of data that is needed.  This also
+opens up problems for data that is arranged assuming it is contiguous in
+memory.  With the single mmap call, the user gets a contiguous VMA
+without having to know about it.  mmap() with MAP_FIXED could address
+the problem, but this introduces a new failure mode of your map
+colliding with another that was placed by the kernel.
 
-Baolin Wang (22):
-  linux/time64.h:Introduce the 'struct itimerspec64' for 64bit
-  timekeeping:Introduce the current_kernel_time64() function with
-    timespec64 type
-  time/hrtimer:Introduce hrtimer_get_res64() with timespec64 type for
-    getting the timer resolution
-  posix-timers:Split out the guts of the syscall and change the
-    implementation for timer_gettime
-  posix-timers:Convert to the 64bit methods for the timer_gettime
-    syscall function
-  posix-timers:Split out the guts of the syscall and change the
-    implementation for timer_settime
-  posix-timers:Convert to the 64bit methods for the timer_settime
-    syscall function
-  posix-timers:Split out the guts of the syscall and change the
-    implementation for clock_settime
-  posix-timers:Convert to the 64bit methods for the clock_settime
-    syscall function
-  posix-timers:Split out the guts of the syscall and change the
-    implementation for clock_gettime
-  posix-timers:Convert to the 64bit methods for the clock_gettime
-    syscall function
-  posix-timers:Split out the guts of the syscall and change the
-    implementation for clock_getres
-  posix-timers:Convert to the 64bit methods for the clock_getres
-    syscall function
-  time:Introduce the do_sys_settimeofday64() function with timespec64
-    type
-  time/posix-timers:Convert to the 64bit methods for k_clock callback
-    functions
-  char/mmtimer:Convert to the 64bit methods for k_clock callback
-    function
-  time/alarmtimer:Convert to the new 64bit methods for k_clock
-    structure
-  time/posix-clock:Convert to the 64bit methods for k_clock and
-    posix_clock_operations structure
-  time/time:Introduce the timespec64_to_jiffies/jiffies_to_timespec64
-    function
-  cputime:Introduce the cputime_to_timespec64/timespec64_to_cputime
-    function
-  time/posix-cpu-timers:Convert to the 64bit methods for k_clock
-    structure
-  k_clock:Remove the 32bit methods with timespec/itimerspec type
+Another use case for the LOCKONFAULT flag is the security use of
+mlock().  If an application will be using data that cannot be written
+to swap, but the exact size is unknown until run time (all we have a
+build time is the maximum size the buffer can be).  The LOCKONFAULT flag
+allows the developer to create the buffer and guarantee that the
+contents are never written to swap without ever consuming more memory
+than is actually needed.
 
- arch/powerpc/include/asm/cputime.h    |    6 +-
- arch/s390/include/asm/cputime.h       |    8 +-
- drivers/char/mmtimer.c                |   36 +++--
- drivers/ptp/ptp_clock.c               |   26 +---
- include/asm-generic/cputime_jiffies.h |   10 +-
- include/asm-generic/cputime_nsecs.h   |    4 +-
- include/linux/cputime.h               |   15 ++
- include/linux/hrtimer.h               |   12 +-
- include/linux/jiffies.h               |   21 ++-
- include/linux/posix-clock.h           |   10 +-
- include/linux/posix-timers.h          |   18 +--
- include/linux/time64.h                |   35 +++++
- include/linux/timekeeping.h           |   26 +++-
- kernel/time/alarmtimer.c              |   43 +++---
- kernel/time/hrtimer.c                 |   10 +-
- kernel/time/posix-clock.c             |   20 +--
- kernel/time/posix-cpu-timers.c        |   83 +++++-----
- kernel/time/posix-timers.c            |  269 ++++++++++++++++++++++-----------
- kernel/time/time.c                    |   22 +--
- kernel/time/timekeeping.c             |    6 +-
- kernel/time/timekeeping.h             |    2 +-
- 21 files changed, 428 insertions(+), 254 deletions(-)
+>=20
+> > I am working on getting startup times with and without this change for
+> > an application, I will post them as soon as I have them.
+>=20
 
--- 
-1.7.9.5
+--6TrnltStXW4iwmi0
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
 
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQIcBAEBAgAGBQJVUL5iAAoJELbVsDOpoOa9+rIP/AtdiaAVRSAXFkS8FoN053Gp
+X9V3dAR/tJhrcsK0YFQcYBdG/e2doGqbJq6ni9iHdiABQ/dWmC6LZIRugSGltzGw
+WN3WSPpzLAHLS6TbH5KPydvrbne32pCI02McxTCSJ+IKARHZvUz3JWaq0z1/Tuqa
+U6pKp0qOo+1CD/YYgew2vyVWTZozPG379QhIkolLAtd4/FnL1DL8tW9gwgP6/pSF
+lfKNZNc2RFTRBnONckDDctDVbV8MZJCzPbPk4lBvhqc8VS11GWPylocZFB76C/w4
+Jcj5+JRUXgqGuIb+hwnQcnv/jAn2yjXW//6vB8qG0r1oXfCF7QwAVQegbjV7VAyT
+iQj3785JaeFIWUy8WLIk+BqP8tTzB/hphDTiV4dqTeHDSZGYw1ioFbzXcqkrapdm
+Ycqq4oTBxl7OkqDW5UQvvAWv4q9YP/E1KJK7O/HccybRcofVNGyO4hH+lgeFazMw
+5Id9Ptd/+qLxHP7jX0G53facKx5M8xtUT1DfsHi/nmCLD/uFdFOueaHKzQiVVGcp
+C8SgvCWcBQrHtgcn/JOyKH211sKOszOHFxg3TkglDl6s3th5zd+SAjYGRjKYizPe
+FoZ1FWhjyvsuybV8KFs5LRZ6et3kD06bCZrGS8JMrNo6R4BA4z7o88EVUxkSXx+z
+s7IIi8UpQrCbKJra0ucm
+=R9vZ
+-----END PGP SIGNATURE-----
+
+--6TrnltStXW4iwmi0--
