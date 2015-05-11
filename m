@@ -1,12 +1,18 @@
 From: Baolin Wang <baolin.wang@linaro.org>
 Subject: [PATCH v3 00/22] Convert the posix_clock_operations and k_clock structure to ready for 2038
-Date: Mon, 11 May 2015 19:06:25 +0800
-Message-ID: <1431342385-29319-1-git-send-email-baolin.wang@linaro.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Date: Mon, 11 May 2015 19:08:38 +0800
+Message-ID: <1431342518-29362-1-git-send-email-baolin.wang@linaro.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pd0-f175.google.com ([209.85.192.175]:36833 "EHLO
+	mail-pd0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753047AbbEKLIv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2015 07:08:51 -0400
+Received: by pdea3 with SMTP id a3so145572608pde.3
+        for <linux-arch@vger.kernel.org>; Mon, 11 May 2015 04:08:50 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de
 Cc: arnd@arndb.de, john.stultz@linaro.org, heenasirwani@gmail.com, pang.xunlei@linaro.org, peterz@infradead.org, rafael.j.wysocki@intel.com, gregkh@linuxfoundation.org, richardcochran@gmail.com, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, fweisbec@gmail.com, ahh@google.com, pjt@google.com, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, baolin.wang@linaro.org, y2038@lists.linaro.org
-List-Id: linux-arch.vger.kernel.org
 
 This patch series changes the 32-bit time type (timespec/itimerspec) to the 64-bit one
 (timespec64/itimerspec64), since 32-bit time types will break in the year 2038.
@@ -21,7 +27,6 @@ hrtimer_get_res64(), cputime_to_timespec64() and timespec64_to_cputime().
 Changes since v2:
      	-Split the syscall conversion patch into small some patches.
 
-*** BLURB HERE ***
 
 Baolin Wang (22):
   linux/time64.h:Introduce the 'struct itimerspec64' for 64bit
