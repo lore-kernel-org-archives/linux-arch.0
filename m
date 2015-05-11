@@ -1,53 +1,37 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 0/3] Allow user to request memory to be locked on page
- fault
-Date: Mon, 11 May 2015 12:12:04 -0700
-Message-ID: <20150511121204.2af73429ad3c29b6d67f1345@linux-foundation.org>
-References: <1431113626-19153-1-git-send-email-emunson@akamai.com>
-	<20150508124203.6679b1d35ad9555425003929@linux-foundation.org>
-	<20150508200610.GB29933@akamai.com>
-	<20150508131523.f970d13a213bca63bd6f2619@linux-foundation.org>
-	<20150511143618.GA30570@akamai.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: VERIFY_READ/WRITE in uaccess.h?
+Date: Mon, 11 May 2015 14:05:13 -0700
+Message-ID: <55511989.2010407@zytor.com>
+References: <554F288C.3000300@nod.at>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-alpha-owner@vger.kernel.org>
-In-Reply-To: <20150511143618.GA30570@akamai.com>
-Sender: linux-alpha-owner@vger.kernel.org
-To: Eric B Munson <emunson@akamai.com>
-Cc: Shuah Khan <shuahkh@osg.samsung.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:39698 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751408AbbEKVF2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 11 May 2015 17:05:28 -0400
+In-Reply-To: <554F288C.3000300@nod.at>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Richard Weinberger <richard@nod.at>, Linux-Arch <linux-arch@vger.kernel.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>
 
-On Mon, 11 May 2015 10:36:18 -0400 Eric B Munson <emunson@akamai.com> wrote:
-
-> On Fri, 08 May 2015, Andrew Morton wrote:
-> ...
->
-> > 
-> > Why can't the application mmap only those parts of the file which it
-> > wants and mlock those?
+On 05/10/2015 02:44 AM, Richard Weinberger wrote:
+> Hi!
 > 
-> There are a number of problems with this approach.  The first is it
-> presumes the program will know what portions are needed a head of time.
-> In many cases this is simply not true.  The second problem is the number
-> of syscalls required.  With my patches, a single mmap() or mlockall()
-> call is needed to setup the required locking.  Without it, a separate
-> mmap call must be made for each piece of data that is needed.  This also
-> opens up problems for data that is arranged assuming it is contiguous in
-> memory.  With the single mmap call, the user gets a contiguous VMA
-> without having to know about it.  mmap() with MAP_FIXED could address
-> the problem, but this introduces a new failure mode of your map
-> colliding with another that was placed by the kernel.
+> While cleaning up UML's uaccess code I've noticed that not a single architecture
+> is using VERIFY_READ/WRITE in access_ok().
+> One exception is UML, it uses the access type in one check which is in vain anyways.
+> Also asm-generic/uaccess.h drops the type parameter silently.
 > 
-> Another use case for the LOCKONFAULT flag is the security use of
-> mlock().  If an application will be using data that cannot be written
-> to swap, but the exact size is unknown until run time (all we have a
-> build time is the maximum size the buffer can be).  The LOCKONFAULT flag
-> allows the developer to create the buffer and guarantee that the
-> contents are never written to swap without ever consuming more memory
-> than is actually needed.
+> Why do we still carry it around?
+> 
+> Is it because we want it for some future architecture which can benefit
+> from it or just because nobody cared enough to do a tree-wide cleanup?
+> I fear it is the latter... ;)
+> 
 
-What application(s) or class of applications are we talking about here?
+Or, perhaps, nobody noticed?
 
-IOW, how generally applicable is this?  It sounds rather specialized.
-
+	-hpa
