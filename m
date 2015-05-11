@@ -1,69 +1,53 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v12 00/21] Re-introduce h8300 architecture
-Date: Mon, 11 May 2015 21:04:30 +0200
-Message-ID: <16018199.XO2Ye1J7R2@wuerfel>
-References: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp> <20150511175027.GA31125@roeck-us.net>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 0/3] Allow user to request memory to be locked on page
+ fault
+Date: Mon, 11 May 2015 12:12:04 -0700
+Message-ID: <20150511121204.2af73429ad3c29b6d67f1345@linux-foundation.org>
+References: <1431113626-19153-1-git-send-email-emunson@akamai.com>
+	<20150508124203.6679b1d35ad9555425003929@linux-foundation.org>
+	<20150508200610.GB29933@akamai.com>
+	<20150508131523.f970d13a213bca63bd6f2619@linux-foundation.org>
+	<20150511143618.GA30570@akamai.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20150511175027.GA31125@roeck-us.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Guenter Roeck <linux@roeck-us.net>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-alpha-owner@vger.kernel.org>
+In-Reply-To: <20150511143618.GA30570@akamai.com>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Eric B Munson <emunson@akamai.com>
+Cc: Shuah Khan <shuahkh@osg.samsung.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Monday 11 May 2015 10:50:27 Guenter Roeck wrote:
-> On Mon, May 11, 2015 at 03:26:19PM +0900, Yoshinori Sato wrote:
-> > Changes for v12
-> > - IRQ chip convert to OF
-> > - dts cleanup
-> > - some headers use generic
-> > - rebase to v4.1-rc3
+On Mon, 11 May 2015 10:36:18 -0400 Eric B Munson <emunson@akamai.com> wrote:
+
+> On Fri, 08 May 2015, Andrew Morton wrote:
+> ...
+>
 > > 
-> Configurations in arch/h8300/configs shtill build ok.
+> > Why can't the application mmap only those parts of the file which it
+> > wants and mlock those?
 > 
-> make allmodoconfig, after fixing the spi build error, results in
+> There are a number of problems with this approach.  The first is it
+> presumes the program will know what portions are needed a head of time.
+> In many cases this is simply not true.  The second problem is the number
+> of syscalls required.  With my patches, a single mmap() or mlockall()
+> call is needed to setup the required locking.  Without it, a separate
+> mmap call must be made for each piece of data that is needed.  This also
+> opens up problems for data that is arranged assuming it is contiguous in
+> memory.  With the single mmap call, the user gets a contiguous VMA
+> without having to know about it.  mmap() with MAP_FIXED could address
+> the problem, but this introduces a new failure mode of your map
+> colliding with another that was placed by the kernel.
 > 
-> ERROR: "csum_partial_copy_nocheck" [net/ipv6/ipv6.ko] undefined!
-> ERROR: "ip_compute_csum" [net/ipv6/ip6_gre.ko] undefined!
-> ERROR: "ip_fast_csum" [net/ipv4/xfrm4_mode_beet.ko] undefined!
-> ERROR: "ip_compute_csum" [net/bridge/bridge.ko] undefined!
-> ERROR: "ip_fast_csum" [net/bridge/bridge.ko] undefined!
-> ERROR: "ip_fast_csum" [net/bridge/br_netfilter.ko] undefined!
-> ERROR: "ip_fast_csum" [net/atm/mpoa.ko] undefined!
-> ERROR: "__ucmpdi2" [fs/btrfs/btrfs.ko] undefined!
-> ERROR: "ip_compute_csum" [drivers/scsi/scsi_debug.ko] undefined!
-> ERROR: "ip_fast_csum" [drivers/net/slip/slhc.ko] undefined!
-> ERROR: "__ucmpdi2" [drivers/md/bcache/bcache.ko] undefined!
-> ERROR: "__ucmpdi2" [drivers/iio/imu/inv_mpu6050/inv-mpu6050.ko] undefined!
-> 
-> csum_partial_copy_nocheck, ip_compute_csum, and ip_fast_csum need to be exported
-> from arch/h8300/lib/checksum.c.
+> Another use case for the LOCKONFAULT flag is the security use of
+> mlock().  If an application will be using data that cannot be written
+> to swap, but the exact size is unknown until run time (all we have a
+> build time is the maximum size the buffer can be).  The LOCKONFAULT flag
+> allows the developer to create the buffer and guarantee that the
+> contents are never written to swap without ever consuming more memory
+> than is actually needed.
 
-Interesting. From what I can see, the  arch/h8300/lib/checksum.c file
-contains a completely generic implementation of the IP checksum code.
-That should not be necessary at all, and is more likely to lead to
-subtle errors like the one you see here.
+What application(s) or class of applications are we talking about here?
 
-It would be better to do one of two things:
+IOW, how generally applicable is this?  It sounds rather specialized.
 
-a) use the code from lib/checksum.c that is known to work well, and that
-   contains all the necessary exports. It seems that the h8300 is
-   almost an except copy of the generic code, it just misses a few
-   improvements that were done already in the kernel.
-
-b) provide an optimized implementation written in assembly where necessary.
-   This can provide a significant performance improvement for TCP/IP
-   networking.
-
-> No idea what to do about the missing __ucmpdi2
-> symbol, or what causes it.
-
-This is a libgcc symbol provided by arch/h8300/lib/ucmpdi2.c in patch
-15. The other similar functions are written in assembly and exported
-from arch/h8300/kernel/h8300_ksyms.c, while this one is written in C
-and missing the export. It should be added in the file that defines
-the function.
-
-	Arnd
