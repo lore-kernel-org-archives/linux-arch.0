@@ -1,373 +1,323 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.asahi-net.or.jp ([202.224.39.197]:36063 "EHLO
+Received: from mail1.asahi-net.or.jp ([202.224.39.197]:35946 "EHLO
 	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752480AbbEKG0y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2015 02:26:54 -0400
+	with ESMTP id S1752414AbbEKG0v (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2015 02:26:51 -0400
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v12 21/21] h8300: devicetree source
-Date: Mon, 11 May 2015 15:26:40 +0900
-Message-ID: <1431325600-12333-22-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v12 17/21] h8300: clock driver
+Date: Mon, 11 May 2015 15:26:36 +0900
+Message-ID: <1431325600-12333-18-git-send-email-ysato@users.sourceforge.jp>
 In-Reply-To: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
 References: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20150511062640.K_P70JS8m6HNhuBwPeeU8_r0MQ-3EZFlmeZntAHSxWw@z>
-
-- h8300h_sim: GDB H8/300H simulator
-- h8s_sim: GDB H8S simulator
-- edosk2674: Renesas EDOSK2674R Evalution board
+Message-ID: <20150511062636.DdF89bZbbQHlYcvCDWQe8VxiZrlh9gifdiwO4rr6hHE@z>
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- arch/h8300/boot/dts/Makefile       |  11 ++++
- arch/h8300/boot/dts/edosk2674.dts  | 107 +++++++++++++++++++++++++++++++++++++
- arch/h8300/boot/dts/h8300h_sim.dts |  96 +++++++++++++++++++++++++++++++++
- arch/h8300/boot/dts/h8s_sim.dts    |  99 ++++++++++++++++++++++++++++++++++
- 4 files changed, 313 insertions(+)
- create mode 100644 arch/h8300/boot/dts/Makefile
- create mode 100644 arch/h8300/boot/dts/edosk2674.dts
- create mode 100644 arch/h8300/boot/dts/h8300h_sim.dts
- create mode 100644 arch/h8300/boot/dts/h8s_sim.dts
+ .../bindings/clock/renesas,h8300-div-clock.txt     |  24 ++++
+ .../bindings/clock/renesas,h8s2678-pll-clock.txt   |  23 ++++
+ drivers/clk/Makefile                               |   1 +
+ drivers/clk/h8300/Makefile                         |   2 +
+ drivers/clk/h8300/clk-div.c                        |  53 ++++++++
+ drivers/clk/h8300/clk-h8s2678.c                    | 147 +++++++++++++++++++++
+ 6 files changed, 250 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/clock/renesas,h8300-div-clock.txt
+ create mode 100644 Documentation/devicetree/bindings/clock/renesas,h8s2678-pll-clock.txt
+ create mode 100644 drivers/clk/h8300/Makefile
+ create mode 100644 drivers/clk/h8300/clk-div.c
+ create mode 100644 drivers/clk/h8300/clk-h8s2678.c
 
-diff --git a/arch/h8300/boot/dts/Makefile b/arch/h8300/boot/dts/Makefile
+diff --git a/Documentation/devicetree/bindings/clock/renesas,h8300-div-clock.txt b/Documentation/devicetree/bindings/clock/renesas,h8300-div-clock.txt
 new file mode 100644
-index 0000000..bb123fa
+index 0000000..36c2b52
 --- /dev/null
-+++ b/arch/h8300/boot/dts/Makefile
-@@ -0,0 +1,11 @@
-+ifneq '$(CONFIG_H8300_BUILTIN_DTB)' '""'
-+BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_H8300_BUILTIN_DTB)).dtb.o
-+endif
++++ b/Documentation/devicetree/bindings/clock/renesas,h8300-div-clock.txt
+@@ -0,0 +1,24 @@
++* Renesas H8/300 divider clock
 +
-+obj-y += $(BUILTIN_DTB)
++Required Properties:
 +
-+dtb-$(CONFIG_H8300H_SIM) := h8300h_sim.dtb
-+dtb-$(CONFIG_H8S_SIM) := h8s_sim.dtb
-+dtb-$(CONFIG_EDOSK2674) := edosk2674.dtb
++  - compatible: Must be "renesas,sh73a0-h8300-div-clock"
 +
-+clean-files := *.dtb.S
-diff --git a/arch/h8300/boot/dts/edosk2674.dts b/arch/h8300/boot/dts/edosk2674.dts
-new file mode 100644
-index 0000000..dfb5c10
---- /dev/null
-+++ b/arch/h8300/boot/dts/edosk2674.dts
-@@ -0,0 +1,107 @@
-+/dts-v1/;
-+/ {
-+	compatible = "renesas,edosk2674";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&h8intc>;
++  - clocks: Reference to the parent clocks ("extal1" and "extal2")
 +
-+	chosen {
-+		bootargs = "console=ttySC2,38400";
-+		stdout-path = <&sci2>;
-+	};
-+	aliases {
-+		serial0 = &sci0;
-+		serial1 = &sci1;
-+		serial2 = &sci2;
-+	};
++  - #clock-cells: Must be 1
 +
-+	xclk: oscillator {
-+		#clock-cells = <0>;
-+		compatible = "fixed-clock";
-+		clock-frequency = <33333333>;
-+		clock-output-names = "xtal";
-+	};
-+	pllclk: pllclk {
-+		compatible = "renesas,h8s2678-pll-clock";
-+		clocks = <&xclk>;
-+		#clock-cells = <0>;
-+		reg = <0xfee03b 2>, <0xfee045 2>;
-+	};
-+	core_clk: core_clk {
-+		compatible = "renesas,h8300-div-clock";
-+		clocks = <&pllclk>;
-+		#clock-cells = <0>;
-+		reg = <0xfee03b 2>;
-+		renesas,width = <3>;
-+	};
-+	fclk: fclk {
-+		compatible = "fixed-factor-clock";
-+		clocks = <&core_clk>;
-+		#clock-cells = <0>;
-+		clock-div = <1>;
-+		clock-mult = <1>;
-+	};
++  - reg: Base address and length of the divide rate selector
 +
-+	memory@400000 {
-+		device_type = "memory";
-+		reg = <0x400000 0x800000>;
-+	};
++  - renesas,width: bit width of selector
 +
-+	cpus {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+		cpu@0 {
-+			compatible = "renesas,h8300";
-+			clock-frequency = <33333333>;
++Example
++-------
++
++		cclk: cclk {
++			compatible = "renesas,h8300-div-clock";
++			clocks = <&xclk>;
++			#clock-cells = <0>;
++			reg = <0xfee01b 2>;
++			renesas,width = <2>;
 +		};
-+	};
-+
-+	h8intc: interrupt-controller@fffe00 {
-+		compatible = "renesas,h8s-intc", "renesas,h8300-intc";
-+		#interrupt-cells = <2>;
-+		interrupt-controller;
-+		reg = <0xfffe00 24>;
-+	};
-+
-+	bsc: memory-controller@fffec0 {
-+		compatible = "renesas,h8s-bsc", "renesas,h8300-bsc";
-+		reg = <0xfffec0 24>;
-+	};
-+
-+	tpu: timer@ffffe0 {
-+		compatible = "renesas,tpu";
-+		reg = <0xffffe0 16>, <0xfffff0 12>;
-+		clocks = <&fclk>;
-+		clock-names = "fck";
-+	};
-+
-+	timer8: timer@ffffb0 {
-+		compatible = "renesas,8bit-timer";
-+		reg = <0xffffb0 10>;
-+		interrupts = <72 0>;
-+		clocks = <&fclk>;
-+		clock-names = "fck";
-+	};
-+
-+	sci0: serial@ffff78 {
-+		compatible = "renesas,sci";
-+		reg = <0xffff78 8>;
-+		interrupts = <88 0>, <89 0>, <90 0>, <91 0>;
-+		clocks = <&fclk>;
-+		clock-names = "sci_ick";
-+	};
-+	sci1: serial@ffff80 {
-+		compatible = "renesas,sci";
-+		reg = <0xffff80 8>;
-+		interrupts = <92 0>, <93 0>, <94 0>, <95 0>;
-+		clocks = <&fclk>;
-+		clock-names = "sci_ick";
-+	};
-+	sci2: serial@ffff88 {
-+		compatible = "renesas,sci";
-+		reg = <0xffff88 8>;
-+		interrupts = <96 0>, <97 0>, <98 0>, <99 0>;
-+		clocks = <&fclk>;
-+		clock-names = "sci_ick";
-+	};
-+};
-diff --git a/arch/h8300/boot/dts/h8300h_sim.dts b/arch/h8300/boot/dts/h8300h_sim.dts
+diff --git a/Documentation/devicetree/bindings/clock/renesas,h8s2678-pll-clock.txt b/Documentation/devicetree/bindings/clock/renesas,h8s2678-pll-clock.txt
 new file mode 100644
-index 0000000..545bfb5
+index 0000000..500cdadb
 --- /dev/null
-+++ b/arch/h8300/boot/dts/h8300h_sim.dts
-@@ -0,0 +1,96 @@
-+/dts-v1/;
-+/ {
-+	compatible = "gnu,gdbsim";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&h8intc>;
++++ b/Documentation/devicetree/bindings/clock/renesas,h8s2678-pll-clock.txt
+@@ -0,0 +1,23 @@
++Renesas H8S2678 PLL clock
 +
-+	chosen {
-+		bootargs = "earlyprintk=h8300-sim";
-+		stdout-path = <&sci0>;
-+	};
-+	aliases {
-+		serial0 = &sci0;
-+		serial1 = &sci1;
-+	};
++This device is Clock multiplyer
 +
-+	xclk: oscillator {
-+		#clock-cells = <0>;
-+		compatible = "fixed-clock";
-+		clock-frequency = <20000000>;
-+		clock-output-names = "xtal";
-+	};
-+	core_clk: core_clk {
-+		compatible = "renesas,h8300-div-clock";
-+		clocks = <&xclk>;
-+		#clock-cells = <0>;
-+		reg = <0xfee01b 2>;
-+		renesas,width = <2>;
-+	};
-+	fclk: fclk {
-+		compatible = "fixed-factor-clock";
-+		clocks = <&core_clk>;
-+		#clock-cells = <0>;
-+		clock-div = <1>;
-+		clock-mult = <1>;
-+	};
++Required Properties:
 +
-+	memory@400000 {
-+		device_type = "memory";
-+		reg = <0x400000 0x400000>;
-+	};
++  - compatible: Must be "renesas,h8s2678-pll-clock"
 +
-+	cpus {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+		cpu@0 {
-+			compatible = "renesas,h8300";
-+			clock-frequency = <20000000>;
++  - clocks: Reference to the parent clocks
++
++  - #clock-cells: Must be 0
++
++  - reg: Two rate selector (Multiply / Divide) register address
++
++Example
++-------
++
++		pllclk: pllclk {
++			compatible = "renesas,h8s2678-pll-clock";
++			clocks = <&xclk>;
++			#clock-cells = <0>;
++			reg = <0xfee03b 2>, <0xfee045 2>;
 +		};
-+	};
-+
-+	h8intc: interrupt-controller@fee012 {
-+		compatible = "renesas,h8300h-intc", "renesas,h8300-intc";
-+		#interrupt-cells = <2>;
-+		interrupt-controller;
-+		reg = <0xfee012 7>;
-+	};
-+
-+	bsc: memory-controller@fee01e {
-+		compatible = "renesas,h8300h-bsc", "renesas,h8300-bsc";
-+		reg = <0xfee01e 8>;
-+	};
-+
-+	timer8: timer@ffff80 {
-+		compatible = "renesas,8bit-timer";
-+		reg = <0xffff80 10>;
-+		interrupts = <36 0>;
-+		clocks = <&fclk>;
-+		clock-names = "fck";
-+	};
-+
-+	timer16: timer@ffff68 {
-+		compatible = "renesas,16bit-timer";
-+		reg = <0xffff68 8>, <0xffff60 8>;
-+		interrupts = <24 0>;
-+		renesas,channel = <0>;
-+		clocks = <&fclk>;
-+		clock-names = "fck";
-+	};
-+
-+	sci0: serial@ffffb0 {
-+		compatible = "renesas,sci";
-+		reg = <0xffffb0 8>;
-+		interrupts = <52 0>, <53 0>, <54 0>, <55 0>;
-+		clocks = <&fclk>;
-+		clock-names = "sci_ick";
-+	};
-+
-+	sci1: serial@ffffb8 {
-+		compatible = "renesas,sci";
-+		reg = <0xffffb8 8>;
-+		interrupts = <56 0>, <57 0>, <58 0>, <59 0>;
-+		clocks = <&fclk>;
-+		clock-names = "sci_ick";
-+	};
-+};
-diff --git a/arch/h8300/boot/dts/h8s_sim.dts b/arch/h8300/boot/dts/h8s_sim.dts
+diff --git a/drivers/clk/Makefile b/drivers/clk/Makefile
+index 3d00c25..9df871d 100644
+--- a/drivers/clk/Makefile
++++ b/drivers/clk/Makefile
+@@ -73,3 +73,4 @@ obj-$(CONFIG_ARCH_U8500)		+= ux500/
+ obj-$(CONFIG_COMMON_CLK_VERSATILE)	+= versatile/
+ obj-$(CONFIG_X86)			+= x86/
+ obj-$(CONFIG_ARCH_ZYNQ)			+= zynq/
++obj-$(CONFIG_H8300)		+= h8300/
+diff --git a/drivers/clk/h8300/Makefile b/drivers/clk/h8300/Makefile
 new file mode 100644
-index 0000000..bcedba5
+index 0000000..b86427c3
 --- /dev/null
-+++ b/arch/h8300/boot/dts/h8s_sim.dts
-@@ -0,0 +1,99 @@
-+/dts-v1/;
-+/ {
-+	compatible = "gnu,gdbsim";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&h8intc>;
++++ b/drivers/clk/h8300/Makefile
+@@ -0,0 +1,2 @@
++obj-y += clk-div.o
++obj-$(CONFIG_H8S2678) += clk-h8s2678.o
+diff --git a/drivers/clk/h8300/clk-div.c b/drivers/clk/h8300/clk-div.c
+new file mode 100644
+index 0000000..56f9eba
+--- /dev/null
++++ b/drivers/clk/h8300/clk-div.c
+@@ -0,0 +1,53 @@
++/*
++ * H8/300 divide clock driver
++ *
++ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ */
 +
-+	chosen {
-+		bootargs = "earlyprintk=h8300-sim";
-+		stdout-path = <&sci0>;
-+	};
-+	aliases {
-+		serial0 = &sci0;
-+		serial1 = &sci1;
-+	};
++#include <linux/clk.h>
++#include <linux/clkdev.h>
++#include <linux/clk-provider.h>
++#include <linux/err.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
 +
-+	xclk: oscillator {
-+		#clock-cells = <0>;
-+		compatible = "fixed-clock";
-+		clock-frequency = <33333333>;
-+		clock-output-names = "xtal";
-+	};
-+	pllclk: pllclk {
-+		compatible = "renesas,h8s2678-pll-clock";
-+		clocks = <&xclk>;
-+		#clock-cells = <0>;
-+		reg = <0xfee03b 2>, <0xfee045 2>;
-+	};
-+	core_clk: core_clk {
-+		compatible = "renesas,h8300-div-clock";
-+		clocks = <&pllclk>;
-+		#clock-cells = <0>;
-+		reg = <0xfee03b 2>;
-+		renesas,width = <3>;
-+	};
-+	fclk: fclk {
-+		compatible = "fixed-factor-clock";
-+		clocks = <&core_clk>;
-+		#clock-cells = <0>;
-+		clock-div = <1>;
-+		clock-mult = <1>;
-+	};
++static DEFINE_SPINLOCK(clklock);
 +
-+	memory@400000 {
-+		device_type = "memory";
-+		reg = <0x400000 0x800000>;
-+	};
++static void __init h8300_div_clk_setup(struct device_node *node)
++{
++	unsigned int num_parents;
++	struct clk *clk;
++	const char *clk_name = node->name;
++	const char *parent_name;
++	void __iomem *divcr = NULL;
++	int width;
 +
-+	cpus {
-+		#address-cells = <1>;
-+		#size-cells = <0>;
-+		cpu@0 {
-+			compatible = "renesas,h8300";
-+			clock-frequency = <33333333>;
-+		};
-+	};
++	num_parents = of_clk_get_parent_count(node);
++	if (num_parents < 1) {
++		pr_err("%s: no parent found", clk_name);
++		return;
++	}
 +
-+	h8intc: interrupt-controller@fffe00 {
-+		compatible = "renesas,h8s-intc", "renesas,h8300-intc";
-+		#interrupt-cells = <2>;
-+		interrupt-controller;
-+		reg = <0xfffe00 24>;
-+	};
++	divcr = of_iomap(node, 0);
++	if (divcr == NULL) {
++		pr_err("%s: failed to map divide register", clk_name);
++		goto error;
++	}
 +
-+	bsc: memory-controller@fffec0 {
-+		compatible = "renesas,h8s-bsc", "renesas,h8300-bsc";
-+		reg = <0xfffec0 24>;
-+	};
++	parent_name = of_clk_get_parent_name(node, 0);
++	of_property_read_u32(node, "renesas,width", &width);
++	clk = clk_register_divider(NULL, clk_name, parent_name,
++				   CLK_SET_RATE_GATE, divcr, 0, width,
++				   CLK_DIVIDER_POWER_OF_TWO, &clklock);
++	if (!IS_ERR(clk)) {
++		of_clk_add_provider(node, of_clk_src_simple_get, clk);
++		return;
++	}
++	pr_err("%s: failed to register %s div clock (%ld)\n",
++	       __func__, clk_name, PTR_ERR(clk));
++error:
++	if (divcr)
++		iounmap(divcr);
++}
 +
-+	tpu: timer@ffffe0 {
-+		compatible = "renesas,tpu";
-+		reg = <0xffffe0 16>, <0xfffff0 12>;
-+		clocks = <&fclk>;
-+		clock-names = "fck";
-+	};
++CLK_OF_DECLARE(h8300_div_clk, "renesas,h8300-div-clock", h8300_div_clk_setup);
+diff --git a/drivers/clk/h8300/clk-h8s2678.c b/drivers/clk/h8300/clk-h8s2678.c
+new file mode 100644
+index 0000000..4de7ee5
+--- /dev/null
++++ b/drivers/clk/h8300/clk-h8s2678.c
+@@ -0,0 +1,147 @@
++/*
++ * H8S2678 clock driver
++ *
++ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ */
 +
-+	timer8: timer@ffffb0 {
-+		compatible = "renesas,8bit-timer";
-+		reg = <0xffffb0 10>;
-+		interrupts = <72 0>;
-+		clocks = <&fclk>;
-+		clock-names = "fck";
-+	};
++#include <linux/clk.h>
++#include <linux/clkdev.h>
++#include <linux/clk-provider.h>
++#include <linux/err.h>
++#include <linux/device.h>
++#include <linux/of_address.h>
 +
-+	sci0: serial@ffff78 {
-+		compatible = "renesas,sci";
-+		reg = <0xffff78 8>;
-+		interrupts = <88 0>, <89 0>, <90 0>, <91 0>;
-+		clocks = <&fclk>;
-+		clock-names = "sci_ick";
-+	};
-+	sci1: serial@ffff80 {
-+		compatible = "renesas,sci";
-+		reg = <0xffff80 8>;
-+		interrupts = <92 0>, <93 0>, <94 0>, <95 0>;
-+		clocks = <&fclk>;
-+		clock-names = "sci_ick";
-+	};
++static DEFINE_SPINLOCK(clklock);
++
++#define MAX_FREQ 33333333
++#define MIN_FREQ  8000000
++
++struct pll_clock {
++	struct clk_hw hw;
++	void __iomem *sckcr;
++	void __iomem *pllcr;
 +};
++
++#define to_pll_clock(_hw) container_of(_hw, struct pll_clock, hw)
++
++static unsigned long pll_recalc_rate(struct clk_hw *hw,
++		unsigned long parent_rate)
++{
++	struct pll_clock *pll_clock = to_pll_clock(hw);
++	int mul = 1 << (ctrl_inb((unsigned long)pll_clock->pllcr) & 3);
++
++	return parent_rate * mul;
++}
++
++static long pll_round_rate(struct clk_hw *hw, unsigned long rate,
++				unsigned long *prate)
++{
++	int i, m = -1;
++	long offset[3];
++
++	if (rate > MAX_FREQ)
++		rate = MAX_FREQ;
++	if (rate < MIN_FREQ)
++		rate = MIN_FREQ;
++
++	for (i = 0; i < 3; i++)
++		offset[i] = abs(rate - (*prate * (1 << i)));
++	for (i = 0; i < 3; i++)
++		if (m < 0)
++			m = i;
++		else
++			m = (offset[i] < offset[m])?i:m;
++
++	return *prate * (1 << m);
++}
++
++static int pll_set_rate(struct clk_hw *hw, unsigned long rate,
++			unsigned long parent_rate)
++{
++	int pll;
++	unsigned char val;
++	unsigned long flags;
++	struct pll_clock *pll_clock = to_pll_clock(hw);
++
++	pll = ((rate / parent_rate) / 2) & 0x03;
++	spin_lock_irqsave(&clklock, flags);
++	val = ctrl_inb((unsigned long)pll_clock->sckcr);
++	val |= 0x08;
++	ctrl_outb(val, (unsigned long)pll_clock->sckcr);
++	val = ctrl_inb((unsigned long)pll_clock->pllcr);
++	val &= ~0x03;
++	val |= pll;
++	ctrl_outb(val, (unsigned long)pll_clock->pllcr);
++	spin_unlock_irqrestore(&clklock, flags);
++	return 0;
++}
++
++static const struct clk_ops pll_ops = {
++	.recalc_rate = pll_recalc_rate,
++	.round_rate = pll_round_rate,
++	.set_rate = pll_set_rate,
++};
++
++static void __init h8s2678_pll_clk_setup(struct device_node *node)
++{
++	unsigned int num_parents;
++	struct clk *clk;
++	const char *clk_name = node->name;
++	const char *parent_name;
++	struct pll_clock *pll_clock;
++	struct clk_init_data init;
++
++	num_parents = of_clk_get_parent_count(node);
++	if (num_parents < 1) {
++		pr_err("%s: no parent found", clk_name);
++		return;
++	}
++
++
++	pll_clock = kzalloc(sizeof(struct pll_clock), GFP_KERNEL);
++	if (!pll_clock) {
++		pr_err("%s: failed to alloc memory", clk_name);
++		return;
++	}
++
++	pll_clock->sckcr = of_iomap(node, 0);
++	if (pll_clock->sckcr == NULL) {
++		pr_err("%s: failed to map divide register", clk_name);
++		goto error;
++	}
++
++	pll_clock->pllcr = of_iomap(node, 1);
++	if (pll_clock->pllcr == NULL) {
++		pr_err("%s: failed to map multiply register", clk_name);
++		goto error;
++	}
++
++	parent_name = of_clk_get_parent_name(node, 0);
++	init.name = clk_name;
++	init.ops = &pll_ops;
++	init.flags = CLK_IS_BASIC;
++	init.parent_names = &parent_name;
++	init.num_parents = 1;
++	pll_clock->hw.init = &init;
++
++	clk = clk_register(NULL, &pll_clock->hw);
++	if (IS_ERR(clk))
++		kfree(pll_clock);
++	if (!IS_ERR(clk)) {
++		of_clk_add_provider(node, of_clk_src_simple_get, clk);
++		return;
++	}
++	pr_err("%s: failed to register %s div clock (%ld)\n",
++	       __func__, clk_name, PTR_ERR(clk));
++error:
++	if (pll_clock) {
++		if (pll_clock->sckcr)
++			iounmap(pll_clock->sckcr);
++		if (pll_clock->pllcr)
++			iounmap(pll_clock->pllcr);
++		kfree(pll_clock);
++	}
++}
++
++CLK_OF_DECLARE(h8s2678_div_clk, "renesas,h8s2678-pll-clock",
++	       h8s2678_pll_clk_setup);
 -- 
 2.1.4
 
