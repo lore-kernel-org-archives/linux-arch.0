@@ -1,71 +1,44 @@
-From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [PATCH v1 15/15] uaccess: decouple preemption from the pagefault logic
-Date: Mon, 11 May 2015 17:52:20 +0200
-Message-ID: <1431359540-32227-16-git-send-email-dahi@linux.vnet.ibm.com>
-References: <1431359540-32227-1-git-send-email-dahi@linux.vnet.ibm.com>
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: Re: [PATCH v12 00/21] Re-introduce h8300 architecture
+Date: Mon, 11 May 2015 10:50:27 -0700
+Message-ID: <20150511175027.GA31125@roeck-us.net>
+References: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1431359540-32227-1-git-send-email-dahi@linux.vnet.ibm.com>
+Content-Disposition: inline
+In-Reply-To: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: mingo@redhat.com, yang.shi@windriver.com, bigeasy@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, peterz@infradead.org, dahi@linux.vnet.ibm.com
+To: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-As the fault handlers now all rely on the pagefault_disabled() checks
-and implicit preempt_disable() calls by pagefault_disable() have been
-made explicit, we can completely rely on the pagefault_disableD counter.
+On Mon, May 11, 2015 at 03:26:19PM +0900, Yoshinori Sato wrote:
+> Changes for v12
+> - IRQ chip convert to OF
+> - dts cleanup
+> - some headers use generic
+> - rebase to v4.1-rc3
+> 
+Configurations in arch/h8300/configs shtill build ok.
 
-So let's no longer touch the preempt count when disabling/enabling
-pagefaults. After a call to pagefault_disable(), pagefault_disabled()
-will return true, but in_atomic() won't.
+make allmodoconfig, after fixing the spi build error, results in
 
-Signed-off-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
----
- include/linux/uaccess.h | 16 ++--------------
- 1 file changed, 2 insertions(+), 14 deletions(-)
+ERROR: "csum_partial_copy_nocheck" [net/ipv6/ipv6.ko] undefined!
+ERROR: "ip_compute_csum" [net/ipv6/ip6_gre.ko] undefined!
+ERROR: "ip_fast_csum" [net/ipv4/xfrm4_mode_beet.ko] undefined!
+ERROR: "ip_compute_csum" [net/bridge/bridge.ko] undefined!
+ERROR: "ip_fast_csum" [net/bridge/bridge.ko] undefined!
+ERROR: "ip_fast_csum" [net/bridge/br_netfilter.ko] undefined!
+ERROR: "ip_fast_csum" [net/atm/mpoa.ko] undefined!
+ERROR: "__ucmpdi2" [fs/btrfs/btrfs.ko] undefined!
+ERROR: "ip_compute_csum" [drivers/scsi/scsi_debug.ko] undefined!
+ERROR: "ip_fast_csum" [drivers/net/slip/slhc.ko] undefined!
+ERROR: "__ucmpdi2" [drivers/md/bcache/bcache.ko] undefined!
+ERROR: "__ucmpdi2" [drivers/iio/imu/inv_mpu6050/inv-mpu6050.ko] undefined!
 
-diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
-index 90786d2..ae572c1 100644
---- a/include/linux/uaccess.h
-+++ b/include/linux/uaccess.h
-@@ -1,7 +1,6 @@
- #ifndef __LINUX_UACCESS_H__
- #define __LINUX_UACCESS_H__
- 
--#include <linux/preempt.h>
- #include <linux/sched.h>
- #include <asm/uaccess.h>
- 
-@@ -20,17 +19,11 @@ static __always_inline void pagefault_disabled_dec(void)
-  * These routines enable/disable the pagefault handler. If disabled, it will
-  * not take any locks and go straight to the fixup table.
-  *
-- * We increase the preempt and the pagefault count, to be able to distinguish
-- * whether we run in simple atomic context or in a real pagefault_disable()
-- * context.
-- *
-- * For now, after pagefault_disabled() has been called, we run in atomic
-- * context. User access methods will not sleep.
-- *
-+ * User access methods will not sleep when called from a pagefault_disabled()
-+ * environment.
-  */
- static inline void pagefault_disable(void)
- {
--	preempt_count_inc();
- 	pagefault_disabled_inc();
- 	/*
- 	 * make sure to have issued the store before a pagefault
-@@ -47,11 +40,6 @@ static inline void pagefault_enable(void)
- 	 */
- 	barrier();
- 	pagefault_disabled_dec();
--#ifndef CONFIG_PREEMPT
--	preempt_count_dec();
--#else
--	preempt_enable();
--#endif
- }
- 
- /*
--- 
-2.1.4
+csum_partial_copy_nocheck, ip_compute_csum, and ip_fast_csum need to be exported
+from arch/h8300/lib/checksum.c. No idea what to do about the missing __ucmpdi2
+symbol, or what causes it.
+
+Guenter
