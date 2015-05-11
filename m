@@ -1,53 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:52646 "EHLO
-	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754029AbbEKPwy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2015 11:52:54 -0400
+Received: from e06smtp10.uk.ibm.com ([195.75.94.106]:45896 "EHLO
+	e06smtp10.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754082AbbEKPxB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2015 11:53:01 -0400
 Received: from /spool/local
-	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp10.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
-	Mon, 11 May 2015 16:52:53 +0100
+	Mon, 11 May 2015 16:53:00 +0100
 From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: [PATCH v1 07/15] drm/i915: use pagefault_disabled() to check for disabled pagefaults
-Date: Mon, 11 May 2015 17:52:12 +0200
-Message-ID: <1431359540-32227-8-git-send-email-dahi@linux.vnet.ibm.com>
+Subject: [PATCH v1 15/15] uaccess: decouple preemption from the pagefault logic
+Date: Mon, 11 May 2015 17:52:20 +0200
+Message-ID: <1431359540-32227-16-git-send-email-dahi@linux.vnet.ibm.com>
 In-Reply-To: <1431359540-32227-1-git-send-email-dahi@linux.vnet.ibm.com>
 References: <1431359540-32227-1-git-send-email-dahi@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: mingo@redhat.com, yang.shi@windriver.com, bigeasy@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, peterz@infradead.org, dahi@linux.vnet.ibm.com
-Message-ID: <20150511155212.LkIwo2_QMg-02o0_U8Rb-DX9V7nkx165vjy8fmiM5OE@z>
+Message-ID: <20150511155220.xOW07NSYUr5mri3KrQtrLLM6CNnVzrm4awjwYBSZukU@z>
 
-Now that the pagefault disabled counter is in place, we can replace
-the in_atomic() check by a pagefault_disabled() checks.
+As the fault handlers now all rely on the pagefault_disabled() checks
+and implicit preempt_disable() calls by pagefault_disable() have been
+made explicit, we can completely rely on the pagefault_disableD counter.
+
+So let's no longer touch the preempt count when disabling/enabling
+pagefaults. After a call to pagefault_disable(), pagefault_disabled()
+will return true, but in_atomic() won't.
 
 Signed-off-by: David Hildenbrand <dahi@linux.vnet.ibm.com>
 ---
- drivers/gpu/drm/i915/i915_gem_execbuffer.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ include/linux/uaccess.h | 16 ++--------------
+ 1 file changed, 2 insertions(+), 14 deletions(-)
 
-diff --git a/drivers/gpu/drm/i915/i915_gem_execbuffer.c b/drivers/gpu/drm/i915/i915_gem_execbuffer.c
-index 560c79a..cfed3dd 100644
---- a/drivers/gpu/drm/i915/i915_gem_execbuffer.c
-+++ b/drivers/gpu/drm/i915/i915_gem_execbuffer.c
-@@ -32,6 +32,7 @@
- #include "i915_trace.h"
- #include "intel_drv.h"
- #include <linux/dma_remapping.h>
-+#include <linux/uaccess.h>
+diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+index 90786d2..ae572c1 100644
+--- a/include/linux/uaccess.h
++++ b/include/linux/uaccess.h
+@@ -1,7 +1,6 @@
+ #ifndef __LINUX_UACCESS_H__
+ #define __LINUX_UACCESS_H__
  
- #define  __EXEC_OBJECT_HAS_PIN (1<<31)
- #define  __EXEC_OBJECT_HAS_FENCE (1<<30)
-@@ -458,7 +459,7 @@ i915_gem_execbuffer_relocate_entry(struct drm_i915_gem_object *obj,
- 	}
+-#include <linux/preempt.h>
+ #include <linux/sched.h>
+ #include <asm/uaccess.h>
  
- 	/* We can't wait for rendering with pagefaults disabled */
--	if (obj->active && in_atomic())
-+	if (obj->active && pagefault_disabled())
- 		return -EFAULT;
+@@ -20,17 +19,11 @@ static __always_inline void pagefault_disabled_dec(void)
+  * These routines enable/disable the pagefault handler. If disabled, it will
+  * not take any locks and go straight to the fixup table.
+  *
+- * We increase the preempt and the pagefault count, to be able to distinguish
+- * whether we run in simple atomic context or in a real pagefault_disable()
+- * context.
+- *
+- * For now, after pagefault_disabled() has been called, we run in atomic
+- * context. User access methods will not sleep.
+- *
++ * User access methods will not sleep when called from a pagefault_disabled()
++ * environment.
+  */
+ static inline void pagefault_disable(void)
+ {
+-	preempt_count_inc();
+ 	pagefault_disabled_inc();
+ 	/*
+ 	 * make sure to have issued the store before a pagefault
+@@ -47,11 +40,6 @@ static inline void pagefault_enable(void)
+ 	 */
+ 	barrier();
+ 	pagefault_disabled_dec();
+-#ifndef CONFIG_PREEMPT
+-	preempt_count_dec();
+-#else
+-	preempt_enable();
+-#endif
+ }
  
- 	if (use_cpu_reloc(obj))
+ /*
 -- 
 2.1.4
 
