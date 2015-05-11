@@ -1,319 +1,1048 @@
 From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v12 19/21] h8300: IRQ chip driver
-Date: Mon, 11 May 2015 15:26:38 +0900
-Message-ID: <1431325600-12333-20-git-send-email-ysato@users.sourceforge.jp>
+Subject: [PATCH v12 15/21] h8300: library functions
+Date: Mon, 11 May 2015 15:26:34 +0900
+Message-ID: <1431325600-12333-16-git-send-email-ysato@users.sourceforge.jp>
 References: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail2.asahi-net.or.jp ([202.224.39.198]:47974 "EHLO
+	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752438AbbEKG0v (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 May 2015 02:26:51 -0400
 In-Reply-To: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, devicetree@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
-List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- .../interrupt-controller/renesas,h8300h-intc.txt   |  22 +++++
- .../interrupt-controller/renesas,h8s-intc.txt      |  22 +++++
- drivers/irqchip/Kconfig                            |   8 ++
- drivers/irqchip/Makefile                           |   2 +
- drivers/irqchip/irq-renesas-h8300h.c               |  95 +++++++++++++++++++
- drivers/irqchip/irq-renesas-h8s.c                  | 101 +++++++++++++++++++++
- 6 files changed, 250 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/interrupt-controller/renesas,h8300h-intc.txt
- create mode 100644 Documentation/devicetree/bindings/interrupt-controller/renesas,h8s-intc.txt
- create mode 100644 drivers/irqchip/irq-renesas-h8300h.c
- create mode 100644 drivers/irqchip/irq-renesas-h8s.c
+ arch/h8300/lib/Makefile    |   8 +++
+ arch/h8300/lib/abs.S       |  20 ++++++
+ arch/h8300/lib/ashldi3.c   |  24 +++++++
+ arch/h8300/lib/ashrdi3.c   |  24 +++++++
+ arch/h8300/lib/checksum.c  | 167 +++++++++++++++++++++++++++++++++++++++++++++
+ arch/h8300/lib/delay.c     |  40 +++++++++++
+ arch/h8300/lib/libgcc.h    |  77 +++++++++++++++++++++
+ arch/h8300/lib/lshrdi3.c   |  23 +++++++
+ arch/h8300/lib/memcpy.S    |  85 +++++++++++++++++++++++
+ arch/h8300/lib/memset.S    |  69 +++++++++++++++++++
+ arch/h8300/lib/moddivsi3.S |  72 +++++++++++++++++++
+ arch/h8300/lib/modsi3.S    |  72 +++++++++++++++++++
+ arch/h8300/lib/muldi3.c    |  44 ++++++++++++
+ arch/h8300/lib/mulsi3.S    |  38 +++++++++++
+ arch/h8300/lib/strncpy.S   |  34 +++++++++
+ arch/h8300/lib/ucmpdi2.c   |  17 +++++
+ arch/h8300/lib/udivsi3.S   |  76 +++++++++++++++++++++
+ 17 files changed, 890 insertions(+)
+ create mode 100644 arch/h8300/lib/Makefile
+ create mode 100644 arch/h8300/lib/abs.S
+ create mode 100644 arch/h8300/lib/ashldi3.c
+ create mode 100644 arch/h8300/lib/ashrdi3.c
+ create mode 100644 arch/h8300/lib/checksum.c
+ create mode 100644 arch/h8300/lib/delay.c
+ create mode 100644 arch/h8300/lib/libgcc.h
+ create mode 100644 arch/h8300/lib/lshrdi3.c
+ create mode 100644 arch/h8300/lib/memcpy.S
+ create mode 100644 arch/h8300/lib/memset.S
+ create mode 100644 arch/h8300/lib/moddivsi3.S
+ create mode 100644 arch/h8300/lib/modsi3.S
+ create mode 100644 arch/h8300/lib/muldi3.c
+ create mode 100644 arch/h8300/lib/mulsi3.S
+ create mode 100644 arch/h8300/lib/strncpy.S
+ create mode 100644 arch/h8300/lib/ucmpdi2.c
+ create mode 100644 arch/h8300/lib/udivsi3.S
 
-diff --git a/Documentation/devicetree/bindings/interrupt-controller/renesas,h8300h-intc.txt b/Documentation/devicetree/bindings/interrupt-controller/renesas,h8300h-intc.txt
+diff --git a/arch/h8300/lib/Makefile b/arch/h8300/lib/Makefile
 new file mode 100644
-index 0000000..56e8d82
+index 0000000..60878c4
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/interrupt-controller/renesas,h8300h-intc.txt
-@@ -0,0 +1,22 @@
-+* H8/300H Interrupt controller
++++ b/arch/h8300/lib/Makefile
+@@ -0,0 +1,8 @@
++#
++# Makefile for H8/300-specific library files..
++#
 +
-+Required properties:
-+
-+- compatible: has to be "renesas,h8300h-intc", "renesas,h8300-intc" as fallback.
-+- #interrupt-cells: has to be <2>: an interrupt index and flags, as defined in
-+  interrupts.txt in this directory
-+- regs: Base address of interrupt controller registers.
-+
-+Optional properties:
-+
-+- any properties, listed in interrupts.txt, and any standard resource allocation
-+  properties
-+
-+Example:
-+
-+	h8intc: interrupt-controller@fee012 {
-+		compatible = "renesas,h8300h-intc", "renesas,h8300-intc";
-+		#interrupt-cells = <2>;
-+		interrupt-controller;
-+		reg = <0xfee012 7>;
-+	};
-diff --git a/Documentation/devicetree/bindings/interrupt-controller/renesas,h8s-intc.txt b/Documentation/devicetree/bindings/interrupt-controller/renesas,h8s-intc.txt
++lib-y  = checksum.o memcpy.o memset.o abs.o strncpy.o \
++	 mulsi3.o udivsi3.o muldi3.o moddivsi3.o \
++	 ashldi3.o lshrdi3.o ashrdi3.o ucmpdi2.o \
++	 delay.o
+diff --git a/arch/h8300/lib/abs.S b/arch/h8300/lib/abs.S
 new file mode 100644
-index 0000000..faded2b
+index 0000000..efda749
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/interrupt-controller/renesas,h8s-intc.txt
-@@ -0,0 +1,22 @@
-+* H8S Interrupt controller
++++ b/arch/h8300/lib/abs.S
+@@ -0,0 +1,20 @@
++;;; abs.S
 +
-+Required properties:
++#include <asm/linkage.h>
 +
-+- compatible: has to be "renesas,h8s-intc", "renesas,h8300-intc" as fallback.
-+- #interrupt-cells: has to be <2>: an interrupt index and flags, as defined in
-+  interrupts.txt in this directory
-+- regs: Base address of interrupt controller registers.
++#if defined(CONFIG_CPU_H8300H)
++	.h8300h
++#endif
++#if defined(CONFIG_CPU_H8S)
++	.h8300s
++#endif
++	.text
++.global _abs
 +
-+Optional properties:
-+
-+- any properties, listed in interrupts.txt, and any standard resource allocation
-+  properties
-+
-+Example:
-+
-+	h8intc: interrupt-controller@fffe00 {
-+		compatible = "renesas,h8s-intc", "renesas,h8300-intc";
-+		#interrupt-cells = <2>;
-+		interrupt-controller;
-+		reg = <0xfffe00 24>;
-+	};
-diff --git a/drivers/irqchip/Kconfig b/drivers/irqchip/Kconfig
-index 6de62a9..9986815 100644
---- a/drivers/irqchip/Kconfig
-+++ b/drivers/irqchip/Kconfig
-@@ -158,3 +158,11 @@ config KEYSTONE_IRQ
- config MIPS_GIC
- 	bool
- 	select MIPS_CM
-+
-+config RENESAS_H8300H_INTC
-+        bool
-+	select IRQ_DOMAIN
-+
-+config RENESAS_H8S_INTC
-+        bool
-+	select IRQ_DOMAIN
-\ No newline at end of file
-diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
-index dda4927..f8efb70 100644
---- a/drivers/irqchip/Makefile
-+++ b/drivers/irqchip/Makefile
-@@ -47,3 +47,5 @@ obj-$(CONFIG_KEYSTONE_IRQ)		+= irq-keystone.o
- obj-$(CONFIG_MIPS_GIC)			+= irq-mips-gic.o
- obj-$(CONFIG_ARCH_MEDIATEK)		+= irq-mtk-sysirq.o
- obj-$(CONFIG_ARCH_DIGICOLOR)		+= irq-digicolor.o
-+obj-$(CONFIG_RENESAS_H8300H_INTC)	+= irq-renesas-h8300h.o
-+obj-$(CONFIG_RENESAS_H8S_INTC)		+= irq-renesas-h8s.o
-diff --git a/drivers/irqchip/irq-renesas-h8300h.c b/drivers/irqchip/irq-renesas-h8300h.c
++;;; int abs(int n)
++_abs:
++	mov.l	er0,er0
++	bpl	1f
++	neg.l	er0
++1:
++	rts
+diff --git a/arch/h8300/lib/ashldi3.c b/arch/h8300/lib/ashldi3.c
 new file mode 100644
-index 0000000..1870e6b
+index 0000000..c6aa8ea
 --- /dev/null
-+++ b/drivers/irqchip/irq-renesas-h8300h.c
-@@ -0,0 +1,95 @@
++++ b/arch/h8300/lib/ashldi3.c
+@@ -0,0 +1,24 @@
++#include "libgcc.h"
++
++DWtype
++__ashldi3(DWtype u, word_type b)
++{
++	const DWunion uu = {.ll = u};
++	const word_type bm = (sizeof (Wtype) * BITS_PER_UNIT) - b;
++	DWunion w;
++
++	if (b == 0)
++		return u;
++
++	if (bm <= 0) {
++		w.s.low = 0;
++		w.s.high = (UWtype) uu.s.low << -bm;
++	} else {
++		const UWtype carries = (UWtype) uu.s.low >> bm;
++
++		w.s.low = (UWtype) uu.s.low << b;
++		w.s.high = ((UWtype) uu.s.high << b) | carries;
++	}
++
++	return w.ll;
++}
+diff --git a/arch/h8300/lib/ashrdi3.c b/arch/h8300/lib/ashrdi3.c
+new file mode 100644
+index 0000000..070adf9
+--- /dev/null
++++ b/arch/h8300/lib/ashrdi3.c
+@@ -0,0 +1,24 @@
++#include "libgcc.h"
++
++DWtype __ashrdi3(DWtype u, word_type b)
++{
++	const DWunion uu = {.ll = u};
++	const word_type bm = (sizeof (Wtype) * BITS_PER_UNIT) - b;
++	DWunion w;
++
++	if (b == 0)
++		return u;
++
++	if (bm <= 0) {
++		/* w.s.high = 1..1 or 0..0 */
++		w.s.high = uu.s.high >> (sizeof (Wtype) * BITS_PER_UNIT - 1);
++		w.s.low = uu.s.high >> -bm;
++	} else {
++		const UWtype carries = (UWtype) uu.s.high << bm;
++
++		w.s.high = uu.s.high >> b;
++		w.s.low = ((UWtype) uu.s.low >> b) | carries;
++	}
++
++	return w.ll;
++}
+diff --git a/arch/h8300/lib/checksum.c b/arch/h8300/lib/checksum.c
+new file mode 100644
+index 0000000..ae28469
+--- /dev/null
++++ b/arch/h8300/lib/checksum.c
+@@ -0,0 +1,167 @@
 +/*
-+ * H8/300H interrupt controller driver
++ * INET		An implementation of the TCP/IP protocol suite for the LINUX
++ *		operating system.  INET is implemented using the  BSD Socket
++ *		interface as the means of communication with the user level.
 + *
-+ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ *		IP/TCP/UDP checksumming routines
++ *
++ * Authors:	Jorge Cwik, <jorge@laser.satlink.net>
++ *		Arnt Gulbrandsen, <agulbra@nvg.unit.no>
++ *		Tom May, <ftom@netcom.com>
++ *		Andreas Schwab, <schwab@issan.informatik.uni-dortmund.de>
++ *		Lots of code moved from tcp.c and ip.c; see those files
++ *		for more names.
++ *
++ * 03/02/96	Jes Sorensen, Andreas Schwab, Roman Hodek:
++ *		Fixed some nasty bugs, causing some horrible crashes.
++ *		A: At some points, the sum (%0) was used as
++ *		length-counter instead of the length counter
++ *		(%1). Thanks to Roman Hodek for pointing this out.
++ *		B: GCC seems to mess up if one uses too many
++ *		data-registers to hold input values and one tries to
++ *		specify d0 and d1 as scratch registers. Letting gcc choose these
++ *      registers itself solves the problem.
++ *
++ *		This program is free software; you can redistribute it and/or
++ *		modify it under the terms of the GNU General Public License
++ *		as published by the Free Software Foundation; either version
++ *		2 of the License, or (at your option) any later version.
 + */
 +
-+#include <linux/init.h>
-+#include <linux/irq.h>
-+#include <linux/irqchip.h>
-+#include <linux/of_address.h>
-+#include <linux/of_irq.h>
-+#include <asm/io.h>
++/* Revised by Kenneth Albanowski for m68knommu. Basic problem: unaligned access kills, so most
++   of the assembly has to go. */
 +
-+#include "irqchip.h"
++#include <net/checksum.h>
++#include <linux/module.h>
 +
-+static const char ipr_bit[] = {
-+	 7,  6,  5,  5,
-+	 4,  4,  4,  4,  3,  3,  3,  3,
-+	 2,  2,  2,  2,  1,  1,  1,  1,
-+	 0,  0,  0,  0, 15, 15, 15, 15,
-+	14, 14, 14, 14, 13, 13, 13, 13,
-+	-1, -1, -1, -1, 11, 11, 11, 11,
-+	10, 10, 10, 10,  9,  9,  9,  9,
-+};
-+
-+static void *intc_baseaddr;
-+
-+#define IPR ((unsigned long)intc_baseaddr + 6)
-+
-+static void h8300h_disable_irq(struct irq_data *data)
++static inline unsigned short from32to16(unsigned long x)
 +{
-+	int bit;
-+	int irq = data->irq - 12;
++	/* add up 16-bit and 16-bit for 16+c bit */
++	x = (x & 0xffff) + (x >> 16);
++	/* add up carry.. */
++	x = (x & 0xffff) + (x >> 16);
++	return x;
++}
 +
-+	bit = ipr_bit[irq];
-+	if (bit >= 0) {
-+		if (bit < 8)
-+			ctrl_bclr(bit & 7, IPR);
-+		else
-+			ctrl_bclr(bit & 7, (IPR+1));
++static unsigned long do_csum(const unsigned char *buff, int len)
++{
++	int odd, count;
++	unsigned long result = 0;
++
++	if (len <= 0)
++		goto out;
++	odd = 1 & (unsigned long) buff;
++	if (odd) {
++		result = *buff;
++		len--;
++		buff++;
 +	}
-+}
++	count = len >> 1;		/* nr of 16-bit words.. */
++	if (count) {
++		if (2 & (unsigned long) buff) {
++			result += *(unsigned short *) buff;
++			count--;
++			len -= 2;
++			buff += 2;
++		}
++		count >>= 1;		/* nr of 32-bit words.. */
++		if (count) {
++			unsigned long carry = 0;
 +
-+static void h8300h_enable_irq(struct irq_data *data)
-+{
-+	int bit;
-+	int irq = data->irq - 12;
++			do {
++				unsigned long w = *(unsigned long *) buff;
 +
-+	bit = ipr_bit[irq];
-+	if (bit >= 0) {
-+		if (bit < 8)
-+			ctrl_bset(bit & 7, IPR);
-+		else
-+			ctrl_bset(bit & 7, (IPR+1));
++				count--;
++				buff += 4;
++				result += carry;
++				result += w;
++				carry = (w > result);
++			} while (count);
++			result += carry;
++			result = (result & 0xffff) + (result >> 16);
++		}
++		if (len & 2) {
++			result += *(unsigned short *) buff;
++			buff += 2;
++		}
 +	}
++	if (len & 1)
++		result += (*buff << 8);
++	result = from32to16(result);
++	if (odd)
++		result = ((result >> 8) & 0xff) | ((result & 0xff) << 8);
++out:
++	return result;
 +}
 +
-+struct irq_chip h8300h_irq_chip = {
-+	.name		= "H8/300H-INTC",
-+	.irq_enable	= h8300h_enable_irq,
-+	.irq_disable	= h8300h_disable_irq,
-+};
-+
-+static int irq_map(struct irq_domain *h, unsigned int virq,
-+		   irq_hw_number_t hw_irq_num)
-+{
-+       irq_set_chip_and_handler(virq, &h8300h_irq_chip, handle_simple_irq);
-+
-+       return 0;
-+}
-+
-+static struct irq_domain_ops irq_ops = {
-+       .map    = irq_map,
-+       .xlate  = irq_domain_xlate_onecell,
-+};
-+
-+static int __init h8300h_intc_of_init(struct device_node *intc,
-+				      struct device_node *parent)
-+{
-+	struct irq_domain *domain;
-+
-+	intc_baseaddr = of_iomap(intc, 0);
-+	BUG_ON(!intc_baseaddr);
-+
-+	/* All interrupt priority low */
-+	ctrl_outb(0x00, IPR + 0);
-+	ctrl_outb(0x00, IPR + 1);
-+
-+	domain = irq_domain_add_linear(intc, NR_IRQS, &irq_ops, NULL);
-+	BUG_ON(!domain);
-+	irq_set_default_host(domain);
-+	return 0;
-+}
-+
-+IRQCHIP_DECLARE(h8300h_intc, "renesas,h8300h-intc", h8300h_intc_of_init);
-diff --git a/drivers/irqchip/irq-renesas-h8s.c b/drivers/irqchip/irq-renesas-h8s.c
-new file mode 100644
-index 0000000..64425f4
---- /dev/null
-+++ b/drivers/irqchip/irq-renesas-h8s.c
-@@ -0,0 +1,101 @@
 +/*
-+ * H8S interrupt contoller driver
++ *	This is a version of ip_compute_csum() optimized for IP headers,
++ *	which always checksum on 4 octet boundaries.
++ */
++__sum16 ip_fast_csum(const void *iph, unsigned int ihl)
++{
++	return (__force __sum16)~do_csum(iph, ihl*4);
++}
++
++/*
++ * computes the checksum of a memory block at buff, length len,
++ * and adds in "sum" (32-bit)
 + *
-+ * Copyright 2015 Yoshinori Sato <ysato@users.sourceforge.jp>
++ * returns a 32-bit number suitable for feeding into itself
++ * or csum_tcpudp_magic
++ *
++ * this function must be called with even lengths, except
++ * for the last fragment, which may be odd
++ *
++ * it's best to have buff aligned on a 32-bit boundary
++ */
++/*
++ * Egads...  That thing apparently assumes that *all* checksums it ever sees will
++ * be folded.  Very likely a bug.
++ */
++__wsum csum_partial(const void *buff, int len, __wsum sum)
++{
++	unsigned int result = do_csum(buff, len);
++
++	/* add in old sum, and carry.. */
++	result += (__force u32)sum;
++	/* 16+c bits -> 16 bits */
++	result = (result & 0xffff) + (result >> 16);
++	return (__force __wsum)result;
++}
++
++EXPORT_SYMBOL(csum_partial);
++
++/*
++ * this routine is used for miscellaneous IP-like checksums, mainly
++ * in icmp.c
++ */
++__sum16 ip_compute_csum(const void *buff, int len)
++{
++	return (__force __sum16)~do_csum(buff, len);
++}
++
++/*
++ * copy from fs while checksumming, otherwise like csum_partial
 + */
 +
-+#include <linux/irq.h>
-+#include <linux/of_address.h>
-+#include <linux/of_irq.h>
-+#include <asm/io.h>
-+#include "irqchip.h"
++__wsum
++csum_partial_copy_from_user(const void __user *src, void *dst, int len,
++			    __wsum sum, int *csum_err)
++{
++	if (csum_err)
++		*csum_err = 0;
++	memcpy(dst, (__force const void *)src, len);
++	return csum_partial(dst, len, sum);
++}
 +
-+static void *intc_baseaddr;
-+#define IPRA ((unsigned long)intc_baseaddr)
++/*
++ * copy from ds while checksumming, otherwise like csum_partial
++ */
 +
-+static const unsigned char ipr_table[] = {
-+	0x03, 0x02, 0x01, 0x00, 0x13, 0x12, 0x11, 0x10, /* 16 - 23 */
-+	0x23, 0x22, 0x21, 0x20, 0x33, 0x32, 0x31, 0x30, /* 24 - 31 */
-+	0x43, 0x42, 0x41, 0x40, 0x53, 0x53, 0x52, 0x52, /* 32 - 39 */
-+	0x51, 0x51, 0x51, 0x51, 0x51, 0x51, 0x51, 0x51, /* 40 - 47 */
-+	0x50, 0x50, 0x50, 0x50, 0x63, 0x63, 0x63, 0x63, /* 48 - 55 */
-+	0x62, 0x62, 0x62, 0x62, 0x62, 0x62, 0x62, 0x62, /* 56 - 63 */
-+	0x61, 0x61, 0x61, 0x61, 0x60, 0x60, 0x60, 0x60, /* 64 - 71 */
-+	0x73, 0x73, 0x73, 0x73, 0x72, 0x72, 0x72, 0x72, /* 72 - 79 */
-+	0x71, 0x71, 0x71, 0x71, 0x70, 0x83, 0x82, 0x81, /* 80 - 87 */
-+	0x80, 0x80, 0x80, 0x80, 0x93, 0x93, 0x93, 0x93, /* 88 - 95 */
-+	0x92, 0x92, 0x92, 0x92, 0x91, 0x91, 0x91, 0x91, /* 96 - 103 */
-+	0x90, 0x90, 0x90, 0x90, 0xa3, 0xa3, 0xa3, 0xa3, /* 104 - 111 */
-+	0xa2, 0xa2, 0xa2, 0xa2, 0xa1, 0xa1, 0xa1, 0xa1, /* 112 - 119 */
-+	0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, 0xa0, /* 120 - 127 */
++__wsum
++csum_partial_copy_nocheck(const void *src, void *dst, int len, __wsum sum)
++{
++	memcpy(dst, src, len);
++	return csum_partial(dst, len, sum);
++}
+diff --git a/arch/h8300/lib/delay.c b/arch/h8300/lib/delay.c
+new file mode 100644
+index 0000000..463f6b3
+--- /dev/null
++++ b/arch/h8300/lib/delay.c
+@@ -0,0 +1,40 @@
++/*
++ * delay loops
++ *
++ * Copyright (C) 2015 Yoshinori Sato
++ */
++
++#include <linux/module.h>
++#include <linux/delay.h>
++#include <asm/param.h>
++#include <asm/processor.h>
++#include <asm/timex.h>
++
++void __delay(unsigned long cycles)
++{
++	__asm__ volatile ("1: dec.l #1,%0\n\t"
++			  "bne 1b":"=r"(cycles):"0"(cycles));
++}
++EXPORT_SYMBOL(__delay);
++
++void __const_udelay(unsigned long xloops)
++{
++	u64 loops;
++
++	loops = (u64)xloops * loops_per_jiffy * HZ;
++
++	__delay(loops >> 32);
++}
++EXPORT_SYMBOL(__const_udelay);
++
++void __udelay(unsigned long usecs)
++{
++	__const_udelay(usecs * 0x10C7UL); /* 2**32 / 1000000 (rounded up) */
++}
++EXPORT_SYMBOL(__udelay);
++
++void __ndelay(unsigned long nsecs)
++{
++	__const_udelay(nsecs * 0x5UL); /* 2**32 / 1000000000 (rounded up) */
++}
++EXPORT_SYMBOL(__ndelay);
+diff --git a/arch/h8300/lib/libgcc.h b/arch/h8300/lib/libgcc.h
+new file mode 100644
+index 0000000..468a8f7
+--- /dev/null
++++ b/arch/h8300/lib/libgcc.h
+@@ -0,0 +1,77 @@
++#ifndef __H8300_LIBGCC_H__
++#define __H8300_LIBGCC_H__
++
++#ifdef __ASSEMBLY__
++#define A0 r0
++#define A0L r0l
++#define A0H r0h
++
++#define A1 r1
++#define A1L r1l
++#define A1H r1h
++
++#define A2 r2
++#define A2L r2l
++#define A2H r2h
++
++#define A3 r3
++#define A3L r3l
++#define A3H r3h
++
++#define S0 r4
++#define S0L r4l
++#define S0H r4h
++
++#define S1 r5
++#define S1L r5l
++#define S1H r5h
++
++#define S2 r6
++#define S2L r6l
++#define S2H r6h
++
++#define PUSHP	push.l
++#define POPP	pop.l
++
++#define A0P	er0
++#define A1P	er1
++#define A2P	er2
++#define A3P	er3
++#define S0P	er4
++#define S1P	er5
++#define S2P	er6
++
++#define A0E	e0
++#define A1E	e1
++#define A2E	e2
++#define A3E	e3
++#else
++#define Wtype   SItype
++#define UWtype  USItype
++#define HWtype  SItype
++#define UHWtype USItype
++#define DWtype  DItype
++#define UDWtype UDItype
++#define UWtype  USItype
++#define Wtype   SItype
++#define UWtype  USItype
++#define W_TYPE_SIZE (4 * BITS_PER_UNIT)
++#define BITS_PER_UNIT (8)
++
++typedef          int SItype     __attribute__ ((mode (SI)));
++typedef unsigned int USItype    __attribute__ ((mode (SI)));
++typedef		 int DItype	__attribute__ ((mode (DI)));
++typedef unsigned int UDItype	__attribute__ ((mode (DI)));
++struct DWstruct {
++	Wtype high, low;
 +};
++typedef union {
++	struct DWstruct s;
++	DWtype ll;
++} DWunion;
 +
-+static void h8s_disable_irq(struct irq_data *data)
++typedef int word_type __attribute__ ((mode (__word__)));
++
++#endif
++
++#endif
+diff --git a/arch/h8300/lib/lshrdi3.c b/arch/h8300/lib/lshrdi3.c
+new file mode 100644
+index 0000000..a86bbe3
+--- /dev/null
++++ b/arch/h8300/lib/lshrdi3.c
+@@ -0,0 +1,23 @@
++#include "libgcc.h"
++
++DWtype __lshrdi3(DWtype u, word_type b)
 +{
-+	int pos;
-+	unsigned int addr;
-+	unsigned short pri;
-+	int irq = data->irq;
++	const DWunion uu = {.ll = u};
++	const word_type bm = (sizeof (Wtype) * BITS_PER_UNIT) - b;
++	DWunion w;
 +
-+	addr = IPRA + ((ipr_table[irq - 16] & 0xf0) >> 3);
-+	pos = (ipr_table[irq - 16] & 0x0f) * 4;
-+	pri = ~(0x000f << pos);
-+	pri &= ctrl_inw(addr);
-+	ctrl_outw(pri, addr);
++	if (b == 0)
++		return u;
++
++	if (bm <= 0) {
++		w.s.high = 0;
++		w.s.low = (UWtype) uu.s.high >> -bm;
++	} else {
++		const UWtype carries = (UWtype) uu.s.high << bm;
++
++		w.s.high = (UWtype) uu.s.high >> b;
++		w.s.low = ((UWtype) uu.s.low >> b) | carries;
++	}
++
++	return w.ll;
 +}
+diff --git a/arch/h8300/lib/memcpy.S b/arch/h8300/lib/memcpy.S
+new file mode 100644
+index 0000000..0c9a51f
+--- /dev/null
++++ b/arch/h8300/lib/memcpy.S
+@@ -0,0 +1,85 @@
++;;; memcpy.S
 +
-+static void h8s_enable_irq(struct irq_data *data)
++#include <asm/linkage.h>
++
++#if defined(CONFIG_CPU_H8300H)
++	.h8300h
++#endif
++#if defined(CONFIG_CPU_H8S)
++	.h8300s
++#endif
++	.text
++.global memcpy
++
++;;; void *memcpy(void *to, void *from, size_t n)
++memcpy:
++	mov.l	er2,er2
++	bne	1f
++	rts
++1:
++	;; address check
++	bld	#0,r0l
++	bxor	#0,r1l
++	bcs	4f
++	mov.l	er4,@-sp
++	mov.l	er0,@-sp
++	btst	#0,r0l
++	beq	1f
++	;; (aligned even) odd address
++	mov.b	@er1,r3l
++	mov.b	r3l,@er0
++	adds	#1,er1
++	adds	#1,er0
++	dec.l	#1,er2
++	beq	3f
++1:
++	;; n < sizeof(unsigned long) check
++	sub.l	er4,er4
++	adds	#4,er4		; loop count check value
++	cmp.l	er4,er2
++	blo	2f
++	;; unsigned long copy
++1:
++	mov.l	@er1,er3
++	mov.l	er3,@er0
++	adds	#4,er0
++	adds	#4,er1
++	subs	#4,er2
++	cmp.l	er4,er2
++	bcc	1b
++	;; rest
++2:
++	mov.l	er2,er2
++	beq	3f
++1:
++	mov.b	@er1,r3l
++	mov.b	r3l,@er0
++	adds	#1,er1
++	adds	#1,er0
++	dec.l	#1,er2
++	bne	1b
++3:
++	mov.l	@sp+,er0
++	mov.l	@sp+,er4
++	rts
++
++	;; odd <- even / even <- odd
++4:
++	mov.l	er4,er3
++	mov.l	er2,er4
++	mov.l	er5,er2
++	mov.l	er1,er5
++	mov.l	er6,er1
++	mov.l	er0,er6
++1:
++	eepmov.w
++	mov.w	r4,r4
++	bne	1b
++	dec.w	#1,e4
++	bpl	1b
++	mov.l	er1,er6
++	mov.l	er2,er5
++	mov.l	er3,er4
++	rts
++
++	.end
+diff --git a/arch/h8300/lib/memset.S b/arch/h8300/lib/memset.S
+new file mode 100644
+index 0000000..18d4e70
+--- /dev/null
++++ b/arch/h8300/lib/memset.S
+@@ -0,0 +1,69 @@
++/* memset.S */
++
++#include <asm/linkage.h>
++
++#if defined(CONFIG_CPU_H8300H)
++	.h8300h
++#endif
++#if defined(CONFIG_CPU_H8S)
++	.h8300s
++#endif
++	.text
++
++.global	memset
++.global	clear_user
++
++;;void *memset(*ptr, int c, size_t count)
++;; ptr = er0
++;; c   = er1(r1l)
++;; count = er2
++memset:
++	btst	#0,r0l
++	beq	2f
++
++	;; odd address
++1:
++	mov.b	r1l,@er0
++	adds	#1,er0
++	dec.l	#1,er2
++	beq	6f
++
++	;; even address
++2:
++	mov.l	er2,er3
++	cmp.l	#4,er2
++	blo	4f
++	;; count>=4 -> count/4
++#if defined(CONFIG_CPU_H8300H)
++	shlr.l	er2
++	shlr.l	er2
++#endif
++#if defined(CONFIG_CPU_H8S)
++	shlr.l	#2,er2
++#endif
++	;; byte -> long
++	mov.b	r1l,r1h
++	mov.w	r1,e1
++3:
++	mov.l	er1,@er0
++	adds	#4,er0
++	dec.l	#1,er2
++	bne	3b
++4:
++	;; count % 4
++	and.b	#3,r3l
++	beq	6f
++5:
++	mov.b	r1l,@er0
++	adds	#1,er0
++	dec.b	r3l
++	bne	5b
++6:
++	rts
++
++clear_user:
++	mov.l	er1, er2
++	sub.l	er1, er1
++	bra	memset
++
++	.end
+diff --git a/arch/h8300/lib/moddivsi3.S b/arch/h8300/lib/moddivsi3.S
+new file mode 100644
+index 0000000..c803129
+--- /dev/null
++++ b/arch/h8300/lib/moddivsi3.S
+@@ -0,0 +1,72 @@
++#include "libgcc.h"
++
++; numerator in A0/A1
++; denominator in A2/A3
++	.global	__modsi3
++__modsi3:
++	PUSHP	S2P
++	bsr	modnorm
++	bsr	__divsi3
++	mov.l	er3,er0
++	bra	exitdiv
++
++	.global	__umodsi3
++__umodsi3:
++	bsr	__udivsi3:16
++	mov.l	er3,er0
++	rts
++
++	.global	__divsi3
++__divsi3:
++	PUSHP	S2P
++	bsr	divnorm
++	bsr	__udivsi3:16
++
++	; examine what the sign should be
++exitdiv:
++	btst	#3,S2L
++	beq	reti
++
++	; should be -ve
++	neg.l	A0P
++
++reti:
++	POPP	S2P
++	rts
++
++divnorm:
++	mov.l	A0P,A0P		; is the numerator -ve
++	stc	ccr,S2L		; keep the sign in bit 3 of S2L
++	bge	postive
++
++	neg.l	A0P		; negate arg
++
++postive:
++	mov.l	A1P,A1P		; is the denominator -ve
++	bge	postive2
++
++	neg.l	A1P		; negate arg
++	xor.b	#0x08,S2L	; toggle the result sign
++
++postive2:
++	rts
++
++;; Basically the same, except that the sign of the divisor determines
++;; the sign.
++modnorm:
++	mov.l	A0P,A0P		; is the numerator -ve
++	stc	ccr,S2L		; keep the sign in bit 3 of S2L
++	bge	mpostive
++
++	neg.l	A0P		; negate arg
++
++mpostive:
++	mov.l	A1P,A1P		; is the denominator -ve
++	bge	mpostive2
++
++	neg.l	A1P		; negate arg
++
++mpostive2:
++	rts
++
++	.end
+diff --git a/arch/h8300/lib/modsi3.S b/arch/h8300/lib/modsi3.S
+new file mode 100644
+index 0000000..68b1dfc
+--- /dev/null
++++ b/arch/h8300/lib/modsi3.S
+@@ -0,0 +1,72 @@
++#include "libgcc.h"
++
++; numerator in A0/A1
++; denominator in A2/A3
++	.global	__modsi3
++__modsi3:
++	PUSHP	S2P
++	bsr	modnorm
++	bsr	__divsi3
++	mov.l	er3,er0
++	bra	exitdiv
++
++	.global	__umodsi3
++__umodsi3:
++	bsr	__udivsi3
++	mov.l	er3,er0
++	rts
++
++	.global	__divsi3
++__divsi3:
++	PUSHP	S2P
++	jsr	divnorm
++	bsr	__udivsi3
++
++	; examine what the sign should be
++exitdiv:
++	btst	#3,S2L
++	beq	reti
++
++	; should be -ve
++	neg.l	A0P
++
++reti:
++	POPP	S2P
++	rts
++
++divnorm:
++	mov.l	A0P,A0P		; is the numerator -ve
++	stc	ccr,S2L		; keep the sign in bit 3 of S2L
++	bge	postive
++
++	neg.l	A0P		; negate arg
++
++postive:
++	mov.l	A1P,A1P		; is the denominator -ve
++	bge	postive2
++
++	neg.l	A1P		; negate arg
++	xor.b	#0x08,S2L	; toggle the result sign
++
++postive2:
++	rts
++
++;; Basically the same, except that the sign of the divisor determines
++;; the sign.
++modnorm:
++	mov.l	A0P,A0P		; is the numerator -ve
++	stc	ccr,S2L		; keep the sign in bit 3 of S2L
++	bge	mpostive
++
++	neg.l	A0P		; negate arg
++
++mpostive:
++	mov.l	A1P,A1P		; is the denominator -ve
++	bge	mpostive2
++
++	neg.l	A1P		; negate arg
++
++mpostive2:
++	rts
++
++	.end
+diff --git a/arch/h8300/lib/muldi3.c b/arch/h8300/lib/muldi3.c
+new file mode 100644
+index 0000000..7905122
+--- /dev/null
++++ b/arch/h8300/lib/muldi3.c
+@@ -0,0 +1,44 @@
++#include "libgcc.h"
++
++#define __ll_B ((UWtype) 1 << (W_TYPE_SIZE / 2))
++#define __ll_lowpart(t) ((UWtype) (t) & (__ll_B - 1))
++#define __ll_highpart(t) ((UWtype) (t) >> (W_TYPE_SIZE / 2))
++
++#define umul_ppmm(w1, w0, u, v) \
++	do {			   \
++		UWtype __x0, __x1, __x2, __x3;	\
++		UHWtype __ul, __vl, __uh, __vh; \
++		__ul = __ll_lowpart(u);	\
++		__uh = __ll_highpart(u);	\
++		__vl = __ll_lowpart(v);	\
++		__vh = __ll_highpart(v);	\
++		__x0 = (UWtype) __ul * __vl;	\
++		__x1 = (UWtype) __ul * __vh;	\
++		__x2 = (UWtype) __uh * __vl;	\
++		__x3 = (UWtype) __uh * __vh;	\
++		__x1 += __ll_highpart(__x0);	\
++		__x1 += __x2;			\
++		if (__x1 < __x2)		\
++			__x3 += __ll_B;		\
++		(w1) = __x3 + __ll_highpart(__x1);	       \
++		(w0) = __ll_lowpart(__x1) * __ll_B + __ll_lowpart(__x0); \
++	} while (0)
++
++#define __umulsidi3(u, v) (			\
++		{				\
++			DWunion __w;		\
++			umul_ppmm(__w.s.high, __w.s.low, u, v);	\
++			__w.ll; }					\
++		)
++
++DWtype __muldi3(DWtype u, DWtype v)
 +{
-+	int pos;
-+	unsigned int addr;
-+	unsigned short pri;
-+	int irq = data->irq;
++	const DWunion uu = {.ll = u};
++	const DWunion vv = {.ll = v};
++	DWunion w = {.ll = __umulsidi3(uu.s.low, vv.s.low)};
 +
-+	addr = IPRA + ((ipr_table[irq - 16] & 0xf0) >> 3);
-+	pos = (ipr_table[irq - 16] & 0x0f) * 4;
-+	pri = ~(0x000f << pos);
-+	pri &= ctrl_inw(addr);
-+	pri |= 1 << pos;
-+	ctrl_outw(pri, addr);
++	w.s.high += ((UWtype) uu.s.low * (UWtype) vv.s.high
++		     + (UWtype) uu.s.high * (UWtype) vv.s.low);
++
++	return w.ll;
 +}
+diff --git a/arch/h8300/lib/mulsi3.S b/arch/h8300/lib/mulsi3.S
+new file mode 100644
+index 0000000..451f0e0
+--- /dev/null
++++ b/arch/h8300/lib/mulsi3.S
+@@ -0,0 +1,38 @@
++;
++; mulsi3 for H8/300H - based on Renesas SH implementation
++;
++; by Toshiyasu Morita
++;
++; Old code:
++;
++; 16b * 16b = 372 states (worst case)
++; 32b * 32b = 724 states (worst case)
++;
++; New code:
++;
++; 16b * 16b =  48 states
++; 16b * 32b =  72 states
++; 32b * 32b =  92 states
++;
 +
-+struct irq_chip h8s_irq_chip = {
-+	.name		= "H8S-INTC",
-+	.irq_enable	= h8s_enable_irq,
-+	.irq_disable	= h8s_disable_irq,
-+};
++	.global __mulsi3
++__mulsi3:
++	mov.w	r1,r2   ; ( 2 states) b * d
++	mulxu	r0,er2  ; (22 states)
 +
-+static __init int irq_map(struct irq_domain *h, unsigned int virq,
-+			  irq_hw_number_t hw_irq_num)
++	mov.w	e0,r3   ; ( 2 states) a * d
++	beq	L_skip1 ; ( 4 states)
++	mulxu	r1,er3  ; (22 states)
++	add.w	r3,e2   ; ( 2 states)
++
++L_skip1:
++	mov.w	e1,r3   ; ( 2 states) c * b
++	beq	L_skip2 ; ( 4 states)
++	mulxu	r0,er3  ; (22 states)
++	add.w	r3,e2   ; ( 2 states)
++
++L_skip2:
++	mov.l	er2,er0	; ( 2 states)
++	rts		; (10 states)
++
++	.end
+diff --git a/arch/h8300/lib/strncpy.S b/arch/h8300/lib/strncpy.S
+new file mode 100644
+index 0000000..d00396a
+--- /dev/null
++++ b/arch/h8300/lib/strncpy.S
+@@ -0,0 +1,34 @@
++;;; strncpy.S
++
++#include <asm/linkage.h>
++
++	.text
++.global strncpy_from_user
++
++;;; long strncpy_from_user(void *to, void *from, size_t n)
++strncpy_from_user:
++	mov.l	er2,er2
++	bne	1f
++	sub.l	er0,er0
++	rts
++1:
++	mov.l	er4,@-sp
++	sub.l	er3,er3
++2:
++	mov.b	@er1+,r4l
++	mov.b	r4l,@er0
++	adds	#1,er0
++	beq	3f
++	inc.l	#1,er3
++	dec.l	#1,er2
++	bne	2b
++3:
++	dec.l	#1,er2
++4:
++	mov.b	r4l,@er0
++	adds	#1,er0
++	dec.l	#1,er2
++	bne	4b
++	mov.l	er3,er0
++	mov.l	@sp+,er4
++	rts
+diff --git a/arch/h8300/lib/ucmpdi2.c b/arch/h8300/lib/ucmpdi2.c
+new file mode 100644
+index 0000000..772399d
+--- /dev/null
++++ b/arch/h8300/lib/ucmpdi2.c
+@@ -0,0 +1,17 @@
++#include "libgcc.h"
++
++word_type __ucmpdi2(DWtype a, DWtype b)
 +{
-+       irq_set_chip_and_handler(virq, &h8s_irq_chip, handle_simple_irq);
++	const DWunion au = {.ll = a};
++	const DWunion bu = {.ll = b};
 +
-+       return 0;
++	if ((UWtype) au.s.high < (UWtype) bu.s.high)
++		return 0;
++	else if ((UWtype) au.s.high > (UWtype) bu.s.high)
++		return 2;
++	if ((UWtype) au.s.low < (UWtype) bu.s.low)
++		return 0;
++	else if ((UWtype) au.s.low > (UWtype) bu.s.low)
++		return 2;
++	return 1;
 +}
+diff --git a/arch/h8300/lib/udivsi3.S b/arch/h8300/lib/udivsi3.S
+new file mode 100644
+index 0000000..bbe6561
+--- /dev/null
++++ b/arch/h8300/lib/udivsi3.S
+@@ -0,0 +1,76 @@
++#include "libgcc.h"
 +
-+static struct irq_domain_ops irq_ops = {
-+       .map    = irq_map,
-+       .xlate  = irq_domain_xlate_onecell,
-+};
++	;; This function also computes the remainder and stores it in er3.
++	.global	__udivsi3
++__udivsi3:
++	mov.w	A1E,A1E		; denominator top word 0?
++	bne	DenHighNonZero
 +
-+static int __init h8s_intc_of_init(struct device_node *intc,
-+				   struct device_node *parent)
-+{
-+	struct irq_domain *domain;
-+	int n;
++	; do it the easy way, see page 107 in manual
++	mov.w	A0E,A2
++	extu.l	A2P
++	divxu.w	A1,A2P
++	mov.w	A2E,A0E
++	divxu.w	A1,A0P
++	mov.w	A0E,A3
++	mov.w	A2,A0E
++	extu.l	A3P
++	rts
 +
-+	intc_baseaddr = of_iomap(intc, 0);
-+	BUG_ON(!intc_baseaddr);
++	; er0 = er0 / er1
++	; er3 = er0 % er1
++	; trashes er1 er2
++	; expects er1 >= 2^16
++DenHighNonZero:
++	mov.l	er0,er3
++	mov.l	er1,er2
++#ifdef CONFIG_CPU_H8300H
++divmod_L21:
++	shlr.l	er0
++	shlr.l	er2		; make divisor < 2^16
++	mov.w	e2,e2
++	bne	divmod_L21
++#else
++	shlr.l	#2,er2		; make divisor < 2^16
++	mov.w	e2,e2
++	beq	divmod_L22A
++divmod_L21:
++	shlr.l	#2,er0
++divmod_L22:
++	shlr.l	#2,er2		; make divisor < 2^16
++	mov.w	e2,e2
++	bne	divmod_L21
++divmod_L22A:
++	rotxl.w	r2
++	bcs	divmod_L23
++	shlr.l	er0
++	bra	divmod_L24
++divmod_L23:
++	rotxr.w	r2
++	shlr.l	#2,er0
++divmod_L24:
++#endif
++	;; At this point,
++	;;  er0 contains shifted dividend
++	;;  er1 contains divisor
++	;;  er2 contains shifted divisor
++	;;  er3 contains dividend, later remainder
++	divxu.w	r2,er0		; r0 now contains the approximate quotient (AQ)
++	extu.l	er0
++	beq	divmod_L25
++	subs	#1,er0		; er0 = AQ - 1
++	mov.w	e1,r2
++	mulxu.w	r0,er2		; er2 = upper (AQ - 1) * divisor
++	sub.w	r2,e3		; dividend - 65536 * er2
++	mov.w	r1,r2
++	mulxu.w	r0,er2		; compute er3 = remainder (tentative)
++	sub.l	er2,er3		; er3 = dividend - (AQ - 1) * divisor
++divmod_L25:
++	cmp.l	er1,er3		; is divisor < remainder?
++	blo	divmod_L26
++	adds	#1,er0
++	sub.l	er1,er3		; correct the remainder
++divmod_L26:
++	rts
 +
-+	/* All interrupt priority is 0 (disable) */
-+	/* IPRA to IPRK */
-+	for (n = 0; n <= 'k' - 'a'; n++)
-+		ctrl_outw(0x0000, IPRA + (n * 2));
-+
-+	domain = irq_domain_add_linear(intc, NR_IRQS, &irq_ops, NULL);
-+	BUG_ON(!domain);
-+	irq_set_default_host(domain);
-+	return 0;
-+}
-+
-+IRQCHIP_DECLARE(h8s_intc, "renesas,h8s-intc", h8s_intc_of_init);
++	.end
 -- 
 2.1.4
