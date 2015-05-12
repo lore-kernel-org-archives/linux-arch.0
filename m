@@ -1,69 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:51584 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932249AbbELJlD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 May 2015 05:41:03 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 00/22] Convert the posix_clock_operations and k_clock structure to ready for 2038
-Date: Tue, 12 May 2015 11:39:36 +0200
-Message-ID: <2293496.0Ycckx2zYU@wuerfel>
-In-Reply-To: <1431342518-29362-1-git-send-email-baolin.wang@linaro.org>
-References: <1431342518-29362-1-git-send-email-baolin.wang@linaro.org>
+Received: from www.linutronix.de ([62.245.132.108]:56838 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753607AbbELTBC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 May 2015 15:01:02 -0400
+Date: Tue, 12 May 2015 21:00:14 +0200
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Subject: Re: [PATCH v1 11/15] arm/futex: UP futex_atomic_op_inuser() relies
+ on disabled preemption
+Message-ID: <20150512190014.GD25464@linutronix.de>
+References: <1431359540-32227-1-git-send-email-dahi@linux.vnet.ibm.com>
+ <1431359540-32227-12-git-send-email-dahi@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <1431359540-32227-12-git-send-email-dahi@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linuxppc-dev@lists.ozlabs.org
-Cc: Baolin Wang <baolin.wang@linaro.org>, tglx@linutronix.de, pang.xunlei@linaro.org, peterz@infradead.org, heiko.carstens@de.ibm.com, paulus@samba.org, cl@linux.com, heenasirwani@gmail.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, y2038@lists.linaro.org, rafael.j.wysocki@intel.com, ahh@google.com, fweisbec@gmail.com, pjt@google.com, riel@redhat.com, richardcochran@gmail.com, schwidefsky@de.ibm.com, john.stultz@linaro.org, rth@twiddle.net, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, tj@kernel.org, linux390@de.ibm.com
-Message-ID: <20150512093936.xiyAj21VyVIyB7xFcP9nfwEHc7ACOPHSHmfOX2fMpek@z>
+To: David Hildenbrand <dahi@linux.vnet.ibm.com>
+Cc: linux-kernel@vger.kernel.org, mingo@redhat.com, yang.shi@windriver.com, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, peterz@infradead.org
+Message-ID: <20150512190014.ADGAGvAI76VUYfZGo1nH7AtUK1266zmP6eViPBHis9Q@z>
 
-On Monday 11 May 2015 19:08:38 Baolin Wang wrote:
-> This patch series changes the 32-bit time type (timespec/itimerspec) to the 64-bit one
-> (timespec64/itimerspec64), since 32-bit time types will break in the year 2038.
-> 
-> This patch series introduces new methods with timespec64/itimerspec64 type,
-> and removes the old ones with timespec/itimerspec type for posix_clock_operations
-> and k_clock structure.
-> 
-> Also introduces some new functions with timespec64/itimerspec64 type, like current_kernel_time64(),
-> hrtimer_get_res64(), cputime_to_timespec64() and timespec64_to_cputime().
-> 
-> Changes since v2:
->      	-Split the syscall conversion patch into small some patches.
-> 
-> 
-> Baolin Wang (22):
->   linux/time64.h:Introduce the 'struct itimerspec64' for 64bit
->   timekeeping:Introduce the current_kernel_time64() function with
->     timespec64 type
->   time/hrtimer:Introduce hrtimer_get_res64() with timespec64 type for
->     getting the timer resolution
->   posix-timers:Split out the guts of the syscall and change the
->     implementation for timer_gettime
->   posix-timers:Convert to the 64bit methods for the timer_gettime
->     syscall function
+* David Hildenbrand | 2015-05-11 17:52:16 [+0200]:
 
-I have two more very general comments about the series:
+>The !CONFIG_SMP implementation of futex_atomic_op_inuser() seems to rely
+>on disabled preemption to guarantee mutual exclusion.
 
-a) something has gone wrong with your submission in v2 and v3 but was
-   working earlier: normally all emails should be sent by git-send-email
-   as replies to the [patch 00/22] mail. This is the default, and it
-   is enabled by the '--thread --no-chain-reply' options. Please try
-   to get this to work again.
+Yes, this is what the code looks like. It is more the requirement for
+ldrex/strex opcodes which are ARMv6+ and so is SMP support (here).
+Documentation wise you could replace CONFIG_SMP by 
+     __LINUX_ARM_ARCH__ >= 6
+in a later patch if you like. This would be more in-sync with
+arch/arm/include/asm/cmpxchg.h :)
 
-b) it would be better to have a little shorter subject lines, to avoid
-   line-wrapping in the list above. Here are some examples what you could
-   use to replace the lines above:
-
-   timekeeping: introduce struct itimerspec64
-   timekeeping: introduce current_kernel_time64()
-   hrtimer: introduce hrtimer_get_res64() 
-   posix-timers: split up sys_timer_gettime()
-   posix-timers: convert timer_gettime() to timespec64
-
-   In general, try to come up with the shortest description that
-   uniquely describes what your patch does, and move any details into
-   the longer patch description.
-
-	Arnd
+Sebastian
