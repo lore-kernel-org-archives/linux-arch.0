@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:30024 "EHLO mga02.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:60777 "EHLO mga11.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752844AbbELEcy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 May 2015 00:32:54 -0400
-Subject: [PATCH v3 08/11] x86: support kmap_atomic_pfn_t() for persistent
- memory
+	id S1752945AbbELEdP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 May 2015 00:33:15 -0400
+Subject: [PATCH v3 10/11] dax: convert to __pfn_t
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Tue, 12 May 2015 00:30:12 -0400
-Message-ID: <20150512043012.11521.98885.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Tue, 12 May 2015 00:30:23 -0400
+Message-ID: <20150512043022.11521.85490.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -16,234 +15,422 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@lists.01.org, david@fromorbit.com, hch@lst.de, j.glisse@gmail.com, mgorman@suse.de, linux-fsdevel@vger.kernel.org, akpm@linux-foundation.org, mingo@kernel.org
-Message-ID: <20150512043012.fI1fbKI0vMkoHYhUcDlrnSWLN_YoummD8csC6Vz0CsI@z>
+Cc: axboe@kernel.dk, Boaz Harrosh <boaz@plexistor.com>, riel@redhat.com, akpm@linux-foundation.org, j.glisse@gmail.com, linux-nvdimm@lists.01.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, hch@lst.de, linux-fsdevel@vger.kernel.org, Paul Mackerras <paulus@samba.org>, mgorman@suse.de, david@fromorbit.com, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Matthew Wilcox <willy@linux.intel.com>, Ross Zwisler <ross.zwisler@linux.intel.com>, mingo@kernel.org
+Message-ID: <20150512043023.BEmFc-6IynUO1c-oZ54MHFpDad8FkRWSLaS_Z5lpAkE@z>
 
-It would be unfortunate if the kmap infrastructure escaped its current
-32-bit/HIGHMEM bonds and leaked into 64-bit code.  Instead, if the user
-has enabled CONFIG_DEV_PFN we direct the kmap_atomic_pfn_t()
-implementation to scan a list of pre-mapped persistent memory address
-ranges inserted by the pmem driver.
+The primary source for non-page-backed page-frames to enter the system
+is via the pmem driver's ->direct_access() method.  The pfns returned by
+the top-level bdev_direct_access() may be passed to any other subsystem
+in the kernel and those sub-systems either need to assume that the pfn
+is page backed (CONFIG_DEV_PFN=n) or be prepared to handle non-page
+backed case (CONFIG_DEV_PFN=y).  Currently the pfns returned by
+->direct_access() are only ever used by vm_insert_mixed() which does not
+care if the pfn is mapped.  As we go to add more usages of these pfns
+add the type-safety of __pfn_t.
 
-The __pfn_t to resource lookup is indeed inefficient walking of a linked list,
-but there are two mitigating factors:
+This also simplifies the calling convention of ->direct_access() by not
+returning the virtual address in the same call.  This annotates cases
+where the kernel is directly accessing pmem outside the driver, and
+makes the valid lifetime of the reference explicit.  This property may
+be useful in the future for invalidating mappings to pmem, but for now
+it provides some protection against the "pmem disable vs still-in-use"
+race.
 
-1/ The number of persistent memory ranges is bounded by the number of
-   DIMMs which is on the order of 10s of DIMMs, not hundreds.
-
-2/ The lookup yields the entire range, if it becomes inefficient to do a
-   kmap_atomic_pfn_t() a PAGE_SIZE at a time the caller can take
-   advantage of the fact that the lookup can be amortized for all kmap
-   operations it needs to perform in a given range.
-
+Cc: Matthew Wilcox <willy@linux.intel.com>
+Cc: Ross Zwisler <ross.zwisler@linux.intel.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Jens Axboe <axboe@kernel.dk>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Boaz Harrosh <boaz@plexistor.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/Kconfig            |    3 +
- arch/x86/Kconfig        |    2 +
- drivers/block/pmem.c    |    6 +++
- include/linux/highmem.h |   23 +++++++++++
- mm/Makefile             |    1 
- mm/pfn.c                |   98 +++++++++++++++++++++++++++++++++++++++++++++++
- 6 files changed, 133 insertions(+)
- create mode 100644 mm/pfn.c
+ arch/powerpc/sysdev/axonram.c |   11 +++++--
+ drivers/block/brd.c           |    5 +--
+ drivers/block/pmem.c          |   11 +++++--
+ drivers/s390/block/dcssblk.c  |   13 ++++++---
+ fs/block_dev.c                |    4 +--
+ fs/dax.c                      |   62 ++++++++++++++++++++++++++++++++---------
+ include/asm-generic/pfn.h     |   11 +++++++
+ include/linux/blkdev.h        |    7 ++---
+ 8 files changed, 91 insertions(+), 33 deletions(-)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index f7f800860c00..69d3a3fa21af 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -206,6 +206,9 @@ config HAVE_DMA_CONTIGUOUS
- config HAVE_DMA_PFN
- 	bool
+diff --git a/arch/powerpc/sysdev/axonram.c b/arch/powerpc/sysdev/axonram.c
+index 9bb5da7f2c0c..91c40a300797 100644
+--- a/arch/powerpc/sysdev/axonram.c
++++ b/arch/powerpc/sysdev/axonram.c
+@@ -139,22 +139,27 @@ axon_ram_make_request(struct request_queue *queue, struct bio *bio)
+  * axon_ram_direct_access - direct_access() method for block device
+  * @device, @sector, @data: see block_device_operations method
+  */
++#ifdef CONFIG_DEV_PFN
+ static long
+ axon_ram_direct_access(struct block_device *device, sector_t sector,
+-		       void **kaddr, unsigned long *pfn, long size)
++		__pfn_t *pfn, long size)
+ {
+ 	struct axon_ram_bank *bank = device->bd_disk->private_data;
+ 	loff_t offset = (loff_t)sector << AXON_RAM_SECTOR_SHIFT;
++	void *kaddr;
  
-+config HAVE_KMAP_PFN
-+	bool
-+
- config GENERIC_SMP_IDLE_THREAD
-        bool
+-	*kaddr = (void *)(bank->ph_addr + offset);
+-	*pfn = virt_to_phys(*kaddr) >> PAGE_SHIFT;
++	kaddr = (void *)(bank->ph_addr + offset);
++	*pfn = phys_to_pfn_t(virt_to_phys(*kaddr));
  
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index c626ffa5c01e..2fd7690ed0e2 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1434,7 +1434,9 @@ config X86_PMEM_LEGACY
- 	  Say Y if unsure.
+ 	return bank->size - offset;
+ }
++#endif
  
- config X86_PMEM_DMA
-+	depends on !HIGHMEM
- 	def_bool DEV_PFN
-+	select HAVE_KMAP_PFN
- 	select HAVE_DMA_PFN
+ static const struct block_device_operations axon_ram_devops = {
+ 	.owner		= THIS_MODULE,
++#ifdef CONFIG_DEV_PFN
+ 	.direct_access	= axon_ram_direct_access
++#endif
+ };
  
- config HIGHPTE
+ /**
+diff --git a/drivers/block/brd.c b/drivers/block/brd.c
+index 115c6cf9cb43..3be31a2aed20 100644
+--- a/drivers/block/brd.c
++++ b/drivers/block/brd.c
+@@ -371,7 +371,7 @@ static int brd_rw_page(struct block_device *bdev, sector_t sector,
+ 
+ #ifdef CONFIG_BLK_DEV_RAM_DAX
+ static long brd_direct_access(struct block_device *bdev, sector_t sector,
+-			void **kaddr, unsigned long *pfn, long size)
++		__pfn_t *pfn, long size)
+ {
+ 	struct brd_device *brd = bdev->bd_disk->private_data;
+ 	struct page *page;
+@@ -381,8 +381,7 @@ static long brd_direct_access(struct block_device *bdev, sector_t sector,
+ 	page = brd_insert_page(brd, sector);
+ 	if (!page)
+ 		return -ENOSPC;
+-	*kaddr = page_address(page);
+-	*pfn = page_to_pfn(page);
++	*pfn = page_to_pfn_t(page);
+ 
+ 	/*
+ 	 * TODO: If size > PAGE_SIZE, we could look to see if the next page in
 diff --git a/drivers/block/pmem.c b/drivers/block/pmem.c
-index 41bb424533e6..2a847651f8de 100644
+index 2a847651f8de..0cf34fba308c 100644
 --- a/drivers/block/pmem.c
 +++ b/drivers/block/pmem.c
-@@ -23,6 +23,7 @@
- #include <linux/module.h>
- #include <linux/moduleparam.h>
- #include <linux/slab.h>
-+#include <linux/highmem.h>
+@@ -98,8 +98,9 @@ static int pmem_rw_page(struct block_device *bdev, sector_t sector,
+ 	return 0;
+ }
  
- #define PMEM_MINORS		16
+-static long pmem_direct_access(struct block_device *bdev, sector_t sector,
+-			      void **kaddr, unsigned long *pfn, long size)
++#ifdef CONFIG_DEV_PFN
++static long pmem_direct_access(struct block_device *bdev,
++		sector_t sector, __pfn_t *pfn, long size)
+ {
+ 	struct pmem_device *pmem = bdev->bd_disk->private_data;
+ 	size_t offset = sector << 9;
+@@ -107,16 +108,18 @@ static long pmem_direct_access(struct block_device *bdev, sector_t sector,
+ 	if (!pmem)
+ 		return -ENODEV;
  
-@@ -147,6 +148,11 @@ static struct pmem_device *pmem_alloc(struct device *dev, struct resource *res)
- 	if (!pmem->virt_addr)
- 		goto out_release_region;
+-	*kaddr = pmem->virt_addr + offset;
+-	*pfn = (pmem->phys_addr + offset) >> PAGE_SHIFT;
++	*pfn = phys_to_pfn_t(pmem->phys_addr + offset);
  
-+	err = devm_register_kmap_pfn_range(dev, res, pmem->virt_addr);
-+	if (err)
-+		goto out_unmap;
-+
-+	err = -ENOMEM;
- 	pmem->pmem_queue = blk_alloc_queue(GFP_KERNEL);
- 	if (!pmem->pmem_queue)
- 		goto out_unmap;
-diff --git a/include/linux/highmem.h b/include/linux/highmem.h
-index 9286a46b7d69..85fd52d43a9a 100644
---- a/include/linux/highmem.h
-+++ b/include/linux/highmem.h
-@@ -83,6 +83,29 @@ static inline void __kunmap_atomic(void *addr)
+ 	return pmem->size - offset;
+ }
++#endif
  
- #endif /* CONFIG_HIGHMEM */
+ static const struct block_device_operations pmem_fops = {
+ 	.owner =		THIS_MODULE,
+ 	.rw_page =		pmem_rw_page,
++#ifdef CONFIG_DEV_PFN
+ 	.direct_access =	pmem_direct_access,
++#endif
+ };
  
-+#ifdef CONFIG_HAVE_KMAP_PFN
-+extern void *kmap_atomic_pfn_t(__pfn_t pfn);
-+extern void kunmap_atomic_pfn_t(void *addr);
-+extern int devm_register_kmap_pfn_range(struct device *dev,
-+		struct resource *res, void *base);
-+#else
-+static inline void *kmap_atomic_pfn_t(__pfn_t pfn)
-+{
-+	return kmap_atomic(__pfn_t_to_page(pfn));
-+}
-+
-+static inline void kunmap_atomic_pfn_t(void *addr)
-+{
-+	__kunmap_atomic(addr);
-+}
-+
-+static inline int devm_register_kmap_pfn_range(struct device *dev,
-+		struct resource *res, void *base)
-+{
-+	return 0;
-+}
-+#endif /* CONFIG_HAVE_KMAP_PFN */
-+
- #if defined(CONFIG_HIGHMEM) || defined(CONFIG_X86_32)
+ static struct pmem_device *pmem_alloc(struct device *dev, struct resource *res)
+diff --git a/drivers/s390/block/dcssblk.c b/drivers/s390/block/dcssblk.c
+index 5da8515b8fb9..41031e715152 100644
+--- a/drivers/s390/block/dcssblk.c
++++ b/drivers/s390/block/dcssblk.c
+@@ -29,7 +29,7 @@ static int dcssblk_open(struct block_device *bdev, fmode_t mode);
+ static void dcssblk_release(struct gendisk *disk, fmode_t mode);
+ static void dcssblk_make_request(struct request_queue *q, struct bio *bio);
+ static long dcssblk_direct_access(struct block_device *bdev, sector_t secnum,
+-				 void **kaddr, unsigned long *pfn, long size);
++		__pfn_t *pfn, long size);
  
- DECLARE_PER_CPU(int, __kmap_atomic_idx);
-diff --git a/mm/Makefile b/mm/Makefile
-index 98c4eaeabdcb..66e30c2addfe 100644
---- a/mm/Makefile
-+++ b/mm/Makefile
-@@ -78,3 +78,4 @@ obj-$(CONFIG_CMA)	+= cma.o
- obj-$(CONFIG_MEMORY_BALLOON) += balloon_compaction.o
- obj-$(CONFIG_PAGE_EXTENSION) += page_ext.o
- obj-$(CONFIG_CMA_DEBUGFS) += cma_debug.o
-+obj-$(CONFIG_HAVE_KMAP_PFN) += pfn.o
-diff --git a/mm/pfn.c b/mm/pfn.c
-new file mode 100644
-index 000000000000..0e046b49aebf
---- /dev/null
-+++ b/mm/pfn.c
-@@ -0,0 +1,98 @@
-+/*
-+ * Copyright(c) 2015 Intel Corporation. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of version 2 of the GNU General Public License as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful, but
-+ * WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-+ */
-+#include <linux/rcupdate.h>
-+#include <linux/rculist.h>
-+#include <linux/highmem.h>
-+#include <linux/device.h>
-+#include <linux/slab.h>
-+#include <linux/mm.h>
+ static char dcssblk_segments[DCSSBLK_PARM_LEN] = "\0";
+ 
+@@ -38,7 +38,9 @@ static const struct block_device_operations dcssblk_devops = {
+ 	.owner   	= THIS_MODULE,
+ 	.open    	= dcssblk_open,
+ 	.release 	= dcssblk_release,
++#ifdef CONFIG_DEV_PFN
+ 	.direct_access 	= dcssblk_direct_access,
++#endif
+ };
+ 
+ struct dcssblk_dev_info {
+@@ -877,23 +879,26 @@ fail:
+ 	bio_io_error(bio);
+ }
+ 
++#ifdef CONFIG_DEV_PFN
+ static long
+ dcssblk_direct_access (struct block_device *bdev, sector_t secnum,
+-			void **kaddr, unsigned long *pfn, long size)
++		__pfn_t *pfn, long size)
+ {
+ 	struct dcssblk_dev_info *dev_info;
+ 	unsigned long offset, dev_sz;
++	void *kaddr;
+ 
+ 	dev_info = bdev->bd_disk->private_data;
+ 	if (!dev_info)
+ 		return -ENODEV;
+ 	dev_sz = dev_info->end - dev_info->start;
+ 	offset = secnum * 512;
+-	*kaddr = (void *) (dev_info->start + offset);
+-	*pfn = virt_to_phys(*kaddr) >> PAGE_SHIFT;
++	kaddr = (void *) (dev_info->start + offset);
++	*pfn = phys_to_pfn_t(virt_to_phys(*kaddr));
+ 
+ 	return dev_sz - offset;
+ }
++#endif
+ 
+ static void
+ dcssblk_check_params(void)
+diff --git a/fs/block_dev.c b/fs/block_dev.c
+index c7e4163ede87..100749b51524 100644
+--- a/fs/block_dev.c
++++ b/fs/block_dev.c
+@@ -437,7 +437,7 @@ EXPORT_SYMBOL_GPL(bdev_write_page);
+  * accessible at this address.
+  */
+ long bdev_direct_access(struct block_device *bdev, sector_t sector,
+-			void **addr, unsigned long *pfn, long size)
++			__pfn_t *pfn, long size)
+ {
+ 	long avail;
+ 	const struct block_device_operations *ops = bdev->bd_disk->fops;
+@@ -452,7 +452,7 @@ long bdev_direct_access(struct block_device *bdev, sector_t sector,
+ 	sector += get_start_sect(bdev);
+ 	if (sector % (PAGE_SIZE / 512))
+ 		return -EINVAL;
+-	avail = ops->direct_access(bdev, sector, addr, pfn, size);
++	avail = ops->direct_access(bdev, sector, pfn, size);
+ 	if (!avail)
+ 		return -ERANGE;
+ 	return min(avail, size);
+diff --git a/fs/dax.c b/fs/dax.c
+index 6f65f00e58ec..7d302bfff48a 100644
+--- a/fs/dax.c
++++ b/fs/dax.c
+@@ -35,13 +35,16 @@ int dax_clear_blocks(struct inode *inode, sector_t block, long size)
+ 	might_sleep();
+ 	do {
+ 		void *addr;
+-		unsigned long pfn;
++		__pfn_t pfn;
+ 		long count;
+ 
+-		count = bdev_direct_access(bdev, sector, &addr, &pfn, size);
++		count = bdev_direct_access(bdev, sector, &pfn, size);
+ 		if (count < 0)
+ 			return count;
+ 		BUG_ON(size < count);
++		addr = kmap_atomic_pfn_t(pfn);
++		if (!addr)
++			return -EIO;
+ 		while (count > 0) {
+ 			unsigned pgsz = PAGE_SIZE - offset_in_page(addr);
+ 			if (pgsz > count)
+@@ -57,17 +60,17 @@ int dax_clear_blocks(struct inode *inode, sector_t block, long size)
+ 			sector += pgsz / 512;
+ 			cond_resched();
+ 		}
++		kunmap_atomic_pfn_t(addr);
+ 	} while (size);
+ 
+ 	return 0;
+ }
+ EXPORT_SYMBOL_GPL(dax_clear_blocks);
+ 
+-static long dax_get_addr(struct buffer_head *bh, void **addr, unsigned blkbits)
++static long dax_get_pfn(struct buffer_head *bh, __pfn_t *pfn, unsigned blkbits)
+ {
+-	unsigned long pfn;
+ 	sector_t sector = bh->b_blocknr << (blkbits - 9);
+-	return bdev_direct_access(bh->b_bdev, sector, addr, &pfn, bh->b_size);
++	return bdev_direct_access(bh->b_bdev, sector, pfn, bh->b_size);
+ }
+ 
+ static void dax_new_buf(void *addr, unsigned size, unsigned first, loff_t pos,
+@@ -106,7 +109,8 @@ static ssize_t dax_io(struct inode *inode, struct iov_iter *iter,
+ 	loff_t pos = start;
+ 	loff_t max = start;
+ 	loff_t bh_max = start;
+-	void *addr;
++	void *addr = NULL, *kmap = NULL;
++	__pfn_t pfn;
+ 	bool hole = false;
+ 
+ 	if (iov_iter_rw(iter) != WRITE)
+@@ -142,9 +146,19 @@ static ssize_t dax_io(struct inode *inode, struct iov_iter *iter,
+ 				addr = NULL;
+ 				size = bh->b_size - first;
+ 			} else {
+-				retval = dax_get_addr(bh, &addr, blkbits);
++				if (kmap) {
++					kunmap_atomic_pfn_t(kmap);
++					kmap = NULL;
++				}
++				retval = dax_get_pfn(bh, &pfn, blkbits);
+ 				if (retval < 0)
+ 					break;
++				kmap = kmap_atomic_pfn_t(pfn);
++				if (!kmap) {
++					retval = -EIO;
++					break;
++				}
++				addr = kmap;
+ 				if (buffer_unwritten(bh) || buffer_new(bh))
+ 					dax_new_buf(addr, retval, first, pos,
+ 									end);
+@@ -168,6 +182,9 @@ static ssize_t dax_io(struct inode *inode, struct iov_iter *iter,
+ 		addr += len;
+ 	}
+ 
++	if (kmap)
++		kunmap_atomic_pfn_t(kmap);
 +
-+static LIST_HEAD(ranges);
+ 	return (pos == start) ? retval : pos - start;
+ }
+ 
+@@ -259,11 +276,17 @@ static int copy_user_bh(struct page *to, struct buffer_head *bh,
+ 			unsigned blkbits, unsigned long vaddr)
+ {
+ 	void *vfrom, *vto;
+-	if (dax_get_addr(bh, &vfrom, blkbits) < 0)
++	__pfn_t pfn;
 +
-+struct kmap {
-+	struct list_head list;
-+	struct resource *res;
-+	struct device *dev;
-+	void *base;
-+};
-+
-+static void teardown_kmap(void *data)
-+{
-+	struct kmap *kmap = data;
-+
-+	dev_dbg(kmap->dev, "kmap unregister %pr\n", kmap->res);
-+	list_del_rcu(&kmap->list);
-+	synchronize_rcu();
-+	kfree(kmap);
-+}
-+
-+int devm_register_kmap_pfn_range(struct device *dev, struct resource *res,
-+		void *base)
-+{
-+	struct kmap *kmap = kzalloc(sizeof(*kmap), GFP_KERNEL);
-+	int rc;
-+
-+	if (!kmap)
-+		return -ENOMEM;
-+
-+	INIT_LIST_HEAD(&kmap->list);
-+	kmap->res = res;
-+	kmap->base = base;
-+	kmap->dev = dev;
-+	rc = devm_add_action(dev, teardown_kmap, kmap);
-+	if (rc) {
-+		kfree(kmap);
-+		return rc;
++	if (dax_get_pfn(bh, &pfn, blkbits) < 0)
++		return -EIO;
++	vfrom = kmap_atomic_pfn_t(pfn);
++	if (!vfrom)
+ 		return -EIO;
+ 	vto = kmap_atomic(to);
+ 	copy_user_page(vto, vfrom, vaddr, to);
+ 	kunmap_atomic(vto);
++	kunmap_atomic_pfn_t(vfrom);
+ 	return 0;
+ }
+ 
+@@ -274,7 +297,7 @@ static int dax_insert_mapping(struct inode *inode, struct buffer_head *bh,
+ 	sector_t sector = bh->b_blocknr << (inode->i_blkbits - 9);
+ 	unsigned long vaddr = (unsigned long)vmf->virtual_address;
+ 	void *addr;
+-	unsigned long pfn;
++	__pfn_t pfn;
+ 	pgoff_t size;
+ 	int error;
+ 
+@@ -293,7 +316,7 @@ static int dax_insert_mapping(struct inode *inode, struct buffer_head *bh,
+ 		goto out;
+ 	}
+ 
+-	error = bdev_direct_access(bh->b_bdev, sector, &addr, &pfn, bh->b_size);
++	error = bdev_direct_access(bh->b_bdev, sector, &pfn, bh->b_size);
+ 	if (error < 0)
+ 		goto out;
+ 	if (error < PAGE_SIZE) {
+@@ -301,10 +324,17 @@ static int dax_insert_mapping(struct inode *inode, struct buffer_head *bh,
+ 		goto out;
+ 	}
+ 
+-	if (buffer_unwritten(bh) || buffer_new(bh))
++	if (buffer_unwritten(bh) || buffer_new(bh)) {
++		addr = kmap_atomic_pfn_t(pfn);
++		if (!addr) {
++			error = -EIO;
++			goto out;
++		}
+ 		clear_page(addr);
++		kunmap_atomic_pfn_t(addr);
 +	}
-+	dev_dbg(kmap->dev, "kmap register %pr\n", kmap->res);
-+	list_add_rcu(&kmap->list, &ranges);
-+	return 0;
-+}
-+EXPORT_SYMBOL_GPL(devm_register_kmap_pfn_range);
+ 
+-	error = vm_insert_mixed(vma, vaddr, pfn);
++	error = vm_insert_mixed(vma, vaddr, __pfn_t_to_pfn(pfn));
+ 
+  out:
+ 	i_mmap_unlock_read(mapping);
+@@ -517,10 +547,16 @@ int dax_zero_page_range(struct inode *inode, loff_t from, unsigned length,
+ 		return err;
+ 	if (buffer_written(&bh)) {
+ 		void *addr;
+-		err = dax_get_addr(&bh, &addr, inode->i_blkbits);
++		__pfn_t pfn;
 +
-+void *kmap_atomic_pfn_t(__pfn_t pfn)
++		err = dax_get_pfn(&bh, &pfn, inode->i_blkbits);
+ 		if (err < 0)
+ 			return err;
++		addr = kmap_atomic_pfn_t(pfn);
++		if (!addr)
++			return -EIO;
+ 		memset(addr + offset, 0, length);
++		kunmap_atomic_pfn_t(addr);
+ 	}
+ 
+ 	return 0;
+diff --git a/include/asm-generic/pfn.h b/include/asm-generic/pfn.h
+index ee1363e3c67c..78ec84282334 100644
+--- a/include/asm-generic/pfn.h
++++ b/include/asm-generic/pfn.h
+@@ -47,6 +47,17 @@ static inline bool __pfn_t_has_page(__pfn_t pfn)
+ 	return (pfn.data & PFN_MASK) == 0;
+ }
+ 
++static inline __pfn_t pfn_to_pfn_t(unsigned long pfn)
 +{
-+	struct page *page = __pfn_t_to_page(pfn);
-+	resource_size_t addr;
-+	struct kmap *kmap;
++	__pfn_t pfn_t = { .data = (pfn << PFN_SHIFT) | PFN_DEV };
 +
-+	if (page)
-+		return kmap_atomic(page);
-+	addr = __pfn_t_to_phys(pfn);
-+	rcu_read_lock();
-+	list_for_each_entry_rcu(kmap, &ranges, list)
-+		if (addr >= kmap->res->start && addr <= kmap->res->end)
-+			return kmap->base + addr - kmap->res->start;
-+
-+	/* only unlock in the error case */
-+	rcu_read_unlock();
-+	return NULL;
++	return pfn_t;
 +}
-+EXPORT_SYMBOL(kmap_atomic_pfn_t);
 +
-+void kunmap_atomic_pfn_t(void *addr)
++static inline __pfn_t phys_to_pfn_t(dma_addr_t addr)
 +{
-+	/*
-+	 * If the original __pfn_t had an entry in the memmap then
-+	 * 'addr' will be outside of vmalloc space i.e. it came from
-+	 * page_address()
-+	 */
-+	if (!is_vmalloc_addr(addr)) {
-+		kunmap_atomic(addr);
-+		return;
-+	}
-+
-+	/* signal that we are done with the range */
-+	rcu_read_unlock();
++	return pfn_to_pfn_t(addr >> PAGE_SHIFT);
 +}
-+EXPORT_SYMBOL(kunmap_atomic_pfn_t);
+ #else
+ static inline bool __pfn_t_has_page(__pfn_t pfn)
+ {
+diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
+index 7f9a516f24de..42bcaf2b9311 100644
+--- a/include/linux/blkdev.h
++++ b/include/linux/blkdev.h
+@@ -1604,8 +1604,7 @@ struct block_device_operations {
+ 	int (*rw_page)(struct block_device *, sector_t, struct page *, int rw);
+ 	int (*ioctl) (struct block_device *, fmode_t, unsigned, unsigned long);
+ 	int (*compat_ioctl) (struct block_device *, fmode_t, unsigned, unsigned long);
+-	long (*direct_access)(struct block_device *, sector_t,
+-					void **, unsigned long *pfn, long size);
++	long (*direct_access)(struct block_device *, sector_t, __pfn_t *pfn, long size);
+ 	unsigned int (*check_events) (struct gendisk *disk,
+ 				      unsigned int clearing);
+ 	/* ->media_changed() is DEPRECATED, use ->check_events() instead */
+@@ -1623,8 +1622,8 @@ extern int __blkdev_driver_ioctl(struct block_device *, fmode_t, unsigned int,
+ extern int bdev_read_page(struct block_device *, sector_t, struct page *);
+ extern int bdev_write_page(struct block_device *, sector_t, struct page *,
+ 						struct writeback_control *);
+-extern long bdev_direct_access(struct block_device *, sector_t, void **addr,
+-						unsigned long *pfn, long size);
++extern long bdev_direct_access(struct block_device *, sector_t,
++		__pfn_t *pfn, long size);
+ #else /* CONFIG_BLOCK */
+ 
+ struct block_device;
 
