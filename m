@@ -1,34 +1,48 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v12 00/21] Re-introduce h8300 architecture
-Date: Tue, 12 May 2015 09:29:54 +0200
-Message-ID: <9302360.f2Sv7QXQxG@wuerfel>
-References: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp> <16018199.XO2Ye1J7R2@wuerfel> <87sib2pbsu.wl-ysato@users.sourceforge.jp>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH v2 08/23] gpio: remove gpiod_sysfs_set_active_low
+Date: Tue, 12 May 2015 10:27:03 +0200
+Message-ID: <CACRpkdaWs7P2iBn8uUhtaPBNFfaqNcyPM6h=Wr3pmWcc8HBPfA@mail.gmail.com>
+References: <1430752248-15401-1-git-send-email-johan@kernel.org>
+	<1430752248-15401-9-git-send-email-johan@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <87sib2pbsu.wl-ysato@users.sourceforge.jp>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Yoshinori Sato <ysato@users.sourceforge.jp>
-Cc: Guenter Roeck <linux@roeck-us.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <1430752248-15401-9-git-send-email-johan@kernel.org>
+Sender: linux-doc-owner@vger.kernel.org
+To: Johan Hovold <johan@kernel.org>
+Cc: Alexandre Courbot <gnurou@gmail.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, Harry Wei <harryxiyou@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, linux-kernel@zh-kernel.org, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 12 May 2015 15:09:05 Yoshinori Sato wrote:
-> > It would be better to do one of two things:
-> > 
-> > a) use the code from lib/checksum.c that is known to work well, and that
-> >    contains all the necessary exports. It seems that the h8300 is
-> >    almost an except copy of the generic code, it just misses a few
-> >    improvements that were done already in the kernel.
-> > 
-> > b) provide an optimized implementation written in assembly where necessary.
-> >    This can provide a significant performance improvement for TCP/IP
-> >    networking.
-> 
-> I think option a.
-> It was being written by an assembler before, so that was just left.
+On Mon, May 4, 2015 at 5:10 PM, Johan Hovold <johan@kernel.org> wrote:
 
-Ok, sounds good. You can always change this to b) later if you run into
-networking performance bottlenecks in the kernel.
+> Remove gpiod_sysfs_set_active_low (and gpio_sysfs_set_active_low) which
+> allowed code to change the polarity of a gpio line even after it had
+> been exported through sysfs.
+>
+> Drivers should not care, and generally does not know, about gpio-line
+> polarity which is a hardware feature that needs to be described by
+> firmware.
+>
+> It is currently possible to define gpio-line polarity in device-tree and
+> acpi firmware or using platform data. Userspace can also change the
+> polarity through sysfs.
+>
+> Note that drivers using the legacy gpio interface could still use
+> GPIOF_ACTIVE_LOW to change the polarity before exporting the gpio.
+>
+> There are no in-kernel users of this interface.
+>
+> Cc: Jonathan Corbet <corbet@lwn.net>
+> Cc: Harry Wei <harryxiyou@gmail.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: linux-doc@vger.kernel.org
+> Cc: linux-kernel@zh-kernel.org
+> Cc: linux-arch@vger.kernel.org
+> Signed-off-by: Johan Hovold <johan@kernel.org>
 
-	Arnd
+GOOD RIDDANCE.
+
+Patch applied.
+
+Yours,
+Linus Walleij
