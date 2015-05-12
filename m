@@ -1,209 +1,201 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v3 00/11] evacuate struct page from the block layer,
- introduce __pfn_t
-Date: Tue, 12 May 2015 00:29:28 -0400
-Message-ID: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v3 01/11] arch: introduce __pfn_t for persistenti/device
+ memory
+Date: Tue, 12 May 2015 00:29:34 -0400
+Message-ID: <20150512042934.11521.4062.stgit@dwillia2-desk3.amr.corp.intel.com>
+References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:2766 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752370AbbELEcN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 May 2015 00:32:13 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: Boaz Harrosh <boaz@plexistor.com>, Jan Kara <jack@suse.cz>, Mike Snitzer <snitzer@redhat.com>, Neil Brown <neilb@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Dave Hansen <dave.hansen@linux.intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Chris Mason <clm@fb.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, j.glisse@gmail.com, mingo@kernel.org, Alasdair Kergon <agk@redhat.com>, linux-arch@vger.kernel.org, linux-nvdimm@lists.01.org, hch@lst.de, mgorman@suse.de, Matthew Wilcox <willy@linux.intel.com>, Ross Zwisler <ross.zwisler@linux.intel.com>, riel@redhat.com, david@fromorbit.com, Tejun Heo <tj@kernel.org>, axboe@kernel.dk, Theodore Ts'o <tytso@mit.edu>, "Martin K. Petersen" <martin.petersen@oracle.com>, Julia Lawall <Julia.Lawall@lip6.fr>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-fsdevel@vger.kernel.org, akpm@l
+Cc: axboe@kernel.dk, linux-arch@vger.kernel.org, riel@redhat.com, linux-nvdimm@lists.01.org, david@fromorbit.com, hch@lst.de, linux-fsdevel@vger.kernel.org, mgorman@suse.de, j.glisse@gmail.com, "H. Peter Anvin" <hpa@zytor.com>, Tejun Heo <tj@kernel.org>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, mingo@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Changes since v2 [1]:
-[1]: https://lwn.net/Articles/643437/
+Introduce a type that encapsulates a page-frame-number that is
+optionally backed by memmap (struct page).  This type will be used in
+place of 'struct page *' instances in contexts where device-backed
+memory (usually persistent memory) is being referenced (scatterlists for
+drivers, biovecs for the block layer, etc).  The operations in those i/o
+paths that formerly required a 'struct page *' are to be converted to
+use __pfn_t aware equivalent helpers.  Otherwise, in the absence of
+persistent memory, there is no functional change and __pfn_t is an alias
+for a normal memory page.
 
-1/ Linus pointed out that comparing a __pfn_t value against PAGE_OFFSET
-was both inefficient, when PAGE_OFFSET is a large constant, and
-incorrect for archs that set PAGE_OFFSET to zero.  Instead, take
-advantage of the standard alignment of a 'struct page *' to store a set
-of flags.  In this patch set the only flag defined is PFN_DEV to
-indicate "this pfn originated from device memory".  A potential future
-flag is PFN_DEV_MAPPED if the device has arranged for an associated
-struct page for the __pfn_t.
+It turns out that while 'struct page' references are used broadly in the
+kernel I/O stacks the usage of 'struct page' based capabilities is very
+shallow for block-i/o.  It is only used for populating bio_vecs and
+scatterlists for the retrieval of dma addresses, and for temporary
+kernel mappings (kmap).  Aside from kmap, these usages can be trivially
+converted to operate on a pfn.
 
-2/ Fix DAX against pmem device disable/removal using
-kmap_atomic_pfn_t().  We can later exploit these annotations to protect
-against the "stray pointer problem" whereby a kernel bug in an unrelated
-part of the system causes inadvertent scribbling over pmem.
+Indeed, kmap_atomic() is more problematic as it uses mm infrastructure,
+via struct page, to setup and track temporary kernel mappings.  It would
+be unfortunate if the kmap infrastructure escaped its 32-bit/HIGHMEM
+bonds and leaked into 64-bit code.  Thankfully, it seems all that is
+needed here is to convert kmap_atomic() callers, that want to opt-in to
+supporting persistent memory, to use a new kmap_atomic_pfn_t().  Where
+kmap_atomic_pfn_t() is enabled to re-use the existing ioremap() mapping
+established by the driver for persistent memory.
 
-3/ Made the series easier to merge as it no longer causes compile errors
-by default for new usages of bv_page arriving in the next merge window.
+Note, that as far as conceptually understanding __pfn_t is concerned,
+'persistent memory' is really any address range in host memory not
+covered by memmap.  Contrast this with pure iomem that is on an mmio
+mapped bus like PCI and cannot be converted to a dma_addr_t by "pfn <<
+PAGE_SHIFT".
 
-4/ arch/x86/kernel/kmap.c => mm/pfn.c since it is generic functionality.
-
-5/ Updated the kmap_atomic() helpers in bio.h to use kmap_atomic_pfn_t()
-
-Incremental diffstat:
-
- arch/powerpc/sysdev/axonram.c      |  9 +++++--
- arch/x86/Kconfig                   |  2 +-
- arch/x86/kernel/Makefile           |  1 -
- block/bio.c                        |  4 +--
- block/blk-core.c                   |  2 +-
- drivers/block/brd.c                |  3 +--
- drivers/block/pmem.c               |  9 ++++---
- drivers/s390/block/dcssblk.c       | 11 +++++---
- fs/block_dev.c                     |  4 +--
- fs/dax.c                           | 57 ++++++++++++++++++++++++++++++++--------
- include/asm-generic/pfn.h          | 73 ++++++++++++++++++++++++++++++++++------------------
- include/linux/bio.h                | 14 +++++-----
- include/linux/blk_types.h          |  2 +-
- include/linux/blkdev.h             |  7 +++--
- init/Kconfig                       | 12 ++++-----
- mm/Makefile                        |  1 +
- arch/x86/kernel/kmap.c => mm/pfn.c |  0
- 17 files changed, 140 insertions(+), 71 deletions(-)
- rename arch/x86/kernel/kmap.c => mm/pfn.c (100%)
-
-While we wait for the debate [2] to settle about what to do about i/o
-paths that ostensibly require struct page, these patches enable a
-stacked/tiered storage driver to manage pmem fronting slower storage
-media.
-
-[2]: https://lists.01.org/pipermail/linux-nvdimm/2015-May/000727.html
-
+Cc: H. Peter Anvin <hpa@zytor.com>
+Cc: Jens Axboe <axboe@kernel.dk>
+Cc: Tejun Heo <tj@kernel.org>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
-
-Dan Williams (10):
-      arch: introduce __pfn_t for persistenti/device memory
-      block: add helpers for accessing a bio_vec page
-      block: convert .bv_page to .bv_pfn bio_vec
-      dma-mapping: allow archs to optionally specify a ->map_pfn() operation
-      scatterlist: use sg_phys()
-      x86: support dma_map_pfn()
-      x86: support kmap_atomic_pfn_t() for persistent memory
-      block: convert kmap helpers to kmap_atomic_pfn_t()
-      dax: convert to __pfn_t
-      block: base support for pfn i/o
-
-Matthew Wilcox (1):
-      scatterlist: support "page-less" (__pfn_t only) entries
-
-
- Documentation/block/biodoc.txt               |    4 +
- arch/Kconfig                                 |    6 ++
- arch/arm/mm/dma-mapping.c                    |    2 -
- arch/microblaze/kernel/dma.c                 |    2 -
- arch/powerpc/sysdev/axonram.c                |   13 ++-
- arch/x86/Kconfig                             |    7 ++
- arch/x86/kernel/amd_gart_64.c                |   22 +++++-
- arch/x86/kernel/pci-nommu.c                  |   22 +++++-
- arch/x86/kernel/pci-swiotlb.c                |    4 +
- arch/x86/pci/sta2x11-fixup.c                 |    4 +
- arch/x86/xen/pci-swiotlb-xen.c               |    4 +
- block/bio-integrity.c                        |    8 +-
- block/bio.c                                  |   82 +++++++++++++++-------
- block/blk-core.c                             |   13 +++
- block/blk-integrity.c                        |    7 +-
- block/blk-lib.c                              |    2 -
- block/blk-merge.c                            |   15 ++--
- block/bounce.c                               |   26 +++----
- drivers/block/aoe/aoecmd.c                   |    8 +-
- drivers/block/brd.c                          |    7 +-
- drivers/block/drbd/drbd_bitmap.c             |    5 +
- drivers/block/drbd/drbd_main.c               |    6 +-
- drivers/block/drbd/drbd_receiver.c           |    4 +
- drivers/block/drbd/drbd_worker.c             |    3 +
- drivers/block/floppy.c                       |    6 +-
- drivers/block/loop.c                         |   13 ++-
- drivers/block/nbd.c                          |    8 +-
- drivers/block/nvme-core.c                    |    2 -
- drivers/block/pktcdvd.c                      |   11 ++-
- drivers/block/pmem.c                         |   19 ++++-
- drivers/block/ps3disk.c                      |    2 -
- drivers/block/ps3vram.c                      |    2 -
- drivers/block/rbd.c                          |    2 -
- drivers/block/rsxx/dma.c                     |    2 -
- drivers/block/umem.c                         |    2 -
- drivers/block/zram/zram_drv.c                |   10 +--
- drivers/dma/ste_dma40.c                      |    5 -
- drivers/iommu/amd_iommu.c                    |   21 ++++--
- drivers/iommu/intel-iommu.c                  |   26 +++++--
- drivers/iommu/iommu.c                        |    2 -
- drivers/md/bcache/btree.c                    |    4 +
- drivers/md/bcache/debug.c                    |    6 +-
- drivers/md/bcache/movinggc.c                 |    2 -
- drivers/md/bcache/request.c                  |    6 +-
- drivers/md/bcache/super.c                    |   10 +--
- drivers/md/bcache/util.c                     |    5 +
- drivers/md/bcache/writeback.c                |    2 -
- drivers/md/dm-crypt.c                        |   12 ++-
- drivers/md/dm-io.c                           |    2 -
- drivers/md/dm-log-writes.c                   |   14 ++--
- drivers/md/dm-verity.c                       |    2 -
- drivers/md/raid1.c                           |   50 +++++++------
- drivers/md/raid10.c                          |   38 +++++-----
- drivers/md/raid5.c                           |    6 +-
- drivers/mmc/card/queue.c                     |    4 +
- drivers/s390/block/dasd_diag.c               |    2 -
- drivers/s390/block/dasd_eckd.c               |   14 ++--
- drivers/s390/block/dasd_fba.c                |    6 +-
- drivers/s390/block/dcssblk.c                 |   15 +++-
- drivers/s390/block/scm_blk.c                 |    2 -
- drivers/s390/block/scm_blk_cluster.c         |    2 -
- drivers/s390/block/xpram.c                   |    2 -
- drivers/scsi/mpt2sas/mpt2sas_transport.c     |    6 +-
- drivers/scsi/mpt3sas/mpt3sas_transport.c     |    6 +-
- drivers/scsi/sd_dif.c                        |    4 +
- drivers/staging/android/ion/ion_chunk_heap.c |    4 +
- drivers/staging/lustre/lustre/llite/lloop.c  |    2 -
- drivers/target/target_core_file.c            |    4 +
- drivers/xen/biomerge.c                       |    4 +
- drivers/xen/swiotlb-xen.c                    |   29 +++++---
- fs/9p/vfs_addr.c                             |    2 -
- fs/block_dev.c                               |    4 +
- fs/btrfs/check-integrity.c                   |    6 +-
- fs/btrfs/compression.c                       |   12 ++-
- fs/btrfs/disk-io.c                           |    5 +
- fs/btrfs/extent_io.c                         |    8 +-
- fs/btrfs/file-item.c                         |    8 +-
- fs/btrfs/inode.c                             |   19 +++--
- fs/btrfs/raid56.c                            |    4 +
- fs/btrfs/volumes.c                           |    2 -
- fs/buffer.c                                  |    4 +
- fs/dax.c                                     |   62 +++++++++++++---
- fs/direct-io.c                               |    2 -
- fs/exofs/ore.c                               |    4 +
- fs/exofs/ore_raid.c                          |    2 -
- fs/ext4/page-io.c                            |    2 -
- fs/ext4/readpage.c                           |    4 +
- fs/f2fs/data.c                               |    4 +
- fs/f2fs/segment.c                            |    2 -
- fs/gfs2/lops.c                               |    4 +
- fs/jfs/jfs_logmgr.c                          |    4 +
- fs/logfs/dev_bdev.c                          |   10 +--
- fs/mpage.c                                   |    2 -
- fs/splice.c                                  |    2 -
- include/asm-generic/dma-mapping-common.h     |   30 ++++++++
- include/asm-generic/memory_model.h           |    1 
- include/asm-generic/pfn.h                    |   95 +++++++++++++++++++++++++
- include/asm-generic/scatterlist.h            |   10 +++
- include/crypto/scatterwalk.h                 |   10 +++
- include/linux/bio.h                          |   28 ++++---
- include/linux/blk_types.h                    |   31 ++++++++
- include/linux/blkdev.h                       |    9 +-
- include/linux/dma-debug.h                    |   23 +++++-
- include/linux/dma-mapping.h                  |    8 ++
- include/linux/highmem.h                      |   23 ++++++
- include/linux/mm.h                           |    1 
- include/linux/scatterlist.h                  |   91 ++++++++++++++++++++++--
- include/linux/swiotlb.h                      |    4 +
- init/Kconfig                                 |   13 +++
- kernel/power/block_io.c                      |    2 -
- lib/dma-debug.c                              |   10 ++-
- lib/iov_iter.c                               |   22 +++---
- lib/swiotlb.c                                |   20 ++++-
- mm/Makefile                                  |    1 
- mm/page_io.c                                 |   10 +--
- mm/pfn.c                                     |   98 ++++++++++++++++++++++++++
- net/ceph/messenger.c                         |    2 -
- 117 files changed, 1003 insertions(+), 391 deletions(-)
+ include/asm-generic/memory_model.h |    1 
+ include/asm-generic/pfn.h          |   84 ++++++++++++++++++++++++++++++++++++
+ include/linux/mm.h                 |    1 
+ init/Kconfig                       |   13 ++++++
+ 4 files changed, 98 insertions(+), 1 deletion(-)
  create mode 100644 include/asm-generic/pfn.h
- create mode 100644 mm/pfn.c
+
+diff --git a/include/asm-generic/memory_model.h b/include/asm-generic/memory_model.h
+index 14909b0b9cae..1b0ae21fd8ff 100644
+--- a/include/asm-generic/memory_model.h
++++ b/include/asm-generic/memory_model.h
+@@ -70,7 +70,6 @@
+ #endif /* CONFIG_FLATMEM/DISCONTIGMEM/SPARSEMEM */
+ 
+ #define page_to_pfn __page_to_pfn
+-#define pfn_to_page __pfn_to_page
+ 
+ #endif /* __ASSEMBLY__ */
+ 
+diff --git a/include/asm-generic/pfn.h b/include/asm-generic/pfn.h
+new file mode 100644
+index 000000000000..ee1363e3c67c
+--- /dev/null
++++ b/include/asm-generic/pfn.h
+@@ -0,0 +1,84 @@
++#ifndef __ASM_PFN_H
++#define __ASM_PFN_H
++
++/*
++ * Default pfn to physical address conversion, like most arch
++ * page_to_phys() implementations this resolves to a dma_addr_t as it
++ * should be the size needed for a device to reference this address.
++ */
++#ifndef __pfn_to_phys
++#define __pfn_to_phys(pfn)      ((dma_addr_t)(pfn) << PAGE_SHIFT)
++#endif
++
++static inline struct page *pfn_to_page(unsigned long pfn)
++{
++	return __pfn_to_page(pfn);
++}
++
++/*
++ * __pfn_t: encapsulates a page-frame number that is optionally backed
++ * by memmap (struct page).  This type will be used in place of a
++ * 'struct page *' instance in contexts where unmapped memory (usually
++ * persistent memory) is being referenced (scatterlists for drivers,
++ * biovecs for the block layer, etc).  Whether a __pfn_t has a struct
++ * page backing is indicated by flags in the low bits of @data.
++ */
++typedef struct {
++	union {
++		unsigned long data;
++		struct page *page;
++	};
++} __pfn_t;
++
++enum {
++#if BITS_PER_LONG == 64
++	PFN_SHIFT = 3,
++#else
++	PFN_SHIFT = 2,
++#endif
++	PFN_MASK = (1 << PFN_SHIFT) - 1,
++	/* device-pfn not covered by memmap */
++	PFN_DEV = (1 << 0),
++};
++
++#ifdef CONFIG_DEV_PFN
++static inline bool __pfn_t_has_page(__pfn_t pfn)
++{
++	return (pfn.data & PFN_MASK) == 0;
++}
++
++#else
++static inline bool __pfn_t_has_page(__pfn_t pfn)
++{
++	return true;
++}
++#endif
++
++static inline struct page *__pfn_t_to_page(__pfn_t pfn)
++{
++	if (!__pfn_t_has_page(pfn))
++		return NULL;
++	return pfn.page;
++}
++
++static inline unsigned long __pfn_t_to_pfn(__pfn_t pfn)
++{
++	if (__pfn_t_has_page(pfn))
++		return page_to_pfn(pfn.page);
++	return pfn.data >> PFN_SHIFT;
++}
++
++static inline dma_addr_t __pfn_t_to_phys(__pfn_t pfn)
++{
++	if (!__pfn_t_has_page(pfn))
++		return __pfn_to_phys(__pfn_t_to_pfn(pfn));
++	return __pfn_to_phys(page_to_pfn(pfn.page));
++}
++
++static inline __pfn_t page_to_pfn_t(struct page *page)
++{
++	__pfn_t pfn = { .page = page };
++
++	return pfn;
++}
++#endif /* __ASM_PFN_H */
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 0755b9fd03a7..9d35cff41c12 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -52,6 +52,7 @@ extern int sysctl_legacy_va_layout;
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/processor.h>
++#include <asm-generic/pfn.h>
+ 
+ #ifndef __pa_symbol
+ #define __pa_symbol(x)  __pa(RELOC_HIDE((unsigned long)(x), 0))
+diff --git a/init/Kconfig b/init/Kconfig
+index dc24dec60232..b5b8a6ed0d97 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1764,6 +1764,19 @@ config PROFILING
+ 	  Say Y here to enable the extended profiling support mechanisms used
+ 	  by profilers such as OProfile.
+ 
++config DEV_PFN
++	default n
++	bool "Support for device provided (pmem, graphics, etc) memory" if EXPERT
++	help
++	  Say Y here to enable I/O to/from device provided memory,
++	  i.e.  reference memory that is not mapped.  This is usually
++	  the case if you have large quantities of persistent memory
++	  relative to DRAM.  Enabling this option may increase the
++	  kernel size by a few kilobytes as it instructs the kernel
++	  that a __pfn_t may reference unmapped memory.  Disabling
++	  this option instructs the kernel that a __pfn_t always
++	  references mapped platform memory.
++
+ #
+ # Place an empty function call at each tracepoint site. Can be
+ # dynamically changed for a probe function.
