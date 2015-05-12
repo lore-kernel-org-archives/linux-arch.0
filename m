@@ -1,430 +1,400 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v3 10/11] dax: convert to __pfn_t
-Date: Tue, 12 May 2015 00:30:23 -0400
-Message-ID: <20150512043022.11521.85490.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v3 03/11] block: convert .bv_page to .bv_pfn bio_vec
+Date: Tue, 12 May 2015 00:29:45 -0400
+Message-ID: <20150512042945.11521.33852.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga11.intel.com ([192.55.52.93]:63921 "EHLO mga11.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752470AbbELEc1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 May 2015 00:32:27 -0400
 In-Reply-To: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: axboe@kernel.dk, Boaz Harrosh <boaz@plexistor.com>, riel@redhat.com, akpm@linux-foundation.org, j.glisse@gmail.com, linux-nvdimm@lists.01.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, hch@lst.de, linux-fsdevel@vger.kernel.org, Paul Mackerras <paulus@samba.org>, mgorman@suse.de, david@fromorbit.com, linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Matthew Wilcox <willy@linux.intel.com>, Ross Zwisler <ross.zwisler@linux.intel.com>, mingo@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: axboe@kernel.dk, linux-arch@vger.kernel.org, riel@redhat.com, linux-nvdimm@lists.01.org, Dave Hansen <dave.hansen@linux.intel.com>, david@fromorbit.com, mingo@kernel.org, Julia Lawall <Julia.Lawall@lip6.fr>, mgorman@suse.de, j.glisse@gmail.com, linux-fsdevel@vger.kernel.org, Matthew Wilcox <willy@linux.intel.com>, akpm@linux-foundation.org, hch@lst.de
 
-The primary source for non-page-backed page-frames to enter the system
-is via the pmem driver's ->direct_access() method.  The pfns returned by
-the top-level bdev_direct_access() may be passed to any other subsystem
-in the kernel and those sub-systems either need to assume that the pfn
-is page backed (CONFIG_DEV_PFN=n) or be prepared to handle non-page
-backed case (CONFIG_DEV_PFN=y).  Currently the pfns returned by
-->direct_access() are only ever used by vm_insert_mixed() which does not
-care if the pfn is mapped.  As we go to add more usages of these pfns
-add the type-safety of __pfn_t.
+Carry an __pfn_t in a bio_vec rather than a 'struct page *' in support
+of allowing a bio to reference unmapped (not struct page backed)
+persistent memory.
 
-This also simplifies the calling convention of ->direct_access() by not
-returning the virtual address in the same call.  This annotates cases
-where the kernel is directly accessing pmem outside the driver, and
-makes the valid lifetime of the reference explicit.  This property may
-be useful in the future for invalidating mappings to pmem, but for now
-it provides some protection against the "pmem disable vs still-in-use"
-race.
+This also fixes up the macros and static initializers that we were not
+automatically converted by the Coccinelle script that introduced the
+bvec_page() and bvec_set_page() helpers.
 
-Cc: Matthew Wilcox <willy@linux.intel.com>
-Cc: Ross Zwisler <ross.zwisler@linux.intel.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
+If CONFIG_DEV_PFN=n this is functionally equivalent to the status quo as
+the __pfn_t helpers can assume that a __pfn_t always has a corresponding
+struct page.
+
 Cc: Jens Axboe <axboe@kernel.dk>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Boaz Harrosh <boaz@plexistor.com>
+Cc: Matthew Wilcox <willy@linux.intel.com>
+Cc: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: Julia Lawall <Julia.Lawall@lip6.fr>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/powerpc/sysdev/axonram.c |   11 +++++--
- drivers/block/brd.c           |    5 +--
- drivers/block/pmem.c          |   11 +++++--
- drivers/s390/block/dcssblk.c  |   13 ++++++---
- fs/block_dev.c                |    4 +--
- fs/dax.c                      |   62 ++++++++++++++++++++++++++++++++---------
- include/asm-generic/pfn.h     |   11 +++++++
- include/linux/blkdev.h        |    7 ++---
- 8 files changed, 91 insertions(+), 33 deletions(-)
+ Documentation/block/biodoc.txt |    4 ++--
+ block/blk-integrity.c          |    4 ++--
+ block/blk-merge.c              |    6 +++---
+ block/bounce.c                 |    2 +-
+ drivers/md/bcache/btree.c      |    2 +-
+ include/linux/bio.h            |   23 ++++++++++++-----------
+ include/linux/blk_types.h      |   24 +++++++++++++++++++++---
+ lib/iov_iter.c                 |   22 +++++++++++-----------
+ mm/page_io.c                   |    4 ++--
+ 9 files changed, 55 insertions(+), 36 deletions(-)
 
-diff --git a/arch/powerpc/sysdev/axonram.c b/arch/powerpc/sysdev/axonram.c
-index 9bb5da7f2c0c..91c40a300797 100644
---- a/arch/powerpc/sysdev/axonram.c
-+++ b/arch/powerpc/sysdev/axonram.c
-@@ -139,22 +139,27 @@ axon_ram_make_request(struct request_queue *queue, struct bio *bio)
-  * axon_ram_direct_access - direct_access() method for block device
-  * @device, @sector, @data: see block_device_operations method
+diff --git a/Documentation/block/biodoc.txt b/Documentation/block/biodoc.txt
+index fd12c0d835fd..3a10fd91e890 100644
+--- a/Documentation/block/biodoc.txt
++++ b/Documentation/block/biodoc.txt
+@@ -412,7 +412,7 @@ mapped to bio structures.
+ 2.2 The bio struct
+ 
+ The bio structure uses a vector representation pointing to an array of tuples
+-of <page, offset, len> to describe the i/o buffer, and has various other
++of <pfn, offset, len> to describe the i/o buffer, and has various other
+ fields describing i/o parameters and state that needs to be maintained for
+ performing the i/o.
+ 
+@@ -420,7 +420,7 @@ Notice that this representation means that a bio has no virtual address
+ mapping at all (unlike buffer heads).
+ 
+ struct bio_vec {
+-       struct page     *bv_page;
++       __pfn_t         bv_pfn;
+        unsigned short  bv_len;
+        unsigned short  bv_offset;
+ };
+diff --git a/block/blk-integrity.c b/block/blk-integrity.c
+index 0458f31f075a..351198fbda3c 100644
+--- a/block/blk-integrity.c
++++ b/block/blk-integrity.c
+@@ -43,7 +43,7 @@ static const char *bi_unsupported_name = "unsupported";
   */
-+#ifdef CONFIG_DEV_PFN
- static long
- axon_ram_direct_access(struct block_device *device, sector_t sector,
--		       void **kaddr, unsigned long *pfn, long size)
-+		__pfn_t *pfn, long size)
+ int blk_rq_count_integrity_sg(struct request_queue *q, struct bio *bio)
  {
- 	struct axon_ram_bank *bank = device->bd_disk->private_data;
- 	loff_t offset = (loff_t)sector << AXON_RAM_SECTOR_SHIFT;
-+	void *kaddr;
- 
--	*kaddr = (void *)(bank->ph_addr + offset);
--	*pfn = virt_to_phys(*kaddr) >> PAGE_SHIFT;
-+	kaddr = (void *)(bank->ph_addr + offset);
-+	*pfn = phys_to_pfn_t(virt_to_phys(*kaddr));
- 
- 	return bank->size - offset;
- }
-+#endif
- 
- static const struct block_device_operations axon_ram_devops = {
- 	.owner		= THIS_MODULE,
-+#ifdef CONFIG_DEV_PFN
- 	.direct_access	= axon_ram_direct_access
-+#endif
- };
- 
- /**
-diff --git a/drivers/block/brd.c b/drivers/block/brd.c
-index 115c6cf9cb43..3be31a2aed20 100644
---- a/drivers/block/brd.c
-+++ b/drivers/block/brd.c
-@@ -371,7 +371,7 @@ static int brd_rw_page(struct block_device *bdev, sector_t sector,
- 
- #ifdef CONFIG_BLK_DEV_RAM_DAX
- static long brd_direct_access(struct block_device *bdev, sector_t sector,
--			void **kaddr, unsigned long *pfn, long size)
-+		__pfn_t *pfn, long size)
+-	struct bio_vec iv, ivprv = { NULL };
++	struct bio_vec iv, ivprv = BIO_VEC_INIT(ivprv);
+ 	unsigned int segments = 0;
+ 	unsigned int seg_size = 0;
+ 	struct bvec_iter iter;
+@@ -89,7 +89,7 @@ EXPORT_SYMBOL(blk_rq_count_integrity_sg);
+ int blk_rq_map_integrity_sg(struct request_queue *q, struct bio *bio,
+ 			    struct scatterlist *sglist)
  {
- 	struct brd_device *brd = bdev->bd_disk->private_data;
- 	struct page *page;
-@@ -381,8 +381,7 @@ static long brd_direct_access(struct block_device *bdev, sector_t sector,
- 	page = brd_insert_page(brd, sector);
- 	if (!page)
- 		return -ENOSPC;
--	*kaddr = page_address(page);
--	*pfn = page_to_pfn(page);
-+	*pfn = page_to_pfn_t(page);
- 
- 	/*
- 	 * TODO: If size > PAGE_SIZE, we could look to see if the next page in
-diff --git a/drivers/block/pmem.c b/drivers/block/pmem.c
-index 2a847651f8de..0cf34fba308c 100644
---- a/drivers/block/pmem.c
-+++ b/drivers/block/pmem.c
-@@ -98,8 +98,9 @@ static int pmem_rw_page(struct block_device *bdev, sector_t sector,
- 	return 0;
- }
- 
--static long pmem_direct_access(struct block_device *bdev, sector_t sector,
--			      void **kaddr, unsigned long *pfn, long size)
-+#ifdef CONFIG_DEV_PFN
-+static long pmem_direct_access(struct block_device *bdev,
-+		sector_t sector, __pfn_t *pfn, long size)
+-	struct bio_vec iv, ivprv = { NULL };
++	struct bio_vec iv, ivprv = BIO_VEC_INIT(ivprv);
+ 	struct scatterlist *sg = NULL;
+ 	unsigned int segments = 0;
+ 	struct bvec_iter iter;
+diff --git a/block/blk-merge.c b/block/blk-merge.c
+index 47ceefacd320..218ad1e57a49 100644
+--- a/block/blk-merge.c
++++ b/block/blk-merge.c
+@@ -13,7 +13,7 @@ static unsigned int __blk_recalc_rq_segments(struct request_queue *q,
+ 					     struct bio *bio,
+ 					     bool no_sg_merge)
  {
- 	struct pmem_device *pmem = bdev->bd_disk->private_data;
- 	size_t offset = sector << 9;
-@@ -107,16 +108,18 @@ static long pmem_direct_access(struct block_device *bdev, sector_t sector,
- 	if (!pmem)
- 		return -ENODEV;
- 
--	*kaddr = pmem->virt_addr + offset;
--	*pfn = (pmem->phys_addr + offset) >> PAGE_SHIFT;
-+	*pfn = phys_to_pfn_t(pmem->phys_addr + offset);
- 
- 	return pmem->size - offset;
- }
-+#endif
- 
- static const struct block_device_operations pmem_fops = {
- 	.owner =		THIS_MODULE,
- 	.rw_page =		pmem_rw_page,
-+#ifdef CONFIG_DEV_PFN
- 	.direct_access =	pmem_direct_access,
-+#endif
- };
- 
- static struct pmem_device *pmem_alloc(struct device *dev, struct resource *res)
-diff --git a/drivers/s390/block/dcssblk.c b/drivers/s390/block/dcssblk.c
-index 5da8515b8fb9..41031e715152 100644
---- a/drivers/s390/block/dcssblk.c
-+++ b/drivers/s390/block/dcssblk.c
-@@ -29,7 +29,7 @@ static int dcssblk_open(struct block_device *bdev, fmode_t mode);
- static void dcssblk_release(struct gendisk *disk, fmode_t mode);
- static void dcssblk_make_request(struct request_queue *q, struct bio *bio);
- static long dcssblk_direct_access(struct block_device *bdev, sector_t secnum,
--				 void **kaddr, unsigned long *pfn, long size);
-+		__pfn_t *pfn, long size);
- 
- static char dcssblk_segments[DCSSBLK_PARM_LEN] = "\0";
- 
-@@ -38,7 +38,9 @@ static const struct block_device_operations dcssblk_devops = {
- 	.owner   	= THIS_MODULE,
- 	.open    	= dcssblk_open,
- 	.release 	= dcssblk_release,
-+#ifdef CONFIG_DEV_PFN
- 	.direct_access 	= dcssblk_direct_access,
-+#endif
- };
- 
- struct dcssblk_dev_info {
-@@ -877,23 +879,26 @@ fail:
- 	bio_io_error(bio);
- }
- 
-+#ifdef CONFIG_DEV_PFN
- static long
- dcssblk_direct_access (struct block_device *bdev, sector_t secnum,
--			void **kaddr, unsigned long *pfn, long size)
-+		__pfn_t *pfn, long size)
+-	struct bio_vec bv, bvprv = { NULL };
++	struct bio_vec bv, bvprv = BIO_VEC_INIT(bvprv);
+ 	int cluster, high, highprv = 1;
+ 	unsigned int seg_size, nr_phys_segs;
+ 	struct bio *fbio, *bbio;
+@@ -123,7 +123,7 @@ EXPORT_SYMBOL(blk_recount_segments);
+ static int blk_phys_contig_segment(struct request_queue *q, struct bio *bio,
+ 				   struct bio *nxt)
  {
- 	struct dcssblk_dev_info *dev_info;
- 	unsigned long offset, dev_sz;
-+	void *kaddr;
+-	struct bio_vec end_bv = { NULL }, nxt_bv;
++	struct bio_vec end_bv = BIO_VEC_INIT(end_bv), nxt_bv;
+ 	struct bvec_iter iter;
  
- 	dev_info = bdev->bd_disk->private_data;
- 	if (!dev_info)
- 		return -ENODEV;
- 	dev_sz = dev_info->end - dev_info->start;
- 	offset = secnum * 512;
--	*kaddr = (void *) (dev_info->start + offset);
--	*pfn = virt_to_phys(*kaddr) >> PAGE_SHIFT;
-+	kaddr = (void *) (dev_info->start + offset);
-+	*pfn = phys_to_pfn_t(virt_to_phys(*kaddr));
+ 	if (!blk_queue_cluster(q))
+@@ -202,7 +202,7 @@ static int __blk_bios_map_sg(struct request_queue *q, struct bio *bio,
+ 			     struct scatterlist *sglist,
+ 			     struct scatterlist **sg)
+ {
+-	struct bio_vec bvec, bvprv = { NULL };
++	struct bio_vec bvec, bvprv = BIO_VEC_INIT(bvprv);
+ 	struct bvec_iter iter;
+ 	int nsegs, cluster;
  
- 	return dev_sz - offset;
- }
-+#endif
+diff --git a/block/bounce.c b/block/bounce.c
+index 0390e44d6e1b..4a3098067c81 100644
+--- a/block/bounce.c
++++ b/block/bounce.c
+@@ -64,7 +64,7 @@ static void bounce_copy_vec(struct bio_vec *to, unsigned char *vfrom)
+ #else /* CONFIG_HIGHMEM */
  
- static void
- dcssblk_check_params(void)
-diff --git a/fs/block_dev.c b/fs/block_dev.c
-index c7e4163ede87..100749b51524 100644
---- a/fs/block_dev.c
-+++ b/fs/block_dev.c
-@@ -437,7 +437,7 @@ EXPORT_SYMBOL_GPL(bdev_write_page);
-  * accessible at this address.
+ #define bounce_copy_vec(to, vfrom)	\
+-	memcpy(page_address((to)->bv_page) + (to)->bv_offset, vfrom, (to)->bv_len)
++	memcpy(page_address(bvec_page(to)) + (to)->bv_offset, vfrom, (to)->bv_len)
+ 
+ #endif /* CONFIG_HIGHMEM */
+ 
+diff --git a/drivers/md/bcache/btree.c b/drivers/md/bcache/btree.c
+index 2e76e8b62902..36bbe29a806b 100644
+--- a/drivers/md/bcache/btree.c
++++ b/drivers/md/bcache/btree.c
+@@ -426,7 +426,7 @@ static void do_btree_node_write(struct btree *b)
+ 		void *base = (void *) ((unsigned long) i & ~(PAGE_SIZE - 1));
+ 
+ 		bio_for_each_segment_all(bv, b->bio, j)
+-			memcpy(page_address(bv->bv_page),
++			memcpy(page_address(bvec_page(bv)),
+ 			       base + j * PAGE_SIZE, PAGE_SIZE);
+ 
+ 		bch_submit_bbio(b->bio, b->c, &k.key, 0);
+diff --git a/include/linux/bio.h b/include/linux/bio.h
+index da3a127c9958..a569e6ea1cd2 100644
+--- a/include/linux/bio.h
++++ b/include/linux/bio.h
+@@ -63,8 +63,8 @@
   */
- long bdev_direct_access(struct block_device *bdev, sector_t sector,
--			void **addr, unsigned long *pfn, long size)
-+			__pfn_t *pfn, long size)
- {
- 	long avail;
- 	const struct block_device_operations *ops = bdev->bd_disk->fops;
-@@ -452,7 +452,7 @@ long bdev_direct_access(struct block_device *bdev, sector_t sector,
- 	sector += get_start_sect(bdev);
- 	if (sector % (PAGE_SIZE / 512))
- 		return -EINVAL;
--	avail = ops->direct_access(bdev, sector, addr, pfn, size);
-+	avail = ops->direct_access(bdev, sector, pfn, size);
- 	if (!avail)
- 		return -ERANGE;
- 	return min(avail, size);
-diff --git a/fs/dax.c b/fs/dax.c
-index 6f65f00e58ec..7d302bfff48a 100644
---- a/fs/dax.c
-+++ b/fs/dax.c
-@@ -35,13 +35,16 @@ int dax_clear_blocks(struct inode *inode, sector_t block, long size)
- 	might_sleep();
- 	do {
- 		void *addr;
--		unsigned long pfn;
-+		__pfn_t pfn;
- 		long count;
+ #define __bvec_iter_bvec(bvec, iter)	(&(bvec)[(iter).bi_idx])
  
--		count = bdev_direct_access(bdev, sector, &addr, &pfn, size);
-+		count = bdev_direct_access(bdev, sector, &pfn, size);
- 		if (count < 0)
- 			return count;
- 		BUG_ON(size < count);
-+		addr = kmap_atomic_pfn_t(pfn);
-+		if (!addr)
-+			return -EIO;
- 		while (count > 0) {
- 			unsigned pgsz = PAGE_SIZE - offset_in_page(addr);
- 			if (pgsz > count)
-@@ -57,17 +60,17 @@ int dax_clear_blocks(struct inode *inode, sector_t block, long size)
- 			sector += pgsz / 512;
- 			cond_resched();
- 		}
-+		kunmap_atomic_pfn_t(addr);
- 	} while (size);
+-#define bvec_iter_page(bvec, iter)				\
+-	(__bvec_iter_bvec((bvec), (iter))->bv_page)
++#define bvec_iter_pfn(bvec, iter)				\
++	(__bvec_iter_bvec((bvec), (iter))->bv_pfn)
  
- 	return 0;
- }
- EXPORT_SYMBOL_GPL(dax_clear_blocks);
+ #define bvec_iter_len(bvec, iter)				\
+ 	min((iter).bi_size,					\
+@@ -75,7 +75,7 @@
  
--static long dax_get_addr(struct buffer_head *bh, void **addr, unsigned blkbits)
-+static long dax_get_pfn(struct buffer_head *bh, __pfn_t *pfn, unsigned blkbits)
- {
--	unsigned long pfn;
- 	sector_t sector = bh->b_blocknr << (blkbits - 9);
--	return bdev_direct_access(bh->b_bdev, sector, addr, &pfn, bh->b_size);
-+	return bdev_direct_access(bh->b_bdev, sector, pfn, bh->b_size);
- }
+ #define bvec_iter_bvec(bvec, iter)				\
+ ((struct bio_vec) {						\
+-	.bv_page	= bvec_iter_page((bvec), (iter)),	\
++	.bv_pfn		= bvec_iter_pfn((bvec), (iter)),	\
+ 	.bv_len		= bvec_iter_len((bvec), (iter)),	\
+ 	.bv_offset	= bvec_iter_offset((bvec), (iter)),	\
+ })
+@@ -83,14 +83,15 @@
+ #define bio_iter_iovec(bio, iter)				\
+ 	bvec_iter_bvec((bio)->bi_io_vec, (iter))
  
- static void dax_new_buf(void *addr, unsigned size, unsigned first, loff_t pos,
-@@ -106,7 +109,8 @@ static ssize_t dax_io(struct inode *inode, struct iov_iter *iter,
- 	loff_t pos = start;
- 	loff_t max = start;
- 	loff_t bh_max = start;
--	void *addr;
-+	void *addr = NULL, *kmap = NULL;
-+	__pfn_t pfn;
- 	bool hole = false;
+-#define bio_iter_page(bio, iter)				\
+-	bvec_iter_page((bio)->bi_io_vec, (iter))
++#define bio_iter_pfn(bio, iter)				\
++	bvec_iter_pfn((bio)->bi_io_vec, (iter))
+ #define bio_iter_len(bio, iter)					\
+ 	bvec_iter_len((bio)->bi_io_vec, (iter))
+ #define bio_iter_offset(bio, iter)				\
+ 	bvec_iter_offset((bio)->bi_io_vec, (iter))
  
- 	if (iov_iter_rw(iter) != WRITE)
-@@ -142,9 +146,19 @@ static ssize_t dax_io(struct inode *inode, struct iov_iter *iter,
- 				addr = NULL;
- 				size = bh->b_size - first;
- 			} else {
--				retval = dax_get_addr(bh, &addr, blkbits);
-+				if (kmap) {
-+					kunmap_atomic_pfn_t(kmap);
-+					kmap = NULL;
-+				}
-+				retval = dax_get_pfn(bh, &pfn, blkbits);
- 				if (retval < 0)
- 					break;
-+				kmap = kmap_atomic_pfn_t(pfn);
-+				if (!kmap) {
-+					retval = -EIO;
-+					break;
-+				}
-+				addr = kmap;
- 				if (buffer_unwritten(bh) || buffer_new(bh))
- 					dax_new_buf(addr, retval, first, pos,
- 									end);
-@@ -168,6 +182,9 @@ static ssize_t dax_io(struct inode *inode, struct iov_iter *iter,
- 		addr += len;
- 	}
+-#define bio_page(bio)		bio_iter_page((bio), (bio)->bi_iter)
++#define bio_pfn(bio)		bio_iter_pfn((bio), (bio)->bi_iter)
++#define bio_page(bio)		__pfn_t_to_page(bio_pfn(bio))
+ #define bio_offset(bio)		bio_iter_offset((bio), (bio)->bi_iter)
+ #define bio_iovec(bio)		bio_iter_iovec((bio), (bio)->bi_iter)
  
-+	if (kmap)
-+		kunmap_atomic_pfn_t(kmap);
-+
- 	return (pos == start) ? retval : pos - start;
- }
+@@ -150,8 +151,8 @@ static inline void *bio_data(struct bio *bio)
+ /*
+  * will die
+  */
+-#define bio_to_phys(bio)	(page_to_phys(bio_page((bio))) + (unsigned long) bio_offset((bio)))
+-#define bvec_to_phys(bv)	(page_to_phys((bv)->bv_page) + (unsigned long) (bv)->bv_offset)
++#define bio_to_phys(bio)	(__pfn_t_to_phys(bio_pfn((bio))) + (unsigned long) bio_offset((bio)))
++#define bvec_to_phys(bv)	(__pfn_t_to_phys((bv)->bv_pfn) + (unsigned long) (bv)->bv_offset)
  
-@@ -259,11 +276,17 @@ static int copy_user_bh(struct page *to, struct buffer_head *bh,
- 			unsigned blkbits, unsigned long vaddr)
- {
- 	void *vfrom, *vto;
--	if (dax_get_addr(bh, &vfrom, blkbits) < 0)
-+	__pfn_t pfn;
-+
-+	if (dax_get_pfn(bh, &pfn, blkbits) < 0)
-+		return -EIO;
-+	vfrom = kmap_atomic_pfn_t(pfn);
-+	if (!vfrom)
- 		return -EIO;
- 	vto = kmap_atomic(to);
- 	copy_user_page(vto, vfrom, vaddr, to);
- 	kunmap_atomic(vto);
-+	kunmap_atomic_pfn_t(vfrom);
- 	return 0;
- }
+ /*
+  * queues that have highmem support enabled may still need to revert to
+@@ -160,7 +161,7 @@ static inline void *bio_data(struct bio *bio)
+  * I/O completely on that queue (see ide-dma for example)
+  */
+ #define __bio_kmap_atomic(bio, iter)				\
+-	(kmap_atomic(bio_iter_iovec((bio), (iter)).bv_page) +	\
++	(kmap_atomic(bvec_page(bio_iter_iovec((bio), (iter)))) +   \
+ 		bio_iter_iovec((bio), (iter)).bv_offset)
  
-@@ -274,7 +297,7 @@ static int dax_insert_mapping(struct inode *inode, struct buffer_head *bh,
- 	sector_t sector = bh->b_blocknr << (inode->i_blkbits - 9);
- 	unsigned long vaddr = (unsigned long)vmf->virtual_address;
- 	void *addr;
--	unsigned long pfn;
-+	__pfn_t pfn;
- 	pgoff_t size;
- 	int error;
+ #define __bio_kunmap_atomic(addr)	kunmap_atomic(addr)
+@@ -490,7 +491,7 @@ static inline char *bvec_kmap_irq(struct bio_vec *bvec, unsigned long *flags)
+ 	 * balancing is a lot nicer this way
+ 	 */
+ 	local_irq_save(*flags);
+-	addr = (unsigned long) kmap_atomic(bvec->bv_page);
++	addr = (unsigned long) kmap_atomic(bvec_page(bvec));
  
-@@ -293,7 +316,7 @@ static int dax_insert_mapping(struct inode *inode, struct buffer_head *bh,
- 		goto out;
- 	}
+ 	BUG_ON(addr & ~PAGE_MASK);
  
--	error = bdev_direct_access(bh->b_bdev, sector, &addr, &pfn, bh->b_size);
-+	error = bdev_direct_access(bh->b_bdev, sector, &pfn, bh->b_size);
- 	if (error < 0)
- 		goto out;
- 	if (error < PAGE_SIZE) {
-@@ -301,10 +324,17 @@ static int dax_insert_mapping(struct inode *inode, struct buffer_head *bh,
- 		goto out;
- 	}
- 
--	if (buffer_unwritten(bh) || buffer_new(bh))
-+	if (buffer_unwritten(bh) || buffer_new(bh)) {
-+		addr = kmap_atomic_pfn_t(pfn);
-+		if (!addr) {
-+			error = -EIO;
-+			goto out;
-+		}
- 		clear_page(addr);
-+		kunmap_atomic_pfn_t(addr);
-+	}
- 
--	error = vm_insert_mixed(vma, vaddr, pfn);
-+	error = vm_insert_mixed(vma, vaddr, __pfn_t_to_pfn(pfn));
- 
-  out:
- 	i_mmap_unlock_read(mapping);
-@@ -517,10 +547,16 @@ int dax_zero_page_range(struct inode *inode, loff_t from, unsigned length,
- 		return err;
- 	if (buffer_written(&bh)) {
- 		void *addr;
--		err = dax_get_addr(&bh, &addr, inode->i_blkbits);
-+		__pfn_t pfn;
-+
-+		err = dax_get_pfn(&bh, &pfn, inode->i_blkbits);
- 		if (err < 0)
- 			return err;
-+		addr = kmap_atomic_pfn_t(pfn);
-+		if (!addr)
-+			return -EIO;
- 		memset(addr + offset, 0, length);
-+		kunmap_atomic_pfn_t(addr);
- 	}
- 
- 	return 0;
-diff --git a/include/asm-generic/pfn.h b/include/asm-generic/pfn.h
-index ee1363e3c67c..78ec84282334 100644
---- a/include/asm-generic/pfn.h
-+++ b/include/asm-generic/pfn.h
-@@ -47,6 +47,17 @@ static inline bool __pfn_t_has_page(__pfn_t pfn)
- 	return (pfn.data & PFN_MASK) == 0;
- }
- 
-+static inline __pfn_t pfn_to_pfn_t(unsigned long pfn)
-+{
-+	__pfn_t pfn_t = { .data = (pfn << PFN_SHIFT) | PFN_DEV };
-+
-+	return pfn_t;
-+}
-+
-+static inline __pfn_t phys_to_pfn_t(dma_addr_t addr)
-+{
-+	return pfn_to_pfn_t(addr >> PAGE_SHIFT);
-+}
+@@ -508,7 +509,7 @@ static inline void bvec_kunmap_irq(char *buffer, unsigned long *flags)
  #else
- static inline bool __pfn_t_has_page(__pfn_t pfn)
+ static inline char *bvec_kmap_irq(struct bio_vec *bvec, unsigned long *flags)
  {
-diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
-index 7f9a516f24de..42bcaf2b9311 100644
---- a/include/linux/blkdev.h
-+++ b/include/linux/blkdev.h
-@@ -1604,8 +1604,7 @@ struct block_device_operations {
- 	int (*rw_page)(struct block_device *, sector_t, struct page *, int rw);
- 	int (*ioctl) (struct block_device *, fmode_t, unsigned, unsigned long);
- 	int (*compat_ioctl) (struct block_device *, fmode_t, unsigned, unsigned long);
--	long (*direct_access)(struct block_device *, sector_t,
--					void **, unsigned long *pfn, long size);
-+	long (*direct_access)(struct block_device *, sector_t, __pfn_t *pfn, long size);
- 	unsigned int (*check_events) (struct gendisk *disk,
- 				      unsigned int clearing);
- 	/* ->media_changed() is DEPRECATED, use ->check_events() instead */
-@@ -1623,8 +1622,8 @@ extern int __blkdev_driver_ioctl(struct block_device *, fmode_t, unsigned int,
- extern int bdev_read_page(struct block_device *, sector_t, struct page *);
- extern int bdev_write_page(struct block_device *, sector_t, struct page *,
- 						struct writeback_control *);
--extern long bdev_direct_access(struct block_device *, sector_t, void **addr,
--						unsigned long *pfn, long size);
-+extern long bdev_direct_access(struct block_device *, sector_t,
-+		__pfn_t *pfn, long size);
- #else /* CONFIG_BLOCK */
+-	return page_address(bvec->bv_page) + bvec->bv_offset;
++	return page_address(bvec_page(bvec)) + bvec->bv_offset;
+ }
  
- struct block_device;
+ static inline void bvec_kunmap_irq(char *buffer, unsigned long *flags)
+diff --git a/include/linux/blk_types.h b/include/linux/blk_types.h
+index d7167b50299f..f50464e167b4 100644
+--- a/include/linux/blk_types.h
++++ b/include/linux/blk_types.h
+@@ -6,6 +6,7 @@
+ #define __LINUX_BLK_TYPES_H
+ 
+ #include <linux/types.h>
++#include <linux/mm.h>
+ 
+ struct bio_set;
+ struct bio;
+@@ -21,19 +22,36 @@ typedef void (bio_destructor_t) (struct bio *);
+  * was unsigned short, but we might as well be ready for > 64kB I/O pages
+  */
+ struct bio_vec {
+-	struct page	*bv_page;
++#ifdef CONFIG_DEV_PFN
++	__pfn_t		bv_pfn;
++#else
++	/*
++	 * This union to be removed after v4.2-rc1 after all bv_page
++	 * users are confirmed converted to prevent bisection errors
++	 */
++	union {
++		__pfn_t bv_pfn;
++		struct page *bv_page;
++	};
++#endif
+ 	unsigned int	bv_len;
+ 	unsigned int	bv_offset;
+ };
+ 
++#define BIO_VEC_INIT(name) { .bv_pfn = { .data = 0 }, .bv_len = 0, \
++	.bv_offset = 0 }
++
++#define BIO_VEC(name) \
++	struct bio_vec name = BIO_VEC_INIT(name)
++
+ static inline struct page *bvec_page(const struct bio_vec *bvec)
+ {
+-	return bvec->bv_page;
++	return __pfn_t_to_page(bvec->bv_pfn);
+ }
+ 
+ static inline void bvec_set_page(struct bio_vec *bvec, struct page *page)
+ {
+-	bvec->bv_page = page;
++	bvec->bv_pfn = page_to_pfn_t(page);
+ }
+ 
+ #ifdef CONFIG_BLOCK
+diff --git a/lib/iov_iter.c b/lib/iov_iter.c
+index 75232ad0a5e7..4276f6d1826c 100644
+--- a/lib/iov_iter.c
++++ b/lib/iov_iter.c
+@@ -61,7 +61,7 @@
+ 	__p = i->bvec;					\
+ 	__v.bv_len = min_t(size_t, n, __p->bv_len - skip);	\
+ 	if (likely(__v.bv_len)) {			\
+-		__v.bv_page = __p->bv_page;		\
++		__v.bv_pfn = __p->bv_pfn;		\
+ 		__v.bv_offset = __p->bv_offset + skip; 	\
+ 		(void)(STEP);				\
+ 		skip += __v.bv_len;			\
+@@ -72,7 +72,7 @@
+ 		__v.bv_len = min_t(size_t, n, __p->bv_len);	\
+ 		if (unlikely(!__v.bv_len))		\
+ 			continue;			\
+-		__v.bv_page = __p->bv_page;		\
++		__v.bv_pfn = __p->bv_pfn;		\
+ 		__v.bv_offset = __p->bv_offset;		\
+ 		(void)(STEP);				\
+ 		skip = __v.bv_len;			\
+@@ -395,7 +395,7 @@ size_t copy_to_iter(void *addr, size_t bytes, struct iov_iter *i)
+ 	iterate_and_advance(i, bytes, v,
+ 		__copy_to_user(v.iov_base, (from += v.iov_len) - v.iov_len,
+ 			       v.iov_len),
+-		memcpy_to_page(v.bv_page, v.bv_offset,
++		memcpy_to_page(bvec_page(&v), v.bv_offset,
+ 			       (from += v.bv_len) - v.bv_len, v.bv_len),
+ 		memcpy(v.iov_base, (from += v.iov_len) - v.iov_len, v.iov_len)
+ 	)
+@@ -416,7 +416,7 @@ size_t copy_from_iter(void *addr, size_t bytes, struct iov_iter *i)
+ 	iterate_and_advance(i, bytes, v,
+ 		__copy_from_user((to += v.iov_len) - v.iov_len, v.iov_base,
+ 				 v.iov_len),
+-		memcpy_from_page((to += v.bv_len) - v.bv_len, v.bv_page,
++		memcpy_from_page((to += v.bv_len) - v.bv_len, bvec_page(&v),
+ 				 v.bv_offset, v.bv_len),
+ 		memcpy((to += v.iov_len) - v.iov_len, v.iov_base, v.iov_len)
+ 	)
+@@ -437,7 +437,7 @@ size_t copy_from_iter_nocache(void *addr, size_t bytes, struct iov_iter *i)
+ 	iterate_and_advance(i, bytes, v,
+ 		__copy_from_user_nocache((to += v.iov_len) - v.iov_len,
+ 					 v.iov_base, v.iov_len),
+-		memcpy_from_page((to += v.bv_len) - v.bv_len, v.bv_page,
++		memcpy_from_page((to += v.bv_len) - v.bv_len, bvec_page(&v),
+ 				 v.bv_offset, v.bv_len),
+ 		memcpy((to += v.iov_len) - v.iov_len, v.iov_base, v.iov_len)
+ 	)
+@@ -482,7 +482,7 @@ size_t iov_iter_zero(size_t bytes, struct iov_iter *i)
+ 
+ 	iterate_and_advance(i, bytes, v,
+ 		__clear_user(v.iov_base, v.iov_len),
+-		memzero_page(v.bv_page, v.bv_offset, v.bv_len),
++		memzero_page(bvec_page(&v), v.bv_offset, v.bv_len),
+ 		memset(v.iov_base, 0, v.iov_len)
+ 	)
+ 
+@@ -497,7 +497,7 @@ size_t iov_iter_copy_from_user_atomic(struct page *page,
+ 	iterate_all_kinds(i, bytes, v,
+ 		__copy_from_user_inatomic((p += v.iov_len) - v.iov_len,
+ 					  v.iov_base, v.iov_len),
+-		memcpy_from_page((p += v.bv_len) - v.bv_len, v.bv_page,
++		memcpy_from_page((p += v.bv_len) - v.bv_len, bvec_page(&v),
+ 				 v.bv_offset, v.bv_len),
+ 		memcpy((p += v.iov_len) - v.iov_len, v.iov_base, v.iov_len)
+ 	)
+@@ -596,7 +596,7 @@ ssize_t iov_iter_get_pages(struct iov_iter *i,
+ 	0;}),({
+ 		/* can't be more than PAGE_SIZE */
+ 		*start = v.bv_offset;
+-		get_page(*pages = v.bv_page);
++		get_page(*pages = bvec_page(&v));
+ 		return v.bv_len;
+ 	}),({
+ 		return -EFAULT;
+@@ -650,7 +650,7 @@ ssize_t iov_iter_get_pages_alloc(struct iov_iter *i,
+ 		*pages = p = get_pages_array(1);
+ 		if (!p)
+ 			return -ENOMEM;
+-		get_page(*p = v.bv_page);
++		get_page(*p = bvec_page(&v));
+ 		return v.bv_len;
+ 	}),({
+ 		return -EFAULT;
+@@ -684,7 +684,7 @@ size_t csum_and_copy_from_iter(void *addr, size_t bytes, __wsum *csum,
+ 		}
+ 		err ? v.iov_len : 0;
+ 	}), ({
+-		char *p = kmap_atomic(v.bv_page);
++		char *p = kmap_atomic(bvec_page(&v));
+ 		next = csum_partial_copy_nocheck(p + v.bv_offset,
+ 						 (to += v.bv_len) - v.bv_len,
+ 						 v.bv_len, 0);
+@@ -728,7 +728,7 @@ size_t csum_and_copy_to_iter(void *addr, size_t bytes, __wsum *csum,
+ 		}
+ 		err ? v.iov_len : 0;
+ 	}), ({
+-		char *p = kmap_atomic(v.bv_page);
++		char *p = kmap_atomic(bvec_page(&v));
+ 		next = csum_partial_copy_nocheck((from += v.bv_len) - v.bv_len,
+ 						 p + v.bv_offset,
+ 						 v.bv_len, 0);
+diff --git a/mm/page_io.c b/mm/page_io.c
+index 75738896b691..33c248527fd2 100644
+--- a/mm/page_io.c
++++ b/mm/page_io.c
+@@ -265,8 +265,8 @@ int __swap_writepage(struct page *page, struct writeback_control *wbc,
+ 		struct file *swap_file = sis->swap_file;
+ 		struct address_space *mapping = swap_file->f_mapping;
+ 		struct bio_vec bv = {
+-			.bv_page = page,
+-			.bv_len  = PAGE_SIZE,
++			.bv_pfn = page_to_pfn_t(page),
++			.bv_len = PAGE_SIZE,
+ 			.bv_offset = 0
+ 		};
+ 		struct iov_iter from;
