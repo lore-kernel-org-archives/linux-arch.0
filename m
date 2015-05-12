@@ -1,54 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f178.google.com ([209.85.212.178]:36681 "EHLO
-	mail-wi0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752064AbbELFo0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 May 2015 01:44:26 -0400
-Received: by wizk4 with SMTP id k4so135843952wiz.1
-        for <linux-arch@vger.kernel.org>; Mon, 11 May 2015 22:44:25 -0700 (PDT)
+Received: from mail-ie0-f179.google.com ([209.85.223.179]:34922 "EHLO
+	mail-ie0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752354AbbELGiI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 May 2015 02:38:08 -0400
 MIME-Version: 1.0
-In-Reply-To: <alpine.DEB.2.02.1505120724230.2075@localhost6.localdomain6>
-References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20150512042956.11521.32457.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<alpine.DEB.2.02.1505120724230.2075@localhost6.localdomain6>
-Date: Mon, 11 May 2015 22:44:25 -0700
-Message-ID: <CAPcyv4hq5dX=HN=wYZEddOu7yX1SU4EXT0tT1hUUwKpL7txXLQ@mail.gmail.com>
-Subject: Re: [PATCH v3 05/11] scatterlist: use sg_phys()
-From: Dan Williams <dan.j.williams@intel.com>
+In-Reply-To: <1430752248-15401-1-git-send-email-johan@kernel.org>
+References: <1430752248-15401-1-git-send-email-johan@kernel.org>
+From: Alexandre Courbot <gnurou@gmail.com>
+Date: Tue, 12 May 2015 15:37:47 +0900
+Message-ID: <CAAVeFuK35oXsrSsbdhGckjhfC=B6=aizqZYv2+0CQxAYQoYVGw@mail.gmail.com>
+Subject: Re: [PATCH v2 00/23] gpio: sysfs: fixes and clean ups
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Julia Lawall <julia.lawall@lip6.fr>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Jens Axboe <axboe@kernel.dk>, Rik van Riel <riel@redhat.com>, linux-nvdimm <linux-nvdimm@ml01.01.org>, david <david@fromorbit.com>, Christoph Hellwig <hch@lst.de>, Mel Gorman <mgorman@suse.de>, j.glisse@gmail.com, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20150512054425.wiFukq5uUmMXb4CNEeFRJWaNkk9wKXiPQBMBXS94FYI@z>
+To: Johan Hovold <johan@kernel.org>
+Cc: Linus Walleij <linus.walleij@linaro.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Jonathan Corbet <corbet@lwn.net>, Harry Wei <harryxiyou@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, linux-kernel@zh-kernel.org, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20150512063747.CxWh9XZZTqtfuYD-IgXQvtsEOsUVorRxKj-KaEDWdpc@z>
 
-On Mon, May 11, 2015 at 10:24 PM, Julia Lawall <julia.lawall@lip6.fr> wrote:
+On Tue, May 5, 2015 at 12:10 AM, Johan Hovold <johan@kernel.org> wrote:
+> These patches fix a number of issues with the gpio sysfs interface,
+> including
 >
+>  - fix memory leaks and crashes on device hotplug
+>  - straighten out the convoluted locking
+>  - reduce sysfs-interface latencies through more fine-grained locking
+>  - more clearly separate the sysfs-interface implementation from gpiolib
+>    core
 >
-> On Tue, 12 May 2015, Dan Williams wrote:
+> The first patch is marked for stable and could go into 4.1. [ May
+> already have been applied but not pushed by Linus, but included in v2
+> for completeness.  ]
 >
->> Coccinelle cleanup to replace open coded sg to physical address
->> translations.  This is in preparation for introducing scatterlists that
->> reference pfn(s) without a backing struct page.
->>
->> // sg_phys.cocci: convert usage page_to_phys(sg_page(sg)) to sg_phys(sg)
->> // usage: make coccicheck COCCI=sg_phys.cocci MODE=patch
->>
->> virtual patch
->> virtual report
->> virtual org
+> Unfortunately we can't just kill the gpio sysfs interface, but these
+> patches will make it more manageable and should allow us to implement a
+> new user-space interface while maintaining the old one (for a while at
+> least) without losing our sanity.
 >
-> Just for information, you don't need the three lines above.  There are ony
-> useful when you want the semantic patch to support several kinds of
-> output.
->
+> Note that there is still a race between chip remove and gpiod_request (and
+> therefore sysfs export), which needs to be fixed separately (for instance as
+> part of a generic solution to chip hotplugging).
 
-Ok, I think I added them from copying a coccicheck script, and if I
-delete virtual patch I get
+Reiterating my
 
-"virtual rule patch not supported"
+Reviewed-by: Alexandre Courbot <acourbot@nvidia.com>
 
-when running:
-
-make coccicheck COCCI=sg_phys.cocci MODE=patch
-
-I suspect I am invoking it wrong.
+on this very nice series.
