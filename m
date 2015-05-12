@@ -1,451 +1,328 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v3 07/11] x86: support dma_map_pfn()
-Date: Tue, 12 May 2015 00:30:07 -0400
-Message-ID: <20150512043006.11521.34823.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v3 06/11] scatterlist: support "page-less" (__pfn_t only)
+ entries
+Date: Tue, 12 May 2015 00:30:01 -0400
+Message-ID: <20150512043001.11521.3526.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-fsdevel-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@lists.01.org, david@fromorbit.com, hch@lst.de, j.glisse@gmail.com, mgorman@suse.de, linux-fsdevel@vger.kernel.org, akpm@linux-foundation.org, mingo@kernel.org
+Cc: linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@lists.01.org, david@fromorbit.com, hch@lst.de, j.glisse@gmail.com, mgorman@suse.de, linux-fsdevel@vger.kernel.org, Matthew Wilcox <willy@linux.intel.com>, akpm@linux-foundation.org, mingo@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Fix up x86 dma_map_ops to allow pfn-only mappings.
+From: Matthew Wilcox <willy@linux.intel.com>
 
-As long as a dma_map_sg() implementation uses the generic sg_phys()
-helpers it can support scatterlists that use __pfn_t instead of struct
-page.
+Given that an offset will never be more than PAGE_SIZE, steal the unused
+bits of the offset to implement a flags field.  Move the existing "this
+is a sg_chain() entry" flag to the new flags field, and add a new flag
+(SG_FLAGS_PAGE) to indicate that there is a struct page backing for the
+entry.
 
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+Signed-off-by: Matthew Wilcox <willy@linux.intel.com>
 ---
- arch/x86/Kconfig                         |    5 +++++
- arch/x86/kernel/amd_gart_64.c            |   22 +++++++++++++++++-----
- arch/x86/kernel/pci-nommu.c              |   22 +++++++++++++++++-----
- arch/x86/kernel/pci-swiotlb.c            |    4 ++++
- arch/x86/pci/sta2x11-fixup.c             |    4 ++++
- arch/x86/xen/pci-swiotlb-xen.c           |    4 ++++
- drivers/iommu/amd_iommu.c                |   21 ++++++++++++++++-----
- drivers/iommu/intel-iommu.c              |   22 +++++++++++++++++-----
- drivers/xen/swiotlb-xen.c                |   29 +++++++++++++++++++----------
- include/asm-generic/dma-mapping-common.h |    4 ++--
- include/asm-generic/scatterlist.h        |    1 +
- include/linux/swiotlb.h                  |    4 ++++
- lib/swiotlb.c                            |   20 +++++++++++++++-----
- 13 files changed, 125 insertions(+), 37 deletions(-)
+ block/blk-merge.c                 |    2 -
+ drivers/dma/ste_dma40.c           |    5 --
+ drivers/mmc/card/queue.c          |    4 +-
+ include/asm-generic/scatterlist.h |    9 ++++
+ include/crypto/scatterwalk.h      |   10 ++++
+ include/linux/scatterlist.h       |   91 +++++++++++++++++++++++++++++++++----
+ 6 files changed, 105 insertions(+), 16 deletions(-)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 226d5696e1d1..c626ffa5c01e 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -796,6 +796,7 @@ config CALGARY_IOMMU
- 	bool "IBM Calgary IOMMU support"
- 	select SWIOTLB
- 	depends on X86_64 && PCI
-+	depends on !HAVE_DMA_PFN
- 	---help---
- 	  Support for hardware IOMMUs in IBM's xSeries x366 and x460
- 	  systems. Needed to run systems with more than 3GB of memory
-@@ -1432,6 +1433,10 @@ config X86_PMEM_LEGACY
+diff --git a/block/blk-merge.c b/block/blk-merge.c
+index 218ad1e57a49..82a688551b72 100644
+--- a/block/blk-merge.c
++++ b/block/blk-merge.c
+@@ -267,7 +267,7 @@ int blk_rq_map_sg(struct request_queue *q, struct request *rq,
+ 		if (rq->cmd_flags & REQ_WRITE)
+ 			memset(q->dma_drain_buffer, 0, q->dma_drain_size);
  
- 	  Say Y if unsure.
- 
-+config X86_PMEM_DMA
-+	def_bool DEV_PFN
-+	select HAVE_DMA_PFN
-+
- config HIGHPTE
- 	bool "Allocate 3rd-level pagetables from highmem"
- 	depends on HIGHMEM
-diff --git a/arch/x86/kernel/amd_gart_64.c b/arch/x86/kernel/amd_gart_64.c
-index 8e3842fc8bea..8fad83c8dfd2 100644
---- a/arch/x86/kernel/amd_gart_64.c
-+++ b/arch/x86/kernel/amd_gart_64.c
-@@ -239,13 +239,13 @@ static dma_addr_t dma_map_area(struct device *dev, dma_addr_t phys_mem,
- }
- 
- /* Map a single area into the IOMMU */
--static dma_addr_t gart_map_page(struct device *dev, struct page *page,
--				unsigned long offset, size_t size,
--				enum dma_data_direction dir,
--				struct dma_attrs *attrs)
-+static dma_addr_t gart_map_pfn(struct device *dev, __pfn_t pfn,
-+			       unsigned long offset, size_t size,
-+			       enum dma_data_direction dir,
-+			       struct dma_attrs *attrs)
- {
- 	unsigned long bus;
--	phys_addr_t paddr = page_to_phys(page) + offset;
-+	phys_addr_t paddr = __pfn_t_to_phys(pfn) + offset;
- 
- 	if (!dev)
- 		dev = &x86_dma_fallback_dev;
-@@ -259,6 +259,14 @@ static dma_addr_t gart_map_page(struct device *dev, struct page *page,
- 	return bus;
- }
- 
-+static __maybe_unused dma_addr_t gart_map_page(struct device *dev,
-+		struct page *page, unsigned long offset, size_t size,
-+		enum dma_data_direction dir, struct dma_attrs *attrs)
-+{
-+	return gart_map_pfn(dev, page_to_pfn_t(page), offset, size, dir,
-+			attrs);
-+}
-+
- /*
-  * Free a DMA mapping.
-  */
-@@ -699,7 +707,11 @@ static __init int init_amd_gatt(struct agp_kern_info *info)
- static struct dma_map_ops gart_dma_ops = {
- 	.map_sg				= gart_map_sg,
- 	.unmap_sg			= gart_unmap_sg,
-+#ifdef CONFIG_HAVE_DMA_PFN
-+	.map_pfn			= gart_map_pfn,
-+#else
- 	.map_page			= gart_map_page,
-+#endif
- 	.unmap_page			= gart_unmap_page,
- 	.alloc				= gart_alloc_coherent,
- 	.free				= gart_free_coherent,
-diff --git a/arch/x86/kernel/pci-nommu.c b/arch/x86/kernel/pci-nommu.c
-index da15918d1c81..876dacfbabf6 100644
---- a/arch/x86/kernel/pci-nommu.c
-+++ b/arch/x86/kernel/pci-nommu.c
-@@ -25,12 +25,12 @@ check_addr(char *name, struct device *hwdev, dma_addr_t bus, size_t size)
- 	return 1;
- }
- 
--static dma_addr_t nommu_map_page(struct device *dev, struct page *page,
--				 unsigned long offset, size_t size,
--				 enum dma_data_direction dir,
--				 struct dma_attrs *attrs)
-+static dma_addr_t nommu_map_pfn(struct device *dev, __pfn_t pfn,
-+				unsigned long offset, size_t size,
-+				enum dma_data_direction dir,
-+				struct dma_attrs *attrs)
- {
--	dma_addr_t bus = page_to_phys(page) + offset;
-+	dma_addr_t bus = __pfn_t_to_phys(pfn) + offset;
- 	WARN_ON(size == 0);
- 	if (!check_addr("map_single", dev, bus, size))
- 		return DMA_ERROR_CODE;
-@@ -38,6 +38,14 @@ static dma_addr_t nommu_map_page(struct device *dev, struct page *page,
- 	return bus;
- }
- 
-+static __maybe_unused dma_addr_t nommu_map_page(struct device *dev,
-+		struct page *page, unsigned long offset, size_t size,
-+		enum dma_data_direction dir, struct dma_attrs *attrs)
-+{
-+	return nommu_map_pfn(dev, page_to_pfn_t(page), offset, size, dir,
-+			attrs);
-+}
-+
- /* Map a set of buffers described by scatterlist in streaming
-  * mode for DMA.  This is the scatter-gather version of the
-  * above pci_map_single interface.  Here the scatter gather list
-@@ -92,7 +100,11 @@ struct dma_map_ops nommu_dma_ops = {
- 	.alloc			= dma_generic_alloc_coherent,
- 	.free			= dma_generic_free_coherent,
- 	.map_sg			= nommu_map_sg,
-+#ifdef CONFIG_HAVE_DMA_PFN
-+	.map_pfn		= nommu_map_pfn,
-+#else
- 	.map_page		= nommu_map_page,
-+#endif
- 	.sync_single_for_device = nommu_sync_single_for_device,
- 	.sync_sg_for_device	= nommu_sync_sg_for_device,
- 	.is_phys		= 1,
-diff --git a/arch/x86/kernel/pci-swiotlb.c b/arch/x86/kernel/pci-swiotlb.c
-index 77dd0ad58be4..5351eb8c8f7f 100644
---- a/arch/x86/kernel/pci-swiotlb.c
-+++ b/arch/x86/kernel/pci-swiotlb.c
-@@ -48,7 +48,11 @@ static struct dma_map_ops swiotlb_dma_ops = {
- 	.sync_sg_for_device = swiotlb_sync_sg_for_device,
- 	.map_sg = swiotlb_map_sg_attrs,
- 	.unmap_sg = swiotlb_unmap_sg_attrs,
-+#ifdef CONFIG_HAVE_DMA_PFN
-+	.map_pfn = swiotlb_map_pfn,
-+#else
- 	.map_page = swiotlb_map_page,
-+#endif
- 	.unmap_page = swiotlb_unmap_page,
- 	.dma_supported = NULL,
- };
-diff --git a/arch/x86/pci/sta2x11-fixup.c b/arch/x86/pci/sta2x11-fixup.c
-index 5ceda85b8687..d1c6e3808bb5 100644
---- a/arch/x86/pci/sta2x11-fixup.c
-+++ b/arch/x86/pci/sta2x11-fixup.c
-@@ -182,7 +182,11 @@ static void *sta2x11_swiotlb_alloc_coherent(struct device *dev,
- static struct dma_map_ops sta2x11_dma_ops = {
- 	.alloc = sta2x11_swiotlb_alloc_coherent,
- 	.free = x86_swiotlb_free_coherent,
-+#ifdef CONFIG_HAVE_DMA_PFN
-+	.map_pfn = swiotlb_map_pfn,
-+#else
- 	.map_page = swiotlb_map_page,
-+#endif
- 	.unmap_page = swiotlb_unmap_page,
- 	.map_sg = swiotlb_map_sg_attrs,
- 	.unmap_sg = swiotlb_unmap_sg_attrs,
-diff --git a/arch/x86/xen/pci-swiotlb-xen.c b/arch/x86/xen/pci-swiotlb-xen.c
-index 0e98e5d241d0..e65ea48d7aed 100644
---- a/arch/x86/xen/pci-swiotlb-xen.c
-+++ b/arch/x86/xen/pci-swiotlb-xen.c
-@@ -28,7 +28,11 @@ static struct dma_map_ops xen_swiotlb_dma_ops = {
- 	.sync_sg_for_device = xen_swiotlb_sync_sg_for_device,
- 	.map_sg = xen_swiotlb_map_sg_attrs,
- 	.unmap_sg = xen_swiotlb_unmap_sg_attrs,
-+#ifdef CONFIG_HAVE_DMA_PFN
-+	.map_pfn = xen_swiotlb_map_pfn,
-+#else
- 	.map_page = xen_swiotlb_map_page,
-+#endif
- 	.unmap_page = xen_swiotlb_unmap_page,
- 	.dma_supported = xen_swiotlb_dma_supported,
- };
-diff --git a/drivers/iommu/amd_iommu.c b/drivers/iommu/amd_iommu.c
-index e43d48956dea..ee8f70224b73 100644
---- a/drivers/iommu/amd_iommu.c
-+++ b/drivers/iommu/amd_iommu.c
-@@ -2754,16 +2754,15 @@ static void __unmap_single(struct dma_ops_domain *dma_dom,
- /*
-  * The exported map_single function for dma_ops.
-  */
--static dma_addr_t map_page(struct device *dev, struct page *page,
--			   unsigned long offset, size_t size,
--			   enum dma_data_direction dir,
--			   struct dma_attrs *attrs)
-+static dma_addr_t map_pfn(struct device *dev, __pfn_t pfn, unsigned long offset,
-+		size_t size, enum dma_data_direction dir,
-+		struct dma_attrs *attrs)
- {
- 	unsigned long flags;
- 	struct protection_domain *domain;
- 	dma_addr_t addr;
- 	u64 dma_mask;
--	phys_addr_t paddr = page_to_phys(page) + offset;
-+	phys_addr_t paddr = __pfn_t_to_phys(pfn) + offset;
- 
- 	INC_STATS_COUNTER(cnt_map_single);
- 
-@@ -2788,6 +2787,14 @@ out:
- 	spin_unlock_irqrestore(&domain->lock, flags);
- 
- 	return addr;
-+
-+}
-+
-+static __maybe_unused dma_addr_t map_page(struct device *dev, struct page *page,
-+		unsigned long offset, size_t size, enum dma_data_direction dir,
-+		struct dma_attrs *attrs)
-+{
-+	return map_pfn(dev, page_to_pfn_t(page), offset, size, dir, attrs);
- }
- 
- /*
-@@ -3062,7 +3069,11 @@ static void __init prealloc_protection_domains(void)
- static struct dma_map_ops amd_iommu_dma_ops = {
- 	.alloc = alloc_coherent,
- 	.free = free_coherent,
-+#ifdef CONFIG_HAVE_DMA_PFN
-+	.map_pfn = map_pfn,
-+#else
- 	.map_page = map_page,
-+#endif
- 	.unmap_page = unmap_page,
- 	.map_sg = map_sg,
- 	.unmap_sg = unmap_sg,
-diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
-index 9b9ada71e0d3..6d9a0f85b827 100644
---- a/drivers/iommu/intel-iommu.c
-+++ b/drivers/iommu/intel-iommu.c
-@@ -3086,15 +3086,23 @@ error:
- 	return 0;
- }
- 
--static dma_addr_t intel_map_page(struct device *dev, struct page *page,
--				 unsigned long offset, size_t size,
--				 enum dma_data_direction dir,
--				 struct dma_attrs *attrs)
-+static dma_addr_t intel_map_pfn(struct device *dev, __pfn_t pfn,
-+				unsigned long offset, size_t size,
-+				enum dma_data_direction dir,
-+				struct dma_attrs *attrs)
- {
--	return __intel_map_single(dev, page_to_phys(page) + offset, size,
-+	return __intel_map_single(dev, __pfn_t_to_phys(pfn) + offset, size,
- 				  dir, *dev->dma_mask);
- }
- 
-+static __maybe_unused dma_addr_t intel_map_page(struct device *dev,
-+		struct page *page, unsigned long offset, size_t size,
-+		enum dma_data_direction dir, struct dma_attrs *attrs)
-+{
-+	return intel_map_pfn(dev, page_to_pfn_t(page), offset, size, dir,
-+			attrs);
-+}
-+
- static void flush_unmaps(void)
- {
- 	int i, j;
-@@ -3380,7 +3388,11 @@ struct dma_map_ops intel_dma_ops = {
- 	.free = intel_free_coherent,
- 	.map_sg = intel_map_sg,
- 	.unmap_sg = intel_unmap_sg,
-+#ifdef CONFIG_HAVE_DMA_PFN
-+	.map_pfn = intel_map_pfn,
-+#else
- 	.map_page = intel_map_page,
-+#endif
- 	.unmap_page = intel_unmap_page,
- 	.mapping_error = intel_mapping_error,
- };
-diff --git a/drivers/xen/swiotlb-xen.c b/drivers/xen/swiotlb-xen.c
-index 810ad419e34c..bd29d09bbacc 100644
---- a/drivers/xen/swiotlb-xen.c
-+++ b/drivers/xen/swiotlb-xen.c
-@@ -382,10 +382,10 @@ EXPORT_SYMBOL_GPL(xen_swiotlb_free_coherent);
-  * Once the device is given the dma address, the device owns this memory until
-  * either xen_swiotlb_unmap_page or xen_swiotlb_dma_sync_single is performed.
-  */
--dma_addr_t xen_swiotlb_map_page(struct device *dev, struct page *page,
--				unsigned long offset, size_t size,
--				enum dma_data_direction dir,
--				struct dma_attrs *attrs)
-+dma_addr_t xen_swiotlb_map_pfn(struct device *dev, unsigned long pfn,
-+			       unsigned long offset, size_t size,
-+			       enum dma_data_direction dir,
-+			       struct dma_attrs *attrs)
- {
- 	phys_addr_t map, phys = page_to_phys(page) + offset;
- 	dma_addr_t dev_addr = xen_phys_to_bus(phys);
-@@ -429,6 +429,16 @@ dma_addr_t xen_swiotlb_map_page(struct device *dev, struct page *page,
+-		sg->page_link &= ~0x02;
++		sg_unmark_end(sg);
+ 		sg = sg_next(sg);
+ 		sg_set_page(sg, virt_to_page(q->dma_drain_buffer),
+ 			    q->dma_drain_size,
+diff --git a/drivers/dma/ste_dma40.c b/drivers/dma/ste_dma40.c
+index 3c10f034d4b9..e8c00642cacb 100644
+--- a/drivers/dma/ste_dma40.c
++++ b/drivers/dma/ste_dma40.c
+@@ -2562,10 +2562,7 @@ dma40_prep_dma_cyclic(struct dma_chan *chan, dma_addr_t dma_addr,
+ 		dma_addr += period_len;
  	}
- 	return dev_addr;
- }
-+EXPORT_SYMBOL_GPL(xen_swiotlb_map_pfn);
-+
-+dma_addr_t xen_swiotlb_map_page(struct device *dev, struct page *page,
-+				unsigned long offset, size_t size,
-+				enum dma_data_direction dir,
-+				struct dma_attrs *attrs)
-+{
-+	return xen_swiotlb_map_pfn(dev, page_to_pfn(page), offset, size, dir,
-+			attrs);
-+}
- EXPORT_SYMBOL_GPL(xen_swiotlb_map_page);
  
- /*
-@@ -582,15 +592,14 @@ xen_swiotlb_map_sg_attrs(struct device *hwdev, struct scatterlist *sgl,
- 						attrs);
- 			sg->dma_address = xen_phys_to_bus(map);
- 		} else {
-+			__pfn_t pfn = { .pfn = paddr >> PAGE_SHIFT };
-+			unsigned long offset = paddr & ~PAGE_MASK;
-+
- 			/* we are not interested in the dma_addr returned by
- 			 * xen_dma_map_page, only in the potential cache flushes executed
- 			 * by the function. */
--			xen_dma_map_page(hwdev, pfn_to_page(paddr >> PAGE_SHIFT),
--						dev_addr,
--						paddr & ~PAGE_MASK,
--						sg->length,
--						dir,
--						attrs);
-+			xen_dma_map_pfn(hwdev, pfn, dev_addr, offset,
-+					sg->length, attrs);
- 			sg->dma_address = dev_addr;
- 		}
- 		sg_dma_len(sg) = sg->length;
-diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
-index 7305efb1bac6..e031b079ce4e 100644
---- a/include/asm-generic/dma-mapping-common.h
-+++ b/include/asm-generic/dma-mapping-common.h
-@@ -18,7 +18,7 @@ static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
- 	kmemcheck_mark_initialized(ptr, size);
- 	BUG_ON(!valid_dma_direction(dir));
- #ifdef CONFIG_HAVE_DMA_PFN
--	addr = ops->map_pfn(dev, page_to_pfn_typed(virt_to_page(ptr)),
-+	addr = ops->map_pfn(dev, page_to_pfn_t(virt_to_page(ptr)),
- 			     (unsigned long)ptr & ~PAGE_MASK, size,
- 			     dir, attrs);
- #else
-@@ -99,7 +99,7 @@ static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
- 				      enum dma_data_direction dir)
- {
- 	kmemcheck_mark_initialized(page_address(page) + offset, size);
--	return dma_map_pfn(dev, page_to_pfn_typed(page), offset, size, dir);
-+	return dma_map_pfn(dev, page_to_pfn_t(page), offset, size, dir);
- }
- #else
- static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
+-	sg[periods].offset = 0;
+-	sg_dma_len(&sg[periods]) = 0;
+-	sg[periods].page_link =
+-		((unsigned long)sg | 0x01) & ~0x02;
++	sg_chain(sg, periods + 1, sg);
+ 
+ 	txd = d40_prep_sg(chan, sg, sg, periods, direction,
+ 			  DMA_PREP_INTERRUPT);
+diff --git a/drivers/mmc/card/queue.c b/drivers/mmc/card/queue.c
+index 236d194c2883..127f76294e71 100644
+--- a/drivers/mmc/card/queue.c
++++ b/drivers/mmc/card/queue.c
+@@ -469,7 +469,7 @@ static unsigned int mmc_queue_packed_map_sg(struct mmc_queue *mq,
+ 			sg_set_buf(__sg, buf + offset, len);
+ 			offset += len;
+ 			remain -= len;
+-			(__sg++)->page_link &= ~0x02;
++			sg_unmark_end(__sg++);
+ 			sg_len++;
+ 		} while (remain);
+ 	}
+@@ -477,7 +477,7 @@ static unsigned int mmc_queue_packed_map_sg(struct mmc_queue *mq,
+ 	list_for_each_entry(req, &packed->list, queuelist) {
+ 		sg_len += blk_rq_map_sg(mq->queue, req, __sg);
+ 		__sg = sg + (sg_len - 1);
+-		(__sg++)->page_link &= ~0x02;
++		sg_unmark_end(__sg++);
+ 	}
+ 	sg_mark_end(sg + (sg_len - 1));
+ 	return sg_len;
 diff --git a/include/asm-generic/scatterlist.h b/include/asm-generic/scatterlist.h
-index 959f51572a8e..ddc743513e55 100644
+index 5de07355fad4..959f51572a8e 100644
 --- a/include/asm-generic/scatterlist.h
 +++ b/include/asm-generic/scatterlist.h
-@@ -2,6 +2,7 @@
- #define __ASM_GENERIC_SCATTERLIST_H
- 
- #include <linux/types.h>
-+#include <linux/mm.h>
- 
- struct scatterlist {
+@@ -7,8 +7,17 @@ struct scatterlist {
  #ifdef CONFIG_DEBUG_SG
-diff --git a/include/linux/swiotlb.h b/include/linux/swiotlb.h
-index e7a018eaf3a2..5093fc8d2825 100644
---- a/include/linux/swiotlb.h
-+++ b/include/linux/swiotlb.h
-@@ -66,6 +66,10 @@ extern dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
- 				   unsigned long offset, size_t size,
- 				   enum dma_data_direction dir,
- 				   struct dma_attrs *attrs);
-+extern dma_addr_t swiotlb_map_pfn(struct device *dev, __pfn_t pfn,
-+				  unsigned long offset, size_t size,
-+				  enum dma_data_direction dir,
-+				  struct dma_attrs *attrs);
- extern void swiotlb_unmap_page(struct device *hwdev, dma_addr_t dev_addr,
- 			       size_t size, enum dma_data_direction dir,
- 			       struct dma_attrs *attrs);
-diff --git a/lib/swiotlb.c b/lib/swiotlb.c
-index 4abda074ea45..4183d691bf2e 100644
---- a/lib/swiotlb.c
-+++ b/lib/swiotlb.c
-@@ -727,12 +727,12 @@ swiotlb_full(struct device *dev, size_t size, enum dma_data_direction dir,
-  * Once the device is given the dma address, the device owns this memory until
-  * either swiotlb_unmap_page or swiotlb_dma_sync_single is performed.
-  */
--dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
--			    unsigned long offset, size_t size,
--			    enum dma_data_direction dir,
--			    struct dma_attrs *attrs)
-+dma_addr_t swiotlb_map_pfn(struct device *dev, __pfn_t pfn,
-+			   unsigned long offset, size_t size,
-+			   enum dma_data_direction dir,
-+			   struct dma_attrs *attrs)
+ 	unsigned long	sg_magic;
+ #endif
++#ifdef CONFIG_HAVE_DMA_PFN
++	union {
++		__pfn_t pfn;
++		struct scatterlist *next;
++	};
++	unsigned short	offset;
++	unsigned short	sg_flags;
++#else
+ 	unsigned long	page_link;
+ 	unsigned int	offset;
++#endif
+ 	unsigned int	length;
+ 	dma_addr_t	dma_address;
+ #ifdef CONFIG_NEED_SG_DMA_LENGTH
+diff --git a/include/crypto/scatterwalk.h b/include/crypto/scatterwalk.h
+index 20e4226a2e14..7296d89a50b2 100644
+--- a/include/crypto/scatterwalk.h
++++ b/include/crypto/scatterwalk.h
+@@ -25,6 +25,15 @@
+ #include <linux/scatterlist.h>
+ #include <linux/sched.h>
+ 
++#ifdef CONFIG_HAVE_DMA_PFN
++/*
++ * If we're using PFNs, the architecture must also have been converted to
++ * support SG_CHAIN.  So we can use the generic code instead of custom
++ * code.
++ */
++#define scatterwalk_sg_chain(prv, num, sgl)	sg_chain(prv, num, sgl)
++#define scatterwalk_sg_next(sgl)		sg_next(sgl)
++#else
+ static inline void scatterwalk_sg_chain(struct scatterlist *sg1, int num,
+ 					struct scatterlist *sg2)
  {
--	phys_addr_t map, phys = page_to_phys(page) + offset;
-+	phys_addr_t map, phys = __pfn_t_to_phys(pfn) + offset;
- 	dma_addr_t dev_addr = phys_to_dma(dev, phys);
- 
- 	BUG_ON(dir == DMA_NONE);
-@@ -763,6 +763,16 @@ dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
- 
- 	return dev_addr;
+@@ -32,6 +41,7 @@ static inline void scatterwalk_sg_chain(struct scatterlist *sg1, int num,
+ 	sg1[num - 1].page_link &= ~0x02;
+ 	sg1[num - 1].page_link |= 0x01;
  }
-+EXPORT_SYMBOL_GPL(swiotlb_map_pfn);
-+
-+dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
-+			    unsigned long offset, size_t size,
-+			    enum dma_data_direction dir,
-+			    struct dma_attrs *attrs)
-+{
-+	return swiotlb_map_pfn(dev, page_to_pfn_t(page), offset, size, dir,
-+			attrs);
-+}
- EXPORT_SYMBOL_GPL(swiotlb_map_page);
++#endif
  
+ static inline void scatterwalk_crypto_chain(struct scatterlist *head,
+ 					    struct scatterlist *sg,
+diff --git a/include/linux/scatterlist.h b/include/linux/scatterlist.h
+index ed8f9e70df9b..9d423e559bdb 100644
+--- a/include/linux/scatterlist.h
++++ b/include/linux/scatterlist.h
+@@ -5,6 +5,7 @@
+ #include <linux/bug.h>
+ #include <linux/mm.h>
+ 
++#include <asm/page.h>
+ #include <asm/types.h>
+ #include <asm/scatterlist.h>
+ #include <asm/io.h>
+@@ -18,8 +19,14 @@ struct sg_table {
  /*
-
+  * Notes on SG table design.
+  *
+- * Architectures must provide an unsigned long page_link field in the
+- * scatterlist struct. We use that to place the page pointer AND encode
++ * Architectures may define CONFIG_HAVE_DMA_PFN to indicate that they wish
++ * to support SGLs that point to pages which do not have a struct page to
++ * describe them.  If so, they should provide an sg_flags field in their
++ * scatterlist struct (see asm-generic for an example) as well as a pfn
++ * field.
++ *
++ * Otherwise, architectures must provide an unsigned long page_link field in
++ * the scatterlist struct. We use that to place the page pointer AND encode
+  * information about the sg table as well. The two lower bits are reserved
+  * for this information.
+  *
+@@ -33,16 +40,25 @@ struct sg_table {
+  */
+ 
+ #define SG_MAGIC	0x87654321
+-
++#define SG_FLAGS_CHAIN	0x0001
++#define SG_FLAGS_LAST	0x0002
++#define SG_FLAGS_PAGE	0x0004
++
++#ifdef CONFIG_HAVE_DMA_PFN
++#define sg_is_chain(sg)		((sg)->sg_flags & SG_FLAGS_CHAIN)
++#define sg_is_last(sg)		((sg)->sg_flags & SG_FLAGS_LAST)
++#define sg_chain_ptr(sg)	((sg)->next)
++#else /* !CONFIG_HAVE_DMA_PFN */
+ /*
+  * We overload the LSB of the page pointer to indicate whether it's
+  * a valid sg entry, or whether it points to the start of a new scatterlist.
+  * Those low bits are there for everyone! (thanks mason :-)
+  */
+-#define sg_is_chain(sg)		((sg)->page_link & 0x01)
+-#define sg_is_last(sg)		((sg)->page_link & 0x02)
++#define sg_is_chain(sg)		((sg)->page_link & SG_FLAGS_CHAIN)
++#define sg_is_last(sg)		((sg)->page_link & SG_FLAGS_LAST)
+ #define sg_chain_ptr(sg)	\
+ 	((struct scatterlist *) ((sg)->page_link & ~0x03))
++#endif /* !CONFIG_HAVE_DMA_PFN */
+ 
+ /**
+  * sg_assign_page - Assign a given page to an SG entry
+@@ -56,6 +72,14 @@ struct sg_table {
+  **/
+ static inline void sg_assign_page(struct scatterlist *sg, struct page *page)
+ {
++#ifdef CONFIG_HAVE_DMA_PFN
++#ifdef CONFIG_DEBUG_SG
++	BUG_ON(sg->sg_magic != SG_MAGIC);
++	BUG_ON(sg_is_chain(sg));
++#endif
++	sg->pfn = page_to_pfn_t(page);
++	sg->sg_flags |= SG_FLAGS_PAGE;
++#else /* !CONFIG_HAVE_DMA_PFN */
+ 	unsigned long page_link = sg->page_link & 0x3;
+ 
+ 	/*
+@@ -68,6 +92,7 @@ static inline void sg_assign_page(struct scatterlist *sg, struct page *page)
+ 	BUG_ON(sg_is_chain(sg));
+ #endif
+ 	sg->page_link = page_link | (unsigned long) page;
++#endif /* !CONFIG_HAVE_DMA_PFN */
+ }
+ 
+ /**
+@@ -88,17 +113,39 @@ static inline void sg_set_page(struct scatterlist *sg, struct page *page,
+ 			       unsigned int len, unsigned int offset)
+ {
+ 	sg_assign_page(sg, page);
++	BUG_ON(offset > 65535);
+ 	sg->offset = offset;
+ 	sg->length = len;
+ }
+ 
++#ifdef CONFIG_HAVE_DMA_PFN
++static inline void sg_set_pfn(struct scatterlist *sg, __pfn_t pfn,
++			      unsigned int len, unsigned int offset)
++{
++#ifdef CONFIG_DEBUG_SG
++	BUG_ON(sg->sg_magic != SG_MAGIC);
++	BUG_ON(sg_is_chain(sg));
++#endif
++	sg->pfn = pfn;
++	BUG_ON(offset > 65535);
++	sg->offset = offset;
++	sg->sg_flags = 0;
++	sg->length = len;
++}
++#endif
++
+ static inline struct page *sg_page(struct scatterlist *sg)
+ {
+ #ifdef CONFIG_DEBUG_SG
+ 	BUG_ON(sg->sg_magic != SG_MAGIC);
+ 	BUG_ON(sg_is_chain(sg));
+ #endif
++#ifdef CONFIG_HAVE_DMA_PFN
++	BUG_ON(!(sg->sg_flags & SG_FLAGS_PAGE));
++	return __pfn_t_to_page(sg->pfn);
++#else
+ 	return (struct page *)((sg)->page_link & ~0x3);
++#endif
+ }
+ 
+ /**
+@@ -150,7 +197,12 @@ static inline void sg_chain(struct scatterlist *prv, unsigned int prv_nents,
+ 	 * Set lowest bit to indicate a link pointer, and make sure to clear
+ 	 * the termination bit if it happens to be set.
+ 	 */
++#ifdef CONFIG_HAVE_DMA_PFN
++	prv[prv_nents - 1].next = sgl;
++	prv[prv_nents - 1].sg_flags = SG_FLAGS_CHAIN;
++#else
+ 	prv[prv_nents - 1].page_link = ((unsigned long) sgl | 0x01) & ~0x02;
++#endif
+ }
+ 
+ /**
+@@ -170,8 +222,13 @@ static inline void sg_mark_end(struct scatterlist *sg)
+ 	/*
+ 	 * Set termination bit, clear potential chain bit
+ 	 */
+-	sg->page_link |= 0x02;
+-	sg->page_link &= ~0x01;
++#ifdef CONFIG_HAVE_DMA_PFN
++	sg->sg_flags |= SG_FLAGS_LAST;
++	sg->sg_flags &= ~SG_FLAGS_CHAIN;
++#else
++	sg->page_link |= SG_FLAGS_LAST;
++	sg->page_link &= ~SG_FLAGS_CHAIN;
++#endif
+ }
+ 
+ /**
+@@ -187,7 +244,11 @@ static inline void sg_unmark_end(struct scatterlist *sg)
+ #ifdef CONFIG_DEBUG_SG
+ 	BUG_ON(sg->sg_magic != SG_MAGIC);
+ #endif
+-	sg->page_link &= ~0x02;
++#ifdef CONFIG_HAVE_DMA_PFN
++	sg->sg_flags &= ~SG_FLAGS_LAST;
++#else
++	sg->page_link &= ~SG_FLAGS_LAST;
++#endif
+ }
+ 
+ /**
+@@ -202,7 +263,11 @@ static inline void sg_unmark_end(struct scatterlist *sg)
+  **/
+ static inline dma_addr_t sg_phys(struct scatterlist *sg)
+ {
++#ifdef CONFIG_HAVE_DMA_PFN
++	return __pfn_t_to_phys(sg->pfn) + sg->offset;
++#else
+ 	return page_to_phys(sg_page(sg)) + sg->offset;
++#endif
+ }
+ 
+ /**
+@@ -217,7 +282,15 @@ static inline dma_addr_t sg_phys(struct scatterlist *sg)
+  **/
+ static inline void *sg_virt(struct scatterlist *sg)
+ {
+-	return page_address(sg_page(sg)) + sg->offset;
++	struct page *page;
++
++#ifdef CONFIG_HAVE_DMA_PFN
++	page = __pfn_t_to_page(sg->pfn) + sg->offset;
++	BUG_ON(!page); /* don't use sg_virt() on unmapped memory */
++#else
++	page = sg_page(sg);
++#endif
++	return page_address(page) + sg->offset;
+ }
+ 
+ int sg_nents(struct scatterlist *sg);
