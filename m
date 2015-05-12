@@ -1,184 +1,73 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v3 11/11] block: base support for pfn i/o
-Date: Tue, 12 May 2015 00:30:28 -0400
-Message-ID: <20150512043028.11521.84763.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v3 09/11] block: convert kmap helpers to kmap_atomic_pfn_t()
+Date: Tue, 12 May 2015 00:30:17 -0400
+Message-ID: <20150512043017.11521.98110.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga01.intel.com ([192.55.52.88]:56237 "EHLO mga01.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752844AbbELEdH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 May 2015 00:33:07 -0400
 In-Reply-To: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: axboe@kernel.dk, linux-arch@vger.kernel.org, riel@redhat.com, linux-nvdimm@lists.01.org, david@fromorbit.com, hch@lst.de, linux-fsdevel@vger.kernel.org, mgorman@suse.de, j.glisse@gmail.com, Tejun Heo <tj@kernel.org>, akpm@linux-foundation.org, mingo@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@lists.01.org, david@fromorbit.com, hch@lst.de, j.glisse@gmail.com, mgorman@suse.de, linux-fsdevel@vger.kernel.org, akpm@linux-foundation.org, mingo@kernel.org
 
-Allow block device drivers to opt-in to receiving bio(s) where the
-bio_vec(s) point to memory that is not backed by struct page entries.
-When a driver opts in it asserts that it will use the __pfn_t versions of the
-dma_map/kmap/scatterlist apis in its bio submission path.
+Convert the generic helpers to the __pfn_t version of kmap_atomic() in
+support of generically enabling "page-less" block i/o.
 
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Jens Axboe <axboe@kernel.dk>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- block/bio.c               |   46 ++++++++++++++++++++++++++++++++++++++-------
- block/blk-core.c          |    9 +++++++++
- include/linux/blk_types.h |    1 +
- include/linux/blkdev.h    |    2 ++
- 4 files changed, 51 insertions(+), 7 deletions(-)
+ include/linux/bio.h |   11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
 
-diff --git a/block/bio.c b/block/bio.c
-index 7100fd6d5898..58553dfd777e 100644
---- a/block/bio.c
-+++ b/block/bio.c
-@@ -567,6 +567,7 @@ void __bio_clone_fast(struct bio *bio, struct bio *bio_src)
- 	bio->bi_rw = bio_src->bi_rw;
- 	bio->bi_iter = bio_src->bi_iter;
- 	bio->bi_io_vec = bio_src->bi_io_vec;
-+	bio->bi_flags |= bio_src->bi_flags & (1 << BIO_PFN);
- }
- EXPORT_SYMBOL(__bio_clone_fast);
+diff --git a/include/linux/bio.h b/include/linux/bio.h
+index a569e6ea1cd2..6537d78e78b3 100644
+--- a/include/linux/bio.h
++++ b/include/linux/bio.h
+@@ -161,7 +161,7 @@ static inline void *bio_data(struct bio *bio)
+  * I/O completely on that queue (see ide-dma for example)
+  */
+ #define __bio_kmap_atomic(bio, iter)				\
+-	(kmap_atomic(bvec_page(bio_iter_iovec((bio), (iter)))) +   \
++	(kmap_atomic_pfn_t(bio_iter_iovec((bio), (iter)).pfn) +   \
+ 		bio_iter_iovec((bio), (iter)).bv_offset)
  
-@@ -658,6 +659,8 @@ struct bio *bio_clone_bioset(struct bio *bio_src, gfp_t gfp_mask,
- 		goto integrity_clone;
- 	}
- 
-+	bio->bi_flags |= bio_src->bi_flags & (1 << BIO_PFN);
-+
- 	bio_for_each_segment(bv, bio_src, iter)
- 		bio->bi_io_vec[bio->bi_vcnt++] = bv;
- 
-@@ -699,9 +702,9 @@ int bio_get_nr_vecs(struct block_device *bdev)
- }
- EXPORT_SYMBOL(bio_get_nr_vecs);
- 
--static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
--			  *page, unsigned int len, unsigned int offset,
--			  unsigned int max_sectors)
-+static int __bio_add_pfn(struct request_queue *q, struct bio *bio,
-+		__pfn_t pfn, unsigned int len, unsigned int offset,
-+		unsigned int max_sectors)
- {
- 	int retried_segments = 0;
- 	struct bio_vec *bvec;
-@@ -723,7 +726,7 @@ static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
- 	if (bio->bi_vcnt > 0) {
- 		struct bio_vec *prev = &bio->bi_io_vec[bio->bi_vcnt - 1];
- 
--		if (page == bvec_page(prev) &&
-+		if (__pfn_t_to_pfn(pfn) == __pfn_t_to_pfn(prev->bv_pfn) &&
- 		    offset == prev->bv_offset + prev->bv_len) {
- 			unsigned int prev_bv_len = prev->bv_len;
- 			prev->bv_len += len;
-@@ -768,7 +771,7 @@ static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
- 	 * cannot add the page
+ #define __bio_kunmap_atomic(addr)	kunmap_atomic(addr)
+@@ -491,7 +491,7 @@ static inline char *bvec_kmap_irq(struct bio_vec *bvec, unsigned long *flags)
+ 	 * balancing is a lot nicer this way
  	 */
- 	bvec = &bio->bi_io_vec[bio->bi_vcnt];
--	bvec_set_page(bvec, page);
-+	bvec->bv_pfn = pfn;
- 	bvec->bv_len = len;
- 	bvec->bv_offset = offset;
- 	bio->bi_vcnt++;
-@@ -845,7 +848,7 @@ static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
- int bio_add_pc_page(struct request_queue *q, struct bio *bio, struct page *page,
- 		    unsigned int len, unsigned int offset)
+ 	local_irq_save(*flags);
+-	addr = (unsigned long) kmap_atomic(bvec_page(bvec));
++	addr = (unsigned long) kmap_atomic_pfn_t(bvec.pfn);
+ 
+ 	BUG_ON(addr & ~PAGE_MASK);
+ 
+@@ -502,18 +502,21 @@ static inline void bvec_kunmap_irq(char *buffer, unsigned long *flags)
  {
--	return __bio_add_page(q, bio, page, len, offset,
-+	return __bio_add_pfn(q, bio, page_to_pfn_t(page), len, offset,
- 			      queue_max_hw_sectors(q));
+ 	unsigned long ptr = (unsigned long) buffer & PAGE_MASK;
+ 
+-	kunmap_atomic((void *) ptr);
++	kunmap_atomic_pfn_t((void *) ptr);
+ 	local_irq_restore(*flags);
  }
- EXPORT_SYMBOL(bio_add_pc_page);
-@@ -872,10 +875,39 @@ int bio_add_page(struct bio *bio, struct page *page, unsigned int len,
- 	if ((max_sectors < (len >> 9)) && !bio->bi_iter.bi_size)
- 		max_sectors = len >> 9;
  
--	return __bio_add_page(q, bio, page, len, offset, max_sectors);
-+	return __bio_add_pfn(q, bio, page_to_pfn_t(page), len, offset,
-+			max_sectors);
+ #else
+ static inline char *bvec_kmap_irq(struct bio_vec *bvec, unsigned long *flags)
+ {
+-	return page_address(bvec_page(bvec)) + bvec->bv_offset;
++	return kmap_atomic_pfn_t(bvec->bv_pfn) + bvec->bv_offset;
  }
- EXPORT_SYMBOL(bio_add_page);
  
-+/**
-+ *	bio_add_pfn -	attempt to add pfn to bio
-+ *	@bio: destination bio
-+ *	@pfn: pfn to add
-+ *	@len: vec entry length
-+ *	@offset: vec entry offset
-+ *
-+ *	Identical to bio_add_page() except this variant flags the bio as
-+ *	not have struct page backing.  A given request_queue must assert
-+ *	that it is prepared to handle this constraint before bio(s)
-+ *	flagged in the manner can be passed.
-+ */
-+int bio_add_pfn(struct bio *bio, __pfn_t pfn, unsigned int len,
-+		unsigned int offset)
-+{
-+	struct request_queue *q = bdev_get_queue(bio->bi_bdev);
-+	unsigned int max_sectors;
+ static inline void bvec_kunmap_irq(char *buffer, unsigned long *flags)
+ {
++	unsigned long ptr = (unsigned long) buffer & PAGE_MASK;
 +
-+	if (!blk_queue_pfn(q))
-+		return 0;
-+	set_bit(BIO_PFN, &bio->bi_flags);
-+	max_sectors = blk_max_size_offset(q, bio->bi_iter.bi_sector);
-+	if ((max_sectors < (len >> 9)) && !bio->bi_iter.bi_size)
-+		max_sectors = len >> 9;
-+
-+	return __bio_add_pfn(q, bio, pfn, len, offset, max_sectors);
-+}
-+
- struct submit_bio_ret {
- 	struct completion event;
- 	int error;
-diff --git a/block/blk-core.c b/block/blk-core.c
-index 94d2c6ccf801..1275e2c08c16 100644
---- a/block/blk-core.c
-+++ b/block/blk-core.c
-@@ -1856,6 +1856,15 @@ generic_make_request_checks(struct bio *bio)
- 		goto end_io;
- 	}
- 
-+	if (bio_flagged(bio, BIO_PFN)) {
-+		if (IS_ENABLED(CONFIG_DEV_PFN) && blk_queue_pfn(q))
-+			/* pass */;
-+		else {
-+			err = -EOPNOTSUPP;
-+			goto end_io;
-+		}
-+	}
-+
- 	/*
- 	 * Various block parts want %current->io_context and lazy ioc
- 	 * allocation ends up trading a lot of pain for a small amount of
-diff --git a/include/linux/blk_types.h b/include/linux/blk_types.h
-index f50464e167b4..ccde0b2d689d 100644
---- a/include/linux/blk_types.h
-+++ b/include/linux/blk_types.h
-@@ -150,6 +150,7 @@ struct bio {
- #define BIO_NULL_MAPPED 8	/* contains invalid user pages */
- #define BIO_QUIET	9	/* Make BIO Quiet */
- #define BIO_SNAP_STABLE	10	/* bio data must be snapshotted during write */
-+#define BIO_PFN		11	/* bio_vec references memory without struct page */
- 
- /*
-  * Flags starting here get preserved by bio_reset() - this includes
-diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
-index 42bcaf2b9311..d3f9b8cc50f2 100644
---- a/include/linux/blkdev.h
-+++ b/include/linux/blkdev.h
-@@ -513,6 +513,7 @@ struct request_queue {
- #define QUEUE_FLAG_INIT_DONE   20	/* queue is initialized */
- #define QUEUE_FLAG_NO_SG_MERGE 21	/* don't attempt to merge SG segments*/
- #define QUEUE_FLAG_SG_GAPS     22	/* queue doesn't support SG gaps */
-+#define QUEUE_FLAG_PFN         23	/* queue supports pfn-only bio_vec(s) */
- 
- #define QUEUE_FLAG_DEFAULT	((1 << QUEUE_FLAG_IO_STAT) |		\
- 				 (1 << QUEUE_FLAG_STACKABLE)	|	\
-@@ -594,6 +595,7 @@ static inline void queue_flag_clear(unsigned int flag, struct request_queue *q)
- #define blk_queue_noxmerges(q)	\
- 	test_bit(QUEUE_FLAG_NOXMERGES, &(q)->queue_flags)
- #define blk_queue_nonrot(q)	test_bit(QUEUE_FLAG_NONROT, &(q)->queue_flags)
-+#define blk_queue_pfn(q)	test_bit(QUEUE_FLAG_PFN, &(q)->queue_flags)
- #define blk_queue_io_stat(q)	test_bit(QUEUE_FLAG_IO_STAT, &(q)->queue_flags)
- #define blk_queue_add_random(q)	test_bit(QUEUE_FLAG_ADD_RANDOM, &(q)->queue_flags)
- #define blk_queue_stackable(q)	\
++	kunmap_atomic_pfn_t((void *) ptr);
+ 	*flags = 0;
+ }
+ #endif
