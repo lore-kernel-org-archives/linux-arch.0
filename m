@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:38698 "EHLO mga11.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:2766 "EHLO mga09.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752748AbbELEcn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 May 2015 00:32:43 -0400
-Subject: [PATCH v3 06/11] scatterlist: support "page-less" (__pfn_t only)
- entries
+	id S1752453AbbELEcP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 May 2015 00:32:15 -0400
+Subject: [PATCH v3 01/11] arch: introduce __pfn_t for persistenti/device
+ memory
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Tue, 12 May 2015 00:30:01 -0400
-Message-ID: <20150512043001.11521.3526.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Tue, 12 May 2015 00:29:34 -0400
+Message-ID: <20150512042934.11521.4062.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -16,319 +16,192 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@lists.01.org, david@fromorbit.com, hch@lst.de, j.glisse@gmail.com, mgorman@suse.de, linux-fsdevel@vger.kernel.org, Matthew Wilcox <willy@linux.intel.com>, akpm@linux-foundation.org, mingo@kernel.org
-Message-ID: <20150512043001.xCQ4QdJ4_JkGKPHbYAFTw26GlNBNXxXDoyqPnoZc4-M@z>
+Cc: axboe@kernel.dk, linux-arch@vger.kernel.org, riel@redhat.com, linux-nvdimm@lists.01.org, david@fromorbit.com, hch@lst.de, linux-fsdevel@vger.kernel.org, mgorman@suse.de, j.glisse@gmail.com, "H. Peter Anvin" <hpa@zytor.com>, Tejun Heo <tj@kernel.org>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, mingo@kernel.org
+Message-ID: <20150512042934.DQbRjpSkUr7eV3ekmsk56NYQ5nz7vO3sSqHIQLxbF18@z>
 
-From: Matthew Wilcox <willy@linux.intel.com>
+Introduce a type that encapsulates a page-frame-number that is
+optionally backed by memmap (struct page).  This type will be used in
+place of 'struct page *' instances in contexts where device-backed
+memory (usually persistent memory) is being referenced (scatterlists for
+drivers, biovecs for the block layer, etc).  The operations in those i/o
+paths that formerly required a 'struct page *' are to be converted to
+use __pfn_t aware equivalent helpers.  Otherwise, in the absence of
+persistent memory, there is no functional change and __pfn_t is an alias
+for a normal memory page.
 
-Given that an offset will never be more than PAGE_SIZE, steal the unused
-bits of the offset to implement a flags field.  Move the existing "this
-is a sg_chain() entry" flag to the new flags field, and add a new flag
-(SG_FLAGS_PAGE) to indicate that there is a struct page backing for the
-entry.
+It turns out that while 'struct page' references are used broadly in the
+kernel I/O stacks the usage of 'struct page' based capabilities is very
+shallow for block-i/o.  It is only used for populating bio_vecs and
+scatterlists for the retrieval of dma addresses, and for temporary
+kernel mappings (kmap).  Aside from kmap, these usages can be trivially
+converted to operate on a pfn.
 
+Indeed, kmap_atomic() is more problematic as it uses mm infrastructure,
+via struct page, to setup and track temporary kernel mappings.  It would
+be unfortunate if the kmap infrastructure escaped its 32-bit/HIGHMEM
+bonds and leaked into 64-bit code.  Thankfully, it seems all that is
+needed here is to convert kmap_atomic() callers, that want to opt-in to
+supporting persistent memory, to use a new kmap_atomic_pfn_t().  Where
+kmap_atomic_pfn_t() is enabled to re-use the existing ioremap() mapping
+established by the driver for persistent memory.
+
+Note, that as far as conceptually understanding __pfn_t is concerned,
+'persistent memory' is really any address range in host memory not
+covered by memmap.  Contrast this with pure iomem that is on an mmio
+mapped bus like PCI and cannot be converted to a dma_addr_t by "pfn <<
+PAGE_SHIFT".
+
+Cc: H. Peter Anvin <hpa@zytor.com>
+Cc: Jens Axboe <axboe@kernel.dk>
+Cc: Tejun Heo <tj@kernel.org>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-Signed-off-by: Matthew Wilcox <willy@linux.intel.com>
 ---
- block/blk-merge.c                 |    2 -
- drivers/dma/ste_dma40.c           |    5 --
- drivers/mmc/card/queue.c          |    4 +-
- include/asm-generic/scatterlist.h |    9 ++++
- include/crypto/scatterwalk.h      |   10 ++++
- include/linux/scatterlist.h       |   91 +++++++++++++++++++++++++++++++++----
- 6 files changed, 105 insertions(+), 16 deletions(-)
+ include/asm-generic/memory_model.h |    1 
+ include/asm-generic/pfn.h          |   84 ++++++++++++++++++++++++++++++++++++
+ include/linux/mm.h                 |    1 
+ init/Kconfig                       |   13 ++++++
+ 4 files changed, 98 insertions(+), 1 deletion(-)
+ create mode 100644 include/asm-generic/pfn.h
 
-diff --git a/block/blk-merge.c b/block/blk-merge.c
-index 218ad1e57a49..82a688551b72 100644
---- a/block/blk-merge.c
-+++ b/block/blk-merge.c
-@@ -267,7 +267,7 @@ int blk_rq_map_sg(struct request_queue *q, struct request *rq,
- 		if (rq->cmd_flags & REQ_WRITE)
- 			memset(q->dma_drain_buffer, 0, q->dma_drain_size);
+diff --git a/include/asm-generic/memory_model.h b/include/asm-generic/memory_model.h
+index 14909b0b9cae..1b0ae21fd8ff 100644
+--- a/include/asm-generic/memory_model.h
++++ b/include/asm-generic/memory_model.h
+@@ -70,7 +70,6 @@
+ #endif /* CONFIG_FLATMEM/DISCONTIGMEM/SPARSEMEM */
  
--		sg->page_link &= ~0x02;
-+		sg_unmark_end(sg);
- 		sg = sg_next(sg);
- 		sg_set_page(sg, virt_to_page(q->dma_drain_buffer),
- 			    q->dma_drain_size,
-diff --git a/drivers/dma/ste_dma40.c b/drivers/dma/ste_dma40.c
-index 3c10f034d4b9..e8c00642cacb 100644
---- a/drivers/dma/ste_dma40.c
-+++ b/drivers/dma/ste_dma40.c
-@@ -2562,10 +2562,7 @@ dma40_prep_dma_cyclic(struct dma_chan *chan, dma_addr_t dma_addr,
- 		dma_addr += period_len;
- 	}
+ #define page_to_pfn __page_to_pfn
+-#define pfn_to_page __pfn_to_page
  
--	sg[periods].offset = 0;
--	sg_dma_len(&sg[periods]) = 0;
--	sg[periods].page_link =
--		((unsigned long)sg | 0x01) & ~0x02;
-+	sg_chain(sg, periods + 1, sg);
+ #endif /* __ASSEMBLY__ */
  
- 	txd = d40_prep_sg(chan, sg, sg, periods, direction,
- 			  DMA_PREP_INTERRUPT);
-diff --git a/drivers/mmc/card/queue.c b/drivers/mmc/card/queue.c
-index 236d194c2883..127f76294e71 100644
---- a/drivers/mmc/card/queue.c
-+++ b/drivers/mmc/card/queue.c
-@@ -469,7 +469,7 @@ static unsigned int mmc_queue_packed_map_sg(struct mmc_queue *mq,
- 			sg_set_buf(__sg, buf + offset, len);
- 			offset += len;
- 			remain -= len;
--			(__sg++)->page_link &= ~0x02;
-+			sg_unmark_end(__sg++);
- 			sg_len++;
- 		} while (remain);
- 	}
-@@ -477,7 +477,7 @@ static unsigned int mmc_queue_packed_map_sg(struct mmc_queue *mq,
- 	list_for_each_entry(req, &packed->list, queuelist) {
- 		sg_len += blk_rq_map_sg(mq->queue, req, __sg);
- 		__sg = sg + (sg_len - 1);
--		(__sg++)->page_link &= ~0x02;
-+		sg_unmark_end(__sg++);
- 	}
- 	sg_mark_end(sg + (sg_len - 1));
- 	return sg_len;
-diff --git a/include/asm-generic/scatterlist.h b/include/asm-generic/scatterlist.h
-index 5de07355fad4..959f51572a8e 100644
---- a/include/asm-generic/scatterlist.h
-+++ b/include/asm-generic/scatterlist.h
-@@ -7,8 +7,17 @@ struct scatterlist {
- #ifdef CONFIG_DEBUG_SG
- 	unsigned long	sg_magic;
- #endif
-+#ifdef CONFIG_HAVE_DMA_PFN
-+	union {
-+		__pfn_t pfn;
-+		struct scatterlist *next;
-+	};
-+	unsigned short	offset;
-+	unsigned short	sg_flags;
-+#else
- 	unsigned long	page_link;
- 	unsigned int	offset;
-+#endif
- 	unsigned int	length;
- 	dma_addr_t	dma_address;
- #ifdef CONFIG_NEED_SG_DMA_LENGTH
-diff --git a/include/crypto/scatterwalk.h b/include/crypto/scatterwalk.h
-index 20e4226a2e14..7296d89a50b2 100644
---- a/include/crypto/scatterwalk.h
-+++ b/include/crypto/scatterwalk.h
-@@ -25,6 +25,15 @@
- #include <linux/scatterlist.h>
- #include <linux/sched.h>
- 
-+#ifdef CONFIG_HAVE_DMA_PFN
-+/*
-+ * If we're using PFNs, the architecture must also have been converted to
-+ * support SG_CHAIN.  So we can use the generic code instead of custom
-+ * code.
-+ */
-+#define scatterwalk_sg_chain(prv, num, sgl)	sg_chain(prv, num, sgl)
-+#define scatterwalk_sg_next(sgl)		sg_next(sgl)
-+#else
- static inline void scatterwalk_sg_chain(struct scatterlist *sg1, int num,
- 					struct scatterlist *sg2)
- {
-@@ -32,6 +41,7 @@ static inline void scatterwalk_sg_chain(struct scatterlist *sg1, int num,
- 	sg1[num - 1].page_link &= ~0x02;
- 	sg1[num - 1].page_link |= 0x01;
- }
-+#endif
- 
- static inline void scatterwalk_crypto_chain(struct scatterlist *head,
- 					    struct scatterlist *sg,
-diff --git a/include/linux/scatterlist.h b/include/linux/scatterlist.h
-index ed8f9e70df9b..9d423e559bdb 100644
---- a/include/linux/scatterlist.h
-+++ b/include/linux/scatterlist.h
-@@ -5,6 +5,7 @@
- #include <linux/bug.h>
- #include <linux/mm.h>
- 
-+#include <asm/page.h>
- #include <asm/types.h>
- #include <asm/scatterlist.h>
- #include <asm/io.h>
-@@ -18,8 +19,14 @@ struct sg_table {
- /*
-  * Notes on SG table design.
-  *
-- * Architectures must provide an unsigned long page_link field in the
-- * scatterlist struct. We use that to place the page pointer AND encode
-+ * Architectures may define CONFIG_HAVE_DMA_PFN to indicate that they wish
-+ * to support SGLs that point to pages which do not have a struct page to
-+ * describe them.  If so, they should provide an sg_flags field in their
-+ * scatterlist struct (see asm-generic for an example) as well as a pfn
-+ * field.
-+ *
-+ * Otherwise, architectures must provide an unsigned long page_link field in
-+ * the scatterlist struct. We use that to place the page pointer AND encode
-  * information about the sg table as well. The two lower bits are reserved
-  * for this information.
-  *
-@@ -33,16 +40,25 @@ struct sg_table {
-  */
- 
- #define SG_MAGIC	0x87654321
--
-+#define SG_FLAGS_CHAIN	0x0001
-+#define SG_FLAGS_LAST	0x0002
-+#define SG_FLAGS_PAGE	0x0004
+diff --git a/include/asm-generic/pfn.h b/include/asm-generic/pfn.h
+new file mode 100644
+index 000000000000..ee1363e3c67c
+--- /dev/null
++++ b/include/asm-generic/pfn.h
+@@ -0,0 +1,84 @@
++#ifndef __ASM_PFN_H
++#define __ASM_PFN_H
 +
-+#ifdef CONFIG_HAVE_DMA_PFN
-+#define sg_is_chain(sg)		((sg)->sg_flags & SG_FLAGS_CHAIN)
-+#define sg_is_last(sg)		((sg)->sg_flags & SG_FLAGS_LAST)
-+#define sg_chain_ptr(sg)	((sg)->next)
-+#else /* !CONFIG_HAVE_DMA_PFN */
- /*
-  * We overload the LSB of the page pointer to indicate whether it's
-  * a valid sg entry, or whether it points to the start of a new scatterlist.
-  * Those low bits are there for everyone! (thanks mason :-)
-  */
--#define sg_is_chain(sg)		((sg)->page_link & 0x01)
--#define sg_is_last(sg)		((sg)->page_link & 0x02)
-+#define sg_is_chain(sg)		((sg)->page_link & SG_FLAGS_CHAIN)
-+#define sg_is_last(sg)		((sg)->page_link & SG_FLAGS_LAST)
- #define sg_chain_ptr(sg)	\
- 	((struct scatterlist *) ((sg)->page_link & ~0x03))
-+#endif /* !CONFIG_HAVE_DMA_PFN */
- 
- /**
-  * sg_assign_page - Assign a given page to an SG entry
-@@ -56,6 +72,14 @@ struct sg_table {
-  **/
- static inline void sg_assign_page(struct scatterlist *sg, struct page *page)
- {
-+#ifdef CONFIG_HAVE_DMA_PFN
-+#ifdef CONFIG_DEBUG_SG
-+	BUG_ON(sg->sg_magic != SG_MAGIC);
-+	BUG_ON(sg_is_chain(sg));
++/*
++ * Default pfn to physical address conversion, like most arch
++ * page_to_phys() implementations this resolves to a dma_addr_t as it
++ * should be the size needed for a device to reference this address.
++ */
++#ifndef __pfn_to_phys
++#define __pfn_to_phys(pfn)      ((dma_addr_t)(pfn) << PAGE_SHIFT)
 +#endif
-+	sg->pfn = page_to_pfn_t(page);
-+	sg->sg_flags |= SG_FLAGS_PAGE;
-+#else /* !CONFIG_HAVE_DMA_PFN */
- 	unsigned long page_link = sg->page_link & 0x3;
- 
- 	/*
-@@ -68,6 +92,7 @@ static inline void sg_assign_page(struct scatterlist *sg, struct page *page)
- 	BUG_ON(sg_is_chain(sg));
- #endif
- 	sg->page_link = page_link | (unsigned long) page;
-+#endif /* !CONFIG_HAVE_DMA_PFN */
- }
- 
- /**
-@@ -88,17 +113,39 @@ static inline void sg_set_page(struct scatterlist *sg, struct page *page,
- 			       unsigned int len, unsigned int offset)
- {
- 	sg_assign_page(sg, page);
-+	BUG_ON(offset > 65535);
- 	sg->offset = offset;
- 	sg->length = len;
- }
- 
-+#ifdef CONFIG_HAVE_DMA_PFN
-+static inline void sg_set_pfn(struct scatterlist *sg, __pfn_t pfn,
-+			      unsigned int len, unsigned int offset)
++
++static inline struct page *pfn_to_page(unsigned long pfn)
 +{
-+#ifdef CONFIG_DEBUG_SG
-+	BUG_ON(sg->sg_magic != SG_MAGIC);
-+	BUG_ON(sg_is_chain(sg));
++	return __pfn_to_page(pfn);
++}
++
++/*
++ * __pfn_t: encapsulates a page-frame number that is optionally backed
++ * by memmap (struct page).  This type will be used in place of a
++ * 'struct page *' instance in contexts where unmapped memory (usually
++ * persistent memory) is being referenced (scatterlists for drivers,
++ * biovecs for the block layer, etc).  Whether a __pfn_t has a struct
++ * page backing is indicated by flags in the low bits of @data.
++ */
++typedef struct {
++	union {
++		unsigned long data;
++		struct page *page;
++	};
++} __pfn_t;
++
++enum {
++#if BITS_PER_LONG == 64
++	PFN_SHIFT = 3,
++#else
++	PFN_SHIFT = 2,
 +#endif
-+	sg->pfn = pfn;
-+	BUG_ON(offset > 65535);
-+	sg->offset = offset;
-+	sg->sg_flags = 0;
-+	sg->length = len;
++	PFN_MASK = (1 << PFN_SHIFT) - 1,
++	/* device-pfn not covered by memmap */
++	PFN_DEV = (1 << 0),
++};
++
++#ifdef CONFIG_DEV_PFN
++static inline bool __pfn_t_has_page(__pfn_t pfn)
++{
++	return (pfn.data & PFN_MASK) == 0;
++}
++
++#else
++static inline bool __pfn_t_has_page(__pfn_t pfn)
++{
++	return true;
 +}
 +#endif
 +
- static inline struct page *sg_page(struct scatterlist *sg)
- {
- #ifdef CONFIG_DEBUG_SG
- 	BUG_ON(sg->sg_magic != SG_MAGIC);
- 	BUG_ON(sg_is_chain(sg));
- #endif
-+#ifdef CONFIG_HAVE_DMA_PFN
-+	BUG_ON(!(sg->sg_flags & SG_FLAGS_PAGE));
-+	return __pfn_t_to_page(sg->pfn);
-+#else
- 	return (struct page *)((sg)->page_link & ~0x3);
-+#endif
- }
- 
- /**
-@@ -150,7 +197,12 @@ static inline void sg_chain(struct scatterlist *prv, unsigned int prv_nents,
- 	 * Set lowest bit to indicate a link pointer, and make sure to clear
- 	 * the termination bit if it happens to be set.
- 	 */
-+#ifdef CONFIG_HAVE_DMA_PFN
-+	prv[prv_nents - 1].next = sgl;
-+	prv[prv_nents - 1].sg_flags = SG_FLAGS_CHAIN;
-+#else
- 	prv[prv_nents - 1].page_link = ((unsigned long) sgl | 0x01) & ~0x02;
-+#endif
- }
- 
- /**
-@@ -170,8 +222,13 @@ static inline void sg_mark_end(struct scatterlist *sg)
- 	/*
- 	 * Set termination bit, clear potential chain bit
- 	 */
--	sg->page_link |= 0x02;
--	sg->page_link &= ~0x01;
-+#ifdef CONFIG_HAVE_DMA_PFN
-+	sg->sg_flags |= SG_FLAGS_LAST;
-+	sg->sg_flags &= ~SG_FLAGS_CHAIN;
-+#else
-+	sg->page_link |= SG_FLAGS_LAST;
-+	sg->page_link &= ~SG_FLAGS_CHAIN;
-+#endif
- }
- 
- /**
-@@ -187,7 +244,11 @@ static inline void sg_unmark_end(struct scatterlist *sg)
- #ifdef CONFIG_DEBUG_SG
- 	BUG_ON(sg->sg_magic != SG_MAGIC);
- #endif
--	sg->page_link &= ~0x02;
-+#ifdef CONFIG_HAVE_DMA_PFN
-+	sg->sg_flags &= ~SG_FLAGS_LAST;
-+#else
-+	sg->page_link &= ~SG_FLAGS_LAST;
-+#endif
- }
- 
- /**
-@@ -202,7 +263,11 @@ static inline void sg_unmark_end(struct scatterlist *sg)
-  **/
- static inline dma_addr_t sg_phys(struct scatterlist *sg)
- {
-+#ifdef CONFIG_HAVE_DMA_PFN
-+	return __pfn_t_to_phys(sg->pfn) + sg->offset;
-+#else
- 	return page_to_phys(sg_page(sg)) + sg->offset;
-+#endif
- }
- 
- /**
-@@ -217,7 +282,15 @@ static inline dma_addr_t sg_phys(struct scatterlist *sg)
-  **/
- static inline void *sg_virt(struct scatterlist *sg)
- {
--	return page_address(sg_page(sg)) + sg->offset;
-+	struct page *page;
++static inline struct page *__pfn_t_to_page(__pfn_t pfn)
++{
++	if (!__pfn_t_has_page(pfn))
++		return NULL;
++	return pfn.page;
++}
 +
-+#ifdef CONFIG_HAVE_DMA_PFN
-+	page = __pfn_t_to_page(sg->pfn) + sg->offset;
-+	BUG_ON(!page); /* don't use sg_virt() on unmapped memory */
-+#else
-+	page = sg_page(sg);
-+#endif
-+	return page_address(page) + sg->offset;
- }
++static inline unsigned long __pfn_t_to_pfn(__pfn_t pfn)
++{
++	if (__pfn_t_has_page(pfn))
++		return page_to_pfn(pfn.page);
++	return pfn.data >> PFN_SHIFT;
++}
++
++static inline dma_addr_t __pfn_t_to_phys(__pfn_t pfn)
++{
++	if (!__pfn_t_has_page(pfn))
++		return __pfn_to_phys(__pfn_t_to_pfn(pfn));
++	return __pfn_to_phys(page_to_pfn(pfn.page));
++}
++
++static inline __pfn_t page_to_pfn_t(struct page *page)
++{
++	__pfn_t pfn = { .page = page };
++
++	return pfn;
++}
++#endif /* __ASM_PFN_H */
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 0755b9fd03a7..9d35cff41c12 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -52,6 +52,7 @@ extern int sysctl_legacy_va_layout;
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+ #include <asm/processor.h>
++#include <asm-generic/pfn.h>
  
- int sg_nents(struct scatterlist *sg);
+ #ifndef __pa_symbol
+ #define __pa_symbol(x)  __pa(RELOC_HIDE((unsigned long)(x), 0))
+diff --git a/init/Kconfig b/init/Kconfig
+index dc24dec60232..b5b8a6ed0d97 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1764,6 +1764,19 @@ config PROFILING
+ 	  Say Y here to enable the extended profiling support mechanisms used
+ 	  by profilers such as OProfile.
+ 
++config DEV_PFN
++	default n
++	bool "Support for device provided (pmem, graphics, etc) memory" if EXPERT
++	help
++	  Say Y here to enable I/O to/from device provided memory,
++	  i.e.  reference memory that is not mapped.  This is usually
++	  the case if you have large quantities of persistent memory
++	  relative to DRAM.  Enabling this option may increase the
++	  kernel size by a few kilobytes as it instructs the kernel
++	  that a __pfn_t may reference unmapped memory.  Disabling
++	  this option instructs the kernel that a __pfn_t always
++	  references mapped platform memory.
++
+ #
+ # Place an empty function call at each tracepoint site. Can be
+ # dynamically changed for a probe function.
 
