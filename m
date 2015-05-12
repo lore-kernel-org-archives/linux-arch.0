@@ -1,8 +1,8 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v3 04/11] dma-mapping: allow archs to optionally specify a
- ->map_pfn() operation
-Date: Tue, 12 May 2015 00:29:51 -0400
-Message-ID: <20150512042951.11521.97119.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v3 08/11] x86: support kmap_atomic_pfn_t() for persistent
+ memory
+Date: Tue, 12 May 2015 00:30:12 -0400
+Message-ID: <20150512043012.11521.98885.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -14,198 +14,230 @@ To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@lists.01.org, david@fromorbit.com, hch@lst.de, j.glisse@gmail.com, mgorman@suse.de, linux-fsdevel@vger.kernel.org, akpm@linux-foundation.org, mingo@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This is in support of enabling block device drivers to perform DMA
-to/from persistent memory which may not have a backing struct page
-entry.
+It would be unfortunate if the kmap infrastructure escaped its current
+32-bit/HIGHMEM bonds and leaked into 64-bit code.  Instead, if the user
+has enabled CONFIG_DEV_PFN we direct the kmap_atomic_pfn_t()
+implementation to scan a list of pre-mapped persistent memory address
+ranges inserted by the pmem driver.
+
+The __pfn_t to resource lookup is indeed inefficient walking of a linked list,
+but there are two mitigating factors:
+
+1/ The number of persistent memory ranges is bounded by the number of
+   DIMMs which is on the order of 10s of DIMMs, not hundreds.
+
+2/ The lookup yields the entire range, if it becomes inefficient to do a
+   kmap_atomic_pfn_t() a PAGE_SIZE at a time the caller can take
+   advantage of the fact that the lookup can be amortized for all kmap
+   operations it needs to perform in a given range.
 
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/Kconfig                             |    3 +++
- include/asm-generic/dma-mapping-common.h |   30 ++++++++++++++++++++++++++++++
- include/linux/dma-debug.h                |   23 +++++++++++++++++++----
- include/linux/dma-mapping.h              |    8 +++++++-
- lib/dma-debug.c                          |   10 ++++++----
- 5 files changed, 65 insertions(+), 9 deletions(-)
+ arch/Kconfig            |    3 +
+ arch/x86/Kconfig        |    2 +
+ drivers/block/pmem.c    |    6 +++
+ include/linux/highmem.h |   23 +++++++++++
+ mm/Makefile             |    1 
+ mm/pfn.c                |   98 +++++++++++++++++++++++++++++++++++++++++++++++
+ 6 files changed, 133 insertions(+)
+ create mode 100644 mm/pfn.c
 
 diff --git a/arch/Kconfig b/arch/Kconfig
-index a65eafb24997..f7f800860c00 100644
+index f7f800860c00..69d3a3fa21af 100644
 --- a/arch/Kconfig
 +++ b/arch/Kconfig
-@@ -203,6 +203,9 @@ config HAVE_DMA_ATTRS
- config HAVE_DMA_CONTIGUOUS
+@@ -206,6 +206,9 @@ config HAVE_DMA_CONTIGUOUS
+ config HAVE_DMA_PFN
  	bool
  
-+config HAVE_DMA_PFN
++config HAVE_KMAP_PFN
 +	bool
 +
  config GENERIC_SMP_IDLE_THREAD
         bool
  
-diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
-index 940d5ec122c9..7305efb1bac6 100644
---- a/include/asm-generic/dma-mapping-common.h
-+++ b/include/asm-generic/dma-mapping-common.h
-@@ -17,9 +17,15 @@ static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index c626ffa5c01e..2fd7690ed0e2 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1434,7 +1434,9 @@ config X86_PMEM_LEGACY
+ 	  Say Y if unsure.
  
- 	kmemcheck_mark_initialized(ptr, size);
- 	BUG_ON(!valid_dma_direction(dir));
-+#ifdef CONFIG_HAVE_DMA_PFN
-+	addr = ops->map_pfn(dev, page_to_pfn_typed(virt_to_page(ptr)),
-+			     (unsigned long)ptr & ~PAGE_MASK, size,
-+			     dir, attrs);
+ config X86_PMEM_DMA
++	depends on !HIGHMEM
+ 	def_bool DEV_PFN
++	select HAVE_KMAP_PFN
+ 	select HAVE_DMA_PFN
+ 
+ config HIGHPTE
+diff --git a/drivers/block/pmem.c b/drivers/block/pmem.c
+index 41bb424533e6..2a847651f8de 100644
+--- a/drivers/block/pmem.c
++++ b/drivers/block/pmem.c
+@@ -23,6 +23,7 @@
+ #include <linux/module.h>
+ #include <linux/moduleparam.h>
+ #include <linux/slab.h>
++#include <linux/highmem.h>
+ 
+ #define PMEM_MINORS		16
+ 
+@@ -147,6 +148,11 @@ static struct pmem_device *pmem_alloc(struct device *dev, struct resource *res)
+ 	if (!pmem->virt_addr)
+ 		goto out_release_region;
+ 
++	err = devm_register_kmap_pfn_range(dev, res, pmem->virt_addr);
++	if (err)
++		goto out_unmap;
++
++	err = -ENOMEM;
+ 	pmem->pmem_queue = blk_alloc_queue(GFP_KERNEL);
+ 	if (!pmem->pmem_queue)
+ 		goto out_unmap;
+diff --git a/include/linux/highmem.h b/include/linux/highmem.h
+index 9286a46b7d69..85fd52d43a9a 100644
+--- a/include/linux/highmem.h
++++ b/include/linux/highmem.h
+@@ -83,6 +83,29 @@ static inline void __kunmap_atomic(void *addr)
+ 
+ #endif /* CONFIG_HIGHMEM */
+ 
++#ifdef CONFIG_HAVE_KMAP_PFN
++extern void *kmap_atomic_pfn_t(__pfn_t pfn);
++extern void kunmap_atomic_pfn_t(void *addr);
++extern int devm_register_kmap_pfn_range(struct device *dev,
++		struct resource *res, void *base);
 +#else
- 	addr = ops->map_page(dev, virt_to_page(ptr),
- 			     (unsigned long)ptr & ~PAGE_MASK, size,
- 			     dir, attrs);
-+#endif
- 	debug_dma_map_page(dev, virt_to_page(ptr),
- 			   (unsigned long)ptr & ~PAGE_MASK, size,
- 			   dir, addr, true);
-@@ -73,6 +79,29 @@ static inline void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg
- 		ops->unmap_sg(dev, sg, nents, dir, attrs);
- }
- 
-+#ifdef CONFIG_HAVE_DMA_PFN
-+static inline dma_addr_t dma_map_pfn(struct device *dev, __pfn_t pfn,
-+				      size_t offset, size_t size,
-+				      enum dma_data_direction dir)
++static inline void *kmap_atomic_pfn_t(__pfn_t pfn)
 +{
-+	struct dma_map_ops *ops = get_dma_ops(dev);
-+	dma_addr_t addr;
-+
-+	BUG_ON(!valid_dma_direction(dir));
-+	addr = ops->map_pfn(dev, pfn, offset, size, dir, NULL);
-+	debug_dma_map_pfn(dev, pfn, offset, size, dir, addr, false);
-+
-+	return addr;
++	return kmap_atomic(__pfn_t_to_page(pfn));
 +}
 +
-+static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
-+				      size_t offset, size_t size,
-+				      enum dma_data_direction dir)
++static inline void kunmap_atomic_pfn_t(void *addr)
 +{
-+	kmemcheck_mark_initialized(page_address(page) + offset, size);
-+	return dma_map_pfn(dev, page_to_pfn_typed(page), offset, size, dir);
-+}
-+#else
- static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
- 				      size_t offset, size_t size,
- 				      enum dma_data_direction dir)
-@@ -87,6 +116,7 @@ static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
- 
- 	return addr;
- }
-+#endif /* CONFIG_HAVE_DMA_PFN */
- 
- static inline void dma_unmap_page(struct device *dev, dma_addr_t addr,
- 				  size_t size, enum dma_data_direction dir)
-diff --git a/include/linux/dma-debug.h b/include/linux/dma-debug.h
-index fe8cb610deac..a3b4c8c0cd68 100644
---- a/include/linux/dma-debug.h
-+++ b/include/linux/dma-debug.h
-@@ -34,10 +34,18 @@ extern void dma_debug_init(u32 num_entries);
- 
- extern int dma_debug_resize_entries(u32 num_entries);
- 
--extern void debug_dma_map_page(struct device *dev, struct page *page,
--			       size_t offset, size_t size,
--			       int direction, dma_addr_t dma_addr,
--			       bool map_single);
-+extern void debug_dma_map_pfn(struct device *dev, __pfn_t pfn, size_t offset,
-+			      size_t size, int direction, dma_addr_t dma_addr,
-+			      bool map_single);
-+
-+static inline void debug_dma_map_page(struct device *dev, struct page *page,
-+				      size_t offset, size_t size,
-+				      int direction, dma_addr_t dma_addr,
-+				      bool map_single)
-+{
-+	return debug_dma_map_pfn(dev, page_to_pfn_t(page), offset, size,
-+			direction, dma_addr, map_single);
-+}
- 
- extern void debug_dma_mapping_error(struct device *dev, dma_addr_t dma_addr);
- 
-@@ -109,6 +117,13 @@ static inline void debug_dma_map_page(struct device *dev, struct page *page,
- {
- }
- 
-+static inline void debug_dma_map_pfn(struct device *dev, __pfn_t pfn,
-+				     size_t offset, size_t size,
-+				     int direction, dma_addr_t dma_addr,
-+				     bool map_single)
-+{
++	__kunmap_atomic(addr);
 +}
 +
- static inline void debug_dma_mapping_error(struct device *dev,
- 					  dma_addr_t dma_addr)
- {
-diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-index ac07ff090919..d6437b493300 100644
---- a/include/linux/dma-mapping.h
-+++ b/include/linux/dma-mapping.h
-@@ -26,11 +26,17 @@ struct dma_map_ops {
++static inline int devm_register_kmap_pfn_range(struct device *dev,
++		struct resource *res, void *base)
++{
++	return 0;
++}
++#endif /* CONFIG_HAVE_KMAP_PFN */
++
+ #if defined(CONFIG_HIGHMEM) || defined(CONFIG_X86_32)
  
- 	int (*get_sgtable)(struct device *dev, struct sg_table *sgt, void *,
- 			   dma_addr_t, size_t, struct dma_attrs *attrs);
--
-+#ifdef CONFIG_HAVE_DMA_PFN
-+	dma_addr_t (*map_pfn)(struct device *dev, __pfn_t pfn,
-+			      unsigned long offset, size_t size,
-+			      enum dma_data_direction dir,
-+			      struct dma_attrs *attrs);
-+#else
- 	dma_addr_t (*map_page)(struct device *dev, struct page *page,
- 			       unsigned long offset, size_t size,
- 			       enum dma_data_direction dir,
- 			       struct dma_attrs *attrs);
-+#endif
- 	void (*unmap_page)(struct device *dev, dma_addr_t dma_handle,
- 			   size_t size, enum dma_data_direction dir,
- 			   struct dma_attrs *attrs);
-diff --git a/lib/dma-debug.c b/lib/dma-debug.c
-index ae4b65e17e64..c24de1cd8f81 100644
---- a/lib/dma-debug.c
-+++ b/lib/dma-debug.c
-@@ -1250,11 +1250,12 @@ out:
- 	put_hash_bucket(bucket, &flags);
- }
- 
--void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
-+void debug_dma_map_pfn(struct device *dev, __pfn_t pfn, size_t offset,
- 			size_t size, int direction, dma_addr_t dma_addr,
- 			bool map_single)
- {
- 	struct dma_debug_entry *entry;
-+	struct page *page;
- 
- 	if (unlikely(dma_debug_disabled()))
- 		return;
-@@ -1268,7 +1269,7 @@ void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
- 
- 	entry->dev       = dev;
- 	entry->type      = dma_debug_page;
--	entry->pfn	 = page_to_pfn(page);
-+	entry->pfn	 = __pfn_t_to_pfn(pfn);
- 	entry->offset	 = offset,
- 	entry->dev_addr  = dma_addr;
- 	entry->size      = size;
-@@ -1278,7 +1279,8 @@ void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
- 	if (map_single)
- 		entry->type = dma_debug_single;
- 
--	if (!PageHighMem(page)) {
-+	page = __pfn_t_to_page(pfn);
-+	if (page && !PageHighMem(page)) {
- 		void *addr = page_address(page) + offset;
- 
- 		check_for_stack(dev, addr);
-@@ -1287,7 +1289,7 @@ void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
- 
- 	add_dma_entry(entry);
- }
--EXPORT_SYMBOL(debug_dma_map_page);
-+EXPORT_SYMBOL(debug_dma_map_pfn);
- 
- void debug_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
- {
+ DECLARE_PER_CPU(int, __kmap_atomic_idx);
+diff --git a/mm/Makefile b/mm/Makefile
+index 98c4eaeabdcb..66e30c2addfe 100644
+--- a/mm/Makefile
++++ b/mm/Makefile
+@@ -78,3 +78,4 @@ obj-$(CONFIG_CMA)	+= cma.o
+ obj-$(CONFIG_MEMORY_BALLOON) += balloon_compaction.o
+ obj-$(CONFIG_PAGE_EXTENSION) += page_ext.o
+ obj-$(CONFIG_CMA_DEBUGFS) += cma_debug.o
++obj-$(CONFIG_HAVE_KMAP_PFN) += pfn.o
+diff --git a/mm/pfn.c b/mm/pfn.c
+new file mode 100644
+index 000000000000..0e046b49aebf
+--- /dev/null
++++ b/mm/pfn.c
+@@ -0,0 +1,98 @@
++/*
++ * Copyright(c) 2015 Intel Corporation. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of version 2 of the GNU General Public License as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful, but
++ * WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
++ */
++#include <linux/rcupdate.h>
++#include <linux/rculist.h>
++#include <linux/highmem.h>
++#include <linux/device.h>
++#include <linux/slab.h>
++#include <linux/mm.h>
++
++static LIST_HEAD(ranges);
++
++struct kmap {
++	struct list_head list;
++	struct resource *res;
++	struct device *dev;
++	void *base;
++};
++
++static void teardown_kmap(void *data)
++{
++	struct kmap *kmap = data;
++
++	dev_dbg(kmap->dev, "kmap unregister %pr\n", kmap->res);
++	list_del_rcu(&kmap->list);
++	synchronize_rcu();
++	kfree(kmap);
++}
++
++int devm_register_kmap_pfn_range(struct device *dev, struct resource *res,
++		void *base)
++{
++	struct kmap *kmap = kzalloc(sizeof(*kmap), GFP_KERNEL);
++	int rc;
++
++	if (!kmap)
++		return -ENOMEM;
++
++	INIT_LIST_HEAD(&kmap->list);
++	kmap->res = res;
++	kmap->base = base;
++	kmap->dev = dev;
++	rc = devm_add_action(dev, teardown_kmap, kmap);
++	if (rc) {
++		kfree(kmap);
++		return rc;
++	}
++	dev_dbg(kmap->dev, "kmap register %pr\n", kmap->res);
++	list_add_rcu(&kmap->list, &ranges);
++	return 0;
++}
++EXPORT_SYMBOL_GPL(devm_register_kmap_pfn_range);
++
++void *kmap_atomic_pfn_t(__pfn_t pfn)
++{
++	struct page *page = __pfn_t_to_page(pfn);
++	resource_size_t addr;
++	struct kmap *kmap;
++
++	if (page)
++		return kmap_atomic(page);
++	addr = __pfn_t_to_phys(pfn);
++	rcu_read_lock();
++	list_for_each_entry_rcu(kmap, &ranges, list)
++		if (addr >= kmap->res->start && addr <= kmap->res->end)
++			return kmap->base + addr - kmap->res->start;
++
++	/* only unlock in the error case */
++	rcu_read_unlock();
++	return NULL;
++}
++EXPORT_SYMBOL(kmap_atomic_pfn_t);
++
++void kunmap_atomic_pfn_t(void *addr)
++{
++	/*
++	 * If the original __pfn_t had an entry in the memmap then
++	 * 'addr' will be outside of vmalloc space i.e. it came from
++	 * page_address()
++	 */
++	if (!is_vmalloc_addr(addr)) {
++		kunmap_atomic(addr);
++		return;
++	}
++
++	/* signal that we are done with the range */
++	rcu_read_unlock();
++}
++EXPORT_SYMBOL(kunmap_atomic_pfn_t);
