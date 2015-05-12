@@ -1,8 +1,7 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v3 08/11] x86: support kmap_atomic_pfn_t() for persistent
- memory
-Date: Tue, 12 May 2015 00:30:12 -0400
-Message-ID: <20150512043012.11521.98885.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v3 11/11] block: base support for pfn i/o
+Date: Tue, 12 May 2015 00:30:28 -0400
+Message-ID: <20150512043028.11521.84763.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -11,233 +10,175 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@lists.01.org, david@fromorbit.com, hch@lst.de, j.glisse@gmail.com, mgorman@suse.de, linux-fsdevel@vger.kernel.org, akpm@linux-foundation.org, mingo@kernel.org
+Cc: axboe@kernel.dk, linux-arch@vger.kernel.org, riel@redhat.com, linux-nvdimm@lists.01.org, david@fromorbit.com, hch@lst.de, linux-fsdevel@vger.kernel.org, mgorman@suse.de, j.glisse@gmail.com, Tejun Heo <tj@kernel.org>, akpm@linux-foundation.org, mingo@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-It would be unfortunate if the kmap infrastructure escaped its current
-32-bit/HIGHMEM bonds and leaked into 64-bit code.  Instead, if the user
-has enabled CONFIG_DEV_PFN we direct the kmap_atomic_pfn_t()
-implementation to scan a list of pre-mapped persistent memory address
-ranges inserted by the pmem driver.
+Allow block device drivers to opt-in to receiving bio(s) where the
+bio_vec(s) point to memory that is not backed by struct page entries.
+When a driver opts in it asserts that it will use the __pfn_t versions of the
+dma_map/kmap/scatterlist apis in its bio submission path.
 
-The __pfn_t to resource lookup is indeed inefficient walking of a linked list,
-but there are two mitigating factors:
-
-1/ The number of persistent memory ranges is bounded by the number of
-   DIMMs which is on the order of 10s of DIMMs, not hundreds.
-
-2/ The lookup yields the entire range, if it becomes inefficient to do a
-   kmap_atomic_pfn_t() a PAGE_SIZE at a time the caller can take
-   advantage of the fact that the lookup can be amortized for all kmap
-   operations it needs to perform in a given range.
-
+Cc: Tejun Heo <tj@kernel.org>
+Cc: Jens Axboe <axboe@kernel.dk>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/Kconfig            |    3 +
- arch/x86/Kconfig        |    2 +
- drivers/block/pmem.c    |    6 +++
- include/linux/highmem.h |   23 +++++++++++
- mm/Makefile             |    1 
- mm/pfn.c                |   98 +++++++++++++++++++++++++++++++++++++++++++++++
- 6 files changed, 133 insertions(+)
- create mode 100644 mm/pfn.c
+ block/bio.c               |   46 ++++++++++++++++++++++++++++++++++++++-------
+ block/blk-core.c          |    9 +++++++++
+ include/linux/blk_types.h |    1 +
+ include/linux/blkdev.h    |    2 ++
+ 4 files changed, 51 insertions(+), 7 deletions(-)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index f7f800860c00..69d3a3fa21af 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -206,6 +206,9 @@ config HAVE_DMA_CONTIGUOUS
- config HAVE_DMA_PFN
- 	bool
+diff --git a/block/bio.c b/block/bio.c
+index 7100fd6d5898..58553dfd777e 100644
+--- a/block/bio.c
++++ b/block/bio.c
+@@ -567,6 +567,7 @@ void __bio_clone_fast(struct bio *bio, struct bio *bio_src)
+ 	bio->bi_rw = bio_src->bi_rw;
+ 	bio->bi_iter = bio_src->bi_iter;
+ 	bio->bi_io_vec = bio_src->bi_io_vec;
++	bio->bi_flags |= bio_src->bi_flags & (1 << BIO_PFN);
+ }
+ EXPORT_SYMBOL(__bio_clone_fast);
  
-+config HAVE_KMAP_PFN
-+	bool
+@@ -658,6 +659,8 @@ struct bio *bio_clone_bioset(struct bio *bio_src, gfp_t gfp_mask,
+ 		goto integrity_clone;
+ 	}
+ 
++	bio->bi_flags |= bio_src->bi_flags & (1 << BIO_PFN);
 +
- config GENERIC_SMP_IDLE_THREAD
-        bool
+ 	bio_for_each_segment(bv, bio_src, iter)
+ 		bio->bi_io_vec[bio->bi_vcnt++] = bv;
  
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index c626ffa5c01e..2fd7690ed0e2 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1434,7 +1434,9 @@ config X86_PMEM_LEGACY
- 	  Say Y if unsure.
+@@ -699,9 +702,9 @@ int bio_get_nr_vecs(struct block_device *bdev)
+ }
+ EXPORT_SYMBOL(bio_get_nr_vecs);
  
- config X86_PMEM_DMA
-+	depends on !HIGHMEM
- 	def_bool DEV_PFN
-+	select HAVE_KMAP_PFN
- 	select HAVE_DMA_PFN
+-static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
+-			  *page, unsigned int len, unsigned int offset,
+-			  unsigned int max_sectors)
++static int __bio_add_pfn(struct request_queue *q, struct bio *bio,
++		__pfn_t pfn, unsigned int len, unsigned int offset,
++		unsigned int max_sectors)
+ {
+ 	int retried_segments = 0;
+ 	struct bio_vec *bvec;
+@@ -723,7 +726,7 @@ static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
+ 	if (bio->bi_vcnt > 0) {
+ 		struct bio_vec *prev = &bio->bi_io_vec[bio->bi_vcnt - 1];
  
- config HIGHPTE
-diff --git a/drivers/block/pmem.c b/drivers/block/pmem.c
-index 41bb424533e6..2a847651f8de 100644
---- a/drivers/block/pmem.c
-+++ b/drivers/block/pmem.c
-@@ -23,6 +23,7 @@
- #include <linux/module.h>
- #include <linux/moduleparam.h>
- #include <linux/slab.h>
-+#include <linux/highmem.h>
+-		if (page == bvec_page(prev) &&
++		if (__pfn_t_to_pfn(pfn) == __pfn_t_to_pfn(prev->bv_pfn) &&
+ 		    offset == prev->bv_offset + prev->bv_len) {
+ 			unsigned int prev_bv_len = prev->bv_len;
+ 			prev->bv_len += len;
+@@ -768,7 +771,7 @@ static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
+ 	 * cannot add the page
+ 	 */
+ 	bvec = &bio->bi_io_vec[bio->bi_vcnt];
+-	bvec_set_page(bvec, page);
++	bvec->bv_pfn = pfn;
+ 	bvec->bv_len = len;
+ 	bvec->bv_offset = offset;
+ 	bio->bi_vcnt++;
+@@ -845,7 +848,7 @@ static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
+ int bio_add_pc_page(struct request_queue *q, struct bio *bio, struct page *page,
+ 		    unsigned int len, unsigned int offset)
+ {
+-	return __bio_add_page(q, bio, page, len, offset,
++	return __bio_add_pfn(q, bio, page_to_pfn_t(page), len, offset,
+ 			      queue_max_hw_sectors(q));
+ }
+ EXPORT_SYMBOL(bio_add_pc_page);
+@@ -872,10 +875,39 @@ int bio_add_page(struct bio *bio, struct page *page, unsigned int len,
+ 	if ((max_sectors < (len >> 9)) && !bio->bi_iter.bi_size)
+ 		max_sectors = len >> 9;
  
- #define PMEM_MINORS		16
+-	return __bio_add_page(q, bio, page, len, offset, max_sectors);
++	return __bio_add_pfn(q, bio, page_to_pfn_t(page), len, offset,
++			max_sectors);
+ }
+ EXPORT_SYMBOL(bio_add_page);
  
-@@ -147,6 +148,11 @@ static struct pmem_device *pmem_alloc(struct device *dev, struct resource *res)
- 	if (!pmem->virt_addr)
- 		goto out_release_region;
- 
-+	err = devm_register_kmap_pfn_range(dev, res, pmem->virt_addr);
-+	if (err)
-+		goto out_unmap;
-+
-+	err = -ENOMEM;
- 	pmem->pmem_queue = blk_alloc_queue(GFP_KERNEL);
- 	if (!pmem->pmem_queue)
- 		goto out_unmap;
-diff --git a/include/linux/highmem.h b/include/linux/highmem.h
-index 9286a46b7d69..85fd52d43a9a 100644
---- a/include/linux/highmem.h
-+++ b/include/linux/highmem.h
-@@ -83,6 +83,29 @@ static inline void __kunmap_atomic(void *addr)
- 
- #endif /* CONFIG_HIGHMEM */
- 
-+#ifdef CONFIG_HAVE_KMAP_PFN
-+extern void *kmap_atomic_pfn_t(__pfn_t pfn);
-+extern void kunmap_atomic_pfn_t(void *addr);
-+extern int devm_register_kmap_pfn_range(struct device *dev,
-+		struct resource *res, void *base);
-+#else
-+static inline void *kmap_atomic_pfn_t(__pfn_t pfn)
-+{
-+	return kmap_atomic(__pfn_t_to_page(pfn));
-+}
-+
-+static inline void kunmap_atomic_pfn_t(void *addr)
-+{
-+	__kunmap_atomic(addr);
-+}
-+
-+static inline int devm_register_kmap_pfn_range(struct device *dev,
-+		struct resource *res, void *base)
-+{
-+	return 0;
-+}
-+#endif /* CONFIG_HAVE_KMAP_PFN */
-+
- #if defined(CONFIG_HIGHMEM) || defined(CONFIG_X86_32)
- 
- DECLARE_PER_CPU(int, __kmap_atomic_idx);
-diff --git a/mm/Makefile b/mm/Makefile
-index 98c4eaeabdcb..66e30c2addfe 100644
---- a/mm/Makefile
-+++ b/mm/Makefile
-@@ -78,3 +78,4 @@ obj-$(CONFIG_CMA)	+= cma.o
- obj-$(CONFIG_MEMORY_BALLOON) += balloon_compaction.o
- obj-$(CONFIG_PAGE_EXTENSION) += page_ext.o
- obj-$(CONFIG_CMA_DEBUGFS) += cma_debug.o
-+obj-$(CONFIG_HAVE_KMAP_PFN) += pfn.o
-diff --git a/mm/pfn.c b/mm/pfn.c
-new file mode 100644
-index 000000000000..0e046b49aebf
---- /dev/null
-+++ b/mm/pfn.c
-@@ -0,0 +1,98 @@
-+/*
-+ * Copyright(c) 2015 Intel Corporation. All rights reserved.
++/**
++ *	bio_add_pfn -	attempt to add pfn to bio
++ *	@bio: destination bio
++ *	@pfn: pfn to add
++ *	@len: vec entry length
++ *	@offset: vec entry offset
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of version 2 of the GNU General Public License as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful, but
-+ * WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
++ *	Identical to bio_add_page() except this variant flags the bio as
++ *	not have struct page backing.  A given request_queue must assert
++ *	that it is prepared to handle this constraint before bio(s)
++ *	flagged in the manner can be passed.
 + */
-+#include <linux/rcupdate.h>
-+#include <linux/rculist.h>
-+#include <linux/highmem.h>
-+#include <linux/device.h>
-+#include <linux/slab.h>
-+#include <linux/mm.h>
-+
-+static LIST_HEAD(ranges);
-+
-+struct kmap {
-+	struct list_head list;
-+	struct resource *res;
-+	struct device *dev;
-+	void *base;
-+};
-+
-+static void teardown_kmap(void *data)
++int bio_add_pfn(struct bio *bio, __pfn_t pfn, unsigned int len,
++		unsigned int offset)
 +{
-+	struct kmap *kmap = data;
++	struct request_queue *q = bdev_get_queue(bio->bi_bdev);
++	unsigned int max_sectors;
 +
-+	dev_dbg(kmap->dev, "kmap unregister %pr\n", kmap->res);
-+	list_del_rcu(&kmap->list);
-+	synchronize_rcu();
-+	kfree(kmap);
++	if (!blk_queue_pfn(q))
++		return 0;
++	set_bit(BIO_PFN, &bio->bi_flags);
++	max_sectors = blk_max_size_offset(q, bio->bi_iter.bi_sector);
++	if ((max_sectors < (len >> 9)) && !bio->bi_iter.bi_size)
++		max_sectors = len >> 9;
++
++	return __bio_add_pfn(q, bio, pfn, len, offset, max_sectors);
 +}
 +
-+int devm_register_kmap_pfn_range(struct device *dev, struct resource *res,
-+		void *base)
-+{
-+	struct kmap *kmap = kzalloc(sizeof(*kmap), GFP_KERNEL);
-+	int rc;
-+
-+	if (!kmap)
-+		return -ENOMEM;
-+
-+	INIT_LIST_HEAD(&kmap->list);
-+	kmap->res = res;
-+	kmap->base = base;
-+	kmap->dev = dev;
-+	rc = devm_add_action(dev, teardown_kmap, kmap);
-+	if (rc) {
-+		kfree(kmap);
-+		return rc;
-+	}
-+	dev_dbg(kmap->dev, "kmap register %pr\n", kmap->res);
-+	list_add_rcu(&kmap->list, &ranges);
-+	return 0;
-+}
-+EXPORT_SYMBOL_GPL(devm_register_kmap_pfn_range);
-+
-+void *kmap_atomic_pfn_t(__pfn_t pfn)
-+{
-+	struct page *page = __pfn_t_to_page(pfn);
-+	resource_size_t addr;
-+	struct kmap *kmap;
-+
-+	if (page)
-+		return kmap_atomic(page);
-+	addr = __pfn_t_to_phys(pfn);
-+	rcu_read_lock();
-+	list_for_each_entry_rcu(kmap, &ranges, list)
-+		if (addr >= kmap->res->start && addr <= kmap->res->end)
-+			return kmap->base + addr - kmap->res->start;
-+
-+	/* only unlock in the error case */
-+	rcu_read_unlock();
-+	return NULL;
-+}
-+EXPORT_SYMBOL(kmap_atomic_pfn_t);
-+
-+void kunmap_atomic_pfn_t(void *addr)
-+{
-+	/*
-+	 * If the original __pfn_t had an entry in the memmap then
-+	 * 'addr' will be outside of vmalloc space i.e. it came from
-+	 * page_address()
-+	 */
-+	if (!is_vmalloc_addr(addr)) {
-+		kunmap_atomic(addr);
-+		return;
+ struct submit_bio_ret {
+ 	struct completion event;
+ 	int error;
+diff --git a/block/blk-core.c b/block/blk-core.c
+index 94d2c6ccf801..1275e2c08c16 100644
+--- a/block/blk-core.c
++++ b/block/blk-core.c
+@@ -1856,6 +1856,15 @@ generic_make_request_checks(struct bio *bio)
+ 		goto end_io;
+ 	}
+ 
++	if (bio_flagged(bio, BIO_PFN)) {
++		if (IS_ENABLED(CONFIG_DEV_PFN) && blk_queue_pfn(q))
++			/* pass */;
++		else {
++			err = -EOPNOTSUPP;
++			goto end_io;
++		}
 +	}
 +
-+	/* signal that we are done with the range */
-+	rcu_read_unlock();
-+}
-+EXPORT_SYMBOL(kunmap_atomic_pfn_t);
+ 	/*
+ 	 * Various block parts want %current->io_context and lazy ioc
+ 	 * allocation ends up trading a lot of pain for a small amount of
+diff --git a/include/linux/blk_types.h b/include/linux/blk_types.h
+index f50464e167b4..ccde0b2d689d 100644
+--- a/include/linux/blk_types.h
++++ b/include/linux/blk_types.h
+@@ -150,6 +150,7 @@ struct bio {
+ #define BIO_NULL_MAPPED 8	/* contains invalid user pages */
+ #define BIO_QUIET	9	/* Make BIO Quiet */
+ #define BIO_SNAP_STABLE	10	/* bio data must be snapshotted during write */
++#define BIO_PFN		11	/* bio_vec references memory without struct page */
+ 
+ /*
+  * Flags starting here get preserved by bio_reset() - this includes
+diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
+index 42bcaf2b9311..d3f9b8cc50f2 100644
+--- a/include/linux/blkdev.h
++++ b/include/linux/blkdev.h
+@@ -513,6 +513,7 @@ struct request_queue {
+ #define QUEUE_FLAG_INIT_DONE   20	/* queue is initialized */
+ #define QUEUE_FLAG_NO_SG_MERGE 21	/* don't attempt to merge SG segments*/
+ #define QUEUE_FLAG_SG_GAPS     22	/* queue doesn't support SG gaps */
++#define QUEUE_FLAG_PFN         23	/* queue supports pfn-only bio_vec(s) */
+ 
+ #define QUEUE_FLAG_DEFAULT	((1 << QUEUE_FLAG_IO_STAT) |		\
+ 				 (1 << QUEUE_FLAG_STACKABLE)	|	\
+@@ -594,6 +595,7 @@ static inline void queue_flag_clear(unsigned int flag, struct request_queue *q)
+ #define blk_queue_noxmerges(q)	\
+ 	test_bit(QUEUE_FLAG_NOXMERGES, &(q)->queue_flags)
+ #define blk_queue_nonrot(q)	test_bit(QUEUE_FLAG_NONROT, &(q)->queue_flags)
++#define blk_queue_pfn(q)	test_bit(QUEUE_FLAG_PFN, &(q)->queue_flags)
+ #define blk_queue_io_stat(q)	test_bit(QUEUE_FLAG_IO_STAT, &(q)->queue_flags)
+ #define blk_queue_add_random(q)	test_bit(QUEUE_FLAG_ADD_RANDOM, &(q)->queue_flags)
+ #define blk_queue_stackable(q)	\
