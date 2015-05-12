@@ -1,64 +1,71 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 00/22] Convert the posix_clock_operations and
-	k_clock structure to ready for 2038
-Date: Tue, 12 May 2015 11:39:36 +0200
-Message-ID: <2293496.0Ycckx2zYU@wuerfel>
-References: <1431342518-29362-1-git-send-email-baolin.wang@linaro.org>
+From: Guenter Roeck <linux@roeck-us.net>
+Subject: Re: [PATCH v12 00/21] Re-introduce h8300 architecture
+Date: Tue, 12 May 2015 06:07:04 -0700
+Message-ID: <5551FAF8.4060700@roeck-us.net>
+References: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>	<20150511175027.GA31125@roeck-us.net> <87twvipfbm.wl-ysato@users.sourceforge.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <1431342518-29362-1-git-send-email-baolin.wang@linaro.org>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: linuxppc-dev@lists.ozlabs.org
-Cc: pang.xunlei@linaro.org, peterz@infradead.org, fweisbec@gmail.com, heiko.carstens@de.ibm.com, paulus@samba.org, cl@linux.com, heenasirwani@gmail.com, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, y2038@lists.linaro.org, rafael.j.wysocki@intel.com, ahh@google.com, pjt@google.com, riel@redhat.com, richardcochran@gmail.com, tj@kernel.org, john.stultz@linaro.org, tglx@linutronix.de, rth@twiddle.net, Baolin Wang <baolin.wang@linaro.org>, gregkh@linuxfoundation.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, schwidefsky@de.ibm.com, linux390@de.ibm.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bh-25.webhostbox.net ([208.91.199.152]:45894 "EHLO
+	bh-25.webhostbox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932616AbbELNIL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 May 2015 09:08:11 -0400
+Received: from mailnull by bh-25.webhostbox.net with sa-checked (Exim 4.85)
+	(envelope-from <linux@roeck-us.net>)
+	id 1Ys9uY-000e25-Lc
+	for linux-arch@vger.kernel.org; Tue, 12 May 2015 13:07:50 +0000
+In-Reply-To: <87twvipfbm.wl-ysato@users.sourceforge.jp>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-T24gTW9uZGF5IDExIE1heSAyMDE1IDE5OjA4OjM4IEJhb2xpbiBXYW5nIHdyb3RlOgo+IFRoaXMg
-cGF0Y2ggc2VyaWVzIGNoYW5nZXMgdGhlIDMyLWJpdCB0aW1lIHR5cGUgKHRpbWVzcGVjL2l0aW1l
-cnNwZWMpIHRvIHRoZSA2NC1iaXQgb25lCj4gKHRpbWVzcGVjNjQvaXRpbWVyc3BlYzY0KSwgc2lu
-Y2UgMzItYml0IHRpbWUgdHlwZXMgd2lsbCBicmVhayBpbiB0aGUgeWVhciAyMDM4Lgo+IAo+IFRo
-aXMgcGF0Y2ggc2VyaWVzIGludHJvZHVjZXMgbmV3IG1ldGhvZHMgd2l0aCB0aW1lc3BlYzY0L2l0
-aW1lcnNwZWM2NCB0eXBlLAo+IGFuZCByZW1vdmVzIHRoZSBvbGQgb25lcyB3aXRoIHRpbWVzcGVj
-L2l0aW1lcnNwZWMgdHlwZSBmb3IgcG9zaXhfY2xvY2tfb3BlcmF0aW9ucwo+IGFuZCBrX2Nsb2Nr
-IHN0cnVjdHVyZS4KPiAKPiBBbHNvIGludHJvZHVjZXMgc29tZSBuZXcgZnVuY3Rpb25zIHdpdGgg
-dGltZXNwZWM2NC9pdGltZXJzcGVjNjQgdHlwZSwgbGlrZSBjdXJyZW50X2tlcm5lbF90aW1lNjQo
-KSwKPiBocnRpbWVyX2dldF9yZXM2NCgpLCBjcHV0aW1lX3RvX3RpbWVzcGVjNjQoKSBhbmQgdGlt
-ZXNwZWM2NF90b19jcHV0aW1lKCkuCj4gCj4gQ2hhbmdlcyBzaW5jZSB2MjoKPiAgICAgIAktU3Bs
-aXQgdGhlIHN5c2NhbGwgY29udmVyc2lvbiBwYXRjaCBpbnRvIHNtYWxsIHNvbWUgcGF0Y2hlcy4K
-PiAKPiAKPiBCYW9saW4gV2FuZyAoMjIpOgo+ICAgbGludXgvdGltZTY0Lmg6SW50cm9kdWNlIHRo
-ZSAnc3RydWN0IGl0aW1lcnNwZWM2NCcgZm9yIDY0Yml0Cj4gICB0aW1la2VlcGluZzpJbnRyb2R1
-Y2UgdGhlIGN1cnJlbnRfa2VybmVsX3RpbWU2NCgpIGZ1bmN0aW9uIHdpdGgKPiAgICAgdGltZXNw
-ZWM2NCB0eXBlCj4gICB0aW1lL2hydGltZXI6SW50cm9kdWNlIGhydGltZXJfZ2V0X3JlczY0KCkg
-d2l0aCB0aW1lc3BlYzY0IHR5cGUgZm9yCj4gICAgIGdldHRpbmcgdGhlIHRpbWVyIHJlc29sdXRp
-b24KPiAgIHBvc2l4LXRpbWVyczpTcGxpdCBvdXQgdGhlIGd1dHMgb2YgdGhlIHN5c2NhbGwgYW5k
-IGNoYW5nZSB0aGUKPiAgICAgaW1wbGVtZW50YXRpb24gZm9yIHRpbWVyX2dldHRpbWUKPiAgIHBv
-c2l4LXRpbWVyczpDb252ZXJ0IHRvIHRoZSA2NGJpdCBtZXRob2RzIGZvciB0aGUgdGltZXJfZ2V0
-dGltZQo+ICAgICBzeXNjYWxsIGZ1bmN0aW9uCgpJIGhhdmUgdHdvIG1vcmUgdmVyeSBnZW5lcmFs
-IGNvbW1lbnRzIGFib3V0IHRoZSBzZXJpZXM6CgphKSBzb21ldGhpbmcgaGFzIGdvbmUgd3Jvbmcg
-d2l0aCB5b3VyIHN1Ym1pc3Npb24gaW4gdjIgYW5kIHYzIGJ1dCB3YXMKICAgd29ya2luZyBlYXJs
-aWVyOiBub3JtYWxseSBhbGwgZW1haWxzIHNob3VsZCBiZSBzZW50IGJ5IGdpdC1zZW5kLWVtYWls
-CiAgIGFzIHJlcGxpZXMgdG8gdGhlIFtwYXRjaCAwMC8yMl0gbWFpbC4gVGhpcyBpcyB0aGUgZGVm
-YXVsdCwgYW5kIGl0CiAgIGlzIGVuYWJsZWQgYnkgdGhlICctLXRocmVhZCAtLW5vLWNoYWluLXJl
-cGx5JyBvcHRpb25zLiBQbGVhc2UgdHJ5CiAgIHRvIGdldCB0aGlzIHRvIHdvcmsgYWdhaW4uCgpi
-KSBpdCB3b3VsZCBiZSBiZXR0ZXIgdG8gaGF2ZSBhIGxpdHRsZSBzaG9ydGVyIHN1YmplY3QgbGlu
-ZXMsIHRvIGF2b2lkCiAgIGxpbmUtd3JhcHBpbmcgaW4gdGhlIGxpc3QgYWJvdmUuIEhlcmUgYXJl
-IHNvbWUgZXhhbXBsZXMgd2hhdCB5b3UgY291bGQKICAgdXNlIHRvIHJlcGxhY2UgdGhlIGxpbmVz
-IGFib3ZlOgoKICAgdGltZWtlZXBpbmc6IGludHJvZHVjZSBzdHJ1Y3QgaXRpbWVyc3BlYzY0CiAg
-IHRpbWVrZWVwaW5nOiBpbnRyb2R1Y2UgY3VycmVudF9rZXJuZWxfdGltZTY0KCkKICAgaHJ0aW1l
-cjogaW50cm9kdWNlIGhydGltZXJfZ2V0X3JlczY0KCkgCiAgIHBvc2l4LXRpbWVyczogc3BsaXQg
-dXAgc3lzX3RpbWVyX2dldHRpbWUoKQogICBwb3NpeC10aW1lcnM6IGNvbnZlcnQgdGltZXJfZ2V0
-dGltZSgpIHRvIHRpbWVzcGVjNjQKCiAgIEluIGdlbmVyYWwsIHRyeSB0byBjb21lIHVwIHdpdGgg
-dGhlIHNob3J0ZXN0IGRlc2NyaXB0aW9uIHRoYXQKICAgdW5pcXVlbHkgZGVzY3JpYmVzIHdoYXQg
-eW91ciBwYXRjaCBkb2VzLCBhbmQgbW92ZSBhbnkgZGV0YWlscyBpbnRvCiAgIHRoZSBsb25nZXIg
-cGF0Y2ggZGVzY3JpcHRpb24uCgoJQXJuZApfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fXwpZMjAzOCBtYWlsaW5nIGxpc3QKWTIwMzhAbGlzdHMubGluYXJvLm9y
-ZwpodHRwczovL2xpc3RzLmxpbmFyby5vcmcvbWFpbG1hbi9saXN0aW5mby95MjAzOAo=
+On 05/11/2015 09:53 PM, Yoshinori Sato wrote:
+> At Mon, 11 May 2015 10:50:27 -0700,
+> Guenter Roeck wrote:
+>>
+>> On Mon, May 11, 2015 at 03:26:19PM +0900, Yoshinori Sato wrote:
+>>> Changes for v12
+>>> - IRQ chip convert to OF
+>>> - dts cleanup
+>>> - some headers use generic
+>>> - rebase to v4.1-rc3
+>>>
+>> Configurations in arch/h8300/configs shtill build ok.
+>>
+>> make allmodoconfig, after fixing the spi build error, results in
+>>
+>> ERROR: "csum_partial_copy_nocheck" [net/ipv6/ipv6.ko] undefined!
+>> ERROR: "ip_compute_csum" [net/ipv6/ip6_gre.ko] undefined!
+>> ERROR: "ip_fast_csum" [net/ipv4/xfrm4_mode_beet.ko] undefined!
+>> ERROR: "ip_compute_csum" [net/bridge/bridge.ko] undefined!
+>> ERROR: "ip_fast_csum" [net/bridge/bridge.ko] undefined!
+>> ERROR: "ip_fast_csum" [net/bridge/br_netfilter.ko] undefined!
+>> ERROR: "ip_fast_csum" [net/atm/mpoa.ko] undefined!
+>> ERROR: "__ucmpdi2" [fs/btrfs/btrfs.ko] undefined!
+>> ERROR: "ip_compute_csum" [drivers/scsi/scsi_debug.ko] undefined!
+>> ERROR: "ip_fast_csum" [drivers/net/slip/slhc.ko] undefined!
+>> ERROR: "__ucmpdi2" [drivers/md/bcache/bcache.ko] undefined!
+>> ERROR: "__ucmpdi2" [drivers/iio/imu/inv_mpu6050/inv-mpu6050.ko] undefined!
+>>
+>> csum_partial_copy_nocheck, ip_compute_csum, and ip_fast_csum need to be exported
+>> from arch/h8300/lib/checksum.c. No idea what to do about the missing __ucmpdi2
+>> symbol, or what causes it.
+>>
+>> Guenter
+>
+> It looks missing EXPORT_SYMBOL.
+> Fixed on git.
+> Please retry.
+>
+
+Sato-san,
+
+allmodconfig builds fine now, after adding the spi patch (which is now in mainline).
+
+I think Arnd suggested it already - it might make sense to have the tree
+added to linux-next at this time.
+
+Thanks,
+Guenter
