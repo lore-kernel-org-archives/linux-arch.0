@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:25934 "EHLO mga02.intel.com"
+Received: from mga03.intel.com ([134.134.136.65]:12474 "EHLO mga03.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752937AbbELEdN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 12 May 2015 00:33:13 -0400
-Subject: [PATCH v3 11/11] block: base support for pfn i/o
+	id S1752643AbbELEcj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 May 2015 00:32:39 -0400
+Subject: [PATCH v3 05/11] scatterlist: use sg_phys()
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Tue, 12 May 2015 00:30:28 -0400
-Message-ID: <20150512043028.11521.84763.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Tue, 12 May 2015 00:29:56 -0400
+Message-ID: <20150512042956.11521.32457.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -15,176 +15,125 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: axboe@kernel.dk, linux-arch@vger.kernel.org, riel@redhat.com, linux-nvdimm@lists.01.org, david@fromorbit.com, hch@lst.de, linux-fsdevel@vger.kernel.org, mgorman@suse.de, j.glisse@gmail.com, Tejun Heo <tj@kernel.org>, akpm@linux-foundation.org, mingo@kernel.org
-Message-ID: <20150512043028.51F6eoaBfUnMIRpoafymdLHnK4jf9JMdeS2LFaGvae0@z>
+Cc: linux-arch@vger.kernel.org, axboe@kernel.dk, riel@redhat.com, linux-nvdimm@lists.01.org, david@fromorbit.com, hch@lst.de, Julia Lawall <Julia.Lawall@lip6.fr>, mgorman@suse.de, j.glisse@gmail.com, linux-fsdevel@vger.kernel.org, akpm@linux-foundation.org, mingo@kernel.org
+Message-ID: <20150512042956._ZKPOkOVYayVbrj5G_F-laBsUi_OEy-NtYF5G4pXff4@z>
 
-Allow block device drivers to opt-in to receiving bio(s) where the
-bio_vec(s) point to memory that is not backed by struct page entries.
-When a driver opts in it asserts that it will use the __pfn_t versions of the
-dma_map/kmap/scatterlist apis in its bio submission path.
+Coccinelle cleanup to replace open coded sg to physical address
+translations.  This is in preparation for introducing scatterlists that
+reference pfn(s) without a backing struct page.
 
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Jens Axboe <axboe@kernel.dk>
+// sg_phys.cocci: convert usage page_to_phys(sg_page(sg)) to sg_phys(sg)
+// usage: make coccicheck COCCI=sg_phys.cocci MODE=patch
+
+virtual patch
+virtual report
+virtual org
+
+@@
+struct scatterlist *sg;
+@@
+
+- page_to_phys(sg_page(sg)) + sg->offset
++ sg_phys(sg)
+
+@@
+struct scatterlist *sg;
+@@
+
+- page_to_phys(sg_page(sg))
++ sg_phys(sg) - sg->offset
+
+Cc: Julia Lawall <Julia.Lawall@lip6.fr>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- block/bio.c               |   46 ++++++++++++++++++++++++++++++++++++++-------
- block/blk-core.c          |    9 +++++++++
- include/linux/blk_types.h |    1 +
- include/linux/blkdev.h    |    2 ++
- 4 files changed, 51 insertions(+), 7 deletions(-)
+ arch/arm/mm/dma-mapping.c                    |    2 +-
+ arch/microblaze/kernel/dma.c                 |    2 +-
+ drivers/iommu/intel-iommu.c                  |    4 ++--
+ drivers/iommu/iommu.c                        |    2 +-
+ drivers/staging/android/ion/ion_chunk_heap.c |    4 ++--
+ 5 files changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/block/bio.c b/block/bio.c
-index 7100fd6d5898..58553dfd777e 100644
---- a/block/bio.c
-+++ b/block/bio.c
-@@ -567,6 +567,7 @@ void __bio_clone_fast(struct bio *bio, struct bio *bio_src)
- 	bio->bi_rw = bio_src->bi_rw;
- 	bio->bi_iter = bio_src->bi_iter;
- 	bio->bi_io_vec = bio_src->bi_io_vec;
-+	bio->bi_flags |= bio_src->bi_flags & (1 << BIO_PFN);
- }
- EXPORT_SYMBOL(__bio_clone_fast);
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index 09c5fe3d30c2..43cc6a8fdacc 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -1502,7 +1502,7 @@ static int __map_sg_chunk(struct device *dev, struct scatterlist *sg,
+ 		return -ENOMEM;
  
-@@ -658,6 +659,8 @@ struct bio *bio_clone_bioset(struct bio *bio_src, gfp_t gfp_mask,
- 		goto integrity_clone;
+ 	for (count = 0, s = sg; count < (size >> PAGE_SHIFT); s = sg_next(s)) {
+-		phys_addr_t phys = page_to_phys(sg_page(s));
++		phys_addr_t phys = sg_phys(s) - s->offset;
+ 		unsigned int len = PAGE_ALIGN(s->offset + s->length);
+ 
+ 		if (!is_coherent &&
+diff --git a/arch/microblaze/kernel/dma.c b/arch/microblaze/kernel/dma.c
+index ed7ba8a11822..dcb3c594d626 100644
+--- a/arch/microblaze/kernel/dma.c
++++ b/arch/microblaze/kernel/dma.c
+@@ -61,7 +61,7 @@ static int dma_direct_map_sg(struct device *dev, struct scatterlist *sgl,
+ 	/* FIXME this part of code is untested */
+ 	for_each_sg(sgl, sg, nents, i) {
+ 		sg->dma_address = sg_phys(sg);
+-		__dma_sync(page_to_phys(sg_page(sg)) + sg->offset,
++		__dma_sync(sg_phys(sg),
+ 							sg->length, direction);
  	}
  
-+	bio->bi_flags |= bio_src->bi_flags & (1 << BIO_PFN);
-+
- 	bio_for_each_segment(bv, bio_src, iter)
- 		bio->bi_io_vec[bio->bi_vcnt++] = bv;
+diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
+index 68d43beccb7e..9b9ada71e0d3 100644
+--- a/drivers/iommu/intel-iommu.c
++++ b/drivers/iommu/intel-iommu.c
+@@ -1998,7 +1998,7 @@ static int __domain_mapping(struct dmar_domain *domain, unsigned long iov_pfn,
+ 			sg_res = aligned_nrpages(sg->offset, sg->length);
+ 			sg->dma_address = ((dma_addr_t)iov_pfn << VTD_PAGE_SHIFT) + sg->offset;
+ 			sg->dma_length = sg->length;
+-			pteval = page_to_phys(sg_page(sg)) | prot;
++			pteval = (sg_phys(sg) - sg->offset) | prot;
+ 			phys_pfn = pteval >> VTD_PAGE_SHIFT;
+ 		}
  
-@@ -699,9 +702,9 @@ int bio_get_nr_vecs(struct block_device *bdev)
- }
- EXPORT_SYMBOL(bio_get_nr_vecs);
+@@ -3302,7 +3302,7 @@ static int intel_nontranslate_map_sg(struct device *hddev,
  
--static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
--			  *page, unsigned int len, unsigned int offset,
--			  unsigned int max_sectors)
-+static int __bio_add_pfn(struct request_queue *q, struct bio *bio,
-+		__pfn_t pfn, unsigned int len, unsigned int offset,
-+		unsigned int max_sectors)
- {
- 	int retried_segments = 0;
- 	struct bio_vec *bvec;
-@@ -723,7 +726,7 @@ static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
- 	if (bio->bi_vcnt > 0) {
- 		struct bio_vec *prev = &bio->bi_io_vec[bio->bi_vcnt - 1];
- 
--		if (page == bvec_page(prev) &&
-+		if (__pfn_t_to_pfn(pfn) == __pfn_t_to_pfn(prev->bv_pfn) &&
- 		    offset == prev->bv_offset + prev->bv_len) {
- 			unsigned int prev_bv_len = prev->bv_len;
- 			prev->bv_len += len;
-@@ -768,7 +771,7 @@ static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
- 	 * cannot add the page
- 	 */
- 	bvec = &bio->bi_io_vec[bio->bi_vcnt];
--	bvec_set_page(bvec, page);
-+	bvec->bv_pfn = pfn;
- 	bvec->bv_len = len;
- 	bvec->bv_offset = offset;
- 	bio->bi_vcnt++;
-@@ -845,7 +848,7 @@ static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
- int bio_add_pc_page(struct request_queue *q, struct bio *bio, struct page *page,
- 		    unsigned int len, unsigned int offset)
- {
--	return __bio_add_page(q, bio, page, len, offset,
-+	return __bio_add_pfn(q, bio, page_to_pfn_t(page), len, offset,
- 			      queue_max_hw_sectors(q));
- }
- EXPORT_SYMBOL(bio_add_pc_page);
-@@ -872,10 +875,39 @@ int bio_add_page(struct bio *bio, struct page *page, unsigned int len,
- 	if ((max_sectors < (len >> 9)) && !bio->bi_iter.bi_size)
- 		max_sectors = len >> 9;
- 
--	return __bio_add_page(q, bio, page, len, offset, max_sectors);
-+	return __bio_add_pfn(q, bio, page_to_pfn_t(page), len, offset,
-+			max_sectors);
- }
- EXPORT_SYMBOL(bio_add_page);
- 
-+/**
-+ *	bio_add_pfn -	attempt to add pfn to bio
-+ *	@bio: destination bio
-+ *	@pfn: pfn to add
-+ *	@len: vec entry length
-+ *	@offset: vec entry offset
-+ *
-+ *	Identical to bio_add_page() except this variant flags the bio as
-+ *	not have struct page backing.  A given request_queue must assert
-+ *	that it is prepared to handle this constraint before bio(s)
-+ *	flagged in the manner can be passed.
-+ */
-+int bio_add_pfn(struct bio *bio, __pfn_t pfn, unsigned int len,
-+		unsigned int offset)
-+{
-+	struct request_queue *q = bdev_get_queue(bio->bi_bdev);
-+	unsigned int max_sectors;
-+
-+	if (!blk_queue_pfn(q))
-+		return 0;
-+	set_bit(BIO_PFN, &bio->bi_flags);
-+	max_sectors = blk_max_size_offset(q, bio->bi_iter.bi_sector);
-+	if ((max_sectors < (len >> 9)) && !bio->bi_iter.bi_size)
-+		max_sectors = len >> 9;
-+
-+	return __bio_add_pfn(q, bio, pfn, len, offset, max_sectors);
-+}
-+
- struct submit_bio_ret {
- 	struct completion event;
- 	int error;
-diff --git a/block/blk-core.c b/block/blk-core.c
-index 94d2c6ccf801..1275e2c08c16 100644
---- a/block/blk-core.c
-+++ b/block/blk-core.c
-@@ -1856,6 +1856,15 @@ generic_make_request_checks(struct bio *bio)
- 		goto end_io;
+ 	for_each_sg(sglist, sg, nelems, i) {
+ 		BUG_ON(!sg_page(sg));
+-		sg->dma_address = page_to_phys(sg_page(sg)) + sg->offset;
++		sg->dma_address = sg_phys(sg);
+ 		sg->dma_length = sg->length;
  	}
+ 	return nelems;
+diff --git a/drivers/iommu/iommu.c b/drivers/iommu/iommu.c
+index d4f527e56679..59808fc9110d 100644
+--- a/drivers/iommu/iommu.c
++++ b/drivers/iommu/iommu.c
+@@ -1147,7 +1147,7 @@ size_t default_iommu_map_sg(struct iommu_domain *domain, unsigned long iova,
+ 	min_pagesz = 1 << __ffs(domain->ops->pgsize_bitmap);
  
-+	if (bio_flagged(bio, BIO_PFN)) {
-+		if (IS_ENABLED(CONFIG_DEV_PFN) && blk_queue_pfn(q))
-+			/* pass */;
-+		else {
-+			err = -EOPNOTSUPP;
-+			goto end_io;
-+		}
-+	}
-+
- 	/*
- 	 * Various block parts want %current->io_context and lazy ioc
- 	 * allocation ends up trading a lot of pain for a small amount of
-diff --git a/include/linux/blk_types.h b/include/linux/blk_types.h
-index f50464e167b4..ccde0b2d689d 100644
---- a/include/linux/blk_types.h
-+++ b/include/linux/blk_types.h
-@@ -150,6 +150,7 @@ struct bio {
- #define BIO_NULL_MAPPED 8	/* contains invalid user pages */
- #define BIO_QUIET	9	/* Make BIO Quiet */
- #define BIO_SNAP_STABLE	10	/* bio data must be snapshotted during write */
-+#define BIO_PFN		11	/* bio_vec references memory without struct page */
+ 	for_each_sg(sg, s, nents, i) {
+-		phys_addr_t phys = page_to_phys(sg_page(s)) + s->offset;
++		phys_addr_t phys = sg_phys(s);
  
- /*
-  * Flags starting here get preserved by bio_reset() - this includes
-diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
-index 42bcaf2b9311..d3f9b8cc50f2 100644
---- a/include/linux/blkdev.h
-+++ b/include/linux/blkdev.h
-@@ -513,6 +513,7 @@ struct request_queue {
- #define QUEUE_FLAG_INIT_DONE   20	/* queue is initialized */
- #define QUEUE_FLAG_NO_SG_MERGE 21	/* don't attempt to merge SG segments*/
- #define QUEUE_FLAG_SG_GAPS     22	/* queue doesn't support SG gaps */
-+#define QUEUE_FLAG_PFN         23	/* queue supports pfn-only bio_vec(s) */
+ 		/*
+ 		 * We are mapping on IOMMU page boundaries, so offset within
+diff --git a/drivers/staging/android/ion/ion_chunk_heap.c b/drivers/staging/android/ion/ion_chunk_heap.c
+index 3e6ec2ee6802..b7da5d142aa9 100644
+--- a/drivers/staging/android/ion/ion_chunk_heap.c
++++ b/drivers/staging/android/ion/ion_chunk_heap.c
+@@ -81,7 +81,7 @@ static int ion_chunk_heap_allocate(struct ion_heap *heap,
+ err:
+ 	sg = table->sgl;
+ 	for (i -= 1; i >= 0; i--) {
+-		gen_pool_free(chunk_heap->pool, page_to_phys(sg_page(sg)),
++		gen_pool_free(chunk_heap->pool, sg_phys(sg) - sg->offset,
+ 			      sg->length);
+ 		sg = sg_next(sg);
+ 	}
+@@ -109,7 +109,7 @@ static void ion_chunk_heap_free(struct ion_buffer *buffer)
+ 							DMA_BIDIRECTIONAL);
  
- #define QUEUE_FLAG_DEFAULT	((1 << QUEUE_FLAG_IO_STAT) |		\
- 				 (1 << QUEUE_FLAG_STACKABLE)	|	\
-@@ -594,6 +595,7 @@ static inline void queue_flag_clear(unsigned int flag, struct request_queue *q)
- #define blk_queue_noxmerges(q)	\
- 	test_bit(QUEUE_FLAG_NOXMERGES, &(q)->queue_flags)
- #define blk_queue_nonrot(q)	test_bit(QUEUE_FLAG_NONROT, &(q)->queue_flags)
-+#define blk_queue_pfn(q)	test_bit(QUEUE_FLAG_PFN, &(q)->queue_flags)
- #define blk_queue_io_stat(q)	test_bit(QUEUE_FLAG_IO_STAT, &(q)->queue_flags)
- #define blk_queue_add_random(q)	test_bit(QUEUE_FLAG_ADD_RANDOM, &(q)->queue_flags)
- #define blk_queue_stackable(q)	\
+ 	for_each_sg(table->sgl, sg, table->nents, i) {
+-		gen_pool_free(chunk_heap->pool, page_to_phys(sg_page(sg)),
++		gen_pool_free(chunk_heap->pool, sg_phys(sg) - sg->offset,
+ 			      sg->length);
+ 	}
+ 	chunk_heap->allocated -= allocated_size;
 
