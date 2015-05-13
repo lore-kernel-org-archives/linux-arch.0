@@ -1,107 +1,163 @@
-From: Eric B Munson <emunson@akamai.com>
-Subject: Re: [PATCH 0/3] Allow user to request memory to be locked on page
- fault
-Date: Wed, 13 May 2015 11:00:36 -0400
-Message-ID: <20150513150036.GG1227@akamai.com>
-References: <1431113626-19153-1-git-send-email-emunson@akamai.com>
- <20150508124203.6679b1d35ad9555425003929@linux-foundation.org>
- <20150511180631.GA1227@akamai.com>
+From: Daniel Thompson <daniel.thompson@linaro.org>
+Subject: Re: [PATCH v8 14/16] ARM: dts: Introduce STM32F429 MCU
+Date: Wed, 13 May 2015 16:20:34 +0100
+Message-ID: <55536BC2.30603@linaro.org>
+References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>
+ <CALszF6CS8Q9DWX+ERtu=k=Bzr1-25N3oZQyWyxDZBF3an4nFKQ@mail.gmail.com>
+ <55534A5D.6050904@linaro.org> <3125409.QXbEmPolyh@wuerfel>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="df+09Je9rNq3P+GE"
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20150511180631.GA1227@akamai.com>
-Sender: owner-linux-mm@kvack.org
-To: Michal Hocko <mhocko@suse.cz>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuahkh@osg.samsung.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <3125409.QXbEmPolyh@wuerfel>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Mark Rutland <mark.rutland@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Will Deacon <will.deacon@arm.com>, Stefan Agner <stefan@agner.ch>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Peter Meerwald <pmeerw@pmeerw.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Lee Jones <lee.jones@linaro.org>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Kees Cook <keescook@chromium.org>, Linux-Arch <linux-arch@vger.kernel.org>, Russell King <linux@arm.linux.org.uk>, Jonathan Corbet <corbet@lwn.net>, Jiri Slaby <jslaby@suse.cz>, Daniel Lezcano <daniel.lezcano@linaro.org>, Chanwoo Choi <cw00.choi@samsung.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Antti Palosaari <crope@iki.fi>, Geert Uytterhoeven <geert@linux-m68k.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, =?windows-1252?Q
 List-Id: linux-arch.vger.kernel.org
 
+On 13/05/15 14:27, Arnd Bergmann wrote:
+> On Wednesday 13 May 2015 13:58:05 Daniel Thompson wrote:
+>> On 13/05/15 12:45, Maxime Coquelin wrote:
+>>> 2015-05-12 23:21 GMT+02:00 Arnd Bergmann <arnd@arndb.de>:
+>>>> On Saturday 09 May 2015 09:53:56 Maxime Coquelin wrote:
+>>>>> +#include  <dt-bindings/mfd/stm32f4-rcc.h>
+>>>>> +
+>>>>>
+>>>>
+>>>> Can you find a way to avoid this dependency?
+>>>>
+>>>> Maybe you can change the bindings so that the numbers you pass as
+>>>> arguments to the reset and clock specifiers reflect the numbers that
+>>>> the hardware use?
+>>>
+>>> If I understand correctly, you prefer the way I did in v7 [0]?
+>
+> Yes, that looks better. I would probably not list all the possible
+> values in the binding though, when the intention is to use the
+> hardware specific values, and being able to reuse the binding
+> and driver for variations of the same chip.
 
---df+09Je9rNq3P+GE
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-On Mon, 11 May 2015, Eric B Munson wrote:
-
-> On Fri, 08 May 2015, Andrew Morton wrote:
->=20
-> > On Fri,  8 May 2015 15:33:43 -0400 Eric B Munson <emunson@akamai.com> w=
-rote:
-> >=20
-> > > mlock() allows a user to control page out of program memory, but this
-> > > comes at the cost of faulting in the entire mapping when it is
-> > > allocated.  For large mappings where the entire area is not necessary
-> > > this is not ideal.
-> > >=20
-> > > This series introduces new flags for mmap() and mlockall() that allow=
- a
-> > > user to specify that the covered are should not be paged out, but only
-> > > after the memory has been used the first time.
-> >=20
-> > Please tell us much much more about the value of these changes: the use
-> > cases, the behavioural improvements and performance results which the
-> > patchset brings to those use cases, etc.
-> >=20
->=20
-> To illustrate the proposed use case I wrote a quick program that mmaps
-> a 5GB file which is filled with random data and accesses 150,000 pages
-> from that mapping.  Setup and processing were timed separately to
-> illustrate the differences between the three tested approaches.  the
-> setup portion is simply the call to mmap, the processing is the
-> accessing of the various locations in  that mapping.  The following
-> values are in milliseconds and are the averages of 20 runs each with a
-> call to echo 3 > /proc/sys/vm/drop_caches between each run.
->=20
-> The first mapping was made with MAP_PRIVATE | MAP_LOCKED as a baseline:
-> Startup average:    9476.506
-> Processing average: 3.573
->=20
-> The second mapping was simply MAP_PRIVATE but each page was passed to
-> mlock() before being read:
-> Startup average:    0.051
-> Processing average: 721.859
->=20
-> The final mapping was MAP_PRIVATE | MAP_LOCKONFAULT:
-> Startup average:    0.084
-> Processing average: 42.125
->=20
-
-Michal's suggestion of changing protections and locking in a signal
-handler was better than the locking as needed, but still significantly
-more work required than the LOCKONFAULT case.
-
-Startup average:    0.047
-Processing average: 86.431
+Indeed. It was that long list that originally provoked me to comment in 
+the first place.
 
 
---df+09Je9rNq3P+GE
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+>>> Note that doing that won't break the DT binary compatibility, as the
+>>> raw reset values, or the ones from defines are the same.
+>>>
+>>> Daniel, could you share an example of the bindings you would use for the clocks?
+>>
+>> For the most cases, where there is a clock gate just before the
+>> peripheral it looks pretty much like the reset driver and I use the bit
+>> offset of the clock gating bit as the index.
+>
+> Is this bit always the same index as the one for the reset driver?
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
+For the all reset bits:
 
-iQIcBAEBAgAGBQJVU2cUAAoJELbVsDOpoOa9baQQANJIi9hDC0B5PmZg1n740+8X
-5w7lzvAiDqRYi4/xYMjtx55l9M/YpTlnEuCPHUjEUvQvpxALWGSTYmcJ6cNx47Gh
-/BHWrTr4oedPg23icayje+QC/DKF10OT/qBx/ep/+J4nEEZnbBQmk5Ce2EbjVCDm
-4Xs3RjSeD9cWAOoHTsN2oqerZSM+DlqGU0Q2mWu10VM6usItc1oWk6U/gpD/26tE
-lfMslp8jsECGvLmd4Zkj44HifD36pI0InaSKeBLrUCAe8W6qvhCuIaKRdOn00lgZ
-CcUfQsK0c/7aYOZDm5CM4EUm+F8ee0mJV19qDMOm5rU9IrFZ4zj6rzRUHQ5OHcFH
-mLxWm6wtqxYSapbWkYhiMei6lzDeMi0aL9BHKnzktgABBO1rwgNwPTlmwIWZcyPz
-GWtxOw2oQZ6NqfGp9p3s677z2yicYQEJtEsvGrj5RVCUiXOwcRbQ0qNn8hF/6DrV
-Xpk/cL6Zr9g8Klh/tLSN1CTXkcvGU6Poc83MLqf7DWmoKB86izb6MLoV4l5ckfyQ
-s3nDQ6IJHOM3LaHIxeHj3FjHABx/lzwN22sKeRhsDduqiYUq3Y0i2J39ujXbZeUl
-VlZ37T447uyO+nDgvg27P4MVsQlYYqt/vMmZ/a1NJdDXkzQU5RYpEmIeX/Z1Rifz
-2Mean0e41gkDsd0BkxJb
-=mszX
------END PGP SIGNATURE-----
+   clock idx = reset idx + 256
 
---df+09Je9rNq3P+GE--
+The opposite is not true; the clock bits are a superset of the reset 
+bits (the reset bits act on cells but some cells have >1 clock).
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+>> However there are a couple of clocks without gating just before the
+>> clock reaches the peripheral:
+>>
+>> 1. A hard coded /8. I think this will have to be given a synthetic
+>>      number.
+>
+> If this is just a divider, why not use a separate DT node for that,
+> like this:
+>
+>          clock {
+>                  compatible = "fixed-factor-clock";
+>                  clocks = <&parentclk>;
+>                  #clock-cells = <0>;
+>                  clock-div = <8>;
+>                  clock-mult = <1>;
+>          };
+>
+> No need to assign a number for this.
+
+I'd wondered about doing that.
+
+It will certainly work but it seemed a bit odd to me to have one (really 
+tiny) part of the RCC cell included seperately in the platform 
+description whilst all the complicated bits end up aggregated into the 
+RCC cell.
+
+Is there much prior art that uses this type of trick to avoid having 
+magic numbers into the bindings?
+
+
+>> 2. Ungated dividers. For these I am using the bit offset of the LSB of
+>>      the mux field.
+>
+> Do these ones also come with resets?
+
+No. They mostly run to the core and its intimate peripherals (i.e. only 
+reset line comes from WDT).
+
+
+>> So I think there is only one value that is completely unrelated to the
+>> hardware and will use a magic constant instead.
+>>
+>> I had planned to macros similar to the STM32F4_AxB_RESET() family of
+>> macros in both clk driver and DT in order to reuse the bit layouts from
+>> dt-bindings/mfd/stm32f4-rcc.h .
+>>
+>> Normal case would have looked like this:
+>>
+>>                  timer3: timer@40000000 {
+>>                          compatible = "st,stm32-timer";
+>>                          reg = <0x40000000 0x400>;
+>>                          interrupts = <28>;
+>>                          resets = <&rcc STM32F4_APB1_RESET(TIM3)>;
+>>                          clocks = <&rcc STM32F4_APB1_CLK(TIM3)>;
+>>                          status = "disabled";
+>>                  };
+>>
+>> Without the macros it looks like this:
+>>
+>>                  timer3: timer@40000000 {
+>>                          compatible = "st,stm32-timer";
+>>                          reg = <0x40000000 0x400>;
+>>                          interrupts = <28>;
+>>                          resets = <&rcc 257>;
+>>                          clocks = <&rcc 513>;
+>>                          status = "disabled";
+>>                  };
+>>
+>> However we could perhaps be more literate even if we don't use the macros?
+>>
+>>                  timer3: timer@40000000 {
+>>                          compatible = "st,stm32-timer";
+>>                          reg = <0x40000000 0x400>;
+>>                          interrupts = <28>;
+>>                          resets = <&rcc ((0x20*8) + 1)>;
+>>                          clocks = <&rcc ((0x40*8) + 1)>;
+>>                          status = "disabled";
+>>                  };
+>
+> How about #address-cells = <2>, so you can do
+>
+> 		resets = <&rcc 8 1>;
+> 		clocks = <&rcc 8 1>;
+>
+> with the first cell being an index for the block and the second cell the
+> bit number within that block.
+
+That would suit me very well (although is the 0x20/0x40 not the 8 that 
+we would need in the middle column).
+
+Maxime: Does that suit reset driver?
+
+
+Daniel.
