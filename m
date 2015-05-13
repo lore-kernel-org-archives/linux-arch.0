@@ -1,45 +1,38 @@
-From: David Hildenbrand <dahi@linux.vnet.ibm.com>
+From: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
 Subject: Re: [PATCH v1 11/15] arm/futex: UP futex_atomic_op_inuser() relies
  on disabled preemption
-Date: Wed, 13 May 2015 09:38:12 +0200
-Message-ID: <20150513093812.65fdac96@thinkpad-w530>
+Date: Wed, 13 May 2015 10:19:56 +0200
+Message-ID: <20150513081956.GB21106@linutronix.de>
 References: <1431359540-32227-1-git-send-email-dahi@linux.vnet.ibm.com>
-	<1431359540-32227-12-git-send-email-dahi@linux.vnet.ibm.com>
-	<20150512190014.GD25464@linutronix.de>
+ <1431359540-32227-12-git-send-email-dahi@linux.vnet.ibm.com>
+ <20150512190014.GD25464@linutronix.de>
+ <20150513093812.65fdac96@thinkpad-w530>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20150512190014.GD25464@linutronix.de>
+Content-Disposition: inline
+In-Reply-To: <20150513093812.65fdac96@thinkpad-w530>
 Sender: owner-linux-mm@kvack.org
-To: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+To: David Hildenbrand <dahi@linux.vnet.ibm.com>
 Cc: linux-kernel@vger.kernel.org, mingo@redhat.com, yang.shi@windriver.com, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, peterz@infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-> * David Hildenbrand | 2015-05-11 17:52:16 [+0200]:
-> 
-> >The !CONFIG_SMP implementation of futex_atomic_op_inuser() seems to rely
-> >on disabled preemption to guarantee mutual exclusion.
-> 
-> Yes, this is what the code looks like. It is more the requirement for
-> ldrex/strex opcodes which are ARMv6+ and so is SMP support (here).
-> Documentation wise you could replace CONFIG_SMP by 
->      __LINUX_ARM_ARCH__ >= 6
-> in a later patch if you like. This would be more in-sync with
-> arch/arm/include/asm/cmpxchg.h :)
-> 
-> Sebastian
+* David Hildenbrand | 2015-05-13 09:38:12 [+0200]:
 
-Thanks, I'll include it in the next version.
+>Thanks, I'll include it in the next version.
+>
+>So I assume the cleanest thing to do would be:
+>
+>#if __LINUX_ARM_ARCH__ < 6
+>	preempt_disable();
+>#endif
 
-So I assume the cleanest thing to do would be:
+Correct. But also for futex_atomic_cmpxchg_inatomic() which also behind
+CONFIG_SMP curtain. That is why I suggested a new patch :)
 
-#if __LINUX_ARM_ARCH__ < 6
-	preempt_disable();
-#endif
+>David
 
-
-David
+Sebastian
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
