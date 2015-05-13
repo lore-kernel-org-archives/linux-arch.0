@@ -1,60 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay4-d.mail.gandi.net ([217.70.183.196]:47496 "EHLO
-	relay4-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752391AbbEMQyI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2015 12:54:08 -0400
-Date: Wed, 13 May 2015 09:53:59 -0700
-From: Josh Triplett <josh@joshtriplett.org>
-Subject: Re: [RFC PATCH v6] Documentation/arch: Add
- Documentation/arch-features.txt
-Message-ID: <20150513165358.GA22979@x>
-References: <20150512213843.GV21418@twins.programming.kicks-ass.net>
- <20150512144910.0b49c9a7a13336773449db33@linux-foundation.org>
- <20150513083441.GA17336@gmail.com>
- <20150513085636.GA11030@gmail.com>
- <20150513092421.GB11030@gmail.com>
- <20150513094622.GC11030@gmail.com>
- <20150513094756.GD11030@gmail.com>
- <20150513131835.GJ1517@pd.tnic>
- <20150513134842.GA1657@gmail.com>
- <20150513162757.GA21894@x>
+Received: from mail-wi0-f180.google.com ([209.85.212.180]:36268 "EHLO
+	mail-wi0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934018AbbEMQyN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2015 12:54:13 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20150513162757.GA21894@x>
+In-Reply-To: <2282066.NWoIT9ZyLc@wuerfel>
+References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<11310179.epfRucfQKB@wuerfel>
+	<CALszF6DHazhN6+hGShyrmqtMrPod0hdb8mHAwK-GWfRxXzy7wQ@mail.gmail.com>
+	<2282066.NWoIT9ZyLc@wuerfel>
+Date: Wed, 13 May 2015 18:54:10 +0200
+Message-ID: <CALszF6CaO_yuNiSDuDV+4d2NRe_+32j=zcSE1HPhB1UH59cW9w@mail.gmail.com>
+Subject: Re: [PATCH v8 14/16] ARM: dts: Introduce STM32F429 MCU
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Borislav Petkov <bp@alien8.de>, Andrew Morton <akpm@linux-foundation.org>, Jonathan Corbet <corbet@lwn.net>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150513165359.yx3Wv-qcMxPO2bff9ApNVjf_YJmrOBOzh0kToGm5uI0@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Daniel Thompson <daniel.thompson@linaro.org>, =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Joe Perches <joe@perches.com>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Lee Jones <lee.jones@linaro.org>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Nicolae Rosia <nicolae.rosia@gmail.com>, Kamil Lulko <rev13@wp.pl>
+Message-ID: <20150513165410.oWaC_eIy70JYIpm4Vdhj6q-Kby6bUVt3dhkb-46_Lks@z>
 
-On Wed, May 13, 2015 at 09:27:57AM -0700, Josh Triplett wrote:
-> How likely is this to get out of date?  Are people going to remember to
-> patch this when they add a feature to their architecture?  If
-> they found out they had work to do by reading this file, which is the
-> goal, then they'll likely remember to edit the file; however, if they
-> find the feature and fix it without knowing about the file, will someone
-> notice?
-> 
-> Is there any way we can *generate* this file from Kconfig?  Can we
-> extract the necessary "this is possible to enable" or "this arch selects
-> this symbol" information from Kconfig, and together with the list of
-> symbols for features needing architecture support, generate the table?
+2015-05-13 18:37 GMT+02:00 Arnd Bergmann <arnd@arndb.de>:
+> On Wednesday 13 May 2015 18:29:05 Maxime Coquelin wrote:
+>> 2015-05-13 17:28 GMT+02:00 Arnd Bergmann <arnd@arndb.de>:
+>> > On Wednesday 13 May 2015 16:20:34 Daniel Thompson wrote:
+>> >>
+>> >> That would suit me very well (although is the 0x20/0x40 not the 8 that
+>> >> we would need in the middle column).
+>> >
+>> > We don't normally use register offsets in DT. The number 8 here instead
+>> > would indicate block 8, where each block is four bytes wide. Using the
+>> > same index here for reset and clock would also help readability.
+>>
+>> My view is that it makes the bindings usage very complex.
+>> Also, it implies we have a specific compatible for stm32f429, whereas
+>> we didn't need with my earlier proposals.
+>> Indeed, the reset driver will need to know the offset of every reset
+>> registers, because:
+>>   1. The AHB registers start at RCC offset 0x10 (up to 0x18)
+>>   2. The APB registers start at RCC offset 0x20 (up to 0x24).
+>> We have a gap between AHB and APB registers, so how do we map the
+>> index for the block you propose?
+>> Should the gap be considered as a block, or we should skip it?
+>>
+>> I'm afraid it will not be straightforward for a reset user to
+>> understand how to use this bindings.
+>>
+>> Either my v7 or v8 versions would have made possible to use a single
+>> compatible for STM32 series.
+>> If we stick with one of these, we could even think to have a "generic"
+>> reset driver, as it could be compatible with sunxi driver bindings.
+>
+> We should definitely try to use the same compatible string for all of
+> them, and make a binding that is easy to use.
+>
+> I haven't fully understood the requirements for the various parts that
+> are involved here. My understanding so far was that the driver could
+> use the index from the first cell and compute
+>
+>         void __iomem *reset_reg = rcc_base + 0x10 + 4 * index;
+>         void __iomem *clock_reg = rcc_base + 0x30 + 4 * index;
 
-Just tried this.  Looks like it's pretty trivial for most of these
-features: just make ARCH=thearch allyesconfig, then look for the config
-symbol in the result.
+This calculation is true, but we have to take into account there is a
+hole in the middle, between AHB3, and APB1 register:
 
-For instance, after doing "make ARCH=alpha allyesconfig":
+AHB1RSTR : offset = 0x10, index = 0
+AHB2RSTR : offset = 0x14, index = 1
+AHB3RSTR : offset = 0x18, index = 2
+<HOLE >     : offset = 0x1c, index = 3
+APB1RSTR : offset = 0x20, index = 4
+APB2RSTR : offset = 0x24, index = 5
 
-~/src/linux$ grep -x 'CONFIG_ARCH_HAS_ELF_RANDOMIZE=y' .config || echo TODO
-TODO
+So we have to carefully document this hole in the bindings, maybe by
+listing indexes in the documentation?
 
-~/src/linux$ grep -x 'CONFIG_GENERIC_CLOCKEVENTS=y' .config || echo TODO
-CONFIG_GENERIC_CLOCKEVENTS=y
+>
+> Are there parts that need something else? If the 0x10 offset is
+> different, we probably want a different compatible string, and I'd
+> consider it a different part at that point. If there are chips
+> that do not spread the clock from the reset by exactly 256 bits,
+> we could add a DT property in the rcc node for that.
 
-This seems easy to turn into a shell script or Python script, given a list of
-feature descriptions and corresponding config symbols, as well as a list of
-architectures.
+I will check other chips, to see if this is valid generally.
 
-- Josh Triplett
+Thanks for your feedback,
+Maxime
+
+>
+>         Arnd
