@@ -1,83 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f47.google.com ([74.125.82.47]:36456 "EHLO
-	mail-wg0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965154AbbEMNss (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2015 09:48:48 -0400
-Date: Wed, 13 May 2015 15:48:42 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: [RFC PATCH v6] Documentation/arch: Add
- Documentation/arch-features.txt
-Message-ID: <20150513134842.GA1657@gmail.com>
-References: <20150511192918.GA11361@jtriplet-mobl1>
- <20150512142250.dcb053da81855ae1b5861173@linux-foundation.org>
- <20150512213843.GV21418@twins.programming.kicks-ass.net>
- <20150512144910.0b49c9a7a13336773449db33@linux-foundation.org>
- <20150513083441.GA17336@gmail.com>
- <20150513085636.GA11030@gmail.com>
- <20150513092421.GB11030@gmail.com>
- <20150513094622.GC11030@gmail.com>
- <20150513094756.GD11030@gmail.com>
- <20150513131835.GJ1517@pd.tnic>
+Received: from cantor2.suse.de ([195.135.220.15]:53726 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S934118AbbEMN6J (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 13 May 2015 09:58:09 -0400
+Date: Wed, 13 May 2015 15:58:05 +0200
+From: Michal Hocko <mhocko@suse.cz>
+Subject: Re: [PATCH 0/3] Allow user to request memory to be locked on page
+ fault
+Message-ID: <20150513135805.GA17708@dhcp22.suse.cz>
+References: <1431113626-19153-1-git-send-email-emunson@akamai.com>
+ <20150508124203.6679b1d35ad9555425003929@linux-foundation.org>
+ <20150508200610.GB29933@akamai.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20150513131835.GJ1517@pd.tnic>
+In-Reply-To: <20150508200610.GB29933@akamai.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Jonathan Corbet <corbet@lwn.net>, Peter Zijlstra <peterz@infradead.org>, Josh Triplett <josh@joshtriplett.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150513134842.YTveZJpwSSyigfA9mB3Up2eHN41-tn21Eu_uJI-Sn1Q@z>
+To: Eric B Munson <emunson@akamai.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuahkh@osg.samsung.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20150513135805.oeyN4EO7vSJn47bDH0FMSSA9SwqZSnPw3QfFkl0EOyU@z>
 
-
-* Borislav Petkov <bp@alien8.de> wrote:
-
-> On Wed, May 13, 2015 at 11:47:56AM +0200, Ingo Molnar wrote:
-> >  - introduce the '..' denotion (in the final table) to show features 
-> >    that cannot be supported by an architecture due to hardware 
-> >    dependencies:
-> > 
-> > 		   gcov-profile-all:---------------.
-> > 				THP:--------.      |
-> > 		      irq-time-acct:-.      |      |
-> > 				     |      |      |
-> > 		----------------------------------------
-> > 		  alpha           | TODO | TODO | TODO |
-> > 		  arc             | TODO |  ..  | TODO |
-> > 		  arm             |  ok  |  ok  |  ok  |
-> > 		  arm64           | TODO |  ok  |  ok  |
-> > 		  avr32           | TODO |  ..  | TODO |
-> > 		  blackfin        | TODO |  ..  | TODO |
-> > 		  c6x             | TODO |  ..  | TODO |
-> > 
-> >    so in the 'THP' column, if an architecture could in theory support 
-> >    THP, it's listed as 'TODO', if it cannot, it's listed as '..'.
+On Fri 08-05-15 16:06:10, Eric B Munson wrote:
+> On Fri, 08 May 2015, Andrew Morton wrote:
 > 
-> Shouldn't exactly that explanation be in the text file itself too?
+> > On Fri,  8 May 2015 15:33:43 -0400 Eric B Munson <emunson@akamai.com> wrote:
+> > 
+> > > mlock() allows a user to control page out of program memory, but this
+> > > comes at the cost of faulting in the entire mapping when it is
+> > > allocated.  For large mappings where the entire area is not necessary
+> > > this is not ideal.
+> > > 
+> > > This series introduces new flags for mmap() and mlockall() that allow a
+> > > user to specify that the covered are should not be paged out, but only
+> > > after the memory has been used the first time.
+> > 
+> > Please tell us much much more about the value of these changes: the use
+> > cases, the behavioural improvements and performance results which the
+> > patchset brings to those use cases, etc.
+> > 
+> 
+> The primary use case is for mmaping large files read only.  The process
+> knows that some of the data is necessary, but it is unlikely that the
+> entire file will be needed.  The developer only wants to pay the cost to
+> read the data in once.  Unfortunately developer must choose between
+> allowing the kernel to page in the memory as needed and guaranteeing
+> that the data will only be read from disk once.  The first option runs
+> the risk of having the memory reclaimed if the system is under memory
+> pressure, the second forces the memory usage and startup delay when
+> faulting in the entire file.
 
-Yeah, indeed, added it.
-
-> Also, how about s/TODO//g for less clutter:
-
-No, I'd like there to be a very visible 'TODO' item for missing 
-features.
-
-The 'clutter' shows how badly our generic kernel features are 
-propagating :-/ We hope to reduce this clutter in the future.
-
-Updated patch attached - I've added a few more features to the last 
-table, and restructured the explanations, now every feature 
-description also lists the Kconfig variable that it's tracking, e.g.:
-
-      irq time acct: HAVE_IRQ_TIME_ACCOUNTING
-                THP: HAVE_ARCH_TRANSPARENT_HUGEPAGE && 64BIT
-   gcov profile all: ARCH_HAS_GCOV_PROFILE_ALL
-    rwsem optimized: Optimized asm/rwsem.h
-   queued spinlocks: ARCH_USE_QUEUED_SPINLOCKS
-     queued rwlocks: ARCH_USE_QUEUED_RWLOCKS
-     numa balancing: ARCH_SUPPORTS_NUMA_BALANCING && 64BIT && NUMA
-
-Thanks,
-
-	Ingo
-
-=========================================>
+Is there any reason you cannot do this from the userspace? Start by
+mmap(PROT_NONE) and do mmap(MAP_FIXED|MAP_LOCKED|MAP_READ|other_flags_you_need)
+from the SIGSEGV handler?
+You can generate a lot of vmas that way but you can mitigate that to a
+certain level by mapping larger than PAGE_SIZE chunks in the fault
+handler. Would that work in your usecase?
+-- 
+Michal Hocko
+SUSE Labs
