@@ -1,69 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f50.google.com ([74.125.82.50]:35673 "EHLO
-	mail-wg0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751762AbbEMIer (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2015 04:34:47 -0400
-Date: Wed, 13 May 2015 10:34:41 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: [RFC PATCH] Documentation/arch: Add Documentation/arch-TODO
-Message-ID: <20150513083441.GA17336@gmail.com>
-References: <20150511192918.GA11361@jtriplet-mobl1>
- <20150512142250.dcb053da81855ae1b5861173@linux-foundation.org>
- <20150512213843.GV21418@twins.programming.kicks-ass.net>
- <20150512144910.0b49c9a7a13336773449db33@linux-foundation.org>
+Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:57141 "EHLO
+	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754368AbbEMI4F (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2015 04:56:05 -0400
+Received: from /spool/local
+	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <dahi@linux.vnet.ibm.com>;
+	Wed, 13 May 2015 09:56:03 +0100
+Date: Wed, 13 May 2015 10:55:56 +0200
+From: David Hildenbrand <dahi@linux.vnet.ibm.com>
+Subject: Re: [PATCH v1 11/15] arm/futex: UP futex_atomic_op_inuser() relies
+ on disabled preemption
+Message-ID: <20150513105556.2607d99c@thinkpad-w530>
+In-Reply-To: <20150513081956.GB21106@linutronix.de>
+References: <1431359540-32227-1-git-send-email-dahi@linux.vnet.ibm.com>
+	<1431359540-32227-12-git-send-email-dahi@linux.vnet.ibm.com>
+	<20150512190014.GD25464@linutronix.de>
+	<20150513093812.65fdac96@thinkpad-w530>
+	<20150513081956.GB21106@linutronix.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20150512144910.0b49c9a7a13336773449db33@linux-foundation.org>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Jonathan Corbet <corbet@lwn.net>
-Cc: Peter Zijlstra <peterz@infradead.org>, Josh Triplett <josh@joshtriplett.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>
-Message-ID: <20150513083441.SYT8rWrqVxYOO1msaiFgROibnJXq5bUbaRQ0YeWTTkc@z>
+To: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, mingo@redhat.com, yang.shi@windriver.com, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, peterz@infradead.org
+Message-ID: <20150513085556.JbJVYWxY_rxGK4wxBI4VMpL_qsgHUtOfkYVJAM52hqY@z>
 
-
-* Andrew Morton <akpm@linux-foundation.org> wrote:
-
-> On Tue, 12 May 2015 23:38:43 +0200 Peter Zijlstra <peterz@infradead.org> wrote:
+> * David Hildenbrand | 2015-05-13 09:38:12 [+0200]:
 > 
-> > > with the expectation that other architectures will follow along, 
-> > > but this doesn't happen.  The arch maintainers simply didn't 
-> > > know about it or nobody nags them.  Nothing happens and 
-> > > inconsistencies hang around for years.  eg, 
-> > > http://lkml.iu.edu/hypermail/linux/kernel/1504.2/04993.html
-> > > 
-> > > I'm thinking we should find a way to do this better.  One way 
-> > > might be to maintain a Documentation/arch-todo which identifies 
-> > > each item, has a little list of what-to-do instructions and 
-> > > perhaps a list of the not-yet-done architectures.  Basically a 
-> > > way for everyone to communicate at the arch maintainers.
-> > 
-> > If only there was a linux-arch list to which arch maintainers 
-> > should subscribe... oh wait :-)
+> >Thanks, I'll include it in the next version.
+> >
+> >So I assume the cleanest thing to do would be:
+> >
+> >#if __LINUX_ARM_ARCH__ < 6
+> >	preempt_disable();
+> >#endif
 > 
-> It was I who got linux-arch established, so I'm fairly familiar with 
-> it.  (12 years ago, gad).
+> Correct. But also for futex_atomic_cmpxchg_inatomic() which also behind
+> CONFIG_SMP curtain. That is why I suggested a new patch :)
 > 
-> I don't think it's been very successful, particularly for this 
-> purpose. A whole pile of randomly cc'ed lkml overflow which we're 
-> relying on each individual maintainer to sift through and pluck out 
-> particular action items then later remember to implement them.  It's 
-> disorganized and has too many cracks for things to fall through.
+> >David
+> 
+> Sebastian
 
-Yes, a mailing list is indeed not a very good TODO list.
+Ah, okay I think now I got it :)
 
-We need a persistent post-it, and Documentation/arch-TODO (note the 
-capital letters, we might as well shout?) sounds like a good place.
+So both patches are fine for now, but we should replace CONFIG_SMP
+by __LINUX_ARM_ARCH__ >=6 in both file, not only in the code I touch (to make
+it map arch/arm/include/asm/cmpxchg.h style).
 
-I'd suggest making it tabular, as per the patch below.
+David
 
-If it gets too large we can split it into multiple tables.
-
-I'd like people to have a good look whether I messed up any entry, and 
-I'd be happy to add new items as well.
-
-Thanks,
-
-	Ingo
-
-=======================>
