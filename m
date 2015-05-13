@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shonan.sfc.wide.ad.jp ([203.178.142.130]:44360 "EHLO
+Received: from shonan.sfc.wide.ad.jp ([203.178.142.130]:44395 "EHLO
 	mail.sfc.wide.ad.jp" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1750777AbbEMFa3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2015 01:30:29 -0400
+	with ESMTP id S932115AbbEMFas (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2015 01:30:48 -0400
 From: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-Subject: [PATCH v5 05/10] lib: context and scheduling functions (kernel glue code) for libos
-Date: Wed, 13 May 2015 07:28:36 +0200
-Message-ID: <1431494921-24746-6-git-send-email-tazaki@sfc.wide.ad.jp>
+Subject: [PATCH v5 07/10] lib: other kernel glue layer code
+Date: Wed, 13 May 2015 07:28:38 +0200
+Message-ID: <1431494921-24746-8-git-send-email-tazaki@sfc.wide.ad.jp>
 In-Reply-To: <1431494921-24746-1-git-send-email-tazaki@sfc.wide.ad.jp>
 References: <1430103618-10832-1-git-send-email-tazaki@sfc.wide.ad.jp>
  <1431494921-24746-1-git-send-email-tazaki@sfc.wide.ad.jp>
@@ -14,30 +14,44 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Hajime Tazaki <tazaki@sfc.wide.ad.jp>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Christoph Lameter <cl@linux.com>, Jekka Enberg <penberg@kernel.org>, Javid Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Jndrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Rusty Russell <rusty@rustcorp.com.au>, Ryo Nakamura <upa@haeena.net>, Christoph Paasch <christoph.paasch@gmail.com>, Mathieu Lacage <mathieu.lacage@gmail.com>, libos-nuse@googlegroups.com
-Message-ID: <20150513052836.-f8Y81xuqRgPCnkrKc4_YfCFr-8jS7ZWbwPRhWNzZ4o@z>
+Message-ID: <20150513052838.c8rvcEpOrauH3rIrePrQqg1QB6DA079PeHz_trQngpo@z>
 
-context primitives of kernel such as soft interrupts, scheduling,
-tasklet are implemented for libos. these functions eventually call the
-functions registered by lib_init() API as well.
+These files are used to provide the same function calls so that other
+network stack code keeps untouched.
 
 Signed-off-by: Hajime Tazaki <tazaki@sfc.wide.ad.jp>
+Signed-off-by: Christoph Paasch <christoph.paasch@gmail.com>
 ---
- arch/lib/sched.c     | 406 +++++++++++++++++++++++++++++++++++++++++++++++++++
- arch/lib/softirq.c   | 108 ++++++++++++++
- arch/lib/tasklet.c   |  76 ++++++++++
- arch/lib/workqueue.c | 242 ++++++++++++++++++++++++++++++
- 4 files changed, 832 insertions(+)
- create mode 100644 arch/lib/sched.c
- create mode 100644 arch/lib/softirq.c
- create mode 100644 arch/lib/tasklet.c
- create mode 100644 arch/lib/workqueue.c
+ arch/lib/capability.c |  25 +++++
+ arch/lib/filemap.c    |  32 ++++++
+ arch/lib/fs.c         |  70 ++++++++++++
+ arch/lib/glue.c       | 289 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ arch/lib/modules.c    |  36 +++++++
+ arch/lib/pid.c        |  29 +++++
+ arch/lib/print.c      |  56 ++++++++++
+ arch/lib/proc.c       |  34 ++++++
+ arch/lib/random.c     |  53 +++++++++
+ arch/lib/sysfs.c      |  83 +++++++++++++++
+ arch/lib/vmscan.c     |  26 +++++
+ 11 files changed, 733 insertions(+)
+ create mode 100644 arch/lib/capability.c
+ create mode 100644 arch/lib/filemap.c
+ create mode 100644 arch/lib/fs.c
+ create mode 100644 arch/lib/glue.c
+ create mode 100644 arch/lib/modules.c
+ create mode 100644 arch/lib/pid.c
+ create mode 100644 arch/lib/print.c
+ create mode 100644 arch/lib/proc.c
+ create mode 100644 arch/lib/random.c
+ create mode 100644 arch/lib/sysfs.c
+ create mode 100644 arch/lib/vmscan.c
 
-diff --git a/arch/lib/sched.c b/arch/lib/sched.c
+diff --git a/arch/lib/capability.c b/arch/lib/capability.c
 new file mode 100644
-index 0000000..98a568a
+index 0000000..3a1f301
 --- /dev/null
-+++ b/arch/lib/sched.c
-@@ -0,0 +1,406 @@
++++ b/arch/lib/capability.c
+@@ -0,0 +1,25 @@
 +/*
 + * glue code for library version of Linux kernel
 + * Copyright (c) 2015 INRIA, Hajime Tazaki
@@ -46,410 +60,480 @@ index 0000000..98a568a
 + *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
 + */
 +
-+#include <linux/wait.h>
-+#include <linux/list.h>
-+#include <linux/sched.h>
-+#include <linux/nsproxy.h>
-+#include <linux/hash.h>
-+#include <net/net_namespace.h>
-+#include "lib.h"
++#include "linux/capability.h"
++
++struct sock;
++struct sk_buff;
++
++int file_caps_enabled = 0;
++
++int cap_netlink_send(struct sock *sk, struct sk_buff *skb)
++{
++	return 0;
++}
++
++bool file_ns_capable(const struct file *file, struct user_namespace *ns,
++		     int cap)
++{
++	return true;
++}
+diff --git a/arch/lib/filemap.c b/arch/lib/filemap.c
+new file mode 100644
+index 0000000..ce424ff
+--- /dev/null
++++ b/arch/lib/filemap.c
+@@ -0,0 +1,32 @@
++/*
++ * glue code for library version of Linux kernel
++ * Copyright (c) 2015 INRIA, Hajime Tazaki
++ *
++ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
++ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
++ *         Frederic Urbani
++ */
++
 +#include "sim.h"
 +#include "sim-assert.h"
++#include <linux/fs.h>
 +
-+/**
-+   called by wait_event macro:
-+   - prepare_to_wait
-+   - schedule
-+   - finish_wait
++
++ssize_t generic_file_aio_read(struct kiocb *a, const struct iovec *b,
++			      unsigned long c, loff_t d)
++{
++	lib_assert(false);
++
++	return 0;
++}
++
++int generic_file_readonly_mmap(struct file *file, struct vm_area_struct *vma)
++{
++	return -ENOSYS;
++}
++
++ssize_t
++generic_file_read_iter(struct kiocb *iocb, struct iov_iter *iter)
++{
++	return 0;
++}
+diff --git a/arch/lib/fs.c b/arch/lib/fs.c
+new file mode 100644
+index 0000000..33efe5f
+--- /dev/null
++++ b/arch/lib/fs.c
+@@ -0,0 +1,70 @@
++/*
++ * glue code for library version of Linux kernel
++ * Copyright (c) 2015 INRIA, Hajime Tazaki
++ *
++ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
++ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
++ *         Frederic Urbani
 + */
 +
-+struct SimTask *lib_task_create(void *private, unsigned long pid)
-+{
-+	struct SimTask *task = lib_malloc(sizeof(struct SimTask));
-+	struct cred *cred;
-+	struct nsproxy *ns;
-+	struct user_struct *user;
-+	struct thread_info *info;
-+	struct pid *kpid;
++#include <fs/mount.h>
 +
-+	if (!task)
-+		return NULL;
-+	memset(task, 0, sizeof(struct SimTask));
-+	cred = lib_malloc(sizeof(struct cred));
-+	if (!cred)
-+		return NULL;
-+	/* XXX: we could optimize away this allocation by sharing it
-+	   for all tasks */
-+	ns = lib_malloc(sizeof(struct nsproxy));
-+	if (!ns)
-+		return NULL;
-+	user = lib_malloc(sizeof(struct user_struct));
-+	if (!user)
-+		return NULL;
-+	info = alloc_thread_info(&task->kernel_task);
-+	if (!info)
-+		return NULL;
-+	kpid = lib_malloc(sizeof(struct pid));
-+	if (!kpid)
-+		return NULL;
-+	kpid->numbers[0].nr = pid;
-+	cred->fsuid = make_kuid(current_user_ns(), 0);
-+	cred->fsgid = make_kgid(current_user_ns(), 0);
-+	cred->user = user;
-+	atomic_set(&cred->usage, 1);
-+	info->task = &task->kernel_task;
-+	info->preempt_count = 0;
-+	info->flags = 0;
-+	atomic_set(&ns->count, 1);
-+	ns->uts_ns = 0;
-+	ns->ipc_ns = 0;
-+	ns->mnt_ns = 0;
-+	ns->pid_ns_for_children = 0;
-+	ns->net_ns = &init_net;
-+	task->kernel_task.cred = cred;
-+	task->kernel_task.pid = pid;
-+	task->kernel_task.pids[PIDTYPE_PID].pid = kpid;
-+	task->kernel_task.pids[PIDTYPE_PGID].pid = kpid;
-+	task->kernel_task.pids[PIDTYPE_SID].pid = kpid;
-+	task->kernel_task.nsproxy = ns;
-+	task->kernel_task.stack = info;
-+	/* this is a hack. */
-+	task->kernel_task.group_leader = &task->kernel_task;
-+	task->private = private;
-+	return task;
-+}
-+void lib_task_destroy(struct SimTask *task)
++#include "sim-assert.h"
++
++__cacheline_aligned_in_smp DEFINE_SEQLOCK(mount_lock);
++unsigned int dirtytime_expire_interval;
++
++void __init mnt_init(void)
 +{
-+	lib_free((void *)task->kernel_task.nsproxy);
-+	lib_free((void *)task->kernel_task.cred);
-+	lib_free((void *)task->kernel_task.cred->user);
-+	free_thread_info(task->kernel_task.stack);
-+	lib_free(task);
-+}
-+void *lib_task_get_private(struct SimTask *task)
-+{
-+	return task->private;
 +}
 +
-+int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
++/* Implementation taken from vfs_kern_mount from linux/namespace.c */
++struct vfsmount *kern_mount_data(struct file_system_type *type, void *data)
 +{
-+	struct SimTask *task = lib_task_start((void (*)(void *))fn, arg);
++	static struct mount local_mnt;
++	static int count = 0;
++	struct mount *mnt = &local_mnt;
++	struct dentry *root = 0;
 +
-+	return task->kernel_task.pid;
-+}
++	/* XXX */
++	if (count != 0) return &local_mnt.mnt;
++	count++;
 +
-+struct task_struct *get_current(void)
-+{
-+	struct SimTask *lib_task = lib_task_current();
++	memset(mnt, 0, sizeof(struct mount));
++	if (!type)
++		return ERR_PTR(-ENODEV);
++	int flags = MS_KERNMOUNT;
++	char *name = (char *)type->name;
 +
-+	return &lib_task->kernel_task;
-+}
++	if (flags & MS_KERNMOUNT)
++		mnt->mnt.mnt_flags = MNT_INTERNAL;
 +
-+struct thread_info *current_thread_info(void)
-+{
-+	return task_thread_info(get_current());
-+}
-+struct thread_info *alloc_thread_info(struct task_struct *task)
-+{
-+	return lib_malloc(sizeof(struct thread_info));
-+}
-+void free_thread_info(struct thread_info *ti)
-+{
-+	lib_free(ti);
-+}
++	root = type->mount(type, flags, name, data);
++	if (IS_ERR(root))
++		return ERR_CAST(root);
 +
++	mnt->mnt.mnt_root = root;
++	mnt->mnt.mnt_sb = root->d_sb;
++	mnt->mnt_mountpoint = mnt->mnt.mnt_root;
++	mnt->mnt_parent = mnt;
++	/* DCE is monothreaded , so we do not care of lock here */
++	list_add_tail(&mnt->mnt_instance, &root->d_sb->s_mounts);
 +
-+void __put_task_struct(struct task_struct *t)
-+{
-+	lib_free(t);
++	return &mnt->mnt;
 +}
-+
-+void add_wait_queue(wait_queue_head_t *q, wait_queue_t *wait)
++void inode_wait_for_writeback(struct inode *inode)
 +{
-+	wait->flags &= ~WQ_FLAG_EXCLUSIVE;
-+	list_add(&wait->task_list, &q->task_list);
 +}
-+void add_wait_queue_exclusive(wait_queue_head_t *q, wait_queue_t *wait)
++void truncate_inode_pages_final(struct address_space *mapping)
 +{
-+	wait->flags |= WQ_FLAG_EXCLUSIVE;
-+	list_add_tail(&wait->task_list, &q->task_list);
 +}
-+void remove_wait_queue(wait_queue_head_t *q, wait_queue_t *wait)
++int dirtytime_interval_handler(struct ctl_table *table, int write,
++			       void __user *buffer, size_t *lenp, loff_t *ppos)
 +{
-+	if (wait->task_list.prev != LIST_POISON2)
-+		list_del(&wait->task_list);
-+}
-+void
-+prepare_to_wait_exclusive(wait_queue_head_t *q, wait_queue_t *wait, int state)
-+{
-+	wait->flags |= WQ_FLAG_EXCLUSIVE;
-+	if (list_empty(&wait->task_list))
-+		list_add_tail(&wait->task_list, &q->task_list);
-+	set_current_state(state);
-+}
-+void prepare_to_wait(wait_queue_head_t *q, wait_queue_t *wait, int state)
-+{
-+	unsigned long flags;
-+
-+	wait->flags &= ~WQ_FLAG_EXCLUSIVE;
-+	spin_lock_irqsave(&q->lock, flags);
-+	if (list_empty(&wait->task_list))
-+		__add_wait_queue(q, wait);
-+	set_current_state(state);
-+	spin_unlock_irqrestore(&q->lock, flags);
-+}
-+void finish_wait(wait_queue_head_t *q, wait_queue_t *wait)
-+{
-+	set_current_state(TASK_RUNNING);
-+	if (!list_empty(&wait->task_list))
-+		list_del_init(&wait->task_list);
-+}
-+int autoremove_wake_function(wait_queue_t *wait, unsigned mode, int sync,
-+			     void *key)
-+{
-+	int ret = default_wake_function(wait, mode, sync, key);
-+
-+	if (ret && (wait->task_list.prev != LIST_POISON2))
-+		list_del_init(&wait->task_list);
-+
-+	return ret;
++	return -ENOSYS;
 +}
 +
-+int woken_wake_function(wait_queue_t *wait, unsigned mode, int sync, void *key)
++unsigned int nr_free_buffer_pages(void)
 +{
-+	wait->flags |= WQ_FLAG_WOKEN;
-+	return default_wake_function(wait, mode, sync, key);
++	return 65535;
 +}
-+
-+void __init_waitqueue_head(wait_queue_head_t *q, const char *name,
-+			   struct lock_class_key *k)
-+{
-+	INIT_LIST_HEAD(&q->task_list);
-+}
-+/**
-+ * wait_for_completion: - waits for completion of a task
-+ * @x:  holds the state of this particular completion
+diff --git a/arch/lib/glue.c b/arch/lib/glue.c
+new file mode 100644
+index 0000000..93f72d1
+--- /dev/null
++++ b/arch/lib/glue.c
+@@ -0,0 +1,289 @@
++/*
++ * glue code for library version of Linux kernel
++ * Copyright (c) 2015 INRIA, Hajime Tazaki
 + *
-+ * This waits to be signaled for completion of a specific task. It is NOT
-+ * interruptible and there is no timeout.
-+ *
-+ * See also similar routines (i.e. wait_for_completion_timeout()) with timeout
-+ * and interrupt capability. Also see complete().
++ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
++ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
++ *         Frederic Urbani
 + */
-+void wait_for_completion(struct completion *x)
-+{
-+	wait_for_completion_timeout(x, MAX_SCHEDULE_TIMEOUT);
-+}
-+unsigned long wait_for_completion_timeout(struct completion *x,
-+					  unsigned long timeout)
-+{
-+	if (!x->done) {
-+		DECLARE_WAITQUEUE(wait, current);
-+		set_current_state(TASK_UNINTERRUPTIBLE);
-+		wait.flags |= WQ_FLAG_EXCLUSIVE;
-+		list_add_tail(&wait.task_list, &x->wait.task_list);
-+		do
-+			timeout = schedule_timeout(timeout);
-+		while (!x->done && timeout);
-+		if (wait.task_list.prev != LIST_POISON2)
-+			list_del(&wait.task_list);
 +
-+		if (!x->done)
-+			return timeout;
++#include <linux/types.h>        /* loff_t */
++#include <linux/errno.h>        /* ESPIPE */
++#include <linux/pagemap.h>      /* PAGE_CACHE_SIZE */
++#include <linux/limits.h>       /* NAME_MAX */
++#include <linux/statfs.h>       /* struct kstatfs */
++#include <linux/bootmem.h>      /* HASHDIST_DEFAULT */
++#include <linux/utsname.h>
++#include <linux/binfmts.h>
++#include <linux/init_task.h>
++#include <linux/sched/rt.h>
++#include <linux/backing-dev.h>
++#include <stdarg.h>
++#include "sim-assert.h"
++#include "sim.h"
++#include "lib.h"
++
++
++struct pipe_buffer;
++struct file;
++struct pipe_inode_info;
++struct wait_queue_t;
++struct kernel_param;
++struct super_block;
++struct tvec_base {};
++
++/* defined in sched.c, used in net/sched/em_meta.c */
++unsigned long avenrun[3];
++/* defined in mm/page_alloc.c, used in net/xfrm/xfrm_hash.c */
++int hashdist = HASHDIST_DEFAULT;
++/* defined in mm/page_alloc.c */
++struct pglist_data __refdata contig_page_data;
++/* defined in linux/mmzone.h mm/memory.c */
++struct page *mem_map = 0;
++/* used during boot. */
++struct tvec_base boot_tvec_bases;
++/* used by sysinfo in kernel/timer.c */
++int nr_threads = 0;
++/* not very useful in mm/vmstat.c */
++atomic_long_t vm_stat[NR_VM_ZONE_STAT_ITEMS];
++
++/* XXX: used in network stack ! */
++unsigned long num_physpages = 0;
++unsigned long totalram_pages = 0;
++
++/* XXX figure out initial value */
++unsigned int interrupt_pending = 0;
++static unsigned long g_irqflags = 0;
++static unsigned long local_irqflags = 0;
++int overflowgid = 0;
++int overflowuid = 0;
++int fs_overflowgid = 0;
++int fs_overflowuid = 0;
++unsigned long sysctl_overcommit_kbytes __read_mostly;
++DEFINE_PER_CPU(struct task_struct *, ksoftirqd);
++static DECLARE_BITMAP(cpu_possible_bits, CONFIG_NR_CPUS) __read_mostly;
++const struct cpumask *const cpu_possible_mask = to_cpumask(cpu_possible_bits);
++
++struct backing_dev_info noop_backing_dev_info = {
++	.name		= "noop",
++	.capabilities	= 0,
++};
++
++/* from rt.c */
++int sched_rr_timeslice = RR_TIMESLICE;
++/* from main.c */
++bool initcall_debug;
++bool static_key_initialized __read_mostly = false;
++unsigned long __start_rodata, __end_rodata;
++
++unsigned long arch_local_save_flags(void)
++{
++	return local_irqflags;
++}
++void arch_local_irq_restore(unsigned long flags)
++{
++	local_irqflags = flags;
++}
++
++
++unsigned long long nr_context_switches(void)
++{
++	/* we just need to return >0 to avoid the warning
++	   in kernel/rcupdate.c */
++	return 1;
++}
++
++
++long get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
++		    unsigned long start, unsigned long nr_pages,
++		    int write, int force, struct page **pages,
++		    struct vm_area_struct **vmas)
++{
++	/* in practice, this function is never called. It's linked in because */
++	/* we link in get_user_pages_fast which is included only because it */
++	/* is located in mm/util.c */
++	lib_assert(false);
++	return 0;
++}
++
++
++void dump_stack(void)
++{
++	/* we assert to make sure that we catch whoever calls dump_stack */
++	lib_assert(false);
++}
++
++
++void lib_printf(const char *str, ...)
++{
++	va_list args;
++
++	va_start(args, str);
++	lib_vprintf(str, args);
++	va_end(args);
++}
++
++#include <linux/vmalloc.h>
++#include <linux/kmemleak.h>
++
++static unsigned long __meminitdata nr_kernel_pages = 8192;
++static unsigned long __meminitdata nr_all_pages = 81920;
++/*
++ * allocate a large system hash table from bootmem
++ * - it is assumed that the hash table must contain an exact power-of-2
++ *   quantity of entries
++ * - limit is the number of hash buckets, not the total allocation size
++ */
++void *__init alloc_large_system_hash(const char *tablename,
++				     unsigned long bucketsize,
++				     unsigned long numentries,
++				     int scale,
++				     int flags,
++				     unsigned int *_hash_shift,
++				     unsigned int *_hash_mask,
++				     unsigned long low_limit,
++				     unsigned long high_limit)
++{
++	unsigned long long max = high_limit;
++	unsigned long log2qty, size;
++	void *table = NULL;
++
++	/* allow the kernel cmdline to have a say */
++	if (!numentries) {
++		/* round applicable memory size up to nearest megabyte */
++		numentries = nr_kernel_pages;
++		numentries += (1UL << (20 - PAGE_SHIFT)) - 1;
++		numentries >>= 20 - PAGE_SHIFT;
++		numentries <<= 20 - PAGE_SHIFT;
++
++		/* limit to 1 bucket per 2^scale bytes of low memory */
++		if (scale > PAGE_SHIFT)
++			numentries >>= (scale - PAGE_SHIFT);
++		else
++			numentries <<= (PAGE_SHIFT - scale);
++
++		/* Make sure we've got at least a 0-order allocation.. */
++		if (unlikely(flags & HASH_SMALL)) {
++			/* Makes no sense without HASH_EARLY */
++			WARN_ON(!(flags & HASH_EARLY));
++			if (!(numentries >> *_hash_shift)) {
++				numentries = 1UL << *_hash_shift;
++				BUG_ON(!numentries);
++			}
++		} else if (unlikely((numentries * bucketsize) < PAGE_SIZE))
++			numentries = PAGE_SIZE / bucketsize;
 +	}
-+	x->done--;
-+	return timeout ? : 1;
-+}
++	numentries = roundup_pow_of_two(numentries);
 +
-+/**
-+ * __wake_up - wake up threads blocked on a waitqueue.
-+ * @q: the waitqueue
-+ * @mode: which threads
-+ * @nr_exclusive: how many wake-one or wake-many threads to wake up
-+ * @key: is directly passed to the wakeup function
-+ *
-+ * It may be assumed that this function implies a write memory barrier before
-+ * changing the task state if and only if any tasks are woken up.
-+ */
-+void __wake_up(wait_queue_head_t *q, unsigned int mode,
-+	       int nr_exclusive, void *key)
-+{
-+	wait_queue_t *curr, *next;
-+
-+	list_for_each_entry_safe(curr, next, &q->task_list, task_list) {
-+		unsigned flags = curr->flags;
-+
-+		if (curr->func(curr, mode, 0, key) &&
-+		    (flags & WQ_FLAG_EXCLUSIVE) &&
-+		    !--nr_exclusive)
-+			break;
++	/* limit allocation size to 1/16 total memory by default */
++	if (max == 0) {
++		max = ((unsigned long long)nr_all_pages << PAGE_SHIFT) >> 4;
++		do_div(max, bucketsize);
 +	}
++
++	if (numentries > max)
++		numentries = max;
++
++	log2qty = ilog2(numentries);
++
++	do {
++		size = bucketsize << log2qty;
++		if (flags & HASH_EARLY)
++			table = alloc_bootmem_nopanic(size);
++		else if (hashdist)
++			table = __vmalloc(size, GFP_ATOMIC, PAGE_KERNEL);
++		else {
++			/*
++			 * If bucketsize is not a power-of-two, we may free
++			 * some pages at the end of hash table which
++			 * alloc_pages_exact() automatically does
++			 */
++			if (get_order(size) < MAX_ORDER) {
++				table = alloc_pages_exact(size, GFP_ATOMIC);
++				kmemleak_alloc(table, size, 1, GFP_ATOMIC);
++			}
++		}
++	} while (!table && size > PAGE_SIZE && --log2qty);
++
++	if (!table)
++		panic("Failed to allocate %s hash table\n", tablename);
++
++	pr_info("%s hash table entries: %d (order: %d, %lu bytes)\n",
++	       tablename,
++	       (1U << log2qty),
++	       ilog2(size) - PAGE_SHIFT,
++	       size);
++
++	if (_hash_shift)
++		*_hash_shift = log2qty;
++	if (_hash_mask)
++		*_hash_mask = (1 << log2qty) - 1;
++
++	return table;
 +}
-+void __wake_up_sync_key(wait_queue_head_t *q, unsigned int mode,
-+			int nr_exclusive, void *key)
++
++void si_meminfo(struct sysinfo *val)
 +{
-+	__wake_up(q, mode, nr_exclusive, key);
++	/* This function is called from the ip layer to get information about
++	   the amount of memory in the system and make some educated guesses
++	   about some default buffer sizes. We pick a value which ensures
++	   small buffers. */
++	val->totalram = 0;
 +}
-+int default_wake_function(wait_queue_t *curr, unsigned mode, int wake_flags,
-+			  void *key)
++int slab_is_available(void)
 +{
-+	struct task_struct *task = (struct task_struct *)curr->private;
++	/* called from kernel/param.c. */
++	return 1;
++}
++
++/* used from kern_ptr_validate from mm/util.c which is never called */
++void *high_memory = 0;
++
++
++
++void async_synchronize_full(void)
++{
++	/* called from drivers/base/ *.c */
++	/* there is nothing to do, really. */
++}
++
++int send_sig(int signal, struct task_struct *task, int x)
++{
 +	struct SimTask *lib_task = container_of(task, struct SimTask,
 +						kernel_task);
 +
-+	return lib_task_wakeup(lib_task);
-+}
-+__sched int bit_wait(struct wait_bit_key *word)
-+{
-+	if (signal_pending_state(current->state, current))
-+		return 1;
-+	schedule();
++	lib_signal_raised((struct SimTask *)lib_task, signal);
++	/* lib_assert (false); */
 +	return 0;
 +}
-+int wake_bit_function(wait_queue_t *wait, unsigned mode, int sync, void *arg)
++unsigned long get_taint(void)
 +{
-+	struct wait_bit_key *key = arg;
-+	struct wait_bit_queue *wait_bit
-+		= container_of(wait, struct wait_bit_queue, wait);
++	/* never tainted. */
++	return 0;
++}
++void add_taint(unsigned flag, enum lockdep_ok lockdep_ok)
++{
++}
++struct pid *cad_pid = 0;
 +
-+	if (wait_bit->key.flags != key->flags ||
-+			wait_bit->key.bit_nr != key->bit_nr ||
-+			test_bit(key->bit_nr, key->flags))
-+		return 0;
-+	else
-+		return autoremove_wake_function(wait, mode, sync, key);
-+}
-+void __wake_up_bit(wait_queue_head_t *wq, void *word, int bit)
++void add_device_randomness(const void *buf, unsigned int size)
 +{
-+	struct wait_bit_key key = __WAIT_BIT_KEY_INITIALIZER(word, bit);
-+	if (waitqueue_active(wq))
-+		__wake_up(wq, TASK_NORMAL, 1, &key);
-+}
-+void wake_up_bit(void *word, int bit)
-+{
-+	/* FIXME */
-+	return;
-+	__wake_up_bit(bit_waitqueue(word, bit), word, bit);
-+}
-+wait_queue_head_t *bit_waitqueue(void *word, int bit)
-+{
-+	const int shift = BITS_PER_LONG == 32 ? 5 : 6;
-+	const struct zone *zone = page_zone(virt_to_page(word));
-+	unsigned long val = (unsigned long)word << shift | bit;
-+
-+	return &zone->wait_table[hash_long(val, zone->wait_table_bits)];
 +}
 +
-+
-+void schedule(void)
++int sched_rr_handler(struct ctl_table *table, int write,
++		     void __user *buffer, size_t *lenp,
++		     loff_t *ppos)
 +{
-+	lib_task_wait();
-+}
-+
-+static void trampoline(void *context)
-+{
-+	struct SimTask *task = context;
-+
-+	lib_task_wakeup(task);
-+}
-+
-+signed long schedule_timeout(signed long timeout)
-+{
-+	u64 ns;
-+	struct SimTask *self;
-+
-+	if (timeout == MAX_SCHEDULE_TIMEOUT) {
-+		lib_task_wait();
-+		return MAX_SCHEDULE_TIMEOUT;
-+	}
-+	lib_assert(timeout >= 0);
-+	ns = ((__u64)timeout) * (1000000000 / HZ);
-+	self = lib_task_current();
-+	lib_event_schedule_ns(ns, &trampoline, self);
-+	lib_task_wait();
-+	/* we know that we are always perfectly on time. */
 +	return 0;
 +}
 +
-+signed long schedule_timeout_uninterruptible(signed long timeout)
++int sysctl_max_threads(struct ctl_table *table, int write,
++		       void __user *buffer, size_t *lenp, loff_t *ppos)
 +{
-+	return schedule_timeout(timeout);
-+}
-+signed long schedule_timeout_interruptible(signed long timeout)
-+{
-+	return schedule_timeout(timeout);
++	return 1;
 +}
 +
-+void yield(void)
-+{
-+	lib_task_yield();
-+}
-+
-+void complete_all(struct completion *x)
-+{
-+	x->done += UINT_MAX / 2;
-+	__wake_up(&x->wait, TASK_NORMAL, 0, 0);
-+}
-+void complete(struct completion *x)
-+{
-+	x->done++;
-+	__wake_up(&x->wait, TASK_NORMAL, 1, 0);
-+}
-+
-+long wait_for_completion_interruptible_timeout(
-+	struct completion *x, unsigned long timeout)
-+{
-+	return wait_for_completion_timeout(x, timeout);
-+}
-+int wait_for_completion_interruptible(struct completion *x)
-+{
-+	wait_for_completion_timeout(x, MAX_SCHEDULE_TIMEOUT);
-+	return 0;
-+}
-+int wake_up_process(struct task_struct *tsk)
-+{
-+	struct SimTask *lib_task =
-+		container_of(tsk, struct SimTask, kernel_task);
-+
-+	return lib_task_wakeup(lib_task);
-+}
-+int _cond_resched(void)
-+{
-+	/* we never schedule to decrease latency. */
-+	return 0;
-+}
-+int idle_cpu(int cpu)
-+{
-+	/* we are never idle: we call this from rcutiny.c and the answer */
-+	/* does not matter, really. */
-+	return 0;
-+}
-+
-+unsigned long long __attribute__((weak)) sched_clock(void)
-+{
-+	return (unsigned long long)(jiffies - INITIAL_JIFFIES)
-+	       * (NSEC_PER_SEC / HZ);
-+}
-+
-+u64 local_clock(void)
-+{
-+	return sched_clock();
-+}
-+
-+void __sched schedule_preempt_disabled(void)
++void on_each_cpu_mask(const struct cpumask *mask,
++		      smp_call_func_t func, void *info, bool wait)
 +{
 +}
-+
-+void resched_cpu(int cpu)
-+{
-+	rcu_sched_qs();
-+}
-diff --git a/arch/lib/softirq.c b/arch/lib/softirq.c
+diff --git a/arch/lib/modules.c b/arch/lib/modules.c
 new file mode 100644
-index 0000000..3f6363a
+index 0000000..ca43fdc
 --- /dev/null
-+++ b/arch/lib/softirq.c
-@@ -0,0 +1,108 @@
++++ b/arch/lib/modules.c
+@@ -0,0 +1,36 @@
++/*
++ * glue code for library version of Linux kernel
++ * Copyright (c) 2015 INRIA, Hajime Tazaki
++ *
++ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
++ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
++ *         Frederic Urbani
++ */
++
++#include "sim-assert.h"
++#include <linux/moduleparam.h>
++#include <linux/kmod.h>
++#include <linux/module.h>
++
++int modules_disabled = 0;
++char modprobe_path[KMOD_PATH_LEN] = "/sbin/modprobe";
++
++static struct module_version_attribute g_empty_attr_buffer;
++/* we make the array empty by default because, really, we don't need */
++/* to look at the builtin params */
++const struct kernel_param __start___param[] = {{0}} ;
++const struct kernel_param __stop___param[] = {{0}} ;
++const struct module_version_attribute *__start___modver[] = {
++	&g_empty_attr_buffer};
++const struct module_version_attribute *__stop___modver[] = {
++	&g_empty_attr_buffer};
++
++struct module_attribute module_uevent;
++struct ctl_table usermodehelper_table[] = {};
++
++int __request_module(bool wait, const char *fmt, ...)
++{
++	/* we really should never be trying to load modules that way. */
++	/*  lib_assert (false); */
++	return 0;
++}
+diff --git a/arch/lib/pid.c b/arch/lib/pid.c
+new file mode 100644
+index 0000000..00cf7b6
+--- /dev/null
++++ b/arch/lib/pid.c
+@@ -0,0 +1,29 @@
 +/*
 + * glue code for library version of Linux kernel
 + * Copyright (c) 2015 INRIA, Hajime Tazaki
@@ -458,112 +542,33 @@ index 0000000..3f6363a
 + *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
 + */
 +
-+#include <linux/interrupt.h>
-+#include "sim-init.h"
++#include <linux/pid.h>
 +#include "sim.h"
 +#include "sim-assert.h"
 +
-+
-+static struct softirq_action softirq_vec[NR_SOFTIRQS];
-+static struct SimTask *g_softirq_task = 0;
-+static int g_n_raises = 0;
-+
-+void lib_softirq_wakeup(void)
++void put_pid(struct pid *pid)
 +{
-+	g_n_raises++;
-+	lib_task_wakeup(g_softirq_task);
 +}
-+
-+static void softirq_task_function(void *context)
++pid_t pid_vnr(struct pid *pid)
 +{
-+	while (true) {
-+		do_softirq();
-+		g_n_raises--;
-+		if (g_n_raises == 0 || local_softirq_pending() == 0) {
-+			g_n_raises = 0;
-+			lib_task_wait();
-+		}
-+	}
++	return pid_nr(pid);
 +}
-+
-+static void ensure_task_created(void)
++struct task_struct *find_task_by_vpid(pid_t nr)
 +{
-+	if (g_softirq_task != 0)
-+		return;
-+	g_softirq_task = lib_task_start(&softirq_task_function, 0);
-+}
-+
-+void open_softirq(int nr, void (*action)(struct softirq_action *))
-+{
-+	ensure_task_created();
-+	softirq_vec[nr].action = action;
-+}
-+#define MAX_SOFTIRQ_RESTART 10
-+
-+void do_softirq(void)
-+{
-+	__u32 pending;
-+	int max_restart = MAX_SOFTIRQ_RESTART;
-+	struct softirq_action *h;
-+
-+	pending = local_softirq_pending();
-+
-+restart:
-+	/* Reset the pending bitmask before enabling irqs */
-+	set_softirq_pending(0);
-+
-+	local_irq_enable();
-+
-+	h = softirq_vec;
-+
-+	do {
-+		if (pending & 1)
-+			h->action(h);
-+		h++;
-+		pending >>= 1;
-+	} while (pending);
-+
-+	local_irq_disable();
-+
-+	pending = local_softirq_pending();
-+	if (pending && --max_restart)
-+		goto restart;
-+}
-+void raise_softirq_irqoff(unsigned int nr)
-+{
-+	__raise_softirq_irqoff(nr);
-+
-+	lib_softirq_wakeup();
-+}
-+void __raise_softirq_irqoff(unsigned int nr)
-+{
-+	/* trace_softirq_raise(nr); */
-+	or_softirq_pending(1UL << nr);
-+}
-+int __cond_resched_softirq(void)
-+{
-+	/* tell the caller that we did not need to re-schedule. */
++	lib_assert(false);
 +	return 0;
 +}
-+void raise_softirq(unsigned int nr)
++struct pid *find_get_pid(int nr)
 +{
-+	/* copy/paste from kernel/softirq.c */
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	raise_softirq_irqoff(nr);
-+	local_irq_restore(flags);
++	lib_assert(false);
++	return 0;
 +}
-+
-+void __local_bh_enable_ip(unsigned long ip, unsigned int cnt)
-+{
-+}
-diff --git a/arch/lib/tasklet.c b/arch/lib/tasklet.c
+diff --git a/arch/lib/print.c b/arch/lib/print.c
 new file mode 100644
-index 0000000..6cc68f4
+index 0000000..09b1bb5
 --- /dev/null
-+++ b/arch/lib/tasklet.c
-@@ -0,0 +1,76 @@
++++ b/arch/lib/print.c
+@@ -0,0 +1,56 @@
 +/*
 + * glue code for library version of Linux kernel
 + * Copyright (c) 2015 INRIA, Hajime Tazaki
@@ -572,322 +577,274 @@ index 0000000..6cc68f4
 + *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
 + */
 +
-+#include <linux/interrupt.h>
++#include <stdarg.h>
++#include <linux/string.h>
++#include <linux/printk.h>
 +#include "sim.h"
 +#include "sim-assert.h"
 +
-+void tasklet_init(struct tasklet_struct *t,
-+		  void (*func)(unsigned long), unsigned long data)
++int dmesg_restrict = 1;
++
++/* from lib/vsprintf.c */
++int vsnprintf(char *buf, size_t size, const char *fmt, va_list args);
++
++int printk(const char *fmt, ...)
 +{
-+	t->next = NULL;
-+	t->state = 0;
-+	atomic_set(&t->count, 0);
-+	t->func = func;
-+	t->data = data;
-+}
++	va_list args;
++	static char buf[256];
++	int value;
 +
-+void tasklet_kill(struct tasklet_struct *t)
-+{
-+	/* theoretically, called from user context */
-+	while (test_and_set_bit(TASKLET_STATE_SCHED, &t->state)) {
-+		do
-+			lib_task_yield();
-+		while (test_bit(TASKLET_STATE_SCHED, &t->state));
-+	}
-+	clear_bit(TASKLET_STATE_SCHED, &t->state);
-+}
-+struct tasklet_struct *g_sched_events = NULL;
-+static void run_tasklet_softirq(struct softirq_action *h)
-+{
-+	/* while (!list_empty (&g_sched_events)) */
-+	/*   { */
-+	struct tasklet_struct *tasklet = g_sched_events;
-+
-+	if (atomic_read(&tasklet->count) == 0) {
-+		/* this tasklet is enabled so, we run it. */
-+		test_and_clear_bit(TASKLET_STATE_SCHED, &tasklet->state);
-+		tasklet->func(tasklet->data);
-+	}
-+	/* } */
-+}
-+static void ensure_softirq_opened(void)
-+{
-+	static bool opened = false;
-+
-+	if (opened)
-+		return;
-+	opened = true;
-+	open_softirq(TASKLET_SOFTIRQ, run_tasklet_softirq);
-+}
-+static void trampoline(void *context)
-+{
-+	ensure_softirq_opened();
-+	struct tasklet_struct *tasklet = context;
-+	/* allow the tasklet to re-schedule itself */
-+	lib_assert(tasklet->next != 0);
-+	tasklet->next = 0;
-+	g_sched_events = tasklet;
-+	raise_softirq(TASKLET_SOFTIRQ);
-+}
-+void __tasklet_schedule(struct tasklet_struct *t)
-+{
-+	void *event;
-+
-+	/* Note: no need to set TASKLET_STATE_SCHED because
-+	   it is set by caller. */
-+	lib_assert(t->next == 0);
-+	/* run the tasklet at the next immediately available opportunity. */
-+	event = lib_event_schedule_ns(0, &trampoline, t);
-+	t->next = event;
-+}
-diff --git a/arch/lib/workqueue.c b/arch/lib/workqueue.c
-new file mode 100644
-index 0000000..bd0e9c5
---- /dev/null
-+++ b/arch/lib/workqueue.c
-@@ -0,0 +1,242 @@
-+/*
-+ * glue code for library version of Linux kernel
-+ * Copyright (c) 2015 INRIA, Hajime Tazaki
-+ *
-+ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
-+ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-+ */
-+
-+#include <linux/workqueue.h>
-+#include <linux/slab.h>
-+#include "sim.h"
-+#include "sim-assert.h"
-+
-+/* copy from kernel/workqueue.c */
-+typedef unsigned long mayday_mask_t;
-+struct workqueue_struct {
-+	unsigned int flags;                     /* W: WQ_* flags */
-+	union {
-+		struct cpu_workqueue_struct __percpu *pcpu;
-+		struct cpu_workqueue_struct *single;
-+		unsigned long v;
-+	} cpu_wq;                               /* I: cwq's */
-+	struct list_head list;                  /* W: list of all workqueues */
-+
-+	struct mutex flush_mutex;               /* protects wq flushing */
-+	int work_color;                         /* F: current work color */
-+	int flush_color;                        /* F: current flush color */
-+	atomic_t nr_cwqs_to_flush;              /* flush in progress */
-+	struct wq_flusher *first_flusher;       /* F: first flusher */
-+	struct list_head flusher_queue;         /* F: flush waiters */
-+	struct list_head flusher_overflow;      /* F: flush overflow list */
-+
-+	mayday_mask_t mayday_mask;              /* cpus requesting rescue */
-+	struct worker *rescuer;                 /* I: rescue worker */
-+
-+	int nr_drainers;                        /* W: drain in progress */
-+	int saved_max_active;                   /* W: saved cwq max_active */
-+#ifdef CONFIG_LOCKDEP
-+	struct lockdep_map lockdep_map;
-+#endif
-+	char name[];                            /* I: workqueue name */
-+};
-+
-+struct wq_barrier {
-+	struct SimTask *waiter;
-+	struct workqueue_struct wq;
-+};
-+
-+static void
-+workqueue_function(void *context)
-+{
-+	struct workqueue_struct *wq = context;
-+
-+	while (true) {
-+		lib_task_wait();
-+		while (!list_empty(&wq->list)) {
-+			struct work_struct *work =
-+				list_first_entry(&wq->list, struct work_struct,
-+						entry);
-+			work_func_t f = work->func;
-+
-+			if (work->entry.prev != LIST_POISON2) {
-+				list_del_init(&work->entry);
-+				clear_bit(WORK_STRUCT_PENDING_BIT,
-+					  work_data_bits(work));
-+				f(work);
-+			}
-+		}
-+	}
-+}
-+
-+static struct SimTask *workqueue_task(struct workqueue_struct *wq)
-+{
-+	struct wq_barrier *barr = container_of(wq, struct wq_barrier, wq);
-+
-+	if (barr->waiter == 0)
-+		barr->waiter = lib_task_start(&workqueue_function, wq);
-+	return barr->waiter;
-+}
-+
-+static int flush_entry(struct workqueue_struct *wq, struct list_head *prev)
-+{
-+	int active = 0;
-+
-+	if (!list_empty(&wq->list)) {
-+		active = 1;
-+		lib_task_wakeup(workqueue_task(wq));
-+		/* XXX: should wait for completion? but this will block
-+		   and init won't return.. */
-+		/* lib_task_wait (); */
-+	}
-+
-+	return active;
-+}
-+
-+void delayed_work_timer_fn(unsigned long data)
-+{
-+	struct delayed_work *dwork = (struct delayed_work *)data;
-+	struct work_struct *work = &dwork->work;
-+
-+	list_add_tail(&work->entry, &dwork->wq->list);
-+	lib_task_wakeup(workqueue_task(dwork->wq));
-+}
-+
-+bool queue_work_on(int cpu, struct workqueue_struct *wq,
-+		   struct work_struct *work)
-+{
-+	int ret = 0;
-+
-+	if (!test_and_set_bit(WORK_STRUCT_PENDING_BIT, work_data_bits(work))) {
-+		list_add_tail(&work->entry, &wq->list);
-+		lib_task_wakeup(workqueue_task(wq));
-+		ret = 1;
-+	}
-+	return ret;
-+}
-+
-+void flush_scheduled_work(void)
-+{
-+	flush_entry(system_wq, system_wq->list.prev);
-+}
-+bool flush_work(struct work_struct *work)
-+{
-+	return flush_entry(system_wq, &work->entry);
-+}
-+void flush_workqueue(struct workqueue_struct *wq)
-+{
-+	flush_entry(wq, wq->list.prev);
-+}
-+bool cancel_work_sync(struct work_struct *work)
-+{
-+	int retval = 0;
-+
-+	if (!test_and_set_bit(WORK_STRUCT_PENDING_BIT, work_data_bits(work)))
-+		/* work was not yet queued */
-+		return 0;
-+	if (!list_empty(&work->entry)) {
-+		/* work was queued. now unqueued. */
-+		if (work->entry.prev != LIST_POISON2) {
-+			list_del_init(&work->entry);
-+			clear_bit(WORK_STRUCT_PENDING_BIT,
-+				  work_data_bits(work));
-+			retval = 1;
-+		}
-+	}
-+	return retval;
-+}
-+bool queue_delayed_work_on(int cpu, struct workqueue_struct *wq,
-+			   struct delayed_work *dwork, unsigned long delay)
-+{
-+	int ret = 0;
-+	struct timer_list *timer = &dwork->timer;
-+	struct work_struct *work = &dwork->work;
-+
-+	if (delay == 0)
-+		return queue_work(wq, work);
-+
-+	if (!test_and_set_bit(WORK_STRUCT_PENDING_BIT, work_data_bits(work))) {
-+		lib_assert(!timer_pending(timer));
-+		dwork->wq = wq;
-+		/* This stores cwq for the moment, for the timer_fn */
-+		timer->expires = jiffies + delay;
-+		timer->data = (unsigned long)dwork;
-+		timer->function = delayed_work_timer_fn;
-+		add_timer(timer);
-+		ret = 1;
-+	}
-+	return ret;
-+}
-+bool mod_delayed_work_on(int cpu, struct workqueue_struct *wq,
-+			 struct delayed_work *dwork, unsigned long delay)
-+{
-+	del_timer(&dwork->timer);
-+	__clear_bit(WORK_STRUCT_PENDING_BIT, work_data_bits(&dwork->work));
-+	return queue_delayed_work(wq, dwork, delay);
-+}
-+bool cancel_delayed_work(struct delayed_work *dwork)
-+{
-+	del_timer(&dwork->timer);
-+	return cancel_work_sync(&dwork->work);
-+}
-+
-+struct workqueue_struct *__alloc_workqueue_key(const char *fmt,
-+					       unsigned int flags,
-+					       int max_active,
-+					       struct lock_class_key *key,
-+					       const char *lock_name, ...)
-+{
-+	va_list args, args1;
-+	struct wq_barrier *barr;
-+	struct workqueue_struct *wq;
-+	size_t namelen;
-+
-+	/* determine namelen, allocate wq and format name */
-+	va_start(args, lock_name);
-+	va_copy(args1, args);
-+	namelen = vsnprintf(NULL, 0, fmt, args) + 1;
-+
-+	barr = kzalloc(sizeof(*barr) + namelen, GFP_KERNEL);
-+	if (!barr)
-+		goto err;
-+	barr->waiter = 0;
-+	wq = &barr->wq;
-+
-+	vsnprintf(wq->name, namelen, fmt, args1);
++	va_start(args, fmt);
++	value = vsnprintf(buf, 256, printk_skip_level(fmt), args);
++	lib_printf("<%c>%s", printk_get_level(fmt), buf);
 +	va_end(args);
-+	va_end(args1);
++	return value;
++}
++void panic(const char *fmt, ...)
++{
++	va_list args;
 +
-+	max_active = max_active ? : WQ_DFL_ACTIVE;
-+	/* init wq */
-+	wq->flags = flags;
-+	wq->saved_max_active = max_active;
-+	mutex_init(&wq->flush_mutex);
-+	atomic_set(&wq->nr_cwqs_to_flush, 0);
-+	INIT_LIST_HEAD(&wq->flusher_queue);
-+	INIT_LIST_HEAD(&wq->flusher_overflow);
-+
-+	lockdep_init_map(&wq->lockdep_map, lock_name, key, 0);
-+	INIT_LIST_HEAD(&wq->list);
-+
-+	/* start waiter task */
-+	workqueue_task(wq);
-+	return wq;
-+err:
-+	if (barr)
-+		kfree(barr);
-+	return NULL;
++	va_start(args, fmt);
++	lib_vprintf(fmt, args);
++	va_end(args);
++	lib_assert(false);
 +}
 +
-+struct workqueue_struct *system_wq __read_mostly;
-+struct workqueue_struct *system_power_efficient_wq __read_mostly;
-+/* from linux/workqueue.h */
-+#define system_nrt_wq                   __system_nrt_wq()
-+
-+static int __init init_workqueues(void)
++void warn_slowpath_fmt(const char *file, int line, const char *fmt, ...)
 +{
-+	system_wq = alloc_workqueue("events", 0, 0);
-+	system_power_efficient_wq = alloc_workqueue("events_power_efficient",
-+						    WQ_POWER_EFFICIENT, 0);
++	va_list args;
++
++	printk("%s:%d -- ", file, line);
++	va_start(args, fmt);
++	lib_vprintf(fmt, args);
++	va_end(args);
++}
++
++void warn_slowpath_null(const char *file, int line)
++{
++	printk("%s:%d -- ", file, line);
++}
++
+diff --git a/arch/lib/proc.c b/arch/lib/proc.c
+new file mode 100644
+index 0000000..5507730
+--- /dev/null
++++ b/arch/lib/proc.c
+@@ -0,0 +1,34 @@
++/*
++ * glue code for library version of Linux kernel
++ * Copyright (c) 2014 Hajime Tazaki
++ *
++ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
++ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
++ */
++
++#include <linux/fs.h>
++#include <linux/net.h>
++#include <linux/slab.h>
++#include <linux/proc_fs.h>
++#include <linux/string.h>
++#include <net/net_namespace.h>
++#include "sim-types.h"
++#include "sim-assert.h"
++#include "fs/proc/internal.h"           /* XXX */
++
++struct proc_dir_entry;
++static char proc_root_data[sizeof(struct proc_dir_entry) + 4];
++
++static struct proc_dir_entry *proc_root_sim  =
++	(struct proc_dir_entry *)proc_root_data;
++
++void lib_proc_net_initialize(void)
++{
++	proc_root_sim->parent = proc_root_sim;
++	strcpy(proc_root_sim->name, "net");
++	proc_root_sim->mode = S_IFDIR | S_IRUGO | S_IXUGO;
++	proc_root_sim->subdir = RB_ROOT;
++	init_net.proc_net = proc_root_sim;
++	init_net.proc_net_stat = proc_mkdir("stat", proc_root_sim);
++}
++
+diff --git a/arch/lib/random.c b/arch/lib/random.c
+new file mode 100644
+index 0000000..9fbb8bf
+--- /dev/null
++++ b/arch/lib/random.c
+@@ -0,0 +1,53 @@
++/*
++ * glue code for library version of Linux kernel
++ * Copyright (c) 2015 INRIA, Hajime Tazaki
++ *
++ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
++ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
++ */
++
++#include "sim.h"
++#include <linux/random.h>
++
++u32 random32(void)
++{
++	return lib_random();
++}
++
++void get_random_bytes(void *buf, int nbytes)
++{
++	char *p = (char *)buf;
++	int i;
++
++	for (i = 0; i < nbytes; i++)
++		p[i] = lib_random();
++}
++void srandom32(u32 entropy)
++{
++}
++
++u32 prandom_u32(void)
++{
++	return lib_random();
++}
++void prandom_seed(u32 entropy)
++{
++}
++
++void prandom_bytes(void *buf, size_t bytes)
++{
++	return get_random_bytes(buf, bytes);
++}
++
++#include <linux/sysctl.h>
++
++static int nothing;
++struct ctl_table random_table[] = {
++	{
++		.procname       = "nothing",
++		.data           = &nothing,
++		.maxlen         = sizeof(int),
++		.mode           = 0444,
++		.proc_handler   = proc_dointvec,
++	}
++};
+diff --git a/arch/lib/sysfs.c b/arch/lib/sysfs.c
+new file mode 100644
+index 0000000..2def2ca
+--- /dev/null
++++ b/arch/lib/sysfs.c
+@@ -0,0 +1,83 @@
++/*
++ * glue code for library version of Linux kernel
++ * Copyright (c) 2015 INRIA, Hajime Tazaki
++ *
++ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
++ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
++ */
++
++#include <linux/sysfs.h>
++#include <linux/kobject.h>
++#include "sim.h"
++#include "sim-assert.h"
++
++int sysfs_create_bin_file(struct kobject *kobj,
++			  const struct bin_attribute *attr)
++{
 +	return 0;
 +}
-+early_initcall(init_workqueues);
++void sysfs_remove_bin_file(struct kobject *kobj,
++			   const struct bin_attribute *attr)
++{
++}
++int sysfs_create_dir(struct kobject *kobj)
++{
++	return 0;
++}
++int sysfs_create_link(struct kobject *kobj, struct kobject *target,
++		      const char *name)
++{
++	return 0;
++}
++int sysfs_move_dir(struct kobject *kobj,
++		   struct kobject *new_parent_kobj)
++{
++	return 0;
++}
++void sysfs_remove_dir(struct kobject *kobj)
++{
++}
++void sysfs_remove_group(struct kobject *kobj,
++			const struct attribute_group *grp)
++{
++}
++int sysfs_rename_dir(struct kobject *kobj, const char *new_name)
++{
++	return 0;
++}
++int __must_check sysfs_create_group(struct kobject *kobj,
++				    const struct attribute_group *grp)
++{
++	return 0;
++}
++int sysfs_create_groups(struct kobject *kobj,
++			const struct attribute_group **groups)
++{
++	return 0;
++}
++int sysfs_schedule_callback(struct kobject *kobj,
++			    void (*func)(
++				    void *), void *data, struct module *owner)
++{
++	return 0;
++}
++void sysfs_delete_link(struct kobject *dir, struct kobject *targ,
++		       const char *name)
++{
++}
++void sysfs_exit_ns(enum kobj_ns_type type, const void *tag)
++{
++}
++void sysfs_notify(struct kobject *kobj, const char *dir, const char *attr)
++{
++}
++int sysfs_create_dir_ns(struct kobject *kobj, const void *ns)
++{
++	kobj->sd = lib_malloc(sizeof(struct kernfs_node));
++	return 0;
++}
++int sysfs_create_file_ns(struct kobject *kobj, const struct attribute *attr,
++			 const void *ns)
++{
++	return 0;
++}
+diff --git a/arch/lib/vmscan.c b/arch/lib/vmscan.c
+new file mode 100644
+index 0000000..3132f66
+--- /dev/null
++++ b/arch/lib/vmscan.c
+@@ -0,0 +1,26 @@
++/*
++ * glue code for library version of Linux kernel
++ * Copyright (c) 2015 INRIA, Hajime Tazaki
++ *
++ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
++ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
++ */
++
++#include <linux/mm.h>
++#include <linux/shrinker.h>
++
++/*
++ * Add a shrinker callback to be called from the vm
++ */
++int register_shrinker(struct shrinker *shrinker)
++{
++	return 0;
++}
++
++/*
++ * Remove one
++ */
++void unregister_shrinker(struct shrinker *shrinker)
++{
++}
++
 -- 
 2.1.0
 
