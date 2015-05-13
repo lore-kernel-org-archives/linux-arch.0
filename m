@@ -1,88 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:56561 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965345AbbEMTig (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2015 15:38:36 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v8 14/16] ARM: dts: Introduce STM32F429 MCU
-Date: Wed, 13 May 2015 21:37:25 +0200
-Message-ID: <2672178.pv4FEQMD9D@wuerfel>
-In-Reply-To: <5553A608.9080402@linaro.org>
-References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com> <CALszF6CaO_yuNiSDuDV+4d2NRe_+32j=zcSE1HPhB1UH59cW9w@mail.gmail.com> <5553A608.9080402@linaro.org>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Received: from mail.linuxfoundation.org ([140.211.169.12]:56466 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932417AbbEMWF0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2015 18:05:26 -0400
+Date: Wed, 13 May 2015 15:05:23 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [RFC PATCH v6] Documentation/arch: Add
+ Documentation/arch-features.txt
+Message-ID: <20150513150523.ddd65d7cd51f820b78f0c8e3@linux-foundation.org>
+In-Reply-To: <20150513162757.GA21894@x>
+References: <20150512142250.dcb053da81855ae1b5861173@linux-foundation.org>
+	<20150512213843.GV21418@twins.programming.kicks-ass.net>
+	<20150512144910.0b49c9a7a13336773449db33@linux-foundation.org>
+	<20150513083441.GA17336@gmail.com>
+	<20150513085636.GA11030@gmail.com>
+	<20150513092421.GB11030@gmail.com>
+	<20150513094622.GC11030@gmail.com>
+	<20150513094756.GD11030@gmail.com>
+	<20150513131835.GJ1517@pd.tnic>
+	<20150513134842.GA1657@gmail.com>
+	<20150513162757.GA21894@x>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org
-Cc: Daniel Thompson <daniel.thompson@linaro.org>, Maxime Coquelin <mcoquelin.stm32@gmail.com>, Mark Rutland <mark.rutland@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Will Deacon <will.deacon@arm.com>, Stefan Agner <stefan@agner.ch>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Peter Meerwald <pmeerw@pmeerw.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Lee Jones <lee.jones@linaro.org>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Linux-Arch <linux-arch@vger.kernel.org>, Russell King <linux@arm.linux.org.uk>, Jonathan Corbet <corbet@lwn.net>, Jiri Slaby <jslaby@suse.cz>, Daniel Lezcano <daniel.lezcano@linaro.org>, Chanwoo Choi <cw00.choi@samsung.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Antti Palosaari <crope@iki.fi>, Geert Uytterhoeven <geert@linux-m68k.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Uwe =?ISO-8859-1?Q?Kleine=2DK=F6nig?= <u.kleine-koenig@pengutronix.de>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Pawel Moll <pawel.moll@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kamil Lulko <rev13@wp.pl>, Rusty Russell <rusty@rustcorp.com.au>, Tejun Heo <tj@kernel.org>, Rob Herring <robh+dt@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Nicolae Rosia <nicolae.rosia@gmail.com>, Michal Marek <mmarek@suse.cz>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "David S. Miller" <davem@davemloft.net>, Philipp Zabel <p.zabel@pengutronix.de>, Kumar Gala <galak@codeaurora.org>, Joe Perches <joe@perches.com>, Andrew Morton <akpm@linux-foundation.org>, Andreas =?ISO-8859-1?Q?F=E4rber?= <afaerber@suse.de>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>
-Message-ID: <20150513193725.yudvnT29ts0kBGzsTlYvZwSV58DQdMrdZDF3S4h5tc4@z>
+To: Josh Triplett <josh@joshtriplett.org>
+Cc: Ingo Molnar <mingo@kernel.org>, Borislav Petkov <bp@alien8.de>, Jonathan Corbet <corbet@lwn.net>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20150513220523.RN9mSmXNvqiRTGn5-pxQNZvYzHqkcSpp6IQE8WCckOM@z>
 
-On Wednesday 13 May 2015 20:29:12 Daniel Thompson wrote:
-> On 13/05/15 17:54, Maxime Coquelin wrote:
-> > 2015-05-13 18:37 GMT+02:00 Arnd Bergmann <arnd@arndb.de>:
-> >>
-> >> We should definitely try to use the same compatible string for all of
-> >> them, and make a binding that is easy to use.
-> >>
-> >> I haven't fully understood the requirements for the various parts that
-> >> are involved here. My understanding so far was that the driver could
-> >> use the index from the first cell and compute
-> >>
-> >>          void __iomem *reset_reg = rcc_base + 0x10 + 4 * index;
-> >>          void __iomem *clock_reg = rcc_base + 0x30 + 4 * index;
-> >
-> > This calculation is true, but we have to take into account there is a
-> > hole in the middle, between AHB3, and APB1 register:
-> 
-> ... and equally importantly, only allows us to use hardware mappings for 
-> the gated clocks.
-> 
-> > AHB1RSTR : offset = 0x10, index = 0
-> > AHB2RSTR : offset = 0x14, index = 1
-> > AHB3RSTR : offset = 0x18, index = 2
-> > <HOLE >     : offset = 0x1c, index = 3
-> > APB1RSTR : offset = 0x20, index = 4
-> > APB2RSTR : offset = 0x24, index = 5
-> >
-> > So we have to carefully document this hole in the bindings, maybe by
-> > listing indexes in the documentation?
-> 
-> The register set has PLL, mux and dividers in the registers at 0x00, 
-> 0x04 and 0x08.
-> 
-> Many of these clocks can be kept out of DT entirely because they are 
-> only there to feed other parts of the clock tree. However some of the 
-> dividers flow directly into cells that appear in device tree (such as 
-> the systick) and so we need to be able to reference them.
-> 
-> In other words the proposed mapping cannot allow us to express the 
-> dividers properly (because the index would have to be negative):
->    void __iomem *clock_reg = rcc_base + 0x30 + 4 * index;
-> 
-> Thus I'd favour using different indexes for reset and clock bindings, 
-> both using the naive mapping function:
->    void __iomem *reg =  rcc_base + 4 * index
-> 
-> I think that its so much easier to check against the datasheet like 
-> that. Admittedly is we follow the block-of-4-bytes idiom we have to 
-> divide a hex number by four but thats not so hard and we end up with:
-> 
-> 		resets = <&rcc  8 0>;
-> 		clocks = <&rcc 16 0>;
-> 
-> At the end of the day if we say we want to follow the datasheet, lets be 
-> do it in the most direct way properly.
-> 
-> 
-> PS
-> I've written a custom lookup function to to get from the DT index to an 
-> offset into the struct clk *array I'm using. That means I don't care 
-> much about any big holes in the register space.
+On Wed, 13 May 2015 09:27:57 -0700 Josh Triplett <josh@joshtriplett.org> wrote:
 
-How about using the first cell to indicate the type (pll, mux, div, gate)
-and the second cell for the number (between 0 and 256)? That way, the
-gates numbers would match the reset numbers, and your internal mapping
-function would look a bit nicer.
+> If we can't generate this, then the ASCII-art style and right-aligned
+> feature names seems *really* likely to produce spurious conflicts,
+> especially when adding a feature to the list.  Even though it would
+> produce a much longer file, would you consider dropping the tables and
+> just having a section per feature?
 
-	Arnd
+me2.  The patch conflicts are going to be pretty bad.
+
+I'd also prefer a format which allows us to add useful notes - it's a
+bit hostile to say "thou shalt implement X" without providing any info
+about how to do so.  Where do we tell maintainers that there's a handy
+test app in tools/testing/selftests which they should use?
+
+This way, I can bug patch submitters with "hey, you forgot to update
+Documentation/arch-features.txt" and they will add useful info while
+it's all still hot in their minds.
+
+
+
+And there's a ton of stuff which can go in here, much of it not
+immediately apparent.
+
+Just grepping 9 months worth of the stuff I've handled, I'm seeing
+things like
+
+HAVE_ARCH_KASAN
+__HAVE_ARCH_PMDP_SPLITTING_FLUSH
+__HAVE_ARCH_PTE_SPECIAL
+__HAVE_ARCH_GATE_AREA
+ARCH_HAVE_ELF_ASLR
+ARCH_HAS_GCOV_PROFILE_ALL
+CONFIG_ARCH_USE_BUILTIN_BSWAP
+HAVE_ARCH_HUGE_VMAP
+ARCH_HAS_SG_CHAIN
+__HAVE_ARCH_STRNCASECMP
+ARCH_HAS_ELF_RANDOMIZE
+CONFIG_HAVE_ARCH_EARLY_PFN_TO_NID
+ARCH_SUPPORTS_DEFERRED_STRUCT_PAGE_INIT
+CONFIG_ARCH_USES_PG_UNCACHED
+CONFIG_ARCH_HAS_WALK_MEMORY
+
+and things which don't contain ARCH
+
+HAVE_GENERIC_RCU_GUP
+HAVE_RCU_TABLE_FREE
+HAVE_GENERIC_RCU_GUP
+CONFIG_HAVE_CLK
+CONFIG_HAVE_IOREMAP_PROT
+CONFIG_HAVE_MEMBLOCK_NODE_MAP
+
+And then there's the increasingly common
+
+arch/include/asm/foo.h:
+
+	static inline void wibble(...)
+	{
+		...
+	}
+	#define wibble wibble
+
+include/linux/foo.h:
+
+	#ifndef wibble
+	static inline void wibble(...)
+	{
+		...
+	}
+	#define wibble
+	#endif
+
+which is going to be hard to grep for....
+
+
+ugh, this thing's going to be enormous.  People will go insane reading
+it, so each section should have a sentence describing what the feature
+does so maintainers can make quick decisions about whether they should
+bother.
