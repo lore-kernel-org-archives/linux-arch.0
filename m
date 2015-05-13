@@ -1,44 +1,139 @@
-From: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Subject: Re: [PATCH v1 11/15] arm/futex: UP futex_atomic_op_inuser() relies
- on disabled preemption
-Date: Wed, 13 May 2015 10:55:56 +0200
-Message-ID: <20150513105556.2607d99c@thinkpad-w530>
-References: <1431359540-32227-1-git-send-email-dahi@linux.vnet.ibm.com>
-	<1431359540-32227-12-git-send-email-dahi@linux.vnet.ibm.com>
-	<20150512190014.GD25464@linutronix.de>
-	<20150513093812.65fdac96@thinkpad-w530>
-	<20150513081956.GB21106@linutronix.de>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: [RFC PATCH v2] Documentation/arch: Add Documentation/arch-TODO
+Date: Wed, 13 May 2015 10:56:36 +0200
+Message-ID: <20150513085636.GA11030@gmail.com>
+References: <20150511192918.GA11361@jtriplet-mobl1>
+ <20150512142250.dcb053da81855ae1b5861173@linux-foundation.org>
+ <20150512213843.GV21418@twins.programming.kicks-ass.net>
+ <20150512144910.0b49c9a7a13336773449db33@linux-foundation.org>
+ <20150513083441.GA17336@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20150513081956.GB21106@linutronix.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Sebastian Andrzej Siewior <bigeasy@linutronix.de>
-Cc: linux-kernel@vger.kernel.org, mingo@redhat.com, yang.shi@windriver.com, benh@kernel.crashing.org, paulus@samba.org, akpm@linux-foundation.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, tglx@linutronix.de, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org, peterz@infradead.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wi0-f178.google.com ([209.85.212.178]:33905 "EHLO
+	mail-wi0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754358AbbEMI4n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 May 2015 04:56:43 -0400
+Content-Disposition: inline
+In-Reply-To: <20150513083441.GA17336@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>, Jonathan Corbet <corbet@lwn.net>
+Cc: Peter Zijlstra <peterz@infradead.org>, Josh Triplett <josh@joshtriplett.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Borislav Petkov <bp@alien8.de>
 
-> * David Hildenbrand | 2015-05-13 09:38:12 [+0200]:
-> 
-> >Thanks, I'll include it in the next version.
-> >
-> >So I assume the cleanest thing to do would be:
-> >
-> >#if __LINUX_ARM_ARCH__ < 6
-> >	preempt_disable();
-> >#endif
-> 
-> Correct. But also for futex_atomic_cmpxchg_inatomic() which also behind
-> CONFIG_SMP curtain. That is why I suggested a new patch :)
-> 
-> >David
-> 
-> Sebastian
 
-Ah, okay I think now I got it :)
+Added a second table with more features listed.
 
-So both patches are fine for now, but we should replace CONFIG_SMP
-by __LINUX_ARM_ARCH__ >=6 in both file, not only in the code I touch (to make
-it map arch/arm/include/asm/cmpxchg.h style).
+Thanks,
 
-David
+	Ingo
+
+=======================>
+From 32acc8a058a166d177346cfe59b6bc930f9e6471 Mon Sep 17 00:00:00 2001
+From: Ingo Molnar <mingo@kernel.org>
+Date: Wed, 13 May 2015 10:30:11 +0200
+Subject: [PATCH] Documentation/arch: Add Documentation/arch-TODO
+
+Add a TODO list for missing/incomplete architecture support
+for generic kernel features.
+
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+---
+ Documentation/arch-TODO | 89 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 89 insertions(+)
+
+diff --git a/Documentation/arch-TODO b/Documentation/arch-TODO
+new file mode 100644
+index 000000000000..adf05e4c353f
+--- /dev/null
++++ b/Documentation/arch-TODO
+@@ -0,0 +1,89 @@
++
++For generic kernel features that need architecture support, this is
++the feature support matrix, for all upstream Linux architectures:
++
++           ELF-ASLR:---------------------------------------------------------.
++        clockevents:--------------------------------------------------.      |
++ modern-timekeeping:-------------------------------------------.      |      |
++               kgdb:------------------------------------.      |      |      |
++   context-tracking:-----------------------------.      |      |      |      |
++     seccomp-filter:----------------------.      |      |      |      |      |
++        jump-labels:---------------.      |      |      |      |      |      |
++     stackprotector:--------.      |      |      |      |      |      |      |
++            lockdep:-.      |      |      |      |      |      |      |      |
++                     |      |      |      |      |      |      |      |      |
++----------------------------------------------------------------------------------
++  alpha           | TODO | TODO | TODO | TODO | TODO | TODO |  ok  |  ok  | TODO |
++  arc             |  ok  | TODO | TODO | TODO | TODO |  ok  |  ok  |  ok  | TODO |
++  arm             |  ok  |  ok  |  ok  |  ok  |  ok  |  ok  | TODO |  ok  |  ok  |
++  arm64           |  ok  |  ok  |  ok  |  ok  |  ok  |  ok  |  ok  |  ok  |  ok  |
++  avr32           |  ok  | TODO | TODO | TODO | TODO | TODO |  ok  |  ok  | TODO |
++  blackfin        |  ok  | TODO | TODO | TODO | TODO |  ok  | TODO |  ok  | TODO |
++  c6x             | TODO | TODO | TODO | TODO | TODO | TODO |  ok  |  ok  | TODO |
++  cris            | TODO | TODO | TODO | TODO | TODO | TODO | TODO |  ok  | TODO |
++  frv             | TODO | TODO | TODO | TODO | TODO | TODO |  ok  | TODO | TODO |
++  hexagon         |  ok  | TODO | TODO | TODO | TODO |  ok  |  ok  |  ok  | TODO |
++  ia64            | TODO | TODO | TODO | TODO | TODO | TODO |  ok  | TODO | TODO |
++  m32r            | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
++  m68k            | TODO | TODO | TODO | TODO | TODO | TODO | TODO |  ok  | TODO |
++  metag           |  ok  | TODO | TODO | TODO | TODO | TODO |  ok  |  ok  | TODO |
++  microblaze      |  ok  | TODO | TODO | TODO | TODO |  ok  |  ok  |  ok  | TODO |
++  mips            |  ok  |  ok  |  ok  |  ok  |  ok  |  ok  |  ok  |  ok  |  ok  |
++  mn10300         | TODO | TODO | TODO | TODO | TODO |  ok  |  ok  |  ok  | TODO |
++  nios2           | TODO | TODO | TODO | TODO | TODO |  ok  |  ok  |  ok  | TODO |
++  openrisc        | TODO | TODO | TODO | TODO | TODO | TODO |  ok  |  ok  | TODO |
++  parisc          | TODO | TODO | TODO | TODO | TODO | TODO |  ok  | TODO | TODO |
++  powerpc         |  ok  | TODO |  ok  | TODO | TODO |  ok  |  ok  |  ok  |  ok  |
++  s390            |  ok  | TODO |  ok  |  ok  | TODO | TODO |  ok  |  ok  |  ok  |
++  score           |  ok  | TODO | TODO | TODO | TODO | TODO |  ok  |  ok  | TODO |
++  sh              |  ok  |  ok  | TODO | TODO | TODO |  ok  |  ok  |  ok  | TODO |
++  sparc           |  ok  | TODO |  ok  | TODO |  ok  |  ok  |  ok  |  ok  | TODO |
++  tile            |  ok  | TODO | TODO | TODO |  ok  |  ok  |  ok  |  ok  | TODO |
++  um              |  ok  | TODO | TODO | TODO | TODO | TODO |  ok  |  ok  | TODO |
++  unicore32       |  ok  | TODO | TODO | TODO | TODO | TODO |  ok  |  ok  | TODO |
++  x86             |  ok  |  ok  |  ok  |  ok  |  ok  |  ok  |  ok  |  ok  |  ok  |
++  xtensa          |  ok  | TODO | TODO | TODO | TODO | TODO |  ok  |  ok  | TODO |
++----------------------------------------------------------------------------------
++
++          tracehook:---------------------------------------------------------.
++     ioremap_prot():--------------------------------------------------.      |
++  user-ret-profiler:-------------------------------------------.      |      |
++         kretprobes:------------------------------------.      |      |      |
++            uprobes:-----------------------------.      |      |      |      |
++  kprobes-on-ftrace:----------------------.      |      |      |      |      |
++          optprobes:---------------.      |      |      |      |      |      |
++            kprobes:--------.      |      |      |      |      |      |      |
++arch-tick-broadcast:-.      |      |      |      |      |      |      |      |
++                     |      |      |      |      |      |      |      |      |
++----------------------------------------------------------------------------------
++  alpha           | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
++  arc             | TODO |  ok  | TODO | TODO | TODO |  ok  | TODO |  ok  |  ok  |
++  arm             |  ok  |  ok  |  ok  | TODO |  ok  |  ok  | TODO | TODO |  ok  |
++  arm64           |  ok  | TODO | TODO | TODO | TODO | TODO | TODO | TODO |  ok  |
++  avr32           | TODO |  ok  | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
++  blackfin        | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |  ok  |
++  c6x             | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |  ok  |
++  cris            | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
++  frv             | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |  ok  |
++  hexagon         | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |  ok  |
++  ia64            | TODO |  ok  | TODO | TODO | TODO |  ok  | TODO | TODO |  ok  |
++  m32r            | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
++  m68k            | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
++  metag           | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |  ok  |
++  microblaze      | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
++  mips            |  ok  |  ok  | TODO | TODO | TODO |  ok  | TODO | TODO |  ok  |
++  mn10300         | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |  ok  |
++  nios2           | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |  ok  |
++  openrisc        | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |  ok  |
++  parisc          | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
++  powerpc         |  ok  |  ok  | TODO | TODO |  ok  |  ok  | TODO |  ok  |  ok  |
++  s390            | TODO |  ok  | TODO | TODO |  ok  |  ok  | TODO | TODO |  ok  |
++  score           | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
++  sh              | TODO |  ok  | TODO | TODO | TODO |  ok  | TODO |  ok  |  ok  |
++  sparc           | TODO |  ok  | TODO | TODO | TODO |  ok  | TODO | TODO |  ok  |
++  tile            | TODO |  ok  |  ok  | TODO | TODO |  ok  |  ok  |  ok  |  ok  |
++  um              | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
++  unicore32       | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
++  x86             | TODO |  ok  |  ok  |  ok  |  ok  |  ok  |  ok  |  ok  |  ok  |
++  xtensa          | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
++----------------------------------------------------------------------------------
