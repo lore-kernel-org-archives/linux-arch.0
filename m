@@ -1,81 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:40428 "EHLO
+Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:40430 "EHLO
 	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932688AbbENMtK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 May 2015 08:49:10 -0400
+	with ESMTP id S932535AbbENMtO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 May 2015 08:49:14 -0400
 From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: [PATCH 2/4] ARC: [axs101] support early 8250 uart
-Date: Thu, 14 May 2015 15:48:42 +0300
-Message-ID: <1431607724-9142-3-git-send-email-abrodkin@synopsys.com>
+Subject: [PATCH 3/4] ARC: [axs101] Tweak DDR port aperture mappings for performance
+Date: Thu, 14 May 2015 15:48:43 +0300
+Message-ID: <1431607724-9142-4-git-send-email-abrodkin@synopsys.com>
 In-Reply-To: <1431607724-9142-1-git-send-email-abrodkin@synopsys.com>
 References: <1431607724-9142-1-git-send-email-abrodkin@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, arc-linux-dev@synopsys.com, devicetree@vger.kernel.org, Vineet.Gupta1@synopsys.com
-Message-ID: <20150514124842.x-n205wj2uPdCOAnSBU_OIUkcZh7-wEZwkmsYsUjGJ0@z>
+Message-ID: <20150514124843.CJdmv80asYNgv7mTG_UMIR4wA00trXi2nxPlxKjh5MU@z>
 
 From: Vineet Gupta <vgupta@synopsys.com>
 
-Earlycon calculates UART clock as "BASE_BAUD * 16". In case of ARC
-"BASE_BAUD" is calculated dynamically in runtime, basically it is an
-alias to arc_early_base_baud(), which in turn just does
-"arc_base_baud/16".
+Route all MB originated traffic to DDR Port 1 and keep Port 0 for CPU
+traffic only
 
-8250 UART on AXS/SDP board uses 33.3MHz clock source which is set in
-"arc_base_baud" with this change.
+Basic system parameters
+--------------------------------------------------------------------------------------
+        Host                 OS Description 				Mhz  tlb   cache  mem   scal
+                                                			    pages  line   par   load
+                                                      				   bytes
+----------------- ------------- --------------------------------------- ---- ----- ----- ------ ----
+axs101-sd-2-new-f Linux 3.13.0+ axs101-sd-2-new-fw-old-img-rerun    	739  	8    32 1.1100    1
+axs101-sd-3-arc-3 Linux 3.13.9+ axs101-sd-3-arc-3.13-tip-regression 	735  	8    32 1.1000    1
+axs101-sd-9-diffe Linux 3.13.11 axs101-sd-9-different-tweak         	740  	8    32 1.0000    1
 
-Additional compatibility string "snps,arc-sdp" is introduced as well
-because there're different flavours of AXS boards but they all share the
-same motherboard and so it's possible to re-use the same code for
-motherbord even if CPU daughterboard changes.
+Processor, Processes - times in microseconds - smaller is better
+------------------------------------------------------------------------------
+Host                 OS  Mhz null null      open slct sig  sig  fork exec sh
+                             call  I/O stat clos TCP  inst hndl proc proc proc
+--------- ------------- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----
+axs101-sd Linux 3.13.0+  739 0.50 0.88 5.38 14.6 34.1 0.92 5.18 2135 6555 12.K
+axs101-sd Linux 3.13.9+  735 0.50 0.90 5.89 19.2 81.4 0.94 4.08 2560 8559 15.K
+axs101-sd Linux 3.13.11  740 0.50 0.88 4.45 17.8 34.4 0.94 3.25 2052 6493 12.K
+                                                 ^^^^                     ^^^^
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- Documentation/devicetree/bindings/arc/axs10x.txt | 2 +-
- arch/arc/boot/dts/axs101.dts                     | 4 ++--
- arch/arc/kernel/devtree.c                        | 2 ++
- 3 files changed, 5 insertions(+), 3 deletions(-)
+ arch/arc/plat-axs10x/axs10x.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/Documentation/devicetree/bindings/arc/axs10x.txt b/Documentation/devicetree/bindings/arc/axs10x.txt
-index dcbb834..9021ab7 100644
---- a/Documentation/devicetree/bindings/arc/axs10x.txt
-+++ b/Documentation/devicetree/bindings/arc/axs10x.txt
-@@ -4,4 +4,4 @@ Synopsys DesignWare ARC Software Development Platforms Device Tree Bindings
- SDP boards with Synopsys ARC700 core shall have the following properties.
- 
- Required root node properties:
--    - compatible = "snps,axs101";
-+    - compatible = "snps,axs101", "snps,arc-sdp";
-diff --git a/arch/arc/boot/dts/axs101.dts b/arch/arc/boot/dts/axs101.dts
-index 6c3391d..3f9b058 100644
---- a/arch/arc/boot/dts/axs101.dts
-+++ b/arch/arc/boot/dts/axs101.dts
-@@ -13,9 +13,9 @@
- /include/ "axs10x_mb.dtsi"
- 
- / {
--	compatible = "snps,axs101";
-+	compatible = "snps,axs101", "snps,arc-sdp";
- 
- 	chosen {
--		bootargs = "console=tty0 console=ttyS3,115200n8 consoleblank=0";
-+		bootargs = "earlycon=uart8250,mmio32,0xe0022000,115200n8 console=tty0 console=ttyS3,115200n8 consoleblank=0";
- 	};
- };
-diff --git a/arch/arc/kernel/devtree.c b/arch/arc/kernel/devtree.c
-index e32b54a..f801d46 100644
---- a/arch/arc/kernel/devtree.c
-+++ b/arch/arc/kernel/devtree.c
-@@ -32,6 +32,8 @@ static void __init arc_set_early_base_baud(unsigned long dt_root)
- 
- 	if (of_flat_dt_is_compatible(dt_root, "abilis,arc-tb10x"))
- 		arc_base_baud = core_clk/3;
-+	else if (of_flat_dt_is_compatible(dt_root, "snps,arc-sdp"))
-+		arc_base_baud = 33333333;	/* Fixed 33MHz clk */
- 	else
- 		arc_base_baud = core_clk;
- }
+diff --git a/arch/arc/plat-axs10x/axs10x.c b/arch/arc/plat-axs10x/axs10x.c
+index 2e7686d..759a7a1 100644
+--- a/arch/arc/plat-axs10x/axs10x.c
++++ b/arch/arc/plat-axs10x/axs10x.c
+@@ -173,8 +173,8 @@ static const struct aperture axc001_memmap[16] = {
+ 	{AXC001_SLV_NONE,		0x0},
+ 	{AXC001_SLV_DDR_PORT0,		0x0}, /* 0x8000_0000: DDR   0..256M */
+ 	{AXC001_SLV_DDR_PORT0,		0x1}, /* 0x9000_0000: DDR 256..512M */
+-	{AXC001_SLV_DDR_PORT1,		0x0},
+-	{AXC001_SLV_DDR_PORT1,		0x1},
++	{AXC001_SLV_DDR_PORT0,		0x2},
++	{AXC001_SLV_DDR_PORT0,		0x3},
+ 	{AXC001_SLV_NONE,		0x0},
+ 	{AXC001_SLV_AXI_TUNNEL,		0xD},
+ 	{AXC001_SLV_AXI_TUNNEL,		0xE}, /* MB: CREG, CGU... */
+@@ -194,10 +194,10 @@ static const struct aperture axc001_axi_tunnel_memmap[16] = {
+ 	{AXC001_SLV_NONE,		0x0},
+ 	{AXC001_SLV_NONE,		0x0},
+ 	{AXC001_SLV_NONE,		0x0},
+-	{AXC001_SLV_DDR_PORT0,		0x0},
+-	{AXC001_SLV_DDR_PORT0,		0x1},
+ 	{AXC001_SLV_DDR_PORT1,		0x0},
+ 	{AXC001_SLV_DDR_PORT1,		0x1},
++	{AXC001_SLV_DDR_PORT1,		0x2},
++	{AXC001_SLV_DDR_PORT1,		0x3},
+ 	{AXC001_SLV_NONE,		0x0},
+ 	{AXC001_SLV_AXI_TUNNEL,		0xD},
+ 	{AXC001_SLV_AXI_TUNNEL,		0xE},
 -- 
 2.1.0
 
