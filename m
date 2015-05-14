@@ -1,61 +1,75 @@
 From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: [PATCH 4/4] ARC: [axs101] STAR 9000799830: Fix SD cards support
-Date: Thu, 14 May 2015 15:48:44 +0300
-Message-ID: <1431607724-9142-5-git-send-email-abrodkin@synopsys.com>
+Subject: [PATCH 2/4] ARC: [axs101] support early 8250 uart
+Date: Thu, 14 May 2015 15:48:42 +0300
+Message-ID: <1431607724-9142-3-git-send-email-abrodkin@synopsys.com>
 References: <1431607724-9142-1-git-send-email-abrodkin@synopsys.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1431607724-9142-1-git-send-email-abrodkin@synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, arc-linux-dev@synopsys.com, devicetree@vger.kernel.org, Vineet.Gupta1@synopsys.com, Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Cc: linux-kernel@vger.kernel.org, arc-linux-dev@synopsys.com, devicetree@vger.kernel.org, Vineet.Gupta1@synopsys.com
 List-Id: linux-arch.vger.kernel.org
 
-As DW Mobile Storage databook says it's required to use "Hold Register"
-if card is enumerated in SDR12 or SDR25 modes.
-It means we need to act in the same way as in Altera's Socfpga
-implementation - set "use hold reg" bit in commad.
+From: Vineet Gupta <vgupta@synopsys.com>
 
-Note that for upstream proper solution would be to remove
-dw_mci_pltfm_prepare_command() at all and set the bit right in
-dw_mci_prepare_command() for all platforms.
+Earlycon calculates UART clock as "BASE_BAUD * 16". In case of ARC
+"BASE_BAUD" is calculated dynamically in runtime, basically it is an
+alias to arc_early_base_baud(), which in turn just does
+"arc_base_baud/16".
 
-Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
+8250 UART on AXS/SDP board uses 33.3MHz clock source which is set in
+"arc_base_baud" with this change.
+
+Additional compatibility string "snps,arc-sdp" is introduced as well
+because there're different flavours of AXS boards but they all share the
+same motherboard and so it's possible to re-use the same code for
+motherbord even if CPU daughterboard changes.
+
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/boot/dts/axs10x_mb.dtsi | 20 +++++++++++++++++++-
- 1 file changed, 19 insertions(+), 1 deletion(-)
+ Documentation/devicetree/bindings/arc/axs10x.txt | 2 +-
+ arch/arc/boot/dts/axs101.dts                     | 4 ++--
+ arch/arc/kernel/devtree.c                        | 2 ++
+ 3 files changed, 5 insertions(+), 3 deletions(-)
 
-diff --git a/arch/arc/boot/dts/axs10x_mb.dtsi b/arch/arc/boot/dts/axs10x_mb.dtsi
-index 255c712..5d06f1f 100644
---- a/arch/arc/boot/dts/axs10x_mb.dtsi
-+++ b/arch/arc/boot/dts/axs10x_mb.dtsi
-@@ -77,8 +77,26 @@
- 			interrupts = < 8 >;
- 		};
+diff --git a/Documentation/devicetree/bindings/arc/axs10x.txt b/Documentation/devicetree/bindings/arc/axs10x.txt
+index dcbb834..9021ab7 100644
+--- a/Documentation/devicetree/bindings/arc/axs10x.txt
++++ b/Documentation/devicetree/bindings/arc/axs10x.txt
+@@ -4,4 +4,4 @@ Synopsys DesignWare ARC Software Development Platforms Device Tree Bindings
+ SDP boards with Synopsys ARC700 core shall have the following properties.
  
-+		/*
-+		 * According to DW Mobile Storage databook it is required
-+		 * to use  "Hold Register" if card is enumerated in SDR12 or
-+		 * SDR25 modes.
-+		 *
-+		 * Utilization of "Hold Register" is already implemented via
-+		 * dw_mci_pltfm_prepare_command() which in its turn gets
-+		 * used through dw_mci_drv_data->prepare_command call-back.
-+		 * This call-back is used in Altera Socfpga platform and so
-+		 * we may reuse it saying that we're compatible with their
-+		 * "altr,socfpga-dw-mshc".
-+		 *
-+		 * Most probably "Hold Register" utilization is platform-
-+		 * independent requirement which means that single unified
-+		 * "snps,dw-mshc" should be enough for all users of DW MMC once
-+		 * dw_mci_pltfm_prepare_command() is used in generic platform
-+		 * code.
-+		 */
- 		mmc@0x15000 {
--			compatible = "snps,dw-mshc";
-+			compatible = "altr,socfpga-dw-mshc";
- 			reg = < 0x15000 0x400 >;
- 			num-slots = < 1 >;
- 			fifo-depth = < 16 >;
+ Required root node properties:
+-    - compatible = "snps,axs101";
++    - compatible = "snps,axs101", "snps,arc-sdp";
+diff --git a/arch/arc/boot/dts/axs101.dts b/arch/arc/boot/dts/axs101.dts
+index 6c3391d..3f9b058 100644
+--- a/arch/arc/boot/dts/axs101.dts
++++ b/arch/arc/boot/dts/axs101.dts
+@@ -13,9 +13,9 @@
+ /include/ "axs10x_mb.dtsi"
+ 
+ / {
+-	compatible = "snps,axs101";
++	compatible = "snps,axs101", "snps,arc-sdp";
+ 
+ 	chosen {
+-		bootargs = "console=tty0 console=ttyS3,115200n8 consoleblank=0";
++		bootargs = "earlycon=uart8250,mmio32,0xe0022000,115200n8 console=tty0 console=ttyS3,115200n8 consoleblank=0";
+ 	};
+ };
+diff --git a/arch/arc/kernel/devtree.c b/arch/arc/kernel/devtree.c
+index e32b54a..f801d46 100644
+--- a/arch/arc/kernel/devtree.c
++++ b/arch/arc/kernel/devtree.c
+@@ -32,6 +32,8 @@ static void __init arc_set_early_base_baud(unsigned long dt_root)
+ 
+ 	if (of_flat_dt_is_compatible(dt_root, "abilis,arc-tb10x"))
+ 		arc_base_baud = core_clk/3;
++	else if (of_flat_dt_is_compatible(dt_root, "snps,arc-sdp"))
++		arc_base_baud = 33333333;	/* Fixed 33MHz clk */
+ 	else
+ 		arc_base_baud = core_clk;
+ }
 -- 
 2.1.0
