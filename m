@@ -1,55 +1,57 @@
-From: Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>
-Subject: Re: [PATCH v2] Documentation/arch: Add kernel feature descriptions
- and arch support status under Documentation/features/
-Date: Fri, 15 May 2015 08:57:28 +1000
-Message-ID: <1431644248.2981.1.camel@ellerman.id.au>
-References: <20150513083441.GA17336@gmail.com>
-	 <20150513085636.GA11030@gmail.com> <20150513092421.GB11030@gmail.com>
-	 <20150513094622.GC11030@gmail.com> <20150513094756.GD11030@gmail.com>
-	 <20150513131835.GJ1517@pd.tnic> <20150513134842.GA1657@gmail.com>
-	 <20150513162757.GA21894@x>
-	 <20150513150523.ddd65d7cd51f820b78f0c8e3@linux-foundation.org>
-	 <20150514101518.GA27550@gmail.com> <20150514103544.GA7027@gmail.com>
-	 <20150514123835.1bf436bc35d711f8dbf9bc0f@linux-foundation.org>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH 0/3] add new strscpy() API for string copy
+Date: Fri, 15 May 2015 09:10:18 +1000
+Message-ID: <1431645018.2981.3.camel@ellerman.id.au>
+References: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20150514123835.1bf436bc35d711f8dbf9bc0f-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
-Cc: Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Josh Triplett <josh-iaAMLnmF4UmaiuxdJuQwMA@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([103.22.144.67]:33314 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750896AbbENXKW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 14 May 2015 19:10:22 -0400
+In-Reply-To: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Metcalf <cmetcalf@ezchip.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Fabian Frederick <fabf@skynet.be>, Randy Dunlap <rdunlap@infradead.org>, Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>, gregkh@linuxfoundation.org, Peter Zijlstra <peterz@infradead.org>, "David S. Miller" <davem@davemloft.net>, Frederic Weisbecker <fweisbec@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Theodore Ts'o <tytso@mit.edu>, Grant Likely <grant.likely@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
-On Thu, 2015-05-14 at 12:38 -0700, Andrew Morton wrote:
-> > Add arch support matrices for more than 40 generic kernel features
-> > that need per architecture support.
-> > 
-> > Each feature has its own directory under Documentation/features/feature_name/,
-> > and the arch-support.txt file shows its current arch porting status.
+On Thu, 2015-04-30 at 12:01 -0400, Chris Metcalf wrote:
+> This patch series addresses limitations in strncpy() and strlcpy();
+> both the old APIs are unpleasant, as Linus nicely summarized here
+> a couple of days ago:
 > 
-> It would be nice to provide people with commit IDs to look at, but the
-> IDs won't be known at the time the documentation file is created.  We
-> could provide patch titles.
-
-+1 on patch titles.
-
-> But still, let's not overdo it - get something in there, see how well
-> it works, evolve it over time.
+>   https://lkml.org/lkml/2015/4/28/570
 > 
-> I don't think we've heard from any (non-x86) arch maintainers?  Do they
-> consider this useful at all?  Poke.
+> and of course as other folks (Greg K-H and Linus again) said last year:
+> 
+>   https://plus.google.com/+gregkroahhartman/posts/1amLbuhWbh5
+> 
+> The proposed new API (strscpy(), for "s"afe string copy) has an
+> easy-to-use API for detecting buffer overflow, avoids unsafe truncation
+> by default, and isn't subject to thread-safety attacks like the current
+> strlcpy implementation.  See patch 2/3 for more on why strscpy() is a
+> good thing.
 
-Yes it is. I have my own version I've cobbled together for powerpc, but this is
-much better.
++1 on the concept.
 
-I'd like to see more description in the individual files of what the feature
-is, and preferably some pointers to what's needed to implement it.
+> To make strscpy() work more efficiently I did the minimum tweaking
+> necessary to allow <asm/word-at-a-time.h> to work on all architectures,
+> though of course individual maintainers can still make their versions
+> more efficient as needed.
+> 
+> It's likely not necessary for per-architecture implementations of
+> strscpy() to be written, but I stuck with the standard __HAVE_ARCH_XXX
+> model just for consistency with the rest of <linux/string.h>.
+> 
+> I tested the implementation with a simple user-space harness, so I
+> believe it is correct for the corner cases I could think of.  In
+> particular I pairwise-tested all the unaligned values of source and
+> dest, and tested the restriction on src page-crossing at all
+> unaligned offsets approaching the page boundary.
 
-The kconfig for HAVE_ARCH_SECCOMP_FILTER is a good example of what I mean.
-
-I realise retrofitting that for all these existing features is quite time
-consuming, but for new features hopefully the bar can be raised a little in
-terms of that description.
+Can you please put that in tools/testing/selftests and merge it as part of the
+series? That way I can run the tests and be confident it works on powerpc.
 
 cheers
