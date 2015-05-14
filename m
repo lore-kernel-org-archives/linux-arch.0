@@ -1,2265 +1,923 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f182.google.com ([209.85.212.182]:35933 "EHLO
-	mail-wi0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932561AbbENKfu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 May 2015 06:35:50 -0400
-Date: Thu, 14 May 2015 12:35:44 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: [PATCH v2] Documentation/arch: Add kernel feature descriptions and
- arch support status under Documentation/features/
-Message-ID: <20150514103544.GA7027@gmail.com>
-References: <20150513083441.GA17336@gmail.com>
- <20150513085636.GA11030@gmail.com>
- <20150513092421.GB11030@gmail.com>
- <20150513094622.GC11030@gmail.com>
- <20150513094756.GD11030@gmail.com>
- <20150513131835.GJ1517@pd.tnic>
- <20150513134842.GA1657@gmail.com>
- <20150513162757.GA21894@x>
- <20150513150523.ddd65d7cd51f820b78f0c8e3@linux-foundation.org>
- <20150514101518.GA27550@gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20150514101518.GA27550@gmail.com>
+Received: from smtprelay4.synopsys.com ([198.182.47.9]:40427 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932535AbbENMtH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 May 2015 08:49:07 -0400
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: [PATCH 1/4] ARC: [axs101] Add support for AXS101 SDP (software development platform)
+Date: Thu, 14 May 2015 15:48:41 +0300
+Message-ID: <1431607724-9142-2-git-send-email-abrodkin@synopsys.com>
+In-Reply-To: <1431607724-9142-1-git-send-email-abrodkin@synopsys.com>
+References: <1431607724-9142-1-git-send-email-abrodkin@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Josh Triplett <josh@joshtriplett.org>, Borislav Petkov <bp@alien8.de>, Jonathan Corbet <corbet@lwn.net>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150514103544.LtOGnO4bjMQGnoBU171q_fmkWPV3Yaq9g4E3i8wGVGg@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, arc-linux-dev@synopsys.com, devicetree@vger.kernel.org, Vineet.Gupta1@synopsys.com, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Mischa Jonker <mjonker@synopsys.com>
+Message-ID: <20150514124841.4rap8l0kQWWSHsIThxjrbhYAqsW23QaOPg3xYUj87RU@z>
 
+The AXS10x platforms consist of a mainboard with peripherals,
+on which several daughter cards can be placed. The daughter cards
+typically contain a CPU and memory.
 
-* Ingo Molnar <mingo@kernel.org> wrote:
-
-> To list an architecture's unsupported features, just do something
-> like:
-> 
->   $ git grep -lE 'x86.*TODO' Documentation/features/*/arch-support.txt
-> 
->   Documentation/features/arch-tick-broadcast/arch-support.txt
->   Documentation/features/strncasecmp/arch-support.txt
-> 
-> which prints the list of features not yet supported by the 
-> architecture.
-
-Another way to visualize the feature support status of an 
-architecture, would be to use the simple script I've put into 
-Documentation/features/list-arch.sh:
-
-  triton:~/tip> Documentation/features/list-arch.sh
-  #
-  # Kernel feature support matrix of architecture 'x86':
-  #
-           arch-tick-broadcast:     |         x86: | TODO |
-                       BPF-JIT:     |         x86: |  ok  |
-                   clockevents:     |         x86: |  ok  |
-                 cmpxchg-local:     |         x86: |  ok  |
-              context-tracking:     |         x86: |  ok  |
-                 dma-api-debug:     |         x86: |  ok  |
-                dma-contiguous:     |         x86: |  ok  |
-                 dma_map_attrs:     |         x86: |  ok  |
-                      ELF-ASLR:     |         x86: |  ok  |
-              gcov-profile-all:     |         x86: |  ok  |
-           generic-idle-thread:     |         x86: |  ok  |
-                     huge-vmap:     |         x86: |  ok  |
-                  ioremap_prot:     |         x86: |  ok  |
-                 irq-time-acct:     |         x86: |  ok  |
-                   jump-labels:     |         x86: |  ok  |
-                         KASAN:     |         x86: |  ok  |
-                          kgdb:     |         x86: |  ok  |
-                       kprobes:     |         x86: |  ok  |
-                 kprobes-event:     |         x86: |  ok  |
-             kprobes-on-ftrace:     |         x86: |  ok  |
-                    kretprobes:     |         x86: |  ok  |
-                       lockdep:     |         x86: |  ok  |
-            modern-timekeeping:     |         x86: |  ok  |
-                numa-balancing:     |         x86: |  ok  |
-                 numa-memblock:     |         x86: |  ok  |
-                     optprobes:     |         x86: |  ok  |
-                     perf-regs:     |         x86: |  ok  |
-                perf-stackdump:     |         x86: |  ok  |
-                   PG_uncached:     |         x86: |  ok  |
-          pmdp_splitting_flush:     |         x86: |  ok  |
-                   pte_special:     |         x86: |  ok  |
-                queued-rwlocks:     |         x86: |  ok  |
-              queued-spinlocks:     |         x86: |  ok  |
-               rwsem-optimized:     |         x86: |  ok  |
-                seccomp-filter:     |         x86: |  ok  |
-                      sg-chain:     |         x86: |  ok  |
-                stackprotector:     |         x86: |  ok  |
-                   strncasecmp:     |         x86: | TODO |
-                           THP:     |         x86: |  ok  |
-                     tracehook:     |         x86: |  ok  |
-                       uprobes:     |         x86: |  ok  |
-             user-ret-profiler:     |         x86: |  ok  |
-                  virt-cpuacct:     |         x86: |  ok  |
-
-Updated patch attached.
-
-This way we can avoid the conflicts by generating the visualization on 
-the fly.
-
-Thanks,
-
-	Ingo
-
-===============================>
-From: Ingo Molnar <mingo@kernel.org>
-Date: Thu, 14 May 2015 12:04:00 +0200
-Subject: [PATCH] Documentation/arch: Add kernel feature descriptions and arch support status under Documentation/features/
-
-Add arch support matrices for more than 40 generic kernel features
-that need per architecture support.
-
-Each feature has its own directory under Documentation/features/feature_name/,
-and the arch-support.txt file shows its current arch porting status.
-
-For example, lockdep support is shown the following way:
-
-    triton:~/tip> cat Documentation/features/lockdep/arch-support.txt
-    #
-    # Feature name:          lockdep
-    #         Kconfig:       LOCKDEP_SUPPORT
-    #         description:   arch supports the runtime locking correctness debug facility
-    #
-        -----------------------
-        |         arch |status|
-        -----------------------
-        |       alpha: | TODO |
-        |         arc: |  ok  |
-        |         arm: |  ok  |
-        |       arm64: |  ok  |
-        |       avr32: |  ok  |
-        |    blackfin: |  ok  |
-        |         c6x: | TODO |
-        |        cris: | TODO |
-        |         frv: | TODO |
-        |     hexagon: |  ok  |
-        |        ia64: | TODO |
-        |        m32r: | TODO |
-        |        m68k: | TODO |
-        |       metag: |  ok  |
-        |  microblaze: |  ok  |
-        |        mips: |  ok  |
-        |     mn10300: | TODO |
-        |       nios2: | TODO |
-        |    openrisc: | TODO |
-        |      parisc: | TODO |
-        |     powerpc: |  ok  |
-        |        s390: |  ok  |
-        |       score: |  ok  |
-        |          sh: |  ok  |
-        |       sparc: |  ok  |
-        |        tile: |  ok  |
-        |          um: |  ok  |
-        |   unicore32: |  ok  |
-        |         x86: |  ok  |
-        |      xtensa: |  ok  |
-        -----------------------
-
-For generic kernel features that need architecture support, the
-arch-support.txt file in each feature directory shows the arch
-support matrix, for all upstream Linux architectures.
-
-The meaning of entries in the tables is:
-
-    | ok |  # feature supported by the architecture
-    |TODO|  # feature not yet supported by the architecture
-    | .. |  # feature cannot be supported by the hardware
-
-This directory structure can be used in the future to add other
-files - such as porting guides, testing description, etc.
-
-The Documentation/features/ hierarchy may also include generic
-kernel features that works on every architecture, in that case
-the arch-support.txt file will list every architecture as
-supported.
-
-To list an architecture's unsupported features, just do something
-like:
-
-  $ git grep -lE 'x86.*TODO' Documentation/features/*/arch-support.txt
-  Documentation/features/arch-tick-broadcast/arch-support.txt
-  Documentation/features/strncasecmp/arch-support.txt
-
-which will print the list of not yet supported features.
-
-The Documentation/features/list-arch.sh script will print the current
-support matrix of one architecture:
-
-  triton:~/tip> Documentation/features/list-arch.sh
-  #
-  # Kernel feature support matrix of architecture 'x86':
-  #
-           arch-tick-broadcast:     |         x86: | TODO |
-                       BPF-JIT:     |         x86: |  ok  |
-                   clockevents:     |         x86: |  ok  |
-                 cmpxchg-local:     |         x86: |  ok  |
-              context-tracking:     |         x86: |  ok  |
-                 dma-api-debug:     |         x86: |  ok  |
-                dma-contiguous:     |         x86: |  ok  |
-                 dma_map_attrs:     |         x86: |  ok  |
-                      ELF-ASLR:     |         x86: |  ok  |
-              gcov-profile-all:     |         x86: |  ok  |
-           generic-idle-thread:     |         x86: |  ok  |
-                     huge-vmap:     |         x86: |  ok  |
-                  ioremap_prot:     |         x86: |  ok  |
-                 irq-time-acct:     |         x86: |  ok  |
-                   jump-labels:     |         x86: |  ok  |
-                         KASAN:     |         x86: |  ok  |
-                          kgdb:     |         x86: |  ok  |
-                       kprobes:     |         x86: |  ok  |
-                 kprobes-event:     |         x86: |  ok  |
-             kprobes-on-ftrace:     |         x86: |  ok  |
-                    kretprobes:     |         x86: |  ok  |
-                       lockdep:     |         x86: |  ok  |
-            modern-timekeeping:     |         x86: |  ok  |
-                numa-balancing:     |         x86: |  ok  |
-                 numa-memblock:     |         x86: |  ok  |
-                     optprobes:     |         x86: |  ok  |
-                     perf-regs:     |         x86: |  ok  |
-                perf-stackdump:     |         x86: |  ok  |
-                   PG_uncached:     |         x86: |  ok  |
-          pmdp_splitting_flush:     |         x86: |  ok  |
-                   pte_special:     |         x86: |  ok  |
-                queued-rwlocks:     |         x86: |  ok  |
-              queued-spinlocks:     |         x86: |  ok  |
-               rwsem-optimized:     |         x86: |  ok  |
-                seccomp-filter:     |         x86: |  ok  |
-                      sg-chain:     |         x86: |  ok  |
-                stackprotector:     |         x86: |  ok  |
-                   strncasecmp:     |         x86: | TODO |
-                           THP:     |         x86: |  ok  |
-                     tracehook:     |         x86: |  ok  |
-                       uprobes:     |         x86: |  ok  |
-             user-ret-profiler:     |         x86: |  ok  |
-                  virt-cpuacct:     |         x86: |  ok  |
-
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
+Signed-off-by: Mischa Jonker <mjonker@synopsys.com>
+Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- Documentation/features/BPF-JIT/arch-support.txt    | 39 ++++++++++++++++++++++
- Documentation/features/ELF-ASLR/arch-support.txt   | 39 ++++++++++++++++++++++
- Documentation/features/KASAN/arch-support.txt      | 39 ++++++++++++++++++++++
- .../features/PG_uncached/arch-support.txt          | 39 ++++++++++++++++++++++
- Documentation/features/THP/arch-support.txt        | 39 ++++++++++++++++++++++
- Documentation/features/arch-support.txt            | 11 ++++++
- .../features/arch-tick-broadcast/arch-support.txt  | 39 ++++++++++++++++++++++
- .../features/clockevents/arch-support.txt          | 39 ++++++++++++++++++++++
- .../features/cmpxchg-local/arch-support.txt        | 39 ++++++++++++++++++++++
- .../features/context-tracking/arch-support.txt     | 39 ++++++++++++++++++++++
- .../features/dma-api-debug/arch-support.txt        | 39 ++++++++++++++++++++++
- .../features/dma-contiguous/arch-support.txt       | 39 ++++++++++++++++++++++
- .../features/dma_map_attrs/arch-support.txt        | 39 ++++++++++++++++++++++
- .../features/gcov-profile-all/arch-support.txt     | 39 ++++++++++++++++++++++
- .../features/generic-idle-thread/arch-support.txt  | 39 ++++++++++++++++++++++
- Documentation/features/huge-vmap/arch-support.txt  | 39 ++++++++++++++++++++++
- .../features/ioremap_prot/arch-support.txt         | 39 ++++++++++++++++++++++
- .../features/irq-time-acct/arch-support.txt        | 39 ++++++++++++++++++++++
- .../features/jump-labels/arch-support.txt          | 39 ++++++++++++++++++++++
- Documentation/features/kgdb/arch-support.txt       | 39 ++++++++++++++++++++++
- .../features/kprobes-event/arch-support.txt        | 39 ++++++++++++++++++++++
- .../features/kprobes-on-ftrace/arch-support.txt    | 39 ++++++++++++++++++++++
- Documentation/features/kprobes/arch-support.txt    | 39 ++++++++++++++++++++++
- Documentation/features/kretprobes/arch-support.txt | 39 ++++++++++++++++++++++
- Documentation/features/list-arch.sh                | 21 ++++++++++++
- Documentation/features/lockdep/arch-support.txt    | 39 ++++++++++++++++++++++
- .../features/modern-timekeeping/arch-support.txt   | 39 ++++++++++++++++++++++
- .../features/numa-balancing/arch-support.txt       | 39 ++++++++++++++++++++++
- .../features/numa-memblock/arch-support.txt        | 39 ++++++++++++++++++++++
- Documentation/features/optprobes/arch-support.txt  | 39 ++++++++++++++++++++++
- Documentation/features/perf-regs/arch-support.txt  | 39 ++++++++++++++++++++++
- .../features/perf-stackdump/arch-support.txt       | 39 ++++++++++++++++++++++
- .../features/pmdp_splitting_flush/arch-support.txt | 39 ++++++++++++++++++++++
- .../features/pte_special/arch-support.txt          | 39 ++++++++++++++++++++++
- .../features/queued-rwlocks/arch-support.txt       | 39 ++++++++++++++++++++++
- .../features/queued-spinlocks/arch-support.txt     | 39 ++++++++++++++++++++++
- .../features/rwsem-optimized/arch-support.txt      | 39 ++++++++++++++++++++++
- .../features/seccomp-filter/arch-support.txt       | 39 ++++++++++++++++++++++
- Documentation/features/sg-chain/arch-support.txt   | 39 ++++++++++++++++++++++
- .../features/stackprotector/arch-support.txt       | 39 ++++++++++++++++++++++
- .../features/strncasecmp/arch-support.txt          | 39 ++++++++++++++++++++++
- Documentation/features/tracehook/arch-support.txt  | 39 ++++++++++++++++++++++
- Documentation/features/uprobes/arch-support.txt    | 39 ++++++++++++++++++++++
- .../features/user-ret-profiler/arch-support.txt    | 39 ++++++++++++++++++++++
- .../features/virt-cpuacct/arch-support.txt         | 39 ++++++++++++++++++++++
- 45 files changed, 1709 insertions(+)
+ Documentation/devicetree/bindings/arc/axs10x.txt |   7 +
+ MAINTAINERS                                      |   7 +
+ arch/arc/Kconfig                                 |   1 +
+ arch/arc/Makefile                                |   1 +
+ arch/arc/boot/dts/axc001.dtsi                    |  79 ++++++
+ arch/arc/boot/dts/axs101.dts                     |  21 ++
+ arch/arc/boot/dts/axs10x_mb.dtsi                 | 223 +++++++++++++++++
+ arch/arc/configs/axs101_defconfig                | 112 +++++++++
+ arch/arc/plat-axs10x/Kconfig                     |  35 +++
+ arch/arc/plat-axs10x/Makefile                    |   9 +
+ arch/arc/plat-axs10x/axs10x.c                    | 298 +++++++++++++++++++++++
+ 11 files changed, 793 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/arc/axs10x.txt
+ create mode 100644 arch/arc/boot/dts/axc001.dtsi
+ create mode 100644 arch/arc/boot/dts/axs101.dts
+ create mode 100644 arch/arc/boot/dts/axs10x_mb.dtsi
+ create mode 100644 arch/arc/configs/axs101_defconfig
+ create mode 100644 arch/arc/plat-axs10x/Kconfig
+ create mode 100644 arch/arc/plat-axs10x/Makefile
+ create mode 100644 arch/arc/plat-axs10x/axs10x.c
 
-diff --git a/Documentation/features/BPF-JIT/arch-support.txt b/Documentation/features/BPF-JIT/arch-support.txt
+diff --git a/Documentation/devicetree/bindings/arc/axs10x.txt b/Documentation/devicetree/bindings/arc/axs10x.txt
 new file mode 100644
-index 000000000000..e412c18cc87e
+index 0000000..dcbb834
 --- /dev/null
-+++ b/Documentation/features/BPF-JIT/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          BPF-JIT
-+#         Kconfig:       HAVE_BPF_JIT
-+#         description:   arch supports BPF JIT optimizations
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: |  ok  |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/ELF-ASLR/arch-support.txt b/Documentation/features/ELF-ASLR/arch-support.txt
-new file mode 100644
-index 000000000000..1b7322b15ca0
---- /dev/null
-+++ b/Documentation/features/ELF-ASLR/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          ELF-ASLR
-+#         Kconfig:       ARCH_HAS_ELF_RANDOMIZE
-+#         description:   arch randomizes the stack, heap and binary images of ELF binaries
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/KASAN/arch-support.txt b/Documentation/features/KASAN/arch-support.txt
-new file mode 100644
-index 000000000000..90d82cbc5f02
---- /dev/null
-+++ b/Documentation/features/KASAN/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          KASAN
-+#         Kconfig:       HAVE_ARCH_KASAN
-+#         description:   arch supports the KASAN runtime memory checker
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: | TODO |
-+    |       arm64: | TODO |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/PG_uncached/arch-support.txt b/Documentation/features/PG_uncached/arch-support.txt
-new file mode 100644
-index 000000000000..a3a0ecf49788
---- /dev/null
-+++ b/Documentation/features/PG_uncached/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          PG_uncached
-+#         Kconfig:       ARCH_USES_PG_UNCACHED
-+#         description:   arch supports the PG_uncached page flag
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: | TODO |
-+    |       arm64: | TODO |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: |  ok  |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/THP/arch-support.txt b/Documentation/features/THP/arch-support.txt
-new file mode 100644
-index 000000000000..88da2621216b
---- /dev/null
-+++ b/Documentation/features/THP/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          THP
-+#         Kconfig:       HAVE_ARCH_TRANSPARENT_HUGEPAGE && 64BIT
-+#         description:   arch supports transparent hugepages
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: |  ..  |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: |  ..  |
-+    |    blackfin: |  ..  |
-+    |         c6x: |  ..  |
-+    |        cris: |  ..  |
-+    |         frv: |  ..  |
-+    |     hexagon: |  ..  |
-+    |        ia64: | TODO |
-+    |        m32r: |  ..  |
-+    |        m68k: |  ..  |
-+    |       metag: |  ..  |
-+    |  microblaze: |  ..  |
-+    |        mips: |  ok  |
-+    |     mn10300: |  ..  |
-+    |       nios2: |  ..  |
-+    |    openrisc: |  ..  |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: |  ..  |
-+    |          sh: |  ..  |
-+    |       sparc: |  ok  |
-+    |        tile: | TODO |
-+    |          um: |  ..  |
-+    |   unicore32: |  ..  |
-+    |         x86: |  ok  |
-+    |      xtensa: |  ..  |
-+    -----------------------
-diff --git a/Documentation/features/arch-support.txt b/Documentation/features/arch-support.txt
-new file mode 100644
-index 000000000000..d22a1095e661
---- /dev/null
-+++ b/Documentation/features/arch-support.txt
-@@ -0,0 +1,11 @@
++++ b/Documentation/devicetree/bindings/arc/axs10x.txt
+@@ -0,0 +1,7 @@
++Synopsys DesignWare ARC Software Development Platforms Device Tree Bindings
++---------------------------------------------------------------------------
 +
-+For generic kernel features that need architecture support, the
-+arch-support.txt file in each feature directory shows the arch
-+support matrix, for all upstream Linux architectures.
++SDP boards with Synopsys ARC700 core shall have the following properties.
 +
-+The meaning of entries in the tables is:
++Required root node properties:
++    - compatible = "snps,axs101";
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 2e5bbc0..ed73eee 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -9543,6 +9543,13 @@ F:	arch/arc/
+ F:	Documentation/devicetree/bindings/arc/
+ F:	drivers/tty/serial/arc_uart.c
+ 
++SYNOPSYS ARC SDP platform support
++M:	Alexey Brodkin <abrodkin@synopsys.com>
++S:	Supported
++F:	arch/arc/plat-axs10x
++F:	arch/arc/boot/dts/ax*
++F:	Documentation/devicetree/bindings/arc/axs10x.txt
 +
-+    | ok |  # feature supported by the architecture
-+    |TODO|  # feature not yet supported by the architecture
-+    | .. |  # feature cannot be supported by the hardware
+ SYSV FILESYSTEM
+ M:	Christoph Hellwig <hch@infradead.org>
+ S:	Maintained
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index df94ac1..13d4c26 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -83,6 +83,7 @@ menu "ARC Platform/SoC/Board"
+ 
+ source "arch/arc/plat-arcfpga/Kconfig"
+ source "arch/arc/plat-tb10x/Kconfig"
++source "arch/arc/plat-axs10x/Kconfig"
+ #New platform adds here
+ 
+ endmenu
+diff --git a/arch/arc/Makefile b/arch/arc/Makefile
+index db72fec..562ac7d 100644
+--- a/arch/arc/Makefile
++++ b/arch/arc/Makefile
+@@ -83,6 +83,7 @@ core-y		+= arch/arc/boot/dts/
+ 
+ core-$(CONFIG_ARC_PLAT_FPGA_LEGACY)	+= arch/arc/plat-arcfpga/
+ core-$(CONFIG_ARC_PLAT_TB10X)		+= arch/arc/plat-tb10x/
++core-$(CONFIG_ARC_PLAT_AXS10X)		+= arch/arc/plat-axs10x/
+ 
+ drivers-$(CONFIG_OPROFILE)	+= arch/arc/oprofile/
+ 
+diff --git a/arch/arc/boot/dts/axc001.dtsi b/arch/arc/boot/dts/axc001.dtsi
+new file mode 100644
+index 0000000..6990ca4
+--- /dev/null
++++ b/arch/arc/boot/dts/axc001.dtsi
+@@ -0,0 +1,79 @@
++/*
++ * Copyright (C) 2013-15 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
 +
-diff --git a/Documentation/features/arch-tick-broadcast/arch-support.txt b/Documentation/features/arch-tick-broadcast/arch-support.txt
++/*
++ * Device tree for AXC001 770D/EM6/AS221 CPU card
++ * Note that this file only supports the 770D CPU
++ */
++
++/ {
++	compatible = "snps,arc";
++	clock-frequency = <750000000>;	/* 750 MHZ */
++	#address-cells = <1>;
++	#size-cells = <1>;
++
++	cpu_card {
++		compatible = "simple-bus";
++		#address-cells = <1>;
++		#size-cells = <1>;
++
++		ranges = <0x00000000 0xf0000000 0x10000000>;
++
++		cpu_intc: arc700-intc@cpu {
++			compatible = "snps,arc700-intc";
++			interrupt-controller;
++			#interrupt-cells = <1>;
++		};
++
++		/*
++		 * this GPIO block ORs all interrupts on CPU card (creg,..)
++		 * to uplink only 1 IRQ to ARC core intc
++		 */
++		dw-apb-gpio@0x2000 {
++			compatible = "snps,dw-apb-gpio";
++			reg = < 0x2000 0x80 >;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			ictl_intc: gpio-controller@0 {
++				compatible = "snps,dw-apb-gpio-port";
++				gpio-controller;
++				#gpio-cells = <2>;
++				snps,nr-gpios = <30>;
++				reg = <0>;
++				interrupt-controller;
++				#interrupt-cells = <2>;
++				interrupt-parent = <&cpu_intc>;
++				interrupts = <15>;
++			};
++		};
++
++		debug_uart: dw-apb-uart@0x5000 {
++			compatible = "snps,dw-apb-uart";
++			reg = <0x5000 0x100>;
++			clock-frequency = <33333000>;
++			interrupt-parent = <&ictl_intc>;
++			interrupts = <19 4>;
++			baud = <115200>;
++			reg-shift = <2>;
++			reg-io-width = <4>;
++		};
++
++		arcpmu0: pmu {
++			compatible = "snps,arc700-pct";
++		};
++	};
++
++	memory {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		ranges = <0x00000000 0x80000000 0x40000000>;
++		device_type = "memory";
++		reg = <0x00000000 0x20000000>;	/* 512MiB */
++	};
++};
+diff --git a/arch/arc/boot/dts/axs101.dts b/arch/arc/boot/dts/axs101.dts
 new file mode 100644
-index 000000000000..d6798417428b
+index 0000000..6c3391d
 --- /dev/null
-+++ b/Documentation/features/arch-tick-broadcast/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          arch-tick-broadcast
-+#         Kconfig:       ARCH_HAS_TICK_BROADCAST
-+#         description:   arch provides tick_broadcast()
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: | TODO |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/clockevents/arch-support.txt b/Documentation/features/clockevents/arch-support.txt
-new file mode 100644
-index 000000000000..8ba7fb83825b
---- /dev/null
-+++ b/Documentation/features/clockevents/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          clockevents
-+#         Kconfig:       GENERIC_CLOCKEVENTS
-+#         description:   arch support generic clock events
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: |  ok  |
-+    |         arc: |  ok  |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: |  ok  |
-+    |    blackfin: |  ok  |
-+    |         c6x: |  ok  |
-+    |        cris: |  ok  |
-+    |         frv: | TODO |
-+    |     hexagon: |  ok  |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: |  ok  |
-+    |       metag: |  ok  |
-+    |  microblaze: |  ok  |
-+    |        mips: |  ok  |
-+    |     mn10300: |  ok  |
-+    |       nios2: |  ok  |
-+    |    openrisc: |  ok  |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: |  ok  |
-+    |          sh: |  ok  |
-+    |       sparc: |  ok  |
-+    |        tile: |  ok  |
-+    |          um: |  ok  |
-+    |   unicore32: |  ok  |
-+    |         x86: |  ok  |
-+    |      xtensa: |  ok  |
-+    -----------------------
-diff --git a/Documentation/features/cmpxchg-local/arch-support.txt b/Documentation/features/cmpxchg-local/arch-support.txt
-new file mode 100644
-index 000000000000..364482dc1340
---- /dev/null
-+++ b/Documentation/features/cmpxchg-local/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          cmpxchg-local
-+#         Kconfig:       HAVE_CMPXCHG_LOCAL
-+#         description:   arch supports the this_cpu_cmpxchg() API
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: | TODO |
-+    |       arm64: | TODO |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/context-tracking/arch-support.txt b/Documentation/features/context-tracking/arch-support.txt
-new file mode 100644
-index 000000000000..47a15d997694
---- /dev/null
-+++ b/Documentation/features/context-tracking/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          context-tracking
-+#         Kconfig:       HAVE_CONTEXT_TRACKING
-+#         description:   arch supports context tracking for NO_HZ_FULL
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: |  ok  |
-+    |        tile: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/dma-api-debug/arch-support.txt b/Documentation/features/dma-api-debug/arch-support.txt
-new file mode 100644
-index 000000000000..cfd6bcf41b8a
---- /dev/null
-+++ b/Documentation/features/dma-api-debug/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          dma-api-debug
-+#         Kconfig:       HAVE_DMA_API_DEBUG
-+#         description:   arch supports DMA debug facilities
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: |  ok  |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: |  ok  |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: |  ok  |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: |  ok  |
-+    |       sparc: |  ok  |
-+    |        tile: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/dma-contiguous/arch-support.txt b/Documentation/features/dma-contiguous/arch-support.txt
-new file mode 100644
-index 000000000000..a775a06ed2af
---- /dev/null
-+++ b/Documentation/features/dma-contiguous/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          dma-contiguous
-+#         Kconfig:       HAVE_DMA_CONTIGUOUS
-+#         description:   arch supports the DMA CMA (continuous memory allocator)
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/dma_map_attrs/arch-support.txt b/Documentation/features/dma_map_attrs/arch-support.txt
-new file mode 100644
-index 000000000000..c6296a6354ac
---- /dev/null
-+++ b/Documentation/features/dma_map_attrs/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          dma_map_attrs
-+#         Kconfig:       HAVE_DMA_ATTRS
-+#         description:   arch provides dma_*map*_attrs() APIs
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: |  ok  |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: |  ok  |
-+    |        ia64: |  ok  |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: |  ok  |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: |  ok  |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: |  ok  |
-+    |       sparc: |  ok  |
-+    |        tile: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: |  ok  |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/gcov-profile-all/arch-support.txt b/Documentation/features/gcov-profile-all/arch-support.txt
-new file mode 100644
-index 000000000000..27961d93b4f7
---- /dev/null
-+++ b/Documentation/features/gcov-profile-all/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          gcov-profile-all
-+#         Kconfig:       ARCH_HAS_GCOV_PROFILE_ALL
-+#         description:   arch supports whole-kernel GCOV code coverage profiling
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: |  ok  |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: |  ok  |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/generic-idle-thread/arch-support.txt b/Documentation/features/generic-idle-thread/arch-support.txt
-new file mode 100644
-index 000000000000..30315627905d
---- /dev/null
-+++ b/Documentation/features/generic-idle-thread/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          generic-idle-thread
-+#         Kconfig:       GENERIC_SMP_IDLE_THREAD
-+#         description:   arch makes use of the generic SMP idle thread facility
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: |  ok  |
-+    |         arc: |  ok  |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: |  ok  |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: |  ok  |
-+    |        ia64: |  ok  |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: |  ok  |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: |  ok  |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: |  ok  |
-+    |       sparc: |  ok  |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: |  ok  |
-+    -----------------------
-diff --git a/Documentation/features/huge-vmap/arch-support.txt b/Documentation/features/huge-vmap/arch-support.txt
-new file mode 100644
-index 000000000000..8784e30b1734
---- /dev/null
-+++ b/Documentation/features/huge-vmap/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          huge-vmap
-+#         Kconfig:       HAVE_ARCH_HUGE_VMAP
-+#         description:   arch supports the ioremap_pud_enabled() and ioremap_pmd_enabled() VM APIs
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: | TODO |
-+    |       arm64: | TODO |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/ioremap_prot/arch-support.txt b/Documentation/features/ioremap_prot/arch-support.txt
-new file mode 100644
-index 000000000000..2094b77d924b
---- /dev/null
-+++ b/Documentation/features/ioremap_prot/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          ioremap_prot
-+#         Kconfig:       HAVE_IOREMAP_PROT
-+#         description:   arch has ioremap_prot()
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: |  ok  |
-+    |         arm: | TODO |
-+    |       arm64: | TODO |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: |  ok  |
-+    |       sparc: | TODO |
-+    |        tile: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/irq-time-acct/arch-support.txt b/Documentation/features/irq-time-acct/arch-support.txt
-new file mode 100644
-index 000000000000..15a85ecb7700
---- /dev/null
-+++ b/Documentation/features/irq-time-acct/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          irq-time-acct
-+#         Kconfig:       HAVE_IRQ_TIME_ACCOUNTING
-+#         description:   arch supports precise IRQ time accounting
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: |  ok  |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: |  ok  |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: |  ok  |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: |  ok  |
-+    |        tile: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: |  ok  |
-+    -----------------------
-diff --git a/Documentation/features/jump-labels/arch-support.txt b/Documentation/features/jump-labels/arch-support.txt
-new file mode 100644
-index 000000000000..f1c1c72653d6
---- /dev/null
-+++ b/Documentation/features/jump-labels/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          jump-labels
-+#         Kconfig:       HAVE_ARCH_JUMP_LABEL
-+#         description:   arch supports live patched high efficiency branches
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: |  ok  |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/kgdb/arch-support.txt b/Documentation/features/kgdb/arch-support.txt
-new file mode 100644
-index 000000000000..f384b75f1251
---- /dev/null
-+++ b/Documentation/features/kgdb/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          kgdb
-+#         Kconfig:       HAVE_ARCH_KGDB
-+#         description:   arch supports the kGDB kernel debugger
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: |  ok  |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: |  ok  |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: |  ok  |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: |  ok  |
-+    |        mips: |  ok  |
-+    |     mn10300: |  ok  |
-+    |       nios2: |  ok  |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: |  ok  |
-+    |       sparc: |  ok  |
-+    |        tile: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/kprobes-event/arch-support.txt b/Documentation/features/kprobes-event/arch-support.txt
-new file mode 100644
-index 000000000000..f8cf1d54d100
---- /dev/null
-+++ b/Documentation/features/kprobes-event/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          kprobes-event
-+#         Kconfig:       HAVE_REGS_AND_STACK_ACCESS_API
-+#         description:   arch supports kprobes with perf events
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: | TODO |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: |  ok  |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: |  ok  |
-+    |       sparc: | TODO |
-+    |        tile: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/kprobes-on-ftrace/arch-support.txt b/Documentation/features/kprobes-on-ftrace/arch-support.txt
-new file mode 100644
-index 000000000000..0f4a8c8df472
---- /dev/null
-+++ b/Documentation/features/kprobes-on-ftrace/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          kprobes-on-ftrace
-+#         Kconfig:       HAVE_KPROBES_ON_FTRACE
-+#         description:   arch supports combined kprobes and ftrace live patching
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: | TODO |
-+    |       arm64: | TODO |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/kprobes/arch-support.txt b/Documentation/features/kprobes/arch-support.txt
-new file mode 100644
-index 000000000000..d5518f7fc567
---- /dev/null
-+++ b/Documentation/features/kprobes/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          kprobes
-+#         Kconfig:       HAVE_KPROBES
-+#         description:   arch supports live patched kernel probe
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: |  ok  |
-+    |         arm: |  ok  |
-+    |       arm64: | TODO |
-+    |       avr32: |  ok  |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: |  ok  |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: |  ok  |
-+    |       sparc: |  ok  |
-+    |        tile: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/kretprobes/arch-support.txt b/Documentation/features/kretprobes/arch-support.txt
-new file mode 100644
-index 000000000000..13960c4cbe61
---- /dev/null
-+++ b/Documentation/features/kretprobes/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          kretprobes
-+#         Kconfig:       HAVE_KRETPROBES
-+#         description:   arch supports kernel function-return probes
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: |  ok  |
-+    |         arm: |  ok  |
-+    |       arm64: | TODO |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: |  ok  |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: |  ok  |
-+    |       sparc: |  ok  |
-+    |        tile: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/list-arch.sh b/Documentation/features/list-arch.sh
-new file mode 100755
-index 000000000000..aa53da231a26
---- /dev/null
-+++ b/Documentation/features/list-arch.sh
++++ b/arch/arc/boot/dts/axs101.dts
 @@ -0,0 +1,21 @@
++/*
++ * Copyright (C) 2013-15 Synopsys, Inc. (www.synopsys.com)
++ *
++ * ARC AXS101 S/W development platform
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++/dts-v1/;
++
++/include/ "axc001.dtsi"
++/include/ "axs10x_mb.dtsi"
++
++/ {
++	compatible = "snps,axs101";
++
++	chosen {
++		bootargs = "console=tty0 console=ttyS3,115200n8 consoleblank=0";
++	};
++};
+diff --git a/arch/arc/boot/dts/axs10x_mb.dtsi b/arch/arc/boot/dts/axs10x_mb.dtsi
+new file mode 100644
+index 0000000..255c712
+--- /dev/null
++++ b/arch/arc/boot/dts/axs10x_mb.dtsi
+@@ -0,0 +1,223 @@
++/*
++ * Support for peripherals on the AXS10x mainboard
++ *
++ * Copyright (C) 2013-15 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++/ {
++	axs10x_mb {
++		compatible = "simple-bus";
++		#address-cells = <1>;
++		#size-cells = <1>;
++		ranges = <0x00000000 0xe0000000 0x10000000>;
++		interrupt-parent = <&mb_intc>;
++
++		clocks {
++			i2cclk: i2cclk {
++				compatible = "fixed-clock";
++				clock-frequency = <50000000>;
++				#clock-cells = <0>;
++			};
++
++			apbclk: apbclk {
++				compatible = "fixed-clock";
++				clock-frequency = <50000000>;
++				#clock-cells = <0>;
++			};
++
++			mmcclk: mmcclk {
++				compatible = "fixed-clock";
++				clock-frequency = <50000000>;
++				#clock-cells = <0>;
++			};
++		};
++
++		/*
++		 * This INTC is actually connected to DW APB GPIO
++		 * which acts as a wire between MB INTC and CPU INTC.
++		 * GPIO INTC is configured in platform init code
++		 * and here we mimic direct connection from MB INTC to
++		 * CPU INTC, thus we set "interrupts = <7>" instead of
++		 * "interrupts = <12>"
++		 */
++		mb_intc: dw-apb-ictl@0x12000 {
++			#interrupt-cells = <1>;
++			compatible = "snps,dw-apb-ictl";
++			reg = < 0x12000 0x200 >;
++			interrupt-controller;
++			interrupt-parent = <&cpu_intc>;
++			interrupts = < 7 >;
++		};
++
++		ethernet@0x18000 {
++			#interrupt-cells = <1>;
++			compatible = "snps,dwmac";
++			reg = < 0x18000 0x2000 >;
++			interrupts = < 4 >;
++			interrupt-names = "macirq";
++			phy-mode = "rgmii";
++			snps,pbl = < 32 >;
++			clocks = <&apbclk>;
++			clock-names = "stmmaceth";
++		};
++
++		ehci@0x40000 {
++			compatible = "generic-ehci";
++			reg = < 0x40000 0x100 >;
++			interrupts = < 8 >;
++		};
++
++		ohci@0x60000 {
++			compatible = "generic-ohci";
++			reg = < 0x60000 0x100 >;
++			interrupts = < 8 >;
++		};
++
++		mmc@0x15000 {
++			compatible = "snps,dw-mshc";
++			reg = < 0x15000 0x400 >;
++			num-slots = < 1 >;
++			fifo-depth = < 16 >;
++			card-detect-delay = < 200 >;
++			clocks = <&apbclk>, <&mmcclk>;
++			clock-names = "biu", "ciu";
++			interrupts = < 7 >;
++			bus-width = < 4 >;
++		};
++
++		uart@0x20000 {
++			compatible = "snps,dw-apb-uart";
++			reg = <0x20000 0x100>;
++			clock-frequency = <33333333>;
++			interrupts = <17>;
++			baud = <115200>;
++			reg-shift = <2>;
++			reg-io-width = <4>;
++		};
++
++		uart@0x21000 {
++			compatible = "snps,dw-apb-uart";
++			reg = <0x21000 0x100>;
++			clock-frequency = <33333333>;
++			interrupts = <18>;
++			baud = <115200>;
++			reg-shift = <2>;
++			reg-io-width = <4>;
++		};
++
++		/* UART muxed with USB data port (ttyS3) */
++		uart@0x22000 {
++			compatible = "snps,dw-apb-uart";
++			reg = <0x22000 0x100>;
++			clock-frequency = <33333333>;
++			interrupts = <19>;
++			baud = <115200>;
++			reg-shift = <2>;
++			reg-io-width = <4>;
++		};
++
++		i2c@0x1d000 {
++			compatible = "snps,designware-i2c";
++			reg = <0x1d000 0x100>;
++			clock-frequency = <400000>;
++			clocks = <&i2cclk>;
++			interrupts = <14>;
++		};
++
++		i2c@0x1e000 {
++			compatible = "snps,designware-i2c";
++			reg = <0x1e000 0x100>;
++			clock-frequency = <400000>;
++			clocks = <&i2cclk>;
++			interrupts = <15>;
++		};
++
++		i2c@0x1f000 {
++			compatible = "snps,designware-i2c";
++			#address-cells = <1>;
++			#size-cells = <0>;
++			reg = <0x1f000 0x100>;
++			clock-frequency = <400000>;
++			clocks = <&i2cclk>;
++			interrupts = <16>;
++
++			eeprom@0x54{
++				compatible = "24c01";
++				reg = <0x54>;
++				pagesize = <0x8>;
++			};
++
++			eeprom@0x57{
++				compatible = "24c04";
++				reg = <0x57>;
++				pagesize = <0x8>;
++			};
++		};
++
++		gpio0:gpio@13000 {
++			compatible = "snps,dw-apb-gpio";
++			reg = <0x13000 0x1000>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			gpio0_banka: gpio-controller@0 {
++				compatible = "snps,dw-apb-gpio-port";
++				gpio-controller;
++				#gpio-cells = <2>;
++				snps,nr-gpios = <32>;
++				reg = <0>;
++			};
++
++			gpio0_bankb: gpio-controller@1 {
++				compatible = "snps,dw-apb-gpio-port";
++				gpio-controller;
++				#gpio-cells = <2>;
++				snps,nr-gpios = <8>;
++				reg = <1>;
++			};
++
++			gpio0_bankc: gpio-controller@2 {
++				compatible = "snps,dw-apb-gpio-port";
++				gpio-controller;
++				#gpio-cells = <2>;
++				snps,nr-gpios = <8>;
++				reg = <2>;
++			};
++		};
++
++		gpio1:gpio@14000 {
++			compatible = "snps,dw-apb-gpio";
++			reg = <0x14000 0x1000>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			gpio1_banka: gpio-controller@0 {
++				compatible = "snps,dw-apb-gpio-port";
++				gpio-controller;
++				#gpio-cells = <2>;
++				snps,nr-gpios = <30>;
++				reg = <0>;
++			};
++
++			gpio1_bankb: gpio-controller@1 {
++				compatible = "snps,dw-apb-gpio-port";
++				gpio-controller;
++				#gpio-cells = <2>;
++				snps,nr-gpios = <10>;
++				reg = <1>;
++			};
++
++			gpio1_bankc: gpio-controller@2 {
++				compatible = "snps,dw-apb-gpio-port";
++				gpio-controller;
++				#gpio-cells = <2>;
++				snps,nr-gpios = <8>;
++				reg = <2>;
++			};
++		};
++	};
++};
+diff --git a/arch/arc/configs/axs101_defconfig b/arch/arc/configs/axs101_defconfig
+new file mode 100644
+index 0000000..27dc4d5
+--- /dev/null
++++ b/arch/arc/configs/axs101_defconfig
+@@ -0,0 +1,112 @@
++CONFIG_CROSS_COMPILE="arc-linux-uclibc-"
++CONFIG_DEFAULT_HOSTNAME="ARCLinux"
++# CONFIG_SWAP is not set
++CONFIG_SYSVIPC=y
++CONFIG_POSIX_MQUEUE=y
++# CONFIG_CROSS_MEMORY_ATTACH is not set
++CONFIG_NO_HZ_IDLE=y
++CONFIG_HIGH_RES_TIMERS=y
++CONFIG_IKCONFIG=y
++CONFIG_IKCONFIG_PROC=y
++CONFIG_NAMESPACES=y
++# CONFIG_UTS_NS is not set
++# CONFIG_PID_NS is not set
++CONFIG_BLK_DEV_INITRD=y
++CONFIG_INITRAMFS_SOURCE="../arc_initramfs/"
++CONFIG_EMBEDDED=y
++CONFIG_PERF_EVENTS=y
++# CONFIG_VM_EVENT_COUNTERS is not set
++# CONFIG_SLUB_DEBUG is not set
++# CONFIG_COMPAT_BRK is not set
++CONFIG_MODULES=y
++CONFIG_PARTITION_ADVANCED=y
++CONFIG_ARC_PLAT_AXS10X=y
++CONFIG_AXS101=y
++CONFIG_ARC_CACHE_LINE_SHIFT=5
++# CONFIG_ARC_HAS_RTSC is not set
++CONFIG_ARC_BUILTIN_DTB_NAME="axs101"
++CONFIG_PREEMPT=y
++# CONFIG_COMPACTION is not set
++CONFIG_NET=y
++CONFIG_PACKET=y
++CONFIG_UNIX=y
++CONFIG_NET_KEY=y
++CONFIG_INET=y
++CONFIG_IP_PNP=y
++CONFIG_IP_PNP_DHCP=y
++CONFIG_IP_PNP_BOOTP=y
++CONFIG_IP_PNP_RARP=y
++# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
++# CONFIG_INET_XFRM_MODE_TUNNEL is not set
++# CONFIG_INET_XFRM_MODE_BEET is not set
++# CONFIG_IPV6 is not set
++# CONFIG_STANDALONE is not set
++# CONFIG_PREVENT_FIRMWARE_BUILD is not set
++# CONFIG_FIRMWARE_IN_KERNEL is not set
++CONFIG_SCSI=y
++CONFIG_BLK_DEV_SD=y
++CONFIG_NETDEVICES=y
++# CONFIG_NET_VENDOR_ARC is not set
++# CONFIG_NET_VENDOR_BROADCOM is not set
++# CONFIG_NET_VENDOR_INTEL is not set
++# CONFIG_NET_VENDOR_MARVELL is not set
++# CONFIG_NET_VENDOR_MICREL is not set
++# CONFIG_NET_VENDOR_NATSEMI is not set
++# CONFIG_NET_VENDOR_SEEQ is not set
++CONFIG_STMMAC_ETH=y
++# CONFIG_NET_VENDOR_VIA is not set
++# CONFIG_NET_VENDOR_WIZNET is not set
++CONFIG_NATIONAL_PHY=y
++# CONFIG_USB_NET_DRIVERS is not set
++CONFIG_INPUT_EVDEV=y
++CONFIG_MOUSE_PS2_TOUCHKIT=y
++CONFIG_MOUSE_SERIAL=y
++CONFIG_MOUSE_SYNAPTICS_USB=y
++# CONFIG_LEGACY_PTYS is not set
++# CONFIG_DEVKMEM is not set
++CONFIG_SERIAL_8250=y
++CONFIG_SERIAL_8250_CONSOLE=y
++CONFIG_SERIAL_8250_DW=y
++CONFIG_SERIAL_OF_PLATFORM=y
++# CONFIG_HW_RANDOM is not set
++CONFIG_I2C=y
++CONFIG_I2C_CHARDEV=y
++CONFIG_I2C_DESIGNWARE_PLATFORM=y
++# CONFIG_HWMON is not set
++CONFIG_FB=y
++# CONFIG_VGA_CONSOLE is not set
++CONFIG_FRAMEBUFFER_CONSOLE=y
++CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y
++CONFIG_LOGO=y
++# CONFIG_LOGO_LINUX_MONO is not set
++# CONFIG_LOGO_LINUX_VGA16 is not set
++# CONFIG_LOGO_LINUX_CLUT224 is not set
++CONFIG_USB_EHCI_HCD=y
++CONFIG_USB_EHCI_HCD_PLATFORM=y
++CONFIG_USB_OHCI_HCD=y
++CONFIG_USB_OHCI_HCD_PLATFORM=y
++CONFIG_USB_STORAGE=y
++CONFIG_MMC=y
++CONFIG_MMC_SDHCI=y
++CONFIG_MMC_SDHCI_PLTFM=y
++CONFIG_MMC_DW=y
++CONFIG_MMC_DW_IDMAC=y
++# CONFIG_IOMMU_SUPPORT is not set
++CONFIG_EXT3_FS=y
++CONFIG_EXT4_FS=y
++CONFIG_MSDOS_FS=y
++CONFIG_VFAT_FS=y
++CONFIG_NTFS_FS=y
++CONFIG_TMPFS=y
++CONFIG_JFFS2_FS=y
++CONFIG_NFS_FS=y
++CONFIG_NLS_CODEPAGE_437=y
++CONFIG_NLS_ISO8859_1=y
++# CONFIG_ENABLE_WARN_DEPRECATED is not set
++# CONFIG_ENABLE_MUST_CHECK is not set
++CONFIG_STRIP_ASM_SYMS=y
++CONFIG_LOCKUP_DETECTOR=y
++CONFIG_DEFAULT_HUNG_TASK_TIMEOUT=10
++# CONFIG_SCHED_DEBUG is not set
++# CONFIG_DEBUG_PREEMPT is not set
++# CONFIG_FTRACE is not set
+diff --git a/arch/arc/plat-axs10x/Kconfig b/arch/arc/plat-axs10x/Kconfig
+new file mode 100644
+index 0000000..45641ca
+--- /dev/null
++++ b/arch/arc/plat-axs10x/Kconfig
+@@ -0,0 +1,35 @@
 +#
-+# Small script that visualizes the kernel feature support status
-+# of an architecture.
++# Copyright (C) 2013-15 Synopsys, Inc. (www.synopsys.com)
 +#
-+# (If no arguments are given then it will print the host architecture's status.)
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License version 2 as
++# published by the Free Software Foundation.
 +#
 +
-+[ $# = 0 ] && ARCH=$(arch | sed 's/x86_64/x86/' | sed 's/i386/x86/')
++config ARC_PLAT_AXS10X
++	bool "Synopsys ARC AXS10x Software Development Platforms"
++	select DW_APB_ICTL
++	select GPIO_DWAPB
++	select OF_GPIO
++	select GENERIC_IRQ_CHIP
++	select ARCH_REQUIRE_GPIOLIB
++	help
++	  Support for the ARC AXS10x Software Development Platforms.
 +
-+cd $(dirname $0)
-+echo "#"
-+echo "# Kernel feature support matrix of architecture '$ARCH':"
-+echo "#"
++	  The AXS10x Platforms consist of a mainboard with peripherals,
++	  on which several daughter cards can be placed. The daughter cards
++	  typically contain a CPU and memory.
 +
-+for F in */arch-support.txt; do
-+  N=$(git grep -h "Feature name" $F | cut -d: -f2)
-+  S=$(git grep -hw $ARCH $F)
++if ARC_PLAT_AXS10X
 +
-+  printf "%30s: %s\n" "$N" "$S"
-+done
++config AXS101
++	bool "AXS101 with AXC001 CPU Card (ARC 770D/EM6/AS221)"
++	help
++	  This adds support for the 770D/EM6/AS221 CPU Card. Only the ARC
++	  770D is supported in Linux.
 +
-diff --git a/Documentation/features/lockdep/arch-support.txt b/Documentation/features/lockdep/arch-support.txt
++	  The AXS101 Platform consists of an AXS10x mainboard with
++	  this daughtercard. Please use the axs101.dts device tree
++	  with this configuration.
++
++endif
+diff --git a/arch/arc/plat-axs10x/Makefile b/arch/arc/plat-axs10x/Makefile
 new file mode 100644
-index 000000000000..5bfbb7d64fe0
+index 0000000..d4748f2
 --- /dev/null
-+++ b/Documentation/features/lockdep/arch-support.txt
-@@ -0,0 +1,39 @@
++++ b/arch/arc/plat-axs10x/Makefile
+@@ -0,0 +1,9 @@
 +#
-+# Feature name:          lockdep
-+#         Kconfig:       LOCKDEP_SUPPORT
-+#         description:   arch supports the runtime locking correctness debug facility
++# Copyright (C) 2013-15 Synopsys, Inc. (www.synopsys.com)
 +#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: |  ok  |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: |  ok  |
-+    |    blackfin: |  ok  |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: |  ok  |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: |  ok  |
-+    |  microblaze: |  ok  |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: |  ok  |
-+    |          sh: |  ok  |
-+    |       sparc: |  ok  |
-+    |        tile: |  ok  |
-+    |          um: |  ok  |
-+    |   unicore32: |  ok  |
-+    |         x86: |  ok  |
-+    |      xtensa: |  ok  |
-+    -----------------------
-diff --git a/Documentation/features/modern-timekeeping/arch-support.txt b/Documentation/features/modern-timekeeping/arch-support.txt
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License version 2 as
++# published by the Free Software Foundation.
++#
++
++obj-$(CONFIG_ARC_PLAT_AXS10X) += axs10x.o
+diff --git a/arch/arc/plat-axs10x/axs10x.c b/arch/arc/plat-axs10x/axs10x.c
 new file mode 100644
-index 000000000000..14422649183d
+index 0000000..2e7686d
 --- /dev/null
-+++ b/Documentation/features/modern-timekeeping/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          modern-timekeeping
-+#         Kconfig:       !ARCH_USES_GETTIMEOFFSET
-+#         description:   arch does not use arch_gettimeoffset() anymore
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: |  ok  |
-+    |         arc: |  ok  |
-+    |         arm: | TODO |
-+    |       arm64: |  ok  |
-+    |       avr32: |  ok  |
-+    |    blackfin: | TODO |
-+    |         c6x: |  ok  |
-+    |        cris: | TODO |
-+    |         frv: |  ok  |
-+    |     hexagon: |  ok  |
-+    |        ia64: |  ok  |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: |  ok  |
-+    |  microblaze: |  ok  |
-+    |        mips: |  ok  |
-+    |     mn10300: |  ok  |
-+    |       nios2: |  ok  |
-+    |    openrisc: |  ok  |
-+    |      parisc: |  ok  |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: |  ok  |
-+    |          sh: |  ok  |
-+    |       sparc: |  ok  |
-+    |        tile: |  ok  |
-+    |          um: |  ok  |
-+    |   unicore32: |  ok  |
-+    |         x86: |  ok  |
-+    |      xtensa: |  ok  |
-+    -----------------------
-diff --git a/Documentation/features/numa-balancing/arch-support.txt b/Documentation/features/numa-balancing/arch-support.txt
-new file mode 100644
-index 000000000000..791ceb82b16a
---- /dev/null
-+++ b/Documentation/features/numa-balancing/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          numa-balancing
-+#         Kconfig:       ARCH_SUPPORTS_NUMA_BALANCING && 64BIT && NUMA
-+#         description:   arch supports NUMA balancing
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: |  ..  |
-+    |         arm: |  ..  |
-+    |       arm64: |  ..  |
-+    |       avr32: |  ..  |
-+    |    blackfin: |  ..  |
-+    |         c6x: |  ..  |
-+    |        cris: |  ..  |
-+    |         frv: |  ..  |
-+    |     hexagon: |  ..  |
-+    |        ia64: | TODO |
-+    |        m32r: |  ..  |
-+    |        m68k: |  ..  |
-+    |       metag: |  ..  |
-+    |  microblaze: |  ..  |
-+    |        mips: | TODO |
-+    |     mn10300: |  ..  |
-+    |       nios2: |  ..  |
-+    |    openrisc: |  ..  |
-+    |      parisc: |  ..  |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ..  |
-+    |       score: |  ..  |
-+    |          sh: |  ..  |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: |  ..  |
-+    |   unicore32: |  ..  |
-+    |         x86: |  ok  |
-+    |      xtensa: |  ..  |
-+    -----------------------
-diff --git a/Documentation/features/numa-memblock/arch-support.txt b/Documentation/features/numa-memblock/arch-support.txt
-new file mode 100644
-index 000000000000..477df392fee1
---- /dev/null
-+++ b/Documentation/features/numa-memblock/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          numa-memblock
-+#         Kconfig:       HAVE_MEMBLOCK_NODE_MAP
-+#         description:   arch supports NUMA aware memblocks
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: |  ..  |
-+    |         arm: |  ..  |
-+    |       arm64: |  ..  |
-+    |       avr32: |  ..  |
-+    |    blackfin: |  ..  |
-+    |         c6x: |  ..  |
-+    |        cris: |  ..  |
-+    |         frv: |  ..  |
-+    |     hexagon: |  ..  |
-+    |        ia64: |  ok  |
-+    |        m32r: | TODO |
-+    |        m68k: |  ..  |
-+    |       metag: |  ok  |
-+    |  microblaze: |  ok  |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: |  ..  |
-+    |    openrisc: |  ..  |
-+    |      parisc: |  ..  |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: |  ok  |
-+    |          sh: |  ok  |
-+    |       sparc: |  ok  |
-+    |        tile: | TODO |
-+    |          um: |  ..  |
-+    |   unicore32: |  ..  |
-+    |         x86: |  ok  |
-+    |      xtensa: |  ..  |
-+    -----------------------
-diff --git a/Documentation/features/optprobes/arch-support.txt b/Documentation/features/optprobes/arch-support.txt
-new file mode 100644
-index 000000000000..33907b6f5775
---- /dev/null
-+++ b/Documentation/features/optprobes/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          optprobes
-+#         Kconfig:       HAVE_OPTPROBES
-+#         description:   arch supports live patched optprobes
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: | TODO |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/perf-regs/arch-support.txt b/Documentation/features/perf-regs/arch-support.txt
-new file mode 100644
-index 000000000000..c820ebab4328
---- /dev/null
-+++ b/Documentation/features/perf-regs/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          perf-regs
-+#         Kconfig:       HAVE_PERF_REGS
-+#         description:   arch supports perf events register access
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/perf-stackdump/arch-support.txt b/Documentation/features/perf-stackdump/arch-support.txt
-new file mode 100644
-index 000000000000..cf42a6fab4e2
---- /dev/null
-+++ b/Documentation/features/perf-stackdump/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          perf-stackdump
-+#         Kconfig:       HAVE_PERF_USER_STACK_DUMP
-+#         description:   arch supports perf events stack dumps
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/pmdp_splitting_flush/arch-support.txt b/Documentation/features/pmdp_splitting_flush/arch-support.txt
-new file mode 100644
-index 000000000000..930c6f0095e7
---- /dev/null
-+++ b/Documentation/features/pmdp_splitting_flush/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          pmdp_splitting_flush
-+#         Kconfig:       #define __HAVE_ARCH_PMDP_SPLITTING_FLUSH
-+#         description:   arch supports the pmdp_splitting_flush() VM API
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/pte_special/arch-support.txt b/Documentation/features/pte_special/arch-support.txt
-new file mode 100644
-index 000000000000..0ca26d144c04
---- /dev/null
-+++ b/Documentation/features/pte_special/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          pte_special
-+#         Kconfig:       #define __HAVE_ARCH_PTE_SPECIAL
-+#         description:   arch supports the pte_special()/pte_mkspecial() VM APIs
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: |  ok  |
-+    |       sparc: |  ok  |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/queued-rwlocks/arch-support.txt b/Documentation/features/queued-rwlocks/arch-support.txt
-new file mode 100644
-index 000000000000..abaffd1b3b84
---- /dev/null
-+++ b/Documentation/features/queued-rwlocks/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          queued-rwlocks
-+#         Kconfig:       ARCH_USE_QUEUED_RWLOCKS
-+#         description:   arch supports queued rwlocks
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: | TODO |
-+    |       arm64: | TODO |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/queued-spinlocks/arch-support.txt b/Documentation/features/queued-spinlocks/arch-support.txt
-new file mode 100644
-index 000000000000..480e9e657039
---- /dev/null
-+++ b/Documentation/features/queued-spinlocks/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          queued-spinlocks
-+#         Kconfig:       ARCH_USE_QUEUED_SPINLOCKS
-+#         description:   arch supports queued spinlocks
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: | TODO |
-+    |       arm64: | TODO |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/rwsem-optimized/arch-support.txt b/Documentation/features/rwsem-optimized/arch-support.txt
-new file mode 100644
-index 000000000000..1572c7a75bb0
---- /dev/null
-+++ b/Documentation/features/rwsem-optimized/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          rwsem-optimized
-+#         Kconfig:       Optimized asm/rwsem.h
-+#         description:   arch provides optimized rwsem APIs
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: |  ok  |
-+    |         arc: |  ok  |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: |  ok  |
-+    |    blackfin: |  ok  |
-+    |         c6x: |  ok  |
-+    |        cris: |  ok  |
-+    |         frv: |  ok  |
-+    |     hexagon: |  ok  |
-+    |        ia64: |  ok  |
-+    |        m32r: |  ok  |
-+    |        m68k: |  ok  |
-+    |       metag: |  ok  |
-+    |  microblaze: |  ok  |
-+    |        mips: |  ok  |
-+    |     mn10300: |  ok  |
-+    |       nios2: |  ok  |
-+    |    openrisc: |  ok  |
-+    |      parisc: |  ok  |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: |  ok  |
-+    |          sh: |  ok  |
-+    |       sparc: |  ok  |
-+    |        tile: |  ok  |
-+    |          um: |  ok  |
-+    |   unicore32: |  ok  |
-+    |         x86: |  ok  |
-+    |      xtensa: |  ok  |
-+    -----------------------
-diff --git a/Documentation/features/seccomp-filter/arch-support.txt b/Documentation/features/seccomp-filter/arch-support.txt
-new file mode 100644
-index 000000000000..1d242a40f195
---- /dev/null
-+++ b/Documentation/features/seccomp-filter/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          seccomp-filter
-+#         Kconfig:       HAVE_ARCH_SECCOMP_FILTER
-+#         description:   arch supports seccomp filters
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/sg-chain/arch-support.txt b/Documentation/features/sg-chain/arch-support.txt
-new file mode 100644
-index 000000000000..8aff17488ae0
---- /dev/null
-+++ b/Documentation/features/sg-chain/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          sg-chain
-+#         Kconfig:       ARCH_HAS_SG_CHAIN
-+#         description:   arch supports chained scatter-gather lists
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: |  ok  |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: |  ok  |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/stackprotector/arch-support.txt b/Documentation/features/stackprotector/arch-support.txt
-new file mode 100644
-index 000000000000..543b41d36520
---- /dev/null
-+++ b/Documentation/features/stackprotector/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          stackprotector
-+#         Kconfig:       HAVE_CC_STACKPROTECTOR
-+#         description:   arch supports compiler driven stack overflow protection
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: |  ok  |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/strncasecmp/arch-support.txt b/Documentation/features/strncasecmp/arch-support.txt
-new file mode 100644
-index 000000000000..9ea6e4d4baed
---- /dev/null
-+++ b/Documentation/features/strncasecmp/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          strncasecmp
-+#         Kconfig:       __HAVE_ARCH_STRNCASECMP
-+#         description:   arch provides an optimized strncasecmp() function
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: | TODO |
-+    |       arm64: | TODO |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: | TODO |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/tracehook/arch-support.txt b/Documentation/features/tracehook/arch-support.txt
-new file mode 100644
-index 000000000000..05e9de795733
---- /dev/null
-+++ b/Documentation/features/tracehook/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          tracehook
-+#         Kconfig:       HAVE_ARCH_TRACEHOOK
-+#         description:   arch supports tracehook (ptrace) register handling APIs
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: |  ok  |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: |  ok  |
-+    |         c6x: |  ok  |
-+    |        cris: | TODO |
-+    |         frv: |  ok  |
-+    |     hexagon: |  ok  |
-+    |        ia64: |  ok  |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: |  ok  |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |     mn10300: |  ok  |
-+    |       nios2: |  ok  |
-+    |    openrisc: |  ok  |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: |  ok  |
-+    |       sparc: |  ok  |
-+    |        tile: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/uprobes/arch-support.txt b/Documentation/features/uprobes/arch-support.txt
-new file mode 100644
-index 000000000000..7c633b846f65
---- /dev/null
-+++ b/Documentation/features/uprobes/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          uprobes
-+#         Kconfig:       ARCH_SUPPORTS_UPROBES
-+#         description:   arch supports live patched user probes
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: | TODO |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/user-ret-profiler/arch-support.txt b/Documentation/features/user-ret-profiler/arch-support.txt
-new file mode 100644
-index 000000000000..6ba4d07ff641
---- /dev/null
-+++ b/Documentation/features/user-ret-profiler/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          user-ret-profiler
-+#         Kconfig:       HAVE_USER_RETURN_NOTIFIER
-+#         description:   arch supports user-space return from system call profiler
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: | TODO |
-+    |       arm64: | TODO |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
-diff --git a/Documentation/features/virt-cpuacct/arch-support.txt b/Documentation/features/virt-cpuacct/arch-support.txt
-new file mode 100644
-index 000000000000..c9374d33b8ac
---- /dev/null
-+++ b/Documentation/features/virt-cpuacct/arch-support.txt
-@@ -0,0 +1,39 @@
-+#
-+# Feature name:          virt-cpuacct
-+#         Kconfig:       HAVE_VIRT_CPU_ACCOUNTING || 64BIT
-+#         description:   arch supports precise virtual CPU time accounting
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: |  ok  |
-+    |         arc: | TODO |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: |  ok  |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: |  ok  |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: |  ok  |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: |  ok  |
-+    |        tile: |  ok  |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
++++ b/arch/arc/plat-axs10x/axs10x.c
+@@ -0,0 +1,298 @@
++/*
++ * AXS101 Software Development Platform
++ *
++ * Copyright (C) 2013-15 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ */
++
++#include <linux/of_platform.h>
++#include <asm/mach_desc.h>
++#include <asm/io.h>
++
++#define AXS_MB_CGU		0xE0010000
++#define AXS_MB_CREG		0xE0011000
++
++#define CREG_MB_IRQ_MUX		(AXS_MB_CREG + 0x214)
++#define CREG_MB_SW_RESET	(AXS_MB_CREG + 0x220)
++#define CREG_MB_VER		(AXS_MB_CREG + 0x230)
++#define CREG_MB_CONFIG		(AXS_MB_CREG + 0x234)
++
++#define AXC001_CREG		0xF0001000
++#define AXC001_GPIO_INTC	0xF0003000
++
++#define CREG_CPU_ADDR_770	(AXC001_CREG + 0x20)
++#define CREG_CPU_ADDR_TUNN	(AXC001_CREG + 0x60)
++#define CREG_CPU_ADDR_770_UPD	(AXC001_CREG + 0x34)
++#define CREG_CPU_ADDR_TUNN_UPD	(AXC001_CREG + 0x74)
++
++#define CREG_CPU_ARC770_IRQ_MUX	(AXC001_CREG + 0x114)
++#define CREG_CPU_GPIO_UART_MUX	(AXC001_CREG + 0x120)
++
++static void enable_gpio_intc_wire(void)
++{
++	/*
++	 * Peripherals on CPU Card and Mother Board are wired to cpu intc via
++	 * intermediate DW APB GPIO blocks (mainly for debouncing)
++	 *
++	 *         ---------------------
++	 *        |  snps,arc700-intc |
++	 *        ---------------------
++	 *          | #7          | #15
++	 * -------------------   -------------------
++	 * | snps,dw-apb-gpio |  | snps,dw-apb-gpio |
++	 * -------------------   -------------------
++	 *        |                         |
++	 *        |                 [ Debug UART on cpu card ]
++	 *        |
++	 * ------------------------
++	 * | snps,dw-apb-intc (MB)|
++	 * ------------------------
++	 *  |      |       |      |
++	 * [eth] [uart]        [... other perip on Main Board]
++	 *
++	 * Current implementation of "irq-dw-apb-ictl" driver doesn't work well
++	 * with stacked INTCs. In particular problem happens if its master INTC
++	 * not yet instantiated. See discussion here -
++	 * https://lkml.org/lkml/2015/3/4/755
++	 *
++	 * So setup the first gpio block as a passive pass thru and hide it from
++	 * DT hardware topology - connect MB intc directly to cpu intc
++	 * The GPIO "wire" needs to be init nevertheless (here)
++	 *
++	 * One side adv is that peripheral interrupt handling avoids one nested
++	 * intc ISR hop
++	 */
++#define GPIO_INTEN		(AXC001_GPIO_INTC + 0x30)
++#define GPIO_INTMASK		(AXC001_GPIO_INTC + 0x34)
++#define GPIO_INTTYPE_LEVEL	(AXC001_GPIO_INTC + 0x38)
++#define GPIO_INT_POLARITY	(AXC001_GPIO_INTC + 0x3c)
++#define MB_TO_GPIO_IRQ		12
++
++	iowrite32(~(1 << MB_TO_GPIO_IRQ), (void __iomem *) GPIO_INTMASK);
++	iowrite32(0, (void __iomem *) GPIO_INTTYPE_LEVEL);
++	iowrite32(~0, (void __iomem *) GPIO_INT_POLARITY);
++	iowrite32(1 << MB_TO_GPIO_IRQ, (void __iomem *) GPIO_INTEN);
++}
++
++static void axs10x_print_board_ver(unsigned int creg, const char *str)
++{
++	union ver {
++		struct {
++#ifdef CONFIG_CPU_BIG_ENDIAN
++			unsigned int pad:11, y:12, m:4, d:5;
++#else
++			unsigned int d:5, m:4, y:12, pad:11;
++#endif
++		};
++		unsigned int val;
++	} board;
++
++	board.val = ioread32((void __iomem *)creg);
++	pr_info("AXS: %s FPGA Date: %u-%u-%u\n", str, board.d, board.m,
++		board.y);
++}
++
++static void axs10x_early_init(void)
++{
++	int mb_rev;
++	char mb[32];
++
++	/* Determine motherboard version */
++	if (ioread32((void __iomem *) CREG_MB_CONFIG) & (1 << 28))
++		mb_rev = 3;	/* HT-3 (rev3.0) */
++	else
++		mb_rev = 2;	/* HT-2 (rev2.0) */
++
++	enable_gpio_intc_wire();
++
++	scnprintf(mb, 32, "MainBoard v%d", mb_rev);
++	axs10x_print_board_ver(CREG_MB_VER, mb);
++}
++
++/*
++ * Set up System Memory Map for ARC cpu / peripherals controllers
++ *
++ * Each AXI master has a 4GB memory map specified as 16 apertures of 256MB, each
++ * of which maps to a corresponding 256MB aperture in Target slave memory map.
++ *
++ * e.g. ARC cpu AXI Master's aperture 8 (0x8000_0000) is mapped to aperture 0
++ * (0x0000_0000) of DDR Port 0 (slave #1)
++ *
++ * Access from cpu to MB controllers such as GMAC is setup using AXI Tunnel:
++ * which has master/slaves on both ends.
++ * e.g. aperture 14 (0xE000_0000) of ARC cpu is mapped to aperture 14
++ * (0xE000_0000) of CPU Card AXI Tunnel slave (slave #3) which is mapped to
++ * MB AXI Tunnel Master, which also has a mem map setup
++ *
++ * In the reverse direction, MB AXI Masters (e.g. GMAC) mem map is setup
++ * to map to MB AXI Tunnel slave which connects to CPU Card AXI Tunnel Master
++ */
++struct aperture {
++	unsigned int slave_sel:4, slave_off:4, pad:24;
++};
++
++/* CPU Card target slaves */
++#define AXC001_SLV_NONE			0
++#define AXC001_SLV_DDR_PORT0		1
++#define AXC001_SLV_SRAM			2
++#define AXC001_SLV_AXI_TUNNEL		3
++#define AXC001_SLV_AXI2APB		6
++#define AXC001_SLV_DDR_PORT1		7
++
++/* MB AXI Target slaves */
++#define AXS_MB_SLV_NONE			0
++#define AXS_MB_SLV_AXI_TUNNEL_CPU	1
++#define AXS_MB_SLV_AXI_TUNNEL_HAPS	2
++#define AXS_MB_SLV_SRAM			3
++#define AXS_MB_SLV_CONTROL		4
++
++/* MB AXI masters */
++#define AXS_MB_MST_TUNNEL_CPU		0
++#define AXS_MB_MST_USB_OHCI		10
++
++/*
++ * memmap for ARC core on CPU Card
++ */
++static const struct aperture axc001_memmap[16] = {
++	{AXC001_SLV_AXI_TUNNEL,		0x0},
++	{AXC001_SLV_AXI_TUNNEL,		0x1},
++	{AXC001_SLV_SRAM,		0x0}, /* 0x2000_0000: Local SRAM */
++	{AXC001_SLV_NONE,		0x0},
++	{AXC001_SLV_NONE,		0x0},
++	{AXC001_SLV_NONE,		0x0},
++	{AXC001_SLV_NONE,		0x0},
++	{AXC001_SLV_NONE,		0x0},
++	{AXC001_SLV_DDR_PORT0,		0x0}, /* 0x8000_0000: DDR   0..256M */
++	{AXC001_SLV_DDR_PORT0,		0x1}, /* 0x9000_0000: DDR 256..512M */
++	{AXC001_SLV_DDR_PORT1,		0x0},
++	{AXC001_SLV_DDR_PORT1,		0x1},
++	{AXC001_SLV_NONE,		0x0},
++	{AXC001_SLV_AXI_TUNNEL,		0xD},
++	{AXC001_SLV_AXI_TUNNEL,		0xE}, /* MB: CREG, CGU... */
++	{AXC001_SLV_AXI2APB,		0x0}, /* CPU Card local CREG, CGU... */
++};
++
++/*
++ * memmap for CPU Card AXI Tunnel Master (for access by MB controllers)
++ * GMAC (MB) -> MB AXI Tunnel slave -> CPU Card AXI Tunnel Master -> DDR
++ */
++static const struct aperture axc001_axi_tunnel_memmap[16] = {
++	{AXC001_SLV_AXI_TUNNEL,		0x0},
++	{AXC001_SLV_AXI_TUNNEL,		0x1},
++	{AXC001_SLV_SRAM,		0x0},
++	{AXC001_SLV_NONE,		0x0},
++	{AXC001_SLV_NONE,		0x0},
++	{AXC001_SLV_NONE,		0x0},
++	{AXC001_SLV_NONE,		0x0},
++	{AXC001_SLV_NONE,		0x0},
++	{AXC001_SLV_DDR_PORT0,		0x0},
++	{AXC001_SLV_DDR_PORT0,		0x1},
++	{AXC001_SLV_DDR_PORT1,		0x0},
++	{AXC001_SLV_DDR_PORT1,		0x1},
++	{AXC001_SLV_NONE,		0x0},
++	{AXC001_SLV_AXI_TUNNEL,		0xD},
++	{AXC001_SLV_AXI_TUNNEL,		0xE},
++	{AXC001_SLV_AXI2APB,		0x0},
++};
++
++/*
++ * memmap for MB AXI Masters
++ * Same mem map for all perip controllers as well as MB AXI Tunnel Master
++ */
++static const struct aperture axs_mb_memmap[16] = {
++	{AXS_MB_SLV_SRAM,		0x0},
++	{AXS_MB_SLV_SRAM,		0x0},
++	{AXS_MB_SLV_NONE,		0x0},
++	{AXS_MB_SLV_NONE,		0x0},
++	{AXS_MB_SLV_NONE,		0x0},
++	{AXS_MB_SLV_NONE,		0x0},
++	{AXS_MB_SLV_NONE,		0x0},
++	{AXS_MB_SLV_NONE,		0x0},
++	{AXS_MB_SLV_AXI_TUNNEL_CPU,	0x8},	/* DDR on CPU Card */
++	{AXS_MB_SLV_AXI_TUNNEL_CPU,	0x9},	/* DDR on CPU Card */
++	{AXS_MB_SLV_AXI_TUNNEL_CPU,	0xA},
++	{AXS_MB_SLV_AXI_TUNNEL_CPU,	0xB},
++	{AXS_MB_SLV_NONE,		0x0},
++	{AXS_MB_SLV_AXI_TUNNEL_HAPS,	0xD},
++	{AXS_MB_SLV_CONTROL,		0x0},	/* MB Local CREG, CGU... */
++	{AXS_MB_SLV_AXI_TUNNEL_CPU,	0xF},
++};
++
++static noinline void
++axs101_set_memmap(void __iomem *base, const struct aperture map[16])
++{
++	unsigned int slave_select, slave_offset;
++	int i;
++
++	slave_select = slave_offset = 0;
++	for (i = 0; i < 8; i++) {
++		slave_select |= map[i].slave_sel << (i << 2);
++		slave_offset |= map[i].slave_off << (i << 2);
++	}
++
++	iowrite32(slave_select, base + 0x0);	/* SLV0 */
++	iowrite32(slave_offset, base + 0x8);	/* OFFSET0 */
++
++	slave_select = slave_offset = 0;
++	for (i = 0; i < 8; i++) {
++		slave_select |= map[i+8].slave_sel << (i << 2);
++		slave_offset |= map[i+8].slave_off << (i << 2);
++	}
++
++	iowrite32(slave_select, base + 0x4);	/* SLV1 */
++	iowrite32(slave_offset, base + 0xC);	/* OFFSET1 */
++}
++
++static void axs101_early_init(void)
++{
++	int i;
++
++	/* ARC 770D memory view */
++	axs101_set_memmap((void __iomem *) CREG_CPU_ADDR_770, axc001_memmap);
++	iowrite32(1, (void __iomem *) CREG_CPU_ADDR_770_UPD);
++
++	/* AXI tunnel memory map (incoming traffic from MB into CPU Card */
++	axs101_set_memmap((void __iomem *) CREG_CPU_ADDR_TUNN,
++			      axc001_axi_tunnel_memmap);
++	iowrite32(1, (void __iomem *) CREG_CPU_ADDR_TUNN_UPD);
++
++	/* MB peripherals memory map */
++	for (i = AXS_MB_MST_TUNNEL_CPU; i <= AXS_MB_MST_USB_OHCI; i++)
++		axs101_set_memmap((void __iomem *) AXS_MB_CREG + (i << 4),
++				      axs_mb_memmap);
++
++	iowrite32(0x3ff, (void __iomem *) AXS_MB_CREG + 0x100); /* Update */
++
++	/* GPIO pins 18 and 19 are used as UART rx and tx, respectively. */
++	iowrite32(0x01, (void __iomem *) CREG_CPU_GPIO_UART_MUX);
++
++	/* Set up the MB interrupt system: mux interrupts to GPIO7) */
++	iowrite32(0x01, (void __iomem *) CREG_MB_IRQ_MUX);
++
++	/* reset ethernet and ULPI interfaces */
++	iowrite32(0x18, (void __iomem *) CREG_MB_SW_RESET);
++
++	/* map GPIO 14:10 to ARC 9:5 (IRQ mux change for MB v2 onwards) */
++	iowrite32(0x52, (void __iomem *) CREG_CPU_ARC770_IRQ_MUX);
++
++	axs10x_early_init();
++}
++
++static const char *axs101_compat[] __initconst = {
++	"snps,axs101",
++	NULL,
++};
++
++MACHINE_START(AXS101, "axs101")
++	.dt_compat	= axs101_compat,
++	.init_early	= axs101_early_init,
++MACHINE_END
+-- 
+2.1.0
+
