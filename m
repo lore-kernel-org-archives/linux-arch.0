@@ -1,130 +1,36 @@
-From: Ingo Molnar <mingo@kernel.org>
+From: Richard Weinberger <richard.weinberger-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
 Subject: Re: [PATCH v2] Documentation/arch: Add kernel feature descriptions
  and arch support status under Documentation/features/
-Date: Thu, 14 May 2015 21:59:25 +0200
-Message-ID: <20150514195925.GA27570@gmail.com>
-References: <20150513092421.GB11030@gmail.com>
- <20150513094622.GC11030@gmail.com>
- <20150513094756.GD11030@gmail.com>
- <20150513131835.GJ1517@pd.tnic>
- <20150513134842.GA1657@gmail.com>
- <20150513162757.GA21894@x>
- <20150513150523.ddd65d7cd51f820b78f0c8e3@linux-foundation.org>
- <20150514101518.GA27550@gmail.com>
- <20150514103544.GA7027@gmail.com>
- <20150514123835.1bf436bc35d711f8dbf9bc0f@linux-foundation.org>
+Date: Thu, 14 May 2015 22:34:42 +0200
+Message-ID: <CAFLxGvzyDyj6gYuQ6F-eV6aCHABC4OEFK0Oa3qm0eVk0PMnsyA@mail.gmail.com>
+References: <20150513083441.GA17336@gmail.com>
+	<20150513085636.GA11030@gmail.com>
+	<20150513092421.GB11030@gmail.com>
+	<20150513094622.GC11030@gmail.com>
+	<20150513094756.GD11030@gmail.com>
+	<20150513131835.GJ1517@pd.tnic>
+	<20150513134842.GA1657@gmail.com>
+	<20150513162757.GA21894@x>
+	<20150513150523.ddd65d7cd51f820b78f0c8e3@linux-foundation.org>
+	<20150514101518.GA27550@gmail.com>
+	<20150514103544.GA7027@gmail.com>
+	<20150514123835.1bf436bc35d711f8dbf9bc0f@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f47.google.com ([74.125.82.47]:34762 "EHLO
-	mail-wg0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965124AbbENUAB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 May 2015 16:00:01 -0400
-Content-Disposition: inline
-In-Reply-To: <20150514123835.1bf436bc35d711f8dbf9bc0f@linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Josh Triplett <josh@joshtriplett.org>, Borislav Petkov <bp@alien8.de>, Jonathan Corbet <corbet@lwn.net>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20150514123835.1bf436bc35d711f8dbf9bc0f-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>
+Cc: Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Josh Triplett <josh-iaAMLnmF4UmaiuxdJuQwMA@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, "open list:ABI/API" <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, LKML <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org" <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Linux-Arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
+On Thu, May 14, 2015 at 9:38 PM, Andrew Morton
+<akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org> wrote:
+> I don't think we've heard from any (non-x86) arch maintainers?  Do they
+> consider this useful at all?  Poke.
 
-* Andrew Morton <akpm@linux-foundation.org> wrote:
+I like it. :-)
 
-> > Add arch support matrices for more than 40 generic kernel features
-> > that need per architecture support.
-> > 
-> > Each feature has its own directory under Documentation/features/feature_name/,
-> > and the arch-support.txt file shows its current arch porting status.
-> > 
-> > For example, lockdep support is shown the following way:
-> > 
-> >     triton:~/tip> cat Documentation/features/lockdep/arch-support.txt
-> >     #
-> >     # Feature name:          lockdep
-> >     #         Kconfig:       LOCKDEP_SUPPORT
-> >     #         description:   arch supports the runtime locking correctness debug facility
-> >     #
-> >         -----------------------
-> >         |         arch |status|
-> >         -----------------------
-> > ...
-> >         |      xtensa: |  ok  |
-> >         -----------------------
-> > 
-> > For generic kernel features that need architecture support, the
-> > arch-support.txt file in each feature directory shows the arch
-> > support matrix, for all upstream Linux architectures.
-> > 
-> > The meaning of entries in the tables is:
-> > 
-> >     | ok |  # feature supported by the architecture
-> >     |TODO|  # feature not yet supported by the architecture
-> >     | .. |  # feature cannot be supported by the hardware
-> 
-> Presumably there will be instances where the maintainer decides "we 
-> shall not implement that".
-
-So I tried to limit the list of features to those that represent the 
-overall progress of the generic kernel and are recommended on all 
-architectures that are able to support it.
-
-There are certainly features that are opt-in. We could still list them 
-here as well, because this is a convenient central index, but would 
-mark them not with 'TODO' but with a low-key '..' marking?
-
-On the other end of the spectrum we could also define 'must have' 
-features for new architectures. For example modern-timekeeping and 
-clockevents.
-
-The patch that adds a new architecture to all these files would give 
-us a good overview about how complete an initial port is.
-
-> > This directory structure can be used in the future to add other 
-> > files - such as porting guides, testing description, etc.
-> 
-> I suppose so.  Having a great bunch of directories, each containing 
-> a single file is a bit odd.
-
-It's a starting point and nicely extensible. I was thinking about one 
-more intermediate level:
-
-   Documentation/features/locking/lockdep/
-   Documentation/features/locking/rwsem-optimized/
-   Documentation/features/locking/queued-rwlocks/
-   Documentation/features/locking/queued-spinlocks/
-   ...
-
-   Documentation/features/vm/PG_uncached/
-   Documentation/features/vm/pmdp_splitting_flush/
-   Documentation/features/vm/pte_special/
-   ...
-
-The advantage of this, beyond more structure, would be that I'd 
-probably move most of the Documentation/locking/*.txt files into 
-Documentation/features/locking/, for example lockdep-design.txt would 
-go into Documentation/features/locking/lockdep/.
-
-I'd keep the hierarchy at a predictable depth though, i.e.:
-
-   Documentation/features/<subsystem>/<feature_name>/
-
-> It would be nice to provide people with commit IDs to look at, but 
-> the IDs won't be known at the time the documentation file is 
-> created.  We could provide patch titles.
-
-Ok.
-
-> But still, let's not overdo it - get something in there, see how 
-> well it works, evolve it over time.
-
-Yeah.
-
-> I don't think we've heard from any (non-x86) arch maintainers?  Do 
-> they consider this useful at all?  Poke.
-
-I think we god some feedback from the PowerPC side, but yeah, would be 
-nice to get more reactions.
-
+-- 
 Thanks,
-
-	Ingo
+//richard
