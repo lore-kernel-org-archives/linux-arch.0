@@ -1,49 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:57095 "EHLO ozlabs.org"
+Received: from terminus.zytor.com ([198.137.202.10]:44223 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933137AbbENDzl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 May 2015 23:55:41 -0400
-Date: Thu, 14 May 2015 13:55:17 +1000
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [RFC PATCH v6] Documentation/arch: Add
- Documentation/arch-features.txt
-Message-ID: <20150514035517.GA27285@drongo.ozlabs.ibm.com>
-References: <20150512142250.dcb053da81855ae1b5861173@linux-foundation.org>
- <20150512213843.GV21418@twins.programming.kicks-ass.net>
- <20150512144910.0b49c9a7a13336773449db33@linux-foundation.org>
- <20150513083441.GA17336@gmail.com>
- <20150513085636.GA11030@gmail.com>
- <20150513092421.GB11030@gmail.com>
- <20150513094622.GC11030@gmail.com>
- <20150513094756.GD11030@gmail.com>
- <20150513131835.GJ1517@pd.tnic>
- <20150513134842.GA1657@gmail.com>
+	id S1750734AbbENHWV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 14 May 2015 03:22:21 -0400
+Message-ID: <55544CDC.3050605@zytor.com>
+Date: Thu, 14 May 2015 00:21:00 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20150513134842.GA1657@gmail.com>
+Subject: Re: [RFC PATCH v5] Documentation/arch: Add Documentation/arch-TODO
+References: <20150511192918.GA11361@jtriplet-mobl1>	<20150512142250.dcb053da81855ae1b5861173@linux-foundation.org>	<20150512213843.GV21418@twins.programming.kicks-ass.net>	<20150512144910.0b49c9a7a13336773449db33@linux-foundation.org>	<20150513083441.GA17336@gmail.com>	<20150513085636.GA11030@gmail.com>	<20150513092421.GB11030@gmail.com>	<20150513094622.GC11030@gmail.com>	<20150513094756.GD11030@gmail.com>	<20150513140945.GA8376@dellaz> <CAMuHMdXV68nie93Rb=Z+vYtn2aNex=s5E4+Z=QGojF+8EbPbKA@mail.gmail.com>
+In-Reply-To: <CAMuHMdXV68nie93Rb=Z+vYtn2aNex=s5E4+Z=QGojF+8EbPbKA@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Borislav Petkov <bp@alien8.de>, Andrew Morton <akpm@linux-foundation.org>, Jonathan Corbet <corbet@lwn.net>, Peter Zijlstra <peterz@infradead.org>, Josh Triplett <josh@joshtriplett.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150514035517.u9jyuKdcwM5FPUsSleCIsdDhUn61tiSmDsknQSTnGlw@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Michele Curti <michele.curti@gmail.com>
+Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Jonathan Corbet <corbet@lwn.net>, Peter Zijlstra <peterz@infradead.org>, Josh Triplett <josh@joshtriplett.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>
+Message-ID: <20150514072100.vQdd7-YmQz5Fg-P9SJ8ipSNU7-xiMBFVoAvipoZU5Rg@z>
 
-On Wed, May 13, 2015 at 03:48:42PM +0200, Ingo Molnar wrote:
+On 05/13/2015 07:42 AM, Geert Uytterhoeven wrote:
+> On Wed, May 13, 2015 at 4:09 PM, Michele Curti <michele.curti@gmail.com> wrote:
+>> Tried to transpose rows with columns, to avoid architecture name duplication
+>> and to get only one table while keeping 80 char width, but result seems less
+>> readable :p
+>>
+>>
+>>                                                 m
+>>                                                 i                         u
+>>                               b                 c       o                 n
+>>                               l       h         r   m   p   p             i
+>>                               a       e         o   n   e p o             c   x
+>>                     a     a a c       x       m b   1 n n a w   s   s     o   t
+>>                     l     r v k   c   a i m m e l m 0 i r r e s c   p t   r   e
+>>                     p a a m r f c r f g a 3 6 t a i 3 o i i r 3 o   a i   e x n
+>>                     h r r 6 3 i 6 i r o 6 2 8 a z p 0 s s s p 9 r s r l u 3 8 s
+>>                     a c m 4 2 n x s v n 4 r k g e s 0 2 c c c 0 e h c e m 2 6 a
+>> -------------------------------------------------------------------------------
+>>             lockdep T K K K K K T T T K T T T K K K T T T T K K K K K K K K K K
+>>      stackprotector T T K K T T T T T T T T T T T K T T T T T T T K T T T T K T
+>>         jump-labels T T K K T T T T T T T T T T T K T T T T K K T T K T T T K T
+>>      seccomp-filter T T K K T T T T T T T T T T T K T T T T T K T T T T T T K T
 > 
-> Updated patch attached - I've added a few more features to the last 
-> table, and restructured the explanations, now every feature 
-> description also lists the Kconfig variable that it's tracking, e.g.:
+> I thought about that, too, as there are more (not fully implemented) features
+> than architectures. But I expect more merge conflicts with the transposed
+> version.
 > 
->       irq time acct: HAVE_IRQ_TIME_ACCOUNTING
 
-Regarding that one specifically, as far as I can see,
-HAVE_IRQ_TIME_ACCOUNTING is only relevant for tick-based time
-accounting.  If you have CONFIG_VIRT_CPU_ACCOUNTING you get accurate
-irq time accounting with or without HAVE_IRQ_TIME_ACCOUNTING.  So how
-about making this one:
+There is another reason for the transposed version, which is that it
+makes adding features to the list much easier.  At the same time, plain
+ASCII is horrific for maintaining tables...
 
-	irq time acct: HAVE_IRQ_TIME_ACCOUNTING || VIRT_CPU_ACCOUNTING
+	-hpa
 
-That would make the "irq time acct" entry for powerpc be "ok".
 
-Paul.
