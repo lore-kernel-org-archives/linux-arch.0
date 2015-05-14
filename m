@@ -1,134 +1,100 @@
-From: Eric B Munson <emunson-JqFfY2XvxFXQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH 0/3] Allow user to request memory to be locked on page
- fault
-Date: Thu, 14 May 2015 09:58:35 -0400
-Message-ID: <20150514135835.GH1227@akamai.com>
-References: <1431113626-19153-1-git-send-email-emunson@akamai.com>
- <20150508124203.6679b1d35ad9555425003929@linux-foundation.org>
- <20150511180631.GA1227@akamai.com>
- <20150513150036.GG1227@akamai.com>
- <20150514080812.GC6433@dhcp22.suse.cz>
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Subject: Re: [PATCH v8 14/16] ARM: dts: Introduce STM32F429 MCU
+Date: Thu, 14 May 2015 18:34:15 +0200
+Message-ID: <CALszF6AhwtYMfhpZjGJeHznteG0mG0_2qo1TcWw-z7anH3Lj4A@mail.gmail.com>
+References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<CALszF6CaO_yuNiSDuDV+4d2NRe_+32j=zcSE1HPhB1UH59cW9w@mail.gmail.com>
+	<5553A608.9080402@linaro.org>
+	<2672178.pv4FEQMD9D@wuerfel>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="fd5uyaI9j6xoeUBo"
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20150514080812.GC6433-2MMpYkNvuYDjFM9bn6wA6Q@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Michal Hocko <mhocko-AlSwsSmVLrQ@public.gmane.org>
-Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Shuah Khan <shuahkh-JPH+aEBZ4P+UEJcrhfAQsw@public.gmane.org>, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-gpio-owner@vger.kernel.org>
+In-Reply-To: <2672178.pv4FEQMD9D@wuerfel>
+Sender: linux-gpio-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Daniel Thompson <daniel.thompson@linaro.org>, Mark Rutland <mark.rutland@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Will Deacon <will.deacon@arm.com>, Stefan Agner <stefan@agner.ch>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Peter Meerwald <pmeerw@pmeerw.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Lee Jones <lee.jones@linaro.org>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Linux-Arch <linux-arch@vger.kernel.org>, Russell King <linux@arm.linux.org.uk>, Jonathan Corbet <corbet@lwn.net>, Jiri Slaby <jslaby@suse.cz>, Daniel Lezcano <daniel.lezcano@linaro.org>, Chanwoo Choi <cw00.choi@samsung.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Antti Palosaari <crope@iki.fi>, Geert Uytterhoeven <geert@>
 List-Id: linux-arch.vger.kernel.org
 
+2015-05-13 21:37 GMT+02:00 Arnd Bergmann <arnd@arndb.de>:
+> On Wednesday 13 May 2015 20:29:12 Daniel Thompson wrote:
+>> On 13/05/15 17:54, Maxime Coquelin wrote:
+>> > 2015-05-13 18:37 GMT+02:00 Arnd Bergmann <arnd@arndb.de>:
+>> >>
+>> >> We should definitely try to use the same compatible string for all of
+>> >> them, and make a binding that is easy to use.
+>> >>
+>> >> I haven't fully understood the requirements for the various parts that
+>> >> are involved here. My understanding so far was that the driver could
+>> >> use the index from the first cell and compute
+>> >>
+>> >>          void __iomem *reset_reg = rcc_base + 0x10 + 4 * index;
+>> >>          void __iomem *clock_reg = rcc_base + 0x30 + 4 * index;
+>> >
+>> > This calculation is true, but we have to take into account there is a
+>> > hole in the middle, between AHB3, and APB1 register:
+>>
+>> ... and equally importantly, only allows us to use hardware mappings for
+>> the gated clocks.
+>>
+>> > AHB1RSTR : offset = 0x10, index = 0
+>> > AHB2RSTR : offset = 0x14, index = 1
+>> > AHB3RSTR : offset = 0x18, index = 2
+>> > <HOLE >     : offset = 0x1c, index = 3
+>> > APB1RSTR : offset = 0x20, index = 4
+>> > APB2RSTR : offset = 0x24, index = 5
+>> >
+>> > So we have to carefully document this hole in the bindings, maybe by
+>> > listing indexes in the documentation?
+>>
+>> The register set has PLL, mux and dividers in the registers at 0x00,
+>> 0x04 and 0x08.
+>>
+>> Many of these clocks can be kept out of DT entirely because they are
+>> only there to feed other parts of the clock tree. However some of the
+>> dividers flow directly into cells that appear in device tree (such as
+>> the systick) and so we need to be able to reference them.
+>>
+>> In other words the proposed mapping cannot allow us to express the
+>> dividers properly (because the index would have to be negative):
+>>    void __iomem *clock_reg = rcc_base + 0x30 + 4 * index;
+>>
+>> Thus I'd favour using different indexes for reset and clock bindings,
+>> both using the naive mapping function:
+>>    void __iomem *reg =  rcc_base + 4 * index
+>>
+>> I think that its so much easier to check against the datasheet like
+>> that. Admittedly is we follow the block-of-4-bytes idiom we have to
+>> divide a hex number by four but thats not so hard and we end up with:
+>>
+>>               resets = <&rcc  8 0>;
+>>               clocks = <&rcc 16 0>;
+>>
+>> At the end of the day if we say we want to follow the datasheet, lets be
+>> do it in the most direct way properly.
 
---fd5uyaI9j6xoeUBo
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Daniel, I'm fine with your proposal.
+Doing that, we can have a single compatible string for stm32 family,
+even if the reset start offset change between two chips.
 
-On Thu, 14 May 2015, Michal Hocko wrote:
+>>
+>>
+>> PS
+>> I've written a custom lookup function to to get from the DT index to an
+>> offset into the struct clk *array I'm using. That means I don't care
+>> much about any big holes in the register space.
+>
+> How about using the first cell to indicate the type (pll, mux, div, gate)
+> and the second cell for the number (between 0 and 256)? That way, the
+> gates numbers would match the reset numbers, and your internal mapping
+> function would look a bit nicer.
 
-> On Wed 13-05-15 11:00:36, Eric B Munson wrote:
-> > On Mon, 11 May 2015, Eric B Munson wrote:
-> >=20
-> > > On Fri, 08 May 2015, Andrew Morton wrote:
-> > >=20
-> > > > On Fri,  8 May 2015 15:33:43 -0400 Eric B Munson <emunson-JqFfY2XvxFVhl2p70BpVqQ@public.gmane.org=
-m> wrote:
-> > > >=20
-> > > > > mlock() allows a user to control page out of program memory, but =
-this
-> > > > > comes at the cost of faulting in the entire mapping when it is
-> > > > > allocated.  For large mappings where the entire area is not neces=
-sary
-> > > > > this is not ideal.
-> > > > >=20
-> > > > > This series introduces new flags for mmap() and mlockall() that a=
-llow a
-> > > > > user to specify that the covered are should not be paged out, but=
- only
-> > > > > after the memory has been used the first time.
-> > > >=20
-> > > > Please tell us much much more about the value of these changes: the=
- use
-> > > > cases, the behavioural improvements and performance results which t=
-he
-> > > > patchset brings to those use cases, etc.
-> > > >=20
-> > >=20
-> > > To illustrate the proposed use case I wrote a quick program that mmaps
-> > > a 5GB file which is filled with random data and accesses 150,000 pages
-> > > from that mapping.  Setup and processing were timed separately to
-> > > illustrate the differences between the three tested approaches.  the
-> > > setup portion is simply the call to mmap, the processing is the
-> > > accessing of the various locations in  that mapping.  The following
-> > > values are in milliseconds and are the averages of 20 runs each with a
-> > > call to echo 3 > /proc/sys/vm/drop_caches between each run.
-> > >=20
-> > > The first mapping was made with MAP_PRIVATE | MAP_LOCKED as a baselin=
-e:
-> > > Startup average:    9476.506
-> > > Processing average: 3.573
-> > >=20
-> > > The second mapping was simply MAP_PRIVATE but each page was passed to
-> > > mlock() before being read:
-> > > Startup average:    0.051
-> > > Processing average: 721.859
-> > >=20
-> > > The final mapping was MAP_PRIVATE | MAP_LOCKONFAULT:
-> > > Startup average:    0.084
-> > > Processing average: 42.125
-> > >=20
-> >=20
-> > Michal's suggestion of changing protections and locking in a signal
-> > handler was better than the locking as needed, but still significantly
-> > more work required than the LOCKONFAULT case.
-> >=20
-> > Startup average:    0.047
-> > Processing average: 86.431
->=20
-> Have you played with batching? Has it helped? Anyway it is to be
-> expected that the overhead will be higher than a single mmap call. The
-> question is whether you can live with it because adding a new semantic
-> to mlock sounds trickier and MAP_LOCKED is tricky enough already...
->=20
+That's another option.
+In this case, for reset, we will only need one cell, right?
 
-The test code I have been using is a pathalogical test case that only
-touches pages once and they are fairly far apart.
-
-On the face batching sounds like a good idea, but I have a couple of
-questions.  In order to batch fault in pages the seg fault handler needs
-to know about the mapping in question.  Specifically it needs to know
-where it ends so that it doesn't try and mprotect()/mlock() past the
-end.  So now the program has to start tracking its maps in some globally
-accessible structure and this sounds more like implementing memory
-management in userspace.  How could this batching be implemented without
-requiring the signal handler to know about mapping that is being
-accessed?  Also, how much memory management policy is it reasonable to
-expect user space to implement in these cases?
-
-Eric
+Regards,
+Maxime
 
 
---fd5uyaI9j6xoeUBo
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAEBAgAGBQJVVKoLAAoJELbVsDOpoOa90wkQANW2KnooZXzzNUTsJw2B/QTN
-YVIypMnzYWbm6PiOrXWmLEYy2WkkhZRFsFfrtj0qXNqj1JHI2l+ziyx0SEAeK6LZ
-aN2/wL8E/uogVP0E8ti06hnkYdmq0AvwHujH3txHVK49wYl/q/X39tf2VxJBA1Ei
-At3JVQ12OymEmzpsnttij1X6uTQQwzaXV/mgeNAk9TYxvj6IWmvkqhrvxBQQpfec
-7yllbH2CWoWRxuhf+mc3R+LX2Vqz14nV0aWSDhIOSO+K+n5LVqBNrLKhKipnqPxQ
-AID/yjBbZuXz/5RP+WddtFk1DwU25f9GyGzXhiq6tiLnayqmaL1vV61E1wkcsspA
-CuS8+jmPcUJvNaiHP9126qTzTVybsz8vtJaZkNSM8Vp2RMrtQvODHuQYBBTClrqd
-35PF/frytzOeEuqpP/Z0kwW/XnNGvcSC2wqM2Gmirn0QK7GsoEHqWRpvuFEcau1j
-/beVWrq6anUmD5PB3RgWb58XP6Q5iQOFbNI8mHHnqZQg2RIMjujJ+f1pXt3bwVJ3
-oZFLALVs9xvy5rDYyFnSVRs4iVEhn2tGdi/mW/oypHyfDsLHX+FhzSuvYCfocGq6
-2jHlCcmQ1osDn8SXNf9bZpp0U0J18YRxV3fj2MHb8MDp9f7aaSr7oIrrZ2A/Zr6G
-0b6iQjK20eFmcy4ranev
-=Fok5
------END PGP SIGNATURE-----
-
---fd5uyaI9j6xoeUBo--
+>
+>         Arnd
