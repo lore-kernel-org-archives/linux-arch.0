@@ -1,52 +1,78 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [RFC PATCH v5] Documentation/arch: Add Documentation/arch-TODO
-Date: Thu, 14 May 2015 00:21:01 -0700
-Message-ID: <55544CDD.108@zytor.com>
-References: <20150511192918.GA11361@jtriplet-mobl1>	<20150512142250.dcb053da81855ae1b5861173@linux-foundation.org>	<20150512213843.GV21418@twins.programming.kicks-ass.net>	<20150512144910.0b49c9a7a13336773449db33@linux-foundation.org>	<20150513083441.GA17336@gmail.com>	<20150513085636.GA11030@gmail.com>	<20150513092421.GB11030@gmail.com>	<20150513094622.GC11030@gmail.com>	<20150513094756.GD11030@gmail.com>	<20150513140945.GA8376@dellaz> <CAMuHMdXV68nie93Rb=Z+vYtn2aNex=s5E4+Z=QGojF+8EbPbKA@mail.gmail.com>
+From: Michal Hocko <mhocko-AlSwsSmVLrQ@public.gmane.org>
+Subject: Re: [PATCH 0/3] Allow user to request memory to be locked on page
+ fault
+Date: Thu, 14 May 2015 10:08:12 +0200
+Message-ID: <20150514080812.GC6433@dhcp22.suse.cz>
+References: <1431113626-19153-1-git-send-email-emunson@akamai.com>
+ <20150508124203.6679b1d35ad9555425003929@linux-foundation.org>
+ <20150511180631.GA1227@akamai.com>
+ <20150513150036.GG1227@akamai.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:44222 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751083AbbENHWV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 14 May 2015 03:22:21 -0400
-In-Reply-To: <CAMuHMdXV68nie93Rb=Z+vYtn2aNex=s5E4+Z=QGojF+8EbPbKA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Michele Curti <michele.curti@gmail.com>
-Cc: Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Jonathan Corbet <corbet@lwn.net>, Peter Zijlstra <peterz@infradead.org>, Josh Triplett <josh@joshtriplett.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Borislav Petkov <bp@alien8.de>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20150513150036.GG1227-JqFfY2XvxFXQT0dZR+AlfA@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Eric B Munson <emunson-JqFfY2XvxFXQT0dZR+AlfA@public.gmane.org>
+Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Shuah Khan <shuahkh-JPH+aEBZ4P+UEJcrhfAQsw@public.gmane.org>, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On 05/13/2015 07:42 AM, Geert Uytterhoeven wrote:
-> On Wed, May 13, 2015 at 4:09 PM, Michele Curti <michele.curti@gmail.com> wrote:
->> Tried to transpose rows with columns, to avoid architecture name duplication
->> and to get only one table while keeping 80 char width, but result seems less
->> readable :p
->>
->>
->>                                                 m
->>                                                 i                         u
->>                               b                 c       o                 n
->>                               l       h         r   m   p   p             i
->>                               a       e         o   n   e p o             c   x
->>                     a     a a c       x       m b   1 n n a w   s   s     o   t
->>                     l     r v k   c   a i m m e l m 0 i r r e s c   p t   r   e
->>                     p a a m r f c r f g a 3 6 t a i 3 o i i r 3 o   a i   e x n
->>                     h r r 6 3 i 6 i r o 6 2 8 a z p 0 s s s p 9 r s r l u 3 8 s
->>                     a c m 4 2 n x s v n 4 r k g e s 0 2 c c c 0 e h c e m 2 6 a
->> -------------------------------------------------------------------------------
->>             lockdep T K K K K K T T T K T T T K K K T T T T K K K K K K K K K K
->>      stackprotector T T K K T T T T T T T T T T T K T T T T T T T K T T T T K T
->>         jump-labels T T K K T T T T T T T T T T T K T T T T K K T T K T T T K T
->>      seccomp-filter T T K K T T T T T T T T T T T K T T T T T K T T T T T T K T
+On Wed 13-05-15 11:00:36, Eric B Munson wrote:
+> On Mon, 11 May 2015, Eric B Munson wrote:
 > 
-> I thought about that, too, as there are more (not fully implemented) features
-> than architectures. But I expect more merge conflicts with the transposed
-> version.
+> > On Fri, 08 May 2015, Andrew Morton wrote:
+> > 
+> > > On Fri,  8 May 2015 15:33:43 -0400 Eric B Munson <emunson-JqFfY2XvxFXQT0dZR+AlfA@public.gmane.org> wrote:
+> > > 
+> > > > mlock() allows a user to control page out of program memory, but this
+> > > > comes at the cost of faulting in the entire mapping when it is
+> > > > allocated.  For large mappings where the entire area is not necessary
+> > > > this is not ideal.
+> > > > 
+> > > > This series introduces new flags for mmap() and mlockall() that allow a
+> > > > user to specify that the covered are should not be paged out, but only
+> > > > after the memory has been used the first time.
+> > > 
+> > > Please tell us much much more about the value of these changes: the use
+> > > cases, the behavioural improvements and performance results which the
+> > > patchset brings to those use cases, etc.
+> > > 
+> > 
+> > To illustrate the proposed use case I wrote a quick program that mmaps
+> > a 5GB file which is filled with random data and accesses 150,000 pages
+> > from that mapping.  Setup and processing were timed separately to
+> > illustrate the differences between the three tested approaches.  the
+> > setup portion is simply the call to mmap, the processing is the
+> > accessing of the various locations in  that mapping.  The following
+> > values are in milliseconds and are the averages of 20 runs each with a
+> > call to echo 3 > /proc/sys/vm/drop_caches between each run.
+> > 
+> > The first mapping was made with MAP_PRIVATE | MAP_LOCKED as a baseline:
+> > Startup average:    9476.506
+> > Processing average: 3.573
+> > 
+> > The second mapping was simply MAP_PRIVATE but each page was passed to
+> > mlock() before being read:
+> > Startup average:    0.051
+> > Processing average: 721.859
+> > 
+> > The final mapping was MAP_PRIVATE | MAP_LOCKONFAULT:
+> > Startup average:    0.084
+> > Processing average: 42.125
+> > 
 > 
+> Michal's suggestion of changing protections and locking in a signal
+> handler was better than the locking as needed, but still significantly
+> more work required than the LOCKONFAULT case.
+> 
+> Startup average:    0.047
+> Processing average: 86.431
 
-There is another reason for the transposed version, which is that it
-makes adding features to the list much easier.  At the same time, plain
-ASCII is horrific for maintaining tables...
+Have you played with batching? Has it helped? Anyway it is to be
+expected that the overhead will be higher than a single mmap call. The
+question is whether you can live with it because adding a new semantic
+to mlock sounds trickier and MAP_LOCKED is tricky enough already...
 
-	-hpa
+-- 
+Michal Hocko
+SUSE Labs
