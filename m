@@ -1,163 +1,26 @@
-From: Eric B Munson <emunson@akamai.com>
-Subject: Re: [PATCH 0/3] Allow user to request memory to be locked on page
- fault
-Date: Fri, 15 May 2015 11:35:50 -0400
-Message-ID: <20150515153550.GA2454@akamai.com>
-References: <1431113626-19153-1-git-send-email-emunson@akamai.com>
- <20150508124203.6679b1d35ad9555425003929@linux-foundation.org>
- <20150511180631.GA1227@akamai.com>
- <20150513150036.GG1227@akamai.com>
- <20150514080812.GC6433@dhcp22.suse.cz>
+From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Subject: Re: [PATCH v8 12/16] ARM: Add STM32 family machine
+Date: Fri, 15 May 2015 21:57:52 +0200
+Message-ID: <4888184.iVzlIKQk94@wuerfel>
+References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com> <1431158038-3813-13-git-send-email-mcoquelin.stm32@gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="UugvWAfsgieZRqgk"
-Return-path: <sparclinux-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20150514080812.GC6433@dhcp22.suse.cz>
-Sender: sparclinux-owner@vger.kernel.org
-To: Michal Hocko <mhocko@suse.cz>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuahkh@osg.samsung.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1431158038-3813-13-git-send-email-mcoquelin.stm32-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Maxime Coquelin <mcoquelin.stm32-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Cc: u.kleine-koenig-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org, afaerber-l3A5Bk7waGM@public.gmane.org, geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Philipp Zabel <p.zabel-bIcnvbaLZ9MEGnE8C9+IrQ@public.gmane.org>, Linus Walleij <linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, stefan-XLVq0VzYD2Y@public.gmane.org, pmeerw-jW+XmwGofnusTnJN9+BGXg@public.gmane.org, pebolle-IWqWACnzNjzz+pZb47iToQ@public.gmane.org, peter-WaGBZJeGNqdsbIuE7sb01tBPR1lH4CV8@public.gmane.org, andy.shevchenko-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, cw00.choi-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org, Russell King <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Daniel Lezcano <daniel.lezcano-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, joe-6d6DIl74uiNBDgjK7y7TUQ@public.gmane.org, Vladimir Zapolskiy <vladimir_zapolskiy-nmGgyN9QBj3QT0dZR+AlfA@public.gmane.org>, lee.jones-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, Daniel Thompson <daniel.thompson-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Pawel Moll <pawel.moll-5wv7dgnIgG8@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Ian Campbell <ijc+devicetree-KcIKpvwj1kUDXYZnReoRVg@public.gmane.org>, Kumar Gala <galak-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Greg Kroah-Hartman <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>, Jiri Slaby <jslaby-AlSwsSmVLrQ@public.gmane.org>, Andrew Morton <akpm@linux-foundation.>
 List-Id: linux-arch.vger.kernel.org
 
+On Saturday 09 May 2015 09:53:54 Maxime Coquelin wrote:
+> STMicrolectronics's STM32 series is a family of Cortex-M
+> microcontrollers. It is used in various applications, and
+> proposes a wide range of peripherals.
+> 
+> Tested-by: Chanwoo Choi <cw00.choi-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
+> Signed-off-by: Maxime Coquelin <mcoquelin.stm32-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
 
---UugvWAfsgieZRqgk
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Applied to next/soc, thanks
 
-On Thu, 14 May 2015, Michal Hocko wrote:
-
-> On Wed 13-05-15 11:00:36, Eric B Munson wrote:
-> > On Mon, 11 May 2015, Eric B Munson wrote:
-> >=20
-> > > On Fri, 08 May 2015, Andrew Morton wrote:
-> > >=20
-> > > > On Fri,  8 May 2015 15:33:43 -0400 Eric B Munson <emunson@akamai.co=
-m> wrote:
-> > > >=20
-> > > > > mlock() allows a user to control page out of program memory, but =
-this
-> > > > > comes at the cost of faulting in the entire mapping when it is
-> > > > > allocated.  For large mappings where the entire area is not neces=
-sary
-> > > > > this is not ideal.
-> > > > >=20
-> > > > > This series introduces new flags for mmap() and mlockall() that a=
-llow a
-> > > > > user to specify that the covered are should not be paged out, but=
- only
-> > > > > after the memory has been used the first time.
-> > > >=20
-> > > > Please tell us much much more about the value of these changes: the=
- use
-> > > > cases, the behavioural improvements and performance results which t=
-he
-> > > > patchset brings to those use cases, etc.
-> > > >=20
-> > >=20
-> > > To illustrate the proposed use case I wrote a quick program that mmaps
-> > > a 5GB file which is filled with random data and accesses 150,000 pages
-> > > from that mapping.  Setup and processing were timed separately to
-> > > illustrate the differences between the three tested approaches.  the
-> > > setup portion is simply the call to mmap, the processing is the
-> > > accessing of the various locations in  that mapping.  The following
-> > > values are in milliseconds and are the averages of 20 runs each with a
-> > > call to echo 3 > /proc/sys/vm/drop_caches between each run.
-> > >=20
-> > > The first mapping was made with MAP_PRIVATE | MAP_LOCKED as a baselin=
-e:
-> > > Startup average:    9476.506
-> > > Processing average: 3.573
-> > >=20
-> > > The second mapping was simply MAP_PRIVATE but each page was passed to
-> > > mlock() before being read:
-> > > Startup average:    0.051
-> > > Processing average: 721.859
-> > >=20
-> > > The final mapping was MAP_PRIVATE | MAP_LOCKONFAULT:
-> > > Startup average:    0.084
-> > > Processing average: 42.125
-> > >=20
-> >=20
-> > Michal's suggestion of changing protections and locking in a signal
-> > handler was better than the locking as needed, but still significantly
-> > more work required than the LOCKONFAULT case.
-> >=20
-> > Startup average:    0.047
-> > Processing average: 86.431
->=20
-> Have you played with batching? Has it helped? Anyway it is to be
-> expected that the overhead will be higher than a single mmap call. The
-> question is whether you can live with it because adding a new semantic
-> to mlock sounds trickier and MAP_LOCKED is tricky enough already...
->=20
-
-I reworked the experiment to better cover the batching solution.  The
-same 5GB data file is used, however instead of 150,000 accesses at
-regular intervals, the test program now does 15,000,000 accesses to
-random pages in the mapping.  The rest of the setup remains the same.
-
-mmap with MAP_LOCKED:
-Setup avg:      11821.193
-Processing avg: 3404.286
-
-mmap with mlock() before each access:
-Setup avg:      0.054
-Processing avg: 34263.201
-
-mmap with PROT_NONE and signal handler and batch size of 1 page:
-With the default value in max_map_count, this gets ENOMEM as I attempt
-to change the permissions, after upping the sysctl significantly I get:
-Setup avg:      0.050
-Processing avg: 67690.625
-
-mmap with PROT_NONE and signal handler and batch size of 8 pages:
-Setup avg:      0.098
-Processing avg: 37344.197
-
-mmap with PROT_NONE and signal handler and batch size of 16 pages:
-Setup avg:      0.0548
-Processing avg: 29295.669
-
-mmap with MAP_LOCKONFAULT:
-Setup avg:      0.073
-Processing avg: 18392.136
-
-The signal handler in the batch cases faulted in memory in two steps to
-avoid having to know the start and end of the faulting mapping.  The
-first step covers the page that caused the fault as we know that it will
-be possible to lock.  The second step speculatively tries to mlock and
-mprotect the batch size - 1 pages that follow.  There may be a clever
-way to avoid this without having the program track each mapping to be
-covered by this handeler in a globally accessible structure, but I could
-not find it.
-
-These results show that if the developer knows that a majority of the
-mapping will be used, it is better to try and fault it in at once,
-otherwise MAP_LOCKONFAULT is significantly faster.
-
-Eric
-
---UugvWAfsgieZRqgk
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAEBAgAGBQJVVhJWAAoJELbVsDOpoOa9WYAP/3ov0vZPI/nakqAuXYzn2jqU
-1Dv9ox2VB8OOYQ7rwRVnpS+yJ7uxXSHHiKZLwBOiCI6nRCAlPmropUW8M+2UsdLV
-i/hvNzA4IuazdL2LqZ/w8pLD9wLtbP+9EqFP5ELbmNxmZyakXctGtxpsa+YUXoZM
-viRheOLn9A6qkZvGqDo6A9jMckXRuvd2x7dG4M/qjSPTVGBq573/qFmcOzNqHRZ9
-PQptov2DdetLXYLBIMoU9kb/cK9EHja8fL/vOyB53DScGcMBLNCcjFJIaPz33wy0
-Jdm4/rJIW5SYF3D4V1UvcJY54MdumOiKkidGIPYsqOApyTiUmc6PK/fZxWz2/P6b
-ab4AOBOHNYrURr45nDbgI0/exrvezuOlqnH4xvZTkZKuprx/pMaWFsv07oECfBpm
-iQk7AcTzoF6j8k+UAl8so+VbZ9m5/FSvR+TAMkNb1mtACVL7Y3gAMcuQG7rap3fN
-lJoe72b4MRpXfBaD/sdW1Q9Zi9SelcEzrV8jPZiEbRHyIQC0UkYRrL6wCM+lClV0
-xj8A/y3LD9Kq+k4S0s7oSc65n1EEejx3SumZ3JoWxno1aNT2RI5c7sclxmaviGr0
-Ro2Gbb0HwrlH2yXwGKkC8jEayG7NzDCZVlXHJ6j6SSGABaLD5DWbaDgzIhT8lGtL
-xI28uUdrt/3kVWpHEZr3
-=ycZg
------END PGP SIGNATURE-----
-
---UugvWAfsgieZRqgk--
+	Arnd
