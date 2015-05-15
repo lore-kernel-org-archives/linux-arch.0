@@ -1,109 +1,169 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f175.google.com ([209.85.212.175]:37697 "EHLO
-	mail-wi0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751932AbbEOHv2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 15 May 2015 03:51:28 -0400
-Date: Fri, 15 May 2015 09:51:23 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2] Documentation/arch: Add kernel feature descriptions
- and arch support status under Documentation/features/
-Message-ID: <20150515075122.GA5270@gmail.com>
-References: <20150513131835.GJ1517@pd.tnic>
- <20150513134842.GA1657@gmail.com>
- <20150513162757.GA21894@x>
- <20150513150523.ddd65d7cd51f820b78f0c8e3@linux-foundation.org>
- <20150514101518.GA27550@gmail.com>
- <20150514103544.GA7027@gmail.com>
- <20150514123835.1bf436bc35d711f8dbf9bc0f@linux-foundation.org>
- <20150514195925.GA27570@gmail.com>
- <20150515083334.535ad43e@canb.auug.org.au>
- <20150515073805.GA14993@gmail.com>
+Received: from prod-mail-xrelay02.akamai.com ([72.246.2.14]:54527 "EHLO
+	prod-mail-xrelay02.akamai.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S934660AbbEOPfv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 15 May 2015 11:35:51 -0400
+Date: Fri, 15 May 2015 11:35:50 -0400
+From: Eric B Munson <emunson@akamai.com>
+Subject: Re: [PATCH 0/3] Allow user to request memory to be locked on page
+ fault
+Message-ID: <20150515153550.GA2454@akamai.com>
+References: <1431113626-19153-1-git-send-email-emunson@akamai.com>
+ <20150508124203.6679b1d35ad9555425003929@linux-foundation.org>
+ <20150511180631.GA1227@akamai.com>
+ <20150513150036.GG1227@akamai.com>
+ <20150514080812.GC6433@dhcp22.suse.cz>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="UugvWAfsgieZRqgk"
 Content-Disposition: inline
-In-Reply-To: <20150515073805.GA14993@gmail.com>
+In-Reply-To: <20150514080812.GC6433@dhcp22.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Josh Triplett <josh@joshtriplett.org>, Borislav Petkov <bp@alien8.de>, Jonathan Corbet <corbet@lwn.net>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20150515075123.UCta8FtxvkgFsleJZV0YJmKQQ1SWLgS-gtYrolpvt9M@z>
+To: Michal Hocko <mhocko@suse.cz>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuahkh@osg.samsung.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20150515153550.UqA-5pZbsuSOA8kFSqgtm9uT9a8KrxL-RrYjdBPHmPQ@z>
 
 
-* Ingo Molnar <mingo@kernel.org> wrote:
+--UugvWAfsgieZRqgk
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> 
-> * Stephen Rothwell <sfr@canb.auug.org.au> wrote:
-> 
-> > Hi Ingo,
-> > 
-> > Thanks for this.  The concept is certainly good.
-> > 
-> > On Thu, 14 May 2015 21:59:25 +0200 Ingo Molnar <mingo@kernel.org> wrote:
-> > >
-> > > The patch that adds a new architecture to all these files would give 
-> > > us a good overview about how complete an initial port is.
-> > 
-> > If you want to test how hard that is (and what sort of patch it
-> > produces), the h8300 architecture was added to linux-next recently.
-> 
-> I tried this out, this is the resulting feature support matrix for the 
-> new h8300 architecture:
-> 
-> #
-> # Kernel feature support matrix of architecture 'h8300':
-> #
->            arch-tick-broadcast:     |       h8300: | TODO |
->                        BPF-JIT:     |       h8300: | TODO |
+On Thu, 14 May 2015, Michal Hocko wrote:
 
-Perhaps the more verbose table is more useful:
+> On Wed 13-05-15 11:00:36, Eric B Munson wrote:
+> > On Mon, 11 May 2015, Eric B Munson wrote:
+> >=20
+> > > On Fri, 08 May 2015, Andrew Morton wrote:
+> > >=20
+> > > > On Fri,  8 May 2015 15:33:43 -0400 Eric B Munson <emunson@akamai.co=
+m> wrote:
+> > > >=20
+> > > > > mlock() allows a user to control page out of program memory, but =
+this
+> > > > > comes at the cost of faulting in the entire mapping when it is
+> > > > > allocated.  For large mappings where the entire area is not neces=
+sary
+> > > > > this is not ideal.
+> > > > >=20
+> > > > > This series introduces new flags for mmap() and mlockall() that a=
+llow a
+> > > > > user to specify that the covered are should not be paged out, but=
+ only
+> > > > > after the memory has been used the first time.
+> > > >=20
+> > > > Please tell us much much more about the value of these changes: the=
+ use
+> > > > cases, the behavioural improvements and performance results which t=
+he
+> > > > patchset brings to those use cases, etc.
+> > > >=20
+> > >=20
+> > > To illustrate the proposed use case I wrote a quick program that mmaps
+> > > a 5GB file which is filled with random data and accesses 150,000 pages
+> > > from that mapping.  Setup and processing were timed separately to
+> > > illustrate the differences between the three tested approaches.  the
+> > > setup portion is simply the call to mmap, the processing is the
+> > > accessing of the various locations in  that mapping.  The following
+> > > values are in milliseconds and are the averages of 20 runs each with a
+> > > call to echo 3 > /proc/sys/vm/drop_caches between each run.
+> > >=20
+> > > The first mapping was made with MAP_PRIVATE | MAP_LOCKED as a baselin=
+e:
+> > > Startup average:    9476.506
+> > > Processing average: 3.573
+> > >=20
+> > > The second mapping was simply MAP_PRIVATE but each page was passed to
+> > > mlock() before being read:
+> > > Startup average:    0.051
+> > > Processing average: 721.859
+> > >=20
+> > > The final mapping was MAP_PRIVATE | MAP_LOCKONFAULT:
+> > > Startup average:    0.084
+> > > Processing average: 42.125
+> > >=20
+> >=20
+> > Michal's suggestion of changing protections and locking in a signal
+> > handler was better than the locking as needed, but still significantly
+> > more work required than the LOCKONFAULT case.
+> >=20
+> > Startup average:    0.047
+> > Processing average: 86.431
+>=20
+> Have you played with batching? Has it helped? Anyway it is to be
+> expected that the overhead will be higher than a single mmap call. The
+> question is whether you can live with it because adding a new semantic
+> to mlock sounds trickier and MAP_LOCKED is tricky enough already...
+>=20
 
-#
-# Kernel feature support matrix of architecture 'h8300':
-#
-   arch-tick-broadcast:  | TODO |                            ARCH_HAS_TICK_BROADCAST #  arch provides tick_broadcast()
-               BPF-JIT:  | TODO |                                       HAVE_BPF_JIT #  arch supports BPF JIT optimizations
-           clockevents:  |  ok  |                                GENERIC_CLOCKEVENTS #  arch support generic clock events
-         cmpxchg-local:  | TODO |                                 HAVE_CMPXCHG_LOCAL #  arch supports the this_cpu_cmpxchg() API
-      context-tracking:  | TODO |                              HAVE_CONTEXT_TRACKING #  arch supports context tracking for NO_HZ_FULL
-         dma-api-debug:  | TODO |                                 HAVE_DMA_API_DEBUG #  arch supports DMA debug facilities
-        dma-contiguous:  | TODO |                                HAVE_DMA_CONTIGUOUS #  arch supports the DMA CMA (continuous memory allocator)
-         dma_map_attrs:  |  ok  |                                     HAVE_DMA_ATTRS #  arch provides dma_*map*_attrs() APIs
-              ELF-ASLR:  | TODO |                             ARCH_HAS_ELF_RANDOMIZE #  arch randomizes the stack, heap and binary images of ELF binaries
-      gcov-profile-all:  | TODO |                          ARCH_HAS_GCOV_PROFILE_ALL #  arch supports whole-kernel GCOV code coverage profiling
-   generic-idle-thread:  | TODO |                            GENERIC_SMP_IDLE_THREAD #  arch makes use of the generic SMP idle thread facility
-             huge-vmap:  | TODO |                                HAVE_ARCH_HUGE_VMAP #  arch supports the ioremap_pud_enabled() and ioremap_pmd_enabled() VM APIs
-          ioremap_prot:  | TODO |                                  HAVE_IOREMAP_PROT #  arch has ioremap_prot()
-         irq-time-acct:  | TODO |                           HAVE_IRQ_TIME_ACCOUNTING #  arch supports precise IRQ time accounting
-           jump-labels:  | TODO |                               HAVE_ARCH_JUMP_LABEL #  arch supports live patched high efficiency branches
-                 KASAN:  | TODO |                                    HAVE_ARCH_KASAN #  arch supports the KASAN runtime memory checker
-                  kgdb:  | TODO |                                     HAVE_ARCH_KGDB #  arch supports the kGDB kernel debugger
-               kprobes:  | TODO |                                       HAVE_KPROBES #  arch supports live patched kernel probe
-         kprobes-event:  | TODO |                     HAVE_REGS_AND_STACK_ACCESS_API #  arch supports kprobes with perf events
-     kprobes-on-ftrace:  | TODO |                             HAVE_KPROBES_ON_FTRACE #  arch supports combined kprobes and ftrace live patching
-            kretprobes:  | TODO |                                    HAVE_KRETPROBES #  arch supports kernel function-return probes
-               lockdep:  | TODO |                                    LOCKDEP_SUPPORT #  arch supports the runtime locking correctness debug facility
-    modern-timekeeping:  |  ok  |                           !ARCH_USES_GETTIMEOFFSET #  arch does not use arch_gettimeoffset() anymore
-        numa-balancing:  |  ..  |      ARCH_SUPPORTS_NUMA_BALANCING && 64BIT && NUMA #  arch supports NUMA balancing
-         numa-memblock:  |  ..  |                             HAVE_MEMBLOCK_NODE_MAP #  arch supports NUMA aware memblocks
-             optprobes:  | TODO |                                     HAVE_OPTPROBES #  arch supports live patched optprobes
-             perf-regs:  | TODO |                                     HAVE_PERF_REGS #  arch supports perf events register access
-        perf-stackdump:  | TODO |                          HAVE_PERF_USER_STACK_DUMP #  arch supports perf events stack dumps
-           PG_uncached:  | TODO |                              ARCH_USES_PG_UNCACHED #  arch supports the PG_uncached page flag
-  pmdp_splitting_flush:  | TODO |           #define __HAVE_ARCH_PMDP_SPLITTING_FLUSH #  arch supports the pmdp_splitting_flush() VM API
-           pte_special:  | TODO |                    #define __HAVE_ARCH_PTE_SPECIAL #  arch supports the pte_special()/pte_mkspecial() VM APIs
-        queued-rwlocks:  | TODO |                            ARCH_USE_QUEUED_RWLOCKS #  arch supports queued rwlocks
-      queued-spinlocks:  | TODO |                          ARCH_USE_QUEUED_SPINLOCKS #  arch supports queued spinlocks
-       rwsem-optimized:  |  ok  |                              Optimized asm/rwsem.h #  arch provides optimized rwsem APIs
-        seccomp-filter:  | TODO |                           HAVE_ARCH_SECCOMP_FILTER #  arch supports seccomp filters
-              sg-chain:  | TODO |                                  ARCH_HAS_SG_CHAIN #  arch supports chained scatter-gather lists
-        stackprotector:  | TODO |                             HAVE_CC_STACKPROTECTOR #  arch supports compiler driven stack overflow protection
-           strncasecmp:  | TODO |                            __HAVE_ARCH_STRNCASECMP #  arch provides an optimized strncasecmp() function
-                   THP:  |  ..  |            HAVE_ARCH_TRANSPARENT_HUGEPAGE && 64BIT #  arch supports transparent hugepages
-             tracehook:  | TODO |                                HAVE_ARCH_TRACEHOOK #  arch supports tracehook (ptrace) register handling APIs
-               uprobes:  | TODO |                              ARCH_SUPPORTS_UPROBES #  arch supports live patched user probes
-     user-ret-profiler:  | TODO |                          HAVE_USER_RETURN_NOTIFIER #  arch supports user-space return from system call profiler
-          virt-cpuacct:  | TODO |                  HAVE_VIRT_CPU_ACCOUNTING || 64BIT #  arch supports precise virtual CPU time accounting
+I reworked the experiment to better cover the batching solution.  The
+same 5GB data file is used, however instead of 150,000 accesses at
+regular intervals, the test program now does 15,000,000 accesses to
+random pages in the mapping.  The rest of the setup remains the same.
 
-Thanks,
+mmap with MAP_LOCKED:
+Setup avg:      11821.193
+Processing avg: 3404.286
 
-	Ingo
+mmap with mlock() before each access:
+Setup avg:      0.054
+Processing avg: 34263.201
+
+mmap with PROT_NONE and signal handler and batch size of 1 page:
+With the default value in max_map_count, this gets ENOMEM as I attempt
+to change the permissions, after upping the sysctl significantly I get:
+Setup avg:      0.050
+Processing avg: 67690.625
+
+mmap with PROT_NONE and signal handler and batch size of 8 pages:
+Setup avg:      0.098
+Processing avg: 37344.197
+
+mmap with PROT_NONE and signal handler and batch size of 16 pages:
+Setup avg:      0.0548
+Processing avg: 29295.669
+
+mmap with MAP_LOCKONFAULT:
+Setup avg:      0.073
+Processing avg: 18392.136
+
+The signal handler in the batch cases faulted in memory in two steps to
+avoid having to know the start and end of the faulting mapping.  The
+first step covers the page that caused the fault as we know that it will
+be possible to lock.  The second step speculatively tries to mlock and
+mprotect the batch size - 1 pages that follow.  There may be a clever
+way to avoid this without having the program track each mapping to be
+covered by this handeler in a globally accessible structure, but I could
+not find it.
+
+These results show that if the developer knows that a majority of the
+mapping will be used, it is better to try and fault it in at once,
+otherwise MAP_LOCKONFAULT is significantly faster.
+
+Eric
+
+--UugvWAfsgieZRqgk
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQIcBAEBAgAGBQJVVhJWAAoJELbVsDOpoOa9WYAP/3ov0vZPI/nakqAuXYzn2jqU
+1Dv9ox2VB8OOYQ7rwRVnpS+yJ7uxXSHHiKZLwBOiCI6nRCAlPmropUW8M+2UsdLV
+i/hvNzA4IuazdL2LqZ/w8pLD9wLtbP+9EqFP5ELbmNxmZyakXctGtxpsa+YUXoZM
+viRheOLn9A6qkZvGqDo6A9jMckXRuvd2x7dG4M/qjSPTVGBq573/qFmcOzNqHRZ9
+PQptov2DdetLXYLBIMoU9kb/cK9EHja8fL/vOyB53DScGcMBLNCcjFJIaPz33wy0
+Jdm4/rJIW5SYF3D4V1UvcJY54MdumOiKkidGIPYsqOApyTiUmc6PK/fZxWz2/P6b
+ab4AOBOHNYrURr45nDbgI0/exrvezuOlqnH4xvZTkZKuprx/pMaWFsv07oECfBpm
+iQk7AcTzoF6j8k+UAl8so+VbZ9m5/FSvR+TAMkNb1mtACVL7Y3gAMcuQG7rap3fN
+lJoe72b4MRpXfBaD/sdW1Q9Zi9SelcEzrV8jPZiEbRHyIQC0UkYRrL6wCM+lClV0
+xj8A/y3LD9Kq+k4S0s7oSc65n1EEejx3SumZ3JoWxno1aNT2RI5c7sclxmaviGr0
+Ro2Gbb0HwrlH2yXwGKkC8jEayG7NzDCZVlXHJ6j6SSGABaLD5DWbaDgzIhT8lGtL
+xI28uUdrt/3kVWpHEZr3
+=ycZg
+-----END PGP SIGNATURE-----
+
+--UugvWAfsgieZRqgk--
