@@ -1,57 +1,93 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH 0/3] add new strscpy() API for string copy
-Date: Fri, 15 May 2015 09:10:18 +1000
-Message-ID: <1431645018.2981.3.camel@ellerman.id.au>
-References: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com>
+From: Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Subject: Re: [PATCH v2] Documentation/arch: Add kernel feature descriptions
+ and arch support status under Documentation/features/
+Date: Fri, 15 May 2015 09:38:06 +0200
+Message-ID: <20150515073805.GA14993@gmail.com>
+References: <20150513094756.GD11030@gmail.com>
+ <20150513131835.GJ1517@pd.tnic>
+ <20150513134842.GA1657@gmail.com>
+ <20150513162757.GA21894@x>
+ <20150513150523.ddd65d7cd51f820b78f0c8e3@linux-foundation.org>
+ <20150514101518.GA27550@gmail.com>
+ <20150514103544.GA7027@gmail.com>
+ <20150514123835.1bf436bc35d711f8dbf9bc0f@linux-foundation.org>
+ <20150514195925.GA27570@gmail.com>
+ <20150515083334.535ad43e@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:33314 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750896AbbENXKW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 14 May 2015 19:10:22 -0400
-In-Reply-To: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@ezchip.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Fabian Frederick <fabf@skynet.be>, Randy Dunlap <rdunlap@infradead.org>, Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>, gregkh@linuxfoundation.org, Peter Zijlstra <peterz@infradead.org>, "David S. Miller" <davem@davemloft.net>, Frederic Weisbecker <fweisbec@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Theodore Ts'o <tytso@mit.edu>, Grant Likely <grant.likely@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20150515083334.535ad43e-3FnU+UHB4dNDw9hX6IcOSA@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Stephen Rothwell <sfr-3FnU+UHB4dNDw9hX6IcOSA@public.gmane.org>
+Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Josh Triplett <josh-iaAMLnmF4UmaiuxdJuQwMA@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Yoshinori Sato <ysato-Rn4VEauK+AKRv+LV9MX5uooqe+aC9MnS@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2015-04-30 at 12:01 -0400, Chris Metcalf wrote:
-> This patch series addresses limitations in strncpy() and strlcpy();
-> both the old APIs are unpleasant, as Linus nicely summarized here
-> a couple of days ago:
-> 
->   https://lkml.org/lkml/2015/4/28/570
-> 
-> and of course as other folks (Greg K-H and Linus again) said last year:
-> 
->   https://plus.google.com/+gregkroahhartman/posts/1amLbuhWbh5
-> 
-> The proposed new API (strscpy(), for "s"afe string copy) has an
-> easy-to-use API for detecting buffer overflow, avoids unsafe truncation
-> by default, and isn't subject to thread-safety attacks like the current
-> strlcpy implementation.  See patch 2/3 for more on why strscpy() is a
-> good thing.
 
-+1 on the concept.
+* Stephen Rothwell <sfr-3FnU+UHB4dNDw9hX6IcOSA@public.gmane.org> wrote:
 
-> To make strscpy() work more efficiently I did the minimum tweaking
-> necessary to allow <asm/word-at-a-time.h> to work on all architectures,
-> though of course individual maintainers can still make their versions
-> more efficient as needed.
+> Hi Ingo,
 > 
-> It's likely not necessary for per-architecture implementations of
-> strscpy() to be written, but I stuck with the standard __HAVE_ARCH_XXX
-> model just for consistency with the rest of <linux/string.h>.
+> Thanks for this.  The concept is certainly good.
 > 
-> I tested the implementation with a simple user-space harness, so I
-> believe it is correct for the corner cases I could think of.  In
-> particular I pairwise-tested all the unaligned values of source and
-> dest, and tested the restriction on src page-crossing at all
-> unaligned offsets approaching the page boundary.
+> On Thu, 14 May 2015 21:59:25 +0200 Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org> wrote:
+> >
+> > The patch that adds a new architecture to all these files would give 
+> > us a good overview about how complete an initial port is.
+> 
+> If you want to test how hard that is (and what sort of patch it
+> produces), the h8300 architecture was added to linux-next recently.
 
-Can you please put that in tools/testing/selftests and merge it as part of the
-series? That way I can run the tests and be confident it works on powerpc.
+I tried this out, this is the resulting feature support matrix for the 
+new h8300 architecture:
 
-cheers
+#
+# Kernel feature support matrix of architecture 'h8300':
+#
+           arch-tick-broadcast:     |       h8300: | TODO |
+                       BPF-JIT:     |       h8300: | TODO |
+                   clockevents:     |       h8300: |  ok  |
+                 cmpxchg-local:     |       h8300: | TODO |
+              context-tracking:     |       h8300: | TODO |
+                 dma-api-debug:     |       h8300: | TODO |
+                dma-contiguous:     |       h8300: | TODO |
+                 dma_map_attrs:     |       h8300: |  ok  |
+                      ELF-ASLR:     |       h8300: | TODO |
+              gcov-profile-all:     |       h8300: | TODO |
+           generic-idle-thread:     |       h8300: | TODO |
+                     huge-vmap:     |       h8300: | TODO |
+                  ioremap_prot:     |       h8300: | TODO |
+                 irq-time-acct:     |       h8300: | TODO |
+                   jump-labels:     |       h8300: | TODO |
+                         KASAN:     |       h8300: | TODO |
+                          kgdb:     |       h8300: | TODO |
+                       kprobes:     |       h8300: | TODO |
+                 kprobes-event:     |       h8300: | TODO |
+             kprobes-on-ftrace:     |       h8300: | TODO |
+                    kretprobes:     |       h8300: | TODO |
+                       lockdep:     |       h8300: | TODO |
+            modern-timekeeping:     |       h8300: |  ok  |
+                numa-balancing:     |       h8300: |  ..  |
+                 numa-memblock:     |       h8300: |  ..  |
+                     optprobes:     |       h8300: | TODO |
+                     perf-regs:     |       h8300: | TODO |
+                perf-stackdump:     |       h8300: | TODO |
+                   PG_uncached:     |       h8300: | TODO |
+          pmdp_splitting_flush:     |       h8300: | TODO |
+                   pte_special:     |       h8300: | TODO |
+                queued-rwlocks:     |       h8300: | TODO |
+              queued-spinlocks:     |       h8300: | TODO |
+               rwsem-optimized:     |       h8300: |  ok  |
+                seccomp-filter:     |       h8300: | TODO |
+                      sg-chain:     |       h8300: | TODO |
+                stackprotector:     |       h8300: | TODO |
+                   strncasecmp:     |       h8300: | TODO |
+                           THP:     |       h8300: |  ..  |
+                     tracehook:     |       h8300: | TODO |
+                       uprobes:     |       h8300: | TODO |
+             user-ret-profiler:     |       h8300: | TODO |
+                  virt-cpuacct:     |       h8300: | TODO |
+
+Thanks,
+
+	Ingo
