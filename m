@@ -1,48 +1,66 @@
 From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: Re: [PATCH v8 11/16] serial: stm32-usart: Add STM32 USART Driver
-Date: Mon, 18 May 2015 15:05:57 +0200
-Message-ID: <CALszF6CfF9a37p7Gy=i8+NJ4EenaO2n1MQ=zc2ORdLf=9ktdZQ@mail.gmail.com>
+Subject: Re: [PATCH v8 09/16] clockevents/drivers: Add STM32 Timer driver
+Date: Mon, 18 May 2015 16:03:49 +0200
+Message-ID: <CALszF6CK7axU0qrWNf38aqrt2R2126ZACn7wx5jNY_1KE+4H+g@mail.gmail.com>
 References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>
- <1431158038-3813-12-git-send-email-mcoquelin.stm32@gmail.com>
+	<1431158038-3813-10-git-send-email-mcoquelin.stm32@gmail.com>
+	<5559E4B0.70506@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1431158038-3813-12-git-send-email-mcoquelin.stm32@gmail.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Mark Rutland <mark.rutland@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Will Deacon <will.deacon@arm.com>, Stefan Agner <stefan@agner.ch>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Peter Meerwald <pmeerw@pmeerw.net>, Jiri Slaby <jslaby@suse.cz>, Linux-Arch <linux-arch@vger.kernel.org>, Daniel Thompson <daniel.thompson@linaro.org>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Lee Jones <lee.jones@linaro.org>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Chanwoo Choi <cw00.choi@samsung.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Antti Palosaari <crope@iki.fi>, Geert Uytterhoeven <geert@linux-m68k.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6n
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wg0-f43.google.com ([74.125.82.43]:36637 "EHLO
+	mail-wg0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752518AbbERODw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 May 2015 10:03:52 -0400
+In-Reply-To: <5559E4B0.70506@linaro.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Joe Perches <joe@perches.com>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Lee Jones <lee.jones@linaro.org>, Daniel Thompson <daniel.thompson@linaro.org>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@he>
 
-Hi Greg,
-
-2015-05-09 9:53 GMT+02:00 Maxime Coquelin <mcoquelin.stm32@gmail.com>:
-> This drivers adds support to the STM32 USART controller, which is a
-> standard serial driver.
+2015-05-18 15:10 GMT+02:00 Daniel Lezcano <daniel.lezcano@linaro.org>:
+> On 05/09/2015 09:53 AM, Maxime Coquelin wrote:
+>>
+>> STM32 MCUs feature 16 and 32 bits general purpose timers with prescalers.
+>> The drivers detects whether the time is 16 or 32 bits, and applies a
+>> 1024 prescaler value if it is 16 bits.
+>>
+>> Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
+>> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
+>> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+>> ---
+>>   drivers/clocksource/Kconfig       |   8 ++
+>>   drivers/clocksource/Makefile      |   1 +
+>>   drivers/clocksource/timer-stm32.c | 184
+>> ++++++++++++++++++++++++++++++++++++++
+>>   3 files changed, 193 insertions(+)
+>>   create mode 100644 drivers/clocksource/timer-stm32.c
+>>
+>> diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+>> index bf9364c..2443520 100644
+>> --- a/drivers/clocksource/Kconfig
+>> +++ b/drivers/clocksource/Kconfig
+>> @@ -106,6 +106,14 @@ config CLKSRC_EFM32
+>>           Support to use the timers of EFM32 SoCs as clock source and
+>> clock
+>>           event device.
+>>
+>> +config CLKSRC_STM32
+>> +       bool "Clocksource for STM32 SoCs" if !ARCH_STM32
+>> +       depends on OF && ARM && (ARCH_STM32 || COMPILE_TEST)
 >
-> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
-> Reviewed-by: Peter Hurley <peter@hurleysoftware.com>
-> Reviewed-by: Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>
-> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-> ---
->  drivers/tty/serial/Kconfig       |  17 +
->  drivers/tty/serial/Makefile      |   1 +
->  drivers/tty/serial/stm32-usart.c | 739 +++++++++++++++++++++++++++++++++++++++
->  include/uapi/linux/serial_core.h |   3 +
->  4 files changed, 760 insertions(+)
->  create mode 100644 drivers/tty/serial/stm32-usart.c
+>
+> Are the interactive bool and the 'COMPILE_TEST' necessary ?
 >
 
-Could you consider applying this patch and the one documenting its DT
-bindings (patch 10/16) to your tree for 4.2?
+The interactive bool is necessary if we want to be able to
+select/deselect it in COMPILE_TEST configuration.
+And personnaly, I think COMPILE_TEST use makes sense.
 
-Thanks in advance,
+Note that other timer drivers are doing the same thing today
+(CLKSRC_EFM32, SH_TIMER_CMT, EM_TIMER_STI...).
+
+Do you have a specific concern regarding COMPILE_TEST?
+
+Kind regards,
 Maxime
