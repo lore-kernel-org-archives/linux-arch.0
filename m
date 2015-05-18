@@ -1,144 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f180.google.com ([209.85.212.180]:38651 "EHLO
-	mail-wi0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750958AbbERIya (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 May 2015 04:54:30 -0400
-Date: Mon, 18 May 2015 10:54:23 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2] Documentation/arch: Add kernel feature descriptions
- and arch support status under Documentation/features/
-Message-ID: <20150518085423.GA24944@gmail.com>
-References: <20150513131835.GJ1517@pd.tnic>
- <20150513134842.GA1657@gmail.com>
- <20150513162757.GA21894@x>
- <20150513150523.ddd65d7cd51f820b78f0c8e3@linux-foundation.org>
- <20150514101518.GA27550@gmail.com>
- <20150514103544.GA7027@gmail.com>
- <20150514123835.1bf436bc35d711f8dbf9bc0f@linux-foundation.org>
- <1431644248.2981.1.camel@ellerman.id.au>
- <20150515074949.GB14993@gmail.com>
- <1431913033.13218.2.camel@ellerman.id.au>
+Received: from mail-wi0-f178.google.com ([209.85.212.178]:33992 "EHLO
+	mail-wi0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751923AbbERLrI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 May 2015 07:47:08 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1431913033.13218.2.camel@ellerman.id.au>
+In-Reply-To: <1431158038-3813-2-git-send-email-mcoquelin.stm32@gmail.com>
+References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<1431158038-3813-2-git-send-email-mcoquelin.stm32@gmail.com>
+Date: Mon, 18 May 2015 13:47:06 +0200
+Message-ID: <CALszF6B0=dgSDfLFwDi9YmEzrrNVuYbUnqMu5DmDhhy--emtpw@mail.gmail.com>
+Subject: Re: [PATCH v8 01/16] scripts: link-vmlinux: Don't pass page offset to
+ kallsyms if XIP Kernel
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Josh Triplett <josh@joshtriplett.org>, Borislav Petkov <bp@alien8.de>, Jonathan Corbet <corbet@lwn.net>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150518085423.WHAE3hejlqGFATDw7xp0OElgZCeiOLyXmHrHN1IMkE8@z>
+To: Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Marek <mmarek@suse.cz>
+Cc: Philipp Zabel <p.zabel@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Rob Herring <robh+dt@kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Jonathan Corbet <corbet@lwn.net>, =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Linus Walleij <linus.walleij@linaro.org>, Stefan Agner <stefan@agner.ch>, Lee Jones <lee.jones@linaro.org>, Joe Perches <joe@perches.com>, Russell King <linux@arm.linux.org.uk>, Andy Shevchenko <andy.shevchenko@gmail.com>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Daniel Thompson <daniel.thompson@linaro.org>, "David S. Miller" <davem@davemloft.net>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Chanwoo Choi <cw00.choi@samsung.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Peter Meerwald <pmeerw@pmeerw.net>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Daniel Lezcano <daniel.lezcano@linaro.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Maxime Coquelin <mcoquelin.stm32@gmail.com>, Nicolae Rosia <nicolae.rosia@gmail.com>, Kamil Lulko <rev13@wp.pl>
+Message-ID: <20150518114706.jeZZ-Mj3OkC4kQSPQRQ_ucRtlIXm0kztfrswYczLXkI@z>
 
+Hi Michal,
 
-* Michael Ellerman <mpe@ellerman.id.au> wrote:
+2015-05-09 9:53 GMT+02:00 Maxime Coquelin <mcoquelin.stm32@gmail.com>:
+> When Kernel is executed in place from ROM, the symbol addresses can be
+> lower than the page offset.
+>
+> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
+> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+> ---
+>  scripts/link-vmlinux.sh | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+>
+> diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+> index 86a4fe7..b055d9d 100755
+> --- a/scripts/link-vmlinux.sh
+> +++ b/scripts/link-vmlinux.sh
+> @@ -82,7 +82,7 @@ kallsyms()
+>                 kallsymopt="${kallsymopt} --all-symbols"
+>         fi
+>
+> -       if [ -n "${CONFIG_ARM}" ] && [ -n "${CONFIG_PAGE_OFFSET}" ]; then
+> +       if [ -n "${CONFIG_ARM}" ] && [ -z "${CONFIG_XIP_KERNEL}" ] && [ -n "${CONFIG_PAGE_OFFSET}" ]; then
+>                 kallsymopt="${kallsymopt} --page-offset=$CONFIG_PAGE_OFFSET"
+>         fi
+>
+> --
+> 1.9.1
+>
 
-> > > Yes it is. I have my own version I've cobbled together for 
-> > > powerpc, but this is much better.
-> > 
-> > Please double check the PowerPC support matrix for correctness (if 
-> > you haven't yet):
-> 
-> It looks good except for:
-> 
-> >        rwsem-optimized:  |  ok  |                              Optimized asm/rwsem.h #  arch provides optimized rwsem APIs
-> 
-> I don't see an rwsem.h in powerpc anywhere?
+The get_maintainer.pl does not explicitly provide your name as
+maintainer for this file.
+But looking at MAINTAINERS file, I think you are the one for it.
 
-Indeed, that slipped through. I fixed it to:
+Do you confirm?
+If this is the case and you agree with the patch, could you consider
+taking it for v4.2?
 
-    triton:~/tip> cat Documentation/features/locking/rwsem-optimized/arch-support.txt 
-    #
-    # Feature name:          rwsem-optimized
-    #         Kconfig:       Optimized asm/rwsem.h
-    #         description:   arch provides optimized rwsem APIs
-    #
-        -----------------------
-        |         arch |status|
-        -----------------------
-        |       alpha: |  ok  |
-        |         arc: | TODO |
-        |         arm: | TODO |
-        |       arm64: | TODO |
-        |       avr32: | TODO |
-        |    blackfin: | TODO |
-        |         c6x: | TODO |
-        |        cris: | TODO |
-        |         frv: | TODO |
-        |     hexagon: | TODO |
-        |        ia64: |  ok  |
-        |        m32r: | TODO |
-        |        m68k: | TODO |
-        |       metag: | TODO |
-        |  microblaze: | TODO |
-        |        mips: | TODO |
-        |     mn10300: | TODO |
-        |       nios2: | TODO |
-        |    openrisc: | TODO |
-        |      parisc: | TODO |
-        |     powerpc: | TODO |
-        |        s390: |  ok  |
-        |       score: | TODO |
-        |          sh: |  ok  |
-        |       sparc: |  ok  |
-        |        tile: | TODO |
-        |          um: | TODO |
-        |   unicore32: | TODO |
-        |         x86: |  ok  |
-        |      xtensa: |  ok  |
-        -----------------------
-
-> And this is correct but a bit confusing:
-> 
-> >          irq-time-acct:  |  ok  |                           HAVE_IRQ_TIME_ACCOUNTING #  arch supports precise IRQ time accounting
-> 
-> I think you and Paul agreed it's "ok" on powerpc because we have
-> VIRT_CPU_ACCOUNTING instead, but that's not obvious.
-
-Ok, so I modified it to print '..' instead:
-
-    triton:~/tip> cat Documentation/features/time/irq-time-acct/arch-support.txt
-    #
-    # Feature name:          irq-time-acct
-    #         Kconfig:       HAVE_IRQ_TIME_ACCOUNTING
-    #         description:   arch supports precise IRQ time accounting
-    #
-        -----------------------
-        |         arch |status|
-        -----------------------
-        |       alpha: |  ..  |
-        |         arc: | TODO |
-        |         arm: |  ok  |
-        |       arm64: |  ..  |
-        |       avr32: | TODO |
-        |    blackfin: | TODO |
-        |         c6x: | TODO |
-        |        cris: | TODO |
-        |         frv: | TODO |
-        |     hexagon: | TODO |
-        |        ia64: |  ..  |
-        |        m32r: | TODO |
-        |        m68k: | TODO |
-        |       metag: | TODO |
-        |  microblaze: | TODO |
-        |        mips: |  ok  |
-        |     mn10300: | TODO |
-        |       nios2: | TODO |
-        |    openrisc: | TODO |
-        |      parisc: |  ..  |
-        |     powerpc: |  ..  |
-        |        s390: |  ..  |
-        |       score: | TODO |
-        |          sh: | TODO |
-        |       sparc: |  ..  |
-        |        tile: |  ..  |
-        |          um: | TODO |
-        |   unicore32: | TODO |
-        |         x86: |  ok  |
-        |      xtensa: |  ok  |
-        -----------------------
-
-i.e. it's not marked as TODO, but not as supported either which would 
-be misleading.
-
-Thanks,
-
-	Ingo
+Thanks in advance,
+Maxime
