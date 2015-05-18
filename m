@@ -1,44 +1,272 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:41584 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753375AbbERNEz convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 May 2015 09:04:55 -0400
-Message-ID: <1431954250.3322.0.camel@twins>
-Subject: Re: [PATCH v1 00/15] decouple pagefault_disable() from
- preempt_disable()
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Mon, 18 May 2015 15:04:10 +0200
-In-Reply-To: <20150518144624.3fb3fa46@thinkpad-w530>
-References: <1431359540-32227-1-git-send-email-dahi@linux.vnet.ibm.com>
-	 <alpine.DEB.2.11.1505151620390.4225@nanos>
-	 <20150518144624.3fb3fa46@thinkpad-w530>
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Mime-Version: 1.0
+Received: from mail-wg0-f54.google.com ([74.125.82.54]:35161 "EHLO
+	mail-wg0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752883AbbERNKX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 May 2015 09:10:23 -0400
+Received: by wgfl8 with SMTP id l8so35902558wgf.2
+        for <linux-arch@vger.kernel.org>; Mon, 18 May 2015 06:10:21 -0700 (PDT)
+Message-ID: <5559E4B0.70506@linaro.org>
+Date: Mon, 18 May 2015 15:10:08 +0200
+From: Daniel Lezcano <daniel.lezcano@linaro.org>
+MIME-Version: 1.0
+Subject: Re: [PATCH v8 09/16] clockevents/drivers: Add STM32 Timer driver
+References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com> <1431158038-3813-10-git-send-email-mcoquelin.stm32@gmail.com>
+In-Reply-To: <1431158038-3813-10-git-send-email-mcoquelin.stm32@gmail.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Hildenbrand <dahi@linux.vnet.ibm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, mingo@redhat.com, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, yang.shi@windriver.com, bigeasy@linutronix.de, benh@kernel.crashing.org, paulus@samba.org, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, borntraeger@de.ibm.com, mst@redhat.com, David.Laight@ACULAB.COM, hughd@google.com, hocko@suse.cz, ralf@linux-mips.org, herbert@gondor.apana.org.au, linux@arm.linux.org.uk, airlied@linux.ie, daniel.vetter@intel.com, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Message-ID: <20150518130410.A2ZWM4cIyr1ARxC9TJpDBsD2RiRQqViMv5TvQL8M6dc@z>
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>, u.kleine-koenig@pengutronix.de, afaerber@suse.de, geert@linux-m68k.org, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, stefan@agner.ch, pmeerw@pmeerw.net, pebolle@tiscali.nl, peter@hurleysoftware.com, andy.shevchenko@gmail.com, cw00.choi@samsung.com, Russell King <linux@arm.linux.org.uk>, joe@perches.com, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, lee.jones@linaro.org, Daniel Thompson <daniel.thompson@linaro.org>
+Cc: Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, linux-doc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, devicetree@vger.kernel.org, linux-gpio@vger.kernel.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, Nicolae Rosia <nicolae.rosia@gmail.com>, Kamil Lulko <rev13@wp.pl>
+Message-ID: <20150518131008.3uA734MDgbYnsb0NId0-PRtCf0xlgrVsOpwkhpOMi-k@z>
 
-On Mon, 2015-05-18 at 14:46 +0200, David Hildenbrand wrote:
-> > Thanks for picking that up (again)!
-> > 
-> > We've pulled the lot into RT and unsurprisingly it works like a charm :)
-> > 
-> > Works on !RT as well. 
-> > 
-> > Reviewed-and-tested-by: Thomas Gleixner <tglx@linutronix.de>
-> > 
-> 
-> Thanks a lot Thomas!
-> 
-> @Ingo, @Andrew, nothing changed during the review of this version and Thomas
-> gave it a review + test.
-> 
-> Any of you willing to pick this up to give it a shot? Or should I resend it with
-> Thomas' tags added.
+On 05/09/2015 09:53 AM, Maxime Coquelin wrote:
+> STM32 MCUs feature 16 and 32 bits general purpose timers with prescalers.
+> The drivers detects whether the time is 16 or 32 bits, and applies a
+> 1024 prescaler value if it is 16 bits.
+>
+> Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
+> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
+> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+> ---
+>   drivers/clocksource/Kconfig       |   8 ++
+>   drivers/clocksource/Makefile      |   1 +
+>   drivers/clocksource/timer-stm32.c | 184 ++++++++++++++++++++++++++++++++++++++
+>   3 files changed, 193 insertions(+)
+>   create mode 100644 drivers/clocksource/timer-stm32.c
+>
+> diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+> index bf9364c..2443520 100644
+> --- a/drivers/clocksource/Kconfig
+> +++ b/drivers/clocksource/Kconfig
+> @@ -106,6 +106,14 @@ config CLKSRC_EFM32
+>   	  Support to use the timers of EFM32 SoCs as clock source and clock
+>   	  event device.
+>
+> +config CLKSRC_STM32
+> +	bool "Clocksource for STM32 SoCs" if !ARCH_STM32
+> +	depends on OF && ARM && (ARCH_STM32 || COMPILE_TEST)
 
-I've got it queued.
+Are the interactive bool and the 'COMPILE_TEST' necessary ?
 
-Thanks!
+
+> +	select CLKSRC_MMIO
+> +	default ARCH_STM32
+> +	help
+> +	  Support to use the timers of STM32 SoCs as clock event device.
+> +
+>   config ARM_ARCH_TIMER
+>   	bool
+>   	select CLKSRC_OF if OF
+> diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+> index d510c54..888a7df 100644
+> --- a/drivers/clocksource/Makefile
+> +++ b/drivers/clocksource/Makefile
+> @@ -36,6 +36,7 @@ obj-$(CONFIG_ARCH_NSPIRE)	+= zevio-timer.o
+>   obj-$(CONFIG_ARCH_BCM_MOBILE)	+= bcm_kona_timer.o
+>   obj-$(CONFIG_CADENCE_TTC_TIMER)	+= cadence_ttc_timer.o
+>   obj-$(CONFIG_CLKSRC_EFM32)	+= time-efm32.o
+> +obj-$(CONFIG_CLKSRC_STM32)	+= timer-stm32.o
+>   obj-$(CONFIG_CLKSRC_EXYNOS_MCT)	+= exynos_mct.o
+>   obj-$(CONFIG_CLKSRC_SAMSUNG_PWM)	+= samsung_pwm_timer.o
+>   obj-$(CONFIG_FSL_FTM_TIMER)	+= fsl_ftm_timer.o
+> diff --git a/drivers/clocksource/timer-stm32.c b/drivers/clocksource/timer-stm32.c
+> new file mode 100644
+> index 0000000..fad2e2e
+> --- /dev/null
+> +++ b/drivers/clocksource/timer-stm32.c
+> @@ -0,0 +1,184 @@
+> +/*
+> + * Copyright (C) Maxime Coquelin 2015
+> + * Author:  Maxime Coquelin <mcoquelin.stm32@gmail.com>
+> + * License terms:  GNU General Public License (GPL), version 2
+> + *
+> + * Inspired by time-efm32.c from Uwe Kleine-Koenig
+> + */
+> +
+> +#include <linux/kernel.h>
+> +#include <linux/clocksource.h>
+> +#include <linux/clockchips.h>
+> +#include <linux/irq.h>
+> +#include <linux/interrupt.h>
+> +#include <linux/of.h>
+> +#include <linux/of_address.h>
+> +#include <linux/of_irq.h>
+> +#include <linux/clk.h>
+> +#include <linux/reset.h>
+> +
+> +#define TIM_CR1		0x00
+> +#define TIM_DIER	0x0c
+> +#define TIM_SR		0x10
+> +#define TIM_EGR		0x14
+> +#define TIM_PSC		0x28
+> +#define TIM_ARR		0x2c
+> +
+> +#define TIM_CR1_CEN	BIT(0)
+> +#define TIM_CR1_OPM	BIT(3)
+> +#define TIM_CR1_ARPE	BIT(7)
+> +
+> +#define TIM_DIER_UIE	BIT(0)
+> +
+> +#define TIM_SR_UIF	BIT(0)
+> +
+> +#define TIM_EGR_UG	BIT(0)
+> +
+> +struct stm32_clock_event_ddata {
+> +	struct clock_event_device evtdev;
+> +	unsigned periodic_top;
+> +	void __iomem *base;
+> +};
+> +
+> +static void stm32_clock_event_set_mode(enum clock_event_mode mode,
+> +				       struct clock_event_device *evtdev)
+> +{
+> +	struct stm32_clock_event_ddata *data =
+> +		container_of(evtdev, struct stm32_clock_event_ddata, evtdev);
+> +	void *base = data->base;
+> +
+> +	switch (mode) {
+> +	case CLOCK_EVT_MODE_PERIODIC:
+> +		writel_relaxed(data->periodic_top, base + TIM_ARR);
+> +		writel_relaxed(TIM_CR1_ARPE | TIM_CR1_CEN, base + TIM_CR1);
+> +		break;
+> +
+> +	case CLOCK_EVT_MODE_ONESHOT:
+> +	default:
+> +		writel_relaxed(0, base + TIM_CR1);
+> +		break;
+> +	}
+> +}
+> +
+> +static int stm32_clock_event_set_next_event(unsigned long evt,
+> +					    struct clock_event_device *evtdev)
+> +{
+> +	struct stm32_clock_event_ddata *data =
+> +		container_of(evtdev, struct stm32_clock_event_ddata, evtdev);
+> +
+> +	writel_relaxed(evt, data->base + TIM_ARR);
+> +	writel_relaxed(TIM_CR1_ARPE | TIM_CR1_OPM | TIM_CR1_CEN,
+> +		       data->base + TIM_CR1);
+> +
+> +	return 0;
+> +}
+> +
+> +static irqreturn_t stm32_clock_event_handler(int irq, void *dev_id)
+> +{
+> +	struct stm32_clock_event_ddata *data = dev_id;
+> +
+> +	writel_relaxed(0, data->base + TIM_SR);
+> +
+> +	data->evtdev.event_handler(&data->evtdev);
+> +
+> +	return IRQ_HANDLED;
+> +}
+> +
+> +static struct stm32_clock_event_ddata clock_event_ddata = {
+> +	.evtdev = {
+> +		.name = "stm32 clockevent",
+> +		.features = CLOCK_EVT_FEAT_ONESHOT | CLOCK_EVT_FEAT_PERIODIC,
+> +		.set_mode = stm32_clock_event_set_mode,
+> +		.set_next_event = stm32_clock_event_set_next_event,
+> +		.rating = 200,
+> +	},
+> +};
+> +
+> +static void __init stm32_clockevent_init(struct device_node *np)
+> +{
+> +	struct stm32_clock_event_ddata *data = &clock_event_ddata;
+> +	struct clk *clk;
+> +	struct reset_control *rstc;
+> +	unsigned long rate, max_delta;
+> +	int irq, ret, bits, prescaler = 1;
+> +
+> +	clk = of_clk_get(np, 0);
+> +	if (IS_ERR(clk)) {
+> +		ret = PTR_ERR(clk);
+> +		pr_err("failed to get clock for clockevent (%d)\n", ret);
+> +		goto err_clk_get;
+> +	}
+> +
+> +	ret = clk_prepare_enable(clk);
+> +	if (ret) {
+> +		pr_err("failed to enable timer clock for clockevent (%d)\n",
+> +		       ret);
+> +		goto err_clk_enable;
+> +	}
+> +
+> +	rate = clk_get_rate(clk);
+> +
+> +	rstc = of_reset_control_get(np, NULL);
+> +	if (!IS_ERR(rstc)) {
+> +		reset_control_assert(rstc);
+> +		reset_control_deassert(rstc);
+> +	}
+> +
+> +	data->base = of_iomap(np, 0);
+> +	if (!data->base) {
+> +		pr_err("failed to map registers for clockevent\n");
+> +		goto err_iomap;
+> +	}
+> +
+> +	irq = irq_of_parse_and_map(np, 0);
+> +	if (!irq) {
+> +		pr_err("%s: failed to get irq.\n", np->full_name);
+> +		goto err_get_irq;
+> +	}
+> +
+> +	/* Detect whether the timer is 16 or 32 bits */
+> +	writel_relaxed(~0UL, data->base + TIM_ARR);
+> +	max_delta = readl_relaxed(data->base + TIM_ARR);
+> +	if (max_delta == ~0UL) {
+> +		prescaler = 1;
+> +		bits = 32;
+> +	} else {
+> +		prescaler = 1024;
+> +		bits = 16;
+> +	}
+> +	writel_relaxed(0, data->base + TIM_ARR);
+> +
+> +	writel_relaxed(prescaler - 1, data->base + TIM_PSC);
+> +	writel_relaxed(TIM_EGR_UG, data->base + TIM_EGR);
+> +	writel_relaxed(TIM_DIER_UIE, data->base + TIM_DIER);
+> +	writel_relaxed(0, data->base + TIM_SR);
+> +
+> +	data->periodic_top = DIV_ROUND_CLOSEST(rate, prescaler * HZ);
+> +
+> +	clockevents_config_and_register(&data->evtdev,
+> +					DIV_ROUND_CLOSEST(rate, prescaler),
+> +					0x1, max_delta);
+> +
+> +	ret = request_irq(irq, stm32_clock_event_handler, IRQF_TIMER,
+> +			"stm32 clockevent", data);
+> +	if (ret) {
+> +		pr_err("%s: failed to request irq.\n", np->full_name);
+> +		goto err_get_irq;
+> +	}
+> +
+> +	pr_info("%s: STM32 clockevent driver initialized (%d bits)\n",
+> +			np->full_name, bits);
+> +
+> +	return;
+> +
+> +err_get_irq:
+> +	iounmap(data->base);
+> +err_iomap:
+> +	clk_disable_unprepare(clk);
+> +err_clk_enable:
+> +	clk_put(clk);
+> +err_clk_get:
+> +	return;
+> +}
+> +
+> +CLOCKSOURCE_OF_DECLARE(stm32, "st,stm32-timer", stm32_clockevent_init);
+>
+
+
+-- 
+  <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
+
+Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
+<http://twitter.com/#!/linaroorg> Twitter |
+<http://www.linaro.org/linaro-blog/> Blog
+
