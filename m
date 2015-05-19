@@ -1,62 +1,80 @@
-From: Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>
-Subject: Re: [PATCH v2] Documentation/arch: Add kernel feature descriptions
- and arch support status under Documentation/features/
-Date: Tue, 19 May 2015 12:02:11 +1000
-Message-ID: <1432000931.8339.2.camel@ellerman.id.au>
-References: <20150513131835.GJ1517@pd.tnic>
-	 <20150513134842.GA1657@gmail.com> <20150513162757.GA21894@x>
-	 <20150513150523.ddd65d7cd51f820b78f0c8e3@linux-foundation.org>
-	 <20150514101518.GA27550@gmail.com> <20150514103544.GA7027@gmail.com>
-	 <20150514123835.1bf436bc35d711f8dbf9bc0f@linux-foundation.org>
-	 <1431644248.2981.1.camel@ellerman.id.au> <20150515074949.GB14993@gmail.com>
-	 <1431913033.13218.2.camel@ellerman.id.au>
-	 <20150518085423.GA24944@gmail.com>
+From: Vinod Koul <vinod.koul@intel.com>
+Subject: Re: [PATCH v3 06/11] scatterlist: support "page-less" (__pfn_t only)
+ entries
+Date: Tue, 19 May 2015 09:40:52 +0530
+Message-ID: <20150519041052.GI3140@localhost>
+References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150512043001.11521.3526.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <1431542149.31415.10.camel@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20150518085423.GA24944-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Josh Triplett <josh-iaAMLnmF4UmaiuxdJuQwMA@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga01.intel.com ([192.55.52.88]:43236 "EHLO mga01.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750722AbbESEKF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 19 May 2015 00:10:05 -0400
+Content-Disposition: inline
+In-Reply-To: <1431542149.31415.10.camel@intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Williams, Dan J" <dan.j.williams@intel.com>
+Cc: "hch@lst.de" <hch@lst.de>, "axboe@fb.com" <axboe@fb.com>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "j.glisse@gmail.com" <j.glisse@gmail.com>, "axboe@kernel.dk" <axboe@kernel.dk>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "riel@redhat.com" <riel@redhat.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@ml01.01.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, "willy@linux.intel.com" <willy@linux.intel.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "mgorman@suse.de" <mgorman@suse.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "david@fromorbit.com" <david@fromorbit.com>
 
-On Mon, 2015-05-18 at 10:54 +0200, Ingo Molnar wrote:
-> * Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org> wrote:
+On Wed, May 13, 2015 at 06:35:55PM +0000, Williams, Dan J wrote:
+> [ adding willy (yes, need to fix my scripts), and dmaengine folks]
 > 
-> > > > Yes it is. I have my own version I've cobbled together for 
-> > > > powerpc, but this is much better.
-> > > 
-> > > Please double check the PowerPC support matrix for correctness (if 
-> > > you haven't yet):
-> > 
-> > It looks good except for:
-> > 
-> > >        rwsem-optimized:  |  ok  |                              Optimized asm/rwsem.h #  arch provides optimized rwsem APIs
-> > 
-> > I don't see an rwsem.h in powerpc anywhere?
+> Jens, Christoph,
 > 
-> Indeed, that slipped through. I fixed it to:
+> I've rebased this patch series block/for-next.  With commit 84be456f883c
+> "remove <asm/scatterlist.h>" I think we can take the next step of
+> removing all references to page_link and just use __pfn_t by default.
+> v4 patch below.
 > 
->     triton:~/tip> cat Documentation/features/locking/rwsem-optimized/arch-support.txt 
->     #
->     # Feature name:          rwsem-optimized
->     #         Kconfig:       Optimized asm/rwsem.h
->     #         description:   arch provides optimized rwsem APIs
->     #
->         |     powerpc: | TODO |
+> Jens, I'm wondering if you want to take this series(.) as patches or
+> prepare a git branch to pull?
 > 
->     triton:~/tip> cat Documentation/features/time/irq-time-acct/arch-support.txt
->     #
->     # Feature name:          irq-time-acct
->     #         Kconfig:       HAVE_IRQ_TIME_ACCOUNTING
->     #         description:   arch supports precise IRQ time accounting
->     #
->         |     powerpc: |  ..  |
-> 
-> i.e. it's not marked as TODO, but not as supported either which would 
-> be misleading.
 
-Great thanks.
+> diff --git a/drivers/crypto/omap-sham.c b/drivers/crypto/omap-sham.c
+> index 4d63e0d4da9a..21736afd3320 100644
+> --- a/drivers/crypto/omap-sham.c
+> +++ b/drivers/crypto/omap-sham.c
+> @@ -582,7 +582,7 @@ static int omap_sham_xmit_dma(struct omap_sham_dev *dd, dma_addr_t dma_addr,
+>  		 * the dmaengine may try to DMA the incorrect amount of data.
+>  		 */
+>  		sg_init_table(&ctx->sgl, 1);
+> -		ctx->sgl.page_link = ctx->sg->page_link;
+> +		ctx->sgl.pfn = ctx->sg->pfn;
+Do you want drivers to tinker with internals of sg, I think driver should be
+agnostic here, perhpas a helper to get pfn, sg_get_pfn()
 
-cheers
+>  		ctx->sgl.offset = ctx->sg->offset;
+>  		sg_dma_len(&ctx->sgl) = len32;
+>  		sg_dma_address(&ctx->sgl) = sg_dma_address(ctx->sg);
+> diff --git a/drivers/dma/imx-dma.c b/drivers/dma/imx-dma.c
+> index eed405976ea9..a767727bcfef 100644
+> --- a/drivers/dma/imx-dma.c
+> +++ b/drivers/dma/imx-dma.c
+> @@ -886,7 +886,7 @@ static struct dma_async_tx_descriptor *imxdma_prep_dma_cyclic(
+>  	sg_init_table(imxdmac->sg_list, periods);
+>  
+>  	for (i = 0; i < periods; i++) {
+> -		imxdmac->sg_list[i].page_link = 0;
+> +		imxdmac->sg_list[i].pfn.page = NULL;
+same here, sg_set_pfn_page() ?
+
+>  		imxdmac->sg_list[i].offset = 0;
+>  		imxdmac->sg_list[i].dma_address = dma_addr;
+>  		sg_dma_len(&imxdmac->sg_list[i]) = period_len;
+> @@ -894,10 +894,7 @@ static struct dma_async_tx_descriptor *imxdma_prep_dma_cyclic(
+>  	}
+>  
+>  	/* close the loop */
+> -	imxdmac->sg_list[periods].offset = 0;
+> -	sg_dma_len(&imxdmac->sg_list[periods]) = 0;
+> -	imxdmac->sg_list[periods].page_link =
+> -		((unsigned long)imxdmac->sg_list | 0x01) & ~0x02;
+> +	sg_chain(imxdmac->sg_list, periods + 1, imxdmac->sg_list);
+This looks right...
+
+-- 
+~Vinod
