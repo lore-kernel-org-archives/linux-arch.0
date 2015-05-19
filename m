@@ -1,53 +1,179 @@
-From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: Re: [PATCH v8 09/16] clockevents/drivers: Add STM32 Timer driver
-Date: Tue, 19 May 2015 17:34:16 +0200
-Message-ID: <CALszF6CRXst-4UwMYeDLxrN_3N4Z9q1dxAR7CzFyngeM6Qeqzw@mail.gmail.com>
-References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>
-	<555B098A.8030202@linaro.org>
-	<CALszF6AJ3Zf598wYeUx=iNWHHKT24xUyfagB=+4GocwZ-Fd-0g@mail.gmail.com>
-	<6177628.0ZDPLeVyah@wuerfel>
-	<CALszF6BZKD-CPTZ6Hc85wv2Z3Y7JmUv-cMkBtbk2Ga6WeeWU=A@mail.gmail.com>
-	<555B3F80.8070605@linaro.org>
-	<CALszF6A-De6dvcRNoa9ruL+y6Wt_rc7bi-O-VxHWkFF9NSt5_g@mail.gmail.com>
-	<20150519145006.GH2067@n2100.arm.linux.org.uk>
+From: Eric B Munson <emunson@akamai.com>
+Subject: Re: [PATCH 0/3] Allow user to request memory to be locked on page
+ fault
+Date: Tue, 19 May 2015 16:30:05 -0400
+Message-ID: <20150519203005.GB2454@akamai.com>
+References: <1431113626-19153-1-git-send-email-emunson@akamai.com>
+ <20150508124203.6679b1d35ad9555425003929@linux-foundation.org>
+ <20150511180631.GA1227@akamai.com>
+ <20150513150036.GG1227@akamai.com>
+ <20150514080812.GC6433@dhcp22.suse.cz>
+ <20150515153550.GA2454@akamai.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f53.google.com ([74.125.82.53]:35705 "EHLO
-	mail-wg0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754863AbbESPeS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 May 2015 11:34:18 -0400
-In-Reply-To: <20150519145006.GH2067@n2100.arm.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Daniel Lezcano <daniel.lezcano@linaro.org>, Arnd Bergmann <arnd@arndb.de>, =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Joe Perches <joe@perches.com>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Lee Jones <lee.jones@linaro.org>, Daniel Thompson <daniel.thompson@linaro.org>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicet>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="pvezYHf7grwyp3Bc"
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20150515153550.GA2454@akamai.com>
+Sender: owner-linux-mm@kvack.org
+To: Michal Hocko <mhocko@suse.cz>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuahkh@osg.samsung.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-2015-05-19 16:50 GMT+02:00 Russell King - ARM Linux <linux@arm.linux.org.uk>:
->
-> config CLKSRC_STM32
->         bool "Clocksource for STM32 SoCs" if COMPILE_TEST
->         depends on OF
->         select CLKSRC_MMIO
->
-> This permits CLKSRC_STM32 to be selected by STM32 (provided OF is enabled,
-> it's always going to be for that case, right?) while allowing the option
-> to be visible when both OF!=n and COMPILE_TEST!=n.
 
-Yes OF is always enabled when STM32.
+--pvezYHf7grwyp3Bc
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-So it fits our needs, as we only want the option to be visible when
-both OF!=n and COMPILE_TEST!=n.
+On Fri, 15 May 2015, Eric B Munson wrote:
 
->
-> Remember,
->
->         bool "string" if <condition-affects-visibility-of-string>
->         depends on <condition-affects-config-symbol-availability>
->
-> The former merely hides the option from the user _if_ the condition fails.
-> The latter _disables_ the option completely (except if you try and select
-> it, at which point you end up with a Kconfig warning about that.)
+> On Thu, 14 May 2015, Michal Hocko wrote:
+>=20
+> > On Wed 13-05-15 11:00:36, Eric B Munson wrote:
+> > > On Mon, 11 May 2015, Eric B Munson wrote:
+> > >=20
+> > > > On Fri, 08 May 2015, Andrew Morton wrote:
+> > > >=20
+> > > > > On Fri,  8 May 2015 15:33:43 -0400 Eric B Munson <emunson@akamai.=
+com> wrote:
+> > > > >=20
+> > > > > > mlock() allows a user to control page out of program memory, bu=
+t this
+> > > > > > comes at the cost of faulting in the entire mapping when it is
+> > > > > > allocated.  For large mappings where the entire area is not nec=
+essary
+> > > > > > this is not ideal.
+> > > > > >=20
+> > > > > > This series introduces new flags for mmap() and mlockall() that=
+ allow a
+> > > > > > user to specify that the covered are should not be paged out, b=
+ut only
+> > > > > > after the memory has been used the first time.
+> > > > >=20
+> > > > > Please tell us much much more about the value of these changes: t=
+he use
+> > > > > cases, the behavioural improvements and performance results which=
+ the
+> > > > > patchset brings to those use cases, etc.
+> > > > >=20
+> > > >=20
+> > > > To illustrate the proposed use case I wrote a quick program that mm=
+aps
+> > > > a 5GB file which is filled with random data and accesses 150,000 pa=
+ges
+> > > > from that mapping.  Setup and processing were timed separately to
+> > > > illustrate the differences between the three tested approaches.  the
+> > > > setup portion is simply the call to mmap, the processing is the
+> > > > accessing of the various locations in  that mapping.  The following
+> > > > values are in milliseconds and are the averages of 20 runs each wit=
+h a
+> > > > call to echo 3 > /proc/sys/vm/drop_caches between each run.
+> > > >=20
+> > > > The first mapping was made with MAP_PRIVATE | MAP_LOCKED as a basel=
+ine:
+> > > > Startup average:    9476.506
+> > > > Processing average: 3.573
+> > > >=20
+> > > > The second mapping was simply MAP_PRIVATE but each page was passed =
+to
+> > > > mlock() before being read:
+> > > > Startup average:    0.051
+> > > > Processing average: 721.859
+> > > >=20
+> > > > The final mapping was MAP_PRIVATE | MAP_LOCKONFAULT:
+> > > > Startup average:    0.084
+> > > > Processing average: 42.125
+> > > >=20
+> > >=20
+> > > Michal's suggestion of changing protections and locking in a signal
+> > > handler was better than the locking as needed, but still significantly
+> > > more work required than the LOCKONFAULT case.
+> > >=20
+> > > Startup average:    0.047
+> > > Processing average: 86.431
+> >=20
+> > Have you played with batching? Has it helped? Anyway it is to be
+> > expected that the overhead will be higher than a single mmap call. The
+> > question is whether you can live with it because adding a new semantic
+> > to mlock sounds trickier and MAP_LOCKED is tricky enough already...
+> >=20
+>=20
+> I reworked the experiment to better cover the batching solution.  The
+> same 5GB data file is used, however instead of 150,000 accesses at
+> regular intervals, the test program now does 15,000,000 accesses to
+> random pages in the mapping.  The rest of the setup remains the same.
+>=20
+> mmap with MAP_LOCKED:
+> Setup avg:      11821.193
+> Processing avg: 3404.286
+>=20
+> mmap with mlock() before each access:
+> Setup avg:      0.054
+> Processing avg: 34263.201
+>=20
+> mmap with PROT_NONE and signal handler and batch size of 1 page:
+> With the default value in max_map_count, this gets ENOMEM as I attempt
+> to change the permissions, after upping the sysctl significantly I get:
+> Setup avg:      0.050
+> Processing avg: 67690.625
+>=20
+> mmap with PROT_NONE and signal handler and batch size of 8 pages:
+> Setup avg:      0.098
+> Processing avg: 37344.197
+>=20
+> mmap with PROT_NONE and signal handler and batch size of 16 pages:
+> Setup avg:      0.0548
+> Processing avg: 29295.669
+>=20
+> mmap with MAP_LOCKONFAULT:
+> Setup avg:      0.073
+> Processing avg: 18392.136
+>=20
+> The signal handler in the batch cases faulted in memory in two steps to
+> avoid having to know the start and end of the faulting mapping.  The
+> first step covers the page that caused the fault as we know that it will
+> be possible to lock.  The second step speculatively tries to mlock and
+> mprotect the batch size - 1 pages that follow.  There may be a clever
+> way to avoid this without having the program track each mapping to be
+> covered by this handeler in a globally accessible structure, but I could
+> not find it.
+>=20
+> These results show that if the developer knows that a majority of the
+> mapping will be used, it is better to try and fault it in at once,
+> otherwise MAP_LOCKONFAULT is significantly faster.
+>=20
+> Eric
 
-Thanks for the reminder!
-Maxime
+Is there anything else I can add to the discussion here?
+
+
+--pvezYHf7grwyp3Bc
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQIcBAEBAgAGBQJVW51NAAoJELbVsDOpoOa9PQIQAJYsWV/aTxT1NeePEHXXzgc2
+mZLqLo0f1XF66qBn4eFO8mSy3CD+MKTqxMxF5dtRJhHkelz7s6JJqwRjfQgr6IT6
+bsGSERcshD3rpNdJQnfkGd3mTmq6FmfvTeaUYPopZrN1zkZU/SmrAvm6GpPhjnH2
+TrXEVm2MEcESl3Q7mNZfNDeduI1sKSw03BaBj2uSVMY7EllwpnvlO4pujmAC9ZBY
+fb+lNttd0wTErNUHvHrUtBT7dCqLuOjAqANT78k+aXROCuIIkmnHjJctVRjRz9Bh
+KFCY9JQTTZ3llNFdO6w/EYGD+u8qVN+8NnGYlR31rQUgVQ9EkLkaoCTdWVl/4dlF
+GklDSDyG7ICUly7lTRSE59Zbph+8SiLPAd9YnGI/Tv5QUTrKRtv2sBD7ahU39eF0
+XLFB02ZX9nzOTTYxKp4UO8iFcRhIkVrefIB467HeW1k15jOoY9Js8Wv1DMcGuUcb
+6iETzFsnYhi/+vQq27rUGNq8MVN0dEsqlI80hfUdmhuSZeeHefmWSPIA7fsROdYk
+zx11IRSbEVzSkcLTKn3Y15futwTl6oAHg3uKcfehxSiY3HmLm7w1EWJ64XKLpWry
+5Dr4G78pWTLTm+Z9TqpBtg5sAcPPnMZwzJybMGHBaNAJqB6ZW83oDM5ght/kStpT
+n6kIODdplDv+SdRLA+3k
+=Cgdc
+-----END PGP SIGNATURE-----
+
+--pvezYHf7grwyp3Bc--
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
