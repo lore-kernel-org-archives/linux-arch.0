@@ -1,80 +1,89 @@
-From: Vinod Koul <vinod.koul@intel.com>
-Subject: Re: [PATCH v3 06/11] scatterlist: support "page-less" (__pfn_t only)
- entries
-Date: Tue, 19 May 2015 09:40:52 +0530
-Message-ID: <20150519041052.GI3140@localhost>
-References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20150512043001.11521.3526.stgit@dwillia2-desk3.amr.corp.intel.com>
- <1431542149.31415.10.camel@intel.com>
+From: Daniel Lezcano <daniel.lezcano@linaro.org>
+Subject: Re: [PATCH v8 09/16] clockevents/drivers: Add STM32 Timer driver
+Date: Tue, 19 May 2015 10:16:03 +0200
+Message-ID: <555AF143.2060807@linaro.org>
+References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>	<1431158038-3813-10-git-send-email-mcoquelin.stm32@gmail.com>	<5559E4B0.70506@linaro.org> <CALszF6CK7axU0qrWNf38aqrt2R2126ZACn7wx5jNY_1KE+4H+g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:43236 "EHLO mga01.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750722AbbESEKF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 May 2015 00:10:05 -0400
-Content-Disposition: inline
-In-Reply-To: <1431542149.31415.10.camel@intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Williams, Dan J" <dan.j.williams@intel.com>
-Cc: "hch@lst.de" <hch@lst.de>, "axboe@fb.com" <axboe@fb.com>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "j.glisse@gmail.com" <j.glisse@gmail.com>, "axboe@kernel.dk" <axboe@kernel.dk>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "riel@redhat.com" <riel@redhat.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@ml01.01.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, "willy@linux.intel.com" <willy@linux.intel.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "mgorman@suse.de" <mgorman@suse.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "david@fromorbit.com" <david@fromorbit.com>
+Content-Type: text/plain; charset=utf-8;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-gpio-owner@vger.kernel.org>
+In-Reply-To: <CALszF6CK7axU0qrWNf38aqrt2R2126ZACn7wx5jNY_1KE+4H+g@mail.gmail.com>
+Sender: linux-gpio-owner@vger.kernel.org
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Cc: =?UTF-8?B?VXdlIEtsZWluZS1Lw7ZuaWc=?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?B?QW5kcmVhcyBGw6RyYmVy?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Joe Perches <joe@perches.com>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Lee Jones <lee.jones@linaro.org>, Daniel Thompson <daniel.thompson@linaro.org>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 13, 2015 at 06:35:55PM +0000, Williams, Dan J wrote:
-> [ adding willy (yes, need to fix my scripts), and dmaengine folks]
-> 
-> Jens, Christoph,
-> 
-> I've rebased this patch series block/for-next.  With commit 84be456f883c
-> "remove <asm/scatterlist.h>" I think we can take the next step of
-> removing all references to page_link and just use __pfn_t by default.
-> v4 patch below.
-> 
-> Jens, I'm wondering if you want to take this series(.) as patches or
-> prepare a git branch to pull?
-> 
+On 05/18/2015 04:03 PM, Maxime Coquelin wrote:
+> 2015-05-18 15:10 GMT+02:00 Daniel Lezcano <daniel.lezcano@linaro.org>=
+:
+>> On 05/09/2015 09:53 AM, Maxime Coquelin wrote:
+>>>
+>>> STM32 MCUs feature 16 and 32 bits general purpose timers with presc=
+alers.
+>>> The drivers detects whether the time is 16 or 32 bits, and applies =
+a
+>>> 1024 prescaler value if it is 16 bits.
+>>>
+>>> Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
+>>> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
+>>> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+>>> ---
+>>>    drivers/clocksource/Kconfig       |   8 ++
+>>>    drivers/clocksource/Makefile      |   1 +
+>>>    drivers/clocksource/timer-stm32.c | 184
+>>> ++++++++++++++++++++++++++++++++++++++
+>>>    3 files changed, 193 insertions(+)
+>>>    create mode 100644 drivers/clocksource/timer-stm32.c
+>>>
+>>> diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kcon=
+fig
+>>> index bf9364c..2443520 100644
+>>> --- a/drivers/clocksource/Kconfig
+>>> +++ b/drivers/clocksource/Kconfig
+>>> @@ -106,6 +106,14 @@ config CLKSRC_EFM32
+>>>            Support to use the timers of EFM32 SoCs as clock source =
+and
+>>> clock
+>>>            event device.
+>>>
+>>> +config CLKSRC_STM32
+>>> +       bool "Clocksource for STM32 SoCs" if !ARCH_STM32
+>>> +       depends on OF && ARM && (ARCH_STM32 || COMPILE_TEST)
+>>
+>>
+>> Are the interactive bool and the 'COMPILE_TEST' necessary ?
+>>
+>
+> The interactive bool is necessary if we want to be able to
+> select/deselect it in COMPILE_TEST configuration.
+> And personnaly, I think COMPILE_TEST use makes sense.
+>
+> Note that other timer drivers are doing the same thing today
+> (CLKSRC_EFM32, SH_TIMER_CMT, EM_TIMER_STI...).
+>
+> Do you have a specific concern regarding COMPILE_TEST?
 
-> diff --git a/drivers/crypto/omap-sham.c b/drivers/crypto/omap-sham.c
-> index 4d63e0d4da9a..21736afd3320 100644
-> --- a/drivers/crypto/omap-sham.c
-> +++ b/drivers/crypto/omap-sham.c
-> @@ -582,7 +582,7 @@ static int omap_sham_xmit_dma(struct omap_sham_dev *dd, dma_addr_t dma_addr,
->  		 * the dmaengine may try to DMA the incorrect amount of data.
->  		 */
->  		sg_init_table(&ctx->sgl, 1);
-> -		ctx->sgl.page_link = ctx->sg->page_link;
-> +		ctx->sgl.pfn = ctx->sg->pfn;
-Do you want drivers to tinker with internals of sg, I think driver should be
-agnostic here, perhpas a helper to get pfn, sg_get_pfn()
+Actually, we try to keep the timer selection non-interactive and let th=
+e=20
+platform's Kconfig to select the timer.
 
->  		ctx->sgl.offset = ctx->sg->offset;
->  		sg_dma_len(&ctx->sgl) = len32;
->  		sg_dma_address(&ctx->sgl) = sg_dma_address(ctx->sg);
-> diff --git a/drivers/dma/imx-dma.c b/drivers/dma/imx-dma.c
-> index eed405976ea9..a767727bcfef 100644
-> --- a/drivers/dma/imx-dma.c
-> +++ b/drivers/dma/imx-dma.c
-> @@ -886,7 +886,7 @@ static struct dma_async_tx_descriptor *imxdma_prep_dma_cyclic(
->  	sg_init_table(imxdmac->sg_list, periods);
->  
->  	for (i = 0; i < periods; i++) {
-> -		imxdmac->sg_list[i].page_link = 0;
-> +		imxdmac->sg_list[i].pfn.page = NULL;
-same here, sg_set_pfn_page() ?
+I like when the code is consistent. The COMPILE_TEST was introduced and=
+=20
+created a precedence. I would like to get rid of the interactive timer=20
+selection but I did not have time to go through this yet.
 
->  		imxdmac->sg_list[i].offset = 0;
->  		imxdmac->sg_list[i].dma_address = dma_addr;
->  		sg_dma_len(&imxdmac->sg_list[i]) = period_len;
-> @@ -894,10 +894,7 @@ static struct dma_async_tx_descriptor *imxdma_prep_dma_cyclic(
->  	}
->  
->  	/* close the loop */
-> -	imxdmac->sg_list[periods].offset = 0;
-> -	sg_dma_len(&imxdmac->sg_list[periods]) = 0;
-> -	imxdmac->sg_list[periods].page_link =
-> -		((unsigned long)imxdmac->sg_list | 0x01) & ~0x02;
-> +	sg_chain(imxdmac->sg_list, periods + 1, imxdmac->sg_list);
-This looks right...
 
--- 
-~Vinod
+--=20
+  <http://www.linaro.org/> Linaro.org =E2=94=82 Open source software fo=
+r ARM SoCs
+
+=46ollow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
+<http://twitter.com/#!/linaroorg> Twitter |
+<http://www.linaro.org/linaro-blog/> Blog
+
+--
+To unsubscribe from this list: send the line "unsubscribe linux-gpio" i=
+n
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
