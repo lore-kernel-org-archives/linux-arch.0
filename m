@@ -1,66 +1,62 @@
-From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: Re: [PATCH v8 09/16] clockevents/drivers: Add STM32 Timer driver
-Date: Mon, 18 May 2015 16:03:49 +0200
-Message-ID: <CALszF6CK7axU0qrWNf38aqrt2R2126ZACn7wx5jNY_1KE+4H+g@mail.gmail.com>
-References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>
-	<1431158038-3813-10-git-send-email-mcoquelin.stm32@gmail.com>
-	<5559E4B0.70506@linaro.org>
+From: Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org>
+Subject: Re: [PATCH v2] Documentation/arch: Add kernel feature descriptions
+ and arch support status under Documentation/features/
+Date: Tue, 19 May 2015 12:02:11 +1000
+Message-ID: <1432000931.8339.2.camel@ellerman.id.au>
+References: <20150513131835.GJ1517@pd.tnic>
+	 <20150513134842.GA1657@gmail.com> <20150513162757.GA21894@x>
+	 <20150513150523.ddd65d7cd51f820b78f0c8e3@linux-foundation.org>
+	 <20150514101518.GA27550@gmail.com> <20150514103544.GA7027@gmail.com>
+	 <20150514123835.1bf436bc35d711f8dbf9bc0f@linux-foundation.org>
+	 <1431644248.2981.1.camel@ellerman.id.au> <20150515074949.GB14993@gmail.com>
+	 <1431913033.13218.2.camel@ellerman.id.au>
+	 <20150518085423.GA24944@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f43.google.com ([74.125.82.43]:36637 "EHLO
-	mail-wg0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752518AbbERODw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 May 2015 10:03:52 -0400
-In-Reply-To: <5559E4B0.70506@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Daniel Lezcano <daniel.lezcano@linaro.org>
-Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Joe Perches <joe@perches.com>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Lee Jones <lee.jones@linaro.org>, Daniel Thompson <daniel.thompson@linaro.org>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@he>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20150518085423.GA24944-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Josh Triplett <josh-iaAMLnmF4UmaiuxdJuQwMA@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-2015-05-18 15:10 GMT+02:00 Daniel Lezcano <daniel.lezcano@linaro.org>:
-> On 05/09/2015 09:53 AM, Maxime Coquelin wrote:
->>
->> STM32 MCUs feature 16 and 32 bits general purpose timers with prescalers.
->> The drivers detects whether the time is 16 or 32 bits, and applies a
->> 1024 prescaler value if it is 16 bits.
->>
->> Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
->> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
->> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
->> ---
->>   drivers/clocksource/Kconfig       |   8 ++
->>   drivers/clocksource/Makefile      |   1 +
->>   drivers/clocksource/timer-stm32.c | 184
->> ++++++++++++++++++++++++++++++++++++++
->>   3 files changed, 193 insertions(+)
->>   create mode 100644 drivers/clocksource/timer-stm32.c
->>
->> diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
->> index bf9364c..2443520 100644
->> --- a/drivers/clocksource/Kconfig
->> +++ b/drivers/clocksource/Kconfig
->> @@ -106,6 +106,14 @@ config CLKSRC_EFM32
->>           Support to use the timers of EFM32 SoCs as clock source and
->> clock
->>           event device.
->>
->> +config CLKSRC_STM32
->> +       bool "Clocksource for STM32 SoCs" if !ARCH_STM32
->> +       depends on OF && ARM && (ARCH_STM32 || COMPILE_TEST)
->
->
-> Are the interactive bool and the 'COMPILE_TEST' necessary ?
->
+On Mon, 2015-05-18 at 10:54 +0200, Ingo Molnar wrote:
+> * Michael Ellerman <mpe-Gsx/Oe8HsFggBc27wqDAHg@public.gmane.org> wrote:
+> 
+> > > > Yes it is. I have my own version I've cobbled together for 
+> > > > powerpc, but this is much better.
+> > > 
+> > > Please double check the PowerPC support matrix for correctness (if 
+> > > you haven't yet):
+> > 
+> > It looks good except for:
+> > 
+> > >        rwsem-optimized:  |  ok  |                              Optimized asm/rwsem.h #  arch provides optimized rwsem APIs
+> > 
+> > I don't see an rwsem.h in powerpc anywhere?
+> 
+> Indeed, that slipped through. I fixed it to:
+> 
+>     triton:~/tip> cat Documentation/features/locking/rwsem-optimized/arch-support.txt 
+>     #
+>     # Feature name:          rwsem-optimized
+>     #         Kconfig:       Optimized asm/rwsem.h
+>     #         description:   arch provides optimized rwsem APIs
+>     #
+>         |     powerpc: | TODO |
+> 
+>     triton:~/tip> cat Documentation/features/time/irq-time-acct/arch-support.txt
+>     #
+>     # Feature name:          irq-time-acct
+>     #         Kconfig:       HAVE_IRQ_TIME_ACCOUNTING
+>     #         description:   arch supports precise IRQ time accounting
+>     #
+>         |     powerpc: |  ..  |
+> 
+> i.e. it's not marked as TODO, but not as supported either which would 
+> be misleading.
 
-The interactive bool is necessary if we want to be able to
-select/deselect it in COMPILE_TEST configuration.
-And personnaly, I think COMPILE_TEST use makes sense.
+Great thanks.
 
-Note that other timer drivers are doing the same thing today
-(CLKSRC_EFM32, SH_TIMER_CMT, EM_TIMER_STI...).
-
-Do you have a specific concern regarding COMPILE_TEST?
-
-Kind regards,
-Maxime
+cheers
