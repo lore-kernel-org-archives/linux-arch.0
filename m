@@ -1,191 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f173.google.com ([209.85.212.173]:38241 "EHLO
-	mail-wi0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755344AbbESKDB convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 May 2015 06:03:01 -0400
-MIME-Version: 1.0
-In-Reply-To: <555B098A.8030202@linaro.org>
-References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>
-	<1431158038-3813-10-git-send-email-mcoquelin.stm32@gmail.com>
-	<5559E4B0.70506@linaro.org>
-	<CALszF6CK7axU0qrWNf38aqrt2R2126ZACn7wx5jNY_1KE+4H+g@mail.gmail.com>
-	<555AF143.2060807@linaro.org>
-	<CALszF6CwGuKqgbX6gVrya1-_YOgvtrgC7pVqKTNjCRif_o532A@mail.gmail.com>
-	<555AFD18.2070009@linaro.org>
-	<CALszF6Asfke0-cMQJcEQ8ya+rbPPPhUc6aXTZXQvQ8QF66cwYQ@mail.gmail.com>
-	<555B098A.8030202@linaro.org>
-Date: Tue, 19 May 2015 12:02:59 +0200
-Message-ID: <CALszF6AJ3Zf598wYeUx=iNWHHKT24xUyfagB=+4GocwZ-Fd-0g@mail.gmail.com>
+Received: from mout.kundenserver.de ([212.227.17.13]:49942 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753935AbbESMNb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 May 2015 08:13:31 -0400
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH v8 09/16] clockevents/drivers: Add STM32 Timer driver
-From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Date: Tue, 19 May 2015 12:55:52 +0200
+Message-ID: <6177628.0ZDPLeVyah@wuerfel>
+In-Reply-To: <CALszF6AJ3Zf598wYeUx=iNWHHKT24xUyfagB=+4GocwZ-Fd-0g@mail.gmail.com>
+References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com> <555B098A.8030202@linaro.org> <CALszF6AJ3Zf598wYeUx=iNWHHKT24xUyfagB=+4GocwZ-Fd-0g@mail.gmail.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Daniel Lezcano <daniel.lezcano@linaro.org>
-Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Joe Perches <joe@perches.com>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Lee Jones <lee.jones@linaro.org>, Daniel Thompson <daniel.thompson@linaro.org>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Nicolae Rosia <nicolae.rosia@gmail.com>, Kamil Lulko <rev13@wp.pl>
-Message-ID: <20150519100259.Aql5w-UDyXopCeurl4ruvNbdjrxYpSlFa64hD77c7mI@z>
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Cc: Daniel Lezcano <daniel.lezcano@linaro.org>, Uwe =?ISO-8859-1?Q?Kleine=2DK=F6nig?= <u.kleine-koenig@pengutronix.de>, Andreas =?ISO-8859-1?Q?F=E4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Joe Perches <joe@perches.com>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Lee Jones <lee.jones@linaro.org>, Daniel Thompson <daniel.thompson@linaro.org>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Nicolae Rosia <nicolae.rosia@gmail.com>, Kamil Lulko <rev13@wp.pl>
+Message-ID: <20150519105552.hirU1otec8sNs8Qj6F9CyonZGg7YGQakqnqP8jH64UI@z>
 
-2015-05-19 11:59 GMT+02:00 Daniel Lezcano <daniel.lezcano@linaro.org>:
-> On 05/19/2015 11:44 AM, Maxime Coquelin wrote:
->>
->> 2015-05-19 11:06 GMT+02:00 Daniel Lezcano <daniel.lezcano@linaro.org>:
->>>
->>> On 05/19/2015 10:55 AM, Maxime Coquelin wrote:
->>>>
->>>>
->>>> 2015-05-19 10:16 GMT+02:00 Daniel Lezcano <daniel.lezcano@linaro.org>:
->>>>>
->>>>>
->>>>> On 05/18/2015 04:03 PM, Maxime Coquelin wrote:
->>>>>>
->>>>>>
->>>>>>
->>>>>> 2015-05-18 15:10 GMT+02:00 Daniel Lezcano <daniel.lezcano@linaro.org>:
->>>>>>>
->>>>>>>
->>>>>>>
->>>>>>> On 05/09/2015 09:53 AM, Maxime Coquelin wrote:
->>>>>>>>
->>>>>>>>
->>>>>>>>
->>>>>>>>
->>>>>>>> STM32 MCUs feature 16 and 32 bits general purpose timers with
->>>>>>>> prescalers.
->>>>>>>> The drivers detects whether the time is 16 or 32 bits, and applies a
->>>>>>>> 1024 prescaler value if it is 16 bits.
->>>>>>>>
->>>>>>>> Reviewed-by: Linus Walleij <linus.walleij@linaro.org>
->>>>>>>> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
->>>>>>>> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
->>>>>>>> ---
->>>>>>>>      drivers/clocksource/Kconfig       |   8 ++
->>>>>>>>      drivers/clocksource/Makefile      |   1 +
->>>>>>>>      drivers/clocksource/timer-stm32.c | 184
->>>>>>>> ++++++++++++++++++++++++++++++++++++++
->>>>>>>>      3 files changed, 193 insertions(+)
->>>>>>>>      create mode 100644 drivers/clocksource/timer-stm32.c
->>>>>>>>
->>>>>>>> diff --git a/drivers/clocksource/Kconfig
->>>>>>>> b/drivers/clocksource/Kconfig
->>>>>>>> index bf9364c..2443520 100644
->>>>>>>> --- a/drivers/clocksource/Kconfig
->>>>>>>> +++ b/drivers/clocksource/Kconfig
->>>>>>>> @@ -106,6 +106,14 @@ config CLKSRC_EFM32
->>>>>>>>              Support to use the timers of EFM32 SoCs as clock source
->>>>>>>> and
->>>>>>>> clock
->>>>>>>>              event device.
->>>>>>>>
->>>>>>>> +config CLKSRC_STM32
->>>>>>>> +       bool "Clocksource for STM32 SoCs" if !ARCH_STM32
->>>>>>>> +       depends on OF && ARM && (ARCH_STM32 || COMPILE_TEST)
->>>>>>>
->>>>>>>
->>>>>>>
->>>>>>>
->>>>>>>
->>>>>>> Are the interactive bool and the 'COMPILE_TEST' necessary ?
->>>>>>>
->>>>>>
->>>>>> The interactive bool is necessary if we want to be able to
->>>>>> select/deselect it in COMPILE_TEST configuration.
->>>>>> And personnaly, I think COMPILE_TEST use makes sense.
->>>>>>
->>>>>> Note that other timer drivers are doing the same thing today
->>>>>> (CLKSRC_EFM32, SH_TIMER_CMT, EM_TIMER_STI...).
->>>>>>
->>>>>> Do you have a specific concern regarding COMPILE_TEST?
->>>>>
->>>>>
->>>>>
->>>>>
->>>>> Actually, we try to keep the timer selection non-interactive and let
->>>>> the
->>>>> platform's Kconfig to select the timer.
->>>>
->>>>
->>>>
->>>> Ok.
->>>>
->>>>>
->>>>> I like when the code is consistent. The COMPILE_TEST was introduced and
->>>>> created a precedence. I would like to get rid of the interactive timer
->>>>> selection but I did not have time to go through this yet.
->>>>
->>>>
->>>>
->>>> Indeed, consistency is important.
->>>> On my side, I don't have a strong opinion regarding the COMPILE_TEST
->>>> thing.
->>>> IMHO, it is more a subsystem's maintainer choice.
->>>>
->>>> So, if as a maintainer you don't use it and prefer not supporting it,
->>>> I'm fine to provide you a new version without COMPILE_TEST.
->>>> Doing that, the interactive selection will disappear too.
->>>>
->>>> I can provide you a new version this evenning.
->>>
->>>
->>>
->>> Ok, great.
->>
->>
->> Is the below Kconfig entry fine for you?
->>
->> config CLKSRC_STM32
->>      def_bool y if ARCH_STM32
->>      select CLKSRC_MMIO
->
->
-> config CLKSRC_STM32
->         bool
->         select CLKSRC_MMIO
->
-> and in the arch/arm/mach-stm32/Kconfig add select CLKSRC_STM32
+On Tuesday 19 May 2015 12:02:59 Maxime Coquelin wrote:
+> >
+> > config CLKSRC_STM32
+> >         bool
+> >         select CLKSRC_MMIO
+> >
+> > and in the arch/arm/mach-stm32/Kconfig add select CLKSRC_STM32
+> 
+> Ok, I will send a patch for arch/arm/Kconfig, as Arnd already applied
+> the one intruducing ARCH_STM32.
+> 
+> 
 
-Ok, I will send a patch for arch/arm/Kconfig, as Arnd already applied
-the one intruducing ARCH_STM32.
+Please also make it possible to select this driver on other architectures
+with COMPILE_TEST, so we get coverage from all the x86 test infrastructure.
 
-Thanks,
-Maxime
->
->
->> Best regards,
->> Maxime
->>
->>
->>>
->>> Thanks
->>>    -- Daniel
->>>
->>>
->>>>>
->>>>>
->>>>>
->>>>> --
->>>>>    <http://www.linaro.org/> Linaro.org │ Open source software for ARM
->>>>> SoCs
->>>>>
->>>>> Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
->>>>> <http://twitter.com/#!/linaroorg> Twitter |
->>>>> <http://www.linaro.org/linaro-blog/> Blog
->>>>>
->>>
->>>
->>> --
->>>   <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
->>>
->>> Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
->>> <http://twitter.com/#!/linaroorg> Twitter |
->>> <http://www.linaro.org/linaro-blog/> Blog
->>>
->
->
-> --
->  <http://www.linaro.org/> Linaro.org │ Open source software for ARM SoCs
->
-> Follow Linaro:  <http://www.facebook.com/pages/Linaro> Facebook |
-> <http://twitter.com/#!/linaroorg> Twitter |
-> <http://www.linaro.org/linaro-blog/> Blog
->
+	Arnd
