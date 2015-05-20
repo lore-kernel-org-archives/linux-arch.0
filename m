@@ -1,60 +1,56 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Compilers and RCU readers: Once more unto the breach!
-Date: Tue, 19 May 2015 17:55:10 -0700
-Message-ID: <20150520005510.GA23559@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: Compilers and RCU readers: Once more unto the breach!
+Date: Tue, 19 May 2015 18:57:02 -0700
+Message-ID: <CA+55aFy_8V-rbE9FQMHx6tXjj8HHKZuKSJvnRPVYvpk46EQA1g@mail.gmail.com>
+References: <20150520005510.GA23559@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e32.co.us.ibm.com ([32.97.110.150]:37283 "EHLO
-	e32.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752174AbbETAzV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 May 2015 20:55:21 -0400
-Received: from /spool/local
-	by e32.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 19 May 2015 18:55:20 -0600
-Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, c++std-parallel@accu.org, linux-arch@vger.kernel.org, gcc@gcc.gnu.org
-Cc: Peter.Sewell@cl.cam.ac.uk, torvalds@linux-foundation.org, Mark.Batty@cl.cam.ac.uk, peterz@infradead.org, will.deacon@arm.com, Ramana.Radhakrishnan@arm.com, dhowells@redhat.com, akpm@linux-foundation.org, mingo@kernel.org, michaelw@ca.ibm.com
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20150520005510.GA23559@linux.vnet.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Paul McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, c++std-parallel@accu.org, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, p796231 <Peter.Sewell@cl.cam.ac.uk>, "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, michaelw@ca.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
-Hello!
+On Tue, May 19, 2015 at 5:55 PM, Paul E. McKenney
+<paulmck@linux.vnet.ibm.com> wrote:
+>
+>         http://www.rdrop.com/users/paulmck/RCU/consume.2015.05.18a.pdf
 
-Following up on last year's discussion (https://lwn.net/Articles/586838/,
-https://lwn.net/Articles/588300/), I believe that we have a solution.  If
-I am wrong, I am sure you all will let me know, and in great detail.  ;-)
+From a very quick read-through, the restricted dependency chain in 7.9
+seems to be reasonable, and essentially covers "thats' what hardware
+gives us anyway", making compiler writers happy.
 
-The key simplification is to "just say no" to RCU-protected array indexes:
-https://lkml.org/lkml/2015/5/12/827, as was suggested by several people.
-This simplification means that rcu_dereference (AKA memory_order_consume)
-need only return pointers.  This in ture avoids things like (x-x),
-(x*0), and (x%1) because if "x" is a pointer, these expressions either
-return non-pointers are compilation errors.  With a very few exceptions,
-dependency chains can lead -to- non-pointers, but cannot pass -through-
-them.
+I would clarify the language somewhat:
 
-The result is that dependencies are carried only by operations for
-which the compiler cannot easily optimize the away those dependencies,
-these operations including simple assignment, integer offset (including
-indexing), dereferencing, casts, passing as a function argument, return
-values from functions and so on.  A complete list with commentary starts
-on page 28 of:
+ - it says that the result of a cast of a pointer is a dependency. You
+need to make an exception for casting to bool, methinks (because
+that's effectively just a test-against-NULL, which you later describe
+as terminating the dependency).
 
-	http://www.rdrop.com/users/paulmck/RCU/consume.2015.05.18a.pdf
+   Maybe get rid of the "any type", and just limit it to casts to
+types of size intptr_t, ie ones that don't drop significant bits. All
+the other rules talk about [u]intptr_t anyway.
 
-Dependency chains are broken if a pointer compares equal to some other
-pointer not part of the same dependency chain, if too many bits are ORed
-onto or ANDed off of a intptr_t or uintptr_t, or if the dependency is
-explicitly killed (which should now strictly speaking never be necessary,
-but which might allow better diagnostics).  These are set out in more
-detail on page 30 of the above PDF.
+ - you clarify that the trivial "& 0" and "| ~0" kill the dependency
+chain, but if you really want to be a stickler, you might want to
+extend it to a few more cases. Things like "& 1" (to extract a tag
+from the lot bit of a tagged pointer) should likely also drop the
+dependency, since a compiler would commonly end up using the end
+result as a conditional even if the code was written to then use
+casting etc to look like a dereference.
 
-This covers all the uses in the Linux kernel that I am aware of without
-any source-code changes (other than to the rcu_dereference() primitives
-themselves) and should also work for compilers and standards.
+ - the "you can add/subtract integral values" still opens you up to
+language lawyers claiming "(char *)ptr - (intptr_t)ptr" preserving the
+dependency, which it clearly doesn't. But language-lawyering it does,
+since all those operations (cast to pointer, cast to integer,
+subtracting an integer) claim to be dependency-preserving operations.
 
-Thoughts?
+So I think you want to limit the logical operators to things that
+don't mask off too many bits, and you should probably limit the
+add/subtract operations some way (maybe specify that the integer value
+you add/subtract cannot be related to the pointer). But I think
+limiting it to mostly pointer ops (and a _few_ integer operations to
+do offsets and remove tag bits) is otherwise a good approach.
 
-							Thanx, Paul
+               Linus
