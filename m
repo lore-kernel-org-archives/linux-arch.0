@@ -1,27 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:41501 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754560AbbETPqM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 May 2015 11:46:12 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20150520151200.GS6776@linux.vnet.ibm.com>
-References: <20150520151200.GS6776@linux.vnet.ibm.com> <20150520005510.GA23559@linux.vnet.ibm.com> <CA+55aFy_8V-rbE9FQMHx6tXjj8HHKZuKSJvnRPVYvpk46EQA1g@mail.gmail.com> <CA+55aFxOtcB8AYCpLQBGSXK=8_Vh4uDs5HEpzGpPy+hgz542ag@mail.gmail.com> <20150520024148.GD6776@linux.vnet.ibm.com> <20150520114745.GC11498@arm.com> <31547.1432127917@warthog.procyon.org.uk> <31805.1432129025@warthog.procyon.org.uk> <555C8FBE.4020505@arm.com> <20150520140343.GO6776@linux.vnet.ibm.com> <555C9714.6020001@arm.com>
-Subject: Re: Compilers and RCU readers: Once more unto the breach!
+Received: from mail-wi0-f182.google.com ([209.85.212.182]:33302 "EHLO
+	mail-wi0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752268AbbETQRg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 May 2015 12:17:36 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <7715.1432136762.1@warthog.procyon.org.uk>
-Date: Wed, 20 May 2015 16:46:02 +0100
-Message-ID: <7716.1432136762@warthog.procyon.org.uk>
+In-Reply-To: <13641152.Yt4ZI3oT6L@wuerfel>
+References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<2282066.NWoIT9ZyLc@wuerfel>
+	<CALszF6CaO_yuNiSDuDV+4d2NRe_+32j=zcSE1HPhB1UH59cW9w@mail.gmail.com>
+	<13641152.Yt4ZI3oT6L@wuerfel>
+Date: Wed, 20 May 2015 18:17:34 +0200
+Message-ID: <CALszF6CK5ezrO6D=4zr6zEPC7VanzbQjnZJwKOZekEZ5L4D-Dg@mail.gmail.com>
+Subject: Re: [PATCH v8 14/16] ARM: dts: Introduce STM32F429 MCU
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: dhowells@redhat.com, Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>, Will Deacon <Will.Deacon@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "c++std-parallel@accu.org" <c++std-parallel@accu.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, p796231 <Peter.Sewell@cl.cam.ac.uk>, "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "michaelw@ca.ibm.com" <michaelw@ca.ibm.com>
-Message-ID: <20150520154602.qa432lrKkBCdgq4wQ8oRzcFUghnu6-RO_HQr3ud-jKE@z>
+To: Arnd Bergmann <arnd@arndb.de>, Philipp Zabel <p.zabel@pengutronix.de>, Daniel Thompson <daniel.thompson@linaro.org>, Maxime Ripard <maxime.ripard@free-electrons.com>
+Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Joe Perches <joe@perches.com>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Lee Jones <lee.jones@linaro.org>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Nicolae Rosia <nicolae.rosia@gmail.com>, Kamil Lulko <rev13@wp.pl>
+Message-ID: <20150520161734.PMWwxnRs7ejliQ3gAiubzuQ30_e4r5FfA9IcwobvR-c@z>
 
-Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
+Hi Arnd, Philipp,
 
-> Ah, I was assuming between x and z.  David, what was your intent?  ;-)
+2015-05-13 21:11 GMT+02:00 Arnd Bergmann <arnd@arndb.de>:
+> Ideally the binding should follow closely what is documented
+> in the data sheet.
+>
 
-Clarification.
+Daniel and myself would like your opinion about this binding:
 
-David
+rcc: rcc@40023800 {
+    #reset-cells = <1>;
+    #clock-cells = <2>;
+    compatible = "st,stm32-rcc";
+    reg = <0x40023800 0x10>, <0x40023810 0x20>, <0x40023830 0x20>;
+    reg-names = "clock-cfg", "reset", "clock-gates";
+};
+
+It would solve a problem Daniel is facing due to conflicting mem
+region when clock and reset drivers are enabled, as both would reserve
+the same region.
+
+Also, it would make the reset driver very generic.
+Doing that, we could even create a generic-reset.c driver that would
+be used by STM32 and Sunxi (at least).
+In the probe function, it would check the number of reg resources.
+If a single resource is passed, it would take it, else it would look
+the one named "reset".
+The driver and bindings would be the same for the two families, and
+the bindings would be backward compatible with sunxi ones.
+
+Philip, Arnd, what do you think?
+
+Kind regards,
+Maxime
