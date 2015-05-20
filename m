@@ -1,16 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e35.co.us.ibm.com ([32.97.110.153]:42804 "EHLO
-	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753206AbbETOEH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 May 2015 10:04:07 -0400
+Received: from e34.co.us.ibm.com ([32.97.110.152]:42776 "EHLO
+	e34.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753083AbbETODj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 May 2015 10:03:39 -0400
 Received: from /spool/local
-	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e34.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Wed, 20 May 2015 08:04:06 -0600
-Date: Wed, 20 May 2015 07:03:43 -0700
+	Wed, 20 May 2015 08:03:38 -0600
+Date: Wed, 20 May 2015 07:02:16 -0700
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: Compilers and RCU readers: Once more unto the breach!
-Message-ID: <20150520140343.GO6776@linux.vnet.ibm.com>
+Subject: Re: [c++std-parallel-1624] Re: Compilers and RCU readers: Once more
+ unto the breach!
+Message-ID: <20150520140216.GN6776@linux.vnet.ibm.com>
 Reply-To: paulmck@linux.vnet.ibm.com
 References: <20150520133037.GK6776@linux.vnet.ibm.com>
  <20150520121522.GH6776@linux.vnet.ibm.com>
@@ -21,49 +22,36 @@ References: <20150520133037.GK6776@linux.vnet.ibm.com>
  <20150520114745.GC11498@arm.com>
  <31547.1432127917@warthog.procyon.org.uk>
  <31805.1432129025@warthog.procyon.org.uk>
- <555C8FBE.4020505@arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <555C8FBE.4020505@arm.com>
+In-Reply-To: <31805.1432129025@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ramana Radhakrishnan <ramana.radhakrishnan@arm.com>
-Cc: David Howells <dhowells@redhat.com>, Will Deacon <Will.Deacon@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "c++std-parallel@accu.org" <c++std-parallel@accu.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, p796231 <Peter.Sewell@cl.cam.ac.uk>, "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Peter Zijlstra <peterz@infradead.org>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "michaelw@ca.ibm.com" <michaelw@ca.ibm.com>
-Message-ID: <20150520140343.qbsUHvB0S91L-J1EB97RUJOkGkq04U9LRM5VmnYAHoE@z>
+To: c++std-parallel@accu.org
+Cc: dhowells@redhat.com, Will Deacon <will.deacon@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, p796231 <Peter.Sewell@cl.cam.ac.uk>, "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "michaelw@ca.ibm.com" <michaelw@ca.ibm.com>
+Message-ID: <20150520140216.VWm3akcqZLzwBrCMuzj_l1ps3zOmMQ69wXKt7VoLx7Q@z>
 
-On Wed, May 20, 2015 at 02:44:30PM +0100, Ramana Radhakrishnan wrote:
+On Wed, May 20, 2015 at 02:37:05PM +0100, David Howells wrote:
+> Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
 > 
+> > I was thinking of "y" as a simple variable, but if it is something more
+> > complex, then the compiler could do this, right?
+> > 
+> > 	char *x;
+> > 
+> > 	y;
+> > 	x = z;
 > 
-> On 20/05/15 14:37, David Howells wrote:
-> >Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
-> >
-> >>I was thinking of "y" as a simple variable, but if it is something more
-> >>complex, then the compiler could do this, right?
-> >>
-> >>	char *x;
-> >>
-> >>	y;
-> >>	x = z;
-> >
-> >Yeah.  I presume it has to maintain the ordering, though.
-> 
-> The scheduler for e.g. is free to reorder if it can prove there is
-> no dependence (or indeed side-effects for y) between insns produced
-> for y and `x = z'.
+> Yeah.  I presume it has to maintain the ordering, though.
 
-So for example, if y is independent of z, the compiler can do the
-following:
+Agreed.  Unless of course y writes to x or some such.
 
-	char *x;
+Given that there is already code in the Linux kernel relying on
+dependencies being carried through stores to local variables,
+this should not be a problem.
 
-	x = z;
-	y;
-
-But the dependency ordering is still maintained from z to x, so this
-is not a problem.
-
-Or am I missing something subtle here?
+Or am I missing something?
 
 							Thanx, Paul
 
