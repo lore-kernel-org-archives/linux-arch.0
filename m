@@ -1,30 +1,88 @@
-From: Andrew Haley <aph@redhat.com>
-Subject: Re: Compilers and RCU readers: Once more unto the breach!
-Date: Wed, 20 May 2015 16:54:51 +0100
-Message-ID: <555CAE4B.4050202@redhat.com>
-References: <20150520005510.GA23559@linux.vnet.ibm.com> <CA+55aFy_8V-rbE9FQMHx6tXjj8HHKZuKSJvnRPVYvpk46EQA1g@mail.gmail.com> <CA+55aFxOtcB8AYCpLQBGSXK=8_Vh4uDs5HEpzGpPy+hgz542ag@mail.gmail.com> <20150520024148.GD6776@linux.vnet.ibm.com> <20150520114745.GC11498@arm.com> <20150520121522.GH6776@linux.vnet.ibm.com> <20150520154617.GE11498@arm.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH v3 06/11] scatterlist: support "page-less" (__pfn_t only) entries
+Date: Wed, 20 May 2015 09:03:04 -0700
+Message-ID: <CAPcyv4gQiZJLbYwsmL9WxB8KjGAdsz=AaAmOyL=M5yhPQaP48A@mail.gmail.com>
+References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
+	<20150512043001.11521.3526.stgit@dwillia2-desk3.amr.corp.intel.com>
+	<1431542149.31415.10.camel@intel.com>
+	<20150519041052.GI3140@localhost>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:11188 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754070AbbETPzv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 May 2015 11:55:51 -0400
-In-Reply-To: <20150520154617.GE11498@arm.com>
+Received: from mail-wg0-f54.google.com ([74.125.82.54]:33556 "EHLO
+	mail-wg0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753011AbbETQDF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 May 2015 12:03:05 -0400
+Received: by wgjc11 with SMTP id c11so57938236wgj.0
+        for <linux-arch@vger.kernel.org>; Wed, 20 May 2015 09:03:04 -0700 (PDT)
+In-Reply-To: <20150519041052.GI3140@localhost>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "c++std-parallel@accu.org" <c++std-parallel@accu.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, p796231 <Peter.Sewell@cl.cam.ac.uk>, "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "michaelw@ca.ibm.com" <michaelw@ca.ibm.com>
+To: Vinod Koul <vinod.koul@intel.com>
+Cc: "hch@lst.de" <hch@lst.de>, "axboe@fb.com" <axboe@fb.com>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "j.glisse@gmail.com" <j.glisse@gmail.com>, "axboe@kernel.dk" <axboe@kernel.dk>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "riel@redhat.com" <riel@redhat.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@ml01.01.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, "willy@linux.intel.com" <willy@linux.intel.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "mgorman@suse.de" <mgorman@suse.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "david@fromorbit.com" <david@fromorbit.com>
 
-On 05/20/2015 04:46 PM, Will Deacon wrote:
-> I'm not sure... you'd require the compiler to perform static analysis of
-> loops to determine the state of the machine when they exit (if they exit!)
-> in order to show whether or not a dependency is carried to subsequent
-> operations. If it can't prove otherwise, it would have to assume that a
-> dependency *is* carried, and it's not clear to me how it would use this
-> information to restrict any subsequent dependency removing optimisations.
+On Mon, May 18, 2015 at 9:10 PM, Vinod Koul <vinod.koul@intel.com> wrote:
+> On Wed, May 13, 2015 at 06:35:55PM +0000, Williams, Dan J wrote:
+>> [ adding willy (yes, need to fix my scripts), and dmaengine folks]
+>>
+>> Jens, Christoph,
+>>
+>> I've rebased this patch series block/for-next.  With commit 84be456f883c
+>> "remove <asm/scatterlist.h>" I think we can take the next step of
+>> removing all references to page_link and just use __pfn_t by default.
+>> v4 patch below.
+>>
+>> Jens, I'm wondering if you want to take this series(.) as patches or
+>> prepare a git branch to pull?
+>>
+>
+>> diff --git a/drivers/crypto/omap-sham.c b/drivers/crypto/omap-sham.c
+>> index 4d63e0d4da9a..21736afd3320 100644
+>> --- a/drivers/crypto/omap-sham.c
+>> +++ b/drivers/crypto/omap-sham.c
+>> @@ -582,7 +582,7 @@ static int omap_sham_xmit_dma(struct omap_sham_dev *dd, dma_addr_t dma_addr,
+>>                * the dmaengine may try to DMA the incorrect amount of data.
+>>                */
+>>               sg_init_table(&ctx->sgl, 1);
+>> -             ctx->sgl.page_link = ctx->sg->page_link;
+>> +             ctx->sgl.pfn = ctx->sg->pfn;
+> Do you want drivers to tinker with internals of sg, I think driver should be
+> agnostic here, perhpas a helper to get pfn, sg_get_pfn()
 
-It'd just convert consume to acquire.
+Hmm, we have sg_page() seems like we also need an sg_pfn().  Thanks, will fix.
 
-Andrew.
+>
+>>               ctx->sgl.offset = ctx->sg->offset;
+>>               sg_dma_len(&ctx->sgl) = len32;
+>>               sg_dma_address(&ctx->sgl) = sg_dma_address(ctx->sg);
+>> diff --git a/drivers/dma/imx-dma.c b/drivers/dma/imx-dma.c
+>> index eed405976ea9..a767727bcfef 100644
+>> --- a/drivers/dma/imx-dma.c
+>> +++ b/drivers/dma/imx-dma.c
+>> @@ -886,7 +886,7 @@ static struct dma_async_tx_descriptor *imxdma_prep_dma_cyclic(
+>>       sg_init_table(imxdmac->sg_list, periods);
+>>
+>>       for (i = 0; i < periods; i++) {
+>> -             imxdmac->sg_list[i].page_link = 0;
+>> +             imxdmac->sg_list[i].pfn.page = NULL;
+> same here, sg_set_pfn_page() ?
+
+sg_set_page() would work here.
+
+>
+>>               imxdmac->sg_list[i].offset = 0;
+>>               imxdmac->sg_list[i].dma_address = dma_addr;
+>>               sg_dma_len(&imxdmac->sg_list[i]) = period_len;
+>> @@ -894,10 +894,7 @@ static struct dma_async_tx_descriptor *imxdma_prep_dma_cyclic(
+>>       }
+>>
+>>       /* close the loop */
+>> -     imxdmac->sg_list[periods].offset = 0;
+>> -     sg_dma_len(&imxdmac->sg_list[periods]) = 0;
+>> -     imxdmac->sg_list[periods].page_link =
+>> -             ((unsigned long)imxdmac->sg_list | 0x01) & ~0x02;
+>> +     sg_chain(imxdmac->sg_list, periods + 1, imxdmac->sg_list);
+> This looks right...
+>
+
+Cool, thanks for taking a look.
