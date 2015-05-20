@@ -1,141 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo4-p00-ob.smtp.rzone.de ([81.169.146.217]:12297 "EHLO
-	mo4-p00-ob.smtp.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754189AbbETQTI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 May 2015 12:19:08 -0400
-Message-ID: <555CB3D5.7000307@dawncrow.de>
-Date: Wed, 20 May 2015 18:18:29 +0200
-From: =?windows-1252?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
+Received: from cantor2.suse.de ([195.135.220.15]:56204 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753335AbbETXEh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 May 2015 19:04:37 -0400
+Message-ID: <555D12F8.4000403@suse.de>
+Date: Thu, 21 May 2015 01:04:24 +0200
+From: =?windows-1252?Q?Andreas_F=E4rber?= <afaerber@suse.de>
 MIME-Version: 1.0
-Subject: [PATCH v2] arm64: Preserve the user r/w register tpidr_el0 on context
- switch and fork in compat mode
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 8bit
+Subject: Re: [PATCH v8 01/16] scripts: link-vmlinux: Don't pass page offset
+ to kallsyms if XIP Kernel
+References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com> <1431158038-3813-2-git-send-email-mcoquelin.stm32@gmail.com> <CALszF6B0=dgSDfLFwDi9YmEzrrNVuYbUnqMu5DmDhhy--emtpw@mail.gmail.com>
+In-Reply-To: <CALszF6B0=dgSDfLFwDi9YmEzrrNVuYbUnqMu5DmDhhy--emtpw@mail.gmail.com>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="8i5AvsSrkCnii38NUmGSkosWURaENrkw1"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Will Deacon <will.deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Nathan Lynch <nathan_lynch@mentor.com>
-Message-ID: <20150520161829.E8BWQLltCqV7z2RgKk4cL5OaVC_KtWzVG4Qu6hQ8Has@z>
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Marek <mmarek@suse.cz>, Stefan Agner <stefan@agner.ch>
+Cc: Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Peter Meerwald <pmeerw@pmeerw.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Jiri Slaby <jslaby@suse.cz>, Linux-Arch <linux-arch@vger.kernel.org>, Daniel Thompson <daniel.thompson@linaro.org>, Russell King <linux@arm.linux.org.uk>, Jonathan Corbet <corbet@lwn.net>, Lee Jones <lee.jones@linaro.org>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Chanwoo Choi <cw00.choi@samsung.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Antti Palosaari <crope@iki.fi>, Geert Uytterhoeven <geert@linux-m68k.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, =?windows-1252?Q?Uwe_Kleine-K=F6nig?= <u.kleine-koenig@pengutronix.de>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Pawel Moll <pawel.moll@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kamil Lulko <rev13@wp.pl>, Rusty Russell <rusty@rustcorp.com.au>, Tejun Heo <tj@kernel.org>, Rob Herring <robh+dt@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Nicolae Rosia <nicolae.rosia@gmail.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Philipp Zabel <p.zabel@pengutronix.de>, Kumar Gala <galak@codeaurora.org>, Joe Perches <joe@perches.com>, Andrew Morton <akpm@linux-foundation.org>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>
+Message-ID: <20150520230424.p0NaK3T3BbHpKdk25SBSq_hn6SRKhRzlMKd55YfcOt8@z>
 
-From: André Hentschel <nerv@dawncrow.de>
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--8i5AvsSrkCnii38NUmGSkosWURaENrkw1
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: quoted-printable
 
-Since commit a4780adeefd042482f624f5e0d577bf9cdcbb760 the user writeable TLS
-register on ARM is preserved per thread.
+Hi,
 
-This patch does it analogous to the ARM patch, but for compat mode on ARM64.
+Am 18.05.2015 um 13:47 schrieb Maxime Coquelin:
+> 2015-05-09 9:53 GMT+02:00 Maxime Coquelin <mcoquelin.stm32@gmail.com>:
+>> When Kernel is executed in place from ROM, the symbol addresses can be=
 
-Signed-off-by: André Hentschel <nerv@dawncrow.de>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
+>> lower than the page offset.
+>>
+>> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
+>> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
 
----
-This patch is against Linux 4.1-rc1 (b787f68c36d49bb1d9236f403813641efa74a031)
+This issue was reported by Stefan Agner in 2014 for the VF610 [1], not
+sure if I asked already whether there should be a Reported-by line?
+Stefan, have you had a chance to test this patch?
 
-v2: Trying to address suggestions by Will Deacon
+Back then on STM32F4 I debugged that disabling KALLSYMS works around it.
 
-@Will Deacon: 	The macro you suggested is not helpful it seems, instead i introduced
-		static functions. They also could be macros i guess, but it seems
-		much cleaner to me to use functions as it only affects one file.
-Should the final version be send to rmk's patchtracker or will someone else pick it up?
+Now on a different XIP target I have confirmed this patch to help show a
+stacktrace (my clk driver was missing some CLK_DIVIDER_ALLOW_ZEROs) ...
+although my earlyprintk serial output still gets stuck further down the
+stacktrace - probably unrelated.
+
+[    0.000000] ------------[ cut here ]------------
+[    0.000000] WARNING: CPU: 0 PID: 0 at drivers/clk/clk-divider.c:126
+divider_recalc_rate+0x2b/0x44()
+[    0.000000] SYS: Zero divisor and CLK_DIVIDER_ALLOW_ZERO not set
+[    0.000000] CPU: 0 PID: 0 Comm: swapper Not tainted
+4.1.0-rc4-next-20150519+ #23
+[    0.000000] Hardware name: XMC4000 (Device Tree Support)
+[    0.000000] [<0800bd5d>] (unwind_backtrace) from [<0800b0cb>]
+(show_stack+0xb/0xc)
+[    0.000000] [<0800b0cb>] (show_stack) from [<0800e0a5>]
+(warn_slowpath_common+0x55/0x78)
+[    0.000000] [<0800e0a5>] (warn_slowpath_common) from [<0800e103>]
+(warn_slowpath_fmt+0x1b/0x24)
+[    0.000000] [<0800e103>] (warn_slowpath_fmt) from [<080942e3>] (divide=
 
 
- arch/arm64/include/asm/processor.h |  3 +++
- arch/arm64/kernel/process.c        | 41 +++++++++++++++++++++++++++++---------
- 2 files changed, 35 insertions(+), 9 deletions(-)
+But this is definitely an improvement for ARMv7-M debugging,
 
-diff --git a/arch/arm64/include/asm/processor.h b/arch/arm64/include/asm/processor.h
-index d2c37a1..466a851 100644
---- a/arch/arm64/include/asm/processor.h
-+++ b/arch/arm64/include/asm/processor.h
-@@ -79,6 +79,9 @@ struct cpu_context {
- struct thread_struct {
- 	struct cpu_context	cpu_context;	/* cpu context */
- 	unsigned long		tp_value;
-+#ifdef CONFIG_COMPAT
-+	unsigned long		tp_compat;
-+#endif
- 	struct fpsimd_state	fpsimd_state;
- 	unsigned long		fault_address;	/* fault info */
- 	unsigned long		fault_code;	/* ESR_EL1 value */
-diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-index c6b1f3b..630f44b 100644
---- a/arch/arm64/kernel/process.c
-+++ b/arch/arm64/kernel/process.c
-@@ -58,6 +58,22 @@ unsigned long __stack_chk_guard __read_mostly;
- EXPORT_SYMBOL(__stack_chk_guard);
- #endif
- 
-+static unsigned long get_tp_compat(struct thread_struct *p)
-+{
-+#ifdef CONFIG_COMPAT
-+	return p->tp_compat;
-+#else
-+	return 0;
-+#endif
-+}
-+
-+static void set_tp_compat(struct thread_struct *p, unsigned long tpidr)
-+{
-+#ifdef CONFIG_COMPAT
-+	p->tp_compat = tpidr;
-+#endif
-+}
-+
- void soft_restart(unsigned long addr)
- {
- 	setup_mm_for_reboot();
-@@ -219,6 +235,7 @@ static void tls_thread_flush(void)
- 
- 	if (is_compat_task()) {
- 		current->thread.tp_value = 0;
-+		set_tp_compat(&current->thread, 0);
- 
- 		/*
- 		 * We need to ensure ordering between the shadow state and the
-@@ -259,17 +276,22 @@ int copy_thread(unsigned long clone_flags, unsigned long stack_start,
- 	memset(&p->thread.cpu_context, 0, sizeof(struct cpu_context));
- 
- 	if (likely(!(p->flags & PF_KTHREAD))) {
-+		unsigned long tpidr;
- 		*childregs = *current_pt_regs();
- 		childregs->regs[0] = 0;
-+		/*
-+		 * Read the current TLS pointer from tpidr_el0 as it may be
-+		 * out-of-sync with the saved value.
-+		 */
-+		asm("mrs %0, tpidr_el0" : "=r" (tpidr));
- 		if (is_compat_thread(task_thread_info(p))) {
-+			set_tp_compat(&p->thread, tpidr);
-+
- 			if (stack_start)
- 				childregs->compat_sp = stack_start;
- 		} else {
--			/*
--			 * Read the current TLS pointer from tpidr_el0 as it may be
--			 * out-of-sync with the saved value.
--			 */
--			asm("mrs %0, tpidr_el0" : "=r" (tls));
-+			tls = tpidr;
-+
- 			if (stack_start) {
- 				/* 16-byte aligned stack mandatory on AArch64 */
- 				if (stack_start & 15)
-@@ -302,13 +324,14 @@ static void tls_thread_switch(struct task_struct *next)
- {
- 	unsigned long tpidr, tpidrro;
- 
--	if (!is_compat_task()) {
--		asm("mrs %0, tpidr_el0" : "=r" (tpidr));
-+	asm("mrs %0, tpidr_el0" : "=r" (tpidr));
-+	if (is_compat_task())
-+		set_tp_compat(&current->thread, tpidr);
-+	else
- 		current->thread.tp_value = tpidr;
--	}
- 
- 	if (is_compat_thread(task_thread_info(next))) {
--		tpidr = 0;
-+		tpidr = get_tp_compat(&next->thread);
- 		tpidrro = next->thread.tp_value;
- 	} else {
- 		tpidr = next->thread.tp_value;
+Tested-by: Andreas F=E4rber <afaerber@suse.de>
+
+> [Hi Michal, ...] could you consider
+> taking it for v4.2?
+
+Regards,
+Andreas
+
+[1]
+http://lists.infradead.org/pipermail/linux-arm-kernel/2014-November/30729=
+7.html
+
+--=20
+SUSE Linux GmbH, Maxfeldstr. 5, 90409 N=FCrnberg, Germany
+GF: Felix Imend=F6rffer, Jane Smithard, Dilip Upmanyu, Graham Norton; HRB=
+
+21284 (AG N=FCrnberg)
+
+
+--8i5AvsSrkCnii38NUmGSkosWURaENrkw1
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBAgAGBQJVXRL4AAoJEPou0S0+fgE/qVwP+gKrGKJSjtMU1IV/fW3HkQ4R
++97WglEInrDpipmUoWn2yAOC2iH6p2HFZ3xmJh5gWt7XbeGM4JTssDSQTd0DAoT4
+CcneEURyEdrm7UiHxCyd2Di0o5Pk3AOo9eHh8ze6RUp3dQIRuUJ6Q3MS3MVLjvWq
+OuPVUga4qY1V3Vxn2E/LF4lzzBGkP+vnZEwY0mTThQcBEnDDRDu4aB6l5YYFizt6
+6DDThM7oaCfg1fhjbCDB0OCf1Yb7I++/+a082Oo0kWeXvggql4qQ+/ZIXdYuh+ug
+1pQspEZUkiqBBzJV+zwsfKOdUbt63sUMUCpsHeuIlnn7BQ/dchgYkPprAmHNO3wb
+3slezwePnZ28Fqt42eR169chNkA+7PUpahqaRYo7TRH6VGbcIZx9Tmd52bUIQvYb
+Pl0hZwidO69ekSNkwb0ZhNPes7G6r3roCDmhjatqoEv2lOraSHt4+/arxORRf9hh
+UzeYvKUX+Y4ll9O1K9/Ioew08jrDX17D4VWwnIVQ82Bc/NbNm0/BncII4PDnYkxT
+v2s+l4/JTnyzhZV6mwq6zGiWvZJn2Vj/zZ2TK+L9icy8jPjs7kc6/60ce2W36Lnn
+NAyQS8vuerCa0br6I+5vFksQmeLp4Nik5aGqjOsoe9qx8vxr62VSc+F4J+GQ+t2D
+mvSYJQ4+euwyofu1dQuw
+=Fdus
+-----END PGP SIGNATURE-----
+
+--8i5AvsSrkCnii38NUmGSkosWURaENrkw1--
