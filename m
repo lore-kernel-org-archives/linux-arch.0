@@ -1,415 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:63505 "EHLO
+Received: from mout.kundenserver.de ([212.227.126.131]:57959 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932288AbbETPND (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 May 2015 11:13:03 -0400
+	with ESMTP id S932115AbbETPH5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 May 2015 11:07:57 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/9] y2038: remove unneeded ipc uapi header files
-Date: Wed, 20 May 2015 17:12:57 +0200
-Message-ID: <2723942.OTLu65T7Lp@wuerfel>
-In-Reply-To: <1432134445-804487-2-git-send-email-arnd@arndb.de>
-References: <1432134445-804487-1-git-send-email-arnd@arndb.de> <1432134445-804487-2-git-send-email-arnd@arndb.de>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Subject: [PATCH 0/9] converting system calls to 64-bit time_t, part 2
+Date: Wed, 20 May 2015 17:07:16 +0200
+Message-ID: <1432134445-804487-1-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: y2038@lists.linaro.org
-Cc: baolin.wang@linaro.org, albert.aribaud@3adev.fr, john.stultz@linaro.org, bamvor.zhangjian@linaro.org, ruchandani.tina@gmail.com, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, Manfred Spraul <manfred@colorfullife.com>, Michael Kerrisk <mtk.manpages@gmail.com>
-Message-ID: <20150520151257.yzf0-J5yNDc96NL3Wbl5iU-091hTfArYVqo_Pj1AQnA@z>
+Cc: baolin.wang@linaro.org, albert.aribaud@3adev.fr, john.stultz@linaro.org, bamvor.zhangjian@linaro.org, ruchandani.tina@gmail.com, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, libc-alpha@sourceware.org, linux-arch@vger.kernel.org, Manfred Spraul <manfred@colorfullife.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20150520150716.bhHpVrSUNlC8BbnM0d3igZqg9LVDy-LcpH--yXTEss4@z>
 
-On Wednesday 20 May 2015 17:07:17 Arnd Bergmann wrote:
-> Eight architectures contain copies of the original i386
-> ipcbuf/msgbuf/sembuf/shmbuf header files, which are all identical
-> to the version in uapi/asm-generic.
-> 
-> This patch removes the files and replaces them with 'generic-y'
-> statements, to avoid having to modify each copy when we extend
-> sysvipc to deal with 64-bit time_t.
-> 
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+This is a follow-up to the series posted at [1]. To make review
+a little easier, I'm focusing on just one class of system calls
+here, and this is one that is handled differently from all the
+others.
 
-This patch got caught in some filters because of the size, I'm
-sending it again with 'git diff -D' below, which omits the contents
-of the deleted files, sorry for the inconvenience.
+In particular, for sys_msgctl, sys_semctl and sys_shmctl, I do
+not introduce a completely new set of replacement system calls,
+but instead extend the existing ones to return data in the
+reserved fields of the normal data structure.
+
+This should be completely transparent to any existing user space,
+and only after the 32-bit time_t wraps, it will make a difference
+in the returned data.
+
+libc implementations will consequently have to provide their own
+data structures when they move to 64-bit time_t, and convert
+the structures in user space from the ones returned by the kernel.
+
+There are three cases here:
+
+- little-endian architectures (except powerpc and mips) can use
+  the normal layout and just cast the data structure to the
+  user space type that contains 64-bit numbers.
+
+- parisc and sparc can do the same thing with big-endian user
+  space
+
+- little-endian powerpc and most big-endian architectures have
+  to flip the upper and lower 32-bit halves of the time_t value
+  in memory, but can otherwise keep using the normal layout
+
+- mips and big-endian xtensa need to be more careful because
+  they are not consistent in their definitions, and they
+  have to provide custom libc implementations for the system
+  calls to use 64-bit time_t.
+
+Please review.
 
 	Arnd
 
-8<-----
-Subject: [PATCH] y2038: remove unneeded ipc uapi header files
+[1] http://lwn.net/Articles/643407/
 
-Eight architectures contain copies of the original i386
-ipcbuf/msgbuf/sembuf/shmbuf header files, which are all identical
-to the version in uapi/asm-generic.
+Arnd Bergmann (8):
+  y2038: asm-generic: extend sysvipc data structures
+  y2038: mips: extend sysvipc data structures
+  y2038: x86: extend sysvipc data structures
+  y2038: parisc: extend sysvipc data structures
+  y2038: sparc: extend sysvipc data structures
+  y2038: powerpc: extend sysvipc data structures
+  y2038: xtensa: extend sysvipc data structures
+  y2038: ipc: report long times to user space
 
-This patch removes the files and replaces them with 'generic-y'
-statements, to avoid having to modify each copy when we extend
-sysvipc to deal with 64-bit time_t.
+ arch/arm64/include/asm/compat.h        | 32 +++++++++----------
+ arch/mips/include/asm/compat.h         | 38 +++++++++++-----------
+ arch/mips/include/uapi/asm/msgbuf.h    | 56 +++++++++++++++++++++-----------
+ arch/mips/include/uapi/asm/sembuf.h    | 15 +++++++--
+ arch/mips/include/uapi/asm/shmbuf.h    | 23 ++++++++++++--
+ arch/parisc/include/asm/compat.h       | 32 +++++++++----------
+ arch/parisc/include/uapi/asm/msgbuf.h  | 32 +++++++++----------
+ arch/parisc/include/uapi/asm/sembuf.h  | 13 ++++----
+ arch/parisc/include/uapi/asm/shmbuf.h  | 18 +++++------
+ arch/powerpc/include/asm/compat.h      | 32 +++++++++----------
+ arch/powerpc/include/uapi/asm/msgbuf.h | 18 +++++------
+ arch/powerpc/include/uapi/asm/sembuf.h | 14 ++++----
+ arch/powerpc/include/uapi/asm/shmbuf.h | 18 +++++------
+ arch/sparc/include/asm/compat.h        | 32 +++++++++----------
+ arch/sparc/include/uapi/asm/msgbuf.h   | 21 ++++++------
+ arch/sparc/include/uapi/asm/sembuf.h   | 15 ++++-----
+ arch/sparc/include/uapi/asm/shmbuf.h   | 20 ++++++------
+ arch/tile/include/asm/compat.h         | 32 +++++++++----------
+ arch/x86/include/asm/compat.h          | 32 +++++++++----------
+ arch/x86/include/uapi/asm/msgbuf.h     | 41 +++++++++++++++++++++++-
+ arch/x86/include/uapi/asm/sembuf.h     | 10 ++++++
+ arch/x86/include/uapi/asm/shmbuf.h     | 58 +++++++++++++++++++++++++++++++++-
+ arch/xtensa/include/uapi/asm/msgbuf.h  | 24 +++++++-------
+ arch/xtensa/include/uapi/asm/sembuf.h  | 16 +++++-----
+ arch/xtensa/include/uapi/asm/shmbuf.h  | 36 +++++----------------
+ include/linux/msg.h                    |  7 ++--
+ include/linux/sem.h                    |  3 +-
+ include/linux/shm.h                    |  7 ++--
+ include/uapi/asm-generic/msgbuf.h      | 16 +++++-----
+ include/uapi/asm-generic/sembuf.h      | 26 +++++++++------
+ include/uapi/asm-generic/shmbuf.h      | 16 +++++-----
+ ipc/compat.c                           |  8 +++++
+ ipc/msg.c                              | 23 ++++++++------
+ ipc/sem.c                              | 32 +++++++++++--------
+ ipc/shm.c                              | 21 +++++++-----
+ 35 files changed, 499 insertions(+), 338 deletions(-)
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- arch/alpha/include/asm/Kbuild          |  4 ++++
- arch/alpha/include/uapi/asm/ipcbuf.h   |  1 -
- arch/alpha/include/uapi/asm/msgbuf.h   | 27 ---------------------------
- arch/alpha/include/uapi/asm/sembuf.h   | 22 ----------------------
- arch/alpha/include/uapi/asm/shmbuf.h   | 38 --------------------------------------
- arch/avr32/include/asm/Kbuild          |  4 ++++
- arch/avr32/include/uapi/asm/Kbuild     |  1 -
- arch/avr32/include/uapi/asm/msgbuf.h   | 31 -------------------------------
- arch/avr32/include/uapi/asm/sembuf.h   | 25 -------------------------
- arch/avr32/include/uapi/asm/shmbuf.h   | 42 ------------------------------------------
- arch/cris/include/asm/Kbuild           |  6 +++++-
- arch/cris/include/uapi/asm/ipcbuf.h    |  1 -
- arch/cris/include/uapi/asm/msgbuf.h    | 33 ---------------------------------
- arch/cris/include/uapi/asm/sembuf.h    | 25 -------------------------
- arch/cris/include/uapi/asm/shmbuf.h    | 42 ------------------------------------------
- arch/frv/include/asm/Kbuild            |  4 ++++
- arch/frv/include/uapi/asm/ipcbuf.h     |  1 -
- arch/frv/include/uapi/asm/msgbuf.h     | 32 --------------------------------
- arch/frv/include/uapi/asm/sembuf.h     | 26 --------------------------
- arch/frv/include/uapi/asm/shmbuf.h     | 43 -------------------------------------------
- arch/ia64/include/asm/Kbuild           |  4 ++++
- arch/ia64/include/uapi/asm/ipcbuf.h    |  1 -
- arch/ia64/include/uapi/asm/msgbuf.h    | 27 ---------------------------
- arch/ia64/include/uapi/asm/sembuf.h    | 22 ----------------------
- arch/ia64/include/uapi/asm/shmbuf.h    | 38 --------------------------------------
- arch/m32r/include/asm/Kbuild           |  4 ++++
- arch/m32r/include/uapi/asm/ipcbuf.h    |  1 -
- arch/m32r/include/uapi/asm/msgbuf.h    | 31 -------------------------------
- arch/m32r/include/uapi/asm/sembuf.h    | 25 -------------------------
- arch/m32r/include/uapi/asm/shmbuf.h    | 42 ------------------------------------------
- arch/mn10300/include/asm/Kbuild        |  4 ++++
- arch/mn10300/include/uapi/asm/ipcbuf.h |  1 -
- arch/mn10300/include/uapi/asm/msgbuf.h | 31 -------------------------------
- arch/mn10300/include/uapi/asm/sembuf.h | 25 -------------------------
- arch/mn10300/include/uapi/asm/shmbuf.h | 42 ------------------------------------------
- arch/s390/include/asm/Kbuild           |  4 +++-
- arch/s390/include/asm/compat.h         | 32 ++++++++++++++++----------------
- arch/s390/include/uapi/asm/msgbuf.h    | 37 -------------------------------------
- arch/s390/include/uapi/asm/sembuf.h    | 29 -----------------------------
- arch/s390/include/uapi/asm/shmbuf.h    | 48 ------------------------------------------------
- 40 files changed, 48 insertions(+), 808 deletions(-)
-
-diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
-index 76aeb8fa551a..0d2f8e2ebdcb 100644
---- a/arch/alpha/include/asm/Kbuild
-+++ b/arch/alpha/include/asm/Kbuild
-@@ -3,9 +3,13 @@
- generic-y += clkdev.h
- generic-y += cputime.h
- generic-y += exec.h
-+generic-y += ipcbuf.h
- generic-y += irq_work.h
- generic-y += mcs_spinlock.h
-+generic-y += msgbuf.h
- generic-y += preempt.h
- generic-y += scatterlist.h
- generic-y += sections.h
-+generic-y += sembuf.h
-+generic-y += shmbuf.h
- generic-y += trace_clock.h
-diff --git a/arch/alpha/include/uapi/asm/ipcbuf.h b/arch/alpha/include/uapi/asm/ipcbuf.h
-deleted file mode 100644
-index 84c7e51cb6d0..000000000000
-diff --git a/arch/alpha/include/uapi/asm/msgbuf.h b/arch/alpha/include/uapi/asm/msgbuf.h
-deleted file mode 100644
-index 98496501a2bb..000000000000
-diff --git a/arch/alpha/include/uapi/asm/sembuf.h b/arch/alpha/include/uapi/asm/sembuf.h
-deleted file mode 100644
-index 7b38b1534784..000000000000
-diff --git a/arch/alpha/include/uapi/asm/shmbuf.h b/arch/alpha/include/uapi/asm/shmbuf.h
-deleted file mode 100644
-index 37ee84f05085..000000000000
-diff --git a/arch/avr32/include/asm/Kbuild b/arch/avr32/include/asm/Kbuild
-index 528d70d47a54..fd65fc13809f 100644
---- a/arch/avr32/include/asm/Kbuild
-+++ b/arch/avr32/include/asm/Kbuild
-@@ -7,16 +7,20 @@ generic-y += div64.h
- generic-y += emergency-restart.h
- generic-y += exec.h
- generic-y += futex.h
-+generic-y += ipcbuf.h
- generic-y += irq_regs.h
- generic-y += irq_work.h
- generic-y += local.h
- generic-y += local64.h
- generic-y += mcs_spinlock.h
-+generic-y += msgbuf.h
- generic-y += param.h
- generic-y += percpu.h
- generic-y += preempt.h
- generic-y += scatterlist.h
- generic-y += sections.h
-+generic-y += sembuf.h
-+generic-y += shmbuf.h
- generic-y += topology.h
- generic-y += trace_clock.h
- generic-y += vga.h
-diff --git a/arch/avr32/include/uapi/asm/Kbuild b/arch/avr32/include/uapi/asm/Kbuild
-index 08d8a3d76ea8..198196499c84 100644
---- a/arch/avr32/include/uapi/asm/Kbuild
-+++ b/arch/avr32/include/uapi/asm/Kbuild
-@@ -26,7 +26,6 @@ generic-y += errno.h
- generic-y += fcntl.h
- generic-y += ioctl.h
- generic-y += ioctls.h
--generic-y += ipcbuf.h
- generic-y += kvm_para.h
- generic-y += mman.h
- generic-y += param.h
-diff --git a/arch/avr32/include/uapi/asm/msgbuf.h b/arch/avr32/include/uapi/asm/msgbuf.h
-deleted file mode 100644
-index 9eae6effad14..000000000000
-diff --git a/arch/avr32/include/uapi/asm/sembuf.h b/arch/avr32/include/uapi/asm/sembuf.h
-deleted file mode 100644
-index 6c6f7cf1e75a..000000000000
-diff --git a/arch/avr32/include/uapi/asm/shmbuf.h b/arch/avr32/include/uapi/asm/shmbuf.h
-deleted file mode 100644
-index b94cf8b60b73..000000000000
-diff --git a/arch/cris/include/asm/Kbuild b/arch/cris/include/asm/Kbuild
-index 057e51859b0a..b438857651bf 100644
---- a/arch/cris/include/asm/Kbuild
-+++ b/arch/cris/include/asm/Kbuild
-@@ -5,10 +5,11 @@ generic-y += cmpxchg.h
- generic-y += cputime.h
- generic-y += device.h
- generic-y += div64.h
--generic-y += exec.h
- generic-y += emergency-restart.h
-+generic-y += exec.h
- generic-y += futex.h
- generic-y += hardirq.h
-+generic-y += ipcbuf.h
- generic-y += irq_regs.h
- generic-y += irq_work.h
- generic-y += kdebug.h
-@@ -19,10 +20,13 @@ generic-y += local.h
- generic-y += local64.h
- generic-y += mcs_spinlock.h
- generic-y += module.h
-+generic-y += msgbuf.h
- generic-y += percpu.h
- generic-y += preempt.h
- generic-y += scatterlist.h
- generic-y += sections.h
-+generic-y += sembuf.h
-+generic-y += shmbuf.h
- generic-y += topology.h
- generic-y += trace_clock.h
- generic-y += vga.h
-diff --git a/arch/cris/include/uapi/asm/ipcbuf.h b/arch/cris/include/uapi/asm/ipcbuf.h
-deleted file mode 100644
-index 84c7e51cb6d0..000000000000
-diff --git a/arch/cris/include/uapi/asm/msgbuf.h b/arch/cris/include/uapi/asm/msgbuf.h
-deleted file mode 100644
-index ada63df1d574..000000000000
-diff --git a/arch/cris/include/uapi/asm/sembuf.h b/arch/cris/include/uapi/asm/sembuf.h
-deleted file mode 100644
-index 7fed9843796d..000000000000
-diff --git a/arch/cris/include/uapi/asm/shmbuf.h b/arch/cris/include/uapi/asm/shmbuf.h
-deleted file mode 100644
-index 3239e3f000e8..000000000000
-diff --git a/arch/frv/include/asm/Kbuild b/arch/frv/include/asm/Kbuild
-index e3f81b53578e..a279ad1ad6a2 100644
---- a/arch/frv/include/asm/Kbuild
-+++ b/arch/frv/include/asm/Kbuild
-@@ -2,8 +2,12 @@
- generic-y += clkdev.h
- generic-y += cputime.h
- generic-y += exec.h
-+generic-y += ipcbuf.h
- generic-y += irq_work.h
- generic-y += mcs_spinlock.h
-+generic-y += msgbuf.h
- generic-y += preempt.h
- generic-y += scatterlist.h
-+generic-y += sembuf.h
-+generic-y += shmbuf.h
- generic-y += trace_clock.h
-diff --git a/arch/frv/include/uapi/asm/ipcbuf.h b/arch/frv/include/uapi/asm/ipcbuf.h
-deleted file mode 100644
-index 84c7e51cb6d0..000000000000
-diff --git a/arch/frv/include/uapi/asm/msgbuf.h b/arch/frv/include/uapi/asm/msgbuf.h
-deleted file mode 100644
-index 97ceb55a06fb..000000000000
-diff --git a/arch/frv/include/uapi/asm/sembuf.h b/arch/frv/include/uapi/asm/sembuf.h
-deleted file mode 100644
-index 164b12786d6d..000000000000
-diff --git a/arch/frv/include/uapi/asm/shmbuf.h b/arch/frv/include/uapi/asm/shmbuf.h
-deleted file mode 100644
-index 4c6e711a4779..000000000000
-diff --git a/arch/ia64/include/asm/Kbuild b/arch/ia64/include/asm/Kbuild
-index 9b41b4bcc073..1cfb2db15cd1 100644
---- a/arch/ia64/include/asm/Kbuild
-+++ b/arch/ia64/include/asm/Kbuild
-@@ -1,10 +1,14 @@
- 
- generic-y += clkdev.h
- generic-y += exec.h
-+generic-y += ipcbuf.h
- generic-y += irq_work.h
- generic-y += kvm_para.h
- generic-y += mcs_spinlock.h
-+generic-y += msgbuf.h
- generic-y += preempt.h
- generic-y += scatterlist.h
-+generic-y += sembuf.h
-+generic-y += shmbuf.h
- generic-y += trace_clock.h
- generic-y += vtime.h
-diff --git a/arch/ia64/include/uapi/asm/ipcbuf.h b/arch/ia64/include/uapi/asm/ipcbuf.h
-deleted file mode 100644
-index 84c7e51cb6d0..000000000000
-diff --git a/arch/ia64/include/uapi/asm/msgbuf.h b/arch/ia64/include/uapi/asm/msgbuf.h
-deleted file mode 100644
-index 6c64c0d2aae1..000000000000
-diff --git a/arch/ia64/include/uapi/asm/sembuf.h b/arch/ia64/include/uapi/asm/sembuf.h
-deleted file mode 100644
-index 1340fbc04d3e..000000000000
-diff --git a/arch/ia64/include/uapi/asm/shmbuf.h b/arch/ia64/include/uapi/asm/shmbuf.h
-deleted file mode 100644
-index 585002a77acd..000000000000
-diff --git a/arch/m32r/include/asm/Kbuild b/arch/m32r/include/asm/Kbuild
-index 2edc793372fc..20b0e8240926 100644
---- a/arch/m32r/include/asm/Kbuild
-+++ b/arch/m32r/include/asm/Kbuild
-@@ -2,10 +2,14 @@
- generic-y += clkdev.h
- generic-y += cputime.h
- generic-y += exec.h
-+generic-y += ipcbuf.h
- generic-y += irq_work.h
- generic-y += mcs_spinlock.h
- generic-y += module.h
-+generic-y += msgbuf.h
- generic-y += preempt.h
- generic-y += scatterlist.h
- generic-y += sections.h
-+generic-y += sembuf.h
-+generic-y += shmbuf.h
- generic-y += trace_clock.h
-diff --git a/arch/m32r/include/uapi/asm/ipcbuf.h b/arch/m32r/include/uapi/asm/ipcbuf.h
-deleted file mode 100644
-index 84c7e51cb6d0..000000000000
-diff --git a/arch/m32r/include/uapi/asm/msgbuf.h b/arch/m32r/include/uapi/asm/msgbuf.h
-deleted file mode 100644
-index 0d5a877b813e..000000000000
-diff --git a/arch/m32r/include/uapi/asm/sembuf.h b/arch/m32r/include/uapi/asm/sembuf.h
-deleted file mode 100644
-index c9873d6890e2..000000000000
-diff --git a/arch/m32r/include/uapi/asm/shmbuf.h b/arch/m32r/include/uapi/asm/shmbuf.h
-deleted file mode 100644
-index b0cdf0aa7d65..000000000000
-diff --git a/arch/mn10300/include/asm/Kbuild b/arch/mn10300/include/asm/Kbuild
-index f892d9de47d9..6dc433f17f2f 100644
---- a/arch/mn10300/include/asm/Kbuild
-+++ b/arch/mn10300/include/asm/Kbuild
-@@ -3,9 +3,13 @@ generic-y += barrier.h
- generic-y += clkdev.h
- generic-y += cputime.h
- generic-y += exec.h
-+generic-y += ipcbuf.h
- generic-y += irq_work.h
- generic-y += mcs_spinlock.h
-+generic-y += msgbuf.h
- generic-y += preempt.h
- generic-y += scatterlist.h
- generic-y += sections.h
-+generic-y += sembuf.h
-+generic-y += shmbuf.h
- generic-y += trace_clock.h
-diff --git a/arch/mn10300/include/uapi/asm/ipcbuf.h b/arch/mn10300/include/uapi/asm/ipcbuf.h
-deleted file mode 100644
-index 84c7e51cb6d0..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/msgbuf.h b/arch/mn10300/include/uapi/asm/msgbuf.h
-deleted file mode 100644
-index 8b602450cc4a..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/sembuf.h b/arch/mn10300/include/uapi/asm/sembuf.h
-deleted file mode 100644
-index 301f3f9d8aa9..000000000000
-diff --git a/arch/mn10300/include/uapi/asm/shmbuf.h b/arch/mn10300/include/uapi/asm/shmbuf.h
-deleted file mode 100644
-index 8f300cc35d6c..000000000000
-diff --git a/arch/s390/include/asm/Kbuild b/arch/s390/include/asm/Kbuild
-index c631f98fd524..a08933ae7b7e 100644
---- a/arch/s390/include/asm/Kbuild
-+++ b/arch/s390/include/asm/Kbuild
-@@ -1,8 +1,10 @@
- 
--
- generic-y += clkdev.h
- generic-y += irq_work.h
- generic-y += mcs_spinlock.h
-+generic-y += msgbuf.h
- generic-y += preempt.h
- generic-y += scatterlist.h
-+generic-y += sembuf.h
-+generic-y += shmbuf.h
- generic-y += trace_clock.h
-diff --git a/arch/s390/include/asm/compat.h b/arch/s390/include/asm/compat.h
-index 91398bb0695c..d301b8271513 100644
---- a/arch/s390/include/asm/compat.h
-+++ b/arch/s390/include/asm/compat.h
-@@ -304,10 +304,10 @@ struct compat_ipc64_perm {
- 
- struct compat_semid64_ds {
- 	struct compat_ipc64_perm sem_perm;
--	compat_time_t  sem_otime;
--	compat_ulong_t __pad1;
--	compat_time_t  sem_ctime;
--	compat_ulong_t __pad2;
-+	compat_ulong_t sem_otime;
-+	compat_ulong_t sem_otime_high;
-+	compat_ulong_t sem_ctime;
-+	compat_ulong_t sem_ctime_high;
- 	compat_ulong_t sem_nsems;
- 	compat_ulong_t __unused1;
- 	compat_ulong_t __unused2;
-@@ -315,12 +315,12 @@ struct compat_semid64_ds {
- 
- struct compat_msqid64_ds {
- 	struct compat_ipc64_perm msg_perm;
--	compat_time_t   msg_stime;
--	compat_ulong_t __pad1;
--	compat_time_t   msg_rtime;
--	compat_ulong_t __pad2;
--	compat_time_t   msg_ctime;
--	compat_ulong_t __pad3;
-+	compat_ulong_t msg_stime;
-+	compat_ulong_t msg_stime_high;
-+	compat_ulong_t msg_rtime;
-+	compat_ulong_t msg_rtime_high;
-+	compat_ulong_t msg_ctime;
-+	compat_ulong_t msg_ctime_high;
- 	compat_ulong_t msg_cbytes;
- 	compat_ulong_t msg_qnum;
- 	compat_ulong_t msg_qbytes;
-@@ -333,12 +333,12 @@ struct compat_msqid64_ds {
- struct compat_shmid64_ds {
- 	struct compat_ipc64_perm shm_perm;
- 	compat_size_t  shm_segsz;
--	compat_time_t  shm_atime;
--	compat_ulong_t __pad1;
--	compat_time_t  shm_dtime;
--	compat_ulong_t __pad2;
--	compat_time_t  shm_ctime;
--	compat_ulong_t __pad3;
-+	compat_ulong_t shm_atime;
-+	compat_ulong_t shm_atime_high;
-+	compat_ulong_t shm_dtime;
-+	compat_ulong_t shm_dtime_high;
-+	compat_ulong_t shm_ctime;
-+	compat_ulong_t shm_ctime_high;
- 	compat_pid_t   shm_cpid;
- 	compat_pid_t   shm_lpid;
- 	compat_ulong_t shm_nattch;
-diff --git a/arch/s390/include/uapi/asm/msgbuf.h b/arch/s390/include/uapi/asm/msgbuf.h
-deleted file mode 100644
-index 1bbdee927924..000000000000
-diff --git a/arch/s390/include/uapi/asm/sembuf.h b/arch/s390/include/uapi/asm/sembuf.h
-deleted file mode 100644
-index 32626b0cac4b..000000000000
-diff --git a/arch/s390/include/uapi/asm/shmbuf.h b/arch/s390/include/uapi/asm/shmbuf.h
-deleted file mode 100644
-index eed2e280ce37..000000000000
+-- 
+2.1.0.rc2
 
