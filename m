@@ -1,88 +1,51 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH v3 06/11] scatterlist: support "page-less" (__pfn_t only) entries
-Date: Wed, 20 May 2015 09:03:04 -0700
-Message-ID: <CAPcyv4gQiZJLbYwsmL9WxB8KjGAdsz=AaAmOyL=M5yhPQaP48A@mail.gmail.com>
-References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20150512043001.11521.3526.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<1431542149.31415.10.camel@intel.com>
-	<20150519041052.GI3140@localhost>
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Subject: Re: [PATCH v8 14/16] ARM: dts: Introduce STM32F429 MCU
+Date: Wed, 20 May 2015 18:17:34 +0200
+Message-ID: <CALszF6CK5ezrO6D=4zr6zEPC7VanzbQjnZJwKOZekEZ5L4D-Dg@mail.gmail.com>
+References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<2282066.NWoIT9ZyLc@wuerfel>
+	<CALszF6CaO_yuNiSDuDV+4d2NRe_+32j=zcSE1HPhB1UH59cW9w@mail.gmail.com>
+	<13641152.Yt4ZI3oT6L@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f54.google.com ([74.125.82.54]:33556 "EHLO
-	mail-wg0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753011AbbETQDF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 May 2015 12:03:05 -0400
-Received: by wgjc11 with SMTP id c11so57938236wgj.0
-        for <linux-arch@vger.kernel.org>; Wed, 20 May 2015 09:03:04 -0700 (PDT)
-In-Reply-To: <20150519041052.GI3140@localhost>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Vinod Koul <vinod.koul@intel.com>
-Cc: "hch@lst.de" <hch@lst.de>, "axboe@fb.com" <axboe@fb.com>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "j.glisse@gmail.com" <j.glisse@gmail.com>, "axboe@kernel.dk" <axboe@kernel.dk>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "riel@redhat.com" <riel@redhat.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@ml01.01.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, "willy@linux.intel.com" <willy@linux.intel.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "mgorman@suse.de" <mgorman@suse.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "david@fromorbit.com" <david@fromorbit.com>
+Return-path: <linux-gpio-owner@vger.kernel.org>
+In-Reply-To: <13641152.Yt4ZI3oT6L@wuerfel>
+Sender: linux-gpio-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, Philipp Zabel <p.zabel@pengutronix.de>, Daniel Thompson <daniel.thompson@linaro.org>, Maxime Ripard <maxime.ripard@free-electrons.com>
+Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Joe Perches <joe@perches.com>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Lee Jones <lee.jones@linaro.org>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, May 18, 2015 at 9:10 PM, Vinod Koul <vinod.koul@intel.com> wrote:
-> On Wed, May 13, 2015 at 06:35:55PM +0000, Williams, Dan J wrote:
->> [ adding willy (yes, need to fix my scripts), and dmaengine folks]
->>
->> Jens, Christoph,
->>
->> I've rebased this patch series block/for-next.  With commit 84be456f883c
->> "remove <asm/scatterlist.h>" I think we can take the next step of
->> removing all references to page_link and just use __pfn_t by default.
->> v4 patch below.
->>
->> Jens, I'm wondering if you want to take this series(.) as patches or
->> prepare a git branch to pull?
->>
->
->> diff --git a/drivers/crypto/omap-sham.c b/drivers/crypto/omap-sham.c
->> index 4d63e0d4da9a..21736afd3320 100644
->> --- a/drivers/crypto/omap-sham.c
->> +++ b/drivers/crypto/omap-sham.c
->> @@ -582,7 +582,7 @@ static int omap_sham_xmit_dma(struct omap_sham_dev *dd, dma_addr_t dma_addr,
->>                * the dmaengine may try to DMA the incorrect amount of data.
->>                */
->>               sg_init_table(&ctx->sgl, 1);
->> -             ctx->sgl.page_link = ctx->sg->page_link;
->> +             ctx->sgl.pfn = ctx->sg->pfn;
-> Do you want drivers to tinker with internals of sg, I think driver should be
-> agnostic here, perhpas a helper to get pfn, sg_get_pfn()
+Hi Arnd, Philipp,
 
-Hmm, we have sg_page() seems like we also need an sg_pfn().  Thanks, will fix.
-
->
->>               ctx->sgl.offset = ctx->sg->offset;
->>               sg_dma_len(&ctx->sgl) = len32;
->>               sg_dma_address(&ctx->sgl) = sg_dma_address(ctx->sg);
->> diff --git a/drivers/dma/imx-dma.c b/drivers/dma/imx-dma.c
->> index eed405976ea9..a767727bcfef 100644
->> --- a/drivers/dma/imx-dma.c
->> +++ b/drivers/dma/imx-dma.c
->> @@ -886,7 +886,7 @@ static struct dma_async_tx_descriptor *imxdma_prep_dma_cyclic(
->>       sg_init_table(imxdmac->sg_list, periods);
->>
->>       for (i = 0; i < periods; i++) {
->> -             imxdmac->sg_list[i].page_link = 0;
->> +             imxdmac->sg_list[i].pfn.page = NULL;
-> same here, sg_set_pfn_page() ?
-
-sg_set_page() would work here.
-
->
->>               imxdmac->sg_list[i].offset = 0;
->>               imxdmac->sg_list[i].dma_address = dma_addr;
->>               sg_dma_len(&imxdmac->sg_list[i]) = period_len;
->> @@ -894,10 +894,7 @@ static struct dma_async_tx_descriptor *imxdma_prep_dma_cyclic(
->>       }
->>
->>       /* close the loop */
->> -     imxdmac->sg_list[periods].offset = 0;
->> -     sg_dma_len(&imxdmac->sg_list[periods]) = 0;
->> -     imxdmac->sg_list[periods].page_link =
->> -             ((unsigned long)imxdmac->sg_list | 0x01) & ~0x02;
->> +     sg_chain(imxdmac->sg_list, periods + 1, imxdmac->sg_list);
-> This looks right...
+2015-05-13 21:11 GMT+02:00 Arnd Bergmann <arnd@arndb.de>:
+> Ideally the binding should follow closely what is documented
+> in the data sheet.
 >
 
-Cool, thanks for taking a look.
+Daniel and myself would like your opinion about this binding:
+
+rcc: rcc@40023800 {
+    #reset-cells = <1>;
+    #clock-cells = <2>;
+    compatible = "st,stm32-rcc";
+    reg = <0x40023800 0x10>, <0x40023810 0x20>, <0x40023830 0x20>;
+    reg-names = "clock-cfg", "reset", "clock-gates";
+};
+
+It would solve a problem Daniel is facing due to conflicting mem
+region when clock and reset drivers are enabled, as both would reserve
+the same region.
+
+Also, it would make the reset driver very generic.
+Doing that, we could even create a generic-reset.c driver that would
+be used by STM32 and Sunxi (at least).
+In the probe function, it would check the number of reg resources.
+If a single resource is passed, it would take it, else it would look
+the one named "reset".
+The driver and bindings would be the same for the two families, and
+the bindings would be backward compatible with sunxi ones.
+
+Philip, Arnd, what do you think?
+
+Kind regards,
+Maxime
