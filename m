@@ -1,156 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:60775 "EHLO mx2.suse.de"
+Received: from cantor2.suse.de ([195.135.220.15]:41756 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754519AbbEUQRp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 21 May 2015 12:17:45 -0400
-Date: Thu, 21 May 2015 18:17:43 +0200 (CEST)
-From: Michael Matz <matz@suse.de>
-Subject: Re: [c++std-parallel-1632] Re: Compilers and RCU readers: Once more
- unto the breach!
-In-Reply-To: <20150521151006.GQ6776@linux.vnet.ibm.com>
-Message-ID: <alpine.LSU.2.20.1505211731360.27315@wotan.suse.de>
-References: <20150520005510.GA23559@linux.vnet.ibm.com> <CA+55aFy_8V-rbE9FQMHx6tXjj8HHKZuKSJvnRPVYvpk46EQA1g@mail.gmail.com> <CA+55aFxOtcB8AYCpLQBGSXK=8_Vh4uDs5HEpzGpPy+hgz542ag@mail.gmail.com> <20150520024148.GD6776@linux.vnet.ibm.com> <20150520114745.GC11498@arm.com>
- <20150520121522.GH6776@linux.vnet.ibm.com> <20150520154617.GE11498@arm.com> <555CAE4B.4050202@redhat.com> <20150520181647.GU6776@linux.vnet.ibm.com> <alpine.LSU.2.20.1505211607040.27315@wotan.suse.de> <20150521151006.GQ6776@linux.vnet.ibm.com>
+	id S1755552AbbEUR6s (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 May 2015 13:58:48 -0400
+Message-ID: <555E1CC4.9090605@suse.de>
+Date: Thu, 21 May 2015 19:58:28 +0200
+From: =?ISO-8859-15?Q?Andreas_F=E4rber?= <afaerber@suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Subject: Re: [PATCH v8 07/16] drivers: reset: Add STM32 reset driver
+References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com> <1431158038-3813-8-git-send-email-mcoquelin.stm32@gmail.com> <555D1C7D.1060205@suse.de> <CALszF6CrouFF3oS_Qz6+qQRqa4a5PurdYNdvHnZRDb4zwOJ6mQ@mail.gmail.com>
+In-Reply-To: <CALszF6CrouFF3oS_Qz6+qQRqa4a5PurdYNdvHnZRDb4zwOJ6mQ@mail.gmail.com>
+Content-Type: text/plain; charset=iso-8859-15
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: c++std-parallel@accu.org, Will Deacon <will.deacon@arm.com>, Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, p796231 <Peter.Sewell@cl.cam.ac.uk>, "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "michaelw@ca.ibm.com" <michaelw@vnet.ibm.com>
-Message-ID: <20150521161743.p-9Lc64jP0HzEnkBiUfH7JqrUzW7d1Mo95xaO37I9WA@z>
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Will Deacon <will.deacon@arm.com>, Stefan Agner <stefan@agner.ch>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Peter Meerwald <pmeerw@pmeerw.net>, Lee Jones <lee.jones@linaro.org>, Linux-Arch <linux-arch@vger.kernel.org>, Daniel Thompson <daniel.thompson@linaro.org>, Russell King <linux@arm.linux.org.uk>, Pawel Moll <pawel.moll@arm.com>, Jonathan Corbet <corbet@lwn.net>, Jiri Slaby <jslaby@suse.cz>, Daniel Lezcano <daniel.lezcano@linaro.org>, Chanwoo Choi <cw00.choi@samsung.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Antti Palosaari <crope@iki.fi>, Geert Uytterhoeven <geert@linux-m68k.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, =?ISO-8859-15?Q?Uwe_Kleine-K=F6nig?= <u.kleine-koenig@pengutronix.de>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Kamil Lulko <rev13@wp.pl>, Rusty Russell <rusty@rustcorp.com.au>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Rob Herring <robh+dt@kernel.org>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Nicolae Rosia <nicolae.rosia@gmail.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Michal Marek <mmarek@suse.cz>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Joe Perches <joe@perches.com>, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>
+Message-ID: <20150521175828.05aycRMR8TM6SzoMuYXiAkDuB6p90ywkfKFr47x_ISU@z>
 
-Hi,
-
-On Thu, 21 May 2015, Paul E. McKenney wrote:
-
-> The point is -exactly- to codify the current state of affairs.
-
-Ah, I see, so it's not yet about creating a more useful (for compilers, 
-that is) model.
-
-> >   char * fancy_assign (char *in) { return in; }
-> >   ...
-> >   char *x, *y;
-> >   
-> >   x = atomic_load_explicit(p, memory_order_consume);
-> >   y = fancy_assign (x);
-> >   atomic_store_explicit(q, y, memory_order_relaxed);
-> > 
-> > So, is there, or is there not a dependency carried from x to y in your 
-> > proposed model (and which rule in your document states so)?  Clearly, 
-> > without any other language the compiler would have to assume that there is 
-> > (because the equivalent 'y = x' assignment would carry the dependency).  
+Am 21.05.2015 um 09:46 schrieb Maxime Coquelin:
+> 2015-05-21 1:45 GMT+02:00 Andreas Färber <afaerber@suse.de>:
+>> Am 09.05.2015 um 09:53 schrieb Maxime Coquelin:
+>>> +static const struct of_device_id stm32_reset_dt_ids[] = {
+>>> +      { .compatible = "st,stm32-rcc", },
+>>> +      { /* sentinel */ },
+>>> +};
+>>> +MODULE_DEVICE_TABLE(of, sstm32_reset_dt_ids);
+>>
+>> Typo.
 > 
-> The dependency is not carried, though this is due to the current set
-> of rules not covering atomic loads and stores, which I need to fix.
-
-Okay, so with the current regime(s), the dependency carries ...
-
-> o	Rule 14 says that if a value is part of a dependency chain and
-> 	is used as the actual parameter of a function call, then the
-> 	dependency chain extends to the corresponding formal parameter,
-> 	namely "in" of fancy_assign().
+> Indeed, thanks for pointing this out.
 > 
-> o	Rule 15 says that if a value is part of a dependency chain and
-> 	is returned from a function, then the dependency chain extends
-> 	to the returned value in the calling function.
+>>
+>> IIUC the timer depends on the reset controller, so it must be built in
+>> anyway, and that's what's enforced in the Makefile above. Drop the line?
+>>
 > 
-> o	And you are right.  I need to make the first and second rules
-> 	cover the relaxed atomic operations, or at least atomic loads and
-> 	stores.  Not that this is an issue for existing Linux-kernel code.
-> 
-> 	But given such a change, the new version of rule 2 would
-> 	extend the dependency chain to cover the atomic_store_explicit().
+> Agree it must be built-in.
+> I will fix that in next version.
 
-... (if this detail would be fixed).  Okay, that's quite awful ...
+Actually, I've updated a timer implementation of mine to invoke a reset
+controller similar to how you do in the STM32 clocksource patch, but no
+reset controller is getting returned.
 
-> > If it has to assume this, then the whole model is not going to work 
-> > very well, as usual with models that assume a certain less-optimal 
-> > fact ("carries-dep" is less optimal for code generation purposes that 
-> > "not-carries-dep") unless very specific circumstances say it can be 
-> > ignored.
-> 
-> Although that is a good general rule of thumb, I do not believe that it 
-> applies to this situation, with the exception that I do indeed assume 
-> that no one is insane enough to do value-speculation optimizations for 
-> non-NULL values on loads from pointers.
-> 
-> So what am I missing here?
+It seems to me, you are working around that by simply ignoring the error
+in the timer code and not doing a reset then, so the STM32 timer does in
+fact _not_ depend on the reset controller? What happened to your efforts
+of making the reset controller usable for the timer? In my case, my
+timer is originally in reset state and needs to be deasserted, so I
+can't just ignore it.
 
-... because you are then missing that if "carries-dep" can flow through 
-function calls from arguments to return values by default, the compiler 
-has to assume this in fact always happens when it can't see the function 
-body, or can't analyze it.  In effect that's making the whole "carries-dep 
-stops at these and those uses" a useless excercise because a malicious 
-user (malicious in the sense of abusing the model to show that it's 
-hindering optimizations), i.e. me, can hide all such carries-dep stopping 
-effects inside a function, et voila, the dependecy carries through.  So 
-for a slightly more simple example:
+Regards,
+Andreas
 
-  extern void *foo (void *);  // body not available
-  x = load
-  y = foo (x);
-  store (y)
-
-the compiler has to assume that there's a dep-chain from x to y; always.  
-What's worse, it also has to assume a carries-dep for this:
-
-  extern void foo (void *in, void **out1, void **out2);
-  x = load
-  foo (x, &o1, &o2);
-  store (o1);
-  store (o2);
-
-Now the compiler has to assume that the body of 'foo' is just mean enough 
-to make the dep-chain carry from in to *out1 or *out2 (i.e. it has to 
-assume that for both).  This extends to _all_ memory accessible from foo's 
-body, i.e. generally all global and all local address-taken variables, so 
-as soon as you have a function call into which a dep-chain value flows 
-you're creating a dep-chain extension from that value to each and every 
-global piece of memory, because the compiler cannot assume that the 
-black box called foo is not mean.  This could conceivably be stopped by 
-making normal stores not to carry the dependency; then only the return 
-value might be infected; but I don't see that in your rules, as a "normal 
-store" is just an assigment in your model and hence rules 1 and 2 apply 
-(that is, carries-dep flows through all assignments, incl. loads and 
-stores).
-
-Basically whenever you can construct black boxes for the compiler, you 
-have to limit their effects on such transitive relations like carries-dep 
-by default, at the border of such black boxes; otherwise that transitive 
-relation quickly becomes an most-x-everything relation (i.e. 
-mostthings carries-dep to everything), and as such is then totally 
-useless, because such a universally filled relation (like an empty one) 
-doesn't bear any interesting information, at which point it then is 
-questionably why the compiler should jump through hoops to analyse the few 
-cases that would be allowed to stop the carries-dep flow, when it more 
-often than not have to give up anyway and generate slow code.
-
-> Do you have a specific example where the compiler would need to suppress 
-> a production-quality optimization?
-
-I can't say; I haven't completely grokked all details of the different sub 
-mem-models and their interaction with compiler optimizations, and when to 
-convert consume to aquire.  But I do know that transitive relations that 
-carry a code generation cost (i.e. that when two entities are related 
-you're limited in what you can do), let's call them infections :), have to 
-be quite strictly limited in scope, otherwise they become useless.
-
-Real world examples that are quite terrible to get right, and get good 
-code out of at the same time, is aliasing and effective-type of memory 
-cells, which have some similar properties to the current carries-dep.  
-Both concepts added to the language after-the-fact (to capture some 
-assumptions that were used in practice, and that seemed sensible), but 
-then in a way that weren't limiting their scope very well.  For instance, 
-if you follow the c++ language strictly, you can't assume that a 
-anonymuous cell that was holding an int before a function call is still 
-holding an int afterwards, even without any stores in between, because the 
-function could use placement new to change the cells type.  Guess how GCC 
-deals with this?  We've designed and redesigned our memory model to 
-accomodate for this: It's conservatively assuming that crap-happens-here 
-is part of most function calls (because in the real world, it indeed is 
-the case that crap-happens-there) :)
-
-
-Ciao,
-Michael.
+-- 
+SUSE Linux GmbH, Maxfeldstr. 5, 90409 Nürnberg, Germany
+GF: Felix Imendörffer, Jane Smithard, Dilip Upmanyu, Graham Norton; HRB
+21284 (AG Nürnberg)
