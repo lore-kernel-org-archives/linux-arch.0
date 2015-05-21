@@ -1,46 +1,58 @@
-From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Subject: Re: [PATCH v8 07/16] drivers: reset: Add STM32 reset driver
-Date: Thu, 21 May 2015 09:46:34 +0200
-Message-ID: <CALszF6CrouFF3oS_Qz6+qQRqa4a5PurdYNdvHnZRDb4zwOJ6mQ@mail.gmail.com>
-References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>
-	<1431158038-3813-8-git-send-email-mcoquelin.stm32@gmail.com>
-	<555D1C7D.1060205@suse.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 2/9] y2038: asm-generic: extend sysvipc data structures
+Date: Thu, 21 May 2015 10:56:34 +0200
+Message-ID: <CAMuHMdUtJ2x+axBLj5qdsRwod=XdRkmeYJm1N7H5V_CXLo5J0g@mail.gmail.com>
+References: <1432134445-804487-1-git-send-email-arnd@arndb.de>
+	<1432134445-804487-3-git-send-email-arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-gpio-owner@vger.kernel.org>
-In-Reply-To: <555D1C7D.1060205@suse.de>
-Sender: linux-gpio-owner@vger.kernel.org
-To: =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>
-Cc: =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Philipp Zabel <p.zabel@pengutronix.de>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Joe Perches <joe@perches.com>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Lee Jones <lee.jones@linaro.org>, Daniel Thompson <daniel.thompson@linaro.org>, Mark Rutland <mark.rutland@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f43.google.com ([209.85.218.43]:34735 "EHLO
+	mail-oi0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753181AbbEUI4f (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 May 2015 04:56:35 -0400
+In-Reply-To: <1432134445-804487-3-git-send-email-arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: y2038@lists.linaro.org, baolin.wang@linaro.org, albert.aribaud@3adev.fr, John Stultz <john.stultz@linaro.org>, bamvor.zhangjian@linaro.org, ruchandani.tina@gmail.com, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, libc-alpha@sourceware.org, Linux-Arch <linux-arch@vger.kernel.org>, Manfred Spraul <manfred@colorfullife.com>, Michael Kerrisk <mtk.manpages@gmail.com>
 
-2015-05-21 1:45 GMT+02:00 Andreas F=C3=A4rber <afaerber@suse.de>:
-> Am 09.05.2015 um 09:53 schrieb Maxime Coquelin:
->> +static const struct of_device_id stm32_reset_dt_ids[] =3D {
->> +      { .compatible =3D "st,stm32-rcc", },
->> +      { /* sentinel */ },
->> +};
->> +MODULE_DEVICE_TABLE(of, sstm32_reset_dt_ids);
->
-> Typo.
+Hi Arnd,
 
-Indeed, thanks for pointing this out.
+On Wed, May 20, 2015 at 5:07 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> --- a/include/uapi/asm-generic/sembuf.h
+> +++ b/include/uapi/asm-generic/sembuf.h
+> @@ -12,23 +12,29 @@
+>   * everyone just ended up making identical copies without specific
+>   * optimizations, so we may just as well all use the same one.
+>   *
+> - * 64 bit architectures typically define a 64 bit __kernel_time_t,
+> + * 64 bit architectures use a 64-bit __kernel_time_t here, while
+> + * 32 bit architectures have a pair of unsigned long values.
+>   * so they do not need the first two padding words.
+> - * On big-endian systems, the padding is in the wrong place.
+>   *
+> - * Pad space is left for:
+> - * - 64-bit time_t to solve y2038 problem
+> - * - 2 miscellaneous 32-bit values
+> + * On big-endian systems, the padding is in the wrong place for
+> + * historic reasons, so user space has to reconstruct a time_t
+> + * value using
+> + *
+> + * user_semid_ds.sem_otime = kernel_semid64_ds.sem_otime +
+> + *             (long long)(kernel_semid64_ds.sem_otime_high << 32)
 
->
-> IIUC the timer depends on the reset controller, so it must be built i=
-n
-> anyway, and that's what's enforced in the Makefile above. Drop the li=
-ne?
->
+The cast to "long long" should be inside the parentheses, to promote the
+(32-bit) sem_otime_high to a first 64-bit integer first.
+Else it will be shifted into oblivion (oh no, C undefined behavior).
 
-Agree it must be built-in.
-I will fix that in next version.
+Gr{oetje,eeting}s,
 
-Thanks for the review,
-Maxime
+                        Geert
+
 --
-To unsubscribe from this list: send the line "unsubscribe linux-gpio" i=
-n
-the body of a message to majordomo@vger.kernel.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
