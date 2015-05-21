@@ -1,124 +1,149 @@
-From: Maxime Ripard <maxime.ripard@free-electrons.com>
-Subject: Re: [PATCH v8 14/16] ARM: dts: Introduce STM32F429 MCU
-Date: Thu, 21 May 2015 20:51:22 +0200
-Message-ID: <20150521185122.GD8557@lukather>
-References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>
- <2282066.NWoIT9ZyLc@wuerfel>
- <CALszF6CaO_yuNiSDuDV+4d2NRe_+32j=zcSE1HPhB1UH59cW9w@mail.gmail.com>
- <13641152.Yt4ZI3oT6L@wuerfel>
- <CALszF6CK5ezrO6D=4zr6zEPC7VanzbQjnZJwKOZekEZ5L4D-Dg@mail.gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: Compilers and RCU readers: Once more unto the breach!
+Date: Thu, 21 May 2015 20:24:22 +0100
+Message-ID: <20150521192422.GC19204@arm.com>
+References: <20150520005510.GA23559@linux.vnet.ibm.com>
+ <CA+55aFy_8V-rbE9FQMHx6tXjj8HHKZuKSJvnRPVYvpk46EQA1g@mail.gmail.com>
+ <CA+55aFxOtcB8AYCpLQBGSXK=8_Vh4uDs5HEpzGpPy+hgz542ag@mail.gmail.com>
+ <20150520024148.GD6776@linux.vnet.ibm.com>
+ <20150520114745.GC11498@arm.com>
+ <20150520121522.GH6776@linux.vnet.ibm.com>
+ <20150520154617.GE11498@arm.com>
+ <20150520181606.GT6776@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="===============7502969954117588039=="
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <CALszF6CK5ezrO6D=4zr6zEPC7VanzbQjnZJwKOZekEZ5L4D-Dg@mail.gmail.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Cc: Mark Rutland <mark.rutland@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Will Deacon <will.deacon@arm.com>, Stefan Agner <stefan@agner.ch>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Peter Meerwald <pmeerw@pmeerw.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Lee Jones <lee.jones@linaro.org>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Linux-Arch <linux-arch@vger.kernel.org>, Daniel Thompson <daniel.thompson@linaro.org>, Russell King <linux@arm.linux.org.uk>, Pawel Moll <pawel.moll@arm.com>, Jonathan Corbet <corbet@lwn.net>, Jiri Slaby <jslaby@suse.cz>, Daniel Lezcano <daniel.lezcano@linaro.org>, Chanwoo Choi <cw00.choi@samsung.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Antti Palosaari <crope@iki.fi>, Geert Uytterhoeven <geert@linux-m68k.org>"linux-serial@vger.kernel.org" <li>
-List-Id: linux-arch.vger.kernel.org
-
-
---===============7502969954117588039==
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="df+09Je9rNq3P+GE"
-Content-Disposition: inline
-
-
---df+09Je9rNq3P+GE
 Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:42228 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754076AbbEUTY1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 21 May 2015 15:24:27 -0400
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <20150520181606.GT6776@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "c++std-parallel@accu.org" <c++std-parallel@accu.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, p796231 <Peter.Sewell@cl.cam.ac.uk>, "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "michaelw@ca.ibm.com" <michaelw@ca.ibm.com>
 
-On Wed, May 20, 2015 at 06:17:34PM +0200, Maxime Coquelin wrote:
-> Hi Arnd, Philipp,
->=20
-> 2015-05-13 21:11 GMT+02:00 Arnd Bergmann <arnd@arndb.de>:
-> > Ideally the binding should follow closely what is documented
-> > in the data sheet.
-> >
->=20
-> Daniel and myself would like your opinion about this binding:
->=20
-> rcc: rcc@40023800 {
->     #reset-cells =3D <1>;
->     #clock-cells =3D <2>;
->     compatible =3D "st,stm32-rcc";
->     reg =3D <0x40023800 0x10>, <0x40023810 0x20>, <0x40023830 0x20>;
->     reg-names =3D "clock-cfg", "reset", "clock-gates";
-> };
->=20
-> It would solve a problem Daniel is facing due to conflicting mem
-> region when clock and reset drivers are enabled, as both would reserve
-> the same region.
->=20
-> Also, it would make the reset driver very generic.
-> Doing that, we could even create a generic-reset.c driver that would
-> be used by STM32 and Sunxi (at least).
-> In the probe function, it would check the number of reg resources.
-> If a single resource is passed, it would take it, else it would look
-> the one named "reset".
-> The driver and bindings would be the same for the two families, and
-> the bindings would be backward compatible with sunxi ones.
->=20
-> Philip, Arnd, what do you think?
+On Wed, May 20, 2015 at 07:16:06PM +0100, Paul E. McKenney wrote:
+> On Wed, May 20, 2015 at 04:46:17PM +0100, Will Deacon wrote:
+> > On Wed, May 20, 2015 at 01:15:22PM +0100, Paul E. McKenney wrote:
+> > > Indeed, something like this does -not- carry a dependency from the
+> > > memory_order_consume load to q:
+> > > 
+> > > 	char *p, q;
+> > > 
+> > > 	p = atomic_load_explicit(&gp, memory_order_consume);
+> > > 	q = gq + (intptr_t)p - (intptr_t)p;
+> > > 
+> > > If this was compiled with -O0, ARM and Power might well carry a
+> > > dependency, but given any optimization, the assembly language would have
+> > > no hint of any such dependency.  So I am not seeing any particular danger.
+> > 
+> > The above is a welcome relaxation over C11, since ARM doesn't even give
+> > you ordering based off false data dependencies. My concern is more to do
+> > with how this can be specified precisely without prohibing honest compiler
+> > and hardware optimisations.
+> 
+> That last is the challenge.  I believe that I am pretty close, but I am
+> sure that additional adjustment will be required.  Especially given that
+> we also need the memory model to be amenable to formal analysis.
 
-I lack a bit of context here, but I'd be very happy to use a generic
-driver. As a matter of fact, the sunxi reset driver is already pretty
-much there (not that it's very difficult to do).
+Well, there's still the whole thin-air problem which unfortunately doesn't
+go away with your proposal... (I was hoping that differentiating between
+true and false dependencies would solve that, but your set of rules isn't
+broad enough and I don't blame you at all for that!).
 
-The only thing we did that stands out a bit is that we actually need
-the reset driver much earlier than the default probe, since some of
-our timers are maintained in reset. We have some code to do just that
-already, we just need have something similar to be on board.
+> > Out of interest, how do you tackle examples (4) and (5) of (assuming the
+> > reads are promoted to consume loads)?:
+> > 
+> >   http://www.cl.cam.ac.uk/~pes20/cpp/notes42.html
+> > 
+> > my understanding is that you permit both outcomes (I appreciate you're
+> > not directly tackling out-of-thin-air, but treatment of dependencies
+> > is heavily related).
 
-Maxime (the other one)
+Thanks for taking the time to walk these two examples through.
 
---=20
-Maxime Ripard, Free Electrons
-Embedded Linux, Kernel and Android engineering
-http://free-electrons.com
+> Let's see...  #4 is as follows, given promotion to memory_order_consume
+> and (I am guessing) memory_order_relaxed:
+> 
+> 	r1 = atomic_load_explicit(&x, memory_order_consume);
+> 	if (r1 == 42)
+> 	  atomic_store_explicit(&y, r1, memory_order_relaxed);
+> 	------------------------------------------------------
+> 	r2 = atomic_load_explicit(&y, memory_order_consume);
+> 	if (r2 == 42)
+> 	  atomic_store_explicit(&x, 42, memory_order_relaxed);
+> 	else
+> 	  atomic_store_explicit(&x, 42, memory_order_relaxed);
+> 
+> The second thread does not have a proper control dependency, even with
+> the memory_order_consume load because both branches assign the same
+> value to "x".  This means that the compiler is within its rights to
+> optimize this into the following:
+> 
+> 	r1 = atomic_load_explicit(&x, memory_order_consume);
+> 	if (r1 == 42)
+> 	  atomic_store_explicit(&y, r1, memory_order_relaxed);
+> 	------------------------------------------------------
+> 	r2 = atomic_load_explicit(&y, memory_order_consume);
+> 	atomic_store_explicit(&x, 42, memory_order_relaxed);
+> 
+> There is no dependency between the second thread's pair of statements,
+> so both the compiler and the CPU are within their rights to optimize
+> further as follows:
+> 
+> 	r1 = atomic_load_explicit(&x, memory_order_consume);
+> 	if (r1 == 42)
+> 	  atomic_store_explicit(&y, r1, memory_order_relaxed);
+> 	------------------------------------------------------
+> 	atomic_store_explicit(&x, 42, memory_order_relaxed);
+> 	r2 = atomic_load_explicit(&y, memory_order_consume);
+> 
+> If the compiler makes this final optimization, even mythical SC hardware
+> is within its rights to end up with (r1 == 42 && r2 == 42).  Which is
+> fine, as far as I am concerned.  Or at least something that can be
+> lived with.
 
---df+09Je9rNq3P+GE
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+Agreed.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
+> On to #5:
+> 
+> 	r1 = atomic_load_explicit(&x, memory_order_consume);
+> 	if (r1 == 42)
+> 	  atomic_store_explicit(&y, r1, memory_order_relaxed);
+> 	----------------------------------------------------
+> 	r2 = atomic_load_explicit(&y, memory_order_consume);
+> 	if (r2 == 42)
+> 	  atomic_store_explicit(&x, 42, memory_order_relaxed);
+> 
+> The first thread's accesses are dependency ordered.  The second thread's
+> ordering is in a corner case that memory-barriers.txt does not cover.
+> You are supposed to start control dependencies with READ_ONCE_CTRL(), not
+> a memory_order_consume load (AKA rcu_dereference and friends).  However,
+> Alpha would have a full barrier as part of the memory_order_consume load,
+> and the rest of the processors would (one way or another) respect the
+> control dependency.  And the compiler would have some fun trying to
+> break it.
 
-iQIcBAEBAgAGBQJVXikqAAoJEBx+YmzsjxAgFNoP/igC4QqIbJZuHJzhLI99m/PM
-oJ6ypHB7U4WVCK6Tmp3ybghgroSklKIIoDl/URRek9VatoscZMXO/VcSHKRojKAT
-WQS16bjLcV50NcxoSbj7LNY4EDYWcm6d7rV1VS8cMTQ7OPVTGg1Bkfze4z6HnyRF
-7/IFYjLT3XivRAMvWvY63BzSQ+gxJT7EGJmg2Sfmr6eDK595YAijQETtYZl3LE+I
-hi3jRAnQ3QFsZY717wcoTN66heFH7VwI1hj9dKMEEQtFpTd+C4EJSY7k/uWemzuu
-wGXTS3eecp6o98V9xQJXe7m+kKGvUsroNHONok4q1RpvhB4wiuEbTNkMvHhMlCdZ
-tI3n2N+aRn4lA8lTmH1KNj1dMfpnB2F56DZUUoR/93NyJUThGQM4Juh7x3p/sxid
-ih3um7LPmVe+ogcKaKPMhoBw82A61usKbJPtPAWBMRXdEs/udOREdYus7lyJ7KXY
-krp7W5ERK14DgGlxe/NM/k4dWijabziJwwxqca6S6dErr8pZWCLBJ5guBEmomE/u
-D+jUojB/khkSD2WE0FxTMMxacxOzg+2DPMF27zvozw9RSiqWqXbbxpz5IE7jRxp9
-8utbZT4zFRxNZzSnIUzG0REMdNgqMzTJI/Zl0OvyJLd+2NPY7a3x7DVq0wPgNqCM
-DOrlI7seBydrFVz4Uhgg
-=xiOd
------END PGP SIGNATURE-----
+But this is interesting because the first thread is ordered whilst the
+second is not, so doesn't that effectively forbid the compiler from
+constant-folding values if it can't prove that there is no dependency
+chain?
 
---df+09Je9rNq3P+GE--
+> So the current Linux memory model would allow (r1 == 42 && r2 == 42),
+> but I don't know of any hardware/compiler combination that would
+> allow it.  And no, I am -not- going to update memory-barriers.txt for
+> this litmus test, its theoretical interest notwithstanding!  ;-)
 
+Indeed, I also don't know of any hardware which permits speculative
+writes to become visible, but it's the compiler (and the language
+definition) that we need to think about here.
 
---===============7502969954117588039==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
+> In summary, both #4 and #5 would be allowed, as modified above.
+> Seem reasonable?
 
-_______________________________________________
-linux-arm-kernel mailing list
-linux-arm-kernel@lists.infradead.org
-http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+It feels like it's suppressing a reasonable compiler optimisation, but again,
+I'm not a compiler writer ;)
 
---===============7502969954117588039==--
+Will
