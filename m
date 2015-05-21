@@ -1,149 +1,90 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: Compilers and RCU readers: Once more unto the breach!
-Date: Thu, 21 May 2015 20:24:22 +0100
-Message-ID: <20150521192422.GC19204@arm.com>
-References: <20150520005510.GA23559@linux.vnet.ibm.com>
- <CA+55aFy_8V-rbE9FQMHx6tXjj8HHKZuKSJvnRPVYvpk46EQA1g@mail.gmail.com>
- <CA+55aFxOtcB8AYCpLQBGSXK=8_Vh4uDs5HEpzGpPy+hgz542ag@mail.gmail.com>
- <20150520024148.GD6776@linux.vnet.ibm.com>
- <20150520114745.GC11498@arm.com>
- <20150520121522.GH6776@linux.vnet.ibm.com>
- <20150520154617.GE11498@arm.com>
- <20150520181606.GT6776@linux.vnet.ibm.com>
+From: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Subject: Re: [PATCH v8 07/16] drivers: reset: Add STM32 reset driver
+Date: Thu, 21 May 2015 21:57:56 +0200
+Message-ID: <CALszF6Bhc1MkDaqM3oJ93Rrxxbsss7=FA8WUpbtwmDERUdD0KA@mail.gmail.com>
+References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>
+	<1431158038-3813-8-git-send-email-mcoquelin.stm32@gmail.com>
+	<555D1C7D.1060205@suse.de>
+	<CALszF6CrouFF3oS_Qz6+qQRqa4a5PurdYNdvHnZRDb4zwOJ6mQ@mail.gmail.com>
+	<555E1CC4.9090605@suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:42228 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754076AbbEUTY1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 21 May 2015 15:24:27 -0400
-Content-Disposition: inline
-In-Reply-To: <20150520181606.GT6776@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "c++std-parallel@accu.org" <c++std-parallel@accu.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, p796231 <Peter.Sewell@cl.cam.ac.uk>, "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "michaelw@ca.ibm.com" <michaelw@ca.ibm.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-gpio-owner@vger.kernel.org>
+In-Reply-To: <555E1CC4.9090605@suse.de>
+Sender: linux-gpio-owner@vger.kernel.org
+To: =?UTF-8?Q?Andreas_F=C3=A4rber?= <afaerber@suse.de>, Kamil Lulko <rev13@wp.pl>, Rob Herring <robh+dt@kernel.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: Mark Rutland <mark.rutland@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Will Deacon <will.deacon@arm.com>, Stefan Agner <stefan@agner.ch>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Peter Meerwald <pmeerw@pmeerw.net>, Lee Jones <lee.jones@linaro.org>, Linux-Arch <linux-arch@vger.kernel.org>, Daniel Thompson <daniel.thompson@linaro.org>, Russell King <linux@arm.linux.org.uk>, Pawel Moll <pawel.moll@arm.com>, Jonathan Corbet <corbet@lwn.net>, Jiri Slaby <jslaby@suse.cz>, Daniel Lezcano <daniel.lezcano@linaro.org>, Chanwoo Choi <cw00.choi@samsung.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Antti Palosaari <crope@iki.fi>, Geert Uytterhoeven <geert@linux-m68k.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, =?UTF-8?Q?Uwe_Kleine=2DK=C3=B6nig?= <u.kleine-koenig@pengutronix.de>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 20, 2015 at 07:16:06PM +0100, Paul E. McKenney wrote:
-> On Wed, May 20, 2015 at 04:46:17PM +0100, Will Deacon wrote:
-> > On Wed, May 20, 2015 at 01:15:22PM +0100, Paul E. McKenney wrote:
-> > > Indeed, something like this does -not- carry a dependency from the
-> > > memory_order_consume load to q:
-> > > 
-> > > 	char *p, q;
-> > > 
-> > > 	p = atomic_load_explicit(&gp, memory_order_consume);
-> > > 	q = gq + (intptr_t)p - (intptr_t)p;
-> > > 
-> > > If this was compiled with -O0, ARM and Power might well carry a
-> > > dependency, but given any optimization, the assembly language would have
-> > > no hint of any such dependency.  So I am not seeing any particular danger.
-> > 
-> > The above is a welcome relaxation over C11, since ARM doesn't even give
-> > you ordering based off false data dependencies. My concern is more to do
-> > with how this can be specified precisely without prohibing honest compiler
-> > and hardware optimisations.
-> 
-> That last is the challenge.  I believe that I am pretty close, but I am
-> sure that additional adjustment will be required.  Especially given that
-> we also need the memory model to be amenable to formal analysis.
+2015-05-21 19:58 GMT+02:00 Andreas F=C3=A4rber <afaerber@suse.de>:
+> Am 21.05.2015 um 09:46 schrieb Maxime Coquelin:
+>> 2015-05-21 1:45 GMT+02:00 Andreas F=C3=A4rber <afaerber@suse.de>:
+>>> Am 09.05.2015 um 09:53 schrieb Maxime Coquelin:
+>>>> +static const struct of_device_id stm32_reset_dt_ids[] =3D {
+>>>> +      { .compatible =3D "st,stm32-rcc", },
+>>>> +      { /* sentinel */ },
+>>>> +};
+>>>> +MODULE_DEVICE_TABLE(of, sstm32_reset_dt_ids);
+>>>
+>>> Typo.
+>>
+>> Indeed, thanks for pointing this out.
+>>
+>>>
+>>> IIUC the timer depends on the reset controller, so it must be built=
+ in
+>>> anyway, and that's what's enforced in the Makefile above. Drop the =
+line?
+>>>
+>>
+>> Agree it must be built-in.
+>> I will fix that in next version.
+>
+> Actually, I've updated a timer implementation of mine to invoke a res=
+et
+> controller similar to how you do in the STM32 clocksource patch, but =
+no
+> reset controller is getting returned.
+>
+> It seems to me, you are working around that by simply ignoring the er=
+ror
+> in the timer code and not doing a reset then, so the STM32 timer does=
+ in
+> fact _not_ depend on the reset controller? What happened to your effo=
+rts
+> of making the reset controller usable for the timer? In my case, my
+> timer is originally in reset state and needs to be deasserted, so I
+> can't just ignore it.
 
-Well, there's still the whole thin-air problem which unfortunately doesn't
-go away with your proposal... (I was hoping that differentiating between
-true and false dependencies would solve that, but your set of rules isn't
-broad enough and I don't blame you at all for that!).
+Indeed, I made the reset optionnal in the clocksource patch since v3.
+Rob and Arnd said a lot of platform relies on such things are done by
+the bootloader [0].
+I decided to deassert timers reset at bootloader stage, and make it
+optionnal in clocksource driver.
+I made it optionnal in case we decide one day to move reset
+initialization before timer are initialized.
 
-> > Out of interest, how do you tackle examples (4) and (5) of (assuming the
-> > reads are promoted to consume loads)?:
-> > 
-> >   http://www.cl.cam.ac.uk/~pes20/cpp/notes42.html
-> > 
-> > my understanding is that you permit both outcomes (I appreciate you're
-> > not directly tackling out-of-thin-air, but treatment of dependencies
-> > is heavily related).
+Note that for now, I still use your bootloader.
+I have done the changes to reset the timers in the afboot-stm32.
+That's the reason why I asked you under which licence it is delivered
+few months ago.
+I can share you the patch if you want, even if I understand it is more
+about the concept that you are reluctant.
 
-Thanks for taking the time to walk these two examples through.
+On my side, I plan to move to U-Boot soon, as Kamil Lulko added STM32
+support in mainline [1].
+In case of U-Boot, the timer reset should be de-asserted when jumping
+into the Kernel, as Rob mentionned [0].
 
-> Let's see...  #4 is as follows, given promotion to memory_order_consume
-> and (I am guessing) memory_order_relaxed:
-> 
-> 	r1 = atomic_load_explicit(&x, memory_order_consume);
-> 	if (r1 == 42)
-> 	  atomic_store_explicit(&y, r1, memory_order_relaxed);
-> 	------------------------------------------------------
-> 	r2 = atomic_load_explicit(&y, memory_order_consume);
-> 	if (r2 == 42)
-> 	  atomic_store_explicit(&x, 42, memory_order_relaxed);
-> 	else
-> 	  atomic_store_explicit(&x, 42, memory_order_relaxed);
-> 
-> The second thread does not have a proper control dependency, even with
-> the memory_order_consume load because both branches assign the same
-> value to "x".  This means that the compiler is within its rights to
-> optimize this into the following:
-> 
-> 	r1 = atomic_load_explicit(&x, memory_order_consume);
-> 	if (r1 == 42)
-> 	  atomic_store_explicit(&y, r1, memory_order_relaxed);
-> 	------------------------------------------------------
-> 	r2 = atomic_load_explicit(&y, memory_order_consume);
-> 	atomic_store_explicit(&x, 42, memory_order_relaxed);
-> 
-> There is no dependency between the second thread's pair of statements,
-> so both the compiler and the CPU are within their rights to optimize
-> further as follows:
-> 
-> 	r1 = atomic_load_explicit(&x, memory_order_consume);
-> 	if (r1 == 42)
-> 	  atomic_store_explicit(&y, r1, memory_order_relaxed);
-> 	------------------------------------------------------
-> 	atomic_store_explicit(&x, 42, memory_order_relaxed);
-> 	r2 = atomic_load_explicit(&y, memory_order_consume);
-> 
-> If the compiler makes this final optimization, even mythical SC hardware
-> is within its rights to end up with (r1 == 42 && r2 == 42).  Which is
-> fine, as far as I am concerned.  Or at least something that can be
-> lived with.
+Kind regards,
+Maxime
 
-Agreed.
-
-> On to #5:
-> 
-> 	r1 = atomic_load_explicit(&x, memory_order_consume);
-> 	if (r1 == 42)
-> 	  atomic_store_explicit(&y, r1, memory_order_relaxed);
-> 	----------------------------------------------------
-> 	r2 = atomic_load_explicit(&y, memory_order_consume);
-> 	if (r2 == 42)
-> 	  atomic_store_explicit(&x, 42, memory_order_relaxed);
-> 
-> The first thread's accesses are dependency ordered.  The second thread's
-> ordering is in a corner case that memory-barriers.txt does not cover.
-> You are supposed to start control dependencies with READ_ONCE_CTRL(), not
-> a memory_order_consume load (AKA rcu_dereference and friends).  However,
-> Alpha would have a full barrier as part of the memory_order_consume load,
-> and the rest of the processors would (one way or another) respect the
-> control dependency.  And the compiler would have some fun trying to
-> break it.
-
-But this is interesting because the first thread is ordered whilst the
-second is not, so doesn't that effectively forbid the compiler from
-constant-folding values if it can't prove that there is no dependency
-chain?
-
-> So the current Linux memory model would allow (r1 == 42 && r2 == 42),
-> but I don't know of any hardware/compiler combination that would
-> allow it.  And no, I am -not- going to update memory-barriers.txt for
-> this litmus test, its theoretical interest notwithstanding!  ;-)
-
-Indeed, I also don't know of any hardware which permits speculative
-writes to become visible, but it's the compiler (and the language
-definition) that we need to think about here.
-
-> In summary, both #4 and #5 would be allowed, as modified above.
-> Seem reasonable?
-
-It feels like it's suppressing a reasonable compiler optimisation, but again,
-I'm not a compiler writer ;)
-
-Will
+[0]: https://lkml.org/lkml/2015/3/10/737
+[1]: http://u-boot.10912.n7.nabble.com/PATCH-v2-stm32f4-fix-serial-outp=
+ut-td212812.html
+--
+To unsubscribe from this list: send the line "unsubscribe linux-gpio" i=
+n
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
