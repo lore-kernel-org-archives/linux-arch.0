@@ -1,49 +1,38 @@
-From: Daniel Thompson <daniel.thompson@linaro.org>
-Subject: Re: [PATCH v8 14/16] ARM: dts: Introduce STM32F429 MCU
-Date: Fri, 22 May 2015 15:14:53 +0100
-Message-ID: <555F39DD.9060209@linaro.org>
-References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>	<2282066.NWoIT9ZyLc@wuerfel>	<CALszF6CaO_yuNiSDuDV+4d2NRe_+32j=zcSE1HPhB1UH59cW9w@mail.gmail.com>	<13641152.Yt4ZI3oT6L@wuerfel>	<CALszF6CK5ezrO6D=4zr6zEPC7VanzbQjnZJwKOZekEZ5L4D-Dg@mail.gmail.com>	<1432285588.3929.28.camel@pengutronix.de>	<20150522091822.GF8557@lukather>	<1432289231.3929.60.camel@pengutronix.de>	<CALszF6CQ1_HQXJ8=vgytvVo2t4_ue5_nsE06HPyHMzSLrntqKg@mail.gmail.com>	<555F2A8A.5020205@suse.de> <CALszF6A=TZ_EROrfuBOAGiY3mbydC5fepWLSWrZLLt4nV9sr4w@mail.gmail.com>
+From: Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>
+Subject: Re: [PATCH v2] Documentation/arch: Add kernel feature descriptions
+ and arch support status under Documentation/features/
+Date: Fri, 22 May 2015 09:49:31 -0600
+Message-ID: <20150522094931.78a43421@lwn.net>
+References: <20150513083441.GA17336@gmail.com>
+	<20150513085636.GA11030@gmail.com>
+	<20150513092421.GB11030@gmail.com>
+	<20150513094622.GC11030@gmail.com>
+	<20150513094756.GD11030@gmail.com>
+	<20150513131835.GJ1517@pd.tnic>
+	<20150513134842.GA1657@gmail.com>
+	<20150513162757.GA21894@x>
+	<20150513150523.ddd65d7cd51f820b78f0c8e3@linux-foundation.org>
+	<20150514101518.GA27550@gmail.com>
+	<20150514103544.GA7027@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f48.google.com ([74.125.82.48]:33992 "EHLO
-	mail-wg0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756720AbbEVOO5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 May 2015 10:14:57 -0400
-Received: by wghq2 with SMTP id q2so19203325wgh.1
-        for <linux-arch@vger.kernel.org>; Fri, 22 May 2015 07:14:56 -0700 (PDT)
-In-Reply-To: <CALszF6A=TZ_EROrfuBOAGiY3mbydC5fepWLSWrZLLt4nV9sr4w@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>, =?UTF-8?B?QW5kcmVhcyBGw6Q=?= =?UTF-8?B?cmJlcg==?= <afaerber@suse.de>
-Cc: Philipp Zabel <p.zabel@pengutronix.de>, Maxime Ripard <maxime.ripard@free-electrons.com>, Arnd Bergmann <arnd@arndb.de>, =?UTF-8?B?VXdlIEtsZWluZS1Lw7ZuaWc=?= <u.kleine-koenig@pengutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Joe Perches <joe@perches.com>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Lee Jones <lee.jones@linaro.org>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hell>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20150514103544.GA7027-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Josh Triplett <josh-iaAMLnmF4UmaiuxdJuQwMA@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On 22/05/15 14:57, Maxime Coquelin wrote:
-> 2015-05-22 15:09 GMT+02:00 Andreas F=C3=A4rber <afaerber@suse.de>:
->> As you should know, I did have an RCC clk driver, and there is no su=
-ch
->> issue. The two drivers use different mechanisms for initialization. =
-And
->> I'm pretty sure that I've already remarked that on the list, too.
->
-> Yes, you use of_iomap in your clock driver [0].
-> Daniel, would you accept to do the same?
-> That would remove one difference between stm32/sunxi/socfpga reset dr=
-ivers.
+On Thu, 14 May 2015 12:35:44 +0200
+Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org> wrote:
 
-In fact, that is exactly what I am currently doing, though I was=20
-planning for it to be temporary.
+> Updated patch attached.
 
-It seems a bit weird to me that one driver (which requests too much=20
-register space) only works because another driver chooses not to reques=
-t=20
-any.
+This seems to have slowed down a bit; I've taken the liberty of pulling it
+into the docs tree.  It can be replaced, though, should you decide to
+completely rework the format again...:)
 
-BTW in drivers/clk there are ~110 of_iomaps and only 10=20
-of_io_request_and_maps... so I don't think anyone will yell at me for=20
-using of_iomap().
+Thanks,
 
-
-Daniel.
+jon
