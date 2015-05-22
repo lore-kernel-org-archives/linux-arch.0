@@ -1,55 +1,79 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: Compilers and RCU readers: Once more unto the breach!
-Date: Fri, 22 May 2015 08:43:44 +0200
-Message-ID: <20150522064344.GA17518@gmail.com>
-References: <CA+55aFy_8V-rbE9FQMHx6tXjj8HHKZuKSJvnRPVYvpk46EQA1g@mail.gmail.com>
- <CA+55aFxOtcB8AYCpLQBGSXK=8_Vh4uDs5HEpzGpPy+hgz542ag@mail.gmail.com>
- <20150520024148.GD6776@linux.vnet.ibm.com>
- <20150520114745.GC11498@arm.com>
- <20150520121522.GH6776@linux.vnet.ibm.com>
- <20150520154617.GE11498@arm.com>
- <20150520181606.GT6776@linux.vnet.ibm.com>
- <20150521192422.GC19204@arm.com>
- <20150521200212.GW6776@linux.vnet.ibm.com>
- <CA+55aFxse3wTkfLMdotb+FO+_6EN32sseC0gpBaSnJ2KmbNUhQ@mail.gmail.com>
+From: Philipp Zabel <p.zabel@pengutronix.de>
+Subject: Re: [PATCH v8 14/16] ARM: dts: Introduce STM32F429 MCU
+Date: Fri, 22 May 2015 11:06:28 +0200
+Message-ID: <1432285588.3929.28.camel@pengutronix.de>
+References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>
+ <2282066.NWoIT9ZyLc@wuerfel>
+ <CALszF6CaO_yuNiSDuDV+4d2NRe_+32j=zcSE1HPhB1UH59cW9w@mail.gmail.com>
+ <13641152.Yt4ZI3oT6L@wuerfel>
+ <CALszF6CK5ezrO6D=4zr6zEPC7VanzbQjnZJwKOZekEZ5L4D-Dg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f49.google.com ([74.125.82.49]:32909 "EHLO
-	mail-wg0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750715AbbEVGnt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 May 2015 02:43:49 -0400
-Content-Disposition: inline
-In-Reply-To: <CA+55aFxse3wTkfLMdotb+FO+_6EN32sseC0gpBaSnJ2KmbNUhQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "c++std-parallel@accu.org" <c++std-parallel@accu.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, p796231 <Peter.Sewell@cl.cam.ac.uk>, "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, "michaelw@ca.ibm.com" <michaelw@ca.ibm.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <CALszF6CK5ezrO6D=4zr6zEPC7VanzbQjnZJwKOZekEZ5L4D-Dg@mail.gmail.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Will Deacon <will.deacon@arm.com>, Stefan Agner <stefan@agner.ch>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Peter Meerwald <pmeerw@pmeerw.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Lee Jones <lee.jones@linaro.org>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Linux-Arch <linux-arch@vger.kernel.org>, Daniel Thompson <daniel.thompson@linaro.org>, Russell King <linux@arm.linux.org.uk>, Pawel Moll <pawel.moll@arm.com>, Jonathan Corbet <corbet@lwn.net>, Jiri Slaby <jslaby@suse.cz>, Daniel Lezcano <daniel.lezcano@linaro.org>, Nicolae Rosia <nicolae.rosia@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Antti Palosaari <crope@iki.fi>, Geert Uytterhoeven <geert@linux-m68k.>
+List-Id: linux-arch.vger.kernel.org
 
+Am Mittwoch, den 20.05.2015, 18:17 +0200 schrieb Maxime Coquelin:
+> Hi Arnd, Philipp,
+> 
+> 2015-05-13 21:11 GMT+02:00 Arnd Bergmann <arnd@arndb.de>:
+> > Ideally the binding should follow closely what is documented
+> > in the data sheet.
+> >
+> 
+> Daniel and myself would like your opinion about this binding:
+> 
+> rcc: rcc@40023800 {
+>     #reset-cells = <1>;
+>     #clock-cells = <2>;
+>     compatible = "st,stm32-rcc";
+>     reg = <0x40023800 0x10>, <0x40023810 0x20>, <0x40023830 0x20>;
+>     reg-names = "clock-cfg", "reset", "clock-gates";
 
-* Linus Torvalds <torvalds@linux-foundation.org> wrote:
+"reset" singular, "clock-gates" plural seems inconsistent to me.
 
->  (a) the "official" rules are completely pointless, and make sense 
-> only because the standard is written for some random "abstract 
-> machine" that doesn't actually exist.
+> };
+> 
+> It would solve a problem Daniel is facing due to conflicting mem
+> region when clock and reset drivers are enabled, as both would reserve
+> the same region.
+> 
+> Also, it would make the reset driver very generic.
+> Doing that, we could even create a generic-reset.c driver that would
+> be used by STM32 and Sunxi (at least).
 
-Presuming the intent of the abstract machine specification is to avoid 
-being seen as biased towards any specific machine (politics), maybe 
-write this as:
+Adding support for providing the reset register range via of_device_id
+data and the possibility to invert set/clear ops would allow to also
+include the socfpga driver.
 
-   (a) the "official" rules are written for a somewhat weird and 
-       complex "union of all known and theoretically possible CPU 
-       architectures that exist or which might exist in the future", 
-       which machine does not actually exist in practice, but which 
-       allows a single abstract set of rules to apply to all machines. 
-       These rules are complex, but if applied to a specific machine 
-       they become considerably simpler. Here's a few examples: ...
+> In the probe function, it would check the number of reg resources.
+> If a single resource is passed, it would take it, else it would look
+> the one named "reset".
+> The driver and bindings would be the same for the two families, and
+> the bindings would be backward compatible with sunxi ones.
+> 
+> Philip, Arnd, what do you think?
 
-?
+I'm not a fan of describing the register layout in the device tree as
+detailed as the sunxi bindings do. I'd prefer the reg property to
+describe the device's register address space with one entry per
+contiguous block of registers.
+Unifying the mostly identical drivers is a good idea though, and reusing
+preexisting bindings is better than inventing new ones. I favor the
+socfpga binding, but I still like the sunxi bindings and this proposal
+better than encoding the register offset in the reset index.
 
-(Assuming it's a goal of this standard to be human parseable to more 
-than a few dozen people on the planet.)
-
-Thanks,
-
-	Ingo
+best regards
+Philipp
