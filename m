@@ -1,31 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from vlsi1.gnat.com ([205.232.38.7]:49566 "EHLO vlsi1.gnat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755347AbbEVKzC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 22 May 2015 06:55:02 -0400
-Date: Fri, 22 May 2015 06:43:32 EDT
-Subject: Re: Compilers and RCU readers: Once more unto the breach!
-In-Reply-To: <20150522064344.GA17518@gmail.com>
-References: <CA+55aFy_8V-rbE9FQMHx6tXjj8HHKZuKSJvnRPVYvpk46EQA1g@mail.gmail.com>
-    <CA+55aFxOtcB8AYCpLQBGSXK=8_Vh4uDs5HEpzGpPy+hgz542ag@mail.gmail.com>
-    <20150520024148.GD6776@linux.vnet.ibm.com>
-    <20150520114745.GC11498@arm.com>
-    <20150520121522.GH6776@linux.vnet.ibm.com>
-    <20150520154617.GE11498@arm.com>
-    <20150520181606.GT6776@linux.vnet.ibm.com>
-    <20150521192422.GC19204@arm.com>
-    <20150521200212.GW6776@linux.vnet.ibm.com>
-    <CA+55aFxse3wTkfLMdotb+FO+_6EN32sseC0gpBaSnJ2KmbNUhQ@mail.gmail.com>
-    <20150522064344.GA17518@gmail.com>
-Message-ID: <20150522104332.5FBFF33CA8@vlsi1.gnat.com>
-From: kenner@vlsi1.ultra.nyu.edu (Richard Kenner)
+Received: from mail-wi0-f173.google.com ([209.85.212.173]:34934 "EHLO
+	mail-wi0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756984AbbEVMnr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 May 2015 08:43:47 -0400
+Received: by wicmx19 with SMTP id mx19so46205392wic.0
+        for <linux-arch@vger.kernel.org>; Fri, 22 May 2015 05:43:46 -0700 (PDT)
+Message-ID: <555F247F.9060100@linaro.org>
+Date: Fri, 22 May 2015 13:43:43 +0100
+From: Daniel Thompson <daniel.thompson@linaro.org>
+MIME-Version: 1.0
+Subject: Re: [PATCH v8 14/16] ARM: dts: Introduce STM32F429 MCU
+References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>	<2282066.NWoIT9ZyLc@wuerfel>	<CALszF6CaO_yuNiSDuDV+4d2NRe_+32j=zcSE1HPhB1UH59cW9w@mail.gmail.com>	<13641152.Yt4ZI3oT6L@wuerfel>	<CALszF6CK5ezrO6D=4zr6zEPC7VanzbQjnZJwKOZekEZ5L4D-Dg@mail.gmail.com>	<1432285588.3929.28.camel@pengutronix.de>	<20150522091822.GF8557@lukather>	<1432289231.3929.60.camel@pengutronix.de> <CALszF6CQ1_HQXJ8=vgytvVo2t4_ue5_nsE06HPyHMzSLrntqKg@mail.gmail.com>
+In-Reply-To: <CALszF6CQ1_HQXJ8=vgytvVo2t4_ue5_nsE06HPyHMzSLrntqKg@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mingo@kernel.org
-Cc: akpm@linux-foundation.org, c++std-parallel@accu.org, dhowells@redhat.com, gcc@gcc.gnu.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mark.Batty@cl.cam.ac.uk, michaelw@ca.ibm.com, paulmck@linux.vnet.ibm.com, Peter.Sewell@cl.cam.ac.uk, peterz@infradead.org, Ramana.Radhakrishnan@arm.com, torvalds@linux-foundation.org, will.deacon@arm.com
-Message-ID: <20150522104332.NTmkgfMlf-z6hXkqJszDKcSvOoGmtIFM59kdW_M5zbY@z>
+To: Maxime Coquelin <mcoquelin.stm32@gmail.com>, Philipp Zabel <p.zabel@pengutronix.de>
+Cc: Maxime Ripard <maxime.ripard@free-electrons.com>, Arnd Bergmann <arnd@arndb.de>, =?UTF-8?B?VXdlIEtsZWluZS1Lw7ZuaWc=?= <u.kleine-koenig@pengutronix.de>, =?UTF-8?B?QW5kcmVhcyBGw6RyYmVy?= <afaerber@suse.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Rob Herring <robh+dt@kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Stefan Agner <stefan@agner.ch>, Peter Meerwald <pmeerw@pmeerw.net>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Russell King <linux@arm.linux.org.uk>, Daniel Lezcano <daniel.lezcano@linaro.org>, Joe Perches <joe@perches.com>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>, Lee Jones <lee.jones@linaro.org>, Jonathan Corbet <corbet@lwn.net>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, Thomas Gleixner <tglx@linutronix.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, "David S. Miller" <davem@davemloft.net>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Antti Palosaari <crope@iki.fi>, Tejun Heo <tj@kernel.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Michal Marek <mmarek@suse.cz>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Nicolae Rosia <nicolae.rosia@gmail.com>, Kamil Lulko <rev13@wp.pl>
+Message-ID: <20150522124343.lS8buXAS2GTmZEozQHP1oz9SDVyaFR5djvyPdcfjjEI@z>
 
-> (Assuming it's a goal of this standard to be human parseable to more 
-> than a few dozen people on the planet.)
+On 22/05/15 13:32, Maxime Coquelin wrote:
+> 2015-05-22 12:07 GMT+02:00 Philipp Zabel <p.zabel@pengutronix.de>:
+>> And that's how I'd expect it to be described by the device tree:
+>>
+>>      rcc: rcc@40023800 {
+>>          compatible = "st,stm32-rcc";
+>>          reg = <0x40023800 0xc0>;
+>>      };
+>>
+>
+> Doing that, since this register bank contains both reset and clock
+> registers, the reset device cannot get the IO resource at probe time
+> because the clock driver has already reserved it.
+> Daniel, who has started to work on the clock driver is facing this issue.
+> This is why I proposed this binding for "reg" property.
 
-Unfortunately, that's rarely a goal of most standards. ;-)
+Temporarily I've kept things working for me by avoiding 
+of_io_request_and_map() in the clock driver (I am using raw of_iomap() 
+instead).
+
+I view this as a hack rather than a solution!
+
+Note that, with or without the hack, I do hope to be able to post the 
+clock driver this weekend. I am acutely aware that at the moment we are 
+discussing code I haven't posted yet.
+
+
+> We could think of creating a MFD driver, but the problem is that clock
+> need to be intialized before a MFD device can be probed.
+>
+> Maybe there is a way to have you binding working properly, but I
+> haven't found one for now.
+
+I guess a driver doesn't *have* to reserve all the register space 
+described in DT. The driver could replace of_io_request_and_map() with 
+lower level calls.
+
+Thus if we wanted to keep this detail out of DT then I guess the two 
+drivers could simply make an agreement not to request registers they do 
+not use.
+
+
