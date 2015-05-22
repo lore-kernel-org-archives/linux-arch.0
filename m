@@ -1,49 +1,47 @@
-From: =?UTF-8?B?QW5kcmVhcyBGw6RyYmVy?= <afaerber@suse.de>
-Subject: Re: [PATCH v8 14/16] ARM: dts: Introduce STM32F429 MCU
-Date: Fri, 22 May 2015 15:09:30 +0200
-Message-ID: <555F2A8A.5020205@suse.de>
-References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>	<2282066.NWoIT9ZyLc@wuerfel>	<CALszF6CaO_yuNiSDuDV+4d2NRe_+32j=zcSE1HPhB1UH59cW9w@mail.gmail.com>	<13641152.Yt4ZI3oT6L@wuerfel>	<CALszF6CK5ezrO6D=4zr6zEPC7VanzbQjnZJwKOZekEZ5L4D-Dg@mail.gmail.com>	<1432285588.3929.28.camel@pengutronix.de>	<20150522091822.GF8557@lukather>	<1432289231.3929.60.camel@pengutronix.de>
- <CALszF6CQ1_HQXJ8=vgytvVo2t4_ue5_nsE06HPyHMzSLrntqKg@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: Compilers and RCU readers: Once more unto the breach!
+Date: Fri, 22 May 2015 06:11:26 -0700
+Message-ID: <20150522131126.GF6776@linux.vnet.ibm.com>
+References: <20150520024148.GD6776@linux.vnet.ibm.com>
+ <20150520114745.GC11498@arm.com>
+ <20150520121522.GH6776@linux.vnet.ibm.com>
+ <20150520154617.GE11498@arm.com>
+ <20150520181606.GT6776@linux.vnet.ibm.com>
+ <20150521192422.GC19204@arm.com>
+ <20150521200212.GW6776@linux.vnet.ibm.com>
+ <CA+55aFxse3wTkfLMdotb+FO+_6EN32sseC0gpBaSnJ2KmbNUhQ@mail.gmail.com>
+ <20150522064344.GA17518@gmail.com>
+ <20150522104332.5FBFF33CA8@vlsi1.gnat.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <CALszF6CQ1_HQXJ8=vgytvVo2t4_ue5_nsE06HPyHMzSLrntqKg@mail.gmail.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Maxime Coquelin <mcoquelin.stm32@gmail.com>
-Cc: Mark Rutland <mark.rutland@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Will Deacon <will.deacon@arm.com>, Stefan Agner <stefan@agner.ch>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Peter Meerwald <pmeerw@pmeerw.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Lee Jones <lee.jones@linaro.org>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Linux-Arch <linux-arch@vger.kernel.org>, Daniel Thompson <daniel.thompson@linaro.org>, Russell King <linux@arm.linux.org.uk>, Pawel Moll <pawel.moll@arm.com>, Jonathan Corbet <corbet@lwn.net>, Jiri Slaby <jslaby@suse.cz>, Daniel Lezcano <daniel.lezcano@linaro.org>, Nicolae Rosia <nicolae.rosia@gmail.com>, Chanwoo Choi <cw00.choi@samsung.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Antti Palosaari <crope@iki.fi>, Geert Uytterhoeven <geert@linux-m68k.>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e35.co.us.ibm.com ([32.97.110.153]:40802 "EHLO
+	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756441AbbEVNLg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 May 2015 09:11:36 -0400
+Received: from /spool/local
+	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Fri, 22 May 2015 07:11:36 -0600
+Content-Disposition: inline
+In-Reply-To: <20150522104332.5FBFF33CA8@vlsi1.gnat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Richard Kenner <kenner@vlsi1.ultra.nyu.edu>
+Cc: mingo@kernel.org, akpm@linux-foundation.org, c++std-parallel@accu.org, dhowells@redhat.com, gcc@gcc.gnu.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mark.Batty@cl.cam.ac.uk, michaelw@ca.ibm.com, Peter.Sewell@cl.cam.ac.uk, peterz@infradead.org, Ramana.Radhakrishnan@arm.com, torvalds@linux-foundation.org, will.deacon@arm.com
 
-QW0gMjIuMDUuMjAxNSB1bSAxNDozMiBzY2hyaWViIE1heGltZSBDb3F1ZWxpbjoKPiAyMDE1LTA1
-LTIyIDEyOjA3IEdNVCswMjowMCBQaGlsaXBwIFphYmVsIDxwLnphYmVsQHBlbmd1dHJvbml4LmRl
-PjoKPj4gVGhlIFNUTTMyRjQyN3h4L1NUTTMyRjQyOXh4IG1hbnVhbCwgVGFibGUgMTMuICJTVE0z
-MkY0Mjd4eCBhbmQKPj4gU1RNMzJGNDI5eHggcmVnaXN0ZXIgYm91bmRhcnkgYWRkcmVzc2VzIiBj
-b250YWlucyB0aGlzIGVudHJ5Ogo+PiAgICAgQnVzICAgIEJvdW5kYXJ5IGFkZHJlc3MgICAgICAg
-UGVyaXBoZXJhbAo+PiAgICAgQUhCMSAgIDB4NDAwMjM4MDAtMHg0MDAyMzhiZiAgUkNDCj4+Cj4+
-IEFuZCB0aGF0J3MgaG93IEknZCBleHBlY3QgaXQgdG8gYmUgZGVzY3JpYmVkIGJ5IHRoZSBkZXZp
-Y2UgdHJlZToKPj4KPj4gICAgIHJjYzogcmNjQDQwMDIzODAwIHsKPj4gICAgICAgICBjb21wYXRp
-YmxlID0gInN0LHN0bTMyLXJjYyI7Cj4+ICAgICAgICAgcmVnID0gPDB4NDAwMjM4MDAgMHhjMD47
-Cj4+ICAgICB9Owo+Pgo+IAo+IERvaW5nIHRoYXQsIHNpbmNlIHRoaXMgcmVnaXN0ZXIgYmFuayBj
-b250YWlucyBib3RoIHJlc2V0IGFuZCBjbG9jawo+IHJlZ2lzdGVycywgdGhlIHJlc2V0IGRldmlj
-ZSBjYW5ub3QgZ2V0IHRoZSBJTyByZXNvdXJjZSBhdCBwcm9iZSB0aW1lCj4gYmVjYXVzZSB0aGUg
-Y2xvY2sgZHJpdmVyIGhhcyBhbHJlYWR5IHJlc2VydmVkIGl0Lgo+IERhbmllbCwgd2hvIGhhcyBz
-dGFydGVkIHRvIHdvcmsgb24gdGhlIGNsb2NrIGRyaXZlciBpcyBmYWNpbmcgdGhpcyBpc3N1ZS4K
-PiBUaGlzIGlzIHdoeSBJIHByb3Bvc2VkIHRoaXMgYmluZGluZyBmb3IgInJlZyIgcHJvcGVydHku
-CgpBcyB5b3Ugc2hvdWxkIGtub3csIEkgZGlkIGhhdmUgYW4gUkNDIGNsayBkcml2ZXIsIGFuZCB0
-aGVyZSBpcyBubyBzdWNoCmlzc3VlLiBUaGUgdHdvIGRyaXZlcnMgdXNlIGRpZmZlcmVudCBtZWNo
-YW5pc21zIGZvciBpbml0aWFsaXphdGlvbi4gQW5kCkknbSBwcmV0dHkgc3VyZSB0aGF0IEkndmUg
-YWxyZWFkeSByZW1hcmtlZCB0aGF0IG9uIHRoZSBsaXN0LCB0b28uCgpSZWdhcmRzLApBbmRyZWFz
-CgotLSAKU1VTRSBMaW51eCBHbWJILCBNYXhmZWxkc3RyLiA1LCA5MDQwOSBOw7xybmJlcmcsIEdl
-cm1hbnkKR0Y6IEZlbGl4IEltZW5kw7ZyZmZlciwgSmFuZSBTbWl0aGFyZCwgRGlsaXAgVXBtYW55
-dSwgR3JhaGFtIE5vcnRvbjsgSFJCCjIxMjg0IChBRyBOw7xybmJlcmcpCgpfX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpsaW51eC1hcm0ta2VybmVsIG1haWxp
-bmcgbGlzdApsaW51eC1hcm0ta2VybmVsQGxpc3RzLmluZnJhZGVhZC5vcmcKaHR0cDovL2xpc3Rz
-LmluZnJhZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9saW51eC1hcm0ta2VybmVsCg==
+On Fri, May 22, 2015 at 06:43:32AM -0400, Richard Kenner wrote:
+> > (Assuming it's a goal of this standard to be human parseable to more 
+> > than a few dozen people on the planet.)
+> 
+> Unfortunately, that's rarely a goal of most standards. ;-)
+
+My experience does match Richard's, sad to say.  There has been some
+vigorous discussion in another thread involving undefined behavior and
+value narrowing, which has resulted in some useful changes to Section 7.9.
+The updated document is here:
+
+	http://www2.rdrop.com/users/paulmck/RCU/consume.2015.05.22a.pdf
+
+							Thanx, Paul
