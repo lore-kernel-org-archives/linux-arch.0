@@ -1,98 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e35.co.us.ibm.com ([32.97.110.153]:60793 "EHLO
-	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756792AbbEVSzc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 May 2015 14:55:32 -0400
-Received: from /spool/local
-	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Fri, 22 May 2015 12:55:32 -0600
-Date: Fri, 22 May 2015 11:55:26 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: Compilers and RCU readers: Once more unto the breach!
-Message-ID: <20150522185526.GC5539@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <CA+55aFy_8V-rbE9FQMHx6tXjj8HHKZuKSJvnRPVYvpk46EQA1g@mail.gmail.com>
- <CA+55aFxOtcB8AYCpLQBGSXK=8_Vh4uDs5HEpzGpPy+hgz542ag@mail.gmail.com>
- <20150520024148.GD6776@linux.vnet.ibm.com>
- <20150520114745.GC11498@arm.com>
- <20150520121522.GH6776@linux.vnet.ibm.com>
- <20150520154617.GE11498@arm.com>
- <20150520181606.GT6776@linux.vnet.ibm.com>
- <20150521192422.GC19204@arm.com>
- <20150521200212.GW6776@linux.vnet.ibm.com>
- <20150522173029.GD3072@arm.com>
+Received: from cantor2.suse.de ([195.135.220.15]:56085 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756946AbbEVUU4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 22 May 2015 16:20:56 -0400
+Message-ID: <555F8F93.7000705@suse.de>
+Date: Fri, 22 May 2015 22:20:35 +0200
+From: =?windows-1252?Q?Andreas_F=E4rber?= <afaerber@suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20150522173029.GD3072@arm.com>
+Subject: Re: [PATCH v8 01/16] scripts: link-vmlinux: Don't pass page offset
+ to kallsyms if XIP Kernel
+References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com> <1431158038-3813-2-git-send-email-mcoquelin.stm32@gmail.com> <CALszF6B0=dgSDfLFwDi9YmEzrrNVuYbUnqMu5DmDhhy--emtpw@mail.gmail.com> <555D12F8.4000403@suse.de>
+In-Reply-To: <555D12F8.4000403@suse.de>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+ protocol="application/pgp-signature";
+ boundary="NGubmuQWF8p0L662mvgUTwp27eogPw0JI"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "c++std-parallel@accu.org" <c++std-parallel@accu.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "gcc@gcc.gnu.org" <gcc@gcc.gnu.org>, p796231 <Peter.Sewell@cl.cam.ac.uk>, "mark.batty@cl.cam.ac.uk" <Mark.Batty@cl.cam.ac.uk>, Peter Zijlstra <peterz@infradead.org>, Ramana Radhakrishnan <Ramana.Radhakrishnan@arm.com>, David Howells <dhowells@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, "michaelw@ca.ibm.com" <michaelw@ca.ibm.com>
-Message-ID: <20150522185526.MZmxrJk7HZye0e-KlPe1WPKLZAjLPztSc30HPyzWAcE@z>
+To: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Marek <mmarek@suse.cz>
+Cc: Maxime Coquelin <mcoquelin.stm32@gmail.com>, Stefan Agner <stefan@agner.ch>, Arnd Bergmann <arnd@arndb.de>, Mark Rutland <mark.rutland@arm.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Will Deacon <will.deacon@arm.com>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Peter Meerwald <pmeerw@pmeerw.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Jiri Slaby <jslaby@suse.cz>, Linux-Arch <linux-arch@vger.kernel.org>, Daniel Thompson <daniel.thompson@linaro.org>, Russell King <linux@arm.linux.org.uk>, Jonathan Corbet <corbet@lwn.net>, Lee Jones <lee.jones@linaro.org>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Chanwoo Choi <cw00.choi@samsung.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Antti Palosaari <crope@iki.fi>, Geert Uytterhoeven <geert@linux-m68k.org>, "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, =?windows-1252?Q?Uwe_Kleine-K=F6nig?= <u.kleine-koenig@pengutronix.de>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Pawel Moll <pawel.moll@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kamil Lulko <rev13@wp.pl>, Rusty Russell <rusty@rustcorp.com.au>, Tejun Heo <tj@kernel.org>, Rob Herring <robh+dt@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Nicolae Rosia <nicolae.rosia@gmail.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Paul Bolle <pebolle@tiscali.nl>, Peter Hurley <peter@hurleysoftware.com>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "David S. Miller" <davem@davemloft.net>, Philipp Zabel <p.zabel@pengutronix.de>, Kumar Gala <galak@codeaurora.org>, Joe Perches <joe@perches.com>, Andrew Morton <akpm@linux-foundation.org>, Vladimir Zapolskiy <vladimir_zapolskiy@mentor.com>
+Message-ID: <20150522202035.wXilaavFPjJNYJLHV2gMk8g_LZr3GJQicKD87exuwG4@z>
 
-On Fri, May 22, 2015 at 06:30:29PM +0100, Will Deacon wrote:
-> Hi Paul,
-> 
-> On Thu, May 21, 2015 at 09:02:12PM +0100, Paul E. McKenney wrote:
-> > On Thu, May 21, 2015 at 08:24:22PM +0100, Will Deacon wrote:
-> > > On Wed, May 20, 2015 at 07:16:06PM +0100, Paul E. McKenney wrote:
-> > > > On to #5:
-> > > > 
-> > > > 	r1 = atomic_load_explicit(&x, memory_order_consume);
-> > > > 	if (r1 == 42)
-> > > > 	  atomic_store_explicit(&y, r1, memory_order_relaxed);
-> > > > 	----------------------------------------------------
-> > > > 	r2 = atomic_load_explicit(&y, memory_order_consume);
-> > > > 	if (r2 == 42)
-> > > > 	  atomic_store_explicit(&x, 42, memory_order_relaxed);
-> > > > 
-> > > > The first thread's accesses are dependency ordered.  The second thread's
-> > > > ordering is in a corner case that memory-barriers.txt does not cover.
-> > > > You are supposed to start control dependencies with READ_ONCE_CTRL(), not
-> > > > a memory_order_consume load (AKA rcu_dereference and friends).  However,
-> > > > Alpha would have a full barrier as part of the memory_order_consume load,
-> > > > and the rest of the processors would (one way or another) respect the
-> > > > control dependency.  And the compiler would have some fun trying to
-> > > > break it.
-> > > 
-> > > But this is interesting because the first thread is ordered whilst the
-> > > second is not, so doesn't that effectively forbid the compiler from
-> > > constant-folding values if it can't prove that there is no dependency
-> > > chain?
-> > 
-> > You lost me on this one.  Are you suggesting that the compiler
-> > speculate the second thread's atomic store?  That would be very
-> > bad regardless of dependency chains.
-> > 
-> > So what constant-folding optimization are you thinking of here?
-> > If the above example is not amenable to such an optimization, could
-> > you please give me an example where constant folding would apply
-> > in a way that is sensitive to dependency chains?
-> 
-> Unless I'm missing something, I can't see what would prevent a compiler
-> from looking at the code in thread1 and transforming it into the code in
-> thread2 (i.e. constant folding r1 with 42 given that the taken branch
-> must mean that r1 == 42). However, such an optimisation breaks the
-> dependency chain, which means that a compiler needs to walk backwards
-> to see if there is a dependency chain extending to r1.
+This is an OpenPGP/MIME signed message (RFC 4880 and 3156)
+--NGubmuQWF8p0L662mvgUTwp27eogPw0JI
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: quoted-printable
 
-Indeed!  Which is one reason that (1) integers are not allowed in
-dependency chains with a very few extremely constrained exceptions and
-(2) sequences of comparisons and/or undefined-behavior considerations
-that allow the compiler to exactly determine the pointer value break
-the dependency chain.
+Am 21.05.2015 um 01:04 schrieb Andreas F=E4rber:
+> Hi,
+>=20
+> Am 18.05.2015 um 13:47 schrieb Maxime Coquelin:
+>> 2015-05-09 9:53 GMT+02:00 Maxime Coquelin <mcoquelin.stm32@gmail.com>:=
 
-> > > > So the current Linux memory model would allow (r1 == 42 && r2 == 42),
-> > > > but I don't know of any hardware/compiler combination that would
-> > > > allow it.  And no, I am -not- going to update memory-barriers.txt for
-> > > > this litmus test, its theoretical interest notwithstanding!  ;-)
-> 
-> Of course, I'm not asking for that at all! I'm just trying to see how
-> your proposal holds up with the example.
+>>> When Kernel is executed in place from ROM, the symbol addresses can b=
+e
+>>> lower than the page offset.
+>>>
+>>> Tested-by: Chanwoo Choi <cw00.choi@samsung.com>
+>>> Signed-off-by: Maxime Coquelin <mcoquelin.stm32@gmail.com>
+[...]
+> Back then on STM32F4 I debugged that disabling KALLSYMS works around it=
+=2E
+>=20
+> Now on a different XIP target I have confirmed this patch to help show =
+a
+> stacktrace (my clk driver was missing some CLK_DIVIDER_ALLOW_ZEROs) ...=
 
-Whew!  ;-)
+> although my earlyprintk serial output still gets stuck further down the=
 
-							Thanx, Paul
+> stacktrace - probably unrelated.
 
+FTR confirming my suspicion: insufficient power supply. ;)
+
+Andreas
+
+> [    0.000000] ------------[ cut here ]------------
+> [    0.000000] WARNING: CPU: 0 PID: 0 at drivers/clk/clk-divider.c:126
+> divider_recalc_rate+0x2b/0x44()
+> [    0.000000] SYS: Zero divisor and CLK_DIVIDER_ALLOW_ZERO not set
+> [    0.000000] CPU: 0 PID: 0 Comm: swapper Not tainted
+> 4.1.0-rc4-next-20150519+ #23
+> [    0.000000] Hardware name: XMC4000 (Device Tree Support)
+> [    0.000000] [<0800bd5d>] (unwind_backtrace) from [<0800b0cb>]
+> (show_stack+0xb/0xc)
+> [    0.000000] [<0800b0cb>] (show_stack) from [<0800e0a5>]
+> (warn_slowpath_common+0x55/0x78)
+> [    0.000000] [<0800e0a5>] (warn_slowpath_common) from [<0800e103>]
+> (warn_slowpath_fmt+0x1b/0x24)
+> [    0.000000] [<0800e103>] (warn_slowpath_fmt) from [<080942e3>] (divi=
+de
+>=20
+> But this is definitely an improvement for ARMv7-M debugging,
+>=20
+> Tested-by: Andreas F=E4rber <afaerber@suse.de>
+
+--=20
+SUSE Linux GmbH, Maxfeldstr. 5, 90409 N=FCrnberg, Germany
+GF: Felix Imend=F6rffer, Jane Smithard, Dilip Upmanyu, Graham Norton; HRB=
+
+21284 (AG N=FCrnberg)
+
+
+--NGubmuQWF8p0L662mvgUTwp27eogPw0JI
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBAgAGBQJVX4+TAAoJEPou0S0+fgE/61oQAIIlc6qJ4pWt3nX9Yckg+uqF
+1BjibhteOVF5/dJIm1lPJTNrwJahTjjiV3Wk0j9bYV8i8UDRwHieOsqJx9adstM/
+VSM/fAQr1ex3Fzx6II5q16bKIZ6vHQwrcgDEIK+W32Q5pmEyCa03wF5zalEln6e/
+8mOgK/GaVIDy6KQUlzY+s+6yGY4HeYuzvp/b/NtXUJqOUv0KpFKLvjfhNX4TTUcy
+W2uGBwnbwmPGBvkMlbm6jHcd04kpjmNr4zP1e4VW4cLaiP4KZ8psbP27raTWfO9V
+sBaQuxcD1GrvJIamFHmXo4A0xMZzwYPpPjWtSY6QI8Vcgo5PU6KRMDXpNWClKFAw
+0sQ7/Ic/1NNTFM2PcVbrfMEurpgXB+y+8ukrcK9Uc/aRdX1NVowD8ceKGvAiAV7W
+QcRbzd0K+IcpJdR9loe2MOJLX4nZxNTKYhm3Gqb2XXjCXKDyr18/3hoba5ZktxEE
+7Y7WZLIbT8j2G9w7OBP+xHhGC71Jl723VHirS1oUoZJ7jidd1UfRTissm9/hE/4a
+HV7CKO2HqHBUm4FAripxEKDv4j5ucMgPAXE/F5k3UjiC4hQGFMVE1PSmgCQpHTyr
+wEpZxGXWvEzY9prjOCEZoaQJ2GnNyRcD+TIYjzT1QdwCneQfwOlW/G3e1lDRp7CM
+G8xXS3KNZkfwX4R7bNoG
+=blWh
+-----END PGP SIGNATURE-----
+
+--NGubmuQWF8p0L662mvgUTwp27eogPw0JI--
