@@ -1,133 +1,28 @@
-From: Maxime Ripard <maxime.ripard@free-electrons.com>
-Subject: Re: [PATCH v8 14/16] ARM: dts: Introduce STM32F429 MCU
-Date: Sat, 23 May 2015 10:18:47 +0200
-Message-ID: <20150523081847.GJ8557@lukather>
-References: <1431158038-3813-1-git-send-email-mcoquelin.stm32@gmail.com>
- <2282066.NWoIT9ZyLc@wuerfel>
- <CALszF6CaO_yuNiSDuDV+4d2NRe_+32j=zcSE1HPhB1UH59cW9w@mail.gmail.com>
- <13641152.Yt4ZI3oT6L@wuerfel>
- <CALszF6CK5ezrO6D=4zr6zEPC7VanzbQjnZJwKOZekEZ5L4D-Dg@mail.gmail.com>
- <1432285588.3929.28.camel@pengutronix.de>
- <20150522091822.GF8557@lukather>
- <1432289231.3929.60.camel@pengutronix.de>
+From: "hch@lst.de" <hch@lst.de>
+Subject: Re: [PATCH v3 06/11] scatterlist: support "page-less" (__pfn_t
+	only) entries
+Date: Sat, 23 May 2015 16:12:09 +0200
+Message-ID: <20150523141209.GA19414@lst.de>
+References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com> <20150512043001.11521.3526.stgit@dwillia2-desk3.amr.corp.intel.com> <1431542149.31415.10.camel@intel.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="===============4285934497855337019=="
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1432289231.3929.60.camel@pengutronix.de>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Philipp Zabel <p.zabel@pengutronix.de>
-Cc: Mark Rutland <mark.rutland@arm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Linus Walleij <linus.walleij@linaro.org>, Will Deacon <will.deacon@arm.com>, Stefan Agner <stefan@agner.ch>, Nikolay Borisov <Nikolay.Borisov@arm.com>, Peter Meerwald <pmeerw@pmeerw.net>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, Lee Jones <lee.jones@linaro.org>, Mauro Carvalho Chehab <mchehab@osg.samsung.com>, Linux-Arch <linux-arch@vger.kernel.org>, Daniel Thompson <daniel.thompson@linaro.org>, Russell King <linux@arm.linux.org.uk>, Pawel Moll <pawel.moll@arm.com>, Jonathan Corbet <corbet@lwn.net>, Jiri Slaby <jslaby@suse.cz>, Daniel Lezcano <daniel.lezcano@linaro.org>, Chanwoo Choi <cw00.choi@samsung.com>, Andy Shevchenko <andy.shevchenko@gmail.com>, Antti Palosaari <crope@iki.fi>, Geert Uytterhoeven <geert@linux-m68k.org>"linux-serial@vger.kernel.org" <li>
-List-Id: linux-arch.vger.kernel.org
-
-
---===============4285934497855337019==
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="gmhhrsDozM2n+uz5"
-Content-Disposition: inline
-
-
---gmhhrsDozM2n+uz5
 Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from verein.lst.de ([213.95.11.211]:37514 "EHLO newverein.lst.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757864AbbEWOMM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 23 May 2015 10:12:12 -0400
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <1431542149.31415.10.camel@intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Williams, Dan J" <dan.j.williams@intel.com>
+Cc: "hch@lst.de" <hch@lst.de>, "axboe@fb.com" <axboe@fb.com>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "j.glisse@gmail.com" <j.glisse@gmail.com>, "axboe@kernel.dk" <axboe@kernel.dk>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "riel@redhat.com" <riel@redhat.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, "willy@linux.intel.com" <willy@linux.intel.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "mgorman@suse.de" <mgorman@suse.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "david@fromorbit.com" <david@fromorbit.com>
 
-Hi Philipp,
+On Wed, May 13, 2015 at 06:35:55PM +0000, Williams, Dan J wrote:
+> Jens, I'm wondering if you want to take this series(.) as patches or
+> prepare a git branch to pull?
 
-On Fri, May 22, 2015 at 12:07:11PM +0200, Philipp Zabel wrote:
-> Am Freitag, den 22.05.2015, 11:18 +0200 schrieb Maxime Ripard:
-> > On Fri, May 22, 2015 at 11:06:28AM +0200, Philipp Zabel wrote:
-> > > > In the probe function, it would check the number of reg resources.
-> > > > If a single resource is passed, it would take it, else it would look
-> > > > the one named "reset".
-> > > > The driver and bindings would be the same for the two families, and
-> > > > the bindings would be backward compatible with sunxi ones.
-> > > >=20
-> > > > Philip, Arnd, what do you think?
-> > >=20
-> > > I'm not a fan of describing the register layout in the device tree as
-> > > detailed as the sunxi bindings do. I'd prefer the reg property to
-> > > describe the device's register address space with one entry per
-> > > contiguous block of registers.
-> >=20
-> > That's exactly what we do.
->=20
-> Sorry, what I mean is 'as detailed as reusing the sunxi bindings for
-> stm32xx here would do'. I don't know enough about the Allwinner register
-> layouts to form an opinion.
->=20
-> The STM32F427xx/STM32F429xx manual, Table 13. "STM32F427xx and
-> STM32F429xx register boundary addresses" contains this entry:
->     Bus    Boundary address       Peripheral
->     AHB1   0x40023800-0x400238bf  RCC
->=20
-> And that's how I'd expect it to be described by the device tree:
->=20
->     rcc: rcc@40023800 {
->         compatible =3D "st,stm32-rcc";
->         reg =3D <0x40023800 0xc0>;
->     };
-
-It's pretty much what we do already. The thing is that our reset
-controllers are intertwined with our clock ones, so our reset
-controllers are usually taking only a few registers, and we can't use
-more than that since we have clocks in the registers around.
-
-> Instead of "reg =3D <0x40023810 0x20>" for the resets. Where in the
-> address range the reset, clock gate and clock configuration registers
-> reside could be derived from the compatible value.
-
-I agree on that, and if a generic solution was to be made like this,
-we could definitely use it.
-
-Maxime
-
---=20
-Maxime Ripard, Free Electrons
-Embedded Linux, Kernel and Android engineering
-http://free-electrons.com
-
---gmhhrsDozM2n+uz5
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAEBAgAGBQJVYDfnAAoJEBx+YmzsjxAgNi0P/jSOTQ3vHIrcKoIWxtBtGLGd
-6mvkQpyaIFt9E8AQZbD0XDaFoHI01r2ZoVQjAZKXFjbvlNeU2q1HQjzIV4cKURbt
-8ZOdee82KVHY3ZfmBMyVmvYu2Q6p/qJi03hoLqZ3/VrnwSavNq02lQRevcWg+kva
-RKlgphWNUElei6bon9rzeAkUR46Xz53k/cku/Jjd6ufwl8c6hBrLCVnEowJh2jzG
-x2H51EXcl6ACh3yXd9GB28cMnghzSb1jwXb9AK4rLQGD1y66yrKl8gElr1OHTWUS
-0a26Ao3y+epFySC7t+kuC7xLOWpnim7DxgR60/kkwlJ8KHRInzcm/4kqmGY3d3mY
-U0O1sbMqu44tL4xNkcjEGLunGE/Ji+lS499k3UsAeG+T7nDSsiflApYALm9QIxG6
-TJ2eYva89d3KJJg2vzy5oyrBrjanfaSgwDfX0t0c9Ff6wAuZFoRw1QLT+A2fWhYa
-RDcIp3b58jQ52RL7Tl4aRRlo7bDdNA+dviqqkonpjKS5SlUv6unGuU1HkIQuj/N0
-teIZH90VM7QoVKiRqhB9VgvvoZQrztHvHii6meErIzG8VKdZ7byu6ZTZCLXiwubV
-LCc1HfWCgvAACoYhguHFZhTg7Jht8niRERwX56A8J44I6c4yRs2gERwq8cLz2hH5
-ugYDmZTVzeQ+xwPBC+TA
-=ec/B
------END PGP SIGNATURE-----
-
---gmhhrsDozM2n+uz5--
-
-
---===============4285934497855337019==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-
-_______________________________________________
-linux-arm-kernel mailing list
-linux-arm-kernel@lists.infradead.org
-http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
-
---===============4285934497855337019==--
+Honestly I don't think it should go anyway.  It makes a big mess of
+a structure without providing a real user for it.  Given how we are
+using the bio_vec for in-kernel page based I/O these days it seems
+like a very dangerous idea.
