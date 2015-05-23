@@ -1,47 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f169.google.com ([209.85.212.169]:36665 "EHLO
-	mail-wi0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757099AbbEWIHL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 23 May 2015 04:07:11 -0400
-Date: Sat, 23 May 2015 10:07:05 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2] Documentation/arch: Add kernel feature descriptions
- and arch support status under Documentation/features/
-Message-ID: <20150523080704.GA25893@gmail.com>
-References: <20150513092421.GB11030@gmail.com>
- <20150513094622.GC11030@gmail.com>
- <20150513094756.GD11030@gmail.com>
- <20150513131835.GJ1517@pd.tnic>
- <20150513134842.GA1657@gmail.com>
- <20150513162757.GA21894@x>
- <20150513150523.ddd65d7cd51f820b78f0c8e3@linux-foundation.org>
- <20150514101518.GA27550@gmail.com>
- <20150514103544.GA7027@gmail.com>
- <20150522094931.78a43421@lwn.net>
+Received: from verein.lst.de ([213.95.11.211]:37589 "EHLO newverein.lst.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753128AbbEWOdA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 23 May 2015 10:33:00 -0400
+Date: Sat, 23 May 2015 16:32:57 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH v3 00/11] evacuate struct page from the block layer,
+	introduce __pfn_t
+Message-ID: <20150523143257.GA19676@lst.de>
+References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20150522094931.78a43421@lwn.net>
+In-Reply-To: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonathan Corbet <corbet@lwn.net>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Josh Triplett <josh@joshtriplett.org>, Borislav Petkov <bp@alien8.de>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150523080705.NjPOl1JfwONPjO2blk2t1rToqMz1wtJZRkNppRzQUDg@z>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-kernel@vger.kernel.org, Boaz Harrosh <boaz@plexistor.com>, Jan Kara <jack@suse.cz>, Mike Snitzer <snitzer@redhat.com>, Neil Brown <neilb@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Dave Hansen <dave.hansen@linux.intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Chris Mason <clm@fb.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, j.glisse@gmail.com, mingo@kernel.org, Alasdair Kergon <agk@redhat.com>, linux-arch@vger.kernel.org, linux-nvdimm@lists.01.org, hch@lst.de, mgorman@suse.de, Matthew Wilcox <willy@linux.intel.com>, Ross Zwisler <ross.zwisler@linux.intel.com>, riel@redhat.com, david@fromorbit.com, Tejun Heo <tj@kernel.org>, axboe@kernel.dk, Theodore Ts'o <tytso@mit.edu>, "Martin K. Petersen" <martin.petersen@oracle.com>, Julia Lawall <Julia.Lawall@lip6.fr>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-fsdevel@vger.kernel.org, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20150523143257.0MSjCLCeiSCw5lggpFxkxNlDB-ftgDA8N7hFwykmboo@z>
 
+I don't like this series at all, it does too much and too little at
+the same time.
 
-* Jonathan Corbet <corbet@lwn.net> wrote:
+There's three totally different parts to it that are mixed up:
 
-> On Thu, 14 May 2015 12:35:44 +0200
-> Ingo Molnar <mingo@kernel.org> wrote:
-> 
-> > Updated patch attached.
-> 
-> This seems to have slowed down a bit; I've taken the liberty of 
-> pulling it into the docs tree. [...]
+ (1) cleanups to use accessors for struct scatterlist instead of exposing
+     the intricate details of chained S/G list to users
+ (2) a switch of struct scatterlist to store a PFN instead of a page
+ (3) switch struct bio_vec to store a struct PFN instead of a page
 
-Please don't, I've got a different structure for it, so that the Git 
-log becomes a lot more usable. I'll post it after the weekend.
+(1) are pretty obvious cleanups, and they should have been submited
+separately long time ago.
 
-Thanks,
+(2) seems like a good idea, but only when done properly, that is a full
+conversion to it.  Not a you need a config option, in which case maybe
+some architectures and can sometimes deal with it if they driver says:
+meh, okay.
 
-	Ingo
+Given that nature of SGLs most consumer want a physical address anyway,
+and it shouldn't be a problem to convert all others that need a kernel
+mapping to proper helpers.
+
+(3) I'm not sure about in it's current form.  The bio_vec sees all kinds
+of highlevel use and we need to be a lot more careful about it, due to
+the way we e.g. use the in the iov_iter based read/write interfaces.
+
+It could be that pfn_t based approach there makes sense, but only if
+we ensure all consumer can always handle them.
+
+Because of that I'd suggest you try to get (1) and (2) done properly
+first, at that point we'll have how we can do (3) without causing 
+a big mess.
+
