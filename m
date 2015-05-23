@@ -1,28 +1,52 @@
-From: "hch@lst.de" <hch@lst.de>
-Subject: Re: [PATCH v3 06/11] scatterlist: support "page-less" (__pfn_t
-	only) entries
-Date: Sat, 23 May 2015 16:12:09 +0200
-Message-ID: <20150523141209.GA19414@lst.de>
-References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com> <20150512043001.11521.3526.stgit@dwillia2-desk3.amr.corp.intel.com> <1431542149.31415.10.camel@intel.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH v3 00/11] evacuate struct page from the block layer,
+	introduce __pfn_t
+Date: Sat, 23 May 2015 16:32:57 +0200
+Message-ID: <20150523143257.GA19676@lst.de>
+References: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:37514 "EHLO newverein.lst.de"
+Received: from verein.lst.de ([213.95.11.211]:37589 "EHLO newverein.lst.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757864AbbEWOMM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 23 May 2015 10:12:12 -0400
+	id S1753128AbbEWOdA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 23 May 2015 10:33:00 -0400
 Content-Disposition: inline
-In-Reply-To: <1431542149.31415.10.camel@intel.com>
+In-Reply-To: <20150512042629.11521.70356.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Williams, Dan J" <dan.j.williams@intel.com>
-Cc: "hch@lst.de" <hch@lst.de>, "axboe@fb.com" <axboe@fb.com>, "mingo@kernel.org" <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "j.glisse@gmail.com" <j.glisse@gmail.com>, "axboe@kernel.dk" <axboe@kernel.dk>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "riel@redhat.com" <riel@redhat.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "dmaengine@vger.kernel.org" <dmaengine@vger.kernel.org>, "willy@linux.intel.com" <willy@linux.intel.com>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "mgorman@suse.de" <mgorman@suse.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "david@fromorbit.com" <david@fromorbit.com>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-kernel@vger.kernel.org, Boaz Harrosh <boaz@plexistor.com>, Jan Kara <jack@suse.cz>, Mike Snitzer <snitzer@redhat.com>, Neil Brown <neilb@suse.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Dave Hansen <dave.hansen@linux.intel.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Chris Mason <clm@fb.com>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, j.glisse@gmail.com, mingo@kernel.org, Alasdair Kergon <agk@redhat.com>, linux-arch@vger.kernel.org, linux-nvdimm@lists.01.org, hch@lst.de, mgorman@suse.de, Matthew Wilcox <willy@linux.intel.com>, Ross Zwisler <ross.zwisler@linux.intel.com>, riel@redhat.com, david@fromorbit.com, Tejun Heo <tj@kernel.org>, axboe@kernel.dk, Theodore Ts'o <tytso@mit.edu>, "Martin K. Petersen" <martin.petersen@oracle.com>, Julia Lawall <Julia.Lawall@lip6.fr>, Martin Schwidefsky <schwidefsky@de.ibm.com>linux-
 
-On Wed, May 13, 2015 at 06:35:55PM +0000, Williams, Dan J wrote:
-> Jens, I'm wondering if you want to take this series(.) as patches or
-> prepare a git branch to pull?
+I don't like this series at all, it does too much and too little at
+the same time.
 
-Honestly I don't think it should go anyway.  It makes a big mess of
-a structure without providing a real user for it.  Given how we are
-using the bio_vec for in-kernel page based I/O these days it seems
-like a very dangerous idea.
+There's three totally different parts to it that are mixed up:
+
+ (1) cleanups to use accessors for struct scatterlist instead of exposing
+     the intricate details of chained S/G list to users
+ (2) a switch of struct scatterlist to store a PFN instead of a page
+ (3) switch struct bio_vec to store a struct PFN instead of a page
+
+(1) are pretty obvious cleanups, and they should have been submited
+separately long time ago.
+
+(2) seems like a good idea, but only when done properly, that is a full
+conversion to it.  Not a you need a config option, in which case maybe
+some architectures and can sometimes deal with it if they driver says:
+meh, okay.
+
+Given that nature of SGLs most consumer want a physical address anyway,
+and it shouldn't be a problem to convert all others that need a kernel
+mapping to proper helpers.
+
+(3) I'm not sure about in it's current form.  The bio_vec sees all kinds
+of highlevel use and we need to be a lot more careful about it, due to
+the way we e.g. use the in the iov_iter based read/write interfaces.
+
+It could be that pfn_t based approach there makes sense, but only if
+we ensure all consumer can always handle them.
+
+Because of that I'd suggest you try to get (1) and (2) done properly
+first, at that point we'll have how we can do (3) without causing 
+a big mess.
