@@ -1,185 +1,189 @@
-From: Eric B Munson <emunson@akamai.com>
-Subject: [RESEND PATCH 2/3] Add mlockall flag for locking pages on fault
-Date: Fri, 29 May 2015 10:13:27 -0400
-Message-ID: <1432908808-31150-3-git-send-email-emunson@akamai.com>
-References: <1432908808-31150-1-git-send-email-emunson@akamai.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1432908808-31150-1-git-send-email-emunson@akamai.com>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Eric B Munson <emunson@akamai.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH 1/2] PCI: Add pci_bus_addr_t
+Date: Fri, 29 May 2015 17:31:00 -0500
+Message-ID: <20150529223100.GE12733@google.com>
+References: <1432772632-5139-1-git-send-email-yinghai@kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ie0-f182.google.com ([209.85.223.182]:36714 "EHLO
+	mail-ie0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1161009AbbE2WbF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 May 2015 18:31:05 -0400
+Received: by iepj10 with SMTP id j10so73244091iep.3
+        for <linux-arch@vger.kernel.org>; Fri, 29 May 2015 15:31:04 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <1432772632-5139-1-git-send-email-yinghai@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: linux-pci@vger.kernel.org, stable@vger.kernel.org, "David S. Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Building on the previous patch, extend mlockall() to give a process a
-way to specify that pages should be locked when they are faulted in, but
-that pre-faulting is not needed.
+[+cc David, linux-arch, linux-kernel]
 
-Signed-off-by: Eric B Munson <emunson@akamai.com>
-Cc: linux-alpha@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-Cc: linux-mips@linux-mips.org
-Cc: linux-parisc@vger.kernel.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: sparclinux@vger.kernel.org
-Cc: linux-xtensa@linux-xtensa.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-api@vger.kernel.org
-Cc: linux-mm@kvack.org
----
- arch/alpha/include/uapi/asm/mman.h   |  1 +
- arch/mips/include/uapi/asm/mman.h    |  1 +
- arch/parisc/include/uapi/asm/mman.h  |  1 +
- arch/powerpc/include/uapi/asm/mman.h |  1 +
- arch/sparc/include/uapi/asm/mman.h   |  1 +
- arch/tile/include/uapi/asm/mman.h    |  1 +
- arch/xtensa/include/uapi/asm/mman.h  |  1 +
- include/uapi/asm-generic/mman.h      |  1 +
- mm/mlock.c                           | 13 +++++++++----
- 9 files changed, 17 insertions(+), 4 deletions(-)
+TL;DR: Use the new pci_bus_addr_t to contain raw PCI bus addresses.  This
+is of interest primarily in the PCI core because arch code mostly uses
+resources (CPU physical addresses) and drivers mostly use ioremap to obtain
+CPU virtual addresses.
 
-diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
-index 15e96e1..3120dfb 100644
---- a/arch/alpha/include/uapi/asm/mman.h
-+++ b/arch/alpha/include/uapi/asm/mman.h
-@@ -38,6 +38,7 @@
- 
- #define MCL_CURRENT	 8192		/* lock all currently mapped pages */
- #define MCL_FUTURE	16384		/* lock all additions to address space */
-+#define MCL_ON_FAULT	32768		/* lock all pages that are faulted in */
- 
- #define MADV_NORMAL	0		/* no further special treatment */
- #define MADV_RANDOM	1		/* expect random page references */
-diff --git a/arch/mips/include/uapi/asm/mman.h b/arch/mips/include/uapi/asm/mman.h
-index 47846a5..82aec3c 100644
---- a/arch/mips/include/uapi/asm/mman.h
-+++ b/arch/mips/include/uapi/asm/mman.h
-@@ -62,6 +62,7 @@
-  */
- #define MCL_CURRENT	1		/* lock all current mappings */
- #define MCL_FUTURE	2		/* lock all future mappings */
-+#define MCL_ON_FAULT	4		/* lock all pages that are faulted in */
- 
- #define MADV_NORMAL	0		/* no further special treatment */
- #define MADV_RANDOM	1		/* expect random page references */
-diff --git a/arch/parisc/include/uapi/asm/mman.h b/arch/parisc/include/uapi/asm/mman.h
-index 1514cd7..f4601f3 100644
---- a/arch/parisc/include/uapi/asm/mman.h
-+++ b/arch/parisc/include/uapi/asm/mman.h
-@@ -32,6 +32,7 @@
- 
- #define MCL_CURRENT	1		/* lock all current mappings */
- #define MCL_FUTURE	2		/* lock all future mappings */
-+#define MCL_ON_FAULT	4		/* lock all pages that are faulted in */
- 
- #define MADV_NORMAL     0               /* no further special treatment */
- #define MADV_RANDOM     1               /* expect random page references */
-diff --git a/arch/powerpc/include/uapi/asm/mman.h b/arch/powerpc/include/uapi/asm/mman.h
-index fce74fe..0a28efc 100644
---- a/arch/powerpc/include/uapi/asm/mman.h
-+++ b/arch/powerpc/include/uapi/asm/mman.h
-@@ -22,6 +22,7 @@
- 
- #define MCL_CURRENT     0x2000          /* lock all currently mapped pages */
- #define MCL_FUTURE      0x4000          /* lock all additions to address space */
-+#define MCL_ON_FAULT	0x80000		/* lock all pages that are faulted in */
- 
- #define MAP_POPULATE	0x8000		/* populate (prefault) pagetables */
- #define MAP_NONBLOCK	0x10000		/* do not block on IO */
-diff --git a/arch/sparc/include/uapi/asm/mman.h b/arch/sparc/include/uapi/asm/mman.h
-index 12425d8..119be80 100644
---- a/arch/sparc/include/uapi/asm/mman.h
-+++ b/arch/sparc/include/uapi/asm/mman.h
-@@ -17,6 +17,7 @@
- 
- #define MCL_CURRENT     0x2000          /* lock all currently mapped pages */
- #define MCL_FUTURE      0x4000          /* lock all additions to address space */
-+#define MCL_ON_FAULT	0x80000		/* lock all pages that are faulted in */
- 
- #define MAP_POPULATE	0x8000		/* populate (prefault) pagetables */
- #define MAP_NONBLOCK	0x10000		/* do not block on IO */
-diff --git a/arch/tile/include/uapi/asm/mman.h b/arch/tile/include/uapi/asm/mman.h
-index ec04eaf..66ea935 100644
---- a/arch/tile/include/uapi/asm/mman.h
-+++ b/arch/tile/include/uapi/asm/mman.h
-@@ -37,6 +37,7 @@
-  */
- #define MCL_CURRENT	1		/* lock all current mappings */
- #define MCL_FUTURE	2		/* lock all future mappings */
-+#define MCL_ON_FAULT	4		/* lock all pages that are faulted in */
- 
- 
- #endif /* _ASM_TILE_MMAN_H */
-diff --git a/arch/xtensa/include/uapi/asm/mman.h b/arch/xtensa/include/uapi/asm/mman.h
-index 42d43cc..9abcc29 100644
---- a/arch/xtensa/include/uapi/asm/mman.h
-+++ b/arch/xtensa/include/uapi/asm/mman.h
-@@ -75,6 +75,7 @@
-  */
- #define MCL_CURRENT	1		/* lock all current mappings */
- #define MCL_FUTURE	2		/* lock all future mappings */
-+#define MCL_ON_FAULT	4		/* lock all pages that are faulted in */
- 
- #define MADV_NORMAL	0		/* no further special treatment */
- #define MADV_RANDOM	1		/* expect random page references */
-diff --git a/include/uapi/asm-generic/mman.h b/include/uapi/asm-generic/mman.h
-index fc4e586..6ac7a7b 100644
---- a/include/uapi/asm-generic/mman.h
-+++ b/include/uapi/asm-generic/mman.h
-@@ -18,5 +18,6 @@
- 
- #define MCL_CURRENT	1		/* lock all current mappings */
- #define MCL_FUTURE	2		/* lock all future mappings */
-+#define MCL_ON_FAULT	4		/* lock all pages that are faulted in */
- 
- #endif /* __ASM_GENERIC_MMAN_H */
-diff --git a/mm/mlock.c b/mm/mlock.c
-index 6fd2cf1..1406835 100644
---- a/mm/mlock.c
-+++ b/mm/mlock.c
-@@ -579,7 +579,7 @@ static int do_mlock(unsigned long start, size_t len, int on)
- 
- 		/* Here we know that  vma->vm_start <= nstart < vma->vm_end. */
- 
--		newflags = vma->vm_flags & ~VM_LOCKED;
-+		newflags = vma->vm_flags & ~(VM_LOCKED | VM_LOCKONFAULT);
- 		if (on)
- 			newflags |= VM_LOCKED;
- 
-@@ -662,13 +662,17 @@ static int do_mlockall(int flags)
- 		current->mm->def_flags |= VM_LOCKED;
- 	else
- 		current->mm->def_flags &= ~VM_LOCKED;
--	if (flags == MCL_FUTURE)
-+	if (flags & MCL_ON_FAULT)
-+		current->mm->def_flags |= VM_LOCKONFAULT;
-+	else
-+		current->mm->def_flags &= ~VM_LOCKONFAULT;
-+	if (flags == MCL_FUTURE || flags == MCL_ON_FAULT)
- 		goto out;
- 
- 	for (vma = current->mm->mmap; vma ; vma = prev->vm_next) {
- 		vm_flags_t newflags;
- 
--		newflags = vma->vm_flags & ~VM_LOCKED;
-+		newflags = vma->vm_flags & ~(VM_LOCKED | VM_LOCKONFAULT);
- 		if (flags & MCL_CURRENT)
- 			newflags |= VM_LOCKED;
- 
-@@ -685,7 +689,8 @@ SYSCALL_DEFINE1(mlockall, int, flags)
- 	unsigned long lock_limit;
- 	int ret = -EINVAL;
- 
--	if (!flags || (flags & ~(MCL_CURRENT | MCL_FUTURE)))
-+	if (!flags || (flags & ~(MCL_CURRENT | MCL_FUTURE | MCL_ON_FAULT)) ||
-+	    ((flags & MCL_FUTURE) && (flags & MCL_ON_FAULT)))
- 		goto out;
- 
- 	ret = -EPERM;
--- 
-1.9.1
+On Wed, May 27, 2015 at 05:23:51PM -0700, Yinghai Lu wrote:
+> David Ahern reported that d63e2e1f3df9 ("sparc/PCI: Clip bridge windows
+> to fit in upstream windows") fails to boot on sparc/T5-8:
+> 
+> pci 0000:06:00.0: reg 0x184: can't handle BAR above 4GB (bus address 0x110204000)
+> 
+> The problem is that sparc64 assumed that dma_addr_t only needed to hold DMA
+> addresses, i.e., bus addresses returned via the DMA API (dma_map_single(),
+> etc.), while the PCI core assumed dma_addr_t could hold *any* bus address,
+> including raw BAR values.  On sparc64, all DMA addresses fit in 32 bits, so
+> dma_addr_t is a 32-bit type.  However, BAR values can be 64 bits wide, so
+> they don't fit in a dma_addr_t.  d63e2e1f3df9 added new checking that
+> tripped over this mismatch.
+> 
+> Add pci_bus_addr_t, which is wide enough to hold any PCI bus address,
+> including both raw BAR values and DMA addresses.  This will be 64 bits
+> on 64-bit platforms and on platforms with a 64-bit dma_addr_t.  Then
+> dma_addr_t only needs to be wide enough to hold addresses from the DMA API.
+> 
+> Fixes: d63e2e1f3df9 ("sparc/PCI: Clip bridge windows to fit in upstream windows")
+> Fixes: 23b13bc76f35 ("PCI: Fail safely if we can't handle BARs larger than 4GB")
+> Link: http://lkml.kernel.org/r/CAE9FiQU1gJY1LYrxs+ma5LCTEEe4xmtjRG0aXJ9K_Tsu+m9Wuw@mail.gmail.com
+> Link: http://lkml.kernel.org/r/1427857069-6789-1-git-send-email-yinghai@kernel.org
+> Link: https://bugzilla.kernel.org/show_bug.cgi?id=96231
+> Reported-by: David Ahern <david.ahern@oracle.com>
+> Tested-by: David Ahern <david.ahern@oracle.com>
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> [bhelgaas: changelog, bugzilla, Kconfig to ensure pci_bus_addr_t is at least as wide as dma_addr_t]
+> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+> Acked-by: David S. Miller <davem@davemloft.net>
+> CC: stable@vger.kernel.org	# v3.19+
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+I applied these both to pci/resources for v4.2.  I combined them into one
+patch so the code and corresponding documentation changes are all together.
+
+> ---
+>  drivers/pci/Kconfig |    4 ++++
+>  drivers/pci/bus.c   |   10 +++++-----
+>  drivers/pci/probe.c |   12 ++++++------
+>  include/linux/pci.h |   12 +++++++++---
+>  4 files changed, 24 insertions(+), 14 deletions(-)
+> 
+> Index: linux-2.6/drivers/pci/Kconfig
+> ===================================================================
+> --- linux-2.6.orig/drivers/pci/Kconfig
+> +++ linux-2.6/drivers/pci/Kconfig
+> @@ -1,6 +1,10 @@
+>  #
+>  # PCI configuration
+>  #
+> +config PCI_BUS_ADDR_T_64BIT
+> +	def_bool y if (ARCH_DMA_ADDR_T_64BIT || 64BIT)
+> +	depends on PCI
+> +
+>  config PCI_MSI
+>  	bool "Message Signaled Interrupts (MSI and MSI-X)"
+>  	depends on PCI
+> Index: linux-2.6/drivers/pci/bus.c
+> ===================================================================
+> --- linux-2.6.orig/drivers/pci/bus.c
+> +++ linux-2.6/drivers/pci/bus.c
+> @@ -92,11 +92,11 @@ void pci_bus_remove_resources(struct pci
+>  }
+>  
+>  static struct pci_bus_region pci_32_bit = {0, 0xffffffffULL};
+> -#ifdef CONFIG_ARCH_DMA_ADDR_T_64BIT
+> +#ifdef CONFIG_PCI_BUS_ADDR_T_64BIT
+>  static struct pci_bus_region pci_64_bit = {0,
+> -				(dma_addr_t) 0xffffffffffffffffULL};
+> -static struct pci_bus_region pci_high = {(dma_addr_t) 0x100000000ULL,
+> -				(dma_addr_t) 0xffffffffffffffffULL};
+> +				(pci_bus_addr_t) 0xffffffffffffffffULL};
+> +static struct pci_bus_region pci_high = {(pci_bus_addr_t) 0x100000000ULL,
+> +				(pci_bus_addr_t) 0xffffffffffffffffULL};
+>  #endif
+>  
+>  /*
+> @@ -200,7 +200,7 @@ int pci_bus_alloc_resource(struct pci_bu
+>  					  resource_size_t),
+>  		void *alignf_data)
+>  {
+> -#ifdef CONFIG_ARCH_DMA_ADDR_T_64BIT
+> +#ifdef CONFIG_PCI_BUS_ADDR_T_64BIT
+>  	int rc;
+>  
+>  	if (res->flags & IORESOURCE_MEM_64) {
+> Index: linux-2.6/drivers/pci/probe.c
+> ===================================================================
+> --- linux-2.6.orig/drivers/pci/probe.c
+> +++ linux-2.6/drivers/pci/probe.c
+> @@ -254,8 +254,8 @@ int __pci_read_base(struct pci_dev *dev,
+>  	}
+>  
+>  	if (res->flags & IORESOURCE_MEM_64) {
+> -		if ((sizeof(dma_addr_t) < 8 || sizeof(resource_size_t) < 8) &&
+> -		    sz64 > 0x100000000ULL) {
+> +		if ((sizeof(pci_bus_addr_t) < 8 || sizeof(resource_size_t) < 8)
+> +		    && sz64 > 0x100000000ULL) {
+>  			res->flags |= IORESOURCE_UNSET | IORESOURCE_DISABLED;
+>  			res->start = 0;
+>  			res->end = 0;
+> @@ -264,7 +264,7 @@ int __pci_read_base(struct pci_dev *dev,
+>  			goto out;
+>  		}
+>  
+> -		if ((sizeof(dma_addr_t) < 8) && l) {
+> +		if ((sizeof(pci_bus_addr_t) < 8) && l) {
+>  			/* Above 32-bit boundary; try to reallocate */
+>  			res->flags |= IORESOURCE_UNSET;
+>  			res->start = 0;
+> @@ -399,7 +399,7 @@ static void pci_read_bridge_mmio_pref(st
+>  	struct pci_dev *dev = child->self;
+>  	u16 mem_base_lo, mem_limit_lo;
+>  	u64 base64, limit64;
+> -	dma_addr_t base, limit;
+> +	pci_bus_addr_t base, limit;
+>  	struct pci_bus_region region;
+>  	struct resource *res;
+>  
+> @@ -426,8 +426,8 @@ static void pci_read_bridge_mmio_pref(st
+>  		}
+>  	}
+>  
+> -	base = (dma_addr_t) base64;
+> -	limit = (dma_addr_t) limit64;
+> +	base = (pci_bus_addr_t) base64;
+> +	limit = (pci_bus_addr_t) limit64;
+>  
+>  	if (base != base64) {
+>  		dev_err(&dev->dev, "can't handle bridge window above 4GB (bus address %#010llx)\n",
+> Index: linux-2.6/include/linux/pci.h
+> ===================================================================
+> --- linux-2.6.orig/include/linux/pci.h
+> +++ linux-2.6/include/linux/pci.h
+> @@ -577,9 +577,15 @@ int raw_pci_read(unsigned int domain, un
+>  int raw_pci_write(unsigned int domain, unsigned int bus, unsigned int devfn,
+>  		  int reg, int len, u32 val);
+>  
+> +#ifdef CONFIG_PCI_BUS_ADDR_T_64BIT
+> +typedef u64 pci_bus_addr_t;
+> +#else
+> +typedef u32 pci_bus_addr_t;
+> +#endif
+> +
+>  struct pci_bus_region {
+> -	dma_addr_t start;
+> -	dma_addr_t end;
+> +	pci_bus_addr_t start;
+> +	pci_bus_addr_t end;
+>  };
+>  
+>  struct pci_dynids {
+> @@ -1127,7 +1133,7 @@ int __must_check pci_bus_alloc_resource(
+>  
+>  int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr);
+>  
+> -static inline dma_addr_t pci_bus_address(struct pci_dev *pdev, int bar)
+> +static inline pci_bus_addr_t pci_bus_address(struct pci_dev *pdev, int bar)
+>  {
+>  	struct pci_bus_region region;
+>  
