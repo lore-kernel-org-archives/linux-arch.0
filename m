@@ -1,74 +1,163 @@
-From: =?windows-1252?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
-Subject: Re: [PATCH v2] arm64: Preserve the user r/w register tpidr_el0 on
- context switch and fork in compat mode
-Date: Thu, 28 May 2015 20:43:30 +0200
-Message-ID: <556761D2.9040908@dawncrow.de>
-References: <555CB3D5.7000307@dawncrow.de> <20150527143648.GA4232@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20150527143648.GA4232@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "gregkh@linuxfoundation.org" <gregkh@linuxfoundation.org>, Nathan Lynch <nathan_lynch@mentor.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+From: Eric B Munson <emunson@akamai.com>
+Subject: [RESEND PATCH 0/3] Allow user to request memory to be locked on page fault
+Date: Fri, 29 May 2015 10:13:25 -0400
+Message-ID: <1432908808-31150-1-git-send-email-emunson@akamai.com>
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Eric B Munson <emunson@akamai.com>, Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Am 27.05.2015 um 16:36 schrieb Will Deacon:
-> Hi Andr=E9,
-> =
+mlock() allows a user to control page out of program memory, but this
+comes at the cost of faulting in the entire mapping when it is
+allocated.  For large mappings where the entire area is not necessary
+this is not ideal.
 
-> On Wed, May 20, 2015 at 05:18:29PM +0100, Andr=E9 Hentschel wrote:
->> From: Andr=E9 Hentschel <nerv@dawncrow.de>
->>
->> Since commit a4780adeefd042482f624f5e0d577bf9cdcbb760 the user writeable=
- TLS
->> register on ARM is preserved per thread.
->>
->> This patch does it analogous to the ARM patch, but for compat mode on AR=
-M64.
->>
->> Signed-off-by: Andr=E9 Hentschel <nerv@dawncrow.de>
->> Cc: Will Deacon <will.deacon@arm.com>
->> Cc: Catalin Marinas <catalin.marinas@arm.com>
->>
->> ---
->> This patch is against Linux 4.1-rc1 (b787f68c36d49bb1d9236f403813641efa7=
-4a031)
->>
->> v2: Trying to address suggestions by Will Deacon
->>
->> @Will Deacon: 	The macro you suggested is not helpful it seems, instead =
-i introduced
->> 		static functions. They also could be macros i guess, but it seems
->> 		much cleaner to me to use functions as it only affects one file.
-> =
+This series introduces new flags for mmap() and mlockall() that allow a
+user to specify that the covered are should not be paged out, but only
+after the memory has been used the first time.
 
-> I wanted to understand in more detail why the macro didn't work out for
-> you, so I trued hacking together my own version of the patch (see below).
-> It seems to hold up to light testing, so it would be good to know where
-> you ran into problems.
-> =
+There are two main use cases that this set covers.  The first is the
+security focussed mlock case.  A buffer is needed that cannot be written
+to swap.  The maximum size is known, but on average the memory used is
+significantly less than this maximum.  With lock on fault, the buffer
+is guaranteed to never be paged out without consuming the maximum size
+every time such a buffer is created.
 
->> Should the final version be send to rmk's patchtracker or will someone
->> else pick it up?
-> =
+The second use case is focussed on performance.  Portions of a large
+file are needed and we want to keep the used portions in memory once
+accessed.  This is the case for large graphical models where the path
+through the graph is not known until run time.  The entire graph is
+unlikely to be used in a given invocation, but once a node has been
+used it needs to stay resident for further processing.  Given these
+constraints we have a number of options.  We can potentially waste a
+large amount of memory by mlocking the entire region (this can also
+cause a significant stall at startup as the entire file is read in).
+We can mlock every page as we access them without tracking if the page
+is already resident but this introduces large overhead for each access.
+The third option is mapping the entire region with PROT_NONE and using
+a signal handler for SIGSEGV to mprotect(PROT_READ) and mlock() the
+needed page.  Doing this page at a time adds a significant performance
+penalty.  Batching can be used to mitigate this overhead, but in order
+to safely avoid trying to mprotect pages outside of the mapping, the
+boundaries of each mapping to be used in this way must be tracked and
+available to the signal handler.  This is precisely what the mm system
+in the kernel should already be doing.
 
-> This is an arm64 patch, so either Catalin or me will pick it up directly
-> when it's ready to be merged.
-> =
+To illustrate the benefit of this patch I wrote a test program that
+mmaps a 5 GB file filled with random data and then makes 15,000,000
+accesses to random addresses in that mapping.  The test program was run
+20 times for each setup.  Results are reported for two program portions,
+setup and execution.  The setup phase is calling mmap and optionally
+mlock on the entire region.  For most experiments this is trivial, but
+it highlights the cost of faulting in the entire region.  Results are
+averages across the 20 runs in milliseconds.
 
-> Will
+mmap with MAP_LOCKED:
+Setup avg:      11821.193
+Processing avg: 3404.286
 
-Your patch works, you can add me as Tested-by. :)
-My bad was that i didn't know that macro style (returning a variable condit=
-ionally with c code)
-Sadly no new commit by me :(
+mmap with mlock() before each access:
+Setup avg:      0.054
+Processing avg: 34263.201
+
+mmap with PROT_NONE and signal handler and batch size of 1 page:
+With the default value in max_map_count, this gets ENOMEM as I attempt
+to change the permissions, after upping the sysctl significantly I get:
+Setup avg:      0.050
+Processing avg: 67690.625
+
+mmap with PROT_NONE and signal handler and batch size of 8 pages:
+Setup avg:      0.098
+Processing avg: 37344.197
+
+mmap with PROT_NONE and signal handler and batch size of 16 pages:
+Setup avg:      0.0548
+Processing avg: 29295.669
+
+mmap with MAP_LOCKONFAULT:
+Setup avg:      0.073
+Processing avg: 18392.136
+
+The signal handler in the batch cases faulted in memory in two steps to
+avoid having to know the start and end of the faulting mapping.  The
+first step covers the page that caused the fault as we know that it will
+be possible to lock.  The second step speculatively tries to mlock and
+mprotect the batch size - 1 pages that follow.  There may be a clever
+way to avoid this without having the program track each mapping to be
+covered by this handeler in a globally accessible structure, but I could
+not find it.  It should be noted that with a large enough batch size
+this two step fault handler can still cause the program to crash if it
+reaches far beyond the end of the mapping.
+
+These results show that if the developer knows that a majority of the
+mapping will be used, it is better to try and fault it in at once,
+otherwise MAP_LOCKONFAULT is significantly faster.
+
+The performance cost of these patches are minimal on the two benchmarks
+I have tested (stream and kernbench).  The following are the average
+values across 20 runs of each benchmark after a warmup run whose
+results were discarded.
+
+Avg throughput in MB/s from stream using 1000000 element arrays
+Test     4.1-rc2      4.1-rc2+lock-on-fault
+Copy:    10,979.08    10,917.34
+Scale:   11,094.45    11,023.01
+Add:     12,487.29    12,388.65
+Triad:   12,505.77    12,418.78
+
+Kernbench optimal load
+                 4.1-rc2  4.1-rc2+lock-on-fault
+Elapsed Time     71.046   71.324
+User Time        62.117   62.352
+System Time      8.926    8.969
+Context Switches 14531.9  14542.5
+Sleeps           14935.9  14939
+
+Eric B Munson (3):
+  Add flag to request pages are locked after page fault
+  Add mlockall flag for locking pages on fault
+  Add tests for lock on fault
+
+ arch/alpha/include/uapi/asm/mman.h          |   2 +
+ arch/mips/include/uapi/asm/mman.h           |   2 +
+ arch/parisc/include/uapi/asm/mman.h         |   2 +
+ arch/powerpc/include/uapi/asm/mman.h        |   2 +
+ arch/sparc/include/uapi/asm/mman.h          |   2 +
+ arch/tile/include/uapi/asm/mman.h           |   2 +
+ arch/xtensa/include/uapi/asm/mman.h         |   2 +
+ include/linux/mm.h                          |   1 +
+ include/linux/mman.h                        |   3 +-
+ include/uapi/asm-generic/mman.h             |   2 +
+ mm/mlock.c                                  |  13 ++-
+ mm/mmap.c                                   |   4 +-
+ mm/swap.c                                   |   3 +-
+ tools/testing/selftests/vm/Makefile         |   8 +-
+ tools/testing/selftests/vm/lock-on-fault.c  | 145 ++++++++++++++++++++++++++++
+ tools/testing/selftests/vm/on-fault-limit.c |  47 +++++++++
+ tools/testing/selftests/vm/run_vmtests      |  23 +++++
+ 17 files changed, 254 insertions(+), 9 deletions(-)
+ create mode 100644 tools/testing/selftests/vm/lock-on-fault.c
+ create mode 100644 tools/testing/selftests/vm/on-fault-limit.c
+
+Cc: Shuah Khan <shuahkh@osg.samsung.com>
+Cc: Michal Hocko <mhocko@suse.cz>
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+Cc: linux-parisc@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: sparclinux@vger.kernel.org
+Cc: linux-xtensa@linux-xtensa.org
+Cc: linux-mm@kvack.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-api@vger.kernel.org
+
+-- 
+1.9.1
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
