@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kapsi.fi ([217.30.184.167]:37555 "EHLO mail.kapsi.fi"
+Received: from mail.kapsi.fi ([217.30.184.167]:46411 "EHLO mail.kapsi.fi"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757885AbbE3PlD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 30 May 2015 11:41:03 -0400
+	id S1757873AbbE3PlB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 30 May 2015 11:41:01 -0400
 From: Mikko Rapeli <mikko.rapeli@iki.fi>
-Subject: [PATCH 38/98] include/uapi/asm-generic/signal.h: use __kernel_size_t instead of size_t
-Date: Sat, 30 May 2015 17:38:30 +0200
-Message-ID: <1433000370-19509-39-git-send-email-mikko.rapeli@iki.fi>
+Subject: [PATCH 35/98] include/uapi/asm-generic/msgbuf.h: include asm/ipcbuf.h
+Date: Sat, 30 May 2015 17:38:27 +0200
+Message-ID: <1433000370-19509-36-git-send-email-mikko.rapeli@iki.fi>
 In-Reply-To: <1433000370-19509-1-git-send-email-mikko.rapeli@iki.fi>
 References: <1433000370-19509-1-git-send-email-mikko.rapeli@iki.fi>
 MIME-Version: 1.0
@@ -16,30 +16,31 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Mikko Rapeli <mikko.rapeli@iki.fi>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150530153830.UFLouGiwWo4KvfsaF7EGN3SOPRNfJyHsbblFDO4VoVM@z>
+Message-ID: <20150530153827.R43zWWHWVrhE6meaMQvf9YRzDsPwQlFFFHMsZTP49b0@z>
 
-Fixes userspace compiler error:
+Fixes userspace compilation errors like:
 
-error: unknown type name ‘size_t’
+error: field ‘msg_perm’ has incomplete type
+struct ipc64_perm msg_perm
 
 Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
 ---
- include/uapi/asm-generic/signal.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/uapi/asm-generic/msgbuf.h | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/include/uapi/asm-generic/signal.h b/include/uapi/asm-generic/signal.h
-index 9df61f1..0a7c415 100644
---- a/include/uapi/asm-generic/signal.h
-+++ b/include/uapi/asm-generic/signal.h
-@@ -111,7 +111,7 @@ struct sigaction {
- typedef struct sigaltstack {
- 	void __user *ss_sp;
- 	int ss_flags;
--	size_t ss_size;
-+	__kernel_size_t ss_size;
- } stack_t;
+diff --git a/include/uapi/asm-generic/msgbuf.h b/include/uapi/asm-generic/msgbuf.h
+index f55ecc4..f5fbd8e 100644
+--- a/include/uapi/asm-generic/msgbuf.h
++++ b/include/uapi/asm-generic/msgbuf.h
+@@ -2,6 +2,8 @@
+ #define __ASM_GENERIC_MSGBUF_H
  
- #endif /* __ASSEMBLY__ */
+ #include <asm/bitsperlong.h>
++#include <asm/ipcbuf.h>
++
+ /*
+  * generic msqid64_ds structure.
+  *
 -- 
 2.1.4
 
