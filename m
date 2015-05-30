@@ -1,40 +1,48 @@
-From: Mikko Rapeli <mikko.rapeli-X3B1VOXEql0@public.gmane.org>
-Subject: [PATCH 34/98] include/uapi/asm-generic/ipcbuf.h: include linux/posix_types.h
-Date: Sat, 30 May 2015 17:38:26 +0200
-Message-ID: <1433000370-19509-35-git-send-email-mikko.rapeli@iki.fi>
+From: Mikko Rapeli <mikko.rapeli@iki.fi>
+Subject: [PATCH 78/98] include/uapi/asm-generic/ucontext.h: include asm/signal.h and asm/sigcontext.h
+Date: Sat, 30 May 2015 17:39:10 +0200
+Message-ID: <1433000370-19509-79-git-send-email-mikko.rapeli@iki.fi>
 References: <1433000370-19509-1-git-send-email-mikko.rapeli@iki.fi>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1433000370-19509-1-git-send-email-mikko.rapeli-X3B1VOXEql0@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: Mikko Rapeli <mikko.rapeli-X3B1VOXEql0@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.kapsi.fi ([217.30.184.167]:50646 "EHLO mail.kapsi.fi"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757820AbbE3QZq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 30 May 2015 12:25:46 -0400
+In-Reply-To: <1433000370-19509-1-git-send-email-mikko.rapeli@iki.fi>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: Mikko Rapeli <mikko.rapeli@iki.fi>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 
-=46ixes userspace compilation error:
+=46ixes userspace compiler errors:
 
-error: unknown type name =E2=80=98__kernel_key_t=E2=80=99
+error: unknown type name =E2=80=98stack_t=E2=80=99
+error: field =E2=80=98uc_mcontext=E2=80=99 has incomplete type
+struct sigcontext uc_mcontext;
+error: unknown type name =E2=80=98sigset_t=E2=80=99
 
-Signed-off-by: Mikko Rapeli <mikko.rapeli-X3B1VOXEql0@public.gmane.org>
+Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
 ---
- include/uapi/asm-generic/ipcbuf.h | 2 ++
- 1 file changed, 2 insertions(+)
+ include/uapi/asm-generic/ucontext.h | 3 +++
+ 1 file changed, 3 insertions(+)
 
-diff --git a/include/uapi/asm-generic/ipcbuf.h b/include/uapi/asm-gener=
-ic/ipcbuf.h
-index 3dbcc1e..909f825 100644
---- a/include/uapi/asm-generic/ipcbuf.h
-+++ b/include/uapi/asm-generic/ipcbuf.h
-@@ -1,6 +1,8 @@
- #ifndef __ASM_GENERIC_IPCBUF_H
- #define __ASM_GENERIC_IPCBUF_H
+diff --git a/include/uapi/asm-generic/ucontext.h b/include/uapi/asm-gen=
+eric/ucontext.h
+index ad77343..4481528 100644
+--- a/include/uapi/asm-generic/ucontext.h
++++ b/include/uapi/asm-generic/ucontext.h
+@@ -1,6 +1,9 @@
+ #ifndef __ASM_GENERIC_UCONTEXT_H
+ #define __ASM_GENERIC_UCONTEXT_H
 =20
-+#include <linux/posix_types.h>
++#include <asm/signal.h>
++#include <asm/sigcontext.h>
 +
- /*
-  * The generic ipc64_perm structure:
-  * Note extra padding because this structure is passed back and forth
+ struct ucontext {
+ 	unsigned long	  uc_flags;
+ 	struct ucontext  *uc_link;
 --=20
 2.1.4
