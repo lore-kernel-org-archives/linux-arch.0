@@ -1,48 +1,66 @@
-From: Mikko Rapeli <mikko.rapeli@iki.fi>
-Subject: [PATCH 78/98] include/uapi/asm-generic/ucontext.h: include asm/signal.h and asm/sigcontext.h
-Date: Sat, 30 May 2015 17:39:10 +0200
-Message-ID: <1433000370-19509-79-git-send-email-mikko.rapeli@iki.fi>
-References: <1433000370-19509-1-git-send-email-mikko.rapeli@iki.fi>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kapsi.fi ([217.30.184.167]:50646 "EHLO mail.kapsi.fi"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757820AbbE3QZq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 30 May 2015 12:25:46 -0400
-In-Reply-To: <1433000370-19509-1-git-send-email-mikko.rapeli@iki.fi>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Mikko Rapeli <mikko.rapeli@iki.fi>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+From: Baolin Wang <baolin.wang@linaro.org>
+Subject: [PATCH v4 00/25] Convert the posix_clock_operations and k_clock structure to ready for 2038
+Date: Mon,  1 Jun 2015 19:44:53 +0800
+Message-ID: <1433159093-4548-1-git-send-email-baolin.wang@linaro.org>
+Return-path: <linux-security-module-owner@vger.kernel.org>
+Sender: linux-security-module-owner@vger.kernel.org
+To: tglx@linutronix.de
+Cc: arnd@arndb.de, john.stultz@linaro.org, heenasirwani@gmail.com, pang.xunlei@linaro.org, peterz@infradead.org, rafael.j.wysocki@intel.com, gregkh@linuxfoundation.org, richardcochran@gmail.com, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, fweisbec@gmail.com, ahh@google.com, pjt@google.com, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, serge.hallyn@canonical.com, james.l.morris@oracle.com, serge@hallyn.com, pmoore@redhat.com, tiwai@suse.de, jeffv@google.com, jlayton@primarydata.com, keescook@chromium.org, sds@tycho.nsa.gov, mark.d.rustad@intel.com, linux-security-module@vger.kernel.org, baolin.wang@linaro.org, y2038@lists.linaro
+List-Id: linux-arch.vger.kernel.org
 
-=46ixes userspace compiler errors:
+This patch series changes the 32-bit time types (timespec/itimerspec) to
+the 64-bit types (timespec64/itimerspec64), since 32-bit time types will
+break in the year 2038.
 
-error: unknown type name =E2=80=98stack_t=E2=80=99
-error: field =E2=80=98uc_mcontext=E2=80=99 has incomplete type
-struct sigcontext uc_mcontext;
-error: unknown type name =E2=80=98sigset_t=E2=80=99
+This patch series introduces new methods with timespec64/itimerspec64 type,
+and removes the old ones with timespec/itimerspec type for posix_clock_operations
+and k_clock structure.
 
-Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
----
- include/uapi/asm-generic/ucontext.h | 3 +++
- 1 file changed, 3 insertions(+)
+Baolin Wang (25):
+  time:Introduce struct itimerspec64
+  timekeeping:Introduce the current_kernel_time64()
+  hrtimer:Introduce hrtimer_get_res64()
+  security: Introduce security_settime64()
+  time:Introduce the do_sys_settimeofday64()
+  posix-timers:Introduce {get,put}_timespec/{get,put}_itimerspec
+  posix-timers: Split up timer_gettime()/timer_settime()/clock_settime()/
+    clock_gettime()/clock_getres().
+  posix-timers: Convert timer_gettime()/timer_settime()/clock_settime()/
+    clock_gettime()/clock_getres() to timespec64/itimerspec64.
+  mmtimer:Convert to timespec64/itimerspec64
+  alarmtimer:Convert to timespec64/itimerspec64
+  posix-clock:Convert to timespec64/itimerspec64
+  time:Introduce timespec64_to_jiffies()/jiffies_to_timespec64()
+  cputime:Introduce cputime_to_timespec64()/timespec64_to_cputime()
+  posix-cpu-timers:Convert to timespec64/itimerspec64
+  k_clock:Remove timespec/itimerspec
 
-diff --git a/include/uapi/asm-generic/ucontext.h b/include/uapi/asm-gen=
-eric/ucontext.h
-index ad77343..4481528 100644
---- a/include/uapi/asm-generic/ucontext.h
-+++ b/include/uapi/asm-generic/ucontext.h
-@@ -1,6 +1,9 @@
- #ifndef __ASM_GENERIC_UCONTEXT_H
- #define __ASM_GENERIC_UCONTEXT_H
-=20
-+#include <asm/signal.h>
-+#include <asm/sigcontext.h>
-+
- struct ucontext {
- 	unsigned long	  uc_flags;
- 	struct ucontext  *uc_link;
---=20
-2.1.4
+ arch/powerpc/include/asm/cputime.h    |    6 +-
+ arch/s390/include/asm/cputime.h       |    8 +-
+ drivers/char/mmtimer.c                |   36 +++--
+ drivers/ptp/ptp_clock.c               |   26 +---
+ include/asm-generic/cputime_jiffies.h |   10 +-
+ include/asm-generic/cputime_nsecs.h   |    4 +-
+ include/linux/cputime.h               |   16 ++
+ include/linux/hrtimer.h               |   16 +-
+ include/linux/jiffies.h               |   21 ++-
+ include/linux/posix-clock.h           |   10 +-
+ include/linux/posix-timers.h          |   18 +--
+ include/linux/security.h              |   25 +++-
+ include/linux/time64.h                |   35 +++++
+ include/linux/timekeeping.h           |   26 +++-
+ kernel/time/alarmtimer.c              |   43 +++---
+ kernel/time/hrtimer.c                 |   10 +-
+ kernel/time/posix-clock.c             |   20 +--
+ kernel/time/posix-cpu-timers.c        |   84 ++++++-----
+ kernel/time/posix-timers.c            |  259 +++++++++++++++++++++------------
+ kernel/time/time.c                    |   20 +--
+ kernel/time/timekeeping.c             |    6 +-
+ kernel/time/timekeeping.h             |    1 -
+ security/commoncap.c                  |    2 +-
+ security/security.c                   |    2 +-
+ 24 files changed, 437 insertions(+), 267 deletions(-)
+
+-- 
+1.7.9.5
+
