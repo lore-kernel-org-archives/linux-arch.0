@@ -1,61 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kapsi.fi ([217.30.184.167]:38391 "EHLO mail.kapsi.fi"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757875AbbE3PlC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 30 May 2015 11:41:02 -0400
-From: Mikko Rapeli <mikko.rapeli@iki.fi>
-Subject: [PATCH 36/98] include/uapi/asm-generic/shmbuf.h: include fixes
-Date: Sat, 30 May 2015 17:38:28 +0200
-Message-ID: <1433000370-19509-37-git-send-email-mikko.rapeli@iki.fi>
-In-Reply-To: <1433000370-19509-1-git-send-email-mikko.rapeli@iki.fi>
-References: <1433000370-19509-1-git-send-email-mikko.rapeli@iki.fi>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Received: from mail-pa0-f44.google.com ([209.85.220.44]:34597 "EHLO
+	mail-pa0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752153AbbFALp0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jun 2015 07:45:26 -0400
+Received: by payr10 with SMTP id r10so24936820pay.1
+        for <linux-arch@vger.kernel.org>; Mon, 01 Jun 2015 04:45:25 -0700 (PDT)
+From: Baolin Wang <baolin.wang@linaro.org>
+Subject: [PATCH v4 00/25] Convert the posix_clock_operations and k_clock structure to ready for 2038
+Date: Mon,  1 Jun 2015 19:44:53 +0800
+Message-ID: <1433159093-4548-1-git-send-email-baolin.wang@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Mikko Rapeli <mikko.rapeli@iki.fi>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150530153828.G8uInjHdkkIT6moTpjVMCoxDnJwGsgLwIW3SWYiL5IE@z>
+To: tglx@linutronix.de
+Cc: arnd@arndb.de, john.stultz@linaro.org, heenasirwani@gmail.com, pang.xunlei@linaro.org, peterz@infradead.org, rafael.j.wysocki@intel.com, gregkh@linuxfoundation.org, richardcochran@gmail.com, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, fweisbec@gmail.com, ahh@google.com, pjt@google.com, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, serge.hallyn@canonical.com, james.l.morris@oracle.com, serge@hallyn.com, pmoore@redhat.com, tiwai@suse.de, jeffv@google.com, jlayton@primarydata.com, keescook@chromium.org, sds@tycho.nsa.gov, mark.d.rustad@intel.com, linux-security-module@vger.kernel.org, baolin.wang@linaro.org, y2038@lists.linaro.org
+Message-ID: <20150601114453.9cJVfkk16ekR6p5JE4iB1Tlozy1rfsmhxysxjqJ5Djs@z>
 
-Include linux/types.h and asm/msgbuf.h and use __kernel_size_t instead
-of size_t.
+This patch series changes the 32-bit time types (timespec/itimerspec) to
+the 64-bit types (timespec64/itimerspec64), since 32-bit time types will
+break in the year 2038.
 
-Fixes userspace compilation errors like:
+This patch series introduces new methods with timespec64/itimerspec64 type,
+and removes the old ones with timespec/itimerspec type for posix_clock_operations
+and k_clock structure.
 
-error: field ‘shm_perm’ has incomplete type
-struct ipc64_perm shm_perm; /* operation perms */
-error: unknown type name ‘size_t’
-error: unknown type name ‘__kernel_time_t’
+Baolin Wang (25):
+  time:Introduce struct itimerspec64
+  timekeeping:Introduce the current_kernel_time64()
+  hrtimer:Introduce hrtimer_get_res64()
+  security: Introduce security_settime64()
+  time:Introduce the do_sys_settimeofday64()
+  posix-timers:Introduce {get,put}_timespec/{get,put}_itimerspec
+  posix-timers: Split up timer_gettime()/timer_settime()/clock_settime()/
+    clock_gettime()/clock_getres().
+  posix-timers: Convert timer_gettime()/timer_settime()/clock_settime()/
+    clock_gettime()/clock_getres() to timespec64/itimerspec64.
+  mmtimer:Convert to timespec64/itimerspec64
+  alarmtimer:Convert to timespec64/itimerspec64
+  posix-clock:Convert to timespec64/itimerspec64
+  time:Introduce timespec64_to_jiffies()/jiffies_to_timespec64()
+  cputime:Introduce cputime_to_timespec64()/timespec64_to_cputime()
+  posix-cpu-timers:Convert to timespec64/itimerspec64
+  k_clock:Remove timespec/itimerspec
 
-Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
----
- include/uapi/asm-generic/shmbuf.h | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ arch/powerpc/include/asm/cputime.h    |    6 +-
+ arch/s390/include/asm/cputime.h       |    8 +-
+ drivers/char/mmtimer.c                |   36 +++--
+ drivers/ptp/ptp_clock.c               |   26 +---
+ include/asm-generic/cputime_jiffies.h |   10 +-
+ include/asm-generic/cputime_nsecs.h   |    4 +-
+ include/linux/cputime.h               |   16 ++
+ include/linux/hrtimer.h               |   16 +-
+ include/linux/jiffies.h               |   21 ++-
+ include/linux/posix-clock.h           |   10 +-
+ include/linux/posix-timers.h          |   18 +--
+ include/linux/security.h              |   25 +++-
+ include/linux/time64.h                |   35 +++++
+ include/linux/timekeeping.h           |   26 +++-
+ kernel/time/alarmtimer.c              |   43 +++---
+ kernel/time/hrtimer.c                 |   10 +-
+ kernel/time/posix-clock.c             |   20 +--
+ kernel/time/posix-cpu-timers.c        |   84 ++++++-----
+ kernel/time/posix-timers.c            |  259 +++++++++++++++++++++------------
+ kernel/time/time.c                    |   20 +--
+ kernel/time/timekeeping.c             |    6 +-
+ kernel/time/timekeeping.h             |    1 -
+ security/commoncap.c                  |    2 +-
+ security/security.c                   |    2 +-
+ 24 files changed, 437 insertions(+), 267 deletions(-)
 
-diff --git a/include/uapi/asm-generic/shmbuf.h b/include/uapi/asm-generic/shmbuf.h
-index 7e9fb2f..ae867ad 100644
---- a/include/uapi/asm-generic/shmbuf.h
-+++ b/include/uapi/asm-generic/shmbuf.h
-@@ -1,7 +1,9 @@
- #ifndef __ASM_GENERIC_SHMBUF_H
- #define __ASM_GENERIC_SHMBUF_H
- 
-+#include <linux/types.h>
- #include <asm/bitsperlong.h>
-+#include <asm/msgbuf.h>
- 
- /*
-  * The shmid64_ds structure for x86 architecture.
-@@ -24,7 +26,7 @@
- 
- struct shmid64_ds {
- 	struct ipc64_perm	shm_perm;	/* operation perms */
--	size_t			shm_segsz;	/* size of segment (bytes) */
-+	__kernel_size_t		shm_segsz;	/* size of segment (bytes) */
- 	__kernel_time_t		shm_atime;	/* last attach time */
- #if __BITS_PER_LONG != 64
- 	unsigned long		__unused1;
 -- 
-2.1.4
+1.7.9.5
 
