@@ -1,151 +1,60 @@
-From: Baolin Wang <baolin.wang@linaro.org>
-Subject: [PATCH v4 23/25] cputime:Introduce the cputime_to_timespec64/timespec64_to_cputime function
-Date: Mon,  1 Jun 2015 20:07:02 +0800
-Message-ID: <1433160422-5405-1-git-send-email-baolin.wang@linaro.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f171.google.com ([209.85.192.171]:32958 "EHLO
-	mail-pd0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751448AbbFAMHT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Jun 2015 08:07:19 -0400
-Received: by pdbqa5 with SMTP id qa5so106340651pdb.0
-        for <linux-arch@vger.kernel.org>; Mon, 01 Jun 2015 05:07:19 -0700 (PDT)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: benh@kernel.crashing.org
-Cc: arnd@arndb.de, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, fweisbec@gmail.com, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, baolin.wang@linaro.org, y2038@lists.linaro.org
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [RESEND PATCH 0/3] Allow user to request memory to be locked on
+ page fault
+Date: Mon, 1 Jun 2015 15:27:46 -0700
+Message-ID: <20150601152746.abbbbb9d479c0e2dbdec2aaf@linux-foundation.org>
+References: <1432908808-31150-1-git-send-email-emunson@akamai.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <1432908808-31150-1-git-send-email-emunson@akamai.com>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Eric B Munson <emunson@akamai.com>
+Cc: Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-This patch introduces some functions for converting cputime to timespec64
-and back, that repalce the timespec type with timespec64 type, as well as
-for arch/s390 and arch/powerpc architecture.
+On Fri, 29 May 2015 10:13:25 -0400 Eric B Munson <emunson@akamai.com> wrote:
 
-And these new methods will replace the old cputime_to_timespec/timespec_to_cputime
-function to ready for 2038 issue. The cputime_to_timespec/timespec_to_cputime
-functions are moved to include/linux/cputime.h file for removing conveniently.
+> mlock() allows a user to control page out of program memory, but this
+> comes at the cost of faulting in the entire mapping when it is
+> allocated.  For large mappings where the entire area is not necessary
+> this is not ideal.
+> 
+> This series introduces new flags for mmap() and mlockall() that allow a
+> user to specify that the covered are should not be paged out, but only
+> after the memory has been used the first time.
 
-Signed-off-by: Baolin Wang <baolin.wang@linaro.org>
----
- arch/powerpc/include/asm/cputime.h    |    6 +++---
- arch/s390/include/asm/cputime.h       |    8 ++++----
- include/asm-generic/cputime_jiffies.h |   10 +++++-----
- include/asm-generic/cputime_nsecs.h   |    4 ++--
- include/linux/cputime.h               |   16 ++++++++++++++++
- 5 files changed, 30 insertions(+), 14 deletions(-)
+I almost applied these, but the naming issue (below) stopped me.
 
-diff --git a/arch/powerpc/include/asm/cputime.h b/arch/powerpc/include/asm/cputime.h
-index e245255..5dda5c0 100644
---- a/arch/powerpc/include/asm/cputime.h
-+++ b/arch/powerpc/include/asm/cputime.h
-@@ -154,9 +154,9 @@ static inline cputime_t secs_to_cputime(const unsigned long sec)
- }
- 
- /*
-- * Convert cputime <-> timespec
-+ * Convert cputime <-> timespec64
-  */
--static inline void cputime_to_timespec(const cputime_t ct, struct timespec *p)
-+static inline void cputime_to_timespec64(const cputime_t ct, struct timespec64 *p)
- {
- 	u64 x = (__force u64) ct;
- 	unsigned int frac;
-@@ -168,7 +168,7 @@ static inline void cputime_to_timespec(const cputime_t ct, struct timespec *p)
- 	p->tv_nsec = x;
- }
- 
--static inline cputime_t timespec_to_cputime(const struct timespec *p)
-+static inline cputime_t timespec64_to_cputime(const struct timespec64 *p)
- {
- 	u64 ct;
- 
-diff --git a/arch/s390/include/asm/cputime.h b/arch/s390/include/asm/cputime.h
-index b91e960..1266697 100644
---- a/arch/s390/include/asm/cputime.h
-+++ b/arch/s390/include/asm/cputime.h
-@@ -89,16 +89,16 @@ static inline cputime_t secs_to_cputime(const unsigned int s)
- }
- 
- /*
-- * Convert cputime to timespec and back.
-+ * Convert cputime to timespec64 and back.
-  */
--static inline cputime_t timespec_to_cputime(const struct timespec *value)
-+static inline cputime_t timespec64_to_cputime(const struct timespec64 *value)
- {
- 	unsigned long long ret = value->tv_sec * CPUTIME_PER_SEC;
- 	return (__force cputime_t)(ret + __div(value->tv_nsec * CPUTIME_PER_USEC, NSEC_PER_USEC));
- }
- 
--static inline void cputime_to_timespec(const cputime_t cputime,
--				       struct timespec *value)
-+static inline void cputime_to_timespec64(const cputime_t cputime,
-+				       struct timespec64 *value)
- {
- 	unsigned long long __cputime = (__force unsigned long long) cputime;
- #ifndef CONFIG_64BIT
-diff --git a/include/asm-generic/cputime_jiffies.h b/include/asm-generic/cputime_jiffies.h
-index fe386fc..54e034c 100644
---- a/include/asm-generic/cputime_jiffies.h
-+++ b/include/asm-generic/cputime_jiffies.h
-@@ -44,12 +44,12 @@ typedef u64 __nocast cputime64_t;
- #define secs_to_cputime(sec)		jiffies_to_cputime((sec) * HZ)
- 
- /*
-- * Convert cputime to timespec and back.
-+ * Convert cputime to timespec64 and back.
-  */
--#define timespec_to_cputime(__val)	\
--	jiffies_to_cputime(timespec_to_jiffies(__val))
--#define cputime_to_timespec(__ct,__val)	\
--	jiffies_to_timespec(cputime_to_jiffies(__ct),__val)
-+#define timespec64_to_cputime(__val)	\
-+	jiffies_to_cputime(timespec64_to_jiffies(__val))
-+#define cputime_to_timespec64(__ct,__val)	\
-+	jiffies_to_timespec64(cputime_to_jiffies(__ct),__val)
- 
- /*
-  * Convert cputime to timeval and back.
-diff --git a/include/asm-generic/cputime_nsecs.h b/include/asm-generic/cputime_nsecs.h
-index 0419485..65c875b 100644
---- a/include/asm-generic/cputime_nsecs.h
-+++ b/include/asm-generic/cputime_nsecs.h
-@@ -73,12 +73,12 @@ typedef u64 __nocast cputime64_t;
- /*
-  * Convert cputime <-> timespec (nsec)
-  */
--static inline cputime_t timespec_to_cputime(const struct timespec *val)
-+static inline cputime_t timespec64_to_cputime(const struct timespec64 *val)
- {
- 	u64 ret = val->tv_sec * NSEC_PER_SEC + val->tv_nsec;
- 	return (__force cputime_t) ret;
- }
--static inline void cputime_to_timespec(const cputime_t ct, struct timespec *val)
-+static inline void cputime_to_timespec64(const cputime_t ct, struct timespec64 *val)
- {
- 	u32 rem;
- 
-diff --git a/include/linux/cputime.h b/include/linux/cputime.h
-index f2eb2ee..e4c88da 100644
---- a/include/linux/cputime.h
-+++ b/include/linux/cputime.h
-@@ -13,4 +13,20 @@
- 	usecs_to_cputime((__nsecs) / NSEC_PER_USEC)
- #endif
- 
-+static inline cputime_t timespec_to_cputime(const struct timespec *ts)
-+{
-+	struct timespec64 ts64 = timespec_to_timespec64(*ts);
-+
-+	return timespec64_to_cputime(&ts64);
-+}
-+
-+static inline void cputime_to_timespec(const cputime_t cputime,
-+					struct timespec *value)
-+{
-+	struct timespec64 ts64;
-+
-+	cputime_to_timespec64(cputime, &ts64);
-+	*value = timespec64_to_timespec(ts64);
-+}
-+
- #endif /* __LINUX_CPUTIME_H */
--- 
-1.7.9.5
+A few things...
+
+- The 0/n changelog should reveal how MAP_LOCKONFAULT interacts with
+  rlimit(RLIMIT_MEMLOCK).
+
+  I see the implementation is "as if the entire mapping will be
+  faulted in" (for mmap) and "as if it was MCL_FUTURE" (for mlockall)
+  which seems fine.  Please include changelog text explaining and
+  justifying these decisions.  This stuff will need to be in the
+  manpage updates as well.
+
+- I think I already asked "why not just use MCL_FUTURE" but I forget
+  the answer ;) In general it is a good idea to update changelogs in
+  response to reviewer questions, because other people will be
+  wondering the same things.  Or maybe I forgot to ask.  Either way,
+  please address this in the changelogs.
+
+- I can perhaps see the point in mmap(MAP_LOCKONFAULT) (other
+  mappings don't get lock-in-memory treatment), but what's the benefit
+  in mlockall(MCL_ON_FAULT) over MCL_FUTURE?  (Add to changelog also,
+  please).
+
+- Is there a manpage update?
+
+- Can we rename patch 1/3 from "add flag to ..." to "add mmap flag to
+  ...", to distinguish from 2/3 "add mlockall flag ..."?
+
+- The MAP_LOCKONFAULT versus MCL_ON_FAULT inconsistency is
+  irritating!  Can we get these consistent please: switch to either
+  MAP_LOCK_ON_FAULT or MCL_ONFAULT.
+
