@@ -1,71 +1,23 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from prod-mail-xrelay07.akamai.com ([72.246.2.115]:46764 "EHLO
+Received: from prod-mail-xrelay07.akamai.com ([72.246.2.115]:33786 "EHLO
 	prod-mail-xrelay07.akamai.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756284AbbFBOZW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jun 2015 10:25:22 -0400
-Date: Tue, 2 Jun 2015 10:25:20 -0400
+	by vger.kernel.org with ESMTP id S1759351AbbFBSN3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Jun 2015 14:13:29 -0400
 From: Eric B Munson <emunson@akamai.com>
-Subject: Re: [RESEND PATCH 0/3] Allow user to request memory to be locked on
- page fault
-Message-ID: <20150602142520.GB2364@akamai.com>
-References: <1432908808-31150-1-git-send-email-emunson@akamai.com>
- <20150601152746.abbbbb9d479c0e2dbdec2aaf@linux-foundation.org>
-MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="GRPZ8SYKNexpdSJ7"
-Content-Disposition: inline
-In-Reply-To: <20150601152746.abbbbb9d479c0e2dbdec2aaf@linux-foundation.org>
+Subject: [PATCH V2 2/3] Add mlockall flag for locking pages on fault
+Date: Tue,  2 Jun 2015 14:13:25 -0400
+Message-ID: <1433268806-17109-3-git-send-email-emunson@akamai.com>
+In-Reply-To: <1433268806-17109-1-git-send-email-emunson@akamai.com>
+References: <1433268806-17109-1-git-send-email-emunson@akamai.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150602142520.OwENIhqnJlwS1ZtapY9js0t_nN6VQQ-8W64hwTFTU64@z>
+Cc: Eric B Munson <emunson@akamai.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20150602181325.pXlg0yIL_sNPuwTRUcmxAQiOrZgOZYNHRTOXpa8GGcM@z>
 
-
---GRPZ8SYKNexpdSJ7
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-On Mon, 01 Jun 2015, Andrew Morton wrote:
-
-> On Fri, 29 May 2015 10:13:25 -0400 Eric B Munson <emunson@akamai.com> wro=
-te:
->=20
-> > mlock() allows a user to control page out of program memory, but this
-> > comes at the cost of faulting in the entire mapping when it is
-> > allocated.  For large mappings where the entire area is not necessary
-> > this is not ideal.
-> >=20
-> > This series introduces new flags for mmap() and mlockall() that allow a
-> > user to specify that the covered are should not be paged out, but only
-> > after the memory has been used the first time.
->=20
-> I almost applied these, but the naming issue (below) stopped me.
->=20
-> A few things...
->=20
-> - The 0/n changelog should reveal how MAP_LOCKONFAULT interacts with
->   rlimit(RLIMIT_MEMLOCK).
->=20
->   I see the implementation is "as if the entire mapping will be
->   faulted in" (for mmap) and "as if it was MCL_FUTURE" (for mlockall)
->   which seems fine.  Please include changelog text explaining and
->   justifying these decisions.  This stuff will need to be in the
->   manpage updates as well.
-
-Change logs are updated, and this will be included in the man page
-update as well.
-
->=20
-> - I think I already asked "why not just use MCL_FUTURE" but I forget
->   the answer ;) In general it is a good idea to update changelogs in
->   response to reviewer questions, because other people will be
->   wondering the same things.  Or maybe I forgot to ask.  Either way,
->   please address this in the changelogs.
-
-I must have missed that question.  Here is the text from the updated
-mlockall changelog:
+Building on the previous patch, extend mlockall() to give a process a
+way to specify that pages should be locked when they are faulted in, but
+that pre-faulting is not needed.
 
 MCL_ONFAULT is preferrable to MCL_FUTURE for the use cases enumerated
 in the previous patch becuase MCL_FUTURE will behave as if each mapping
@@ -74,51 +26,174 @@ when new space is allocated or mapped.  MCL_ONFAULT allows the user to
 delay the fault in cost of any given page until it is actually needed,
 but then guarantees that that page will always be resident.
 
->=20
-> - I can perhaps see the point in mmap(MAP_LOCKONFAULT) (other
->   mappings don't get lock-in-memory treatment), but what's the benefit
->   in mlockall(MCL_ON_FAULT) over MCL_FUTURE?  (Add to changelog also,
->   please).
->=20
-> - Is there a manpage update?
+As with the mmap(MAP_LOCKONFAULT) case, the user is charged for the
+mapping against the RLIMIT_MEMLOCK when the address space is allocated,
+not when the page is faulted in.  This decision was made to keep the
+accounting checks out of the page fault path.
 
-I will send one out when I post V2
+Signed-off-by: Eric B Munson <emunson@akamai.com>
+Cc: Michal Hocko <mhocko@suse.cz>
+Cc: Michael Kerrisk <mtk.manpages@gmail.com>
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+Cc: linux-parisc@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: sparclinux@vger.kernel.org
+Cc: linux-xtensa@linux-xtensa.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-api@vger.kernel.org
+Cc: linux-mm@kvack.org
+---
+ arch/alpha/include/uapi/asm/mman.h   |  1 +
+ arch/mips/include/uapi/asm/mman.h    |  1 +
+ arch/parisc/include/uapi/asm/mman.h  |  1 +
+ arch/powerpc/include/uapi/asm/mman.h |  1 +
+ arch/sparc/include/uapi/asm/mman.h   |  1 +
+ arch/tile/include/uapi/asm/mman.h    |  1 +
+ arch/xtensa/include/uapi/asm/mman.h  |  1 +
+ include/uapi/asm-generic/mman.h      |  1 +
+ mm/mlock.c                           | 13 +++++++++----
+ 9 files changed, 17 insertions(+), 4 deletions(-)
 
->=20
-> - Can we rename patch 1/3 from "add flag to ..." to "add mmap flag to
->   ...", to distinguish from 2/3 "add mlockall flag ..."?
+diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
+index 15e96e1..dfdaecf 100644
+--- a/arch/alpha/include/uapi/asm/mman.h
++++ b/arch/alpha/include/uapi/asm/mman.h
+@@ -38,6 +38,7 @@
+ 
+ #define MCL_CURRENT	 8192		/* lock all currently mapped pages */
+ #define MCL_FUTURE	16384		/* lock all additions to address space */
++#define MCL_ONFAULT	32768		/* lock all pages that are faulted in */
+ 
+ #define MADV_NORMAL	0		/* no further special treatment */
+ #define MADV_RANDOM	1		/* expect random page references */
+diff --git a/arch/mips/include/uapi/asm/mman.h b/arch/mips/include/uapi/asm/mman.h
+index 47846a5..f0705ff 100644
+--- a/arch/mips/include/uapi/asm/mman.h
++++ b/arch/mips/include/uapi/asm/mman.h
+@@ -62,6 +62,7 @@
+  */
+ #define MCL_CURRENT	1		/* lock all current mappings */
+ #define MCL_FUTURE	2		/* lock all future mappings */
++#define MCL_ONFAULT	4		/* lock all pages that are faulted in */
+ 
+ #define MADV_NORMAL	0		/* no further special treatment */
+ #define MADV_RANDOM	1		/* expect random page references */
+diff --git a/arch/parisc/include/uapi/asm/mman.h b/arch/parisc/include/uapi/asm/mman.h
+index 1514cd7..7c2eb85 100644
+--- a/arch/parisc/include/uapi/asm/mman.h
++++ b/arch/parisc/include/uapi/asm/mman.h
+@@ -32,6 +32,7 @@
+ 
+ #define MCL_CURRENT	1		/* lock all current mappings */
+ #define MCL_FUTURE	2		/* lock all future mappings */
++#define MCL_ONFAULT	4		/* lock all pages that are faulted in */
+ 
+ #define MADV_NORMAL     0               /* no further special treatment */
+ #define MADV_RANDOM     1               /* expect random page references */
+diff --git a/arch/powerpc/include/uapi/asm/mman.h b/arch/powerpc/include/uapi/asm/mman.h
+index fce74fe..0109937 100644
+--- a/arch/powerpc/include/uapi/asm/mman.h
++++ b/arch/powerpc/include/uapi/asm/mman.h
+@@ -22,6 +22,7 @@
+ 
+ #define MCL_CURRENT     0x2000          /* lock all currently mapped pages */
+ #define MCL_FUTURE      0x4000          /* lock all additions to address space */
++#define MCL_ONFAULT	0x80000		/* lock all pages that are faulted in */
+ 
+ #define MAP_POPULATE	0x8000		/* populate (prefault) pagetables */
+ #define MAP_NONBLOCK	0x10000		/* do not block on IO */
+diff --git a/arch/sparc/include/uapi/asm/mman.h b/arch/sparc/include/uapi/asm/mman.h
+index 12425d8..f2986f7 100644
+--- a/arch/sparc/include/uapi/asm/mman.h
++++ b/arch/sparc/include/uapi/asm/mman.h
+@@ -17,6 +17,7 @@
+ 
+ #define MCL_CURRENT     0x2000          /* lock all currently mapped pages */
+ #define MCL_FUTURE      0x4000          /* lock all additions to address space */
++#define MCL_ONFAULT	0x80000		/* lock all pages that are faulted in */
+ 
+ #define MAP_POPULATE	0x8000		/* populate (prefault) pagetables */
+ #define MAP_NONBLOCK	0x10000		/* do not block on IO */
+diff --git a/arch/tile/include/uapi/asm/mman.h b/arch/tile/include/uapi/asm/mman.h
+index ec04eaf..0f7ae45 100644
+--- a/arch/tile/include/uapi/asm/mman.h
++++ b/arch/tile/include/uapi/asm/mman.h
+@@ -37,6 +37,7 @@
+  */
+ #define MCL_CURRENT	1		/* lock all current mappings */
+ #define MCL_FUTURE	2		/* lock all future mappings */
++#define MCL_ONFAULT	4		/* lock all pages that are faulted in */
+ 
+ 
+ #endif /* _ASM_TILE_MMAN_H */
+diff --git a/arch/xtensa/include/uapi/asm/mman.h b/arch/xtensa/include/uapi/asm/mman.h
+index 42d43cc..10fbbb7 100644
+--- a/arch/xtensa/include/uapi/asm/mman.h
++++ b/arch/xtensa/include/uapi/asm/mman.h
+@@ -75,6 +75,7 @@
+  */
+ #define MCL_CURRENT	1		/* lock all current mappings */
+ #define MCL_FUTURE	2		/* lock all future mappings */
++#define MCL_ONFAULT	4		/* lock all pages that are faulted in */
+ 
+ #define MADV_NORMAL	0		/* no further special treatment */
+ #define MADV_RANDOM	1		/* expect random page references */
+diff --git a/include/uapi/asm-generic/mman.h b/include/uapi/asm-generic/mman.h
+index fc4e586..7fb729b 100644
+--- a/include/uapi/asm-generic/mman.h
++++ b/include/uapi/asm-generic/mman.h
+@@ -18,5 +18,6 @@
+ 
+ #define MCL_CURRENT	1		/* lock all current mappings */
+ #define MCL_FUTURE	2		/* lock all future mappings */
++#define MCL_ONFAULT	4		/* lock all pages that are faulted in */
+ 
+ #endif /* __ASM_GENERIC_MMAN_H */
+diff --git a/mm/mlock.c b/mm/mlock.c
+index 6fd2cf1..f15547f 100644
+--- a/mm/mlock.c
++++ b/mm/mlock.c
+@@ -579,7 +579,7 @@ static int do_mlock(unsigned long start, size_t len, int on)
+ 
+ 		/* Here we know that  vma->vm_start <= nstart < vma->vm_end. */
+ 
+-		newflags = vma->vm_flags & ~VM_LOCKED;
++		newflags = vma->vm_flags & ~(VM_LOCKED | VM_LOCKONFAULT);
+ 		if (on)
+ 			newflags |= VM_LOCKED;
+ 
+@@ -662,13 +662,17 @@ static int do_mlockall(int flags)
+ 		current->mm->def_flags |= VM_LOCKED;
+ 	else
+ 		current->mm->def_flags &= ~VM_LOCKED;
+-	if (flags == MCL_FUTURE)
++	if (flags & MCL_ONFAULT)
++		current->mm->def_flags |= VM_LOCKONFAULT;
++	else
++		current->mm->def_flags &= ~VM_LOCKONFAULT;
++	if (flags == MCL_FUTURE || flags == MCL_ONFAULT)
+ 		goto out;
+ 
+ 	for (vma = current->mm->mmap; vma ; vma = prev->vm_next) {
+ 		vm_flags_t newflags;
+ 
+-		newflags = vma->vm_flags & ~VM_LOCKED;
++		newflags = vma->vm_flags & ~(VM_LOCKED | VM_LOCKONFAULT);
+ 		if (flags & MCL_CURRENT)
+ 			newflags |= VM_LOCKED;
+ 
+@@ -685,7 +689,8 @@ SYSCALL_DEFINE1(mlockall, int, flags)
+ 	unsigned long lock_limit;
+ 	int ret = -EINVAL;
+ 
+-	if (!flags || (flags & ~(MCL_CURRENT | MCL_FUTURE)))
++	if (!flags || (flags & ~(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT)) ||
++	    ((flags & MCL_FUTURE) && (flags & MCL_ONFAULT)))
+ 		goto out;
+ 
+ 	ret = -EPERM;
+-- 
+1.9.1
 
-Done
-
->=20
-> - The MAP_LOCKONFAULT versus MCL_ON_FAULT inconsistency is
->   irritating!  Can we get these consistent please: switch to either
->   MAP_LOCK_ON_FAULT or MCL_ONFAULT.
-
-Yes, will do for V2.
-
->=20
-
---GRPZ8SYKNexpdSJ7
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAEBAgAGBQJVbbzQAAoJELbVsDOpoOa9EtAP+wamgfoxHetODtEfMUqzYJgN
-GxcPBHPjo32fPtFoQu+IvDCqI48ySC4Syx0DqjzZJah+Uo8ngxUDQz3U9dTFrZq+
-wv18PEj5CV4ejsEPn6pPuFYpQk/s6UvaexGCXONeHD8Zp20zoPpa4foUMyOvvUnC
-tTA+fUJNsinYLGmzidV/1ebXUZYA2ur8Keur7e/kVqzZUWCkClpEVa7ZWnclral9
-8mcvrgnI0Z7HnXlZzgUzncUt/OpVwp6jH8Cg4l2qGvSN0q4w77LWhac4n+ut7ogZ
-XUIZiem41vBBzWuRjI9TiikFv83wQUPgFrlazWaScEl1Ht5N6HBs20EwHS86sBHe
-cMk6SdwUhhCi7rRsZQPcYq+Re6XKXMZPUhfoMqU09TMIpN0t01XGdkAQehgHoyvY
-N2hI4zuLIiFNYouXQKLwp+a7++tzI7XxfIo67CmdzCEb/Buxalhd+rSOQWF28Sos
-F4vRxeyhzE0CjWPcp9qDt4EIJci1TNwvQpOzT0HbX1PXJEJM44cRZxvLIYq9Almy
-g0rQ2LSYZP1gf9ngo/zh02ghenboKwYAMVOZDbOOjUMvtw5RS97voJ5ZOX+/fK95
-AQAEPZnJICFKmP/yNGtWpKuK3yfeYxDL0mAopbzXe2SGgk9eS6Dgsg0gVI4hyu33
-uQVVmWf17Owqb8CI9gAt
-=Aoeb
------END PGP SIGNATURE-----
-
---GRPZ8SYKNexpdSJ7--
