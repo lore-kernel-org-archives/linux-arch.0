@@ -1,19 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:60159 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:59910 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752042AbbFCLQD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:16:03 -0400
-Date: Wed, 3 Jun 2015 04:15:31 -0700
+	with ESMTP id S1753937AbbFCLKg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:10:36 -0400
+Date: Wed, 3 Jun 2015 04:09:58 -0700
 From: tip-bot for Ingo Molnar <tipbot@zytor.com>
-Message-ID: <tip-6a6787724dc21925f6d289c9a019ed6026db5183@git.kernel.org>
-Reply-To: torvalds@linux-foundation.org, mingo@kernel.org,
-	  tglx@linutronix.de, corbet@lwn.net, linux-arch@vger.kernel.org,
-	  peterz@infradead.org, hpa@zytor.com, akpm@linux-foundation.org,
+Message-ID: <tip-4e3cd4571904933300620f5464872c4e10d3bd4a@git.kernel.org>
+Reply-To: torvalds@linux-foundation.org, linux-arch@vger.kernel.org,
 	  josh@joshtriplett.org, linux-api@vger.kernel.org,
-	  linux-kernel@vger.kernel.org
+	  linux-kernel@vger.kernel.org, mingo@kernel.org,
+	  tglx@linutronix.de, akpm@linux-foundation.org, corbet@lwn.net,
+	  peterz@infradead.org, hpa@zytor.com
 Subject: [tip:core/documentation] Documentation/features/time:
-  Add feature description and arch support status file for '
- arch-tick-broadcast'
+  Add feature description and arch support status file for 'virt-cpuacct'
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain; charset=UTF-8
@@ -21,17 +20,17 @@ Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-tip-commits@vger.kernel.org
-Cc: akpm@linux-foundation.org, hpa@zytor.com, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, josh@joshtriplett.org, mingo@kernel.org, torvalds@linux-foundation.org, peterz@infradead.org, linux-arch@vger.kernel.org, corbet@lwn.net, tglx@linutronix.de
-Message-ID: <20150603111531.HycQteD-92sU-iNN3olMOj6m22jYibHFNxBkN4iIi1c@z>
+Cc: linux-arch@vger.kernel.org, josh@joshtriplett.org, torvalds@linux-foundation.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, corbet@lwn.net, tglx@linutronix.de, akpm@linux-foundation.org, peterz@infradead.org, hpa@zytor.com
+Message-ID: <20150603110958.RBw7E-LQZy9i6Hgm1lkoNjaYlZfuVMAkXW35z3aNRBo@z>
 
-Commit-ID:  6a6787724dc21925f6d289c9a019ed6026db5183
-Gitweb:     http://git.kernel.org/tip/6a6787724dc21925f6d289c9a019ed6026db5183
+Commit-ID:  4e3cd4571904933300620f5464872c4e10d3bd4a
+Gitweb:     http://git.kernel.org/tip/4e3cd4571904933300620f5464872c4e10d3bd4a
 Author:     Ingo Molnar <mingo@kernel.org>
-AuthorDate: Wed, 3 Jun 2015 12:37:26 +0200
+AuthorDate: Wed, 3 Jun 2015 12:37:05 +0200
 Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Wed, 3 Jun 2015 12:51:39 +0200
+CommitDate: Wed, 3 Jun 2015 12:51:34 +0200
 
-Documentation/features/time: Add feature description and arch support status file for 'arch-tick-broadcast'
+Documentation/features/time: Add feature description and arch support status file for 'virt-cpuacct'
 
 Cc: <linux-api@vger.kernel.org>
 Cc: <linux-arch@vger.kernel.org>
@@ -45,41 +44,51 @@ Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- .../arch-tick-broadcast}/arch-support.txt                      | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ .../{io/sg-chain => time/virt-cpuacct}/arch-support.txt    | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/Documentation/features/io/dma-contiguous/arch-support.txt b/Documentation/features/time/arch-tick-broadcast/arch-support.txt
-similarity index 80%
-copy from Documentation/features/io/dma-contiguous/arch-support.txt
-copy to Documentation/features/time/arch-tick-broadcast/arch-support.txt
-index a97e8e3..8acb439 100644
---- a/Documentation/features/io/dma-contiguous/arch-support.txt
-+++ b/Documentation/features/time/arch-tick-broadcast/arch-support.txt
-@@ -1,7 +1,7 @@
+diff --git a/Documentation/features/io/sg-chain/arch-support.txt b/Documentation/features/time/virt-cpuacct/arch-support.txt
+similarity index 76%
+copy from Documentation/features/io/sg-chain/arch-support.txt
+copy to Documentation/features/time/virt-cpuacct/arch-support.txt
+index b9b6755..cf3c3e3 100644
+--- a/Documentation/features/io/sg-chain/arch-support.txt
++++ b/Documentation/features/time/virt-cpuacct/arch-support.txt
+@@ -1,12 +1,12 @@
  #
--# Feature name:          dma-contiguous
--#         Kconfig:       HAVE_DMA_CONTIGUOUS
--#         description:   arch supports the DMA CMA (continuous memory allocator)
-+# Feature name:          arch-tick-broadcast
-+#         Kconfig:       ARCH_HAS_TICK_BROADCAST
-+#         description:   arch provides tick_broadcast()
+-# Feature name:          sg-chain
+-#         Kconfig:       ARCH_HAS_SG_CHAIN
+-#         description:   arch supports chained scatter-gather lists
++# Feature name:          virt-cpuacct
++#         Kconfig:       HAVE_VIRT_CPU_ACCOUNTING
++#         description:   arch supports precise virtual CPU time accounting
  #
      -----------------------
      |         arch |status|
-@@ -27,7 +27,7 @@
+     -----------------------
+-    |       alpha: | TODO |
++    |       alpha: |  ok  |
+     |         arc: | TODO |
+     |         arm: |  ok  |
+     |       arm64: |  ok  |
+@@ -22,17 +22,17 @@
+     |        m68k: | TODO |
+     |       metag: | TODO |
+     |  microblaze: | TODO |
+-    |        mips: | TODO |
++    |        mips: |  ok  |
+     |     mn10300: | TODO |
      |       nios2: | TODO |
      |    openrisc: | TODO |
-     |      parisc: | TODO |
--    |     powerpc: | TODO |
-+    |     powerpc: |  ok  |
-     |        s390: | TODO |
+-    |      parisc: | TODO |
++    |      parisc: |  ok  |
+     |     powerpc: |  ok  |
+     |        s390: |  ok  |
      |       score: | TODO |
      |          sh: | TODO |
-@@ -35,6 +35,6 @@
-     |        tile: | TODO |
+     |       sparc: |  ok  |
+-    |        tile: | TODO |
++    |        tile: |  ok  |
      |          um: | TODO |
      |   unicore32: | TODO |
--    |         x86: |  ok  |
-+    |         x86: | TODO |
-     |      xtensa: | TODO |
-     -----------------------
+     |         x86: |  ok  |
