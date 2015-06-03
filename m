@@ -1,19 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:60270 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:60229 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932197AbbFCLSQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:18:16 -0400
-Date: Wed, 3 Jun 2015 04:17:45 -0700
+	with ESMTP id S1752537AbbFCLRW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:17:22 -0400
+Date: Wed, 3 Jun 2015 04:16:48 -0700
 From: tip-bot for Ingo Molnar <tipbot@zytor.com>
-Message-ID: <tip-8fa369c0485c843f93045974e2a93cdc09828db1@git.kernel.org>
-Reply-To: torvalds@linux-foundation.org, peterz@infradead.org,
-	  corbet@lwn.net, hpa@zytor.com, josh@joshtriplett.org,
-	  tglx@linutronix.de, linux-api@vger.kernel.org,
-	  linux-arch@vger.kernel.org, mingo@kernel.org,
-	  akpm@linux-foundation.org, linux-kernel@vger.kernel.org
-Subject: [tip:core/documentation] Documentation/features/core:
-  Add feature description and arch support status file for '
- generic-idle-thread'
+Message-ID: <tip-138943ea3aa2b69960250c218637468bb157f49c@git.kernel.org>
+Reply-To: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org,
+	  corbet@lwn.net, hpa@zytor.com, linux-arch@vger.kernel.org,
+	  mingo@kernel.org, torvalds@linux-foundation.org,
+	  tglx@linutronix.de, peterz@infradead.org,
+	  akpm@linux-foundation.org, josh@joshtriplett.org
+Subject: [tip:core/documentation] Documentation/features/debug:
+  Add feature description and arch support status file for 'uprobes'
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain; charset=UTF-8
@@ -21,17 +20,17 @@ Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-tip-commits@vger.kernel.org
-Cc: tglx@linutronix.de, linux-api@vger.kernel.org, hpa@zytor.com, josh@joshtriplett.org, torvalds@linux-foundation.org, peterz@infradead.org, corbet@lwn.net, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20150603111745.SYSS8FDp5VHlVdHuBLz3C__8IY4KrEttcgDc7K3vV28@z>
+Cc: akpm@linux-foundation.org, josh@joshtriplett.org, corbet@lwn.net, linux-api@vger.kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, peterz@infradead.org, mingo@kernel.org, torvalds@linux-foundation.org
+Message-ID: <20150603111648.sJDyJrQvWgdp_CHxvxi6M_SK78tvWt_z-v99mZDzLTU@z>
 
-Commit-ID:  8fa369c0485c843f93045974e2a93cdc09828db1
-Gitweb:     http://git.kernel.org/tip/8fa369c0485c843f93045974e2a93cdc09828db1
+Commit-ID:  138943ea3aa2b69960250c218637468bb157f49c
+Gitweb:     http://git.kernel.org/tip/138943ea3aa2b69960250c218637468bb157f49c
 Author:     Ingo Molnar <mingo@kernel.org>
-AuthorDate: Wed, 3 Jun 2015 12:37:34 +0200
+AuthorDate: Wed, 3 Jun 2015 12:37:31 +0200
 Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Wed, 3 Jun 2015 12:51:41 +0200
+CommitDate: Wed, 3 Jun 2015 12:51:40 +0200
 
-Documentation/features/core: Add feature description and arch support status file for 'generic-idle-thread'
+Documentation/features/debug: Add feature description and arch support status file for 'uprobes'
 
 Cc: <linux-api@vger.kernel.org>
 Cc: <linux-arch@vger.kernel.org>
@@ -45,62 +44,42 @@ Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- .../generic-idle-thread}/arch-support.txt            | 20 ++++++++++----------
- 1 file changed, 10 insertions(+), 10 deletions(-)
+ .../features/{vm/ELF-ASLR => debug/uprobes}/arch-support.txt   | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/Documentation/features/time/virt-cpuacct/arch-support.txt b/Documentation/features/core/generic-idle-thread/arch-support.txt
-similarity index 68%
-copy from Documentation/features/time/virt-cpuacct/arch-support.txt
-copy to Documentation/features/core/generic-idle-thread/arch-support.txt
-index cf3c3e3..6d930fc 100644
---- a/Documentation/features/time/virt-cpuacct/arch-support.txt
-+++ b/Documentation/features/core/generic-idle-thread/arch-support.txt
-@@ -1,26 +1,26 @@
+diff --git a/Documentation/features/vm/ELF-ASLR/arch-support.txt b/Documentation/features/debug/uprobes/arch-support.txt
+similarity index 80%
+copy from Documentation/features/vm/ELF-ASLR/arch-support.txt
+copy to Documentation/features/debug/uprobes/arch-support.txt
+index ec4dd28..4efe36c 100644
+--- a/Documentation/features/vm/ELF-ASLR/arch-support.txt
++++ b/Documentation/features/debug/uprobes/arch-support.txt
+@@ -1,7 +1,7 @@
  #
--# Feature name:          virt-cpuacct
--#         Kconfig:       HAVE_VIRT_CPU_ACCOUNTING
--#         description:   arch supports precise virtual CPU time accounting
-+# Feature name:          generic-idle-thread
-+#         Kconfig:       GENERIC_SMP_IDLE_THREAD
-+#         description:   arch makes use of the generic SMP idle thread facility
+-# Feature name:          ELF-ASLR
+-#         Kconfig:       ARCH_HAS_ELF_RANDOMIZE
+-#         description:   arch randomizes the stack, heap and binary images of ELF binaries
++# Feature name:          uprobes
++#         Kconfig:       ARCH_SUPPORTS_UPROBES
++#         description:   arch supports live patched user probes
  #
      -----------------------
      |         arch |status|
-     -----------------------
-     |       alpha: |  ok  |
--    |         arc: | TODO |
-+    |         arc: |  ok  |
+@@ -9,7 +9,7 @@
+     |       alpha: | TODO |
+     |         arc: | TODO |
      |         arm: |  ok  |
-     |       arm64: |  ok  |
+-    |       arm64: |  ok  |
++    |       arm64: | TODO |
      |       avr32: | TODO |
--    |    blackfin: | TODO |
-+    |    blackfin: |  ok  |
+     |    blackfin: | TODO |
      |         c6x: | TODO |
-     |        cris: | TODO |
-     |         frv: | TODO |
-     |       h8300: | TODO |
--    |     hexagon: | TODO |
-+    |     hexagon: |  ok  |
-     |        ia64: |  ok  |
-     |        m32r: | TODO |
+@@ -22,7 +22,7 @@
      |        m68k: | TODO |
--    |       metag: | TODO |
-+    |       metag: |  ok  |
+     |       metag: | TODO |
      |  microblaze: | TODO |
-     |        mips: |  ok  |
+-    |        mips: |  ok  |
++    |        mips: | TODO |
      |     mn10300: | TODO |
-@@ -30,11 +30,11 @@
-     |     powerpc: |  ok  |
-     |        s390: |  ok  |
-     |       score: | TODO |
--    |          sh: | TODO |
-+    |          sh: |  ok  |
-     |       sparc: |  ok  |
--    |        tile: |  ok  |
-+    |        tile: | TODO |
-     |          um: | TODO |
-     |   unicore32: | TODO |
-     |         x86: |  ok  |
--    |      xtensa: | TODO |
-+    |      xtensa: |  ok  |
-     -----------------------
+     |       nios2: | TODO |
+     |    openrisc: | TODO |
