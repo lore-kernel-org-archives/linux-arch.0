@@ -1,18 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:59910 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:60247 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753937AbbFCLKg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:10:36 -0400
-Date: Wed, 3 Jun 2015 04:09:58 -0700
+	with ESMTP id S932160AbbFCLRh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:17:37 -0400
+Date: Wed, 3 Jun 2015 04:17:06 -0700
 From: tip-bot for Ingo Molnar <tipbot@zytor.com>
-Message-ID: <tip-4e3cd4571904933300620f5464872c4e10d3bd4a@git.kernel.org>
-Reply-To: torvalds@linux-foundation.org, linux-arch@vger.kernel.org,
-	  josh@joshtriplett.org, linux-api@vger.kernel.org,
-	  linux-kernel@vger.kernel.org, mingo@kernel.org,
-	  tglx@linutronix.de, akpm@linux-foundation.org, corbet@lwn.net,
-	  peterz@infradead.org, hpa@zytor.com
-Subject: [tip:core/documentation] Documentation/features/time:
-  Add feature description and arch support status file for 'virt-cpuacct'
+Message-ID: <tip-a382c9694c2a8fb0d9525fa3289c1c7eeee73ae8@git.kernel.org>
+Reply-To: peterz@infradead.org, corbet@lwn.net, josh@joshtriplett.org,
+	  hpa@zytor.com, mingo@kernel.org, tglx@linutronix.de,
+	  torvalds@linux-foundation.org, linux-api@vger.kernel.org,
+	  linux-arch@vger.kernel.org, akpm@linux-foundation.org,
+	  linux-kernel@vger.kernel.org
+Subject: [tip:core/documentation] Documentation/features/debug:
+  Add feature description and arch support status file for 'kretprobes'
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain; charset=UTF-8
@@ -20,17 +20,17 @@ Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-tip-commits@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, josh@joshtriplett.org, torvalds@linux-foundation.org, mingo@kernel.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, corbet@lwn.net, tglx@linutronix.de, akpm@linux-foundation.org, peterz@infradead.org, hpa@zytor.com
-Message-ID: <20150603110958.RBw7E-LQZy9i6Hgm1lkoNjaYlZfuVMAkXW35z3aNRBo@z>
+Cc: torvalds@linux-foundation.org, tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com, josh@joshtriplett.org, corbet@lwn.net, peterz@infradead.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20150603111706.2G4uLk96QK3_RZEXgSvD0_U5s911Y6R-6xt-c-Z2GEE@z>
 
-Commit-ID:  4e3cd4571904933300620f5464872c4e10d3bd4a
-Gitweb:     http://git.kernel.org/tip/4e3cd4571904933300620f5464872c4e10d3bd4a
+Commit-ID:  a382c9694c2a8fb0d9525fa3289c1c7eeee73ae8
+Gitweb:     http://git.kernel.org/tip/a382c9694c2a8fb0d9525fa3289c1c7eeee73ae8
 Author:     Ingo Molnar <mingo@kernel.org>
-AuthorDate: Wed, 3 Jun 2015 12:37:05 +0200
+AuthorDate: Wed, 3 Jun 2015 12:37:32 +0200
 Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Wed, 3 Jun 2015 12:51:34 +0200
+CommitDate: Wed, 3 Jun 2015 12:51:40 +0200
 
-Documentation/features/time: Add feature description and arch support status file for 'virt-cpuacct'
+Documentation/features/debug: Add feature description and arch support status file for 'kretprobes'
 
 Cc: <linux-api@vger.kernel.org>
 Cc: <linux-arch@vger.kernel.org>
@@ -44,51 +44,33 @@ Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- .../{io/sg-chain => time/virt-cpuacct}/arch-support.txt    | 14 +++++++-------
- 1 file changed, 7 insertions(+), 7 deletions(-)
+ .../features/debug/{kprobes => kretprobes}/arch-support.txt       | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/Documentation/features/io/sg-chain/arch-support.txt b/Documentation/features/time/virt-cpuacct/arch-support.txt
-similarity index 76%
-copy from Documentation/features/io/sg-chain/arch-support.txt
-copy to Documentation/features/time/virt-cpuacct/arch-support.txt
-index b9b6755..cf3c3e3 100644
---- a/Documentation/features/io/sg-chain/arch-support.txt
-+++ b/Documentation/features/time/virt-cpuacct/arch-support.txt
-@@ -1,12 +1,12 @@
+diff --git a/Documentation/features/debug/kprobes/arch-support.txt b/Documentation/features/debug/kretprobes/arch-support.txt
+similarity index 84%
+copy from Documentation/features/debug/kprobes/arch-support.txt
+copy to Documentation/features/debug/kretprobes/arch-support.txt
+index a44bfff..d87c1ce 100644
+--- a/Documentation/features/debug/kprobes/arch-support.txt
++++ b/Documentation/features/debug/kretprobes/arch-support.txt
+@@ -1,7 +1,7 @@
  #
--# Feature name:          sg-chain
--#         Kconfig:       ARCH_HAS_SG_CHAIN
--#         description:   arch supports chained scatter-gather lists
-+# Feature name:          virt-cpuacct
-+#         Kconfig:       HAVE_VIRT_CPU_ACCOUNTING
-+#         description:   arch supports precise virtual CPU time accounting
+-# Feature name:          kprobes
+-#         Kconfig:       HAVE_KPROBES
+-#         description:   arch supports live patched kernel probe
++# Feature name:          kretprobes
++#         Kconfig:       HAVE_KRETPROBES
++#         description:   arch supports kernel function-return probes
  #
      -----------------------
      |         arch |status|
-     -----------------------
--    |       alpha: | TODO |
-+    |       alpha: |  ok  |
-     |         arc: | TODO |
+@@ -10,7 +10,7 @@
+     |         arc: |  ok  |
      |         arm: |  ok  |
-     |       arm64: |  ok  |
-@@ -22,17 +22,17 @@
-     |        m68k: | TODO |
-     |       metag: | TODO |
-     |  microblaze: | TODO |
--    |        mips: | TODO |
-+    |        mips: |  ok  |
-     |     mn10300: | TODO |
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
--    |      parisc: | TODO |
-+    |      parisc: |  ok  |
-     |     powerpc: |  ok  |
-     |        s390: |  ok  |
-     |       score: | TODO |
-     |          sh: | TODO |
-     |       sparc: |  ok  |
--    |        tile: | TODO |
-+    |        tile: |  ok  |
-     |          um: | TODO |
-     |   unicore32: | TODO |
-     |         x86: |  ok  |
+     |       arm64: | TODO |
+-    |       avr32: |  ok  |
++    |       avr32: | TODO |
+     |    blackfin: | TODO |
+     |         c6x: | TODO |
+     |        cris: | TODO |
