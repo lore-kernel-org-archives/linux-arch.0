@@ -1,18 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:60229 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:60316 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752537AbbFCLRW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:17:22 -0400
-Date: Wed, 3 Jun 2015 04:16:48 -0700
+	with ESMTP id S1754388AbbFCLTQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:19:16 -0400
+Date: Wed, 3 Jun 2015 04:18:42 -0700
 From: tip-bot for Ingo Molnar <tipbot@zytor.com>
-Message-ID: <tip-138943ea3aa2b69960250c218637468bb157f49c@git.kernel.org>
-Reply-To: linux-kernel@vger.kernel.org, linux-api@vger.kernel.org,
-	  corbet@lwn.net, hpa@zytor.com, linux-arch@vger.kernel.org,
-	  mingo@kernel.org, torvalds@linux-foundation.org,
-	  tglx@linutronix.de, peterz@infradead.org,
-	  akpm@linux-foundation.org, josh@joshtriplett.org
-Subject: [tip:core/documentation] Documentation/features/debug:
-  Add feature description and arch support status file for 'uprobes'
+Message-ID: <tip-e30119a9dab9d407a6cd1143fb2ba6620719abe2@git.kernel.org>
+Reply-To: tglx@linutronix.de, akpm@linux-foundation.org, corbet@lwn.net,
+	  josh@joshtriplett.org, mingo@kernel.org,
+	  linux-kernel@vger.kernel.org, torvalds@linux-foundation.org,
+	  peterz@infradead.org, linux-arch@vger.kernel.org,
+	  linux-api@vger.kernel.org, hpa@zytor.com
+Subject: [tip:core/documentation] Documentation/features/perf:
+  Add feature description and arch support status file for 'perf-regs'
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain; charset=UTF-8
@@ -20,17 +20,17 @@ Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-tip-commits@vger.kernel.org
-Cc: akpm@linux-foundation.org, josh@joshtriplett.org, corbet@lwn.net, linux-api@vger.kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, peterz@infradead.org, mingo@kernel.org, torvalds@linux-foundation.org
-Message-ID: <20150603111648.sJDyJrQvWgdp_CHxvxi6M_SK78tvWt_z-v99mZDzLTU@z>
+Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, hpa@zytor.com, peterz@infradead.org, mingo@kernel.org, josh@joshtriplett.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, tglx@linutronix.de, akpm@linux-foundation.org, corbet@lwn.net
+Message-ID: <20150603111842.BdaFhJ9d7KjJaORmCl8SBg5jBqkUcQcIPdRMTTMRBLI@z>
 
-Commit-ID:  138943ea3aa2b69960250c218637468bb157f49c
-Gitweb:     http://git.kernel.org/tip/138943ea3aa2b69960250c218637468bb157f49c
+Commit-ID:  e30119a9dab9d407a6cd1143fb2ba6620719abe2
+Gitweb:     http://git.kernel.org/tip/e30119a9dab9d407a6cd1143fb2ba6620719abe2
 Author:     Ingo Molnar <mingo@kernel.org>
-AuthorDate: Wed, 3 Jun 2015 12:37:31 +0200
+AuthorDate: Wed, 3 Jun 2015 12:37:37 +0200
 Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Wed, 3 Jun 2015 12:51:40 +0200
+CommitDate: Wed, 3 Jun 2015 12:51:42 +0200
 
-Documentation/features/debug: Add feature description and arch support status file for 'uprobes'
+Documentation/features/perf: Add feature description and arch support status file for 'perf-regs'
 
 Cc: <linux-api@vger.kernel.org>
 Cc: <linux-arch@vger.kernel.org>
@@ -44,36 +44,27 @@ Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- .../features/{vm/ELF-ASLR => debug/uprobes}/arch-support.txt   | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ .../{io/dma-contiguous => perf/perf-regs}/arch-support.txt        | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/Documentation/features/vm/ELF-ASLR/arch-support.txt b/Documentation/features/debug/uprobes/arch-support.txt
-similarity index 80%
-copy from Documentation/features/vm/ELF-ASLR/arch-support.txt
-copy to Documentation/features/debug/uprobes/arch-support.txt
-index ec4dd28..4efe36c 100644
---- a/Documentation/features/vm/ELF-ASLR/arch-support.txt
-+++ b/Documentation/features/debug/uprobes/arch-support.txt
+diff --git a/Documentation/features/io/dma-contiguous/arch-support.txt b/Documentation/features/perf/perf-regs/arch-support.txt
+similarity index 83%
+copy from Documentation/features/io/dma-contiguous/arch-support.txt
+copy to Documentation/features/perf/perf-regs/arch-support.txt
+index a97e8e3..e2b4a78 100644
+--- a/Documentation/features/io/dma-contiguous/arch-support.txt
++++ b/Documentation/features/perf/perf-regs/arch-support.txt
 @@ -1,7 +1,7 @@
  #
--# Feature name:          ELF-ASLR
--#         Kconfig:       ARCH_HAS_ELF_RANDOMIZE
--#         description:   arch randomizes the stack, heap and binary images of ELF binaries
-+# Feature name:          uprobes
-+#         Kconfig:       ARCH_SUPPORTS_UPROBES
-+#         description:   arch supports live patched user probes
+-# Feature name:          dma-contiguous
+-#         Kconfig:       HAVE_DMA_CONTIGUOUS
+-#         description:   arch supports the DMA CMA (continuous memory allocator)
++# Feature name:          perf-regs
++#         Kconfig:       HAVE_PERF_REGS
++#         description:   arch supports perf events register access
  #
      -----------------------
      |         arch |status|
-@@ -9,7 +9,7 @@
-     |       alpha: | TODO |
-     |         arc: | TODO |
-     |         arm: |  ok  |
--    |       arm64: |  ok  |
-+    |       arm64: | TODO |
-     |       avr32: | TODO |
-     |    blackfin: | TODO |
-     |         c6x: | TODO |
 @@ -22,7 +22,7 @@
      |        m68k: | TODO |
      |       metag: | TODO |
