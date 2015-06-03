@@ -1,18 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:60028 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:60183 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751169AbbFCLNI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:13:08 -0400
-Date: Wed, 3 Jun 2015 04:12:33 -0700
+	with ESMTP id S1752537AbbFCLQo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:16:44 -0400
+Date: Wed, 3 Jun 2015 04:16:10 -0700
 From: tip-bot for Ingo Molnar <tipbot@zytor.com>
-Message-ID: <tip-c0512abd5a3fef006975e8e9bb15b1eb99d12d79@git.kernel.org>
-Reply-To: linux-kernel@vger.kernel.org, mingo@kernel.org,
-	  akpm@linux-foundation.org, linux-api@vger.kernel.org,
-	  tglx@linutronix.de, peterz@infradead.org,
-	  torvalds@linux-foundation.org, linux-arch@vger.kernel.org,
-	  hpa@zytor.com, corbet@lwn.net, josh@joshtriplett.org
-Subject: [tip:core/documentation] Documentation/features/vm:
-  Add feature description and arch support status file for 'ioremap_prot'
+Message-ID: <tip-08716c0da7d6f3f7888dfc2980aec6ec226ddd2d@git.kernel.org>
+Reply-To: hpa@zytor.com, linux-kernel@vger.kernel.org,
+	  linux-arch@vger.kernel.org, akpm@linux-foundation.org,
+	  torvalds@linux-foundation.org, mingo@kernel.org,
+	  peterz@infradead.org, corbet@lwn.net, tglx@linutronix.de,
+	  josh@joshtriplett.org, linux-api@vger.kernel.org
+Subject: [tip:core/documentation] Documentation/features/debug:
+  Add feature description and arch support status file for 'optprobes'
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain; charset=UTF-8
@@ -20,17 +20,17 @@ Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-tip-commits@vger.kernel.org
-Cc: josh@joshtriplett.org, linux-arch@vger.kernel.org, corbet@lwn.net, hpa@zytor.com, mingo@kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, tglx@linutronix.de, peterz@infradead.org, linux-api@vger.kernel.org
-Message-ID: <20150603111233.d25JasJUYio1dtbfJWNVnlq2MaOUhR7h67P025D_T1c@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, hpa@zytor.com, peterz@infradead.org, mingo@kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, tglx@linutronix.de, corbet@lwn.net, linux-api@vger.kernel.org, josh@joshtriplett.org
+Message-ID: <20150603111610.U40p6_9q0IMSDoZd4j0YjXTXHWycQMQ6sn4H1DzYiiY@z>
 
-Commit-ID:  c0512abd5a3fef006975e8e9bb15b1eb99d12d79
-Gitweb:     http://git.kernel.org/tip/c0512abd5a3fef006975e8e9bb15b1eb99d12d79
+Commit-ID:  08716c0da7d6f3f7888dfc2980aec6ec226ddd2d
+Gitweb:     http://git.kernel.org/tip/08716c0da7d6f3f7888dfc2980aec6ec226ddd2d
 Author:     Ingo Molnar <mingo@kernel.org>
-AuthorDate: Wed, 3 Jun 2015 12:37:16 +0200
+AuthorDate: Wed, 3 Jun 2015 12:37:28 +0200
 Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Wed, 3 Jun 2015 12:51:37 +0200
+CommitDate: Wed, 3 Jun 2015 12:51:40 +0200
 
-Documentation/features/vm: Add feature description and arch support status file for 'ioremap_prot'
+Documentation/features/debug: Add feature description and arch support status file for 'optprobes'
 
 Cc: <linux-api@vger.kernel.org>
 Cc: <linux-arch@vger.kernel.org>
@@ -44,44 +44,38 @@ Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- .../{debug/KASAN => vm/ioremap_prot}/arch-support.txt      | 14 +++++++-------
- 1 file changed, 7 insertions(+), 7 deletions(-)
+ .../features/debug/{KASAN => optprobes}/arch-support.txt       | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/Documentation/features/debug/KASAN/arch-support.txt b/Documentation/features/vm/ioremap_prot/arch-support.txt
-similarity index 77%
+diff --git a/Documentation/features/debug/KASAN/arch-support.txt b/Documentation/features/debug/optprobes/arch-support.txt
+similarity index 82%
 copy from Documentation/features/debug/KASAN/arch-support.txt
-copy to Documentation/features/vm/ioremap_prot/arch-support.txt
-index 14531da..90c5374 100644
+copy to Documentation/features/debug/optprobes/arch-support.txt
+index 14531da..b8999d8 100644
 --- a/Documentation/features/debug/KASAN/arch-support.txt
-+++ b/Documentation/features/vm/ioremap_prot/arch-support.txt
-@@ -1,13 +1,13 @@
++++ b/Documentation/features/debug/optprobes/arch-support.txt
+@@ -1,14 +1,14 @@
  #
 -# Feature name:          KASAN
 -#         Kconfig:       HAVE_ARCH_KASAN
 -#         description:   arch supports the KASAN runtime memory checker
-+# Feature name:          ioremap_prot
-+#         Kconfig:       HAVE_IOREMAP_PROT
-+#         description:   arch has ioremap_prot()
++# Feature name:          optprobes
++#         Kconfig:       HAVE_OPTPROBES
++#         description:   arch supports live patched optprobes
  #
      -----------------------
      |         arch |status|
      -----------------------
      |       alpha: | TODO |
--    |         arc: | TODO |
-+    |         arc: |  ok  |
-     |         arm: | TODO |
+     |         arc: | TODO |
+-    |         arm: | TODO |
++    |         arm: |  ok  |
      |       arm64: | TODO |
      |       avr32: | TODO |
-@@ -27,12 +27,12 @@
-     |       nios2: | TODO |
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
--    |     powerpc: | TODO |
-+    |     powerpc: |  ok  |
-     |        s390: | TODO |
+     |    blackfin: | TODO |
+@@ -32,7 +32,7 @@
      |       score: | TODO |
--    |          sh: | TODO |
-+    |          sh: |  ok  |
+     |          sh: | TODO |
      |       sparc: | TODO |
 -    |        tile: | TODO |
 +    |        tile: |  ok  |
