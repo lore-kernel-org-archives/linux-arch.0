@@ -1,17 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:59767 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:59783 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752537AbbFCLHo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:07:44 -0400
-Date: Wed, 3 Jun 2015 04:07:03 -0700
+	with ESMTP id S1751656AbbFCLIB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:08:01 -0400
+Date: Wed, 3 Jun 2015 04:07:22 -0700
 From: tip-bot for Ingo Molnar <tipbot@zytor.com>
-Message-ID: <tip-403e27dc1f90ce9ac4833c6d56cb08023b74e804@git.kernel.org>
-Reply-To: tglx@linutronix.de, mingo@kernel.org, linux-api@vger.kernel.org,
-	  linux-arch@vger.kernel.org, hpa@zytor.com, josh@joshtriplett.org,
-	  akpm@linux-foundation.org, corbet@lwn.net, peterz@infradead.org,
-	  linux-kernel@vger.kernel.org, torvalds@linux-foundation.org
+Message-ID: <tip-c197645c597f6615f7476881789ba97774dac4f5@git.kernel.org>
+Reply-To: corbet@lwn.net, hpa@zytor.com, josh@joshtriplett.org,
+	  akpm@linux-foundation.org, torvalds@linux-foundation.org,
+	  peterz@infradead.org, tglx@linutronix.de,
+	  linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
+	  mingo@kernel.org, linux-api@vger.kernel.org
 Subject: [tip:core/documentation] Documentation/features/vm:
-  Add feature description and arch support status file for 'numa-memblock'
+  Add feature description and arch support status file for 'PG_uncached'
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain; charset=UTF-8
@@ -19,17 +20,17 @@ Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-tip-commits@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, akpm@linux-foundation.org, corbet@lwn.net, peterz@infradead.org, hpa@zytor.com, josh@joshtriplett.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, linux-api@vger.kernel.org
-Message-ID: <20150603110703.c7UbHD_K-jeAV5lSC2coc_Vf_A5GHIfx9NRKp4A-7N0@z>
+Cc: josh@joshtriplett.org, hpa@zytor.com, akpm@linux-foundation.org, corbet@lwn.net, tglx@linutronix.de, peterz@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org
+Message-ID: <20150603110722.c49lFj418xCrr3hSWVY0-EboZadwGu7MIh0s2V1Ura4@z>
 
-Commit-ID:  403e27dc1f90ce9ac4833c6d56cb08023b74e804
-Gitweb:     http://git.kernel.org/tip/403e27dc1f90ce9ac4833c6d56cb08023b74e804
+Commit-ID:  c197645c597f6615f7476881789ba97774dac4f5
+Gitweb:     http://git.kernel.org/tip/c197645c597f6615f7476881789ba97774dac4f5
 Author:     Ingo Molnar <mingo@kernel.org>
-AuthorDate: Wed, 3 Jun 2015 12:36:55 +0200
+AuthorDate: Wed, 3 Jun 2015 12:36:56 +0200
 Committer:  Ingo Molnar <mingo@kernel.org>
 CommitDate: Wed, 3 Jun 2015 12:51:32 +0200
 
-Documentation/features/vm: Add feature description and arch support status file for 'numa-memblock'
+Documentation/features/vm: Add feature description and arch support status file for 'PG_uncached'
 
 Cc: <linux-api@vger.kernel.org>
 Cc: <linux-arch@vger.kernel.org>
@@ -43,52 +44,52 @@ Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- .../features/vm/numa-memblock/arch-support.txt     | 40 ++++++++++++++++++++++
+ .../features/vm/PG_uncached/arch-support.txt       | 40 ++++++++++++++++++++++
  1 file changed, 40 insertions(+)
 
-diff --git a/Documentation/features/vm/numa-memblock/arch-support.txt b/Documentation/features/vm/numa-memblock/arch-support.txt
+diff --git a/Documentation/features/vm/PG_uncached/arch-support.txt b/Documentation/features/vm/PG_uncached/arch-support.txt
 new file mode 100644
-index 0000000..e7c252a
+index 0000000..9919742
 --- /dev/null
-+++ b/Documentation/features/vm/numa-memblock/arch-support.txt
++++ b/Documentation/features/vm/PG_uncached/arch-support.txt
 @@ -0,0 +1,40 @@
 +#
-+# Feature name:          numa-memblock
-+#         Kconfig:       HAVE_MEMBLOCK_NODE_MAP
-+#         description:   arch supports NUMA aware memblocks
++# Feature name:          PG_uncached
++#         Kconfig:       ARCH_USES_PG_UNCACHED
++#         description:   arch supports the PG_uncached page flag
 +#
 +    -----------------------
 +    |         arch |status|
 +    -----------------------
 +    |       alpha: | TODO |
-+    |         arc: |  ..  |
-+    |         arm: |  ..  |
-+    |       arm64: |  ..  |
-+    |       avr32: |  ..  |
-+    |    blackfin: |  ..  |
-+    |         c6x: |  ..  |
-+    |        cris: |  ..  |
-+    |         frv: |  ..  |
-+    |       h8300: |  ..  |
-+    |     hexagon: |  ..  |
++    |         arc: | TODO |
++    |         arm: | TODO |
++    |       arm64: | TODO |
++    |       avr32: | TODO |
++    |    blackfin: | TODO |
++    |         c6x: | TODO |
++    |        cris: | TODO |
++    |         frv: | TODO |
++    |       h8300: | TODO |
++    |     hexagon: | TODO |
 +    |        ia64: |  ok  |
 +    |        m32r: | TODO |
-+    |        m68k: |  ..  |
-+    |       metag: |  ok  |
-+    |  microblaze: |  ok  |
-+    |        mips: |  ok  |
++    |        m68k: | TODO |
++    |       metag: | TODO |
++    |  microblaze: | TODO |
++    |        mips: | TODO |
 +    |     mn10300: | TODO |
-+    |       nios2: |  ..  |
-+    |    openrisc: |  ..  |
-+    |      parisc: |  ..  |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: |  ok  |
-+    |          sh: |  ok  |
-+    |       sparc: |  ok  |
++    |       nios2: | TODO |
++    |    openrisc: | TODO |
++    |      parisc: | TODO |
++    |     powerpc: | TODO |
++    |        s390: | TODO |
++    |       score: | TODO |
++    |          sh: | TODO |
++    |       sparc: | TODO |
 +    |        tile: | TODO |
-+    |          um: |  ..  |
-+    |   unicore32: |  ..  |
++    |          um: | TODO |
++    |   unicore32: | TODO |
 +    |         x86: |  ok  |
-+    |      xtensa: |  ..  |
++    |      xtensa: | TODO |
 +    -----------------------
