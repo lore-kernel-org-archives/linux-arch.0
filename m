@@ -1,18 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:60133 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:60028 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753623AbbFCLPX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:15:23 -0400
-Date: Wed, 3 Jun 2015 04:14:48 -0700
+	with ESMTP id S1751169AbbFCLNI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:13:08 -0400
+Date: Wed, 3 Jun 2015 04:12:33 -0700
 From: tip-bot for Ingo Molnar <tipbot@zytor.com>
-Message-ID: <tip-28dfffd6d14f9cb2277e9bead011e8d510e2c4fa@git.kernel.org>
-Reply-To: josh@joshtriplett.org, linux-api@vger.kernel.org,
-	  akpm@linux-foundation.org, torvalds@linux-foundation.org,
-	  corbet@lwn.net, hpa@zytor.com, mingo@kernel.org,
-	  tglx@linutronix.de, linux-kernel@vger.kernel.org,
-	  linux-arch@vger.kernel.org, peterz@infradead.org
-Subject: [tip:core/documentation] Documentation/features/time:
-  Add feature description and arch support status file for 'clockevents'
+Message-ID: <tip-c0512abd5a3fef006975e8e9bb15b1eb99d12d79@git.kernel.org>
+Reply-To: linux-kernel@vger.kernel.org, mingo@kernel.org,
+	  akpm@linux-foundation.org, linux-api@vger.kernel.org,
+	  tglx@linutronix.de, peterz@infradead.org,
+	  torvalds@linux-foundation.org, linux-arch@vger.kernel.org,
+	  hpa@zytor.com, corbet@lwn.net, josh@joshtriplett.org
+Subject: [tip:core/documentation] Documentation/features/vm:
+  Add feature description and arch support status file for 'ioremap_prot'
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain; charset=UTF-8
@@ -20,17 +20,17 @@ Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-tip-commits@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, tglx@linutronix.de, peterz@infradead.org, linux-arch@vger.kernel.org, hpa@zytor.com, mingo@kernel.org, corbet@lwn.net, akpm@linux-foundation.org, torvalds@linux-foundation.org, linux-api@vger.kernel.org, josh@joshtriplett.org
-Message-ID: <20150603111448.4rK3O_bUssTfWBrMKVXpannC33nsfbo6olnyHh0aynY@z>
+Cc: josh@joshtriplett.org, linux-arch@vger.kernel.org, corbet@lwn.net, hpa@zytor.com, mingo@kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, tglx@linutronix.de, peterz@infradead.org, linux-api@vger.kernel.org
+Message-ID: <20150603111233.d25JasJUYio1dtbfJWNVnlq2MaOUhR7h67P025D_T1c@z>
 
-Commit-ID:  28dfffd6d14f9cb2277e9bead011e8d510e2c4fa
-Gitweb:     http://git.kernel.org/tip/28dfffd6d14f9cb2277e9bead011e8d510e2c4fa
+Commit-ID:  c0512abd5a3fef006975e8e9bb15b1eb99d12d79
+Gitweb:     http://git.kernel.org/tip/c0512abd5a3fef006975e8e9bb15b1eb99d12d79
 Author:     Ingo Molnar <mingo@kernel.org>
-AuthorDate: Wed, 3 Jun 2015 12:37:24 +0200
+AuthorDate: Wed, 3 Jun 2015 12:37:16 +0200
 Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Wed, 3 Jun 2015 12:51:39 +0200
+CommitDate: Wed, 3 Jun 2015 12:51:37 +0200
 
-Documentation/features/time: Add feature description and arch support status file for 'clockevents'
+Documentation/features/vm: Add feature description and arch support status file for 'ioremap_prot'
 
 Cc: <linux-api@vger.kernel.org>
 Cc: <linux-arch@vger.kernel.org>
@@ -44,56 +44,47 @@ Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- .../arch-support.txt                                 | 20 ++++++++++----------
- 1 file changed, 10 insertions(+), 10 deletions(-)
+ .../{debug/KASAN => vm/ioremap_prot}/arch-support.txt      | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/Documentation/features/time/modern-timekeeping/arch-support.txt b/Documentation/features/time/clockevents/arch-support.txt
-similarity index 68%
-copy from Documentation/features/time/modern-timekeeping/arch-support.txt
-copy to Documentation/features/time/clockevents/arch-support.txt
-index 17f68a0..ff670b2 100644
---- a/Documentation/features/time/modern-timekeeping/arch-support.txt
-+++ b/Documentation/features/time/clockevents/arch-support.txt
-@@ -1,32 +1,32 @@
+diff --git a/Documentation/features/debug/KASAN/arch-support.txt b/Documentation/features/vm/ioremap_prot/arch-support.txt
+similarity index 77%
+copy from Documentation/features/debug/KASAN/arch-support.txt
+copy to Documentation/features/vm/ioremap_prot/arch-support.txt
+index 14531da..90c5374 100644
+--- a/Documentation/features/debug/KASAN/arch-support.txt
++++ b/Documentation/features/vm/ioremap_prot/arch-support.txt
+@@ -1,13 +1,13 @@
  #
--# Feature name:          modern-timekeeping
--#         Kconfig:       !ARCH_USES_GETTIMEOFFSET
--#         description:   arch does not use arch_gettimeoffset() anymore
-+# Feature name:          clockevents
-+#         Kconfig:       GENERIC_CLOCKEVENTS
-+#         description:   arch support generic clock events
+-# Feature name:          KASAN
+-#         Kconfig:       HAVE_ARCH_KASAN
+-#         description:   arch supports the KASAN runtime memory checker
++# Feature name:          ioremap_prot
++#         Kconfig:       HAVE_IOREMAP_PROT
++#         description:   arch has ioremap_prot()
  #
      -----------------------
      |         arch |status|
      -----------------------
-     |       alpha: |  ok  |
-     |         arc: |  ok  |
--    |         arm: | TODO |
-+    |         arm: |  ok  |
-     |       arm64: |  ok  |
-     |       avr32: |  ok  |
--    |    blackfin: | TODO |
-+    |    blackfin: |  ok  |
-     |         c6x: |  ok  |
--    |        cris: | TODO |
--    |         frv: |  ok  |
-+    |        cris: |  ok  |
-+    |         frv: | TODO |
-     |       h8300: |  ok  |
-     |     hexagon: |  ok  |
--    |        ia64: |  ok  |
-+    |        ia64: | TODO |
-     |        m32r: | TODO |
--    |        m68k: | TODO |
-+    |        m68k: |  ok  |
-     |       metag: |  ok  |
-     |  microblaze: |  ok  |
-     |        mips: |  ok  |
-     |     mn10300: |  ok  |
-     |       nios2: |  ok  |
-     |    openrisc: |  ok  |
--    |      parisc: |  ok  |
-+    |      parisc: | TODO |
-     |     powerpc: |  ok  |
-     |        s390: |  ok  |
-     |       score: |  ok  |
+     |       alpha: | TODO |
+-    |         arc: | TODO |
++    |         arc: |  ok  |
+     |         arm: | TODO |
+     |       arm64: | TODO |
+     |       avr32: | TODO |
+@@ -27,12 +27,12 @@
+     |       nios2: | TODO |
+     |    openrisc: | TODO |
+     |      parisc: | TODO |
+-    |     powerpc: | TODO |
++    |     powerpc: |  ok  |
+     |        s390: | TODO |
+     |       score: | TODO |
+-    |          sh: | TODO |
++    |          sh: |  ok  |
+     |       sparc: | TODO |
+-    |        tile: | TODO |
++    |        tile: |  ok  |
+     |          um: | TODO |
+     |   unicore32: | TODO |
+     |         x86: |  ok  |
