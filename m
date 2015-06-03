@@ -1,18 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:60247 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:59900 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932160AbbFCLRh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:17:37 -0400
-Date: Wed, 3 Jun 2015 04:17:06 -0700
+	with ESMTP id S1754082AbbFCLKQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:10:16 -0400
+Date: Wed, 3 Jun 2015 04:09:40 -0700
 From: tip-bot for Ingo Molnar <tipbot@zytor.com>
-Message-ID: <tip-a382c9694c2a8fb0d9525fa3289c1c7eeee73ae8@git.kernel.org>
-Reply-To: peterz@infradead.org, corbet@lwn.net, josh@joshtriplett.org,
-	  hpa@zytor.com, mingo@kernel.org, tglx@linutronix.de,
-	  torvalds@linux-foundation.org, linux-api@vger.kernel.org,
-	  linux-arch@vger.kernel.org, akpm@linux-foundation.org,
-	  linux-kernel@vger.kernel.org
-Subject: [tip:core/documentation] Documentation/features/debug:
-  Add feature description and arch support status file for 'kretprobes'
+Message-ID: <tip-44121b9ed0384088a6899cfb2ca4ede1428d412f@git.kernel.org>
+Reply-To: peterz@infradead.org, mingo@kernel.org,
+	  linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
+	  corbet@lwn.net, linux-api@vger.kernel.org,
+	  torvalds@linux-foundation.org, josh@joshtriplett.org,
+	  tglx@linutronix.de, hpa@zytor.com, akpm@linux-foundation.org
+Subject: [tip:core/documentation] Documentation/features/time:
+  Add feature description and arch support status file for '
+ modern-timekeeping'
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain; charset=UTF-8
@@ -20,17 +21,17 @@ Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-tip-commits@vger.kernel.org
-Cc: torvalds@linux-foundation.org, tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com, josh@joshtriplett.org, corbet@lwn.net, peterz@infradead.org, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150603111706.2G4uLk96QK3_RZEXgSvD0_U5s911Y6R-6xt-c-Z2GEE@z>
+Cc: josh@joshtriplett.org, tglx@linutronix.de, akpm@linux-foundation.org, hpa@zytor.com, mingo@kernel.org, peterz@infradead.org, linux-arch@vger.kernel.org, corbet@lwn.net, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, torvalds@linux-foundation.org
+Message-ID: <20150603110940.B8fziXdr0enAr1zQcSotXZIuTwU_S1xotRD7jf7IvPA@z>
 
-Commit-ID:  a382c9694c2a8fb0d9525fa3289c1c7eeee73ae8
-Gitweb:     http://git.kernel.org/tip/a382c9694c2a8fb0d9525fa3289c1c7eeee73ae8
+Commit-ID:  44121b9ed0384088a6899cfb2ca4ede1428d412f
+Gitweb:     http://git.kernel.org/tip/44121b9ed0384088a6899cfb2ca4ede1428d412f
 Author:     Ingo Molnar <mingo@kernel.org>
-AuthorDate: Wed, 3 Jun 2015 12:37:32 +0200
+AuthorDate: Wed, 3 Jun 2015 12:37:04 +0200
 Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Wed, 3 Jun 2015 12:51:40 +0200
+CommitDate: Wed, 3 Jun 2015 12:51:34 +0200
 
-Documentation/features/debug: Add feature description and arch support status file for 'kretprobes'
+Documentation/features/time: Add feature description and arch support status file for 'modern-timekeeping'
 
 Cc: <linux-api@vger.kernel.org>
 Cc: <linux-arch@vger.kernel.org>
@@ -44,33 +45,52 @@ Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- .../features/debug/{kprobes => kretprobes}/arch-support.txt       | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
+ .../time/modern-timekeeping/arch-support.txt       | 40 ++++++++++++++++++++++
+ 1 file changed, 40 insertions(+)
 
-diff --git a/Documentation/features/debug/kprobes/arch-support.txt b/Documentation/features/debug/kretprobes/arch-support.txt
-similarity index 84%
-copy from Documentation/features/debug/kprobes/arch-support.txt
-copy to Documentation/features/debug/kretprobes/arch-support.txt
-index a44bfff..d87c1ce 100644
---- a/Documentation/features/debug/kprobes/arch-support.txt
-+++ b/Documentation/features/debug/kretprobes/arch-support.txt
-@@ -1,7 +1,7 @@
- #
--# Feature name:          kprobes
--#         Kconfig:       HAVE_KPROBES
--#         description:   arch supports live patched kernel probe
-+# Feature name:          kretprobes
-+#         Kconfig:       HAVE_KRETPROBES
-+#         description:   arch supports kernel function-return probes
- #
-     -----------------------
-     |         arch |status|
-@@ -10,7 +10,7 @@
-     |         arc: |  ok  |
-     |         arm: |  ok  |
-     |       arm64: | TODO |
--    |       avr32: |  ok  |
-+    |       avr32: | TODO |
-     |    blackfin: | TODO |
-     |         c6x: | TODO |
-     |        cris: | TODO |
+diff --git a/Documentation/features/time/modern-timekeeping/arch-support.txt b/Documentation/features/time/modern-timekeeping/arch-support.txt
+new file mode 100644
+index 0000000..17f68a0
+--- /dev/null
++++ b/Documentation/features/time/modern-timekeeping/arch-support.txt
+@@ -0,0 +1,40 @@
++#
++# Feature name:          modern-timekeeping
++#         Kconfig:       !ARCH_USES_GETTIMEOFFSET
++#         description:   arch does not use arch_gettimeoffset() anymore
++#
++    -----------------------
++    |         arch |status|
++    -----------------------
++    |       alpha: |  ok  |
++    |         arc: |  ok  |
++    |         arm: | TODO |
++    |       arm64: |  ok  |
++    |       avr32: |  ok  |
++    |    blackfin: | TODO |
++    |         c6x: |  ok  |
++    |        cris: | TODO |
++    |         frv: |  ok  |
++    |       h8300: |  ok  |
++    |     hexagon: |  ok  |
++    |        ia64: |  ok  |
++    |        m32r: | TODO |
++    |        m68k: | TODO |
++    |       metag: |  ok  |
++    |  microblaze: |  ok  |
++    |        mips: |  ok  |
++    |     mn10300: |  ok  |
++    |       nios2: |  ok  |
++    |    openrisc: |  ok  |
++    |      parisc: |  ok  |
++    |     powerpc: |  ok  |
++    |        s390: |  ok  |
++    |       score: |  ok  |
++    |          sh: |  ok  |
++    |       sparc: |  ok  |
++    |        tile: |  ok  |
++    |          um: |  ok  |
++    |   unicore32: |  ok  |
++    |         x86: |  ok  |
++    |      xtensa: |  ok  |
++    -----------------------
