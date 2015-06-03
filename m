@@ -1,18 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:59941 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:59992 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752910AbbFCLLO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:11:14 -0400
-Date: Wed, 3 Jun 2015 04:10:40 -0700
+	with ESMTP id S1752302AbbFCLM3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:12:29 -0400
+Date: Wed, 3 Jun 2015 04:11:55 -0700
 From: tip-bot for Ingo Molnar <tipbot@zytor.com>
-Message-ID: <tip-cc436a080ad45a0d98c5a37a4fd9c896ea6bcd8a@git.kernel.org>
-Reply-To: josh@joshtriplett.org, linux-kernel@vger.kernel.org,
-	  akpm@linux-foundation.org, linux-arch@vger.kernel.org,
-	  hpa@zytor.com, peterz@infradead.org, linux-api@vger.kernel.org,
-	  torvalds@linux-foundation.org, mingo@kernel.org, corbet@lwn.net,
-	  tglx@linutronix.de
-Subject: [tip:core/documentation] Documentation/features/vm:
-  Add feature description and arch support status file for 'THP'
+Message-ID: <tip-3c1b5142691f094591b6c1d6e7a9fc5599409c28@git.kernel.org>
+Reply-To: hpa@zytor.com, linux-arch@vger.kernel.org, corbet@lwn.net,
+	  tglx@linutronix.de, mingo@kernel.org, peterz@infradead.org,
+	  josh@joshtriplett.org, linux-kernel@vger.kernel.org,
+	  torvalds@linux-foundation.org, akpm@linux-foundation.org,
+	  linux-api@vger.kernel.org
+Subject: [tip:core/documentation] Documentation/features/io:
+  Add feature description and arch support status file for 'dma_map_attrs'
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain; charset=UTF-8
@@ -20,17 +20,17 @@ Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-tip-commits@vger.kernel.org
-Cc: tglx@linutronix.de, corbet@lwn.net, torvalds@linux-foundation.org, mingo@kernel.org, linux-api@vger.kernel.org, peterz@infradead.org, hpa@zytor.com, linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, josh@joshtriplett.org
-Message-ID: <20150603111040.sBKzG3kC8mm29iODDO1tJtdPiAf0f2NMky1NJA7E-AY@z>
+Cc: josh@joshtriplett.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, linux-api@vger.kernel.org, akpm@linux-foundation.org, hpa@zytor.com, corbet@lwn.net, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, peterz@infradead.org
+Message-ID: <20150603111155.xYup68FvI4AJseTO9OZCgQDj_oRhNVlpnICRIRMfF7g@z>
 
-Commit-ID:  cc436a080ad45a0d98c5a37a4fd9c896ea6bcd8a
-Gitweb:     http://git.kernel.org/tip/cc436a080ad45a0d98c5a37a4fd9c896ea6bcd8a
+Commit-ID:  3c1b5142691f094591b6c1d6e7a9fc5599409c28
+Gitweb:     http://git.kernel.org/tip/3c1b5142691f094591b6c1d6e7a9fc5599409c28
 Author:     Ingo Molnar <mingo@kernel.org>
-AuthorDate: Wed, 3 Jun 2015 12:37:09 +0200
+AuthorDate: Wed, 3 Jun 2015 12:37:14 +0200
 Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Wed, 3 Jun 2015 12:51:35 +0200
+CommitDate: Wed, 3 Jun 2015 12:51:36 +0200
 
-Documentation/features/vm: Add feature description and arch support status file for 'THP'
+Documentation/features/io: Add feature description and arch support status file for 'dma_map_attrs'
 
 Cc: <linux-api@vger.kernel.org>
 Cc: <linux-arch@vger.kernel.org>
@@ -44,63 +44,58 @@ Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- .../vm/{numa-memblock => THP}/arch-support.txt     | 26 +++++++++++-----------
- 1 file changed, 13 insertions(+), 13 deletions(-)
+ .../dma_map_attrs}/arch-support.txt                  | 20 ++++++++++----------
+ 1 file changed, 10 insertions(+), 10 deletions(-)
 
-diff --git a/Documentation/features/vm/numa-memblock/arch-support.txt b/Documentation/features/vm/THP/arch-support.txt
-similarity index 62%
-copy from Documentation/features/vm/numa-memblock/arch-support.txt
-copy to Documentation/features/vm/THP/arch-support.txt
-index e7c252a..972d02c 100644
---- a/Documentation/features/vm/numa-memblock/arch-support.txt
-+++ b/Documentation/features/vm/THP/arch-support.txt
-@@ -1,15 +1,15 @@
+diff --git a/Documentation/features/time/virt-cpuacct/arch-support.txt b/Documentation/features/io/dma_map_attrs/arch-support.txt
+similarity index 68%
+copy from Documentation/features/time/virt-cpuacct/arch-support.txt
+copy to Documentation/features/io/dma_map_attrs/arch-support.txt
+index cf3c3e3..51d0f1c 100644
+--- a/Documentation/features/time/virt-cpuacct/arch-support.txt
++++ b/Documentation/features/io/dma_map_attrs/arch-support.txt
+@@ -1,7 +1,7 @@
  #
--# Feature name:          numa-memblock
--#         Kconfig:       HAVE_MEMBLOCK_NODE_MAP
--#         description:   arch supports NUMA aware memblocks
-+# Feature name:          THP
-+#         Kconfig:       HAVE_ARCH_TRANSPARENT_HUGEPAGE
-+#         description:   arch supports transparent hugepages
+-# Feature name:          virt-cpuacct
+-#         Kconfig:       HAVE_VIRT_CPU_ACCOUNTING
+-#         description:   arch supports precise virtual CPU time accounting
++# Feature name:          dma_map_attrs
++#         Kconfig:       HAVE_DMA_ATTRS
++#         description:   arch provides dma_*map*_attrs() APIs
  #
      -----------------------
      |         arch |status|
-     -----------------------
-     |       alpha: | TODO |
-     |         arc: |  ..  |
--    |         arm: |  ..  |
--    |       arm64: |  ..  |
-+    |         arm: |  ok  |
-+    |       arm64: |  ok  |
-     |       avr32: |  ..  |
-     |    blackfin: |  ..  |
-     |         c6x: |  ..  |
-@@ -17,20 +17,20 @@
-     |         frv: |  ..  |
-     |       h8300: |  ..  |
-     |     hexagon: |  ..  |
--    |        ia64: |  ok  |
--    |        m32r: | TODO |
-+    |        ia64: | TODO |
-+    |        m32r: |  ..  |
-     |        m68k: |  ..  |
--    |       metag: |  ok  |
--    |  microblaze: |  ok  |
-+    |       metag: |  ..  |
-+    |  microblaze: |  ..  |
+@@ -15,26 +15,26 @@
+     |         c6x: | TODO |
+     |        cris: | TODO |
+     |         frv: | TODO |
+-    |       h8300: | TODO |
+-    |     hexagon: | TODO |
++    |       h8300: |  ok  |
++    |     hexagon: |  ok  |
+     |        ia64: |  ok  |
+     |        m32r: | TODO |
+     |        m68k: | TODO |
+     |       metag: | TODO |
+-    |  microblaze: | TODO |
++    |  microblaze: |  ok  |
      |        mips: |  ok  |
--    |     mn10300: | TODO |
-+    |     mn10300: |  ..  |
-     |       nios2: |  ..  |
-     |    openrisc: |  ..  |
--    |      parisc: |  ..  |
+     |     mn10300: | TODO |
+     |       nios2: | TODO |
+-    |    openrisc: | TODO |
+-    |      parisc: |  ok  |
++    |    openrisc: |  ok  |
 +    |      parisc: | TODO |
      |     powerpc: |  ok  |
      |        s390: |  ok  |
--    |       score: |  ok  |
--    |          sh: |  ok  |
-+    |       score: |  ..  |
-+    |          sh: |  ..  |
+     |       score: | TODO |
+-    |          sh: | TODO |
++    |          sh: |  ok  |
      |       sparc: |  ok  |
-     |        tile: | TODO |
-     |          um: |  ..  |
+     |        tile: |  ok  |
+     |          um: | TODO |
+-    |   unicore32: | TODO |
++    |   unicore32: |  ok  |
+     |         x86: |  ok  |
+     |      xtensa: | TODO |
+     -----------------------
