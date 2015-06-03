@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:59900 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:60270 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754082AbbFCLKQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:10:16 -0400
-Date: Wed, 3 Jun 2015 04:09:40 -0700
+	with ESMTP id S932197AbbFCLSQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:18:16 -0400
+Date: Wed, 3 Jun 2015 04:17:45 -0700
 From: tip-bot for Ingo Molnar <tipbot@zytor.com>
-Message-ID: <tip-44121b9ed0384088a6899cfb2ca4ede1428d412f@git.kernel.org>
-Reply-To: peterz@infradead.org, mingo@kernel.org,
-	  linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-	  corbet@lwn.net, linux-api@vger.kernel.org,
-	  torvalds@linux-foundation.org, josh@joshtriplett.org,
-	  tglx@linutronix.de, hpa@zytor.com, akpm@linux-foundation.org
-Subject: [tip:core/documentation] Documentation/features/time:
+Message-ID: <tip-8fa369c0485c843f93045974e2a93cdc09828db1@git.kernel.org>
+Reply-To: torvalds@linux-foundation.org, peterz@infradead.org,
+	  corbet@lwn.net, hpa@zytor.com, josh@joshtriplett.org,
+	  tglx@linutronix.de, linux-api@vger.kernel.org,
+	  linux-arch@vger.kernel.org, mingo@kernel.org,
+	  akpm@linux-foundation.org, linux-kernel@vger.kernel.org
+Subject: [tip:core/documentation] Documentation/features/core:
   Add feature description and arch support status file for '
- modern-timekeeping'
+ generic-idle-thread'
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain; charset=UTF-8
@@ -21,17 +21,17 @@ Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-tip-commits@vger.kernel.org
-Cc: josh@joshtriplett.org, tglx@linutronix.de, akpm@linux-foundation.org, hpa@zytor.com, mingo@kernel.org, peterz@infradead.org, linux-arch@vger.kernel.org, corbet@lwn.net, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, torvalds@linux-foundation.org
-Message-ID: <20150603110940.B8fziXdr0enAr1zQcSotXZIuTwU_S1xotRD7jf7IvPA@z>
+Cc: tglx@linutronix.de, linux-api@vger.kernel.org, hpa@zytor.com, josh@joshtriplett.org, torvalds@linux-foundation.org, peterz@infradead.org, corbet@lwn.net, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, mingo@kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20150603111745.SYSS8FDp5VHlVdHuBLz3C__8IY4KrEttcgDc7K3vV28@z>
 
-Commit-ID:  44121b9ed0384088a6899cfb2ca4ede1428d412f
-Gitweb:     http://git.kernel.org/tip/44121b9ed0384088a6899cfb2ca4ede1428d412f
+Commit-ID:  8fa369c0485c843f93045974e2a93cdc09828db1
+Gitweb:     http://git.kernel.org/tip/8fa369c0485c843f93045974e2a93cdc09828db1
 Author:     Ingo Molnar <mingo@kernel.org>
-AuthorDate: Wed, 3 Jun 2015 12:37:04 +0200
+AuthorDate: Wed, 3 Jun 2015 12:37:34 +0200
 Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Wed, 3 Jun 2015 12:51:34 +0200
+CommitDate: Wed, 3 Jun 2015 12:51:41 +0200
 
-Documentation/features/time: Add feature description and arch support status file for 'modern-timekeeping'
+Documentation/features/core: Add feature description and arch support status file for 'generic-idle-thread'
 
 Cc: <linux-api@vger.kernel.org>
 Cc: <linux-arch@vger.kernel.org>
@@ -45,52 +45,62 @@ Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- .../time/modern-timekeeping/arch-support.txt       | 40 ++++++++++++++++++++++
- 1 file changed, 40 insertions(+)
+ .../generic-idle-thread}/arch-support.txt            | 20 ++++++++++----------
+ 1 file changed, 10 insertions(+), 10 deletions(-)
 
-diff --git a/Documentation/features/time/modern-timekeeping/arch-support.txt b/Documentation/features/time/modern-timekeeping/arch-support.txt
-new file mode 100644
-index 0000000..17f68a0
---- /dev/null
-+++ b/Documentation/features/time/modern-timekeeping/arch-support.txt
-@@ -0,0 +1,40 @@
-+#
-+# Feature name:          modern-timekeeping
-+#         Kconfig:       !ARCH_USES_GETTIMEOFFSET
-+#         description:   arch does not use arch_gettimeoffset() anymore
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: |  ok  |
+diff --git a/Documentation/features/time/virt-cpuacct/arch-support.txt b/Documentation/features/core/generic-idle-thread/arch-support.txt
+similarity index 68%
+copy from Documentation/features/time/virt-cpuacct/arch-support.txt
+copy to Documentation/features/core/generic-idle-thread/arch-support.txt
+index cf3c3e3..6d930fc 100644
+--- a/Documentation/features/time/virt-cpuacct/arch-support.txt
++++ b/Documentation/features/core/generic-idle-thread/arch-support.txt
+@@ -1,26 +1,26 @@
+ #
+-# Feature name:          virt-cpuacct
+-#         Kconfig:       HAVE_VIRT_CPU_ACCOUNTING
+-#         description:   arch supports precise virtual CPU time accounting
++# Feature name:          generic-idle-thread
++#         Kconfig:       GENERIC_SMP_IDLE_THREAD
++#         description:   arch makes use of the generic SMP idle thread facility
+ #
+     -----------------------
+     |         arch |status|
+     -----------------------
+     |       alpha: |  ok  |
+-    |         arc: | TODO |
 +    |         arc: |  ok  |
-+    |         arm: | TODO |
-+    |       arm64: |  ok  |
-+    |       avr32: |  ok  |
-+    |    blackfin: | TODO |
-+    |         c6x: |  ok  |
-+    |        cris: | TODO |
-+    |         frv: |  ok  |
-+    |       h8300: |  ok  |
+     |         arm: |  ok  |
+     |       arm64: |  ok  |
+     |       avr32: | TODO |
+-    |    blackfin: | TODO |
++    |    blackfin: |  ok  |
+     |         c6x: | TODO |
+     |        cris: | TODO |
+     |         frv: | TODO |
+     |       h8300: | TODO |
+-    |     hexagon: | TODO |
 +    |     hexagon: |  ok  |
-+    |        ia64: |  ok  |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
+     |        ia64: |  ok  |
+     |        m32r: | TODO |
+     |        m68k: | TODO |
+-    |       metag: | TODO |
 +    |       metag: |  ok  |
-+    |  microblaze: |  ok  |
-+    |        mips: |  ok  |
-+    |     mn10300: |  ok  |
-+    |       nios2: |  ok  |
-+    |    openrisc: |  ok  |
-+    |      parisc: |  ok  |
-+    |     powerpc: |  ok  |
-+    |        s390: |  ok  |
-+    |       score: |  ok  |
+     |  microblaze: | TODO |
+     |        mips: |  ok  |
+     |     mn10300: | TODO |
+@@ -30,11 +30,11 @@
+     |     powerpc: |  ok  |
+     |        s390: |  ok  |
+     |       score: | TODO |
+-    |          sh: | TODO |
 +    |          sh: |  ok  |
-+    |       sparc: |  ok  |
-+    |        tile: |  ok  |
-+    |          um: |  ok  |
-+    |   unicore32: |  ok  |
-+    |         x86: |  ok  |
+     |       sparc: |  ok  |
+-    |        tile: |  ok  |
++    |        tile: | TODO |
+     |          um: | TODO |
+     |   unicore32: | TODO |
+     |         x86: |  ok  |
+-    |      xtensa: | TODO |
 +    |      xtensa: |  ok  |
-+    -----------------------
+     -----------------------
