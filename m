@@ -1,18 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:59783 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:59814 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751656AbbFCLIB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:08:01 -0400
-Date: Wed, 3 Jun 2015 04:07:22 -0700
+	with ESMTP id S1753308AbbFCLIe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:08:34 -0400
+Date: Wed, 3 Jun 2015 04:08:03 -0700
 From: tip-bot for Ingo Molnar <tipbot@zytor.com>
-Message-ID: <tip-c197645c597f6615f7476881789ba97774dac4f5@git.kernel.org>
-Reply-To: corbet@lwn.net, hpa@zytor.com, josh@joshtriplett.org,
-	  akpm@linux-foundation.org, torvalds@linux-foundation.org,
-	  peterz@infradead.org, tglx@linutronix.de,
-	  linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org,
-	  mingo@kernel.org, linux-api@vger.kernel.org
-Subject: [tip:core/documentation] Documentation/features/vm:
-  Add feature description and arch support status file for 'PG_uncached'
+Message-ID: <tip-6c7cca4dc10950ee299ef2cb1db81733679380df@git.kernel.org>
+Reply-To: mingo@kernel.org, torvalds@linux-foundation.org, corbet@lwn.net,
+	  peterz@infradead.org, akpm@linux-foundation.org,
+	  linux-arch@vger.kernel.org, josh@joshtriplett.org, hpa@zytor.com,
+	  linux-api@vger.kernel.org, linux-kernel@vger.kernel.org,
+	  tglx@linutronix.de
+Subject: [tip:core/documentation] Documentation/features/io:
+  Add feature description and arch support status file for 'sg-chain'
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain; charset=UTF-8
@@ -20,17 +20,17 @@ Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-tip-commits@vger.kernel.org
-Cc: josh@joshtriplett.org, hpa@zytor.com, akpm@linux-foundation.org, corbet@lwn.net, tglx@linutronix.de, peterz@infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, mingo@kernel.org, torvalds@linux-foundation.org
-Message-ID: <20150603110722.c49lFj418xCrr3hSWVY0-EboZadwGu7MIh0s2V1Ura4@z>
+Cc: mingo@kernel.org, torvalds@linux-foundation.org, corbet@lwn.net, peterz@infradead.org, hpa@zytor.com, josh@joshtriplett.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-api@vger.kernel.org, tglx@linutronix.de
+Message-ID: <20150603110803.Uw4kMCANq8mkWeC1HCD7llddDf1XzYrIQWxgpIW_PGI@z>
 
-Commit-ID:  c197645c597f6615f7476881789ba97774dac4f5
-Gitweb:     http://git.kernel.org/tip/c197645c597f6615f7476881789ba97774dac4f5
+Commit-ID:  6c7cca4dc10950ee299ef2cb1db81733679380df
+Gitweb:     http://git.kernel.org/tip/6c7cca4dc10950ee299ef2cb1db81733679380df
 Author:     Ingo Molnar <mingo@kernel.org>
-AuthorDate: Wed, 3 Jun 2015 12:36:56 +0200
+AuthorDate: Wed, 3 Jun 2015 12:36:59 +0200
 Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Wed, 3 Jun 2015 12:51:32 +0200
+CommitDate: Wed, 3 Jun 2015 12:51:33 +0200
 
-Documentation/features/vm: Add feature description and arch support status file for 'PG_uncached'
+Documentation/features/io: Add feature description and arch support status file for 'sg-chain'
 
 Cc: <linux-api@vger.kernel.org>
 Cc: <linux-arch@vger.kernel.org>
@@ -44,52 +44,49 @@ Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- .../features/vm/PG_uncached/arch-support.txt       | 40 ++++++++++++++++++++++
- 1 file changed, 40 insertions(+)
+ .../{vm/PG_uncached => io/sg-chain}/arch-support.txt     | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/Documentation/features/vm/PG_uncached/arch-support.txt b/Documentation/features/vm/PG_uncached/arch-support.txt
-new file mode 100644
-index 0000000..9919742
---- /dev/null
-+++ b/Documentation/features/vm/PG_uncached/arch-support.txt
-@@ -0,0 +1,40 @@
-+#
-+# Feature name:          PG_uncached
-+#         Kconfig:       ARCH_USES_PG_UNCACHED
-+#         description:   arch supports the PG_uncached page flag
-+#
-+    -----------------------
-+    |         arch |status|
-+    -----------------------
-+    |       alpha: | TODO |
-+    |         arc: | TODO |
-+    |         arm: | TODO |
-+    |       arm64: | TODO |
-+    |       avr32: | TODO |
-+    |    blackfin: | TODO |
-+    |         c6x: | TODO |
-+    |        cris: | TODO |
-+    |         frv: | TODO |
-+    |       h8300: | TODO |
-+    |     hexagon: | TODO |
-+    |        ia64: |  ok  |
-+    |        m32r: | TODO |
-+    |        m68k: | TODO |
-+    |       metag: | TODO |
-+    |  microblaze: | TODO |
-+    |        mips: | TODO |
-+    |     mn10300: | TODO |
-+    |       nios2: | TODO |
-+    |    openrisc: | TODO |
-+    |      parisc: | TODO |
-+    |     powerpc: | TODO |
-+    |        s390: | TODO |
-+    |       score: | TODO |
-+    |          sh: | TODO |
-+    |       sparc: | TODO |
-+    |        tile: | TODO |
-+    |          um: | TODO |
-+    |   unicore32: | TODO |
-+    |         x86: |  ok  |
-+    |      xtensa: | TODO |
-+    -----------------------
+diff --git a/Documentation/features/vm/PG_uncached/arch-support.txt b/Documentation/features/io/sg-chain/arch-support.txt
+similarity index 74%
+copy from Documentation/features/vm/PG_uncached/arch-support.txt
+copy to Documentation/features/io/sg-chain/arch-support.txt
+index 9919742..b9b6755 100644
+--- a/Documentation/features/vm/PG_uncached/arch-support.txt
++++ b/Documentation/features/io/sg-chain/arch-support.txt
+@@ -1,15 +1,15 @@
+ #
+-# Feature name:          PG_uncached
+-#         Kconfig:       ARCH_USES_PG_UNCACHED
+-#         description:   arch supports the PG_uncached page flag
++# Feature name:          sg-chain
++#         Kconfig:       ARCH_HAS_SG_CHAIN
++#         description:   arch supports chained scatter-gather lists
+ #
+     -----------------------
+     |         arch |status|
+     -----------------------
+     |       alpha: | TODO |
+     |         arc: | TODO |
+-    |         arm: | TODO |
+-    |       arm64: | TODO |
++    |         arm: |  ok  |
++    |       arm64: |  ok  |
+     |       avr32: | TODO |
+     |    blackfin: | TODO |
+     |         c6x: | TODO |
+@@ -27,11 +27,11 @@
+     |       nios2: | TODO |
+     |    openrisc: | TODO |
+     |      parisc: | TODO |
+-    |     powerpc: | TODO |
+-    |        s390: | TODO |
++    |     powerpc: |  ok  |
++    |        s390: |  ok  |
+     |       score: | TODO |
+     |          sh: | TODO |
+-    |       sparc: | TODO |
++    |       sparc: |  ok  |
+     |        tile: | TODO |
+     |          um: | TODO |
+     |   unicore32: | TODO |
