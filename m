@@ -1,20 +1,18 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:59952 "EHLO
+Received: from terminus.zytor.com ([198.137.202.10]:59941 "EHLO
 	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753145AbbFCLLb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:11:31 -0400
-Date: Wed, 3 Jun 2015 04:10:57 -0700
+	with ESMTP id S1752910AbbFCLLO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:11:14 -0400
+Date: Wed, 3 Jun 2015 04:10:40 -0700
 From: tip-bot for Ingo Molnar <tipbot@zytor.com>
-Message-ID: <tip-a521dc564bcce456354a01d2603ff946af141d32@git.kernel.org>
-Reply-To: hpa@zytor.com, linux-arch@vger.kernel.org,
-	  akpm@linux-foundation.org, tglx@linutronix.de,
-	  peterz@infradead.org, mingo@kernel.org,
-	  linux-api@vger.kernel.org, linux-kernel@vger.kernel.org,
-	  josh@joshtriplett.org, torvalds@linux-foundation.org,
-	  corbet@lwn.net
-Subject: [tip:core/documentation] Documentation/features/locking:
-  Add feature description and arch support status file for 'rwsem-optimized
- '
+Message-ID: <tip-cc436a080ad45a0d98c5a37a4fd9c896ea6bcd8a@git.kernel.org>
+Reply-To: josh@joshtriplett.org, linux-kernel@vger.kernel.org,
+	  akpm@linux-foundation.org, linux-arch@vger.kernel.org,
+	  hpa@zytor.com, peterz@infradead.org, linux-api@vger.kernel.org,
+	  torvalds@linux-foundation.org, mingo@kernel.org, corbet@lwn.net,
+	  tglx@linutronix.de
+Subject: [tip:core/documentation] Documentation/features/vm:
+  Add feature description and arch support status file for 'THP'
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Content-Type: text/plain; charset=UTF-8
@@ -22,17 +20,17 @@ Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-tip-commits@vger.kernel.org
-Cc: akpm@linux-foundation.org, hpa@zytor.com, linux-arch@vger.kernel.org, tglx@linutronix.de, peterz@infradead.org, linux-api@vger.kernel.org, mingo@kernel.org, linux-kernel@vger.kernel.org, torvalds@linux-foundation.org, josh@joshtriplett.org, corbet@lwn.net
-Message-ID: <20150603111057.UhdazQhPIku74gyh380JUThB6W7KvfXm05Jte23c2Vg@z>
+Cc: tglx@linutronix.de, corbet@lwn.net, torvalds@linux-foundation.org, mingo@kernel.org, linux-api@vger.kernel.org, peterz@infradead.org, hpa@zytor.com, linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, josh@joshtriplett.org
+Message-ID: <20150603111040.sBKzG3kC8mm29iODDO1tJtdPiAf0f2NMky1NJA7E-AY@z>
 
-Commit-ID:  a521dc564bcce456354a01d2603ff946af141d32
-Gitweb:     http://git.kernel.org/tip/a521dc564bcce456354a01d2603ff946af141d32
+Commit-ID:  cc436a080ad45a0d98c5a37a4fd9c896ea6bcd8a
+Gitweb:     http://git.kernel.org/tip/cc436a080ad45a0d98c5a37a4fd9c896ea6bcd8a
 Author:     Ingo Molnar <mingo@kernel.org>
-AuthorDate: Wed, 3 Jun 2015 12:37:10 +0200
+AuthorDate: Wed, 3 Jun 2015 12:37:09 +0200
 Committer:  Ingo Molnar <mingo@kernel.org>
 CommitDate: Wed, 3 Jun 2015 12:51:35 +0200
 
-Documentation/features/locking: Add feature description and arch support status file for 'rwsem-optimized'
+Documentation/features/vm: Add feature description and arch support status file for 'THP'
 
 Cc: <linux-api@vger.kernel.org>
 Cc: <linux-arch@vger.kernel.org>
@@ -46,48 +44,63 @@ Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- .../rwsem-optimized}/arch-support.txt                    | 16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
+ .../vm/{numa-memblock => THP}/arch-support.txt     | 26 +++++++++++-----------
+ 1 file changed, 13 insertions(+), 13 deletions(-)
 
-diff --git a/Documentation/features/vm/PG_uncached/arch-support.txt b/Documentation/features/locking/rwsem-optimized/arch-support.txt
-similarity index 74%
-copy from Documentation/features/vm/PG_uncached/arch-support.txt
-copy to Documentation/features/locking/rwsem-optimized/arch-support.txt
-index 9919742..ac93d7a 100644
---- a/Documentation/features/vm/PG_uncached/arch-support.txt
-+++ b/Documentation/features/locking/rwsem-optimized/arch-support.txt
-@@ -1,12 +1,12 @@
+diff --git a/Documentation/features/vm/numa-memblock/arch-support.txt b/Documentation/features/vm/THP/arch-support.txt
+similarity index 62%
+copy from Documentation/features/vm/numa-memblock/arch-support.txt
+copy to Documentation/features/vm/THP/arch-support.txt
+index e7c252a..972d02c 100644
+--- a/Documentation/features/vm/numa-memblock/arch-support.txt
++++ b/Documentation/features/vm/THP/arch-support.txt
+@@ -1,15 +1,15 @@
  #
--# Feature name:          PG_uncached
--#         Kconfig:       ARCH_USES_PG_UNCACHED
--#         description:   arch supports the PG_uncached page flag
-+# Feature name:          rwsem-optimized
-+#         Kconfig:       Optimized asm/rwsem.h
-+#         description:   arch provides optimized rwsem APIs
+-# Feature name:          numa-memblock
+-#         Kconfig:       HAVE_MEMBLOCK_NODE_MAP
+-#         description:   arch supports NUMA aware memblocks
++# Feature name:          THP
++#         Kconfig:       HAVE_ARCH_TRANSPARENT_HUGEPAGE
++#         description:   arch supports transparent hugepages
  #
      -----------------------
      |         arch |status|
      -----------------------
--    |       alpha: | TODO |
-+    |       alpha: |  ok  |
-     |         arc: | TODO |
-     |         arm: | TODO |
-     |       arm64: | TODO |
-@@ -28,13 +28,13 @@
-     |    openrisc: | TODO |
-     |      parisc: | TODO |
-     |     powerpc: | TODO |
--    |        s390: | TODO |
-+    |        s390: |  ok  |
-     |       score: | TODO |
--    |          sh: | TODO |
--    |       sparc: | TODO |
-+    |          sh: |  ok  |
-+    |       sparc: |  ok  |
+     |       alpha: | TODO |
+     |         arc: |  ..  |
+-    |         arm: |  ..  |
+-    |       arm64: |  ..  |
++    |         arm: |  ok  |
++    |       arm64: |  ok  |
+     |       avr32: |  ..  |
+     |    blackfin: |  ..  |
+     |         c6x: |  ..  |
+@@ -17,20 +17,20 @@
+     |         frv: |  ..  |
+     |       h8300: |  ..  |
+     |     hexagon: |  ..  |
+-    |        ia64: |  ok  |
+-    |        m32r: | TODO |
++    |        ia64: | TODO |
++    |        m32r: |  ..  |
+     |        m68k: |  ..  |
+-    |       metag: |  ok  |
+-    |  microblaze: |  ok  |
++    |       metag: |  ..  |
++    |  microblaze: |  ..  |
+     |        mips: |  ok  |
+-    |     mn10300: | TODO |
++    |     mn10300: |  ..  |
+     |       nios2: |  ..  |
+     |    openrisc: |  ..  |
+-    |      parisc: |  ..  |
++    |      parisc: | TODO |
+     |     powerpc: |  ok  |
+     |        s390: |  ok  |
+-    |       score: |  ok  |
+-    |          sh: |  ok  |
++    |       score: |  ..  |
++    |          sh: |  ..  |
+     |       sparc: |  ok  |
      |        tile: | TODO |
-     |          um: | TODO |
-     |   unicore32: | TODO |
-     |         x86: |  ok  |
--    |      xtensa: | TODO |
-+    |      xtensa: |  ok  |
-     -----------------------
+     |          um: |  ..  |
