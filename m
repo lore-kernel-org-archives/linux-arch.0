@@ -1,227 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:60438 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753395AbbFCLV3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Jun 2015 07:21:29 -0400
-Date: Wed, 3 Jun 2015 04:20:55 -0700
-From: tip-bot for Ingo Molnar <tipbot@zytor.com>
-Message-ID: <tip-669f6f96c680a741257ada44a28b580df2e1fc25@git.kernel.org>
-Reply-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org,
-	  corbet@lwn.net, peterz@infradead.org, tglx@linutronix.de,
-	  torvalds@linux-foundation.org, josh@joshtriplett.org,
-	  hpa@zytor.com, akpm@linux-foundation.org, mingo@kernel.org,
-	  linux-api@vger.kernel.org
-Subject: [tip:core/documentation] Documentation/features:
-  Explain kernel feature descriptions and add visualization script
+Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:53924 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1750831AbbFEFCl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Jun 2015 01:02:41 -0400
+Message-ID: <55712D5B.6090302@synopsys.com>
+Date: Fri, 5 Jun 2015 10:32:19 +0530
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline
+Subject: Re: [PATCH 2/4] ARC: [axs101] support early 8250 uart
+References: <1431607724-9142-1-git-send-email-abrodkin@synopsys.com> <1431607724-9142-3-git-send-email-abrodkin@synopsys.com> <2836384.o6ec7X8zDk@wuerfel> <C2D7FE5348E1B147BCA15975FBA23075665A0229@IN01WEMBXB.internal.synopsys.com>
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075665A0229@IN01WEMBXB.internal.synopsys.com>
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-tip-commits@vger.kernel.org
-Cc: peterz@infradead.org, linux-kernel@vger.kernel.org, corbet@lwn.net, linux-arch@vger.kernel.org, tglx@linutronix.de, josh@joshtriplett.org, torvalds@linux-foundation.org, hpa@zytor.com, mingo@kernel.org, akpm@linux-foundation.org, linux-api@vger.kernel.org
-Message-ID: <20150603112055.2DcanRaPKO8zGnm9bOync_DgfdZUPq0MWrmhyi4ZhMM@z>
+To: Arnd Bergmann <arnd@arndb.de>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Cc: "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Rob Herring <rob.herring@calxeda.com>, Peter Hurley <peter@hurleysoftware.com>
+Message-ID: <20150605050219.vry2TN2FC4mPbbraTSysEVbaadIxmyEqPm8KSfAmCRo@z>
 
-Commit-ID:  669f6f96c680a741257ada44a28b580df2e1fc25
-Gitweb:     http://git.kernel.org/tip/669f6f96c680a741257ada44a28b580df2e1fc25
-Author:     Ingo Molnar <mingo@kernel.org>
-AuthorDate: Wed, 3 Jun 2015 12:39:26 +0200
-Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Wed, 3 Jun 2015 12:59:38 +0200
++CC  linux-serial
 
-Documentation/features: Explain kernel feature descriptions and add visualization script
+On Thursday 14 May 2015 06:34 PM, Vineet Gupta wrote:
+> On Thursday 14 May 2015 06:23 PM, Arnd Bergmann wrote:
+> 
+> On Thursday 14 May 2015 15:48:42 Alexey Brodkin wrote:
+> 
+> 
+>> >
+>> >         chosen {
+>> > -               bootargs = "console=tty0 console=ttyS3,115200n8 consoleblank=0";
+>> > +               bootargs = "earlycon=uart8250,mmio32,0xe0022000,115200n8 console=tty0 console=ttyS3,115200n8 consoleblank=0";
+>> >         };
+>> >  };
+>> >
+> 
+> When you do earlycon with DT, better use a 'stdout-path' property that points
+> to the device, and just put 'earlycon' without arguments on the command line.
+> 
+>         Arnd
+> 
+> 
+> Sure ! I tried that once (3.16) and even the dts patch got merged but had to be reverted out !
+> 
+> 2014-07-27 22524b02b17b Revert "ARC: [arcfpga] stdout-path now suffices for earlycon/console"
+> 
+> Let me see if that works again since serial land has seen some significant churn in recent times
+> 
+> Thx for pointing this out !
 
-The previous patches added arch support matrices for more than 40 generic kernel features
-that need per architecture support.
+so specifying console with stdout-path works for me,
 
-The structure of the feature descriptions is the following:
+-  bootargs = "earlycon=uart8250,mmio32,0xf0000000,115200n8 console=tty0
+console=ttyS0,115200n8 consoleblank=0 debug";
++  bootargs = "earlycon=uart8250,mmio32,0xf0000000,115200n8";
++  stdout-path = &uart0;
+..
 
-Each feature has its own directory under Documentation/features/subsystem_name/feature_name/,
-and the arch-support.txt file shows its current arch porting status.
+But I don't see earlycon working with paramless earlycon
 
-For example, lockdep support is shown the following way:
+-  bootargs = "earlycon=uart8250,mmio32,0xf0000000,115200n8";
++  bootargs = "earlycon";
+   stdout-path = &uart0;
 
-    triton:~/tip> cat Documentation/features/locking/lockdep/arch-support.txt
-    #
-    # Feature name:          lockdep
-    #         Kconfig:       LOCKDEP_SUPPORT
-    #         description:   arch supports the runtime locking correctness debug facility
-    #
-        -----------------------
-        |         arch |status|
-        -----------------------
-        |       alpha: | TODO |
-        |         arc: |  ok  |
-        |         arm: |  ok  |
-        |       arm64: |  ok  |
-        |       avr32: |  ok  |
-        |    blackfin: |  ok  |
-        |         c6x: | TODO |
-        |        cris: | TODO |
-        |         frv: | TODO |
-        |       h8300: | TODO |
-        |     hexagon: |  ok  |
-        |        ia64: | TODO |
-        |        m32r: | TODO |
-        |        m68k: | TODO |
-        |       metag: |  ok  |
-        |  microblaze: |  ok  |
-        |        mips: |  ok  |
-        |     mn10300: | TODO |
-        |       nios2: | TODO |
-        |    openrisc: | TODO |
-        |      parisc: | TODO |
-        |     powerpc: |  ok  |
-        |        s390: |  ok  |
-        |       score: |  ok  |
-        |          sh: |  ok  |
-        |       sparc: |  ok  |
-        |        tile: |  ok  |
-        |          um: |  ok  |
-        |   unicore32: |  ok  |
-        |         x86: |  ok  |
-        |      xtensa: |  ok  |
-        -----------------------
+And I don't see how it would work for others as of 4.1-rc6
+Relevant config items I have are:
 
-For generic kernel features that need architecture support, the
-arch-support.txt file in each feature directory shows the arch
-support matrix, for all upstream Linux architectures.
+CONFIG_SERIAL_EARLYCON=y
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_CONSOLE=y
+CONFIG_SERIAL_CORE=y
+CONFIG_SERIAL_CORE_CONSOLE=y
+CONFIG_SERIAL_OF_PLATFORM=y
+...
 
-The meaning of entries in the tables is:
+There are 2 earlyparam handlers for earlcon,
+(1) param_setup_earlycon() -> setup_earlycon() -> register_console()
+(2) setup_of_earlycon() -> early_init_dt_scan_chosen_serial -> of_setup_earlycon()
 
-    | ok |  # feature supported by the architecture
-    |TODO|  # feature not yet supported by the architecture
-    | .. |  # feature cannot be supported by the hardware
+#1 only works when arg to earlycon is *not NULL*
+#2 only works when arg is *NULL*.
 
-This directory structure can be used in the future to add other
-files - such as porting guides, testing description, etc.
+For my case, #2 bails out early as __earlycon_of_table happens to be empty.
 
-The Documentation/features/ hierarchy may also include generic
-kernel features that works on every architecture, in that case
-the arch-support.txt file will list every architecture as
-supported.
+8071d8a0 T __earlycon_of_table
+8071d8a0 000000c4 t __earlycon_of_table_sentinel
 
-To list an architecture's unsupported features, just do something
-like:
+This make sense since I don't see any OF_EARLYCON_DECLARE() in 8250 driver.
+As a quick hack I added one in 8250/8250_early.c
 
-  triton:~/tip>  git grep -lE 'x86.*TODO' Documentation/features/*/*/arch-support.txt
-  Documentation/features/lib/strncasecmp/arch-support.txt
-  Documentation/features/time/arch-tick-broadcast/arch-support.txt
+@@ -152,3 +154,4 @@ static int __init early_serial8250_setup(struct
+earlycon_device *device,
+ }
+ EARLYCON_DECLARE(uart8250, early_serial8250_setup);
+ EARLYCON_DECLARE(uart, early_serial8250_setup);
++OF_EARLYCON_DECLARE(uart8250, "ns8250", early_serial8250_setup);
 
-which will print the list of not yet supported features.
+I needed another fine adjustment as of_setup_earlycon() assumes mmio, while it
+needs to be memio32 for my case.
 
-The Documentation/features/list-arch.sh script will print the current
-support matrix of one architecture:
+@@ -199,7 +199,7 @@ int __init of_setup_earlycon(unsigned long addr,
+        int err;
+        struct uart_port *port = &early_console_dev.port;
 
-  triton:~/tip> Documentation/features/list-arch.sh
-  #
-  # Kernel feature support matrix of the 'x86' architecture:
-  #
-      core/ BPF-JIT              :  ok  |                        HAVE_BPF_JIT #  arch supports BPF JIT optimizations
-      core/ generic-idle-thread  :  ok  |             GENERIC_SMP_IDLE_THREAD #  arch makes use of the generic SMP idle thread facility
-      core/ jump-labels          :  ok  |                HAVE_ARCH_JUMP_LABEL #  arch supports live patched, high efficiency branches
-      core/ tracehook            :  ok  |                 HAVE_ARCH_TRACEHOOK #  arch supports tracehook (ptrace) register handling APIs
-     debug/ gcov-profile-all     :  ok  |           ARCH_HAS_GCOV_PROFILE_ALL #  arch supports whole-kernel GCOV code coverage profiling
-     debug/ KASAN                :  ok  |                     HAVE_ARCH_KASAN #  arch supports the KASAN runtime memory checker
-     debug/ kgdb                 :  ok  |                      HAVE_ARCH_KGDB #  arch supports the kGDB kernel debugger
-     debug/ kprobes              :  ok  |                        HAVE_KPROBES #  arch supports live patched kernel probe
-     debug/ kprobes-on-ftrace    :  ok  |              HAVE_KPROBES_ON_FTRACE #  arch supports combined kprobes and ftrace live patching
-     debug/ kretprobes           :  ok  |                     HAVE_KRETPROBES #  arch supports kernel function-return probes
-     debug/ optprobes            :  ok  |                      HAVE_OPTPROBES #  arch supports live patched optprobes
-     debug/ stackprotector       :  ok  |              HAVE_CC_STACKPROTECTOR #  arch supports compiler driven stack overflow protection
-     debug/ uprobes              :  ok  |               ARCH_SUPPORTS_UPROBES #  arch supports live patched user probes
-     debug/ user-ret-profiler    :  ok  |           HAVE_USER_RETURN_NOTIFIER #  arch supports user-space return from system call profiler
-        io/ dma-api-debug        :  ok  |                  HAVE_DMA_API_DEBUG #  arch supports DMA debug facilities
-        io/ dma-contiguous       :  ok  |                 HAVE_DMA_CONTIGUOUS #  arch supports the DMA CMA (continuous memory allocator)
-        io/ dma_map_attrs        :  ok  |                      HAVE_DMA_ATTRS #  arch provides dma_*map*_attrs() APIs
-        io/ sg-chain             :  ok  |                   ARCH_HAS_SG_CHAIN #  arch supports chained scatter-gather lists
-       lib/ strncasecmp          : TODO |             __HAVE_ARCH_STRNCASECMP #  arch provides an optimized strncasecmp() function
-   locking/ cmpxchg-local        :  ok  |                  HAVE_CMPXCHG_LOCAL #  arch supports the this_cpu_cmpxchg() API
-   locking/ lockdep              :  ok  |                     LOCKDEP_SUPPORT #  arch supports the runtime locking correctness debug facility
-   locking/ queued-rwlocks       :  ok  |             ARCH_USE_QUEUED_RWLOCKS #  arch supports queued rwlocks
-   locking/ queued-spinlocks     :  ok  |           ARCH_USE_QUEUED_SPINLOCKS #  arch supports queued spinlocks
-   locking/ rwsem-optimized      :  ok  |               Optimized asm/rwsem.h #  arch provides optimized rwsem APIs
-      perf/ kprobes-event        :  ok  |      HAVE_REGS_AND_STACK_ACCESS_API #  arch supports kprobes with perf events
-      perf/ perf-regs            :  ok  |                      HAVE_PERF_REGS #  arch supports perf events register access
-      perf/ perf-stackdump       :  ok  |           HAVE_PERF_USER_STACK_DUMP #  arch supports perf events stack dumps
-     sched/ numa-balancing       :  ok  |        ARCH_SUPPORTS_NUMA_BALANCING #  arch supports NUMA balancing
-   seccomp/ seccomp-filter       :  ok  |            HAVE_ARCH_SECCOMP_FILTER #  arch supports seccomp filters
-      time/ arch-tick-broadcast  : TODO |             ARCH_HAS_TICK_BROADCAST #  arch provides tick_broadcast()
-      time/ clockevents          :  ok  |                 GENERIC_CLOCKEVENTS #  arch support generic clock events
-      time/ context-tracking     :  ok  |               HAVE_CONTEXT_TRACKING #  arch supports context tracking for NO_HZ_FULL
-      time/ irq-time-acct        :  ok  |            HAVE_IRQ_TIME_ACCOUNTING #  arch supports precise IRQ time accounting
-      time/ modern-timekeeping   :  ok  |            !ARCH_USES_GETTIMEOFFSET #  arch does not use arch_gettimeoffset() anymore
-      time/ virt-cpuacct         :  ok  |            HAVE_VIRT_CPU_ACCOUNTING #  arch supports precise virtual CPU time accounting
-        vm/ ELF-ASLR             :  ok  |              ARCH_HAS_ELF_RANDOMIZE #  arch randomizes the stack, heap and binary images of ELF binaries
-        vm/ huge-vmap            :  ok  |                 HAVE_ARCH_HUGE_VMAP #  arch supports the ioremap_pud_enabled() and ioremap_pmd_enabled() VM APIs
-        vm/ ioremap_prot         :  ok  |                   HAVE_IOREMAP_PROT #  arch has ioremap_prot()
-        vm/ numa-memblock        :  ok  |              HAVE_MEMBLOCK_NODE_MAP #  arch supports NUMA aware memblocks
-        vm/ PG_uncached          :  ok  |               ARCH_USES_PG_UNCACHED #  arch supports the PG_uncached page flag
-        vm/ pmdp_splitting_flush :  ok  |    __HAVE_ARCH_PMDP_SPLITTING_FLUSH #  arch supports the pmdp_splitting_flush() VM API
-        vm/ pte_special          :  ok  |             __HAVE_ARCH_PTE_SPECIAL #  arch supports the pte_special()/pte_mkspecial() VM APIs
-        vm/ THP                  :  ok  |      HAVE_ARCH_TRANSPARENT_HUGEPAGE #  arch supports transparent hugepages
+-       port->iotype = UPIO_MEM;
++       port->iotype = UPIO_MEM32;
 
-Cc: <linux-api@vger.kernel.org>
-Cc: <linux-arch@vger.kernel.org>
-Cc: <linux-kernel@vger.kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Josh Triplett <josh@joshtriplett.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
----
- Documentation/features/arch-support.txt | 11 +++++++++++
- Documentation/features/list-arch.sh     | 24 ++++++++++++++++++++++++
- 2 files changed, 35 insertions(+)
+With this paramless earlycon works.
 
-diff --git a/Documentation/features/arch-support.txt b/Documentation/features/arch-support.txt
-new file mode 100644
-index 0000000..d22a109
---- /dev/null
-+++ b/Documentation/features/arch-support.txt
-@@ -0,0 +1,11 @@
-+
-+For generic kernel features that need architecture support, the
-+arch-support.txt file in each feature directory shows the arch
-+support matrix, for all upstream Linux architectures.
-+
-+The meaning of entries in the tables is:
-+
-+    | ok |  # feature supported by the architecture
-+    |TODO|  # feature not yet supported by the architecture
-+    | .. |  # feature cannot be supported by the hardware
-+
-diff --git a/Documentation/features/list-arch.sh b/Documentation/features/list-arch.sh
-new file mode 100755
-index 0000000..6065124
---- /dev/null
-+++ b/Documentation/features/list-arch.sh
-@@ -0,0 +1,24 @@
-+#
-+# Small script that visualizes the kernel feature support status
-+# of an architecture.
-+#
-+# (If no arguments are given then it will print the host architecture's status.)
-+#
-+
-+ARCH=${1:-$(arch | sed 's/x86_64/x86/' | sed 's/i386/x86/')}
-+
-+cd $(dirname $0)
-+echo "#"
-+echo "# Kernel feature support matrix of the '$ARCH' architecture:"
-+echo "#"
-+
-+for F in */*/arch-support.txt; do
-+  SUBSYS=$(echo $F | cut -d/ -f1)
-+  N=$(grep -h "^# Feature name:"        $F | cut -c25-)
-+  C=$(grep -h "^#         Kconfig:"     $F | cut -c25-)
-+  D=$(grep -h "^#         description:" $F | cut -c25-)
-+  S=$(grep -hw $ARCH $F | cut -d\| -f3)
-+
-+  printf "%10s/%-22s:%s| %35s # %s\n" "$SUBSYS" "$N" "$S" "$C" "$D"
-+done
-+
+Now both the above are hacks, but I want to understand if I'm missing something in
+ARC port or does core need some adjustments along the lines of above, since
+presumably others have it working !
+
+P.S. with respect to the original patch, I would fold it into for-next with change
+to stdout-path and keep earlycon as before - we can fix it up later.
+
+Thx,
+-vineet
+
