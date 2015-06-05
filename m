@@ -1,77 +1,72 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: console setting via stdout-path vs console=xxx (was Re: [PATCH 2/4]
- ARC: [axs101] support early 8250 uart)
-Date: Fri, 5 Jun 2015 13:01:23 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665A3DF6@IN01WEMBXB.internal.synopsys.com>
+Subject: Re: [PATCH 0/4] arc: add AXS101 board support
+Date: Fri, 5 Jun 2015 19:43:08 +0530
+Message-ID: <5571AE74.2010502@synopsys.com>
 References: <1431607724-9142-1-git-send-email-abrodkin@synopsys.com>
- <1431607724-9142-3-git-send-email-abrodkin@synopsys.com>
- <2836384.o6ec7X8zDk@wuerfel>
- <C2D7FE5348E1B147BCA15975FBA23075665A0229@IN01WEMBXB.internal.synopsys.com>
- <55712D5B.6090302@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Rob Herring <robh@kernel.org>, Peter Hurley <peter@hurleysoftware.com>, "robh+dt@kernel.org" <robh+dt@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtprelay.synopsys.com ([198.182.60.111]:34181 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1422660AbbFEONW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Jun 2015 10:13:22 -0400
+In-Reply-To: <1431607724-9142-1-git-send-email-abrodkin@synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, arc-linux-dev@synopsys.com, devicetree@vger.kernel.org
 
-On Friday 05 June 2015 10:32 AM, Vineet Gupta wrote:
-> On Thursday 14 May 2015 06:34 PM, Vineet Gupta wrote:
->> > On Thursday 14 May 2015 06:23 PM, Arnd Bergmann wrote:
->> > 
->> > On Thursday 14 May 2015 15:48:42 Alexey Brodkin wrote:
->> > 
->> > 
->>>> >> >
->>>> >> >         chosen {
->>>> >> > -               bootargs = "console=tty0 console=ttyS3,115200n8 consoleblank=0";
->>>> >> > +               bootargs = "earlycon=uart8250,mmio32,0xe0022000,115200n8 console=tty0 console=ttyS3,115200n8 consoleblank=0";
->>>> >> >         };
->>>> >> >  };
->>>> >> >
->> > 
->> > When you do earlycon with DT, better use a 'stdout-path' property that points
->> > to the device, and just put 'earlycon' without arguments on the command line.
->> > 
->> >         Arnd
->> > 
->> > 
->> > Sure ! I tried that once (3.16) and even the dts patch got merged but had to be reverted out !
->> > 
->> > 2014-07-27 22524b02b17b Revert "ARC: [arcfpga] stdout-path now suffices for earlycon/console"
->> > 
->> > Let me see if that works again since serial land has seen some significant churn in recent times
->> > 
->> > Thx for pointing this out !
-> so specifying console with stdout-path works for me,
+On Thursday 14 May 2015 06:19 PM, Alexey Brodkin wrote:
+> AXS101 is a new generation of devlopment boards from Synopsys that houses
+> ASIC with ARC700 and lots of DesignWare peripherals:
 > 
-> -  bootargs = "earlycon=uart8250,mmio32,0xf0000000,115200n8 console=tty0
-> console=ttyS0,115200n8 consoleblank=0 debug";
-> +  bootargs = "earlycon=uart8250,mmio32,0xf0000000,115200n8";
-> +  stdout-path = &uart0;
-> ..
+>  * DW APB UART
+>  * DW Mobile Storage (MMC/SD)
+>  * DW I2C
+>  * DW GMAC
+> 
+> More info about DesignWare ARC Software Development Platforms (SDP) is here:
+> http://www.synopsys.com/dw/ipdir.php?ds=arc-software-development-platform
+> 
+> More info about AXS101 in particular is here (it's required to enter contact
+> details to obtain the document):
+> http://www.synopsys.com/dw/doc.php/ds/cc/arc_axs101_sdp.pdf
+> 
+> Alexey Brodkin (2):
+>   ARC: [axs101] Add support for AXS101 SDP (software development
+>     platform)
+>   ARC: [axs101] STAR 9000799830: Fix SD cards support
+> 
+> Vineet Gupta (2):
+>   ARC: [axs101] support early 8250 uart
+>   ARC: [axs101] Tweak DDR port aperture mappings for performance
 
-Also interestingly, specifying console with stdout-path vs. console=xyz leads to a
-subtle behaviour change of boot printing.
+Added to ARC for-next - finally !
 
-With console=xyz, console_setup() -> __add_preferred_console() sets
-preferred_console = 0, which doesn't happen with stdout-path.
-
-ARC defconfigs have CONFIG_VT_CONSOLE, so tty0 gets registered. For stdout-path
-case it becomes default (deregistering the earlycon), but not in case of cconsole=xyz.
-
-This manifests as a "pause" in boot logging (perceivable if u have linux running
-in simulation on a slow host or a large initramfs loading etc). printing is
-restored when the real 8250 console registers towards end of boot.
-
-One workaround to this seems to be using @keep_bootcon cmdline option. Asking for
-all the bells and whistles to be implemented with paramless earlycon is perhaps
-not fair :-)
-
-But this is something developers in this area need to be aware of nevertheless.
-
-Thx,
+Thx Alexey - good stuff.
 -Vineet
+
+> 
+>  Documentation/devicetree/bindings/arc/axs10x.txt |   7 +
+>  MAINTAINERS                                      |   7 +
+>  arch/arc/Kconfig                                 |   1 +
+>  arch/arc/Makefile                                |   1 +
+>  arch/arc/boot/dts/axc001.dtsi                    |  79 ++++++
+>  arch/arc/boot/dts/axs101.dts                     |  21 ++
+>  arch/arc/boot/dts/axs10x_mb.dtsi                 | 241 ++++++++++++++++++
+>  arch/arc/configs/axs101_defconfig                | 112 +++++++++
+>  arch/arc/kernel/devtree.c                        |   2 +
+>  arch/arc/plat-axs10x/Kconfig                     |  35 +++
+>  arch/arc/plat-axs10x/Makefile                    |   9 +
+>  arch/arc/plat-axs10x/axs10x.c                    | 298 +++++++++++++++++++++++
+>  12 files changed, 813 insertions(+)
+>  create mode 100644 Documentation/devicetree/bindings/arc/axs10x.txt
+>  create mode 100644 arch/arc/boot/dts/axc001.dtsi
+>  create mode 100644 arch/arc/boot/dts/axs101.dts
+>  create mode 100644 arch/arc/boot/dts/axs10x_mb.dtsi
+>  create mode 100644 arch/arc/configs/axs101_defconfig
+>  create mode 100644 arch/arc/plat-axs10x/Kconfig
+>  create mode 100644 arch/arc/plat-axs10x/Makefile
+>  create mode 100644 arch/arc/plat-axs10x/axs10x.c
+> 
