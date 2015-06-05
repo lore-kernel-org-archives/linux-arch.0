@@ -1,83 +1,218 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.60.111]:32833 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-FAIL-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751210AbbFENB3 convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 5 Jun 2015 09:01:29 -0400
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: console setting via stdout-path vs console=xxx (was Re: [PATCH 2/4]
- ARC: [axs101] support early 8250 uart)
-Date: Fri, 5 Jun 2015 13:01:23 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665A3DF6@IN01WEMBXB.internal.synopsys.com>
-References: <1431607724-9142-1-git-send-email-abrodkin@synopsys.com>
- <1431607724-9142-3-git-send-email-abrodkin@synopsys.com>
- <2836384.o6ec7X8zDk@wuerfel>
- <C2D7FE5348E1B147BCA15975FBA23075665A0229@IN01WEMBXB.internal.synopsys.com>
- <55712D5B.6090302@synopsys.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Received: from mga14.intel.com ([192.55.52.115]:64149 "EHLO mga14.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932696AbbFEVWL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 5 Jun 2015 17:22:11 -0400
+Subject: [PATCH v4 5/9] dma-mapping: allow archs to optionally specify a
+ ->map_pfn() operation
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Fri, 05 Jun 2015 17:19:30 -0400
+Message-ID: <20150605211929.20751.764.stgit@dwillia2-desk3.amr.corp.intel.com>
+In-Reply-To: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com>
+References: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-serial@vger.kernel.org" <linux-serial@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, Rob Herring <robh@kernel.org>, Peter Hurley <peter@hurleysoftware.com>, "robh+dt@kernel.org" <robh+dt@kernel.org>
-Message-ID: <20150605130123.nV9XHh3u2j2HvZGz98kvrHg_XHUGo9MhsAJhJfYAGeU@z>
+To: linux-kernel@vger.kernel.org
+Cc: axboe@kernel.dk, boaz@plexistor.com, david@fromorbit.com, linux-arch@vger.kernel.org, arnd@arndb.de, ross.zwisler@linux.intel.com, linux-nvdimm@lists.01.org, benh@kernel.crashing.org, linux-fsdevel@vger.kernel.org, heiko.carstens@de.ibm.com, hch@lst.de, tj@kernel.org, paulus@samba.org, hpa@zytor.com, schwidefsky@de.ibm.com, willy@linux.intel.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, mingo@kernel.org
+Message-ID: <20150605211930.Om5r86NKOCS6y1PpfjT24IlvJsM1tVLmaB8CMiuDBM4@z>
 
-On Friday 05 June 2015 10:32 AM, Vineet Gupta wrote:
-> On Thursday 14 May 2015 06:34 PM, Vineet Gupta wrote:
->> > On Thursday 14 May 2015 06:23 PM, Arnd Bergmann wrote:
->> > 
->> > On Thursday 14 May 2015 15:48:42 Alexey Brodkin wrote:
->> > 
->> > 
->>>> >> >
->>>> >> >         chosen {
->>>> >> > -               bootargs = "console=tty0 console=ttyS3,115200n8 consoleblank=0";
->>>> >> > +               bootargs = "earlycon=uart8250,mmio32,0xe0022000,115200n8 console=tty0 console=ttyS3,115200n8 consoleblank=0";
->>>> >> >         };
->>>> >> >  };
->>>> >> >
->> > 
->> > When you do earlycon with DT, better use a 'stdout-path' property that points
->> > to the device, and just put 'earlycon' without arguments on the command line.
->> > 
->> >         Arnd
->> > 
->> > 
->> > Sure ! I tried that once (3.16) and even the dts patch got merged but had to be reverted out !
->> > 
->> > 2014-07-27 22524b02b17b Revert "ARC: [arcfpga] stdout-path now suffices for earlycon/console"
->> > 
->> > Let me see if that works again since serial land has seen some significant churn in recent times
->> > 
->> > Thx for pointing this out !
-> so specifying console with stdout-path works for me,
-> 
-> -  bootargs = "earlycon=uart8250,mmio32,0xf0000000,115200n8 console=tty0
-> console=ttyS0,115200n8 consoleblank=0 debug";
-> +  bootargs = "earlycon=uart8250,mmio32,0xf0000000,115200n8";
-> +  stdout-path = &uart0;
-> ..
+Initially this enables the conversion of struct scatterlist to carry a __pfn_t
+instead of a struct page * reference.  Later this enables block device drivers
+to perform DMA to/from persistent memory which may not have a backing struct
+page entry.
 
-Also interestingly, specifying console with stdout-path vs. console=xyz leads to a
-subtle behaviour change of boot printing.
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+---
+ arch/Kconfig                             |    3 +++
+ include/asm-generic/dma-mapping-common.h |   30 ++++++++++++++++++++++++++++++
+ include/linux/dma-debug.h                |   23 +++++++++++++++++++----
+ include/linux/dma-mapping.h              |    8 +++++++-
+ lib/dma-debug.c                          |   10 ++++++----
+ 5 files changed, 65 insertions(+), 9 deletions(-)
 
-With console=xyz, console_setup() -> __add_preferred_console() sets
-preferred_console = 0, which doesn't happen with stdout-path.
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 9b98732e0f3b..69d3a3fa21af 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -203,6 +203,9 @@ config HAVE_DMA_ATTRS
+ config HAVE_DMA_CONTIGUOUS
+ 	bool
+ 
++config HAVE_DMA_PFN
++	bool
++
+ config HAVE_KMAP_PFN
+ 	bool
+ 
+diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
+index 940d5ec122c9..7305efb1bac6 100644
+--- a/include/asm-generic/dma-mapping-common.h
++++ b/include/asm-generic/dma-mapping-common.h
+@@ -17,9 +17,15 @@ static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
+ 
+ 	kmemcheck_mark_initialized(ptr, size);
+ 	BUG_ON(!valid_dma_direction(dir));
++#ifdef CONFIG_HAVE_DMA_PFN
++	addr = ops->map_pfn(dev, page_to_pfn_typed(virt_to_page(ptr)),
++			     (unsigned long)ptr & ~PAGE_MASK, size,
++			     dir, attrs);
++#else
+ 	addr = ops->map_page(dev, virt_to_page(ptr),
+ 			     (unsigned long)ptr & ~PAGE_MASK, size,
+ 			     dir, attrs);
++#endif
+ 	debug_dma_map_page(dev, virt_to_page(ptr),
+ 			   (unsigned long)ptr & ~PAGE_MASK, size,
+ 			   dir, addr, true);
+@@ -73,6 +79,29 @@ static inline void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg
+ 		ops->unmap_sg(dev, sg, nents, dir, attrs);
+ }
+ 
++#ifdef CONFIG_HAVE_DMA_PFN
++static inline dma_addr_t dma_map_pfn(struct device *dev, __pfn_t pfn,
++				      size_t offset, size_t size,
++				      enum dma_data_direction dir)
++{
++	struct dma_map_ops *ops = get_dma_ops(dev);
++	dma_addr_t addr;
++
++	BUG_ON(!valid_dma_direction(dir));
++	addr = ops->map_pfn(dev, pfn, offset, size, dir, NULL);
++	debug_dma_map_pfn(dev, pfn, offset, size, dir, addr, false);
++
++	return addr;
++}
++
++static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
++				      size_t offset, size_t size,
++				      enum dma_data_direction dir)
++{
++	kmemcheck_mark_initialized(page_address(page) + offset, size);
++	return dma_map_pfn(dev, page_to_pfn_typed(page), offset, size, dir);
++}
++#else
+ static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
+ 				      size_t offset, size_t size,
+ 				      enum dma_data_direction dir)
+@@ -87,6 +116,7 @@ static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
+ 
+ 	return addr;
+ }
++#endif /* CONFIG_HAVE_DMA_PFN */
+ 
+ static inline void dma_unmap_page(struct device *dev, dma_addr_t addr,
+ 				  size_t size, enum dma_data_direction dir)
+diff --git a/include/linux/dma-debug.h b/include/linux/dma-debug.h
+index fe8cb610deac..a3b4c8c0cd68 100644
+--- a/include/linux/dma-debug.h
++++ b/include/linux/dma-debug.h
+@@ -34,10 +34,18 @@ extern void dma_debug_init(u32 num_entries);
+ 
+ extern int dma_debug_resize_entries(u32 num_entries);
+ 
+-extern void debug_dma_map_page(struct device *dev, struct page *page,
+-			       size_t offset, size_t size,
+-			       int direction, dma_addr_t dma_addr,
+-			       bool map_single);
++extern void debug_dma_map_pfn(struct device *dev, __pfn_t pfn, size_t offset,
++			      size_t size, int direction, dma_addr_t dma_addr,
++			      bool map_single);
++
++static inline void debug_dma_map_page(struct device *dev, struct page *page,
++				      size_t offset, size_t size,
++				      int direction, dma_addr_t dma_addr,
++				      bool map_single)
++{
++	return debug_dma_map_pfn(dev, page_to_pfn_t(page), offset, size,
++			direction, dma_addr, map_single);
++}
+ 
+ extern void debug_dma_mapping_error(struct device *dev, dma_addr_t dma_addr);
+ 
+@@ -109,6 +117,13 @@ static inline void debug_dma_map_page(struct device *dev, struct page *page,
+ {
+ }
+ 
++static inline void debug_dma_map_pfn(struct device *dev, __pfn_t pfn,
++				     size_t offset, size_t size,
++				     int direction, dma_addr_t dma_addr,
++				     bool map_single)
++{
++}
++
+ static inline void debug_dma_mapping_error(struct device *dev,
+ 					  dma_addr_t dma_addr)
+ {
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index ac07ff090919..d6437b493300 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -26,11 +26,17 @@ struct dma_map_ops {
+ 
+ 	int (*get_sgtable)(struct device *dev, struct sg_table *sgt, void *,
+ 			   dma_addr_t, size_t, struct dma_attrs *attrs);
+-
++#ifdef CONFIG_HAVE_DMA_PFN
++	dma_addr_t (*map_pfn)(struct device *dev, __pfn_t pfn,
++			      unsigned long offset, size_t size,
++			      enum dma_data_direction dir,
++			      struct dma_attrs *attrs);
++#else
+ 	dma_addr_t (*map_page)(struct device *dev, struct page *page,
+ 			       unsigned long offset, size_t size,
+ 			       enum dma_data_direction dir,
+ 			       struct dma_attrs *attrs);
++#endif
+ 	void (*unmap_page)(struct device *dev, dma_addr_t dma_handle,
+ 			   size_t size, enum dma_data_direction dir,
+ 			   struct dma_attrs *attrs);
+diff --git a/lib/dma-debug.c b/lib/dma-debug.c
+index ae4b65e17e64..c24de1cd8f81 100644
+--- a/lib/dma-debug.c
++++ b/lib/dma-debug.c
+@@ -1250,11 +1250,12 @@ out:
+ 	put_hash_bucket(bucket, &flags);
+ }
+ 
+-void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
++void debug_dma_map_pfn(struct device *dev, __pfn_t pfn, size_t offset,
+ 			size_t size, int direction, dma_addr_t dma_addr,
+ 			bool map_single)
+ {
+ 	struct dma_debug_entry *entry;
++	struct page *page;
+ 
+ 	if (unlikely(dma_debug_disabled()))
+ 		return;
+@@ -1268,7 +1269,7 @@ void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
+ 
+ 	entry->dev       = dev;
+ 	entry->type      = dma_debug_page;
+-	entry->pfn	 = page_to_pfn(page);
++	entry->pfn	 = __pfn_t_to_pfn(pfn);
+ 	entry->offset	 = offset,
+ 	entry->dev_addr  = dma_addr;
+ 	entry->size      = size;
+@@ -1278,7 +1279,8 @@ void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
+ 	if (map_single)
+ 		entry->type = dma_debug_single;
+ 
+-	if (!PageHighMem(page)) {
++	page = __pfn_t_to_page(pfn);
++	if (page && !PageHighMem(page)) {
+ 		void *addr = page_address(page) + offset;
+ 
+ 		check_for_stack(dev, addr);
+@@ -1287,7 +1289,7 @@ void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
+ 
+ 	add_dma_entry(entry);
+ }
+-EXPORT_SYMBOL(debug_dma_map_page);
++EXPORT_SYMBOL(debug_dma_map_pfn);
+ 
+ void debug_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+ {
 
-ARC defconfigs have CONFIG_VT_CONSOLE, so tty0 gets registered. For stdout-path
-case it becomes default (deregistering the earlycon), but not in case of cconsole=xyz.
-
-This manifests as a "pause" in boot logging (perceivable if u have linux running
-in simulation on a slow host or a large initramfs loading etc). printing is
-restored when the real 8250 console registers towards end of boot.
-
-One workaround to this seems to be using @keep_bootcon cmdline option. Asking for
-all the bells and whistles to be implemented with paramless earlycon is perhaps
-not fair :-)
-
-But this is something developers in this area need to be aware of nevertheless.
-
-Thx,
--Vineet
