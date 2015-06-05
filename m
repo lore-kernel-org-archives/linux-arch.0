@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:38129 "EHLO mga09.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:42590 "EHLO mga14.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754492AbbFEVW1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 5 Jun 2015 17:22:27 -0400
-Subject: [PATCH v4 6/9] scatterlist: use sg_phys()
+	id S1752585AbbFEVWA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 5 Jun 2015 17:22:00 -0400
+Subject: [PATCH v4 3/9] dax: drop size parameter to ->direct_access()
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 05 Jun 2015 17:19:35 -0400
-Message-ID: <20150605211935.20751.55654.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Fri, 05 Jun 2015 17:19:18 -0400
+Message-ID: <20150605211918.20751.21557.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -15,125 +15,119 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: axboe@kernel.dk, boaz@plexistor.com, david@fromorbit.com, linux-arch@vger.kernel.org, arnd@arndb.de, ross.zwisler@linux.intel.com, linux-nvdimm@lists.01.org, benh@kernel.crashing.org, linux-fsdevel@vger.kernel.org, heiko.carstens@de.ibm.com, hch@lst.de, Julia Lawall <Julia.Lawall@lip6.fr>, tj@kernel.org, paulus@samba.org, hpa@zytor.com, schwidefsky@de.ibm.com, willy@linux.intel.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, mingo@kernel.org
-Message-ID: <20150605211935.BvTDsLoDNMH51gqCH7P7SkIRV0ZTWW_ziwQQXmD8fqc@z>
+Cc: axboe@kernel.dk, boaz@plexistor.com, david@fromorbit.com, linux-arch@vger.kernel.org, arnd@arndb.de, ross.zwisler@linux.intel.com, linux-nvdimm@lists.01.org, benh@kernel.crashing.org, linux-fsdevel@vger.kernel.org, heiko.carstens@de.ibm.com, hch@lst.de, tj@kernel.org, paulus@samba.org, hpa@zytor.com, schwidefsky@de.ibm.com, willy@linux.intel.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, mingo@kernel.org
+Message-ID: <20150605211918.qxt4aygG8l54sLxGRSCyCerN7u9BNyRVc4WI-oxASEI@z>
 
-Coccinelle cleanup to replace open coded sg to physical address
-translations.  This is in preparation for introducing scatterlists that
-reference __pfn_t.
+None of the implementations currently use it.  The common
+bdev_direct_access() entry point handles all the size checks before
+calling ->direct_access().
 
-// sg_phys.cocci: convert usage page_to_phys(sg_page(sg)) to sg_phys(sg)
-// usage: make coccicheck COCCI=sg_phys.cocci MODE=patch
-
-virtual patch
-virtual report
-virtual org
-
-@@
-struct scatterlist *sg;
-@@
-
-- page_to_phys(sg_page(sg)) + sg->offset
-+ sg_phys(sg)
-
-@@
-struct scatterlist *sg;
-@@
-
-- page_to_phys(sg_page(sg))
-+ sg_phys(sg) - sg->offset
-
-Cc: Julia Lawall <Julia.Lawall@lip6.fr>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/arm/mm/dma-mapping.c                    |    2 +-
- arch/microblaze/kernel/dma.c                 |    2 +-
- drivers/iommu/intel-iommu.c                  |    4 ++--
- drivers/iommu/iommu.c                        |    2 +-
- drivers/staging/android/ion/ion_chunk_heap.c |    4 ++--
- 5 files changed, 7 insertions(+), 7 deletions(-)
+ arch/powerpc/sysdev/axonram.c |    2 +-
+ drivers/block/brd.c           |    6 +-----
+ drivers/block/pmem.c          |    2 +-
+ drivers/s390/block/dcssblk.c  |    4 ++--
+ fs/block_dev.c                |    2 +-
+ include/linux/blkdev.h        |    2 +-
+ 6 files changed, 7 insertions(+), 11 deletions(-)
 
-diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index 09c5fe3d30c2..43cc6a8fdacc 100644
---- a/arch/arm/mm/dma-mapping.c
-+++ b/arch/arm/mm/dma-mapping.c
-@@ -1502,7 +1502,7 @@ static int __map_sg_chunk(struct device *dev, struct scatterlist *sg,
- 		return -ENOMEM;
+diff --git a/arch/powerpc/sysdev/axonram.c b/arch/powerpc/sysdev/axonram.c
+index ee90db17b097..e8657d3bc588 100644
+--- a/arch/powerpc/sysdev/axonram.c
++++ b/arch/powerpc/sysdev/axonram.c
+@@ -141,7 +141,7 @@ axon_ram_make_request(struct request_queue *queue, struct bio *bio)
+  */
+ static long
+ axon_ram_direct_access(struct block_device *device, sector_t sector,
+-		       void **kaddr, unsigned long *pfn, long size)
++		       void **kaddr, unsigned long *pfn)
+ {
+ 	struct axon_ram_bank *bank = device->bd_disk->private_data;
+ 	loff_t offset = (loff_t)sector << AXON_RAM_SECTOR_SHIFT;
+diff --git a/drivers/block/brd.c b/drivers/block/brd.c
+index 64ab4951e9d6..41528857c70d 100644
+--- a/drivers/block/brd.c
++++ b/drivers/block/brd.c
+@@ -371,7 +371,7 @@ static int brd_rw_page(struct block_device *bdev, sector_t sector,
  
- 	for (count = 0, s = sg; count < (size >> PAGE_SHIFT); s = sg_next(s)) {
--		phys_addr_t phys = page_to_phys(sg_page(s));
-+		phys_addr_t phys = sg_phys(s) - s->offset;
- 		unsigned int len = PAGE_ALIGN(s->offset + s->length);
+ #ifdef CONFIG_BLK_DEV_RAM_DAX
+ static long brd_direct_access(struct block_device *bdev, sector_t sector,
+-			void **kaddr, unsigned long *pfn, long size)
++			void **kaddr, unsigned long *pfn)
+ {
+ 	struct brd_device *brd = bdev->bd_disk->private_data;
+ 	struct page *page;
+@@ -384,10 +384,6 @@ static long brd_direct_access(struct block_device *bdev, sector_t sector,
+ 	*kaddr = page_address(page);
+ 	*pfn = page_to_pfn(page);
  
- 		if (!is_coherent &&
-diff --git a/arch/microblaze/kernel/dma.c b/arch/microblaze/kernel/dma.c
-index ed7ba8a11822..dcb3c594d626 100644
---- a/arch/microblaze/kernel/dma.c
-+++ b/arch/microblaze/kernel/dma.c
-@@ -61,7 +61,7 @@ static int dma_direct_map_sg(struct device *dev, struct scatterlist *sgl,
- 	/* FIXME this part of code is untested */
- 	for_each_sg(sgl, sg, nents, i) {
- 		sg->dma_address = sg_phys(sg);
--		__dma_sync(page_to_phys(sg_page(sg)) + sg->offset,
-+		__dma_sync(sg_phys(sg),
- 							sg->length, direction);
- 	}
+-	/*
+-	 * TODO: If size > PAGE_SIZE, we could look to see if the next page in
+-	 * the file happens to be mapped to the next page of physical RAM.
+-	 */
+ 	return PAGE_SIZE;
+ }
+ #else
+diff --git a/drivers/block/pmem.c b/drivers/block/pmem.c
+index eabf4a8d0085..1f5b5a6288c0 100644
+--- a/drivers/block/pmem.c
++++ b/drivers/block/pmem.c
+@@ -98,7 +98,7 @@ static int pmem_rw_page(struct block_device *bdev, sector_t sector,
+ }
  
-diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
-index 68d43beccb7e..9b9ada71e0d3 100644
---- a/drivers/iommu/intel-iommu.c
-+++ b/drivers/iommu/intel-iommu.c
-@@ -1998,7 +1998,7 @@ static int __domain_mapping(struct dmar_domain *domain, unsigned long iov_pfn,
- 			sg_res = aligned_nrpages(sg->offset, sg->length);
- 			sg->dma_address = ((dma_addr_t)iov_pfn << VTD_PAGE_SHIFT) + sg->offset;
- 			sg->dma_length = sg->length;
--			pteval = page_to_phys(sg_page(sg)) | prot;
-+			pteval = (sg_phys(sg) - sg->offset) | prot;
- 			phys_pfn = pteval >> VTD_PAGE_SHIFT;
- 		}
+ static long pmem_direct_access(struct block_device *bdev, sector_t sector,
+-			      void **kaddr, unsigned long *pfn, long size)
++			      void **kaddr, unsigned long *pfn)
+ {
+ 	struct pmem_device *pmem = bdev->bd_disk->private_data;
+ 	size_t offset = sector << 9;
+diff --git a/drivers/s390/block/dcssblk.c b/drivers/s390/block/dcssblk.c
+index da212813f2d5..2f1734ba0e22 100644
+--- a/drivers/s390/block/dcssblk.c
++++ b/drivers/s390/block/dcssblk.c
+@@ -29,7 +29,7 @@ static int dcssblk_open(struct block_device *bdev, fmode_t mode);
+ static void dcssblk_release(struct gendisk *disk, fmode_t mode);
+ static void dcssblk_make_request(struct request_queue *q, struct bio *bio);
+ static long dcssblk_direct_access(struct block_device *bdev, sector_t secnum,
+-				 void **kaddr, unsigned long *pfn, long size);
++				 void **kaddr, unsigned long *pfn);
  
-@@ -3302,7 +3302,7 @@ static int intel_nontranslate_map_sg(struct device *hddev,
+ static char dcssblk_segments[DCSSBLK_PARM_LEN] = "\0";
  
- 	for_each_sg(sglist, sg, nelems, i) {
- 		BUG_ON(!sg_page(sg));
--		sg->dma_address = page_to_phys(sg_page(sg)) + sg->offset;
-+		sg->dma_address = sg_phys(sg);
- 		sg->dma_length = sg->length;
- 	}
- 	return nelems;
-diff --git a/drivers/iommu/iommu.c b/drivers/iommu/iommu.c
-index d4f527e56679..59808fc9110d 100644
---- a/drivers/iommu/iommu.c
-+++ b/drivers/iommu/iommu.c
-@@ -1147,7 +1147,7 @@ size_t default_iommu_map_sg(struct iommu_domain *domain, unsigned long iova,
- 	min_pagesz = 1 << __ffs(domain->ops->pgsize_bitmap);
+@@ -879,7 +879,7 @@ fail:
  
- 	for_each_sg(sg, s, nents, i) {
--		phys_addr_t phys = page_to_phys(sg_page(s)) + s->offset;
-+		phys_addr_t phys = sg_phys(s);
- 
- 		/*
- 		 * We are mapping on IOMMU page boundaries, so offset within
-diff --git a/drivers/staging/android/ion/ion_chunk_heap.c b/drivers/staging/android/ion/ion_chunk_heap.c
-index 3e6ec2ee6802..b7da5d142aa9 100644
---- a/drivers/staging/android/ion/ion_chunk_heap.c
-+++ b/drivers/staging/android/ion/ion_chunk_heap.c
-@@ -81,7 +81,7 @@ static int ion_chunk_heap_allocate(struct ion_heap *heap,
- err:
- 	sg = table->sgl;
- 	for (i -= 1; i >= 0; i--) {
--		gen_pool_free(chunk_heap->pool, page_to_phys(sg_page(sg)),
-+		gen_pool_free(chunk_heap->pool, sg_phys(sg) - sg->offset,
- 			      sg->length);
- 		sg = sg_next(sg);
- 	}
-@@ -109,7 +109,7 @@ static void ion_chunk_heap_free(struct ion_buffer *buffer)
- 							DMA_BIDIRECTIONAL);
- 
- 	for_each_sg(table->sgl, sg, table->nents, i) {
--		gen_pool_free(chunk_heap->pool, page_to_phys(sg_page(sg)),
-+		gen_pool_free(chunk_heap->pool, sg_phys(sg) - sg->offset,
- 			      sg->length);
- 	}
- 	chunk_heap->allocated -= allocated_size;
+ static long
+ dcssblk_direct_access (struct block_device *bdev, sector_t secnum,
+-			void **kaddr, unsigned long *pfn, long size)
++			void **kaddr, unsigned long *pfn)
+ {
+ 	struct dcssblk_dev_info *dev_info;
+ 	unsigned long offset, dev_sz;
+diff --git a/fs/block_dev.c b/fs/block_dev.c
+index f04c873a7365..19750f058495 100644
+--- a/fs/block_dev.c
++++ b/fs/block_dev.c
+@@ -453,7 +453,7 @@ long bdev_direct_access(struct block_device *bdev, sector_t sector,
+ 	sector += get_start_sect(bdev);
+ 	if (sector % (PAGE_SIZE / 512))
+ 		return -EINVAL;
+-	avail = ops->direct_access(bdev, sector, addr, pfn, size);
++	avail = ops->direct_access(bdev, sector, addr, pfn);
+ 	if (!avail)
+ 		return -ERANGE;
+ 	return min(avail, size);
+diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
+index 31cd832cebb7..535b82f790a6 100644
+--- a/include/linux/blkdev.h
++++ b/include/linux/blkdev.h
+@@ -1553,7 +1553,7 @@ struct block_device_operations {
+ 	int (*ioctl) (struct block_device *, fmode_t, unsigned, unsigned long);
+ 	int (*compat_ioctl) (struct block_device *, fmode_t, unsigned, unsigned long);
+ 	long (*direct_access)(struct block_device *, sector_t,
+-					void **, unsigned long *pfn, long size);
++					void **, unsigned long *pfn);
+ 	unsigned int (*check_events) (struct gendisk *disk,
+ 				      unsigned int clearing);
+ 	/* ->media_changed() is DEPRECATED, use ->check_events() instead */
 
