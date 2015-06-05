@@ -1,72 +1,104 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 0/4] arc: add AXS101 board support
-Date: Fri, 5 Jun 2015 19:43:08 +0530
-Message-ID: <5571AE74.2010502@synopsys.com>
-References: <1431607724-9142-1-git-send-email-abrodkin@synopsys.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: [PATCH v4 0/9] introduce __pfn_t, evacuate struct page from sgls
+Date: Fri, 05 Jun 2015 17:19:01 -0400
+Message-ID: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.60.111]:34181 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-FAIL-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1422660AbbFEONW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Jun 2015 10:13:22 -0400
-In-Reply-To: <1431607724-9142-1-git-send-email-abrodkin@synopsys.com>
+Received: from mga02.intel.com ([134.134.136.20]:41889 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752585AbbFEVVm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 5 Jun 2015 17:21:42 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, arc-linux-dev@synopsys.com, devicetree@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: axboe@kernel.dk, boaz@plexistor.com, david@fromorbit.com, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, arnd@arndb.de, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, benh@kernel.crashing.org, torvalds@linux-foundation.org, heiko.carstens@de.ibm.com, hch@lst.de, Julia Lawall <Julia.Lawall@lip6.fr>, paulus@samba.org, hpa@zytor.com, tj@kernel.org, willy@linux.intel.com, akpm@linux-foundation.org, ross.zwisler@linux.intel.com, mingo@kernel.org, schwidefsky@de.ibm.com, linux-nvdimm@lists.01.org
 
-On Thursday 14 May 2015 06:19 PM, Alexey Brodkin wrote:
-> AXS101 is a new generation of devlopment boards from Synopsys that houses
-> ASIC with ARC700 and lots of DesignWare peripherals:
-> 
->  * DW APB UART
->  * DW Mobile Storage (MMC/SD)
->  * DW I2C
->  * DW GMAC
-> 
-> More info about DesignWare ARC Software Development Platforms (SDP) is here:
-> http://www.synopsys.com/dw/ipdir.php?ds=arc-software-development-platform
-> 
-> More info about AXS101 in particular is here (it's required to enter contact
-> details to obtain the document):
-> http://www.synopsys.com/dw/doc.php/ds/cc/arc_axs101_sdp.pdf
-> 
-> Alexey Brodkin (2):
->   ARC: [axs101] Add support for AXS101 SDP (software development
->     platform)
->   ARC: [axs101] STAR 9000799830: Fix SD cards support
-> 
-> Vineet Gupta (2):
->   ARC: [axs101] support early 8250 uart
->   ARC: [axs101] Tweak DDR port aperture mappings for performance
+Introduce __pfn_t which:
 
-Added to ARC for-next - finally !
+1/ Allows kernel internal DAX mappings to adhere to the lifetime of the
+   the underlying block device.  In general, it enables a mechanism to
+   allow any device driver to advertise "device memory" (CONFIG_DEV_PFN)
+   to other parts of the kernel.
 
-Thx Alexey - good stuff.
--Vineet
+2/ Replaces usage of struct page in struct scatterlist.  A scatterlist
+   need only carry enough information to generate a dma address, and
+   removing struct page from scatterlists is a precursor to allowing DMA to
+   device memory.  Some dma mapping implementations are not ready for a
+   scatterlist-pfn to reference unampped device memory, those
+   implementations are disabled by CONFIG_DEV_PFN=y.
+   
+Changes since v4 [1]:
 
-> 
->  Documentation/devicetree/bindings/arc/axs10x.txt |   7 +
->  MAINTAINERS                                      |   7 +
->  arch/arc/Kconfig                                 |   1 +
->  arch/arc/Makefile                                |   1 +
->  arch/arc/boot/dts/axc001.dtsi                    |  79 ++++++
->  arch/arc/boot/dts/axs101.dts                     |  21 ++
->  arch/arc/boot/dts/axs10x_mb.dtsi                 | 241 ++++++++++++++++++
->  arch/arc/configs/axs101_defconfig                | 112 +++++++++
->  arch/arc/kernel/devtree.c                        |   2 +
->  arch/arc/plat-axs10x/Kconfig                     |  35 +++
->  arch/arc/plat-axs10x/Makefile                    |   9 +
->  arch/arc/plat-axs10x/axs10x.c                    | 298 +++++++++++++++++++++++
->  12 files changed, 813 insertions(+)
->  create mode 100644 Documentation/devicetree/bindings/arc/axs10x.txt
->  create mode 100644 arch/arc/boot/dts/axc001.dtsi
->  create mode 100644 arch/arc/boot/dts/axs101.dts
->  create mode 100644 arch/arc/boot/dts/axs10x_mb.dtsi
->  create mode 100644 arch/arc/configs/axs101_defconfig
->  create mode 100644 arch/arc/plat-axs10x/Kconfig
->  create mode 100644 arch/arc/plat-axs10x/Makefile
->  create mode 100644 arch/arc/plat-axs10x/axs10x.c
-> 
+1/ Drop the bio_vec conversion of struct page to __pfn_t for now.  Wait
+   until there's a hierarchical block driver that would make use of direct
+   dma to pmem.  (Christoph)
+
+2/ Reorder the patch set to put the dax fixes first.
+
+3/ Unconditionally convert struct scatterlist to use a pfn.  Strictly
+   speaking the scatterlist conversion could also be deferred until we have
+   a driver that attempts dma to pmem, but struct scatterlist really has no
+   valid reason to carry a struct page. (Christoph)
+
+4/ Rebased on block.git/for-next
+
+---
+
+Dan Williams (9):
+      introduce __pfn_t for scatterlists and pmem
+      x86: support kmap_atomic_pfn_t() for persistent memory
+      dax: drop size parameter to ->direct_access()
+      dax: fix mapping lifetime handling, convert to __pfn_t + kmap_atomic_pfn_t()
+      dma-mapping: allow archs to optionally specify a ->map_pfn() operation
+      scatterlist: use sg_phys()
+      scatterlist: cleanup sg_chain() and sg_unmark_end()
+      scatterlist: convert to __pfn_t
+      x86: convert dma_map_ops to support mapping a __pfn_t.
+
+
+ arch/Kconfig                                 |    6 +
+ arch/arm/mm/dma-mapping.c                    |    2 
+ arch/microblaze/kernel/dma.c                 |    2 
+ arch/powerpc/sysdev/axonram.c                |   26 ++++--
+ arch/x86/Kconfig                             |    7 ++
+ arch/x86/kernel/amd_gart_64.c                |   22 ++++-
+ arch/x86/kernel/pci-nommu.c                  |   22 ++++-
+ arch/x86/kernel/pci-swiotlb.c                |    4 +
+ arch/x86/pci/sta2x11-fixup.c                 |    4 +
+ block/blk-merge.c                            |    2 
+ drivers/block/brd.c                          |    9 --
+ drivers/block/pmem.c                         |   16 +++
+ drivers/crypto/omap-sham.c                   |    2 
+ drivers/dma/imx-dma.c                        |    8 --
+ drivers/dma/ste_dma40.c                      |    5 -
+ drivers/iommu/amd_iommu.c                    |   21 +++--
+ drivers/iommu/intel-iommu.c                  |   26 ++++--
+ drivers/iommu/iommu.c                        |    2 
+ drivers/mmc/card/queue.c                     |    4 -
+ drivers/pci/Kconfig                          |    2 
+ drivers/s390/block/dcssblk.c                 |   26 +++++-
+ drivers/staging/android/ion/ion_chunk_heap.c |    4 -
+ fs/block_dev.c                               |    4 -
+ fs/dax.c                                     |   62 +++++++++++--
+ include/asm-generic/dma-mapping-common.h     |   30 +++++++
+ include/asm-generic/memory_model.h           |    1 
+ include/asm-generic/pfn.h                    |  120 ++++++++++++++++++++++++++
+ include/crypto/scatterwalk.h                 |    9 --
+ include/linux/blkdev.h                       |    7 +-
+ include/linux/dma-debug.h                    |   23 ++++-
+ include/linux/dma-mapping.h                  |    8 ++
+ include/linux/highmem.h                      |   23 +++++
+ include/linux/mm.h                           |    1 
+ include/linux/scatterlist.h                  |  103 ++++++++++++++++------
+ include/linux/swiotlb.h                      |    4 +
+ init/Kconfig                                 |   13 +++
+ lib/dma-debug.c                              |   10 +-
+ lib/swiotlb.c                                |   20 +++-
+ mm/Makefile                                  |    1 
+ mm/pfn.c                                     |   98 +++++++++++++++++++++
+ samples/kfifo/dma-example.c                  |    8 +-
+ 41 files changed, 626 insertions(+), 141 deletions(-)
+ create mode 100644 include/asm-generic/pfn.h
+ create mode 100644 mm/pfn.c
