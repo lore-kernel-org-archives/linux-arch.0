@@ -1,226 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:2768 "EHLO mga03.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752585AbbFEVVy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 5 Jun 2015 17:21:54 -0400
-Subject: [PATCH v4 2/9] x86: support kmap_atomic_pfn_t() for persistent
- memory
-From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 05 Jun 2015 17:19:12 -0400
-Message-ID: <20150605211912.20751.35406.stgit@dwillia2-desk3.amr.corp.intel.com>
-In-Reply-To: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com>
-References: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com>
+Received: from mail-lb0-f171.google.com ([209.85.217.171]:33961 "EHLO
+	mail-lb0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751826AbbFEVhP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Jun 2015 17:37:15 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20150605211906.20751.59875.stgit@dwillia2-desk3.amr.corp.intel.com>
+References: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com>
+	<20150605211906.20751.59875.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Fri, 5 Jun 2015 14:37:13 -0700
+Message-ID: <CA+55aFzPUY2jReg2NXYUpTB2oDYttO5+qw4oy9G1eg+BCm2aDA@mail.gmail.com>
+Subject: Re: [PATCH v4 1/9] introduce __pfn_t for scatterlists and pmem
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: axboe@kernel.dk, boaz@plexistor.com, david@fromorbit.com, linux-arch@vger.kernel.org, arnd@arndb.de, ross.zwisler@linux.intel.com, linux-nvdimm@lists.01.org, benh@kernel.crashing.org, linux-fsdevel@vger.kernel.org, heiko.carstens@de.ibm.com, hch@lst.de, tj@kernel.org, paulus@samba.org, hpa@zytor.com, schwidefsky@de.ibm.com, willy@linux.intel.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, mingo@kernel.org
-Message-ID: <20150605211912.LhXO6dC3iDFnYsos75tmuX-2HwHShih6XSTWLdgALn8@z>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Jens Axboe <axboe@kernel.dk>, Boaz Harrosh <boaz@plexistor.com>, Dave Chinner <david@fromorbit.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ross Zwisler <ross.zwisler@linux.intel.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Christoph Hellwig <hch@lst.de>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Paul Mackerras <paulus@samba.org>, Peter Anvin <hpa@zytor.com>, Tejun Heo <tj@kernel.org>, Matthew Wilcox <willy@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
+Message-ID: <20150605213713.jkGpDrSgz9QX4ZVK9HKtarrwgnnfksJqIhlN5QIR7g4@z>
 
-It would be unfortunate if the kmap infrastructure escaped its current
-32-bit/HIGHMEM bonds and leaked into 64-bit code.  Instead, if the user
-has enabled CONFIG_DEV_PFN we direct the kmap_atomic_pfn_t()
-implementation to scan a list of pre-mapped persistent memory address
-ranges inserted by the pmem driver.
+On Fri, Jun 5, 2015 at 2:19 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+> +enum {
+> +#if BITS_PER_LONG == 64
+> +       PFN_SHIFT = 3,
+> +       /* device-pfn not covered by memmap */
+> +       PFN_DEV = (1UL << 2),
+> +#else
+> +       PFN_SHIFT = 2,
+> +#endif
+> +       PFN_MASK = (1UL << PFN_SHIFT) - 1,
+> +       PFN_SG_CHAIN = (1UL << 0),
+> +       PFN_SG_LAST = (1UL << 1),
+> +};
 
-The __pfn_t to resource lookup is indeed inefficient walking of a linked list,
-but there are two mitigating factors:
+Ugh. Just make PFN_SHIFT unconditional. Make it 2, unconditionally.
+Or, if you want to have more bits, make it three unconditionally, and
+make 'struct page' just be at least 8-byte aligned even on 32-bit.
 
-1/ The number of persistent memory ranges is bounded by the number of
-   DIMMs which is on the order of 10s of DIMMs, not hundreds.
+Even on 32-bit architectures, there's plenty of bits. There's no
+reason to "pack" this optimally. Remember: it's a page frame number,
+so there's the page size shifting going on in physical memory, and
+even if you shift the PFN by 3 - or four  of five - bits
+unconditionally (rather than try to shift it by some minimal number),
+you're covering a *lot* of physical memory.
 
-2/ The lookup yields the entire range, if it becomes inefficient to do a
-   kmap_atomic_pfn_t() a PAGE_SIZE at a time the caller can take
-   advantage of the fact that the lookup can be amortized for all kmap
-   operations it needs to perform in a given range.
+Say you're a 32-bit architecture with a 4k page size, and you lose
+three bits to "type" bits. You still have 32+12-3=41 bits of physical
+address space. Which is way more than realistic for a 32-bit
+architecture anyway, even with PAE (or PXE or whatever ARM calls it).
+Not that I see persistent memory being all that relevant on 32-bit
+hardware anyway.
 
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
----
- arch/Kconfig            |    3 +
- arch/x86/Kconfig        |    5 ++
- include/linux/highmem.h |   23 +++++++++++
- mm/Makefile             |    1 
- mm/pfn.c                |   98 +++++++++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 130 insertions(+)
- create mode 100644 mm/pfn.c
+So I think if you actually do want that third bit, you're better off
+just marking "struct page" as being __aligned__((8)) and getting the
+three bits unconditionally. Just make the rule be that mem_map[] has
+to be 8-byte aligned.
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index a65eafb24997..9b98732e0f3b 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -203,6 +203,9 @@ config HAVE_DMA_ATTRS
- config HAVE_DMA_CONTIGUOUS
- 	bool
- 
-+config HAVE_KMAP_PFN
-+	bool
-+
- config GENERIC_SMP_IDLE_THREAD
-        bool
- 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 226d5696e1d1..130d1a4c2efc 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -1432,6 +1432,11 @@ config X86_PMEM_LEGACY
- 
- 	  Say Y if unsure.
- 
-+config X86_PMEM_DMA
-+	depends on !HIGHMEM
-+	def_bool DEV_PFN
-+	select HAVE_KMAP_PFN
-+
- config HIGHPTE
- 	bool "Allocate 3rd-level pagetables from highmem"
- 	depends on HIGHMEM
-diff --git a/include/linux/highmem.h b/include/linux/highmem.h
-index 9286a46b7d69..85fd52d43a9a 100644
---- a/include/linux/highmem.h
-+++ b/include/linux/highmem.h
-@@ -83,6 +83,29 @@ static inline void __kunmap_atomic(void *addr)
- 
- #endif /* CONFIG_HIGHMEM */
- 
-+#ifdef CONFIG_HAVE_KMAP_PFN
-+extern void *kmap_atomic_pfn_t(__pfn_t pfn);
-+extern void kunmap_atomic_pfn_t(void *addr);
-+extern int devm_register_kmap_pfn_range(struct device *dev,
-+		struct resource *res, void *base);
-+#else
-+static inline void *kmap_atomic_pfn_t(__pfn_t pfn)
-+{
-+	return kmap_atomic(__pfn_t_to_page(pfn));
-+}
-+
-+static inline void kunmap_atomic_pfn_t(void *addr)
-+{
-+	__kunmap_atomic(addr);
-+}
-+
-+static inline int devm_register_kmap_pfn_range(struct device *dev,
-+		struct resource *res, void *base)
-+{
-+	return 0;
-+}
-+#endif /* CONFIG_HAVE_KMAP_PFN */
-+
- #if defined(CONFIG_HIGHMEM) || defined(CONFIG_X86_32)
- 
- DECLARE_PER_CPU(int, __kmap_atomic_idx);
-diff --git a/mm/Makefile b/mm/Makefile
-index 98c4eaeabdcb..66e30c2addfe 100644
---- a/mm/Makefile
-+++ b/mm/Makefile
-@@ -78,3 +78,4 @@ obj-$(CONFIG_CMA)	+= cma.o
- obj-$(CONFIG_MEMORY_BALLOON) += balloon_compaction.o
- obj-$(CONFIG_PAGE_EXTENSION) += page_ext.o
- obj-$(CONFIG_CMA_DEBUGFS) += cma_debug.o
-+obj-$(CONFIG_HAVE_KMAP_PFN) += pfn.o
-diff --git a/mm/pfn.c b/mm/pfn.c
-new file mode 100644
-index 000000000000..0e046b49aebf
---- /dev/null
-+++ b/mm/pfn.c
-@@ -0,0 +1,98 @@
-+/*
-+ * Copyright(c) 2015 Intel Corporation. All rights reserved.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of version 2 of the GNU General Public License as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful, but
-+ * WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-+ * General Public License for more details.
-+ */
-+#include <linux/rcupdate.h>
-+#include <linux/rculist.h>
-+#include <linux/highmem.h>
-+#include <linux/device.h>
-+#include <linux/slab.h>
-+#include <linux/mm.h>
-+
-+static LIST_HEAD(ranges);
-+
-+struct kmap {
-+	struct list_head list;
-+	struct resource *res;
-+	struct device *dev;
-+	void *base;
-+};
-+
-+static void teardown_kmap(void *data)
-+{
-+	struct kmap *kmap = data;
-+
-+	dev_dbg(kmap->dev, "kmap unregister %pr\n", kmap->res);
-+	list_del_rcu(&kmap->list);
-+	synchronize_rcu();
-+	kfree(kmap);
-+}
-+
-+int devm_register_kmap_pfn_range(struct device *dev, struct resource *res,
-+		void *base)
-+{
-+	struct kmap *kmap = kzalloc(sizeof(*kmap), GFP_KERNEL);
-+	int rc;
-+
-+	if (!kmap)
-+		return -ENOMEM;
-+
-+	INIT_LIST_HEAD(&kmap->list);
-+	kmap->res = res;
-+	kmap->base = base;
-+	kmap->dev = dev;
-+	rc = devm_add_action(dev, teardown_kmap, kmap);
-+	if (rc) {
-+		kfree(kmap);
-+		return rc;
-+	}
-+	dev_dbg(kmap->dev, "kmap register %pr\n", kmap->res);
-+	list_add_rcu(&kmap->list, &ranges);
-+	return 0;
-+}
-+EXPORT_SYMBOL_GPL(devm_register_kmap_pfn_range);
-+
-+void *kmap_atomic_pfn_t(__pfn_t pfn)
-+{
-+	struct page *page = __pfn_t_to_page(pfn);
-+	resource_size_t addr;
-+	struct kmap *kmap;
-+
-+	if (page)
-+		return kmap_atomic(page);
-+	addr = __pfn_t_to_phys(pfn);
-+	rcu_read_lock();
-+	list_for_each_entry_rcu(kmap, &ranges, list)
-+		if (addr >= kmap->res->start && addr <= kmap->res->end)
-+			return kmap->base + addr - kmap->res->start;
-+
-+	/* only unlock in the error case */
-+	rcu_read_unlock();
-+	return NULL;
-+}
-+EXPORT_SYMBOL(kmap_atomic_pfn_t);
-+
-+void kunmap_atomic_pfn_t(void *addr)
-+{
-+	/*
-+	 * If the original __pfn_t had an entry in the memmap then
-+	 * 'addr' will be outside of vmalloc space i.e. it came from
-+	 * page_address()
-+	 */
-+	if (!is_vmalloc_addr(addr)) {
-+		kunmap_atomic(addr);
-+		return;
-+	}
-+
-+	/* signal that we are done with the range */
-+	rcu_read_unlock();
-+}
-+EXPORT_SYMBOL(kunmap_atomic_pfn_t);
+Even 16-byte alignment would probably be fine. No?
 
+                Linus
