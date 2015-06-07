@@ -1,60 +1,224 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f171.google.com ([209.85.217.171]:33961 "EHLO
-	mail-lb0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751826AbbFEVhP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Jun 2015 17:37:15 -0400
+Received: from smtprelay2.synopsys.com ([198.182.60.111]:37842 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S932894AbbFGIk2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Jun 2015 04:40:28 -0400
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH 18/19] ARC: Make way for pt_regs != user_regs_struct
+Date: Sun, 7 Jun 2015 14:08:22 +0530
+Message-ID: <1433666303-26112-19-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1433666303-26112-1-git-send-email-vgupta@synopsys.com>
+References: <1433666303-26112-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
-In-Reply-To: <20150605211906.20751.59875.stgit@dwillia2-desk3.amr.corp.intel.com>
-References: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20150605211906.20751.59875.stgit@dwillia2-desk3.amr.corp.intel.com>
-Date: Fri, 5 Jun 2015 14:37:13 -0700
-Message-ID: <CA+55aFzPUY2jReg2NXYUpTB2oDYttO5+qw4oy9G1eg+BCm2aDA@mail.gmail.com>
-Subject: Re: [PATCH v4 1/9] introduce __pfn_t for scatterlists and pmem
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Jens Axboe <axboe@kernel.dk>, Boaz Harrosh <boaz@plexistor.com>, Dave Chinner <david@fromorbit.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ross Zwisler <ross.zwisler@linux.intel.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Christoph Hellwig <hch@lst.de>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Paul Mackerras <paulus@samba.org>, Peter Anvin <hpa@zytor.com>, Tejun Heo <tj@kernel.org>, Matthew Wilcox <willy@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20150605213713.jkGpDrSgz9QX4ZVK9HKtarrwgnnfksJqIhlN5QIR7g4@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20150607083822.FrY8dQP1AWFaFjcM_AszP3Pl3rG7LgrJwil9f0nZQFo@z>
 
-On Fri, Jun 5, 2015 at 2:19 PM, Dan Williams <dan.j.williams@intel.com> wrote:
-> +enum {
-> +#if BITS_PER_LONG == 64
-> +       PFN_SHIFT = 3,
-> +       /* device-pfn not covered by memmap */
-> +       PFN_DEV = (1UL << 2),
-> +#else
-> +       PFN_SHIFT = 2,
-> +#endif
-> +       PFN_MASK = (1UL << PFN_SHIFT) - 1,
-> +       PFN_SG_CHAIN = (1UL << 0),
-> +       PFN_SG_LAST = (1UL << 1),
-> +};
+These have been register compatible so far. However ARCv2 mandates
+different pt_regs layout (due to h/w auto save). To keep pt_regs same
+for both, we start by removing the assumption - used mainly for block
+copies between the 2 structs in signal handling and ptrace
 
-Ugh. Just make PFN_SHIFT unconditional. Make it 2, unconditionally.
-Or, if you want to have more bits, make it three unconditionally, and
-make 'struct page' just be at least 8-byte aligned even on 32-bit.
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+---
+ arch/arc/kernel/ptrace.c | 90 ++++++++++++++++++++++++++++++++++++++++++++----
+ arch/arc/kernel/signal.c | 55 +++++++++++++++++++++++++++--
+ 2 files changed, 136 insertions(+), 9 deletions(-)
 
-Even on 32-bit architectures, there's plenty of bits. There's no
-reason to "pack" this optimally. Remember: it's a page frame number,
-so there's the page size shifting going on in physical memory, and
-even if you shift the PFN by 3 - or four  of five - bits
-unconditionally (rather than try to shift it by some minimal number),
-you're covering a *lot* of physical memory.
+diff --git a/arch/arc/kernel/ptrace.c b/arch/arc/kernel/ptrace.c
+index 13b3ffb27a38..4dd9e3a8c2da 100644
+--- a/arch/arc/kernel/ptrace.c
++++ b/arch/arc/kernel/ptrace.c
+@@ -47,10 +47,47 @@ static int genregs_get(struct task_struct *target,
+ 			offsetof(struct user_regs_struct, LOC) + 4);
+ 
+ 	REG_O_ZERO(pad);
+-	REG_O_CHUNK(scratch, callee, ptregs);
++	REG_O_ONE(scratch.bta, &ptregs->bta);
++	REG_O_ONE(scratch.lp_start, &ptregs->lp_start);
++	REG_O_ONE(scratch.lp_end, &ptregs->lp_end);
++	REG_O_ONE(scratch.lp_count, &ptregs->lp_count);
++	REG_O_ONE(scratch.status32, &ptregs->status32);
++	REG_O_ONE(scratch.ret, &ptregs->ret);
++	REG_O_ONE(scratch.blink, &ptregs->blink);
++	REG_O_ONE(scratch.fp, &ptregs->fp);
++	REG_O_ONE(scratch.gp, &ptregs->r26);
++	REG_O_ONE(scratch.r12, &ptregs->r12);
++	REG_O_ONE(scratch.r11, &ptregs->r11);
++	REG_O_ONE(scratch.r10, &ptregs->r10);
++	REG_O_ONE(scratch.r9, &ptregs->r9);
++	REG_O_ONE(scratch.r8, &ptregs->r8);
++	REG_O_ONE(scratch.r7, &ptregs->r7);
++	REG_O_ONE(scratch.r6, &ptregs->r6);
++	REG_O_ONE(scratch.r5, &ptregs->r5);
++	REG_O_ONE(scratch.r4, &ptregs->r4);
++	REG_O_ONE(scratch.r3, &ptregs->r3);
++	REG_O_ONE(scratch.r2, &ptregs->r2);
++	REG_O_ONE(scratch.r1, &ptregs->r1);
++	REG_O_ONE(scratch.r0, &ptregs->r0);
++	REG_O_ONE(scratch.sp, &ptregs->sp);
++
+ 	REG_O_ZERO(pad2);
+-	REG_O_CHUNK(callee, efa, cregs);
+-	REG_O_CHUNK(efa, stop_pc, &target->thread.fault_address);
++
++	REG_O_ONE(callee.r25, &cregs->r25);
++	REG_O_ONE(callee.r24, &cregs->r24);
++	REG_O_ONE(callee.r23, &cregs->r23);
++	REG_O_ONE(callee.r22, &cregs->r22);
++	REG_O_ONE(callee.r21, &cregs->r21);
++	REG_O_ONE(callee.r20, &cregs->r20);
++	REG_O_ONE(callee.r19, &cregs->r19);
++	REG_O_ONE(callee.r18, &cregs->r18);
++	REG_O_ONE(callee.r17, &cregs->r17);
++	REG_O_ONE(callee.r16, &cregs->r16);
++	REG_O_ONE(callee.r15, &cregs->r15);
++	REG_O_ONE(callee.r14, &cregs->r14);
++	REG_O_ONE(callee.r13, &cregs->r13);
++
++	REG_O_ONE(efa, &target->thread.fault_address);
+ 
+ 	if (!ret) {
+ 		if (in_brkpt_trap(ptregs)) {
+@@ -97,12 +134,51 @@ static int genregs_set(struct task_struct *target,
+ 			offsetof(struct user_regs_struct, LOC) + 4);
+ 
+ 	REG_IGNORE_ONE(pad);
+-	/* TBD: disallow updates to STATUS32 etc*/
+-	REG_IN_CHUNK(scratch, pad2, ptregs);	/* pt_regs[bta..sp] */
++
++	REG_IN_ONE(scratch.bta, &ptregs->bta);
++	REG_IN_ONE(scratch.lp_start, &ptregs->lp_start);
++	REG_IN_ONE(scratch.lp_end, &ptregs->lp_end);
++	REG_IN_ONE(scratch.lp_count, &ptregs->lp_count);
++
++	REG_IGNORE_ONE(scratch.status32);
++
++	REG_IN_ONE(scratch.ret, &ptregs->ret);
++	REG_IN_ONE(scratch.blink, &ptregs->blink);
++	REG_IN_ONE(scratch.fp, &ptregs->fp);
++	REG_IN_ONE(scratch.gp, &ptregs->r26);
++	REG_IN_ONE(scratch.r12, &ptregs->r12);
++	REG_IN_ONE(scratch.r11, &ptregs->r11);
++	REG_IN_ONE(scratch.r10, &ptregs->r10);
++	REG_IN_ONE(scratch.r9, &ptregs->r9);
++	REG_IN_ONE(scratch.r8, &ptregs->r8);
++	REG_IN_ONE(scratch.r7, &ptregs->r7);
++	REG_IN_ONE(scratch.r6, &ptregs->r6);
++	REG_IN_ONE(scratch.r5, &ptregs->r5);
++	REG_IN_ONE(scratch.r4, &ptregs->r4);
++	REG_IN_ONE(scratch.r3, &ptregs->r3);
++	REG_IN_ONE(scratch.r2, &ptregs->r2);
++	REG_IN_ONE(scratch.r1, &ptregs->r1);
++	REG_IN_ONE(scratch.r0, &ptregs->r0);
++	REG_IN_ONE(scratch.sp, &ptregs->sp);
++
+ 	REG_IGNORE_ONE(pad2);
+-	REG_IN_CHUNK(callee, efa, cregs);	/* callee_regs[r25..r13] */
++
++	REG_IN_ONE(callee.r25, &cregs->r25);
++	REG_IN_ONE(callee.r24, &cregs->r24);
++	REG_IN_ONE(callee.r23, &cregs->r23);
++	REG_IN_ONE(callee.r22, &cregs->r22);
++	REG_IN_ONE(callee.r21, &cregs->r21);
++	REG_IN_ONE(callee.r20, &cregs->r20);
++	REG_IN_ONE(callee.r19, &cregs->r19);
++	REG_IN_ONE(callee.r18, &cregs->r18);
++	REG_IN_ONE(callee.r17, &cregs->r17);
++	REG_IN_ONE(callee.r16, &cregs->r16);
++	REG_IN_ONE(callee.r15, &cregs->r15);
++	REG_IN_ONE(callee.r14, &cregs->r14);
++	REG_IN_ONE(callee.r13, &cregs->r13);
++
+ 	REG_IGNORE_ONE(efa);			/* efa update invalid */
+-	REG_IGNORE_ONE(stop_pc);			/* PC updated via @ret */
++	REG_IGNORE_ONE(stop_pc);		/* PC updated via @ret */
+ 
+ 	return ret;
+ }
+diff --git a/arch/arc/kernel/signal.c b/arch/arc/kernel/signal.c
+index 2251fb4bbfd7..b99dbbb63239 100644
+--- a/arch/arc/kernel/signal.c
++++ b/arch/arc/kernel/signal.c
+@@ -67,7 +67,33 @@ stash_usr_regs(struct rt_sigframe __user *sf, struct pt_regs *regs,
+ 	       sigset_t *set)
+ {
+ 	int err;
+-	err = __copy_to_user(&(sf->uc.uc_mcontext.regs.scratch), regs,
++	struct user_regs_struct uregs;
++
++	uregs.scratch.bta	= regs->bta;
++	uregs.scratch.lp_start	= regs->lp_start;
++	uregs.scratch.lp_end	= regs->lp_end;
++	uregs.scratch.lp_count	= regs->lp_count;
++	uregs.scratch.status32	= regs->status32;
++	uregs.scratch.ret	= regs->ret;
++	uregs.scratch.blink	= regs->blink;
++	uregs.scratch.fp	= regs->fp;
++	uregs.scratch.gp	= regs->r26;
++	uregs.scratch.r12	= regs->r12;
++	uregs.scratch.r11	= regs->r11;
++	uregs.scratch.r10	= regs->r10;
++	uregs.scratch.r9	= regs->r9;
++	uregs.scratch.r8	= regs->r8;
++	uregs.scratch.r7	= regs->r7;
++	uregs.scratch.r6	= regs->r6;
++	uregs.scratch.r5	= regs->r5;
++	uregs.scratch.r4	= regs->r4;
++	uregs.scratch.r3	= regs->r3;
++	uregs.scratch.r2	= regs->r2;
++	uregs.scratch.r1	= regs->r1;
++	uregs.scratch.r0	= regs->r0;
++	uregs.scratch.sp	= regs->sp;
++
++	err = __copy_to_user(&(sf->uc.uc_mcontext.regs.scratch), &uregs.scratch,
+ 			     sizeof(sf->uc.uc_mcontext.regs.scratch));
+ 	err |= __copy_to_user(&sf->uc.uc_sigmask, set, sizeof(sigset_t));
+ 
+@@ -78,14 +104,39 @@ static int restore_usr_regs(struct pt_regs *regs, struct rt_sigframe __user *sf)
+ {
+ 	sigset_t set;
+ 	int err;
++	struct user_regs_struct uregs;
+ 
+ 	err = __copy_from_user(&set, &sf->uc.uc_sigmask, sizeof(set));
+ 	if (!err)
+ 		set_current_blocked(&set);
+ 
+-	err |= __copy_from_user(regs, &(sf->uc.uc_mcontext.regs.scratch),
++	err |= __copy_from_user(&uregs.scratch, &(sf->uc.uc_mcontext.regs.scratch),
+ 				sizeof(sf->uc.uc_mcontext.regs.scratch));
+ 
++	regs->bta	= uregs.scratch.bta;
++	regs->lp_start	= uregs.scratch.lp_start;
++	regs->lp_end	= uregs.scratch.lp_end;
++	regs->lp_count	= uregs.scratch.lp_count;
++	regs->status32	= uregs.scratch.status32;
++	regs->ret	= uregs.scratch.ret;
++	regs->blink	= uregs.scratch.blink;
++	regs->fp	= uregs.scratch.fp;
++	regs->r26	= uregs.scratch.gp;
++	regs->r12	= uregs.scratch.r12;
++	regs->r11	= uregs.scratch.r11;
++	regs->r10	= uregs.scratch.r10;
++	regs->r9	= uregs.scratch.r9;
++	regs->r8	= uregs.scratch.r8;
++	regs->r7	= uregs.scratch.r7;
++	regs->r6	= uregs.scratch.r6;
++	regs->r5	= uregs.scratch.r5;
++	regs->r4	= uregs.scratch.r4;
++	regs->r3	= uregs.scratch.r3;
++	regs->r2	= uregs.scratch.r2;
++	regs->r1	= uregs.scratch.r1;
++	regs->r0	= uregs.scratch.r0;
++	regs->sp	= uregs.scratch.sp;
++
+ 	return err;
+ }
+ 
+-- 
+1.9.1
 
-Say you're a 32-bit architecture with a 4k page size, and you lose
-three bits to "type" bits. You still have 32+12-3=41 bits of physical
-address space. Which is way more than realistic for a 32-bit
-architecture anyway, even with PAE (or PXE or whatever ARM calls it).
-Not that I see persistent memory being all that relevant on 32-bit
-hardware anyway.
-
-So I think if you actually do want that third bit, you're better off
-just marking "struct page" as being __aligned__((8)) and getting the
-three bits unconditionally. Just make the rule be that mem_map[] has
-to be 8-byte aligned.
-
-Even 16-byte alignment would probably be fine. No?
-
-                Linus
