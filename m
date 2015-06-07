@@ -1,154 +1,119 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 04/19] ARC: untangle cache flush loop
-Date: Sun, 7 Jun 2015 14:08:08 +0530
-Message-ID: <1433666303-26112-5-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 03/19] ARC: cacheflush: No need to retain DC_CTRL from __before_dc_op()
+Date: Sun, 7 Jun 2015 14:08:07 +0530
+Message-ID: <1433666303-26112-4-git-send-email-vgupta@synopsys.com>
 References: <1433666303-26112-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:56891 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752675AbbFGIjV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Jun 2015 04:39:21 -0400
+Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:37825 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752313AbbFGIjS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Jun 2015 04:39:18 -0400
 In-Reply-To: <1433666303-26112-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
-- Remove the ifdef'ery and write distinct versions for each mmu ver even
-  if there is some code duplication
+That is because __after_dc_op() already reads it for status check, so it
+is better anyways to use that "newer" value.
+
+Also reduces the clutter in callers for passing from/to these routines.
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/mm/cache.c | 80 ++++++++++++++++++++++++++++++++++++-----------------
- 1 file changed, 55 insertions(+), 25 deletions(-)
+ arch/arc/mm/cache.c | 36 +++++++++++++++++-------------------
+ 1 file changed, 17 insertions(+), 19 deletions(-)
 
 diff --git a/arch/arc/mm/cache.c b/arch/arc/mm/cache.c
-index 7ff54d024b11..2db777a5d926 100644
+index 1d34a6978a83..7ff54d024b11 100644
 --- a/arch/arc/mm/cache.c
 +++ b/arch/arc/mm/cache.c
-@@ -140,25 +140,19 @@ dc_chk:
-  * "tag" bits are provided in PTAG, index bits in existing IVIL/IVDL/FLDL regs
+@@ -207,32 +207,32 @@ static inline void __cache_line_loop(unsigned long paddr, unsigned long vaddr,
+  * Machine specific helpers for Entire D-Cache or Per Line ops
   */
  
--static inline void __cache_line_loop(unsigned long paddr, unsigned long vaddr,
--				     unsigned long sz, const int op)
-+static inline
-+void __cache_line_loop_v2(unsigned long paddr, unsigned long vaddr,
-+			  unsigned long sz, const int op)
+-static inline unsigned int __before_dc_op(const int op)
++static inline void __before_dc_op(const int op)
  {
--	unsigned int aux_cmd, aux_tag;
-+	unsigned int aux_cmd;
- 	int num_lines;
--	const int full_page_op = __builtin_constant_p(sz) && sz == PAGE_SIZE;
-+	const int full_page = __builtin_constant_p(sz) && sz == PAGE_SIZE;
- 
- 	if (op == OP_INV_IC) {
- 		aux_cmd = ARC_REG_IC_IVIL;
--#if (CONFIG_ARC_MMU_VER > 2)
--		aux_tag = ARC_REG_IC_PTAG;
--#endif
--	}
--	else {
-+	} else {
- 		/* d$ cmd: INV (discard or wback-n-discard) OR FLUSH (wback) */
- 		aux_cmd = op & OP_INV ? ARC_REG_DC_IVDL : ARC_REG_DC_FLDL;
--#if (CONFIG_ARC_MMU_VER > 2)
--		aux_tag = ARC_REG_DC_PTAG;
--#endif
+-	unsigned int reg = reg;
+-
+ 	if (op == OP_FLUSH_N_INV) {
+ 		/* Dcache provides 2 cmd: FLUSH or INV
+ 		 * INV inturn has sub-modes: DISCARD or FLUSH-BEFORE
+ 		 * flush-n-inv is achieved by INV cmd but with IM=1
+ 		 * So toggle INV sub-mode depending on op request and default
+ 		 */
+-		reg = read_aux_reg(ARC_REG_DC_CTRL);
+-		write_aux_reg(ARC_REG_DC_CTRL, reg | DC_CTRL_INV_MODE_FLUSH)
++		write_aux_reg(ARC_REG_DC_CTRL,
++			      read_aux_reg(ARC_REG_DC_CTRL) | DC_CTRL_INV_MODE_FLUSH)
+ 			;
  	}
- 
- 	/* Ensure we properly floor/ceil the non-line aligned/sized requests
-@@ -167,7 +161,7 @@ static inline void __cache_line_loop(unsigned long paddr, unsigned long vaddr,
- 	 *  -@paddr will be cache-line aligned already (being page aligned)
- 	 *  -@sz will be integral multiple of line size (being page sized).
- 	 */
--	if (!full_page_op) {
-+	if (!full_page) {
- 		sz += paddr & ~CACHE_LINE_MASK;
- 		paddr &= CACHE_LINE_MASK;
- 		vaddr &= CACHE_LINE_MASK;
-@@ -175,32 +169,68 @@ static inline void __cache_line_loop(unsigned long paddr, unsigned long vaddr,
- 
- 	num_lines = DIV_ROUND_UP(sz, L1_CACHE_BYTES);
- 
--#if (CONFIG_ARC_MMU_VER <= 2)
- 	/* MMUv2 and before: paddr contains stuffed vaddrs bits */
- 	paddr |= (vaddr >> PAGE_SHIFT) & 0x1F;
--#else
--	/* if V-P const for loop, PTAG can be written once outside loop */
--	if (full_page_op)
-+
-+	while (num_lines-- > 0) {
-+		write_aux_reg(aux_cmd, paddr);
-+		paddr += L1_CACHE_BYTES;
-+	}
-+}
-+
-+static inline
-+void __cache_line_loop_v3(unsigned long paddr, unsigned long vaddr,
-+			  unsigned long sz, const int op)
-+{
-+	unsigned int aux_cmd, aux_tag;
-+	int num_lines;
-+	const int full_page = __builtin_constant_p(sz) && sz == PAGE_SIZE;
-+
-+	if (op == OP_INV_IC) {
-+		aux_cmd = ARC_REG_IC_IVIL;
-+		aux_tag = ARC_REG_IC_PTAG;
-+	} else {
-+		aux_cmd = op & OP_INV ? ARC_REG_DC_IVDL : ARC_REG_DC_FLDL;
-+		aux_tag = ARC_REG_DC_PTAG;
-+	}
-+
-+	/* Ensure we properly floor/ceil the non-line aligned/sized requests
-+	 * and have @paddr - aligned to cache line and integral @num_lines.
-+	 * This however can be avoided for page sized since:
-+	 *  -@paddr will be cache-line aligned already (being page aligned)
-+	 *  -@sz will be integral multiple of line size (being page sized).
-+	 */
-+	if (!full_page) {
-+		sz += paddr & ~CACHE_LINE_MASK;
-+		paddr &= CACHE_LINE_MASK;
-+		vaddr &= CACHE_LINE_MASK;
-+	}
-+	num_lines = DIV_ROUND_UP(sz, L1_CACHE_BYTES);
-+
-+	/*
-+	 * MMUv3, cache ops require paddr seperately
-+	 * if V-P const for loop, PTAG can be written once outside loop
-+	 */
-+	if (full_page)
- 		write_aux_reg(aux_tag, paddr);
--#endif
- 
- 	while (num_lines-- > 0) {
--#if (CONFIG_ARC_MMU_VER > 2)
--		/* MMUv3, cache ops require paddr seperately */
--		if (!full_page_op) {
-+		if (!full_page) {
- 			write_aux_reg(aux_tag, paddr);
- 			paddr += L1_CACHE_BYTES;
- 		}
- 
- 		write_aux_reg(aux_cmd, vaddr);
- 		vaddr += L1_CACHE_BYTES;
--#else
--		write_aux_reg(aux_cmd, paddr);
--		paddr += L1_CACHE_BYTES;
--#endif
- 	}
+-
+-	return reg;
  }
  
-+#if (CONFIG_ARC_MMU_VER < 3)
-+#define __cache_line_loop	__cache_line_loop_v2
-+#elif (CONFIG_ARC_MMU_VER == 3)
-+#define __cache_line_loop	__cache_line_loop_v3
-+#endif
-+
- #ifdef CONFIG_ARC_HAS_DCACHE
+-static inline void __after_dc_op(const int op, unsigned int reg)
++static inline void __after_dc_op(const int op)
+ {
+-	if (op & OP_FLUSH)	/* flush / flush-n-inv both wait */
+-		while (read_aux_reg(ARC_REG_DC_CTRL) & DC_CTRL_FLUSH_STATUS);
++	if (op & OP_FLUSH) {
++		unsigned int reg;
  
- /***************************************************************
+-	/* Switch back to default Invalidate mode */
+-	if (op == OP_FLUSH_N_INV)
+-		write_aux_reg(ARC_REG_DC_CTRL, reg & ~DC_CTRL_INV_MODE_FLUSH);
++		/* flush / flush-n-inv both wait */
++		while ((reg = read_aux_reg(ARC_REG_DC_CTRL)) & DC_CTRL_FLUSH_STATUS);
++
++		/* Switch back to default Invalidate mode */
++		if (op == OP_FLUSH_N_INV)
++			write_aux_reg(ARC_REG_DC_CTRL, reg & ~DC_CTRL_INV_MODE_FLUSH);
++	}
+ }
+ 
+ /*
+@@ -243,10 +243,9 @@ static inline void __after_dc_op(const int op, unsigned int reg)
+  */
+ static inline void __dc_entire_op(const int op)
+ {
+-	unsigned int ctrl_reg;
+ 	int aux;
+ 
+-	ctrl_reg = __before_dc_op(op);
++	__before_dc_op(op);
+ 
+ 	if (op & OP_INV)	/* Inv or flush-n-inv use same cmd reg */
+ 		aux = ARC_REG_DC_IVDC;
+@@ -255,7 +254,7 @@ static inline void __dc_entire_op(const int op)
+ 
+ 	write_aux_reg(aux, 0x1);
+ 
+-	__after_dc_op(op, ctrl_reg);
++	__after_dc_op(op);
+ }
+ 
+ /* For kernel mappings cache operation: index is same as paddr */
+@@ -268,15 +267,14 @@ static inline void __dc_line_op(unsigned long paddr, unsigned long vaddr,
+ 				unsigned long sz, const int op)
+ {
+ 	unsigned long flags;
+-	unsigned int ctrl_reg;
+ 
+ 	local_irq_save(flags);
+ 
+-	ctrl_reg = __before_dc_op(op);
++	__before_dc_op(op);
+ 
+ 	__cache_line_loop(paddr, vaddr, sz, op);
+ 
+-	__after_dc_op(op, ctrl_reg);
++	__after_dc_op(op);
+ 
+ 	local_irq_restore(flags);
+ }
 -- 
 1.9.1
