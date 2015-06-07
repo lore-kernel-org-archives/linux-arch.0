@@ -1,89 +1,85 @@
-From: Matthew Wilcox <willy@linux.intel.com>
-Subject: Re: [PATCH v4 4/9] dax: fix mapping lifetime handling, convert to
- __pfn_t + kmap_atomic_pfn_t()
-Date: Sat, 6 Jun 2015 07:58:22 -0400
-Message-ID: <20150606115822.GI2729@linux.intel.com>
-References: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20150605211924.20751.434.stgit@dwillia2-desk3.amr.corp.intel.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH 00/19] ARCv2 port to Linux - (A) prepratory patches
+Date: Sun, 7 Jun 2015 14:08:04 +0530
+Message-ID: <1433666303-26112-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:19973 "EHLO mga02.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751191AbbFFL62 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 6 Jun 2015 07:58:28 -0400
-Content-Disposition: inline
-In-Reply-To: <20150605211924.20751.434.stgit@dwillia2-desk3.amr.corp.intel.com>
+Received: from smtprelay.synopsys.com ([198.182.47.9]:56887 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751323AbbFGIjD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Jun 2015 04:39:03 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: linux-kernel@vger.kernel.org, axboe@kernel.dk, boaz@plexistor.com, david@fromorbit.com, linux-arch@vger.kernel.org, arnd@arndb.de, linux-nvdimm@lists.01.org, benh@kernel.crashing.org, linux-fsdevel@vger.kernel.org, heiko.carstens@de.ibm.com, hch@lst.de, mingo@kernel.org, tj@kernel.org, paulus@samba.org, hpa@zytor.com, schwidefsky@de.ibm.com, ross.zwisler@linux.intel.com, torvalds@linux-foundation.org, akpm@linux-foundation.org
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
-On Fri, Jun 05, 2015 at 05:19:24PM -0400, Dan Williams wrote:
-> @@ -35,13 +35,16 @@ int dax_clear_blocks(struct inode *inode, sector_t block, long size)
->  	might_sleep();
->  	do {
->  		void *addr;
-> -		unsigned long pfn;
-> +		__pfn_t pfn;
->  		long count;
->  
-> -		count = bdev_direct_access(bdev, sector, &addr, &pfn, size);
-> +		count = bdev_direct_access(bdev, sector, &pfn, size);
->  		if (count < 0)
->  			return count;
->  		BUG_ON(size < count);
-> +		addr = kmap_atomic_pfn_t(pfn);
-> +		if (!addr)
-> +			return -EIO;
->  		while (count > 0) {
->  			unsigned pgsz = PAGE_SIZE - offset_in_page(addr);
->  			if (pgsz > count)
+Hi,
 
-This part is incomplete.  When bdev_direct_access() could return an
-address, it was possible for that address to be unaligned (eg when
-'sector' was not a multiple of 8).  DAX has never had full support for
-devices that weren't a 4k sector size, but I was trying to not make that
-assumption in more places than I had to.  So this function needs a lot
-more simplification (or it needs to add '(sector & 7) << 9' to addr ...
-assuming that the partition this bdev represents actually starts at a
-multiple of 8 ... bleh!).
+ARCv2 is the next generation ISA from Synopsys and basis for the
+HS3{4,6,8} families of processors which retain the traditional ARC mantra of
+low power and configurability and are now more performant and feature rich.
 
->  
-> -static long dax_get_addr(struct buffer_head *bh, void **addr, unsigned blkbits)
-> +static long dax_get_pfn(struct buffer_head *bh, __pfn_t *pfn, unsigned blkbits)
->  {
-> -	unsigned long pfn;
->  	sector_t sector = bh->b_blocknr << (blkbits - 9);
-> -	return bdev_direct_access(bh->b_bdev, sector, addr, &pfn, bh->b_size);
-> +	return bdev_direct_access(bh->b_bdev, sector, pfn, bh->b_size);
->  }
+Linux has been ported to HS38x series, a 10 stage pipeline core which
+supports MMU (with huge pages) and SMP (upto 4 cores) among other features.
 
-This function should just be deleted.  It offers essentially nothing
-over just calling bdev_direct_access().
+ - www.synopsys.com/dw/ipdir.php?ds=arc-hs38-processor
+ - http://news.synopsys.com/2014-10-14-New-DesignWare-ARC-HS38-Processor-Doubles-Performance-for-Embedded-Linux-Applications
+ - http://www.embedded.com/electronics-news/4435975/Synopsys-ARC-HS38-core-gives-2X-boost-to-Linux-based-apps
 
-> @@ -142,9 +146,19 @@ static ssize_t dax_io(struct inode *inode, struct iov_iter *iter,
->  				addr = NULL;
->  				size = bh->b_size - first;
->  			} else {
-> -				retval = dax_get_addr(bh, &addr, blkbits);
-> +				if (kmap) {
-> +					kunmap_atomic_pfn_t(kmap);
-> +					kmap = NULL;
-> +				}
-> +				retval = dax_get_pfn(bh, &pfn, blkbits);
->  				if (retval < 0)
->  					break;
-> +				kmap = kmap_atomic_pfn_t(pfn);
-> +				if (!kmap) {
-> +					retval = -EIO;
-> +					break;
-> +				}
-> +				addr = kmap;
->  				if (buffer_unwritten(bh) || buffer_new(bh))
->  					dax_new_buf(addr, retval, first, pos,
->  									end);
+This sub-series introduces changes to existing in-tree port of ARC700 core
+(based on ARCompact ISA) to allow for better code sharing with new ARCv2 code.
 
-Interesting approach.  The patch I sent you was more complex ... this
-probably ends up working out better since it has fewer places to check
-for kmap returning an error.
+The actual ARCv2 port will follow as a seperate series.
+
+Please review !
+
+Thx,
+-Vineet
+
+Vineet Gupta (19):
+  ARC: mm/cache_arc700.c -> mm/cache.c
+  ARC: cacheflush: move some code around, delete old comments
+  ARC: cacheflush: No need to retain DC_CTRL from __before_dc_op()
+  ARC: untangle cache flush loop
+  ARC: entry.S: common'ize scrtach reg freeup in intr + exceptions
+  ARC: entry.S: Introduce INTERRUPT_{PROLOGUE,EPILOGUE}
+  ARC: entry.S: canonical'ize EXCEPTION_{PROLOGUE,EPILOGUE}
+  ARC: entry.S: confine EXCEPTION_* macros to one file
+  ARC: entry.S: FAKE_RET_FROM_EXCPN can always use r9
+  ARC: entry.S: Trap handler to use r10 for syscall vs. brkpt decision
+  ARC: entry.S: comments cleanup
+  ARC: entry.S: Ensure that restore_regs is local to compilation unit
+  ARC: entry.S: split into ARCompact ISA specific, common bits
+  ARC: entry.S: move some code around for cache locality in return path
+  ARC: entry.S: micro-optimize Trap handler
+  ARC: entry.S: use single EXCEPTION_PROLOGUE
+  ARC: entry.S: [arcompact] simplify SWITCH_TO_KERNEL_STK
+  ARC: Make way for pt_regs != user_regs_struct
+  ARC: intc: split into ARCompact ISA specific, common bits
+
+ arch/arc/include/asm/arcregs.h          |   3 -
+ arch/arc/include/asm/entry-compact.h    | 307 +++++++++++++++++++
+ arch/arc/include/asm/entry.h            | 357 +---------------------
+ arch/arc/include/asm/irqflags-compact.h | 181 +++++++++++
+ arch/arc/include/asm/irqflags.h         | 168 +---------
+ arch/arc/kernel/Makefile                |   4 +-
+ arch/arc/kernel/entry-compact.S         | 393 ++++++++++++++++++++++++
+ arch/arc/kernel/entry.S                 | 527 +++++---------------------------
+ arch/arc/kernel/intc-compact.c          | 230 ++++++++++++++
+ arch/arc/kernel/irq.c                   | 210 -------------
+ arch/arc/kernel/process.c               |   3 +-
+ arch/arc/kernel/ptrace.c                |  90 +++++-
+ arch/arc/kernel/signal.c                |  55 +++-
+ arch/arc/mm/Makefile                    |   2 +-
+ arch/arc/mm/{cache_arc700.c => cache.c} | 367 ++++++++++------------
+ arch/arc/mm/tlbex.S                     |  16 +-
+ 16 files changed, 1494 insertions(+), 1419 deletions(-)
+ create mode 100644 arch/arc/include/asm/entry-compact.h
+ create mode 100644 arch/arc/include/asm/irqflags-compact.h
+ create mode 100644 arch/arc/kernel/entry-compact.S
+ create mode 100644 arch/arc/kernel/intc-compact.c
+ rename arch/arc/mm/{cache_arc700.c => cache.c} (77%)
+
+-- 
+1.9.1
