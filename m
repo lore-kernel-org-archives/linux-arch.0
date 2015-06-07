@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:56903 "EHLO
+Received: from smtprelay4.synopsys.com ([198.182.47.9]:56902 "EHLO
 	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1161016AbbFGIkU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Jun 2015 04:40:20 -0400
+	with ESMTP id S1160998AbbFGIkP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Jun 2015 04:40:15 -0400
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 16/19] ARC: entry.S: use single EXCEPTION_PROLOGUE
-Date: Sun, 7 Jun 2015 14:08:20 +0530
-Message-ID: <1433666303-26112-17-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 15/19] ARC: entry.S: micro-optimize Trap handler
+Date: Sun, 7 Jun 2015 14:08:19 +0530
+Message-ID: <1433666303-26112-16-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1433666303-26112-1-git-send-email-vgupta@synopsys.com>
 References: <1433666303-26112-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -15,58 +15,59 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20150607083820.dlf5gaQfRBuTAGoeEAfVLZGjNYlmGvYZ0NlaVSJYvkw@z>
+Message-ID: <20150607083819.Ga8JJFh2xKNVnxPl-5Kw2pck2Tt_wkxbka8Vr0fskw0@z>
 
-Returning from pure kernel mode and exception mode use the same code
-anyways. Remove one the duplicate blocks
+Elide the need to re-read ECR in Trap handler by ensuring that
+EXCEPTION_PROLOGUE does that at the very end just before returning
+to Trap handler
+
+ARCv2 EXCEPTION_PROLOGUE already did that, so same for ARcompact and the
+common trap handler adjusted to use cached ECR
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/kernel/entry-compact.S | 14 ++++++--------
- 1 file changed, 6 insertions(+), 8 deletions(-)
+ arch/arc/include/asm/entry-compact.h | 5 +++--
+ arch/arc/kernel/entry.S              | 4 ++--
+ 2 files changed, 5 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arc/kernel/entry-compact.S b/arch/arc/kernel/entry-compact.S
-index abc62cd10a8c..15d457b4403a 100644
---- a/arch/arc/kernel/entry-compact.S
-+++ b/arch/arc/kernel/entry-compact.S
-@@ -321,14 +321,11 @@ END(call_do_page_fault)
- 	; decide that.
+diff --git a/arch/arc/include/asm/entry-compact.h b/arch/arc/include/asm/entry-compact.h
+index 6c0a81b598d2..8b65eb36655a 100644
+--- a/arch/arc/include/asm/entry-compact.h
++++ b/arch/arc/include/asm/entry-compact.h
+@@ -181,8 +181,6 @@
+ 	/* ARC700 doesn't provide auto-stack switching */
+ 	SWITCH_TO_KERNEL_STK
  
- 	; if Returning from Exception
--	bbit0  r10, STATUS_AE_BIT, not_exception
--	EXCEPTION_EPILOGUE
--	rtie
-+	btst   r10, STATUS_AE_BIT
-+	bnz    .Lexcep_ret
+-	lr	r9, [ecr]
+-	st      r9, [sp, 8]    /* ECR */
+ 	st      r0, [sp, 4]    /* orig_r0, needed only for sys calls */
  
- 	; Not Exception so maybe Interrupts (Level 1 or 2)
+ 	/* Restore r9 used to code the early prologue */
+@@ -198,6 +196,9 @@
+ 	PUSHAX	lp_end
+ 	PUSHAX	lp_start
+ 	PUSHAX	erbta
++
++	lr	r9, [ecr]
++	st      r9, [sp, PT_event]    /* EV_Trap expects r9 to have ECR */
+ .endm
  
--not_exception:
--
- #ifdef CONFIG_ARC_COMPACT_IRQ_LEVELS
+ /*--------------------------------------------------------------
+diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
+index 603266eb75e1..f7a82fd4d601 100644
+--- a/arch/arc/kernel/entry.S
++++ b/arch/arc/kernel/entry.S
+@@ -258,8 +258,8 @@ ENTRY(EV_Trap)
+ 	EXCEPTION_PROLOGUE
  
- 	; Level 2 interrupt return Path - from hardware standpoint
-@@ -377,16 +374,17 @@ not_level2_interrupt:
+ 	;============ TRAP 1   :breakpoints
+-	lr     r10, [ecr]
+-	bmsk.f 0, r10, 7
++	; Check ECR for trap with arg (PROLOGUE ensures r9 has ECR)
++	bmsk.f 0, r9, 7
+ 	bnz    trap_with_param
  
- #endif
- 
--	bbit0  r10, STATUS_A1_BIT, not_level1_interrupt
-+	bbit0  r10, STATUS_A1_BIT, .Lpure_k_mode_ret
- 
- 	;return from level 1
- 	INTERRUPT_EPILOGUE 1
- debug_marker_l1:
- 	rtie
- 
--not_level1_interrupt:
-+.Lexcep_ret:
-+.Lpure_k_mode_ret:
- 
--	;this case is for syscalls or Exceptions (with fake rtie)
-+	;this case is for syscalls or Exceptions or pure kernel mode
- 
- 	EXCEPTION_EPILOGUE
- debug_marker_syscall:
+ 	;============ TRAP  (no param): syscall top level
 -- 
 1.9.1
 
