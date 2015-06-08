@@ -1,73 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:56902 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1160998AbbFGIkP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Jun 2015 04:40:15 -0400
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 15/19] ARC: entry.S: micro-optimize Trap handler
-Date: Sun, 7 Jun 2015 14:08:19 +0530
-Message-ID: <1433666303-26112-16-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <1433666303-26112-1-git-send-email-vgupta@synopsys.com>
-References: <1433666303-26112-1-git-send-email-vgupta@synopsys.com>
+Received: from tex.lwn.net ([70.33.254.29]:59884 "EHLO vena.lwn.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753190AbbFHXGL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 8 Jun 2015 19:06:11 -0400
+Date: Mon, 8 Jun 2015 17:08:43 -0600
+From: Jonathan Corbet <corbet@lwn.net>
+Subject: Re: [GIT PULL] Documentation/features: Add kernel feature
+ descriptions and arch support status files under Documentation/features/
+Message-ID: <20150608170843.75cade69@lwn.net>
+In-Reply-To: <20150603110355.GA12079@gmail.com>
+References: <20150513094756.GD11030@gmail.com>
+	<20150513131835.GJ1517@pd.tnic>
+	<20150513134842.GA1657@gmail.com>
+	<20150513162757.GA21894@x>
+	<20150513150523.ddd65d7cd51f820b78f0c8e3@linux-foundation.org>
+	<20150514101518.GA27550@gmail.com>
+	<20150514103544.GA7027@gmail.com>
+	<20150522094931.78a43421@lwn.net>
+	<20150523080704.GA25893@gmail.com>
+	<20150524124447.0c395540@lwn.net>
+	<20150603110355.GA12079@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20150607083819.Ga8JJFh2xKNVnxPl-5Kw2pck2Tt_wkxbka8Vr0fskw0@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Josh Triplett <josh@joshtriplett.org>, Borislav Petkov <bp@alien8.de>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>
+Message-ID: <20150608230843.1GyXH-Y6s1T1j8Om7jJGZwFcz5k9HcuYfTtVnhpqbts@z>
 
-Elide the need to re-read ECR in Trap handler by ensuring that
-EXCEPTION_PROLOGUE does that at the very end just before returning
-to Trap handler
+On Wed, 3 Jun 2015 13:03:55 +0200
+Ingo Molnar <mingo@kernel.org> wrote:
 
-ARCv2 EXCEPTION_PROLOGUE already did that, so same for ARcompact and the
-common trap handler adjusted to use cached ECR
+> A week late but I managed to complete it all and moved it into Git, for better 
+> structure and easy pulling.
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- arch/arc/include/asm/entry-compact.h | 5 +++--
- arch/arc/kernel/entry.S              | 4 ++--
- 2 files changed, 5 insertions(+), 4 deletions(-)
+Pulled into the docs tree - thanks!
 
-diff --git a/arch/arc/include/asm/entry-compact.h b/arch/arc/include/asm/entry-compact.h
-index 6c0a81b598d2..8b65eb36655a 100644
---- a/arch/arc/include/asm/entry-compact.h
-+++ b/arch/arc/include/asm/entry-compact.h
-@@ -181,8 +181,6 @@
- 	/* ARC700 doesn't provide auto-stack switching */
- 	SWITCH_TO_KERNEL_STK
- 
--	lr	r9, [ecr]
--	st      r9, [sp, 8]    /* ECR */
- 	st      r0, [sp, 4]    /* orig_r0, needed only for sys calls */
- 
- 	/* Restore r9 used to code the early prologue */
-@@ -198,6 +196,9 @@
- 	PUSHAX	lp_end
- 	PUSHAX	lp_start
- 	PUSHAX	erbta
-+
-+	lr	r9, [ecr]
-+	st      r9, [sp, PT_event]    /* EV_Trap expects r9 to have ECR */
- .endm
- 
- /*--------------------------------------------------------------
-diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
-index 603266eb75e1..f7a82fd4d601 100644
---- a/arch/arc/kernel/entry.S
-+++ b/arch/arc/kernel/entry.S
-@@ -258,8 +258,8 @@ ENTRY(EV_Trap)
- 	EXCEPTION_PROLOGUE
- 
- 	;============ TRAP 1   :breakpoints
--	lr     r10, [ecr]
--	bmsk.f 0, r10, 7
-+	; Check ECR for trap with arg (PROLOGUE ensures r9 has ECR)
-+	bmsk.f 0, r9, 7
- 	bnz    trap_with_param
- 
- 	;============ TRAP  (no param): syscall top level
--- 
-1.9.1
-
+jon
