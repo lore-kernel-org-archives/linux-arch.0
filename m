@@ -1,30 +1,35 @@
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH 0/2] locking/qrwlock: Fix interrupt handling problem
-Date: Mon,  8 Jun 2015 18:20:42 -0400
-Message-ID: <1433802045-21298-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t1613g.houston.hp.com ([15.240.0.71]:52363 "EHLO
-	g9t1613g.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753558AbbFHWVI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Jun 2015 18:21:08 -0400
-Received: from g2t2352.austin.hp.com (g2t2352.austin.hp.com [15.217.128.51])
-	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by g9t1613g.houston.hp.com (Postfix) with ESMTPS id CA971611EC
-	for <linux-arch@vger.kernel.org>; Mon,  8 Jun 2015 22:21:07 +0000 (UTC)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
+From: Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>
+Subject: Re: [GIT PULL] Documentation/features: Add kernel feature
+ descriptions and arch support status files under Documentation/features/
+Date: Mon, 8 Jun 2015 17:08:43 -0600
+Message-ID: <20150608170843.75cade69@lwn.net>
+References: <20150513094756.GD11030@gmail.com>
+	<20150513131835.GJ1517@pd.tnic>
+	<20150513134842.GA1657@gmail.com>
+	<20150513162757.GA21894@x>
+	<20150513150523.ddd65d7cd51f820b78f0c8e3@linux-foundation.org>
+	<20150514101518.GA27550@gmail.com>
+	<20150514103544.GA7027@gmail.com>
+	<20150522094931.78a43421@lwn.net>
+	<20150523080704.GA25893@gmail.com>
+	<20150524124447.0c395540@lwn.net>
+	<20150603110355.GA12079@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20150603110355.GA12079-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Josh Triplett <josh-iaAMLnmF4UmaiuxdJuQwMA@public.gmane.org>, Borislav Petkov <bp-Gina5bIWoIWzQB+pC5nmwQ@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>, Ingo Molnar <mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Linus Torvalds <torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <a.p.zijlstra-/NLkJaSkS4VmR6Xm/wNWPw@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-This patch series contains 2 patches on qrwlock. The first one is just
-a recap of the patch that I sent a few weeks ago. The second one is to
-optimize the writer slowpath.
+On Wed, 3 Jun 2015 13:03:55 +0200
+Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org> wrote:
 
-Waiman Long (2):
-  locking/qrwlock: Fix bug in interrupt handling code
-  locking/qrwlock: Don't contend with readers when setting _QW_WAITING
+> A week late but I managed to complete it all and moved it into Git, for better 
+> structure and easy pulling.
 
- include/asm-generic/qrwlock.h |    4 +-
- kernel/locking/qrwlock.c      |   42 +++++++++++++++++++++++++++++++---------
- 2 files changed, 34 insertions(+), 12 deletions(-)
+Pulled into the docs tree - thanks!
+
+jon
