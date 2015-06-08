@@ -1,46 +1,120 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 00/19] ARCv2 port to Linux - (A) prepratory patches
-Date: Sun, 7 Jun 2015 08:47:59 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665A44F3@IN01WEMBXB.internal.synopsys.com>
-References: <1433666303-26112-1-git-send-email-vgupta@synopsys.com>
+From: "Elliott, Robert (Server Storage)" <Elliott@hp.com>
+Subject: RE: [PATCH v4 4/9] dax: fix mapping lifetime handling, convert to
+ __pfn_t + kmap_atomic_pfn_t()
+Date: Mon, 8 Jun 2015 16:29:39 +0000
+Message-ID: <94D0CD8314A33A4D9D801C0FE68B40295A973B07@G9W0745.americas.hpqcorp.net>
+References: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150605211924.20751.434.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:56959 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751583AbbFGIsE convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Jun 2015 04:48:04 -0400
+Received: from g4t3425.houston.hp.com ([15.201.208.53]:19232 "EHLO
+	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752747AbbFHQab convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Jun 2015 12:30:31 -0400
+In-Reply-To: <20150605211924.20751.434.stgit@dwillia2-desk3.amr.corp.intel.com>
 Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>
+To: Dan Williams <dan.j.williams@intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: "axboe@kernel.dk" <axboe@kernel.dk>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "hpa@zytor.com" <hpa@zytor.com>, "david@fromorbit.com" <david@fromorbit.com>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "mingo@kernel.org" <mingo@kernel.org>, "tj@kernel.org" <tj@kernel.org>, "paulus@samba.org" <paulus@samba.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, "hch@lst.de" <hch@lst.de>, "schwidefsky@de.ibm.com" <schwidefsky@de.ibm.com>
 
-On Sunday 07 June 2015 02:08 PM, Vineet Gupta wrote:
-> Hi,
->
-> ARCv2 is the next generation ISA from Synopsys and basis for the
-> HS3{4,6,8} families of processors which retain the traditional ARC mantra of
-> low power and configurability and are now more performant and feature rich.
->
-> Linux has been ported to HS38x series, a 10 stage pipeline core which
-> supports MMU (with huge pages) and SMP (upto 4 cores) among other features.
->
->  - www.synopsys.com/dw/ipdir.php?ds=arc-hs38-processor
->  - http://news.synopsys.com/2014-10-14-New-DesignWare-ARC-HS38-Processor-Doubles-Performance-for-Embedded-Linux-Applications
->  - http://www.embedded.com/electronics-news/4435975/Synopsys-ARC-HS38-core-gives-2X-boost-to-Linux-based-apps
->
-> This sub-series introduces changes to existing in-tree port of ARC700 core
-> (based on ARCompact ISA) to allow for better code sharing with new ARCv2 code.
->
-> The actual ARCv2 port will follow as a seperate series.
->
-> Please review !
+> -----Original Message-----
+> From: Linux-nvdimm [mailto:linux-nvdimm-bounces@lists.01.org] On Behalf
+> Of Dan Williams
+> Sent: Friday, June 05, 2015 3:19 PM
+> Subject: [PATCH v4 4/9] dax: fix mapping lifetime handling, convert to
+> __pfn_t + kmap_atomic_pfn_t()
+...
+> diff --git a/arch/powerpc/sysdev/axonram.c
+> b/arch/powerpc/sysdev/axonram.c
+> index e8657d3bc588..20725006592e 100644
+> --- a/arch/powerpc/sysdev/axonram.c
+> +++ b/arch/powerpc/sysdev/axonram.c
+...
+> @@ -165,9 +166,13 @@ static int axon_ram_probe(struct platform_device
+> *device)
+>  {
+>  	static int axon_ram_bank_id = -1;
+>  	struct axon_ram_bank *bank;
+> -	struct resource resource;
+> +	struct resource *resource;
+>  	int rc = 0;
+> 
+> +	resource = devm_kzalloc(&device->dev, sizeof(*resource),
+> GFP_KERNEL);
+> +	if (!resource)
+> +		return -ENOMEM;
+> +
 
-The complete code is also available in git tree
+Since resource is now a pointer...
 
-git://git.kernel.org/pub/scm/linux/kernel/git/vgupta/arc.git  # for-HS-upstream
+...
+> @@ -184,13 +189,13 @@ static int axon_ram_probe(struct platform_device
+> *device)
+> 
+>  	bank->device = device;
+> 
+> -	if (of_address_to_resource(device->dev.of_node, 0, &resource) != 0)
+> {
+> +	if (of_address_to_resource(device->dev.of_node, 0, resource) != 0) {
+>  		dev_err(&device->dev, "Cannot access device tree\n");
+>  		rc = -EFAULT;
+>  		goto failed;
+>  	}
+...
 
-Thx,
--Vineet
+... I'd expect to see a devm_kfree call added after the failed label, 
+like was  done here:
+
+> diff --git a/drivers/s390/block/dcssblk.c b/drivers/s390/block/dcssblk.c
+> index 2f1734ba0e22..a7b9743c546f 100644
+> --- a/drivers/s390/block/dcssblk.c
+> +++ b/drivers/s390/block/dcssblk.c
+...
+>  struct dcssblk_dev_info {
+> @@ -520,12 +522,18 @@ static const struct attribute_group
+> *dcssblk_dev_attr_groups[] = {
+>  static ssize_t
+>  dcssblk_add_store(struct device *dev, struct device_attribute *attr, const
+> char *buf, size_t count)
+>  {
+> +	struct resource *res = devm_kzalloc(dev, sizeof(*res), GFP_KERNEL);
+>  	int rc, i, j, num_of_segments;
+>  	struct dcssblk_dev_info *dev_info;
+>  	struct segment_info *seg_info, *temp;
+>  	char *local_buf;
+>  	unsigned long seg_byte_size;
+> 
+> +	if (!res) {
+> +		rc = -ENOMEM;
+> +		goto out_nobuf;
+> +	}
+> +
+>  	dev_info = NULL;
+>  	seg_info = NULL;
+>  	if (dev != dcssblk_root_dev) {
+> @@ -652,6 +660,13 @@ dcssblk_add_store(struct device *dev, struct
+> device_attribute *attr, const char
+>  	if (rc)
+>  		goto put_dev;
+> 
+> +	res->start = dev_info->start;
+> +	res->end = dev_info->end - 1;
+> +	rc = devm_register_kmap_pfn_range(&dev_info->dev, res,
+> +			(void *) dev_info->start);
+> +	if (rc)
+> +		goto put_dev;
+> +
+>  	get_device(&dev_info->dev);
+>  	add_disk(dev_info->gd);
+> 
+> @@ -699,6 +714,8 @@ seg_list_del:
+>  out:
+>  	kfree(local_buf);
+>  out_nobuf:
+> +	if (res)
+> +		devm_kfree(dev, res);
+>  	return rc;
+>  }
