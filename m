@@ -1,61 +1,99 @@
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: Re: [42/73] rtc: delete non-required instances of include
- <linux/init.h>
-Date: Mon, 8 Jun 2015 17:06:34 -0400
-Message-ID: <20150608210634.GJ7125@windriver.com>
-References: <1390339396-3479-43-git-send-email-paul.gortmaker@windriver.com>
- <20150608195455.GF5222@piout.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH 1/2] locking/qrwlock: Fix bug in interrupt handling code
+Date: Mon,  8 Jun 2015 18:20:43 -0400
+Message-ID: <1433802045-21298-2-git-send-email-Waiman.Long@hp.com>
+References: <1433802045-21298-1-git-send-email-Waiman.Long@hp.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.windriver.com ([147.11.146.13]:46035 "EHLO
-	mail1.windriver.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751472AbbFHVJ2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Jun 2015 17:09:28 -0400
-Content-Disposition: inline
-In-Reply-To: <20150608195455.GF5222@piout.net>
+Received: from g9t5009.houston.hp.com ([15.240.92.67]:38308 "EHLO
+	g9t5009.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752045AbbFHWVA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Jun 2015 18:21:00 -0400
+In-Reply-To: <1433802045-21298-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexandre Belloni <alexandre.belloni@free-electrons.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alessandro Zummo <a.zummo@towertech.it>, rtc-linux@googlegroups.com
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
 
-[Re: [42/73] rtc: delete non-required instances of include <linux/init.h>] On 08/06/2015 (Mon 21:54) Alexandre Belloni wrote:
+The qrwlock is fair in the process context, but becoming unfair when
+in the interrupt context to support use cases like the tasklist_lock.
+However, the unfair code in the interrupt context has problem that
+may cause deadlock.
 
-> On 21/01/2014 at 16:22:45 -0500, Paul Gortmaker wrote :
-> > None of these files are actually using any __init type directives
-> > and hence don't need to include <linux/init.h>.  Most are just a
-> > left over from __devinit and __cpuinit removal, or simply due to
-> > code getting copied from one driver to the next.
-> > 
-> > Cc: Alessandro Zummo <a.zummo@towertech.it>
-> > Cc: rtc-linux@googlegroups.com
-> > Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
-> 
-> I've contemplated applying that patch but I'm not sure it is actually a
-> good idea because those 46 drivers are using a variant of module_driver
-> which actually uses __init and __exit. After your patch it is still
-> working simply because init.h gets included that way:
+The fast path increments the reader count. In the interrupt context,
+the reader in the slowpath will wait until the writer release the
+lock. However, if other readers have the lock and the writer is just
+in the waiting mode. It will never get the write lock because the
+that interrupt context reader has increment the count. This will
+cause deadlock.
 
-Firstly, I am kind of curious why an 18 month old patch is getting
-replied to now.   That aside, this interdependence between module.h and
-init.h was reconsidered and you can see the resolution solution here:
+This patch fixes this problem by checking the state of the
+reader/writer count retrieved at the fast path. If the writer
+is in waiting mode, the reader will get the lock immediately and
+return. Otherwise, it will wait until the writer release the lock
+like before.
 
-https://lkml.kernel.org/r/1433276168-21550-1-git-send-email-paul.gortmaker@windriver.com
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+---
+ include/asm-generic/qrwlock.h |    4 ++--
+ kernel/locking/qrwlock.c      |   14 ++++++++------
+ 2 files changed, 10 insertions(+), 8 deletions(-)
 
-To summarize what is said there, yes - you can ignore the one line
-removals for now.  We will revisit them after the above is merged.
-
-Thanks,
-Paul.
---
-
-> 
-> linux/module.h:9
-> linux/list.h:8
-> linux/kernel.h:13
-> linux/printk.h:5
-> 
-> -- 
-> Alexandre Belloni, Free Electrons
-> Embedded Linux, Kernel and Android engineering
-> http://free-electrons.com
+diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+index 6383d54..865d021 100644
+--- a/include/asm-generic/qrwlock.h
++++ b/include/asm-generic/qrwlock.h
+@@ -36,7 +36,7 @@
+ /*
+  * External function declarations
+  */
+-extern void queue_read_lock_slowpath(struct qrwlock *lock);
++extern void queue_read_lock_slowpath(struct qrwlock *lock, u32 cnts);
+ extern void queue_write_lock_slowpath(struct qrwlock *lock);
+ 
+ /**
+@@ -105,7 +105,7 @@ static inline void queue_read_lock(struct qrwlock *lock)
+ 		return;
+ 
+ 	/* The slowpath will decrement the reader count, if necessary. */
+-	queue_read_lock_slowpath(lock);
++	queue_read_lock_slowpath(lock, cnts);
+ }
+ 
+ /**
+diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+index 00c12bb..d7d7557 100644
+--- a/kernel/locking/qrwlock.c
++++ b/kernel/locking/qrwlock.c
+@@ -43,22 +43,24 @@ rspin_until_writer_unlock(struct qrwlock *lock, u32 cnts)
+  * queue_read_lock_slowpath - acquire read lock of a queue rwlock
+  * @lock: Pointer to queue rwlock structure
+  */
+-void queue_read_lock_slowpath(struct qrwlock *lock)
++void queue_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
+ {
+-	u32 cnts;
+-
+ 	/*
+ 	 * Readers come here when they cannot get the lock without waiting
+ 	 */
+ 	if (unlikely(in_interrupt())) {
+ 		/*
+-		 * Readers in interrupt context will spin until the lock is
+-		 * available without waiting in the queue.
++		 * Readers in interrupt context will get the lock immediately
++		 * if the writer is just waiting (not holding the lock yet)
++		 * or they will spin until the lock is available without
++		 * waiting in the queue.
+ 		 */
+-		cnts = smp_load_acquire((u32 *)&lock->cnts);
++		if ((cnts & _QW_WMASK) != _QW_LOCKED)
++			return;
+ 		rspin_until_writer_unlock(lock, cnts);
+ 		return;
+ 	}
++
+ 	atomic_sub(_QR_BIAS, &lock->cnts);
+ 
+ 	/*
+-- 
+1.7.1
