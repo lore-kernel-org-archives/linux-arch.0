@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:51893 "EHLO
+Received: from smtprelay.synopsys.com ([198.182.47.9]:51811 "EHLO
 	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933187AbbFILwy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2015 07:52:54 -0400
+	with ESMTP id S1753747AbbFILuQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2015 07:50:16 -0400
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 25/28] ARCv2: [nsim*hs*] Support simulation platforms for HS38x cores
-Date: Tue, 9 Jun 2015 17:18:25 +0530
-Message-ID: <1433850508-26317-26-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 07/28] ARCv2: MMUv4: cache programming model changes
+Date: Tue, 9 Jun 2015 17:18:07 +0530
+Message-ID: <1433850508-26317-8-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
 References: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -14,694 +14,269 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Grant Likely <grant.likely@linaro.org>, Rob Herring <robh+dt@kernel.org>, devicetree@vger.kernel.org
-Message-ID: <20150609114825.UpsanTKq2WQCdSJM0RCigFrjCITU4Di-ZsN1M5f14iI@z>
+Cc: arnd@arndb.de, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20150609114807.2h_hloLnwGO-463_XNJ5XwhfJeZVpGa11uqA0MYh4eE@z>
 
-Cc: Grant Likely <grant.likely@linaro.org>
-Cc: Rob Herring <robh+dt@kernel.org>
-Cc: devicetree@vger.kernel.org
+Caveats about cache flush on ARCv2 based cores
+
+- dcache is PIPT so paddr is sufficient for cache maintenance ops (no
+  need to setup PTAG reg
+
+- icache is still VIPT but only aliasing configs need PTAG setup
+
+So basically this is departure from MMU-v3 which always need vaddr in
+line ops registers (DC_IVDL, DC_FLDL, IC_IVIL) but paddr in DC_PTAG,
+IC_PTAG respectively.
+
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/boot/dts/nsim_hs.dts              |  53 +++++++++++++++
- arch/arc/boot/dts/nsim_hs_idu.dts          |  72 ++++++++++++++++++++
- arch/arc/boot/dts/nsimosci_hs.dts          |  80 +++++++++++++++++++++++
- arch/arc/boot/dts/nsimosci_hs_idu.dts      | 101 +++++++++++++++++++++++++++++
- arch/arc/configs/nsim_hs_defconfig         |  64 ++++++++++++++++++
- arch/arc/configs/nsim_hs_smp_defconfig     |  63 ++++++++++++++++++
- arch/arc/configs/nsimosci_hs_defconfig     |  73 +++++++++++++++++++++
- arch/arc/configs/nsimosci_hs_smp_defconfig |  93 ++++++++++++++++++++++++++
- arch/arc/plat-sim/platform.c               |   2 +
- 9 files changed, 601 insertions(+)
- create mode 100644 arch/arc/boot/dts/nsim_hs.dts
- create mode 100644 arch/arc/boot/dts/nsim_hs_idu.dts
- create mode 100644 arch/arc/boot/dts/nsimosci_hs.dts
- create mode 100644 arch/arc/boot/dts/nsimosci_hs_idu.dts
- create mode 100644 arch/arc/configs/nsim_hs_defconfig
- create mode 100644 arch/arc/configs/nsim_hs_smp_defconfig
- create mode 100644 arch/arc/configs/nsimosci_hs_defconfig
- create mode 100644 arch/arc/configs/nsimosci_hs_smp_defconfig
+ arch/arc/Kconfig               |   2 +-
+ arch/arc/include/asm/arcregs.h |   5 +-
+ arch/arc/include/asm/cache.h   |   3 ++
+ arch/arc/mm/cache.c            | 112 +++++++++++++++++++++++++++++++++++------
+ 4 files changed, 104 insertions(+), 18 deletions(-)
 
-diff --git a/arch/arc/boot/dts/nsim_hs.dts b/arch/arc/boot/dts/nsim_hs.dts
-new file mode 100644
-index 000000000000..911f069e0540
---- /dev/null
-+++ b/arch/arc/boot/dts/nsim_hs.dts
-@@ -0,0 +1,53 @@
-+/*
-+ * Copyright (C) 2014-15 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+/dts-v1/;
-+
-+/include/ "skeleton.dtsi"
-+
-+/ {
-+	compatible = "snps,nsim_hs";
-+	interrupt-parent = <&core_intc>;
-+
-+	chosen {
-+		bootargs = "earlycon=arc_uart,mmio32,0xc0fc1000,115200n8 console=ttyARC0,115200n8";
-+	};
-+
-+	aliases {
-+		serial0 = &arcuart0;
-+	};
-+
-+	fpga {
-+		compatible = "simple-bus";
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+
-+		/* child and parent address space 1:1 mapped */
-+		ranges;
-+
-+		core_intc: core-interrupt-controller {
-+			compatible = "snps,archs-intc";
-+			interrupt-controller;
-+			#interrupt-cells = <1>;
-+		};
-+
-+		arcuart0: serial@c0fc1000 {
-+			compatible = "snps,arc-uart";
-+			reg = <0xc0fc1000 0x100>;
-+			interrupts = <24>;
-+			clock-frequency = <80000000>;
-+			current-speed = <115200>;
-+			status = "okay";
-+		};
-+
-+		arcpct0: pct {
-+			compatible = "snps,archs-pct";
-+			#interrupt-cells = <1>;
-+			interrupts = <20>;
-+		};
-+	};
-+};
-diff --git a/arch/arc/boot/dts/nsim_hs_idu.dts b/arch/arc/boot/dts/nsim_hs_idu.dts
-new file mode 100644
-index 000000000000..46ab31975612
---- /dev/null
-+++ b/arch/arc/boot/dts/nsim_hs_idu.dts
-@@ -0,0 +1,72 @@
-+/*
-+ * Copyright (C) 2014-15 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+/dts-v1/;
-+
-+/include/ "skeleton.dtsi"
-+
-+/ {
-+	compatible = "snps,nsim_hs";
-+	interrupt-parent = <&core_intc>;
-+
-+	chosen {
-+		bootargs = "earlycon=arc_uart,mmio32,0xc0fc1000,115200n8 console=ttyARC0,115200n8";
-+	};
-+
-+	aliases {
-+		serial0 = &arcuart0;
-+	};
-+
-+	fpga {
-+		compatible = "simple-bus";
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+
-+		/* child and parent address space 1:1 mapped */
-+		ranges;
-+
-+		core_intc: core-interrupt-controller {
-+			compatible = "snps,archs-intc";
-+			interrupt-controller;
-+			#interrupt-cells = <1>;
-+		};
-+
-+		idu_intc: idu-interrupt-controller {
-+			compatible = "snps,archs-idu-intc";
-+			interrupt-controller;
-+			interrupt-parent = <&core_intc>;
-+
-+			/*
-+			 * <hwirq  distribution>
-+			 * distribution: 0=RR; 1=cpu0, 2=cpu1, 4=cpu2, 8=cpu3
-+			 */
-+			#interrupt-cells = <2>;
-+
-+			/*
-+			 * upstream irqs to core intc - downstream these are
-+			 * "COMMON" irq 0,1..
-+			 */
-+			interrupts = <24 25 26 27 28 29 30 31>;
-+		};
-+
-+		arcuart0: serial@c0fc1000 {
-+			compatible = "snps,arc-uart";
-+			reg = <0xc0fc1000 0x100>;
-+			interrupt-parent = <&idu_intc>;
-+			interrupts = <0 0>;
-+			clock-frequency = <80000000>;
-+			current-speed = <115200>;
-+			status = "okay";
-+		};
-+
-+		arcpct0: pct {
-+			compatible = "snps,archs-pct";
-+			#interrupt-cells = <1>;
-+			interrupts = <20>;
-+		};
-+	};
-+};
-diff --git a/arch/arc/boot/dts/nsimosci_hs.dts b/arch/arc/boot/dts/nsimosci_hs.dts
-new file mode 100644
-index 000000000000..d64a96f8515a
---- /dev/null
-+++ b/arch/arc/boot/dts/nsimosci_hs.dts
-@@ -0,0 +1,80 @@
-+/*
-+ * Copyright (C) 2014-15 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+/dts-v1/;
-+
-+/include/ "skeleton.dtsi"
-+
-+/ {
-+	compatible = "snps,nsimosci_hs";
-+	clock-frequency = <20000000>;	/* 20 MHZ */
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&core_intc>;
-+
-+	chosen {
-+		/* this is for console on PGU */
-+		/* bootargs = "console=tty0 consoleblank=0"; */
-+		/* this is for console on serial */
-+		bootargs = "earlycon=uart8250,mmio32,0xf0000000,115200n8 console=tty0 console=ttyS0,115200n8 consoleblank=0 debug";
-+	};
-+
-+	aliases {
-+		serial0 = &uart0;
-+	};
-+
-+	fpga {
-+		compatible = "simple-bus";
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+
-+		/* child and parent address space 1:1 mapped */
-+		ranges;
-+
-+		core_intc: core-interrupt-controller {
-+			compatible = "snps,archs-intc";
-+			interrupt-controller;
-+			#interrupt-cells = <1>;
-+		};
-+
-+		uart0: serial@f0000000 {
-+			compatible = "ns8250";
-+			reg = <0xf0000000 0x2000>;
-+			interrupts = <24>;
-+			clock-frequency = <3686400>;
-+			baud = <115200>;
-+			reg-shift = <2>;
-+			reg-io-width = <4>;
-+			no-loopback-test = <1>;
-+		};
-+
-+		pgu0: pgu@f9000000 {
-+			compatible = "snps,arcpgufb";
-+			reg = <0xf9000000 0x400>;
-+		};
-+
-+		ps2: ps2@f9001000 {
-+			compatible = "snps,arc_ps2";
-+			reg = <0xf9000400 0x14>;
-+			interrupts = <27>;
-+			interrupt-names = "arc_ps2_irq";
-+		};
-+
-+		eth0: ethernet@f0003000 {
-+			compatible = "snps,oscilan";
-+			reg = <0xf0003000 0x44>;
-+			interrupts = <25>, <26>;
-+			interrupt-names = "rx", "tx";
-+		};
-+
-+		arcpct0: pct {
-+			compatible = "snps,archs-pct";
-+			#interrupt-cells = <1>;
-+			interrupts = <20>;
-+		};
-+	};
-+};
-diff --git a/arch/arc/boot/dts/nsimosci_hs_idu.dts b/arch/arc/boot/dts/nsimosci_hs_idu.dts
-new file mode 100644
-index 000000000000..f6bf0ca95a57
---- /dev/null
-+++ b/arch/arc/boot/dts/nsimosci_hs_idu.dts
-@@ -0,0 +1,101 @@
-+/*
-+ * Copyright (C) 2014-15 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+/dts-v1/;
-+
-+/include/ "skeleton.dtsi"
-+
-+/ {
-+	compatible = "snps,nsimosci_hs";
-+	clock-frequency = <5000000>;	/* 5 MHZ */
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	interrupt-parent = <&core_intc>;
-+
-+	chosen {
-+		/* this is for console on serial */
-+		bootargs = "earlycon=uart8250,mmio32,0xf0000000,115200n8 console=tty0 console=ttyS0,115200n8 consoleblan=0 debug";
-+	};
-+
-+	aliases {
-+		serial0 = &uart0;
-+	};
-+
-+	fpga {
-+		compatible = "simple-bus";
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+
-+		/* child and parent address space 1:1 mapped */
-+		ranges;
-+
-+		core_intc: core-interrupt-controller {
-+			compatible = "snps,archs-intc";
-+			interrupt-controller;
-+			#interrupt-cells = <1>;
-+/*			interrupts = <16 17 18 19 20 21 22 23 24 25>; */
-+		};
-+
-+		idu_intc: idu-interrupt-controller {
-+			compatible = "snps,archs-idu-intc";
-+			interrupt-controller;
-+			interrupt-parent = <&core_intc>;
-+
-+			/*
-+			 * <hwirq  distribution>
-+			 * distribution: 0=RR; 1=cpu0, 2=cpu1, 4=cpu2, 8=cpu3
-+			 */
-+			#interrupt-cells = <2>;
-+
-+			/*
-+			 * upstream irqs to core intc - downstream these are
-+			 * "COMMON" irq 0,1..
-+			 */
-+			interrupts = <24 25 26 27 28 29 30 31>;
-+		};
-+
-+		uart0: serial@f0000000 {
-+			compatible = "ns8250";
-+			reg = <0xf0000000 0x2000>;
-+			interrupt-parent = <&idu_intc>;
-+			interrupts = <0 0>; /* cmn irq 0 -> cpu irq 24
-+						RR distribute to all cpus */
-+			clock-frequency = <3686400>;
-+			baud = <115200>;
-+			reg-shift = <2>;
-+			reg-io-width = <4>;
-+			no-loopback-test = <1>;
-+		};
-+
-+		pgu0: pgu@f9000000 {
-+			compatible = "snps,arcpgufb";
-+			reg = <0xf9000000 0x400>;
-+		};
-+
-+		ps2: ps2@f9001000 {
-+			compatible = "snps,arc_ps2";
-+			reg = <0xf9000400 0x14>;
-+			interrupts = <3 0>;
-+			interrupt-parent = <&idu_intc>;
-+			interrupt-names = "arc_ps2_irq";
-+		};
-+
-+		eth0: ethernet@f0003000 {
-+			compatible = "snps,oscilan";
-+			reg = <0xf0003000 0x44>;
-+			interrupt-parent = <&idu_intc>;
-+			interrupts = <1 2>, <2 2>;
-+			interrupt-names = "rx", "tx";
-+		};
-+
-+		arcpct0: pct {
-+			compatible = "snps,archs-pct";
-+			#interrupt-cells = <1>;
-+			interrupts = <20>;
-+		};
-+	};
-+};
-diff --git a/arch/arc/configs/nsim_hs_defconfig b/arch/arc/configs/nsim_hs_defconfig
-new file mode 100644
-index 000000000000..f761a7c70761
---- /dev/null
-+++ b/arch/arc/configs/nsim_hs_defconfig
-@@ -0,0 +1,64 @@
-+CONFIG_CROSS_COMPILE="arc-linux-uclibc-"
-+# CONFIG_LOCALVERSION_AUTO is not set
-+CONFIG_DEFAULT_HOSTNAME="ARCLinux"
-+# CONFIG_SWAP is not set
-+CONFIG_SYSVIPC=y
-+CONFIG_POSIX_MQUEUE=y
-+# CONFIG_CROSS_MEMORY_ATTACH is not set
-+CONFIG_HIGH_RES_TIMERS=y
-+CONFIG_IKCONFIG=y
-+CONFIG_IKCONFIG_PROC=y
-+CONFIG_NAMESPACES=y
-+# CONFIG_UTS_NS is not set
-+# CONFIG_PID_NS is not set
-+CONFIG_BLK_DEV_INITRD=y
-+CONFIG_INITRAMFS_SOURCE="../arc_initramfs_hs/"
-+CONFIG_KALLSYMS_ALL=y
-+CONFIG_EMBEDDED=y
-+# CONFIG_SLUB_DEBUG is not set
-+# CONFIG_COMPAT_BRK is not set
-+CONFIG_KPROBES=y
-+CONFIG_MODULES=y
-+# CONFIG_LBDAF is not set
-+# CONFIG_BLK_DEV_BSG is not set
-+# CONFIG_IOSCHED_DEADLINE is not set
-+# CONFIG_IOSCHED_CFQ is not set
-+CONFIG_ARC_PLAT_SIM=y
-+CONFIG_ISA_ARCV2=y
-+CONFIG_ARC_BUILTIN_DTB_NAME="nsim_hs"
-+CONFIG_PREEMPT=y
-+# CONFIG_COMPACTION is not set
-+CONFIG_NET=y
-+CONFIG_PACKET=y
-+CONFIG_UNIX=y
-+CONFIG_UNIX_DIAG=y
-+CONFIG_NET_KEY=y
-+CONFIG_INET=y
-+# CONFIG_IPV6 is not set
-+# CONFIG_STANDALONE is not set
-+# CONFIG_PREVENT_FIRMWARE_BUILD is not set
-+# CONFIG_FIRMWARE_IN_KERNEL is not set
-+# CONFIG_BLK_DEV is not set
-+# CONFIG_INPUT_MOUSEDEV_PSAUX is not set
-+# CONFIG_INPUT_KEYBOARD is not set
-+# CONFIG_INPUT_MOUSE is not set
-+# CONFIG_SERIO is not set
-+# CONFIG_LEGACY_PTYS is not set
-+# CONFIG_DEVKMEM is not set
-+CONFIG_SERIAL_ARC=y
-+CONFIG_SERIAL_ARC_CONSOLE=y
-+# CONFIG_HW_RANDOM is not set
-+# CONFIG_HWMON is not set
-+# CONFIG_VGA_CONSOLE is not set
-+# CONFIG_HID is not set
-+# CONFIG_USB_SUPPORT is not set
-+# CONFIG_IOMMU_SUPPORT is not set
-+CONFIG_EXT2_FS=y
-+CONFIG_EXT2_FS_XATTR=y
-+CONFIG_TMPFS=y
-+# CONFIG_MISC_FILESYSTEMS is not set
-+CONFIG_NFS_FS=y
-+# CONFIG_ENABLE_WARN_DEPRECATED is not set
-+# CONFIG_ENABLE_MUST_CHECK is not set
-+# CONFIG_DEBUG_PREEMPT is not set
-+CONFIG_XZ_DEC=y
-diff --git a/arch/arc/configs/nsim_hs_smp_defconfig b/arch/arc/configs/nsim_hs_smp_defconfig
-new file mode 100644
-index 000000000000..dc6f74f41283
---- /dev/null
-+++ b/arch/arc/configs/nsim_hs_smp_defconfig
-@@ -0,0 +1,63 @@
-+CONFIG_CROSS_COMPILE="arc-linux-uclibc-"
-+# CONFIG_LOCALVERSION_AUTO is not set
-+CONFIG_DEFAULT_HOSTNAME="ARCLinux"
-+# CONFIG_SWAP is not set
-+CONFIG_HIGH_RES_TIMERS=y
-+CONFIG_IKCONFIG=y
-+CONFIG_IKCONFIG_PROC=y
-+CONFIG_NAMESPACES=y
-+# CONFIG_UTS_NS is not set
-+# CONFIG_PID_NS is not set
-+CONFIG_BLK_DEV_INITRD=y
-+CONFIG_INITRAMFS_SOURCE="../arc_initramfs_hs/"
-+CONFIG_KALLSYMS_ALL=y
-+CONFIG_EMBEDDED=y
-+# CONFIG_SLUB_DEBUG is not set
-+# CONFIG_COMPAT_BRK is not set
-+CONFIG_KPROBES=y
-+CONFIG_MODULES=y
-+# CONFIG_LBDAF is not set
-+# CONFIG_BLK_DEV_BSG is not set
-+# CONFIG_IOSCHED_DEADLINE is not set
-+# CONFIG_IOSCHED_CFQ is not set
-+CONFIG_ARC_PLAT_SIM=y
-+CONFIG_ARC_BOARD_ML509=y
-+CONFIG_ISA_ARCV2=y
-+CONFIG_SMP=y
-+CONFIG_ARC_BUILTIN_DTB_NAME="nsim_hs_idu"
-+CONFIG_PREEMPT=y
-+# CONFIG_COMPACTION is not set
-+# CONFIG_CROSS_MEMORY_ATTACH is not set
-+CONFIG_NET=y
-+CONFIG_PACKET=y
-+CONFIG_UNIX=y
-+CONFIG_UNIX_DIAG=y
-+CONFIG_NET_KEY=y
-+CONFIG_INET=y
-+# CONFIG_IPV6 is not set
-+# CONFIG_STANDALONE is not set
-+# CONFIG_PREVENT_FIRMWARE_BUILD is not set
-+# CONFIG_FIRMWARE_IN_KERNEL is not set
-+# CONFIG_BLK_DEV is not set
-+# CONFIG_INPUT_MOUSEDEV_PSAUX is not set
-+# CONFIG_INPUT_KEYBOARD is not set
-+# CONFIG_INPUT_MOUSE is not set
-+# CONFIG_SERIO is not set
-+# CONFIG_LEGACY_PTYS is not set
-+# CONFIG_DEVKMEM is not set
-+CONFIG_SERIAL_ARC=y
-+CONFIG_SERIAL_ARC_CONSOLE=y
-+# CONFIG_HW_RANDOM is not set
-+# CONFIG_HWMON is not set
-+# CONFIG_VGA_CONSOLE is not set
-+# CONFIG_HID is not set
-+# CONFIG_USB_SUPPORT is not set
-+# CONFIG_IOMMU_SUPPORT is not set
-+CONFIG_EXT2_FS=y
-+CONFIG_EXT2_FS_XATTR=y
-+CONFIG_TMPFS=y
-+# CONFIG_MISC_FILESYSTEMS is not set
-+CONFIG_NFS_FS=y
-+# CONFIG_ENABLE_WARN_DEPRECATED is not set
-+# CONFIG_ENABLE_MUST_CHECK is not set
-+CONFIG_XZ_DEC=y
-diff --git a/arch/arc/configs/nsimosci_hs_defconfig b/arch/arc/configs/nsimosci_hs_defconfig
-new file mode 100644
-index 000000000000..3fef0a210c56
---- /dev/null
-+++ b/arch/arc/configs/nsimosci_hs_defconfig
-@@ -0,0 +1,73 @@
-+CONFIG_CROSS_COMPILE="arc-linux-uclibc-"
-+# CONFIG_LOCALVERSION_AUTO is not set
-+CONFIG_DEFAULT_HOSTNAME="ARCLinux"
-+# CONFIG_SWAP is not set
-+CONFIG_SYSVIPC=y
-+# CONFIG_CROSS_MEMORY_ATTACH is not set
-+CONFIG_NO_HZ=y
-+CONFIG_HIGH_RES_TIMERS=y
-+CONFIG_IKCONFIG=y
-+CONFIG_IKCONFIG_PROC=y
-+CONFIG_NAMESPACES=y
-+# CONFIG_UTS_NS is not set
-+# CONFIG_PID_NS is not set
-+CONFIG_BLK_DEV_INITRD=y
-+CONFIG_INITRAMFS_SOURCE="../arc_initramfs_hs/"
-+CONFIG_KALLSYMS_ALL=y
-+CONFIG_EMBEDDED=y
-+# CONFIG_SLUB_DEBUG is not set
-+# CONFIG_COMPAT_BRK is not set
-+CONFIG_KPROBES=y
-+CONFIG_MODULES=y
-+# CONFIG_LBDAF is not set
-+# CONFIG_BLK_DEV_BSG is not set
-+# CONFIG_IOSCHED_DEADLINE is not set
-+# CONFIG_IOSCHED_CFQ is not set
-+CONFIG_ARC_PLAT_SIM=y
-+CONFIG_ISA_ARCV2=y
-+CONFIG_ARC_BUILTIN_DTB_NAME="nsimosci_hs"
-+# CONFIG_COMPACTION is not set
-+CONFIG_NET=y
-+CONFIG_PACKET=y
-+CONFIG_UNIX=y
-+CONFIG_UNIX_DIAG=y
-+CONFIG_NET_KEY=y
-+CONFIG_INET=y
-+# CONFIG_IPV6 is not set
-+# CONFIG_STANDALONE is not set
-+# CONFIG_PREVENT_FIRMWARE_BUILD is not set
-+# CONFIG_FIRMWARE_IN_KERNEL is not set
-+# CONFIG_BLK_DEV is not set
-+CONFIG_NETDEVICES=y
-+CONFIG_NET_OSCI_LAN=y
-+CONFIG_INPUT_EVDEV=y
-+# CONFIG_MOUSE_PS2_ALPS is not set
-+# CONFIG_MOUSE_PS2_LOGIPS2PP is not set
-+# CONFIG_MOUSE_PS2_SYNAPTICS is not set
-+# CONFIG_MOUSE_PS2_TRACKPOINT is not set
-+CONFIG_MOUSE_PS2_TOUCHKIT=y
-+# CONFIG_SERIO_SERPORT is not set
-+CONFIG_SERIO_ARC_PS2=y
-+# CONFIG_LEGACY_PTYS is not set
-+# CONFIG_DEVKMEM is not set
-+CONFIG_SERIAL_8250=y
-+CONFIG_SERIAL_8250_CONSOLE=y
-+CONFIG_SERIAL_8250_NR_UARTS=1
-+CONFIG_SERIAL_8250_RUNTIME_UARTS=1
-+CONFIG_SERIAL_OF_PLATFORM=y
-+# CONFIG_HW_RANDOM is not set
-+# CONFIG_HWMON is not set
-+CONFIG_FB=y
-+# CONFIG_VGA_CONSOLE is not set
-+CONFIG_FRAMEBUFFER_CONSOLE=y
-+CONFIG_LOGO=y
-+# CONFIG_HID is not set
-+# CONFIG_USB_SUPPORT is not set
-+# CONFIG_IOMMU_SUPPORT is not set
-+CONFIG_EXT2_FS=y
-+CONFIG_EXT2_FS_XATTR=y
-+CONFIG_TMPFS=y
-+# CONFIG_MISC_FILESYSTEMS is not set
-+CONFIG_NFS_FS=y
-+# CONFIG_ENABLE_WARN_DEPRECATED is not set
-+# CONFIG_ENABLE_MUST_CHECK is not set
-diff --git a/arch/arc/configs/nsimosci_hs_smp_defconfig b/arch/arc/configs/nsimosci_hs_smp_defconfig
-new file mode 100644
-index 000000000000..51784837daae
---- /dev/null
-+++ b/arch/arc/configs/nsimosci_hs_smp_defconfig
-@@ -0,0 +1,93 @@
-+CONFIG_CROSS_COMPILE="arc-linux-uclibc-"
-+CONFIG_DEFAULT_HOSTNAME="ARCLinux"
-+# CONFIG_SWAP is not set
-+CONFIG_SYSVIPC=y
-+CONFIG_NO_HZ=y
-+CONFIG_HIGH_RES_TIMERS=y
-+CONFIG_IKCONFIG=y
-+CONFIG_IKCONFIG_PROC=y
-+# CONFIG_UTS_NS is not set
-+# CONFIG_PID_NS is not set
-+CONFIG_BLK_DEV_INITRD=y
-+CONFIG_INITRAMFS_SOURCE="../arc_initramfs_hs/"
-+# CONFIG_COMPAT_BRK is not set
-+CONFIG_KPROBES=y
-+CONFIG_MODULES=y
-+# CONFIG_LBDAF is not set
-+# CONFIG_BLK_DEV_BSG is not set
-+# CONFIG_IOSCHED_DEADLINE is not set
-+# CONFIG_IOSCHED_CFQ is not set
-+CONFIG_ARC_PLAT_SIM=y
-+CONFIG_ARC_BOARD_ML509=y
-+CONFIG_ISA_ARCV2=y
-+CONFIG_SMP=y
-+CONFIG_ARC_HAS_LL64=y
-+# CONFIG_ARC_HAS_RTSC is not set
-+CONFIG_ARC_BUILTIN_DTB_NAME="nsimosci_hs_idu"
-+CONFIG_PREEMPT=y
-+# CONFIG_COMPACTION is not set
-+# CONFIG_CROSS_MEMORY_ATTACH is not set
-+CONFIG_NET=y
-+CONFIG_PACKET=y
-+CONFIG_PACKET_DIAG=y
-+CONFIG_UNIX=y
-+CONFIG_UNIX_DIAG=y
-+CONFIG_NET_KEY=y
-+CONFIG_INET=y
-+# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
-+# CONFIG_INET_XFRM_MODE_TUNNEL is not set
-+# CONFIG_INET_XFRM_MODE_BEET is not set
-+# CONFIG_INET_LRO is not set
-+# CONFIG_IPV6 is not set
-+# CONFIG_WIRELESS is not set
-+# CONFIG_STANDALONE is not set
-+# CONFIG_PREVENT_FIRMWARE_BUILD is not set
-+# CONFIG_FIRMWARE_IN_KERNEL is not set
-+# CONFIG_BLK_DEV is not set
-+CONFIG_NETDEVICES=y
-+# CONFIG_NET_VENDOR_ARC is not set
-+# CONFIG_NET_CADENCE is not set
-+# CONFIG_NET_VENDOR_BROADCOM is not set
-+# CONFIG_NET_VENDOR_INTEL is not set
-+# CONFIG_NET_VENDOR_MARVELL is not set
-+# CONFIG_NET_VENDOR_MICREL is not set
-+# CONFIG_NET_VENDOR_NATSEMI is not set
-+# CONFIG_NET_VENDOR_SEEQ is not set
-+# CONFIG_NET_VENDOR_STMICRO is not set
-+# CONFIG_NET_VENDOR_VIA is not set
-+# CONFIG_NET_VENDOR_WIZNET is not set
-+CONFIG_NET_OSCI_LAN=y
-+# CONFIG_WLAN is not set
-+CONFIG_INPUT_EVDEV=y
-+CONFIG_MOUSE_PS2_TOUCHKIT=y
-+# CONFIG_SERIO_SERPORT is not set
-+CONFIG_SERIO_LIBPS2=y
-+CONFIG_SERIO_ARC_PS2=y
-+CONFIG_VT_HW_CONSOLE_BINDING=y
-+# CONFIG_LEGACY_PTYS is not set
-+# CONFIG_DEVKMEM is not set
-+CONFIG_SERIAL_8250=y
-+CONFIG_SERIAL_8250_CONSOLE=y
-+CONFIG_SERIAL_8250_NR_UARTS=1
-+CONFIG_SERIAL_8250_RUNTIME_UARTS=1
-+CONFIG_SERIAL_8250_DW=y
-+CONFIG_SERIAL_OF_PLATFORM=y
-+# CONFIG_HW_RANDOM is not set
-+# CONFIG_HWMON is not set
-+CONFIG_FB=y
-+CONFIG_ARCPGU_RGB888=y
-+CONFIG_ARCPGU_DISPTYPE=0
-+# CONFIG_VGA_CONSOLE is not set
-+CONFIG_FRAMEBUFFER_CONSOLE=y
-+CONFIG_LOGO=y
-+# CONFIG_HID is not set
-+# CONFIG_USB_SUPPORT is not set
-+# CONFIG_IOMMU_SUPPORT is not set
-+CONFIG_EXT2_FS=y
-+CONFIG_EXT2_FS_XATTR=y
-+CONFIG_TMPFS=y
-+# CONFIG_MISC_FILESYSTEMS is not set
-+CONFIG_NFS_FS=y
-+# CONFIG_ENABLE_WARN_DEPRECATED is not set
-+# CONFIG_ENABLE_MUST_CHECK is not set
-+CONFIG_FTRACE=y
-diff --git a/arch/arc/plat-sim/platform.c b/arch/arc/plat-sim/platform.c
-index 8795ae2ef48a..d9e35b4a2f08 100644
---- a/arch/arc/plat-sim/platform.c
-+++ b/arch/arc/plat-sim/platform.c
-@@ -22,7 +22,9 @@
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index 6568977bb302..974ed9058018 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -223,7 +223,7 @@ config ARC_CACHE_PAGES
  
- static const char *simulation_compat[] __initconst = {
- 	"snps,nsim",
-+	"snps,nsim_hs",
- 	"snps,nsimosci",
-+	"snps,nsimosci_hs",
- 	NULL,
+ config ARC_CACHE_VIPT_ALIASING
+ 	bool "Support VIPT Aliasing D$"
+-	depends on ARC_HAS_DCACHE
++	depends on ARC_HAS_DCACHE && ISA_ARCOMPACT
+ 	default n
+ 
+ endif	#ARC_CACHE
+diff --git a/arch/arc/include/asm/arcregs.h b/arch/arc/include/asm/arcregs.h
+index 3a56cd00c59e..4db1af296454 100644
+--- a/arch/arc/include/asm/arcregs.h
++++ b/arch/arc/include/asm/arcregs.h
+@@ -17,6 +17,7 @@
+ #define ARC_REG_FP_BCR		0x6B	/* ARCompact: Single-Precision FPU */
+ #define ARC_REG_DPFP_BCR	0x6C	/* ARCompact: Dbl Precision FPU */
+ #define ARC_REG_FP_V2_BCR	0xc8	/* ARCv2 FPU */
++#define ARC_REG_SLC_BCR		0xce
+ #define ARC_REG_DCCM_BCR	0x74	/* DCCM Present + SZ */
+ #define ARC_REG_TIMERS_BCR	0x75
+ #define ARC_REG_AP_BCR		0x76
+@@ -330,7 +331,7 @@ struct cpuinfo_arc_mmu {
  };
  
+ struct cpuinfo_arc_cache {
+-	unsigned int sz_k:8, line_len:8, assoc:4, ver:4, alias:1, vipt:1, pad:6;
++	unsigned int sz_k:14, line_len:8, assoc:4, ver:4, alias:1, vipt:1;
+ };
+ 
+ struct cpuinfo_arc_bpu {
+@@ -342,7 +343,7 @@ struct cpuinfo_arc_ccm {
+ };
+ 
+ struct cpuinfo_arc {
+-	struct cpuinfo_arc_cache icache, dcache;
++	struct cpuinfo_arc_cache icache, dcache, slc;
+ 	struct cpuinfo_arc_mmu mmu;
+ 	struct cpuinfo_arc_bpu bpu;
+ 	struct bcr_identity core;
+diff --git a/arch/arc/include/asm/cache.h b/arch/arc/include/asm/cache.h
+index 7861255da32d..e54977a7d006 100644
+--- a/arch/arc/include/asm/cache.h
++++ b/arch/arc/include/asm/cache.h
+@@ -82,4 +82,7 @@ extern void read_decode_cache_bcr(void);
+ #define DC_CTRL_INV_MODE_FLUSH  0x40
+ #define DC_CTRL_FLUSH_STATUS    0x100
+ 
++/*System-level cache (L2 cache) related Auxiliary registers */
++#define ARC_REG_SLC_CFG		0x901
++
+ #endif /* _ASM_CACHE_H */
+diff --git a/arch/arc/mm/cache.c b/arch/arc/mm/cache.c
+index 6fa5f0f7f549..7a898f57d84b 100644
+--- a/arch/arc/mm/cache.c
++++ b/arch/arc/mm/cache.c
+@@ -24,6 +24,7 @@
+ char *arc_cache_mumbojumbo(int c, char *buf, int len)
+ {
+ 	int n = 0;
++	struct cpuinfo_arc_cache *p;
+ 
+ #define PR_CACHE(p, cfg, str)						\
+ 	if (!(p)->ver)							\
+@@ -39,6 +40,11 @@ char *arc_cache_mumbojumbo(int c, char *buf, int len)
+ 	PR_CACHE(&cpuinfo_arc700[c].icache, CONFIG_ARC_HAS_ICACHE, "I-Cache");
+ 	PR_CACHE(&cpuinfo_arc700[c].dcache, CONFIG_ARC_HAS_DCACHE, "D-Cache");
+ 
++	p = &cpuinfo_arc700[c].slc;
++	if (p->ver)
++		n += scnprintf(buf + n, len - n,
++			"SLC\t\t: %uK, %uB Line\n", p->sz_k, p->line_len);
++
+ 	return buf;
+ }
+ 
+@@ -49,7 +55,7 @@ char *arc_cache_mumbojumbo(int c, char *buf, int len)
+  */
+ void read_decode_cache_bcr(void)
+ {
+-	struct cpuinfo_arc_cache *p_ic, *p_dc;
++	struct cpuinfo_arc_cache *p_ic, *p_dc, *p_slc;
+ 	unsigned int cpu = smp_processor_id();
+ 	struct bcr_cache {
+ #ifdef CONFIG_CPU_BIG_ENDIAN
+@@ -59,14 +65,29 @@ void read_decode_cache_bcr(void)
+ #endif
+ 	} ibcr, dbcr;
+ 
++	struct bcr_generic sbcr;
++
++	struct bcr_slc_cfg {
++#ifdef CONFIG_CPU_BIG_ENDIAN
++		unsigned int pad:24, way:2, lsz:2, sz:4;
++#else
++		unsigned int sz:4, lsz:2, way:2, pad:24;
++#endif
++	} slc_cfg;
++
+ 	p_ic = &cpuinfo_arc700[cpu].icache;
+ 	READ_BCR(ARC_REG_IC_BCR, ibcr);
+ 
+ 	if (!ibcr.ver)
+ 		goto dc_chk;
+ 
+-	BUG_ON(ibcr.config != 3);
+-	p_ic->assoc = 2;		/* Fixed to 2w set assoc */
++	if (ibcr.ver <= 3) {
++		BUG_ON(ibcr.config != 3);
++		p_ic->assoc = 2;		/* Fixed to 2w set assoc */
++	} else if (ibcr.ver >= 4) {
++		p_ic->assoc = 1 << ibcr.config;	/* 1,2,4,8 */
++	}
++
+ 	p_ic->line_len = 8 << ibcr.line_len;
+ 	p_ic->sz_k = 1 << (ibcr.sz - 1);
+ 	p_ic->ver = ibcr.ver;
+@@ -78,15 +99,32 @@ dc_chk:
+ 	READ_BCR(ARC_REG_DC_BCR, dbcr);
+ 
+ 	if (!dbcr.ver)
+-		return;
++		goto slc_chk;
++
++	if (dbcr.ver <= 3) {
++		BUG_ON(dbcr.config != 2);
++		p_dc->assoc = 4;		/* Fixed to 4w set assoc */
++		p_dc->vipt = 1;
++		p_dc->alias = p_dc->sz_k/p_dc->assoc/TO_KB(PAGE_SIZE) > 1;
++	} else if (dbcr.ver >= 4) {
++		p_dc->assoc = 1 << dbcr.config;	/* 1,2,4,8 */
++		p_dc->vipt = 0;
++		p_dc->alias = 0;		/* PIPT so can't VIPT alias */
++	}
+ 
+-	BUG_ON(dbcr.config != 2);
+-	p_dc->assoc = 4;		/* Fixed to 4w set assoc */
+ 	p_dc->line_len = 16 << dbcr.line_len;
+ 	p_dc->sz_k = 1 << (dbcr.sz - 1);
+ 	p_dc->ver = dbcr.ver;
+-	p_dc->vipt = 1;
+-	p_dc->alias = p_dc->sz_k/p_dc->assoc/TO_KB(PAGE_SIZE) > 1;
++
++slc_chk:
++	p_slc = &cpuinfo_arc700[cpu].slc;
++	READ_BCR(ARC_REG_SLC_BCR, sbcr);
++	if (sbcr.ver) {
++		READ_BCR(ARC_REG_SLC_CFG, slc_cfg);
++		p_slc->ver = sbcr.ver;
++		p_slc->sz_k = 128 << slc_cfg.sz;
++		p_slc->line_len = (slc_cfg.lsz == 0) ? 128 : 64;
++	}
+ }
+ 
+ /*
+@@ -225,10 +263,53 @@ void __cache_line_loop_v3(unsigned long paddr, unsigned long vaddr,
+ 	}
+ }
+ 
++/*
++ * In HS38x (MMU v4), although icache is VIPT, only paddr is needed for cache
++ * maintenance ops (in IVIL reg), as long as icache doesn't alias.
++ *
++ * For Aliasing icache, vaddr is also needed (in IVIL), while paddr is
++ * specified in PTAG (similar to MMU v3)
++ */
++static inline
++void __cache_line_loop_v4(unsigned long paddr, unsigned long vaddr,
++			  unsigned long sz, const int cacheop)
++{
++	unsigned int aux_cmd;
++	int num_lines;
++	const int full_page_op = __builtin_constant_p(sz) && sz == PAGE_SIZE;
++
++	if (cacheop == OP_INV_IC) {
++		aux_cmd = ARC_REG_IC_IVIL;
++	} else {
++		/* d$ cmd: INV (discard or wback-n-discard) OR FLUSH (wback) */
++		aux_cmd = cacheop & OP_INV ? ARC_REG_DC_IVDL : ARC_REG_DC_FLDL;
++	}
++
++	/* Ensure we properly floor/ceil the non-line aligned/sized requests
++	 * and have @paddr - aligned to cache line and integral @num_lines.
++	 * This however can be avoided for page sized since:
++	 *  -@paddr will be cache-line aligned already (being page aligned)
++	 *  -@sz will be integral multiple of line size (being page sized).
++	 */
++	if (!full_page_op) {
++		sz += paddr & ~CACHE_LINE_MASK;
++		paddr &= CACHE_LINE_MASK;
++	}
++
++	num_lines = DIV_ROUND_UP(sz, L1_CACHE_BYTES);
++
++	while (num_lines-- > 0) {
++		write_aux_reg(aux_cmd, paddr);
++		paddr += L1_CACHE_BYTES;
++	}
++}
++
+ #if (CONFIG_ARC_MMU_VER < 3)
+ #define __cache_line_loop	__cache_line_loop_v2
+ #elif (CONFIG_ARC_MMU_VER == 3)
+ #define __cache_line_loop	__cache_line_loop_v3
++#elif (CONFIG_ARC_MMU_VER > 3)
++#define __cache_line_loop	__cache_line_loop_v4
+ #endif
+ 
+ #ifdef CONFIG_ARC_HAS_DCACHE
+@@ -669,7 +750,6 @@ void arc_cache_init(void)
+ 
+ 	if (IS_ENABLED(CONFIG_ARC_HAS_DCACHE)) {
+ 		struct cpuinfo_arc_cache *dc = &cpuinfo_arc700[cpu].dcache;
+-		int handled;
+ 
+ 		if (!dc->ver)
+ 			panic("cache support enabled but non-existent cache\n");
+@@ -678,12 +758,14 @@ void arc_cache_init(void)
+ 			panic("DCache line [%d] != kernel Config [%d]",
+ 			      dc->line_len, L1_CACHE_BYTES);
+ 
+-		/* check for D-Cache aliasing */
+-		handled = IS_ENABLED(CONFIG_ARC_CACHE_VIPT_ALIASING);
++		/* check for D-Cache aliasing on ARCompact: ARCv2 has PIPT */
++		if (is_isa_arcompact()) {
++			int handled = IS_ENABLED(CONFIG_ARC_CACHE_VIPT_ALIASING);
+ 
+-		if (dc->alias && !handled)
+-			panic("Enable CONFIG_ARC_CACHE_VIPT_ALIASING\n");
+-		else if (!dc->alias && handled)
+-			panic("Disable CONFIG_ARC_CACHE_VIPT_ALIASING\n");
++			if (dc->alias && !handled)
++				panic("Enable CONFIG_ARC_CACHE_VIPT_ALIASING\n");
++			else if (!dc->alias && handled)
++				panic("Disable CONFIG_ARC_CACHE_VIPT_ALIASING\n");
++		}
+ 	}
+ }
 -- 
 1.9.1
 
