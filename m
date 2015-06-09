@@ -1,40 +1,21 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from tex.lwn.net ([70.33.254.29]:59884 "EHLO vena.lwn.net"
+Received: from verein.lst.de ([213.95.11.211]:46185 "EHLO newverein.lst.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753190AbbFHXGL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 8 Jun 2015 19:06:11 -0400
-Date: Mon, 8 Jun 2015 17:08:43 -0600
-From: Jonathan Corbet <corbet@lwn.net>
-Subject: Re: [GIT PULL] Documentation/features: Add kernel feature
- descriptions and arch support status files under Documentation/features/
-Message-ID: <20150608170843.75cade69@lwn.net>
-In-Reply-To: <20150603110355.GA12079@gmail.com>
-References: <20150513094756.GD11030@gmail.com>
-	<20150513131835.GJ1517@pd.tnic>
-	<20150513134842.GA1657@gmail.com>
-	<20150513162757.GA21894@x>
-	<20150513150523.ddd65d7cd51f820b78f0c8e3@linux-foundation.org>
-	<20150514101518.GA27550@gmail.com>
-	<20150514103544.GA7027@gmail.com>
-	<20150522094931.78a43421@lwn.net>
-	<20150523080704.GA25893@gmail.com>
-	<20150524124447.0c395540@lwn.net>
-	<20150603110355.GA12079@gmail.com>
+	id S1752105AbbFIG73 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 9 Jun 2015 02:59:29 -0400
+Date: Tue, 9 Jun 2015 08:59:27 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH v4 6/9] scatterlist: use sg_phys()
+Message-ID: <20150609065927.GE10167@lst.de>
+References: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com> <20150605211935.20751.55654.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20150605211935.20751.55654.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Josh Triplett <josh@joshtriplett.org>, Borislav Petkov <bp@alien8.de>, Peter Zijlstra <peterz@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, Peter Zijlstra <a.p.zijlstra@chello.nl>
-Message-ID: <20150608230843.1GyXH-Y6s1T1j8Om7jJGZwFcz5k9HcuYfTtVnhpqbts@z>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-kernel@vger.kernel.org, axboe@kernel.dk, boaz@plexistor.com, david@fromorbit.com, linux-arch@vger.kernel.org, arnd@arndb.de, ross.zwisler@linux.intel.com, linux-nvdimm@lists.01.org, benh@kernel.crashing.org, linux-fsdevel@vger.kernel.org, heiko.carstens@de.ibm.com, hch@lst.de, Julia Lawall <Julia.Lawall@lip6.fr>, tj@kernel.org, paulus@samba.org, hpa@zytor.com, schwidefsky@de.ibm.com, willy@linux.intel.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, mingo@kernel.org
+Message-ID: <20150609065927.ZEqw5d2KpIlQRQHrsg7IvwfGLlgUXwd4IymfSGj6Aos@z>
 
-On Wed, 3 Jun 2015 13:03:55 +0200
-Ingo Molnar <mingo@kernel.org> wrote:
-
-> A week late but I managed to complete it all and moved it into Git, for better 
-> structure and easy pulling.
-
-Pulled into the docs tree - thanks!
-
-jon
+Please send this and the next one to Jens for this cycle.
