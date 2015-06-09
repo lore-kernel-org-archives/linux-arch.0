@@ -1,68 +1,40 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 20/28] ARCv2: barriers
-Date: Tue, 9 Jun 2015 14:40:08 +0200
-Message-ID: <20150609124008.GA3644@twins.programming.kicks-ass.net>
-References: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
- <1433850508-26317-21-git-send-email-vgupta@synopsys.com>
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [PATCH v4 9/9] x86: convert dma_map_ops to support mapping a
+ __pfn_t.
+Date: Tue, 9 Jun 2015 09:47:09 -0400
+Message-ID: <20150609134708.GC15200@x230>
+References: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150605211955.20751.15047.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150609065854.GD10167@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from userp1040.oracle.com ([156.151.31.81]:51279 "EHLO
+	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932944AbbFINvQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2015 09:51:16 -0400
 Content-Disposition: inline
-In-Reply-To: <1433850508-26317-21-git-send-email-vgupta@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, arc-linux-dev@synopsys.com
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20150609065854.GD10167@lst.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Dan Williams <dan.j.williams@intel.com>, linux-kernel@vger.kernel.org, axboe@kernel.dk, boaz@plexistor.com, david@fromorbit.com, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, arnd@arndb.de, ross.zwisler@linux.intel.com, benh@kernel.crashing.org, linux-nvdimm@ml01.01.org, heiko.carstens@de.ibm.com, tj@kernel.org, paulus@samba.org, hpa@zytor.com, schwidefsky@de.ibm.com, willy@linux.intel.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, mingo@kernel.org
 
-On Tue, Jun 09, 2015 at 05:18:20PM +0530, Vineet Gupta wrote:
+On Tue, Jun 09, 2015 at 08:58:54AM +0200, Christoph Hellwig wrote:
+> On Fri, Jun 05, 2015 at 05:19:55PM -0400, Dan Williams wrote:
+> > As long as a dma_map_sg() implementation avoids sg_page() conversions it
+> > can support scatterlists that carry "page-less" __pfn_t entries.
+> > However, a couple implementations require that __pfn_t_has_page() is
+> > always true. The Xen swiotlb implementation's entanglements with ARM and
+> > the Calgary MMUs requirement to have a pre-existing virtual mapping make
+> > them unable to support this conversion (i.e. these now have 'depends on
+> > !HAVE_DMA_PFN').
+> 
+> That's why we really need a whole kernel conversion and not just a piecemail
+> one.  Given how trivial this patch is that doesn't look like a too big
+> task ayway.
 
-A description of how your hardware works; or a reference to the platform
-documentation would not go amiss.
-
-> +++ b/arch/arc/include/asm/barrier.h
-> @@ -0,0 +1,48 @@
-> +/*
-> + * Copyright (C) 2014-15 Synopsys, Inc. (www.synopsys.com)
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + */
-> +
-> +#ifndef __ASM_BARRIER_H
-> +#define __ASM_BARRIER_H
-> +
-> +#ifdef CONFIG_SMP
-> +
-> +#ifdef CONFIG_ISA_ARCV2
-> +
-> +/*
-> + * DMB:
-> + *   - Ensures that selected memory operation issued before it will complete
-> + *     before any subsequent memory operation of same type
-> + */
-> +#define smp_mb()	asm volatile("dmb 3\n" : : : "memory")
-> +#define smp_rmb()	asm volatile("dmb 1\n" : : : "memory")
-> +#define smp_wmb()	asm volatile("dmb 2\n" : : : "memory")
-> +
-> +/*
-> + * DSYNC:
-> + *   - Waits for completion of all outstanding memory operations before any new
-> + *     operations can begin
-> + *   - Includes implicit memory operations such as cache/TLB/BPU maintenance ops
-> + *   - Lighter version of SYNC as it doesn't wait for non-memory operations
-> + */
-> +#define mb()		asm volatile("dsync\n" : : : "memory")
-
-So mb() is supposed to order against things like DMA memory ops, is DMA
-part of point 1 or 3, if 3, this is not a suitable instruction.
-
-> +#else	/* CONFIG_ISA_ARCOMPACT */
-> +
-> +/* SYNC:
-> + *   - Waits for completion of all outstanding memory transactions AND all
-> + *     previous instructions to reture
-> + */
-> +#define mb()		asm volatile("sync\n" : : : "memory")
-> +
-> +#endif	/* CONFIG_ISA_ARCV2 */
+Aye, and the SWIOTLB (baremetal), Xen SWIOTLB (x86), Xen SWIOTLB (ARM)
+can surely be easily tested by the Xen folks if you have patches. Please
+just CC the xen-devel@lists.xenproject.org on the patches and shout
+out for testing help.
