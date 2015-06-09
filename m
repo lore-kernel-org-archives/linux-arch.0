@@ -1,94 +1,162 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 8/8] ARCv2: perf: Finally introduce HS perf unit
-Date: Tue, 9 Jun 2015 17:49:32 +0530
-Message-ID: <1433852372-29494-9-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 1/8] ARC: perf: support RAW events
+Date: Tue, 9 Jun 2015 17:49:25 +0530
+Message-ID: <1433852372-29494-2-git-send-email-vgupta@synopsys.com>
 References: <1433852372-29494-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:52312 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750936AbbFIMVf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2015 08:21:35 -0400
+Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:33606 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753921AbbFIMV6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2015 08:21:58 -0400
 In-Reply-To: <1433852372-29494-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>
+Cc: arnd@arndb.de, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, arc-linux-dev@synopsys.com, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
-With all features in place, the ARC HS pct block can now be effectively
-allowed to be probed/used
+From: Alexey Brodkin <abrodkin@synopsys.com>
+
+To run perf against raw event user may issue following command:
+--->---
+Initializing raw event: crun
+
+ Performance counter stats for 'sleep 0':
+
+            583202 r6372756e
+
+       0.020000000 seconds time elapsed
+--->---
+
+"-e rXXX" is indication of raw event to count.
+XXX is 64-bit ASCII value.
+0x6372756e = crun (in ASCII)
 
 Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Arnaldo Carvalho de Melo <acme@kernel.org>
+Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- Documentation/devicetree/bindings/arc/archs-pct.txt | 17 +++++++++++++++++
- arch/arc/include/asm/perf_event.h                   |  5 ++++-
- arch/arc/kernel/perf_event.c                        |  3 ++-
- 3 files changed, 23 insertions(+), 2 deletions(-)
- create mode 100644 Documentation/devicetree/bindings/arc/archs-pct.txt
+ arch/arc/include/asm/perf_event.h |  3 +++
+ arch/arc/kernel/perf_event.c      | 54 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 57 insertions(+)
 
-diff --git a/Documentation/devicetree/bindings/arc/archs-pct.txt b/Documentation/devicetree/bindings/arc/archs-pct.txt
-new file mode 100644
-index 000000000000..1ae98b87c640
---- /dev/null
-+++ b/Documentation/devicetree/bindings/arc/archs-pct.txt
-@@ -0,0 +1,17 @@
-+* ARC HS Performance Counters
-+
-+The ARC HS can be configured with a pipeline performance monitor for counting
-+CPU and cache events like cache misses and hits. Like conventional PCT there
-+are 100+ hardware conditions dynamically mapped to upto 32 counters.
-+It also supports overflow interrupts.
-+
-+Required properties:
-+
-+- compatible : should contain
-+	"snps,archs-pct"
-+
-+Example:
-+
-+pmu {
-+        compatible = "snps,archs-pct";
-+};
 diff --git a/arch/arc/include/asm/perf_event.h b/arch/arc/include/asm/perf_event.h
-index e915c0d4b630..e4d758718bb5 100644
+index 2b8880e953a2..ea43477f8a59 100644
 --- a/arch/arc/include/asm/perf_event.h
 +++ b/arch/arc/include/asm/perf_event.h
-@@ -108,8 +108,11 @@ static const char * const arc_pmu_ev_hw_map[] = {
- 	[PERF_COUNT_HW_INSTRUCTIONS] = "iall",
- 	[PERF_COUNT_HW_BRANCH_INSTRUCTIONS] = "ijmp",
- 	[PERF_COUNT_ARC_BPOK]         = "bpok",	  /* NP-NT, PT-T, PNT-NT */
-+#ifdef CONFIG_ISA_ARCV2
-+	[PERF_COUNT_HW_BRANCH_MISSES] = "bpmp",
-+#else
- 	[PERF_COUNT_HW_BRANCH_MISSES] = "bpfail", /* NP-T, PT-NT, PNT-T */
--
-+#endif
- 	[PERF_COUNT_ARC_LDC] = "imemrdc",	/* Instr: mem read cached */
- 	[PERF_COUNT_ARC_STC] = "imemwrc",	/* Instr: mem write cached */
+@@ -15,6 +15,9 @@
+ /* real maximum varies per CPU, this is the maximum supported by the driver */
+ #define ARC_PMU_MAX_HWEVENTS	64
  
++/* Max number of countable events that CPU may have */
++#define ARC_PERF_MAX_EVENTS	256
++
+ #define ARC_REG_CC_BUILD	0xF6
+ #define ARC_REG_CC_INDEX	0x240
+ #define ARC_REG_CC_NAME0	0x241
 diff --git a/arch/arc/kernel/perf_event.c b/arch/arc/kernel/perf_event.c
-index a40772b37b77..e2ce9e03ea3d 100644
+index eea8a7b42e87..400965973bb0 100644
 --- a/arch/arc/kernel/perf_event.c
 +++ b/arch/arc/kernel/perf_event.c
-@@ -611,6 +611,7 @@ static int arc_pmu_device_probe(struct platform_device *pdev)
- #ifdef CONFIG_OF
- static const struct of_device_id arc_pmu_match[] = {
- 	{ .compatible = "snps,arc700-pct" },
-+	{ .compatible = "snps,archs-pct" },
- 	{},
+@@ -22,8 +22,10 @@ struct arc_pmu {
+ 	struct pmu	pmu;
+ 	int		counter_size;	/* in bits */
+ 	int		n_counters;
++	int		n_events;
+ 	unsigned long	used_mask[BITS_TO_LONGS(ARC_PMU_MAX_HWEVENTS)];
+ 	int		ev_hw_idx[PERF_COUNT_ARC_HW_MAX];
++	u64             raw_events[ARC_PERF_MAX_EVENTS];
  };
- MODULE_DEVICE_TABLE(of, arc_pmu_match);
-@@ -618,7 +619,7 @@ MODULE_DEVICE_TABLE(of, arc_pmu_match);
  
- static struct platform_driver arc_pmu_driver = {
- 	.driver	= {
--		.name		= "arc700-pct",
-+		.name		= "arc-pct",
- 		.of_match_table = of_match_ptr(arc_pmu_match),
- 	},
- 	.probe		= arc_pmu_device_probe,
+ struct arc_callchain_trace {
+@@ -136,6 +138,44 @@ static int arc_pmu_cache_event(u64 config)
+ 	return ret;
+ }
+ 
++/*
++ * Raw events are specified in hex value of ASCII chars:
++ *
++ * In PCT register CC_NAME{0,1} event name string[] is saved from LSB side:
++ * e.g. cycles corresponds to ARC "crun" and is saved as 0x6e757263
++ *							    n u r c
++ * However in perf cmdline they are specified in human order as r6372756e
++ *
++ * Thus event from cmdline requires an word swap
++ */
++static int arc_pmu_raw_event(u64 config)
++{
++	int i;
++	char name[sizeof(u64) + 1] = {0};
++	u64 swapped = __swab64(config);
++
++	/* Trim leading zeroes */
++	for (i = 0; i < sizeof(u64); i++)
++		if (!(swapped & 0xFF))
++			swapped = swapped >> 8;
++		else
++			break;
++
++	for (i = 0; i < arc_pmu->n_events; i++) {
++		if (swapped == arc_pmu->raw_events[i])
++			break;
++	}
++
++	if (i == arc_pmu->n_events)
++		return -ENOENT;
++
++	memcpy(name, &swapped, sizeof(u64));
++
++	pr_debug("Initializing raw event: %s\n", name);
++
++	return i;
++}
++
+ /* initializes hw_perf_event structure if event is supported */
+ static int arc_pmu_event_init(struct perf_event *event)
+ {
+@@ -159,6 +199,14 @@ static int arc_pmu_event_init(struct perf_event *event)
+ 			return ret;
+ 		hwc->config = arc_pmu->ev_hw_idx[ret];
+ 		return 0;
++
++	case PERF_TYPE_RAW:
++		ret = arc_pmu_raw_event(event->attr.config);
++		if (ret < 0)
++			return ret;
++		hwc->config |= ret;
++		return 0;
++
+ 	default:
+ 		return -ENOENT;
+ 	}
+@@ -289,6 +337,7 @@ static int arc_pmu_device_probe(struct platform_device *pdev)
+ 
+ 	READ_BCR(ARC_REG_CC_BUILD, cc_bcr);
+ 	BUG_ON(!cc_bcr.v); /* Counters exist but No countable conditions ? */
++	BUG_ON(cc_bcr.c > ARC_PERF_MAX_EVENTS);
+ 
+ 	arc_pmu = devm_kzalloc(&pdev->dev, sizeof(struct arc_pmu), GFP_KERNEL);
+ 	if (!arc_pmu)
+@@ -300,6 +349,8 @@ static int arc_pmu_device_probe(struct platform_device *pdev)
+ 	pr_info("ARC perf\t: %d counters (%d bits), %d countable conditions\n",
+ 		arc_pmu->n_counters, arc_pmu->counter_size, cc_bcr.c);
+ 
++	arc_pmu->n_events = cc_bcr.c;
++
+ 	cc_name.str[8] = 0;
+ 	for (i = 0; i < PERF_COUNT_ARC_HW_MAX; i++)
+ 		arc_pmu->ev_hw_idx[i] = -1;
+@@ -310,6 +361,9 @@ static int arc_pmu_device_probe(struct platform_device *pdev)
+ 		cc_name.indiv.word0 = read_aux_reg(ARC_REG_CC_NAME0);
+ 		cc_name.indiv.word1 = read_aux_reg(ARC_REG_CC_NAME1);
+ 
++		arc_pmu->raw_events[j] = ((u64)cc_name.indiv.word1 << 32) |
++						cc_name.indiv.word0;
++
+ 		/* See if it has been mapped to a perf event_id */
+ 		for (i = 0; i < ARRAY_SIZE(arc_pmu_ev_hw_map); i++) {
+ 			if (arc_pmu_ev_hw_map[i] &&
 -- 
 1.9.1
