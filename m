@@ -1,118 +1,537 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 03/28] ARCv2: STAR 9000793984: Handle return from intr to Delay Slot
-Date: Tue, 9 Jun 2015 17:18:03 +0530
-Message-ID: <1433850508-26317-4-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 21/28] ARC: Reduce bitops lines of code using macros
+Date: Tue, 9 Jun 2015 17:18:21 +0530
+Message-ID: <1433850508-26317-22-git-send-email-vgupta@synopsys.com>
 References: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:51846 "EHLO
+Received: from smtprelay.synopsys.com ([198.182.47.9]:51841 "EHLO
 	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753748AbbFILvi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2015 07:51:38 -0400
+	with ESMTP id S932869AbbFILvf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2015 07:51:35 -0400
 In-Reply-To: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: arnd@arndb.de, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "Peter Zijlstra (Intel)" <peterz@infradead.org>
 
+No semantical changes !
+
+Cc: Peter Zijlstra (Intel) <peterz@infradead.org>
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/kernel/asm-offsets.c |  1 +
- arch/arc/kernel/entry-arcv2.S | 50 +++++++++++++++++++++++++++++++++++++++++++
- arch/arc/kernel/setup.c       |  2 ++
- 3 files changed, 53 insertions(+)
+ arch/arc/include/asm/bitops.h | 463 +++++++++++++-----------------------------
+ 1 file changed, 137 insertions(+), 326 deletions(-)
 
-diff --git a/arch/arc/kernel/asm-offsets.c b/arch/arc/kernel/asm-offsets.c
-index 6c3aa0edb9b5..b9cf23313273 100644
---- a/arch/arc/kernel/asm-offsets.c
-+++ b/arch/arc/kernel/asm-offsets.c
-@@ -56,6 +56,7 @@ int main(void)
- 	DEFINE(PT_r5, offsetof(struct pt_regs, r5));
- 	DEFINE(PT_r6, offsetof(struct pt_regs, r6));
- 	DEFINE(PT_r7, offsetof(struct pt_regs, r7));
-+	DEFINE(PT_ret, offsetof(struct pt_regs, ret));
+diff --git a/arch/arc/include/asm/bitops.h b/arch/arc/include/asm/bitops.h
+index 47878d85e3a3..873df7be5dab 100644
+--- a/arch/arc/include/asm/bitops.h
++++ b/arch/arc/include/asm/bitops.h
+@@ -18,83 +18,50 @@
+ #include <linux/types.h>
+ #include <linux/compiler.h>
+ #include <asm/barrier.h>
++#ifndef CONFIG_ARC_HAS_LLSC
++#include <asm/smp.h>
++#endif
  
- 	DEFINE(SZ_CALLEE_REGS, sizeof(struct callee_regs));
- 	DEFINE(SZ_PT_REGS, sizeof(struct pt_regs));
-diff --git a/arch/arc/kernel/entry-arcv2.S b/arch/arc/kernel/entry-arcv2.S
-index c59a396b7b98..bd7105d3172f 100644
---- a/arch/arc/kernel/entry-arcv2.S
-+++ b/arch/arc/kernel/entry-arcv2.S
-@@ -163,6 +163,9 @@ END(EV_TLBProtV)
- ;####### Return from Intr #######
+-/*
+- * Hardware assisted read-modify-write using ARC700 LLOCK/SCOND insns.
+- * The Kconfig glue ensures that in SMP, this is only set if the container
+- * SoC/platform has cross-core coherent LLOCK/SCOND
+- */
+ #if defined(CONFIG_ARC_HAS_LLSC)
  
- debug_marker_l1:
-+	bbit1.nt r0, STATUS_DE_BIT, .Lintr_ret_to_delay_slot
-+
-+.Lisr_ret_fast_path:
- 	; Handle special case #1: (Entry via Exception, Return via IRQ)
- 	;
- 	; Exception in U mode, preempted in kernel, Intr taken (K mode), orig
-@@ -186,4 +189,51 @@ debug_marker_syscall:
- 	EXCEPTION_EPILOGUE
- 	rtie
+-static inline void set_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned int temp;
+-
+-	m += nr >> 5;
+-
+-	/*
+-	 * ARC ISA micro-optimization:
+-	 *
+-	 * Instructions dealing with bitpos only consider lower 5 bits (0-31)
+-	 * e.g (x << 33) is handled like (x << 1) by ASL instruction
+-	 *  (mem pointer still needs adjustment to point to next word)
+-	 *
+-	 * Hence the masking to clamp @nr arg can be elided in general.
+-	 *
+-	 * However if @nr is a constant (above assumed it in a register),
+-	 * and greater than 31, gcc can optimize away (x << 33) to 0,
+-	 * as overflow, given the 32-bit ISA. Thus masking needs to be done
+-	 * for constant @nr, but no code is generated due to const prop.
+-	 */
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	__asm__ __volatile__(
+-	"1:	llock   %0, [%1]	\n"
+-	"	bset    %0, %0, %2	\n"
+-	"	scond   %0, [%1]	\n"
+-	"	bnz     1b	\n"
+-	: "=&r"(temp)
+-	: "r"(m), "ir"(nr)
+-	: "cc");
+-}
+-
+-static inline void clear_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned int temp;
+-
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	__asm__ __volatile__(
+-	"1:	llock   %0, [%1]	\n"
+-	"	bclr    %0, %0, %2	\n"
+-	"	scond   %0, [%1]	\n"
+-	"	bnz     1b	\n"
+-	: "=&r"(temp)
+-	: "r"(m), "ir"(nr)
+-	: "cc");
+-}
+-
+-static inline void change_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned int temp;
+-
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
++/*
++ * Hardware assisted Atomic-R-M-W
++ */
  
-+;####### Return from Intr to insn in delay slot #######
-+
-+; Handle special case #2: (Entry via Exception in Delay Slot, Return via IRQ)
-+;
-+; Intr returning to a Delay Slot (DS) insn
-+; (since IRQ NOT allowed in DS in ARCv2, this can only happen if orig
-+; entry was via Exception in DS which got preempted in kernel).
-+;
-+; IRQ RTIE won't reliably restore DE bit and/or BTA, needs handling
-+.Lintr_ret_to_delay_slot:
-+debug_marker_ds:
-+
-+	ld	r2, [@intr_to_DE_cnt]
-+	add	r2, r2, 1
-+	st	r2, [@intr_to_DE_cnt]
-+
-+	ld	r2, [sp, PT_ret]
-+	ld	r3, [sp, PT_status32]
-+
-+	bic  	r0, r3, STATUS_U_MASK|STATUS_DE_MASK|STATUS_IE_MASK|STATUS_L_MASK
-+	st	r0, [sp, PT_status32]
-+
-+	mov	r1, .Lintr_ret_to_delay_slot_2
-+	st	r1, [sp, PT_ret]
-+
-+	st	r2, [sp, 0]
-+	st	r3, [sp, 4]
-+
-+	b	.Lisr_ret_fast_path
-+
-+.Lintr_ret_to_delay_slot_2:
-+	sub	sp, sp, SZ_PT_REGS
-+	st	r9, [sp, -4]
-+
-+	ld	r9, [sp, 0]
-+	sr	r9, [eret]
-+
-+	ld	r9, [sp, 4]
-+	sr	r9, [erstatus]
-+
-+	ld	r9, [sp, 8]
-+	sr	r9, [erbta]
-+
-+	ld	r9, [sp, -4]
-+	add	sp, sp, SZ_PT_REGS
-+	rtie
-+
- END(ret_from_exception)
-diff --git a/arch/arc/kernel/setup.c b/arch/arc/kernel/setup.c
-index d6fe80070bbf..ca71cef4bafd 100644
---- a/arch/arc/kernel/setup.c
-+++ b/arch/arc/kernel/setup.c
-@@ -30,6 +30,8 @@
+-	__asm__ __volatile__(
+-	"1:	llock   %0, [%1]	\n"
+-	"	bxor    %0, %0, %2	\n"
+-	"	scond   %0, [%1]	\n"
+-	"	bnz     1b		\n"
+-	: "=&r"(temp)
+-	: "r"(m), "ir"(nr)
+-	: "cc");
++#define BIT_OP(op, c_op, asm_op)					\
++static inline void op##_bit(unsigned long nr, volatile unsigned long *m)\
++{									\
++	unsigned int temp;						\
++									\
++	m += nr >> 5;							\
++									\
++	/*								\
++	 * ARC ISA micro-optimization:					\
++	 *								\
++	 * Instructions dealing with bitpos only consider lower 5 bits	\
++	 * e.g (x << 33) is handled like (x << 1) by ASL instruction	\
++	 *  (mem pointer still needs adjustment to point to next word)	\
++	 *								\
++	 * Hence the masking to clamp @nr arg can be elided in general.	\
++	 *								\
++	 * However if @nr is a constant (above assumed in a register),	\
++	 * and greater than 31, gcc can optimize away (x << 33) to 0,	\
++	 * as overflow, given the 32-bit ISA. Thus masking needs to be	\
++	 * done for const @nr, but no code is generated due to gcc	\
++	 * const prop.							\
++	 */								\
++	if (__builtin_constant_p(nr))					\
++		nr &= 0x1f;						\
++									\
++	__asm__ __volatile__(						\
++	"1:	llock       %0, [%1]		\n"			\
++	"	" #asm_op " %0, %0, %2	\n"				\
++	"	scond       %0, [%1]		\n"			\
++	"	bnz         1b			\n"			\
++	: "=&r"(temp)	/* Early clobber, to prevent reg reuse */	\
++	: "r"(m),	/* Not "m": llock only supports reg direct addr mode */	\
++	  "ir"(nr)							\
++	: "cc");							\
+ }
  
- #define FIX_PTR(x)  __asm__ __volatile__(";" : "+r"(x))
+ /*
+@@ -108,87 +75,34 @@ static inline void change_bit(unsigned long nr, volatile unsigned long *m)
+  * Since ARC lacks a equivalent h/w primitive, the bit is set unconditionally
+  * and the old value of bit is returned
+  */
+-static inline int test_and_set_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned long old, temp;
+-
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	smp_mb();
+-
+-	__asm__ __volatile__(
+-	"1:	llock   %0, [%2]	\n"
+-	"	bset    %1, %0, %3	\n"
+-	"	scond   %1, [%2]	\n"
+-	"	bnz     1b		\n"
+-	: "=&r"(old), "=&r"(temp)
+-	: "r"(m), "ir"(nr)
+-	: "cc");
+-
+-	smp_mb();
+-
+-	return (old & (1 << nr)) != 0;
+-}
+-
+-static inline int
+-test_and_clear_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned int old, temp;
+-
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	smp_mb();
+-
+-	__asm__ __volatile__(
+-	"1:	llock   %0, [%2]	\n"
+-	"	bclr    %1, %0, %3	\n"
+-	"	scond   %1, [%2]	\n"
+-	"	bnz     1b		\n"
+-	: "=&r"(old), "=&r"(temp)
+-	: "r"(m), "ir"(nr)
+-	: "cc");
+-
+-	smp_mb();
+-
+-	return (old & (1 << nr)) != 0;
+-}
+-
+-static inline int
+-test_and_change_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned int old, temp;
+-
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	smp_mb();
+-
+-	__asm__ __volatile__(
+-	"1:	llock   %0, [%2]	\n"
+-	"	bxor    %1, %0, %3	\n"
+-	"	scond   %1, [%2]	\n"
+-	"	bnz     1b		\n"
+-	: "=&r"(old), "=&r"(temp)
+-	: "r"(m), "ir"(nr)
+-	: "cc");
+-
+-	smp_mb();
+-
+-	return (old & (1 << nr)) != 0;
++#define TEST_N_BIT_OP(op, c_op, asm_op)					\
++static inline int test_and_##op##_bit(unsigned long nr, volatile unsigned long *m)\
++{									\
++	unsigned long old, temp;					\
++									\
++	m += nr >> 5;							\
++									\
++	if (__builtin_constant_p(nr))					\
++		nr &= 0x1f;						\
++									\
++	smp_mb();							\
++									\
++	__asm__ __volatile__(						\
++	"1:	llock       %0, [%2]	\n"				\
++	"	" #asm_op " %1, %0, %3	\n"				\
++	"	scond       %1, [%2]	\n"				\
++	"	bnz         1b		\n"				\
++	: "=&r"(old), "=&r"(temp)					\
++	: "r"(m), "ir"(nr)						\
++	: "cc");							\
++									\
++	smp_mb();							\
++									\
++	return (old & (1 << nr)) != 0;					\
+ }
  
-+unsigned int intr_to_DE_cnt;
+ #else	/* !CONFIG_ARC_HAS_LLSC */
+ 
+-#include <asm/smp.h>
+-
+ /*
+  * Non hardware assisted Atomic-R-M-W
+  * Locking would change to irq-disabling only (UP) and spinlocks (SMP)
+@@ -205,108 +119,40 @@ test_and_change_bit(unsigned long nr, volatile unsigned long *m)
+  *             at compile time)
+  */
+ 
+-static inline void set_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned long temp, flags;
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	bitops_lock(flags);
+-
+-	temp = *m;
+-	*m = temp | (1UL << nr);
+-
+-	bitops_unlock(flags);
+-}
+-
+-static inline void clear_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned long temp, flags;
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	bitops_lock(flags);
+-
+-	temp = *m;
+-	*m = temp & ~(1UL << nr);
+-
+-	bitops_unlock(flags);
+-}
+-
+-static inline void change_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned long temp, flags;
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	bitops_lock(flags);
+-
+-	temp = *m;
+-	*m = temp ^ (1UL << nr);
+-
+-	bitops_unlock(flags);
++#define BIT_OP(op, c_op, asm_op)					\
++static inline void op##_bit(unsigned long nr, volatile unsigned long *m)\
++{									\
++	unsigned long temp, flags;					\
++	m += nr >> 5;							\
++									\
++	if (__builtin_constant_p(nr))					\
++		nr &= 0x1f;						\
++									\
++	bitops_lock(flags);						\
++									\
++	temp = *m;							\
++	*m = temp c_op (1UL << nr);					\
++									\
++	bitops_unlock(flags);						\
+ }
+ 
+-static inline int test_and_set_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned long old, flags;
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	bitops_lock(flags);
+-
+-	old = *m;
+-	*m = old | (1 << nr);
+-
+-	bitops_unlock(flags);
+-
+-	return (old & (1 << nr)) != 0;
+-}
+-
+-static inline int
+-test_and_clear_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned long old, flags;
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	bitops_lock(flags);
+-
+-	old = *m;
+-	*m = old & ~(1 << nr);
+-
+-	bitops_unlock(flags);
+-
+-	return (old & (1 << nr)) != 0;
+-}
+-
+-static inline int
+-test_and_change_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned long old, flags;
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	bitops_lock(flags);
+-
+-	old = *m;
+-	*m = old ^ (1 << nr);
+-
+-	bitops_unlock(flags);
+-
+-	return (old & (1 << nr)) != 0;
++#define TEST_N_BIT_OP(op, c_op, asm_op)					\
++static inline int test_and_##op##_bit(unsigned long nr, volatile unsigned long *m)\
++{									\
++	unsigned long old, flags;					\
++	m += nr >> 5;							\
++									\
++	if (__builtin_constant_p(nr))					\
++		nr &= 0x1f;						\
++									\
++	bitops_lock(flags);						\
++									\
++	old = *m;							\
++	*m = old c_op (1 << nr);					\
++									\
++	bitops_unlock(flags);						\
++									\
++	return (old & (1 << nr)) != 0;					\
+ }
+ 
+ #endif /* CONFIG_ARC_HAS_LLSC */
+@@ -315,86 +161,51 @@ test_and_change_bit(unsigned long nr, volatile unsigned long *m)
+  * Non atomic variants
+  **************************************/
+ 
+-static inline void __set_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned long temp;
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	temp = *m;
+-	*m = temp | (1UL << nr);
+-}
+-
+-static inline void __clear_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned long temp;
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	temp = *m;
+-	*m = temp & ~(1UL << nr);
+-}
+-
+-static inline void __change_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned long temp;
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	temp = *m;
+-	*m = temp ^ (1UL << nr);
+-}
+-
+-static inline int
+-__test_and_set_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned long old;
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	old = *m;
+-	*m = old | (1 << nr);
+-
+-	return (old & (1 << nr)) != 0;
++#define __BIT_OP(op, c_op, asm_op)					\
++static inline void __##op##_bit(unsigned long nr, volatile unsigned long *m)	\
++{									\
++	unsigned long temp;						\
++	m += nr >> 5;							\
++									\
++	if (__builtin_constant_p(nr))					\
++		nr &= 0x1f;						\
++									\
++	temp = *m;							\
++	*m = temp c_op (1UL << nr);					\
+ }
+ 
+-static inline int
+-__test_and_clear_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned long old;
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	old = *m;
+-	*m = old & ~(1 << nr);
+-
+-	return (old & (1 << nr)) != 0;
++#define __TEST_N_BIT_OP(op, c_op, asm_op)				\
++static inline int __test_and_##op##_bit(unsigned long nr, volatile unsigned long *m)\
++{									\
++	unsigned long old;						\
++	m += nr >> 5;							\
++									\
++	if (__builtin_constant_p(nr))					\
++		nr &= 0x1f;						\
++									\
++	old = *m;							\
++	*m = old c_op (1 << nr);					\
++									\
++	return (old & (1 << nr)) != 0;					\
+ }
+ 
+-static inline int
+-__test_and_change_bit(unsigned long nr, volatile unsigned long *m)
+-{
+-	unsigned long old;
+-	m += nr >> 5;
+-
+-	if (__builtin_constant_p(nr))
+-		nr &= 0x1f;
+-
+-	old = *m;
+-	*m = old ^ (1 << nr);
+-
+-	return (old & (1 << nr)) != 0;
+-}
++#define BIT_OPS(op, c_op, asm_op)					\
++									\
++	/* set_bit(), clear_bit(), change_bit() */			\
++	BIT_OP(op, c_op, asm_op)					\
++									\
++	/* test_and_set_bit(), test_and_clear_bit(), test_and_change_bit() */\
++	TEST_N_BIT_OP(op, c_op, asm_op)					\
++									\
++	/* __set_bit(), __clear_bit(), __change_bit() */		\
++	__BIT_OP(op, c_op, asm_op)					\
++									\
++	/* __test_and_set_bit(), __test_and_clear_bit(), __test_and_change_bit() */\
++	__TEST_N_BIT_OP(op, c_op, asm_op)
 +
- /* Part of U-boot ABI: see head.S */
- int __initdata uboot_tag;
- char __initdata *uboot_arg;
++BIT_OPS(set, |, bset)
++BIT_OPS(clear, & ~, bclr)
++BIT_OPS(change, ^, bxor)
+ 
+ /*
+  * This routine doesn't need to be atomic.
 -- 
 1.9.1
