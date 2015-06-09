@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 07/28] ARCv2: MMUv4: cache programming model changes
-Date: Tue, 9 Jun 2015 17:18:07 +0530
-Message-ID: <1433850508-26317-8-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 23/28] ARCv2: SLC: Handle explcit flush for DMA ops (w/o IO-coherency)
+Date: Tue, 9 Jun 2015 17:18:23 +0530
+Message-ID: <1433850508-26317-24-git-send-email-vgupta@synopsys.com>
 References: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,265 +12,178 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-Caveats about cache flush on ARCv2 based cores
-
-- dcache is PIPT so paddr is sufficient for cache maintenance ops (no
-  need to setup PTAG reg
-
-- icache is still VIPT but only aliasing configs need PTAG setup
-
-So basically this is departure from MMU-v3 which always need vaddr in
-line ops registers (DC_IVDL, DC_FLDL, IC_IVIL) but paddr in DC_PTAG,
-IC_PTAG respectively.
+L2 cache on ARCHS processors is called SLC (System Level Cache)
+For working DMA (in absence of hardware assisted IO Coherency) we need
+to manage SLC explicitly when buffers transition between cpu and
+controllers.
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/Kconfig               |   2 +-
- arch/arc/include/asm/arcregs.h |   5 +-
- arch/arc/include/asm/cache.h   |   3 ++
- arch/arc/mm/cache.c            | 112 +++++++++++++++++++++++++++++++++++------
- 4 files changed, 104 insertions(+), 18 deletions(-)
+ arch/arc/include/asm/cache.h | 11 ++++++++
+ arch/arc/mm/cache.c          | 64 ++++++++++++++++++++++++++++++++++++++++++--
+ arch/arc/mm/dma.c            | 12 +++++++++
+ 3 files changed, 85 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 6568977bb302..974ed9058018 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -223,7 +223,7 @@ config ARC_CACHE_PAGES
- 
- config ARC_CACHE_VIPT_ALIASING
- 	bool "Support VIPT Aliasing D$"
--	depends on ARC_HAS_DCACHE
-+	depends on ARC_HAS_DCACHE && ISA_ARCOMPACT
- 	default n
- 
- endif	#ARC_CACHE
-diff --git a/arch/arc/include/asm/arcregs.h b/arch/arc/include/asm/arcregs.h
-index 3a56cd00c59e..4db1af296454 100644
---- a/arch/arc/include/asm/arcregs.h
-+++ b/arch/arc/include/asm/arcregs.h
-@@ -17,6 +17,7 @@
- #define ARC_REG_FP_BCR		0x6B	/* ARCompact: Single-Precision FPU */
- #define ARC_REG_DPFP_BCR	0x6C	/* ARCompact: Dbl Precision FPU */
- #define ARC_REG_FP_V2_BCR	0xc8	/* ARCv2 FPU */
-+#define ARC_REG_SLC_BCR		0xce
- #define ARC_REG_DCCM_BCR	0x74	/* DCCM Present + SZ */
- #define ARC_REG_TIMERS_BCR	0x75
- #define ARC_REG_AP_BCR		0x76
-@@ -330,7 +331,7 @@ struct cpuinfo_arc_mmu {
- };
- 
- struct cpuinfo_arc_cache {
--	unsigned int sz_k:8, line_len:8, assoc:4, ver:4, alias:1, vipt:1, pad:6;
-+	unsigned int sz_k:14, line_len:8, assoc:4, ver:4, alias:1, vipt:1;
- };
- 
- struct cpuinfo_arc_bpu {
-@@ -342,7 +343,7 @@ struct cpuinfo_arc_ccm {
- };
- 
- struct cpuinfo_arc {
--	struct cpuinfo_arc_cache icache, dcache;
-+	struct cpuinfo_arc_cache icache, dcache, slc;
- 	struct cpuinfo_arc_mmu mmu;
- 	struct cpuinfo_arc_bpu bpu;
- 	struct bcr_identity core;
 diff --git a/arch/arc/include/asm/cache.h b/arch/arc/include/asm/cache.h
-index 7861255da32d..e54977a7d006 100644
+index d21c76d6b054..d67345d3e2d4 100644
 --- a/arch/arc/include/asm/cache.h
 +++ b/arch/arc/include/asm/cache.h
-@@ -82,4 +82,7 @@ extern void read_decode_cache_bcr(void);
- #define DC_CTRL_INV_MODE_FLUSH  0x40
- #define DC_CTRL_FLUSH_STATUS    0x100
+@@ -82,5 +82,16 @@ extern void read_decode_cache_bcr(void);
  
-+/*System-level cache (L2 cache) related Auxiliary registers */
-+#define ARC_REG_SLC_CFG		0x901
+ /*System-level cache (L2 cache) related Auxiliary registers */
+ #define ARC_REG_SLC_CFG		0x901
++#define ARC_REG_SLC_CTRL	0x903
++#define ARC_REG_SLC_FLUSH	0x904
++#define ARC_REG_SLC_INVALIDATE	0x905
++#define ARC_REG_SLC_RGN_START	0x914
++#define ARC_REG_SLC_RGN_END	0x916
 +
++/* Bit val in SLC_CONTROL */
++#define SLC_CTRL_IM		0x040
++#define SLC_CTRL_DISABLE	0x001
++#define SLC_CTRL_BUSY		0x100
++#define SLC_CTRL_RGN_OP_INV	0x200
+ 
  #endif /* _ASM_CACHE_H */
 diff --git a/arch/arc/mm/cache.c b/arch/arc/mm/cache.c
-index 6fa5f0f7f549..7a898f57d84b 100644
+index 0eaaee60fd0b..b29d62ed4f7e 100644
 --- a/arch/arc/mm/cache.c
 +++ b/arch/arc/mm/cache.c
-@@ -24,6 +24,7 @@
- char *arc_cache_mumbojumbo(int c, char *buf, int len)
- {
- 	int n = 0;
-+	struct cpuinfo_arc_cache *p;
+@@ -21,6 +21,8 @@
+ #include <asm/cachectl.h>
+ #include <asm/setup.h>
  
- #define PR_CACHE(p, cfg, str)						\
- 	if (!(p)->ver)							\
-@@ -39,6 +40,11 @@ char *arc_cache_mumbojumbo(int c, char *buf, int len)
- 	PR_CACHE(&cpuinfo_arc700[c].icache, CONFIG_ARC_HAS_ICACHE, "I-Cache");
- 	PR_CACHE(&cpuinfo_arc700[c].dcache, CONFIG_ARC_HAS_DCACHE, "D-Cache");
- 
-+	p = &cpuinfo_arc700[c].slc;
-+	if (p->ver)
-+		n += scnprintf(buf + n, len - n,
-+			"SLC\t\t: %uK, %uB Line\n", p->sz_k, p->line_len);
++static int l2_line_sz;
 +
- 	return buf;
- }
+ void (*_cache_line_loop_ic_fn)(unsigned long paddr, unsigned long vaddr,
+ 			       unsigned long sz, const int cacheop);
  
-@@ -49,7 +55,7 @@ char *arc_cache_mumbojumbo(int c, char *buf, int len)
-  */
- void read_decode_cache_bcr(void)
- {
--	struct cpuinfo_arc_cache *p_ic, *p_dc;
-+	struct cpuinfo_arc_cache *p_ic, *p_dc, *p_slc;
- 	unsigned int cpu = smp_processor_id();
- 	struct bcr_cache {
- #ifdef CONFIG_CPU_BIG_ENDIAN
-@@ -59,14 +65,29 @@ void read_decode_cache_bcr(void)
- #endif
- 	} ibcr, dbcr;
- 
-+	struct bcr_generic sbcr;
-+
-+	struct bcr_slc_cfg {
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+		unsigned int pad:24, way:2, lsz:2, sz:4;
-+#else
-+		unsigned int sz:4, lsz:2, way:2, pad:24;
-+#endif
-+	} slc_cfg;
-+
- 	p_ic = &cpuinfo_arc700[cpu].icache;
- 	READ_BCR(ARC_REG_IC_BCR, ibcr);
- 
- 	if (!ibcr.ver)
- 		goto dc_chk;
- 
--	BUG_ON(ibcr.config != 3);
--	p_ic->assoc = 2;		/* Fixed to 2w set assoc */
-+	if (ibcr.ver <= 3) {
-+		BUG_ON(ibcr.config != 3);
-+		p_ic->assoc = 2;		/* Fixed to 2w set assoc */
-+	} else if (ibcr.ver >= 4) {
-+		p_ic->assoc = 1 << ibcr.config;	/* 1,2,4,8 */
-+	}
-+
- 	p_ic->line_len = 8 << ibcr.line_len;
- 	p_ic->sz_k = 1 << (ibcr.sz - 1);
- 	p_ic->ver = ibcr.ver;
-@@ -78,15 +99,32 @@ dc_chk:
- 	READ_BCR(ARC_REG_DC_BCR, dbcr);
- 
- 	if (!dbcr.ver)
--		return;
-+		goto slc_chk;
-+
-+	if (dbcr.ver <= 3) {
-+		BUG_ON(dbcr.config != 2);
-+		p_dc->assoc = 4;		/* Fixed to 4w set assoc */
-+		p_dc->vipt = 1;
-+		p_dc->alias = p_dc->sz_k/p_dc->assoc/TO_KB(PAGE_SIZE) > 1;
-+	} else if (dbcr.ver >= 4) {
-+		p_dc->assoc = 1 << dbcr.config;	/* 1,2,4,8 */
-+		p_dc->vipt = 0;
-+		p_dc->alias = 0;		/* PIPT so can't VIPT alias */
-+	}
- 
--	BUG_ON(dbcr.config != 2);
--	p_dc->assoc = 4;		/* Fixed to 4w set assoc */
- 	p_dc->line_len = 16 << dbcr.line_len;
- 	p_dc->sz_k = 1 << (dbcr.sz - 1);
+@@ -120,13 +122,16 @@ dc_chk:
  	p_dc->ver = dbcr.ver;
--	p_dc->vipt = 1;
--	p_dc->alias = p_dc->sz_k/p_dc->assoc/TO_KB(PAGE_SIZE) > 1;
-+
-+slc_chk:
-+	p_slc = &cpuinfo_arc700[cpu].slc;
-+	READ_BCR(ARC_REG_SLC_BCR, sbcr);
-+	if (sbcr.ver) {
-+		READ_BCR(ARC_REG_SLC_CFG, slc_cfg);
-+		p_slc->ver = sbcr.ver;
-+		p_slc->sz_k = 128 << slc_cfg.sz;
-+		p_slc->line_len = (slc_cfg.lsz == 0) ? 128 : 64;
-+	}
- }
  
- /*
-@@ -225,10 +263,53 @@ void __cache_line_loop_v3(unsigned long paddr, unsigned long vaddr,
+ slc_chk:
++	if (!is_isa_arcv2())
++		return;
++
+ 	p_slc = &cpuinfo_arc700[cpu].slc;
+ 	READ_BCR(ARC_REG_SLC_BCR, sbcr);
+ 	if (sbcr.ver) {
+ 		READ_BCR(ARC_REG_SLC_CFG, slc_cfg);
+ 		p_slc->ver = sbcr.ver;
+ 		p_slc->sz_k = 128 << slc_cfg.sz;
+-		p_slc->line_len = (slc_cfg.lsz == 0) ? 128 : 64;
++		l2_line_sz = p_slc->line_len = (slc_cfg.lsz == 0) ? 128 : 64;
  	}
  }
  
-+/*
-+ * In HS38x (MMU v4), although icache is VIPT, only paddr is needed for cache
-+ * maintenance ops (in IVIL reg), as long as icache doesn't alias.
-+ *
-+ * For Aliasing icache, vaddr is also needed (in IVIL), while paddr is
-+ * specified in PTAG (similar to MMU v3)
-+ */
-+static inline
-+void __cache_line_loop_v4(unsigned long paddr, unsigned long vaddr,
-+			  unsigned long sz, const int cacheop)
+@@ -460,6 +465,53 @@ static void __ic_line_inv_vaddr(unsigned long paddr, unsigned long vaddr,
+ 
+ #endif /* CONFIG_ARC_HAS_ICACHE */
+ 
++noinline void slc_op(unsigned long paddr, unsigned long sz, const int op)
 +{
-+	unsigned int aux_cmd;
-+	int num_lines;
-+	const int full_page_op = __builtin_constant_p(sz) && sz == PAGE_SIZE;
++#ifdef CONFIG_ISA_ARCV2
++	unsigned long flags;
++	unsigned int ctrl;
 +
-+	if (cacheop == OP_INV_IC) {
-+		aux_cmd = ARC_REG_IC_IVIL;
-+	} else {
-+		/* d$ cmd: INV (discard or wback-n-discard) OR FLUSH (wback) */
-+		aux_cmd = cacheop & OP_INV ? ARC_REG_DC_IVDL : ARC_REG_DC_FLDL;
-+	}
++	local_irq_save(flags);
 +
-+	/* Ensure we properly floor/ceil the non-line aligned/sized requests
-+	 * and have @paddr - aligned to cache line and integral @num_lines.
-+	 * This however can be avoided for page sized since:
-+	 *  -@paddr will be cache-line aligned already (being page aligned)
-+	 *  -@sz will be integral multiple of line size (being page sized).
++	/*
++	 * The Region Flush operation is specified by CTRL.RGN_OP[11..9]
++	 *  - b'000 (default) is Flush,
++	 *  - b'001 is Invalidate if CTRL.IM == 0
++	 *  - b'001 is Flush-n-Invalidate if CTRL.IM == 1
 +	 */
-+	if (!full_page_op) {
-+		sz += paddr & ~CACHE_LINE_MASK;
-+		paddr &= CACHE_LINE_MASK;
-+	}
++	ctrl = read_aux_reg(ARC_REG_SLC_CTRL);
 +
-+	num_lines = DIV_ROUND_UP(sz, L1_CACHE_BYTES);
++	/* Don't rely on default value of IM bit */
++	if (!(op & OP_FLUSH))		/* i.e. OP_INV */
++		ctrl &= ~SLC_CTRL_IM;	/* clear IM: Disable flush before Inv */
++	else
++		ctrl |= SLC_CTRL_IM;
 +
-+	while (num_lines-- > 0) {
-+		write_aux_reg(aux_cmd, paddr);
-+		paddr += L1_CACHE_BYTES;
-+	}
++	if (op & OP_INV)
++		ctrl |= SLC_CTRL_RGN_OP_INV;	/* Inv or flush-n-inv */
++	else
++		ctrl &= ~SLC_CTRL_RGN_OP_INV;
++
++	write_aux_reg(ARC_REG_SLC_CTRL, ctrl);
++
++	/*
++	 * Lower bits are ignored, no need to clip
++	 * END needs to be setup before START (latter triggers the operation)
++	 * END can't be same as START, so add (l2_line_sz - 1) to sz
++	 */
++	write_aux_reg(ARC_REG_SLC_RGN_END, (paddr + sz + l2_line_sz - 1));
++	write_aux_reg(ARC_REG_SLC_RGN_START, paddr);
++
++	while (read_aux_reg(ARC_REG_SLC_CTRL) & SLC_CTRL_BUSY);
++
++	local_irq_restore(flags);
++#endif
 +}
 +
- #if (CONFIG_ARC_MMU_VER < 3)
- #define __cache_line_loop	__cache_line_loop_v2
- #elif (CONFIG_ARC_MMU_VER == 3)
- #define __cache_line_loop	__cache_line_loop_v3
-+#elif (CONFIG_ARC_MMU_VER > 3)
-+#define __cache_line_loop	__cache_line_loop_v4
- #endif
++static inline int need_slc_flush(void)
++{
++	return is_isa_arcv2() && l2_line_sz;
++}
  
- #ifdef CONFIG_ARC_HAS_DCACHE
-@@ -669,7 +750,6 @@ void arc_cache_init(void)
- 
- 	if (IS_ENABLED(CONFIG_ARC_HAS_DCACHE)) {
- 		struct cpuinfo_arc_cache *dc = &cpuinfo_arc700[cpu].dcache;
--		int handled;
- 
- 		if (!dc->ver)
- 			panic("cache support enabled but non-existent cache\n");
-@@ -678,12 +758,14 @@ void arc_cache_init(void)
- 			panic("DCache line [%d] != kernel Config [%d]",
- 			      dc->line_len, L1_CACHE_BYTES);
- 
--		/* check for D-Cache aliasing */
--		handled = IS_ENABLED(CONFIG_ARC_CACHE_VIPT_ALIASING);
-+		/* check for D-Cache aliasing on ARCompact: ARCv2 has PIPT */
-+		if (is_isa_arcompact()) {
-+			int handled = IS_ENABLED(CONFIG_ARC_CACHE_VIPT_ALIASING);
- 
--		if (dc->alias && !handled)
--			panic("Enable CONFIG_ARC_CACHE_VIPT_ALIASING\n");
--		else if (!dc->alias && handled)
--			panic("Disable CONFIG_ARC_CACHE_VIPT_ALIASING\n");
-+			if (dc->alias && !handled)
-+				panic("Enable CONFIG_ARC_CACHE_VIPT_ALIASING\n");
-+			else if (!dc->alias && handled)
-+				panic("Disable CONFIG_ARC_CACHE_VIPT_ALIASING\n");
-+		}
- 	}
+ /***********************************************************
+  * Exported APIs
+@@ -509,22 +561,30 @@ void flush_dcache_page(struct page *page)
  }
+ EXPORT_SYMBOL(flush_dcache_page);
+ 
+-
+ void dma_cache_wback_inv(unsigned long start, unsigned long sz)
+ {
+ 	__dc_line_op_k(start, sz, OP_FLUSH_N_INV);
++
++	if (need_slc_flush())
++		slc_op(start, sz, OP_FLUSH_N_INV);
+ }
+ EXPORT_SYMBOL(dma_cache_wback_inv);
+ 
+ void dma_cache_inv(unsigned long start, unsigned long sz)
+ {
+ 	__dc_line_op_k(start, sz, OP_INV);
++
++	if (need_slc_flush())
++		slc_op(start, sz, OP_INV);
+ }
+ EXPORT_SYMBOL(dma_cache_inv);
+ 
+ void dma_cache_wback(unsigned long start, unsigned long sz)
+ {
+ 	__dc_line_op_k(start, sz, OP_FLUSH);
++
++	if (need_slc_flush())
++		slc_op(start, sz, OP_FLUSH);
+ }
+ EXPORT_SYMBOL(dma_cache_wback);
+ 
+diff --git a/arch/arc/mm/dma.c b/arch/arc/mm/dma.c
+index 2cfe81dca92a..74a637a1cfc4 100644
+--- a/arch/arc/mm/dma.c
++++ b/arch/arc/mm/dma.c
+@@ -66,6 +66,18 @@ void *dma_alloc_coherent(struct device *dev, size_t size,
+ 	/* This is bus address, platform dependent */
+ 	*dma_handle = (dma_addr_t)paddr;
+ 
++	/*
++	 * Evict any existing L1 and/or L2 lines for the backing page
++	 * in case it was used earlier as a normal "cached" page.
++	 * Yeah this bit us - STAR 9000898266
++	 *
++	 * Although core does call flush_cache_vmap(), it gets kvaddr hence
++	 * can't be used to efficiently flush L1 and/or L2 which need paddr
++	 * Currently flush_cache_vmap nukes the L1 cache completely which
++	 * will be optimized as a separate commit
++	 */
++	dma_cache_wback_inv((unsigned long)paddr, size);
++
+ 	return kvaddr;
+ }
+ EXPORT_SYMBOL(dma_alloc_coherent);
 -- 
 1.9.1
