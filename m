@@ -1,81 +1,49 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 6/8] ARCv2: perf: implement exclusion of event counting in user or kernel mode
-Date: Tue, 9 Jun 2015 17:49:30 +0530
-Message-ID: <1433852372-29494-7-git-send-email-vgupta@synopsys.com>
-References: <1433852372-29494-1-git-send-email-vgupta@synopsys.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 17/28] ARC: add compiler barrier to LLSC based cmpxchg
+Date: Tue, 9 Jun 2015 14:23:27 +0200
+Message-ID: <20150609122327.GW3644@twins.programming.kicks-ass.net>
+References: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
+ <1433850508-26317-18-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1433852372-29494-1-git-send-email-vgupta@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, arc-linux-dev@synopsys.com, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.9]:45925 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753910AbbFIMXe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2015 08:23:34 -0400
+Content-Disposition: inline
+In-Reply-To: <1433850508-26317-18-git-send-email-vgupta@synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, arc-linux-dev@synopsys.com
 
-From: Alexey Brodkin <abrodkin@synopsys.com>
+On Tue, Jun 09, 2015 at 05:18:17PM +0530, Vineet Gupta wrote:
+> When auditing cmpxchg call sites, Chuck noted that gcc was optimizing
+> away some of the desired LDs.
+> 
+> |	do {
+> |		new = old = *ipi_data_ptr;
+> |		new |= 1U << msg;
+> |	} while (cmpxchg(ipi_data_ptr, old, new) != old);
+> 
+> was generating to below
+> 
+> | 8015cef8:	ld         r2,[r4,0]  <-- First LD
+> | 8015cefc:	bset       r1,r2,r1
+> |
+> | 8015cf00:	llock      r3,[r4]  <-- atomic op
+> | 8015cf04:	brne       r3,r2,8015cf10
+> | 8015cf08:	scond      r1,[r4]
+> | 8015cf0c:	bnz        8015cf00
+> |
+> | 8015cf10:	brne       r3,r2,8015cf00  <-- Branch doesn't go to orig LD
+> 
+> Although this was fixed by adding a ACCESS_ONCE in this call site, it
+> seems safer (for now at least) to add compiler barrier to LLSC based
+> cmpxchg
 
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Arnaldo Carvalho de Melo <acme@kernel.org>
-Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- arch/arc/include/asm/perf_event.h |  3 +++
- arch/arc/kernel/perf_event.c      | 16 ++++++++++++++--
- 2 files changed, 17 insertions(+), 2 deletions(-)
+This is required even. cmpxchg() should include a full memory barrier
+_before_ and _after_ the op. Both imply a compiler barrier.
 
-diff --git a/arch/arc/include/asm/perf_event.h b/arch/arc/include/asm/perf_event.h
-index 33a6eb2998ac..e915c0d4b630 100644
---- a/arch/arc/include/asm/perf_event.h
-+++ b/arch/arc/include/asm/perf_event.h
-@@ -37,6 +37,9 @@
- #define ARC_REG_PCT_INT_CTRL	0x25E
- #define ARC_REG_PCT_INT_ACT	0x25F
- 
-+#define ARC_REG_PCT_CONFIG_USER	(1 << 18)	/* count in user mode */
-+#define ARC_REG_PCT_CONFIG_KERN	(1 << 19)	/* count in kernel mode */
-+
- #define ARC_REG_PCT_CONTROL_CC	(1 << 16)	/* clear counts */
- #define ARC_REG_PCT_CONTROL_SN	(1 << 17)	/* snapshot */
- 
-diff --git a/arch/arc/kernel/perf_event.c b/arch/arc/kernel/perf_event.c
-index a7b4e4826533..01aa0ea16bae 100644
---- a/arch/arc/kernel/perf_event.c
-+++ b/arch/arc/kernel/perf_event.c
-@@ -192,13 +192,25 @@ static int arc_pmu_event_init(struct perf_event *event)
- 		if (!arc_pmu->has_interrupts)
- 			return -ENOENT;
- 
-+	hwc->config = 0;
-+
-+	if (is_isa_arcv2()) {
-+		/* "exclude user" means "count only kernel" */
-+		if (event->attr.exclude_user)
-+			hwc->config |= ARC_REG_PCT_CONFIG_KERN;
-+
-+		/* "exclude kernel" means "count only user" */
-+		if (event->attr.exclude_kernel)
-+			hwc->config |= ARC_REG_PCT_CONFIG_USER;
-+	}
-+
- 	switch (event->attr.type) {
- 	case PERF_TYPE_HARDWARE:
- 		if (event->attr.config >= PERF_COUNT_HW_MAX)
- 			return -ENOENT;
- 		if (arc_pmu->ev_hw_idx[event->attr.config] < 0)
- 			return -ENOENT;
--		hwc->config = arc_pmu->ev_hw_idx[event->attr.config];
-+		hwc->config |= arc_pmu->ev_hw_idx[event->attr.config];
- 		pr_debug("init event %d with h/w %d \'%s\'\n",
- 			 (int) event->attr.config, (int) hwc->config,
- 			 arc_pmu_ev_hw_map[event->attr.config]);
-@@ -207,7 +219,7 @@ static int arc_pmu_event_init(struct perf_event *event)
- 		ret = arc_pmu_cache_event(event->attr.config);
- 		if (ret < 0)
- 			return ret;
--		hwc->config = arc_pmu->ev_hw_idx[ret];
-+		hwc->config |= arc_pmu->ev_hw_idx[ret];
- 		return 0;
- 
- 	case PERF_TYPE_RAW:
--- 
-1.9.1
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
