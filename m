@@ -1,164 +1,141 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 10/28] ARCv2: Adhere to Zero Delay loop restriction
-Date: Tue, 9 Jun 2015 17:18:10 +0530
-Message-ID: <1433850508-26317-11-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 12/28] ARCv2: clocksource: Introduce 64bit local RTC counter
+Date: Tue, 9 Jun 2015 17:18:12 +0530
+Message-ID: <1433850508-26317-13-git-send-email-vgupta@synopsys.com>
 References: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:51821 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753838AbbFILuY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2015 07:50:24 -0400
+Received: from smtprelay2.synopsys.com ([198.182.60.111]:33103 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753844AbbFILuZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2015 07:50:25 -0400
 In-Reply-To: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: arnd@arndb.de, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>
 
-Branch insn can't be scheduled as last insn of Zero Overhead loop
-
+Cc: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/include/asm/delay.h   |  9 ++++-----
- arch/arc/include/asm/uaccess.h | 17 ++++++++---------
- arch/arc/lib/memcmp.S          | 30 +++++++++++++++++++++++++++++-
- 3 files changed, 41 insertions(+), 15 deletions(-)
+ arch/arc/Kconfig        |  5 +++++
+ arch/arc/kernel/setup.c |  9 +++++++--
+ arch/arc/kernel/time.c  | 50 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 62 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arc/include/asm/delay.h b/arch/arc/include/asm/delay.h
-index 43de30256981..08e7e2a16ac1 100644
---- a/arch/arc/include/asm/delay.h
-+++ b/arch/arc/include/asm/delay.h
-@@ -22,11 +22,10 @@
- static inline void __delay(unsigned long loops)
- {
- 	__asm__ __volatile__(
--	"1:	sub.f %0, %0, 1	\n"
--	"	jpnz 1b		\n"
--	: "+r"(loops)
--	:
--	: "cc");
-+	"	lp  1f	\n"
-+	"	nop	\n"
-+	"1:		\n"
-+	: "+l"(loops));
- }
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index 974ed9058018..f09e03a0d604 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -372,6 +372,11 @@ config ARC_HAS_LL64
+ 	  dest operands with 2 possible source operands.
+ 	default y
  
- extern void __bad_udelay(void);
-diff --git a/arch/arc/include/asm/uaccess.h b/arch/arc/include/asm/uaccess.h
-index 30c9baffa96f..d1da6032b715 100644
---- a/arch/arc/include/asm/uaccess.h
-+++ b/arch/arc/include/asm/uaccess.h
-@@ -659,31 +659,30 @@ static inline unsigned long __arc_clear_user(void __user *to, unsigned long n)
- static inline long
- __arc_strncpy_from_user(char *dst, const char __user *src, long count)
- {
--	long res = count;
-+	long res = 0;
- 	char val;
--	unsigned int hw_count;
++config ARC_HAS_RTC
++	bool "Local 64-bit r/o cycle counter"
++	default n
++	depends on !SMP
++
+ config ARC_NUMBER_OF_INTERRUPTS
+ 	int "Number of interrupts"
+ 	range 8 240
+diff --git a/arch/arc/kernel/setup.c b/arch/arc/kernel/setup.c
+index ca71cef4bafd..a3d186211ed3 100644
+--- a/arch/arc/kernel/setup.c
++++ b/arch/arc/kernel/setup.c
+@@ -200,9 +200,11 @@ static char *arc_cpu_mumbojumbo(int cpu_id, char *buf, int len)
+ 		       (unsigned int)(arc_get_core_freq() / 1000000),
+ 		       (unsigned int)(arc_get_core_freq() / 10000) % 100);
  
- 	if (count == 0)
- 		return 0;
+-	n += scnprintf(buf + n, len - n, "Timers\t\t: %s%s\nISA Extn\t: ",
++	n += scnprintf(buf + n, len - n, "Timers\t\t: %s%s%s%s\nISA Extn\t: ",
+ 		       IS_AVAIL1(cpu->timers.t0, "Timer0 "),
+-		       IS_AVAIL1(cpu->timers.t1, "Timer1 "));
++		       IS_AVAIL1(cpu->timers.t1, "Timer1 "),
++		       IS_AVAIL2(cpu->timers.rtc, "64-bit RTC ",
++				 CONFIG_ARC_HAS_RTC));
  
- 	__asm__ __volatile__(
--	"	lp 2f		\n"
-+	"	lp	3f			\n"
- 	"1:	ldb.ab  %3, [%2, 1]		\n"
--	"	breq.d  %3, 0, 2f		\n"
-+	"	breq.d	%3, 0, 3f               \n"
- 	"	stb.ab  %3, [%1, 1]		\n"
--	"2:	sub %0, %6, %4			\n"
--	"3:	;nop				\n"
-+	"	add	%0, %0, 1	# Num of NON NULL bytes copied	\n"
-+	"3:								\n"
- 	"	.section .fixup, \"ax\"		\n"
- 	"	.align 4			\n"
--	"4:	mov %0, %5			\n"
-+	"4:	mov %0, %4		# sets @res as -EFAULT	\n"
- 	"	j   3b				\n"
- 	"	.previous			\n"
- 	"	.section __ex_table, \"a\"	\n"
- 	"	.align 4			\n"
- 	"	.word   1b, 4b			\n"
- 	"	.previous			\n"
--	: "=r"(res), "+r"(dst), "+r"(src), "=&r"(val), "=l"(hw_count)
--	: "g"(-EFAULT), "ir"(count), "4"(count)	/* this "4" seeds lp_count */
-+	: "+r"(res), "+r"(dst), "+r"(src), "=r"(val)
-+	: "g"(-EFAULT), "l"(count)
- 	: "memory");
+ 	n += i = scnprintf(buf + n, len - n, "%s%s%s%s%s",
+ 			   IS_AVAIL2(atomic, "atomic ", CONFIG_ARC_HAS_LLSC),
+@@ -290,6 +292,9 @@ static void arc_chk_core_config(void)
+ 	if (!cpu->timers.t1)
+ 		panic("Timer1 is not present!\n");
  
- 	return res;
-diff --git a/arch/arc/lib/memcmp.S b/arch/arc/lib/memcmp.S
-index 978bf8314dfb..a4015e7d9ab7 100644
---- a/arch/arc/lib/memcmp.S
-+++ b/arch/arc/lib/memcmp.S
-@@ -24,14 +24,32 @@ ENTRY(memcmp)
- 	ld	r4,[r0,0]
- 	ld	r5,[r1,0]
- 	lsr.f	lp_count,r3,3
-+#ifdef CONFIG_ISA_ARCV2
-+	/* In ARCv2 a branch can't be the last instruction in a zero overhead
-+	 * loop.
-+	 * So we move the branch to the start of the loop, duplicate it
-+	 * after the end, and set up r12 so that the branch isn't taken
-+	 *  initially.
-+	 */
-+	mov_s	r12,WORD2
-+	lpne	.Loop_end
-+	brne	WORD2,r12,.Lodd
-+	ld	WORD2,[r0,4]
++	if (IS_ENABLED(CONFIG_ARC_HAS_RTC) && !cpu->timers.rtc)
++		panic("RTC is not present\n");
++
+ #ifdef CONFIG_ARC_HAS_DCCM
+ 	/*
+ 	 * DCCM can be arbit placed in hardware.
+diff --git a/arch/arc/kernel/time.c b/arch/arc/kernel/time.c
+index 71493f75ae6b..da495478a40b 100644
+--- a/arch/arc/kernel/time.c
++++ b/arch/arc/kernel/time.c
+@@ -60,6 +60,54 @@
+ 
+ /********** Clock Source Device *********/
+ 
++#ifdef CONFIG_ARC_HAS_RTC
++
++#define AUX_RTC_CTRL	0x103
++#define AUX_RTC_LOW	0x104
++#define AUX_RTC_HIGH	0x105
++
++int arc_counter_setup(void)
++{
++	write_aux_reg(AUX_RTC_CTRL, 1);
++
++	/* Not usable in SMP */
++	return !IS_ENABLED(CONFIG_SMP);
++}
++
++static cycle_t arc_counter_read(struct clocksource *cs)
++{
++	unsigned long status;
++	union {
++#ifdef CONFIG_CPU_BIG_ENDIAN
++		struct { u32 high, low; };
 +#else
- 	lpne	.Loop_end
- 	ld_s	WORD2,[r0,4]
++		struct { u32 low, high; };
 +#endif
- 	ld_s	r12,[r1,4]
- 	brne	r4,r5,.Leven
- 	ld.a	r4,[r0,8]
- 	ld.a	r5,[r1,8]
-+#ifdef CONFIG_ISA_ARCV2
-+.Loop_end:
-+	brne	WORD2,r12,.Lodd
-+#else
- 	brne	WORD2,r12,.Lodd
- .Loop_end:
++		cycle_t  full;
++	} stamp;
++
++
++	__asm__ __volatile(
++	"1:						\n"
++	"	lr		%0, [AUX_RTC_LOW]	\n"
++	"	lr		%1, [AUX_RTC_HIGH]	\n"
++	"	lr		%2, [AUX_RTC_CTRL]	\n"
++	"	bbit0.nt	%2, 31, 1b		\n"
++	: "=r" (stamp.low), "=r" (stamp.high), "=r" (status));
++
++	return stamp.full;
++}
++
++static struct clocksource arc_counter = {
++	.name   = "ARCv2 RTC",
++	.rating = 350,
++	.read   = arc_counter_read,
++	.mask   = CLOCKSOURCE_MASK(64),
++	.flags  = CLOCK_SOURCE_IS_CONTINUOUS,
++};
++
++#else /* !CONFIG_ARC_HAS_RTC */
++
+ /*
+  * set 32bit TIMER1 to keep counting monotonically and wraparound
+  */
+@@ -86,6 +134,8 @@ static struct clocksource arc_counter = {
+ 	.flags  = CLOCK_SOURCE_IS_CONTINUOUS,
+ };
+ 
 +#endif
- 	asl_s	SHIFT,SHIFT,3
- 	bhs_s	.Last_cmp
- 	brne	r4,r5,.Leven
-@@ -89,7 +107,6 @@ ENTRY(memcmp)
- 	bset.cs	r0,r0,31
- .Lodd:
- 	cmp_s	WORD2,r12
--
- 	mov_s	r0,1
- 	j_s.d	[blink]
- 	bset.cs	r0,r0,31
-@@ -100,14 +117,25 @@ ENTRY(memcmp)
- 	ldb	r4,[r0,0]
- 	ldb	r5,[r1,0]
- 	lsr.f	lp_count,r3
-+#ifdef CONFIG_ISA_ARCV2
-+	mov	r12,r3
- 	lpne	.Lbyte_end
-+	brne	r3,r12,.Lbyte_odd
-+#else
-+	lpne	.Lbyte_end
-+#endif
- 	ldb_s	r3,[r0,1]
- 	ldb	r12,[r1,1]
- 	brne	r4,r5,.Lbyte_even
- 	ldb.a	r4,[r0,2]
- 	ldb.a	r5,[r1,2]
-+#ifdef CONFIG_ISA_ARCV2
-+.Lbyte_end:
-+	brne	r3,r12,.Lbyte_odd
-+#else
- 	brne	r3,r12,.Lbyte_odd
- .Lbyte_end:
-+#endif
- 	bcc	.Lbyte_even
- 	brne	r4,r5,.Lbyte_even
- 	ldb_s	r3,[r0,1]
++
+ /********** Clock Event Device *********/
+ 
+ /*
 -- 
 1.9.1
