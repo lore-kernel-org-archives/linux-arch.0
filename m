@@ -1,129 +1,142 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 04/28] ARCv2: STAR 9000808988: signals involving Delay Slot
-Date: Tue, 9 Jun 2015 17:18:04 +0530
-Message-ID: <1433850508-26317-5-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 15/28] ARCv2: SMP: clocksource: Enable Global Real Time counter
+Date: Tue, 9 Jun 2015 17:18:15 +0530
+Message-ID: <1433850508-26317-16-git-send-email-vgupta@synopsys.com>
 References: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.60.111]:33096 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-FAIL-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1753833AbbFILuY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2015 07:50:24 -0400
+Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:33105 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753845AbbFILuZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2015 07:50:25 -0400
 In-Reply-To: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: arnd@arndb.de, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Daniel Lezcano <daniel.lezcano@linaro.org>, Thomas Gleixner <tglx@linutronix.de>
 
-Reported by Anton as LTP:munmap01 failing with Illegal Instruction
-Exception.
-
-   --------------------->8--------------------------------------
-   mmap2(NULL, 24576, PROT_READ|PROT_WRITE, MAP_SHARED, 3, 0) = 0x200d2000
-   munmap(0x200d2000, 24576)               = 0
-   --- SIGSEGV {si_signo=SIGSEGV, si_code=SEGV_MAPERR, si_addr=0x200d2000}
-   ---
-   potentially unexpected fatal signal 4.
-   Path: /munmap01
-   CPU: 0 PID: 61 Comm: munmap01 Not tainted 3.13.0-g5d5c46d9a556 #8
-   task: 9f1a8000 ti: 9f154000 task.ti: 9f154000
-
-   [ECR   ]: 0x00020100 => Illegal Insn
-   [EFA   ]: 0x0001354c
-   [BLINK ]: 0x200515d4
-   [ERET  ]: 0x1354c
-       @off 0x1354c in [/munmap01]
-       VMA: 0x00010000 to 0x00018000
-   [STAT32]: 0x800802c0
-   ...
-   --------------------->8--------------------------------------
-
-The issue was
-1. munmap01 accessed unmapped memory (on purpose) with signal handler
-   installed for SIGSEGV
-
-2. The faulting instruction happened to be in Delay Slot
-   00011864 <main>:
-      11908:	bl.d       13284 <tst_resm>
-      1190c:	stb        r16,[r2]
-
-3. kernel sets up the reg file for signal handler and correctly clears
-   the DE bit in pt_regs->status32 placeholder
-
-4. However RESTORE_CALLEE_SAVED_USER macro is not adjusted for ARCv2,
-   and it over-writes the above with orig/stale value of status32
-
-5. After RTIE, userspace signal handler executes a non branch
-   instruction with DE bit set, triggering Illegal Instruction Exception.
-
-Reported-by: Anton Kolesov <akolesov@synopsys.com>
+Cc: Daniel Lezcano <daniel.lezcano@linaro.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/include/asm/entry.h  | 17 ++++++++++-------
- arch/arc/kernel/asm-offsets.c |  2 ++
- 2 files changed, 12 insertions(+), 7 deletions(-)
+ arch/arc/Kconfig            |  5 +++++
+ arch/arc/include/asm/mcip.h |  3 +++
+ arch/arc/kernel/mcip.c      |  3 +++
+ arch/arc/kernel/time.c      | 45 +++++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 56 insertions(+)
 
-diff --git a/arch/arc/include/asm/entry.h b/arch/arc/include/asm/entry.h
-index 29d0ab6e10f5..ad7860c5ce15 100644
---- a/arch/arc/include/asm/entry.h
-+++ b/arch/arc/include/asm/entry.h
-@@ -125,8 +125,6 @@
- 	POP	r13
- .endm
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index ef5ca5969eaf..1b684595e258 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -384,6 +384,11 @@ config ARC_HAS_RTC
+ 	default n
+ 	depends on !SMP
  
--#define OFF_USER_R25_FROM_R24	(SZ_CALLEE_REGS + SZ_PT_REGS - 8)/4
--
- /*--------------------------------------------------------------
-  * Collect User Mode callee regs as struct callee_regs - needed by
-  * fork/do_signal/unaligned-access-emulation.
-@@ -139,12 +137,13 @@
-  *-------------------------------------------------------------*/
- .macro SAVE_CALLEE_SAVED_USER
- 
-+	mov	r12, sp		; save SP as ref to pt_regs
- 	SAVE_R13_TO_R24
- 
- #ifdef CONFIG_ARC_CURR_IN_REG
--	; Retrieve orig r25 and save it on stack
--	ld.as   r12, [sp, OFF_USER_R25_FROM_R24]
--	st.a    r12, [sp, -4]
-+	; Retrieve orig r25 and save it with rest of callee_regs
-+	ld.as   r12, [r12, PT_user_r25]
-+	PUSH	r12
- #else
- 	PUSH	r25
- #endif
-@@ -191,12 +190,16 @@
- .macro RESTORE_CALLEE_SAVED_USER
- 
- #ifdef CONFIG_ARC_CURR_IN_REG
--	ld.ab   r12, [sp, 4]
--	st.as   r12, [sp, OFF_USER_R25_FROM_R24]
-+	POP	r12
- #else
- 	POP	r25
- #endif
- 	RESTORE_R24_TO_R13
++config ARC_HAS_GRTC
++	bool "SMP synchronized 64-bit cycle counter"
++	default y
++	depends on SMP
 +
-+	; SP is back to start of pt_regs
-+#ifdef CONFIG_ARC_CURR_IN_REG
-+	st.as   r12, [sp, PT_user_r25]
-+#endif
- .endm
+ config ARC_NUMBER_OF_INTERRUPTS
+ 	int "Number of interrupts"
+ 	range 8 240
+diff --git a/arch/arc/include/asm/mcip.h b/arch/arc/include/asm/mcip.h
+index 31f9bac77a27..52c11f0bb0e5 100644
+--- a/arch/arc/include/asm/mcip.h
++++ b/arch/arc/include/asm/mcip.h
+@@ -39,6 +39,9 @@ struct mcip_cmd {
+ #define CMD_DEBUG_SET_MASK		0x34
+ #define CMD_DEBUG_SET_SELECT		0x36
  
- /*--------------------------------------------------------------
-diff --git a/arch/arc/kernel/asm-offsets.c b/arch/arc/kernel/asm-offsets.c
-index b9cf23313273..605281f5b301 100644
---- a/arch/arc/kernel/asm-offsets.c
-+++ b/arch/arc/kernel/asm-offsets.c
-@@ -60,5 +60,7 @@ int main(void)
- 
- 	DEFINE(SZ_CALLEE_REGS, sizeof(struct callee_regs));
- 	DEFINE(SZ_PT_REGS, sizeof(struct pt_regs));
-+	DEFINE(PT_user_r25, offsetof(struct pt_regs, user_r25));
++#define CMD_GRTC_READ_LO		0x42
++#define CMD_GRTC_READ_HI		0x43
 +
- 	return 0;
+ #define CMD_IDU_ENABLE			0x71
+ #define CMD_IDU_DISABLE			0x72
+ #define CMD_IDU_SET_MODE		0x74
+diff --git a/arch/arc/kernel/mcip.c b/arch/arc/kernel/mcip.c
+index 35921c3ab394..ad7e90b97f6e 100644
+--- a/arch/arc/kernel/mcip.c
++++ b/arch/arc/kernel/mcip.c
+@@ -154,4 +154,7 @@ void mcip_init_early_smp(void)
+ 		__mcip_cmd_data(CMD_DEBUG_SET_SELECT, 0, 0xf);
+ 		__mcip_cmd_data(CMD_DEBUG_SET_MASK, 0xf, 0xf);
+ 	}
++
++	if (IS_ENABLED(CONFIG_ARC_HAS_GRTC) && !mp.grtc)
++		panic("kernel trying to use non-existent GRTC\n");
  }
+diff --git a/arch/arc/kernel/time.c b/arch/arc/kernel/time.c
+index da495478a40b..3364d2bbc515 100644
+--- a/arch/arc/kernel/time.c
++++ b/arch/arc/kernel/time.c
+@@ -45,6 +45,8 @@
+ #include <asm/clk.h>
+ #include <asm/mach_desc.h>
+ 
++#include <asm/mcip.h>
++
+ /* Timer related Aux registers */
+ #define ARC_REG_TIMER0_LIMIT	0x23	/* timer 0 limit */
+ #define ARC_REG_TIMER0_CTRL	0x22	/* timer 0 control */
+@@ -60,6 +62,48 @@
+ 
+ /********** Clock Source Device *********/
+ 
++#ifdef CONFIG_ARC_HAS_GRTC
++
++static int arc_counter_setup(void)
++{
++	return 1;
++}
++
++static cycle_t arc_counter_read(struct clocksource *cs)
++{
++	unsigned long flags;
++	union {
++#ifdef CONFIG_CPU_BIG_ENDIAN
++		struct { u32 h, l; };
++#else
++		struct { u32 l, h; };
++#endif
++		cycle_t  full;
++	} stamp;
++
++	local_irq_save(flags);
++
++	__mcip_cmd(CMD_GRTC_READ_LO, 0);
++	stamp.l = read_aux_reg(ARC_REG_MCIP_READBACK);
++
++	__mcip_cmd(CMD_GRTC_READ_HI, 0);
++	stamp.h = read_aux_reg(ARC_REG_MCIP_READBACK);
++
++	local_irq_restore(flags);
++
++	return stamp.full;
++}
++
++static struct clocksource arc_counter = {
++	.name   = "ARConnect GRTC",
++	.rating = 400,
++	.read   = arc_counter_read,
++	.mask   = CLOCKSOURCE_MASK(64),
++	.flags  = CLOCK_SOURCE_IS_CONTINUOUS,
++};
++
++#else
++
+ #ifdef CONFIG_ARC_HAS_RTC
+ 
+ #define AUX_RTC_CTRL	0x103
+@@ -135,6 +179,7 @@ static struct clocksource arc_counter = {
+ };
+ 
+ #endif
++#endif
+ 
+ /********** Clock Event Device *********/
+ 
 -- 
 1.9.1
