@@ -1,61 +1,81 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 0/8] ARCv2 port to Linux - (C) perf
-Date: Tue, 9 Jun 2015 17:49:24 +0530
-Message-ID: <1433852372-29494-1-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 6/8] ARCv2: perf: implement exclusion of event counting in user or kernel mode
+Date: Tue, 9 Jun 2015 17:49:30 +0530
+Message-ID: <1433852372-29494-7-git-send-email-vgupta@synopsys.com>
+References: <1433852372-29494-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:52334 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753634AbbFIMWt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2015 08:22:49 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1433852372-29494-1-git-send-email-vgupta@synopsys.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: arnd@arndb.de, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, arc-linux-dev@synopsys.com, Peter Zijlstra <peterz@infradead.org>, Arnaldo Carvalho de Melo <acme@kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Peter,
+From: Alexey Brodkin <abrodkin@synopsys.com>
 
-This mini-series adds perf support for ARCv2 based cores, which brings in
-overflow interupts and SMP. Additionally now raw events are supported as well.
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Arnaldo Carvalho de Melo <acme@kernel.org>
+Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+---
+ arch/arc/include/asm/perf_event.h |  3 +++
+ arch/arc/kernel/perf_event.c      | 16 ++++++++++++++--
+ 2 files changed, 17 insertions(+), 2 deletions(-)
 
-This is part of series which adds ARCv2 ISA support to linux.
-
-Please see [1] for prep patches and [2] for actual port. I've CC'ed you
-for some of the patches related to barriers, atomic ops in [2].
-
-Some more info at
- - www.synopsys.com/dw/ipdir.php?ds=arc-hs38-processor
- - http://news.synopsys.com/2014-10-14-New-DesignWare-ARC-HS38-Processor-Doubles-Performance-for-Embedded-Linux-Applications
- - http://www.embedded.com/electronics-news/4435975/Synopsys-ARC-HS38-core-gives-2X-boost-to-Linux-based-apps
-
-Please review !
-
-Thx,
--Vineet
-
-[1] https://lkml.org/lkml/2015/6/7/25
-[2] http://www.spinics.net/lists/kernel/msg2009508.html
-
-Alexey Brodkin (6):
-  ARC: perf: support RAW events
-  ARCv2: perf: implement "event_set_period" for future use with
-    interrupts
-  ARCv2: perf: Support sampling events using overflow interrupts
-  ARCv2: perf: set usable max period as a half of real max period
-  ARCv2: perf: implement exclusion of event counting in user or kernel
-    mode
-  ARCv2: perf: SMP support
-
-Vineet Gupta (2):
-  ARC: perf: cap the number of counters to hardware max of 32
-  ARCv2: perf: Finally introduce HS perf unit
-
- .../devicetree/bindings/arc/archs-pct.txt          |  17 ++
- arch/arc/include/asm/perf_event.h                  |  24 +-
- arch/arc/kernel/perf_event.c                       | 310 +++++++++++++++++++--
- 3 files changed, 326 insertions(+), 25 deletions(-)
- create mode 100644 Documentation/devicetree/bindings/arc/archs-pct.txt
-
+diff --git a/arch/arc/include/asm/perf_event.h b/arch/arc/include/asm/perf_event.h
+index 33a6eb2998ac..e915c0d4b630 100644
+--- a/arch/arc/include/asm/perf_event.h
++++ b/arch/arc/include/asm/perf_event.h
+@@ -37,6 +37,9 @@
+ #define ARC_REG_PCT_INT_CTRL	0x25E
+ #define ARC_REG_PCT_INT_ACT	0x25F
+ 
++#define ARC_REG_PCT_CONFIG_USER	(1 << 18)	/* count in user mode */
++#define ARC_REG_PCT_CONFIG_KERN	(1 << 19)	/* count in kernel mode */
++
+ #define ARC_REG_PCT_CONTROL_CC	(1 << 16)	/* clear counts */
+ #define ARC_REG_PCT_CONTROL_SN	(1 << 17)	/* snapshot */
+ 
+diff --git a/arch/arc/kernel/perf_event.c b/arch/arc/kernel/perf_event.c
+index a7b4e4826533..01aa0ea16bae 100644
+--- a/arch/arc/kernel/perf_event.c
++++ b/arch/arc/kernel/perf_event.c
+@@ -192,13 +192,25 @@ static int arc_pmu_event_init(struct perf_event *event)
+ 		if (!arc_pmu->has_interrupts)
+ 			return -ENOENT;
+ 
++	hwc->config = 0;
++
++	if (is_isa_arcv2()) {
++		/* "exclude user" means "count only kernel" */
++		if (event->attr.exclude_user)
++			hwc->config |= ARC_REG_PCT_CONFIG_KERN;
++
++		/* "exclude kernel" means "count only user" */
++		if (event->attr.exclude_kernel)
++			hwc->config |= ARC_REG_PCT_CONFIG_USER;
++	}
++
+ 	switch (event->attr.type) {
+ 	case PERF_TYPE_HARDWARE:
+ 		if (event->attr.config >= PERF_COUNT_HW_MAX)
+ 			return -ENOENT;
+ 		if (arc_pmu->ev_hw_idx[event->attr.config] < 0)
+ 			return -ENOENT;
+-		hwc->config = arc_pmu->ev_hw_idx[event->attr.config];
++		hwc->config |= arc_pmu->ev_hw_idx[event->attr.config];
+ 		pr_debug("init event %d with h/w %d \'%s\'\n",
+ 			 (int) event->attr.config, (int) hwc->config,
+ 			 arc_pmu_ev_hw_map[event->attr.config]);
+@@ -207,7 +219,7 @@ static int arc_pmu_event_init(struct perf_event *event)
+ 		ret = arc_pmu_cache_event(event->attr.config);
+ 		if (ret < 0)
+ 			return ret;
+-		hwc->config = arc_pmu->ev_hw_idx[ret];
++		hwc->config |= arc_pmu->ev_hw_idx[ret];
+ 		return 0;
+ 
+ 	case PERF_TYPE_RAW:
 -- 
 1.9.1
