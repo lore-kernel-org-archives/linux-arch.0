@@ -1,46 +1,26 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 22/28] ARCv2: STAR 9000837815 workaround hardware
- exclusive transactions livelock
-Date: Wed, 10 Jun 2015 13:02:34 +0200
-Message-ID: <20150610110234.GH3644@twins.programming.kicks-ass.net>
-References: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
- <1433850508-26317-23-git-send-email-vgupta@synopsys.com>
- <20150609123548.GZ3644@twins.programming.kicks-ass.net>
- <C2D7FE5348E1B147BCA15975FBA23075665A5041@IN01WEMBXB.internal.synopsys.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH v4 2/9] x86: support kmap_atomic_pfn_t() for persistent
+	memory
+Date: Wed, 10 Jun 2015 14:12:02 +0200
+Message-ID: <20150610121202.GA9190@lst.de>
+References: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com> <20150605211912.20751.35406.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:58348 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753814AbbFJLCi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jun 2015 07:02:38 -0400
+Received: from verein.lst.de ([213.95.11.211]:51974 "EHLO newverein.lst.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932251AbbFJMME (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 Jun 2015 08:12:04 -0400
 Content-Disposition: inline
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075665A5041@IN01WEMBXB.internal.synopsys.com>
+In-Reply-To: <20150605211912.20751.35406.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-kernel@vger.kernel.org, axboe@kernel.dk, boaz@plexistor.com, david@fromorbit.com, linux-arch@vger.kernel.org, arnd@arndb.de, ross.zwisler@linux.intel.com, linux-nvdimm@lists.01.org, benh@kernel.crashing.org, linux-fsdevel@vger.kernel.org, heiko.carstens@de.ibm.com, hch@lst.de, tj@kernel.org, paulus@samba.org, hpa@zytor.com, schwidefsky@de.ibm.com, willy@linux.intel.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, mingo@kernel.org
 
-On Wed, Jun 10, 2015 at 10:01:01AM +0000, Vineet Gupta wrote:
-> OK - I need some more time to rehash the exact details with our
-> hardware folks. But AFAIKR, this was hardware livelock in llock/scond
-> when 2 cores were doing r-m-w to two different words in the same cache
-> line - adding prefetchw (prefetch with a write intent) would get the
-> line in exclusive state and break the livelock.
-> 
-> The test itself was one from EEMBC Multibench but I'll have to look it
-> up.
-> 
-> Wasn't there something similar in ARM world too - they have some sort
-> of snoop-delayed exclusive handling in hardware to mitigate something
-> similar although as Will later remarked it involved llock/scond with
-> vanilla ld/st to same line/word ?
+Btw, I don't think this actually is safe without refcounting your kmap
+structure.
 
-> http://lists.infradead.org/pipermail/linux-arm-kernel/2014-May/254142.html
-
-Cute, I was not aware of that.
-
-Sounds reasonable (unfortunate but understandable). Speaking as someone
-who at times does full arch sweeps on code like this it really helps
-understanding if such things are explained a wee bit better than not at
-all :-)
+The driver model ->remove callback can be called at any time, which
+will ioremap the memory and remap the kmap structure.  But at this
+point a user might still be using it.
