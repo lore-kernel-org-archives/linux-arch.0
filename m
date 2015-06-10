@@ -1,113 +1,76 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 18/28] ARC: add smp barriers around atomics per
- memory-barrriers.txt
-Date: Wed, 10 Jun 2015 09:17:16 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665A4FEA@IN01WEMBXB.internal.synopsys.com>
+Subject: Re: [PATCH 20/28] ARCv2: barriers
+Date: Wed, 10 Jun 2015 09:34:18 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665A4FFE@IN01WEMBXB.internal.synopsys.com>
 References: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
- <1433850508-26317-19-git-send-email-vgupta@synopsys.com>
- <20150609123024.GX3644@twins.programming.kicks-ass.net>
+ <1433850508-26317-21-git-send-email-vgupta@synopsys.com>
+ <20150609124008.GA3644@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay2.synopsys.com ([198.182.60.111]:47855 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1754006AbbFJJRV convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jun 2015 05:17:21 -0400
+Received: from smtprelay.synopsys.com ([198.182.60.111]:48144 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S933532AbbFJJef convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 Jun 2015 05:34:35 -0400
 Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>
 
-On Tuesday 09 June 2015 06:00 PM, Peter Zijlstra wrote:
-> On Tue, Jun 09, 2015 at 05:18:18PM +0530, Vineet Gupta wrote:
+On Tuesday 09 June 2015 06:10 PM, Peter Zijlstra wrote:
+> On Tue, Jun 09, 2015 at 05:18:20PM +0530, Vineet Gupta wrote:
 >
-> Please try and provide at least _some_ Changelog body.
->
-> <snip all atomic ops that return values>
+> A description of how your hardware works; or a reference to the platform
+> documentation would not go amiss.
 
-Will do as comments in source as well as commit log in v2.
+Honestly the docs group is working on a publicly sharable version of PRM
+(Programmer's Reference Manual) but it might take some more time. I'm sure kernel
+developers including you don't like to sign an NDA.... The information I have in
+comments is pretty much what we have in there w.r.t. the barrier instructions. But
+I will capture the the weak memory ordering and other details as part of changelog
+here too.
 
->> diff --git a/arch/arc/include/asm/spinlock.h b/arch/arc/include/asm/spinlock.h
->> index b6a8c2dfbe6e..8af8eaad4999 100644
->> --- a/arch/arc/include/asm/spinlock.h
->> +++ b/arch/arc/include/asm/spinlock.h
->> @@ -22,24 +22,32 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
->>  {
->>  	unsigned int tmp = __ARCH_SPIN_LOCK_LOCKED__;
->>  
->> +	smp_mb();
+>> [snip ....]
+>> +/*
+>> + * DMB:
+>> + *   - Ensures that selected memory operation issued before it will complete
+>> + *     before any subsequent memory operation of same type
+>> + */
+>> +#define smp_mb()	asm volatile("dmb 3\n" : : : "memory")
+>> +#define smp_rmb()	asm volatile("dmb 1\n" : : : "memory")
+>> +#define smp_wmb()	asm volatile("dmb 2\n" : : : "memory")
 >> +
->>  	__asm__ __volatile__(
->>  	"1:	ex  %0, [%1]		\n"
->>  	"	breq  %0, %2, 1b	\n"
->>  	: "+&r" (tmp)
->>  	: "r"(&(lock->slock)), "ir"(__ARCH_SPIN_LOCK_LOCKED__)
->>  	: "memory");
->> +
->> +	smp_mb();
->>  }
->>  
->>  static inline int arch_spin_trylock(arch_spinlock_t *lock)
->>  {
->>  	unsigned int tmp = __ARCH_SPIN_LOCK_LOCKED__;
->>  
->> +	smp_mb();
->> +
->>  	__asm__ __volatile__(
->>  	"1:	ex  %0, [%1]		\n"
->>  	: "+r" (tmp)
->>  	: "r"(&(lock->slock))
->>  	: "memory");
->>  
->> +	smp_mb();
->> +
->>  	return (tmp == __ARCH_SPIN_LOCK_UNLOCKED__);
->>  }
->>  
-> Both these are only required to provide an ACQUIRE barrier, if all you
-> have is smp_mb(), the second is sufficient.
+>> +/*
+>> + * DSYNC:
+>> + *   - Waits for completion of all outstanding memory operations before any new
+>> + *     operations can begin
+>> + *   - Includes implicit memory operations such as cache/TLB/BPU maintenance ops
+>> + *   - Lighter version of SYNC as it doesn't wait for non-memory operations
+>> + */
+>> +#define mb()		asm volatile("dsync\n" : : : "memory")
+> So mb() is supposed to order against things like DMA memory ops, is DMA
+> part of point 1 or 3, if 3, this is not a suitable instruction.
 
-Essentially ARCv2 is weakly ordered with explicit ordering provided by DMB
-instructions with semantics load/load, store/store, all/all.
-
-I wanted to clarify a couple of things
-(1) ACQUIRE barrier implies store/{store,load} while RELEASE implies
-{load,store}/store and given what DMB provides for ARCv2, smp_mb() is the only fit ?
-(2) Do we need smp_mb() on both sides of spin lock/unlock - doesn't ACQUIRE imply
-we have a smp_mb() after lock but before any subsequent critical section - so the
-top hunk is not necessarily needed. Similarly RELEASE requires a smp_mb() before
-the memory operation for lock, but not after.
-
-> Also note that a failed trylock is not required to provide _any_ barrier
-> at all.
-
-But that means wrapping the barrier in a branch etc, I'd rather keep them uniform
-for now - unless we see performance hits due to that. I suppose all of that is
-more relevant for heavy metal 4k cpu stuff ?
-
->
->> @@ -47,6 +55,8 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
->>  {
->>  	unsigned int tmp = __ARCH_SPIN_LOCK_UNLOCKED__;
->>  
->> +	smp_mb();
->> +
->>  	__asm__ __volatile__(
->>  	"	ex  %0, [%1]		\n"
->>  	: "+r" (tmp)
-> This requires a RELEASE barrier, again, if all you have is smp_mb(),
-> this is indeed correct.
-
-Ok, actually we already had a smp_mb() in the end of this function - but depending
-on what ur reply is to #2 above we can remove that (as a seperate commit)
-
->
-> Describing some of this would make for a fine Changelog body :-)
-
-I will spin a v2 after your response, with more informative changelog.
-
-Thx for the review.
+Can u please explain the DMA case a bit more ? From what I understood and used in
+say ethernet driver, it is more of a line drawn between say cpu updating a shared
+buffer descriptor and kicking a MMIO register (which in turn could initiate a DMA)
+but I'm not sure how mb() can possibly order with DMA per se (unless there's some
+advanced form of IO-coherency)
 
 -Vineet
+
+>
+>> +#else	/* CONFIG_ISA_ARCOMPACT */
+>> +
+>> +/* SYNC:
+>> + *   - Waits for completion of all outstanding memory transactions AND all
+>> + *     previous instructions to reture
+>> + */
+>> +#define mb()		asm volatile("sync\n" : : : "memory")
+>> +
+>> +#endif	/* CONFIG_ISA_ARCV2 */
+>
+>
