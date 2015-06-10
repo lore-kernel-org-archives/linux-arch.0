@@ -1,40 +1,88 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 22/28] ARCv2: STAR 9000837815 workaround hardware
- exclusive transactions livelock
-Date: Wed, 10 Jun 2015 10:01:01 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665A5041@IN01WEMBXB.internal.synopsys.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 18/28] ARC: add smp barriers around atomics per
+ memory-barrriers.txt
+Date: Wed, 10 Jun 2015 12:53:23 +0200
+Message-ID: <20150610105323.GF3644@twins.programming.kicks-ass.net>
 References: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
- <1433850508-26317-23-git-send-email-vgupta@synopsys.com>
- <20150609123548.GZ3644@twins.programming.kicks-ass.net>
+ <1433850508-26317-19-git-send-email-vgupta@synopsys.com>
+ <20150609123024.GX3644@twins.programming.kicks-ass.net>
+ <C2D7FE5348E1B147BCA15975FBA23075665A4FEA@IN01WEMBXB.internal.synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay2.synopsys.com ([198.182.60.111]:48608 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1754199AbbFJKCI convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jun 2015 06:02:08 -0400
-Content-Language: en-US
+Received: from casper.infradead.org ([85.118.1.10]:58302 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753059AbbFJKx2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jun 2015 06:53:28 -0400
+Content-Disposition: inline
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075665A4FEA@IN01WEMBXB.internal.synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 
-On Tuesday 09 June 2015 06:05 PM, Peter Zijlstra wrote:
+On Wed, Jun 10, 2015 at 09:17:16AM +0000, Vineet Gupta wrote:
+> >> --- a/arch/arc/include/asm/spinlock.h
+> >> +++ b/arch/arc/include/asm/spinlock.h
+> >> @@ -22,24 +22,32 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
+> >>  {
+> >>  	unsigned int tmp = __ARCH_SPIN_LOCK_LOCKED__;
+> >>  
+> >> +	smp_mb();
+> >> +
+> >>  	__asm__ __volatile__(
+> >>  	"1:	ex  %0, [%1]		\n"
+> >>  	"	breq  %0, %2, 1b	\n"
+> >>  	: "+&r" (tmp)
+> >>  	: "r"(&(lock->slock)), "ir"(__ARCH_SPIN_LOCK_LOCKED__)
+> >>  	: "memory");
+> >> +
+> >> +	smp_mb();
+> >>  }
 
-On Tue, Jun 09, 2015 at 05:18:22PM +0530, Vineet Gupta wrote:
+> > Both these are only required to provide an ACQUIRE barrier, if all you
+> > have is smp_mb(), the second is sufficient.
+> 
+> Essentially ARCv2 is weakly ordered with explicit ordering provided by DMB
+> instructions with semantics load/load, store/store, all/all.
+> 
+> I wanted to clarify a couple of things
+> (1) ACQUIRE barrier implies store/{store,load} while RELEASE implies
+> {load,store}/store and given what DMB provides for ARCv2, smp_mb() is the only fit ?
 
-This really really wants a Changelog describing the actual hardware fail
-and why this workaround is sufficient.
+Please see Documentation/memory-barriers.txt, but a quick recap:
 
+ - ACQUIRE: both loads and stores before to the barrier are allowed to
+   be observed after it.  Neither loads nor stores after the barrier are
+   allowed to be observed before it.
 
+ - RELEASE: both loads and stores before it must be observed before the
+   barrier. However, any load or store after it may be observed before
+   it.
 
-OK - I need some more time to rehash the exact details with our hardware folks. But AFAIKR, this was hardware livelock in llock/scond when 2 cores were doing r-m-w to two different words in the same cache line - adding prefetchw (prefetch with a write intent) would get the line in exclusive state and break the livelock.
+Therefore:
 
-The test itself was one from EEMBC Multibench but I'll have to look it up.
+ X = Y = 0;
 
-Wasn't there something similar in ARM world too - they have some sort of snoop-delayed exclusive handling in hardware to mitigate something similar although as Will later remarked it involved llock/scond with vanilla ld/st to same line/word ?
-http://lists.infradead.org/pipermail/linux-arm-kernel/2014-May/254142.html
+	[S] X = 1
+	    ACQUIRE
 
-Thx,
--Vineet
+	    RELEASE
+	[S] Y = 1
+
+is in fact fully unordered, because both stores are allowed to cross in,
+and could cross one another on the inside, like:
+
+	    ACQUIRE
+	[S] Y = 1
+	[S] X = 1
+	    RELEASE
+
+> (2) Do we need smp_mb() on both sides of spin lock/unlock - doesn't ACQUIRE imply
+> we have a smp_mb() after lock but before any subsequent critical section - so the
+> top hunk is not necessarily needed. Similarly RELEASE requires a smp_mb() before
+> the memory operation for lock, but not after.
+
+You do not need an smp_mb() on both sides, as you say, after lock and
+before unlock is sufficient. The main point being that things can not
+escape out of the critical section. Its fine for them to leak in.
