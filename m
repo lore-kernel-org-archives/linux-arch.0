@@ -1,26 +1,66 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH v4 2/9] x86: support kmap_atomic_pfn_t() for persistent
-	memory
-Date: Wed, 10 Jun 2015 14:12:02 +0200
-Message-ID: <20150610121202.GA9190@lst.de>
-References: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com> <20150605211912.20751.35406.stgit@dwillia2-desk3.amr.corp.intel.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 20/28] ARCv2: barriers
+Date: Wed, 10 Jun 2015 14:01:40 +0100
+Message-ID: <20150610130140.GD22973@arm.com>
+References: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
+ <1433850508-26317-21-git-send-email-vgupta@synopsys.com>
+ <20150609124008.GA3644@twins.programming.kicks-ass.net>
+ <C2D7FE5348E1B147BCA15975FBA23075665A4FFE@IN01WEMBXB.internal.synopsys.com>
+ <20150610105840.GG3644@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:51974 "EHLO newverein.lst.de"
+Received: from foss.arm.com ([217.140.101.70]:53771 "EHLO foss.arm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932251AbbFJMME (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 Jun 2015 08:12:04 -0400
+	id S933244AbbFJNBn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 Jun 2015 09:01:43 -0400
 Content-Disposition: inline
-In-Reply-To: <20150605211912.20751.35406.stgit@dwillia2-desk3.amr.corp.intel.com>
+In-Reply-To: <20150610105840.GG3644@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: linux-kernel@vger.kernel.org, axboe@kernel.dk, boaz@plexistor.com, david@fromorbit.com, linux-arch@vger.kernel.org, arnd@arndb.de, ross.zwisler@linux.intel.com, linux-nvdimm@lists.01.org, benh@kernel.crashing.org, linux-fsdevel@vger.kernel.org, heiko.carstens@de.ibm.com, hch@lst.de, tj@kernel.org, paulus@samba.org, hpa@zytor.com, schwidefsky@de.ibm.com, willy@linux.intel.com, akpm@linux-foundation.org, torvalds@linux-foundation.org, mingo@kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>
 
-Btw, I don't think this actually is safe without refcounting your kmap
-structure.
+On Wed, Jun 10, 2015 at 11:58:40AM +0100, Peter Zijlstra wrote:
+> On Wed, Jun 10, 2015 at 09:34:18AM +0000, Vineet Gupta wrote:
+> > On Tuesday 09 June 2015 06:10 PM, Peter Zijlstra wrote:
+> I think the most interesting part is the device side.
+> 
+> > >> +/*
+> > >> + * DSYNC:
+> > >> + *   - Waits for completion of all outstanding memory operations before any new
+> > >> + *     operations can begin
+> > >> + *   - Includes implicit memory operations such as cache/TLB/BPU maintenance ops
+> > >> + *   - Lighter version of SYNC as it doesn't wait for non-memory operations
+> > >> + */
+> > >> +#define mb()		asm volatile("dsync\n" : : : "memory")
+> > > So mb() is supposed to order against things like DMA memory ops, is DMA
+> > > part of point 1 or 3, if 3, this is not a suitable instruction.
+> > 
+> > Can u please explain the DMA case a bit more ? From what I understood and used in
+> > say ethernet driver, it is more of a line drawn between say cpu updating a shared
+> > buffer descriptor and kicking a MMIO register (which in turn could initiate a DMA)
+> > but I'm not sure how mb() can possibly order with DMA per se (unless there's some
+> > advanced form of IO-coherency)
+> 
+> I'm afraid I might not be the best of sources here, I tend to stay away
+> from actual device stuff like that. I've Cc'ed Will Deacon who might be
+> able to shed a bit more light on this aspect.
 
-The driver model ->remove callback can be called at any time, which
-will ioremap the memory and remap the kmap structure.  But at this
-point a user might still be using it.
+I'd definitely expect mb() to order arbitrary memory accesses against each
+other (i.e. regardless of whether or not they're to RAM or MMIO devices).
+Some drivers use it to "flush the writebuffer" but I don't think that makes
+a whole lot of sense. Certainly, on ARM, if we want to know that something
+reached an MMIO endpoint then we'll need a read-back as well as the barrier
+for the general case.
+
+You also need that guarantee in your readl/writel family of macros. It's
+extremely heavy and rarely needed, which is why I added the _relaxed
+versions to all architectures.
+
+The "ordering against DMA" is something like reading an MMIO register to
+determine whether the DMA has completed, then going off to read the contents
+out of the DMA buffer. The comment you have about DSYNC makes it sound like
+it's not sufficient for this case.
+
+Will
