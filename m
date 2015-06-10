@@ -1,60 +1,113 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2 2/2] locking/qrwlock: Don't contend with readers when
- setting _QW_WAITING
-Date: Wed, 10 Jun 2015 09:35:12 +0200
-Message-ID: <20150610073512.GA17226@gmail.com>
-References: <1433863153-30722-1-git-send-email-Waiman.Long@hp.com>
- <1433863153-30722-3-git-send-email-Waiman.Long@hp.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH 18/28] ARC: add smp barriers around atomics per
+ memory-barrriers.txt
+Date: Wed, 10 Jun 2015 09:17:16 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665A4FEA@IN01WEMBXB.internal.synopsys.com>
+References: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
+ <1433850508-26317-19-git-send-email-vgupta@synopsys.com>
+ <20150609123024.GX3644@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f182.google.com ([209.85.212.182]:36268 "EHLO
-	mail-wi0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753445AbbFJHfR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jun 2015 03:35:17 -0400
-Content-Disposition: inline
-In-Reply-To: <1433863153-30722-3-git-send-email-Waiman.Long@hp.com>
+Received: from smtprelay2.synopsys.com ([198.182.60.111]:47855 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1754006AbbFJJRV convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jun 2015 05:17:21 -0400
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 
+On Tuesday 09 June 2015 06:00 PM, Peter Zijlstra wrote:
+> On Tue, Jun 09, 2015 at 05:18:18PM +0530, Vineet Gupta wrote:
+>
+> Please try and provide at least _some_ Changelog body.
+>
+> <snip all atomic ops that return values>
 
-* Waiman Long <Waiman.Long@hp.com> wrote:
+Will do as comments in source as well as commit log in v2.
 
-> The current cmpxchg() loop in setting the _QW_WAITING flag for writers
-> in queue_write_lock_slowpath() will contend with incoming readers
-> causing possibly extra cmpxchg() operations that are wasteful. This
-> patch changes the code to do a byte cmpxchg() to eliminate contention
-> with new readers.
-> 
-> A multithreaded microbenchmark running 5M read_lock/write_lock loop
-> on a 8-socket 80-core Westmere-EX machine running 4.0 based kernel
-> with the qspinlock patch have the following execution times (in ms)
-> with and without the patch:
-> 
-> With R:W ratio = 5:1
-> 
-> 	Threads	   w/o patch	with patch	% change
-> 	-------	   ---------	----------	--------
-> 	   2	     990 	    895		  -9.6%
-> 	   3	    2136 	   1912		 -10.5%
-> 	   4	    3166	   2830		 -10.6%
-> 	   5	    3953	   3629		  -8.2%
-> 	   6	    4628	   4405		  -4.8%
-> 	   7	    5344	   5197		  -2.8%
-> 	   8	    6065	   6004		  -1.0%
-> 	   9	    6826	   6811		  -0.2%
-> 	  10	    7599	   7599		   0.0%
-> 	  15	    9757	   9766		  +0.1%
-> 	  20	   13767	  13817		  +0.4%
-> 
-> With small number of contending threads, this patch can improve
-> locking performance by up to 10%. With more contending threads,
-> however, the gain diminishes.
+>> diff --git a/arch/arc/include/asm/spinlock.h b/arch/arc/include/asm/spinlock.h
+>> index b6a8c2dfbe6e..8af8eaad4999 100644
+>> --- a/arch/arc/include/asm/spinlock.h
+>> +++ b/arch/arc/include/asm/spinlock.h
+>> @@ -22,24 +22,32 @@ static inline void arch_spin_lock(arch_spinlock_t *lock)
+>>  {
+>>  	unsigned int tmp = __ARCH_SPIN_LOCK_LOCKED__;
+>>  
+>> +	smp_mb();
+>> +
+>>  	__asm__ __volatile__(
+>>  	"1:	ex  %0, [%1]		\n"
+>>  	"	breq  %0, %2, 1b	\n"
+>>  	: "+&r" (tmp)
+>>  	: "r"(&(lock->slock)), "ir"(__ARCH_SPIN_LOCK_LOCKED__)
+>>  	: "memory");
+>> +
+>> +	smp_mb();
+>>  }
+>>  
+>>  static inline int arch_spin_trylock(arch_spinlock_t *lock)
+>>  {
+>>  	unsigned int tmp = __ARCH_SPIN_LOCK_LOCKED__;
+>>  
+>> +	smp_mb();
+>> +
+>>  	__asm__ __volatile__(
+>>  	"1:	ex  %0, [%1]		\n"
+>>  	: "+r" (tmp)
+>>  	: "r"(&(lock->slock))
+>>  	: "memory");
+>>  
+>> +	smp_mb();
+>> +
+>>  	return (tmp == __ARCH_SPIN_LOCK_UNLOCKED__);
+>>  }
+>>  
+> Both these are only required to provide an ACQUIRE barrier, if all you
+> have is smp_mb(), the second is sufficient.
 
-Mind posting the microbenchmark?
+Essentially ARCv2 is weakly ordered with explicit ordering provided by DMB
+instructions with semantics load/load, store/store, all/all.
 
-Thanks,
+I wanted to clarify a couple of things
+(1) ACQUIRE barrier implies store/{store,load} while RELEASE implies
+{load,store}/store and given what DMB provides for ARCv2, smp_mb() is the only fit ?
+(2) Do we need smp_mb() on both sides of spin lock/unlock - doesn't ACQUIRE imply
+we have a smp_mb() after lock but before any subsequent critical section - so the
+top hunk is not necessarily needed. Similarly RELEASE requires a smp_mb() before
+the memory operation for lock, but not after.
 
-	Ingo
+> Also note that a failed trylock is not required to provide _any_ barrier
+> at all.
+
+But that means wrapping the barrier in a branch etc, I'd rather keep them uniform
+for now - unless we see performance hits due to that. I suppose all of that is
+more relevant for heavy metal 4k cpu stuff ?
+
+>
+>> @@ -47,6 +55,8 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
+>>  {
+>>  	unsigned int tmp = __ARCH_SPIN_LOCK_UNLOCKED__;
+>>  
+>> +	smp_mb();
+>> +
+>>  	__asm__ __volatile__(
+>>  	"	ex  %0, [%1]		\n"
+>>  	: "+r" (tmp)
+> This requires a RELEASE barrier, again, if all you have is smp_mb(),
+> this is indeed correct.
+
+Ok, actually we already had a smp_mb() in the end of this function - but depending
+on what ur reply is to #2 above we can remove that (as a seperate commit)
+
+>
+> Describing some of this would make for a fine Changelog body :-)
+
+I will spin a v2 after your response, with more informative changelog.
+
+Thx for the review.
+
+-Vineet
