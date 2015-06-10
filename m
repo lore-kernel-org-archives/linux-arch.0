@@ -1,63 +1,60 @@
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: Re: [42/73] rtc: delete non-required instances of include <linux/init.h>
-Date: Tue, 9 Jun 2015 21:49:31 -0400
-Message-ID: <CAP=VYLpGg0WkYVd6KcCg-j50pYNLRSXKxo1a6SwoT4cNm6CaSw@mail.gmail.com>
-References: <1390339396-3479-43-git-send-email-paul.gortmaker@windriver.com>
- <20150608195455.GF5222@piout.net> <20150608210634.GJ7125@windriver.com> <20150609074946.GG5222@piout.net>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v2 2/2] locking/qrwlock: Don't contend with readers when
+ setting _QW_WAITING
+Date: Wed, 10 Jun 2015 09:35:12 +0200
+Message-ID: <20150610073512.GA17226@gmail.com>
+References: <1433863153-30722-1-git-send-email-Waiman.Long@hp.com>
+ <1433863153-30722-3-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f170.google.com ([209.85.212.170]:36708 "EHLO
-	mail-wi0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751748AbbFJBuD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Jun 2015 21:50:03 -0400
-In-Reply-To: <20150609074946.GG5222@piout.net>
+Received: from mail-wi0-f182.google.com ([209.85.212.182]:36268 "EHLO
+	mail-wi0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753445AbbFJHfR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Jun 2015 03:35:17 -0400
+Content-Disposition: inline
+In-Reply-To: <1433863153-30722-3-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexandre Belloni <alexandre.belloni@free-electrons.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Alessandro Zummo <a.zummo@towertech.it>, rtc-linux@googlegroups.com
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
 
-On Tue, Jun 9, 2015 at 3:49 AM, Alexandre Belloni
-<alexandre.belloni@free-electrons.com> wrote:
-> On 08/06/2015 at 17:06:34 -0400, Paul Gortmaker wrote :
->> > I've contemplated applying that patch but I'm not sure it is actually a
->> > good idea because those 46 drivers are using a variant of module_driver
->> > which actually uses __init and __exit. After your patch it is still
->> > working simply because init.h gets included that way:
->>
->> Firstly, I am kind of curious why an 18 month old patch is getting
->> replied to now.   That aside, this interdependence between module.h and
->> init.h was reconsidered and you can see the resolution solution here:
->>
->> https://lkml.kernel.org/r/1433276168-21550-1-git-send-email-paul.gortmaker@windriver.com
->>
->> To summarize what is said there, yes - you can ignore the one line
->> removals for now.  We will revisit them after the above is merged.
->>
->
-> I've taken the RTC subsystem maintainership and I've been sorting the
-> 2372 patches left in patchwork down to 126 and yours was one of these.
->
-> Seeing your answer, I think my question was legitimate. I'll be happy to
-> take your revised patch once ready.
 
-Yes, it was a legit (and correct) spotting ; just some months late.  :)
+* Waiman Long <Waiman.Long@hp.com> wrote:
 
-I'll be sure to make sure you are CC'd on any updates.  And thanks
-for taking over maintainership of the rtc subsystem.   I'll go out on
-a limb here and guess that the original rtc driver author ; that idiot
-never imagined it would become a subsystem, else he'd thank you
-as well.
+> The current cmpxchg() loop in setting the _QW_WAITING flag for writers
+> in queue_write_lock_slowpath() will contend with incoming readers
+> causing possibly extra cmpxchg() operations that are wasteful. This
+> patch changes the code to do a byte cmpxchg() to eliminate contention
+> with new readers.
+> 
+> A multithreaded microbenchmark running 5M read_lock/write_lock loop
+> on a 8-socket 80-core Westmere-EX machine running 4.0 based kernel
+> with the qspinlock patch have the following execution times (in ms)
+> with and without the patch:
+> 
+> With R:W ratio = 5:1
+> 
+> 	Threads	   w/o patch	with patch	% change
+> 	-------	   ---------	----------	--------
+> 	   2	     990 	    895		  -9.6%
+> 	   3	    2136 	   1912		 -10.5%
+> 	   4	    3166	   2830		 -10.6%
+> 	   5	    3953	   3629		  -8.2%
+> 	   6	    4628	   4405		  -4.8%
+> 	   7	    5344	   5197		  -2.8%
+> 	   8	    6065	   6004		  -1.0%
+> 	   9	    6826	   6811		  -0.2%
+> 	  10	    7599	   7599		   0.0%
+> 	  15	    9757	   9766		  +0.1%
+> 	  20	   13767	  13817		  +0.4%
+> 
+> With small number of contending threads, this patch can improve
+> locking performance by up to 10%. With more contending threads,
+> however, the gain diminishes.
 
-Paul.
---
+Mind posting the microbenchmark?
 
->
-> --
-> Alexandre Belloni, Free Electrons
-> Embedded Linux, Kernel and Android engineering
-> http://free-electrons.com
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Thanks,
+
+	Ingo
