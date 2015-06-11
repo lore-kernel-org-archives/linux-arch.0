@@ -1,76 +1,42 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 18/28] ARC: add smp barriers around atomics per
- memory-barrriers.txt
-Date: Thu, 11 Jun 2015 13:03:52 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665A529E@IN01WEMBXB.internal.synopsys.com>
-References: <1433850508-26317-1-git-send-email-vgupta@synopsys.com>
- <1433850508-26317-19-git-send-email-vgupta@synopsys.com>
- <20150609123024.GX3644@twins.programming.kicks-ass.net>
- <C2D7FE5348E1B147BCA15975FBA23075665A4FEA@IN01WEMBXB.internal.synopsys.com>
- <20150610105323.GF3644@twins.programming.kicks-ass.net>
+From: Jonathan Corbet <corbet@lwn.net>
+Subject: Re: Generic kernel features that need architecture(mips) support
+Date: Thu, 11 Jun 2015 07:20:28 -0600
+Message-ID: <20150611072028.7d0fe2d7@lwn.net>
+References: <55759543.1010408@gmail.com>
+	<20150610145804.GG2753@linux-mips.org>
+	<5578679D.2030307@gmail.com>
+	<20150611062452.GB32133@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.60.111]:50874 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-FAIL-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1753610AbbFKND5 convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 11 Jun 2015 09:03:57 -0400
-Content-Language: en-US
+Received: from tex.lwn.net ([70.33.254.29]:41144 "EHLO vena.lwn.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752647AbbFKNRx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 11 Jun 2015 09:17:53 -0400
+In-Reply-To: <20150611062452.GB32133@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Xose Vazquez Perez <xose.vazquez@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
 
-On Wednesday 10 June 2015 04:23 PM, Peter Zijlstra wrote:
-> On Wed, Jun 10, 2015 at 09:17:16AM +0000, Vineet Gupta wrote:
->> I wanted to clarify a couple of things
->> (1) ACQUIRE barrier implies store/{store,load} while RELEASE implies
->> {load,store}/store and given what DMB provides for ARCv2, smp_mb() is the only fit ?
-> Please see Documentation/memory-barriers.txt, but a quick recap:
->
->  - ACQUIRE: both loads and stores before to the barrier are allowed to
->    be observed after it.  Neither loads nor stores after the barrier are
->    allowed to be observed before it.
->
->  - RELEASE: both loads and stores before it must be observed before the
->    barrier. However, any load or store after it may be observed before
->    it.
->
-> Therefore:
->
->  X = Y = 0;
->
-> 	[S] X = 1
-> 	    ACQUIRE
->
-> 	    RELEASE
-> 	[S] Y = 1
->
-> is in fact fully unordered, because both stores are allowed to cross in,
-> and could cross one another on the inside, like:
->
-> 	    ACQUIRE
-> 	[S] Y = 1
-> 	[S] X = 1
-> 	    RELEASE
+On Thu, 11 Jun 2015 08:24:53 +0200
+Ingo Molnar <mingo@kernel.org> wrote:
 
-Thx for that.  I think I was mixing smp_load_acquire() / store_release() with the
-spin lock ACQUIRE/RELEASE. As Paul put it on a lwn article, after re-reading
-memory-barrier.txt I've indeed felt a hit on my already meager brain power :-)
+> Jon: would you like to receive all patches to Documentation/features/=
+ so you can=20
+> collect them in the documentation tree, or can maintainers patch it a=
+s part of any=20
+> feature work that affects the tables? I think it's all finegrained en=
+ough to not=20
+> create conflicts. That way they would become partly self-maintaining.=
+ (Or at least=20
+> one can always hope! ;-)
 
->> (2) Do we need smp_mb() on both sides of spin lock/unlock - doesn't ACQUIRE imply
->> we have a smp_mb() after lock but before any subsequent critical section - so the
->> top hunk is not necessarily needed. Similarly RELEASE requires a smp_mb() before
->> the memory operation for lock, but not after.
-> You do not need an smp_mb() on both sides, as you say, after lock and
-> before unlock is sufficient. The main point being that things can not
-> escape out of the critical section. Its fine for them to leak in.
+I sort of figured I'd handle it the way I do the rest of Documentation/=
+ =E2=80=94
+I'm happy to herd the patches, but I also have no problem staying out o=
+f
+the way when other maintainers reach into it.
 
-Ok - neverthless I will probably keep the extraneous barriers around for now since
-I see some weird hackbench regression on a dual core SMP build by removing the
-those 3 barriers (and/or replacing them with a nop so as to keep the icache / bpu
-micro-arch profile exactly same as before).
-
--Vineet
+jon
