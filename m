@@ -1,108 +1,97 @@
-From: Eric B Munson <emunson@akamai.com>
-Subject: Re: [RESEND PATCH V2 0/3] Allow user to request memory to be locked
- on page fault
-Date: Thu, 11 Jun 2015 15:55:47 -0400
-Message-ID: <5579E7C3.2020601@akamai.com>
-References: <1433942810-7852-1-git-send-email-emunson@akamai.com>	<20150610145929.b22be8647887ea7091b09ae1@linux-foundation.org>	<5579DFBA.80809@akamai.com> <20150611123424.4bb07cffd0e5bb146cc92231@linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <20150611123424.4bb07cffd0e5bb146cc92231@linux-foundation.org>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Baolin Wang <baolin.wang@linaro.org>
+Subject: [PATCH v5 00/24] Convert the posix_clock_operations and k_clock structure to ready for 2038
+Date: Fri, 12 Jun 2015 15:19:47 +0800
+Message-ID: <cover.1434079262.git.baolin.wang@linaro.org>
+References: <lfywpz1987>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f41.google.com ([209.85.220.41]:36618 "EHLO
+	mail-pa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755033AbbFLHV0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jun 2015 03:21:26 -0400
+Received: by pabqy3 with SMTP id qy3so17682758pab.3
+        for <linux-arch@vger.kernel.org>; Fri, 12 Jun 2015 00:21:26 -0700 (PDT)
+In-Reply-To: <lfywpz1987>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: tglx@linutronix.de
+Cc: arnd@arndb.de, john.stultz@linaro.org, heenasirwani@gmail.com, pang.xunlei@linaro.org, peterz@infradead.org, rafael.j.wysocki@intel.com, gregkh@linuxfoundation.org, richardcochran@gmail.com, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, fweisbec@gmail.com, ahh@google.com, pjt@google.com, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, serge.hallyn@canonical.com, james.l.morris@oracle.com, serge@hallyn.com, pmoore@redhat.com, tiwai@suse.de, jeffv@google.com, jlayton@primarydata.com, keescook@chromium.org, sds@tycho.nsa.gov, mark.d.rustad@intel.com, linux-security-module@vger.kernel.org, baolin.wang@linaro.org, y2038@lists.linaro
 
------BEGIN PGP SIGNED MESSAGE-----
-Hash: SHA1
+This patch series changes the 32-bit time types (timespec/itimerspec) to
+the 64-bit types (timespec64/itimerspec64), since 32-bit time types will
+break in the year 2038 on 32bit systems.
 
-On 06/11/2015 03:34 PM, Andrew Morton wrote:
-> On Thu, 11 Jun 2015 15:21:30 -0400 Eric B Munson
-> <emunson@akamai.com> wrote:
-> 
->>> Ditto mlockall(MCL_ONFAULT) followed by munlock().  I'm not
->>> sure that even makes sense but the behaviour should be
->>> understood and tested.
->> 
->> I have extended the kselftest for lock-on-fault to try both of
->> these scenarios and they work as expected.  The VMA is split and
->> the VM flags are set appropriately for the resulting VMAs.
-> 
-> munlock() should do vma merging as well.  I *think* we implemented 
-> that.  More tests for you to add ;)
+This patch series introduces new methods with timespec64/itimerspec64 type,
+and removes the old ones with timespec/itimerspec type for posix_clock_operations
+and k_clock structure.
 
-I will add a test for this as well.  But the code is in place to merge
-VMAs IIRC.
+---
+Changes since v4:
+- Rebase the patch series.
+- Modify the subject line and the changelog.
 
-> 
-> How are you testing the vma merging and splitting, btw?  Parsing 
-> the profcs files?
+Changes since v3:
+- Fix some introducing bugs.
 
-To show the VMA split happened, I dropped a printk in mlock_fixup()
-and the user space test simply checks that unlocked pages are not
-marked as unevictable.  The test does not parse maps or smaps for
-actual VMA layout.  Given that we want to check the merging of VMAs as
-well I will add this.
+Changes since v2:
+- Split the syscall conversion patch into small some patches.
 
-> 
->>> What's missing here is a syscall to set VM_LOCKONFAULT on an 
->>> arbitrary range of memory - mlock() for lock-on-fault.  It's a 
->>> shame that mlock() didn't take a `mode' argument.  Perhaps we 
->>> should add such a syscall - that would make the mmap flag
->>> unneeded but I suppose it should be kept for symmetry.
->> 
->> Do you want such a system call as part of this set?  I would need
->> some time to make sure I had thought through all the possible
->> corners one could get into with such a call, so it would delay a
->> V3 quite a bit. Otherwise I can send a V3 out immediately.
-> 
-> I think the way to look at this is to pretend that mm/mlock.c
-> doesn't exist and ask "how should we design these features".
-> 
-> And that would be:
-> 
-> - mmap() takes a `flags' argument: MAP_LOCKED|MAP_LOCKONFAULT.
-> 
-> - mlock() takes a `flags' argument.  Presently that's 
-> MLOCK_LOCKED|MLOCK_LOCKONFAULT.
-> 
-> - munlock() takes a `flags' arument.
-> MLOCK_LOCKED|MLOCK_LOCKONFAULT to specify which flags are being
-> cleared.
-> 
-> - mlockall() and munlockall() ditto.
-> 
-> 
-> IOW, LOCKED and LOCKEDONFAULT are treated identically and
-> independently.
-> 
-> Now, that's how we would have designed all this on day one.  And I 
-> think we can do this now, by adding new mlock2() and munlock2() 
-> syscalls.  And we may as well deprecate the old mlock() and
-> munlock(), not that this matters much.
-> 
-> *should* we do this?  I'm thinking "yes" - it's all pretty simple 
-> boilerplate and wrappers and such, and it gets the interface
-> correct, and extensible.
-> 
-> What do others think?
-> 
+Changes since V1:
+- Split some patch into small patch.
+- Add some default function for new 64bit methods for syscall function.
+- Move do_sys_settimeofday() function to head file.
+- Modify the EXPORT_SYMPOL issue.
+- Add new 64bit methods in cputime_nsecs.h file.
+---
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
+Baolin Wang (24):
+  time: Introduce struct itimerspec64
+  timekeeping: Introduce current_kernel_time64()
+  security: Introduce security_settime64()
+  time: Introduce do_sys_settimeofday64()
+  posix-timers: Introduce {get,put}_timespec and {get,put}_itimerspec
+  posix-timers: Factor out the guts of 'timer_gettime'
+  posix-timers: Implement y2038 safe timer_get64() callback
+  posix-timers: Factor out the guts of 'timer_settime'
+  posix-timers: Implement y2038 safe timer_set64() callback
+  posix-timers: Factor out the guts of 'clock_settime'
+  posix-timers: Implement y2038 safe clock_set64() callback
+  posix-timers: Factor out the guts of 'clock_gettime'
+  posix-timers: Implement y2038 safe clock_get64() callback
+  posix-timers: Factor out the guts of 'clcok_getres'
+  posix-timers: Implement y2038 safe clock_getres64() callback
+  timekeeping: Change the implementation of timekeeping_clocktai()
+  posix-timers: Convert to y2038 safe callbacks
+  mmtimer: Convert to y2038 safe callbacks
+  alarmtimer: Convert to y2038 safe callbacks
+  posix-clock: Convert to y2038 safe callbacks
+  time: Introduce timespec64_to_jiffies()/jiffies_to_timespec64()
+  cputime: Introduce cputime_to_timespec64()/timespec64_to_cputime()
+  posix-cpu-timers: Convert to y2038 safe callbacks
+  k_clock: Remove y2038 unsafe callbacks
 
-iQIcBAEBAgAGBQJVeefAAAoJELbVsDOpoOa9930P/j32OhsgPdxt8pmlYddpHBJg
-PJ4EOYZLoNJ0bWAoePRAQvb9Rd0UumXukkQKVdFCFW72QfMPkjqyMWWOA5BZ6dYl
-q3h3FTzcnAtVHG7bqFheV+Ie9ZX0dplTmuGlqTZzEIVePry9VXzqp9BADbWn3bVR
-ucq1CFikyEB2yu8pMtykJmEaz4CO7fzCHz6oB7RNX5oHElWmi9AieuUr5eAw6enQ
-6ofuNy/N3rTCwcjeRfdL7Xhs6vn62u4nw1Jey6l9hBQUx/ujMktKcn4VwkDXIYCi
-+h7lfXWruqOuC+lspBRJO7OL2e6nRdedpDWJypeUGcKXokxB2FEB25Yu31K9sk/8
-jDfaKNqmcfgOseLHb+DjJqG6nq9lsUhozg8C17SJpT8qFwQ8q7iJe+1GhUF1EBsL
-+DpqLU56geBY6fyIfurOfp/4Hsx2u1KzezkEnMYT/8LkbGwqbq7Zj4rquLMSHCUt
-uG5j0MuhmP8/Fuf8OMsIHHUMjBHRjH4rTyaCKxNj3T8uSuLfcnIqEZiJu2qaSA8l
-PxpQ6yy2szw9lDxPvxLnh8Rkx+SGEc1ciamyppDTI4LQRiCjMQ7bHAKo0RwAaPJL
-ZSHrdlDnUHrYTnd0EZwg0peh8AgkROgxna/pLpfQTeW1g3erqPfbI0Ab8N0cu5j0
-8+qA5C+DeSjaMAoMskTG
-=82B8
------END PGP SIGNATURE-----
+ arch/powerpc/include/asm/cputime.h    |    6 +-
+ arch/s390/include/asm/cputime.h       |    8 +-
+ drivers/char/mmtimer.c                |   36 +++--
+ drivers/ptp/ptp_clock.c               |   22 +--
+ include/asm-generic/cputime_jiffies.h |   10 +-
+ include/asm-generic/cputime_nsecs.h   |    6 +-
+ include/linux/cputime.h               |   16 ++
+ include/linux/jiffies.h               |   21 ++-
+ include/linux/lsm_hooks.h             |    5 +-
+ include/linux/posix-clock.h           |   10 +-
+ include/linux/posix-timers.h          |   18 +--
+ include/linux/security.h              |   20 ++-
+ include/linux/time64.h                |   35 +++++
+ include/linux/timekeeping.h           |   25 +++-
+ kernel/time/alarmtimer.c              |   38 ++---
+ kernel/time/posix-clock.c             |   20 +--
+ kernel/time/posix-cpu-timers.c        |   84 ++++++-----
+ kernel/time/posix-timers.c            |  257 +++++++++++++++++++++------------
+ kernel/time/time.c                    |   19 +--
+ kernel/time/timekeeping.c             |    6 +-
+ security/commoncap.c                  |    2 +-
+ security/security.c                   |    2 +-
+ 22 files changed, 412 insertions(+), 254 deletions(-)
+
+-- 
+1.7.9.5
