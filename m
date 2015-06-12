@@ -1,39 +1,79 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH v5 00/24] Convert the posix_clock_operations and k_clock
- structure to ready for 2038
-Date: Fri, 12 Jun 2015 15:16:11 +0200 (CEST)
-Message-ID: <alpine.DEB.2.11.1506121512180.3786@nanos>
-References: <lfywpz1987> <cover.1434079262.git.baolin.wang@linaro.org>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v2 2/2] locking/qrwlock: Don't contend with readers when
+ setting _QW_WAITING
+Date: Fri, 12 Jun 2015 18:58:28 -0400
+Message-ID: <557B6414.4080800@hp.com>
+References: <1433863153-30722-1-git-send-email-Waiman.Long@hp.com> <1433863153-30722-3-git-send-email-Waiman.Long@hp.com> <20150610073512.GA17226@gmail.com> <557865A3.9080107@hp.com> <20150612084543.GA24472@gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-security-module-owner@vger.kernel.org>
-In-Reply-To: <cover.1434079262.git.baolin.wang@linaro.org>
-Sender: linux-security-module-owner@vger.kernel.org
-To: Baolin Wang <baolin.wang@linaro.org>
-Cc: arnd@arndb.de, john.stultz@linaro.org, heenasirwani@gmail.com, pang.xunlei@linaro.org, peterz@infradead.org, rafael.j.wysocki@intel.com, gregkh@linuxfoundation.org, richardcochran@gmail.com, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, fweisbec@gmail.com, ahh@google.com, pjt@google.com, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, serge.hallyn@canonical.com, james.l.morris@oracle.com, serge@hallyn.com, pmoore@redhat.com, tiwai@suse.de, jeffv@google.com, jlayton@primarydata.com, keescook@chromium.org, sds@tycho.nsa.gov, mark.d.rustad@intel.com, linux-security-module@vger.kernel.org, y2038@lists.linaro.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g9t5009.houston.hp.com ([15.240.92.67]:48020 "EHLO
+	g9t5009.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754874AbbFLW6c (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jun 2015 18:58:32 -0400
+In-Reply-To: <20150612084543.GA24472@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
 
-On Fri, 12 Jun 2015, Baolin Wang wrote:
+On 06/12/2015 04:45 AM, Ingo Molnar wrote:
+> * Waiman Long<waiman.long@hp.com>  wrote:
+>
+>>> Mind posting the microbenchmark?
+>> I have attached the tool that I used for testing.
+> Thanks, that's interesting!
+>
+> Btw., we could also do something like this in user-space, in tools/perf/bench/, we
+> have no 'perf bench locking' subcommand yet.
+>
+> We already build and measure simple x86 kernel methods there such as memset() and
+> memcpy():
+>
+>   triton:~/tip>  perf bench mem memcpy -r all
+>   # Running 'mem/memcpy' benchmark:
+>
+>   Routine default (Default memcpy() provided by glibc)
+>   # Copying 1MB Bytes ...
+>
+>         1.385195 GB/Sec
+>         4.982462 GB/Sec (with prefault)
+>
+>   Routine x86-64-unrolled (unrolled memcpy() in arch/x86/lib/memcpy_64.S)
+>   # Copying 1MB Bytes ...
+>
+>         1.627604 GB/Sec
+>         5.336407 GB/Sec (with prefault)
+>
+>   Routine x86-64-movsq (movsq-based memcpy() in arch/x86/lib/memcpy_64.S)
+>   # Copying 1MB Bytes ...
+>
+>         2.132233 GB/Sec
+>         4.264465 GB/Sec (with prefault)
+>
+>   Routine x86-64-movsb (movsb-based memcpy() in arch/x86/lib/memcpy_64.S)
+>   # Copying 1MB Bytes ...
+>
+>         1.490935 GB/Sec
+>         7.128193 GB/Sec (with prefault)
+>
+> Locking primitives would certainly be more complex build in user-space - but we
+> could shuffle things around in kernel headers as well to make it easier to test in
+> user-space.
+>
+> That's how we can build lockdep in user-space for example, see tools/lib/lockdep.
+>
+> Just a thought.
+>
+> Thanks,
+>
+> 	Ingo
 
-Sigh. Again threading of the series failed. Some patches are, the
-whole series is not. Can you please get your tools straight?
+I guess we can build user-space version of spinlock and rwlock, but we 
+can't do that for sleeping lock like mutex and rwsem. Preemption in user 
+space will also affect how those locking test will behave. Anyway, I 
+will give it a thought on how to do that in perf bench when I have time.
 
-You neither managed to cc me on the security patch.
-
-> - Modify the subject line and the changelog:
-
->   timekeeping: Change the implementation of timekeeping_clocktai()
-
-Sigh. How is that better than the previous one? It's more accurate,
-but equally useless.
-
-And of course you did not address my request to change the macro mess
-in
-
->   posix-timers: Introduce {get,put}_timespec and {get,put}_itimerspec
-
-according to the discussion with Arnd.
-
-Thanks,
-
-	tglx
+Cheers,
+Longman
