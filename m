@@ -1,119 +1,76 @@
-From: Baolin Wang <baolin.wang@linaro.org>
-Subject: [PATCH v5 22/24] cputime: Introduce
-	cputime_to_timespec64()/timespec64_to_cputime()
-Date: Fri, 12 Jun 2015 16:10:32 +0800
-Message-ID: <cc09682885e4883e38c7f89701df343f8e56acdf.1434079263.git.baolin.wang@linaro.org>
-References: <lfywpz1987>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v2 2/2] locking/qrwlock: Don't contend with readers when
+ setting _QW_WAITING
+Date: Fri, 12 Jun 2015 10:45:43 +0200
+Message-ID: <20150612084543.GA24472@gmail.com>
+References: <1433863153-30722-1-git-send-email-Waiman.Long@hp.com>
+ <1433863153-30722-3-git-send-email-Waiman.Long@hp.com>
+ <20150610073512.GA17226@gmail.com>
+ <557865A3.9080107@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <y2038-bounces@lists.linaro.org>
-In-Reply-To: <lfywpz1987>
-In-Reply-To: <cover.1434079262.git.baolin.wang@linaro.org>
-References: <cover.1434079262.git.baolin.wang@linaro.org>
-List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
-List-Archive: <http://lists.linaro.org/pipermail/y2038/>
-List-Post: <mailto:y2038@lists.linaro.org>
-List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
-List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
- <mailto:y2038-request@lists.linaro.org?subject=subscribe>
-Errors-To: y2038-bounces@lists.linaro.org
-Sender: "Y2038" <y2038-bounces@lists.linaro.org>
-To: benh@kernel.crashing.org
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, riel@redhat.com, arnd@arndb.de, baolin.wang@linaro.org, peterz@infradead.org, mpe@ellerman.id.au, heiko.carstens@de.ibm.com, linux-kernel@vger.kernel.org, y2038@lists.linaro.org, tj@kernel.org, paulus@samba.org, fweisbec@gmail.com, schwidefsky@de.ibm.com, linux390@de.ibm.com, cl@linux.com, linuxppc-dev@lists.ozlabs.org, rth@twiddle.net
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wi0-f170.google.com ([209.85.212.170]:37764 "EHLO
+	mail-wi0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752323AbbFLIps (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jun 2015 04:45:48 -0400
+Content-Disposition: inline
+In-Reply-To: <557865A3.9080107@hp.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
 
-VGhlIGNwdXRpbWVfdG9fdGltZXNwZWMoKSBhbmQgdGltZXNwZWNfdG9fY3B1dGltZSgpIGZ1bmN0
-aW9ucyBhcmUKbm90IHllYXIgMjAzOCBzYWZlIG9uIDMyYml0IHN5c3RlbXMgZHVlIHRvIHRoZSBz
-dHJ1Y3QgdGltZXBzZWMgd2lsbApvdmVyZmxvdyBpbiAyMDM4IHllYXIuIEludHJvZHVjZSBjcHV0
-aW1lX3RvX3RpbWVzcGVjNjQoKSBhbmQKdGltZXNwZWM2NF90b19jcHV0aW1lKCkgZnVuY3Rpb25z
-IHdoaWNoIHVzZSBzdHJ1Y3QgdGltZXNwZWM2NCwKYXMgd2VsbCBhcyBmb3IgYXJjaC9zMzkwIGFu
-ZCBhcmNoL3Bvd2VycGMgYXJjaGl0ZWN0dXJlLgoKVGhlIGNwdXRpbWVfdG9fdGltZXNwZWMoKSBh
-bmQgdGltZXNwZWNfdG9fY3B1dGltZSgpIGZ1bmN0aW9ucyBhcmUKbW92ZWQgdG8gaW5jbHVkZS9s
-aW51eC9jcHV0aW1lLmggZmlsZSBhcyAnc3RhdGljIGlubGluZScgZm9yIHJlbW92aW5nCmNvbnZl
-bmllbnRseSBpbiBmdXR1cmUuCgpTaWduZWQtb2ZmLWJ5OiBCYW9saW4gV2FuZyA8YmFvbGluLndh
-bmdAbGluYXJvLm9yZz4KLS0tCiBhcmNoL3Bvd2VycGMvaW5jbHVkZS9hc20vY3B1dGltZS5oICAg
-IHwgICAgNiArKystLS0KIGFyY2gvczM5MC9pbmNsdWRlL2FzbS9jcHV0aW1lLmggICAgICAgfCAg
-ICA4ICsrKystLS0tCiBpbmNsdWRlL2FzbS1nZW5lcmljL2NwdXRpbWVfamlmZmllcy5oIHwgICAx
-MCArKysrKy0tLS0tCiBpbmNsdWRlL2FzbS1nZW5lcmljL2NwdXRpbWVfbnNlY3MuaCAgIHwgICAg
-NiArKystLS0KIGluY2x1ZGUvbGludXgvY3B1dGltZS5oICAgICAgICAgICAgICAgfCAgIDE2ICsr
-KysrKysrKysrKysrKysKIDUgZmlsZXMgY2hhbmdlZCwgMzEgaW5zZXJ0aW9ucygrKSwgMTUgZGVs
-ZXRpb25zKC0pCgpkaWZmIC0tZ2l0IGEvYXJjaC9wb3dlcnBjL2luY2x1ZGUvYXNtL2NwdXRpbWUu
-aCBiL2FyY2gvcG93ZXJwYy9pbmNsdWRlL2FzbS9jcHV0aW1lLmgKaW5kZXggZTI0NTI1NS4uNWRk
-YTVjMCAxMDA2NDQKLS0tIGEvYXJjaC9wb3dlcnBjL2luY2x1ZGUvYXNtL2NwdXRpbWUuaAorKysg
-Yi9hcmNoL3Bvd2VycGMvaW5jbHVkZS9hc20vY3B1dGltZS5oCkBAIC0xNTQsOSArMTU0LDkgQEAg
-c3RhdGljIGlubGluZSBjcHV0aW1lX3Qgc2Vjc190b19jcHV0aW1lKGNvbnN0IHVuc2lnbmVkIGxv
-bmcgc2VjKQogfQogCiAvKgotICogQ29udmVydCBjcHV0aW1lIDwtPiB0aW1lc3BlYworICogQ29u
-dmVydCBjcHV0aW1lIDwtPiB0aW1lc3BlYzY0CiAgKi8KLXN0YXRpYyBpbmxpbmUgdm9pZCBjcHV0
-aW1lX3RvX3RpbWVzcGVjKGNvbnN0IGNwdXRpbWVfdCBjdCwgc3RydWN0IHRpbWVzcGVjICpwKQor
-c3RhdGljIGlubGluZSB2b2lkIGNwdXRpbWVfdG9fdGltZXNwZWM2NChjb25zdCBjcHV0aW1lX3Qg
-Y3QsIHN0cnVjdCB0aW1lc3BlYzY0ICpwKQogewogCXU2NCB4ID0gKF9fZm9yY2UgdTY0KSBjdDsK
-IAl1bnNpZ25lZCBpbnQgZnJhYzsKQEAgLTE2OCw3ICsxNjgsNyBAQCBzdGF0aWMgaW5saW5lIHZv
-aWQgY3B1dGltZV90b190aW1lc3BlYyhjb25zdCBjcHV0aW1lX3QgY3QsIHN0cnVjdCB0aW1lc3Bl
-YyAqcCkKIAlwLT50dl9uc2VjID0geDsKIH0KIAotc3RhdGljIGlubGluZSBjcHV0aW1lX3QgdGlt
-ZXNwZWNfdG9fY3B1dGltZShjb25zdCBzdHJ1Y3QgdGltZXNwZWMgKnApCitzdGF0aWMgaW5saW5l
-IGNwdXRpbWVfdCB0aW1lc3BlYzY0X3RvX2NwdXRpbWUoY29uc3Qgc3RydWN0IHRpbWVzcGVjNjQg
-KnApCiB7CiAJdTY0IGN0OwogCmRpZmYgLS1naXQgYS9hcmNoL3MzOTAvaW5jbHVkZS9hc20vY3B1
-dGltZS5oIGIvYXJjaC9zMzkwL2luY2x1ZGUvYXNtL2NwdXRpbWUuaAppbmRleCAyMjFiNDU0Li4z
-MzE5YjUxIDEwMDY0NAotLS0gYS9hcmNoL3MzOTAvaW5jbHVkZS9hc20vY3B1dGltZS5oCisrKyBi
-L2FyY2gvczM5MC9pbmNsdWRlL2FzbS9jcHV0aW1lLmgKQEAgLTgxLDE2ICs4MSwxNiBAQCBzdGF0
-aWMgaW5saW5lIGNwdXRpbWVfdCBzZWNzX3RvX2NwdXRpbWUoY29uc3QgdW5zaWduZWQgaW50IHMp
-CiB9CiAKIC8qCi0gKiBDb252ZXJ0IGNwdXRpbWUgdG8gdGltZXNwZWMgYW5kIGJhY2suCisgKiBD
-b252ZXJ0IGNwdXRpbWUgdG8gdGltZXNwZWM2NCBhbmQgYmFjay4KICAqLwotc3RhdGljIGlubGlu
-ZSBjcHV0aW1lX3QgdGltZXNwZWNfdG9fY3B1dGltZShjb25zdCBzdHJ1Y3QgdGltZXNwZWMgKnZh
-bHVlKQorc3RhdGljIGlubGluZSBjcHV0aW1lX3QgdGltZXNwZWM2NF90b19jcHV0aW1lKGNvbnN0
-IHN0cnVjdCB0aW1lc3BlYzY0ICp2YWx1ZSkKIHsKIAl1bnNpZ25lZCBsb25nIGxvbmcgcmV0ID0g
-dmFsdWUtPnR2X3NlYyAqIENQVVRJTUVfUEVSX1NFQzsKIAlyZXR1cm4gKF9fZm9yY2UgY3B1dGlt
-ZV90KShyZXQgKyBfX2Rpdih2YWx1ZS0+dHZfbnNlYyAqIENQVVRJTUVfUEVSX1VTRUMsIE5TRUNf
-UEVSX1VTRUMpKTsKIH0KIAotc3RhdGljIGlubGluZSB2b2lkIGNwdXRpbWVfdG9fdGltZXNwZWMo
-Y29uc3QgY3B1dGltZV90IGNwdXRpbWUsCi0JCQkJICAgICAgIHN0cnVjdCB0aW1lc3BlYyAqdmFs
-dWUpCitzdGF0aWMgaW5saW5lIHZvaWQgY3B1dGltZV90b190aW1lc3BlYzY0KGNvbnN0IGNwdXRp
-bWVfdCBjcHV0aW1lLAorCQkJCQkgc3RydWN0IHRpbWVzcGVjNjQgKnZhbHVlKQogewogCXVuc2ln
-bmVkIGxvbmcgbG9uZyBfX2NwdXRpbWUgPSAoX19mb3JjZSB1bnNpZ25lZCBsb25nIGxvbmcpIGNw
-dXRpbWU7CiAJdmFsdWUtPnR2X25zZWMgPSAoX19jcHV0aW1lICUgQ1BVVElNRV9QRVJfU0VDKSAq
-IE5TRUNfUEVSX1VTRUMgLyBDUFVUSU1FX1BFUl9VU0VDOwpkaWZmIC0tZ2l0IGEvaW5jbHVkZS9h
-c20tZ2VuZXJpYy9jcHV0aW1lX2ppZmZpZXMuaCBiL2luY2x1ZGUvYXNtLWdlbmVyaWMvY3B1dGlt
-ZV9qaWZmaWVzLmgKaW5kZXggZmUzODZmYy4uNTRlMDM0YyAxMDA2NDQKLS0tIGEvaW5jbHVkZS9h
-c20tZ2VuZXJpYy9jcHV0aW1lX2ppZmZpZXMuaAorKysgYi9pbmNsdWRlL2FzbS1nZW5lcmljL2Nw
-dXRpbWVfamlmZmllcy5oCkBAIC00NCwxMiArNDQsMTIgQEAgdHlwZWRlZiB1NjQgX19ub2Nhc3Qg
-Y3B1dGltZTY0X3Q7CiAjZGVmaW5lIHNlY3NfdG9fY3B1dGltZShzZWMpCQlqaWZmaWVzX3RvX2Nw
-dXRpbWUoKHNlYykgKiBIWikKIAogLyoKLSAqIENvbnZlcnQgY3B1dGltZSB0byB0aW1lc3BlYyBh
-bmQgYmFjay4KKyAqIENvbnZlcnQgY3B1dGltZSB0byB0aW1lc3BlYzY0IGFuZCBiYWNrLgogICov
-Ci0jZGVmaW5lIHRpbWVzcGVjX3RvX2NwdXRpbWUoX192YWwpCVwKLQlqaWZmaWVzX3RvX2NwdXRp
-bWUodGltZXNwZWNfdG9famlmZmllcyhfX3ZhbCkpCi0jZGVmaW5lIGNwdXRpbWVfdG9fdGltZXNw
-ZWMoX19jdCxfX3ZhbCkJXAotCWppZmZpZXNfdG9fdGltZXNwZWMoY3B1dGltZV90b19qaWZmaWVz
-KF9fY3QpLF9fdmFsKQorI2RlZmluZSB0aW1lc3BlYzY0X3RvX2NwdXRpbWUoX192YWwpCVwKKwlq
-aWZmaWVzX3RvX2NwdXRpbWUodGltZXNwZWM2NF90b19qaWZmaWVzKF9fdmFsKSkKKyNkZWZpbmUg
-Y3B1dGltZV90b190aW1lc3BlYzY0KF9fY3QsX192YWwpCVwKKwlqaWZmaWVzX3RvX3RpbWVzcGVj
-NjQoY3B1dGltZV90b19qaWZmaWVzKF9fY3QpLF9fdmFsKQogCiAvKgogICogQ29udmVydCBjcHV0
-aW1lIHRvIHRpbWV2YWwgYW5kIGJhY2suCmRpZmYgLS1naXQgYS9pbmNsdWRlL2FzbS1nZW5lcmlj
-L2NwdXRpbWVfbnNlY3MuaCBiL2luY2x1ZGUvYXNtLWdlbmVyaWMvY3B1dGltZV9uc2Vjcy5oCmlu
-ZGV4IDA0MTk0ODUuLmMwY2FmYzAgMTAwNjQ0Ci0tLSBhL2luY2x1ZGUvYXNtLWdlbmVyaWMvY3B1
-dGltZV9uc2Vjcy5oCisrKyBiL2luY2x1ZGUvYXNtLWdlbmVyaWMvY3B1dGltZV9uc2Vjcy5oCkBA
-IC03MSwxNCArNzEsMTQgQEAgdHlwZWRlZiB1NjQgX19ub2Nhc3QgY3B1dGltZTY0X3Q7CiAJKF9f
-Zm9yY2UgY3B1dGltZV90KSgoX19zZWNzKSAqIE5TRUNfUEVSX1NFQykKIAogLyoKLSAqIENvbnZl
-cnQgY3B1dGltZSA8LT4gdGltZXNwZWMgKG5zZWMpCisgKiBDb252ZXJ0IGNwdXRpbWUgPC0+IHRp
-bWVzcGVjNjQgKG5zZWMpCiAgKi8KLXN0YXRpYyBpbmxpbmUgY3B1dGltZV90IHRpbWVzcGVjX3Rv
-X2NwdXRpbWUoY29uc3Qgc3RydWN0IHRpbWVzcGVjICp2YWwpCitzdGF0aWMgaW5saW5lIGNwdXRp
-bWVfdCB0aW1lc3BlYzY0X3RvX2NwdXRpbWUoY29uc3Qgc3RydWN0IHRpbWVzcGVjNjQgKnZhbCkK
-IHsKIAl1NjQgcmV0ID0gdmFsLT50dl9zZWMgKiBOU0VDX1BFUl9TRUMgKyB2YWwtPnR2X25zZWM7
-CiAJcmV0dXJuIChfX2ZvcmNlIGNwdXRpbWVfdCkgcmV0OwogfQotc3RhdGljIGlubGluZSB2b2lk
-IGNwdXRpbWVfdG9fdGltZXNwZWMoY29uc3QgY3B1dGltZV90IGN0LCBzdHJ1Y3QgdGltZXNwZWMg
-KnZhbCkKK3N0YXRpYyBpbmxpbmUgdm9pZCBjcHV0aW1lX3RvX3RpbWVzcGVjNjQoY29uc3QgY3B1
-dGltZV90IGN0LCBzdHJ1Y3QgdGltZXNwZWM2NCAqdmFsKQogewogCXUzMiByZW07CiAKZGlmZiAt
-LWdpdCBhL2luY2x1ZGUvbGludXgvY3B1dGltZS5oIGIvaW5jbHVkZS9saW51eC9jcHV0aW1lLmgK
-aW5kZXggZjJlYjJlZS4uY2Q2MzhhMCAxMDA2NDQKLS0tIGEvaW5jbHVkZS9saW51eC9jcHV0aW1l
-LmgKKysrIGIvaW5jbHVkZS9saW51eC9jcHV0aW1lLmgKQEAgLTEzLDQgKzEzLDIwIEBACiAJdXNl
-Y3NfdG9fY3B1dGltZSgoX19uc2VjcykgLyBOU0VDX1BFUl9VU0VDKQogI2VuZGlmCiAKK3N0YXRp
-YyBpbmxpbmUgY3B1dGltZV90IHRpbWVzcGVjX3RvX2NwdXRpbWUoY29uc3Qgc3RydWN0IHRpbWVz
-cGVjICp0cykKK3sKKwlzdHJ1Y3QgdGltZXNwZWM2NCB0czY0ID0gdGltZXNwZWNfdG9fdGltZXNw
-ZWM2NCgqdHMpOworCisJcmV0dXJuIHRpbWVzcGVjNjRfdG9fY3B1dGltZSgmdHM2NCk7Cit9CisK
-K3N0YXRpYyBpbmxpbmUgdm9pZCBjcHV0aW1lX3RvX3RpbWVzcGVjKGNvbnN0IGNwdXRpbWVfdCBj
-cHV0aW1lLAorCQkJCSAgICAgICBzdHJ1Y3QgdGltZXNwZWMgKnZhbHVlKQoreworCXN0cnVjdCB0
-aW1lc3BlYzY0IHRzNjQ7CisKKwljcHV0aW1lX3RvX3RpbWVzcGVjNjQoY3B1dGltZSwgJnRzNjQp
-OworCSp2YWx1ZSA9IHRpbWVzcGVjNjRfdG9fdGltZXNwZWModHM2NCk7Cit9CisKICNlbmRpZiAv
-KiBfX0xJTlVYX0NQVVRJTUVfSCAqLwotLSAKMS43LjkuNQoKX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX18KWTIwMzggbWFpbGluZyBsaXN0ClkyMDM4QGxpc3Rz
-LmxpbmFyby5vcmcKaHR0cHM6Ly9saXN0cy5saW5hcm8ub3JnL21haWxtYW4vbGlzdGluZm8veTIw
-MzgK
+
+* Waiman Long <waiman.long@hp.com> wrote:
+
+> > Mind posting the microbenchmark?
+> 
+> I have attached the tool that I used for testing.
+
+Thanks, that's interesting!
+
+Btw., we could also do something like this in user-space, in tools/perf/bench/, we 
+have no 'perf bench locking' subcommand yet.
+
+We already build and measure simple x86 kernel methods there such as memset() and 
+memcpy():
+
+ triton:~/tip> perf bench mem memcpy -r all
+ # Running 'mem/memcpy' benchmark:
+
+ Routine default (Default memcpy() provided by glibc)
+ # Copying 1MB Bytes ...
+
+       1.385195 GB/Sec
+       4.982462 GB/Sec (with prefault)
+
+ Routine x86-64-unrolled (unrolled memcpy() in arch/x86/lib/memcpy_64.S)
+ # Copying 1MB Bytes ...
+
+       1.627604 GB/Sec
+       5.336407 GB/Sec (with prefault)
+
+ Routine x86-64-movsq (movsq-based memcpy() in arch/x86/lib/memcpy_64.S)
+ # Copying 1MB Bytes ...
+
+       2.132233 GB/Sec
+       4.264465 GB/Sec (with prefault)
+
+ Routine x86-64-movsb (movsb-based memcpy() in arch/x86/lib/memcpy_64.S)
+ # Copying 1MB Bytes ...
+
+       1.490935 GB/Sec
+       7.128193 GB/Sec (with prefault)
+
+Locking primitives would certainly be more complex build in user-space - but we 
+could shuffle things around in kernel headers as well to make it easier to test in 
+user-space.
+
+That's how we can build lockdep in user-space for example, see tools/lib/lockdep.
+
+Just a thought.
+
+Thanks,
+
+	Ingo
