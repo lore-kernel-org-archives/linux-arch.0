@@ -1,56 +1,39 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2] ARC: add smp barriers around atomics per
- Documentation/atomic_ops.txt
-Date: Fri, 12 Jun 2015 13:16:27 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665A55A0@IN01WEMBXB.internal.synopsys.com>
-References: <1433850508-26317-19-git-send-email-vgupta@synopsys.com>
- <1434111359-6925-1-git-send-email-vgupta@synopsys.com>
- <20150612130450.GY19282@twins.programming.kicks-ass.net>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v5 00/24] Convert the posix_clock_operations and k_clock
+ structure to ready for 2038
+Date: Fri, 12 Jun 2015 15:16:11 +0200 (CEST)
+Message-ID: <alpine.DEB.2.11.1506121512180.3786@nanos>
+References: <lfywpz1987> <cover.1434079262.git.baolin.wang@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <stable-owner@vger.kernel.org>
-Content-Language: en-US
-Sender: stable-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "stable@vger.kernel.org" <stable@vger.kernel.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-security-module-owner@vger.kernel.org>
+In-Reply-To: <cover.1434079262.git.baolin.wang@linaro.org>
+Sender: linux-security-module-owner@vger.kernel.org
+To: Baolin Wang <baolin.wang@linaro.org>
+Cc: arnd@arndb.de, john.stultz@linaro.org, heenasirwani@gmail.com, pang.xunlei@linaro.org, peterz@infradead.org, rafael.j.wysocki@intel.com, gregkh@linuxfoundation.org, richardcochran@gmail.com, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, fweisbec@gmail.com, ahh@google.com, pjt@google.com, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, serge.hallyn@canonical.com, james.l.morris@oracle.com, serge@hallyn.com, pmoore@redhat.com, tiwai@suse.de, jeffv@google.com, jlayton@primarydata.com, keescook@chromium.org, sds@tycho.nsa.gov, mark.d.rustad@intel.com, linux-security-module@vger.kernel.org, y2038@lists.linaro.org
 List-Id: linux-arch.vger.kernel.org
 
-On Friday 12 June 2015 06:35 PM, Peter Zijlstra wrote:
+On Fri, 12 Jun 2015, Baolin Wang wrote:
 
-On Fri, Jun 12, 2015 at 05:45:59PM +0530, Vineet Gupta wrote:
+Sigh. Again threading of the series failed. Some patches are, the
+whole series is not. Can you please get your tools straight?
 
+You neither managed to cc me on the security patch.
 
->  - arch_spin_lock/unlock were lacking the ACQUIRE/RELEASE barriers
->    Since ARCv2 only provides load/load, store/store and all/all, we need
->    the full barrier
->
->  - LLOCK/SCOND based atomics, bitops, cmpxchg, which return modified
->    values were lacking the explicit smp barriers.
->
->  - Non LLOCK/SCOND varaints don't need the explicit barriers since that
->    is implicity provided by the spin locks used to implement the
->    critical section (the spin lock barriers in turn are also fixed in
->    this commit as explained above
+> - Modify the subject line and the changelog:
 
+>   timekeeping: Change the implementation of timekeeping_clocktai()
 
-And iirc you're relying on asm-generic/barrier.h to issue
-smp_mb__{before,after}_atomic() as smp_mb(), right?
+Sigh. How is that better than the previous one? It's more accurate,
+but equally useless.
 
-Yep !
+And of course you did not address my request to change the macro mess
+in
 
+>   posix-timers: Introduce {get,put}_timespec and {get,put}_itimerspec
 
+according to the discussion with Arnd.
 
-Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org><mailto:peterz@infradead.org>
+Thanks,
 
-Thx !
-
-
-Although I'd love to know why you need those extra barriers in your
-spinlocks...
-
-
-I'll keep you posted as I'd like to get rid of them too. But there's bunch of stuff going on ATM so can't really jump into investigating that. Will need some wrestling with perf... which makes me think that I'd posted a bunch of perf patches for ARC/ARCv2 as well - can u please take alook at them sometime soon !
-
-Thx,
--Vineet
+	tglx
