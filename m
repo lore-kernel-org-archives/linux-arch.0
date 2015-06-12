@@ -1,162 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f43.google.com ([209.85.220.43]:34808 "EHLO
-	mail-pa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754793AbbFLILs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Jun 2015 04:11:48 -0400
-Received: by payr10 with SMTP id r10so18608130pay.1
-        for <linux-arch@vger.kernel.org>; Fri, 12 Jun 2015 01:11:47 -0700 (PDT)
-From: Baolin Wang <baolin.wang@linaro.org>
-Subject: [PATCH v5 22/24] cputime: Introduce cputime_to_timespec64()/timespec64_to_cputime()
-Date: Fri, 12 Jun 2015 16:10:32 +0800
-Message-ID: <cc09682885e4883e38c7f89701df343f8e56acdf.1434079263.git.baolin.wang@linaro.org>
-In-Reply-To: <lfywpz1987>
-References: <lfywpz1987>
-In-Reply-To: <cover.1434079262.git.baolin.wang@linaro.org>
-References: <cover.1434079262.git.baolin.wang@linaro.org>
+Received: from cantor2.suse.de ([195.135.220.15]:58850 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753343AbbFLMFW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 12 Jun 2015 08:05:22 -0400
+Message-ID: <557ACAFC.90608@suse.cz>
+Date: Fri, 12 Jun 2015 14:05:16 +0200
+From: Vlastimil Babka <vbabka@suse.cz>
+MIME-Version: 1.0
+Subject: Re: [RESEND PATCH V2 0/3] Allow user to request memory to be locked
+ on page fault
+References: <1433942810-7852-1-git-send-email-emunson@akamai.com>	<20150610145929.b22be8647887ea7091b09ae1@linux-foundation.org>	<5579DFBA.80809@akamai.com> <20150611123424.4bb07cffd0e5bb146cc92231@linux-foundation.org>
+In-Reply-To: <20150611123424.4bb07cffd0e5bb146cc92231@linux-foundation.org>
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: benh@kernel.crashing.org
-Cc: arnd@arndb.de, peterz@infradead.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, fweisbec@gmail.com, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, baolin.wang@linaro.org, y2038@lists.linaro.org
-Message-ID: <20150612081032.ur2e4d8zUGI_QhqomXdFXKhUO11a_Fr4b4mwS73ZHFM@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Eric B Munson <emunson@akamai.com>
+Cc: Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20150612120516.kzpuW8l0msJSPT-2WQ8yAsrUmzDNQMDU24n2kHfSUEM@z>
 
-The cputime_to_timespec() and timespec_to_cputime() functions are
-not year 2038 safe on 32bit systems due to the struct timepsec will
-overflow in 2038 year. Introduce cputime_to_timespec64() and
-timespec64_to_cputime() functions which use struct timespec64,
-as well as for arch/s390 and arch/powerpc architecture.
+On 06/11/2015 09:34 PM, Andrew Morton wrote:
+> On Thu, 11 Jun 2015 15:21:30 -0400 Eric B Munson <emunson@akamai.com> wrote:
+>
+>>> Ditto mlockall(MCL_ONFAULT) followed by munlock().  I'm not sure
+>>> that even makes sense but the behaviour should be understood and
+>>> tested.
+>>
+>> I have extended the kselftest for lock-on-fault to try both of these
+>> scenarios and they work as expected.  The VMA is split and the VM
+>> flags are set appropriately for the resulting VMAs.
+>
+> munlock() should do vma merging as well.  I *think* we implemented
+> that.  More tests for you to add ;)
+>
+> How are you testing the vma merging and splitting, btw?  Parsing
+> the profcs files?
+>
+>>> What's missing here is a syscall to set VM_LOCKONFAULT on an
+>>> arbitrary range of memory - mlock() for lock-on-fault.  It's a
+>>> shame that mlock() didn't take a `mode' argument.  Perhaps we
+>>> should add such a syscall - that would make the mmap flag unneeded
+>>> but I suppose it should be kept for symmetry.
+>>
+>> Do you want such a system call as part of this set?  I would need some
+>> time to make sure I had thought through all the possible corners one
+>> could get into with such a call, so it would delay a V3 quite a bit.
+>> Otherwise I can send a V3 out immediately.
+>
+> I think the way to look at this is to pretend that mm/mlock.c doesn't
+> exist and ask "how should we design these features".
+>
+> And that would be:
+>
+> - mmap() takes a `flags' argument: MAP_LOCKED|MAP_LOCKONFAULT.
 
-The cputime_to_timespec() and timespec_to_cputime() functions are
-moved to include/linux/cputime.h file as 'static inline' for removing
-conveniently in future.
+Note that the semantic of MAP_LOCKED can be subtly surprising:
 
-Signed-off-by: Baolin Wang <baolin.wang@linaro.org>
----
- arch/powerpc/include/asm/cputime.h    |    6 +++---
- arch/s390/include/asm/cputime.h       |    8 ++++----
- include/asm-generic/cputime_jiffies.h |   10 +++++-----
- include/asm-generic/cputime_nsecs.h   |    6 +++---
- include/linux/cputime.h               |   16 ++++++++++++++++
- 5 files changed, 31 insertions(+), 15 deletions(-)
+"mlock(2) fails if the memory range cannot get populated to guarantee
+that no future major faults will happen on the range. mmap(MAP_LOCKED) 
+on the other hand silently succeeds even if the range was populated only
+partially."
 
-diff --git a/arch/powerpc/include/asm/cputime.h b/arch/powerpc/include/asm/cputime.h
-index e245255..5dda5c0 100644
---- a/arch/powerpc/include/asm/cputime.h
-+++ b/arch/powerpc/include/asm/cputime.h
-@@ -154,9 +154,9 @@ static inline cputime_t secs_to_cputime(const unsigned long sec)
- }
- 
- /*
-- * Convert cputime <-> timespec
-+ * Convert cputime <-> timespec64
-  */
--static inline void cputime_to_timespec(const cputime_t ct, struct timespec *p)
-+static inline void cputime_to_timespec64(const cputime_t ct, struct timespec64 *p)
- {
- 	u64 x = (__force u64) ct;
- 	unsigned int frac;
-@@ -168,7 +168,7 @@ static inline void cputime_to_timespec(const cputime_t ct, struct timespec *p)
- 	p->tv_nsec = x;
- }
- 
--static inline cputime_t timespec_to_cputime(const struct timespec *p)
-+static inline cputime_t timespec64_to_cputime(const struct timespec64 *p)
- {
- 	u64 ct;
- 
-diff --git a/arch/s390/include/asm/cputime.h b/arch/s390/include/asm/cputime.h
-index 221b454..3319b51 100644
---- a/arch/s390/include/asm/cputime.h
-+++ b/arch/s390/include/asm/cputime.h
-@@ -81,16 +81,16 @@ static inline cputime_t secs_to_cputime(const unsigned int s)
- }
- 
- /*
-- * Convert cputime to timespec and back.
-+ * Convert cputime to timespec64 and back.
-  */
--static inline cputime_t timespec_to_cputime(const struct timespec *value)
-+static inline cputime_t timespec64_to_cputime(const struct timespec64 *value)
- {
- 	unsigned long long ret = value->tv_sec * CPUTIME_PER_SEC;
- 	return (__force cputime_t)(ret + __div(value->tv_nsec * CPUTIME_PER_USEC, NSEC_PER_USEC));
- }
- 
--static inline void cputime_to_timespec(const cputime_t cputime,
--				       struct timespec *value)
-+static inline void cputime_to_timespec64(const cputime_t cputime,
-+					 struct timespec64 *value)
- {
- 	unsigned long long __cputime = (__force unsigned long long) cputime;
- 	value->tv_nsec = (__cputime % CPUTIME_PER_SEC) * NSEC_PER_USEC / CPUTIME_PER_USEC;
-diff --git a/include/asm-generic/cputime_jiffies.h b/include/asm-generic/cputime_jiffies.h
-index fe386fc..54e034c 100644
---- a/include/asm-generic/cputime_jiffies.h
-+++ b/include/asm-generic/cputime_jiffies.h
-@@ -44,12 +44,12 @@ typedef u64 __nocast cputime64_t;
- #define secs_to_cputime(sec)		jiffies_to_cputime((sec) * HZ)
- 
- /*
-- * Convert cputime to timespec and back.
-+ * Convert cputime to timespec64 and back.
-  */
--#define timespec_to_cputime(__val)	\
--	jiffies_to_cputime(timespec_to_jiffies(__val))
--#define cputime_to_timespec(__ct,__val)	\
--	jiffies_to_timespec(cputime_to_jiffies(__ct),__val)
-+#define timespec64_to_cputime(__val)	\
-+	jiffies_to_cputime(timespec64_to_jiffies(__val))
-+#define cputime_to_timespec64(__ct,__val)	\
-+	jiffies_to_timespec64(cputime_to_jiffies(__ct),__val)
- 
- /*
-  * Convert cputime to timeval and back.
-diff --git a/include/asm-generic/cputime_nsecs.h b/include/asm-generic/cputime_nsecs.h
-index 0419485..c0cafc0 100644
---- a/include/asm-generic/cputime_nsecs.h
-+++ b/include/asm-generic/cputime_nsecs.h
-@@ -71,14 +71,14 @@ typedef u64 __nocast cputime64_t;
- 	(__force cputime_t)((__secs) * NSEC_PER_SEC)
- 
- /*
-- * Convert cputime <-> timespec (nsec)
-+ * Convert cputime <-> timespec64 (nsec)
-  */
--static inline cputime_t timespec_to_cputime(const struct timespec *val)
-+static inline cputime_t timespec64_to_cputime(const struct timespec64 *val)
- {
- 	u64 ret = val->tv_sec * NSEC_PER_SEC + val->tv_nsec;
- 	return (__force cputime_t) ret;
- }
--static inline void cputime_to_timespec(const cputime_t ct, struct timespec *val)
-+static inline void cputime_to_timespec64(const cputime_t ct, struct timespec64 *val)
- {
- 	u32 rem;
- 
-diff --git a/include/linux/cputime.h b/include/linux/cputime.h
-index f2eb2ee..cd638a0 100644
---- a/include/linux/cputime.h
-+++ b/include/linux/cputime.h
-@@ -13,4 +13,20 @@
- 	usecs_to_cputime((__nsecs) / NSEC_PER_USEC)
- #endif
- 
-+static inline cputime_t timespec_to_cputime(const struct timespec *ts)
-+{
-+	struct timespec64 ts64 = timespec_to_timespec64(*ts);
-+
-+	return timespec64_to_cputime(&ts64);
-+}
-+
-+static inline void cputime_to_timespec(const cputime_t cputime,
-+				       struct timespec *value)
-+{
-+	struct timespec64 ts64;
-+
-+	cputime_to_timespec64(cputime, &ts64);
-+	*value = timespec64_to_timespec(ts64);
-+}
-+
- #endif /* __LINUX_CPUTIME_H */
--- 
-1.7.9.5
+( from http://marc.info/?l=linux-mm&m=143152790412727&w=2 )
+
+So MAP_LOCKED can silently behave like MAP_LOCKONFAULT. While 
+MAP_LOCKONFAULT doesn't suffer from such problem, I wonder if that's 
+sufficient reason not to extend mmap by new mlock() flags that can be 
+instead applied to the VMA after mmapping, using the proposed mlock2() 
+with flags. So I think instead we could deprecate MAP_LOCKED more 
+prominently. I doubt the overhead of calling the extra syscall matters here?
+
+> - mlock() takes a `flags' argument.  Presently that's
+>    MLOCK_LOCKED|MLOCK_LOCKONFAULT.
+>
+> - munlock() takes a `flags' arument.  MLOCK_LOCKED|MLOCK_LOCKONFAULT
+>    to specify which flags are being cleared.
+>
+> - mlockall() and munlockall() ditto.
+>
+>
+> IOW, LOCKED and LOCKEDONFAULT are treated identically and independently.
+>
+> Now, that's how we would have designed all this on day one.  And I
+> think we can do this now, by adding new mlock2() and munlock2()
+> syscalls.  And we may as well deprecate the old mlock() and munlock(),
+> not that this matters much.
+>
+> *should* we do this?  I'm thinking "yes" - it's all pretty simple
+> boilerplate and wrappers and such, and it gets the interface correct,
+> and extensible.
+
+If the new LOCKONFAULT functionality is indeed desired (I haven't still 
+decided myself) then I agree that would be the cleanest way.
+
+> What do others think?
+>
+> --
+> To unsubscribe, send a message with 'unsubscribe linux-mm' in
+> the body to majordomo@kvack.org.  For more info on Linux MM,
+> see: http://www.linux-mm.org/ .
+> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+>
 
