@@ -1,126 +1,121 @@
-From: Sylvain Chouleur <sylvain.chouleur@intel.com>
-Subject: [PATCH] rtc-cmos: Support of century field
-Date: Mon, 15 Jun 2015 15:01:11 +0200
-Message-ID: <87pp4xf7mw.fsf@schouleu-mobl1.ger.corp.intel.com>
+From: Eric B Munson <emunson@akamai.com>
+Subject: Re: [RESEND PATCH V2 0/3] Allow user to request memory to be locked
+ on page fault
+Date: Mon, 15 Jun 2015 10:39:34 -0400
+Message-ID: <20150615143934.GA12300@akamai.com>
+References: <1433942810-7852-1-git-send-email-emunson@akamai.com>
+ <20150610145929.b22be8647887ea7091b09ae1@linux-foundation.org>
+ <5579DFBA.80809@akamai.com>
+ <20150611123424.4bb07cffd0e5bb146cc92231@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:17972 "EHLO mga01.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750754AbbFOM6w (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Jun 2015 08:58:52 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="3MwIy2ne0vdjdPXF"
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20150611123424.4bb07cffd0e5bb146cc92231@linux-foundation.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-If century field is supported by the RTC CMOS device, then we should use
-it and do not consider years greater that 169 as an error.
 
-For information, the year field of the rtc_time structure contains the
-value to add to 1970 to obtain the current year.
-This was a hack to be able to support years from 1970 to 2069.
-This patch remains compatible with this implementation.
+--3MwIy2ne0vdjdPXF
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Signed-off-by: Sylvain Chouleur <sylvain.chouleur@intel.com>
----
- include/asm-generic/rtc.h | 29 +++++++++++++++++++++++++++++
- 1 file changed, 29 insertions(+)
+On Thu, 11 Jun 2015, Andrew Morton wrote:
 
-diff --git a/include/asm-generic/rtc.h b/include/asm-generic/rtc.h
-index fa86f240c874..4e3b6558331e 100644
---- a/include/asm-generic/rtc.h
-+++ b/include/asm-generic/rtc.h
-@@ -16,6 +16,9 @@
- #include <linux/rtc.h>
- #include <linux/bcd.h>
- #include <linux/delay.h>
-+#ifdef CONFIG_ACPI
-+#include <linux/acpi.h>
-+#endif
- 
- #define RTC_PIE 0x40		/* periodic interrupt enable */
- #define RTC_AIE 0x20		/* alarm interrupt enable */
-@@ -46,6 +49,7 @@ static inline unsigned int __get_rtc_time(struct rtc_time *time)
- {
- 	unsigned char ctrl;
- 	unsigned long flags;
-+	unsigned char century = 0;
- 
- #ifdef CONFIG_MACH_DECSTATION
- 	unsigned int real_year;
-@@ -79,6 +83,11 @@ static inline unsigned int __get_rtc_time(struct rtc_time *time)
- #ifdef CONFIG_MACH_DECSTATION
- 	real_year = CMOS_READ(RTC_DEC_YEAR);
- #endif
-+#ifdef CONFIG_ACPI
-+	if (acpi_gbl_FADT.header.revision >= FADT2_REVISION_ID &&
-+	    acpi_gbl_FADT.century)
-+		century = CMOS_READ(acpi_gbl_FADT.century);
-+#endif
- 	ctrl = CMOS_READ(RTC_CONTROL);
- 	spin_unlock_irqrestore(&rtc_lock, flags);
- 
-@@ -90,12 +99,16 @@ static inline unsigned int __get_rtc_time(struct rtc_time *time)
- 		time->tm_mday = bcd2bin(time->tm_mday);
- 		time->tm_mon = bcd2bin(time->tm_mon);
- 		time->tm_year = bcd2bin(time->tm_year);
-+		century = bcd2bin(century);
- 	}
- 
- #ifdef CONFIG_MACH_DECSTATION
- 	time->tm_year += real_year - 72;
- #endif
- 
-+	if (century)
-+		time->tm_year += (century - 19) * 100;
-+
- 	/*
- 	 * Account for differences between how the RTC uses the values
- 	 * and how they are defined in a struct rtc_time;
-@@ -122,6 +135,7 @@ static inline int __set_rtc_time(struct rtc_time *time)
- #ifdef CONFIG_MACH_DECSTATION
- 	unsigned int real_yrs, leap_yr;
- #endif
-+	unsigned char century = 0;
- 
- 	yrs = time->tm_year;
- 	mon = time->tm_mon + 1;   /* tm_mon starts at zero */
-@@ -150,6 +164,15 @@ static inline int __set_rtc_time(struct rtc_time *time)
- 		yrs = 73;
- 	}
- #endif
-+
-+#ifdef CONFIG_ACPI
-+	if (acpi_gbl_FADT.header.revision >= FADT2_REVISION_ID &&
-+	    acpi_gbl_FADT.century) {
-+		century = (yrs + 1900) / 100;
-+		yrs %= 100;
-+	}
-+#endif
-+
- 	/* These limits and adjustments are independent of
- 	 * whether the chip is in binary mode or not.
- 	 */
-@@ -169,6 +192,7 @@ static inline int __set_rtc_time(struct rtc_time *time)
- 		day = bin2bcd(day);
- 		mon = bin2bcd(mon);
- 		yrs = bin2bcd(yrs);
-+		century = bin2bcd(century);
- 	}
- 
- 	save_control = CMOS_READ(RTC_CONTROL);
-@@ -185,6 +209,11 @@ static inline int __set_rtc_time(struct rtc_time *time)
- 	CMOS_WRITE(hrs, RTC_HOURS);
- 	CMOS_WRITE(min, RTC_MINUTES);
- 	CMOS_WRITE(sec, RTC_SECONDS);
-+#ifdef CONFIG_ACPI
-+	if (acpi_gbl_FADT.header.revision >= FADT2_REVISION_ID &&
-+	    acpi_gbl_FADT.century)
-+		CMOS_WRITE(century, acpi_gbl_FADT.century);
-+#endif
- 
- 	CMOS_WRITE(save_control, RTC_CONTROL);
- 	CMOS_WRITE(save_freq_select, RTC_FREQ_SELECT);
--- 
-1.9.1
+> On Thu, 11 Jun 2015 15:21:30 -0400 Eric B Munson <emunson@akamai.com> wro=
+te:
+>=20
+> > > Ditto mlockall(MCL_ONFAULT) followed by munlock().  I'm not sure
+> > > that even makes sense but the behaviour should be understood and
+> > > tested.
+> >
+> > I have extended the kselftest for lock-on-fault to try both of these
+> > scenarios and they work as expected.  The VMA is split and the VM
+> > flags are set appropriately for the resulting VMAs.
+>=20
+> munlock() should do vma merging as well.  I *think* we implemented
+> that.  More tests for you to add ;)
+>=20
+> How are you testing the vma merging and splitting, btw?  Parsing
+> the profcs files?
+
+The lock-on-fault test now covers VMA splitting and merging by parsing
+/proc/self/maps.  VMA splitting and merging works as it should with both
+MAP_LOCKONFAULT and MCL_ONFAULT.
+
+>=20
+> > > What's missing here is a syscall to set VM_LOCKONFAULT on an
+> > > arbitrary range of memory - mlock() for lock-on-fault.  It's a
+> > > shame that mlock() didn't take a `mode' argument.  Perhaps we
+> > > should add such a syscall - that would make the mmap flag unneeded
+> > > but I suppose it should be kept for symmetry.
+> >=20
+> > Do you want such a system call as part of this set?  I would need some
+> > time to make sure I had thought through all the possible corners one
+> > could get into with such a call, so it would delay a V3 quite a bit.
+> > Otherwise I can send a V3 out immediately.
+>=20
+> I think the way to look at this is to pretend that mm/mlock.c doesn't
+> exist and ask "how should we design these features".
+>=20
+> And that would be:
+>=20
+> - mmap() takes a `flags' argument: MAP_LOCKED|MAP_LOCKONFAULT.
+>=20
+> - mlock() takes a `flags' argument.  Presently that's
+>   MLOCK_LOCKED|MLOCK_LOCKONFAULT.
+>=20
+> - munlock() takes a `flags' arument.  MLOCK_LOCKED|MLOCK_LOCKONFAULT
+>   to specify which flags are being cleared.
+>=20
+> - mlockall() and munlockall() ditto.
+>=20
+>=20
+> IOW, LOCKED and LOCKEDONFAULT are treated identically and independently.
+>=20
+> Now, that's how we would have designed all this on day one.  And I
+> think we can do this now, by adding new mlock2() and munlock2()
+> syscalls.  And we may as well deprecate the old mlock() and munlock(),
+> not that this matters much.
+>=20
+> *should* we do this?  I'm thinking "yes" - it's all pretty simple
+> boilerplate and wrappers and such, and it gets the interface correct,
+> and extensible.
+>=20
+> What do others think?
+
+I am working on V3 which will introduce the new system calls.
+
+--3MwIy2ne0vdjdPXF
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQIcBAEBAgAGBQJVfuOmAAoJELbVsDOpoOa9s3IP/3PHZ6S5YUFkxUlalwmhJoDD
+YtCVtwakGJ0GjPMI4iM+H1TsCym6AYH/Kv0dxfnTbFMTqClzHq7V3QZt9IHJH7Pb
+Z8gBH247JOk7opOsB3Cb3gLvAkQ4bfgXObSsgvPLCID2GumlUOINBpXwYBpNLh00
++4blC/0gdEp0C8xAPbJIzguSEI5wAwmOISlSQipb2ptEl+aAFjxRLARl47pD6EES
+N6pYgeVfNZ/F63Ywoley/s2RE7pvm3ofCVcrNC8AH1lolbbEZgrQBJKB/Sq5RC2W
+pcO4Z6Y3UOziTyNuWcHRVOGjK/gpoFnncdFJzmjMubx8N+8dus1Wl3xwvXidYT8e
+bLqc3acsUy2zLFQJRZIxuR9PPXVpKLCc0GF5Ufqa6ej5PKEsMJ2Baqy7x5Ujgyts
+ceNH2d1JRtkxdVw+WqBetjatM2icb+Yf/e3hOzr85thaAVGyoNJtlyhAciY4aIbW
+JhCpFuhvCuUcag2nNrrN5Ry3noGv3pm2AuqmUVSEZjorLsQnN5/3FxntVSb4YWkg
+VSLD4QHMiE0UeWnhCzKN7I5e/QhrnJ+HABx0GfTgjcXt1VQiKwxEp9A8+JsRmGiF
+G0oOTWsE/oUx+KCluuIRPpKuuiX0Nc50IEH3vklCIAkAWriMfh/jZvDTIeR1Wtci
+3BTlJ2Z0erX8IPh+BVnI
+=jO18
+-----END PGP SIGNATURE-----
+
+--3MwIy2ne0vdjdPXF--
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
