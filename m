@@ -1,32 +1,96 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 4/8] ARCv2: perf: Support sampling events using overflow
- interrupts
-Date: Mon, 15 Jun 2015 18:25:25 +0200
-Message-ID: <20150615162525.GH3644@twins.programming.kicks-ass.net>
-References: <1433852372-29494-1-git-send-email-vgupta@synopsys.com>
- <1433852372-29494-5-git-send-email-vgupta@synopsys.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:40102 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754213AbbFOQZk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2015 12:25:40 -0400
-Content-Disposition: inline
-In-Reply-To: <1433852372-29494-5-git-send-email-vgupta@synopsys.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, arc-linux-dev@synopsys.com, Arnaldo Carvalho de Melo <acme@kernel.org>
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v3 2/2] locking/qrwlock: Don't contend with readers when setting _QW_WAITING
+Date: Mon, 15 Jun 2015 18:24:03 -0400
+Message-ID: <1434407043-18741-3-git-send-email-Waiman.Long@hp.com>
+References: <1434407043-18741-1-git-send-email-Waiman.Long@hp.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1434407043-18741-1-git-send-email-Waiman.Long@hp.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jun 09, 2015 at 05:49:28PM +0530, Vineet Gupta wrote:
-> +	if (arc_pmu->has_interrupts) {
-> +		int irq = platform_get_irq(pdev, 0);
+The current cmpxchg() loop in setting the _QW_WAITING flag for writers
+in queue_write_lock_slowpath() will contend with incoming readers
+causing possibly extra cmpxchg() operations that are wasteful. This
+patch changes the code to do a byte cmpxchg() to eliminate contention
+with new readers.
 
-Hmm, so you're requesting a regular interrupt.
+A multithreaded microbenchmark running 5M read_lock/write_lock loop
+on a 8-socket 80-core Westmere-EX machine running 4.0 based kernel
+with the qspinlock patch have the following execution times (in ms)
+with and without the patch:
 
-I see your architecture has IRQ priorities, could you play games and
-create NMIs using those?
+With R:W ratio = 5:1
 
-For example, never mask L1 (assuming that's the highest priority) and
-treat that as an NMI.
+	Threads	   w/o patch	with patch	% change
+	-------	   ---------	----------	--------
+	   2	     990 	    895		  -9.6%
+	   3	    2136 	   1912		 -10.5%
+	   4	    3166	   2830		 -10.6%
+	   5	    3953	   3629		  -8.2%
+	   6	    4628	   4405		  -4.8%
+	   7	    5344	   5197		  -2.8%
+	   8	    6065	   6004		  -1.0%
+	   9	    6826	   6811		  -0.2%
+	  10	    7599	   7599		   0.0%
+	  15	    9757	   9766		  +0.1%
+	  20	   13767	  13817		  +0.4%
+
+With small number of contending threads, this patch can improve
+locking performance by up to 10%. With more contending threads,
+however, the gain diminishes.
+
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+---
+ kernel/locking/qrwlock.c |   28 ++++++++++++++++++++++++----
+ 1 files changed, 24 insertions(+), 4 deletions(-)
+
+diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+index d7d7557..559198a 100644
+--- a/kernel/locking/qrwlock.c
++++ b/kernel/locking/qrwlock.c
+@@ -22,6 +22,26 @@
+ #include <linux/hardirq.h>
+ #include <asm/qrwlock.h>
+ 
++/*
++ * This internal data structure is used for optimizing access to some of
++ * the subfields within the atomic_t cnts.
++ */
++struct __qrwlock {
++	union {
++		atomic_t cnts;
++		struct {
++#ifdef __LITTLE_ENDIAN
++			u8 wmode;	/* Writer mode   */
++			u8 rcnts[3];	/* Reader counts */
++#else
++			u8 rcnts[3];	/* Reader counts */
++			u8 wmode;	/* Writer mode   */
++#endif
++		};
++	};
++	arch_spinlock_t	lock;
++};
++
+ /**
+  * rspin_until_writer_unlock - inc reader count & spin until writer is gone
+  * @lock  : Pointer to queue rwlock structure
+@@ -109,10 +129,10 @@ void queue_write_lock_slowpath(struct qrwlock *lock)
+ 	 * or wait for a previous writer to go away.
+ 	 */
+ 	for (;;) {
+-		cnts = atomic_read(&lock->cnts);
+-		if (!(cnts & _QW_WMASK) &&
+-		    (atomic_cmpxchg(&lock->cnts, cnts,
+-				    cnts | _QW_WAITING) == cnts))
++		struct __qrwlock *l = (struct __qrwlock *)lock;
++
++		if (!READ_ONCE(l->wmode) &&
++		   (cmpxchg(&l->wmode, 0, _QW_WAITING) == 0))
+ 			break;
+ 
+ 		cpu_relax_lowlatency();
+-- 
+1.7.1
