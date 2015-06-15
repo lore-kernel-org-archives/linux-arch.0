@@ -1,121 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from prod-mail-xrelay07.akamai.com ([72.246.2.115]:47649 "EHLO
-	prod-mail-xrelay07.akamai.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754236AbbFOOjg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Jun 2015 10:39:36 -0400
-Date: Mon, 15 Jun 2015 10:39:34 -0400
-From: Eric B Munson <emunson@akamai.com>
-Subject: Re: [RESEND PATCH V2 0/3] Allow user to request memory to be locked
- on page fault
-Message-ID: <20150615143934.GA12300@akamai.com>
-References: <1433942810-7852-1-git-send-email-emunson@akamai.com>
- <20150610145929.b22be8647887ea7091b09ae1@linux-foundation.org>
- <5579DFBA.80809@akamai.com>
- <20150611123424.4bb07cffd0e5bb146cc92231@linux-foundation.org>
-MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="3MwIy2ne0vdjdPXF"
-Content-Disposition: inline
-In-Reply-To: <20150611123424.4bb07cffd0e5bb146cc92231@linux-foundation.org>
+Received: from g2t2353.austin.hp.com ([15.217.128.52]:26509 "EHLO
+	g2t2353.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751177AbbFOWYN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2015 18:24:13 -0400
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v3 2/2] locking/qrwlock: Don't contend with readers when setting _QW_WAITING
+Date: Mon, 15 Jun 2015 18:24:03 -0400
+Message-ID: <1434407043-18741-3-git-send-email-Waiman.Long@hp.com>
+In-Reply-To: <1434407043-18741-1-git-send-email-Waiman.Long@hp.com>
+References: <1434407043-18741-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150615143934.BiNWg5AzLoX1GOGOqlEeR1M5QqbjFRCQszoiRHlcmak@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
+Message-ID: <20150615222403.62XsIINT385lUhQ1p3TCFFa12if89idGTM264Sfwc3Y@z>
 
+The current cmpxchg() loop in setting the _QW_WAITING flag for writers
+in queue_write_lock_slowpath() will contend with incoming readers
+causing possibly extra cmpxchg() operations that are wasteful. This
+patch changes the code to do a byte cmpxchg() to eliminate contention
+with new readers.
 
---3MwIy2ne0vdjdPXF
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+A multithreaded microbenchmark running 5M read_lock/write_lock loop
+on a 8-socket 80-core Westmere-EX machine running 4.0 based kernel
+with the qspinlock patch have the following execution times (in ms)
+with and without the patch:
 
-On Thu, 11 Jun 2015, Andrew Morton wrote:
+With R:W ratio = 5:1
 
-> On Thu, 11 Jun 2015 15:21:30 -0400 Eric B Munson <emunson@akamai.com> wro=
-te:
->=20
-> > > Ditto mlockall(MCL_ONFAULT) followed by munlock().  I'm not sure
-> > > that even makes sense but the behaviour should be understood and
-> > > tested.
-> >
-> > I have extended the kselftest for lock-on-fault to try both of these
-> > scenarios and they work as expected.  The VMA is split and the VM
-> > flags are set appropriately for the resulting VMAs.
->=20
-> munlock() should do vma merging as well.  I *think* we implemented
-> that.  More tests for you to add ;)
->=20
-> How are you testing the vma merging and splitting, btw?  Parsing
-> the profcs files?
+	Threads	   w/o patch	with patch	% change
+	-------	   ---------	----------	--------
+	   2	     990 	    895		  -9.6%
+	   3	    2136 	   1912		 -10.5%
+	   4	    3166	   2830		 -10.6%
+	   5	    3953	   3629		  -8.2%
+	   6	    4628	   4405		  -4.8%
+	   7	    5344	   5197		  -2.8%
+	   8	    6065	   6004		  -1.0%
+	   9	    6826	   6811		  -0.2%
+	  10	    7599	   7599		   0.0%
+	  15	    9757	   9766		  +0.1%
+	  20	   13767	  13817		  +0.4%
 
-The lock-on-fault test now covers VMA splitting and merging by parsing
-/proc/self/maps.  VMA splitting and merging works as it should with both
-MAP_LOCKONFAULT and MCL_ONFAULT.
+With small number of contending threads, this patch can improve
+locking performance by up to 10%. With more contending threads,
+however, the gain diminishes.
 
->=20
-> > > What's missing here is a syscall to set VM_LOCKONFAULT on an
-> > > arbitrary range of memory - mlock() for lock-on-fault.  It's a
-> > > shame that mlock() didn't take a `mode' argument.  Perhaps we
-> > > should add such a syscall - that would make the mmap flag unneeded
-> > > but I suppose it should be kept for symmetry.
-> >=20
-> > Do you want such a system call as part of this set?  I would need some
-> > time to make sure I had thought through all the possible corners one
-> > could get into with such a call, so it would delay a V3 quite a bit.
-> > Otherwise I can send a V3 out immediately.
->=20
-> I think the way to look at this is to pretend that mm/mlock.c doesn't
-> exist and ask "how should we design these features".
->=20
-> And that would be:
->=20
-> - mmap() takes a `flags' argument: MAP_LOCKED|MAP_LOCKONFAULT.
->=20
-> - mlock() takes a `flags' argument.  Presently that's
->   MLOCK_LOCKED|MLOCK_LOCKONFAULT.
->=20
-> - munlock() takes a `flags' arument.  MLOCK_LOCKED|MLOCK_LOCKONFAULT
->   to specify which flags are being cleared.
->=20
-> - mlockall() and munlockall() ditto.
->=20
->=20
-> IOW, LOCKED and LOCKEDONFAULT are treated identically and independently.
->=20
-> Now, that's how we would have designed all this on day one.  And I
-> think we can do this now, by adding new mlock2() and munlock2()
-> syscalls.  And we may as well deprecate the old mlock() and munlock(),
-> not that this matters much.
->=20
-> *should* we do this?  I'm thinking "yes" - it's all pretty simple
-> boilerplate and wrappers and such, and it gets the interface correct,
-> and extensible.
->=20
-> What do others think?
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+---
+ kernel/locking/qrwlock.c |   28 ++++++++++++++++++++++++----
+ 1 files changed, 24 insertions(+), 4 deletions(-)
 
-I am working on V3 which will introduce the new system calls.
+diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+index d7d7557..559198a 100644
+--- a/kernel/locking/qrwlock.c
++++ b/kernel/locking/qrwlock.c
+@@ -22,6 +22,26 @@
+ #include <linux/hardirq.h>
+ #include <asm/qrwlock.h>
+ 
++/*
++ * This internal data structure is used for optimizing access to some of
++ * the subfields within the atomic_t cnts.
++ */
++struct __qrwlock {
++	union {
++		atomic_t cnts;
++		struct {
++#ifdef __LITTLE_ENDIAN
++			u8 wmode;	/* Writer mode   */
++			u8 rcnts[3];	/* Reader counts */
++#else
++			u8 rcnts[3];	/* Reader counts */
++			u8 wmode;	/* Writer mode   */
++#endif
++		};
++	};
++	arch_spinlock_t	lock;
++};
++
+ /**
+  * rspin_until_writer_unlock - inc reader count & spin until writer is gone
+  * @lock  : Pointer to queue rwlock structure
+@@ -109,10 +129,10 @@ void queue_write_lock_slowpath(struct qrwlock *lock)
+ 	 * or wait for a previous writer to go away.
+ 	 */
+ 	for (;;) {
+-		cnts = atomic_read(&lock->cnts);
+-		if (!(cnts & _QW_WMASK) &&
+-		    (atomic_cmpxchg(&lock->cnts, cnts,
+-				    cnts | _QW_WAITING) == cnts))
++		struct __qrwlock *l = (struct __qrwlock *)lock;
++
++		if (!READ_ONCE(l->wmode) &&
++		   (cmpxchg(&l->wmode, 0, _QW_WAITING) == 0))
+ 			break;
+ 
+ 		cpu_relax_lowlatency();
+-- 
+1.7.1
 
---3MwIy2ne0vdjdPXF
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAEBAgAGBQJVfuOmAAoJELbVsDOpoOa9s3IP/3PHZ6S5YUFkxUlalwmhJoDD
-YtCVtwakGJ0GjPMI4iM+H1TsCym6AYH/Kv0dxfnTbFMTqClzHq7V3QZt9IHJH7Pb
-Z8gBH247JOk7opOsB3Cb3gLvAkQ4bfgXObSsgvPLCID2GumlUOINBpXwYBpNLh00
-+4blC/0gdEp0C8xAPbJIzguSEI5wAwmOISlSQipb2ptEl+aAFjxRLARl47pD6EES
-N6pYgeVfNZ/F63Ywoley/s2RE7pvm3ofCVcrNC8AH1lolbbEZgrQBJKB/Sq5RC2W
-pcO4Z6Y3UOziTyNuWcHRVOGjK/gpoFnncdFJzmjMubx8N+8dus1Wl3xwvXidYT8e
-bLqc3acsUy2zLFQJRZIxuR9PPXVpKLCc0GF5Ufqa6ej5PKEsMJ2Baqy7x5Ujgyts
-ceNH2d1JRtkxdVw+WqBetjatM2icb+Yf/e3hOzr85thaAVGyoNJtlyhAciY4aIbW
-JhCpFuhvCuUcag2nNrrN5Ry3noGv3pm2AuqmUVSEZjorLsQnN5/3FxntVSb4YWkg
-VSLD4QHMiE0UeWnhCzKN7I5e/QhrnJ+HABx0GfTgjcXt1VQiKwxEp9A8+JsRmGiF
-G0oOTWsE/oUx+KCluuIRPpKuuiX0Nc50IEH3vklCIAkAWriMfh/jZvDTIeR1Wtci
-3BTlJ2Z0erX8IPh+BVnI
-=jO18
------END PGP SIGNATURE-----
-
---3MwIy2ne0vdjdPXF--
