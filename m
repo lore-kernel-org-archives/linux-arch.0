@@ -1,102 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g2t2353.austin.hp.com ([15.217.128.52]:26509 "EHLO
-	g2t2353.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751177AbbFOWYN (ORCPT
+Received: from g2t1383g.austin.hp.com ([15.217.136.92]:37813 "EHLO
+	g2t1383g.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751193AbbFOWYN (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Jun 2015 18:24:13 -0400
+Received: from g2t2352.austin.hp.com (g2t2352.austin.hp.com [15.217.128.51])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by g2t1383g.austin.hp.com (Postfix) with ESMTPS id CF5A464A7
+	for <linux-arch@vger.kernel.org>; Mon, 15 Jun 2015 22:24:12 +0000 (UTC)
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v3 2/2] locking/qrwlock: Don't contend with readers when setting _QW_WAITING
-Date: Mon, 15 Jun 2015 18:24:03 -0400
-Message-ID: <1434407043-18741-3-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v3 1/2] locking/qrwlock: Better optimization for interrupt context readers
+Date: Mon, 15 Jun 2015 18:24:02 -0400
+Message-ID: <1434407043-18741-2-git-send-email-Waiman.Long@hp.com>
 In-Reply-To: <1434407043-18741-1-git-send-email-Waiman.Long@hp.com>
 References: <1434407043-18741-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
-Message-ID: <20150615222403.62XsIINT385lUhQ1p3TCFFa12if89idGTM264Sfwc3Y@z>
+Message-ID: <20150615222402.cemQPxD-oBTbeqNU9RyLskMvZ6a74aTH5lIfE6by-lc@z>
 
-The current cmpxchg() loop in setting the _QW_WAITING flag for writers
-in queue_write_lock_slowpath() will contend with incoming readers
-causing possibly extra cmpxchg() operations that are wasteful. This
-patch changes the code to do a byte cmpxchg() to eliminate contention
-with new readers.
+The qrwlock is fair in the process context, but becoming unfair when
+in the interrupt context to support use cases like the tasklist_lock.
 
-A multithreaded microbenchmark running 5M read_lock/write_lock loop
-on a 8-socket 80-core Westmere-EX machine running 4.0 based kernel
-with the qspinlock patch have the following execution times (in ms)
-with and without the patch:
+The current code isn't that well-documented on what happens when
+in the interrupt context. The rspin_until_writer_unlock() will only
+spin if the writer has gotten the lock. If the writer is still in the
+waiting state, the increment in the reader count will cause the writer
+to remain in the waiting state and the new interrupt context reader
+will get the lock and return immediately. The current code, however,
+do an additional read of the lock value which is not necessary as the
+information have already been there in the fast path. This may sometime
+cause an additional cacheline load when the lock is highly contended.
 
-With R:W ratio = 5:1
-
-	Threads	   w/o patch	with patch	% change
-	-------	   ---------	----------	--------
-	   2	     990 	    895		  -9.6%
-	   3	    2136 	   1912		 -10.5%
-	   4	    3166	   2830		 -10.6%
-	   5	    3953	   3629		  -8.2%
-	   6	    4628	   4405		  -4.8%
-	   7	    5344	   5197		  -2.8%
-	   8	    6065	   6004		  -1.0%
-	   9	    6826	   6811		  -0.2%
-	  10	    7599	   7599		   0.0%
-	  15	    9757	   9766		  +0.1%
-	  20	   13767	  13817		  +0.4%
-
-With small number of contending threads, this patch can improve
-locking performance by up to 10%. With more contending threads,
-however, the gain diminishes.
+This patch passes the lock value information gotten in the fast path
+to the slow path to eliminate the additional read. It also clarify the
+action for the interrupt context readers more explicitly.
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- kernel/locking/qrwlock.c |   28 ++++++++++++++++++++++++----
- 1 files changed, 24 insertions(+), 4 deletions(-)
+ include/asm-generic/qrwlock.h |    4 ++--
+ kernel/locking/qrwlock.c      |   14 ++++++++------
+ 2 files changed, 10 insertions(+), 8 deletions(-)
 
+diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+index 6383d54..865d021 100644
+--- a/include/asm-generic/qrwlock.h
++++ b/include/asm-generic/qrwlock.h
+@@ -36,7 +36,7 @@
+ /*
+  * External function declarations
+  */
+-extern void queue_read_lock_slowpath(struct qrwlock *lock);
++extern void queue_read_lock_slowpath(struct qrwlock *lock, u32 cnts);
+ extern void queue_write_lock_slowpath(struct qrwlock *lock);
+ 
+ /**
+@@ -105,7 +105,7 @@ static inline void queue_read_lock(struct qrwlock *lock)
+ 		return;
+ 
+ 	/* The slowpath will decrement the reader count, if necessary. */
+-	queue_read_lock_slowpath(lock);
++	queue_read_lock_slowpath(lock, cnts);
+ }
+ 
+ /**
 diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index d7d7557..559198a 100644
+index 00c12bb..d7d7557 100644
 --- a/kernel/locking/qrwlock.c
 +++ b/kernel/locking/qrwlock.c
-@@ -22,6 +22,26 @@
- #include <linux/hardirq.h>
- #include <asm/qrwlock.h>
- 
-+/*
-+ * This internal data structure is used for optimizing access to some of
-+ * the subfields within the atomic_t cnts.
-+ */
-+struct __qrwlock {
-+	union {
-+		atomic_t cnts;
-+		struct {
-+#ifdef __LITTLE_ENDIAN
-+			u8 wmode;	/* Writer mode   */
-+			u8 rcnts[3];	/* Reader counts */
-+#else
-+			u8 rcnts[3];	/* Reader counts */
-+			u8 wmode;	/* Writer mode   */
-+#endif
-+		};
-+	};
-+	arch_spinlock_t	lock;
-+};
-+
- /**
-  * rspin_until_writer_unlock - inc reader count & spin until writer is gone
-  * @lock  : Pointer to queue rwlock structure
-@@ -109,10 +129,10 @@ void queue_write_lock_slowpath(struct qrwlock *lock)
- 	 * or wait for a previous writer to go away.
+@@ -43,22 +43,24 @@ rspin_until_writer_unlock(struct qrwlock *lock, u32 cnts)
+  * queue_read_lock_slowpath - acquire read lock of a queue rwlock
+  * @lock: Pointer to queue rwlock structure
+  */
+-void queue_read_lock_slowpath(struct qrwlock *lock)
++void queue_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
+ {
+-	u32 cnts;
+-
+ 	/*
+ 	 * Readers come here when they cannot get the lock without waiting
  	 */
- 	for (;;) {
--		cnts = atomic_read(&lock->cnts);
--		if (!(cnts & _QW_WMASK) &&
--		    (atomic_cmpxchg(&lock->cnts, cnts,
--				    cnts | _QW_WAITING) == cnts))
-+		struct __qrwlock *l = (struct __qrwlock *)lock;
+ 	if (unlikely(in_interrupt())) {
+ 		/*
+-		 * Readers in interrupt context will spin until the lock is
+-		 * available without waiting in the queue.
++		 * Readers in interrupt context will get the lock immediately
++		 * if the writer is just waiting (not holding the lock yet)
++		 * or they will spin until the lock is available without
++		 * waiting in the queue.
+ 		 */
+-		cnts = smp_load_acquire((u32 *)&lock->cnts);
++		if ((cnts & _QW_WMASK) != _QW_LOCKED)
++			return;
+ 		rspin_until_writer_unlock(lock, cnts);
+ 		return;
+ 	}
 +
-+		if (!READ_ONCE(l->wmode) &&
-+		   (cmpxchg(&l->wmode, 0, _QW_WAITING) == 0))
- 			break;
+ 	atomic_sub(_QR_BIAS, &lock->cnts);
  
- 		cpu_relax_lowlatency();
+ 	/*
 -- 
 1.7.1
 
