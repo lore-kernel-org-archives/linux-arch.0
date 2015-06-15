@@ -1,22 +1,55 @@
-From: Harrison Ken <momotabi.5@apricot.ocn.ne.jp>
-Subject: BUSINESS DEAL?
-Date: Sun, 14 Jun 2015 08:14:44 +0900 (JST)
-Message-ID: <202192751.960295.1434237284540.JavaMail.root__37509.4241033823$1434237797$gmane$org@apricot.ocn.ne.jp>
-Reply-To: Harrison Ken <harrisonken102@gmail.com>
+From: Baolin Wang <baolin.wang@linaro.org>
+Subject: Re: [PATCH v5 00/24] Convert the posix_clock_operations and k_clock
+ structure to ready for 2038
+Date: Mon, 15 Jun 2015 10:27:53 +0800
+Message-ID: <CAMz4ku+yt=DWctKj+S4mTCKna-CyfXkhJhWLkJecBBXed39A7Q@mail.gmail.com>
+References: <cover.1434079262.git.baolin.wang@linaro.org>
+	<alpine.DEB.2.11.1506121512180.3786@nanos>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-2022-JP
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mbkd0309.ocn.ad.jp ([153.149.236.10]:52758 "EHLO
-	mbkd0309.ocn.ad.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751589AbbFMXWh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Jun 2015 19:22:37 -0400
+Received: from mail-yk0-f180.google.com ([209.85.160.180]:34655 "EHLO
+	mail-yk0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752691AbbFOC1y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 14 Jun 2015 22:27:54 -0400
+Received: by ykfl8 with SMTP id l8so46151926ykf.1
+        for <linux-arch@vger.kernel.org>; Sun, 14 Jun 2015 19:27:53 -0700 (PDT)
+In-Reply-To: <alpine.DEB.2.11.1506121512180.3786@nanos>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, Heena Sirwani <heenasirwani@gmail.com>, Xunlei Pang <pang.xunlei@linaro.org>, peterz@infradead.org, rafael.j.wysocki@intel.com, Greg KH <gregkh@linuxfoundation.org>, Richard Cochran <richardcochran@gmail.com>, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, =?UTF-8?B?RnLDqWTDqXJpYyBXZWlzYmVja2Vy?= <fweisbec@gmail.com>, Andrew Hunter <ahh@google.com>, Paul Turner <pjt@google.com>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, netdev@vger.kernel.org, Serge Hallyn <serge.hallyn@canonical.com>, James Morris <james.l.morris@oracle.com>, "Serge E. Hallyn" <serge@hallyn.com>Paul
 
-Dear Sir/Ma,
+On 12 June 2015 at 21:16, Thomas Gleixner <tglx@linutronix.de> wrote:
+> On Fri, 12 Jun 2015, Baolin Wang wrote:
+>
+> Sigh. Again threading of the series failed. Some patches are, the
+> whole series is not. Can you please get your tools straight?
+>
+> You neither managed to cc me on the security patch.
+>
+>> - Modify the subject line and the changelog:
+>
+>>   timekeeping: Change the implementation of timekeeping_clocktai()
+>
+> Sigh. How is that better than the previous one? It's more accurate,
+> but equally useless.
+>
+> And of course you did not address my request to change the macro mess
+> in
+>
+>>   posix-timers: Introduce {get,put}_timespec and {get,put}_itimerspec
+>
+> according to the discussion with Arnd.
+>
+> Thanks,
+>
+>         tglx
 
-I need your consent to transfer $25.5M that has remained unclaimed since 1999. The funds will be moved to any of our correspondent Banks in "YOUR NAME" immediately to secure the funds first. The Principal will be shared on a 50/50 basis.
+Hi Thomas,
 
-Yours Faithfully,
-Mr. Harrison Ken.
+Thanks for your comments, and i'll fix these problems you point out.
+
+-- 
+Baolin.wang
+Best Regards
