@@ -1,94 +1,47 @@
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v3 1/2] locking/qrwlock: Better optimization for interrupt context readers
-Date: Mon, 15 Jun 2015 18:24:02 -0400
-Message-ID: <1434407043-18741-2-git-send-email-Waiman.Long@hp.com>
-References: <1434407043-18741-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1434407043-18741-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
-List-Id: linux-arch.vger.kernel.org
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH 4/8] ARCv2: perf: Support sampling events using overflow
+ interrupts
+Date: Tue, 16 Jun 2015 05:37:40 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665A59A6@IN01WEMBXB.internal.synopsys.com>
+References: <1433852372-29494-1-git-send-email-vgupta@synopsys.com>
+ <1433852372-29494-5-git-send-email-vgupta@synopsys.com>
+ <20150615162525.GH3644@twins.programming.kicks-ass.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:57004 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752250AbbFPFhp convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jun 2015 01:37:45 -0400
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, Arnaldo Carvalho de Melo <acme@kernel.org>
 
-The qrwlock is fair in the process context, but becoming unfair when
-in the interrupt context to support use cases like the tasklist_lock.
+On Monday 15 June 2015 09:55 PM, Peter Zijlstra wrote:
+> On Tue, Jun 09, 2015 at 05:49:28PM +0530, Vineet Gupta wrote:
+>> +	if (arc_pmu->has_interrupts) {
+>> +		int irq = platform_get_irq(pdev, 0);
+> Hmm, so you're requesting a regular interrupt.
+>
+> I see your architecture has IRQ priorities, could you play games and
+> create NMIs using those?
+>
+> For example, never mask L1 (assuming that's the highest priority) and
+> treat that as an NMI.
 
-The current code isn't that well-documented on what happens when
-in the interrupt context. The rspin_until_writer_unlock() will only
-spin if the writer has gotten the lock. If the writer is still in the
-waiting state, the increment in the reader count will cause the writer
-to remain in the waiting state and the new interrupt context reader
-will get the lock and return immediately. The current code, however,
-do an additional read of the lock value which is not necessary as the
-information have already been there in the fast path. This may sometime
-cause an additional cacheline load when the lock is highly contended.
+I've had this idea before, however, while ARCv2 provides hardware interrupt
+priorities, we really can't implement true NMI, because CLRI / SETI used at
+backend of loal_irq_save() / restore() impact all priorities (statsu32 register
+has a global enable interrupt bit which these wiggle). So e.g. a
+spin_lock_irqsave() will lock out even the perf interrupt.
 
-This patch passes the lock value information gotten in the fast path
-to the slow path to eliminate the additional read. It also clarify the
-action for the interrupt context readers more explicitly.
+OTOH, we can improve the perf isr path a bit - by not routing it thru regular
+interrupt return path (song and dance of CONFIG_PREEMPT_IRQ and possible
+preemption). Plus there's a bit more we can do in the isr itself - not looping
+thru 32 counters etc using ffs() etc - but I'd rather do that as separate series,
+once we have the core support in.
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
----
- include/asm-generic/qrwlock.h |    4 ++--
- kernel/locking/qrwlock.c      |   14 ++++++++------
- 2 files changed, 10 insertions(+), 8 deletions(-)
-
-diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-index 6383d54..865d021 100644
---- a/include/asm-generic/qrwlock.h
-+++ b/include/asm-generic/qrwlock.h
-@@ -36,7 +36,7 @@
- /*
-  * External function declarations
-  */
--extern void queue_read_lock_slowpath(struct qrwlock *lock);
-+extern void queue_read_lock_slowpath(struct qrwlock *lock, u32 cnts);
- extern void queue_write_lock_slowpath(struct qrwlock *lock);
- 
- /**
-@@ -105,7 +105,7 @@ static inline void queue_read_lock(struct qrwlock *lock)
- 		return;
- 
- 	/* The slowpath will decrement the reader count, if necessary. */
--	queue_read_lock_slowpath(lock);
-+	queue_read_lock_slowpath(lock, cnts);
- }
- 
- /**
-diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index 00c12bb..d7d7557 100644
---- a/kernel/locking/qrwlock.c
-+++ b/kernel/locking/qrwlock.c
-@@ -43,22 +43,24 @@ rspin_until_writer_unlock(struct qrwlock *lock, u32 cnts)
-  * queue_read_lock_slowpath - acquire read lock of a queue rwlock
-  * @lock: Pointer to queue rwlock structure
-  */
--void queue_read_lock_slowpath(struct qrwlock *lock)
-+void queue_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
- {
--	u32 cnts;
--
- 	/*
- 	 * Readers come here when they cannot get the lock without waiting
- 	 */
- 	if (unlikely(in_interrupt())) {
- 		/*
--		 * Readers in interrupt context will spin until the lock is
--		 * available without waiting in the queue.
-+		 * Readers in interrupt context will get the lock immediately
-+		 * if the writer is just waiting (not holding the lock yet)
-+		 * or they will spin until the lock is available without
-+		 * waiting in the queue.
- 		 */
--		cnts = smp_load_acquire((u32 *)&lock->cnts);
-+		if ((cnts & _QW_WMASK) != _QW_LOCKED)
-+			return;
- 		rspin_until_writer_unlock(lock, cnts);
- 		return;
- 	}
-+
- 	atomic_sub(_QR_BIAS, &lock->cnts);
- 
- 	/*
--- 
-1.7.1
+-Vineet
