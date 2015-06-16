@@ -1,93 +1,122 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 4/8] ARCv2: perf: Support sampling events using overflow
- interrupts
-Date: Tue, 16 Jun 2015 09:33:06 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665A5A8A@IN01WEMBXB.internal.synopsys.com>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: RE: [PATCH 1/8] ARC: perf: support RAW events
+Date: Tue, 16 Jun 2015 11:45:52 +0000
+Message-ID: <4881796E12491D4BB15146FE0209CE64656C9E81@DE02WEMBXB.internal.synopsys.com>
 References: <1433852372-29494-1-git-send-email-vgupta@synopsys.com>
- <1433852372-29494-5-git-send-email-vgupta@synopsys.com>
- <20150615162525.GH3644@twins.programming.kicks-ass.net>
- <C2D7FE5348E1B147BCA15975FBA23075665A59A6@IN01WEMBXB.internal.synopsys.com>
- <20150616090713.GJ3644@twins.programming.kicks-ass.net>
+ <1433852372-29494-2-git-send-email-vgupta@synopsys.com>,<20150615153029.GE3644@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:60803 "EHLO
+Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:34453 "EHLO
 	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934144AbbFPJdX convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jun 2015 05:33:23 -0400
+	with ESMTP id S1751910AbbFPLp6 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Jun 2015 07:45:58 -0400
+In-Reply-To: <20150615153029.GE3644@twins.programming.kicks-ass.net>
 Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, Arnaldo Carvalho de Melo <acme@kernel.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
-On Tuesday 16 June 2015 02:37 PM, Peter Zijlstra wrote:
+Hi Peter,
 
-On Tue, Jun 16, 2015 at 05:37:40AM +0000, Vineet Gupta wrote:
+On Mon, 2015-06-15 at 17:30 +0200, Peter Zijlstra wrote:
+> On Tue, Jun 09, 2015 at 05:49:25PM +0530, Vineet Gupta wrote:
+> > +/*
+> > + * Raw events are specified in hex value of ASCII chars:
+> > + *
+> > + * In PCT register CC_NAME{0,1} event name string[] is saved from
+> > LSB side:
+> > + * e.g. cycles corresponds to ARC "crun" and is saved as
+> > 0x6e757263
+> > + *							    n u r
+> > c
+> > + * However in perf cmdline they are specified in human order as
+> > r6372756e
+> > + *
+> > + * Thus event from cmdline requires an word swap
+> > + */
+> > +static int arc_pmu_raw_event(u64 config)
+> > +{
+> > +	int i;
+> > +	char name[sizeof(u64) + 1] = {0};
+> > +	u64 swapped = __swab64(config);
+> > +
+> > +	/* Trim leading zeroes */
+> > +	for (i = 0; i < sizeof(u64); i++)
+> > +		if (!(swapped & 0xFF))
+> > +			swapped = swapped >> 8;
+> > +		else
+> > +			break;
+> > +
+> > +	for (i = 0; i < arc_pmu->n_events; i++) {
+> > +		if (swapped == arc_pmu->raw_events[i])
+> > +			break;
+> > +	}
+> > +
+> > +	if (i == arc_pmu->n_events)
+> > +		return -ENOENT;
+> > +
+> > +	memcpy(name, &swapped, sizeof(u64));
+> > +
+> > +	pr_debug("Initializing raw event: %s\n", name);
+> > +
+> > +	return i;
+> > +}
+> 
+> Urgh, what? Why?
+> 
+> raw is just that _raw_, no mucking about with the value.
+> 
+> If you want convenience, provide the event/format stuff so you can
+> write:
+> 
+> 	perf record -e 'cpu/c=0xff,r=0cff,u=0xff,n=0xff'
+> 
+> Or whatever that syntax was again (I keep forgetting).
 
+It was me who implemented that code so let me comment on that.
 
-> On Monday 15 June 2015 09:55 PM, Peter Zijlstra wrote:
+First let me clarify a bit how we deal with hardware events in ARC cores.
 
+ a) ARC core may have an arbitrary set of hardware events built-in. Upon creation of new ASIC project hardware engineer may select which events will be exposed to event counters. For example only a very basic set of events could be made available like "cycles running", "committed instructions" etc. Or much more extensive set of events could be exposed to event counters including very specific architectural events like separate "committed 16-bit instructions" and "committed 32-bit instructions".
 
-> > On Tue, Jun 09, 2015 at 05:49:28PM +0530, Vineet Gupta wrote:
+ b) Also list of all possible events is much longer than 32 or 64 entries that makes it impossible to map all possible events as a separate bits in 32- or 64-bit word.
 
+Having both [a] and [b] in mind we implemented the following scheme of working with HW events.
 
-> >> +  if (arc_pmu->has_interrupts) {
-> >> +          int irq = platform_get_irq(pdev, 0);
+ [1] Hardware may report a list of all event that could be counted in this particular CPU.
 
+ [2] That lists consists of short ASCII names (up to 8 characters) for each event.
 
-> > Hmm, so you're requesting a regular interrupt.
-> >
-> > I see your architecture has IRQ priorities, could you play games and
-> > create NMIs using those?
-> >
-> > For example, never mask L1 (assuming that's the highest priority) and
-> > treat that as an NMI.
+ [3] Index of the particular even in the list is used to setup an event counter.
 
+See corresponding code for it here: http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/arch/arc/kernel/perf_event.c#n308
 
->
-> I've had this idea before, however, while ARCv2 provides hardware interrupt
-> priorities, we really can't implement true NMI, because CLRI / SETI used at
-> backend of loal_irq_save() / restore() impact all priorities (statsu32 register
-> has a global enable interrupt bit which these wiggle). So e.g. a
-> spin_lock_irqsave() will lock out even the perf interrupt.
+I.e. if we need to count "xxx" event and we know it's 10th in the list of events we set event counter to count event #10, see http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/arch/arc/kernel/perf_event.c#n151
 
+With generic hardware events we don't do any visible trickery as you may see from code by the link above simply because we know how to translate PERF_COUNT_HW_CPU_CYCLES to the index of corresponding event, see: http://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/tree/arch/arc/include/asm/perf_event.h#n87
 
-Hmm, bugger. I (of course) only looked at the kernel source, since that
-is all I have, and the current arch/arc/ frobs with those two En bits in
-status32.
+But in case of raw events we need to set a counter with index of a particular event. For example we need to count "myevnt0" events. For this we need first to find-out what's an index in events list of "myevnt0" event and then set event counter to count event #x.
 
-Yeah the new intc and handling is series #B currently floated on lkml - we are discussing #C here - perf sub-series.
+Even though in theory we may set raw even passing an index of desired event but given my explanation above each particular CPU may have the same event with different index in events list.
 
+And to make life of perf user a bit easier we allow specification of raw event as a hex-encoded ASCII name of the event.
 
-So arcv2 changed all that, shame.
+For example if we want to count "crun" events we pass "r6372756e" which is "r" for raw event and 0x63 ("c"), 0x72 ("r"), 0x75 ("u") and 0x6e ("n").
 
-Not really - arcv2 intc priorities (0-15, kind of excessive for linux usecase) is a logical extension of fixed 2 levels provided by arcompact (L2 high, L1 normal). Instead of 2 bits each of enable/active we have multiple now - spread over a couple of registers (statsu32.EN, irq_priority....).
-arcv2 core interrupt handling is loads better than what we had before - specially with hardware stack switching / auto reg file save etc.
+Here're more examples:
+ * "bflush" (pipeline bubbles caused by any type of flush) will be "r62666c757368"
+ * "icm" (instruction cache miss) will be "r69636d"
+ * "imemwrc" (instruction: memory write) will be "r696d656d777263"
 
-Plus now hardware enforces strict priority. In arcompact, the prio enable is semi-loosely enforced. L2 (high prio) can obviously interrupt L1 (low prio). But the other way around is possible too - if E1 is set - hence the beautiful code in arch/arc/kernel/irq.c : arch_local_irq_enable()
+I understand that even this method of raw events specification is not the most human friendly but given rare need to use we believe it worth having it.
 
-Technically we could also do something here, not use SETI / CLRI for disabling / enabling interrupts, but play with allowed intr level etc - but I think the cost of writing to interrupt priority/enable registers that often will be prohibitive at best.
+Fortunately there's already a patch series floating in LKML that attempts to simplify usage of architecture-specific events, see http://www.spinics.net/lists/kernel/msg2010232.html
 
+And once mentioned patch series is accepted (it's on its 15th respin so I hope sooner or later it will be in mainline) probably we'll be able to get rid of discussed tricky functionality in ARC perf. But for now we'd like to have currently working tool that allows us to do low-level profiling today.
 
+I hope my explanation makes some sense. Otherwise please don;'t hesitate to ask more questions and I'll try to address them.
 
-
-
-> OTOH, we can improve the perf isr path a bit - by not routing it thru regular
-> interrupt return path (song and dance of CONFIG_PREEMPT_IRQ and possible
-> preemption). Plus there's a bit more we can do in the isr itself - not looping
-> thru 32 counters etc using ffs() etc - but I'd rather do that as separate series,
-> once we have the core support in.
-
-
-Yeah, borderline useful though, the reason the NMI thing is so useful is
-that you can profile _inside_ IRQ-disabled regions. Now your
-local_irq_enable() et al will be the hottest functions ever :-)
-
-Regular interrupts are really only useful for userspace profiling, which
-if plenty useful on its own of course. But kernel profiling is very
-handy too :-)
-
-
-Totally agree !
+-Alexey
