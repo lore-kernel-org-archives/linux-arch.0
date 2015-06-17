@@ -1,50 +1,57 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [arc-linux-dev] [PATCH] stmmac: explicitly zero des0 & des1 on
- init
-Date: Wed, 17 Jun 2015 07:03:25 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665A5DED@IN01WEMBXB.internal.synopsys.com>
-References: <1434476441-18241-1-git-send-email-abrodkin@synopsys.com>
+Subject: Re: [PATCH 4/8] ARCv2: perf: Support sampling events using overflow
+ interrupts
+Date: Wed, 17 Jun 2015 17:18:27 +0530
+Message-ID: <55815E8B.9090600@synopsys.com>
+References: <1433852372-29494-1-git-send-email-vgupta@synopsys.com> <1433852372-29494-5-git-send-email-vgupta@synopsys.com> <20150615162525.GH3644@twins.programming.kicks-ass.net> <C2D7FE5348E1B147BCA15975FBA23075665A59A6@IN01WEMBXB.internal.synopsys.com> <20150616090713.GJ3644@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:39622 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753323AbbFQHEe convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jun 2015 03:04:34 -0400
-Content-Language: en-US
+Received: from smtprelay4.synopsys.com ([198.182.47.9]:33997 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755328AbbFQLsp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jun 2015 07:48:45 -0400
+In-Reply-To: <20150616090713.GJ3644@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
-Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Giuseppe Cavallaro <peppe.cavallaro@st.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Arnd Bergmann <arnd@arndb.de>
+To: Peter Zijlstra <peterz@infradead.org>, Chuck Jordan <Chuck.Jordan@synopsys.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, Arnaldo Carvalho de Melo <acme@kernel.org>
 
-+CC linux-arch, linux-mm, Arnd and Marek
+On Tuesday 16 June 2015 02:37 PM, Peter Zijlstra wrote:
+> On Tue, Jun 16, 2015 at 05:37:40AM +0000, Vineet Gupta wrote:
+>> > On Monday 15 June 2015 09:55 PM, Peter Zijlstra wrote:
+>>> > > On Tue, Jun 09, 2015 at 05:49:28PM +0530, Vineet Gupta wrote:
+>>>> > >> +	if (arc_pmu->has_interrupts) {
+>>>> > >> +		int irq = platform_get_irq(pdev, 0);
+>>> > > Hmm, so you're requesting a regular interrupt.
+>>> > >
+>>> > > I see your architecture has IRQ priorities, could you play games and
+>>> > > create NMIs using those?
+>>> > >
+>>> > > For example, never mask L1 (assuming that's the highest priority) and
+>>> > > treat that as an NMI.
+>> > 
+>> > I've had this idea before, however, while ARCv2 provides hardware interrupt
+>> > priorities, we really can't implement true NMI, because CLRI / SETI used at
+>> > backend of loal_irq_save() / restore() impact all priorities (statsu32 register
+>> > has a global enable interrupt bit which these wiggle). So e.g. a
+>> > spin_lock_irqsave() will lock out even the perf interrupt.
+> Hmm, bugger. I (of course) only looked at the kernel source, since that
+> is all I have, and the current arch/arc/ frobs with those two En bits in
+> status32.
+> 
+> So arcv2 changed all that, shame.
 
-On Tuesday 16 June 2015 11:11 PM, Alexey Brodkin wrote:
+Turns out that it is possible to implement NMI on ARCv2 in a pretty
+straightforward way.
 
-Current implementtion of descriptor init procedure only takes care about
-ownership flag. While it is perfectly possible to have underlying memory
-filled with garbage on boot or driver installation.
+Our RTOS Guru, Chuck, told me off list, that instead of using CLRI / SETI, we can
+use SETI with different args which would keep the stat32.IE enabled all the times,
+but wiggle the stat32.E[ ] to change the intr prio level, effectively locking out
+only lower prio interrupts in any local_irq_save() / restore() region.
+But isn't this defying the irq disable/enable semantics and could lead to
+potential breach of *some* critical section.
 
-And randomly set flags in non-zeroed des0 and des1 fields may lead to
-unpredictable behavior of the GMAC DMA block.
-
-Solution to this problem is as simple as explicit zeroing of both des0
-and des1 fields of all buffer descriptors.
-
-Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com><mailto:abrodkin@synopsys.com>
-Cc: Giuseppe Cavallaro <peppe.cavallaro@st.com><mailto:peppe.cavallaro@st.com>
-Cc: arc-linux-dev@synopsys.com<mailto:arc-linux-dev@synopsys.com>
-Cc: linux-kernel@vger.kernel.org<mailto:linux-kernel@vger.kernel.org>
-Cc: stable@vger.kernel.org<mailto:stable@vger.kernel.org>
-
-FWIW, this was causing sporadic/random networking flakiness on ARC SDP platform (scheduled for upstream inclusion in next window)
-
-This also leads to an interesting question - should arch/*/dma_alloc_coherent() and friends unconditionally zero out memory (vs. the current semantics of letting only doing it based on gfp, as requested by driver). This is the second instance we ran into stale descriptor memory, the first one was in dw_mmc driver which was recently fixed in upstream as well (although debugged independently by Alexey and using the upstream fix)
-
-http://www.spinics.net/lists/linux-mmc/msg31600.html
-
-The pros is better out of box experience (despite buggy drivers) while the cons are they remain broken and perhaps increased boot time due to extra memzero....
-
-Thx,
--Vineet
+Neverthless, doing this requires some more changes in ARCv2 support code - so for
+now we will go with the normal interrupts and later bolt on the NMI emulation.
