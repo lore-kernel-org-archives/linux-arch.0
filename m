@@ -1,107 +1,50 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v3 2/2] locking/qrwlock: Don't contend with readers when
- setting _QW_WAITING
-Date: Tue, 16 Jun 2015 19:02:27 +0100
-Message-ID: <20150616180227.GA2401@arm.com>
-References: <1434407043-18741-1-git-send-email-Waiman.Long@hp.com>
- <1434407043-18741-3-git-send-email-Waiman.Long@hp.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [arc-linux-dev] [PATCH] stmmac: explicitly zero des0 & des1 on
+ init
+Date: Wed, 17 Jun 2015 07:03:25 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665A5DED@IN01WEMBXB.internal.synopsys.com>
+References: <1434476441-18241-1-git-send-email-abrodkin@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:37622 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751162AbbFPSCg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 16 Jun 2015 14:02:36 -0400
-Content-Disposition: inline
-In-Reply-To: <1434407043-18741-3-git-send-email-Waiman.Long@hp.com>
+Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:39622 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753323AbbFQHEe convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jun 2015 03:04:34 -0400
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+To: "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
+Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Giuseppe Cavallaro <peppe.cavallaro@st.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Arnd Bergmann <arnd@arndb.de>
 
-On Mon, Jun 15, 2015 at 11:24:03PM +0100, Waiman Long wrote:
-> The current cmpxchg() loop in setting the _QW_WAITING flag for writers
-> in queue_write_lock_slowpath() will contend with incoming readers
-> causing possibly extra cmpxchg() operations that are wasteful. This
-> patch changes the code to do a byte cmpxchg() to eliminate contention
-> with new readers.
-> 
-> A multithreaded microbenchmark running 5M read_lock/write_lock loop
-> on a 8-socket 80-core Westmere-EX machine running 4.0 based kernel
-> with the qspinlock patch have the following execution times (in ms)
-> with and without the patch:
-> 
-> With R:W ratio = 5:1
-> 
-> 	Threads	   w/o patch	with patch	% change
-> 	-------	   ---------	----------	--------
-> 	   2	     990 	    895		  -9.6%
-> 	   3	    2136 	   1912		 -10.5%
-> 	   4	    3166	   2830		 -10.6%
-> 	   5	    3953	   3629		  -8.2%
-> 	   6	    4628	   4405		  -4.8%
-> 	   7	    5344	   5197		  -2.8%
-> 	   8	    6065	   6004		  -1.0%
-> 	   9	    6826	   6811		  -0.2%
-> 	  10	    7599	   7599		   0.0%
-> 	  15	    9757	   9766		  +0.1%
-> 	  20	   13767	  13817		  +0.4%
-> 
-> With small number of contending threads, this patch can improve
-> locking performance by up to 10%. With more contending threads,
-> however, the gain diminishes.
-> 
-> Signed-off-by: Waiman Long <Waiman.Long@hp.com>
-> ---
->  kernel/locking/qrwlock.c |   28 ++++++++++++++++++++++++----
->  1 files changed, 24 insertions(+), 4 deletions(-)
-> 
-> diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-> index d7d7557..559198a 100644
-> --- a/kernel/locking/qrwlock.c
-> +++ b/kernel/locking/qrwlock.c
-> @@ -22,6 +22,26 @@
->  #include <linux/hardirq.h>
->  #include <asm/qrwlock.h>
->  
-> +/*
-> + * This internal data structure is used for optimizing access to some of
-> + * the subfields within the atomic_t cnts.
-> + */
-> +struct __qrwlock {
-> +	union {
-> +		atomic_t cnts;
-> +		struct {
-> +#ifdef __LITTLE_ENDIAN
-> +			u8 wmode;	/* Writer mode   */
-> +			u8 rcnts[3];	/* Reader counts */
-> +#else
-> +			u8 rcnts[3];	/* Reader counts */
-> +			u8 wmode;	/* Writer mode   */
-> +#endif
-> +		};
-> +	};
-> +	arch_spinlock_t	lock;
-> +};
-> +
->  /**
->   * rspin_until_writer_unlock - inc reader count & spin until writer is gone
->   * @lock  : Pointer to queue rwlock structure
-> @@ -109,10 +129,10 @@ void queue_write_lock_slowpath(struct qrwlock *lock)
->  	 * or wait for a previous writer to go away.
->  	 */
->  	for (;;) {
-> -		cnts = atomic_read(&lock->cnts);
-> -		if (!(cnts & _QW_WMASK) &&
-> -		    (atomic_cmpxchg(&lock->cnts, cnts,
-> -				    cnts | _QW_WAITING) == cnts))
-> +		struct __qrwlock *l = (struct __qrwlock *)lock;
-> +
-> +		if (!READ_ONCE(l->wmode) &&
-> +		   (cmpxchg(&l->wmode, 0, _QW_WAITING) == 0))
->  			break;
++CC linux-arch, linux-mm, Arnd and Marek
 
-Maybe you could also update the x86 implementation of queue_write_unlock
-to write the wmode field instead of casting to u8 *?
+On Tuesday 16 June 2015 11:11 PM, Alexey Brodkin wrote:
 
-Will
+Current implementtion of descriptor init procedure only takes care about
+ownership flag. While it is perfectly possible to have underlying memory
+filled with garbage on boot or driver installation.
+
+And randomly set flags in non-zeroed des0 and des1 fields may lead to
+unpredictable behavior of the GMAC DMA block.
+
+Solution to this problem is as simple as explicit zeroing of both des0
+and des1 fields of all buffer descriptors.
+
+Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com><mailto:abrodkin@synopsys.com>
+Cc: Giuseppe Cavallaro <peppe.cavallaro@st.com><mailto:peppe.cavallaro@st.com>
+Cc: arc-linux-dev@synopsys.com<mailto:arc-linux-dev@synopsys.com>
+Cc: linux-kernel@vger.kernel.org<mailto:linux-kernel@vger.kernel.org>
+Cc: stable@vger.kernel.org<mailto:stable@vger.kernel.org>
+
+FWIW, this was causing sporadic/random networking flakiness on ARC SDP platform (scheduled for upstream inclusion in next window)
+
+This also leads to an interesting question - should arch/*/dma_alloc_coherent() and friends unconditionally zero out memory (vs. the current semantics of letting only doing it based on gfp, as requested by driver). This is the second instance we ran into stale descriptor memory, the first one was in dw_mmc driver which was recently fixed in upstream as well (although debugged independently by Alexey and using the upstream fix)
+
+http://www.spinics.net/lists/linux-mmc/msg31600.html
+
+The pros is better out of box experience (despite buggy drivers) while the cons are they remain broken and perhaps increased boot time due to extra memzero....
+
+Thx,
+-Vineet
