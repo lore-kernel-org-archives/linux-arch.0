@@ -1,89 +1,50 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 1/8] ARC: perf: support RAW events
-Date: Wed, 17 Jun 2015 18:02:57 +0530
-Message-ID: <558168F9.2010101@synopsys.com>
-References: <1433852372-29494-1-git-send-email-vgupta@synopsys.com> <1433852372-29494-2-git-send-email-vgupta@synopsys.com> <20150615153029.GE3644@twins.programming.kicks-ass.net>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 4/8] ARCv2: perf: Support sampling events using overflow
+ interrupts
+Date: Wed, 17 Jun 2015 14:44:48 +0200
+Message-ID: <20150617124448.GQ3644@twins.programming.kicks-ass.net>
+References: <1433852372-29494-1-git-send-email-vgupta@synopsys.com>
+ <1433852372-29494-5-git-send-email-vgupta@synopsys.com>
+ <20150615162525.GH3644@twins.programming.kicks-ass.net>
+ <C2D7FE5348E1B147BCA15975FBA23075665A59A6@IN01WEMBXB.internal.synopsys.com>
+ <20150616090713.GJ3644@twins.programming.kicks-ass.net>
+ <55815E8B.9090600@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:34638 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752561AbbFQMeX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jun 2015 08:34:23 -0400
-In-Reply-To: <20150615153029.GE3644@twins.programming.kicks-ass.net>
+Received: from casper.infradead.org ([85.118.1.10]:59076 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752563AbbFQMox (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jun 2015 08:44:53 -0400
+Content-Disposition: inline
+In-Reply-To: <55815E8B.9090600@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, arc-linux-dev@synopsys.com, Arnaldo Carvalho de Melo <acme@kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Chuck Jordan <Chuck.Jordan@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, Arnaldo Carvalho de Melo <acme@kernel.org>
 
-On Monday 15 June 2015 09:00 PM, Peter Zijlstra wrote:
-> On Tue, Jun 09, 2015 at 05:49:25PM +0530, Vineet Gupta wrote:
->> +/*
->> + * Raw events are specified in hex value of ASCII chars:
->> + *
->> + * In PCT register CC_NAME{0,1} event name string[] is saved from LSB side:
->> + * e.g. cycles corresponds to ARC "crun" and is saved as 0x6e757263
->> + *							    n u r c
->> + * However in perf cmdline they are specified in human order as r6372756e
->> + *
->> + * Thus event from cmdline requires an word swap
->> + */
->> +static int arc_pmu_raw_event(u64 config)
->> +{
->> +	int i;
->> +	char name[sizeof(u64) + 1] = {0};
->> +	u64 swapped = __swab64(config);
->> +
->> +	/* Trim leading zeroes */
->> +	for (i = 0; i < sizeof(u64); i++)
->> +		if (!(swapped & 0xFF))
->> +			swapped = swapped >> 8;
->> +		else
->> +			break;
->> +
->> +	for (i = 0; i < arc_pmu->n_events; i++) {
->> +		if (swapped == arc_pmu->raw_events[i])
->> +			break;
->> +	}
->> +
->> +	if (i == arc_pmu->n_events)
->> +		return -ENOENT;
->> +
->> +	memcpy(name, &swapped, sizeof(u64));
->> +
->> +	pr_debug("Initializing raw event: %s\n", name);
->> +
->> +	return i;
->> +}
+On Wed, Jun 17, 2015 at 05:18:27PM +0530, Vineet Gupta wrote:
+> Turns out that it is possible to implement NMI on ARCv2 in a pretty
+> straightforward way.
 > 
-> Urgh, what? Why?
-> 
-> raw is just that _raw_, no mucking about with the value.
-> 
-> If you want convenience, provide the event/format stuff so you can
-> write:
-> 
-> 	perf record -e 'cpu/c=0xff,r=0cff,u=0xff,n=0xff'
-> 
-> Or whatever that syntax was again (I keep forgetting).
+> Our RTOS Guru, Chuck, told me off list, that instead of using CLRI / SETI, we can
+> use SETI with different args which would keep the stat32.IE enabled all the times,
+> but wiggle the stat32.E[ ] to change the intr prio level, effectively locking out
+> only lower prio interrupts in any local_irq_save() / restore() region.
 
+Nice.
 
-I'm not too familiar with elaborate raw events from other arches, but it seems
-cpu/event style makes sense when there are params (e.g. umask etc) in addition to
-event id.
+> But isn't this defying the irq disable/enable semantics and could lead to
+> potential breach of *some* critical section.
 
-For us raw is just the event id, albeit an ascii string, which can vary from 3 to
-8 chars. PMU saves the event name as string in LSB so "crun" is 0x6e757263 which
-corresponds to 'n' 'u' 'r' 'c'
+Well only if you then hand out interrupts for that priority level
+without treating them as NMIs.
 
-The only convenience we are giving the user is ability to specify the raw event as
-ASCII string in *human order* which we need to swap around for comparing against
-what we have in the driver tables - setup at the time of probe
+Note that NMIs do not nest, so if your hardware can raise multiple
+interrupts for any one level it needs to mask the level in your
+handler's entry code.
 
-If you absolutely detest that, we can pre-swap those values in probe to save in
-human order.
+> Neverthless, doing this requires some more changes in ARCv2 support code - so for
+> now we will go with the normal interrupts and later bolt on the NMI emulation.
 
-Perhaps it is batter that way anyways - what say you ?
-
--Vineet
+Sure, smalls steps etc.. :-)
