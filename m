@@ -1,66 +1,86 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 1/8] ARC: perf: support RAW events
-Date: Wed, 17 Jun 2015 19:40:37 +0530
-Message-ID: <55817FDD.7060902@synopsys.com>
-References: <1433852372-29494-1-git-send-email-vgupta@synopsys.com> <1433852372-29494-2-git-send-email-vgupta@synopsys.com> <20150615153029.GE3644@twins.programming.kicks-ass.net> <4881796E12491D4BB15146FE0209CE64656C9E81@DE02WEMBXB.internal.synopsys.com> <20150617133358.GR3644@twins.programming.kicks-ass.net>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH v3 1/2] locking/qrwlock: Better optimization for interrupt
+ context readers
+Date: Wed, 17 Jun 2015 21:30:10 -0400
+Message-ID: <55821F22.9040902@hp.com>
+References: <1434407043-18741-1-git-send-email-Waiman.Long@hp.com> <1434407043-18741-2-git-send-email-Waiman.Long@hp.com> <20150616121742.GB30522@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:36097 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754490AbbFQOK6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jun 2015 10:10:58 -0400
-In-Reply-To: <20150617133358.GR3644@twins.programming.kicks-ass.net>
+Received: from g4t3427.houston.hp.com ([15.201.208.55]:43153 "EHLO
+	g4t3427.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753281AbbFRBaQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Jun 2015 21:30:16 -0400
+In-Reply-To: <20150616121742.GB30522@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
 
-On Wednesday 17 June 2015 07:03 PM, Peter Zijlstra wrote:
->> But in case of raw events we need to set a counter with index of a
->> > particular event. For example we need to count "myevnt0" events. For
->> > this we need first to find-out what's an index in events list of
->> > "myevnt0" event and then set event counter to count event #x.
->> > 
->> > Even though in theory we may set raw even passing an index of desired
->> > event 
-> That is what I was thinking of, until I read:
-> 
->> > but given my explanation above each particular CPU may have the
->> > same event with different index in events list.
-> ...
-> 
->> > Fortunately there's already a patch series floating in LKML that
->> > attempts to simplify usage of architecture-specific events, see
->> > http://www.spinics.net/lists/kernel/msg2010232.html
-> So you _can_ know a priory in which order the events are for a
-> particular CPU ? Say through /proc/cpuinfo.
-> 
-> I would much prefer the raw thing to remain a number; it puts you in
-> pretty much the same place as most other archs, including x86.
+On 06/16/2015 08:17 AM, Will Deacon wrote:
+> Hi Waiman,
+>
+> On Mon, Jun 15, 2015 at 11:24:02PM +0100, Waiman Long wrote:
+>> The qrwlock is fair in the process context, but becoming unfair when
+>> in the interrupt context to support use cases like the tasklist_lock.
+>>
+>> The current code isn't that well-documented on what happens when
+>> in the interrupt context. The rspin_until_writer_unlock() will only
+>> spin if the writer has gotten the lock. If the writer is still in the
+>> waiting state, the increment in the reader count will cause the writer
+>> to remain in the waiting state and the new interrupt context reader
+>> will get the lock and return immediately. The current code, however,
+>> do an additional read of the lock value which is not necessary as the
+>> information have already been there in the fast path. This may sometime
+>> cause an additional cacheline load when the lock is highly contended.
+>>
+>> This patch passes the lock value information gotten in the fast path
+>> to the slow path to eliminate the additional read. It also clarify the
+>> action for the interrupt context readers more explicitly.
+>>
+>> Signed-off-by: Waiman Long<Waiman.Long@hp.com>
+>> ---
+>>   include/asm-generic/qrwlock.h |    4 ++--
+>>   kernel/locking/qrwlock.c      |   14 ++++++++------
+>>   2 files changed, 10 insertions(+), 8 deletions(-)
+> [...]
+>
+>> diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+>> index 00c12bb..d7d7557 100644
+>> --- a/kernel/locking/qrwlock.c
+>> +++ b/kernel/locking/qrwlock.c
+>> @@ -43,22 +43,24 @@ rspin_until_writer_unlock(struct qrwlock *lock, u32 cnts)
+>>    * queue_read_lock_slowpath - acquire read lock of a queue rwlock
+>>    * @lock: Pointer to queue rwlock structure
+>>    */
+>> -void queue_read_lock_slowpath(struct qrwlock *lock)
+>> +void queue_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
+>>   {
+>> -	u32 cnts;
+>> -
+>>   	/*
+>>   	 * Readers come here when they cannot get the lock without waiting
+>>   	 */
+>>   	if (unlikely(in_interrupt())) {
+>>   		/*
+>> -		 * Readers in interrupt context will spin until the lock is
+>> -		 * available without waiting in the queue.
+>> +		 * Readers in interrupt context will get the lock immediately
+>> +		 * if the writer is just waiting (not holding the lock yet)
+>> +		 * or they will spin until the lock is available without
+>> +		 * waiting in the queue.
+>>   		 */
+>> -		cnts = smp_load_acquire((u32 *)&lock->cnts);
+>> +		if ((cnts&  _QW_WMASK) != _QW_LOCKED)
+>> +			return;
+> I really doubt the check here is gaining you any performance, given
+> rspin_until_write_unlock does the same check immediately and should be
+> inlined. Just dropping the acquire and passing cnts through should be
+> sufficient.
 
-Sure, but that doesn't mean we start using the index of event as a raw ID. There
-are zillion ways to configure cores and the index will certainly start varying.
-Which means that user has to determine at run time (using whatever /proc/xxx) what
-crun corresponds to. Why inflict such pain on poor guy.
+Yes, you are right. I can just pass the cnt to 
+rspin_until_write_unlock() and be done with it.
 
-The current raw event, despite representing an ASCII string is still a u64 number.
-So it is not more "raw" than what others have. We can get rid of the swapping
-business when setting up a raw event, by making sure that cached values from probe
-are already in same format.
-
-But using index as a event id is no go sorry...
-
-> 
-> On x86 we have a huge event list (see the Intel SDM for example) and the
-> only way to access those (currently, without the above patch series) is
-> to look in the PDF under the right model and enter the numbers by hand.
-
-It is not much different for us !
-
-> The only way in which your hardware appears different is in that it
-> seems to include these names in hardware; which to me seems a waste of
-> perfectly fine silicon, but hey not my call.
-
-Yeah sins of the past.... :-)
+Cheers,
+Longman
