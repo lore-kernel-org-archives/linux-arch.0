@@ -1,94 +1,32 @@
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v4 1/2] locking/qrwlock: Better optimization for interrupt context readers
-Date: Wed, 17 Jun 2015 22:20:22 -0400
-Message-ID: <1434594023-43589-2-git-send-email-Waiman.Long@hp.com>
-References: <1434594023-43589-1-git-send-email-Waiman.Long@hp.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1434594023-43589-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
-List-Id: linux-arch.vger.kernel.org
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: subtle side effect of  commit a1c48bb160f836
+Date: Thu, 18 Jun 2015 12:17:02 +0530
+Message-ID: <55826966.6050202@synopsys.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:56478 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752435AbbFRGzo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jun 2015 02:55:44 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Michal Marek <mmarek@suse.cz>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>
 
-The qrwlock is fair in the process context, but becoming unfair when
-in the interrupt context to support use cases like the tasklist_lock.
+Hi Geert,
 
-The current code isn't that well-documented on what happens when
-in the interrupt context. The rspin_until_writer_unlock() will only
-spin if the writer has gotten the lock. If the writer is still in the
-waiting state, the increment in the reader count will cause the writer
-to remain in the waiting state and the new interrupt context reader
-will get the lock and return immediately. The current code, however,
-do an additional read of the lock value which is not necessary as
-the information have already been there in the fast path. This may
-sometime cause an additional cacheline transfer when the lock is
-highly contended.
+commit a1c48bb160f8368 "Makefile: Fix unrecognized cross-compiler command line
+options" moved ARCH specific cc option handling before common -Os/O2 setup.
 
-This patch passes the lock value information gotten in the fast path
-to the slow path to eliminate the additional read. It also document
-the action for the interrupt context readers more clearly.
+For ARC this had a subtle effect that we can no longer over-ride generic -O2 with
+-O3, hence a performance regression observed going from 3.13 to 3.18 (the above
+commit went into 3.16)
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
----
- include/asm-generic/qrwlock.h |    4 ++--
- kernel/locking/qrwlock.c      |   13 +++++++------
- 2 files changed, 9 insertions(+), 8 deletions(-)
+I want to understand how to properly fix this. Moving the include of arch makefile
+will bring back the old issue. I can introduce another option to set default optim
+level, but only arc/m32r care about it anyways.
 
-diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-index 6383d54..865d021 100644
---- a/include/asm-generic/qrwlock.h
-+++ b/include/asm-generic/qrwlock.h
-@@ -36,7 +36,7 @@
- /*
-  * External function declarations
-  */
--extern void queue_read_lock_slowpath(struct qrwlock *lock);
-+extern void queue_read_lock_slowpath(struct qrwlock *lock, u32 cnts);
- extern void queue_write_lock_slowpath(struct qrwlock *lock);
- 
- /**
-@@ -105,7 +105,7 @@ static inline void queue_read_lock(struct qrwlock *lock)
- 		return;
- 
- 	/* The slowpath will decrement the reader count, if necessary. */
--	queue_read_lock_slowpath(lock);
-+	queue_read_lock_slowpath(lock, cnts);
- }
- 
- /**
-diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index 00c12bb..7fd223c 100644
---- a/kernel/locking/qrwlock.c
-+++ b/kernel/locking/qrwlock.c
-@@ -43,22 +43,23 @@ rspin_until_writer_unlock(struct qrwlock *lock, u32 cnts)
-  * queue_read_lock_slowpath - acquire read lock of a queue rwlock
-  * @lock: Pointer to queue rwlock structure
-  */
--void queue_read_lock_slowpath(struct qrwlock *lock)
-+void queue_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
- {
--	u32 cnts;
--
- 	/*
- 	 * Readers come here when they cannot get the lock without waiting
- 	 */
- 	if (unlikely(in_interrupt())) {
- 		/*
--		 * Readers in interrupt context will spin until the lock is
--		 * available without waiting in the queue.
-+		 * Readers in interrupt context will get the lock immediately
-+		 * if the writer is just waiting (not holding the lock yet).
-+		 * The rspin_until_writer_unlock() function returns immediately
-+		 * in this case. Otherwise, they will spin until the lock
-+		 * is available without waiting in the queue.
- 		 */
--		cnts = smp_load_acquire((u32 *)&lock->cnts);
- 		rspin_until_writer_unlock(lock, cnts);
- 		return;
- 	}
-+
- 	atomic_sub(_QR_BIAS, &lock->cnts);
- 
- 	/*
--- 
-1.7.1
+Thx,
+-Vineet
