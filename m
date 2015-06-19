@@ -1,130 +1,168 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t5008.houston.hp.com ([15.240.92.66]:38052 "EHLO
-	g9t5008.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754360AbbFSPvF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jun 2015 11:51:05 -0400
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v5 3/3] locking/qrwlock: Don't contend with readers when setting _QW_WAITING
-Date: Fri, 19 Jun 2015 11:50:02 -0400
-Message-ID: <1434729002-57724-4-git-send-email-Waiman.Long@hp.com>
-In-Reply-To: <1434729002-57724-1-git-send-email-Waiman.Long@hp.com>
-References: <1434729002-57724-1-git-send-email-Waiman.Long@hp.com>
+Received: from prod-mail-xrelay07.akamai.com ([72.246.2.115]:61790 "EHLO
+	prod-mail-xrelay07.akamai.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751635AbbFSQnf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 19 Jun 2015 12:43:35 -0400
+Date: Fri, 19 Jun 2015 12:43:33 -0400
+From: Eric B Munson <emunson@akamai.com>
+Subject: Re: [RESEND PATCH V2 1/3] Add mmap flag to request pages are locked
+ after page fault
+Message-ID: <20150619164333.GD2329@akamai.com>
+References: <1433942810-7852-1-git-send-email-emunson@akamai.com>
+ <1433942810-7852-2-git-send-email-emunson@akamai.com>
+ <20150618152907.GG5858@dhcp22.suse.cz>
+ <20150618203048.GB2329@akamai.com>
+ <20150619145708.GG4913@dhcp22.suse.cz>
+MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="tEFtbjk+mNEviIIX"
+Content-Disposition: inline
+In-Reply-To: <20150619145708.GG4913@dhcp22.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
-Message-ID: <20150619155002.LKf_39rUfJ-yPAWMizXW3rauiL2Y0KAzSPet670st-0@z>
+To: Michal Hocko <mhocko@suse.cz>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20150619164333.1uBeRU5Fg4SWIIT4xuAMPL8lBJNoLp6-lCJRfJQQMP0@z>
 
-The current cmpxchg() loop in setting the _QW_WAITING flag for writers
-in queue_write_lock_slowpath() will contend with incoming readers
-causing possibly extra cmpxchg() operations that are wasteful. This
-patch changes the code to do a byte cmpxchg() to eliminate contention
-with new readers.
 
-A multithreaded microbenchmark running 5M read_lock/write_lock loop
-on a 8-socket 80-core Westmere-EX machine running 4.0 based kernel
-with the qspinlock patch have the following execution times (in ms)
-with and without the patch:
+--tEFtbjk+mNEviIIX
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-With R:W ratio = 5:1
+On Fri, 19 Jun 2015, Michal Hocko wrote:
 
-	Threads	   w/o patch	with patch	% change
-	-------	   ---------	----------	--------
-	   2	     990 	    895		  -9.6%
-	   3	    2136 	   1912		 -10.5%
-	   4	    3166	   2830		 -10.6%
-	   5	    3953	   3629		  -8.2%
-	   6	    4628	   4405		  -4.8%
-	   7	    5344	   5197		  -2.8%
-	   8	    6065	   6004		  -1.0%
-	   9	    6826	   6811		  -0.2%
-	  10	    7599	   7599		   0.0%
-	  15	    9757	   9766		  +0.1%
-	  20	   13767	  13817		  +0.4%
+> On Thu 18-06-15 16:30:48, Eric B Munson wrote:
+> > On Thu, 18 Jun 2015, Michal Hocko wrote:
+> [...]
+> > > Wouldn't it be much more reasonable and straightforward to have
+> > > MAP_FAULTPOPULATE as a counterpart for MAP_POPULATE which would
+> > > explicitly disallow any form of pre-faulting? It would be usable for
+> > > other usecases than with MAP_LOCKED combination.
+> >=20
+> > I don't see a clear case for it being more reasonable, it is one
+> > possible way to solve the problem.
+>=20
+> MAP_FAULTPOPULATE would be usable for other cases as well. E.g. fault
+> around is all or nothing feature. Either all mappings (which support
+> this) fault around or none. There is no way to tell the kernel that
+> this particular mapping shouldn't fault around. I haven't seen such a
+> request yet but we have seen requests to have a way to opt out from
+> a global policy in the past (e.g. per-process opt out from THP). So
+> I can imagine somebody will come with a request to opt out from any
+> speculative operations on the mapped area in the future.
+>=20
+> > But I think it leaves us in an even
+> > more akward state WRT VMA flags.  As you noted in your fix for the
+> > mmap() man page, one can get into a state where a VMA is VM_LOCKED, but
+> > not present.  Having VM_LOCKONFAULT states that this was intentional, if
+> > we go to using MAP_FAULTPOPULATE instead of MAP_LOCKONFAULT, we no
+> > longer set VM_LOCKONFAULT (unless we want to start mapping it to the
+> > presence of two MAP_ flags).  This can make detecting the MAP_LOCKED +
+> > populate failure state harder.
+>=20
+> I am not sure I understand your point here. Could you be more specific
+> how would you check for that and what for?
 
-With small number of contending threads, this patch can improve
-locking performance by up to 10%. With more contending threads,
-however, the gain diminishes.
+My thought on detecting was that someone might want to know if they had
+a VMA that was VM_LOCKED but had not been made present becuase of a
+failure in mmap.  We don't have a way today, but adding VM_LOCKONFAULT
+is at least explicit about what is happening which would make detecting
+the VM_LOCKED but not present state easier.  This assumes that
+MAP_FAULTPOPULATE does not translate to a VMA flag, but it sounds like
+it would have to.
 
-With the extended qrwlock structure defined in asm-generic/qrwlock,
-the queue_write_unlock() function is also simplified to a
-smp_store_release() call.
+>=20
+> From my understanding MAP_LOCKONFAULT is essentially
+> MAP_FAULTPOPULATE|MAP_LOCKED with a quite obvious semantic (unlike
+> single MAP_LOCKED unfortunately). I would love to also have
+> MAP_LOCKED|MAP_POPULATE (aka full mlock semantic) but I am really
+> skeptical considering how my previous attempt to make MAP_POPULATE
+> reasonable went.
 
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
----
- arch/x86/include/asm/qrwlock.h      |    3 +--
- include/asm-generic/qrwlock_types.h |   18 +++++++++++++++++-
- kernel/locking/qrwlock.c            |    6 ++----
- 3 files changed, 20 insertions(+), 7 deletions(-)
+Are you objecting to the addition of the VMA flag VM_LOCKONFAULT, or the
+new MAP_LOCKONFAULT flag (or both)?  If you prefer that MAP_LOCKED |
+MAP_FAULTPOPULATE means that VM_LOCKONFAULT is set, I am fine with that
+instead of introducing MAP_LOCKONFAULT.  I went with the new flag
+because to date, we have a one to one mapping of MAP_* to VM_* flags.
 
-diff --git a/arch/x86/include/asm/qrwlock.h b/arch/x86/include/asm/qrwlock.h
-index a8810bf..5678b0a 100644
---- a/arch/x86/include/asm/qrwlock.h
-+++ b/arch/x86/include/asm/qrwlock.h
-@@ -7,8 +7,7 @@
- #define queued_write_unlock queued_write_unlock
- static inline void queued_write_unlock(struct qrwlock *lock)
- {
--        barrier();
--        ACCESS_ONCE(*(u8 *)&lock->cnts) = 0;
-+	smp_store_release(&lock->wmode, 0);
- }
- #endif
- 
-diff --git a/include/asm-generic/qrwlock_types.h b/include/asm-generic/qrwlock_types.h
-index 4d76f24..d614cde 100644
---- a/include/asm-generic/qrwlock_types.h
-+++ b/include/asm-generic/qrwlock_types.h
-@@ -3,13 +3,29 @@
- 
- #include <linux/types.h>
- #include <asm/spinlock_types.h>
-+#include <asm/byteorder.h>
- 
- /*
-  * The queue read/write lock data structure
-+ *
-+ * The 32-bit count is divided into an 8-bit writer mode byte
-+ * (least significant byte) and a 24-bit reader count.
-+ *
-  */
- 
- typedef struct qrwlock {
--	atomic_t		cnts;
-+	union {
-+		atomic_t	cnts;
-+		struct {
-+#ifdef __LITTLE_ENDIAN
-+			u8	wmode;		/* Writer mode  */
-+			u8	rcnt[3];	/* Reader count */
-+#else
-+			u8	rcnt[3];	/* Reader count */
-+			u8	wmode;		/* Writer mode  */
-+#endif
-+		};
-+	};
- 	arch_spinlock_t		lock;
- } arch_rwlock_t;
- 
-diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index 26ca0ca..a7ac2c5 100644
---- a/kernel/locking/qrwlock.c
-+++ b/kernel/locking/qrwlock.c
-@@ -108,10 +108,8 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
- 	 * or wait for a previous writer to go away.
- 	 */
- 	for (;;) {
--		cnts = atomic_read(&lock->cnts);
--		if (!(cnts & _QW_WMASK) &&
--		    (atomic_cmpxchg(&lock->cnts, cnts,
--				    cnts | _QW_WAITING) == cnts))
-+		if (!READ_ONCE(lock->wmode) &&
-+		   (cmpxchg(&lock->wmode, 0, _QW_WAITING) == 0))
- 			break;
- 
- 		cpu_relax_lowlatency();
--- 
-1.7.1
+>=20
+> > If this is the preferred path for mmap(), I am fine with that.=20
+>=20
+> > However,
+> > I would like to see the new system calls that Andrew mentioned (and that
+> > I am testing patches for) go in as well.=20
+>=20
+> mlock with flags sounds like a good step but I am not sure it will make
+> sense in the future. POSIX has screwed that and I am not sure how many
+> applications would use it. This ship has sailed long time ago.
 
+I don't know either, but the code is the question, right?  I know that
+we have at least one team that wants it here.
+
+>=20
+> > That way we give users the
+> > ability to request VM_LOCKONFAULT for memory allocated using something
+> > other than mmap.
+>=20
+> mmap(MAP_FAULTPOPULATE); mlock() would have the same semantic even
+> without changing mlock syscall.
+
+That is true as long as MAP_FAULTPOPULATE set a flag in the VMA(s).  It
+doesn't cover the actual case I was asking about, which is how do I get
+lock on fault on malloc'd memory?
+
+> =20
+> > > > This patch introduces the ability to request that pages are not
+> > > > pre-faulted, but are placed on the unevictable LRU when they are fi=
+nally
+> > > > faulted in.
+> > > >=20
+> > > > To keep accounting checks out of the page fault path, users are bil=
+led
+> > > > for the entire mapping lock as if MAP_LOCKED was used.
+> > > >=20
+> > > > Signed-off-by: Eric B Munson <emunson@akamai.com>
+> > > > Cc: Michal Hocko <mhocko@suse.cz>
+> > > > Cc: linux-alpha@vger.kernel.org
+> > > > Cc: linux-kernel@vger.kernel.org
+> > > > Cc: linux-mips@linux-mips.org
+> > > > Cc: linux-parisc@vger.kernel.org
+> > > > Cc: linuxppc-dev@lists.ozlabs.org
+> > > > Cc: sparclinux@vger.kernel.org
+> > > > Cc: linux-xtensa@linux-xtensa.org
+> > > > Cc: linux-mm@kvack.org
+> > > > Cc: linux-arch@vger.kernel.org
+> > > > Cc: linux-api@vger.kernel.org
+> > > > ---
+> [...]
+> --=20
+> Michal Hocko
+> SUSE Labs
+
+--tEFtbjk+mNEviIIX
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQIcBAEBAgAGBQJVhEa1AAoJELbVsDOpoOa9G9AQAIFwslEVTMGceV83OYvdwX89
+JQHGpfvXIZh/BbujjzOFKIFk4BcZhVxGlkvrA9vg/0H3xbXyVg5DXK9hXwKAuGBn
+HquXUVb7DtDgLoEbJgBi/LLfJ2ADfIVeiIsUM3fGb/DBTiMqX3QOCM2x63JT9iG1
+xtg8hHQ/Ee2PAtR4GO6N4/PCbPWjOEJgdYjSp5avR57h2Keu8xTsHbYUK8CKA496
+Pf5SusNzWqwBewdMfr+bLYbs3U9njdLUeLaRGqQuYwETUaALEeL3CIzyyFpDtQjv
+WbCBng8aR8Mquz3ogYjz+FPrdftF90abox4yqb8o4V9qF5VW/JotgS/D/H327Lat
+SlwKimGCvvOisB01VPNQ03P5x6cwa1Ld2MPltOaTxIjxoSz5lIY8KEkXca37kFj8
+fzkR2fFcdb0RLSDWhk3vLNaZj7lcFkBTtx7YLoWLkj9/s3xiVtPmIC9vaMUvI3JZ
+QPcX6gENRnDDT+SMZP5giAM4yyJjc50ILXFXkhY4iJuRgK6i4iu61+LASLTqsjeu
+UqOfualtpXqLz1oaAgPOtwWxaGm6yr2SWMDuioRZ4oKjMZgPpnk5Yhshvos31MPa
+L4pp2SSSKfkFyyIyyD/3tFMFh70xtN5oG1h9IvUi563aMbPZ9pjQq1me6c0ItUxW
+tzFfJHu6+Vfws6lONsKF
+=6RVh
+-----END PGP SIGNATURE-----
+
+--tEFtbjk+mNEviIIX--
 --
 To unsubscribe from this list: send the line "unsubscribe linux-arch" in
