@@ -1,55 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:55657 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752484AbbFSO5M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 19 Jun 2015 10:57:12 -0400
-Date: Fri, 19 Jun 2015 16:57:08 +0200
-From: Michal Hocko <mhocko@suse.cz>
-Subject: Re: [RESEND PATCH V2 1/3] Add mmap flag to request pages are locked
- after page fault
-Message-ID: <20150619145708.GG4913@dhcp22.suse.cz>
-References: <1433942810-7852-1-git-send-email-emunson@akamai.com>
- <1433942810-7852-2-git-send-email-emunson@akamai.com>
- <20150618152907.GG5858@dhcp22.suse.cz>
- <20150618203048.GB2329@akamai.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20150618203048.GB2329@akamai.com>
+Received: from g9t5008.houston.hp.com ([15.240.92.66]:38008 "EHLO
+	g9t5008.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753765AbbFSPvE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jun 2015 11:51:04 -0400
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v5 0/3] locking/qrwlock: More optimizations in qrwlock
+Date: Fri, 19 Jun 2015 11:49:59 -0400
+Message-ID: <1434729002-57724-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@akamai.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150619145708.wddbcs8TKXe9s7DkEBotpFYhn7u3He2bMNY2wOYrT3M@z>
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
+Message-ID: <20150619154959.xLA6pClSKtXNg-F4Yrcx4JDYiwpEFG6Ts-YlCvGYzxU@z>
 
-On Thu 18-06-15 16:30:48, Eric B Munson wrote:
-> On Thu, 18 Jun 2015, Michal Hocko wrote:
-[...]
-> > Wouldn't it be much more reasonable and straightforward to have
-> > MAP_FAULTPOPULATE as a counterpart for MAP_POPULATE which would
-> > explicitly disallow any form of pre-faulting? It would be usable for
-> > other usecases than with MAP_LOCKED combination.
-> 
-> I don't see a clear case for it being more reasonable, it is one
-> possible way to solve the problem.
+v4->v5:
+ - Add a new patch to rename function names to sync up to qspinlock
+   naming convention.
+ - Move the extended qrwlock structure to the header file as requested
+   by Will Deacon so that it can also be used in the ARM's architecture
+   specific code.
 
-MAP_FAULTPOPULATE would be usable for other cases as well. E.g. fault
-around is all or nothing feature. Either all mappings (which support
-this) fault around or none. There is no way to tell the kernel that
-this particular mapping shouldn't fault around. I haven't seen such a
-request yet but we have seen requests to have a way to opt out from
-a global policy in the past (e.g. per-process opt out from THP). So
-I can imagine somebody will come with a request to opt out from any
-speculative operations on the mapped area in the future.
+v3->v4:
+ - Remove the unnecessary _QW_WMASK check in
+   queue_read_lock_slowpath().
 
-> But I think it leaves us in an even
-> more akward state WRT VMA flags.  As you noted in your fix for the
-> mmap() man page, one can get into a state where a VMA is VM_LOCKED, but
-> not present.  Having VM_LOCKONFAULT states that this was intentional, if
-> we go to using MAP_FAULTPOPULATE instead of MAP_LOCKONFAULT, we no
-> longer set VM_LOCKONFAULT (unless we want to start mapping it to the
-> presence of two MAP_ flags).  This can make detecting the MAP_LOCKED +
-> populate failure state harder.
+v2->v3:
+ - Fix incorrect commit log message in patch 1.
 
-I am not sure I understand your point here. Could you be more specific
-how would you check for that and what for?
+v1->v2:
+ - Add microbenchmark data for the second patch
+
+This patch set contains 2 patches on qrwlock. The first one is to
+optimize the interrupt context reader slowpath.  The second one is
+to optimize the writer slowpath.
+
+
+*** BLURB HERE ***
+
+Waiman Long (3):
+  locking/qrwlock: Rename functions to queued_*()
+  locking/qrwlock: Better optimization for interrupt context readers
+  locking/qrwlock: Don't contend with readers when setting _QW_WAITING
+
+ arch/x86/include/asm/qrwlock.h      |    7 ++--
+ include/asm-generic/qrwlock.h       |   58 +++++++++++++++++-----------------
+ include/asm-generic/qrwlock_types.h |   18 ++++++++++-
+ kernel/locking/qrwlock.c            |   29 ++++++++---------
+ 4 files changed, 63 insertions(+), 49 deletions(-)
+
+--
+To unsubscribe from this list: send the line "unsubscribe linux-arch" in
