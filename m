@@ -1,128 +1,70 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH v3 2/2] locking/qrwlock: Don't contend with readers when
- setting _QW_WAITING
-Date: Thu, 18 Jun 2015 18:14:54 -0400
-Message-ID: <558342DE.9040604@hp.com>
-References: <1434407043-18741-1-git-send-email-Waiman.Long@hp.com> <1434407043-18741-3-git-send-email-Waiman.Long@hp.com> <20150616180227.GA2401@arm.com> <55822004.8060605@hp.com> <20150618124032.GB5168@arm.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH v2 22/28] ARCv2: STAR 9000837815 workaround hardware exclusive transactions livelock
+Date: Fri, 19 Jun 2015 15:25:26 +0530
+Message-ID: <1434707726-32624-1-git-send-email-vgupta@synopsys.com>
+References: <20150610110234.GH3644@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3427.houston.hp.com ([15.201.208.55]:59138 "EHLO
-	g4t3427.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752019AbbFRWO5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Jun 2015 18:14:57 -0400
-In-Reply-To: <20150618124032.GB5168@arm.com>
+Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:39711 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753824AbbFSJzt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jun 2015 05:55:49 -0400
+In-Reply-To: <20150610110234.GH3644@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+To: "Peter Zijlstra (Intel)" <peterz@infradead.org>
+Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
-On 06/18/2015 08:40 AM, Will Deacon wrote:
-> On Thu, Jun 18, 2015 at 02:33:56AM +0100, Waiman Long wrote:
->> On 06/16/2015 02:02 PM, Will Deacon wrote:
->>> On Mon, Jun 15, 2015 at 11:24:03PM +0100, Waiman Long wrote:
->>>> The current cmpxchg() loop in setting the _QW_WAITING flag for writers
->>>> in queue_write_lock_slowpath() will contend with incoming readers
->>>> causing possibly extra cmpxchg() operations that are wasteful. This
->>>> patch changes the code to do a byte cmpxchg() to eliminate contention
->>>> with new readers.
->>>>
->>>> A multithreaded microbenchmark running 5M read_lock/write_lock loop
->>>> on a 8-socket 80-core Westmere-EX machine running 4.0 based kernel
->>>> with the qspinlock patch have the following execution times (in ms)
->>>> with and without the patch:
->>>>
->>>> With R:W ratio = 5:1
->>>>
->>>> 	Threads	   w/o patch	with patch	% change
->>>> 	-------	   ---------	----------	--------
->>>> 	   2	     990 	    895		  -9.6%
->>>> 	   3	    2136 	   1912		 -10.5%
->>>> 	   4	    3166	   2830		 -10.6%
->>>> 	   5	    3953	   3629		  -8.2%
->>>> 	   6	    4628	   4405		  -4.8%
->>>> 	   7	    5344	   5197		  -2.8%
->>>> 	   8	    6065	   6004		  -1.0%
->>>> 	   9	    6826	   6811		  -0.2%
->>>> 	  10	    7599	   7599		   0.0%
->>>> 	  15	    9757	   9766		  +0.1%
->>>> 	  20	   13767	  13817		  +0.4%
->>>>
->>>> With small number of contending threads, this patch can improve
->>>> locking performance by up to 10%. With more contending threads,
->>>> however, the gain diminishes.
->>>>
->>>> Signed-off-by: Waiman Long<Waiman.Long@hp.com>
->>>> ---
->>>>    kernel/locking/qrwlock.c |   28 ++++++++++++++++++++++++----
->>>>    1 files changed, 24 insertions(+), 4 deletions(-)
->>>>
->>>> diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
->>>> index d7d7557..559198a 100644
->>>> --- a/kernel/locking/qrwlock.c
->>>> +++ b/kernel/locking/qrwlock.c
->>>> @@ -22,6 +22,26 @@
->>>>    #include<linux/hardirq.h>
->>>>    #include<asm/qrwlock.h>
->>>>
->>>> +/*
->>>> + * This internal data structure is used for optimizing access to some of
->>>> + * the subfields within the atomic_t cnts.
->>>> + */
->>>> +struct __qrwlock {
->>>> +	union {
->>>> +		atomic_t cnts;
->>>> +		struct {
->>>> +#ifdef __LITTLE_ENDIAN
->>>> +			u8 wmode;	/* Writer mode   */
->>>> +			u8 rcnts[3];	/* Reader counts */
->>>> +#else
->>>> +			u8 rcnts[3];	/* Reader counts */
->>>> +			u8 wmode;	/* Writer mode   */
->>>> +#endif
->>>> +		};
->>>> +	};
->>>> +	arch_spinlock_t	lock;
->>>> +};
->>>> +
->>>>    /**
->>>>     * rspin_until_writer_unlock - inc reader count&   spin until writer is gone
->>>>     * @lock  : Pointer to queue rwlock structure
->>>> @@ -109,10 +129,10 @@ void queue_write_lock_slowpath(struct qrwlock *lock)
->>>>    	 * or wait for a previous writer to go away.
->>>>    	 */
->>>>    	for (;;) {
->>>> -		cnts = atomic_read(&lock->cnts);
->>>> -		if (!(cnts&   _QW_WMASK)&&
->>>> -		    (atomic_cmpxchg(&lock->cnts, cnts,
->>>> -				    cnts | _QW_WAITING) == cnts))
->>>> +		struct __qrwlock *l = (struct __qrwlock *)lock;
->>>> +
->>>> +		if (!READ_ONCE(l->wmode)&&
->>>> +		   (cmpxchg(&l->wmode, 0, _QW_WAITING) == 0))
->>>>    			break;
->>> Maybe you could also update the x86 implementation of queue_write_unlock
->>> to write the wmode field instead of casting to u8 *?
->>>
->> The queue_write_unlock() function is in the header file. I don't want to
->> expose the internal structure to other files.
-> Then I don't see the value in the new data structure -- why not just cast
-> to u8 * instead? In my mind, the structure has the advantage of supporting
-> both big and little endian systems, but to be useful it would need to be
-> available in the header file for architectures that chose to override
-> queue_write_unlock.
+A quad core SMP build could get into hardware livelock with concurrent
+LLOCK/SCOND. Workaround that by adding a PREFETCHW which is serialized by
+SCU (System Coherency Unit). It brings the cache line in Exclusive state
+and makes others invalidate their lines. This gives enough time for
+winner to complete the LLOCK/SCOND, before others can get the line back.
 
-Casting to (u8 *) directly will require ugly endian conditional 
-compilation code in the function. It is much easier to look at and 
-understand to do that in the data structure instead.
+Cc: Peter Zijlstra (Intel) <peterz@infradead.org>
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+---
+ arch/arc/include/asm/atomic.h | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
 
-> As an aside, I have some patches to get this up and running on arm64
-> which would need something like this structure for the big-endian case.
-
-If there is going to be other consumer of the internal structure, I 
-think it will be worthwhile to put that into the header file directly. I 
-will update the patch to make that changes.
-
-Cheers,
-Longman
+diff --git a/arch/arc/include/asm/atomic.h b/arch/arc/include/asm/atomic.h
+index 20b7dc17979e..03484cb4d16d 100644
+--- a/arch/arc/include/asm/atomic.h
++++ b/arch/arc/include/asm/atomic.h
+@@ -23,13 +23,21 @@
+ 
+ #define atomic_set(v, i) (((v)->counter) = (i))
+ 
++#ifdef CONFIG_ISA_ARCV2
++#define PREFETCHW	"	prefetchw   [%1]	\n"
++#else
++#define PREFETCHW
++#endif
++
+ #define ATOMIC_OP(op, c_op, asm_op)					\
+ static inline void atomic_##op(int i, atomic_t *v)			\
+ {									\
+ 	unsigned int temp;						\
+ 									\
+ 	__asm__ __volatile__(						\
+-	"1:	llock   %0, [%1]	\n"				\
++	"1:				\n"				\
++	PREFETCHW							\
++	"	llock   %0, [%1]	\n"				\
+ 	"	" #asm_op " %0, %0, %2	\n"				\
+ 	"	scond   %0, [%1]	\n"				\
+ 	"	bnz     1b		\n"				\
+@@ -50,7 +58,9 @@ static inline int atomic_##op##_return(int i, atomic_t *v)		\
+ 	smp_mb();							\
+ 									\
+ 	__asm__ __volatile__(						\
+-	"1:	llock   %0, [%1]	\n"				\
++	"1:				\n"				\
++	PREFETCHW							\
++	"	llock   %0, [%1]	\n"				\
+ 	"	" #asm_op " %0, %0, %2	\n"				\
+ 	"	scond   %0, [%1]	\n"				\
+ 	"	bnz     1b		\n"				\
+-- 
+1.9.1
