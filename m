@@ -1,103 +1,97 @@
-From: Michal Hocko <mhocko@suse.cz>
-Subject: Re: [RESEND PATCH V2 1/3] Add mmap flag to request pages are locked
- after page fault
-Date: Fri, 19 Jun 2015 16:57:08 +0200
-Message-ID: <20150619145708.GG4913@dhcp22.suse.cz>
-References: <1433942810-7852-1-git-send-email-emunson@akamai.com>
- <1433942810-7852-2-git-send-email-emunson@akamai.com>
- <20150618152907.GG5858@dhcp22.suse.cz>
- <20150618203048.GB2329@akamai.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Waiman Long <Waiman.Long@hp.com>
+Subject: [PATCH v5 2/3] locking/qrwlock: Better optimization for interrupt context readers
+Date: Fri, 19 Jun 2015 11:50:01 -0400
+Message-ID: <1434729002-57724-3-git-send-email-Waiman.Long@hp.com>
+References: <1434729002-57724-1-git-send-email-Waiman.Long@hp.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:55657 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752484AbbFSO5M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 19 Jun 2015 10:57:12 -0400
-Content-Disposition: inline
-In-Reply-To: <20150618203048.GB2329@akamai.com>
+Received: from g9t5008.houston.hp.com ([15.240.92.66]:38030 "EHLO
+	g9t5008.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754267AbbFSPvE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Jun 2015 11:51:04 -0400
+In-Reply-To: <1434729002-57724-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@akamai.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
 
-On Thu 18-06-15 16:30:48, Eric B Munson wrote:
-> On Thu, 18 Jun 2015, Michal Hocko wrote:
-[...]
-> > Wouldn't it be much more reasonable and straightforward to have
-> > MAP_FAULTPOPULATE as a counterpart for MAP_POPULATE which would
-> > explicitly disallow any form of pre-faulting? It would be usable for
-> > other usecases than with MAP_LOCKED combination.
-> 
-> I don't see a clear case for it being more reasonable, it is one
-> possible way to solve the problem.
+The qrwlock is fair in the process context, but becoming unfair when
+in the interrupt context to support use cases like the tasklist_lock.
 
-MAP_FAULTPOPULATE would be usable for other cases as well. E.g. fault
-around is all or nothing feature. Either all mappings (which support
-this) fault around or none. There is no way to tell the kernel that
-this particular mapping shouldn't fault around. I haven't seen such a
-request yet but we have seen requests to have a way to opt out from
-a global policy in the past (e.g. per-process opt out from THP). So
-I can imagine somebody will come with a request to opt out from any
-speculative operations on the mapped area in the future.
+The current code isn't that well-documented on what happens when
+in the interrupt context. The rspin_until_writer_unlock() will only
+spin if the writer has gotten the lock. If the writer is still in the
+waiting state, the increment in the reader count will cause the writer
+to remain in the waiting state and the new interrupt context reader
+will get the lock and return immediately. The current code, however,
+do an additional read of the lock value which is not necessary as
+the information have already been there in the fast path. This may
+sometime cause an additional cacheline transfer when the lock is
+highly contended.
 
-> But I think it leaves us in an even
-> more akward state WRT VMA flags.  As you noted in your fix for the
-> mmap() man page, one can get into a state where a VMA is VM_LOCKED, but
-> not present.  Having VM_LOCKONFAULT states that this was intentional, if
-> we go to using MAP_FAULTPOPULATE instead of MAP_LOCKONFAULT, we no
-> longer set VM_LOCKONFAULT (unless we want to start mapping it to the
-> presence of two MAP_ flags).  This can make detecting the MAP_LOCKED +
-> populate failure state harder.
+This patch passes the lock value information gotten in the fast path
+to the slow path to eliminate the additional read. It also document
+the action for the interrupt context readers more clearly.
 
-I am not sure I understand your point here. Could you be more specific
-how would you check for that and what for?
+Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+Reviewed-by: Will Deacon <will.deacon@arm.com>
+---
+ include/asm-generic/qrwlock.h |    4 ++--
+ kernel/locking/qrwlock.c      |   13 +++++++------
+ 2 files changed, 9 insertions(+), 8 deletions(-)
 
-From my understanding MAP_LOCKONFAULT is essentially
-MAP_FAULTPOPULATE|MAP_LOCKED with a quite obvious semantic (unlike
-single MAP_LOCKED unfortunately). I would love to also have
-MAP_LOCKED|MAP_POPULATE (aka full mlock semantic) but I am really
-skeptical considering how my previous attempt to make MAP_POPULATE
-reasonable went.
-
-> If this is the preferred path for mmap(), I am fine with that. 
-
-> However,
-> I would like to see the new system calls that Andrew mentioned (and that
-> I am testing patches for) go in as well. 
-
-mlock with flags sounds like a good step but I am not sure it will make
-sense in the future. POSIX has screwed that and I am not sure how many
-applications would use it. This ship has sailed long time ago.
-
-> That way we give users the
-> ability to request VM_LOCKONFAULT for memory allocated using something
-> other than mmap.
-
-mmap(MAP_FAULTPOPULATE); mlock() would have the same semantic even
-without changing mlock syscall.
+diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+index 55e3ee1..deb9e8b 100644
+--- a/include/asm-generic/qrwlock.h
++++ b/include/asm-generic/qrwlock.h
+@@ -36,7 +36,7 @@
+ /*
+  * External function declarations
+  */
+-extern void queued_read_lock_slowpath(struct qrwlock *lock);
++extern void queued_read_lock_slowpath(struct qrwlock *lock, u32 cnts);
+ extern void queued_write_lock_slowpath(struct qrwlock *lock);
  
-> > > This patch introduces the ability to request that pages are not
-> > > pre-faulted, but are placed on the unevictable LRU when they are finally
-> > > faulted in.
-> > > 
-> > > To keep accounting checks out of the page fault path, users are billed
-> > > for the entire mapping lock as if MAP_LOCKED was used.
-> > > 
-> > > Signed-off-by: Eric B Munson <emunson@akamai.com>
-> > > Cc: Michal Hocko <mhocko@suse.cz>
-> > > Cc: linux-alpha@vger.kernel.org
-> > > Cc: linux-kernel@vger.kernel.org
-> > > Cc: linux-mips@linux-mips.org
-> > > Cc: linux-parisc@vger.kernel.org
-> > > Cc: linuxppc-dev@lists.ozlabs.org
-> > > Cc: sparclinux@vger.kernel.org
-> > > Cc: linux-xtensa@linux-xtensa.org
-> > > Cc: linux-mm@kvack.org
-> > > Cc: linux-arch@vger.kernel.org
-> > > Cc: linux-api@vger.kernel.org
-> > > ---
-[...]
+ /**
+@@ -105,7 +105,7 @@ static inline void queued_read_lock(struct qrwlock *lock)
+ 		return;
+ 
+ 	/* The slowpath will decrement the reader count, if necessary. */
+-	queued_read_lock_slowpath(lock);
++	queued_read_lock_slowpath(lock, cnts);
+ }
+ 
+ /**
+diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+index 9c2deed..26ca0ca 100644
+--- a/kernel/locking/qrwlock.c
++++ b/kernel/locking/qrwlock.c
+@@ -42,20 +42,21 @@ rspin_until_writer_unlock(struct qrwlock *lock, u32 cnts)
+ /**
+  * queued_read_lock_slowpath - acquire read lock of a queue rwlock
+  * @lock: Pointer to queue rwlock structure
++ * @cnts: Current qrwlock lock value
+  */
+-void queued_read_lock_slowpath(struct qrwlock *lock)
++void queued_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
+ {
+-	u32 cnts;
+-
+ 	/*
+ 	 * Readers come here when they cannot get the lock without waiting
+ 	 */
+ 	if (unlikely(in_interrupt())) {
+ 		/*
+-		 * Readers in interrupt context will spin until the lock is
+-		 * available without waiting in the queue.
++		 * Readers in interrupt context will get the lock immediately
++		 * if the writer is just waiting (not holding the lock yet).
++		 * The rspin_until_writer_unlock() function returns immediately
++		 * in this case. Otherwise, they will spin until the lock
++		 * is available without waiting in the queue.
+ 		 */
+-		cnts = smp_load_acquire((u32 *)&lock->cnts);
+ 		rspin_until_writer_unlock(lock, cnts);
+ 		return;
+ 	}
 -- 
-Michal Hocko
-SUSE Labs
+1.7.1
