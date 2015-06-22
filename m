@@ -1,168 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from prod-mail-xrelay07.akamai.com ([72.246.2.115]:61790 "EHLO
-	prod-mail-xrelay07.akamai.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751635AbbFSQnf (ORCPT
+Received: from smtprelay.synopsys.com ([198.182.60.111]:54792 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S933138AbbFVIIh (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 19 Jun 2015 12:43:35 -0400
-Date: Fri, 19 Jun 2015 12:43:33 -0400
-From: Eric B Munson <emunson@akamai.com>
-Subject: Re: [RESEND PATCH V2 1/3] Add mmap flag to request pages are locked
- after page fault
-Message-ID: <20150619164333.GD2329@akamai.com>
-References: <1433942810-7852-1-git-send-email-emunson@akamai.com>
- <1433942810-7852-2-git-send-email-emunson@akamai.com>
- <20150618152907.GG5858@dhcp22.suse.cz>
- <20150618203048.GB2329@akamai.com>
- <20150619145708.GG4913@dhcp22.suse.cz>
+	Mon, 22 Jun 2015 04:08:37 -0400
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: [arc-linux-dev] [PATCH] stmmac: explicitly zero des0 & des1 on
+ init
+Date: Mon, 22 Jun 2015 08:08:31 +0000
+Message-ID: <1434960510.4269.25.camel@synopsys.com>
+References: <1434476441-18241-1-git-send-email-abrodkin@synopsys.com>
+	 <C2D7FE5348E1B147BCA15975FBA23075665A5DED@IN01WEMBXB.internal.synopsys.com>
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075665A5DED@IN01WEMBXB.internal.synopsys.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-ID: <9C754CE371BF664B83E790960FE8A875@internal.synopsys.com>
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="tEFtbjk+mNEviIIX"
-Content-Disposition: inline
-In-Reply-To: <20150619145708.GG4913@dhcp22.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@suse.cz>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150619164333.1uBeRU5Fg4SWIIT4xuAMPL8lBJNoLp6-lCJRfJQQMP0@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peppe.cavallaro@st.com" <peppe.cavallaro@st.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "m.szyprowski@samsung.com" <m.szyprowski@samsung.com>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>
+Message-ID: <20150622080831.fTAROeBXjw68nDDspHqvqajTeWZ9_FnzWCav1ytI1nQ@z>
 
-
---tEFtbjk+mNEviIIX
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-On Fri, 19 Jun 2015, Michal Hocko wrote:
-
-> On Thu 18-06-15 16:30:48, Eric B Munson wrote:
-> > On Thu, 18 Jun 2015, Michal Hocko wrote:
-> [...]
-> > > Wouldn't it be much more reasonable and straightforward to have
-> > > MAP_FAULTPOPULATE as a counterpart for MAP_POPULATE which would
-> > > explicitly disallow any form of pre-faulting? It would be usable for
-> > > other usecases than with MAP_LOCKED combination.
-> >=20
-> > I don't see a clear case for it being more reasonable, it is one
-> > possible way to solve the problem.
->=20
-> MAP_FAULTPOPULATE would be usable for other cases as well. E.g. fault
-> around is all or nothing feature. Either all mappings (which support
-> this) fault around or none. There is no way to tell the kernel that
-> this particular mapping shouldn't fault around. I haven't seen such a
-> request yet but we have seen requests to have a way to opt out from
-> a global policy in the past (e.g. per-process opt out from THP). So
-> I can imagine somebody will come with a request to opt out from any
-> speculative operations on the mapped area in the future.
->=20
-> > But I think it leaves us in an even
-> > more akward state WRT VMA flags.  As you noted in your fix for the
-> > mmap() man page, one can get into a state where a VMA is VM_LOCKED, but
-> > not present.  Having VM_LOCKONFAULT states that this was intentional, if
-> > we go to using MAP_FAULTPOPULATE instead of MAP_LOCKONFAULT, we no
-> > longer set VM_LOCKONFAULT (unless we want to start mapping it to the
-> > presence of two MAP_ flags).  This can make detecting the MAP_LOCKED +
-> > populate failure state harder.
->=20
-> I am not sure I understand your point here. Could you be more specific
-> how would you check for that and what for?
-
-My thought on detecting was that someone might want to know if they had
-a VMA that was VM_LOCKED but had not been made present becuase of a
-failure in mmap.  We don't have a way today, but adding VM_LOCKONFAULT
-is at least explicit about what is happening which would make detecting
-the VM_LOCKED but not present state easier.  This assumes that
-MAP_FAULTPOPULATE does not translate to a VMA flag, but it sounds like
-it would have to.
-
->=20
-> From my understanding MAP_LOCKONFAULT is essentially
-> MAP_FAULTPOPULATE|MAP_LOCKED with a quite obvious semantic (unlike
-> single MAP_LOCKED unfortunately). I would love to also have
-> MAP_LOCKED|MAP_POPULATE (aka full mlock semantic) but I am really
-> skeptical considering how my previous attempt to make MAP_POPULATE
-> reasonable went.
-
-Are you objecting to the addition of the VMA flag VM_LOCKONFAULT, or the
-new MAP_LOCKONFAULT flag (or both)?  If you prefer that MAP_LOCKED |
-MAP_FAULTPOPULATE means that VM_LOCKONFAULT is set, I am fine with that
-instead of introducing MAP_LOCKONFAULT.  I went with the new flag
-because to date, we have a one to one mapping of MAP_* to VM_* flags.
-
->=20
-> > If this is the preferred path for mmap(), I am fine with that.=20
->=20
-> > However,
-> > I would like to see the new system calls that Andrew mentioned (and that
-> > I am testing patches for) go in as well.=20
->=20
-> mlock with flags sounds like a good step but I am not sure it will make
-> sense in the future. POSIX has screwed that and I am not sure how many
-> applications would use it. This ship has sailed long time ago.
-
-I don't know either, but the code is the question, right?  I know that
-we have at least one team that wants it here.
-
->=20
-> > That way we give users the
-> > ability to request VM_LOCKONFAULT for memory allocated using something
-> > other than mmap.
->=20
-> mmap(MAP_FAULTPOPULATE); mlock() would have the same semantic even
-> without changing mlock syscall.
-
-That is true as long as MAP_FAULTPOPULATE set a flag in the VMA(s).  It
-doesn't cover the actual case I was asking about, which is how do I get
-lock on fault on malloc'd memory?
-
-> =20
-> > > > This patch introduces the ability to request that pages are not
-> > > > pre-faulted, but are placed on the unevictable LRU when they are fi=
-nally
-> > > > faulted in.
-> > > >=20
-> > > > To keep accounting checks out of the page fault path, users are bil=
-led
-> > > > for the entire mapping lock as if MAP_LOCKED was used.
-> > > >=20
-> > > > Signed-off-by: Eric B Munson <emunson@akamai.com>
-> > > > Cc: Michal Hocko <mhocko@suse.cz>
-> > > > Cc: linux-alpha@vger.kernel.org
-> > > > Cc: linux-kernel@vger.kernel.org
-> > > > Cc: linux-mips@linux-mips.org
-> > > > Cc: linux-parisc@vger.kernel.org
-> > > > Cc: linuxppc-dev@lists.ozlabs.org
-> > > > Cc: sparclinux@vger.kernel.org
-> > > > Cc: linux-xtensa@linux-xtensa.org
-> > > > Cc: linux-mm@kvack.org
-> > > > Cc: linux-arch@vger.kernel.org
-> > > > Cc: linux-api@vger.kernel.org
-> > > > ---
-> [...]
-> --=20
-> Michal Hocko
-> SUSE Labs
-
---tEFtbjk+mNEviIIX
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAEBAgAGBQJVhEa1AAoJELbVsDOpoOa9G9AQAIFwslEVTMGceV83OYvdwX89
-JQHGpfvXIZh/BbujjzOFKIFk4BcZhVxGlkvrA9vg/0H3xbXyVg5DXK9hXwKAuGBn
-HquXUVb7DtDgLoEbJgBi/LLfJ2ADfIVeiIsUM3fGb/DBTiMqX3QOCM2x63JT9iG1
-xtg8hHQ/Ee2PAtR4GO6N4/PCbPWjOEJgdYjSp5avR57h2Keu8xTsHbYUK8CKA496
-Pf5SusNzWqwBewdMfr+bLYbs3U9njdLUeLaRGqQuYwETUaALEeL3CIzyyFpDtQjv
-WbCBng8aR8Mquz3ogYjz+FPrdftF90abox4yqb8o4V9qF5VW/JotgS/D/H327Lat
-SlwKimGCvvOisB01VPNQ03P5x6cwa1Ld2MPltOaTxIjxoSz5lIY8KEkXca37kFj8
-fzkR2fFcdb0RLSDWhk3vLNaZj7lcFkBTtx7YLoWLkj9/s3xiVtPmIC9vaMUvI3JZ
-QPcX6gENRnDDT+SMZP5giAM4yyJjc50ILXFXkhY4iJuRgK6i4iu61+LASLTqsjeu
-UqOfualtpXqLz1oaAgPOtwWxaGm6yr2SWMDuioRZ4oKjMZgPpnk5Yhshvos31MPa
-L4pp2SSSKfkFyyIyyD/3tFMFh70xtN5oG1h9IvUi563aMbPZ9pjQq1me6c0ItUxW
-tzFfJHu6+Vfws6lONsKF
-=6RVh
------END PGP SIGNATURE-----
-
---tEFtbjk+mNEviIIX--
+SGkgYWxsLA0KDQpPbiBXZWQsIDIwMTUtMDYtMTcgYXQgMDc6MDMgKzAwMDAsIFZpbmVldCBHdXB0
+YSB3cm90ZToNCitDQyBsaW51eC1hcmNoLCBsaW51eC1tbSwgQXJuZCBhbmQgTWFyZWsNCg0KT24g
+VHVlc2RheSAxNiBKdW5lIDIwMTUgMTE6MTEgUE0sIEFsZXhleSBCcm9ka2luIHdyb3RlOg0KDQpD
+dXJyZW50IGltcGxlbWVudHRpb24gb2YgZGVzY3JpcHRvciBpbml0IHByb2NlZHVyZSBvbmx5IHRh
+a2VzIGNhcmUgYWJvdXQNCm93bmVyc2hpcCBmbGFnLiBXaGlsZSBpdCBpcyBwZXJmZWN0bHkgcG9z
+c2libGUgdG8gaGF2ZSB1bmRlcmx5aW5nIG1lbW9yeQ0KZmlsbGVkIHdpdGggZ2FyYmFnZSBvbiBi
+b290IG9yIGRyaXZlciBpbnN0YWxsYXRpb24uDQoNCkFuZCByYW5kb21seSBzZXQgZmxhZ3MgaW4g
+bm9uLXplcm9lZCBkZXMwIGFuZCBkZXMxIGZpZWxkcyBtYXkgbGVhZCB0bw0KdW5wcmVkaWN0YWJs
+ZSBiZWhhdmlvciBvZiB0aGUgR01BQyBETUEgYmxvY2suDQoNClNvbHV0aW9uIHRvIHRoaXMgcHJv
+YmxlbSBpcyBhcyBzaW1wbGUgYXMgZXhwbGljaXQgemVyb2luZyBvZiBib3RoIGRlczANCmFuZCBk
+ZXMxIGZpZWxkcyBvZiBhbGwgYnVmZmVyIGRlc2NyaXB0b3JzLg0KDQpTaWduZWQtb2ZmLWJ5OiBB
+bGV4ZXkgQnJvZGtpbiA8YWJyb2RraW5Ac3lub3BzeXMuY29tPjxtYWlsdG86YWJyb2RraW5Ac3lu
+b3BzeXMuY29tPg0KQ2M6IEdpdXNlcHBlIENhdmFsbGFybyA8cGVwcGUuY2F2YWxsYXJvQHN0LmNv
+bT48bWFpbHRvOnBlcHBlLmNhdmFsbGFyb0BzdC5jb20+DQpDYzogYXJjLWxpbnV4LWRldkBzeW5v
+cHN5cy5jb208bWFpbHRvOmFyYy1saW51eC1kZXZAc3lub3BzeXMuY29tPg0KQ2M6IGxpbnV4LWtl
+cm5lbEB2Z2VyLmtlcm5lbC5vcmc8bWFpbHRvOmxpbnV4LWtlcm5lbEB2Z2VyLmtlcm5lbC5vcmc+
+DQpDYzogc3RhYmxlQHZnZXIua2VybmVsLm9yZzxtYWlsdG86c3RhYmxlQHZnZXIua2VybmVsLm9y
+Zz4NCg0KRldJVywgdGhpcyB3YXMgY2F1c2luZyBzcG9yYWRpYy9yYW5kb20gbmV0d29ya2luZyBm
+bGFraW5lc3Mgb24gQVJDIFNEUCBwbGF0Zm9ybSAoc2NoZWR1bGVkIGZvciB1cHN0cmVhbSBpbmNs
+dXNpb24gaW4gbmV4dCB3aW5kb3cpDQoNClRoaXMgYWxzbyBsZWFkcyB0byBhbiBpbnRlcmVzdGlu
+ZyBxdWVzdGlvbiAtIHNob3VsZCBhcmNoLyovZG1hX2FsbG9jX2NvaGVyZW50KCkgYW5kIGZyaWVu
+ZHMgdW5jb25kaXRpb25hbGx5IHplcm8gb3V0IG1lbW9yeSAodnMuIHRoZSBjdXJyZW50IHNlbWFu
+dGljcyBvZiBsZXR0aW5nIG9ubHkgZG9pbmcgaXQgYmFzZWQgb24gZ2ZwLCBhcyByZXF1ZXN0ZWQg
+YnkgZHJpdmVyKS4gVGhpcyBpcyB0aGUgc2Vjb25kIGluc3RhbmNlIHdlIHJhbiBpbnRvIHN0YWxl
+IGRlc2NyaXB0b3IgbWVtb3J5LCB0aGUgZmlyc3Qgb25lIHdhcyBpbiBkd19tbWMgZHJpdmVyIHdo
+aWNoIHdhcyByZWNlbnRseSBmaXhlZCBpbiB1cHN0cmVhbSBhcyB3ZWxsIChhbHRob3VnaCBkZWJ1
+Z2dlZCBpbmRlcGVuZGVudGx5IGJ5IEFsZXhleSBhbmQgdXNpbmcgdGhlIHVwc3RyZWFtIGZpeCkN
+Cg0KaHR0cDovL3d3dy5zcGluaWNzLm5ldC9saXN0cy9saW51eC1tbWMvbXNnMzE2MDAuaHRtbA0K
+DQpUaGUgcHJvcyBpcyBiZXR0ZXIgb3V0IG9mIGJveCBleHBlcmllbmNlIChkZXNwaXRlIGJ1Z2d5
+IGRyaXZlcnMpIHdoaWxlIHRoZSBjb25zIGFyZSB0aGV5IHJlbWFpbiBicm9rZW4gYW5kIHBlcmhh
+cHMgaW5jcmVhc2VkIGJvb3QgdGltZSBkdWUgdG8gZXh0cmEgbWVtemVyby4uLi4NCg0KUHJvYmFi
+bHkgaWYgd2UgYWxyZWFkeSBoYXZlIGRtYV96YWxsb2NfY29oZXJlbnQoKSB0aGF0IGRvZXMgZXhw
+bGljaXQgemVyb2luZyBvZiByZXR1cm5lZCBtZW1vcnkgdGhlbiB0aGVyZSdzIG5vIG5lZWQgdG8g
+ZG8gaW1wbGljaXQgemVyb2luZyBpbiBkbWFfYWxsb2NfY29oZXJlbnQoKT8NCg0KLUFsZXhleQ0K
 --
 To unsubscribe from this list: send the line "unsubscribe linux-arch" in
