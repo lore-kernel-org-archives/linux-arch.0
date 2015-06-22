@@ -1,23 +1,23 @@
 From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: [PATCH 3/8] ARCv2: perf: implement "event_set_period" for
- future use with interrupts
-Date: Mon, 22 Jun 2015 15:26:21 +0000
-Message-ID: <1434986780.4269.85.camel@synopsys.com>
+Subject: Re: [PATCH 4/8] ARCv2: perf: Support sampling events using overflow
+ interrupts
+Date: Mon, 22 Jun 2015 15:57:23 +0000
+Message-ID: <1434988643.4269.108.camel@synopsys.com>
 References: <1433852372-29494-1-git-send-email-vgupta@synopsys.com>
-	 <1433852372-29494-4-git-send-email-vgupta@synopsys.com>
-	 <20150615153831.GF3644@twins.programming.kicks-ass.net>
+	 <1433852372-29494-5-git-send-email-vgupta@synopsys.com>
+	 <20150615154816.GG3644@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-7"
 Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.60.111]:33089 "EHLO
+Received: from smtprelay.synopsys.com ([198.182.60.111]:33740 "EHLO
 	smtprelay.synopsys.com" rhost-flags-OK-FAIL-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1753652AbbFVP1C convert rfc822-to-8bit
+	by vger.kernel.org with ESMTP id S1751482AbbFVP5a convert rfc822-to-8bit
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Jun 2015 11:27:02 -0400
-In-Reply-To: <20150615153831.GF3644@twins.programming.kicks-ass.net>
+	Mon, 22 Jun 2015 11:57:30 -0400
+In-Reply-To: <20150615154816.GG3644@twins.programming.kicks-ass.net>
 Content-Language: en-US
-Content-ID: <E24E272A357BF94CBDA6674AC4965167@internal.synopsys.com>
+Content-ID: <72A5B29ABDB561489037078AE5491D36@internal.synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "peterz@infradead.org" <peterz@infradead.org>
@@ -25,92 +25,123 @@ Cc: "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.
 
 Hi Peter,
 
-On Mon, 2015-06-15 at 17:38 +-0200, Peter Zijlstra wrote:
-+AD4- On Tue, Jun 09, 2015 at 05:49:27PM +-0530, Vineet Gupta wrote:
-+AD4- +AD4- +AEAAQA- -99,8 +-99,7 +AEAAQA- static void arc+AF8-perf+AF8-event+AF8-update(struct 
-+AD4- +AD4- perf+AF8-event +ACo-event,
-+AD4- +AD4-     +AH0- while (local64+AF8-cmpxchg(+ACY-hwc-+AD4-prev+AF8-count, prev+AF8-raw+AF8-count,
-+AD4- +AD4-                              new+AF8-raw+AF8-count) +ACEAPQ- 
-+AD4- +AD4- prev+AF8-raw+AF8-count)+ADs-
-+AD4- +AD4-  
-+AD4- +AD4- -   delta +AD0- (new+AF8-raw+AF8-count - prev+AF8-raw+AF8-count) +ACY-
-+AD4- +AD4- -           ((1ULL +ADwAPA- arc+AF8-pmu-+AD4-counter+AF8-size) - 1ULL)+ADs-
-+AD4- +AD4- +-   delta +AD0- (new+AF8-raw+AF8-count - prev+AF8-raw+AF8-count) +ACY- arc+AF8-pmu
-+AD4- +AD4- -+AD4-max+AF8-period+ADs-
+On Mon, 2015-06-15 at 17:48 +-0200, Peter Zijlstra wrote:
++AD4- On Tue, Jun 09, 2015 at 05:49:28PM +-0530, Vineet Gupta wrote:
++AD4- +AD4- From: Alexey Brodkin +ADw-abrodkin+AEA-synopsys.com+AD4-
 +AD4- 
-+AD4- I don't know how your PMU works, but you seem to be assuming new+AF8-raw
-+AD4- prev+AF8-raw, which implies its counting up.
++AD4- -ENOCHANGELOG
 +AD4- 
-+AD4- Now, typically these things trigger when they reach 0, so when we're
-+AD4- counting up that would mean your values are negative.
++AD4- +AD4- Cc: Peter Zijlstra +ADw-peterz+AEA-infradead.org+AD4-
++AD4- +AD4- Cc: Arnaldo Carvalho de Melo +ADw-acme+AEA-kernel.org+AD4-
++AD4- +AD4- Signed-off-by: Alexey Brodkin +ADw-abrodkin+AEA-synopsys.com+AD4-
++AD4- +AD4- Signed-off-by: Vineet Gupta +ADw-vgupta+AEA-synopsys.com+AD4-
++AD4- +AD4- ---
 +AD4- 
-+AD4- In that case, where's the sign extension?
++AD4- +AD4-  struct arc+AF8-pmu +AHs-
++AD4- +AD4-     struct pmu      pmu+ADs-
++AD4- +AD4- +-   int             has+AF8-interrupts+ADs-
++AD4- 
++AD4- we have pmu::flags +ACY- PERF+AF8-PMU+AF8-CAP+AF8-NO+AF8-INTERRUPT
 
-Our HW even counters work that way:
-Each counter counts from programmed start value (set in
-ARC+AF8-REG+AF8-PCT+AF8-COUNT) to a limit value (set in ARC+AF8-REG+AF8-PCT+AF8-INT+AF8-CNT) and
-once limit value is reached this timer generates an interrupt.
-
-Even though this HW implementation allows for more flexibility in Linux
-kernel we decided to mimic behavior of other architectures in this way:
-
- +AFs-1+AF0- Set limit value as half of counter's max value:
- ----------+AD4-8-----------
- arc+AF8-pmu-+AD4-max+AF8-period +AD0- (1ULL +ADwAPA- counter+AF8-size) / 2 - 1ULL+ADs-
- ----------+AD4-8-----------
-
- +AFs-2+AF0- Set start value as +ACI-arc+AF8-pmu-+AD4-max+AF8-period - sample+AF8-period+ACI- and then
-count up to the limit
-
-Our event counters don't stop on reaching max value (the one we set in
-ARC+AF8-REG+AF8-PCT+AF8-INT+AF8-CNT) but continue to count until kernel explicitly
-stops each of them.
-
-And setting a limit as half of counter capacity is done to allow
-capturing of additional events in between moment when interrupt was
-triggered until we're actually processing PMU interrupts. That way
-we're trying to be more precise.
-
-For example if we count CPU cycles we keep track of cycles while
-running through generic IRQ handling code:
-
- +AFs-1+AF0- We set counter period as say 100+AF8-000 events of type +ACI-crun+ACI-
- +AFs-2+AF0- Counter reaches that limit and raises its interrupt
- +AFs-3+AF0- Once we get in PMU IRQ handler we read current counter value from
-ARC+AF8-REG+AF8-PCT+AF8-SNAP ans see there something like 105+AF8-000.
-
-If counters stop on reaching a limit value then we would miss
-additional 5000 cycles.
+Ah... if we set that flag perf+AF8-event+AF8-open() won't allow user to use
+sampling events anyways so we may drop +ACI-arc+AF8-pmu.has+AF8-interrupts+ACI-
+completely, right?
 
 +AD4- 
-+AD4- 
-+AD4- +AD4- +AEAAQA- -182,6 +-181,13 +AEAAQA- static int arc+AF8-pmu+AF8-event+AF8-init(struct 
-+AD4- +AD4- perf+AF8-event +ACo-event)
-+AD4- +AD4-     struct hw+AF8-perf+AF8-event +ACo-hwc +AD0- +ACY-event-+AD4-hw+ADs-
-+AD4- +AD4-     int ret+ADs-
-+AD4- +AD4-  
-+AD4- +AD4- +-   if (+ACE-is+AF8-sampling+AF8-event(event)) +AHs-
-+AD4- +AD4- +-           hwc-+AD4-sample+AF8-period  +AD0- arc+AF8-pmu-+AD4-max+AF8-period+ADs-
-+AD4- +AD4- +-           hwc-+AD4-last+AF8-period +AD0- hwc-+AD4-sample+AF8-period+ADs-
-+AD4- +AD4- +-           local64+AF8-set(+ACY-hwc-+AD4-period+AF8-left, hwc
++AD4- +AD4- +AEAAQA- -186,7 +-189,8 +AEAAQA- static int arc+AF8-pmu+AF8-event+AF8-init(struct perf+AF8-event 
++AD4- +AD4- +ACo-event)
++AD4- +AD4-             hwc-+AD4-last+AF8-period +AD0- hwc-+AD4-sample+AF8-period+ADs-
++AD4- +AD4-             local64+AF8-set(+ACY-hwc-+AD4-period+AF8-left, hwc
 +AD4- +AD4- -+AD4-sample+AF8-period)+ADs-
-+AD4- +AD4- +-   +AH0- else
-+AD4- +AD4- +-           return -ENOENT+ADs-
++AD4- +AD4-     +AH0- else
++AD4- +AD4- -           return -ENOENT+ADs-
++AD4- +AD4- +-           if (+ACE-arc+AF8-pmu-+AD4-has+AF8-interrupts)
++AD4- +AD4- +-                   return -ENOENT+ADs-
 +AD4- 
-+AD4- -ENOENT is wrong for is+AF8-sampling+AF8-event().
++AD4- Same as before, first determine if the event is yours, then return a
++AD4- fatal error.
+
+Indeed with my note above that check makes no sense - perf framework
+will do that same check instead.
+
++AD4- +AD4- +AEAAQA- -307,6 +-311,17 +AEAAQA- static void arc+AF8-pmu+AF8-stop(struct perf+AF8-event 
++AD4- +AD4- +ACo-event, int flags)
++AD4- +AD4-     struct hw+AF8-perf+AF8-event +ACo-hwc +AD0- +ACY-event-+AD4-hw+ADs-
++AD4- +AD4-     int idx +AD0- hwc-+AD4-idx+ADs-
++AD4- +AD4-  
++AD4- +AD4- +-   /+ACo- Disable interrupt for this counter +ACo-/
++AD4- +AD4- +-   if (is+AF8-sampling+AF8-event(event)) +AHs-
 +AD4- 
-+AD4- Either the event is for this PMU, in which case you should return a
-+AD4- fatal error, or its not (-ENOENT is correct in that case).
++AD4- but but but, a sampling event needs the interrupt enabled?
 
-Frankly I didn't quite understand that comment.
+Indeed sampling event needs the interrupt enabled. What's wrong with
+that fact? Or I'm missing something?
 
-What is meant in that code - our hardware may have support of
-interrupts in HW counters or not. And that is not only dependent on ARC
-core version (in fact ARC 700 may have only interrupt-less PMU) but
-could be configured during designing of ASIC (i.e. ARC HS38 may have
-PMU with or without interrupts).
++AD4- +AD4- +-           /+ACo-
++AD4- +AD4- +-            +ACo- Reset interrupt flag by writing of 1. This is 
++AD4- +AD4- required
++AD4- +AD4- +-            +ACo- to make sure pending interrupt was not left.
++AD4- +AD4- +-            +ACo-/
++AD4- 
++AD4- Would not typically the interrupt latch be a property of the 
++AD4- interrupt
++AD4- controller, not the device generating it?
++AD4- 
++AD4- That is, how can the device programming affect pending interrupts?
 
-That's why we check for event type and if we cannot handle it due to
-limitation of current HW then we return -ENOENT.
+The point here is our hardware counters are built in CPU core and
+interrupt line from PMU block is wired directly to the top-level INTC.
 
--Alexey
+Moreover that one IRQ line from PMU (or HW event counters how we call
+them) is a logical OR of interrupts from each even counter (we may have
+from 1 to 32 counters built-in). That means to clear a pending
+interrupt from PMU block we need to clear states of individual
+interrupts (per counter) in PMU.
+
++AD4- +AD4- +-           write+AF8-aux+AF8-reg(ARC+AF8-REG+AF8-PCT+AF8-INT+AF8-ACT, 1 +ADwAPA- idx)+ADs-
++AD4- +AD4- +-           write+AF8-aux+AF8-reg(ARC+AF8-REG+AF8-PCT+AF8-INT+AF8-CTRL,
++AD4- +AD4- +-                    
++AD4- +AD4-      read+AF8-aux+AF8-reg(ARC+AF8-REG+AF8-PCT+AF8-INT+AF8-CTRL) +ACY- +AH4-(1 +ADwAPA- idx))+ADs-
++AD4- +AD4- +-   +AH0-
++AD4- +AD4- +-
++AD4- 
++AD4- +AD4- +-   if (is+AF8-sampling+AF8-event(event)) +AHs-
++AD4- +AD4- +-           /+ACo- Mimic full counter overflow as other arches do 
++AD4- +AD4- +ACo-/
++AD4- 
++AD4- With this you mean the pretending we have 63bit of overflow counter?
+
+Correct. In more details it is covered in my comments in +AFs-PATCH 3/8+AF0-.
+
++AD4- +AD4- +-           write+AF8-aux+AF8-reg(ARC+AF8-REG+AF8-PCT+AF8-INT+AF8-CNTL, arc+AF8-pmu
++AD4- +AD4- -+AD4-max+AF8-period +ACY-
++AD4- +AD4- +-                                               0xffffffff)+ADs-
++AD4- 
++AD4- Would not (u32)arc+AF8-pmu-+AD4-max+AF8-period, be clearer?
+
+True, makes sense.
+
++AD4- +AD4- +-           write+AF8-aux+AF8-reg(ARC+AF8-REG+AF8-PCT+AF8-INT+AF8-CNTH,
++AD4- +AD4- +-                         (arc+AF8-pmu-+AD4-max+AF8-period +AD4APg- 32))+ADs-
++AD4- 
++AD4- But should you not program: min(period, max+AF8-period) instead? If the
++AD4- requested period is shorter than your max period you do not want to
++AD4- program the max. Or are you missing a negative somewhere?
+
+Here we just program the limit which is used for triggering an
+interrupt. We don't care about +ACI-period+ACI- being +AD4- than +ACI-max+AF8-period+ACI-
+because in arc+AF8-pmu+AF8-start()-+AD4-arc+AF8-pmu+AF8-event+AF8-set+AF8-period() we do that check
+when actually setting start value of a counter.
+
++AD4- That is, program the max+AF8-period for +ACE-sampling events to deal with
++AD4- overflow folding.
+
+Once again we deal with overflow folding in arc+AF8-pmu+AF8-event+AF8-set+AF8-period()
+even for +ACE-sampling events. But there's no need to program max+AF8-period in
+PMU registers because hardware doesn't care about it - we just use that
+value in software. Moreover if HW lacks PMU IRQ support then attempt to
+access missing registers (for example ARC+AF8-REG+AF8-PCT+AF8-INT+AF8-CNT) will
+inevitably lead to instruction error exception.
+
+-Alexey--
+To unsubscribe from this list: send the line "unsubscribe linux-arch" in
