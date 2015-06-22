@@ -1,59 +1,122 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [arc-linux-dev] [PATCH] stmmac: explicitly zero des0 & des1 on
- init
-Date: Mon, 22 Jun 2015 14:04:11 +0530
-Message-ID: <5587C883.9080304@synopsys.com>
-References: <1434476441-18241-1-git-send-email-abrodkin@synopsys.com>	 <C2D7FE5348E1B147BCA15975FBA23075665A5DED@IN01WEMBXB.internal.synopsys.com> <1434960510.4269.25.camel@synopsys.com>
+From: Michal Hocko <mhocko-AlSwsSmVLrQ@public.gmane.org>
+Subject: Re: [RESEND PATCH V2 1/3] Add mmap flag to request pages are locked
+ after page fault
+Date: Mon, 22 Jun 2015 14:38:26 +0200
+Message-ID: <20150622123826.GF4430@dhcp22.suse.cz>
+References: <1433942810-7852-1-git-send-email-emunson@akamai.com>
+ <1433942810-7852-2-git-send-email-emunson@akamai.com>
+ <20150618152907.GG5858@dhcp22.suse.cz>
+ <20150618203048.GB2329@akamai.com>
+ <20150619145708.GG4913@dhcp22.suse.cz>
+ <20150619164333.GD2329@akamai.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <stable-owner@vger.kernel.org>
-In-Reply-To: <1434960510.4269.25.camel@synopsys.com>
-Sender: stable-owner@vger.kernel.org
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peppe.cavallaro@st.com" <peppe.cavallaro@st.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "m.szyprowski@samsung.com" <m.szyprowski@samsung.com>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20150619164333.GD2329-JqFfY2XvxFXQT0dZR+AlfA@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Eric B Munson <emunson-JqFfY2XvxFXQT0dZR+AlfA@public.gmane.org>
+Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On Monday 22 June 2015 01:38 PM, Alexey Brodkin wrote:
-> Hi all,
+On Fri 19-06-15 12:43:33, Eric B Munson wrote:
+> On Fri, 19 Jun 2015, Michal Hocko wrote:
 > 
-> On Wed, 2015-06-17 at 07:03 +0000, Vineet Gupta wrote:
-> +CC linux-arch, linux-mm, Arnd and Marek
+> > On Thu 18-06-15 16:30:48, Eric B Munson wrote:
+> > > On Thu, 18 Jun 2015, Michal Hocko wrote:
+> > [...]
+> > > > Wouldn't it be much more reasonable and straightforward to have
+> > > > MAP_FAULTPOPULATE as a counterpart for MAP_POPULATE which would
+> > > > explicitly disallow any form of pre-faulting? It would be usable for
+> > > > other usecases than with MAP_LOCKED combination.
+> > > 
+> > > I don't see a clear case for it being more reasonable, it is one
+> > > possible way to solve the problem.
+> > 
+> > MAP_FAULTPOPULATE would be usable for other cases as well. E.g. fault
+> > around is all or nothing feature. Either all mappings (which support
+> > this) fault around or none. There is no way to tell the kernel that
+> > this particular mapping shouldn't fault around. I haven't seen such a
+> > request yet but we have seen requests to have a way to opt out from
+> > a global policy in the past (e.g. per-process opt out from THP). So
+> > I can imagine somebody will come with a request to opt out from any
+> > speculative operations on the mapped area in the future.
+> > 
+> > > But I think it leaves us in an even
+> > > more akward state WRT VMA flags.  As you noted in your fix for the
+> > > mmap() man page, one can get into a state where a VMA is VM_LOCKED, but
+> > > not present.  Having VM_LOCKONFAULT states that this was intentional, if
+> > > we go to using MAP_FAULTPOPULATE instead of MAP_LOCKONFAULT, we no
+> > > longer set VM_LOCKONFAULT (unless we want to start mapping it to the
+> > > presence of two MAP_ flags).  This can make detecting the MAP_LOCKED +
+> > > populate failure state harder.
+> > 
+> > I am not sure I understand your point here. Could you be more specific
+> > how would you check for that and what for?
 > 
-> On Tuesday 16 June 2015 11:11 PM, Alexey Brodkin wrote:
-> 
-> Current implementtion of descriptor init procedure only takes care about
-> ownership flag. While it is perfectly possible to have underlying memory
-> filled with garbage on boot or driver installation.
-> 
-> And randomly set flags in non-zeroed des0 and des1 fields may lead to
-> unpredictable behavior of the GMAC DMA block.
-> 
-> Solution to this problem is as simple as explicit zeroing of both des0
-> and des1 fields of all buffer descriptors.
-> 
-> Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com><mailto:abrodkin@synopsys.com>
-> Cc: Giuseppe Cavallaro <peppe.cavallaro@st.com><mailto:peppe.cavallaro@st.com>
-> Cc: arc-linux-dev@synopsys.com<mailto:arc-linux-dev@synopsys.com>
-> Cc: linux-kernel@vger.kernel.org<mailto:linux-kernel@vger.kernel.org>
-> Cc: stable@vger.kernel.org<mailto:stable@vger.kernel.org>
-> 
-> FWIW, this was causing sporadic/random networking flakiness on ARC SDP platform (scheduled for upstream inclusion in next window)
-> 
-> This also leads to an interesting question - should arch/*/dma_alloc_coherent() and friends unconditionally zero out memory (vs. the current semantics of letting only doing it based on gfp, as requested by driver). This is the second instance we ran into stale descriptor memory, the first one was in dw_mmc driver which was recently fixed in upstream as well (although debugged independently by Alexey and using the upstream fix)
-> 
-> http://www.spinics.net/lists/linux-mmc/msg31600.html
-> 
-> The pros is better out of box experience (despite buggy drivers) while the cons are they remain broken and perhaps increased boot time due to extra memzero....
-> 
-> Probably if we already have dma_zalloc_coherent() that does explicit zeroing of returned memory then there's no need to do implicit zeroing in dma_alloc_coherent()?
+> My thought on detecting was that someone might want to know if they had
+> a VMA that was VM_LOCKED but had not been made present becuase of a
+> failure in mmap.  We don't have a way today, but adding VM_LOCKONFAULT
+> is at least explicit about what is happening which would make detecting
+> the VM_LOCKED but not present state easier. 
 
+One could use /proc/<pid>/pagemap to query the residency.
 
-The question is, when drivers don't have dma_zalloc_coherent() - meaning they
-don't pass __GFP_ZERO, which causes these random issues, do we need to be more
-conservative in arch code (ARC at least is) or do we need to debug and fix these
-drivers - one by one.
+> This assumes that
+> MAP_FAULTPOPULATE does not translate to a VMA flag, but it sounds like
+> it would have to.
 
-FWIW, ARC needs to fix __GFP_ZERO case, since we are doing memzero twice.
+Yes, it would have to have a VM flag for the vma.
 
--Vineet
+> > From my understanding MAP_LOCKONFAULT is essentially
+> > MAP_FAULTPOPULATE|MAP_LOCKED with a quite obvious semantic (unlike
+> > single MAP_LOCKED unfortunately). I would love to also have
+> > MAP_LOCKED|MAP_POPULATE (aka full mlock semantic) but I am really
+> > skeptical considering how my previous attempt to make MAP_POPULATE
+> > reasonable went.
+> 
+> Are you objecting to the addition of the VMA flag VM_LOCKONFAULT, or the
+> new MAP_LOCKONFAULT flag (or both)? 
+
+I thought the MAP_FAULTPOPULATE (or any other better name) would
+directly translate into VM_FAULTPOPULATE and wouldn't be tight to the
+locked semantic. We already have VM_LOCKED for that. The direct effect
+of the flag would be to prevent from population other than the direct
+page fault - including any speculative actions like fault around or
+read-ahead.
+
+> If you prefer that MAP_LOCKED |
+> MAP_FAULTPOPULATE means that VM_LOCKONFAULT is set, I am fine with that
+> instead of introducing MAP_LOCKONFAULT.  I went with the new flag
+> because to date, we have a one to one mapping of MAP_* to VM_* flags.
+> 
+> > 
+> > > If this is the preferred path for mmap(), I am fine with that. 
+> > 
+> > > However,
+> > > I would like to see the new system calls that Andrew mentioned (and that
+> > > I am testing patches for) go in as well. 
+> > 
+> > mlock with flags sounds like a good step but I am not sure it will make
+> > sense in the future. POSIX has screwed that and I am not sure how many
+> > applications would use it. This ship has sailed long time ago.
+> 
+> I don't know either, but the code is the question, right?  I know that
+> we have at least one team that wants it here.
+> 
+> > 
+> > > That way we give users the
+> > > ability to request VM_LOCKONFAULT for memory allocated using something
+> > > other than mmap.
+> > 
+> > mmap(MAP_FAULTPOPULATE); mlock() would have the same semantic even
+> > without changing mlock syscall.
+> 
+> That is true as long as MAP_FAULTPOPULATE set a flag in the VMA(s).  It
+> doesn't cover the actual case I was asking about, which is how do I get
+> lock on fault on malloc'd memory?
+
+OK I see your point now. We would indeed need a flag argument for mlock.
+-- 
+Michal Hocko
+SUSE Labs
