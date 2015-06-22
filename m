@@ -1,176 +1,79 @@
-From: Eric B Munson <emunson-JqFfY2XvxFXQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [RESEND PATCH V2 1/3] Add mmap flag to request pages are locked
- after page fault
-Date: Mon, 22 Jun 2015 10:18:06 -0400
-Message-ID: <20150622141806.GE2329@akamai.com>
-References: <1433942810-7852-1-git-send-email-emunson@akamai.com>
- <1433942810-7852-2-git-send-email-emunson@akamai.com>
- <20150618152907.GG5858@dhcp22.suse.cz>
- <20150618203048.GB2329@akamai.com>
- <20150619145708.GG4913@dhcp22.suse.cz>
- <20150619164333.GD2329@akamai.com>
- <20150622123826.GF4430@dhcp22.suse.cz>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 1/8] ARC: perf: support RAW events
+Date: Mon, 22 Jun 2015 16:41:57 +0200
+Message-ID: <20150622144157.GV3644@twins.programming.kicks-ass.net>
+References: <1433852372-29494-1-git-send-email-vgupta@synopsys.com>
+ <1433852372-29494-2-git-send-email-vgupta@synopsys.com>
+ <20150615153029.GE3644@twins.programming.kicks-ass.net>
+ <4881796E12491D4BB15146FE0209CE64656C9E81@DE02WEMBXB.internal.synopsys.com>
+ <20150617133358.GR3644@twins.programming.kicks-ass.net>
+ <55817FDD.7060902@synopsys.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="8vCeF2GUdMpe9ZbK"
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20150622123826.GF4430-2MMpYkNvuYDjFM9bn6wA6Q@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Michal Hocko <mhocko-AlSwsSmVLrQ@public.gmane.org>
-Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
-
-
---8vCeF2GUdMpe9ZbK
 Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.9]:53545 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751902AbbFVOmH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Jun 2015 10:42:07 -0400
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <55817FDD.7060902@synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, jolsa@kernel.org
 
-On Mon, 22 Jun 2015, Michal Hocko wrote:
+On Wed, Jun 17, 2015 at 07:40:37PM +0530, Vineet Gupta wrote:
+> > I would much prefer the raw thing to remain a number; it puts you in
+> > pretty much the same place as most other archs, including x86.
+> 
+> Sure, but that doesn't mean we start using the index of event as a raw ID. There
+> are zillion ways to configure cores and the index will certainly start varying.
+> Which means that user has to determine at run time (using whatever /proc/xxx) what
+> crun corresponds to. Why inflict such pain on poor guy.
+> 
+> The current raw event, despite representing an ASCII string is still a u64 number.
+> So it is not more "raw" than what others have. We can get rid of the swapping
+> business when setting up a raw event, by making sure that cached values from probe
+> are already in same format.
+> 
+> But using index as a event id is no go sorry...
 
-> On Fri 19-06-15 12:43:33, Eric B Munson wrote:
-> > On Fri, 19 Jun 2015, Michal Hocko wrote:
-> >=20
-> > > On Thu 18-06-15 16:30:48, Eric B Munson wrote:
-> > > > On Thu, 18 Jun 2015, Michal Hocko wrote:
-> > > [...]
-> > > > > Wouldn't it be much more reasonable and straightforward to have
-> > > > > MAP_FAULTPOPULATE as a counterpart for MAP_POPULATE which would
-> > > > > explicitly disallow any form of pre-faulting? It would be usable =
-for
-> > > > > other usecases than with MAP_LOCKED combination.
-> > > >=20
-> > > > I don't see a clear case for it being more reasonable, it is one
-> > > > possible way to solve the problem.
-> > >=20
-> > > MAP_FAULTPOPULATE would be usable for other cases as well. E.g. fault
-> > > around is all or nothing feature. Either all mappings (which support
-> > > this) fault around or none. There is no way to tell the kernel that
-> > > this particular mapping shouldn't fault around. I haven't seen such a
-> > > request yet but we have seen requests to have a way to opt out from
-> > > a global policy in the past (e.g. per-process opt out from THP). So
-> > > I can imagine somebody will come with a request to opt out from any
-> > > speculative operations on the mapped area in the future.
-> > >=20
-> > > > But I think it leaves us in an even
-> > > > more akward state WRT VMA flags.  As you noted in your fix for the
-> > > > mmap() man page, one can get into a state where a VMA is VM_LOCKED,=
- but
-> > > > not present.  Having VM_LOCKONFAULT states that this was intentiona=
-l, if
-> > > > we go to using MAP_FAULTPOPULATE instead of MAP_LOCKONFAULT, we no
-> > > > longer set VM_LOCKONFAULT (unless we want to start mapping it to the
-> > > > presence of two MAP_ flags).  This can make detecting the MAP_LOCKE=
-D +
-> > > > populate failure state harder.
-> > >=20
-> > > I am not sure I understand your point here. Could you be more specific
-> > > how would you check for that and what for?
-> >=20
-> > My thought on detecting was that someone might want to know if they had
-> > a VMA that was VM_LOCKED but had not been made present becuase of a
-> > failure in mmap.  We don't have a way today, but adding VM_LOCKONFAULT
-> > is at least explicit about what is happening which would make detecting
-> > the VM_LOCKED but not present state easier.=20
->=20
-> One could use /proc/<pid>/pagemap to query the residency.
->=20
-> > This assumes that
-> > MAP_FAULTPOPULATE does not translate to a VMA flag, but it sounds like
-> > it would have to.
->=20
-> Yes, it would have to have a VM flag for the vma.
->=20
-> > > From my understanding MAP_LOCKONFAULT is essentially
-> > > MAP_FAULTPOPULATE|MAP_LOCKED with a quite obvious semantic (unlike
-> > > single MAP_LOCKED unfortunately). I would love to also have
-> > > MAP_LOCKED|MAP_POPULATE (aka full mlock semantic) but I am really
-> > > skeptical considering how my previous attempt to make MAP_POPULATE
-> > > reasonable went.
-> >=20
-> > Are you objecting to the addition of the VMA flag VM_LOCKONFAULT, or the
-> > new MAP_LOCKONFAULT flag (or both)?=20
->=20
-> I thought the MAP_FAULTPOPULATE (or any other better name) would
-> directly translate into VM_FAULTPOPULATE and wouldn't be tight to the
-> locked semantic. We already have VM_LOCKED for that. The direct effect
-> of the flag would be to prevent from population other than the direct
-> page fault - including any speculative actions like fault around or
-> read-ahead.
+Well, you're still stuck converting an 8 char ASCII string to hex, which
+arguably isn't too hard, but still rather ugly.
 
-I like the ability to control other speculative population, but I am not
-sure about overloading it with the VM_LOCKONFAULT case.  Here is my
-concern.  If we are using VM_FAULTPOPULATE | VM_LOCKED to denote
-LOCKONFAULT, how can we tell the difference between someone that wants
-to avoid read-ahead and wants to use mlock()?  This might lead to some
-interesting states with mlock() and munlock() that take flags.  For
-instance, using VM_LOCKONFAULT mlock(MLOCK_ONFAULT) followed by
-munlock(MLOCK_LOCKED) leaves the VMAs in the same state with
-VM_LOCKONFAULT set.  If we use VM_FAULTPOPULATE, the same pair of calls
-would clear VM_LOCKED, but leave VM_FAULTPOPULATE.  It may not matter in
-the end, but I am concerned about the subtleties here.
+Furthermore, the 'raw' interface is what is used to pass in hardware
+configuration otherwise not exposed. If all you currently have is event
+idx that's not too interesting.
 
->=20
-> > If you prefer that MAP_LOCKED |
-> > MAP_FAULTPOPULATE means that VM_LOCKONFAULT is set, I am fine with that
-> > instead of introducing MAP_LOCKONFAULT.  I went with the new flag
-> > because to date, we have a one to one mapping of MAP_* to VM_* flags.
-> >=20
-> > >=20
-> > > > If this is the preferred path for mmap(), I am fine with that.=20
-> > >=20
-> > > > However,
-> > > > I would like to see the new system calls that Andrew mentioned (and=
- that
-> > > > I am testing patches for) go in as well.=20
-> > >=20
-> > > mlock with flags sounds like a good step but I am not sure it will ma=
-ke
-> > > sense in the future. POSIX has screwed that and I am not sure how many
-> > > applications would use it. This ship has sailed long time ago.
-> >=20
-> > I don't know either, but the code is the question, right?  I know that
-> > we have at least one team that wants it here.
-> >=20
-> > >=20
-> > > > That way we give users the
-> > > > ability to request VM_LOCKONFAULT for memory allocated using someth=
-ing
-> > > > other than mmap.
-> > >=20
-> > > mmap(MAP_FAULTPOPULATE); mlock() would have the same semantic even
-> > > without changing mlock syscall.
-> >=20
-> > That is true as long as MAP_FAULTPOPULATE set a flag in the VMA(s).  It
-> > doesn't cover the actual case I was asking about, which is how do I get
-> > lock on fault on malloc'd memory?
->=20
-> OK I see your point now. We would indeed need a flag argument for mlock.
-> --=20
-> Michal Hocko
-> SUSE Labs
+However, your patch 6 already introduces event modifiers:
 
---8vCeF2GUdMpe9ZbK
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
++#define ARC_REG_PCT_CONFIG_USER        (1 << 18)       /* count in user mode */
++#define ARC_REG_PCT_CONFIG_KERN        (1 << 19)       /* count in kernel mode */
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
+Those should also be available through the raw interface.
 
-iQIcBAEBAgAGBQJViBkeAAoJELbVsDOpoOa9pkcQALlaWWdIjaV+PbMT84IJJRE8
-xU+rL1vQjFbf3KGAXPxta7KjvT0OS2mPJ15WQE58XhTeGslpwB/Ujsd9n+H3TeQ8
-lk/F5wFrTvwGn5WcijHJ9xUslamjI2ewEzCUX8BIQWh/bG2X3pIpjdgNJHW1Ofb0
-FpUYTqL/4EnYzDqhY2CFW6OSruru9YagVJQ2NPu6+wkdkhAtt/CpESTVF+vbJoKW
-ewpOGghLVYWnjbRPB5PFAnXhjmtEpzPIOLeE62GkuQDQWdFNdnqlUMz/ZZmUyRGB
-RBmPUtT3jhlUlhnkI0qY/z27S9w+mB2yvIBclPUBrGtv/73QICHmHd+rYE11YGXf
-8zIglfn69cX5deCUBmdkmUsGiOZpbwVNVkI1HmvL+wMDZEwZyT3bZnSyAMyUe385
-FVt+HGvq5Afxk5ooL6zPty283KGLZiKURj8Zw/g5YRBO6/B/7NRvct9x+0OzSdW0
-C3u9sTfLa5wI581qumQt0cODGdhdO3SNjov9SpeZs8firqxEKhxn0pNjs7heFu7i
-HQHoRJGhc8RXqjp8QsxeQL4+tepDvuAnxU53YJZxBwze6AwuWQ8WEomP51ebTnKW
-xNwU2AVf6WZ3KFLyL7gjn7YxfkQll67pHPwn6BddK4SGdT5VVgX1h3MUfvo86f2V
-uvYltwMOPPyaFw18cEx1
-=67XH
------END PGP SIGNATURE-----
+That is, your perf_event_attr::config should pretty much end up in your
+hardware unmodified -- with the obvious exception of things like
+'interrupt enable' because we want the kernel to be in control of that.
 
---8vCeF2GUdMpe9ZbK--
+So if you 'overload' your TYPE_RAW to mean something else entirely, you
+also loose the ability to specify event modifiers not otherwise modelled
+in perf.
+
+
+There are things you could do though; you could for instance interpret a
+!0 perf_event_attr::config1 as the name field and replace the
+perf_event_attr::config's event idx with whatever comes out of that
+name->idx map -- and/or require perf_event_attr::config's event idx to
+be 0 in that case.
+
+This of course assumes there will never be an other valid use for
+::config1.
+
+Alternatively you can register a second pmu "cpu_name" and interpret its
+::config as the name.
+
+
+Also, ideally you'd convince acme/jolsa to extend the event parser with
+this 8-char ASCII format so you can do all the text munging in userspace
+and not have to do the ugly you propose here.
