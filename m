@@ -1,23 +1,53 @@
-From: 'LEUNG CHEUNG' <info@hotmail.com>
-Subject: Hello
-Date: Sun, 21 Jun 2015 22:35:35 +0530
-Message-ID: <20150621170604.EFE985F6B6B__38720.9333399825$1434907113$gmane$org@zmail.goiania.go.gov.br>
-Reply-To: mr.leungcheng30@foxmail.com
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: [arc-linux-dev] [PATCH] stmmac: explicitly zero des0 & des1 on
+ init
+Date: Mon, 22 Jun 2015 08:08:31 +0000
+Message-ID: <1434960510.4269.25.camel@synopsys.com>
+References: <1434476441-18241-1-git-send-email-abrodkin@synopsys.com>
+	 <C2D7FE5348E1B147BCA15975FBA23075665A5DED@IN01WEMBXB.internal.synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from correio.agmg.goiania.go.gov.br ([200.199.226.132]:43463 "EHLO
-	zmail.goiania.go.gov.br" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751133AbbFURQz convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 21 Jun 2015 13:16:55 -0400
-Content-Description: Mail message body
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <info@hotmail.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075665A5DED@IN01WEMBXB.internal.synopsys.com>
+Content-Language: en-US
+Content-ID: <9C754CE371BF664B83E790960FE8A875@internal.synopsys.com>
+Sender: netdev-owner@vger.kernel.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peppe.cavallaro@st.com" <peppe.cavallaro@st.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "stable@vger.kernel.org" <stable@vger.kernel.org>, "m.szyprowski@samsung.com" <m.szyprowski@samsung.com>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>
+List-Id: linux-arch.vger.kernel.org
 
-
-
-
-
-I need your assistance to transfer $22,500,000.00 Dollars from Hong Kong 
+SGkgYWxsLA0KDQpPbiBXZWQsIDIwMTUtMDYtMTcgYXQgMDc6MDMgKzAwMDAsIFZpbmVldCBHdXB0
+YSB3cm90ZToNCitDQyBsaW51eC1hcmNoLCBsaW51eC1tbSwgQXJuZCBhbmQgTWFyZWsNCg0KT24g
+VHVlc2RheSAxNiBKdW5lIDIwMTUgMTE6MTEgUE0sIEFsZXhleSBCcm9ka2luIHdyb3RlOg0KDQpD
+dXJyZW50IGltcGxlbWVudHRpb24gb2YgZGVzY3JpcHRvciBpbml0IHByb2NlZHVyZSBvbmx5IHRh
+a2VzIGNhcmUgYWJvdXQNCm93bmVyc2hpcCBmbGFnLiBXaGlsZSBpdCBpcyBwZXJmZWN0bHkgcG9z
+c2libGUgdG8gaGF2ZSB1bmRlcmx5aW5nIG1lbW9yeQ0KZmlsbGVkIHdpdGggZ2FyYmFnZSBvbiBi
+b290IG9yIGRyaXZlciBpbnN0YWxsYXRpb24uDQoNCkFuZCByYW5kb21seSBzZXQgZmxhZ3MgaW4g
+bm9uLXplcm9lZCBkZXMwIGFuZCBkZXMxIGZpZWxkcyBtYXkgbGVhZCB0bw0KdW5wcmVkaWN0YWJs
+ZSBiZWhhdmlvciBvZiB0aGUgR01BQyBETUEgYmxvY2suDQoNClNvbHV0aW9uIHRvIHRoaXMgcHJv
+YmxlbSBpcyBhcyBzaW1wbGUgYXMgZXhwbGljaXQgemVyb2luZyBvZiBib3RoIGRlczANCmFuZCBk
+ZXMxIGZpZWxkcyBvZiBhbGwgYnVmZmVyIGRlc2NyaXB0b3JzLg0KDQpTaWduZWQtb2ZmLWJ5OiBB
+bGV4ZXkgQnJvZGtpbiA8YWJyb2RraW5Ac3lub3BzeXMuY29tPjxtYWlsdG86YWJyb2RraW5Ac3lu
+b3BzeXMuY29tPg0KQ2M6IEdpdXNlcHBlIENhdmFsbGFybyA8cGVwcGUuY2F2YWxsYXJvQHN0LmNv
+bT48bWFpbHRvOnBlcHBlLmNhdmFsbGFyb0BzdC5jb20+DQpDYzogYXJjLWxpbnV4LWRldkBzeW5v
+cHN5cy5jb208bWFpbHRvOmFyYy1saW51eC1kZXZAc3lub3BzeXMuY29tPg0KQ2M6IGxpbnV4LWtl
+cm5lbEB2Z2VyLmtlcm5lbC5vcmc8bWFpbHRvOmxpbnV4LWtlcm5lbEB2Z2VyLmtlcm5lbC5vcmc+
+DQpDYzogc3RhYmxlQHZnZXIua2VybmVsLm9yZzxtYWlsdG86c3RhYmxlQHZnZXIua2VybmVsLm9y
+Zz4NCg0KRldJVywgdGhpcyB3YXMgY2F1c2luZyBzcG9yYWRpYy9yYW5kb20gbmV0d29ya2luZyBm
+bGFraW5lc3Mgb24gQVJDIFNEUCBwbGF0Zm9ybSAoc2NoZWR1bGVkIGZvciB1cHN0cmVhbSBpbmNs
+dXNpb24gaW4gbmV4dCB3aW5kb3cpDQoNClRoaXMgYWxzbyBsZWFkcyB0byBhbiBpbnRlcmVzdGlu
+ZyBxdWVzdGlvbiAtIHNob3VsZCBhcmNoLyovZG1hX2FsbG9jX2NvaGVyZW50KCkgYW5kIGZyaWVu
+ZHMgdW5jb25kaXRpb25hbGx5IHplcm8gb3V0IG1lbW9yeSAodnMuIHRoZSBjdXJyZW50IHNlbWFu
+dGljcyBvZiBsZXR0aW5nIG9ubHkgZG9pbmcgaXQgYmFzZWQgb24gZ2ZwLCBhcyByZXF1ZXN0ZWQg
+YnkgZHJpdmVyKS4gVGhpcyBpcyB0aGUgc2Vjb25kIGluc3RhbmNlIHdlIHJhbiBpbnRvIHN0YWxl
+IGRlc2NyaXB0b3IgbWVtb3J5LCB0aGUgZmlyc3Qgb25lIHdhcyBpbiBkd19tbWMgZHJpdmVyIHdo
+aWNoIHdhcyByZWNlbnRseSBmaXhlZCBpbiB1cHN0cmVhbSBhcyB3ZWxsIChhbHRob3VnaCBkZWJ1
+Z2dlZCBpbmRlcGVuZGVudGx5IGJ5IEFsZXhleSBhbmQgdXNpbmcgdGhlIHVwc3RyZWFtIGZpeCkN
+Cg0KaHR0cDovL3d3dy5zcGluaWNzLm5ldC9saXN0cy9saW51eC1tbWMvbXNnMzE2MDAuaHRtbA0K
+DQpUaGUgcHJvcyBpcyBiZXR0ZXIgb3V0IG9mIGJveCBleHBlcmllbmNlIChkZXNwaXRlIGJ1Z2d5
+IGRyaXZlcnMpIHdoaWxlIHRoZSBjb25zIGFyZSB0aGV5IHJlbWFpbiBicm9rZW4gYW5kIHBlcmhh
+cHMgaW5jcmVhc2VkIGJvb3QgdGltZSBkdWUgdG8gZXh0cmEgbWVtemVyby4uLi4NCg0KUHJvYmFi
+bHkgaWYgd2UgYWxyZWFkeSBoYXZlIGRtYV96YWxsb2NfY29oZXJlbnQoKSB0aGF0IGRvZXMgZXhw
+bGljaXQgemVyb2luZyBvZiByZXR1cm5lZCBtZW1vcnkgdGhlbiB0aGVyZSdzIG5vIG5lZWQgdG8g
+ZG8gaW1wbGljaXQgemVyb2luZyBpbiBkbWFfYWxsb2NfY29oZXJlbnQoKT8NCg0KLUFsZXhleQ0K
