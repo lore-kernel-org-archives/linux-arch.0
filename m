@@ -1,169 +1,139 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v3 22/28] ARCv2: barriers
-Date: Tue, 23 Jun 2015 15:22:06 +0530
-Message-ID: <1435053126-4716-1-git-send-email-vgupta@synopsys.com>
-References: <20150623092624.GG31504@arm.com>
+Subject: Re: [PATCH 1/8] ARC: perf: support RAW events
+Date: Tue, 23 Jun 2015 17:50:49 +0530
+Message-ID: <55894F21.2040706@synopsys.com>
+References: <1433852372-29494-1-git-send-email-vgupta@synopsys.com> <1433852372-29494-2-git-send-email-vgupta@synopsys.com> <20150615153029.GE3644@twins.programming.kicks-ass.net> <4881796E12491D4BB15146FE0209CE64656C9E81@DE02WEMBXB.internal.synopsys.com> <20150617133358.GR3644@twins.programming.kicks-ass.net> <55817FDD.7060902@synopsys.com> <20150622144157.GV3644@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:41691 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754435AbbFWJwg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2015 05:52:36 -0400
-In-Reply-To: <20150623092624.GG31504@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Peter Zijlstra (Intel)" <peterz@infradead.org>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Will Deacon <will.deacon@arm.com>
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20150622144157.GV3644@twins.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, jolsa@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-ARCv2 based HS38 cores are weakly ordered and thus explicit barriers for
-kernel proper.
+On Monday 22 June 2015 08:11 PM, Peter Zijlstra wrote:
+> On Wed, Jun 17, 2015 at 07:40:37PM +0530, Vineet Gupta wrote:
+>>> I would much prefer the raw thing to remain a number; it puts you in
+>>> pretty much the same place as most other archs, including x86.
+>>
+>> Sure, but that doesn't mean we start using the index of event as a raw ID. There
+>> are zillion ways to configure cores and the index will certainly start varying.
+>> Which means that user has to determine at run time (using whatever /proc/xxx) what
+>> crun corresponds to. Why inflict such pain on poor guy.
+>>
+>> The current raw event, despite representing an ASCII string is still a u64 number.
+>> So it is not more "raw" than what others have. We can get rid of the swapping
+>> business when setting up a raw event, by making sure that cached values from probe
+>> are already in same format.
+>>
+>> But using index as a event id is no go sorry...
+> 
+> Well, you're still stuck converting an 8 char ASCII string to hex, which
+> arguably isn't too hard, but still rather ugly.
 
-SMP barrier is provided by DMB instruction which also guarantees local
-barrier hence used as backend of smp_*mb() as well as *mb() APIs
+I agree that it might not be pretty, but using the h/w index as raw event ID is
+not feasible since it is not ABI stable. ARC cores are highly configurable and if
+u strip out a component, the related counters vanish, so the index of same counter
+can change across h/w builds for say 16k vs. 32k L1 dcache builds.
 
-Also hookup barriers into MMIO accessors to avoid ordering issues in IO
+Arguably we could setup a /proc or sysfs entry for mapping which user would have
+to lookup. But it is not as clean/obvious as him looking up the Processor Manual
+which describes the conditions with a human readable name - after all our
+designers went to a stretch, to really call them out by names and not some obscure
+numbers :-)
 
-Cc: Peter Zijlstra (Intel) <peterz@infradead.org>
-Cc: Will Deacon <will.deacon@arm.com>
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
-Changes since v2
- * lkml discussion link points to lkml redirector (PeterZ)
- * Updated comment about IO ordering to use standard LD/ST (Will Deacon)
+So I presume that we agree with not using h/w index itself for ID and need to look
+for on/more solutions you allude to below.
 
-Changes since v1
- * Better changelog and comments
- * local/mandatory barriers to NOT use DSYNC, but DMB
- * define DMB based mandatory barriers even for !SMP
----
+> Furthermore, the 'raw' interface is what is used to pass in hardware
+> configuration otherwise not exposed. If all you currently have is event
+> idx that's not too interesting.
+> 
+> However, your patch 6 already introduces event modifiers:
+> 
+> +#define ARC_REG_PCT_CONFIG_USER        (1 << 18)       /* count in user mode */
+> +#define ARC_REG_PCT_CONFIG_KERN        (1 << 19)       /* count in kernel mode */
+> 
+> Those should also be available through the raw interface.
+> 
+> That is, your perf_event_attr::config should pretty much end up in your
+> hardware unmodified -- with the obvious exception of things like
+> 'interrupt enable' because we want the kernel to be in control of that.
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- arch/arc/include/asm/Kbuild    |  1 -
- arch/arc/include/asm/barrier.h | 48 ++++++++++++++++++++++++++++++++++++++++++
- arch/arc/include/asm/io.h      | 44 +++++++++++++++++++++++++++++++++++---
- 3 files changed, 89 insertions(+), 4 deletions(-)
- create mode 100644 arch/arc/include/asm/barrier.h
+The value which goes in hardware is h/w index, which we can't pass from userspace
+due to ABI reasons I describe above. Some alteration has to be made to any value
+we pass from userspace, before it goes into the pct itself.
 
-diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
-index be0c39e76f7c..59e2dd1d434f 100644
---- a/arch/arc/include/asm/Kbuild
-+++ b/arch/arc/include/asm/Kbuild
-@@ -1,5 +1,4 @@
- generic-y += auxvec.h
--generic-y += barrier.h
- generic-y += bitsperlong.h
- generic-y += bugs.h
- generic-y += clkdev.h
-diff --git a/arch/arc/include/asm/barrier.h b/arch/arc/include/asm/barrier.h
-new file mode 100644
-index 000000000000..a7209983ee64
---- /dev/null
-+++ b/arch/arc/include/asm/barrier.h
-@@ -0,0 +1,48 @@
-+/*
-+ * Copyright (C) 2014-15 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
+> 
+> So if you 'overload' your TYPE_RAW to mean something else entirely, you
+> also loose the ability to specify event modifiers not otherwise modelled
+> in perf.
+
+Just like normal events, raw event specification also allows :u or :k suffix,
+which are passed additionally as event->attr.exclude_{user,kernel}
+But I understand you POV here.
+
+> There are things you could do though; you could for instance interpret a
+> !0 perf_event_attr::config1 as the name field and replace the
+> perf_event_attr::config's event idx with whatever comes out of that
+> name->idx map -- and/or require perf_event_attr::config's event idx to
+> be 0 in that case.
+> 
+> This of course assumes there will never be an other valid use for
+> ::config1.
+
+Indeed that could be done, I don't think ARC PCT will have more use of config1.
+And perhaps if it does, then there's config2 for future needs !
+
+
+> Alternatively you can register a second pmu "cpu_name" and interpret its
+> ::config as the name.
+> 
+> 
+> Also, ideally you'd convince acme/jolsa to extend the event parser with
+> this 8-char ASCII format so you can do all the text munging in userspace
+> and not have to do the ugly you propose here.
+
+So lets say such parsing facility did exist, what would it pass down to kernel. It
+can't be the h/w index itself, so it has to be some other number which we then map
+to the h/w index when setting up the event - so again it helps if that number is
+what is present in prog ref manual.
+
+FWIW, last time I'd proposed that we can stop the ugly looking string conversion
+in raw event setup code, but it still won't be the exact raw value which goes into
+h/w. Something like completely untested below:
+--------------->
+
++static int arc_pmu_raw_event(u64 config)
++{
++       int i;
 +
-+#ifndef __ASM_BARRIER_H
-+#define __ASM_BARRIER_H
++       for (i = 0; i < arc_pmu->n_events; i++) {
++               if (config == arc_pmu->raw_events[i])
++                       return i;
++       }
 +
-+#ifdef CONFIG_ISA_ARCV2
++       return -ENOENT;
++}
 +
-+/*
-+ * ARCv2 based HS38 cores are in-order issue, but still weakly ordered
-+ * due to micro-arch buffering/queuing of load/store, cache hit vs. miss ...
-+ *
-+ * Explicit barrier provided by DMB instruction
-+ *  - Operand supports fine grained load/store/load+store semantics
-+ *  - Ensures that selected memory operation issued before it will complete
-+ *    before any subsequent memory operation of same type
-+ *  - DMB guarantees SMP as well as local barrier semantics
-+ *    (asm-generic/barrier.h ensures sane smp_*mb if not defined here, i.e.
-+ *    UP: barrier(), SMP: smp_*mb == *mb)
-+ *  - DSYNC provides DMB+completion_of_cache_bpu_maintenance_ops hence not needed
-+ *    in the general case. Plus it only provides full barrier.
-+ */
-+
-+#define mb()	asm volatile("dmb 3\n" : : : "memory")
-+#define rmb()	asm volatile("dmb 1\n" : : : "memory")
-+#define wmb()	asm volatile("dmb 2\n" : : : "memory")
-+
-+#endif
-+
-+#ifdef CONFIG_ISA_ARCOMPACT
-+
-+/*
-+ * ARCompact based cores (ARC700) only have SYNC instruction which is super
-+ * heavy weight as it flushes the pipeline as well.
-+ * There are no real SMP implementations of such cores.
-+ */
-+
-+#define mb()	asm volatile("sync\n" : : : "memory")
-+#endif
-+
-+#include <asm-generic/barrier.h>
-+
-+#endif
-diff --git a/arch/arc/include/asm/io.h b/arch/arc/include/asm/io.h
-index cabd518cb253..9749096028dc 100644
---- a/arch/arc/include/asm/io.h
-+++ b/arch/arc/include/asm/io.h
-@@ -98,9 +98,47 @@ static inline void __raw_writel(u32 w, volatile void __iomem *addr)
- 
- }
- 
--#define readb_relaxed readb
--#define readw_relaxed readw
--#define readl_relaxed readl
-+#ifdef CONFIG_ISA_ARCV2
-+#include <asm/barrier.h>
-+#define __iormb()		rmb()
-+#define __iowmb()		wmb()
-+#else
-+#define __iormb()		do { } while (0)
-+#define __iowmb()		do { } while (0)
-+#endif
-+
-+/*
-+ * MMIO can also get buffered/optimized in micro-arch, so barriers needed
-+ * Based on ARM model for the typical use case
-+ *
-+ *	<ST [DMA buffer]>
-+ *		wmb()
-+ *	<writel MMIO "go" reg>
-+ *  or:
-+ *	<readl MMIO "status" reg>
-+ *		rmb()
-+ *	<LD [DMA buffer]>
-+ *
-+ * http://lkml.kernel.org/r/20150622133656.GG1583@arm.com
-+ */
-+#define readb(c)		({ u8  __v = readb_relaxed(c); __iormb(); __v; })
-+#define readw(c)		({ u16 __v = readw_relaxed(c); __iormb(); __v; })
-+#define readl(c)		({ u32 __v = readl_relaxed(c); __iormb(); __v; })
-+
-+#define writeb(v,c)		({ __iowmb(); writeb_relaxed(v,c); })
-+#define writew(v,c)		({ __iowmb(); writew_relaxed(v,c); })
-+#define writel(v,c)		({ __iowmb(); writel_relaxed(v,c); })
-+
-+/*
-+ * Relaxed API for drivers which can handle any ordering themselves
-+ */
-+#define readb_relaxed(c)	__raw_readb(c)
-+#define readw_relaxed(c)	__raw_readw(c)
-+#define readl_relaxed(c)	__raw_readl(c)
-+
-+#define writeb_relaxed(v,c)	__raw_writeb(v,c)
-+#define writew_relaxed(v,c)	__raw_writew(v,c)
-+#define writel_relaxed(v,c)	__raw_writel(v,c)
- 
- #include <asm-generic/io.h>
- 
--- 
-1.9.1
+
+@@ -309,6 +334,21 @@ static int arc_pmu_device_probe(struct platform_device *pdev)
+                cc_name.indiv.word0 = read_aux_reg(ARC_REG_CC_NAME0);
+                cc_name.indiv.word1 = read_aux_reg(ARC_REG_CC_NAME1);
+
++               /*
++                * In PCT register CC_NAME{0,1} event name string[] is saved
++                * from LSB side:
++                * e.g. cycles corresponds to "crun" and is saved as 0x6e757263
++                *                                                     n u r c
++                * However in perf cmdline they are specified in human order as
++                * r6372756e
++                *
++                * Thus save a 64bit swapped value for quick cross check at the
++                * time of raw event request
++                */
++               arc_pmu->raw_events[j] = ((u64)cc_name.indiv.word1 << 32) |
++                                               cc_name.indiv.word0;
++               arc_pmu->raw_events[j] = __swab64(arc_pmu->raw_events[j]);
