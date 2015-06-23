@@ -1,66 +1,59 @@
-From: Will Deacon <will.deacon@arm.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 Subject: Re: [PATCH v2 20/28] ARCv2: barriers
-Date: Tue, 23 Jun 2015 09:49:05 +0100
-Message-ID: <20150623084905.GE31504@arm.com>
-References: <20150622133656.GG1583@arm.com>
- <1435046283-2073-1-git-send-email-vgupta@synopsys.com>
+Date: Tue, 23 Jun 2015 14:33:25 +0530
+Message-ID: <558920DD.6010505@synopsys.com>
+References: <20150622133656.GG1583@arm.com> <1435046283-2073-1-git-send-email-vgupta@synopsys.com> <20150623084905.GE31504@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:50511 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751942AbbFWItJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 23 Jun 2015 04:49:09 -0400
-Content-Disposition: inline
-In-Reply-To: <1435046283-2073-1-git-send-email-vgupta@synopsys.com>
+Received: from smtprelay.synopsys.com ([198.182.47.9]:40955 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932093AbbFWJDo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2015 05:03:44 -0400
+In-Reply-To: <20150623084905.GE31504@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+To: Will Deacon <will.deacon@arm.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 Cc: "Peter Zijlstra (Intel)" <peterz@infradead.org>, lkml <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>
 
-Hi Vineet,
+Hi Will,
 
-On Tue, Jun 23, 2015 at 08:58:03AM +0100, Vineet Gupta wrote:
-> ARCv2 based HS38 cores are weakly ordered and thus explicit barriers for
-> kernel proper.
+On Tuesday 23 June 2015 02:19 PM, Will Deacon wrote:
+>> +/*
+>> > + * MMIO can also get buffered/optimized in micro-arch, so barriers needed
+>> > + * Based on ARM model for the typical use case
+>> > + *
+>> > + *	<writel_relaxed DMA buffer>
+>> > + *	<writel MMIO "go" reg>
+>> > + *   or:
+>> > + *   	<readl MMIO "status" reg>
+>> > + *   	<readl_relaxed DMA buffer>
+> The writel_relaxed/readl_relaxed parts here would actually just be
+> bog-standard loads and stores to an in-memory buffer. I was trying too hard
+> to show the barrier semantics and accidentally turned the DMA buffers into
+> __iomem regions.
+
+Not sure if I follow you completely :-)
+
+IMHO, It doesn't matter if we are dealing with a typical DMA buffer (cached) or a
+buffer descriptor (typically uncached unless there's hardware IO-coh or some
+such). Both the cases assume a vanilla ld/st to buffer (using relaxed API) with a
+surrounding MMIO access.
+
 > 
-> SMP barrier is provided by DMB instruction which also guarantees local
-> barrier hence used as backend of smp_*mb() as well as *mb() APIs
+> If you fix the comment:
+
+Does this look better ?
+
+- *	<writel_relaxed DMA buffer>
++ *	<writel_relaxed DMA buffer (cached or uncached)>
+
 > 
-> Also hookup barriers into MMIO accessors to avoid ordering issues in IO
+>   Reviewed-by: Will Deacon <will.deacon@arm.com>
 > 
-> Cc: Peter Zijlstra (Intel) <peterz@infradead.org>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-> ---
-> Changes since v1
->  * Better changelog and comments
->  * local/mandatory barriers to NOT use DSYNC, but DMB
->  * define DMB based mandatory barriers even for !SMP
-> ---
+> Sorry for messing you about.
 
-Functionally, all looks good to me. However, my comment is completely
-misleading ;)
+NP.
 
-> +/*
-> + * MMIO can also get buffered/optimized in micro-arch, so barriers needed
-> + * Based on ARM model for the typical use case
-> + *
-> + *	<writel_relaxed DMA buffer>
-> + *	<writel MMIO "go" reg>
-> + *   or:
-> + *   	<readl MMIO "status" reg>
-> + *   	<readl_relaxed DMA buffer>
-
-The writel_relaxed/readl_relaxed parts here would actually just be
-bog-standard loads and stores to an in-memory buffer. I was trying too hard
-to show the barrier semantics and accidentally turned the DMA buffers into
-__iomem regions.
-
-If you fix the comment:
-
-  Reviewed-by: Will Deacon <will.deacon@arm.com>
-
-Sorry for messing you about.
-
-Will
+-Vineet
