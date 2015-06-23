@@ -1,74 +1,67 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 22/28] ARCv2: STAR 9000837815 workaround hardware exclusive transactions livelock
-Date: Tue, 23 Jun 2015 13:29:38 +0530
-Message-ID: <1435046378-2141-1-git-send-email-vgupta@synopsys.com>
-References: <20150619095932.GC18017@arm.com>
+Subject: Re: [PATCH 20/28] ARCv2: barriers
+Date: Tue, 23 Jun 2015 13:32:17 +0530
+Message-ID: <55891289.5070909@synopsys.com>
+References: <1433850508-26317-1-git-send-email-vgupta@synopsys.com> <1433850508-26317-21-git-send-email-vgupta@synopsys.com> <20150609124008.GA3644@twins.programming.kicks-ass.net> <C2D7FE5348E1B147BCA15975FBA23075665A4FFE@IN01WEMBXB.internal.synopsys.com> <20150610105840.GG3644@twins.programming.kicks-ass.net> <20150610130140.GD22973@arm.com> <C2D7FE5348E1B147BCA15975FBA23075665A526F@IN01WEMBXB.internal.synopsys.com> <20150611133952.GA29425@arm.com> <5584155E.9060601@synopsys.com> <20150622133656.GG1583@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:39937 "EHLO
+Received: from smtprelay.synopsys.com ([198.182.47.9]:39980 "EHLO
 	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754121AbbFWIAX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2015 04:00:23 -0400
-In-Reply-To: <20150619095932.GC18017@arm.com>
+	with ESMTP id S932615AbbFWICf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Jun 2015 04:02:35 -0400
+In-Reply-To: <20150622133656.GG1583@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Peter Zijlstra (Intel)" <peterz@infradead.org>
-Cc: lkml <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Will Deacon <will.deacon@arm.com>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>
 
-A quad core SMP build could get into hardware livelock with concurrent
-LLOCK/SCOND. Workaround that by adding a PREFETCHW which is serialized by
-SCU (System Coherency Unit). It brings the cache line in Exclusive state
-and makes others invalidate their lines. This gives enough time for
-winner to complete the LLOCK/SCOND, before others can get the line back.
+On Monday 22 June 2015 07:06 PM, Will Deacon wrote:
+>> OK, so given that regular/mmio is also weakly ordered, it would seem that we need
+>> > full mb() *before* and *after* the IO access in the non relaxed API. ARM code
+>> > seems to put a rmb() after the readl and wmb() before the writel. Is that based on
+>> > how h/w provides for some ?
+> We figured that you'd likely be doing something like:
+> 
+> <writel_relaxed DMA buffer>
+> <writel MMIO "go" reg>
+> 
+> or:
+> 
+> <readl MMIO "status" reg>
+> <readl_relaxed DMA buffer>
+> 
+> so ended up with writel doing {wmb(); writel_relaxed} and readl doing
+> {readl_relaxed; rmb()}.
+> 
+>> > In one of the links you posted above, Catalin posed the same question, but I
+>> > didn't see response to that.
+>> > 
+>> > | If we are to make the writel/readl on ARM fully ordered with both IO
+>> > | (enforced by hardware) and uncached memory, do we add barriers on each
+>> > | side of the writel/readl etc.? The common cases would require a barrier
+>> > | before writel (write buffer flushing) and a barrier after readl (in case
+>> > | of polling for a "DMA complete" state).
+>> > |
+>> > | So if io_wmb() just orders to IO writes (writel_relaxed), does it mean
+>> > | that we still need a mighty wmb() that orders any type of accesses (i.e.
+>> > | uncached memory vs IO)? Can drivers not use the strict writel() and no
+>> > | longer rely on wmb() (wondering whether we could simplify it on ARM with
+>> > | fully ordered IO accessors)?
+>> > 
+>> > Further readl/writel would be no different than ioread32/iowrite32 ?
+> ioread32/iowrite32 can be used with port addresses and dispatch to the
+> relevant accessors depending on that. The memory ordering semantics should
+> be the same as readl/writel.
+> 
+>> > FWIW, h/w folks tell me that DMB guarentess local barrier semantics so we don't
+>> > need to use DSYNC. Latter only provides full r+w+TLB/BPU stuff while DMB allows
+>> > finer grained r/w/r+w. But if we need full mb then using one vs. other becomes a
+>> > moot point.
+> I'd say go with what we do on ARM/arm64, then at least we have consistency
+> in the use of barriers.
 
-The prefetchw in the ll/sc loop is not nice but this is the only
-software workaround for current version of RTL.
+Thx for very helpful review/feedback Will. I've posted a v2 !
 
-Cc: Peter Zijlstra (Intel) <peterz@infradead.org>
-Cc: Will Deacon <will.deacon@arm.com>
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- arch/arc/include/asm/atomic.h | 14 ++++++++++++--
- 1 file changed, 12 insertions(+), 2 deletions(-)
-
-diff --git a/arch/arc/include/asm/atomic.h b/arch/arc/include/asm/atomic.h
-index 20b7dc17979e..03484cb4d16d 100644
---- a/arch/arc/include/asm/atomic.h
-+++ b/arch/arc/include/asm/atomic.h
-@@ -23,13 +23,21 @@
- 
- #define atomic_set(v, i) (((v)->counter) = (i))
- 
-+#ifdef CONFIG_ISA_ARCV2
-+#define PREFETCHW	"	prefetchw   [%1]	\n"
-+#else
-+#define PREFETCHW
-+#endif
-+
- #define ATOMIC_OP(op, c_op, asm_op)					\
- static inline void atomic_##op(int i, atomic_t *v)			\
- {									\
- 	unsigned int temp;						\
- 									\
- 	__asm__ __volatile__(						\
--	"1:	llock   %0, [%1]	\n"				\
-+	"1:				\n"				\
-+	PREFETCHW							\
-+	"	llock   %0, [%1]	\n"				\
- 	"	" #asm_op " %0, %0, %2	\n"				\
- 	"	scond   %0, [%1]	\n"				\
- 	"	bnz     1b		\n"				\
-@@ -50,7 +58,9 @@ static inline int atomic_##op##_return(int i, atomic_t *v)		\
- 	smp_mb();							\
- 									\
- 	__asm__ __volatile__(						\
--	"1:	llock   %0, [%1]	\n"				\
-+	"1:				\n"				\
-+	PREFETCHW							\
-+	"	llock   %0, [%1]	\n"				\
- 	"	" #asm_op " %0, %0, %2	\n"				\
- 	"	scond   %0, [%1]	\n"				\
- 	"	bnz     1b		\n"				\
--- 
-1.9.1
+-Vineet
