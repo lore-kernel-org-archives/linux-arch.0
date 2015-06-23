@@ -1,139 +1,154 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 1/8] ARC: perf: support RAW events
-Date: Tue, 23 Jun 2015 17:50:49 +0530
-Message-ID: <55894F21.2040706@synopsys.com>
-References: <1433852372-29494-1-git-send-email-vgupta@synopsys.com> <1433852372-29494-2-git-send-email-vgupta@synopsys.com> <20150615153029.GE3644@twins.programming.kicks-ass.net> <4881796E12491D4BB15146FE0209CE64656C9E81@DE02WEMBXB.internal.synopsys.com> <20150617133358.GR3644@twins.programming.kicks-ass.net> <55817FDD.7060902@synopsys.com> <20150622144157.GV3644@twins.programming.kicks-ass.net>
+From: Vlastimil Babka <vbabka@suse.cz>
+Subject: Re: [RESEND PATCH V2 1/3] Add mmap flag to request pages are locked
+ after page fault
+Date: Tue, 23 Jun 2015 14:45:17 +0200
+Message-ID: <558954DD.4060405@suse.cz>
+References: <1433942810-7852-1-git-send-email-emunson@akamai.com> <1433942810-7852-2-git-send-email-emunson@akamai.com> <20150618152907.GG5858@dhcp22.suse.cz> <20150618203048.GB2329@akamai.com> <20150619145708.GG4913@dhcp22.suse.cz> <20150619164333.GD2329@akamai.com> <20150622123826.GF4430@dhcp22.suse.cz> <20150622141806.GE2329@akamai.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
+Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20150622144157.GV3644@twins.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, Arnaldo Carvalho de Melo <acme@kernel.org>, jolsa@kernel.org
+Return-path: <linux-alpha-owner@vger.kernel.org>
+In-Reply-To: <20150622141806.GE2329@akamai.com>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Eric B Munson <emunson@akamai.com>, Michal Hocko <mhocko@suse.cz>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Monday 22 June 2015 08:11 PM, Peter Zijlstra wrote:
-> On Wed, Jun 17, 2015 at 07:40:37PM +0530, Vineet Gupta wrote:
->>> I would much prefer the raw thing to remain a number; it puts you in
->>> pretty much the same place as most other archs, including x86.
+On 06/22/2015 04:18 PM, Eric B Munson wrote:
+> On Mon, 22 Jun 2015, Michal Hocko wrote:
+>
+>> On Fri 19-06-15 12:43:33, Eric B Munson wrote:
+>>> On Fri, 19 Jun 2015, Michal Hocko wrote:
+>>>
+>>>> On Thu 18-06-15 16:30:48, Eric B Munson wrote:
+>>>>> On Thu, 18 Jun 2015, Michal Hocko wrote:
+>>>> [...]
+>>>>>> Wouldn't it be much more reasonable and straightforward to have
+>>>>>> MAP_FAULTPOPULATE as a counterpart for MAP_POPULATE which would
+>>>>>> explicitly disallow any form of pre-faulting? It would be usable for
+>>>>>> other usecases than with MAP_LOCKED combination.
+>>>>>
+>>>>> I don't see a clear case for it being more reasonable, it is one
+>>>>> possible way to solve the problem.
+>>>>
+>>>> MAP_FAULTPOPULATE would be usable for other cases as well. E.g. fault
+>>>> around is all or nothing feature. Either all mappings (which support
+>>>> this) fault around or none. There is no way to tell the kernel that
+>>>> this particular mapping shouldn't fault around. I haven't seen such a
+>>>> request yet but we have seen requests to have a way to opt out from
+>>>> a global policy in the past (e.g. per-process opt out from THP). So
+>>>> I can imagine somebody will come with a request to opt out from any
+>>>> speculative operations on the mapped area in the future.
+
+That sounds like something where new madvise() flag would make more 
+sense than a new mmap flag, and conflating it with locking behavior 
+would lead to all kinds of weird corner cases as Eric mentioned.
+
+>>>>
+>>>>> But I think it leaves us in an even
+>>>>> more akward state WRT VMA flags.  As you noted in your fix for the
+>>>>> mmap() man page, one can get into a state where a VMA is VM_LOCKED, but
+>>>>> not present.  Having VM_LOCKONFAULT states that this was intentional, if
+>>>>> we go to using MAP_FAULTPOPULATE instead of MAP_LOCKONFAULT, we no
+>>>>> longer set VM_LOCKONFAULT (unless we want to start mapping it to the
+>>>>> presence of two MAP_ flags).  This can make detecting the MAP_LOCKED +
+>>>>> populate failure state harder.
+>>>>
+>>>> I am not sure I understand your point here. Could you be more specific
+>>>> how would you check for that and what for?
+>>>
+>>> My thought on detecting was that someone might want to know if they had
+>>> a VMA that was VM_LOCKED but had not been made present becuase of a
+>>> failure in mmap.  We don't have a way today, but adding VM_LOCKONFAULT
+>>> is at least explicit about what is happening which would make detecting
+>>> the VM_LOCKED but not present state easier.
 >>
->> Sure, but that doesn't mean we start using the index of event as a raw ID. There
->> are zillion ways to configure cores and the index will certainly start varying.
->> Which means that user has to determine at run time (using whatever /proc/xxx) what
->> crun corresponds to. Why inflict such pain on poor guy.
+>> One could use /proc/<pid>/pagemap to query the residency.
+
+I think that's all too much complex scenario for a little gain. If 
+someone knows that mmap(MAP_LOCKED|MAP_POPULATE) is not perfect, he 
+should either mlock() separately from mmap(), or fault the range 
+manually with a for loop. Why try to detect if the corner case was hit?
+
 >>
->> The current raw event, despite representing an ASCII string is still a u64 number.
->> So it is not more "raw" than what others have. We can get rid of the swapping
->> business when setting up a raw event, by making sure that cached values from probe
->> are already in same format.
+>>> This assumes that
+>>> MAP_FAULTPOPULATE does not translate to a VMA flag, but it sounds like
+>>> it would have to.
 >>
->> But using index as a event id is no go sorry...
-> 
-> Well, you're still stuck converting an 8 char ASCII string to hex, which
-> arguably isn't too hard, but still rather ugly.
+>> Yes, it would have to have a VM flag for the vma.
 
-I agree that it might not be pretty, but using the h/w index as raw event ID is
-not feasible since it is not ABI stable. ARC cores are highly configurable and if
-u strip out a component, the related counters vanish, so the index of same counter
-can change across h/w builds for say 16k vs. 32k L1 dcache builds.
+So with your approach, VM_LOCKED flag is enough, right? The new MAP_ / 
+MLOCK_ flags just cause setting VM_LOCKED to not fault the whole vma, 
+but otherwise nothing changes.
 
-Arguably we could setup a /proc or sysfs entry for mapping which user would have
-to lookup. But it is not as clean/obvious as him looking up the Processor Manual
-which describes the conditions with a human readable name - after all our
-designers went to a stretch, to really call them out by names and not some obscure
-numbers :-)
+If that's true, I think it's better than a new vma flag.
 
-So I presume that we agree with not using h/w index itself for ID and need to look
-for on/more solutions you allude to below.
+>>
+>>>>  From my understanding MAP_LOCKONFAULT is essentially
+>>>> MAP_FAULTPOPULATE|MAP_LOCKED with a quite obvious semantic (unlike
+>>>> single MAP_LOCKED unfortunately). I would love to also have
+>>>> MAP_LOCKED|MAP_POPULATE (aka full mlock semantic) but I am really
+>>>> skeptical considering how my previous attempt to make MAP_POPULATE
+>>>> reasonable went.
+>>>
+>>> Are you objecting to the addition of the VMA flag VM_LOCKONFAULT, or the
+>>> new MAP_LOCKONFAULT flag (or both)?
+>>
+>> I thought the MAP_FAULTPOPULATE (or any other better name) would
+>> directly translate into VM_FAULTPOPULATE and wouldn't be tight to the
+>> locked semantic. We already have VM_LOCKED for that. The direct effect
+>> of the flag would be to prevent from population other than the direct
+>> page fault - including any speculative actions like fault around or
+>> read-ahead.
+>
+> I like the ability to control other speculative population, but I am not
+> sure about overloading it with the VM_LOCKONFAULT case.  Here is my
+> concern.  If we are using VM_FAULTPOPULATE | VM_LOCKED to denote
+> LOCKONFAULT, how can we tell the difference between someone that wants
+> to avoid read-ahead and wants to use mlock()?  This might lead to some
+> interesting states with mlock() and munlock() that take flags.  For
+> instance, using VM_LOCKONFAULT mlock(MLOCK_ONFAULT) followed by
+> munlock(MLOCK_LOCKED) leaves the VMAs in the same state with
+> VM_LOCKONFAULT set.  If we use VM_FAULTPOPULATE, the same pair of calls
+> would clear VM_LOCKED, but leave VM_FAULTPOPULATE.  It may not matter in
+> the end, but I am concerned about the subtleties here.
 
-> Furthermore, the 'raw' interface is what is used to pass in hardware
-> configuration otherwise not exposed. If all you currently have is event
-> idx that's not too interesting.
-> 
-> However, your patch 6 already introduces event modifiers:
-> 
-> +#define ARC_REG_PCT_CONFIG_USER        (1 << 18)       /* count in user mode */
-> +#define ARC_REG_PCT_CONFIG_KERN        (1 << 19)       /* count in kernel mode */
-> 
-> Those should also be available through the raw interface.
-> 
-> That is, your perf_event_attr::config should pretty much end up in your
-> hardware unmodified -- with the obvious exception of things like
-> 'interrupt enable' because we want the kernel to be in control of that.
+Right.
 
-The value which goes in hardware is h/w index, which we can't pass from userspace
-due to ABI reasons I describe above. Some alteration has to be made to any value
-we pass from userspace, before it goes into the pct itself.
+>>
+>>> If you prefer that MAP_LOCKED |
+>>> MAP_FAULTPOPULATE means that VM_LOCKONFAULT is set, I am fine with that
+>>> instead of introducing MAP_LOCKONFAULT.  I went with the new flag
+>>> because to date, we have a one to one mapping of MAP_* to VM_* flags.
+>>>
+>>>>
+>>>>> If this is the preferred path for mmap(), I am fine with that.
+>>>>
+>>>>> However,
+>>>>> I would like to see the new system calls that Andrew mentioned (and that
+>>>>> I am testing patches for) go in as well.
+>>>>
+>>>> mlock with flags sounds like a good step but I am not sure it will make
+>>>> sense in the future. POSIX has screwed that and I am not sure how many
+>>>> applications would use it. This ship has sailed long time ago.
+>>>
+>>> I don't know either, but the code is the question, right?  I know that
+>>> we have at least one team that wants it here.
+>>>
+>>>>
+>>>>> That way we give users the
+>>>>> ability to request VM_LOCKONFAULT for memory allocated using something
+>>>>> other than mmap.
+>>>>
+>>>> mmap(MAP_FAULTPOPULATE); mlock() would have the same semantic even
+>>>> without changing mlock syscall.
+>>>
+>>> That is true as long as MAP_FAULTPOPULATE set a flag in the VMA(s).  It
+>>> doesn't cover the actual case I was asking about, which is how do I get
+>>> lock on fault on malloc'd memory?
+>>
+>> OK I see your point now. We would indeed need a flag argument for mlock.
+>> --
+>> Michal Hocko
+>> SUSE Labs
 
-> 
-> So if you 'overload' your TYPE_RAW to mean something else entirely, you
-> also loose the ability to specify event modifiers not otherwise modelled
-> in perf.
-
-Just like normal events, raw event specification also allows :u or :k suffix,
-which are passed additionally as event->attr.exclude_{user,kernel}
-But I understand you POV here.
-
-> There are things you could do though; you could for instance interpret a
-> !0 perf_event_attr::config1 as the name field and replace the
-> perf_event_attr::config's event idx with whatever comes out of that
-> name->idx map -- and/or require perf_event_attr::config's event idx to
-> be 0 in that case.
-> 
-> This of course assumes there will never be an other valid use for
-> ::config1.
-
-Indeed that could be done, I don't think ARC PCT will have more use of config1.
-And perhaps if it does, then there's config2 for future needs !
-
-
-> Alternatively you can register a second pmu "cpu_name" and interpret its
-> ::config as the name.
-> 
-> 
-> Also, ideally you'd convince acme/jolsa to extend the event parser with
-> this 8-char ASCII format so you can do all the text munging in userspace
-> and not have to do the ugly you propose here.
-
-So lets say such parsing facility did exist, what would it pass down to kernel. It
-can't be the h/w index itself, so it has to be some other number which we then map
-to the h/w index when setting up the event - so again it helps if that number is
-what is present in prog ref manual.
-
-FWIW, last time I'd proposed that we can stop the ugly looking string conversion
-in raw event setup code, but it still won't be the exact raw value which goes into
-h/w. Something like completely untested below:
---------------->
-
-+static int arc_pmu_raw_event(u64 config)
-+{
-+       int i;
-+
-+       for (i = 0; i < arc_pmu->n_events; i++) {
-+               if (config == arc_pmu->raw_events[i])
-+                       return i;
-+       }
-+
-+       return -ENOENT;
-+}
-+
-
-@@ -309,6 +334,21 @@ static int arc_pmu_device_probe(struct platform_device *pdev)
-                cc_name.indiv.word0 = read_aux_reg(ARC_REG_CC_NAME0);
-                cc_name.indiv.word1 = read_aux_reg(ARC_REG_CC_NAME1);
-
-+               /*
-+                * In PCT register CC_NAME{0,1} event name string[] is saved
-+                * from LSB side:
-+                * e.g. cycles corresponds to "crun" and is saved as 0x6e757263
-+                *                                                     n u r c
-+                * However in perf cmdline they are specified in human order as
-+                * r6372756e
-+                *
-+                * Thus save a 64bit swapped value for quick cross check at the
-+                * time of raw event request
-+                */
-+               arc_pmu->raw_events[j] = ((u64)cc_name.indiv.word1 << 32) |
-+                                               cc_name.indiv.word0;
-+               arc_pmu->raw_events[j] = __swab64(arc_pmu->raw_events[j]);
