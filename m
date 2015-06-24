@@ -1,88 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:54052 "EHLO mx2.suse.de"
+Received: from cantor2.suse.de ([195.135.220.15]:46961 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753853AbbFWNE1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 23 Jun 2015 09:04:27 -0400
-Message-ID: <55895956.5020707@suse.cz>
-Date: Tue, 23 Jun 2015 15:04:22 +0200
-From: Vlastimil Babka <vbabka@suse.cz>
+	id S1750997AbbFXIuQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Jun 2015 04:50:16 -0400
+Date: Wed, 24 Jun 2015 10:50:13 +0200
+From: Michal Hocko <mhocko@suse.cz>
+Subject: Re: [RESEND PATCH V2 1/3] Add mmap flag to request pages are locked
+ after page fault
+Message-ID: <20150624085013.GB32756@dhcp22.suse.cz>
+References: <1433942810-7852-1-git-send-email-emunson@akamai.com>
+ <1433942810-7852-2-git-send-email-emunson@akamai.com>
+ <20150618152907.GG5858@dhcp22.suse.cz>
+ <20150618203048.GB2329@akamai.com>
+ <20150619145708.GG4913@dhcp22.suse.cz>
+ <20150619164333.GD2329@akamai.com>
+ <20150622123826.GF4430@dhcp22.suse.cz>
+ <20150622141806.GE2329@akamai.com>
 MIME-Version: 1.0
-Subject: Re: [RESEND PATCH V2 0/3] Allow user to request memory to be locked
- on page fault
-References: <1433942810-7852-1-git-send-email-emunson@akamai.com> <20150610145929.b22be8647887ea7091b09ae1@linux-foundation.org> <5579DFBA.80809@akamai.com> <20150611123424.4bb07cffd0e5bb146cc92231@linux-foundation.org> <557ACAFC.90608@suse.cz> <20150615144356.GB12300@akamai.com>
-In-Reply-To: <20150615144356.GB12300@akamai.com>
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20150622141806.GE2329@akamai.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Eric B Munson <emunson@akamai.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150623130422.YJC757c5zpGJmHD08noKoX4_GaYiB11aXBqV9zn1MUs@z>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20150624085013.rtzyZrpTg6O1TcA-LmpG9gtknjTgJWF0N6bD1O9zy7s@z>
 
-On 06/15/2015 04:43 PM, Eric B Munson wrote:
->> Note that the semantic of MAP_LOCKED can be subtly surprising:
->>
->> "mlock(2) fails if the memory range cannot get populated to guarantee
->> that no future major faults will happen on the range.
->> mmap(MAP_LOCKED) on the other hand silently succeeds even if the
->> range was populated only
->> partially."
->>
->> ( from http://marc.info/?l=linux-mm&m=143152790412727&w=2 )
->>
->> So MAP_LOCKED can silently behave like MAP_LOCKONFAULT. While
->> MAP_LOCKONFAULT doesn't suffer from such problem, I wonder if that's
->> sufficient reason not to extend mmap by new mlock() flags that can
->> be instead applied to the VMA after mmapping, using the proposed
->> mlock2() with flags. So I think instead we could deprecate
->> MAP_LOCKED more prominently. I doubt the overhead of calling the
->> extra syscall matters here?
->
-> We could talk about retiring the MAP_LOCKED flag but I suspect that
-> would get significantly more pushback than adding a new mmap flag.
+On Mon 22-06-15 10:18:06, Eric B Munson wrote:
+> On Mon, 22 Jun 2015, Michal Hocko wrote:
+> 
+> > On Fri 19-06-15 12:43:33, Eric B Munson wrote:
+[...]
+> > > Are you objecting to the addition of the VMA flag VM_LOCKONFAULT, or the
+> > > new MAP_LOCKONFAULT flag (or both)? 
+> > 
+> > I thought the MAP_FAULTPOPULATE (or any other better name) would
+> > directly translate into VM_FAULTPOPULATE and wouldn't be tight to the
+> > locked semantic. We already have VM_LOCKED for that. The direct effect
+> > of the flag would be to prevent from population other than the direct
+> > page fault - including any speculative actions like fault around or
+> > read-ahead.
+> 
+> I like the ability to control other speculative population, but I am not
+> sure about overloading it with the VM_LOCKONFAULT case.  Here is my
+> concern.  If we are using VM_FAULTPOPULATE | VM_LOCKED to denote
+> LOCKONFAULT, how can we tell the difference between someone that wants
+> to avoid read-ahead and wants to use mlock()?
 
-Oh no we can't "retire" as in remove the flag, ever. Just not continue 
-the way of mmap() flags related to mlock().
+Not sure I understand. Something like?
+addr = mmap(VM_FAULTPOPULATE) # To prevent speculative mappings into the vma
+[...]
+mlock(addr, len) # Now I want the full mlock semantic
 
-> Likely that the overhead does not matter in most cases, but presumably
-> there are cases where it does (as we have a MAP_LOCKED flag today).
-> Even with the proposed new system calls I think we should have the
-> MAP_LOCKONFAULT for parity with MAP_LOCKED.
+and the later to have the full mlock semantic and populate the given
+area regardless of VM_FAULTPOPULATE being set on the vma? This would
+be an interesting question because mlock man page clearly states the
+semantic and that is to _always_ populate or fail. So I originally
+thought that it would obey VM_FAULTPOPULATE but this needs a more
+thinking.
 
-I'm not convinced, but it's not a major issue.
+> This might lead to some
+> interesting states with mlock() and munlock() that take flags.  For
+> instance, using VM_LOCKONFAULT mlock(MLOCK_ONFAULT) followed by
+> munlock(MLOCK_LOCKED) leaves the VMAs in the same state with
+> VM_LOCKONFAULT set. 
 
->>
->>> - mlock() takes a `flags' argument.  Presently that's
->>>    MLOCK_LOCKED|MLOCK_LOCKONFAULT.
->>>
->>> - munlock() takes a `flags' arument.  MLOCK_LOCKED|MLOCK_LOCKONFAULT
->>>    to specify which flags are being cleared.
->>>
->>> - mlockall() and munlockall() ditto.
->>>
->>>
->>> IOW, LOCKED and LOCKEDONFAULT are treated identically and independently.
->>>
->>> Now, that's how we would have designed all this on day one.  And I
->>> think we can do this now, by adding new mlock2() and munlock2()
->>> syscalls.  And we may as well deprecate the old mlock() and munlock(),
->>> not that this matters much.
->>>
->>> *should* we do this?  I'm thinking "yes" - it's all pretty simple
->>> boilerplate and wrappers and such, and it gets the interface correct,
->>> and extensible.
->>
->> If the new LOCKONFAULT functionality is indeed desired (I haven't
->> still decided myself) then I agree that would be the cleanest way.
->
-> Do you disagree with the use cases I have listed or do you think there
-> is a better way of addressing those cases?
+This is really confusing. Let me try to rephrase that. So you have
+mlock(addr, len, MLOCK_ONFAULT)
+munlock(addr, len, MLOCK_LOCKED)
 
-I'm somewhat sceptical about the security one. Are security sensitive 
-buffers that large to matter? The performance one is more convincing and 
-I don't see a better way, so OK.
+IIUC you would expect the vma still being MLOCK_ONFAULT, right? Isn't
+that behavior strange and unexpected? First of all, munlock has
+traditionally dropped the lock on the address range (e.g. what should
+happen if you did plain old munlock(addr, len)). But even without
+that. You are trying to unlock something that hasn't been locked the
+same way. So I would expect -EINVAL at least, if the two modes should be
+really represented by different flags.
 
->
->>
->>> What do others think?
+Or did you mean the both types of lock like:
+mlock(addr, len, MLOCK_ONFAULT) | mmap(MAP_LOCKONFAULT)
+mlock(addr, len, MLOCK_LOCKED)
+munlock(addr, len, MLOCK_LOCKED)
 
+and that should keep MLOCK_ONFAULT?
+This sounds even more weird to me because that means that the vma in
+question would be locked by two different mechanisms. MLOCK_LOCKED with
+the "always populate" semantic would rule out MLOCK_ONFAULT so what
+would be the meaning of the other flag then? Also what should regular
+munlock(addr, len) without flags unlock? Both?
+
+> If we use VM_FAULTPOPULATE, the same pair of calls
+> would clear VM_LOCKED, but leave VM_FAULTPOPULATE.  It may not matter in
+> the end, but I am concerned about the subtleties here.
+
+This sounds like the proper behavior to me. munlock should simply always
+drop VM_LOCKED and the VM_FAULTPOPULATE can live its separate life.
+
+Btw. could you be more specific about semantic of m{un}lock(addr, len, flags)
+you want to propose? The more I think about that the more I am unclear
+about it, especially munlock behavior and possible flags.
+-- 
+Michal Hocko
+SUSE Labs
