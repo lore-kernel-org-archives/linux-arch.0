@@ -1,93 +1,146 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: subtle side effect of commit a1c48bb160f836
-Date: Wed, 24 Jun 2015 17:50:16 +0530
-Message-ID: <558AA080.7070801@synopsys.com>
-References: <55826966.6050202@synopsys.com> <CAMuHMdXWHYF8hEEgeFxLTrhvmEDBVS2=VmKykfOtDkGjqODQbA@mail.gmail.com> <20150618081329.GA9434@pobox.suse.cz> <55828527.8050901@synopsys.com> <55829A0B.8070804@suse.cz> <55829E51.3060007@synopsys.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: mm: new mm hook framework
+Date: Thu, 25 Jun 2015 09:12:02 +0200
+Message-ID: <CAMuHMdUG3CbPGvTuPF_JO4JL1C6aqPpLwuZjfixF1zU117Vjfw@mail.gmail.com>
+References: <20150625040814.6C421660F7B@gitolite.kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:53898 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751796AbbFXMUy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Jun 2015 08:20:54 -0400
-In-Reply-To: <55829E51.3060007@synopsys.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Michal Marek <mmarek@suse.cz>, Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20150625040814.6C421660F7B@gitolite.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Laurent Dufour <ldufour@linux.vnet.ibm.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Michal,
+On Thu, Jun 25, 2015 at 6:08 AM, Linux Kernel Mailing List
+<linux-kernel@vger.kernel.org> wrote:
+> Gitweb:     http://git.kernel.org/linus/;a=commit;h=2ae416b142b625c58c9ccb039aa3ef48ad0e9bae
+> Commit:     2ae416b142b625c58c9ccb039aa3ef48ad0e9bae
+> Parent:     e81f2d22370f8231cb7f13f454bcc8c0eb4e23f2
+> Refname:    refs/heads/master
+> Author:     Laurent Dufour <ldufour@linux.vnet.ibm.com>
+> AuthorDate: Wed Jun 24 16:56:16 2015 -0700
+> Committer:  Linus Torvalds <torvalds@linux-foundation.org>
+> CommitDate: Wed Jun 24 17:49:41 2015 -0700
+>
+>     mm: new mm hook framework
+>
+>     CRIU is recreating the process memory layout by remapping the checkpointee
+>     memory area on top of the current process (criu).  This includes remapping
+>     the vDSO to the place it has at checkpoint time.
+>
+>     However some architectures like powerpc are keeping a reference to the
+>     vDSO base address to build the signal return stack frame by calling the
+>     vDSO sigreturn service.  So once the vDSO has been moved, this reference
+>     is no more valid and the signal frame built later are not usable.
+>
+>     This patch serie is introducing a new mm hook framework, and a new
+>     arch_remap hook which is called when mremap is done and the mm lock still
+>     hold.  The next patch is adding the vDSO remap and unmap tracking to the
+>     powerpc architecture.
+>
+>     This patch (of 3):
+>
+>     This patch introduces a new set of header file to manage mm hooks:
+>     - per architecture empty header file (arch/x/include/asm/mm-arch-hooks.h)
+>     - a generic header (include/linux/mm-arch-hooks.h)
+>
+>     The architecture which need to overwrite a hook as to redefine it in its
+>     header file, while architecture which doesn't need have nothing to do.
+>
+>     The default hooks are defined in the generic header and are used in the
+>     case the architecture is not defining it.
+>
+>     In a next step, mm hooks defined in include/asm-generic/mm_hooks.h should
+>     be moved here.
+>
+>     Signed-off-by: Laurent Dufour <ldufour@linux.vnet.ibm.com>
+>     Suggested-by: Andrew Morton <akpm@linux-foundation.org>
+>     Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+>     Cc: Hugh Dickins <hughd@google.com>
+>     Cc: Rik van Riel <riel@redhat.com>
+>     Cc: Mel Gorman <mgorman@suse.de>
+>     Cc: Pavel Emelyanov <xemul@parallels.com>
+>     Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+>     Cc: Paul Mackerras <paulus@samba.org>
+>     Cc: Michael Ellerman <mpe@ellerman.id.au>
+>     Cc: Ingo Molnar <mingo@kernel.org>
+>     Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+>     Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+> ---
+>  arch/alpha/include/asm/mm-arch-hooks.h      | 15 +++++++++++++++
+>  arch/arc/include/asm/mm-arch-hooks.h        | 15 +++++++++++++++
+>  arch/arm/include/asm/mm-arch-hooks.h        | 15 +++++++++++++++
+>  arch/arm64/include/asm/mm-arch-hooks.h      | 15 +++++++++++++++
+>  arch/avr32/include/asm/mm-arch-hooks.h      | 15 +++++++++++++++
+>  arch/blackfin/include/asm/mm-arch-hooks.h   | 15 +++++++++++++++
+>  arch/c6x/include/asm/mm-arch-hooks.h        | 15 +++++++++++++++
+>  arch/cris/include/asm/mm-arch-hooks.h       | 15 +++++++++++++++
+>  arch/frv/include/asm/mm-arch-hooks.h        | 15 +++++++++++++++
+>  arch/hexagon/include/asm/mm-arch-hooks.h    | 15 +++++++++++++++
+>  arch/ia64/include/asm/mm-arch-hooks.h       | 15 +++++++++++++++
+>  arch/m32r/include/asm/mm-arch-hooks.h       | 15 +++++++++++++++
+>  arch/m68k/include/asm/mm-arch-hooks.h       | 15 +++++++++++++++
+>  arch/metag/include/asm/mm-arch-hooks.h      | 15 +++++++++++++++
+>  arch/microblaze/include/asm/mm-arch-hooks.h | 15 +++++++++++++++
+>  arch/mips/include/asm/mm-arch-hooks.h       | 15 +++++++++++++++
+>  arch/mn10300/include/asm/mm-arch-hooks.h    | 15 +++++++++++++++
+>  arch/nios2/include/asm/mm-arch-hooks.h      | 15 +++++++++++++++
+>  arch/openrisc/include/asm/mm-arch-hooks.h   | 15 +++++++++++++++
+>  arch/parisc/include/asm/mm-arch-hooks.h     | 15 +++++++++++++++
+>  arch/powerpc/include/asm/mm-arch-hooks.h    | 15 +++++++++++++++
+>  arch/s390/include/asm/mm-arch-hooks.h       | 15 +++++++++++++++
+>  arch/score/include/asm/mm-arch-hooks.h      | 15 +++++++++++++++
+>  arch/sh/include/asm/mm-arch-hooks.h         | 15 +++++++++++++++
+>  arch/sparc/include/asm/mm-arch-hooks.h      | 15 +++++++++++++++
+>  arch/tile/include/asm/mm-arch-hooks.h       | 15 +++++++++++++++
+>  arch/um/include/asm/mm-arch-hooks.h         | 15 +++++++++++++++
+>  arch/unicore32/include/asm/mm-arch-hooks.h  | 15 +++++++++++++++
+>  arch/x86/include/asm/mm-arch-hooks.h        | 15 +++++++++++++++
+>  arch/xtensa/include/asm/mm-arch-hooks.h     | 15 +++++++++++++++
+>  include/linux/mm-arch-hooks.h               | 16 ++++++++++++++++
 
-On Thursday 18 June 2015 04:02 PM, Vineet Gupta wrote:
-> On Thursday 18 June 2015 03:44 PM, Michal Marek wrote:
->> Dne 18.6.2015 v 10:45 Vineet Gupta napsal(a):
->>>> On Thursday 18 June 2015 01:43 PM, Michal Marek wrote:
->>>>>>>>>> Alternatively, as we already have CONFIG_CC_OPTIMIZE_FOR_SIZE,
->>>>>>>>>> a(nother) Kconfig option may make sense.
->>>>>> We can also introduce some ARCH_CFLAGS that is appended near the end of
->>>>>> the list, and have arc/Makefile add its -O3 there. But I'd like to why
->>>>>> the -O3 needs to be there in first place. 
->>>>
->>>> This is how historically ARC kernels have been built. We do track performance
->>>> results LMBench/hackbench... and going from -O3 to -O2 caused a sudden dip in some
->>>> of the numbers when we measured 3.18 (vs. 3.13)
->>>>
->>>>>> Obviously, the kernel works
->>>>>> with -O2, otherwise the regression would have been identified earlier.
->>>>
->>>> Its a performance thing - so yeah -O2 works, but -O3 works even better :-)
->>>>
->>>>>> So why can't users specify -O3 in KCFLAGS like on any other
->>>>>> architecture.
->>>>
->>>> Sweet, I didn't know about this. But I don't see any arch setting this - only tile
->>>> using it. So yeah - below does the trick !
->>>>
->>>> --------->
->>>> From 5e44cd2ed69b1d030b4cb87600d2767b69c35537 Mon Sep 17 00:00:00 2001
->>>> From: Vineet Gupta <vgupta@synopsys.com>
->>>> Date: Thu, 18 Jun 2015 13:54:01 +0530
->>>> Subject: [PATCH] ARC: Override toplevel default -O2 with -O3
->>>>
->>>> ARC kernels have historically been built with -O3, despite top level
->>>> Makefile defaulting to -O2. This was facilitated by implicitly ordering
->>>> of arch makefile include AFTER top level assigned -O2.
->>>>
->>>> An upstream fix to top level a1c48bb160f ("Makefile: Fix unrecognized
->>>> cross-compiler command line options") changed the ordering, making ARC
->>>> -O3 defunt.
->>>>
->>>> Fix that by NOT relying on any ordering whatsoever and use the right
->>>> mechanism to do the over-rides.
->>>>
->>>> Suggested-by: Michal Marek <mmarek@suse.cz>
->>>> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
->>>> Cc: <stable@vger.kernel.org>
->>>> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
->>>> ---
->>>>  arch/arc/Makefile | 1 +
->>>>  1 file changed, 1 insertion(+)
->>>>
->>>> diff --git a/arch/arc/Makefile b/arch/arc/Makefile
->>>> index 86c71b2089d2..c23f3f2b0ff8 100644
->>>> --- a/arch/arc/Makefile
->>>> +++ b/arch/arc/Makefile
->>>> @@ -44,6 +44,7 @@ endif
->>>>  ifndef CONFIG_CC_OPTIMIZE_FOR_SIZE
->>>>  # Generic build system uses -O2, we want -O3
->>>>  cflags-y  += -O3
->>>> +KCFLAGS += -O3
->>>>  endif
->> Uh, this is not what I meant. KCFLAGS is a *user* setting. It's meant to
->> be set in the environment or command line.
-> 
-> Well I don't want to rely on external settings whatsoever to enforce this. If this
-> is not the right way, what do u suggest I do to help fix this.
+Touching all arch/ directories without a CC to linux-arch?
 
+>  31 files changed, 466 insertions(+)
+>
+> diff --git a/arch/alpha/include/asm/mm-arch-hooks.h b/arch/alpha/include/asm/mm-arch-hooks.h
+> new file mode 100644
+> index 0000000..b07fd86
+> --- /dev/null
+> +++ b/arch/alpha/include/asm/mm-arch-hooks.h
+> @@ -0,0 +1,15 @@
+> +/*
+> + * Architecture specific mm hooks
+> + *
+> + * Copyright (C) 2015, IBM Corporation
+> + * Author: Laurent Dufour <ldufour@linux.vnet.ibm.com>
 
-Can I keep this seeming abuse of KCFLAGS or do u suggest alternate approach I can
-code up !
+Cool, copyright on an empty header!
 
-Thx,
--Vineet
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License version 2 as
+> + * published by the Free Software Foundation.
+> + */
+> +
+> +#ifndef _ASM_ALPHA_MM_ARCH_HOOKS_H
+> +#define _ASM_ALPHA_MM_ARCH_HOOKS_H
+> +
+> +#endif /* _ASM_ALPHA_MM_ARCH_HOOKS_H */
+
+[...]
+
+IMHO this screams for the generic version in include/asm-generic/,
+and "generic-y += mm-arch-hooks.h" in arch/*/include/asm/Kbuild/.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
