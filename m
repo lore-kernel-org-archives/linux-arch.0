@@ -1,165 +1,127 @@
-From: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-Subject: Re: mm: new mm hook framework
-Date: Thu, 25 Jun 2015 10:42:45 +0200
-Message-ID: <558BBF05.1050703@linux.vnet.ibm.com>
-References: <20150625040814.6C421660F7B@gitolite.kernel.org> <CAMuHMdUG3CbPGvTuPF_JO4JL1C6aqPpLwuZjfixF1zU117Vjfw@mail.gmail.com>
+From: Eric B Munson <emunson@akamai.com>
+Subject: Re: [RESEND PATCH V2 0/3] Allow user to request memory to be locked
+ on page fault
+Date: Thu, 25 Jun 2015 10:16:38 -0400
+Message-ID: <20150625141638.GF2329@akamai.com>
+References: <1433942810-7852-1-git-send-email-emunson@akamai.com>
+ <20150610145929.b22be8647887ea7091b09ae1@linux-foundation.org>
+ <5579DFBA.80809@akamai.com>
+ <20150611123424.4bb07cffd0e5bb146cc92231@linux-foundation.org>
+ <557ACAFC.90608@suse.cz>
+ <20150615144356.GB12300@akamai.com>
+ <55895956.5020707@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:53308 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751971AbbFYImv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Jun 2015 04:42:51 -0400
-Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <ldufour@linux.vnet.ibm.com>;
-	Thu, 25 Jun 2015 09:42:49 +0100
-In-Reply-To: <CAMuHMdUG3CbPGvTuPF_JO4JL1C6aqPpLwuZjfixF1zU117Vjfw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="gneEPciiIl/aKvOT"
+Return-path: <linux-alpha-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <55895956.5020707@suse.cz>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Vlastimil Babka <vbabka@suse.cz>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 25/06/2015 09:12, Geert Uytterhoeven wrote:
-> On Thu, Jun 25, 2015 at 6:08 AM, Linux Kernel Mailing List
-> <linux-kernel@vger.kernel.org> wrote:
->> Gitweb:     http://git.kernel.org/linus/;a=commit;h=2ae416b142b625c58c9ccb039aa3ef48ad0e9bae
->> Commit:     2ae416b142b625c58c9ccb039aa3ef48ad0e9bae
->> Parent:     e81f2d22370f8231cb7f13f454bcc8c0eb4e23f2
->> Refname:    refs/heads/master
->> Author:     Laurent Dufour <ldufour@linux.vnet.ibm.com>
->> AuthorDate: Wed Jun 24 16:56:16 2015 -0700
->> Committer:  Linus Torvalds <torvalds@linux-foundation.org>
->> CommitDate: Wed Jun 24 17:49:41 2015 -0700
->>
->>     mm: new mm hook framework
->>
->>     CRIU is recreating the process memory layout by remapping the checkpointee
->>     memory area on top of the current process (criu).  This includes remapping
->>     the vDSO to the place it has at checkpoint time.
->>
->>     However some architectures like powerpc are keeping a reference to the
->>     vDSO base address to build the signal return stack frame by calling the
->>     vDSO sigreturn service.  So once the vDSO has been moved, this reference
->>     is no more valid and the signal frame built later are not usable.
->>
->>     This patch serie is introducing a new mm hook framework, and a new
->>     arch_remap hook which is called when mremap is done and the mm lock still
->>     hold.  The next patch is adding the vDSO remap and unmap tracking to the
->>     powerpc architecture.
->>
->>     This patch (of 3):
->>
->>     This patch introduces a new set of header file to manage mm hooks:
->>     - per architecture empty header file (arch/x/include/asm/mm-arch-hooks.h)
->>     - a generic header (include/linux/mm-arch-hooks.h)
->>
->>     The architecture which need to overwrite a hook as to redefine it in its
->>     header file, while architecture which doesn't need have nothing to do.
->>
->>     The default hooks are defined in the generic header and are used in the
->>     case the architecture is not defining it.
->>
->>     In a next step, mm hooks defined in include/asm-generic/mm_hooks.h should
->>     be moved here.
->>
->>     Signed-off-by: Laurent Dufour <ldufour@linux.vnet.ibm.com>
->>     Suggested-by: Andrew Morton <akpm@linux-foundation.org>
->>     Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
->>     Cc: Hugh Dickins <hughd@google.com>
->>     Cc: Rik van Riel <riel@redhat.com>
->>     Cc: Mel Gorman <mgorman@suse.de>
->>     Cc: Pavel Emelyanov <xemul@parallels.com>
->>     Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
->>     Cc: Paul Mackerras <paulus@samba.org>
->>     Cc: Michael Ellerman <mpe@ellerman.id.au>
->>     Cc: Ingo Molnar <mingo@kernel.org>
->>     Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
->>     Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
->> ---
->>  arch/alpha/include/asm/mm-arch-hooks.h      | 15 +++++++++++++++
->>  arch/arc/include/asm/mm-arch-hooks.h        | 15 +++++++++++++++
->>  arch/arm/include/asm/mm-arch-hooks.h        | 15 +++++++++++++++
->>  arch/arm64/include/asm/mm-arch-hooks.h      | 15 +++++++++++++++
->>  arch/avr32/include/asm/mm-arch-hooks.h      | 15 +++++++++++++++
->>  arch/blackfin/include/asm/mm-arch-hooks.h   | 15 +++++++++++++++
->>  arch/c6x/include/asm/mm-arch-hooks.h        | 15 +++++++++++++++
->>  arch/cris/include/asm/mm-arch-hooks.h       | 15 +++++++++++++++
->>  arch/frv/include/asm/mm-arch-hooks.h        | 15 +++++++++++++++
->>  arch/hexagon/include/asm/mm-arch-hooks.h    | 15 +++++++++++++++
->>  arch/ia64/include/asm/mm-arch-hooks.h       | 15 +++++++++++++++
->>  arch/m32r/include/asm/mm-arch-hooks.h       | 15 +++++++++++++++
->>  arch/m68k/include/asm/mm-arch-hooks.h       | 15 +++++++++++++++
->>  arch/metag/include/asm/mm-arch-hooks.h      | 15 +++++++++++++++
->>  arch/microblaze/include/asm/mm-arch-hooks.h | 15 +++++++++++++++
->>  arch/mips/include/asm/mm-arch-hooks.h       | 15 +++++++++++++++
->>  arch/mn10300/include/asm/mm-arch-hooks.h    | 15 +++++++++++++++
->>  arch/nios2/include/asm/mm-arch-hooks.h      | 15 +++++++++++++++
->>  arch/openrisc/include/asm/mm-arch-hooks.h   | 15 +++++++++++++++
->>  arch/parisc/include/asm/mm-arch-hooks.h     | 15 +++++++++++++++
->>  arch/powerpc/include/asm/mm-arch-hooks.h    | 15 +++++++++++++++
->>  arch/s390/include/asm/mm-arch-hooks.h       | 15 +++++++++++++++
->>  arch/score/include/asm/mm-arch-hooks.h      | 15 +++++++++++++++
->>  arch/sh/include/asm/mm-arch-hooks.h         | 15 +++++++++++++++
->>  arch/sparc/include/asm/mm-arch-hooks.h      | 15 +++++++++++++++
->>  arch/tile/include/asm/mm-arch-hooks.h       | 15 +++++++++++++++
->>  arch/um/include/asm/mm-arch-hooks.h         | 15 +++++++++++++++
->>  arch/unicore32/include/asm/mm-arch-hooks.h  | 15 +++++++++++++++
->>  arch/x86/include/asm/mm-arch-hooks.h        | 15 +++++++++++++++
->>  arch/xtensa/include/asm/mm-arch-hooks.h     | 15 +++++++++++++++
->>  include/linux/mm-arch-hooks.h               | 16 ++++++++++++++++
-> 
-> Touching all arch/ directories without a CC to linux-arch?
 
-I apologizes, this thread initially was only involving arch/powerpc
-files, and following multiple advices it came to impact all arch.
+--gneEPciiIl/aKvOT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> 
->>  31 files changed, 466 insertions(+)
->>
->> diff --git a/arch/alpha/include/asm/mm-arch-hooks.h b/arch/alpha/include/asm/mm-arch-hooks.h
->> new file mode 100644
->> index 0000000..b07fd86
->> --- /dev/null
->> +++ b/arch/alpha/include/asm/mm-arch-hooks.h
->> @@ -0,0 +1,15 @@
->> +/*
->> + * Architecture specific mm hooks
->> + *
->> + * Copyright (C) 2015, IBM Corporation
->> + * Author: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-> 
-> Cool, copyright on an empty header!
-> 
->> + *
->> + * This program is free software; you can redistribute it and/or modify
->> + * it under the terms of the GNU General Public License version 2 as
->> + * published by the Free Software Foundation.
->> + */
->> +
->> +#ifndef _ASM_ALPHA_MM_ARCH_HOOKS_H
->> +#define _ASM_ALPHA_MM_ARCH_HOOKS_H
->> +
->> +#endif /* _ASM_ALPHA_MM_ARCH_HOOKS_H */
-> 
-> [...]
-> 
-> IMHO this screams for the generic version in include/asm-generic/,
-> and "generic-y += mm-arch-hooks.h" in arch/*/include/asm/Kbuild/.
+On Tue, 23 Jun 2015, Vlastimil Babka wrote:
 
-I do like your proposal which avoid creating too many *empty* files.
-Since Andrew suggested the way I did the current patch, I'd appreciate
-his feedback too.
+> On 06/15/2015 04:43 PM, Eric B Munson wrote:
+> >>Note that the semantic of MAP_LOCKED can be subtly surprising:
+> >>
+> >>"mlock(2) fails if the memory range cannot get populated to guarantee
+> >>that no future major faults will happen on the range.
+> >>mmap(MAP_LOCKED) on the other hand silently succeeds even if the
+> >>range was populated only
+> >>partially."
+> >>
+> >>( from http://marc.info/?l=3Dlinux-mm&m=3D143152790412727&w=3D2 )
+> >>
+> >>So MAP_LOCKED can silently behave like MAP_LOCKONFAULT. While
+> >>MAP_LOCKONFAULT doesn't suffer from such problem, I wonder if that's
+> >>sufficient reason not to extend mmap by new mlock() flags that can
+> >>be instead applied to the VMA after mmapping, using the proposed
+> >>mlock2() with flags. So I think instead we could deprecate
+> >>MAP_LOCKED more prominently. I doubt the overhead of calling the
+> >>extra syscall matters here?
+> >
+> >We could talk about retiring the MAP_LOCKED flag but I suspect that
+> >would get significantly more pushback than adding a new mmap flag.
+>=20
+> Oh no we can't "retire" as in remove the flag, ever. Just not
+> continue the way of mmap() flags related to mlock().
+>=20
+> >Likely that the overhead does not matter in most cases, but presumably
+> >there are cases where it does (as we have a MAP_LOCKED flag today).
+> >Even with the proposed new system calls I think we should have the
+> >MAP_LOCKONFAULT for parity with MAP_LOCKED.
+>=20
+> I'm not convinced, but it's not a major issue.
+>=20
+> >>
+> >>>- mlock() takes a `flags' argument.  Presently that's
+> >>>   MLOCK_LOCKED|MLOCK_LOCKONFAULT.
+> >>>
+> >>>- munlock() takes a `flags' arument.  MLOCK_LOCKED|MLOCK_LOCKONFAULT
+> >>>   to specify which flags are being cleared.
+> >>>
+> >>>- mlockall() and munlockall() ditto.
+> >>>
+> >>>
+> >>>IOW, LOCKED and LOCKEDONFAULT are treated identically and independentl=
+y.
+> >>>
+> >>>Now, that's how we would have designed all this on day one.  And I
+> >>>think we can do this now, by adding new mlock2() and munlock2()
+> >>>syscalls.  And we may as well deprecate the old mlock() and munlock(),
+> >>>not that this matters much.
+> >>>
+> >>>*should* we do this?  I'm thinking "yes" - it's all pretty simple
+> >>>boilerplate and wrappers and such, and it gets the interface correct,
+> >>>and extensible.
+> >>
+> >>If the new LOCKONFAULT functionality is indeed desired (I haven't
+> >>still decided myself) then I agree that would be the cleanest way.
+> >
+> >Do you disagree with the use cases I have listed or do you think there
+> >is a better way of addressing those cases?
+>=20
+> I'm somewhat sceptical about the security one. Are security
+> sensitive buffers that large to matter? The performance one is more
+> convincing and I don't see a better way, so OK.
 
-> Gr{oetje,eeting}s,
-> 
->                         Geert
-> 
-> --
-> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-> 
-> In personal conversations with technical people, I call myself a hacker. But
-> when I'm talking to journalists I just say "programmer" or something like that.
->                                 -- Linus Torvalds
-> 
+They can be, the two that come to mind are medical images and high
+resolution sensor data.
+
+>=20
+> >
+> >>
+> >>>What do others think?
+>=20
+
+--gneEPciiIl/aKvOT
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQIcBAEBAgAGBQJVjA1GAAoJELbVsDOpoOa9UuYP/0uK/Rd97QRrj7JihySL0bIp
+xR5VEgBq3dvL9zso97dWMfg427XMFyEk6ZmPzMCic6uaNOXj2wj95fMH8/JZLlGP
+VDwj+tVXUrS4cSYMlf2KoJnZE3lAU4Qjhef/B50FOd+QfnP3m7j78SeBQLefUyBF
+dh6NnpZyzqChIQsDS3j9Qy9BlUH4JRuKW5AGLbEIPrl7DdN1YqZ3h5czy3ouEN6N
+8xi145ThIaNAlEmdpNmTcEwAFQpTnX9F8B3Zi9+oPsgNvd6yb6v5ZWlxd+pdxGwn
+GzNpU6iPrWjgm62NaRlZieLP39fL+UwIZ4wijKQjCV8uHYLaCF+edchj2tX5tV1+
+K1C7Vt4SJrz/xdgfT2uXiGK7/fu2ti6jO5Vl1fdGSPmskpqlpRsUsQs9igjW0uH8
+neYV9mS1H7XhbMAfXsEiMjKNyY2X5o3+085dtwnhUG28v/PJob7AnP20DuAAzsQF
+h9sKslrlgctv2pS0ATCEj/ZrO7OheNq72YEcUhIfCgwF/5bG4PNuNmlzmpYdMmE2
+skMlXEkc6x+nc0K5D61tjTfRcIX9nILAVyWb/FdU//OLSEEPlexCyOOPnsyFPyLA
+RLHPLoIE4qnFMemYtw3QiXr1XwJZ260HIQRl/x7Qx4ppceRkXmmhbNrlMud2Ru0z
+TgY/kWkb2P90kkXjd2qQ
+=ayiS
+-----END PGP SIGNATURE-----
+
+--gneEPciiIl/aKvOT--
