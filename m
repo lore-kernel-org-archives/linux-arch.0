@@ -1,40 +1,85 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 11/28] ARCv2: extable: Enable sorting at build time
-Date: Tue, 30 Jun 2015 10:11:41 +0530
-Message-ID: <55921E05.40000@synopsys.com>
-References: <1433850508-26317-1-git-send-email-vgupta@synopsys.com> <1433850508-26317-12-git-send-email-vgupta@synopsys.com> <558A4559.1070304@synopsys.com> <5591ACE2.8050000@caviumnetworks.com>
+Subject: Re: [PATCH] mm: cleaning per architecture MM hook header files
+Date: Tue, 30 Jun 2015 12:58:08 +0530
+Message-ID: <55924508.9080101@synopsys.com>
+References: <1435587909-23163-1-git-send-email-ldufour@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="windows-1252"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:54012 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751124AbbF3El6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Jun 2015 00:41:58 -0400
-In-Reply-To: <5591ACE2.8050000@caviumnetworks.com>
+Received: from smtprelay2.synopsys.com ([198.182.60.111]:37738 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1750992AbbF3H3n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Jun 2015 03:29:43 -0400
+In-Reply-To: <1435587909-23163-1-git-send-email-ldufour@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Daney <ddaney@caviumnetworks.com>
-Cc: David Daney <david.daney@cavium.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, arc-linux-dev@synopsys.com
+To: Laurent Dufour <ldufour@linux.vnet.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
 
-On Tuesday 30 June 2015 02:08 AM, David Daney wrote:
->>
->> Sorry for missing you in the CC in orig post of this patch. Can I get your Ack on
->> this one !
->>
+On Monday 29 June 2015 07:55 PM, Laurent Dufour wrote:
+> The commit 2ae416b142b6 ("mm: new mm hook framework") introduced an empty
+> header file (mm-arch-hooks.h) for every architecture, even those which
+> doesn't need to define mm hooks.
 > 
-> OK:
+> As suggested by Geert Uytterhoeven, this could be cleaned through the use
+> of a generic header file included via each per architecture
+> asm/include/Kbuild file.
 > 
-> Acked-by: David Daney <david.daney@cavium.com>
+> The powerpc architecture is not impacted here since this architecture has
+> to defined the arch_remap MM hook.
+> 
+> Signed-off-by: Laurent Dufour <ldufour@linux.vnet.ibm.com>
+> Suggested-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> CC: Andrew Morton <akpm@linux-foundation.org>
+> CC: linux-arch@vger.kernel.org
+> CC: linux-mm@kvack.org
+> CC: linux-kernel@vger.kernel.org
+> ---
 
-Thx David. Although I had put the patch as it is in the end as I need to send a
-pull request to Linus soon for hat stuff.
+snipped....
 
+> diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
+> index 769b312c1abb..2febe6ff32ed 100644
+> --- a/arch/arc/include/asm/Kbuild
+> +++ b/arch/arc/include/asm/Kbuild
+> @@ -49,3 +49,4 @@ generic-y += ucontext.h
+>  generic-y += user.h
+>  generic-y += vga.h
+>  generic-y += xor.h
+> +generic-y += mm-arch-hooks.h
+> diff --git a/arch/arc/include/asm/mm-arch-hooks.h b/arch/arc/include/asm/mm-arch-hooks.h
+> deleted file mode 100644
+> index c37541c5f8ba..000000000000
+> --- a/arch/arc/include/asm/mm-arch-hooks.h
+> +++ /dev/null
+> @@ -1,15 +0,0 @@
+> -/*
+> - * Architecture specific mm hooks
+> - *
+> - * Copyright (C) 2015, IBM Corporation
+> - * Author: Laurent Dufour <ldufour@linux.vnet.ibm.com>
+> - *
+> - * This program is free software; you can redistribute it and/or modify
+> - * it under the terms of the GNU General Public License version 2 as
+> - * published by the Free Software Foundation.
+> - */
+> -
+> -#ifndef _ASM_ARC_MM_ARCH_HOOKS_H
+> -#define _ASM_ARC_MM_ARCH_HOOKS_H
+> -
+> -#endif /* _ASM_ARC_MM_ARCH_HOOKS_H */
+> diff --git a/arch/arm/include/asm/Kbuild b/arch/arm/include/asm/Kbuild
+> index 83c50193626c..870a2f7cbada 100644
+> --- a/arch/arm/include/asm/Kbuild
+> +++ b/arch/arm/include/asm/Kbuild
+> @@ -36,3 +36,4 @@ generic-y += termios.h
+>  generic-y += timex.h
+>  generic-y += trace_clock.h
+>  generic-y += unaligned.h
+> +generic-y += mm-arch-hooks.h
 
-> Really this is obvious, and only effects ARCv2, so the corresponding maintainers
-> shouldn't need my Ack.
+We keep this file sorted by headers so please can u respin with right ordering !
 
-Indeed it was obvious, but last few commits in that file had ACK's from you so I
-thought of retaining the tradition so to speak :-)
-
+Thx,
 -Vineet
