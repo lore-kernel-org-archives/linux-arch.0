@@ -1,81 +1,60 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: [PATCH v2] mm: cleaning per architecture MM hook header files
-Date: Wed, 1 Jul 2015 18:21:06 +0530
-Message-ID: <5593E23A.4010709@synopsys.com>
-References: <55924508.9080101@synopsys.com> <1435745853-27535-1-git-send-email-ldufour@linux.vnet.ibm.com>
+Date: Wed, 1 Jul 2015 14:54:08 +0200
+Message-ID: <CAMuHMdWe0eEYm11LdDvQiAUV=XFYSM-ef2JueZn+rDtTt2H_Pg@mail.gmail.com>
+References: <55924508.9080101@synopsys.com>
+	<1435745853-27535-1-git-send-email-ldufour@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay2.synopsys.com ([198.182.60.111]:40243 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751548AbbGAMwM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Jul 2015 08:52:12 -0400
+Content-Type: text/plain; charset=UTF-8
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1435745853-27535-1-git-send-email-ldufour@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Laurent Dufour <ldufour@linux.vnet.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: uclinux-h8-devel@lists.sourceforge.jp, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
+To: Laurent Dufour <ldufour@linux.vnet.ibm.com>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, uclinux-h8-devel@lists.sourceforge.jp, Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wednesday 01 July 2015 03:47 PM, Laurent Dufour wrote:
+On Wed, Jul 1, 2015 at 12:17 PM, Laurent Dufour
+<ldufour@linux.vnet.ibm.com> wrote:
 > The commit 2ae416b142b6 ("mm: new mm hook framework") introduced an empty
 > header file (mm-arch-hooks.h) for every architecture, even those which
 > doesn't need to define mm hooks.
-> 
+>
 > As suggested by Geert Uytterhoeven, this could be cleaned through the use
 > of a generic header file included via each per architecture
 > asm/include/Kbuild file.
-> 
+>
 > The PowerPC architecture is not impacted here since this architecture has
 > to defined the arch_remap MM hook.
-> 
+>
 > Changes in V2:
 > --------------
 >  - Vineet Gupta reported that the Kbuild files should be kept sorted.
 >  - Add fix for the newly introduced H8/300 architecture.
-> 
+>
 > Signed-off-by: Laurent Dufour <ldufour@linux.vnet.ibm.com>
 > Suggested-by: Geert Uytterhoeven <geert@linux-m68k.org>
 > CC: Andrew Morton <akpm@linux-foundation.org>
 > CC: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-.
-[snip]
+> CC: linux-arch@vger.kernel.org
+> CC: linux-mm@kvack.org
+> CC: linux-kernel@vger.kernel.org
 
-> diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
-> index 769b312c1abb..f2a3cdfee5f5 100644
-> --- a/arch/arc/include/asm/Kbuild
-> +++ b/arch/arc/include/asm/Kbuild
-> @@ -23,6 +23,7 @@ generic-y += kvm_para.h
->  generic-y += local.h
->  generic-y += local64.h
->  generic-y += mcs_spinlock.h
-> +generic-y += mm-arch-hooks.h
->  generic-y += mman.h
->  generic-y += msgbuf.h
->  generic-y += param.h
-> diff --git a/arch/arc/include/asm/mm-arch-hooks.h b/arch/arc/include/asm/mm-arch-hooks.h
-> deleted file mode 100644
-> index c37541c5f8ba..000000000000
-> --- a/arch/arc/include/asm/mm-arch-hooks.h
-> +++ /dev/null
-> @@ -1,15 +0,0 @@
-> -/*
-> - * Architecture specific mm hooks
-> - *
-> - * Copyright (C) 2015, IBM Corporation
-> - * Author: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-> - *
-> - * This program is free software; you can redistribute it and/or modify
-> - * it under the terms of the GNU General Public License version 2 as
-> - * published by the Free Software Foundation.
-> - */
-> -
-> -#ifndef _ASM_ARC_MM_ARCH_HOOKS_H
-> -#define _ASM_ARC_MM_ARCH_HOOKS_H
-> -
-> -#endif /* _ASM_ARC_MM_ARCH_HOOKS_H */
+For m68k:
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-Acked-by: Vineet Gupta <vgupta@synopsys.com>   # for arch/arc
+Gr{oetje,eeting}s,
 
-Thx,
--Vineet
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
