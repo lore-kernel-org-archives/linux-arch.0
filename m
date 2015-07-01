@@ -1,59 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f171.google.com ([209.85.214.171]:35964 "EHLO
-	mail-ob0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751189AbbGAMyJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 1 Jul 2015 08:54:09 -0400
+Received: from cantor2.suse.de ([195.135.220.15]:53033 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751203AbbGAPTc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 1 Jul 2015 11:19:32 -0400
+Date: Wed, 1 Jul 2015 17:19:30 +0200
+From: Michal Marek <mmarek@suse.cz>
+Subject: Re: subtle side effect of commit a1c48bb160f836
+Message-ID: <20150701151930.GB6743@sepie.suse.cz>
+References: <55826966.6050202@synopsys.com>
+ <CAMuHMdXWHYF8hEEgeFxLTrhvmEDBVS2=VmKykfOtDkGjqODQbA@mail.gmail.com>
+ <20150618081329.GA9434@pobox.suse.cz>
+ <55828527.8050901@synopsys.com>
+ <55829A0B.8070804@suse.cz>
+ <55829E51.3060007@synopsys.com>
+ <558AA080.7070801@synopsys.com>
 MIME-Version: 1.0
-In-Reply-To: <1435745853-27535-1-git-send-email-ldufour@linux.vnet.ibm.com>
-References: <55924508.9080101@synopsys.com>
-	<1435745853-27535-1-git-send-email-ldufour@linux.vnet.ibm.com>
-Date: Wed, 1 Jul 2015 14:54:08 +0200
-Message-ID: <CAMuHMdWe0eEYm11LdDvQiAUV=XFYSM-ef2JueZn+rDtTt2H_Pg@mail.gmail.com>
-Subject: Re: [PATCH v2] mm: cleaning per architecture MM hook header files
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <558AA080.7070801@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, uclinux-h8-devel@lists.sourceforge.jp, Andrew Morton <akpm@linux-foundation.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20150701125408.PwVgoT4EcsR9tOnVzn1eHHyNjfyTWz7TxK5mWf5_SrM@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>
+Message-ID: <20150701151930.2Lx29_MmylAuobQvW2U1Gx1IjhISz-8rKMXTzw9BjYU@z>
 
-On Wed, Jul 1, 2015 at 12:17 PM, Laurent Dufour
-<ldufour@linux.vnet.ibm.com> wrote:
-> The commit 2ae416b142b6 ("mm: new mm hook framework") introduced an empty
-> header file (mm-arch-hooks.h) for every architecture, even those which
-> doesn't need to define mm hooks.
->
-> As suggested by Geert Uytterhoeven, this could be cleaned through the use
-> of a generic header file included via each per architecture
-> asm/include/Kbuild file.
->
-> The PowerPC architecture is not impacted here since this architecture has
-> to defined the arch_remap MM hook.
->
-> Changes in V2:
-> --------------
->  - Vineet Gupta reported that the Kbuild files should be kept sorted.
->  - Add fix for the newly introduced H8/300 architecture.
->
-> Signed-off-by: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-> Suggested-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> CC: Andrew Morton <akpm@linux-foundation.org>
-> CC: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-> CC: linux-arch@vger.kernel.org
-> CC: linux-mm@kvack.org
-> CC: linux-kernel@vger.kernel.org
+On Wed, Jun 24, 2015 at 05:50:16PM +0530, Vineet Gupta wrote:
+> On Thursday 18 June 2015 04:02 PM, Vineet Gupta wrote:
+> > On Thursday 18 June 2015 03:44 PM, Michal Marek wrote:
+> >> Uh, this is not what I meant. KCFLAGS is a *user* setting. It's meant to
+> >> be set in the environment or command line.
+> > 
+> > Well I don't want to rely on external settings whatsoever to enforce this. If this
+> > is not the right way, what do u suggest I do to help fix this.
+> 
+> 
+> Can I keep this seeming abuse of KCFLAGS or do u suggest alternate approach I can
+> code up !
 
-For m68k:
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Hi Vineet, sorry for the late reply. I had something like the below
+patch in mind, simply allow arc to specify -O3 in ARCH_CFLAGS (that part
+I'm leaving up to you).
