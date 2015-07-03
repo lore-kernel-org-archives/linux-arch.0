@@ -1,49 +1,136 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: ARC build -O3 (was Re: subtle side effect of commit a1c48bb160f836)
-Date: Fri, 3 Jul 2015 08:28:07 +0530
-Message-ID: <5595FA3F.3030107@synopsys.com>
-References: <55826966.6050202@synopsys.com> <CAMuHMdXWHYF8hEEgeFxLTrhvmEDBVS2=VmKykfOtDkGjqODQbA@mail.gmail.com> <20150618081329.GA9434@pobox.suse.cz> <55828527.8050901@synopsys.com> <55829A0B.8070804@suse.cz> <55829E51.3060007@synopsys.com> <558AA080.7070801@synopsys.com> <20150701151930.GB6743@sepie.suse.cz> <5594CBBE.2030302@synopsys.com> <5595960D.8040208@suse.cz>
+From: Sylvain Chouleur <sylvain.chouleur@intel.com>
+Subject: Re: [PATCH] rtc-cmos: Support of century field
+Date: Fri, 03 Jul 2015 17:12:27 +0200
+Message-ID: <87r3op2s2s.fsf@schouleu-mobl1.ger.corp.intel.com>
+References: <87pp4xf7mw.fsf@schouleu-mobl1.ger.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay2.synopsys.com ([198.182.60.111]:51044 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1754176AbbGCC6a (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2015 22:58:30 -0400
-In-Reply-To: <5595960D.8040208@suse.cz>
+Received: from mga09.intel.com ([134.134.136.24]:3844 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932149AbbGCPK4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 3 Jul 2015 11:10:56 -0400
+In-Reply-To: <87pp4xf7mw.fsf@schouleu-mobl1.ger.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Marek <mmarek@suse.cz>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
 
-On Friday 03 July 2015 01:20 AM, Michal Marek wrote:
->>> >> Reported-by: Vineet Gupta <Vineet.Gupta1@synopsys.com>
->>> >> Signed-off-by: Michal Marek <mmarek@suse.com>
->> > 
->> > Sweet, that works for me with the following patch below.
->> > 
->> > Some logistics things:
->> > - It would be nice to keep both of these patches together - do u want to do
->> >   that or want me to pick this one up
+Sylvain Chouleur <sylvain.chouleur@intel.com> writes:
+
+> If century field is supported by the RTC CMOS device, then we should use
+> it and do not consider years greater that 169 as an error.
 >
-> Feel free to pick up my patch.
-
-Ok !
-
->> > - For ARC this fixes a regression starting 3.16 - so I'll need a stable backport
->> >   which but obviously requires above to go to stable. Do u have any issues with
->> >   that. Shall we do the stable request after these hit the mainline...
+> For information, the year field of the rtc_time structure contains the
+> value to add to 1970 to obtain the current year.
+> This was a hack to be able to support years from 1970 to 2069.
+> This patch remains compatible with this implementation.
 >
-> Or just add
-> 
->   Cc: stable@vger.kernel.org # 3.16+
+> Signed-off-by: Sylvain Chouleur <sylvain.chouleur@intel.com>
+> ---
+>  include/asm-generic/rtc.h | 29 +++++++++++++++++++++++++++++
+>  1 file changed, 29 insertions(+)
+>
+> diff --git a/include/asm-generic/rtc.h b/include/asm-generic/rtc.h
+> index fa86f240c874..4e3b6558331e 100644
+> --- a/include/asm-generic/rtc.h
+> +++ b/include/asm-generic/rtc.h
+> @@ -16,6 +16,9 @@
+>  #include <linux/rtc.h>
+>  #include <linux/bcd.h>
+>  #include <linux/delay.h>
+> +#ifdef CONFIG_ACPI
+> +#include <linux/acpi.h>
+> +#endif
+>  
+>  #define RTC_PIE 0x40		/* periodic interrupt enable */
+>  #define RTC_AIE 0x20		/* alarm interrupt enable */
+> @@ -46,6 +49,7 @@ static inline unsigned int __get_rtc_time(struct rtc_time *time)
+>  {
+>  	unsigned char ctrl;
+>  	unsigned long flags;
+> +	unsigned char century = 0;
+>  
+>  #ifdef CONFIG_MACH_DECSTATION
+>  	unsigned int real_year;
+> @@ -79,6 +83,11 @@ static inline unsigned int __get_rtc_time(struct rtc_time *time)
+>  #ifdef CONFIG_MACH_DECSTATION
+>  	real_year = CMOS_READ(RTC_DEC_YEAR);
+>  #endif
+> +#ifdef CONFIG_ACPI
+> +	if (acpi_gbl_FADT.header.revision >= FADT2_REVISION_ID &&
+> +	    acpi_gbl_FADT.century)
+> +		century = CMOS_READ(acpi_gbl_FADT.century);
+> +#endif
+>  	ctrl = CMOS_READ(RTC_CONTROL);
+>  	spin_unlock_irqrestore(&rtc_lock, flags);
+>  
+> @@ -90,12 +99,16 @@ static inline unsigned int __get_rtc_time(struct rtc_time *time)
+>  		time->tm_mday = bcd2bin(time->tm_mday);
+>  		time->tm_mon = bcd2bin(time->tm_mon);
+>  		time->tm_year = bcd2bin(time->tm_year);
+> +		century = bcd2bin(century);
+>  	}
+>  
+>  #ifdef CONFIG_MACH_DECSTATION
+>  	time->tm_year += real_year - 72;
+>  #endif
+>  
+> +	if (century)
+> +		time->tm_year += (century - 19) * 100;
+> +
+>  	/*
+>  	 * Account for differences between how the RTC uses the values
+>  	 * and how they are defined in a struct rtc_time;
+> @@ -122,6 +135,7 @@ static inline int __set_rtc_time(struct rtc_time *time)
+>  #ifdef CONFIG_MACH_DECSTATION
+>  	unsigned int real_yrs, leap_yr;
+>  #endif
+> +	unsigned char century = 0;
+>  
+>  	yrs = time->tm_year;
+>  	mon = time->tm_mon + 1;   /* tm_mon starts at zero */
+> @@ -150,6 +164,15 @@ static inline int __set_rtc_time(struct rtc_time *time)
+>  		yrs = 73;
+>  	}
+>  #endif
+> +
+> +#ifdef CONFIG_ACPI
+> +	if (acpi_gbl_FADT.header.revision >= FADT2_REVISION_ID &&
+> +	    acpi_gbl_FADT.century) {
+> +		century = (yrs + 1900) / 100;
+> +		yrs %= 100;
+> +	}
+> +#endif
+> +
+>  	/* These limits and adjustments are independent of
+>  	 * whether the chip is in binary mode or not.
+>  	 */
+> @@ -169,6 +192,7 @@ static inline int __set_rtc_time(struct rtc_time *time)
+>  		day = bin2bcd(day);
+>  		mon = bin2bcd(mon);
+>  		yrs = bin2bcd(yrs);
+> +		century = bin2bcd(century);
+>  	}
+>  
+>  	save_control = CMOS_READ(RTC_CONTROL);
+> @@ -185,6 +209,11 @@ static inline int __set_rtc_time(struct rtc_time *time)
+>  	CMOS_WRITE(hrs, RTC_HOURS);
+>  	CMOS_WRITE(min, RTC_MINUTES);
+>  	CMOS_WRITE(sec, RTC_SECONDS);
+> +#ifdef CONFIG_ACPI
+> +	if (acpi_gbl_FADT.header.revision >= FADT2_REVISION_ID &&
+> +	    acpi_gbl_FADT.century)
+> +		CMOS_WRITE(century, acpi_gbl_FADT.century);
+> +#endif
+>  
+>  	CMOS_WRITE(save_control, RTC_CONTROL);
+>  	CMOS_WRITE(save_freq_select, RTC_FREQ_SELECT);
+> -- 
+> 1.9.1
 
-Sure, I just wanted to ensure stable backport was OK for top level Makefile.
+Any thought about this patch?
 
-I just tried to apply it to 3.17.8 and and it doesn't thus will likely get dropped
-by stable folks without a fixed up version.
-
-I've added a "Depends-on" tag to ARC patch just in case.
-
--Vineet
+Thanks
+--
+Sylvain
