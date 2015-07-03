@@ -1,136 +1,117 @@
-From: Sylvain Chouleur <sylvain.chouleur@intel.com>
-Subject: Re: [PATCH] rtc-cmos: Support of century field
-Date: Fri, 03 Jul 2015 17:12:27 +0200
-Message-ID: <87r3op2s2s.fsf@schouleu-mobl1.ger.corp.intel.com>
-References: <87pp4xf7mw.fsf@schouleu-mobl1.ger.corp.intel.com>
+From: "Luis R. Rodriguez" <mcgrof@suse.com>
+Subject: RFC: default ioremap_*() variant defintions
+Date: Fri, 3 Jul 2015 20:17:09 +0200
+Message-ID: <20150703181709.GD7021@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:3844 "EHLO mga09.intel.com"
+Received: from cantor2.suse.de ([195.135.220.15]:50793 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932149AbbGCPK4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 3 Jul 2015 11:10:56 -0400
-In-Reply-To: <87pp4xf7mw.fsf@schouleu-mobl1.ger.corp.intel.com>
+	id S1755497AbbGCSRR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 3 Jul 2015 14:17:17 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org
+Cc: Borislav Petkov <bp@suse.de>, Ville =?iso-8859-1?Q?Syrj=E4l=E4?= <syrjala@sci.fi>, Arnd Bergmann <arnd@arndb.de>, Toshi Kani <toshi.kani@hp.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ingo Molnar <mingo@kernel.org>, "Luis R. Rodriguez" <mcgrof@do-not-panic.com>
 
-Sylvain Chouleur <sylvain.chouleur@intel.com> writes:
 
-> If century field is supported by the RTC CMOS device, then we should use
-> it and do not consider years greater that 169 as an error.
->
-> For information, the year field of the rtc_time structure contains the
-> value to add to 1970 to obtain the current year.
-> This was a hack to be able to support years from 1970 to 2069.
-> This patch remains compatible with this implementation.
->
-> Signed-off-by: Sylvain Chouleur <sylvain.chouleur@intel.com>
-> ---
->  include/asm-generic/rtc.h | 29 +++++++++++++++++++++++++++++
->  1 file changed, 29 insertions(+)
->
-> diff --git a/include/asm-generic/rtc.h b/include/asm-generic/rtc.h
-> index fa86f240c874..4e3b6558331e 100644
-> --- a/include/asm-generic/rtc.h
-> +++ b/include/asm-generic/rtc.h
-> @@ -16,6 +16,9 @@
->  #include <linux/rtc.h>
->  #include <linux/bcd.h>
->  #include <linux/delay.h>
-> +#ifdef CONFIG_ACPI
-> +#include <linux/acpi.h>
-> +#endif
->  
->  #define RTC_PIE 0x40		/* periodic interrupt enable */
->  #define RTC_AIE 0x20		/* alarm interrupt enable */
-> @@ -46,6 +49,7 @@ static inline unsigned int __get_rtc_time(struct rtc_time *time)
->  {
->  	unsigned char ctrl;
->  	unsigned long flags;
-> +	unsigned char century = 0;
->  
->  #ifdef CONFIG_MACH_DECSTATION
->  	unsigned int real_year;
-> @@ -79,6 +83,11 @@ static inline unsigned int __get_rtc_time(struct rtc_time *time)
->  #ifdef CONFIG_MACH_DECSTATION
->  	real_year = CMOS_READ(RTC_DEC_YEAR);
->  #endif
-> +#ifdef CONFIG_ACPI
-> +	if (acpi_gbl_FADT.header.revision >= FADT2_REVISION_ID &&
-> +	    acpi_gbl_FADT.century)
-> +		century = CMOS_READ(acpi_gbl_FADT.century);
-> +#endif
->  	ctrl = CMOS_READ(RTC_CONTROL);
->  	spin_unlock_irqrestore(&rtc_lock, flags);
->  
-> @@ -90,12 +99,16 @@ static inline unsigned int __get_rtc_time(struct rtc_time *time)
->  		time->tm_mday = bcd2bin(time->tm_mday);
->  		time->tm_mon = bcd2bin(time->tm_mon);
->  		time->tm_year = bcd2bin(time->tm_year);
-> +		century = bcd2bin(century);
->  	}
->  
->  #ifdef CONFIG_MACH_DECSTATION
->  	time->tm_year += real_year - 72;
->  #endif
->  
-> +	if (century)
-> +		time->tm_year += (century - 19) * 100;
-> +
->  	/*
->  	 * Account for differences between how the RTC uses the values
->  	 * and how they are defined in a struct rtc_time;
-> @@ -122,6 +135,7 @@ static inline int __set_rtc_time(struct rtc_time *time)
->  #ifdef CONFIG_MACH_DECSTATION
->  	unsigned int real_yrs, leap_yr;
->  #endif
-> +	unsigned char century = 0;
->  
->  	yrs = time->tm_year;
->  	mon = time->tm_mon + 1;   /* tm_mon starts at zero */
-> @@ -150,6 +164,15 @@ static inline int __set_rtc_time(struct rtc_time *time)
->  		yrs = 73;
->  	}
->  #endif
-> +
-> +#ifdef CONFIG_ACPI
-> +	if (acpi_gbl_FADT.header.revision >= FADT2_REVISION_ID &&
-> +	    acpi_gbl_FADT.century) {
-> +		century = (yrs + 1900) / 100;
-> +		yrs %= 100;
-> +	}
-> +#endif
-> +
->  	/* These limits and adjustments are independent of
->  	 * whether the chip is in binary mode or not.
->  	 */
-> @@ -169,6 +192,7 @@ static inline int __set_rtc_time(struct rtc_time *time)
->  		day = bin2bcd(day);
->  		mon = bin2bcd(mon);
->  		yrs = bin2bcd(yrs);
-> +		century = bin2bcd(century);
->  	}
->  
->  	save_control = CMOS_READ(RTC_CONTROL);
-> @@ -185,6 +209,11 @@ static inline int __set_rtc_time(struct rtc_time *time)
->  	CMOS_WRITE(hrs, RTC_HOURS);
->  	CMOS_WRITE(min, RTC_MINUTES);
->  	CMOS_WRITE(sec, RTC_SECONDS);
-> +#ifdef CONFIG_ACPI
-> +	if (acpi_gbl_FADT.header.revision >= FADT2_REVISION_ID &&
-> +	    acpi_gbl_FADT.century)
-> +		CMOS_WRITE(century, acpi_gbl_FADT.century);
-> +#endif
->  
->  	CMOS_WRITE(save_control, RTC_CONTROL);
->  	CMOS_WRITE(save_freq_select, RTC_FREQ_SELECT);
-> -- 
-> 1.9.1
+The 0-day build bot detected a build issue on a patch not upstream yet that
+makes a driver use iorempa_uc(), this call is now upstream but we have no
+drivers yet using it, the patch in question makes the atyfb framebuffer driver
+use it. The build issue was the lack of the ioremap_uc() call being implemented
+on some non-x86 architectures. I *thought* I had added boiler plate code to map
+the ioremap_uc() call to ioremap_nocache() for archs that do not already define
+their own iorempa_uc() call, but upon further investigation it seems that was
+not the case but found that this may be a bit different issue altogether.
 
-Any thought about this patch?
+The way include/asm-generic/io.h works for ioremap() calls and its variants is:
 
-Thanks
---
-Sylvain
+#ifndef CONFIG_MMU                                                              
+#ifndef ioremap                                                                 
+#define ioremap ioremap                                                         
+static inline void __iomem *ioremap(phys_addr_t offset, size_t size)            
+{                                                                               
+        return (void __iomem *)(unsigned long)offset;                           
+}                                                                               
+#endif 
+...
+#define iounmap iounmap                                                         
+                                                                                
+static inline void iounmap(void __iomem *addr)                                  
+{                                                                               
+}                                                                               
+#endif                                                                          
+#endif /* CONFIG_MMU */  
+
+That's the gist of it, but the catch here is the ioremap_*() variants and where
+they are defined. The first variant is ioremap_nocache() and then all other
+variants by default map to this one. We've been stuffing the variant definitions
+within the #ifndef CONFIG_MMU and I don't think we should be as otherwise each
+and everyone's archs will have to add their own variant default map to the
+default ioremap_nocache() or whatever. That's exaclty what we have to day, and
+from what I gather the purpose of the variant boiler plate is lost. I think
+we should keep the ioremap() and ioreunmap() tucked under the CONFIG_MMU
+but not the variants. For instance to address the build issue for ioremap_uc()
+we either define ioremap_uc() for all archs or do something like this:
+
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index f56094cfdeff..6e5e80d5dd0c 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -769,14 +769,6 @@ static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
+ }
+ #endif
+ 
+-#ifndef ioremap_uc
+-#define ioremap_uc ioremap_uc
+-static inline void __iomem *ioremap_uc(phys_addr_t offset, size_t size)
+-{
+-	return ioremap_nocache(offset, size);
+-}
+-#endif
+-
+ #ifndef ioremap_wc
+ #define ioremap_wc ioremap_wc
+ static inline void __iomem *ioremap_wc(phys_addr_t offset, size_t size)
+@@ -802,6 +794,14 @@ static inline void iounmap(void __iomem *addr)
+ #endif
+ #endif /* CONFIG_MMU */
+ 
++#ifndef ioremap_uc
++#define ioremap_uc ioremap_uc
++static inline void __iomem *ioremap_uc(phys_addr_t offset, size_t size)
++{
++	return ioremap_nocache(offset, size);
++}
++#endif
++
+ #ifdef CONFIG_HAS_IOPORT_MAP
+ #ifndef CONFIG_GENERIC_IOMAP
+ #ifndef ioport_map
+
+This builds on x86 and other archs now and I can verify that the default
+boilerplate code is not used on x86. One small caveat:
+
+I have no idea why its not picking up asm-generic ioremap_uc() for x86,
+although this is the right thing to do the guard should not work as we never
+define ioremap_uc() as a macro but we do as an exported symbol. The way
+archs do their ioremap calls is they define externs and then they include
+asm-generic to pick up the things they don't define. In the extern calls
+for ioremap_uc() we never add a define there. Adding a simple one line
+#define right after the extern declaration to itself should suffice to
+fix paranoia but curious why this does work as-is right now.
+
+I'd like review and consensus from other architecture folks if this is
+the Right Thing To Do (TM) and if it is decide how we want to fix this.
+For instance my preference would be to just add this fix as-is after
+we've figured out the guard thing above, and then define these variants
+in the documentation on the asm-generic file as safe to not have, and
+safe to map to the default ioremap call. If you don't have a safe call
+like this we should set out different expectations, for instance having
+it depend on Kconfig symbol and then drivers depend on it, archs then
+implement the symbols and can HAVE_ARCH_FOO. If everyone agrees with
+this then there is quite a bit of cleanup possible as tons of archs do
+tons of their own variant mapping definitions.
+
+  Luis
