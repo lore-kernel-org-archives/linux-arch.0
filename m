@@ -1,91 +1,115 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+From: Dan Williams <dan.j.williams@intel.com>
 Subject: Re: RFC: default ioremap_*() variant defintions
-Date: Fri, 3 Jul 2015 20:09:24 +0100
-Message-ID: <20150703190924.GZ7557@n2100.arm.linux.org.uk>
+Date: Sat, 4 Jul 2015 06:54:40 -0700
+Message-ID: <CAPcyv4jqsB+K5EsYqi1jssWqZV-55Q_Xz=beHXZPL0T6VvpawQ@mail.gmail.com>
 References: <20150703181709.GD7021@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.arm.linux.org.uk ([78.32.30.218]:46151 "EHLO
-	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755323AbbGCTJk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 3 Jul 2015 15:09:40 -0400
-Content-Disposition: inline
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 In-Reply-To: <20150703181709.GD7021@wotan.suse.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 To: "Luis R. Rodriguez" <mcgrof@suse.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, Toshi Kani <toshi.kani@hp.com>, Arnd Bergmann <arnd@arndb.de>, "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ville =?iso-8859-1?Q?Syrj=E4l=E4?= <syrjala@sci.fi>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@kernel.org>
+Cc: linux-arch@vger.kernel.org, Toshi Kani <toshi.kani@hp.com>, Arnd Bergmann <arnd@arndb.de>, "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, =?UTF-8?B?VmlsbGUgU3lyasOkbMOk?= <syrjala@sci.fi>, X86 ML <x86@kernel.org>, Borislav Petkov <bp@suse.de>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, Ingo Molnar <mingo@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 03, 2015 at 08:17:09PM +0200, Luis R. Rodriguez wrote:
-> The 0-day build bot detected a build issue on a patch not upstream yet that
-> makes a driver use iorempa_uc(), this call is now upstream but we have no
-> drivers yet using it, the patch in question makes the atyfb framebuffer
-> driver use it. The build issue was the lack of the ioremap_uc() call being
-> implemented on some non-x86 architectures.
-
-You have to be careful here.  We've been through this with ioremap_wt()
-which is incorrect for ARM as things stand at the moment (I have patches
-which adds documentation on this issue, and fixes ioremap_wt().)
-
-The question is whether the allocated memory may have unaligned accesses
-performed on it - either intentionally, or unintentionally (eg, by GCC
-inlining memcpy().)
-
-If the answer to that question is yes or possibly yes, neither ioremap()
-nor ioremap_nocache() (which is, unfortunately, the same as ioremap() due
-to various documentation telling people to use it for devices) can be used
-for the mapping on ARM.
-
-So we can't go around adding new ioremap() variants and hoping that
-ioremap_nocache() is a safe default everywhere.  It isn't.
-
-> I *thought* I had added boiler plate code to map
-> the ioremap_uc() call to ioremap_nocache() for archs that do not already define
-> their own iorempa_uc() call, but upon further investigation it seems that was
-> not the case but found that this may be a bit different issue altogether.
-> 
-> The way include/asm-generic/io.h works for ioremap() calls and its variants is:
-> 
-> #ifndef CONFIG_MMU                                                              
-> #ifndef ioremap                                                                 
-> #define ioremap ioremap                                                         
-> static inline void __iomem *ioremap(phys_addr_t offset, size_t size)            
-> {                                                                               
->         return (void __iomem *)(unsigned long)offset;                           
-> }                                                                               
-> #endif 
-> ...
-> #define iounmap iounmap                                                         
->                                                                                 
-> static inline void iounmap(void __iomem *addr)                                  
-> {                                                                               
-> }                                                                               
-> #endif                                                                          
-> #endif /* CONFIG_MMU */  
-
-I see you've been bitten by the gnome-terminal cut'n'paste bug with all those
-space characters above. ;)
-
-> That's the gist of it, but the catch here is the ioremap_*() variants and where
-> they are defined. The first variant is ioremap_nocache() and then all other
-> variants by default map to this one. We've been stuffing the variant definitions
-> within the #ifndef CONFIG_MMU and I don't think we should be as otherwise each
-> and everyone's archs will have to add their own variant default map to the
-> default ioremap_nocache() or whatever. That's exaclty what we have to day, and
-> from what I gather the purpose of the variant boiler plate is lost. I think
-> we should keep the ioremap() and ioreunmap() tucked under the CONFIG_MMU
-> but not the variants. For instance to address the build issue for ioremap_uc()
-> we either define ioremap_uc() for all archs or do something like this:
-
-Surely, if architectures can support the different variants, then they
-should implement them?
-
-The only case where it makes sense to provide boilerplate for these is
-when architectures don't support the mapping type - and then we need help
-from architecture people to decide what is the appropriate mapping type
-(and therefore which ioremap() variant) to be used as a fallback.
-
--- 
-FTTC broadband for 0.8mile line: currently at 10.5Mbps down 400kbps up
-according to speedtest.net.
+T24gRnJpLCBKdWwgMywgMjAxNSBhdCAxMToxNyBBTSwgTHVpcyBSLiBSb2RyaWd1ZXogPG1jZ3Jv
+ZkBzdXNlLmNvbT4gd3JvdGU6Cj4KPiBUaGUgMC1kYXkgYnVpbGQgYm90IGRldGVjdGVkIGEgYnVp
+bGQgaXNzdWUgb24gYSBwYXRjaCBub3QgdXBzdHJlYW0geWV0IHRoYXQKPiBtYWtlcyBhIGRyaXZl
+ciB1c2UgaW9yZW1wYV91YygpLCB0aGlzIGNhbGwgaXMgbm93IHVwc3RyZWFtIGJ1dCB3ZSBoYXZl
+IG5vCj4gZHJpdmVycyB5ZXQgdXNpbmcgaXQsIHRoZSBwYXRjaCBpbiBxdWVzdGlvbiBtYWtlcyB0
+aGUgYXR5ZmIgZnJhbWVidWZmZXIgZHJpdmVyCj4gdXNlIGl0LiBUaGUgYnVpbGQgaXNzdWUgd2Fz
+IHRoZSBsYWNrIG9mIHRoZSBpb3JlbWFwX3VjKCkgY2FsbCBiZWluZyBpbXBsZW1lbnRlZAo+IG9u
+IHNvbWUgbm9uLXg4NiBhcmNoaXRlY3R1cmVzLiBJICp0aG91Z2h0KiBJIGhhZCBhZGRlZCBib2ls
+ZXIgcGxhdGUgY29kZSB0byBtYXAKPiB0aGUgaW9yZW1hcF91YygpIGNhbGwgdG8gaW9yZW1hcF9u
+b2NhY2hlKCkgZm9yIGFyY2hzIHRoYXQgZG8gbm90IGFscmVhZHkgZGVmaW5lCj4gdGhlaXIgb3du
+IGlvcmVtcGFfdWMoKSBjYWxsLCBidXQgdXBvbiBmdXJ0aGVyIGludmVzdGlnYXRpb24gaXQgc2Vl
+bXMgdGhhdCB3YXMKPiBub3QgdGhlIGNhc2UgYnV0IGZvdW5kIHRoYXQgdGhpcyBtYXkgYmUgYSBi
+aXQgZGlmZmVyZW50IGlzc3VlIGFsdG9nZXRoZXIuCj4KPiBUaGUgd2F5IGluY2x1ZGUvYXNtLWdl
+bmVyaWMvaW8uaCB3b3JrcyBmb3IgaW9yZW1hcCgpIGNhbGxzIGFuZCBpdHMgdmFyaWFudHMgaXM6
+Cj4KPiAjaWZuZGVmIENPTkZJR19NTVUKPiAjaWZuZGVmIGlvcmVtYXAKPiAjZGVmaW5lIGlvcmVt
+YXAgaW9yZW1hcAo+IHN0YXRpYyBpbmxpbmUgdm9pZCBfX2lvbWVtICppb3JlbWFwKHBoeXNfYWRk
+cl90IG9mZnNldCwgc2l6ZV90IHNpemUpCj4gewo+ICAgICAgICAgcmV0dXJuICh2b2lkIF9faW9t
+ZW0gKikodW5zaWduZWQgbG9uZylvZmZzZXQ7Cj4gfQo+ICNlbmRpZgo+IC4uLgo+ICNkZWZpbmUg
+aW91bm1hcCBpb3VubWFwCj4KPiBzdGF0aWMgaW5saW5lIHZvaWQgaW91bm1hcCh2b2lkIF9faW9t
+ZW0gKmFkZHIpCj4gewo+IH0KPiAjZW5kaWYKPiAjZW5kaWYgLyogQ09ORklHX01NVSAqLwo+Cj4g
+VGhhdCdzIHRoZSBnaXN0IG9mIGl0LCBidXQgdGhlIGNhdGNoIGhlcmUgaXMgdGhlIGlvcmVtYXBf
+KigpIHZhcmlhbnRzIGFuZCB3aGVyZQo+IHRoZXkgYXJlIGRlZmluZWQuIFRoZSBmaXJzdCB2YXJp
+YW50IGlzIGlvcmVtYXBfbm9jYWNoZSgpIGFuZCB0aGVuIGFsbCBvdGhlcgo+IHZhcmlhbnRzIGJ5
+IGRlZmF1bHQgbWFwIHRvIHRoaXMgb25lLiBXZSd2ZSBiZWVuIHN0dWZmaW5nIHRoZSB2YXJpYW50
+IGRlZmluaXRpb25zCj4gd2l0aGluIHRoZSAjaWZuZGVmIENPTkZJR19NTVUgYW5kIEkgZG9uJ3Qg
+dGhpbmsgd2Ugc2hvdWxkIGJlIGFzIG90aGVyd2lzZSBlYWNoCj4gYW5kIGV2ZXJ5b25lJ3MgYXJj
+aHMgd2lsbCBoYXZlIHRvIGFkZCB0aGVpciBvd24gdmFyaWFudCBkZWZhdWx0IG1hcCB0byB0aGUK
+PiBkZWZhdWx0IGlvcmVtYXBfbm9jYWNoZSgpIG9yIHdoYXRldmVyLiBUaGF0J3MgZXhhY2x0eSB3
+aGF0IHdlIGhhdmUgdG8gZGF5LCBhbmQKPiBmcm9tIHdoYXQgSSBnYXRoZXIgdGhlIHB1cnBvc2Ug
+b2YgdGhlIHZhcmlhbnQgYm9pbGVyIHBsYXRlIGlzIGxvc3QuIEkgdGhpbmsKPiB3ZSBzaG91bGQg
+a2VlcCB0aGUgaW9yZW1hcCgpIGFuZCBpb3JldW5tYXAoKSB0dWNrZWQgdW5kZXIgdGhlIENPTkZJ
+R19NTVUKPiBidXQgbm90IHRoZSB2YXJpYW50cy4gRm9yIGluc3RhbmNlIHRvIGFkZHJlc3MgdGhl
+IGJ1aWxkIGlzc3VlIGZvciBpb3JlbWFwX3VjKCkKPiB3ZSBlaXRoZXIgZGVmaW5lIGlvcmVtYXBf
+dWMoKSBmb3IgYWxsIGFyY2hzIG9yIGRvIHNvbWV0aGluZyBsaWtlIHRoaXM6Cj4KPiBkaWZmIC0t
+Z2l0IGEvaW5jbHVkZS9hc20tZ2VuZXJpYy9pby5oIGIvaW5jbHVkZS9hc20tZ2VuZXJpYy9pby5o
+Cj4gaW5kZXggZjU2MDk0Y2ZkZWZmLi42ZTVlODBkNWRkMGMgMTAwNjQ0Cj4gLS0tIGEvaW5jbHVk
+ZS9hc20tZ2VuZXJpYy9pby5oCj4gKysrIGIvaW5jbHVkZS9hc20tZ2VuZXJpYy9pby5oCj4gQEAg
+LTc2OSwxNCArNzY5LDYgQEAgc3RhdGljIGlubGluZSB2b2lkIF9faW9tZW0gKmlvcmVtYXBfbm9j
+YWNoZShwaHlzX2FkZHJfdCBvZmZzZXQsIHNpemVfdCBzaXplKQo+ICB9Cj4gICNlbmRpZgo+Cj4g
+LSNpZm5kZWYgaW9yZW1hcF91Ywo+IC0jZGVmaW5lIGlvcmVtYXBfdWMgaW9yZW1hcF91Ywo+IC1z
+dGF0aWMgaW5saW5lIHZvaWQgX19pb21lbSAqaW9yZW1hcF91YyhwaHlzX2FkZHJfdCBvZmZzZXQs
+IHNpemVfdCBzaXplKQo+IC17Cj4gLSAgICAgICByZXR1cm4gaW9yZW1hcF9ub2NhY2hlKG9mZnNl
+dCwgc2l6ZSk7Cj4gLX0KPiAtI2VuZGlmCj4gLQo+ICAjaWZuZGVmIGlvcmVtYXBfd2MKPiAgI2Rl
+ZmluZSBpb3JlbWFwX3djIGlvcmVtYXBfd2MKPiAgc3RhdGljIGlubGluZSB2b2lkIF9faW9tZW0g
+KmlvcmVtYXBfd2MocGh5c19hZGRyX3Qgb2Zmc2V0LCBzaXplX3Qgc2l6ZSkKPiBAQCAtODAyLDYg
+Kzc5NCwxNCBAQCBzdGF0aWMgaW5saW5lIHZvaWQgaW91bm1hcCh2b2lkIF9faW9tZW0gKmFkZHIp
+Cj4gICNlbmRpZgo+ICAjZW5kaWYgLyogQ09ORklHX01NVSAqLwo+Cj4gKyNpZm5kZWYgaW9yZW1h
+cF91Ywo+ICsjZGVmaW5lIGlvcmVtYXBfdWMgaW9yZW1hcF91Ywo+ICtzdGF0aWMgaW5saW5lIHZv
+aWQgX19pb21lbSAqaW9yZW1hcF91YyhwaHlzX2FkZHJfdCBvZmZzZXQsIHNpemVfdCBzaXplKQo+
+ICt7Cj4gKyAgICAgICByZXR1cm4gaW9yZW1hcF9ub2NhY2hlKG9mZnNldCwgc2l6ZSk7Cj4gK30K
+PiArI2VuZGlmCj4gKwo+ICAjaWZkZWYgQ09ORklHX0hBU19JT1BPUlRfTUFQCj4gICNpZm5kZWYg
+Q09ORklHX0dFTkVSSUNfSU9NQVAKPiAgI2lmbmRlZiBpb3BvcnRfbWFwCj4KPiBUaGlzIGJ1aWxk
+cyBvbiB4ODYgYW5kIG90aGVyIGFyY2hzIG5vdyBhbmQgSSBjYW4gdmVyaWZ5IHRoYXQgdGhlIGRl
+ZmF1bHQKPiBib2lsZXJwbGF0ZSBjb2RlIGlzIG5vdCB1c2VkIG9uIHg4Ni4gT25lIHNtYWxsIGNh
+dmVhdDoKPgo+IEkgaGF2ZSBubyBpZGVhIHdoeSBpdHMgbm90IHBpY2tpbmcgdXAgYXNtLWdlbmVy
+aWMgaW9yZW1hcF91YygpIGZvciB4ODYsCgp4ODYgZG9lcyBub3QgdXNlICJpbmNsdWRlL2FzbS1n
+ZW5lcmljL2lvLmgiLiAgVGhhdCdzIGEgaGVscGVyLWluY2x1ZGUKZm9yIGFyY2hzIHRoYXQgd2Fu
+dCB0byB1c2UgaXQsIGJ1dCBpdCdzIGluY29tcGxldGUsIHNlZSB0aGUgcGF0Y2gKcmVmZXJlbmNl
+ZCBiZWxvdy4uLgoKPiBhbHRob3VnaCB0aGlzIGlzIHRoZSByaWdodCB0aGluZyB0byBkbyB0aGUg
+Z3VhcmQgc2hvdWxkIG5vdCB3b3JrIGFzIHdlIG5ldmVyCj4gZGVmaW5lIGlvcmVtYXBfdWMoKSBh
+cyBhIG1hY3JvIGJ1dCB3ZSBkbyBhcyBhbiBleHBvcnRlZCBzeW1ib2wuIFRoZSB3YXkKPiBhcmNo
+cyBkbyB0aGVpciBpb3JlbWFwIGNhbGxzIGlzIHRoZXkgZGVmaW5lIGV4dGVybnMgYW5kIHRoZW4g
+dGhleSBpbmNsdWRlCj4gYXNtLWdlbmVyaWMgdG8gcGljayB1cCB0aGUgdGhpbmdzIHRoZXkgZG9u
+J3QgZGVmaW5lLiBJbiB0aGUgZXh0ZXJuIGNhbGxzCj4gZm9yIGlvcmVtYXBfdWMoKSB3ZSBuZXZl
+ciBhZGQgYSBkZWZpbmUgdGhlcmUuIEFkZGluZyBhIHNpbXBsZSBvbmUgbGluZQo+ICNkZWZpbmUg
+cmlnaHQgYWZ0ZXIgdGhlIGV4dGVybiBkZWNsYXJhdGlvbiB0byBpdHNlbGYgc2hvdWxkIHN1ZmZp
+Y2UgdG8KPiBmaXggcGFyYW5vaWEgYnV0IGN1cmlvdXMgd2h5IHRoaXMgZG9lcyB3b3JrIGFzLWlz
+IHJpZ2h0IG5vdy4KPgo+IEknZCBsaWtlIHJldmlldyBhbmQgY29uc2Vuc3VzIGZyb20gb3RoZXIg
+YXJjaGl0ZWN0dXJlIGZvbGtzIGlmIHRoaXMgaXMKPiB0aGUgUmlnaHQgVGhpbmcgVG8gRG8gKFRN
+KSBhbmQgaWYgaXQgaXMgZGVjaWRlIGhvdyB3ZSB3YW50IHRvIGZpeCB0aGlzLgo+IEZvciBpbnN0
+YW5jZSBteSBwcmVmZXJlbmNlIHdvdWxkIGJlIHRvIGp1c3QgYWRkIHRoaXMgZml4IGFzLWlzIGFm
+dGVyCj4gd2UndmUgZmlndXJlZCBvdXQgdGhlIGd1YXJkIHRoaW5nIGFib3ZlLCBhbmQgdGhlbiBk
+ZWZpbmUgdGhlc2UgdmFyaWFudHMKPiBpbiB0aGUgZG9jdW1lbnRhdGlvbiBvbiB0aGUgYXNtLWdl
+bmVyaWMgZmlsZSBhcyBzYWZlIHRvIG5vdCBoYXZlLCBhbmQKPiBzYWZlIHRvIG1hcCB0byB0aGUg
+ZGVmYXVsdCBpb3JlbWFwIGNhbGwuIElmIHlvdSBkb24ndCBoYXZlIGEgc2FmZSBjYWxsCj4gbGlr
+ZSB0aGlzIHdlIHNob3VsZCBzZXQgb3V0IGRpZmZlcmVudCBleHBlY3RhdGlvbnMsIGZvciBpbnN0
+YW5jZSBoYXZpbmcKPiBpdCBkZXBlbmQgb24gS2NvbmZpZyBzeW1ib2wgYW5kIHRoZW4gZHJpdmVy
+cyBkZXBlbmQgb24gaXQsIGFyY2hzIHRoZW4KPiBpbXBsZW1lbnQgdGhlIHN5bWJvbHMgYW5kIGNh
+biBIQVZFX0FSQ0hfRk9PLiBJZiBldmVyeW9uZSBhZ3JlZXMgd2l0aAo+IHRoaXMgdGhlbiB0aGVy
+ZSBpcyBxdWl0ZSBhIGJpdCBvZiBjbGVhbnVwIHBvc3NpYmxlIGFzIHRvbnMgb2YgYXJjaHMgZG8K
+PiB0b25zIG9mIHRoZWlyIG93biB2YXJpYW50IG1hcHBpbmcgZGVmaW5pdGlvbnMuCgpXZSdyZSBh
+bHNvIGRpc2N1c3NpbmcgdGhpcyBpc3N1ZSBpbiB0aGUgcGF0Y2ggaGVyZToKCmh0dHBzOi8vbGtt
+bC5vcmcvbGttbC8yMDE1LzYvMjIvOTgKIltQQVRDSCB2NSAyLzZdIGFyY2g6IHVuaWZ5IGlvcmVt
+YXAgcHJvdG90eXBlcyBhbmQgbWFjcm8gYWxpYXNlcyI6CgpSdXNzZWxsIG1lbnRpb25lZCB3YW50
+aW5nIHRvIGZpeCB1cCBpb3JlbWFwX3d0KCkgZm9yIEFSTSBbMV0sIGFmdGVyCndoaWNoIEkgd291
+bGQgbG9vayB0byByZS1zcGluIHRoaXMgcGF0Y2ggd2l0aCB0aGUgaW50ZXJmYWNlIHByb3Bvc2Vk
+CmJ5IENocmlzdG9waCBbMl0uCgpbMV06IGh0dHBzOi8vbGttbC5vcmcvbGttbC8yMDE1LzcvMS8x
+MjUKWzJdOiBodHRwczovL2xrbWwub3JnL2xrbWwvMjAxNS82LzIyLzM5MQpfX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpMaW51eHBwYy1kZXYgbWFpbGluZyBs
+aXN0CkxpbnV4cHBjLWRldkBsaXN0cy5vemxhYnMub3JnCmh0dHBzOi8vbGlzdHMub3psYWJzLm9y
+Zy9saXN0aW5mby9saW51eHBwYy1kZXY=
