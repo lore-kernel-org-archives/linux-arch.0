@@ -1,71 +1,137 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:48816 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751534AbbGBF1o (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Jul 2015 01:27:44 -0400
-Message-ID: <5594CBBE.2030302@synopsys.com>
-Date: Thu, 2 Jul 2015 10:57:26 +0530
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Received: from mail-wi0-f173.google.com ([209.85.212.173]:35876 "EHLO
+	mail-wi0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752463AbbGELZm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 5 Jul 2015 07:25:42 -0400
+Received: by widjy10 with SMTP id jy10so139411073wid.1
+        for <linux-arch@vger.kernel.org>; Sun, 05 Jul 2015 04:25:41 -0700 (PDT)
 MIME-Version: 1.0
-Subject: ARC build -O3 (was Re: subtle side effect of commit a1c48bb160f836)
-References: <55826966.6050202@synopsys.com> <CAMuHMdXWHYF8hEEgeFxLTrhvmEDBVS2=VmKykfOtDkGjqODQbA@mail.gmail.com> <20150618081329.GA9434@pobox.suse.cz> <55828527.8050901@synopsys.com> <55829A0B.8070804@suse.cz> <55829E51.3060007@synopsys.com> <558AA080.7070801@synopsys.com> <20150701151930.GB6743@sepie.suse.cz>
-In-Reply-To: <20150701151930.GB6743@sepie.suse.cz>
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20150703181709.GD7021@wotan.suse.de>
+References: <20150703181709.GD7021@wotan.suse.de>
+Date: Sat, 4 Jul 2015 06:54:40 -0700
+Message-ID: <CAPcyv4jqsB+K5EsYqi1jssWqZV-55Q_Xz=beHXZPL0T6VvpawQ@mail.gmail.com>
+Subject: Re: RFC: default ioremap_*() variant defintions
+From: Dan Williams <dan.j.williams@intel.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Marek <mmarek@suse.cz>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>
-Message-ID: <20150702052726.i54O8WZz3XnIYdtU3UHbG8u-NhdHVxroK_NJfUFyGwA@z>
+To: "Luis R. Rodriguez" <mcgrof@suse.com>
+Cc: linux-arch@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, X86 ML <x86@kernel.org>, Toshi Kani <toshi.kani@hp.com>, Arnd Bergmann <arnd@arndb.de>, "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, =?UTF-8?B?VmlsbGUgU3lyasOkbMOk?= <syrjala@sci.fi>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@kernel.org>
+Message-ID: <20150704135440.eRh-abuUu0MkVqgFuN46jdTaxCQBWEYesQ-S7nwKap8@z>
 
-On Wednesday 01 July 2015 08:49 PM, Michal Marek wrote:
-> On Wed, Jun 24, 2015 at 05:50:16PM +0530, Vineet Gupta wrote:
->> On Thursday 18 June 2015 04:02 PM, Vineet Gupta wrote:
->>> On Thursday 18 June 2015 03:44 PM, Michal Marek wrote:
->>>> Uh, this is not what I meant. KCFLAGS is a *user* setting. It's meant to
->>>> be set in the environment or command line.
->>>
->>> Well I don't want to rely on external settings whatsoever to enforce this. If this
->>> is not the right way, what do u suggest I do to help fix this.
->>
->>
->> Can I keep this seeming abuse of KCFLAGS or do u suggest alternate approach I can
->> code up !
-> 
-> Hi Vineet, sorry for the late reply.
+On Fri, Jul 3, 2015 at 11:17 AM, Luis R. Rodriguez <mcgrof@suse.com> wrote:
+>
+> The 0-day build bot detected a build issue on a patch not upstream yet that
+> makes a driver use iorempa_uc(), this call is now upstream but we have no
+> drivers yet using it, the patch in question makes the atyfb framebuffer driver
+> use it. The build issue was the lack of the ioremap_uc() call being implemented
+> on some non-x86 architectures. I *thought* I had added boiler plate code to map
+> the ioremap_uc() call to ioremap_nocache() for archs that do not already define
+> their own iorempa_uc() call, but upon further investigation it seems that was
+> not the case but found that this may be a bit different issue altogether.
+>
+> The way include/asm-generic/io.h works for ioremap() calls and its variants is:
+>
+> #ifndef CONFIG_MMU
+> #ifndef ioremap
+> #define ioremap ioremap
+> static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
+> {
+>         return (void __iomem *)(unsigned long)offset;
+> }
+> #endif
+> ...
+> #define iounmap iounmap
+>
+> static inline void iounmap(void __iomem *addr)
+> {
+> }
+> #endif
+> #endif /* CONFIG_MMU */
+>
+> That's the gist of it, but the catch here is the ioremap_*() variants and where
+> they are defined. The first variant is ioremap_nocache() and then all other
+> variants by default map to this one. We've been stuffing the variant definitions
+> within the #ifndef CONFIG_MMU and I don't think we should be as otherwise each
+> and everyone's archs will have to add their own variant default map to the
+> default ioremap_nocache() or whatever. That's exaclty what we have to day, and
+> from what I gather the purpose of the variant boiler plate is lost. I think
+> we should keep the ioremap() and ioreunmap() tucked under the CONFIG_MMU
+> but not the variants. For instance to address the build issue for ioremap_uc()
+> we either define ioremap_uc() for all archs or do something like this:
+>
+> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+> index f56094cfdeff..6e5e80d5dd0c 100644
+> --- a/include/asm-generic/io.h
+> +++ b/include/asm-generic/io.h
+> @@ -769,14 +769,6 @@ static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
+>  }
+>  #endif
+>
+> -#ifndef ioremap_uc
+> -#define ioremap_uc ioremap_uc
+> -static inline void __iomem *ioremap_uc(phys_addr_t offset, size_t size)
+> -{
+> -       return ioremap_nocache(offset, size);
+> -}
+> -#endif
+> -
+>  #ifndef ioremap_wc
+>  #define ioremap_wc ioremap_wc
+>  static inline void __iomem *ioremap_wc(phys_addr_t offset, size_t size)
+> @@ -802,6 +794,14 @@ static inline void iounmap(void __iomem *addr)
+>  #endif
+>  #endif /* CONFIG_MMU */
+>
+> +#ifndef ioremap_uc
+> +#define ioremap_uc ioremap_uc
+> +static inline void __iomem *ioremap_uc(phys_addr_t offset, size_t size)
+> +{
+> +       return ioremap_nocache(offset, size);
+> +}
+> +#endif
+> +
+>  #ifdef CONFIG_HAS_IOPORT_MAP
+>  #ifndef CONFIG_GENERIC_IOMAP
+>  #ifndef ioport_map
+>
+> This builds on x86 and other archs now and I can verify that the default
+> boilerplate code is not used on x86. One small caveat:
+>
+> I have no idea why its not picking up asm-generic ioremap_uc() for x86,
 
-NP !
+x86 does not use "include/asm-generic/io.h".  That's a helper-include
+for archs that want to use it, but it's incomplete, see the patch
+referenced below...
 
-> I had something like the below
-> patch in mind, simply allow arc to specify -O3 in ARCH_CFLAGS (that part
-> I'm leaving up to you).
+> although this is the right thing to do the guard should not work as we never
+> define ioremap_uc() as a macro but we do as an exported symbol. The way
+> archs do their ioremap calls is they define externs and then they include
+> asm-generic to pick up the things they don't define. In the extern calls
+> for ioremap_uc() we never add a define there. Adding a simple one line
+> #define right after the extern declaration to itself should suffice to
+> fix paranoia but curious why this does work as-is right now.
+>
+> I'd like review and consensus from other architecture folks if this is
+> the Right Thing To Do (TM) and if it is decide how we want to fix this.
+> For instance my preference would be to just add this fix as-is after
+> we've figured out the guard thing above, and then define these variants
+> in the documentation on the asm-generic file as safe to not have, and
+> safe to map to the default ioremap call. If you don't have a safe call
+> like this we should set out different expectations, for instance having
+> it depend on Kconfig symbol and then drivers depend on it, archs then
+> implement the symbols and can HAVE_ARCH_FOO. If everyone agrees with
+> this then there is quite a bit of cleanup possible as tons of archs do
+> tons of their own variant mapping definitions.
 
-See below !
+We're also discussing this issue in the patch here:
 
-> From e458fdf4ae37e1adce81b58d96b1075b4f0656e6 Mon Sep 17 00:00:00 2001
-> From: Michal Marek <mmarek@suse.com>
-> Date: Wed, 1 Jul 2015 17:13:16 +0200
-> Subject: [PATCH] kbuild: Allow arch Makefiles to override {cpp,ld,c}flags
-> 
-> Since commit a1c48bb1 (Makefile: Fix unrecognized cross-compiler command
-> line options), the arch Makefile is included earlier by the main
-> Makefile, preventing the arc architecture to set its -O3 compiler
-> option. Since there might be more use cases for an arch Makefile to
-> fine-tune the options, add support for ARCH_CPPFLAGS, ARCH_AFLAGS and
-> ARCH_CFLAGS variables that are appended to the respective kbuild
-> variables. The user still has the final say via the KCPPFLAGS, KAFLAGS
-> and KCFLAGS variables.
-> 
-> Reported-by: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-> Signed-off-by: Michal Marek <mmarek@suse.com>
+https://lkml.org/lkml/2015/6/22/98
+"[PATCH v5 2/6] arch: unify ioremap prototypes and macro aliases":
 
-Sweet, that works for me with the following patch below.
+Russell mentioned wanting to fix up ioremap_wt() for ARM [1], after
+which I would look to re-spin this patch with the interface proposed
+by Christoph [2].
 
-Some logistics things:
-- It would be nice to keep both of these patches together - do u want to do
-  that or want me to pick this one up
-- For ARC this fixes a regression starting 3.16 - so I'll need a stable backport
-  which but obviously requires above to go to stable. Do u have any issues with
-  that. Shall we do the stable request after these hit the mainline...
-
-------------->
+[1]: https://lkml.org/lkml/2015/7/1/125
+[2]: https://lkml.org/lkml/2015/6/22/391
