@@ -1,115 +1,72 @@
-From: "Luis R. Rodriguez" <mcgrof@suse.com>
-Subject: Re: RFC: default ioremap_*() variant defintions
-Date: Tue, 7 Jul 2015 10:19:28 +0200
-Message-ID: <20150707081928.GO7021@wotan.suse.de>
-References: <20150703181709.GD7021@wotan.suse.de>
- <20150703190924.GZ7557@n2100.arm.linux.org.uk>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 2/4] locking/qrwlock: Reduce reader/writer to reader lock
+ transfer latency
+Date: Tue, 7 Jul 2015 10:17:11 +0100
+Message-ID: <20150707091711.GA23879@arm.com>
+References: <1436197386-58635-1-git-send-email-Waiman.Long@hp.com>
+ <1436197386-58635-3-git-send-email-Waiman.Long@hp.com>
+ <20150706182353.GC1607@arm.com>
+ <559ADBCD.6020803@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20150703190924.GZ7557@n2100.arm.linux.org.uk>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, Toshi Kani <toshi.kani@hp.com>, Arnd Bergmann <arnd@arndb.de>, "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, Ville =?iso-8859-1?Q?Syrj=E4l=E4?= <syrjala@sci.fi>, x86@kernel.org, Borislav Petkov <bp@suse.de>, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@kernel.org>, linux-arm-kernel@lists.infradead.org
+In-Reply-To: <559ADBCD.6020803@hp.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Waiman Long <waiman.long@hp.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
 List-Id: linux-arch.vger.kernel.org
 
-T24gRnJpLCBKdWwgMDMsIDIwMTUgYXQgMDg6MDk6MjRQTSArMDEwMCwgUnVzc2VsbCBLaW5nIC0g
-QVJNIExpbnV4IHdyb3RlOgo+IE9uIEZyaSwgSnVsIDAzLCAyMDE1IGF0IDA4OjE3OjA5UE0gKzAy
-MDAsIEx1aXMgUi4gUm9kcmlndWV6IHdyb3RlOgo+ID4gVGhlIDAtZGF5IGJ1aWxkIGJvdCBkZXRl
-Y3RlZCBhIGJ1aWxkIGlzc3VlIG9uIGEgcGF0Y2ggbm90IHVwc3RyZWFtIHlldCB0aGF0Cj4gPiBt
-YWtlcyBhIGRyaXZlciB1c2UgaW9yZW1wYV91YygpLCB0aGlzIGNhbGwgaXMgbm93IHVwc3RyZWFt
-IGJ1dCB3ZSBoYXZlIG5vCj4gPiBkcml2ZXJzIHlldCB1c2luZyBpdCwgdGhlIHBhdGNoIGluIHF1
-ZXN0aW9uIG1ha2VzIHRoZSBhdHlmYiBmcmFtZWJ1ZmZlcgo+ID4gZHJpdmVyIHVzZSBpdC4gVGhl
-IGJ1aWxkIGlzc3VlIHdhcyB0aGUgbGFjayBvZiB0aGUgaW9yZW1hcF91YygpIGNhbGwgYmVpbmcK
-PiA+IGltcGxlbWVudGVkIG9uIHNvbWUgbm9uLXg4NiBhcmNoaXRlY3R1cmVzLgo+IAo+IFlvdSBo
-YXZlIHRvIGJlIGNhcmVmdWwgaGVyZS4gIFdlJ3ZlIGJlZW4gdGhyb3VnaCB0aGlzIHdpdGggaW9y
-ZW1hcF93dCgpCj4gd2hpY2ggaXMgaW5jb3JyZWN0IGZvciBBUk0gYXMgdGhpbmdzIHN0YW5kIGF0
-IHRoZSBtb21lbnQgKEkgaGF2ZSBwYXRjaGVzCj4gd2hpY2ggYWRkcyBkb2N1bWVudGF0aW9uIG9u
-IHRoaXMgaXNzdWUsIGFuZCBmaXhlcyBpb3JlbWFwX3d0KCkuKQoKVGhhbmtzLCBpdCBzZWVtcyB0
-aGF0IGdvaW5nIGluIGZvciB2NC4yIGlzIHRoYXQgcmlnaHQ/Cgo+IFRoZSBxdWVzdGlvbiBpcyB3
-aGV0aGVyIHRoZSBhbGxvY2F0ZWQgbWVtb3J5IG1heSBoYXZlIHVuYWxpZ25lZCBhY2Nlc3Nlcwo+
-IHBlcmZvcm1lZCBvbiBpdCAtIGVpdGhlciBpbnRlbnRpb25hbGx5LCBvciB1bmludGVudGlvbmFs
-bHkgKGVnLCBieSBHQ0MKPiBpbmxpbmluZyBtZW1jcHkoKS4pCj4gCj4gSWYgdGhlIGFuc3dlciB0
-byB0aGF0IHF1ZXN0aW9uIGlzIHllcyBvciBwb3NzaWJseSB5ZXMsIG5laXRoZXIgaW9yZW1hcCgp
-Cj4gbm9yIGlvcmVtYXBfbm9jYWNoZSgpICh3aGljaCBpcywgdW5mb3J0dW5hdGVseSwgdGhlIHNh
-bWUgYXMgaW9yZW1hcCgpIGR1ZQo+IHRvIHZhcmlvdXMgZG9jdW1lbnRhdGlvbiB0ZWxsaW5nIHBl
-b3BsZSB0byB1c2UgaXQgZm9yIGRldmljZXMpIGNhbiBiZSB1c2VkCj4gZm9yIHRoZSBtYXBwaW5n
-IG9uIEFSTS4KClRoZXJlIGlzIGEgZGlmZmVyZW5jZSBiZXR3ZWVuIHVuYWxpZ25lZCBhY2Nlc3Nl
-cyBiZWluZyBhbiBpc3N1ZSBmb3IgYW4KYXJjaGl0ZWN0dXJlIChub3QgSEFWRV9FRkZJQ0lFTlRf
-VU5BTElHTkVEX0FDQ0VTUykgb24gYSBtYXBwaW5nIGFyZWEgVnMgaGF2aW5nCmEgcmVxdWlyZW1l
-bnQgZm9yIGFsbCBkZXZpY2UgZHJpdmVycyB0byBub3QgaGF2ZSB1bmFsaWduZWQgYWNjZXNzZXMg
-Zm9yIG1hcHBlZAptZW1vcnksIGl0IHNlZW1zIHdlIHdhbnQgdGhlIGxhdGVyIGFueXdheS4uLiBo
-b3dldmVyIHdlIG9idmlvdXNseSBkb24ndCBoYXZlIGEKc2NyYXBlciB0byBnbyBhbmQgdmV0IGFs
-bCBkcml2ZXJzIC8gY2hlY2sgYSBkcml2ZXIgaXQgc2VlbXMuIEhybSwgSSB3b25kZXIKaWYgd2Ug
-Y2FuIHVzZSBncmFtbWFyIGNoZWNrcyBmb3IgdGhpcy4gQW55d2F5LCBPSyBnb3QgaXQhCgo+IFNv
-IHdlIGNhbid0IGdvIGFyb3VuZCBhZGRpbmcgbmV3IGlvcmVtYXAoKSB2YXJpYW50cyBhbmQgaG9w
-aW5nIHRoYXQKPiBpb3JlbWFwX25vY2FjaGUoKSBpcyBhIHNhZmUgZGVmYXVsdCBldmVyeXdoZXJl
-LiAgSXQgaXNuJ3QuCgpTdXJlLCBPSy4KCj4gPiBJICp0aG91Z2h0KiBJIGhhZCBhZGRlZCBib2ls
-ZXIgcGxhdGUgY29kZSB0byBtYXAKPiA+IHRoZSBpb3JlbWFwX3VjKCkgY2FsbCB0byBpb3JlbWFw
-X25vY2FjaGUoKSBmb3IgYXJjaHMgdGhhdCBkbyBub3QgYWxyZWFkeSBkZWZpbmUKPiA+IHRoZWly
-IG93biBpb3JlbXBhX3VjKCkgY2FsbCwgYnV0IHVwb24gZnVydGhlciBpbnZlc3RpZ2F0aW9uIGl0
-IHNlZW1zIHRoYXQgd2FzCj4gPiBub3QgdGhlIGNhc2UgYnV0IGZvdW5kIHRoYXQgdGhpcyBtYXkg
-YmUgYSBiaXQgZGlmZmVyZW50IGlzc3VlIGFsdG9nZXRoZXIuCj4gPiAKPiA+IFRoZSB3YXkgaW5j
-bHVkZS9hc20tZ2VuZXJpYy9pby5oIHdvcmtzIGZvciBpb3JlbWFwKCkgY2FsbHMgYW5kIGl0cyB2
-YXJpYW50cyBpczoKPiA+IAo+ID4gI2lmbmRlZiBDT05GSUdfTU1VICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKPiA+ICNpZm5kZWYg
-aW9yZW1hcCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgCj4gPiAjZGVmaW5lIGlvcmVtYXAgaW9yZW1hcCAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAo+ID4gc3RhdGljIGlu
-bGluZSB2b2lkIF9faW9tZW0gKmlvcmVtYXAocGh5c19hZGRyX3Qgb2Zmc2V0LCBzaXplX3Qgc2l6
-ZSkgICAgICAgICAgICAKPiA+IHsgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCj4gPiAgICAgICAgIHJl
-dHVybiAodm9pZCBfX2lvbWVtICopKHVuc2lnbmVkIGxvbmcpb2Zmc2V0OyAgICAgICAgICAgICAg
-ICAgICAgICAgICAgIAo+ID4gfSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKPiA+ICNlbmRpZiAKPiA+
-IC4uLgo+ID4gI2RlZmluZSBpb3VubWFwIGlvdW5tYXAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKPiA+ICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgCj4gPiBzdGF0aWMgaW5saW5lIHZvaWQgaW91bm1hcCh2b2lkIF9faW9tZW0gKmFkZHIpICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAo+ID4geyAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAKPiA+IH0gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCj4gPiAjZW5kaWYgICAgICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
-IAo+ID4gI2VuZGlmIC8qIENPTkZJR19NTVUgKi8gIAo+IAo+ID4gVGhhdCdzIHRoZSBnaXN0IG9m
-IGl0LCBidXQgdGhlIGNhdGNoIGhlcmUgaXMgdGhlIGlvcmVtYXBfKigpIHZhcmlhbnRzIGFuZCB3
-aGVyZQo+ID4gdGhleSBhcmUgZGVmaW5lZC4gVGhlIGZpcnN0IHZhcmlhbnQgaXMgaW9yZW1hcF9u
-b2NhY2hlKCkgYW5kIHRoZW4gYWxsIG90aGVyCj4gPiB2YXJpYW50cyBieSBkZWZhdWx0IG1hcCB0
-byB0aGlzIG9uZS4gV2UndmUgYmVlbiBzdHVmZmluZyB0aGUgdmFyaWFudCBkZWZpbml0aW9ucwo+
-ID4gd2l0aGluIHRoZSAjaWZuZGVmIENPTkZJR19NTVUgYW5kIEkgZG9uJ3QgdGhpbmsgd2Ugc2hv
-dWxkIGJlIGFzIG90aGVyd2lzZSBlYWNoCj4gPiBhbmQgZXZlcnlvbmUncyBhcmNocyB3aWxsIGhh
-dmUgdG8gYWRkIHRoZWlyIG93biB2YXJpYW50IGRlZmF1bHQgbWFwIHRvIHRoZQo+ID4gZGVmYXVs
-dCBpb3JlbWFwX25vY2FjaGUoKSBvciB3aGF0ZXZlci4gVGhhdCdzIGV4YWNsdHkgd2hhdCB3ZSBo
-YXZlIHRvIGRheSwgYW5kCj4gPiBmcm9tIHdoYXQgSSBnYXRoZXIgdGhlIHB1cnBvc2Ugb2YgdGhl
-IHZhcmlhbnQgYm9pbGVyIHBsYXRlIGlzIGxvc3QuIEkgdGhpbmsKPiA+IHdlIHNob3VsZCBrZWVw
-IHRoZSBpb3JlbWFwKCkgYW5kIGlvcmV1bm1hcCgpIHR1Y2tlZCB1bmRlciB0aGUgQ09ORklHX01N
-VQo+ID4gYnV0IG5vdCB0aGUgdmFyaWFudHMuIEZvciBpbnN0YW5jZSB0byBhZGRyZXNzIHRoZSBi
-dWlsZCBpc3N1ZSBmb3IgaW9yZW1hcF91YygpCj4gPiB3ZSBlaXRoZXIgZGVmaW5lIGlvcmVtYXBf
-dWMoKSBmb3IgYWxsIGFyY2hzIG9yIGRvIHNvbWV0aGluZyBsaWtlIHRoaXM6Cj4gCj4gU3VyZWx5
-LCBpZiBhcmNoaXRlY3R1cmVzIGNhbiBzdXBwb3J0IHRoZSBkaWZmZXJlbnQgdmFyaWFudHMsIHRo
-ZW4gdGhleQo+IHNob3VsZCBpbXBsZW1lbnQgdGhlbT8KClN1cmUsIHRoZSBhc20tZ2VuZXJpYyBm
-aWxlIHNlZW1lZCB0byBhbGx1ZGUgdG8gdGhhdCBzb21lIGlvcmVtYXBzIGFyZSBzYWZlCnRvIGhh
-dmUgZGVmYXVsdHMgZm9yLCBpZiB3ZSB3YW50IHRvIGFkZHJlc3MgdGhpcyBhcyBhIHByb2JsZW0g
-aXQgbXVzdApiZSBhZGRyZXNzZWQgdGhlcmUsIHRoaXMgaXMgd2hhdCBteSBwb3N0aW5nIGFpbXMg
-dG8gYWRkcmVzcy4gSXQgc2VlbXMKdGhlIG90aGVyIHRocmVhZHMgd2l0aCBEYW4gYWxzbyBhZGRy
-ZXNzIHNvbWUgb2YgdGhpcyBzbyB3ZSdyZSBhbHJlYWR5Cm9uIHRyYWNrLgoKPiBUaGUgb25seSBj
-YXNlIHdoZXJlIGl0IG1ha2VzIHNlbnNlIHRvIHByb3ZpZGUgYm9pbGVycGxhdGUgZm9yIHRoZXNl
-IGlzCj4gd2hlbiBhcmNoaXRlY3R1cmVzIGRvbid0IHN1cHBvcnQgdGhlIG1hcHBpbmcgdHlwZSAt
-IGFuZCB0aGVuIHdlIG5lZWQgaGVscAo+IGZyb20gYXJjaGl0ZWN0dXJlIHBlb3BsZSB0byBkZWNp
-ZGUgd2hhdCBpcyB0aGUgYXBwcm9wcmlhdGUgbWFwcGluZyB0eXBlCj4gKGFuZCB0aGVyZWZvcmUg
-d2hpY2ggaW9yZW1hcCgpIHZhcmlhbnQpIHRvIGJlIHVzZWQgYXMgYSBmYWxsYmFjay4KClNvdW5k
-cyBsaWtlIGEgZm9ybWFsIHByb2Nlc3MgYmVpbmcgYnJld2VkIC8gZG9jdW1lbnRlZC4KCiAgTHVp
-cwpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpMaW51eHBw
-Yy1kZXYgbWFpbGluZyBsaXN0CkxpbnV4cHBjLWRldkBsaXN0cy5vemxhYnMub3JnCmh0dHBzOi8v
-bGlzdHMub3psYWJzLm9yZy9saXN0aW5mby9saW51eHBwYy1kZXY=
+On Mon, Jul 06, 2015 at 08:49:33PM +0100, Waiman Long wrote:
+> On 07/06/2015 02:23 PM, Will Deacon wrote:
+> > I've just finished rebasing my arm64 qrwlock stuff, but I think it will
+> > conflict with these patches. Do you mind if I post them for review anyway,
+> > so we can at least co-ordinate our efforts?
+> 
+> Yes, sure. I would also like to coordinate my changes with yours to 
+> minimize conflict. BTW, I just got 2 tip-bot messages about the commits:
+> 
+>     locking/qrwlock:  Better optimization for interrupt context readers
+>     locking/qrwlock:  Rename functions to queued_*()
+> 
+> So I need to rebase my patches also.
+
+Yeah, I've been carrying those two on my branch as well, but everything
+should rebase cleanly.
+
+> >> ---
+> >>   kernel/locking/qrwlock.c |   12 ++++--------
+> >>   1 files changed, 4 insertions(+), 8 deletions(-)
+> >>
+> >> diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+> >> index 81bae99..ecd2d19 100644
+> >> --- a/kernel/locking/qrwlock.c
+> >> +++ b/kernel/locking/qrwlock.c
+> >> @@ -88,15 +88,11 @@ void queue_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
+> >>   	arch_spin_lock(&lock->lock);
+> >>
+> >>   	/*
+> >> -	 * At the head of the wait queue now, wait until the writer state
+> >> -	 * goes to 0 and then try to increment the reader count and get
+> >> -	 * the lock. It is possible that an incoming writer may steal the
+> >> -	 * lock in the interim, so it is necessary to check the writer byte
+> >> -	 * to make sure that the write lock isn't taken.
+> >> +	 * At the head of the wait queue now, increment the reader count
+> >> +	 * and wait until the writer, if it has the lock, has gone away.
+> >> +	 * At ths stage, it is not possible for a writer to remain in the
+> >> +	 * waiting state (_QW_WAITING). So there won't be any deadlock.
+> >>   	 */
+> >> -	while (atomic_read(&lock->cnts)&  _QW_WMASK)
+> >> -		cpu_relax_lowlatency();
+> > Thinking about it, can we kill _QW_WAITING altogether and set (cmpxchg
+> > from 0) wmode to _QW_LOCKED in the write_lock slowpath, polling (acquire)
+> > rmode until it hits zero?
+> 
+> No, this is how we make the lock fair so that an incoming streams of 
+> later readers won't block a writer from getting the lock.
+
+But won't those readers effectively see that the lock is held for write
+(because we set wmode to _QW_LOCKED before the existing reader had drained)
+and therefore fall down the slow-path and get held up on the spinlock?
+
+Will
