@@ -1,61 +1,55 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH 0/9] locking/qrwlock: get qrwlocks up and running on arm64
-Date: Tue,  7 Jul 2015 18:24:16 +0100
-Message-ID: <1436289865-2331-1-git-send-email-will.deacon@arm.com>
+Subject: [PATCH 5/9] locking/qrwlock: remove redundant cmpxchg barriers on writer slow-path
+Date: Tue,  7 Jul 2015 18:24:21 +0100
+Message-ID: <1436289865-2331-6-git-send-email-will.deacon@arm.com>
+References: <1436289865-2331-1-git-send-email-will.deacon@arm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:50324 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:50327 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757636AbbGGRZH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Jul 2015 13:25:07 -0400
+	by vger.kernel.org with ESMTP id S1757756AbbGGRZI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Jul 2015 13:25:08 -0400
+In-Reply-To: <1436289865-2331-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-arm-kernel@lists.infradead.org, Waiman.Long@hp.com, peterz@infradead.org, mingo@redhat.com, Will Deacon <will.deacon@arm.com>
 
-Hi all,
+When transitioning from unlocked - locked (for write), we notify readers
+of our presence by setting the _QW_WAITING flag using a cmpxchg.
 
-This patch series gently massages the qrwlock code so as to make it
-usable on arm64 as a replacement for our current implementation. The
-last two patches actually do the arch conversion and are included here
-for reference.
+Given that we use another cmpxchg to transition to the _QW_LOCKED state,
+we can drop the barriers from the intermediate step by offering
+architectures the chance to implement cmpxchg_relaxed, in a similar
+manner to the cmpxchg64_relaxed macro in the lockref code.
 
-Most of the work is removing redundant memory barriers from the current
-implementation and adding hooks to the contended paths to allow us to
-avoid busy-waiting.
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ kernel/locking/qrwlock.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
 
-Implemented on top of -tip (i.e. the patches queued there from Waiman),
-but this is likely to conflict with his latest series.
-
-All feedback welcome,
-
-Will
-
---->8
-
-Will Deacon (9):
-  locking/qrwlock: include <linux/spinlock.h> for
-    arch_spin_{lock,unlock}
-  locking/qrwlock: avoid redundant atomic_add_return on
-    read_lock_slowpath
-  locking/qrwlock: tidy up rspin_until_writer_unlock
-  locking/qrwlock: implement queue_write_unlock using smp_store_release
-  locking/qrwlock: remove redundant cmpxchg barriers on writer slow-path
-  locking/qrwlock: allow architectures to hook in to contended paths
-  locking/qrwlock: expose internal lock structure in qrwlock definition
-  arm64: cmpxchg: implement cmpxchg_relaxed
-  arm64: locking: replace read/write locks with generic qrwlock code
-
- arch/arm64/Kconfig                      |   1 +
- arch/arm64/include/asm/cmpxchg.h        |   6 +-
- arch/arm64/include/asm/qrwlock.h        |  30 ++++++++
- arch/arm64/include/asm/spinlock.h       | 122 +-------------------------------
- arch/arm64/include/asm/spinlock_types.h |  10 +--
- arch/x86/include/asm/qrwlock.h          |  10 ---
- include/asm-generic/qrwlock.h           |  11 ++-
- include/asm-generic/qrwlock_types.h     |  17 ++++-
- kernel/locking/qrwlock.c                |  60 +++++++---------
- 9 files changed, 81 insertions(+), 186 deletions(-)
- create mode 100644 arch/arm64/include/asm/qrwlock.h
-
+diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+index a1b63df19a04..e3c51c4635d3 100644
+--- a/kernel/locking/qrwlock.c
++++ b/kernel/locking/qrwlock.c
+@@ -113,6 +113,10 @@ EXPORT_SYMBOL(queued_read_lock_slowpath);
+  * queued_write_lock_slowpath - acquire write lock of a queue rwlock
+  * @lock : Pointer to queue rwlock structure
+  */
++#ifndef cmpxchg_relaxed
++# define cmpxchg_relaxed	cmpxchg
++#endif
++
+ void queued_write_lock_slowpath(struct qrwlock *lock)
+ {
+ 	u32 cnts;
+@@ -133,7 +137,7 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
+ 		struct __qrwlock *l = (struct __qrwlock *)lock;
+ 
+ 		if (!READ_ONCE(l->wmode) &&
+-		   (cmpxchg(&l->wmode, 0, _QW_WAITING) == 0))
++		   (cmpxchg_relaxed(&l->wmode, 0, _QW_WAITING) == 0))
+ 			break;
+ 
+ 		cpu_relax_lowlatency();
 -- 
 2.1.4
