@@ -1,87 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3426.houston.hp.com ([15.201.208.54]:43683 "EHLO
-	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754469AbbGFTth (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 6 Jul 2015 15:49:37 -0400
-Message-ID: <559ADBCD.6020803@hp.com>
-Date: Mon, 06 Jul 2015 15:49:33 -0400
-From: Waiman Long <waiman.long@hp.com>
+Received: from cantor2.suse.de ([195.135.220.15]:41952 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751714AbbGGITa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 7 Jul 2015 04:19:30 -0400
+Date: Tue, 7 Jul 2015 10:19:28 +0200
+From: "Luis R. Rodriguez" <mcgrof@suse.com>
+Subject: Re: RFC: default ioremap_*() variant defintions
+Message-ID: <20150707081928.GO7021@wotan.suse.de>
+References: <20150703181709.GD7021@wotan.suse.de>
+ <20150703190924.GZ7557@n2100.arm.linux.org.uk>
 MIME-Version: 1.0
-Subject: Re: [PATCH 2/4] locking/qrwlock: Reduce reader/writer to reader lock
- transfer latency
-References: <1436197386-58635-1-git-send-email-Waiman.Long@hp.com> <1436197386-58635-3-git-send-email-Waiman.Long@hp.com> <20150706182353.GC1607@arm.com>
-In-Reply-To: <20150706182353.GC1607@arm.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20150703190924.GZ7557@n2100.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
-Message-ID: <20150706194933.vvUA3N0X5v5h2TamFYYh1lkeHjNqmMNyUqQk_uUGH8c@z>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, Toshi Kani <toshi.kani@hp.com>, Arnd Bergmann <arnd@arndb.de>, "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ville =?iso-8859-1?Q?Syrj=E4l=E4?= <syrjala@sci.fi>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@kernel.org>
+Message-ID: <20150707081928.0frUxA50yBMoVsc-uu33ZcTqdsJLkONIsfNevPn74Oo@z>
 
-On 07/06/2015 02:23 PM, Will Deacon wrote:
-> Hi Waiman,
->
-> On Mon, Jul 06, 2015 at 04:43:04PM +0100, Waiman Long wrote:
->> Currently, a reader will check first to make sure that the writer mode
->> byte is cleared before incrementing the reader count. That waiting is
->> not really necessary. It increases the latency in the reader/writer
->> to reader transition and reduces readers performance.
->>
->> This patch eliminates that waiting. It also has the side effect
->> of reducing the chance of writer lock stealing and improving the
->> fairness of the lock. Using a locking microbenchmark, a 10-threads 5M
->> locking loop of mostly readers (RW ratio = 10,000:1) has the following
->> performance numbers in a Haswell-EX box:
->>
->>          Kernel          Locking Rate (Kops/s)
->>          ------          ---------------------
->>          4.1.1               15,063,081
->>          Patched 4.1.1       17,241,552
->>
->> Signed-off-by: Waiman Long<Waiman.Long@hp.com>
-> I've just finished rebasing my arm64 qrwlock stuff, but I think it will
-> conflict with these patches. Do you mind if I post them for review anyway,
-> so we can at least co-ordinate our efforts?
+On Fri, Jul 03, 2015 at 08:09:24PM +0100, Russell King - ARM Linux wrote:
+> On Fri, Jul 03, 2015 at 08:17:09PM +0200, Luis R. Rodriguez wrote:
+> > The 0-day build bot detected a build issue on a patch not upstream yet that
+> > makes a driver use iorempa_uc(), this call is now upstream but we have no
+> > drivers yet using it, the patch in question makes the atyfb framebuffer
+> > driver use it. The build issue was the lack of the ioremap_uc() call being
+> > implemented on some non-x86 architectures.
+> 
+> You have to be careful here.  We've been through this with ioremap_wt()
+> which is incorrect for ARM as things stand at the moment (I have patches
+> which adds documentation on this issue, and fixes ioremap_wt().)
 
-Yes, sure. I would also like to coordinate my changes with yours to 
-minimize conflict. BTW, I just got 2 tip-bot messages about the commits:
+Thanks, it seems that going in for v4.2 is that right?
 
-    locking/qrwlock:  Better optimization for interrupt context readers
-    locking/qrwlock:  Rename functions to queued_*()
+> The question is whether the allocated memory may have unaligned accesses
+> performed on it - either intentionally, or unintentionally (eg, by GCC
+> inlining memcpy().)
+> 
+> If the answer to that question is yes or possibly yes, neither ioremap()
+> nor ioremap_nocache() (which is, unfortunately, the same as ioremap() due
+> to various documentation telling people to use it for devices) can be used
+> for the mapping on ARM.
 
-So I need to rebase my patches also.
+There is a difference between unaligned accesses being an issue for an
+architecture (not HAVE_EFFICIENT_UNALIGNED_ACCESS) on a mapping area Vs having
+a requirement for all device drivers to not have unaligned accesses for mapped
+memory, it seems we want the later anyway... however we obviously don't have a
+scraper to go and vet all drivers / check a driver it seems. Hrm, I wonder
+if we can use grammar checks for this. Anyway, OK got it!
 
->> ---
->>   kernel/locking/qrwlock.c |   12 ++++--------
->>   1 files changed, 4 insertions(+), 8 deletions(-)
->>
->> diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
->> index 81bae99..ecd2d19 100644
->> --- a/kernel/locking/qrwlock.c
->> +++ b/kernel/locking/qrwlock.c
->> @@ -88,15 +88,11 @@ void queue_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
->>   	arch_spin_lock(&lock->lock);
->>
->>   	/*
->> -	 * At the head of the wait queue now, wait until the writer state
->> -	 * goes to 0 and then try to increment the reader count and get
->> -	 * the lock. It is possible that an incoming writer may steal the
->> -	 * lock in the interim, so it is necessary to check the writer byte
->> -	 * to make sure that the write lock isn't taken.
->> +	 * At the head of the wait queue now, increment the reader count
->> +	 * and wait until the writer, if it has the lock, has gone away.
->> +	 * At ths stage, it is not possible for a writer to remain in the
->> +	 * waiting state (_QW_WAITING). So there won't be any deadlock.
->>   	 */
->> -	while (atomic_read(&lock->cnts)&  _QW_WMASK)
->> -		cpu_relax_lowlatency();
-> Thinking about it, can we kill _QW_WAITING altogether and set (cmpxchg
-> from 0) wmode to _QW_LOCKED in the write_lock slowpath, polling (acquire)
-> rmode until it hits zero?
+> So we can't go around adding new ioremap() variants and hoping that
+> ioremap_nocache() is a safe default everywhere.  It isn't.
 
-No, this is how we make the lock fair so that an incoming streams of 
-later readers won't block a writer from getting the lock.
+Sure, OK.
 
-Cheers,
-Longman
+> > I *thought* I had added boiler plate code to map
+> > the ioremap_uc() call to ioremap_nocache() for archs that do not already define
+> > their own iorempa_uc() call, but upon further investigation it seems that was
+> > not the case but found that this may be a bit different issue altogether.
+> > 
+> > The way include/asm-generic/io.h works for ioremap() calls and its variants is:
+> > 
+> > #ifndef CONFIG_MMU                                                              
+> > #ifndef ioremap                                                                 
+> > #define ioremap ioremap                                                         
+> > static inline void __iomem *ioremap(phys_addr_t offset, size_t size)            
+> > {                                                                               
+> >         return (void __iomem *)(unsigned long)offset;                           
+> > }                                                                               
+> > #endif 
+> > ...
+> > #define iounmap iounmap                                                         
+> >                                                                                 
+> > static inline void iounmap(void __iomem *addr)                                  
+> > {                                                                               
+> > }                                                                               
+> > #endif                                                                          
+> > #endif /* CONFIG_MMU */  
+> 
+> > That's the gist of it, but the catch here is the ioremap_*() variants and where
+> > they are defined. The first variant is ioremap_nocache() and then all other
+> > variants by default map to this one. We've been stuffing the variant definitions
+> > within the #ifndef CONFIG_MMU and I don't think we should be as otherwise each
+> > and everyone's archs will have to add their own variant default map to the
+> > default ioremap_nocache() or whatever. That's exaclty what we have to day, and
+> > from what I gather the purpose of the variant boiler plate is lost. I think
+> > we should keep the ioremap() and ioreunmap() tucked under the CONFIG_MMU
+> > but not the variants. For instance to address the build issue for ioremap_uc()
+> > we either define ioremap_uc() for all archs or do something like this:
+> 
+> Surely, if architectures can support the different variants, then they
+> should implement them?
+
+Sure, the asm-generic file seemed to allude to that some ioremaps are safe
+to have defaults for, if we want to address this as a problem it must
+be addressed there, this is what my posting aims to address. It seems
+the other threads with Dan also address some of this so we're already
+on track.
+
+> The only case where it makes sense to provide boilerplate for these is
+> when architectures don't support the mapping type - and then we need help
+> from architecture people to decide what is the appropriate mapping type
+> (and therefore which ioremap() variant) to be used as a fallback.
+
+Sounds like a formal process being brewed / documented.
+
+  Luis
