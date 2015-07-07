@@ -1,67 +1,115 @@
 From: "Luis R. Rodriguez" <mcgrof@suse.com>
 Subject: Re: RFC: default ioremap_*() variant defintions
-Date: Tue, 7 Jul 2015 09:40:05 +0200
-Message-ID: <20150707074005.GN7021@wotan.suse.de>
+Date: Tue, 7 Jul 2015 10:19:28 +0200
+Message-ID: <20150707081928.GO7021@wotan.suse.de>
 References: <20150703181709.GD7021@wotan.suse.de>
- <CAPcyv4jqsB+K5EsYqi1jssWqZV-55Q_Xz=beHXZPL0T6VvpawQ@mail.gmail.com>
+ <20150703190924.GZ7557@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:39056 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751295AbbGGHkM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 7 Jul 2015 03:40:12 -0400
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 Content-Disposition: inline
-In-Reply-To: <CAPcyv4jqsB+K5EsYqi1jssWqZV-55Q_Xz=beHXZPL0T6VvpawQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: linux-arch@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, X86 ML <x86@kernel.org>, Toshi Kani <toshi.kani@hp.com>, Arnd Bergmann <arnd@arndb.de>, "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Ville =?iso-8859-1?Q?Syrj=E4l=E4?= <syrjala@sci.fi>, Borislav Petkov <bp@suse.de>, Ingo Molnar <mingo@kernel.org>
+In-Reply-To: <20150703190924.GZ7557@n2100.arm.linux.org.uk>
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: "Linuxppc-dev"
+ <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, Toshi Kani <toshi.kani@hp.com>, Arnd Bergmann <arnd@arndb.de>, "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, Ville =?iso-8859-1?Q?Syrj=E4l=E4?= <syrjala@sci.fi>, x86@kernel.org, Borislav Petkov <bp@suse.de>, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@kernel.org>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jul 04, 2015 at 06:54:40AM -0700, Dan Williams wrote:
-> On Fri, Jul 3, 2015 at 11:17 AM, Luis R. Rodriguez <mcgrof@suse.com> wrote:
-> > I have no idea why its not picking up asm-generic ioremap_uc() for x86,
-> 
-> x86 does not use "include/asm-generic/io.h".  That's a helper-include
-> for archs that want to use it, but it's incomplete, see the patch
-> referenced below...
-
-Ah it includes iomap.h not io.h odd...
-
-> > although this is the right thing to do the guard should not work as we never
-> > define ioremap_uc() as a macro but we do as an exported symbol. The way
-> > archs do their ioremap calls is they define externs and then they include
-> > asm-generic to pick up the things they don't define. In the extern calls
-> > for ioremap_uc() we never add a define there. Adding a simple one line
-> > #define right after the extern declaration to itself should suffice to
-> > fix paranoia but curious why this does work as-is right now.
-> >
-> > I'd like review and consensus from other architecture folks if this is
-> > the Right Thing To Do (TM) and if it is decide how we want to fix this.
-> > For instance my preference would be to just add this fix as-is after
-> > we've figured out the guard thing above, and then define these variants
-> > in the documentation on the asm-generic file as safe to not have, and
-> > safe to map to the default ioremap call. If you don't have a safe call
-> > like this we should set out different expectations, for instance having
-> > it depend on Kconfig symbol and then drivers depend on it, archs then
-> > implement the symbols and can HAVE_ARCH_FOO. If everyone agrees with
-> > this then there is quite a bit of cleanup possible as tons of archs do
-> > tons of their own variant mapping definitions.
-> 
-> We're also discussing this issue in the patch here:
-> 
-> https://lkml.org/lkml/2015/6/22/98
-> "[PATCH v5 2/6] arch: unify ioremap prototypes and macro aliases":
-
-Great, you've done all the exact work I expected we needed to do ;)
-
-> Russell mentioned wanting to fix up ioremap_wt() for ARM [1], after
-> which I would look to re-spin this patch with the interface proposed
-> by Christoph [2].
-> 
-> [1]: https://lkml.org/lkml/2015/7/1/125
-> [2]: https://lkml.org/lkml/2015/6/22/391
-
-OK thanks I guess I'll jump in there as I have some feedback.
-
-  Luis
+T24gRnJpLCBKdWwgMDMsIDIwMTUgYXQgMDg6MDk6MjRQTSArMDEwMCwgUnVzc2VsbCBLaW5nIC0g
+QVJNIExpbnV4IHdyb3RlOgo+IE9uIEZyaSwgSnVsIDAzLCAyMDE1IGF0IDA4OjE3OjA5UE0gKzAy
+MDAsIEx1aXMgUi4gUm9kcmlndWV6IHdyb3RlOgo+ID4gVGhlIDAtZGF5IGJ1aWxkIGJvdCBkZXRl
+Y3RlZCBhIGJ1aWxkIGlzc3VlIG9uIGEgcGF0Y2ggbm90IHVwc3RyZWFtIHlldCB0aGF0Cj4gPiBt
+YWtlcyBhIGRyaXZlciB1c2UgaW9yZW1wYV91YygpLCB0aGlzIGNhbGwgaXMgbm93IHVwc3RyZWFt
+IGJ1dCB3ZSBoYXZlIG5vCj4gPiBkcml2ZXJzIHlldCB1c2luZyBpdCwgdGhlIHBhdGNoIGluIHF1
+ZXN0aW9uIG1ha2VzIHRoZSBhdHlmYiBmcmFtZWJ1ZmZlcgo+ID4gZHJpdmVyIHVzZSBpdC4gVGhl
+IGJ1aWxkIGlzc3VlIHdhcyB0aGUgbGFjayBvZiB0aGUgaW9yZW1hcF91YygpIGNhbGwgYmVpbmcK
+PiA+IGltcGxlbWVudGVkIG9uIHNvbWUgbm9uLXg4NiBhcmNoaXRlY3R1cmVzLgo+IAo+IFlvdSBo
+YXZlIHRvIGJlIGNhcmVmdWwgaGVyZS4gIFdlJ3ZlIGJlZW4gdGhyb3VnaCB0aGlzIHdpdGggaW9y
+ZW1hcF93dCgpCj4gd2hpY2ggaXMgaW5jb3JyZWN0IGZvciBBUk0gYXMgdGhpbmdzIHN0YW5kIGF0
+IHRoZSBtb21lbnQgKEkgaGF2ZSBwYXRjaGVzCj4gd2hpY2ggYWRkcyBkb2N1bWVudGF0aW9uIG9u
+IHRoaXMgaXNzdWUsIGFuZCBmaXhlcyBpb3JlbWFwX3d0KCkuKQoKVGhhbmtzLCBpdCBzZWVtcyB0
+aGF0IGdvaW5nIGluIGZvciB2NC4yIGlzIHRoYXQgcmlnaHQ/Cgo+IFRoZSBxdWVzdGlvbiBpcyB3
+aGV0aGVyIHRoZSBhbGxvY2F0ZWQgbWVtb3J5IG1heSBoYXZlIHVuYWxpZ25lZCBhY2Nlc3Nlcwo+
+IHBlcmZvcm1lZCBvbiBpdCAtIGVpdGhlciBpbnRlbnRpb25hbGx5LCBvciB1bmludGVudGlvbmFs
+bHkgKGVnLCBieSBHQ0MKPiBpbmxpbmluZyBtZW1jcHkoKS4pCj4gCj4gSWYgdGhlIGFuc3dlciB0
+byB0aGF0IHF1ZXN0aW9uIGlzIHllcyBvciBwb3NzaWJseSB5ZXMsIG5laXRoZXIgaW9yZW1hcCgp
+Cj4gbm9yIGlvcmVtYXBfbm9jYWNoZSgpICh3aGljaCBpcywgdW5mb3J0dW5hdGVseSwgdGhlIHNh
+bWUgYXMgaW9yZW1hcCgpIGR1ZQo+IHRvIHZhcmlvdXMgZG9jdW1lbnRhdGlvbiB0ZWxsaW5nIHBl
+b3BsZSB0byB1c2UgaXQgZm9yIGRldmljZXMpIGNhbiBiZSB1c2VkCj4gZm9yIHRoZSBtYXBwaW5n
+IG9uIEFSTS4KClRoZXJlIGlzIGEgZGlmZmVyZW5jZSBiZXR3ZWVuIHVuYWxpZ25lZCBhY2Nlc3Nl
+cyBiZWluZyBhbiBpc3N1ZSBmb3IgYW4KYXJjaGl0ZWN0dXJlIChub3QgSEFWRV9FRkZJQ0lFTlRf
+VU5BTElHTkVEX0FDQ0VTUykgb24gYSBtYXBwaW5nIGFyZWEgVnMgaGF2aW5nCmEgcmVxdWlyZW1l
+bnQgZm9yIGFsbCBkZXZpY2UgZHJpdmVycyB0byBub3QgaGF2ZSB1bmFsaWduZWQgYWNjZXNzZXMg
+Zm9yIG1hcHBlZAptZW1vcnksIGl0IHNlZW1zIHdlIHdhbnQgdGhlIGxhdGVyIGFueXdheS4uLiBo
+b3dldmVyIHdlIG9idmlvdXNseSBkb24ndCBoYXZlIGEKc2NyYXBlciB0byBnbyBhbmQgdmV0IGFs
+bCBkcml2ZXJzIC8gY2hlY2sgYSBkcml2ZXIgaXQgc2VlbXMuIEhybSwgSSB3b25kZXIKaWYgd2Ug
+Y2FuIHVzZSBncmFtbWFyIGNoZWNrcyBmb3IgdGhpcy4gQW55d2F5LCBPSyBnb3QgaXQhCgo+IFNv
+IHdlIGNhbid0IGdvIGFyb3VuZCBhZGRpbmcgbmV3IGlvcmVtYXAoKSB2YXJpYW50cyBhbmQgaG9w
+aW5nIHRoYXQKPiBpb3JlbWFwX25vY2FjaGUoKSBpcyBhIHNhZmUgZGVmYXVsdCBldmVyeXdoZXJl
+LiAgSXQgaXNuJ3QuCgpTdXJlLCBPSy4KCj4gPiBJICp0aG91Z2h0KiBJIGhhZCBhZGRlZCBib2ls
+ZXIgcGxhdGUgY29kZSB0byBtYXAKPiA+IHRoZSBpb3JlbWFwX3VjKCkgY2FsbCB0byBpb3JlbWFw
+X25vY2FjaGUoKSBmb3IgYXJjaHMgdGhhdCBkbyBub3QgYWxyZWFkeSBkZWZpbmUKPiA+IHRoZWly
+IG93biBpb3JlbXBhX3VjKCkgY2FsbCwgYnV0IHVwb24gZnVydGhlciBpbnZlc3RpZ2F0aW9uIGl0
+IHNlZW1zIHRoYXQgd2FzCj4gPiBub3QgdGhlIGNhc2UgYnV0IGZvdW5kIHRoYXQgdGhpcyBtYXkg
+YmUgYSBiaXQgZGlmZmVyZW50IGlzc3VlIGFsdG9nZXRoZXIuCj4gPiAKPiA+IFRoZSB3YXkgaW5j
+bHVkZS9hc20tZ2VuZXJpYy9pby5oIHdvcmtzIGZvciBpb3JlbWFwKCkgY2FsbHMgYW5kIGl0cyB2
+YXJpYW50cyBpczoKPiA+IAo+ID4gI2lmbmRlZiBDT05GSUdfTU1VICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKPiA+ICNpZm5kZWYg
+aW9yZW1hcCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgCj4gPiAjZGVmaW5lIGlvcmVtYXAgaW9yZW1hcCAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAo+ID4gc3RhdGljIGlu
+bGluZSB2b2lkIF9faW9tZW0gKmlvcmVtYXAocGh5c19hZGRyX3Qgb2Zmc2V0LCBzaXplX3Qgc2l6
+ZSkgICAgICAgICAgICAKPiA+IHsgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCj4gPiAgICAgICAgIHJl
+dHVybiAodm9pZCBfX2lvbWVtICopKHVuc2lnbmVkIGxvbmcpb2Zmc2V0OyAgICAgICAgICAgICAg
+ICAgICAgICAgICAgIAo+ID4gfSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKPiA+ICNlbmRpZiAKPiA+
+IC4uLgo+ID4gI2RlZmluZSBpb3VubWFwIGlvdW5tYXAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKPiA+ICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgCj4gPiBzdGF0aWMgaW5saW5lIHZvaWQgaW91bm1hcCh2b2lkIF9faW9tZW0gKmFkZHIpICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAo+ID4geyAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAKPiA+IH0gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCj4gPiAjZW5kaWYgICAgICAgICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+IAo+ID4gI2VuZGlmIC8qIENPTkZJR19NTVUgKi8gIAo+IAo+ID4gVGhhdCdzIHRoZSBnaXN0IG9m
+IGl0LCBidXQgdGhlIGNhdGNoIGhlcmUgaXMgdGhlIGlvcmVtYXBfKigpIHZhcmlhbnRzIGFuZCB3
+aGVyZQo+ID4gdGhleSBhcmUgZGVmaW5lZC4gVGhlIGZpcnN0IHZhcmlhbnQgaXMgaW9yZW1hcF9u
+b2NhY2hlKCkgYW5kIHRoZW4gYWxsIG90aGVyCj4gPiB2YXJpYW50cyBieSBkZWZhdWx0IG1hcCB0
+byB0aGlzIG9uZS4gV2UndmUgYmVlbiBzdHVmZmluZyB0aGUgdmFyaWFudCBkZWZpbml0aW9ucwo+
+ID4gd2l0aGluIHRoZSAjaWZuZGVmIENPTkZJR19NTVUgYW5kIEkgZG9uJ3QgdGhpbmsgd2Ugc2hv
+dWxkIGJlIGFzIG90aGVyd2lzZSBlYWNoCj4gPiBhbmQgZXZlcnlvbmUncyBhcmNocyB3aWxsIGhh
+dmUgdG8gYWRkIHRoZWlyIG93biB2YXJpYW50IGRlZmF1bHQgbWFwIHRvIHRoZQo+ID4gZGVmYXVs
+dCBpb3JlbWFwX25vY2FjaGUoKSBvciB3aGF0ZXZlci4gVGhhdCdzIGV4YWNsdHkgd2hhdCB3ZSBo
+YXZlIHRvIGRheSwgYW5kCj4gPiBmcm9tIHdoYXQgSSBnYXRoZXIgdGhlIHB1cnBvc2Ugb2YgdGhl
+IHZhcmlhbnQgYm9pbGVyIHBsYXRlIGlzIGxvc3QuIEkgdGhpbmsKPiA+IHdlIHNob3VsZCBrZWVw
+IHRoZSBpb3JlbWFwKCkgYW5kIGlvcmV1bm1hcCgpIHR1Y2tlZCB1bmRlciB0aGUgQ09ORklHX01N
+VQo+ID4gYnV0IG5vdCB0aGUgdmFyaWFudHMuIEZvciBpbnN0YW5jZSB0byBhZGRyZXNzIHRoZSBi
+dWlsZCBpc3N1ZSBmb3IgaW9yZW1hcF91YygpCj4gPiB3ZSBlaXRoZXIgZGVmaW5lIGlvcmVtYXBf
+dWMoKSBmb3IgYWxsIGFyY2hzIG9yIGRvIHNvbWV0aGluZyBsaWtlIHRoaXM6Cj4gCj4gU3VyZWx5
+LCBpZiBhcmNoaXRlY3R1cmVzIGNhbiBzdXBwb3J0IHRoZSBkaWZmZXJlbnQgdmFyaWFudHMsIHRo
+ZW4gdGhleQo+IHNob3VsZCBpbXBsZW1lbnQgdGhlbT8KClN1cmUsIHRoZSBhc20tZ2VuZXJpYyBm
+aWxlIHNlZW1lZCB0byBhbGx1ZGUgdG8gdGhhdCBzb21lIGlvcmVtYXBzIGFyZSBzYWZlCnRvIGhh
+dmUgZGVmYXVsdHMgZm9yLCBpZiB3ZSB3YW50IHRvIGFkZHJlc3MgdGhpcyBhcyBhIHByb2JsZW0g
+aXQgbXVzdApiZSBhZGRyZXNzZWQgdGhlcmUsIHRoaXMgaXMgd2hhdCBteSBwb3N0aW5nIGFpbXMg
+dG8gYWRkcmVzcy4gSXQgc2VlbXMKdGhlIG90aGVyIHRocmVhZHMgd2l0aCBEYW4gYWxzbyBhZGRy
+ZXNzIHNvbWUgb2YgdGhpcyBzbyB3ZSdyZSBhbHJlYWR5Cm9uIHRyYWNrLgoKPiBUaGUgb25seSBj
+YXNlIHdoZXJlIGl0IG1ha2VzIHNlbnNlIHRvIHByb3ZpZGUgYm9pbGVycGxhdGUgZm9yIHRoZXNl
+IGlzCj4gd2hlbiBhcmNoaXRlY3R1cmVzIGRvbid0IHN1cHBvcnQgdGhlIG1hcHBpbmcgdHlwZSAt
+IGFuZCB0aGVuIHdlIG5lZWQgaGVscAo+IGZyb20gYXJjaGl0ZWN0dXJlIHBlb3BsZSB0byBkZWNp
+ZGUgd2hhdCBpcyB0aGUgYXBwcm9wcmlhdGUgbWFwcGluZyB0eXBlCj4gKGFuZCB0aGVyZWZvcmUg
+d2hpY2ggaW9yZW1hcCgpIHZhcmlhbnQpIHRvIGJlIHVzZWQgYXMgYSBmYWxsYmFjay4KClNvdW5k
+cyBsaWtlIGEgZm9ybWFsIHByb2Nlc3MgYmVpbmcgYnJld2VkIC8gZG9jdW1lbnRlZC4KCiAgTHVp
+cwpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpMaW51eHBw
+Yy1kZXYgbWFpbGluZyBsaXN0CkxpbnV4cHBjLWRldkBsaXN0cy5vemxhYnMub3JnCmh0dHBzOi8v
+bGlzdHMub3psYWJzLm9yZy9saXN0aW5mby9saW51eHBwYy1kZXY=
