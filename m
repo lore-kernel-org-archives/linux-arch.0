@@ -1,51 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:58364 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757992AbbGGVQQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Jul 2015 17:16:16 -0400
-Date: Tue, 7 Jul 2015 14:16:13 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH V3 0/5] Allow user to request memory to be locked on
- page fault
-Message-ID: <20150707141613.f945c98279dcb71c9743d5f2@linux-foundation.org>
-In-Reply-To: <1436288623-13007-1-git-send-email-emunson@akamai.com>
-References: <1436288623-13007-1-git-send-email-emunson@akamai.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Received: from g2t1383g.austin.hp.com ([15.217.136.92]:23423 "EHLO
+	g2t1383g.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758036AbbGGWAH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Jul 2015 18:00:07 -0400
+Received: from g2t2352.austin.hp.com (g2t2352.austin.hp.com [15.217.128.51])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by g2t1383g.austin.hp.com (Postfix) with ESMTPS id CC48F492B
+	for <linux-arch@vger.kernel.org>; Tue,  7 Jul 2015 22:00:06 +0000 (UTC)
+Message-ID: <559C4BDF.3020605@hp.com>
+Date: Tue, 07 Jul 2015 17:59:59 -0400
+From: Waiman Long <waiman.long@hp.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH 4/4] locking/qrwlock: Use direct MCS lock/unlock in slowpath
+References: <1436197386-58635-1-git-send-email-Waiman.Long@hp.com> <1436197386-58635-5-git-send-email-Waiman.Long@hp.com> <20150707112449.GR3644@twins.programming.kicks-ass.net>
+In-Reply-To: <20150707112449.GR3644@twins.programming.kicks-ass.net>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@akamai.com>
-Cc: Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, Vlastimil Babka <vbabka@suse.cz>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150707211613.-vxLcpyWNRziyYN06sL_zMIqYVNIhq39R9ZA1dHlnPM@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+Message-ID: <20150707215959.VbX93xcYw5EWB3sywU2hTQNWMNJOtl-TkPVJTdFgZ2w@z>
 
-On Tue,  7 Jul 2015 13:03:38 -0400 Eric B Munson <emunson@akamai.com> wrote:
+On 07/07/2015 07:24 AM, Peter Zijlstra wrote:
+> On Mon, Jul 06, 2015 at 11:43:06AM -0400, Waiman Long wrote:
+>> Lock waiting in the qrwlock uses the spinlock (qspinlock for x86)
+>> as the waiting queue. This is slower than using MCS lock directly
+>> because of the extra level of indirection causing more atomics to
+>> be used as well as 2 waiting threads spinning on the lock cacheline
+>> instead of only one.
+> This needs a better explanation. Didn't we find with the qspinlock thing
+> that the pending spinner improved performance on light loads?
+>
+> Taking it out seems counter intuitive, we could very much like these two
+> the be the same.
 
-> mlock() allows a user to control page out of program memory, but this
-> comes at the cost of faulting in the entire mapping when it is
-> allocated.  For large mappings where the entire area is not necessary
-> this is not ideal.  Instead of forcing all locked pages to be present
-> when they are allocated, this set creates a middle ground.  Pages are
-> marked to be placed on the unevictable LRU (locked) when they are first
-> used, but they are not faulted in by the mlock call.
-> 
-> This series introduces a new mlock() system call that takes a flags
-> argument along with the start address and size.  This flags argument
-> gives the caller the ability to request memory be locked in the
-> traditional way, or to be locked after the page is faulted in.  New
-> calls are added for munlock() and munlockall() which give the called a
-> way to specify which flags are supposed to be cleared.  A new MCL flag
-> is added to mirror the lock on fault behavior from mlock() in
-> mlockall().  Finally, a flag for mmap() is added that allows a user to
-> specify that the covered are should not be paged out, but only after the
-> memory has been used the first time.
+Yes, for lightly loaded case, using raw_spin_lock should have an 
+advantage. It is a different matter when the lock is highly contended. 
+In this case, having the indirection in qspinlock will make it slower. I 
+struggle myself as to whether to duplicate the locking code in qrwlock. 
+So I send this patch out to test the water. I won't insist if you think 
+this is not a good idea, but I do want to get the previous 2 patches in 
+which should not be controversial.
 
-Thanks for sticking with this.  Adding new syscalls is a bit of a
-hassle but I do think we end up with a better interface - the existing
-mlock/munlock/mlockall interfaces just aren't appropriate for these
-things.
-
-I don't know whether these syscalls should be documented via new
-manpages, or if we should instead add them to the existing
-mlock/munlock/mlockall manpages.  Michael, could you please advise?
-
+Cheers,
+Longman
