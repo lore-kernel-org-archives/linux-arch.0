@@ -1,37 +1,38 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 2/9] locking/qrwlock: avoid redundant atomic_add_return
- on read_lock_slowpath
-Date: Tue, 7 Jul 2015 23:30:01 +0200
-Message-ID: <20150707213000.GL19282@twins.programming.kicks-ass.net>
-References: <1436289865-2331-1-git-send-email-will.deacon@arm.com>
- <1436289865-2331-3-git-send-email-will.deacon@arm.com>
- <559C11BA.1070309@hp.com>
+From: Waiman Long <waiman.long@hp.com>
+Subject: Re: [PATCH 4/4] locking/qrwlock: Use direct MCS lock/unlock in slowpath
+Date: Tue, 07 Jul 2015 17:59:59 -0400
+Message-ID: <559C4BDF.3020605@hp.com>
+References: <1436197386-58635-1-git-send-email-Waiman.Long@hp.com> <1436197386-58635-5-git-send-email-Waiman.Long@hp.com> <20150707112449.GR3644@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:52728 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933512AbbGGVaI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Jul 2015 17:30:08 -0400
-Content-Disposition: inline
-In-Reply-To: <559C11BA.1070309@hp.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, mingo@redhat.com
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20150707112449.GR3644@twins.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jul 07, 2015 at 01:51:54PM -0400, Waiman Long wrote:
-> >-	cnts = atomic_add_return(_QR_BIAS,&lock->cnts) - _QR_BIAS;
-> >+	atomic_add(_QR_BIAS,&lock->cnts);
-> >+	cnts = smp_load_acquire((u32 *)&lock->cnts);
-> >  	rspin_until_writer_unlock(lock, cnts);
-> >
-> >  	/*
-> 
-> Atomic add in x86 is actually a full barrier too. The performance difference
-> between "lock add" and "lock xadd" should be minor. The additional load,
-> however, could potentially cause an additional cacheline load on a contended
-> lock. So do you see actual performance benefit of this change in ARM?
+On 07/07/2015 07:24 AM, Peter Zijlstra wrote:
+> On Mon, Jul 06, 2015 at 11:43:06AM -0400, Waiman Long wrote:
+>> Lock waiting in the qrwlock uses the spinlock (qspinlock for x86)
+>> as the waiting queue. This is slower than using MCS lock directly
+>> because of the extra level of indirection causing more atomics to
+>> be used as well as 2 waiting threads spinning on the lock cacheline
+>> instead of only one.
+> This needs a better explanation. Didn't we find with the qspinlock thing
+> that the pending spinner improved performance on light loads?
+>
+> Taking it out seems counter intuitive, we could very much like these two
+> the be the same.
 
-Yes, atomic_add() does not imply (and does not have) any memory barriers
-on ARM.
+Yes, for lightly loaded case, using raw_spin_lock should have an 
+advantage. It is a different matter when the lock is highly contended. 
+In this case, having the indirection in qspinlock will make it slower. I 
+struggle myself as to whether to duplicate the locking code in qrwlock. 
+So I send this patch out to test the water. I won't insist if you think 
+this is not a good idea, but I do want to get the previous 2 patches in 
+which should not be controversial.
+
+Cheers,
+Longman
