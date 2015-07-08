@@ -1,97 +1,71 @@
-From: Eric B Munson <emunson@akamai.com>
-Subject: Re: [PATCH V3 3/5] mm: mlock: Introduce VM_LOCKONFAULT and add mlock
- flags to enable it
-Date: Wed, 8 Jul 2015 16:34:56 -0400
-Message-ID: <20150708203456.GC4669@akamai.com>
-References: <1436288623-13007-1-git-send-email-emunson@akamai.com>
- <1436288623-13007-4-git-send-email-emunson@akamai.com>
- <20150708132351.61c13db6@lwn.net>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH v2 2/3] string: provide strscpy()
+Date: Wed, 8 Jul 2015 22:54:00 +0200
+Message-ID: <CAMuHMdXJRD6wC5WsJOfyoFO5J_AyX+ifT6+6h6JXt-ZFpbjFGw@mail.gmail.com>
+References: <1436386845-11989-1-git-send-email-cmetcalf@ezchip.com>
+	<1436386845-11989-3-git-send-email-cmetcalf@ezchip.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="PuGuTyElPB9bOcsM"
-Return-path: <linux-parisc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20150708132351.61c13db6@lwn.net>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Jonathan Corbet <corbet@lwn.net>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f51.google.com ([209.85.218.51]:35282 "EHLO
+	mail-oi0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755529AbbGHUyB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2015 16:54:01 -0400
+In-Reply-To: <1436386845-11989-3-git-send-email-cmetcalf@ezchip.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Metcalf <cmetcalf@ezchip.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Fabian Frederick <fabf@skynet.be>, Randy Dunlap <rdunlap@infradead.org>, Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>, Greg KH <gregkh@linuxfoundation.org>, Peter Zijlstra <peterz@infradead.org>, "David S. Miller" <davem@davemloft.net>, Frederic Weisbecker <fweisbec@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Theodore Ts'o <tytso@mit.edu>, Grant Likely <grant.likely@linaro.org>, Dan Carpenter <dan.carpenter@oracle.com>, Michael Ellerman <mpe@ellerman.id.au>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
+Hi Chris,
 
---PuGuTyElPB9bOcsM
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Wed, Jul 8, 2015 at 10:20 PM, Chris Metcalf <cmetcalf@ezchip.com> wrote:
+> + * strscpy - Copy a C-string into a sized buffer
+> + * @dest: Where to copy the string to
+> + * @src: Where to copy the string from
+> + * @count: Size of destination buffer
+> + *
+> + * Copy the string, or as much of it as fits, into the dest buffer.
+> + * The routine returns the number of characters copied (not including
+> + * the trailing NUL) or -E2BIG if the destination buffer wasn't big enough.
+> + * The behavior is undefined if the string buffers overlap.
+> + * If the destination buffer isn't big enough, it is NUL terminated.
 
-On Wed, 08 Jul 2015, Jonathan Corbet wrote:
+... unless count is zero
 
-> On Tue,  7 Jul 2015 13:03:41 -0400
-> Eric B Munson <emunson@akamai.com> wrote:
->=20
-> > This patch introduces the ability to request that pages are not
-> > pre-faulted, but are placed on the unevictable LRU when they are finally
-> > faulted in.  This can be done area at a time via the
-> > mlock2(MLOCK_ONFAULT) or the mlockall(MCL_ONFAULT) system calls.  These
-> > calls can be undone via munlock2(MLOCK_ONFAULT) or
-> > munlockall2(MCL_ONFAULT).
->=20
-> Quick, possibly dumb question: I've been beating my head against these for
-> a little bit, and I can't figure out what's supposed to happen in this
-> case:
->=20
-> 	mlock2(addr, len, MLOCK_ONFAULT);
-> 	munlock2(addr, len, MLOCK_LOCKED);
->=20
-> It looks to me like it will clear VM_LOCKED without actually unlocking any
-> pages.  Is that the intended result?
+and it's also NUL terminated if it is big enough ;-)
 
-This is not quite right, what happens when you call munlock2(addr, len,
-MLOCK_LOCKED); is we call apply_vma_flags(addr, len, VM_LOCKED, false).
-The false argument means that we intend to clear the specified flags.
-Here is the relevant snippet:
-=2E..
-                newflags =3D vma->vm_flags;
-                if (add_flags) {
-                        newflags &=3D ~(VM_LOCKED | VM_LOCKONFAULT);
-                        newflags |=3D flags;
-                } else {
-                        newflags &=3D ~flags;
-                }
-=2E..
+Perhaps
+"The destination buffer is always NUL terminated, unless it's zero-sized."
 
-Note that when we are adding flags, we first clear both VM_LOCKED and
-VM_LOCKONFAULT.  This was done to match the behavior found in
-mlockall().  When we are remove flags, we simply clear the specified
-flag(s).
+> + *
+> + * Preferred to strlcpy() since the API doesn't require reading memory
+> + * from the src string beyond the specified "count" bytes, and since
+> + * the return value is easier to error-check than strlcpy()'s.
+> + * In addition, the implementation is robust to the string changing out
+> + * from underneath it, unlike the current strlcpy() implementation.
+> + *
+> + * Preferred to strncpy() since it always returns a valid string, and
+> + * doesn't unnecessarily force the tail of the destination buffer to be
+> + * zeroed.  If the zeroing is desired, it's likely cleaner to use strscpy()
+> + * with an overflow test, then just memset() the tail of the dest buffer.
+> + */
+> +ssize_t strscpy(char *dest, const char *src, size_t count)
+> +{
+> +       const struct word_at_a_time constants = WORD_AT_A_TIME_CONSTANTS;
+> +       size_t max = count;
+> +       long res = 0;
+> +
+> +       if (count == 0)
+> +               return -E2BIG;
 
-So in your example the state of the VMAs covered by addr and len would
-remain unchanged.
+Gr{oetje,eeting}s,
 
-It sounds like apply_vma_flags() needs a comment covering this topic, I
-will include that in the set I am working on now.
+                        Geert
 
-Eric
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
---PuGuTyElPB9bOcsM
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAEBAgAGBQJVnYlwAAoJELbVsDOpoOa96jQQAMzj+srECYanjQL4rB5HSwhS
-jfU2GPE5w8xLHqHEdoPmu/98FKAK7kNvhb4Ytdmssq+sHIS3sHbx2b4SFkMLDnM8
-4hTQtkUaD9ti+HnmBvxbDYNfn2MGHlxtfhML88/tA3LPproe9aWWZGtn4xZ+TE96
-Qbnb0X4WCKuT2blVmoQ2Uf1zT2eaGJmpWk+QEKrWqlLDtijNcHEXiNn+1odo8WJd
-7rr/7tjO+4N6AhC+0NypU9JhFB0L5pxm1Au+U3L3N8Szq8palqGYZ76k7X2cdNrN
-7bc3ghWSLnA6p6sw1T4PDcuLhDNnS4zdtodtBJK6aVVR6NmJSzB8xU//HqFb27RA
-s+0Z/6U8Z1P58q/IvMay2hsqmNY2hobvpNlm59JJynX+ajMC0IrzYrB0CDAIoO5s
-tx5O4LDrMMsU/av92mU0y8yqGZdiGBQsIWfKTklWvq9q6HbDGae/WoSsnV5zX/b8
-zHpvJxCmRG92vEwb46mqSbnWbkzK10SVyZRohrTd35hmSkXHpEk2AWwLHriLMtD8
-nF/mQYL88FSsXwDKoz2Iw3C6HPVR6lDS8kae5iY4C0umP8FFX7VuBYBXOn29E1U4
-mKbYb/wKn9x4iI4IeyHLBN4m+4zY+pqhXNlNKQ3hOR3jgMXPQ2fx7mzoEiRwB40g
-4dkKMXOml6uRVob09Ixx
-=lbgU
------END PGP SIGNATURE-----
-
---PuGuTyElPB9bOcsM--
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
