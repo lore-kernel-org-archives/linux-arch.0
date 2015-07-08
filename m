@@ -1,48 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g2t1383g.austin.hp.com ([15.217.136.92]:23423 "EHLO
-	g2t1383g.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758036AbbGGWAH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Jul 2015 18:00:07 -0400
-Received: from g2t2352.austin.hp.com (g2t2352.austin.hp.com [15.217.128.51])
-	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by g2t1383g.austin.hp.com (Postfix) with ESMTPS id CC48F492B
-	for <linux-arch@vger.kernel.org>; Tue,  7 Jul 2015 22:00:06 +0000 (UTC)
-Message-ID: <559C4BDF.3020605@hp.com>
-Date: Tue, 07 Jul 2015 17:59:59 -0400
-From: Waiman Long <waiman.long@hp.com>
+Received: from mail-pd0-f172.google.com ([209.85.192.172]:33271 "EHLO
+	mail-pd0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932466AbbGHFnr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2015 01:43:47 -0400
+Received: by pdbdz6 with SMTP id dz6so44580135pdb.0
+        for <linux-arch@vger.kernel.org>; Tue, 07 Jul 2015 22:43:46 -0700 (PDT)
+Date: Wed, 8 Jul 2015 11:13:41 +0530
+From: Viresh Kumar <viresh.kumar@linaro.org>
+Subject: Re: [PATCH 01/41] clocksource: asm9260: Migrate to new 'set-state'
+ interface
+Message-ID: <20150708054341.GC19130@linux>
+References: <cover.1434622147.git.viresh.kumar@linaro.org>
+ <57ae9434bbb7218961c3ad45a26fbe1fffe40cbd.1434622147.git.viresh.kumar@linaro.org>
+ <559CB705.5010805@synopsys.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 4/4] locking/qrwlock: Use direct MCS lock/unlock in slowpath
-References: <1436197386-58635-1-git-send-email-Waiman.Long@hp.com> <1436197386-58635-5-git-send-email-Waiman.Long@hp.com> <20150707112449.GR3644@twins.programming.kicks-ass.net>
-In-Reply-To: <20150707112449.GR3644@twins.programming.kicks-ass.net>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <559CB705.5010805@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
-Message-ID: <20150707215959.VbX93xcYw5EWB3sywU2hTQNWMNJOtl-TkPVJTdFgZ2w@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, linaro-kernel@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Oleksij Rempel <linux@rempel-privat.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20150708054341.dU31XUAI_cKVvpsxbgYkdaikCgsPRnR_CCc_IcB2YVs@z>
 
-On 07/07/2015 07:24 AM, Peter Zijlstra wrote:
-> On Mon, Jul 06, 2015 at 11:43:06AM -0400, Waiman Long wrote:
->> Lock waiting in the qrwlock uses the spinlock (qspinlock for x86)
->> as the waiting queue. This is slower than using MCS lock directly
->> because of the extra level of indirection causing more atomics to
->> be used as well as 2 waiting threads spinning on the lock cacheline
->> instead of only one.
-> This needs a better explanation. Didn't we find with the qspinlock thing
-> that the pending spinner improved performance on light loads?
->
-> Taking it out seems counter intuitive, we could very much like these two
-> the be the same.
+On 08-07-15, 11:07, Vineet Gupta wrote:
+> Is this series (and other one touching arch/arm/*) specific to ARM event timers.
+> Are you planning to fixup the drivers in arch/* or the respective maintainers need
+> to follow suit.
 
-Yes, for lightly loaded case, using raw_spin_lock should have an 
-advantage. It is a different matter when the lock is highly contended. 
-In this case, having the indirection in qspinlock will make it slower. I 
-struggle myself as to whether to duplicate the locking code in qrwlock. 
-So I send this patch out to test the water. I won't insist if you think 
-this is not a good idea, but I do want to get the previous 2 patches in 
-which should not be controversial.
+Hi Vineet,
 
-Cheers,
-Longman
+I am fixing all clockevent drivers available in Linux kernel, so you
+need not worry :)
+
+I stopped a bit because of a dependency patch, which just got included
+in tip tree yesterday. Once that gets into next rc release (hopefully
+-4.2-rc2), I will send all the patches I have. At that point, these
+changes wouldn't have any dependency on clockevents tree and
+maintainers like you can apply them directly.
+
+Changes are kept here for testing by auto-bots, in case you wanna have
+a look at arc patch :).
+
+git://git.kernel.org/pub/scm/linux/kernel/git/vireshk/linux.git clkevt/clocksource/set-state
+
+-- 
+viresh
