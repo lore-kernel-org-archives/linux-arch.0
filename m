@@ -1,56 +1,103 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH V3 2/5] mm: mlock: Add new mlock, munlock, and munlockall
- system calls
-Date: Wed, 8 Jul 2015 09:02:25 +0200
-Message-ID: <CAMuHMdUS72nYDo=chtcZMv-ZNVU0RhxvVLvMYvSFLtRk_wXrgw@mail.gmail.com>
-References: <1436288623-13007-1-git-send-email-emunson@akamai.com>
-	<1436288623-13007-3-git-send-email-emunson@akamai.com>
-	<20150708064607.GB7079@osiris>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 2/4] locking/qrwlock: Reduce reader/writer to reader lock
+ transfer latency
+Date: Wed, 8 Jul 2015 11:52:48 +0200
+Message-ID: <20150708095248.GZ3644@twins.programming.kicks-ass.net>
+References: <1436197386-58635-3-git-send-email-Waiman.Long@hp.com>
+ <20150706182353.GC1607@arm.com>
+ <559ADBCD.6020803@hp.com>
+ <20150707091711.GA23879@arm.com>
+ <20150707111731.GQ3644@twins.programming.kicks-ass.net>
+ <20150707114918.GG23879@arm.com>
+ <559BE27E.6060901@hp.com>
+ <20150707172718.GJ23879@arm.com>
+ <20150707181002.GK23879@arm.com>
+ <559C44CE.7070701@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <20150708064607.GB7079@osiris>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Eric B Munson <emunson@akamai.com>, Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, alpha <linux-alpha@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "adi-buildroot-devel@lists.sourceforge.net" <adi-buildroot-devel@lists.sourceforge.net>, Cris <linux-cris-kernel@axis.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, "moderated list:PANASONIC MN10300..." <linux-am33-list@redhat.com>, Parisc List <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, sparclinux
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <559C44CE.7070701@hp.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Waiman Long <waiman.long@hp.com>
+Cc: Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 8, 2015 at 8:46 AM, Heiko Carstens
-<heiko.carstens@de.ibm.com> wrote:
->> diff --git a/arch/s390/kernel/syscalls.S b/arch/s390/kernel/syscalls.S
->> index 1acad02..f6d81d6 100644
->> --- a/arch/s390/kernel/syscalls.S
->> +++ b/arch/s390/kernel/syscalls.S
->> @@ -363,3 +363,6 @@ SYSCALL(sys_bpf,compat_sys_bpf)
->>  SYSCALL(sys_s390_pci_mmio_write,compat_sys_s390_pci_mmio_write)
->>  SYSCALL(sys_s390_pci_mmio_read,compat_sys_s390_pci_mmio_read)
->>  SYSCALL(sys_execveat,compat_sys_execveat)
->> +SYSCALL(sys_mlock2,compat_sys_mlock2)                        /* 355 */
->> +SYSCALL(sys_munlock2,compat_sys_munlock2)
->> +SYSCALL(sys_munlockall2,compat_sys_munlockall2)
->
-> FWIW, you would also need to add matching lines to the two files
->
-> arch/s390/include/uapi/asm/unistd.h
-> arch/s390/kernel/compat_wrapper.c
->
-> so that the system call would be wired up on s390.
+On Tue, Jul 07, 2015 at 05:29:50PM -0400, Waiman Long wrote:
+> On 07/07/2015 02:10 PM, Will Deacon wrote:
 
-Similar comment for m68k:
+> >diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+> >index deb9e8b0eb9e..be8dc5c6fdbd 100644
+> >--- a/include/asm-generic/qrwlock.h
+> >+++ b/include/asm-generic/qrwlock.h
+> >@@ -27,7 +27,6 @@
+> >  /*
+> >   * Writer states&  reader shift and bias
+> >   */
+> >-#define        _QW_WAITING     1               /* A writer is waiting     */
+> >  #define        _QW_LOCKED      0xff            /* A writer holds the lock */
+> >  #define        _QW_WMASK       0xff            /* Writer mask             */
+> >  #define        _QR_SHIFT       8               /* Reader count shift      */
+> >diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+> >index 9f644933f6d4..4006aa1fbd0b 100644
+> >--- a/kernel/locking/qrwlock.c
+> >+++ b/kernel/locking/qrwlock.c
+> >@@ -127,28 +127,23 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
+> >         }
+> >
+> >         /*
+> >-        * Set the waiting flag to notify readers that a writer is pending,
+> >-        * or wait for a previous writer to go away.
+> >+        * Wait for a previous writer to go away, then set the locked
+> >+        * flag to notify future readers/writers that we are pending.
+> >          */
+> >         for (;;) {
+> >                 struct __qrwlock *l = (struct __qrwlock *)lock;
+> >
+> >                 if (!READ_ONCE(l->wmode)&&
+> >-                  (cmpxchg(&l->wmode, 0, _QW_WAITING) == 0))
+> >+                  (cmpxchg(&l->wmode, 0, _QW_LOCKED) == 0))
+> >                         break;
+> >
+> >                 cpu_relax_lowlatency();
+> >         }
+> >
+> >-       /* When no more readers, set the locked flag */
+> >-       for (;;) {
+> >-               if ((atomic_read(&lock->cnts) == _QW_WAITING)&&
+> >-                   (atomic_cmpxchg(&lock->cnts, _QW_WAITING,
+> >-                                   _QW_LOCKED) == _QW_WAITING))
+> >-                       break;
+> >-
+> >+       /* Wait for the readers to drain */
+> >+       while (smp_load_acquire((u32 *)&lock->cnts)&  ~_QW_WMASK)
+> >                 cpu_relax_lowlatency();
+> >-       }
+> >+
+> >  unlock:
+> >         arch_spin_unlock(&lock->lock);
+> >  }
+> 
+> That changes the handshaking protocol. In this case, the readers will have
+> to decrement its reader count to enable the writer to continue.
 
-arch/m68k/include/asm/unistd.h
-arch/m68k/include/uapi/asm/unistd.h
+It already needs to, no?
 
-I think you best look at the last commits that added system calls, for all
-architectures, to make sure you don't do partial updates.
+> The interrupt context reader code has to be changed.
 
-Gr{oetje,eeting}s,
+Agreed.
 
-                        Geert
+> This gives preference to writer and reader will be in a disadvantage.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+I don't see that, everybody is still ordered by the wait queue / lock.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+> I prefer the current setting as you won't know if the writer has the
+> lock or not when you take a snapshot of the value of the lock. You
+> need the whole time sequence in this case to figure it out and so will
+> be more prone to error.
+
+I still need to wake up, but I suspect we need to change
+queue_read_{try,}lock() to use cmpxchg/inc_not_zero like things, which
+is fine for ARM, but not so much for x86.
+
+So I think I agree with Waiman, but am willing to be shown differently.
