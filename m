@@ -1,44 +1,35 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 2/9] locking/qrwlock: avoid redundant atomic_add_return
- on read_lock_slowpath
-Date: Wed, 8 Jul 2015 14:37:04 +0100
-Message-ID: <20150708133704.GE9283@arm.com>
-References: <1436289865-2331-1-git-send-email-will.deacon@arm.com>
- <1436289865-2331-3-git-send-email-will.deacon@arm.com>
- <559C11BA.1070309@hp.com>
- <20150707181941.GL23879@arm.com>
- <559C284D.4090907@hp.com>
- <20150708095944.GA3644@twins.programming.kicks-ass.net>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH V3 0/5] Allow user to request memory to be locked on
+ page fault
+Date: Wed, 8 Jul 2015 10:00:08 -0700
+Message-ID: <20150708100008.e8a000ec.akpm@linux-foundation.org>
+References: <1436288623-13007-1-git-send-email-emunson@akamai.com>
+	<20150707141613.f945c98279dcb71c9743d5f2@linux-foundation.org>
+	<20150708132302.GB4669@akamai.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:41130 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755011AbbGHNhH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Jul 2015 09:37:07 -0400
-Content-Disposition: inline
-In-Reply-To: <20150708095944.GA3644@twins.programming.kicks-ass.net>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:33271 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758858AbbGHQ7n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2015 12:59:43 -0400
+In-Reply-To: <20150708132302.GB4669@akamai.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Waiman Long <waiman.long@hp.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "mingo@redhat.com" <mingo@redhat.com>
+To: Eric B Munson <emunson@akamai.com>
+Cc: Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, Vlastimil Babka <vbabka@suse.cz>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 
-On Wed, Jul 08, 2015 at 10:59:44AM +0100, Peter Zijlstra wrote:
-> On Tue, Jul 07, 2015 at 03:28:13PM -0400, Waiman Long wrote:
-> > #ifndef queued_inc_reader_return
-> > static inline u32 queued_inc_reader_return(struct qrwlock *lock)
-> 
-> That's actually a misleading name, we don't do an inc_return, we do a
-> fetch_inc.
-> 
-> > {
-> >     return atomic_add_return(_QR_BIAS, &lock->cnts) - _QR_BIAS;
-> > }
-> > #endif
-> 
-> With that you (Will) could even reuse the ll/sc load and avoid issuing a
-> second load. You basically need atomic_fetch_add_relaxed().
+On Wed, 8 Jul 2015 09:23:02 -0400 Eric B Munson <emunson@akamai.com> wrote:
 
-ARMv8.1 has an instruction for that :) [ldadd].
+> > I don't know whether these syscalls should be documented via new
+> > manpages, or if we should instead add them to the existing
+> > mlock/munlock/mlockall manpages.  Michael, could you please advise?
+> > 
+> 
+> Thanks for adding the series.  I owe you several updates (getting the
+> new syscall right for all architectures and a set of tests for the new
+> syscalls).  Would you prefer a new pair of patches or I update this set?
 
-Will
+It doesn't matter much.  I guess a full update will be more convenient
+at your end.
