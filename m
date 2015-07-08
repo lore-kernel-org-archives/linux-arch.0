@@ -1,35 +1,45 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH V3 0/5] Allow user to request memory to be locked on
- page fault
-Date: Wed, 8 Jul 2015 10:00:08 -0700
-Message-ID: <20150708100008.e8a000ec.akpm@linux-foundation.org>
-References: <1436288623-13007-1-git-send-email-emunson@akamai.com>
-	<20150707141613.f945c98279dcb71c9743d5f2@linux-foundation.org>
-	<20150708132302.GB4669@akamai.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 2/4] locking/qrwlock: Reduce reader/writer to reader lock
+ transfer latency
+Date: Wed, 8 Jul 2015 18:19:49 +0100
+Message-ID: <20150708171949.GE6348@arm.com>
+References: <20150706182353.GC1607@arm.com>
+ <559ADBCD.6020803@hp.com>
+ <20150707091711.GA23879@arm.com>
+ <20150707111731.GQ3644@twins.programming.kicks-ass.net>
+ <20150707114918.GG23879@arm.com>
+ <559BE27E.6060901@hp.com>
+ <20150707172718.GJ23879@arm.com>
+ <20150707181002.GK23879@arm.com>
+ <559C44CE.7070701@hp.com>
+ <20150708095248.GZ3644@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:33271 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758858AbbGHQ7n (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2015 12:59:43 -0400
-In-Reply-To: <20150708132302.GB4669@akamai.com>
+Received: from foss.arm.com ([217.140.101.70]:42594 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1759028AbbGHRTy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Jul 2015 13:19:54 -0400
+Content-Disposition: inline
+In-Reply-To: <20150708095248.GZ3644@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@akamai.com>
-Cc: Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, Vlastimil Babka <vbabka@suse.cz>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Waiman Long <waiman.long@hp.com>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
 
-On Wed, 8 Jul 2015 09:23:02 -0400 Eric B Munson <emunson@akamai.com> wrote:
-
-> > I don't know whether these syscalls should be documented via new
-> > manpages, or if we should instead add them to the existing
-> > mlock/munlock/mlockall manpages.  Michael, could you please advise?
-> > 
+On Wed, Jul 08, 2015 at 10:52:48AM +0100, Peter Zijlstra wrote:
+> On Tue, Jul 07, 2015 at 05:29:50PM -0400, Waiman Long wrote:
+> > I prefer the current setting as you won't know if the writer has the
+> > lock or not when you take a snapshot of the value of the lock. You
+> > need the whole time sequence in this case to figure it out and so will
+> > be more prone to error.
 > 
-> Thanks for adding the series.  I owe you several updates (getting the
-> new syscall right for all architectures and a set of tests for the new
-> syscalls).  Would you prefer a new pair of patches or I update this set?
+> I still need to wake up, but I suspect we need to change
+> queue_read_{try,}lock() to use cmpxchg/inc_not_zero like things, which
+> is fine for ARM, but not so much for x86.
+> 
+> So I think I agree with Waiman, but am willing to be shown differently.
 
-It doesn't matter much.  I guess a full update will be more convenient
-at your end.
+That's fine; I just wanted to make sure I wasn't going round the twist!
+
+Will
