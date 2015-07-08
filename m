@@ -1,48 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f172.google.com ([209.85.192.172]:33271 "EHLO
-	mail-pd0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932466AbbGHFnr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2015 01:43:47 -0400
-Received: by pdbdz6 with SMTP id dz6so44580135pdb.0
-        for <linux-arch@vger.kernel.org>; Tue, 07 Jul 2015 22:43:46 -0700 (PDT)
-Date: Wed, 8 Jul 2015 11:13:41 +0530
-From: Viresh Kumar <viresh.kumar@linaro.org>
-Subject: Re: [PATCH 01/41] clocksource: asm9260: Migrate to new 'set-state'
- interface
-Message-ID: <20150708054341.GC19130@linux>
-References: <cover.1434622147.git.viresh.kumar@linaro.org>
- <57ae9434bbb7218961c3ad45a26fbe1fffe40cbd.1434622147.git.viresh.kumar@linaro.org>
- <559CB705.5010805@synopsys.com>
+Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:51775 "EHLO
+	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757828AbbGHGqR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 8 Jul 2015 02:46:17 -0400
+Received: from /spool/local
+	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+	Wed, 8 Jul 2015 07:46:15 +0100
+Date: Wed, 8 Jul 2015 08:46:07 +0200
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH V3 2/5] mm: mlock: Add new mlock, munlock, and munlockall
+ system calls
+Message-ID: <20150708064607.GB7079@osiris>
+References: <1436288623-13007-1-git-send-email-emunson@akamai.com>
+ <1436288623-13007-3-git-send-email-emunson@akamai.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <559CB705.5010805@synopsys.com>
+In-Reply-To: <1436288623-13007-3-git-send-email-emunson@akamai.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Daniel Lezcano <daniel.lezcano@linaro.org>, linaro-kernel@lists.linaro.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Oleksij Rempel <linux@rempel-privat.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20150708054341.dU31XUAI_cKVvpsxbgYkdaikCgsPRnR_CCc_IcB2YVs@z>
+To: Eric B Munson <emunson@akamai.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-cris-kernel@axis.com, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-mips@linux-mips.org, linux-am33-list@redhat.com, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20150708064607.kUx96w48BFxmifB4O78fHqNElltgzklrZrtxP1QXFHk@z>
 
-On 08-07-15, 11:07, Vineet Gupta wrote:
-> Is this series (and other one touching arch/arm/*) specific to ARM event timers.
-> Are you planning to fixup the drivers in arch/* or the respective maintainers need
-> to follow suit.
+On Tue, Jul 07, 2015 at 01:03:40PM -0400, Eric B Munson wrote:
+> With the refactored mlock code, introduce new system calls for mlock,
+> munlock, and munlockall.  The new calls will allow the user to specify
+> what lock states are being added or cleared.  mlock2 and munlock2 are
+> trivial at the moment, but a follow on patch will add a new mlock state
+> making them useful.
+> 
+> munlock2 addresses a limitation of the current implementation.  If a
+> user calls mlockall(MCL_CURRENT | MCL_FUTURE) and then later decides
+> that MCL_FUTURE should be removed, they would have to call munlockall()
+> followed by mlockall(MCL_CURRENT) which could potentially be very
+> expensive.  The new munlockall2 system call allows a user to simply
+> clear the MCL_FUTURE flag.
+> 
+> Signed-off-by: Eric B Munson <emunson@akamai.com>
 
-Hi Vineet,
+...
 
-I am fixing all clockevent drivers available in Linux kernel, so you
-need not worry :)
+> diff --git a/arch/s390/kernel/syscalls.S b/arch/s390/kernel/syscalls.S
+> index 1acad02..f6d81d6 100644
+> --- a/arch/s390/kernel/syscalls.S
+> +++ b/arch/s390/kernel/syscalls.S
+> @@ -363,3 +363,6 @@ SYSCALL(sys_bpf,compat_sys_bpf)
+>  SYSCALL(sys_s390_pci_mmio_write,compat_sys_s390_pci_mmio_write)
+>  SYSCALL(sys_s390_pci_mmio_read,compat_sys_s390_pci_mmio_read)
+>  SYSCALL(sys_execveat,compat_sys_execveat)
+> +SYSCALL(sys_mlock2,compat_sys_mlock2)			/* 355 */
+> +SYSCALL(sys_munlock2,compat_sys_munlock2)
+> +SYSCALL(sys_munlockall2,compat_sys_munlockall2)
 
-I stopped a bit because of a dependency patch, which just got included
-in tip tree yesterday. Once that gets into next rc release (hopefully
--4.2-rc2), I will send all the patches I have. At that point, these
-changes wouldn't have any dependency on clockevents tree and
-maintainers like you can apply them directly.
+FWIW, you would also need to add matching lines to the two files
 
-Changes are kept here for testing by auto-bots, in case you wanna have
-a look at arc patch :).
+arch/s390/include/uapi/asm/unistd.h
+arch/s390/kernel/compat_wrapper.c
 
-git://git.kernel.org/pub/scm/linux/kernel/git/vireshk/linux.git clkevt/clocksource/set-state
+so that the system call would be wired up on s390.
 
--- 
-viresh
