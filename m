@@ -1,102 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-db3on0090.outbound.protection.outlook.com ([157.55.234.90]:11020
+Received: from mail-db3on0076.outbound.protection.outlook.com ([157.55.234.76]:58784
 	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S933656AbbGHUfr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 8 Jul 2015 16:35:47 -0400
+	id S933886AbbGHUgO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 8 Jul 2015 16:36:14 -0400
 From: Chris Metcalf <cmetcalf@ezchip.com>
-Subject: [PATCH v2 3/3] tile: use global strscpy() rather than private copy
-Date: Wed, 8 Jul 2015 16:20:45 -0400
-Message-ID: <1436386845-11989-4-git-send-email-cmetcalf@ezchip.com>
-In-Reply-To: <1436386845-11989-1-git-send-email-cmetcalf@ezchip.com>
-References: <1436386845-11989-1-git-send-email-cmetcalf@ezchip.com>
+Subject: [PATCH v2 0/3] add new strscpy() API for string copy
+Date: Wed, 8 Jul 2015 16:20:42 -0400
+Message-ID: <1436386845-11989-1-git-send-email-cmetcalf@ezchip.com>
+References: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com> <CA+55aFwokKo9X4=wwZ1sKLmLfye=a65KPzMhe-QzuHT6Prp0tA@mail.gmail.com>
+In-Reply-To: <CA+55aFwokKo9X4=wwZ1sKLmLfye=a65KPzMhe-QzuHT6Prp0tA@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Chris Metcalf <cmetcalf@ezchip.com>, Al Viro <viro@zeniv.linux.org.uk>, Fabian Frederick <fabf@skynet.be>, Randy Dunlap <rdunlap@infradead.org>, Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>, gregkh@linuxfoundation.org, Peter Zijlstra <peterz@infradead.org>, "David S. Miller" <davem@davemloft.net>, Frederic Weisbecker <fweisbec@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Theodore Ts'o <tytso@mit.edu>, Grant Likely <grant.likely@linaro.org>, Dan Carpenter <dan.carpenter@oracle.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Michael Ellerman <mpe@ellerman.id.au>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20150708202045.IcvqKeMIdbsN3yM54wp-xngCRrgi6Q5AEyJrYHl5xXI@z>
+Message-ID: <20150708202042.bzsA43MQhFmkxFWILrADNEBJNvQsu_QqOQGRpeJMl0g@z>
 
-Now that strscpy() is a standard API, remove the local copy.
+v2: eliminate strscpy_truncate(); the single strscpy() API in v2
+  just tolerates a truncated string (while returning an error value)
+  Also, improve some of the comparison language with strlcpy/strncpy.
 
-Signed-off-by: Chris Metcalf <cmetcalf@ezchip.com>
----
- arch/tile/gxio/mpipe.c | 33 ++++-----------------------------
- 1 file changed, 4 insertions(+), 29 deletions(-)
+This patch series addresses limitations in strncpy() and strlcpy();
+both the old APIs are unpleasant, as Linus nicely summarized here:
 
-diff --git a/arch/tile/gxio/mpipe.c b/arch/tile/gxio/mpipe.c
-index ee186e13dfe6..f102048d9c0e 100644
---- a/arch/tile/gxio/mpipe.c
-+++ b/arch/tile/gxio/mpipe.c
-@@ -19,6 +19,7 @@
- #include <linux/errno.h>
- #include <linux/io.h>
- #include <linux/module.h>
-+#include <linux/string.h>
- 
- #include <gxio/iorpc_globals.h>
- #include <gxio/iorpc_mpipe.h>
-@@ -29,32 +30,6 @@
- /* HACK: Avoid pointless "shadow" warnings. */
- #define link link_shadow
- 
--/**
-- * strscpy - Copy a C-string into a sized buffer, but only if it fits
-- * @dest: Where to copy the string to
-- * @src: Where to copy the string from
-- * @size: size of destination buffer
-- *
-- * Use this routine to avoid copying too-long strings.
-- * The routine returns the total number of bytes copied
-- * (including the trailing NUL) or zero if the buffer wasn't
-- * big enough.  To ensure that programmers pay attention
-- * to the return code, the destination has a single NUL
-- * written at the front (if size is non-zero) when the
-- * buffer is not big enough.
-- */
--static size_t strscpy(char *dest, const char *src, size_t size)
--{
--	size_t len = strnlen(src, size) + 1;
--	if (len > size) {
--		if (size)
--			dest[0] = '\0';
--		return 0;
--	}
--	memcpy(dest, src, len);
--	return len;
--}
--
- int gxio_mpipe_init(gxio_mpipe_context_t *context, unsigned int mpipe_index)
- {
- 	char file[32];
-@@ -540,7 +515,7 @@ int gxio_mpipe_link_instance(const char *link_name)
- 	if (!context)
- 		return GXIO_ERR_NO_DEVICE;
- 
--	if (strscpy(name.name, link_name, sizeof(name.name)) == 0)
-+	if (strscpy(name.name, link_name, sizeof(name.name)) < 0)
- 		return GXIO_ERR_NO_DEVICE;
- 
- 	return gxio_mpipe_info_instance_aux(context, name);
-@@ -559,7 +534,7 @@ int gxio_mpipe_link_enumerate_mac(int idx, char *link_name, uint8_t *link_mac)
- 
- 	rv = gxio_mpipe_info_enumerate_aux(context, idx, &name, &mac);
- 	if (rv >= 0) {
--		if (strscpy(link_name, name.name, sizeof(name.name)) == 0)
-+		if (strscpy(link_name, name.name, sizeof(name.name)) < 0)
- 			return GXIO_ERR_INVAL_MEMORY_SIZE;
- 		memcpy(link_mac, mac.mac, sizeof(mac.mac));
- 	}
-@@ -576,7 +551,7 @@ int gxio_mpipe_link_open(gxio_mpipe_link_t *link,
- 	_gxio_mpipe_link_name_t name;
- 	int rv;
- 
--	if (strscpy(name.name, link_name, sizeof(name.name)) == 0)
-+	if (strscpy(name.name, link_name, sizeof(name.name)) < 0)
- 		return GXIO_ERR_NO_DEVICE;
- 
- 	rv = gxio_mpipe_link_open_aux(context, name, flags);
+  https://lkml.org/lkml/2015/4/28/570
+
+and of course as other folks (Greg K-H and Linus again) said last year:
+
+  https://plus.google.com/+gregkroahhartman/posts/1amLbuhWbh5
+
+The proposed new API (strscpy(), for "s"afe string copy) has an
+easy-to-use API for detecting buffer overflow, doesn't walk past the
+requested copy size on the source string, and isn't subject to
+thread-safety attacks like the current strlcpy implementation.  See
+patch 2/3 for more on why strscpy() is a good thing.
+
+To make strscpy() work more efficiently I did the minimum tweaking
+necessary to allow <asm/word-at-a-time.h> to work on all architectures,
+though of course individual maintainers can still make their versions
+more efficient as needed.
+
+It's likely not necessary for per-architecture implementations of
+strscpy() to be written, but I stuck with the standard __HAVE_ARCH_XXX
+model just for consistency with the rest of <linux/string.h>.
+
+I tested the implementation with a simple user-space harness, so I
+believe it is correct for the corner cases I could think of.  In
+particular I pairwise-tested all the unaligned values of source and
+dest, and tested the restriction on src page-crossing at all
+unaligned offsets approaching the page boundary.
+
+The patch series is available to be pulled from
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/cmetcalf/linux-tile.git strscpy
+
+Chris Metcalf (3):
+  Make asm/word-at-a-time.h available on all architectures
+  string: provide strscpy()
+  tile: use global strscpy() rather than private copy
+
+ arch/arc/include/asm/Kbuild          |  1 +
+ arch/avr32/include/asm/Kbuild        |  1 +
+ arch/blackfin/include/asm/Kbuild     |  1 +
+ arch/c6x/include/asm/Kbuild          |  1 +
+ arch/cris/include/asm/Kbuild         |  1 +
+ arch/frv/include/asm/Kbuild          |  1 +
+ arch/hexagon/include/asm/Kbuild      |  1 +
+ arch/ia64/include/asm/Kbuild         |  1 +
+ arch/m32r/include/asm/Kbuild         |  1 +
+ arch/metag/include/asm/Kbuild        |  1 +
+ arch/microblaze/include/asm/Kbuild   |  1 +
+ arch/mips/include/asm/Kbuild         |  1 +
+ arch/mn10300/include/asm/Kbuild      |  1 +
+ arch/nios2/include/asm/Kbuild        |  1 +
+ arch/powerpc/include/asm/Kbuild      |  1 +
+ arch/s390/include/asm/Kbuild         |  1 +
+ arch/score/include/asm/Kbuild        |  1 +
+ arch/tile/gxio/mpipe.c               | 33 ++------------
+ arch/tile/include/asm/Kbuild         |  1 +
+ arch/um/include/asm/Kbuild           |  1 +
+ arch/unicore32/include/asm/Kbuild    |  1 +
+ arch/xtensa/include/asm/Kbuild       |  1 +
+ include/asm-generic/word-at-a-time.h | 80 ++++++++++++++++++++++++++++----
+ include/linux/string.h               |  3 ++
+ lib/string.c                         | 88 ++++++++++++++++++++++++++++++++++++
+ 25 files changed, 188 insertions(+), 37 deletions(-)
+
 -- 
 2.1.2
 
