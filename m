@@ -1,95 +1,97 @@
-From: Chris Metcalf <cmetcalf@ezchip.com>
-Subject: [PATCH v2 3/3] tile: use global strscpy() rather than private copy
-Date: Wed, 8 Jul 2015 16:20:45 -0400
-Message-ID: <1436386845-11989-4-git-send-email-cmetcalf@ezchip.com>
-References: <1436386845-11989-1-git-send-email-cmetcalf@ezchip.com>
+From: Eric B Munson <emunson@akamai.com>
+Subject: Re: [PATCH V3 3/5] mm: mlock: Introduce VM_LOCKONFAULT and add mlock
+ flags to enable it
+Date: Wed, 8 Jul 2015 16:34:56 -0400
+Message-ID: <20150708203456.GC4669@akamai.com>
+References: <1436288623-13007-1-git-send-email-emunson@akamai.com>
+ <1436288623-13007-4-git-send-email-emunson@akamai.com>
+ <20150708132351.61c13db6@lwn.net>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1436386845-11989-1-git-send-email-cmetcalf@ezchip.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Chris Metcalf <cmetcalf@ezchip.com>, Al Viro <viro@zeniv.linux.org.uk>, Fabian Frederick <fabf@skynet.be>, Randy Dunlap <rdunlap@infradead.org>, Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>, gregkh@linuxfoundation.org, Peter Zijlstra <peterz@infradead.org>, "David S. Miller" <davem@davemloft.net>, Frederic Weisbecker <fweisbec@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Theodore Ts'o <tytso@mit.edu>, Grant Likely <grant.likely@linaro.org>, Dan Carpenter <dan.carpenter@oracle.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Michael Ellerman <mpe@ellerman.id.au>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="PuGuTyElPB9bOcsM"
+Return-path: <linux-parisc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20150708132351.61c13db6@lwn.net>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Jonathan Corbet <corbet@lwn.net>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Now that strscpy() is a standard API, remove the local copy.
 
-Signed-off-by: Chris Metcalf <cmetcalf@ezchip.com>
----
- arch/tile/gxio/mpipe.c | 33 ++++-----------------------------
- 1 file changed, 4 insertions(+), 29 deletions(-)
+--PuGuTyElPB9bOcsM
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-diff --git a/arch/tile/gxio/mpipe.c b/arch/tile/gxio/mpipe.c
-index ee186e13dfe6..f102048d9c0e 100644
---- a/arch/tile/gxio/mpipe.c
-+++ b/arch/tile/gxio/mpipe.c
-@@ -19,6 +19,7 @@
- #include <linux/errno.h>
- #include <linux/io.h>
- #include <linux/module.h>
-+#include <linux/string.h>
- 
- #include <gxio/iorpc_globals.h>
- #include <gxio/iorpc_mpipe.h>
-@@ -29,32 +30,6 @@
- /* HACK: Avoid pointless "shadow" warnings. */
- #define link link_shadow
- 
--/**
-- * strscpy - Copy a C-string into a sized buffer, but only if it fits
-- * @dest: Where to copy the string to
-- * @src: Where to copy the string from
-- * @size: size of destination buffer
-- *
-- * Use this routine to avoid copying too-long strings.
-- * The routine returns the total number of bytes copied
-- * (including the trailing NUL) or zero if the buffer wasn't
-- * big enough.  To ensure that programmers pay attention
-- * to the return code, the destination has a single NUL
-- * written at the front (if size is non-zero) when the
-- * buffer is not big enough.
-- */
--static size_t strscpy(char *dest, const char *src, size_t size)
--{
--	size_t len = strnlen(src, size) + 1;
--	if (len > size) {
--		if (size)
--			dest[0] = '\0';
--		return 0;
--	}
--	memcpy(dest, src, len);
--	return len;
--}
--
- int gxio_mpipe_init(gxio_mpipe_context_t *context, unsigned int mpipe_index)
- {
- 	char file[32];
-@@ -540,7 +515,7 @@ int gxio_mpipe_link_instance(const char *link_name)
- 	if (!context)
- 		return GXIO_ERR_NO_DEVICE;
- 
--	if (strscpy(name.name, link_name, sizeof(name.name)) == 0)
-+	if (strscpy(name.name, link_name, sizeof(name.name)) < 0)
- 		return GXIO_ERR_NO_DEVICE;
- 
- 	return gxio_mpipe_info_instance_aux(context, name);
-@@ -559,7 +534,7 @@ int gxio_mpipe_link_enumerate_mac(int idx, char *link_name, uint8_t *link_mac)
- 
- 	rv = gxio_mpipe_info_enumerate_aux(context, idx, &name, &mac);
- 	if (rv >= 0) {
--		if (strscpy(link_name, name.name, sizeof(name.name)) == 0)
-+		if (strscpy(link_name, name.name, sizeof(name.name)) < 0)
- 			return GXIO_ERR_INVAL_MEMORY_SIZE;
- 		memcpy(link_mac, mac.mac, sizeof(mac.mac));
- 	}
-@@ -576,7 +551,7 @@ int gxio_mpipe_link_open(gxio_mpipe_link_t *link,
- 	_gxio_mpipe_link_name_t name;
- 	int rv;
- 
--	if (strscpy(name.name, link_name, sizeof(name.name)) == 0)
-+	if (strscpy(name.name, link_name, sizeof(name.name)) < 0)
- 		return GXIO_ERR_NO_DEVICE;
- 
- 	rv = gxio_mpipe_link_open_aux(context, name, flags);
--- 
-2.1.2
+On Wed, 08 Jul 2015, Jonathan Corbet wrote:
+
+> On Tue,  7 Jul 2015 13:03:41 -0400
+> Eric B Munson <emunson@akamai.com> wrote:
+>=20
+> > This patch introduces the ability to request that pages are not
+> > pre-faulted, but are placed on the unevictable LRU when they are finally
+> > faulted in.  This can be done area at a time via the
+> > mlock2(MLOCK_ONFAULT) or the mlockall(MCL_ONFAULT) system calls.  These
+> > calls can be undone via munlock2(MLOCK_ONFAULT) or
+> > munlockall2(MCL_ONFAULT).
+>=20
+> Quick, possibly dumb question: I've been beating my head against these for
+> a little bit, and I can't figure out what's supposed to happen in this
+> case:
+>=20
+> 	mlock2(addr, len, MLOCK_ONFAULT);
+> 	munlock2(addr, len, MLOCK_LOCKED);
+>=20
+> It looks to me like it will clear VM_LOCKED without actually unlocking any
+> pages.  Is that the intended result?
+
+This is not quite right, what happens when you call munlock2(addr, len,
+MLOCK_LOCKED); is we call apply_vma_flags(addr, len, VM_LOCKED, false).
+The false argument means that we intend to clear the specified flags.
+Here is the relevant snippet:
+=2E..
+                newflags =3D vma->vm_flags;
+                if (add_flags) {
+                        newflags &=3D ~(VM_LOCKED | VM_LOCKONFAULT);
+                        newflags |=3D flags;
+                } else {
+                        newflags &=3D ~flags;
+                }
+=2E..
+
+Note that when we are adding flags, we first clear both VM_LOCKED and
+VM_LOCKONFAULT.  This was done to match the behavior found in
+mlockall().  When we are remove flags, we simply clear the specified
+flag(s).
+
+So in your example the state of the VMAs covered by addr and len would
+remain unchanged.
+
+It sounds like apply_vma_flags() needs a comment covering this topic, I
+will include that in the set I am working on now.
+
+Eric
+
+--PuGuTyElPB9bOcsM
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQIcBAEBAgAGBQJVnYlwAAoJELbVsDOpoOa96jQQAMzj+srECYanjQL4rB5HSwhS
+jfU2GPE5w8xLHqHEdoPmu/98FKAK7kNvhb4Ytdmssq+sHIS3sHbx2b4SFkMLDnM8
+4hTQtkUaD9ti+HnmBvxbDYNfn2MGHlxtfhML88/tA3LPproe9aWWZGtn4xZ+TE96
+Qbnb0X4WCKuT2blVmoQ2Uf1zT2eaGJmpWk+QEKrWqlLDtijNcHEXiNn+1odo8WJd
+7rr/7tjO+4N6AhC+0NypU9JhFB0L5pxm1Au+U3L3N8Szq8palqGYZ76k7X2cdNrN
+7bc3ghWSLnA6p6sw1T4PDcuLhDNnS4zdtodtBJK6aVVR6NmJSzB8xU//HqFb27RA
+s+0Z/6U8Z1P58q/IvMay2hsqmNY2hobvpNlm59JJynX+ajMC0IrzYrB0CDAIoO5s
+tx5O4LDrMMsU/av92mU0y8yqGZdiGBQsIWfKTklWvq9q6HbDGae/WoSsnV5zX/b8
+zHpvJxCmRG92vEwb46mqSbnWbkzK10SVyZRohrTd35hmSkXHpEk2AWwLHriLMtD8
+nF/mQYL88FSsXwDKoz2Iw3C6HPVR6lDS8kae5iY4C0umP8FFX7VuBYBXOn29E1U4
+mKbYb/wKn9x4iI4IeyHLBN4m+4zY+pqhXNlNKQ3hOR3jgMXPQ2fx7mzoEiRwB40g
+4dkKMXOml6uRVob09Ixx
+=lbgU
+-----END PGP SIGNATURE-----
+
+--PuGuTyElPB9bOcsM--
