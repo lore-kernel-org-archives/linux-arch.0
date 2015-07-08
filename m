@@ -1,86 +1,167 @@
 From: Chris Metcalf <cmetcalf@ezchip.com>
-Subject: [PATCH v2 0/3] add new strscpy() API for string copy
-Date: Wed, 8 Jul 2015 16:20:42 -0400
-Message-ID: <1436386845-11989-1-git-send-email-cmetcalf@ezchip.com>
-References: <1430409677-13284-1-git-send-email-cmetcalf@ezchip.com> <CA+55aFwokKo9X4=wwZ1sKLmLfye=a65KPzMhe-QzuHT6Prp0tA@mail.gmail.com>
+Subject: [PATCH v2 2/3] string: provide strscpy()
+Date: Wed, 8 Jul 2015 16:20:44 -0400
+Message-ID: <1436386845-11989-3-git-send-email-cmetcalf@ezchip.com>
+References: <1436386845-11989-1-git-send-email-cmetcalf@ezchip.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CA+55aFwokKo9X4=wwZ1sKLmLfye=a65KPzMhe-QzuHT6Prp0tA@mail.gmail.com>
+In-Reply-To: <1436386845-11989-1-git-send-email-cmetcalf@ezchip.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Chris Metcalf <cmetcalf@ezchip.com>, Al Viro <viro@zeniv.linux.org.uk>, Fabian Frederick <fabf@skynet.be>, Randy Dunlap <rdunlap@infradead.org>, Rickard Strandqvist <rickard_strandqvist@spectrumdigital.se>, gregkh@linuxfoundation.org, Peter Zijlstra <peterz@infradead.org>, "David S. Miller" <davem@davemloft.net>, Frederic Weisbecker <fweisbec@gmail.com>, Andrew Morton <akpm@linux-foundation.org>, Sam Ravnborg <sam@ravnborg.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Theodore Ts'o <tytso@mit.edu>, Grant Likely <grant.likely@linaro.org>, Dan Carpenter <dan.carpenter@oracle.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Michael Ellerman <mpe@ellerman.id.au>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-v2: eliminate strscpy_truncate(); the single strscpy() API in v2
-  just tolerates a truncated string (while returning an error value)
-  Also, improve some of the comparison language with strlcpy/strncpy.
+The strscpy() API is intended to be used instead of strlcpy(),
+and instead of most uses of strncpy().
 
-This patch series addresses limitations in strncpy() and strlcpy();
-both the old APIs are unpleasant, as Linus nicely summarized here:
+- Unlike strlcpy(), it doesn't read from memory beyond (src + size).
 
-  https://lkml.org/lkml/2015/4/28/570
+- Unlike strlcpy() or strncpy(), the API provides an easy way to check
+  for destination buffer overflow: an -E2BIG error return value.
 
-and of course as other folks (Greg K-H and Linus again) said last year:
+- The provided implementation is robust in the face of the source
+  buffer being asynchronously changed during the copy, unlike the
+  current implementation of strlcpy().
 
-  https://plus.google.com/+gregkroahhartman/posts/1amLbuhWbh5
+- Unlike strncpy(), the destination buffer will be NUL-terminated
+  if the string in the source buffer is too long.
 
-The proposed new API (strscpy(), for "s"afe string copy) has an
-easy-to-use API for detecting buffer overflow, doesn't walk past the
-requested copy size on the source string, and isn't subject to
-thread-safety attacks like the current strlcpy implementation.  See
-patch 2/3 for more on why strscpy() is a good thing.
+- Also unlike strncpy(), the destination buffer will not be updated
+  beyond the NUL termination, avoiding strncpy's behavior of zeroing
+  the entire tail end of the destination buffer.  (A memset() after
+  the strscpy() can be used if this behavior is desired.)
 
-To make strscpy() work more efficiently I did the minimum tweaking
-necessary to allow <asm/word-at-a-time.h> to work on all architectures,
-though of course individual maintainers can still make their versions
-more efficient as needed.
+- The implementation should be reasonably performant on all
+  platforms since it uses the asm/word-at-a-time.h API rather than
+  simple byte copy.  Kernel-to-kernel string copy is not considered
+  to be performance critical in any case.
 
-It's likely not necessary for per-architecture implementations of
-strscpy() to be written, but I stuck with the standard __HAVE_ARCH_XXX
-model just for consistency with the rest of <linux/string.h>.
+Signed-off-by: Chris Metcalf <cmetcalf@ezchip.com>
+---
+ include/linux/string.h |  3 ++
+ lib/string.c           | 88 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 91 insertions(+)
 
-I tested the implementation with a simple user-space harness, so I
-believe it is correct for the corner cases I could think of.  In
-particular I pairwise-tested all the unaligned values of source and
-dest, and tested the restriction on src page-crossing at all
-unaligned offsets approaching the page boundary.
-
-The patch series is available to be pulled from
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/cmetcalf/linux-tile.git strscpy
-
-Chris Metcalf (3):
-  Make asm/word-at-a-time.h available on all architectures
-  string: provide strscpy()
-  tile: use global strscpy() rather than private copy
-
- arch/arc/include/asm/Kbuild          |  1 +
- arch/avr32/include/asm/Kbuild        |  1 +
- arch/blackfin/include/asm/Kbuild     |  1 +
- arch/c6x/include/asm/Kbuild          |  1 +
- arch/cris/include/asm/Kbuild         |  1 +
- arch/frv/include/asm/Kbuild          |  1 +
- arch/hexagon/include/asm/Kbuild      |  1 +
- arch/ia64/include/asm/Kbuild         |  1 +
- arch/m32r/include/asm/Kbuild         |  1 +
- arch/metag/include/asm/Kbuild        |  1 +
- arch/microblaze/include/asm/Kbuild   |  1 +
- arch/mips/include/asm/Kbuild         |  1 +
- arch/mn10300/include/asm/Kbuild      |  1 +
- arch/nios2/include/asm/Kbuild        |  1 +
- arch/powerpc/include/asm/Kbuild      |  1 +
- arch/s390/include/asm/Kbuild         |  1 +
- arch/score/include/asm/Kbuild        |  1 +
- arch/tile/gxio/mpipe.c               | 33 ++------------
- arch/tile/include/asm/Kbuild         |  1 +
- arch/um/include/asm/Kbuild           |  1 +
- arch/unicore32/include/asm/Kbuild    |  1 +
- arch/xtensa/include/asm/Kbuild       |  1 +
- include/asm-generic/word-at-a-time.h | 80 ++++++++++++++++++++++++++++----
- include/linux/string.h               |  3 ++
- lib/string.c                         | 88 ++++++++++++++++++++++++++++++++++++
- 25 files changed, 188 insertions(+), 37 deletions(-)
-
+diff --git a/include/linux/string.h b/include/linux/string.h
+index e40099e585c9..213274a0d356 100644
+--- a/include/linux/string.h
++++ b/include/linux/string.h
+@@ -25,6 +25,9 @@ extern char * strncpy(char *,const char *, __kernel_size_t);
+ #ifndef __HAVE_ARCH_STRLCPY
+ size_t strlcpy(char *, const char *, size_t);
+ #endif
++#ifndef __HAVE_ARCH_STRSCPY
++ssize_t __must_check strscpy(char *, const char *, size_t);
++#endif
+ #ifndef __HAVE_ARCH_STRCAT
+ extern char * strcat(char *, const char *);
+ #endif
+diff --git a/lib/string.c b/lib/string.c
+index a5792019193c..0ff54eb78f52 100644
+--- a/lib/string.c
++++ b/lib/string.c
+@@ -27,6 +27,10 @@
+ #include <linux/bug.h>
+ #include <linux/errno.h>
+ 
++#include <asm/byteorder.h>
++#include <asm/word-at-a-time.h>
++#include <asm/page.h>
++
+ #ifndef __HAVE_ARCH_STRNCASECMP
+ /**
+  * strncasecmp - Case insensitive, length-limited string comparison
+@@ -146,6 +150,90 @@ size_t strlcpy(char *dest, const char *src, size_t size)
+ EXPORT_SYMBOL(strlcpy);
+ #endif
+ 
++#ifndef __HAVE_ARCH_STRSCPY
++/**
++ * strscpy - Copy a C-string into a sized buffer
++ * @dest: Where to copy the string to
++ * @src: Where to copy the string from
++ * @count: Size of destination buffer
++ *
++ * Copy the string, or as much of it as fits, into the dest buffer.
++ * The routine returns the number of characters copied (not including
++ * the trailing NUL) or -E2BIG if the destination buffer wasn't big enough.
++ * The behavior is undefined if the string buffers overlap.
++ * If the destination buffer isn't big enough, it is NUL terminated.
++ *
++ * Preferred to strlcpy() since the API doesn't require reading memory
++ * from the src string beyond the specified "count" bytes, and since
++ * the return value is easier to error-check than strlcpy()'s.
++ * In addition, the implementation is robust to the string changing out
++ * from underneath it, unlike the current strlcpy() implementation.
++ *
++ * Preferred to strncpy() since it always returns a valid string, and
++ * doesn't unnecessarily force the tail of the destination buffer to be
++ * zeroed.  If the zeroing is desired, it's likely cleaner to use strscpy()
++ * with an overflow test, then just memset() the tail of the dest buffer.
++ */
++ssize_t strscpy(char *dest, const char *src, size_t count)
++{
++	const struct word_at_a_time constants = WORD_AT_A_TIME_CONSTANTS;
++	size_t max = count;
++	long res = 0;
++
++	if (count == 0)
++		return -E2BIG;
++
++#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
++	/*
++	 * If src is unaligned, don't cross a page boundary,
++	 * since we don't know if the next page is mapped.
++	 */
++	if ((long)src & (sizeof(long) - 1)) {
++		size_t limit = PAGE_SIZE - ((long)src & (PAGE_SIZE - 1));
++		if (limit < max)
++			max = limit;
++	}
++#else
++	/* If src or dest is unaligned, don't do word-at-a-time. */
++	if (((long) dest | (long) src) & (sizeof(long) - 1))
++		max = 0;
++#endif
++
++	while (max >= sizeof(unsigned long)) {
++		unsigned long c, data;
++
++		c = *(unsigned long *)(src+res);
++		*(unsigned long *)(dest+res) = c;
++		if (has_zero(c, &data, &constants)) {
++			data = prep_zero_mask(c, data, &constants);
++			data = create_zero_mask(data);
++			return res + find_zero(data);
++		}
++		res += sizeof(unsigned long);
++		count -= sizeof(unsigned long);
++		max -= sizeof(unsigned long);
++	}
++
++	while (count) {
++		char c;
++
++		c = src[res];
++		dest[res] = c;
++		if (!c)
++			return res;
++		res++;
++		count--;
++	}
++
++	/* Hit buffer length without finding a NUL; force NUL-termination. */
++	if (res)
++		dest[res-1] = '\0';
++
++	return -E2BIG;
++}
++EXPORT_SYMBOL(strscpy);
++#endif
++
+ #ifndef __HAVE_ARCH_STRCAT
+ /**
+  * strcat - Append one %NUL-terminated string to another
 -- 
 2.1.2
