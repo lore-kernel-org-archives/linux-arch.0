@@ -1,97 +1,227 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a23-79-238-175.deploy.static.akamaitechnologies.com ([23.79.238.175]:23918
-	"EHLO prod-mail-xrelay07.akamai.com" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1751608AbbGISqi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2015 14:46:38 -0400
-Date: Thu, 9 Jul 2015 14:46:35 -0400
-From: Eric B Munson <emunson@akamai.com>
-Subject: Re: [PATCH V3 3/5] mm: mlock: Introduce VM_LOCKONFAULT and add mlock
- flags to enable it
-Message-ID: <20150709184635.GE4669@akamai.com>
-References: <1436288623-13007-1-git-send-email-emunson@akamai.com>
- <1436288623-13007-4-git-send-email-emunson@akamai.com>
- <20150708132351.61c13db6@lwn.net>
- <20150708203456.GC4669@akamai.com>
- <20150708151750.75e65859@lwn.net>
+Received: from mail-am1on0083.outbound.protection.outlook.com ([157.56.112.83]:14880
+	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1753995AbbGIUiq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Jul 2015 16:38:46 -0400
+From: Chris Metcalf <cmetcalf@ezchip.com>
+Subject: [PATCH] tile: Provide atomic_{or,xor,and}
+Date: Thu, 9 Jul 2015 16:38:17 -0400
+Message-ID: <1436474297-32187-1-git-send-email-cmetcalf@ezchip.com>
+In-Reply-To: <20150709172855.564686637@infradead.org>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="d8Lz2Tf5e5STOWUP"
-Content-Disposition: inline
-In-Reply-To: <20150708151750.75e65859@lwn.net>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonathan Corbet <corbet@lwn.net>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150709184635.gXI7jd5zccWB6VQLXP4vr6yZ1IU97cJVMzDeDC5sbyw@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, peterz@infradead.org
+Cc: Chris Metcalf <cmetcalf@ezchip.com>, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, davem@davemloft.net, mingo@kernel.org
+Message-ID: <20150709203817.rq4wAVyUCK8UWtV-SGfmU9gWh9m7_lT7hcoKCsmRGFo@z>
 
+Implement atomic logic ops -- atomic_{or,xor,and}.
 
---d8Lz2Tf5e5STOWUP
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+For tilegx, these are relatively straightforward; the architecture
+provides atomic "or" and "and", both 32-bit and 64-bit.  To support
+xor we provide a loop using "cmpexch".
 
-On Wed, 08 Jul 2015, Jonathan Corbet wrote:
+For the older 32-bit tilepro architecture, we have to extend
+the set of low-level assembly routines to include 32-bit "and",
+as well as all three 64-bit routines.  Somewhat confusingly,
+some 32-bit versions are already used by the bitops inlines, with
+parameter types appropriate for bitops, so we have to do a bit of
+casting to match "int" to "unsigned long".
 
-> On Wed, 8 Jul 2015 16:34:56 -0400
-> Eric B Munson <emunson@akamai.com> wrote:
->=20
-> > > Quick, possibly dumb question: I've been beating my head against thes=
-e for
-> > > a little bit, and I can't figure out what's supposed to happen in this
-> > > case:
-> > >=20
-> > > 	mlock2(addr, len, MLOCK_ONFAULT);
-> > > 	munlock2(addr, len, MLOCK_LOCKED);
-> > >=20
-> > > It looks to me like it will clear VM_LOCKED without actually unlockin=
-g any
-> > > pages.  Is that the intended result? =20
-> >=20
-> > This is not quite right, what happens when you call munlock2(addr, len,
-> > MLOCK_LOCKED); is we call apply_vma_flags(addr, len, VM_LOCKED, false).
->=20
-> From your explanation, it looks like what I said *was* right...what I was
-> missing was the fact that VM_LOCKED isn't set in the first place.  So that
-> call would be a no-op, clearing a flag that's already cleared.
+Signed-off-by: Chris Metcalf <cmetcalf@ezchip.com>
+---
+Peter, I'm guessing you should just take this into your series,
+rather than my pushing it through the tile tree.
 
-Sorry, I misread the original.  You are correct with the addition that
-the call to munlock2(MLOCK_LOCKED) is a noop in this case.
+ arch/tile/include/asm/atomic_32.h | 28 +++++++++++++++++++++++++++
+ arch/tile/include/asm/atomic_64.h | 40 +++++++++++++++++++++++++++++++++++++++
+ arch/tile/lib/atomic_32.c         | 23 ++++++++++++++++++++++
+ arch/tile/lib/atomic_asm_32.S     |  4 ++++
+ 4 files changed, 95 insertions(+)
 
->=20
-> One other question...if I call mlock2(MLOCK_ONFAULT) on a range that
-> already has resident pages, I believe that those pages will not be locked
-> until they are reclaimed and faulted back in again, right?  I suspect that
-> could be surprising to users.
+diff --git a/arch/tile/include/asm/atomic_32.h b/arch/tile/include/asm/atomic_32.h
+index 1b109fad9fff..d320ce253d86 100644
+--- a/arch/tile/include/asm/atomic_32.h
++++ b/arch/tile/include/asm/atomic_32.h
+@@ -34,6 +34,19 @@ static inline void atomic_add(int i, atomic_t *v)
+ 	_atomic_xchg_add(&v->counter, i);
+ }
+ 
++#define ATOMIC_OP(op)							\
++unsigned long _atomic_##op(volatile unsigned long *p, unsigned long mask); \
++static inline void atomic_##op(int i, atomic_t *v)			\
++{									\
++	_atomic_##op((unsigned long *)&v->counter, i);			\
++}
++
++ATOMIC_OP(and)
++ATOMIC_OP(or)
++ATOMIC_OP(xor)
++
++#undef ATOMIC_OP
++
+ /**
+  * atomic_add_return - add integer and return
+  * @v: pointer of type atomic_t
+@@ -113,6 +126,17 @@ static inline void atomic64_add(long long i, atomic64_t *v)
+ 	_atomic64_xchg_add(&v->counter, i);
+ }
+ 
++#define ATOMIC64_OP(op)						\
++long long _atomic64_##op(long long *v, long long n);		\
++static inline void atomic64_##op(long long i, atomic64_t *v)	\
++{								\
++	_atomic64_##op(&v->counter, i);				\
++}
++
++ATOMIC64_OP(and)
++ATOMIC64_OP(or)
++ATOMIC64_OP(xor)
++
+ /**
+  * atomic64_add_return - add integer and return
+  * @v: pointer of type atomic64_t
+@@ -225,6 +249,7 @@ extern struct __get_user __atomic_xchg_add(volatile int *p, int *lock, int n);
+ extern struct __get_user __atomic_xchg_add_unless(volatile int *p,
+ 						  int *lock, int o, int n);
+ extern struct __get_user __atomic_or(volatile int *p, int *lock, int n);
++extern struct __get_user __atomic_and(volatile int *p, int *lock, int n);
+ extern struct __get_user __atomic_andn(volatile int *p, int *lock, int n);
+ extern struct __get_user __atomic_xor(volatile int *p, int *lock, int n);
+ extern long long __atomic64_cmpxchg(volatile long long *p, int *lock,
+@@ -234,6 +259,9 @@ extern long long __atomic64_xchg_add(volatile long long *p, int *lock,
+ 					long long n);
+ extern long long __atomic64_xchg_add_unless(volatile long long *p,
+ 					int *lock, long long o, long long n);
++extern long long __atomic64_and(volatile long long *p, int *lock, long long n);
++extern long long __atomic64_or(volatile long long *p, int *lock, long long n);
++extern long long __atomic64_xor(volatile long long *p, int *lock, long long n);
+ 
+ /* Return failure from the atomic wrappers. */
+ struct __get_user __atomic_bad_address(int __user *addr);
+diff --git a/arch/tile/include/asm/atomic_64.h b/arch/tile/include/asm/atomic_64.h
+index 0496970cef82..096a56d6ead4 100644
+--- a/arch/tile/include/asm/atomic_64.h
++++ b/arch/tile/include/asm/atomic_64.h
+@@ -58,6 +58,26 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
+ 	return oldval;
+ }
+ 
++static inline void atomic_and(int i, atomic_t *v)
++{
++	__insn_fetchand4((void *)&v->counter, i);
++}
++
++static inline void atomic_or(int i, atomic_t *v)
++{
++	__insn_fetchor4((void *)&v->counter, i);
++}
++
++static inline void atomic_xor(int i, atomic_t *v)
++{
++	int guess, oldval = v->counter;
++	do {
++		guess = oldval;
++		__insn_mtspr(SPR_CMPEXCH_VALUE, guess);
++		oldval = __insn_cmpexch4(&v->counter, guess ^ i);
++	} while (guess != oldval);
++}
++
+ /* Now the true 64-bit operations. */
+ 
+ #define ATOMIC64_INIT(i)	{ (i) }
+@@ -91,6 +111,26 @@ static inline long atomic64_add_unless(atomic64_t *v, long a, long u)
+ 	return oldval != u;
+ }
+ 
++static inline void atomic64_and(long i, atomic64_t *v)
++{
++	__insn_fetchand((void *)&v->counter, i);
++}
++
++static inline void atomic64_or(long i, atomic64_t *v)
++{
++	__insn_fetchor((void *)&v->counter, i);
++}
++
++static inline void atomic64_xor(long i, atomic64_t *v)
++{
++	long guess, oldval = v->counter;
++	do {
++		guess = oldval;
++		__insn_mtspr(SPR_CMPEXCH_VALUE, guess);
++		oldval = __insn_cmpexch(&v->counter, guess ^ i);
++	} while (guess != oldval);
++}
++
+ #define atomic64_sub_return(i, v)	atomic64_add_return(-(i), (v))
+ #define atomic64_sub(i, v)		atomic64_add(-(i), (v))
+ #define atomic64_inc_return(v)		atomic64_add_return(1, (v))
+diff --git a/arch/tile/lib/atomic_32.c b/arch/tile/lib/atomic_32.c
+index c89b211fd9e7..298df1e9912a 100644
+--- a/arch/tile/lib/atomic_32.c
++++ b/arch/tile/lib/atomic_32.c
+@@ -94,6 +94,12 @@ unsigned long _atomic_or(volatile unsigned long *p, unsigned long mask)
+ }
+ EXPORT_SYMBOL(_atomic_or);
+ 
++unsigned long _atomic_and(volatile unsigned long *p, unsigned long mask)
++{
++	return __atomic_and((int *)p, __atomic_setup(p), mask).val;
++}
++EXPORT_SYMBOL(_atomic_and);
++
+ unsigned long _atomic_andn(volatile unsigned long *p, unsigned long mask)
+ {
+ 	return __atomic_andn((int *)p, __atomic_setup(p), mask).val;
+@@ -136,6 +142,23 @@ long long _atomic64_cmpxchg(long long *v, long long o, long long n)
+ }
+ EXPORT_SYMBOL(_atomic64_cmpxchg);
+ 
++long long _atomic64_and(long long *v, long long n)
++{
++	return __atomic64_and(v, __atomic_setup(v), n);
++}
++EXPORT_SYMBOL(_atomic64_and);
++
++long long _atomic64_or(long long *v, long long n)
++{
++	return __atomic64_or(v, __atomic_setup(v), n);
++}
++EXPORT_SYMBOL(_atomic64_or);
++
++long long _atomic64_xor(long long *v, long long n)
++{
++	return __atomic64_xor(v, __atomic_setup(v), n);
++}
++EXPORT_SYMBOL(_atomic64_xor);
+ 
+ /*
+  * If any of the atomic or futex routines hit a bad address (not in
+diff --git a/arch/tile/lib/atomic_asm_32.S b/arch/tile/lib/atomic_asm_32.S
+index 6bda3132cd61..f611265633d6 100644
+--- a/arch/tile/lib/atomic_asm_32.S
++++ b/arch/tile/lib/atomic_asm_32.S
+@@ -178,6 +178,7 @@ atomic_op _xchg_add, 32, "add r24, r22, r2"
+ atomic_op _xchg_add_unless, 32, \
+ 	"sne r26, r22, r2; { bbns r26, 3f; add r24, r22, r3 }"
+ atomic_op _or, 32, "or r24, r22, r2"
++atomic_op _and, 32, "and r24, r22, r2"
+ atomic_op _andn, 32, "nor r2, r2, zero; and r24, r22, r2"
+ atomic_op _xor, 32, "xor r24, r22, r2"
+ 
+@@ -191,6 +192,9 @@ atomic_op 64_xchg_add_unless, 64, \
+ 	{ bbns r26, 3f; add r24, r22, r4 }; \
+ 	{ bbns r27, 3f; add r25, r23, r5 }; \
+ 	slt_u r26, r24, r22; add r25, r25, r26"
++atomic_op 64_or, 64, "{ or r24, r22, r2; or r25, r23, r3 }"
++atomic_op 64_and, 64, "{ and r24, r22, r2; and r25, r23, r3 }"
++atomic_op 64_xor, 64, "{ xor r24, r22, r2; xor r25, r23, r3 }"
+ 
+ 	jrp     lr              /* happy backtracer */
+ 
+-- 
+2.1.2
 
-That is the case.  I am looking into what it would take to find only the
-present pages in a range and lock them, if that is the behavior that is
-preferred I can include it in the updated series.
-
->=20
-> Thanks,
->=20
-> jon
-
---d8Lz2Tf5e5STOWUP
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAEBAgAGBQJVnsGLAAoJELbVsDOpoOa9fD4P+wfJut0yfq/Eut90zuluJASG
-y2/MKnGXk/YAwdE9jVyUs/if3S6y9E+nzr9h10jjiAzl7Ek3fbjvGQGtSJee0nxv
-xprvjrX8StCUyubIAdvuvBDAQ2uruWlWPt0/WYlTppmm3Ws7sXk6Rc9uyAaYvO8k
-cb/3b2hDUz4X3buHx7rbontLHI+PkJyOMC0wwhlgc/TnIyGAOINbxf4jYR9MTOP1
-OjpudgitD2855bIJVi9VnOkbG7tvRqJA5azlVkcwlUBqezjSKz5K+NANc4zL5xQ1
-uBN9QJXvbiGBzpKXSjmCgtQYRpUq5fN4hZOjq3lo6nill+E+F6eL415ON/5mpRvR
-8JeYOUZt/Gua6W0fxLTscnp3E5cpu4oUrzY43J9jJ5HA34s0W8mj/ssey/lDxUo/
-LzoeORqwByyNuESJHtHSYJUB24FDQeQJ1cjMLqoZmpyjlFnUoVgzFox+jdtwZ80P
-3LMoWN7h6NyQ6GtQDHF1033vsxAHBQ04x96kch9Ztx3BGoWVZoXO1Lsr6X6EHCIV
-DmQW1k8HPLsUbkXtOlGR36opxF1fbdBzAyN7V8rWXnNFiyDCl/ImUtEVKQ/VPp9k
-T2FjdgDFkTetH6KHVOztE1Ya08wHX4Yy/qxxFH1sPMfVIHFUE7ATTP+00Oc30E32
-vBEzC6L/dMQNWWAIbaEJ
-=CLFc
------END PGP SIGNATURE-----
-
---d8Lz2Tf5e5STOWUP--
