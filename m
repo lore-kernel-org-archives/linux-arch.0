@@ -1,7 +1,7 @@
 From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v2 1/2] locking/qrwlock: Reduce reader/writer to reader lock transfer latency
-Date: Thu,  9 Jul 2015 12:32:22 -0400
-Message-ID: <1436459543-29126-2-git-send-email-Waiman.Long@hp.com>
+Subject: [PATCH v2 2/2] locking/qrwlock: Reduce writer to writer lock transfer latency
+Date: Thu,  9 Jul 2015 12:32:23 -0400
+Message-ID: <1436459543-29126-3-git-send-email-Waiman.Long@hp.com>
 References: <1436459543-29126-1-git-send-email-Waiman.Long@hp.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1436459543-29126-1-git-send-email-Waiman.Long@hp.com>
@@ -10,50 +10,67 @@ To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd 
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
 List-Id: linux-arch.vger.kernel.org
 
-Currently, a reader will check first to make sure that the writer mode
-byte is cleared before incrementing the reader count. That waiting is
-not really necessary. It increases the latency in the reader/writer
-to reader transition and reduces readers performance.
+In most cases, a writer acquires the lock in two steps - first setting
+the writer mode byte to _QW_WAITING and then to _QW_LOCKED. So two
+atomic operations are required. This 2-step dance is only needed if
+readers are present. This patch modifies the logic so that a writer
+will try to acquire the lock in a single step as long as possible
+until it see some readers.
 
-This patch eliminates that waiting. It also has the side effect
-of reducing the chance of writer lock stealing and improving the
-fairness of the lock. Using a locking microbenchmark, a 10-threads 5M
-locking loop of mostly readers (RW ratio = 10,000:1) has the following
-performance numbers in a Haswell-EX box:
+Using a locking microbenchmark, a 10-threads 5M locking loop of only
+writers has the following performance numbers in a Haswell-EX box:
 
         Kernel          Locking Rate (Kops/s)
         ------          ---------------------
-        4.1.1               15,063,081
-        Patched 4.1.1       17,241,552
+        4.1.1               11,939,648
+        Patched 4.1.1       12,906,593
 
 Signed-off-by: Waiman Long <Waiman.Long@hp.com>
 ---
- kernel/locking/qrwlock.c |   12 ++++--------
- 1 files changed, 4 insertions(+), 8 deletions(-)
+ kernel/locking/qrwlock.c |   20 +++++++++++++-------
+ 1 files changed, 13 insertions(+), 7 deletions(-)
 
 diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index d9c36c5..6a7a3b8 100644
+index 6a7a3b8..9f64493 100644
 --- a/kernel/locking/qrwlock.c
 +++ b/kernel/locking/qrwlock.c
-@@ -88,15 +88,11 @@ void queued_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
+@@ -109,15 +109,22 @@ EXPORT_SYMBOL(queued_read_lock_slowpath);
+  */
+ void queued_write_lock_slowpath(struct qrwlock *lock)
+ {
+-	u32 cnts;
+-
+ 	/* Put the writer into the wait queue */
  	arch_spin_lock(&lock->lock);
  
- 	/*
--	 * At the head of the wait queue now, wait until the writer state
--	 * goes to 0 and then try to increment the reader count and get
--	 * the lock. It is possible that an incoming writer may steal the
--	 * lock in the interim, so it is necessary to check the writer byte
--	 * to make sure that the write lock isn't taken.
-+	 * At the head of the wait queue now, increment the reader count
-+	 * and wait until the writer, if it has the lock, has gone away.
-+	 * At ths stage, it is not possible for a writer to remain in the
-+	 * waiting state (_QW_WAITING). So there won't be any deadlock.
- 	 */
--	while (atomic_read(&lock->cnts) & _QW_WMASK)
--		cpu_relax_lowlatency();
--
- 	cnts = atomic_add_return(_QR_BIAS, &lock->cnts) - _QR_BIAS;
- 	rspin_until_writer_unlock(lock, cnts);
+ 	/* Try to acquire the lock directly if no reader is present */
+-	if (!atomic_read(&lock->cnts) &&
+-	    (atomic_cmpxchg(&lock->cnts, 0, _QW_LOCKED) == 0))
+-		goto unlock;
++	for (;;) {
++		u32 cnts = atomic_read(&lock->cnts);
++
++		if (!cnts) {
++			cnts = atomic_cmpxchg(&lock->cnts, 0, _QW_LOCKED);
++			if (cnts == 0)
++				goto unlock;
++		}
++		if (cnts & ~_QW_WMASK)
++			break;	/* Reader is present */
++		cpu_relax_lowlatency();
++	}
  
+ 	/*
+ 	 * Set the waiting flag to notify readers that a writer is pending,
+@@ -135,8 +142,7 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
+ 
+ 	/* When no more readers, set the locked flag */
+ 	for (;;) {
+-		cnts = atomic_read(&lock->cnts);
+-		if ((cnts == _QW_WAITING) &&
++		if ((atomic_read(&lock->cnts) == _QW_WAITING) &&
+ 		    (atomic_cmpxchg(&lock->cnts, _QW_WAITING,
+ 				    _QW_LOCKED) == _QW_WAITING))
+ 			break;
 -- 
 1.7.1
