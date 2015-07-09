@@ -1,134 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:35570 "EHLO
+Received: from casper.infradead.org ([85.118.1.10]:35566 "EHLO
 	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753795AbbGIR4K (ORCPT
+	with ESMTP id S1753792AbbGIR4K (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2015 13:56:10 -0400
-Message-ID: <20150709175309.715495408@infradead.org>
-Date: Thu, 09 Jul 2015 19:29:13 +0200
+Message-ID: <20150709175308.450714909@infradead.org>
+Date: Thu, 09 Jul 2015 19:29:00 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [RFC][PATCH 18/24] xtensa: Provide atomic_{or,xor,and}
+Subject: [RFC][PATCH 05/24] avr32: Provide atomic_{or,xor,and}
 References: <20150709172855.564686637@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=peterz-xtensa-atomic_logic_ops.patch
+Content-Disposition: inline; filename=peterz-avr32-atomic_logic_ops.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, davem@davemloft.net, cmetcalf@ezchip.com, mingo@kernel.org, peterz@infradead.org
-Message-ID: <20150709172913.i_axAc9LQgNFnTqYsEVfHCguwx3cLDV7ncdUlkXAajU@z>
+Message-ID: <20150709172900.bn6jVhrz7pkOlKXOMTgess4FgjPvxIMXE5qttnuSvuc@z>
 
 Implement atomic logic ops -- atomic_{or,xor,and}.
 
 These will replace the atomic_{set,clear}_mask functions that are
 available on some archs.
 
+
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/xtensa/include/asm/atomic.h |   82 ++++++---------------------------------
- 1 file changed, 13 insertions(+), 69 deletions(-)
+ arch/avr32/include/asm/atomic.h |   12 ++++++++++++
+ 1 file changed, 12 insertions(+)
 
---- a/arch/xtensa/include/asm/atomic.h
-+++ b/arch/xtensa/include/asm/atomic.h
-@@ -144,11 +144,24 @@ static inline int atomic_##op##_return(i
+--- a/arch/avr32/include/asm/atomic.h
++++ b/arch/avr32/include/asm/atomic.h
+@@ -44,6 +44,18 @@ static inline int __atomic_##op##_return
+ ATOMIC_OP_RETURN(sub, sub, rKs21)
+ ATOMIC_OP_RETURN(add, add, r)
  
- ATOMIC_OPS(add)
- ATOMIC_OPS(sub)
-+ATOMIC_OP(and)
-+ATOMIC_OP(or)
-+ATOMIC_OP(xor)
- 
- #undef ATOMIC_OPS
++#define ATOMIC_OP(op, asm_op)						\
++ATOMIC_OP_RETURN(op, asm_op, r)						\
++static inline void atomic_##op(int i, atomic_t *v)			\
++{									\
++	(void)__atomic_##op##_return(i, v);				\
++}
++
++ATOMIC_OP(and, and)
++ATOMIC_OP(or, or)
++ATOMIC_OP(xor, eor)
++
++#undef ATOMIC_OP
  #undef ATOMIC_OP_RETURN
- #undef ATOMIC_OP
  
-+static inline __deprecated void atomic_set_mask(unsigned int mask, atomic_t *v)
-+{
-+	atomic_or(mask, v);
-+}
-+
-+static inline __deprecated void atomic_clear_mask(unsigned int mask, atomic_t *v)
-+{
-+	atomic_and(~mask, v);
-+}
-+
- /**
-  * atomic_sub_and_test - subtract value from variable and test result
-  * @i: integer value to subtract
-@@ -250,75 +263,6 @@ static __inline__ int __atomic_add_unles
- 	return c;
- }
- 
--
--static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
--{
--#if XCHAL_HAVE_S32C1I
--	unsigned long tmp;
--	int result;
--
--	__asm__ __volatile__(
--			"1:     l32i    %1, %3, 0\n"
--			"       wsr     %1, scompare1\n"
--			"       and     %0, %1, %2\n"
--			"       s32c1i  %0, %3, 0\n"
--			"       bne     %0, %1, 1b\n"
--			: "=&a" (result), "=&a" (tmp)
--			: "a" (~mask), "a" (v)
--			: "memory"
--			);
--#else
--	unsigned int all_f = -1;
--	unsigned int vval;
--
--	__asm__ __volatile__(
--			"       rsil    a15,"__stringify(LOCKLEVEL)"\n"
--			"       l32i    %0, %2, 0\n"
--			"       xor     %1, %4, %3\n"
--			"       and     %0, %0, %4\n"
--			"       s32i    %0, %2, 0\n"
--			"       wsr     a15, ps\n"
--			"       rsync\n"
--			: "=&a" (vval), "=a" (mask)
--			: "a" (v), "a" (all_f), "1" (mask)
--			: "a15", "memory"
--			);
--#endif
--}
--
--static inline void atomic_set_mask(unsigned int mask, atomic_t *v)
--{
--#if XCHAL_HAVE_S32C1I
--	unsigned long tmp;
--	int result;
--
--	__asm__ __volatile__(
--			"1:     l32i    %1, %3, 0\n"
--			"       wsr     %1, scompare1\n"
--			"       or      %0, %1, %2\n"
--			"       s32c1i  %0, %3, 0\n"
--			"       bne     %0, %1, 1b\n"
--			: "=&a" (result), "=&a" (tmp)
--			: "a" (mask), "a" (v)
--			: "memory"
--			);
--#else
--	unsigned int vval;
--
--	__asm__ __volatile__(
--			"       rsil    a15,"__stringify(LOCKLEVEL)"\n"
--			"       l32i    %0, %2, 0\n"
--			"       or      %0, %0, %1\n"
--			"       s32i    %0, %2, 0\n"
--			"       wsr     a15, ps\n"
--			"       rsync\n"
--			: "=&a" (vval)
--			: "a" (mask), "a" (v)
--			: "a15", "memory"
--			);
--#endif
--}
--
- #endif /* __KERNEL__ */
- 
- #endif /* _XTENSA_ATOMIC_H */
+ /*
 
 
