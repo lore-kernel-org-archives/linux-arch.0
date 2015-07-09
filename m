@@ -1,38 +1,66 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: mm: new mm hook framework
-Date: Thu, 9 Jul 2015 14:21:55 -0700
-Message-ID: <20150709142155.f749ec0dd92b0a4ee0ba8d32@linux-foundation.org>
-References: <20150625040814.6C421660F7B@gitolite.kernel.org>
-	<CAMuHMdUG3CbPGvTuPF_JO4JL1C6aqPpLwuZjfixF1zU117Vjfw@mail.gmail.com>
-	<558BBF05.1050703@linux.vnet.ibm.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [RFC][PATCH 15/24] powerpc: Provide atomic_{or,xor,and}
+Date: Fri, 10 Jul 2015 07:49:20 +1000
+Message-ID: <1436478560.3948.137.camel@kernel.crashing.org>
+References: <20150709172855.564686637@infradead.org>
+	 <20150709175309.375034448@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <558BBF05.1050703@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux MM <linux-mm@kvack.org>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:51574 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754046AbbGIVva (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 9 Jul 2015 17:51:30 -0400
+In-Reply-To: <20150709175309.375034448@infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, jejb@parisc-linux.org, heiko.carstens@de.ibm.com, davem@davemloft.net, cmetcalf@ezchip.com, mingo@kernel.org
 
-On Thu, 25 Jun 2015 10:42:45 +0200 Laurent Dufour <ldufour@linux.vnet.ibm.com> wrote:
-
-> > IMHO this screams for the generic version in include/asm-generic/,
-> > and "generic-y += mm-arch-hooks.h" in arch/*/include/asm/Kbuild/.
+On Thu, 2015-07-09 at 19:29 +0200, Peter Zijlstra wrote:
+> Implement atomic logic ops -- atomic_{or,xor,and}.
 > 
-> I do like your proposal which avoid creating too many *empty* files.
-> Since Andrew suggested the way I did the current patch, I'd appreciate
-> his feedback too.
+> These will replace the atomic_{set,clear}_mask functions that are
+> available on some archs.
+> 
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> ---
+>  arch/powerpc/include/asm/atomic.h |    6 ++++++
+>  1 file changed, 6 insertions(+)
+> 
+> --- a/arch/powerpc/include/asm/atomic.h
+> +++ b/arch/powerpc/include/asm/atomic.h
+> @@ -66,6 +66,9 @@ static __inline__ int atomic_##op##_retu
+>  
+>  ATOMIC_OPS(add, add)
+>  ATOMIC_OPS(sub, subf)
+> +ATOMIC_OP(and, and)
+> +ATOMIC_OP(or, or)
+> +ATOMIC_OP(xor, xor)
+>  
+>  #undef ATOMIC_OPS
+>  #undef ATOMIC_OP_RETURN
+> @@ -304,6 +307,9 @@ static __inline__ long atomic64_##op##_r
+>  
+>  ATOMIC64_OPS(add, add)
+>  ATOMIC64_OPS(sub, subf)
+> +ATOMIC64_OP(and, and)
+> +ATOMIC64_OP(or, or)
+> +ATOMIC64_OP(xor, xor)
 
-But this infrastructure works the other way.  If an architecture wants
-a private implementation of arch_remap(), it adds a definition into
-arch/XXX/include/asm/mm-arch-hooks.h and does #define arch_remap arch_remap.
+As long as you are ok that they are non-ordered atomics (no barrier in
+them), then
 
-If the architecture is OK with the default implementation of
-arch_remap(), it does nothing at all.
+Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+>  #undef ATOMIC64_OPS
+>  #undef ATOMIC64_OP_RETURN
+> 
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe
+> linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
