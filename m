@@ -1,71 +1,68 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 0/3] atomic_or() related changes
-Date: Thu, 9 Jul 2015 13:43:16 +0530
-Message-ID: <1436429599-10762-1-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 1/3] asm-generic/atomic.h: ARCH_HAS_ATOMIC_OR -> CONFIG_ARCH_HAS_ATOMIC_OR
+Date: Thu, 9 Jul 2015 13:43:17 +0530
+Message-ID: <1436429599-10762-2-git-send-email-vgupta@synopsys.com>
+References: <1436429599-10762-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:33324 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750843AbbGIINr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2015 04:13:47 -0400
+Received: from smtprelay.synopsys.com ([198.182.60.111]:41015 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751419AbbGIINz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2015 04:13:55 -0400
+In-Reply-To: <1436429599-10762-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
-Hi,
+Since this is not backed by a Kconfig option, remove CONFIG_ prefix
 
-This started off as an effort to convert a cmpxchg based loop in arc/kernel/smp.c
-to an API which is more LLOCK/SCOND friendly.
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+---
+ include/asm-generic/atomic.h | 2 +-
+ include/linux/atomic.h       | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
-e.g.
-        do {
-                new = old = ACCESS_ONCE(*ipi_data_ptr);
-                new |= 1U << msg;
-        } while (cmpxchg(ipi_data_ptr, old, new) != old);
-
-The generated code is horrible. There are 2 useless branches here and a
-LD/LLOCK to same address all inside a loop.
-
-8015cefc:	ld_s       r2,[r3,0]
-8015cefe:	or         r5,r2,r1
-8015cf02:	llock      r4,[r3]
-8015cf06:	brne       r4,r2,8015cf12
-8015cf0a:	scond      r5,[r3]
-8015cf0e:	bnz        8015cf02
-8015cf12:	brne       r2,r4,8015cefc
-
-An atomic_or() kind of API is better suited to generate something like below
-
-8015cf02:	llock      r4,[r3]
-8015cf06:	or         r5,r2,r1
-8015cf0a:	scond      r5,[r3]
-8015cf0e:	bnz        8015cf02
-
-Although this doesn't work for the specific instance I wanted to fix as
-ipi_data_ptr is not atomic_t, I did run into a few things which could be
-improved, hence this series.
-
-Compile tested on ARC, ARM, x86.
-
-I do have some concern about mixing long and int on 64 bit arch, which I've
-captured inline in patch 2/3. It is most likely a lack of understand on my
-part, but worth asking..
-
-Thx,
--Vineet
-
-Vineet Gupta (3):
-  asm-generic/atomic.h: ARCH_HAS_ATOMIC_OR -> CONFIG_ARCH_HAS_ATOMIC_OR
-  brcmfmac: dhd_sdio.c: use existing atomic_or primitive
-  ARC: provide atomic_or() and define ARCH_HAS_ATOMIC_OR
-
- arch/arc/include/asm/atomic.h                  |  9 +++++++++
- drivers/net/wireless/brcm80211/brcmfmac/sdio.c | 13 ++-----------
- include/asm-generic/atomic.h                   |  2 +-
- include/linux/atomic.h                         |  4 ++--
- 4 files changed, 14 insertions(+), 14 deletions(-)
-
+diff --git a/include/asm-generic/atomic.h b/include/asm-generic/atomic.h
+index 1973ad2b13f4..1a1cdab6e702 100644
+--- a/include/asm-generic/atomic.h
++++ b/include/asm-generic/atomic.h
+@@ -104,7 +104,7 @@ ATOMIC_OP(and, &)
+ #endif
+ 
+ #ifndef atomic_set_mask
+-#define CONFIG_ARCH_HAS_ATOMIC_OR
++#define ARCH_HAS_ATOMIC_OR
+ ATOMIC_OP(or, |)
+ #define atomic_set_mask(i, v)	atomic_or((i), (v))
+ #endif
+diff --git a/include/linux/atomic.h b/include/linux/atomic.h
+index 5b08a8540ecf..195881eec33e 100644
+--- a/include/linux/atomic.h
++++ b/include/linux/atomic.h
+@@ -111,7 +111,7 @@ static inline int atomic_dec_if_positive(atomic_t *v)
+ }
+ #endif
+ 
+-#ifndef CONFIG_ARCH_HAS_ATOMIC_OR
++#ifndef ARCH_HAS_ATOMIC_OR
+ static inline void atomic_or(int i, atomic_t *v)
+ {
+ 	int old;
+@@ -122,7 +122,7 @@ static inline void atomic_or(int i, atomic_t *v)
+ 		new = old | i;
+ 	} while (atomic_cmpxchg(v, old, new) != old);
+ }
+-#endif /* #ifndef CONFIG_ARCH_HAS_ATOMIC_OR */
++#endif /* #ifndef ARCH_HAS_ATOMIC_OR */
+ 
+ #include <asm-generic/atomic-long.h>
+ #ifdef CONFIG_GENERIC_ATOMIC64
 -- 
 1.9.1
