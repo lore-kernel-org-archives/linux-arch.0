@@ -1,113 +1,98 @@
-From: Arend van Spriel <arend@broadcom.com>
-Subject: Re: [PATCH 2/3] brcmfmac: dhd_sdio.c: use existing atomic_or primitive
-Date: Thu, 9 Jul 2015 20:31:16 +0200
-Message-ID: <559EBDF4.7030808@broadcom.com>
-References: <1436429599-10762-1-git-send-email-vgupta@synopsys.com> <1436429599-10762-3-git-send-email-vgupta@synopsys.com> <559EBC91.2070600@broadcom.com>
+From: Eric B Munson <emunson@akamai.com>
+Subject: Re: [PATCH V3 3/5] mm: mlock: Introduce VM_LOCKONFAULT and add mlock
+ flags to enable it
+Date: Thu, 9 Jul 2015 14:46:35 -0400
+Message-ID: <20150709184635.GE4669@akamai.com>
+References: <1436288623-13007-1-git-send-email-emunson@akamai.com>
+ <1436288623-13007-4-git-send-email-emunson@akamai.com>
+ <20150708132351.61c13db6@lwn.net>
+ <20150708203456.GC4669@akamai.com>
+ <20150708151750.75e65859@lwn.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gw3-out.broadcom.com ([216.31.210.64]:29162 "EHLO
-	mail-gw3-out.broadcom.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753058AbbGISbV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2015 14:31:21 -0400
-In-Reply-To: <559EBC91.2070600@broadcom.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Brett Rudley <brudley@broadcom.com>, "Franky (Zhenhui) Lin" <frankyl@broadcom.com>, Hante Meuleman <meuleman@broadcom.com>, Kalle Valo <kvalo@codeaurora.org>, Pieter-Paul Giesberts <pieterpg@broadcom.com>, Daniel Kim <dekim@broadcom.com>, linux-wireless@vger.kernel.org, brcm80211-dev-list@broadcom.com, netdev@vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="d8Lz2Tf5e5STOWUP"
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20150708151750.75e65859@lwn.net>
+Sender: owner-linux-mm@kvack.org
+To: Jonathan Corbet <corbet@lwn.net>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 07/09/2015 08:25 PM, Arend van Spriel wrote:
-> On 07/09/2015 10:13 AM, Vineet Gupta wrote:
->> There's already a generic implementation so use that instead.
->
-> There is or there was? If there is now I am fine with this patch, but if
-> it already was there the author might have had a reason for adding a
-> local function and I would like to hear that reason.
 
-Nevermind. Just noticed you are proposing the generic implementation in 
-this series. Currently on vacation and want to discuss with Hante about 
-this change.
+--d8Lz2Tf5e5STOWUP
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Regards,
-Arend
+On Wed, 08 Jul 2015, Jonathan Corbet wrote:
 
->> ---
->> I'm not sure if the driver usage of atomic_or?() is correct in terms of
->> storage size of @val for 64 bit arches.
->>
->> Assuming LP64 programming model for linux on say x86_64: atomic_or()
->> callers in this driver use long (sana 64 bit) storage and pass it to
->> atomic_orr/atomic_or which downcasts it to 32 bits. Is that OK ?
->
-> The function is used with 32bit register value from the device so I
-> think it is ok.
->
-> Regards,
-> Arend
->
->> ---
->> Cc: Brett Rudley <brudley@broadcom.com>
->> Cc: Arend van Spriel <arend@broadcom.com>
->> Cc: "Franky (Zhenhui) Lin" <frankyl@broadcom.com>
->> Cc: Hante Meuleman <meuleman@broadcom.com>
->> Cc: Kalle Valo <kvalo@codeaurora.org>
->> Cc: Pieter-Paul Giesberts <pieterpg@broadcom.com>
->> Cc: Daniel Kim <dekim@broadcom.com>
->> Cc: linux-wireless@vger.kernel.org
->> Cc: brcm80211-dev-list@broadcom.com
->> Cc: Peter Zijlstra <peterz@infradead.org>
->> Cc: Ingo Molnar <mingo@kernel.org>
->> Cc: netdev@vger.kernel.org
->> Cc: linux-arch@vger.kernel.org
->> Cc: linux-kernel@vger.kernel.org
->> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
->>
->> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
->> ---
->>   drivers/net/wireless/brcm80211/brcmfmac/sdio.c | 13 ++-----------
->>   1 file changed, 2 insertions(+), 11 deletions(-)
->>
->> diff --git a/drivers/net/wireless/brcm80211/brcmfmac/sdio.c
->> b/drivers/net/wireless/brcm80211/brcmfmac/sdio.c
->> index d36f5f3d931b..f990e3d0e696 100644
->> --- a/drivers/net/wireless/brcm80211/brcmfmac/sdio.c
->> +++ b/drivers/net/wireless/brcm80211/brcmfmac/sdio.c
->> @@ -2564,15 +2564,6 @@ static inline void brcmf_sdio_clrintr(struct
->> brcmf_sdio *bus)
->>       }
->>   }
->>
->> -static void atomic_orr(int val, atomic_t *v)
->> -{
->> -    int old_val;
->> -
->> -    old_val = atomic_read(v);
->> -    while (atomic_cmpxchg(v, old_val, val | old_val) != old_val)
->> -        old_val = atomic_read(v);
->> -}
->> -
->>   static int brcmf_sdio_intr_rstatus(struct brcmf_sdio *bus)
->>   {
->>       struct brcmf_core *buscore;
->> @@ -2595,7 +2586,7 @@ static int brcmf_sdio_intr_rstatus(struct
->> brcmf_sdio *bus)
->>       if (val) {
->>           brcmf_sdiod_regwl(bus->sdiodev, addr, val, &ret);
->>           bus->sdcnt.f1regdata++;
->> -        atomic_orr(val, &bus->intstatus);
->> +        atomic_or(val, &bus->intstatus);
->>       }
->>
->>       return ret;
->> @@ -2712,7 +2703,7 @@ static void brcmf_sdio_dpc(struct brcmf_sdio *bus)
->>
->>       /* Keep still-pending events for next scheduling */
->>       if (intstatus)
->> -        atomic_orr(intstatus, &bus->intstatus);
->> +        atomic_or(intstatus, &bus->intstatus);
->>
->>       brcmf_sdio_clrintr(bus);
->>
->>
->
+> On Wed, 8 Jul 2015 16:34:56 -0400
+> Eric B Munson <emunson@akamai.com> wrote:
+>=20
+> > > Quick, possibly dumb question: I've been beating my head against thes=
+e for
+> > > a little bit, and I can't figure out what's supposed to happen in this
+> > > case:
+> > >=20
+> > > 	mlock2(addr, len, MLOCK_ONFAULT);
+> > > 	munlock2(addr, len, MLOCK_LOCKED);
+> > >=20
+> > > It looks to me like it will clear VM_LOCKED without actually unlockin=
+g any
+> > > pages.  Is that the intended result? =20
+> >=20
+> > This is not quite right, what happens when you call munlock2(addr, len,
+> > MLOCK_LOCKED); is we call apply_vma_flags(addr, len, VM_LOCKED, false).
+>=20
+> From your explanation, it looks like what I said *was* right...what I was
+> missing was the fact that VM_LOCKED isn't set in the first place.  So that
+> call would be a no-op, clearing a flag that's already cleared.
+
+Sorry, I misread the original.  You are correct with the addition that
+the call to munlock2(MLOCK_LOCKED) is a noop in this case.
+
+>=20
+> One other question...if I call mlock2(MLOCK_ONFAULT) on a range that
+> already has resident pages, I believe that those pages will not be locked
+> until they are reclaimed and faulted back in again, right?  I suspect that
+> could be surprising to users.
+
+That is the case.  I am looking into what it would take to find only the
+present pages in a range and lock them, if that is the behavior that is
+preferred I can include it in the updated series.
+
+>=20
+> Thanks,
+>=20
+> jon
+
+--d8Lz2Tf5e5STOWUP
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQIcBAEBAgAGBQJVnsGLAAoJELbVsDOpoOa9fD4P+wfJut0yfq/Eut90zuluJASG
+y2/MKnGXk/YAwdE9jVyUs/if3S6y9E+nzr9h10jjiAzl7Ek3fbjvGQGtSJee0nxv
+xprvjrX8StCUyubIAdvuvBDAQ2uruWlWPt0/WYlTppmm3Ws7sXk6Rc9uyAaYvO8k
+cb/3b2hDUz4X3buHx7rbontLHI+PkJyOMC0wwhlgc/TnIyGAOINbxf4jYR9MTOP1
+OjpudgitD2855bIJVi9VnOkbG7tvRqJA5azlVkcwlUBqezjSKz5K+NANc4zL5xQ1
+uBN9QJXvbiGBzpKXSjmCgtQYRpUq5fN4hZOjq3lo6nill+E+F6eL415ON/5mpRvR
+8JeYOUZt/Gua6W0fxLTscnp3E5cpu4oUrzY43J9jJ5HA34s0W8mj/ssey/lDxUo/
+LzoeORqwByyNuESJHtHSYJUB24FDQeQJ1cjMLqoZmpyjlFnUoVgzFox+jdtwZ80P
+3LMoWN7h6NyQ6GtQDHF1033vsxAHBQ04x96kch9Ztx3BGoWVZoXO1Lsr6X6EHCIV
+DmQW1k8HPLsUbkXtOlGR36opxF1fbdBzAyN7V8rWXnNFiyDCl/ImUtEVKQ/VPp9k
+T2FjdgDFkTetH6KHVOztE1Ya08wHX4Yy/qxxFH1sPMfVIHFUE7ATTP+00Oc30E32
+vBEzC6L/dMQNWWAIbaEJ
+=CLFc
+-----END PGP SIGNATURE-----
+
+--d8Lz2Tf5e5STOWUP--
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
