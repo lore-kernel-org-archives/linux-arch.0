@@ -1,88 +1,53 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 2/3] brcmfmac: dhd_sdio.c: use existing atomic_or primitive
-Date: Thu, 9 Jul 2015 13:43:18 +0530
-Message-ID: <1436429599-10762-3-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 3/3] ARC: provide atomic_or() and define ARCH_HAS_ATOMIC_OR
+Date: Thu, 9 Jul 2015 13:43:19 +0530
+Message-ID: <1436429599-10762-4-git-send-email-vgupta@synopsys.com>
 References: <1436429599-10762-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:41020 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751700AbbGIIOA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2015 04:14:00 -0400
+Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:33329 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751851AbbGIIOF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2015 04:14:05 -0400
 In-Reply-To: <1436429599-10762-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Brett Rudley <brudley@broadcom.com>, Arend van Spriel <arend@broadcom.com>, "Franky (Zhenhui) Lin" <frankyl@broadcom.com>, Hante Meuleman <meuleman@broadcom.com>, Kalle Valo <kvalo@codeaurora.org>, Pieter-Paul Giesberts <pieterpg@broadcom.com>, Daniel Kim <dekim@broadcom.com>, linux-wireless@vger.kernel.org, brcm80211-dev-list@broadcom.com, netdev@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
-There's already a generic implementation so use that instead.
----
-I'm not sure if the driver usage of atomic_or?() is correct in terms of
-storage size of @val for 64 bit arches.
-
-Assuming LP64 programming model for linux on say x86_64: atomic_or()
-callers in this driver use long (sana 64 bit) storage and pass it to
-atomic_orr/atomic_or which downcasts it to 32 bits. Is that OK ?
----
-Cc: Brett Rudley <brudley@broadcom.com>
-Cc: Arend van Spriel <arend@broadcom.com>
-Cc: "Franky (Zhenhui) Lin" <frankyl@broadcom.com>
-Cc: Hante Meuleman <meuleman@broadcom.com>
-Cc: Kalle Valo <kvalo@codeaurora.org>
-Cc: Pieter-Paul Giesberts <pieterpg@broadcom.com>
-Cc: Daniel Kim <dekim@broadcom.com>
-Cc: linux-wireless@vger.kernel.org
-Cc: brcm80211-dev-list@broadcom.com
 Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Ingo Molnar <mingo@kernel.org>
-Cc: netdev@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- drivers/net/wireless/brcm80211/brcmfmac/sdio.c | 13 ++-----------
- 1 file changed, 2 insertions(+), 11 deletions(-)
+ arch/arc/include/asm/atomic.h | 9 +++++++++
+ 1 file changed, 9 insertions(+)
 
-diff --git a/drivers/net/wireless/brcm80211/brcmfmac/sdio.c b/drivers/net/wireless/brcm80211/brcmfmac/sdio.c
-index d36f5f3d931b..f990e3d0e696 100644
---- a/drivers/net/wireless/brcm80211/brcmfmac/sdio.c
-+++ b/drivers/net/wireless/brcm80211/brcmfmac/sdio.c
-@@ -2564,15 +2564,6 @@ static inline void brcmf_sdio_clrintr(struct brcmf_sdio *bus)
- 	}
- }
+diff --git a/arch/arc/include/asm/atomic.h b/arch/arc/include/asm/atomic.h
+index 03484cb4d16d..fab27dbc562b 100644
+--- a/arch/arc/include/asm/atomic.h
++++ b/arch/arc/include/asm/atomic.h
+@@ -141,10 +141,19 @@ static inline int atomic_##op##_return(int i, atomic_t *v)		\
+ 	ATOMIC_OP(op, c_op, asm_op)					\
+ 	ATOMIC_OP_RETURN(op, c_op, asm_op)
  
--static void atomic_orr(int val, atomic_t *v)
--{
--	int old_val;
--
--	old_val = atomic_read(v);
--	while (atomic_cmpxchg(v, old_val, val | old_val) != old_val)
--		old_val = atomic_read(v);
--}
--
- static int brcmf_sdio_intr_rstatus(struct brcmf_sdio *bus)
- {
- 	struct brcmf_core *buscore;
-@@ -2595,7 +2586,7 @@ static int brcmf_sdio_intr_rstatus(struct brcmf_sdio *bus)
- 	if (val) {
- 		brcmf_sdiod_regwl(bus->sdiodev, addr, val, &ret);
- 		bus->sdcnt.f1regdata++;
--		atomic_orr(val, &bus->intstatus);
-+		atomic_or(val, &bus->intstatus);
- 	}
++/* atomic_add(), atomic_add_return() */
+ ATOMIC_OPS(add, +=, add)
++
++/* atomic_sub(), atomic_sub_return() */
+ ATOMIC_OPS(sub, -=, sub)
++
++/* atomic_and() */
+ ATOMIC_OP(and, &=, and)
  
- 	return ret;
-@@ -2712,7 +2703,7 @@ static void brcmf_sdio_dpc(struct brcmf_sdio *bus)
++#define ARCH_HAS_ATOMIC_OR
++/* atomic_or() */
++ATOMIC_OP(or, |=, or)
++
+ #define atomic_clear_mask(mask, v) atomic_and(~(mask), (v))
  
- 	/* Keep still-pending events for next scheduling */
- 	if (intstatus)
--		atomic_orr(intstatus, &bus->intstatus);
-+		atomic_or(intstatus, &bus->intstatus);
- 
- 	brcmf_sdio_clrintr(bus);
- 
+ #undef ATOMIC_OPS
 -- 
 1.9.1
