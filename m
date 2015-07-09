@@ -1,12 +1,12 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [RFC][PATCH 02/24] arc: Provide atomic_{or,xor,and}
-Date: Thu, 09 Jul 2015 19:28:57 +0200
-Message-ID: <20150709175308.217482496@infradead.org>
+Subject: [RFC][PATCH 01/24] alpha: Provide atomic_{or,xor,and}
+Date: Thu, 09 Jul 2015 19:28:56 +0200
+Message-ID: <20150709175308.119899921@infradead.org>
 References: <20150709172855.564686637@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=peterz-arc-atomic_logic_ops.patch
+Content-Disposition: inline; filename=peterz-alpha-atomic_logic_ops.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, davem@davemloft.net, cmetcalf@ezchip.com, mingo@kernel.org, peterz@infradead.org
@@ -19,34 +19,21 @@ available on some archs.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/arc/include/asm/atomic.h |   14 ++++++++++++--
- 1 file changed, 12 insertions(+), 2 deletions(-)
+ arch/alpha/include/asm/atomic.h |    6 ++++++
+ 1 file changed, 6 insertions(+)
 
---- a/arch/arc/include/asm/atomic.h
-+++ b/arch/arc/include/asm/atomic.h
-@@ -125,13 +125,23 @@ static inline int atomic_##op##_return(i
- ATOMIC_OPS(add, +=, add)
- ATOMIC_OPS(sub, -=, sub)
- ATOMIC_OP(and, &=, and)
--
--#define atomic_clear_mask(mask, v) atomic_and(~(mask), (v))
-+ATOMIC_OP(or, |=, or)
-+ATOMIC_OP(xor, ^=, xor)
+--- a/arch/alpha/include/asm/atomic.h
++++ b/arch/alpha/include/asm/atomic.h
+@@ -109,6 +109,12 @@ static __inline__ long atomic64_##op##_r
+ 
+ ATOMIC_OPS(add)
+ ATOMIC_OPS(sub)
++ATOMIC_OP(and)
++ATOMIC_OP(or)
++ATOMIC_OP(xor)
++ATOMIC64_OP(and)
++ATOMIC64_OP(or)
++ATOMIC64_OP(xor)
  
  #undef ATOMIC_OPS
- #undef ATOMIC_OP_RETURN
- #undef ATOMIC_OP
- 
-+static inline __deprecated void atomic_clear_mask(unsigned int mask, atomic_t *v)
-+{
-+	atomic_and(~mask, v);
-+}
-+
-+static inline __deprecated void atomic_set_mask(unsigned int mask, atomic_t *v)
-+{
-+	atomic_or(mask, v);
-+}
-+
- /**
-  * __atomic_add_unless - add unless the number is a given value
-  * @v: pointer of type atomic_t
+ #undef ATOMIC64_OP_RETURN
