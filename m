@@ -1,86 +1,89 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [RFC][PATCH 00/24] arch: Provide atomic logic ops
-Date: Thu, 09 Jul 2015 19:28:55 +0200
-Message-ID: <20150709172855.564686637@infradead.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Subject: [RFC][PATCH 09/24] m32r: Provide atomic_{or,xor,and}
+Date: Thu, 09 Jul 2015 19:29:04 +0200
+Message-ID: <20150709175308.832468809@infradead.org>
+References: <20150709172855.564686637@infradead.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.9]:59664 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753911AbbGIR4b (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2015 13:56:31 -0400
+Content-Disposition: inline; filename=peterz-m32r-atomic_logic_ops.patch
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, davem@davemloft.net, cmetcalf@ezchip.com, mingo@kernel.org, peterz@infradead.org
-List-Id: linux-arch.vger.kernel.org
 
-Currently there is an incoherent mess of atomic_{set,clear}_mask() and
-atomic_or() (but no atomic_{and,nand,xor}()) in the tree.
+Implement atomic logic ops -- atomic_{or,xor,and}.
 
-Those archs that implement atomic_{set,clear}_mask() are not even consistent on
-its signature.
+These will replace the atomic_{set,clear}_mask functions that are
+available on some archs.
 
-Implement atomic_{or,and,xor}() on all archs and deprecate
-atomic_{set,clear}_mask().
-
-Notes:
- - FRV got a total rewrite of its atomic implementation,
- - Blackfin could use one, or at least some macro help,
- - TILE still needs to be done.
-
-The series has been compile tested by the build-bot, only TILE fails to build.
-
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/alpha/include/asm/atomic.h        |    6 +
- arch/arc/include/asm/atomic.h          |    4 
- arch/arm/include/asm/atomic.h          |    6 +
- arch/arm64/include/asm/atomic.h        |    6 +
- arch/avr32/include/asm/atomic.h        |   12 ++
- arch/blackfin/include/asm/atomic.h     |   16 ++-
- arch/blackfin/kernel/bfin_ksyms.c      |    7 -
- arch/blackfin/mach-bf561/atomic.S      |   30 +++---
- arch/blackfin/mach-common/smp.c        |    2 
- arch/frv/include/asm/atomic.h          |  107 ++++++++++++------------
- arch/frv/include/asm/atomic_defs.h     |  143 +++++++++++++++++++++++++++++++++
- arch/frv/include/asm/bitops.h          |   99 ++--------------------
- arch/frv/kernel/dma.c                  |    6 -
- arch/frv/lib/Makefile                  |    2 
- arch/frv/lib/atomic-lib.c              |    7 +
- arch/frv/lib/atomic-ops.S              |  110 -------------------------
- arch/frv/lib/atomic64-ops.S            |   94 ---------------------
- arch/hexagon/include/asm/atomic.h      |    3 
- arch/ia64/include/asm/atomic.h         |   24 ++++-
- arch/m32r/include/asm/atomic.h         |   44 ----------
- arch/m32r/kernel/smp.c                 |    4 
- arch/m68k/include/asm/atomic.h         |   13 ---
- arch/metag/include/asm/atomic_lnkget.h |   37 --------
- arch/metag/include/asm/atomic_lock1.h  |   23 -----
- arch/mips/include/asm/atomic.h         |    6 +
- arch/mn10300/include/asm/atomic.h      |   70 ----------------
- arch/mn10300/mm/tlb-smp.c              |    2 
- arch/parisc/include/asm/atomic.h       |    6 +
- arch/powerpc/include/asm/atomic.h      |    6 +
- arch/powerpc/kernel/misc_32.S          |   19 ----
- arch/s390/include/asm/atomic.h         |   41 +++++----
- arch/s390/kernel/time.c                |    4 
- arch/s390/kvm/interrupt.c              |   28 +++---
- arch/s390/kvm/kvm-s390.c               |   24 ++---
- arch/sh/include/asm/atomic-grb.h       |   42 ---------
- arch/sh/include/asm/atomic-irq.h       |   21 ----
- arch/sh/include/asm/atomic-llsc.h      |   31 -------
- arch/sparc/include/asm/atomic_32.h     |    3 
- arch/sparc/include/asm/atomic_64.h     |    3 
- arch/sparc/lib/atomic32.c              |   22 ++++-
- arch/sparc/lib/atomic_64.S             |    6 +
- arch/sparc/lib/ksyms.c                 |    3 
- arch/x86/include/asm/atomic.h          |   25 +++--
- arch/x86/include/asm/atomic64_32.h     |   14 +++
- arch/x86/include/asm/atomic64_64.h     |   15 +++
- arch/xtensa/include/asm/atomic.h       |   72 ----------------
- drivers/gpu/drm/i915/i915_drv.c        |    2 
- drivers/gpu/drm/i915/i915_gem.c        |    2 
- drivers/gpu/drm/i915/i915_irq.c        |    4 
- drivers/s390/scsi/zfcp_aux.c           |    2 
- drivers/s390/scsi/zfcp_erp.c           |   62 +++++++-------
- drivers/s390/scsi/zfcp_fc.c            |    8 -
- drivers/s390/scsi/zfcp_fsf.c           |   26 +++---
- drivers/s390/scsi/zfcp_qdio.c          |   14 +--
- include/asm-generic/atomic.h           |   11 +-
- include/asm-generic/atomic64.h         |    3 
- include/linux/atomic.h                 |   30 +++---
- lib/atomic64.c                         |    3 
- 58 files changed, 569 insertions(+), 866 deletions(-)
+ arch/m32r/include/asm/atomic.h |   41 +++++++----------------------------------
+ 1 file changed, 7 insertions(+), 34 deletions(-)
+
+--- a/arch/m32r/include/asm/atomic.h
++++ b/arch/m32r/include/asm/atomic.h
+@@ -93,6 +93,9 @@ static __inline__ int atomic_##op##_retu
+ 
+ ATOMIC_OPS(add)
+ ATOMIC_OPS(sub)
++ATOMIC_OP(and)
++ATOMIC_OP(or)
++ATOMIC_OP(xor)
+ 
+ #undef ATOMIC_OPS
+ #undef ATOMIC_OP_RETURN
+@@ -240,44 +243,14 @@ static __inline__ int __atomic_add_unles
+ }
+ 
+ 
+-static __inline__ void atomic_clear_mask(unsigned long  mask, atomic_t *addr)
++static __inline__ __deprecated void atomic_clear_mask(unsigned int mask, atomic_t *v)
+ {
+-	unsigned long flags;
+-	unsigned long tmp;
+-
+-	local_irq_save(flags);
+-	__asm__ __volatile__ (
+-		"# atomic_clear_mask		\n\t"
+-		DCACHE_CLEAR("%0", "r5", "%1")
+-		M32R_LOCK" %0, @%1;		\n\t"
+-		"and	%0, %2;			\n\t"
+-		M32R_UNLOCK" %0, @%1;		\n\t"
+-		: "=&r" (tmp)
+-		: "r" (addr), "r" (~mask)
+-		: "memory"
+-		__ATOMIC_CLOBBER
+-	);
+-	local_irq_restore(flags);
++	atomic_and(~mask, v);
+ }
+ 
+-static __inline__ void atomic_set_mask(unsigned long  mask, atomic_t *addr)
++static __inline__ __deprecated void atomic_set_mask(unsigned int mask, atomic_t *v)
+ {
+-	unsigned long flags;
+-	unsigned long tmp;
+-
+-	local_irq_save(flags);
+-	__asm__ __volatile__ (
+-		"# atomic_set_mask		\n\t"
+-		DCACHE_CLEAR("%0", "r5", "%1")
+-		M32R_LOCK" %0, @%1;		\n\t"
+-		"or	%0, %2;			\n\t"
+-		M32R_UNLOCK" %0, @%1;		\n\t"
+-		: "=&r" (tmp)
+-		: "r" (addr), "r" (mask)
+-		: "memory"
+-		__ATOMIC_CLOBBER
+-	);
+-	local_irq_restore(flags);
++	atomic_or(mask, v);
+ }
+ 
+ #endif	/* _ASM_M32R_ATOMIC_H */
