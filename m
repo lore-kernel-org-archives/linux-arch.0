@@ -1,32 +1,101 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [RFC][PATCH 17/24] sparc: Provide atomic_{or,xor,and}
-Date: Thu, 09 Jul 2015 11:05:53 -0700 (PDT)
-Message-ID: <20150709.110553.2161087619432531159.davem@davemloft.net>
-References: <20150709172855.564686637@infradead.org>
-	<20150709175309.588450000@infradead.org>
+From: Arend van Spriel <arend@broadcom.com>
+Subject: Re: [PATCH 2/3] brcmfmac: dhd_sdio.c: use existing atomic_or primitive
+Date: Thu, 9 Jul 2015 20:25:21 +0200
+Message-ID: <559EBC91.2070600@broadcom.com>
+References: <1436429599-10762-1-git-send-email-vgupta@synopsys.com> <1436429599-10762-3-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:44458 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753939AbbGISFz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2015 14:05:55 -0400
-In-Reply-To: <20150709175309.588450000@infradead.org>
+Received: from mail-gw3-out.broadcom.com ([216.31.210.64]:18996 "EHLO
+	mail-gw3-out.broadcom.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751547AbbGISZ2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2015 14:25:28 -0400
+In-Reply-To: <1436429599-10762-3-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, cmetcalf@ezchip.com, mingo@kernel.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Brett Rudley <brudley@broadcom.com>, "Franky (Zhenhui) Lin" <frankyl@broadcom.com>, Hante Meuleman <meuleman@broadcom.com>, Kalle Valo <kvalo@codeaurora.org>, Pieter-Paul Giesberts <pieterpg@broadcom.com>, Daniel Kim <dekim@broadcom.com>, linux-wireless@vger.kernel.org, brcm80211-dev-list@broadcom.com, netdev@vger.kernel.org
 
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Thu, 09 Jul 2015 19:29:12 +0200
+On 07/09/2015 10:13 AM, Vineet Gupta wrote:
+> There's already a generic implementation so use that instead.
 
-> Implement atomic logic ops -- atomic_{or,xor,and}.
-> 
-> These will replace the atomic_{set,clear}_mask functions that are
-> available on some archs.
-> 
-> 
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+There is or there was? If there is now I am fine with this patch, but if 
+it already was there the author might have had a reason for adding a 
+local function and I would like to hear that reason.
 
-Acked-by: David S. Miller <davem@davemloft.net>
+> ---
+> I'm not sure if the driver usage of atomic_or?() is correct in terms of
+> storage size of @val for 64 bit arches.
+>
+> Assuming LP64 programming model for linux on say x86_64: atomic_or()
+> callers in this driver use long (sana 64 bit) storage and pass it to
+> atomic_orr/atomic_or which downcasts it to 32 bits. Is that OK ?
+
+The function is used with 32bit register value from the device so I 
+think it is ok.
+
+Regards,
+Arend
+
+> ---
+> Cc: Brett Rudley <brudley@broadcom.com>
+> Cc: Arend van Spriel <arend@broadcom.com>
+> Cc: "Franky (Zhenhui) Lin" <frankyl@broadcom.com>
+> Cc: Hante Meuleman <meuleman@broadcom.com>
+> Cc: Kalle Valo <kvalo@codeaurora.org>
+> Cc: Pieter-Paul Giesberts <pieterpg@broadcom.com>
+> Cc: Daniel Kim <dekim@broadcom.com>
+> Cc: linux-wireless@vger.kernel.org
+> Cc: brcm80211-dev-list@broadcom.com
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Cc: netdev@vger.kernel.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-kernel@vger.kernel.org
+> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+>
+> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+> ---
+>   drivers/net/wireless/brcm80211/brcmfmac/sdio.c | 13 ++-----------
+>   1 file changed, 2 insertions(+), 11 deletions(-)
+>
+> diff --git a/drivers/net/wireless/brcm80211/brcmfmac/sdio.c b/drivers/net/wireless/brcm80211/brcmfmac/sdio.c
+> index d36f5f3d931b..f990e3d0e696 100644
+> --- a/drivers/net/wireless/brcm80211/brcmfmac/sdio.c
+> +++ b/drivers/net/wireless/brcm80211/brcmfmac/sdio.c
+> @@ -2564,15 +2564,6 @@ static inline void brcmf_sdio_clrintr(struct brcmf_sdio *bus)
+>   	}
+>   }
+>
+> -static void atomic_orr(int val, atomic_t *v)
+> -{
+> -	int old_val;
+> -
+> -	old_val = atomic_read(v);
+> -	while (atomic_cmpxchg(v, old_val, val | old_val) != old_val)
+> -		old_val = atomic_read(v);
+> -}
+> -
+>   static int brcmf_sdio_intr_rstatus(struct brcmf_sdio *bus)
+>   {
+>   	struct brcmf_core *buscore;
+> @@ -2595,7 +2586,7 @@ static int brcmf_sdio_intr_rstatus(struct brcmf_sdio *bus)
+>   	if (val) {
+>   		brcmf_sdiod_regwl(bus->sdiodev, addr, val, &ret);
+>   		bus->sdcnt.f1regdata++;
+> -		atomic_orr(val, &bus->intstatus);
+> +		atomic_or(val, &bus->intstatus);
+>   	}
+>
+>   	return ret;
+> @@ -2712,7 +2703,7 @@ static void brcmf_sdio_dpc(struct brcmf_sdio *bus)
+>
+>   	/* Keep still-pending events for next scheduling */
+>   	if (intstatus)
+> -		atomic_orr(intstatus, &bus->intstatus);
+> +		atomic_or(intstatus, &bus->intstatus);
+>
+>   	brcmf_sdio_clrintr(bus);
+>
+>
