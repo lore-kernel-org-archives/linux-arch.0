@@ -1,82 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t5009.houston.hp.com ([15.240.92.67]:60102 "EHLO
-	g9t5009.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751885AbbGIQcs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2015 12:32:48 -0400
-From: Waiman Long <Waiman.Long@hp.com>
-Subject: [PATCH v2 2/2] locking/qrwlock: Reduce writer to writer lock transfer latency
-Date: Thu,  9 Jul 2015 12:32:23 -0400
-Message-ID: <1436459543-29126-3-git-send-email-Waiman.Long@hp.com>
-In-Reply-To: <1436459543-29126-1-git-send-email-Waiman.Long@hp.com>
-References: <1436459543-29126-1-git-send-email-Waiman.Long@hp.com>
+Received: from bombadil.infradead.org ([198.137.202.9]:59717 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753943AbbGIR4h (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2015 13:56:37 -0400
+Message-ID: <20150709175308.217482496@infradead.org>
+Date: Thu, 09 Jul 2015 19:28:57 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [RFC][PATCH 02/24] arc: Provide atomic_{or,xor,and}
+References: <20150709172855.564686637@infradead.org>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Disposition: inline; filename=peterz-arc-atomic_logic_ops.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>, Waiman Long <Waiman.Long@hp.com>
-Message-ID: <20150709163223.QrXOwOwqfG2mz1U--_WNuRYcFu9tdptNzkuvgcUyUt8@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, davem@davemloft.net, cmetcalf@ezchip.com, mingo@kernel.org, peterz@infradead.org
+Message-ID: <20150709172857.LRDkLe_yXc4Pepr_sI1pV7bU9its_MZEIRThV8v9f_g@z>
 
-In most cases, a writer acquires the lock in two steps - first setting
-the writer mode byte to _QW_WAITING and then to _QW_LOCKED. So two
-atomic operations are required. This 2-step dance is only needed if
-readers are present. This patch modifies the logic so that a writer
-will try to acquire the lock in a single step as long as possible
-until it see some readers.
+Implement atomic logic ops -- atomic_{or,xor,and}.
 
-Using a locking microbenchmark, a 10-threads 5M locking loop of only
-writers has the following performance numbers in a Haswell-EX box:
+These will replace the atomic_{set,clear}_mask functions that are
+available on some archs.
 
-        Kernel          Locking Rate (Kops/s)
-        ------          ---------------------
-        4.1.1               11,939,648
-        Patched 4.1.1       12,906,593
-
-Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- kernel/locking/qrwlock.c |   20 +++++++++++++-------
- 1 files changed, 13 insertions(+), 7 deletions(-)
+ arch/arc/include/asm/atomic.h |   14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
 
-diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index 6a7a3b8..9f64493 100644
---- a/kernel/locking/qrwlock.c
-+++ b/kernel/locking/qrwlock.c
-@@ -109,15 +109,22 @@ EXPORT_SYMBOL(queued_read_lock_slowpath);
-  */
- void queued_write_lock_slowpath(struct qrwlock *lock)
- {
--	u32 cnts;
+--- a/arch/arc/include/asm/atomic.h
++++ b/arch/arc/include/asm/atomic.h
+@@ -125,13 +125,23 @@ static inline int atomic_##op##_return(i
+ ATOMIC_OPS(add, +=, add)
+ ATOMIC_OPS(sub, -=, sub)
+ ATOMIC_OP(and, &=, and)
 -
- 	/* Put the writer into the wait queue */
- 	arch_spin_lock(&lock->lock);
+-#define atomic_clear_mask(mask, v) atomic_and(~(mask), (v))
++ATOMIC_OP(or, |=, or)
++ATOMIC_OP(xor, ^=, xor)
  
- 	/* Try to acquire the lock directly if no reader is present */
--	if (!atomic_read(&lock->cnts) &&
--	    (atomic_cmpxchg(&lock->cnts, 0, _QW_LOCKED) == 0))
--		goto unlock;
-+	for (;;) {
-+		u32 cnts = atomic_read(&lock->cnts);
+ #undef ATOMIC_OPS
+ #undef ATOMIC_OP_RETURN
+ #undef ATOMIC_OP
+ 
++static inline __deprecated void atomic_clear_mask(unsigned int mask, atomic_t *v)
++{
++	atomic_and(~mask, v);
++}
 +
-+		if (!cnts) {
-+			cnts = atomic_cmpxchg(&lock->cnts, 0, _QW_LOCKED);
-+			if (cnts == 0)
-+				goto unlock;
-+		}
-+		if (cnts & ~_QW_WMASK)
-+			break;	/* Reader is present */
-+		cpu_relax_lowlatency();
-+	}
- 
- 	/*
- 	 * Set the waiting flag to notify readers that a writer is pending,
-@@ -135,8 +142,7 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
- 
- 	/* When no more readers, set the locked flag */
- 	for (;;) {
--		cnts = atomic_read(&lock->cnts);
--		if ((cnts == _QW_WAITING) &&
-+		if ((atomic_read(&lock->cnts) == _QW_WAITING) &&
- 		    (atomic_cmpxchg(&lock->cnts, _QW_WAITING,
- 				    _QW_LOCKED) == _QW_WAITING))
- 			break;
--- 
-1.7.1
++static inline __deprecated void atomic_set_mask(unsigned int mask, atomic_t *v)
++{
++	atomic_or(mask, v);
++}
++
+ /**
+  * __atomic_add_unless - add unless the number is a given value
+  * @v: pointer of type atomic_t
+
 
