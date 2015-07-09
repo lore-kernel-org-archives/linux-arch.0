@@ -1,66 +1,38 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [RFC][PATCH 15/24] powerpc: Provide atomic_{or,xor,and}
-Date: Fri, 10 Jul 2015 07:49:20 +1000
-Message-ID: <1436478560.3948.137.camel@kernel.crashing.org>
-References: <20150709172855.564686637@infradead.org>
-	 <20150709175309.375034448@infradead.org>
+From: Davidlohr Bueso <dave@stgolabs.net>
+Subject: Re: [PATCH-tip v2 0/2] locking/qrwlock: Improve qrwlock performance
+Date: Thu, 09 Jul 2015 15:04:29 -0700
+Message-ID: <1436479469.27924.19.camel@stgolabs.net>
+References: <1436459543-29126-1-git-send-email-Waiman.Long@hp.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:51574 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754046AbbGIVva (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Jul 2015 17:51:30 -0400
-In-Reply-To: <20150709175309.375034448@infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, jejb@parisc-linux.org, heiko.carstens@de.ibm.com, davem@davemloft.net, cmetcalf@ezchip.com, mingo@kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1436459543-29126-1-git-send-email-Waiman.Long@hp.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2015-07-09 at 19:29 +0200, Peter Zijlstra wrote:
-> Implement atomic logic ops -- atomic_{or,xor,and}.
-> 
-> These will replace the atomic_{set,clear}_mask functions that are
-> available on some archs.
-> 
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> ---
->  arch/powerpc/include/asm/atomic.h |    6 ++++++
->  1 file changed, 6 insertions(+)
-> 
-> --- a/arch/powerpc/include/asm/atomic.h
-> +++ b/arch/powerpc/include/asm/atomic.h
-> @@ -66,6 +66,9 @@ static __inline__ int atomic_##op##_retu
->  
->  ATOMIC_OPS(add, add)
->  ATOMIC_OPS(sub, subf)
-> +ATOMIC_OP(and, and)
-> +ATOMIC_OP(or, or)
-> +ATOMIC_OP(xor, xor)
->  
->  #undef ATOMIC_OPS
->  #undef ATOMIC_OP_RETURN
-> @@ -304,6 +307,9 @@ static __inline__ long atomic64_##op##_r
->  
->  ATOMIC64_OPS(add, add)
->  ATOMIC64_OPS(sub, subf)
-> +ATOMIC64_OP(and, and)
-> +ATOMIC64_OP(or, or)
-> +ATOMIC64_OP(xor, xor)
+On Thu, 2015-07-09 at 12:32 -0400, Waiman Long wrote:
+> With this patch series in place, we can start converting some spinlocks
+> back to rwlocks where it makes sense and the lock size increase isn't
+> a concern.
 
-As long as you are ok that they are non-ordered atomics (no barrier in
-them), then
+Nice, have any users to convert? I can think of a few I've encountered,
+but there must be quite a few, specially those nasty global spinlocks
+where nobody cares about the size.
 
-Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+o hugetlb reservation map lock: Updating hugepage ranges does a two step
+read/update for the reservation map. The first step could now be done
+concurrently if converted.
 
->  #undef ATOMIC64_OPS
->  #undef ATOMIC64_OP_RETURN
-> 
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe
-> linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+o The infamous swap_lock; although I doubt any of the serious offenders
+(ie zswap callbacks) would benefit much for anything
+beyond /proc/meminfo and related.
+
+o async cookie sync wait_event, battery/ata bootup(?).
+
+etc. etc. Obviously the fairness factor is also something to consider.
+
+Thanks,
+Davidlohr 
