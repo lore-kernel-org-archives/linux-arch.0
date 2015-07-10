@@ -1,83 +1,41 @@
-From: Eric B Munson <emunson-JqFfY2XvxFXQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH V3 3/5] mm: mlock: Introduce VM_LOCKONFAULT and add mlock
- flags to enable it
-Date: Fri, 10 Jul 2015 12:19:48 -0400
-Message-ID: <20150710161948.GF4669@akamai.com>
-References: <1436288623-13007-1-git-send-email-emunson@akamai.com>
- <1436288623-13007-4-git-send-email-emunson@akamai.com>
- <20150708132351.61c13db6@lwn.net>
- <20150708203456.GC4669@akamai.com>
- <20150708151750.75e65859@lwn.net>
- <20150709184635.GE4669@akamai.com>
- <20150710101118.5d04d627@lwn.net>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][PATCH 04/24] arm64: Provide atomic_{or,xor,and}
+Date: Fri, 10 Jul 2015 18:23:56 +0200
+Message-ID: <20150710162356.GM19282@twins.programming.kicks-ass.net>
+References: <20150709172855.564686637@infradead.org>
+ <20150709175308.361407648@infradead.org>
+ <20150710084258.GA29323@arm.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="B0nZA57HJSoPbsHY"
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20150710101118.5d04d627-T1hC0tSOHrs@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Jonathan Corbet <corbet-T1hC0tSOHrs@public.gmane.org>
-Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Michal Hocko <mhocko-AlSwsSmVLrQ@public.gmane.org>, Vlastimil Babka <vbabka-AlSwsSmVLrQ@public.gmane.org>, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+In-Reply-To: <20150710084258.GA29323@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, min
 List-Id: linux-arch.vger.kernel.org
 
+On Fri, Jul 10, 2015 at 09:42:59AM +0100, Will Deacon wrote:
+> Hi Peter,
+> 
+> On Thu, Jul 09, 2015 at 06:28:59PM +0100, Peter Zijlstra wrote:
+> > Implement atomic logic ops -- atomic_{or,xor,and}.
+> > 
+> > These will replace the atomic_{set,clear}_mask functions that are
+> > available on some archs.
+> > 
+> > 
+> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> > ---
+> 
+> Whilst this is pretty straight-foward, I have some serious rework on arm64
+> atomic.h pending, so do you mind if I take this via the arm64 tree and
+> resolve the conflicts myself?
 
---B0nZA57HJSoPbsHY
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Are those public anywhere.. The thing is, at the end of this series I
+pretty much assume all archs will have these ops available, so whatever
+tree I stick the rest in woudl have to pull in your branch too.
 
-On Fri, 10 Jul 2015, Jonathan Corbet wrote:
-
-> On Thu, 9 Jul 2015 14:46:35 -0400
-> Eric B Munson <emunson-JqFfY2XvxFXQT0dZR+AlfA@public.gmane.org> wrote:
->=20
-> > > One other question...if I call mlock2(MLOCK_ONFAULT) on a range that
-> > > already has resident pages, I believe that those pages will not be lo=
-cked
-> > > until they are reclaimed and faulted back in again, right?  I suspect=
- that
-> > > could be surprising to users. =20
-> >=20
-> > That is the case.  I am looking into what it would take to find only the
-> > present pages in a range and lock them, if that is the behavior that is
-> > preferred I can include it in the updated series.
->=20
-> For whatever my $0.02 is worth, I think that should be done.  Otherwise
-> the mlock2() interface is essentially nondeterministic; you'll never
-> really know if a specific page is locked or not.
->=20
-> Thanks,
->=20
-> jon
-
-Okay, I likely won't have the new set out today then.  This change is
-more invasive.  IIUC, I need an equivalent to __get_user_page() skips
-pages which are not present instead of faulting in and the call chain to
-get to it.  Unless there is an easier way that I am missing.
-
-Eric
-
---B0nZA57HJSoPbsHY
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAEBAgAGBQJVn/CkAAoJELbVsDOpoOa9fc8QAIYPJoEtJnOGLcp6XvlbR0qD
-EHm5hYg6euX6IzBeU/n1N4DZEv/6AHxxj33+oWf/0SvA7JpsvIZeCsy58KoiZzkO
-1z8xIe4ErMaaA4rb8O096V176BNouwx50PXJdPazalmkeWT6KFmgcLYhVLGJAFkW
-m5em8mli28pJiSRilOCcAffiHvt8+ThcCMqLqAKlQwz2AlvIcJQR8fBp59rmRE6r
-c4fYHulmiZHSsLbmvs3XoC1ChdgjUtloN7VEeDDs2Q9V3De0Vw7AzInIbW+7zwaL
-B+FnQmRpDvTcthu64eFo0cB+GBUfXSCIt+1Nugzl+Zir6N6hGPJemoEX2XzzNDnO
-L3M0uDFGR2RXyLLTfLsTFQfCLMpxtSz8QFM9/yDzQVntENCfEAainCWjaJLxSLsV
-yBPZxXiEdLgxTCFoo5hX/RL2tmge3x3WNnqReHEP9dt0r4UvxXxGOnlQk2I8TUgg
-fINo4V8a92DG4McWbhzqKofewDYrvY+rJ3I8jW2QC4QttTO8wJwycAurfhe0pv1M
-Jk9Exv6mn9JmQ7SxYQqOqz4nu92x6WsEbSaT0Syt0IFJYj4xcVUup/npgJKB9oDn
-7RXjXvHTRAUm4D+6PPW2ECmwHMWIcs/WpHoiKt3GrP3jkh1rqpXImXOagRpv/4kf
-+6n7EoyLk21P33MtY3g6
-=Tkn9
------END PGP SIGNATURE-----
-
---B0nZA57HJSoPbsHY--
+Also, IF you apply locally, do not forget to s/or/orr/ on the 64bit
+versions, I seem to have missed updating those, just like I did on 32bit
+arm.
