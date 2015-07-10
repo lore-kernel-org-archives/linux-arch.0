@@ -1,48 +1,44 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 23/24] atomic: Collapse all atomic_{set,clear}_mask
- definitions
-Date: Fri, 10 Jul 2015 12:39:45 +0200
-Message-ID: <20150710103945.GH19282@twins.programming.kicks-ass.net>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [RFC][PATCH 19/24] s390: Provide atomic_{or,xor,and}
+Date: Fri, 10 Jul 2015 12:52:02 +0200
+Message-ID: <20150710105202.GB3905@osiris>
 References: <20150709172855.564686637@infradead.org>
- <20150709175310.229218215@infradead.org>
- <CAMuHMdXePQF9BL7OfTz+=FN5Hg9C=E6hAO8MFQ9Eu_tiK_Q8OA@mail.gmail.com>
+ <20150709175309.831326362@infradead.org>
+ <20150710071709.GA3905@osiris>
+ <20150710102210.GF19282@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:48372 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753608AbbGJKkJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2015 06:40:09 -0400
+Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:53597 "EHLO
+	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753947AbbGJKwK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2015 06:52:10 -0400
+Received: from /spool/local
+	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+	Fri, 10 Jul 2015 11:52:08 +0100
 Content-Disposition: inline
-In-Reply-To: <CAMuHMdXePQF9BL7OfTz+=FN5Hg9C=E6hAO8MFQ9Eu_tiK_Q8OA@mail.gmail.com>
+In-Reply-To: <20150710102210.GF19282@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, =?iso-8859-1?Q?H=E5vard?= Skinnemoen <hskinnemoen@gmail.com>, Miao Steven <realmz6@gmail.com>, David Howells <dhowells@redhat.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@ezchip.com>, Ingo Molnar <mingo@kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, davem@davemloft.net, cmetcalf@ezchip.com, mingo@kernel.org
 
-On Fri, Jul 10, 2015 at 11:10:33AM +0200, Geert Uytterhoeven wrote:
-> Hi Peter,
+On Fri, Jul 10, 2015 at 12:22:10PM +0200, Peter Zijlstra wrote:
+> On Fri, Jul 10, 2015 at 09:17:09AM +0200, Heiko Carstens wrote:
+> > > +static inline __deprecated void atomic_set_mask(unsigned int mask, atomic_t *v)
+> > >  {
+> > > -	__ATOMIC_LOOP(v, mask, __ATOMIC_OR, __ATOMIC_NO_BARRIER);
+> > > +	atomic_or(mask, v);
+> > >  }
+> > 
+> > If you insist on the __deprecated (no problem with that), I'd like to apply
+> > your patch to the s390 tree so I can convert all users.
+> > I would like to avoid to see tons of warnings.
 > 
-> On Thu, Jul 9, 2015 at 7:29 PM, Peter Zijlstra <peterz@infradead.org> wrote:
-> > --- a/include/linux/atomic.h
-> > +++ b/include/linux/atomic.h
-> > @@ -28,6 +28,23 @@ static inline int atomic_add_unless(atom
-> >  #define atomic_inc_not_zero(v)         atomic_add_unless((v), 1, 0)
-> >  #endif
-> >
-> > +#ifndef atomic_nand
-> > +static inline void atomic_nand(int i, atomic_t *v)
-> > +{
-> > +       atomic_and(~i, v);
-> 
-> That sounds like a misnomer...
-> 
-> Your NAND is "A & ~B", while my[*] NAND is "~(A & B)"?
-> 
-> [*] https://en.wikipedia.org/wiki/NAND_logic
+> See the last patch in this series, it does that conversion. Although I
+> might need to double check I got them all, its been a while since I did
+> that patch.
 
-Right you are.
-
-> What about atomic_clear()? (Is atomic_bic() too ARM-centric?)
-
-atomic_and_not() ?
+Ah right, I missed that. Then I'm happy with all the changes.
+Thanks for doing this nice cleanup!
