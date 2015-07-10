@@ -1,48 +1,37 @@
-From: Waiman Long <waiman.long@hp.com>
-Subject: Re: [PATCH-tip v2 0/2] locking/qrwlock: Improve qrwlock performance
-Date: Thu, 09 Jul 2015 21:16:26 -0400
-Message-ID: <559F1CEA.4060806@hp.com>
-References: <1436459543-29126-1-git-send-email-Waiman.Long@hp.com> <1436479469.27924.19.camel@stgolabs.net>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [RFC][PATCH 02/24] arc: Provide atomic_{or,xor,and}
+Date: Fri, 10 Jul 2015 04:30:46 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665AD246@IN01WEMBXB.internal.synopsys.com>
+References: <20150709172855.564686637@infradead.org>
+ <20150709175308.217482496@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g2t2353.austin.hp.com ([15.217.128.52]:20433 "EHLO
-	g2t2353.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750967AbbGJBQa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 9 Jul 2015 21:16:30 -0400
-In-Reply-To: <1436479469.27924.19.camel@stgolabs.net>
+Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:53738 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750805AbbGJEa4 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2015 00:30:56 -0400
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Davidlohr Bueso <dave@stgolabs.net>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+To: Peter Zijlstra <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: "rth@twiddle.net" <rth@twiddle.net>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "will.deacon@arm.com" <will.deacon@arm.com>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, "mingo@kernel.org" <mingo@kernel.org>
 
-On 07/09/2015 06:04 PM, Davidlohr Bueso wrote:
-> On Thu, 2015-07-09 at 12:32 -0400, Waiman Long wrote:
->> With this patch series in place, we can start converting some spinlocks
->> back to rwlocks where it makes sense and the lock size increase isn't
->> a concern.
-> Nice, have any users to convert? I can think of a few I've encountered,
-> but there must be quite a few, specially those nasty global spinlocks
-> where nobody cares about the size.
+On Thursday 09 July 2015 11:26 PM, Peter Zijlstra wrote:
+> Implement atomic logic ops -- atomic_{or,xor,and}.
 >
-> o hugetlb reservation map lock: Updating hugepage ranges does a two step
-> read/update for the reservation map. The first step could now be done
-> concurrently if converted.
+> These will replace the atomic_{set,clear}_mask functions that are
+> available on some archs.
 >
-> o The infamous swap_lock; although I doubt any of the serious offenders
-> (ie zswap callbacks) would benefit much for anything
-> beyond /proc/meminfo and related.
->
-> o async cookie sync wait_event, battery/ata bootup(?).
->
-> etc. etc. Obviously the fairness factor is also something to consider.
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 
-Yes, I saw a couple of global spinlocks that can be converted to 
-rwlocks. The read lock can be used for lookup, whereas the write lock is 
-used for modification. Doing so will enable parallel lookups. As the 
-qrwlock is almost fair compared with the old implementation, it removes 
-a big roadblock for the conversion.
+Acked-by: Vineet Gupta <vgupta@synopsys.com>
 
-Cheers,
-Longman
+Since we are on the topic, the cmpxchg() loop in arch/arc/kernel/smp.c still
+irritates me.
+Do we need a new set of primitives to operate atomically on non atomic_t data or
+does that mean that the data *not* being atomic_t but requiring such semantics is
+the fundamental problem and thus needs to be converted first.
+
+-Vineet
