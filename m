@@ -1,64 +1,92 @@
-From: Laurent Dufour <ldufour@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2] mm: cleaning per architecture MM hook header files
-Date: Fri, 10 Jul 2015 14:47:18 +0200
-Message-ID: <559FBED6.5080902@linux.vnet.ibm.com>
-References: <55924508.9080101@synopsys.com> <1435745853-27535-1-git-send-email-ldufour@linux.vnet.ibm.com> <20150709160934.888dad2b24ce45957e65b139@linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+From: Juergen Gross <jgross@suse.com>
+Subject: [Patch V5 12/16] mm: provide early_memremap_ro to establish read-only mapping
+Date: Fri, 10 Jul 2015 14:47:57 +0200
+Message-ID: <1436532481-1224-13-git-send-email-jgross@suse.com>
+References: <1436532481-1224-1-git-send-email-jgross@suse.com>
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20150709160934.888dad2b24ce45957e65b139@linux-foundation.org>
+In-Reply-To: <1436532481-1224-1-git-send-email-jgross@suse.com>
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Geert Uytterhoeven <geert@linux-m68k.org>, uclinux-h8-devel@lists.sourceforge.jp, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>
+To: linux-kernel@vger.kernel.org, xen-devel@lists.xensource.com, konrad.wilk@oracle.com, david.vrabel@citrix.com, boris.ostrovsky@oracle.com
+Cc: Juergen Gross <jgross@suse.com>, Arnd Bergmann <arnd@arndb.de>, linux-mm@kvack.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 10/07/2015 01:09, Andrew Morton wrote:
-> On Wed,  1 Jul 2015 12:17:33 +0200 Laurent Dufour <ldufour@linux.vnet.ibm.com> wrote:
-> 
->> The commit 2ae416b142b6 ("mm: new mm hook framework") introduced an empty
->> header file (mm-arch-hooks.h) for every architecture, even those which
->> doesn't need to define mm hooks.
->>
->> As suggested by Geert Uytterhoeven, this could be cleaned through the use
->> of a generic header file included via each per architecture
->> asm/include/Kbuild file.
->>
->> The PowerPC architecture is not impacted here since this architecture has
->> to defined the arch_remap MM hook.
-> 
-> So the way this works is that if an arch wants to override a hook, it
-> will remove the "generic-y += mm-arch-hooks.h" and add
-> arch/XXX/include/asm/mm-arch-hooks.h, yes?
->
-> And the new arch/XXX/include/asm/mm-arch-hooks.h only needs to define
-> the hook(s) which the arch wants to override?
+During early boot as Xen pv domain the kernel needs to map some page
+tables supplied by the hypervisor read only. This is needed to be
+able to relocate some data structures conflicting with the physical
+memory map especially on systems with huge RAM (above 512GB).
 
-Yes that's the way it should work.
+Provide the function early_memremap_ro() to provide this read only
+mapping.
 
-> So nothing will ever be added to include/asm-generic/mm-arch-hooks.h?
+Signed-off-by: Juergen Gross <jgross@suse.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-mm@kvack.org
+Cc: linux-arch@vger.kernel.org
+---
+ include/asm-generic/early_ioremap.h |  2 ++
+ include/asm-generic/fixmap.h        |  3 +++
+ mm/early_ioremap.c                  | 12 ++++++++++++
+ 3 files changed, 17 insertions(+)
 
-This file is the fallback one when no hooks is defined. It is here for
-the compiler happiness, and should be kept empty.
-
-> Seems fair enough.
-> 
-> Oleg is angling to remove arch_remap(), so there won't be anything left
-> in these files!  But there are plenty of ad-hoc things which *should*
-> be moved over.
-
-I'll try to move some hooks there as soon as I've so free time.
-
-> 
->> Changes in V2:
->> --------------
->>  - Vineet Gupta reported that the Kbuild files should be kept sorted.
-> 
-> Yes, we do this to avoid patch collisions.  Everyone always adds stuff
-> to the end of the list (Makefiles, #includes, etc etc), thus carefully
-> maximizing the number of patch collisions :(
-
-This makes sense.
+diff --git a/include/asm-generic/early_ioremap.h b/include/asm-generic/early_ioremap.h
+index a5de55c..316bd04 100644
+--- a/include/asm-generic/early_ioremap.h
++++ b/include/asm-generic/early_ioremap.h
+@@ -11,6 +11,8 @@ extern void __iomem *early_ioremap(resource_size_t phys_addr,
+ 				   unsigned long size);
+ extern void *early_memremap(resource_size_t phys_addr,
+ 			    unsigned long size);
++extern void *early_memremap_ro(resource_size_t phys_addr,
++			       unsigned long size);
+ extern void early_iounmap(void __iomem *addr, unsigned long size);
+ extern void early_memunmap(void *addr, unsigned long size);
+ 
+diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
+index f23174f..1cbb833 100644
+--- a/include/asm-generic/fixmap.h
++++ b/include/asm-generic/fixmap.h
+@@ -46,6 +46,9 @@ static inline unsigned long virt_to_fix(const unsigned long vaddr)
+ #ifndef FIXMAP_PAGE_NORMAL
+ #define FIXMAP_PAGE_NORMAL PAGE_KERNEL
+ #endif
++#if !defined(FIXMAP_PAGE_RO) && defined(PAGE_KERNEL_RO)
++#define FIXMAP_PAGE_RO PAGE_KERNEL_RO
++#endif
+ #ifndef FIXMAP_PAGE_NOCACHE
+ #define FIXMAP_PAGE_NOCACHE PAGE_KERNEL_NOCACHE
+ #endif
+diff --git a/mm/early_ioremap.c b/mm/early_ioremap.c
+index e10ccd2..0cfadaf 100644
+--- a/mm/early_ioremap.c
++++ b/mm/early_ioremap.c
+@@ -217,6 +217,13 @@ early_memremap(resource_size_t phys_addr, unsigned long size)
+ 	return (__force void *)__early_ioremap(phys_addr, size,
+ 					       FIXMAP_PAGE_NORMAL);
+ }
++#ifdef FIXMAP_PAGE_RO
++void __init *
++early_memremap_ro(resource_size_t phys_addr, unsigned long size)
++{
++	return (__force void *)__early_ioremap(phys_addr, size, FIXMAP_PAGE_RO);
++}
++#endif
+ #else /* CONFIG_MMU */
+ 
+ void __init __iomem *
+@@ -231,6 +238,11 @@ early_memremap(resource_size_t phys_addr, unsigned long size)
+ {
+ 	return (void *)phys_addr;
+ }
++void __init *
++early_memremap_ro(resource_size_t phys_addr, unsigned long size)
++{
++	return (void *)phys_addr;
++}
+ 
+ void __init early_iounmap(void __iomem *addr, unsigned long size)
+ {
+-- 
+2.1.4
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
