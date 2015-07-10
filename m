@@ -1,44 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:49073 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753903AbbGIWEi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 9 Jul 2015 18:04:38 -0400
-Message-ID: <1436479469.27924.19.camel@stgolabs.net>
-Subject: Re: [PATCH-tip v2 0/2] locking/qrwlock: Improve qrwlock performance
-From: Davidlohr Bueso <dave@stgolabs.net>
-Date: Thu, 09 Jul 2015 15:04:29 -0700
-In-Reply-To: <1436459543-29126-1-git-send-email-Waiman.Long@hp.com>
-References: <1436459543-29126-1-git-send-email-Waiman.Long@hp.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from casper.infradead.org ([85.118.1.10]:38497 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751739AbbGJHF1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2015 03:05:27 -0400
+Date: Fri, 10 Jul 2015 09:05:11 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][PATCH 02/24] arc: Provide atomic_{or,xor,and}
+Message-ID: <20150710070511.GE19282@twins.programming.kicks-ass.net>
+References: <20150709172855.564686637@infradead.org>
+ <20150709175308.217482496@infradead.org>
+ <C2D7FE5348E1B147BCA15975FBA23075665AD246@IN01WEMBXB.internal.synopsys.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075665AD246@IN01WEMBXB.internal.synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
-Message-ID: <20150709220429.cRqsgQZdkf1weFBATy2N1E27e52jydrNJ81zwN1F4mk@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "will.deacon@arm.com" <will.deacon@arm.com>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, "mingo@kernel.org" <mingo@kernel.org>
+Message-ID: <20150710070511.9AEfDAty39MU7h5uesqtO162i4a3vA2GSonNTDLTJdA@z>
 
-On Thu, 2015-07-09 at 12:32 -0400, Waiman Long wrote:
-> With this patch series in place, we can start converting some spinlocks
-> back to rwlocks where it makes sense and the lock size increase isn't
-> a concern.
+On Fri, Jul 10, 2015 at 04:30:46AM +0000, Vineet Gupta wrote:
+> 
+> Since we are on the topic, the cmpxchg() loop in arch/arc/kernel/smp.c still
+> irritates me.
+> Do we need a new set of primitives to operate atomically on non atomic_t data or
+> does that mean that the data *not* being atomic_t but requiring such semantics is
+> the fundamental problem and thus needs to be converted first.
 
-Nice, have any users to convert? I can think of a few I've encountered,
-but there must be quite a few, specially those nasty global spinlocks
-where nobody cares about the size.
+So if you look at the last patch, there's already a few sites that do
+things like:
 
-o hugetlb reservation map lock: Updating hugepage ranges does a two step
-read/update for the reservation map. The first step could now be done
-concurrently if converted.
++       atomic_or(*mask, (atomic_t *)&flushcache_cpumask);
 
-o The infamous swap_lock; although I doubt any of the serious offenders
-(ie zswap callbacks) would benefit much for anything
-beyond /proc/meminfo and related.
+Which is of course ugly as hell, but does work.
 
-o async cookie sync wait_event, battery/ata bootup(?).
+Esp. inside arch code.
 
-etc. etc. Obviously the fairness factor is also something to consider.
+Now the 'problem' with cmpxchg/xchg, the instructions working on !atomic
+data is:
 
-Thanks,
-Davidlohr 
+  http://lkml.kernel.org/r/alpine.LRH.2.02.1406011342470.20831@file01.intranet.prod.int.rdu2.redhat.com
+  http://lkml.kernel.org/r/20140606175316.GV13930@laptop.programming.kicks-ass.net
 
+And note that includes some arc.
+
+Adding more such primitives will only make it harder on those already
+'broken' archs.
