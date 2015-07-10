@@ -1,95 +1,56 @@
-From: Juergen Gross <jgross@suse.com>
-Subject: [Patch V5 12/16] mm: provide early_memremap_ro to establish read-only mapping
-Date: Fri, 10 Jul 2015 14:47:57 +0200
-Message-ID: <1436532481-1224-13-git-send-email-jgross@suse.com>
-References: <1436532481-1224-1-git-send-email-jgross@suse.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1436532481-1224-1-git-send-email-jgross@suse.com>
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org, xen-devel@lists.xensource.com, konrad.wilk@oracle.com, david.vrabel@citrix.com, boris.ostrovsky@oracle.com
-Cc: Juergen Gross <jgross@suse.com>, Arnd Bergmann <arnd@arndb.de>, linux-mm@kvack.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Chris Metcalf <cmetcalf@ezchip.com>
+Subject: Re: [RFC][PATCH 23/24] atomic: Collapse all atomic_{set,clear}_mask
+ definitions
+Date: Fri, 10 Jul 2015 09:34:04 -0400
+Message-ID: <559FC9CC.6000400@ezchip.com>
+References: <20150709172855.564686637@infradead.org>
+ <20150709175310.229218215@infradead.org>
+ <CAMuHMdXePQF9BL7OfTz+=FN5Hg9C=E6hAO8MFQ9Eu_tiK_Q8OA@mail.gmail.com>
+ <20150710103945.GH19282@twins.programming.kicks-ass.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-db3on0069.outbound.protection.outlook.com ([157.55.234.69]:59869
+	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S932355AbbGJNeD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 10 Jul 2015 09:34:03 -0400
+In-Reply-To: <20150710103945.GH19282@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>, Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, =?UTF-8?Q?H=c3=a5vard_Skinnemoen?= <hskinnemoen@gmail.com>, Miao Steven <realmz6@gmail.com>, David Howells <dhowells@redhat.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@kernel.org>
 
-During early boot as Xen pv domain the kernel needs to map some page
-tables supplied by the hypervisor read only. This is needed to be
-able to relocate some data structures conflicting with the physical
-memory map especially on systems with huge RAM (above 512GB).
+On 7/10/2015 6:39 AM, Peter Zijlstra wrote:
+> On Fri, Jul 10, 2015 at 11:10:33AM +0200, Geert Uytterhoeven wrote:
+>> Hi Peter,
+>>
+>> On Thu, Jul 9, 2015 at 7:29 PM, Peter Zijlstra <peterz@infradead.org> wrote:
+>>> --- a/include/linux/atomic.h
+>>> +++ b/include/linux/atomic.h
+>>> @@ -28,6 +28,23 @@ static inline int atomic_add_unless(atom
+>>>   #define atomic_inc_not_zero(v)         atomic_add_unless((v), 1, 0)
+>>>   #endif
+>>>
+>>> +#ifndef atomic_nand
+>>> +static inline void atomic_nand(int i, atomic_t *v)
+>>> +{
+>>> +       atomic_and(~i, v);
+>> That sounds like a misnomer...
+>>
+>> Your NAND is "A & ~B", while my[*] NAND is "~(A & B)"?
+>>
+>> [*] https://en.wikipedia.org/wiki/NAND_logic
+> Right you are.
+>
+>> What about atomic_clear()? (Is atomic_bic() too ARM-centric?)
+> atomic_and_not() ?
 
-Provide the function early_memremap_ro() to provide this read only
-mapping.
+I've seen this as ANDN (as opposed to NAND).  That's the name I used in
+the tilepro atomics as the thing that implements the bitmask clear operation.
+SPARC also has an "andn" instruction with this semantics.
 
-Signed-off-by: Juergen Gross <jgross@suse.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-mm@kvack.org
-Cc: linux-arch@vger.kernel.org
----
- include/asm-generic/early_ioremap.h |  2 ++
- include/asm-generic/fixmap.h        |  3 +++
- mm/early_ioremap.c                  | 12 ++++++++++++
- 3 files changed, 17 insertions(+)
-
-diff --git a/include/asm-generic/early_ioremap.h b/include/asm-generic/early_ioremap.h
-index a5de55c..316bd04 100644
---- a/include/asm-generic/early_ioremap.h
-+++ b/include/asm-generic/early_ioremap.h
-@@ -11,6 +11,8 @@ extern void __iomem *early_ioremap(resource_size_t phys_addr,
- 				   unsigned long size);
- extern void *early_memremap(resource_size_t phys_addr,
- 			    unsigned long size);
-+extern void *early_memremap_ro(resource_size_t phys_addr,
-+			       unsigned long size);
- extern void early_iounmap(void __iomem *addr, unsigned long size);
- extern void early_memunmap(void *addr, unsigned long size);
- 
-diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
-index f23174f..1cbb833 100644
---- a/include/asm-generic/fixmap.h
-+++ b/include/asm-generic/fixmap.h
-@@ -46,6 +46,9 @@ static inline unsigned long virt_to_fix(const unsigned long vaddr)
- #ifndef FIXMAP_PAGE_NORMAL
- #define FIXMAP_PAGE_NORMAL PAGE_KERNEL
- #endif
-+#if !defined(FIXMAP_PAGE_RO) && defined(PAGE_KERNEL_RO)
-+#define FIXMAP_PAGE_RO PAGE_KERNEL_RO
-+#endif
- #ifndef FIXMAP_PAGE_NOCACHE
- #define FIXMAP_PAGE_NOCACHE PAGE_KERNEL_NOCACHE
- #endif
-diff --git a/mm/early_ioremap.c b/mm/early_ioremap.c
-index e10ccd2..0cfadaf 100644
---- a/mm/early_ioremap.c
-+++ b/mm/early_ioremap.c
-@@ -217,6 +217,13 @@ early_memremap(resource_size_t phys_addr, unsigned long size)
- 	return (__force void *)__early_ioremap(phys_addr, size,
- 					       FIXMAP_PAGE_NORMAL);
- }
-+#ifdef FIXMAP_PAGE_RO
-+void __init *
-+early_memremap_ro(resource_size_t phys_addr, unsigned long size)
-+{
-+	return (__force void *)__early_ioremap(phys_addr, size, FIXMAP_PAGE_RO);
-+}
-+#endif
- #else /* CONFIG_MMU */
- 
- void __init __iomem *
-@@ -231,6 +238,11 @@ early_memremap(resource_size_t phys_addr, unsigned long size)
- {
- 	return (void *)phys_addr;
- }
-+void __init *
-+early_memremap_ro(resource_size_t phys_addr, unsigned long size)
-+{
-+	return (void *)phys_addr;
-+}
- 
- void __init early_iounmap(void __iomem *addr, unsigned long size)
- {
 -- 
-2.1.4
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Chris Metcalf, EZChip Semiconductor
+http://www.ezchip.com
