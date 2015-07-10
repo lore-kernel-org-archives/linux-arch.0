@@ -1,41 +1,45 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 04/24] arm64: Provide atomic_{or,xor,and}
-Date: Fri, 10 Jul 2015 18:23:56 +0200
-Message-ID: <20150710162356.GM19282@twins.programming.kicks-ass.net>
+Subject: Re: [RFC][PATCH 23/24] atomic: Collapse all atomic_{set,clear}_mask
+ definitions
+Date: Fri, 10 Jul 2015 18:27:39 +0200
+Message-ID: <20150710162739.GN19282@twins.programming.kicks-ass.net>
 References: <20150709172855.564686637@infradead.org>
- <20150709175308.361407648@infradead.org>
- <20150710084258.GA29323@arm.com>
+ <20150709175310.229218215@infradead.org>
+ <CAMuHMdXePQF9BL7OfTz+=FN5Hg9C=E6hAO8MFQ9Eu_tiK_Q8OA@mail.gmail.com>
+ <20150710103945.GH19282@twins.programming.kicks-ass.net>
+ <559FC9CC.6000400@ezchip.com>
+ <20150710134256.GS7557@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from casper.infradead.org ([85.118.1.10]:41464 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932155AbbGJQ1o (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2015 12:27:44 -0400
 Content-Disposition: inline
-In-Reply-To: <20150710084258.GA29323@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, min
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20150710134256.GS7557@n2100.arm.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Chris Metcalf <cmetcalf@ezchip.com>, Geert Uytterhoeven <geert@linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Will Deacon <will.deacon@arm.com>, =?iso-8859-1?Q?H=E5vard?= Skinnemoen <hskinnemoen@gmail.com>, Miao Steven <realmz6@gmail.com>, David Howells <dhowells@redhat.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@kernel.org>
 
-On Fri, Jul 10, 2015 at 09:42:59AM +0100, Will Deacon wrote:
-> Hi Peter,
+On Fri, Jul 10, 2015 at 02:42:56PM +0100, Russell King - ARM Linux wrote:
+> The obvious question though is whether we have an established name for this
+> operation elsewhere in the kernel, and whether we should have consistency.
+
+Consistency is good.
+
+> In include/linux, we already have (grepping for 'and_*not'):
 > 
-> On Thu, Jul 09, 2015 at 06:28:59PM +0100, Peter Zijlstra wrote:
-> > Implement atomic logic ops -- atomic_{or,xor,and}.
-> > 
-> > These will replace the atomic_{set,clear}_mask functions that are
-> > available on some archs.
-> > 
-> > 
-> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > ---
+> include/linux/nodemask.h:#define nodes_andnot(dst, src1, src2) \
+> include/linux/bitmap.h:extern int __bitmap_andnot(unsigned long *dst, const unsigned long *bitmap1,
+> include/linux/cpumask.h:static inline int cpumask_andnot(struct cpumask *dstp,
 > 
-> Whilst this is pretty straight-foward, I have some serious rework on arm64
-> atomic.h pending, so do you mind if I take this via the arm64 tree and
-> resolve the conflicts myself?
+> We also have:
+> 
+> include/linux/signal.h:#define _sig_andn(x,y)       ((x) & ~(y))
+> 
+> which seems to be the only instance of "andn" in include/.
 
-Are those public anywhere.. The thing is, at the end of this series I
-pretty much assume all archs will have these ops available, so whatever
-tree I stick the rest in woudl have to pull in your branch too.
-
-Also, IF you apply locally, do not forget to s/or/orr/ on the 64bit
-versions, I seem to have missed updating those, just like I did on 32bit
-arm.
+How about I rename the _sig_andn one to _sig_andnot, and go with
+atomic_andnot, to match the *mask functions.
