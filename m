@@ -1,41 +1,50 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [RFC][PATCH 10/24] m68k: Provide atomic_{or,xor,and}
-Date: Fri, 10 Jul 2015 11:13:48 +0200
-Message-ID: <CAMuHMdV8Km5Ko2-uvZaALNsLOb0bSCeBp9N_U0ayDSwyQg7srQ@mail.gmail.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [RFC][PATCH 23/24] atomic: Collapse all atomic_{set,clear}_mask
+ definitions
+Date: Fri, 10 Jul 2015 09:13:58 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665AD392@IN01WEMBXB.internal.synopsys.com>
 References: <20150709172855.564686637@infradead.org>
-	<20150709175308.927665458@infradead.org>
+	<20150709175310.229218215@infradead.org>
+ <CAMuHMdXePQF9BL7OfTz+=FN5Hg9C=E6hAO8MFQ9Eu_tiK_Q8OA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f173.google.com ([209.85.214.173]:33438 "EHLO
-	mail-ob0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753104AbbGJJNs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2015 05:13:48 -0400
-In-Reply-To: <20150709175308.927665458@infradead.org>
+Received: from smtprelay4.synopsys.com ([198.182.47.9]:58090 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753589AbbGJJOH convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2015 05:14:07 -0400
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, =?UTF-8?Q?H=C3=A5vard_Skinnemoen?= <hskinnemoen@gmail.com>, Miao Steven <realmz6@gmail.com>, David Howells <dhowells@redhat.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@ezchip.com>, Ingo Molnar <mingo@kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Russell King <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, =?iso-8859-1?Q?H=E5vard_Skinnemoen?= <hskinnemoen@gmail.com>, Miao Steven <realmz6@gmail.com>, David Howells <dhowells@redhat.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@ezchip.com>, Ingo Molnar <mingo@kernel.org>
 
-On Thu, Jul 9, 2015 at 7:29 PM, Peter Zijlstra <peterz@infradead.org> wrote:
-> Implement atomic logic ops -- atomic_{or,xor,and}.
+On Friday 10 July 2015 02:40 PM, Geert Uytterhoeven wrote:
+> Hi Peter,
 >
-> These will replace the atomic_{set,clear}_mask functions that are
-> available on some archs.
+> On Thu, Jul 9, 2015 at 7:29 PM, Peter Zijlstra <peterz@infradead.org> wrote:
+>> > --- a/include/linux/atomic.h
+>> > +++ b/include/linux/atomic.h
+>> > @@ -28,6 +28,23 @@ static inline int atomic_add_unless(atom
+>> >  #define atomic_inc_not_zero(v)         atomic_add_unless((v), 1, 0)
+>> >  #endif
+>> >
+>> > +#ifndef atomic_nand
+>> > +static inline void atomic_nand(int i, atomic_t *v)
+>> > +{
+>> > +       atomic_and(~i, v);
+> That sounds like a misnomer...
 >
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> Your NAND is "A & ~B", while my[*] NAND is "~(A & B)"?
+>
+> [*] https://en.wikipedia.org/wiki/NAND_logic
+>
+> What about atomic_clear()? (Is atomic_bic() too ARM-centric?)
+>
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+ARM + ARC centric :-)
 
-(it builds, even if I add a user of atomic_xor())
+We have the BIC instruction as well which does the same: A & ~B
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+-Vineet
