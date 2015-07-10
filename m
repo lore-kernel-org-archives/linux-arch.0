@@ -1,39 +1,44 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC][PATCH 04/24] arm64: Provide atomic_{or,xor,and}
-Date: Fri, 10 Jul 2015 09:42:59 +0100
-Message-ID: <20150710084258.GA29323@arm.com>
-References: <20150709172855.564686637@infradead.org>
- <20150709175308.361407648@infradead.org>
+From: Arend van Spriel <arend@broadcom.com>
+Subject: Re: [PATCH 2/3] brcmfmac: dhd_sdio.c: use existing atomic_or primitive
+Date: Fri, 10 Jul 2015 11:05:02 +0200
+Message-ID: <559F8ABE.2080805@broadcom.com>
+References: <1436429599-10762-1-git-send-email-vgupta@synopsys.com> <1436429599-10762-3-git-send-email-vgupta@synopsys.com> <559EBC91.2070600@broadcom.com> <C2D7FE5348E1B147BCA15975FBA23075665AD26A@IN01WEMBXB.internal.synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:49861 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753938AbbGJInH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Jul 2015 04:43:07 -0400
-Content-Disposition: inline
-In-Reply-To: <20150709175308.361407648@infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, min
+Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <netdev-owner@vger.kernel.org>
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075665AD26A@IN01WEMBXB.internal.synopsys.com>
+Sender: netdev-owner@vger.kernel.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Brett Rudley <brudley@broadcom.com>, "Franky (Zhenhui) Lin" <frankyl@broadcom.com>, Hante Meuleman <meuleman@broadcom.com>, Kalle Valo <kvalo@codeaurora.org>, Pieter-Paul Giesberts <pieterpg@broadcom.com>, Daniel Kim <dekim@broadcom.com>, "linux-wireless@vger.kernel.org" <linux-wireless@vger.kernel.org>, "brcm80211-dev-list@broadcom.com" <brcm80211-dev-list@broadcom.com>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Peter,
+On 07/10/2015 06:49 AM, Vineet Gupta wrote:
+> On Thursday 09 July 2015 11:55 PM, Arend van Spriel wrote:
+>> On 07/09/2015 10:13 AM, Vineet Gupta wrote:
+>>>> There's already a generic implementation so use that instead.
+>> There is or there was? If there is now I am fine with this patch, but if
+>> it already was there the author might have had a reason for adding a
+>> local function and I would like to hear that reason.
+>>
+>
+> atomic_orr() was introduced to this driver with
+>
+> 2014-03-06 5cbb9c285bdc brcmfmac: Use atomic functions for intstatus update.
+>
+> as it seems atomic_set_mask() was not available cross arch. And atomic_or() in
+> generic code was indeed introduced after that
+>
+> 2014-04-23 560cb12a4080 locking,arch: Rewrite generic atomic support
+>
+> Hence likely the reason author went with home grown atomic_orr()
 
-On Thu, Jul 09, 2015 at 06:28:59PM +0100, Peter Zijlstra wrote:
-> Implement atomic logic ops -- atomic_{or,xor,and}.
-> 
-> These will replace the atomic_{set,clear}_mask functions that are
-> available on some archs.
-> 
-> 
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> ---
+Hi Vineet
 
-Whilst this is pretty straight-foward, I have some serious rework on arm64
-atomic.h pending, so do you mind if I take this via the arm64 tree and
-resolve the conflicts myself?
+Thanks for looking into the timeline. Will look into it and let you know.
 
-Cheers,
+Regards,
+Arend
 
-Will
+> -Vineet
+>
