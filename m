@@ -1,50 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gw1-out.broadcom.com ([216.31.210.62]:24054 "EHLO
-	mail-gw1-out.broadcom.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753036AbbGJJFI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2015 05:05:08 -0400
-Message-ID: <559F8ABE.2080805@broadcom.com>
-Date: Fri, 10 Jul 2015 11:05:02 +0200
-From: Arend van Spriel <arend@broadcom.com>
+Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:48306 "EHLO
+	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753571AbbGJM52 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2015 08:57:28 -0400
+Received: from /spool/local
+	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <ldufour@linux.vnet.ibm.com>;
+	Fri, 10 Jul 2015 13:47:23 +0100
+Message-ID: <559FBED6.5080902@linux.vnet.ibm.com>
+Date: Fri, 10 Jul 2015 14:47:18 +0200
+From: Laurent Dufour <ldufour@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 2/3] brcmfmac: dhd_sdio.c: use existing atomic_or primitive
-References: <1436429599-10762-1-git-send-email-vgupta@synopsys.com> <1436429599-10762-3-git-send-email-vgupta@synopsys.com> <559EBC91.2070600@broadcom.com> <C2D7FE5348E1B147BCA15975FBA23075665AD26A@IN01WEMBXB.internal.synopsys.com>
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075665AD26A@IN01WEMBXB.internal.synopsys.com>
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Subject: Re: [PATCH v2] mm: cleaning per architecture MM hook header files
+References: <55924508.9080101@synopsys.com> <1435745853-27535-1-git-send-email-ldufour@linux.vnet.ibm.com> <20150709160934.888dad2b24ce45957e65b139@linux-foundation.org>
+In-Reply-To: <20150709160934.888dad2b24ce45957e65b139@linux-foundation.org>
+Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Brett Rudley <brudley@broadcom.com>, "Franky (Zhenhui) Lin" <frankyl@broadcom.com>, Hante Meuleman <meuleman@broadcom.com>, Kalle Valo <kvalo@codeaurora.org>, Pieter-Paul Giesberts <pieterpg@broadcom.com>, Daniel Kim <dekim@broadcom.com>, "linux-wireless@vger.kernel.org" <linux-wireless@vger.kernel.org>, "brcm80211-dev-list@broadcom.com" <brcm80211-dev-list@broadcom.com>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
-Message-ID: <20150710090502.cnFviAHn4iasNS6oEL5ocmKmySniU16yvY20RN4E1gk@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Geert Uytterhoeven <geert@linux-m68k.org>, uclinux-h8-devel@lists.sourceforge.jp, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>
+Message-ID: <20150710124718.-rmOyflOzthJb6u4lOTnZ_5v8X6qQb2IFQtuvBhqzVY@z>
 
-On 07/10/2015 06:49 AM, Vineet Gupta wrote:
-> On Thursday 09 July 2015 11:55 PM, Arend van Spriel wrote:
->> On 07/09/2015 10:13 AM, Vineet Gupta wrote:
->>>> There's already a generic implementation so use that instead.
->> There is or there was? If there is now I am fine with this patch, but if
->> it already was there the author might have had a reason for adding a
->> local function and I would like to hear that reason.
+On 10/07/2015 01:09, Andrew Morton wrote:
+> On Wed,  1 Jul 2015 12:17:33 +0200 Laurent Dufour <ldufour@linux.vnet.ibm.com> wrote:
+> 
+>> The commit 2ae416b142b6 ("mm: new mm hook framework") introduced an empty
+>> header file (mm-arch-hooks.h) for every architecture, even those which
+>> doesn't need to define mm hooks.
 >>
+>> As suggested by Geert Uytterhoeven, this could be cleaned through the use
+>> of a generic header file included via each per architecture
+>> asm/include/Kbuild file.
+>>
+>> The PowerPC architecture is not impacted here since this architecture has
+>> to defined the arch_remap MM hook.
+> 
+> So the way this works is that if an arch wants to override a hook, it
+> will remove the "generic-y += mm-arch-hooks.h" and add
+> arch/XXX/include/asm/mm-arch-hooks.h, yes?
 >
-> atomic_orr() was introduced to this driver with
->
-> 2014-03-06 5cbb9c285bdc brcmfmac: Use atomic functions for intstatus update.
->
-> as it seems atomic_set_mask() was not available cross arch. And atomic_or() in
-> generic code was indeed introduced after that
->
-> 2014-04-23 560cb12a4080 locking,arch: Rewrite generic atomic support
->
-> Hence likely the reason author went with home grown atomic_orr()
+> And the new arch/XXX/include/asm/mm-arch-hooks.h only needs to define
+> the hook(s) which the arch wants to override?
 
-Hi Vineet
+Yes that's the way it should work.
 
-Thanks for looking into the timeline. Will look into it and let you know.
+> So nothing will ever be added to include/asm-generic/mm-arch-hooks.h?
 
-Regards,
-Arend
+This file is the fallback one when no hooks is defined. It is here for
+the compiler happiness, and should be kept empty.
 
-> -Vineet
->
+> Seems fair enough.
+> 
+> Oleg is angling to remove arch_remap(), so there won't be anything left
+> in these files!  But there are plenty of ad-hoc things which *should*
+> be moved over.
+
+I'll try to move some hooks there as soon as I've so free time.
+
+> 
+>> Changes in V2:
+>> --------------
+>>  - Vineet Gupta reported that the Kbuild files should be kept sorted.
+> 
+> Yes, we do this to avoid patch collisions.  Everyone always adds stuff
+> to the end of the list (Makefiles, #includes, etc etc), thus carefully
+> maximizing the number of patch collisions :(
+
+This makes sense.
 
