@@ -1,37 +1,42 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC][PATCH 02/24] arc: Provide atomic_{or,xor,and}
-Date: Fri, 10 Jul 2015 04:30:46 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665AD246@IN01WEMBXB.internal.synopsys.com>
-References: <20150709172855.564686637@infradead.org>
- <20150709175308.217482496@infradead.org>
+Subject: Re: [PATCH 2/3] brcmfmac: dhd_sdio.c: use existing atomic_or
+ primitive
+Date: Fri, 10 Jul 2015 04:49:04 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665AD26A@IN01WEMBXB.internal.synopsys.com>
+References: <1436429599-10762-1-git-send-email-vgupta@synopsys.com>
+ <1436429599-10762-3-git-send-email-vgupta@synopsys.com>
+ <559EBC91.2070600@broadcom.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:53738 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750805AbbGJEa4 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2015 00:30:56 -0400
+Received: from smtprelay2.synopsys.com ([198.182.60.111]:33650 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751010AbbGJEuS convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2015 00:50:18 -0400
 Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Cc: "rth@twiddle.net" <rth@twiddle.net>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "will.deacon@arm.com" <will.deacon@arm.com>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, "mingo@kernel.org" <mingo@kernel.org>
+To: Arend van Spriel <arend@broadcom.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Brett Rudley <brudley@broadcom.com>, "Franky (Zhenhui) Lin" <frankyl@broadcom.com>, Hante Meuleman <meuleman@broadcom.com>, Kalle Valo <kvalo@codeaurora.org>, Pieter-Paul Giesberts <pieterpg@broadcom.com>, Daniel Kim <dekim@broadcom.com>, "linux-wireless@vger.kernel.org" <linux-wireless@vger.kernel.org>, "brcm80211-dev-list@broadcom.com" <brcm80211-dev-list@broadcom.com>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
 
-On Thursday 09 July 2015 11:26 PM, Peter Zijlstra wrote:
-> Implement atomic logic ops -- atomic_{or,xor,and}.
+On Thursday 09 July 2015 11:55 PM, Arend van Spriel wrote:
+> On 07/09/2015 10:13 AM, Vineet Gupta wrote:
+>> > There's already a generic implementation so use that instead.
+> There is or there was? If there is now I am fine with this patch, but if 
+> it already was there the author might have had a reason for adding a 
+> local function and I would like to hear that reason.
 >
-> These will replace the atomic_{set,clear}_mask functions that are
-> available on some archs.
->
-> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 
-Acked-by: Vineet Gupta <vgupta@synopsys.com>
+atomic_orr() was introduced to this driver with
 
-Since we are on the topic, the cmpxchg() loop in arch/arc/kernel/smp.c still
-irritates me.
-Do we need a new set of primitives to operate atomically on non atomic_t data or
-does that mean that the data *not* being atomic_t but requiring such semantics is
-the fundamental problem and thus needs to be converted first.
+2014-03-06 5cbb9c285bdc brcmfmac: Use atomic functions for intstatus update. 
+
+as it seems atomic_set_mask() was not available cross arch. And atomic_or() in
+generic code was indeed introduced after that
+
+2014-04-23 560cb12a4080 locking,arch: Rewrite generic atomic support 
+
+Hence likely the reason author went with home grown atomic_orr()
 
 -Vineet
