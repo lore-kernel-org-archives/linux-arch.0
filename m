@@ -1,50 +1,48 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [RFC][PATCH 03/24] arm: Provide atomic_{or,xor,and}
-Date: Fri, 10 Jul 2015 11:24:36 +0100
-Message-ID: <20150710102436.GQ7557@n2100.arm.linux.org.uk>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][PATCH 23/24] atomic: Collapse all atomic_{set,clear}_mask
+ definitions
+Date: Fri, 10 Jul 2015 12:39:45 +0200
+Message-ID: <20150710103945.GH19282@twins.programming.kicks-ass.net>
 References: <20150709172855.564686637@infradead.org>
- <20150709175308.296642297@infradead.org>
- <20150709180223.GF3644@twins.programming.kicks-ass.net>
+ <20150709175310.229218215@infradead.org>
+ <CAMuHMdXePQF9BL7OfTz+=FN5Hg9C=E6hAO8MFQ9Eu_tiK_Q8OA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.arm.linux.org.uk ([78.32.30.218]:60788 "EHLO
-	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753334AbbGJKY4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2015 06:24:56 -0400
+Received: from bombadil.infradead.org ([198.137.202.9]:48372 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753608AbbGJKkJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2015 06:40:09 -0400
 Content-Disposition: inline
-In-Reply-To: <20150709180223.GF3644@twins.programming.kicks-ass.net>
+In-Reply-To: <CAMuHMdXePQF9BL7OfTz+=FN5Hg9C=E6hAO8MFQ9Eu_tiK_Q8OA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, rth@twiddle.net, vgupta@synopsys.com, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, davem@davemloft.net, cmetcalf@ezchip.com, mingo@kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, Will Deacon <will.deacon@arm.com>, =?iso-8859-1?Q?H=E5vard?= Skinnemoen <hskinnemoen@gmail.com>, Miao Steven <realmz6@gmail.com>, David Howells <dhowells@redhat.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@ezchip.com>, Ingo Molnar <mingo@kernel.org>
 
-On Thu, Jul 09, 2015 at 08:02:23PM +0200, Peter Zijlstra wrote:
-> On Thu, Jul 09, 2015 at 07:28:58PM +0200, Peter Zijlstra wrote:
-> > @@ -320,6 +323,9 @@ static inline long long atomic64_##op##_
-> >  
-> >  ATOMIC64_OPS(add, adds, adc)
-> >  ATOMIC64_OPS(sub, subs, sbc)
-> > +ATOMIC64_OP(and, and, and)
-> > +ATOMIC64_OP(or, or, or)
+On Fri, Jul 10, 2015 at 11:10:33AM +0200, Geert Uytterhoeven wrote:
+> Hi Peter,
 > 
-> Hmm, reading through them, this should be:
+> On Thu, Jul 9, 2015 at 7:29 PM, Peter Zijlstra <peterz@infradead.org> wrote:
+> > --- a/include/linux/atomic.h
+> > +++ b/include/linux/atomic.h
+> > @@ -28,6 +28,23 @@ static inline int atomic_add_unless(atom
+> >  #define atomic_inc_not_zero(v)         atomic_add_unless((v), 1, 0)
+> >  #endif
+> >
+> > +#ifndef atomic_nand
+> > +static inline void atomic_nand(int i, atomic_t *v)
+> > +{
+> > +       atomic_and(~i, v);
 > 
-> ATOMIC64_OP(or, orr, orr)
+> That sounds like a misnomer...
 > 
-> I suppose, not sure why the compiler didn't complain, maybe because
-> there aren't any users..
+> Your NAND is "A & ~B", while my[*] NAND is "~(A & B)"?
+> 
+> [*] https://en.wikipedia.org/wiki/NAND_logic
 
-Yep, as it creates a static inline function, the code will only get
-produced if something uses it, and which point the assembler would have
-picked up on the error.
+Right you are.
 
-In any case, with that modification, the patch then _looks_ correct to
-me for both atomic and atomic64 additions.  Not tested myself.
+> What about atomic_clear()? (Is atomic_bic() too ARM-centric?)
 
-I guess as you're only looking for comments at the moment, there's
-little point in acking it just yet.
-
--- 
-FTTC broadband for 0.8mile line: currently at 10.5Mbps down 400kbps up
-according to speedtest.net.
+atomic_and_not() ?
