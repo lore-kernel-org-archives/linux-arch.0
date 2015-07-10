@@ -1,42 +1,48 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 2/3] brcmfmac: dhd_sdio.c: use existing atomic_or
- primitive
-Date: Fri, 10 Jul 2015 04:49:04 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665AD26A@IN01WEMBXB.internal.synopsys.com>
-References: <1436429599-10762-1-git-send-email-vgupta@synopsys.com>
- <1436429599-10762-3-git-send-email-vgupta@synopsys.com>
- <559EBC91.2070600@broadcom.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC][PATCH 02/24] arc: Provide atomic_{or,xor,and}
+Date: Fri, 10 Jul 2015 09:05:11 +0200
+Message-ID: <20150710070511.GE19282@twins.programming.kicks-ass.net>
+References: <20150709172855.564686637@infradead.org>
+ <20150709175308.217482496@infradead.org>
+ <C2D7FE5348E1B147BCA15975FBA23075665AD246@IN01WEMBXB.internal.synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay2.synopsys.com ([198.182.60.111]:33650 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751010AbbGJEuS convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2015 00:50:18 -0400
-Content-Language: en-US
+Received: from casper.infradead.org ([85.118.1.10]:38497 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751739AbbGJHF1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2015 03:05:27 -0400
+Content-Disposition: inline
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075665AD246@IN01WEMBXB.internal.synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arend van Spriel <arend@broadcom.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Brett Rudley <brudley@broadcom.com>, "Franky (Zhenhui) Lin" <frankyl@broadcom.com>, Hante Meuleman <meuleman@broadcom.com>, Kalle Valo <kvalo@codeaurora.org>, Pieter-Paul Giesberts <pieterpg@broadcom.com>, Daniel Kim <dekim@broadcom.com>, "linux-wireless@vger.kernel.org" <linux-wireless@vger.kernel.org>, "brcm80211-dev-list@broadcom.com" <brcm80211-dev-list@broadcom.com>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "will.deacon@arm.com" <will.deacon@arm.com>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, min
 
-On Thursday 09 July 2015 11:55 PM, Arend van Spriel wrote:
-> On 07/09/2015 10:13 AM, Vineet Gupta wrote:
->> > There's already a generic implementation so use that instead.
-> There is or there was? If there is now I am fine with this patch, but if 
-> it already was there the author might have had a reason for adding a 
-> local function and I would like to hear that reason.
->
+On Fri, Jul 10, 2015 at 04:30:46AM +0000, Vineet Gupta wrote:
+> 
+> Since we are on the topic, the cmpxchg() loop in arch/arc/kernel/smp.c still
+> irritates me.
+> Do we need a new set of primitives to operate atomically on non atomic_t data or
+> does that mean that the data *not* being atomic_t but requiring such semantics is
+> the fundamental problem and thus needs to be converted first.
 
-atomic_orr() was introduced to this driver with
+So if you look at the last patch, there's already a few sites that do
+things like:
 
-2014-03-06 5cbb9c285bdc brcmfmac: Use atomic functions for intstatus update. 
++       atomic_or(*mask, (atomic_t *)&flushcache_cpumask);
 
-as it seems atomic_set_mask() was not available cross arch. And atomic_or() in
-generic code was indeed introduced after that
+Which is of course ugly as hell, but does work.
 
-2014-04-23 560cb12a4080 locking,arch: Rewrite generic atomic support 
+Esp. inside arch code.
 
-Hence likely the reason author went with home grown atomic_orr()
+Now the 'problem' with cmpxchg/xchg, the instructions working on !atomic
+data is:
 
--Vineet
+  http://lkml.kernel.org/r/alpine.LRH.2.02.1406011342470.20831@file01.intranet.prod.int.rdu2.redhat.com
+  http://lkml.kernel.org/r/20140606175316.GV13930@laptop.programming.kicks-ass.net
+
+And note that includes some arc.
+
+Adding more such primitives will only make it harder on those already
+'broken' archs.
