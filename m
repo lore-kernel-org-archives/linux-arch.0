@@ -1,18 +1,18 @@
 From: Chris Metcalf <cmetcalf@ezchip.com>
 Subject: Re: [RFC][PATCH 23/24] atomic: Collapse all atomic_{set,clear}_mask
  definitions
-Date: Fri, 10 Jul 2015 13:35:13 -0400
-Message-ID: <55A00251.8020405@ezchip.com>
+Date: Fri, 10 Jul 2015 15:45:46 -0400
+Message-ID: <55A020EA.9060000@ezchip.com>
 References: <20150709172855.564686637@infradead.org> <20150709175310.229218215@infradead.org> <CAMuHMdXePQF9BL7OfTz+=FN5Hg9C=E6hAO8MFQ9Eu_tiK_Q8OA@mail.gmail.com> <20150710103945.GH19282@twins.programming.kicks-ass.net> <559FC9CC.6000400@ezchip.com> <20150710134256.GS7557@n2100.arm.linux.org.uk> <20150710162739.GN19282@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="windows-1252"; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-am1on0099.outbound.protection.outlook.com ([157.56.112.99]:17680
-	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
+Received: from mail-db3on0053.outbound.protection.outlook.com ([157.55.234.53]:49472
+	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S932450AbbGJRfm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Jul 2015 13:35:42 -0400
+	id S932290AbbGJTqD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 10 Jul 2015 15:46:03 -0400
 In-Reply-To: <20150710162739.GN19282@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -39,9 +39,14 @@ On 07/10/2015 12:27 PM, Peter Zijlstra wrote:
 > How about I rename the _sig_andn one to _sig_andnot, and go with
 > atomic_andnot, to match the *mask functions.
 
-I'll respin my patch to just tweak tilepro's "andn" to use
-"andnot" as well while I'm at it, then.  Making "andnot" a stand-alone
-patch would cause conflicts so it might as well go in with your change.
+On further examination, there is also FUTEX_OP_ANDN, which is originally 
+what
+inspired me to use the name atomic_andn().  So I think churning the 
+nomenclature
+around for tilepro isn't really particularly helpful, and I won't bother.
+
+In any case I think "andn" and "andnot" are both fine names for 
+atomic_xxx :-)
 
 -- 
 Chris Metcalf, EZChip Semiconductor
