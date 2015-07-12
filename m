@@ -1,58 +1,42 @@
-From: Larry Finger <Larry.Finger@lwfinger.net>
-Subject: [PATCH V2] bug: Fix build error in V4.2-RC1
-Date: Sun, 12 Jul 2015 16:27:30 -0500
-Message-ID: <1436736450-17345-1-git-send-email-Larry.Finger@lwfinger.net>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: [PATCH 0/3] IRQ trivial clarifications
+Date: Sun, 12 Jul 2015 17:01:45 -0500
+Message-ID: <20150712215559.7166.33068.stgit@bhelgaas-glaptop2.roam.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f49.google.com ([209.85.218.49]:35189 "EHLO
-	mail-oi0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751111AbbGLV1i (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 12 Jul 2015 17:27:38 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Larry Finger <Larry.Finger@lwfinger.net>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-parisc-owner@vger.kernel.org>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-am33-list@redhat.com, linux-ia64@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-alpha@vger.kernel.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-If CONFIG_BUG is not defined, then macro __WARN is not defined. This sh=
-ows
-as the following build error:
+These don't fix anything at all.  But they might make code understanding
+and debugging slightly easier.
 
-  CC [M]  drivers/media/v4l2-core/videobuf2-core.o
-drivers/media/v4l2-core/videobuf2-core.c: In function =E2=80=98vb2_warn=
-_zero_bytesused=E2=80=99:
-drivers/media/v4l2-core/videobuf2-core.c:1253:2: error: implicit declar=
-ation of function =E2=80=98__WARN=E2=80=99 [-Werror=3Dimplicit-function=
--declaration]
-  __WARN();
-  ^
-This problem has been bisected to commit 77a3c6fd90c94f635edb00d4a65f48=
-5687538791.
-
-Signed-off-by: Larry Finger <Larry.Finger@lwfinger.net>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
 ---
 
-V2 - Fix infinite loop for __WARN as noted by Joe Perches
----
+Bjorn Helgaas (3):
+      x86, irq: Rename VECTOR_UNDEFINED and VECTOR_RETRIGGERED to IRQ_*
+      x86, irq: Clarify "No irq handler" message
+      IRQ: Print "unexpected IRQ" messages consistently across architectures
 
- include/asm-generic/bug.h | 1 +
- 1 file changed, 1 insertion(+)
 
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 630dd23..c1cb4b3 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -137,6 +137,7 @@ extern void warn_slowpath_null(const char *file, co=
-nst int line);
- })
-=20
- #else /* !CONFIG_BUG */
-+#define __WARN() do {} while (0)
- #ifndef HAVE_ARCH_BUG
- #define BUG() do {} while (1)
- #endif
---=20
-2.1.4
+ arch/alpha/kernel/irq.c            |    2 +-
+ arch/blackfin/kernel/irqchip.c     |    2 +-
+ arch/c6x/kernel/irq.c              |    2 +-
+ arch/ia64/kernel/irq.c             |    2 +-
+ arch/m68k/include/asm/hardirq.h    |    2 +-
+ arch/mips/kernel/irq.c             |    2 +-
+ arch/mn10300/kernel/irq.c          |    2 +-
+ arch/parisc/include/asm/hardirq.h  |    2 +-
+ arch/powerpc/include/asm/hardirq.h |    2 +-
+ arch/s390/include/asm/hardirq.h    |    2 +-
+ arch/sh/kernel/irq.c               |    2 +-
+ arch/tile/kernel/irq.c             |    2 +-
+ arch/x86/include/asm/hw_irq.h      |    4 ++--
+ arch/x86/kernel/apic/vector.c      |   14 +++++++-------
+ arch/x86/kernel/irq.c              |   19 +++++++++----------
+ arch/x86/kernel/irqinit.c          |    4 ++--
+ include/asm-generic/hardirq.h      |    2 +-
+ 17 files changed, 33 insertions(+), 34 deletions(-)
