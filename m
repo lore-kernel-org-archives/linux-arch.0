@@ -1,53 +1,54 @@
-From: Chris Metcalf <cmetcalf@ezchip.com>
-Subject: Re: [RFC][PATCH 23/24] atomic: Collapse all atomic_{set,clear}_mask
- definitions
-Date: Fri, 10 Jul 2015 15:45:46 -0400
-Message-ID: <55A020EA.9060000@ezchip.com>
-References: <20150709172855.564686637@infradead.org> <20150709175310.229218215@infradead.org> <CAMuHMdXePQF9BL7OfTz+=FN5Hg9C=E6hAO8MFQ9Eu_tiK_Q8OA@mail.gmail.com> <20150710103945.GH19282@twins.programming.kicks-ass.net> <559FC9CC.6000400@ezchip.com> <20150710134256.GS7557@n2100.arm.linux.org.uk> <20150710162739.GN19282@twins.programming.kicks-ass.net>
+From: Larry Finger <Larry.Finger@lwfinger.net>
+Subject: [PATCH] bug: Fix build error in V4.2-RC1
+Date: Sun, 12 Jul 2015 10:00:36 -0500
+Message-ID: <1436713236-26445-1-git-send-email-Larry.Finger@lwfinger.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-db3on0053.outbound.protection.outlook.com ([157.55.234.53]:49472
-	"EHLO emea01-db3-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S932290AbbGJTqD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 10 Jul 2015 15:46:03 -0400
-In-Reply-To: <20150710162739.GN19282@twins.programming.kicks-ass.net>
+Received: from mail-ob0-f173.google.com ([209.85.214.173]:34471 "EHLO
+	mail-ob0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751258AbbGLPBA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 12 Jul 2015 11:01:00 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Richard Henderson <rth@twiddle.net>, Vineet Gupta <vgupta@synopsys.com>, Will Deacon <will.deacon@arm.com>, =?windows-1252?Q?H=E5vard_Skinnemoen?= <hskinnemoen@gmail.com>, Miao Steven <realmz6@gmail.com>, David Howells <dhowells@redhat.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Larry Finger <Larry.Finger@lwfinger.net>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On 07/10/2015 12:27 PM, Peter Zijlstra wrote:
-> On Fri, Jul 10, 2015 at 02:42:56PM +0100, Russell King - ARM Linux wrote:
->> The obvious question though is whether we have an established name for this
->> operation elsewhere in the kernel, and whether we should have consistency.
-> Consistency is good.
->
->> In include/linux, we already have (grepping for 'and_*not'):
->>
->> include/linux/nodemask.h:#define nodes_andnot(dst, src1, src2) \
->> include/linux/bitmap.h:extern int __bitmap_andnot(unsigned long *dst, const unsigned long *bitmap1,
->> include/linux/cpumask.h:static inline int cpumask_andnot(struct cpumask *dstp,
->>
->> We also have:
->>
->> include/linux/signal.h:#define _sig_andn(x,y)       ((x) & ~(y))
->>
->> which seems to be the only instance of "andn" in include/.
-> How about I rename the _sig_andn one to _sig_andnot, and go with
-> atomic_andnot, to match the *mask functions.
+If CONFIG_BUG is not defined, then macro __WARN is not defined. This sh=
+ows
+as the following build error:
 
-On further examination, there is also FUTEX_OP_ANDN, which is originally 
-what
-inspired me to use the name atomic_andn().  So I think churning the 
-nomenclature
-around for tilepro isn't really particularly helpful, and I won't bother.
+  CC [M]  drivers/media/v4l2-core/videobuf2-core.o
+drivers/media/v4l2-core/videobuf2-core.c: In function =E2=80=98vb2_warn=
+_zero_bytesused=E2=80=99:
+drivers/media/v4l2-core/videobuf2-core.c:1253:2: error: implicit declar=
+ation of function =E2=80=98__WARN=E2=80=99 [-Werror=3Dimplicit-function=
+-declaration]
+  __WARN();
+  ^
+This problem has been bisected to commit 77a3c6fd90c94f635edb00d4a65f48=
+5687538791.
 
-In any case I think "andn" and "andnot" are both fine names for 
-atomic_xxx :-)
+Signed-off-by: Larry Finger <Larry.Finger@lwfinger.net>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+---
+ include/asm-generic/bug.h | 1 +
+ 1 file changed, 1 insertion(+)
 
--- 
-Chris Metcalf, EZChip Semiconductor
-http://www.ezchip.com
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 630dd23..c1cb4b3 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -137,6 +137,7 @@ extern void warn_slowpath_null(const char *file, co=
+nst int line);
+ })
+=20
+ #else /* !CONFIG_BUG */
++#define __WARN() do {} while (1)
+ #ifndef HAVE_ARCH_BUG
+ #define BUG() do {} while (1)
+ #endif
+--=20
+2.1.4
