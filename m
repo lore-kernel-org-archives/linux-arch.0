@@ -1,46 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:41434 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932227AbbGJQYL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 10 Jul 2015 12:24:11 -0400
-Date: Fri, 10 Jul 2015 18:23:56 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 04/24] arm64: Provide atomic_{or,xor,and}
-Message-ID: <20150710162356.GM19282@twins.programming.kicks-ass.net>
-References: <20150709172855.564686637@infradead.org>
- <20150709175308.361407648@infradead.org>
- <20150710084258.GA29323@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20150710084258.GA29323@arm.com>
+Received: from smtprelay0014.hostedemail.com ([216.40.44.14]:51150 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1750770AbbGLQBZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 12 Jul 2015 12:01:25 -0400
+Received: from smtprelay.hostedemail.com (10.5.19.251.rfc1918.com [10.5.19.251])
+	by smtpgrave01.hostedemail.com (Postfix) with ESMTP id 0AEC85DAAA
+	for <linux-arch@vger.kernel.org>; Sun, 12 Jul 2015 15:52:12 +0000 (UTC)
+Message-ID: <1436716328.2711.77.camel@perches.com>
+Subject: Re: [PATCH] bug: Fix build error in V4.2-RC1
+From: Joe Perches <joe@perches.com>
+Date: Sun, 12 Jul 2015 08:52:08 -0700
+In-Reply-To: <1436713236-26445-1-git-send-email-Larry.Finger@lwfinger.net>
+References: <1436713236-26445-1-git-send-email-Larry.Finger@lwfinger.net>
+Content-Type: text/plain; charset="ISO-8859-1"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, "mingo@kernel.org" <mingo@kernel.org>
-Message-ID: <20150710162356.b9pYodnCFhYZc_SJo8qN2ZXVrFGwBN8scQYTWBUR_eI@z>
+To: Larry Finger <Larry.Finger@lwfinger.net>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20150712155208.dbwZkDADKeMmvsYUI4r3Eca-uLY-AeFhTmVnKsUnZ6s@z>
 
-On Fri, Jul 10, 2015 at 09:42:59AM +0100, Will Deacon wrote:
-> Hi Peter,
-> 
-> On Thu, Jul 09, 2015 at 06:28:59PM +0100, Peter Zijlstra wrote:
-> > Implement atomic logic ops -- atomic_{or,xor,and}.
-> > 
-> > These will replace the atomic_{set,clear}_mask functions that are
-> > available on some archs.
-> > 
-> > 
-> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > ---
-> 
-> Whilst this is pretty straight-foward, I have some serious rework on arm64
-> atomic.h pending, so do you mind if I take this via the arm64 tree and
-> resolve the conflicts myself?
+On Sun, 2015-07-12 at 10:00 -0500, Larry Finger wrote:
+> If CONFIG_BUG is not defined, then macro __WARN is not defined.
+[]
+> diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+[]
+> @@ -137,6 +137,7 @@ extern void warn_slowpath_null(const char *file, const int line);
 
-Are those public anywhere.. The thing is, at the end of this series I
-pretty much assume all archs will have these ops available, so whatever
-tree I stick the rest in woudl have to pull in your branch too.
+> +#define __WARN() do {} while (1)
 
-Also, IF you apply locally, do not forget to s/or/orr/ on the 64bit
-versions, I seem to have missed updating those, just like I did on 32bit
-arm.
+Do you really think WARN should loop forever?
+
+
