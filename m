@@ -1,170 +1,310 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:58510 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:58509 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751608AbbGMMdD (ORCPT
+	by vger.kernel.org with ESMTP id S1751337AbbGMMdC (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Jul 2015 08:33:03 -0400
+	Mon, 13 Jul 2015 08:33:02 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH 3/5] asm-generic: add relaxed/acquire/release variants for atomic_long_t
-Date: Mon, 13 Jul 2015 13:31:25 +0100
-Message-ID: <1436790687-11984-4-git-send-email-will.deacon@arm.com>
+Subject: [PATCH 2/5] asm-generic: rework atomic-long.h to avoid bulk code duplication
+Date: Mon, 13 Jul 2015 13:31:24 +0100
+Message-ID: <1436790687-11984-3-git-send-email-will.deacon@arm.com>
 In-Reply-To: <1436790687-11984-1-git-send-email-will.deacon@arm.com>
 References: <1436790687-11984-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>
-Message-ID: <20150713123125.cg3tkk5yiZcn1B72ks-zRR25kVFf8LC0gHwQQtS2AHQ@z>
+Message-ID: <20150713123124.n6b2ECu23TG2L-pVerDspF346KlxVT4xpMLwD3Z3vA8@z>
 
-This patch adds atomic_long_t wrappers for the new relaxed atomic
-operations.
+We can use some (admittedly ugly) macros to generate the 32-bit and
+64-bit based atomic_long implementations from the same code.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- include/asm-generic/atomic-long.h | 86 +++++++++++++++++++++++++++------------
- include/linux/atomic.h            | 10 ++---
- 2 files changed, 64 insertions(+), 32 deletions(-)
+ include/asm-generic/atomic-long.h | 189 ++++++++------------------------------
+ 1 file changed, 40 insertions(+), 149 deletions(-)
 
 diff --git a/include/asm-generic/atomic-long.h b/include/asm-generic/atomic-long.h
-index beaea541adfb..a94cbebbc33d 100644
+index b7babf0206b8..beaea541adfb 100644
 --- a/include/asm-generic/atomic-long.h
 +++ b/include/asm-generic/atomic-long.h
-@@ -34,19 +34,69 @@ typedef atomic_t atomic_long_t;
+@@ -23,236 +23,127 @@
+ typedef atomic64_t atomic_long_t;
  
- #endif
+ #define ATOMIC_LONG_INIT(i)	ATOMIC64_INIT(i)
++#define ATOMIC_LONG_PFX(x)	atomic64 ## x
  
 -static inline long atomic_long_read(atomic_long_t *l)
 -{
--	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+-	atomic64_t *v = (atomic64_t *)l;
 -
--	return (long)ATOMIC_LONG_PFX(_read)(v);
-+#define ATOMIC_LONG_READ_OP(mo)						\
-+static inline long atomic_long_read##mo(atomic_long_t *l)		\
-+{									\
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;		\
-+									\
-+	return (long)ATOMIC_LONG_PFX(_read##mo)(v);			\
- }
-+ATOMIC_LONG_READ_OP()
-+ATOMIC_LONG_READ_OP(_acquire)
- 
+-	return (long)atomic64_read(v);
+-}
+-
 -static inline void atomic_long_set(atomic_long_t *l, long i)
 -{
--	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
-+#undef ATOMIC_LONG_READ_OP
- 
--	ATOMIC_LONG_PFX(_set)(v, i);
-+#define ATOMIC_LONG_SET_OP(mo)						\
-+static inline void atomic_long_set##mo(atomic_long_t *l, long i)	\
-+{									\
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;		\
-+									\
-+	ATOMIC_LONG_PFX(_set##mo)(v, i);				\
-+}
-+ATOMIC_LONG_SET_OP()
-+ATOMIC_LONG_SET_OP(_release)
-+
-+#undef ATOMIC_LONG_SET_OP
-+
-+#define ATOMIC_LONG_ADD_SUB_OP(op, mo)					\
-+static inline long							\
-+atomic_long_##op##_return##mo(long i, atomic_long_t *l)			\
-+{									\
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;		\
-+									\
-+	return (long)ATOMIC_LONG_PFX(_##op##_return##mo)(i, v);		\
- }
-+ATOMIC_LONG_ADD_SUB_OP(add,)
-+ATOMIC_LONG_ADD_SUB_OP(add, _relaxed)
-+ATOMIC_LONG_ADD_SUB_OP(add, _acquire)
-+ATOMIC_LONG_ADD_SUB_OP(add, _release)
-+ATOMIC_LONG_ADD_SUB_OP(sub,)
-+ATOMIC_LONG_ADD_SUB_OP(sub, _relaxed)
-+ATOMIC_LONG_ADD_SUB_OP(sub, _acquire)
-+ATOMIC_LONG_ADD_SUB_OP(sub, _release)
-+
-+#undef ATOMIC_LONG_ADD_SUB_OP
-+
-+#define atomic_long_cmpxchg_relaxed(l, old, new) \
-+	(ATOMIC_LONG_PFX(_cmpxchg_relaxed)((ATOMIC_LONG_PFX(_t) *)(l), \
-+					   (old), (new)))
-+#define atomic_long_cmpxchg_acquire(l, old, new) \
-+	(ATOMIC_LONG_PFX(_cmpxchg_acquire)((ATOMIC_LONG_PFX(_t) *)(l), \
-+					   (old), (new)))
-+#define atomic_long_cmpxchg_release(l, old, new) \
-+	(ATOMIC_LONG_PFX(_cmpxchg_release)((ATOMIC_LONG_PFX(_t) *)(l), \
-+					   (old), (new)))
-+#define atomic_long_cmpxchg(l, old, new) \
-+	(ATOMIC_LONG_PFX(_cmpxchg)((ATOMIC_LONG_PFX(_t) *)(l), (old), (new)))
-+
-+#define atomic_long_xchg_relaxed(v, new) \
-+	(ATOMIC_LONG_PFX(_xchg_relaxed)((ATOMIC_LONG_PFX(_t) *)(v), (new)))
-+#define atomic_long_xchg_acquire(v, new) \
-+	(ATOMIC_LONG_PFX(_xchg_acquire)((ATOMIC_LONG_PFX(_t) *)(v), (new)))
-+#define atomic_long_xchg_release(v, new) \
-+	(ATOMIC_LONG_PFX(_xchg_release)((ATOMIC_LONG_PFX(_t) *)(v), (new)))
-+#define atomic_long_xchg(v, new) \
-+	(ATOMIC_LONG_PFX(_xchg)((ATOMIC_LONG_PFX(_t) *)(v), (new)))
- 
- static inline void atomic_long_inc(atomic_long_t *l)
- {
-@@ -104,20 +154,6 @@ static inline int atomic_long_add_negative(long i, atomic_long_t *l)
- 	return ATOMIC_LONG_PFX(_add_negative)(i, v);
- }
- 
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	atomic64_set(v, i);
+-}
+-
+-static inline void atomic_long_inc(atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	atomic64_inc(v);
+-}
+-
+-static inline void atomic_long_dec(atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	atomic64_dec(v);
+-}
+-
+-static inline void atomic_long_add(long i, atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	atomic64_add(i, v);
+-}
+-
+-static inline void atomic_long_sub(long i, atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	atomic64_sub(i, v);
+-}
+-
+-static inline int atomic_long_sub_and_test(long i, atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	return atomic64_sub_and_test(i, v);
+-}
+-
+-static inline int atomic_long_dec_and_test(atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	return atomic64_dec_and_test(v);
+-}
+-
+-static inline int atomic_long_inc_and_test(atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	return atomic64_inc_and_test(v);
+-}
+-
+-static inline int atomic_long_add_negative(long i, atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	return atomic64_add_negative(i, v);
+-}
+-
 -static inline long atomic_long_add_return(long i, atomic_long_t *l)
 -{
--	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+-	atomic64_t *v = (atomic64_t *)l;
 -
--	return (long)ATOMIC_LONG_PFX(_add_return)(i, v);
+-	return (long)atomic64_add_return(i, v);
 -}
 -
 -static inline long atomic_long_sub_return(long i, atomic_long_t *l)
 -{
--	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+-	atomic64_t *v = (atomic64_t *)l;
 -
--	return (long)ATOMIC_LONG_PFX(_sub_return)(i, v);
+-	return (long)atomic64_sub_return(i, v);
 -}
 -
- static inline long atomic_long_inc_return(atomic_long_t *l)
- {
- 	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
-@@ -141,9 +177,5 @@ static inline long atomic_long_add_unless(atomic_long_t *l, long a, long u)
- 
- #define atomic_long_inc_not_zero(l) \
- 	ATOMIC_LONG_PFX(_inc_not_zero)((ATOMIC_LONG_PFX(_t) *)(l))
--#define atomic_long_cmpxchg(l, old, new) \
--	(ATOMIC_LONG_PFX(_cmpxchg)((ATOMIC_LONG_PFX(_t) *)(l), (old), (new)))
--#define atomic_long_xchg(v, new) \
--	(ATOMIC_LONG_PFX(_xchg)((ATOMIC_LONG_PFX(_t) *)(v), (new)))
- 
- #endif  /*  _ASM_GENERIC_ATOMIC_LONG_H  */
-diff --git a/include/linux/atomic.h b/include/linux/atomic.h
-index a78c3704cd51..a8b4c68790de 100644
---- a/include/linux/atomic.h
-+++ b/include/linux/atomic.h
-@@ -124,11 +124,6 @@ static inline void atomic_or(int i, atomic_t *v)
- }
- #endif /* #ifndef CONFIG_ARCH_HAS_ATOMIC_OR */
- 
--#include <asm-generic/atomic-long.h>
--#ifdef CONFIG_GENERIC_ATOMIC64
--#include <asm-generic/atomic64.h>
--#endif
+-static inline long atomic_long_inc_return(atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
 -
- /*
-  * Relaxed variants of xchg, cmpxchg and some atomic operations.
-  *
-@@ -268,4 +263,9 @@ static inline void atomic_or(int i, atomic_t *v)
- #define  xchg_release			xchg
- #endif
+-	return (long)atomic64_inc_return(v);
+-}
+-
+-static inline long atomic_long_dec_return(atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	return (long)atomic64_dec_return(v);
+-}
+-
+-static inline long atomic_long_add_unless(atomic_long_t *l, long a, long u)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	return (long)atomic64_add_unless(v, a, u);
+-}
+-
+-#define atomic_long_inc_not_zero(l) atomic64_inc_not_zero((atomic64_t *)(l))
+-
+-#define atomic_long_cmpxchg(l, old, new) \
+-	(atomic64_cmpxchg((atomic64_t *)(l), (old), (new)))
+-#define atomic_long_xchg(v, new) \
+-	(atomic64_xchg((atomic64_t *)(v), (new)))
+-
+-#else  /*  BITS_PER_LONG == 64  */
++#else
  
-+#include <asm-generic/atomic-long.h>
-+#ifdef CONFIG_GENERIC_ATOMIC64
-+#include <asm-generic/atomic64.h>
+ typedef atomic_t atomic_long_t;
+ 
+ #define ATOMIC_LONG_INIT(i)	ATOMIC_INIT(i)
++#define ATOMIC_LONG_PFX(x)	atomic ## x
++
 +#endif
 +
- #endif /* _LINUX_ATOMIC_H */
+ static inline long atomic_long_read(atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return (long)atomic_read(v);
++	return (long)ATOMIC_LONG_PFX(_read)(v);
+ }
+ 
+ static inline void atomic_long_set(atomic_long_t *l, long i)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	atomic_set(v, i);
++	ATOMIC_LONG_PFX(_set)(v, i);
+ }
+ 
+ static inline void atomic_long_inc(atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	atomic_inc(v);
++	ATOMIC_LONG_PFX(_inc)(v);
+ }
+ 
+ static inline void atomic_long_dec(atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	atomic_dec(v);
++	ATOMIC_LONG_PFX(_dec)(v);
+ }
+ 
+ static inline void atomic_long_add(long i, atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	atomic_add(i, v);
++	ATOMIC_LONG_PFX(_add)(i, v);
+ }
+ 
+ static inline void atomic_long_sub(long i, atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	atomic_sub(i, v);
++	ATOMIC_LONG_PFX(_sub)(i, v);
+ }
+ 
+ static inline int atomic_long_sub_and_test(long i, atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return atomic_sub_and_test(i, v);
++	return ATOMIC_LONG_PFX(_sub_and_test)(i, v);
+ }
+ 
+ static inline int atomic_long_dec_and_test(atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return atomic_dec_and_test(v);
++	return ATOMIC_LONG_PFX(_dec_and_test)(v);
+ }
+ 
+ static inline int atomic_long_inc_and_test(atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return atomic_inc_and_test(v);
++	return ATOMIC_LONG_PFX(_inc_and_test)(v);
+ }
+ 
+ static inline int atomic_long_add_negative(long i, atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return atomic_add_negative(i, v);
++	return ATOMIC_LONG_PFX(_add_negative)(i, v);
+ }
+ 
+ static inline long atomic_long_add_return(long i, atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return (long)atomic_add_return(i, v);
++	return (long)ATOMIC_LONG_PFX(_add_return)(i, v);
+ }
+ 
+ static inline long atomic_long_sub_return(long i, atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return (long)atomic_sub_return(i, v);
++	return (long)ATOMIC_LONG_PFX(_sub_return)(i, v);
+ }
+ 
+ static inline long atomic_long_inc_return(atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return (long)atomic_inc_return(v);
++	return (long)ATOMIC_LONG_PFX(_inc_return)(v);
+ }
+ 
+ static inline long atomic_long_dec_return(atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return (long)atomic_dec_return(v);
++	return (long)ATOMIC_LONG_PFX(_dec_return)(v);
+ }
+ 
+ static inline long atomic_long_add_unless(atomic_long_t *l, long a, long u)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return (long)atomic_add_unless(v, a, u);
++	return (long)ATOMIC_LONG_PFX(_add_unless)(v, a, u);
+ }
+ 
+-#define atomic_long_inc_not_zero(l) atomic_inc_not_zero((atomic_t *)(l))
+-
++#define atomic_long_inc_not_zero(l) \
++	ATOMIC_LONG_PFX(_inc_not_zero)((ATOMIC_LONG_PFX(_t) *)(l))
+ #define atomic_long_cmpxchg(l, old, new) \
+-	(atomic_cmpxchg((atomic_t *)(l), (old), (new)))
++	(ATOMIC_LONG_PFX(_cmpxchg)((ATOMIC_LONG_PFX(_t) *)(l), (old), (new)))
+ #define atomic_long_xchg(v, new) \
+-	(atomic_xchg((atomic_t *)(v), (new)))
+-
+-#endif  /*  BITS_PER_LONG == 64  */
++	(ATOMIC_LONG_PFX(_xchg)((ATOMIC_LONG_PFX(_t) *)(v), (new)))
+ 
+ #endif  /*  _ASM_GENERIC_ATOMIC_LONG_H  */
 -- 
 2.1.4
 
