@@ -1,56 +1,75 @@
-From: Aaro Koskinen <aaro.koskinen@iki.fi>
-Subject: Re: [PATCH] Revert "perf tools: Allow to specify custom linker
- command"
-Date: Mon, 13 Jul 2015 23:24:06 +0300
-Message-ID: <20150713202406.GB5020@blackmetal.musicnaut.iki.fi>
-References: <1436785853-4260-1-git-send-email-abrodkin@synopsys.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+Date: Tue, 14 Jul 2015 00:15:03 +0200
+Message-ID: <20150713221503.GD19282@twins.programming.kicks-ass.net>
+References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
+ <20150713131143.GY19282@twins.programming.kicks-ass.net>
+ <20150713140915.GD2632@arm.com>
+ <20150713142109.GE2632@arm.com>
+ <20150713155447.GB19282@twins.programming.kicks-ass.net>
+ <20150713182332.GW3717@linux.vnet.ibm.com>
+ <55A41481.7000702@hurleysoftware.com>
+ <20150713201642.GY3717@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.9]:47310 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751093AbbGMWPN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2015 18:15:13 -0400
 Content-Disposition: inline
-In-Reply-To: <1436785853-4260-1-git-send-email-abrodkin@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Aaro Koskinen <aaro.koskinen@nokia.com>, Jiri Olsa <jolsa@kernel.org>, Paul Mackerras <paulus@samba.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@redhat.com>, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20150713201642.GY3717@linux.vnet.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Peter Hurley <peter@hurleysoftware.com>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-Hi,
+On Mon, Jul 13, 2015 at 01:16:42PM -0700, Paul E. McKenney wrote:
+> On Mon, Jul 13, 2015 at 03:41:53PM -0400, Peter Hurley wrote:
+> > > Does that answer the question, or am I missing the point?
+> > 
+> > Yes, it shows that smp_mb__after_unlock_lock() has no purpose, since it
+> > is defined only for PowerPC and your test above just showed that for
+> > the sequence
 
-On Mon, Jul 13, 2015 at 02:10:53PM +0300, Alexey Brodkin wrote:
-> This reverts commit 5ef7bbb09f7b
-> ("perf tools: Allow to specify custom linker command").
+The only purpose is to provide transitivity, but the documentation fails
+to explicitly call that out.
+
+> > 
+> >   store a
+> >   UNLOCK M
+> >   LOCK N
+> >   store b
+> > 
+> > a and b is always observed as an ordered pair {a,b}.
 > 
-> LD is a pre-defined variable in GNU Make. I.e. it is always defined.
-> Which means there's no point to check "LD ?= ..." because it will never
-> succeed. And so LD will be either that explicitly passed to make like
-> this:
->  ------->8-------
->  make LD=path_to_my_ld ...
->  ------->8-------
->  or default value, which is host's "ld".
+> Not quite.
 > 
-> Latter leads to failure of cross-linkage because instead of cross linker
-> "$(CROSS_COMPILE)ld" host's "ld" is used.
+> This is instead the sequence that is of concern:
 > 
-> As for commit which is reverted here:
->  [1] Usually for selection of non-default flavour of CPU core/options
->      linker flags are used like "-mtune=xxx" or "-mMyCPUType" etc.
+> 	store a
+> 	unlock M
+> 	lock N
+> 	load b
+
+So its late and that table didn't parse, but that should be ordered too.
+The load of b should not be able to escape the lock N.
+
+If only because LWSYNC is a valid RMB and any LOCK implementation must
+load the lock state to observe it unlocked.
+
+> > Additionally, the assertion in Documentation/memory_barriers.txt that
+> > the sequence above can be reordered as
+> > 
+> >   LOCK N
+> >   store b
+> >   store a
+> >   UNLOCK M
+> > 
+> > is not true on any existing arch in Linux.
 > 
->  [2] Still to implement ability to use "ld" that differs from
->     "$(CROSS_COMPILE)ld" one will need to add new makefile variable like
->     TARGET_LD and then check if $(TARGET_LD) is not specified on make
->     invocation then use "$(CROSS_COMPILE)ld".
-> 
-> But for now to fix cross-building of perf this revert is enough.
+> It was at one time and might be again.
 
-Hmm. You are probably right, my build system always exports LD with
-correct linker for cross builds so perhaps that's why I this "worked"
-for me when testing. Sorry.
-
-I guess the correct fix would be [1], i.e. there should be some new
-variable to pass flags to ld command.
-
-Or maybe [2], could we use make "origin" function? If LD is "default",
-then use "$(CROSS_COMPILE)ld", otherwise use what the user passed?
-
-A.
+What would be required to make this true? I'm having a hard time seeing
+how things can get reordered like that.
