@@ -1,49 +1,52 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 3/3] IRQ: Print "unexpected IRQ" messages consistently
- across architectures
-Date: Mon, 13 Jul 2015 09:14:42 +0200
-Message-ID: <CAMuHMdWW3uHLm=rwQ8cmhxGff8vwFDx7_-eSmiy3dndpDKk35Q@mail.gmail.com>
-References: <20150712215559.7166.33068.stgit@bhelgaas-glaptop2.roam.corp.google.com>
-	<20150712220211.7166.42035.stgit@bhelgaas-glaptop2.roam.corp.google.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC][PATCH 04/24] arm64: Provide atomic_{or,xor,and}
+Date: Mon, 13 Jul 2015 10:29:55 +0100
+Message-ID: <20150713092955.GA1612@arm.com>
+References: <20150709172855.564686637@infradead.org>
+ <20150709175308.361407648@infradead.org>
+ <20150710084258.GA29323@arm.com>
+ <20150710162356.GM19282@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-sh-owner@vger.kernel.org>
-In-Reply-To: <20150712220211.7166.42035.stgit@bhelgaas-glaptop2.roam.corp.google.com>
-Sender: linux-sh-owner@vger.kernel.org
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, "moderated list:PANASONIC MN10300..." <linux-am33-list@redhat.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, Parisc List <linux-parisc@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Linux-sh list <linux-sh@vger.kernel.org>, "adi-buildroot-devel@lists.sourceforge.net" <adi-buildroot-devel@lists.sourceforge.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k <linux-m68k@lists.linux-m68k.org>, alpha <linux-alpha@vger.kernel.org>, the arch/x86 maintainers <x86@kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:56709 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751037AbbGMJaE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Jul 2015 05:30:04 -0400
+Content-Disposition: inline
+In-Reply-To: <20150710162356.GM19282@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, min
 
-On Mon, Jul 13, 2015 at 12:02 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
-> Many architectures use a variant of "unexpected IRQ trap at vector %x" to
-> log unexpected IRQs.  This is confusing because (a) it prints the Linux IRQ
-> number, but "vector" more often refers to a CPU vector number, and (b) it
-> prints the IRQ number in hex with no base indication, while Linux IRQ
-> numbers are usually printed in decimal.
->
-> Print the same text ("unexpected IRQ %d") across all architectures.
->
-> No functional change other than the output text.
->
-> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
-> ---
+On Fri, Jul 10, 2015 at 05:23:56PM +0100, Peter Zijlstra wrote:
+> On Fri, Jul 10, 2015 at 09:42:59AM +0100, Will Deacon wrote:
+> > On Thu, Jul 09, 2015 at 06:28:59PM +0100, Peter Zijlstra wrote:
+> > > Implement atomic logic ops -- atomic_{or,xor,and}.
+> > > 
+> > > These will replace the atomic_{set,clear}_mask functions that are
+> > > available on some archs.
+> > > 
+> > > 
+> > > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> > > ---
+> > 
+> > Whilst this is pretty straight-foward, I have some serious rework on arm64
+> > atomic.h pending, so do you mind if I take this via the arm64 tree and
+> > resolve the conflicts myself?
+> 
+> Are those public anywhere.. The thing is, at the end of this series I
+> pretty much assume all archs will have these ops available, so whatever
+> tree I stick the rest in woudl have to pull in your branch too.
 
-Thanks!
+Spammed you with the series now. Not sure you'd want to pull all that lot
+via -tip, though.
 
->  arch/m68k/include/asm/hardirq.h    |    2 +-
+> Also, IF you apply locally, do not forget to s/or/orr/ on the 64bit
+> versions, I seem to have missed updating those, just like I did on 32bit
+> arm.
 
-For m68k:
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Ok, thanks for the heads up.
 
-And it looks like m68k can switch to the asm-generic version afterwards...
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Will
