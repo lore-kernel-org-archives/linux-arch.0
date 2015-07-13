@@ -1,138 +1,182 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0133.hostedemail.com ([216.40.44.133]:47183 "EHLO
-	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751098AbbGMPMt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Jul 2015 11:12:49 -0400
-Received: from smtprelay.hostedemail.com (10.5.19.251.rfc1918.com [10.5.19.251])
-	by smtpgrave06.hostedemail.com (Postfix) with ESMTP id 8894D17368C
-	for <linux-arch@vger.kernel.org>; Mon, 13 Jul 2015 15:04:50 +0000 (UTC)
-Date: Mon, 13 Jul 2015 11:04:46 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH] ftrace: Format MCOUNT_ADDR address as type unsigned
- long
-Message-ID: <20150713110446.01c950ea@gandalf.local.home>
-In-Reply-To: <1436694744-16747-1-git-send-email-mhuang@redhat.com>
-References: <1436694744-16747-1-git-send-email-mhuang@redhat.com>
+Received: from mail-qg0-f48.google.com ([209.85.192.48]:33122 "EHLO
+	mail-qg0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752032AbbGMTl4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2015 15:41:56 -0400
+Received: by qgef3 with SMTP id f3so111627303qge.0
+        for <linux-arch@vger.kernel.org>; Mon, 13 Jul 2015 12:41:55 -0700 (PDT)
+Message-ID: <55A41481.7000702@hurleysoftware.com>
+Date: Mon, 13 Jul 2015 15:41:53 -0400
+From: Peter Hurley <peter@hurleysoftware.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Subject: Re: [RFC PATCH v2] memory-barriers: remove smp_mb__after_unlock_lock()
+References: <1436789704-10086-1-git-send-email-will.deacon@arm.com> <20150713131143.GY19282@twins.programming.kicks-ass.net> <20150713140915.GD2632@arm.com> <20150713142109.GE2632@arm.com> <20150713155447.GB19282@twins.programming.kicks-ass.net> <20150713182332.GW3717@linux.vnet.ibm.com>
+In-Reply-To: <20150713182332.GW3717@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Minfei Huang <mhuang@redhat.com>
-Cc: mingo@redhat.com, linux-kernel@vger.kernel.org, Minfei Huang <mnfhuang@gmail.com>, linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20150713150446.limmq6o2Nvr3vC_0gdNnLtQly-7lNYvvV_g4BsDawf8@z>
+To: paulmck@linux.vnet.ibm.com, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Message-ID: <20150713194153.Bl9mNbJAOHWW0_3AAchcTPrEGwX9zjrwMwC3jWaNAkk@z>
 
-On Sun, 12 Jul 2015 17:52:24 +0800
-Minfei Huang <mhuang@redhat.com> wrote:
-
-> From: Minfei Huang <mnfhuang@gmail.com>
+On 07/13/2015 02:23 PM, Paul E. McKenney wrote:
+> On Mon, Jul 13, 2015 at 05:54:47PM +0200, Peter Zijlstra wrote:
+>> On Mon, Jul 13, 2015 at 03:21:10PM +0100, Will Deacon wrote:
+>>> On Mon, Jul 13, 2015 at 03:09:15PM +0100, Will Deacon wrote:
+>>>> On Mon, Jul 13, 2015 at 02:11:43PM +0100, Peter Zijlstra wrote:
+>>>>> On Mon, Jul 13, 2015 at 01:15:04PM +0100, Will Deacon wrote:
+>>>>>> smp_mb__after_unlock_lock is used to promote an UNLOCK + LOCK sequence
+>>>>>> into a full memory barrier.
+>>>>>>
+>>>>>> However:
+>>>>>
+>>>>>>   - The barrier only applies to UNLOCK + LOCK, not general
+>>>>>>     RELEASE + ACQUIRE operations
+>>>>>
+>>>>> No it does too; note that on ppc both acquire and release use lwsync and
+>>>>> two lwsyncs do not make a sync.
+>>>>
+>>>> Really? IIUC, that means smp_mb__after_unlock_lock needs to be a full
+>>>> barrier on all architectures implementing smp_store_release as smp_mb() +
+>>>> STORE, otherwise the following isn't ordered:
+>>>>
+>>>>   RELEASE X
+>>>>   smp_mb__after_unlock_lock()
+>>>>   ACQUIRE Y
+>>>>
+>>>> On 32-bit ARM (at least), the ACQUIRE can be observed before the RELEASE.
+>>>
+>>> I knew we'd had this conversation before ;)
+>>>
+>>>   http://lkml.kernel.org/r/20150120093443.GA11596@twins.programming.kicks-ass.net
+>>
+>> Ha! yes. And I had indeed forgotten about this argument.
+>>
+>> However I think we should look at the insides of the critical sections;
+>> for example (from Documentation/memory-barriers.txt):
+>>
+>> "       *A = a;
+>>         RELEASE M
+>>         ACQUIRE N
+>>         *B = b;
+>>
+>> could occur as:
+>>
+>>         ACQUIRE N, STORE *B, STORE *A, RELEASE M"
+>>
+>> This could not in fact happen, even though we could flip M and N, A and
+>> B will remain strongly ordered.
+>>
+>> That said, I don't think this could even happen on PPC because we have
+>> load_acquire and store_release, this means that:
+>>
+>> 	*A = a
+>> 	lwsync
+>> 	store_release M
+>> 	load_acquire N
+>> 	lwsync
 > 
-> Always we use type unsigned long to format the ip address, since the
-> value of ip address is never the negative.
+> Presumably the lwsync instructions are part of the store_release and
+> load_acquire?
 > 
-> This patch uses type unsigned long, instead of long, to format the ip
-> address. The code is more clearly to be viewed by using type unsigned
-> long, although it is correct by using either unsigned long or long.
+>> 	*B = b
+>>
+>> And since the store to M is wrapped inside two lwsync there must be
+>> strong store order, and because the load from N is equally wrapped in
+>> two lwsyncs there must also be strong load order.
+>>
+>> In fact, no store/load can cross from before the first lwsync to after
+>> the latter and the other way around.
+>>
+>> So in that respect it does provide full load-store ordering. What it
+>> does not provide is order for M and N, nor does it provide transitivity,
+>> but looking at our documentation I'm not at all sure we guarantee that
+>> in any case.
 > 
-
-The only place MCOUNT_ADDR is used in generic code is being passed into
-a parameter that is already typed "unsigned long". But I'm fine with
-the patch just to make it consistent. I added the appropriate Cc's for
-this patch too.
-
--- Steve
-
-
-> Signed-off-by: Minfei Huang <mnfhuang@gmail.com>
-> ---
->  arch/metag/include/asm/ftrace.h      | 2 +-
->  arch/microblaze/include/asm/ftrace.h | 2 +-
->  arch/powerpc/include/asm/ftrace.h    | 2 +-
->  arch/sh/include/asm/ftrace.h         | 2 +-
->  arch/sparc/include/asm/ftrace.h      | 2 +-
->  arch/x86/include/asm/ftrace.h        | 4 ++--
->  6 files changed, 7 insertions(+), 7 deletions(-)
+> I have no idea what the other thread is doing, so I put together the
+> following litmus test, guessing reverse order, inverse operations,
+> and full ordering:
 > 
-> diff --git a/arch/metag/include/asm/ftrace.h b/arch/metag/include/asm/ftrace.h
-> index 2901f0f..a2269d6 100644
-> --- a/arch/metag/include/asm/ftrace.h
-> +++ b/arch/metag/include/asm/ftrace.h
-> @@ -6,7 +6,7 @@
->  
->  #ifndef __ASSEMBLY__
->  extern void mcount_wrapper(void);
-> -#define MCOUNT_ADDR		((long)(mcount_wrapper))
-> +#define MCOUNT_ADDR		((unsigned long)(mcount_wrapper))
->  
->  static inline unsigned long ftrace_call_adjust(unsigned long addr)
->  {
-> diff --git a/arch/microblaze/include/asm/ftrace.h b/arch/microblaze/include/asm/ftrace.h
-> index fd2fa2ec..da0144f 100644
-> --- a/arch/microblaze/include/asm/ftrace.h
-> +++ b/arch/microblaze/include/asm/ftrace.h
-> @@ -3,7 +3,7 @@
->  
->  #ifdef CONFIG_FUNCTION_TRACER
->  
-> -#define MCOUNT_ADDR		((long)(_mcount))
-> +#define MCOUNT_ADDR		((unsigned long)(_mcount))
->  #define MCOUNT_INSN_SIZE	8 /* sizeof mcount call */
->  
->  #ifndef __ASSEMBLY__
-> diff --git a/arch/powerpc/include/asm/ftrace.h b/arch/powerpc/include/asm/ftrace.h
-> index e366187..ef89b14 100644
-> --- a/arch/powerpc/include/asm/ftrace.h
-> +++ b/arch/powerpc/include/asm/ftrace.h
-> @@ -2,7 +2,7 @@
->  #define _ASM_POWERPC_FTRACE
->  
->  #ifdef CONFIG_FUNCTION_TRACER
-> -#define MCOUNT_ADDR		((long)(_mcount))
-> +#define MCOUNT_ADDR		((unsigned long)(_mcount))
->  #define MCOUNT_INSN_SIZE	4 /* sizeof mcount call */
->  
->  #ifdef __ASSEMBLY__
-> diff --git a/arch/sh/include/asm/ftrace.h b/arch/sh/include/asm/ftrace.h
-> index e79fb6e..1f157b8 100644
-> --- a/arch/sh/include/asm/ftrace.h
-> +++ b/arch/sh/include/asm/ftrace.h
-> @@ -9,7 +9,7 @@
->  #ifndef __ASSEMBLY__
->  extern void mcount(void);
->  
-> -#define MCOUNT_ADDR		((long)(mcount))
-> +#define MCOUNT_ADDR		((unsigned long)(mcount))
->  
->  #ifdef CONFIG_DYNAMIC_FTRACE
->  #define CALL_ADDR		((long)(ftrace_call))
-> diff --git a/arch/sparc/include/asm/ftrace.h b/arch/sparc/include/asm/ftrace.h
-> index 9ec94ad..3192a8e 100644
-> --- a/arch/sparc/include/asm/ftrace.h
-> +++ b/arch/sparc/include/asm/ftrace.h
-> @@ -2,7 +2,7 @@
->  #define _ASM_SPARC64_FTRACE
->  
->  #ifdef CONFIG_MCOUNT
-> -#define MCOUNT_ADDR		((long)(_mcount))
-> +#define MCOUNT_ADDR		((unsigned long)(_mcount))
->  #define MCOUNT_INSN_SIZE	4 /* sizeof mcount call */
->  
->  #ifndef __ASSEMBLY__
-> diff --git a/arch/x86/include/asm/ftrace.h b/arch/x86/include/asm/ftrace.h
-> index f45acad..2493885 100644
-> --- a/arch/x86/include/asm/ftrace.h
-> +++ b/arch/x86/include/asm/ftrace.h
-> @@ -3,9 +3,9 @@
->  
->  #ifdef CONFIG_FUNCTION_TRACER
->  #ifdef CC_USING_FENTRY
-> -# define MCOUNT_ADDR		((long)(__fentry__))
-> +# define MCOUNT_ADDR		((unsigned long)(__fentry__))
->  #else
-> -# define MCOUNT_ADDR		((long)(mcount))
-> +# define MCOUNT_ADDR		((unsigned long)(mcount))
->  #endif
->  #define MCOUNT_INSN_SIZE	5 /* sizeof mcount call */
->  
+> 	PPC peterz.2015.07.13a
+> 	""
+> 	{
+> 	0:r1=1; 0:r2=a; 0:r3=b; 0:r4=m; 0:r5=n;
+> 	1:r1=1; 1:r2=a; 1:r3=b; 1:r4=m; 1:r5=n;
+> 	}
+> 	 P0            | P1            ;
+> 	 stw r1,0(r2)  | lwz r10,0(r3) ;
+> 	 lwsync        | sync          ;
+> 	 stw r1,0(r4)  | stw r1,0(r5)  ;
+> 	 lwz r10,0(r5) | sync          ;
+> 	 lwsync        | lwz r11,0(r4) ;
+> 	 stw r1,0(r3)  | sync          ;
+> 		       | lwz r12,0(r2) ;
+> 	exists
+> 	(0:r10=0 /\ 1:r10=1 /\ 1:r11=1 /\ 1:r12=1)
+> 
+> See http://lwn.net/Articles/608550/ and http://lwn.net/Articles/470681/
+> for information on tools that operate on these litmus tests.  (Both
+> the herd and ppcmem tools agree, as is usually the case.)
+> 
+> Of the 16 possible combinations of values loaded, the following seven
+> can happen:
+> 
+> 	0:r10=0; 1:r10=0; 1:r11=0; 1:r12=0;
+> 	0:r10=0; 1:r10=0; 1:r11=0; 1:r12=1;
+> 	0:r10=0; 1:r10=0; 1:r11=1; 1:r12=1;
+> 	0:r10=0; 1:r10=1; 1:r11=1; 1:r12=1;
+> 	0:r10=1; 1:r10=0; 1:r11=0; 1:r12=0;
+> 	0:r10=1; 1:r10=0; 1:r11=0; 1:r12=1;
+> 	0:r10=1; 1:r10=0; 1:r11=1; 1:r12=1;
+> 
+> P0's store to "m" and load from "n" can clearly be misordered, as there
+> is nothing to order them.  And all four possible outcomes for 0:r10 and
+> 1:r11 are seen, as expected.
+> 
+> Given that smp_store_release() is only guaranteed to order against prior
+> operations and smp_load_acquire() is only guaranteed to order against
+> subsequent operations, P0's load from "n" can be misordered with its
+> store to "a", and as expected, all four possible outcomes for 0:r10 and
+> 1:r12 are observed.
+> 
+> P0's pairs of stores should all be ordered:
+> 
+> o	"a" and "m" -> 1:r11=1 and 1:r12=0 cannot happen, as expected.
+> 
+> o	"a" and "b" -> 1:r10=1 and 1:r12=0 cannot happen, as expected.
+> 
+> o	"m" and "b" -> 1:r10=1 and 1:r11=0 cannot happen, as expected.
+> 
+> So smp_load_acquire() orders against all subsequent operations, but not
+> necessarily against any prior ones, and smp_store_release() orders against
+> all prior operations but not necessarily against any subsequent onse.
+> But additional stray orderings are permitted, as is the case here.
+> Which is in fact what these operations are defined to do.
+> 
+> Does that answer the question, or am I missing the point?
+
+Yes, it shows that smp_mb__after_unlock_lock() has no purpose, since it
+is defined only for PowerPC and your test above just showed that for
+the sequence
+
+  store a
+  UNLOCK M
+  LOCK N
+  store b
+
+a and b is always observed as an ordered pair {a,b}.
+
+Additionally, the assertion in Documentation/memory_barriers.txt that
+the sequence above can be reordered as
+
+  LOCK N
+  store b
+  store a
+  UNLOCK M
+
+is not true on any existing arch in Linux.
+
+Regards,
+Peter Hurley
 
