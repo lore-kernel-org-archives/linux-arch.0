@@ -1,44 +1,66 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH v2] memory-barriers: remove
- smp_mb__after_unlock_lock()
-Date: Mon, 13 Jul 2015 15:24:18 +0100
-Message-ID: <20150713142418.GF2632@arm.com>
-References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
- <55A3B89E.7060708@hurleysoftware.com>
+From: Matthew Wilcox <willy@linux.intel.com>
+Subject: Re: [PATCH] fs: dax: do not build on ARC or SH
+Date: Mon, 13 Jul 2015 10:35:45 -0400
+Message-ID: <20150713143545.GF13681@linux.intel.com>
+References: <1436781167-14446-1-git-send-email-geert+renesas@glider.be>
+ <55A3A796.4050108@plexistor.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:58074 "EHLO foss.arm.com"
+Received: from mga11.intel.com ([192.55.52.93]:43425 "EHLO mga11.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751363AbbGMOYW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Jul 2015 10:24:22 -0400
+	id S1751292AbbGMOft (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Jul 2015 10:35:49 -0400
 Content-Disposition: inline
-In-Reply-To: <55A3B89E.7060708@hurleysoftware.com>
+In-Reply-To: <55A3A796.4050108@plexistor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Hurley <peter@hurleysoftware.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>
+To: Boaz Harrosh <boaz@plexistor.com>
+Cc: Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, Paul Bolle <pebolle@tiscali.nl>, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 
-On Mon, Jul 13, 2015 at 02:09:50PM +0100, Peter Hurley wrote:
-> On 07/13/2015 08:15 AM, Will Deacon wrote:
-> > smp_mb__after_unlock_lock is used to promote an UNLOCK + LOCK sequence
-> > into a full memory barrier.
-> >
-> > However:
-> >
-> >   - This ordering guarantee is already provided without the barrier on
-> >     all architectures apart from PowerPC
-> >
-> >   - The barrier only applies to UNLOCK + LOCK, not general
-> >     RELEASE + ACQUIRE operations
+On Mon, Jul 13, 2015 at 02:57:10PM +0300, Boaz Harrosh wrote:
+> I do not understand why we need to call copy_user_page here at all?
+> the destination is kmap_atomic() so it must be there right? also the
+> destination is the cow-to page so surly it is not yet mapped to user-space
+> mapping.
 > 
-> I'm unclear what you mean here: do you mean
-> A) a memory barrier is not required between RELEASE M + ACQUIRE N when you
->    want to maintain distinct order between those operations on all arches
->    (with the possible exception of PowerPC), or,
-> B) no one is using smp_mb__after_unlock_lock() in that way right now.
+> the from is pmem which is just there.
+> 
+> >From what I understand copy_user_page means:
+>     On these ARCHs that each user-mapping has its own VM cache, please invalidate
+>     the other VM caches.
+> Like on arm64 (arch/arm64/mm/copypage.c):
+> 	copy_page(kto, kfrom);
+> 	__flush_dcache_area(kto, PAGE_SIZE);
 
-My understanding is (B), but Peter and I don't seem to agree yet!
-I'll tighten up the text once we reach a conclusion.
+You're confusing implementation with guaranteed semantics.  The problem
+is for architectures which have virtually indexed caches, the kernel
+virtual address does not necessarily map to the same cacheline as user
+virtual addresses.  The solution that has been adopted for page cache
+pages is that user addresses are flushed before the kernel reads from a
+page, and kernel addresses are flushed before the kernel writes to a page.
 
-Will
+Now, imagine task A mmaps a file using MAP_SHARED.  Task B mmaps the
+same file using MAP_PRIVATE.  Task A & B have a communication channel,
+maybe a socket.  Task A stores a few bytes to a page in the mmap, and
+then sends a message down the communication channel.  Task B stores a
+byte to a different part of the same page (causing the COW) and then
+examines the bytes that task A wrote.
+
+To avoid violating causality, we must have copied the bytes that task
+B would have seen at that time, as opposed to the bytes which were in
+storage before task A overwrote them.  So either we flush the bytes that
+task A wrote before doing the COW, or we copy from an address that is
+cache-coherent with the address that A used to do the store.
+
+> So what I do not understand is why copy_user_page does not have a default
+> implementation for those ARCHs that don't override it.
+
+copy_user_page() is a documented part of the cache flushing protocols.
+Some architectures have chosen to not implement it, even though they
+actually need the flushing.
+
+There is a separate issue which is that DAX is not currently doing enough
+flushing.  Fixing that is about fourth on my priority list right now.
+2MB pages, RDMA access and a rather interesting bug reported to me last
+week are all higher priority.
