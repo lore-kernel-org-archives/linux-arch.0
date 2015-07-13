@@ -1,52 +1,50 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC][PATCH 04/24] arm64: Provide atomic_{or,xor,and}
-Date: Mon, 13 Jul 2015 10:29:55 +0100
-Message-ID: <20150713092955.GA1612@arm.com>
-References: <20150709172855.564686637@infradead.org>
- <20150709175308.361407648@infradead.org>
- <20150710084258.GA29323@arm.com>
- <20150710162356.GM19282@twins.programming.kicks-ass.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Geert Uytterhoeven <geert+renesas@glider.be>
+Subject: [PATCH] fs: dax: do not build on ARC or SH
+Date: Mon, 13 Jul 2015 11:52:47 +0200
+Message-ID: <1436781167-14446-1-git-send-email-geert+renesas@glider.be>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:56709 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751037AbbGMJaE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Jul 2015 05:30:04 -0400
-Content-Disposition: inline
-In-Reply-To: <20150710162356.GM19282@twins.programming.kicks-ass.net>
+Received: from andre.telenet-ops.be ([195.130.132.53]:42850 "EHLO
+	andre.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750994AbbGMJwz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2015 05:52:55 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, min
+To: Matthew Wilcox <willy@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Paul Bolle <pebolle@tiscali.nl>, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert+renesas@glider.be>
 
-On Fri, Jul 10, 2015 at 05:23:56PM +0100, Peter Zijlstra wrote:
-> On Fri, Jul 10, 2015 at 09:42:59AM +0100, Will Deacon wrote:
-> > On Thu, Jul 09, 2015 at 06:28:59PM +0100, Peter Zijlstra wrote:
-> > > Implement atomic logic ops -- atomic_{or,xor,and}.
-> > > 
-> > > These will replace the atomic_{set,clear}_mask functions that are
-> > > available on some archs.
-> > > 
-> > > 
-> > > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > > ---
-> > 
-> > Whilst this is pretty straight-foward, I have some serious rework on arm64
-> > atomic.h pending, so do you mind if I take this via the arm64 tree and
-> > resolve the conflicts myself?
-> 
-> Are those public anywhere.. The thing is, at the end of this series I
-> pretty much assume all archs will have these ops available, so whatever
-> tree I stick the rest in woudl have to pull in your branch too.
+From: Arnd Bergmann <arnd@arndb.de>
 
-Spammed you with the series now. Not sure you'd want to pull all that lot
-via -tip, though.
+The DAX implementation relies on the architecture to provide a working
+copy_user_page() function, as reported by Michael Ellerman's kisskb
+build bot:
 
-> Also, IF you apply locally, do not forget to s/or/orr/ on the 64bit
-> versions, I seem to have missed updating those, just like I did on 32bit
-> arm.
+fs/dax.c: error: implicit declaration of function 'copy_user_page' [-Werror=implicit-function-declaration]:  => 266:2
 
-Ok, thanks for the heads up.
+We already have a list of architectures that are known to be incompatible,
+but the list is missing ARC and SH at the moment. Further, blackfin and
+c6x also lack support for this function, but are already excluded because
+they do not support MMU-based kernels.
 
-Will
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Reported-by: Geert Uytterhoeven <geert@linux-m68k.org>
+[Geert: s/SH/SUPERH/, as reported by Paul Bolle <pebolle@tiscali.nl>]
+Signed-off-by: Geert Uytterhoeven <geert+renesas@glider.be>
+---
+ fs/Kconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/fs/Kconfig b/fs/Kconfig
+index 011f43365d7b1e53..53326a50a3ce3830 100644
+--- a/fs/Kconfig
++++ b/fs/Kconfig
+@@ -37,7 +37,7 @@ source "fs/f2fs/Kconfig"
+ config FS_DAX
+ 	bool "Direct Access (DAX) support"
+ 	depends on MMU
+-	depends on !(ARM || MIPS || SPARC)
++	depends on !(ARC || ARM || MIPS || SPARC || SUPERH)
+ 	help
+ 	  Direct Access (DAX) can be used on memory-backed block devices.
+ 	  If the block device supports DAX and the filesystem supports DAX,
+-- 
+1.9.1
