@@ -1,66 +1,128 @@
-From: Matthew Wilcox <willy@linux.intel.com>
-Subject: Re: [PATCH] fs: dax: do not build on ARC or SH
-Date: Mon, 13 Jul 2015 10:35:45 -0400
-Message-ID: <20150713143545.GF13681@linux.intel.com>
-References: <1436781167-14446-1-git-send-email-geert+renesas@glider.be>
- <55A3A796.4050108@plexistor.com>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH] ftrace: Format MCOUNT_ADDR address as type unsigned
+ long
+Date: Mon, 13 Jul 2015 11:04:46 -0400
+Message-ID: <20150713110446.01c950ea@gandalf.local.home>
+References: <1436694744-16747-1-git-send-email-mhuang@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:43425 "EHLO mga11.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751292AbbGMOft (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 13 Jul 2015 10:35:49 -0400
-Content-Disposition: inline
-In-Reply-To: <55A3A796.4050108@plexistor.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Boaz Harrosh <boaz@plexistor.com>
-Cc: Geert Uytterhoeven <geert+renesas@glider.be>, Andrew Morton <akpm@linux-foundation.org>, Paul Bolle <pebolle@tiscali.nl>, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1436694744-16747-1-git-send-email-mhuang@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Minfei Huang <mhuang@redhat.com>
+Cc: mingo@redhat.com, linux-kernel@vger.kernel.org, Minfei Huang <mnfhuang@gmail.com>, linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@davemloft.net>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 13, 2015 at 02:57:10PM +0300, Boaz Harrosh wrote:
-> I do not understand why we need to call copy_user_page here at all?
-> the destination is kmap_atomic() so it must be there right? also the
-> destination is the cow-to page so surly it is not yet mapped to user-space
-> mapping.
+On Sun, 12 Jul 2015 17:52:24 +0800
+Minfei Huang <mhuang@redhat.com> wrote:
+
+> From: Minfei Huang <mnfhuang@gmail.com>
 > 
-> the from is pmem which is just there.
+> Always we use type unsigned long to format the ip address, since the
+> value of ip address is never the negative.
 > 
-> >From what I understand copy_user_page means:
->     On these ARCHs that each user-mapping has its own VM cache, please invalidate
->     the other VM caches.
-> Like on arm64 (arch/arm64/mm/copypage.c):
-> 	copy_page(kto, kfrom);
-> 	__flush_dcache_area(kto, PAGE_SIZE);
+> This patch uses type unsigned long, instead of long, to format the ip
+> address. The code is more clearly to be viewed by using type unsigned
+> long, although it is correct by using either unsigned long or long.
+> 
 
-You're confusing implementation with guaranteed semantics.  The problem
-is for architectures which have virtually indexed caches, the kernel
-virtual address does not necessarily map to the same cacheline as user
-virtual addresses.  The solution that has been adopted for page cache
-pages is that user addresses are flushed before the kernel reads from a
-page, and kernel addresses are flushed before the kernel writes to a page.
+The only place MCOUNT_ADDR is used in generic code is being passed into
+a parameter that is already typed "unsigned long". But I'm fine with
+the patch just to make it consistent. I added the appropriate Cc's for
+this patch too.
 
-Now, imagine task A mmaps a file using MAP_SHARED.  Task B mmaps the
-same file using MAP_PRIVATE.  Task A & B have a communication channel,
-maybe a socket.  Task A stores a few bytes to a page in the mmap, and
-then sends a message down the communication channel.  Task B stores a
-byte to a different part of the same page (causing the COW) and then
-examines the bytes that task A wrote.
+-- Steve
 
-To avoid violating causality, we must have copied the bytes that task
-B would have seen at that time, as opposed to the bytes which were in
-storage before task A overwrote them.  So either we flush the bytes that
-task A wrote before doing the COW, or we copy from an address that is
-cache-coherent with the address that A used to do the store.
 
-> So what I do not understand is why copy_user_page does not have a default
-> implementation for those ARCHs that don't override it.
-
-copy_user_page() is a documented part of the cache flushing protocols.
-Some architectures have chosen to not implement it, even though they
-actually need the flushing.
-
-There is a separate issue which is that DAX is not currently doing enough
-flushing.  Fixing that is about fourth on my priority list right now.
-2MB pages, RDMA access and a rather interesting bug reported to me last
-week are all higher priority.
+> Signed-off-by: Minfei Huang <mnfhuang@gmail.com>
+> ---
+>  arch/metag/include/asm/ftrace.h      | 2 +-
+>  arch/microblaze/include/asm/ftrace.h | 2 +-
+>  arch/powerpc/include/asm/ftrace.h    | 2 +-
+>  arch/sh/include/asm/ftrace.h         | 2 +-
+>  arch/sparc/include/asm/ftrace.h      | 2 +-
+>  arch/x86/include/asm/ftrace.h        | 4 ++--
+>  6 files changed, 7 insertions(+), 7 deletions(-)
+> 
+> diff --git a/arch/metag/include/asm/ftrace.h b/arch/metag/include/asm/ftrace.h
+> index 2901f0f..a2269d6 100644
+> --- a/arch/metag/include/asm/ftrace.h
+> +++ b/arch/metag/include/asm/ftrace.h
+> @@ -6,7 +6,7 @@
+>  
+>  #ifndef __ASSEMBLY__
+>  extern void mcount_wrapper(void);
+> -#define MCOUNT_ADDR		((long)(mcount_wrapper))
+> +#define MCOUNT_ADDR		((unsigned long)(mcount_wrapper))
+>  
+>  static inline unsigned long ftrace_call_adjust(unsigned long addr)
+>  {
+> diff --git a/arch/microblaze/include/asm/ftrace.h b/arch/microblaze/include/asm/ftrace.h
+> index fd2fa2ec..da0144f 100644
+> --- a/arch/microblaze/include/asm/ftrace.h
+> +++ b/arch/microblaze/include/asm/ftrace.h
+> @@ -3,7 +3,7 @@
+>  
+>  #ifdef CONFIG_FUNCTION_TRACER
+>  
+> -#define MCOUNT_ADDR		((long)(_mcount))
+> +#define MCOUNT_ADDR		((unsigned long)(_mcount))
+>  #define MCOUNT_INSN_SIZE	8 /* sizeof mcount call */
+>  
+>  #ifndef __ASSEMBLY__
+> diff --git a/arch/powerpc/include/asm/ftrace.h b/arch/powerpc/include/asm/ftrace.h
+> index e366187..ef89b14 100644
+> --- a/arch/powerpc/include/asm/ftrace.h
+> +++ b/arch/powerpc/include/asm/ftrace.h
+> @@ -2,7 +2,7 @@
+>  #define _ASM_POWERPC_FTRACE
+>  
+>  #ifdef CONFIG_FUNCTION_TRACER
+> -#define MCOUNT_ADDR		((long)(_mcount))
+> +#define MCOUNT_ADDR		((unsigned long)(_mcount))
+>  #define MCOUNT_INSN_SIZE	4 /* sizeof mcount call */
+>  
+>  #ifdef __ASSEMBLY__
+> diff --git a/arch/sh/include/asm/ftrace.h b/arch/sh/include/asm/ftrace.h
+> index e79fb6e..1f157b8 100644
+> --- a/arch/sh/include/asm/ftrace.h
+> +++ b/arch/sh/include/asm/ftrace.h
+> @@ -9,7 +9,7 @@
+>  #ifndef __ASSEMBLY__
+>  extern void mcount(void);
+>  
+> -#define MCOUNT_ADDR		((long)(mcount))
+> +#define MCOUNT_ADDR		((unsigned long)(mcount))
+>  
+>  #ifdef CONFIG_DYNAMIC_FTRACE
+>  #define CALL_ADDR		((long)(ftrace_call))
+> diff --git a/arch/sparc/include/asm/ftrace.h b/arch/sparc/include/asm/ftrace.h
+> index 9ec94ad..3192a8e 100644
+> --- a/arch/sparc/include/asm/ftrace.h
+> +++ b/arch/sparc/include/asm/ftrace.h
+> @@ -2,7 +2,7 @@
+>  #define _ASM_SPARC64_FTRACE
+>  
+>  #ifdef CONFIG_MCOUNT
+> -#define MCOUNT_ADDR		((long)(_mcount))
+> +#define MCOUNT_ADDR		((unsigned long)(_mcount))
+>  #define MCOUNT_INSN_SIZE	4 /* sizeof mcount call */
+>  
+>  #ifndef __ASSEMBLY__
+> diff --git a/arch/x86/include/asm/ftrace.h b/arch/x86/include/asm/ftrace.h
+> index f45acad..2493885 100644
+> --- a/arch/x86/include/asm/ftrace.h
+> +++ b/arch/x86/include/asm/ftrace.h
+> @@ -3,9 +3,9 @@
+>  
+>  #ifdef CONFIG_FUNCTION_TRACER
+>  #ifdef CC_USING_FENTRY
+> -# define MCOUNT_ADDR		((long)(__fentry__))
+> +# define MCOUNT_ADDR		((unsigned long)(__fentry__))
+>  #else
+> -# define MCOUNT_ADDR		((long)(mcount))
+> +# define MCOUNT_ADDR		((unsigned long)(mcount))
+>  #endif
+>  #define MCOUNT_INSN_SIZE	5 /* sizeof mcount call */
+>  
