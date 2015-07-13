@@ -1,97 +1,144 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [RFC PATCH v2] memory-barriers: remove
  smp_mb__after_unlock_lock()
-Date: Mon, 13 Jul 2015 15:53:43 -0700
-Message-ID: <20150713225343.GA3717@linux.vnet.ibm.com>
+Date: Mon, 13 Jul 2015 16:04:06 -0700
+Message-ID: <20150713230405.GB3717@linux.vnet.ibm.com>
 References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
  <20150713131143.GY19282@twins.programming.kicks-ass.net>
  <20150713140915.GD2632@arm.com>
  <20150713142109.GE2632@arm.com>
  <20150713155447.GB19282@twins.programming.kicks-ass.net>
- <20150713182332.GW3717@linux.vnet.ibm.com>
- <55A41481.7000702@hurleysoftware.com>
- <20150713201642.GY3717@linux.vnet.ibm.com>
- <20150713221503.GD19282@twins.programming.kicks-ass.net>
+ <20150713175029.GO2632@arm.com>
+ <20150713202032.GZ3717@linux.vnet.ibm.com>
+ <20150713222346.GE19282@twins.programming.kicks-ass.net>
 Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e36.co.us.ibm.com ([32.97.110.154]:57073 "EHLO
+	e36.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751712AbbGMXEO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2015 19:04:14 -0400
+Received: from /spool/local
+	by e36.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Mon, 13 Jul 2015 17:04:13 -0600
 Content-Disposition: inline
-In-Reply-To: <20150713221503.GD19282@twins.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
+In-Reply-To: <20150713222346.GE19282@twins.programming.kicks-ass.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: Peter Hurley <peter@hurleysoftware.com>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-On Tue, Jul 14, 2015 at 12:15:03AM +0200, Peter Zijlstra wrote:
-> On Mon, Jul 13, 2015 at 01:16:42PM -0700, Paul E. McKenney wrote:
-> > On Mon, Jul 13, 2015 at 03:41:53PM -0400, Peter Hurley wrote:
-> > > > Does that answer the question, or am I missing the point?
-> > > 
-> > > Yes, it shows that smp_mb__after_unlock_lock() has no purpose, since it
-> > > is defined only for PowerPC and your test above just showed that for
-> > > the sequence
+On Tue, Jul 14, 2015 at 12:23:46AM +0200, Peter Zijlstra wrote:
+> On Mon, Jul 13, 2015 at 01:20:32PM -0700, Paul E. McKenney wrote:
+> > On Mon, Jul 13, 2015 at 06:50:29PM +0100, Will Deacon wrote:
 > 
-> The only purpose is to provide transitivity, but the documentation fails
-> to explicitly call that out.
-
-It does say that it is a full barrier, but I added explicit mention of
-transitivity.
-
-> > > 
-> > >   store a
-> > >   UNLOCK M
-> > >   LOCK N
-> > >   store b
-> > > 
-> > > a and b is always observed as an ordered pair {a,b}.
+> > > So if I'm following along, smp_mb__after_unlock_lock *does* provide
+> > > transitivity when used with UNLOCK + LOCK, which is stronger than your
+> > > example here.
 > > 
-> > Not quite.
-> > 
-> > This is instead the sequence that is of concern:
-> > 
-> > 	store a
-> > 	unlock M
-> > 	lock N
-> > 	load b
+> > Yes, that is indeed the intent.
 > 
-> So its late and that table didn't parse, but that should be ordered too.
-> The load of b should not be able to escape the lock N.
-> 
-> If only because LWSYNC is a valid RMB and any LOCK implementation must
-> load the lock state to observe it unlocked.
+> Maybe good to state this explicitly somewhere.
 
-If you actually hold a given lock, then yes, you will observe anything
-previously done while holding that same lock, even if you don't use
-smp_mb__after_unlock_lock().  The smp_mb__after_unlock_lock() comes into
-play when code not holding a lock needs to see the ordering.  RCU needs
-this because of the strong ordering that grace periods must provide:
-regardless of who started or ended the grace period, anything on any
-CPU preceding a given grace period is fully ordered before anything on
-any CPU following that same grace period.  It is not clear to me that
-anything else would need such strong ordering.
+Fair enough!  Please see patch below.
 
-> > > Additionally, the assertion in Documentation/memory_barriers.txt that
-> > > the sequence above can be reordered as
-> > > 
-> > >   LOCK N
-> > >   store b
-> > >   store a
-> > >   UNLOCK M
-> > > 
-> > > is not true on any existing arch in Linux.
+> > > I don't think we want to make the same guarantee for general RELEASE +
+> > > ACQUIRE, because we'd end up forcing most architectures to implement the
+> > > expensive macro for a case that currently has no users.
 > > 
-> > It was at one time and might be again.
+> > Agreed, smp_mb__after_unlock_lock() makes a limited guarantee.
 > 
-> What would be required to make this true? I'm having a hard time seeing
-> how things can get reordered like that.
+> I'm still not seeing how the archs that implement load_acquire and
+> store_release with smp_mb() are a problem.
 
-You are right, I failed to merge current and past knowledge.  At one time,
-Itanium was said to allow things to bleed into lock-based critical sections.
-However, we now know that ld,acq and st,rel really do full ordering.
+I don't know that I ever claimed such architectures to be a problem.
+Color me confused.
 
-Compilers might one day do this sort of reordering, but I would guess
-that Linux kernel builds would disable this sort of thing.  Something
-about wanting critical sections to remain small.
+> If we look at the inside of the critical section again -- similar
+> argument as before:
+> 
+> 	*A = a
+> 	smp_mb()
+> 	store M
+> 	load N
+> 	smp_mb()
+> 	*B = b
+> 
+> A and B are fully ordered, and in this case even transitivity is
+> provided.
+> 
+> I'm stating that the order of M and N don't matter, only the
+> load/stores that are inside the acquire/release are constrained.
+
+No argument here.
+
+> IOW, I think smp_mb__after_unlock_lock() already works as advertised
+> with all our acquire/release thingies -- as is stated by the
+> documentation.
+> 
+> That said, I'm not aware of anybody but RCU actually using this, so its
+> not used in that capacity.
+
+OK, I might actually understand what you are getting at.  And, yes, if
+someone actually comes up with a need to combine smp_mb__after_unlock_lock()
+with something other than locking, we should worry about it at that point.
+And probably rename smp_mb__after_unlock_lock() at that point, as well.
+Until then, why lock ourselves into semantics that no one needs, and
+that it is quite possible that no one will ever need?
+
+> > > In which case, it boils down to the question of how expensive it would
+> > > be to implement an SC UNLOCK operation on PowerPC and whether that justifies
+> > > the existence of a complicated barrier macro that isn't used outside of
+> > > RCU.
+> > 
+> > Given that it is either smp_mb() or nothing, I am not seeing the
+> > "complicated" part...
+> 
+> The 'complicated' part is that we need think about it; that is we need
+> to realized and remember that UNLOCK+LOCK is a load-store barrier but
+> fails to provide transitivity.
+
+...  unless you are holding the lock.  So in the common case, you do
+get transitivity.
 
 							Thanx, Paul
+
+------------------------------------------------------------------------
+
+commit bae5cf1e2973bb1e8f852abb54f8b1948ffd82e4
+Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Date:   Mon Jul 13 15:55:52 2015 -0700
+
+    doc: Call out smp_mb__after_unlock_lock() transitivity
+    
+    Although "full barrier" should be interpreted as providing transitivity,
+    it is worth eliminating any possible confusion.  This commit therefore
+    adds "(including transitivity)" to eliminate any possible confusion.
+    
+    Reported-by: Peter Zijlstra <peterz@infradead.org>
+    Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index 470c07c868e4..318523872db5 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -1858,11 +1858,12 @@ Similarly, the reverse case of a RELEASE followed by an ACQUIRE does not
+ imply a full memory barrier.  If it is necessary for a RELEASE-ACQUIRE
+ pair to produce a full barrier, the ACQUIRE can be followed by an
+ smp_mb__after_unlock_lock() invocation.  This will produce a full barrier
+-if either (a) the RELEASE and the ACQUIRE are executed by the same
+-CPU or task, or (b) the RELEASE and ACQUIRE act on the same variable.
+-The smp_mb__after_unlock_lock() primitive is free on many architectures.
+-Without smp_mb__after_unlock_lock(), the CPU's execution of the critical
+-sections corresponding to the RELEASE and the ACQUIRE can cross, so that:
++(including transitivity) if either (a) the RELEASE and the ACQUIRE are
++executed by the same CPU or task, or (b) the RELEASE and ACQUIRE act on
++the same variable.  The smp_mb__after_unlock_lock() primitive is free
++on many architectures.  Without smp_mb__after_unlock_lock(), the CPU's
++execution of the critical sections corresponding to the RELEASE and the
++ACQUIRE can cross, so that:
+ 
+ 	*A = a;
+ 	RELEASE M
