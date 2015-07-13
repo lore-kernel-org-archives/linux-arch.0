@@ -1,303 +1,64 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH 2/5] asm-generic: rework atomic-long.h to avoid bulk code duplication
-Date: Mon, 13 Jul 2015 13:31:24 +0100
-Message-ID: <1436790687-11984-3-git-send-email-will.deacon@arm.com>
-References: <1436790687-11984-1-git-send-email-will.deacon@arm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1436790687-11984-1-git-send-email-will.deacon@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>
-List-Id: linux-arch.vger.kernel.org
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [RFC][PATCH 02/24] arc: Provide atomic_{or,xor,and}
+Date: Mon, 13 Jul 2015 12:43:45 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665ADA81@IN01WEMBXB.internal.synopsys.com>
+References: <20150709172855.564686637@infradead.org>
+ <20150709175308.217482496@infradead.org>
+ <C2D7FE5348E1B147BCA15975FBA23075665AD246@IN01WEMBXB.internal.synopsys.com>
+ <20150710070511.GE19282@twins.programming.kicks-ass.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtprelay.synopsys.com ([198.182.47.9]:50235 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752064AbbGMMn6 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2015 08:43:58 -0400
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "will.deacon@arm.com" <will.deacon@arm.com>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>
 
-We can use some (admittedly ugly) macros to generate the 32-bit and
-64-bit based atomic_long implementations from the same code.
+On Friday 10 July 2015 12:35 PM, Peter Zijlstra wrote:
+> On Fri, Jul 10, 2015 at 04:30:46AM +0000, Vineet Gupta wrote:
+>> > 
+>> > Since we are on the topic, the cmpxchg() loop in arch/arc/kernel/smp.c still
+>> > irritates me.
+>> > Do we need a new set of primitives to operate atomically on non atomic_t data or
+>> > does that mean that the data *not* being atomic_t but requiring such semantics is
+>> > the fundamental problem and thus needs to be converted first.
+> So if you look at the last patch, there's already a few sites that do
+> things like:
+>
+> +       atomic_or(*mask, (atomic_t *)&flushcache_cpumask);
+>
+> Which is of course ugly as hell, but does work.
+>
+> Esp. inside arch code.
 
-Signed-off-by: Will Deacon <will.deacon@arm.com>
----
- include/asm-generic/atomic-long.h | 189 ++++++++------------------------------
- 1 file changed, 40 insertions(+), 149 deletions(-)
+Right - I don't have issues with using this API - but this requires atomic_t data
+type.  The specific cmpxchg() loop that I'm referring to is not for atomic_t - so
+that needs to be converted to atomic_t first ?
 
-diff --git a/include/asm-generic/atomic-long.h b/include/asm-generic/atomic-long.h
-index b7babf0206b8..beaea541adfb 100644
---- a/include/asm-generic/atomic-long.h
-+++ b/include/asm-generic/atomic-long.h
-@@ -23,236 +23,127 @@
- typedef atomic64_t atomic_long_t;
- 
- #define ATOMIC_LONG_INIT(i)	ATOMIC64_INIT(i)
-+#define ATOMIC_LONG_PFX(x)	atomic64 ## x
- 
--static inline long atomic_long_read(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_read(v);
--}
--
--static inline void atomic_long_set(atomic_long_t *l, long i)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_set(v, i);
--}
--
--static inline void atomic_long_inc(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_inc(v);
--}
--
--static inline void atomic_long_dec(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_dec(v);
--}
--
--static inline void atomic_long_add(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_add(i, v);
--}
--
--static inline void atomic_long_sub(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_sub(i, v);
--}
--
--static inline int atomic_long_sub_and_test(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return atomic64_sub_and_test(i, v);
--}
--
--static inline int atomic_long_dec_and_test(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return atomic64_dec_and_test(v);
--}
--
--static inline int atomic_long_inc_and_test(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return atomic64_inc_and_test(v);
--}
--
--static inline int atomic_long_add_negative(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return atomic64_add_negative(i, v);
--}
--
--static inline long atomic_long_add_return(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_add_return(i, v);
--}
--
--static inline long atomic_long_sub_return(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_sub_return(i, v);
--}
--
--static inline long atomic_long_inc_return(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_inc_return(v);
--}
--
--static inline long atomic_long_dec_return(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_dec_return(v);
--}
--
--static inline long atomic_long_add_unless(atomic_long_t *l, long a, long u)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_add_unless(v, a, u);
--}
--
--#define atomic_long_inc_not_zero(l) atomic64_inc_not_zero((atomic64_t *)(l))
--
--#define atomic_long_cmpxchg(l, old, new) \
--	(atomic64_cmpxchg((atomic64_t *)(l), (old), (new)))
--#define atomic_long_xchg(v, new) \
--	(atomic64_xchg((atomic64_t *)(v), (new)))
--
--#else  /*  BITS_PER_LONG == 64  */
-+#else
- 
- typedef atomic_t atomic_long_t;
- 
- #define ATOMIC_LONG_INIT(i)	ATOMIC_INIT(i)
-+#define ATOMIC_LONG_PFX(x)	atomic ## x
-+
-+#endif
-+
- static inline long atomic_long_read(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_read(v);
-+	return (long)ATOMIC_LONG_PFX(_read)(v);
- }
- 
- static inline void atomic_long_set(atomic_long_t *l, long i)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_set(v, i);
-+	ATOMIC_LONG_PFX(_set)(v, i);
- }
- 
- static inline void atomic_long_inc(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_inc(v);
-+	ATOMIC_LONG_PFX(_inc)(v);
- }
- 
- static inline void atomic_long_dec(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_dec(v);
-+	ATOMIC_LONG_PFX(_dec)(v);
- }
- 
- static inline void atomic_long_add(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_add(i, v);
-+	ATOMIC_LONG_PFX(_add)(i, v);
- }
- 
- static inline void atomic_long_sub(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_sub(i, v);
-+	ATOMIC_LONG_PFX(_sub)(i, v);
- }
- 
- static inline int atomic_long_sub_and_test(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return atomic_sub_and_test(i, v);
-+	return ATOMIC_LONG_PFX(_sub_and_test)(i, v);
- }
- 
- static inline int atomic_long_dec_and_test(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return atomic_dec_and_test(v);
-+	return ATOMIC_LONG_PFX(_dec_and_test)(v);
- }
- 
- static inline int atomic_long_inc_and_test(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return atomic_inc_and_test(v);
-+	return ATOMIC_LONG_PFX(_inc_and_test)(v);
- }
- 
- static inline int atomic_long_add_negative(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return atomic_add_negative(i, v);
-+	return ATOMIC_LONG_PFX(_add_negative)(i, v);
- }
- 
- static inline long atomic_long_add_return(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_add_return(i, v);
-+	return (long)ATOMIC_LONG_PFX(_add_return)(i, v);
- }
- 
- static inline long atomic_long_sub_return(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_sub_return(i, v);
-+	return (long)ATOMIC_LONG_PFX(_sub_return)(i, v);
- }
- 
- static inline long atomic_long_inc_return(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_inc_return(v);
-+	return (long)ATOMIC_LONG_PFX(_inc_return)(v);
- }
- 
- static inline long atomic_long_dec_return(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_dec_return(v);
-+	return (long)ATOMIC_LONG_PFX(_dec_return)(v);
- }
- 
- static inline long atomic_long_add_unless(atomic_long_t *l, long a, long u)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_add_unless(v, a, u);
-+	return (long)ATOMIC_LONG_PFX(_add_unless)(v, a, u);
- }
- 
--#define atomic_long_inc_not_zero(l) atomic_inc_not_zero((atomic_t *)(l))
--
-+#define atomic_long_inc_not_zero(l) \
-+	ATOMIC_LONG_PFX(_inc_not_zero)((ATOMIC_LONG_PFX(_t) *)(l))
- #define atomic_long_cmpxchg(l, old, new) \
--	(atomic_cmpxchg((atomic_t *)(l), (old), (new)))
-+	(ATOMIC_LONG_PFX(_cmpxchg)((ATOMIC_LONG_PFX(_t) *)(l), (old), (new)))
- #define atomic_long_xchg(v, new) \
--	(atomic_xchg((atomic_t *)(v), (new)))
--
--#endif  /*  BITS_PER_LONG == 64  */
-+	(ATOMIC_LONG_PFX(_xchg)((ATOMIC_LONG_PFX(_t) *)(v), (new)))
- 
- #endif  /*  _ASM_GENERIC_ATOMIC_LONG_H  */
--- 
-2.1.4
+>
+> Now the 'problem' with cmpxchg/xchg, the instructions working on !atomic
+> data is:
+>
+>   http://lkml.kernel.org/r/alpine.LRH.2.02.1406011342470.20831@file01.intranet.prod.int.rdu2.redhat.com
+>   http://lkml.kernel.org/r/20140606175316.GV13930@laptop.programming.kicks-ass.net
+>
+> And note that includes some arc.
+
+Correct so we don't mix cmpxchg() with normal load/store.
+
+>
+> Adding more such primitives will only make it harder on those already
+> 'broken' archs.
+
+Not sure if I follow here - my point was not so much about expanding the
+atomic_*() API but whether it makes sense to have "some" API for non atomic_t vs.
+converting the non atomic_t to atomic_t and then use the API as that is the
+fundamental problem for such cases.
+
+-Vineet
