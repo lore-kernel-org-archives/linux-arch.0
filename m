@@ -1,61 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from emh02.mail.saunalahti.fi ([62.142.5.108]:52649 "EHLO
-	emh02.mail.saunalahti.fi" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752598AbbGMUch (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2015 16:32:37 -0400
-Date: Mon, 13 Jul 2015 23:24:06 +0300
-From: Aaro Koskinen <aaro.koskinen@iki.fi>
-Subject: Re: [PATCH] Revert "perf tools: Allow to specify custom linker
- command"
-Message-ID: <20150713202406.GB5020@blackmetal.musicnaut.iki.fi>
-References: <1436785853-4260-1-git-send-email-abrodkin@synopsys.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1436785853-4260-1-git-send-email-abrodkin@synopsys.com>
+Received: from gate.crashing.org ([63.228.1.57]:57750 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752691AbbGMWoU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Jul 2015 18:44:20 -0400
+Message-ID: <1436827424.3948.239.camel@kernel.crashing.org>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Tue, 14 Jul 2015 08:43:44 +1000
+In-Reply-To: <20150713221503.GD19282@twins.programming.kicks-ass.net>
+References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
+	 <20150713131143.GY19282@twins.programming.kicks-ass.net>
+	 <20150713140915.GD2632@arm.com> <20150713142109.GE2632@arm.com>
+	 <20150713155447.GB19282@twins.programming.kicks-ass.net>
+	 <20150713182332.GW3717@linux.vnet.ibm.com>
+	 <55A41481.7000702@hurleysoftware.com>
+	 <20150713201642.GY3717@linux.vnet.ibm.com>
+	 <20150713221503.GD19282@twins.programming.kicks-ass.net>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Aaro Koskinen <aaro.koskinen@nokia.com>, Jiri Olsa <jolsa@kernel.org>, Paul Mackerras <paulus@samba.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Arnaldo Carvalho de Melo <acme@redhat.com>, linux-kernel@vger.kernel.org
-Message-ID: <20150713202406.HfDXMebq6p3e99h8r6zDu5H7xhpyuPChBcg-FPXJetw@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Hurley <peter@hurleysoftware.com>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20150713224344.HzBFmQaGO0XkvrZ5JXsj34sUiJSb7TB4PuVd4iGexrw@z>
 
-Hi,
+On Tue, 2015-07-14 at 00:15 +0200, Peter Zijlstra wrote:
 
-On Mon, Jul 13, 2015 at 02:10:53PM +0300, Alexey Brodkin wrote:
-> This reverts commit 5ef7bbb09f7b
-> ("perf tools: Allow to specify custom linker command").
+> > This is instead the sequence that is of concern:
+> > 
+> > 	store a
+> > 	unlock M
+> > 	lock N
+> > 	load b
 > 
-> LD is a pre-defined variable in GNU Make. I.e. it is always defined.
-> Which means there's no point to check "LD ?= ..." because it will never
-> succeed. And so LD will be either that explicitly passed to make like
-> this:
->  ------->8-------
->  make LD=path_to_my_ld ...
->  ------->8-------
->  or default value, which is host's "ld".
+> So its late and that table didn't parse, but that should be ordered too.
+> The load of b should not be able to escape the lock N.
 > 
-> Latter leads to failure of cross-linkage because instead of cross linker
-> "$(CROSS_COMPILE)ld" host's "ld" is used.
+> If only because LWSYNC is a valid RMB and any LOCK implementation must
+> load the lock state to observe it unlocked.
+
+What happens is that the load passes the store conditional, though it
+doesn't pass the load with reserve. However, both store A and unlock M
+being just stores with an lwsync, can pass a load, so they can pass the
+load with reserve. And thus inside the LL/SC loop, our store A has
+passed our load B.
+
+> > > Additionally, the assertion in Documentation/memory_barriers.txt that
+> > > the sequence above can be reordered as
+> > > 
+> > >   LOCK N
+> > >   store b
+> > >   store a
+> > >   UNLOCK M
+> > > 
+> > > is not true on any existing arch in Linux.
+> > 
+> > It was at one time and might be again.
 > 
-> As for commit which is reverted here:
->  [1] Usually for selection of non-default flavour of CPU core/options
->      linker flags are used like "-mtune=xxx" or "-mMyCPUType" etc.
-> 
->  [2] Still to implement ability to use "ld" that differs from
->     "$(CROSS_COMPILE)ld" one will need to add new makefile variable like
->     TARGET_LD and then check if $(TARGET_LD) is not specified on make
->     invocation then use "$(CROSS_COMPILE)ld".
-> 
-> But for now to fix cross-building of perf this revert is enough.
+> What would be required to make this true? I'm having a hard time seeing
+> how things can get reordered like that.
 
-Hmm. You are probably right, my build system always exports LD with
-correct linker for cross builds so perhaps that's why I this "worked"
-for me when testing. Sorry.
 
-I guess the correct fix would be [1], i.e. there should be some new
-variable to pass flags to ld command.
-
-Or maybe [2], could we use make "origin" function? If LD is "default",
-then use "$(CROSS_COMPILE)ld", otherwise use what the user passed?
-
-A.
