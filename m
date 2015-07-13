@@ -1,50 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f182.google.com ([209.85.212.182]:36764 "EHLO
-	mail-wi0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751096AbbGML5O (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2015 07:57:14 -0400
-Received: by widjy10 with SMTP id jy10so67181852wid.1
-        for <linux-arch@vger.kernel.org>; Mon, 13 Jul 2015 04:57:12 -0700 (PDT)
-Message-ID: <55A3A796.4050108@plexistor.com>
-Date: Mon, 13 Jul 2015 14:57:10 +0300
-From: Boaz Harrosh <boaz@plexistor.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH] fs: dax: do not build on ARC or SH
-References: <1436781167-14446-1-git-send-email-geert+renesas@glider.be>
-In-Reply-To: <1436781167-14446-1-git-send-email-geert+renesas@glider.be>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:58506 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751247AbbGMMdB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 13 Jul 2015 08:33:01 -0400
+From: Will Deacon <will.deacon@arm.com>
+Subject: [PATCH 0/5] Add generic support for relaxed atomics
+Date: Mon, 13 Jul 2015 13:31:22 +0100
+Message-ID: <1436790687-11984-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert+renesas@glider.be>, Matthew Wilcox <willy@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Paul Bolle <pebolle@tiscali.nl>, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20150713115710.tjBUuRpTrDT4Pw5wJfglyfPem1_y1rjcggZxEJZhSXU@z>
+To: linux-arch@vger.kernel.org
+Cc: Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>
+Message-ID: <20150713123122.GC15HulG5y_vM6H2rNY4aYhBrzdGFRFKReUn9DTZfbo@z>
 
-On 07/13/2015 12:52 PM, Geert Uytterhoeven wrote:
-> From: Arnd Bergmann <arnd@arndb.de>
-> 
-> The DAX implementation relies on the architecture to provide a working
-> copy_user_page() function, as reported by Michael Ellerman's kisskb
-> build bot:
-> 
-> fs/dax.c: error: implicit declaration of function 'copy_user_page' [-Werror=implicit-function-declaration]:  => 266:2
-> 
+Hello,
 
-static int copy_user_bh(struct page *to, struct buffer_head *bh,
-			unsigned blkbits, unsigned long vaddr)
-{
-	void *vfrom, *vto;
-	if (dax_get_addr(bh, &vfrom, blkbits) < 0)
-		return -EIO;
-	vto = kmap_atomic(to);
-	copy_user_page(vto, vfrom, vaddr, to);
-	kunmap_atomic(vto);
-	return 0;
-}
+This patch series adds support for a family of relaxed atomics to the
+kernel. More specifically:
 
-I do not understand why we need to call copy_user_page here at all?
-the destination is kmap_atomic() so it must be there right? also the
-destination is the cow-to page so surly it is not yet mapped to user-space
-mapping.
+  - acquire/release/relaxed flavours of xchg, cmpxchg and {add,sub}_return
+  - atomic_read_acquire
+  - atomic_set_release
 
-the from is pmem which is just there.
+This came out of a separate patch series porting the (barrier-heavy)
+qrwlock code to arm64. Rather than have arch-specific hooks littered
+around the place, it makes more sense to define a core set of relaxed
+atomics that can be used regardless of architecture.
+
+For now, the definitions simply take on the existing (i.e. full-barrier)
+semantics, but there is a direct mapping onto arm64 and even architectures
+with explicit memory barrier instructions (e.g. powerpc, arm) can benefit,
+as they do from the existing smp_load_acquire/smp_store_release macros.
+
+The final patch is a proof-of-concept port of the qrwlock over to the
+new atomics. It's based on some of the pending patches from me and Waiman,
+so it won't apply to mainline but I think it illustrates the usage well
+enough.
+
+All feedback welcome,
+
+Will
+
+--->8
+
+Will Deacon (5):
+  atomics: add acquire/release/relaxed variants of some atomic
+    operations
+  asm-generic: rework atomic-long.h to avoid bulk code duplication
+  asm-generic: add relaxed/acquire/release variants for atomic_long_t
+  lockref: remove homebrew cmpxchg64_relaxed macro definition
+  locking/qrwlock: make use of acquire/release/relaxed atomics
+
+ Documentation/atomic_ops.txt      |   4 +-
+ include/asm-generic/atomic-long.h | 263 ++++++++++++++------------------------
+ include/asm-generic/qrwlock.h     |  13 +-
+ include/linux/atomic.h            | 140 ++++++++++++++++++++
+ kernel/locking/qrwlock.c          |  12 +-
+ lib/lockref.c                     |   8 --
+ 6 files changed, 248 insertions(+), 192 deletions(-)
+
+-- 
+2.1.4
+
