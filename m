@@ -1,128 +1,90 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH] ftrace: Format MCOUNT_ADDR address as type unsigned
- long
-Date: Mon, 13 Jul 2015 11:04:46 -0400
-Message-ID: <20150713110446.01c950ea@gandalf.local.home>
-References: <1436694744-16747-1-git-send-email-mhuang@redhat.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+Date: Mon, 13 Jul 2015 17:54:47 +0200
+Message-ID: <20150713155447.GB19282@twins.programming.kicks-ass.net>
+References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
+ <20150713131143.GY19282@twins.programming.kicks-ass.net>
+ <20150713140915.GD2632@arm.com>
+ <20150713142109.GE2632@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1436694744-16747-1-git-send-email-mhuang@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Minfei Huang <mhuang@redhat.com>
-Cc: mingo@redhat.com, linux-kernel@vger.kernel.org, Minfei Huang <mnfhuang@gmail.com>, linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.9]:56684 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751168AbbGMPy4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2015 11:54:56 -0400
+Content-Disposition: inline
+In-Reply-To: <20150713142109.GE2632@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>
 
-On Sun, 12 Jul 2015 17:52:24 +0800
-Minfei Huang <mhuang@redhat.com> wrote:
-
-> From: Minfei Huang <mnfhuang@gmail.com>
+On Mon, Jul 13, 2015 at 03:21:10PM +0100, Will Deacon wrote:
+> On Mon, Jul 13, 2015 at 03:09:15PM +0100, Will Deacon wrote:
+> > On Mon, Jul 13, 2015 at 02:11:43PM +0100, Peter Zijlstra wrote:
+> > > On Mon, Jul 13, 2015 at 01:15:04PM +0100, Will Deacon wrote:
+> > > > smp_mb__after_unlock_lock is used to promote an UNLOCK + LOCK sequence
+> > > > into a full memory barrier.
+> > > > 
+> > > > However:
+> > > 
+> > > >   - The barrier only applies to UNLOCK + LOCK, not general
+> > > >     RELEASE + ACQUIRE operations
+> > > 
+> > > No it does too; note that on ppc both acquire and release use lwsync and
+> > > two lwsyncs do not make a sync.
+> > 
+> > Really? IIUC, that means smp_mb__after_unlock_lock needs to be a full
+> > barrier on all architectures implementing smp_store_release as smp_mb() +
+> > STORE, otherwise the following isn't ordered:
+> > 
+> >   RELEASE X
+> >   smp_mb__after_unlock_lock()
+> >   ACQUIRE Y
+> > 
+> > On 32-bit ARM (at least), the ACQUIRE can be observed before the RELEASE.
 > 
-> Always we use type unsigned long to format the ip address, since the
-> value of ip address is never the negative.
+> I knew we'd had this conversation before ;)
 > 
-> This patch uses type unsigned long, instead of long, to format the ip
-> address. The code is more clearly to be viewed by using type unsigned
-> long, although it is correct by using either unsigned long or long.
-> 
+>   http://lkml.kernel.org/r/20150120093443.GA11596@twins.programming.kicks-ass.net
 
-The only place MCOUNT_ADDR is used in generic code is being passed into
-a parameter that is already typed "unsigned long". But I'm fine with
-the patch just to make it consistent. I added the appropriate Cc's for
-this patch too.
+Ha! yes. And I had indeed forgotten about this argument.
 
--- Steve
+However I think we should look at the insides of the critical sections;
+for example (from Documentation/memory-barriers.txt):
 
+"       *A = a;
+        RELEASE M
+        ACQUIRE N
+        *B = b;
 
-> Signed-off-by: Minfei Huang <mnfhuang@gmail.com>
-> ---
->  arch/metag/include/asm/ftrace.h      | 2 +-
->  arch/microblaze/include/asm/ftrace.h | 2 +-
->  arch/powerpc/include/asm/ftrace.h    | 2 +-
->  arch/sh/include/asm/ftrace.h         | 2 +-
->  arch/sparc/include/asm/ftrace.h      | 2 +-
->  arch/x86/include/asm/ftrace.h        | 4 ++--
->  6 files changed, 7 insertions(+), 7 deletions(-)
-> 
-> diff --git a/arch/metag/include/asm/ftrace.h b/arch/metag/include/asm/ftrace.h
-> index 2901f0f..a2269d6 100644
-> --- a/arch/metag/include/asm/ftrace.h
-> +++ b/arch/metag/include/asm/ftrace.h
-> @@ -6,7 +6,7 @@
->  
->  #ifndef __ASSEMBLY__
->  extern void mcount_wrapper(void);
-> -#define MCOUNT_ADDR		((long)(mcount_wrapper))
-> +#define MCOUNT_ADDR		((unsigned long)(mcount_wrapper))
->  
->  static inline unsigned long ftrace_call_adjust(unsigned long addr)
->  {
-> diff --git a/arch/microblaze/include/asm/ftrace.h b/arch/microblaze/include/asm/ftrace.h
-> index fd2fa2ec..da0144f 100644
-> --- a/arch/microblaze/include/asm/ftrace.h
-> +++ b/arch/microblaze/include/asm/ftrace.h
-> @@ -3,7 +3,7 @@
->  
->  #ifdef CONFIG_FUNCTION_TRACER
->  
-> -#define MCOUNT_ADDR		((long)(_mcount))
-> +#define MCOUNT_ADDR		((unsigned long)(_mcount))
->  #define MCOUNT_INSN_SIZE	8 /* sizeof mcount call */
->  
->  #ifndef __ASSEMBLY__
-> diff --git a/arch/powerpc/include/asm/ftrace.h b/arch/powerpc/include/asm/ftrace.h
-> index e366187..ef89b14 100644
-> --- a/arch/powerpc/include/asm/ftrace.h
-> +++ b/arch/powerpc/include/asm/ftrace.h
-> @@ -2,7 +2,7 @@
->  #define _ASM_POWERPC_FTRACE
->  
->  #ifdef CONFIG_FUNCTION_TRACER
-> -#define MCOUNT_ADDR		((long)(_mcount))
-> +#define MCOUNT_ADDR		((unsigned long)(_mcount))
->  #define MCOUNT_INSN_SIZE	4 /* sizeof mcount call */
->  
->  #ifdef __ASSEMBLY__
-> diff --git a/arch/sh/include/asm/ftrace.h b/arch/sh/include/asm/ftrace.h
-> index e79fb6e..1f157b8 100644
-> --- a/arch/sh/include/asm/ftrace.h
-> +++ b/arch/sh/include/asm/ftrace.h
-> @@ -9,7 +9,7 @@
->  #ifndef __ASSEMBLY__
->  extern void mcount(void);
->  
-> -#define MCOUNT_ADDR		((long)(mcount))
-> +#define MCOUNT_ADDR		((unsigned long)(mcount))
->  
->  #ifdef CONFIG_DYNAMIC_FTRACE
->  #define CALL_ADDR		((long)(ftrace_call))
-> diff --git a/arch/sparc/include/asm/ftrace.h b/arch/sparc/include/asm/ftrace.h
-> index 9ec94ad..3192a8e 100644
-> --- a/arch/sparc/include/asm/ftrace.h
-> +++ b/arch/sparc/include/asm/ftrace.h
-> @@ -2,7 +2,7 @@
->  #define _ASM_SPARC64_FTRACE
->  
->  #ifdef CONFIG_MCOUNT
-> -#define MCOUNT_ADDR		((long)(_mcount))
-> +#define MCOUNT_ADDR		((unsigned long)(_mcount))
->  #define MCOUNT_INSN_SIZE	4 /* sizeof mcount call */
->  
->  #ifndef __ASSEMBLY__
-> diff --git a/arch/x86/include/asm/ftrace.h b/arch/x86/include/asm/ftrace.h
-> index f45acad..2493885 100644
-> --- a/arch/x86/include/asm/ftrace.h
-> +++ b/arch/x86/include/asm/ftrace.h
-> @@ -3,9 +3,9 @@
->  
->  #ifdef CONFIG_FUNCTION_TRACER
->  #ifdef CC_USING_FENTRY
-> -# define MCOUNT_ADDR		((long)(__fentry__))
-> +# define MCOUNT_ADDR		((unsigned long)(__fentry__))
->  #else
-> -# define MCOUNT_ADDR		((long)(mcount))
-> +# define MCOUNT_ADDR		((unsigned long)(mcount))
->  #endif
->  #define MCOUNT_INSN_SIZE	5 /* sizeof mcount call */
->  
+could occur as:
+
+        ACQUIRE N, STORE *B, STORE *A, RELEASE M"
+
+This could not in fact happen, even though we could flip M and N, A and
+B will remain strongly ordered.
+
+That said, I don't think this could even happen on PPC because we have
+load_acquire and store_release, this means that:
+
+	*A = a
+	lwsync
+	store_release M
+	load_acquire N
+	lwsync
+	*B = b
+
+And since the store to M is wrapped inside two lwsync there must be
+strong store order, and because the load from N is equally wrapped in
+two lwsyncs there must also be strong load order.
+
+In fact, no store/load can cross from before the first lwsync to after
+the latter and the other way around.
+
+So in that respect it does provide full load-store ordering. What it
+does not provide is order for M and N, nor does it provide transitivity,
+but looking at our documentation I'm not at all sure we guarantee that
+in any case.
