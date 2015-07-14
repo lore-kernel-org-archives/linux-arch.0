@@ -1,137 +1,88 @@
-From: Adrian Hunter <adrian.hunter@intel.com>
-Subject: Re: "perf record" if BITS_PER_LONG != 64 && !defined(HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT)
-Date: Tue, 14 Jul 2015 15:36:12 +0300
-Message-ID: <55A5023C.7020907@intel.com>
-References: <1436875946.2839.22.camel@synopsys.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+Date: Tue, 14 Jul 2015 05:45:40 -0700
+Message-ID: <20150714124540.GC3717@linux.vnet.ibm.com>
+References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
+ <20150713131143.GY19282@twins.programming.kicks-ass.net>
+ <20150713140915.GD2632@arm.com>
+ <20150713142109.GE2632@arm.com>
+ <20150713155447.GB19282@twins.programming.kicks-ass.net>
+ <20150713175029.GO2632@arm.com>
+ <20150713202032.GZ3717@linux.vnet.ibm.com>
+ <20150713222346.GE19282@twins.programming.kicks-ass.net>
+ <20150713230405.GB3717@linux.vnet.ibm.com>
+ <20150714100429.GC15448@arm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:44758 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751799AbbGNMiq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Jul 2015 08:38:46 -0400
-In-Reply-To: <1436875946.2839.22.camel@synopsys.com>
+Received: from e35.co.us.ibm.com ([32.97.110.153]:33812 "EHLO
+	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752036AbbGNMpu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jul 2015 08:45:50 -0400
+Received: from /spool/local
+	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Tue, 14 Jul 2015 06:45:50 -0600
+Content-Disposition: inline
+In-Reply-To: <20150714100429.GC15448@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "jolsa@redhat.com" <jolsa@redhat.com>, "eranian@google.com" <eranian@google.com>, "namhyung@gmail.com" <namhyung@gmail.com>, "dsahern@gmail.com" <dsahern@gmail.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-On 14/07/15 15:12, Alexey Brodkin wrote:
-> Hi Adrian,
+On Tue, Jul 14, 2015 at 11:04:29AM +0100, Will Deacon wrote:
+> On Tue, Jul 14, 2015 at 12:04:06AM +0100, Paul E. McKenney wrote:
+> > On Tue, Jul 14, 2015 at 12:23:46AM +0200, Peter Zijlstra wrote:
+> > > If we look at the inside of the critical section again -- similar
+> > > argument as before:
+> > > 
+> > > 	*A = a
+> > > 	smp_mb()
+> > > 	store M
+> > > 	load N
+> > > 	smp_mb()
+> > > 	*B = b
+> > > 
+> > > A and B are fully ordered, and in this case even transitivity is
+> > > provided.
+> > > 
+> > > I'm stating that the order of M and N don't matter, only the
+> > > load/stores that are inside the acquire/release are constrained.
+> > 
+> > No argument here.
+> > 
+> > > IOW, I think smp_mb__after_unlock_lock() already works as advertised
+> > > with all our acquire/release thingies -- as is stated by the
+> > > documentation.
+> > > 
+> > > That said, I'm not aware of anybody but RCU actually using this, so its
+> > > not used in that capacity.
+> > 
+> > OK, I might actually understand what you are getting at.  And, yes, if
+> > someone actually comes up with a need to combine smp_mb__after_unlock_lock()
+> > with something other than locking, we should worry about it at that point.
+> > And probably rename smp_mb__after_unlock_lock() at that point, as well.
+> > Until then, why lock ourselves into semantics that no one needs, and
+> > that it is quite possible that no one will ever need?
 > 
-> Just noticed that starting from Linux v4.2-rc1 "perf record"
-> doesn't work on ARC. That's what I see:
->  ------------>8------------
->  # perf record ls -la
->  Cannot use AUX area tracing mmaps
->  failed to mmap with 38 (Function not implemented)
->  ------------>8------------
-> 
-> I believe that happens because by default auxtrace is enabled
-> (NO_AUXTRACE=0) and so auxtrace_mmap__mmap() from
-> "tools/perf/util/auxtrace.c" gets compiled in and following
-> check fails:
->  ------------>8------------
->  #if BITS_PER_LONG != 64 && !defined(HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT)
->  	pr_err("Cannot use AUX area tracing mmaps\n");
->  	return -1;
->  #endif
->  ------------>8------------
-> 
-> Unfortunately we don't have __sync_val_compare_and_swap()
-> in our current toolchain. And ARC as of today is 32-bit architecture.
-> 
-> Now if I pass NO_AUXTRACE=1 in perf building command then everything
-> works as expected.
-> 
-> So I'm wondering what would be the best way to get perf properly
-> working for ARC (at least) and probably other architecture/toolchain
-> combos?
-> 
-> I see at least 2 options:
-> 
->  [1] Add feature check for BITS_PER_LONG. And then if
->      "BITS_PER_LONG != 32 & HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT"
->      automatically set "NO_AUXTRACE=1" on building perf.
-> 
->  [2] By default enable auxtrace only on selected architectures.
->      For example Intel 64-bit and maybe others who really capable of
->      running auxtrace (and may make use of it).
-> 
-> Any suggestions are much appreciated.
-> 
-> Just in case that's my back-trace to auxtrace_mmap__mmap():
->  ------------>8------------
-> #0  auxtrace_mmap__mmap (mm=0x11a1a44, mp=0x5fa468c0, userpg=0x2021e000, fd=4)
->     at util/auxtrace.c:57
-> #1  0x0005d3b0 in __perf_evlist__mmap (evlist=0x11a0f30, evlist=0x11a0f30, 
->     fd=4, mp=0x5fa468b8, idx=0) at util/evlist.c:838
-> #2  perf_evlist__mmap_per_evsel (evlist=evlist@entry=0x11a0f30, 
->     idx=idx@entry=0, mp=mp@entry=0x5fa468b8, cpu=cpu@entry=0, 
->     thread=thread@entry=0, output=output@entry=0x5fa468b4) at util/evlist.c:861
-> #3  0x0005de1e in perf_evlist__mmap_per_cpu (mp=0x5fa468b8, evlist=0x11a0f30)
->     at util/evlist.c:910
-> #4  perf_evlist__mmap_ex (evlist=0x11a0f30, evlist@entry=0x0, 
->     pages=<optimized out>, overwrite=overwrite@entry=false, auxtrace_pages=0, 
->     auxtrace_overwrite=<optimized out>) at util/evlist.c:1095
-> #5  0x0001e906 in record__open (rec=0xf11a0 <record>) at builtin-record.c:305
-> #6  __cmd_record (rec=0xf11a0 <record>, argv=<optimized out>, 
->     argc=<optimized out>) at builtin-record.c:519
-> #7  cmd_record (argc=<optimized out>, argv=<optimized out>, 
->     prefix=<optimized out>) at builtin-record.c:1168
-> #8  0x00053758 in run_builtin (p=p@entry=0xf2938 <commands+72>, 
->     argc=argc@entry=2, argv=argv@entry=0x11a1730) at perf.c:370
-> #9  0x00053f10 in handle_internal_command (argv=0x11a1730, argc=2)
->     at perf.c:429
-> #10 run_argv (argv=0x5fa47c70, argcp=0x5fa47c74) at perf.c:473
-> #11 main (argc=2, argv=0x5fa47d98) at perf.c:588
->  ------------>8------------
-> 
+> Given that RCU is currently the only user of this barrier, how would you
+> feel about making the barrier local to RCU and not part of the general
+> memory-barrier API?
 
-How about this:
+In theory, no objection.  Your thought is to leave the definitions where
+they are, mark them as being used only by RCU, and removing mention from
+memory-barriers.txt?  Or did you have something else in mind?
 
-From: Adrian Hunter <adrian.hunter@intel.com>
-Date: Tue, 14 Jul 2015 15:32:41 +0300
-Subject: [PATCH] perf tools: Fix misplaced check for
- HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT
+> My main reason for proposing its removal is because I don't want to see
+> it being used (incorrectly) all over the place to order the new RELEASE
+> and ACQUIRE operations I posted separately, at which point we have to try
+> fixing up all the callers or retrofitting some semantics. It doesn't help
+> that memory-barriers.txt lumps things like LOCK and ACQUIRE together,
+> whereas this barrier is currently only intended to be used in conjunction
+> with the former.
 
-Move the checking for HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT
-for AUX area mmaps until after checking if such mmaps are
-used anyway.
+Heh!  That lumping was considered to be a feature at the time.  ;-)
 
-Signed-off-by: Adrian Hunter <adrian.hunter@intel.com>
----
- tools/perf/util/auxtrace.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
-
-diff --git a/tools/perf/util/auxtrace.c b/tools/perf/util/auxtrace.c
-index 7e7405c9b936..83d9dd96fe08 100644
---- a/tools/perf/util/auxtrace.c
-+++ b/tools/perf/util/auxtrace.c
-@@ -53,11 +53,6 @@ int auxtrace_mmap__mmap(struct auxtrace_mmap *mm,
- {
- 	struct perf_event_mmap_page *pc = userpg;
- 
--#if BITS_PER_LONG != 64 && !defined(HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT)
--	pr_err("Cannot use AUX area tracing mmaps\n");
--	return -1;
--#endif
--
- 	WARN_ONCE(mm->base, "Uninitialized auxtrace_mmap\n");
- 
- 	mm->userpg = userpg;
-@@ -73,6 +68,11 @@ int auxtrace_mmap__mmap(struct auxtrace_mmap *mm,
- 		return 0;
- 	}
- 
-+#if BITS_PER_LONG != 64 && !defined(HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT)
-+	pr_err("Cannot use AUX area tracing mmaps\n");
-+	return -1;
-+#endif
-+
- 	pc->aux_offset = mp->offset;
- 	pc->aux_size = mp->len;
- 
--- 
-1.9.1
+							Thanx, Paul
