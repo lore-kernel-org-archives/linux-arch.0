@@ -1,63 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e33.co.us.ibm.com ([32.97.110.151]:54969 "EHLO
-	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751556AbbGNApJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 13 Jul 2015 20:45:09 -0400
-Received: from /spool/local
-	by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Mon, 13 Jul 2015 18:45:09 -0600
-Date: Mon, 13 Jul 2015 17:44:59 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: Compilers and RCU readers: Once more unto the breach!
-Message-ID: <20150714004459.GA3090@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20150520005510.GA23559@linux.vnet.ibm.com>
+Received: from casper.infradead.org ([85.118.1.10]:58385 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752611AbbGNIe0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jul 2015 04:34:26 -0400
+Date: Tue, 14 Jul 2015 10:34:15 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+Message-ID: <20150714083415.GH19282@twins.programming.kicks-ass.net>
+References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
+ <20150713131143.GY19282@twins.programming.kicks-ass.net>
+ <20150713140915.GD2632@arm.com>
+ <20150713142109.GE2632@arm.com>
+ <20150713155447.GB19282@twins.programming.kicks-ass.net>
+ <20150713182332.GW3717@linux.vnet.ibm.com>
+ <55A41481.7000702@hurleysoftware.com>
+ <20150713201642.GY3717@linux.vnet.ibm.com>
+ <20150713221503.GD19282@twins.programming.kicks-ass.net>
+ <1436827424.3948.239.camel@kernel.crashing.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20150520005510.GA23559@linux.vnet.ibm.com>
+In-Reply-To: <1436827424.3948.239.camel@kernel.crashing.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, c++std-parallel@accu.org, linux-arch@vger.kernel.org, gcc@gcc.gnu.org
-Cc: Peter.Sewell@cl.cam.ac.uk, torvalds@linux-foundation.org, Mark.Batty@cl.cam.ac.uk, peterz@infradead.org, will.deacon@arm.com, Ramana.Radhakrishnan@arm.com, dhowells@redhat.com, akpm@linux-foundation.org, mingo@kernel.org, michaelw@ca.ibm.com
-Message-ID: <20150714004459.5T-Gp4doFOAuFkc61rwxIayLtCKkOvTJgHFaQLNwMZg@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Hurley <peter@hurleysoftware.com>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20150714083415.o-uovhEBS8mZxUumMdDlGIAs-1If6ToyxOUQMSU_gFo@z>
 
-On Tue, May 19, 2015 at 05:55:10PM -0700, Paul E. McKenney wrote:
-> Hello!
+On Tue, Jul 14, 2015 at 08:43:44AM +1000, Benjamin Herrenschmidt wrote:
+> On Tue, 2015-07-14 at 00:15 +0200, Peter Zijlstra wrote:
 > 
-> Following up on last year's discussion (https://lwn.net/Articles/586838/,
-> https://lwn.net/Articles/588300/), I believe that we have a solution.  If
-> I am wrong, I am sure you all will let me know, and in great detail.  ;-)
+> > > This is instead the sequence that is of concern:
+> > > 
+> > > 	store a
+> > > 	unlock M
+> > > 	lock N
+> > > 	load b
+> > 
+> > So its late and that table didn't parse, but that should be ordered too.
+> > The load of b should not be able to escape the lock N.
+> > 
+> > If only because LWSYNC is a valid RMB and any LOCK implementation must
+> > load the lock state to observe it unlocked.
 > 
-> The key simplification is to "just say no" to RCU-protected array indexes:
-> https://lkml.org/lkml/2015/5/12/827, as was suggested by several people.
-> This simplification means that rcu_dereference (AKA memory_order_consume)
-> need only return pointers.  This in ture avoids things like (x-x),
-> (x*0), and (x%1) because if "x" is a pointer, these expressions either
-> return non-pointers are compilation errors.  With a very few exceptions,
-> dependency chains can lead -to- non-pointers, but cannot pass -through-
-> them.
-> 
-> The result is that dependencies are carried only by operations for
-> which the compiler cannot easily optimize the away those dependencies,
-> these operations including simple assignment, integer offset (including
-> indexing), dereferencing, casts, passing as a function argument, return
-> values from functions and so on.  A complete list with commentary starts
-> on page 28 of:
-> 
-> 	http://www.rdrop.com/users/paulmck/RCU/consume.2015.05.18a.pdf
+> What happens is that the load passes the store conditional, though it
+> doesn't pass the load with reserve. However, both store A and unlock M
+> being just stores with an lwsync, can pass a load, so they can pass the
+> load with reserve. And thus inside the LL/SC loop, our store A has
+> passed our load B.
 
-And an update is available here:
-
-	http://www.rdrop.com/users/paulmck/RCU/consume.2015.07.13a.pdf
-
-Among other things, this update addresses the points about equality
-comparisons introduced by the compiler, and outlines some of the
-issues head-/tail-marked alternatives face with respect to abstraction.
-The updated "Restricted Dependency Chains" section starts on page 28.
-
-Thoughts?
-
-							Thanx, Paul
-
+Ah cute.. Thanks, clearly I wasn't awake enough anymore :-)
