@@ -1,50 +1,41 @@
-From: "acme@kernel.org" <acme@kernel.org>
-Subject: Re: [PATCH] Revert "perf tools: Allow to specify custom linker
- command"
-Date: Tue, 14 Jul 2015 11:45:22 -0300
-Message-ID: <20150714144522.GK2885@kernel.org>
-References: <1436785853-4260-1-git-send-email-abrodkin@synopsys.com>
- <20150713202406.GB5020@blackmetal.musicnaut.iki.fi>
- <20150714134623.GH2885@kernel.org>
- <1436882404.2839.28.camel@synopsys.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 1/5] atomics: add acquire/release/relaxed variants of
+ some atomic operations
+Date: Tue, 14 Jul 2015 16:55:06 +0100
+Message-ID: <20150714155500.GQ16213@arm.com>
+References: <1436790687-11984-1-git-send-email-will.deacon@arm.com>
+ <1436790687-11984-2-git-send-email-will.deacon@arm.com>
+ <20150714102511.GI19282@twins.programming.kicks-ass.net>
+ <20150714103220.GB16213@arm.com>
+ <20150714105837.GJ19282@twins.programming.kicks-ass.net>
+ <20150714110811.GE16213@arm.com>
+ <20150714112420.GK3644@twins.programming.kicks-ass.net>
+ <20150714113147.GF16213@arm.com>
+ <20150714113801.GK19282@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:42065 "EHLO mail.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751644AbbGNOpX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Jul 2015 10:45:23 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1436882404.2839.28.camel@synopsys.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: "aaro.koskinen@nokia.com" <aaro.koskinen@nokia.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "jolsa@kernel.org" <jolsa@kernel.org>, "paulus@samba.org" <paulus@samba.org>, "a.p.zijlstra@chello.nl" <a.p.zijlstra@chello.nl>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+In-Reply-To: <20150714113801.GK19282@twins.programming.kicks-ass.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Waiman.Long@hp.com" <Waiman.Long@hp.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Em Tue, Jul 14, 2015 at 02:00:05PM +0000, Alexey Brodkin escreveu:
-> On Tue, 2015-07-14 at 10:46 -0300, Arnaldo Carvalho de Melo wrote:
-> > Em Mon, Jul 13, 2015 at 11:24:06PM +0300, Aaro Koskinen escreveu:
-> > > > But for now to fix cross-building of perf this revert is enough.
+On Tue, Jul 14, 2015 at 12:38:01PM +0100, Peter Zijlstra wrote:
+> On Tue, Jul 14, 2015 at 12:31:47PM +0100, Will Deacon wrote:
+> > #ifndef atomic_add
+> > #define atomic_add(args...)	(void)atomic_add_return_relaxed(args);
+> > 
+> > It would mean a new architecture only has to define a barrier instruction
+> > and a handful of relaxed atomics for a bare-minimum atomic.h avoiding
+> > spinlocks.
+> 
+> Look at include/asm-generic/atomic.h, all you need is a cmpxchg().
+> 
+> We could easily change that to be cmpxchg_relaxed() and a few barriers.
 
-> > > Hmm. You are probably right, my build system always exports LD with
-> > > correct linker for cross builds so perhaps that's why I this "worked"
-> > > for me when testing. Sorry.
+Ok, I'll leave that part for now and implement your original suggestion
+as a starting point.
 
-> > So, I think this is an "Acked-by: Aaro Koskinen <aaro.koskinen@iki.fi>"
-> > for the revert, right?
-
-> > > I guess the correct fix would be [1], i.e. there should be some new
-> > > variable to pass flags to ld command.
-
-> > > Or maybe [2], could we use make "origin" function? If LD is "default",
-> > > then use "$(CROSS_COMPILE)ld", otherwise use what the user passed?
-
-> > When you guys get to some conclusion, please submit a new patch, for now
-> > I am taking the revert with the (implied) Acked-by Aaro, ok?
-
-> Please find my patch that both reverts initial Aaro's patch and implements
-> proper handling of CC, AR and LD substitution here - https://lkml.org/lkml/2015/7/14/149
-
-I saw it, will do.
-
-- Arnaldo
+Will
