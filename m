@@ -1,77 +1,67 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: [PATCH] Revert "perf tools: Allow to specify custom linker
- command"
-Date: Tue, 14 Jul 2015 14:00:05 +0000
-Message-ID: <1436882404.2839.28.camel@synopsys.com>
-References: <1436785853-4260-1-git-send-email-abrodkin@synopsys.com>
-	 <20150713202406.GB5020@blackmetal.musicnaut.iki.fi>
-	 <20150714134623.GH2885@kernel.org>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+Date: Tue, 14 Jul 2015 07:00:14 -0700
+Message-ID: <20150714140014.GD3717@linux.vnet.ibm.com>
+References: <20150713140915.GD2632@arm.com>
+ <20150713142109.GE2632@arm.com>
+ <20150713155447.GB19282@twins.programming.kicks-ass.net>
+ <20150713175029.GO2632@arm.com>
+ <20150713202032.GZ3717@linux.vnet.ibm.com>
+ <20150713222346.GE19282@twins.programming.kicks-ass.net>
+ <20150713230405.GB3717@linux.vnet.ibm.com>
+ <20150714100429.GC15448@arm.com>
+ <20150714124540.GC3717@linux.vnet.ibm.com>
+ <20150714125146.GJ16213@arm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-7"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:47552 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751595AbbGNOAL convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jul 2015 10:00:11 -0400
-In-Reply-To: <20150714134623.GH2885@kernel.org>
-Content-Language: en-US
-Content-ID: <0D89A179EDE3B74E8190ADDC10578904@internal.synopsys.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "acme@kernel.org" <acme@kernel.org>
-Cc: "aaro.koskinen@nokia.com" <aaro.koskinen@nokia.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "jolsa@kernel.org" <jolsa@kernel.org>, "paulus@samba.org" <paulus@samba.org>, "a.p.zijlstra@chello.nl" <a.p.zijlstra@chello.nl>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20150714125146.GJ16213@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Arnaldo,
+On Tue, Jul 14, 2015 at 01:51:46PM +0100, Will Deacon wrote:
+> Hi Paul,
+> 
+> On Tue, Jul 14, 2015 at 01:45:40PM +0100, Paul E. McKenney wrote:
+> > On Tue, Jul 14, 2015 at 11:04:29AM +0100, Will Deacon wrote:
+> > > Given that RCU is currently the only user of this barrier, how would you
+> > > feel about making the barrier local to RCU and not part of the general
+> > > memory-barrier API?
+> > 
+> > In theory, no objection.  Your thought is to leave the definitions where
+> > they are, mark them as being used only by RCU, and removing mention from
+> > memory-barriers.txt?  Or did you have something else in mind?
+> 
+> Actually, I was thinking of defining them in an RCU header file with an
+> #ifdef CONFIG_POWERPC for the smb_mb() version. Then you could have a big
+> comment describing the semantics, or put that in an RCU Documentation file
+> instead of memory-barriers.txt.
+> 
+> That *should* then mean we notice anybody else trying to use the barrier,
+> because they'd need to send patches to either add something equivalent
+> or move the definition out again.
 
-On Tue, 2015-07-14 at 10:46 -0300, Arnaldo Carvalho de Melo wrote:
-+AD4- Em Mon, Jul 13, 2015 at 11:24:06PM +-0300, Aaro Koskinen escreveu:
-+AD4- +AD4- Hi,
-+AD4- +AD4- 
-+AD4- +AD4- On Mon, Jul 13, 2015 at 02:10:53PM +-0300, Alexey Brodkin wrote:
-+AD4- +AD4- +AD4- This reverts commit 5ef7bbb09f7b
-+AD4- +AD4- +AD4- (+ACI-perf tools: Allow to specify custom linker command+ACI-).
-+AD4- +AD4- +AD4- 
-+AD4- +AD4- +AD4- LD is a pre-defined variable in GNU Make. I.e. it is always defined.
-+AD4- +AD4- +AD4- Which means there's no point to check +ACI-LD ?+AD0- ...+ACI- because it will never
-+AD4- +AD4- +AD4- succeed. And so LD will be either that explicitly passed to make like
-+AD4- +AD4- +AD4- this:
-+AD4- +AD4- +AD4-  -------+AD4-8-------
-+AD4- +AD4- +AD4-  make LD+AD0-path+AF8-to+AF8-my+AF8-ld ...
-+AD4- +AD4- +AD4-  -------+AD4-8-------
-+AD4- +AD4- +AD4-  or default value, which is host's +ACI-ld+ACI-.
-+AD4- +AD4- +AD4- 
-+AD4- +AD4- +AD4- Latter leads to failure of cross-linkage because instead of cross linker
-+AD4- +AD4- +AD4- +ACIAJA-(CROSS+AF8-COMPILE)ld+ACI- host's +ACI-ld+ACI- is used.
-+AD4- +AD4- +AD4- 
-+AD4- +AD4- +AD4- As for commit which is reverted here:
-+AD4- +AD4- +AD4-  +AFs-1+AF0- Usually for selection of non-default flavour of CPU core/options
-+AD4- +AD4- +AD4-      linker flags are used like +ACI--mtune+AD0-xxx+ACI- or +ACI--mMyCPUType+ACI- etc.
-+AD4- +AD4- +AD4- 
-+AD4- +AD4- +AD4-  +AFs-2+AF0- Still to implement ability to use +ACI-ld+ACI- that differs from
-+AD4- +AD4- +AD4-     +ACIAJA-(CROSS+AF8-COMPILE)ld+ACI- one will need to add new makefile variable like
-+AD4- +AD4- +AD4-     TARGET+AF8-LD and then check if +ACQ-(TARGET+AF8-LD) is not specified on make
-+AD4- +AD4- +AD4-     invocation then use +ACIAJA-(CROSS+AF8-COMPILE)ld+ACI-.
-+AD4- +AD4- +AD4- 
-+AD4- +AD4- +AD4- But for now to fix cross-building of perf this revert is enough.
-+AD4- +AD4- 
-+AD4- +AD4- Hmm. You are probably right, my build system always exports LD with
-+AD4- +AD4- correct linker for cross builds so perhaps that's why I this +ACI-worked+ACI-
-+AD4- +AD4- for me when testing. Sorry.
-+AD4- 
-+AD4- So, I think this is an +ACI-Acked-by: Aaro Koskinen +ADw-aaro.koskinen+AEA-iki.fi+AD4AIg-
-+AD4- for the revert, right?
-+AD4-  
-+AD4- +AD4- I guess the correct fix would be +AFs-1+AF0-, i.e. there should be some new
-+AD4- +AD4- variable to pass flags to ld command.
-+AD4- +AD4- 
-+AD4- +AD4- Or maybe +AFs-2+AF0-, could we use make +ACI-origin+ACI- function? If LD is +ACI-default+ACI-,
-+AD4- +AD4- then use +ACIAJA-(CROSS+AF8-COMPILE)ld+ACI-, otherwise use what the user passed?
-+AD4- 
-+AD4- When you guys get to some conclusion, please submit a new patch, for now
-+AD4- I am taking the revert with the (implied) Acked-by Aaro, ok?
+My concern with this approach is that someone putting together a new
+architecture might miss this.  That said, this approach certainly would
+work for the current architectures.
 
-Please find my patch that both reverts initial Aaro's patch and implements
-proper handling of CC, AR and LD substitution here - https://lkml.org/lkml/2015/7/14/149
+> > > My main reason for proposing its removal is because I don't want to see
+> > > it being used (incorrectly) all over the place to order the new RELEASE
+> > > and ACQUIRE operations I posted separately, at which point we have to try
+> > > fixing up all the callers or retrofitting some semantics. It doesn't help
+> > > that memory-barriers.txt lumps things like LOCK and ACQUIRE together,
+> > > whereas this barrier is currently only intended to be used in conjunction
+> > > with the former.
+> > 
+> > Heh!  That lumping was considered to be a feature at the time.  ;-)
+> 
+> Oh, I'm sure it was added with good intentions!
 
--Alexey
+And we all know which road is paved with good intentions!  ;-)
+
+							Thanx, Paul
