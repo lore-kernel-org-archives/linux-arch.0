@@ -1,35 +1,59 @@
-From: Arnaldo Carvalho de Melo <acme@kernel.org>
-Subject: Re: "perf record" if BITS_PER_LONG != 64 &&
- !defined(HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT)
-Date: Tue, 14 Jul 2015 11:12:12 -0300
-Message-ID: <20150714141212.GJ2885@kernel.org>
-References: <1436875946.2839.22.camel@synopsys.com>
- <55A5023C.7020907@intel.com>
- <1436878329.2839.26.camel@synopsys.com>
- <55A50875.8060904@intel.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+Date: Tue, 14 Jul 2015 15:12:16 +0100
+Message-ID: <20150714141202.GN16213@arm.com>
+References: <20150713142109.GE2632@arm.com>
+ <20150713155447.GB19282@twins.programming.kicks-ass.net>
+ <20150713175029.GO2632@arm.com>
+ <20150713202032.GZ3717@linux.vnet.ibm.com>
+ <20150713222346.GE19282@twins.programming.kicks-ass.net>
+ <20150713230405.GB3717@linux.vnet.ibm.com>
+ <20150714100429.GC15448@arm.com>
+ <20150714124540.GC3717@linux.vnet.ibm.com>
+ <20150714125146.GJ16213@arm.com>
+ <20150714140014.GD3717@linux.vnet.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:39866 "EHLO mail.kernel.org"
+Received: from foss.arm.com ([217.140.101.70]:34489 "EHLO foss.arm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752069AbbGNOML (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Jul 2015 10:12:11 -0400
+	id S1752069AbbGNOMU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 14 Jul 2015 10:12:20 -0400
 Content-Disposition: inline
-In-Reply-To: <55A50875.8060904@intel.com>
+In-Reply-To: <20150714140014.GD3717@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Adrian Hunter <adrian.hunter@intel.com>
-Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "eranian@google.com" <eranian@google.com>, "jolsa@redhat.com" <jolsa@redhat.com>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "namhyung@gmail.com" <namhyung@gmail.com>, "dsahern@gmail.com" <dsahern@gmail.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-Em Tue, Jul 14, 2015 at 04:02:45PM +0300, Adrian Hunter escreveu:
-> On 14/07/15 15:52, Alexey Brodkin wrote:
-> > Thanks a lot for your prompt response.
-> > Feel free to add my Tested-by then.
- 
-> +Arnaldo
- 
-> Here is one for the urgent queue.
+On Tue, Jul 14, 2015 at 03:00:14PM +0100, Paul E. McKenney wrote:
+> On Tue, Jul 14, 2015 at 01:51:46PM +0100, Will Deacon wrote:
+> > On Tue, Jul 14, 2015 at 01:45:40PM +0100, Paul E. McKenney wrote:
+> > > On Tue, Jul 14, 2015 at 11:04:29AM +0100, Will Deacon wrote:
+> > > > Given that RCU is currently the only user of this barrier, how would you
+> > > > feel about making the barrier local to RCU and not part of the general
+> > > > memory-barrier API?
+> > > 
+> > > In theory, no objection.  Your thought is to leave the definitions where
+> > > they are, mark them as being used only by RCU, and removing mention from
+> > > memory-barriers.txt?  Or did you have something else in mind?
+> > 
+> > Actually, I was thinking of defining them in an RCU header file with an
+> > #ifdef CONFIG_POWERPC for the smb_mb() version. Then you could have a big
+> > comment describing the semantics, or put that in an RCU Documentation file
+> > instead of memory-barriers.txt.
+> > 
+> > That *should* then mean we notice anybody else trying to use the barrier,
+> > because they'd need to send patches to either add something equivalent
+> > or move the definition out again.
+> 
+> My concern with this approach is that someone putting together a new
+> architecture might miss this.  That said, this approach certainly would
+> work for the current architectures.
 
-Applied, thanks!
+I don't think they're any more likely to miss it than with the current
+situation where the generic code defines the macro as a NOP unless you
+explicitly override it.
 
-- Arnaldo
+Will
