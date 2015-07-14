@@ -1,115 +1,68 @@
-From: Adrian Hunter <adrian.hunter@intel.com>
-Subject: Re: "perf record" if BITS_PER_LONG != 64 && !defined(HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT)
-Date: Tue, 14 Jul 2015 16:02:45 +0300
-Message-ID: <55A50875.8060904@intel.com>
-References: <1436875946.2839.22.camel@synopsys.com>	 <55A5023C.7020907@intel.com> <1436878329.2839.26.camel@synopsys.com>
+From: Arnaldo Carvalho de Melo <acme@kernel.org>
+Subject: Re: [PATCH] Revert "perf tools: Allow to specify custom linker
+ command"
+Date: Tue, 14 Jul 2015 10:46:23 -0300
+Message-ID: <20150714134623.GH2885@kernel.org>
+References: <1436785853-4260-1-git-send-email-abrodkin@synopsys.com>
+ <20150713202406.GB5020@blackmetal.musicnaut.iki.fi>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:60274 "EHLO mga09.intel.com"
+Received: from mail.kernel.org ([198.145.29.136]:37797 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751503AbbGNNGm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Jul 2015 09:06:42 -0400
-In-Reply-To: <1436878329.2839.26.camel@synopsys.com>
+	id S1752585AbbGNNqW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 14 Jul 2015 09:46:22 -0400
+Content-Disposition: inline
+In-Reply-To: <20150713202406.GB5020@blackmetal.musicnaut.iki.fi>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnaldo Carvalho de Melo <acme@kernel.org>
-Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "eranian@google.com" <eranian@google.com>, "jolsa@redhat.com" <jolsa@redhat.com>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "namhyung@gmail.com" <namhyung@gmail.com>, "dsahern@gmail.com" <dsahern@gmail.com>, "fweisbec@gmail.com" <fweisbec@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Aaro Koskinen <aaro.koskinen@iki.fi>
+Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Aaro Koskinen <aaro.koskinen@nokia.com>, Jiri Olsa <jolsa@kernel.org>, Paul Mackerras <paulus@samba.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org
 
-On 14/07/15 15:52, Alexey Brodkin wrote:
-> Hi Adrian,
+Em Mon, Jul 13, 2015 at 11:24:06PM +0300, Aaro Koskinen escreveu:
+> Hi,
 > 
-> On Tue, 2015-07-14 at 15:36 +0300, Adrian Hunter wrote:
->> On 14/07/15 15:12, Alexey Brodkin wrote:
->> How about this:
->>
->> From: Adrian Hunter <adrian.hunter@intel.com>
->> Date: Tue, 14 Jul 2015 15:32:41 +0300
->> Subject: [PATCH] perf tools: Fix misplaced check for
->>  HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT
->>
->> Move the checking for HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT
->> for AUX area mmaps until after checking if such mmaps are
->> used anyway.
->>
->> Signed-off-by: Adrian Hunter <adrian.hunter@intel.com>
->> ---
->>  tools/perf/util/auxtrace.c | 10 +++++-----
->>  1 file changed, 5 insertions(+), 5 deletions(-)
->>
->> diff --git a/tools/perf/util/auxtrace.c b/tools/perf/util/auxtrace.c
->> index 7e7405c9b936..83d9dd96fe08 100644
->> --- a/tools/perf/util/auxtrace.c
->> +++ b/tools/perf/util/auxtrace.c
->> @@ -53,11 +53,6 @@ int auxtrace_mmap__mmap(struct auxtrace_mmap *mm,
->>  {
->>  	struct perf_event_mmap_page *pc = userpg;
->>  
->> -#if BITS_PER_LONG != 64 && !defined(HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT)
->> -	pr_err("Cannot use AUX area tracing mmaps\n");
->> -	return -1;
->> -#endif
->> -
->>  	WARN_ONCE(mm->base, "Uninitialized auxtrace_mmap\n");
->>  
->>  	mm->userpg = userpg;
->> @@ -73,6 +68,11 @@ int auxtrace_mmap__mmap(struct auxtrace_mmap *mm,
->>  		return 0;
->>  	}
->>  
->> +#if BITS_PER_LONG != 64 && !defined(HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT)
->> +	pr_err("Cannot use AUX area tracing mmaps\n");
->> +	return -1;
->> +#endif
->> +
->>  	pc->aux_offset = mp->offset;
->>  	pc->aux_size = mp->len;
+> On Mon, Jul 13, 2015 at 02:10:53PM +0300, Alexey Brodkin wrote:
+> > This reverts commit 5ef7bbb09f7b
+> > ("perf tools: Allow to specify custom linker command").
+> > 
+> > LD is a pre-defined variable in GNU Make. I.e. it is always defined.
+> > Which means there's no point to check "LD ?= ..." because it will never
+> > succeed. And so LD will be either that explicitly passed to make like
+> > this:
+> >  ------->8-------
+> >  make LD=path_to_my_ld ...
+> >  ------->8-------
+> >  or default value, which is host's "ld".
+> > 
+> > Latter leads to failure of cross-linkage because instead of cross linker
+> > "$(CROSS_COMPILE)ld" host's "ld" is used.
+> > 
+> > As for commit which is reverted here:
+> >  [1] Usually for selection of non-default flavour of CPU core/options
+> >      linker flags are used like "-mtune=xxx" or "-mMyCPUType" etc.
+> > 
+> >  [2] Still to implement ability to use "ld" that differs from
+> >     "$(CROSS_COMPILE)ld" one will need to add new makefile variable like
+> >     TARGET_LD and then check if $(TARGET_LD) is not specified on make
+> >     invocation then use "$(CROSS_COMPILE)ld".
+> > 
+> > But for now to fix cross-building of perf this revert is enough.
 > 
-> That was really fast!
-> 
-> And indeed fixes reported problem with "record".
->  --------------------------->8-------------------------
-> # perf record ls -la
-> total 32
-> drwx------    2 root     root           140 Jan  1 00:00 .
-> drwxrwxr-x   18 root     root           420 Jul 14  2015 ..
-> -rw-------    1 root     root            19 Jan  1 00:00 .ash_history
-> -rw-rw-r--    1 root     root             0 Jul 14  2015 .bash_history
-> -rw-rw-r--    1 root     root           175 Jul 14  2015 .bash_logout
-> -rw-rw-r--    1 root     root            78 Jul 14  2015 .bash_profile
-> -rw-------    1 root     root           312 Jan  1 00:00 perf.data
-> [ perf record: Woken up 1 times to write data ]
-> [ perf record: Captured and wrote 0.059 MB perf.data (1528 samples) ]
-> 
-> # perf report
-> # To display the perf.data header info, please use --header/--header-only options.
-> #
-> #
-> # Total Lost Samples: 0
-> #
-> # Samples: 1K of event 'cycles'
-> # Event count (approx.): 2902149
-> #
-> # Overhead  Command  Shared Object            Symbol                                
-> # ........  .......  .......................  ......................................
-> #
->      7.37%  ls       libuClibc-0.9.34-git.so  [.] _ppfs_parsespec                   
->      4.40%  ls       [kernel.kallsyms]        [k] memset                            
->      3.96%  ls       [kernel.kallsyms]        [k] aligndestination                  
->      3.74%  ls       ld-uClibc-0.9.34-git.so  [.] _dl_find_hash                     
->      2.34%  ls       [kernel.kallsyms]        [k] perf_event_exec                   
->      2.28%  ls       [kernel.kallsyms]        [k] flush_signal_handlers             
->      2.28%  ls       [kernel.kallsyms]        [k] _raw_spin_unlock_irqrestore       
->      1.77%  ls       libuClibc-0.9.34-git.so  [.] __stdio_fwrite                    
->      1.43%  ls       [kernel.kallsyms]        [k] copy_page_to_iter                 
->      1.36%  ls       libuClibc-0.9.34-git.so  [.] _ppfs_init                        
->      1.22%  ls       [kernel.kallsyms]        [k] filemap_map_pages 
->  --------------------------->8-------------------------
-> 
-> Thanks a lot for your prompt response.
-> Feel free to add my Tested-by then.
+> Hmm. You are probably right, my build system always exports LD with
+> correct linker for cross builds so perhaps that's why I this "worked"
+> for me when testing. Sorry.
 
-+Arnaldo
+So, I think this is an "Acked-by: Aaro Koskinen <aaro.koskinen@iki.fi>"
+for the revert, right?
+ 
+> I guess the correct fix would be [1], i.e. there should be some new
+> variable to pass flags to ld command.
+> 
+> Or maybe [2], could we use make "origin" function? If LD is "default",
+> then use "$(CROSS_COMPILE)ld", otherwise use what the user passed?
 
-Here is one for the urgent queue.
+When you guys get to some conclusion, please submit a new patch, for now
+I am taking the revert with the (implied) Acked-by Aaro, ok?
+
+- Arnaldo
