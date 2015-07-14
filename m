@@ -1,76 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:33419 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:33744 "EHLO foss.arm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753697AbbGNKEc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Jul 2015 06:04:32 -0400
-Date: Tue, 14 Jul 2015 11:04:29 +0100
+	id S1752661AbbGNLIP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 14 Jul 2015 07:08:15 -0400
+Date: Tue, 14 Jul 2015 12:08:11 +0100
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH v2] memory-barriers: remove
- smp_mb__after_unlock_lock()
-Message-ID: <20150714100429.GC15448@arm.com>
-References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
- <20150713131143.GY19282@twins.programming.kicks-ass.net>
- <20150713140915.GD2632@arm.com>
- <20150713142109.GE2632@arm.com>
- <20150713155447.GB19282@twins.programming.kicks-ass.net>
- <20150713175029.GO2632@arm.com>
- <20150713202032.GZ3717@linux.vnet.ibm.com>
- <20150713222346.GE19282@twins.programming.kicks-ass.net>
- <20150713230405.GB3717@linux.vnet.ibm.com>
+Subject: Re: [PATCH 1/5] atomics: add acquire/release/relaxed variants of
+ some atomic operations
+Message-ID: <20150714110811.GE16213@arm.com>
+References: <1436790687-11984-1-git-send-email-will.deacon@arm.com>
+ <1436790687-11984-2-git-send-email-will.deacon@arm.com>
+ <20150714102511.GI19282@twins.programming.kicks-ass.net>
+ <20150714103220.GB16213@arm.com>
+ <20150714105837.GJ19282@twins.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20150713230405.GB3717@linux.vnet.ibm.com>
+In-Reply-To: <20150714105837.GJ19282@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Message-ID: <20150714100429.6DLiQJZmvdZZdi99DYbMDps6teb0wY1d5S8ElD6H-LI@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Waiman.Long@hp.com" <Waiman.Long@hp.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20150714110811.mit7enDgTFPO_QGIkxbfJDaP5qt63C24bZmhDGsFMW0@z>
 
-On Tue, Jul 14, 2015 at 12:04:06AM +0100, Paul E. McKenney wrote:
-> On Tue, Jul 14, 2015 at 12:23:46AM +0200, Peter Zijlstra wrote:
-> > If we look at the inside of the critical section again -- similar
-> > argument as before:
+On Tue, Jul 14, 2015 at 11:58:37AM +0100, Peter Zijlstra wrote:
+> On Tue, Jul 14, 2015 at 11:32:20AM +0100, Will Deacon wrote:
+> > On Tue, Jul 14, 2015 at 11:25:11AM +0100, Peter Zijlstra wrote:
+> > > Could we not define _{acquire,release} in terms of _relaxed and
+> > > smp_mb__{after,before}_atomic() ?
 > > 
-> > 	*A = a
-> > 	smp_mb()
-> > 	store M
-> > 	load N
-> > 	smp_mb()
-> > 	*B = b
-> > 
-> > A and B are fully ordered, and in this case even transitivity is
-> > provided.
-> > 
-> > I'm stating that the order of M and N don't matter, only the
-> > load/stores that are inside the acquire/release are constrained.
+> > I actually started out with that, but it penalises architectures that
+> > don't have _relaxed implementations of some routines.
 > 
-> No argument here.
+> #ifndef atomic_add_return_relaxed
 > 
-> > IOW, I think smp_mb__after_unlock_lock() already works as advertised
-> > with all our acquire/release thingies -- as is stated by the
-> > documentation.
-> > 
-> > That said, I'm not aware of anybody but RCU actually using this, so its
-> > not used in that capacity.
+> #define atomic_add_return_relaxed	atomic_add_return
+> /*
+>  * If one cannot define a more relaxed version,
+>  * acquire/release are out the window too.
+>  */
+> #define  atomic_add_return_acquire	atomic_add_return
+> #define  atomic_add_return_release	atomic_add_return
 > 
-> OK, I might actually understand what you are getting at.  And, yes, if
-> someone actually comes up with a need to combine smp_mb__after_unlock_lock()
-> with something other than locking, we should worry about it at that point.
-> And probably rename smp_mb__after_unlock_lock() at that point, as well.
-> Until then, why lock ourselves into semantics that no one needs, and
-> that it is quite possible that no one will ever need?
+> #else /* relaxed */
+> 
+> #ifndef atomic_add_return_acquire
+> #define  atomic_add_return_acquire(args...)	\
+> do {						\
+> 	atomic_add_return_relaxed(args);	\
+> 	smp_mb__after_atomic();			\
+> } while (0)
+> #endif
+> 
+> #ifndef atomic_add_return_release
+> #define  atomic_add_return_release(args...)	\
+> do {						\
+> 	smp_mb__before_atomic();		\
+> 	atomic_add_return_relaxed(args);	\
+> } while (0)
+> #endif
+> 
+> #endif /* relaxed */
 
-Given that RCU is currently the only user of this barrier, how would you
-feel about making the barrier local to RCU and not part of the general
-memory-barrier API?
+If a picture is worth a thousand words, a patch is worth at least a thousand
+pictures.
 
-My main reason for proposing its removal is because I don't want to see
-it being used (incorrectly) all over the place to order the new RELEASE
-and ACQUIRE operations I posted separately, at which point we have to try
-fixing up all the callers or retrofitting some semantics. It doesn't help
-that memory-barriers.txt lumps things like LOCK and ACQUIRE together,
-whereas this barrier is currently only intended to be used in conjunction
-with the former.
+I'll add this for v2.
 
 Will
