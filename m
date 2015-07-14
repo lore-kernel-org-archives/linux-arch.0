@@ -1,77 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e38.co.us.ibm.com ([32.97.110.159]:38419 "EHLO
-	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751777AbbGNOA3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jul 2015 10:00:29 -0400
-Received: from /spool/local
-	by e38.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 14 Jul 2015 08:00:28 -0600
-Date: Tue, 14 Jul 2015 07:00:14 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC PATCH v2] memory-barriers: remove
- smp_mb__after_unlock_lock()
-Message-ID: <20150714140014.GD3717@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20150713140915.GD2632@arm.com>
- <20150713142109.GE2632@arm.com>
- <20150713155447.GB19282@twins.programming.kicks-ass.net>
- <20150713175029.GO2632@arm.com>
- <20150713202032.GZ3717@linux.vnet.ibm.com>
- <20150713222346.GE19282@twins.programming.kicks-ass.net>
- <20150713230405.GB3717@linux.vnet.ibm.com>
- <20150714100429.GC15448@arm.com>
- <20150714124540.GC3717@linux.vnet.ibm.com>
- <20150714125146.GJ16213@arm.com>
+Received: from foss.arm.com ([217.140.101.70]:34864 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752285AbbGNPzK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 14 Jul 2015 11:55:10 -0400
+Date: Tue, 14 Jul 2015 16:55:06 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 1/5] atomics: add acquire/release/relaxed variants of
+ some atomic operations
+Message-ID: <20150714155500.GQ16213@arm.com>
+References: <1436790687-11984-1-git-send-email-will.deacon@arm.com>
+ <1436790687-11984-2-git-send-email-will.deacon@arm.com>
+ <20150714102511.GI19282@twins.programming.kicks-ass.net>
+ <20150714103220.GB16213@arm.com>
+ <20150714105837.GJ19282@twins.programming.kicks-ass.net>
+ <20150714110811.GE16213@arm.com>
+ <20150714112420.GK3644@twins.programming.kicks-ass.net>
+ <20150714113147.GF16213@arm.com>
+ <20150714113801.GK19282@twins.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20150714125146.GJ16213@arm.com>
+In-Reply-To: <20150714113801.GK19282@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Message-ID: <20150714140014.Rb5RDtWy9Yh_4aB4ymXBjmBSoqVqzqMDweL4X8duq0w@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Waiman.Long@hp.com" <Waiman.Long@hp.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20150714155506.xC5sEvntnYwu_hz0OM800nrhIhMWl5Y520iIDRCPvMs@z>
 
-On Tue, Jul 14, 2015 at 01:51:46PM +0100, Will Deacon wrote:
-> Hi Paul,
-> 
-> On Tue, Jul 14, 2015 at 01:45:40PM +0100, Paul E. McKenney wrote:
-> > On Tue, Jul 14, 2015 at 11:04:29AM +0100, Will Deacon wrote:
-> > > Given that RCU is currently the only user of this barrier, how would you
-> > > feel about making the barrier local to RCU and not part of the general
-> > > memory-barrier API?
+On Tue, Jul 14, 2015 at 12:38:01PM +0100, Peter Zijlstra wrote:
+> On Tue, Jul 14, 2015 at 12:31:47PM +0100, Will Deacon wrote:
+> > #ifndef atomic_add
+> > #define atomic_add(args...)	(void)atomic_add_return_relaxed(args);
 > > 
-> > In theory, no objection.  Your thought is to leave the definitions where
-> > they are, mark them as being used only by RCU, and removing mention from
-> > memory-barriers.txt?  Or did you have something else in mind?
+> > It would mean a new architecture only has to define a barrier instruction
+> > and a handful of relaxed atomics for a bare-minimum atomic.h avoiding
+> > spinlocks.
 > 
-> Actually, I was thinking of defining them in an RCU header file with an
-> #ifdef CONFIG_POWERPC for the smb_mb() version. Then you could have a big
-> comment describing the semantics, or put that in an RCU Documentation file
-> instead of memory-barriers.txt.
+> Look at include/asm-generic/atomic.h, all you need is a cmpxchg().
 > 
-> That *should* then mean we notice anybody else trying to use the barrier,
-> because they'd need to send patches to either add something equivalent
-> or move the definition out again.
+> We could easily change that to be cmpxchg_relaxed() and a few barriers.
 
-My concern with this approach is that someone putting together a new
-architecture might miss this.  That said, this approach certainly would
-work for the current architectures.
+Ok, I'll leave that part for now and implement your original suggestion
+as a starting point.
 
-> > > My main reason for proposing its removal is because I don't want to see
-> > > it being used (incorrectly) all over the place to order the new RELEASE
-> > > and ACQUIRE operations I posted separately, at which point we have to try
-> > > fixing up all the callers or retrofitting some semantics. It doesn't help
-> > > that memory-barriers.txt lumps things like LOCK and ACQUIRE together,
-> > > whereas this barrier is currently only intended to be used in conjunction
-> > > with the former.
-> > 
-> > Heh!  That lumping was considered to be a feature at the time.  ;-)
-> 
-> Oh, I'm sure it was added with good intentions!
-
-And we all know which road is paved with good intentions!  ;-)
-
-							Thanx, Paul
-
+Will
