@@ -1,53 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:58385 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752611AbbGNIe0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Jul 2015 04:34:26 -0400
-Date: Tue, 14 Jul 2015 10:34:15 +0200
-From: Peter Zijlstra <peterz@infradead.org>
+Received: from foss.arm.com ([217.140.101.70]:33419 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753697AbbGNKEc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 14 Jul 2015 06:04:32 -0400
+Date: Tue, 14 Jul 2015 11:04:29 +0100
+From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [RFC PATCH v2] memory-barriers: remove
  smp_mb__after_unlock_lock()
-Message-ID: <20150714083415.GH19282@twins.programming.kicks-ass.net>
+Message-ID: <20150714100429.GC15448@arm.com>
 References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
  <20150713131143.GY19282@twins.programming.kicks-ass.net>
  <20150713140915.GD2632@arm.com>
  <20150713142109.GE2632@arm.com>
  <20150713155447.GB19282@twins.programming.kicks-ass.net>
- <20150713182332.GW3717@linux.vnet.ibm.com>
- <55A41481.7000702@hurleysoftware.com>
- <20150713201642.GY3717@linux.vnet.ibm.com>
- <20150713221503.GD19282@twins.programming.kicks-ass.net>
- <1436827424.3948.239.camel@kernel.crashing.org>
+ <20150713175029.GO2632@arm.com>
+ <20150713202032.GZ3717@linux.vnet.ibm.com>
+ <20150713222346.GE19282@twins.programming.kicks-ass.net>
+ <20150713230405.GB3717@linux.vnet.ibm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1436827424.3948.239.camel@kernel.crashing.org>
+In-Reply-To: <20150713230405.GB3717@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Hurley <peter@hurleysoftware.com>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20150714083415.o-uovhEBS8mZxUumMdDlGIAs-1If6ToyxOUQMSU_gFo@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Message-ID: <20150714100429.6DLiQJZmvdZZdi99DYbMDps6teb0wY1d5S8ElD6H-LI@z>
 
-On Tue, Jul 14, 2015 at 08:43:44AM +1000, Benjamin Herrenschmidt wrote:
-> On Tue, 2015-07-14 at 00:15 +0200, Peter Zijlstra wrote:
-> 
-> > > This is instead the sequence that is of concern:
-> > > 
-> > > 	store a
-> > > 	unlock M
-> > > 	lock N
-> > > 	load b
+On Tue, Jul 14, 2015 at 12:04:06AM +0100, Paul E. McKenney wrote:
+> On Tue, Jul 14, 2015 at 12:23:46AM +0200, Peter Zijlstra wrote:
+> > If we look at the inside of the critical section again -- similar
+> > argument as before:
 > > 
-> > So its late and that table didn't parse, but that should be ordered too.
-> > The load of b should not be able to escape the lock N.
+> > 	*A = a
+> > 	smp_mb()
+> > 	store M
+> > 	load N
+> > 	smp_mb()
+> > 	*B = b
 > > 
-> > If only because LWSYNC is a valid RMB and any LOCK implementation must
-> > load the lock state to observe it unlocked.
+> > A and B are fully ordered, and in this case even transitivity is
+> > provided.
+> > 
+> > I'm stating that the order of M and N don't matter, only the
+> > load/stores that are inside the acquire/release are constrained.
 > 
-> What happens is that the load passes the store conditional, though it
-> doesn't pass the load with reserve. However, both store A and unlock M
-> being just stores with an lwsync, can pass a load, so they can pass the
-> load with reserve. And thus inside the LL/SC loop, our store A has
-> passed our load B.
+> No argument here.
+> 
+> > IOW, I think smp_mb__after_unlock_lock() already works as advertised
+> > with all our acquire/release thingies -- as is stated by the
+> > documentation.
+> > 
+> > That said, I'm not aware of anybody but RCU actually using this, so its
+> > not used in that capacity.
+> 
+> OK, I might actually understand what you are getting at.  And, yes, if
+> someone actually comes up with a need to combine smp_mb__after_unlock_lock()
+> with something other than locking, we should worry about it at that point.
+> And probably rename smp_mb__after_unlock_lock() at that point, as well.
+> Until then, why lock ourselves into semantics that no one needs, and
+> that it is quite possible that no one will ever need?
 
-Ah cute.. Thanks, clearly I wasn't awake enough anymore :-)
+Given that RCU is currently the only user of this barrier, how would you
+feel about making the barrier local to RCU and not part of the general
+memory-barrier API?
+
+My main reason for proposing its removal is because I don't want to see
+it being used (incorrectly) all over the place to order the new RELEASE
+and ACQUIRE operations I posted separately, at which point we have to try
+fixing up all the callers or retrofitting some semantics. It doesn't help
+that memory-barriers.txt lumps things like LOCK and ACQUIRE together,
+whereas this barrier is currently only intended to be used in conjunction
+with the former.
+
+Will
