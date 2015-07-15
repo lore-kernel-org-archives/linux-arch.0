@@ -1,57 +1,64 @@
 From: Arnaldo Carvalho de Melo <acme@kernel.org>
-Subject: [GIT PULL 0/2] perf/urgent fixes
-Date: Wed, 15 Jul 2015 12:20:06 -0300
-Message-ID: <1436973608-9271-1-git-send-email-acme@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:37852 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751877AbbGOPU2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jul 2015 11:20:28 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH 1/2] perf auxtrace: Fix misplaced check for HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT
+Date: Wed, 15 Jul 2015 12:20:07 -0300
+Message-ID: <1436973608-9271-2-git-send-email-acme@kernel.org>
+References: <1436973608-9271-1-git-send-email-acme@kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1436973608-9271-1-git-send-email-acme@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-kernel@vger.kernel.org, Arnaldo Carvalho de Melo <acme@kernel.org>, Aaro Koskinen <aaro.koskinen@nokia.com>, Adrian Hunter <adrian.hunter@intel.com>, Alexey Brodkin <abrodkin@synopsys.com>, David Ahern <dsahern@gmail.com>, Frederic Weisbecker <fweisbec@gmail.com>, Jiri Olsa <jolsa@redhat.com>, linux-arch@vger.kernel.org, Namhyung Kim <namhyung@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Stephane Eranian <eranian@google.com>, Vineet Gupta <vgupta@synopsys.com>, Arnaldo Carvalho de Melo <acme@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Adrian Hunter <adrian.hunter@intel.com>, David Ahern <dsahern@gmail.com>, Frederic Weisbecker <fweisbec@gmail.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Stephane Eranian <eranian@google.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, Arnaldo Carvalho de Melo <acme@redhat.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Ingo,
+From: Adrian Hunter <adrian.hunter@intel.com>
 
-	Please consider pulling,
+Move the checking for HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT for AUX area mmaps
+until after checking if such mmaps are used anyway.
 
-- Arnaldo
-
-The following changes since commit 65ea03e31e5ab47f784b1a701419264af97d3205:
-
-  Merge tag 'perf-urgent-for-mingo' of git://git.kernel.org/pub/scm/linux/kernel/git/acme/linux into perf/urgent (2015-07-15 13:31:21 +0200)
-
-are available in the git repository at:
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/acme/linux.git tags/perf-urgent-for-mingo
-
-for you to fetch changes up to 3c71ba3f80bbd476bbfb2a008da9b676031cbd32:
-
-  perf tools: Really allow to specify custom CC, AR or LD (2015-07-15 11:57:28 -0300)
-
-----------------------------------------------------------------
-perf/urgent fixes:
-
-User visible:
-
-- Fix misplaced check for HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT in
-  the auxtrace code, which made 'perf record' fail straight away
-  in some architectures, even when auxtrace wasn't involved. (Adrian Hunter)
-
-Developer stuff:
-
-- Really allow to specify custom CC, AR or LD (Alexey Brodkin)
-
+Reported-by: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Signed-off-by: Adrian Hunter <adrian.hunter@intel.com>
+Tested-by: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Cc: David Ahern <dsahern@gmail.com>
+Cc: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Jiri Olsa <jolsa@redhat.com>
+Cc: Namhyung Kim <namhyung@gmail.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Stephane Eranian <eranian@google.com>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: linux-arch@vger.kernel.org
+Link: http://lkml.kernel.org/r/55A5023C.7020907@intel.com
 Signed-off-by: Arnaldo Carvalho de Melo <acme@redhat.com>
-
-----------------------------------------------------------------
-Adrian Hunter (1):
-      perf auxtrace: Fix misplaced check for HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT
-
-Alexey Brodkin (1):
-      perf tools: Really allow to specify custom CC, AR or LD
-
- tools/perf/Makefile.perf   | 19 ++++++++++++++++---
+---
  tools/perf/util/auxtrace.c | 10 +++++-----
- 2 files changed, 21 insertions(+), 8 deletions(-)
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/tools/perf/util/auxtrace.c b/tools/perf/util/auxtrace.c
+index 7e7405c9b936..83d9dd96fe08 100644
+--- a/tools/perf/util/auxtrace.c
++++ b/tools/perf/util/auxtrace.c
+@@ -53,11 +53,6 @@ int auxtrace_mmap__mmap(struct auxtrace_mmap *mm,
+ {
+ 	struct perf_event_mmap_page *pc = userpg;
+ 
+-#if BITS_PER_LONG != 64 && !defined(HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT)
+-	pr_err("Cannot use AUX area tracing mmaps\n");
+-	return -1;
+-#endif
+-
+ 	WARN_ONCE(mm->base, "Uninitialized auxtrace_mmap\n");
+ 
+ 	mm->userpg = userpg;
+@@ -73,6 +68,11 @@ int auxtrace_mmap__mmap(struct auxtrace_mmap *mm,
+ 		return 0;
+ 	}
+ 
++#if BITS_PER_LONG != 64 && !defined(HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT)
++	pr_err("Cannot use AUX area tracing mmaps\n");
++	return -1;
++#endif
++
+ 	pc->aux_offset = mp->offset;
+ 	pc->aux_size = mp->len;
+ 
+-- 
+2.1.0
