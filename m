@@ -1,64 +1,76 @@
-From: Arnaldo Carvalho de Melo <acme@kernel.org>
-Subject: [PATCH 1/2] perf auxtrace: Fix misplaced check for HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT
-Date: Wed, 15 Jul 2015 12:20:07 -0300
-Message-ID: <1436973608-9271-2-git-send-email-acme@kernel.org>
-References: <1436973608-9271-1-git-send-email-acme@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1436973608-9271-1-git-send-email-acme@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ingo Molnar <mingo@kernel.org>
-Cc: linux-kernel@vger.kernel.org, Adrian Hunter <adrian.hunter@intel.com>, David Ahern <dsahern@gmail.com>, Frederic Weisbecker <fweisbec@gmail.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Stephane Eranian <eranian@google.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, Arnaldo Carvalho de Melo <acme@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC][PATCH 04/24] arm64: Provide atomic_{or,xor,and}
+Date: Wed, 15 Jul 2015 17:01:09 +0100
+Message-ID: <20150715160109.GB17107@arm.com>
+References: <20150709172855.564686637@infradead.org>
+ <20150709175308.361407648@infradead.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:39752 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752007AbbGOQBS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Jul 2015 12:01:18 -0400
+Content-Disposition: inline
+In-Reply-To: <20150709175308.361407648@infradead.org>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, min
 
-From: Adrian Hunter <adrian.hunter@intel.com>
+On Thu, Jul 09, 2015 at 06:28:59PM +0100, Peter Zijlstra wrote:
+> Implement atomic logic ops -- atomic_{or,xor,and}.
+>=20
+> These will replace the atomic_{set,clear}_mask functions that are
+> available on some archs.
+>=20
+>=20
+> Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+> ---
+>  arch/arm64/include/asm/atomic.h |    6 ++++++
+>  1 file changed, 6 insertions(+)
+>=20
+> --- a/arch/arm64/include/asm/atomic.h
+> +++ b/arch/arm64/include/asm/atomic.h
+> @@ -84,6 +84,9 @@ static inline int atomic_##op##_return(i
+> =20
+>  ATOMIC_OPS(add, add)
+>  ATOMIC_OPS(sub, sub)
+> +ATOMIC_OP(and, and)
+> +ATOMIC_OP(or, orr)
 
-Move the checking for HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT for AUX area mmaps
-until after checking if such mmaps are used anyway.
+=46YI, but without selecting CONFIG_ARCH_HAS_ATOMIC_OR this change lead=
+s to
+build errors:
 
-Reported-by: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Signed-off-by: Adrian Hunter <adrian.hunter@intel.com>
-Tested-by: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Cc: David Ahern <dsahern@gmail.com>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Jiri Olsa <jolsa@redhat.com>
-Cc: Namhyung Kim <namhyung@gmail.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Stephane Eranian <eranian@google.com>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org
-Link: http://lkml.kernel.org/r/55A5023C.7020907@intel.com
-Signed-off-by: Arnaldo Carvalho de Melo <acme@redhat.com>
----
- tools/perf/util/auxtrace.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+                 from include/linux/seqlock.h:35,
+                 from include/linux/time.h:5,
+                 from include/uapi/linux/timex.h:56,
+                 from include/linux/timex.h:56,
+                 from include/linux/sched.h:19,
+                 from arch/arm64/kernel/asm-offsets.c:21:
+include/linux/atomic.h:115:20: error: redefinition of =E2=80=98atomic_o=
+r=E2=80=99
+ static inline void atomic_or(int i, atomic_t *v)
+                    ^
+In file included from include/linux/atomic.h:4:0,
+                 from include/linux/spinlock.h:416,
+                 from include/linux/seqlock.h:35,
+                 from include/linux/time.h:5,
+                 from include/uapi/linux/timex.h:56,
+                 from include/linux/timex.h:56,
+                 from include/linux/sched.h:19,
+                 from arch/arm64/kernel/asm-offsets.c:21:
+arch/arm64/include/asm/atomic.h:48:20: note: previous definition of =E2=
+=80=98atomic_or=E2=80=99 was here
+ static inline void atomic_##op(int i, atomic_t *v)   \
+                    ^
+arch/arm64/include/asm/atomic.h:88:1: note: in expansion of macro =E2=80=
+=98ATOMIC_OP=E2=80=99
+ ATOMIC_OP(or, orr)
+ ^
+make[2]: *** [arch/arm64/kernel/asm-offsets.s] Error 1
 
-diff --git a/tools/perf/util/auxtrace.c b/tools/perf/util/auxtrace.c
-index 7e7405c9b936..83d9dd96fe08 100644
---- a/tools/perf/util/auxtrace.c
-+++ b/tools/perf/util/auxtrace.c
-@@ -53,11 +53,6 @@ int auxtrace_mmap__mmap(struct auxtrace_mmap *mm,
- {
- 	struct perf_event_mmap_page *pc = userpg;
- 
--#if BITS_PER_LONG != 64 && !defined(HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT)
--	pr_err("Cannot use AUX area tracing mmaps\n");
--	return -1;
--#endif
--
- 	WARN_ONCE(mm->base, "Uninitialized auxtrace_mmap\n");
- 
- 	mm->userpg = userpg;
-@@ -73,6 +68,11 @@ int auxtrace_mmap__mmap(struct auxtrace_mmap *mm,
- 		return 0;
- 	}
- 
-+#if BITS_PER_LONG != 64 && !defined(HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT)
-+	pr_err("Cannot use AUX area tracing mmaps\n");
-+	return -1;
-+#endif
-+
- 	pc->aux_offset = mp->offset;
- 	pc->aux_size = mp->len;
- 
--- 
-2.1.0
+Will
