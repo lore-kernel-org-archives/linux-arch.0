@@ -1,225 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:38338 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752251AbbGOKvi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Jul 2015 06:51:38 -0400
-Date: Wed, 15 Jul 2015 11:51:35 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH v2] memory-barriers: remove
- smp_mb__after_unlock_lock()
-Message-ID: <20150715105135.GE1005@arm.com>
-References: <20150713202032.GZ3717@linux.vnet.ibm.com>
- <20150713222346.GE19282@twins.programming.kicks-ass.net>
- <20150713230405.GB3717@linux.vnet.ibm.com>
- <20150714100429.GC15448@arm.com>
- <20150714124540.GC3717@linux.vnet.ibm.com>
- <20150714125146.GJ16213@arm.com>
- <20150714140014.GD3717@linux.vnet.ibm.com>
- <20150714141202.GN16213@arm.com>
- <20150714193144.GP3717@linux.vnet.ibm.com>
- <20150715013820.GA21971@linux.vnet.ibm.com>
+Received: from mail-yk0-f175.google.com ([209.85.160.175]:33639 "EHLO
+	mail-yk0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751654AbbGOLm1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jul 2015 07:42:27 -0400
+Received: by ykeo3 with SMTP id o3so33384943yke.0
+        for <linux-arch@vger.kernel.org>; Wed, 15 Jul 2015 04:42:26 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20150715013820.GA21971@linux.vnet.ibm.com>
+In-Reply-To: <alpine.DEB.2.11.1507151226210.18576@nanos>
+References: <cover.1436511577.git.baolin.wang@linaro.org>
+	<a1bd8d71caeb4051d0be87aad1baae7ababa4df7.1436511577.git.baolin.wang@linaro.org>
+	<alpine.DEB.2.11.1507151226210.18576@nanos>
+Date: Wed, 15 Jul 2015 19:42:26 +0800
+Message-ID: <CAMz4kuLxBj+82trNVXs9qkuecrKvgdbXuJ3dfvDOCfyJwrDX9Q@mail.gmail.com>
+Subject: Re: [PATCH 6/6] cputime: Introduce cputime_to_timespec64()/timespec64_to_cputime()
+From: Baolin Wang <baolin.wang@linaro.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Message-ID: <20150715105135.oiW2j7suRH7jDN7s-WW5K-s_lyZbL4a1Y8nMCjmiX5A@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: benh@kernel.crashing.org, Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, peterz@infradead.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, =?UTF-8?B?RnLDqWTDqXJpYyBXZWlzYmVja2Vy?= <fweisbec@gmail.com>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>
+Message-ID: <20150715114226.MnL_LuvHCWYx_YeINAo4sqXqmmya53-Dd-CEtcT9Ro0@z>
 
-Hi Paul,
+On 15 July 2015 at 18:31, Thomas Gleixner <tglx@linutronix.de> wrote:
+> On Wed, 15 Jul 2015, Baolin Wang wrote:
+>
+>> The cputime_to_timespec() and timespec_to_cputime() functions are
+>> not year 2038 safe on 32bit systems due to that the struct timepsec
+>> will overflow in 2038 year.
+>
+> And how is this relevant? cputime is not based on wall clock time at
+> all. So what has 2038 to do with cputime?
+>
+> We want proper explanations WHY we need such a change.
 
-On Wed, Jul 15, 2015 at 02:38:20AM +0100, Paul E. McKenney wrote:
-> On Tue, Jul 14, 2015 at 12:31:44PM -0700, Paul E. McKenney wrote:
-> > On Tue, Jul 14, 2015 at 03:12:16PM +0100, Will Deacon wrote:
-> > > On Tue, Jul 14, 2015 at 03:00:14PM +0100, Paul E. McKenney wrote:
-> > > > On Tue, Jul 14, 2015 at 01:51:46PM +0100, Will Deacon wrote:
-> > > > > On Tue, Jul 14, 2015 at 01:45:40PM +0100, Paul E. McKenney wrote:
-> > > > > > On Tue, Jul 14, 2015 at 11:04:29AM +0100, Will Deacon wrote:
-> > > > > > > Given that RCU is currently the only user of this barrier, how would you
-> > > > > > > feel about making the barrier local to RCU and not part of the general
-> > > > > > > memory-barrier API?
-> > > > > > 
-> > > > > > In theory, no objection.  Your thought is to leave the definitions where
-> > > > > > they are, mark them as being used only by RCU, and removing mention from
-> > > > > > memory-barriers.txt?  Or did you have something else in mind?
-> > > > > 
-> > > > > Actually, I was thinking of defining them in an RCU header file with an
-> > > > > #ifdef CONFIG_POWERPC for the smb_mb() version. Then you could have a big
-> > > > > comment describing the semantics, or put that in an RCU Documentation file
-> > > > > instead of memory-barriers.txt.
-> > > > > 
-> > > > > That *should* then mean we notice anybody else trying to use the barrier,
-> > > > > because they'd need to send patches to either add something equivalent
-> > > > > or move the definition out again.
-> > > > 
-> > > > My concern with this approach is that someone putting together a new
-> > > > architecture might miss this.  That said, this approach certainly would
-> > > > work for the current architectures.
-> > > 
-> > > I don't think they're any more likely to miss it than with the current
-> > > situation where the generic code defines the macro as a NOP unless you
-> > > explicitly override it.
-> > 
-> > Fair enough...
-> 
-> Like this?
+When converting the posix-cpu-timers, it call the
+cputime_to_timespec() function. Thus it need a conversion for this
+function.
+You can see that conversion in patch "posix-cpu-timers: Convert to
+y2038 safe callbacks" from
+https://git.linaro.org/people/baolin.wang/upstream_0627.git.
+And I also will explain this in the changelog. Thanks for your comments.
 
-Precisely! Thanks for cooking the patch -- this lays all my worries to
-rest, so:
+>
+> Thanks,
+>
+>         tglx
+>
+>
 
-  Acked-by: Will Deacon <will.deacon@arm.com>
 
-We should continue the discussion with Ben and Michael about whether or
-not the PowerPC locking code can be strengthened, though (making this
-barrier a NOP on all currently supported archs).
-
-Will
-
-> commit 695c05d4b9666c50b40a1c022678b5f6e2e3e771
-> Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> Date:   Tue Jul 14 18:35:23 2015 -0700
-> 
->     rcu,locking: Privatize smp_mb__after_unlock_lock()
->     
->     RCU is the only thing that uses smp_mb__after_unlock_lock(), and is
->     likely the only thing that ever will use it, so this commit makes this
->     macro private to RCU.
->     
->     Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
->     Cc: Will Deacon <will.deacon@arm.com>
->     Cc: Peter Zijlstra <peterz@infradead.org>
->     Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
->     Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-> 
-> diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-> index 318523872db5..eafa6a53f72c 100644
-> --- a/Documentation/memory-barriers.txt
-> +++ b/Documentation/memory-barriers.txt
-> @@ -1854,16 +1854,10 @@ RELEASE are to the same lock variable, but only from the perspective of
->  another CPU not holding that lock.  In short, a ACQUIRE followed by an
->  RELEASE may -not- be assumed to be a full memory barrier.
->  
-> -Similarly, the reverse case of a RELEASE followed by an ACQUIRE does not
-> -imply a full memory barrier.  If it is necessary for a RELEASE-ACQUIRE
-> -pair to produce a full barrier, the ACQUIRE can be followed by an
-> -smp_mb__after_unlock_lock() invocation.  This will produce a full barrier
-> -(including transitivity) if either (a) the RELEASE and the ACQUIRE are
-> -executed by the same CPU or task, or (b) the RELEASE and ACQUIRE act on
-> -the same variable.  The smp_mb__after_unlock_lock() primitive is free
-> -on many architectures.  Without smp_mb__after_unlock_lock(), the CPU's
-> -execution of the critical sections corresponding to the RELEASE and the
-> -ACQUIRE can cross, so that:
-> +Similarly, the reverse case of a RELEASE followed by an ACQUIRE does
-> +not imply a full memory barrier.  Therefore, the CPU's execution of the
-> +critical sections corresponding to the RELEASE and the ACQUIRE can cross,
-> +so that:
->  
->  	*A = a;
->  	RELEASE M
-> @@ -1901,29 +1895,6 @@ the RELEASE would simply complete, thereby avoiding the deadlock.
->  	a sleep-unlock race, but the locking primitive needs to resolve
->  	such races properly in any case.
->  
-> -With smp_mb__after_unlock_lock(), the two critical sections cannot overlap.
-> -For example, with the following code, the store to *A will always be
-> -seen by other CPUs before the store to *B:
-> -
-> -	*A = a;
-> -	RELEASE M
-> -	ACQUIRE N
-> -	smp_mb__after_unlock_lock();
-> -	*B = b;
-> -
-> -The operations will always occur in one of the following orders:
-> -
-> -	STORE *A, RELEASE, ACQUIRE, smp_mb__after_unlock_lock(), STORE *B
-> -	STORE *A, ACQUIRE, RELEASE, smp_mb__after_unlock_lock(), STORE *B
-> -	ACQUIRE, STORE *A, RELEASE, smp_mb__after_unlock_lock(), STORE *B
-> -
-> -If the RELEASE and ACQUIRE were instead both operating on the same lock
-> -variable, only the first of these alternatives can occur.  In addition,
-> -the more strongly ordered systems may rule out some of the above orders.
-> -But in any case, as noted earlier, the smp_mb__after_unlock_lock()
-> -ensures that the store to *A will always be seen as happening before
-> -the store to *B.
-> -
->  Locks and semaphores may not provide any guarantee of ordering on UP compiled
->  systems, and so cannot be counted on in such a situation to actually achieve
->  anything at all - especially with respect to I/O accesses - unless combined
-> @@ -2154,40 +2125,6 @@ But it won't see any of:
->  	*E, *F or *G following RELEASE Q
->  
->  
-> -However, if the following occurs:
-> -
-> -	CPU 1				CPU 2
-> -	===============================	===============================
-> -	WRITE_ONCE(*A, a);
-> -	ACQUIRE M		     [1]
-> -	WRITE_ONCE(*B, b);
-> -	WRITE_ONCE(*C, c);
-> -	RELEASE M	     [1]
-> -	WRITE_ONCE(*D, d);		WRITE_ONCE(*E, e);
-> -					ACQUIRE M		     [2]
-> -					smp_mb__after_unlock_lock();
-> -					WRITE_ONCE(*F, f);
-> -					WRITE_ONCE(*G, g);
-> -					RELEASE M	     [2]
-> -					WRITE_ONCE(*H, h);
-> -
-> -CPU 3 might see:
-> -
-> -	*E, ACQUIRE M [1], *C, *B, *A, RELEASE M [1],
-> -		ACQUIRE M [2], *H, *F, *G, RELEASE M [2], *D
-> -
-> -But assuming CPU 1 gets the lock first, CPU 3 won't see any of:
-> -
-> -	*B, *C, *D, *F, *G or *H preceding ACQUIRE M [1]
-> -	*A, *B or *C following RELEASE M [1]
-> -	*F, *G or *H preceding ACQUIRE M [2]
-> -	*A, *B, *C, *E, *F or *G following RELEASE M [2]
-> -
-> -Note that the smp_mb__after_unlock_lock() is critically important
-> -here: Without it CPU 3 might see some of the above orderings.
-> -Without smp_mb__after_unlock_lock(), the accesses are not guaranteed
-> -to be seen in order unless CPU 3 holds lock M.
-> -
->  
->  ACQUIRES VS I/O ACCESSES
->  ------------------------
-> diff --git a/arch/powerpc/include/asm/spinlock.h b/arch/powerpc/include/asm/spinlock.h
-> index 4dbe072eecbe..523673d7583c 100644
-> --- a/arch/powerpc/include/asm/spinlock.h
-> +++ b/arch/powerpc/include/asm/spinlock.h
-> @@ -28,8 +28,6 @@
->  #include <asm/synch.h>
->  #include <asm/ppc-opcode.h>
->  
-> -#define smp_mb__after_unlock_lock()	smp_mb()  /* Full ordering for lock. */
-> -
->  #ifdef CONFIG_PPC64
->  /* use 0x800000yy when locked, where yy == CPU number */
->  #ifdef __BIG_ENDIAN__
-> diff --git a/kernel/rcu/tree.h b/kernel/rcu/tree.h
-> index 80d974df0ea0..a9fea7395ba2 100644
-> --- a/kernel/rcu/tree.h
-> +++ b/kernel/rcu/tree.h
-> @@ -645,3 +645,15 @@ static inline void rcu_nocb_q_lengths(struct rcu_data *rdp, long *ql, long *qll)
->  #endif /* #else #ifdef CONFIG_RCU_NOCB_CPU */
->  }
->  #endif /* #ifdef CONFIG_RCU_TRACE */
-> +
-> +/*
-> + * Place this after a lock-acquisition primitive to guarantee that
-> + * an UNLOCK+LOCK pair act as a full barrier.  This guarantee applies
-> + * if the UNLOCK and LOCK are executed by the same CPU or if the
-> + * UNLOCK and LOCK operate on the same lock variable.
-> + */
-> +#ifdef CONFIG_PPC
-> +#define smp_mb__after_unlock_lock()	smp_mb()  /* Full ordering for lock. */
-> +#else /* #ifdef CONFIG_PPC */
-> +#define smp_mb__after_unlock_lock()	do { } while (0)
-> +#endif /* #else #ifdef CONFIG_PPC */
-> 
+-- 
+Baolin.wang
+Best Regards
