@@ -1,76 +1,55 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [RFC PATCH v2] memory-barriers: remove
- smp_mb__after_unlock_lock()
-Date: Wed, 15 Jul 2015 13:06:18 +1000
-Message-ID: <1436929578.10956.3.camel@ellerman.id.au>
-References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
-	 <1436826689.3948.233.camel@kernel.crashing.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1436826689.3948.233.camel@kernel.crashing.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Paul McKenney <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <michaele@au1.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+From: Baolin Wang <baolin.wang@linaro.org>
+Subject: [PATCH 0/6] Introduce 64bit accessors and structures required to address y2038 issues in the posix_clock subsystem
+Date: Wed, 15 Jul 2015 13:47:49 +0800
+Message-ID: <cover.1436511577.git.baolin.wang@linaro.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f51.google.com ([209.85.220.51]:35138 "EHLO
+	mail-pa0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751367AbbGOFtP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jul 2015 01:49:15 -0400
+Received: by pactm7 with SMTP id tm7so18053268pac.2
+        for <linux-arch@vger.kernel.org>; Tue, 14 Jul 2015 22:49:15 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: tglx@linutronix.de
+Cc: arnd@arndb.de, john.stultz@linaro.org, heenasirwani@gmail.com, pang.xunlei@linaro.org, mingo@kernel.org, peterz@infradead.org, benh@kernel.crashing.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, fweisbec@gmail.com, hofrat@osadl.org, ahh@google.com, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, serge.hallyn@canonical.com, james.l.morris@oracle.com, serge@hallyn.com, paul@paul-moore.com, john.johansen@canonical.com, sds@tycho.nsa.gov, casey@schaufler-ca.com, penguin-kernel@I-love.SAKURA.ne.jp, neilb@suse.de, edumazet@google.com, jlayton@primarydata.com, keescook@chromium.org, linux-security-module@vger.kernel.org, baolin.wang@linaro.org, y2038@lists.linaro.org
 
-On Tue, 2015-07-14 at 08:31 +1000, Benjamin Herrenschmidt wrote:
-> On Mon, 2015-07-13 at 13:15 +0100, Will Deacon wrote:
-> > smp_mb__after_unlock_lock is used to promote an UNLOCK + LOCK sequence
-> > into a full memory barrier.
-> > 
-> > However:
-> > 
-> >   - This ordering guarantee is already provided without the barrier on
-> >     all architectures apart from PowerPC
-> > 
-> >   - The barrier only applies to UNLOCK + LOCK, not general
-> >     RELEASE + ACQUIRE operations
-> > 
-> >   - Locks are generally assumed to offer SC ordering semantics, so
-> >     having this additional barrier is error-prone and complicates the
-> >     callers of LOCK/UNLOCK primitives
-> > 
-> >   - The barrier is not well used outside of RCU and, because it was
-> >     retrofitted into the kernel, it's not clear whether other areas of
-> >     the kernel are incorrectly relying on UNLOCK + LOCK implying a full
-> >     barrier
-> > 
-> > This patch removes the barrier and instead requires architectures to
-> > provide full barrier semantics for an UNLOCK + LOCK sequence.
-> > 
-> > Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> > Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>
-> > Cc: Peter Zijlstra <peterz@infradead.org>
-> > Signed-off-by: Will Deacon <will.deacon@arm.com>
-> > ---
-> > 
-> > This didn't go anywhere last time I posted it, but here it is again.
-> > I'd really appreciate some feedback from the PowerPC guys, especially as
-> > to whether this change requires them to add an additional barrier in
-> > arch_spin_unlock and what the cost of that would be.
-> 
-> We'd have to turn the lwsync in unlock or the isync in lock into a full
-> barrier. As it is, we *almost* have a full barrier semantic, but not
-> quite, as in things can get mixed up inside spin_lock between the LL and
-> the SC (things leaking in past LL and things leaking "out" up before SC
-> and then getting mixed up in there).
-> 
-> Michael, at some point you were experimenting a bit with that and tried
-> to get some perf numbers of the impact that would have, did that
-> solidify ? Otherwise, I'll have a look when I'm back next week.
+This patch series change the 32-bit time types (timespec/itimerspec) to
+the 64-bit types (timespec64/itimerspec64), and add new 64bit accessor
+functions, which are required in order to avoid y2038 issues in the
+posix_clock subsystem.
 
-I was mainly experimenting with replacing the lwsync in lock with an isync.
+In order to avoid spamming people too much, I'm only sending the first
+few patches of the patch series, and left the other patches for later.
 
-But I think you're talking about making it a full sync in lock.
+And if you are interested in the whole patch series, see:
+https://git.linaro.org/people/baolin.wang/upstream_0627.git
 
-That was about +7% on p8, +25% on p7 and +88% on p6.
+Thoughts and feedback would be appreciated.
 
-We got stuck deciding whether isync was safe to use as a memory barrier,
-because the wording in the arch is a bit vague.
+Baolin Wang (6):
+  time: Introduce struct itimerspec64
+  timekeeping: Introduce current_kernel_time64()
+  security: Introduce security_settime64()
+  time: Introduce do_sys_settimeofday64()
+  time: Introduce timespec64_to_jiffies()/jiffies_to_timespec64()
+  cputime: Introduce cputime_to_timespec64()/timespec64_to_cputime()
 
-But if we're talking about a full sync then I think there is no question that's
-OK and we should just do it.
+ arch/powerpc/include/asm/cputime.h    |    6 +++---
+ arch/s390/include/asm/cputime.h       |    8 ++++----
+ include/asm-generic/cputime_jiffies.h |   10 +++++-----
+ include/asm-generic/cputime_nsecs.h   |    6 +++---
+ include/linux/cputime.h               |   16 +++++++++++++++
+ include/linux/jiffies.h               |   22 ++++++++++++++++++---
+ include/linux/lsm_hooks.h             |    5 +++--
+ include/linux/security.h              |   20 ++++++++++++++++---
+ include/linux/time64.h                |   35 +++++++++++++++++++++++++++++++++
+ include/linux/timekeeping.h           |   24 +++++++++++++++++++---
+ kernel/time/time.c                    |   28 +++++++++++++++-----------
+ kernel/time/timekeeping.c             |    6 +++---
+ security/commoncap.c                  |    2 +-
+ security/security.c                   |    2 +-
+ 14 files changed, 148 insertions(+), 42 deletions(-)
 
-cheers
+-- 
+1.7.9.5
