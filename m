@@ -1,154 +1,175 @@
-From: Baolin Wang <baolin.wang@linaro.org>
-Subject: [PATCH 6/6] cputime: Introduce cputime_to_timespec64()/timespec64_to_cputime()
-Date: Wed, 15 Jul 2015 14:07:21 +0800
-Message-ID: <a1bd8d71caeb4051d0be87aad1baae7ababa4df7.1436511577.git.baolin.wang@linaro.org>
-References: <cover.1436511577.git.baolin.wang@linaro.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pd0-f169.google.com ([209.85.192.169]:35147 "EHLO
-	mail-pd0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751519AbbGOGIi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jul 2015 02:08:38 -0400
-Received: by pdrg1 with SMTP id g1so18904990pdr.2
-        for <linux-arch@vger.kernel.org>; Tue, 14 Jul 2015 23:08:38 -0700 (PDT)
-In-Reply-To: <cover.1436511577.git.baolin.wang@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: benh@kernel.crashing.org
-Cc: arnd@arndb.de, tglx@linutronix.de, john.stultz@linaro.org, peterz@infradead.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, fweisbec@gmail.com, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, baolin.wang@linaro.org, y2038@lists.linaro.org
+From: Konstantin Khlebnikov <khlebnikov@yandex-team.ru>
+Subject: [PATCH v2 3/3] sched/preempt: fix cond_resched_lock() and
+ cond_resched_softirq()
+Date: Wed, 15 Jul 2015 12:52:04 +0300
+Message-ID: <20150715095204.12246.98268.stgit@buzz>
+References: <20150715095201.12246.49283.stgit@buzz>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20150715095201.12246.49283.stgit@buzz>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org, kvm-ppc@vger.kernel.org, Alexander Graf <agraf@suse.de>, Paul Mackerras <paulus@samba.org>, David Vrabel <david.vrabel@citrix.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-The cputime_to_timespec() and timespec_to_cputime() functions are
-not year 2038 safe on 32bit systems due to that the struct timepsec
-will overflow in 2038 year. This patch introduces cputime_to_timespec64()
-and timespec64_to_cputime() functions which use struct timespec64.
-And converts arch specific implementations in arch/s390 and arch/powerpc.
+These functions check should_resched() before unlocking spinlock/bh-enable:
+preempt_count always non-zero => should_resched() always returns false.
+cond_resched_lock() worked iff spin_needbreak is set.
 
-Signed-off-by: Baolin Wang <baolin.wang@linaro.org>
+This patch adds argument "preempt_offset" to should_resched().
+
+preempt_count offset constants for that:
+
+PREEMPT_DISABLE_OFFSET  - offset after preempt_disable()
+PREEMPT_LOCK_OFFSET     - offset after spin_lock()
+SOFTIRQ_DISABLE_OFFSET  - offset after local_bh_distable()
+SOFTIRQ_LOCK_OFFSET     - offset after spin_lock_bh()
+
+Signed-off-by: Konstantin Khlebnikov <khlebnikov@yandex-team.ru>
 ---
- arch/powerpc/include/asm/cputime.h    |    6 +++---
- arch/s390/include/asm/cputime.h       |    8 ++++----
- include/asm-generic/cputime_jiffies.h |   10 +++++-----
- include/asm-generic/cputime_nsecs.h   |    6 +++---
- include/linux/cputime.h               |   16 ++++++++++++++++
- 5 files changed, 31 insertions(+), 15 deletions(-)
+ arch/x86/include/asm/preempt.h |    4 ++--
+ include/asm-generic/preempt.h  |    5 +++--
+ include/linux/preempt.h        |   19 ++++++++++++++-----
+ include/linux/sched.h          |    6 ------
+ kernel/sched/core.c            |    6 +++---
+ 5 files changed, 22 insertions(+), 18 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/cputime.h b/arch/powerpc/include/asm/cputime.h
-index e245255..5dda5c0 100644
---- a/arch/powerpc/include/asm/cputime.h
-+++ b/arch/powerpc/include/asm/cputime.h
-@@ -154,9 +154,9 @@ static inline cputime_t secs_to_cputime(const unsigned long sec)
- }
- 
+diff --git a/arch/x86/include/asm/preempt.h b/arch/x86/include/asm/preempt.h
+index dca71714f860..b12f81022a6b 100644
+--- a/arch/x86/include/asm/preempt.h
++++ b/arch/x86/include/asm/preempt.h
+@@ -90,9 +90,9 @@ static __always_inline bool __preempt_count_dec_and_test(void)
  /*
-- * Convert cputime <-> timespec
-+ * Convert cputime <-> timespec64
+  * Returns true when we need to resched and can (barring IRQ state).
   */
--static inline void cputime_to_timespec(const cputime_t ct, struct timespec *p)
-+static inline void cputime_to_timespec64(const cputime_t ct, struct timespec64 *p)
+-static __always_inline bool should_resched(void)
++static __always_inline bool should_resched(int preempt_offset)
  {
- 	u64 x = (__force u64) ct;
- 	unsigned int frac;
-@@ -168,7 +168,7 @@ static inline void cputime_to_timespec(const cputime_t ct, struct timespec *p)
- 	p->tv_nsec = x;
+-	return unlikely(!raw_cpu_read_4(__preempt_count));
++	return unlikely(raw_cpu_read_4(__preempt_count) == preempt_offset);
  }
  
--static inline cputime_t timespec_to_cputime(const struct timespec *p)
-+static inline cputime_t timespec64_to_cputime(const struct timespec64 *p)
- {
- 	u64 ct;
- 
-diff --git a/arch/s390/include/asm/cputime.h b/arch/s390/include/asm/cputime.h
-index 221b454..3319b51 100644
---- a/arch/s390/include/asm/cputime.h
-+++ b/arch/s390/include/asm/cputime.h
-@@ -81,16 +81,16 @@ static inline cputime_t secs_to_cputime(const unsigned int s)
- }
- 
+ #ifdef CONFIG_PREEMPT
+diff --git a/include/asm-generic/preempt.h b/include/asm-generic/preempt.h
+index d0a7a4753db2..0bec580a4885 100644
+--- a/include/asm-generic/preempt.h
++++ b/include/asm-generic/preempt.h
+@@ -71,9 +71,10 @@ static __always_inline bool __preempt_count_dec_and_test(void)
  /*
-- * Convert cputime to timespec and back.
-+ * Convert cputime to timespec64 and back.
+  * Returns true when we need to resched and can (barring IRQ state).
   */
--static inline cputime_t timespec_to_cputime(const struct timespec *value)
-+static inline cputime_t timespec64_to_cputime(const struct timespec64 *value)
+-static __always_inline bool should_resched(void)
++static __always_inline bool should_resched(int preempt_offset)
  {
- 	unsigned long long ret = value->tv_sec * CPUTIME_PER_SEC;
- 	return (__force cputime_t)(ret + __div(value->tv_nsec * CPUTIME_PER_USEC, NSEC_PER_USEC));
+-	return unlikely(!preempt_count() && tif_need_resched());
++	return unlikely(preempt_count() == preempt_offset &&
++			tif_need_resched());
  }
  
--static inline void cputime_to_timespec(const cputime_t cputime,
--				       struct timespec *value)
-+static inline void cputime_to_timespec64(const cputime_t cputime,
-+					 struct timespec64 *value)
- {
- 	unsigned long long __cputime = (__force unsigned long long) cputime;
- 	value->tv_nsec = (__cputime % CPUTIME_PER_SEC) * NSEC_PER_USEC / CPUTIME_PER_USEC;
-diff --git a/include/asm-generic/cputime_jiffies.h b/include/asm-generic/cputime_jiffies.h
-index fe386fc..54e034c 100644
---- a/include/asm-generic/cputime_jiffies.h
-+++ b/include/asm-generic/cputime_jiffies.h
-@@ -44,12 +44,12 @@ typedef u64 __nocast cputime64_t;
- #define secs_to_cputime(sec)		jiffies_to_cputime((sec) * HZ)
- 
- /*
-- * Convert cputime to timespec and back.
-+ * Convert cputime to timespec64 and back.
+ #ifdef CONFIG_PREEMPT
+diff --git a/include/linux/preempt.h b/include/linux/preempt.h
+index 84991f185173..bea8dd8ff5e0 100644
+--- a/include/linux/preempt.h
++++ b/include/linux/preempt.h
+@@ -84,13 +84,21 @@
   */
--#define timespec_to_cputime(__val)	\
--	jiffies_to_cputime(timespec_to_jiffies(__val))
--#define cputime_to_timespec(__ct,__val)	\
--	jiffies_to_timespec(cputime_to_jiffies(__ct),__val)
-+#define timespec64_to_cputime(__val)	\
-+	jiffies_to_cputime(timespec64_to_jiffies(__val))
-+#define cputime_to_timespec64(__ct,__val)	\
-+	jiffies_to_timespec64(cputime_to_jiffies(__ct),__val)
+ #define in_nmi()	(preempt_count() & NMI_MASK)
  
- /*
-  * Convert cputime to timeval and back.
-diff --git a/include/asm-generic/cputime_nsecs.h b/include/asm-generic/cputime_nsecs.h
-index 0419485..c0cafc0 100644
---- a/include/asm-generic/cputime_nsecs.h
-+++ b/include/asm-generic/cputime_nsecs.h
-@@ -71,14 +71,14 @@ typedef u64 __nocast cputime64_t;
- 	(__force cputime_t)((__secs) * NSEC_PER_SEC)
- 
- /*
-- * Convert cputime <-> timespec (nsec)
-+ * Convert cputime <-> timespec64 (nsec)
-  */
--static inline cputime_t timespec_to_cputime(const struct timespec *val)
-+static inline cputime_t timespec64_to_cputime(const struct timespec64 *val)
- {
- 	u64 ret = val->tv_sec * NSEC_PER_SEC + val->tv_nsec;
- 	return (__force cputime_t) ret;
- }
--static inline void cputime_to_timespec(const cputime_t ct, struct timespec *val)
-+static inline void cputime_to_timespec64(const cputime_t ct, struct timespec64 *val)
- {
- 	u32 rem;
- 
-diff --git a/include/linux/cputime.h b/include/linux/cputime.h
-index f2eb2ee..cd638a0 100644
---- a/include/linux/cputime.h
-+++ b/include/linux/cputime.h
-@@ -13,4 +13,20 @@
- 	usecs_to_cputime((__nsecs) / NSEC_PER_USEC)
++/*
++ * The preempt_count offset after preempt_disable();
++ */
+ #if defined(CONFIG_PREEMPT_COUNT)
+-# define PREEMPT_DISABLE_OFFSET 1
++# define PREEMPT_DISABLE_OFFSET	PREEMPT_OFFSET
+ #else
+-# define PREEMPT_DISABLE_OFFSET 0
++# define PREEMPT_DISABLE_OFFSET	0
  #endif
  
-+static inline cputime_t timespec_to_cputime(const struct timespec *ts)
-+{
-+	struct timespec64 ts64 = timespec_to_timespec64(*ts);
+ /*
++ * The preempt_count offset after spin_lock()
++ */
++#define PREEMPT_LOCK_OFFSET	PREEMPT_DISABLE_OFFSET
 +
-+	return timespec64_to_cputime(&ts64);
-+}
-+
-+static inline void cputime_to_timespec(const cputime_t cputime,
-+				       struct timespec *value)
-+{
-+	struct timespec64 ts64;
-+
-+	cputime_to_timespec64(cputime, &ts64);
-+	*value = timespec64_to_timespec(ts64);
-+}
-+
- #endif /* __LINUX_CPUTIME_H */
--- 
-1.7.9.5
++/*
+  * The preempt_count offset needed for things like:
+  *
+  *  spin_lock_bh()
+@@ -103,7 +111,7 @@
+  *
+  * Work as expected.
+  */
+-#define SOFTIRQ_LOCK_OFFSET (SOFTIRQ_DISABLE_OFFSET + PREEMPT_DISABLE_OFFSET)
++#define SOFTIRQ_LOCK_OFFSET (SOFTIRQ_DISABLE_OFFSET + PREEMPT_LOCK_OFFSET)
+ 
+ /*
+  * Are we running in atomic context?  WARNING: this macro cannot
+@@ -124,7 +132,8 @@
+ #if defined(CONFIG_DEBUG_PREEMPT) || defined(CONFIG_PREEMPT_TRACER)
+ extern void preempt_count_add(int val);
+ extern void preempt_count_sub(int val);
+-#define preempt_count_dec_and_test() ({ preempt_count_sub(1); should_resched(); })
++#define preempt_count_dec_and_test() \
++	({ preempt_count_sub(1); should_resched(0); })
+ #else
+ #define preempt_count_add(val)	__preempt_count_add(val)
+ #define preempt_count_sub(val)	__preempt_count_sub(val)
+@@ -184,7 +193,7 @@ do { \
+ 
+ #define preempt_check_resched() \
+ do { \
+-	if (should_resched()) \
++	if (should_resched(0)) \
+ 		__preempt_schedule(); \
+ } while (0)
+ 
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index ae21f1591615..a8e9b17acdee 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -2885,12 +2885,6 @@ extern int _cond_resched(void);
+ 
+ extern int __cond_resched_lock(spinlock_t *lock);
+ 
+-#ifdef CONFIG_PREEMPT_COUNT
+-#define PREEMPT_LOCK_OFFSET	PREEMPT_OFFSET
+-#else
+-#define PREEMPT_LOCK_OFFSET	0
+-#endif
+-
+ #define cond_resched_lock(lock) ({				\
+ 	___might_sleep(__FILE__, __LINE__, PREEMPT_LOCK_OFFSET);\
+ 	__cond_resched_lock(lock);				\
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index 78b4bad10081..d9a4d93dc879 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -4492,7 +4492,7 @@ SYSCALL_DEFINE0(sched_yield)
+ 
+ int __sched _cond_resched(void)
+ {
+-	if (should_resched()) {
++	if (should_resched(0)) {
+ 		preempt_schedule_common();
+ 		return 1;
+ 	}
+@@ -4510,7 +4510,7 @@ EXPORT_SYMBOL(_cond_resched);
+  */
+ int __cond_resched_lock(spinlock_t *lock)
+ {
+-	int resched = should_resched();
++	int resched = should_resched(PREEMPT_LOCK_OFFSET);
+ 	int ret = 0;
+ 
+ 	lockdep_assert_held(lock);
+@@ -4532,7 +4532,7 @@ int __sched __cond_resched_softirq(void)
+ {
+ 	BUG_ON(!in_softirq());
+ 
+-	if (should_resched()) {
++	if (should_resched(SOFTIRQ_DISABLE_OFFSET)) {
+ 		local_bh_enable();
+ 		preempt_schedule_common();
+ 		local_bh_disable();
