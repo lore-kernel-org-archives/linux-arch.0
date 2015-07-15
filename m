@@ -1,220 +1,44 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH v2] memory-barriers: remove
- smp_mb__after_unlock_lock()
-Date: Wed, 15 Jul 2015 11:51:35 +0100
-Message-ID: <20150715105135.GE1005@arm.com>
-References: <20150713202032.GZ3717@linux.vnet.ibm.com>
- <20150713222346.GE19282@twins.programming.kicks-ass.net>
- <20150713230405.GB3717@linux.vnet.ibm.com>
- <20150714100429.GC15448@arm.com>
- <20150714124540.GC3717@linux.vnet.ibm.com>
- <20150714125146.GJ16213@arm.com>
- <20150714140014.GD3717@linux.vnet.ibm.com>
- <20150714141202.GN16213@arm.com>
- <20150714193144.GP3717@linux.vnet.ibm.com>
- <20150715013820.GA21971@linux.vnet.ibm.com>
+From: Baolin Wang <baolin.wang@linaro.org>
+Subject: Re: [PATCH 6/6] cputime: Introduce
+	cputime_to_timespec64()/timespec64_to_cputime()
+Date: Wed, 15 Jul 2015 19:42:26 +0800
+Message-ID: <CAMz4kuLxBj+82trNVXs9qkuecrKvgdbXuJ3dfvDOCfyJwrDX9Q@mail.gmail.com>
+References: <cover.1436511577.git.baolin.wang@linaro.org>
+ <a1bd8d71caeb4051d0be87aad1baae7ababa4df7.1436511577.git.baolin.wang@linaro.org>
+ <alpine.DEB.2.11.1507151226210.18576@nanos>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20150715013820.GA21971@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <y2038-bounces@lists.linaro.org>
+In-Reply-To: <alpine.DEB.2.11.1507151226210.18576@nanos>
+List-Unsubscribe: <https://lists.linaro.org/mailman/options/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=unsubscribe>
+List-Archive: <http://lists.linaro.org/pipermail/y2038/>
+List-Post: <mailto:y2038@lists.linaro.org>
+List-Help: <mailto:y2038-request@lists.linaro.org?subject=help>
+List-Subscribe: <https://lists.linaro.org/mailman/listinfo/y2038>,
+ <mailto:y2038-request@lists.linaro.org?subject=subscribe>
+Errors-To: y2038-bounces@lists.linaro.org
+Sender: "Y2038" <y2038-bounces@lists.linaro.org>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, riel@redhat.com, Arnd Bergmann <arnd@arndb.de>, peterz@infradead.org, benh@kernel.crashing.org, linux390@de.ibm.com, heiko.carstens@de.ibm.com, linuxppc-dev@lists.ozlabs.org, LKML <linux-kernel@vger.kernel.org>, tj@kernel.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, John Stultz <john.stultz@linaro.org>, cl@linux.com, =?UTF-8?B?RnLDqWTDqXJpYyBXZWlzYmVja2Vy?= <fweisbec@gmail.com>, y2038 Mailman List <y2038@lists.linaro.org>, rth@twiddle.net
 List-Id: linux-arch.vger.kernel.org
 
-Hi Paul,
-
-On Wed, Jul 15, 2015 at 02:38:20AM +0100, Paul E. McKenney wrote:
-> On Tue, Jul 14, 2015 at 12:31:44PM -0700, Paul E. McKenney wrote:
-> > On Tue, Jul 14, 2015 at 03:12:16PM +0100, Will Deacon wrote:
-> > > On Tue, Jul 14, 2015 at 03:00:14PM +0100, Paul E. McKenney wrote:
-> > > > On Tue, Jul 14, 2015 at 01:51:46PM +0100, Will Deacon wrote:
-> > > > > On Tue, Jul 14, 2015 at 01:45:40PM +0100, Paul E. McKenney wrote:
-> > > > > > On Tue, Jul 14, 2015 at 11:04:29AM +0100, Will Deacon wrote:
-> > > > > > > Given that RCU is currently the only user of this barrier, how would you
-> > > > > > > feel about making the barrier local to RCU and not part of the general
-> > > > > > > memory-barrier API?
-> > > > > > 
-> > > > > > In theory, no objection.  Your thought is to leave the definitions where
-> > > > > > they are, mark them as being used only by RCU, and removing mention from
-> > > > > > memory-barriers.txt?  Or did you have something else in mind?
-> > > > > 
-> > > > > Actually, I was thinking of defining them in an RCU header file with an
-> > > > > #ifdef CONFIG_POWERPC for the smb_mb() version. Then you could have a big
-> > > > > comment describing the semantics, or put that in an RCU Documentation file
-> > > > > instead of memory-barriers.txt.
-> > > > > 
-> > > > > That *should* then mean we notice anybody else trying to use the barrier,
-> > > > > because they'd need to send patches to either add something equivalent
-> > > > > or move the definition out again.
-> > > > 
-> > > > My concern with this approach is that someone putting together a new
-> > > > architecture might miss this.  That said, this approach certainly would
-> > > > work for the current architectures.
-> > > 
-> > > I don't think they're any more likely to miss it than with the current
-> > > situation where the generic code defines the macro as a NOP unless you
-> > > explicitly override it.
-> > 
-> > Fair enough...
-> 
-> Like this?
-
-Precisely! Thanks for cooking the patch -- this lays all my worries to
-rest, so:
-
-  Acked-by: Will Deacon <will.deacon@arm.com>
-
-We should continue the discussion with Ben and Michael about whether or
-not the PowerPC locking code can be strengthened, though (making this
-barrier a NOP on all currently supported archs).
-
-Will
-
-> commit 695c05d4b9666c50b40a1c022678b5f6e2e3e771
-> Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> Date:   Tue Jul 14 18:35:23 2015 -0700
-> 
->     rcu,locking: Privatize smp_mb__after_unlock_lock()
->     
->     RCU is the only thing that uses smp_mb__after_unlock_lock(), and is
->     likely the only thing that ever will use it, so this commit makes this
->     macro private to RCU.
->     
->     Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
->     Cc: Will Deacon <will.deacon@arm.com>
->     Cc: Peter Zijlstra <peterz@infradead.org>
->     Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
->     Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-> 
-> diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-> index 318523872db5..eafa6a53f72c 100644
-> --- a/Documentation/memory-barriers.txt
-> +++ b/Documentation/memory-barriers.txt
-> @@ -1854,16 +1854,10 @@ RELEASE are to the same lock variable, but only from the perspective of
->  another CPU not holding that lock.  In short, a ACQUIRE followed by an
->  RELEASE may -not- be assumed to be a full memory barrier.
->  
-> -Similarly, the reverse case of a RELEASE followed by an ACQUIRE does not
-> -imply a full memory barrier.  If it is necessary for a RELEASE-ACQUIRE
-> -pair to produce a full barrier, the ACQUIRE can be followed by an
-> -smp_mb__after_unlock_lock() invocation.  This will produce a full barrier
-> -(including transitivity) if either (a) the RELEASE and the ACQUIRE are
-> -executed by the same CPU or task, or (b) the RELEASE and ACQUIRE act on
-> -the same variable.  The smp_mb__after_unlock_lock() primitive is free
-> -on many architectures.  Without smp_mb__after_unlock_lock(), the CPU's
-> -execution of the critical sections corresponding to the RELEASE and the
-> -ACQUIRE can cross, so that:
-> +Similarly, the reverse case of a RELEASE followed by an ACQUIRE does
-> +not imply a full memory barrier.  Therefore, the CPU's execution of the
-> +critical sections corresponding to the RELEASE and the ACQUIRE can cross,
-> +so that:
->  
->  	*A = a;
->  	RELEASE M
-> @@ -1901,29 +1895,6 @@ the RELEASE would simply complete, thereby avoiding the deadlock.
->  	a sleep-unlock race, but the locking primitive needs to resolve
->  	such races properly in any case.
->  
-> -With smp_mb__after_unlock_lock(), the two critical sections cannot overlap.
-> -For example, with the following code, the store to *A will always be
-> -seen by other CPUs before the store to *B:
-> -
-> -	*A = a;
-> -	RELEASE M
-> -	ACQUIRE N
-> -	smp_mb__after_unlock_lock();
-> -	*B = b;
-> -
-> -The operations will always occur in one of the following orders:
-> -
-> -	STORE *A, RELEASE, ACQUIRE, smp_mb__after_unlock_lock(), STORE *B
-> -	STORE *A, ACQUIRE, RELEASE, smp_mb__after_unlock_lock(), STORE *B
-> -	ACQUIRE, STORE *A, RELEASE, smp_mb__after_unlock_lock(), STORE *B
-> -
-> -If the RELEASE and ACQUIRE were instead both operating on the same lock
-> -variable, only the first of these alternatives can occur.  In addition,
-> -the more strongly ordered systems may rule out some of the above orders.
-> -But in any case, as noted earlier, the smp_mb__after_unlock_lock()
-> -ensures that the store to *A will always be seen as happening before
-> -the store to *B.
-> -
->  Locks and semaphores may not provide any guarantee of ordering on UP compiled
->  systems, and so cannot be counted on in such a situation to actually achieve
->  anything at all - especially with respect to I/O accesses - unless combined
-> @@ -2154,40 +2125,6 @@ But it won't see any of:
->  	*E, *F or *G following RELEASE Q
->  
->  
-> -However, if the following occurs:
-> -
-> -	CPU 1				CPU 2
-> -	===============================	===============================
-> -	WRITE_ONCE(*A, a);
-> -	ACQUIRE M		     [1]
-> -	WRITE_ONCE(*B, b);
-> -	WRITE_ONCE(*C, c);
-> -	RELEASE M	     [1]
-> -	WRITE_ONCE(*D, d);		WRITE_ONCE(*E, e);
-> -					ACQUIRE M		     [2]
-> -					smp_mb__after_unlock_lock();
-> -					WRITE_ONCE(*F, f);
-> -					WRITE_ONCE(*G, g);
-> -					RELEASE M	     [2]
-> -					WRITE_ONCE(*H, h);
-> -
-> -CPU 3 might see:
-> -
-> -	*E, ACQUIRE M [1], *C, *B, *A, RELEASE M [1],
-> -		ACQUIRE M [2], *H, *F, *G, RELEASE M [2], *D
-> -
-> -But assuming CPU 1 gets the lock first, CPU 3 won't see any of:
-> -
-> -	*B, *C, *D, *F, *G or *H preceding ACQUIRE M [1]
-> -	*A, *B or *C following RELEASE M [1]
-> -	*F, *G or *H preceding ACQUIRE M [2]
-> -	*A, *B, *C, *E, *F or *G following RELEASE M [2]
-> -
-> -Note that the smp_mb__after_unlock_lock() is critically important
-> -here: Without it CPU 3 might see some of the above orderings.
-> -Without smp_mb__after_unlock_lock(), the accesses are not guaranteed
-> -to be seen in order unless CPU 3 holds lock M.
-> -
->  
->  ACQUIRES VS I/O ACCESSES
->  ------------------------
-> diff --git a/arch/powerpc/include/asm/spinlock.h b/arch/powerpc/include/asm/spinlock.h
-> index 4dbe072eecbe..523673d7583c 100644
-> --- a/arch/powerpc/include/asm/spinlock.h
-> +++ b/arch/powerpc/include/asm/spinlock.h
-> @@ -28,8 +28,6 @@
->  #include <asm/synch.h>
->  #include <asm/ppc-opcode.h>
->  
-> -#define smp_mb__after_unlock_lock()	smp_mb()  /* Full ordering for lock. */
-> -
->  #ifdef CONFIG_PPC64
->  /* use 0x800000yy when locked, where yy == CPU number */
->  #ifdef __BIG_ENDIAN__
-> diff --git a/kernel/rcu/tree.h b/kernel/rcu/tree.h
-> index 80d974df0ea0..a9fea7395ba2 100644
-> --- a/kernel/rcu/tree.h
-> +++ b/kernel/rcu/tree.h
-> @@ -645,3 +645,15 @@ static inline void rcu_nocb_q_lengths(struct rcu_data *rdp, long *ql, long *qll)
->  #endif /* #else #ifdef CONFIG_RCU_NOCB_CPU */
->  }
->  #endif /* #ifdef CONFIG_RCU_TRACE */
-> +
-> +/*
-> + * Place this after a lock-acquisition primitive to guarantee that
-> + * an UNLOCK+LOCK pair act as a full barrier.  This guarantee applies
-> + * if the UNLOCK and LOCK are executed by the same CPU or if the
-> + * UNLOCK and LOCK operate on the same lock variable.
-> + */
-> +#ifdef CONFIG_PPC
-> +#define smp_mb__after_unlock_lock()	smp_mb()  /* Full ordering for lock. */
-> +#else /* #ifdef CONFIG_PPC */
-> +#define smp_mb__after_unlock_lock()	do { } while (0)
-> +#endif /* #else #ifdef CONFIG_PPC */
-> 
+T24gMTUgSnVseSAyMDE1IGF0IDE4OjMxLCBUaG9tYXMgR2xlaXhuZXIgPHRnbHhAbGludXRyb25p
+eC5kZT4gd3JvdGU6Cj4gT24gV2VkLCAxNSBKdWwgMjAxNSwgQmFvbGluIFdhbmcgd3JvdGU6Cj4K
+Pj4gVGhlIGNwdXRpbWVfdG9fdGltZXNwZWMoKSBhbmQgdGltZXNwZWNfdG9fY3B1dGltZSgpIGZ1
+bmN0aW9ucyBhcmUKPj4gbm90IHllYXIgMjAzOCBzYWZlIG9uIDMyYml0IHN5c3RlbXMgZHVlIHRv
+IHRoYXQgdGhlIHN0cnVjdCB0aW1lcHNlYwo+PiB3aWxsIG92ZXJmbG93IGluIDIwMzggeWVhci4K
+Pgo+IEFuZCBob3cgaXMgdGhpcyByZWxldmFudD8gY3B1dGltZSBpcyBub3QgYmFzZWQgb24gd2Fs
+bCBjbG9jayB0aW1lIGF0Cj4gYWxsLiBTbyB3aGF0IGhhcyAyMDM4IHRvIGRvIHdpdGggY3B1dGlt
+ZT8KPgo+IFdlIHdhbnQgcHJvcGVyIGV4cGxhbmF0aW9ucyBXSFkgd2UgbmVlZCBzdWNoIGEgY2hh
+bmdlLgoKV2hlbiBjb252ZXJ0aW5nIHRoZSBwb3NpeC1jcHUtdGltZXJzLCBpdCBjYWxsIHRoZQpj
+cHV0aW1lX3RvX3RpbWVzcGVjKCkgZnVuY3Rpb24uIFRodXMgaXQgbmVlZCBhIGNvbnZlcnNpb24g
+Zm9yIHRoaXMKZnVuY3Rpb24uCllvdSBjYW4gc2VlIHRoYXQgY29udmVyc2lvbiBpbiBwYXRjaCAi
+cG9zaXgtY3B1LXRpbWVyczogQ29udmVydCB0bwp5MjAzOCBzYWZlIGNhbGxiYWNrcyIgZnJvbQpo
+dHRwczovL2dpdC5saW5hcm8ub3JnL3Blb3BsZS9iYW9saW4ud2FuZy91cHN0cmVhbV8wNjI3Lmdp
+dC4KQW5kIEkgYWxzbyB3aWxsIGV4cGxhaW4gdGhpcyBpbiB0aGUgY2hhbmdlbG9nLiBUaGFua3Mg
+Zm9yIHlvdXIgY29tbWVudHMuCgo+Cj4gVGhhbmtzLAo+Cj4gICAgICAgICB0Z2x4Cj4KPgoKCi0t
+IApCYW9saW4ud2FuZwpCZXN0IFJlZ2FyZHMKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX18KWTIwMzggbWFpbGluZyBsaXN0ClkyMDM4QGxpc3RzLmxpbmFyby5v
+cmcKaHR0cHM6Ly9saXN0cy5saW5hcm8ub3JnL21haWxtYW4vbGlzdGluZm8veTIwMzgK
