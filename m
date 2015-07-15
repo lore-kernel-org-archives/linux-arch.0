@@ -1,54 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:37221 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752633AbbGOL4a (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jul 2015 07:56:30 -0400
-Date: Wed, 15 Jul 2015 13:55:53 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 6/6] cputime: Introduce
- cputime_to_timespec64()/timespec64_to_cputime()
-In-Reply-To: <CAMz4kuLxBj+82trNVXs9qkuecrKvgdbXuJ3dfvDOCfyJwrDX9Q@mail.gmail.com>
-Message-ID: <alpine.DEB.2.11.1507151345060.18576@nanos>
-References: <cover.1436511577.git.baolin.wang@linaro.org> <a1bd8d71caeb4051d0be87aad1baae7ababa4df7.1436511577.git.baolin.wang@linaro.org> <alpine.DEB.2.11.1507151226210.18576@nanos> <CAMz4kuLxBj+82trNVXs9qkuecrKvgdbXuJ3dfvDOCfyJwrDX9Q@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from casper.infradead.org ([85.118.1.10]:37843 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751792AbbGOPU2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jul 2015 11:20:28 -0400
+From: Arnaldo Carvalho de Melo <acme@kernel.org>
+Subject: [PATCH 1/2] perf auxtrace: Fix misplaced check for HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT
+Date: Wed, 15 Jul 2015 12:20:07 -0300
+Message-ID: <1436973608-9271-2-git-send-email-acme@kernel.org>
+In-Reply-To: <1436973608-9271-1-git-send-email-acme@kernel.org>
+References: <1436973608-9271-1-git-send-email-acme@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Baolin Wang <baolin.wang@linaro.org>
-Cc: benh@kernel.crashing.org, Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, peterz@infradead.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, =?ISO-8859-15?Q?Fr=E9d=E9ric_Weisbecker?= <fweisbec@gmail.com>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>
-Message-ID: <20150715115553.ffeZ-Uv7BVMazFZGcdRnZSREByJrqfnpNqEpO3wJjc0@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: linux-kernel@vger.kernel.org, Adrian Hunter <adrian.hunter@intel.com>, David Ahern <dsahern@gmail.com>, Frederic Weisbecker <fweisbec@gmail.com>, Jiri Olsa <jolsa@redhat.com>, Namhyung Kim <namhyung@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Stephane Eranian <eranian@google.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, Arnaldo Carvalho de Melo <acme@redhat.com>
+Message-ID: <20150715152007.ObtD2kG5UWMFCQMX2cjh6ZpBcvfMhya2kLu-n6KXJtk@z>
 
-On Wed, 15 Jul 2015, Baolin Wang wrote:
+From: Adrian Hunter <adrian.hunter@intel.com>
 
-> On 15 July 2015 at 18:31, Thomas Gleixner <tglx@linutronix.de> wrote:
-> > On Wed, 15 Jul 2015, Baolin Wang wrote:
-> >
-> >> The cputime_to_timespec() and timespec_to_cputime() functions are
-> >> not year 2038 safe on 32bit systems due to that the struct timepsec
-> >> will overflow in 2038 year.
-> >
-> > And how is this relevant? cputime is not based on wall clock time at
-> > all. So what has 2038 to do with cputime?
-> >
-> > We want proper explanations WHY we need such a change.
-> 
-> When converting the posix-cpu-timers, it call the
-> cputime_to_timespec() function. Thus it need a conversion for this
-> function.
+Move the checking for HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT for AUX area mmaps
+until after checking if such mmaps are used anyway.
 
-There is no requirement to convert posix-cpu-timers on their own. We
-need to adopt the posix cpu timers code because it shares syscalls
-with the other posix timers, but that still does not explain why we
-need these functions.
+Reported-by: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Signed-off-by: Adrian Hunter <adrian.hunter@intel.com>
+Tested-by: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Cc: David Ahern <dsahern@gmail.com>
+Cc: Frederic Weisbecker <fweisbec@gmail.com>
+Cc: Jiri Olsa <jolsa@redhat.com>
+Cc: Namhyung Kim <namhyung@gmail.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Stephane Eranian <eranian@google.com>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: linux-arch@vger.kernel.org
+Link: http://lkml.kernel.org/r/55A5023C.7020907@intel.com
+Signed-off-by: Arnaldo Carvalho de Melo <acme@redhat.com>
+---
+ tools/perf/util/auxtrace.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-> You can see that conversion in patch "posix-cpu-timers: Convert to
-> y2038 safe callbacks" from
-> https://git.linaro.org/people/baolin.wang/upstream_0627.git.
+diff --git a/tools/perf/util/auxtrace.c b/tools/perf/util/auxtrace.c
+index 7e7405c9b936..83d9dd96fe08 100644
+--- a/tools/perf/util/auxtrace.c
++++ b/tools/perf/util/auxtrace.c
+@@ -53,11 +53,6 @@ int auxtrace_mmap__mmap(struct auxtrace_mmap *mm,
+ {
+ 	struct perf_event_mmap_page *pc = userpg;
+ 
+-#if BITS_PER_LONG != 64 && !defined(HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT)
+-	pr_err("Cannot use AUX area tracing mmaps\n");
+-	return -1;
+-#endif
+-
+ 	WARN_ONCE(mm->base, "Uninitialized auxtrace_mmap\n");
+ 
+ 	mm->userpg = userpg;
+@@ -73,6 +68,11 @@ int auxtrace_mmap__mmap(struct auxtrace_mmap *mm,
+ 		return 0;
+ 	}
+ 
++#if BITS_PER_LONG != 64 && !defined(HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT)
++	pr_err("Cannot use AUX area tracing mmaps\n");
++	return -1;
++#endif
++
+ 	pc->aux_offset = mp->offset;
+ 	pc->aux_size = mp->len;
+ 
+-- 
+2.1.0
 
-I do not care about your random git tree. I care about proper
-changelogs. Your changelogs are just a copied boilerplate full of
-errors.
-
-Thanks,
-
-	tglx
