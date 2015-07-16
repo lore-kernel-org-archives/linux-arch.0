@@ -1,68 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:45362 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755586AbbGPSNa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Jul 2015 14:13:30 -0400
-Date: Thu, 16 Jul 2015 19:13:27 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 5/7] locking/qrwlock: make use of
- acquire/release/relaxed atomics
-Message-ID: <20150716181327.GT26390@arm.com>
+Received: from casper.infradead.org ([85.118.1.10]:45514 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756503AbbGPVI0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2015 17:08:26 -0400
+Date: Thu, 16 Jul 2015 23:08:21 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 7/7] ARM: atomics: define our SMP atomics in terms of
+ _relaxed operations
+Message-ID: <20150716210821.GC19282@twins.programming.kicks-ass.net>
 References: <1437060758-10381-1-git-send-email-will.deacon@arm.com>
- <1437060758-10381-6-git-send-email-will.deacon@arm.com>
- <20150716165903.GA19282@twins.programming.kicks-ass.net>
+ <1437060758-10381-8-git-send-email-will.deacon@arm.com>
+ <55A816A3.1000502@hp.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20150716165903.GA19282@twins.programming.kicks-ass.net>
+In-Reply-To: <55A816A3.1000502@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Waiman.Long@hp.com" <Waiman.Long@hp.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20150716181327.Sl1eKoYkCSRZES7XXGmEg6i8Z1FAjAr2uPU7HBY0jfI@z>
+To: Waiman Long <waiman.long@hp.com>
+Cc: Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com
+Message-ID: <20150716210821.HLHJZ8oplGXgCxRAODaauIEN0i92B6LSEW3WSS2HaYE@z>
 
-On Thu, Jul 16, 2015 at 05:59:03PM +0100, Peter Zijlstra wrote:
-> On Thu, Jul 16, 2015 at 04:32:36PM +0100, Will Deacon wrote:
-> > @@ -130,8 +130,7 @@ static inline void queued_read_unlock(struct qrwlock *lock)
-> >  	/*
-> >  	 * Atomically decrement the reader count
-> >  	 */
-> > -	smp_mb__before_atomic();
-> > -	atomic_sub(_QR_BIAS, &lock->cnts);
-> > +	(void)atomic_sub_return_release(_QR_BIAS, &lock->cnts);
-> >  }
-> >  
-> >  /**
+On Thu, Jul 16, 2015 at 04:40:03PM -0400, Waiman Long wrote:
+> On 07/16/2015 11:32 AM, Will Deacon wrote:
+> >@@ -117,6 +115,8 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
+> >  #error "SMP is not supported on this platform"
+
+             ^^^^^^^^^^^^^
+
+> >  #endif
+> >
+> >+#define xchg xchg_relaxed
 > 
-> This one will actually cause different code on x86; I think its still
-> fine though. LOCK XADD should not be (much) slower than LOCK SUB.
+> Is that a typo? I think xchg() needs to be a full memory barrier.
 
-Yeah, I wondered whether introduced atomic_sub_release etc was worth the
-hassle and decided against it for now.
-
-> > diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-> > index a71bb3541880..879c8fab7bea 100644
-> > --- a/kernel/locking/qrwlock.c
-> > +++ b/kernel/locking/qrwlock.c
-> > @@ -36,7 +36,7 @@ rspin_until_writer_unlock(struct qrwlock *lock, u32 cnts)
-> >  {
-> >  	while ((cnts & _QW_WMASK) == _QW_LOCKED) {
-> >  		cpu_relax_lowlatency();
-> > -		cnts = smp_load_acquire((u32 *)&lock->cnts);
-> > +		cnts = atomic_read_acquire(&lock->cnts);
-> >  	}
-> >  }
-> 
-> It might make sense to add comments to the users of this function that
-> actually rely on the _acquire semantics, I had to double check that :-)
-
-Good point, I'll add those.
-
-> But otherwise that all looks good.
-
-Cheers. I'll send a v3 next week with your comments addressed. Pending
-any objection, I guess this could be merged via -tip with the exception
-of the ARM patch? FWIW, I plan to port arm64 once I've got my pending
-asm/atomic.h rework queued.
-
-Will
+Pointless on UP.
