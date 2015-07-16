@@ -1,65 +1,40 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [3/3] IRQ: Print "unexpected IRQ" messages consistently across
- architectures
-Date: Thu, 16 Jul 2015 14:12:29 +1000
-Message-ID: <1437019949.28475.6.camel@ellerman.id.au>
-References: <20150712220211.7166.42035.stgit@bhelgaas-glaptop2.roam.corp.google.com>
-	 <20150713032303.D49801402B1@ozlabs.org>
-	 <CAErSpo52Kk0c=1UHQzxntJc3ph_CX8vcY+QdULBKv-HGUHBK9Q@mail.gmail.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+Date: Thu, 16 Jul 2015 15:03:24 +1000
+Message-ID: <1437023004.28088.27.camel@kernel.crashing.org>
+References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
+	 <1436826689.3948.233.camel@kernel.crashing.org>
+	 <1436929578.10956.3.camel@ellerman.id.au> <20150715104420.GD1005@arm.com>
+	 <1437012028.28475.2.camel@ellerman.id.au>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <CAErSpo52Kk0c=1UHQzxntJc3ph_CX8vcY+QdULBKv-HGUHBK9Q@mail.gmail.com>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, linux-am33-list@redhat.com, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, adi-buildroot-devel@lists.sourceforge.net, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k@lists.linux-m68k.org, linux-alpha@vger.kernel.org, "x86@kernel.org" <x86@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:54765 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751121AbbGPFEJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Jul 2015 01:04:09 -0400
+In-Reply-To: <1437012028.28475.2.camel@ellerman.id.au>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>
 
-On Mon, 2015-07-13 at 13:35 -0500, Bjorn Helgaas wrote:
-> On Sun, Jul 12, 2015 at 10:23 PM, Michael Ellerman <mpe@ellerman.id.au> wrote:
-> > On Sun, 2015-12-07 at 22:02:11 UTC, Bjorn Helgaas wrote:
-> >> Many architectures use a variant of "unexpected IRQ trap at vector %x" to
-> >> log unexpected IRQs.  This is confusing because (a) it prints the Linux IRQ
-> >> number, but "vector" more often refers to a CPU vector number, and (b) it
-> >> prints the IRQ number in hex with no base indication, while Linux IRQ
-> >> numbers are usually printed in decimal.
-> >>
-> >> Print the same text ("unexpected IRQ %d") across all architectures.
-> >>
-> >> No functional change other than the output text.
-> >
-> > There's already a fallback version in asm-generic, so shouldn't you instead
-> > just delete all the versions that are identical to that?
-> >
-> > eg. on powerpc we have:
-> >
-> >>  static inline void ack_bad_irq(unsigned int irq)
-> >>  {
-> >> -     printk(KERN_CRIT "unexpected IRQ trap at vector %02x\n", irq);
-> >> +     printk(KERN_CRIT "unexpected IRQ %d\n", irq);
-> >>  }
-> >
-> > And the generic version is:
-> >
-> >>  #ifndef ack_bad_irq
-> >>  static inline void ack_bad_irq(unsigned int irq)
-> >>  {
-> >> -     printk(KERN_CRIT "unexpected IRQ trap at vector %02x\n", irq);
-> >> +     printk(KERN_CRIT "unexpected IRQ %d\n", irq);
-> >>  }
-> >>  #endif
-> >
-> > So we can just delete the powerpc version?
-> 
-> Wow, I really didn't do my homework here.  Not only is there a generic
-> version already, but there's also print_irq_desc(), which prints way
-> more information than any of the ack_bad_irq() implementations.
+On Thu, 2015-07-16 at 12:00 +1000, Michael Ellerman wrote:
+> That would fix the problem with smp_mb__after_unlock_lock(), but not
+> the original worry we had about loads happening before the SC in lock.
 
-Even better :)
+However I think isync fixes *that* :-) The problem with isync is as you
+said, it's not a -memory- barrier per-se, it's an execution barrier /
+context synchronizing instruction. The combination stwcx. + bne + isync
+however prevents the execution of anything past the isync until the
+stwcx has completed and the bne has been "decided", which prevents loads
+from leaking into the LL/SC loop. It will also prevent a store in the
+lock from being issued before the stwcx. has completed. It does *not*
+prevent as far as I can tell another unrelated store before the lock
+from leaking into the lock, including the one used to unlock a different
+lock.
 
-> I'll try again :)
-
-Thanks.
-
-cheers
+Cheers,
+Ben.
