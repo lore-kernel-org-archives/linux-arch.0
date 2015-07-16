@@ -1,21 +1,21 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:35481 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.9]:36399 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756124AbbGPRdR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2015 13:33:17 -0400
-Message-ID: <20150716172925.241515353@infradead.org>
-Date: Thu, 16 Jul 2015 19:21:22 +0200
+	with ESMTP id S1752320AbbGPReF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2015 13:34:05 -0400
+Message-ID: <20150716172925.459902833@infradead.org>
+Date: Thu, 16 Jul 2015 19:21:25 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 12/28] metag: Provide atomic_{or,xor,and}
+Subject: [PATCH 15/28] parisc: Provide atomic_{or,xor,and}
 References: <20150716172110.587529075@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=peterz-metag-atomic_logic_ops.patch
+Content-Disposition: inline; filename=peterz-parisc-atomic_logic_ops.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, davem@davemloft.net, cmetcalf@ezchip.com, ysato@users.sourceforge.jp, mingo@kernel.org, peterz@infradead.org
-Message-ID: <20150716172122.zvYBga17MPG2uTxT6agleKLI51Y8ZpIPqxR3pxIfMrY@z>
+Message-ID: <20150716172125.Ainu0Hd95l4RQ8ljlcQ2TYBNsptRi-g4cRKWRpDemHo@z>
 
 Implement atomic logic ops -- atomic_{or,xor,and}.
 
@@ -24,103 +24,33 @@ available on some archs.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/metag/include/asm/atomic_lnkget.h |   38 ++++++++-------------------------
- arch/metag/include/asm/atomic_lock1.h  |   21 ++++++------------
- 2 files changed, 17 insertions(+), 42 deletions(-)
+ arch/parisc/include/asm/atomic.h |    9 +++++++++
+ 1 file changed, 9 insertions(+)
 
---- a/arch/metag/include/asm/atomic_lnkget.h
-+++ b/arch/metag/include/asm/atomic_lnkget.h
-@@ -74,42 +74,24 @@ static inline int atomic_##op##_return(i
- ATOMIC_OPS(add)
- ATOMIC_OPS(sub)
+--- a/arch/parisc/include/asm/atomic.h
++++ b/arch/parisc/include/asm/atomic.h
+@@ -126,6 +126,12 @@ static __inline__ int atomic_##op##_retu
+ ATOMIC_OPS(add, +=)
+ ATOMIC_OPS(sub, -=)
  
 +#define CONFIG_ARCH_HAS_ATOMIC_OR
 +
-+ATOMIC_OP(and)
-+ATOMIC_OP(or)
-+ATOMIC_OP(xor)
++ATOMIC_OP(and, &=)
++ATOMIC_OP(or, |=)
++ATOMIC_OP(xor, ^=)
 +
  #undef ATOMIC_OPS
  #undef ATOMIC_OP_RETURN
  #undef ATOMIC_OP
+@@ -185,6 +191,9 @@ static __inline__ s64 atomic64_##op##_re
  
--static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
-+static inline __deprecated void atomic_clear_mask(unsigned int mask, atomic_t *v)
- {
--	int temp;
--
--	asm volatile (
--		"1:	LNKGETD %0, [%1]\n"
--		"	AND	%0, %0, %2\n"
--		"	LNKSETD	[%1] %0\n"
--		"	DEFR	%0, TXSTAT\n"
--		"	ANDT	%0, %0, #HI(0x3f000000)\n"
--		"	CMPT	%0, #HI(0x02000000)\n"
--		"	BNZ	1b\n"
--		: "=&d" (temp)
--		: "da" (&v->counter), "bd" (~mask)
--		: "cc");
-+	atomic_and(~mask, v);
- }
+ ATOMIC64_OPS(add, +=)
+ ATOMIC64_OPS(sub, -=)
++ATOMIC64_OP(and, &=)
++ATOMIC64_OP(or, |=)
++ATOMIC64_OP(xor, ^=)
  
--static inline void atomic_set_mask(unsigned int mask, atomic_t *v)
-+static inline __deprecated void atomic_set_mask(unsigned int mask, atomic_t *v)
- {
--	int temp;
--
--	asm volatile (
--		"1:	LNKGETD %0, [%1]\n"
--		"	OR	%0, %0, %2\n"
--		"	LNKSETD	[%1], %0\n"
--		"	DEFR	%0, TXSTAT\n"
--		"	ANDT	%0, %0, #HI(0x3f000000)\n"
--		"	CMPT	%0, #HI(0x02000000)\n"
--		"	BNZ	1b\n"
--		: "=&d" (temp)
--		: "da" (&v->counter), "bd" (mask)
--		: "cc");
-+	atomic_or(mask, v);
- }
- 
- static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
---- a/arch/metag/include/asm/atomic_lock1.h
-+++ b/arch/metag/include/asm/atomic_lock1.h
-@@ -68,29 +68,22 @@ static inline int atomic_##op##_return(i
- 
- ATOMIC_OPS(add, +=)
- ATOMIC_OPS(sub, -=)
-+ATOMIC_OP(and, &=)
-+ATOMIC_OP(or, |=)
-+ATOMIC_OP(xor, ^=)
- 
- #undef ATOMIC_OPS
- #undef ATOMIC_OP_RETURN
- #undef ATOMIC_OP
- 
--static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
-+static inline __deprecated void atomic_clear_mask(unsigned int mask, atomic_t *v)
- {
--	unsigned long flags;
--
--	__global_lock1(flags);
--	fence();
--	v->counter &= ~mask;
--	__global_unlock1(flags);
-+	atomic_and(~mask, v);
- }
- 
--static inline void atomic_set_mask(unsigned int mask, atomic_t *v)
-+static inline __deprecated void atomic_set_mask(unsigned int mask, atomic_t *v)
- {
--	unsigned long flags;
--
--	__global_lock1(flags);
--	fence();
--	v->counter |= mask;
--	__global_unlock1(flags);
-+	atomic_or(mask, v);
- }
- 
- static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
+ #undef ATOMIC64_OPS
+ #undef ATOMIC64_OP_RETURN
 
 
