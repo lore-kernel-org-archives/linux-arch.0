@@ -1,59 +1,63 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 11/28] m68k: Provide atomic_{or,xor,and}
-Date: Thu, 16 Jul 2015 19:21:21 +0200
-Message-ID: <20150716172925.160457233@infradead.org>
-References: <20150716172110.587529075@infradead.org>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2 5/7] locking/qrwlock: make use of
+ acquire/release/relaxed atomics
+Date: Thu, 16 Jul 2015 19:13:27 +0100
+Message-ID: <20150716181327.GT26390@arm.com>
+References: <1437060758-10381-1-git-send-email-will.deacon@arm.com>
+ <1437060758-10381-6-git-send-email-will.deacon@arm.com>
+ <20150716165903.GA19282@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=peterz-m68k-atomic_logic_ops.patch
+Content-Disposition: inline
+In-Reply-To: <20150716165903.GA19282@twins.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, davem@davemloft.net, cmetcalf@ezchip.com, ysato@users.sourceforge.jp, mingo@kernel.org, peterz@infradead.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Waiman.Long@hp.com" <Waiman.Long@hp.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Implement atomic logic ops -- atomic_{or,xor,and}.
+On Thu, Jul 16, 2015 at 05:59:03PM +0100, Peter Zijlstra wrote:
+> On Thu, Jul 16, 2015 at 04:32:36PM +0100, Will Deacon wrote:
+> > @@ -130,8 +130,7 @@ static inline void queued_read_unlock(struct qrwlock *lock)
+> >  	/*
+> >  	 * Atomically decrement the reader count
+> >  	 */
+> > -	smp_mb__before_atomic();
+> > -	atomic_sub(_QR_BIAS, &lock->cnts);
+> > +	(void)atomic_sub_return_release(_QR_BIAS, &lock->cnts);
+> >  }
+> >  
+> >  /**
+> 
+> This one will actually cause different code on x86; I think its still
+> fine though. LOCK XADD should not be (much) slower than LOCK SUB.
 
-These will replace the atomic_{set,clear}_mask functions that are
-available on some archs.
+Yeah, I wondered whether introduced atomic_sub_release etc was worth the
+hassle and decided against it for now.
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- arch/m68k/include/asm/atomic.h |   14 ++++++++++----
- 1 file changed, 10 insertions(+), 4 deletions(-)
+> > diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+> > index a71bb3541880..879c8fab7bea 100644
+> > --- a/kernel/locking/qrwlock.c
+> > +++ b/kernel/locking/qrwlock.c
+> > @@ -36,7 +36,7 @@ rspin_until_writer_unlock(struct qrwlock *lock, u32 cnts)
+> >  {
+> >  	while ((cnts & _QW_WMASK) == _QW_LOCKED) {
+> >  		cpu_relax_lowlatency();
+> > -		cnts = smp_load_acquire((u32 *)&lock->cnts);
+> > +		cnts = atomic_read_acquire(&lock->cnts);
+> >  	}
+> >  }
+> 
+> It might make sense to add comments to the users of this function that
+> actually rely on the _acquire semantics, I had to double check that :-)
 
---- a/arch/m68k/include/asm/atomic.h
-+++ b/arch/m68k/include/asm/atomic.h
-@@ -77,6 +77,12 @@ static inline int atomic_##op##_return(i
- ATOMIC_OPS(add, +=, add)
- ATOMIC_OPS(sub, -=, sub)
- 
-+#define CONFIG_ARCH_HAS_ATOMIC_OR
-+
-+ATOMIC_OP(and, &=, and)
-+ATOMIC_OP(or, |=, or)
-+ATOMIC_OP(xor, ^=, eor)
-+
- #undef ATOMIC_OPS
- #undef ATOMIC_OP_RETURN
- #undef ATOMIC_OP
-@@ -170,14 +176,14 @@ static inline int atomic_add_negative(in
- 	return c != 0;
- }
- 
--static inline void atomic_clear_mask(unsigned long mask, unsigned long *v)
-+static inline __deprecated void atomic_clear_mask(unsigned int mask, atomic_t *v)
- {
--	__asm__ __volatile__("andl %1,%0" : "+m" (*v) : ASM_DI (~(mask)));
-+	atomic_and(~mask, v);
- }
- 
--static inline void atomic_set_mask(unsigned long mask, unsigned long *v)
-+static inline __deprecated void atomic_set_mask(unsigned int mask, atomic_t *v)
- {
--	__asm__ __volatile__("orl %1,%0" : "+m" (*v) : ASM_DI (mask));
-+	atomic_or(mask, v);
- }
- 
- static __inline__ int __atomic_add_unless(atomic_t *v, int a, int u)
+Good point, I'll add those.
+
+> But otherwise that all looks good.
+
+Cheers. I'll send a v3 next week with your comments addressed. Pending
+any objection, I guess this could be merged via -tip with the exception
+of the ARM patch? FWIW, I plan to port arm64 once I've got my pending
+asm/atomic.h rework queued.
+
+Will
