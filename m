@@ -1,56 +1,50 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [RFC PATCH v2] memory-barriers: remove
- smp_mb__after_unlock_lock()
-Date: Thu, 16 Jul 2015 15:14:55 +1000
-Message-ID: <1437023695.28088.29.camel@kernel.crashing.org>
-References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
-	 <1436826689.3948.233.camel@kernel.crashing.org>
-	 <1436929578.10956.3.camel@ellerman.id.au> <20150715104420.GD1005@arm.com>
-	 <1437012028.28475.2.camel@ellerman.id.au>
-	 <1437023004.28088.27.camel@kernel.crashing.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:42639 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750769AbbGPFPd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Jul 2015 01:15:33 -0400
-In-Reply-To: <1437023004.28088.27.camel@kernel.crashing.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>
+From: Yoshinori Sato <ysato@users.sourceforge.jp>
+Subject: [PATCH] asm-generic: {get,put}_user ptr argument evaluate only 1 time
+Date: Thu, 16 Jul 2015 14:15:22 +0900
+Message-ID: <1437023722-7432-1-git-send-email-ysato@users.sourceforge.jp>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2015-07-16 at 15:03 +1000, Benjamin Herrenschmidt wrote:
-> On Thu, 2015-07-16 at 12:00 +1000, Michael Ellerman wrote:
-> > That would fix the problem with smp_mb__after_unlock_lock(), but not
-> > the original worry we had about loads happening before the SC in lock.
-> 
-> However I think isync fixes *that* :-) The problem with isync is as you
-> said, it's not a -memory- barrier per-se, it's an execution barrier /
-> context synchronizing instruction. The combination stwcx. + bne + isync
-> however prevents the execution of anything past the isync until the
-> stwcx has completed and the bne has been "decided", which prevents loads
-> from leaking into the LL/SC loop. It will also prevent a store in the
-> lock from being issued before the stwcx. has completed. It does *not*
-> prevent as far as I can tell another unrelated store before the lock
-> from leaking into the lock, including the one used to unlock a different
-> lock.
+Current implemantation ptr argument evaluate 2 times.
+It'll be an unexpected result.
 
-Except that the architecture says:
+Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
+---
+ include/asm-generic/uaccess.h | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
 
-<<
-Because a Store Conditional instruction may com-
-plete before its store has been performed, a condi-
-tional Branch instruction that depends on the CR0
-value set by a Store Conditional instruction does
-not order the Store Conditional's store with respect
-to storage accesses caused by instructions that
-follow the Branch
->>
-
-So isync in lock in architecturally incorrect, despite being what the
-architecture recommends using, yay !
-
-Ben.
+diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
+index 72d8803..1b813fb 100644
+--- a/include/asm-generic/uaccess.h
++++ b/include/asm-generic/uaccess.h
+@@ -163,9 +163,10 @@ static inline __must_check long __copy_to_user(void __user *to,
+ 
+ #define put_user(x, ptr)					\
+ ({								\
++	__typeof__((ptr)) __p = (ptr);				\
+ 	might_fault();						\
+-	access_ok(VERIFY_WRITE, ptr, sizeof(*ptr)) ?		\
+-		__put_user(x, ptr) :				\
++	access_ok(VERIFY_WRITE, __p, sizeof(*__p)) ?		\
++		__put_user(x, __p) :				\
+ 		-EFAULT;					\
+ })
+ 
+@@ -225,9 +226,10 @@ extern int __put_user_bad(void) __attribute__((noreturn));
+ 
+ #define get_user(x, ptr)					\
+ ({								\
++	__typeof__((ptr)) __p = (ptr);				\
+ 	might_fault();						\
+-	access_ok(VERIFY_READ, ptr, sizeof(*ptr)) ?		\
+-		__get_user(x, ptr) :				\
++	access_ok(VERIFY_READ, __p, sizeof(*__p)) ?		\
++		__get_user(x, __p) :				\
+ 		-EFAULT;					\
+ })
+ 
+-- 
+2.1.4
