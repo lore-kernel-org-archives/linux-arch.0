@@ -1,132 +1,208 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:36436 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.9]:36443 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756228AbbGPReI (ORCPT
+	with ESMTP id S1756229AbbGPReI (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2015 13:34:08 -0400
-Message-ID: <20150716172926.664516239@infradead.org>
-Date: Thu, 16 Jul 2015 19:21:38 +0200
+Message-ID: <20150716172926.168831201@infradead.org>
+Date: Thu, 16 Jul 2015 19:21:33 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 28/28] atomic: Add simple atomic_t tests
+Subject: [PATCH 23/28] h8300: Provide atomic_{or,xor,and}
 References: <20150716172110.587529075@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=peterz-atomic-test.patch
+Content-Disposition: inline; filename=peterz-h8300-atomic_logic_ops.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, davem@davemloft.net, cmetcalf@ezchip.com, ysato@users.sourceforge.jp, mingo@kernel.org, peterz@infradead.org
-Message-ID: <20150716172138.e6dAqc0PZXFcTX-j7wBKMkxBecWRvgHrxg6vfA4FhQQ@z>
+Message-ID: <20150716172133.XGpOCkcFv6umD9n2dN6RDPPcXfu6FZghrhmBdboQp74@z>
 
-Add a few atomic_t tests, gets some compile coverage for the new
-operations.
+Implement atomic logic ops -- atomic_{or,xor,and}
+
+These will replace the atomic_{set,clear}_mask functions that are
+available on some archs.
+
+Also rework the atomic implementation in terms of CPP macros to avoid
+the typical repetition -- I seem to have missed this arch the last
+time around when I did that.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- lib/atomic64_test.c |   69 ++++++++++++++++++++++++++++++++++++----------------
- 1 file changed, 48 insertions(+), 21 deletions(-)
+ arch/h8300/include/asm/atomic.h |  147 ++++++++++++----------------------------
+ 1 file changed, 46 insertions(+), 101 deletions(-)
 
---- a/lib/atomic64_test.c
-+++ b/lib/atomic64_test.c
-@@ -16,8 +16,39 @@
+--- a/arch/h8300/include/asm/atomic.h
++++ b/arch/h8300/include/asm/atomic.h
+@@ -16,83 +16,54 @@
+ 
  #include <linux/kernel.h>
- #include <linux/atomic.h>
  
-+#define TEST(bit, op, c_op, val)				\
-+do {								\
-+	atomic##bit##_set(&v, v0);				\
-+	r = v0;							\
-+	atomic##bit##_##op(val, &v);				\
-+	r c_op val;						\
-+	WARN(atomic##bit##_read(&v) != r, "%Lx != %Lx\n",	\
-+		(unsigned long long)atomic##bit##_read(&v),	\
-+		(unsigned long long)r);				\
-+} while (0)
-+
-+static __init void test_atomic(void)
-+{
-+	int v0 = 0xaaa31337;
-+	int v1 = 0xdeadbeef;
-+	int onestwos = 0x11112222;
-+	int one = 1;
-+
-+	atomic_t v;
-+	int r;
-+
-+	TEST(, add, +=, onestwos);
-+	TEST(, add, +=, -one);
-+	TEST(, sub, -=, onestwos);
-+	TEST(, sub, -=, -one);
-+	TEST(, or, |=, v1);
-+	TEST(, and, &=, v1);
-+	TEST(, xor, ^=, v1);
-+	TEST(, andnot, &= ~, v1);
+-static inline int atomic_add_return(int i, atomic_t *v)
+-{
+-	h8300flags flags;
+-	int ret;
++#define ATOMIC_OP_RETURN(op, c_op)				\
++static inline int atomic_##op##_return(int i, atomic_t *v)	\
++{								\
++	h8300flags flags;					\
++	int ret;						\
++								\
++	flags = arch_local_irq_save();				\
++	ret = v->counter c_op i;				\
++	arch_local_irq_restore(flags);				\
++	return ret;						\
 +}
 +
- #define INIT(c) do { atomic64_set(&v, c); r = c; } while (0)
--static __init int test_atomic64(void)
-+static __init void test_atomic64(void)
++#define ATOMIC_OP(op, c_op)					\
++static inline void atomic_##op(int i, atomic_t *v)		\
++{								\
++	h8300flags flags;					\
++								\
++	flags = arch_local_irq_save();				\
++	v->counter c_op i;					\
++	arch_local_irq_restore(flags);				\
++}
++
++ATOMIC_OP_RETURN(add, +=)
++ATOMIC_OP_RETURN(sub, -=)
++
++#define CONFIG_ARCH_HAS_ATOMIC_OR
++
++ATOMIC_OP(and, &=)
++ATOMIC_OP(or,  |=)
++ATOMIC_OP(xor, ^=)
+ 
+-	flags = arch_local_irq_save();
+-	ret = v->counter += i;
+-	arch_local_irq_restore(flags);
+-	return ret;
+-}
++#undef ATOMIC_OP_RETURN
++#undef ATOMIC_OP
+ 
+-#define atomic_add(i, v) atomic_add_return(i, v)
++#define atomic_add(i, v)		(void)atomic_add_return(i, v)
+ #define atomic_add_negative(a, v)	(atomic_add_return((a), (v)) < 0)
+ 
+-static inline int atomic_sub_return(int i, atomic_t *v)
+-{
+-	h8300flags flags;
+-	int ret;
+-
+-	flags = arch_local_irq_save();
+-	ret = v->counter -= i;
+-	arch_local_irq_restore(flags);
+-	return ret;
+-}
+-
+-#define atomic_sub(i, v) atomic_sub_return(i, v)
+-#define atomic_sub_and_test(i, v) (atomic_sub_return(i, v) == 0)
+-
+-static inline int atomic_inc_return(atomic_t *v)
+-{
+-	h8300flags flags;
+-	int ret;
+-
+-	flags = arch_local_irq_save();
+-	v->counter++;
+-	ret = v->counter;
+-	arch_local_irq_restore(flags);
+-	return ret;
+-}
+-
+-#define atomic_inc(v) atomic_inc_return(v)
+-
+-/*
+- * atomic_inc_and_test - increment and test
+- * @v: pointer of type atomic_t
+- *
+- * Atomically increments @v by 1
+- * and returns true if the result is zero, or false for all
+- * other cases.
+- */
+-#define atomic_inc_and_test(v) (atomic_inc_return(v) == 0)
+-
+-static inline int atomic_dec_return(atomic_t *v)
+-{
+-	h8300flags flags;
+-	int ret;
+-
+-	flags = arch_local_irq_save();
+-	--v->counter;
+-	ret = v->counter;
+-	arch_local_irq_restore(flags);
+-	return ret;
+-}
++#define atomic_sub(i, v)		(void)atomic_sub_return(i, v)
++#define atomic_sub_and_test(i, v)	(atomic_sub_return(i, v) == 0)
+ 
+-#define atomic_dec(v) atomic_dec_return(v)
++#define atomic_inc_return(v)		atomic_add_return(1, v)
++#define atomic_dec_return(v)		atomic_sub_return(1, v)
+ 
+-static inline int atomic_dec_and_test(atomic_t *v)
+-{
+-	h8300flags flags;
+-	int ret;
++#define atomic_inc(v)			(void)atomic_inc_return(v)
++#define atomic_inc_and_test(v)		(atomic_inc_return(v) == 0)
+ 
+-	flags = arch_local_irq_save();
+-	--v->counter;
+-	ret = v->counter;
+-	arch_local_irq_restore(flags);
+-	return ret == 0;
+-}
++#define atomic_dec(v)			(void)atomic_dec_return(v)
++#define atomic_dec_and_test(v)		(atomic_dec_return(v) == 0)
+ 
+ static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
  {
- 	long long v0 = 0xaaa31337c001d00dLL;
- 	long long v1 = 0xdeadbeefdeafcafeLL;
-@@ -34,15 +66,14 @@ static __init int test_atomic64(void)
- 	BUG_ON(v.counter != r);
- 	BUG_ON(atomic64_read(&v) != r);
- 
--	INIT(v0);
--	atomic64_add(onestwos, &v);
--	r += onestwos;
--	BUG_ON(v.counter != r);
--
--	INIT(v0);
--	atomic64_add(-one, &v);
--	r += -one;
--	BUG_ON(v.counter != r);
-+	TEST(64, add, +=, onestwos);
-+	TEST(64, add, +=, -one);
-+	TEST(64, sub, -=, onestwos);
-+	TEST(64, sub, -=, -one);
-+	TEST(64, or, |=, v1);
-+	TEST(64, and, &=, v1);
-+	TEST(64, xor, ^=, v1);
-+	TEST(64, andnot, &= ~, v1);
- 
- 	INIT(v0);
- 	r += onestwos;
-@@ -55,16 +86,6 @@ static __init int test_atomic64(void)
- 	BUG_ON(v.counter != r);
- 
- 	INIT(v0);
--	atomic64_sub(onestwos, &v);
--	r -= onestwos;
--	BUG_ON(v.counter != r);
--
--	INIT(v0);
--	atomic64_sub(-one, &v);
--	r -= -one;
--	BUG_ON(v.counter != r);
--
--	INIT(v0);
- 	r -= onestwos;
- 	BUG_ON(atomic64_sub_return(onestwos, &v) != r);
- 	BUG_ON(v.counter != r);
-@@ -147,6 +168,12 @@ static __init int test_atomic64(void)
- 	BUG_ON(!atomic64_inc_not_zero(&v));
- 	r += one;
- 	BUG_ON(v.counter != r);
-+}
-+
-+static __init int test_atomics(void)
-+{
-+	test_atomic();
-+	test_atomic64();
- 
- #ifdef CONFIG_X86
- 	pr_info("passed for %s platform %s CX8 and %s SSE\n",
-@@ -166,4 +193,4 @@ static __init int test_atomic64(void)
- 	return 0;
+@@ -120,40 +91,14 @@ static inline int __atomic_add_unless(at
+ 	return ret;
  }
  
--core_initcall(test_atomic64);
-+core_initcall(test_atomics);
+-static inline void atomic_clear_mask(unsigned long mask, unsigned long *v)
++static inline __deprecated void atomic_clear_mask(unsigned int mask, atomic_t *v)
+ {
+-	unsigned char ccr;
+-	unsigned long tmp;
+-
+-	__asm__ __volatile__("stc ccr,%w3\n\t"
+-			     "orc #0x80,ccr\n\t"
+-			     "mov.l %0,%1\n\t"
+-			     "and.l %2,%1\n\t"
+-			     "mov.l %1,%0\n\t"
+-			     "ldc %w3,ccr"
+-			     : "=m"(*v), "=r"(tmp)
+-			     : "g"(~(mask)), "r"(ccr));
++	atomic_and(~mask, v);
+ }
+ 
+-static inline void atomic_set_mask(unsigned long mask, unsigned long *v)
++static inline __deprecated void atomic_set_mask(unsigned int mask, atomic_t *v)
+ {
+-	unsigned char ccr;
+-	unsigned long tmp;
+-
+-	__asm__ __volatile__("stc ccr,%w3\n\t"
+-			     "orc #0x80,ccr\n\t"
+-			     "mov.l %0,%1\n\t"
+-			     "or.l %2,%1\n\t"
+-			     "mov.l %1,%0\n\t"
+-			     "ldc %w3,ccr"
+-			     : "=m"(*v), "=r"(tmp)
+-			     : "g"(~(mask)), "r"(ccr));
+-}
+-
+-/* Atomic operations are already serializing */
+-#define smp_mb__before_atomic_dec()    barrier()
+-#define smp_mb__after_atomic_dec() barrier()
+-#define smp_mb__before_atomic_inc()    barrier()
+-#define smp_mb__after_atomic_inc() barrier()
++	atomic_or(mask, v);
++}
+ 
+ #endif /* __ARCH_H8300_ATOMIC __ */
 
 
