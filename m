@@ -1,52 +1,42 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [RFC][PATCH 04/24] arm64: Provide atomic_{or,xor,and}
-Date: Wed, 15 Jul 2015 18:46:54 +0200
-Message-ID: <20150715164654.GS19282@twins.programming.kicks-ass.net>
-References: <20150709172855.564686637@infradead.org>
- <20150709175308.361407648@infradead.org>
- <20150715160109.GB17107@arm.com>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+Date: Thu, 16 Jul 2015 11:34:25 +1000
+Message-ID: <1437010465.28475.1.camel@ellerman.id.au>
+References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
+	 <1436826689.3948.233.camel@kernel.crashing.org>
+	 <1436929578.10956.3.camel@ellerman.id.au>
+	 <20150715141814.GZ3717@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:41397 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752066AbbGOQrc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jul 2015 12:47:32 -0400
-Content-Disposition: inline
-In-Reply-To: <20150715160109.GB17107@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, min
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20150715141814.GZ3717@linux.vnet.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: paulmck@linux.vnet.ibm.com
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 15, 2015 at 05:01:09PM +0100, Will Deacon wrote:
-> On Thu, Jul 09, 2015 at 06:28:59PM +0100, Peter Zijlstra wrote:
-> > Implement atomic logic ops -- atomic_{or,xor,and}.
+On Wed, 2015-07-15 at 07:18 -0700, Paul E. McKenney wrote:
+> On Wed, Jul 15, 2015 at 01:06:18PM +1000, Michael Ellerman wrote:
+> > On Tue, 2015-07-14 at 08:31 +1000, Benjamin Herrenschmidt wrote:
+> > > Michael, at some point you were experimenting a bit with that and tried
+> > > to get some perf numbers of the impact that would have, did that
+> > > solidify ? Otherwise, I'll have a look when I'm back next week.
 > > 
-> > These will replace the atomic_{set,clear}_mask functions that are
-> > available on some archs.
+> > I was mainly experimenting with replacing the lwsync in lock with an isync.
 > > 
+> > But I think you're talking about making it a full sync in lock.
 > > 
-> > Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-> > ---
-> >  arch/arm64/include/asm/atomic.h |    6 ++++++
-> >  1 file changed, 6 insertions(+)
-> > 
-> > --- a/arch/arm64/include/asm/atomic.h
-> > +++ b/arch/arm64/include/asm/atomic.h
-> > @@ -84,6 +84,9 @@ static inline int atomic_##op##_return(i
-> >  
-> >  ATOMIC_OPS(add, add)
-> >  ATOMIC_OPS(sub, sub)
-> > +ATOMIC_OP(and, and)
-> > +ATOMIC_OP(or, orr)
+> > That was about +7% on p8, +25% on p7 and +88% on p6.
 > 
-> FYI, but without selecting CONFIG_ARCH_HAS_ATOMIC_OR this change leads to
-> build errors:
+> Just for completeness, what were you running as benchmark?  ;-)
 
-Yah, already ran into that; I've a new set cooking which fixes all these
-issues. I get the interesting build fails after a day or so (from the
-build-bot).
+Heh sorry :)
 
-I just pushed a fresh set into it and was hoping to be able to post
-tomorrow.
+That was my lockcomparison benchmark, based on Anton's original. It just does
+100,000,000 lock/unlocks for each type in userspace:
+
+  https://github.com/mpe/lockcomparison/blob/master/lock_comparison.c
+
+cheers
