@@ -1,21 +1,21 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:36397 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.9]:35481 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752055AbbGPReF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2015 13:34:05 -0400
-Message-ID: <20150716172925.060019466@infradead.org>
-Date: Thu, 16 Jul 2015 19:21:20 +0200
+	with ESMTP id S1756124AbbGPRdR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2015 13:33:17 -0400
+Message-ID: <20150716172925.241515353@infradead.org>
+Date: Thu, 16 Jul 2015 19:21:22 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 10/28] m32r: Provide atomic_{or,xor,and}
+Subject: [PATCH 12/28] metag: Provide atomic_{or,xor,and}
 References: <20150716172110.587529075@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=peterz-m32r-atomic_logic_ops.patch
+Content-Disposition: inline; filename=peterz-metag-atomic_logic_ops.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, davem@davemloft.net, cmetcalf@ezchip.com, ysato@users.sourceforge.jp, mingo@kernel.org, peterz@infradead.org
-Message-ID: <20150716172120.pvBoOx38dUbyCa_lBMyH-EknQA3E0ZlLQ4rbobIpw9s@z>
+Message-ID: <20150716172122.zvYBga17MPG2uTxT6agleKLI51Y8ZpIPqxR3pxIfMrY@z>
 
 Implement atomic logic ops -- atomic_{or,xor,and}.
 
@@ -24,12 +24,13 @@ available on some archs.
 
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/m32r/include/asm/atomic.h |   44 +++++++++--------------------------------
- 1 file changed, 10 insertions(+), 34 deletions(-)
+ arch/metag/include/asm/atomic_lnkget.h |   38 ++++++++-------------------------
+ arch/metag/include/asm/atomic_lock1.h  |   21 ++++++------------
+ 2 files changed, 17 insertions(+), 42 deletions(-)
 
---- a/arch/m32r/include/asm/atomic.h
-+++ b/arch/m32r/include/asm/atomic.h
-@@ -94,6 +94,12 @@ static __inline__ int atomic_##op##_retu
+--- a/arch/metag/include/asm/atomic_lnkget.h
++++ b/arch/metag/include/asm/atomic_lnkget.h
+@@ -74,42 +74,24 @@ static inline int atomic_##op##_return(i
  ATOMIC_OPS(add)
  ATOMIC_OPS(sub)
  
@@ -42,54 +43,84 @@ Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
  #undef ATOMIC_OPS
  #undef ATOMIC_OP_RETURN
  #undef ATOMIC_OP
-@@ -240,44 +246,14 @@ static __inline__ int __atomic_add_unles
- }
  
- 
--static __inline__ void atomic_clear_mask(unsigned long  mask, atomic_t *addr)
-+static __inline__ __deprecated void atomic_clear_mask(unsigned int mask, atomic_t *v)
+-static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
++static inline __deprecated void atomic_clear_mask(unsigned int mask, atomic_t *v)
  {
--	unsigned long flags;
--	unsigned long tmp;
+-	int temp;
 -
--	local_irq_save(flags);
--	__asm__ __volatile__ (
--		"# atomic_clear_mask		\n\t"
--		DCACHE_CLEAR("%0", "r5", "%1")
--		M32R_LOCK" %0, @%1;		\n\t"
--		"and	%0, %2;			\n\t"
--		M32R_UNLOCK" %0, @%1;		\n\t"
--		: "=&r" (tmp)
--		: "r" (addr), "r" (~mask)
--		: "memory"
--		__ATOMIC_CLOBBER
--	);
--	local_irq_restore(flags);
+-	asm volatile (
+-		"1:	LNKGETD %0, [%1]\n"
+-		"	AND	%0, %0, %2\n"
+-		"	LNKSETD	[%1] %0\n"
+-		"	DEFR	%0, TXSTAT\n"
+-		"	ANDT	%0, %0, #HI(0x3f000000)\n"
+-		"	CMPT	%0, #HI(0x02000000)\n"
+-		"	BNZ	1b\n"
+-		: "=&d" (temp)
+-		: "da" (&v->counter), "bd" (~mask)
+-		: "cc");
 +	atomic_and(~mask, v);
  }
  
--static __inline__ void atomic_set_mask(unsigned long  mask, atomic_t *addr)
-+static __inline__ __deprecated void atomic_set_mask(unsigned int mask, atomic_t *v)
+-static inline void atomic_set_mask(unsigned int mask, atomic_t *v)
++static inline __deprecated void atomic_set_mask(unsigned int mask, atomic_t *v)
  {
--	unsigned long flags;
--	unsigned long tmp;
+-	int temp;
 -
--	local_irq_save(flags);
--	__asm__ __volatile__ (
--		"# atomic_set_mask		\n\t"
--		DCACHE_CLEAR("%0", "r5", "%1")
--		M32R_LOCK" %0, @%1;		\n\t"
--		"or	%0, %2;			\n\t"
--		M32R_UNLOCK" %0, @%1;		\n\t"
--		: "=&r" (tmp)
--		: "r" (addr), "r" (mask)
--		: "memory"
--		__ATOMIC_CLOBBER
--	);
--	local_irq_restore(flags);
+-	asm volatile (
+-		"1:	LNKGETD %0, [%1]\n"
+-		"	OR	%0, %0, %2\n"
+-		"	LNKSETD	[%1], %0\n"
+-		"	DEFR	%0, TXSTAT\n"
+-		"	ANDT	%0, %0, #HI(0x3f000000)\n"
+-		"	CMPT	%0, #HI(0x02000000)\n"
+-		"	BNZ	1b\n"
+-		: "=&d" (temp)
+-		: "da" (&v->counter), "bd" (mask)
+-		: "cc");
 +	atomic_or(mask, v);
  }
  
- #endif	/* _ASM_M32R_ATOMIC_H */
+ static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
+--- a/arch/metag/include/asm/atomic_lock1.h
++++ b/arch/metag/include/asm/atomic_lock1.h
+@@ -68,29 +68,22 @@ static inline int atomic_##op##_return(i
+ 
+ ATOMIC_OPS(add, +=)
+ ATOMIC_OPS(sub, -=)
++ATOMIC_OP(and, &=)
++ATOMIC_OP(or, |=)
++ATOMIC_OP(xor, ^=)
+ 
+ #undef ATOMIC_OPS
+ #undef ATOMIC_OP_RETURN
+ #undef ATOMIC_OP
+ 
+-static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
++static inline __deprecated void atomic_clear_mask(unsigned int mask, atomic_t *v)
+ {
+-	unsigned long flags;
+-
+-	__global_lock1(flags);
+-	fence();
+-	v->counter &= ~mask;
+-	__global_unlock1(flags);
++	atomic_and(~mask, v);
+ }
+ 
+-static inline void atomic_set_mask(unsigned int mask, atomic_t *v)
++static inline __deprecated void atomic_set_mask(unsigned int mask, atomic_t *v)
+ {
+-	unsigned long flags;
+-
+-	__global_lock1(flags);
+-	fence();
+-	v->counter |= mask;
+-	__global_unlock1(flags);
++	atomic_or(mask, v);
+ }
+ 
+ static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
 
 
