@@ -1,7 +1,7 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 5/7] locking/qrwlock: make use of acquire/release/relaxed atomics
-Date: Thu, 16 Jul 2015 16:32:36 +0100
-Message-ID: <1437060758-10381-6-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v2 1/7] atomics: add acquire/release/relaxed variants of some atomic operations
+Date: Thu, 16 Jul 2015 16:32:32 +0100
+Message-ID: <1437060758-10381-2-git-send-email-will.deacon@arm.com>
 References: <1437060758-10381-1-git-send-email-will.deacon@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1437060758-10381-1-git-send-email-will.deacon@arm.com>
@@ -10,122 +10,363 @@ To: linux-arch@vger.kernel.org
 Cc: Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-The qrwlock implementation is slightly heavy in its use of memory
-barriers, mainly through the use of cmpxchg and _return atomics, which
-imply full barrier semantics.
+Whilst porting the generic qrwlock code over to arm64, it became
+apparent that any portable locking code needs finer-grained control of
+the memory-ordering guarantees provided by our atomic routines.
 
-This patch modifies the qrwlock code to use the more relaxed atomic
-routines so that we can reduce the unnecessary barrier overhead on
-weakly-ordered architectures.
+In particular: xchg, cmpxchg, {add,sub}_return are often used in
+situations where full barrier semantics (currently the only option
+available) are not required. For example, when a reader increments a
+reader count to obtain a lock, checking the old value to see if a writer
+was present, only acquire semantics are strictly needed.
 
+This patch introduces three new ordering semantics for these operations:
+
+  - *_relaxed: No ordering guarantees. This is similar to what we have
+               already for the non-return atomics (e.g. atomic_add).
+
+  - *_acquire: ACQUIRE semantics, similar to smp_load_acquire.
+
+  - *_release: RELEASE semantics, similar to smp_store_release.
+
+In memory-ordering speak, this means that the acquire/release semantics
+are RCpc as opposed to RCsc. Consequently a RELEASE followed by an
+ACQUIRE does not imply a full barrier, as already documented in
+memory-barriers.txt.
+
+Currently, all the new macros are conditionally mapped to the full-mb
+variants, however if the *_relaxed version is provided by the
+architecture, then the acquire/release variants are constructed by
+supplementing the relaxed routine with an explicit barrier.
+
+Cc: Peter Zijlstra <peterz@infradead.org>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- include/asm-generic/qrwlock.h | 13 ++++++-------
- kernel/locking/qrwlock.c      | 12 ++++++------
- 2 files changed, 12 insertions(+), 13 deletions(-)
+ include/linux/atomic.h | 312 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 312 insertions(+)
 
-diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-index 930920501e33..6ab846bf6413 100644
---- a/include/asm-generic/qrwlock.h
-+++ b/include/asm-generic/qrwlock.h
-@@ -68,7 +68,7 @@ static inline int queued_read_trylock(struct qrwlock *lock)
+diff --git a/include/linux/atomic.h b/include/linux/atomic.h
+index 5b08a8540ecf..08c2f6e56f76 100644
+--- a/include/linux/atomic.h
++++ b/include/linux/atomic.h
+@@ -2,6 +2,318 @@
+ #ifndef _LINUX_ATOMIC_H
+ #define _LINUX_ATOMIC_H
+ #include <asm/atomic.h>
++#include <asm/barrier.h>
++
++/*
++ * Relaxed variants of xchg, cmpxchg and some atomic operations.
++ *
++ * We support four variants:
++ *
++ * - Fully ordered: The default implementation, no suffix required.
++ * - Acquire: Provides ACQUIRE semantics, _acquire suffix.
++ * - Release: Provides RELEASE semantics, _release suffix.
++ * - Relaxed: No ordering guarantees, _relaxed suffix.
++ *
++ * See Documentation/memory-barriers.txt for ACQUIRE/RELEASE definitions.
++ */
++
++#ifndef atomic_read_acquire
++#define  atomic_read_acquire(v)		smp_load_acquire(&(v)->counter)
++#endif
++
++#ifndef atomic_set_release
++#define  atomic_set_release(v, i)	smp_store_release(&(v)->counter, (i))
++#endif
++
++/*
++ * The idea here is to build acquire/release variants by adding explicit
++ * barriers on top of the relaxed variant. In the case where the relaxed
++ * variant is already fully ordered, no additional barriers are needed.
++ */
++#define __atomic_op_acquire(ret_t, op, ...)				\
++({									\
++	ret_t __ret = op##_relaxed(__VA_ARGS__);			\
++	smp_mb__after_atomic();						\
++	__ret;								\
++})
++
++#define __atomic_op_release(ret_t, op, ...)				\
++({									\
++	ret_t __ret;							\
++	smp_mb__before_atomic();					\
++	__ret = op##_relaxed(__VA_ARGS__);				\
++	__ret;								\
++})
++
++#define __atomic_op_fence(ret_t, op, ...)				\
++({									\
++	ret_t __ret;							\
++	smp_mb__before_atomic();					\
++	__ret = op##_relaxed(__VA_ARGS__);				\
++	smp_mb__after_atomic();						\
++	__ret;								\
++})
++
++#ifndef atomic_add_return_relaxed
++#define  atomic_add_return_relaxed	atomic_add_return
++#define  atomic_add_return_acquire	atomic_add_return
++#define  atomic_add_return_release	atomic_add_return
++
++#else /* atomic_add_return_relaxed */
++
++#ifndef atomic_add_return_acquire
++#define  atomic_add_return_acquire(...)					\
++	__atomic_op_acquire(int, atomic_add_return, __VA_ARGS__)
++#endif
++
++#ifndef atomic_add_return_release
++#define  atomic_add_return_release(...)					\
++	__atomic_op_release(int, atomic_add_return, __VA_ARGS__)
++#endif
++
++#ifndef atomic_add_return
++#define  atomic_add_return(...)						\
++	__atomic_op_fence(int, atomic_add_return, __VA_ARGS__)
++#endif
++#endif /* atomic_add_return_relaxed */
++
++#ifndef atomic_sub_return_relaxed
++#define  atomic_sub_return_relaxed	atomic_sub_return
++#define  atomic_sub_return_acquire	atomic_sub_return
++#define  atomic_sub_return_release	atomic_sub_return
++
++#else /* atomic_sub_return_relaxed */
++
++#ifndef atomic_sub_return_acquire
++#define  atomic_sub_return_acquire(...)					\
++	__atomic_op_acquire(int, atomic_sub_return, __VA_ARGS__)
++#endif
++
++#ifndef atomic_sub_return_release
++#define  atomic_sub_return_release(...)					\
++	__atomic_op_release(int, atomic_sub_return, __VA_ARGS__)
++#endif
++
++#ifndef atomic_sub_return
++#define  atomic_sub_return(...)						\
++	__atomic_op_fence(int, atomic_sub_return, __VA_ARGS__)
++#endif
++#endif /* atomic_sub_return_relaxed */
++
++#ifndef atomic_xchg_relaxed
++#define  atomic_xchg_relaxed		atomic_xchg
++#define  atomic_xchg_acquire		atomic_xchg
++#define  atomic_xchg_release		atomic_xchg
++
++#else /* atomic_xchg_relaxed */
++
++#ifndef atomic_xchg_acquire
++#define  atomic_xchg_acquire(...)					\
++	__atomic_op_acquire(int, atomic_xchg, __VA_ARGS__)
++#endif
++
++#ifndef atomic_xchg_release
++#define  atomic_xchg_release(...)					\
++	__atomic_op_release(int, atomic_xchg, __VA_ARGS__)
++#endif
++
++#ifndef atomic_xchg
++#define  atomic_xchg(...)						\
++	__atomic_op_fence(int, atomic_xchg, __VA_ARGS__)
++#endif
++#endif /* atomic_xchg_relaxed */
++
++#ifndef atomic_cmpxchg_relaxed
++#define  atomic_cmpxchg_relaxed		atomic_cmpxchg
++#define  atomic_cmpxchg_acquire		atomic_cmpxchg
++#define  atomic_cmpxchg_release		atomic_cmpxchg
++
++#else /* atomic_cmpxchg_relaxed */
++
++#ifndef atomic_cmpxchg_acquire
++#define  atomic_cmpxchg_acquire(...)					\
++	__atomic_op_acquire(int, atomic_cmpxchg, __VA_ARGS__)
++#endif
++
++#ifndef atomic_cmpxchg_release
++#define  atomic_cmpxchg_release(...)					\
++	__atomic_op_release(int, atomic_cmpxchg, __VA_ARGS__)
++#endif
++
++#ifndef atomic_cmpxchg
++#define  atomic_cmpxchg(...)						\
++	__atomic_op_fence(int, atomic_cmpxchg, __VA_ARGS__)
++#endif
++#endif /* atomic_cmpxchg_relaxed */
++
++#ifndef atomic64_read_acquire
++#define  atomic64_read_acquire(v)	smp_load_acquire(&(v)->counter)
++#endif
++
++#ifndef atomic64_set_release
++#define  atomic64_set_release(v, i)	smp_store_release(&(v)->counter, (i))
++#endif
++
++#ifndef atomic64_add_return_relaxed
++#define  atomic64_add_return_relaxed	atomic64_add_return
++#define  atomic64_add_return_acquire	atomic64_add_return
++#define  atomic64_add_return_release	atomic64_add_return
++
++#else /* atomic64_add_return_relaxed */
++
++#ifndef atomic64_add_return_acquire
++#define  atomic64_add_return_acquire(...)				\
++	__atomic_op_acquire(long long, atomic64_add_return, __VA_ARGS__)
++#endif
++
++#ifndef atomic64_add_return_release
++#define  atomic64_add_return_release(...)				\
++	__atomic_op_release(long long, atomic64_add_return, __VA_ARGS__)
++#endif
++
++#ifndef atomic64_add_return
++#define  atomic64_add_return(...)					\
++	__atomic_op_fence(long long, atomic64_add_return, __VA_ARGS__)
++#endif
++#endif /* atomic64_add_return_relaxed */
++
++#ifndef atomic64_sub_return_relaxed
++#define  atomic64_sub_return_relaxed	atomic64_sub_return
++#define  atomic64_sub_return_acquire	atomic64_sub_return
++#define  atomic64_sub_return_release	atomic64_sub_return
++
++#else /* atomic64_sub_return_relaxed */
++
++#ifndef atomic64_sub_return_acquire
++#define  atomic64_sub_return_acquire(...)				\
++	__atomic_op_acquire(long long, atomic64_sub_return, __VA_ARGS__)
++#endif
++
++#ifndef atomic64_sub_return_release
++#define  atomic64_sub_return_release(...)				\
++	__atomic_op_release(long long, atomic64_sub_return, __VA_ARGS__)
++#endif
++
++#ifndef atomic64_sub_return
++#define  atomic64_sub_return(...)					\
++	__atomic_op_fence(long long, atomic64_sub_return, __VA_ARGS__)
++#endif
++#endif /* atomic64_sub_return_relaxed */
++
++#ifndef atomic64_xchg_relaxed
++#define  atomic64_xchg_relaxed		atomic64_xchg
++#define  atomic64_xchg_acquire		atomic64_xchg
++#define  atomic64_xchg_release		atomic64_xchg
++
++#else /* atomic64_xchg_relaxed */
++
++#ifndef atomic64_xchg_acquire
++#define  atomic64_xchg_acquire(...)					\
++	__atomic_op_acquire(long long, atomic64_xchg, __VA_ARGS__)
++#endif
++
++#ifndef atomic64_xchg_release
++#define  atomic64_xchg_release(...)					\
++	__atomic_op_release(long long, atomic64_xchg, __VA_ARGS__)
++#endif
++
++#ifndef atomic64_xchg
++#define  atomic64_xchg(...)						\
++	__atomic_op_fence(long long, atomic64_xchg, __VA_ARGS__)
++#endif
++#endif /* atomic64_xchg_relaxed */
++
++#ifndef atomic64_cmpxchg_relaxed
++#define  atomic64_cmpxchg_relaxed	atomic64_cmpxchg
++#define  atomic64_cmpxchg_acquire	atomic64_cmpxchg
++#define  atomic64_cmpxchg_release	atomic64_cmpxchg
++
++#else /* atomic64_cmpxchg_relaxed */
++
++#ifndef atomic64_cmpxchg_acquire
++#define  atomic64_cmpxchg_acquire(...)					\
++	__atomic_op_acquire(long long, atomic64_cmpxchg, __VA_ARGS__)
++#endif
++
++#ifndef atomic64_cmpxchg_release
++#define  atomic64_cmpxchg_release(...)					\
++	__atomic_op_release(long long, atomic64_cmpxchg, __VA_ARGS__)
++#endif
++
++#ifndef atomic64_cmpxchg
++#define  atomic64_cmpxchg(...)						\
++	__atomic_op_fence(long long, atomic64_cmpxchg, __VA_ARGS__)
++#endif
++#endif /* atomic64_cmpxchg_relaxed */
++
++#ifndef cmpxchg_relaxed
++#define  cmpxchg_relaxed		cmpxchg
++#define  cmpxchg_acquire		cmpxchg
++#define  cmpxchg_release		cmpxchg
++
++#else /* cmpxchg_relaxed */
++
++#ifndef cmpxchg_acquire
++#define  cmpxchg_acquire(ptr, ...)					\
++	__atomic_op_acquire(__typeof__(*ptr), cmpxchg, ptr, __VA_ARGS__)
++#endif
++
++#ifndef cmpxchg_release
++#define  cmpxchg_release(ptr, ...)					\
++	__atomic_op_release(__typeof__(*ptr), cmpxchg, ptr, __VA_ARGS__)
++#endif
++
++#ifndef cmpxchg
++#define  cmpxchg(ptr, ...)						\
++	__atomic_op_fence(__typeof__(*ptr), cmpxchg, ptr, __VA_ARGS__)
++#endif
++#endif /* cmpxchg_relaxed */
++
++#ifndef cmpxchg64_relaxed
++#define  cmpxchg64_relaxed		cmpxchg64
++#define  cmpxchg64_acquire		cmpxchg64
++#define  cmpxchg64_release		cmpxchg64
++
++#else /* cmpxchg64_relaxed */
++
++#ifndef cmpxchg64_acquire
++#define  cmpxchg64_acquire(ptr, ...)					\
++	__atomic_op_acquire(__typeof__(*ptr), cmpxchg64, ptr, __VA_ARGS__)
++#endif
++
++#ifndef cmpxchg64_release
++#define  cmpxchg64_release(ptr, ...)					\
++	__atomic_op_release(__typeof__(*ptr), cmpxchg64, ptr, __VA_ARGS__)
++#endif
++
++#ifndef cmpxchg64
++#define  cmpxchg64(ptr, ...)						\
++	__atomic_op_fence(__typeof__(*ptr), cmpxchg64, ptr, __VA_ARGS__)
++#endif
++#endif /* cmpxchg64_relaxed */
++
++#ifndef xchg_relaxed
++#define  xchg_relaxed			xchg
++#define  xchg_acquire			xchg
++#define  xchg_release			xchg
++
++#else /* xchg_relaxed */
++
++#ifndef xchg_acquire
++#define  xchg_acquire(ptr, ...)						\
++	__atomic_op_acquire(__typeof__(*ptr), xchg, ptr, __VA_ARGS__)
++#endif
++
++#ifndef xchg_release
++#define  xchg_release(ptr, ...)						\
++	__atomic_op_release(__typeof__(*ptr), xchg, ptr, __VA_ARGS__)
++#endif
++
++#ifndef xchg
++#define  xchg(ptr, ...)							\
++	__atomic_op_fence(__typeof__(*ptr), xchg, ptr, __VA_ARGS__)
++#endif
++#endif /* xchg_relaxed */
  
- 	cnts = atomic_read(&lock->cnts);
- 	if (likely(!(cnts & _QW_WMASK))) {
--		cnts = (u32)atomic_add_return(_QR_BIAS, &lock->cnts);
-+		cnts = (u32)atomic_add_return_acquire(_QR_BIAS, &lock->cnts);
- 		if (likely(!(cnts & _QW_WMASK)))
- 			return 1;
- 		atomic_sub(_QR_BIAS, &lock->cnts);
-@@ -89,8 +89,8 @@ static inline int queued_write_trylock(struct qrwlock *lock)
- 	if (unlikely(cnts))
- 		return 0;
- 
--	return likely(atomic_cmpxchg(&lock->cnts,
--				     cnts, cnts | _QW_LOCKED) == cnts);
-+	return likely(atomic_cmpxchg_acquire(&lock->cnts,
-+					     cnts, cnts | _QW_LOCKED) == cnts);
- }
  /**
-  * queued_read_lock - acquire read lock of a queue rwlock
-@@ -100,7 +100,7 @@ static inline void queued_read_lock(struct qrwlock *lock)
- {
- 	u32 cnts;
- 
--	cnts = atomic_add_return(_QR_BIAS, &lock->cnts);
-+	cnts = atomic_add_return_acquire(_QR_BIAS, &lock->cnts);
- 	if (likely(!(cnts & _QW_WMASK)))
- 		return;
- 
-@@ -115,7 +115,7 @@ static inline void queued_read_lock(struct qrwlock *lock)
- static inline void queued_write_lock(struct qrwlock *lock)
- {
- 	/* Optimize for the unfair lock case where the fair flag is 0. */
--	if (atomic_cmpxchg(&lock->cnts, 0, _QW_LOCKED) == 0)
-+	if (atomic_cmpxchg_acquire(&lock->cnts, 0, _QW_LOCKED) == 0)
- 		return;
- 
- 	queued_write_lock_slowpath(lock);
-@@ -130,8 +130,7 @@ static inline void queued_read_unlock(struct qrwlock *lock)
- 	/*
- 	 * Atomically decrement the reader count
- 	 */
--	smp_mb__before_atomic();
--	atomic_sub(_QR_BIAS, &lock->cnts);
-+	(void)atomic_sub_return_release(_QR_BIAS, &lock->cnts);
- }
- 
- /**
-diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index a71bb3541880..879c8fab7bea 100644
---- a/kernel/locking/qrwlock.c
-+++ b/kernel/locking/qrwlock.c
-@@ -36,7 +36,7 @@ rspin_until_writer_unlock(struct qrwlock *lock, u32 cnts)
- {
- 	while ((cnts & _QW_WMASK) == _QW_LOCKED) {
- 		cpu_relax_lowlatency();
--		cnts = smp_load_acquire((u32 *)&lock->cnts);
-+		cnts = atomic_read_acquire(&lock->cnts);
- 	}
- }
- 
-@@ -78,7 +78,7 @@ void queued_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
- 	while (atomic_read(&lock->cnts) & _QW_WMASK)
- 		cpu_relax_lowlatency();
- 
--	cnts = atomic_add_return(_QR_BIAS, &lock->cnts) - _QR_BIAS;
-+	cnts = atomic_add_return_relaxed(_QR_BIAS, &lock->cnts) - _QR_BIAS;
- 	rspin_until_writer_unlock(lock, cnts);
- 
- 	/*
-@@ -101,7 +101,7 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
- 
- 	/* Try to acquire the lock directly if no reader is present */
- 	if (!atomic_read(&lock->cnts) &&
--	    (atomic_cmpxchg(&lock->cnts, 0, _QW_LOCKED) == 0))
-+	    (atomic_cmpxchg_acquire(&lock->cnts, 0, _QW_LOCKED) == 0))
- 		goto unlock;
- 
- 	/*
-@@ -110,7 +110,7 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
- 	 */
- 	for (;;) {
- 		if (!READ_ONCE(lock->wmode) &&
--		   (cmpxchg(&lock->wmode, 0, _QW_WAITING) == 0))
-+		   (cmpxchg_relaxed(&lock->wmode, 0, _QW_WAITING) == 0))
- 			break;
- 
- 		cpu_relax_lowlatency();
-@@ -120,8 +120,8 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
- 	for (;;) {
- 		cnts = atomic_read(&lock->cnts);
- 		if ((cnts == _QW_WAITING) &&
--		    (atomic_cmpxchg(&lock->cnts, _QW_WAITING,
--				    _QW_LOCKED) == _QW_WAITING))
-+		    (atomic_cmpxchg_acquire(&lock->cnts, _QW_WAITING,
-+					    _QW_LOCKED) == _QW_WAITING))
- 			break;
- 
- 		cpu_relax_lowlatency();
+  * atomic_add_unless - add unless the number is already a given value
 -- 
 2.1.4
