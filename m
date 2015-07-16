@@ -1,131 +1,59 @@
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 20/28] s390: Provide atomic_{or,xor,and}
-Date: Thu, 16 Jul 2015 19:21:30 +0200
-Message-ID: <20150716172925.866473681@infradead.org>
+Subject: [PATCH 11/28] m68k: Provide atomic_{or,xor,and}
+Date: Thu, 16 Jul 2015 19:21:21 +0200
+Message-ID: <20150716172925.160457233@infradead.org>
 References: <20150716172110.587529075@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:44297 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753154AbbGPRch (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2015 13:32:37 -0400
-Content-Disposition: inline; filename=peterz-s390-atomic_logic_ops.patch
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=peterz-m68k-atomic_logic_ops.patch
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, davem@davemloft.net, cmetcalf@ezchip.com, ysato@users.sourceforge.jp, mingo@kernel.org, peterz@infradead.org
+List-Id: linux-arch.vger.kernel.org
 
 Implement atomic logic ops -- atomic_{or,xor,and}.
 
 These will replace the atomic_{set,clear}_mask functions that are
 available on some archs.
 
-Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/s390/include/asm/atomic.h |   47 ++++++++++++++++++++++++++++-------------
- 1 file changed, 33 insertions(+), 14 deletions(-)
+ arch/m68k/include/asm/atomic.h |   14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
 
---- a/arch/s390/include/asm/atomic.h
-+++ b/arch/s390/include/asm/atomic.h
-@@ -27,6 +27,7 @@
- #define __ATOMIC_OR	"lao"
- #define __ATOMIC_AND	"lan"
- #define __ATOMIC_ADD	"laa"
-+#define __ATOMIC_XOR	"lax"
- #define __ATOMIC_BARRIER "bcr	14,0\n"
+--- a/arch/m68k/include/asm/atomic.h
++++ b/arch/m68k/include/asm/atomic.h
+@@ -77,6 +77,12 @@ static inline int atomic_##op##_return(i
+ ATOMIC_OPS(add, +=, add)
+ ATOMIC_OPS(sub, -=, sub)
  
- #define __ATOMIC_LOOP(ptr, op_val, op_string, __barrier)		\
-@@ -49,6 +50,7 @@
- #define __ATOMIC_OR	"or"
- #define __ATOMIC_AND	"nr"
- #define __ATOMIC_ADD	"ar"
-+#define __ATOMIC_XOR	"xr"
- #define __ATOMIC_BARRIER "\n"
++#define CONFIG_ARCH_HAS_ATOMIC_OR
++
++ATOMIC_OP(and, &=, and)
++ATOMIC_OP(or, |=, or)
++ATOMIC_OP(xor, ^=, eor)
++
+ #undef ATOMIC_OPS
+ #undef ATOMIC_OP_RETURN
+ #undef ATOMIC_OP
+@@ -170,14 +176,14 @@ static inline int atomic_add_negative(in
+ 	return c != 0;
+ }
  
- #define __ATOMIC_LOOP(ptr, op_val, op_string, __barrier)		\
-@@ -118,14 +120,26 @@ static inline void atomic_add(int i, ato
- #define atomic_dec_return(_v)		atomic_sub_return(1, _v)
- #define atomic_dec_and_test(_v)		(atomic_sub_return(1, _v) == 0)
- 
--static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
-+#define ATOMIC_OP(op, OP)						\
-+static inline void atomic_##op(int i, atomic_t *v)			\
-+{									\
-+	__ATOMIC_LOOP(v, i, __ATOMIC_##OP, __ATOMIC_NO_BARRIER);	\
-+}
-+
-+ATOMIC_OP(and, AND)
-+ATOMIC_OP(or, OR)
-+ATOMIC_OP(xor, XOR)
-+
-+#undef ATOMIC_OP
-+
+-static inline void atomic_clear_mask(unsigned long mask, unsigned long *v)
 +static inline __deprecated void atomic_clear_mask(unsigned int mask, atomic_t *v)
  {
--	__ATOMIC_LOOP(v, ~mask, __ATOMIC_AND, __ATOMIC_NO_BARRIER);
+-	__asm__ __volatile__("andl %1,%0" : "+m" (*v) : ASM_DI (~(mask)));
 +	atomic_and(~mask, v);
  }
  
--static inline void atomic_set_mask(unsigned int mask, atomic_t *v)
+-static inline void atomic_set_mask(unsigned long mask, unsigned long *v)
 +static inline __deprecated void atomic_set_mask(unsigned int mask, atomic_t *v)
  {
--	__ATOMIC_LOOP(v, mask, __ATOMIC_OR, __ATOMIC_NO_BARRIER);
+-	__asm__ __volatile__("orl %1,%0" : "+m" (*v) : ASM_DI (mask));
 +	atomic_or(mask, v);
  }
  
- #define atomic_xchg(v, new) (xchg(&((v)->counter), new))
-@@ -167,6 +181,7 @@ static inline int __atomic_add_unless(at
- #define __ATOMIC64_OR	"laog"
- #define __ATOMIC64_AND	"lang"
- #define __ATOMIC64_ADD	"laag"
-+#define __ATOMIC64_XOR	"laxg"
- #define __ATOMIC64_BARRIER "bcr	14,0\n"
- 
- #define __ATOMIC64_LOOP(ptr, op_val, op_string, __barrier)		\
-@@ -189,6 +204,7 @@ static inline int __atomic_add_unless(at
- #define __ATOMIC64_OR	"ogr"
- #define __ATOMIC64_AND	"ngr"
- #define __ATOMIC64_ADD	"agr"
-+#define __ATOMIC64_XOR	"xgr"
- #define __ATOMIC64_BARRIER "\n"
- 
- #define __ATOMIC64_LOOP(ptr, op_val, op_string, __barrier)		\
-@@ -247,16 +263,6 @@ static inline void atomic64_add(long lon
- 	__ATOMIC64_LOOP(v, i, __ATOMIC64_ADD, __ATOMIC64_NO_BARRIER);
- }
- 
--static inline void atomic64_clear_mask(unsigned long mask, atomic64_t *v)
--{
--	__ATOMIC64_LOOP(v, ~mask, __ATOMIC64_AND, __ATOMIC64_NO_BARRIER);
--}
--
--static inline void atomic64_set_mask(unsigned long mask, atomic64_t *v)
--{
--	__ATOMIC64_LOOP(v, mask, __ATOMIC64_OR, __ATOMIC64_NO_BARRIER);
--}
--
- #define atomic64_xchg(v, new) (xchg(&((v)->counter), new))
- 
- static inline long long atomic64_cmpxchg(atomic64_t *v,
-@@ -270,6 +276,19 @@ static inline long long atomic64_cmpxchg
- 	return old;
- }
- 
-+#define ATOMIC64_OP(op, OP)						\
-+static inline void atomic64_##op(long i, atomic64_t *v)			\
-+{									\
-+	__ATOMIC64_LOOP(v, i, __ATOMIC64_##OP, __ATOMIC64_NO_BARRIER);	\
-+}
-+
-+#define CONFIG_ARCH_HAS_ATOMIC_OR
-+
-+ATOMIC64_OP(and, AND)
-+ATOMIC64_OP(or, OR)
-+ATOMIC64_OP(xor, XOR)
-+
-+#undef ATOMIC64_OP
- #undef __ATOMIC64_LOOP
- 
- static inline int atomic64_add_unless(atomic64_t *v, long long i, long long u)
+ static __inline__ int __atomic_add_unless(atomic_t *v, int a, int u)
