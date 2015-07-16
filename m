@@ -1,56 +1,128 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:36399 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752320AbbGPReF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2015 13:34:05 -0400
-Message-ID: <20150716172925.459902833@infradead.org>
-Date: Thu, 16 Jul 2015 19:21:25 +0200
+Received: from casper.infradead.org ([85.118.1.10]:44372 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755980AbbGPRch (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2015 13:32:37 -0400
+Message-ID: <20150716172925.957803688@infradead.org>
+Date: Thu, 16 Jul 2015 19:21:31 +0200
 From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH 15/28] parisc: Provide atomic_{or,xor,and}
+Subject: [PATCH 21/28] x86: Provide atomic_{or,xor,and}
 References: <20150716172110.587529075@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline; filename=peterz-parisc-atomic_logic_ops.patch
+Content-Disposition: inline; filename=peterz-x86-atomic_logic_ops.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: rth@twiddle.net, vgupta@synopsys.com, linux@arm.linux.org.uk, will.deacon@arm.com, hskinnemoen@gmail.com, realmz6@gmail.com, dhowells@redhat.com, rkuo@codeaurora.org, tony.luck@intel.com, geert@linux-m68k.org, james.hogan@imgtec.com, ralf@linux-mips.org, jejb@parisc-linux.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, davem@davemloft.net, cmetcalf@ezchip.com, ysato@users.sourceforge.jp, mingo@kernel.org, peterz@infradead.org
-Message-ID: <20150716172125.Ainu0Hd95l4RQ8ljlcQ2TYBNsptRi-g4cRKWRpDemHo@z>
+Message-ID: <20150716172131.ruvG357611uomqdI52AWrTfnttjBaghiZ9goPy_oJmg@z>
 
 Implement atomic logic ops -- atomic_{or,xor,and}.
 
 These will replace the atomic_{set,clear}_mask functions that are
 available on some archs.
 
+
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 ---
- arch/parisc/include/asm/atomic.h |    9 +++++++++
- 1 file changed, 9 insertions(+)
+ arch/x86/include/asm/atomic.h      |   35 ++++++++++++++++++++++++++---------
+ arch/x86/include/asm/atomic64_32.h |   14 ++++++++++++++
+ arch/x86/include/asm/atomic64_64.h |   15 +++++++++++++++
+ 3 files changed, 55 insertions(+), 9 deletions(-)
 
---- a/arch/parisc/include/asm/atomic.h
-+++ b/arch/parisc/include/asm/atomic.h
-@@ -126,6 +126,12 @@ static __inline__ int atomic_##op##_retu
- ATOMIC_OPS(add, +=)
- ATOMIC_OPS(sub, -=)
+--- a/arch/x86/include/asm/atomic.h
++++ b/arch/x86/include/asm/atomic.h
+@@ -182,6 +182,23 @@ static inline int atomic_xchg(atomic_t *
+ 	return xchg(&v->counter, new);
+ }
  
++#define ATOMIC_OP(op)							\
++static inline void atomic_##op(int i, atomic_t *v)			\
++{									\
++	asm volatile(LOCK_PREFIX #op"l %1,%0"				\
++			: "+m" (v->counter)				\
++			: "ir" (i)					\
++			: "memory");					\
++}
++
 +#define CONFIG_ARCH_HAS_ATOMIC_OR
 +
-+ATOMIC_OP(and, &=)
-+ATOMIC_OP(or, |=)
-+ATOMIC_OP(xor, ^=)
++ATOMIC_OP(and)
++ATOMIC_OP(or)
++ATOMIC_OP(xor)
 +
- #undef ATOMIC_OPS
- #undef ATOMIC_OP_RETURN
- #undef ATOMIC_OP
-@@ -185,6 +191,9 @@ static __inline__ s64 atomic64_##op##_re
++#undef ATOMIC_OP
++
+ /**
+  * __atomic_add_unless - add unless the number is already a given value
+  * @v: pointer of type atomic_t
+@@ -219,15 +236,15 @@ static __always_inline short int atomic_
+ 	return *v;
+ }
  
- ATOMIC64_OPS(add, +=)
- ATOMIC64_OPS(sub, -=)
-+ATOMIC64_OP(and, &=)
-+ATOMIC64_OP(or, |=)
-+ATOMIC64_OP(xor, ^=)
+-/* These are x86-specific, used by some header files */
+-#define atomic_clear_mask(mask, addr)				\
+-	asm volatile(LOCK_PREFIX "andl %0,%1"			\
+-		     : : "r" (~(mask)), "m" (*(addr)) : "memory")
+-
+-#define atomic_set_mask(mask, addr)				\
+-	asm volatile(LOCK_PREFIX "orl %0,%1"			\
+-		     : : "r" ((unsigned)(mask)), "m" (*(addr))	\
+-		     : "memory")
++static inline __deprecated void atomic_clear_mask(unsigned int mask, atomic_t *v)
++{
++	atomic_and(~mask, v);
++}
++
++static inline __deprecated void atomic_set_mask(unsigned int mask, atomic_t *v)
++{
++	atomic_or(mask, v);
++}
  
- #undef ATOMIC64_OPS
- #undef ATOMIC64_OP_RETURN
+ #ifdef CONFIG_X86_32
+ # include <asm/atomic64_32.h>
+--- a/arch/x86/include/asm/atomic64_32.h
++++ b/arch/x86/include/asm/atomic64_32.h
+@@ -313,4 +313,18 @@ static inline long long atomic64_dec_if_
+ #undef alternative_atomic64
+ #undef __alternative_atomic64
+ 
++#define ATOMIC64_OP(op, c_op)						\
++static inline void atomic64_##op(long long i, atomic64_t *v)		\
++{									\
++	long long old, c = 0;						\
++	while ((old = atomic64_cmpxchg(v, c, c c_op i)) != c)		\
++		c = old;						\
++}
++
++ATOMIC64_OP(and, &)
++ATOMIC64_OP(or, |)
++ATOMIC64_OP(xor, ^)
++
++#undef ATOMIC64_OP
++
+ #endif /* _ASM_X86_ATOMIC64_32_H */
+--- a/arch/x86/include/asm/atomic64_64.h
++++ b/arch/x86/include/asm/atomic64_64.h
+@@ -220,4 +220,19 @@ static inline long atomic64_dec_if_posit
+ 	return dec;
+ }
+ 
++#define ATOMIC64_OP(op)							\
++static inline void atomic64_##op(long i, atomic64_t *v)			\
++{									\
++	asm volatile(LOCK_PREFIX #op"q %1,%0"				\
++			: "+m" (v->counter)				\
++			: "er" (i)					\
++			: "memory");					\
++}
++
++ATOMIC64_OP(and)
++ATOMIC64_OP(or)
++ATOMIC64_OP(xor)
++
++#undef ATOMIC64_OP
++
+ #endif /* _ASM_X86_ATOMIC64_64_H */
 
 
