@@ -1,39 +1,25 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH-tip v2 0/2] locking/qrwlock: Improve qrwlock performance
-Date: Thu, 16 Jul 2015 16:53:12 +0100
-Message-ID: <20150716155312.GK26390@arm.com>
-References: <1436459543-29126-1-git-send-email-Waiman.Long@hp.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 4/7] lockref: remove homebrew cmpxchg64_relaxed macro
+ definition
+Date: Thu, 16 Jul 2015 18:48:03 +0200
+Message-ID: <20150716164803.GZ19282@twins.programming.kicks-ass.net>
+References: <1437060758-10381-1-git-send-email-will.deacon@arm.com>
+ <1437060758-10381-5-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from casper.infradead.org ([85.118.1.10]:44031 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755631AbbGPQsR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2015 12:48:17 -0400
 Content-Disposition: inline
-In-Reply-To: <1436459543-29126-1-git-send-email-Waiman.Long@hp.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Waiman Long <Waiman.Long@hp.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1437060758-10381-5-git-send-email-will.deacon@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org, Waiman.Long@hp.com, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com
 
-Hi Waiman,
+On Thu, Jul 16, 2015 at 04:32:35PM +0100, Will Deacon wrote:
+> cmpxchg64_relaxed is now defined by asm-generic/atomic.h, so we can
 
-On Thu, Jul 09, 2015 at 05:32:21PM +0100, Waiman Long wrote:
-> v1->v2:
->  - Take out patch 1 which had been merged to tip.
->  - Take out patch 4 as the change may impact light load performance
->  - Rebased to the latest tip branch
-> 
-> In converting some existing spinlocks to rwlock, it was found that
-> the write lock slowpath performance isn't as good as the qspinlock.
-> This patch series tries to improve qrwlock performance to close the
-> gap between qspinlock and qrwlock.
-> 
-> With this patch series in place, we can start converting some spinlocks
-> back to rwlocks where it makes sense and the lock size increase isn't
-> a concern.
-
-Both of these patches look fine to me:
-
-  Acked-by: Will Deacon <will.deacon@arm.com>
-
-Cheers,
-
-Will
+linux/atomic.h
