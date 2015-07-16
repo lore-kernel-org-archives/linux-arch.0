@@ -1,59 +1,68 @@
-From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v2] asm-generic: {get,put}_user ptr argument evaluate only 1 time
-Date: Thu, 16 Jul 2015 23:16:39 +0900
-Message-ID: <1437056199-2326-1-git-send-email-ysato@users.sourceforge.jp>
-References: <1437023722-7432-1-git-send-email-ysato@users.sourceforge.jp>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+Date: Thu, 16 Jul 2015 08:11:42 -0700
+Message-ID: <20150716151142.GR3717@linux.vnet.ibm.com>
+References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
+ <1436826689.3948.233.camel@kernel.crashing.org>
+ <1436929578.10956.3.camel@ellerman.id.au>
+ <20150715104420.GD1005@arm.com>
+ <1437012028.28475.2.camel@ellerman.id.au>
+ <1437023004.28088.27.camel@kernel.crashing.org>
+ <1437023695.28088.29.camel@kernel.crashing.org>
+Reply-To: paulmck@linux.vnet.ibm.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.asahi-net.or.jp ([202.224.39.198]:45589 "EHLO
-	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932180AbbGPOQv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2015 10:16:51 -0400
-In-Reply-To: <1437023722-7432-1-git-send-email-ysato@users.sourceforge.jp>
+Received: from e38.co.us.ibm.com ([32.97.110.159]:60472 "EHLO
+	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752364AbbGPPLy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2015 11:11:54 -0400
+Received: from /spool/local
+	by e38.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Thu, 16 Jul 2015 09:11:54 -0600
+Content-Disposition: inline
+In-Reply-To: <1437023695.28088.29.camel@kernel.crashing.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>
 
-Current implemantation ptr argument evaluate 2 times.
-It'll be an unexpected result.
+On Thu, Jul 16, 2015 at 03:14:55PM +1000, Benjamin Herrenschmidt wrote:
+> On Thu, 2015-07-16 at 15:03 +1000, Benjamin Herrenschmidt wrote:
+> > On Thu, 2015-07-16 at 12:00 +1000, Michael Ellerman wrote:
+> > > That would fix the problem with smp_mb__after_unlock_lock(), but not
+> > > the original worry we had about loads happening before the SC in lock.
+> > 
+> > However I think isync fixes *that* :-) The problem with isync is as you
+> > said, it's not a -memory- barrier per-se, it's an execution barrier /
+> > context synchronizing instruction. The combination stwcx. + bne + isync
+> > however prevents the execution of anything past the isync until the
+> > stwcx has completed and the bne has been "decided", which prevents loads
+> > from leaking into the LL/SC loop. It will also prevent a store in the
+> > lock from being issued before the stwcx. has completed. It does *not*
+> > prevent as far as I can tell another unrelated store before the lock
+> > from leaking into the lock, including the one used to unlock a different
+> > lock.
+> 
+> Except that the architecture says:
+> 
+> <<
+> Because a Store Conditional instruction may com-
+> plete before its store has been performed, a condi-
+> tional Branch instruction that depends on the CR0
+> value set by a Store Conditional instruction does
+> not order the Store Conditional's store with respect
+> to storage accesses caused by instructions that
+> follow the Branch
+> >>
+> 
+> So isync in lock in architecturally incorrect, despite being what the
+> architecture recommends using, yay !
 
-Changes v2:
-Add parenthesis to argument "x".
+Well, the architecture isn't expecting that crazies like myself would
+want to have an unlock-lock provide ordering to some CPU not holding
+the lock.  :-/
 
-Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
----
- include/asm-generic/uaccess.h | 10 ++++++----
- 1 file changed, 6 insertions(+), 4 deletions(-)
-
-diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
-index 72d8803..ba6ab80 100644
---- a/include/asm-generic/uaccess.h
-+++ b/include/asm-generic/uaccess.h
-@@ -163,9 +163,10 @@ static inline __must_check long __copy_to_user(void __user *to,
- 
- #define put_user(x, ptr)					\
- ({								\
-+	__typeof__((ptr)) __p = (ptr);				\
- 	might_fault();						\
--	access_ok(VERIFY_WRITE, ptr, sizeof(*ptr)) ?		\
--		__put_user(x, ptr) :				\
-+	access_ok(VERIFY_WRITE, __p, sizeof(*__p)) ?		\
-+		__put_user((x), __p) :				\
- 		-EFAULT;					\
- })
- 
-@@ -225,9 +226,10 @@ extern int __put_user_bad(void) __attribute__((noreturn));
- 
- #define get_user(x, ptr)					\
- ({								\
-+	__typeof__((ptr)) __p = (ptr);				\
- 	might_fault();						\
--	access_ok(VERIFY_READ, ptr, sizeof(*ptr)) ?		\
--		__get_user(x, ptr) :				\
-+	access_ok(VERIFY_READ, __p, sizeof(*__p)) ?		\
-+		__get_user((x), __p) :				\
- 		-EFAULT;					\
- })
- 
--- 
-2.1.4
+							Thanx, Paul
