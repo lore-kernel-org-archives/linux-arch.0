@@ -1,92 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:60174 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932233AbbGPCAa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 15 Jul 2015 22:00:30 -0400
-Message-ID: <1437012028.28475.2.camel@ellerman.id.au>
-Subject: Re: [RFC PATCH v2] memory-barriers: remove
- smp_mb__after_unlock_lock()
-From: Michael Ellerman <mpe@ellerman.id.au>
-Date: Thu, 16 Jul 2015 12:00:28 +1000
-In-Reply-To: <20150715104420.GD1005@arm.com>
-References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
-	 <1436826689.3948.233.camel@kernel.crashing.org>
-	 <1436929578.10956.3.camel@ellerman.id.au> <20150715104420.GD1005@arm.com>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-yk0-f174.google.com ([209.85.160.174]:36392 "EHLO
+	mail-yk0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754001AbbGPCWo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jul 2015 22:22:44 -0400
+Received: by ykay190 with SMTP id y190so53147567yka.3
+        for <linux-arch@vger.kernel.org>; Wed, 15 Jul 2015 19:22:43 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <alpine.DEB.2.11.1507151345060.18576@nanos>
+References: <cover.1436511577.git.baolin.wang@linaro.org>
+	<a1bd8d71caeb4051d0be87aad1baae7ababa4df7.1436511577.git.baolin.wang@linaro.org>
+	<alpine.DEB.2.11.1507151226210.18576@nanos>
+	<CAMz4kuLxBj+82trNVXs9qkuecrKvgdbXuJ3dfvDOCfyJwrDX9Q@mail.gmail.com>
+	<alpine.DEB.2.11.1507151345060.18576@nanos>
+Date: Thu, 16 Jul 2015 10:22:43 +0800
+Message-ID: <CAMz4kuKNVACNhwddXMyCqKGpOf_gsoHk=ZFZFuaY=8e4DCRwGw@mail.gmail.com>
+Subject: Re: [PATCH 6/6] cputime: Introduce cputime_to_timespec64()/timespec64_to_cputime()
+From: Baolin Wang <baolin.wang@linaro.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>
-Message-ID: <20150716020028.FarmbLViDYM6Fo2MkrsLSQbCrZavYHGUVcAtHObEMKE@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: benh@kernel.crashing.org, Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, peterz@infradead.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, =?UTF-8?B?RnLDqWTDqXJpYyBXZWlzYmVja2Vy?= <fweisbec@gmail.com>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>
+Message-ID: <20150716022243.YIIZ4qDqzMGJ9DSEtRBzMB-en1beW8I3pUhL0cU2ess@z>
 
-On Wed, 2015-07-15 at 11:44 +0100, Will Deacon wrote:
-> Hi Michael,
-> 
-> On Wed, Jul 15, 2015 at 04:06:18AM +0100, Michael Ellerman wrote:
-> > On Tue, 2015-07-14 at 08:31 +1000, Benjamin Herrenschmidt wrote:
-> > > On Mon, 2015-07-13 at 13:15 +0100, Will Deacon wrote:
-> > > > This didn't go anywhere last time I posted it, but here it is again.
-> > > > I'd really appreciate some feedback from the PowerPC guys, especially as
-> > > > to whether this change requires them to add an additional barrier in
-> > > > arch_spin_unlock and what the cost of that would be.
-> > > 
-> > > We'd have to turn the lwsync in unlock or the isync in lock into a full
-> > > barrier. As it is, we *almost* have a full barrier semantic, but not
-> > > quite, as in things can get mixed up inside spin_lock between the LL and
-> > > the SC (things leaking in past LL and things leaking "out" up before SC
-> > > and then getting mixed up in there).
-> > > 
-> > > Michael, at some point you were experimenting a bit with that and tried
-> > > to get some perf numbers of the impact that would have, did that
-> > > solidify ? Otherwise, I'll have a look when I'm back next week.
-> > 
-> > I was mainly experimenting with replacing the lwsync in lock with an isync.
-> > 
-> > But I think you're talking about making it a full sync in lock.
-> > 
-> > That was about +7% on p8, +25% on p7 and +88% on p6.
-> 
-> Ok, so that's overhead incurred by moving from isync -> lwsync? The numbers
-> look quite large...
+On 15 July 2015 at 19:55, Thomas Gleixner <tglx@linutronix.de> wrote:
+> On Wed, 15 Jul 2015, Baolin Wang wrote:
+>
+>> On 15 July 2015 at 18:31, Thomas Gleixner <tglx@linutronix.de> wrote:
+>> > On Wed, 15 Jul 2015, Baolin Wang wrote:
+>> >
+>> >> The cputime_to_timespec() and timespec_to_cputime() functions are
+>> >> not year 2038 safe on 32bit systems due to that the struct timepsec
+>> >> will overflow in 2038 year.
+>> >
+>> > And how is this relevant? cputime is not based on wall clock time at
+>> > all. So what has 2038 to do with cputime?
+>> >
+>> > We want proper explanations WHY we need such a change.
+>>
+>> When converting the posix-cpu-timers, it call the
+>> cputime_to_timespec() function. Thus it need a conversion for this
+>> function.
+>
+> There is no requirement to convert posix-cpu-timers on their own. We
+> need to adopt the posix cpu timers code because it shares syscalls
+> with the other posix timers, but that still does not explain why we
+> need these functions.
+>
 
-Sorry no.
+In posix-cpu-timers, it also defined some 'k_clock struct' variables,
+and we need to convert the callbacks of the 'k_clock struct' which are
+not year 2038 safe on 32bit systems. Some callbacks which need to
+convert call the cputime_to_timespec() function, thus we also want to
+convert the cputime_to_timespec() function to a year 2038 safe
+function to make all them ready for the year 2038 issue.
 
-Currently we use lwsync in lock. You'll see isync in the code
-(PPC_ACQUIRE_BARRIER), but on most modern CPUs that is patched at runtime to
-lwsync.
-
-I benchmarked lwsync (current), isync (proposed at the time) and sync (just for
-comparison).
-
-The numbers above are going from lwsync -> sync, as I thought that was what Ben
-was talking about.
-
-Going from lwsync to isync was actually a small speedup on power8, which was
-surprising.
-
-> > We got stuck deciding whether isync was safe to use as a memory barrier,
-> > because the wording in the arch is a bit vague.
-> > 
-> > But if we're talking about a full sync then I think there is no question that's
-> > OK and we should just do it.
-> 
-> Is this because there's a small overhead from lwsync -> sync? Just want to
-> make sure I follow your reasoning.
-
-No I mean that sync is clearly a memory barrier. The issue with switching to
-isync in lock was that it's not a memory barrier per se, so we were not 100%
-confident in it.
-
-> If you went the way of sync in unlock, could you remove the conditional
-> SYNC_IO stuff?
-
-Yeah we could, it's just a conditional sync in unlock when mmio has been done.
-
-That would fix the problem with smp_mb__after_unlock_lock(), but not the
-original worry we had about loads happening before the SC in lock.
-
-cheers
+>> You can see that conversion in patch "posix-cpu-timers: Convert to
+>> y2038 safe callbacks" from
+>> https://git.linaro.org/people/baolin.wang/upstream_0627.git.
+>
+> I do not care about your random git tree. I care about proper
+> changelogs. Your changelogs are just a copied boilerplate full of
+> errors.
+>
+> Thanks,
+>
+>         tglx
 
 
+
+-- 
+Baolin.wang
+Best Regards
