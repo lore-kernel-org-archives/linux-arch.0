@@ -1,72 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:39838 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751048AbbGPPdM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Jul 2015 11:33:12 -0400
+Received: from foss.arm.com ([217.140.101.70]:44566 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754603AbbGPPxR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Jul 2015 11:53:17 -0400
+Date: Thu, 16 Jul 2015 16:53:12 +0100
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 0/7] Add generic support for relaxed atomics
-Date: Thu, 16 Jul 2015 16:32:31 +0100
-Message-ID: <1437060758-10381-1-git-send-email-will.deacon@arm.com>
+Subject: Re: [PATCH-tip v2 0/2] locking/qrwlock: Improve qrwlock performance
+Message-ID: <20150716155312.GK26390@arm.com>
+References: <1436459543-29126-1-git-send-email-Waiman.Long@hp.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1436459543-29126-1-git-send-email-Waiman.Long@hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>
-Message-ID: <20150716153231.GIVSE152AGbqRlAPjVN0vaX8JihPvqna2AX_RhrjUwo@z>
+To: Waiman Long <Waiman.Long@hp.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Scott J Norton <scott.norton@hp.com>, Douglas Hatch <doug.hatch@hp.com>
+Message-ID: <20150716155312.UqsKk4LwZks6p9M_qI4fPuaRpRE91kXy7DItP-2rg38@z>
 
-Hi all,
+Hi Waiman,
 
-This is version two of the patches I previously posted here:
+On Thu, Jul 09, 2015 at 05:32:21PM +0100, Waiman Long wrote:
+> v1->v2:
+>  - Take out patch 1 which had been merged to tip.
+>  - Take out patch 4 as the change may impact light load performance
+>  - Rebased to the latest tip branch
+> 
+> In converting some existing spinlocks to rwlock, it was found that
+> the write lock slowpath performance isn't as good as the qspinlock.
+> This patch series tries to improve qrwlock performance to close the
+> gap between qspinlock and qrwlock.
+> 
+> With this patch series in place, we can start converting some spinlocks
+> back to rwlocks where it makes sense and the lock size increase isn't
+> a concern.
 
-  https://lwn.net/Articles/650862/
+Both of these patches look fine to me:
 
-The series adds support for a family of relaxed atomics to the kernel.
-More specifically:
+  Acked-by: Will Deacon <will.deacon@arm.com>
 
-  - acquire/release/relaxed flavours of xchg, cmpxchg and {add,sub}_return
-  - atomic_read_acquire
-  - atomic_set_release
-
-This came out of a separate patch series porting the (barrier-heavy)
-qrwlock code to arm64. Rather than have arch-specific hooks littered
-around the place, it makes more sense to define a core set of relaxed
-atomics that can be used regardless of architecture.
-
-Changes since v1 include:
-
-  - Added macros to construct acquire/release/fence variants from a
-    relaxed variant + barrier macros
-
-  - Ported ARM as a proof of concept (with a negative diffstat!)
-
-Build tested on ARM, arm64, PowerPC and x86.
-
-All feedback welcome,
+Cheers,
 
 Will
-
---->8
-
-Will Deacon (7):
-  atomics: add acquire/release/relaxed variants of some atomic
-    operations
-  asm-generic: rework atomic-long.h to avoid bulk code duplication
-  asm-generic: add relaxed/acquire/release variants for atomic_long_t
-  lockref: remove homebrew cmpxchg64_relaxed macro definition
-  locking/qrwlock: make use of acquire/release/relaxed atomics
-  include/llist: use linux/atomic.h instead of asm/cmpxchg.h
-  ARM: atomics: define our SMP atomics in terms of _relaxed operations
-
- arch/arm/include/asm/atomic.h     |  37 ++---
- arch/arm/include/asm/cmpxchg.h    |  47 +-----
- include/asm-generic/atomic-long.h | 263 ++++++++++++--------------------
- include/asm-generic/qrwlock.h     |  13 +-
- include/linux/atomic.h            | 312 ++++++++++++++++++++++++++++++++++++++
- include/linux/llist.h             |   2 +-
- kernel/locking/qrwlock.c          |  12 +-
- lib/lockref.c                     |   8 -
- 8 files changed, 442 insertions(+), 252 deletions(-)
-
--- 
-2.1.4
-
