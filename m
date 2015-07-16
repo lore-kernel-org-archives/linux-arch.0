@@ -1,74 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yk0-f174.google.com ([209.85.160.174]:36392 "EHLO
-	mail-yk0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754001AbbGPCWo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Jul 2015 22:22:44 -0400
-Received: by ykay190 with SMTP id y190so53147567yka.3
-        for <linux-arch@vger.kernel.org>; Wed, 15 Jul 2015 19:22:43 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <alpine.DEB.2.11.1507151345060.18576@nanos>
-References: <cover.1436511577.git.baolin.wang@linaro.org>
-	<a1bd8d71caeb4051d0be87aad1baae7ababa4df7.1436511577.git.baolin.wang@linaro.org>
-	<alpine.DEB.2.11.1507151226210.18576@nanos>
-	<CAMz4kuLxBj+82trNVXs9qkuecrKvgdbXuJ3dfvDOCfyJwrDX9Q@mail.gmail.com>
-	<alpine.DEB.2.11.1507151345060.18576@nanos>
-Date: Thu, 16 Jul 2015 10:22:43 +0800
-Message-ID: <CAMz4kuKNVACNhwddXMyCqKGpOf_gsoHk=ZFZFuaY=8e4DCRwGw@mail.gmail.com>
-Subject: Re: [PATCH 6/6] cputime: Introduce cputime_to_timespec64()/timespec64_to_cputime()
-From: Baolin Wang <baolin.wang@linaro.org>
-Content-Type: text/plain; charset=UTF-8
+Received: from ozlabs.org ([103.22.144.67]:44790 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752222AbbGPEMc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Jul 2015 00:12:32 -0400
+Message-ID: <1437019949.28475.6.camel@ellerman.id.au>
+Subject: Re: [3/3] IRQ: Print "unexpected IRQ" messages consistently across
+ architectures
+From: Michael Ellerman <mpe@ellerman.id.au>
+Date: Thu, 16 Jul 2015 14:12:29 +1000
+In-Reply-To: <CAErSpo52Kk0c=1UHQzxntJc3ph_CX8vcY+QdULBKv-HGUHBK9Q@mail.gmail.com>
+References: <20150712220211.7166.42035.stgit@bhelgaas-glaptop2.roam.corp.google.com>
+	 <20150713032303.D49801402B1@ozlabs.org>
+	 <CAErSpo52Kk0c=1UHQzxntJc3ph_CX8vcY+QdULBKv-HGUHBK9Q@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: benh@kernel.crashing.org, Arnd Bergmann <arnd@arndb.de>, John Stultz <john.stultz@linaro.org>, peterz@infradead.org, paulus@samba.org, mpe@ellerman.id.au, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux390@de.ibm.com, rth@twiddle.net, riel@redhat.com, cl@linux.com, tj@kernel.org, =?UTF-8?B?RnLDqWTDqXJpYyBXZWlzYmVja2Vy?= <fweisbec@gmail.com>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, y2038 Mailman List <y2038@lists.linaro.org>
-Message-ID: <20150716022243.YIIZ4qDqzMGJ9DSEtRBzMB-en1beW8I3pUhL0cU2ess@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, linux-am33-list@redhat.com, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, adi-buildroot-devel@lists.sourceforge.net, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k@lists.linux-m68k.org, linux-alpha@vger.kernel.org, "x86@kernel.org" <x86@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+Message-ID: <20150716041229.yXYkFNobnifQ2Csz-koYB2zVLcsBBNTcmsFeG5W8pYk@z>
 
-On 15 July 2015 at 19:55, Thomas Gleixner <tglx@linutronix.de> wrote:
-> On Wed, 15 Jul 2015, Baolin Wang wrote:
->
->> On 15 July 2015 at 18:31, Thomas Gleixner <tglx@linutronix.de> wrote:
->> > On Wed, 15 Jul 2015, Baolin Wang wrote:
->> >
->> >> The cputime_to_timespec() and timespec_to_cputime() functions are
->> >> not year 2038 safe on 32bit systems due to that the struct timepsec
->> >> will overflow in 2038 year.
->> >
->> > And how is this relevant? cputime is not based on wall clock time at
->> > all. So what has 2038 to do with cputime?
->> >
->> > We want proper explanations WHY we need such a change.
->>
->> When converting the posix-cpu-timers, it call the
->> cputime_to_timespec() function. Thus it need a conversion for this
->> function.
->
-> There is no requirement to convert posix-cpu-timers on their own. We
-> need to adopt the posix cpu timers code because it shares syscalls
-> with the other posix timers, but that still does not explain why we
-> need these functions.
->
+On Mon, 2015-07-13 at 13:35 -0500, Bjorn Helgaas wrote:
+> On Sun, Jul 12, 2015 at 10:23 PM, Michael Ellerman <mpe@ellerman.id.au> wrote:
+> > On Sun, 2015-12-07 at 22:02:11 UTC, Bjorn Helgaas wrote:
+> >> Many architectures use a variant of "unexpected IRQ trap at vector %x" to
+> >> log unexpected IRQs.  This is confusing because (a) it prints the Linux IRQ
+> >> number, but "vector" more often refers to a CPU vector number, and (b) it
+> >> prints the IRQ number in hex with no base indication, while Linux IRQ
+> >> numbers are usually printed in decimal.
+> >>
+> >> Print the same text ("unexpected IRQ %d") across all architectures.
+> >>
+> >> No functional change other than the output text.
+> >
+> > There's already a fallback version in asm-generic, so shouldn't you instead
+> > just delete all the versions that are identical to that?
+> >
+> > eg. on powerpc we have:
+> >
+> >>  static inline void ack_bad_irq(unsigned int irq)
+> >>  {
+> >> -     printk(KERN_CRIT "unexpected IRQ trap at vector %02x\n", irq);
+> >> +     printk(KERN_CRIT "unexpected IRQ %d\n", irq);
+> >>  }
+> >
+> > And the generic version is:
+> >
+> >>  #ifndef ack_bad_irq
+> >>  static inline void ack_bad_irq(unsigned int irq)
+> >>  {
+> >> -     printk(KERN_CRIT "unexpected IRQ trap at vector %02x\n", irq);
+> >> +     printk(KERN_CRIT "unexpected IRQ %d\n", irq);
+> >>  }
+> >>  #endif
+> >
+> > So we can just delete the powerpc version?
+> 
+> Wow, I really didn't do my homework here.  Not only is there a generic
+> version already, but there's also print_irq_desc(), which prints way
+> more information than any of the ack_bad_irq() implementations.
 
-In posix-cpu-timers, it also defined some 'k_clock struct' variables,
-and we need to convert the callbacks of the 'k_clock struct' which are
-not year 2038 safe on 32bit systems. Some callbacks which need to
-convert call the cputime_to_timespec() function, thus we also want to
-convert the cputime_to_timespec() function to a year 2038 safe
-function to make all them ready for the year 2038 issue.
+Even better :)
 
->> You can see that conversion in patch "posix-cpu-timers: Convert to
->> y2038 safe callbacks" from
->> https://git.linaro.org/people/baolin.wang/upstream_0627.git.
->
-> I do not care about your random git tree. I care about proper
-> changelogs. Your changelogs are just a copied boilerplate full of
-> errors.
->
-> Thanks,
->
->         tglx
+> I'll try again :)
+
+Thanks.
+
+cheers
 
 
-
--- 
-Baolin.wang
-Best Regards
