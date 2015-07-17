@@ -1,40 +1,43 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 00/28] arch: Provide atomic logic ops
-Date: Fri, 17 Jul 2015 13:57:34 +0100
-Message-ID: <20150717125734.GP18994@arm.com>
-References: <20150716172110.587529075@infradead.org>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH 1/3] x86, irq: Rename VECTOR_UNDEFINED and VECTOR_RETRIGGERED
+ to IRQ_*
+Date: Fri, 17 Jul 2015 16:06:54 +0200 (CEST)
+Message-ID: <alpine.DEB.2.11.1507171558010.18576@nanos>
+References: <20150712215559.7166.33068.stgit@bhelgaas-glaptop2.roam.corp.google.com> <20150712220154.7166.48327.stgit@bhelgaas-glaptop2.roam.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:48852 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758041AbbGQM5j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Jul 2015 08:57:39 -0400
-Content-Disposition: inline
-In-Reply-To: <20150716172110.587529075@infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, ysa
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <20150712220154.7166.48327.stgit@bhelgaas-glaptop2.roam.corp.google.com>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-am33-list@redhat.com, linux-ia64@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-alpha@vger.kernel.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jul 16, 2015 at 06:21:10PM +0100, Peter Zijlstra wrote:
-> Currently there is an incoherent mess of atomic_{set,clear}_mask() and
-> atomic_or() (but no atomic_{and,nand,xor}()) in the tree.
-> 
-> Those archs that implement atomic_{set,clear}_mask() are not even consistent on
-> its signature.
-> 
-> Implement atomic_{or,and,xor}() on all archs and deprecate
-> atomic_{set,clear}_mask().
-> 
-> The series has been compile tested by the build-bot, no known failures at this time.
-> 
-> I would like to take this through tip; I'll ask Ingo to put it in a separate
-> branch such that people can pull in that branch if there is conflicting work
-> elsewhere (Will has some for Argh64).
+On Sun, 12 Jul 2015, Bjorn Helgaas wrote:
 
-Cheers, Peter. FWIW, the ARM/arm64 bits look fine to me:
+> The per-cpu vector_irq[] table is indexed by CPU vector numbers, and each
+> entry contains an IRQ number.
+> 
+> Rename the special values VECTOR_UNDEFINED and VECTOR_RETRIGGERED to
+> IRQ_UNDEFINED and IRQ_RETRIGGERED to indicate that they are in the IRQ
+> number space, not the CPU vector number space.
 
-  Acked-by: Will Deacon <will.deacon@arm.com>
+Makes some sense, but OTOH vector_irq actually reflects the vector
+state not the irq number state. The fact that we store the Linux irq
+number in vector_irq is just an implementation detail.
 
-Will
+VECTOR_UNDEFINED is certainly a misnomer; that should be VECTOR_UNUSED
+
+VECTOR_RETRIGGERED is pretty accurate. In the case we retrigger an
+interrupt, we merily use the Linux irq number to figure out which
+vector to kick. And after we retriggered it, we lose the association
+to the Linux irq number completely.
+
+That said, I'm working on storing the irq descriptor pointer in
+vector_irq instead of the irq number, which has the advantage that we
+avoid the lookup of the irq descriptor in the interrupt hotpath.
+
+Thanks,
+
+	tglx
+
