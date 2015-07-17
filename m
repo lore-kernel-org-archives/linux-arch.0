@@ -1,48 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:47599 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757828AbbGQOHO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2015 10:07:14 -0400
-Date: Fri, 17 Jul 2015 16:06:54 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 1/3] x86, irq: Rename VECTOR_UNDEFINED and VECTOR_RETRIGGERED
- to IRQ_*
-In-Reply-To: <20150712220154.7166.48327.stgit@bhelgaas-glaptop2.roam.corp.google.com>
-Message-ID: <alpine.DEB.2.11.1507171558010.18576@nanos>
-References: <20150712215559.7166.33068.stgit@bhelgaas-glaptop2.roam.corp.google.com> <20150712220154.7166.48327.stgit@bhelgaas-glaptop2.roam.corp.google.com>
+Received: from g2t1383g.austin.hp.com ([15.217.136.92]:23925 "EHLO
+	g2t1383g.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754626AbbGQRRO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2015 13:17:14 -0400
+Received: from g2t2352.austin.hp.com (g2t2352.austin.hp.com [15.217.128.51])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by g2t1383g.austin.hp.com (Postfix) with ESMTPS id E98D84B7D
+	for <linux-arch@vger.kernel.org>; Fri, 17 Jul 2015 17:17:13 +0000 (UTC)
+Message-ID: <55A93896.3090905@hp.com>
+Date: Fri, 17 Jul 2015 13:17:10 -0400
+From: Waiman Long <waiman.long@hp.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Subject: Re: [PATCH v2 7/7] ARM: atomics: define our SMP atomics in terms
+ of _relaxed operations
+References: <1437060758-10381-1-git-send-email-will.deacon@arm.com> <1437060758-10381-8-git-send-email-will.deacon@arm.com> <55A816A3.1000502@hp.com> <20150716210821.GC19282@twins.programming.kicks-ass.net> <55A845A2.20507@hp.com> <20150717093555.GC18994@arm.com>
+In-Reply-To: <20150717093555.GC18994@arm.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-am33-list@redhat.com, linux-ia64@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-kernel@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-alpha@vger.kernel.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20150717140654.HcPduANUEMEP-7NMPTyj-ktkC718E7pwXQuiXTHMdmM@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20150717171710.AcPpSG-ZhqwGk-FpEucPi883DeG5q7qROQO6_L2gvL0@z>
 
-On Sun, 12 Jul 2015, Bjorn Helgaas wrote:
+On 07/17/2015 05:35 AM, Will Deacon wrote:
+> On Fri, Jul 17, 2015 at 01:00:34AM +0100, Waiman Long wrote:
+>> On 07/16/2015 05:08 PM, Peter Zijlstra wrote:
+>>> On Thu, Jul 16, 2015 at 04:40:03PM -0400, Waiman Long wrote:
+>>>> On 07/16/2015 11:32 AM, Will Deacon wrote:
+>>>>> @@ -117,6 +115,8 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
+>>>>>    #error "SMP is not supported on this platform"
+>>>                ^^^^^^^^^^^^^
+>> That #error is only for ARMv5 or below.
+>>
+>>>>>    #endif
+>>>>>
+>>>>> +#define xchg xchg_relaxed
+>>>> Is that a typo? I think xchg() needs to be a full memory barrier.
+>>> Pointless on UP.
+> I don't see the problem here. As Peter pointed out, this code only gets
+> looked at if !SMP and structuring it this way means I can have one
+> definition of xchg_relaxed, regardless of architecture version.
+>
+> Will
 
-> The per-cpu vector_irq[] table is indexed by CPU vector numbers, and each
-> entry contains an IRQ number.
-> 
-> Rename the special values VECTOR_UNDEFINED and VECTOR_RETRIGGERED to
-> IRQ_UNDEFINED and IRQ_RETRIGGERED to indicate that they are in the IRQ
-> number space, not the CPU vector number space.
+I am sorry that I got confused as to where it is defined. It should be 
+OK in this case.
 
-Makes some sense, but OTOH vector_irq actually reflects the vector
-state not the irq number state. The fact that we store the Linux irq
-number in vector_irq is just an implementation detail.
-
-VECTOR_UNDEFINED is certainly a misnomer; that should be VECTOR_UNUSED
-
-VECTOR_RETRIGGERED is pretty accurate. In the case we retrigger an
-interrupt, we merily use the Linux irq number to figure out which
-vector to kick. And after we retriggered it, we lose the association
-to the Linux irq number completely.
-
-That said, I'm working on storing the irq descriptor pointer in
-vector_irq instead of the irq number, which has the advantage that we
-avoid the lookup of the irq descriptor in the interrupt hotpath.
-
-Thanks,
-
-	tglx
-
+Cheers,
+Longman
