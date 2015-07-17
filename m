@@ -1,86 +1,44 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 1/7] atomics: add acquire/release/relaxed variants of
- some atomic operations
-Date: Fri, 17 Jul 2015 18:30:50 +0100
-Message-ID: <20150717173050.GH8055@arm.com>
-References: <1437060758-10381-1-git-send-email-will.deacon@arm.com>
- <1437060758-10381-2-git-send-email-will.deacon@arm.com>
- <55A84740.7080705@hp.com>
- <20150717094014.GD18994@arm.com>
- <55A9393A.403@hp.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH 1/3] x86, irq: Rename VECTOR_UNDEFINED and
+ VECTOR_RETRIGGERED to IRQ_*
+Date: Fri, 17 Jul 2015 12:50:05 -0500
+Message-ID: <CAErSpo6HFN1i2cMwrLyFoYGrvaX-QFeVT_bJyRo9wpFLwma49g@mail.gmail.com>
+References: <20150712215559.7166.33068.stgit@bhelgaas-glaptop2.roam.corp.google.com>
+ <20150712220154.7166.48327.stgit@bhelgaas-glaptop2.roam.corp.google.com> <alpine.DEB.2.11.1507171558010.18576@nanos>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:50132 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755849AbbGQRax (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Jul 2015 13:30:53 -0400
-Content-Disposition: inline
-In-Reply-To: <55A9393A.403@hp.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <alpine.DEB.2.11.1507171558010.18576@nanos>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, linux-am33-list@redhat.com, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, adi-buildroot-devel@lists.sourceforge.net, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k@lists.linux-m68k.org, linux-alpha@vger.kernel.org, "x86@kernel.org" <x86@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 17, 2015 at 06:19:54PM +0100, Waiman Long wrote:
-> On 07/17/2015 05:40 AM, Will Deacon wrote:
-> > On Fri, Jul 17, 2015 at 01:07:28AM +0100, Waiman Long wrote:
-> >> I have a minor nit. The atomic_add_return block is repeated with
-> >> "s/atomic_add_return/.../". Perhaps some more comments to delineate the
-> >> blocks more visibly will make this patch easier to read.
-> > Yeah, I agree that it's pretty hard going, but I don't have any great
-> > suggestions to solve that. I could add an extra blank line + comment
-> > before the start of each section, if you like? Example snippet below.
-> >
-> > Will
-> >
-> > --->8
-> >
-> > [...]
-> > #endif /* atomic_sub_return_relaxed */
-> >
-> >
-> > /* atomic_xchg_relaxed */
-> > #ifndef atomic_xchg_relaxed
-> > #define  atomic_xchg_relaxed		atomic_xchg
-> > #define  atomic_xchg_acquire		atomic_xchg
-> > #define  atomic_xchg_release		atomic_xchg
-> >
-> > #else /* atomic_xchg_relaxed */
-> >
-> > #ifndef atomic_xchg_acquire
-> > #define  atomic_xchg_acquire(...)					\
-> > 	__atomic_op_acquire(int, atomic_xchg, __VA_ARGS__)
-> > #endif
-> >
-> > #ifndef atomic_xchg_release
-> > #define  atomic_xchg_release(...)					\
-> > 	__atomic_op_release(int, atomic_xchg, __VA_ARGS__)
-> > #endif
-> >
-> > #ifndef atomic_xchg
-> > #define  atomic_xchg(...)						\
-> > 	__atomic_op_fence(int, atomic_xchg, __VA_ARGS__)
-> > #endif
-> > #endif /* atomic_xchg_relaxed */
-> >
-> >
-> > /* atomic_cmpxchg_relaxed */
-> > [...]
-> Something like
-> 
-> /* BEGIN atomc_xchg_relax */
-> ...
-> /* END atomic_xchg_relax */
-> 
-> may help.
-> 
-> Alternatively, I sometimes add a line separator like
-> 
-> /*===================[ atomic_xchg_relax ]====================*/
+On Fri, Jul 17, 2015 at 9:06 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> On Sun, 12 Jul 2015, Bjorn Helgaas wrote:
+>
+>> The per-cpu vector_irq[] table is indexed by CPU vector numbers, and each
+>> entry contains an IRQ number.
+>>
+>> Rename the special values VECTOR_UNDEFINED and VECTOR_RETRIGGERED to
+>> IRQ_UNDEFINED and IRQ_RETRIGGERED to indicate that they are in the IRQ
+>> number space, not the CPU vector number space.
+>
+> Makes some sense, but OTOH vector_irq actually reflects the vector
+> state not the irq number state. The fact that we store the Linux irq
+> number in vector_irq is just an implementation detail.
+>
+> VECTOR_UNDEFINED is certainly a misnomer; that should be VECTOR_UNUSED
+>
+> VECTOR_RETRIGGERED is pretty accurate. In the case we retrigger an
+> interrupt, we merily use the Linux irq number to figure out which
+> vector to kick. And after we retriggered it, we lose the association
+> to the Linux irq number completely.
+>
+> That said, I'm working on storing the irq descriptor pointer in
+> vector_irq instead of the irq number, which has the advantage that we
+> avoid the lookup of the irq descriptor in the interrupt hotpath.
 
-Hmm, I think we're straying into cosmetic preferences here and I can
-imagine some people taking objection to the above, especially as they
-don't appear to be in common use in mainline.
+OK, I'll abandon this.  Thanks for taking a look!
 
-Will
+Bjorn
