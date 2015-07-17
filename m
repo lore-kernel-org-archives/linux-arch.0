@@ -1,110 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t1613g.houston.hp.com ([15.240.0.71]:32907 "EHLO
-	g9t1613g.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753822AbbGQRUn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2015 13:20:43 -0400
-Received: from g2t2352.austin.hp.com (g2t2352.austin.hp.com [15.217.128.51])
-	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by g9t1613g.houston.hp.com (Postfix) with ESMTPS id 694626473E
-	for <linux-arch@vger.kernel.org>; Fri, 17 Jul 2015 17:19:58 +0000 (UTC)
-Message-ID: <55A9393A.403@hp.com>
-Date: Fri, 17 Jul 2015 13:19:54 -0400
-From: Waiman Long <waiman.long@hp.com>
+Received: from mail-wi0-f180.google.com ([209.85.212.180]:34272 "EHLO
+	mail-wi0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753470AbbGQRu0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2015 13:50:26 -0400
+Received: by wibud3 with SMTP id ud3so44765319wib.1
+        for <linux-arch@vger.kernel.org>; Fri, 17 Jul 2015 10:50:25 -0700 (PDT)
 MIME-Version: 1.0
-Subject: Re: [PATCH v2 1/7] atomics: add acquire/release/relaxed variants
- of some atomic operations
-References: <1437060758-10381-1-git-send-email-will.deacon@arm.com> <1437060758-10381-2-git-send-email-will.deacon@arm.com> <55A84740.7080705@hp.com> <20150717094014.GD18994@arm.com>
-In-Reply-To: <20150717094014.GD18994@arm.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <alpine.DEB.2.11.1507171558010.18576@nanos>
+References: <20150712215559.7166.33068.stgit@bhelgaas-glaptop2.roam.corp.google.com>
+ <20150712220154.7166.48327.stgit@bhelgaas-glaptop2.roam.corp.google.com> <alpine.DEB.2.11.1507171558010.18576@nanos>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Fri, 17 Jul 2015 12:50:05 -0500
+Message-ID: <CAErSpo6HFN1i2cMwrLyFoYGrvaX-QFeVT_bJyRo9wpFLwma49g@mail.gmail.com>
+Subject: Re: [PATCH 1/3] x86, irq: Rename VECTOR_UNDEFINED and
+ VECTOR_RETRIGGERED to IRQ_*
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20150717171954.pzPP_zXQmkTq4x3Ju8Fy4gP23TWWpNjavo3y621-iog@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, linux-am33-list@redhat.com, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, adi-buildroot-devel@lists.sourceforge.net, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k@lists.linux-m68k.org, linux-alpha@vger.kernel.org, "x86@kernel.org" <x86@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
+Message-ID: <20150717175005.2PlYOf0u2qPgVsqTCvNtUs-fPZzf1WtW6hNE2-FoR0I@z>
 
-On 07/17/2015 05:40 AM, Will Deacon wrote:
-> Hi Waiman,
+On Fri, Jul 17, 2015 at 9:06 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> On Sun, 12 Jul 2015, Bjorn Helgaas wrote:
 >
-> On Fri, Jul 17, 2015 at 01:07:28AM +0100, Waiman Long wrote:
->> On 07/16/2015 11:32 AM, Will Deacon wrote:
->>> +#ifndef atomic64_add_return_relaxed
->>> +#define  atomic64_add_return_relaxed	atomic64_add_return
->>> +#define  atomic64_add_return_acquire	atomic64_add_return
->>> +#define  atomic64_add_return_release	atomic64_add_return
->>> +
->>> +#else /* atomic64_add_return_relaxed */
->>> +
->>> +#ifndef atomic64_add_return_acquire
->>> +#define  atomic64_add_return_acquire(...)				\
->>> +	__atomic_op_acquire(long long, atomic64_add_return, __VA_ARGS__)
->>> +#endif
->>> +
->>> +#ifndef atomic64_add_return_release
->>> +#define  atomic64_add_return_release(...)				\
->>> +	__atomic_op_release(long long, atomic64_add_return, __VA_ARGS__)
->>> +#endif
->>> +
->>> +#ifndef atomic64_add_return
->>> +#define  atomic64_add_return(...)					\
->>> +	__atomic_op_fence(long long, atomic64_add_return, __VA_ARGS__)
->>> +#endif
->>> +#endif /* atomic64_add_return_relaxed */
->>> +
->> I have a minor nit. The atomic_add_return block is repeated with
->> "s/atomic_add_return/.../". Perhaps some more comments to delineate the
->> blocks more visibly will make this patch easier to read.
-> Yeah, I agree that it's pretty hard going, but I don't have any great
-> suggestions to solve that. I could add an extra blank line + comment
-> before the start of each section, if you like? Example snippet below.
+>> The per-cpu vector_irq[] table is indexed by CPU vector numbers, and each
+>> entry contains an IRQ number.
+>>
+>> Rename the special values VECTOR_UNDEFINED and VECTOR_RETRIGGERED to
+>> IRQ_UNDEFINED and IRQ_RETRIGGERED to indicate that they are in the IRQ
+>> number space, not the CPU vector number space.
 >
-> Will
+> Makes some sense, but OTOH vector_irq actually reflects the vector
+> state not the irq number state. The fact that we store the Linux irq
+> number in vector_irq is just an implementation detail.
 >
-> --->8
+> VECTOR_UNDEFINED is certainly a misnomer; that should be VECTOR_UNUSED
 >
-> [...]
-> #endif /* atomic_sub_return_relaxed */
+> VECTOR_RETRIGGERED is pretty accurate. In the case we retrigger an
+> interrupt, we merily use the Linux irq number to figure out which
+> vector to kick. And after we retriggered it, we lose the association
+> to the Linux irq number completely.
 >
->
-> /* atomic_xchg_relaxed */
-> #ifndef atomic_xchg_relaxed
-> #define  atomic_xchg_relaxed		atomic_xchg
-> #define  atomic_xchg_acquire		atomic_xchg
-> #define  atomic_xchg_release		atomic_xchg
->
-> #else /* atomic_xchg_relaxed */
->
-> #ifndef atomic_xchg_acquire
-> #define  atomic_xchg_acquire(...)					\
-> 	__atomic_op_acquire(int, atomic_xchg, __VA_ARGS__)
-> #endif
->
-> #ifndef atomic_xchg_release
-> #define  atomic_xchg_release(...)					\
-> 	__atomic_op_release(int, atomic_xchg, __VA_ARGS__)
-> #endif
->
-> #ifndef atomic_xchg
-> #define  atomic_xchg(...)						\
-> 	__atomic_op_fence(int, atomic_xchg, __VA_ARGS__)
-> #endif
-> #endif /* atomic_xchg_relaxed */
->
->
-> /* atomic_cmpxchg_relaxed */
-> [...]
-Something like
+> That said, I'm working on storing the irq descriptor pointer in
+> vector_irq instead of the irq number, which has the advantage that we
+> avoid the lookup of the irq descriptor in the interrupt hotpath.
 
-/* BEGIN atomc_xchg_relax */
-...
-/* END atomic_xchg_relax */
+OK, I'll abandon this.  Thanks for taking a look!
 
-may help.
-
-Alternatively, I sometimes add a line separator like
-
-/*===================[ atomic_xchg_relax ]====================*/
-
-Cheers,
-Longman
+Bjorn
