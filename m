@@ -1,69 +1,55 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [GIT PULL 0/2] perf/urgent fixes
-Date: Fri, 17 Jul 2015 14:17:58 +0200
-Message-ID: <20150717121758.GA11484@gmail.com>
-References: <1436973608-9271-1-git-send-email-acme@kernel.org>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+Date: Fri, 17 Jul 2015 05:40:40 -0700
+Message-ID: <20150717124040.GB3717@linux.vnet.ibm.com>
+References: <1436826689.3948.233.camel@kernel.crashing.org>
+ <1436929578.10956.3.camel@ellerman.id.au>
+ <20150715104420.GD1005@arm.com>
+ <1437012028.28475.2.camel@ellerman.id.au>
+ <1437023004.28088.27.camel@kernel.crashing.org>
+ <1437023695.28088.29.camel@kernel.crashing.org>
+ <20150716151142.GR3717@linux.vnet.ibm.com>
+ <1437087265.28088.53.camel@kernel.crashing.org>
+ <20150717093221.GB18994@arm.com>
+ <20150717101535.GR3644@twins.programming.kicks-ass.net>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f174.google.com ([209.85.212.174]:36856 "EHLO
-	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750889AbbGQMSD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2015 08:18:03 -0400
+Received: from e38.co.us.ibm.com ([32.97.110.159]:45969 "EHLO
+	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754180AbbGQMkw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2015 08:40:52 -0400
+Received: from /spool/local
+	by e38.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Fri, 17 Jul 2015 06:40:51 -0600
 Content-Disposition: inline
-In-Reply-To: <1436973608-9271-1-git-send-email-acme@kernel.org>
+In-Reply-To: <20150717101535.GR3644@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnaldo Carvalho de Melo <acme@kernel.org>
-Cc: linux-kernel@vger.kernel.org, Aaro Koskinen <aaro.koskinen@nokia.com>, Adrian Hunter <adrian.hunter@intel.com>, Alexey Brodkin <abrodkin@synopsys.com>, David Ahern <dsahern@gmail.com>, Frederic Weisbecker <fweisbec@gmail.com>, Jiri Olsa <jolsa@redhat.com>, linux-arch@vger.kernel.org, Namhyung Kim <namhyung@gmail.com>, Peter Zijlstra <peterz@infradead.org>, Stephane Eranian <eranian@google.com>, Vineet Gupta <vgupta@synopsys.com>, Arnaldo Carvalho de Melo <acme@redhat.com>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
+On Fri, Jul 17, 2015 at 12:15:35PM +0200, Peter Zijlstra wrote:
+> On Fri, Jul 17, 2015 at 10:32:21AM +0100, Will Deacon wrote:
+> > @@ -158,9 +140,7 @@ void arch_spin_lock_flags(arch_spinlock_t *lock, unsigned long flags)
+> >  
+> >  static inline void arch_spin_unlock(arch_spinlock_t *lock)
+> >  {
+> > -	SYNC_IO;
+> > -	__asm__ __volatile__("# arch_spin_unlock\n\t"
+> > -				PPC_RELEASE_BARRIER: : :"memory");
+> > +	smp_mb();
+> >  	lock->slock = 0;
+> >  }
+> 
+> Should we then also make smp_store_release() use sync instead of lwsync
+> to keep it consistent?
 
-* Arnaldo Carvalho de Melo <acme@kernel.org> wrote:
+Unless smp_store_release() needs to interact with MMIO accesses, it
+should still be able to be lwsync.  This means that unlock-lock is a full
+barrier, but relase-acquire is not necessarily, which should be just fine.
 
-> Hi Ingo,
-> 
-> 	Please consider pulling,
-> 
-> - Arnaldo
-> 
-> The following changes since commit 65ea03e31e5ab47f784b1a701419264af97d3205:
-> 
->   Merge tag 'perf-urgent-for-mingo' of git://git.kernel.org/pub/scm/linux/kernel/git/acme/linux into perf/urgent (2015-07-15 13:31:21 +0200)
-> 
-> are available in the git repository at:
-> 
->   git://git.kernel.org/pub/scm/linux/kernel/git/acme/linux.git tags/perf-urgent-for-mingo
-> 
-> for you to fetch changes up to 3c71ba3f80bbd476bbfb2a008da9b676031cbd32:
-> 
->   perf tools: Really allow to specify custom CC, AR or LD (2015-07-15 11:57:28 -0300)
-> 
-> ----------------------------------------------------------------
-> perf/urgent fixes:
-> 
-> User visible:
-> 
-> - Fix misplaced check for HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT in
->   the auxtrace code, which made 'perf record' fail straight away
->   in some architectures, even when auxtrace wasn't involved. (Adrian Hunter)
-> 
-> Developer stuff:
-> 
-> - Really allow to specify custom CC, AR or LD (Alexey Brodkin)
-> 
-> Signed-off-by: Arnaldo Carvalho de Melo <acme@redhat.com>
-> 
-> ----------------------------------------------------------------
-> Adrian Hunter (1):
->       perf auxtrace: Fix misplaced check for HAVE_SYNC_COMPARE_AND_SWAP_SUPPORT
-> 
-> Alexey Brodkin (1):
->       perf tools: Really allow to specify custom CC, AR or LD
-> 
->  tools/perf/Makefile.perf   | 19 ++++++++++++++++---
->  tools/perf/util/auxtrace.c | 10 +++++-----
->  2 files changed, 21 insertions(+), 8 deletions(-)
-
-Pulled, thanks Arnaldo!
-
-	Ingo
+							Thanx, Paul
