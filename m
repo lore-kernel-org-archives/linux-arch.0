@@ -1,46 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:47809 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:48852 "EHLO foss.arm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756149AbbGQJf6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Jul 2015 05:35:58 -0400
-Date: Fri, 17 Jul 2015 10:35:55 +0100
+	id S1758041AbbGQM5j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Jul 2015 08:57:39 -0400
+Date: Fri, 17 Jul 2015 13:57:34 +0100
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 7/7] ARM: atomics: define our SMP atomics in terms of
- _relaxed operations
-Message-ID: <20150717093555.GC18994@arm.com>
-References: <1437060758-10381-1-git-send-email-will.deacon@arm.com>
- <1437060758-10381-8-git-send-email-will.deacon@arm.com>
- <55A816A3.1000502@hp.com>
- <20150716210821.GC19282@twins.programming.kicks-ass.net>
- <55A845A2.20507@hp.com>
+Subject: Re: [PATCH 00/28] arch: Provide atomic logic ops
+Message-ID: <20150717125734.GP18994@arm.com>
+References: <20150716172110.587529075@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <55A845A2.20507@hp.com>
+In-Reply-To: <20150716172110.587529075@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20150717093555.y4qKLXZP70D83YbpyOuQN4jKUpxfcn-1rQDVaSPhAz0@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, "ysato@users.sourceforge.jp" <ysato@users.sourceforge.jp>, "mingo@kernel.org" <mingo@kernel.org>
+Message-ID: <20150717125734.FQMONR8VmDIodzq8eC6mQc3x41teKCDhZjGD2AOza00@z>
 
-On Fri, Jul 17, 2015 at 01:00:34AM +0100, Waiman Long wrote:
-> On 07/16/2015 05:08 PM, Peter Zijlstra wrote:
-> > On Thu, Jul 16, 2015 at 04:40:03PM -0400, Waiman Long wrote:
-> >> On 07/16/2015 11:32 AM, Will Deacon wrote:
-> >>> @@ -117,6 +115,8 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
-> >>>   #error "SMP is not supported on this platform"
-> >               ^^^^^^^^^^^^^
+On Thu, Jul 16, 2015 at 06:21:10PM +0100, Peter Zijlstra wrote:
+> Currently there is an incoherent mess of atomic_{set,clear}_mask() and
+> atomic_or() (but no atomic_{and,nand,xor}()) in the tree.
 > 
-> That #error is only for ARMv5 or below.
+> Those archs that implement atomic_{set,clear}_mask() are not even consistent on
+> its signature.
 > 
-> >>>   #endif
-> >>>
-> >>> +#define xchg xchg_relaxed
-> >> Is that a typo? I think xchg() needs to be a full memory barrier.
-> > Pointless on UP.
+> Implement atomic_{or,and,xor}() on all archs and deprecate
+> atomic_{set,clear}_mask().
+> 
+> The series has been compile tested by the build-bot, no known failures at this time.
+> 
+> I would like to take this through tip; I'll ask Ingo to put it in a separate
+> branch such that people can pull in that branch if there is conflicting work
+> elsewhere (Will has some for Argh64).
 
-I don't see the problem here. As Peter pointed out, this code only gets
-looked at if !SMP and structuring it this way means I can have one
-definition of xchg_relaxed, regardless of architecture version.
+Cheers, Peter. FWIW, the ARM/arm64 bits look fine to me:
+
+  Acked-by: Will Deacon <will.deacon@arm.com>
 
 Will
