@@ -1,37 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:45514 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756503AbbGPVI0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Jul 2015 17:08:26 -0400
-Date: Thu, 16 Jul 2015 23:08:21 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2 7/7] ARM: atomics: define our SMP atomics in terms of
- _relaxed operations
-Message-ID: <20150716210821.GC19282@twins.programming.kicks-ass.net>
-References: <1437060758-10381-1-git-send-email-will.deacon@arm.com>
- <1437060758-10381-8-git-send-email-will.deacon@arm.com>
- <55A816A3.1000502@hp.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <55A816A3.1000502@hp.com>
+Received: from cantor2.suse.de ([195.135.220.15]:57165 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750811AbbGQEvp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Jul 2015 00:51:45 -0400
+From: Juergen Gross <jgross@suse.com>
+Subject: [Patch V6 12/16] mm: provide early_memremap_ro to establish read-only mapping
+Date: Fri, 17 Jul 2015 06:51:33 +0200
+Message-ID: <1437108697-4115-13-git-send-email-jgross@suse.com>
+In-Reply-To: <1437108697-4115-1-git-send-email-jgross@suse.com>
+References: <1437108697-4115-1-git-send-email-jgross@suse.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com
-Message-ID: <20150716210821.HLHJZ8oplGXgCxRAODaauIEN0i92B6LSEW3WSS2HaYE@z>
+To: linux-kernel@vger.kernel.org, xen-devel@lists.xensource.com, konrad.wilk@oracle.com, david.vrabel@citrix.com, boris.ostrovsky@oracle.com
+Cc: Juergen Gross <jgross@suse.com>, Arnd Bergmann <arnd@arndb.de>, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Message-ID: <20150717045133.3dikN_CrTuxm_M0BePYVcQ5mjw1kevpXduvuDCVu3to@z>
 
-On Thu, Jul 16, 2015 at 04:40:03PM -0400, Waiman Long wrote:
-> On 07/16/2015 11:32 AM, Will Deacon wrote:
-> >@@ -117,6 +115,8 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
-> >  #error "SMP is not supported on this platform"
+During early boot as Xen pv domain the kernel needs to map some page
+tables supplied by the hypervisor read only. This is needed to be
+able to relocate some data structures conflicting with the physical
+memory map especially on systems with huge RAM (above 512GB).
 
-             ^^^^^^^^^^^^^
+Provide the function early_memremap_ro() to provide this read only
+mapping.
 
-> >  #endif
-> >
-> >+#define xchg xchg_relaxed
-> 
-> Is that a typo? I think xchg() needs to be a full memory barrier.
+Signed-off-by: Juergen Gross <jgross@suse.com>
+Acked-by: Konrad Rzeszutek Wilk <Konrad.wilk@oracle.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-mm@kvack.org
+Cc: linux-arch@vger.kernel.org
+---
+ include/asm-generic/early_ioremap.h |  2 ++
+ include/asm-generic/fixmap.h        |  3 +++
+ mm/early_ioremap.c                  | 12 ++++++++++++
+ 3 files changed, 17 insertions(+)
 
-Pointless on UP.
+diff --git a/include/asm-generic/early_ioremap.h b/include/asm-generic/early_ioremap.h
+index a5de55c..316bd04 100644
+--- a/include/asm-generic/early_ioremap.h
++++ b/include/asm-generic/early_ioremap.h
+@@ -11,6 +11,8 @@ extern void __iomem *early_ioremap(resource_size_t phys_addr,
+ 				   unsigned long size);
+ extern void *early_memremap(resource_size_t phys_addr,
+ 			    unsigned long size);
++extern void *early_memremap_ro(resource_size_t phys_addr,
++			       unsigned long size);
+ extern void early_iounmap(void __iomem *addr, unsigned long size);
+ extern void early_memunmap(void *addr, unsigned long size);
+ 
+diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
+index f23174f..1cbb833 100644
+--- a/include/asm-generic/fixmap.h
++++ b/include/asm-generic/fixmap.h
+@@ -46,6 +46,9 @@ static inline unsigned long virt_to_fix(const unsigned long vaddr)
+ #ifndef FIXMAP_PAGE_NORMAL
+ #define FIXMAP_PAGE_NORMAL PAGE_KERNEL
+ #endif
++#if !defined(FIXMAP_PAGE_RO) && defined(PAGE_KERNEL_RO)
++#define FIXMAP_PAGE_RO PAGE_KERNEL_RO
++#endif
+ #ifndef FIXMAP_PAGE_NOCACHE
+ #define FIXMAP_PAGE_NOCACHE PAGE_KERNEL_NOCACHE
+ #endif
+diff --git a/mm/early_ioremap.c b/mm/early_ioremap.c
+index e10ccd2..0cfadaf 100644
+--- a/mm/early_ioremap.c
++++ b/mm/early_ioremap.c
+@@ -217,6 +217,13 @@ early_memremap(resource_size_t phys_addr, unsigned long size)
+ 	return (__force void *)__early_ioremap(phys_addr, size,
+ 					       FIXMAP_PAGE_NORMAL);
+ }
++#ifdef FIXMAP_PAGE_RO
++void __init *
++early_memremap_ro(resource_size_t phys_addr, unsigned long size)
++{
++	return (__force void *)__early_ioremap(phys_addr, size, FIXMAP_PAGE_RO);
++}
++#endif
+ #else /* CONFIG_MMU */
+ 
+ void __init __iomem *
+@@ -231,6 +238,11 @@ early_memremap(resource_size_t phys_addr, unsigned long size)
+ {
+ 	return (void *)phys_addr;
+ }
++void __init *
++early_memremap_ro(resource_size_t phys_addr, unsigned long size)
++{
++	return (void *)phys_addr;
++}
+ 
+ void __init early_iounmap(void __iomem *addr, unsigned long size)
+ {
+-- 
+2.1.4
+
