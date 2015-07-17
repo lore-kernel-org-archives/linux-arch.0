@@ -1,55 +1,40 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [RFC PATCH v2] memory-barriers: remove
- smp_mb__after_unlock_lock()
-Date: Fri, 17 Jul 2015 05:40:40 -0700
-Message-ID: <20150717124040.GB3717@linux.vnet.ibm.com>
-References: <1436826689.3948.233.camel@kernel.crashing.org>
- <1436929578.10956.3.camel@ellerman.id.au>
- <20150715104420.GD1005@arm.com>
- <1437012028.28475.2.camel@ellerman.id.au>
- <1437023004.28088.27.camel@kernel.crashing.org>
- <1437023695.28088.29.camel@kernel.crashing.org>
- <20150716151142.GR3717@linux.vnet.ibm.com>
- <1437087265.28088.53.camel@kernel.crashing.org>
- <20150717093221.GB18994@arm.com>
- <20150717101535.GR3644@twins.programming.kicks-ass.net>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 00/28] arch: Provide atomic logic ops
+Date: Fri, 17 Jul 2015 13:57:34 +0100
+Message-ID: <20150717125734.GP18994@arm.com>
+References: <20150716172110.587529075@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e38.co.us.ibm.com ([32.97.110.159]:45969 "EHLO
-	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754180AbbGQMkw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2015 08:40:52 -0400
-Received: from /spool/local
-	by e38.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Fri, 17 Jul 2015 06:40:51 -0600
+Received: from foss.arm.com ([217.140.101.70]:48852 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758041AbbGQM5j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Jul 2015 08:57:39 -0400
 Content-Disposition: inline
-In-Reply-To: <20150717101535.GR3644@twins.programming.kicks-ass.net>
+In-Reply-To: <20150716172110.587529075@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will.deacon@arm.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, ysa
 
-On Fri, Jul 17, 2015 at 12:15:35PM +0200, Peter Zijlstra wrote:
-> On Fri, Jul 17, 2015 at 10:32:21AM +0100, Will Deacon wrote:
-> > @@ -158,9 +140,7 @@ void arch_spin_lock_flags(arch_spinlock_t *lock, unsigned long flags)
-> >  
-> >  static inline void arch_spin_unlock(arch_spinlock_t *lock)
-> >  {
-> > -	SYNC_IO;
-> > -	__asm__ __volatile__("# arch_spin_unlock\n\t"
-> > -				PPC_RELEASE_BARRIER: : :"memory");
-> > +	smp_mb();
-> >  	lock->slock = 0;
-> >  }
+On Thu, Jul 16, 2015 at 06:21:10PM +0100, Peter Zijlstra wrote:
+> Currently there is an incoherent mess of atomic_{set,clear}_mask() and
+> atomic_or() (but no atomic_{and,nand,xor}()) in the tree.
 > 
-> Should we then also make smp_store_release() use sync instead of lwsync
-> to keep it consistent?
+> Those archs that implement atomic_{set,clear}_mask() are not even consistent on
+> its signature.
+> 
+> Implement atomic_{or,and,xor}() on all archs and deprecate
+> atomic_{set,clear}_mask().
+> 
+> The series has been compile tested by the build-bot, no known failures at this time.
+> 
+> I would like to take this through tip; I'll ask Ingo to put it in a separate
+> branch such that people can pull in that branch if there is conflicting work
+> elsewhere (Will has some for Argh64).
 
-Unless smp_store_release() needs to interact with MMIO accesses, it
-should still be able to be lwsync.  This means that unlock-lock is a full
-barrier, but relase-acquire is not necessarily, which should be just fine.
+Cheers, Peter. FWIW, the ARM/arm64 bits look fine to me:
 
-							Thanx, Paul
+  Acked-by: Will Deacon <will.deacon@arm.com>
+
+Will
