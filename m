@@ -1,51 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f180.google.com ([209.85.212.180]:34272 "EHLO
-	mail-wi0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753470AbbGQRu0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Jul 2015 13:50:26 -0400
-Received: by wibud3 with SMTP id ud3so44765319wib.1
-        for <linux-arch@vger.kernel.org>; Fri, 17 Jul 2015 10:50:25 -0700 (PDT)
+Received: from mail-wi0-f175.google.com ([209.85.212.175]:37884 "EHLO
+	mail-wi0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752159AbbGRTLy convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 18 Jul 2015 15:11:54 -0400
 MIME-Version: 1.0
-In-Reply-To: <alpine.DEB.2.11.1507171558010.18576@nanos>
-References: <20150712215559.7166.33068.stgit@bhelgaas-glaptop2.roam.corp.google.com>
- <20150712220154.7166.48327.stgit@bhelgaas-glaptop2.roam.corp.google.com> <alpine.DEB.2.11.1507171558010.18576@nanos>
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Fri, 17 Jul 2015 12:50:05 -0500
-Message-ID: <CAErSpo6HFN1i2cMwrLyFoYGrvaX-QFeVT_bJyRo9wpFLwma49g@mail.gmail.com>
-Subject: Re: [PATCH 1/3] x86, irq: Rename VECTOR_UNDEFINED and
- VECTOR_RETRIGGERED to IRQ_*
+In-Reply-To: <1436288623-13007-5-git-send-email-emunson@akamai.com>
+References: <1436288623-13007-1-git-send-email-emunson@akamai.com> <1436288623-13007-5-git-send-email-emunson@akamai.com>
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Date: Sat, 18 Jul 2015 15:11:23 -0400
+Message-ID: <CAP=VYLq5=9DCfncJpQizcSbQt1O7VL2yEdzZNOFK+M3pqLpb3Q@mail.gmail.com>
+Subject: Re: [PATCH V3 4/5] mm: mmap: Add mmap flag to request VM_LOCKONFAULT
 Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, linux-am33-list@redhat.com, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-c6x-dev@linux-c6x.org, linux-parisc@vger.kernel.org, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, adi-buildroot-devel@lists.sourceforge.net, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-m68k@lists.linux-m68k.org, linux-alpha@vger.kernel.org, "x86@kernel.org" <x86@kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
-Message-ID: <20150717175005.2PlYOf0u2qPgVsqTCvNtUs-fPZzf1WtW6hNE2-FoR0I@z>
+To: Eric B Munson <emunson@akamai.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-mm@kvack.org, linux-arch <linux-arch@vger.kernel.org>, linux-api@vger.kernel.org, cmetcalf@ezchip.com, "linux-next@vger.kernel.org" <linux-next@vger.kernel.org>
+Message-ID: <20150718191123.R4D8QBxzLWj_L6pH-SSrenl3wW29hjcGr9LxHnu44-0@z>
 
-On Fri, Jul 17, 2015 at 9:06 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> On Sun, 12 Jul 2015, Bjorn Helgaas wrote:
+On Tue, Jul 7, 2015 at 1:03 PM, Eric B Munson <emunson@akamai.com> wrote:
+> The cost of faulting in all memory to be locked can be very high when
+> working with large mappings.  If only portions of the mapping will be
+> used this can incur a high penalty for locking.
 >
->> The per-cpu vector_irq[] table is indexed by CPU vector numbers, and each
->> entry contains an IRQ number.
->>
->> Rename the special values VECTOR_UNDEFINED and VECTOR_RETRIGGERED to
->> IRQ_UNDEFINED and IRQ_RETRIGGERED to indicate that they are in the IRQ
->> number space, not the CPU vector number space.
->
-> Makes some sense, but OTOH vector_irq actually reflects the vector
-> state not the irq number state. The fact that we store the Linux irq
-> number in vector_irq is just an implementation detail.
->
-> VECTOR_UNDEFINED is certainly a misnomer; that should be VECTOR_UNUSED
->
-> VECTOR_RETRIGGERED is pretty accurate. In the case we retrigger an
-> interrupt, we merily use the Linux irq number to figure out which
-> vector to kick. And after we retriggered it, we lose the association
-> to the Linux irq number completely.
->
-> That said, I'm working on storing the irq descriptor pointer in
-> vector_irq instead of the irq number, which has the advantage that we
-> avoid the lookup of the irq descriptor in the interrupt hotpath.
+> Now that we have the new VMA flag for the locked but not present state,
+> expose it  as an mmap option like MAP_LOCKED -> VM_LOCKED.
 
-OK, I'll abandon this.  Thanks for taking a look!
+An automatic bisection on arch/tile leads to this commit:
 
-Bjorn
+5a5656f2c9b61c74c15f9ef3fa2e6513b6c237bb is the first bad commit
+commit 5a5656f2c9b61c74c15f9ef3fa2e6513b6c237bb
+Author: Eric B Munson <emunson@akamai.com>
+Date:   Thu Jul 16 10:09:22 2015 +1000
+
+    mm: mmap: add mmap flag to request VM_LOCKONFAULT
+
+Fails with:
+
+In file included from arch/tile/mm/init.c:24:
+include/linux/mman.h: In function ‘calc_vm_flag_bits’:
+include/linux/mman.h:90: error: ‘MAP_LOCKONFAULT’ undeclared (first
+use in this function)
+include/linux/mman.h:90: error: (Each undeclared identifier is
+reported only once
+include/linux/mman.h:90: error: for each function it appears in.)
+In file included from arch/tile/mm/mmap.c:21:
+include/linux/mman.h: In function ‘calc_vm_flag_bits’:
+include/linux/mman.h:90: error: ‘MAP_LOCKONFAULT’ undeclared (first
+use in this function)
+include/linux/mman.h:90: error: (Each undeclared identifier is
+reported only once
+include/linux/mman.h:90: error: for each function it appears in.)
+In file included from arch/tile/mm/fault.c:24:
+include/linux/mman.h: In function ‘calc_vm_flag_bits’:
+include/linux/mman.h:90: error: ‘MAP_LOCKONFAULT’ undeclared (first
+use in this function)
+include/linux/mman.h:90: error: (Each undeclared identifier is
+reported only once
+include/linux/mman.h:90: error: for each function it appears in.)
+In file included from arch/tile/mm/hugetlbpage.c:27:
+include/linux/mman.h: In function ‘calc_vm_flag_bits’:
+include/linux/mman.h:90: error: ‘MAP_LOCKONFAULT’ undeclared (first
+use in this function)
+include/linux/mman.h:90: error: (Each undeclared identifier is
+reported only once
+include/linux/mman.h:90: error: for each function it appears in.)
+make[1]: *** [arch/tile/mm/hugetlbpage.o] Error 1
+
+http://kisskb.ellerman.id.au/kisskb/buildresult/12465365/
+
+Paul.
+--
