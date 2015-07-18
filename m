@@ -1,43 +1,74 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [RFC PATCH v2] memory-barriers: remove
- smp_mb__after_unlock_lock()
-Date: Sat, 18 Jul 2015 08:14:14 +1000
-Message-ID: <1437171254.28088.87.camel@kernel.crashing.org>
-References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
-	 <1436826689.3948.233.camel@kernel.crashing.org>
-	 <1436929578.10956.3.camel@ellerman.id.au> <20150715104420.GD1005@arm.com>
-	 <1437012028.28475.2.camel@ellerman.id.au>
-	 <1437023004.28088.27.camel@kernel.crashing.org>
-	 <1437023695.28088.29.camel@kernel.crashing.org>
-	 <20150716151142.GR3717@linux.vnet.ibm.com>
-	 <1437087265.28088.53.camel@kernel.crashing.org>
-	 <20150717093221.GB18994@arm.com>
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Subject: Re: [PATCH V3 4/5] mm: mmap: Add mmap flag to request VM_LOCKONFAULT
+Date: Sat, 18 Jul 2015 15:11:23 -0400
+Message-ID: <CAP=VYLq5=9DCfncJpQizcSbQt1O7VL2yEdzZNOFK+M3pqLpb3Q@mail.gmail.com>
+References: <1436288623-13007-1-git-send-email-emunson@akamai.com> <1436288623-13007-5-git-send-email-emunson@akamai.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:53658 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752156AbbGQWPB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Jul 2015 18:15:01 -0400
-In-Reply-To: <20150717093221.GB18994@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-next-owner@vger.kernel.org>
+In-Reply-To: <1436288623-13007-5-git-send-email-emunson@akamai.com>
+Sender: linux-next-owner@vger.kernel.org
+To: Eric B Munson <emunson@akamai.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-mm@kvack.org, linux-arch <linux-arch@vger.kernel.org>, linux-api@vger.kernel.org, cmetcalf@ezchip.com, "linux-next@vger.kernel.org" <linux-next@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2015-07-17 at 10:32 +0100, Will Deacon wrote:
->  static inline void arch_spin_unlock(arch_spinlock_t *lock)
->  {
-> -       SYNC_IO;
-> -       __asm__ __volatile__("# arch_spin_unlock\n\t"
-> -                               PPC_RELEASE_BARRIER: : :"memory");
-> +       smp_mb();
->         lock->slock = 0;
->  }
+On Tue, Jul 7, 2015 at 1:03 PM, Eric B Munson <emunson@akamai.com> wrot=
+e:
+> The cost of faulting in all memory to be locked can be very high when
+> working with large mappings.  If only portions of the mapping will be
+> used this can incur a high penalty for locking.
+>
+> Now that we have the new VMA flag for the locked but not present stat=
+e,
+> expose it  as an mmap option like MAP_LOCKED -> VM_LOCKED.
 
-That probably needs to be mb() in case somebody has the expectation that
-it does a barrier vs. DMA on UP.
+An automatic bisection on arch/tile leads to this commit:
 
-Cheers,
-Ben.
+5a5656f2c9b61c74c15f9ef3fa2e6513b6c237bb is the first bad commit
+commit 5a5656f2c9b61c74c15f9ef3fa2e6513b6c237bb
+Author: Eric B Munson <emunson@akamai.com>
+Date:   Thu Jul 16 10:09:22 2015 +1000
+
+    mm: mmap: add mmap flag to request VM_LOCKONFAULT
+
+=46ails with:
+
+In file included from arch/tile/mm/init.c:24:
+include/linux/mman.h: In function =E2=80=98calc_vm_flag_bits=E2=80=99:
+include/linux/mman.h:90: error: =E2=80=98MAP_LOCKONFAULT=E2=80=99 undec=
+lared (first
+use in this function)
+include/linux/mman.h:90: error: (Each undeclared identifier is
+reported only once
+include/linux/mman.h:90: error: for each function it appears in.)
+In file included from arch/tile/mm/mmap.c:21:
+include/linux/mman.h: In function =E2=80=98calc_vm_flag_bits=E2=80=99:
+include/linux/mman.h:90: error: =E2=80=98MAP_LOCKONFAULT=E2=80=99 undec=
+lared (first
+use in this function)
+include/linux/mman.h:90: error: (Each undeclared identifier is
+reported only once
+include/linux/mman.h:90: error: for each function it appears in.)
+In file included from arch/tile/mm/fault.c:24:
+include/linux/mman.h: In function =E2=80=98calc_vm_flag_bits=E2=80=99:
+include/linux/mman.h:90: error: =E2=80=98MAP_LOCKONFAULT=E2=80=99 undec=
+lared (first
+use in this function)
+include/linux/mman.h:90: error: (Each undeclared identifier is
+reported only once
+include/linux/mman.h:90: error: for each function it appears in.)
+In file included from arch/tile/mm/hugetlbpage.c:27:
+include/linux/mman.h: In function =E2=80=98calc_vm_flag_bits=E2=80=99:
+include/linux/mman.h:90: error: =E2=80=98MAP_LOCKONFAULT=E2=80=99 undec=
+lared (first
+use in this function)
+include/linux/mman.h:90: error: (Each undeclared identifier is
+reported only once
+include/linux/mman.h:90: error: for each function it appears in.)
+make[1]: *** [arch/tile/mm/hugetlbpage.o] Error 1
+
+http://kisskb.ellerman.id.au/kisskb/buildresult/12465365/
+
+Paul.
+--
