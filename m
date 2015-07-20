@@ -1,109 +1,215 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:39793 "EHLO mga11.intel.com"
+Received: from foss.arm.com ([217.140.101.70]:55284 "EHLO foss.arm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754286AbbGTAX0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 19 Jul 2015 20:23:26 -0400
-Subject: [PATCH 02/10] mm, x86: Remove region_is_ram() call from ioremap
-From: Dan Williams <dan.j.williams@intel.com>
-Date: Sun, 19 Jul 2015 20:17:43 -0400
-Message-ID: <20150720001743.30857.48346.stgit@dwillia2-desk3.amr.corp.intel.com>
-In-Reply-To: <20150720001614.30857.89063.stgit@dwillia2-desk3.amr.corp.intel.com>
+	id S1753669AbbGTMBJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Jul 2015 08:01:09 -0400
+Date: Mon, 20 Jul 2015 13:00:41 +0100
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 09/10] arch: introduce memremap()
+Message-ID: <20150720120040.GC19239@leverpostej>
 References: <20150720001614.30857.89063.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150720001822.30857.65670.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20150720001822.30857.65670.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, tony.luck@intel.com, toshi.kani@hp.com, arnd@arndb.de, benh@kernel.crashing.org, mcgrof@suse.com, x86@kernel.org, linux-kernel@vger.kernel.org, geert@linux-m68k.org, Mike Travis <travis@sgi.com>, Roland Dreier <roland@purestorage.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, ralf@linux-mips.org, linux@arm.linux.org.uk, ross.zwisler@linux.intel.com, hch@lst.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150720001743.PxvmEXEKrsCWQACaPOeFvMyh0Jaioc2cQ3BSMsaCkPo@z>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: "tglx@linutronix.de" <tglx@linutronix.de>, "mingo@kernel.org" <mingo@kernel.org>, "hpa@zytor.com" <hpa@zytor.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "arnd@arndb.de" <arnd@arndb.de>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "mcgrof@suse.com" <mcgrof@suse.com>, "x86@kernel.org" <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ralf@linux-mips.org" <ralf@linux-mips.org>, Andy Shevchenko <andy.shevchenko@gmail.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "toshi.kani@hp.com" <toshi.kani@hp.com>, "ross.zwisler@linux.intel.com" <ross.zwisler@linux.intel.com>, "hch@lst.de" <hch@lst.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, will.deacon@arm.com, catalin.marinas@arm.com
+Message-ID: <20150720120041.IjtYb62AWivXmgXC7fvd1N9mr-CRrHsKswNPfP24hyQ@z>
 
-From: Toshi Kani <toshi.kani@hp.com>
+Hi,
 
-__ioremap_caller() calls region_is_ram() to walk through the
-iomem_resource table to check if a target range is in RAM, which
-was added to improve the lookup performance over page_is_ram()
-(commit 906e36c5c717 "x86: use optimized ioresource lookup in
-ioremap function").  page_is_ram() was no longer used when this
-change was added, though.
+On Mon, Jul 20, 2015 at 01:18:23AM +0100, Dan Williams wrote:
+> Existing users of ioremap_cache() are mapping memory that is known in
+> advance to not have i/o side effects.  These users are forced to cast
+> away the __iomem annotation, or otherwise neglect to fix the sparse
+> errors thrown when dereferencing pointers to this memory.  Provide
+> memremap() as a non __iomem annotated ioremap_*() in the case when
+> ioremap is otherwise a pointer to memory.
+> 
+> The ARCH_HAS_MEMREMAP kconfig symbol is introduced for archs to assert
+> that it is safe to recast / reuse the return value from ioremap as a
+> normal pointer to memory.  In other words, archs that mandate specific
+> accessors for __iomem are not memremap() capable and drivers that care,
+> like pmem, can add a dependency to disable themselves on these archs.
+> 
+> Note, that memremap is a break from the ioremap implementation pattern
+> of adding a new memremap_<type>() for each mapping type.  Instead,
+> the implementation defines flags that are passed to the central
+> memremap() implementation.
+> 
+> Outside of ioremap() and ioremap_nocache(), the expectation is that most
+> calls to ioremap_<type>() are seeking memory-like semantics (e.g.
+> speculative reads, and prefetching permitted).  These callsites can be
+> moved to memremap() over time.
+> 
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Acked-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+> ---
+>  arch/arm/Kconfig                     |    1 +
+>  arch/arm64/Kconfig                   |    1 +
+>  arch/arm64/kernel/efi.c              |    7 ++---
+>  arch/arm64/kernel/smp_spin_table.c   |   17 +++++------
 
-__ioremap_caller() then calls walk_system_ram_range(), which had
-replaced page_is_ram() to improve the lookup performance (commit
-c81c8a1eeede "x86, ioremap: Speed up check for RAM pages").
+These last two files weren't updated in patch 2 to use <linux/io.h>, nor are
+they updated here, so this patch breaks the build for arm64.
 
-Since both checks walk through the same iomem_resource table for
-the same purpose, there is no need to call the two functions.
-Furthermore, region_is_ram() always returns with -1, which makes
-walk_system_ram_range() as the only check being used at this point.
+[...]
 
-Therefore, this patch changes __ioremap_caller() to call
-walk_system_ram_range() only.
+> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> index 318175f62c24..305def28385f 100644
+> --- a/arch/arm64/Kconfig
+> +++ b/arch/arm64/Kconfig
+> @@ -6,6 +6,7 @@ config ARM64
+>         select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+>         select ARCH_HAS_ELF_RANDOMIZE
+>         select ARCH_HAS_GCOV_PROFILE_ALL
+> +       select ARCH_HAS_MEMREMAP
+>         select ARCH_HAS_SG_CHAIN
+>         select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
+>         select ARCH_USE_CMPXCHG_LOCKREF
+> diff --git a/arch/arm64/kernel/efi.c b/arch/arm64/kernel/efi.c
+> index 9d4aa18f2a82..ed363a0202b9 100644
+> --- a/arch/arm64/kernel/efi.c
+> +++ b/arch/arm64/kernel/efi.c
+> @@ -290,8 +290,7 @@ static int __init arm64_enable_runtime_services(void)
+>         pr_info("Remapping and enabling EFI services.\n");
+> 
+>         mapsize = memmap.map_end - memmap.map;
+> -       memmap.map = (__force void *)ioremap_cache((phys_addr_t)memmap.phys_map,
+> -                                                  mapsize);
+> +       memmap.map = memremap(memmap.phys_map, mapsize, MEMREMAP_CACHE);
 
-Note, removing the call to region_is_ram() is also necessary to
-fix bugs in region_is_ram().  walk_system_ram_range() requires
-RAM ranges be page-aligned in the iomem_resource table to work
-properly.  This restriction has allowed multiple ioremaps to RAM
-(setup_data) which are page-unaligned.  Using fixed region_is_ram()
-will cause these callers to start failing.  After all ioremap
-callers to setup_data are converted, __ioremap_caller() may call
-region_is_ram() instead to remove this restriction.
+memmap.phys_map is a void*, so we need to retain a cast to a numeric type or
+we'll get splats like:
 
-Signed-off-by: Toshi Kani <toshi.kani@hp.com>
-Cc: Roland Dreier <roland@purestorage.com>
-Cc: Mike Travis <travis@sgi.com>
-Cc: Luis R. Rodriguez <mcgrof@suse.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
----
- arch/x86/mm/ioremap.c |   24 ++++++------------------
- 1 file changed, 6 insertions(+), 18 deletions(-)
+arch/arm64/kernel/efi.c: In function ‘arm64_enable_runtime_services’:
+arch/arm64/kernel/efi.c:294:24: warning: passing argument 1 of ‘memremap’ makes integer from pointer without a cast
+  memmap.map = memremap(memmap.phys_map, mapsize, MEMREMAP_CACHE);
+                        ^
+In file included from arch/arm64/kernel/efi.c:18:0:
+include/linux/io.h:203:14: note: expected ‘resource_size_t’ but argument is of type ‘void *’
+ extern void *memremap(resource_size_t offset, size_t size, unsigned long flags);
+              ^
+Unfortunately, even with that fixed this patch breaks boot due to the
+memremap_valid check. It's extremely likely that (portions of) the
+tables are already in the linear mapping, and so page_is_ram will be
+true.
 
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index 63da79114fe9..ccf5c867b2eb 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -92,7 +92,6 @@ static void __iomem *__ioremap_caller(resource_size_t phys_addr,
- 	pgprot_t prot;
- 	int retval;
- 	void __iomem *ret_addr;
--	int ram_region;
- 
- 	/* Don't allow wraparound or zero size */
- 	last_addr = phys_addr + size - 1;
-@@ -115,26 +114,15 @@ static void __iomem *__ioremap_caller(resource_size_t phys_addr,
- 	/*
- 	 * Don't allow anybody to remap normal RAM that we're using..
- 	 */
--	/* First check if whole region can be identified as RAM or not */
--	ram_region = region_is_ram(phys_addr, size);
--	if (ram_region > 0) {
--		WARN_ONCE(1, "ioremap on RAM at 0x%lx - 0x%lx\n",
--				(unsigned long int)phys_addr,
--				(unsigned long int)last_addr);
--		return NULL;
--	}
--
--	/* If could not be identified(-1), check page by page */
--	if (ram_region < 0) {
--		pfn      = phys_addr >> PAGE_SHIFT;
--		last_pfn = last_addr >> PAGE_SHIFT;
--		if (walk_system_ram_range(pfn, last_pfn - pfn + 1, NULL,
-+	pfn      = phys_addr >> PAGE_SHIFT;
-+	last_pfn = last_addr >> PAGE_SHIFT;
-+	if (walk_system_ram_range(pfn, last_pfn - pfn + 1, NULL,
- 					  __ioremap_check_ram) == 1) {
--			WARN_ONCE(1, "ioremap on RAM at %pa - %pa\n",
-+		WARN_ONCE(1, "ioremap on RAM at %pa - %pa\n",
- 					&phys_addr, &last_addr);
--			return NULL;
--		}
-+		return NULL;
- 	}
-+
- 	/*
- 	 * Mappings have to be page-aligned
- 	 */
+At boot time I get the following:
 
+Remapping and enabling EFI services.
+------------[ cut here ]------------
+WARNING: CPU: 0 PID: 1 at kernel/resource.c:541 memremap+0xb0/0xbc()
+memremap attempted on ram 0x00000009f9e4a018 size: 1200
+Modules linked in:
+CPU: 0 PID: 1 Comm: swapper/0 Not tainted 4.2.0-rc3+ #201
+Hardware name: ARM Juno development board (r0) (DT)
+Call trace:
+[<ffffffc000089954>] dump_backtrace+0x0/0x124
+[<ffffffc000089a88>] show_stack+0x10/0x1c
+[<ffffffc0005d15c8>] dump_stack+0x84/0xc8
+[<ffffffc0000b3f44>] warn_slowpath_common+0x98/0xd0
+[<ffffffc0000b3fc8>] warn_slowpath_fmt+0x4c/0x58
+[<ffffffc0000b9470>] memremap+0xac/0xbc
+[<ffffffc000814fe8>] arm64_enable_runtime_services+0x90/0x208
+[<ffffffc000082864>] do_one_initcall+0x88/0x1a0
+[<ffffffc000811a20>] kernel_init_freeable+0x8c/0x1f8
+[<ffffffc0005ce370>] kernel_init+0xc/0xd8
+---[ end trace cb88537fdc8fa200 ]---
+Failed to remap EFI memory map
+
+>         if (!memmap.map) {
+>                 pr_err("Failed to remap EFI memory map\n");
+>                 return -1;
+> @@ -299,8 +298,8 @@ static int __init arm64_enable_runtime_services(void)
+>         memmap.map_end = memmap.map + mapsize;
+>         efi.memmap = &memmap;
+> 
+> -       efi.systab = (__force void *)ioremap_cache(efi_system_table,
+> -                                                  sizeof(efi_system_table_t));
+> +       efi.systab = memremap(efi_system_table, sizeof(efi_system_table_t),
+> +                       MEMREMAP_CACHE);
+>         if (!efi.systab) {
+>                 pr_err("Failed to remap EFI System Table\n");
+>                 return -1;
+> diff --git a/arch/arm64/kernel/smp_spin_table.c b/arch/arm64/kernel/smp_spin_table.c
+> index aef3605a8c47..b9caf6cd44e6 100644
+> --- a/arch/arm64/kernel/smp_spin_table.c
+> +++ b/arch/arm64/kernel/smp_spin_table.c
+> @@ -73,19 +73,19 @@ static int smp_spin_table_cpu_init(unsigned int cpu)
+> 
+>  static int smp_spin_table_cpu_prepare(unsigned int cpu)
+>  {
+> -       __le64 __iomem *release_addr;
+> +       __le64 *release_addr;
+> 
+>         if (!cpu_release_addr[cpu])
+>                 return -ENODEV;
+> 
+>         /*
+>          * The cpu-release-addr may or may not be inside the linear mapping.
+> -        * As ioremap_cache will either give us a new mapping or reuse the
+> -        * existing linear mapping, we can use it to cover both cases. In
+> -        * either case the memory will be MT_NORMAL.
+> +        * As memremap will either give us a new mapping or reuse the existing
+> +        * linear mapping, we can use it to cover both cases. In either case
+> +        * the memory will be MT_NORMAL.
+>          */
+> -       release_addr = ioremap_cache(cpu_release_addr[cpu],
+> -                                    sizeof(*release_addr));
+> +       release_addr = memremap(cpu_release_addr[cpu], sizeof(*release_addr),
+> +                       MEMREMAP_CACHE);
+
+Likewise, the comment here is contradicted by the code in memremap_valid
+(below). We'll fail to bring up secondaries if the release address fell
+in the linear mapping.
+
+> +#ifdef CONFIG_ARCH_HAS_MEMREMAP
+> +/*
+> + * memremap() is "ioremap" for cases where it is known that the resource
+> + * being mapped does not have i/o side effects and the __iomem
+> + * annotation is not applicable.
+> + */
+> +static bool memremap_valid(resource_size_t offset, size_t size)
+> +{
+> +       if (region_is_ram(offset, size) != 0) {
+> +               WARN_ONCE(1, "memremap attempted on ram %pa size: %zu\n",
+> +                               &offset, size);
+> +               return false;
+> +       }
+> +       return true;
+> +}
+> +
+> +void *memremap(resource_size_t offset, size_t size, unsigned long flags)
+> +{
+> +       void __iomem *addr = NULL;
+> +
+> +       if (!memremap_valid(offset, size))
+> +               return NULL;
+> +
+> +       /* try all mapping types requested until one returns non-NULL */
+> +       if (flags & MEMREMAP_CACHE) {
+> +               if (flags & MEMREMAP_STRICT)
+> +                       addr = strict_ioremap_cache(offset, size);
+> +               else
+> +                       addr = ioremap_cache(offset, size);
+> +       }
+> +
+> +       if (!addr && (flags & MEMREMAP_WT)) {
+> +               if (flags & MEMREMAP_STRICT)
+> +                       addr = strict_ioremap_wt(offset, size);
+> +               else
+> +                       addr = ioremap_wt(offset, size);
+> +       }
+> +
+> +       return (void __force *) addr;
+> +}
+> +EXPORT_SYMBOL(memremap);
+
+Thanks,
+Mark.
