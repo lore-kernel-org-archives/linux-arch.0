@@ -1,44 +1,59 @@
-From: Chris Metcalf <cmetcalf@ezchip.com>
-Subject: Re: [PATCH V3 4/5] mm: mmap: Add mmap flag to request VM_LOCKONFAULT
-Date: Mon, 20 Jul 2015 16:40:25 -0400
-Message-ID: <55AD5CB9.4090400@ezchip.com>
-References: <1436288623-13007-1-git-send-email-emunson@akamai.com>
- <1436288623-13007-5-git-send-email-emunson@akamai.com>
- <CAP=VYLq5=9DCfncJpQizcSbQt1O7VL2yEdzZNOFK+M3pqLpb3Q@mail.gmail.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+Date: Tue, 21 Jul 2015 07:18:14 +1000
+Message-ID: <1437427094.3775.22.camel@kernel.crashing.org>
+References: <1436826689.3948.233.camel@kernel.crashing.org>
+	 <1436929578.10956.3.camel@ellerman.id.au> <20150715104420.GD1005@arm.com>
+	 <1437012028.28475.2.camel@ellerman.id.au>
+	 <1437023004.28088.27.camel@kernel.crashing.org>
+	 <1437023695.28088.29.camel@kernel.crashing.org>
+	 <20150716151142.GR3717@linux.vnet.ibm.com>
+	 <1437087265.28088.53.camel@kernel.crashing.org>
+	 <20150717093221.GB18994@arm.com>
+	 <1437171254.28088.87.camel@kernel.crashing.org>
+	 <20150720133906.GG9908@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; format=flowed
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-am1on0090.outbound.protection.outlook.com ([157.56.112.90]:53267
-	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754142AbbGTUkr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Jul 2015 16:40:47 -0400
-In-Reply-To: <CAP=VYLq5=9DCfncJpQizcSbQt1O7VL2yEdzZNOFK+M3pqLpb3Q@mail.gmail.com>
+Received: from gate.crashing.org ([63.228.1.57]:55120 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755234AbbGTVhc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 20 Jul 2015 17:37:32 -0400
+In-Reply-To: <20150720133906.GG9908@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>, Eric B Munson <emunson@akamai.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-mm@kvack.org, linux-arch <linux-arch@vger.kernel.org>, linux-api@vger.kernel.org, "linux-next@vger.kernel.org" <linux-next@vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>
 
-On 07/18/2015 03:11 PM, Paul Gortmaker wrote:
-> On Tue, Jul 7, 2015 at 1:03 PM, Eric B Munson<emunson@akamai.com>  wrote:
->> >The cost of faulting in all memory to be locked can be very high when
->> >working with large mappings.  If only portions of the mapping will be
->> >used this can incur a high penalty for locking.
->> >
->> >Now that we have the new VMA flag for the locked but not present state,
->> >expose it  as an mmap option like MAP_LOCKED -> VM_LOCKED.
-> An automatic bisection on arch/tile leads to this commit:
->
-> 5a5656f2c9b61c74c15f9ef3fa2e6513b6c237bb is the first bad commit
-> commit 5a5656f2c9b61c74c15f9ef3fa2e6513b6c237bb
-> Author: Eric B Munson<emunson@akamai.com>
-> Date:   Thu Jul 16 10:09:22 2015 +1000
->
->      mm: mmap: add mmap flag to request VM_LOCKONFAULT
+On Mon, 2015-07-20 at 14:39 +0100, Will Deacon wrote:
+> On Fri, Jul 17, 2015 at 11:14:14PM +0100, Benjamin Herrenschmidt wrote:
+> > On Fri, 2015-07-17 at 10:32 +0100, Will Deacon wrote:
+> > >  static inline void arch_spin_unlock(arch_spinlock_t *lock)
+> > >  {
+> > > -       SYNC_IO;
+> > > -       __asm__ __volatile__("# arch_spin_unlock\n\t"
+> > > -                               PPC_RELEASE_BARRIER: : :"memory");
+> > > +       smp_mb();
+> > >         lock->slock = 0;
+> > >  }
+> > 
+> > That probably needs to be mb() in case somebody has the expectation that
+> > it does a barrier vs. DMA on UP.
+> 
+> Hmm, but on !SMP doesn't arch_spin_unlock effectively expand to barrier()
+> in the core code?
 
-Eric, I'm happy to help with figuring out the tile issues.
+include/linux/spinlock_up.h:# define arch_spin_unlock(lock)	do { barrier(); (void)(lock); } while (0)
 
--- 
-Chris Metcalf, EZChip Semiconductor
-http://www.ezchip.com
+Indeed...
+
+Ben.
+
+
+> Will
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
