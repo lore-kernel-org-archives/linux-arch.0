@@ -1,73 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f175.google.com ([209.85.212.175]:37884 "EHLO
-	mail-wi0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752159AbbGRTLy convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 18 Jul 2015 15:11:54 -0400
+Received: from mga02.intel.com ([134.134.136.20]:20209 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755134AbbGTAYW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 19 Jul 2015 20:24:22 -0400
+Subject: [PATCH 08/10] arch: introduce strict_ioremap
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Sun, 19 Jul 2015 20:18:17 -0400
+Message-ID: <20150720001817.30857.69287.stgit@dwillia2-desk3.amr.corp.intel.com>
+In-Reply-To: <20150720001614.30857.89063.stgit@dwillia2-desk3.amr.corp.intel.com>
+References: <20150720001614.30857.89063.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
-In-Reply-To: <1436288623-13007-5-git-send-email-emunson@akamai.com>
-References: <1436288623-13007-1-git-send-email-emunson@akamai.com> <1436288623-13007-5-git-send-email-emunson@akamai.com>
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Date: Sat, 18 Jul 2015 15:11:23 -0400
-Message-ID: <CAP=VYLq5=9DCfncJpQizcSbQt1O7VL2yEdzZNOFK+M3pqLpb3Q@mail.gmail.com>
-Subject: Re: [PATCH V3 4/5] mm: mmap: Add mmap flag to request VM_LOCKONFAULT
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@akamai.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, LKML <linux-kernel@vger.kernel.org>, linux-mm@kvack.org, linux-arch <linux-arch@vger.kernel.org>, linux-api@vger.kernel.org, cmetcalf@ezchip.com, "linux-next@vger.kernel.org" <linux-next@vger.kernel.org>
-Message-ID: <20150718191123.R4D8QBxzLWj_L6pH-SSrenl3wW29hjcGr9LxHnu44-0@z>
+To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
+Cc: linux-arch@vger.kernel.org, tony.luck@intel.com, linux@arm.linux.org.uk, arnd@arndb.de, benh@kernel.crashing.org, mcgrof@suse.com, x86@kernel.org, linux-kernel@vger.kernel.org, ralf@linux-mips.org, geert@linux-m68k.org, toshi.kani@hp.com, ross.zwisler@linux.intel.com, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150720001817.43TDd0kX9ht3zCX6tIwuUZ_Fff5417psfGDQjADLJW0@z>
 
-On Tue, Jul 7, 2015 at 1:03 PM, Eric B Munson <emunson@akamai.com> wrote:
-> The cost of faulting in all memory to be locked can be very high when
-> working with large mappings.  If only portions of the mapping will be
-> used this can incur a high penalty for locking.
->
-> Now that we have the new VMA flag for the locked but not present state,
-> expose it  as an mmap option like MAP_LOCKED -> VM_LOCKED.
+In preparation for enabling memremap(), add support for strict mappings.
+strict_ioremap_<type>() returns NULL if the arch does not implement the
+mapping type, rather than falling back silently to ioremap().
 
-An automatic bisection on arch/tile leads to this commit:
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+---
+ include/linux/io.h |   21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
 
-5a5656f2c9b61c74c15f9ef3fa2e6513b6c237bb is the first bad commit
-commit 5a5656f2c9b61c74c15f9ef3fa2e6513b6c237bb
-Author: Eric B Munson <emunson@akamai.com>
-Date:   Thu Jul 16 10:09:22 2015 +1000
+diff --git a/include/linux/io.h b/include/linux/io.h
+index 58482241c95c..080a4fbf2ba4 100644
+--- a/include/linux/io.h
++++ b/include/linux/io.h
+@@ -130,6 +130,27 @@ static inline void __iomem *ioremap_uc(resource_size_t offset,
+ }
+ #endif
+ 
++static inline void __iomem *strict_ioremap_cache(resource_size_t offset,
++		unsigned long size)
++{
++#ifdef ioremap_cache
++	return ioremap_cache(offset, size);
++#else
++	return (void __force __iomem *) NULL;
++#endif
++}
++
++static inline void __iomem *strict_ioremap_wt(resource_size_t offset,
++		unsigned long size)
++{
++#ifdef ioremap_wt
++	return ioremap_wt(offset, size);
++#else
++	return (void __force __iomem *) NULL;
++#endif
++}
++
++
+ /*
+  * Some systems do not have legacy ISA devices.
+  * /dev/port is not a valid interface on these systems.
 
-    mm: mmap: add mmap flag to request VM_LOCKONFAULT
-
-Fails with:
-
-In file included from arch/tile/mm/init.c:24:
-include/linux/mman.h: In function ‘calc_vm_flag_bits’:
-include/linux/mman.h:90: error: ‘MAP_LOCKONFAULT’ undeclared (first
-use in this function)
-include/linux/mman.h:90: error: (Each undeclared identifier is
-reported only once
-include/linux/mman.h:90: error: for each function it appears in.)
-In file included from arch/tile/mm/mmap.c:21:
-include/linux/mman.h: In function ‘calc_vm_flag_bits’:
-include/linux/mman.h:90: error: ‘MAP_LOCKONFAULT’ undeclared (first
-use in this function)
-include/linux/mman.h:90: error: (Each undeclared identifier is
-reported only once
-include/linux/mman.h:90: error: for each function it appears in.)
-In file included from arch/tile/mm/fault.c:24:
-include/linux/mman.h: In function ‘calc_vm_flag_bits’:
-include/linux/mman.h:90: error: ‘MAP_LOCKONFAULT’ undeclared (first
-use in this function)
-include/linux/mman.h:90: error: (Each undeclared identifier is
-reported only once
-include/linux/mman.h:90: error: for each function it appears in.)
-In file included from arch/tile/mm/hugetlbpage.c:27:
-include/linux/mman.h: In function ‘calc_vm_flag_bits’:
-include/linux/mman.h:90: error: ‘MAP_LOCKONFAULT’ undeclared (first
-use in this function)
-include/linux/mman.h:90: error: (Each undeclared identifier is
-reported only once
-include/linux/mman.h:90: error: for each function it appears in.)
-make[1]: *** [arch/tile/mm/hugetlbpage.o] Error 1
-
-http://kisskb.ellerman.id.au/kisskb/buildresult/12465365/
-
-Paul.
---
