@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:20209 "EHLO mga02.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:8015 "EHLO mga02.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755143AbbGTAYX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 19 Jul 2015 20:24:23 -0400
-Subject: [PATCH 09/10] arch: introduce memremap()
+	id S1754582AbbGTAXo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 19 Jul 2015 20:23:44 -0400
+Subject: [PATCH 05/10] arch: unify ioremap prototypes and macro aliases
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Sun, 19 Jul 2015 20:18:23 -0400
-Message-ID: <20150720001822.30857.65670.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Sun, 19 Jul 2015 20:18:00 -0400
+Message-ID: <20150720001759.30857.23753.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <20150720001614.30857.89063.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150720001614.30857.89063.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -15,645 +15,1429 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, tony.luck@intel.com, linux@arm.linux.org.uk, arnd@arndb.de, benh@kernel.crashing.org, mcgrof@suse.com, x86@kernel.org, linux-kernel@vger.kernel.org, ralf@linux-mips.org, Andy Shevchenko <andy.shevchenko@gmail.com>, geert@linux-m68k.org, toshi.kani@hp.com, ross.zwisler@linux.intel.com, hch@lst.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150720001823.iFW4O7HPLGft7xiWY1LPQiLcwQAD6UKH6EGYFSUVxI4@z>
+Cc: linux-arch@vger.kernel.org, tony.luck@intel.com, linux@arm.linux.org.uk, arnd@arndb.de, benh@kernel.crashing.org, mcgrof@suse.com, x86@kernel.org, linux-kernel@vger.kernel.org, ralf@linux-mips.org, geert@linux-m68k.org, toshi.kani@hp.com, ross.zwisler@linux.intel.com, kbuild test robot <fengguang.wu@intel.com>, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150720001800.O3FWkAA2OL9HPoapZUkpp41y-gZPE7_6nOc4h9o7PLA@z>
 
-Existing users of ioremap_cache() are mapping memory that is known in
-advance to not have i/o side effects.  These users are forced to cast
-away the __iomem annotation, or otherwise neglect to fix the sparse
-errors thrown when dereferencing pointers to this memory.  Provide
-memremap() as a non __iomem annotated ioremap_*() in the case when
-ioremap is otherwise a pointer to memory.
+Some archs define the first parameter to ioremap() as unsigned long,
+while the balance define it as resource_size_t, similar confusion exists
+for the type of the 'size' parameter.  Unify on (resource_size_t,
+unsigned long) to enable passing ioremap function pointers.  Also, some
+archs use function-like macros for defining ioremap aliases, but
+asm-generic/io.h expects object-like macros, unify on the latter.
 
-The ARCH_HAS_MEMREMAP kconfig symbol is introduced for archs to assert
-that it is safe to recast / reuse the return value from ioremap as a
-normal pointer to memory.  In other words, archs that mandate specific
-accessors for __iomem are not memremap() capable and drivers that care,
-like pmem, can add a dependency to disable themselves on these archs.
+Move all handling of ioremap aliasing (i.e. ioremap_wt => ioremap) to
+include/linux/io.h.  Add a check to lib/devres.c to warn at compile time
+if an arch violates type expectations.
 
-Note, that memremap is a break from the ioremap implementation pattern
-of adding a new memremap_<type>() for each mapping type.  Instead,
-the implementation defines flags that are passed to the central
-memremap() implementation.
+Kill ARCH_HAS_IOREMAP_WC and ARCH_HAS_IOREMAP_WT in favor of just
+testing for ioremap_wc, and ioremap_wt being defined.  This arrangement
+allows drivers to know when ioremap_<foo> are being re-directed to plain
+ioremap.  A later patch uses this arrangement to implement support for
+strict mappings.
 
-Outside of ioremap() and ioremap_nocache(), the expectation is that most
-calls to ioremap_<type>() are seeking memory-like semantics (e.g.
-speculative reads, and prefetching permitted).  These callsites can be
-moved to memremap() over time.
-
-Cc: Arnd Bergmann <arnd@arndb.de>
-Acked-by: Andy Shevchenko <andy.shevchenko@gmail.com>
+Acked-by: Christoph Hellwig <hch@lst.de>
+Reported-by: kbuild test robot <fengguang.wu@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/arm/Kconfig                     |    1 +
- arch/arm64/Kconfig                   |    1 +
- arch/arm64/kernel/efi.c              |    7 ++---
- arch/arm64/kernel/smp_spin_table.c   |   17 +++++------
- arch/frv/Kconfig                     |    1 +
- arch/m68k/Kconfig                    |    1 +
- arch/metag/Kconfig                   |    1 +
- arch/mips/Kconfig                    |    1 +
- arch/powerpc/Kconfig                 |    1 +
- arch/x86/Kconfig                     |    1 +
- arch/x86/kernel/crash_dump_64.c      |    6 ++--
- arch/x86/kernel/kdebugfs.c           |    8 +++--
- arch/x86/kernel/ksysfs.c             |   28 +++++++++----------
- arch/x86/mm/ioremap.c                |   10 +++----
- arch/xtensa/Kconfig                  |    1 +
- drivers/acpi/apei/einj.c             |    9 +++---
- drivers/acpi/apei/erst.c             |    6 ++--
- drivers/firmware/google/memconsole.c |    5 ++-
- include/linux/device.h               |    5 +++
- include/linux/io.h                   |   11 +++++++
- kernel/resource.c                    |   51 +++++++++++++++++++++++++++++++++-
- lib/Kconfig                          |    5 +++
- 22 files changed, 126 insertions(+), 51 deletions(-)
+ arch/alpha/include/asm/io.h      |    7 ++++--
+ arch/arc/include/asm/io.h        |    6 -----
+ arch/arm/include/asm/io.h        |    8 ++----
+ arch/arm/mm/ioremap.c            |    6 ++---
+ arch/arm/mm/nommu.c              |    6 ++---
+ arch/arm64/include/asm/io.h      |   23 ++++++++++++++----
+ arch/avr32/include/asm/io.h      |   22 +++++++++--------
+ arch/avr32/mm/ioremap.c          |    2 +-
+ arch/cris/include/asm/io.h       |    8 +++---
+ arch/cris/mm/ioremap.c           |    2 +-
+ arch/frv/include/asm/io.h        |   23 ++++++++----------
+ arch/hexagon/include/asm/io.h    |    5 +++-
+ arch/ia64/include/asm/io.h       |   10 ++------
+ arch/ia64/mm/ioremap.c           |    4 ++-
+ arch/m32r/include/asm/io.h       |    9 +++----
+ arch/m68k/include/asm/io_mm.h    |   21 ++++++++++-------
+ arch/m68k/include/asm/io_no.h    |   34 +++++++++++++++++----------
+ arch/m68k/include/asm/raw_io.h   |    3 ++
+ arch/m68k/mm/kmap.c              |    2 +-
+ arch/metag/include/asm/io.h      |   35 +++++++++++++++++-----------
+ arch/microblaze/include/asm/io.h |    6 -----
+ arch/microblaze/mm/pgtable.c     |    2 +-
+ arch/mips/include/asm/io.h       |   42 ++++++++++++---------------------
+ arch/mn10300/include/asm/io.h    |   10 +++++---
+ arch/nios2/include/asm/io.h      |   15 +++---------
+ arch/openrisc/include/asm/io.h   |    3 ++
+ arch/openrisc/mm/ioremap.c       |    2 +-
+ arch/parisc/include/asm/io.h     |    6 ++---
+ arch/parisc/mm/ioremap.c         |    2 +-
+ arch/powerpc/include/asm/io.h    |    7 ++----
+ arch/s390/include/asm/io.h       |    8 ++----
+ arch/sh/include/asm/io.h         |    9 ++++++-
+ arch/sparc/include/asm/io_32.h   |    7 ++----
+ arch/sparc/include/asm/io_64.h   |    8 ++----
+ arch/sparc/kernel/ioport.c       |    2 +-
+ arch/tile/include/asm/io.h       |   17 +++++++++----
+ arch/unicore32/include/asm/io.h  |   25 ++++++++++++++++----
+ arch/x86/include/asm/io.h        |   10 ++++++--
+ arch/xtensa/include/asm/io.h     |   13 ++++++----
+ drivers/net/ethernet/sfc/io.h    |    2 +-
+ include/asm-generic/io.h         |   15 ++++++------
+ include/asm-generic/iomap.h      |    8 ------
+ include/linux/io.h               |   48 ++++++++++++++++++++++++++++++++++++++
+ lib/devres.c                     |   20 ++++++++++++++++
+ 44 files changed, 303 insertions(+), 220 deletions(-)
 
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 1c5021002fe4..1d64aae0a226 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -3,6 +3,7 @@ config ARM
- 	default y
- 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
- 	select ARCH_HAS_ELF_RANDOMIZE
-+	select ARCH_HAS_MEMREMAP
- 	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
- 	select ARCH_HAVE_CUSTOM_GPIO_H
- 	select ARCH_HAS_GCOV_PROFILE_ALL
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 318175f62c24..305def28385f 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -6,6 +6,7 @@ config ARM64
- 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
- 	select ARCH_HAS_ELF_RANDOMIZE
- 	select ARCH_HAS_GCOV_PROFILE_ALL
-+	select ARCH_HAS_MEMREMAP
- 	select ARCH_HAS_SG_CHAIN
- 	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
- 	select ARCH_USE_CMPXCHG_LOCKREF
-diff --git a/arch/arm64/kernel/efi.c b/arch/arm64/kernel/efi.c
-index 9d4aa18f2a82..ed363a0202b9 100644
---- a/arch/arm64/kernel/efi.c
-+++ b/arch/arm64/kernel/efi.c
-@@ -290,8 +290,7 @@ static int __init arm64_enable_runtime_services(void)
- 	pr_info("Remapping and enabling EFI services.\n");
- 
- 	mapsize = memmap.map_end - memmap.map;
--	memmap.map = (__force void *)ioremap_cache((phys_addr_t)memmap.phys_map,
--						   mapsize);
-+	memmap.map = memremap(memmap.phys_map, mapsize, MEMREMAP_CACHE);
- 	if (!memmap.map) {
- 		pr_err("Failed to remap EFI memory map\n");
- 		return -1;
-@@ -299,8 +298,8 @@ static int __init arm64_enable_runtime_services(void)
- 	memmap.map_end = memmap.map + mapsize;
- 	efi.memmap = &memmap;
- 
--	efi.systab = (__force void *)ioremap_cache(efi_system_table,
--						   sizeof(efi_system_table_t));
-+	efi.systab = memremap(efi_system_table, sizeof(efi_system_table_t),
-+			MEMREMAP_CACHE);
- 	if (!efi.systab) {
- 		pr_err("Failed to remap EFI System Table\n");
- 		return -1;
-diff --git a/arch/arm64/kernel/smp_spin_table.c b/arch/arm64/kernel/smp_spin_table.c
-index aef3605a8c47..b9caf6cd44e6 100644
---- a/arch/arm64/kernel/smp_spin_table.c
-+++ b/arch/arm64/kernel/smp_spin_table.c
-@@ -73,19 +73,19 @@ static int smp_spin_table_cpu_init(unsigned int cpu)
- 
- static int smp_spin_table_cpu_prepare(unsigned int cpu)
+diff --git a/arch/alpha/include/asm/io.h b/arch/alpha/include/asm/io.h
+index f05bdb4b1cb9..6b63689c27a6 100644
+--- a/arch/alpha/include/asm/io.h
++++ b/arch/alpha/include/asm/io.h
+@@ -282,10 +282,11 @@ extern inline void ioport_unmap(void __iomem *addr)
  {
--	__le64 __iomem *release_addr;
-+	__le64 *release_addr;
- 
- 	if (!cpu_release_addr[cpu])
- 		return -ENODEV;
- 
- 	/*
- 	 * The cpu-release-addr may or may not be inside the linear mapping.
--	 * As ioremap_cache will either give us a new mapping or reuse the
--	 * existing linear mapping, we can use it to cover both cases. In
--	 * either case the memory will be MT_NORMAL.
-+	 * As memremap will either give us a new mapping or reuse the existing
-+	 * linear mapping, we can use it to cover both cases. In either case
-+	 * the memory will be MT_NORMAL.
- 	 */
--	release_addr = ioremap_cache(cpu_release_addr[cpu],
--				     sizeof(*release_addr));
-+	release_addr = memremap(cpu_release_addr[cpu], sizeof(*release_addr),
-+			MEMREMAP_CACHE);
- 	if (!release_addr)
- 		return -ENOMEM;
- 
-@@ -97,15 +97,14 @@ static int smp_spin_table_cpu_prepare(unsigned int cpu)
- 	 * the boot protocol.
- 	 */
- 	writeq_relaxed(__pa(secondary_holding_pen), release_addr);
--	__flush_dcache_area((__force void *)release_addr,
--			    sizeof(*release_addr));
-+	__flush_dcache_area(release_addr, sizeof(*release_addr));
- 
- 	/*
- 	 * Send an event to wake up the secondary CPU.
- 	 */
- 	sev();
- 
--	iounmap(release_addr);
-+	memunmap(release_addr);
- 
- 	return 0;
- }
-diff --git a/arch/frv/Kconfig b/arch/frv/Kconfig
-index 34aa19352dc1..2373bf183527 100644
---- a/arch/frv/Kconfig
-+++ b/arch/frv/Kconfig
-@@ -14,6 +14,7 @@ config FRV
- 	select OLD_SIGSUSPEND3
- 	select OLD_SIGACTION
- 	select HAVE_DEBUG_STACKOVERFLOW
-+	select ARCH_HAS_MEMREMAP
- 
- config ZONE_DMA
- 	bool
-diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
-index 2dd8f63bfbbb..831b1be8c43d 100644
---- a/arch/m68k/Kconfig
-+++ b/arch/m68k/Kconfig
-@@ -23,6 +23,7 @@ config M68K
- 	select MODULES_USE_ELF_RELA
- 	select OLD_SIGSUSPEND3
- 	select OLD_SIGACTION
-+	select ARCH_HAS_MEMREMAP
- 
- config RWSEM_GENERIC_SPINLOCK
- 	bool
-diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
-index 0b389a81c43a..5669fe3eb807 100644
---- a/arch/metag/Kconfig
-+++ b/arch/metag/Kconfig
-@@ -24,6 +24,7 @@ config METAG
- 	select HAVE_PERF_EVENTS
- 	select HAVE_SYSCALL_TRACEPOINTS
- 	select HAVE_UNDERSCORE_SYMBOL_PREFIX
-+	select ARCH_HAS_MEMREMAP
- 	select IRQ_DOMAIN
- 	select MODULES_USE_ELF_RELA
- 	select OF
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index aab7e46cadd5..ac9da90931b9 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -59,6 +59,7 @@ config MIPS
- 	select SYSCTL_EXCEPTION_TRACE
- 	select HAVE_VIRT_CPU_ACCOUNTING_GEN
- 	select HAVE_IRQ_TIME_ACCOUNTING
-+	select ARCH_HAS_MEMREMAP
- 
- menu "Machine selection"
- 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 5ef27113b898..50889c7b5c81 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -89,6 +89,7 @@ config PPC
- 	select ARCH_MIGHT_HAVE_PC_SERIO
- 	select BINFMT_ELF
- 	select ARCH_HAS_ELF_RANDOMIZE
-+	select ARCH_HAS_MEMREMAP
- 	select OF
- 	select OF_EARLY_FLATTREE
- 	select OF_RESERVED_MEM
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 3dbb7e7909ca..80eb19c8b62d 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -27,6 +27,7 @@ config X86
- 	select ARCH_HAS_ELF_RANDOMIZE
- 	select ARCH_HAS_FAST_MULTIPLIER
- 	select ARCH_HAS_GCOV_PROFILE_ALL
-+	select ARCH_HAS_MEMREMAP
- 	select ARCH_HAS_PMEM_API
- 	select ARCH_HAS_SG_CHAIN
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
-diff --git a/arch/x86/kernel/crash_dump_64.c b/arch/x86/kernel/crash_dump_64.c
-index afa64adb75ee..b87ca059e5fc 100644
---- a/arch/x86/kernel/crash_dump_64.c
-+++ b/arch/x86/kernel/crash_dump_64.c
-@@ -31,19 +31,19 @@ ssize_t copy_oldmem_page(unsigned long pfn, char *buf,
- 	if (!csize)
- 		return 0;
- 
--	vaddr = ioremap_cache(pfn << PAGE_SHIFT, PAGE_SIZE);
-+	vaddr = memremap(pfn << PAGE_SHIFT, PAGE_SIZE, MEMREMAP_CACHE);
- 	if (!vaddr)
- 		return -ENOMEM;
- 
- 	if (userbuf) {
- 		if (copy_to_user(buf, vaddr + offset, csize)) {
--			iounmap(vaddr);
-+			memunmap(vaddr);
- 			return -EFAULT;
- 		}
- 	} else
- 		memcpy(buf, vaddr + offset, csize);
- 
- 	set_iounmap_nonlazy();
--	iounmap(vaddr);
-+	memunmap(vaddr);
- 	return csize;
- }
-diff --git a/arch/x86/kernel/kdebugfs.c b/arch/x86/kernel/kdebugfs.c
-index dc1404bf8e4b..a2248482c14b 100644
---- a/arch/x86/kernel/kdebugfs.c
-+++ b/arch/x86/kernel/kdebugfs.c
-@@ -49,7 +49,7 @@ static ssize_t setup_data_read(struct file *file, char __user *user_buf,
- 	pa = node->paddr + sizeof(struct setup_data) + pos;
- 	pg = pfn_to_page((pa + count - 1) >> PAGE_SHIFT);
- 	if (PageHighMem(pg)) {
--		p = ioremap_cache(pa, count);
-+		p = memremap(pa, count, MEMREMAP_CACHE);
- 		if (!p)
- 			return -ENXIO;
- 	} else
-@@ -58,7 +58,7 @@ static ssize_t setup_data_read(struct file *file, char __user *user_buf,
- 	remain = copy_to_user(user_buf, p, count);
- 
- 	if (PageHighMem(pg))
--		iounmap(p);
-+		memunmap(p);
- 
- 	if (remain)
- 		return -EFAULT;
-@@ -128,7 +128,7 @@ static int __init create_setup_data_nodes(struct dentry *parent)
- 
- 		pg = pfn_to_page((pa_data+sizeof(*data)-1) >> PAGE_SHIFT);
- 		if (PageHighMem(pg)) {
--			data = ioremap_cache(pa_data, sizeof(*data));
-+			data = memremap(pa_data, sizeof(*data), MEMREMAP_CACHE);
- 			if (!data) {
- 				kfree(node);
- 				error = -ENXIO;
-@@ -144,7 +144,7 @@ static int __init create_setup_data_nodes(struct dentry *parent)
- 		pa_data = data->next;
- 
- 		if (PageHighMem(pg))
--			iounmap(data);
-+			memunmap(data);
- 		if (error)
- 			goto err_dir;
- 		no++;
-diff --git a/arch/x86/kernel/ksysfs.c b/arch/x86/kernel/ksysfs.c
-index c2bedaea11f7..d2670bb75a08 100644
---- a/arch/x86/kernel/ksysfs.c
-+++ b/arch/x86/kernel/ksysfs.c
-@@ -16,8 +16,8 @@
- #include <linux/stat.h>
- #include <linux/slab.h>
- #include <linux/mm.h>
-+#include <linux/io.h>
- 
--#include <asm/io.h>
- #include <asm/setup.h>
- 
- static ssize_t version_show(struct kobject *kobj,
-@@ -79,12 +79,12 @@ static int get_setup_data_paddr(int nr, u64 *paddr)
- 			*paddr = pa_data;
- 			return 0;
- 		}
--		data = ioremap_cache(pa_data, sizeof(*data));
-+		data = memremap(pa_data, sizeof(*data), MEMREMAP_CACHE);
- 		if (!data)
- 			return -ENOMEM;
- 
- 		pa_data = data->next;
--		iounmap(data);
-+		memunmap(data);
- 		i++;
- 	}
- 	return -EINVAL;
-@@ -97,17 +97,17 @@ static int __init get_setup_data_size(int nr, size_t *size)
- 	u64 pa_data = boot_params.hdr.setup_data;
- 
- 	while (pa_data) {
--		data = ioremap_cache(pa_data, sizeof(*data));
-+		data = memremap(pa_data, sizeof(*data), MEMREMAP_CACHE);
- 		if (!data)
- 			return -ENOMEM;
- 		if (nr == i) {
- 			*size = data->len;
--			iounmap(data);
-+			memunmap(data);
- 			return 0;
- 		}
- 
- 		pa_data = data->next;
--		iounmap(data);
-+		memunmap(data);
- 		i++;
- 	}
- 	return -EINVAL;
-@@ -127,12 +127,12 @@ static ssize_t type_show(struct kobject *kobj,
- 	ret = get_setup_data_paddr(nr, &paddr);
- 	if (ret)
- 		return ret;
--	data = ioremap_cache(paddr, sizeof(*data));
-+	data = memremap(paddr, sizeof(*data), MEMREMAP_CACHE);
- 	if (!data)
- 		return -ENOMEM;
- 
- 	ret = sprintf(buf, "0x%x\n", data->type);
--	iounmap(data);
-+	memunmap(data);
- 	return ret;
  }
  
-@@ -154,7 +154,7 @@ static ssize_t setup_data_data_read(struct file *fp,
- 	ret = get_setup_data_paddr(nr, &paddr);
- 	if (ret)
- 		return ret;
--	data = ioremap_cache(paddr, sizeof(*data));
-+	data = memremap(paddr, sizeof(*data), MEMREMAP_CACHE);
- 	if (!data)
- 		return -ENOMEM;
+-static inline void __iomem *ioremap(unsigned long port, unsigned long size)
++static inline void __iomem *ioremap(resource_size_t port, unsigned long size)
+ {
+ 	return IO_CONCAT(__IO_PREFIX,ioremap) (port, size);
+ }
++#define ioremap ioremap
  
-@@ -170,15 +170,15 @@ static ssize_t setup_data_data_read(struct file *fp,
- 		goto out;
- 
- 	ret = count;
--	p = ioremap_cache(paddr + sizeof(*data), data->len);
-+	p = memremap(paddr + sizeof(*data), data->len, MEMREMAP_CACHE);
- 	if (!p) {
- 		ret = -ENOMEM;
- 		goto out;
- 	}
- 	memcpy(buf, p + off, count);
--	iounmap(p);
-+	memunmap(p);
- out:
--	iounmap(data);
-+	memunmap(data);
- 	return ret;
+ static inline void __iomem *__ioremap(unsigned long port, unsigned long size,
+ 				      unsigned long flags)
+@@ -293,16 +294,18 @@ static inline void __iomem *__ioremap(unsigned long port, unsigned long size,
+ 	return ioremap(port, size);
  }
  
-@@ -250,13 +250,13 @@ static int __init get_setup_data_total_num(u64 pa_data, int *nr)
- 	*nr = 0;
- 	while (pa_data) {
- 		*nr += 1;
--		data = ioremap_cache(pa_data, sizeof(*data));
-+		data = memremap(pa_data, sizeof(*data), MEMREMAP_CACHE);
- 		if (!data) {
- 			ret = -ENOMEM;
- 			goto out;
- 		}
- 		pa_data = data->next;
--		iounmap(data);
-+		memunmap(data);
- 	}
+-static inline void __iomem * ioremap_nocache(unsigned long offset,
++static inline void __iomem * ioremap_nocache(resource_size_t offset,
+ 					     unsigned long size)
+ {
+ 	return ioremap(offset, size);
+ } 
++#define ioremap_nocache ioremap_nocache
  
- out:
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index ccf5c867b2eb..4920f735f551 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -401,12 +401,10 @@ void *xlate_dev_mem_ptr(phys_addr_t phys)
- 	if (page_is_ram(start >> PAGE_SHIFT))
- 		return __va(phys);
+ static inline void iounmap(volatile void __iomem *addr)
+ {
+ 	IO_CONCAT(__IO_PREFIX,iounmap)(addr);
+ }
++#define iounmap iounmap
  
--	vaddr = ioremap_cache(start, PAGE_SIZE);
--	/* Only add the offset on success and return NULL if the ioremap() failed: */
-+	vaddr = memremap(start, PAGE_SIZE, MEMREMAP_CACHE);
- 	if (vaddr)
--		vaddr += offset;
+ static inline int __is_ioaddr(unsigned long addr)
+ {
+diff --git a/arch/arc/include/asm/io.h b/arch/arc/include/asm/io.h
+index 694ece8a0243..640730d5f3da 100644
+--- a/arch/arc/include/asm/io.h
++++ b/arch/arc/include/asm/io.h
+@@ -13,14 +13,8 @@
+ #include <asm/byteorder.h>
+ #include <asm/page.h>
+ 
+-extern void __iomem *ioremap(unsigned long physaddr, unsigned long size);
+ extern void __iomem *ioremap_prot(phys_addr_t offset, unsigned long size,
+ 				  unsigned long flags);
+-extern void iounmap(const void __iomem *addr);
 -
--	return vaddr;
-+		return vaddr + offset;
-+	return NULL;
+-#define ioremap_nocache(phy, sz)	ioremap(phy, sz)
+-#define ioremap_wc(phy, sz)		ioremap(phy, sz)
+-#define ioremap_wt(phy, sz)		ioremap(phy, sz)
+ 
+ /* Change struct page to physical address */
+ #define page_to_phys(page)		(page_to_pfn(page) << PAGE_SHIFT)
+diff --git a/arch/arm/include/asm/io.h b/arch/arm/include/asm/io.h
+index 485982084fe9..ebaac84bd59e 100644
+--- a/arch/arm/include/asm/io.h
++++ b/arch/arm/include/asm/io.h
+@@ -388,16 +388,14 @@ static inline void memcpy_toio(volatile void __iomem *to, const void *from,
+  * Eg, a CPU not implementing read allocate but implementing write allocate
+  * will provide a write allocate mapping instead.
+  */
+-void __iomem *ioremap(resource_size_t res_cookie, size_t size);
++void __iomem *ioremap(resource_size_t res_cookie, unsigned long size);
+ #define ioremap ioremap
+-#define ioremap_nocache ioremap
+ 
+-void __iomem *ioremap_cache(resource_size_t res_cookie, size_t size);
++void __iomem *ioremap_cache(resource_size_t res_cookie, unsigned long size);
+ #define ioremap_cache ioremap_cache
+ 
+-void __iomem *ioremap_wc(resource_size_t res_cookie, size_t size);
++void __iomem *ioremap_wc(resource_size_t res_cookie, unsigned long size);
+ #define ioremap_wc ioremap_wc
+-#define ioremap_wt ioremap_wc
+ 
+ void iounmap(volatile void __iomem *iomem_cookie);
+ #define iounmap iounmap
+diff --git a/arch/arm/mm/ioremap.c b/arch/arm/mm/ioremap.c
+index 0c81056c1dd7..db143a3c63c6 100644
+--- a/arch/arm/mm/ioremap.c
++++ b/arch/arm/mm/ioremap.c
+@@ -371,21 +371,21 @@ void __iomem * (*arch_ioremap_caller)(phys_addr_t, size_t,
+ 				      unsigned int, void *) =
+ 	__arm_ioremap_caller;
+ 
+-void __iomem *ioremap(resource_size_t res_cookie, size_t size)
++void __iomem *ioremap(resource_size_t res_cookie, unsigned long size)
+ {
+ 	return arch_ioremap_caller(res_cookie, size, MT_DEVICE,
+ 				   __builtin_return_address(0));
  }
+ EXPORT_SYMBOL(ioremap);
  
- void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
-@@ -414,7 +412,7 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
- 	if (page_is_ram(phys >> PAGE_SHIFT))
- 		return;
- 
--	iounmap((void __iomem *)((unsigned long)addr & PAGE_MASK));
-+	memunmap((void *)((unsigned long)addr & PAGE_MASK));
+-void __iomem *ioremap_cache(resource_size_t res_cookie, size_t size)
++void __iomem *ioremap_cache(resource_size_t res_cookie, unsigned long size)
+ {
+ 	return arch_ioremap_caller(res_cookie, size, MT_DEVICE_CACHED,
+ 				   __builtin_return_address(0));
  }
+ EXPORT_SYMBOL(ioremap_cache);
  
- static pte_t bm_pte[PAGE_SIZE/sizeof(pte_t)] __page_aligned_bss;
-diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
-index e5b872ba2484..da1078692c41 100644
---- a/arch/xtensa/Kconfig
-+++ b/arch/xtensa/Kconfig
-@@ -3,6 +3,7 @@ config ZONE_DMA
+-void __iomem *ioremap_wc(resource_size_t res_cookie, size_t size)
++void __iomem *ioremap_wc(resource_size_t res_cookie, unsigned long size)
+ {
+ 	return arch_ioremap_caller(res_cookie, size, MT_DEVICE_WC,
+ 				   __builtin_return_address(0));
+diff --git a/arch/arm/mm/nommu.c b/arch/arm/mm/nommu.c
+index 1dd10936d68d..13b93eee89da 100644
+--- a/arch/arm/mm/nommu.c
++++ b/arch/arm/mm/nommu.c
+@@ -359,21 +359,21 @@ void __iomem *__arm_ioremap_caller(phys_addr_t phys_addr, size_t size,
  
- config XTENSA
- 	def_bool y
-+	select ARCH_HAS_MEMREMAP
- 	select ARCH_WANT_FRAME_POINTERS
- 	select ARCH_WANT_IPC_PARSE_VERSION
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
-diff --git a/drivers/acpi/apei/einj.c b/drivers/acpi/apei/einj.c
-index a095d4f858da..d4992fea6994 100644
---- a/drivers/acpi/apei/einj.c
-+++ b/drivers/acpi/apei/einj.c
-@@ -318,7 +318,8 @@ static int __einj_error_trigger(u64 trigger_paddr, u32 type,
- 			    sizeof(*trigger_tab) - 1);
- 		goto out;
- 	}
--	trigger_tab = ioremap_cache(trigger_paddr, sizeof(*trigger_tab));
-+	trigger_tab = memremap(trigger_paddr, sizeof(*trigger_tab),
-+			MEMREMAP_CACHE);
- 	if (!trigger_tab) {
- 		pr_err(EINJ_PFX "Failed to map trigger table!\n");
- 		goto out_rel_header;
-@@ -346,8 +347,8 @@ static int __einj_error_trigger(u64 trigger_paddr, u32 type,
- 		       (unsigned long long)trigger_paddr + table_size - 1);
- 		goto out_rel_header;
- 	}
--	iounmap(trigger_tab);
--	trigger_tab = ioremap_cache(trigger_paddr, table_size);
-+	memunmap(trigger_tab);
-+	trigger_tab = memremap(trigger_paddr, table_size, MEMREMAP_CACHE);
- 	if (!trigger_tab) {
- 		pr_err(EINJ_PFX "Failed to map trigger table!\n");
- 		goto out_rel_entry;
-@@ -409,7 +410,7 @@ out_rel_header:
- 	release_mem_region(trigger_paddr, sizeof(*trigger_tab));
- out:
- 	if (trigger_tab)
--		iounmap(trigger_tab);
-+		memunmap(trigger_tab);
+ void __iomem * (*arch_ioremap_caller)(phys_addr_t, size_t, unsigned int, void *);
  
- 	return rc;
+-void __iomem *ioremap(resource_size_t res_cookie, size_t size)
++void __iomem *ioremap(resource_size_t res_cookie, unsigned long size)
+ {
+ 	return __arm_ioremap_caller(res_cookie, size, MT_DEVICE,
+ 				    __builtin_return_address(0));
  }
-diff --git a/drivers/acpi/apei/erst.c b/drivers/acpi/apei/erst.c
-index 3670bbab57a3..dc49b0b42d65 100644
---- a/drivers/acpi/apei/erst.c
-+++ b/drivers/acpi/apei/erst.c
-@@ -77,7 +77,7 @@ static struct acpi_table_erst *erst_tab;
- static struct erst_erange {
- 	u64 base;
- 	u64 size;
--	void __iomem *vaddr;
-+	void *vaddr;
- 	u32 attr;
- } erst_erange;
+ EXPORT_SYMBOL(ioremap);
  
-@@ -1185,8 +1185,8 @@ static int __init erst_init(void)
- 		goto err_unmap_reg;
- 	}
- 	rc = -ENOMEM;
--	erst_erange.vaddr = ioremap_cache(erst_erange.base,
--					  erst_erange.size);
-+	erst_erange.vaddr = memremap(erst_erange.base, erst_erange.size,
-+			MEMREMAP_CACHE);
- 	if (!erst_erange.vaddr)
- 		goto err_release_erange;
- 
-diff --git a/drivers/firmware/google/memconsole.c b/drivers/firmware/google/memconsole.c
-index 2f569aaed4c7..2b8160d12ad6 100644
---- a/drivers/firmware/google/memconsole.c
-+++ b/drivers/firmware/google/memconsole.c
-@@ -52,14 +52,15 @@ static ssize_t memconsole_read(struct file *filp, struct kobject *kobp,
- 	char *memconsole;
- 	ssize_t ret;
- 
--	memconsole = ioremap_cache(memconsole_baseaddr, memconsole_length);
-+	memconsole = memremap(memconsole_baseaddr, memconsole_length,
-+			MEMREMAP_CACHE);
- 	if (!memconsole) {
- 		pr_err("memconsole: ioremap_cache failed\n");
- 		return -ENOMEM;
- 	}
- 	ret = memory_read_from_buffer(buf, count, &pos, memconsole,
- 				      memconsole_length);
--	iounmap(memconsole);
-+	memunmap(memconsole);
- 	return ret;
+-void __iomem *ioremap_cache(resource_size_t res_cookie, size_t size)
++void __iomem *ioremap_cache(resource_size_t res_cookie, unsigned long size)
+ {
+ 	return __arm_ioremap_caller(res_cookie, size, MT_DEVICE_CACHED,
+ 				    __builtin_return_address(0));
  }
+ EXPORT_SYMBOL(ioremap_cache);
  
-diff --git a/include/linux/device.h b/include/linux/device.h
-index 5a31bf3a4024..04e53eab71c5 100644
---- a/include/linux/device.h
-+++ b/include/linux/device.h
-@@ -668,6 +668,11 @@ extern void devm_free_pages(struct device *dev, unsigned long addr);
+-void __iomem *ioremap_wc(resource_size_t res_cookie, size_t size)
++void __iomem *ioremap_wc(resource_size_t res_cookie, unsigned long size)
+ {
+ 	return __arm_ioremap_caller(res_cookie, size, MT_DEVICE_WC,
+ 				    __builtin_return_address(0));
+diff --git a/arch/arm64/include/asm/io.h b/arch/arm64/include/asm/io.h
+index 44be1e03ed65..2b56846fc65f 100644
+--- a/arch/arm64/include/asm/io.h
++++ b/arch/arm64/include/asm/io.h
+@@ -166,12 +166,25 @@ extern void __memset_io(volatile void __iomem *, int, size_t);
+ extern void __iomem *__ioremap(phys_addr_t phys_addr, size_t size, pgprot_t prot);
+ extern void __iounmap(volatile void __iomem *addr);
+ extern void __iomem *ioremap_cache(phys_addr_t phys_addr, size_t size);
++#define ioremap_cache ioremap_cache
  
- void __iomem *devm_ioremap_resource(struct device *dev, struct resource *res);
- 
-+static inline void *devm_memremap_resource(struct device *dev, struct resource *res)
+-#define ioremap(addr, size)		__ioremap((addr), (size), __pgprot(PROT_DEVICE_nGnRE))
+-#define ioremap_nocache(addr, size)	__ioremap((addr), (size), __pgprot(PROT_DEVICE_nGnRE))
+-#define ioremap_wc(addr, size)		__ioremap((addr), (size), __pgprot(PROT_NORMAL_NC))
+-#define ioremap_wt(addr, size)		__ioremap((addr), (size), __pgprot(PROT_DEVICE_nGnRE))
+-#define iounmap				__iounmap
++static inline void __iomem *ioremap(resource_size_t addr, unsigned long size)
 +{
-+	return (void __force *) devm_ioremap_resource(dev, res);
++	return __ioremap(addr, size, __pgprot(PROT_DEVICE_nGnRE));
++}
++#define ioremap ioremap
++
++static inline void __iomem *ioremap_wc(resource_size_t addr, unsigned long size)
++{
++	return __ioremap(addr, size, __pgprot(PROT_NORMAL_NC));
++}
++#define ioremap_wc ioremap_wc
++
++static inline void iounmap(volatile void __iomem *addr)
++{
++	return __iounmap(addr);
++}
++#define iounmap iounmap
+ 
+ /*
+  * io{read,write}{16,32}be() macros
+diff --git a/arch/avr32/include/asm/io.h b/arch/avr32/include/asm/io.h
+index e998ff5d8e1a..80af4cb6c5b6 100644
+--- a/arch/avr32/include/asm/io.h
++++ b/arch/avr32/include/asm/io.h
+@@ -274,7 +274,7 @@ static inline void memset_io(volatile void __iomem *addr, unsigned char val,
+ 
+ extern void __iomem *__ioremap(unsigned long offset, size_t size,
+ 			       unsigned long flags);
+-extern void __iounmap(void __iomem *addr);
++extern void __iounmap(volatile void __iomem *addr);
+ 
+ /*
+  * ioremap	-   map bus memory into CPU space
+@@ -286,17 +286,17 @@ extern void __iounmap(void __iomem *addr);
+  * the other mmio helpers. The returned address is not guaranteed to
+  * be usable directly as a virtual address.
+  */
+-#define ioremap(offset, size)			\
+-	__ioremap((offset), (size), 0)
+-
+-#define ioremap_nocache(offset, size)		\
+-	__ioremap((offset), (size), 0)
+-
+-#define iounmap(addr)				\
+-	__iounmap(addr)
++static inline void __iomem *ioremap(resource_size_t offset, unsigned long size)
++{
++	return __ioremap(offset, size, 0);
++}
++#define ioremap ioremap
+ 
+-#define ioremap_wc ioremap_nocache
+-#define ioremap_wt ioremap_nocache
++static inline void iounmap(volatile void __iomem *addr)
++{
++	return __iounmap(addr);
++}
++#define iounmap iounmap
+ 
+ #define cached(addr) P1SEGADDR(addr)
+ #define uncached(addr) P2SEGADDR(addr)
+diff --git a/arch/avr32/mm/ioremap.c b/arch/avr32/mm/ioremap.c
+index 7def0d84cec6..f3eacbe5dff6 100644
+--- a/arch/avr32/mm/ioremap.c
++++ b/arch/avr32/mm/ioremap.c
+@@ -73,7 +73,7 @@ void __iomem *__ioremap(unsigned long phys_addr, size_t size,
+ }
+ EXPORT_SYMBOL(__ioremap);
+ 
+-void __iounmap(void __iomem *addr)
++void __iounmap(volatile void __iomem *addr)
+ {
+ 	struct vm_struct *p;
+ 
+diff --git a/arch/cris/include/asm/io.h b/arch/cris/include/asm/io.h
+index 752a3f45df60..cd55a5709433 100644
+--- a/arch/cris/include/asm/io.h
++++ b/arch/cris/include/asm/io.h
+@@ -37,14 +37,14 @@ static inline void * phys_to_virt(unsigned long address)
+ extern void __iomem * __ioremap(unsigned long offset, unsigned long size, unsigned long flags);
+ extern void __iomem * __ioremap_prot(unsigned long phys_addr, unsigned long size, pgprot_t prot);
+ 
+-static inline void __iomem * ioremap (unsigned long offset, unsigned long size)
++static inline void __iomem * ioremap(resource_size_t offset, unsigned long size)
+ {
+ 	return __ioremap(offset, size, 0);
+ }
++#define ioremap ioremap
+ 
+-extern void iounmap(volatile void * __iomem addr);
+-
+-extern void __iomem * ioremap_nocache(unsigned long offset, unsigned long size);
++extern void __iomem * ioremap_nocache(resource_size_t offset, unsigned long size);
++#define ioremap_nocache ioremap_nocache
+ 
+ /*
+  * IO bus memory addresses are also 1:1 with the physical address
+diff --git a/arch/cris/mm/ioremap.c b/arch/cris/mm/ioremap.c
+index 80fdb995a8ce..13cef92df503 100644
+--- a/arch/cris/mm/ioremap.c
++++ b/arch/cris/mm/ioremap.c
+@@ -76,7 +76,7 @@ void __iomem * __ioremap(unsigned long phys_addr, unsigned long size, unsigned l
+  * Must be freed with iounmap.
+  */
+ 
+-void __iomem *ioremap_nocache(unsigned long phys_addr, unsigned long size)
++void __iomem *ioremap_nocache(resource_size_t phys_addr, unsigned long size)
+ {
+         return __ioremap(phys_addr | MEM_NON_CACHEABLE, size, 0);
+ }
+diff --git a/arch/frv/include/asm/io.h b/arch/frv/include/asm/io.h
+index a31b63ec4930..bde570d29c89 100644
+--- a/arch/frv/include/asm/io.h
++++ b/arch/frv/include/asm/io.h
+@@ -17,8 +17,6 @@
+ 
+ #ifdef __KERNEL__
+ 
+-#define ARCH_HAS_IOREMAP_WT
+-
+ #include <linux/types.h>
+ #include <asm/virtconvert.h>
+ #include <asm/string.h>
+@@ -257,29 +255,28 @@ static inline void writel(uint32_t datum, volatile void __iomem *addr)
+ 
+ extern void __iomem *__ioremap(unsigned long physaddr, unsigned long size, int cacheflag);
+ 
+-static inline void __iomem *ioremap(unsigned long physaddr, unsigned long size)
+-{
+-	return __ioremap(physaddr, size, IOMAP_NOCACHE_SER);
+-}
+-
+-static inline void __iomem *ioremap_nocache(unsigned long physaddr, unsigned long size)
++static inline void __iomem *ioremap(resource_size_t physaddr, unsigned long size)
+ {
+ 	return __ioremap(physaddr, size, IOMAP_NOCACHE_SER);
+ }
++#define ioremap ioremap
+ 
+-static inline void __iomem *ioremap_wt(unsigned long physaddr, unsigned long size)
++static inline void __iomem *ioremap_wt(resource_size_t physaddr, unsigned long size)
+ {
+ 	return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
+ }
++#define ioremap_wt ioremap_wt
+ 
+-static inline void __iomem *ioremap_fullcache(unsigned long physaddr, unsigned long size)
++static inline void __iomem *ioremap_fullcache(resource_size_t physaddr, unsigned long size)
+ {
+ 	return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
+ }
+ 
+-#define ioremap_wc ioremap_nocache
+-
+-extern void iounmap(void volatile __iomem *addr);
++static inline void __iomem *ioremap_cache(resource_size_t physaddr, unsigned long size)
++{
++	return ioremap_fullcache(physaddr, size);
++}
++#define ioremap_cache ioremap_cache
+ 
+ static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+ {
+diff --git a/arch/hexagon/include/asm/io.h b/arch/hexagon/include/asm/io.h
+index 66f5e9a61efc..e5ecc08b7627 100644
+--- a/arch/hexagon/include/asm/io.h
++++ b/arch/hexagon/include/asm/io.h
+@@ -191,16 +191,19 @@ static inline void writel(u32 data, volatile void __iomem *addr)
+  * This is probably too long for an inline.
+  */
+ void __iomem *ioremap_nocache(unsigned long phys_addr, unsigned long size);
++#define ioremap_nocache ioremap_nocache
+ 
+-static inline void __iomem *ioremap(unsigned long phys_addr, unsigned long size)
++static inline void __iomem *ioremap(resouce_size_t phys_addr, unsigned long size)
+ {
+ 	return ioremap_nocache(phys_addr, size);
+ }
++#define ioremap ioremap
+ 
+ static inline void iounmap(volatile void __iomem *addr)
+ {
+ 	__iounmap(addr);
+ }
++#define iounmap iounmap
+ 
+ #define __raw_writel writel
+ 
+diff --git a/arch/ia64/include/asm/io.h b/arch/ia64/include/asm/io.h
+index 80a7e34be009..ea4c7a243973 100644
+--- a/arch/ia64/include/asm/io.h
++++ b/arch/ia64/include/asm/io.h
+@@ -424,18 +424,12 @@ __writeq (unsigned long val, volatile void __iomem *addr)
+ 
+ # ifdef __KERNEL__
+ 
+-extern void __iomem * ioremap(unsigned long offset, unsigned long size);
+-extern void __iomem * ioremap_nocache (unsigned long offset, unsigned long size);
+-extern void iounmap (volatile void __iomem *addr);
++extern void __iomem * ioremap_nocache (resource_size_t offset, unsigned long size);
++#define ioremap_nocache ioremap_nocache
+ extern void __iomem * early_ioremap (unsigned long phys_addr, unsigned long size);
+ #define early_memremap(phys_addr, size)        early_ioremap(phys_addr, size)
+ extern void early_iounmap (volatile void __iomem *addr, unsigned long size);
+ #define early_memunmap(addr, size)             early_iounmap(addr, size)
+-static inline void __iomem * ioremap_cache (unsigned long phys_addr, unsigned long size)
+-{
+-	return ioremap(phys_addr, size);
+-}
+-
+ 
+ /*
+  * String version of IO memory access ops:
+diff --git a/arch/ia64/mm/ioremap.c b/arch/ia64/mm/ioremap.c
+index 43964cde6214..205d71445f06 100644
+--- a/arch/ia64/mm/ioremap.c
++++ b/arch/ia64/mm/ioremap.c
+@@ -32,7 +32,7 @@ early_ioremap (unsigned long phys_addr, unsigned long size)
+ }
+ 
+ void __iomem *
+-ioremap (unsigned long phys_addr, unsigned long size)
++ioremap (resource_size_t phys_addr, unsigned long size)
+ {
+ 	void __iomem *addr;
+ 	struct vm_struct *area;
+@@ -102,7 +102,7 @@ ioremap (unsigned long phys_addr, unsigned long size)
+ EXPORT_SYMBOL(ioremap);
+ 
+ void __iomem *
+-ioremap_nocache (unsigned long phys_addr, unsigned long size)
++ioremap_nocache (resource_size_t phys_addr, unsigned long size)
+ {
+ 	if (kern_mem_attribute(phys_addr, size) & EFI_MEMORY_WB)
+ 		return NULL;
+diff --git a/arch/m32r/include/asm/io.h b/arch/m32r/include/asm/io.h
+index 0c3f25ee3381..d7f96a542816 100644
+--- a/arch/m32r/include/asm/io.h
++++ b/arch/m32r/include/asm/io.h
+@@ -60,15 +60,14 @@ __ioremap(unsigned long offset, unsigned long size, unsigned long flags);
+  *	address.
+  */
+ 
+-static inline void __iomem *ioremap(unsigned long offset, unsigned long size)
++static inline void __iomem *ioremap(resource_size_t offset, unsigned long size)
+ {
+ 	return __ioremap(offset, size, 0);
+ }
++#define ioremap ioremap
+ 
+-extern void iounmap(volatile void __iomem *addr);
+-#define ioremap_nocache(off,size) ioremap(off,size)
+-#define ioremap_wc ioremap_nocache
+-#define ioremap_wt ioremap_nocache
++void iounmap(volatile void __iomem *addr);
++#define iounmap iounmap
+ 
+ /*
+  * IO bus memory addresses are also 1:1 with the physical address
+diff --git a/arch/m68k/include/asm/io_mm.h b/arch/m68k/include/asm/io_mm.h
+index f55cad529400..4119295c6631 100644
+--- a/arch/m68k/include/asm/io_mm.h
++++ b/arch/m68k/include/asm/io_mm.h
+@@ -20,8 +20,6 @@
+ 
+ #ifdef __KERNEL__
+ 
+-#define ARCH_HAS_IOREMAP_WT
+-
+ #include <linux/compiler.h>
+ #include <asm/raw_io.h>
+ #include <asm/virtconvert.h>
+@@ -460,25 +458,32 @@ static inline void isa_delay(void)
+ 
+ #define mmiowb()
+ 
+-static inline void __iomem *ioremap(unsigned long physaddr, unsigned long size)
++static inline void __iomem *ioremap(resource_size_t physaddr, unsigned long size)
+ {
+ 	return __ioremap(physaddr, size, IOMAP_NOCACHE_SER);
+ }
+-static inline void __iomem *ioremap_nocache(unsigned long physaddr, unsigned long size)
+-{
+-	return __ioremap(physaddr, size, IOMAP_NOCACHE_SER);
+-}
+-static inline void __iomem *ioremap_wt(unsigned long physaddr,
++#define ioremap ioremap
++
++static inline void __iomem *ioremap_wt(resource_size_t physaddr,
+ 					 unsigned long size)
+ {
+ 	return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
+ }
++#define ioremap_wt ioremap_wt
++
+ static inline void __iomem *ioremap_fullcache(unsigned long physaddr,
+ 				      unsigned long size)
+ {
+ 	return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
+ }
+ 
++static inline void __iomem *ioremap_cache(resource_size_t physaddr,
++		unsigned long size)
++{
++	return ioremap_fullcache(physaddr, size);
++}
++#define ioremap_cache ioremap_cache
++
+ static inline void memset_io(volatile void __iomem *addr, unsigned char val, int count)
+ {
+ 	__builtin_memset((void __force *) addr, val, count);
+diff --git a/arch/m68k/include/asm/io_no.h b/arch/m68k/include/asm/io_no.h
+index ad7bd40e6742..ea9b280ebc33 100644
+--- a/arch/m68k/include/asm/io_no.h
++++ b/arch/m68k/include/asm/io_no.h
+@@ -3,8 +3,6 @@
+ 
+ #ifdef __KERNEL__
+ 
+-#define ARCH_HAS_IOREMAP_WT
+-
+ #include <asm/virtconvert.h>
+ #include <asm-generic/iomap.h>
+ 
+@@ -143,28 +141,40 @@ static inline void io_insl(unsigned int addr, void *buf, int len)
+ #define IOMAP_NOCACHE_NONSER		2
+ #define IOMAP_WRITETHROUGH		3
+ 
+-static inline void *__ioremap(unsigned long physaddr, unsigned long size, int cacheflag)
+-{
+-	return (void *) physaddr;
+-}
+-static inline void *ioremap(unsigned long physaddr, unsigned long size)
++static inline void __iomem *__ioremap(unsigned long physaddr,
++		unsigned long size, int cacheflag)
+ {
+-	return __ioremap(physaddr, size, IOMAP_NOCACHE_SER);
++	return (void __iomem *) physaddr;
+ }
+-static inline void *ioremap_nocache(unsigned long physaddr, unsigned long size)
++static inline void __iomem *ioremap(resource_size_t physaddr, unsigned long size)
+ {
+ 	return __ioremap(physaddr, size, IOMAP_NOCACHE_SER);
+ }
+-static inline void *ioremap_wt(unsigned long physaddr, unsigned long size)
++#define ioremap ioremap
++
++static inline void __iomem *ioremap_wt(resource_size_t physaddr, unsigned long size)
+ {
+ 	return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
+ }
+-static inline void *ioremap_fullcache(unsigned long physaddr, unsigned long size)
++#define ioremap_wt ioremap_wt
++
++static inline void __iomem *ioremap_fullcache(unsigned long physaddr,
++		unsigned long size)
+ {
+ 	return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
+ }
+ 
+-#define	iounmap(addr)	do { } while(0)
++static inline void __iomem *ioremap_cache(resource_size_t physaddr,
++		unsigned long size)
++{
++	return ioremap_fullcache(physaddr, size);
++}
++#define ioremap_cache ioremap_cache
++
++static inline void iounmap(volatile void __iomem *addr)
++{
++}
++#define iounmap iounmap
+ 
+ /*
+  * Convert a physical pointer to a virtual kernel pointer for /dev/mem
+diff --git a/arch/m68k/include/asm/raw_io.h b/arch/m68k/include/asm/raw_io.h
+index 932faa35655b..abb7708f02ed 100644
+--- a/arch/m68k/include/asm/raw_io.h
++++ b/arch/m68k/include/asm/raw_io.h
+@@ -19,7 +19,8 @@
+ #define IOMAP_NOCACHE_NONSER		2
+ #define IOMAP_WRITETHROUGH		3
+ 
+-extern void iounmap(void __iomem *addr);
++extern void iounmap(volatile void __iomem *addr);
++#define iounmap iounmap
+ 
+ extern void __iomem *__ioremap(unsigned long physaddr, unsigned long size,
+ 		       int cacheflag);
+diff --git a/arch/m68k/mm/kmap.c b/arch/m68k/mm/kmap.c
+index 6e4955bc542b..f0d76d9f0643 100644
+--- a/arch/m68k/mm/kmap.c
++++ b/arch/m68k/mm/kmap.c
+@@ -226,7 +226,7 @@ EXPORT_SYMBOL(__ioremap);
+ /*
+  * Unmap an ioremap()ed region again
+  */
+-void iounmap(void __iomem *addr)
++void iounmap(volatile void __iomem *addr)
+ {
+ #ifdef CONFIG_AMIGA
+ 	if ((!MACH_IS_AMIGA) ||
+diff --git a/arch/metag/include/asm/io.h b/arch/metag/include/asm/io.h
+index 9890f21eadbe..50e95ecb4bc2 100644
+--- a/arch/metag/include/asm/io.h
++++ b/arch/metag/include/asm/io.h
+@@ -148,22 +148,29 @@ extern void __iounmap(void __iomem *addr);
+  *	address is not guaranteed to be usable directly as a virtual
+  *	address.
+  */
+-#define ioremap(offset, size)                   \
+-	__ioremap((offset), (size), 0)
+-
+-#define ioremap_nocache(offset, size)           \
+-	__ioremap((offset), (size), 0)
+-
+-#define ioremap_cached(offset, size)            \
+-	__ioremap((offset), (size), _PAGE_CACHEABLE)
++static inline void __iomem *ioremap(resource_size_t offset, unsigned long size)
++{
++	return __ioremap(offset, size, 0);
++}
++#define ioremap ioremap
+ 
+-#define ioremap_wc(offset, size)                \
+-	__ioremap((offset), (size), _PAGE_WR_COMBINE)
++static inline void __iomem *ioremap_cache(resource_size_t offset, unsigned long size)
++{
++	return __ioremap(offset, size, _PAGE_CACHEABLE);
++}
++#define ioremap_cache ioremap_cache
++#define ioremap_cached ioremap_cache
+ 
+-#define ioremap_wt(offset, size)                \
+-	__ioremap((offset), (size), 0)
++static inline void __iomem *ioremap_wc(resource_size_t offset, unsigned long size)
++{
++	return __ioremap(offset, size, _PAGE_WR_COMBINE);
++}
++#define ioremap_wc ioremap_wc
+ 
+-#define iounmap(addr)                           \
+-	__iounmap(addr)
++static inline void iounmap(volatile void __iomem *addr)
++{
++	return __iounmap(addr);
++}
++#define iounmap iounmap
+ 
+ #endif  /* _ASM_METAG_IO_H */
+diff --git a/arch/microblaze/include/asm/io.h b/arch/microblaze/include/asm/io.h
+index 39b6315db82e..60ca27d7dd1f 100644
+--- a/arch/microblaze/include/asm/io.h
++++ b/arch/microblaze/include/asm/io.h
+@@ -36,13 +36,7 @@ extern resource_size_t isa_mem_base;
+ #ifdef CONFIG_MMU
+ #define page_to_bus(page)	(page_to_phys(page))
+ 
+-extern void iounmap(void __iomem *addr);
+-
+-extern void __iomem *ioremap(phys_addr_t address, unsigned long size);
+-#define ioremap_nocache(addr, size)		ioremap((addr), (size))
+ #define ioremap_fullcache(addr, size)		ioremap((addr), (size))
+-#define ioremap_wc(addr, size)			ioremap((addr), (size))
+-#define ioremap_wt(addr, size)			ioremap((addr), (size))
+ 
+ #endif /* CONFIG_MMU */
+ 
+diff --git a/arch/microblaze/mm/pgtable.c b/arch/microblaze/mm/pgtable.c
+index 4f4520e779a5..2b47b34ff26c 100644
+--- a/arch/microblaze/mm/pgtable.c
++++ b/arch/microblaze/mm/pgtable.c
+@@ -126,7 +126,7 @@ void __iomem *ioremap(phys_addr_t addr, unsigned long size)
+ }
+ EXPORT_SYMBOL(ioremap);
+ 
+-void iounmap(void __iomem *addr)
++void iounmap(volatile void __iomem *addr)
+ {
+ 	if ((__force void *)addr > high_memory &&
+ 					(unsigned long) addr < ioremap_bot)
+diff --git a/arch/mips/include/asm/io.h b/arch/mips/include/asm/io.h
+index 9e777cd42b67..a907e634f914 100644
+--- a/arch/mips/include/asm/io.h
++++ b/arch/mips/include/asm/io.h
+@@ -232,30 +232,11 @@ static inline void __iomem * __ioremap_mode(phys_addr_t offset, unsigned long si
+  * address is not guaranteed to be usable directly as a virtual
+  * address.
+  */
+-#define ioremap(offset, size)						\
+-	__ioremap_mode((offset), (size), _CACHE_UNCACHED)
+-
+-/*
+- * ioremap_nocache     -   map bus memory into CPU space
+- * @offset:    bus address of the memory
+- * @size:      size of the resource to map
+- *
+- * ioremap_nocache performs a platform specific sequence of operations to
+- * make bus memory CPU accessible via the readb/readw/readl/writeb/
+- * writew/writel functions and the other mmio helpers. The returned
+- * address is not guaranteed to be usable directly as a virtual
+- * address.
+- *
+- * This version of ioremap ensures that the memory is marked uncachable
+- * on the CPU as well as honouring existing caching rules from things like
+- * the PCI bus. Note that there are other caches and buffers on many
+- * busses. In particular driver authors should read up on PCI writes
+- *
+- * It's useful if some control registers are in such an area and
+- * write combining or read caching is not desirable:
+- */
+-#define ioremap_nocache(offset, size)					\
+-	__ioremap_mode((offset), (size), _CACHE_UNCACHED)
++static inline void __iomem *ioremap(resource_size_t offset, unsigned long size)
++{
++	return __ioremap_mode(offset, size, _CACHE_UNCACHED);
++}
++#define ioremap ioremap
+ 
+ /*
+  * ioremap_cachable -	map bus memory into CPU space
+@@ -272,8 +253,14 @@ static inline void __iomem * __ioremap_mode(phys_addr_t offset, unsigned long si
+  * the CPU.  Also enables full write-combining.	 Useful for some
+  * memory-like regions on I/O busses.
+  */
+-#define ioremap_cachable(offset, size)					\
+-	__ioremap_mode((offset), (size), _page_cachable_default)
++#define ioremap_cachable ioremap_cache
++extern unsigned long _page_cachable_default;
++static inline void __iomem *ioremap_cache(resource_size_t offset,
++		unsigned long size)
++{
++	return __ioremap_mode(offset, size, _page_cachable_default);
++}
++#define ioremap_cache ioremap_cache
+ 
+ /*
+  * These two are MIPS specific ioremap variant.	 ioremap_cacheable_cow
+@@ -286,7 +273,7 @@ static inline void __iomem * __ioremap_mode(phys_addr_t offset, unsigned long si
+ #define ioremap_uncached_accelerated(offset, size)			\
+ 	__ioremap_mode((offset), (size), _CACHE_UNCACHED_ACCELERATED)
+ 
+-static inline void iounmap(const volatile void __iomem *addr)
++static inline void iounmap(volatile void __iomem *addr)
+ {
+ 	if (plat_iounmap(addr))
+ 		return;
+@@ -301,6 +288,7 @@ static inline void iounmap(const volatile void __iomem *addr)
+ 
+ #undef __IS_KSEG1
+ }
++#define iounmap iounmap
+ 
+ #ifdef CONFIG_CPU_CAVIUM_OCTEON
+ #define war_octeon_io_reorder_wmb()		wmb()
+diff --git a/arch/mn10300/include/asm/io.h b/arch/mn10300/include/asm/io.h
+index 07c5b4a3903b..48629631f718 100644
+--- a/arch/mn10300/include/asm/io.h
++++ b/arch/mn10300/include/asm/io.h
+@@ -266,27 +266,29 @@ static inline void __iomem *__ioremap(unsigned long offset, unsigned long size,
+ 	return (void __iomem *) offset;
+ }
+ 
+-static inline void __iomem *ioremap(unsigned long offset, unsigned long size)
++static inline void __iomem *ioremap(resource_size_t offset, unsigned long size)
+ {
+ 	return (void __iomem *)(offset & ~0x20000000);
+ }
++#define ioremap ioremap
+ 
+ /*
+  * This one maps high address device memory and turns off caching for that
+  * area.  it's useful if some control registers are in such an area and write
+  * combining or read caching is not desirable:
+  */
+-static inline void __iomem *ioremap_nocache(unsigned long offset, unsigned long size)
++static inline void __iomem *ioremap_nocache(resource_size_t offset, unsigned long size)
+ {
+ 	return (void __iomem *) (offset | 0x20000000);
+ }
+-
++#define ioremap_nocache ioremap_nocache
+ #define ioremap_wc ioremap_nocache
+ #define ioremap_wt ioremap_nocache
+ 
+-static inline void iounmap(void __iomem *addr)
++static inline void iounmap(volatile void __iomem *addr)
+ {
+ }
++#define iounmap iounmap
+ 
+ static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+ {
+diff --git a/arch/nios2/include/asm/io.h b/arch/nios2/include/asm/io.h
+index c5a62da22cd2..161a63265813 100644
+--- a/arch/nios2/include/asm/io.h
++++ b/arch/nios2/include/asm/io.h
+@@ -29,24 +29,17 @@ extern void __iomem *__ioremap(unsigned long physaddr, unsigned long size,
+ 			unsigned long cacheflag);
+ extern void __iounmap(void __iomem *addr);
+ 
+-static inline void __iomem *ioremap(unsigned long physaddr, unsigned long size)
++static inline void __iomem *ioremap(resource_size_t physaddr, unsigned long size)
+ {
+ 	return __ioremap(physaddr, size, 0);
+ }
++#define ioremap ioremap
+ 
+-static inline void __iomem *ioremap_nocache(unsigned long physaddr,
+-						unsigned long size)
+-{
+-	return __ioremap(physaddr, size, 0);
+-}
+-
+-static inline void iounmap(void __iomem *addr)
++static inline void iounmap(volatile void __iomem *addr)
+ {
+ 	__iounmap(addr);
+ }
+-
+-#define ioremap_wc ioremap_nocache
+-#define ioremap_wt ioremap_nocache
++#define iounmap iounmap
+ 
+ /* Pages to physical address... */
+ #define page_to_phys(page)	virt_to_phys(page_to_virt(page))
+diff --git a/arch/openrisc/include/asm/io.h b/arch/openrisc/include/asm/io.h
+index 7c691399da3f..4f7636e7901d 100644
+--- a/arch/openrisc/include/asm/io.h
++++ b/arch/openrisc/include/asm/io.h
+@@ -39,6 +39,7 @@ static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+ {
+ 	return __ioremap(offset, size, PAGE_KERNEL);
+ }
++#define ioremap ioremap
+ 
+ /* #define _PAGE_CI       0x002 */
+ static inline void __iomem *ioremap_nocache(phys_addr_t offset,
+@@ -47,6 +48,6 @@ static inline void __iomem *ioremap_nocache(phys_addr_t offset,
+ 	return __ioremap(offset, size,
+ 			 __pgprot(pgprot_val(PAGE_KERNEL) | _PAGE_CI));
+ }
++#define ioremap_nocache ioremap_nocache
+ 
+-extern void iounmap(void *addr);
+ #endif
+diff --git a/arch/openrisc/mm/ioremap.c b/arch/openrisc/mm/ioremap.c
+index 62b08ef392be..2af1bbe5f80c 100644
+--- a/arch/openrisc/mm/ioremap.c
++++ b/arch/openrisc/mm/ioremap.c
+@@ -81,7 +81,7 @@ __ioremap(phys_addr_t addr, unsigned long size, pgprot_t prot)
+ 	return (void __iomem *)(offset + (char *)v);
+ }
+ 
+-void iounmap(void *addr)
++void iounmap(volatile void __iomem *addr)
+ {
+ 	/* If the page is from the fixmap pool then we just clear out
+ 	 * the fixmap mapping.
+diff --git a/arch/parisc/include/asm/io.h b/arch/parisc/include/asm/io.h
+index 8cd0abf28ffb..8a4ecb47f960 100644
+--- a/arch/parisc/include/asm/io.h
++++ b/arch/parisc/include/asm/io.h
+@@ -132,13 +132,11 @@ extern void __iomem * __ioremap(unsigned long offset, unsigned long size, unsign
+ /* Most machines react poorly to I/O-space being cacheable... Instead let's
+  * define ioremap() in terms of ioremap_nocache().
+  */
+-static inline void __iomem * ioremap(unsigned long offset, unsigned long size)
++static inline void __iomem * ioremap(resource_size_t offset, unsigned long size)
+ {
+ 	return __ioremap(offset, size, _PAGE_NO_CACHE);
+ }
+-#define ioremap_nocache(off, sz)	ioremap((off), (sz))
+-
+-extern void iounmap(const volatile void __iomem *addr);
++#define ioremap ioremap
+ 
+ static inline unsigned char __raw_readb(const volatile void __iomem *addr)
+ {
+diff --git a/arch/parisc/mm/ioremap.c b/arch/parisc/mm/ioremap.c
+index 838d0259cd27..3830d8af80a4 100644
+--- a/arch/parisc/mm/ioremap.c
++++ b/arch/parisc/mm/ioremap.c
+@@ -91,7 +91,7 @@ void __iomem * __ioremap(unsigned long phys_addr, unsigned long size, unsigned l
+ }
+ EXPORT_SYMBOL(__ioremap);
+ 
+-void iounmap(const volatile void __iomem *addr)
++void iounmap(volatile void __iomem *addr)
+ {
+ 	if (addr > high_memory)
+ 		return vfree((void *) (PAGE_MASK & (unsigned long __force) addr));
+diff --git a/arch/powerpc/include/asm/io.h b/arch/powerpc/include/asm/io.h
+index a8d2ef30d473..081f7d3d8913 100644
+--- a/arch/powerpc/include/asm/io.h
++++ b/arch/powerpc/include/asm/io.h
+@@ -2,8 +2,6 @@
+ #define _ASM_POWERPC_IO_H
+ #ifdef __KERNEL__
+ 
+-#define ARCH_HAS_IOREMAP_WC
+-
+ /*
+  * This program is free software; you can redistribute it and/or
+  * modify it under the terms of the GNU General Public License
+@@ -25,7 +23,6 @@ extern struct pci_dev *isa_bridge_pcidev;
+ #endif
+ 
+ #include <linux/device.h>
+-#include <linux/io.h>
+ 
+ #include <linux/compiler.h>
+ #include <asm/page.h>
+@@ -717,12 +714,14 @@ static inline void iosync(void)
+  *
+  */
+ extern void __iomem *ioremap(phys_addr_t address, unsigned long size);
++#define ioremap ioremap
+ extern void __iomem *ioremap_prot(phys_addr_t address, unsigned long size,
+ 				  unsigned long flags);
+ extern void __iomem *ioremap_wc(phys_addr_t address, unsigned long size);
+-#define ioremap_nocache(addr, size)	ioremap((addr), (size))
++#define ioremap_wc ioremap_wc
+ 
+ extern void iounmap(volatile void __iomem *addr);
++#define iounmap iounmap
+ 
+ extern void __iomem *__ioremap(phys_addr_t, unsigned long size,
+ 			       unsigned long flags);
+diff --git a/arch/s390/include/asm/io.h b/arch/s390/include/asm/io.h
+index cb5fdf3a78fc..1cb32250d12b 100644
+--- a/arch/s390/include/asm/io.h
++++ b/arch/s390/include/asm/io.h
+@@ -27,18 +27,16 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr);
+ 
+ #ifdef CONFIG_PCI
+ 
+-#define ioremap_nocache(addr, size)	ioremap(addr, size)
+-#define ioremap_wc			ioremap_nocache
+-#define ioremap_wt			ioremap_nocache
+-
+-static inline void __iomem *ioremap(unsigned long offset, unsigned long size)
++static inline void __iomem *ioremap(resource_size_t offset, unsigned long size)
+ {
+ 	return (void __iomem *) offset;
+ }
++#define ioremap ioremap
+ 
+ static inline void iounmap(volatile void __iomem *addr)
+ {
+ }
++#define iounmap iounmap
+ 
+ static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
+ {
+diff --git a/arch/sh/include/asm/io.h b/arch/sh/include/asm/io.h
+index 728c4c571f40..fddd71512ee1 100644
+--- a/arch/sh/include/asm/io.h
++++ b/arch/sh/include/asm/io.h
+@@ -336,12 +336,14 @@ static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+ {
+ 	return __ioremap_mode(offset, size, PAGE_KERNEL_NOCACHE);
+ }
++#define ioremap ioremap
+ 
+ static inline void __iomem *
+ ioremap_cache(phys_addr_t offset, unsigned long size)
+ {
+ 	return __ioremap_mode(offset, size, PAGE_KERNEL);
+ }
++#define ioremap_cache ioremap_cache
+ 
+ #ifdef CONFIG_HAVE_IOREMAP_PROT
+ static inline void __iomem *
+@@ -367,8 +369,11 @@ static inline void ioremap_fixed_init(void) { }
+ static inline int iounmap_fixed(void __iomem *addr) { return -EINVAL; }
+ #endif
+ 
+-#define ioremap_nocache	ioremap
+-#define iounmap		__iounmap
++static inline void iounmap(volatile void __iomem *addr)
++{
++	__iounmap((void __force __iomem *) addr);
++}
++#define iounmap	iounmap
+ 
+ /*
+  * Convert a physical pointer to a virtual kernel pointer for /dev/mem
+diff --git a/arch/sparc/include/asm/io_32.h b/arch/sparc/include/asm/io_32.h
+index 57f26c398dc9..138e47e0c7d2 100644
+--- a/arch/sparc/include/asm/io_32.h
++++ b/arch/sparc/include/asm/io_32.h
+@@ -126,11 +126,8 @@ static inline void sbus_memcpy_toio(volatile void __iomem *dst,
+  * Bus number may be embedded in the higher bits of the physical address.
+  * This is why we have no bus number argument to ioremap().
+  */
+-void __iomem *ioremap(unsigned long offset, unsigned long size);
+-#define ioremap_nocache(X,Y)	ioremap((X),(Y))
+-#define ioremap_wc(X,Y)		ioremap((X),(Y))
+-#define ioremap_wt(X,Y)		ioremap((X),(Y))
+-void iounmap(volatile void __iomem *addr);
++void __iomem *ioremap(resource_size_t offset, unsigned long size);
++#define ioremap ioremap
+ 
+ /* Create a virtual mapping cookie for an IO port range */
+ void __iomem *ioport_map(unsigned long port, unsigned int nr);
+diff --git a/arch/sparc/include/asm/io_64.h b/arch/sparc/include/asm/io_64.h
+index c32fa3f752c8..47e90988b562 100644
+--- a/arch/sparc/include/asm/io_64.h
++++ b/arch/sparc/include/asm/io_64.h
+@@ -395,18 +395,16 @@ static inline void memcpy_toio(volatile void __iomem *dst, const void *src,
+ /* On sparc64 we have the whole physical IO address space accessible
+  * using physically addressed loads and stores, so this does nothing.
+  */
+-static inline void __iomem *ioremap(unsigned long offset, unsigned long size)
++static inline void __iomem *ioremap(resource_size_t offset, unsigned long size)
+ {
+ 	return (void __iomem *)offset;
+ }
+-
+-#define ioremap_nocache(X,Y)		ioremap((X),(Y))
+-#define ioremap_wc(X,Y)			ioremap((X),(Y))
+-#define ioremap_wt(X,Y)			ioremap((X),(Y))
++#define ioremap ioremap
+ 
+ static inline void iounmap(volatile void __iomem *addr)
+ {
+ }
++#define iounmap iounmap
+ 
+ #define ioread8			readb
+ #define ioread16		readw
+diff --git a/arch/sparc/kernel/ioport.c b/arch/sparc/kernel/ioport.c
+index 28fed53b13a0..b8c999f5b821 100644
+--- a/arch/sparc/kernel/ioport.c
++++ b/arch/sparc/kernel/ioport.c
+@@ -121,7 +121,7 @@ static void xres_free(struct xresource *xrp) {
+  *
+  * Bus type is always zero on IIep.
+  */
+-void __iomem *ioremap(unsigned long offset, unsigned long size)
++void __iomem *ioremap(resource_size_t offset, unsigned long size)
+ {
+ 	char name[14];
+ 
+diff --git a/arch/tile/include/asm/io.h b/arch/tile/include/asm/io.h
+index dc61de15c1f9..bf7f0fffb8db 100644
+--- a/arch/tile/include/asm/io.h
++++ b/arch/tile/include/asm/io.h
+@@ -48,14 +48,19 @@ extern void __iomem *ioremap_prot(resource_size_t offset, unsigned long size,
+ 	pgprot_t pgprot);
+ extern void iounmap(volatile void __iomem *addr);
+ #else
+-#define ioremap(physaddr, size)	((void __iomem *)(unsigned long)(physaddr))
+-#define iounmap(addr)		((void)0)
++static inline void __iomem *ioremap(resource_size_t offset, unsigned long size)
++{
++	return (void __force __iomem *) offset;
 +}
 +
- /* allows to add/remove a custom action to devres stack */
- int devm_add_action(struct device *dev, void (*action)(void *), void *data);
- void devm_remove_action(struct device *dev, void (*action)(void *), void *data);
++static inline void iounmap(volatile void __iomem *addr)
++{
++}
+ #endif
++#define ioremap ioremap
++#define iounmap iounmap
+ 
+-#define ioremap_nocache(physaddr, size)		ioremap(physaddr, size)
+-#define ioremap_wc(physaddr, size)		ioremap(physaddr, size)
+-#define ioremap_wt(physaddr, size)		ioremap(physaddr, size)
+-#define ioremap_fullcache(physaddr, size)	ioremap(physaddr, size)
++#define ioremap_fullcache ioremap
+ 
+ #define mmiowb()
+ 
+diff --git a/arch/unicore32/include/asm/io.h b/arch/unicore32/include/asm/io.h
+index cb1d8fd2b16b..1088450fabfd 100644
+--- a/arch/unicore32/include/asm/io.h
++++ b/arch/unicore32/include/asm/io.h
+@@ -18,7 +18,6 @@
+ #include <asm/memory.h>
+ 
+ #define PCI_IOBASE	PKUNITY_PCILIO_BASE
+-#include <asm-generic/io.h>
+ 
+ /*
+  * __uc32_ioremap and __uc32_ioremap_cached takes CPU physical address.
+@@ -34,10 +33,26 @@ extern void __uc32_iounmap(volatile void __iomem *addr);
+  * Documentation/io-mapping.txt.
+  *
+  */
+-#define ioremap(cookie, size)		__uc32_ioremap(cookie, size)
+-#define ioremap_cached(cookie, size)	__uc32_ioremap_cached(cookie, size)
+-#define ioremap_nocache(cookie, size)	__uc32_ioremap(cookie, size)
+-#define iounmap(cookie)			__uc32_iounmap(cookie)
++static inline void __iomem *ioremap(resource_size_t cookie, unsigned long size)
++{
++	return __uc32_ioremap(cookie, size);
++}
++#define ioremap ioremap
++
++static inline void __iomem *ioremap_cache(resource_size_t cookie, unsigned long size)
++{
++	return __uc32_ioremap_cached(cookie, size);
++}
++#define ioremap_cache ioremap_cache
++#define ioremap_cached ioremap_cached
++
++static inline void iounmap(volatile void __iomem *addr)
++{
++	return __uc32_iounmap(addr);
++}
++#define iounmap iounmap
++
++#include <asm-generic/io.h>
+ 
+ #define readb_relaxed readb
+ #define readw_relaxed readw
+diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
+index cc9c61bc1abe..d0817f2762ab 100644
+--- a/arch/x86/include/asm/io.h
++++ b/arch/x86/include/asm/io.h
+@@ -34,9 +34,6 @@
+   *  - Arnaldo Carvalho de Melo <acme@conectiva.com.br>
+   */
+ 
+-#define ARCH_HAS_IOREMAP_WC
+-#define ARCH_HAS_IOREMAP_WT
+-
+ #include <linux/string.h>
+ #include <linux/compiler.h>
+ #include <asm/page.h>
+@@ -179,8 +176,11 @@ static inline unsigned int isa_virt_to_bus(volatile void *address)
+  * look at pci_iomap().
+  */
+ extern void __iomem *ioremap_nocache(resource_size_t offset, unsigned long size);
++#define ioremap_nocache ioremap_nocache
+ extern void __iomem *ioremap_uc(resource_size_t offset, unsigned long size);
++#define ioremap_uc ioremap_uc
+ extern void __iomem *ioremap_cache(resource_size_t offset, unsigned long size);
++#define ioremap_cache ioremap_cache
+ extern void __iomem *ioremap_prot(resource_size_t offset, unsigned long size,
+ 				unsigned long prot_val);
+ 
+@@ -191,8 +191,10 @@ static inline void __iomem *ioremap(resource_size_t offset, unsigned long size)
+ {
+ 	return ioremap_nocache(offset, size);
+ }
++#define ioremap ioremap
+ 
+ extern void iounmap(volatile void __iomem *addr);
++#define iounmap iounmap
+ 
+ extern void set_iounmap_nonlazy(void);
+ 
+@@ -327,7 +329,9 @@ extern void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr);
+ extern int ioremap_change_attr(unsigned long vaddr, unsigned long size,
+ 				enum page_cache_mode pcm);
+ extern void __iomem *ioremap_wc(resource_size_t offset, unsigned long size);
++#define ioremap_wc ioremap_wc
+ extern void __iomem *ioremap_wt(resource_size_t offset, unsigned long size);
++#define ioremap_wt ioremap_wt
+ 
+ extern bool is_early_ioremap_ptep(pte_t *ptep);
+ 
+diff --git a/arch/xtensa/include/asm/io.h b/arch/xtensa/include/asm/io.h
+index c39bb6e61911..ae20fc5a1b5f 100644
+--- a/arch/xtensa/include/asm/io.h
++++ b/arch/xtensa/include/asm/io.h
+@@ -38,7 +38,7 @@ static inline unsigned long xtensa_get_kio_paddr(void)
+  * Return the virtual address for the specified bus memory.
+  * Note that we currently don't support any address outside the KIO segment.
+  */
+-static inline void __iomem *ioremap_nocache(unsigned long offset,
++static inline void __iomem *ioremap_nocache(resource_size_t offset,
+ 		unsigned long size)
+ {
+ 	if (offset >= XCHAL_KIO_PADDR
+@@ -47,8 +47,9 @@ static inline void __iomem *ioremap_nocache(unsigned long offset,
+ 	else
+ 		BUG();
+ }
++#define ioremap_nocache ioremap_nocache
+ 
+-static inline void __iomem *ioremap_cache(unsigned long offset,
++static inline void __iomem *ioremap_cache(resource_size_t offset,
+ 		unsigned long size)
+ {
+ 	if (offset >= XCHAL_KIO_PADDR
+@@ -57,18 +58,18 @@ static inline void __iomem *ioremap_cache(unsigned long offset,
+ 	else
+ 		BUG();
+ }
++#define ioremap_cache ioremap_cache
+ 
+-#define ioremap_wc ioremap_nocache
+-#define ioremap_wt ioremap_nocache
+-
+-static inline void __iomem *ioremap(unsigned long offset, unsigned long size)
++static inline void __iomem *ioremap(resource_size_t offset, unsigned long size)
+ {
+ 	return ioremap_nocache(offset, size);
+ }
++#define ioremap ioremap
+ 
+ static inline void iounmap(volatile void __iomem *addr)
+ {
+ }
++#define iounmap iounmap
+ 
+ #define virt_to_bus     virt_to_phys
+ #define bus_to_virt     phys_to_virt
+diff --git a/drivers/net/ethernet/sfc/io.h b/drivers/net/ethernet/sfc/io.h
+index afb94aa2c15e..9d54dd7f4c72 100644
+--- a/drivers/net/ethernet/sfc/io.h
++++ b/drivers/net/ethernet/sfc/io.h
+@@ -73,7 +73,7 @@
+  */
+ #ifdef CONFIG_X86_64
+ /* PIO is a win only if write-combining is possible */
+-#ifdef ARCH_HAS_IOREMAP_WC
++#ifdef ioremap_wc
+ #define EFX_USE_PIO 1
+ #endif
+ #endif
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index f56094cfdeff..92ac72c988ef 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -746,7 +746,7 @@ static inline void *phys_to_virt(unsigned long address)
+ #ifndef CONFIG_MMU
+ #ifndef ioremap
+ #define ioremap ioremap
+-static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
++static inline void __iomem *ioremap(phys_addr_t offset, unsigned long size)
+ {
+ 	return (void __iomem *)(unsigned long)offset;
+ }
+@@ -754,7 +754,7 @@ static inline void __iomem *ioremap(phys_addr_t offset, size_t size)
+ 
+ #ifndef __ioremap
+ #define __ioremap __ioremap
+-static inline void __iomem *__ioremap(phys_addr_t offset, size_t size,
++static inline void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
+ 				      unsigned long flags)
+ {
+ 	return ioremap(offset, size);
+@@ -763,7 +763,8 @@ static inline void __iomem *__ioremap(phys_addr_t offset, size_t size,
+ 
+ #ifndef ioremap_nocache
+ #define ioremap_nocache ioremap_nocache
+-static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
++static inline void __iomem *ioremap_nocache(phys_addr_t offset,
++		unsigned long size)
+ {
+ 	return ioremap(offset, size);
+ }
+@@ -771,7 +772,7 @@ static inline void __iomem *ioremap_nocache(phys_addr_t offset, size_t size)
+ 
+ #ifndef ioremap_uc
+ #define ioremap_uc ioremap_uc
+-static inline void __iomem *ioremap_uc(phys_addr_t offset, size_t size)
++static inline void __iomem *ioremap_uc(phys_addr_t offset, unsigned long size)
+ {
+ 	return ioremap_nocache(offset, size);
+ }
+@@ -779,7 +780,7 @@ static inline void __iomem *ioremap_uc(phys_addr_t offset, size_t size)
+ 
+ #ifndef ioremap_wc
+ #define ioremap_wc ioremap_wc
+-static inline void __iomem *ioremap_wc(phys_addr_t offset, size_t size)
++static inline void __iomem *ioremap_wc(phys_addr_t offset, unsigned long size)
+ {
+ 	return ioremap_nocache(offset, size);
+ }
+@@ -787,7 +788,7 @@ static inline void __iomem *ioremap_wc(phys_addr_t offset, size_t size)
+ 
+ #ifndef ioremap_wt
+ #define ioremap_wt ioremap_wt
+-static inline void __iomem *ioremap_wt(phys_addr_t offset, size_t size)
++static inline void __iomem *ioremap_wt(phys_addr_t offset, unsigned long size)
+ {
+ 	return ioremap_nocache(offset, size);
+ }
+@@ -796,7 +797,7 @@ static inline void __iomem *ioremap_wt(phys_addr_t offset, size_t size)
+ #ifndef iounmap
+ #define iounmap iounmap
+ 
+-static inline void iounmap(void __iomem *addr)
++static inline void iounmap(volatile void __iomem *addr)
+ {
+ }
+ #endif
+diff --git a/include/asm-generic/iomap.h b/include/asm-generic/iomap.h
+index d8f8622fa044..4789b1cec313 100644
+--- a/include/asm-generic/iomap.h
++++ b/include/asm-generic/iomap.h
+@@ -62,14 +62,6 @@ extern void __iomem *ioport_map(unsigned long port, unsigned int nr);
+ extern void ioport_unmap(void __iomem *);
+ #endif
+ 
+-#ifndef ARCH_HAS_IOREMAP_WC
+-#define ioremap_wc ioremap_nocache
+-#endif
+-
+-#ifndef ARCH_HAS_IOREMAP_WT
+-#define ioremap_wt ioremap_nocache
+-#endif
+-
+ #ifdef CONFIG_PCI
+ /* Destroy a virtual mapping cookie for a PCI BAR (memory or IO) */
+ struct pci_dev;
 diff --git a/include/linux/io.h b/include/linux/io.h
-index 080a4fbf2ba4..2983b6e63970 100644
+index fb5a99800e77..a4b2c1b2aaee 100644
 --- a/include/linux/io.h
 +++ b/include/linux/io.h
-@@ -192,4 +192,15 @@ static inline int arch_phys_wc_index(int handle)
- #endif
- #endif
+@@ -80,6 +80,54 @@ int check_signature(const volatile void __iomem *io_addr,
+ 			const unsigned char *signature, int length);
+ void devm_ioremap_release(struct device *dev, void *res);
  
-+enum {
-+	MEMREMAP_WB = 1 << 0,
-+	MEMREMAP_WT = 1 << 1,
-+	MEMREMAP_WC = 1 << 2,
-+	MEMREMAP_STRICT = 1 << 3,
-+	MEMREMAP_CACHE = MEMREMAP_WB,
-+};
++#ifndef ioremap
++void __iomem *ioremap(resource_size_t offset, unsigned long size);
++#endif
 +
-+extern void *memremap(resource_size_t offset, size_t size, unsigned long flags);
-+extern void memunmap(void *addr);
++#ifndef iounmap
++void iounmap(volatile void __iomem *addr);
++#endif
 +
- #endif /* _LINUX_IO_H */
-diff --git a/kernel/resource.c b/kernel/resource.c
-index fed052a1bc9f..a96376be513a 100644
---- a/kernel/resource.c
-+++ b/kernel/resource.c
-@@ -23,7 +23,7 @@
- #include <linux/pfn.h>
- #include <linux/mm.h>
- #include <linux/resource_ext.h>
--#include <asm/io.h>
-+#include <linux/io.h>
++#ifndef ioremap_nocache
++static inline void __iomem *ioremap_nocache(resource_size_t offset,
++		unsigned long size)
++{
++	return ioremap(offset, size);
++}
++#endif
++
++#ifndef ioremap_wc
++static inline void __iomem *ioremap_wc(resource_size_t offset,
++		unsigned long size)
++{
++	return ioremap(offset, size);
++}
++#endif
++
++#ifndef ioremap_wt
++static inline void __iomem *ioremap_wt(resource_size_t offset,
++		unsigned long size)
++{
++	return ioremap(offset, size);
++}
++#endif
++
++#ifndef ioremap_cache
++static inline void __iomem *ioremap_cache(resource_size_t offset,
++		unsigned long size)
++{
++	return ioremap(offset, size);
++}
++#endif
++
++#ifndef ioremap_uc
++static inline void __iomem *ioremap_uc(resource_size_t offset,
++		unsigned long size)
++{
++	return ioremap(offset, size);
++}
++#endif
++
+ /*
+  * Some systems do not have legacy ISA devices.
+  * /dev/port is not a valid interface on these systems.
+diff --git a/lib/devres.c b/lib/devres.c
+index fbe2aac522e6..e265b74ebbaa 100644
+--- a/lib/devres.c
++++ b/lib/devres.c
+@@ -4,6 +4,26 @@
+ #include <linux/gfp.h>
+ #include <linux/export.h>
  
- 
- struct resource ioport_resource = {
-@@ -528,6 +528,55 @@ int region_is_ram(resource_size_t start, unsigned long size)
- 	return ret;
- }
- 
-+#ifdef CONFIG_ARCH_HAS_MEMREMAP
 +/*
-+ * memremap() is "ioremap" for cases where it is known that the resource
-+ * being mapped does not have i/o side effects and the __iomem
-+ * annotation is not applicable.
++ * Throw warnings if an arch fails to define an ioremap symbol or uses an
++ * unexpected declaration.
 + */
-+static bool memremap_valid(resource_size_t offset, size_t size)
++static void __always_unused ioremap_test(void)
 +{
-+	if (region_is_ram(offset, size) != 0) {
-+		WARN_ONCE(1, "memremap attempted on ram %pa size: %zu\n",
-+				&offset, size);
-+		return false;
-+	}
-+	return true;
++	void __iomem *(*map)(resource_size_t offset, unsigned long size)
++		__always_unused;
++	void (*unmap)(volatile void __iomem *addr) __always_unused;
++
++	map = ioremap_nocache;
++	map = ioremap_cache;
++	map = ioremap_wc;
++	map = ioremap_wt;
++	map = ioremap_uc;
++	map = ioremap;
++
++	unmap = iounmap;
 +}
 +
-+void *memremap(resource_size_t offset, size_t size, unsigned long flags)
-+{
-+	void __iomem *addr = NULL;
-+
-+	if (!memremap_valid(offset, size))
-+		return NULL;
-+
-+	/* try all mapping types requested until one returns non-NULL */
-+	if (flags & MEMREMAP_CACHE) {
-+		if (flags & MEMREMAP_STRICT)
-+			addr = strict_ioremap_cache(offset, size);
-+		else
-+			addr = ioremap_cache(offset, size);
-+	}
-+
-+	if (!addr && (flags & MEMREMAP_WT)) {
-+		if (flags & MEMREMAP_STRICT)
-+			addr = strict_ioremap_wt(offset, size);
-+		else
-+			addr = ioremap_wt(offset, size);
-+	}
-+
-+	return (void __force *) addr;
-+}
-+EXPORT_SYMBOL(memremap);
-+
-+void memunmap(void *addr)
-+{
-+	iounmap((void __iomem __force *) addr);
-+}
-+EXPORT_SYMBOL(memunmap);
-+#endif /* CONFIG_ARCH_HAS_MEMREMAP */
-+
- void __weak arch_remove_reservations(struct resource *avail)
+ void devm_ioremap_release(struct device *dev, void *res)
  {
- }
-diff --git a/lib/Kconfig b/lib/Kconfig
-index 3a2ef67db6c7..097b99073924 100644
---- a/lib/Kconfig
-+++ b/lib/Kconfig
-@@ -526,7 +526,10 @@ source "lib/fonts/Kconfig"
- #
- 
- config ARCH_HAS_SG_CHAIN
--	def_bool n
-+	bool
-+
-+config ARCH_HAS_MEMREMAP
-+	bool
- 
- config ARCH_HAS_PMEM_API
- 	bool
+ 	iounmap(*(void __iomem **)res);
 
