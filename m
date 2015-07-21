@@ -1,109 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:36261 "EHLO mx2.suse.de"
+Received: from mx1.redhat.com ([209.132.183.28]:39475 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750992AbbGUEtH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Jul 2015 00:49:07 -0400
-Subject: Re: [Patch V6 12/16] mm: provide early_memremap_ro to establish
- read-only mapping
-References: <1437108697-4115-1-git-send-email-jgross@suse.com>
- <1437108697-4115-13-git-send-email-jgross@suse.com>
-From: Juergen Gross <jgross@suse.com>
-Message-ID: <55ADCF40.6010903@suse.com>
-Date: Tue, 21 Jul 2015 06:49:04 +0200
+	id S1754152AbbGUOGS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Jul 2015 10:06:18 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <1437459289-26553-1-git-send-email-ysato@users.sourceforge.jp>
+References: <1437459289-26553-1-git-send-email-ysato@users.sourceforge.jp> <1437023722-7432-1-git-send-email-ysato@users.sourceforge.jp>
+Subject: Re: [PATCH v3] asm-generic: {get,put}_user ptr argument evaluate only 1 time
 MIME-Version: 1.0
-In-Reply-To: <1437108697-4115-13-git-send-email-jgross@suse.com>
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <21798.1437487573.1@warthog.procyon.org.uk>
+Date: Tue, 21 Jul 2015 15:06:13 +0100
+Message-ID: <21799.1437487573@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-mm@kvack.org, linux-arch@vger.kernel.org
-Cc: xen-devel@lists.xensource.com, konrad.wilk@oracle.com, david.vrabel@citrix.com, boris.ostrovsky@oracle.com
-Message-ID: <20150721044904.j5oTE5cNjoqza0hk3eAcGPRJuyUNqmTb8tmuqdyWu2Q@z>
+To: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: dhowells@redhat.com, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20150721140613.WQ7VQcNXho9Cb7FzZkB7aTwHb8lNzkcs1wdQCbAT0rY@z>
 
-Hi MM maintainers,
+Yoshinori Sato <ysato@users.sourceforge.jp> wrote:
 
-this patch is the last requiring an ack for the series to go in.
-Could you please comment?
+>  #define get_user(x, ptr)					\
+>  ({								\
+> +	uintptr_t __uip = (uintptr_t)(ptr);			\
 
+const?
 
-Juergen
+>  	might_fault();						\
+> -	access_ok(VERIFY_READ, ptr, sizeof(*ptr)) ?		\
+> -		__get_user(x, ptr) :				\
+> +	access_ok(VERIFY_READ, __uip, sizeof(*ptr)) ?		\
+> +		__get_user((x), (__typeof__(*ptr) *)__uip) :	\
+>  		-EFAULT;					\
+>  })
 
-On 07/17/2015 06:51 AM, Juergen Gross wrote:
-> During early boot as Xen pv domain the kernel needs to map some page
-> tables supplied by the hypervisor read only. This is needed to be
-> able to relocate some data structures conflicting with the physical
-> memory map especially on systems with huge RAM (above 512GB).
->
-> Provide the function early_memremap_ro() to provide this read only
-> mapping.
->
-> Signed-off-by: Juergen Gross <jgross@suse.com>
-> Acked-by: Konrad Rzeszutek Wilk <Konrad.wilk@oracle.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: linux-mm@kvack.org
-> Cc: linux-arch@vger.kernel.org
-> ---
->   include/asm-generic/early_ioremap.h |  2 ++
->   include/asm-generic/fixmap.h        |  3 +++
->   mm/early_ioremap.c                  | 12 ++++++++++++
->   3 files changed, 17 insertions(+)
->
-> diff --git a/include/asm-generic/early_ioremap.h b/include/asm-generic/early_ioremap.h
-> index a5de55c..316bd04 100644
-> --- a/include/asm-generic/early_ioremap.h
-> +++ b/include/asm-generic/early_ioremap.h
-> @@ -11,6 +11,8 @@ extern void __iomem *early_ioremap(resource_size_t phys_addr,
->   				   unsigned long size);
->   extern void *early_memremap(resource_size_t phys_addr,
->   			    unsigned long size);
-> +extern void *early_memremap_ro(resource_size_t phys_addr,
-> +			       unsigned long size);
->   extern void early_iounmap(void __iomem *addr, unsigned long size);
->   extern void early_memunmap(void *addr, unsigned long size);
->
-> diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
-> index f23174f..1cbb833 100644
-> --- a/include/asm-generic/fixmap.h
-> +++ b/include/asm-generic/fixmap.h
-> @@ -46,6 +46,9 @@ static inline unsigned long virt_to_fix(const unsigned long vaddr)
->   #ifndef FIXMAP_PAGE_NORMAL
->   #define FIXMAP_PAGE_NORMAL PAGE_KERNEL
->   #endif
-> +#if !defined(FIXMAP_PAGE_RO) && defined(PAGE_KERNEL_RO)
-> +#define FIXMAP_PAGE_RO PAGE_KERNEL_RO
-> +#endif
->   #ifndef FIXMAP_PAGE_NOCACHE
->   #define FIXMAP_PAGE_NOCACHE PAGE_KERNEL_NOCACHE
->   #endif
-> diff --git a/mm/early_ioremap.c b/mm/early_ioremap.c
-> index e10ccd2..0cfadaf 100644
-> --- a/mm/early_ioremap.c
-> +++ b/mm/early_ioremap.c
-> @@ -217,6 +217,13 @@ early_memremap(resource_size_t phys_addr, unsigned long size)
->   	return (__force void *)__early_ioremap(phys_addr, size,
->   					       FIXMAP_PAGE_NORMAL);
->   }
-> +#ifdef FIXMAP_PAGE_RO
-> +void __init *
-> +early_memremap_ro(resource_size_t phys_addr, unsigned long size)
-> +{
-> +	return (__force void *)__early_ioremap(phys_addr, size, FIXMAP_PAGE_RO);
-> +}
-> +#endif
->   #else /* CONFIG_MMU */
->
->   void __init __iomem *
-> @@ -231,6 +238,11 @@ early_memremap(resource_size_t phys_addr, unsigned long size)
->   {
->   	return (void *)phys_addr;
->   }
-> +void __init *
-> +early_memremap_ro(resource_size_t phys_addr, unsigned long size)
-> +{
-> +	return (void *)phys_addr;
-> +}
->
->   void __init early_iounmap(void __iomem *addr, unsigned long size)
->   {
->
+Would it be better to use void* instead of uintptr_t?
 
+David
