@@ -1,61 +1,33 @@
-From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v3] asm-generic: {get,put}_user ptr argument evaluate only 1 time
-Date: Tue, 21 Jul 2015 15:14:49 +0900
-Message-ID: <1437459289-26553-1-git-send-email-ysato@users.sourceforge.jp>
-References: <1437023722-7432-1-git-send-email-ysato@users.sourceforge.jp>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH 08/10] arch: introduce strict_ioremap
+Date: Tue, 21 Jul 2015 15:30:51 +0200
+Message-ID: <20150721133051.GB8902@lst.de>
+References: <20150720001614.30857.89063.stgit@dwillia2-desk3.amr.corp.intel.com> <20150720001817.30857.69287.stgit@dwillia2-desk3.amr.corp.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail1.asahi-net.or.jp ([202.224.39.197]:23405 "EHLO
-	mail1.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752242AbbGUGO7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Jul 2015 02:14:59 -0400
-In-Reply-To: <1437023722-7432-1-git-send-email-ysato@users.sourceforge.jp>
+Received: from verein.lst.de ([213.95.11.211]:41966 "EHLO newverein.lst.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754451AbbGUNay (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Jul 2015 09:30:54 -0400
+Content-Disposition: inline
+In-Reply-To: <20150720001817.30857.69287.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, tony.luck@intel.com, linux@arm.linux.org.uk, arnd@arndb.de, benh@kernel.crashing.org, mcgrof@suse.com, x86@kernel.org, linux-kernel@vger.kernel.org, ralf@linux-mips.org, geert@linux-m68k.org, toshi.kani@hp.com, ross.zwisler@linux.intel.com, hch@lst.de, linux-arm-kernel@lists.infradead.org
 
-Current implemantation ptr argument evaluate 2 times.
-It'll be an unexpected result.
+On Sun, Jul 19, 2015 at 08:18:17PM -0400, Dan Williams wrote:
+> In preparation for enabling memremap(), add support for strict mappings.
+> strict_ioremap_<type>() returns NULL if the arch does not implement the
+> mapping type, rather than falling back silently to ioremap().
 
-Changes v3:
-Some build error fix.
-Changes v2:
-Argument x protect.
+Please don't introduce another large number of ioremap variants.
 
-Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
----
- include/asm-generic/uaccess.h | 10 ++++++----
- 1 file changed, 6 insertions(+), 4 deletions(-)
+I think we should go straight to the ioremap_flags variant, although
+I wonder if we should even bother with ioremap_flags for this use
+case, given that we really want memremap-like semantics for anything
+that isn't plain ioremap (and maybe ioremap_nocache).
 
-diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
-index 72d8803..d800a3f 100644
---- a/include/asm-generic/uaccess.h
-+++ b/include/asm-generic/uaccess.h
-@@ -163,9 +163,10 @@ static inline __must_check long __copy_to_user(void __user *to,
- 
- #define put_user(x, ptr)					\
- ({								\
-+	uintptr_t __uip = (uintptr_t)(ptr);			\
- 	might_fault();						\
--	access_ok(VERIFY_WRITE, ptr, sizeof(*ptr)) ?		\
--		__put_user(x, ptr) :				\
-+	access_ok(VERIFY_WRITE, __uip, sizeof(*ptr)) ?		\
-+		__put_user((x), ((__typeof__(*ptr) *)__uip)) :	\
- 		-EFAULT;					\
- })
- 
-@@ -225,9 +226,10 @@ extern int __put_user_bad(void) __attribute__((noreturn));
- 
- #define get_user(x, ptr)					\
- ({								\
-+	uintptr_t __uip = (uintptr_t)(ptr);			\
- 	might_fault();						\
--	access_ok(VERIFY_READ, ptr, sizeof(*ptr)) ?		\
--		__get_user(x, ptr) :				\
-+	access_ok(VERIFY_READ, __uip, sizeof(*ptr)) ?		\
-+		__get_user((x), (__typeof__(*ptr) *)__uip) :	\
- 		-EFAULT;					\
- })
- 
--- 
-2.1.4
+Sorry or being the downer, but I really think we need to clean up this
+mess deeply insted of trying to paper over it.
