@@ -1,59 +1,109 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [RFC PATCH v2] memory-barriers: remove
- smp_mb__after_unlock_lock()
-Date: Tue, 21 Jul 2015 07:18:14 +1000
-Message-ID: <1437427094.3775.22.camel@kernel.crashing.org>
-References: <1436826689.3948.233.camel@kernel.crashing.org>
-	 <1436929578.10956.3.camel@ellerman.id.au> <20150715104420.GD1005@arm.com>
-	 <1437012028.28475.2.camel@ellerman.id.au>
-	 <1437023004.28088.27.camel@kernel.crashing.org>
-	 <1437023695.28088.29.camel@kernel.crashing.org>
-	 <20150716151142.GR3717@linux.vnet.ibm.com>
-	 <1437087265.28088.53.camel@kernel.crashing.org>
-	 <20150717093221.GB18994@arm.com>
-	 <1437171254.28088.87.camel@kernel.crashing.org>
-	 <20150720133906.GG9908@arm.com>
+From: Juergen Gross <jgross@suse.com>
+Subject: Re: [Patch V6 12/16] mm: provide early_memremap_ro to establish
+ read-only mapping
+Date: Tue, 21 Jul 2015 06:49:04 +0200
+Message-ID: <55ADCF40.6010903@suse.com>
+References: <1437108697-4115-1-git-send-email-jgross@suse.com>
+ <1437108697-4115-13-git-send-email-jgross@suse.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:55120 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755234AbbGTVhc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Jul 2015 17:37:32 -0400
-In-Reply-To: <20150720133906.GG9908@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1437108697-4115-13-git-send-email-jgross@suse.com>
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: xen-devel@lists.xensource.com, konrad.wilk@oracle.com, david.vrabel@citrix.com, boris.ostrovsky@oracle.com
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 2015-07-20 at 14:39 +0100, Will Deacon wrote:
-> On Fri, Jul 17, 2015 at 11:14:14PM +0100, Benjamin Herrenschmidt wrote:
-> > On Fri, 2015-07-17 at 10:32 +0100, Will Deacon wrote:
-> > >  static inline void arch_spin_unlock(arch_spinlock_t *lock)
-> > >  {
-> > > -       SYNC_IO;
-> > > -       __asm__ __volatile__("# arch_spin_unlock\n\t"
-> > > -                               PPC_RELEASE_BARRIER: : :"memory");
-> > > +       smp_mb();
-> > >         lock->slock = 0;
-> > >  }
-> > 
-> > That probably needs to be mb() in case somebody has the expectation that
-> > it does a barrier vs. DMA on UP.
-> 
-> Hmm, but on !SMP doesn't arch_spin_unlock effectively expand to barrier()
-> in the core code?
+Hi MM maintainers,
 
-include/linux/spinlock_up.h:# define arch_spin_unlock(lock)	do { barrier(); (void)(lock); } while (0)
-
-Indeed...
-
-Ben.
+this patch is the last requiring an ack for the series to go in.
+Could you please comment?
 
 
-> Will
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Juergen
+
+On 07/17/2015 06:51 AM, Juergen Gross wrote:
+> During early boot as Xen pv domain the kernel needs to map some page
+> tables supplied by the hypervisor read only. This is needed to be
+> able to relocate some data structures conflicting with the physical
+> memory map especially on systems with huge RAM (above 512GB).
+>
+> Provide the function early_memremap_ro() to provide this read only
+> mapping.
+>
+> Signed-off-by: Juergen Gross <jgross@suse.com>
+> Acked-by: Konrad Rzeszutek Wilk <Konrad.wilk@oracle.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: linux-mm@kvack.org
+> Cc: linux-arch@vger.kernel.org
+> ---
+>   include/asm-generic/early_ioremap.h |  2 ++
+>   include/asm-generic/fixmap.h        |  3 +++
+>   mm/early_ioremap.c                  | 12 ++++++++++++
+>   3 files changed, 17 insertions(+)
+>
+> diff --git a/include/asm-generic/early_ioremap.h b/include/asm-generic/early_ioremap.h
+> index a5de55c..316bd04 100644
+> --- a/include/asm-generic/early_ioremap.h
+> +++ b/include/asm-generic/early_ioremap.h
+> @@ -11,6 +11,8 @@ extern void __iomem *early_ioremap(resource_size_t phys_addr,
+>   				   unsigned long size);
+>   extern void *early_memremap(resource_size_t phys_addr,
+>   			    unsigned long size);
+> +extern void *early_memremap_ro(resource_size_t phys_addr,
+> +			       unsigned long size);
+>   extern void early_iounmap(void __iomem *addr, unsigned long size);
+>   extern void early_memunmap(void *addr, unsigned long size);
+>
+> diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
+> index f23174f..1cbb833 100644
+> --- a/include/asm-generic/fixmap.h
+> +++ b/include/asm-generic/fixmap.h
+> @@ -46,6 +46,9 @@ static inline unsigned long virt_to_fix(const unsigned long vaddr)
+>   #ifndef FIXMAP_PAGE_NORMAL
+>   #define FIXMAP_PAGE_NORMAL PAGE_KERNEL
+>   #endif
+> +#if !defined(FIXMAP_PAGE_RO) && defined(PAGE_KERNEL_RO)
+> +#define FIXMAP_PAGE_RO PAGE_KERNEL_RO
+> +#endif
+>   #ifndef FIXMAP_PAGE_NOCACHE
+>   #define FIXMAP_PAGE_NOCACHE PAGE_KERNEL_NOCACHE
+>   #endif
+> diff --git a/mm/early_ioremap.c b/mm/early_ioremap.c
+> index e10ccd2..0cfadaf 100644
+> --- a/mm/early_ioremap.c
+> +++ b/mm/early_ioremap.c
+> @@ -217,6 +217,13 @@ early_memremap(resource_size_t phys_addr, unsigned long size)
+>   	return (__force void *)__early_ioremap(phys_addr, size,
+>   					       FIXMAP_PAGE_NORMAL);
+>   }
+> +#ifdef FIXMAP_PAGE_RO
+> +void __init *
+> +early_memremap_ro(resource_size_t phys_addr, unsigned long size)
+> +{
+> +	return (__force void *)__early_ioremap(phys_addr, size, FIXMAP_PAGE_RO);
+> +}
+> +#endif
+>   #else /* CONFIG_MMU */
+>
+>   void __init __iomem *
+> @@ -231,6 +238,11 @@ early_memremap(resource_size_t phys_addr, unsigned long size)
+>   {
+>   	return (void *)phys_addr;
+>   }
+> +void __init *
+> +early_memremap_ro(resource_size_t phys_addr, unsigned long size)
+> +{
+> +	return (void *)phys_addr;
+> +}
+>
+>   void __init early_iounmap(void __iomem *addr, unsigned long size)
+>   {
+>
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
