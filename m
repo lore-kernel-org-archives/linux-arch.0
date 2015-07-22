@@ -1,63 +1,50 @@
-From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v4] asm-generic: {get,put}_user ptr argument evaluate only 1 time
-Date: Wed, 22 Jul 2015 23:52:36 +0900
-Message-ID: <1437576756-28388-1-git-send-email-ysato@users.sourceforge.jp>
-References: <1437023722-7432-1-git-send-email-ysato@users.sourceforge.jp>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCH V4 5/6] mm: mmap: Add mmap flag to request VM_LOCKONFAULT
+Date: Wed, 22 Jul 2015 18:45:29 +0300
+Message-ID: <20150722154529.GA9107@node.dhcp.inet.fi>
+References: <1437508781-28655-1-git-send-email-emunson@akamai.com>
+ <1437508781-28655-6-git-send-email-emunson@akamai.com>
+ <20150722112558.GC8630@node.dhcp.inet.fi>
+ <20150722143220.GB3203@akamai.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.asahi-net.or.jp ([202.224.39.198]:61993 "EHLO
-	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932206AbbGVOwo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2015 10:52:44 -0400
-In-Reply-To: <1437023722-7432-1-git-send-email-ysato@users.sourceforge.jp>
+Received: from mail-wi0-f179.google.com ([209.85.212.179]:36566 "EHLO
+	mail-wi0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934550AbbGVPpf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 22 Jul 2015 11:45:35 -0400
+Received: by wicgb10 with SMTP id gb10so104223623wic.1
+        for <linux-arch@vger.kernel.org>; Wed, 22 Jul 2015 08:45:33 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <20150722143220.GB3203@akamai.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Eric B Munson <emunson@akamai.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, Paul Gortmaker <paul.gortmaker@windriver.com>, Chris Metcalf <cmetcalf@ezchip.com>, Guenter Roeck <linux@roeck-us.net>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 
-Current implemantation ptr argument evaluate 2 times.
-It'll be an unexpected result.
+On Wed, Jul 22, 2015 at 10:32:20AM -0400, Eric B Munson wrote:
+> On Wed, 22 Jul 2015, Kirill A. Shutemov wrote:
+> 
+> > On Tue, Jul 21, 2015 at 03:59:40PM -0400, Eric B Munson wrote:
+> > > The cost of faulting in all memory to be locked can be very high when
+> > > working with large mappings.  If only portions of the mapping will be
+> > > used this can incur a high penalty for locking.
+> > > 
+> > > Now that we have the new VMA flag for the locked but not present state,
+> > > expose it as an mmap option like MAP_LOCKED -> VM_LOCKED.
+> > 
+> > What is advantage over mmap() + mlock(MLOCK_ONFAULT)?
+> 
+> There isn't one, it was added to maintain parity with the
+> mlock(MLOCK_LOCK) -> mmap(MAP_LOCKED) set.  I think not having will lead
+> to confusion because we have MAP_LOCKED so why don't we support
+> LOCKONFAULT from mmap as well.
 
-Changes v4:
-Temporary pointer type change to const void*
-Changes v3:
-Some build error fix.
-Changes v2:
-Argument x protect.
+I don't think it's ia good idea to spend bits in flags unless we have a
+reason for that.
 
-Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
----
- include/asm-generic/uaccess.h | 10 ++++++----
- 1 file changed, 6 insertions(+), 4 deletions(-)
+BTW, you have typo on sparc: s/0x8000/0x80000/.
 
-diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
-index 72d8803..f02e696 100644
---- a/include/asm-generic/uaccess.h
-+++ b/include/asm-generic/uaccess.h
-@@ -163,9 +163,10 @@ static inline __must_check long __copy_to_user(void __user *to,
- 
- #define put_user(x, ptr)					\
- ({								\
-+	const void *__p = (ptr);				\
- 	might_fault();						\
--	access_ok(VERIFY_WRITE, ptr, sizeof(*ptr)) ?		\
--		__put_user(x, ptr) :				\
-+	access_ok(VERIFY_WRITE, __p, sizeof(*ptr)) ?		\
-+		__put_user((x), ((__typeof__(*(ptr)) *)__p)) :	\
- 		-EFAULT;					\
- })
- 
-@@ -225,9 +226,10 @@ extern int __put_user_bad(void) __attribute__((noreturn));
- 
- #define get_user(x, ptr)					\
- ({								\
-+	const void *__p = (ptr);				\
- 	might_fault();						\
--	access_ok(VERIFY_READ, ptr, sizeof(*ptr)) ?		\
--		__get_user(x, ptr) :				\
-+	access_ok(VERIFY_READ, __p, sizeof(*ptr)) ?		\
-+		__get_user((x), (__typeof__(*(ptr)) *)__p) :	\
- 		-EFAULT;					\
- })
- 
+
 -- 
-2.1.4
+ Kirill A. Shutemov
