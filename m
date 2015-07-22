@@ -1,71 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a23-79-238-175.deploy.static.akamaitechnologies.com ([23.79.238.175]:41243
-	"EHLO prod-mail-xrelay07.akamai.com" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S964934AbbGVOcV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 22 Jul 2015 10:32:21 -0400
-Date: Wed, 22 Jul 2015 10:32:20 -0400
-From: Eric B Munson <emunson@akamai.com>
-Subject: Re: [PATCH V4 5/6] mm: mmap: Add mmap flag to request VM_LOCKONFAULT
-Message-ID: <20150722143220.GB3203@akamai.com>
-References: <1437508781-28655-1-git-send-email-emunson@akamai.com>
- <1437508781-28655-6-git-send-email-emunson@akamai.com>
- <20150722112558.GC8630@node.dhcp.inet.fi>
+Received: from foss.arm.com ([217.140.101.70]:36930 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S965449AbbGVQto (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 22 Jul 2015 12:49:44 -0400
+Date: Wed, 22 Jul 2015 17:49:44 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+Message-ID: <20150722164943.GQ6650@arm.com>
+References: <20150715104420.GD1005@arm.com>
+ <1437012028.28475.2.camel@ellerman.id.au>
+ <1437023004.28088.27.camel@kernel.crashing.org>
+ <1437023695.28088.29.camel@kernel.crashing.org>
+ <20150716151142.GR3717@linux.vnet.ibm.com>
+ <1437087265.28088.53.camel@kernel.crashing.org>
+ <20150717093221.GB18994@arm.com>
+ <1437171254.28088.87.camel@kernel.crashing.org>
+ <20150720133906.GG9908@arm.com>
+ <1437427094.3775.22.camel@kernel.crashing.org>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="eJnRUKwClWJh1Khz"
-Content-Disposition: inline
-In-Reply-To: <20150722112558.GC8630@node.dhcp.inet.fi>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, Paul Gortmaker <paul.gortmaker@windriver.com>, Chris Metcalf <cmetcalf@ezchip.com>, Guenter Roeck <linux@roeck-us.net>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150722143220.gQWxHSQtkCQeE7zGjz6Rxq3dCw6MJty3PbX915W7GuM@z>
-
-
---eJnRUKwClWJh1Khz
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <1437427094.3775.22.camel@kernel.crashing.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>
+Message-ID: <20150722164944.Uau5lv6HCU2RlBS7K1wqnHrMzifR1ESyPP8AsVzci-Y@z>
 
-On Wed, 22 Jul 2015, Kirill A. Shutemov wrote:
+On Mon, Jul 20, 2015 at 10:18:14PM +0100, Benjamin Herrenschmidt wrote:
+> On Mon, 2015-07-20 at 14:39 +0100, Will Deacon wrote:
+> > On Fri, Jul 17, 2015 at 11:14:14PM +0100, Benjamin Herrenschmidt wrote:
+> > > On Fri, 2015-07-17 at 10:32 +0100, Will Deacon wrote:
+> > > >  static inline void arch_spin_unlock(arch_spinlock_t *lock)
+> > > >  {
+> > > > -       SYNC_IO;
+> > > > -       __asm__ __volatile__("# arch_spin_unlock\n\t"
+> > > > -                               PPC_RELEASE_BARRIER: : :"memory");
+> > > > +       smp_mb();
+> > > >         lock->slock = 0;
+> > > >  }
+> > > 
+> > > That probably needs to be mb() in case somebody has the expectation that
+> > > it does a barrier vs. DMA on UP.
+> > 
+> > Hmm, but on !SMP doesn't arch_spin_unlock effectively expand to barrier()
+> > in the core code?
+> 
+> include/linux/spinlock_up.h:# define arch_spin_unlock(lock)	do {
+> barrier(); (void)(lock); } while (0)
+> 
+> Indeed...
 
-> On Tue, Jul 21, 2015 at 03:59:40PM -0400, Eric B Munson wrote:
-> > The cost of faulting in all memory to be locked can be very high when
-> > working with large mappings.  If only portions of the mapping will be
-> > used this can incur a high penalty for locking.
-> >=20
-> > Now that we have the new VMA flag for the locked but not present state,
-> > expose it as an mmap option like MAP_LOCKED -> VM_LOCKED.
->=20
-> What is advantage over mmap() + mlock(MLOCK_ONFAULT)?
+So, leaving mmiowb() alone, we end up with the patch below.
 
-There isn't one, it was added to maintain parity with the
-mlock(MLOCK_LOCK) -> mmap(MAP_LOCKED) set.  I think not having will lead
-to confusion because we have MAP_LOCKED so why don't we support
-LOCKONFAULT from mmap as well.
+Will
 
-
---eJnRUKwClWJh1Khz
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAEBAgAGBQJVr6l0AAoJELbVsDOpoOa98fUQANDd9dNcrulIgLSf+ajZqiUo
-50UtNRMATvsiEBAEyJ8CwGzwUBQIYwHDU9LU28NUSZCgYJpGiN+PmJ61ZaU3f63x
-Wps5ZlPg1MvY/IbHLmYTMD6UiXPa7zsAjTFNA6Fi0MwCjyLphtK6jqf8EhsoOLSo
-YFsTccyuOfqJrbk/fXi3ioNPFVIkHpwNcdL1+sYOJf3Wkf8FBBnlvEMnOSmtw7GC
-Uont1PBKFNeUNmk/sxxLDgJ0vwMx09sjfjYX+8ZOxS0E1JjeflHTSITsPeWt2/AI
-0Qm0lxu0bZ62nnt8zvBVcCAoImIjFNgNnqxQwfKfb5kYgiR0c8ZSyOOuiGxugwI/
-TKBkVU/e34Xc43UkmnseBl8SFUW1tF5eLLIvFt1apJ8ygrr4M4uIJIQV4UMSNVLG
-VEV5c08dN91BRjDesU3EJ1vtPXK6avkZokkbNWmeoIQ70wOD2KSJurs0t5dFLtBw
-t8t27CTYo/Fpg9kyLsgHzTqf4cH+L0FqVHJ4oQNU2OZvwvW5odyztgDdQV9KhEvf
-k/MNlOTNpD8idmgCBSpVeReKAWkQEwRaB5QZWP9X4axdR6r7HwGvV3lWbwBpwa5i
-LksIegF8VdBCnD8SibMXl37buy8oPlop5arIjvRHi8VMz6AhRK9OH1T/Mn0+yAIy
-yBmHM0EALawWdDffUN1r
-=GpJe
------END PGP SIGNATURE-----
-
---eJnRUKwClWJh1Khz--
+--->8
