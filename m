@@ -1,105 +1,54 @@
-From: Eric B Munson <emunson@akamai.com>
-Subject: Re: [PATCH V4 2/6] mm: mlock: Add new mlock, munlock, and munlockall
- system calls
-Date: Fri, 24 Jul 2015 11:53:13 -0400
-Message-ID: <20150724155313.GF9203@akamai.com>
-References: <1437508781-28655-1-git-send-email-emunson@akamai.com>
- <1437508781-28655-3-git-send-email-emunson@akamai.com>
- <20150721134441.d69e4e1099bd43e56835b3c5@linux-foundation.org>
- <1437528316.16792.7.camel@ellerman.id.au>
- <20150722141501.GA3203@akamai.com>
- <20150723065830.GA5919@linux-mips.org>
- <20150724143936.GE9203@akamai.com>
- <55B25DDE.8090107@roeck-us.net>
+From: Kalle Valo <kvalo@codeaurora.org>
+Subject: Re: [PATCH 2/3] brcmfmac: dhd_sdio.c: use existing atomic_or primitive
+Date: Fri, 24 Jul 2015 20:02:58 +0300
+Message-ID: <87twstbi9p.fsf@kamboji.qca.qualcomm.com>
+References: <1436429599-10762-1-git-send-email-vgupta@synopsys.com>
+	<1436429599-10762-3-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="iBwuxWUsK/REspAd"
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <55B25DDE.8090107@roeck-us.net>
-Sender: owner-linux-mm@kvack.org
-To: Guenter Roeck <linux@roeck-us.net>
-Cc: Ralf Baechle <ralf@linux-mips.org>, Michael Ellerman <mpe@ellerman.id.au>, Andrew Morton <akpm@linux-foundation.org>, linux-mips@linux-mips.org, linux-m68k@vger.kernel.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michal Hocko <mhocko@suse.cz>, linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Rothwell <sfr@canb.auug.org.au>, linux-am33-list@redhat.com, Geert Uytterhoeven <geert@linux-m68k.org>, Vlastimil Babka <vbabka@suse.cz>, linux-xtensa@linux-xtensa.org, linux-s390@vger.kernel.org, adi-buildroot-devel@lists.sourceforge.net, linux-arm-kernel@lists.infradead.org, linux-cris-kernel@axis.com, linux-parisc@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.or
-List-Id: linux-arch.vger.kernel.org
-
-
---iBwuxWUsK/REspAd
 Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp.codeaurora.org ([198.145.29.96]:50701 "EHLO
+	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753887AbbGXRDG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Jul 2015 13:03:06 -0400
+In-Reply-To: <1436429599-10762-3-git-send-email-vgupta@synopsys.com> (Vineet
+	Gupta's message of "Thu, 9 Jul 2015 13:43:18 +0530")
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Brett Rudley <brudley@broadcom.com>, Arend van Spriel <arend@broadcom.com>, "Franky (Zhenhui) Lin" <frankyl@broadcom.com>, Hante Meuleman <meuleman@broadcom.com>, Pieter-Paul Giesberts <pieterpg@broadcom.com>, Daniel Kim <dekim@broadcom.com>, linux-wireless@vger.kernel.org, brcm80211-dev-list@broadcom.com, netdev@vger.kernel.org
 
-On Fri, 24 Jul 2015, Guenter Roeck wrote:
+Vineet Gupta <Vineet.Gupta1@synopsys.com> writes:
 
-> On 07/24/2015 07:39 AM, Eric B Munson wrote:
-> >On Thu, 23 Jul 2015, Ralf Baechle wrote:
-> >
-> >>On Wed, Jul 22, 2015 at 10:15:01AM -0400, Eric B Munson wrote:
-> >>
-> >>>>
-> >>>>You haven't wired it up properly on powerpc, but I haven't mentioned =
-it because
-> >>>>I'd rather we did it.
-> >>>>
-> >>>>cheers
-> >>>
-> >>>It looks like I will be spinning a V5, so I will drop all but the x86
-> >>>system calls additions in that version.
-> >>
-> >>The MIPS bits are looking good however, so
-> >>
-> >>Acked-by: Ralf Baechle <ralf@linux-mips.org>
-> >>
-> >>With my ack, will you keep them or maybe carry them as a separate patch?
-> >
-> >I will keep the MIPS additions as a separate patch in the series, though
-> >I have dropped two of the new syscalls after some discussion.  So I will
-> >not include your ack on the new patch.
-> >
-> >Eric
-> >
->=20
-> Hi Eric,
->=20
-> next-20150724 still has some failures due to this patch set. Are those
-> being looked at (I know parisc builds fail, but there may be others) ?
->=20
-> Thanks,
-> Guenter
+> There's already a generic implementation so use that instead.
+> ---
+> I'm not sure if the driver usage of atomic_or?() is correct in terms of
+> storage size of @val for 64 bit arches.
+>
+> Assuming LP64 programming model for linux on say x86_64: atomic_or()
+> callers in this driver use long (sana 64 bit) storage and pass it to
+> atomic_orr/atomic_or which downcasts it to 32 bits. Is that OK ?
+> ---
+> Cc: Brett Rudley <brudley@broadcom.com>
+> Cc: Arend van Spriel <arend@broadcom.com>
+> Cc: "Franky (Zhenhui) Lin" <frankyl@broadcom.com>
+> Cc: Hante Meuleman <meuleman@broadcom.com>
+> Cc: Kalle Valo <kvalo@codeaurora.org>
+> Cc: Pieter-Paul Giesberts <pieterpg@broadcom.com>
+> Cc: Daniel Kim <dekim@broadcom.com>
+> Cc: linux-wireless@vger.kernel.org
+> Cc: brcm80211-dev-list@broadcom.com
+> Cc: Peter Zijlstra <peterz@infradead.org>
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Cc: netdev@vger.kernel.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-kernel@vger.kernel.org
+> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+>
+> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 
-Guenter,
+What's the plan with this patch? Should I take it to my
+wireless-drivers-next tree or will someone else take it?
 
-Yes, the next respin will drop all new arch syscall entries except
-x86[_64] and MIPS.  I will leave it up to arch maintainers to add the
-entries.
-
-Eric
-
---iBwuxWUsK/REspAd
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAEBAgAGBQJVsl9pAAoJELbVsDOpoOa9EEUP/2M1Xsm8+njDOkkKbV0gBjBz
-b3xOA+mBrdWvRUHtbhky0XhLX9AQkuolm5Lqel2ldbkHMF2DQtqvQxMCpWJ25dJW
-oR5fnuh+arfoOsnEJAJ4Z47Qs/jiVAWHB3jupCxexg5zVZL2BIomII5Ewk00waGw
-zHjUYeLYPTn6IE1MWV1Mlbbx+kGCDRz8HgFq8b3WbrgH4pPzqaeSf3wxMnIYVKuL
-D/vyOdBOE0dW0Co4GdA3iqZ0JGSKknZUP/F3xB/z67wCkIjh133cUI3oDL/4MKbU
-vSac0mG99uhmMPii1kWKyF3OVx3flbHo4IPFDAaUfU1O1OAXHvjezBgL3eLEV3xl
-M/BZQZMEGNZjs6+c8oIrFuEvKDc424HRj7bKbBRvv7rXp3oaksyvuJ3mpEJyEhep
-O+pSxjZc5J9QaXer+Rdh3yX/hjM/dpnTsUPXTIgPlJcIS8gSc5GxrCOe1hQD7u08
-lIxdAs3sI5Tn6iwrjDRq1ySz2NZ2LkfBlliZ41xxt8/kzHvPoieeep2DRDJnpqJG
-nyQItitQpzs0vB7UMJV+yrbfSAR+lupvVdfyXjk8fsYPMNPBhWHQKZ6Ky6euTkYs
-/BWwZ2nvEjopIBEdrXJ97jJcjsAstFCnCm8V75JOX9KznfD0OUNCB6bg9UpUYQfX
-IV8UQYGPDzfVm060LKYD
-=SPSa
------END PGP SIGNATURE-----
-
---iBwuxWUsK/REspAd--
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+Kalle Valo
