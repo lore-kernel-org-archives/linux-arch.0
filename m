@@ -1,79 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:59905 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:59904 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754476AbbGXOFQ (ORCPT
+	by vger.kernel.org with ESMTP id S1754473AbbGXOFQ (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
 	Fri, 24 Jul 2015 10:05:16 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v3 0/8] Add generic support for relaxed atomics
-Date: Fri, 24 Jul 2015 15:04:33 +0100
-Message-ID: <1437746681-2809-1-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v3 4/8] lockref: remove homebrew cmpxchg64_relaxed macro definition
+Date: Fri, 24 Jul 2015 15:04:37 +0100
+Message-ID: <1437746681-2809-5-git-send-email-will.deacon@arm.com>
+In-Reply-To: <1437746681-2809-1-git-send-email-will.deacon@arm.com>
+References: <1437746681-2809-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>
-Message-ID: <20150724140433.9pZxmWU9_sRg_r_mH00TLLM__dtq6R9whag3sNKy2zM@z>
+Message-ID: <20150724140437.byq6xcSWhazK_-uzQQxrc004kNre3--Um3Op3rdFVoU@z>
 
-Hello,
+cmpxchg64_relaxed is now defined by linux/atomic.h, so we can
+remove our local definition from the lockref code.
 
-Here is version three of the patches previously posted here:
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ lib/lockref.c | 8 --------
+ 1 file changed, 8 deletions(-)
 
-  v1: https://lwn.net/Articles/650862/
-  v2: https://lwn.net/Articles/651293/
-
-The series adds support for a family of relaxed atomics to the kernel.
-More specifically:
-
-  - acquire/release/relaxed flavours of xchg, cmpxchg and {add,sub}_return
-  - atomic_read_acquire
-  - atomic_set_release
-
-This came out of a separate patch series porting the (barrier-heavy)
-qrwlock code to arm64. Rather than have arch-specific hooks littered
-around the place, it makes more sense to define a core set of relaxed
-atomics that can be used regardless of architecture.
-
-Changes since v2 include:
-
-  - Re-organised the series so it's more amenable to getting merged
-    (i.e. included an extra qrwlock dependency)
-
-  - Added some comments to the qrwlock code
-
-  - Added extra comments to delimit the relaxed atomic macros
-
-  - Fixed typo in comment message
-
-Build tested on ARM, arm64, PowerPC and x86.
-
-All feedback welcome,
-
-Will
-
---->8
-
-Will Deacon (8):
-  atomics: add acquire/release/relaxed variants of some atomic
-    operations
-  asm-generic: rework atomic-long.h to avoid bulk code duplication
-  asm-generic: add relaxed/acquire/release variants for atomic_long_t
-  lockref: remove homebrew cmpxchg64_relaxed macro definition
-  locking/qrwlock: implement queue_write_unlock using smp_store_release
-  locking/qrwlock: make use of acquire/release/relaxed atomics
-  include/llist: use linux/atomic.h instead of asm/cmpxchg.h
-  ARM: atomics: define our SMP atomics in terms of _relaxed operations
-
- arch/arm/include/asm/atomic.h     |  37 ++---
- arch/arm/include/asm/cmpxchg.h    |  47 +-----
- arch/x86/include/asm/qrwlock.h    |  10 --
- include/asm-generic/atomic-long.h | 263 +++++++++++--------------------
- include/asm-generic/qrwlock.h     |  22 +--
- include/linux/atomic.h            | 323 ++++++++++++++++++++++++++++++++++++++
- include/linux/llist.h             |   2 +-
- kernel/locking/qrwlock.c          |  23 ++-
- lib/lockref.c                     |   8 -
- 9 files changed, 463 insertions(+), 272 deletions(-)
-
+diff --git a/lib/lockref.c b/lib/lockref.c
+index 494994bf17c8..5a92189ad711 100644
+--- a/lib/lockref.c
++++ b/lib/lockref.c
+@@ -4,14 +4,6 @@
+ #if USE_CMPXCHG_LOCKREF
+ 
+ /*
+- * Allow weakly-ordered memory architectures to provide barrier-less
+- * cmpxchg semantics for lockref updates.
+- */
+-#ifndef cmpxchg64_relaxed
+-# define cmpxchg64_relaxed cmpxchg64
+-#endif
+-
+-/*
+  * Note that the "cmpxchg()" reloads the "old" value for the
+  * failure case.
+  */
 -- 
 2.1.4
 
