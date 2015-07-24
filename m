@@ -1,65 +1,99 @@
-From: Yoshinori Sato <ysato@users.sourceforge.jp>
-Subject: [PATCH v5] asm-generic: {get,put}_user ptr argument evaluate only 1 time
-Date: Fri, 24 Jul 2015 02:55:20 +0900
-Message-ID: <1437674120-10746-1-git-send-email-ysato@users.sourceforge.jp>
-References: <1437023722-7432-1-git-send-email-ysato@users.sourceforge.jp>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+Date: Fri, 24 Jul 2015 12:31:01 +0100
+Message-ID: <20150724113101.GE30410@arm.com>
+References: <20150713230405.GB3717@linux.vnet.ibm.com>
+ <20150714100429.GC15448@arm.com>
+ <20150714124540.GC3717@linux.vnet.ibm.com>
+ <20150714125146.GJ16213@arm.com>
+ <20150714140014.GD3717@linux.vnet.ibm.com>
+ <20150714141202.GN16213@arm.com>
+ <20150714193144.GP3717@linux.vnet.ibm.com>
+ <20150715013820.GA21971@linux.vnet.ibm.com>
+ <20150715105135.GE1005@arm.com>
+ <20150715131221.GY3717@linux.vnet.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.asahi-net.or.jp ([202.224.39.198]:63603 "EHLO
-	mail2.asahi-net.or.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752721AbbGWRzZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Jul 2015 13:55:25 -0400
-In-Reply-To: <1437023722-7432-1-git-send-email-ysato@users.sourceforge.jp>
+Received: from foss.arm.com ([217.140.101.70]:44567 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750740AbbGXLbB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jul 2015 07:31:01 -0400
+Content-Disposition: inline
+In-Reply-To: <20150715131221.GY3717@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-Current implemantation ptr argument evaluate 2 times.
-It'll be an unexpected result.
+Hi Paul,
 
-Changes v5:
-Remove unnecessary const.
-Changes v4:
-Temporary pointer type change to const void*
-Changes v3:
-Some build error fix.
-Changes v2:
-Argument x protect.
+On Wed, Jul 15, 2015 at 02:12:21PM +0100, Paul E. McKenney wrote:
+> On Wed, Jul 15, 2015 at 11:51:35AM +0100, Will Deacon wrote:
+> > On Wed, Jul 15, 2015 at 02:38:20AM +0100, Paul E. McKenney wrote:
+> > > On Tue, Jul 14, 2015 at 12:31:44PM -0700, Paul E. McKenney wrote:
+> > > > On Tue, Jul 14, 2015 at 03:12:16PM +0100, Will Deacon wrote:
+> > > > > On Tue, Jul 14, 2015 at 03:00:14PM +0100, Paul E. McKenney wrote:
+> > > > > > On Tue, Jul 14, 2015 at 01:51:46PM +0100, Will Deacon wrote:
+> > > > > > > On Tue, Jul 14, 2015 at 01:45:40PM +0100, Paul E. McKenney wrote:
+> > > > > > > > On Tue, Jul 14, 2015 at 11:04:29AM +0100, Will Deacon wrote:
+> > > > > > > > > Given that RCU is currently the only user of this barrier, how would you
+> > > > > > > > > feel about making the barrier local to RCU and not part of the general
+> > > > > > > > > memory-barrier API?
+> > > > > > > > 
+> > > > > > > > In theory, no objection.  Your thought is to leave the definitions where
+> > > > > > > > they are, mark them as being used only by RCU, and removing mention from
+> > > > > > > > memory-barriers.txt?  Or did you have something else in mind?
+> > > > > > > 
+> > > > > > > Actually, I was thinking of defining them in an RCU header file with an
+> > > > > > > #ifdef CONFIG_POWERPC for the smb_mb() version. Then you could have a big
+> > > > > > > comment describing the semantics, or put that in an RCU Documentation file
+> > > > > > > instead of memory-barriers.txt.
+> > > > > > > 
+> > > > > > > That *should* then mean we notice anybody else trying to use the barrier,
+> > > > > > > because they'd need to send patches to either add something equivalent
+> > > > > > > or move the definition out again.
+> > > > > > 
+> > > > > > My concern with this approach is that someone putting together a new
+> > > > > > architecture might miss this.  That said, this approach certainly would
+> > > > > > work for the current architectures.
+> > > > > 
+> > > > > I don't think they're any more likely to miss it than with the current
+> > > > > situation where the generic code defines the macro as a NOP unless you
+> > > > > explicitly override it.
+> > > > 
+> > > > Fair enough...
+> > > 
+> > > Like this?
+> > 
+> > Precisely! Thanks for cooking the patch -- this lays all my worries to
+> > rest, so:
+> > 
+> >   Acked-by: Will Deacon <will.deacon@arm.com>
+> 
+> Thank you!
 
-Signed-off-by: Yoshinori Sato <ysato@users.sourceforge.jp>
----
- include/asm-generic/uaccess.h | 10 ++++++----
- 1 file changed, 6 insertions(+), 4 deletions(-)
+[...]
 
-diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
-index 72d8803..1bfa602 100644
---- a/include/asm-generic/uaccess.h
-+++ b/include/asm-generic/uaccess.h
-@@ -163,9 +163,10 @@ static inline __must_check long __copy_to_user(void __user *to,
- 
- #define put_user(x, ptr)					\
- ({								\
-+	void *__p = (ptr);					\
- 	might_fault();						\
--	access_ok(VERIFY_WRITE, ptr, sizeof(*ptr)) ?		\
--		__put_user(x, ptr) :				\
-+	access_ok(VERIFY_WRITE, __p, sizeof(*ptr)) ?		\
-+		__put_user((x), ((__typeof__(*(ptr)) *)__p)) :	\
- 		-EFAULT;					\
- })
- 
-@@ -225,9 +226,10 @@ extern int __put_user_bad(void) __attribute__((noreturn));
- 
- #define get_user(x, ptr)					\
- ({								\
-+	const void *__p = (ptr);				\
- 	might_fault();						\
--	access_ok(VERIFY_READ, ptr, sizeof(*ptr)) ?		\
--		__get_user(x, ptr) :				\
-+	access_ok(VERIFY_READ, __p, sizeof(*ptr)) ?		\
-+		__get_user((x), (__typeof__(*(ptr)) *)__p) :	\
- 		-EFAULT;					\
- })
- 
--- 
-2.1.4
+> > > commit 695c05d4b9666c50b40a1c022678b5f6e2e3e771
+> > > Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> > > Date:   Tue Jul 14 18:35:23 2015 -0700
+> > > 
+> > >     rcu,locking: Privatize smp_mb__after_unlock_lock()
+> > >     
+> > >     RCU is the only thing that uses smp_mb__after_unlock_lock(), and is
+> > >     likely the only thing that ever will use it, so this commit makes this
+> > >     macro private to RCU.
+> > >     
+> > >     Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+> > >     Cc: Will Deacon <will.deacon@arm.com>
+> > >     Cc: Peter Zijlstra <peterz@infradead.org>
+> > >     Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> > >     Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+
+Are you planning to queue this somewhere? I think it makes sense regardless
+of whether we change PowerPc or not and ideally it would be merged around
+the same time as my relaxed atomics series.
+
+Will
