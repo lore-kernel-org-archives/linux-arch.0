@@ -1,219 +1,252 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from prod-mail-xrelay08.akamai.com ([96.6.114.112]:34953 "EHLO
-	prod-mail-xrelay08.akamai.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752095AbbGWPaD (ORCPT
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:59900 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754467AbbGXOFP (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Jul 2015 11:30:03 -0400
-Date: Thu, 23 Jul 2015 11:21:13 -0400
-From: Eric B Munson <emunson@akamai.com>
-Subject: Re: [PATCH V4 4/6] mm: mlock: Introduce VM_LOCKONFAULT and add mlock
- flags to enable it
-Message-ID: <20150723152113.GC7795@akamai.com>
-References: <1437508781-28655-1-git-send-email-emunson@akamai.com>
- <1437508781-28655-5-git-send-email-emunson@akamai.com>
- <55AF6A73.1080500@suse.cz>
- <20150722184343.GA2351@akamai.com>
- <55B0BBF9.7050802@suse.cz>
-MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="3siQDZowHQqNOShm"
-Content-Disposition: inline
-In-Reply-To: <55B0BBF9.7050802@suse.cz>
+	Fri, 24 Jul 2015 10:05:15 -0400
+From: Will Deacon <will.deacon@arm.com>
+Subject: [PATCH v3 8/8] ARM: atomics: define our SMP atomics in terms of _relaxed operations
+Date: Fri, 24 Jul 2015 15:04:41 +0100
+Message-ID: <1437746681-2809-9-git-send-email-will.deacon@arm.com>
+In-Reply-To: <1437746681-2809-1-git-send-email-will.deacon@arm.com>
+References: <1437746681-2809-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vlastimil Babka <vbabka@suse.cz>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, Jonathan Corbet <corbet@lwn.net>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, dri-devel@lists.freedesktop.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150723152113.a37IqafnxfgCnFlWub8lpdGmPLBpjfJ8Vq4afnDi610@z>
+To: linux-arch@vger.kernel.org
+Cc: Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>
+Message-ID: <20150724140441.FyrEv16vaPFKuyZmdn9ZypTrr6SU1GtNrQNllYMqSm0@z>
 
+By defining our SMP atomics in terms of relaxed operations, we gain
+a small reduction in code size and have acquire/release/fence variants
+generated automatically by the core code.
 
---3siQDZowHQqNOShm
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ arch/arm/include/asm/atomic.h  | 37 ++++++++++++++-------------------
+ arch/arm/include/asm/cmpxchg.h | 47 +++++++-----------------------------------
+ 2 files changed, 24 insertions(+), 60 deletions(-)
 
-On Thu, 23 Jul 2015, Vlastimil Babka wrote:
+diff --git a/arch/arm/include/asm/atomic.h b/arch/arm/include/asm/atomic.h
+index e22c11970b7b..bc9da3a3ff5e 100644
+--- a/arch/arm/include/asm/atomic.h
++++ b/arch/arm/include/asm/atomic.h
+@@ -57,12 +57,11 @@ static inline void atomic_##op(int i, atomic_t *v)			\
+ }									\
+ 
+ #define ATOMIC_OP_RETURN(op, c_op, asm_op)				\
+-static inline int atomic_##op##_return(int i, atomic_t *v)		\
++static inline int atomic_##op##_return_relaxed(int i, atomic_t *v)	\
+ {									\
+ 	unsigned long tmp;						\
+ 	int result;							\
+ 									\
+-	smp_mb();							\
+ 	prefetchw(&v->counter);						\
+ 									\
+ 	__asm__ __volatile__("@ atomic_" #op "_return\n"		\
+@@ -75,17 +74,17 @@ static inline int atomic_##op##_return(int i, atomic_t *v)		\
+ 	: "r" (&v->counter), "Ir" (i)					\
+ 	: "cc");							\
+ 									\
+-	smp_mb();							\
+-									\
+ 	return result;							\
+ }
+ 
+-static inline int atomic_cmpxchg(atomic_t *ptr, int old, int new)
++#define atomic_add_return_relaxed	atomic_add_return_relaxed
++#define atomic_sub_return_relaxed	atomic_sub_return_relaxed
++
++static inline int atomic_cmpxchg_relaxed(atomic_t *ptr, int old, int new)
+ {
+ 	int oldval;
+ 	unsigned long res;
+ 
+-	smp_mb();
+ 	prefetchw(&ptr->counter);
+ 
+ 	do {
+@@ -99,10 +98,9 @@ static inline int atomic_cmpxchg(atomic_t *ptr, int old, int new)
+ 		    : "cc");
+ 	} while (res);
+ 
+-	smp_mb();
+-
+ 	return oldval;
+ }
++#define atomic_cmpxchg_relaxed		atomic_cmpxchg_relaxed
+ 
+ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
+ {
+@@ -290,12 +288,12 @@ static inline void atomic64_##op(long long i, atomic64_t *v)		\
+ }									\
+ 
+ #define ATOMIC64_OP_RETURN(op, op1, op2)				\
+-static inline long long atomic64_##op##_return(long long i, atomic64_t *v) \
++static inline long long							\
++atomic64_##op##_return_relaxed(long long i, atomic64_t *v)		\
+ {									\
+ 	long long result;						\
+ 	unsigned long tmp;						\
+ 									\
+-	smp_mb();							\
+ 	prefetchw(&v->counter);						\
+ 									\
+ 	__asm__ __volatile__("@ atomic64_" #op "_return\n"		\
+@@ -309,8 +307,6 @@ static inline long long atomic64_##op##_return(long long i, atomic64_t *v) \
+ 	: "r" (&v->counter), "r" (i)					\
+ 	: "cc");							\
+ 									\
+-	smp_mb();							\
+-									\
+ 	return result;							\
+ }
+ 
+@@ -321,17 +317,19 @@ static inline long long atomic64_##op##_return(long long i, atomic64_t *v) \
+ ATOMIC64_OPS(add, adds, adc)
+ ATOMIC64_OPS(sub, subs, sbc)
+ 
++#define atomic64_add_return_relaxed	atomic64_add_return_relaxed
++#define atomic64_sub_return_relaxed	atomic64_sub_return_relaxed
++
+ #undef ATOMIC64_OPS
+ #undef ATOMIC64_OP_RETURN
+ #undef ATOMIC64_OP
+ 
+-static inline long long atomic64_cmpxchg(atomic64_t *ptr, long long old,
+-					long long new)
++static inline long long
++atomic64_cmpxchg_relaxed(atomic64_t *ptr, long long old, long long new)
+ {
+ 	long long oldval;
+ 	unsigned long res;
+ 
+-	smp_mb();
+ 	prefetchw(&ptr->counter);
+ 
+ 	do {
+@@ -346,17 +344,15 @@ static inline long long atomic64_cmpxchg(atomic64_t *ptr, long long old,
+ 		: "cc");
+ 	} while (res);
+ 
+-	smp_mb();
+-
+ 	return oldval;
+ }
++#define atomic64_cmpxchg_relaxed	atomic64_cmpxchg_relaxed
+ 
+-static inline long long atomic64_xchg(atomic64_t *ptr, long long new)
++static inline long long atomic64_xchg_relaxed(atomic64_t *ptr, long long new)
+ {
+ 	long long result;
+ 	unsigned long tmp;
+ 
+-	smp_mb();
+ 	prefetchw(&ptr->counter);
+ 
+ 	__asm__ __volatile__("@ atomic64_xchg\n"
+@@ -368,10 +364,9 @@ static inline long long atomic64_xchg(atomic64_t *ptr, long long new)
+ 	: "r" (&ptr->counter), "r" (new)
+ 	: "cc");
+ 
+-	smp_mb();
+-
+ 	return result;
+ }
++#define atomic64_xchg_relaxed		atomic64_xchg_relaxed
+ 
+ static inline long long atomic64_dec_if_positive(atomic64_t *v)
+ {
+diff --git a/arch/arm/include/asm/cmpxchg.h b/arch/arm/include/asm/cmpxchg.h
+index 1692a05d3207..916a2744d5c6 100644
+--- a/arch/arm/include/asm/cmpxchg.h
++++ b/arch/arm/include/asm/cmpxchg.h
+@@ -35,7 +35,6 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
+ 	unsigned int tmp;
+ #endif
+ 
+-	smp_mb();
+ 	prefetchw((const void *)ptr);
+ 
+ 	switch (size) {
+@@ -98,12 +97,11 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
+ 		__bad_xchg(ptr, size), ret = 0;
+ 		break;
+ 	}
+-	smp_mb();
+ 
+ 	return ret;
+ }
+ 
+-#define xchg(ptr, x) ({							\
++#define xchg_relaxed(ptr, x) ({						\
+ 	(__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr),		\
+ 				   sizeof(*(ptr)));			\
+ })
+@@ -117,6 +115,8 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
+ #error "SMP is not supported on this platform"
+ #endif
+ 
++#define xchg xchg_relaxed
++
+ /*
+  * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
+  * them available.
+@@ -194,23 +194,11 @@ static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
+ 	return oldval;
+ }
+ 
+-static inline unsigned long __cmpxchg_mb(volatile void *ptr, unsigned long old,
+-					 unsigned long new, int size)
+-{
+-	unsigned long ret;
+-
+-	smp_mb();
+-	ret = __cmpxchg(ptr, old, new, size);
+-	smp_mb();
+-
+-	return ret;
+-}
+-
+-#define cmpxchg(ptr,o,n) ({						\
+-	(__typeof__(*(ptr)))__cmpxchg_mb((ptr),				\
+-					 (unsigned long)(o),		\
+-					 (unsigned long)(n),		\
+-					 sizeof(*(ptr)));		\
++#define cmpxchg_relaxed(ptr,o,n) ({					\
++	(__typeof__(*(ptr)))__cmpxchg((ptr),				\
++				      (unsigned long)(o),		\
++				      (unsigned long)(n),		\
++				      sizeof(*(ptr)));			\
+ })
+ 
+ static inline unsigned long __cmpxchg_local(volatile void *ptr,
+@@ -273,25 +261,6 @@ static inline unsigned long long __cmpxchg64(unsigned long long *ptr,
+ 
+ #define cmpxchg64_local(ptr, o, n) cmpxchg64_relaxed((ptr), (o), (n))
+ 
+-static inline unsigned long long __cmpxchg64_mb(unsigned long long *ptr,
+-						unsigned long long old,
+-						unsigned long long new)
+-{
+-	unsigned long long ret;
+-
+-	smp_mb();
+-	ret = __cmpxchg64(ptr, old, new);
+-	smp_mb();
+-
+-	return ret;
+-}
+-
+-#define cmpxchg64(ptr, o, n) ({						\
+-	(__typeof__(*(ptr)))__cmpxchg64_mb((ptr),			\
+-					   (unsigned long long)(o),	\
+-					   (unsigned long long)(n));	\
+-})
+-
+ #endif	/* __LINUX_ARM_ARCH__ >= 6 */
+ 
+ #endif /* __ASM_ARM_CMPXCHG_H */
+-- 
+2.1.4
 
-> On 07/22/2015 08:43 PM, Eric B Munson wrote:
-> > On Wed, 22 Jul 2015, Vlastimil Babka wrote:
-> >=20
-> >>=20
-> >> Hi,
-> >>=20
-> >> I think you should include a complete description of which
-> >> transitions for vma states and mlock2/munlock2 flags applied on them
-> >> are valid and what they do. It will also help with the manpages.
-> >> You explained some to Jon in the last thread, but I think there
-> >> should be a canonical description in changelog (if not also
-> >> Documentation, if mlock is covered there).
-> >>=20
-> >> For example the scenario Jon asked, what happens after a
-> >> mlock2(MLOCK_ONFAULT) followed by mlock2(MLOCK_LOCKED), and that the
-> >> answer is "nothing". Your promised code comment for
-> >> apply_vma_flags() doesn't suffice IMHO (and I'm not sure it's there,
-> >> anyway?).
-> >=20
-> > I missed adding that comment to the code, will be there in V5 along with
-> > the description in the changelog.
->=20
-> Thanks!
->=20
-> >>=20
-> >> But the more I think about the scenario and your new VM_LOCKONFAULT
-> >> vma flag, it seems awkward to me. Why should munlocking at all care
-> >> if the vma was mlocked with MLOCK_LOCKED or MLOCK_ONFAULT? In either
-> >> case the result is that all pages currently populated are munlocked.
-> >> So the flags for munlock2 should be unnecessary.
-> >=20
-> > Say a user has a large area of interleaved MLOCK_LOCK and MLOCK_ONFAULT
-> > mappings and they want to unlock only the ones with MLOCK_LOCK.  With
-> > the current implementation, this is possible in a single system call
-> > that spans the entire region.  With your suggestion, the user would have
-> > to know what regions where locked with MLOCK_LOCK and call munlock() on
-> > each of them.  IMO, the way munlock2() works better mirrors the way
-> > munlock() currently works when called on a large area of interleaved
-> > locked and unlocked areas.
->=20
-> Um OK, that scenario is possible in theory. But I have a hard time imagin=
-ing
-> that somebody would really want to do that. I think much more people would
-> benefit from a simpler API.
-
-It wasn't about imagining a scenario, more about keeping parity with
-something that currently works (unlocking a large area of interleaved
-locked and unlocked regions).  However, there is no reason we can't add
-the new munlock2 later if it is desired.
-
->=20
-> >=20
-> >>=20
-> >> I also think VM_LOCKONFAULT is unnecessary. VM_LOCKED should be
-> >> enough - see how you had to handle the new flag in all places that
-> >> had to handle the old flag? I think the information whether mlock
-> >> was supposed to fault the whole vma is obsolete at the moment mlock
-> >> returns. VM_LOCKED should be enough for both modes, and the flag to
-> >> mlock2 could just control whether the pre-faulting is done.
-> >>=20
-> >> So what should be IMHO enough:
-> >> - munlock can stay without flags
-> >> - mlock2 has only one new flag MLOCK_ONFAULT. If specified,
-> >> pre-faulting is not done, just set VM_LOCKED and mlock pages already
-> >> present.
-> >> - same with mmap(MAP_LOCKONFAULT) (need to define what happens when
-> >> both MAP_LOCKED and MAP_LOCKONFAULT are specified).
-> >>=20
-> >> Now mlockall(MCL_FUTURE) muddles the situation in that it stores the
-> >> information for future VMA's in current->mm->def_flags, and this
-> >> def_flags would need to distinguish VM_LOCKED with population and
-> >> without. But that could be still solvable without introducing a new
-> >> vma flag everywhere.
-> >=20
-> > With you right up until that last paragraph.  I have been staring at
-> > this a while and I cannot come up a way to handle the
-> > mlockall(MCL_ONFAULT) without introducing a new vm flag.  It doesn't
-> > have to be VM_LOCKONFAULT, we could use the model that Michal Hocko
-> > suggested with something like VM_FAULTPOPULATE.  However, we can't
-> > really use this flag anywhere except the mlock code becuase we have to
-> > be able to distinguish a caller that wants to use MLOCK_LOCK with
-> > whatever control VM_FAULTPOPULATE might grant outside of mlock and a
-> > caller that wants MLOCK_ONFAULT.  That was a long way of saying we need
-> > an extra vma flag regardless.  However, if that flag only controls if
-> > mlock pre-populates it would work and it would do away with most of the
-> > places I had to touch to handle VM_LOCKONFAULT properly.
->=20
-> Yes, it would be a good way. Adding a new vma flag is probably cleanest a=
-fter
-> all, but the flag would be set *in addition* to VM_LOCKED, *just* to prev=
-ent
-> pre-faulting. The places that check VM_LOCKED for the actual page mlockin=
-g (i.e.
-> try_to_unmap_one) would just keep checking VM_LOCKED. The places where VM=
-_LOCKED
-> is checked to trigger prepopulation, would skip that if VM_LOCKONFAULT is=
- also
-> set. Having VM_LOCKONFAULT set without also VM_LOCKED itself would be inv=
-alid state.
->=20
-> This should work fine with the simplified API as I proposed so let me rei=
-terate
-> and try fill in the blanks:
->=20
-> - mlock2 has only one new flag MLOCK_ONFAULT. If specified, VM_LOCKONFAUL=
-T is
-> set in addition to VM_LOCKED and no prefaulting is done
->   - old mlock syscall naturally behaves as mlock2 without MLOCK_ONFAULT
->   - calling mlock/mlock2 on an already-mlocked area (if that's permitted
-> already?) will add/remove VM_LOCKONFAULT as needed. If it's removing,
-> prepopulate whole range. Of course adding VM_LOCKONFAULT to a vma that was
-> already prefaulted doesn't make any difference, but it's consistent with =
-the rest.
-> - munlock removes both VM_LOCKED and VM_LOCKONFAULT
-> - mmap could treat MAP_LOCKONFAULT as a modifier to MAP_LOCKED to be cons=
-istent?
-> or not? I'm not sure here, either way subtly differs from mlock API anywa=
-y, I
-> just wish MAP_LOCKED never existed...
-> - mlockall(MCL_CURRENT) sets or clears VM_LOCKONFAULT depending on
-> MCL_LOCKONFAULT, mlockall(MCL_FUTURE) does the same on mm->def_flags
-> - munlockall2 removes both, like munlock. munlockall2(MCL_FUTURE) does th=
-at to
-> def_flags
->=20
-> > I picked VM_LOCKONFAULT because it is explicit about what it is for and
-> > there is little risk of someone coming along in 5 years and saying "why
-> > not overload this flag to do this other thing completely unrelated to
-> > mlock?".  A flag for controling speculative population is more likely to
-> > be overloaded outside of mlock().
->=20
-> Sure, let's make clear the name is related to mlock, but the behavior cou=
-ld
-> still be additive to MAP_LOCKED.
->=20
-> > If you have a sane way of handling mlockall(MCL_ONFAULT) without a new
-> > VMA flag, I am happy to give it a try, but I haven't been able to come
-> > up with one that doesn't have its own gremlins.
->=20
-> Well we could store the MCL_FUTURE | MCL_ONFAULT bit elsewhere in mm_stru=
-ct than
-> the def_flags field. The VM_LOCKED field is already evaluated specially f=
-rom all
-> the other def_flags. We are nearing the full 32bit space for vma flags. I=
- think
-> all I've proposed above wouldn't change much if we removed per-vma
-> VM_LOCKONFAULT flag from the equation. Just that re-mlocking area already
-> mlocked *withouth* MLOCK_ONFAULT wouldn't know that it was alread prepopu=
-lated,
-> and would have to re-populate in either case (I'm not sure, maybe it's al=
-ready
-> done by current implementation anyway so it's not a potential performance
-> regression).
-> Only mlockall(MCL_FUTURE | MCL_ONFAULT) should really need the ONFAULT in=
-fo to
-> "stick" somewhere in mm_struct, but it doesn't have to be def_flags?
-
-This all sounds fine and should still cover the usecase that started
-this adventure.  I will include this change in the V5 spin.
-
-
---3siQDZowHQqNOShm
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAEBAgAGBQJVsQZpAAoJELbVsDOpoOa9rPAP/1izNbG09pAsgxL0DabP9Q3+
-6wqhAW/fwNDziiMvLDYdnRdyf0S7rMwSMiHF6Lkx8PXkLWocX7O8FhqF4J94wxnR
-LRGVLsik6RtHTFVOGtBZdKq2+tumpIdwAYrXs5R7zZjQq/vuV+JR6jEyu6+lP+d1
-Z2jyxcFuNQcIFB3oD6T0W9vG2rAkye2MPYqMjHYy88qgh3qU46nZx5wjJBDjMVFR
-n3kg+vYqsZhaZqVStUNEIyf8/FftVUuhjaIgqH/GJortMAlDP2nV1oTqsnUsPiDn
-lSzZVI9OgJB0J49u14QumSUHsvK+SuugJ0UQLFY1o2ZDFF/FTyAVgW1tXF34ZcoZ
-ndVDFRO7B2yDy1f7Fe9d9W4rKDvOvrqUj8leYrI3XUJ+5eYQfT+WgYKwnDFY0Ol0
-xsz1RAoM0B61jUN694Ypqpywa6a5XTg2sqJwJh3vXiGWs/wPTRmW1V+Y0h0PyCzw
-iGbmGrLRd/WsFaGFZLp+/8Z74wInKPEBJ0wzJmM94stYDR+ZQHZazX3rSrwbloir
-vX+HX28xmmyOCRMN1CXBg1N2moaCqOb0CADPk8iLBkXqZEFiNMRfEnIBVLOWUdHw
-s+U9WnlLrMpozaFKpyaGAhiwGVhjusl/pd0t3yIeOWqK8sNikxomriXCH6AqEyvS
-aZaJVX9ee0a6Dpn5LQGB
-=KQeP
------END PGP SIGNATURE-----
-
---3siQDZowHQqNOShm--
