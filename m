@@ -1,79 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:59909 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:59902 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754461AbbGXOFT (ORCPT
+	by vger.kernel.org with ESMTP id S1754468AbbGXOFQ (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Jul 2015 10:05:19 -0400
+	Fri, 24 Jul 2015 10:05:16 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v3 5/8] locking/qrwlock: implement queue_write_unlock using smp_store_release
-Date: Fri, 24 Jul 2015 15:04:38 +0100
-Message-ID: <1437746681-2809-6-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v3 7/8] include/llist: use linux/atomic.h instead of asm/cmpxchg.h
+Date: Fri, 24 Jul 2015 15:04:40 +0100
+Message-ID: <1437746681-2809-8-git-send-email-will.deacon@arm.com>
 In-Reply-To: <1437746681-2809-1-git-send-email-will.deacon@arm.com>
 References: <1437746681-2809-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>
-Message-ID: <20150724140438.bsL7Tfm3S0FgPbZiRO5s8R57e9pVrnUt_H_MVZqkb1w@z>
+Message-ID: <20150724140440.viHWaQhvubwB20L_jJURV_l9-LD6UfWm9bVPXxX5Yhw@z>
 
-Since 536fa402221f ("compiler: Allow 1- and 2-byte smp_load_acquire()
-and smp_store_release()"), smp_store_release supports byte accesses, so
-use that in writer unlock and remove the conditional macro override.
+Including an asm/ header directly is best avoided, so use linux/atomic.h
+instead of asm/cmpxchg.h in linux/llist.h.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/x86/include/asm/qrwlock.h | 10 ----------
- include/asm-generic/qrwlock.h  |  9 +--------
- 2 files changed, 1 insertion(+), 18 deletions(-)
+ include/linux/llist.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/x86/include/asm/qrwlock.h b/arch/x86/include/asm/qrwlock.h
-index a8810bf135ab..c537cbb038a7 100644
---- a/arch/x86/include/asm/qrwlock.h
-+++ b/arch/x86/include/asm/qrwlock.h
-@@ -2,16 +2,6 @@
- #define _ASM_X86_QRWLOCK_H
- 
- #include <asm-generic/qrwlock_types.h>
--
--#ifndef CONFIG_X86_PPRO_FENCE
--#define queued_write_unlock queued_write_unlock
--static inline void queued_write_unlock(struct qrwlock *lock)
--{
--        barrier();
--        ACCESS_ONCE(*(u8 *)&lock->cnts) = 0;
--}
--#endif
--
- #include <asm-generic/qrwlock.h>
- 
- #endif /* _ASM_X86_QRWLOCK_H */
-diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-index deb9e8b0eb9e..eb673dde8879 100644
---- a/include/asm-generic/qrwlock.h
-+++ b/include/asm-generic/qrwlock.h
-@@ -134,21 +134,14 @@ static inline void queued_read_unlock(struct qrwlock *lock)
- 	atomic_sub(_QR_BIAS, &lock->cnts);
- }
- 
--#ifndef queued_write_unlock
- /**
-  * queued_write_unlock - release write lock of a queue rwlock
-  * @lock : Pointer to queue rwlock structure
+diff --git a/include/linux/llist.h b/include/linux/llist.h
+index fbf10a0bc095..fd4ca0b4fe0f 100644
+--- a/include/linux/llist.h
++++ b/include/linux/llist.h
+@@ -55,8 +55,8 @@
+  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
   */
- static inline void queued_write_unlock(struct qrwlock *lock)
- {
--	/*
--	 * If the writer field is atomic, it can be cleared directly.
--	 * Otherwise, an atomic subtraction will be used to clear it.
--	 */
--	smp_mb__before_atomic();
--	atomic_sub(_QW_LOCKED, &lock->cnts);
-+	smp_store_release((u8 *)&lock->cnts, 0);
- }
--#endif
  
- /*
-  * Remapping rwlock architecture specific functions to the corresponding
++#include <linux/atomic.h>
+ #include <linux/kernel.h>
+-#include <asm/cmpxchg.h>
+ 
+ struct llist_head {
+ 	struct llist_node *first;
 -- 
 2.1.4
 
