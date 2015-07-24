@@ -1,72 +1,149 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v3 0/8] Add generic support for relaxed atomics
-Date: Fri, 24 Jul 2015 15:04:33 +0100
-Message-ID: <1437746681-2809-1-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v3 6/8] locking/qrwlock: make use of acquire/release/relaxed atomics
+Date: Fri, 24 Jul 2015 15:04:39 +0100
+Message-ID: <1437746681-2809-7-git-send-email-will.deacon@arm.com>
+References: <1437746681-2809-1-git-send-email-will.deacon@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1437746681-2809-1-git-send-email-will.deacon@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hello,
+The qrwlock implementation is slightly heavy in its use of memory
+barriers, mainly through the use of cmpxchg and _return atomics, which
+imply full barrier semantics.
 
-Here is version three of the patches previously posted here:
+This patch modifies the qrwlock code to use the more relaxed atomic
+routines so that we can reduce the unnecessary barrier overhead on
+weakly-ordered architectures.
 
-  v1: https://lwn.net/Articles/650862/
-  v2: https://lwn.net/Articles/651293/
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ include/asm-generic/qrwlock.h | 13 ++++++-------
+ kernel/locking/qrwlock.c      | 23 +++++++++++++++--------
+ 2 files changed, 21 insertions(+), 15 deletions(-)
 
-The series adds support for a family of relaxed atomics to the kernel.
-More specifically:
-
-  - acquire/release/relaxed flavours of xchg, cmpxchg and {add,sub}_return
-  - atomic_read_acquire
-  - atomic_set_release
-
-This came out of a separate patch series porting the (barrier-heavy)
-qrwlock code to arm64. Rather than have arch-specific hooks littered
-around the place, it makes more sense to define a core set of relaxed
-atomics that can be used regardless of architecture.
-
-Changes since v2 include:
-
-  - Re-organised the series so it's more amenable to getting merged
-    (i.e. included an extra qrwlock dependency)
-
-  - Added some comments to the qrwlock code
-
-  - Added extra comments to delimit the relaxed atomic macros
-
-  - Fixed typo in comment message
-
-Build tested on ARM, arm64, PowerPC and x86.
-
-All feedback welcome,
-
-Will
-
---->8
-
-Will Deacon (8):
-  atomics: add acquire/release/relaxed variants of some atomic
-    operations
-  asm-generic: rework atomic-long.h to avoid bulk code duplication
-  asm-generic: add relaxed/acquire/release variants for atomic_long_t
-  lockref: remove homebrew cmpxchg64_relaxed macro definition
-  locking/qrwlock: implement queue_write_unlock using smp_store_release
-  locking/qrwlock: make use of acquire/release/relaxed atomics
-  include/llist: use linux/atomic.h instead of asm/cmpxchg.h
-  ARM: atomics: define our SMP atomics in terms of _relaxed operations
-
- arch/arm/include/asm/atomic.h     |  37 ++---
- arch/arm/include/asm/cmpxchg.h    |  47 +-----
- arch/x86/include/asm/qrwlock.h    |  10 --
- include/asm-generic/atomic-long.h | 263 +++++++++++--------------------
- include/asm-generic/qrwlock.h     |  22 +--
- include/linux/atomic.h            | 323 ++++++++++++++++++++++++++++++++++++++
- include/linux/llist.h             |   2 +-
- kernel/locking/qrwlock.c          |  23 ++-
- lib/lockref.c                     |   8 -
- 9 files changed, 463 insertions(+), 272 deletions(-)
-
+diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+index eb673dde8879..54a8e65e18b6 100644
+--- a/include/asm-generic/qrwlock.h
++++ b/include/asm-generic/qrwlock.h
+@@ -68,7 +68,7 @@ static inline int queued_read_trylock(struct qrwlock *lock)
+ 
+ 	cnts = atomic_read(&lock->cnts);
+ 	if (likely(!(cnts & _QW_WMASK))) {
+-		cnts = (u32)atomic_add_return(_QR_BIAS, &lock->cnts);
++		cnts = (u32)atomic_add_return_acquire(_QR_BIAS, &lock->cnts);
+ 		if (likely(!(cnts & _QW_WMASK)))
+ 			return 1;
+ 		atomic_sub(_QR_BIAS, &lock->cnts);
+@@ -89,8 +89,8 @@ static inline int queued_write_trylock(struct qrwlock *lock)
+ 	if (unlikely(cnts))
+ 		return 0;
+ 
+-	return likely(atomic_cmpxchg(&lock->cnts,
+-				     cnts, cnts | _QW_LOCKED) == cnts);
++	return likely(atomic_cmpxchg_acquire(&lock->cnts,
++					     cnts, cnts | _QW_LOCKED) == cnts);
+ }
+ /**
+  * queued_read_lock - acquire read lock of a queue rwlock
+@@ -100,7 +100,7 @@ static inline void queued_read_lock(struct qrwlock *lock)
+ {
+ 	u32 cnts;
+ 
+-	cnts = atomic_add_return(_QR_BIAS, &lock->cnts);
++	cnts = atomic_add_return_acquire(_QR_BIAS, &lock->cnts);
+ 	if (likely(!(cnts & _QW_WMASK)))
+ 		return;
+ 
+@@ -115,7 +115,7 @@ static inline void queued_read_lock(struct qrwlock *lock)
+ static inline void queued_write_lock(struct qrwlock *lock)
+ {
+ 	/* Optimize for the unfair lock case where the fair flag is 0. */
+-	if (atomic_cmpxchg(&lock->cnts, 0, _QW_LOCKED) == 0)
++	if (atomic_cmpxchg_acquire(&lock->cnts, 0, _QW_LOCKED) == 0)
+ 		return;
+ 
+ 	queued_write_lock_slowpath(lock);
+@@ -130,8 +130,7 @@ static inline void queued_read_unlock(struct qrwlock *lock)
+ 	/*
+ 	 * Atomically decrement the reader count
+ 	 */
+-	smp_mb__before_atomic();
+-	atomic_sub(_QR_BIAS, &lock->cnts);
++	(void)atomic_sub_return_release(_QR_BIAS, &lock->cnts);
+ }
+ 
+ /**
+diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+index d9c36c5f5711..fb4ef2d636f2 100644
+--- a/kernel/locking/qrwlock.c
++++ b/kernel/locking/qrwlock.c
+@@ -55,7 +55,7 @@ rspin_until_writer_unlock(struct qrwlock *lock, u32 cnts)
+ {
+ 	while ((cnts & _QW_WMASK) == _QW_LOCKED) {
+ 		cpu_relax_lowlatency();
+-		cnts = smp_load_acquire((u32 *)&lock->cnts);
++		cnts = atomic_read_acquire(&lock->cnts);
+ 	}
+ }
+ 
+@@ -74,8 +74,9 @@ void queued_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
+ 		 * Readers in interrupt context will get the lock immediately
+ 		 * if the writer is just waiting (not holding the lock yet).
+ 		 * The rspin_until_writer_unlock() function returns immediately
+-		 * in this case. Otherwise, they will spin until the lock
+-		 * is available without waiting in the queue.
++		 * in this case. Otherwise, they will spin (with ACQUIRE
++		 * semantics) until the lock is available without waiting in
++		 * the queue.
+ 		 */
+ 		rspin_until_writer_unlock(lock, cnts);
+ 		return;
+@@ -97,7 +98,13 @@ void queued_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
+ 	while (atomic_read(&lock->cnts) & _QW_WMASK)
+ 		cpu_relax_lowlatency();
+ 
+-	cnts = atomic_add_return(_QR_BIAS, &lock->cnts) - _QR_BIAS;
++	cnts = atomic_add_return_relaxed(_QR_BIAS, &lock->cnts) - _QR_BIAS;
++
++	/*
++	 * The ACQUIRE semantics of the spinning code ensure that
++	 * accesses can't leak upwards out of our subsequent critical
++	 * section.
++	 */
+ 	rspin_until_writer_unlock(lock, cnts);
+ 
+ 	/*
+@@ -120,7 +127,7 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
+ 
+ 	/* Try to acquire the lock directly if no reader is present */
+ 	if (!atomic_read(&lock->cnts) &&
+-	    (atomic_cmpxchg(&lock->cnts, 0, _QW_LOCKED) == 0))
++	    (atomic_cmpxchg_acquire(&lock->cnts, 0, _QW_LOCKED) == 0))
+ 		goto unlock;
+ 
+ 	/*
+@@ -131,7 +138,7 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
+ 		struct __qrwlock *l = (struct __qrwlock *)lock;
+ 
+ 		if (!READ_ONCE(l->wmode) &&
+-		   (cmpxchg(&l->wmode, 0, _QW_WAITING) == 0))
++		   (cmpxchg_relaxed(&l->wmode, 0, _QW_WAITING) == 0))
+ 			break;
+ 
+ 		cpu_relax_lowlatency();
+@@ -141,8 +148,8 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
+ 	for (;;) {
+ 		cnts = atomic_read(&lock->cnts);
+ 		if ((cnts == _QW_WAITING) &&
+-		    (atomic_cmpxchg(&lock->cnts, _QW_WAITING,
+-				    _QW_LOCKED) == _QW_WAITING))
++		    (atomic_cmpxchg_acquire(&lock->cnts, _QW_WAITING,
++					    _QW_LOCKED) == _QW_WAITING))
+ 			break;
+ 
+ 		cpu_relax_lowlatency();
 -- 
 2.1.4
