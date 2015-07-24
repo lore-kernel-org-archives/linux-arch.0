@@ -1,99 +1,88 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH v2] memory-barriers: remove
- smp_mb__after_unlock_lock()
-Date: Fri, 24 Jul 2015 12:31:01 +0100
-Message-ID: <20150724113101.GE30410@arm.com>
-References: <20150713230405.GB3717@linux.vnet.ibm.com>
- <20150714100429.GC15448@arm.com>
- <20150714124540.GC3717@linux.vnet.ibm.com>
- <20150714125146.GJ16213@arm.com>
- <20150714140014.GD3717@linux.vnet.ibm.com>
- <20150714141202.GN16213@arm.com>
- <20150714193144.GP3717@linux.vnet.ibm.com>
- <20150715013820.GA21971@linux.vnet.ibm.com>
- <20150715105135.GE1005@arm.com>
- <20150715131221.GY3717@linux.vnet.ibm.com>
+From: Konstantin Khlebnikov <khlebnikov@yandex-team.ru>
+Subject: [PATCH] modules: don't print out loaded modules too often if
+ nothing changed
+Date: Fri, 24 Jul 2015 15:55:03 +0300
+Message-ID: <20150724125503.4861.77730.stgit@buzz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:44567 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750740AbbGXLbB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Jul 2015 07:31:01 -0400
-Content-Disposition: inline
-In-Reply-To: <20150715131221.GY3717@linux.vnet.ibm.com>
+Received: from forward-corp1o.mail.yandex.net ([37.140.190.172]:50147 "EHLO
+	forward-corp1o.mail.yandex.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752284AbbGXMzI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jul 2015 08:55:08 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Rusty Russell <rusty@rustcorp.com.au>, linux-kernel@vger.kernel.org
+Cc: Joe Perches <joe@perches.com>
 
-Hi Paul,
+List of loaded modules is useful but printing it at each splat
+adds too much noise. This patch prints place-holder "<unchanged>"
+if kernel not in panic, nothing have changed and since last print
+passed less then 15 minutes. First warning will have it for sure.
 
-On Wed, Jul 15, 2015 at 02:12:21PM +0100, Paul E. McKenney wrote:
-> On Wed, Jul 15, 2015 at 11:51:35AM +0100, Will Deacon wrote:
-> > On Wed, Jul 15, 2015 at 02:38:20AM +0100, Paul E. McKenney wrote:
-> > > On Tue, Jul 14, 2015 at 12:31:44PM -0700, Paul E. McKenney wrote:
-> > > > On Tue, Jul 14, 2015 at 03:12:16PM +0100, Will Deacon wrote:
-> > > > > On Tue, Jul 14, 2015 at 03:00:14PM +0100, Paul E. McKenney wrote:
-> > > > > > On Tue, Jul 14, 2015 at 01:51:46PM +0100, Will Deacon wrote:
-> > > > > > > On Tue, Jul 14, 2015 at 01:45:40PM +0100, Paul E. McKenney wrote:
-> > > > > > > > On Tue, Jul 14, 2015 at 11:04:29AM +0100, Will Deacon wrote:
-> > > > > > > > > Given that RCU is currently the only user of this barrier, how would you
-> > > > > > > > > feel about making the barrier local to RCU and not part of the general
-> > > > > > > > > memory-barrier API?
-> > > > > > > > 
-> > > > > > > > In theory, no objection.  Your thought is to leave the definitions where
-> > > > > > > > they are, mark them as being used only by RCU, and removing mention from
-> > > > > > > > memory-barriers.txt?  Or did you have something else in mind?
-> > > > > > > 
-> > > > > > > Actually, I was thinking of defining them in an RCU header file with an
-> > > > > > > #ifdef CONFIG_POWERPC for the smb_mb() version. Then you could have a big
-> > > > > > > comment describing the semantics, or put that in an RCU Documentation file
-> > > > > > > instead of memory-barriers.txt.
-> > > > > > > 
-> > > > > > > That *should* then mean we notice anybody else trying to use the barrier,
-> > > > > > > because they'd need to send patches to either add something equivalent
-> > > > > > > or move the definition out again.
-> > > > > > 
-> > > > > > My concern with this approach is that someone putting together a new
-> > > > > > architecture might miss this.  That said, this approach certainly would
-> > > > > > work for the current architectures.
-> > > > > 
-> > > > > I don't think they're any more likely to miss it than with the current
-> > > > > situation where the generic code defines the macro as a NOP unless you
-> > > > > explicitly override it.
-> > > > 
-> > > > Fair enough...
-> > > 
-> > > Like this?
-> > 
-> > Precisely! Thanks for cooking the patch -- this lays all my worries to
-> > rest, so:
-> > 
-> >   Acked-by: Will Deacon <will.deacon@arm.com>
-> 
-> Thank you!
+Signed-off-by: Konstantin Khlebnikov <khlebnikov@yandex-team.ru>
+---
+ kernel/module.c |   13 +++++++++++++
+ 1 file changed, 13 insertions(+)
 
-[...]
-
-> > > commit 695c05d4b9666c50b40a1c022678b5f6e2e3e771
-> > > Author: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> > > Date:   Tue Jul 14 18:35:23 2015 -0700
-> > > 
-> > >     rcu,locking: Privatize smp_mb__after_unlock_lock()
-> > >     
-> > >     RCU is the only thing that uses smp_mb__after_unlock_lock(), and is
-> > >     likely the only thing that ever will use it, so this commit makes this
-> > >     macro private to RCU.
-> > >     
-> > >     Signed-off-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> > >     Cc: Will Deacon <will.deacon@arm.com>
-> > >     Cc: Peter Zijlstra <peterz@infradead.org>
-> > >     Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> > >     Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-
-Are you planning to queue this somewhere? I think it makes sense regardless
-of whether we change PowerPc or not and ideally it would be merged around
-the same time as my relaxed atomics series.
-
-Will
+diff --git a/kernel/module.c b/kernel/module.c
+index 4d2b82e610e2..e185b8d53205 100644
+--- a/kernel/module.c
++++ b/kernel/module.c
+@@ -101,6 +101,7 @@
+ DEFINE_MUTEX(module_mutex);
+ EXPORT_SYMBOL_GPL(module_mutex);
+ static LIST_HEAD(modules);
++static unsigned long modules_printed;
+ 
+ #ifdef CONFIG_MODULES_TREE_LOOKUP
+ 
+@@ -1005,6 +1006,7 @@ SYSCALL_DEFINE2(delete_module, const char __user *, name_user,
+ 
+ 	/* Store the name of the last unloaded module for diagnostic purposes */
+ 	strlcpy(last_unloaded_module, mod->name, sizeof(last_unloaded_module));
++	modules_printed = 0;
+ 
+ 	free_module(mod);
+ 	return 0;
+@@ -2019,6 +2021,7 @@ static void free_module(struct module *mod)
+ 	/* Unlink carefully: kallsyms could be walking list. */
+ 	list_del_rcu(&mod->list);
+ 	mod_tree_remove(mod);
++	modules_printed = 0;
+ 	/* Remove this module from bug list, this uses list_del_rcu */
+ 	module_bug_cleanup(mod);
+ 	/* Wait for RCU-sched synchronizing before releasing mod->list and buglist. */
+@@ -3343,6 +3346,7 @@ again:
+ 	mod_update_bounds(mod);
+ 	list_add_rcu(&mod->list, &modules);
+ 	mod_tree_insert(mod);
++	modules_printed = 0;
+ 	err = 0;
+ 
+ out:
+@@ -3558,6 +3562,7 @@ static int load_module(struct load_info *info, const char __user *uargs,
+ 	/* Unlink carefully: kallsyms could be walking list. */
+ 	list_del_rcu(&mod->list);
+ 	mod_tree_remove(mod);
++	modules_printed = 0;
+ 	wake_up_all(&module_wq);
+ 	/* Wait for RCU-sched synchronizing before releasing mod->list. */
+ 	synchronize_sched();
+@@ -4058,6 +4063,14 @@ void print_modules(void)
+ 	char buf[8];
+ 
+ 	printk(KERN_DEFAULT "Modules linked in:");
++
++	if (!oops_in_progress && modules_printed &&
++	    time_before(jiffies, modules_printed + HZ * 60 * 15)) {
++		pr_cont(" <unchanged>\n");
++		return;
++	}
++	modules_printed = jiffies;
++
+ 	/* Most callers should already have preempt disabled, but make sure */
+ 	preempt_disable();
+ 	list_for_each_entry_rcu(mod, &modules, list) {
