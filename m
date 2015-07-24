@@ -1,7 +1,7 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v3 8/8] ARM: atomics: define our SMP atomics in terms of _relaxed operations
-Date: Fri, 24 Jul 2015 15:04:41 +0100
-Message-ID: <1437746681-2809-9-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v3 5/8] locking/qrwlock: implement queue_write_unlock using smp_store_release
+Date: Fri, 24 Jul 2015 15:04:38 +0100
+Message-ID: <1437746681-2809-6-git-send-email-will.deacon@arm.com>
 References: <1437746681-2809-1-git-send-email-will.deacon@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1437746681-2809-1-git-send-email-will.deacon@arm.com>
@@ -10,236 +10,63 @@ To: linux-arch@vger.kernel.org
 Cc: Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-By defining our SMP atomics in terms of relaxed operations, we gain
-a small reduction in code size and have acquire/release/fence variants
-generated automatically by the core code.
+Since 536fa402221f ("compiler: Allow 1- and 2-byte smp_load_acquire()
+and smp_store_release()"), smp_store_release supports byte accesses, so
+use that in writer unlock and remove the conditional macro override.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/arm/include/asm/atomic.h  | 37 ++++++++++++++-------------------
- arch/arm/include/asm/cmpxchg.h | 47 +++++++-----------------------------------
- 2 files changed, 24 insertions(+), 60 deletions(-)
+ arch/x86/include/asm/qrwlock.h | 10 ----------
+ include/asm-generic/qrwlock.h  |  9 +--------
+ 2 files changed, 1 insertion(+), 18 deletions(-)
 
-diff --git a/arch/arm/include/asm/atomic.h b/arch/arm/include/asm/atomic.h
-index e22c11970b7b..bc9da3a3ff5e 100644
---- a/arch/arm/include/asm/atomic.h
-+++ b/arch/arm/include/asm/atomic.h
-@@ -57,12 +57,11 @@ static inline void atomic_##op(int i, atomic_t *v)			\
- }									\
+diff --git a/arch/x86/include/asm/qrwlock.h b/arch/x86/include/asm/qrwlock.h
+index a8810bf135ab..c537cbb038a7 100644
+--- a/arch/x86/include/asm/qrwlock.h
++++ b/arch/x86/include/asm/qrwlock.h
+@@ -2,16 +2,6 @@
+ #define _ASM_X86_QRWLOCK_H
  
- #define ATOMIC_OP_RETURN(op, c_op, asm_op)				\
--static inline int atomic_##op##_return(int i, atomic_t *v)		\
-+static inline int atomic_##op##_return_relaxed(int i, atomic_t *v)	\
- {									\
- 	unsigned long tmp;						\
- 	int result;							\
- 									\
--	smp_mb();							\
- 	prefetchw(&v->counter);						\
- 									\
- 	__asm__ __volatile__("@ atomic_" #op "_return\n"		\
-@@ -75,17 +74,17 @@ static inline int atomic_##op##_return(int i, atomic_t *v)		\
- 	: "r" (&v->counter), "Ir" (i)					\
- 	: "cc");							\
- 									\
--	smp_mb();							\
--									\
- 	return result;							\
- }
- 
--static inline int atomic_cmpxchg(atomic_t *ptr, int old, int new)
-+#define atomic_add_return_relaxed	atomic_add_return_relaxed
-+#define atomic_sub_return_relaxed	atomic_sub_return_relaxed
-+
-+static inline int atomic_cmpxchg_relaxed(atomic_t *ptr, int old, int new)
- {
- 	int oldval;
- 	unsigned long res;
- 
--	smp_mb();
- 	prefetchw(&ptr->counter);
- 
- 	do {
-@@ -99,10 +98,9 @@ static inline int atomic_cmpxchg(atomic_t *ptr, int old, int new)
- 		    : "cc");
- 	} while (res);
- 
--	smp_mb();
+ #include <asm-generic/qrwlock_types.h>
 -
- 	return oldval;
- }
-+#define atomic_cmpxchg_relaxed		atomic_cmpxchg_relaxed
- 
- static inline int __atomic_add_unless(atomic_t *v, int a, int u)
- {
-@@ -290,12 +288,12 @@ static inline void atomic64_##op(long long i, atomic64_t *v)		\
- }									\
- 
- #define ATOMIC64_OP_RETURN(op, op1, op2)				\
--static inline long long atomic64_##op##_return(long long i, atomic64_t *v) \
-+static inline long long							\
-+atomic64_##op##_return_relaxed(long long i, atomic64_t *v)		\
- {									\
- 	long long result;						\
- 	unsigned long tmp;						\
- 									\
--	smp_mb();							\
- 	prefetchw(&v->counter);						\
- 									\
- 	__asm__ __volatile__("@ atomic64_" #op "_return\n"		\
-@@ -309,8 +307,6 @@ static inline long long atomic64_##op##_return(long long i, atomic64_t *v) \
- 	: "r" (&v->counter), "r" (i)					\
- 	: "cc");							\
- 									\
--	smp_mb();							\
--									\
- 	return result;							\
- }
- 
-@@ -321,17 +317,19 @@ static inline long long atomic64_##op##_return(long long i, atomic64_t *v) \
- ATOMIC64_OPS(add, adds, adc)
- ATOMIC64_OPS(sub, subs, sbc)
- 
-+#define atomic64_add_return_relaxed	atomic64_add_return_relaxed
-+#define atomic64_sub_return_relaxed	atomic64_sub_return_relaxed
-+
- #undef ATOMIC64_OPS
- #undef ATOMIC64_OP_RETURN
- #undef ATOMIC64_OP
- 
--static inline long long atomic64_cmpxchg(atomic64_t *ptr, long long old,
--					long long new)
-+static inline long long
-+atomic64_cmpxchg_relaxed(atomic64_t *ptr, long long old, long long new)
- {
- 	long long oldval;
- 	unsigned long res;
- 
--	smp_mb();
- 	prefetchw(&ptr->counter);
- 
- 	do {
-@@ -346,17 +344,15 @@ static inline long long atomic64_cmpxchg(atomic64_t *ptr, long long old,
- 		: "cc");
- 	} while (res);
- 
--	smp_mb();
+-#ifndef CONFIG_X86_PPRO_FENCE
+-#define queued_write_unlock queued_write_unlock
+-static inline void queued_write_unlock(struct qrwlock *lock)
+-{
+-        barrier();
+-        ACCESS_ONCE(*(u8 *)&lock->cnts) = 0;
+-}
+-#endif
 -
- 	return oldval;
- }
-+#define atomic64_cmpxchg_relaxed	atomic64_cmpxchg_relaxed
+ #include <asm-generic/qrwlock.h>
  
--static inline long long atomic64_xchg(atomic64_t *ptr, long long new)
-+static inline long long atomic64_xchg_relaxed(atomic64_t *ptr, long long new)
+ #endif /* _ASM_X86_QRWLOCK_H */
+diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+index deb9e8b0eb9e..eb673dde8879 100644
+--- a/include/asm-generic/qrwlock.h
++++ b/include/asm-generic/qrwlock.h
+@@ -134,21 +134,14 @@ static inline void queued_read_unlock(struct qrwlock *lock)
+ 	atomic_sub(_QR_BIAS, &lock->cnts);
+ }
+ 
+-#ifndef queued_write_unlock
+ /**
+  * queued_write_unlock - release write lock of a queue rwlock
+  * @lock : Pointer to queue rwlock structure
+  */
+ static inline void queued_write_unlock(struct qrwlock *lock)
  {
- 	long long result;
- 	unsigned long tmp;
- 
--	smp_mb();
- 	prefetchw(&ptr->counter);
- 
- 	__asm__ __volatile__("@ atomic64_xchg\n"
-@@ -368,10 +364,9 @@ static inline long long atomic64_xchg(atomic64_t *ptr, long long new)
- 	: "r" (&ptr->counter), "r" (new)
- 	: "cc");
- 
--	smp_mb();
--
- 	return result;
+-	/*
+-	 * If the writer field is atomic, it can be cleared directly.
+-	 * Otherwise, an atomic subtraction will be used to clear it.
+-	 */
+-	smp_mb__before_atomic();
+-	atomic_sub(_QW_LOCKED, &lock->cnts);
++	smp_store_release((u8 *)&lock->cnts, 0);
  }
-+#define atomic64_xchg_relaxed		atomic64_xchg_relaxed
+-#endif
  
- static inline long long atomic64_dec_if_positive(atomic64_t *v)
- {
-diff --git a/arch/arm/include/asm/cmpxchg.h b/arch/arm/include/asm/cmpxchg.h
-index 1692a05d3207..916a2744d5c6 100644
---- a/arch/arm/include/asm/cmpxchg.h
-+++ b/arch/arm/include/asm/cmpxchg.h
-@@ -35,7 +35,6 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
- 	unsigned int tmp;
- #endif
- 
--	smp_mb();
- 	prefetchw((const void *)ptr);
- 
- 	switch (size) {
-@@ -98,12 +97,11 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
- 		__bad_xchg(ptr, size), ret = 0;
- 		break;
- 	}
--	smp_mb();
- 
- 	return ret;
- }
- 
--#define xchg(ptr, x) ({							\
-+#define xchg_relaxed(ptr, x) ({						\
- 	(__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr),		\
- 				   sizeof(*(ptr)));			\
- })
-@@ -117,6 +115,8 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
- #error "SMP is not supported on this platform"
- #endif
- 
-+#define xchg xchg_relaxed
-+
  /*
-  * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
-  * them available.
-@@ -194,23 +194,11 @@ static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
- 	return oldval;
- }
- 
--static inline unsigned long __cmpxchg_mb(volatile void *ptr, unsigned long old,
--					 unsigned long new, int size)
--{
--	unsigned long ret;
--
--	smp_mb();
--	ret = __cmpxchg(ptr, old, new, size);
--	smp_mb();
--
--	return ret;
--}
--
--#define cmpxchg(ptr,o,n) ({						\
--	(__typeof__(*(ptr)))__cmpxchg_mb((ptr),				\
--					 (unsigned long)(o),		\
--					 (unsigned long)(n),		\
--					 sizeof(*(ptr)));		\
-+#define cmpxchg_relaxed(ptr,o,n) ({					\
-+	(__typeof__(*(ptr)))__cmpxchg((ptr),				\
-+				      (unsigned long)(o),		\
-+				      (unsigned long)(n),		\
-+				      sizeof(*(ptr)));			\
- })
- 
- static inline unsigned long __cmpxchg_local(volatile void *ptr,
-@@ -273,25 +261,6 @@ static inline unsigned long long __cmpxchg64(unsigned long long *ptr,
- 
- #define cmpxchg64_local(ptr, o, n) cmpxchg64_relaxed((ptr), (o), (n))
- 
--static inline unsigned long long __cmpxchg64_mb(unsigned long long *ptr,
--						unsigned long long old,
--						unsigned long long new)
--{
--	unsigned long long ret;
--
--	smp_mb();
--	ret = __cmpxchg64(ptr, old, new);
--	smp_mb();
--
--	return ret;
--}
--
--#define cmpxchg64(ptr, o, n) ({						\
--	(__typeof__(*(ptr)))__cmpxchg64_mb((ptr),			\
--					   (unsigned long long)(o),	\
--					   (unsigned long long)(n));	\
--})
--
- #endif	/* __LINUX_ARM_ARCH__ >= 6 */
- 
- #endif /* __ASM_ARM_CMPXCHG_H */
+  * Remapping rwlock architecture specific functions to the corresponding
 -- 
 2.1.4
