@@ -1,231 +1,241 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v2 05/25] arch, drivers: don't include <asm/io.h> directly,
- use <linux/io.h> instead
-Date: Fri, 24 Jul 2015 22:38:26 -0400
-Message-ID: <20150725023826.8664.61176.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v2 06/25] cleanup IORESOURCE_CACHEABLE vs ioremap()
+Date: Fri, 24 Jul 2015 22:38:32 -0400
+Message-ID: <20150725023831.8664.46483.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:21135 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754956AbbGYCoJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Jul 2015 22:44:09 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, Arnd Bergmann <arnd@arndb.de>, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-Preparation for uniform definition of ioremap, ioremap_wc, ioremap_wt,
-and ioremap_cache, tree-wide.
+Quoting Arnd:
+    I was thinking the opposite approach and basically removing all uses
+    of IORESOURCE_CACHEABLE from the kernel. There are only a handful of
+    them.and we can probably replace them all with hardcoded
+    ioremap_cached() calls in the cases they are actually useful.
 
-Acked-by: Christoph Hellwig <hch@lst.de>
+All existing usages of IORESOURCE_CACHEABLE call ioremap() instead of
+ioremap_nocache() if the resource is cacheable, however ioremap() is
+uncached by default. Clearly none of the existing usages care about the
+cacheability. Particularly devm_ioremap_resource() never worked as
+advertised since it always fell back to plain ioremap().
+
+Clean this up as the new direction we want is to convert
+ioremap_<type>() usages to memremap(..., flags).
+
+Suggested-by: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/arm/mach-shmobile/pm-rcar.c            |    2 +-
- arch/ia64/kernel/cyclone.c                  |    2 +-
- drivers/isdn/icn/icn.h                      |    2 +-
- drivers/mtd/devices/slram.c                 |    2 +-
- drivers/mtd/nand/diskonchip.c               |    2 +-
- drivers/mtd/onenand/generic.c               |    2 +-
- drivers/scsi/sun3x_esp.c                    |    2 +-
- drivers/staging/comedi/drivers/ii_pci20kc.c |    1 +
- drivers/tty/serial/8250/8250_core.c         |    2 +-
- drivers/video/fbdev/s1d13xxxfb.c            |    3 +--
- drivers/video/fbdev/stifb.c                 |    1 +
- include/linux/io-mapping.h                  |    2 +-
- include/linux/mtd/map.h                     |    2 +-
- include/video/vga.h                         |    2 +-
- 14 files changed, 14 insertions(+), 13 deletions(-)
+ arch/arm/mach-clps711x/board-cdb89712.c |    2 +-
+ arch/powerpc/kernel/pci_of_scan.c       |    2 +-
+ arch/sparc/kernel/pci.c                 |    3 +--
+ drivers/pci/probe.c                     |    3 +--
+ drivers/pnp/manager.c                   |    2 --
+ drivers/scsi/aic94xx/aic94xx_init.c     |    7 +------
+ drivers/scsi/arcmsr/arcmsr_hba.c        |    5 +----
+ drivers/scsi/mvsas/mv_init.c            |   15 ++++-----------
+ drivers/video/fbdev/ocfb.c              |    1 -
+ lib/devres.c                            |   13 ++++---------
+ lib/pci_iomap.c                         |    7 ++-----
+ 11 files changed, 16 insertions(+), 44 deletions(-)
 
-diff --git a/arch/arm/mach-shmobile/pm-rcar.c b/arch/arm/mach-shmobile/pm-rcar.c
-index 00022ee56f80..9d3dde00c2fe 100644
---- a/arch/arm/mach-shmobile/pm-rcar.c
-+++ b/arch/arm/mach-shmobile/pm-rcar.c
-@@ -12,7 +12,7 @@
- #include <linux/err.h>
- #include <linux/mm.h>
- #include <linux/spinlock.h>
--#include <asm/io.h>
-+#include <linux/io.h>
- #include "pm-rcar.h"
+diff --git a/arch/arm/mach-clps711x/board-cdb89712.c b/arch/arm/mach-clps711x/board-cdb89712.c
+index 1ec378c334e5..972abdb10028 100644
+--- a/arch/arm/mach-clps711x/board-cdb89712.c
++++ b/arch/arm/mach-clps711x/board-cdb89712.c
+@@ -95,7 +95,7 @@ static struct physmap_flash_data cdb89712_bootrom_pdata __initdata = {
  
- /* SYSC */
-diff --git a/arch/ia64/kernel/cyclone.c b/arch/ia64/kernel/cyclone.c
-index 4826ff957a3d..5fa3848ba224 100644
---- a/arch/ia64/kernel/cyclone.c
-+++ b/arch/ia64/kernel/cyclone.c
-@@ -4,7 +4,7 @@
- #include <linux/errno.h>
- #include <linux/timex.h>
- #include <linux/clocksource.h>
--#include <asm/io.h>
-+#include <linux/io.h>
+ static struct resource cdb89712_bootrom_resources[] __initdata = {
+ 	DEFINE_RES_NAMED(CS7_PHYS_BASE, SZ_128, "BOOTROM", IORESOURCE_MEM |
+-			 IORESOURCE_CACHEABLE | IORESOURCE_READONLY),
++			 IORESOURCE_READONLY),
+ };
  
- /* IBM Summit (EXA) Cyclone counter code*/
- #define CYCLONE_CBAR_ADDR 0xFEB00CD0
-diff --git a/drivers/isdn/icn/icn.h b/drivers/isdn/icn/icn.h
-index b713466997a0..f8f2e76d34bf 100644
---- a/drivers/isdn/icn/icn.h
-+++ b/drivers/isdn/icn/icn.h
-@@ -38,7 +38,7 @@ typedef struct icn_cdef {
- #include <linux/errno.h>
- #include <linux/fs.h>
- #include <linux/major.h>
--#include <asm/io.h>
-+#include <linux/io.h>
- #include <linux/kernel.h>
- #include <linux/signal.h>
- #include <linux/slab.h>
-diff --git a/drivers/mtd/devices/slram.c b/drivers/mtd/devices/slram.c
-index 2fc4957cbe7f..a70eb83e68f1 100644
---- a/drivers/mtd/devices/slram.c
-+++ b/drivers/mtd/devices/slram.c
-@@ -41,7 +41,7 @@
- #include <linux/fs.h>
- #include <linux/ioctl.h>
- #include <linux/init.h>
--#include <asm/io.h>
-+#include <linux/io.h>
+ static struct platform_device cdb89712_bootrom_pdev __initdata = {
+diff --git a/arch/powerpc/kernel/pci_of_scan.c b/arch/powerpc/kernel/pci_of_scan.c
+index 42e02a2d570b..d4726addff0b 100644
+--- a/arch/powerpc/kernel/pci_of_scan.c
++++ b/arch/powerpc/kernel/pci_of_scan.c
+@@ -102,7 +102,7 @@ static void of_pci_parse_addrs(struct device_node *node, struct pci_dev *dev)
+ 			res = &dev->resource[(i - PCI_BASE_ADDRESS_0) >> 2];
+ 		} else if (i == dev->rom_base_reg) {
+ 			res = &dev->resource[PCI_ROM_RESOURCE];
+-			flags |= IORESOURCE_READONLY | IORESOURCE_CACHEABLE;
++			flags |= IORESOURCE_READONLY;
+ 		} else {
+ 			printk(KERN_ERR "PCI: bad cfg reg num 0x%x\n", i);
+ 			continue;
+diff --git a/arch/sparc/kernel/pci.c b/arch/sparc/kernel/pci.c
+index c928bc64b4ba..04da147e0712 100644
+--- a/arch/sparc/kernel/pci.c
++++ b/arch/sparc/kernel/pci.c
+@@ -231,8 +231,7 @@ static void pci_parse_of_addrs(struct platform_device *op,
+ 			res = &dev->resource[(i - PCI_BASE_ADDRESS_0) >> 2];
+ 		} else if (i == dev->rom_base_reg) {
+ 			res = &dev->resource[PCI_ROM_RESOURCE];
+-			flags |= IORESOURCE_READONLY | IORESOURCE_CACHEABLE
+-			      | IORESOURCE_SIZEALIGN;
++			flags |= IORESOURCE_READONLY | IORESOURCE_SIZEALIGN;
+ 		} else {
+ 			printk(KERN_ERR "PCI: bad cfg reg num 0x%x\n", i);
+ 			continue;
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index cefd636681b6..8ed37dd04056 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -326,8 +326,7 @@ static void pci_read_bases(struct pci_dev *dev, unsigned int howmany, int rom)
+ 		struct resource *res = &dev->resource[PCI_ROM_RESOURCE];
+ 		dev->rom_base_reg = rom;
+ 		res->flags = IORESOURCE_MEM | IORESOURCE_PREFETCH |
+-				IORESOURCE_READONLY | IORESOURCE_CACHEABLE |
+-				IORESOURCE_SIZEALIGN;
++				IORESOURCE_READONLY | IORESOURCE_SIZEALIGN;
+ 		__pci_read_base(dev, pci_bar_mem32, res, rom);
+ 	}
+ }
+diff --git a/drivers/pnp/manager.c b/drivers/pnp/manager.c
+index 9357aa779048..7ad3295752ef 100644
+--- a/drivers/pnp/manager.c
++++ b/drivers/pnp/manager.c
+@@ -97,8 +97,6 @@ static int pnp_assign_mem(struct pnp_dev *dev, struct pnp_mem *rule, int idx)
+ 	/* ??? rule->flags restricted to 8 bits, all tests bogus ??? */
+ 	if (!(rule->flags & IORESOURCE_MEM_WRITEABLE))
+ 		res->flags |= IORESOURCE_READONLY;
+-	if (rule->flags & IORESOURCE_MEM_CACHEABLE)
+-		res->flags |= IORESOURCE_CACHEABLE;
+ 	if (rule->flags & IORESOURCE_MEM_RANGELENGTH)
+ 		res->flags |= IORESOURCE_RANGELENGTH;
+ 	if (rule->flags & IORESOURCE_MEM_SHADOWABLE)
+diff --git a/drivers/scsi/aic94xx/aic94xx_init.c b/drivers/scsi/aic94xx/aic94xx_init.c
+index 4b135cca42a1..140cb8e6fea2 100644
+--- a/drivers/scsi/aic94xx/aic94xx_init.c
++++ b/drivers/scsi/aic94xx/aic94xx_init.c
+@@ -100,12 +100,7 @@ static int asd_map_memio(struct asd_ha_struct *asd_ha)
+ 				   pci_name(asd_ha->pcidev));
+ 			goto Err;
+ 		}
+-		if (io_handle->flags & IORESOURCE_CACHEABLE)
+-			io_handle->addr = ioremap(io_handle->start,
+-						  io_handle->len);
+-		else
+-			io_handle->addr = ioremap_nocache(io_handle->start,
+-							  io_handle->len);
++		io_handle->addr = ioremap(io_handle->start, io_handle->len);
+ 		if (!io_handle->addr) {
+ 			asd_printk("couldn't map MBAR%d of %s\n", i==0?0:1,
+ 				   pci_name(asd_ha->pcidev));
+diff --git a/drivers/scsi/arcmsr/arcmsr_hba.c b/drivers/scsi/arcmsr/arcmsr_hba.c
+index 914c39f9f388..e4f77cad9fd8 100644
+--- a/drivers/scsi/arcmsr/arcmsr_hba.c
++++ b/drivers/scsi/arcmsr/arcmsr_hba.c
+@@ -259,10 +259,7 @@ static bool arcmsr_remap_pciregion(struct AdapterControlBlock *acb)
+ 		addr = (unsigned long)pci_resource_start(pdev, 0);
+ 		range = pci_resource_len(pdev, 0);
+ 		flags = pci_resource_flags(pdev, 0);
+-		if (flags & IORESOURCE_CACHEABLE)
+-			mem_base0 = ioremap(addr, range);
+-		else
+-			mem_base0 = ioremap_nocache(addr, range);
++		mem_base0 = ioremap(addr, range);
+ 		if (!mem_base0) {
+ 			pr_notice("arcmsr%d: memory mapping region fail\n",
+ 				acb->host->host_no);
+diff --git a/drivers/scsi/mvsas/mv_init.c b/drivers/scsi/mvsas/mv_init.c
+index d40d734aa53a..e654b5cec69e 100644
+--- a/drivers/scsi/mvsas/mv_init.c
++++ b/drivers/scsi/mvsas/mv_init.c
+@@ -324,13 +324,9 @@ int mvs_ioremap(struct mvs_info *mvi, int bar, int bar_ex)
+ 			goto err_out;
  
- #include <linux/mtd/mtd.h>
+ 		res_flag_ex = pci_resource_flags(pdev, bar_ex);
+-		if (res_flag_ex & IORESOURCE_MEM) {
+-			if (res_flag_ex & IORESOURCE_CACHEABLE)
+-				mvi->regs_ex = ioremap(res_start, res_len);
+-			else
+-				mvi->regs_ex = ioremap_nocache(res_start,
+-						res_len);
+-		} else
++		if (res_flag_ex & IORESOURCE_MEM)
++			mvi->regs_ex = ioremap(res_start, res_len);
++		else
+ 			mvi->regs_ex = (void *)res_start;
+ 		if (!mvi->regs_ex)
+ 			goto err_out;
+@@ -342,10 +338,7 @@ int mvs_ioremap(struct mvs_info *mvi, int bar, int bar_ex)
+ 		goto err_out;
  
-diff --git a/drivers/mtd/nand/diskonchip.c b/drivers/mtd/nand/diskonchip.c
-index 7da266a53979..0802158a3f75 100644
---- a/drivers/mtd/nand/diskonchip.c
-+++ b/drivers/mtd/nand/diskonchip.c
-@@ -24,7 +24,7 @@
- #include <linux/rslib.h>
- #include <linux/moduleparam.h>
- #include <linux/slab.h>
--#include <asm/io.h>
-+#include <linux/io.h>
+ 	res_flag = pci_resource_flags(pdev, bar);
+-	if (res_flag & IORESOURCE_CACHEABLE)
+-		mvi->regs = ioremap(res_start, res_len);
+-	else
+-		mvi->regs = ioremap_nocache(res_start, res_len);
++	mvi->regs = ioremap(res_start, res_len);
  
- #include <linux/mtd/mtd.h>
- #include <linux/mtd/nand.h>
-diff --git a/drivers/mtd/onenand/generic.c b/drivers/mtd/onenand/generic.c
-index 32a216d31141..ab7bda0bb245 100644
---- a/drivers/mtd/onenand/generic.c
-+++ b/drivers/mtd/onenand/generic.c
-@@ -18,7 +18,7 @@
- #include <linux/mtd/mtd.h>
- #include <linux/mtd/onenand.h>
- #include <linux/mtd/partitions.h>
--#include <asm/io.h>
-+#include <linux/io.h>
+ 	if (!mvi->regs) {
+ 		if (mvi->regs_ex && (res_flag_ex & IORESOURCE_MEM))
+diff --git a/drivers/video/fbdev/ocfb.c b/drivers/video/fbdev/ocfb.c
+index de9819660ca0..c9293aea8ec3 100644
+--- a/drivers/video/fbdev/ocfb.c
++++ b/drivers/video/fbdev/ocfb.c
+@@ -325,7 +325,6 @@ static int ocfb_probe(struct platform_device *pdev)
+ 		dev_err(&pdev->dev, "I/O resource request failed\n");
+ 		return -ENXIO;
+ 	}
+-	res->flags &= ~IORESOURCE_CACHEABLE;
+ 	fbdev->regs = devm_ioremap_resource(&pdev->dev, res);
+ 	if (IS_ERR(fbdev->regs))
+ 		return PTR_ERR(fbdev->regs);
+diff --git a/lib/devres.c b/lib/devres.c
+index fbe2aac522e6..f13a2468ff39 100644
+--- a/lib/devres.c
++++ b/lib/devres.c
+@@ -119,10 +119,9 @@ EXPORT_SYMBOL(devm_iounmap);
+  * @dev: generic device to handle the resource for
+  * @res: resource to be handled
+  *
+- * Checks that a resource is a valid memory region, requests the memory region
+- * and ioremaps it either as cacheable or as non-cacheable memory depending on
+- * the resource's flags. All operations are managed and will be undone on
+- * driver detach.
++ * Checks that a resource is a valid memory region, requests the memory
++ * region and ioremaps it. All operations are managed and will be undone
++ * on driver detach.
+  *
+  * Returns a pointer to the remapped memory or an ERR_PTR() encoded error code
+  * on failure. Usage example:
+@@ -153,11 +152,7 @@ void __iomem *devm_ioremap_resource(struct device *dev, struct resource *res)
+ 		return IOMEM_ERR_PTR(-EBUSY);
+ 	}
  
- /*
-  * Note: Driver name and platform data format have been updated!
-diff --git a/drivers/scsi/sun3x_esp.c b/drivers/scsi/sun3x_esp.c
-index e26e81de7c45..d50c5ed8f428 100644
---- a/drivers/scsi/sun3x_esp.c
-+++ b/drivers/scsi/sun3x_esp.c
-@@ -12,9 +12,9 @@
- #include <linux/platform_device.h>
- #include <linux/dma-mapping.h>
- #include <linux/interrupt.h>
-+#include <linux/io.h>
- 
- #include <asm/sun3x.h>
--#include <asm/io.h>
- #include <asm/dma.h>
- #include <asm/dvma.h>
- 
-diff --git a/drivers/staging/comedi/drivers/ii_pci20kc.c b/drivers/staging/comedi/drivers/ii_pci20kc.c
-index 0768bc42a5db..14ef1f67dd42 100644
---- a/drivers/staging/comedi/drivers/ii_pci20kc.c
-+++ b/drivers/staging/comedi/drivers/ii_pci20kc.c
-@@ -28,6 +28,7 @@
-  */
- 
- #include <linux/module.h>
-+#include <linux/io.h>
- #include "../comedidev.h"
- 
- /*
-diff --git a/drivers/tty/serial/8250/8250_core.c b/drivers/tty/serial/8250/8250_core.c
-index 37fff12dd4d0..fe902ff52e58 100644
---- a/drivers/tty/serial/8250/8250_core.c
-+++ b/drivers/tty/serial/8250/8250_core.c
-@@ -38,11 +38,11 @@
- #include <linux/slab.h>
- #include <linux/uaccess.h>
- #include <linux/pm_runtime.h>
-+#include <linux/io.h>
- #ifdef CONFIG_SPARC
- #include <linux/sunserialcore.h>
- #endif
- 
--#include <asm/io.h>
- #include <asm/irq.h>
- 
- #include "8250.h"
-diff --git a/drivers/video/fbdev/s1d13xxxfb.c b/drivers/video/fbdev/s1d13xxxfb.c
-index 83433cb0dfba..96aa46dc696c 100644
---- a/drivers/video/fbdev/s1d13xxxfb.c
-+++ b/drivers/video/fbdev/s1d13xxxfb.c
-@@ -32,8 +32,7 @@
- #include <linux/spinlock_types.h>
- #include <linux/spinlock.h>
- #include <linux/slab.h>
+-	if (res->flags & IORESOURCE_CACHEABLE)
+-		dest_ptr = devm_ioremap(dev, res->start, size);
+-	else
+-		dest_ptr = devm_ioremap_nocache(dev, res->start, size);
 -
--#include <asm/io.h>
-+#include <linux/io.h>
- 
- #include <video/s1d13xxxfb.h>
- 
-diff --git a/drivers/video/fbdev/stifb.c b/drivers/video/fbdev/stifb.c
-index 735355b0e023..7df4228e25f0 100644
---- a/drivers/video/fbdev/stifb.c
-+++ b/drivers/video/fbdev/stifb.c
-@@ -64,6 +64,7 @@
- #include <linux/fb.h>
- #include <linux/init.h>
- #include <linux/ioport.h>
-+#include <linux/io.h>
- 
- #include <asm/grfioctl.h>	/* for HP-UX compatibility */
- #include <asm/uaccess.h>
-diff --git a/include/linux/io-mapping.h b/include/linux/io-mapping.h
-index c27dde7215b5..e399029b68c5 100644
---- a/include/linux/io-mapping.h
-+++ b/include/linux/io-mapping.h
-@@ -21,7 +21,7 @@
- #include <linux/types.h>
- #include <linux/slab.h>
- #include <linux/bug.h>
--#include <asm/io.h>
-+#include <linux/io.h>
- #include <asm/page.h>
- 
- /*
-diff --git a/include/linux/mtd/map.h b/include/linux/mtd/map.h
-index 29975c73a953..366cf77953b5 100644
---- a/include/linux/mtd/map.h
-+++ b/include/linux/mtd/map.h
-@@ -27,9 +27,9 @@
- #include <linux/string.h>
- #include <linux/bug.h>
- #include <linux/kernel.h>
-+#include <linux/io.h>
- 
- #include <asm/unaligned.h>
--#include <asm/io.h>
- #include <asm/barrier.h>
- 
- #ifdef CONFIG_MTD_MAP_BANK_WIDTH_1
-diff --git a/include/video/vga.h b/include/video/vga.h
-index cac567f22e62..d334e64c1c19 100644
---- a/include/video/vga.h
-+++ b/include/video/vga.h
-@@ -18,7 +18,7 @@
- #define __linux_video_vga_h__
- 
- #include <linux/types.h>
--#include <asm/io.h>
-+#include <linux/io.h>
- #include <asm/vga.h>
- #include <asm/byteorder.h>
- 
++	dest_ptr = devm_ioremap(dev, res->start, size);
+ 	if (!dest_ptr) {
+ 		dev_err(dev, "ioremap failed for resource %pR\n", res);
+ 		devm_release_mem_region(dev, res->start, size);
+diff --git a/lib/pci_iomap.c b/lib/pci_iomap.c
+index bcce5f149310..e1930dbab2da 100644
+--- a/lib/pci_iomap.c
++++ b/lib/pci_iomap.c
+@@ -41,11 +41,8 @@ void __iomem *pci_iomap_range(struct pci_dev *dev,
+ 		len = maxlen;
+ 	if (flags & IORESOURCE_IO)
+ 		return __pci_ioport_map(dev, start, len);
+-	if (flags & IORESOURCE_MEM) {
+-		if (flags & IORESOURCE_CACHEABLE)
+-			return ioremap(start, len);
+-		return ioremap_nocache(start, len);
+-	}
++	if (flags & IORESOURCE_MEM)
++		return ioremap(start, len);
+ 	/* What? */
+ 	return NULL;
+ }
