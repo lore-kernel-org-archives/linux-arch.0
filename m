@@ -1,265 +1,190 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a23-79-238-175.deploy.static.akamaitechnologies.com ([23.79.238.175]:25217
-	"EHLO prod-mail-xrelay07.akamai.com" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1753504AbbGXV2t (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Jul 2015 17:28:49 -0400
-From: Eric B Munson <emunson@akamai.com>
-Subject: [PATCH V5 2/7] mm: mlock: Add new mlock system call
-Date: Fri, 24 Jul 2015 17:28:40 -0400
-Message-ID: <1437773325-8623-3-git-send-email-emunson@akamai.com>
-In-Reply-To: <1437773325-8623-1-git-send-email-emunson@akamai.com>
-References: <1437773325-8623-1-git-send-email-emunson@akamai.com>
+Received: from mga03.intel.com ([134.134.136.65]:48771 "EHLO mga03.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754553AbbGYCni (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jul 2015 22:43:38 -0400
+Subject: [PATCH v2 00/25] replace ioremap_{cache|wt} with memremap
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Fri, 24 Jul 2015 22:37:54 -0400
+Message-ID: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Eric B Munson <emunson@akamai.com>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, Heiko Carstens <heiko.carstens@de.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Guenter Roeck <linux@roeck-us.net>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-cris-kernel@axis.com, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-am33-list@redhat.com, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20150724212840.4ifBbsJA2S11tqAd0z6iaQ6SkQdIQIYuSiJvFv8BXlE@z>
+To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
+Cc: linux-fbdev@vger.kernel.org, David Airlie <airlied@linux.ie>, dri-devel@lists.freedesktop.org, kbuild test robot <fengguang.wu@intel.com>, Lv Zheng <lv.zheng@intel.com>, Daniel Vetter <daniel.vetter@intel.com>, Benjamin Romer <benjamin.romer@unisys.com>, hch@lst.de, linux-arch@vger.kernel.org, linux-nvdimm@lists.01.org, Joerg Roedel <joro@8bytes.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Bob Moore <robert.moore@intel.com>, Mike Waychison <mikew@google.com>, Roland Dreier <roland@purestorage.com>, Tomi Valkeinen <tomi.valkeinen@ti.com>, rmk+kernel@arm.linux.org.uk, Ross Zwisler <ross.zwisler@linux.intel.com>, David Kershner <david.kershner@unisys.com>, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>, intel-gfx@lists.freedesktop.org, Len Brown <lenb@kernel.org>, Joerg Roedel <jroedel@suse.de>, Arnd Bergmann <arnd@arndb.de>, "Luis R. Rodriguez" <mcgrof@suse.com>, Jani Nikula <jani.nikula@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Ingo Molnar <mingo@redhat.com>, linux-arm-kernel@lists.infradead.org, Tony Luck <tony.luck@intel.com>, toshi.kani@hp.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Buzzard <jonathan@buzzard.org.uk>, linux-kernel@vger.kernel.org, Mike Travis <travis@sgi.com>, Andrew Morton <akpm@linux-foundation.org>, Brian Norris <computersforpeace@gmail.com>, David Woodhouse <dwmw2@infradead.org>
+Message-ID: <20150725023754.HY_EGtub3H9KFn0sbf08RCvVQ574EepbzYgszL8-lJo@z>
 
-With the refactored mlock code, introduce a new system call for mlock.
-The new call will allow the user to specify what lock states are being
-added.  mlock2 is trivial at the moment, but a follow on patch will add
-a new mlock state making it useful.
+Changes since v1 [1]:
 
-Signed-off-by: Eric B Munson <emunson@akamai.com>
-Cc: Michal Hocko <mhocko@suse.cz>
-Cc: Vlastimil Babka <vbabka@suse.cz>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Guenter Roeck <linux@roeck-us.net>
-Cc: linux-alpha@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org
-Cc: adi-buildroot-devel@lists.sourceforge.net
-Cc: linux-cris-kernel@axis.com
-Cc: linux-ia64@vger.kernel.org
-Cc: linux-m68k@lists.linux-m68k.org
-Cc: linux-am33-list@redhat.com
-Cc: linux-parisc@vger.kernel.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-s390@vger.kernel.org
-Cc: linux-sh@vger.kernel.org
-Cc: sparclinux@vger.kernel.org
-Cc: linux-xtensa@linux-xtensa.org
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mm@kvack.org
+1/ Drop the attempt at unifying ioremap() prototypes, just focus on
+   converting ioremap_cache and ioremap_wt over to memremap (Christoph)
+
+2/ Drop the unrelated cleanups to use %pa in __ioremap_caller (Thomas)
+
+3/ Add support for memremap() attempts on "System RAM" to simply return
+   the kernel virtual address for that range.  ARM depends on this
+   functionality in ioremap_cache() and ACPI was open coding a similar
+   solution. (Mark)
+
+4/ Split the conversions of ioremap_{cache|wt} into separate patches per
+   driver / arch.
+
+5/ Fix bisection breakage and other reports from 0day-kbuild
+
 ---
-Changes from V4:
-* Drop all architectures except x86[_64] from this patch, MIPS is added
-  later in the series.  All others will be left to their maintainers.
+While developing the pmem driver we noticed that the __iomem annotation
+on the return value from ioremap_cache() was being mishandled by several
+callers.  We also observed that all of the call sites expected to be
+able to treat the return value from ioremap_cache() as normal
+(non-__iomem) pointer to memory.
 
-Changes from V3:
-* Do a (hopefully) complete job of adding the new system calls
- arch/alpha/include/uapi/asm/mman.h     | 2 ++
- arch/mips/include/uapi/asm/mman.h      | 5 +++++
- arch/parisc/include/uapi/asm/mman.h    | 2 ++
- arch/powerpc/include/uapi/asm/mman.h   | 2 ++
- arch/sparc/include/uapi/asm/mman.h     | 2 ++
- arch/tile/include/uapi/asm/mman.h      | 5 +++++
- arch/x86/entry/syscalls/syscall_32.tbl | 1 +
- arch/x86/entry/syscalls/syscall_64.tbl | 1 +
- arch/xtensa/include/uapi/asm/mman.h    | 5 +++++
- include/linux/syscalls.h               | 2 ++
- include/uapi/asm-generic/mman.h        | 2 ++
- include/uapi/asm-generic/unistd.h      | 4 +++-
- kernel/sys_ni.c                        | 1 +
- mm/mlock.c                             | 9 +++++++++
- 14 files changed, 42 insertions(+), 1 deletion(-)
+This patchset takes the opportunity to clean up the above confusion as
+well as a few issues with the ioremap_{cache|wt} interface, including:
 
-diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
-index 0086b47..ec72436 100644
---- a/arch/alpha/include/uapi/asm/mman.h
-+++ b/arch/alpha/include/uapi/asm/mman.h
-@@ -38,6 +38,8 @@
- #define MCL_CURRENT	 8192		/* lock all currently mapped pages */
- #define MCL_FUTURE	16384		/* lock all additions to address space */
- 
-+#define MLOCK_LOCKED	0x01		/* Lock and populate the specified range */
-+
- #define MADV_NORMAL	0		/* no further special treatment */
- #define MADV_RANDOM	1		/* expect random page references */
- #define MADV_SEQUENTIAL	2		/* expect sequential page references */
-diff --git a/arch/mips/include/uapi/asm/mman.h b/arch/mips/include/uapi/asm/mman.h
-index cfcb876..67c1cdf 100644
---- a/arch/mips/include/uapi/asm/mman.h
-+++ b/arch/mips/include/uapi/asm/mman.h
-@@ -62,6 +62,11 @@
- #define MCL_CURRENT	1		/* lock all current mappings */
- #define MCL_FUTURE	2		/* lock all future mappings */
- 
-+/*
-+ * Flags for mlock
-+ */
-+#define MLOCK_LOCKED	0x01		/* Lock and populate the specified range */
-+
- #define MADV_NORMAL	0		/* no further special treatment */
- #define MADV_RANDOM	1		/* expect random page references */
- #define MADV_SEQUENTIAL 2		/* expect sequential page references */
-diff --git a/arch/parisc/include/uapi/asm/mman.h b/arch/parisc/include/uapi/asm/mman.h
-index 294d251..daab994 100644
---- a/arch/parisc/include/uapi/asm/mman.h
-+++ b/arch/parisc/include/uapi/asm/mman.h
-@@ -32,6 +32,8 @@
- #define MCL_CURRENT	1		/* lock all current mappings */
- #define MCL_FUTURE	2		/* lock all future mappings */
- 
-+#define MLOCK_LOCKED	0x01		/* Lock and populate the specified range */
-+
- #define MADV_NORMAL     0               /* no further special treatment */
- #define MADV_RANDOM     1               /* expect random page references */
- #define MADV_SEQUENTIAL 2               /* expect sequential page references */
-diff --git a/arch/powerpc/include/uapi/asm/mman.h b/arch/powerpc/include/uapi/asm/mman.h
-index 6ea26df..189e85f 100644
---- a/arch/powerpc/include/uapi/asm/mman.h
-+++ b/arch/powerpc/include/uapi/asm/mman.h
-@@ -23,6 +23,8 @@
- #define MCL_CURRENT     0x2000          /* lock all currently mapped pages */
- #define MCL_FUTURE      0x4000          /* lock all additions to address space */
- 
-+#define MLOCK_LOCKED	0x01		/* Lock and populate the specified range */
-+
- #define MAP_POPULATE	0x8000		/* populate (prefault) pagetables */
- #define MAP_NONBLOCK	0x10000		/* do not block on IO */
- #define MAP_STACK	0x20000		/* give out an address that is best suited for process/thread stacks */
-diff --git a/arch/sparc/include/uapi/asm/mman.h b/arch/sparc/include/uapi/asm/mman.h
-index 0b14df3..13d51be 100644
---- a/arch/sparc/include/uapi/asm/mman.h
-+++ b/arch/sparc/include/uapi/asm/mman.h
-@@ -18,6 +18,8 @@
- #define MCL_CURRENT     0x2000          /* lock all currently mapped pages */
- #define MCL_FUTURE      0x4000          /* lock all additions to address space */
- 
-+#define MLOCK_LOCKED	0x01		/* Lock and populate the specified range */
-+
- #define MAP_POPULATE	0x8000		/* populate (prefault) pagetables */
- #define MAP_NONBLOCK	0x10000		/* do not block on IO */
- #define MAP_STACK	0x20000		/* give out an address that is best suited for process/thread stacks */
-diff --git a/arch/tile/include/uapi/asm/mman.h b/arch/tile/include/uapi/asm/mman.h
-index 81b8fc3..f69ce48 100644
---- a/arch/tile/include/uapi/asm/mman.h
-+++ b/arch/tile/include/uapi/asm/mman.h
-@@ -37,5 +37,10 @@
- #define MCL_CURRENT	1		/* lock all current mappings */
- #define MCL_FUTURE	2		/* lock all future mappings */
- 
-+/*
-+ * Flags for mlock
-+ */
-+#define MLOCK_LOCKED	0x01		/* Lock and populate the specified range */
-+
- 
- #endif /* _ASM_TILE_MMAN_H */
-diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
-index ef8187f..839d5df 100644
---- a/arch/x86/entry/syscalls/syscall_32.tbl
-+++ b/arch/x86/entry/syscalls/syscall_32.tbl
-@@ -365,3 +365,4 @@
- 356	i386	memfd_create		sys_memfd_create
- 357	i386	bpf			sys_bpf
- 358	i386	execveat		sys_execveat			stub32_execveat
-+359	i386	mlock2			sys_mlock2
-diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
-index 9ef32d5..ad36769 100644
---- a/arch/x86/entry/syscalls/syscall_64.tbl
-+++ b/arch/x86/entry/syscalls/syscall_64.tbl
-@@ -329,6 +329,7 @@
- 320	common	kexec_file_load		sys_kexec_file_load
- 321	common	bpf			sys_bpf
- 322	64	execveat		stub_execveat
-+323	common	mlock2			sys_mlock2
- 
- #
- # x32-specific system call numbers start at 512 to avoid cache impact
-diff --git a/arch/xtensa/include/uapi/asm/mman.h b/arch/xtensa/include/uapi/asm/mman.h
-index 201aec0..11f354f 100644
---- a/arch/xtensa/include/uapi/asm/mman.h
-+++ b/arch/xtensa/include/uapi/asm/mman.h
-@@ -75,6 +75,11 @@
- #define MCL_CURRENT	1		/* lock all current mappings */
- #define MCL_FUTURE	2		/* lock all future mappings */
- 
-+/*
-+ * Flags for mlock
-+ */
-+#define MLOCK_LOCKED	0x01		/* Lock and populate the specified range */
-+
- #define MADV_NORMAL	0		/* no further special treatment */
- #define MADV_RANDOM	1		/* expect random page references */
- #define MADV_SEQUENTIAL	2		/* expect sequential page references */
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index b45c45b..56a3d59 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -884,4 +884,6 @@ asmlinkage long sys_execveat(int dfd, const char __user *filename,
- 			const char __user *const __user *argv,
- 			const char __user *const __user *envp, int flags);
- 
-+asmlinkage long sys_mlock2(unsigned long start, size_t len, int flags);
-+
- #endif
-diff --git a/include/uapi/asm-generic/mman.h b/include/uapi/asm-generic/mman.h
-index e9fe6fd..242436b 100644
---- a/include/uapi/asm-generic/mman.h
-+++ b/include/uapi/asm-generic/mman.h
-@@ -18,4 +18,6 @@
- #define MCL_CURRENT	1		/* lock all current mappings */
- #define MCL_FUTURE	2		/* lock all future mappings */
- 
-+#define MLOCK_LOCKED	0x01		/* Lock and populate the specified range */
-+
- #endif /* __ASM_GENERIC_MMAN_H */
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index e016bd9..14a6013 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -709,9 +709,11 @@ __SYSCALL(__NR_memfd_create, sys_memfd_create)
- __SYSCALL(__NR_bpf, sys_bpf)
- #define __NR_execveat 281
- __SC_COMP(__NR_execveat, sys_execveat, compat_sys_execveat)
-+#define __NR_mlock2 282
-+__SYSCALL(__NR_mlock2, sys_mlock2)
- 
- #undef __NR_syscalls
--#define __NR_syscalls 282
-+#define __NR_syscalls 283
- 
- /*
-  * All syscalls below here should go away really,
-diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
-index 7995ef5..4818b71 100644
---- a/kernel/sys_ni.c
-+++ b/kernel/sys_ni.c
-@@ -193,6 +193,7 @@ cond_syscall(sys_mlock);
- cond_syscall(sys_munlock);
- cond_syscall(sys_mlockall);
- cond_syscall(sys_munlockall);
-+cond_syscall(sys_mlock2);
- cond_syscall(sys_mincore);
- cond_syscall(sys_madvise);
- cond_syscall(sys_mremap);
-diff --git a/mm/mlock.c b/mm/mlock.c
-index 1585cca..c9c6a0f 100644
---- a/mm/mlock.c
-+++ b/mm/mlock.c
-@@ -642,6 +642,15 @@ SYSCALL_DEFINE2(mlock, unsigned long, start, size_t, len)
- 	return do_mlock(start, len, VM_LOCKED);
- }
- 
-+SYSCALL_DEFINE3(mlock2, unsigned long, start, size_t, len, int, flags)
-+{
-+	vm_flags_t vm_flags = VM_LOCKED;
-+	if (!flags || (flags & ~(MLOCK_LOCKED)))
-+		return -EINVAL;
-+
-+	return do_mlock(start, len, vm_flags);
-+}
-+
- SYSCALL_DEFINE2(munlock, unsigned long, start, size_t, len)
- {
- 	int ret;
--- 
-1.9.1
+1/ Eliminating the possibility of function prototypes differing between
+   architectures by defining a central memremap() prototype that takes
+   flags to determine the mapping type.
 
+2/ Returning NULL rather than falling back silently to a different
+   mapping-type.  This allows drivers to be stricter about the
+   mapping-type fallbacks that are permissible.
+
+[1]: http://marc.info/?l=linux-arm-kernel&m=143735199029255&w=2
+
+---
+
+Dan Williams (22):
+      mm: enhance region_is_ram() to distinguish 'unknown' vs 'mixed'
+      arch, drivers: don't include <asm/io.h> directly, use <linux/io.h> instead
+      cleanup IORESOURCE_CACHEABLE vs ioremap()
+      intel_iommu: fix leaked ioremap mapping
+      arch: introduce memremap()
+      arm: switch from ioremap_cache to memremap
+      x86: switch from ioremap_cache to memremap
+      gma500: switch from acpi_os_ioremap to ioremap
+      i915: switch from acpi_os_ioremap to ioremap
+      acpi: switch from ioremap_cache to memremap
+      toshiba laptop: replace ioremap_cache with ioremap
+      memconsole: fix __iomem mishandling, switch to memremap
+      visorbus: switch from ioremap_cache to memremap
+      intel-iommu: switch from ioremap_cache to memremap
+      libnvdimm, pmem: switch from ioremap_cache to memremap
+      pxa2xx-flash: switch from ioremap_cache to memremap
+      sfi: switch from ioremap_cache to memremap
+      fbdev: switch from ioremap_wt to memremap
+      pmem: switch from ioremap_wt to memremap
+      arch: remove ioremap_cache, replace with arch_memremap
+      arch: remove ioremap_wt, replace with arch_memremap
+      pmem: convert to generic memremap
+
+Toshi Kani (3):
+      mm, x86: Fix warning in ioremap RAM check
+      mm, x86: Remove region_is_ram() call from ioremap
+      mm: Fix bugs in region_is_ram()
+
+
+ arch/arc/include/asm/io.h                      |    1 
+ arch/arm/Kconfig                               |    1 
+ arch/arm/include/asm/io.h                      |   13 +++-
+ arch/arm/include/asm/xen/page.h                |    4 +
+ arch/arm/mach-clps711x/board-cdb89712.c        |    2 -
+ arch/arm/mach-shmobile/pm-rcar.c               |    2 -
+ arch/arm/mm/ioremap.c                          |   12 +++-
+ arch/arm/mm/nommu.c                            |   11 ++-
+ arch/arm64/Kconfig                             |    1 
+ arch/arm64/include/asm/acpi.h                  |   10 +--
+ arch/arm64/include/asm/dmi.h                   |    8 +--
+ arch/arm64/include/asm/io.h                    |    8 ++-
+ arch/arm64/kernel/efi.c                        |    9 ++-
+ arch/arm64/kernel/smp_spin_table.c             |   19 +++---
+ arch/arm64/mm/ioremap.c                        |   20 ++----
+ arch/avr32/include/asm/io.h                    |    1 
+ arch/frv/Kconfig                               |    1 
+ arch/frv/include/asm/io.h                      |   17 ++---
+ arch/frv/mm/kmap.c                             |    6 ++
+ arch/ia64/Kconfig                              |    1 
+ arch/ia64/include/asm/io.h                     |   11 +++
+ arch/ia64/kernel/cyclone.c                     |    2 -
+ arch/m32r/include/asm/io.h                     |    1 
+ arch/m68k/Kconfig                              |    1 
+ arch/m68k/include/asm/io_mm.h                  |   14 +---
+ arch/m68k/include/asm/io_no.h                  |   12 ++--
+ arch/m68k/include/asm/raw_io.h                 |    4 +
+ arch/m68k/mm/kmap.c                            |   17 +++++
+ arch/m68k/mm/sun3kmap.c                        |    6 ++
+ arch/metag/include/asm/io.h                    |    3 -
+ arch/microblaze/include/asm/io.h               |    1 
+ arch/mn10300/include/asm/io.h                  |    1 
+ arch/nios2/include/asm/io.h                    |    1 
+ arch/powerpc/kernel/pci_of_scan.c              |    2 -
+ arch/s390/include/asm/io.h                     |    1 
+ arch/sh/Kconfig                                |    1 
+ arch/sh/include/asm/io.h                       |   20 ++++--
+ arch/sh/mm/ioremap.c                           |   10 +++
+ arch/sparc/include/asm/io_32.h                 |    1 
+ arch/sparc/include/asm/io_64.h                 |    1 
+ arch/sparc/kernel/pci.c                        |    3 -
+ arch/tile/include/asm/io.h                     |    1 
+ arch/x86/Kconfig                               |    1 
+ arch/x86/include/asm/efi.h                     |    3 +
+ arch/x86/include/asm/io.h                      |   17 +++--
+ arch/x86/kernel/crash_dump_64.c                |    6 +-
+ arch/x86/kernel/kdebugfs.c                     |    8 +--
+ arch/x86/kernel/ksysfs.c                       |   28 ++++-----
+ arch/x86/mm/ioremap.c                          |   76 ++++++++++--------------
+ arch/xtensa/Kconfig                            |    1 
+ arch/xtensa/include/asm/io.h                   |    9 ++-
+ drivers/acpi/apei/einj.c                       |    9 ++-
+ drivers/acpi/apei/erst.c                       |    6 +-
+ drivers/acpi/nvs.c                             |    6 +-
+ drivers/acpi/osl.c                             |   70 ++++++----------------
+ drivers/char/toshiba.c                         |    2 -
+ drivers/firmware/google/memconsole.c           |    7 +-
+ drivers/gpu/drm/gma500/opregion.c              |    2 -
+ drivers/gpu/drm/i915/intel_opregion.c          |    2 -
+ drivers/iommu/intel-iommu.c                    |   10 ++-
+ drivers/iommu/intel_irq_remapping.c            |    4 +
+ drivers/isdn/icn/icn.h                         |    2 -
+ drivers/mtd/devices/slram.c                    |    2 -
+ drivers/mtd/maps/pxa2xx-flash.c                |    4 +
+ drivers/mtd/nand/diskonchip.c                  |    2 -
+ drivers/mtd/onenand/generic.c                  |    2 -
+ drivers/nvdimm/Kconfig                         |    2 -
+ drivers/pci/probe.c                            |    3 -
+ drivers/pnp/manager.c                          |    2 -
+ drivers/scsi/aic94xx/aic94xx_init.c            |    7 --
+ drivers/scsi/arcmsr/arcmsr_hba.c               |    5 --
+ drivers/scsi/mvsas/mv_init.c                   |   15 +----
+ drivers/scsi/sun3x_esp.c                       |    2 -
+ drivers/sfi/sfi_core.c                         |    4 +
+ drivers/staging/comedi/drivers/ii_pci20kc.c    |    1 
+ drivers/staging/unisys/visorbus/visorchannel.c |   16 +++--
+ drivers/staging/unisys/visorbus/visorchipset.c |   17 +++--
+ drivers/tty/serial/8250/8250_core.c            |    2 -
+ drivers/video/fbdev/Kconfig                    |    2 -
+ drivers/video/fbdev/amifb.c                    |    5 +-
+ drivers/video/fbdev/atafb.c                    |    5 +-
+ drivers/video/fbdev/hpfb.c                     |    6 +-
+ drivers/video/fbdev/ocfb.c                     |    1 
+ drivers/video/fbdev/s1d13xxxfb.c               |    3 -
+ drivers/video/fbdev/stifb.c                    |    1 
+ include/acpi/acpi_io.h                         |    6 +-
+ include/asm-generic/io.h                       |    8 ---
+ include/asm-generic/iomap.h                    |    4 -
+ include/linux/io-mapping.h                     |    2 -
+ include/linux/io.h                             |    9 +++
+ include/linux/mtd/map.h                        |    2 -
+ include/linux/pmem.h                           |   26 +++++---
+ include/video/vga.h                            |    2 -
+ kernel/Makefile                                |    2 +
+ kernel/memremap.c                              |   74 +++++++++++++++++++++++
+ kernel/resource.c                              |   43 +++++++-------
+ lib/Kconfig                                    |    5 +-
+ lib/devres.c                                   |   13 +---
+ lib/pci_iomap.c                                |    7 +-
+ tools/testing/nvdimm/Kbuild                    |    4 +
+ tools/testing/nvdimm/test/iomap.c              |   34 ++++++++---
+ 101 files changed, 482 insertions(+), 398 deletions(-)
+ create mode 100644 kernel/memremap.c
