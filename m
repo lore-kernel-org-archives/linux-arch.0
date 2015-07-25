@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:44273 "EHLO mga01.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:17772 "EHLO mga02.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1030179AbbGYCpW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Jul 2015 22:45:22 -0400
-Subject: [PATCH v2 18/25] libnvdimm,
- pmem: switch from ioremap_cache to memremap
+	id S1030179AbbGYCpo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jul 2015 22:45:44 -0400
+Subject: [PATCH v2 22/25] pmem: switch from ioremap_wt to memremap
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 24 Jul 2015 22:39:40 -0400
-Message-ID: <20150725023940.8664.2784.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Fri, 24 Jul 2015 22:40:01 -0400
+Message-ID: <20150725024001.8664.13362.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -16,85 +15,106 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150725023940.cIHqbjAFAJc3u4ZSjjsoKiFGIX69Pw610vTdbOOol9w@z>
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, Ross Zwisler <ross.zwisler@linux.intel.com>, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150725024001.9s6G7mCmRLsVSIYiXow0PJJklktv2ruQJZ-tO7-uB7M@z>
 
-In preparation for deprecating ioremap_cache() convert its usage in
-libnvdimm and the PMEM API to memremap.
+In preparation for deprecating ioremap_wt() convert its usage in
+the PMEM API to memremap.
 
+Cc: Ross Zwisler <ross.zwisler@linux.intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/x86/include/asm/io.h         |    7 +------
- arch/x86/mm/ioremap.c             |    6 ++++++
- tools/testing/nvdimm/Kbuild       |    2 +-
- tools/testing/nvdimm/test/iomap.c |    6 +++---
- 4 files changed, 11 insertions(+), 10 deletions(-)
+ include/linux/pmem.h              |    2 +-
+ tools/testing/nvdimm/Kbuild       |    4 ++--
+ tools/testing/nvdimm/test/iomap.c |   34 +++++++++++++++++++++++++---------
+ 3 files changed, 28 insertions(+), 12 deletions(-)
 
-diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
-index cc9c61bc1abe..8aeb6456188a 100644
---- a/arch/x86/include/asm/io.h
-+++ b/arch/x86/include/asm/io.h
-@@ -248,12 +248,7 @@ static inline void flush_write_buffers(void)
- #endif
- }
- 
--static inline void __pmem *arch_memremap_pmem(resource_size_t offset,
--	unsigned long size)
--{
--	return (void __force __pmem *) ioremap_cache(offset, size);
--}
--
-+void __pmem *arch_memremap_pmem(resource_size_t offset, size_t size);
- #endif /* __KERNEL__ */
- 
- extern void native_io_delay(void);
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index 6f759c7c2ab7..7b422e7574b1 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -317,6 +317,12 @@ void __iomem *ioremap_cache(resource_size_t phys_addr, unsigned long size)
- }
- EXPORT_SYMBOL(ioremap_cache);
- 
-+void __pmem *arch_memremap_pmem(resource_size_t offset, size_t size)
-+{
-+	return (void __force __pmem *) ioremap_cache(offset, size);
-+}
-+EXPORT_SYMBOL(arch_memremap_pmem);
-+
- void __iomem *ioremap_prot(resource_size_t phys_addr, unsigned long size,
- 				unsigned long prot_val)
+diff --git a/include/linux/pmem.h b/include/linux/pmem.h
+index d2114045a6c4..1bf74c735fa0 100644
+--- a/include/linux/pmem.h
++++ b/include/linux/pmem.h
+@@ -94,7 +94,7 @@ static void default_memcpy_to_pmem(void __pmem *dst, const void *src,
+ static void __pmem *default_memremap_pmem(resource_size_t offset,
+ 		unsigned long size)
  {
+-	return (void __pmem __force *)ioremap_wt(offset, size);
++	return (void __pmem *) memremap(offset, size, MEMREMAP_WT);
+ }
+ 
+ /**
 diff --git a/tools/testing/nvdimm/Kbuild b/tools/testing/nvdimm/Kbuild
-index f56914c7929b..de2912ea78e8 100644
+index de2912ea78e8..8032a49f7873 100644
 --- a/tools/testing/nvdimm/Kbuild
 +++ b/tools/testing/nvdimm/Kbuild
 @@ -1,7 +1,7 @@
- ldflags-y += --wrap=ioremap_wt
+-ldflags-y += --wrap=ioremap_wt
  ldflags-y += --wrap=ioremap_wc
  ldflags-y += --wrap=devm_ioremap_nocache
--ldflags-y += --wrap=ioremap_cache
-+ldflags-y += --wrap=arch_memremap_pmem
+-ldflags-y += --wrap=arch_memremap_pmem
++ldflags-y += --wrap=memremap
++ldflags-y += --wrap=memunmap
  ldflags-y += --wrap=ioremap_nocache
  ldflags-y += --wrap=iounmap
  ldflags-y += --wrap=__request_region
 diff --git a/tools/testing/nvdimm/test/iomap.c b/tools/testing/nvdimm/test/iomap.c
-index 64bfaa50831c..f8486f98f860 100644
+index f8486f98f860..21288f34a5ca 100644
 --- a/tools/testing/nvdimm/test/iomap.c
 +++ b/tools/testing/nvdimm/test/iomap.c
-@@ -80,11 +80,11 @@ void __iomem *__wrap_devm_ioremap_nocache(struct device *dev,
+@@ -80,11 +80,20 @@ void __iomem *__wrap_devm_ioremap_nocache(struct device *dev,
  }
  EXPORT_SYMBOL(__wrap_devm_ioremap_nocache);
  
--void __iomem *__wrap_ioremap_cache(resource_size_t offset, unsigned long size)
-+void *__wrap_arch_memremap_pmem(resource_size_t offset, size_t size)
+-void *__wrap_arch_memremap_pmem(resource_size_t offset, size_t size)
++void *__wrap_memremap(resource_size_t offset, size_t size,
++		unsigned long flags)
  {
--	return __nfit_test_ioremap(offset, size, ioremap_cache);
-+	return __nfit_test_ioremap(offset, size, arch_memremap_pmem);
+-	return __nfit_test_ioremap(offset, size, arch_memremap_pmem);
++	struct nfit_test_resource *nfit_res;
++
++	rcu_read_lock();
++	nfit_res = get_nfit_res(offset);
++	rcu_read_unlock();
++	if (nfit_res)
++		return (void __iomem *) nfit_res->buf + offset
++			- nfit_res->res->start;
++	return memremap(offset, size, flags);
  }
--EXPORT_SYMBOL(__wrap_ioremap_cache);
-+EXPORT_SYMBOL(__wrap_arch_memremap_pmem);
+-EXPORT_SYMBOL(__wrap_arch_memremap_pmem);
++EXPORT_SYMBOL(__wrap_memremap);
  
  void __iomem *__wrap_ioremap_nocache(resource_size_t offset, unsigned long size)
  {
+@@ -92,12 +101,6 @@ void __iomem *__wrap_ioremap_nocache(resource_size_t offset, unsigned long size)
+ }
+ EXPORT_SYMBOL(__wrap_ioremap_nocache);
+ 
+-void __iomem *__wrap_ioremap_wt(resource_size_t offset, unsigned long size)
+-{
+-	return __nfit_test_ioremap(offset, size, ioremap_wt);
+-}
+-EXPORT_SYMBOL(__wrap_ioremap_wt);
+-
+ void __iomem *__wrap_ioremap_wc(resource_size_t offset, unsigned long size)
+ {
+ 	return __nfit_test_ioremap(offset, size, ioremap_wc);
+@@ -117,6 +120,19 @@ void __wrap_iounmap(volatile void __iomem *addr)
+ }
+ EXPORT_SYMBOL(__wrap_iounmap);
+ 
++void __wrap_memunmap(void *addr)
++{
++	struct nfit_test_resource *nfit_res;
++
++	rcu_read_lock();
++	nfit_res = get_nfit_res((unsigned long) addr);
++	rcu_read_unlock();
++	if (nfit_res)
++		return;
++	return memunmap(addr);
++}
++EXPORT_SYMBOL(__wrap_memunmap);
++
+ struct resource *__wrap___request_region(struct resource *parent,
+ 		resource_size_t start, resource_size_t n, const char *name,
+ 		int flags)
 
