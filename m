@@ -1,7 +1,7 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v2 22/25] pmem: switch from ioremap_wt to memremap
-Date: Fri, 24 Jul 2015 22:40:01 -0400
-Message-ID: <20150725024001.8664.13362.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v2 25/25] pmem: convert to generic memremap
+Date: Fri, 24 Jul 2015 22:40:20 -0400
+Message-ID: <20150725024020.8664.52581.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -13,102 +13,139 @@ To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
 Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, Ross Zwisler <ross.zwisler@linux.intel.com>, hch@lst.de, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-In preparation for deprecating ioremap_wt() convert its usage in
-the PMEM API to memremap.
+Update memremap_pmem() to query the architecture for the mapping type of
+the given persistent memory range  and then pass those flags to generic
+memremap().  arch_memremap_pmem_flags() is provided an address range to
+evaluate in the event an arch has a need for different mapping types by
+address range.  For example the ACPI NFIT carries EFI mapping types in
+its memory range description table.
 
 Cc: Ross Zwisler <ross.zwisler@linux.intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- include/linux/pmem.h              |    2 +-
- tools/testing/nvdimm/Kbuild       |    4 ++--
- tools/testing/nvdimm/test/iomap.c |   34 +++++++++++++++++++++++++---------
- 3 files changed, 28 insertions(+), 12 deletions(-)
+ arch/x86/include/asm/io.h |    2 +-
+ arch/x86/mm/ioremap.c     |   16 ++++++++++------
+ include/linux/pmem.h      |   26 +++++++++++++++-----------
+ 3 files changed, 26 insertions(+), 18 deletions(-)
 
+diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
+index bba4e8968bc7..1388d7d27775 100644
+--- a/arch/x86/include/asm/io.h
++++ b/arch/x86/include/asm/io.h
+@@ -253,7 +253,7 @@ static inline void flush_write_buffers(void)
+ #endif
+ }
+ 
+-void __pmem *arch_memremap_pmem(resource_size_t offset, size_t size);
++unsigned long arch_memremap_pmem_flags(resource_size_t offset, size_t size);
+ #endif /* __KERNEL__ */
+ 
+ extern void native_io_delay(void);
+diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
+index 987a58e84e2f..d4a67223f6e9 100644
+--- a/arch/x86/mm/ioremap.c
++++ b/arch/x86/mm/ioremap.c
+@@ -205,6 +205,16 @@ err_free_memtype:
+ 	return NULL;
+ }
+ 
++unsigned long arch_memremap_pmem_flags(resource_size_t offset, size_t size)
++{
++	/*
++	 * TODO: check the mapping type provided by platform firmware,
++	 * per range.
++	 */
++	return MEMREMAP_CACHE;
++}
++EXPORT_SYMBOL(arch_memremap_pmem_flags);
++
+ /**
+  * ioremap_nocache     -   map bus memory into CPU space
+  * @phys_addr:    bus address of the memory
+@@ -310,12 +320,6 @@ void *arch_memremap(resource_size_t phys_addr, size_t size,
+ }
+ EXPORT_SYMBOL(arch_memremap);
+ 
+-void __pmem *arch_memremap_pmem(resource_size_t offset, size_t size)
+-{
+-	return (void __pmem *) arch_memremap(offset, size, MEMREMAP_CACHE);
+-}
+-EXPORT_SYMBOL(arch_memremap_pmem);
+-
+ void __iomem *ioremap_prot(resource_size_t phys_addr, unsigned long size,
+ 				unsigned long prot_val)
+ {
 diff --git a/include/linux/pmem.h b/include/linux/pmem.h
-index d2114045a6c4..1bf74c735fa0 100644
+index 1bf74c735fa0..03f9d73f3e13 100644
 --- a/include/linux/pmem.h
 +++ b/include/linux/pmem.h
-@@ -94,7 +94,7 @@ static void default_memcpy_to_pmem(void __pmem *dst, const void *src,
- static void __pmem *default_memremap_pmem(resource_size_t offset,
+@@ -28,10 +28,10 @@ static inline bool __arch_has_wmb_pmem(void)
+ 	return false;
+ }
+ 
+-static inline void __pmem *arch_memremap_pmem(resource_size_t offset,
++static inline unsigned long arch_memremap_pmem_flags(resource_size_t offset,
  		unsigned long size)
  {
--	return (void __pmem __force *)ioremap_wt(offset, size);
-+	return (void __pmem *) memremap(offset, size, MEMREMAP_WT);
+-	return NULL;
++	return 0;
+ }
+ 
+ static inline void arch_memcpy_to_pmem(void __pmem *dst, const void *src,
+@@ -43,8 +43,8 @@ static inline void arch_memcpy_to_pmem(void __pmem *dst, const void *src,
+ 
+ /*
+  * Architectures that define ARCH_HAS_PMEM_API must provide
+- * implementations for arch_memremap_pmem(), arch_memcpy_to_pmem(),
+- * arch_wmb_pmem(), and __arch_has_wmb_pmem().
++ * implementations for arch_memremap_pmem_flags(),
++ * arch_memcpy_to_pmem(), arch_wmb_pmem(), and __arch_has_wmb_pmem().
+  */
+ 
+ static inline void memcpy_from_pmem(void *dst, void __pmem const *src, size_t size)
+@@ -54,7 +54,7 @@ static inline void memcpy_from_pmem(void *dst, void __pmem const *src, size_t si
+ 
+ static inline void memunmap_pmem(void __pmem *addr)
+ {
+-	iounmap((void __force __iomem *) addr);
++	memunmap((void __force *) addr);
  }
  
  /**
-diff --git a/tools/testing/nvdimm/Kbuild b/tools/testing/nvdimm/Kbuild
-index de2912ea78e8..8032a49f7873 100644
---- a/tools/testing/nvdimm/Kbuild
-+++ b/tools/testing/nvdimm/Kbuild
-@@ -1,7 +1,7 @@
--ldflags-y += --wrap=ioremap_wt
- ldflags-y += --wrap=ioremap_wc
- ldflags-y += --wrap=devm_ioremap_nocache
--ldflags-y += --wrap=arch_memremap_pmem
-+ldflags-y += --wrap=memremap
-+ldflags-y += --wrap=memunmap
- ldflags-y += --wrap=ioremap_nocache
- ldflags-y += --wrap=iounmap
- ldflags-y += --wrap=__request_region
-diff --git a/tools/testing/nvdimm/test/iomap.c b/tools/testing/nvdimm/test/iomap.c
-index f8486f98f860..21288f34a5ca 100644
---- a/tools/testing/nvdimm/test/iomap.c
-+++ b/tools/testing/nvdimm/test/iomap.c
-@@ -80,11 +80,20 @@ void __iomem *__wrap_devm_ioremap_nocache(struct device *dev,
- }
- EXPORT_SYMBOL(__wrap_devm_ioremap_nocache);
- 
--void *__wrap_arch_memremap_pmem(resource_size_t offset, size_t size)
-+void *__wrap_memremap(resource_size_t offset, size_t size,
-+		unsigned long flags)
+@@ -85,16 +85,15 @@ static inline bool arch_has_pmem_api(void)
+  * default_memremap_pmem + default_memcpy_to_pmem is sufficient for
+  * making data durable relative to i/o completion.
+  */
+-static void default_memcpy_to_pmem(void __pmem *dst, const void *src,
++static inline void default_memcpy_to_pmem(void __pmem *dst, const void *src,
+ 		size_t size)
  {
--	return __nfit_test_ioremap(offset, size, arch_memremap_pmem);
-+	struct nfit_test_resource *nfit_res;
-+
-+	rcu_read_lock();
-+	nfit_res = get_nfit_res(offset);
-+	rcu_read_unlock();
-+	if (nfit_res)
-+		return (void __iomem *) nfit_res->buf + offset
-+			- nfit_res->res->start;
-+	return memremap(offset, size, flags);
+ 	memcpy((void __force *) dst, src, size);
  }
--EXPORT_SYMBOL(__wrap_arch_memremap_pmem);
-+EXPORT_SYMBOL(__wrap_memremap);
  
- void __iomem *__wrap_ioremap_nocache(resource_size_t offset, unsigned long size)
+-static void __pmem *default_memremap_pmem(resource_size_t offset,
+-		unsigned long size)
++static inline unsigned long default_memremap_pmem_flags(void)
  {
-@@ -92,12 +101,6 @@ void __iomem *__wrap_ioremap_nocache(resource_size_t offset, unsigned long size)
+-	return (void __pmem *) memremap(offset, size, MEMREMAP_WT);
++	return MEMREMAP_WT;
  }
- EXPORT_SYMBOL(__wrap_ioremap_nocache);
  
--void __iomem *__wrap_ioremap_wt(resource_size_t offset, unsigned long size)
--{
--	return __nfit_test_ioremap(offset, size, ioremap_wt);
--}
--EXPORT_SYMBOL(__wrap_ioremap_wt);
--
- void __iomem *__wrap_ioremap_wc(resource_size_t offset, unsigned long size)
+ /**
+@@ -112,9 +111,14 @@ static void __pmem *default_memremap_pmem(resource_size_t offset,
+ static inline void __pmem *memremap_pmem(resource_size_t offset,
+ 		unsigned long size)
  {
- 	return __nfit_test_ioremap(offset, size, ioremap_wc);
-@@ -117,6 +120,19 @@ void __wrap_iounmap(volatile void __iomem *addr)
++	unsigned long flags;
++
+ 	if (arch_has_pmem_api())
+-		return arch_memremap_pmem(offset, size);
+-	return default_memremap_pmem(offset, size);
++		flags = arch_memremap_pmem_flags(offset, size);
++	else
++		flags = default_memremap_pmem_flags();
++
++	return (void __pmem *) memremap(offset, size, flags);
  }
- EXPORT_SYMBOL(__wrap_iounmap);
  
-+void __wrap_memunmap(void *addr)
-+{
-+	struct nfit_test_resource *nfit_res;
-+
-+	rcu_read_lock();
-+	nfit_res = get_nfit_res((unsigned long) addr);
-+	rcu_read_unlock();
-+	if (nfit_res)
-+		return;
-+	return memunmap(addr);
-+}
-+EXPORT_SYMBOL(__wrap_memunmap);
-+
- struct resource *__wrap___request_region(struct resource *parent,
- 		resource_size_t start, resource_size_t n, const char *name,
- 		int flags)
+ /**
