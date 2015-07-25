@@ -1,7 +1,8 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v2 03/25] mm: Fix bugs in region_is_ram()
-Date: Fri, 24 Jul 2015 22:38:16 -0400
-Message-ID: <20150725023816.8664.99926.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v2 04/25] mm: enhance region_is_ram() to distinguish
+ 'unknown' vs 'mixed'
+Date: Fri, 24 Jul 2015 22:38:21 -0400
+Message-ID: <20150725023821.8664.81275.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,60 +11,93 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, "Luis R. Rodriguez" <mcgrof@suse.com>, linux-kernel@vger.kernel.org, Mike Travis <travis@sgi.com>, rmk+kernel@arm.linux.org.uk, Andrew Morton <akpm@linux-foundation.org>, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Toshi Kani <toshi.kani@hp.com>
+region_is_ram() is used to prevent the establishment of aliased mappings
+to physical "System RAM" with incompatible cache settings.  However, it
+uses "-1" to indicate both "unknown" memory ranges (ranges not described
+by platform firmware) and "mixed" ranges (where the parameters describe
+a range that partially overlaps "System RAM").
 
-region_is_ram() looks up the iomem_resource table to check if
-a target range is in RAM.  However, it always returns with -1
-due to invalid range checks.  It always breaks the loop at the
-first entry of the table.
+Fix this up by explicitly tracking the "unknown" vs "mixed" resource
+cases. In addition to clarifying that "-1" means the requested spanned
+RAM and non-RAM resource, this re-write also adds support for detecting
+when the requested range completely covers all of a resource.
 
-Another issue is that it compares p->flags and flags, but it
-always fails.  The flags is declared as int, which makes it as
-a negative value with IORESOURCE_BUSY (0x80000000) set while
-p->flags is unsigned long.
+Finally, the implementation treats overlaps between "unknown" and RAM as
+RAM.
 
-Fix the range check and flags so that region_is_ram() works as
-advertised.
-
-Signed-off-by: Toshi Kani <toshi.kani@hp.com>
-Cc: Mike Travis <travis@sgi.com>
-Cc: Luis R. Rodriguez <mcgrof@suse.com>
-Cc: Dan Williams <dan.j.williams@intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Toshi Kani <toshi.kani@hp.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- kernel/resource.c |    6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ kernel/resource.c |   43 +++++++++++++++++++++++--------------------
+ 1 file changed, 23 insertions(+), 20 deletions(-)
 
 diff --git a/kernel/resource.c b/kernel/resource.c
-index 90552aab5f2d..fed052a1bc9f 100644
+index fed052a1bc9f..119b282985f9 100644
 --- a/kernel/resource.c
 +++ b/kernel/resource.c
-@@ -504,13 +504,13 @@ int region_is_ram(resource_size_t start, unsigned long size)
+@@ -493,39 +493,42 @@ int __weak page_is_ram(unsigned long pfn)
+ EXPORT_SYMBOL_GPL(page_is_ram);
+ 
+ /*
+- * Search for a resouce entry that fully contains the specified region.
+- * If found, return 1 if it is RAM, 0 if not.
+- * If not found, or region is not fully contained, return -1
++ * Check if the specified region partially overlaps or fully eclipses "System
++ * RAM". Return '0' if the region does not overlap RAM, return '-1' if the
++ * region overlaps RAM and another resource, and return '1' if the region
++ * overlaps RAM and no other defined resource. Note, that '1' is also returned
++ * in the case when the specified region overlaps RAM and undefined memory
++ * holes.
+  *
+  * Used by the ioremap functions to ensure the user is not remapping RAM and is
+  * a vast speed up over walking through the resource table page by page.
+  */
+ int region_is_ram(resource_size_t start, unsigned long size)
  {
- 	struct resource *p;
- 	resource_size_t end = start + size - 1;
--	int flags = IORESOURCE_MEM | IORESOURCE_BUSY;
-+	unsigned long flags = IORESOURCE_MEM | IORESOURCE_BUSY;
+-	struct resource *p;
+-	resource_size_t end = start + size - 1;
+ 	unsigned long flags = IORESOURCE_MEM | IORESOURCE_BUSY;
++	resource_size_t end = start + size - 1;
  	const char *name = "System RAM";
- 	int ret = -1;
+-	int ret = -1;
++	int ram = 0; int other = 0;
++	struct resource *p;
  
  	read_lock(&resource_lock);
  	for (p = iomem_resource.child; p ; p = p->sibling) {
--		if (end < p->start)
-+		if (p->end < start)
- 			continue;
- 
- 		if (p->start <= start && end <= p->end) {
-@@ -521,7 +521,7 @@ int region_is_ram(resource_size_t start, unsigned long size)
- 				ret = 1;
- 			break;
- 		}
 -		if (p->end < start)
-+		if (end < p->start)
- 			break;	/* not found */
+-			continue;
+-
+-		if (p->start <= start && end <= p->end) {
+-			/* resource fully contains region */
+-			if ((p->flags != flags) || strcmp(p->name, name))
+-				ret = 0;
+-			else
+-				ret = 1;
+-			break;
+-		}
+-		if (end < p->start)
+-			break;	/* not found */
++		bool is_ram = strcmp(p->name, name) == 0 && p->flags == flags;
++
++		if (start >= p->start && start <= p->end)
++			is_ram ? ram++ : other++;
++		if (end >= p->start && end <= p->end)
++			is_ram ? ram++ : other++;
++		if (p->start >= start && p->end <= end)
++			is_ram ? ram++ : other++;
  	}
  	read_unlock(&resource_lock);
+-	return ret;
++
++	if (other == 0)
++		return !!ram;
++	if (ram)
++		return -1;
++	return 0;
+ }
+ 
+ void __weak arch_remove_reservations(struct resource *avail)
