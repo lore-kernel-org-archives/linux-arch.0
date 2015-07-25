@@ -1,7 +1,7 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v2 19/25] pxa2xx-flash: switch from ioremap_cache to memremap
-Date: Fri, 24 Jul 2015 22:39:45 -0400
-Message-ID: <20150725023945.8664.34842.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v2 14/25] toshiba laptop: replace ioremap_cache with ioremap
+Date: Fri, 24 Jul 2015 22:39:17 -0400
+Message-ID: <20150725023917.8664.5278.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,31 +10,31 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, Brian Norris <computersforpeace@gmail.com>, David Woodhouse <dwmw2@infradead.org>, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, Arnd Bergmann <arnd@arndb.de>, linux-nvdimm@lists.01.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Buzzard <jonathan@buzzard.org.uk>, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-In preparation for deprecating ioremap_cache() convert its usage in
-pxa2xx-flash to memremap.
+With ioremap_cache being replaced with memremap there is no longer a
+guarantee that a mapping will silently fall back to an uncached mapping.
+Explicitly use a vanilla ioremap() for this short lived mapping.
 
-Cc: David Woodhouse <dwmw2@infradead.org>
-Cc: Brian Norris <computersforpeace@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Jonathan Buzzard <jonathan@buzzard.org.uk>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/mtd/maps/pxa2xx-flash.c |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ drivers/char/toshiba.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/mtd/maps/pxa2xx-flash.c b/drivers/mtd/maps/pxa2xx-flash.c
-index 12fa75df5008..758a8a7f86d9 100644
---- a/drivers/mtd/maps/pxa2xx-flash.c
-+++ b/drivers/mtd/maps/pxa2xx-flash.c
-@@ -71,8 +71,8 @@ static int pxa2xx_flash_probe(struct platform_device *pdev)
- 		       info->map.name);
+diff --git a/drivers/char/toshiba.c b/drivers/char/toshiba.c
+index 014c9d90d297..f5a45d887a37 100644
+--- a/drivers/char/toshiba.c
++++ b/drivers/char/toshiba.c
+@@ -430,7 +430,7 @@ static int tosh_probe(void)
+ 	int i,major,minor,day,year,month,flag;
+ 	unsigned char signature[7] = { 0x54,0x4f,0x53,0x48,0x49,0x42,0x41 };
+ 	SMMRegisters regs;
+-	void __iomem *bios = ioremap_cache(0xf0000, 0x10000);
++	void __iomem *bios = ioremap(0xf0000, 0x10000);
+ 
+ 	if (!bios)
  		return -ENOMEM;
- 	}
--	info->map.cached =
--		ioremap_cache(info->map.phys, info->map.size);
-+	info->map.cached = memremap(info->map.phys, info->map.size,
-+			MEMREMAP_CACHE);
- 	if (!info->map.cached)
- 		printk(KERN_WARNING "Failed to ioremap cached %s\n",
- 		       info->map.name);
