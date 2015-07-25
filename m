@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:14862 "EHLO mga03.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:2042 "EHLO mga02.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754883AbbGYCn6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Jul 2015 22:43:58 -0400
-Subject: [PATCH v2 03/25] mm: Fix bugs in region_is_ram()
+	id S1755007AbbGYCoT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jul 2015 22:44:19 -0400
+Subject: [PATCH v2 07/25] intel_iommu: fix leaked ioremap mapping
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 24 Jul 2015 22:38:16 -0400
-Message-ID: <20150725023816.8664.99926.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Fri, 24 Jul 2015 22:38:37 -0400
+Message-ID: <20150725023837.8664.41845.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -15,61 +15,28 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, "Luis R. Rodriguez" <mcgrof@suse.com>, linux-kernel@vger.kernel.org, Mike Travis <travis@sgi.com>, rmk+kernel@arm.linux.org.uk, Andrew Morton <akpm@linux-foundation.org>, hch@lst.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150725023816.yAN4PaR-g0cGxg8EzeKb-yE1_petOBPQvY_hmWyJHKg@z>
+Cc: linux-arch@vger.kernel.org, Joerg Roedel <jroedel@suse.de>, toshi.kani@hp.com, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150725023837.0DsUcVqfG4DNftqRSHgrcsJkxlS0og0I3wD2mQsVWjY@z>
 
-From: Toshi Kani <toshi.kani@hp.com>
+iommu_load_old_irte() appears to leak the old_irte mapping after use.
 
-region_is_ram() looks up the iomem_resource table to check if
-a target range is in RAM.  However, it always returns with -1
-due to invalid range checks.  It always breaks the loop at the
-first entry of the table.
-
-Another issue is that it compares p->flags and flags, but it
-always fails.  The flags is declared as int, which makes it as
-a negative value with IORESOURCE_BUSY (0x80000000) set while
-p->flags is unsigned long.
-
-Fix the range check and flags so that region_is_ram() works as
-advertised.
-
-Signed-off-by: Toshi Kani <toshi.kani@hp.com>
-Cc: Mike Travis <travis@sgi.com>
-Cc: Luis R. Rodriguez <mcgrof@suse.com>
-Cc: Dan Williams <dan.j.williams@intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Joerg Roedel <jroedel@suse.de>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- kernel/resource.c |    6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ drivers/iommu/intel_irq_remapping.c |    2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/kernel/resource.c b/kernel/resource.c
-index 90552aab5f2d..fed052a1bc9f 100644
---- a/kernel/resource.c
-+++ b/kernel/resource.c
-@@ -504,13 +504,13 @@ int region_is_ram(resource_size_t start, unsigned long size)
- {
- 	struct resource *p;
- 	resource_size_t end = start + size - 1;
--	int flags = IORESOURCE_MEM | IORESOURCE_BUSY;
-+	unsigned long flags = IORESOURCE_MEM | IORESOURCE_BUSY;
- 	const char *name = "System RAM";
- 	int ret = -1;
- 
- 	read_lock(&resource_lock);
- 	for (p = iomem_resource.child; p ; p = p->sibling) {
--		if (end < p->start)
-+		if (p->end < start)
- 			continue;
- 
- 		if (p->start <= start && end <= p->end) {
-@@ -521,7 +521,7 @@ int region_is_ram(resource_size_t start, unsigned long size)
- 				ret = 1;
- 			break;
- 		}
--		if (p->end < start)
-+		if (end < p->start)
- 			break;	/* not found */
+diff --git a/drivers/iommu/intel_irq_remapping.c b/drivers/iommu/intel_irq_remapping.c
+index f15692a410c7..27cdfa84ec5b 100644
+--- a/drivers/iommu/intel_irq_remapping.c
++++ b/drivers/iommu/intel_irq_remapping.c
+@@ -426,6 +426,8 @@ static int iommu_load_old_irte(struct intel_iommu *iommu)
+ 			bitmap_set(iommu->ir_table->bitmap, i, 1);
  	}
- 	read_unlock(&resource_lock);
+ 
++	iounmap(old_ir_table);
++
+ 	return 0;
+ }
+ 
 
