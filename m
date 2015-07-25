@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:61570 "EHLO mga01.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:37687 "EHLO mga02.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1030181AbbGYCpF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Jul 2015 22:45:05 -0400
-Subject: [PATCH v2 15/25] memconsole: fix __iomem mishandling,
- switch to memremap
+	id S932095AbbGYCol (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jul 2015 22:44:41 -0400
+Subject: [PATCH v2 11/25] gma500: switch from acpi_os_ioremap to ioremap
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 24 Jul 2015 22:39:23 -0400
-Message-ID: <20150725023923.8664.66965.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Fri, 24 Jul 2015 22:38:58 -0400
+Message-ID: <20150725023858.8664.23506.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -16,40 +15,31 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, Mike Waychison <mikew@google.com>, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150725023923.ktMx19EOyJPdhZKJxReAbN2X81BUpr2mZ1hWi9j1cEg@z>
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, David Airlie <airlied@linux.ie>, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150725023858.j9YN5L2DbkLRuLwnTHFJNv6dH8GppR4Q_FrCIMyvkpI@z>
 
-The memconsole driver is not using proper accessors for __iomem.  Switch
-to memremap to fix this issue, and this also prepares the driver for the
-removal of ioremap_cache.
+acpi_os_ioremap uses cached mappings, however it appears that gma500
+wants to read dynamic platform state.  Switch to ioremap() to prevent it
+reading stale state from cache.
 
-Cc: Mike Waychison <mikew@google.com>
+Cc: David Airlie <airlied@linux.ie>
+Cc: dri-devel@lists.freedesktop.org
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/firmware/google/memconsole.c |    7 ++++---
- 1 file changed, 4 insertions(+), 3 deletions(-)
+ drivers/gpu/drm/gma500/opregion.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/firmware/google/memconsole.c b/drivers/firmware/google/memconsole.c
-index 2f569aaed4c7..1b25fba84f32 100644
---- a/drivers/firmware/google/memconsole.c
-+++ b/drivers/firmware/google/memconsole.c
-@@ -52,14 +52,15 @@ static ssize_t memconsole_read(struct file *filp, struct kobject *kobp,
- 	char *memconsole;
- 	ssize_t ret;
+diff --git a/drivers/gpu/drm/gma500/opregion.c b/drivers/gpu/drm/gma500/opregion.c
+index ab696ca7eeec..9809c26ea0cf 100644
+--- a/drivers/gpu/drm/gma500/opregion.c
++++ b/drivers/gpu/drm/gma500/opregion.c
+@@ -322,7 +322,7 @@ int psb_intel_opregion_setup(struct drm_device *dev)
+ 	INIT_WORK(&opregion->asle_work, psb_intel_opregion_asle_work);
  
--	memconsole = ioremap_cache(memconsole_baseaddr, memconsole_length);
-+	memconsole = memremap(memconsole_baseaddr, memconsole_length,
-+			MEMREMAP_CACHE);
- 	if (!memconsole) {
--		pr_err("memconsole: ioremap_cache failed\n");
-+		pr_err("memconsole: memremap failed\n");
+ 	DRM_DEBUG("OpRegion detected at 0x%8x\n", opregion_phy);
+-	base = acpi_os_ioremap(opregion_phy, 8*1024);
++	base = ioremap(opregion_phy, 8*1024);
+ 	if (!base)
  		return -ENOMEM;
- 	}
- 	ret = memory_read_from_buffer(buf, count, &pos, memconsole,
- 				      memconsole_length);
--	iounmap(memconsole);
-+	memunmap(memconsole);
- 	return ret;
- }
  
 
