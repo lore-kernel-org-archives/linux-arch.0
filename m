@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:44292 "EHLO mga01.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:31333 "EHLO mga09.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1030179AbbGYCpd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Jul 2015 22:45:33 -0400
-Subject: [PATCH v2 20/25] sfi: switch from ioremap_cache to memremap
+	id S964797AbbGYCoq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jul 2015 22:44:46 -0400
+Subject: [PATCH v2 12/25] i915: switch from acpi_os_ioremap to ioremap
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 24 Jul 2015 22:39:50 -0400
-Message-ID: <20150725023950.8664.40556.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Fri, 24 Jul 2015 22:39:04 -0400
+Message-ID: <20150725023904.8664.84461.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -15,40 +15,34 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org, Len Brown <lenb@kernel.org>
-Message-ID: <20150725023950.UGQWKoz9cpcYeQy2BJC2I_ke4G5cH6sZRppbIvWCdpE@z>
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, David Airlie <airlied@linux.ie>, intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, Jani Nikula <jani.nikula@linux.intel.com>, dri-devel@lists.freedesktop.org, rmk+kernel@arm.linux.org.uk, Daniel Vetter <daniel.vetter@intel.com>, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150725023904.VYSMCZi0QNB1CUCU1llzvXPyktX_qMdhWo-o20Ogno8@z>
 
-In preparation for deprecating ioremap_cache() convert its usage in sfi
-to memremap.  It's a bit awkward that we go and add back a fake __iomem
-annotation, but this is to keep consistency with early_ioremap() which
-does not have a 'memremap' flavor.
+acpi_os_ioremap uses cached mappings, however it appears that i915
+wants to read dynamic platform state.  Switch to ioremap() to prevent it
+reading stale state from cache.
 
-Cc: Len Brown <lenb@kernel.org>
+Cc: Daniel Vetter <daniel.vetter@intel.com>
+Cc: Jani Nikula <jani.nikula@linux.intel.com>
+Cc: intel-gfx@lists.freedesktop.org
+Cc: David Airlie <airlied@linux.ie>
+Cc: dri-devel@lists.freedesktop.org
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/sfi/sfi_core.c |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ drivers/gpu/drm/i915/intel_opregion.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/sfi/sfi_core.c b/drivers/sfi/sfi_core.c
-index 296db7a69c27..1cccf31dfccc 100644
---- a/drivers/sfi/sfi_core.c
-+++ b/drivers/sfi/sfi_core.c
-@@ -101,7 +101,7 @@ static void __iomem * __ref sfi_map_memory(u64 phys, u32 size)
- 		return NULL;
+diff --git a/drivers/gpu/drm/i915/intel_opregion.c b/drivers/gpu/drm/i915/intel_opregion.c
+index 481337436f72..16ba7c67410d 100644
+--- a/drivers/gpu/drm/i915/intel_opregion.c
++++ b/drivers/gpu/drm/i915/intel_opregion.c
+@@ -863,7 +863,7 @@ int intel_opregion_setup(struct drm_device *dev)
+ 	INIT_WORK(&opregion->asle_work, asle_work);
+ #endif
  
- 	if (sfi_use_ioremap)
--		return ioremap_cache(phys, size);
-+		return (void __iomem *) memremap(phys, size, MEMREMAP_CACHE);
- 	else
- 		return early_ioremap(phys, size);
- }
-@@ -112,7 +112,7 @@ static void __ref sfi_unmap_memory(void __iomem *virt, u32 size)
- 		return;
+-	base = acpi_os_ioremap(asls, OPREGION_SIZE);
++	base = ioremap(asls, OPREGION_SIZE);
+ 	if (!base)
+ 		return -ENOMEM;
  
- 	if (sfi_use_ioremap)
--		iounmap(virt);
-+		memunmap((void __force *) virt);
- 	else
- 		early_iounmap(virt, size);
- }
 
