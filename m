@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:31333 "EHLO mga09.intel.com"
+Received: from mga01.intel.com ([192.55.52.88]:61570 "EHLO mga01.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S964797AbbGYCoq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Jul 2015 22:44:46 -0400
-Subject: [PATCH v2 12/25] i915: switch from acpi_os_ioremap to ioremap
+	id S1030180AbbGYCpF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jul 2015 22:45:05 -0400
+Subject: [PATCH v2 14/25] toshiba laptop: replace ioremap_cache with ioremap
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 24 Jul 2015 22:39:04 -0400
-Message-ID: <20150725023904.8664.84461.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Fri, 24 Jul 2015 22:39:17 -0400
+Message-ID: <20150725023917.8664.5278.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -15,34 +15,32 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, David Airlie <airlied@linux.ie>, intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, Jani Nikula <jani.nikula@linux.intel.com>, dri-devel@lists.freedesktop.org, rmk+kernel@arm.linux.org.uk, Daniel Vetter <daniel.vetter@intel.com>, hch@lst.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150725023904.VYSMCZi0QNB1CUCU1llzvXPyktX_qMdhWo-o20Ogno8@z>
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, Arnd Bergmann <arnd@arndb.de>, linux-nvdimm@lists.01.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Buzzard <jonathan@buzzard.org.uk>, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150725023917.-RgWq3YQHof2urQWPOnGFfKWxgi9Ph28_yrtlZnX978@z>
 
-acpi_os_ioremap uses cached mappings, however it appears that i915
-wants to read dynamic platform state.  Switch to ioremap() to prevent it
-reading stale state from cache.
+With ioremap_cache being replaced with memremap there is no longer a
+guarantee that a mapping will silently fall back to an uncached mapping.
+Explicitly use a vanilla ioremap() for this short lived mapping.
 
-Cc: Daniel Vetter <daniel.vetter@intel.com>
-Cc: Jani Nikula <jani.nikula@linux.intel.com>
-Cc: intel-gfx@lists.freedesktop.org
-Cc: David Airlie <airlied@linux.ie>
-Cc: dri-devel@lists.freedesktop.org
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Jonathan Buzzard <jonathan@buzzard.org.uk>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/gpu/drm/i915/intel_opregion.c |    2 +-
+ drivers/char/toshiba.c |    2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/gpu/drm/i915/intel_opregion.c b/drivers/gpu/drm/i915/intel_opregion.c
-index 481337436f72..16ba7c67410d 100644
---- a/drivers/gpu/drm/i915/intel_opregion.c
-+++ b/drivers/gpu/drm/i915/intel_opregion.c
-@@ -863,7 +863,7 @@ int intel_opregion_setup(struct drm_device *dev)
- 	INIT_WORK(&opregion->asle_work, asle_work);
- #endif
+diff --git a/drivers/char/toshiba.c b/drivers/char/toshiba.c
+index 014c9d90d297..f5a45d887a37 100644
+--- a/drivers/char/toshiba.c
++++ b/drivers/char/toshiba.c
+@@ -430,7 +430,7 @@ static int tosh_probe(void)
+ 	int i,major,minor,day,year,month,flag;
+ 	unsigned char signature[7] = { 0x54,0x4f,0x53,0x48,0x49,0x42,0x41 };
+ 	SMMRegisters regs;
+-	void __iomem *bios = ioremap_cache(0xf0000, 0x10000);
++	void __iomem *bios = ioremap(0xf0000, 0x10000);
  
--	base = acpi_os_ioremap(asls, OPREGION_SIZE);
-+	base = ioremap(asls, OPREGION_SIZE);
- 	if (!base)
+ 	if (!bios)
  		return -ENOMEM;
- 
 
