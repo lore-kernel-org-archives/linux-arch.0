@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:57619 "EHLO mga02.intel.com"
+Received: from mga03.intel.com ([134.134.136.65]:27241 "EHLO mga03.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754553AbbGYCnx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Jul 2015 22:43:53 -0400
-Subject: [PATCH v2 02/25] mm, x86: Remove region_is_ram() call from ioremap
+	id S1754956AbbGYCoO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 24 Jul 2015 22:44:14 -0400
+Subject: [PATCH v2 06/25] cleanup IORESOURCE_CACHEABLE vs ioremap()
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 24 Jul 2015 22:38:06 -0400
-Message-ID: <20150725023806.8664.68687.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Fri, 24 Jul 2015 22:38:32 -0400
+Message-ID: <20150725023831.8664.46483.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -15,95 +15,233 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, "Luis R. Rodriguez" <mcgrof@suse.com>, linux-kernel@vger.kernel.org, Mike Travis <travis@sgi.com>, Roland Dreier <roland@purestorage.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150725023806.3VEE5jNrgzt22Ap6T-PkK20MjXqaDVXtJizSHozIrtI@z>
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, Arnd Bergmann <arnd@arndb.de>, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150725023832.3sQyHHYCcY8a1JYmX-RiUn9Lr5B8Llf_9gAdZqak8HI@z>
 
-From: Toshi Kani <toshi.kani@hp.com>
+Quoting Arnd:
+    I was thinking the opposite approach and basically removing all uses
+    of IORESOURCE_CACHEABLE from the kernel. There are only a handful of
+    them.and we can probably replace them all with hardcoded
+    ioremap_cached() calls in the cases they are actually useful.
 
-__ioremap_caller() calls region_is_ram() to walk through the
-iomem_resource table to check if a target range is in RAM, which
-was added to improve the lookup performance over page_is_ram()
-(commit 906e36c5c717 "x86: use optimized ioresource lookup in
-ioremap function").  page_is_ram() was no longer used when this
-change was added, though.
+All existing usages of IORESOURCE_CACHEABLE call ioremap() instead of
+ioremap_nocache() if the resource is cacheable, however ioremap() is
+uncached by default. Clearly none of the existing usages care about the
+cacheability. Particularly devm_ioremap_resource() never worked as
+advertised since it always fell back to plain ioremap().
 
-__ioremap_caller() then calls walk_system_ram_range(), which had
-replaced page_is_ram() to improve the lookup performance (commit
-c81c8a1eeede "x86, ioremap: Speed up check for RAM pages").
+Clean this up as the new direction we want is to convert
+ioremap_<type>() usages to memremap(..., flags).
 
-Since both checks walk through the same iomem_resource table for
-the same purpose, there is no need to call the two functions.
-Furthermore, region_is_ram() always returns with -1, which makes
-walk_system_ram_range() as the only check being used at this point.
-
-Therefore, this patch changes __ioremap_caller() to call
-walk_system_ram_range() only.
-
-Note, removing the call to region_is_ram() is also necessary to
-fix bugs in region_is_ram().  walk_system_ram_range() requires
-RAM ranges be page-aligned in the iomem_resource table to work
-properly.  This restriction has allowed multiple ioremaps to RAM
-(setup_data) which are page-unaligned.  Using fixed region_is_ram()
-will cause these callers to start failing.  After all ioremap
-callers to setup_data are converted, __ioremap_caller() may call
-region_is_ram() instead to remove this restriction.
-
-Signed-off-by: Toshi Kani <toshi.kani@hp.com>
-Cc: Roland Dreier <roland@purestorage.com>
-Cc: Mike Travis <travis@sgi.com>
-Cc: Luis R. Rodriguez <mcgrof@suse.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
+Suggested-by: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/x86/mm/ioremap.c |   24 ++++++------------------
- 1 file changed, 6 insertions(+), 18 deletions(-)
+ arch/arm/mach-clps711x/board-cdb89712.c |    2 +-
+ arch/powerpc/kernel/pci_of_scan.c       |    2 +-
+ arch/sparc/kernel/pci.c                 |    3 +--
+ drivers/pci/probe.c                     |    3 +--
+ drivers/pnp/manager.c                   |    2 --
+ drivers/scsi/aic94xx/aic94xx_init.c     |    7 +------
+ drivers/scsi/arcmsr/arcmsr_hba.c        |    5 +----
+ drivers/scsi/mvsas/mv_init.c            |   15 ++++-----------
+ drivers/video/fbdev/ocfb.c              |    1 -
+ lib/devres.c                            |   13 ++++---------
+ lib/pci_iomap.c                         |    7 ++-----
+ 11 files changed, 16 insertions(+), 44 deletions(-)
 
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index c13f7fdca142..12b1eaeab6b9 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -92,7 +92,6 @@ static void __iomem *__ioremap_caller(resource_size_t phys_addr,
- 	pgprot_t prot;
- 	int retval;
- 	void __iomem *ret_addr;
--	int ram_region;
+diff --git a/arch/arm/mach-clps711x/board-cdb89712.c b/arch/arm/mach-clps711x/board-cdb89712.c
+index 1ec378c334e5..972abdb10028 100644
+--- a/arch/arm/mach-clps711x/board-cdb89712.c
++++ b/arch/arm/mach-clps711x/board-cdb89712.c
+@@ -95,7 +95,7 @@ static struct physmap_flash_data cdb89712_bootrom_pdata __initdata = {
  
- 	/* Don't allow wraparound or zero size */
- 	last_addr = phys_addr + size - 1;
-@@ -115,26 +114,15 @@ static void __iomem *__ioremap_caller(resource_size_t phys_addr,
- 	/*
- 	 * Don't allow anybody to remap normal RAM that we're using..
- 	 */
--	/* First check if whole region can be identified as RAM or not */
--	ram_region = region_is_ram(phys_addr, size);
--	if (ram_region > 0) {
--		WARN_ONCE(1, "ioremap on RAM at 0x%lx - 0x%lx\n",
--				(unsigned long int)phys_addr,
--				(unsigned long int)last_addr);
--		return NULL;
--	}
--
--	/* If could not be identified(-1), check page by page */
--	if (ram_region < 0) {
--		pfn      = phys_addr >> PAGE_SHIFT;
--		last_pfn = last_addr >> PAGE_SHIFT;
--		if (walk_system_ram_range(pfn, last_pfn - pfn + 1, NULL,
-+	pfn      = phys_addr >> PAGE_SHIFT;
-+	last_pfn = last_addr >> PAGE_SHIFT;
-+	if (walk_system_ram_range(pfn, last_pfn - pfn + 1, NULL,
- 					  __ioremap_check_ram) == 1) {
--			WARN_ONCE(1, "ioremap on RAM at %pa - %pa\n",
-+		WARN_ONCE(1, "ioremap on RAM at %pa - %pa\n",
- 					&phys_addr, &last_addr);
--			return NULL;
--		}
-+		return NULL;
+ static struct resource cdb89712_bootrom_resources[] __initdata = {
+ 	DEFINE_RES_NAMED(CS7_PHYS_BASE, SZ_128, "BOOTROM", IORESOURCE_MEM |
+-			 IORESOURCE_CACHEABLE | IORESOURCE_READONLY),
++			 IORESOURCE_READONLY),
+ };
+ 
+ static struct platform_device cdb89712_bootrom_pdev __initdata = {
+diff --git a/arch/powerpc/kernel/pci_of_scan.c b/arch/powerpc/kernel/pci_of_scan.c
+index 42e02a2d570b..d4726addff0b 100644
+--- a/arch/powerpc/kernel/pci_of_scan.c
++++ b/arch/powerpc/kernel/pci_of_scan.c
+@@ -102,7 +102,7 @@ static void of_pci_parse_addrs(struct device_node *node, struct pci_dev *dev)
+ 			res = &dev->resource[(i - PCI_BASE_ADDRESS_0) >> 2];
+ 		} else if (i == dev->rom_base_reg) {
+ 			res = &dev->resource[PCI_ROM_RESOURCE];
+-			flags |= IORESOURCE_READONLY | IORESOURCE_CACHEABLE;
++			flags |= IORESOURCE_READONLY;
+ 		} else {
+ 			printk(KERN_ERR "PCI: bad cfg reg num 0x%x\n", i);
+ 			continue;
+diff --git a/arch/sparc/kernel/pci.c b/arch/sparc/kernel/pci.c
+index c928bc64b4ba..04da147e0712 100644
+--- a/arch/sparc/kernel/pci.c
++++ b/arch/sparc/kernel/pci.c
+@@ -231,8 +231,7 @@ static void pci_parse_of_addrs(struct platform_device *op,
+ 			res = &dev->resource[(i - PCI_BASE_ADDRESS_0) >> 2];
+ 		} else if (i == dev->rom_base_reg) {
+ 			res = &dev->resource[PCI_ROM_RESOURCE];
+-			flags |= IORESOURCE_READONLY | IORESOURCE_CACHEABLE
+-			      | IORESOURCE_SIZEALIGN;
++			flags |= IORESOURCE_READONLY | IORESOURCE_SIZEALIGN;
+ 		} else {
+ 			printk(KERN_ERR "PCI: bad cfg reg num 0x%x\n", i);
+ 			continue;
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index cefd636681b6..8ed37dd04056 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -326,8 +326,7 @@ static void pci_read_bases(struct pci_dev *dev, unsigned int howmany, int rom)
+ 		struct resource *res = &dev->resource[PCI_ROM_RESOURCE];
+ 		dev->rom_base_reg = rom;
+ 		res->flags = IORESOURCE_MEM | IORESOURCE_PREFETCH |
+-				IORESOURCE_READONLY | IORESOURCE_CACHEABLE |
+-				IORESOURCE_SIZEALIGN;
++				IORESOURCE_READONLY | IORESOURCE_SIZEALIGN;
+ 		__pci_read_base(dev, pci_bar_mem32, res, rom);
  	}
-+
- 	/*
- 	 * Mappings have to be page-aligned
- 	 */
+ }
+diff --git a/drivers/pnp/manager.c b/drivers/pnp/manager.c
+index 9357aa779048..7ad3295752ef 100644
+--- a/drivers/pnp/manager.c
++++ b/drivers/pnp/manager.c
+@@ -97,8 +97,6 @@ static int pnp_assign_mem(struct pnp_dev *dev, struct pnp_mem *rule, int idx)
+ 	/* ??? rule->flags restricted to 8 bits, all tests bogus ??? */
+ 	if (!(rule->flags & IORESOURCE_MEM_WRITEABLE))
+ 		res->flags |= IORESOURCE_READONLY;
+-	if (rule->flags & IORESOURCE_MEM_CACHEABLE)
+-		res->flags |= IORESOURCE_CACHEABLE;
+ 	if (rule->flags & IORESOURCE_MEM_RANGELENGTH)
+ 		res->flags |= IORESOURCE_RANGELENGTH;
+ 	if (rule->flags & IORESOURCE_MEM_SHADOWABLE)
+diff --git a/drivers/scsi/aic94xx/aic94xx_init.c b/drivers/scsi/aic94xx/aic94xx_init.c
+index 4b135cca42a1..140cb8e6fea2 100644
+--- a/drivers/scsi/aic94xx/aic94xx_init.c
++++ b/drivers/scsi/aic94xx/aic94xx_init.c
+@@ -100,12 +100,7 @@ static int asd_map_memio(struct asd_ha_struct *asd_ha)
+ 				   pci_name(asd_ha->pcidev));
+ 			goto Err;
+ 		}
+-		if (io_handle->flags & IORESOURCE_CACHEABLE)
+-			io_handle->addr = ioremap(io_handle->start,
+-						  io_handle->len);
+-		else
+-			io_handle->addr = ioremap_nocache(io_handle->start,
+-							  io_handle->len);
++		io_handle->addr = ioremap(io_handle->start, io_handle->len);
+ 		if (!io_handle->addr) {
+ 			asd_printk("couldn't map MBAR%d of %s\n", i==0?0:1,
+ 				   pci_name(asd_ha->pcidev));
+diff --git a/drivers/scsi/arcmsr/arcmsr_hba.c b/drivers/scsi/arcmsr/arcmsr_hba.c
+index 914c39f9f388..e4f77cad9fd8 100644
+--- a/drivers/scsi/arcmsr/arcmsr_hba.c
++++ b/drivers/scsi/arcmsr/arcmsr_hba.c
+@@ -259,10 +259,7 @@ static bool arcmsr_remap_pciregion(struct AdapterControlBlock *acb)
+ 		addr = (unsigned long)pci_resource_start(pdev, 0);
+ 		range = pci_resource_len(pdev, 0);
+ 		flags = pci_resource_flags(pdev, 0);
+-		if (flags & IORESOURCE_CACHEABLE)
+-			mem_base0 = ioremap(addr, range);
+-		else
+-			mem_base0 = ioremap_nocache(addr, range);
++		mem_base0 = ioremap(addr, range);
+ 		if (!mem_base0) {
+ 			pr_notice("arcmsr%d: memory mapping region fail\n",
+ 				acb->host->host_no);
+diff --git a/drivers/scsi/mvsas/mv_init.c b/drivers/scsi/mvsas/mv_init.c
+index d40d734aa53a..e654b5cec69e 100644
+--- a/drivers/scsi/mvsas/mv_init.c
++++ b/drivers/scsi/mvsas/mv_init.c
+@@ -324,13 +324,9 @@ int mvs_ioremap(struct mvs_info *mvi, int bar, int bar_ex)
+ 			goto err_out;
+ 
+ 		res_flag_ex = pci_resource_flags(pdev, bar_ex);
+-		if (res_flag_ex & IORESOURCE_MEM) {
+-			if (res_flag_ex & IORESOURCE_CACHEABLE)
+-				mvi->regs_ex = ioremap(res_start, res_len);
+-			else
+-				mvi->regs_ex = ioremap_nocache(res_start,
+-						res_len);
+-		} else
++		if (res_flag_ex & IORESOURCE_MEM)
++			mvi->regs_ex = ioremap(res_start, res_len);
++		else
+ 			mvi->regs_ex = (void *)res_start;
+ 		if (!mvi->regs_ex)
+ 			goto err_out;
+@@ -342,10 +338,7 @@ int mvs_ioremap(struct mvs_info *mvi, int bar, int bar_ex)
+ 		goto err_out;
+ 
+ 	res_flag = pci_resource_flags(pdev, bar);
+-	if (res_flag & IORESOURCE_CACHEABLE)
+-		mvi->regs = ioremap(res_start, res_len);
+-	else
+-		mvi->regs = ioremap_nocache(res_start, res_len);
++	mvi->regs = ioremap(res_start, res_len);
+ 
+ 	if (!mvi->regs) {
+ 		if (mvi->regs_ex && (res_flag_ex & IORESOURCE_MEM))
+diff --git a/drivers/video/fbdev/ocfb.c b/drivers/video/fbdev/ocfb.c
+index de9819660ca0..c9293aea8ec3 100644
+--- a/drivers/video/fbdev/ocfb.c
++++ b/drivers/video/fbdev/ocfb.c
+@@ -325,7 +325,6 @@ static int ocfb_probe(struct platform_device *pdev)
+ 		dev_err(&pdev->dev, "I/O resource request failed\n");
+ 		return -ENXIO;
+ 	}
+-	res->flags &= ~IORESOURCE_CACHEABLE;
+ 	fbdev->regs = devm_ioremap_resource(&pdev->dev, res);
+ 	if (IS_ERR(fbdev->regs))
+ 		return PTR_ERR(fbdev->regs);
+diff --git a/lib/devres.c b/lib/devres.c
+index fbe2aac522e6..f13a2468ff39 100644
+--- a/lib/devres.c
++++ b/lib/devres.c
+@@ -119,10 +119,9 @@ EXPORT_SYMBOL(devm_iounmap);
+  * @dev: generic device to handle the resource for
+  * @res: resource to be handled
+  *
+- * Checks that a resource is a valid memory region, requests the memory region
+- * and ioremaps it either as cacheable or as non-cacheable memory depending on
+- * the resource's flags. All operations are managed and will be undone on
+- * driver detach.
++ * Checks that a resource is a valid memory region, requests the memory
++ * region and ioremaps it. All operations are managed and will be undone
++ * on driver detach.
+  *
+  * Returns a pointer to the remapped memory or an ERR_PTR() encoded error code
+  * on failure. Usage example:
+@@ -153,11 +152,7 @@ void __iomem *devm_ioremap_resource(struct device *dev, struct resource *res)
+ 		return IOMEM_ERR_PTR(-EBUSY);
+ 	}
+ 
+-	if (res->flags & IORESOURCE_CACHEABLE)
+-		dest_ptr = devm_ioremap(dev, res->start, size);
+-	else
+-		dest_ptr = devm_ioremap_nocache(dev, res->start, size);
+-
++	dest_ptr = devm_ioremap(dev, res->start, size);
+ 	if (!dest_ptr) {
+ 		dev_err(dev, "ioremap failed for resource %pR\n", res);
+ 		devm_release_mem_region(dev, res->start, size);
+diff --git a/lib/pci_iomap.c b/lib/pci_iomap.c
+index bcce5f149310..e1930dbab2da 100644
+--- a/lib/pci_iomap.c
++++ b/lib/pci_iomap.c
+@@ -41,11 +41,8 @@ void __iomem *pci_iomap_range(struct pci_dev *dev,
+ 		len = maxlen;
+ 	if (flags & IORESOURCE_IO)
+ 		return __pci_ioport_map(dev, start, len);
+-	if (flags & IORESOURCE_MEM) {
+-		if (flags & IORESOURCE_CACHEABLE)
+-			return ioremap(start, len);
+-		return ioremap_nocache(start, len);
+-	}
++	if (flags & IORESOURCE_MEM)
++		return ioremap(start, len);
+ 	/* What? */
+ 	return NULL;
+ }
 
