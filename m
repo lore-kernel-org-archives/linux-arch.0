@@ -1,108 +1,181 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v2 21/25] fbdev: switch from ioremap_wt to memremap
-Date: Fri, 24 Jul 2015 22:39:56 -0400
-Message-ID: <20150725023955.8664.16490.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v2 09/25] arm: switch from ioremap_cache to memremap
+Date: Fri, 24 Jul 2015 22:38:48 -0400
+Message-ID: <20150725023848.8664.36275.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:7755 "EHLO mga11.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1030232AbbGYCpi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Jul 2015 22:45:38 -0400
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, linux-fbdev@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, Tomi Valkeinen <tomi.valkeinen@ti.com>, rmk+kernel@arm.linux.org.uk, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-In preparation for deprecating ioremap_wt() convert its usage in
-drivers/video/fbdev to memremap.
+In preparation for deprecating ioremap_cache() convert its usage in
+arch/arm[64]/ to memremap.
 
-Cc: Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>
-Cc: Tomi Valkeinen <tomi.valkeinen@ti.com>
-Cc: linux-fbdev@vger.kernel.org
+Cc: Russell King <rmk+kernel@arm.linux.org.uk>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/video/fbdev/amifb.c |    5 +++--
- drivers/video/fbdev/atafb.c |    5 +++--
- drivers/video/fbdev/hpfb.c  |    6 +++---
- 3 files changed, 9 insertions(+), 7 deletions(-)
+ arch/arm/include/asm/xen/page.h    |    4 ++--
+ arch/arm64/include/asm/acpi.h      |    5 +----
+ arch/arm64/include/asm/dmi.h       |    8 ++++----
+ arch/arm64/kernel/efi.c            |    9 +++++----
+ arch/arm64/kernel/smp_spin_table.c |   19 +++++++++----------
+ 5 files changed, 21 insertions(+), 24 deletions(-)
 
-diff --git a/drivers/video/fbdev/amifb.c b/drivers/video/fbdev/amifb.c
-index 1d702e13aaff..0cde451046d0 100644
---- a/drivers/video/fbdev/amifb.c
-+++ b/drivers/video/fbdev/amifb.c
-@@ -52,6 +52,7 @@
- #include <linux/ioport.h>
- #include <linux/platform_device.h>
- #include <linux/uaccess.h>
+diff --git a/arch/arm/include/asm/xen/page.h b/arch/arm/include/asm/xen/page.h
+index 1bee8ca12494..59c966e51af7 100644
+--- a/arch/arm/include/asm/xen/page.h
++++ b/arch/arm/include/asm/xen/page.h
+@@ -103,8 +103,8 @@ static inline bool set_phys_to_machine(unsigned long pfn, unsigned long mfn)
+ 	return __set_phys_to_machine(pfn, mfn);
+ }
+ 
+-#define xen_remap(cookie, size) ioremap_cache((cookie), (size))
+-#define xen_unmap(cookie) iounmap((cookie))
++#define xen_remap(cookie, size) memremap((cookie), (size), MEMREMAP_CACHE)
++#define xen_unmap(cookie) memunmap((cookie))
+ 
+ bool xen_arch_need_swiotlb(struct device *dev,
+ 			   unsigned long pfn,
+diff --git a/arch/arm64/include/asm/acpi.h b/arch/arm64/include/asm/acpi.h
+index 406485ed110a..5d7e46a1efdb 100644
+--- a/arch/arm64/include/asm/acpi.h
++++ b/arch/arm64/include/asm/acpi.h
+@@ -33,10 +33,7 @@
+ static inline void __iomem *acpi_os_ioremap(acpi_physical_address phys,
+ 					    acpi_size size)
+ {
+-	if (!page_is_ram(phys >> PAGE_SHIFT))
+-		return ioremap(phys, size);
+-
+-	return ioremap_cache(phys, size);
++	return memremap(phys, size, MEMREMAP_CACHE);
+ }
+ #define acpi_os_ioremap acpi_os_ioremap
+ 
+diff --git a/arch/arm64/include/asm/dmi.h b/arch/arm64/include/asm/dmi.h
+index 69d37d87b159..f3dae56c50da 100644
+--- a/arch/arm64/include/asm/dmi.h
++++ b/arch/arm64/include/asm/dmi.h
+@@ -22,10 +22,10 @@
+  * request a virtual mapping for configuration tables such as SMBIOS.
+  * This means we have to map them before use.
+  */
+-#define dmi_early_remap(x, l)		ioremap_cache(x, l)
+-#define dmi_early_unmap(x, l)		iounmap(x)
+-#define dmi_remap(x, l)			ioremap_cache(x, l)
+-#define dmi_unmap(x)			iounmap(x)
++#define dmi_early_remap(x, l)		memremap(x, l, MEMREMAP_CACHE)
++#define dmi_early_unmap(x, l)		memunmap(x)
++#define dmi_remap(x, l)			memremap(x, l, MEMREMAP_CACHE)
++#define dmi_unmap(x)			memunmap(x)
+ #define dmi_alloc(l)			kzalloc(l, GFP_KERNEL)
+ 
+ #endif
+diff --git a/arch/arm64/kernel/efi.c b/arch/arm64/kernel/efi.c
+index 9d4aa18f2a82..f0d6688cd62c 100644
+--- a/arch/arm64/kernel/efi.c
++++ b/arch/arm64/kernel/efi.c
+@@ -26,6 +26,7 @@
+ #include <linux/sched.h>
+ #include <linux/slab.h>
+ #include <linux/spinlock.h>
 +#include <linux/io.h>
  
- #include <asm/irq.h>
- #include <asm/amigahw.h>
-@@ -3705,8 +3706,8 @@ default_chipset:
- 	 * access the videomem with writethrough cache
+ #include <asm/cacheflush.h>
+ #include <asm/efi.h>
+@@ -290,8 +291,8 @@ static int __init arm64_enable_runtime_services(void)
+ 	pr_info("Remapping and enabling EFI services.\n");
+ 
+ 	mapsize = memmap.map_end - memmap.map;
+-	memmap.map = (__force void *)ioremap_cache((phys_addr_t)memmap.phys_map,
+-						   mapsize);
++	memmap.map = memremap((phys_addr_t) memmap.phys_map, mapsize,
++			MEMREMAP_CACHE);
+ 	if (!memmap.map) {
+ 		pr_err("Failed to remap EFI memory map\n");
+ 		return -1;
+@@ -299,8 +300,8 @@ static int __init arm64_enable_runtime_services(void)
+ 	memmap.map_end = memmap.map + mapsize;
+ 	efi.memmap = &memmap;
+ 
+-	efi.systab = (__force void *)ioremap_cache(efi_system_table,
+-						   sizeof(efi_system_table_t));
++	efi.systab = memremap(efi_system_table, sizeof(efi_system_table_t),
++			MEMREMAP_CACHE);
+ 	if (!efi.systab) {
+ 		pr_err("Failed to remap EFI System Table\n");
+ 		return -1;
+diff --git a/arch/arm64/kernel/smp_spin_table.c b/arch/arm64/kernel/smp_spin_table.c
+index aef3605a8c47..47da614f6215 100644
+--- a/arch/arm64/kernel/smp_spin_table.c
++++ b/arch/arm64/kernel/smp_spin_table.c
+@@ -21,11 +21,11 @@
+ #include <linux/of.h>
+ #include <linux/smp.h>
+ #include <linux/types.h>
++#include <linux/io.h>
+ 
+ #include <asm/cacheflush.h>
+ #include <asm/cpu_ops.h>
+ #include <asm/cputype.h>
+-#include <asm/io.h>
+ #include <asm/smp_plat.h>
+ 
+ extern void secondary_holding_pen(void);
+@@ -73,19 +73,19 @@ static int smp_spin_table_cpu_init(unsigned int cpu)
+ 
+ static int smp_spin_table_cpu_prepare(unsigned int cpu)
+ {
+-	__le64 __iomem *release_addr;
++	__le64 *release_addr;
+ 
+ 	if (!cpu_release_addr[cpu])
+ 		return -ENODEV;
+ 
+ 	/*
+ 	 * The cpu-release-addr may or may not be inside the linear mapping.
+-	 * As ioremap_cache will either give us a new mapping or reuse the
+-	 * existing linear mapping, we can use it to cover both cases. In
+-	 * either case the memory will be MT_NORMAL.
++	 * As memremap will either give us a new mapping or reuse the existing
++	 * linear mapping, we can use it to cover both cases. In either case
++	 * the memory will be MT_NORMAL.
  	 */
- 	info->fix.smem_start = (u_long)ZTWO_PADDR(videomemory);
--	videomemory = (u_long)ioremap_wt(info->fix.smem_start,
--					 info->fix.smem_len);
-+	videomemory = (u_long)memremap(info->fix.smem_start, info->fix.smem_len,
-+			MEMREMAP_WT);
- 	if (!videomemory) {
- 		dev_warn(&pdev->dev,
- 			 "Unable to map videomem cached writethrough\n");
-diff --git a/drivers/video/fbdev/atafb.c b/drivers/video/fbdev/atafb.c
-index d6ce613e12ad..5615e8c31ea2 100644
---- a/drivers/video/fbdev/atafb.c
-+++ b/drivers/video/fbdev/atafb.c
-@@ -55,12 +55,12 @@
- #include <linux/delay.h>
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/io.h>
+-	release_addr = ioremap_cache(cpu_release_addr[cpu],
+-				     sizeof(*release_addr));
++	release_addr = memremap(cpu_release_addr[cpu], sizeof(*release_addr),
++			MEMREMAP_CACHE);
+ 	if (!release_addr)
+ 		return -ENOMEM;
  
- #include <asm/setup.h>
- #include <linux/uaccess.h>
- #include <asm/pgtable.h>
- #include <asm/irq.h>
--#include <asm/io.h>
+@@ -97,15 +97,14 @@ static int smp_spin_table_cpu_prepare(unsigned int cpu)
+ 	 * the boot protocol.
+ 	 */
+ 	writeq_relaxed(__pa(secondary_holding_pen), release_addr);
+-	__flush_dcache_area((__force void *)release_addr,
+-			    sizeof(*release_addr));
++	__flush_dcache_area(release_addr, sizeof(*release_addr));
  
- #include <asm/atarihw.h>
- #include <asm/atariints.h>
-@@ -3185,7 +3185,8 @@ int __init atafb_init(void)
- 		/* Map the video memory (physical address given) to somewhere
- 		 * in the kernel address space.
- 		 */
--		external_screen_base = ioremap_wt(external_addr, external_len);
-+		external_screen_base = memremap(external_addr, external_len,
-+				MEMREMAP_WT);
- 		if (external_vgaiobase)
- 			external_vgaiobase =
- 			  (unsigned long)ioremap(external_vgaiobase, 0x10000);
-diff --git a/drivers/video/fbdev/hpfb.c b/drivers/video/fbdev/hpfb.c
-index 9476d196f510..d08c320b06fc 100644
---- a/drivers/video/fbdev/hpfb.c
-+++ b/drivers/video/fbdev/hpfb.c
-@@ -14,8 +14,8 @@
- #include <linux/init.h>
- #include <linux/fb.h>
- #include <linux/dio.h>
-+#include <linux/io.h>
+ 	/*
+ 	 * Send an event to wake up the secondary CPU.
+ 	 */
+ 	sev();
  
--#include <asm/io.h>
- #include <asm/uaccess.h>
+-	iounmap(release_addr);
++	memunmap(release_addr);
  
- static struct fb_info fb_info = {
-@@ -241,8 +241,8 @@ static int hpfb_init_one(unsigned long phys_base, unsigned long virt_base)
- 	fb_info.fix.line_length = fb_width;
- 	fb_height = (in_8(fb_regs + HPFB_FBHMSB) << 8) | in_8(fb_regs + HPFB_FBHLSB);
- 	fb_info.fix.smem_len = fb_width * fb_height;
--	fb_start = (unsigned long)ioremap_wt(fb_info.fix.smem_start,
--					     fb_info.fix.smem_len);
-+	fb_start = (unsigned long) memremap(fb_info.fix.smem_start,
-+					     fb_info.fix.smem_len, MEMREMAP_WT);
- 	hpfb_defined.xres = (in_8(fb_regs + HPFB_DWMSB) << 8) | in_8(fb_regs + HPFB_DWLSB);
- 	hpfb_defined.yres = (in_8(fb_regs + HPFB_DHMSB) << 8) | in_8(fb_regs + HPFB_DHLSB);
- 	hpfb_defined.xres_virtual = hpfb_defined.xres;
+ 	return 0;
+ }
