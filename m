@@ -1,109 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:11733 "EHLO mga11.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754922AbbGYCoE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Jul 2015 22:44:04 -0400
-Subject: [PATCH v2 04/25] mm: enhance region_is_ram() to distinguish
- 'unknown' vs 'mixed'
-From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 24 Jul 2015 22:38:21 -0400
-Message-ID: <20150725023821.8664.81275.stgit@dwillia2-desk3.amr.corp.intel.com>
-In-Reply-To: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
-References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
+Received: from mail-gw3-out.broadcom.com ([216.31.210.64]:31252 "EHLO
+	mail-gw3-out.broadcom.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753063AbbGZLMo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Jul 2015 07:12:44 -0400
+Message-ID: <55B4C0A8.9000909@broadcom.com>
+Date: Sun, 26 Jul 2015 13:12:40 +0200
+From: Arend van Spriel <arend@broadcom.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Subject: Re: [PATCH 2/3] brcmfmac: dhd_sdio.c: use existing atomic_or primitive
+References: <1436429599-10762-1-git-send-email-vgupta@synopsys.com>	<1436429599-10762-3-git-send-email-vgupta@synopsys.com> <87twstbi9p.fsf@kamboji.qca.qualcomm.com> <55B2743F.6060304@synopsys.com>
+In-Reply-To: <55B2743F.6060304@synopsys.com>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150725023821.wsvG9kqrcW18Z7PlokdaK8UPVEGMmEXnoROK072SAcI@z>
+To: Vineet Gupta <vgupta@synopsys.com>, Kalle Valo <kvalo@codeaurora.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Brett Rudley <brudley@broadcom.com>, "Franky (Zhenhui) Lin" <frankyl@broadcom.com>, Hante Meuleman <meuleman@broadcom.com>, Pieter-Paul Giesberts <pieterpg@broadcom.com>, Daniel Kim <dekim@broadcom.com>, linux-wireless@vger.kernel.org, brcm80211-dev-list@broadcom.com, netdev@vger.kernel.org
+Message-ID: <20150726111240.CePgmzM-iaJFVajc4gSHeicqZftw24mOl6JwK18_HTo@z>
 
-region_is_ram() is used to prevent the establishment of aliased mappings
-to physical "System RAM" with incompatible cache settings.  However, it
-uses "-1" to indicate both "unknown" memory ranges (ranges not described
-by platform firmware) and "mixed" ranges (where the parameters describe
-a range that partially overlaps "System RAM").
+On 07/24/2015 07:22 PM, Vineet Gupta wrote:
+> On Friday 24 July 2015 08:02 PM, Kalle Valo wrote:
+>> Vineet Gupta <Vineet.Gupta1@synopsys.com> writes:
+>>
+>>>> There's already a generic implementation so use that instead.
+>>>> ---
+>>>> I'm not sure if the driver usage of atomic_or?() is correct in terms of
+>>>> storage size of @val for 64 bit arches.
+>>>>
+>>>> Assuming LP64 programming model for linux on say x86_64: atomic_or()
+>>>> callers in this driver use long (sana 64 bit) storage and pass it to
+>>>> atomic_orr/atomic_or which downcasts it to 32 bits. Is that OK ?
+>>>> ---
+>>>> Cc: Brett Rudley <brudley@broadcom.com>
+>>>> Cc: Arend van Spriel <arend@broadcom.com>
+>>>> Cc: "Franky (Zhenhui) Lin" <frankyl@broadcom.com>
+>>>> Cc: Hante Meuleman <meuleman@broadcom.com>
+>>>> Cc: Kalle Valo <kvalo@codeaurora.org>
+>>>> Cc: Pieter-Paul Giesberts <pieterpg@broadcom.com>
+>>>> Cc: Daniel Kim <dekim@broadcom.com>
+>>>> Cc: linux-wireless@vger.kernel.org
+>>>> Cc: brcm80211-dev-list@broadcom.com
+>>>> Cc: Peter Zijlstra <peterz@infradead.org>
+>>>> Cc: Ingo Molnar <mingo@kernel.org>
+>>>> Cc: netdev@vger.kernel.org
+>>>> Cc: linux-arch@vger.kernel.org
+>>>> Cc: linux-kernel@vger.kernel.org
+>>>> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+>>>>
+>>>> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+>> What's the plan with this patch? Should I take it to my
+>> wireless-drivers-next tree or will someone else take it?
+>
+>
+> Per last discussion on this topic, Arend wanted to discuss abt this with Hante.
+> I'm not taking it anyways so feel free to pick it up if you want !
 
-Fix this up by explicitly tracking the "unknown" vs "mixed" resource
-cases. In addition to clarifying that "-1" means the requested spanned
-RAM and non-RAM resource, this re-write also adds support for detecting
-when the requested range completely covers all of a resource.
+Well, that was before your "timeline" clarification about the generic 
+function. One what tree is this patch based?
 
-Finally, the implementation treats overlaps between "unknown" and RAM as
-RAM.
-
-Cc: Toshi Kani <toshi.kani@hp.com>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
----
- kernel/resource.c |   43 +++++++++++++++++++++++--------------------
- 1 file changed, 23 insertions(+), 20 deletions(-)
-
-diff --git a/kernel/resource.c b/kernel/resource.c
-index fed052a1bc9f..119b282985f9 100644
---- a/kernel/resource.c
-+++ b/kernel/resource.c
-@@ -493,39 +493,42 @@ int __weak page_is_ram(unsigned long pfn)
- EXPORT_SYMBOL_GPL(page_is_ram);
- 
- /*
-- * Search for a resouce entry that fully contains the specified region.
-- * If found, return 1 if it is RAM, 0 if not.
-- * If not found, or region is not fully contained, return -1
-+ * Check if the specified region partially overlaps or fully eclipses "System
-+ * RAM". Return '0' if the region does not overlap RAM, return '-1' if the
-+ * region overlaps RAM and another resource, and return '1' if the region
-+ * overlaps RAM and no other defined resource. Note, that '1' is also returned
-+ * in the case when the specified region overlaps RAM and undefined memory
-+ * holes.
-  *
-  * Used by the ioremap functions to ensure the user is not remapping RAM and is
-  * a vast speed up over walking through the resource table page by page.
-  */
- int region_is_ram(resource_size_t start, unsigned long size)
- {
--	struct resource *p;
--	resource_size_t end = start + size - 1;
- 	unsigned long flags = IORESOURCE_MEM | IORESOURCE_BUSY;
-+	resource_size_t end = start + size - 1;
- 	const char *name = "System RAM";
--	int ret = -1;
-+	int ram = 0; int other = 0;
-+	struct resource *p;
- 
- 	read_lock(&resource_lock);
- 	for (p = iomem_resource.child; p ; p = p->sibling) {
--		if (p->end < start)
--			continue;
--
--		if (p->start <= start && end <= p->end) {
--			/* resource fully contains region */
--			if ((p->flags != flags) || strcmp(p->name, name))
--				ret = 0;
--			else
--				ret = 1;
--			break;
--		}
--		if (end < p->start)
--			break;	/* not found */
-+		bool is_ram = strcmp(p->name, name) == 0 && p->flags == flags;
-+
-+		if (start >= p->start && start <= p->end)
-+			is_ram ? ram++ : other++;
-+		if (end >= p->start && end <= p->end)
-+			is_ram ? ram++ : other++;
-+		if (p->start >= start && p->end <= end)
-+			is_ram ? ram++ : other++;
- 	}
- 	read_unlock(&resource_lock);
--	return ret;
-+
-+	if (other == 0)
-+		return !!ram;
-+	if (ram)
-+		return -1;
-+	return 0;
- }
- 
- void __weak arch_remove_reservations(struct resource *avail)
-
+Regards,
+Arend
