@@ -1,47 +1,57 @@
-From: "Rafael J. Wysocki" <rjw@rjwysocki.net>
-Subject: Re: [PATCH v2 13/25] acpi: switch from ioremap_cache to memremap
-Date: Sun, 26 Jul 2015 01:55:54 +0200
-Message-ID: <2011199.d8qtUaiDBv@vostro.rjw.lan>
-References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com> <20150725023909.8664.13169.stgit@dwillia2-desk3.amr.corp.intel.com>
+From: Arend van Spriel <arend@broadcom.com>
+Subject: Re: [PATCH 2/3] brcmfmac: dhd_sdio.c: use existing atomic_or primitive
+Date: Sun, 26 Jul 2015 13:12:40 +0200
+Message-ID: <55B4C0A8.9000909@broadcom.com>
+References: <1436429599-10762-1-git-send-email-vgupta@synopsys.com>	<1436429599-10762-3-git-send-email-vgupta@synopsys.com> <87twstbi9p.fsf@kamboji.qca.qualcomm.com> <55B2743F.6060304@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from v094114.home.net.pl ([79.96.170.134]:51209 "HELO
-	v094114.home.net.pl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with SMTP id S1754946AbbGYX3E (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 25 Jul 2015 19:29:04 -0400
-In-Reply-To: <20150725023909.8664.13169.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Bob Moore <robert.moore@intel.com>, linux-kernel@vger.kernel.org, Lv Zheng <lv.zheng@intel.com>, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <55B2743F.6060304@synopsys.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Vineet Gupta <vgupta@synopsys.com>, Kalle Valo <kvalo@codeaurora.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Brett Rudley <brudley@broadcom.com>, "Franky (Zhenhui) Lin" <frankyl@broadcom.com>, Hante Meuleman <meuleman@broadcom.com>, Pieter-Paul Giesberts <pieterpg@broadcom.com>, Daniel Kim <dekim@broadcom.com>, linux-wireless@vger.kernel.org, brcm80211-dev-list@broadcom.com, netdev@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Friday, July 24, 2015 10:39:09 PM Dan Williams wrote:
-> In preparation for deprecating ioremap_cache() convert its usage in
-> drivers/acpi and include/acpi/ to memremap.  This includes dropping the
-> __iomem annotation throughout ACPI since the memremap can be treated as
-> a normal memory pointer.
-> 
-> Finally, memremap automatically handles requests to map normal memory
-> pages, so this also drops the calls to "should_use_kmap()".
-> 
-> Cc: Bob Moore <robert.moore@intel.com>
-> Cc: Lv Zheng <lv.zheng@intel.com>
-> Cc: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
-> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-> ---
->  arch/arm64/include/asm/acpi.h |    5 +--
->  drivers/acpi/apei/einj.c      |    9 +++--
->  drivers/acpi/apei/erst.c      |    6 ++--
->  drivers/acpi/nvs.c            |    6 ++--
->  drivers/acpi/osl.c            |   70 +++++++++++------------------------------
->  include/acpi/acpi_io.h        |    6 ++--
->  6 files changed, 35 insertions(+), 67 deletions(-)
+On 07/24/2015 07:22 PM, Vineet Gupta wrote:
+> On Friday 24 July 2015 08:02 PM, Kalle Valo wrote:
+>> Vineet Gupta <Vineet.Gupta1@synopsys.com> writes:
+>>
+>>>> There's already a generic implementation so use that instead.
+>>>> ---
+>>>> I'm not sure if the driver usage of atomic_or?() is correct in terms of
+>>>> storage size of @val for 64 bit arches.
+>>>>
+>>>> Assuming LP64 programming model for linux on say x86_64: atomic_or()
+>>>> callers in this driver use long (sana 64 bit) storage and pass it to
+>>>> atomic_orr/atomic_or which downcasts it to 32 bits. Is that OK ?
+>>>> ---
+>>>> Cc: Brett Rudley <brudley@broadcom.com>
+>>>> Cc: Arend van Spriel <arend@broadcom.com>
+>>>> Cc: "Franky (Zhenhui) Lin" <frankyl@broadcom.com>
+>>>> Cc: Hante Meuleman <meuleman@broadcom.com>
+>>>> Cc: Kalle Valo <kvalo@codeaurora.org>
+>>>> Cc: Pieter-Paul Giesberts <pieterpg@broadcom.com>
+>>>> Cc: Daniel Kim <dekim@broadcom.com>
+>>>> Cc: linux-wireless@vger.kernel.org
+>>>> Cc: brcm80211-dev-list@broadcom.com
+>>>> Cc: Peter Zijlstra <peterz@infradead.org>
+>>>> Cc: Ingo Molnar <mingo@kernel.org>
+>>>> Cc: netdev@vger.kernel.org
+>>>> Cc: linux-arch@vger.kernel.org
+>>>> Cc: linux-kernel@vger.kernel.org
+>>>> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+>>>>
+>>>> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+>> What's the plan with this patch? Should I take it to my
+>> wireless-drivers-next tree or will someone else take it?
+>
+>
+> Per last discussion on this topic, Arend wanted to discuss abt this with Hante.
+> I'm not taking it anyways so feel free to pick it up if you want !
 
-Need to talk to Bob/Lv about the name change in acpi_io.h.
+Well, that was before your "timeline" clarification about the generic 
+function. One what tree is this patch based?
 
-Apart from that I have no objections.
-
-Thanks,
-Rafael
+Regards,
+Arend
