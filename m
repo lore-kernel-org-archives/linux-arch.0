@@ -1,59 +1,34 @@
-From: Vlastimil Babka <vbabka@suse.cz>
-Subject: Re: [PATCH V5 0/7] Allow user to request memory to be locked on page
- fault
-Date: Mon, 27 Jul 2015 11:08:15 +0200
-Message-ID: <55B5F4FF.9070604@suse.cz>
-References: <1437773325-8623-1-git-send-email-emunson@akamai.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v3 1/8] atomics: add acquire/release/relaxed variants of
+ some atomic operations
+Date: Mon, 27 Jul 2015 11:14:30 +0200
+Message-ID: <20150727091430.GP19282@twins.programming.kicks-ass.net>
+References: <1437746681-2809-1-git-send-email-will.deacon@arm.com>
+ <1437746681-2809-2-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1437773325-8623-1-git-send-email-emunson@akamai.com>
-Sender: owner-linux-mm@kvack.org
-To: Eric B Munson <emunson@akamai.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Ralf Baechle <ralf@linux-mips.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from casper.infradead.org ([85.118.1.10]:37998 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751071AbbG0JOh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2015 05:14:37 -0400
+Content-Disposition: inline
+In-Reply-To: <1437746681-2809-2-git-send-email-will.deacon@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org, Waiman.Long@hp.com, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com
 
-On 07/24/2015 11:28 PM, Eric B Munson wrote:
+On Fri, Jul 24, 2015 at 03:04:34PM +0100, Will Deacon wrote:
 
-...
+> This patch introduces three new ordering semantics for these operations:
+> 
+>   - *_relaxed: No ordering guarantees. This is similar to what we have
+>                already for the non-return atomics (e.g. atomic_add).
+> 
+>   - *_acquire: ACQUIRE semantics, similar to smp_load_acquire.
+> 
+>   - *_release: RELEASE semantics, similar to smp_store_release.
 
-> Changes from V4:
-> Drop all architectures for new sys call entries except x86[_64] and MIPS
-> Drop munlock2 and munlockall2
-> Make VM_LOCKONFAULT a modifier to VM_LOCKED only to simplify book keeping
-> Adjust tests to match
-
-Hi, thanks for considering my suggestions. Well, I do hope there were 
-correct as API's are hard and I'm no API expert. But since API's are 
-also impossible to change after merging, I'm sorry but I'll keep 
-pestering for one last thing. Thanks again for persisting, I do believe 
-it's for the good thing!
-
-The thing is that I still don't like that one has to call 
-mlock2(MLOCK_LOCKED) to get the equivalent of the old mlock(). Why is 
-that flag needed? We have two modes of locking now, and v5 no longer 
-treats them separately in vma flags. But having two flags gives us four 
-possible combinations, so two of them would serve nothing but to confuse 
-the programmer IMHO. What will mlock2() without flags do? What will 
-mlock2(MLOCK_LOCKED | MLOCK_ONFAULT) do? (Note I haven't studied the 
-code yet, as having agreed on the API should come first. But I did 
-suggest documenting these things more thoroughly too...)
-OK I checked now and both cases above seem to return EINVAL.
-
-So about the only point I see in MLOCK_LOCKED flag is parity with 
-MAP_LOCKED for mmap(). But as Kirill said (and me before as well) 
-MAP_LOCKED is broken anyway so we shouldn't twist the rest just of the 
-API to keep the poor thing happier in its misery.
-
-Also note that AFAICS you don't have MCL_LOCKED for mlockall() so 
-there's no full parity anyway. But please don't fix that by adding 
-MCL_LOCKED :)
-
-Thanks!
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Do we want to further specify that for the RmW operations the Read/load
+will provide the acquire and the Write/store the release?
