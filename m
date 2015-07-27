@@ -1,72 +1,117 @@
 From: "Luis R. Rodriguez" <mcgrof@suse.com>
-Subject: Re: [PATCH v2 04/25] mm: enhance region_is_ram() to distinguish
- 'unknown' vs 'mixed'
-Date: Tue, 28 Jul 2015 00:50:13 +0200
-Message-ID: <20150727225013.GU30479@wotan.suse.de>
+Subject: Re: [PATCH v2 08/25] arch: introduce memremap()
+Date: Tue, 28 Jul 2015 01:17:55 +0200
+Message-ID: <20150727231755.GV30479@wotan.suse.de>
 References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20150725023821.8664.81275.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150725023842.8664.97620.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:58508 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754401AbbG0WuS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Jul 2015 18:50:18 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20150725023821.8664.81275.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <20150725023842.8664.97620.stgit@dwillia2-desk3.amr.corp.intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Dan Williams <dan.j.williams@intel.com>
-Cc: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Cc: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 24, 2015 at 10:38:21PM -0400, Dan Williams wrote:
-> region_is_ram() is used to prevent the establishment of aliased mappings
-> to physical "System RAM" with incompatible cache settings.  However, it
-> uses "-1" to indicate both "unknown" memory ranges (ranges not described
-> by platform firmware) and "mixed" ranges (where the parameters describe
-> a range that partially overlaps "System RAM").
-> 
-> Fix this up by explicitly tracking the "unknown" vs "mixed" resource
-> cases. In addition to clarifying that "-1" means the requested spanned
-> RAM and non-RAM resource, this re-write also adds support for detecting
-> when the requested range completely covers all of a resource.
-> 
-> Finally, the implementation treats overlaps between "unknown" and RAM as
-> RAM.
-> 
-> Cc: Toshi Kani <toshi.kani@hp.com>
-> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-> ---
->  kernel/resource.c |   43 +++++++++++++++++++++++--------------------
->  1 file changed, 23 insertions(+), 20 deletions(-)
-> 
-> diff --git a/kernel/resource.c b/kernel/resource.c
-> index fed052a1bc9f..119b282985f9 100644
-> --- a/kernel/resource.c
-> +++ b/kernel/resource.c
-> @@ -493,39 +493,42 @@ int __weak page_is_ram(unsigned long pfn)
->  EXPORT_SYMBOL_GPL(page_is_ram);
->  
->  /*
-> - * Search for a resouce entry that fully contains the specified region.
-> - * If found, return 1 if it is RAM, 0 if not.
-> - * If not found, or region is not fully contained, return -1
-> + * Check if the specified region partially overlaps or fully eclipses "System
-> + * RAM". Return '0' if the region does not overlap RAM, return '-1' if the
-> + * region overlaps RAM and another resource, and return '1' if the region
-> + * overlaps RAM and no other defined resource. Note, that '1' is also returned
-> + * in the case when the specified region overlaps RAM and undefined memory
-> + * holes.
->   *
->   * Used by the ioremap functions to ensure the user is not remapping RAM and is
->   * a vast speed up over walking through the resource table page by page.
->   */
->  int region_is_ram(resource_size_t start, unsigned long size)
->  {
+On Fri, Jul 24, 2015 at 10:38:42PM -0400, Dan Williams wrote:
+> Existing users of ioremap_cache() are mapping memory that is known in
+> advance to not have i/o side effects.  These users are forced to cast
+> away the __iomem annotation, or otherwise neglect to fix the sparse
+> errors thrown when dereferencing pointers to this memory.  Provide
+> memremap() as a non __iomem annotated ioremap_*() in the case when
+> ioremap is otherwise a pointer to memory.
 
-There not many user of region_is_ram() so changing region_is_ram() to return an
-enum and thereby making it easier to both extend this documention and read the
-code exactly what it is returning would be of large value here and would not be
-much work.
+Ok so a special use case.
+
+> Outside of ioremap() and
+> ioremap_nocache(), the expectation is that most calls to
+> ioremap_<type>() are seeking memory-like semantics (e.g.  speculative
+> reads, and prefetching permitted).  These callsites can be moved to
+> memremap() over time.
+
+Such memory-like smantics are not well defined yet and this has caused
+issues over expectations over a slew of APIs. As you note above
+your own defined 'semantics' so far for memremap are just that there are
+no i/o side effects, when the mapped memory is just a pointer to memory,
+as such I do not think its fair to set the excpectations that we'll
+switch all other ioremap_*() callers to the same memremap() API. Now,
+it may be a good idea to use something similar, ie, to pass flags,
+but setting the expectations outright to move to memremap() without having
+any agreement having been made over semantics seems uncalled for at this
+point in time, specially when you are noting that the expectations for
+both sets of calls are different.
+
+So perhaps:
+
+"
+Outside of ioremap() and ioremap_nocache(), all other ioremap_<type>()
+variant calls are seeking memory-like semantics (e.g.  speculative
+reads, and prefetching permitted) and all calls expecations currently
+differ depending on architecture. Once and if we get agreement on such
+semantics we may be able to move such ioremap_*() variant calls to
+a similar API where the semantics required are clearly spelled out
+and well defined and passed as arguments.
+"
+
+> diff --git a/kernel/memremap.c b/kernel/memremap.c
+> new file mode 100644
+> index 000000000000..ba206fd11785
+> --- /dev/null
+> +++ b/kernel/memremap.c
+> @@ -0,0 +1,82 @@
+> +/*
+> + * Copyright(c) 2015 Intel Corporation. All rights reserved.
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of version 2 of the GNU General Public License as
+> + * published by the Free Software Foundation.
+> + *
+> + * This program is distributed in the hope that it will be useful, but
+> + * WITHOUT ANY WARRANTY; without even the implied warranty of
+> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+> + * General Public License for more details.
+> + */
+> +#include <linux/types.h>
+> +#include <linux/io.h>
+> +#include <linux/mm.h>
+> +
+> +#ifndef ioremap_cache
+> +/* temporary while we convert existing ioremap_cache users to memremap */
+> +__weak void __iomem *ioremap_cache(resource_size_t offset, unsigned long size)
+> +{
+> +	return ioremap(offset, size);
+> +}
+> +#endif
+> +
+> +/*
+> + * memremap() is "ioremap" for cases where it is known that the resource
+> + * being mapped does not have i/o side effects and the __iomem
+> + * annotation is not applicable.
+> + */
+> +void *memremap(resource_size_t offset, size_t size, unsigned long flags)
+> +{
+> +	int is_ram = region_is_ram(offset, size);
+> +	void *addr = NULL;
+> +
+> +	if (is_ram < 0) {
+> +		WARN_ONCE(1, "memremap attempted on mixed range %pa size: %zu\n",
+> +				&offset, size);
+> +		return NULL;
+> +	}
+> +
+> +	/* Try all mapping types requested until one returns non-NULL */
+> +	if (flags & MEMREMAP_CACHE) {
+> +		flags &= ~MEMREMAP_CACHE;
+> +		/*
+> +		 * MEMREMAP_CACHE is special in that it can be satisifed
+> +		 * from the direct map.  Some archs depend on the
+> +		 * capability of memremap() to autodetect cases where
+> +		 * the requested range is potentially in "System RAM"
+> +		 */
+> +		if (is_ram)
+> +			addr = __va(offset);
+
+The no MMU case seems to match this, can that be switch to this?
 
   Luis
