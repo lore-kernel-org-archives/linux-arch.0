@@ -1,57 +1,59 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH v2 24/25] arch: remove ioremap_wt, replace with
-	arch_memremap
-Date: Mon, 27 Jul 2015 10:03:48 +0200
-Message-ID: <20150727080347.GA18599@lst.de>
-References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com> <20150725024015.8664.42950.stgit@dwillia2-desk3.amr.corp.intel.com>
+From: Vlastimil Babka <vbabka@suse.cz>
+Subject: Re: [PATCH V5 0/7] Allow user to request memory to be locked on page
+ fault
+Date: Mon, 27 Jul 2015 11:08:15 +0200
+Message-ID: <55B5F4FF.9070604@suse.cz>
+References: <1437773325-8623-1-git-send-email-emunson@akamai.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:36421 "EHLO newverein.lst.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751203AbbG0IDu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Jul 2015 04:03:50 -0400
-Content-Disposition: inline
-In-Reply-To: <20150725024015.8664.42950.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, toshi.kani@hp.com, Arnd Bergmann <arnd@arndb.de>, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1437773325-8623-1-git-send-email-emunson@akamai.com>
+Sender: owner-linux-mm@kvack.org
+To: Eric B Munson <emunson@akamai.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Ralf Baechle <ralf@linux-mips.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-> +++ b/arch/frv/include/asm/io.h
-> @@ -17,8 +17,6 @@
->  
->  #ifdef __KERNEL__
->  
-> -#define ARCH_HAS_IOREMAP_WT
-> -
->  #include <linux/types.h>
->  #include <asm/virtconvert.h>
->  #include <asm/string.h>
-> @@ -267,20 +265,17 @@ static inline void __iomem *ioremap_nocache(unsigned long physaddr, unsigned lon
->  	return __ioremap(physaddr, size, IOMAP_NOCACHE_SER);
->  }
->  
-> -static inline void __iomem *ioremap_wt(unsigned long physaddr, unsigned long size)
-> -{
-> -	return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
-> -}
-> -
-> -static inline void __iomem *ioremap_fullcache(unsigned long physaddr, unsigned long size)
-> -{
-> -	return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
-> -}
+On 07/24/2015 11:28 PM, Eric B Munson wrote:
 
+...
 
-> +void *arch_memremap(resource_size_t offset, size_t size, unsigned long flags)
-> +{
-> +	return (void *) offset;
-> +}
-> +EXPORT_SYMBOL(arch_memremap);
+> Changes from V4:
+> Drop all architectures for new sys call entries except x86[_64] and MIPS
+> Drop munlock2 and munlockall2
+> Make VM_LOCKONFAULT a modifier to VM_LOCKED only to simplify book keeping
+> Adjust tests to match
 
-This doesn't look like a correct replacement.
+Hi, thanks for considering my suggestions. Well, I do hope there were 
+correct as API's are hard and I'm no API expert. But since API's are 
+also impossible to change after merging, I'm sorry but I'll keep 
+pestering for one last thing. Thanks again for persisting, I do believe 
+it's for the good thing!
 
-Also shouldn't the replacements of ioremap_fullcache or ioremap_wc be
-in the previous patch?
+The thing is that I still don't like that one has to call 
+mlock2(MLOCK_LOCKED) to get the equivalent of the old mlock(). Why is 
+that flag needed? We have two modes of locking now, and v5 no longer 
+treats them separately in vma flags. But having two flags gives us four 
+possible combinations, so two of them would serve nothing but to confuse 
+the programmer IMHO. What will mlock2() without flags do? What will 
+mlock2(MLOCK_LOCKED | MLOCK_ONFAULT) do? (Note I haven't studied the 
+code yet, as having agreed on the API should come first. But I did 
+suggest documenting these things more thoroughly too...)
+OK I checked now and both cases above seem to return EINVAL.
 
-A few more similar issues pop up for other architectures as well.
+So about the only point I see in MLOCK_LOCKED flag is parity with 
+MAP_LOCKED for mmap(). But as Kirill said (and me before as well) 
+MAP_LOCKED is broken anyway so we shouldn't twist the rest just of the 
+API to keep the poor thing happier in its misery.
+
+Also note that AFAICS you don't have MCL_LOCKED for mlockall() so 
+there's no full parity anyway. But please don't fix that by adding 
+MCL_LOCKED :)
+
+Thanks!
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
