@@ -1,62 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f174.google.com ([209.85.212.174]:38593 "EHLO
-	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750779AbbG0HsL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2015 03:48:11 -0400
-Received: by wibxm9 with SMTP id xm9so103862969wib.1
-        for <linux-arch@vger.kernel.org>; Mon, 27 Jul 2015 00:48:10 -0700 (PDT)
-Date: Mon, 27 Jul 2015 09:50:50 +0200
-From: Daniel Vetter <daniel@ffwll.ch>
-Subject: Re: [Intel-gfx] [PATCH v2 12/25] i915: switch from acpi_os_ioremap
- to ioremap
-Message-ID: <20150727075050.GK16722@phenom.ffwll.local>
-References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20150725023904.8664.84461.stgit@dwillia2-desk3.amr.corp.intel.com>
+Received: from mx2.suse.de ([195.135.220.15]:60275 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751217AbbG0JIZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 27 Jul 2015 05:08:25 -0400
+Subject: Re: [PATCH V5 0/7] Allow user to request memory to be locked on page
+ fault
+References: <1437773325-8623-1-git-send-email-emunson@akamai.com>
+From: Vlastimil Babka <vbabka@suse.cz>
+Message-ID: <55B5F4FF.9070604@suse.cz>
+Date: Mon, 27 Jul 2015 11:08:15 +0200
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20150725023904.8664.84461.stgit@dwillia2-desk3.amr.corp.intel.com>
+In-Reply-To: <1437773325-8623-1-git-send-email-emunson@akamai.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, David Airlie <airlied@linux.ie>, intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, Daniel Vetter <daniel.vetter@intel.com>, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150727075050.ns_Eh_RGkHnCWslkT2zvMByJMDZe0e556h-7Vu3zbPo@z>
+To: Eric B Munson <emunson@akamai.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Ralf Baechle <ralf@linux-mips.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20150727090815.4ciZJ4-KhDFnxF3YB69oqpQpUSr0i1ln1Kvs1k1-4Xw@z>
 
-On Fri, Jul 24, 2015 at 10:39:04PM -0400, Dan Williams wrote:
-> acpi_os_ioremap uses cached mappings, however it appears that i915
-> wants to read dynamic platform state.  Switch to ioremap() to prevent it
-> reading stale state from cache.
-> 
-> Cc: Daniel Vetter <daniel.vetter@intel.com>
-> Cc: Jani Nikula <jani.nikula@linux.intel.com>
-> Cc: intel-gfx@lists.freedesktop.org
-> Cc: David Airlie <airlied@linux.ie>
-> Cc: dri-devel@lists.freedesktop.org
-> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-> ---
->  drivers/gpu/drm/i915/intel_opregion.c |    2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/drivers/gpu/drm/i915/intel_opregion.c b/drivers/gpu/drm/i915/intel_opregion.c
-> index 481337436f72..16ba7c67410d 100644
-> --- a/drivers/gpu/drm/i915/intel_opregion.c
-> +++ b/drivers/gpu/drm/i915/intel_opregion.c
-> @@ -863,7 +863,7 @@ int intel_opregion_setup(struct drm_device *dev)
->  	INIT_WORK(&opregion->asle_work, asle_work);
->  #endif
->  
-> -	base = acpi_os_ioremap(asls, OPREGION_SIZE);
-> +	base = ioremap(asls, OPREGION_SIZE);
+On 07/24/2015 11:28 PM, Eric B Munson wrote:
 
-OpRegion is cached memory shared with the firmware afaik, we probably want
-a memremap here and switch away from the ioread/write stuff. We have a
-similar confusion going on for the vbt parsing (which on anything but
-really old machines is also just normal memory).
+...
 
-Same holds for gma500, which is just a copy of i915 for some special
-platforms.
--Daniel
--- 
-Daniel Vetter
-Software Engineer, Intel Corporation
-http://blog.ffwll.ch
+> Changes from V4:
+> Drop all architectures for new sys call entries except x86[_64] and MIPS
+> Drop munlock2 and munlockall2
+> Make VM_LOCKONFAULT a modifier to VM_LOCKED only to simplify book keeping
+> Adjust tests to match
+
+Hi, thanks for considering my suggestions. Well, I do hope there were 
+correct as API's are hard and I'm no API expert. But since API's are 
+also impossible to change after merging, I'm sorry but I'll keep 
+pestering for one last thing. Thanks again for persisting, I do believe 
+it's for the good thing!
+
+The thing is that I still don't like that one has to call 
+mlock2(MLOCK_LOCKED) to get the equivalent of the old mlock(). Why is 
+that flag needed? We have two modes of locking now, and v5 no longer 
+treats them separately in vma flags. But having two flags gives us four 
+possible combinations, so two of them would serve nothing but to confuse 
+the programmer IMHO. What will mlock2() without flags do? What will 
+mlock2(MLOCK_LOCKED | MLOCK_ONFAULT) do? (Note I haven't studied the 
+code yet, as having agreed on the API should come first. But I did 
+suggest documenting these things more thoroughly too...)
+OK I checked now and both cases above seem to return EINVAL.
+
+So about the only point I see in MLOCK_LOCKED flag is parity with 
+MAP_LOCKED for mmap(). But as Kirill said (and me before as well) 
+MAP_LOCKED is broken anyway so we shouldn't twist the rest just of the 
+API to keep the poor thing happier in its misery.
+
+Also note that AFAICS you don't have MCL_LOCKED for mlockall() so 
+there's no full parity anyway. But please don't fix that by adding 
+MCL_LOCKED :)
+
+Thanks!
