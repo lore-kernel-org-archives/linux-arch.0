@@ -1,29 +1,71 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH v2 25/25] pmem: convert to generic memremap
-Date: Mon, 27 Jul 2015 07:14:13 +0200
-Message-ID: <20150727051413.GC15836@lst.de>
-References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com> <20150725024020.8664.52581.stgit@dwillia2-desk3.amr.corp.intel.com> <20150726173317.GD29513@lst.de> <CAPcyv4jsnQ1CzgXkkpzJnfjnKMmxiwyhQ_3osgo9vmjceP+rZA@mail.gmail.com>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCH V5 2/7] mm: mlock: Add new mlock system call
+Date: Mon, 27 Jul 2015 09:43:00 +0300
+Message-ID: <20150727064300.GB11657@node.dhcp.inet.fi>
+References: <1437773325-8623-1-git-send-email-emunson@akamai.com>
+ <1437773325-8623-3-git-send-email-emunson@akamai.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:35853 "EHLO newverein.lst.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750955AbbG0FOP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Jul 2015 01:14:15 -0400
+Return-path: <linux-ia64-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAPcyv4jsnQ1CzgXkkpzJnfjnKMmxiwyhQ_3osgo9vmjceP+rZA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Christoph Hellwig <hch@lst.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Kani, Toshimitsu" <toshi.kani@hp.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@arm.linux.org.uk>, Ross Zwisler <ross.zwisler@linux.intel.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+In-Reply-To: <1437773325-8623-3-git-send-email-emunson@akamai.com>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Eric B Munson <emunson@akamai.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, Heiko Carstens <heiko.carstens@de.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Guenter Roeck <linux@roeck-us.net>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-cris-kernel@axis.com, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-am33-list@redhat.com, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, Jul 26, 2015 at 11:11:44AM -0700, Dan Williams wrote:
-> I don't follow.  We have __iomem for the cpu mapping of a resource and
-> dma_map() for a PCI device.  __pmem works the same and is there to
-> make sure someone doesn't simply de-reference a pointer to pmem and
-> hope that the write is persistent.
+On Fri, Jul 24, 2015 at 05:28:40PM -0400, Eric B Munson wrote:
+> With the refactored mlock code, introduce a new system call for mlock.
+> The new call will allow the user to specify what lock states are being
+> added.  mlock2 is trivial at the moment, but a follow on patch will add
+> a new mlock state making it useful.
+> 
+> Signed-off-by: Eric B Munson <emunson@akamai.com>
+> Cc: Michal Hocko <mhocko@suse.cz>
+> Cc: Vlastimil Babka <vbabka@suse.cz>
+> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Stephen Rothwell <sfr@canb.auug.org.au>
+> Cc: Guenter Roeck <linux@roeck-us.net>
+> Cc: linux-alpha@vger.kernel.org
+> Cc: linux-kernel@vger.kernel.org
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: adi-buildroot-devel@lists.sourceforge.net
+> Cc: linux-cris-kernel@axis.com
+> Cc: linux-ia64@vger.kernel.org
+> Cc: linux-m68k@lists.linux-m68k.org
+> Cc: linux-am33-list@redhat.com
+> Cc: linux-parisc@vger.kernel.org
+> Cc: linuxppc-dev@lists.ozlabs.org
+> Cc: linux-s390@vger.kernel.org
+> Cc: linux-sh@vger.kernel.org
+> Cc: sparclinux@vger.kernel.org
+> Cc: linux-xtensa@linux-xtensa.org
+> Cc: linux-api@vger.kernel.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-mm@kvack.org
+> ---
+> Changes from V4:
+> * Drop all architectures except x86[_64] from this patch, MIPS is added
+>   later in the series.  All others will be left to their maintainers.
+> 
+> Changes from V3:
+> * Do a (hopefully) complete job of adding the new system calls
+>  arch/alpha/include/uapi/asm/mman.h     | 2 ++
+>  arch/mips/include/uapi/asm/mman.h      | 5 +++++
+>  arch/parisc/include/uapi/asm/mman.h    | 2 ++
+>  arch/powerpc/include/uapi/asm/mman.h   | 2 ++
+>  arch/sparc/include/uapi/asm/mman.h     | 2 ++
+>  arch/tile/include/uapi/asm/mman.h      | 5 +++++
+>  arch/x86/entry/syscalls/syscall_32.tbl | 1 +
+>  arch/x86/entry/syscalls/syscall_64.tbl | 1 +
+>  arch/xtensa/include/uapi/asm/mman.h    | 5 +++++
 
-But no deference of a kernel pointer is magily persistent, so I'm
-not really worried about that.  It just means whenever we want to
-pass it to anything we'll need to cast.  And anything that does
-I/O falls into that category.
+Define MLOCK_LOCKED in include/uapi/asm-generic/mman-common.h.
+This way you can drop changes in powerpc, sparc and tile.
+
+Otherwise looks good.
+
+-- 
+ Kirill A. Shutemov
