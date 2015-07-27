@@ -1,39 +1,40 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 2/3] brcmfmac: dhd_sdio.c: use existing atomic_or
- primitive
-Date: Mon, 27 Jul 2015 10:23:53 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665AF526@IN01WEMBXB.internal.synopsys.com>
-References: <1436429599-10762-1-git-send-email-vgupta@synopsys.com>
-	<1436429599-10762-3-git-send-email-vgupta@synopsys.com>
-	<87twstbi9p.fsf@kamboji.qca.qualcomm.com>	<55B2743F.6060304@synopsys.com>
- <55B4C0A8.9000909@broadcom.com> <871tftc3pw.fsf@kamboji.qca.qualcomm.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH 00/28] arch: Provide atomic logic ops
+Date: Mon, 27 Jul 2015 12:01:39 +0100
+Message-ID: <20150727110139.GG3358@arm.com>
+References: <20150716172110.587529075@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay2.synopsys.com ([198.182.60.111]:50778 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1751217AbbG0KYB convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2015 06:24:01 -0400
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kalle Valo <kvalo@codeaurora.org>, Arend van Spriel <arend@broadcom.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Brett Rudley <brudley@broadcom.com>, "Franky (Zhenhui) Lin" <frankyl@broadcom.com>, Hante Meuleman <meuleman@broadcom.com>, Pieter-Paul Giesberts <pieterpg@broadcom.com>, Daniel Kim <dekim@broadcom.com>, "linux-wireless@vger.kernel.org" <linux-wireless@vger.kernel.org>, "brcm80211-dev-list@broadcom.com" <brcm80211-dev-list@broadcom.com>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20150716172110.587529075@infradead.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, ysa
+List-Id: linux-arch.vger.kernel.org
 
-On Monday 27 July 2015 01:08 PM, Kalle Valo wrote:
->>> >> Per last discussion on this topic, Arend wanted to discuss abt this with Hante.
->>> >> I'm not taking it anyways so feel free to pick it up if you want !
->> >
->> > Well, that was before your "timeline" clarification about the generic
->> > function. One what tree is this patch based?
-> Yeah, if this patch depends on another patch I need to know about it.
-> Otherwise I might break something when I apply this patch.
+Hi Peter, Ingo,
 
-It was latest linux-next at the time, 4.1-rcx perhaps, don't remember exactly. But
-it certainly doesn't depend on any new code  - the patch simply makes use of an
-existing API vs. using a local hard coded version of same.
+On Thu, Jul 16, 2015 at 06:21:10PM +0100, Peter Zijlstra wrote:
+> Currently there is an incoherent mess of atomic_{set,clear}_mask() and
+> atomic_or() (but no atomic_{and,nand,xor}()) in the tree.
+> 
+> Those archs that implement atomic_{set,clear}_mask() are not even consistent on
+> its signature.
+> 
+> Implement atomic_{or,and,xor}() on all archs and deprecate
+> atomic_{set,clear}_mask().
+> 
+> The series has been compile tested by the build-bot, no known failures at this time.
+> 
+> I would like to take this through tip; I'll ask Ingo to put it in a separate
+> branch such that people can pull in that branch if there is conflicting work
+> elsewhere (Will has some for Argh64).
 
-Give it a spin off your existing tree - shdn't be too difficult to test  I presume.
+Any joy with this branch? I'd like to put the new arm64 atomics into
+-next, but it would probably be easier for everybody if I merged in this
+lot first.
 
--Vineet
+Cheers,
+
+Will
