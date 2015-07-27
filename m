@@ -1,41 +1,56 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH V5 5/7] mm: mmap: Add mmap flag to request VM_LOCKONFAULT
-Date: Mon, 27 Jul 2015 10:31:29 +0300
-Message-ID: <20150727073129.GE11657@node.dhcp.inet.fi>
-References: <1437773325-8623-1-git-send-email-emunson@akamai.com>
- <1437773325-8623-6-git-send-email-emunson@akamai.com>
+From: Daniel Vetter <daniel@ffwll.ch>
+Subject: Re: [Intel-gfx] [PATCH v2 12/25] i915: switch from acpi_os_ioremap
+ to ioremap
+Date: Mon, 27 Jul 2015 09:50:50 +0200
+Message-ID: <20150727075050.GK16722@phenom.ffwll.local>
+References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150725023904.8664.84461.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f170.google.com ([209.85.212.170]:33650 "EHLO
-	mail-wi0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750779AbbG0Hbd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2015 03:31:33 -0400
-Received: by wicmv11 with SMTP id mv11so127120937wic.0
-        for <linux-arch@vger.kernel.org>; Mon, 27 Jul 2015 00:31:32 -0700 (PDT)
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
 Content-Disposition: inline
-In-Reply-To: <1437773325-8623-6-git-send-email-emunson@akamai.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@akamai.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, Paul Gortmaker <paul.gortmaker@windriver.com>, Chris Metcalf <cmetcalf@ezchip.com>, Guenter Roeck <linux@roeck-us.net>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+In-Reply-To: <20150725023904.8664.84461.stgit@dwillia2-desk3.amr.corp.intel.com>
+List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, hch@lst.de, hpa@zytor.com, rmk+kernel@arm.linux.org.uk, Daniel Vetter <daniel.vetter@intel.com>, tglx@linutronix.de, mingo@kernel.org, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jul 24, 2015 at 05:28:43PM -0400, Eric B Munson wrote:
-> The cost of faulting in all memory to be locked can be very high when
-> working with large mappings.  If only portions of the mapping will be
-> used this can incur a high penalty for locking.
-> 
-> Now that we have the new VMA flag for the locked but not present state,
-> expose it as an mmap option like MAP_LOCKED -> VM_LOCKED.
-
-As I mentioned before, I don't think this interface is justified.
-
-MAP_LOCKED has known issues[1]. The MAP_LOCKED problem is not necessary
-affects MAP_LOCKONFAULT, but still.
-
-Let's not add new interface unless it's demonstrably useful.
-
-[1] http://lkml.kernel.org/g/20150114095019.GC4706@dhcp22.suse.cz
-
--- 
- Kirill A. Shutemov
+T24gRnJpLCBKdWwgMjQsIDIwMTUgYXQgMTA6Mzk6MDRQTSAtMDQwMCwgRGFuIFdpbGxpYW1zIHdy
+b3RlOgo+IGFjcGlfb3NfaW9yZW1hcCB1c2VzIGNhY2hlZCBtYXBwaW5ncywgaG93ZXZlciBpdCBh
+cHBlYXJzIHRoYXQgaTkxNQo+IHdhbnRzIHRvIHJlYWQgZHluYW1pYyBwbGF0Zm9ybSBzdGF0ZS4g
+IFN3aXRjaCB0byBpb3JlbWFwKCkgdG8gcHJldmVudCBpdAo+IHJlYWRpbmcgc3RhbGUgc3RhdGUg
+ZnJvbSBjYWNoZS4KPiAKPiBDYzogRGFuaWVsIFZldHRlciA8ZGFuaWVsLnZldHRlckBpbnRlbC5j
+b20+Cj4gQ2M6IEphbmkgTmlrdWxhIDxqYW5pLm5pa3VsYUBsaW51eC5pbnRlbC5jb20+Cj4gQ2M6
+IGludGVsLWdmeEBsaXN0cy5mcmVlZGVza3RvcC5vcmcKPiBDYzogRGF2aWQgQWlybGllIDxhaXJs
+aWVkQGxpbnV4LmllPgo+IENjOiBkcmktZGV2ZWxAbGlzdHMuZnJlZWRlc2t0b3Aub3JnCj4gU2ln
+bmVkLW9mZi1ieTogRGFuIFdpbGxpYW1zIDxkYW4uai53aWxsaWFtc0BpbnRlbC5jb20+Cj4gLS0t
+Cj4gIGRyaXZlcnMvZ3B1L2RybS9pOTE1L2ludGVsX29wcmVnaW9uLmMgfCAgICAyICstCj4gIDEg
+ZmlsZSBjaGFuZ2VkLCAxIGluc2VydGlvbigrKSwgMSBkZWxldGlvbigtKQo+IAo+IGRpZmYgLS1n
+aXQgYS9kcml2ZXJzL2dwdS9kcm0vaTkxNS9pbnRlbF9vcHJlZ2lvbi5jIGIvZHJpdmVycy9ncHUv
+ZHJtL2k5MTUvaW50ZWxfb3ByZWdpb24uYwo+IGluZGV4IDQ4MTMzNzQzNmY3Mi4uMTZiYTdjNjc0
+MTBkIDEwMDY0NAo+IC0tLSBhL2RyaXZlcnMvZ3B1L2RybS9pOTE1L2ludGVsX29wcmVnaW9uLmMK
+PiArKysgYi9kcml2ZXJzL2dwdS9kcm0vaTkxNS9pbnRlbF9vcHJlZ2lvbi5jCj4gQEAgLTg2Myw3
+ICs4NjMsNyBAQCBpbnQgaW50ZWxfb3ByZWdpb25fc2V0dXAoc3RydWN0IGRybV9kZXZpY2UgKmRl
+dikKPiAgCUlOSVRfV09SSygmb3ByZWdpb24tPmFzbGVfd29yaywgYXNsZV93b3JrKTsKPiAgI2Vu
+ZGlmCj4gIAo+IC0JYmFzZSA9IGFjcGlfb3NfaW9yZW1hcChhc2xzLCBPUFJFR0lPTl9TSVpFKTsK
+PiArCWJhc2UgPSBpb3JlbWFwKGFzbHMsIE9QUkVHSU9OX1NJWkUpOwoKT3BSZWdpb24gaXMgY2Fj
+aGVkIG1lbW9yeSBzaGFyZWQgd2l0aCB0aGUgZmlybXdhcmUgYWZhaWssIHdlIHByb2JhYmx5IHdh
+bnQKYSBtZW1yZW1hcCBoZXJlIGFuZCBzd2l0Y2ggYXdheSBmcm9tIHRoZSBpb3JlYWQvd3JpdGUg
+c3R1ZmYuIFdlIGhhdmUgYQpzaW1pbGFyIGNvbmZ1c2lvbiBnb2luZyBvbiBmb3IgdGhlIHZidCBw
+YXJzaW5nICh3aGljaCBvbiBhbnl0aGluZyBidXQKcmVhbGx5IG9sZCBtYWNoaW5lcyBpcyBhbHNv
+IGp1c3Qgbm9ybWFsIG1lbW9yeSkuCgpTYW1lIGhvbGRzIGZvciBnbWE1MDAsIHdoaWNoIGlzIGp1
+c3QgYSBjb3B5IG9mIGk5MTUgZm9yIHNvbWUgc3BlY2lhbApwbGF0Zm9ybXMuCi1EYW5pZWwKLS0g
+CkRhbmllbCBWZXR0ZXIKU29mdHdhcmUgRW5naW5lZXIsIEludGVsIENvcnBvcmF0aW9uCmh0dHA6
+Ly9ibG9nLmZmd2xsLmNoCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fCmRyaS1kZXZlbCBtYWlsaW5nIGxpc3QKZHJpLWRldmVsQGxpc3RzLmZyZWVkZXNrdG9w
+Lm9yZwpodHRwOi8vbGlzdHMuZnJlZWRlc2t0b3Aub3JnL21haWxtYW4vbGlzdGluZm8vZHJpLWRl
+dmVsCg==
