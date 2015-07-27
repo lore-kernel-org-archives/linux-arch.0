@@ -1,94 +1,122 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:33406 "EHLO mx2.suse.de"
+Received: from mx2.suse.de ([195.135.220.15]:59413 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752676AbbG0Pka (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Jul 2015 11:40:30 -0400
-Subject: Re: [PATCH V5 0/7] Allow user to request memory to be locked on page
- fault
-References: <1437773325-8623-1-git-send-email-emunson@akamai.com>
- <55B5F4FF.9070604@suse.cz> <20150727133555.GA17133@akamai.com>
- <55B63D37.20303@suse.cz> <20150727145409.GB21664@akamai.com>
-From: Vlastimil Babka <vbabka@suse.cz>
-Message-ID: <55B650E8.9030102@suse.cz>
-Date: Mon, 27 Jul 2015 17:40:24 +0200
+	id S1753968AbbG0XSB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 27 Jul 2015 19:18:01 -0400
+Date: Tue, 28 Jul 2015 01:17:55 +0200
+From: "Luis R. Rodriguez" <mcgrof@suse.com>
+Subject: Re: [PATCH v2 08/25] arch: introduce memremap()
+Message-ID: <20150727231755.GV30479@wotan.suse.de>
+References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150725023842.8664.97620.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
-In-Reply-To: <20150727145409.GB21664@akamai.com>
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20150725023842.8664.97620.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@akamai.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Ralf Baechle <ralf@linux-mips.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150727154024.mS3oEdZviNN0C3jrQ0vq5LJNnW_Cz_UdOWe-_W6WB8c@z>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150727231755.QbTs6a0LBlPzfe7aLX5O9QE5bUBbIcvlRHC8SPmFq34@z>
 
-On 07/27/2015 04:54 PM, Eric B Munson wrote:
-> On Mon, 27 Jul 2015, Vlastimil Babka wrote:
->>
->>> We do actually have an MCL_LOCKED, we just call it MCL_CURRENT.  Would
->>> you prefer that I match the name in mlock2() (add MLOCK_CURRENT
->>> instead)?
->>
->> Hm it's similar but not exactly the same, because MCL_FUTURE is not
->> the same as MLOCK_ONFAULT :) So MLOCK_CURRENT would be even more
->> confusing. Especially if mlockall(MCL_CURRENT | MCL_FUTURE) is OK,
->> but mlock2(MLOCK_LOCKED | MLOCK_ONFAULT) is invalid.
->
-> MLOCK_ONFAULT isn't meant to be the same as MCL_FUTURE, rather it is
-> meant to be the same as MCL_ONFAULT.  MCL_FUTURE only controls if the
-> locking policy will be applied to any new mappings made by this process,
-> not the locking policy itself.  The better comparison is MCL_CURRENT to
-> MLOCK_LOCK and MCL_ONFAULT to MLOCK_ONFAULT.  MCL_CURRENT and
-> MLOCK_LOCK do the same thing, only one requires a specific range of
-> addresses while the other works process wide.  This is why I suggested
-> changing MLOCK_LOCK to MLOCK_CURRENT.  It is an error to call
-> mlock2(MLOCK_LOCK | MLOCK_ONFAULT) just like it is an error to call
-> mlockall(MCL_CURRENT | MCL_ONFAULT).  The combinations do no make sense.
+On Fri, Jul 24, 2015 at 10:38:42PM -0400, Dan Williams wrote:
+> Existing users of ioremap_cache() are mapping memory that is known in
+> advance to not have i/o side effects.  These users are forced to cast
+> away the __iomem annotation, or otherwise neglect to fix the sparse
+> errors thrown when dereferencing pointers to this memory.  Provide
+> memremap() as a non __iomem annotated ioremap_*() in the case when
+> ioremap is otherwise a pointer to memory.
 
-How is it an error to call mlockall(MCL_CURRENT | MCL_ONFAULT)? How else 
-would you apply mlock2(MCL_ONFAULT) to all current mappings? Later below 
-you use the same example and I don't think it's different by removing 
-MLOCK_LOCKED flag.
+Ok so a special use case.
 
-> This was all decided when VM_LOCKONFAULT was a separate state from
-> VM_LOCKED.  Now that VM_LOCKONFAULT is a modifier to VM_LOCKED and
-> cannot be specified independentally, it might make more sense to mirror
-> that relationship to userspace.  Which would lead to soemthing like the
-> following:
->
-> To lock and populate a region:
-> mlock2(start, len, 0);
->
-> To lock on fault a region:
-> mlock2(start, len, MLOCK_ONFAULT);
->
-> If LOCKONFAULT is seen as a modifier to mlock, then having the flags
-> argument as 0 mean do mlock classic makes more sense to me.
+> Outside of ioremap() and
+> ioremap_nocache(), the expectation is that most calls to
+> ioremap_<type>() are seeking memory-like semantics (e.g.  speculative
+> reads, and prefetching permitted).  These callsites can be moved to
+> memremap() over time.
 
-Yup that's what I was trying to suggest.
+Such memory-like smantics are not well defined yet and this has caused
+issues over expectations over a slew of APIs. As you note above
+your own defined 'semantics' so far for memremap are just that there are
+no i/o side effects, when the mapped memory is just a pointer to memory,
+as such I do not think its fair to set the excpectations that we'll
+switch all other ioremap_*() callers to the same memremap() API. Now,
+it may be a good idea to use something similar, ie, to pass flags,
+but setting the expectations outright to move to memremap() without having
+any agreement having been made over semantics seems uncalled for at this
+point in time, specially when you are noting that the expectations for
+both sets of calls are different.
 
-> To mlock current on fault only:
-> mlockall(MCL_CURRENT | MCL_ONFAULT);
->
-> To mlock future on fault only:
-> mlockall(MCL_FUTURE | MCL_ONFAULT);
->
-> To lock everything on fault:
-> mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT);
->
-> I think I have talked myself into rewriting the set again :/
+So perhaps:
 
-Sorry :) You could also wait a bit for more input than just from me...
+"
+Outside of ioremap() and ioremap_nocache(), all other ioremap_<type>()
+variant calls are seeking memory-like semantics (e.g.  speculative
+reads, and prefetching permitted) and all calls expecations currently
+differ depending on architecture. Once and if we get agreement on such
+semantics we may be able to move such ioremap_*() variant calls to
+a similar API where the semantics required are clearly spelled out
+and well defined and passed as arguments.
+"
 
->>
->>> Finally, on the question of MAP_LOCKONFAULT, do you just dislike
->>> MAP_LOCKED and do not want to see it extended, or is this a NAK on the
->>> set if that patch is included.  I ask because I have to spin a V6 to get
->>> the MLOCK flag declarations right, but I would prefer not to do a V7+.
->>> If this is a NAK with, I can drop that patch and rework the tests to
->>> cover without the mmap flag.  Otherwise I want to keep it, I have an
->>> internal user that would like to see it added.
->>
->> I don't want to NAK that patch if you think it's useful.
->>
->>
+> diff --git a/kernel/memremap.c b/kernel/memremap.c
+> new file mode 100644
+> index 000000000000..ba206fd11785
+> --- /dev/null
+> +++ b/kernel/memremap.c
+> @@ -0,0 +1,82 @@
+> +/*
+> + * Copyright(c) 2015 Intel Corporation. All rights reserved.
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of version 2 of the GNU General Public License as
+> + * published by the Free Software Foundation.
+> + *
+> + * This program is distributed in the hope that it will be useful, but
+> + * WITHOUT ANY WARRANTY; without even the implied warranty of
+> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+> + * General Public License for more details.
+> + */
+> +#include <linux/types.h>
+> +#include <linux/io.h>
+> +#include <linux/mm.h>
+> +
+> +#ifndef ioremap_cache
+> +/* temporary while we convert existing ioremap_cache users to memremap */
+> +__weak void __iomem *ioremap_cache(resource_size_t offset, unsigned long size)
+> +{
+> +	return ioremap(offset, size);
+> +}
+> +#endif
+> +
+> +/*
+> + * memremap() is "ioremap" for cases where it is known that the resource
+> + * being mapped does not have i/o side effects and the __iomem
+> + * annotation is not applicable.
+> + */
+> +void *memremap(resource_size_t offset, size_t size, unsigned long flags)
+> +{
+> +	int is_ram = region_is_ram(offset, size);
+> +	void *addr = NULL;
+> +
+> +	if (is_ram < 0) {
+> +		WARN_ONCE(1, "memremap attempted on mixed range %pa size: %zu\n",
+> +				&offset, size);
+> +		return NULL;
+> +	}
+> +
+> +	/* Try all mapping types requested until one returns non-NULL */
+> +	if (flags & MEMREMAP_CACHE) {
+> +		flags &= ~MEMREMAP_CACHE;
+> +		/*
+> +		 * MEMREMAP_CACHE is special in that it can be satisifed
+> +		 * from the direct map.  Some archs depend on the
+> +		 * capability of memremap() to autodetect cases where
+> +		 * the requested range is potentially in "System RAM"
+> +		 */
+> +		if (is_ram)
+> +			addr = __va(offset);
 
+The no MMU case seems to match this, can that be switch to this?
+
+  Luis
