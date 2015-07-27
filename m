@@ -1,38 +1,39 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v3 1/8] atomics: add acquire/release/relaxed variants of
- some atomic operations
-Date: Mon, 27 Jul 2015 11:21:07 +0100
-Message-ID: <20150727102106.GD3358@arm.com>
-References: <1437746681-2809-1-git-send-email-will.deacon@arm.com>
- <1437746681-2809-2-git-send-email-will.deacon@arm.com>
- <20150727091430.GP19282@twins.programming.kicks-ass.net>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH 2/3] brcmfmac: dhd_sdio.c: use existing atomic_or
+ primitive
+Date: Mon, 27 Jul 2015 10:23:53 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075665AF526@IN01WEMBXB.internal.synopsys.com>
+References: <1436429599-10762-1-git-send-email-vgupta@synopsys.com>
+	<1436429599-10762-3-git-send-email-vgupta@synopsys.com>
+	<87twstbi9p.fsf@kamboji.qca.qualcomm.com>	<55B2743F.6060304@synopsys.com>
+ <55B4C0A8.9000909@broadcom.com> <871tftc3pw.fsf@kamboji.qca.qualcomm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20150727091430.GP19282@twins.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Waiman.Long@hp.com" <Waiman.Long@hp.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtprelay2.synopsys.com ([198.182.60.111]:50778 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1751217AbbG0KYB convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2015 06:24:01 -0400
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kalle Valo <kvalo@codeaurora.org>, Arend van Spriel <arend@broadcom.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Brett Rudley <brudley@broadcom.com>, "Franky (Zhenhui) Lin" <frankyl@broadcom.com>, Hante Meuleman <meuleman@broadcom.com>, Pieter-Paul Giesberts <pieterpg@broadcom.com>, Daniel Kim <dekim@broadcom.com>, "linux-wireless@vger.kernel.org" <linux-wireless@vger.kernel.org>, "brcm80211-dev-list@broadcom.com" <brcm80211-dev-list@broadcom.com>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
 
-On Mon, Jul 27, 2015 at 10:14:30AM +0100, Peter Zijlstra wrote:
-> On Fri, Jul 24, 2015 at 03:04:34PM +0100, Will Deacon wrote:
-> > This patch introduces three new ordering semantics for these operations:
-> > 
-> >   - *_relaxed: No ordering guarantees. This is similar to what we have
-> >                already for the non-return atomics (e.g. atomic_add).
-> > 
-> >   - *_acquire: ACQUIRE semantics, similar to smp_load_acquire.
-> > 
-> >   - *_release: RELEASE semantics, similar to smp_store_release.
-> 
-> Do we want to further specify that for the RmW operations the Read/load
-> will provide the acquire and the Write/store the release?
+On Monday 27 July 2015 01:08 PM, Kalle Valo wrote:
+>>> >> Per last discussion on this topic, Arend wanted to discuss abt this with Hante.
+>>> >> I'm not taking it anyways so feel free to pick it up if you want !
+>> >
+>> > Well, that was before your "timeline" clarification about the generic
+>> > function. One what tree is this patch based?
+> Yeah, if this patch depends on another patch I need to know about it.
+> Otherwise I might break something when I apply this patch.
 
-Yeah, that's not a bad idea, but if we add that then I probably need to
-re-iterate the cmpxchg strangeness since a failed cmpxchg_acquire would
-still not have barrier semantics with the current implementation even though
-it must have performed a Read/load access.
+It was latest linux-next at the time, 4.1-rcx perhaps, don't remember exactly. But
+it certainly doesn't depend on any new code  - the patch simply makes use of an
+existing API vs. using a local hard coded version of same.
 
-Will
+Give it a spin off your existing tree - shdn't be too difficult to test  I presume.
+
+-Vineet
