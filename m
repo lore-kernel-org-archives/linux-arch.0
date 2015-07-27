@@ -1,58 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:60275 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751217AbbG0JIZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Jul 2015 05:08:25 -0400
-Subject: Re: [PATCH V5 0/7] Allow user to request memory to be locked on page
- fault
-References: <1437773325-8623-1-git-send-email-emunson@akamai.com>
-From: Vlastimil Babka <vbabka@suse.cz>
-Message-ID: <55B5F4FF.9070604@suse.cz>
-Date: Mon, 27 Jul 2015 11:08:15 +0200
+Received: from smtp.codeaurora.org ([198.145.29.96]:41148 "EHLO
+	smtp.codeaurora.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751293AbbG0KIw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2015 06:08:52 -0400
+From: Kalle Valo <kvalo@codeaurora.org>
+Subject: Re: [PATCH 2/3] brcmfmac: dhd_sdio.c: use existing atomic_or primitive
+References: <1436429599-10762-1-git-send-email-vgupta@synopsys.com>
+	<1436429599-10762-3-git-send-email-vgupta@synopsys.com>
+	<87twstbi9p.fsf@kamboji.qca.qualcomm.com>
+	<55B2743F.6060304@synopsys.com> <55B4C0A8.9000909@broadcom.com>
+Date: Mon, 27 Jul 2015 13:08:43 +0300
+In-Reply-To: <55B4C0A8.9000909@broadcom.com> (Arend van Spriel's message of
+	"Sun, 26 Jul 2015 13:12:40 +0200")
+Message-ID: <871tftc3pw.fsf@kamboji.qca.qualcomm.com>
 MIME-Version: 1.0
-In-Reply-To: <1437773325-8623-1-git-send-email-emunson@akamai.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@akamai.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Ralf Baechle <ralf@linux-mips.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150727090815.4ciZJ4-KhDFnxF3YB69oqpQpUSr0i1ln1Kvs1k1-4Xw@z>
+To: Arend van Spriel <arend@broadcom.com>
+Cc: Vineet Gupta <vgupta@synopsys.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Brett Rudley <brudley@broadcom.com>, "Franky (Zhenhui) Lin" <frankyl@broadcom.com>, Hante Meuleman <meuleman@broadcom.com>, Pieter-Paul Giesberts <pieterpg@broadcom.com>, Daniel Kim <dekim@broadcom.com>, linux-wireless@vger.kernel.org, brcm80211-dev-list@broadcom.com, netdev@vger.kernel.org
+Message-ID: <20150727100843.OiF7DFeYGzhYWjZ8b4XEEuVxsuGulMHkNnhQDhW5lVA@z>
 
-On 07/24/2015 11:28 PM, Eric B Munson wrote:
+Arend van Spriel <arend@broadcom.com> writes:
 
-...
+> On 07/24/2015 07:22 PM, Vineet Gupta wrote:
+>> On Friday 24 July 2015 08:02 PM, Kalle Valo wrote:
+>>> Vineet Gupta <Vineet.Gupta1@synopsys.com> writes:
+>>>
+>>>>> There's already a generic implementation so use that instead.
+>>>>> ---
+>>>>> I'm not sure if the driver usage of atomic_or?() is correct in terms of
+>>>>> storage size of @val for 64 bit arches.
+>>>>>
+>>>>> Assuming LP64 programming model for linux on say x86_64: atomic_or()
+>>>>> callers in this driver use long (sana 64 bit) storage and pass it to
+>>>>> atomic_orr/atomic_or which downcasts it to 32 bits. Is that OK ?
+>>>>> ---
+>>>>> Cc: Brett Rudley <brudley@broadcom.com>
+>>>>> Cc: Arend van Spriel <arend@broadcom.com>
+>>>>> Cc: "Franky (Zhenhui) Lin" <frankyl@broadcom.com>
+>>>>> Cc: Hante Meuleman <meuleman@broadcom.com>
+>>>>> Cc: Kalle Valo <kvalo@codeaurora.org>
+>>>>> Cc: Pieter-Paul Giesberts <pieterpg@broadcom.com>
+>>>>> Cc: Daniel Kim <dekim@broadcom.com>
+>>>>> Cc: linux-wireless@vger.kernel.org
+>>>>> Cc: brcm80211-dev-list@broadcom.com
+>>>>> Cc: Peter Zijlstra <peterz@infradead.org>
+>>>>> Cc: Ingo Molnar <mingo@kernel.org>
+>>>>> Cc: netdev@vger.kernel.org
+>>>>> Cc: linux-arch@vger.kernel.org
+>>>>> Cc: linux-kernel@vger.kernel.org
+>>>>> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+>>>>>
+>>>>> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+>>> What's the plan with this patch? Should I take it to my
+>>> wireless-drivers-next tree or will someone else take it?
+>>
+>>
+>> Per last discussion on this topic, Arend wanted to discuss abt this with Hante.
+>> I'm not taking it anyways so feel free to pick it up if you want !
+>
+> Well, that was before your "timeline" clarification about the generic
+> function. One what tree is this patch based?
 
-> Changes from V4:
-> Drop all architectures for new sys call entries except x86[_64] and MIPS
-> Drop munlock2 and munlockall2
-> Make VM_LOCKONFAULT a modifier to VM_LOCKED only to simplify book keeping
-> Adjust tests to match
+Yeah, if this patch depends on another patch I need to know about it.
+Otherwise I might break something when I apply this patch.
 
-Hi, thanks for considering my suggestions. Well, I do hope there were 
-correct as API's are hard and I'm no API expert. But since API's are 
-also impossible to change after merging, I'm sorry but I'll keep 
-pestering for one last thing. Thanks again for persisting, I do believe 
-it's for the good thing!
-
-The thing is that I still don't like that one has to call 
-mlock2(MLOCK_LOCKED) to get the equivalent of the old mlock(). Why is 
-that flag needed? We have two modes of locking now, and v5 no longer 
-treats them separately in vma flags. But having two flags gives us four 
-possible combinations, so two of them would serve nothing but to confuse 
-the programmer IMHO. What will mlock2() without flags do? What will 
-mlock2(MLOCK_LOCKED | MLOCK_ONFAULT) do? (Note I haven't studied the 
-code yet, as having agreed on the API should come first. But I did 
-suggest documenting these things more thoroughly too...)
-OK I checked now and both cases above seem to return EINVAL.
-
-So about the only point I see in MLOCK_LOCKED flag is parity with 
-MAP_LOCKED for mmap(). But as Kirill said (and me before as well) 
-MAP_LOCKED is broken anyway so we shouldn't twist the rest just of the 
-API to keep the poor thing happier in its misery.
-
-Also note that AFAICS you don't have MCL_LOCKED for mlockall() so 
-there's no full parity anyway. But please don't fix that by adding 
-MCL_LOCKED :)
-
-Thanks!
+-- 
+Kalle Valo
