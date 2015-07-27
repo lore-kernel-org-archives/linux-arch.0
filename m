@@ -1,87 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f176.google.com ([209.85.212.176]:35435 "EHLO
-	mail-wi0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751021AbbG0HPW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2015 03:15:22 -0400
-Received: by wibxm9 with SMTP id xm9so98716260wib.0
-        for <linux-arch@vger.kernel.org>; Mon, 27 Jul 2015 00:15:21 -0700 (PDT)
-Date: Mon, 27 Jul 2015 10:15:18 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH V5 4/7] mm: mlock: Add mlock flags to enable
- VM_LOCKONFAULT usage
-Message-ID: <20150727071518.GD11657@node.dhcp.inet.fi>
-References: <1437773325-8623-1-git-send-email-emunson@akamai.com>
- <1437773325-8623-5-git-send-email-emunson@akamai.com>
+Received: from mail-wi0-f174.google.com ([209.85.212.174]:38593 "EHLO
+	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750779AbbG0HsL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2015 03:48:11 -0400
+Received: by wibxm9 with SMTP id xm9so103862969wib.1
+        for <linux-arch@vger.kernel.org>; Mon, 27 Jul 2015 00:48:10 -0700 (PDT)
+Date: Mon, 27 Jul 2015 09:50:50 +0200
+From: Daniel Vetter <daniel@ffwll.ch>
+Subject: Re: [Intel-gfx] [PATCH v2 12/25] i915: switch from acpi_os_ioremap
+ to ioremap
+Message-ID: <20150727075050.GK16722@phenom.ffwll.local>
+References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150725023904.8664.84461.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1437773325-8623-5-git-send-email-emunson@akamai.com>
+In-Reply-To: <20150725023904.8664.84461.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@akamai.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, Jonathan Corbet <corbet@lwn.net>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20150727071518.Mx0TLlkTzUBVmjSO72igkLNaUukyeLnoDrvTgVLeoPk@z>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, David Airlie <airlied@linux.ie>, intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, Daniel Vetter <daniel.vetter@intel.com>, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150727075050.ns_Eh_RGkHnCWslkT2zvMByJMDZe0e556h-7Vu3zbPo@z>
 
-On Fri, Jul 24, 2015 at 05:28:42PM -0400, Eric B Munson wrote:
-> The previous patch introduced a flag that specified pages in a VMA
-> should be placed on the unevictable LRU, but they should not be made
-> present when the area is created.  This patch adds the ability to set
-> this state via the new mlock system calls.
+On Fri, Jul 24, 2015 at 10:39:04PM -0400, Dan Williams wrote:
+> acpi_os_ioremap uses cached mappings, however it appears that i915
+> wants to read dynamic platform state.  Switch to ioremap() to prevent it
+> reading stale state from cache.
 > 
-> We add MLOCK_ONFAULT for mlock2 and MCL_ONFAULT for mlockall.
-> MLOCK_ONFAULT will set the VM_LOCKONFAULT flag as well as the VM_LOCKED
-> flag for the target region.  MCL_CURRENT and MCL_ONFAULT are used to
-> lock current mappings.  With MCL_CURRENT all pages are made present and
-> with MCL_ONFAULT they are locked when faulted in.  When specified with
-> MCL_FUTURE all new mappings will be marked with VM_LOCKONFAULT.
-> 
-> Currently, mlockall() clears all VMA lock flags and then sets the
-> requested flags.  For instance, if a process has MCL_FUTURE and
-> MCL_CURRENT set, but they want to clear MCL_FUTURE this would be
-> accomplished by calling mlockall(MCL_CURRENT).  This still holds with
-> the introduction of MCL_ONFAULT.  Each call to mlockall() resets all
-> VMA flags to the values specified in the current call.  The new mlock2
-> system call behaves in the same way.  If a region is locked with
-> MLOCK_ONFAULT and a user wants to force it to be populated now, a second
-> call to mlock2(MLOCK_LOCKED) will accomplish this.
-> 
-> munlock() will unconditionally clear both vma flags.  munlockall()
-> unconditionally clears for VMA flags on all VMAs and in the
-> mm->def_flags field.
-> 
-> Signed-off-by: Eric B Munson <emunson@akamai.com>
-> Cc: Michal Hocko <mhocko@suse.cz>
-> Cc: Vlastimil Babka <vbabka@suse.cz>
-> Cc: Jonathan Corbet <corbet@lwn.net>
-> Cc: "Kirill A. Shutemov" <kirill@shutemov.name>
-> Cc: linux-alpha@vger.kernel.org
-> Cc: linux-kernel@vger.kernel.org
-> Cc: linux-mips@linux-mips.org
-> Cc: linux-parisc@vger.kernel.org
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Cc: sparclinux@vger.kernel.org
-> Cc: linux-xtensa@linux-xtensa.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-api@vger.kernel.org
-> Cc: linux-mm@kvack.org
+> Cc: Daniel Vetter <daniel.vetter@intel.com>
+> Cc: Jani Nikula <jani.nikula@linux.intel.com>
+> Cc: intel-gfx@lists.freedesktop.org
+> Cc: David Airlie <airlied@linux.ie>
+> Cc: dri-devel@lists.freedesktop.org
+> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 > ---
-> Changes from V4:
-> * Split addition of VMA flag
+>  drivers/gpu/drm/i915/intel_opregion.c |    2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> Changes from V3:
-> * Do extensive search for VM_LOCKED and ensure that VM_LOCKONFAULT is also handled
->  where appropriate
->  arch/alpha/include/uapi/asm/mman.h   |  2 ++
->  arch/mips/include/uapi/asm/mman.h    |  2 ++
->  arch/parisc/include/uapi/asm/mman.h  |  2 ++
->  arch/powerpc/include/uapi/asm/mman.h |  2 ++
->  arch/sparc/include/uapi/asm/mman.h   |  2 ++
->  arch/tile/include/uapi/asm/mman.h    |  3 +++
->  arch/xtensa/include/uapi/asm/mman.h  |  2 ++
+> diff --git a/drivers/gpu/drm/i915/intel_opregion.c b/drivers/gpu/drm/i915/intel_opregion.c
+> index 481337436f72..16ba7c67410d 100644
+> --- a/drivers/gpu/drm/i915/intel_opregion.c
+> +++ b/drivers/gpu/drm/i915/intel_opregion.c
+> @@ -863,7 +863,7 @@ int intel_opregion_setup(struct drm_device *dev)
+>  	INIT_WORK(&opregion->asle_work, asle_work);
+>  #endif
+>  
+> -	base = acpi_os_ioremap(asls, OPREGION_SIZE);
+> +	base = ioremap(asls, OPREGION_SIZE);
 
-Again, you can save few lines by moving some code into mman-common.h.
+OpRegion is cached memory shared with the firmware afaik, we probably want
+a memremap here and switch away from the ioread/write stuff. We have a
+similar confusion going on for the vbt parsing (which on anything but
+really old machines is also just normal memory).
 
-Otherwise looks good.
-
+Same holds for gma500, which is just a copy of i915 for some special
+platforms.
+-Daniel
 -- 
- Kirill A. Shutemov
+Daniel Vetter
+Software Engineer, Intel Corporation
+http://blog.ffwll.ch
