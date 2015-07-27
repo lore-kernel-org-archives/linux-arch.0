@@ -1,40 +1,109 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH 00/28] arch: Provide atomic logic ops
-Date: Mon, 27 Jul 2015 12:01:39 +0100
-Message-ID: <20150727110139.GG3358@arm.com>
-References: <20150716172110.587529075@infradead.org>
+From: Eric B Munson <emunson@akamai.com>
+Subject: Re: [PATCH V5 0/7] Allow user to request memory to be locked on page
+ fault
+Date: Mon, 27 Jul 2015 09:35:55 -0400
+Message-ID: <20150727133555.GA17133@akamai.com>
+References: <1437773325-8623-1-git-send-email-emunson@akamai.com>
+ <55B5F4FF.9070604@suse.cz>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="y0ulUmNC+osPPQO6"
+Return-path: <linux-parisc-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20150716172110.587529075@infradead.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, ysa
+In-Reply-To: <55B5F4FF.9070604@suse.cz>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Vlastimil Babka <vbabka@suse.cz>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Ralf Baechle <ralf@linux-mips.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Peter, Ingo,
 
-On Thu, Jul 16, 2015 at 06:21:10PM +0100, Peter Zijlstra wrote:
-> Currently there is an incoherent mess of atomic_{set,clear}_mask() and
-> atomic_or() (but no atomic_{and,nand,xor}()) in the tree.
-> 
-> Those archs that implement atomic_{set,clear}_mask() are not even consistent on
-> its signature.
-> 
-> Implement atomic_{or,and,xor}() on all archs and deprecate
-> atomic_{set,clear}_mask().
-> 
-> The series has been compile tested by the build-bot, no known failures at this time.
-> 
-> I would like to take this through tip; I'll ask Ingo to put it in a separate
-> branch such that people can pull in that branch if there is conflicting work
-> elsewhere (Will has some for Argh64).
+--y0ulUmNC+osPPQO6
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Any joy with this branch? I'd like to put the new arm64 atomics into
--next, but it would probably be easier for everybody if I merged in this
-lot first.
+On Mon, 27 Jul 2015, Vlastimil Babka wrote:
 
-Cheers,
+> On 07/24/2015 11:28 PM, Eric B Munson wrote:
+>=20
+> ...
+>=20
+> >Changes from V4:
+> >Drop all architectures for new sys call entries except x86[_64] and MIPS
+> >Drop munlock2 and munlockall2
+> >Make VM_LOCKONFAULT a modifier to VM_LOCKED only to simplify book keeping
+> >Adjust tests to match
+>=20
+> Hi, thanks for considering my suggestions. Well, I do hope there
+> were correct as API's are hard and I'm no API expert. But since
+> API's are also impossible to change after merging, I'm sorry but
+> I'll keep pestering for one last thing. Thanks again for persisting,
+> I do believe it's for the good thing!
+>=20
+> The thing is that I still don't like that one has to call
+> mlock2(MLOCK_LOCKED) to get the equivalent of the old mlock(). Why
+> is that flag needed? We have two modes of locking now, and v5 no
+> longer treats them separately in vma flags. But having two flags
+> gives us four possible combinations, so two of them would serve
+> nothing but to confuse the programmer IMHO. What will mlock2()
+> without flags do? What will mlock2(MLOCK_LOCKED | MLOCK_ONFAULT) do?
+> (Note I haven't studied the code yet, as having agreed on the API
+> should come first. But I did suggest documenting these things more
+> thoroughly too...)
+> OK I checked now and both cases above seem to return EINVAL.
+>=20
+> So about the only point I see in MLOCK_LOCKED flag is parity with
+> MAP_LOCKED for mmap(). But as Kirill said (and me before as well)
+> MAP_LOCKED is broken anyway so we shouldn't twist the rest just of
+> the API to keep the poor thing happier in its misery.
+>=20
+> Also note that AFAICS you don't have MCL_LOCKED for mlockall() so
+> there's no full parity anyway. But please don't fix that by adding
+> MCL_LOCKED :)
+>=20
+> Thanks!
 
-Will
+
+I have an MLOCK_LOCKED flag because I prefer an interface to be
+explicit.  The caller of mlock2() will be required to fill in the flags
+argument regardless.  I can drop the MLOCK_LOCKED flag with 0 being the
+value for LOCKED, but I thought it easier to make clear what was going
+on at any call to mlock2().  If user space defines a MLOCK_LOCKED that
+happens to be 0, I suppose that would be okay.
+
+We do actually have an MCL_LOCKED, we just call it MCL_CURRENT.  Would
+you prefer that I match the name in mlock2() (add MLOCK_CURRENT
+instead)?
+
+Finally, on the question of MAP_LOCKONFAULT, do you just dislike
+MAP_LOCKED and do not want to see it extended, or is this a NAK on the
+set if that patch is included.  I ask because I have to spin a V6 to get
+the MLOCK flag declarations right, but I would prefer not to do a V7+.
+If this is a NAK with, I can drop that patch and rework the tests to
+cover without the mmap flag.  Otherwise I want to keep it, I have an
+internal user that would like to see it added.
+
+
+--y0ulUmNC+osPPQO6
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1
+
+iQIcBAEBAgAGBQJVtjO7AAoJELbVsDOpoOa9TNAQAIfRrQ4rp3LViJe+X+UdnFJ7
+BFJUSHiM7IjUdM+WZyf7s+giHKSybtEIuoX5961wGuUvd777r+83I41Lc0XLR94g
+kquJMYCL+WkIIqyor2Me6FNMnQwUs8EegFgRcJXcy0j+1zaxgkBRUzeYP30ecd39
+ZYdjGfwn2Cyc4vsb/ze/rQ9R24DgQBT8xI4+3XzGwq5ViteaAFuUgY3bZ3gkxgI1
+jFMAiyOCUGp0LBPMMTMOQ52o2xsWHAfADfCy9v3xalA7Rl8s8lX0DfirCoTnRj8f
+27SMJ/kU/RBSCTemsqp4osDnO6cYATAQUk/00w5B8zwUG//syjb8a139izyS8UhU
+arBzKRJR6eZARqtW8IauNTJ6IW8uyp8QNrni7At9hc+rcFgG3+hGt7+H8bugENb8
+VSuydDJoris+H4ysj175AK6Xh2gN2cYxiAxzbeIwnwyn+9uL7A0UpFavyaYjUx2K
+/M1bFELVo/LzAg0tZBNi+nyboZSmAzMoF2RkTPmEK0+5taWqCmYPke0ST4zKAxsA
+z2CpFTxmoKHo8ksPHzQUlTF2KcRl2FlIe2uxUwQ0WAXVqcOJUUo8/OK+knvDPJ7A
+S8jXh2XMpEHh0EQTFvUYrQ+ZxT/nkzITFv33zBGhxryq0ve/AYRbSC87H8RBLHrd
+dqVY5/pEceCOYg9+DxnG
+=1hv9
+-----END PGP SIGNATURE-----
+
+--y0ulUmNC+osPPQO6--
