@@ -1,43 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:52150 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:52360 "EHLO foss.arm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752103AbbG0KVF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 27 Jul 2015 06:21:05 -0400
-Date: Mon, 27 Jul 2015 11:21:07 +0100
+	id S1751217AbbG0LBk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 27 Jul 2015 07:01:40 -0400
+Date: Mon, 27 Jul 2015 12:01:39 +0100
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v3 1/8] atomics: add acquire/release/relaxed variants of
- some atomic operations
-Message-ID: <20150727102106.GD3358@arm.com>
-References: <1437746681-2809-1-git-send-email-will.deacon@arm.com>
- <1437746681-2809-2-git-send-email-will.deacon@arm.com>
- <20150727091430.GP19282@twins.programming.kicks-ass.net>
+Subject: Re: [PATCH 00/28] arch: Provide atomic logic ops
+Message-ID: <20150727110139.GG3358@arm.com>
+References: <20150716172110.587529075@infradead.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20150727091430.GP19282@twins.programming.kicks-ass.net>
+In-Reply-To: <20150716172110.587529075@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Waiman.Long@hp.com" <Waiman.Long@hp.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20150727102107.OnR-b8ra2ukhXO7dX5FlbgBpAVC9tUuWATpLUuHLCW8@z>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "rth@twiddle.net" <rth@twiddle.net>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "hskinnemoen@gmail.com" <hskinnemoen@gmail.com>, "realmz6@gmail.com" <realmz6@gmail.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "rkuo@codeaurora.org" <rkuo@codeaurora.org>, "tony.luck@intel.com" <tony.luck@intel.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "heiko.carstens@de.ibm.com" <heiko.carstens@de.ibm.com>, "davem@davemloft.net" <davem@davemloft.net>, "cmetcalf@ezchip.com" <cmetcalf@ezchip.com>, "ysato@users.sourceforge.jp" <ysato@users.sourceforge.jp>, "mingo@kernel.org" <mingo@kernel.org>
+Message-ID: <20150727110139.hi9OBLM98MoqtNqRD4c5u2Js-E3PRcMj-UiK5IUzkbA@z>
 
-On Mon, Jul 27, 2015 at 10:14:30AM +0100, Peter Zijlstra wrote:
-> On Fri, Jul 24, 2015 at 03:04:34PM +0100, Will Deacon wrote:
-> > This patch introduces three new ordering semantics for these operations:
-> > 
-> >   - *_relaxed: No ordering guarantees. This is similar to what we have
-> >                already for the non-return atomics (e.g. atomic_add).
-> > 
-> >   - *_acquire: ACQUIRE semantics, similar to smp_load_acquire.
-> > 
-> >   - *_release: RELEASE semantics, similar to smp_store_release.
+Hi Peter, Ingo,
+
+On Thu, Jul 16, 2015 at 06:21:10PM +0100, Peter Zijlstra wrote:
+> Currently there is an incoherent mess of atomic_{set,clear}_mask() and
+> atomic_or() (but no atomic_{and,nand,xor}()) in the tree.
 > 
-> Do we want to further specify that for the RmW operations the Read/load
-> will provide the acquire and the Write/store the release?
+> Those archs that implement atomic_{set,clear}_mask() are not even consistent on
+> its signature.
+> 
+> Implement atomic_{or,and,xor}() on all archs and deprecate
+> atomic_{set,clear}_mask().
+> 
+> The series has been compile tested by the build-bot, no known failures at this time.
+> 
+> I would like to take this through tip; I'll ask Ingo to put it in a separate
+> branch such that people can pull in that branch if there is conflicting work
+> elsewhere (Will has some for Argh64).
 
-Yeah, that's not a bad idea, but if we add that then I probably need to
-re-iterate the cmpxchg strangeness since a failed cmpxchg_acquire would
-still not have barrier semantics with the current implementation even though
-it must have performed a Read/load access.
+Any joy with this branch? I'd like to put the new arm64 atomics into
+-next, but it would probably be easier for everybody if I merged in this
+lot first.
+
+Cheers,
 
 Will
