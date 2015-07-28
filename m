@@ -1,104 +1,53 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH 2/2] arm64: support initrd outside kernel linear map
-Date: Tue, 28 Jul 2015 10:32:41 -0400
-Message-ID: <1438093961-15536-3-git-send-email-msalter@redhat.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH 0/2] arm64: support initrd outside of mapped RAM
+Date: Tue, 28 Jul 2015 15:59:06 +0100
+Message-ID: <20150728145906.GE15213@leverpostej>
 References: <1438093961-15536-1-git-send-email-msalter@redhat.com>
-Return-path: <owner-linux-mm@kvack.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:59818 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932189AbbG1O7f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 28 Jul 2015 10:59:35 -0400
+Content-Disposition: inline
 In-Reply-To: <1438093961-15536-1-git-send-email-msalter@redhat.com>
-Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
-Cc: "Arnd Bergmann <arnd@arndb.de>--cc=Ard Biesheuvel" <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mark Salter <msalter@redhat.com>
+Cc: Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-The use of mem= could leave part or all of the initrd outside of
-the kernel linear map. This will lead to an error when unpacking
-the initrd and a probable failure to boot. This patch catches that
-situation and relocates the initrd to be fully within the linear
-map.
+Hi Mark,
 
-Signed-off-by: Mark Salter <msalter@redhat.com>
----
- arch/arm64/kernel/setup.c | 55 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 55 insertions(+)
+As a heads-up, it looks like you missed a space when sending this; Arnd
+and Ard got merged into:
 
-diff --git a/arch/arm64/kernel/setup.c b/arch/arm64/kernel/setup.c
-index f3067d4..96339b5 100644
---- a/arch/arm64/kernel/setup.c
-+++ b/arch/arm64/kernel/setup.c
-@@ -359,6 +359,60 @@ static void __init request_standard_resources(void)
- 	}
- }
- 
-+/*
-+ * Relocate initrd if it is not completely within the linear mapping.
-+ * This would be the case if mem= cuts out all or part of it.
-+ */
-+static void __init relocate_initrd(void)
-+{
-+#ifdef CONFIG_BLK_DEV_INITRD
-+	phys_addr_t orig_start = __virt_to_phys(initrd_start);
-+	phys_addr_t orig_end = __virt_to_phys(initrd_end);
-+	phys_addr_t ram_end = memblock_end_of_DRAM();
-+	phys_addr_t new_start;
-+	unsigned long size, to_free = 0;
-+	void *dest;
-+
-+	if (orig_end <= ram_end)
-+		return;
-+
-+	/* Note if any of original initrd will freeing below */
-+	if (orig_start < ram_end)
-+		to_free = ram_end - orig_start;
-+
-+	size = orig_end - orig_start;
-+
-+	/* initrd needs to be relocated completely inside linear mapping */
-+	new_start = memblock_find_in_range(0, PFN_PHYS(max_pfn),
-+					   size, PAGE_SIZE);
-+	if (!new_start)
-+		panic("Cannot relocate initrd of size %ld\n", size);
-+	memblock_reserve(new_start, size);
-+
-+	initrd_start = __phys_to_virt(new_start);
-+	initrd_end   = initrd_start + size;
-+
-+	pr_info("Moving initrd from [%llx-%llx] to [%llx-%llx]\n",
-+		orig_start, orig_start + size - 1,
-+		new_start, new_start + size - 1);
-+
-+	dest = (void *)initrd_start;
-+
-+	if (to_free) {
-+		memcpy(dest, (void *)__phys_to_virt(orig_start), to_free);
-+		dest += to_free;
-+	}
-+
-+	copy_from_early_mem(dest, orig_start + to_free, size - to_free);
-+
-+	if (to_free) {
-+		pr_info("Freeing original RAMDISK from [%llx-%llx]\n",
-+			orig_start, orig_start + to_free - 1);
-+		memblock_free(orig_start, to_free);
-+	}
-+#endif
-+}
-+
- u64 __cpu_logical_map[NR_CPUS] = { [0 ... NR_CPUS-1] = INVALID_HWID };
- 
- void __init setup_arch(char **cmdline_p)
-@@ -392,6 +446,7 @@ void __init setup_arch(char **cmdline_p)
- 	acpi_boot_table_init();
- 
- 	paging_init();
-+	relocate_initrd();
- 	request_standard_resources();
- 
- 	early_ioremap_reset();
--- 
-2.4.3
+"Arnd Bergmann <arnd@arndb.de>--cc=Ard Biesheuvel" <ard.biesheuvel@linaro.org>
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+I've corrected that for this reply.
+
+On Tue, Jul 28, 2015 at 03:32:39PM +0100, Mark Salter wrote:
+> When booting an arm64 kernel w/initrd using UEFI/grub, use of mem= will likely
+> cut off part or all of the initrd. This leaves it outside the kernel linear
+> map which leads to failure when unpacking. The x86 code has a similar need to
+> relocate an initrd outside of mapped memory in some cases.
+> 
+> The current x86 code uses early_memremap() to copy the original initrd from
+> unmapped to mapped RAM. This patchset creates a generic copy_from_early_mem()
+> utility based on that x86 code and has arm64 use it to relocate the initrd
+> if necessary.
+
+This sounds like a sane idea to me.
+
+> Mark Salter (2):
+>   mm: add utility for early copy from unmapped ram
+>   arm64: support initrd outside kernel linear map
+> 
+>  arch/arm64/kernel/setup.c           | 55 +++++++++++++++++++++++++++++++++++++
+>  include/asm-generic/early_ioremap.h |  6 ++++
+>  mm/early_ioremap.c                  | 22 +++++++++++++++
+>  3 files changed, 83 insertions(+)
+
+Any reason for not moving x86 over to the new generic version?
+
+Mark.
