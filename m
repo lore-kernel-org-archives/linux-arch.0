@@ -1,129 +1,46 @@
-From: Eric B Munson <emunson@akamai.com>
-Subject: Re: [PATCH V5 0/7] Allow user to request memory to be locked on page
- fault
-Date: Tue, 28 Jul 2015 14:06:42 -0400
-Message-ID: <20150728180642.GE2407@akamai.com>
-References: <1437773325-8623-1-git-send-email-emunson@akamai.com>
- <55B5F4FF.9070604@suse.cz>
- <20150727133555.GA17133@akamai.com>
- <55B63D37.20303@suse.cz>
- <20150727145409.GB21664@akamai.com>
- <20150728111725.GG24972@dhcp22.suse.cz>
- <20150728134942.GB2407@akamai.com>
- <55B79B7F.9010604@suse.cz>
+From: Toshi Kani <toshi.kani@hp.com>
+Subject: Re: [PATCH v2 04/25] mm: enhance region_is_ram() to distinguish
+ 'unknown' vs 'mixed'
+Date: Tue, 28 Jul 2015 15:33:11 -0600
+Message-ID: <1438119191.3214.407.camel@hp.com>
+References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
+	 <20150725023821.8664.81275.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="gDGSpKKIBgtShtf+"
-Return-path: <linux-alpha-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <55B79B7F.9010604@suse.cz>
-Sender: linux-alpha-owner@vger.kernel.org
-To: Vlastimil Babka <vbabka@suse.cz>
-Cc: Michal Hocko <mhocko@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuahkh@osg.samsung.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Ralf Baechle <ralf@linux-mips.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20150725023821.8664.81275.stgit@dwillia2-desk3.amr.corp.intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Dan Williams <dan.j.williams@intel.com>, tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
+Cc: linux-arch@vger.kernel.org, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
+On Fri, 2015-07-24 at 22:38 -0400, Dan Williams wrote:
+> region_is_ram() is used to prevent the establishment of aliased mappings
+> to physical "System RAM" with incompatible cache settings.  However, it
+> uses "-1" to indicate both "unknown" memory ranges (ranges not described
+> by platform firmware) and "mixed" ranges (where the parameters describe
+> a range that partially overlaps "System RAM").
+> 
+> Fix this up by explicitly tracking the "unknown" vs "mixed" resource
+> cases. In addition to clarifying that "-1" means the requested spanned
+> RAM and non-RAM resource, this re-write also adds support for detecting
+> when the requested range completely covers all of a resource.
 
---gDGSpKKIBgtShtf+
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Agreed - this is a good enhancement.
 
-On Tue, 28 Jul 2015, Vlastimil Babka wrote:
+> Finally, the implementation treats overlaps between "unknown" and RAM as
+> RAM.
 
-> On 07/28/2015 03:49 PM, Eric B Munson wrote:
-> >On Tue, 28 Jul 2015, Michal Hocko wrote:
-> >
->=20
-> [...]
->=20
-> >The only
-> >remaining question I have is should we have 2 new mlockall flags so that
-> >the caller can explicitly set VM_LOCKONFAULT in the mm->def_flags vs
-> >locking all current VMAs on fault.  I ask because if the user wants to
-> >lock all current VMAs the old way, but all future VMAs on fault they
-> >have to call mlockall() twice:
-> >
-> >	mlockall(MCL_CURRENT);
-> >	mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT);
-> >
-> >This has the side effect of converting all the current VMAs to
-> >VM_LOCKONFAULT, but because they were all made present and locked in the
-> >first call, this should not matter in most cases.
->=20
-> Shouldn't the user be able to do this?
->=20
-> mlockall(MCL_CURRENT)
-> mlockall(MCL_FUTURE | MCL_ONFAULT);
->=20
-> Note that the second call shouldn't change (i.e. munlock) existing
-> vma's just because MCL_CURRENT is not present. The current
-> implementation doesn't do that thanks to the following in
-> do_mlockall():
->=20
->         if (flags =3D=3D MCL_FUTURE)
->                 goto out;
->=20
-> before current vma's are processed and MCL_CURRENT is checked. This
-> is probably so that do_mlockall() can also handle the munlockall()
-> syscall.
-> So we should be careful not to break this, but otherwise there are
-> no limitations by not having two MCL_ONFAULT flags. Having to do
-> invoke syscalls instead of one is not an issue as this shouldn't be
-> frequent syscall.
+This sounds right for this interface.  iomem_map_sanity_check() checks the
+boundary condition with the resource table.
 
-Good catch, my current implementation did break this and is now fixed.
+> Cc: Toshi Kani <toshi.kani@hp.com>
+> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 
->=20
-> >The catch is that,
-> >like mmap(MAP_LOCKED), mlockall() does not communicate if mm_populate()
-> >fails.  This has been true of mlockall() from the beginning so I don't
-> >know if it needs more than an entry in the man page to clarify (which I
-> >will add when I add documentation for MCL_ONFAULT).
->=20
-> Good point.
->=20
-> >In a much less
-> >likely corner case, it is not possible in the current setup to request
-> >all current VMAs be VM_LOCKONFAULT and all future be VM_LOCKED.
->=20
-> So again this should work:
->=20
-> mlockall(MCL_CURRENT | MCL_ONFAULT)
-> mlockall(MCL_FUTURE);
->=20
-> But the order matters here, as current implementation of
-> do_mlockall() will clear VM_LOCKED from def_flags if MCL_FUTURE is
-> not passed. So *it's different* from how it handles MCL_CURRENT (as
-> explained above). And not documented in manpage. Oh crap, this API
-> is a closet full of skeletons. Maybe it was an unnoticed regression
-> and we can restore some sanity?
+The changes look good as well.
 
-I will add a note about the ordering problem to the manpage as well.
-Unfortunately, the basic idea of clearing VM_LOCKED from mm->def_flags
-if MCL_FUTURE is not specified but not doing the same for MCL_CURRENT
-predates the move to git, so I am not sure if it was ever different.
+Reviewed-by: Toshi Kani <toshi.kani@hp.com>
 
-
---gDGSpKKIBgtShtf+
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAEBAgAGBQJVt8SyAAoJELbVsDOpoOa9ZesP/1N/oMkXQdcSEZVI2hPN/lg2
-9mWtmYEND1iC1vy7m8SDPnbAhVEDe7QS1LnkybW7h+ZPDdEcYndvaWGlwVZfAcFF
-ibAYaG7hkQ5mOwpRrAqIf0Fmgya0W1tJjIxg59FyHxsFZBGe+NiCZ7CmZGpTp8sY
-5QcFKUSFRGoIfAp2A4akeitUr3Eq62QEDOGrGq7TJboHJeNklRqRwDjYgMSe6NHq
-lR7KOBP/iPu3W2yWpOcfqxQiv4V0d7C4cZTi4NcQeaOy4tkolspMZaUuA4n0u+ZI
-1uyUaVo24RhGucRALQ5oM5l6pQLL+cGeWGmJtrB9lwydD0H5aVxYqVKAXylYDhBN
-VeVocCkLkpQZX8NnMpWcqMDpq0gSuM0YbtMHpaU04suBNBCHb4nnc9uql5GHm5TX
-WyrTKCj9tG5vmM94RKhreI4SpN2v1K0BwmRWDV0hgSl1/WIizxSOgnrs5VBEzrXo
-78HoY24TPsDTs6bhsfuQ6uaKmy1Q8fQpkGCenVaveOW4igVJvvZEVKKvZwDu0VzD
-HrAKkRfYO427d8Xk46ZJzav0RcwR7LWeBfm68QkswXhMWEMVcxXf3hAJxl+rWsCa
-WJenAR2HADZCQrfLWp5bLYcdWww8LHoWRiT8M2jBjn/BNTblo0yLd3o+kdFxJ2V9
-f6X8bsOxQAhqSGzrGcnK
-=OZR5
------END PGP SIGNATURE-----
-
---gDGSpKKIBgtShtf+--
+Thanks,
+-Toshi
