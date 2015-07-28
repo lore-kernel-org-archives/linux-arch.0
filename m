@@ -1,69 +1,81 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: Re: [PATCH 0/2] arm64: support initrd outside of mapped RAM
-Date: Tue, 28 Jul 2015 11:07:49 -0400
-Message-ID: <1438096069.14248.13.camel@redhat.com>
-References: <1438093961-15536-1-git-send-email-msalter@redhat.com>
-	 <20150728145906.GE15213@leverpostej>
+From: Vlastimil Babka <vbabka@suse.cz>
+Subject: Re: [PATCH V5 0/7] Allow user to request memory to be locked on page
+ fault
+Date: Tue, 28 Jul 2015 17:10:55 +0200
+Message-ID: <55B79B7F.9010604@suse.cz>
+References: <1437773325-8623-1-git-send-email-emunson@akamai.com>
+ <55B5F4FF.9070604@suse.cz> <20150727133555.GA17133@akamai.com>
+ <55B63D37.20303@suse.cz> <20150727145409.GB21664@akamai.com>
+ <20150728111725.GG24972@dhcp22.suse.cz> <20150728134942.GB2407@akamai.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20150728145906.GE15213@leverpostej>
-Sender: owner-linux-mm@kvack.org
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <20150728134942.GB2407@akamai.com>
+Sender: linux-parisc-owner@vger.kernel.org
+To: Eric B Munson <emunson@akamai.com>, Michal Hocko <mhocko@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuahkh@osg.samsung.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Ralf Baechle <ralf@linux-mips.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2015-07-28 at 15:59 +0100, Mark Rutland wrote:
-> Hi Mark,
-> 
-> As a heads-up, it looks like you missed a space when sending this; Arnd
-> and Ard got merged into:
-> 
-> "Arnd Bergmann <arnd@arndb.de>--cc=Ard Biesheuvel" <
-> ard.biesheuvel@linaro.org>
-> 
-> I've corrected that for this reply.
+On 07/28/2015 03:49 PM, Eric B Munson wrote:
+> On Tue, 28 Jul 2015, Michal Hocko wrote:
+>
 
-Oops. Thanks.
+[...]
 
-> 
-> On Tue, Jul 28, 2015 at 03:32:39PM +0100, Mark Salter wrote:
-> > When booting an arm64 kernel w/initrd using UEFI/grub, use of mem= will 
-> > likely
-> > cut off part or all of the initrd. This leaves it outside the kernel 
-> > linear
-> > map which leads to failure when unpacking. The x86 code has a similar 
-> > need to
-> > relocate an initrd outside of mapped memory in some cases.
-> > 
-> > The current x86 code uses early_memremap() to copy the original initrd 
-> > from
-> > unmapped to mapped RAM. This patchset creates a generic 
-> > copy_from_early_mem()
-> > utility based on that x86 code and has arm64 use it to relocate the 
-> > initrd
-> > if necessary.
-> 
-> This sounds like a sane idea to me.
-> 
-> > Mark Salter (2):
-> >   mm: add utility for early copy from unmapped ram
-> >   arm64: support initrd outside kernel linear map
-> > 
-> >  arch/arm64/kernel/setup.c           | 55 
-> > +++++++++++++++++++++++++++++++++++++
-> >  include/asm-generic/early_ioremap.h |  6 ++++
-> >  mm/early_ioremap.c                  | 22 +++++++++++++++
-> >  3 files changed, 83 insertions(+)
-> 
-> Any reason for not moving x86 over to the new generic version?
+> The only
+> remaining question I have is should we have 2 new mlockall flags so that
+> the caller can explicitly set VM_LOCKONFAULT in the mm->def_flags vs
+> locking all current VMAs on fault.  I ask because if the user wants to
+> lock all current VMAs the old way, but all future VMAs on fault they
+> have to call mlockall() twice:
+>
+> 	mlockall(MCL_CURRENT);
+> 	mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT);
+>
+> This has the side effect of converting all the current VMAs to
+> VM_LOCKONFAULT, but because they were all made present and locked in the
+> first call, this should not matter in most cases.
 
-I have a patch to do that but I'm not sure how to contrive a
-testcase to exercise it.
+Shouldn't the user be able to do this?
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+mlockall(MCL_CURRENT)
+mlockall(MCL_FUTURE | MCL_ONFAULT);
+
+Note that the second call shouldn't change (i.e. munlock) existing vma's 
+just because MCL_CURRENT is not present. The current implementation 
+doesn't do that thanks to the following in do_mlockall():
+
+         if (flags == MCL_FUTURE)
+                 goto out;
+
+before current vma's are processed and MCL_CURRENT is checked. This is 
+probably so that do_mlockall() can also handle the munlockall() syscall.
+So we should be careful not to break this, but otherwise there are no 
+limitations by not having two MCL_ONFAULT flags. Having to do invoke 
+syscalls instead of one is not an issue as this shouldn't be frequent 
+syscall.
+
+> The catch is that,
+> like mmap(MAP_LOCKED), mlockall() does not communicate if mm_populate()
+> fails.  This has been true of mlockall() from the beginning so I don't
+> know if it needs more than an entry in the man page to clarify (which I
+> will add when I add documentation for MCL_ONFAULT).
+
+Good point.
+
+> In a much less
+> likely corner case, it is not possible in the current setup to request
+> all current VMAs be VM_LOCKONFAULT and all future be VM_LOCKED.
+
+So again this should work:
+
+mlockall(MCL_CURRENT | MCL_ONFAULT)
+mlockall(MCL_FUTURE);
+
+But the order matters here, as current implementation of do_mlockall() 
+will clear VM_LOCKED from def_flags if MCL_FUTURE is not passed. So 
+*it's different* from how it handles MCL_CURRENT (as explained above). 
+And not documented in manpage. Oh crap, this API is a closet full of 
+skeletons. Maybe it was an unnoticed regression and we can restore some 
+sanity?
