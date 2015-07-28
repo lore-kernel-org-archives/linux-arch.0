@@ -1,81 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:35326 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:38627 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752490AbbG1OdA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 28 Jul 2015 10:33:00 -0400
+	id S1753113AbbG1PHv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 28 Jul 2015 11:07:51 -0400
+Message-ID: <1438096069.14248.13.camel@redhat.com>
+Subject: Re: [PATCH 0/2] arm64: support initrd outside of mapped RAM
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH 1/2] mm: add utility for early copy from unmapped ram
-Date: Tue, 28 Jul 2015 10:32:40 -0400
-Message-ID: <1438093961-15536-2-git-send-email-msalter@redhat.com>
-In-Reply-To: <1438093961-15536-1-git-send-email-msalter@redhat.com>
+Date: Tue, 28 Jul 2015 11:07:49 -0400
+In-Reply-To: <20150728145906.GE15213@leverpostej>
 References: <1438093961-15536-1-git-send-email-msalter@redhat.com>
+	 <20150728145906.GE15213@leverpostej>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
-Cc: "Arnd Bergmann <arnd@arndb.de>--cc=Ard Biesheuvel" <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
-Message-ID: <20150728143240.hbEKAcnvlqf1TPhbNCS0cKoPAv1V7v4Q2S9ws2qX-tE@z>
+To: Mark Rutland <mark.rutland@arm.com>
+Cc: Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Message-ID: <20150728150749.n4j3r8BR4CR-KcZvQkHgo-uq9q0LtaDdAAKzdiKq_y4@z>
 
-In some early boot circumstances, it may be necessary to copy
-from RAM outside the kernel linear mapping to mapped RAM. The
-need to relocate an initrd is one example in the x86 code. This
-patch creates a helper function based on current x86 code.
+On Tue, 2015-07-28 at 15:59 +0100, Mark Rutland wrote:
+> Hi Mark,
+> 
+> As a heads-up, it looks like you missed a space when sending this; Arnd
+> and Ard got merged into:
+> 
+> "Arnd Bergmann <arnd@arndb.de>--cc=Ard Biesheuvel" <
+> ard.biesheuvel@linaro.org>
+> 
+> I've corrected that for this reply.
 
-Signed-off-by: Mark Salter <msalter@redhat.com>
----
- include/asm-generic/early_ioremap.h |  6 ++++++
- mm/early_ioremap.c                  | 22 ++++++++++++++++++++++
- 2 files changed, 28 insertions(+)
+Oops. Thanks.
 
-diff --git a/include/asm-generic/early_ioremap.h b/include/asm-generic/early_ioremap.h
-index a5de55c..e539f27 100644
---- a/include/asm-generic/early_ioremap.h
-+++ b/include/asm-generic/early_ioremap.h
-@@ -33,6 +33,12 @@ extern void early_ioremap_setup(void);
-  */
- extern void early_ioremap_reset(void);
- 
-+/*
-+ * Early copy from unmapped memory to kernel mapped memory.
-+ */
-+extern void copy_from_early_mem(void *dest, phys_addr_t src,
-+				unsigned long size);
-+
- #else
- static inline void early_ioremap_init(void) { }
- static inline void early_ioremap_setup(void) { }
-diff --git a/mm/early_ioremap.c b/mm/early_ioremap.c
-index e10ccd2..acba804 100644
---- a/mm/early_ioremap.c
-+++ b/mm/early_ioremap.c
-@@ -217,6 +217,28 @@ early_memremap(resource_size_t phys_addr, unsigned long size)
- 	return (__force void *)__early_ioremap(phys_addr, size,
- 					       FIXMAP_PAGE_NORMAL);
- }
-+
-+#define MAX_MAP_CHUNK	(NR_FIX_BTMAPS << PAGE_SHIFT)
-+
-+void __init copy_from_early_mem(void *dest, phys_addr_t src, unsigned long size)
-+{
-+	unsigned long slop, clen;
-+	char *p;
-+
-+	while (size) {
-+		slop = src & ~PAGE_MASK;
-+		clen = size;
-+		if (clen > MAX_MAP_CHUNK - slop)
-+			clen = MAX_MAP_CHUNK - slop;
-+		p = early_memremap(src & PAGE_MASK, clen + slop);
-+		memcpy(dest, p + slop, clen);
-+		early_iounmap(p, clen + slop);
-+		dest += clen;
-+		src += clen;
-+		size -= clen;
-+	}
-+}
-+
- #else /* CONFIG_MMU */
- 
- void __init __iomem *
--- 
-2.4.3
+> 
+> On Tue, Jul 28, 2015 at 03:32:39PM +0100, Mark Salter wrote:
+> > When booting an arm64 kernel w/initrd using UEFI/grub, use of mem= will 
+> > likely
+> > cut off part or all of the initrd. This leaves it outside the kernel 
+> > linear
+> > map which leads to failure when unpacking. The x86 code has a similar 
+> > need to
+> > relocate an initrd outside of mapped memory in some cases.
+> > 
+> > The current x86 code uses early_memremap() to copy the original initrd 
+> > from
+> > unmapped to mapped RAM. This patchset creates a generic 
+> > copy_from_early_mem()
+> > utility based on that x86 code and has arm64 use it to relocate the 
+> > initrd
+> > if necessary.
+> 
+> This sounds like a sane idea to me.
+> 
+> > Mark Salter (2):
+> >   mm: add utility for early copy from unmapped ram
+> >   arm64: support initrd outside kernel linear map
+> > 
+> >  arch/arm64/kernel/setup.c           | 55 
+> > +++++++++++++++++++++++++++++++++++++
+> >  include/asm-generic/early_ioremap.h |  6 ++++
+> >  mm/early_ioremap.c                  | 22 +++++++++++++++
+> >  3 files changed, 83 insertions(+)
+> 
+> Any reason for not moving x86 over to the new generic version?
+
+I have a patch to do that but I'm not sure how to contrive a
+testcase to exercise it.
 
