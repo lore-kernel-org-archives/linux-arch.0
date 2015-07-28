@@ -1,75 +1,61 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH v2 08/25] arch: introduce memremap()
-Date: Mon, 27 Jul 2015 17:32:54 -0700
-Message-ID: <CAPcyv4i=QPHxHp-VZ63tKbVyBW66BgGXBq0Z3K8gnZMVd=1r6A@mail.gmail.com>
-References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20150725023842.8664.97620.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20150727231755.GV30479@wotan.suse.de>
-	<CAPcyv4i07wV1Mf1XCs-U98w979enk9PYKquh7CSMcJv0T1kH1Q@mail.gmail.com>
-	<20150727234351.GW30479@wotan.suse.de>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH V5 0/7] Allow user to request memory to be locked on page
+ fault
+Date: Tue, 28 Jul 2015 13:17:25 +0200
+Message-ID: <20150728111725.GG24972@dhcp22.suse.cz>
+References: <1437773325-8623-1-git-send-email-emunson@akamai.com>
+ <55B5F4FF.9070604@suse.cz>
+ <20150727133555.GA17133@akamai.com>
+ <55B63D37.20303@suse.cz>
+ <20150727145409.GB21664@akamai.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f176.google.com ([209.85.212.176]:38129 "EHLO
-	mail-wi0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754629AbbG1Acz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Jul 2015 20:32:55 -0400
-Received: by wibxm9 with SMTP id xm9so138372887wib.1
-        for <linux-arch@vger.kernel.org>; Mon, 27 Jul 2015 17:32:54 -0700 (PDT)
-In-Reply-To: <20150727234351.GW30479@wotan.suse.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@suse.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-alpha-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20150727145409.GB21664@akamai.com>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Eric B Munson <emunson@akamai.com>
+Cc: Vlastimil Babka <vbabka@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuahkh@osg.samsung.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Ralf Baechle <ralf@linux-mips.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jul 27, 2015 at 4:43 PM, Luis R. Rodriguez <mcgrof@suse.com> wrote:
-> On Mon, Jul 27, 2015 at 04:31:09PM -0700, Dan Williams wrote:
->> On Mon, Jul 27, 2015 at 4:17 PM, Luis R. Rodriguez <mcgrof@suse.com> wrote:
->> > On Fri, Jul 24, 2015 at 10:38:42PM -0400, Dan Williams wrote:
->> >> Existing users of ioremap_cache() are mapping memory that is known in
->> >> advance to not have i/o side effects.  These users are forced to cast
->> >> away the __iomem annotation, or otherwise neglect to fix the sparse
->> >> errors thrown when dereferencing pointers to this memory.  Provide
->> >> memremap() as a non __iomem annotated ioremap_*() in the case when
->> >> ioremap is otherwise a pointer to memory.
->> >
->> > Ok so a special use case.
->> >
->> >> Outside of ioremap() and
->> >> ioremap_nocache(), the expectation is that most calls to
->> >> ioremap_<type>() are seeking memory-like semantics (e.g.  speculative
->> >> reads, and prefetching permitted).  These callsites can be moved to
->> >> memremap() over time.
->> >
->> > Such memory-like smantics are not well defined yet and this has caused
->> > issues over expectations over a slew of APIs. As you note above
->> > your own defined 'semantics' so far for memremap are just that there are
->> > no i/o side effects, when the mapped memory is just a pointer to memory,
->> > as such I do not think its fair to set the excpectations that we'll
->> > switch all other ioremap_*() callers to the same memremap() API. Now,
->> > it may be a good idea to use something similar, ie, to pass flags,
->> > but setting the expectations outright to move to memremap() without having
->> > any agreement having been made over semantics seems uncalled for at this
->> > point in time, specially when you are noting that the expectations for
->> > both sets of calls are different.
->> >
->> > So perhaps:
->> >
->> > "
->> > Outside of ioremap() and ioremap_nocache(), all other ioremap_<type>()
->> > variant calls are seeking memory-like semantics (e.g.  speculative
->> > reads, and prefetching permitted) and all calls expecations currently
->> > differ depending on architecture. Once and if we get agreement on such
->> > semantics we may be able to move such ioremap_*() variant calls to
->> > a similar API where the semantics required are clearly spelled out
->> > and well defined and passed as arguments.
->>
->> I still think ioremap_wc(), and now ioremap_uc(), are special and are
->> not obvious candidates for conversion to memremap().
->
-> OK great, then we're in strong agreement, so removing the "Outside of
-> ioremap() and... over time" might be best then? Otherwise what I posted
-> seems to reflect the state of affairs better?
->
+[I am sorry but I didn't get to this sooner.]
 
-Ah yes, I need to clean that up.  Thanks!
+On Mon 27-07-15 10:54:09, Eric B Munson wrote:
+> Now that VM_LOCKONFAULT is a modifier to VM_LOCKED and
+> cannot be specified independentally, it might make more sense to mirror
+> that relationship to userspace.  Which would lead to soemthing like the
+> following:
+
+A modifier makes more sense.
+ 
+> To lock and populate a region:
+> mlock2(start, len, 0);
+> 
+> To lock on fault a region:
+> mlock2(start, len, MLOCK_ONFAULT);
+> 
+> If LOCKONFAULT is seen as a modifier to mlock, then having the flags
+> argument as 0 mean do mlock classic makes more sense to me.
+> 
+> To mlock current on fault only:
+> mlockall(MCL_CURRENT | MCL_ONFAULT);
+> 
+> To mlock future on fault only:
+> mlockall(MCL_FUTURE | MCL_ONFAULT);
+> 
+> To lock everything on fault:
+> mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT);
+
+Makes sense to me. The only remaining and still tricky part would be
+the munlock{all}(flags) behavior. What should munlock(MLOCK_ONFAULT)
+do? Keep locked and poppulate the range or simply ignore the flag an
+just unlock?
+
+I can see some sense to allow munlockall(MCL_FUTURE[|MLOCK_ONFAULT]),
+munlockall(MCL_CURRENT) resp. munlockall(MCL_CURRENT|MCL_FUTURE) but
+other combinations sound weird to me.
+
+Anyway munlock with flags opens new doors of trickiness.
+-- 
+Michal Hocko
+SUSE Labs
