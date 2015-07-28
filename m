@@ -1,125 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from prod-mail-xrelay02.akamai.com ([72.246.2.14]:60770 "EHLO
-	prod-mail-xrelay02.akamai.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S932154AbbG1Nto (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 28 Jul 2015 09:49:44 -0400
-Date: Tue, 28 Jul 2015 09:49:42 -0400
-From: Eric B Munson <emunson@akamai.com>
-Subject: Re: [PATCH V5 0/7] Allow user to request memory to be locked on page
- fault
-Message-ID: <20150728134942.GB2407@akamai.com>
-References: <1437773325-8623-1-git-send-email-emunson@akamai.com>
- <55B5F4FF.9070604@suse.cz>
- <20150727133555.GA17133@akamai.com>
- <55B63D37.20303@suse.cz>
- <20150727145409.GB21664@akamai.com>
- <20150728111725.GG24972@dhcp22.suse.cz>
-MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="61jdw2sOBCFtR2d/"
-Content-Disposition: inline
-In-Reply-To: <20150728111725.GG24972@dhcp22.suse.cz>
+Received: from mx1.redhat.com ([209.132.183.28]:60387 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754366AbbG1OdB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 28 Jul 2015 10:33:01 -0400
+From: Mark Salter <msalter@redhat.com>
+Subject: [PATCH 2/2] arm64: support initrd outside kernel linear map
+Date: Tue, 28 Jul 2015 10:32:41 -0400
+Message-ID: <1438093961-15536-3-git-send-email-msalter@redhat.com>
+In-Reply-To: <1438093961-15536-1-git-send-email-msalter@redhat.com>
+References: <1438093961-15536-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@kernel.org>
-Cc: Vlastimil Babka <vbabka@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuahkh@osg.samsung.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Ralf Baechle <ralf@linux-mips.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20150728134942.uyjjxx5-8YhclybJIW1esFK3i2ZsebszKd1SqECwjdc@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
+Cc: "Arnd Bergmann <arnd@arndb.de>--cc=Ard Biesheuvel" <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
+Message-ID: <20150728143241.PR7YQjrfDDJDN7cv2po6Gbox46m78nMeA8ZtmQJdJjo@z>
 
+The use of mem= could leave part or all of the initrd outside of
+the kernel linear map. This will lead to an error when unpacking
+the initrd and a probable failure to boot. This patch catches that
+situation and relocates the initrd to be fully within the linear
+map.
 
---61jdw2sOBCFtR2d/
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Signed-off-by: Mark Salter <msalter@redhat.com>
+---
+ arch/arm64/kernel/setup.c | 55 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 55 insertions(+)
 
-On Tue, 28 Jul 2015, Michal Hocko wrote:
+diff --git a/arch/arm64/kernel/setup.c b/arch/arm64/kernel/setup.c
+index f3067d4..96339b5 100644
+--- a/arch/arm64/kernel/setup.c
++++ b/arch/arm64/kernel/setup.c
+@@ -359,6 +359,60 @@ static void __init request_standard_resources(void)
+ 	}
+ }
+ 
++/*
++ * Relocate initrd if it is not completely within the linear mapping.
++ * This would be the case if mem= cuts out all or part of it.
++ */
++static void __init relocate_initrd(void)
++{
++#ifdef CONFIG_BLK_DEV_INITRD
++	phys_addr_t orig_start = __virt_to_phys(initrd_start);
++	phys_addr_t orig_end = __virt_to_phys(initrd_end);
++	phys_addr_t ram_end = memblock_end_of_DRAM();
++	phys_addr_t new_start;
++	unsigned long size, to_free = 0;
++	void *dest;
++
++	if (orig_end <= ram_end)
++		return;
++
++	/* Note if any of original initrd will freeing below */
++	if (orig_start < ram_end)
++		to_free = ram_end - orig_start;
++
++	size = orig_end - orig_start;
++
++	/* initrd needs to be relocated completely inside linear mapping */
++	new_start = memblock_find_in_range(0, PFN_PHYS(max_pfn),
++					   size, PAGE_SIZE);
++	if (!new_start)
++		panic("Cannot relocate initrd of size %ld\n", size);
++	memblock_reserve(new_start, size);
++
++	initrd_start = __phys_to_virt(new_start);
++	initrd_end   = initrd_start + size;
++
++	pr_info("Moving initrd from [%llx-%llx] to [%llx-%llx]\n",
++		orig_start, orig_start + size - 1,
++		new_start, new_start + size - 1);
++
++	dest = (void *)initrd_start;
++
++	if (to_free) {
++		memcpy(dest, (void *)__phys_to_virt(orig_start), to_free);
++		dest += to_free;
++	}
++
++	copy_from_early_mem(dest, orig_start + to_free, size - to_free);
++
++	if (to_free) {
++		pr_info("Freeing original RAMDISK from [%llx-%llx]\n",
++			orig_start, orig_start + to_free - 1);
++		memblock_free(orig_start, to_free);
++	}
++#endif
++}
++
+ u64 __cpu_logical_map[NR_CPUS] = { [0 ... NR_CPUS-1] = INVALID_HWID };
+ 
+ void __init setup_arch(char **cmdline_p)
+@@ -392,6 +446,7 @@ void __init setup_arch(char **cmdline_p)
+ 	acpi_boot_table_init();
+ 
+ 	paging_init();
++	relocate_initrd();
+ 	request_standard_resources();
+ 
+ 	early_ioremap_reset();
+-- 
+2.4.3
 
-> [I am sorry but I didn't get to this sooner.]
->=20
-> On Mon 27-07-15 10:54:09, Eric B Munson wrote:
-> > Now that VM_LOCKONFAULT is a modifier to VM_LOCKED and
-> > cannot be specified independentally, it might make more sense to mirror
-> > that relationship to userspace.  Which would lead to soemthing like the
-> > following:
->=20
-> A modifier makes more sense.
-> =20
-> > To lock and populate a region:
-> > mlock2(start, len, 0);
-> >=20
-> > To lock on fault a region:
-> > mlock2(start, len, MLOCK_ONFAULT);
-> >=20
-> > If LOCKONFAULT is seen as a modifier to mlock, then having the flags
-> > argument as 0 mean do mlock classic makes more sense to me.
-> >=20
-> > To mlock current on fault only:
-> > mlockall(MCL_CURRENT | MCL_ONFAULT);
-> >=20
-> > To mlock future on fault only:
-> > mlockall(MCL_FUTURE | MCL_ONFAULT);
-> >=20
-> > To lock everything on fault:
-> > mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT);
->=20
-> Makes sense to me. The only remaining and still tricky part would be
-> the munlock{all}(flags) behavior. What should munlock(MLOCK_ONFAULT)
-> do? Keep locked and poppulate the range or simply ignore the flag an
-> just unlock?
->=20
-> I can see some sense to allow munlockall(MCL_FUTURE[|MLOCK_ONFAULT]),
-> munlockall(MCL_CURRENT) resp. munlockall(MCL_CURRENT|MCL_FUTURE) but
-> other combinations sound weird to me.
->=20
-> Anyway munlock with flags opens new doors of trickiness.
-
-In the current revision there are no new munlock[all] system calls
-introduced.  munlockall() unconditionally cleared both MCL_CURRENT and
-MCL_FUTURE before the set and now unconditionally clears all three.
-munlock() does the same for VM_LOCK and VM_LOCKONFAULT.  If the user
-wants to adjust mlockall flags today, they need to call mlockall a
-second time with the new flags, this remains true for mlockall after
-this set and the same behavior is mirrored in mlock2.  The only
-remaining question I have is should we have 2 new mlockall flags so that
-the caller can explicitly set VM_LOCKONFAULT in the mm->def_flags vs
-locking all current VMAs on fault.  I ask because if the user wants to
-lock all current VMAs the old way, but all future VMAs on fault they
-have to call mlockall() twice:
-
-	mlockall(MCL_CURRENT);
-	mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT);
-
-This has the side effect of converting all the current VMAs to
-VM_LOCKONFAULT, but because they were all made present and locked in the
-first call, this should not matter in most cases.  The catch is that,
-like mmap(MAP_LOCKED), mlockall() does not communicate if mm_populate()
-fails.  This has been true of mlockall() from the beginning so I don't
-know if it needs more than an entry in the man page to clarify (which I
-will add when I add documentation for MCL_ONFAULT).  In a much less
-likely corner case, it is not possible in the current setup to request
-all current VMAs be VM_LOCKONFAULT and all future be VM_LOCKED.
-
-
---61jdw2sOBCFtR2d/
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1
-
-iQIcBAEBAgAGBQJVt4h2AAoJELbVsDOpoOa9oHIQAIcQd4UyZvk7S3Gk5qbrOB18
-DBwAWsh9b5MmgjqQJ6VY9tveNG54UTtmGIt5ToxjkoJdN+y7i0Bcen7t5sh0ZJpY
-cm7qGFkP9Mz+zp0cnwNi6SxjhmNdPZbFgcq7JPD4eXG73Guha/ov1yKGUCaE9I8z
-NhWJEDf2QaXAeTYZMAp3QsZUE2A2vGtpVvgqXfVsoFiTXdO59wFfj7ZWs7Tvd8tA
-7gFjWP2gUd3F5CxKVx7W7CujDyjqPYqjGe6GRq4RXvjgKlnzn19Dz71XM40WlQfy
-mK1jm7TyXcFLT7oxcCJfzdiy72ViZ3n+lv6QbshOBkrmbTKk+WkPcmoY84Gg05mz
-GyR0BeJ02Q/QWMPlCHTq8E+iBgRYrGXQxC7/0zjXizRCUxMoNtMbzYmEo63jHIUS
-BpiaDFIS4b48qznxLcKn1zeG6I1tiRgVcYVLWOieVBFgKG5g0ae7Gsy5FhTHwohn
-TFbs8PMRs+bZcLrY8dFFsS7/l7EBx/KZmA2Zcpj+Lcdr/LdwokV8rDN/R23spu1a
-NVMoBoBXxXuDqA1pUTVCoBimDF2U5GArsy0yjHnVWzjZNqQSh1+eTEEZp+lu6eeC
-briVmyabn8fCItemDJrAK/6RdvzbqHHri7Ny2d3GSyMPO36aM/lVN1wlF1qMZ3GA
-9sHKsbhENoi90n42sc8Q
-=YK5t
------END PGP SIGNATURE-----
-
---61jdw2sOBCFtR2d/--
