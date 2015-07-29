@@ -1,34 +1,122 @@
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH 0/2] arm64: support initrd outside of mapped RAM
-Date: Wed, 29 Jul 2015 10:25:37 +0100
-Message-ID: <20150729092536.GI15213@leverpostej>
-References: <1438093961-15536-1-git-send-email-msalter@redhat.com>
- <1438161638.3129.4.camel@linaro.org>
+From: Michal Hocko <mhocko@kernel.org>
+Subject: Re: [PATCH V5 0/7] Allow user to request memory to be locked on page
+ fault
+Date: Wed, 29 Jul 2015 12:45:32 +0200
+Message-ID: <20150729104532.GE15801@dhcp22.suse.cz>
+References: <1437773325-8623-1-git-send-email-emunson@akamai.com>
+ <55B5F4FF.9070604@suse.cz>
+ <20150727133555.GA17133@akamai.com>
+ <55B63D37.20303@suse.cz>
+ <20150727145409.GB21664@akamai.com>
+ <20150728111725.GG24972@dhcp22.suse.cz>
+ <20150728134942.GB2407@akamai.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:35222 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752366AbbG2J0H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 29 Jul 2015 05:26:07 -0400
+Return-path: <linux-alpha-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1438161638.3129.4.camel@linaro.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Jon Medhurst (Tixy)" <tixy@linaro.org>
-Cc: "msalter@redhat.com" <msalter@redhat.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Arnd Bergmann <arnd@arndb.de>--cc=Ard Biesheuvel" <ard.biesheuvel@linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+In-Reply-To: <20150728134942.GB2407@akamai.com>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Eric B Munson <emunson@akamai.com>
+Cc: Vlastimil Babka <vbabka@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuahkh@osg.samsung.com>, Michael Kerrisk <mtk.manpages@gmail.com>, Jonathan Corbet <corbet@lwn.net>, Ralf Baechle <ralf@linux-mips.org>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 29, 2015 at 10:20:38AM +0100, Jon Medhurst (Tixy) wrote:
-> On Tue, 2015-07-28 at 10:32 -0400, Mark Salter wrote:
-> > When booting an arm64 kernel w/initrd using UEFI/grub, use of mem= will likely
-> > cut off part or all of the initrd. This leaves it outside the kernel linear
-> > map which leads to failure when unpacking.
+On Tue 28-07-15 09:49:42, Eric B Munson wrote:
+> On Tue, 28 Jul 2015, Michal Hocko wrote:
 > 
-> Have we got a similar issue for the device-tree blob?
+> > [I am sorry but I didn't get to this sooner.]
+> > 
+> > On Mon 27-07-15 10:54:09, Eric B Munson wrote:
+> > > Now that VM_LOCKONFAULT is a modifier to VM_LOCKED and
+> > > cannot be specified independentally, it might make more sense to mirror
+> > > that relationship to userspace.  Which would lead to soemthing like the
+> > > following:
+> > 
+> > A modifier makes more sense.
+> >  
+> > > To lock and populate a region:
+> > > mlock2(start, len, 0);
+> > > 
+> > > To lock on fault a region:
+> > > mlock2(start, len, MLOCK_ONFAULT);
+> > > 
+> > > If LOCKONFAULT is seen as a modifier to mlock, then having the flags
+> > > argument as 0 mean do mlock classic makes more sense to me.
+> > > 
+> > > To mlock current on fault only:
+> > > mlockall(MCL_CURRENT | MCL_ONFAULT);
+> > > 
+> > > To mlock future on fault only:
+> > > mlockall(MCL_FUTURE | MCL_ONFAULT);
+> > > 
+> > > To lock everything on fault:
+> > > mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT);
+> > 
+> > Makes sense to me. The only remaining and still tricky part would be
+> > the munlock{all}(flags) behavior. What should munlock(MLOCK_ONFAULT)
+> > do? Keep locked and poppulate the range or simply ignore the flag an
+> > just unlock?
+> > 
+> > I can see some sense to allow munlockall(MCL_FUTURE[|MLOCK_ONFAULT]),
+> > munlockall(MCL_CURRENT) resp. munlockall(MCL_CURRENT|MCL_FUTURE) but
+> > other combinations sound weird to me.
+> > 
+> > Anyway munlock with flags opens new doors of trickiness.
+> 
+> In the current revision there are no new munlock[all] system calls
+> introduced.  munlockall() unconditionally cleared both MCL_CURRENT and
+> MCL_FUTURE before the set and now unconditionally clears all three.
+> munlock() does the same for VM_LOCK and VM_LOCKONFAULT. 
 
-Commit 61bd93ce801bb6df ("arm64: use fixmap region for permanent FDT
-mapping") [1] solved that for the DTB in v4.2-rc1.
+OK if new munlock{all}(flags) is not introduced then this is much saner
+IMO.
 
-Mark.
+> If the user
+> wants to adjust mlockall flags today, they need to call mlockall a
+> second time with the new flags, this remains true for mlockall after
+> this set and the same behavior is mirrored in mlock2. 
 
-[1] https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=61bd93ce801bb6df36eda257a9d2d16c02863cdd
+OK, this makes sense to me.
+
+> The only
+> remaining question I have is should we have 2 new mlockall flags so that
+> the caller can explicitly set VM_LOCKONFAULT in the mm->def_flags vs
+> locking all current VMAs on fault.  I ask because if the user wants to
+> lock all current VMAs the old way, but all future VMAs on fault they
+> have to call mlockall() twice:
+> 
+> 	mlockall(MCL_CURRENT);
+> 	mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT);
+> 
+> This has the side effect of converting all the current VMAs to
+> VM_LOCKONFAULT, but because they were all made present and locked in the
+> first call, this should not matter in most cases. 
+
+I think this is OK (worth documenting though) considering that ONFAULT
+is just modifier for the current mlock* operation. The memory is locked
+the same way for both - aka once the memory is present you do not know
+whether it was done during mlock call or later during the fault.
+
+> The catch is that,
+> like mmap(MAP_LOCKED), mlockall() does not communicate if mm_populate()
+> fails.  This has been true of mlockall() from the beginning so I don't
+> know if it needs more than an entry in the man page to clarify (which I
+> will add when I add documentation for MCL_ONFAULT).
+
+Yes this is true but unlike mmap it seems fixable I guess. We do not have
+to unmap and we can downgrade mmap_sem to read and the fault so nobody
+can race with a concurent mlock.
+
+> In a much less
+> likely corner case, it is not possible in the current setup to request
+> all current VMAs be VM_LOCKONFAULT and all future be VM_LOCKED.
+
+Vlastimil has already pointed that out. MCL_FUTURE doesn't clear
+MCL_CURRENT. I was quite surprised in the beginning but it makes a
+perfect sense. mlockall call shouldn't lead into munlocking, that would
+be just weird. Clearing MCL_FUTURE on MCL_CURRENT makes sense on the
+other hand because the request is explicit about _current_ memory and it
+doesn't lead to any munlocking.
+
+-- 
+Michal Hocko
+SUSE Labs
