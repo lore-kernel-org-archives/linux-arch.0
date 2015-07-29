@@ -1,140 +1,49 @@
-From: Eric B Munson <emunson@akamai.com>
-Subject: [PATCH V6 6/6] mips: Add entry for new mlock2 syscall
-Date: Wed, 29 Jul 2015 11:42:55 -0400
-Message-ID: <1438184575-10537-7-git-send-email-emunson@akamai.com>
-References: <1438184575-10537-1-git-send-email-emunson@akamai.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1438184575-10537-1-git-send-email-emunson@akamai.com>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Eric B Munson <emunson@akamai.com>, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: "Luis R. Rodriguez" <mcgrof@suse.com>
+Subject: Re: [PATCH v2 08/25] arch: introduce memremap()
+Date: Wed, 29 Jul 2015 20:27:13 +0200
+Message-ID: <20150729182712.GI30479@wotan.suse.de>
+References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150725023842.8664.97620.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150726172527.GA29513@lst.de>
+ <CAPcyv4igoopDPpcCRU1TNYdwPhiYdcDiRA7L9Jdian=0rtexRg@mail.gmail.com>
+ <20150727051258.GB15836@lst.de>
+ <CAPcyv4jN6jYzw11qOOR-xd_w6s5dguQSoHyvmPFSWtL9S+tz3w@mail.gmail.com>
+ <20150729065004.GA17162@lst.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:52370 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750871AbbG2S1R (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 29 Jul 2015 14:27:17 -0400
+Content-Disposition: inline
+In-Reply-To: <20150729065004.GA17162@lst.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Dan Williams <dan.j.williams@intel.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <rmk+kernel@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-A previous commit introduced the new mlock2 syscall, add entries for the
-MIPS architecture.
+On Wed, Jul 29, 2015 at 08:50:04AM +0200, Christoph Hellwig wrote:
+> On Mon, Jul 27, 2015 at 04:26:03PM -0700, Dan Williams wrote:
+> > Oh, because all we have at this point is ioremap_cache() which
+> > silently falls back.  It's not until the introduction of
+> > arch_memremp() where we update the arch code to break that behavior.
+> 
+> Ok, makes sense.  Might be worth to document in the changelog.
+> 
+> > That said, I think it may be beneficial to allow a fallback if the
+> > user cares.  So maybe memremap() can call plain ioremap() if
+> > MEMREMAP_STRICT is not set and none of the other mapping types are
+> > satisfied.
+> 
+> Is there a real use case for it?  Fallback APIs always seem confusing
+> and it might make more sense to do this in the caller(s) that actually
+> need it.
 
-Signed-off-by: Eric B Munson <emunson@akamai.com>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-mips@linux-mips.org
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mm@kvack.org
-Cc: linux-kernel@vger.kernel.org
----
- arch/mips/include/uapi/asm/unistd.h | 15 +++++++++------
- arch/mips/kernel/scall32-o32.S      |  1 +
- arch/mips/kernel/scall64-64.S       |  1 +
- arch/mips/kernel/scall64-n32.S      |  1 +
- arch/mips/kernel/scall64-o32.S      |  1 +
- 5 files changed, 13 insertions(+), 6 deletions(-)
+It seems semantics-wise we are trying to separate these two really, so I agree
+with this. Having a fallback would onloy make things more complicated for any
+sanitizer / checker / etc, and I don't think the practical gains of having a
+fallback outweight the gains of having a clear semantic separation on intended
+memory type and interactions with it.
 
-diff --git a/arch/mips/include/uapi/asm/unistd.h b/arch/mips/include/uapi/asm/unistd.h
-index c03088f..d0bdfaa 100644
---- a/arch/mips/include/uapi/asm/unistd.h
-+++ b/arch/mips/include/uapi/asm/unistd.h
-@@ -377,16 +377,17 @@
- #define __NR_memfd_create		(__NR_Linux + 354)
- #define __NR_bpf			(__NR_Linux + 355)
- #define __NR_execveat			(__NR_Linux + 356)
-+#define __NR_mlock2			(__NR_Linux + 357)
- 
- /*
-  * Offset of the last Linux o32 flavoured syscall
-  */
--#define __NR_Linux_syscalls		356
-+#define __NR_Linux_syscalls		357
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
- 
- #define __NR_O32_Linux			4000
--#define __NR_O32_Linux_syscalls		356
-+#define __NR_O32_Linux_syscalls		357
- 
- #if _MIPS_SIM == _MIPS_SIM_ABI64
- 
-@@ -711,16 +712,17 @@
- #define __NR_memfd_create		(__NR_Linux + 314)
- #define __NR_bpf			(__NR_Linux + 315)
- #define __NR_execveat			(__NR_Linux + 316)
-+#define __NR_mlock2			(__NR_Linux + 317)
- 
- /*
-  * Offset of the last Linux 64-bit flavoured syscall
-  */
--#define __NR_Linux_syscalls		316
-+#define __NR_Linux_syscalls		317
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI64 */
- 
- #define __NR_64_Linux			5000
--#define __NR_64_Linux_syscalls		316
-+#define __NR_64_Linux_syscalls		317
- 
- #if _MIPS_SIM == _MIPS_SIM_NABI32
- 
-@@ -1049,15 +1051,16 @@
- #define __NR_memfd_create		(__NR_Linux + 318)
- #define __NR_bpf			(__NR_Linux + 319)
- #define __NR_execveat			(__NR_Linux + 320)
-+#define __NR_mlock2			(__NR_Linux + 321)
- 
- /*
-  * Offset of the last N32 flavoured syscall
-  */
--#define __NR_Linux_syscalls		320
-+#define __NR_Linux_syscalls		321
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_NABI32 */
- 
- #define __NR_N32_Linux			6000
--#define __NR_N32_Linux_syscalls		320
-+#define __NR_N32_Linux_syscalls		321
- 
- #endif /* _UAPI_ASM_UNISTD_H */
-diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
-index 4cc1350..b0b377a 100644
---- a/arch/mips/kernel/scall32-o32.S
-+++ b/arch/mips/kernel/scall32-o32.S
-@@ -599,3 +599,4 @@ EXPORT(sys_call_table)
- 	PTR	sys_memfd_create
- 	PTR	sys_bpf				/* 4355 */
- 	PTR	sys_execveat
-+	PTR	sys_mlock2
-diff --git a/arch/mips/kernel/scall64-64.S b/arch/mips/kernel/scall64-64.S
-index ad4d4463..97aaf51 100644
---- a/arch/mips/kernel/scall64-64.S
-+++ b/arch/mips/kernel/scall64-64.S
-@@ -436,4 +436,5 @@ EXPORT(sys_call_table)
- 	PTR	sys_memfd_create
- 	PTR	sys_bpf				/* 5315 */
- 	PTR	sys_execveat
-+	PTR	sys_mlock2
- 	.size	sys_call_table,.-sys_call_table
-diff --git a/arch/mips/kernel/scall64-n32.S b/arch/mips/kernel/scall64-n32.S
-index 446cc65..e36f21e 100644
---- a/arch/mips/kernel/scall64-n32.S
-+++ b/arch/mips/kernel/scall64-n32.S
-@@ -429,4 +429,5 @@ EXPORT(sysn32_call_table)
- 	PTR	sys_memfd_create
- 	PTR	sys_bpf
- 	PTR	compat_sys_execveat		/* 6320 */
-+	PTR	sys_mlock2
- 	.size	sysn32_call_table,.-sysn32_call_table
-diff --git a/arch/mips/kernel/scall64-o32.S b/arch/mips/kernel/scall64-o32.S
-index f543ff4..7a8b2df 100644
---- a/arch/mips/kernel/scall64-o32.S
-+++ b/arch/mips/kernel/scall64-o32.S
-@@ -584,4 +584,5 @@ EXPORT(sys32_call_table)
- 	PTR	sys_memfd_create
- 	PTR	sys_bpf				/* 4355 */
- 	PTR	compat_sys_execveat
-+	PTR	sys_mlock2
- 	.size	sys32_call_table,.-sys32_call_table
--- 
-1.9.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+  Luis
