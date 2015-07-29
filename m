@@ -1,41 +1,62 @@
-From: "Luis R. Rodriguez" <mcgrof@suse.com>
-Subject: Re: [PATCH v2 08/25] arch: introduce memremap()
-Date: Wed, 29 Jul 2015 23:52:30 +0200
-Message-ID: <20150729215230.GL30479@wotan.suse.de>
-References: <20150726172527.GA29513@lst.de>
- <CAPcyv4igoopDPpcCRU1TNYdwPhiYdcDiRA7L9Jdian=0rtexRg@mail.gmail.com>
- <20150727051258.GB15836@lst.de>
- <CAPcyv4jN6jYzw11qOOR-xd_w6s5dguQSoHyvmPFSWtL9S+tz3w@mail.gmail.com>
- <20150729065004.GA17162@lst.de>
- <20150729182712.GI30479@wotan.suse.de>
- <CAPcyv4iAeMAmU1QRZ1=WTav0cg2=-gqzzrt3nMC1QoD1+hOeBg@mail.gmail.com>
- <1438203638.3214.418.camel@hp.com>
- <20150729214358.GK30479@wotan.suse.de>
- <CAPcyv4j67493ROvnC1EZBEFMiWB=gLu=C-Y-PrJf0BvO3A=y2w@mail.gmail.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH v2 24/25] arch: remove ioremap_wt, replace with arch_memremap
+Date: Wed, 29 Jul 2015 15:21:56 -0700
+Message-ID: <CAPcyv4icZ4aWgPeYnmuj0eeK6wm36A=D2qHW0e3FJBvzpeEWaQ@mail.gmail.com>
+References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
+	<20150725024015.8664.42950.stgit@dwillia2-desk3.amr.corp.intel.com>
+	<20150727080347.GA18599@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:36850 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753454AbbG2Vwb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 29 Jul 2015 17:52:31 -0400
-Content-Disposition: inline
-In-Reply-To: <CAPcyv4j67493ROvnC1EZBEFMiWB=gLu=C-Y-PrJf0BvO3A=y2w@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Toshi Kani <toshi.kani@hp.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Christoph Hellwig <hch@lst.de>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <rmk+kernel@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20150727080347.GA18599@lst.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, "Kani, Toshimitsu" <toshi.kani@hp.com>, Arnd Bergmann <arnd@arndb.de>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Russell King <rmk+kernel@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jul 29, 2015 at 02:47:40PM -0700, Dan Williams wrote:
-> On Wed, Jul 29, 2015 at 2:43 PM, Luis R. Rodriguez <mcgrof@suse.com> wrote:
-> > While at it, Dan, will / should memremap() support overlapping calls ?
-> > What is the expectation on behaviour ?
-> 
-> It will be the same as ioremap().  Each mapping gets its own virtual
-> address and overlapping calls are permitted.  The only protection is
-> that RAM is never mapped with an alias.
+On Mon, Jul 27, 2015 at 1:03 AM, Christoph Hellwig <hch@lst.de> wrote:
+>> +++ b/arch/frv/include/asm/io.h
+>> @@ -17,8 +17,6 @@
+>>
+>>  #ifdef __KERNEL__
+>>
+>> -#define ARCH_HAS_IOREMAP_WT
+>> -
+>>  #include <linux/types.h>
+>>  #include <asm/virtconvert.h>
+>>  #include <asm/string.h>
+>> @@ -267,20 +265,17 @@ static inline void __iomem *ioremap_nocache(unsigned long physaddr, unsigned lon
+>>       return __ioremap(physaddr, size, IOMAP_NOCACHE_SER);
+>>  }
+>>
+>> -static inline void __iomem *ioremap_wt(unsigned long physaddr, unsigned long size)
+>> -{
+>> -     return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
+>> -}
+>> -
+>> -static inline void __iomem *ioremap_fullcache(unsigned long physaddr, unsigned long size)
+>> -{
+>> -     return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
+>> -}
+>
+>
+>> +void *arch_memremap(resource_size_t offset, size_t size, unsigned long flags)
+>> +{
+>> +     return (void *) offset;
+>> +}
+>> +EXPORT_SYMBOL(arch_memremap);
+>
+> This doesn't look like a correct replacement.
 
-If you could document this as part of your next respin that'd be
-highly appreciated.
+It doesn't, but frv jumps through a lot of hoops to give the illusion
+it actually supports different mapping types only to do this simple
+case in the end.  Given we don't want fallback semantics I will simply
+remove these false wrappers in the next revision of the patches.
 
-  Luis
+> Also shouldn't the replacements of ioremap_fullcache or ioremap_wc be
+> in the previous patch?
+>
+> A few more similar issues pop up for other architectures as well.
+
+I went ahead and moved the deletion of ioremap_cached() and
+ioremap_fullcache() to their own patches.
