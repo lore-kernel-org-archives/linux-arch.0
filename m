@@ -1,67 +1,34 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH v2 18/25] libnvdimm, pmem: switch from ioremap_cache to memremap
-Date: Tue, 28 Jul 2015 16:06:54 -0700
-Message-ID: <CAPcyv4iz=y8HhAx4SnFAhO9At636B-B7tPuUKaBySZ8FZ27oyA@mail.gmail.com>
-References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20150725023940.8664.2784.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<1438123889.2459.0.camel@linux.intel.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH v2 08/25] arch: introduce memremap()
+Date: Wed, 29 Jul 2015 08:50:04 +0200
+Message-ID: <20150729065004.GA17162@lst.de>
+References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com> <20150725023842.8664.97620.stgit@dwillia2-desk3.amr.corp.intel.com> <20150726172527.GA29513@lst.de> <CAPcyv4igoopDPpcCRU1TNYdwPhiYdcDiRA7L9Jdian=0rtexRg@mail.gmail.com> <20150727051258.GB15836@lst.de> <CAPcyv4jN6jYzw11qOOR-xd_w6s5dguQSoHyvmPFSWtL9S+tz3w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1438123889.2459.0.camel@linux.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ross Zwisler <ross.zwisler@linux.intel.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from verein.lst.de ([213.95.11.211]:45166 "EHLO newverein.lst.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752211AbbG2GuG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 29 Jul 2015 02:50:06 -0400
+Content-Disposition: inline
+In-Reply-To: <CAPcyv4jN6jYzw11qOOR-xd_w6s5dguQSoHyvmPFSWtL9S+tz3w@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Christoph Hellwig <hch@lst.de>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Kani, Toshimitsu" <toshi.kani@hp.com>, Arnd Bergmann <arnd@arndb.de>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-On Tue, Jul 28, 2015 at 3:51 PM, Ross Zwisler
-<ross.zwisler@linux.intel.com> wrote:
-> On Fri, 2015-07-24 at 22:39 -0400, Dan Williams wrote:
->> In preparation for deprecating ioremap_cache() convert its usage in
->> libnvdimm and the PMEM API to memremap.
->>
->> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
->> ---
->>  arch/x86/include/asm/io.h         |    7 +------
->>  arch/x86/mm/ioremap.c             |    6 ++++++
->>  tools/testing/nvdimm/Kbuild       |    2 +-
->>  tools/testing/nvdimm/test/iomap.c |    6 +++---
->>  4 files changed, 11 insertions(+), 10 deletions(-)
->>
->> diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
->> index cc9c61bc1abe..8aeb6456188a 100644
->> --- a/arch/x86/include/asm/io.h
->> +++ b/arch/x86/include/asm/io.h
->> @@ -248,12 +248,7 @@ static inline void flush_write_buffers(void)
->>  #endif
->>  }
->>
->> -static inline void __pmem *arch_memremap_pmem(resource_size_t offset,
->> -     unsigned long size)
->> -{
->> -     return (void __force __pmem *) ioremap_cache(offset, size);
->> -}
->> -
->> +void __pmem *arch_memremap_pmem(resource_size_t offset, size_t size);
->>  #endif /* __KERNEL__ */
->>
->>  extern void native_io_delay(void);
->> diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
->> index 6f759c7c2ab7..7b422e7574b1 100644
->> --- a/arch/x86/mm/ioremap.c
->> +++ b/arch/x86/mm/ioremap.c
->> @@ -317,6 +317,12 @@ void __iomem *ioremap_cache(resource_size_t phys_addr, unsigned long size)
->>  }
->>  EXPORT_SYMBOL(ioremap_cache);
->>
->> +void __pmem *arch_memremap_pmem(resource_size_t offset, size_t size)
->> +{
->> +     return (void __force __pmem *) ioremap_cache(offset, size);
->
-> Did you mean for this to be a call to memremap() instead of ioremap_cache()?
+On Mon, Jul 27, 2015 at 04:26:03PM -0700, Dan Williams wrote:
+> Oh, because all we have at this point is ioremap_cache() which
+> silently falls back.  It's not until the introduction of
+> arch_memremp() where we update the arch code to break that behavior.
 
-The ioremap_cache elimination comes in "[PATCH v2 25/25] pmem: convert
-to generic memremap", but yeah I should update the changelog to
-reflect this is more about pushing the calls to ioremap_cache() out of
-line.  It would be circular at this point in the series to call back
-out to memremap to have it turn around and call ioremap_cache again.
+Ok, makes sense.  Might be worth to document in the changelog.
+
+> That said, I think it may be beneficial to allow a fallback if the
+> user cares.  So maybe memremap() can call plain ioremap() if
+> MEMREMAP_STRICT is not set and none of the other mapping types are
+> satisfied.
+
+Is there a real use case for it?  Fallback APIs always seem confusing
+and it might make more sense to do this in the caller(s) that actually
+need it.
