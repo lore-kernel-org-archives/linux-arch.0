@@ -1,74 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f172.google.com ([209.85.212.172]:36879 "EHLO
-	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750943AbbG1XGz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Jul 2015 19:06:55 -0400
-Received: by wibud3 with SMTP id ud3so2779553wib.0
-        for <linux-arch@vger.kernel.org>; Tue, 28 Jul 2015 16:06:54 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <1438123889.2459.0.camel@linux.intel.com>
-References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20150725023940.8664.2784.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<1438123889.2459.0.camel@linux.intel.com>
-Date: Tue, 28 Jul 2015 16:06:54 -0700
-Message-ID: <CAPcyv4iz=y8HhAx4SnFAhO9At636B-B7tPuUKaBySZ8FZ27oyA@mail.gmail.com>
-Subject: Re: [PATCH v2 18/25] libnvdimm, pmem: switch from ioremap_cache to memremap
-From: Dan Williams <dan.j.williams@intel.com>
-Content-Type: text/plain; charset=UTF-8
+Received: from queue01c.mail.zen.net.uk ([212.23.3.237]:45845 "EHLO
+	queue01c.mail.zen.net.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750839AbbG2JmU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Jul 2015 05:42:20 -0400
+Received: from [212.23.1.7] (helo=smarthost01d.mail.zen.net.uk)
+	by queue01c.mail.zen.net.uk with esmtp (Exim 4.72)
+	(envelope-from <tixy@linaro.org>)
+	id 1ZKNXv-00047j-3O
+	for linux-arch@vger.kernel.org; Wed, 29 Jul 2015 09:21:07 +0000
+Message-ID: <1438161638.3129.4.camel@linaro.org>
+Subject: Re: [PATCH 0/2] arm64: support initrd outside of mapped RAM
+From: "Jon Medhurst (Tixy)" <tixy@linaro.org>
+Date: Wed, 29 Jul 2015 10:20:38 +0100
+In-Reply-To: <1438093961-15536-1-git-send-email-msalter@redhat.com>
+References: <1438093961-15536-1-git-send-email-msalter@redhat.com>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ross Zwisler <ross.zwisler@linux.intel.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20150728230654.jXpGPGHIYv0D1Ev0VhPkfJabmXN0x7ZIBzuJq3MSuns@z>
+To: Mark Salter <msalter@redhat.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Mark Rutland <mark.rutland@arm.com>, linux-arch@vger.kernel.org, "Arnd Bergmann <arnd@arndb.de>--cc=Ard Biesheuvel" <ard.biesheuvel@linaro.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150729092038.Q0y85DqGqYYPuNcM-zpXMqtUlhwrkUDm5vvwBkPdPzg@z>
 
-On Tue, Jul 28, 2015 at 3:51 PM, Ross Zwisler
-<ross.zwisler@linux.intel.com> wrote:
-> On Fri, 2015-07-24 at 22:39 -0400, Dan Williams wrote:
->> In preparation for deprecating ioremap_cache() convert its usage in
->> libnvdimm and the PMEM API to memremap.
->>
->> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
->> ---
->>  arch/x86/include/asm/io.h         |    7 +------
->>  arch/x86/mm/ioremap.c             |    6 ++++++
->>  tools/testing/nvdimm/Kbuild       |    2 +-
->>  tools/testing/nvdimm/test/iomap.c |    6 +++---
->>  4 files changed, 11 insertions(+), 10 deletions(-)
->>
->> diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
->> index cc9c61bc1abe..8aeb6456188a 100644
->> --- a/arch/x86/include/asm/io.h
->> +++ b/arch/x86/include/asm/io.h
->> @@ -248,12 +248,7 @@ static inline void flush_write_buffers(void)
->>  #endif
->>  }
->>
->> -static inline void __pmem *arch_memremap_pmem(resource_size_t offset,
->> -     unsigned long size)
->> -{
->> -     return (void __force __pmem *) ioremap_cache(offset, size);
->> -}
->> -
->> +void __pmem *arch_memremap_pmem(resource_size_t offset, size_t size);
->>  #endif /* __KERNEL__ */
->>
->>  extern void native_io_delay(void);
->> diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
->> index 6f759c7c2ab7..7b422e7574b1 100644
->> --- a/arch/x86/mm/ioremap.c
->> +++ b/arch/x86/mm/ioremap.c
->> @@ -317,6 +317,12 @@ void __iomem *ioremap_cache(resource_size_t phys_addr, unsigned long size)
->>  }
->>  EXPORT_SYMBOL(ioremap_cache);
->>
->> +void __pmem *arch_memremap_pmem(resource_size_t offset, size_t size)
->> +{
->> +     return (void __force __pmem *) ioremap_cache(offset, size);
->
-> Did you mean for this to be a call to memremap() instead of ioremap_cache()?
+On Tue, 2015-07-28 at 10:32 -0400, Mark Salter wrote:
+> When booting an arm64 kernel w/initrd using UEFI/grub, use of mem= will likely
+> cut off part or all of the initrd. This leaves it outside the kernel linear
+> map which leads to failure when unpacking.
 
-The ioremap_cache elimination comes in "[PATCH v2 25/25] pmem: convert
-to generic memremap", but yeah I should update the changelog to
-reflect this is more about pushing the calls to ioremap_cache() out of
-line.  It would be circular at this point in the series to call back
-out to memremap to have it turn around and call ioremap_cache again.
+Have we got a similar issue for the device-tree blob?
+
+-- 
+Tixy
+
