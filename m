@@ -1,141 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from prod-mail-xrelay06.akamai.com ([96.6.114.98]:57170 "EHLO
-	prod-mail-xrelay06.akamai.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751775AbbG2PnG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 29 Jul 2015 11:43:06 -0400
-From: Eric B Munson <emunson@akamai.com>
-Subject: [PATCH V6 2/6] mm: mlock: Add new mlock system call
-Date: Wed, 29 Jul 2015 11:42:51 -0400
-Message-ID: <1438184575-10537-3-git-send-email-emunson@akamai.com>
-In-Reply-To: <1438184575-10537-1-git-send-email-emunson@akamai.com>
-References: <1438184575-10537-1-git-send-email-emunson@akamai.com>
+Received: from mail-wi0-f171.google.com ([209.85.212.171]:37197 "EHLO
+	mail-wi0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751246AbbG2WV6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Jul 2015 18:21:58 -0400
+Received: by wibud3 with SMTP id ud3so44682916wib.0
+        for <linux-arch@vger.kernel.org>; Wed, 29 Jul 2015 15:21:57 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <20150727080347.GA18599@lst.de>
+References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
+	<20150725024015.8664.42950.stgit@dwillia2-desk3.amr.corp.intel.com>
+	<20150727080347.GA18599@lst.de>
+Date: Wed, 29 Jul 2015 15:21:56 -0700
+Message-ID: <CAPcyv4icZ4aWgPeYnmuj0eeK6wm36A=D2qHW0e3FJBvzpeEWaQ@mail.gmail.com>
+Subject: Re: [PATCH v2 24/25] arch: remove ioremap_wt, replace with arch_memremap
+From: Dan Williams <dan.j.williams@intel.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Eric B Munson <emunson@akamai.com>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, Heiko Carstens <heiko.carstens@de.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Guenter Roeck <linux@roeck-us.net>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-cris-kernel@axis.com, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-am33-list@redhat.com, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20150729154251.VCuthEBVdCP6FgVHyg1kBMywjHo5M7i4sSudp4K5MJs@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, "Kani, Toshimitsu" <toshi.kani@hp.com>, Arnd Bergmann <arnd@arndb.de>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Russell King <rmk+kernel@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20150729222156.iWieDFhWYyweTFbNOEMYxr1tH7cmM2vG3CaGovceaIU@z>
 
-With the refactored mlock code, introduce a new system call for mlock.
-The new call will allow the user to specify what lock states are being
-added.  mlock2 is trivial at the moment, but a follow on patch will add
-a new mlock state making it useful.
+On Mon, Jul 27, 2015 at 1:03 AM, Christoph Hellwig <hch@lst.de> wrote:
+>> +++ b/arch/frv/include/asm/io.h
+>> @@ -17,8 +17,6 @@
+>>
+>>  #ifdef __KERNEL__
+>>
+>> -#define ARCH_HAS_IOREMAP_WT
+>> -
+>>  #include <linux/types.h>
+>>  #include <asm/virtconvert.h>
+>>  #include <asm/string.h>
+>> @@ -267,20 +265,17 @@ static inline void __iomem *ioremap_nocache(unsigned long physaddr, unsigned lon
+>>       return __ioremap(physaddr, size, IOMAP_NOCACHE_SER);
+>>  }
+>>
+>> -static inline void __iomem *ioremap_wt(unsigned long physaddr, unsigned long size)
+>> -{
+>> -     return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
+>> -}
+>> -
+>> -static inline void __iomem *ioremap_fullcache(unsigned long physaddr, unsigned long size)
+>> -{
+>> -     return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
+>> -}
+>
+>
+>> +void *arch_memremap(resource_size_t offset, size_t size, unsigned long flags)
+>> +{
+>> +     return (void *) offset;
+>> +}
+>> +EXPORT_SYMBOL(arch_memremap);
+>
+> This doesn't look like a correct replacement.
 
-Signed-off-by: Eric B Munson <emunson@akamai.com>
-Cc: Michal Hocko <mhocko@suse.cz>
-Cc: Vlastimil Babka <vbabka@suse.cz>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Guenter Roeck <linux@roeck-us.net>
-Cc: linux-alpha@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org
-Cc: adi-buildroot-devel@lists.sourceforge.net
-Cc: linux-cris-kernel@axis.com
-Cc: linux-ia64@vger.kernel.org
-Cc: linux-m68k@lists.linux-m68k.org
-Cc: linux-am33-list@redhat.com
-Cc: linux-parisc@vger.kernel.org
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-s390@vger.kernel.org
-Cc: linux-sh@vger.kernel.org
-Cc: sparclinux@vger.kernel.org
-Cc: linux-xtensa@linux-xtensa.org
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mm@kvack.org
----
- arch/x86/entry/syscalls/syscall_32.tbl | 1 +
- arch/x86/entry/syscalls/syscall_64.tbl | 1 +
- include/linux/syscalls.h               | 2 ++
- include/uapi/asm-generic/unistd.h      | 4 +++-
- kernel/sys_ni.c                        | 1 +
- mm/mlock.c                             | 9 +++++++++
- 6 files changed, 17 insertions(+), 1 deletion(-)
+It doesn't, but frv jumps through a lot of hoops to give the illusion
+it actually supports different mapping types only to do this simple
+case in the end.  Given we don't want fallback semantics I will simply
+remove these false wrappers in the next revision of the patches.
 
-diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
-index ef8187f..839d5df 100644
---- a/arch/x86/entry/syscalls/syscall_32.tbl
-+++ b/arch/x86/entry/syscalls/syscall_32.tbl
-@@ -365,3 +365,4 @@
- 356	i386	memfd_create		sys_memfd_create
- 357	i386	bpf			sys_bpf
- 358	i386	execveat		sys_execveat			stub32_execveat
-+359	i386	mlock2			sys_mlock2
-diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
-index 9ef32d5..ad36769 100644
---- a/arch/x86/entry/syscalls/syscall_64.tbl
-+++ b/arch/x86/entry/syscalls/syscall_64.tbl
-@@ -329,6 +329,7 @@
- 320	common	kexec_file_load		sys_kexec_file_load
- 321	common	bpf			sys_bpf
- 322	64	execveat		stub_execveat
-+323	common	mlock2			sys_mlock2
- 
- #
- # x32-specific system call numbers start at 512 to avoid cache impact
-diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-index b45c45b..56a3d59 100644
---- a/include/linux/syscalls.h
-+++ b/include/linux/syscalls.h
-@@ -884,4 +884,6 @@ asmlinkage long sys_execveat(int dfd, const char __user *filename,
- 			const char __user *const __user *argv,
- 			const char __user *const __user *envp, int flags);
- 
-+asmlinkage long sys_mlock2(unsigned long start, size_t len, int flags);
-+
- #endif
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index e016bd9..14a6013 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -709,9 +709,11 @@ __SYSCALL(__NR_memfd_create, sys_memfd_create)
- __SYSCALL(__NR_bpf, sys_bpf)
- #define __NR_execveat 281
- __SC_COMP(__NR_execveat, sys_execveat, compat_sys_execveat)
-+#define __NR_mlock2 282
-+__SYSCALL(__NR_mlock2, sys_mlock2)
- 
- #undef __NR_syscalls
--#define __NR_syscalls 282
-+#define __NR_syscalls 283
- 
- /*
-  * All syscalls below here should go away really,
-diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
-index 7995ef5..4818b71 100644
---- a/kernel/sys_ni.c
-+++ b/kernel/sys_ni.c
-@@ -193,6 +193,7 @@ cond_syscall(sys_mlock);
- cond_syscall(sys_munlock);
- cond_syscall(sys_mlockall);
- cond_syscall(sys_munlockall);
-+cond_syscall(sys_mlock2);
- cond_syscall(sys_mincore);
- cond_syscall(sys_madvise);
- cond_syscall(sys_mremap);
-diff --git a/mm/mlock.c b/mm/mlock.c
-index 1585cca..807f986 100644
---- a/mm/mlock.c
-+++ b/mm/mlock.c
-@@ -642,6 +642,15 @@ SYSCALL_DEFINE2(mlock, unsigned long, start, size_t, len)
- 	return do_mlock(start, len, VM_LOCKED);
- }
- 
-+SYSCALL_DEFINE3(mlock2, unsigned long, start, size_t, len, int, flags)
-+{
-+	vm_flags_t vm_flags = VM_LOCKED;
-+	if (flags)
-+		return -EINVAL;
-+
-+	return do_mlock(start, len, vm_flags);
-+}
-+
- SYSCALL_DEFINE2(munlock, unsigned long, start, size_t, len)
- {
- 	int ret;
--- 
-1.9.1
+> Also shouldn't the replacements of ioremap_fullcache or ioremap_wc be
+> in the previous patch?
+>
+> A few more similar issues pop up for other architectures as well.
 
+I went ahead and moved the deletion of ioremap_cached() and
+ioremap_fullcache() to their own patches.
