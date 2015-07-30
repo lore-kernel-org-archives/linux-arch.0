@@ -1,79 +1,88 @@
-From: "Luis R. Rodriguez" <mcgrof@suse.com>
-Subject: Re: [PATCH v3 01/24] mm: enhance region_is_ram() to
- region_intersects()
-Date: Thu, 30 Jul 2015 23:10:26 +0200
-Message-ID: <20150730211026.GR30479@wotan.suse.de>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH v3 05/24] arch: introduce memremap()
+Date: Thu, 30 Jul 2015 14:11:37 -0700
+Message-ID: <CAPcyv4iV79Em9umnc=L+M0HqRb1gtfZxj-A=0nbAh76ceYn_pg@mail.gmail.com>
 References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20150730165345.33962.80299.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20150730204249.GN30479@wotan.suse.de>
- <CAPcyv4hywBvt85E6LAznxQaDug17+_YxoyVzhf6fWu+GpsrmKw@mail.gmail.com>
- <20150730205449.GO30479@wotan.suse.de>
- <CAPcyv4g1cMCDUZGrWz6Epmp4XvYuuLOPneiOTqrRsX1PoOS9gA@mail.gmail.com>
+	<20150730165407.33962.79603.stgit@dwillia2-desk3.amr.corp.intel.com>
+	<20150730210204.GQ30479@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:36986 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750734AbbG3VK3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Jul 2015 17:10:29 -0400
-Content-Disposition: inline
-In-Reply-To: <CAPcyv4g1cMCDUZGrWz6Epmp4XvYuuLOPneiOTqrRsX1PoOS9gA@mail.gmail.com>
+Received: from mail-wi0-f174.google.com ([209.85.212.174]:33514 "EHLO
+	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750926AbbG3VLi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Jul 2015 17:11:38 -0400
+Received: by wicmv11 with SMTP id mv11so35698733wic.0
+        for <linux-arch@vger.kernel.org>; Thu, 30 Jul 2015 14:11:37 -0700 (PDT)
+In-Reply-To: <20150730210204.GQ30479@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Kani, Toshimitsu" <toshi.kani@hp.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+To: "Luis R. Rodriguez" <mcgrof@suse.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Kani, Toshimitsu" <toshi.kani@hp.com>, Arnd Bergmann <arnd@arndb.de>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-On Thu, Jul 30, 2015 at 01:59:20PM -0700, Dan Williams wrote:
-> On Thu, Jul 30, 2015 at 1:54 PM, Luis R. Rodriguez <mcgrof@suse.com> wrote:
-> > On Thu, Jul 30, 2015 at 01:44:44PM -0700, Dan Williams wrote:
-> >> On Thu, Jul 30, 2015 at 1:42 PM, Luis R. Rodriguez <mcgrof@suse.com> wrote:
-> >> > On Thu, Jul 30, 2015 at 12:53:45PM -0400, Dan Williams wrote:
-> >> >> diff --git a/include/linux/mm.h b/include/linux/mm.h
-> >> >> index 2e872f92dbac..84b05ebedb2d 100644
-> >> >> --- a/include/linux/mm.h
-> >> >> +++ b/include/linux/mm.h
-> >> >> @@ -369,7 +369,14 @@ static inline int put_page_unless_one(struct page *page)
-> >> >>  }
-> >> >>
-> >> >>  extern int page_is_ram(unsigned long pfn);
-> >> >> -extern int region_is_ram(resource_size_t phys_addr, unsigned long size);
-> >> >> +
-> >> >> +enum {
-> >> >> +     REGION_INTERSECTS,
-> >> >> +     REGION_DISJOINT,
-> >> >> +     REGION_MIXED,
-> >> >> +};
-> >> >> +
-> >> >
-> >> > Can you Kdoc'ify this? Part of the reason for the enum request was this
-> >> > could be then documented really well. The helper is documented but here
-> >> > you can go into more detail about each region intersection.
-> >>
-> >> Given region_intersects() has its own kdoc I'd probably just say "See
-> >> region_intersects() for details".
-> >
-> > With the kdoc in place in the enum you'd kick people to elaborate when
-> > extending the enums, whereas without this you'd hope they do it. With
-> > the enum in place you can also be more verbose.
-> >
-> 
-> Care to send a patch on what you are thinking?  I wasn't planning on
-> this enum growing any other entries.
+On Thu, Jul 30, 2015 at 2:02 PM, Luis R. Rodriguez <mcgrof@suse.com> wrote:
+> On Thu, Jul 30, 2015 at 12:54:07PM -0400, Dan Williams wrote:
+>> diff --git a/include/linux/io.h b/include/linux/io.h
+>> index fb5a99800e77..3fcf6256c088 100644
+>> --- a/include/linux/io.h
+>> +++ b/include/linux/io.h
+>> @@ -121,4 +121,13 @@ static inline int arch_phys_wc_index(int handle)
+>>  #endif
+>>  #endif
+>>
+>> +enum {
+>> +     /* See memremap() kernel-doc for usage description... */
+>> +     MEMREMAP_WB = 1 << 0,
+>> +     MEMREMAP_WT = 1 << 1,
+>> +};
+>
+> Same feedback for enum nameing and also kdoc style.
 
-I mean something like this:
+I'm concerned documentation here has the possibility of getting out of
+sync with the "source of truth" at the definition of memremap().  I
+think it's better to have the documentation consolidated at it
+implementation rather than its definition.
 
-/**
- * enum region_intersect_type
- *
- * @REGION_INTERSECTS: explain and you you can go into any elaborate
- *	detail as you wish.
- * @REGION_DISJOINT: explain
- * @REGION_MIXED: explain
- */
-enum region_intersect_type {
-     REGION_INTERSECTS,
-     REGION_DISJOINT,
-     REGION_MIXED,
-};
+>
+>> diff --git a/kernel/memremap.c b/kernel/memremap.c
+>> new file mode 100644
+>> index 000000000000..27637f42f30d
+>> --- /dev/null
+>> +++ b/kernel/memremap.c
+>
+> <-- ... -->
+>
+>> +/**
+>> + * memremap() - remap an iomem_resource as cacheable memory
+>> + * @offset: iomem resource start address
+>> + * @size: size of remap
+>> + * @flags: either MEMREMAP_WB or MEMREMAP_WT
+>> + *
+>> + * memremap() is "ioremap" for cases where it is known that the resource
+>> + * being mapped does not have i/o side effects and the __iomem
+>> + * annotation is not applicable.
+>> + *
+>> + * MEMREMAP_WB - matches the default mapping for "System RAM" on
+>> + * the architecture.  This is usually a read-allocate write-back cache.
+>> + * Morever, if MEMREMAP_WB is specified and the requested remap region is RAM
+>> + * memremap() will bypass establishing a new mapping and instead return
+>> + * a pointer into the direct map.
+>> + *
+>> + * MEMREMAP_WT - establish a mapping whereby writes either bypass the
+>> + * cache or are written through to memory and never exist in a
+>> + * cache-dirty state with respect to program visibility.  Attempts to
+>> + * map "System RAM" with this mapping type will fail.
+>
+> Then you can extrend all this on kdoc on the enum.
+>
+>> + */
+>> +void *memremap(resource_size_t offset, size_t size, unsigned long flags)
+>> +{
+>> +     int is_ram = region_intersects(offset, size, "System RAM");
+>
+> This could be the enum region_intersect_type, then if the region enum is
+> extended you'd get a compiler error if one type was not handled.
 
-  Luis
+This already does not handle the REGION_DISJOINT case explicitly, it's
+implied by handling the other 2.  A compiler warning would be verbose
+for not much benefit afaics.
