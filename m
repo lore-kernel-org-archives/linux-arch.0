@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:10144 "EHLO mga03.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:47663 "EHLO mga09.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753736AbbG3RAG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Jul 2015 13:00:06 -0400
-Subject: [PATCH v3 08/24] gma500: switch from acpi_os_ioremap to memremap
+	id S1752088AbbG3Q72 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Jul 2015 12:59:28 -0400
+Subject: [PATCH v3 01/24] mm: enhance region_is_ram() to region_intersects()
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Thu, 30 Jul 2015 12:54:23 -0400
-Message-ID: <20150730165423.33962.91402.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Thu, 30 Jul 2015 12:53:45 -0400
+Message-ID: <20150730165345.33962.80299.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -15,105 +15,132 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, David Airlie <airlied@linux.ie>, mcgrof@suse.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150730165423.Q_dJwYv8tDgpGWMAogTkvSNwnGLKW2Oey8_xTnT3U3Y@z>
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, mcgrof@suse.com, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150730165345.OcktDoPi2ZoGJaljEOqmtTMaGqUrCcKPyMsvRPjfYFU@z>
 
-gma500 expects the OpRegion to be cached (i.e. not __iomem), so
-explicitly map it with memremap rather than the implied cache setting of
-acpi_os_ioremap().
+region_is_ram() is used to prevent the establishment of aliased mappings
+to physical "System RAM" with incompatible cache settings.  However, it
+uses "-1" to indicate both "unknown" memory ranges (ranges not described
+by platform firmware) and "mixed" ranges (where the parameters describe
+a range that partially overlaps "System RAM").
 
-Cc: David Airlie <airlied@linux.ie>
-Cc: dri-devel@lists.freedesktop.org
+Fix this up by explicitly tracking the "unknown" vs "mixed" resource
+cases and returning REGION_INTERSECTS, REGION_MIXED, or REGION_DISJOINT.
+This re-write also adds support for detecting when the requested region
+completely eclipses all of a resource.  Note, the implementation treats
+overlaps between "unknown" and the requested memory type as
+REGION_INTERSECTS.
+
+Finally, other memory types can be passed in by name, for now the only
+usage "System RAM".
+
+Suggested-by: Luis R. Rodriguez <mcgrof@suse.com>
+Reviewed-by: Toshi Kani <toshi.kani@hp.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/gpu/drm/gma500/opregion.c |    8 ++++----
- drivers/gpu/drm/gma500/psb_drv.h  |    2 +-
- drivers/gpu/drm/gma500/psb_lid.c  |    8 ++++----
- 3 files changed, 9 insertions(+), 9 deletions(-)
+ include/linux/mm.h |    9 +++++++-
+ kernel/resource.c  |   61 +++++++++++++++++++++++++++++++---------------------
+ 2 files changed, 44 insertions(+), 26 deletions(-)
 
-diff --git a/drivers/gpu/drm/gma500/opregion.c b/drivers/gpu/drm/gma500/opregion.c
-index ab696ca7eeec..7672ac4d4217 100644
---- a/drivers/gpu/drm/gma500/opregion.c
-+++ b/drivers/gpu/drm/gma500/opregion.c
-@@ -297,7 +297,7 @@ void psb_intel_opregion_fini(struct drm_device *dev)
- 	cancel_work_sync(&opregion->asle_work);
- 
- 	/* just clear all opregion memory pointers now */
--	iounmap(opregion->header);
-+	memunmap(opregion->header);
- 	opregion->header = NULL;
- 	opregion->acpi = NULL;
- 	opregion->swsci = NULL;
-@@ -310,8 +310,8 @@ int psb_intel_opregion_setup(struct drm_device *dev)
- 	struct drm_psb_private *dev_priv = dev->dev_private;
- 	struct psb_intel_opregion *opregion = &dev_priv->opregion;
- 	u32 opregion_phy, mboxes;
--	void __iomem *base;
- 	int err = 0;
-+	void *base;
- 
- 	pci_read_config_dword(dev->pdev, PCI_ASLS, &opregion_phy);
- 	if (opregion_phy == 0) {
-@@ -322,7 +322,7 @@ int psb_intel_opregion_setup(struct drm_device *dev)
- 	INIT_WORK(&opregion->asle_work, psb_intel_opregion_asle_work);
- 
- 	DRM_DEBUG("OpRegion detected at 0x%8x\n", opregion_phy);
--	base = acpi_os_ioremap(opregion_phy, 8*1024);
-+	base = memremap(opregion_phy, 8*1024, MEMREMAP_WB);
- 	if (!base)
- 		return -ENOMEM;
- 
-@@ -351,7 +351,7 @@ int psb_intel_opregion_setup(struct drm_device *dev)
- 	return 0;
- 
- err_out:
--	iounmap(base);
-+	memunmap(base);
- 	return err;
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 2e872f92dbac..84b05ebedb2d 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -369,7 +369,14 @@ static inline int put_page_unless_one(struct page *page)
  }
  
-diff --git a/drivers/gpu/drm/gma500/psb_drv.h b/drivers/gpu/drm/gma500/psb_drv.h
-index e38057b91865..189f57135d47 100644
---- a/drivers/gpu/drm/gma500/psb_drv.h
-+++ b/drivers/gpu/drm/gma500/psb_drv.h
-@@ -253,7 +253,7 @@ struct psb_intel_opregion {
- 	struct opregion_swsci *swsci;
- 	struct opregion_asle *asle;
- 	void *vbt;
--	u32 __iomem *lid_state;
-+	u32 *lid_state;
- 	struct work_struct asle_work;
- };
+ extern int page_is_ram(unsigned long pfn);
+-extern int region_is_ram(resource_size_t phys_addr, unsigned long size);
++
++enum {
++	REGION_INTERSECTS,
++	REGION_DISJOINT,
++	REGION_MIXED,
++};
++
++int region_intersects(resource_size_t offset, size_t size, const char *type);
  
-diff --git a/drivers/gpu/drm/gma500/psb_lid.c b/drivers/gpu/drm/gma500/psb_lid.c
-index 1d2ebb5e530f..6b1b9d0741df 100644
---- a/drivers/gpu/drm/gma500/psb_lid.c
-+++ b/drivers/gpu/drm/gma500/psb_lid.c
-@@ -28,14 +28,14 @@ static void psb_lid_timer_func(unsigned long data)
- 	struct drm_psb_private * dev_priv = (struct drm_psb_private *)data;
- 	struct drm_device *dev = (struct drm_device *)dev_priv->dev;
- 	struct timer_list *lid_timer = &dev_priv->lid_timer;
-+	u32 *lid_state = dev_priv->opregion.lid_state;
- 	unsigned long irq_flags;
--	u32 __iomem *lid_state = dev_priv->opregion.lid_state;
- 	u32 pp_status;
+ /* Support for virtually mapped pages */
+ struct page *vmalloc_to_page(const void *addr);
+diff --git a/kernel/resource.c b/kernel/resource.c
+index fed052a1bc9f..f150dbbe6f62 100644
+--- a/kernel/resource.c
++++ b/kernel/resource.c
+@@ -492,40 +492,51 @@ int __weak page_is_ram(unsigned long pfn)
+ }
+ EXPORT_SYMBOL_GPL(page_is_ram);
  
--	if (readl(lid_state) == dev_priv->lid_last_state)
-+	if (*lid_state == dev_priv->lid_last_state)
- 		goto lid_timer_schedule;
+-/*
+- * Search for a resouce entry that fully contains the specified region.
+- * If found, return 1 if it is RAM, 0 if not.
+- * If not found, or region is not fully contained, return -1
++/**
++ * region_intersects() - determine intersection of region with known resources
++ * @start: region start address
++ * @size: size of region
++ * @name: name of resource (in iomem_resource)
+  *
+- * Used by the ioremap functions to ensure the user is not remapping RAM and is
+- * a vast speed up over walking through the resource table page by page.
++ * Check if the specified region partially overlaps or fully eclipses a
++ * resource identified by @name.  Return REGION_DISJOINT if the region
++ * does not overlap @name, return REGION_MIXED if the region overlaps
++ * @type and another resource, and return REGION_INTERSECTS if the
++ * region overlaps @type and no other defined resource. Note, that
++ * REGION_INTERSECTS is also returned in the case when the specified
++ * region overlaps RAM and undefined memory holes.
++ *
++ * region_intersect() is used by memory remapping functions to ensure
++ * the user is not remapping RAM and is a vast speed up over walking
++ * through the resource table page by page.
+  */
+-int region_is_ram(resource_size_t start, unsigned long size)
++int region_intersects(resource_size_t start, size_t size, const char *name)
+ {
+-	struct resource *p;
+-	resource_size_t end = start + size - 1;
+ 	unsigned long flags = IORESOURCE_MEM | IORESOURCE_BUSY;
+-	const char *name = "System RAM";
+-	int ret = -1;
++	resource_size_t end = start + size - 1;
++	int type = 0; int other = 0;
++	struct resource *p;
  
--	if ((readl(lid_state)) & 0x01) {
-+	if ((*lid_state) & 0x01) {
- 		/*lid state is open*/
- 		REG_WRITE(PP_CONTROL, REG_READ(PP_CONTROL) | POWER_TARGET_ON);
- 		do {
-@@ -58,7 +58,7 @@ static void psb_lid_timer_func(unsigned long data)
- 			pp_status = REG_READ(PP_STATUS);
- 		} while ((pp_status & PP_ON) == 0);
+ 	read_lock(&resource_lock);
+ 	for (p = iomem_resource.child; p ; p = p->sibling) {
+-		if (p->end < start)
+-			continue;
+-
+-		if (p->start <= start && end <= p->end) {
+-			/* resource fully contains region */
+-			if ((p->flags != flags) || strcmp(p->name, name))
+-				ret = 0;
+-			else
+-				ret = 1;
+-			break;
+-		}
+-		if (end < p->start)
+-			break;	/* not found */
++		bool is_type = strcmp(p->name, name) == 0 && p->flags == flags;
++
++		if (start >= p->start && start <= p->end)
++			is_type ? type++ : other++;
++		if (end >= p->start && end <= p->end)
++			is_type ? type++ : other++;
++		if (p->start >= start && p->end <= end)
++			is_type ? type++ : other++;
  	}
--	dev_priv->lid_last_state =  readl(lid_state);
-+	dev_priv->lid_last_state =  *lid_state;
+ 	read_unlock(&resource_lock);
+-	return ret;
++
++	if (other == 0)
++		return type ? REGION_INTERSECTS : REGION_DISJOINT;
++
++	if (type)
++		return REGION_MIXED;
++
++	return REGION_DISJOINT;
+ }
  
- lid_timer_schedule:
- 	spin_lock_irqsave(&dev_priv->lid_lock, irq_flags);
+ void __weak arch_remove_reservations(struct resource *avail)
 
