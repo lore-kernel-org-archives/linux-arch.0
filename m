@@ -1,250 +1,234 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v3 07/24] x86: switch from ioremap_cache to memremap
-Date: Thu, 30 Jul 2015 12:54:17 -0400
-Message-ID: <20150730165417.33962.56928.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v3 02/24] arch, drivers: don't include <asm/io.h> directly,
+ use <linux/io.h> instead
+Date: Thu, 30 Jul 2015 12:53:51 -0400
+Message-ID: <20150730165350.33962.12562.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, mcgrof@suse.com, linux-kernel@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, mcgrof@suse.com, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-In preparation for deprecating ioremap_cache() convert its usage in
-arch/x86/ to memremap.
+Preparation for uniform definition of ioremap, ioremap_wc, ioremap_wt,
+and ioremap_cache, tree-wide.
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
+Acked-by: Christoph Hellwig <hch@lst.de>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/x86/include/asm/efi.h      |    3 ++-
- arch/x86/kernel/crash_dump_64.c |    6 +++---
- arch/x86/kernel/kdebugfs.c      |    8 ++++----
- arch/x86/kernel/ksysfs.c        |   28 ++++++++++++++--------------
- arch/x86/mm/ioremap.c           |   10 ++++------
- 5 files changed, 27 insertions(+), 28 deletions(-)
+ arch/arm/mach-shmobile/pm-rcar.c            |    2 +-
+ arch/ia64/kernel/cyclone.c                  |    2 +-
+ drivers/isdn/icn/icn.h                      |    2 +-
+ drivers/mtd/devices/slram.c                 |    2 +-
+ drivers/mtd/nand/diskonchip.c               |    2 +-
+ drivers/mtd/onenand/generic.c               |    2 +-
+ drivers/scsi/sun3x_esp.c                    |    2 +-
+ drivers/staging/comedi/drivers/ii_pci20kc.c |    1 +
+ drivers/tty/serial/8250/8250_core.c         |    2 +-
+ drivers/video/fbdev/s1d13xxxfb.c            |    3 +--
+ drivers/video/fbdev/stifb.c                 |    1 +
+ include/linux/io-mapping.h                  |    2 +-
+ include/linux/mtd/map.h                     |    2 +-
+ include/video/vga.h                         |    2 +-
+ 14 files changed, 14 insertions(+), 13 deletions(-)
 
-diff --git a/arch/x86/include/asm/efi.h b/arch/x86/include/asm/efi.h
-index 155162ea0e00..f280cdcfbf22 100644
---- a/arch/x86/include/asm/efi.h
-+++ b/arch/x86/include/asm/efi.h
-@@ -54,7 +54,8 @@ extern unsigned long asmlinkage efi_call_phys(void *, ...);
- 	kernel_fpu_end();						\
- })
- 
--#define efi_ioremap(addr, size, type, attr)	ioremap_cache(addr, size)
-+#define efi_ioremap(addr, size, type, attr)				\
-+	memremap(addr, size, MEMREMAP_WB)
- 
- #else /* !CONFIG_X86_32 */
- 
-diff --git a/arch/x86/kernel/crash_dump_64.c b/arch/x86/kernel/crash_dump_64.c
-index afa64adb75ee..941609ab9aa9 100644
---- a/arch/x86/kernel/crash_dump_64.c
-+++ b/arch/x86/kernel/crash_dump_64.c
-@@ -31,19 +31,19 @@ ssize_t copy_oldmem_page(unsigned long pfn, char *buf,
- 	if (!csize)
- 		return 0;
- 
--	vaddr = ioremap_cache(pfn << PAGE_SHIFT, PAGE_SIZE);
-+	vaddr = memremap(pfn << PAGE_SHIFT, PAGE_SIZE, MEMREMAP_WB);
- 	if (!vaddr)
- 		return -ENOMEM;
- 
- 	if (userbuf) {
- 		if (copy_to_user(buf, vaddr + offset, csize)) {
--			iounmap(vaddr);
-+			memunmap(vaddr);
- 			return -EFAULT;
- 		}
- 	} else
- 		memcpy(buf, vaddr + offset, csize);
- 
- 	set_iounmap_nonlazy();
--	iounmap(vaddr);
-+	memunmap(vaddr);
- 	return csize;
- }
-diff --git a/arch/x86/kernel/kdebugfs.c b/arch/x86/kernel/kdebugfs.c
-index dc1404bf8e4b..fa30f85b4333 100644
---- a/arch/x86/kernel/kdebugfs.c
-+++ b/arch/x86/kernel/kdebugfs.c
-@@ -49,7 +49,7 @@ static ssize_t setup_data_read(struct file *file, char __user *user_buf,
- 	pa = node->paddr + sizeof(struct setup_data) + pos;
- 	pg = pfn_to_page((pa + count - 1) >> PAGE_SHIFT);
- 	if (PageHighMem(pg)) {
--		p = ioremap_cache(pa, count);
-+		p = memremap(pa, count, MEMREMAP_WB);
- 		if (!p)
- 			return -ENXIO;
- 	} else
-@@ -58,7 +58,7 @@ static ssize_t setup_data_read(struct file *file, char __user *user_buf,
- 	remain = copy_to_user(user_buf, p, count);
- 
- 	if (PageHighMem(pg))
--		iounmap(p);
-+		memunmap(p);
- 
- 	if (remain)
- 		return -EFAULT;
-@@ -128,7 +128,7 @@ static int __init create_setup_data_nodes(struct dentry *parent)
- 
- 		pg = pfn_to_page((pa_data+sizeof(*data)-1) >> PAGE_SHIFT);
- 		if (PageHighMem(pg)) {
--			data = ioremap_cache(pa_data, sizeof(*data));
-+			data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
- 			if (!data) {
- 				kfree(node);
- 				error = -ENXIO;
-@@ -144,7 +144,7 @@ static int __init create_setup_data_nodes(struct dentry *parent)
- 		pa_data = data->next;
- 
- 		if (PageHighMem(pg))
--			iounmap(data);
-+			memunmap(data);
- 		if (error)
- 			goto err_dir;
- 		no++;
-diff --git a/arch/x86/kernel/ksysfs.c b/arch/x86/kernel/ksysfs.c
-index c2bedaea11f7..2d6ae3baafb8 100644
---- a/arch/x86/kernel/ksysfs.c
-+++ b/arch/x86/kernel/ksysfs.c
-@@ -16,8 +16,8 @@
- #include <linux/stat.h>
- #include <linux/slab.h>
+diff --git a/arch/arm/mach-shmobile/pm-rcar.c b/arch/arm/mach-shmobile/pm-rcar.c
+index 00022ee56f80..9d3dde00c2fe 100644
+--- a/arch/arm/mach-shmobile/pm-rcar.c
++++ b/arch/arm/mach-shmobile/pm-rcar.c
+@@ -12,7 +12,7 @@
+ #include <linux/err.h>
  #include <linux/mm.h>
+ #include <linux/spinlock.h>
+-#include <asm/io.h>
++#include <linux/io.h>
+ #include "pm-rcar.h"
+ 
+ /* SYSC */
+diff --git a/arch/ia64/kernel/cyclone.c b/arch/ia64/kernel/cyclone.c
+index 4826ff957a3d..5fa3848ba224 100644
+--- a/arch/ia64/kernel/cyclone.c
++++ b/arch/ia64/kernel/cyclone.c
+@@ -4,7 +4,7 @@
+ #include <linux/errno.h>
+ #include <linux/timex.h>
+ #include <linux/clocksource.h>
+-#include <asm/io.h>
 +#include <linux/io.h>
  
+ /* IBM Summit (EXA) Cyclone counter code*/
+ #define CYCLONE_CBAR_ADDR 0xFEB00CD0
+diff --git a/drivers/isdn/icn/icn.h b/drivers/isdn/icn/icn.h
+index b713466997a0..f8f2e76d34bf 100644
+--- a/drivers/isdn/icn/icn.h
++++ b/drivers/isdn/icn/icn.h
+@@ -38,7 +38,7 @@ typedef struct icn_cdef {
+ #include <linux/errno.h>
+ #include <linux/fs.h>
+ #include <linux/major.h>
 -#include <asm/io.h>
- #include <asm/setup.h>
++#include <linux/io.h>
+ #include <linux/kernel.h>
+ #include <linux/signal.h>
+ #include <linux/slab.h>
+diff --git a/drivers/mtd/devices/slram.c b/drivers/mtd/devices/slram.c
+index 2fc4957cbe7f..a70eb83e68f1 100644
+--- a/drivers/mtd/devices/slram.c
++++ b/drivers/mtd/devices/slram.c
+@@ -41,7 +41,7 @@
+ #include <linux/fs.h>
+ #include <linux/ioctl.h>
+ #include <linux/init.h>
+-#include <asm/io.h>
++#include <linux/io.h>
  
- static ssize_t version_show(struct kobject *kobj,
-@@ -79,12 +79,12 @@ static int get_setup_data_paddr(int nr, u64 *paddr)
- 			*paddr = pa_data;
- 			return 0;
- 		}
--		data = ioremap_cache(pa_data, sizeof(*data));
-+		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
- 		if (!data)
- 			return -ENOMEM;
+ #include <linux/mtd/mtd.h>
  
- 		pa_data = data->next;
--		iounmap(data);
-+		memunmap(data);
- 		i++;
- 	}
- 	return -EINVAL;
-@@ -97,17 +97,17 @@ static int __init get_setup_data_size(int nr, size_t *size)
- 	u64 pa_data = boot_params.hdr.setup_data;
+diff --git a/drivers/mtd/nand/diskonchip.c b/drivers/mtd/nand/diskonchip.c
+index 7da266a53979..0802158a3f75 100644
+--- a/drivers/mtd/nand/diskonchip.c
++++ b/drivers/mtd/nand/diskonchip.c
+@@ -24,7 +24,7 @@
+ #include <linux/rslib.h>
+ #include <linux/moduleparam.h>
+ #include <linux/slab.h>
+-#include <asm/io.h>
++#include <linux/io.h>
  
- 	while (pa_data) {
--		data = ioremap_cache(pa_data, sizeof(*data));
-+		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
- 		if (!data)
- 			return -ENOMEM;
- 		if (nr == i) {
- 			*size = data->len;
--			iounmap(data);
-+			memunmap(data);
- 			return 0;
- 		}
+ #include <linux/mtd/mtd.h>
+ #include <linux/mtd/nand.h>
+diff --git a/drivers/mtd/onenand/generic.c b/drivers/mtd/onenand/generic.c
+index 32a216d31141..ab7bda0bb245 100644
+--- a/drivers/mtd/onenand/generic.c
++++ b/drivers/mtd/onenand/generic.c
+@@ -18,7 +18,7 @@
+ #include <linux/mtd/mtd.h>
+ #include <linux/mtd/onenand.h>
+ #include <linux/mtd/partitions.h>
+-#include <asm/io.h>
++#include <linux/io.h>
  
- 		pa_data = data->next;
--		iounmap(data);
-+		memunmap(data);
- 		i++;
- 	}
- 	return -EINVAL;
-@@ -127,12 +127,12 @@ static ssize_t type_show(struct kobject *kobj,
- 	ret = get_setup_data_paddr(nr, &paddr);
- 	if (ret)
- 		return ret;
--	data = ioremap_cache(paddr, sizeof(*data));
-+	data = memremap(paddr, sizeof(*data), MEMREMAP_WB);
- 	if (!data)
- 		return -ENOMEM;
+ /*
+  * Note: Driver name and platform data format have been updated!
+diff --git a/drivers/scsi/sun3x_esp.c b/drivers/scsi/sun3x_esp.c
+index e26e81de7c45..d50c5ed8f428 100644
+--- a/drivers/scsi/sun3x_esp.c
++++ b/drivers/scsi/sun3x_esp.c
+@@ -12,9 +12,9 @@
+ #include <linux/platform_device.h>
+ #include <linux/dma-mapping.h>
+ #include <linux/interrupt.h>
++#include <linux/io.h>
  
- 	ret = sprintf(buf, "0x%x\n", data->type);
--	iounmap(data);
-+	memunmap(data);
- 	return ret;
- }
+ #include <asm/sun3x.h>
+-#include <asm/io.h>
+ #include <asm/dma.h>
+ #include <asm/dvma.h>
  
-@@ -154,7 +154,7 @@ static ssize_t setup_data_data_read(struct file *fp,
- 	ret = get_setup_data_paddr(nr, &paddr);
- 	if (ret)
- 		return ret;
--	data = ioremap_cache(paddr, sizeof(*data));
-+	data = memremap(paddr, sizeof(*data), MEMREMAP_WB);
- 	if (!data)
- 		return -ENOMEM;
+diff --git a/drivers/staging/comedi/drivers/ii_pci20kc.c b/drivers/staging/comedi/drivers/ii_pci20kc.c
+index 0768bc42a5db..14ef1f67dd42 100644
+--- a/drivers/staging/comedi/drivers/ii_pci20kc.c
++++ b/drivers/staging/comedi/drivers/ii_pci20kc.c
+@@ -28,6 +28,7 @@
+  */
  
-@@ -170,15 +170,15 @@ static ssize_t setup_data_data_read(struct file *fp,
- 		goto out;
+ #include <linux/module.h>
++#include <linux/io.h>
+ #include "../comedidev.h"
  
- 	ret = count;
--	p = ioremap_cache(paddr + sizeof(*data), data->len);
-+	p = memremap(paddr + sizeof(*data), data->len, MEMREMAP_WB);
- 	if (!p) {
- 		ret = -ENOMEM;
- 		goto out;
- 	}
- 	memcpy(buf, p + off, count);
--	iounmap(p);
-+	memunmap(p);
- out:
--	iounmap(data);
-+	memunmap(data);
- 	return ret;
- }
+ /*
+diff --git a/drivers/tty/serial/8250/8250_core.c b/drivers/tty/serial/8250/8250_core.c
+index 37fff12dd4d0..fe902ff52e58 100644
+--- a/drivers/tty/serial/8250/8250_core.c
++++ b/drivers/tty/serial/8250/8250_core.c
+@@ -38,11 +38,11 @@
+ #include <linux/slab.h>
+ #include <linux/uaccess.h>
+ #include <linux/pm_runtime.h>
++#include <linux/io.h>
+ #ifdef CONFIG_SPARC
+ #include <linux/sunserialcore.h>
+ #endif
  
-@@ -250,13 +250,13 @@ static int __init get_setup_data_total_num(u64 pa_data, int *nr)
- 	*nr = 0;
- 	while (pa_data) {
- 		*nr += 1;
--		data = ioremap_cache(pa_data, sizeof(*data));
-+		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
- 		if (!data) {
- 			ret = -ENOMEM;
- 			goto out;
- 		}
- 		pa_data = data->next;
--		iounmap(data);
-+		memunmap(data);
- 	}
+-#include <asm/io.h>
+ #include <asm/irq.h>
  
- out:
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index b9c78f3bcd67..ce53e6cff75c 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -403,12 +403,10 @@ void *xlate_dev_mem_ptr(phys_addr_t phys)
- 	if (page_is_ram(start >> PAGE_SHIFT))
- 		return __va(phys);
- 
--	vaddr = ioremap_cache(start, PAGE_SIZE);
--	/* Only add the offset on success and return NULL if the ioremap() failed: */
-+	vaddr = memremap(start, PAGE_SIZE, MEMREMAP_WB);
- 	if (vaddr)
--		vaddr += offset;
+ #include "8250.h"
+diff --git a/drivers/video/fbdev/s1d13xxxfb.c b/drivers/video/fbdev/s1d13xxxfb.c
+index 83433cb0dfba..96aa46dc696c 100644
+--- a/drivers/video/fbdev/s1d13xxxfb.c
++++ b/drivers/video/fbdev/s1d13xxxfb.c
+@@ -32,8 +32,7 @@
+ #include <linux/spinlock_types.h>
+ #include <linux/spinlock.h>
+ #include <linux/slab.h>
 -
--	return vaddr;
-+		return vaddr + offset;
-+	return NULL;
- }
+-#include <asm/io.h>
++#include <linux/io.h>
  
- void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
-@@ -416,7 +414,7 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
- 	if (page_is_ram(phys >> PAGE_SHIFT))
- 		return;
+ #include <video/s1d13xxxfb.h>
  
--	iounmap((void __iomem *)((unsigned long)addr & PAGE_MASK));
-+	memunmap((void *)((unsigned long)addr & PAGE_MASK));
- }
+diff --git a/drivers/video/fbdev/stifb.c b/drivers/video/fbdev/stifb.c
+index 735355b0e023..7df4228e25f0 100644
+--- a/drivers/video/fbdev/stifb.c
++++ b/drivers/video/fbdev/stifb.c
+@@ -64,6 +64,7 @@
+ #include <linux/fb.h>
+ #include <linux/init.h>
+ #include <linux/ioport.h>
++#include <linux/io.h>
  
- static pte_t bm_pte[PAGE_SIZE/sizeof(pte_t)] __page_aligned_bss;
+ #include <asm/grfioctl.h>	/* for HP-UX compatibility */
+ #include <asm/uaccess.h>
+diff --git a/include/linux/io-mapping.h b/include/linux/io-mapping.h
+index c27dde7215b5..e399029b68c5 100644
+--- a/include/linux/io-mapping.h
++++ b/include/linux/io-mapping.h
+@@ -21,7 +21,7 @@
+ #include <linux/types.h>
+ #include <linux/slab.h>
+ #include <linux/bug.h>
+-#include <asm/io.h>
++#include <linux/io.h>
+ #include <asm/page.h>
+ 
+ /*
+diff --git a/include/linux/mtd/map.h b/include/linux/mtd/map.h
+index 29975c73a953..366cf77953b5 100644
+--- a/include/linux/mtd/map.h
++++ b/include/linux/mtd/map.h
+@@ -27,9 +27,9 @@
+ #include <linux/string.h>
+ #include <linux/bug.h>
+ #include <linux/kernel.h>
++#include <linux/io.h>
+ 
+ #include <asm/unaligned.h>
+-#include <asm/io.h>
+ #include <asm/barrier.h>
+ 
+ #ifdef CONFIG_MTD_MAP_BANK_WIDTH_1
+diff --git a/include/video/vga.h b/include/video/vga.h
+index cac567f22e62..d334e64c1c19 100644
+--- a/include/video/vga.h
++++ b/include/video/vga.h
+@@ -18,7 +18,7 @@
+ #define __linux_video_vga_h__
+ 
+ #include <linux/types.h>
+-#include <asm/io.h>
++#include <linux/io.h>
+ #include <asm/vga.h>
+ #include <asm/byteorder.h>
