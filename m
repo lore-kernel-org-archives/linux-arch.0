@@ -1,104 +1,121 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v3 18/24] fbdev: switch from ioremap_wt to memremap
-Date: Thu, 30 Jul 2015 12:55:19 -0400
-Message-ID: <20150730165519.33962.40536.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v3 08/24] gma500: switch from acpi_os_ioremap to memremap
+Date: Thu, 30 Jul 2015 12:54:23 -0400
+Message-ID: <20150730165423.33962.91402.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, linux-fbdev@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, mcgrof@suse.com, linux-kernel@vger.kernel.org, Tomi Valkeinen <tomi.valkeinen@ti.com>, rmk+kernel@arm.linux.org.uk, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, David Airlie <airlied@linux.ie>, mcgrof@suse.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-In preparation for deprecating ioremap_wt() convert its usage in
-drivers/video/fbdev to memremap.
+gma500 expects the OpRegion to be cached (i.e. not __iomem), so
+explicitly map it with memremap rather than the implied cache setting of
+acpi_os_ioremap().
 
-Cc: Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>
-Cc: Tomi Valkeinen <tomi.valkeinen@ti.com>
-Cc: linux-fbdev@vger.kernel.org
+Cc: David Airlie <airlied@linux.ie>
+Cc: dri-devel@lists.freedesktop.org
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/video/fbdev/amifb.c |    5 +++--
- drivers/video/fbdev/atafb.c |    5 +++--
- drivers/video/fbdev/hpfb.c  |    6 +++---
- 3 files changed, 9 insertions(+), 7 deletions(-)
+ drivers/gpu/drm/gma500/opregion.c |    8 ++++----
+ drivers/gpu/drm/gma500/psb_drv.h  |    2 +-
+ drivers/gpu/drm/gma500/psb_lid.c  |    8 ++++----
+ 3 files changed, 9 insertions(+), 9 deletions(-)
 
-diff --git a/drivers/video/fbdev/amifb.c b/drivers/video/fbdev/amifb.c
-index 1d702e13aaff..0cde451046d0 100644
---- a/drivers/video/fbdev/amifb.c
-+++ b/drivers/video/fbdev/amifb.c
-@@ -52,6 +52,7 @@
- #include <linux/ioport.h>
- #include <linux/platform_device.h>
- #include <linux/uaccess.h>
-+#include <linux/io.h>
+diff --git a/drivers/gpu/drm/gma500/opregion.c b/drivers/gpu/drm/gma500/opregion.c
+index ab696ca7eeec..7672ac4d4217 100644
+--- a/drivers/gpu/drm/gma500/opregion.c
++++ b/drivers/gpu/drm/gma500/opregion.c
+@@ -297,7 +297,7 @@ void psb_intel_opregion_fini(struct drm_device *dev)
+ 	cancel_work_sync(&opregion->asle_work);
  
- #include <asm/irq.h>
- #include <asm/amigahw.h>
-@@ -3705,8 +3706,8 @@ default_chipset:
- 	 * access the videomem with writethrough cache
- 	 */
- 	info->fix.smem_start = (u_long)ZTWO_PADDR(videomemory);
--	videomemory = (u_long)ioremap_wt(info->fix.smem_start,
--					 info->fix.smem_len);
-+	videomemory = (u_long)memremap(info->fix.smem_start, info->fix.smem_len,
-+			MEMREMAP_WT);
- 	if (!videomemory) {
- 		dev_warn(&pdev->dev,
- 			 "Unable to map videomem cached writethrough\n");
-diff --git a/drivers/video/fbdev/atafb.c b/drivers/video/fbdev/atafb.c
-index d6ce613e12ad..5615e8c31ea2 100644
---- a/drivers/video/fbdev/atafb.c
-+++ b/drivers/video/fbdev/atafb.c
-@@ -55,12 +55,12 @@
- #include <linux/delay.h>
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/io.h>
+ 	/* just clear all opregion memory pointers now */
+-	iounmap(opregion->header);
++	memunmap(opregion->header);
+ 	opregion->header = NULL;
+ 	opregion->acpi = NULL;
+ 	opregion->swsci = NULL;
+@@ -310,8 +310,8 @@ int psb_intel_opregion_setup(struct drm_device *dev)
+ 	struct drm_psb_private *dev_priv = dev->dev_private;
+ 	struct psb_intel_opregion *opregion = &dev_priv->opregion;
+ 	u32 opregion_phy, mboxes;
+-	void __iomem *base;
+ 	int err = 0;
++	void *base;
  
- #include <asm/setup.h>
- #include <linux/uaccess.h>
- #include <asm/pgtable.h>
- #include <asm/irq.h>
--#include <asm/io.h>
+ 	pci_read_config_dword(dev->pdev, PCI_ASLS, &opregion_phy);
+ 	if (opregion_phy == 0) {
+@@ -322,7 +322,7 @@ int psb_intel_opregion_setup(struct drm_device *dev)
+ 	INIT_WORK(&opregion->asle_work, psb_intel_opregion_asle_work);
  
- #include <asm/atarihw.h>
- #include <asm/atariints.h>
-@@ -3185,7 +3185,8 @@ int __init atafb_init(void)
- 		/* Map the video memory (physical address given) to somewhere
- 		 * in the kernel address space.
- 		 */
--		external_screen_base = ioremap_wt(external_addr, external_len);
-+		external_screen_base = memremap(external_addr, external_len,
-+				MEMREMAP_WT);
- 		if (external_vgaiobase)
- 			external_vgaiobase =
- 			  (unsigned long)ioremap(external_vgaiobase, 0x10000);
-diff --git a/drivers/video/fbdev/hpfb.c b/drivers/video/fbdev/hpfb.c
-index 9476d196f510..d08c320b06fc 100644
---- a/drivers/video/fbdev/hpfb.c
-+++ b/drivers/video/fbdev/hpfb.c
-@@ -14,8 +14,8 @@
- #include <linux/init.h>
- #include <linux/fb.h>
- #include <linux/dio.h>
-+#include <linux/io.h>
+ 	DRM_DEBUG("OpRegion detected at 0x%8x\n", opregion_phy);
+-	base = acpi_os_ioremap(opregion_phy, 8*1024);
++	base = memremap(opregion_phy, 8*1024, MEMREMAP_WB);
+ 	if (!base)
+ 		return -ENOMEM;
  
--#include <asm/io.h>
- #include <asm/uaccess.h>
+@@ -351,7 +351,7 @@ int psb_intel_opregion_setup(struct drm_device *dev)
+ 	return 0;
  
- static struct fb_info fb_info = {
-@@ -241,8 +241,8 @@ static int hpfb_init_one(unsigned long phys_base, unsigned long virt_base)
- 	fb_info.fix.line_length = fb_width;
- 	fb_height = (in_8(fb_regs + HPFB_FBHMSB) << 8) | in_8(fb_regs + HPFB_FBHLSB);
- 	fb_info.fix.smem_len = fb_width * fb_height;
--	fb_start = (unsigned long)ioremap_wt(fb_info.fix.smem_start,
--					     fb_info.fix.smem_len);
-+	fb_start = (unsigned long) memremap(fb_info.fix.smem_start,
-+					     fb_info.fix.smem_len, MEMREMAP_WT);
- 	hpfb_defined.xres = (in_8(fb_regs + HPFB_DWMSB) << 8) | in_8(fb_regs + HPFB_DWLSB);
- 	hpfb_defined.yres = (in_8(fb_regs + HPFB_DHMSB) << 8) | in_8(fb_regs + HPFB_DHLSB);
- 	hpfb_defined.xres_virtual = hpfb_defined.xres;
+ err_out:
+-	iounmap(base);
++	memunmap(base);
+ 	return err;
+ }
+ 
+diff --git a/drivers/gpu/drm/gma500/psb_drv.h b/drivers/gpu/drm/gma500/psb_drv.h
+index e38057b91865..189f57135d47 100644
+--- a/drivers/gpu/drm/gma500/psb_drv.h
++++ b/drivers/gpu/drm/gma500/psb_drv.h
+@@ -253,7 +253,7 @@ struct psb_intel_opregion {
+ 	struct opregion_swsci *swsci;
+ 	struct opregion_asle *asle;
+ 	void *vbt;
+-	u32 __iomem *lid_state;
++	u32 *lid_state;
+ 	struct work_struct asle_work;
+ };
+ 
+diff --git a/drivers/gpu/drm/gma500/psb_lid.c b/drivers/gpu/drm/gma500/psb_lid.c
+index 1d2ebb5e530f..6b1b9d0741df 100644
+--- a/drivers/gpu/drm/gma500/psb_lid.c
++++ b/drivers/gpu/drm/gma500/psb_lid.c
+@@ -28,14 +28,14 @@ static void psb_lid_timer_func(unsigned long data)
+ 	struct drm_psb_private * dev_priv = (struct drm_psb_private *)data;
+ 	struct drm_device *dev = (struct drm_device *)dev_priv->dev;
+ 	struct timer_list *lid_timer = &dev_priv->lid_timer;
++	u32 *lid_state = dev_priv->opregion.lid_state;
+ 	unsigned long irq_flags;
+-	u32 __iomem *lid_state = dev_priv->opregion.lid_state;
+ 	u32 pp_status;
+ 
+-	if (readl(lid_state) == dev_priv->lid_last_state)
++	if (*lid_state == dev_priv->lid_last_state)
+ 		goto lid_timer_schedule;
+ 
+-	if ((readl(lid_state)) & 0x01) {
++	if ((*lid_state) & 0x01) {
+ 		/*lid state is open*/
+ 		REG_WRITE(PP_CONTROL, REG_READ(PP_CONTROL) | POWER_TARGET_ON);
+ 		do {
+@@ -58,7 +58,7 @@ static void psb_lid_timer_func(unsigned long data)
+ 			pp_status = REG_READ(PP_STATUS);
+ 		} while ((pp_status & PP_ON) == 0);
+ 	}
+-	dev_priv->lid_last_state =  readl(lid_state);
++	dev_priv->lid_last_state =  *lid_state;
+ 
+ lid_timer_schedule:
+ 	spin_lock_irqsave(&dev_priv->lid_lock, irq_flags);
