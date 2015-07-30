@@ -1,45 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:35481 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750950AbbG3Umy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Jul 2015 16:42:54 -0400
-Date: Thu, 30 Jul 2015 22:42:49 +0200
-From: "Luis R. Rodriguez" <mcgrof@suse.com>
-Subject: Re: [PATCH v3 01/24] mm: enhance region_is_ram() to
- region_intersects()
-Message-ID: <20150730204249.GN30479@wotan.suse.de>
-References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20150730165345.33962.80299.stgit@dwillia2-desk3.amr.corp.intel.com>
+Received: from mail-wi0-f174.google.com ([209.85.212.174]:33658 "EHLO
+	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751143AbbG3U7W (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 30 Jul 2015 16:59:22 -0400
+Received: by wicmv11 with SMTP id mv11so35386450wic.0
+        for <linux-arch@vger.kernel.org>; Thu, 30 Jul 2015 13:59:21 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20150730165345.33962.80299.stgit@dwillia2-desk3.amr.corp.intel.com>
+In-Reply-To: <20150730205449.GO30479@wotan.suse.de>
+References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
+	<20150730165345.33962.80299.stgit@dwillia2-desk3.amr.corp.intel.com>
+	<20150730204249.GN30479@wotan.suse.de>
+	<CAPcyv4hywBvt85E6LAznxQaDug17+_YxoyVzhf6fWu+GpsrmKw@mail.gmail.com>
+	<20150730205449.GO30479@wotan.suse.de>
+Date: Thu, 30 Jul 2015 13:59:20 -0700
+Message-ID: <CAPcyv4g1cMCDUZGrWz6Epmp4XvYuuLOPneiOTqrRsX1PoOS9gA@mail.gmail.com>
+Subject: Re: [PATCH v3 01/24] mm: enhance region_is_ram() to region_intersects()
+From: Dan Williams <dan.j.williams@intel.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150730204249.FRdv8sVF1yPoAEBBNBpL3Gxu2VlqbXeuv7mxtmv0LRs@z>
+To: "Luis R. Rodriguez" <mcgrof@suse.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Kani, Toshimitsu" <toshi.kani@hp.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20150730205920.5teA2QOH8OBequF_IvObf6UbN1FlsgWqlMQvbCnnZjA@z>
 
-On Thu, Jul 30, 2015 at 12:53:45PM -0400, Dan Williams wrote:
-> diff --git a/include/linux/mm.h b/include/linux/mm.h
-> index 2e872f92dbac..84b05ebedb2d 100644
-> --- a/include/linux/mm.h
-> +++ b/include/linux/mm.h
-> @@ -369,7 +369,14 @@ static inline int put_page_unless_one(struct page *page)
->  }
->  
->  extern int page_is_ram(unsigned long pfn);
-> -extern int region_is_ram(resource_size_t phys_addr, unsigned long size);
-> +
-> +enum {
-> +	REGION_INTERSECTS,
-> +	REGION_DISJOINT,
-> +	REGION_MIXED,
-> +};
-> +
+On Thu, Jul 30, 2015 at 1:54 PM, Luis R. Rodriguez <mcgrof@suse.com> wrote:
+> On Thu, Jul 30, 2015 at 01:44:44PM -0700, Dan Williams wrote:
+>> On Thu, Jul 30, 2015 at 1:42 PM, Luis R. Rodriguez <mcgrof@suse.com> wrote:
+>> > On Thu, Jul 30, 2015 at 12:53:45PM -0400, Dan Williams wrote:
+>> >> diff --git a/include/linux/mm.h b/include/linux/mm.h
+>> >> index 2e872f92dbac..84b05ebedb2d 100644
+>> >> --- a/include/linux/mm.h
+>> >> +++ b/include/linux/mm.h
+>> >> @@ -369,7 +369,14 @@ static inline int put_page_unless_one(struct page *page)
+>> >>  }
+>> >>
+>> >>  extern int page_is_ram(unsigned long pfn);
+>> >> -extern int region_is_ram(resource_size_t phys_addr, unsigned long size);
+>> >> +
+>> >> +enum {
+>> >> +     REGION_INTERSECTS,
+>> >> +     REGION_DISJOINT,
+>> >> +     REGION_MIXED,
+>> >> +};
+>> >> +
+>> >
+>> > Can you Kdoc'ify this? Part of the reason for the enum request was this
+>> > could be then documented really well. The helper is documented but here
+>> > you can go into more detail about each region intersection.
+>>
+>> Given region_intersects() has its own kdoc I'd probably just say "See
+>> region_intersects() for details".
+>
+> With the kdoc in place in the enum you'd kick people to elaborate when
+> extending the enums, whereas without this you'd hope they do it. With
+> the enum in place you can also be more verbose.
+>
 
-Can you Kdoc'ify this? Part of the reason for the enum request was this
-could be then documented really well. The helper is documented but here
-you can go into more detail about each region intersection.
-
-  Luis
+Care to send a patch on what you are thinking?  I wasn't planning on
+this enum growing any other entries.
