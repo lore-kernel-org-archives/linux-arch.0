@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:33626 "EHLO mga01.intel.com"
+Received: from mga03.intel.com ([134.134.136.65]:39165 "EHLO mga03.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753833AbbG3RAI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Jul 2015 13:00:08 -0400
-Subject: [PATCH v3 03/24] cleanup IORESOURCE_CACHEABLE vs ioremap()
+	id S1754003AbbG3RAU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Jul 2015 13:00:20 -0400
+Subject: [PATCH v3 10/24] acpi: switch from ioremap_cache to memremap
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Thu, 30 Jul 2015 12:53:56 -0400
-Message-ID: <20150730165356.33962.41257.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Thu, 30 Jul 2015 12:54:34 -0400
+Message-ID: <20150730165433.33962.1046.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -15,233 +15,353 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, Arnd Bergmann <arnd@arndb.de>, linux-nvdimm@lists.01.org, mcgrof@suse.com, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150730165356.PAZAxNSBqyCqYggE17bmhyCVdclonSG9oxQSjkFZm-A@z>
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, mcgrof@suse.com, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Bob Moore <robert.moore@intel.com>, linux-kernel@vger.kernel.org, Lv Zheng <lv.zheng@intel.com>, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150730165434.O9z87hlHHQB_dbYwVCNydPza5OwExZG7qiVHcUQTWs8@z>
 
-Quoting Arnd:
-    I was thinking the opposite approach and basically removing all uses
-    of IORESOURCE_CACHEABLE from the kernel. There are only a handful of
-    them.and we can probably replace them all with hardcoded
-    ioremap_cached() calls in the cases they are actually useful.
+In preparation for deprecating ioremap_cache() convert its usage in
+drivers/acpi and include/acpi/ to memremap.  This includes dropping the
+__iomem annotation throughout ACPI since the memremap can be treated as
+a normal memory pointer.
 
-All existing usages of IORESOURCE_CACHEABLE call ioremap() instead of
-ioremap_nocache() if the resource is cacheable, however ioremap() is
-uncached by default. Clearly none of the existing usages care about the
-cacheability. Particularly devm_ioremap_resource() never worked as
-advertised since it always fell back to plain ioremap().
+Finally, memremap automatically handles requests to map normal memory
+pages, so this also drops the calls to "should_use_kmap()".
 
-Clean this up as the new direction we want is to convert
-ioremap_<type>() usages to memremap(..., flags).
+It seems ARM had a local definition of acpi_os_ioremap() to handle RAM
+addresses, but it can be deleted now that memremap() handles this
+generically.
 
-Suggested-by: Arnd Bergmann <arnd@arndb.de>
+Cc: Bob Moore <robert.moore@intel.com>
+Cc: Lv Zheng <lv.zheng@intel.com>
+Cc: Russell King <rmk+kernel@arm.linux.org.uk>
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/arm/mach-clps711x/board-cdb89712.c |    2 +-
- arch/powerpc/kernel/pci_of_scan.c       |    2 +-
- arch/sparc/kernel/pci.c                 |    3 +--
- drivers/pci/probe.c                     |    3 +--
- drivers/pnp/manager.c                   |    2 --
- drivers/scsi/aic94xx/aic94xx_init.c     |    7 +------
- drivers/scsi/arcmsr/arcmsr_hba.c        |    5 +----
- drivers/scsi/mvsas/mv_init.c            |   15 ++++-----------
- drivers/video/fbdev/ocfb.c              |    1 -
- lib/devres.c                            |   13 ++++---------
- lib/pci_iomap.c                         |    7 ++-----
- 11 files changed, 16 insertions(+), 44 deletions(-)
+ arch/arm64/include/asm/acpi.h |    8 -----
+ drivers/acpi/apei/einj.c      |    9 +++--
+ drivers/acpi/apei/erst.c      |    6 ++--
+ drivers/acpi/nvs.c            |    6 ++--
+ drivers/acpi/osl.c            |   70 +++++++++++------------------------------
+ include/acpi/acpi_io.h        |    6 +---
+ 6 files changed, 32 insertions(+), 73 deletions(-)
 
-diff --git a/arch/arm/mach-clps711x/board-cdb89712.c b/arch/arm/mach-clps711x/board-cdb89712.c
-index 1ec378c334e5..972abdb10028 100644
---- a/arch/arm/mach-clps711x/board-cdb89712.c
-+++ b/arch/arm/mach-clps711x/board-cdb89712.c
-@@ -95,7 +95,7 @@ static struct physmap_flash_data cdb89712_bootrom_pdata __initdata = {
+diff --git a/arch/arm64/include/asm/acpi.h b/arch/arm64/include/asm/acpi.h
+index fdccacd8f7bb..f9f3dcd2bffd 100644
+--- a/arch/arm64/include/asm/acpi.h
++++ b/arch/arm64/include/asm/acpi.h
+@@ -29,14 +29,6 @@
  
- static struct resource cdb89712_bootrom_resources[] __initdata = {
- 	DEFINE_RES_NAMED(CS7_PHYS_BASE, SZ_128, "BOOTROM", IORESOURCE_MEM |
--			 IORESOURCE_CACHEABLE | IORESOURCE_READONLY),
-+			 IORESOURCE_READONLY),
- };
- 
- static struct platform_device cdb89712_bootrom_pdev __initdata = {
-diff --git a/arch/powerpc/kernel/pci_of_scan.c b/arch/powerpc/kernel/pci_of_scan.c
-index 42e02a2d570b..d4726addff0b 100644
---- a/arch/powerpc/kernel/pci_of_scan.c
-+++ b/arch/powerpc/kernel/pci_of_scan.c
-@@ -102,7 +102,7 @@ static void of_pci_parse_addrs(struct device_node *node, struct pci_dev *dev)
- 			res = &dev->resource[(i - PCI_BASE_ADDRESS_0) >> 2];
- 		} else if (i == dev->rom_base_reg) {
- 			res = &dev->resource[PCI_ROM_RESOURCE];
--			flags |= IORESOURCE_READONLY | IORESOURCE_CACHEABLE;
-+			flags |= IORESOURCE_READONLY;
- 		} else {
- 			printk(KERN_ERR "PCI: bad cfg reg num 0x%x\n", i);
- 			continue;
-diff --git a/arch/sparc/kernel/pci.c b/arch/sparc/kernel/pci.c
-index c928bc64b4ba..04da147e0712 100644
---- a/arch/sparc/kernel/pci.c
-+++ b/arch/sparc/kernel/pci.c
-@@ -231,8 +231,7 @@ static void pci_parse_of_addrs(struct platform_device *op,
- 			res = &dev->resource[(i - PCI_BASE_ADDRESS_0) >> 2];
- 		} else if (i == dev->rom_base_reg) {
- 			res = &dev->resource[PCI_ROM_RESOURCE];
--			flags |= IORESOURCE_READONLY | IORESOURCE_CACHEABLE
--			      | IORESOURCE_SIZEALIGN;
-+			flags |= IORESOURCE_READONLY | IORESOURCE_SIZEALIGN;
- 		} else {
- 			printk(KERN_ERR "PCI: bad cfg reg num 0x%x\n", i);
- 			continue;
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index cefd636681b6..8ed37dd04056 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -326,8 +326,7 @@ static void pci_read_bases(struct pci_dev *dev, unsigned int howmany, int rom)
- 		struct resource *res = &dev->resource[PCI_ROM_RESOURCE];
- 		dev->rom_base_reg = rom;
- 		res->flags = IORESOURCE_MEM | IORESOURCE_PREFETCH |
--				IORESOURCE_READONLY | IORESOURCE_CACHEABLE |
--				IORESOURCE_SIZEALIGN;
-+				IORESOURCE_READONLY | IORESOURCE_SIZEALIGN;
- 		__pci_read_base(dev, pci_bar_mem32, res, rom);
- 	}
- }
-diff --git a/drivers/pnp/manager.c b/drivers/pnp/manager.c
-index 9357aa779048..7ad3295752ef 100644
---- a/drivers/pnp/manager.c
-+++ b/drivers/pnp/manager.c
-@@ -97,8 +97,6 @@ static int pnp_assign_mem(struct pnp_dev *dev, struct pnp_mem *rule, int idx)
- 	/* ??? rule->flags restricted to 8 bits, all tests bogus ??? */
- 	if (!(rule->flags & IORESOURCE_MEM_WRITEABLE))
- 		res->flags |= IORESOURCE_READONLY;
--	if (rule->flags & IORESOURCE_MEM_CACHEABLE)
--		res->flags |= IORESOURCE_CACHEABLE;
- 	if (rule->flags & IORESOURCE_MEM_RANGELENGTH)
- 		res->flags |= IORESOURCE_RANGELENGTH;
- 	if (rule->flags & IORESOURCE_MEM_SHADOWABLE)
-diff --git a/drivers/scsi/aic94xx/aic94xx_init.c b/drivers/scsi/aic94xx/aic94xx_init.c
-index 4b135cca42a1..140cb8e6fea2 100644
---- a/drivers/scsi/aic94xx/aic94xx_init.c
-+++ b/drivers/scsi/aic94xx/aic94xx_init.c
-@@ -100,12 +100,7 @@ static int asd_map_memio(struct asd_ha_struct *asd_ha)
- 				   pci_name(asd_ha->pcidev));
- 			goto Err;
- 		}
--		if (io_handle->flags & IORESOURCE_CACHEABLE)
--			io_handle->addr = ioremap(io_handle->start,
--						  io_handle->len);
--		else
--			io_handle->addr = ioremap_nocache(io_handle->start,
--							  io_handle->len);
-+		io_handle->addr = ioremap(io_handle->start, io_handle->len);
- 		if (!io_handle->addr) {
- 			asd_printk("couldn't map MBAR%d of %s\n", i==0?0:1,
- 				   pci_name(asd_ha->pcidev));
-diff --git a/drivers/scsi/arcmsr/arcmsr_hba.c b/drivers/scsi/arcmsr/arcmsr_hba.c
-index 914c39f9f388..e4f77cad9fd8 100644
---- a/drivers/scsi/arcmsr/arcmsr_hba.c
-+++ b/drivers/scsi/arcmsr/arcmsr_hba.c
-@@ -259,10 +259,7 @@ static bool arcmsr_remap_pciregion(struct AdapterControlBlock *acb)
- 		addr = (unsigned long)pci_resource_start(pdev, 0);
- 		range = pci_resource_len(pdev, 0);
- 		flags = pci_resource_flags(pdev, 0);
--		if (flags & IORESOURCE_CACHEABLE)
--			mem_base0 = ioremap(addr, range);
--		else
--			mem_base0 = ioremap_nocache(addr, range);
-+		mem_base0 = ioremap(addr, range);
- 		if (!mem_base0) {
- 			pr_notice("arcmsr%d: memory mapping region fail\n",
- 				acb->host->host_no);
-diff --git a/drivers/scsi/mvsas/mv_init.c b/drivers/scsi/mvsas/mv_init.c
-index d40d734aa53a..e654b5cec69e 100644
---- a/drivers/scsi/mvsas/mv_init.c
-+++ b/drivers/scsi/mvsas/mv_init.c
-@@ -324,13 +324,9 @@ int mvs_ioremap(struct mvs_info *mvi, int bar, int bar_ex)
- 			goto err_out;
- 
- 		res_flag_ex = pci_resource_flags(pdev, bar_ex);
--		if (res_flag_ex & IORESOURCE_MEM) {
--			if (res_flag_ex & IORESOURCE_CACHEABLE)
--				mvi->regs_ex = ioremap(res_start, res_len);
--			else
--				mvi->regs_ex = ioremap_nocache(res_start,
--						res_len);
--		} else
-+		if (res_flag_ex & IORESOURCE_MEM)
-+			mvi->regs_ex = ioremap(res_start, res_len);
-+		else
- 			mvi->regs_ex = (void *)res_start;
- 		if (!mvi->regs_ex)
- 			goto err_out;
-@@ -342,10 +338,7 @@ int mvs_ioremap(struct mvs_info *mvi, int bar, int bar_ex)
- 		goto err_out;
- 
- 	res_flag = pci_resource_flags(pdev, bar);
--	if (res_flag & IORESOURCE_CACHEABLE)
--		mvi->regs = ioremap(res_start, res_len);
--	else
--		mvi->regs = ioremap_nocache(res_start, res_len);
-+	mvi->regs = ioremap(res_start, res_len);
- 
- 	if (!mvi->regs) {
- 		if (mvi->regs_ex && (res_flag_ex & IORESOURCE_MEM))
-diff --git a/drivers/video/fbdev/ocfb.c b/drivers/video/fbdev/ocfb.c
-index de9819660ca0..c9293aea8ec3 100644
---- a/drivers/video/fbdev/ocfb.c
-+++ b/drivers/video/fbdev/ocfb.c
-@@ -325,7 +325,6 @@ static int ocfb_probe(struct platform_device *pdev)
- 		dev_err(&pdev->dev, "I/O resource request failed\n");
- 		return -ENXIO;
- 	}
--	res->flags &= ~IORESOURCE_CACHEABLE;
- 	fbdev->regs = devm_ioremap_resource(&pdev->dev, res);
- 	if (IS_ERR(fbdev->regs))
- 		return PTR_ERR(fbdev->regs);
-diff --git a/lib/devres.c b/lib/devres.c
-index fbe2aac522e6..f13a2468ff39 100644
---- a/lib/devres.c
-+++ b/lib/devres.c
-@@ -119,10 +119,9 @@ EXPORT_SYMBOL(devm_iounmap);
-  * @dev: generic device to handle the resource for
-  * @res: resource to be handled
-  *
-- * Checks that a resource is a valid memory region, requests the memory region
-- * and ioremaps it either as cacheable or as non-cacheable memory depending on
-- * the resource's flags. All operations are managed and will be undone on
-- * driver detach.
-+ * Checks that a resource is a valid memory region, requests the memory
-+ * region and ioremaps it. All operations are managed and will be undone
-+ * on driver detach.
-  *
-  * Returns a pointer to the remapped memory or an ERR_PTR() encoded error code
-  * on failure. Usage example:
-@@ -153,11 +152,7 @@ void __iomem *devm_ioremap_resource(struct device *dev, struct resource *res)
- 		return IOMEM_ERR_PTR(-EBUSY);
- 	}
- 
--	if (res->flags & IORESOURCE_CACHEABLE)
--		dest_ptr = devm_ioremap(dev, res->start, size);
--	else
--		dest_ptr = devm_ioremap_nocache(dev, res->start, size);
+ /* Basic configuration for ACPI */
+ #ifdef	CONFIG_ACPI
+-/* ACPI table mapping after acpi_gbl_permanent_mmap is set */
+-static inline void __iomem *acpi_os_ioremap(acpi_physical_address phys,
+-					    acpi_size size)
+-{
+-	return memremap(phys, size, MEMREMAP_WB);
+-}
+-#define acpi_os_ioremap acpi_os_ioremap
 -
-+	dest_ptr = devm_ioremap(dev, res->start, size);
- 	if (!dest_ptr) {
- 		dev_err(dev, "ioremap failed for resource %pR\n", res);
- 		devm_release_mem_region(dev, res->start, size);
-diff --git a/lib/pci_iomap.c b/lib/pci_iomap.c
-index bcce5f149310..e1930dbab2da 100644
---- a/lib/pci_iomap.c
-+++ b/lib/pci_iomap.c
-@@ -41,11 +41,8 @@ void __iomem *pci_iomap_range(struct pci_dev *dev,
- 		len = maxlen;
- 	if (flags & IORESOURCE_IO)
- 		return __pci_ioport_map(dev, start, len);
--	if (flags & IORESOURCE_MEM) {
--		if (flags & IORESOURCE_CACHEABLE)
--			return ioremap(start, len);
--		return ioremap_nocache(start, len);
--	}
-+	if (flags & IORESOURCE_MEM)
-+		return ioremap(start, len);
- 	/* What? */
+ typedef u64 phys_cpuid_t;
+ #define PHYS_CPUID_INVALID INVALID_HWID
+ 
+diff --git a/drivers/acpi/apei/einj.c b/drivers/acpi/apei/einj.c
+index a095d4f858da..270636220746 100644
+--- a/drivers/acpi/apei/einj.c
++++ b/drivers/acpi/apei/einj.c
+@@ -318,7 +318,8 @@ static int __einj_error_trigger(u64 trigger_paddr, u32 type,
+ 			    sizeof(*trigger_tab) - 1);
+ 		goto out;
+ 	}
+-	trigger_tab = ioremap_cache(trigger_paddr, sizeof(*trigger_tab));
++	trigger_tab = memremap(trigger_paddr, sizeof(*trigger_tab),
++			MEMREMAP_WB);
+ 	if (!trigger_tab) {
+ 		pr_err(EINJ_PFX "Failed to map trigger table!\n");
+ 		goto out_rel_header;
+@@ -346,8 +347,8 @@ static int __einj_error_trigger(u64 trigger_paddr, u32 type,
+ 		       (unsigned long long)trigger_paddr + table_size - 1);
+ 		goto out_rel_header;
+ 	}
+-	iounmap(trigger_tab);
+-	trigger_tab = ioremap_cache(trigger_paddr, table_size);
++	memunmap(trigger_tab);
++	trigger_tab = memremap(trigger_paddr, table_size, MEMREMAP_WB);
+ 	if (!trigger_tab) {
+ 		pr_err(EINJ_PFX "Failed to map trigger table!\n");
+ 		goto out_rel_entry;
+@@ -409,7 +410,7 @@ out_rel_header:
+ 	release_mem_region(trigger_paddr, sizeof(*trigger_tab));
+ out:
+ 	if (trigger_tab)
+-		iounmap(trigger_tab);
++		memunmap(trigger_tab);
+ 
+ 	return rc;
+ }
+diff --git a/drivers/acpi/apei/erst.c b/drivers/acpi/apei/erst.c
+index 3670bbab57a3..569237176e18 100644
+--- a/drivers/acpi/apei/erst.c
++++ b/drivers/acpi/apei/erst.c
+@@ -77,7 +77,7 @@ static struct acpi_table_erst *erst_tab;
+ static struct erst_erange {
+ 	u64 base;
+ 	u64 size;
+-	void __iomem *vaddr;
++	void *vaddr;
+ 	u32 attr;
+ } erst_erange;
+ 
+@@ -1185,8 +1185,8 @@ static int __init erst_init(void)
+ 		goto err_unmap_reg;
+ 	}
+ 	rc = -ENOMEM;
+-	erst_erange.vaddr = ioremap_cache(erst_erange.base,
+-					  erst_erange.size);
++	erst_erange.vaddr = memremap(erst_erange.base, erst_erange.size,
++			MEMREMAP_WB);
+ 	if (!erst_erange.vaddr)
+ 		goto err_release_erange;
+ 
+diff --git a/drivers/acpi/nvs.c b/drivers/acpi/nvs.c
+index 85287b8fe3aa..e0e15af93b22 100644
+--- a/drivers/acpi/nvs.c
++++ b/drivers/acpi/nvs.c
+@@ -136,7 +136,7 @@ void suspend_nvs_free(void)
+ 			entry->data = NULL;
+ 			if (entry->kaddr) {
+ 				if (entry->unmap) {
+-					iounmap(entry->kaddr);
++					memunmap(entry->kaddr);
+ 					entry->unmap = false;
+ 				} else {
+ 					acpi_os_unmap_iomem(entry->kaddr,
+@@ -180,7 +180,7 @@ int suspend_nvs_save(void)
+ 
+ 			entry->kaddr = acpi_os_get_iomem(phys, size);
+ 			if (!entry->kaddr) {
+-				entry->kaddr = acpi_os_ioremap(phys, size);
++				entry->kaddr = acpi_os_memremap(phys, size);
+ 				entry->unmap = !!entry->kaddr;
+ 			}
+ 			if (!entry->kaddr) {
+@@ -197,7 +197,7 @@ int suspend_nvs_save(void)
+  *	suspend_nvs_restore - restore NVS memory regions
+  *
+  *	This function is going to be called with interrupts disabled, so it
+- *	cannot iounmap the virtual addresses used to access the NVS region.
++ *	cannot memunmap the virtual addresses used to access the NVS region.
+  */
+ void suspend_nvs_restore(void)
+ {
+diff --git a/drivers/acpi/osl.c b/drivers/acpi/osl.c
+index 3b8963f21b36..9d5242179b74 100644
+--- a/drivers/acpi/osl.c
++++ b/drivers/acpi/osl.c
+@@ -31,7 +31,6 @@
+ #include <linux/kernel.h>
+ #include <linux/slab.h>
+ #include <linux/mm.h>
+-#include <linux/highmem.h>
+ #include <linux/pci.h>
+ #include <linux/interrupt.h>
+ #include <linux/kmod.h>
+@@ -44,8 +43,8 @@
+ #include <linux/list.h>
+ #include <linux/jiffies.h>
+ #include <linux/semaphore.h>
++#include <linux/io.h>
+ 
+-#include <asm/io.h>
+ #include <asm/uaccess.h>
+ 
+ #include "internal.h"
+@@ -90,7 +89,7 @@ static struct workqueue_struct *kacpi_hotplug_wq;
+  */
+ struct acpi_ioremap {
+ 	struct list_head list;
+-	void __iomem *virt;
++	void *virt;
+ 	acpi_physical_address phys;
+ 	acpi_size size;
+ 	unsigned long refcount;
+@@ -294,7 +293,7 @@ acpi_map_lookup(acpi_physical_address phys, acpi_size size)
+ }
+ 
+ /* Must be called with 'acpi_ioremap_lock' or RCU read lock held. */
+-static void __iomem *
++static void *
+ acpi_map_vaddr_lookup(acpi_physical_address phys, unsigned int size)
+ {
+ 	struct acpi_ioremap *map;
+@@ -306,10 +305,10 @@ acpi_map_vaddr_lookup(acpi_physical_address phys, unsigned int size)
  	return NULL;
  }
+ 
+-void __iomem *acpi_os_get_iomem(acpi_physical_address phys, unsigned int size)
++void *acpi_os_get_iomem(acpi_physical_address phys, unsigned int size)
+ {
+ 	struct acpi_ioremap *map;
+-	void __iomem *virt = NULL;
++	void *virt = NULL;
+ 
+ 	mutex_lock(&acpi_ioremap_lock);
+ 	map = acpi_map_lookup(phys, size);
+@@ -324,7 +323,7 @@ EXPORT_SYMBOL_GPL(acpi_os_get_iomem);
+ 
+ /* Must be called with 'acpi_ioremap_lock' or RCU read lock held. */
+ static struct acpi_ioremap *
+-acpi_map_lookup_virt(void __iomem *virt, acpi_size size)
++acpi_map_lookup_virt(void *virt, acpi_size size)
+ {
+ 	struct acpi_ioremap *map;
+ 
+@@ -336,44 +335,13 @@ acpi_map_lookup_virt(void __iomem *virt, acpi_size size)
+ 	return NULL;
+ }
+ 
+-#if defined(CONFIG_IA64) || defined(CONFIG_ARM64)
+-/* ioremap will take care of cache attributes */
+-#define should_use_kmap(pfn)   0
+-#else
+-#define should_use_kmap(pfn)   page_is_ram(pfn)
+-#endif
+-
+-static void __iomem *acpi_map(acpi_physical_address pg_off, unsigned long pg_sz)
+-{
+-	unsigned long pfn;
+-
+-	pfn = pg_off >> PAGE_SHIFT;
+-	if (should_use_kmap(pfn)) {
+-		if (pg_sz > PAGE_SIZE)
+-			return NULL;
+-		return (void __iomem __force *)kmap(pfn_to_page(pfn));
+-	} else
+-		return acpi_os_ioremap(pg_off, pg_sz);
+-}
+-
+-static void acpi_unmap(acpi_physical_address pg_off, void __iomem *vaddr)
+-{
+-	unsigned long pfn;
+-
+-	pfn = pg_off >> PAGE_SHIFT;
+-	if (should_use_kmap(pfn))
+-		kunmap(pfn_to_page(pfn));
+-	else
+-		iounmap(vaddr);
+-}
+-
+-void __iomem *__init_refok
++void *__init_refok
+ acpi_os_map_iomem(acpi_physical_address phys, acpi_size size)
+ {
+ 	struct acpi_ioremap *map;
+-	void __iomem *virt;
+ 	acpi_physical_address pg_off;
+ 	acpi_size pg_sz;
++	void *virt;
+ 
+ 	if (phys > ULONG_MAX) {
+ 		printk(KERN_ERR PREFIX "Cannot map memory that high\n");
+@@ -399,7 +367,7 @@ acpi_os_map_iomem(acpi_physical_address phys, acpi_size size)
+ 
+ 	pg_off = round_down(phys, PAGE_SIZE);
+ 	pg_sz = round_up(phys + size, PAGE_SIZE) - pg_off;
+-	virt = acpi_map(pg_off, pg_sz);
++	virt = acpi_os_memremap(pg_off, pg_sz);
+ 	if (!virt) {
+ 		mutex_unlock(&acpi_ioremap_lock);
+ 		kfree(map);
+@@ -437,7 +405,7 @@ static void acpi_os_map_cleanup(struct acpi_ioremap *map)
+ {
+ 	if (!map->refcount) {
+ 		synchronize_rcu_expedited();
+-		acpi_unmap(map->phys, map->virt);
++		memunmap(map->virt);
+ 		kfree(map);
+ 	}
+ }
+@@ -965,7 +933,7 @@ static inline u64 read64(const volatile void __iomem *addr)
+ acpi_status
+ acpi_os_read_memory(acpi_physical_address phys_addr, u64 *value, u32 width)
+ {
+-	void __iomem *virt_addr;
++	void *virt_addr;
+ 	unsigned int size = width / 8;
+ 	bool unmap = false;
+ 	u64 dummy;
+@@ -974,7 +942,7 @@ acpi_os_read_memory(acpi_physical_address phys_addr, u64 *value, u32 width)
+ 	virt_addr = acpi_map_vaddr_lookup(phys_addr, size);
+ 	if (!virt_addr) {
+ 		rcu_read_unlock();
+-		virt_addr = acpi_os_ioremap(phys_addr, size);
++		virt_addr = acpi_os_memremap(phys_addr, size);
+ 		if (!virt_addr)
+ 			return AE_BAD_ADDRESS;
+ 		unmap = true;
+@@ -985,23 +953,23 @@ acpi_os_read_memory(acpi_physical_address phys_addr, u64 *value, u32 width)
+ 
+ 	switch (width) {
+ 	case 8:
+-		*(u8 *) value = readb(virt_addr);
++		*(u8 *) value = *(u8 *) virt_addr;
+ 		break;
+ 	case 16:
+-		*(u16 *) value = readw(virt_addr);
++		*(u16 *) value = *(u16 *) virt_addr;
+ 		break;
+ 	case 32:
+-		*(u32 *) value = readl(virt_addr);
++		*(u32 *) value = *(u32 *) virt_addr;
+ 		break;
+ 	case 64:
+-		*(u64 *) value = read64(virt_addr);
++		*(u64 *) value = *(u64 *) virt_addr;
+ 		break;
+ 	default:
+ 		BUG();
+ 	}
+ 
+ 	if (unmap)
+-		iounmap(virt_addr);
++		memunmap(virt_addr);
+ 	else
+ 		rcu_read_unlock();
+ 
+@@ -1032,7 +1000,7 @@ acpi_os_write_memory(acpi_physical_address phys_addr, u64 value, u32 width)
+ 	virt_addr = acpi_map_vaddr_lookup(phys_addr, size);
+ 	if (!virt_addr) {
+ 		rcu_read_unlock();
+-		virt_addr = acpi_os_ioremap(phys_addr, size);
++		virt_addr = acpi_os_memremap(phys_addr, size);
+ 		if (!virt_addr)
+ 			return AE_BAD_ADDRESS;
+ 		unmap = true;
+@@ -1056,7 +1024,7 @@ acpi_os_write_memory(acpi_physical_address phys_addr, u64 value, u32 width)
+ 	}
+ 
+ 	if (unmap)
+-		iounmap(virt_addr);
++		memunmap(virt_addr);
+ 	else
+ 		rcu_read_unlock();
+ 
+diff --git a/include/acpi/acpi_io.h b/include/acpi/acpi_io.h
+index dd86c5fc102d..646ce8714109 100644
+--- a/include/acpi/acpi_io.h
++++ b/include/acpi/acpi_io.h
+@@ -5,13 +5,11 @@
+ 
+ #include <asm/acpi.h>
+ 
+-#ifndef acpi_os_ioremap
+-static inline void __iomem *acpi_os_ioremap(acpi_physical_address phys,
++static inline void *acpi_os_memremap(acpi_physical_address phys,
+ 					    acpi_size size)
+ {
+-       return ioremap_cache(phys, size);
++       return memremap(phys, size, MEMREMAP_WB);
+ }
+-#endif
+ 
+ void __iomem *__init_refok
+ acpi_os_map_iomem(acpi_physical_address phys, acpi_size size);
 
