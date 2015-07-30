@@ -1,179 +1,197 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:33626 "EHLO mga01.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:29438 "EHLO mga14.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754003AbbG3RAO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Jul 2015 13:00:14 -0400
-Subject: [PATCH v3 06/24] arm: switch from ioremap_cache to memremap
+	id S1751101AbbG3Q70 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Jul 2015 12:59:26 -0400
+Subject: [PATCH v3 00/24] replace ioremap_{cache|wt} with memremap
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Thu, 30 Jul 2015 12:54:12 -0400
-Message-ID: <20150730165412.33962.10835.stgit@dwillia2-desk3.amr.corp.intel.com>
-In-Reply-To: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
-References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Thu, 30 Jul 2015 12:53:39 -0400
+Message-ID: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, mcgrof@suse.com, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150730165412._yVqp5Y3XNl0HPo_ddfUTTeGMVdFgqROEEfOljcO_E4@z>
+Cc: linux-fbdev@vger.kernel.org, David Airlie <airlied@linux.ie>, dri-devel@lists.freedesktop.org, Lv Zheng <lv.zheng@intel.com>, Daniel Vetter <daniel.vetter@intel.com>, Benjamin Romer <benjamin.romer@unisys.com>, hch@lst.de, linux-arch@vger.kernel.org, linux-nvdimm@lists.01.org, Joerg Roedel <joro@8bytes.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Bob Moore <robert.moore@intel.com>, Mike Waychison <mikew@google.com>, Tomi Valkeinen <tomi.valkeinen@ti.com>, rmk+kernel@arm.linux.org.uk, Ross Zwisler <ross.zwisler@linux.intel.com>, David Kershner <david.kershner@unisys.com>, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>, intel-gfx@lists.freedesktop.org, Len Brown <lenb@kernel.org>, Joerg Roedel <jroedel@suse.de>, Arnd Bergmann <arnd@arndb.de>, mcgrof@suse.com, Jani Nikula <jani.nikula@linux.intel.com>, Borislav Petkov <bp@alien8.de>, Ingo Molnar <mingo@redhat.com>, linux-arm-kernel@lists.infradead.org, Tony Luck <tony.luck@intel.com>, toshi.kani@hp.com, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Buzzard <jonathan@buzzard.org.uk>, linux-kernel@vger.kernel.org, Brian Norris <computersforpeace@gmail.com>, David Woodhouse <dwmw2@infradead.org>
+Message-ID: <20150730165339.7AEHPRBKHgkG7nCsuaoNcU4tmGuIZRzxtNZ7RkaMg-8@z>
 
-In preparation for deprecating ioremap_cache() convert its usage in
-arch/arm[64]/ to memremap.
+Changes since v2 [1]:
 
-Cc: Russell King <rmk+kernel@arm.linux.org.uk>
-Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+1/ Move arch_memremap() and arch_memunmap() out of line (Christoph)
+
+2/ Convert region_is_ram() to region_intersects() and define an enum for
+   its 3 return values. (Luis)
+
+3/ Fix gma500 and i915 to explicitly use cached mappings and clean up
+   the __iomem usage. (Daniel)
+
+4/ Kill unused ioremap aliases (ioremap_cached() and
+   ioremap_fullcache()) (Christoph)
+
+5/ Clarify some change logs and documentation (Luis, Christoph, and
+   Ross)
+
+6/ Add a unified CONFIG_MMU=n implementation with __weak symbols. (Luis)
+
 ---
- arch/arm/include/asm/xen/page.h    |    4 ++--
- arch/arm64/include/asm/acpi.h      |    5 +----
- arch/arm64/include/asm/dmi.h       |    8 ++++----
- arch/arm64/kernel/efi.c            |    9 +++++----
- arch/arm64/kernel/smp_spin_table.c |   19 +++++++++----------
- 5 files changed, 21 insertions(+), 24 deletions(-)
+While developing the pmem driver we noticed that the __iomem annotation
+on the return value from ioremap_cache() was being mishandled by several
+callers.  We also observed that all of the call sites expected to be
+able to treat the return value from ioremap_cache() as normal
+(non-__iomem) pointer to memory.
 
-diff --git a/arch/arm/include/asm/xen/page.h b/arch/arm/include/asm/xen/page.h
-index 1bee8ca12494..b1cf4ee80807 100644
---- a/arch/arm/include/asm/xen/page.h
-+++ b/arch/arm/include/asm/xen/page.h
-@@ -103,8 +103,8 @@ static inline bool set_phys_to_machine(unsigned long pfn, unsigned long mfn)
- 	return __set_phys_to_machine(pfn, mfn);
- }
- 
--#define xen_remap(cookie, size) ioremap_cache((cookie), (size))
--#define xen_unmap(cookie) iounmap((cookie))
-+#define xen_remap(cookie, size) memremap((cookie), (size), MEMREMAP_WB)
-+#define xen_unmap(cookie) memunmap((cookie))
- 
- bool xen_arch_need_swiotlb(struct device *dev,
- 			   unsigned long pfn,
-diff --git a/arch/arm64/include/asm/acpi.h b/arch/arm64/include/asm/acpi.h
-index 406485ed110a..fdccacd8f7bb 100644
---- a/arch/arm64/include/asm/acpi.h
-+++ b/arch/arm64/include/asm/acpi.h
-@@ -33,10 +33,7 @@
- static inline void __iomem *acpi_os_ioremap(acpi_physical_address phys,
- 					    acpi_size size)
- {
--	if (!page_is_ram(phys >> PAGE_SHIFT))
--		return ioremap(phys, size);
--
--	return ioremap_cache(phys, size);
-+	return memremap(phys, size, MEMREMAP_WB);
- }
- #define acpi_os_ioremap acpi_os_ioremap
- 
-diff --git a/arch/arm64/include/asm/dmi.h b/arch/arm64/include/asm/dmi.h
-index 69d37d87b159..82682d27c6ee 100644
---- a/arch/arm64/include/asm/dmi.h
-+++ b/arch/arm64/include/asm/dmi.h
-@@ -22,10 +22,10 @@
-  * request a virtual mapping for configuration tables such as SMBIOS.
-  * This means we have to map them before use.
-  */
--#define dmi_early_remap(x, l)		ioremap_cache(x, l)
--#define dmi_early_unmap(x, l)		iounmap(x)
--#define dmi_remap(x, l)			ioremap_cache(x, l)
--#define dmi_unmap(x)			iounmap(x)
-+#define dmi_early_remap(x, l)		memremap(x, l, MEMREMAP_WB)
-+#define dmi_early_unmap(x, l)		memunmap(x)
-+#define dmi_remap(x, l)			memremap(x, l, MEMREMAP_WB)
-+#define dmi_unmap(x)			memunmap(x)
- #define dmi_alloc(l)			kzalloc(l, GFP_KERNEL)
- 
- #endif
-diff --git a/arch/arm64/kernel/efi.c b/arch/arm64/kernel/efi.c
-index 9d4aa18f2a82..71fdc5ff36af 100644
---- a/arch/arm64/kernel/efi.c
-+++ b/arch/arm64/kernel/efi.c
-@@ -26,6 +26,7 @@
- #include <linux/sched.h>
- #include <linux/slab.h>
- #include <linux/spinlock.h>
-+#include <linux/io.h>
- 
- #include <asm/cacheflush.h>
- #include <asm/efi.h>
-@@ -290,8 +291,8 @@ static int __init arm64_enable_runtime_services(void)
- 	pr_info("Remapping and enabling EFI services.\n");
- 
- 	mapsize = memmap.map_end - memmap.map;
--	memmap.map = (__force void *)ioremap_cache((phys_addr_t)memmap.phys_map,
--						   mapsize);
-+	memmap.map = memremap((phys_addr_t) memmap.phys_map, mapsize,
-+			MEMREMAP_WB);
- 	if (!memmap.map) {
- 		pr_err("Failed to remap EFI memory map\n");
- 		return -1;
-@@ -299,8 +300,8 @@ static int __init arm64_enable_runtime_services(void)
- 	memmap.map_end = memmap.map + mapsize;
- 	efi.memmap = &memmap;
- 
--	efi.systab = (__force void *)ioremap_cache(efi_system_table,
--						   sizeof(efi_system_table_t));
-+	efi.systab = memremap(efi_system_table, sizeof(efi_system_table_t),
-+			MEMREMAP_WB);
- 	if (!efi.systab) {
- 		pr_err("Failed to remap EFI System Table\n");
- 		return -1;
-diff --git a/arch/arm64/kernel/smp_spin_table.c b/arch/arm64/kernel/smp_spin_table.c
-index aef3605a8c47..2c06c1a36154 100644
---- a/arch/arm64/kernel/smp_spin_table.c
-+++ b/arch/arm64/kernel/smp_spin_table.c
-@@ -21,11 +21,11 @@
- #include <linux/of.h>
- #include <linux/smp.h>
- #include <linux/types.h>
-+#include <linux/io.h>
- 
- #include <asm/cacheflush.h>
- #include <asm/cpu_ops.h>
- #include <asm/cputype.h>
--#include <asm/io.h>
- #include <asm/smp_plat.h>
- 
- extern void secondary_holding_pen(void);
-@@ -73,19 +73,19 @@ static int smp_spin_table_cpu_init(unsigned int cpu)
- 
- static int smp_spin_table_cpu_prepare(unsigned int cpu)
- {
--	__le64 __iomem *release_addr;
-+	__le64 *release_addr;
- 
- 	if (!cpu_release_addr[cpu])
- 		return -ENODEV;
- 
- 	/*
- 	 * The cpu-release-addr may or may not be inside the linear mapping.
--	 * As ioremap_cache will either give us a new mapping or reuse the
--	 * existing linear mapping, we can use it to cover both cases. In
--	 * either case the memory will be MT_NORMAL.
-+	 * As memremap will either give us a new mapping or reuse the existing
-+	 * linear mapping, we can use it to cover both cases. In either case
-+	 * the memory will be MT_NORMAL.
- 	 */
--	release_addr = ioremap_cache(cpu_release_addr[cpu],
--				     sizeof(*release_addr));
-+	release_addr = memremap(cpu_release_addr[cpu], sizeof(*release_addr),
-+			MEMREMAP_WB);
- 	if (!release_addr)
- 		return -ENOMEM;
- 
-@@ -97,15 +97,14 @@ static int smp_spin_table_cpu_prepare(unsigned int cpu)
- 	 * the boot protocol.
- 	 */
- 	writeq_relaxed(__pa(secondary_holding_pen), release_addr);
--	__flush_dcache_area((__force void *)release_addr,
--			    sizeof(*release_addr));
-+	__flush_dcache_area(release_addr, sizeof(*release_addr));
- 
- 	/*
- 	 * Send an event to wake up the secondary CPU.
- 	 */
- 	sev();
- 
--	iounmap(release_addr);
-+	memunmap(release_addr);
- 
- 	return 0;
- }
+This patchset takes the opportunity to clean up the above confusion as
+well as a few issues with the ioremap_{cache|wt} interface, including:
 
+1/ Eliminating the possibility of function prototypes differing between
+   architectures by defining a central memremap() prototype that takes
+   flags to determine the mapping type.
+
+2/ Returning NULL rather than falling back silently to a different
+   mapping-type.  This allows drivers to be stricter about the
+   mapping-type fallbacks that are permissible.
+
+[1]: http://marc.info/?l=linux-arch&m=143779222217405&w=2
+
+---
+
+Dan Williams (24):
+      mm: enhance region_is_ram() to region_intersects()
+      arch, drivers: don't include <asm/io.h> directly, use <linux/io.h> instead
+      cleanup IORESOURCE_CACHEABLE vs ioremap()
+      intel_iommu: fix leaked ioremap mapping
+      arch: introduce memremap()
+      arm: switch from ioremap_cache to memremap
+      x86: switch from ioremap_cache to memremap
+      gma500: switch from acpi_os_ioremap to memremap
+      i915: switch from acpi_os_ioremap to memremap
+      acpi: switch from ioremap_cache to memremap
+      toshiba laptop: replace ioremap_cache with ioremap
+      memconsole: fix __iomem mishandling, switch to memremap
+      visorbus: switch from ioremap_cache to memremap
+      intel-iommu: switch from ioremap_cache to memremap
+      libnvdimm, pmem: push call to ioremap_cache out of line
+      pxa2xx-flash: switch from ioremap_cache to memremap
+      sfi: switch from ioremap_cache to memremap
+      fbdev: switch from ioremap_wt to memremap
+      pmem: switch from ioremap_wt to memremap
+      arch: kill ioremap_cached()
+      arch: kill ioremap_fullcache()
+      arch: remove ioremap_cache, replace with arch_memremap
+      arch: remove ioremap_wt, optionally replace with arch_memremap
+      pmem: convert to generic memremap
+
+
+ Documentation/x86/pat.txt                      |    6 +
+ arch/arc/include/asm/io.h                      |    1 
+ arch/arm/Kconfig                               |    1 
+ arch/arm/include/asm/io.h                      |    7 --
+ arch/arm/include/asm/xen/page.h                |    4 -
+ arch/arm/mach-clps711x/board-cdb89712.c        |    2 
+ arch/arm/mach-shmobile/pm-rcar.c               |    2 
+ arch/arm/mm/ioremap.c                          |   18 +++-
+ arch/arm/mm/mmu.c                              |    2 
+ arch/arm/mm/nommu.c                            |   11 ++
+ arch/arm64/Kconfig                             |    1 
+ arch/arm64/include/asm/acpi.h                  |   11 --
+ arch/arm64/include/asm/dmi.h                   |    8 +-
+ arch/arm64/include/asm/io.h                    |    2 
+ arch/arm64/kernel/efi.c                        |    9 +-
+ arch/arm64/kernel/smp_spin_table.c             |   19 ++--
+ arch/arm64/mm/ioremap.c                        |   20 ++--
+ arch/avr32/include/asm/io.h                    |    1 
+ arch/frv/include/asm/io.h                      |   12 ---
+ arch/ia64/Kconfig                              |    1 
+ arch/ia64/include/asm/io.h                     |    5 -
+ arch/ia64/kernel/cyclone.c                     |    2 
+ arch/ia64/mm/ioremap.c                         |   16 +++
+ arch/m32r/include/asm/io.h                     |    1 
+ arch/m68k/Kconfig                              |    1 
+ arch/m68k/include/asm/io_mm.h                  |   12 ---
+ arch/m68k/include/asm/io_no.h                  |   11 --
+ arch/m68k/include/asm/raw_io.h                 |    1 
+ arch/m68k/mm/kmap.c                            |   17 +++-
+ arch/m68k/mm/sun3kmap.c                        |    6 +
+ arch/metag/include/asm/io.h                    |    6 -
+ arch/microblaze/include/asm/io.h               |    2 
+ arch/mn10300/include/asm/io.h                  |    1 
+ arch/nios2/include/asm/io.h                    |    1 
+ arch/powerpc/kernel/pci_of_scan.c              |    2 
+ arch/s390/include/asm/io.h                     |    1 
+ arch/sh/Kconfig                                |    1 
+ arch/sh/include/asm/io.h                       |    6 -
+ arch/sh/mm/ioremap.c                           |   15 +++
+ arch/sparc/include/asm/io_32.h                 |    1 
+ arch/sparc/include/asm/io_64.h                 |    1 
+ arch/sparc/kernel/pci.c                        |    3 -
+ arch/tile/include/asm/io.h                     |    2 
+ arch/unicore32/include/asm/io.h                |    4 -
+ arch/unicore32/mm/ioremap.c                    |    8 --
+ arch/x86/Kconfig                               |    1 
+ arch/x86/include/asm/efi.h                     |    3 -
+ arch/x86/include/asm/io.h                      |   11 --
+ arch/x86/kernel/crash_dump_64.c                |    6 +
+ arch/x86/kernel/kdebugfs.c                     |    8 +-
+ arch/x86/kernel/ksysfs.c                       |   28 +++---
+ arch/x86/mm/ioremap.c                          |   59 +++++++------
+ arch/xtensa/include/asm/io.h                   |   11 --
+ drivers/acpi/apei/einj.c                       |    9 +-
+ drivers/acpi/apei/erst.c                       |    6 +
+ drivers/acpi/nvs.c                             |    6 +
+ drivers/acpi/osl.c                             |   70 ++++-----------
+ drivers/char/toshiba.c                         |    2 
+ drivers/firmware/google/memconsole.c           |    7 +-
+ drivers/gpu/drm/gma500/opregion.c              |    8 +-
+ drivers/gpu/drm/gma500/psb_drv.h               |    2 
+ drivers/gpu/drm/gma500/psb_lid.c               |    8 +-
+ drivers/gpu/drm/i915/i915_debugfs.c            |    2 
+ drivers/gpu/drm/i915/i915_drv.h                |   12 +--
+ drivers/gpu/drm/i915/intel_bios.c              |    7 +-
+ drivers/gpu/drm/i915/intel_opregion.c          |   87 +++++++++----------
+ drivers/gpu/drm/i915/intel_panel.c             |    2 
+ drivers/iommu/intel-iommu.c                    |   10 +-
+ drivers/iommu/intel_irq_remapping.c            |    4 +
+ drivers/isdn/icn/icn.h                         |    2 
+ drivers/mtd/devices/slram.c                    |    2 
+ drivers/mtd/maps/pxa2xx-flash.c                |    4 -
+ drivers/mtd/nand/diskonchip.c                  |    2 
+ drivers/mtd/onenand/generic.c                  |    2 
+ drivers/nvdimm/Kconfig                         |    2 
+ drivers/pci/probe.c                            |    3 -
+ drivers/pnp/manager.c                          |    2 
+ drivers/scsi/aic94xx/aic94xx_init.c            |    7 --
+ drivers/scsi/arcmsr/arcmsr_hba.c               |    5 -
+ drivers/scsi/mvsas/mv_init.c                   |   15 +--
+ drivers/scsi/sun3x_esp.c                       |    2 
+ drivers/sfi/sfi_core.c                         |    4 -
+ drivers/staging/comedi/drivers/ii_pci20kc.c    |    1 
+ drivers/staging/unisys/visorbus/visorchannel.c |   16 ++-
+ drivers/staging/unisys/visorbus/visorchipset.c |   17 ++--
+ drivers/tty/serial/8250/8250_core.c            |    2 
+ drivers/video/fbdev/Kconfig                    |    2 
+ drivers/video/fbdev/amifb.c                    |    5 +
+ drivers/video/fbdev/atafb.c                    |    5 +
+ drivers/video/fbdev/hpfb.c                     |    6 +
+ drivers/video/fbdev/ocfb.c                     |    1 
+ drivers/video/fbdev/s1d13xxxfb.c               |    3 -
+ drivers/video/fbdev/stifb.c                    |    1 
+ include/acpi/acpi_io.h                         |    6 -
+ include/asm-generic/io.h                       |    8 --
+ include/asm-generic/iomap.h                    |    4 -
+ include/linux/io-mapping.h                     |    2 
+ include/linux/io.h                             |   11 ++
+ include/linux/mm.h                             |    9 ++
+ include/linux/mtd/map.h                        |    2 
+ include/linux/pmem.h                           |   26 +++---
+ include/video/vga.h                            |    2 
+ kernel/Makefile                                |    2 
+ kernel/memremap.c                              |  110 ++++++++++++++++++++++++
+ kernel/resource.c                              |   61 ++++++++-----
+ lib/Kconfig                                    |    5 +
+ lib/devres.c                                   |   13 +--
+ lib/pci_iomap.c                                |    7 --
+ tools/testing/nvdimm/Kbuild                    |    4 -
+ tools/testing/nvdimm/test/iomap.c              |   34 +++++--
+ 110 files changed, 553 insertions(+), 497 deletions(-)
+ create mode 100644 kernel/memremap.c
