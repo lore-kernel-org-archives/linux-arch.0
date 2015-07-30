@@ -1,7 +1,8 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v3 14/24] intel-iommu: switch from ioremap_cache to memremap
-Date: Thu, 30 Jul 2015 12:54:57 -0400
-Message-ID: <20150730165456.33962.30608.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v3 12/24] memconsole: fix __iomem mishandling,
+ switch to memremap
+Date: Thu, 30 Jul 2015 12:54:45 -0400
+Message-ID: <20150730165445.33962.95437.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,89 +11,39 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, Joerg Roedel <joro@8bytes.org>, linux-kernel@vger.kernel.org, mcgrof@suse.com, rmk+kernel@arm.linux.org.uk, David Woodhouse <dwmw2@infradead.org>, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, mcgrof@suse.com, linux-kernel@vger.kernel.org, Mike Waychison <mikew@google.com>, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-In preparation for deprecating ioremap_cache() convert its usage in
-intel-iommu to memremap.  This also eliminates the mishandling of the
-__iomem annotation in the implementation.
+The memconsole driver is not using proper accessors for __iomem.  Switch
+to memremap to fix this issue, and this also prepares the driver for the
+removal of ioremap_cache.
 
-Cc: David Woodhouse <dwmw2@infradead.org>
-Cc: Joerg Roedel <joro@8bytes.org>
+Cc: Mike Waychison <mikew@google.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/iommu/intel-iommu.c         |   10 ++++++----
- drivers/iommu/intel_irq_remapping.c |    4 ++--
- 2 files changed, 8 insertions(+), 6 deletions(-)
+ drivers/firmware/google/memconsole.c |    7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
-index 0649b94f5958..5852df8cc50f 100644
---- a/drivers/iommu/intel-iommu.c
-+++ b/drivers/iommu/intel-iommu.c
-@@ -34,6 +34,7 @@
- #include <linux/mempool.h>
- #include <linux/memory.h>
- #include <linux/timer.h>
-+#include <linux/io.h>
- #include <linux/iova.h>
- #include <linux/iommu.h>
- #include <linux/intel-iommu.h>
-@@ -2874,7 +2875,8 @@ static int copy_context_table(struct intel_iommu *iommu,
- 			}
+diff --git a/drivers/firmware/google/memconsole.c b/drivers/firmware/google/memconsole.c
+index 2f569aaed4c7..fd5041716860 100644
+--- a/drivers/firmware/google/memconsole.c
++++ b/drivers/firmware/google/memconsole.c
+@@ -52,14 +52,15 @@ static ssize_t memconsole_read(struct file *filp, struct kobject *kobp,
+ 	char *memconsole;
+ 	ssize_t ret;
  
- 			ret = -ENOMEM;
--			old_ce = ioremap_cache(old_ce_phys, PAGE_SIZE);
-+			old_ce = memremap(old_ce_phys, PAGE_SIZE,
-+					MEMREMAP_WB);
- 			if (!old_ce)
- 				goto out;
- 
-@@ -2922,7 +2924,7 @@ static int copy_context_table(struct intel_iommu *iommu,
- 	__iommu_flush_cache(iommu, new_ce, VTD_PAGE_SIZE);
- 
- out_unmap:
--	iounmap(old_ce);
-+	memunmap(old_ce);
- 
- out:
- 	return ret;
-@@ -2956,7 +2958,7 @@ static int copy_translation_tables(struct intel_iommu *iommu)
- 	if (!old_rt_phys)
- 		return -EINVAL;
- 
--	old_rt = ioremap_cache(old_rt_phys, PAGE_SIZE);
-+	old_rt = memremap(old_rt_phys, PAGE_SIZE, MEMREMAP_WB);
- 	if (!old_rt)
+-	memconsole = ioremap_cache(memconsole_baseaddr, memconsole_length);
++	memconsole = memremap(memconsole_baseaddr, memconsole_length,
++			MEMREMAP_WB);
+ 	if (!memconsole) {
+-		pr_err("memconsole: ioremap_cache failed\n");
++		pr_err("memconsole: memremap failed\n");
  		return -ENOMEM;
- 
-@@ -3005,7 +3007,7 @@ static int copy_translation_tables(struct intel_iommu *iommu)
- 	ret = 0;
- 
- out_unmap:
--	iounmap(old_rt);
-+	memunmap(old_rt);
- 
- 	return ret;
- }
-diff --git a/drivers/iommu/intel_irq_remapping.c b/drivers/iommu/intel_irq_remapping.c
-index 27cdfa84ec5b..bdc52cc6ed23 100644
---- a/drivers/iommu/intel_irq_remapping.c
-+++ b/drivers/iommu/intel_irq_remapping.c
-@@ -408,7 +408,7 @@ static int iommu_load_old_irte(struct intel_iommu *iommu)
- 	size     = INTR_REMAP_TABLE_ENTRIES*sizeof(struct irte);
- 
- 	/* Map the old IR table */
--	old_ir_table = ioremap_cache(irt_phys, size);
-+	old_ir_table = memremap(irt_phys, size, MEMREMAP_WB);
- 	if (!old_ir_table)
- 		return -ENOMEM;
- 
-@@ -426,7 +426,7 @@ static int iommu_load_old_irte(struct intel_iommu *iommu)
- 			bitmap_set(iommu->ir_table->bitmap, i, 1);
  	}
- 
--	iounmap(old_ir_table);
-+	memunmap(old_ir_table);
- 
- 	return 0;
+ 	ret = memory_read_from_buffer(buf, count, &pos, memconsole,
+ 				      memconsole_length);
+-	iounmap(memconsole);
++	memunmap(memconsole);
+ 	return ret;
  }
+ 
