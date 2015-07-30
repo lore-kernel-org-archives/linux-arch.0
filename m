@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:29704 "EHLO mga02.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:24924 "EHLO mga11.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754200AbbG3RBW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Jul 2015 13:01:22 -0400
-Subject: [PATCH v3 21/24] arch: kill ioremap_fullcache()
+	id S1754197AbbG3RAk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Jul 2015 13:00:40 -0400
+Subject: [PATCH v3 14/24] intel-iommu: switch from ioremap_cache to memremap
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Thu, 30 Jul 2015 12:55:36 -0400
-Message-ID: <20150730165536.33962.67351.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Thu, 30 Jul 2015 12:54:57 -0400
+Message-ID: <20150730165456.33962.30608.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -15,92 +15,90 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, mcgrof@suse.com, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150730165536.gxPomv6QXLPrS9e1mxbifVAjO77NGel0QeH8oMayc0Y@z>
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, Joerg Roedel <joro@8bytes.org>, linux-kernel@vger.kernel.org, mcgrof@suse.com, rmk+kernel@arm.linux.org.uk, David Woodhouse <dwmw2@infradead.org>, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150730165457.MiRztF8W2eswumX6VGw0xncCwI-pt6twZd5Am5wufO0@z>
 
-Nothing calls this helper, and now that ioremap_cache() is being
-deprecated these can also be removed.
+In preparation for deprecating ioremap_cache() convert its usage in
+intel-iommu to memremap.  This also eliminates the mishandling of the
+__iomem annotation in the implementation.
 
+Cc: David Woodhouse <dwmw2@infradead.org>
+Cc: Joerg Roedel <joro@8bytes.org>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/frv/include/asm/io.h        |    5 -----
- arch/m68k/include/asm/io_mm.h    |    6 ------
- arch/m68k/include/asm/io_no.h    |    5 -----
- arch/microblaze/include/asm/io.h |    1 -
- arch/tile/include/asm/io.h       |    1 -
- 5 files changed, 18 deletions(-)
+ drivers/iommu/intel-iommu.c         |   10 ++++++----
+ drivers/iommu/intel_irq_remapping.c |    4 ++--
+ 2 files changed, 8 insertions(+), 6 deletions(-)
 
-diff --git a/arch/frv/include/asm/io.h b/arch/frv/include/asm/io.h
-index a31b63ec4930..15a49a268754 100644
---- a/arch/frv/include/asm/io.h
-+++ b/arch/frv/include/asm/io.h
-@@ -272,11 +272,6 @@ static inline void __iomem *ioremap_wt(unsigned long physaddr, unsigned long siz
- 	return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
+diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
+index 0649b94f5958..5852df8cc50f 100644
+--- a/drivers/iommu/intel-iommu.c
++++ b/drivers/iommu/intel-iommu.c
+@@ -34,6 +34,7 @@
+ #include <linux/mempool.h>
+ #include <linux/memory.h>
+ #include <linux/timer.h>
++#include <linux/io.h>
+ #include <linux/iova.h>
+ #include <linux/iommu.h>
+ #include <linux/intel-iommu.h>
+@@ -2874,7 +2875,8 @@ static int copy_context_table(struct intel_iommu *iommu,
+ 			}
+ 
+ 			ret = -ENOMEM;
+-			old_ce = ioremap_cache(old_ce_phys, PAGE_SIZE);
++			old_ce = memremap(old_ce_phys, PAGE_SIZE,
++					MEMREMAP_WB);
+ 			if (!old_ce)
+ 				goto out;
+ 
+@@ -2922,7 +2924,7 @@ static int copy_context_table(struct intel_iommu *iommu,
+ 	__iommu_flush_cache(iommu, new_ce, VTD_PAGE_SIZE);
+ 
+ out_unmap:
+-	iounmap(old_ce);
++	memunmap(old_ce);
+ 
+ out:
+ 	return ret;
+@@ -2956,7 +2958,7 @@ static int copy_translation_tables(struct intel_iommu *iommu)
+ 	if (!old_rt_phys)
+ 		return -EINVAL;
+ 
+-	old_rt = ioremap_cache(old_rt_phys, PAGE_SIZE);
++	old_rt = memremap(old_rt_phys, PAGE_SIZE, MEMREMAP_WB);
+ 	if (!old_rt)
+ 		return -ENOMEM;
+ 
+@@ -3005,7 +3007,7 @@ static int copy_translation_tables(struct intel_iommu *iommu)
+ 	ret = 0;
+ 
+ out_unmap:
+-	iounmap(old_rt);
++	memunmap(old_rt);
+ 
+ 	return ret;
  }
+diff --git a/drivers/iommu/intel_irq_remapping.c b/drivers/iommu/intel_irq_remapping.c
+index 27cdfa84ec5b..bdc52cc6ed23 100644
+--- a/drivers/iommu/intel_irq_remapping.c
++++ b/drivers/iommu/intel_irq_remapping.c
+@@ -408,7 +408,7 @@ static int iommu_load_old_irte(struct intel_iommu *iommu)
+ 	size     = INTR_REMAP_TABLE_ENTRIES*sizeof(struct irte);
  
--static inline void __iomem *ioremap_fullcache(unsigned long physaddr, unsigned long size)
--{
--	return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
--}
--
- #define ioremap_wc ioremap_nocache
+ 	/* Map the old IR table */
+-	old_ir_table = ioremap_cache(irt_phys, size);
++	old_ir_table = memremap(irt_phys, size, MEMREMAP_WB);
+ 	if (!old_ir_table)
+ 		return -ENOMEM;
  
- extern void iounmap(void volatile __iomem *addr);
-diff --git a/arch/m68k/include/asm/io_mm.h b/arch/m68k/include/asm/io_mm.h
-index f55cad529400..910e90770eb2 100644
---- a/arch/m68k/include/asm/io_mm.h
-+++ b/arch/m68k/include/asm/io_mm.h
-@@ -473,12 +473,6 @@ static inline void __iomem *ioremap_wt(unsigned long physaddr,
- {
- 	return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
+@@ -426,7 +426,7 @@ static int iommu_load_old_irte(struct intel_iommu *iommu)
+ 			bitmap_set(iommu->ir_table->bitmap, i, 1);
+ 	}
+ 
+-	iounmap(old_ir_table);
++	memunmap(old_ir_table);
+ 
+ 	return 0;
  }
--static inline void __iomem *ioremap_fullcache(unsigned long physaddr,
--				      unsigned long size)
--{
--	return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
--}
--
- static inline void memset_io(volatile void __iomem *addr, unsigned char val, int count)
- {
- 	__builtin_memset((void __force *) addr, val, count);
-diff --git a/arch/m68k/include/asm/io_no.h b/arch/m68k/include/asm/io_no.h
-index ad7bd40e6742..2690fa99dc56 100644
---- a/arch/m68k/include/asm/io_no.h
-+++ b/arch/m68k/include/asm/io_no.h
-@@ -159,11 +159,6 @@ static inline void *ioremap_wt(unsigned long physaddr, unsigned long size)
- {
- 	return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
- }
--static inline void *ioremap_fullcache(unsigned long physaddr, unsigned long size)
--{
--	return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
--}
--
- #define	iounmap(addr)	do { } while(0)
- 
- /*
-diff --git a/arch/microblaze/include/asm/io.h b/arch/microblaze/include/asm/io.h
-index 39b6315db82e..5e0cbf4e4204 100644
---- a/arch/microblaze/include/asm/io.h
-+++ b/arch/microblaze/include/asm/io.h
-@@ -40,7 +40,6 @@ extern void iounmap(void __iomem *addr);
- 
- extern void __iomem *ioremap(phys_addr_t address, unsigned long size);
- #define ioremap_nocache(addr, size)		ioremap((addr), (size))
--#define ioremap_fullcache(addr, size)		ioremap((addr), (size))
- #define ioremap_wc(addr, size)			ioremap((addr), (size))
- #define ioremap_wt(addr, size)			ioremap((addr), (size))
- 
-diff --git a/arch/tile/include/asm/io.h b/arch/tile/include/asm/io.h
-index dc61de15c1f9..e2867d235170 100644
---- a/arch/tile/include/asm/io.h
-+++ b/arch/tile/include/asm/io.h
-@@ -55,7 +55,6 @@ extern void iounmap(volatile void __iomem *addr);
- #define ioremap_nocache(physaddr, size)		ioremap(physaddr, size)
- #define ioremap_wc(physaddr, size)		ioremap(physaddr, size)
- #define ioremap_wt(physaddr, size)		ioremap(physaddr, size)
--#define ioremap_fullcache(physaddr, size)	ioremap(physaddr, size)
- 
- #define mmiowb()
- 
 
