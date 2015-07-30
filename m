@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:40194 "EHLO mga01.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:32935 "EHLO mga11.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752774AbbG3RBI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Jul 2015 13:01:08 -0400
-Subject: [PATCH v3 16/24] pxa2xx-flash: switch from ioremap_cache to memremap
+	id S1753961AbbG3RA5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Jul 2015 13:00:57 -0400
+Subject: [PATCH v3 17/24] sfi: switch from ioremap_cache to memremap
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Thu, 30 Jul 2015 12:55:08 -0400
-Message-ID: <20150730165508.33962.94985.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Thu, 30 Jul 2015 12:55:13 -0400
+Message-ID: <20150730165513.33962.57680.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -15,32 +15,40 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, mcgrof@suse.com, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, Brian Norris <computersforpeace@gmail.com>, David Woodhouse <dwmw2@infradead.org>, hch@lst.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150730165508.07on9QK87M1_CSXSsR-kSmr_eDTlm0ZtnWjNONevcBQ@z>
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, mcgrof@suse.com, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org, Len Brown <lenb@kernel.org>
+Message-ID: <20150730165513.csBlaqFQpBxL-zbdAjJ5iIKBPlqaOyAxEltxj6gE0D8@z>
 
-In preparation for deprecating ioremap_cache() convert its usage in
-pxa2xx-flash to memremap.
+In preparation for deprecating ioremap_cache() convert its usage in sfi
+to memremap.  It's a bit awkward that we go and add back a fake __iomem
+annotation, but this is to keep consistency with early_ioremap() which
+does not have a 'memremap' flavor.
 
-Cc: David Woodhouse <dwmw2@infradead.org>
-Cc: Brian Norris <computersforpeace@gmail.com>
+Cc: Len Brown <lenb@kernel.org>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/mtd/maps/pxa2xx-flash.c |    4 ++--
+ drivers/sfi/sfi_core.c |    4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/mtd/maps/pxa2xx-flash.c b/drivers/mtd/maps/pxa2xx-flash.c
-index 12fa75df5008..19a3074c58a6 100644
---- a/drivers/mtd/maps/pxa2xx-flash.c
-+++ b/drivers/mtd/maps/pxa2xx-flash.c
-@@ -71,8 +71,8 @@ static int pxa2xx_flash_probe(struct platform_device *pdev)
- 		       info->map.name);
- 		return -ENOMEM;
- 	}
--	info->map.cached =
--		ioremap_cache(info->map.phys, info->map.size);
-+	info->map.cached = memremap(info->map.phys, info->map.size,
-+			MEMREMAP_WB);
- 	if (!info->map.cached)
- 		printk(KERN_WARNING "Failed to ioremap cached %s\n",
- 		       info->map.name);
+diff --git a/drivers/sfi/sfi_core.c b/drivers/sfi/sfi_core.c
+index 296db7a69c27..d9430b845dfa 100644
+--- a/drivers/sfi/sfi_core.c
++++ b/drivers/sfi/sfi_core.c
+@@ -101,7 +101,7 @@ static void __iomem * __ref sfi_map_memory(u64 phys, u32 size)
+ 		return NULL;
+ 
+ 	if (sfi_use_ioremap)
+-		return ioremap_cache(phys, size);
++		return (void __iomem *) memremap(phys, size, MEMREMAP_WB);
+ 	else
+ 		return early_ioremap(phys, size);
+ }
+@@ -112,7 +112,7 @@ static void __ref sfi_unmap_memory(void __iomem *virt, u32 size)
+ 		return;
+ 
+ 	if (sfi_use_ioremap)
+-		iounmap(virt);
++		memunmap((void __force *) virt);
+ 	else
+ 		early_iounmap(virt, size);
+ }
 
