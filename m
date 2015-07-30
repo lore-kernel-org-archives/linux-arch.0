@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:32935 "EHLO mga11.intel.com"
+Received: from mga14.intel.com ([192.55.52.115]:44758 "EHLO mga14.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753961AbbG3RA5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Jul 2015 13:00:57 -0400
-Subject: [PATCH v3 17/24] sfi: switch from ioremap_cache to memremap
+	id S1753833AbbG3RAX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Jul 2015 13:00:23 -0400
+Subject: [PATCH v3 11/24] toshiba laptop: replace ioremap_cache with ioremap
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Thu, 30 Jul 2015 12:55:13 -0400
-Message-ID: <20150730165513.33962.57680.stgit@dwillia2-desk3.amr.corp.intel.com>
+Date: Thu, 30 Jul 2015 12:54:40 -0400
+Message-ID: <20150730165440.33962.36249.stgit@dwillia2-desk3.amr.corp.intel.com>
 In-Reply-To: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
 MIME-Version: 1.0
@@ -15,40 +15,32 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, mcgrof@suse.com, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org, Len Brown <lenb@kernel.org>
-Message-ID: <20150730165513.csBlaqFQpBxL-zbdAjJ5iIKBPlqaOyAxEltxj6gE0D8@z>
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, Arnd Bergmann <arnd@arndb.de>, linux-nvdimm@lists.01.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jonathan Buzzard <jonathan@buzzard.org.uk>, linux-kernel@vger.kernel.org, mcgrof@suse.com, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150730165440.VQAMvpaLGGTtA8gOcQfoEIaW2K5sYOwZOH-GXAai8Cw@z>
 
-In preparation for deprecating ioremap_cache() convert its usage in sfi
-to memremap.  It's a bit awkward that we go and add back a fake __iomem
-annotation, but this is to keep consistency with early_ioremap() which
-does not have a 'memremap' flavor.
+With ioremap_cache being replaced with memremap there is no longer a
+guarantee that a mapping will silently fall back to an uncached mapping.
+Explicitly use a vanilla ioremap() for this short lived mapping.
 
-Cc: Len Brown <lenb@kernel.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Jonathan Buzzard <jonathan@buzzard.org.uk>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/sfi/sfi_core.c |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ drivers/char/toshiba.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/drivers/sfi/sfi_core.c b/drivers/sfi/sfi_core.c
-index 296db7a69c27..d9430b845dfa 100644
---- a/drivers/sfi/sfi_core.c
-+++ b/drivers/sfi/sfi_core.c
-@@ -101,7 +101,7 @@ static void __iomem * __ref sfi_map_memory(u64 phys, u32 size)
- 		return NULL;
+diff --git a/drivers/char/toshiba.c b/drivers/char/toshiba.c
+index 014c9d90d297..f5a45d887a37 100644
+--- a/drivers/char/toshiba.c
++++ b/drivers/char/toshiba.c
+@@ -430,7 +430,7 @@ static int tosh_probe(void)
+ 	int i,major,minor,day,year,month,flag;
+ 	unsigned char signature[7] = { 0x54,0x4f,0x53,0x48,0x49,0x42,0x41 };
+ 	SMMRegisters regs;
+-	void __iomem *bios = ioremap_cache(0xf0000, 0x10000);
++	void __iomem *bios = ioremap(0xf0000, 0x10000);
  
- 	if (sfi_use_ioremap)
--		return ioremap_cache(phys, size);
-+		return (void __iomem *) memremap(phys, size, MEMREMAP_WB);
- 	else
- 		return early_ioremap(phys, size);
- }
-@@ -112,7 +112,7 @@ static void __ref sfi_unmap_memory(void __iomem *virt, u32 size)
- 		return;
- 
- 	if (sfi_use_ioremap)
--		iounmap(virt);
-+		memunmap((void __force *) virt);
- 	else
- 		early_iounmap(virt, size);
- }
+ 	if (!bios)
+ 		return -ENOMEM;
 
