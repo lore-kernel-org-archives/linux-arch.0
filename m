@@ -1,69 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f171.google.com ([209.85.212.171]:37197 "EHLO
-	mail-wi0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751246AbbG2WV6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Jul 2015 18:21:58 -0400
-Received: by wibud3 with SMTP id ud3so44682916wib.0
-        for <linux-arch@vger.kernel.org>; Wed, 29 Jul 2015 15:21:57 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <20150727080347.GA18599@lst.de>
-References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20150725024015.8664.42950.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20150727080347.GA18599@lst.de>
-Date: Wed, 29 Jul 2015 15:21:56 -0700
-Message-ID: <CAPcyv4icZ4aWgPeYnmuj0eeK6wm36A=D2qHW0e3FJBvzpeEWaQ@mail.gmail.com>
-Subject: Re: [PATCH v2 24/25] arch: remove ioremap_wt, replace with arch_memremap
+Received: from mga09.intel.com ([134.134.136.24]:26866 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753454AbbG3RBO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 30 Jul 2015 13:01:14 -0400
+Subject: [PATCH v3 20/24] arch: kill ioremap_cached()
 From: Dan Williams <dan.j.williams@intel.com>
-Content-Type: text/plain; charset=UTF-8
+Date: Thu, 30 Jul 2015 12:55:31 -0400
+Message-ID: <20150730165531.33962.12151.stgit@dwillia2-desk3.amr.corp.intel.com>
+In-Reply-To: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
+References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, Tony Luck <tony.luck@intel.com>, "Kani, Toshimitsu" <toshi.kani@hp.com>, Arnd Bergmann <arnd@arndb.de>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, Russell King <rmk+kernel@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20150729222156.iWieDFhWYyweTFbNOEMYxr1tH7cmM2vG3CaGovceaIU@z>
+To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, mcgrof@suse.com, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150730165531.4_g2SMuP7y9LdtsA5dmx0S1Eieamiio8-COiysAwov0@z>
 
-On Mon, Jul 27, 2015 at 1:03 AM, Christoph Hellwig <hch@lst.de> wrote:
->> +++ b/arch/frv/include/asm/io.h
->> @@ -17,8 +17,6 @@
->>
->>  #ifdef __KERNEL__
->>
->> -#define ARCH_HAS_IOREMAP_WT
->> -
->>  #include <linux/types.h>
->>  #include <asm/virtconvert.h>
->>  #include <asm/string.h>
->> @@ -267,20 +265,17 @@ static inline void __iomem *ioremap_nocache(unsigned long physaddr, unsigned lon
->>       return __ioremap(physaddr, size, IOMAP_NOCACHE_SER);
->>  }
->>
->> -static inline void __iomem *ioremap_wt(unsigned long physaddr, unsigned long size)
->> -{
->> -     return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
->> -}
->> -
->> -static inline void __iomem *ioremap_fullcache(unsigned long physaddr, unsigned long size)
->> -{
->> -     return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
->> -}
->
->
->> +void *arch_memremap(resource_size_t offset, size_t size, unsigned long flags)
->> +{
->> +     return (void *) offset;
->> +}
->> +EXPORT_SYMBOL(arch_memremap);
->
-> This doesn't look like a correct replacement.
+Nothing calls this helper, and now that ioremap_cache() is being
+deprecated these can also be removed.
 
-It doesn't, but frv jumps through a lot of hoops to give the illusion
-it actually supports different mapping types only to do this simple
-case in the end.  Given we don't want fallback semantics I will simply
-remove these false wrappers in the next revision of the patches.
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+---
+ arch/arm/mm/mmu.c               |    2 +-
+ arch/metag/include/asm/io.h     |    3 ---
+ arch/unicore32/include/asm/io.h |    4 +---
+ arch/unicore32/mm/ioremap.c     |    8 --------
+ 4 files changed, 2 insertions(+), 15 deletions(-)
 
-> Also shouldn't the replacements of ioremap_fullcache or ioremap_wc be
-> in the previous patch?
->
-> A few more similar issues pop up for other architectures as well.
+diff --git a/arch/arm/mm/mmu.c b/arch/arm/mm/mmu.c
+index 870838a46d52..3888018d1a36 100644
+--- a/arch/arm/mm/mmu.c
++++ b/arch/arm/mm/mmu.c
+@@ -259,7 +259,7 @@ static struct mem_type mem_types[] = {
+ 		.prot_sect	= PROT_SECT_DEVICE,
+ 		.domain		= DOMAIN_IO,
+ 	},
+-	[MT_DEVICE_CACHED] = {	  /* ioremap_cached */
++	[MT_DEVICE_CACHED] = {	  /* memremap(MEMREMAP_WB) */
+ 		.prot_pte	= PROT_PTE_DEVICE | L_PTE_MT_DEV_CACHED,
+ 		.prot_l1	= PMD_TYPE_TABLE,
+ 		.prot_sect	= PROT_SECT_DEVICE | PMD_SECT_WB,
+diff --git a/arch/metag/include/asm/io.h b/arch/metag/include/asm/io.h
+index 9890f21eadbe..5432949e627e 100644
+--- a/arch/metag/include/asm/io.h
++++ b/arch/metag/include/asm/io.h
+@@ -154,9 +154,6 @@ extern void __iounmap(void __iomem *addr);
+ #define ioremap_nocache(offset, size)           \
+ 	__ioremap((offset), (size), 0)
+ 
+-#define ioremap_cached(offset, size)            \
+-	__ioremap((offset), (size), _PAGE_CACHEABLE)
+-
+ #define ioremap_wc(offset, size)                \
+ 	__ioremap((offset), (size), _PAGE_WR_COMBINE)
+ 
+diff --git a/arch/unicore32/include/asm/io.h b/arch/unicore32/include/asm/io.h
+index cb1d8fd2b16b..1eea482b3cb9 100644
+--- a/arch/unicore32/include/asm/io.h
++++ b/arch/unicore32/include/asm/io.h
+@@ -21,10 +21,9 @@
+ #include <asm-generic/io.h>
+ 
+ /*
+- * __uc32_ioremap and __uc32_ioremap_cached takes CPU physical address.
++ * __uc32_ioremap takes CPU physical address.
+  */
+ extern void __iomem *__uc32_ioremap(unsigned long, size_t);
+-extern void __iomem *__uc32_ioremap_cached(unsigned long, size_t);
+ extern void __uc32_iounmap(volatile void __iomem *addr);
+ 
+ /*
+@@ -35,7 +34,6 @@ extern void __uc32_iounmap(volatile void __iomem *addr);
+  *
+  */
+ #define ioremap(cookie, size)		__uc32_ioremap(cookie, size)
+-#define ioremap_cached(cookie, size)	__uc32_ioremap_cached(cookie, size)
+ #define ioremap_nocache(cookie, size)	__uc32_ioremap(cookie, size)
+ #define iounmap(cookie)			__uc32_iounmap(cookie)
+ 
+diff --git a/arch/unicore32/mm/ioremap.c b/arch/unicore32/mm/ioremap.c
+index bf012b2b71a9..f9b6d918de6f 100644
+--- a/arch/unicore32/mm/ioremap.c
++++ b/arch/unicore32/mm/ioremap.c
+@@ -224,14 +224,6 @@ __uc32_ioremap(unsigned long phys_addr, size_t size)
+ }
+ EXPORT_SYMBOL(__uc32_ioremap);
+ 
+-void __iomem *
+-__uc32_ioremap_cached(unsigned long phys_addr, size_t size)
+-{
+-	return __uc32_ioremap_caller(phys_addr, size, MT_DEVICE_CACHED,
+-			__builtin_return_address(0));
+-}
+-EXPORT_SYMBOL(__uc32_ioremap_cached);
+-
+ void __uc32_iounmap(volatile void __iomem *io_addr)
+ {
+ 	void *addr = (void *)(PAGE_MASK & (unsigned long)io_addr);
 
-I went ahead and moved the deletion of ioremap_cached() and
-ioremap_fullcache() to their own patches.
