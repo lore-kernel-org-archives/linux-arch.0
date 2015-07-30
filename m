@@ -1,121 +1,100 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH v3 08/24] gma500: switch from acpi_os_ioremap to memremap
-Date: Thu, 30 Jul 2015 12:54:23 -0400
-Message-ID: <20150730165423.33962.91402.stgit@dwillia2-desk3.amr.corp.intel.com>
+Subject: [PATCH v3 21/24] arch: kill ioremap_fullcache()
+Date: Thu, 30 Jul 2015 12:55:36 -0400
+Message-ID: <20150730165536.33962.67351.stgit@dwillia2-desk3.amr.corp.intel.com>
 References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com
-Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, David Airlie <airlied@linux.ie>, mcgrof@suse.com, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, mcgrof@suse.com, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-gma500 expects the OpRegion to be cached (i.e. not __iomem), so
-explicitly map it with memremap rather than the implied cache setting of
-acpi_os_ioremap().
+Nothing calls this helper, and now that ioremap_cache() is being
+deprecated these can also be removed.
 
-Cc: David Airlie <airlied@linux.ie>
-Cc: dri-devel@lists.freedesktop.org
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/gpu/drm/gma500/opregion.c |    8 ++++----
- drivers/gpu/drm/gma500/psb_drv.h  |    2 +-
- drivers/gpu/drm/gma500/psb_lid.c  |    8 ++++----
- 3 files changed, 9 insertions(+), 9 deletions(-)
+ arch/frv/include/asm/io.h        |    5 -----
+ arch/m68k/include/asm/io_mm.h    |    6 ------
+ arch/m68k/include/asm/io_no.h    |    5 -----
+ arch/microblaze/include/asm/io.h |    1 -
+ arch/tile/include/asm/io.h       |    1 -
+ 5 files changed, 18 deletions(-)
 
-diff --git a/drivers/gpu/drm/gma500/opregion.c b/drivers/gpu/drm/gma500/opregion.c
-index ab696ca7eeec..7672ac4d4217 100644
---- a/drivers/gpu/drm/gma500/opregion.c
-+++ b/drivers/gpu/drm/gma500/opregion.c
-@@ -297,7 +297,7 @@ void psb_intel_opregion_fini(struct drm_device *dev)
- 	cancel_work_sync(&opregion->asle_work);
- 
- 	/* just clear all opregion memory pointers now */
--	iounmap(opregion->header);
-+	memunmap(opregion->header);
- 	opregion->header = NULL;
- 	opregion->acpi = NULL;
- 	opregion->swsci = NULL;
-@@ -310,8 +310,8 @@ int psb_intel_opregion_setup(struct drm_device *dev)
- 	struct drm_psb_private *dev_priv = dev->dev_private;
- 	struct psb_intel_opregion *opregion = &dev_priv->opregion;
- 	u32 opregion_phy, mboxes;
--	void __iomem *base;
- 	int err = 0;
-+	void *base;
- 
- 	pci_read_config_dword(dev->pdev, PCI_ASLS, &opregion_phy);
- 	if (opregion_phy == 0) {
-@@ -322,7 +322,7 @@ int psb_intel_opregion_setup(struct drm_device *dev)
- 	INIT_WORK(&opregion->asle_work, psb_intel_opregion_asle_work);
- 
- 	DRM_DEBUG("OpRegion detected at 0x%8x\n", opregion_phy);
--	base = acpi_os_ioremap(opregion_phy, 8*1024);
-+	base = memremap(opregion_phy, 8*1024, MEMREMAP_WB);
- 	if (!base)
- 		return -ENOMEM;
- 
-@@ -351,7 +351,7 @@ int psb_intel_opregion_setup(struct drm_device *dev)
- 	return 0;
- 
- err_out:
--	iounmap(base);
-+	memunmap(base);
- 	return err;
+diff --git a/arch/frv/include/asm/io.h b/arch/frv/include/asm/io.h
+index a31b63ec4930..15a49a268754 100644
+--- a/arch/frv/include/asm/io.h
++++ b/arch/frv/include/asm/io.h
+@@ -272,11 +272,6 @@ static inline void __iomem *ioremap_wt(unsigned long physaddr, unsigned long siz
+ 	return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
  }
  
-diff --git a/drivers/gpu/drm/gma500/psb_drv.h b/drivers/gpu/drm/gma500/psb_drv.h
-index e38057b91865..189f57135d47 100644
---- a/drivers/gpu/drm/gma500/psb_drv.h
-+++ b/drivers/gpu/drm/gma500/psb_drv.h
-@@ -253,7 +253,7 @@ struct psb_intel_opregion {
- 	struct opregion_swsci *swsci;
- 	struct opregion_asle *asle;
- 	void *vbt;
--	u32 __iomem *lid_state;
-+	u32 *lid_state;
- 	struct work_struct asle_work;
- };
+-static inline void __iomem *ioremap_fullcache(unsigned long physaddr, unsigned long size)
+-{
+-	return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
+-}
+-
+ #define ioremap_wc ioremap_nocache
  
-diff --git a/drivers/gpu/drm/gma500/psb_lid.c b/drivers/gpu/drm/gma500/psb_lid.c
-index 1d2ebb5e530f..6b1b9d0741df 100644
---- a/drivers/gpu/drm/gma500/psb_lid.c
-+++ b/drivers/gpu/drm/gma500/psb_lid.c
-@@ -28,14 +28,14 @@ static void psb_lid_timer_func(unsigned long data)
- 	struct drm_psb_private * dev_priv = (struct drm_psb_private *)data;
- 	struct drm_device *dev = (struct drm_device *)dev_priv->dev;
- 	struct timer_list *lid_timer = &dev_priv->lid_timer;
-+	u32 *lid_state = dev_priv->opregion.lid_state;
- 	unsigned long irq_flags;
--	u32 __iomem *lid_state = dev_priv->opregion.lid_state;
- 	u32 pp_status;
+ extern void iounmap(void volatile __iomem *addr);
+diff --git a/arch/m68k/include/asm/io_mm.h b/arch/m68k/include/asm/io_mm.h
+index f55cad529400..910e90770eb2 100644
+--- a/arch/m68k/include/asm/io_mm.h
++++ b/arch/m68k/include/asm/io_mm.h
+@@ -473,12 +473,6 @@ static inline void __iomem *ioremap_wt(unsigned long physaddr,
+ {
+ 	return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
+ }
+-static inline void __iomem *ioremap_fullcache(unsigned long physaddr,
+-				      unsigned long size)
+-{
+-	return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
+-}
+-
+ static inline void memset_io(volatile void __iomem *addr, unsigned char val, int count)
+ {
+ 	__builtin_memset((void __force *) addr, val, count);
+diff --git a/arch/m68k/include/asm/io_no.h b/arch/m68k/include/asm/io_no.h
+index ad7bd40e6742..2690fa99dc56 100644
+--- a/arch/m68k/include/asm/io_no.h
++++ b/arch/m68k/include/asm/io_no.h
+@@ -159,11 +159,6 @@ static inline void *ioremap_wt(unsigned long physaddr, unsigned long size)
+ {
+ 	return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
+ }
+-static inline void *ioremap_fullcache(unsigned long physaddr, unsigned long size)
+-{
+-	return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
+-}
+-
+ #define	iounmap(addr)	do { } while(0)
  
--	if (readl(lid_state) == dev_priv->lid_last_state)
-+	if (*lid_state == dev_priv->lid_last_state)
- 		goto lid_timer_schedule;
+ /*
+diff --git a/arch/microblaze/include/asm/io.h b/arch/microblaze/include/asm/io.h
+index 39b6315db82e..5e0cbf4e4204 100644
+--- a/arch/microblaze/include/asm/io.h
++++ b/arch/microblaze/include/asm/io.h
+@@ -40,7 +40,6 @@ extern void iounmap(void __iomem *addr);
  
--	if ((readl(lid_state)) & 0x01) {
-+	if ((*lid_state) & 0x01) {
- 		/*lid state is open*/
- 		REG_WRITE(PP_CONTROL, REG_READ(PP_CONTROL) | POWER_TARGET_ON);
- 		do {
-@@ -58,7 +58,7 @@ static void psb_lid_timer_func(unsigned long data)
- 			pp_status = REG_READ(PP_STATUS);
- 		} while ((pp_status & PP_ON) == 0);
- 	}
--	dev_priv->lid_last_state =  readl(lid_state);
-+	dev_priv->lid_last_state =  *lid_state;
+ extern void __iomem *ioremap(phys_addr_t address, unsigned long size);
+ #define ioremap_nocache(addr, size)		ioremap((addr), (size))
+-#define ioremap_fullcache(addr, size)		ioremap((addr), (size))
+ #define ioremap_wc(addr, size)			ioremap((addr), (size))
+ #define ioremap_wt(addr, size)			ioremap((addr), (size))
  
- lid_timer_schedule:
- 	spin_lock_irqsave(&dev_priv->lid_lock, irq_flags);
+diff --git a/arch/tile/include/asm/io.h b/arch/tile/include/asm/io.h
+index dc61de15c1f9..e2867d235170 100644
+--- a/arch/tile/include/asm/io.h
++++ b/arch/tile/include/asm/io.h
+@@ -55,7 +55,6 @@ extern void iounmap(volatile void __iomem *addr);
+ #define ioremap_nocache(physaddr, size)		ioremap(physaddr, size)
+ #define ioremap_wc(physaddr, size)		ioremap(physaddr, size)
+ #define ioremap_wt(physaddr, size)		ioremap(physaddr, size)
+-#define ioremap_fullcache(physaddr, size)	ioremap(physaddr, size)
+ 
+ #define mmiowb()
+ 
