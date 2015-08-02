@@ -1,78 +1,250 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:36524 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750734AbbG3VCH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 30 Jul 2015 17:02:07 -0400
-Date: Thu, 30 Jul 2015 23:02:04 +0200
-From: "Luis R. Rodriguez" <mcgrof@suse.com>
-Subject: Re: [PATCH v3 05/24] arch: introduce memremap()
-Message-ID: <20150730210204.GQ30479@wotan.suse.de>
-References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20150730165407.33962.79603.stgit@dwillia2-desk3.amr.corp.intel.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20150730165407.33962.79603.stgit@dwillia2-desk3.amr.corp.intel.com>
+Received: from mail-wi0-f177.google.com ([209.85.212.177]:38823 "EHLO
+	mail-wi0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751249AbbHBPL2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 2 Aug 2015 11:11:28 -0400
+Received: by wibxm9 with SMTP id xm9so84939328wib.1
+        for <linux-arch@vger.kernel.org>; Sun, 02 Aug 2015 08:11:26 -0700 (PDT)
+From: Andrey Konovalov <andreyknvl@google.com>
+Subject: [PATCH v2] arch: use WRITE_ONCE/READ_ONCE in smp_store_release/smp_load_acquire
+Date: Sun,  2 Aug 2015 17:11:04 +0200
+Message-Id: <1438528264-714-1-git-send-email-andreyknvl@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, toshi.kani@hp.com, Arnd Bergmann <arnd@arndb.de>, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150730210204.UNHjUmiXIkKjo_ogWKfluFAjxhDJ5cQL_J0byM8yEAY@z>
+To: Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, James Hogan <james.hogan@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux390@de.ibm.com, "David S. Miller" <davem@davemloft.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <peterz@infradead.org>, Alexander Duyck <alexander.h.duyck@redhat.com>, Andre Przywara <andre.przywara@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Borislav Petkov <bp@suse.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Andrey Konovalov <andreyknvl@google.com>, Dmitry Vyukov <dvyukov@google.com>, Christian Borntraeger <borntraeger@de.ibm.com>, Davidlohr Bueso <dave@stgolabs.net>
 
-On Thu, Jul 30, 2015 at 12:54:07PM -0400, Dan Williams wrote:
-> diff --git a/include/linux/io.h b/include/linux/io.h
-> index fb5a99800e77..3fcf6256c088 100644
-> --- a/include/linux/io.h
-> +++ b/include/linux/io.h
-> @@ -121,4 +121,13 @@ static inline int arch_phys_wc_index(int handle)
->  #endif
->  #endif
->  
-> +enum {
-> +	/* See memremap() kernel-doc for usage description... */
-> +	MEMREMAP_WB = 1 << 0,
-> +	MEMREMAP_WT = 1 << 1,
-> +};
+Replace ACCESS_ONCE() macro in smp_store_release() and smp_load_acquire()
+with WRITE_ONCE() and READ_ONCE() on x86, arm, arm64, ia64, metag, mips,
+powerpc, s390, sparc and asm-generic since ACCESS_ONCE does not work
+reliably on non-scalar types.
 
-Same feedback for enum nameing and also kdoc style.
+WRITE_ONCE() and READ_ONCE() were introduced in the commits 230fa253df63
+("kernel: Provide READ_ONCE and ASSIGN_ONCE") and 43239cbe79fc ("kernel:
+Change ASSIGN_ONCE(val, x) to WRITE_ONCE(x, val)").
 
-> diff --git a/kernel/memremap.c b/kernel/memremap.c
-> new file mode 100644
-> index 000000000000..27637f42f30d
-> --- /dev/null
-> +++ b/kernel/memremap.c
+Signed-off-by: Andrey Konovalov <andreyknvl@google.com>
+---
+Changed in v2:
+  - Other archs besides x86.
 
-<-- ... -->
+ arch/arm/include/asm/barrier.h      | 4 ++--
+ arch/arm64/include/asm/barrier.h    | 4 ++--
+ arch/ia64/include/asm/barrier.h     | 4 ++--
+ arch/metag/include/asm/barrier.h    | 4 ++--
+ arch/mips/include/asm/barrier.h     | 4 ++--
+ arch/powerpc/include/asm/barrier.h  | 4 ++--
+ arch/s390/include/asm/barrier.h     | 4 ++--
+ arch/sparc/include/asm/barrier_64.h | 4 ++--
+ arch/x86/include/asm/barrier.h      | 8 ++++----
+ include/asm-generic/barrier.h       | 4 ++--
+ 10 files changed, 22 insertions(+), 22 deletions(-)
 
-> +/**
-> + * memremap() - remap an iomem_resource as cacheable memory
-> + * @offset: iomem resource start address
-> + * @size: size of remap
-> + * @flags: either MEMREMAP_WB or MEMREMAP_WT
-> + *
-> + * memremap() is "ioremap" for cases where it is known that the resource
-> + * being mapped does not have i/o side effects and the __iomem
-> + * annotation is not applicable.
-> + *
-> + * MEMREMAP_WB - matches the default mapping for "System RAM" on
-> + * the architecture.  This is usually a read-allocate write-back cache.
-> + * Morever, if MEMREMAP_WB is specified and the requested remap region is RAM
-> + * memremap() will bypass establishing a new mapping and instead return
-> + * a pointer into the direct map.
-> + *
-> + * MEMREMAP_WT - establish a mapping whereby writes either bypass the
-> + * cache or are written through to memory and never exist in a
-> + * cache-dirty state with respect to program visibility.  Attempts to
-> + * map "System RAM" with this mapping type will fail.
+diff --git a/arch/arm/include/asm/barrier.h b/arch/arm/include/asm/barrier.h
+index 6c2327e..7039357 100644
+--- a/arch/arm/include/asm/barrier.h
++++ b/arch/arm/include/asm/barrier.h
+@@ -67,12 +67,12 @@
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	smp_mb();							\
+-	ACCESS_ONCE(*p) = (v);						\
++	WRITE_ONCE(*p, v);						\
+ } while (0)
+ 
+ #define smp_load_acquire(p)						\
+ ({									\
+-	typeof(*p) ___p1 = ACCESS_ONCE(*p);				\
++	typeof(*p) ___p1 = READ_ONCE(*p);				\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	smp_mb();							\
+ 	___p1;								\
+diff --git a/arch/arm64/include/asm/barrier.h b/arch/arm64/include/asm/barrier.h
+index 0fa47c4..ef93b20 100644
+--- a/arch/arm64/include/asm/barrier.h
++++ b/arch/arm64/include/asm/barrier.h
+@@ -44,12 +44,12 @@
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	barrier();							\
+-	ACCESS_ONCE(*p) = (v);						\
++	WRITE_ONCE(*p, v);						\
+ } while (0)
+ 
+ #define smp_load_acquire(p)						\
+ ({									\
+-	typeof(*p) ___p1 = ACCESS_ONCE(*p);				\
++	typeof(*p) ___p1 = READ_ONCE(*p);				\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	barrier();							\
+ 	___p1;								\
+diff --git a/arch/ia64/include/asm/barrier.h b/arch/ia64/include/asm/barrier.h
+index 843ba43..df896a1 100644
+--- a/arch/ia64/include/asm/barrier.h
++++ b/arch/ia64/include/asm/barrier.h
+@@ -66,12 +66,12 @@
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	barrier();							\
+-	ACCESS_ONCE(*p) = (v);						\
++	WRITE_ONCE(*p, v);						\
+ } while (0)
+ 
+ #define smp_load_acquire(p)						\
+ ({									\
+-	typeof(*p) ___p1 = ACCESS_ONCE(*p);				\
++	typeof(*p) ___p1 = READ_ONCE(*p);				\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	barrier();							\
+ 	___p1;								\
+diff --git a/arch/metag/include/asm/barrier.h b/arch/metag/include/asm/barrier.h
+index 5a696e5..172b7e5 100644
+--- a/arch/metag/include/asm/barrier.h
++++ b/arch/metag/include/asm/barrier.h
+@@ -90,12 +90,12 @@ static inline void fence(void)
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	smp_mb();							\
+-	ACCESS_ONCE(*p) = (v);						\
++	WRITE_ONCE(*p, v);						\
+ } while (0)
+ 
+ #define smp_load_acquire(p)						\
+ ({									\
+-	typeof(*p) ___p1 = ACCESS_ONCE(*p);				\
++	typeof(*p) ___p1 = READ_ONCE(*p);				\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	smp_mb();							\
+ 	___p1;								\
+diff --git a/arch/mips/include/asm/barrier.h b/arch/mips/include/asm/barrier.h
+index 7ecba84..752e0b8 100644
+--- a/arch/mips/include/asm/barrier.h
++++ b/arch/mips/include/asm/barrier.h
+@@ -133,12 +133,12 @@
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	smp_mb();							\
+-	ACCESS_ONCE(*p) = (v);						\
++	WRITE_ONCE(*p, v);						\
+ } while (0)
+ 
+ #define smp_load_acquire(p)						\
+ ({									\
+-	typeof(*p) ___p1 = ACCESS_ONCE(*p);				\
++	typeof(*p) ___p1 = READ_ONCE(*p);				\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	smp_mb();							\
+ 	___p1;								\
+diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
+index 51ccc72..0eca6ef 100644
+--- a/arch/powerpc/include/asm/barrier.h
++++ b/arch/powerpc/include/asm/barrier.h
+@@ -76,12 +76,12 @@
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	smp_lwsync();							\
+-	ACCESS_ONCE(*p) = (v);						\
++	WRITE_ONCE(*p, v);						\
+ } while (0)
+ 
+ #define smp_load_acquire(p)						\
+ ({									\
+-	typeof(*p) ___p1 = ACCESS_ONCE(*p);				\
++	typeof(*p) ___p1 = READ_ONCE(*p);				\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	smp_lwsync();							\
+ 	___p1;								\
+diff --git a/arch/s390/include/asm/barrier.h b/arch/s390/include/asm/barrier.h
+index e6f8615..d48fe01 100644
+--- a/arch/s390/include/asm/barrier.h
++++ b/arch/s390/include/asm/barrier.h
+@@ -42,12 +42,12 @@
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	barrier();							\
+-	ACCESS_ONCE(*p) = (v);						\
++	WRITE_ONCE(*p, v);						\
+ } while (0)
+ 
+ #define smp_load_acquire(p)						\
+ ({									\
+-	typeof(*p) ___p1 = ACCESS_ONCE(*p);				\
++	typeof(*p) ___p1 = READ_ONCE(*p);				\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	barrier();							\
+ 	___p1;								\
+diff --git a/arch/sparc/include/asm/barrier_64.h b/arch/sparc/include/asm/barrier_64.h
+index 809941e..14a9286 100644
+--- a/arch/sparc/include/asm/barrier_64.h
++++ b/arch/sparc/include/asm/barrier_64.h
+@@ -60,12 +60,12 @@ do {	__asm__ __volatile__("ba,pt	%%xcc, 1f\n\t" \
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	barrier();							\
+-	ACCESS_ONCE(*p) = (v);						\
++	WRITE_ONCE(*p, v);						\
+ } while (0)
+ 
+ #define smp_load_acquire(p)						\
+ ({									\
+-	typeof(*p) ___p1 = ACCESS_ONCE(*p);				\
++	typeof(*p) ___p1 = READ_ONCE(*p);				\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	barrier();							\
+ 	___p1;								\
+diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
+index e51a8f8..d2bcfbe 100644
+--- a/arch/x86/include/asm/barrier.h
++++ b/arch/x86/include/asm/barrier.h
+@@ -57,12 +57,12 @@
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	smp_mb();							\
+-	ACCESS_ONCE(*p) = (v);						\
++	WRITE_ONCE(*p, v);						\
+ } while (0)
+ 
+ #define smp_load_acquire(p)						\
+ ({									\
+-	typeof(*p) ___p1 = ACCESS_ONCE(*p);				\
++	typeof(*p) ___p1 = READ_ONCE(*p);				\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	smp_mb();							\
+ 	___p1;								\
+@@ -74,12 +74,12 @@ do {									\
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	barrier();							\
+-	ACCESS_ONCE(*p) = (v);						\
++	WRITE_ONCE(*p, v);						\
+ } while (0)
+ 
+ #define smp_load_acquire(p)						\
+ ({									\
+-	typeof(*p) ___p1 = ACCESS_ONCE(*p);				\
++	typeof(*p) ___p1 = READ_ONCE(*p);				\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	barrier();							\
+ 	___p1;								\
+diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
+index 55e3abc..b42afad 100644
+--- a/include/asm-generic/barrier.h
++++ b/include/asm-generic/barrier.h
+@@ -108,12 +108,12 @@
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	smp_mb();							\
+-	ACCESS_ONCE(*p) = (v);						\
++	WRITE_ONCE(*p, v);						\
+ } while (0)
+ 
+ #define smp_load_acquire(p)						\
+ ({									\
+-	typeof(*p) ___p1 = ACCESS_ONCE(*p);				\
++	typeof(*p) ___p1 = READ_ONCE(*p);				\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	smp_mb();							\
+ 	___p1;								\
+-- 
+2.5.0.rc2.392.g76e840b
 
-Then you can extrend all this on kdoc on the enum.
-
-> + */
-> +void *memremap(resource_size_t offset, size_t size, unsigned long flags)
-> +{
-> +	int is_ram = region_intersects(offset, size, "System RAM");
-
-This could be the enum region_intersect_type, then if the region enum is
-extended you'd get a compiler error if one type was not handled.
-
-  Luis
