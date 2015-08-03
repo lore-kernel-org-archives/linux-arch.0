@@ -1,98 +1,331 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH v3 24/24] pmem: convert to generic memremap
-Date: Mon, 3 Aug 2015 11:01:46 -0700
-Message-ID: <CAPcyv4gCPyXwwgjidaUaNyNe8ZitmwVa-NF7pBT-y3rV4XBUzA@mail.gmail.com>
-References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20150730165553.33962.20257.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<1438622487.9404.2.camel@linux.intel.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v4 1/8] atomics: add acquire/release/relaxed variants of
+ some atomic operations
+Date: Mon, 3 Aug 2015 19:21:34 +0100
+Message-ID: <20150803182134.GL10501@arm.com>
+References: <1438621351-15912-1-git-send-email-will.deacon@arm.com>
+ <1438621351-15912-2-git-send-email-will.deacon@arm.com>
+ <20150803172658.GX25159@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f170.google.com ([209.85.212.170]:36060 "EHLO
-	mail-wi0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754000AbbHCSBr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Aug 2015 14:01:47 -0400
-Received: by wicgj17 with SMTP id gj17so116501024wic.1
-        for <linux-arch@vger.kernel.org>; Mon, 03 Aug 2015 11:01:46 -0700 (PDT)
-In-Reply-To: <1438622487.9404.2.camel@linux.intel.com>
+Received: from foss.arm.com ([217.140.101.70]:54924 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754599AbbHCSVi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 3 Aug 2015 14:21:38 -0400
+Content-Disposition: inline
+In-Reply-To: <20150803172658.GX25159@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ross Zwisler <ross.zwisler@linux.intel.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Kani, Toshimitsu" <toshi.kani@hp.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, Luis Rodriguez <mcgrof@suse.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Waiman.Long@hp.com" <Waiman.Long@hp.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "mingo@kernel.org" <mingo@kernel.org>
 
-On Mon, Aug 3, 2015 at 10:21 AM, Ross Zwisler
-<ross.zwisler@linux.intel.com> wrote:
-> On Thu, 2015-07-30 at 12:55 -0400, Dan Williams wrote:
->> Update memremap_pmem() to query the architecture for the mapping type of
->> the given persistent memory range  and then pass those flags to generic
->> memremap().  arch_memremap_pmem_flags() is provided an address range to
->> evaluate in the event an arch has a need for different mapping types by
->> address range.  For example the ACPI NFIT carries EFI mapping types in
->> its memory range description table.
->>
->> Cc: Ross Zwisler <ross.zwisler@linux.intel.com>
->> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
->> ---
->>  arch/x86/include/asm/io.h |    2 +-
->>  arch/x86/mm/ioremap.c     |   16 ++++++++++------
->>  include/linux/pmem.h      |   26 +++++++++++++++-----------
->>  3 files changed, 26 insertions(+), 18 deletions(-)
->>
->> diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
->> index 1a9d44ee9ed0..26c81b01419c 100644
->> --- a/arch/x86/include/asm/io.h
->> +++ b/arch/x86/include/asm/io.h
->> @@ -245,7 +245,7 @@ static inline void flush_write_buffers(void)
->>  #endif
->>  }
->>
->> -void __pmem *arch_memremap_pmem(resource_size_t offset, size_t size);
->> +unsigned long arch_memremap_pmem_flags(resource_size_t offset, size_t size);
->>  #endif /* __KERNEL__ */
->>
->>  extern void native_io_delay(void);
->> diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
->> index ffbfcf2e701b..5a41e3e4ea1e 100644
->> --- a/arch/x86/mm/ioremap.c
->> +++ b/arch/x86/mm/ioremap.c
->> @@ -205,6 +205,16 @@ err_free_memtype:
->>       return NULL;
->>  }
->>
->> +unsigned long arch_memremap_pmem_flags(resource_size_t offset, size_t size)
->> +{
->> +     /*
->> +      * TODO: check the mapping type provided by platform firmware,
->> +      * per range.
->> +      */
->> +     return MEMREMAP_WB;
->> +}
->> +EXPORT_SYMBOL(arch_memremap_pmem_flags);
->
-> I'm not sure that the architecture code has the right information to be able
-> to tell the caller what the correct mapping is.
->
+On Mon, Aug 03, 2015 at 06:26:58PM +0100, Peter Zijlstra wrote:
+> On Mon, Aug 03, 2015 at 06:02:24PM +0100, Will Deacon wrote:
+> > +/*
+> > + * The idea here is to build acquire/release variants by adding explicit
+> > + * barriers on top of the relaxed variant. In the case where the relaxed
+> > + * variant is already fully ordered, no additional barriers are needed.
+> > + */
+> > +#define __atomic_op_acquire(ret_t, op, ...)				\
+> > +({									\
+> > +	ret_t __ret = op##_relaxed(__VA_ARGS__);			\
+> 
+> Do you really need ret_t? Can't we use typeof() on the expression?
 
-It does in this instance as it has to pick a mapping type that is
-compatible with memcpy_to_pmem() and wmb_pmem().
+*gulp*! I was slightly worried about this from the GNU docs:
 
-> I think what you are ultimately looking for is the "Address Range Memory
-> Mapping Attribute" found in the System Physical Address Range Structure of the
-> NFIT, right?  (ACPI 6.0, table 5-128)  How can we get to that structure from
-> nfit-independent architecture code like arch_memremap_pmem_flags()?  It seems
-> like that if we want to make the mapping type dynamic we should get the flags
-> from ND when the SPA range is provided by ND, and provide a reasonable default
-> (WB, it seems) when we are dealing with legacy PMEM?  If PMEM had the flag
-> from whatever source, it could then pass it in to memremap_pmem(), and get a
-> mapping of the appropriate caching.
+ `The operand of typeof is evaluated for its side effects if and only if
+  it is an expression of variably modified type or the name of such a
+  type.'
 
-We can do what ioremap() does and look it up through other means.
+but since none of our atomic functions return "variably modified types",
+then there shouldn't be anything to worry about. It also means I can
+slightly simplify the xchg/cmpxchg wrappers where we were previously
+passing through the typeof(*ptr).
 
-> Another option of course is to just ignore the mapping attribute in the NFIT
-> like we've been doing, and just say "we know WB will be good enough", and
-> remove the TODO.
+Incremental diff below (I'll post a v5 when the build testing comes back
+clean).
 
-I agree, but there may be a non-zero chance that a platform
-implementation wants strict adherence.  Maybe move the TODO to a
-dev_dbg() that flags platforms where the NFIT mapping type is not
-"WB"?
+Will
+
+--->8
+
+diff --git a/include/linux/atomic.h b/include/linux/atomic.h
+index d2515c05e7c8..41ea776052be 100644
+--- a/include/linux/atomic.h
++++ b/include/linux/atomic.h
+@@ -35,26 +35,24 @@
+  * barriers on top of the relaxed variant. In the case where the relaxed
+  * variant is already fully ordered, no additional barriers are needed.
+  */
+-#define __atomic_op_acquire(ret_t, op, ...)				\
++#define __atomic_op_acquire(op, args...)				\
+ ({									\
+-	ret_t __ret = op##_relaxed(__VA_ARGS__);			\
++	typeof(op##_relaxed(args)) __ret  = op##_relaxed(args);		\
+ 	smp_mb__after_atomic();						\
+ 	__ret;								\
+ })
+ 
+-#define __atomic_op_release(ret_t, op, ...)				\
++#define __atomic_op_release(op, args...)				\
+ ({									\
+-	ret_t __ret;							\
+ 	smp_mb__before_atomic();					\
+-	__ret = op##_relaxed(__VA_ARGS__);				\
+-	__ret;								\
++	op##_relaxed(args);						\
+ })
+ 
+-#define __atomic_op_fence(ret_t, op, ...)				\
++#define __atomic_op_fence(op, args...)					\
+ ({									\
+-	ret_t __ret;							\
++	typeof(op##_relaxed(args)) __ret;				\
+ 	smp_mb__before_atomic();					\
+-	__ret = op##_relaxed(__VA_ARGS__);				\
++	__ret = op##_relaxed(args);					\
+ 	smp_mb__after_atomic();						\
+ 	__ret;								\
+ })
+@@ -69,17 +67,17 @@
+ 
+ #ifndef atomic_add_return_acquire
+ #define  atomic_add_return_acquire(...)					\
+-	__atomic_op_acquire(int, atomic_add_return, __VA_ARGS__)
++	__atomic_op_acquire(atomic_add_return, __VA_ARGS__)
+ #endif
+ 
+ #ifndef atomic_add_return_release
+ #define  atomic_add_return_release(...)					\
+-	__atomic_op_release(int, atomic_add_return, __VA_ARGS__)
++	__atomic_op_release(atomic_add_return, __VA_ARGS__)
+ #endif
+ 
+ #ifndef atomic_add_return
+ #define  atomic_add_return(...)						\
+-	__atomic_op_fence(int, atomic_add_return, __VA_ARGS__)
++	__atomic_op_fence(atomic_add_return, __VA_ARGS__)
+ #endif
+ #endif /* atomic_add_return_relaxed */
+ 
+@@ -93,17 +91,17 @@
+ 
+ #ifndef atomic_sub_return_acquire
+ #define  atomic_sub_return_acquire(...)					\
+-	__atomic_op_acquire(int, atomic_sub_return, __VA_ARGS__)
++	__atomic_op_acquire(atomic_sub_return, __VA_ARGS__)
+ #endif
+ 
+ #ifndef atomic_sub_return_release
+ #define  atomic_sub_return_release(...)					\
+-	__atomic_op_release(int, atomic_sub_return, __VA_ARGS__)
++	__atomic_op_release(atomic_sub_return, __VA_ARGS__)
+ #endif
+ 
+ #ifndef atomic_sub_return
+ #define  atomic_sub_return(...)						\
+-	__atomic_op_fence(int, atomic_sub_return, __VA_ARGS__)
++	__atomic_op_fence(atomic_sub_return, __VA_ARGS__)
+ #endif
+ #endif /* atomic_sub_return_relaxed */
+ 
+@@ -117,17 +115,17 @@
+ 
+ #ifndef atomic_xchg_acquire
+ #define  atomic_xchg_acquire(...)					\
+-	__atomic_op_acquire(int, atomic_xchg, __VA_ARGS__)
++	__atomic_op_acquire(atomic_xchg, __VA_ARGS__)
+ #endif
+ 
+ #ifndef atomic_xchg_release
+ #define  atomic_xchg_release(...)					\
+-	__atomic_op_release(int, atomic_xchg, __VA_ARGS__)
++	__atomic_op_release(atomic_xchg, __VA_ARGS__)
+ #endif
+ 
+ #ifndef atomic_xchg
+ #define  atomic_xchg(...)						\
+-	__atomic_op_fence(int, atomic_xchg, __VA_ARGS__)
++	__atomic_op_fence(atomic_xchg, __VA_ARGS__)
+ #endif
+ #endif /* atomic_xchg_relaxed */
+ 
+@@ -141,17 +139,17 @@
+ 
+ #ifndef atomic_cmpxchg_acquire
+ #define  atomic_cmpxchg_acquire(...)					\
+-	__atomic_op_acquire(int, atomic_cmpxchg, __VA_ARGS__)
++	__atomic_op_acquire(atomic_cmpxchg, __VA_ARGS__)
+ #endif
+ 
+ #ifndef atomic_cmpxchg_release
+ #define  atomic_cmpxchg_release(...)					\
+-	__atomic_op_release(int, atomic_cmpxchg, __VA_ARGS__)
++	__atomic_op_release(atomic_cmpxchg, __VA_ARGS__)
+ #endif
+ 
+ #ifndef atomic_cmpxchg
+ #define  atomic_cmpxchg(...)						\
+-	__atomic_op_fence(int, atomic_cmpxchg, __VA_ARGS__)
++	__atomic_op_fence(atomic_cmpxchg, __VA_ARGS__)
+ #endif
+ #endif /* atomic_cmpxchg_relaxed */
+ 
+@@ -173,17 +171,17 @@
+ 
+ #ifndef atomic64_add_return_acquire
+ #define  atomic64_add_return_acquire(...)				\
+-	__atomic_op_acquire(long long, atomic64_add_return, __VA_ARGS__)
++	__atomic_op_acquire(atomic64_add_return, __VA_ARGS__)
+ #endif
+ 
+ #ifndef atomic64_add_return_release
+ #define  atomic64_add_return_release(...)				\
+-	__atomic_op_release(long long, atomic64_add_return, __VA_ARGS__)
++	__atomic_op_release(atomic64_add_return, __VA_ARGS__)
+ #endif
+ 
+ #ifndef atomic64_add_return
+ #define  atomic64_add_return(...)					\
+-	__atomic_op_fence(long long, atomic64_add_return, __VA_ARGS__)
++	__atomic_op_fence(atomic64_add_return, __VA_ARGS__)
+ #endif
+ #endif /* atomic64_add_return_relaxed */
+ 
+@@ -197,17 +195,17 @@
+ 
+ #ifndef atomic64_sub_return_acquire
+ #define  atomic64_sub_return_acquire(...)				\
+-	__atomic_op_acquire(long long, atomic64_sub_return, __VA_ARGS__)
++	__atomic_op_acquire(atomic64_sub_return, __VA_ARGS__)
+ #endif
+ 
+ #ifndef atomic64_sub_return_release
+ #define  atomic64_sub_return_release(...)				\
+-	__atomic_op_release(long long, atomic64_sub_return, __VA_ARGS__)
++	__atomic_op_release(atomic64_sub_return, __VA_ARGS__)
+ #endif
+ 
+ #ifndef atomic64_sub_return
+ #define  atomic64_sub_return(...)					\
+-	__atomic_op_fence(long long, atomic64_sub_return, __VA_ARGS__)
++	__atomic_op_fence(atomic64_sub_return, __VA_ARGS__)
+ #endif
+ #endif /* atomic64_sub_return_relaxed */
+ 
+@@ -221,17 +219,17 @@
+ 
+ #ifndef atomic64_xchg_acquire
+ #define  atomic64_xchg_acquire(...)					\
+-	__atomic_op_acquire(long long, atomic64_xchg, __VA_ARGS__)
++	__atomic_op_acquire(atomic64_xchg, __VA_ARGS__)
+ #endif
+ 
+ #ifndef atomic64_xchg_release
+ #define  atomic64_xchg_release(...)					\
+-	__atomic_op_release(long long, atomic64_xchg, __VA_ARGS__)
++	__atomic_op_release(atomic64_xchg, __VA_ARGS__)
+ #endif
+ 
+ #ifndef atomic64_xchg
+ #define  atomic64_xchg(...)						\
+-	__atomic_op_fence(long long, atomic64_xchg, __VA_ARGS__)
++	__atomic_op_fence(atomic64_xchg, __VA_ARGS__)
+ #endif
+ #endif /* atomic64_xchg_relaxed */
+ 
+@@ -245,17 +243,17 @@
+ 
+ #ifndef atomic64_cmpxchg_acquire
+ #define  atomic64_cmpxchg_acquire(...)					\
+-	__atomic_op_acquire(long long, atomic64_cmpxchg, __VA_ARGS__)
++	__atomic_op_acquire(atomic64_cmpxchg, __VA_ARGS__)
+ #endif
+ 
+ #ifndef atomic64_cmpxchg_release
+ #define  atomic64_cmpxchg_release(...)					\
+-	__atomic_op_release(long long, atomic64_cmpxchg, __VA_ARGS__)
++	__atomic_op_release(atomic64_cmpxchg, __VA_ARGS__)
+ #endif
+ 
+ #ifndef atomic64_cmpxchg
+ #define  atomic64_cmpxchg(...)						\
+-	__atomic_op_fence(long long, atomic64_cmpxchg, __VA_ARGS__)
++	__atomic_op_fence(atomic64_cmpxchg, __VA_ARGS__)
+ #endif
+ #endif /* atomic64_cmpxchg_relaxed */
+ 
+@@ -268,18 +266,18 @@
+ #else /* cmpxchg_relaxed */
+ 
+ #ifndef cmpxchg_acquire
+-#define  cmpxchg_acquire(ptr, ...)					\
+-	__atomic_op_acquire(__typeof__(*ptr), cmpxchg, ptr, __VA_ARGS__)
++#define  cmpxchg_acquire(...)						\
++	__atomic_op_acquire(cmpxchg, __VA_ARGS__)
+ #endif
+ 
+ #ifndef cmpxchg_release
+-#define  cmpxchg_release(ptr, ...)					\
+-	__atomic_op_release(__typeof__(*ptr), cmpxchg, ptr, __VA_ARGS__)
++#define  cmpxchg_release(...)						\
++	__atomic_op_release(cmpxchg, __VA_ARGS__)
+ #endif
+ 
+ #ifndef cmpxchg
+-#define  cmpxchg(ptr, ...)						\
+-	__atomic_op_fence(__typeof__(*ptr), cmpxchg, ptr, __VA_ARGS__)
++#define  cmpxchg(...)							\
++	__atomic_op_fence(cmpxchg, __VA_ARGS__)
+ #endif
+ #endif /* cmpxchg_relaxed */
+ 
+@@ -292,18 +290,18 @@
+ #else /* cmpxchg64_relaxed */
+ 
+ #ifndef cmpxchg64_acquire
+-#define  cmpxchg64_acquire(ptr, ...)					\
+-	__atomic_op_acquire(__typeof__(*ptr), cmpxchg64, ptr, __VA_ARGS__)
++#define  cmpxchg64_acquire(...)						\
++	__atomic_op_acquire(cmpxchg64, __VA_ARGS__)
+ #endif
+ 
+ #ifndef cmpxchg64_release
+-#define  cmpxchg64_release(ptr, ...)					\
+-	__atomic_op_release(__typeof__(*ptr), cmpxchg64, ptr, __VA_ARGS__)
++#define  cmpxchg64_release(...)						\
++	__atomic_op_release(cmpxchg64, __VA_ARGS__)
+ #endif
+ 
+ #ifndef cmpxchg64
+-#define  cmpxchg64(ptr, ...)						\
+-	__atomic_op_fence(__typeof__(*ptr), cmpxchg64, ptr, __VA_ARGS__)
++#define  cmpxchg64(...)							\
++	__atomic_op_fence(cmpxchg64, __VA_ARGS__)
+ #endif
+ #endif /* cmpxchg64_relaxed */
+ 
+@@ -316,18 +314,15 @@
+ #else /* xchg_relaxed */
+ 
+ #ifndef xchg_acquire
+-#define  xchg_acquire(ptr, ...)						\
+-	__atomic_op_acquire(__typeof__(*ptr), xchg, ptr, __VA_ARGS__)
++#define  xchg_acquire(...)		__atomic_op_acquire(xchg, __VA_ARGS__)
+ #endif
+ 
+ #ifndef xchg_release
+-#define  xchg_release(ptr, ...)						\
+-	__atomic_op_release(__typeof__(*ptr), xchg, ptr, __VA_ARGS__)
++#define  xchg_release(...)		__atomic_op_release(xchg, __VA_ARGS__)
+ #endif
+ 
+ #ifndef xchg
+-#define  xchg(ptr, ...)							\
+-	__atomic_op_fence(__typeof__(*ptr), xchg, ptr, __VA_ARGS__)
++#define  xchg(...)			__atomic_op_fence(xchg, __VA_ARGS__)
+ #endif
+ #endif /* xchg_relaxed */
+ 
