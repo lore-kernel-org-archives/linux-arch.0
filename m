@@ -1,309 +1,251 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:62368 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:62367 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754648AbbHCRDc (ORCPT
+	by vger.kernel.org with ESMTP id S1754647AbbHCRDc (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Aug 2015 13:03:32 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v4 2/8] asm-generic: rework atomic-long.h to avoid bulk code duplication
-Date: Mon,  3 Aug 2015 18:02:25 +0100
-Message-ID: <1438621351-15912-3-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v4 8/8] ARM: atomics: define our SMP atomics in terms of _relaxed operations
+Date: Mon,  3 Aug 2015 18:02:31 +0100
+Message-ID: <1438621351-15912-9-git-send-email-will.deacon@arm.com>
 In-Reply-To: <1438621351-15912-1-git-send-email-will.deacon@arm.com>
 References: <1438621351-15912-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, mingo@kernel.org, Will Deacon <will.deacon@arm.com>
-Message-ID: <20150803170225.LMUUOrRSP4g-sAxVPCun4koVWM2YHntyvfJvFZ57ol4@z>
+Message-ID: <20150803170231.L1C4O7iYmTJj4Ey72COaInZpZC9qKSHQixgpdWYHguc@z>
 
-We can use some (admittedly ugly) macros to generate the 32-bit and
-64-bit based atomic_long implementations from the same code.
+By defining our SMP atomics in terms of relaxed operations, we gain
+a small reduction in code size and have acquire/release/fence variants
+generated automatically by the core code.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- include/asm-generic/atomic-long.h | 189 ++++++++------------------------------
- 1 file changed, 40 insertions(+), 149 deletions(-)
+ arch/arm/include/asm/atomic.h  | 37 ++++++++++++++-------------------
+ arch/arm/include/asm/cmpxchg.h | 47 +++++++-----------------------------------
+ 2 files changed, 24 insertions(+), 60 deletions(-)
 
-diff --git a/include/asm-generic/atomic-long.h b/include/asm-generic/atomic-long.h
-index b7babf0206b8..beaea541adfb 100644
---- a/include/asm-generic/atomic-long.h
-+++ b/include/asm-generic/atomic-long.h
-@@ -23,236 +23,127 @@
- typedef atomic64_t atomic_long_t;
+diff --git a/arch/arm/include/asm/atomic.h b/arch/arm/include/asm/atomic.h
+index e22c11970b7b..bc9da3a3ff5e 100644
+--- a/arch/arm/include/asm/atomic.h
++++ b/arch/arm/include/asm/atomic.h
+@@ -57,12 +57,11 @@ static inline void atomic_##op(int i, atomic_t *v)			\
+ }									\
  
- #define ATOMIC_LONG_INIT(i)	ATOMIC64_INIT(i)
-+#define ATOMIC_LONG_PFX(x)	atomic64 ## x
+ #define ATOMIC_OP_RETURN(op, c_op, asm_op)				\
+-static inline int atomic_##op##_return(int i, atomic_t *v)		\
++static inline int atomic_##op##_return_relaxed(int i, atomic_t *v)	\
+ {									\
+ 	unsigned long tmp;						\
+ 	int result;							\
+ 									\
+-	smp_mb();							\
+ 	prefetchw(&v->counter);						\
+ 									\
+ 	__asm__ __volatile__("@ atomic_" #op "_return\n"		\
+@@ -75,17 +74,17 @@ static inline int atomic_##op##_return(int i, atomic_t *v)		\
+ 	: "r" (&v->counter), "Ir" (i)					\
+ 	: "cc");							\
+ 									\
+-	smp_mb();							\
+-									\
+ 	return result;							\
+ }
  
--static inline long atomic_long_read(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_read(v);
--}
--
--static inline void atomic_long_set(atomic_long_t *l, long i)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_set(v, i);
--}
--
--static inline void atomic_long_inc(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_inc(v);
--}
--
--static inline void atomic_long_dec(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_dec(v);
--}
--
--static inline void atomic_long_add(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_add(i, v);
--}
--
--static inline void atomic_long_sub(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_sub(i, v);
--}
--
--static inline int atomic_long_sub_and_test(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return atomic64_sub_and_test(i, v);
--}
--
--static inline int atomic_long_dec_and_test(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return atomic64_dec_and_test(v);
--}
--
--static inline int atomic_long_inc_and_test(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return atomic64_inc_and_test(v);
--}
--
--static inline int atomic_long_add_negative(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return atomic64_add_negative(i, v);
--}
--
--static inline long atomic_long_add_return(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_add_return(i, v);
--}
--
--static inline long atomic_long_sub_return(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_sub_return(i, v);
--}
--
--static inline long atomic_long_inc_return(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_inc_return(v);
--}
--
--static inline long atomic_long_dec_return(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_dec_return(v);
--}
--
--static inline long atomic_long_add_unless(atomic_long_t *l, long a, long u)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_add_unless(v, a, u);
--}
--
--#define atomic_long_inc_not_zero(l) atomic64_inc_not_zero((atomic64_t *)(l))
--
--#define atomic_long_cmpxchg(l, old, new) \
--	(atomic64_cmpxchg((atomic64_t *)(l), (old), (new)))
--#define atomic_long_xchg(v, new) \
--	(atomic64_xchg((atomic64_t *)(v), (new)))
--
--#else  /*  BITS_PER_LONG == 64  */
-+#else
- 
- typedef atomic_t atomic_long_t;
- 
- #define ATOMIC_LONG_INIT(i)	ATOMIC_INIT(i)
-+#define ATOMIC_LONG_PFX(x)	atomic ## x
+-static inline int atomic_cmpxchg(atomic_t *ptr, int old, int new)
++#define atomic_add_return_relaxed	atomic_add_return_relaxed
++#define atomic_sub_return_relaxed	atomic_sub_return_relaxed
 +
-+#endif
++static inline int atomic_cmpxchg_relaxed(atomic_t *ptr, int old, int new)
+ {
+ 	int oldval;
+ 	unsigned long res;
+ 
+-	smp_mb();
+ 	prefetchw(&ptr->counter);
+ 
+ 	do {
+@@ -99,10 +98,9 @@ static inline int atomic_cmpxchg(atomic_t *ptr, int old, int new)
+ 		    : "cc");
+ 	} while (res);
+ 
+-	smp_mb();
+-
+ 	return oldval;
+ }
++#define atomic_cmpxchg_relaxed		atomic_cmpxchg_relaxed
+ 
+ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
+ {
+@@ -290,12 +288,12 @@ static inline void atomic64_##op(long long i, atomic64_t *v)		\
+ }									\
+ 
+ #define ATOMIC64_OP_RETURN(op, op1, op2)				\
+-static inline long long atomic64_##op##_return(long long i, atomic64_t *v) \
++static inline long long							\
++atomic64_##op##_return_relaxed(long long i, atomic64_t *v)		\
+ {									\
+ 	long long result;						\
+ 	unsigned long tmp;						\
+ 									\
+-	smp_mb();							\
+ 	prefetchw(&v->counter);						\
+ 									\
+ 	__asm__ __volatile__("@ atomic64_" #op "_return\n"		\
+@@ -309,8 +307,6 @@ static inline long long atomic64_##op##_return(long long i, atomic64_t *v) \
+ 	: "r" (&v->counter), "r" (i)					\
+ 	: "cc");							\
+ 									\
+-	smp_mb();							\
+-									\
+ 	return result;							\
+ }
+ 
+@@ -321,17 +317,19 @@ static inline long long atomic64_##op##_return(long long i, atomic64_t *v) \
+ ATOMIC64_OPS(add, adds, adc)
+ ATOMIC64_OPS(sub, subs, sbc)
+ 
++#define atomic64_add_return_relaxed	atomic64_add_return_relaxed
++#define atomic64_sub_return_relaxed	atomic64_sub_return_relaxed
 +
- static inline long atomic_long_read(atomic_long_t *l)
+ #undef ATOMIC64_OPS
+ #undef ATOMIC64_OP_RETURN
+ #undef ATOMIC64_OP
+ 
+-static inline long long atomic64_cmpxchg(atomic64_t *ptr, long long old,
+-					long long new)
++static inline long long
++atomic64_cmpxchg_relaxed(atomic64_t *ptr, long long old, long long new)
  {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 	long long oldval;
+ 	unsigned long res;
  
--	return (long)atomic_read(v);
-+	return (long)ATOMIC_LONG_PFX(_read)(v);
- }
+-	smp_mb();
+ 	prefetchw(&ptr->counter);
  
- static inline void atomic_long_set(atomic_long_t *l, long i)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 	do {
+@@ -346,17 +344,15 @@ static inline long long atomic64_cmpxchg(atomic64_t *ptr, long long old,
+ 		: "cc");
+ 	} while (res);
  
--	atomic_set(v, i);
-+	ATOMIC_LONG_PFX(_set)(v, i);
- }
- 
- static inline void atomic_long_inc(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_inc(v);
-+	ATOMIC_LONG_PFX(_inc)(v);
- }
- 
- static inline void atomic_long_dec(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_dec(v);
-+	ATOMIC_LONG_PFX(_dec)(v);
- }
- 
- static inline void atomic_long_add(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_add(i, v);
-+	ATOMIC_LONG_PFX(_add)(i, v);
- }
- 
- static inline void atomic_long_sub(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_sub(i, v);
-+	ATOMIC_LONG_PFX(_sub)(i, v);
- }
- 
- static inline int atomic_long_sub_and_test(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return atomic_sub_and_test(i, v);
-+	return ATOMIC_LONG_PFX(_sub_and_test)(i, v);
- }
- 
- static inline int atomic_long_dec_and_test(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return atomic_dec_and_test(v);
-+	return ATOMIC_LONG_PFX(_dec_and_test)(v);
- }
- 
- static inline int atomic_long_inc_and_test(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return atomic_inc_and_test(v);
-+	return ATOMIC_LONG_PFX(_inc_and_test)(v);
- }
- 
- static inline int atomic_long_add_negative(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return atomic_add_negative(i, v);
-+	return ATOMIC_LONG_PFX(_add_negative)(i, v);
- }
- 
- static inline long atomic_long_add_return(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_add_return(i, v);
-+	return (long)ATOMIC_LONG_PFX(_add_return)(i, v);
- }
- 
- static inline long atomic_long_sub_return(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_sub_return(i, v);
-+	return (long)ATOMIC_LONG_PFX(_sub_return)(i, v);
- }
- 
- static inline long atomic_long_inc_return(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_inc_return(v);
-+	return (long)ATOMIC_LONG_PFX(_inc_return)(v);
- }
- 
- static inline long atomic_long_dec_return(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_dec_return(v);
-+	return (long)ATOMIC_LONG_PFX(_dec_return)(v);
- }
- 
- static inline long atomic_long_add_unless(atomic_long_t *l, long a, long u)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_add_unless(v, a, u);
-+	return (long)ATOMIC_LONG_PFX(_add_unless)(v, a, u);
- }
- 
--#define atomic_long_inc_not_zero(l) atomic_inc_not_zero((atomic_t *)(l))
+-	smp_mb();
 -
-+#define atomic_long_inc_not_zero(l) \
-+	ATOMIC_LONG_PFX(_inc_not_zero)((ATOMIC_LONG_PFX(_t) *)(l))
- #define atomic_long_cmpxchg(l, old, new) \
--	(atomic_cmpxchg((atomic_t *)(l), (old), (new)))
-+	(ATOMIC_LONG_PFX(_cmpxchg)((ATOMIC_LONG_PFX(_t) *)(l), (old), (new)))
- #define atomic_long_xchg(v, new) \
--	(atomic_xchg((atomic_t *)(v), (new)))
--
--#endif  /*  BITS_PER_LONG == 64  */
-+	(ATOMIC_LONG_PFX(_xchg)((ATOMIC_LONG_PFX(_t) *)(v), (new)))
+ 	return oldval;
+ }
++#define atomic64_cmpxchg_relaxed	atomic64_cmpxchg_relaxed
  
- #endif  /*  _ASM_GENERIC_ATOMIC_LONG_H  */
+-static inline long long atomic64_xchg(atomic64_t *ptr, long long new)
++static inline long long atomic64_xchg_relaxed(atomic64_t *ptr, long long new)
+ {
+ 	long long result;
+ 	unsigned long tmp;
+ 
+-	smp_mb();
+ 	prefetchw(&ptr->counter);
+ 
+ 	__asm__ __volatile__("@ atomic64_xchg\n"
+@@ -368,10 +364,9 @@ static inline long long atomic64_xchg(atomic64_t *ptr, long long new)
+ 	: "r" (&ptr->counter), "r" (new)
+ 	: "cc");
+ 
+-	smp_mb();
+-
+ 	return result;
+ }
++#define atomic64_xchg_relaxed		atomic64_xchg_relaxed
+ 
+ static inline long long atomic64_dec_if_positive(atomic64_t *v)
+ {
+diff --git a/arch/arm/include/asm/cmpxchg.h b/arch/arm/include/asm/cmpxchg.h
+index 1692a05d3207..916a2744d5c6 100644
+--- a/arch/arm/include/asm/cmpxchg.h
++++ b/arch/arm/include/asm/cmpxchg.h
+@@ -35,7 +35,6 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
+ 	unsigned int tmp;
+ #endif
+ 
+-	smp_mb();
+ 	prefetchw((const void *)ptr);
+ 
+ 	switch (size) {
+@@ -98,12 +97,11 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
+ 		__bad_xchg(ptr, size), ret = 0;
+ 		break;
+ 	}
+-	smp_mb();
+ 
+ 	return ret;
+ }
+ 
+-#define xchg(ptr, x) ({							\
++#define xchg_relaxed(ptr, x) ({						\
+ 	(__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr),		\
+ 				   sizeof(*(ptr)));			\
+ })
+@@ -117,6 +115,8 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
+ #error "SMP is not supported on this platform"
+ #endif
+ 
++#define xchg xchg_relaxed
++
+ /*
+  * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
+  * them available.
+@@ -194,23 +194,11 @@ static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
+ 	return oldval;
+ }
+ 
+-static inline unsigned long __cmpxchg_mb(volatile void *ptr, unsigned long old,
+-					 unsigned long new, int size)
+-{
+-	unsigned long ret;
+-
+-	smp_mb();
+-	ret = __cmpxchg(ptr, old, new, size);
+-	smp_mb();
+-
+-	return ret;
+-}
+-
+-#define cmpxchg(ptr,o,n) ({						\
+-	(__typeof__(*(ptr)))__cmpxchg_mb((ptr),				\
+-					 (unsigned long)(o),		\
+-					 (unsigned long)(n),		\
+-					 sizeof(*(ptr)));		\
++#define cmpxchg_relaxed(ptr,o,n) ({					\
++	(__typeof__(*(ptr)))__cmpxchg((ptr),				\
++				      (unsigned long)(o),		\
++				      (unsigned long)(n),		\
++				      sizeof(*(ptr)));			\
+ })
+ 
+ static inline unsigned long __cmpxchg_local(volatile void *ptr,
+@@ -273,25 +261,6 @@ static inline unsigned long long __cmpxchg64(unsigned long long *ptr,
+ 
+ #define cmpxchg64_local(ptr, o, n) cmpxchg64_relaxed((ptr), (o), (n))
+ 
+-static inline unsigned long long __cmpxchg64_mb(unsigned long long *ptr,
+-						unsigned long long old,
+-						unsigned long long new)
+-{
+-	unsigned long long ret;
+-
+-	smp_mb();
+-	ret = __cmpxchg64(ptr, old, new);
+-	smp_mb();
+-
+-	return ret;
+-}
+-
+-#define cmpxchg64(ptr, o, n) ({						\
+-	(__typeof__(*(ptr)))__cmpxchg64_mb((ptr),			\
+-					   (unsigned long long)(o),	\
+-					   (unsigned long long)(n));	\
+-})
+-
+ #endif	/* __LINUX_ARM_ARCH__ >= 6 */
+ 
+ #endif /* __ASM_ARM_CMPXCHG_H */
 -- 
 2.1.4
 
