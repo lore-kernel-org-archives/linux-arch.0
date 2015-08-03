@@ -1,155 +1,309 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:62336 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:62368 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753195AbbHCRDK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Aug 2015 13:03:10 -0400
+	by vger.kernel.org with ESMTP id S1754648AbbHCRDc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Aug 2015 13:03:32 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v4 6/8] locking/qrwlock: make use of acquire/release/relaxed atomics
-Date: Mon,  3 Aug 2015 18:02:29 +0100
-Message-ID: <1438621351-15912-7-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v4 2/8] asm-generic: rework atomic-long.h to avoid bulk code duplication
+Date: Mon,  3 Aug 2015 18:02:25 +0100
+Message-ID: <1438621351-15912-3-git-send-email-will.deacon@arm.com>
 In-Reply-To: <1438621351-15912-1-git-send-email-will.deacon@arm.com>
 References: <1438621351-15912-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, mingo@kernel.org, Will Deacon <will.deacon@arm.com>
-Message-ID: <20150803170229.tygCO5kQ3JeqUR-Ca7K_Zn_RxZk-f4if_3ekUauxtwE@z>
+Message-ID: <20150803170225.LMUUOrRSP4g-sAxVPCun4koVWM2YHntyvfJvFZ57ol4@z>
 
-The qrwlock implementation is slightly heavy in its use of memory
-barriers, mainly through the use of cmpxchg and _return atomics, which
-imply full barrier semantics.
-
-This patch modifies the qrwlock code to use the more relaxed atomic
-routines so that we can reduce the unnecessary barrier overhead on
-weakly-ordered architectures.
+We can use some (admittedly ugly) macros to generate the 32-bit and
+64-bit based atomic_long implementations from the same code.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- include/asm-generic/qrwlock.h | 13 ++++++-------
- kernel/locking/qrwlock.c      | 23 +++++++++++++++--------
- 2 files changed, 21 insertions(+), 15 deletions(-)
+ include/asm-generic/atomic-long.h | 189 ++++++++------------------------------
+ 1 file changed, 40 insertions(+), 149 deletions(-)
 
-diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
-index eb673dde8879..54a8e65e18b6 100644
---- a/include/asm-generic/qrwlock.h
-+++ b/include/asm-generic/qrwlock.h
-@@ -68,7 +68,7 @@ static inline int queued_read_trylock(struct qrwlock *lock)
+diff --git a/include/asm-generic/atomic-long.h b/include/asm-generic/atomic-long.h
+index b7babf0206b8..beaea541adfb 100644
+--- a/include/asm-generic/atomic-long.h
++++ b/include/asm-generic/atomic-long.h
+@@ -23,236 +23,127 @@
+ typedef atomic64_t atomic_long_t;
  
- 	cnts = atomic_read(&lock->cnts);
- 	if (likely(!(cnts & _QW_WMASK))) {
--		cnts = (u32)atomic_add_return(_QR_BIAS, &lock->cnts);
-+		cnts = (u32)atomic_add_return_acquire(_QR_BIAS, &lock->cnts);
- 		if (likely(!(cnts & _QW_WMASK)))
- 			return 1;
- 		atomic_sub(_QR_BIAS, &lock->cnts);
-@@ -89,8 +89,8 @@ static inline int queued_write_trylock(struct qrwlock *lock)
- 	if (unlikely(cnts))
- 		return 0;
+ #define ATOMIC_LONG_INIT(i)	ATOMIC64_INIT(i)
++#define ATOMIC_LONG_PFX(x)	atomic64 ## x
  
--	return likely(atomic_cmpxchg(&lock->cnts,
--				     cnts, cnts | _QW_LOCKED) == cnts);
-+	return likely(atomic_cmpxchg_acquire(&lock->cnts,
-+					     cnts, cnts | _QW_LOCKED) == cnts);
- }
- /**
-  * queued_read_lock - acquire read lock of a queue rwlock
-@@ -100,7 +100,7 @@ static inline void queued_read_lock(struct qrwlock *lock)
- {
- 	u32 cnts;
+-static inline long atomic_long_read(atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	return (long)atomic64_read(v);
+-}
+-
+-static inline void atomic_long_set(atomic_long_t *l, long i)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	atomic64_set(v, i);
+-}
+-
+-static inline void atomic_long_inc(atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	atomic64_inc(v);
+-}
+-
+-static inline void atomic_long_dec(atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	atomic64_dec(v);
+-}
+-
+-static inline void atomic_long_add(long i, atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	atomic64_add(i, v);
+-}
+-
+-static inline void atomic_long_sub(long i, atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	atomic64_sub(i, v);
+-}
+-
+-static inline int atomic_long_sub_and_test(long i, atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	return atomic64_sub_and_test(i, v);
+-}
+-
+-static inline int atomic_long_dec_and_test(atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	return atomic64_dec_and_test(v);
+-}
+-
+-static inline int atomic_long_inc_and_test(atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	return atomic64_inc_and_test(v);
+-}
+-
+-static inline int atomic_long_add_negative(long i, atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	return atomic64_add_negative(i, v);
+-}
+-
+-static inline long atomic_long_add_return(long i, atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	return (long)atomic64_add_return(i, v);
+-}
+-
+-static inline long atomic_long_sub_return(long i, atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	return (long)atomic64_sub_return(i, v);
+-}
+-
+-static inline long atomic_long_inc_return(atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	return (long)atomic64_inc_return(v);
+-}
+-
+-static inline long atomic_long_dec_return(atomic_long_t *l)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	return (long)atomic64_dec_return(v);
+-}
+-
+-static inline long atomic_long_add_unless(atomic_long_t *l, long a, long u)
+-{
+-	atomic64_t *v = (atomic64_t *)l;
+-
+-	return (long)atomic64_add_unless(v, a, u);
+-}
+-
+-#define atomic_long_inc_not_zero(l) atomic64_inc_not_zero((atomic64_t *)(l))
+-
+-#define atomic_long_cmpxchg(l, old, new) \
+-	(atomic64_cmpxchg((atomic64_t *)(l), (old), (new)))
+-#define atomic_long_xchg(v, new) \
+-	(atomic64_xchg((atomic64_t *)(v), (new)))
+-
+-#else  /*  BITS_PER_LONG == 64  */
++#else
  
--	cnts = atomic_add_return(_QR_BIAS, &lock->cnts);
-+	cnts = atomic_add_return_acquire(_QR_BIAS, &lock->cnts);
- 	if (likely(!(cnts & _QW_WMASK)))
- 		return;
+ typedef atomic_t atomic_long_t;
  
-@@ -115,7 +115,7 @@ static inline void queued_read_lock(struct qrwlock *lock)
- static inline void queued_write_lock(struct qrwlock *lock)
- {
- 	/* Optimize for the unfair lock case where the fair flag is 0. */
--	if (atomic_cmpxchg(&lock->cnts, 0, _QW_LOCKED) == 0)
-+	if (atomic_cmpxchg_acquire(&lock->cnts, 0, _QW_LOCKED) == 0)
- 		return;
- 
- 	queued_write_lock_slowpath(lock);
-@@ -130,8 +130,7 @@ static inline void queued_read_unlock(struct qrwlock *lock)
- 	/*
- 	 * Atomically decrement the reader count
- 	 */
--	smp_mb__before_atomic();
--	atomic_sub(_QR_BIAS, &lock->cnts);
-+	(void)atomic_sub_return_release(_QR_BIAS, &lock->cnts);
- }
- 
- /**
-diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index d9c36c5f5711..fb4ef2d636f2 100644
---- a/kernel/locking/qrwlock.c
-+++ b/kernel/locking/qrwlock.c
-@@ -55,7 +55,7 @@ rspin_until_writer_unlock(struct qrwlock *lock, u32 cnts)
- {
- 	while ((cnts & _QW_WMASK) == _QW_LOCKED) {
- 		cpu_relax_lowlatency();
--		cnts = smp_load_acquire((u32 *)&lock->cnts);
-+		cnts = atomic_read_acquire(&lock->cnts);
- 	}
- }
- 
-@@ -74,8 +74,9 @@ void queued_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
- 		 * Readers in interrupt context will get the lock immediately
- 		 * if the writer is just waiting (not holding the lock yet).
- 		 * The rspin_until_writer_unlock() function returns immediately
--		 * in this case. Otherwise, they will spin until the lock
--		 * is available without waiting in the queue.
-+		 * in this case. Otherwise, they will spin (with ACQUIRE
-+		 * semantics) until the lock is available without waiting in
-+		 * the queue.
- 		 */
- 		rspin_until_writer_unlock(lock, cnts);
- 		return;
-@@ -97,7 +98,13 @@ void queued_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
- 	while (atomic_read(&lock->cnts) & _QW_WMASK)
- 		cpu_relax_lowlatency();
- 
--	cnts = atomic_add_return(_QR_BIAS, &lock->cnts) - _QR_BIAS;
-+	cnts = atomic_add_return_relaxed(_QR_BIAS, &lock->cnts) - _QR_BIAS;
+ #define ATOMIC_LONG_INIT(i)	ATOMIC_INIT(i)
++#define ATOMIC_LONG_PFX(x)	atomic ## x
 +
-+	/*
-+	 * The ACQUIRE semantics of the spinning code ensure that
-+	 * accesses can't leak upwards out of our subsequent critical
-+	 * section.
-+	 */
- 	rspin_until_writer_unlock(lock, cnts);
++#endif
++
+ static inline long atomic_long_read(atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
  
- 	/*
-@@ -120,7 +127,7 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
+-	return (long)atomic_read(v);
++	return (long)ATOMIC_LONG_PFX(_read)(v);
+ }
  
- 	/* Try to acquire the lock directly if no reader is present */
- 	if (!atomic_read(&lock->cnts) &&
--	    (atomic_cmpxchg(&lock->cnts, 0, _QW_LOCKED) == 0))
-+	    (atomic_cmpxchg_acquire(&lock->cnts, 0, _QW_LOCKED) == 0))
- 		goto unlock;
+ static inline void atomic_long_set(atomic_long_t *l, long i)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
  
- 	/*
-@@ -131,7 +138,7 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
- 		struct __qrwlock *l = (struct __qrwlock *)lock;
+-	atomic_set(v, i);
++	ATOMIC_LONG_PFX(_set)(v, i);
+ }
  
- 		if (!READ_ONCE(l->wmode) &&
--		   (cmpxchg(&l->wmode, 0, _QW_WAITING) == 0))
-+		   (cmpxchg_relaxed(&l->wmode, 0, _QW_WAITING) == 0))
- 			break;
+ static inline void atomic_long_inc(atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
  
- 		cpu_relax_lowlatency();
-@@ -141,8 +148,8 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
- 	for (;;) {
- 		cnts = atomic_read(&lock->cnts);
- 		if ((cnts == _QW_WAITING) &&
--		    (atomic_cmpxchg(&lock->cnts, _QW_WAITING,
--				    _QW_LOCKED) == _QW_WAITING))
-+		    (atomic_cmpxchg_acquire(&lock->cnts, _QW_WAITING,
-+					    _QW_LOCKED) == _QW_WAITING))
- 			break;
+-	atomic_inc(v);
++	ATOMIC_LONG_PFX(_inc)(v);
+ }
  
- 		cpu_relax_lowlatency();
+ static inline void atomic_long_dec(atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	atomic_dec(v);
++	ATOMIC_LONG_PFX(_dec)(v);
+ }
+ 
+ static inline void atomic_long_add(long i, atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	atomic_add(i, v);
++	ATOMIC_LONG_PFX(_add)(i, v);
+ }
+ 
+ static inline void atomic_long_sub(long i, atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	atomic_sub(i, v);
++	ATOMIC_LONG_PFX(_sub)(i, v);
+ }
+ 
+ static inline int atomic_long_sub_and_test(long i, atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return atomic_sub_and_test(i, v);
++	return ATOMIC_LONG_PFX(_sub_and_test)(i, v);
+ }
+ 
+ static inline int atomic_long_dec_and_test(atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return atomic_dec_and_test(v);
++	return ATOMIC_LONG_PFX(_dec_and_test)(v);
+ }
+ 
+ static inline int atomic_long_inc_and_test(atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return atomic_inc_and_test(v);
++	return ATOMIC_LONG_PFX(_inc_and_test)(v);
+ }
+ 
+ static inline int atomic_long_add_negative(long i, atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return atomic_add_negative(i, v);
++	return ATOMIC_LONG_PFX(_add_negative)(i, v);
+ }
+ 
+ static inline long atomic_long_add_return(long i, atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return (long)atomic_add_return(i, v);
++	return (long)ATOMIC_LONG_PFX(_add_return)(i, v);
+ }
+ 
+ static inline long atomic_long_sub_return(long i, atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return (long)atomic_sub_return(i, v);
++	return (long)ATOMIC_LONG_PFX(_sub_return)(i, v);
+ }
+ 
+ static inline long atomic_long_inc_return(atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return (long)atomic_inc_return(v);
++	return (long)ATOMIC_LONG_PFX(_inc_return)(v);
+ }
+ 
+ static inline long atomic_long_dec_return(atomic_long_t *l)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return (long)atomic_dec_return(v);
++	return (long)ATOMIC_LONG_PFX(_dec_return)(v);
+ }
+ 
+ static inline long atomic_long_add_unless(atomic_long_t *l, long a, long u)
+ {
+-	atomic_t *v = (atomic_t *)l;
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+ 
+-	return (long)atomic_add_unless(v, a, u);
++	return (long)ATOMIC_LONG_PFX(_add_unless)(v, a, u);
+ }
+ 
+-#define atomic_long_inc_not_zero(l) atomic_inc_not_zero((atomic_t *)(l))
+-
++#define atomic_long_inc_not_zero(l) \
++	ATOMIC_LONG_PFX(_inc_not_zero)((ATOMIC_LONG_PFX(_t) *)(l))
+ #define atomic_long_cmpxchg(l, old, new) \
+-	(atomic_cmpxchg((atomic_t *)(l), (old), (new)))
++	(ATOMIC_LONG_PFX(_cmpxchg)((ATOMIC_LONG_PFX(_t) *)(l), (old), (new)))
+ #define atomic_long_xchg(v, new) \
+-	(atomic_xchg((atomic_t *)(v), (new)))
+-
+-#endif  /*  BITS_PER_LONG == 64  */
++	(ATOMIC_LONG_PFX(_xchg)((ATOMIC_LONG_PFX(_t) *)(v), (new)))
+ 
+ #endif  /*  _ASM_GENERIC_ATOMIC_LONG_H  */
 -- 
 2.1.4
 
