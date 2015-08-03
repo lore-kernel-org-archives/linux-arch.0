@@ -1,83 +1,36 @@
-From: Ross Zwisler <ross.zwisler@linux.intel.com>
-Subject: Re: [PATCH v3 24/24] pmem: convert to generic memremap
-Date: Mon, 03 Aug 2015 11:21:27 -0600
-Message-ID: <1438622487.9404.2.camel@linux.intel.com>
-References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
-	 <20150730165553.33962.20257.stgit@dwillia2-desk3.amr.corp.intel.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v4 1/8] atomics: add acquire/release/relaxed variants of
+ some atomic operations
+Date: Mon, 3 Aug 2015 19:26:58 +0200
+Message-ID: <20150803172658.GX25159@twins.programming.kicks-ass.net>
+References: <1438621351-15912-1-git-send-email-will.deacon@arm.com>
+ <1438621351-15912-2-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:51113 "EHLO mga11.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753370AbbHCRV3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 3 Aug 2015 13:21:29 -0400
-In-Reply-To: <20150730165553.33962.20257.stgit@dwillia2-desk3.amr.corp.intel.com>
+Received: from bombadil.infradead.org ([198.137.202.9]:43558 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932202AbbHCR1D (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Aug 2015 13:27:03 -0400
+Content-Disposition: inline
+In-Reply-To: <1438621351-15912-2-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, mcgrof@suse.com, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, hch@lst.de, linux-arm-kernel@lists.infradead.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org, Waiman.Long@hp.com, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, mingo@kernel.org
 
-On Thu, 2015-07-30 at 12:55 -0400, Dan Williams wrote:
-> Update memremap_pmem() to query the architecture for the mapping type of
-> the given persistent memory range  and then pass those flags to generic
-> memremap().  arch_memremap_pmem_flags() is provided an address range to
-> evaluate in the event an arch has a need for different mapping types by
-> address range.  For example the ACPI NFIT carries EFI mapping types in
-> its memory range description table.
-> 
-> Cc: Ross Zwisler <ross.zwisler@linux.intel.com>
-> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-> ---
->  arch/x86/include/asm/io.h |    2 +-
->  arch/x86/mm/ioremap.c     |   16 ++++++++++------
->  include/linux/pmem.h      |   26 +++++++++++++++-----------
->  3 files changed, 26 insertions(+), 18 deletions(-)
-> 
-> diff --git a/arch/x86/include/asm/io.h b/arch/x86/include/asm/io.h
-> index 1a9d44ee9ed0..26c81b01419c 100644
-> --- a/arch/x86/include/asm/io.h
-> +++ b/arch/x86/include/asm/io.h
-> @@ -245,7 +245,7 @@ static inline void flush_write_buffers(void)
->  #endif
->  }
->  
-> -void __pmem *arch_memremap_pmem(resource_size_t offset, size_t size);
-> +unsigned long arch_memremap_pmem_flags(resource_size_t offset, size_t size);
->  #endif /* __KERNEL__ */
->  
->  extern void native_io_delay(void);
-> diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-> index ffbfcf2e701b..5a41e3e4ea1e 100644
-> --- a/arch/x86/mm/ioremap.c
-> +++ b/arch/x86/mm/ioremap.c
-> @@ -205,6 +205,16 @@ err_free_memtype:
->  	return NULL;
->  }
->  
-> +unsigned long arch_memremap_pmem_flags(resource_size_t offset, size_t size)
-> +{
-> +	/*
-> +	 * TODO: check the mapping type provided by platform firmware,
-> +	 * per range.
-> +	 */
-> +	return MEMREMAP_WB;
-> +}
-> +EXPORT_SYMBOL(arch_memremap_pmem_flags);
+On Mon, Aug 03, 2015 at 06:02:24PM +0100, Will Deacon wrote:
+> +/*
+> + * The idea here is to build acquire/release variants by adding explicit
+> + * barriers on top of the relaxed variant. In the case where the relaxed
+> + * variant is already fully ordered, no additional barriers are needed.
+> + */
+> +#define __atomic_op_acquire(ret_t, op, ...)				\
+> +({									\
+> +	ret_t __ret = op##_relaxed(__VA_ARGS__);			\
 
-I'm not sure that the architecture code has the right information to be able
-to tell the caller what the correct mapping is.
+Do you really need ret_t? Can't we use typeof() on the expression?
 
-I think what you are ultimately looking for is the "Address Range Memory
-Mapping Attribute" found in the System Physical Address Range Structure of the
-NFIT, right?  (ACPI 6.0, table 5-128)  How can we get to that structure from
-nfit-independent architecture code like arch_memremap_pmem_flags()?  It seems
-like that if we want to make the mapping type dynamic we should get the flags
-from ND when the SPA range is provided by ND, and provide a reasonable default
-(WB, it seems) when we are dealing with legacy PMEM?  If PMEM had the flag
-from whatever source, it could then pass it in to memremap_pmem(), and get a
-mapping of the appropriate caching.
-
-Another option of course is to just ignore the mapping attribute in the NFIT
-like we've been doing, and just say "we know WB will be good enough", and
-remove the TODO.
+> +	smp_mb__after_atomic();						\
+> +	__ret;								\
+> +})
