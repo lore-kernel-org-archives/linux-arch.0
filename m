@@ -1,108 +1,37 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v4 6/8] locking/qrwlock: make use of
- acquire/release/relaxed atomics
-Date: Tue, 4 Aug 2015 12:20:25 +0100
-Message-ID: <20150804112025.GA10067@arm.com>
-References: <1438621351-15912-1-git-send-email-will.deacon@arm.com>
- <1438621351-15912-7-git-send-email-will.deacon@arm.com>
- <55BFD3D6.8000905@hp.com>
+From: Ross Zwisler <ross.zwisler@linux.intel.com>
+Subject: Re: [PATCH v3 24/24] pmem: convert to generic memremap
+Date: Tue, 04 Aug 2015 10:53:40 -0600
+Message-ID: <1438707220.12666.7.camel@linux.intel.com>
+References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
+	 <20150730165553.33962.20257.stgit@dwillia2-desk3.amr.corp.intel.com>
+	 <1438622487.9404.2.camel@linux.intel.com>
+	 <CAPcyv4gCPyXwwgjidaUaNyNe8ZitmwVa-NF7pBT-y3rV4XBUzA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:57198 "EHLO foss.arm.com"
+Received: from mga03.intel.com ([134.134.136.65]:48521 "EHLO mga03.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933034AbbHDLU3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 4 Aug 2015 07:20:29 -0400
-Content-Disposition: inline
-In-Reply-To: <55BFD3D6.8000905@hp.com>
+	id S1752943AbbHDQxo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 4 Aug 2015 12:53:44 -0400
+In-Reply-To: <CAPcyv4gCPyXwwgjidaUaNyNe8ZitmwVa-NF7pBT-y3rV4XBUzA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Waiman Long <waiman.long@hp.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "mingo@kernel.org" <mingo@kernel.org>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Kani, Toshimitsu" <toshi.kani@hp.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, Luis Rodriguez <mcgrof@suse.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-Hi Waiman,
+On Mon, 2015-08-03 at 11:01 -0700, Dan Williams wrote:
+> On Mon, Aug 3, 2015 at 10:21 AM, Ross Zwisler
+> <ross.zwisler@linux.intel.com> wrote:
+> > On Thu, 2015-07-30 at 12:55 -0400, Dan Williams wrote:
+> >> Update memremap_pmem() to query the architecture for the mapping type of
+> >> the given persistent memory range  and then pass those flags to generic
+> >> memremap().  arch_memremap_pmem_flags() is provided an address range to
+> >> evaluate in the event an arch has a need for different mapping types by
+> >> address range.  For example the ACPI NFIT carries EFI mapping types in
+> >> its memory range description table.
+> >>
+> >> Cc: Ross Zwisler <ross.zwisler@linux.intel.com>
+> >> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 
-Thanks for having a look.
-
-On Mon, Aug 03, 2015 at 09:49:26PM +0100, Waiman Long wrote:
-> On 08/03/2015 01:02 PM, Will Deacon wrote:
-> > The qrwlock implementation is slightly heavy in its use of memory
-> > barriers, mainly through the use of cmpxchg and _return atomics, which
-> > imply full barrier semantics.
-> >
-> > This patch modifies the qrwlock code to use the more relaxed atomic
-> > routines so that we can reduce the unnecessary barrier overhead on
-> > weakly-ordered architectures.
-> >
-> > Signed-off-by: Will Deacon<will.deacon@arm.com>
-
-[...]
-
-> > @@ -74,8 +74,9 @@ void queued_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
-> >   		 * Readers in interrupt context will get the lock immediately
-> >   		 * if the writer is just waiting (not holding the lock yet).
-> >   		 * The rspin_until_writer_unlock() function returns immediately
-> > -		 * in this case. Otherwise, they will spin until the lock
-> > -		 * is available without waiting in the queue.
-> > +		 * in this case. Otherwise, they will spin (with ACQUIRE
-> > +		 * semantics) until the lock is available without waiting in
-> > +		 * the queue.
-> >   		 */
-> >   		rspin_until_writer_unlock(lock, cnts);
-> >   		return;
-> > @@ -97,7 +98,13 @@ void queued_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
-> >   	while (atomic_read(&lock->cnts)&  _QW_WMASK)
-> >   		cpu_relax_lowlatency();
-> >
-> > -	cnts = atomic_add_return(_QR_BIAS,&lock->cnts) - _QR_BIAS;
-> > +	cnts = atomic_add_return_relaxed(_QR_BIAS,&lock->cnts) - _QR_BIAS;
-> > +
-> > +	/*
-> > +	 * The ACQUIRE semantics of the spinning code ensure that
-> > +	 * accesses can't leak upwards out of our subsequent critical
-> > +	 * section.
-> > +	 */
-> 
-> Maybe you should be more specific to mention the arch_spin_lock() call 
-> above. Other than that,
-
-Actually, I think you've uncovered a bug! Initially, I based this on top
-of my qrwlock series that made the acquire unconditional in
-rspin_until_writer_unlock, but you (reasonably) objected to the extra
-overhead on the interrupt path, so now we only get an acquire if the
-initial test of (cnts & _QW_WMASK) == _QW_LOCKED) succeeds.
-
-So actually, the atomic_add_return needs to be made an
-atomic_add_return_acquire. I'll make that change and adjust the comment
-accordingly.
-
-Fixup below.
-
-Cheers,
-
-Will
-
---->8
-
-diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
-index fb4ef2d636f2..1724eac4c84b 100644
---- a/kernel/locking/qrwlock.c
-+++ b/kernel/locking/qrwlock.c
-@@ -98,13 +98,12 @@ void queued_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
- 	while (atomic_read(&lock->cnts) & _QW_WMASK)
- 		cpu_relax_lowlatency();
- 
--	cnts = atomic_add_return_relaxed(_QR_BIAS, &lock->cnts) - _QR_BIAS;
--
- 	/*
--	 * The ACQUIRE semantics of the spinning code ensure that
--	 * accesses can't leak upwards out of our subsequent critical
--	 * section.
-+	 * The ACQUIRE semantics of the following spinning code ensure
-+	 * that accesses can't leak upwards out of our subsequent critical
-+	 * section in the case that the lock is currently held for write.
- 	 */
-+	cnts = atomic_add_return_acquire(_QR_BIAS, &lock->cnts) - _QR_BIAS;
- 	rspin_until_writer_unlock(lock, cnts);
- 
- 	/*
+Reviewed-by: Ross Zwisler <ross.zwisler@linux.intel.com>
