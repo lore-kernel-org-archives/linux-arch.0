@@ -1,104 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:37609 "EHLO
-	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753850AbbHEPt3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Aug 2015 11:49:29 -0400
-From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH 5/7] test_user_copy: Check __copy_{to,from}_user_inatomic()
-Date: Wed, 5 Aug 2015 16:48:53 +0100
-Message-ID: <1438789735-4643-6-git-send-email-james.hogan@imgtec.com>
+Received: from mail-ig0-f174.google.com ([209.85.213.174]:35832 "EHLO
+	mail-ig0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752801AbbHEU0K (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Aug 2015 16:26:10 -0400
+Received: by igr7 with SMTP id 7so102977615igr.0
+        for <linux-arch@vger.kernel.org>; Wed, 05 Aug 2015 13:26:09 -0700 (PDT)
+MIME-Version: 1.0
 In-Reply-To: <1438789735-4643-1-git-send-email-james.hogan@imgtec.com>
 References: <1438789735-4643-1-git-send-email-james.hogan@imgtec.com>
-MIME-Version: 1.0
-Content-Type: text/plain
+Date: Wed, 5 Aug 2015 13:26:09 -0700
+Message-ID: <CAGXu5jJd4EH37B51zxphYkwp6RBOkYuwiGNr7C6nJK2q=JE79A@mail.gmail.com>
+Subject: Re: [PATCH 0/7] test_user_copy improvements
+From: Kees Cook <keescook@chromium.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, James Hogan <james.hogan@imgtec.com>, Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20150805154853.YcguGfFQA2tRayHGDHu-2RmCHK-OMmtoZzZi3KeW2GQ@z>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20150805202609.mJzcu_ikr1YXP8SWJsGNSbECMmxQOsaW-Y1kWZduS-w@z>
 
-Add basic success/failure checking of __copy_to_user_inatomic() and
-__copy_from_user_inatomic(). For testing purposes these are similar to
-their non-atomic non-checking friends, so the new tests match those for
-__copy_to_user() and __copy_from_user().
+On Wed, Aug 5, 2015 at 8:48 AM, James Hogan <james.hogan@imgtec.com> wrote:
+> These patches extend the test_user_copy test module to handle lots more
+> cases of user accessors which architectures can override separately, and
+> in particular those which are important for checking the MIPS Enhanced
+> Virtual Addressing (EVA) implementations, which need to handle
+> overlapping user and kernel address spaces, with special instructions
+> for accessing user address space from kernel mode.
+>
+> - Checking that kernel pointers are accepted when user address limit is
+>   set to KERNEL_DS, as done by the kernel when it internally invokes
+>   system calls with kernel pointers.
+> - Checking of the unchecked accessors (which don't call access_ok()).
+>   Some of the tests are special cased for EVA at the moment which has
+>   stricter hardware guarantees for bad user accesses than other
+>   configurations.
+> - Checking of other sets of user accessors, including the inatomic user
+>   copies, copy_in_user, clear_user, the user string accessors, and the
+>   user checksum functions, all of which need special handling in arch
+>   code with EVA.
+>
+> Tested on MIPS with and without EVA, and on x86_64.
+>
+> James Hogan (7):
+>   test_user_copy: Check legit kernel accesses
+>   test_user_copy: Check unchecked accessors
+>   test_user_copy: Check __clear_user()/clear_user()
+>   test_user_copy: Check __copy_in_user()/copy_in_user()
+>   test_user_copy: Check __copy_{to,from}_user_inatomic()
+>   test_user_copy: Check user string accessors
+>   test_user_copy: Check user checksum functions
+>
+>  lib/test_user_copy.c | 221 +++++++++++++++++++++++++++++++++++++++++++++++++++
+>  1 file changed, 221 insertions(+)
+>
+> Cc: Kees Cook <keescook@chromium.org>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
 
-New tests:
-- legitimate __copy_from_user_inatomic
-- legitimate __copy_to_user_inatomic
-- illegal all-kernel __copy_from_user_inatomic
-- illegal reversed __copy_from_user_inatomic
-- illegal all-kernel __copy_to_user_inatomic
-- illegal reversed __copy_to_user_inatomic
-- legitimate all-kernel __copy_from_user_inatomic
-- legitimate all-kernel __copy_to_user_inatomic
+Ooooh! Nice! This is great, thank you. :) Great to hear it helped find
+a bug too. :)
 
-Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Cc: Kees Cook <keescook@chromium.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>
----
- lib/test_user_copy.c | 24 ++++++++++++++++++++++++
- 1 file changed, 24 insertions(+)
+I'm wondering if we need to macro-ize any of these. Probably not, but
+it just feels like there's a lot of repeated stuff now. But I think
+it's a bit of an illusion since each test is ever so slightly
+different from the others.
 
-diff --git a/lib/test_user_copy.c b/lib/test_user_copy.c
-index 310e796beef6..6cbdb0a15ca2 100644
---- a/lib/test_user_copy.c
-+++ b/lib/test_user_copy.c
-@@ -79,8 +79,12 @@ static int __init test_user_copy_init(void)
- 		    "legitimate access_ok VERIFY_WRITE failed");
- 	ret |= test(__copy_from_user(kmem, usermem, PAGE_SIZE),
- 		    "legitimate __copy_from_user failed");
-+	ret |= test(__copy_from_user_inatomic(kmem, usermem, PAGE_SIZE),
-+		    "legitimate __copy_from_user_inatomic failed");
- 	ret |= test(__copy_to_user(usermem, kmem, PAGE_SIZE),
- 		    "legitimate __copy_to_user failed");
-+	ret |= test(__copy_to_user_inatomic(usermem, kmem, PAGE_SIZE),
-+		    "legitimate __copy_to_user_inatomic failed");
- 	ret |= test(__copy_in_user(usermem, usermem + PAGE_SIZE, PAGE_SIZE),
- 		    "legitimate __copy_in_user failed");
- 	ret |= test(__get_user(value, (unsigned long __user *)usermem),
-@@ -137,12 +141,25 @@ static int __init test_user_copy_init(void)
- 	ret |= test(!__copy_from_user(bad_usermem, (char __user *)kmem,
- 				      PAGE_SIZE),
- 		    "illegal reversed __copy_from_user passed");
-+	ret |= test(!__copy_from_user_inatomic(kmem,
-+					(char __user *)(kmem + PAGE_SIZE),
-+					PAGE_SIZE),
-+		    "illegal all-kernel __copy_from_user_inatomic passed");
-+	ret |= test(!__copy_from_user_inatomic(bad_usermem, (char __user *)kmem,
-+					       PAGE_SIZE),
-+		    "illegal reversed __copy_from_user_inatomic passed");
- 	ret |= test(!__copy_to_user((char __user *)kmem, kmem + PAGE_SIZE,
- 				    PAGE_SIZE),
- 		    "illegal all-kernel __copy_to_user passed");
- 	ret |= test(!__copy_to_user((char __user *)kmem, bad_usermem,
- 				    PAGE_SIZE),
- 		    "illegal reversed __copy_to_user passed");
-+	ret |= test(!__copy_to_user_inatomic((char __user *)kmem,
-+					     kmem + PAGE_SIZE, PAGE_SIZE),
-+		    "illegal all-kernel __copy_to_user_inatomic passed");
-+	ret |= test(!__copy_to_user_inatomic((char __user *)kmem, bad_usermem,
-+					     PAGE_SIZE),
-+		    "illegal reversed __copy_to_user_inatomic passed");
- 	ret |= test(!__copy_in_user((char __user *)kmem,
- 				    (char __user *)(kmem + PAGE_SIZE),
- 				    PAGE_SIZE),
-@@ -193,9 +210,16 @@ static int __init test_user_copy_init(void)
- 	ret |= test(__copy_from_user(kmem, (char __user *)(kmem + PAGE_SIZE),
- 				     PAGE_SIZE),
- 		    "legitimate all-kernel __copy_from_user failed");
-+	ret |= test(__copy_from_user_inatomic(kmem,
-+					      (char __user *)(kmem + PAGE_SIZE),
-+					      PAGE_SIZE),
-+		    "legitimate all-kernel __copy_from_user_inatomic failed");
- 	ret |= test(__copy_to_user((char __user *)kmem, kmem + PAGE_SIZE,
- 				   PAGE_SIZE),
- 		    "legitimate all-kernel __copy_to_user failed");
-+	ret |= test(__copy_to_user_inatomic((char __user *)kmem,
-+					    kmem + PAGE_SIZE, PAGE_SIZE),
-+		    "legitimate all-kernel __copy_to_user_inatomic failed");
- 	ret |= test(__copy_in_user((char __user *)kmem,
- 				   (char __user *)(kmem + PAGE_SIZE),
- 				   PAGE_SIZE),
+Acked-by: Kees Cook <keescook@chromium.org>
+
+-Kees
+
 -- 
-2.3.6
-
+Kees Cook
+Chrome OS Security
