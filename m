@@ -1,37 +1,141 @@
-From: Ross Zwisler <ross.zwisler@linux.intel.com>
-Subject: Re: [PATCH v3 24/24] pmem: convert to generic memremap
-Date: Tue, 04 Aug 2015 10:53:40 -0600
-Message-ID: <1438707220.12666.7.camel@linux.intel.com>
-References: <20150730165155.33962.64121.stgit@dwillia2-desk3.amr.corp.intel.com>
-	 <20150730165553.33962.20257.stgit@dwillia2-desk3.amr.corp.intel.com>
-	 <1438622487.9404.2.camel@linux.intel.com>
-	 <CAPcyv4gCPyXwwgjidaUaNyNe8ZitmwVa-NF7pBT-y3rV4XBUzA@mail.gmail.com>
+From: Juergen Gross <jgross@suse.com>
+Subject: Re: [Patch V6 12/16] mm: provide early_memremap_ro to establish
+ read-only mapping
+Date: Wed, 5 Aug 2015 13:16:39 +0200
+Message-ID: <55C1F097.5010703@suse.com>
+References: <1437108697-4115-1-git-send-email-jgross@suse.com>
+ <1437108697-4115-13-git-send-email-jgross@suse.com>
+ <55ADCF40.6010903@suse.com> <55B89ACD.2070903@suse.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:48521 "EHLO mga03.intel.com"
+Received: from mx2.suse.de ([195.135.220.15]:59636 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752943AbbHDQxo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 4 Aug 2015 12:53:44 -0400
-In-Reply-To: <CAPcyv4gCPyXwwgjidaUaNyNe8ZitmwVa-NF7pBT-y3rV4XBUzA@mail.gmail.com>
+	id S1751797AbbHELQn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 5 Aug 2015 07:16:43 -0400
+In-Reply-To: <55B89ACD.2070903@suse.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Kani, Toshimitsu" <toshi.kani@hp.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, Luis Rodriguez <mcgrof@suse.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@arm.linux.org.uk>, Christoph Hellwig <hch@lst.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+To: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: xen-devel@lists.xensource.com, konrad.wilk@oracle.com, david.vrabel@citrix.com, boris.ostrovsky@oracle.com
 
-On Mon, 2015-08-03 at 11:01 -0700, Dan Williams wrote:
-> On Mon, Aug 3, 2015 at 10:21 AM, Ross Zwisler
-> <ross.zwisler@linux.intel.com> wrote:
-> > On Thu, 2015-07-30 at 12:55 -0400, Dan Williams wrote:
-> >> Update memremap_pmem() to query the architecture for the mapping type of
-> >> the given persistent memory range  and then pass those flags to generic
-> >> memremap().  arch_memremap_pmem_flags() is provided an address range to
-> >> evaluate in the event an arch has a need for different mapping types by
-> >> address range.  For example the ACPI NFIT carries EFI mapping types in
-> >> its memory range description table.
-> >>
-> >> Cc: Ross Zwisler <ross.zwisler@linux.intel.com>
-> >> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+MM maintainers,
 
-Reviewed-by: Ross Zwisler <ross.zwisler@linux.intel.com>
+is it really so hard to comment on this patch?
+
+
+Juergen
+
+On 07/29/2015 11:20 AM, Juergen Gross wrote:
+> On 07/21/2015 06:49 AM, Juergen Gross wrote:
+>> Hi MM maintainers,
+>>
+>> this patch is the last requiring an ack for the series to go in.
+>> Could you please comment?
+>
+> PING?
+>
+>>
+>>
+>> Juergen
+>>
+>> On 07/17/2015 06:51 AM, Juergen Gross wrote:
+>>> During early boot as Xen pv domain the kernel needs to map some page
+>>> tables supplied by the hypervisor read only. This is needed to be
+>>> able to relocate some data structures conflicting with the physical
+>>> memory map especially on systems with huge RAM (above 512GB).
+>>>
+>>> Provide the function early_memremap_ro() to provide this read only
+>>> mapping.
+>>>
+>>> Signed-off-by: Juergen Gross <jgross@suse.com>
+>>> Acked-by: Konrad Rzeszutek Wilk <Konrad.wilk@oracle.com>
+>>> Cc: Arnd Bergmann <arnd@arndb.de>
+>>> Cc: linux-mm@kvack.org
+>>> Cc: linux-arch@vger.kernel.org
+>>> ---
+>>>   include/asm-generic/early_ioremap.h |  2 ++
+>>>   include/asm-generic/fixmap.h        |  3 +++
+>>>   mm/early_ioremap.c                  | 12 ++++++++++++
+>>>   3 files changed, 17 insertions(+)
+>>>
+>>> diff --git a/include/asm-generic/early_ioremap.h
+>>> b/include/asm-generic/early_ioremap.h
+>>> index a5de55c..316bd04 100644
+>>> --- a/include/asm-generic/early_ioremap.h
+>>> +++ b/include/asm-generic/early_ioremap.h
+>>> @@ -11,6 +11,8 @@ extern void __iomem *early_ioremap(resource_size_t
+>>> phys_addr,
+>>>                      unsigned long size);
+>>>   extern void *early_memremap(resource_size_t phys_addr,
+>>>                   unsigned long size);
+>>> +extern void *early_memremap_ro(resource_size_t phys_addr,
+>>> +                   unsigned long size);
+>>>   extern void early_iounmap(void __iomem *addr, unsigned long size);
+>>>   extern void early_memunmap(void *addr, unsigned long size);
+>>>
+>>> diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
+>>> index f23174f..1cbb833 100644
+>>> --- a/include/asm-generic/fixmap.h
+>>> +++ b/include/asm-generic/fixmap.h
+>>> @@ -46,6 +46,9 @@ static inline unsigned long virt_to_fix(const
+>>> unsigned long vaddr)
+>>>   #ifndef FIXMAP_PAGE_NORMAL
+>>>   #define FIXMAP_PAGE_NORMAL PAGE_KERNEL
+>>>   #endif
+>>> +#if !defined(FIXMAP_PAGE_RO) && defined(PAGE_KERNEL_RO)
+>>> +#define FIXMAP_PAGE_RO PAGE_KERNEL_RO
+>>> +#endif
+>>>   #ifndef FIXMAP_PAGE_NOCACHE
+>>>   #define FIXMAP_PAGE_NOCACHE PAGE_KERNEL_NOCACHE
+>>>   #endif
+>>> diff --git a/mm/early_ioremap.c b/mm/early_ioremap.c
+>>> index e10ccd2..0cfadaf 100644
+>>> --- a/mm/early_ioremap.c
+>>> +++ b/mm/early_ioremap.c
+>>> @@ -217,6 +217,13 @@ early_memremap(resource_size_t phys_addr,
+>>> unsigned long size)
+>>>       return (__force void *)__early_ioremap(phys_addr, size,
+>>>                              FIXMAP_PAGE_NORMAL);
+>>>   }
+>>> +#ifdef FIXMAP_PAGE_RO
+>>> +void __init *
+>>> +early_memremap_ro(resource_size_t phys_addr, unsigned long size)
+>>> +{
+>>> +    return (__force void *)__early_ioremap(phys_addr, size,
+>>> FIXMAP_PAGE_RO);
+>>> +}
+>>> +#endif
+>>>   #else /* CONFIG_MMU */
+>>>
+>>>   void __init __iomem *
+>>> @@ -231,6 +238,11 @@ early_memremap(resource_size_t phys_addr,
+>>> unsigned long size)
+>>>   {
+>>>       return (void *)phys_addr;
+>>>   }
+>>> +void __init *
+>>> +early_memremap_ro(resource_size_t phys_addr, unsigned long size)
+>>> +{
+>>> +    return (void *)phys_addr;
+>>> +}
+>>>
+>>>   void __init early_iounmap(void __iomem *addr, unsigned long size)
+>>>   {
+>>>
+>>
+>> --
+>> To unsubscribe from this list: send the line "unsubscribe
+>> linux-kernel" in
+>> the body of a message to majordomo@vger.kernel.org
+>> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>> Please read the FAQ at  http://www.tux.org/lkml/
+>>
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
+>
