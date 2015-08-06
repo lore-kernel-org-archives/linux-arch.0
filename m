@@ -1,27 +1,124 @@
-From: "Arguinchona, Christa L" <Christa.Arguinchona@providence.org>
-Subject: This Message is From the Administrator Desk
-Date: Thu, 6 Aug 2015 10:20:59 +0000
-Message-ID: <6F6980A7E511B54383AE0E6DF51EBEB63AB62006__48158.7813272656$1438856546$gmane$org@WN35118.or.providence.org>
+From: Vlastimil Babka <vbabka@suse.cz>
+Subject: Re: [Patch V6 12/16] mm: provide early_memremap_ro to establish
+ read-only mapping
+Date: Thu, 6 Aug 2015 14:46:51 +0200
+Message-ID: <55C3573B.6020509@suse.cz>
+References: <1437108697-4115-1-git-send-email-jgross@suse.com>
+ <1437108697-4115-13-git-send-email-jgross@suse.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bl2hn0245.outbound.protection.outlook.com ([65.55.169.245]:14574
-	"EHLO na01-bl2-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1755047AbbHFKVO convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Aug 2015 06:21:14 -0400
-Content-Language: en-US
+Received: from mx2.suse.de ([195.135.220.15]:39782 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755902AbbHFMqz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 6 Aug 2015 08:46:55 -0400
+In-Reply-To: <1437108697-4115-13-git-send-email-jgross@suse.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Juergen Gross <jgross@suse.com>, linux-kernel@vger.kernel.org, xen-devel@lists.xensource.com, konrad.wilk@oracle.com, david.vrabel@citrix.com, boris.ostrovsky@oracle.com
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-mm@kvack.org, linux-arch@vger.kernel.org
 
-Due to our latest IP Security upgrades we have reason to believe that your web mail account was accessed by a third party. Protecting the security of your web mail account is our primary concern, we have limited access to sensitive web mail account features.Failure to re-validate, your e-mail will be blocked in 24 hours. To Confirm Your E-mail Account click on the link below.
+On 07/17/2015 06:51 AM, Juergen Gross wrote:
+> During early boot as Xen pv domain the kernel needs to map some page
+> tables supplied by the hypervisor read only. This is needed to be
+> able to relocate some data structures conflicting with the physical
+> memory map especially on systems with huge RAM (above 512GB).
+>
+> Provide the function early_memremap_ro() to provide this read only
+> mapping.
+>
+> Signed-off-by: Juergen Gross <jgross@suse.com>
+> Acked-by: Konrad Rzeszutek Wilk <Konrad.wilk@oracle.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: linux-mm@kvack.org
+> Cc: linux-arch@vger.kernel.org
+> ---
+>   include/asm-generic/early_ioremap.h |  2 ++
+>   include/asm-generic/fixmap.h        |  3 +++
+>   mm/early_ioremap.c                  | 12 ++++++++++++
+>   3 files changed, 17 insertions(+)
+>
+> diff --git a/include/asm-generic/early_ioremap.h b/include/asm-generic/early_ioremap.h
+> index a5de55c..316bd04 100644
+> --- a/include/asm-generic/early_ioremap.h
+> +++ b/include/asm-generic/early_ioremap.h
+> @@ -11,6 +11,8 @@ extern void __iomem *early_ioremap(resource_size_t phys_addr,
+>   				   unsigned long size);
+>   extern void *early_memremap(resource_size_t phys_addr,
+>   			    unsigned long size);
+> +extern void *early_memremap_ro(resource_size_t phys_addr,
+> +			       unsigned long size);
 
-http://scb.moy.su/emailupgrade.htm
+So the function is declared unconditionally...
 
-Thank you for your cooperation.
-System Administrator.
+>   extern void early_iounmap(void __iomem *addr, unsigned long size);
+>   extern void early_memunmap(void *addr, unsigned long size);
+>
+> diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
+> index f23174f..1cbb833 100644
+> --- a/include/asm-generic/fixmap.h
+> +++ b/include/asm-generic/fixmap.h
+> @@ -46,6 +46,9 @@ static inline unsigned long virt_to_fix(const unsigned long vaddr)
+>   #ifndef FIXMAP_PAGE_NORMAL
+>   #define FIXMAP_PAGE_NORMAL PAGE_KERNEL
+>   #endif
+> +#if !defined(FIXMAP_PAGE_RO) && defined(PAGE_KERNEL_RO)
+> +#define FIXMAP_PAGE_RO PAGE_KERNEL_RO
+> +#endif
+>   #ifndef FIXMAP_PAGE_NOCACHE
+>   #define FIXMAP_PAGE_NOCACHE PAGE_KERNEL_NOCACHE
+>   #endif
+> diff --git a/mm/early_ioremap.c b/mm/early_ioremap.c
+> index e10ccd2..0cfadaf 100644
+> --- a/mm/early_ioremap.c
+> +++ b/mm/early_ioremap.c
+> @@ -217,6 +217,13 @@ early_memremap(resource_size_t phys_addr, unsigned long size)
+>   	return (__force void *)__early_ioremap(phys_addr, size,
+>   					       FIXMAP_PAGE_NORMAL);
+>   }
+> +#ifdef FIXMAP_PAGE_RO
+> +void __init *
+> +early_memremap_ro(resource_size_t phys_addr, unsigned long size)
+> +{
+> +	return (__force void *)__early_ioremap(phys_addr, size, FIXMAP_PAGE_RO);
+> +}
+> +#endif
 
-________________________________
+... here we provide a implementation when both CONFIG_MMU and 
+FIXMAP_PAGE_RO are defined...
 
-This message is intended for the sole use of the addressee, and may contain information that is privileged, confidential and exempt from disclosure under applicable law. If you are not the addressee you are hereby notified that you may not use, copy, disclose, or distribute to anyone the message or any information contained in the message. If you have received this message in error, please immediately advise the sender by reply email and delete this message.
+>   #else /* CONFIG_MMU */
+>
+>   void __init __iomem *
+> @@ -231,6 +238,11 @@ early_memremap(resource_size_t phys_addr, unsigned long size)
+>   {
+>   	return (void *)phys_addr;
+>   }
+> +void __init *
+> +early_memremap_ro(resource_size_t phys_addr, unsigned long size)
+> +{
+> +	return (void *)phys_addr;
+> +}
+
+... and here for !CONFIG_MMU.
+
+So, what about CONFIG_MMU && !FIXMAP_PAGE_RO combinations? Which 
+translates to CONFIG_MMU && !PAGE_KERNEL_RO. Maybe they don't exist, but 
+then it's still awkward to see the combination in the code left 
+unimplemented.
+
+Would it be perhaps simpler to assume the same thing as in
+drivers/base/firmware_class.c ?
+
+/* Some architectures don't have PAGE_KERNEL_RO */
+#ifndef PAGE_KERNEL_RO
+#define PAGE_KERNEL_RO PAGE_KERNEL
+#endif
+
+Or would it be dangerous here to silently lose the read-only protection?
+
+>
+>   void __init early_iounmap(void __iomem *addr, unsigned long size)
+>   {
+>
