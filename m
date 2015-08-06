@@ -1,7 +1,7 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v5 8/8] ARM: atomics: define our SMP atomics in terms of _relaxed operations
-Date: Thu,  6 Aug 2015 17:54:44 +0100
-Message-ID: <1438880084-18856-9-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v5 6/8] locking/qrwlock: make use of acquire/release/relaxed atomics
+Date: Thu,  6 Aug 2015 17:54:42 +0100
+Message-ID: <1438880084-18856-7-git-send-email-will.deacon@arm.com>
 References: <1438880084-18856-1-git-send-email-will.deacon@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1438880084-18856-1-git-send-email-will.deacon@arm.com>
@@ -10,236 +10,139 @@ To: linux-arch@vger.kernel.org
 Cc: Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, mingo@kernel.org, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-By defining our SMP atomics in terms of relaxed operations, we gain
-a small reduction in code size and have acquire/release/fence variants
-generated automatically by the core code.
+The qrwlock implementation is slightly heavy in its use of memory
+barriers, mainly through the use of cmpxchg and _return atomics, which
+imply full barrier semantics.
+
+This patch modifies the qrwlock code to use the more relaxed atomic
+routines so that we can reduce the unnecessary barrier overhead on
+weakly-ordered architectures.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- arch/arm/include/asm/atomic.h  | 37 ++++++++++++++-------------------
- arch/arm/include/asm/cmpxchg.h | 47 +++++++-----------------------------------
- 2 files changed, 24 insertions(+), 60 deletions(-)
+ include/asm-generic/qrwlock.h | 13 ++++++-------
+ kernel/locking/qrwlock.c      | 22 ++++++++++++++--------
+ 2 files changed, 20 insertions(+), 15 deletions(-)
 
-diff --git a/arch/arm/include/asm/atomic.h b/arch/arm/include/asm/atomic.h
-index e22c11970b7b..bc9da3a3ff5e 100644
---- a/arch/arm/include/asm/atomic.h
-+++ b/arch/arm/include/asm/atomic.h
-@@ -57,12 +57,11 @@ static inline void atomic_##op(int i, atomic_t *v)			\
- }									\
+diff --git a/include/asm-generic/qrwlock.h b/include/asm-generic/qrwlock.h
+index eb673dde8879..54a8e65e18b6 100644
+--- a/include/asm-generic/qrwlock.h
++++ b/include/asm-generic/qrwlock.h
+@@ -68,7 +68,7 @@ static inline int queued_read_trylock(struct qrwlock *lock)
  
- #define ATOMIC_OP_RETURN(op, c_op, asm_op)				\
--static inline int atomic_##op##_return(int i, atomic_t *v)		\
-+static inline int atomic_##op##_return_relaxed(int i, atomic_t *v)	\
- {									\
- 	unsigned long tmp;						\
- 	int result;							\
- 									\
--	smp_mb();							\
- 	prefetchw(&v->counter);						\
- 									\
- 	__asm__ __volatile__("@ atomic_" #op "_return\n"		\
-@@ -75,17 +74,17 @@ static inline int atomic_##op##_return(int i, atomic_t *v)		\
- 	: "r" (&v->counter), "Ir" (i)					\
- 	: "cc");							\
- 									\
--	smp_mb();							\
--									\
- 	return result;							\
+ 	cnts = atomic_read(&lock->cnts);
+ 	if (likely(!(cnts & _QW_WMASK))) {
+-		cnts = (u32)atomic_add_return(_QR_BIAS, &lock->cnts);
++		cnts = (u32)atomic_add_return_acquire(_QR_BIAS, &lock->cnts);
+ 		if (likely(!(cnts & _QW_WMASK)))
+ 			return 1;
+ 		atomic_sub(_QR_BIAS, &lock->cnts);
+@@ -89,8 +89,8 @@ static inline int queued_write_trylock(struct qrwlock *lock)
+ 	if (unlikely(cnts))
+ 		return 0;
+ 
+-	return likely(atomic_cmpxchg(&lock->cnts,
+-				     cnts, cnts | _QW_LOCKED) == cnts);
++	return likely(atomic_cmpxchg_acquire(&lock->cnts,
++					     cnts, cnts | _QW_LOCKED) == cnts);
+ }
+ /**
+  * queued_read_lock - acquire read lock of a queue rwlock
+@@ -100,7 +100,7 @@ static inline void queued_read_lock(struct qrwlock *lock)
+ {
+ 	u32 cnts;
+ 
+-	cnts = atomic_add_return(_QR_BIAS, &lock->cnts);
++	cnts = atomic_add_return_acquire(_QR_BIAS, &lock->cnts);
+ 	if (likely(!(cnts & _QW_WMASK)))
+ 		return;
+ 
+@@ -115,7 +115,7 @@ static inline void queued_read_lock(struct qrwlock *lock)
+ static inline void queued_write_lock(struct qrwlock *lock)
+ {
+ 	/* Optimize for the unfair lock case where the fair flag is 0. */
+-	if (atomic_cmpxchg(&lock->cnts, 0, _QW_LOCKED) == 0)
++	if (atomic_cmpxchg_acquire(&lock->cnts, 0, _QW_LOCKED) == 0)
+ 		return;
+ 
+ 	queued_write_lock_slowpath(lock);
+@@ -130,8 +130,7 @@ static inline void queued_read_unlock(struct qrwlock *lock)
+ 	/*
+ 	 * Atomically decrement the reader count
+ 	 */
+-	smp_mb__before_atomic();
+-	atomic_sub(_QR_BIAS, &lock->cnts);
++	(void)atomic_sub_return_release(_QR_BIAS, &lock->cnts);
  }
  
--static inline int atomic_cmpxchg(atomic_t *ptr, int old, int new)
-+#define atomic_add_return_relaxed	atomic_add_return_relaxed
-+#define atomic_sub_return_relaxed	atomic_sub_return_relaxed
-+
-+static inline int atomic_cmpxchg_relaxed(atomic_t *ptr, int old, int new)
+ /**
+diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+index d9c36c5f5711..1724eac4c84b 100644
+--- a/kernel/locking/qrwlock.c
++++ b/kernel/locking/qrwlock.c
+@@ -55,7 +55,7 @@ rspin_until_writer_unlock(struct qrwlock *lock, u32 cnts)
  {
- 	int oldval;
- 	unsigned long res;
- 
--	smp_mb();
- 	prefetchw(&ptr->counter);
- 
- 	do {
-@@ -99,10 +98,9 @@ static inline int atomic_cmpxchg(atomic_t *ptr, int old, int new)
- 		    : "cc");
- 	} while (res);
- 
--	smp_mb();
--
- 	return oldval;
- }
-+#define atomic_cmpxchg_relaxed		atomic_cmpxchg_relaxed
- 
- static inline int __atomic_add_unless(atomic_t *v, int a, int u)
- {
-@@ -290,12 +288,12 @@ static inline void atomic64_##op(long long i, atomic64_t *v)		\
- }									\
- 
- #define ATOMIC64_OP_RETURN(op, op1, op2)				\
--static inline long long atomic64_##op##_return(long long i, atomic64_t *v) \
-+static inline long long							\
-+atomic64_##op##_return_relaxed(long long i, atomic64_t *v)		\
- {									\
- 	long long result;						\
- 	unsigned long tmp;						\
- 									\
--	smp_mb();							\
- 	prefetchw(&v->counter);						\
- 									\
- 	__asm__ __volatile__("@ atomic64_" #op "_return\n"		\
-@@ -309,8 +307,6 @@ static inline long long atomic64_##op##_return(long long i, atomic64_t *v) \
- 	: "r" (&v->counter), "r" (i)					\
- 	: "cc");							\
- 									\
--	smp_mb();							\
--									\
- 	return result;							\
- }
- 
-@@ -321,17 +317,19 @@ static inline long long atomic64_##op##_return(long long i, atomic64_t *v) \
- ATOMIC64_OPS(add, adds, adc)
- ATOMIC64_OPS(sub, subs, sbc)
- 
-+#define atomic64_add_return_relaxed	atomic64_add_return_relaxed
-+#define atomic64_sub_return_relaxed	atomic64_sub_return_relaxed
-+
- #undef ATOMIC64_OPS
- #undef ATOMIC64_OP_RETURN
- #undef ATOMIC64_OP
- 
--static inline long long atomic64_cmpxchg(atomic64_t *ptr, long long old,
--					long long new)
-+static inline long long
-+atomic64_cmpxchg_relaxed(atomic64_t *ptr, long long old, long long new)
- {
- 	long long oldval;
- 	unsigned long res;
- 
--	smp_mb();
- 	prefetchw(&ptr->counter);
- 
- 	do {
-@@ -346,17 +344,15 @@ static inline long long atomic64_cmpxchg(atomic64_t *ptr, long long old,
- 		: "cc");
- 	} while (res);
- 
--	smp_mb();
--
- 	return oldval;
- }
-+#define atomic64_cmpxchg_relaxed	atomic64_cmpxchg_relaxed
- 
--static inline long long atomic64_xchg(atomic64_t *ptr, long long new)
-+static inline long long atomic64_xchg_relaxed(atomic64_t *ptr, long long new)
- {
- 	long long result;
- 	unsigned long tmp;
- 
--	smp_mb();
- 	prefetchw(&ptr->counter);
- 
- 	__asm__ __volatile__("@ atomic64_xchg\n"
-@@ -368,10 +364,9 @@ static inline long long atomic64_xchg(atomic64_t *ptr, long long new)
- 	: "r" (&ptr->counter), "r" (new)
- 	: "cc");
- 
--	smp_mb();
--
- 	return result;
- }
-+#define atomic64_xchg_relaxed		atomic64_xchg_relaxed
- 
- static inline long long atomic64_dec_if_positive(atomic64_t *v)
- {
-diff --git a/arch/arm/include/asm/cmpxchg.h b/arch/arm/include/asm/cmpxchg.h
-index 1692a05d3207..916a2744d5c6 100644
---- a/arch/arm/include/asm/cmpxchg.h
-+++ b/arch/arm/include/asm/cmpxchg.h
-@@ -35,7 +35,6 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
- 	unsigned int tmp;
- #endif
- 
--	smp_mb();
- 	prefetchw((const void *)ptr);
- 
- 	switch (size) {
-@@ -98,12 +97,11 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
- 		__bad_xchg(ptr, size), ret = 0;
- 		break;
+ 	while ((cnts & _QW_WMASK) == _QW_LOCKED) {
+ 		cpu_relax_lowlatency();
+-		cnts = smp_load_acquire((u32 *)&lock->cnts);
++		cnts = atomic_read_acquire(&lock->cnts);
  	}
--	smp_mb();
- 
- 	return ret;
  }
  
--#define xchg(ptr, x) ({							\
-+#define xchg_relaxed(ptr, x) ({						\
- 	(__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr),		\
- 				   sizeof(*(ptr)));			\
- })
-@@ -117,6 +115,8 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size
- #error "SMP is not supported on this platform"
- #endif
+@@ -74,8 +74,9 @@ void queued_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
+ 		 * Readers in interrupt context will get the lock immediately
+ 		 * if the writer is just waiting (not holding the lock yet).
+ 		 * The rspin_until_writer_unlock() function returns immediately
+-		 * in this case. Otherwise, they will spin until the lock
+-		 * is available without waiting in the queue.
++		 * in this case. Otherwise, they will spin (with ACQUIRE
++		 * semantics) until the lock is available without waiting in
++		 * the queue.
+ 		 */
+ 		rspin_until_writer_unlock(lock, cnts);
+ 		return;
+@@ -97,7 +98,12 @@ void queued_read_lock_slowpath(struct qrwlock *lock, u32 cnts)
+ 	while (atomic_read(&lock->cnts) & _QW_WMASK)
+ 		cpu_relax_lowlatency();
  
-+#define xchg xchg_relaxed
-+
- /*
-  * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
-  * them available.
-@@ -194,23 +194,11 @@ static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
- 	return oldval;
- }
+-	cnts = atomic_add_return(_QR_BIAS, &lock->cnts) - _QR_BIAS;
++	/*
++	 * The ACQUIRE semantics of the following spinning code ensure
++	 * that accesses can't leak upwards out of our subsequent critical
++	 * section in the case that the lock is currently held for write.
++	 */
++	cnts = atomic_add_return_acquire(_QR_BIAS, &lock->cnts) - _QR_BIAS;
+ 	rspin_until_writer_unlock(lock, cnts);
  
--static inline unsigned long __cmpxchg_mb(volatile void *ptr, unsigned long old,
--					 unsigned long new, int size)
--{
--	unsigned long ret;
--
--	smp_mb();
--	ret = __cmpxchg(ptr, old, new, size);
--	smp_mb();
--
--	return ret;
--}
--
--#define cmpxchg(ptr,o,n) ({						\
--	(__typeof__(*(ptr)))__cmpxchg_mb((ptr),				\
--					 (unsigned long)(o),		\
--					 (unsigned long)(n),		\
--					 sizeof(*(ptr)));		\
-+#define cmpxchg_relaxed(ptr,o,n) ({					\
-+	(__typeof__(*(ptr)))__cmpxchg((ptr),				\
-+				      (unsigned long)(o),		\
-+				      (unsigned long)(n),		\
-+				      sizeof(*(ptr)));			\
- })
+ 	/*
+@@ -120,7 +126,7 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
  
- static inline unsigned long __cmpxchg_local(volatile void *ptr,
-@@ -273,25 +261,6 @@ static inline unsigned long long __cmpxchg64(unsigned long long *ptr,
+ 	/* Try to acquire the lock directly if no reader is present */
+ 	if (!atomic_read(&lock->cnts) &&
+-	    (atomic_cmpxchg(&lock->cnts, 0, _QW_LOCKED) == 0))
++	    (atomic_cmpxchg_acquire(&lock->cnts, 0, _QW_LOCKED) == 0))
+ 		goto unlock;
  
- #define cmpxchg64_local(ptr, o, n) cmpxchg64_relaxed((ptr), (o), (n))
+ 	/*
+@@ -131,7 +137,7 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
+ 		struct __qrwlock *l = (struct __qrwlock *)lock;
  
--static inline unsigned long long __cmpxchg64_mb(unsigned long long *ptr,
--						unsigned long long old,
--						unsigned long long new)
--{
--	unsigned long long ret;
--
--	smp_mb();
--	ret = __cmpxchg64(ptr, old, new);
--	smp_mb();
--
--	return ret;
--}
--
--#define cmpxchg64(ptr, o, n) ({						\
--	(__typeof__(*(ptr)))__cmpxchg64_mb((ptr),			\
--					   (unsigned long long)(o),	\
--					   (unsigned long long)(n));	\
--})
--
- #endif	/* __LINUX_ARM_ARCH__ >= 6 */
+ 		if (!READ_ONCE(l->wmode) &&
+-		   (cmpxchg(&l->wmode, 0, _QW_WAITING) == 0))
++		   (cmpxchg_relaxed(&l->wmode, 0, _QW_WAITING) == 0))
+ 			break;
  
- #endif /* __ASM_ARM_CMPXCHG_H */
+ 		cpu_relax_lowlatency();
+@@ -141,8 +147,8 @@ void queued_write_lock_slowpath(struct qrwlock *lock)
+ 	for (;;) {
+ 		cnts = atomic_read(&lock->cnts);
+ 		if ((cnts == _QW_WAITING) &&
+-		    (atomic_cmpxchg(&lock->cnts, _QW_WAITING,
+-				    _QW_LOCKED) == _QW_WAITING))
++		    (atomic_cmpxchg_acquire(&lock->cnts, _QW_WAITING,
++					    _QW_LOCKED) == _QW_WAITING))
+ 			break;
+ 
+ 		cpu_relax_lowlatency();
 -- 
 2.1.4
