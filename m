@@ -1,33 +1,101 @@
-From: Vlastimil Babka <vbabka@suse.cz>
-Subject: Re: [PATCH V6 2/6] mm: mlock: Add new mlock system call
-Date: Thu, 6 Aug 2015 16:00:33 +0200
-Message-ID: <55C36881.8050301@suse.cz>
-References: <1438184575-10537-1-git-send-email-emunson@akamai.com>
- <1438184575-10537-3-git-send-email-emunson@akamai.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH 0/7] test_user_copy improvements
+Date: Thu, 6 Aug 2015 16:02:11 +0100
+Message-ID: <55C376F3.4070907@imgtec.com>
+References: <1438789735-4643-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1438184575-10537-3-git-send-email-emunson@akamai.com>
-Sender: owner-linux-mm@kvack.org
-To: Eric B Munson <emunson@akamai.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Michal Hocko <mhocko@suse.cz>, Heiko Carstens <heiko.carstens@de.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Guenter Roeck <linux@roeck-us.net>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-cris-kernel@axis.com, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-am33-list@redhat.com, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature";
+	boundary="jVbHoIG19HtkTtAts8n4SM5ltNSdaPnEj"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailapp01.imgtec.com ([195.59.15.196]:49530 "EHLO
+	imgpgp01.kl.imgtec.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753187AbbHFPC0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Aug 2015 11:02:26 -0400
+In-Reply-To: <1438789735-4643-1-git-send-email-james.hogan@imgtec.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Kees Cook <keescook@chromium.org>
 
-On 07/29/2015 05:42 PM, Eric B Munson wrote:
-> With the refactored mlock code, introduce a new system call for mlock.
-> The new call will allow the user to specify what lock states are being
-> added.  mlock2 is trivial at the moment, but a follow on patch will add
-> a new mlock state making it useful.
->
-> Signed-off-by: Eric B Munson <emunson@akamai.com>
-> Cc: Michal Hocko <mhocko@suse.cz>
-> Cc: Vlastimil Babka <vbabka@suse.cz>
+--jVbHoIG19HtkTtAts8n4SM5ltNSdaPnEj
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: quoted-printable
 
-Acked-by: Vlastimil Babka <vbabka@suse.cz>
+Hi Andrew,
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+On 05/08/15 16:48, James Hogan wrote:
+> These patches extend the test_user_copy test module to handle lots more=
+
+> cases of user accessors which architectures can override separately, an=
+d
+> in particular those which are important for checking the MIPS Enhanced
+> Virtual Addressing (EVA) implementations, which need to handle
+> overlapping user and kernel address spaces, with special instructions
+> for accessing user address space from kernel mode.
+>=20
+> - Checking that kernel pointers are accepted when user address limit is=
+
+>   set to KERNEL_DS, as done by the kernel when it internally invokes
+>   system calls with kernel pointers.
+> - Checking of the unchecked accessors (which don't call access_ok()).
+>   Some of the tests are special cased for EVA at the moment which has
+>   stricter hardware guarantees for bad user accesses than other
+>   configurations.
+> - Checking of other sets of user accessors, including the inatomic user=
+
+>   copies, copy_in_user, clear_user, the user string accessors, and the
+>   user checksum functions, all of which need special handling in arch
+>   code with EVA.
+>=20
+> Tested on MIPS with and without EVA, and on x86_64.
+
+Could you drop these patches for -mm for the moment please. I'll get a
+v2 to fix the build problems out tomorrow now.
+
+Cheers
+James
+
+>=20
+> James Hogan (7):
+>   test_user_copy: Check legit kernel accesses
+>   test_user_copy: Check unchecked accessors
+>   test_user_copy: Check __clear_user()/clear_user()
+>   test_user_copy: Check __copy_in_user()/copy_in_user()
+>   test_user_copy: Check __copy_{to,from}_user_inatomic()
+>   test_user_copy: Check user string accessors
+>   test_user_copy: Check user checksum functions
+>=20
+>  lib/test_user_copy.c | 221 +++++++++++++++++++++++++++++++++++++++++++=
+++++++++
+>  1 file changed, 221 insertions(+)
+>=20
+> Cc: Kees Cook <keescook@chromium.org>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+>=20
+
+
+--jVbHoIG19HtkTtAts8n4SM5ltNSdaPnEj
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBAgAGBQJVw3bzAAoJEGwLaZPeOHZ6eR8P/jQMVAymZRXZWsXolh06E3SX
+fcT96OEuBjA/cHI7SLdTHKo7bhcrjqFLA6fC6jsV/5gMObYC2juEtnXBnObuxEKF
+RBZeihDYmhvYJAlf/l14PtVfcSwlFTmWSJdOsEQMwQqMAtn4gxY9Hmta8IkSXhaF
+RKc/DIdCTfkh2bUNJpxEPTLGhoKM5b1SodEkH9nScuAeZngx/Ge+LT+XIvZ+TU+d
+/9vUVWN4cT6nLcF7d+4SbaCXOL64Xbs+RVCPwGpIy/Joj55C6XZjAb/86feuL+CZ
+6egBQDhr/8NgQWl9p/YyUHSHKyapZj5SUjCgoI3CHuVr1pdXvvRxjq84i/nqvlvq
+0/cHxOYM7Z64qa7oan4NvlUNvGJndbfJ0B08xf5WW76EQIUPHD+ikqCaHZrdaFQV
+qsiknKHGjNhdJ+LPqAcvnqa7vVRp0yTinFYdiABZyyMkXELqMVD8ysEH9sCSJEFV
+EvFwJB7piWsBv5bnEy6Tl2zl5IdNJWG/cCSa3tCHe0dEb8IDFeVM+NyuqOeYvusV
+YiWmSOICgWpAyAzyQWlTieX6z01uLPwUczlweM8TwSyLUPtFt0cw01oQG9FLVUL2
+yG+k32gvnYP42tLLoUUQKOTuxchkXfOfnfWOD+8XAYUncpjjikqhSW0SzqGwJ1jn
+mwRMtK4GnD184uvwhsXt
+=XQs+
+-----END PGP SIGNATURE-----
+
+--jVbHoIG19HtkTtAts8n4SM5ltNSdaPnEj--
