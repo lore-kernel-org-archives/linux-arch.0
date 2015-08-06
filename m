@@ -1,309 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48220 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754411AbbHFQzX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Aug 2015 12:55:23 -0400
-From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v5 2/8] asm-generic: rework atomic-long.h to avoid bulk code duplication
-Date: Thu,  6 Aug 2015 17:54:38 +0100
-Message-ID: <1438880084-18856-3-git-send-email-will.deacon@arm.com>
-In-Reply-To: <1438880084-18856-1-git-send-email-will.deacon@arm.com>
-References: <1438880084-18856-1-git-send-email-will.deacon@arm.com>
+Received: from mx1.redhat.com ([209.132.183.28]:38631 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756282AbbHFVl6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 6 Aug 2015 17:41:58 -0400
+From: Mark Salter <msalter@redhat.com>
+Subject: [PATCH V2 3/3] x86: use generic early mem copy
+Date: Thu,  6 Aug 2015 17:41:39 -0400
+Message-ID: <1438897299-2266-4-git-send-email-msalter@redhat.com>
+In-Reply-To: <1438897299-2266-1-git-send-email-msalter@redhat.com>
+References: <1438897299-2266-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, mingo@kernel.org, Will Deacon <will.deacon@arm.com>
-Message-ID: <20150806165438.AJGNsUwluRJCPWHy_ryfest2ZDVRzdFY9IG-yatc5ng@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, x86@kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
+Message-ID: <20150806214139.LoIjn8c1Qs4KSvQRpW_h8pGpayU_9QflWES83sOkut8@z>
 
-We can use some (admittedly ugly) macros to generate the 32-bit and
-64-bit based atomic_long implementations from the same code.
+The early_ioremap library now has a generic copy_from_early_mem()
+function. Use the generic copy function for x86 relocate_initrd().
 
-Signed-off-by: Will Deacon <will.deacon@arm.com>
+Signed-off-by: Mark Salter <msalter@redhat.com>
 ---
- include/asm-generic/atomic-long.h | 189 ++++++++------------------------------
- 1 file changed, 40 insertions(+), 149 deletions(-)
+ arch/x86/kernel/setup.c | 21 +--------------------
+ 1 file changed, 1 insertion(+), 20 deletions(-)
 
-diff --git a/include/asm-generic/atomic-long.h b/include/asm-generic/atomic-long.h
-index b7babf0206b8..beaea541adfb 100644
---- a/include/asm-generic/atomic-long.h
-+++ b/include/asm-generic/atomic-long.h
-@@ -23,236 +23,127 @@
- typedef atomic64_t atomic_long_t;
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index 80f874b..b2a8446 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -324,8 +324,6 @@ static void __init relocate_initrd(void)
+ 	u64 ramdisk_image = get_ramdisk_image();
+ 	u64 ramdisk_size  = get_ramdisk_size();
+ 	u64 area_size     = PAGE_ALIGN(ramdisk_size);
+-	unsigned long slop, clen, mapaddr;
+-	char *p, *q;
  
- #define ATOMIC_LONG_INIT(i)	ATOMIC64_INIT(i)
-+#define ATOMIC_LONG_PFX(x)	atomic64 ## x
+ 	/* We need to move the initrd down into directly mapped mem */
+ 	relocated_ramdisk = memblock_find_in_range(0, PFN_PHYS(max_pfn_mapped),
+@@ -343,25 +341,8 @@ static void __init relocate_initrd(void)
+ 	printk(KERN_INFO "Allocated new RAMDISK: [mem %#010llx-%#010llx]\n",
+ 	       relocated_ramdisk, relocated_ramdisk + ramdisk_size - 1);
  
--static inline long atomic_long_read(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
+-	q = (char *)initrd_start;
 -
--	return (long)atomic64_read(v);
--}
--
--static inline void atomic_long_set(atomic_long_t *l, long i)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_set(v, i);
--}
--
--static inline void atomic_long_inc(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_inc(v);
--}
--
--static inline void atomic_long_dec(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_dec(v);
--}
--
--static inline void atomic_long_add(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_add(i, v);
--}
--
--static inline void atomic_long_sub(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_sub(i, v);
--}
--
--static inline int atomic_long_sub_and_test(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return atomic64_sub_and_test(i, v);
--}
--
--static inline int atomic_long_dec_and_test(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return atomic64_dec_and_test(v);
--}
--
--static inline int atomic_long_inc_and_test(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return atomic64_inc_and_test(v);
--}
--
--static inline int atomic_long_add_negative(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return atomic64_add_negative(i, v);
--}
--
--static inline long atomic_long_add_return(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_add_return(i, v);
--}
--
--static inline long atomic_long_sub_return(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_sub_return(i, v);
--}
--
--static inline long atomic_long_inc_return(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_inc_return(v);
--}
--
--static inline long atomic_long_dec_return(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_dec_return(v);
--}
--
--static inline long atomic_long_add_unless(atomic_long_t *l, long a, long u)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_add_unless(v, a, u);
--}
--
--#define atomic_long_inc_not_zero(l) atomic64_inc_not_zero((atomic64_t *)(l))
--
--#define atomic_long_cmpxchg(l, old, new) \
--	(atomic64_cmpxchg((atomic64_t *)(l), (old), (new)))
--#define atomic_long_xchg(v, new) \
--	(atomic64_xchg((atomic64_t *)(v), (new)))
--
--#else  /*  BITS_PER_LONG == 64  */
-+#else
+-	/* Copy the initrd */
+-	while (ramdisk_size) {
+-		slop = ramdisk_image & ~PAGE_MASK;
+-		clen = ramdisk_size;
+-		if (clen > MAX_MAP_CHUNK-slop)
+-			clen = MAX_MAP_CHUNK-slop;
+-		mapaddr = ramdisk_image & PAGE_MASK;
+-		p = early_memremap(mapaddr, clen+slop);
+-		memcpy(q, p+slop, clen);
+-		early_memunmap(p, clen+slop);
+-		q += clen;
+-		ramdisk_image += clen;
+-		ramdisk_size  -= clen;
+-	}
++	copy_from_early_mem((void *)initrd_start, ramdisk_image, ramdisk_size);
  
- typedef atomic_t atomic_long_t;
- 
- #define ATOMIC_LONG_INIT(i)	ATOMIC_INIT(i)
-+#define ATOMIC_LONG_PFX(x)	atomic ## x
-+
-+#endif
-+
- static inline long atomic_long_read(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_read(v);
-+	return (long)ATOMIC_LONG_PFX(_read)(v);
- }
- 
- static inline void atomic_long_set(atomic_long_t *l, long i)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_set(v, i);
-+	ATOMIC_LONG_PFX(_set)(v, i);
- }
- 
- static inline void atomic_long_inc(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_inc(v);
-+	ATOMIC_LONG_PFX(_inc)(v);
- }
- 
- static inline void atomic_long_dec(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_dec(v);
-+	ATOMIC_LONG_PFX(_dec)(v);
- }
- 
- static inline void atomic_long_add(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_add(i, v);
-+	ATOMIC_LONG_PFX(_add)(i, v);
- }
- 
- static inline void atomic_long_sub(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_sub(i, v);
-+	ATOMIC_LONG_PFX(_sub)(i, v);
- }
- 
- static inline int atomic_long_sub_and_test(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return atomic_sub_and_test(i, v);
-+	return ATOMIC_LONG_PFX(_sub_and_test)(i, v);
- }
- 
- static inline int atomic_long_dec_and_test(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return atomic_dec_and_test(v);
-+	return ATOMIC_LONG_PFX(_dec_and_test)(v);
- }
- 
- static inline int atomic_long_inc_and_test(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return atomic_inc_and_test(v);
-+	return ATOMIC_LONG_PFX(_inc_and_test)(v);
- }
- 
- static inline int atomic_long_add_negative(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return atomic_add_negative(i, v);
-+	return ATOMIC_LONG_PFX(_add_negative)(i, v);
- }
- 
- static inline long atomic_long_add_return(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_add_return(i, v);
-+	return (long)ATOMIC_LONG_PFX(_add_return)(i, v);
- }
- 
- static inline long atomic_long_sub_return(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_sub_return(i, v);
-+	return (long)ATOMIC_LONG_PFX(_sub_return)(i, v);
- }
- 
- static inline long atomic_long_inc_return(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_inc_return(v);
-+	return (long)ATOMIC_LONG_PFX(_inc_return)(v);
- }
- 
- static inline long atomic_long_dec_return(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_dec_return(v);
-+	return (long)ATOMIC_LONG_PFX(_dec_return)(v);
- }
- 
- static inline long atomic_long_add_unless(atomic_long_t *l, long a, long u)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_add_unless(v, a, u);
-+	return (long)ATOMIC_LONG_PFX(_add_unless)(v, a, u);
- }
- 
--#define atomic_long_inc_not_zero(l) atomic_inc_not_zero((atomic_t *)(l))
--
-+#define atomic_long_inc_not_zero(l) \
-+	ATOMIC_LONG_PFX(_inc_not_zero)((ATOMIC_LONG_PFX(_t) *)(l))
- #define atomic_long_cmpxchg(l, old, new) \
--	(atomic_cmpxchg((atomic_t *)(l), (old), (new)))
-+	(ATOMIC_LONG_PFX(_cmpxchg)((ATOMIC_LONG_PFX(_t) *)(l), (old), (new)))
- #define atomic_long_xchg(v, new) \
--	(atomic_xchg((atomic_t *)(v), (new)))
--
--#endif  /*  BITS_PER_LONG == 64  */
-+	(ATOMIC_LONG_PFX(_xchg)((ATOMIC_LONG_PFX(_t) *)(v), (new)))
- 
- #endif  /*  _ASM_GENERIC_ATOMIC_LONG_H  */
+-	ramdisk_image = get_ramdisk_image();
+-	ramdisk_size  = get_ramdisk_size();
+ 	printk(KERN_INFO "Move RAMDISK from [mem %#010llx-%#010llx] to"
+ 		" [mem %#010llx-%#010llx]\n",
+ 		ramdisk_image, ramdisk_image + ramdisk_size - 1,
 -- 
-2.1.4
+2.4.3
 
