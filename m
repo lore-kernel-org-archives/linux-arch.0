@@ -1,7 +1,7 @@
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH V2 3/3] x86: use generic early mem copy
-Date: Thu,  6 Aug 2015 17:41:39 -0400
-Message-ID: <1438897299-2266-4-git-send-email-msalter@redhat.com>
+Subject: [PATCH V2 2/3] arm64: support initrd outside kernel linear map
+Date: Thu,  6 Aug 2015 17:41:38 -0400
+Message-ID: <1438897299-2266-3-git-send-email-msalter@redhat.com>
 References: <1438897299-2266-1-git-send-email-msalter@redhat.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1438897299-2266-1-git-send-email-msalter@redhat.com>
@@ -10,54 +10,90 @@ To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-The early_ioremap library now has a generic copy_from_early_mem()
-function. Use the generic copy function for x86 relocate_initrd().
+The use of mem= could leave part or all of the initrd outside of
+the kernel linear map. This will lead to an error when unpacking
+the initrd and a probable failure to boot. This patch catches that
+situation and relocates the initrd to be fully within the linear
+map.
 
 Signed-off-by: Mark Salter <msalter@redhat.com>
 ---
- arch/x86/kernel/setup.c | 21 +--------------------
- 1 file changed, 1 insertion(+), 20 deletions(-)
+ arch/arm64/kernel/setup.c | 55 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 55 insertions(+)
 
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index 80f874b..b2a8446 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -324,8 +324,6 @@ static void __init relocate_initrd(void)
- 	u64 ramdisk_image = get_ramdisk_image();
- 	u64 ramdisk_size  = get_ramdisk_size();
- 	u64 area_size     = PAGE_ALIGN(ramdisk_size);
--	unsigned long slop, clen, mapaddr;
--	char *p, *q;
+diff --git a/arch/arm64/kernel/setup.c b/arch/arm64/kernel/setup.c
+index f3067d4..96339b5 100644
+--- a/arch/arm64/kernel/setup.c
++++ b/arch/arm64/kernel/setup.c
+@@ -359,6 +359,60 @@ static void __init request_standard_resources(void)
+ 	}
+ }
  
- 	/* We need to move the initrd down into directly mapped mem */
- 	relocated_ramdisk = memblock_find_in_range(0, PFN_PHYS(max_pfn_mapped),
-@@ -343,25 +341,8 @@ static void __init relocate_initrd(void)
- 	printk(KERN_INFO "Allocated new RAMDISK: [mem %#010llx-%#010llx]\n",
- 	       relocated_ramdisk, relocated_ramdisk + ramdisk_size - 1);
++/*
++ * Relocate initrd if it is not completely within the linear mapping.
++ * This would be the case if mem= cuts out all or part of it.
++ */
++static void __init relocate_initrd(void)
++{
++#ifdef CONFIG_BLK_DEV_INITRD
++	phys_addr_t orig_start = __virt_to_phys(initrd_start);
++	phys_addr_t orig_end = __virt_to_phys(initrd_end);
++	phys_addr_t ram_end = memblock_end_of_DRAM();
++	phys_addr_t new_start;
++	unsigned long size, to_free = 0;
++	void *dest;
++
++	if (orig_end <= ram_end)
++		return;
++
++	/* Note if any of original initrd will freeing below */
++	if (orig_start < ram_end)
++		to_free = ram_end - orig_start;
++
++	size = orig_end - orig_start;
++
++	/* initrd needs to be relocated completely inside linear mapping */
++	new_start = memblock_find_in_range(0, PFN_PHYS(max_pfn),
++					   size, PAGE_SIZE);
++	if (!new_start)
++		panic("Cannot relocate initrd of size %ld\n", size);
++	memblock_reserve(new_start, size);
++
++	initrd_start = __phys_to_virt(new_start);
++	initrd_end   = initrd_start + size;
++
++	pr_info("Moving initrd from [%llx-%llx] to [%llx-%llx]\n",
++		orig_start, orig_start + size - 1,
++		new_start, new_start + size - 1);
++
++	dest = (void *)initrd_start;
++
++	if (to_free) {
++		memcpy(dest, (void *)__phys_to_virt(orig_start), to_free);
++		dest += to_free;
++	}
++
++	copy_from_early_mem(dest, orig_start + to_free, size - to_free);
++
++	if (to_free) {
++		pr_info("Freeing original RAMDISK from [%llx-%llx]\n",
++			orig_start, orig_start + to_free - 1);
++		memblock_free(orig_start, to_free);
++	}
++#endif
++}
++
+ u64 __cpu_logical_map[NR_CPUS] = { [0 ... NR_CPUS-1] = INVALID_HWID };
  
--	q = (char *)initrd_start;
--
--	/* Copy the initrd */
--	while (ramdisk_size) {
--		slop = ramdisk_image & ~PAGE_MASK;
--		clen = ramdisk_size;
--		if (clen > MAX_MAP_CHUNK-slop)
--			clen = MAX_MAP_CHUNK-slop;
--		mapaddr = ramdisk_image & PAGE_MASK;
--		p = early_memremap(mapaddr, clen+slop);
--		memcpy(q, p+slop, clen);
--		early_memunmap(p, clen+slop);
--		q += clen;
--		ramdisk_image += clen;
--		ramdisk_size  -= clen;
--	}
-+	copy_from_early_mem((void *)initrd_start, ramdisk_image, ramdisk_size);
+ void __init setup_arch(char **cmdline_p)
+@@ -392,6 +446,7 @@ void __init setup_arch(char **cmdline_p)
+ 	acpi_boot_table_init();
  
--	ramdisk_image = get_ramdisk_image();
--	ramdisk_size  = get_ramdisk_size();
- 	printk(KERN_INFO "Move RAMDISK from [mem %#010llx-%#010llx] to"
- 		" [mem %#010llx-%#010llx]\n",
- 		ramdisk_image, ramdisk_image + ramdisk_size - 1,
+ 	paging_init();
++	relocate_initrd();
+ 	request_standard_resources();
+ 
+ 	early_ioremap_reset();
 -- 
 2.4.3
 
