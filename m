@@ -1,303 +1,43 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v5 2/8] asm-generic: rework atomic-long.h to avoid bulk code duplication
-Date: Thu,  6 Aug 2015 17:54:38 +0100
-Message-ID: <1438880084-18856-3-git-send-email-will.deacon@arm.com>
-References: <1438880084-18856-1-git-send-email-will.deacon@arm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1438880084-18856-1-git-send-email-will.deacon@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org
-Cc: Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, mingo@kernel.org, Will Deacon <will.deacon@arm.com>
-List-Id: linux-arch.vger.kernel.org
+From: Mark Salter <msalter@redhat.com>
+Subject: [PATCH V2 0/3] mm: Add generic copy from early unmapped RAM
+Date: Thu,  6 Aug 2015 17:41:36 -0400
+Message-ID: <1438897299-2266-1-git-send-email-msalter@redhat.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:40091 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751780AbbHFVlv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 6 Aug 2015 17:41:51 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, x86@kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
 
-We can use some (admittedly ugly) macros to generate the 32-bit and
-64-bit based atomic_long implementations from the same code.
+When booting an arm64 kernel w/initrd using UEFI/grub, use of mem= will likely
+cut off part or all of the initrd. This leaves it outside the kernel linear
+map which leads to failure when unpacking. The x86 code has a similar need to
+relocate an initrd outside of mapped memory in some cases.
 
-Signed-off-by: Will Deacon <will.deacon@arm.com>
----
- include/asm-generic/atomic-long.h | 189 ++++++++------------------------------
- 1 file changed, 40 insertions(+), 149 deletions(-)
+The current x86 code uses early_memremap() to copy the original initrd from
+unmapped to mapped RAM. This patchset creates a generic copy_from_early_mem()
+utility based on that x86 code and has arm64 and x86 share it in their
+respective initrd relocation code.
 
-diff --git a/include/asm-generic/atomic-long.h b/include/asm-generic/atomic-long.h
-index b7babf0206b8..beaea541adfb 100644
---- a/include/asm-generic/atomic-long.h
-+++ b/include/asm-generic/atomic-long.h
-@@ -23,236 +23,127 @@
- typedef atomic64_t atomic_long_t;
- 
- #define ATOMIC_LONG_INIT(i)	ATOMIC64_INIT(i)
-+#define ATOMIC_LONG_PFX(x)	atomic64 ## x
- 
--static inline long atomic_long_read(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_read(v);
--}
--
--static inline void atomic_long_set(atomic_long_t *l, long i)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_set(v, i);
--}
--
--static inline void atomic_long_inc(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_inc(v);
--}
--
--static inline void atomic_long_dec(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_dec(v);
--}
--
--static inline void atomic_long_add(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_add(i, v);
--}
--
--static inline void atomic_long_sub(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	atomic64_sub(i, v);
--}
--
--static inline int atomic_long_sub_and_test(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return atomic64_sub_and_test(i, v);
--}
--
--static inline int atomic_long_dec_and_test(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return atomic64_dec_and_test(v);
--}
--
--static inline int atomic_long_inc_and_test(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return atomic64_inc_and_test(v);
--}
--
--static inline int atomic_long_add_negative(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return atomic64_add_negative(i, v);
--}
--
--static inline long atomic_long_add_return(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_add_return(i, v);
--}
--
--static inline long atomic_long_sub_return(long i, atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_sub_return(i, v);
--}
--
--static inline long atomic_long_inc_return(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_inc_return(v);
--}
--
--static inline long atomic_long_dec_return(atomic_long_t *l)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_dec_return(v);
--}
--
--static inline long atomic_long_add_unless(atomic_long_t *l, long a, long u)
--{
--	atomic64_t *v = (atomic64_t *)l;
--
--	return (long)atomic64_add_unless(v, a, u);
--}
--
--#define atomic_long_inc_not_zero(l) atomic64_inc_not_zero((atomic64_t *)(l))
--
--#define atomic_long_cmpxchg(l, old, new) \
--	(atomic64_cmpxchg((atomic64_t *)(l), (old), (new)))
--#define atomic_long_xchg(v, new) \
--	(atomic64_xchg((atomic64_t *)(v), (new)))
--
--#else  /*  BITS_PER_LONG == 64  */
-+#else
- 
- typedef atomic_t atomic_long_t;
- 
- #define ATOMIC_LONG_INIT(i)	ATOMIC_INIT(i)
-+#define ATOMIC_LONG_PFX(x)	atomic ## x
-+
-+#endif
-+
- static inline long atomic_long_read(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_read(v);
-+	return (long)ATOMIC_LONG_PFX(_read)(v);
- }
- 
- static inline void atomic_long_set(atomic_long_t *l, long i)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_set(v, i);
-+	ATOMIC_LONG_PFX(_set)(v, i);
- }
- 
- static inline void atomic_long_inc(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_inc(v);
-+	ATOMIC_LONG_PFX(_inc)(v);
- }
- 
- static inline void atomic_long_dec(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_dec(v);
-+	ATOMIC_LONG_PFX(_dec)(v);
- }
- 
- static inline void atomic_long_add(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_add(i, v);
-+	ATOMIC_LONG_PFX(_add)(i, v);
- }
- 
- static inline void atomic_long_sub(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	atomic_sub(i, v);
-+	ATOMIC_LONG_PFX(_sub)(i, v);
- }
- 
- static inline int atomic_long_sub_and_test(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return atomic_sub_and_test(i, v);
-+	return ATOMIC_LONG_PFX(_sub_and_test)(i, v);
- }
- 
- static inline int atomic_long_dec_and_test(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return atomic_dec_and_test(v);
-+	return ATOMIC_LONG_PFX(_dec_and_test)(v);
- }
- 
- static inline int atomic_long_inc_and_test(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return atomic_inc_and_test(v);
-+	return ATOMIC_LONG_PFX(_inc_and_test)(v);
- }
- 
- static inline int atomic_long_add_negative(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return atomic_add_negative(i, v);
-+	return ATOMIC_LONG_PFX(_add_negative)(i, v);
- }
- 
- static inline long atomic_long_add_return(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_add_return(i, v);
-+	return (long)ATOMIC_LONG_PFX(_add_return)(i, v);
- }
- 
- static inline long atomic_long_sub_return(long i, atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_sub_return(i, v);
-+	return (long)ATOMIC_LONG_PFX(_sub_return)(i, v);
- }
- 
- static inline long atomic_long_inc_return(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_inc_return(v);
-+	return (long)ATOMIC_LONG_PFX(_inc_return)(v);
- }
- 
- static inline long atomic_long_dec_return(atomic_long_t *l)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_dec_return(v);
-+	return (long)ATOMIC_LONG_PFX(_dec_return)(v);
- }
- 
- static inline long atomic_long_add_unless(atomic_long_t *l, long a, long u)
- {
--	atomic_t *v = (atomic_t *)l;
-+	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
- 
--	return (long)atomic_add_unless(v, a, u);
-+	return (long)ATOMIC_LONG_PFX(_add_unless)(v, a, u);
- }
- 
--#define atomic_long_inc_not_zero(l) atomic_inc_not_zero((atomic_t *)(l))
--
-+#define atomic_long_inc_not_zero(l) \
-+	ATOMIC_LONG_PFX(_inc_not_zero)((ATOMIC_LONG_PFX(_t) *)(l))
- #define atomic_long_cmpxchg(l, old, new) \
--	(atomic_cmpxchg((atomic_t *)(l), (old), (new)))
-+	(ATOMIC_LONG_PFX(_cmpxchg)((ATOMIC_LONG_PFX(_t) *)(l), (old), (new)))
- #define atomic_long_xchg(v, new) \
--	(atomic_xchg((atomic_t *)(v), (new)))
--
--#endif  /*  BITS_PER_LONG == 64  */
-+	(ATOMIC_LONG_PFX(_xchg)((ATOMIC_LONG_PFX(_t) *)(v), (new)))
- 
- #endif  /*  _ASM_GENERIC_ATOMIC_LONG_H  */
+Changes from V1:
+
+  * Change cover letter subject to highlight the added generic code
+
+  * Add patch for x86 to use common copy_from_early_mem()
+
+Mark Salter (3):
+  mm: add utility for early copy from unmapped ram
+  arm64: support initrd outside kernel linear map
+  x86: use generic early mem copy
+
+ arch/arm64/kernel/setup.c           | 55 +++++++++++++++++++++++++++++++++++++
+ arch/x86/kernel/setup.c             | 21 +-------------
+ include/asm-generic/early_ioremap.h |  6 ++++
+ mm/early_ioremap.c                  | 22 +++++++++++++++
+ 4 files changed, 84 insertions(+), 20 deletions(-)
+
 -- 
-2.1.4
+2.4.3
