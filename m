@@ -1,33 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:53455 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754394AbbHFOAo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 6 Aug 2015 10:00:44 -0400
-Subject: Re: [PATCH V6 2/6] mm: mlock: Add new mlock system call
-References: <1438184575-10537-1-git-send-email-emunson@akamai.com>
- <1438184575-10537-3-git-send-email-emunson@akamai.com>
-From: Vlastimil Babka <vbabka@suse.cz>
-Message-ID: <55C36881.8050301@suse.cz>
-Date: Thu, 6 Aug 2015 16:00:33 +0200
-MIME-Version: 1.0
-In-Reply-To: <1438184575-10537-3-git-send-email-emunson@akamai.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48216 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754167AbbHFQzW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Aug 2015 12:55:22 -0400
+From: Will Deacon <will.deacon@arm.com>
+Subject: [PATCH v5 3/8] asm-generic: add relaxed/acquire/release variants for atomic_long_t
+Date: Thu,  6 Aug 2015 17:54:39 +0100
+Message-ID: <1438880084-18856-4-git-send-email-will.deacon@arm.com>
+In-Reply-To: <1438880084-18856-1-git-send-email-will.deacon@arm.com>
+References: <1438880084-18856-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@akamai.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Michal Hocko <mhocko@suse.cz>, Heiko Carstens <heiko.carstens@de.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Guenter Roeck <linux@roeck-us.net>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-cris-kernel@axis.com, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-am33-list@redhat.com, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20150806140033.mnkuYhHjNRD974nbIVj7VCw1zoLBdqWdZufLQgMdg_8@z>
+To: linux-arch@vger.kernel.org
+Cc: Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, mingo@kernel.org, Will Deacon <will.deacon@arm.com>
+Message-ID: <20150806165439.0IWRGf8QC6aXc5OlgLTiGzAQmMok_dbEpYJZK-k4-Hs@z>
 
-On 07/29/2015 05:42 PM, Eric B Munson wrote:
-> With the refactored mlock code, introduce a new system call for mlock.
-> The new call will allow the user to specify what lock states are being
-> added.  mlock2 is trivial at the moment, but a follow on patch will add
-> a new mlock state making it useful.
->
-> Signed-off-by: Eric B Munson <emunson@akamai.com>
-> Cc: Michal Hocko <mhocko@suse.cz>
-> Cc: Vlastimil Babka <vbabka@suse.cz>
+This patch adds atomic_long_t wrappers for the new relaxed atomic
+operations.
 
-Acked-by: Vlastimil Babka <vbabka@suse.cz>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ include/asm-generic/atomic-long.h | 86 +++++++++++++++++++++++++++------------
+ 1 file changed, 59 insertions(+), 27 deletions(-)
+
+diff --git a/include/asm-generic/atomic-long.h b/include/asm-generic/atomic-long.h
+index beaea541adfb..a94cbebbc33d 100644
+--- a/include/asm-generic/atomic-long.h
++++ b/include/asm-generic/atomic-long.h
+@@ -34,19 +34,69 @@ typedef atomic_t atomic_long_t;
+ 
+ #endif
+ 
+-static inline long atomic_long_read(atomic_long_t *l)
+-{
+-	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+-
+-	return (long)ATOMIC_LONG_PFX(_read)(v);
++#define ATOMIC_LONG_READ_OP(mo)						\
++static inline long atomic_long_read##mo(atomic_long_t *l)		\
++{									\
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;		\
++									\
++	return (long)ATOMIC_LONG_PFX(_read##mo)(v);			\
+ }
++ATOMIC_LONG_READ_OP()
++ATOMIC_LONG_READ_OP(_acquire)
+ 
+-static inline void atomic_long_set(atomic_long_t *l, long i)
+-{
+-	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
++#undef ATOMIC_LONG_READ_OP
+ 
+-	ATOMIC_LONG_PFX(_set)(v, i);
++#define ATOMIC_LONG_SET_OP(mo)						\
++static inline void atomic_long_set##mo(atomic_long_t *l, long i)	\
++{									\
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;		\
++									\
++	ATOMIC_LONG_PFX(_set##mo)(v, i);				\
++}
++ATOMIC_LONG_SET_OP()
++ATOMIC_LONG_SET_OP(_release)
++
++#undef ATOMIC_LONG_SET_OP
++
++#define ATOMIC_LONG_ADD_SUB_OP(op, mo)					\
++static inline long							\
++atomic_long_##op##_return##mo(long i, atomic_long_t *l)			\
++{									\
++	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;		\
++									\
++	return (long)ATOMIC_LONG_PFX(_##op##_return##mo)(i, v);		\
+ }
++ATOMIC_LONG_ADD_SUB_OP(add,)
++ATOMIC_LONG_ADD_SUB_OP(add, _relaxed)
++ATOMIC_LONG_ADD_SUB_OP(add, _acquire)
++ATOMIC_LONG_ADD_SUB_OP(add, _release)
++ATOMIC_LONG_ADD_SUB_OP(sub,)
++ATOMIC_LONG_ADD_SUB_OP(sub, _relaxed)
++ATOMIC_LONG_ADD_SUB_OP(sub, _acquire)
++ATOMIC_LONG_ADD_SUB_OP(sub, _release)
++
++#undef ATOMIC_LONG_ADD_SUB_OP
++
++#define atomic_long_cmpxchg_relaxed(l, old, new) \
++	(ATOMIC_LONG_PFX(_cmpxchg_relaxed)((ATOMIC_LONG_PFX(_t) *)(l), \
++					   (old), (new)))
++#define atomic_long_cmpxchg_acquire(l, old, new) \
++	(ATOMIC_LONG_PFX(_cmpxchg_acquire)((ATOMIC_LONG_PFX(_t) *)(l), \
++					   (old), (new)))
++#define atomic_long_cmpxchg_release(l, old, new) \
++	(ATOMIC_LONG_PFX(_cmpxchg_release)((ATOMIC_LONG_PFX(_t) *)(l), \
++					   (old), (new)))
++#define atomic_long_cmpxchg(l, old, new) \
++	(ATOMIC_LONG_PFX(_cmpxchg)((ATOMIC_LONG_PFX(_t) *)(l), (old), (new)))
++
++#define atomic_long_xchg_relaxed(v, new) \
++	(ATOMIC_LONG_PFX(_xchg_relaxed)((ATOMIC_LONG_PFX(_t) *)(v), (new)))
++#define atomic_long_xchg_acquire(v, new) \
++	(ATOMIC_LONG_PFX(_xchg_acquire)((ATOMIC_LONG_PFX(_t) *)(v), (new)))
++#define atomic_long_xchg_release(v, new) \
++	(ATOMIC_LONG_PFX(_xchg_release)((ATOMIC_LONG_PFX(_t) *)(v), (new)))
++#define atomic_long_xchg(v, new) \
++	(ATOMIC_LONG_PFX(_xchg)((ATOMIC_LONG_PFX(_t) *)(v), (new)))
+ 
+ static inline void atomic_long_inc(atomic_long_t *l)
+ {
+@@ -104,20 +154,6 @@ static inline int atomic_long_add_negative(long i, atomic_long_t *l)
+ 	return ATOMIC_LONG_PFX(_add_negative)(i, v);
+ }
+ 
+-static inline long atomic_long_add_return(long i, atomic_long_t *l)
+-{
+-	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+-
+-	return (long)ATOMIC_LONG_PFX(_add_return)(i, v);
+-}
+-
+-static inline long atomic_long_sub_return(long i, atomic_long_t *l)
+-{
+-	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+-
+-	return (long)ATOMIC_LONG_PFX(_sub_return)(i, v);
+-}
+-
+ static inline long atomic_long_inc_return(atomic_long_t *l)
+ {
+ 	ATOMIC_LONG_PFX(_t) *v = (ATOMIC_LONG_PFX(_t) *)l;
+@@ -141,9 +177,5 @@ static inline long atomic_long_add_unless(atomic_long_t *l, long a, long u)
+ 
+ #define atomic_long_inc_not_zero(l) \
+ 	ATOMIC_LONG_PFX(_inc_not_zero)((ATOMIC_LONG_PFX(_t) *)(l))
+-#define atomic_long_cmpxchg(l, old, new) \
+-	(ATOMIC_LONG_PFX(_cmpxchg)((ATOMIC_LONG_PFX(_t) *)(l), (old), (new)))
+-#define atomic_long_xchg(v, new) \
+-	(ATOMIC_LONG_PFX(_xchg)((ATOMIC_LONG_PFX(_t) *)(v), (new)))
+ 
+ #endif  /*  _ASM_GENERIC_ATOMIC_LONG_H  */
+-- 
+2.1.4
 
