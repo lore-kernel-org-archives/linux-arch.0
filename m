@@ -1,108 +1,77 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2 00/11] test_user_copy improvements
-Date: Fri, 7 Aug 2015 16:51:17 -0700
-Message-ID: <CAGXu5jKZP=8Lwgp62CVXO3mXoNG8jueJFkJj-6GczEyxrs-OaA@mail.gmail.com>
-References: <1438960924-23628-1-git-send-email-james.hogan@imgtec.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH v4 4/9] dax: fix mapping lifetime handling, convert to
+ __pfn_t + kmap_atomic_pfn_t()
+Date: Fri, 7 Aug 2015 16:54:07 -0700
+Message-ID: <CAPcyv4hiz1sFgyZfzJ5MNfuoqy0APZ+PwMG4FXJBz_p-gvoorg@mail.gmail.com>
+References: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com>
+	<20150605211924.20751.434.stgit@dwillia2-desk3.amr.corp.intel.com>
+	<20150606115822.GI2729@linux.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f175.google.com ([209.85.223.175]:34665 "EHLO
-	mail-io0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1946534AbbHGXvS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Aug 2015 19:51:18 -0400
-Received: by iodb91 with SMTP id b91so65977184iod.1
-        for <linux-arch@vger.kernel.org>; Fri, 07 Aug 2015 16:51:17 -0700 (PDT)
-In-Reply-To: <1438960924-23628-1-git-send-email-james.hogan@imgtec.com>
+Received: from mail-wi0-f179.google.com ([209.85.212.179]:35706 "EHLO
+	mail-wi0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1946357AbbHGXyJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Aug 2015 19:54:09 -0400
+Received: by wibxm9 with SMTP id xm9so78465023wib.0
+        for <linux-arch@vger.kernel.org>; Fri, 07 Aug 2015 16:54:07 -0700 (PDT)
+In-Reply-To: <20150606115822.GI2729@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Michal Simek <monstr@monstr.eu>, Ley Foon Tan <lftan@altera.com>, Jonas Bonn <jonas@southpole.se>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, nios2-dev@lists.rocketboards.org, linux@lists.openrisc.net, linux-xtensa@linux-xtensa.org
+To: Matthew Wilcox <willy@linux.intel.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jens Axboe <axboe@kernel.dk>, Boaz Harrosh <boaz@plexistor.com>, david <david@fromorbit.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Christoph Hellwig <hch@lst.de>, Ingo Molnar <mingo@kernel.org>, Tejun Heo <tj@kernel.org>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ross Zwisler <ross.zwisler@linux.intel.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
 
-On Fri, Aug 7, 2015 at 8:21 AM, James Hogan <james.hogan@imgtec.com> wrote:
-> These patches extend the test_user_copy test module to handle lots more
-> cases of user accessors which architectures can override separately, and
-> in particular those which are important for checking the MIPS Enhanced
-> Virtual Addressing (EVA) implementations, which need to handle
-> overlapping user and kernel address spaces, with special instructions
-> for accessing user address space from kernel mode.
+On Sat, Jun 6, 2015 at 4:58 AM, Matthew Wilcox <willy@linux.intel.com> wrote:
+> On Fri, Jun 05, 2015 at 05:19:24PM -0400, Dan Williams wrote:
+>> @@ -35,13 +35,16 @@ int dax_clear_blocks(struct inode *inode, sector_t block, long size)
+>>       might_sleep();
+>>       do {
+>>               void *addr;
+>> -             unsigned long pfn;
+>> +             __pfn_t pfn;
+>>               long count;
+>>
+>> -             count = bdev_direct_access(bdev, sector, &addr, &pfn, size);
+>> +             count = bdev_direct_access(bdev, sector, &pfn, size);
+>>               if (count < 0)
+>>                       return count;
+>>               BUG_ON(size < count);
+>> +             addr = kmap_atomic_pfn_t(pfn);
+>> +             if (!addr)
+>> +                     return -EIO;
+>>               while (count > 0) {
+>>                       unsigned pgsz = PAGE_SIZE - offset_in_page(addr);
+>>                       if (pgsz > count)
 >
-> - Checking that kernel pointers are accepted when user address limit is
->   set to KERNEL_DS, as done by the kernel when it internally invokes
->   system calls with kernel pointers.
-> - Checking of the unchecked accessors (which don't call access_ok()).
->   Some of the tests are special cased for EVA at the moment which has
->   stricter hardware guarantees for bad user accesses than other
->   configurations.
-> - Checking of other sets of user accessors, including the inatomic user
->   copies, clear_user, compatibility accessors (copy_in_user and
->   _unaligned), the user string accessors, and the user checksum
->   functions, all of which need special handling in arch code with EVA.
->
-> Tested on MIPS with and without EVA, and on x86_64.
->
-> Only build tested for arm, blackfin, metag, microblaze, openrisc,
-> parisc, powerpc, sh, sparc, tile, i386 & xtensa.
->
-> All arches were audited for the appropriate exports, only score is known
-> to still be missing some.
->
-> Changes in v2:
-> - Add arch exports (patches 1-4).
-> - Reorder patches slightly.
-> - Patch 9: Drop strlen_user test. Microblaze doesn't define it, and
->   nothing actually uses it. IMO it should be removed, and there's no
->   point testing it in the mean time.
-> - Patch 10: Conditionalise on CONFIG_COMPAT, otherwise it breaks build
->   on some 32-bit arches e.g. i386 (kbuild test robot).
-> - Patch 10: Add testing of _unaligned accessors, which are also
->   conditional upon CONFIG_COMPAT.
-> - Patch 11: Only test csum_partial_copy_from_user #ifndef
->   _HAVE_ARCH_COPY_AND_CSUM_FROM_USER, fixing powerpc64 build (Stephen
->   Rothwell)
+> This part is incomplete.  When bdev_direct_access() could return an
+> address, it was possible for that address to be unaligned (eg when
+> 'sector' was not a multiple of 8).  DAX has never had full support for
+> devices that weren't a 4k sector size, but I was trying to not make that
+> assumption in more places than I had to.  So this function needs a lot
+> more simplification (or it needs to add '(sector & 7) << 9' to addr ...
+> assuming that the partition this bdev represents actually starts at a
+> multiple of 8 ... bleh!).
 
-Thanks for the fixes!
+Isn't this already handled by the:
 
-Acked-by: Kees Cook <keescook@chromium.org>
+    if (sector % (PAGE_SIZE / 512))
+                    return -EINVAL;
 
--Kees
+...check in bdev_direct_access()?  As long as the driver's mapping is
+4K aligned, which appears to be the case for all DAX-enabled drivers,
+then we should be good to go.
 
+>>
+>> -static long dax_get_addr(struct buffer_head *bh, void **addr, unsigned blkbits)
+>> +static long dax_get_pfn(struct buffer_head *bh, __pfn_t *pfn, unsigned blkbits)
+>>  {
+>> -     unsigned long pfn;
+>>       sector_t sector = bh->b_blocknr << (blkbits - 9);
+>> -     return bdev_direct_access(bh->b_bdev, sector, addr, &pfn, bh->b_size);
+>> +     return bdev_direct_access(bh->b_bdev, sector, pfn, bh->b_size);
+>>  }
 >
-> James Hogan (11):
->   microblaze: Export __strnlen_user to modules
->   nios2: Export strncpy_from_user / strnlen_user to modules
->   openrisc: Export __clear_user to modules
->   xtensa: Export __strnlen_user to modules
->   test_user_copy: Check legit kernel accesses
->   test_user_copy: Check unchecked accessors
->   test_user_copy: Check __copy_{to,from}_user_inatomic()
->   test_user_copy: Check __clear_user()/clear_user()
->   test_user_copy: Check user string accessors
->   test_user_copy: Check user compatibility accessors
->   test_user_copy: Check user checksum functions
->
->  arch/microblaze/kernel/microblaze_ksyms.c |   1 +
->  arch/nios2/mm/uaccess.c                   |   2 +
->  arch/openrisc/kernel/or32_ksyms.c         |   1 +
->  arch/xtensa/kernel/xtensa_ksyms.c         |   1 +
->  lib/test_user_copy.c                      | 251 ++++++++++++++++++++++++++++++
->  5 files changed, 256 insertions(+)
->
-> Cc: Kees Cook <keescook@chromium.org>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Michal Simek <monstr@monstr.eu>
-> Cc: Ley Foon Tan <lftan@altera.com>
-> Cc: Jonas Bonn <jonas@southpole.se>
-> Cc: Chris Zankel <chris@zankel.net>
-> Cc: Max Filippov <jcmvbkbc@gmail.com>
-> Cc: nios2-dev@lists.rocketboards.org
-> Cc: linux@lists.openrisc.net
-> Cc: linux-xtensa@linux-xtensa.org
-> --
-> 2.3.6
->
+> This function should just be deleted.  It offers essentially nothing
+> over just calling bdev_direct_access().
 
-
-
--- 
-Kees Cook
-Chrome OS Security
+Ok.
