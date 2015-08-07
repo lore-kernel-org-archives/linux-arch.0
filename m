@@ -1,106 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:44535 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752524AbbHGLuG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 7 Aug 2015 07:50:06 -0400
-Subject: Re: [PATCH V6 4/6] mm: mlock: Add mlock flags to enable
- VM_LOCKONFAULT usage
-References: <1438184575-10537-1-git-send-email-emunson@akamai.com>
- <1438184575-10537-5-git-send-email-emunson@akamai.com>
-From: Vlastimil Babka <vbabka@suse.cz>
-Message-ID: <55C49B69.9050805@suse.cz>
-Date: Fri, 7 Aug 2015 13:50:01 +0200
+Received: from mailapp01.imgtec.com ([195.59.15.196]:56907 "EHLO
+	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753241AbbHGPWg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Aug 2015 11:22:36 -0400
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH v2 02/11] nios2: Export strncpy_from_user / strnlen_user to modules
+Date: Fri, 7 Aug 2015 16:21:55 +0100
+Message-ID: <1438960924-23628-3-git-send-email-james.hogan@imgtec.com>
+In-Reply-To: <1438960924-23628-1-git-send-email-james.hogan@imgtec.com>
+References: <1438960924-23628-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
-In-Reply-To: <1438184575-10537-5-git-send-email-emunson@akamai.com>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@akamai.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Michal Hocko <mhocko@suse.cz>, Jonathan Corbet <corbet@lwn.net>, "Kirill A. Shutemov" <kirill@shutemov.name>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20150807115001.10rgiSeu-YmAbNzWKi6NZXLG1J6CNUNh0Q8tELl_Wuo@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Ley Foon Tan <lftan@altera.com>, nios2-dev@lists.rocketboards.org
+Message-ID: <20150807152155.ULxkMglNJ4Y_ljQ44qm8cawDI1zR8-5OsnSdvv7mCmQ@z>
 
-On 07/29/2015 05:42 PM, Eric B Munson wrote:
-> The previous patch introduced a flag that specified pages in a VMA
-> should be placed on the unevictable LRU, but they should not be made
-> present when the area is created.  This patch adds the ability to set
-> this state via the new mlock system calls.
->
-> We add MLOCK_ONFAULT for mlock2 and MCL_ONFAULT for mlockall.
-> MLOCK_ONFAULT will set the VM_LOCKONFAULT modifier for VM_LOCKED.
-> MCL_ONFAULT should be used as a modifier to the two other mlockall
-> flags.  When used with MCL_CURRENT, all current mappings will be marked
-> with VM_LOCKED | VM_LOCKONFAULT.  When used with MCL_FUTURE, the
-> mm->def_flags will be marked with VM_LOCKED | VM_LOCKONFAULT.  When used
-> with both MCL_CURRENT and MCL_FUTURE, all current mappings and
-> mm->def_flags will be marked with VM_LOCKED | VM_LOCKONFAULT.
->
-> Prior to this patch, mlockall() will unconditionally clear the
-> mm->def_flags any time it is called without MCL_FUTURE.  This behavior
-> is maintained after adding MCL_ONFAULT.  If a call to
-> mlockall(MCL_FUTURE) is followed by mlockall(MCL_CURRENT), the
-> mm->def_flags will be cleared and new VMAs will be unlocked.  This
-> remains true with or without MCL_ONFAULT in either mlockall()
-> invocation.
->
-> munlock() will unconditionally clear both vma flags.  munlockall()
-> unconditionally clears for VMA flags on all VMAs and in the
-> mm->def_flags field.
->
-> Signed-off-by: Eric B Munson <emunson@akamai.com>
-> Cc: Michal Hocko <mhocko@suse.cz>
-> Cc: Vlastimil Babka <vbabka@suse.cz>
+Update the nios2 architecture code to export strncpy_from_user() and
+strnlen_user() to modules. The test_user_copy module will soon test
+them.
 
-The logic seems ok, although the fact that apply_mlockall_flags() is 
-shared by both mlockall and munlockall makes it even more subtle than 
-before :)
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Ley Foon Tan <lftan@altera.com>
+Cc: nios2-dev@lists.rocketboards.org
+---
+ arch/nios2/mm/uaccess.c | 2 ++
+ 1 file changed, 2 insertions(+)
 
-Anyway, just some nitpicks below.
+diff --git a/arch/nios2/mm/uaccess.c b/arch/nios2/mm/uaccess.c
+index 7663e156ff4f..ecd8b122948b 100644
+--- a/arch/nios2/mm/uaccess.c
++++ b/arch/nios2/mm/uaccess.c
+@@ -146,6 +146,7 @@ long strncpy_from_user(char *__to, const char __user *__from, long __len)
+ 		l--;
+ 	return l;
+ }
++EXPORT_SYMBOL(strncpy_from_user);
+ 
+ long strnlen_user(const char __user *s, long n)
+ {
+@@ -161,3 +162,4 @@ long strnlen_user(const char __user *s, long n)
+ 	}
+ 	return n + 1;
+ }
++EXPORT_SYMBOL(strnlen_user);
+-- 
+2.3.6
 
-Acked-by: Vlastimil Babka <vbabka@suse.cz>
-
-[...]
-
-> +/*
-> + * Take the MCL_* flags passed into mlockall (or 0 if called from munlockall)
-> + * and translate into the appropriate modifications to mm->def_flags and/or the
-> + * flags for all current VMAs.
-> + *
-> + * There are a couple of sublties with this.  If mlockall() is called multiple
-
-                             ^ typo
-
-> + * times with different flags, the values do not necessarily stack.  If mlockall
-> + * is called once including the MCL_FUTURE flag and then a second time without
-> + * it, VM_LOCKED and VM_LOCKONFAULT will be cleared from mm->def_flags.
-> + */
->   static int apply_mlockall_flags(int flags)
->   {
->   	struct vm_area_struct * vma, * prev = NULL;
-> +	vm_flags_t to_add = 0;
->
-> -	if (flags & MCL_FUTURE)
-> +	current->mm->def_flags &= ~(VM_LOCKED | VM_LOCKONFAULT);
-> +	if (flags & MCL_FUTURE) {
->   		current->mm->def_flags |= VM_LOCKED;
-> -	else
-> -		current->mm->def_flags &= ~VM_LOCKED;
->
-> -	if (flags == MCL_FUTURE)
-> -		goto out;
-> +		if (flags & MCL_ONFAULT)
-> +			current->mm->def_flags |= VM_LOCKONFAULT;
-> +
-> +		/*
-> +		 * When there were only two flags, we used to early out if only
-> +		 * MCL_FUTURE was set.  Now that we have MCL_ONFAULT, we can
-> +		 * only early out if MCL_FUTURE is set, but MCL_CURRENT is not.
-
-Describing the relation to history of individual code lines in such 
-detail is noise imho. The stacking subtleties is already described above.
-
-> +		 * This is done, even though it promotes odd behavior, to
-> +		 * maintain behavior from older kernels
-> +		 */
-> +		if (!(flags & MCL_CURRENT))
-> +			goto out;
