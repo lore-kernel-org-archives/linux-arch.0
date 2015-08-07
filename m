@@ -1,104 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:58668 "EHLO mx1.redhat.com"
+Received: from mx2.suse.de ([195.135.220.15]:44535 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756268AbbHFVmN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 6 Aug 2015 17:42:13 -0400
-From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH V2 2/3] arm64: support initrd outside kernel linear map
-Date: Thu,  6 Aug 2015 17:41:38 -0400
-Message-ID: <1438897299-2266-3-git-send-email-msalter@redhat.com>
-In-Reply-To: <1438897299-2266-1-git-send-email-msalter@redhat.com>
-References: <1438897299-2266-1-git-send-email-msalter@redhat.com>
+	id S1752524AbbHGLuG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 7 Aug 2015 07:50:06 -0400
+Subject: Re: [PATCH V6 4/6] mm: mlock: Add mlock flags to enable
+ VM_LOCKONFAULT usage
+References: <1438184575-10537-1-git-send-email-emunson@akamai.com>
+ <1438184575-10537-5-git-send-email-emunson@akamai.com>
+From: Vlastimil Babka <vbabka@suse.cz>
+Message-ID: <55C49B69.9050805@suse.cz>
+Date: Fri, 7 Aug 2015 13:50:01 +0200
+MIME-Version: 1.0
+In-Reply-To: <1438184575-10537-5-git-send-email-emunson@akamai.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, x86@kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
-Message-ID: <20150806214138.3Lh35fgDJUlgwJavFJlC032IcINMAZ7ER6_ApCJM0Bo@z>
+To: Eric B Munson <emunson@akamai.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Michal Hocko <mhocko@suse.cz>, Jonathan Corbet <corbet@lwn.net>, "Kirill A. Shutemov" <kirill@shutemov.name>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20150807115001.10rgiSeu-YmAbNzWKi6NZXLG1J6CNUNh0Q8tELl_Wuo@z>
 
-The use of mem= could leave part or all of the initrd outside of
-the kernel linear map. This will lead to an error when unpacking
-the initrd and a probable failure to boot. This patch catches that
-situation and relocates the initrd to be fully within the linear
-map.
+On 07/29/2015 05:42 PM, Eric B Munson wrote:
+> The previous patch introduced a flag that specified pages in a VMA
+> should be placed on the unevictable LRU, but they should not be made
+> present when the area is created.  This patch adds the ability to set
+> this state via the new mlock system calls.
+>
+> We add MLOCK_ONFAULT for mlock2 and MCL_ONFAULT for mlockall.
+> MLOCK_ONFAULT will set the VM_LOCKONFAULT modifier for VM_LOCKED.
+> MCL_ONFAULT should be used as a modifier to the two other mlockall
+> flags.  When used with MCL_CURRENT, all current mappings will be marked
+> with VM_LOCKED | VM_LOCKONFAULT.  When used with MCL_FUTURE, the
+> mm->def_flags will be marked with VM_LOCKED | VM_LOCKONFAULT.  When used
+> with both MCL_CURRENT and MCL_FUTURE, all current mappings and
+> mm->def_flags will be marked with VM_LOCKED | VM_LOCKONFAULT.
+>
+> Prior to this patch, mlockall() will unconditionally clear the
+> mm->def_flags any time it is called without MCL_FUTURE.  This behavior
+> is maintained after adding MCL_ONFAULT.  If a call to
+> mlockall(MCL_FUTURE) is followed by mlockall(MCL_CURRENT), the
+> mm->def_flags will be cleared and new VMAs will be unlocked.  This
+> remains true with or without MCL_ONFAULT in either mlockall()
+> invocation.
+>
+> munlock() will unconditionally clear both vma flags.  munlockall()
+> unconditionally clears for VMA flags on all VMAs and in the
+> mm->def_flags field.
+>
+> Signed-off-by: Eric B Munson <emunson@akamai.com>
+> Cc: Michal Hocko <mhocko@suse.cz>
+> Cc: Vlastimil Babka <vbabka@suse.cz>
 
-Signed-off-by: Mark Salter <msalter@redhat.com>
----
- arch/arm64/kernel/setup.c | 55 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 55 insertions(+)
+The logic seems ok, although the fact that apply_mlockall_flags() is 
+shared by both mlockall and munlockall makes it even more subtle than 
+before :)
 
-diff --git a/arch/arm64/kernel/setup.c b/arch/arm64/kernel/setup.c
-index f3067d4..96339b5 100644
---- a/arch/arm64/kernel/setup.c
-+++ b/arch/arm64/kernel/setup.c
-@@ -359,6 +359,60 @@ static void __init request_standard_resources(void)
- 	}
- }
- 
-+/*
-+ * Relocate initrd if it is not completely within the linear mapping.
-+ * This would be the case if mem= cuts out all or part of it.
-+ */
-+static void __init relocate_initrd(void)
-+{
-+#ifdef CONFIG_BLK_DEV_INITRD
-+	phys_addr_t orig_start = __virt_to_phys(initrd_start);
-+	phys_addr_t orig_end = __virt_to_phys(initrd_end);
-+	phys_addr_t ram_end = memblock_end_of_DRAM();
-+	phys_addr_t new_start;
-+	unsigned long size, to_free = 0;
-+	void *dest;
-+
-+	if (orig_end <= ram_end)
-+		return;
-+
-+	/* Note if any of original initrd will freeing below */
-+	if (orig_start < ram_end)
-+		to_free = ram_end - orig_start;
-+
-+	size = orig_end - orig_start;
-+
-+	/* initrd needs to be relocated completely inside linear mapping */
-+	new_start = memblock_find_in_range(0, PFN_PHYS(max_pfn),
-+					   size, PAGE_SIZE);
-+	if (!new_start)
-+		panic("Cannot relocate initrd of size %ld\n", size);
-+	memblock_reserve(new_start, size);
-+
-+	initrd_start = __phys_to_virt(new_start);
-+	initrd_end   = initrd_start + size;
-+
-+	pr_info("Moving initrd from [%llx-%llx] to [%llx-%llx]\n",
-+		orig_start, orig_start + size - 1,
-+		new_start, new_start + size - 1);
-+
-+	dest = (void *)initrd_start;
-+
-+	if (to_free) {
-+		memcpy(dest, (void *)__phys_to_virt(orig_start), to_free);
-+		dest += to_free;
-+	}
-+
-+	copy_from_early_mem(dest, orig_start + to_free, size - to_free);
-+
-+	if (to_free) {
-+		pr_info("Freeing original RAMDISK from [%llx-%llx]\n",
-+			orig_start, orig_start + to_free - 1);
-+		memblock_free(orig_start, to_free);
-+	}
-+#endif
-+}
-+
- u64 __cpu_logical_map[NR_CPUS] = { [0 ... NR_CPUS-1] = INVALID_HWID };
- 
- void __init setup_arch(char **cmdline_p)
-@@ -392,6 +446,7 @@ void __init setup_arch(char **cmdline_p)
- 	acpi_boot_table_init();
- 
- 	paging_init();
-+	relocate_initrd();
- 	request_standard_resources();
- 
- 	early_ioremap_reset();
--- 
-2.4.3
+Anyway, just some nitpicks below.
 
+Acked-by: Vlastimil Babka <vbabka@suse.cz>
+
+[...]
+
+> +/*
+> + * Take the MCL_* flags passed into mlockall (or 0 if called from munlockall)
+> + * and translate into the appropriate modifications to mm->def_flags and/or the
+> + * flags for all current VMAs.
+> + *
+> + * There are a couple of sublties with this.  If mlockall() is called multiple
+
+                             ^ typo
+
+> + * times with different flags, the values do not necessarily stack.  If mlockall
+> + * is called once including the MCL_FUTURE flag and then a second time without
+> + * it, VM_LOCKED and VM_LOCKONFAULT will be cleared from mm->def_flags.
+> + */
+>   static int apply_mlockall_flags(int flags)
+>   {
+>   	struct vm_area_struct * vma, * prev = NULL;
+> +	vm_flags_t to_add = 0;
+>
+> -	if (flags & MCL_FUTURE)
+> +	current->mm->def_flags &= ~(VM_LOCKED | VM_LOCKONFAULT);
+> +	if (flags & MCL_FUTURE) {
+>   		current->mm->def_flags |= VM_LOCKED;
+> -	else
+> -		current->mm->def_flags &= ~VM_LOCKED;
+>
+> -	if (flags == MCL_FUTURE)
+> -		goto out;
+> +		if (flags & MCL_ONFAULT)
+> +			current->mm->def_flags |= VM_LOCKONFAULT;
+> +
+> +		/*
+> +		 * When there were only two flags, we used to early out if only
+> +		 * MCL_FUTURE was set.  Now that we have MCL_ONFAULT, we can
+> +		 * only early out if MCL_FUTURE is set, but MCL_CURRENT is not.
+
+Describing the relation to history of individual code lines in such 
+detail is noise imho. The stacking subtleties is already described above.
+
+> +		 * This is done, even though it promotes odd behavior, to
+> +		 * maintain behavior from older kernels
+> +		 */
+> +		if (!(flags & MCL_CURRENT))
+> +			goto out;
