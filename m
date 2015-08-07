@@ -1,48 +1,89 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v5 0/8] Add generic support for relaxed atomics
-Date: Fri, 7 Aug 2015 17:13:03 +0200
-Message-ID: <20150807151303.GM16853@twins.programming.kicks-ass.net>
-References: <1438880084-18856-1-git-send-email-will.deacon@arm.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH v2 00/11] test_user_copy improvements
+Date: Fri, 7 Aug 2015 16:21:53 +0100
+Message-ID: <1438960924-23628-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:51068 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750709AbbHGPNI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Aug 2015 11:13:08 -0400
-Content-Disposition: inline
-In-Reply-To: <1438880084-18856-1-git-send-email-will.deacon@arm.com>
+Received: from mailapp01.imgtec.com ([195.59.15.196]:43727 "EHLO
+	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750709AbbHGPWg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Aug 2015 11:22:36 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org, Waiman.Long@hp.com, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, mingo@kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Kees Cook <keescook@chromium.org>, Andrew Morton <akpm@linux-foundation.org>, Michal Simek <monstr@monstr.eu>, Ley Foon Tan <lftan@altera.com>, Jonas Bonn <jonas@southpole.se>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, nios2-dev@lists.rocketboards.org, linux@lists.openrisc.net, linux-xtensa@linux-xtensa.org
 
-On Thu, Aug 06, 2015 at 05:54:36PM +0100, Will Deacon wrote:
-> Hi all,
+These patches extend the test_user_copy test module to handle lots more
+cases of user accessors which architectures can override separately, and
+in particular those which are important for checking the MIPS Enhanced
+Virtual Addressing (EVA) implementations, which need to handle
+overlapping user and kernel address spaces, with special instructions
+for accessing user address space from kernel mode.
 
-> The series adds support for a family of relaxed atomics to the kernel.
-> More specifically:
-> 
->   - acquire/release/relaxed flavours of xchg, cmpxchg and {add,sub}_return
->   - atomic_read_acquire
->   - atomic_set_release
-> 
-> This came out of a separate patch series porting the (barrier-heavy)
-> qrwlock code to arm64. Rather than have arch-specific hooks littered
-> around the place, it makes more sense to define a core set of relaxed
-> atomics that can be used regardless of architecture.
-> 
-> Changes since v4 are:
-> 
->   * Drop the ret_t macro parameter in favour of typeof tricks (Peter Z)
-> 
->   * Add a missing acquire to the qrwlock code, as it was based on a
->     previous patch that I posted (Waiman Long)
-> 
-> Build tested on ARM, arm64, PowerPC and x86.
+- Checking that kernel pointers are accepted when user address limit is
+  set to KERNEL_DS, as done by the kernel when it internally invokes
+  system calls with kernel pointers.
+- Checking of the unchecked accessors (which don't call access_ok()).
+  Some of the tests are special cased for EVA at the moment which has
+  stricter hardware guarantees for bad user accesses than other
+  configurations.
+- Checking of other sets of user accessors, including the inatomic user
+  copies, clear_user, compatibility accessors (copy_in_user and
+  _unaligned), the user string accessors, and the user checksum
+  functions, all of which need special handling in arch code with EVA.
 
-Queued it. There was a wee conflict with the atomic_{and,or,xor} bits
-for the ARM patch, but that was quickly sorted.
+Tested on MIPS with and without EVA, and on x86_64.
 
-Does we want a Documentation/ update to reflect all this shiny new
-stuff?
+Only build tested for arm, blackfin, metag, microblaze, openrisc,
+parisc, powerpc, sh, sparc, tile, i386 & xtensa.
+
+All arches were audited for the appropriate exports, only score is known
+to still be missing some.
+
+Changes in v2:
+- Add arch exports (patches 1-4).
+- Reorder patches slightly.
+- Patch 9: Drop strlen_user test. Microblaze doesn't define it, and
+  nothing actually uses it. IMO it should be removed, and there's no
+  point testing it in the mean time.
+- Patch 10: Conditionalise on CONFIG_COMPAT, otherwise it breaks build
+  on some 32-bit arches e.g. i386 (kbuild test robot).
+- Patch 10: Add testing of _unaligned accessors, which are also
+  conditional upon CONFIG_COMPAT.
+- Patch 11: Only test csum_partial_copy_from_user #ifndef
+  _HAVE_ARCH_COPY_AND_CSUM_FROM_USER, fixing powerpc64 build (Stephen
+  Rothwell)
+
+James Hogan (11):
+  microblaze: Export __strnlen_user to modules
+  nios2: Export strncpy_from_user / strnlen_user to modules
+  openrisc: Export __clear_user to modules
+  xtensa: Export __strnlen_user to modules
+  test_user_copy: Check legit kernel accesses
+  test_user_copy: Check unchecked accessors
+  test_user_copy: Check __copy_{to,from}_user_inatomic()
+  test_user_copy: Check __clear_user()/clear_user()
+  test_user_copy: Check user string accessors
+  test_user_copy: Check user compatibility accessors
+  test_user_copy: Check user checksum functions
+
+ arch/microblaze/kernel/microblaze_ksyms.c |   1 +
+ arch/nios2/mm/uaccess.c                   |   2 +
+ arch/openrisc/kernel/or32_ksyms.c         |   1 +
+ arch/xtensa/kernel/xtensa_ksyms.c         |   1 +
+ lib/test_user_copy.c                      | 251 ++++++++++++++++++++++++++++++
+ 5 files changed, 256 insertions(+)
+
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Michal Simek <monstr@monstr.eu>
+Cc: Ley Foon Tan <lftan@altera.com>
+Cc: Jonas Bonn <jonas@southpole.se>
+Cc: Chris Zankel <chris@zankel.net>
+Cc: Max Filippov <jcmvbkbc@gmail.com>
+Cc: nios2-dev@lists.rocketboards.org
+Cc: linux@lists.openrisc.net
+Cc: linux-xtensa@linux-xtensa.org
+-- 
+2.3.6
