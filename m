@@ -1,7 +1,7 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v2 06/11] test_user_copy: Check unchecked accessors
-Date: Fri, 7 Aug 2015 16:21:59 +0100
-Message-ID: <1438960924-23628-7-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v2 01/11] microblaze: Export __strnlen_user to modules
+Date: Fri, 7 Aug 2015 16:21:54 +0100
+Message-ID: <1438960924-23628-2-git-send-email-james.hogan@imgtec.com>
 References: <1438960924-23628-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -9,139 +9,30 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1438960924-23628-1-git-send-email-james.hogan@imgtec.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>
 List-Id: linux-arch.vger.kernel.org
 
-Currently the test_user_copy module only tests the user accessors which
-already check the address with access_ok(). Corresponding unchecked
-accessors exist however which may be used after access_ok() is checked.
-Since the addresses the test uses are known to be valid kernel
-addresses, test these unchecked accessors too, as well as access_ok()
-itself.
-
-For legitimate user accesses we test the corresponding unchecked macros.
-They should all work just as well as the checking versions.
-
-Similarly, for legitimate kernel accesses the unchecked macros are
-expected to succeed, and access kernel rather than user memory.
-
-For invalid user accesses we only test the corresponding unchecked
-macros in configurations where the behaviour is both known and
-important to verify the implementation. Currently this is only enabled
-for MIPS with Enhanced Virtual Addressing (EVA) enabled, where user
-accesses MUST use the EVA loads/stores, which can only access valid user
-mode memory anyway.
-
-New tests:
-- legitimate access_ok VERIFY_READ
-- legitimate access_ok VERIFY_WRITE
-- legitimate __copy_from_user
-- legitimate __copy_to_user
-- legitimate __get_user
-- legitimate __put_user
-- illegal all-kernel __copy_from_user
-- illegal reversed __copy_from_user
-- illegal all-kernel __copy_to_user
-- illegal reversed __copy_to_user
-- illegal __get_user
-- illegal __put_user
-- legitimate kernel access_ok VERIFY_READ
-- legitimate kernel access_ok VERIFY_WRITE
-- legitimate all-kernel __copy_from_user
-- legitimate all-kernel __copy_to_user
-- legitimate kernel __get_user
-- legitimate kernel __put_user
+Update the microblaze architecture code to export __strnlen_user() to
+modules, so they can make use of strnlen_user(). For example the
+test_user_copy module will soon test it.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Acked-by: Kees Cook <keescook@chromium.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Michal Simek <monstr@monstr.eu>
 ---
- lib/test_user_copy.c | 59 ++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 59 insertions(+)
+ arch/microblaze/kernel/microblaze_ksyms.c | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/lib/test_user_copy.c b/lib/test_user_copy.c
-index 445ca92b0b80..23fb9d15f50c 100644
---- a/lib/test_user_copy.c
-+++ b/lib/test_user_copy.c
-@@ -69,6 +69,19 @@ static int __init test_user_copy_init(void)
- 	ret |= test(put_user(value, (unsigned long __user *)usermem),
- 		    "legitimate put_user failed");
+diff --git a/arch/microblaze/kernel/microblaze_ksyms.c b/arch/microblaze/kernel/microblaze_ksyms.c
+index 9f1d02c4c5cc..baf7a2340d97 100644
+--- a/arch/microblaze/kernel/microblaze_ksyms.c
++++ b/arch/microblaze/kernel/microblaze_ksyms.c
+@@ -31,6 +31,7 @@ EXPORT_SYMBOL(_mcount);
+  */
+ EXPORT_SYMBOL(__copy_tofrom_user);
+ EXPORT_SYMBOL(__strncpy_user);
++EXPORT_SYMBOL(__strnlen_user);
  
-+	ret |= test(!access_ok(VERIFY_READ, usermem, PAGE_SIZE * 2),
-+		    "legitimate access_ok VERIFY_READ failed");
-+	ret |= test(!access_ok(VERIFY_WRITE, usermem, PAGE_SIZE * 2),
-+		    "legitimate access_ok VERIFY_WRITE failed");
-+	ret |= test(__copy_from_user(kmem, usermem, PAGE_SIZE),
-+		    "legitimate __copy_from_user failed");
-+	ret |= test(__copy_to_user(usermem, kmem, PAGE_SIZE),
-+		    "legitimate __copy_to_user failed");
-+	ret |= test(__get_user(value, (unsigned long __user *)usermem),
-+		    "legitimate __get_user failed");
-+	ret |= test(__put_user(value, (unsigned long __user *)usermem),
-+		    "legitimate __put_user failed");
-+
- 	/* Invalid usage: none of these should succeed. */
- 	ret |= test(!copy_from_user(kmem, (char __user *)(kmem + PAGE_SIZE),
- 				    PAGE_SIZE),
-@@ -88,6 +101,36 @@ static int __init test_user_copy_init(void)
- 		    "illegal put_user passed");
- 
- 	/*
-+	 * If unchecked user accesses (__*) on this architecture cannot access
-+	 * kernel mode (i.e. access_ok() is redundant), and usually faults when
-+	 * attempted, check this behaviour.
-+	 *
-+	 * These tests are enabled for:
-+	 * - MIPS with Enhanced Virtual Addressing (EVA): user accesses use EVA
-+	 *   instructions which can only access user mode accessible memory. It
-+	 *   is assumed to be unlikely that user address space mappings will
-+	 *   intersect the kernel buffer address.
-+	 */
-+#if defined(CONFIG_MIPS) && defined(CONFIG_EVA)
-+	ret |= test(!__copy_from_user(kmem, (char __user *)(kmem + PAGE_SIZE),
-+				      PAGE_SIZE),
-+		    "illegal all-kernel __copy_from_user passed");
-+	ret |= test(!__copy_from_user(bad_usermem, (char __user *)kmem,
-+				      PAGE_SIZE),
-+		    "illegal reversed __copy_from_user passed");
-+	ret |= test(!__copy_to_user((char __user *)kmem, kmem + PAGE_SIZE,
-+				    PAGE_SIZE),
-+		    "illegal all-kernel __copy_to_user passed");
-+	ret |= test(!__copy_to_user((char __user *)kmem, bad_usermem,
-+				    PAGE_SIZE),
-+		    "illegal reversed __copy_to_user passed");
-+	ret |= test(!__get_user(value, (unsigned long __user *)kmem),
-+		    "illegal __get_user passed");
-+	ret |= test(!__put_user(value, (unsigned long __user *)kmem),
-+		    "illegal __put_user passed");
-+#endif
-+
-+	/*
- 	 * Test access to kernel memory by adjusting address limit.
- 	 * This is used by the kernel to invoke system calls with kernel
- 	 * pointers.
-@@ -106,6 +149,22 @@ static int __init test_user_copy_init(void)
- 	ret |= test(put_user(value, (unsigned long __user *)kmem),
- 		    "legitimate kernel put_user failed");
- 
-+	ret |= test(!access_ok(VERIFY_READ, (char __user *)kmem, PAGE_SIZE * 2),
-+		    "legitimate kernel access_ok VERIFY_READ failed");
-+	ret |= test(!access_ok(VERIFY_WRITE, (char __user *)kmem,
-+			       PAGE_SIZE * 2),
-+		    "legitimate kernel access_ok VERIFY_WRITE failed");
-+	ret |= test(__copy_from_user(kmem, (char __user *)(kmem + PAGE_SIZE),
-+				     PAGE_SIZE),
-+		    "legitimate all-kernel __copy_from_user failed");
-+	ret |= test(__copy_to_user((char __user *)kmem, kmem + PAGE_SIZE,
-+				   PAGE_SIZE),
-+		    "legitimate all-kernel __copy_to_user failed");
-+	ret |= test(__get_user(value, (unsigned long __user *)kmem),
-+		    "legitimate kernel __get_user failed");
-+	ret |= test(__put_user(value, (unsigned long __user *)kmem),
-+		    "legitimate kernel __put_user failed");
-+
- 	/* Restore previous address limit. */
- 	set_fs(fs);
- 
+ #ifdef CONFIG_OPT_LIB_ASM
+ EXPORT_SYMBOL(memcpy);
 -- 
 2.3.6
