@@ -1,77 +1,152 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH v4 4/9] dax: fix mapping lifetime handling, convert to
- __pfn_t + kmap_atomic_pfn_t()
-Date: Fri, 7 Aug 2015 16:54:07 -0700
-Message-ID: <CAPcyv4hiz1sFgyZfzJ5MNfuoqy0APZ+PwMG4FXJBz_p-gvoorg@mail.gmail.com>
-References: <20150605205052.20751.77149.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20150605211924.20751.434.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20150606115822.GI2729@linux.intel.com>
+From: Michael Turquette <mturquette-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
+Subject: Re: [PATCH v12 17/21] h8300: clock driver
+Date: Fri, 07 Aug 2015 17:43:49 -0700
+Message-ID: <20150808004349.2416.18161@quantum>
+References: <1431325600-12333-1-git-send-email-ysato@users.sourceforge.jp>
+ <1431325600-12333-18-git-send-email-ysato@users.sourceforge.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f179.google.com ([209.85.212.179]:35706 "EHLO
-	mail-wi0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1946357AbbHGXyJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Aug 2015 19:54:09 -0400
-Received: by wibxm9 with SMTP id xm9so78465023wib.0
-        for <linux-arch@vger.kernel.org>; Fri, 07 Aug 2015 16:54:07 -0700 (PDT)
-In-Reply-To: <20150606115822.GI2729@linux.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Matthew Wilcox <willy@linux.intel.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jens Axboe <axboe@kernel.dk>, Boaz Harrosh <boaz@plexistor.com>, david <david@fromorbit.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Christoph Hellwig <hch@lst.de>, Ingo Molnar <mingo@kernel.org>, Tejun Heo <tj@kernel.org>, Paul Mackerras <paulus@samba.org>, "H. Peter Anvin" <hpa@zytor.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Ross Zwisler <ross.zwisler@linux.intel.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1431325600-12333-18-git-send-email-ysato-Rn4VEauK+AKRv+LV9MX5uooqe+aC9MnS@public.gmane.org>
+Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: Yoshinori Sato <ysato-Rn4VEauK+AKRv+LV9MX5uooqe+aC9MnS@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Jun 6, 2015 at 4:58 AM, Matthew Wilcox <willy@linux.intel.com> wrote:
-> On Fri, Jun 05, 2015 at 05:19:24PM -0400, Dan Williams wrote:
->> @@ -35,13 +35,16 @@ int dax_clear_blocks(struct inode *inode, sector_t block, long size)
->>       might_sleep();
->>       do {
->>               void *addr;
->> -             unsigned long pfn;
->> +             __pfn_t pfn;
->>               long count;
->>
->> -             count = bdev_direct_access(bdev, sector, &addr, &pfn, size);
->> +             count = bdev_direct_access(bdev, sector, &pfn, size);
->>               if (count < 0)
->>                       return count;
->>               BUG_ON(size < count);
->> +             addr = kmap_atomic_pfn_t(pfn);
->> +             if (!addr)
->> +                     return -EIO;
->>               while (count > 0) {
->>                       unsigned pgsz = PAGE_SIZE - offset_in_page(addr);
->>                       if (pgsz > count)
->
-> This part is incomplete.  When bdev_direct_access() could return an
-> address, it was possible for that address to be unaligned (eg when
-> 'sector' was not a multiple of 8).  DAX has never had full support for
-> devices that weren't a 4k sector size, but I was trying to not make that
-> assumption in more places than I had to.  So this function needs a lot
-> more simplification (or it needs to add '(sector & 7) << 9' to addr ...
-> assuming that the partition this bdev represents actually starts at a
-> multiple of 8 ... bleh!).
+Hello Sato-san,
 
-Isn't this already handled by the:
+Unfortunately this patch did not Cc myself, Stephen Boyd or the
+linux-clk-u79uwXL29TY76Z2rM5mHXA@public.gmane.org mailing list. As such Stephen and I did not
+have a chance to review it. Even more unfortunate was that it was ninja
+merged by maintainers without our ack. :-/
 
-    if (sector % (PAGE_SIZE / 512))
-                    return -EINVAL;
+Quoting Yoshinori Sato (2015-05-10 23:26:36)
+> Signed-off-by: Yoshinori Sato <ysato-Rn4VEauK+AKRv+LV9MX5uooqe+aC9MnS@public.gmane.org>
+> ---
+>  .../bindings/clock/renesas,h8300-div-clock.txt     |  24 ++++
+>  .../bindings/clock/renesas,h8s2678-pll-clock.txt   |  23 ++++
+>  drivers/clk/Makefile                               |   1 +
+>  drivers/clk/h8300/Makefile                         |   2 +
+>  drivers/clk/h8300/clk-div.c                        |  53 ++++++++
+>  drivers/clk/h8300/clk-h8s2678.c                    | 147 +++++++++++=
+++++++++++
+>  6 files changed, 250 insertions(+)
+>  create mode 100644 Documentation/devicetree/bindings/clock/renesas,h=
+8300-div-clock.txt
+>  create mode 100644 Documentation/devicetree/bindings/clock/renesas,h=
+8s2678-pll-clock.txt
+>  create mode 100644 drivers/clk/h8300/Makefile
+>  create mode 100644 drivers/clk/h8300/clk-div.c
+>  create mode 100644 drivers/clk/h8300/clk-h8s2678.c
+>=20
+> diff --git a/Documentation/devicetree/bindings/clock/renesas,h8300-di=
+v-clock.txt b/Documentation/devicetree/bindings/clock/renesas,h8300-div=
+-clock.txt
+> new file mode 100644
+> index 0000000..36c2b52
+> --- /dev/null
+> +++ b/Documentation/devicetree/bindings/clock/renesas,h8300-div-clock=
+=2Etxt
+> @@ -0,0 +1,24 @@
+> +* Renesas H8/300 divider clock
+> +
+> +Required Properties:
+> +
+> +  - compatible: Must be "renesas,sh73a0-h8300-div-clock"
+> +
+> +  - clocks: Reference to the parent clocks ("extal1" and "extal2")
+> +
+> +  - #clock-cells: Must be 1
+> +
+> +  - reg: Base address and length of the divide rate selector
+> +
+> +  - renesas,width: bit width of selector
+> +
+> +Example
+> +-------
+> +
+> +               cclk: cclk {
+> +                       compatible =3D "renesas,h8300-div-clock";
+> +                       clocks =3D <&xclk>;
+> +                       #clock-cells =3D <0>;
+> +                       reg =3D <0xfee01b 2>;
+> +                       renesas,width =3D <2>;
+> +               };
 
-...check in bdev_direct_access()?  As long as the driver's mapping is
-4K aligned, which appears to be the case for all DAX-enabled drivers,
-then we should be good to go.
+I could not find any info on this clock in the H8S/2678 reference
+manual[0]. Could you point me to the right documentation?
 
->>
->> -static long dax_get_addr(struct buffer_head *bh, void **addr, unsigned blkbits)
->> +static long dax_get_pfn(struct buffer_head *bh, __pfn_t *pfn, unsigned blkbits)
->>  {
->> -     unsigned long pfn;
->>       sector_t sector = bh->b_blocknr << (blkbits - 9);
->> -     return bdev_direct_access(bh->b_bdev, sector, addr, &pfn, bh->b_size);
->> +     return bdev_direct_access(bh->b_bdev, sector, pfn, bh->b_size);
->>  }
->
-> This function should just be deleted.  It offers essentially nothing
-> over just calling bdev_direct_access().
+> diff --git a/Documentation/devicetree/bindings/clock/renesas,h8s2678-=
+pll-clock.txt b/Documentation/devicetree/bindings/clock/renesas,h8s2678=
+-pll-clock.txt
+> new file mode 100644
+> index 0000000..500cdadb
+> --- /dev/null
+> +++ b/Documentation/devicetree/bindings/clock/renesas,h8s2678-pll-clo=
+ck.txt
+> @@ -0,0 +1,23 @@
+> +Renesas H8S2678 PLL clock
+> +
+> +This device is Clock multiplyer
+> +
+> +Required Properties:
+> +
+> +  - compatible: Must be "renesas,h8s2678-pll-clock"
+> +
+> +  - clocks: Reference to the parent clocks
+> +
+> +  - #clock-cells: Must be 0
+> +
+> +  - reg: Two rate selector (Multiply / Divide) register address
+> +
+> +Example
+> +-------
+> +
+> +               pllclk: pllclk {
+> +                       compatible =3D "renesas,h8s2678-pll-clock";
+> +                       clocks =3D <&xclk>;
+> +                       #clock-cells =3D <0>;
+> +                       reg =3D <0xfee03b 2>, <0xfee045 2>;
+> +               };
 
-Ok.
+Is there really only one clock output? According to figure 21.1 there i=
+s
+the "System clock to =CF=86 pin" output and the "Internal clock to peri=
+pheral
+modules" output.
+
+I am wondering if clock-cells should be 1 instead of zero and support
+both of these output signals?
+
+As a nitpick, I think it would have been better to name the node "cpg"
+as it is listed in Section 21. pllclk is only one of the two registers
+that make up the cpg. Something like:
+
+	cpg: clock-controller@fee03b
+
+If you do decide to have clock-cells greater than zero, you might find
+the following threads helpful. They describe how to craft a
+clock-controller style binding:
+
+http://lkml.kernel.org/r/<20150411001231.18916.93186@quantum>
+
+http://lkml.kernel.org/r/<20150724034229.642.88156@quantum>
+
+As an additional thought, it looks like the module stop registers are
+mixed in with the clock registers. When you decide to write a reset
+driver for these platforms you might want to re-use this existing dt
+binding description and put the reset code into your clock provider
+driver. Grep for reset.h in the drivers/clk/ directory for some
+examples.
+
+[0] http://documentation.renesas.com/doc/products/mpumcu/rej09b0283_267=
+8hm.pdf
+
+Regards,
+Mike
+--
+To unsubscribe from this list: send the line "unsubscribe devicetree" i=
+n
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
