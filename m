@@ -1,61 +1,85 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: [PATCH v2 0/8] ARCv2 port to Linux - (C) perf
-Date: Mon, 10 Aug 2015 08:29:30 +0000
-Message-ID: <1439195370.4848.1.camel@synopsys.com>
-References: <1438787614-14074-1-git-send-email-abrodkin@synopsys.com>
+From: David Miller <davem@redhat.com>
+Subject: Re: [PATCH v2 00/11] test_user_copy improvements
+Date: Mon, 10 Aug 2015 15:29:38 -0700 (PDT)
+Message-ID: <20150810.152938.1076489414700359615.davem@redhat.com>
+References: <1438960924-23628-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-7"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1438787614-14074-1-git-send-email-abrodkin@synopsys.com>
-Content-Language: en-US
-Content-ID: <44858027808A9A4E907D77831F5FAA08@internal.synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "peterz@infradead.org" <peterz@infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "arnd@arndb.de" <arnd@arndb.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:47759 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932929AbbHJW3m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 10 Aug 2015 18:29:42 -0400
+In-Reply-To: <1438960924-23628-1-git-send-email-james.hogan@imgtec.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: james.hogan@imgtec.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, keescook@chromium.org, akpm@linux-foundation.org, monstr@monstr.eu, lftan@altera.com, jonas@southpole.se, chris@zankel.net, jcmvbkbc@gmail.com, nios2-dev@lists.rocketboards.org, linux@lists.openrisc.net, linux-xtensa@linux-xtensa.org
 
-Hi Peter,
+From: James Hogan <james.hogan@imgtec.com>
+Date: Fri, 7 Aug 2015 16:21:53 +0100
 
-On Wed, 2015-08-05 at 18:13 +-0300, Alexey Brodkin wrote:
-+AD4- Hi Peter,
-+AD4- 
-+AD4- This mini-series adds perf support for ARCv2 based cores, which brings in
-+AD4- overflow interupts and SMP. Additionally now raw events are supported as well.
-+AD4- 
-+AD4- Please review +ACE-
-+AD4- 
-+AD4- Compared to v1 this series has:
-+AD4-  +AFs-1+AF0- Addressed review comments
-+AD4-  +AFs-2+AF0- More verbose commit messages and comments in sources
-+AD4-  +AFs-3+AF0- Minor cosmetics
-+AD4- 
-+AD4- Thanks,
-+AD4- Alexey
-+AD4- 
-+AD4- 
-+AD4- Alexey Brodkin (6):
-+AD4-   ARC: perf: support RAW events
-+AD4-   ARCv2: perf: implement +ACI-event+AF8-set+AF8-period+ACI- for future use with
-+AD4-     interrupts
-+AD4-   ARCv2: perf: Support sampling events using overflow interrupts
-+AD4-   ARCv2: perf: set usable max period as a half of real max period
-+AD4-   ARCv2: perf: implement exclusion of event counting in user or kernel
-+AD4-     mode
-+AD4-   ARCv2: perf: SMP support
-+AD4- 
-+AD4- Vineet Gupta (2):
-+AD4-   ARC: perf: cap the number of counters to hardware max of 32
-+AD4-   ARCv2: perf: Finally introduce HS perf unit
-+AD4- 
-+AD4-  .../devicetree/bindings/arc/archs-pct.txt          +AHw-  17 +-
-+AD4-  MAINTAINERS                                        +AHw-   2 +--
-+AD4-  arch/arc/include/asm/perf+AF8-event.h                  +AHw-  24 +--
-+AD4-  arch/arc/kernel/perf+AF8-event.c                       +AHw- 350 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+----
-+AD4-  4 files changed, 345 insertions(+-), 48 deletions(-)
-+AD4-  create mode 100644 Documentation/devicetree/bindings/arc/archs-pct.txt
-+AD4- 
+> These patches extend the test_user_copy test module to handle lots more
+> cases of user accessors which architectures can override separately, and
+> in particular those which are important for checking the MIPS Enhanced
+> Virtual Addressing (EVA) implementations, which need to handle
+> overlapping user and kernel address spaces, with special instructions
+> for accessing user address space from kernel mode.
+> 
+> - Checking that kernel pointers are accepted when user address limit is
+>   set to KERNEL_DS, as done by the kernel when it internally invokes
+>   system calls with kernel pointers.
+> - Checking of the unchecked accessors (which don't call access_ok()).
+>   Some of the tests are special cased for EVA at the moment which has
+>   stricter hardware guarantees for bad user accesses than other
+>   configurations.
+> - Checking of other sets of user accessors, including the inatomic user
+>   copies, clear_user, compatibility accessors (copy_in_user and
+>   _unaligned), the user string accessors, and the user checksum
+>   functions, all of which need special handling in arch code with EVA.
+> 
+> Tested on MIPS with and without EVA, and on x86_64.
+> 
+> Only build tested for arm, blackfin, metag, microblaze, openrisc,
+> parisc, powerpc, sh, sparc, tile, i386 & xtensa.
+> 
+> All arches were audited for the appropriate exports, only score is known
+> to still be missing some.
 
-Any chance for this series respin to be reviewed sometime soon?
+James, thanks for doing this work.
 
--Alexey
+If I understand the MIPS EVA facility correctly, it operates exactly like
+how sparc64 does.  Wherein user and kernel virtual addresses are fully
+segregated, and one must use a specially tagged load or store to access
+user addresses.
+
+This actually creates problems for the tests as currently coded on
+such systems (this problem existed before your changes).  You might
+not be triggering this problem on MIPS EV but it certainly is there.
+
+For example, consider this test:
+
+	ret |= test(!copy_from_user(bad_usermem, (char __user *)kmem,
+				    PAGE_SIZE),
+		    "illegal reversed copy_from_user passed");
+
+If the 'kmem' access faults, we will try to zero out PAGE_SIZE bytes
+at 'bad_usermem'.  But this is not necessarily going to fail.
+
+The user address 'bad_usermem', on MIPS EV and sparc64, could just as
+equally happen to be a legitimate kernel address.  So this clear will
+succeed and we will end up clearing memory at an arbitrary kernel
+address.
+
+There is no real way to trap this situation as a native load/store
+will work just fine on these addresses.
+
+I don't have a good suggestion other than to say that these tests
+seem to only be valid in a combined kernel/user address space, ie.
+for systems other than MIPS EV and sparc64.
+
+Also, I think the tests you added and protected with MIPS ifdefs could
+equally be enabled on sparc64.
+
+Thanks!
