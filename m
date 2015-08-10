@@ -1,53 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e17.ny.us.ibm.com ([129.33.205.207]:54260 "EHLO
-	e17.ny.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752508AbbHISzB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Aug 2015 14:55:01 -0400
-Received: from /spool/local
-	by e17.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-	Sun, 9 Aug 2015 14:54:59 -0400
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [PATCH] kexec: override GFP flag for the control page allocation
-Date: Tue, 21 Apr 2015 14:06:31 +0200
-Message-ID: <1429617992-31686-1-git-send-email-schwidefsky@de.ibm.com>
+Received: from smtprelay.synopsys.com ([198.182.47.9]:50658 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1753940AbbHJI3d convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 10 Aug 2015 04:29:33 -0400
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: Re: [PATCH v2 0/8] ARCv2 port to Linux - (C) perf
+Date: Mon, 10 Aug 2015 08:29:30 +0000
+Message-ID: <1439195370.4848.1.camel@synopsys.com>
+References: <1438787614-14074-1-git-send-email-abrodkin@synopsys.com>
+In-Reply-To: <1438787614-14074-1-git-send-email-abrodkin@synopsys.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-7"
+Content-ID: <44858027808A9A4E907D77831F5FAA08@internal.synopsys.com>
+Content-Transfer-Encoding: 8BIT
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric Biederman <ebiederm@xmission.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Vivek Goyal <vgoyal@redhat.com>, kexec@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
-Message-ID: <20150421120631.PUN_hOBBhLnOOCxq3Jo9Hg9AnH1Hd8cMB8DSP_P7-O4@z>
+To: "peterz@infradead.org" <peterz@infradead.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "arnd@arndb.de" <arnd@arndb.de>
+Message-ID: <20150810082930.dH-CLyJBql8X9E_11AV--jzjD1jWXbp0o0clP8ozjUg@z>
 
-Greetings,
+Hi Peter,
 
-I got a bug report that kexec does not work on s390 if the system has
-lots of memory. It is the kexec load step that dies with out-of-memory. 
+On Wed, 2015-08-05 at 18:13 +-0300, Alexey Brodkin wrote:
++AD4- Hi Peter,
++AD4- 
++AD4- This mini-series adds perf support for ARCv2 based cores, which brings in
++AD4- overflow interupts and SMP. Additionally now raw events are supported as well.
++AD4- 
++AD4- Please review +ACE-
++AD4- 
++AD4- Compared to v1 this series has:
++AD4-  +AFs-1+AF0- Addressed review comments
++AD4-  +AFs-2+AF0- More verbose commit messages and comments in sources
++AD4-  +AFs-3+AF0- Minor cosmetics
++AD4- 
++AD4- Thanks,
++AD4- Alexey
++AD4- 
++AD4- 
++AD4- Alexey Brodkin (6):
++AD4-   ARC: perf: support RAW events
++AD4-   ARCv2: perf: implement +ACI-event+AF8-set+AF8-period+ACI- for future use with
++AD4-     interrupts
++AD4-   ARCv2: perf: Support sampling events using overflow interrupts
++AD4-   ARCv2: perf: set usable max period as a half of real max period
++AD4-   ARCv2: perf: implement exclusion of event counting in user or kernel
++AD4-     mode
++AD4-   ARCv2: perf: SMP support
++AD4- 
++AD4- Vineet Gupta (2):
++AD4-   ARC: perf: cap the number of counters to hardware max of 32
++AD4-   ARCv2: perf: Finally introduce HS perf unit
++AD4- 
++AD4-  .../devicetree/bindings/arc/archs-pct.txt          +AHw-  17 +-
++AD4-  MAINTAINERS                                        +AHw-   2 +--
++AD4-  arch/arc/include/asm/perf+AF8-event.h                  +AHw-  24 +--
++AD4-  arch/arc/kernel/perf+AF8-event.c                       +AHw- 350 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+----
++AD4-  4 files changed, 345 insertions(+-), 48 deletions(-)
++AD4-  create mode 100644 Documentation/devicetree/bindings/arc/archs-pct.txt
++AD4- 
 
-The reason why this happens is the value of KEXEC_CONTROL_MEMORY_LIMIT
-for s390. To start the new kernel the code in the kexec control page
-needs to switch to the ESA mode (31-bit), therefore the memory limit
-is 2GB for s390. The allocation of the control page is done with
-GFP_KERNEL in kimage_alloc_normal_control_pages. If the allocated page
-is a target page in the kexec destination range or if its address is
-larger than the memory limit, it is put on the list of extra pages
-and another page is allocated until one is found that fits the
-requirements.
+Any chance for this series respin to be reviewed sometime soon?
 
-With a large memory size not only does this loop take a long time to
-complete (think 10 terabyte of memory), but eventually the OOM killer
-steps in and terminates the program that called kexec load.
-
-The fix for s390 is to use a different GFP flag, GFP_DMA instead of
-GFP_KERNEL. To do this a new #define for kexec is introduced that
-can be overruled by the architecture.
-
-Martin Schwidefsky (1):
-  kexec: allocate the kexec control page with KEXEC_CONTROL_MEMORY_GFP
-
- arch/s390/include/asm/kexec.h | 3 +++
- include/linux/kexec.h         | 4 ++++
- kernel/kexec.c                | 2 +-
- 3 files changed, 8 insertions(+), 1 deletion(-)
-
--- 
-1.9.1
-
+-Alexey
