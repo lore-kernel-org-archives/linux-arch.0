@@ -1,85 +1,63 @@
-From: David Miller <davem@redhat.com>
+From: David Miller <davem@davemloft.net>
 Subject: Re: [PATCH v2 00/11] test_user_copy improvements
-Date: Mon, 10 Aug 2015 15:29:38 -0700 (PDT)
-Message-ID: <20150810.152938.1076489414700359615.davem@redhat.com>
+Date: Mon, 10 Aug 2015 21:08:04 -0700 (PDT)
+Message-ID: <20150810.210804.1413406155445559341.davem@davemloft.net>
 References: <1438960924-23628-1-git-send-email-james.hogan@imgtec.com>
+	<20150810.152938.1076489414700359615.davem@redhat.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:47759 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932929AbbHJW3m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 Aug 2015 18:29:42 -0400
-In-Reply-To: <1438960924-23628-1-git-send-email-james.hogan@imgtec.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20150810.152938.1076489414700359615.davem@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: james.hogan@imgtec.com
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, keescook@chromium.org, akpm@linux-foundation.org, monstr@monstr.eu, lftan@altera.com, jonas@southpole.se, chris@zankel.net, jcmvbkbc@gmail.com, nios2-dev@lists.rocketboards.org, linux@lists.openrisc.net, linux-xtensa@linux-xtensa.org
+List-Id: linux-arch.vger.kernel.org
 
-From: James Hogan <james.hogan@imgtec.com>
-Date: Fri, 7 Aug 2015 16:21:53 +0100
+From: David Miller <davem@redhat.com>
+Date: Mon, 10 Aug 2015 15:29:38 -0700 (PDT)
 
-> These patches extend the test_user_copy test module to handle lots more
-> cases of user accessors which architectures can override separately, and
-> in particular those which are important for checking the MIPS Enhanced
-> Virtual Addressing (EVA) implementations, which need to handle
-> overlapping user and kernel address spaces, with special instructions
-> for accessing user address space from kernel mode.
-> 
-> - Checking that kernel pointers are accepted when user address limit is
->   set to KERNEL_DS, as done by the kernel when it internally invokes
->   system calls with kernel pointers.
-> - Checking of the unchecked accessors (which don't call access_ok()).
->   Some of the tests are special cased for EVA at the moment which has
->   stricter hardware guarantees for bad user accesses than other
->   configurations.
-> - Checking of other sets of user accessors, including the inatomic user
->   copies, clear_user, compatibility accessors (copy_in_user and
->   _unaligned), the user string accessors, and the user checksum
->   functions, all of which need special handling in arch code with EVA.
-> 
-> Tested on MIPS with and without EVA, and on x86_64.
-> 
-> Only build tested for arm, blackfin, metag, microblaze, openrisc,
-> parisc, powerpc, sh, sparc, tile, i386 & xtensa.
-> 
-> All arches were audited for the appropriate exports, only score is known
-> to still be missing some.
+> Also, I think the tests you added and protected with MIPS ifdefs could
+> equally be enabled on sparc64.
 
-James, thanks for doing this work.
+James, as per this issue, I was thinking we could do something like this
+so that the tests don't get messy:
 
-If I understand the MIPS EVA facility correctly, it operates exactly like
-how sparc64 does.  Wherein user and kernel virtual addresses are fully
-segregated, and one must use a specially tagged load or store to access
-user addresses.
-
-This actually creates problems for the tests as currently coded on
-such systems (this problem existed before your changes).  You might
-not be triggering this problem on MIPS EV but it certainly is there.
-
-For example, consider this test:
-
-	ret |= test(!copy_from_user(bad_usermem, (char __user *)kmem,
-				    PAGE_SIZE),
-		    "illegal reversed copy_from_user passed");
-
-If the 'kmem' access faults, we will try to zero out PAGE_SIZE bytes
-at 'bad_usermem'.  But this is not necessarily going to fail.
-
-The user address 'bad_usermem', on MIPS EV and sparc64, could just as
-equally happen to be a legitimate kernel address.  So this clear will
-succeed and we will end up clearing memory at an arbitrary kernel
-address.
-
-There is no real way to trap this situation as a native load/store
-will work just fine on these addresses.
-
-I don't have a good suggestion other than to say that these tests
-seem to only be valid in a combined kernel/user address space, ie.
-for systems other than MIPS EV and sparc64.
-
-Also, I think the tests you added and protected with MIPS ifdefs could
-equally be enabled on sparc64.
-
-Thanks!
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index cee5f93..48d20c8 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -1922,6 +1922,7 @@ config CPU_MIPSR6
+ 
+ config EVA
+ 	bool
++	select ARCH_SPLIT_VA_SPACE
+ 
+ config XPA
+ 	bool
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 56442d2..4001d04 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -80,6 +80,7 @@ config SPARC64
+ 	select NO_BOOTMEM
+ 	select HAVE_ARCH_AUDITSYSCALL
+ 	select ARCH_SUPPORTS_ATOMIC_RMW
++	select ARCH_SPLIT_VA_SPACE
+ 
+ config ARCH_DEFCONFIG
+ 	string
+diff --git a/lib/Kconfig b/lib/Kconfig
+index 3a2ef67..149eb29 100644
+--- a/lib/Kconfig
++++ b/lib/Kconfig
+@@ -62,6 +62,9 @@ config ARCH_USE_CMPXCHG_LOCKREF
+ config ARCH_HAS_FAST_MULTIPLIER
+ 	bool
+ 
++config ARCH_SPLIT_VA_SPACE
++       def_bool n
++
+ config CRC_CCITT
+ 	tristate "CRC-CCITT functions"
+ 	help
