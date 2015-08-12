@@ -1,45 +1,79 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 21/31] blackfin: handle page-less SG entries
-Date: Wed, 12 Aug 2015 09:05:40 +0200
-Message-ID: <1439363150-8661-22-git-send-email-hch@lst.de>
+Subject: [PATCH 03/31] dma-debug: handle page-less SG entries
+Date: Wed, 12 Aug 2015 09:05:22 +0200
+Message-ID: <1439363150-8661-4-git-send-email-hch@lst.de>
 References: <1439363150-8661-1-git-send-email-hch@lst.de>
-Return-path: <sparclinux-owner@vger.kernel.org>
+Return-path: <linux-mips-bounce@linux-mips.org>
 In-Reply-To: <1439363150-8661-1-git-send-email-hch@lst.de>
-Sender: sparclinux-owner@vger.kernel.org
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
 To: torvalds@linux-foundation.org, axboe@kernel.dk
 Cc: dan.j.williams@intel.com, vgupta@synopsys.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, dhowells@redhat.com, monstr@monstr.eu, x86@kernel.org, dwmw2@infradead.org, alex.williamson@redhat.com, grundler@parisc-linux.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-nvdimm@ml01.01.org, linux-media@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Switch from sg_virt to sg_phys as blackfin like all nommu architectures
-has a 1:1 virtual to physical mapping.
+Use sg_pfn to get a the PFN and skip checks that require a kernel
+virtual address.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/blackfin/kernel/dma-mapping.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ lib/dma-debug.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/arch/blackfin/kernel/dma-mapping.c b/arch/blackfin/kernel/dma-mapping.c
-index df437e5..e2c4d1a 100644
---- a/arch/blackfin/kernel/dma-mapping.c
-+++ b/arch/blackfin/kernel/dma-mapping.c
-@@ -120,7 +120,7 @@ dma_map_sg(struct device *dev, struct scatterlist *sg_list, int nents,
- 	int i;
+diff --git a/lib/dma-debug.c b/lib/dma-debug.c
+index dace71f..a215a80 100644
+--- a/lib/dma-debug.c
++++ b/lib/dma-debug.c
+@@ -1368,7 +1368,7 @@ void debug_dma_map_sg(struct device *dev, struct scatterlist *sg,
  
- 	for_each_sg(sg_list, sg, nents, i) {
--		sg->dma_address = (dma_addr_t) sg_virt(sg);
-+		sg->dma_address = sg_phys(sg);
- 		__dma_sync(sg_dma_address(sg), sg_dma_len(sg), direction);
- 	}
+ 		entry->type           = dma_debug_sg;
+ 		entry->dev            = dev;
+-		entry->pfn	      = page_to_pfn(sg_page(s));
++		entry->pfn	      = sg_pfn(s);
+ 		entry->offset	      = s->offset,
+ 		entry->size           = sg_dma_len(s);
+ 		entry->dev_addr       = sg_dma_address(s);
+@@ -1376,7 +1376,7 @@ void debug_dma_map_sg(struct device *dev, struct scatterlist *sg,
+ 		entry->sg_call_ents   = nents;
+ 		entry->sg_mapped_ents = mapped_ents;
  
-@@ -135,7 +135,7 @@ void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg_list,
- 	int i;
- 
- 	for_each_sg(sg_list, sg, nelems, i) {
--		sg->dma_address = (dma_addr_t) sg_virt(sg);
-+		sg->dma_address = sg_phys(sg);
- 		__dma_sync(sg_dma_address(sg), sg_dma_len(sg), direction);
- 	}
- }
+-		if (!PageHighMem(sg_page(s))) {
++		if (sg_has_page(s) && !PageHighMem(sg_page(s))) {
+ 			check_for_stack(dev, sg_virt(s));
+ 			check_for_illegal_area(dev, sg_virt(s), sg_dma_len(s));
+ 		}
+@@ -1419,7 +1419,7 @@ void debug_dma_unmap_sg(struct device *dev, struct scatterlist *sglist,
+ 		struct dma_debug_entry ref = {
+ 			.type           = dma_debug_sg,
+ 			.dev            = dev,
+-			.pfn		= page_to_pfn(sg_page(s)),
++			.pfn		= sg_pfn(s),
+ 			.offset		= s->offset,
+ 			.dev_addr       = sg_dma_address(s),
+ 			.size           = sg_dma_len(s),
+@@ -1580,7 +1580,7 @@ void debug_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
+ 		struct dma_debug_entry ref = {
+ 			.type           = dma_debug_sg,
+ 			.dev            = dev,
+-			.pfn		= page_to_pfn(sg_page(s)),
++			.pfn		= sg_pfn(s),
+ 			.offset		= s->offset,
+ 			.dev_addr       = sg_dma_address(s),
+ 			.size           = sg_dma_len(s),
+@@ -1613,7 +1613,7 @@ void debug_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+ 		struct dma_debug_entry ref = {
+ 			.type           = dma_debug_sg,
+ 			.dev            = dev,
+-			.pfn		= page_to_pfn(sg_page(s)),
++			.pfn		= sg_pfn(s),
+ 			.offset		= s->offset,
+ 			.dev_addr       = sg_dma_address(s),
+ 			.size           = sg_dma_len(s),
 -- 
 1.9.1
-
