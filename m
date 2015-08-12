@@ -1,47 +1,67 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH v2 00/11] test_user_copy improvements
-Date: Wed, 12 Aug 2015 14:34:10 -0700 (PDT)
-Message-ID: <20150812.143410.1500869614245341672.davem@davemloft.net>
-References: <20150810.152938.1076489414700359615.davem@redhat.com>
-	<20150810.210804.1413406155445559341.davem@davemloft.net>
-	<CAMuHMdUzHwm5_TL7TNAOF+uqheJnKgsqF+_vzqGRzB_3eufKug@mail.gmail.com>
+From: Julian Calaby <julian.calaby@gmail.com>
+Subject: Re: RFC: prepare for struct scatterlist entries without page backing
+Date: Thu, 13 Aug 2015 09:37:37 +1000
+Message-ID: <CAGRGNgUKkaPnyvn30DXyNpdiXQzS6J=1+mQ3ick8C8=bhx_RHA@mail.gmail.com>
+References: <1439363150-8661-1-git-send-email-hch@lst.de> <55CB3F47.3000902@plexistor.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:60161 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751137AbbHLVeM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Aug 2015 17:34:12 -0400
-In-Reply-To: <CAMuHMdUzHwm5_TL7TNAOF+uqheJnKgsqF+_vzqGRzB_3eufKug@mail.gmail.com>
+Received: from mail-ig0-f177.google.com ([209.85.213.177]:36421 "EHLO
+	mail-ig0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751887AbbHLXh5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Aug 2015 19:37:57 -0400
+In-Reply-To: <55CB3F47.3000902@plexistor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: geert@linux-m68k.org
-Cc: james.hogan@imgtec.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, keescook@chromium.org, akpm@linux-foundation.org, monstr@monstr.eu, lftan@altera.com, jonas@southpole.se, chris@zankel.net, jcmvbkbc@gmail.com, nios2-dev@lists.rocketboards.org, linux@lists.openrisc.net, linux-xtensa@linux-xtensa.org
+To: Boaz Harrosh <boaz@plexistor.com>, Christoph Hellwig <hch@lst.de>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, axboe@kernel.dk, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-nvdimm@ml01.01.org, David Howells <dhowells@redhat.com>, sparclinux <sparclinux@vger.kernel.org>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, David Woodhouse <dwmw2@infradead.org>, =?UTF-8?Q?H=C3=A5vard_Skinnemoen?= <hskinnemoen@gmail.com>, linux-xtensa@linux-xtensa.org, grundler@parisc-linux.org, realmz6@gmail.com, alex.williamson@redhat.com, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, vgupta@synopsys.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-alpha@vger.kernel.org, Linux Media Mailing List <linux-media@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org
 
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Date: Tue, 11 Aug 2015 13:20:53 +0200
+Hi,
 
-> On Tue, Aug 11, 2015 at 6:08 AM, David Miller <davem@davemloft.net> wrote:
- ...
->> diff --git a/lib/Kconfig b/lib/Kconfig
->> index 3a2ef67..149eb29 100644
->> --- a/lib/Kconfig
->> +++ b/lib/Kconfig
->> @@ -62,6 +62,9 @@ config ARCH_USE_CMPXCHG_LOCKREF
->>  config ARCH_HAS_FAST_MULTIPLIER
->>         bool
+On Wed, Aug 12, 2015 at 10:42 PM, Boaz Harrosh <boaz@plexistor.com> wrote:
+> On 08/12/2015 10:05 AM, Christoph Hellwig wrote:
+>> It turns out most DMA mapping implementation can handle SGLs without
+>> page structures with some fairly simple mechanical work.  Most of it
+>> is just about consistently using sg_phys.  For implementations that
+>> need to flush caches we need a new helper that skips these cache
+>> flushes if a entry doesn't have a kernel virtual address.
 >>
->> +config ARCH_SPLIT_VA_SPACE
->> +       def_bool n
->> +
->>  config CRC_CCITT
->>         tristate "CRC-CCITT functions"
->>         help
-> 
-> I think this applies to a few more architectures.
-> 
-> M68k already has a config symbol for his (CPU_HAS_ADDRESS_SPACES),
-> which is set by classic m68k (not Coldfire) that has the "moves" instruction.
+>> However the ccio (parisc) and sba_iommu (parisc & ia64) IOMMUs seem
+>> to be operate mostly on virtual addresses.  It's a fairly odd concept
+>> that I don't fully grasp, so I'll need some help with those if we want
+>> to bring this forward.
+>>
+>> Additional this series skips ARM entirely for now.  The reason is
+>> that most arm implementations of the .map_sg operation just iterate
+>> over all entries and call ->map_page for it, which means we'd need
+>> to convert those to a ->map_pfn similar to Dan's previous approach.
+>>
+>
+[snip]
+>
+> It is a bit of work but is worth while, and accelerating tremendously
+> lots of workloads. Not like this abomination which only branches
+> things more and more, and making things fatter and slower.
 
-Awesome, maybe James can add the M68K case to his patch as well.
+As a random guy reading a big bunch of patches on code I know almost
+nothing about, parts of this comment really resonated with me:
+overall, we seem to be adding a lot of if statements to code that
+appears to be in a hot path.
+
+I.e. ~90% of this patch set seems to be just mechanically dropping
+BUG_ON()s and converting open coded stuff to use accessor functions
+(which should be macros or get inlined, right?) - and the remaining
+bit is not flushing if we don't have a physical page somewhere.
+
+Would it make sense to split this patch set into a few bits: one to
+drop all the useless BUG_ON()s, one to convert all the open coded
+stuff to accessor functions, then another to do the actual page-less
+sg stuff?
+
+Thanks,
+
+-- 
+Julian Calaby
+
+Email: julian.calaby@gmail.com
+Profile: http://www.google.com/profiles/julian.calaby/
