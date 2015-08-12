@@ -1,83 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:53276 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.9]:53240 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965273AbbHLHJt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Aug 2015 03:09:49 -0400
+	with ESMTP id S965217AbbHLHJm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Aug 2015 03:09:42 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 22/31] metag: handle page-less SG entries
-Date: Wed, 12 Aug 2015 09:05:41 +0200
-Message-ID: <1439363150-8661-23-git-send-email-hch@lst.de>
+Subject: [PATCH 20/31] avr32: handle page-less SG entries
+Date: Wed, 12 Aug 2015 09:05:39 +0200
+Message-ID: <1439363150-8661-21-git-send-email-hch@lst.de>
 In-Reply-To: <1439363150-8661-1-git-send-email-hch@lst.de>
 References: <1439363150-8661-1-git-send-email-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org, axboe@kernel.dk
 Cc: dan.j.williams@intel.com, vgupta@synopsys.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, dhowells@redhat.com, monstr@monstr.eu, x86@kernel.org, dwmw2@infradead.org, alex.williamson@redhat.com, grundler@parisc-linux.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-nvdimm@ml01.01.org, linux-media@vger.kernel.org
-Message-ID: <20150812070541.d7rXWw6L9NaiCVdDXXYSNVan8Ur-0KGrXvG5fFBYUug@z>
+Message-ID: <20150812070539.0QLkYukVSwKvvi66fMAGf8Z9xdM9bQ2H53ELWtB7RWM@z>
 
-Make all cache invalidation conditional on sg_has_page().
+Make all cache invalidation conditional on sg_has_page() and use
+sg_phys to get the physical address directly, bypassing the noop
+page_to_bus.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/metag/include/asm/dma-mapping.h | 22 ++++++++++++----------
- 1 file changed, 12 insertions(+), 10 deletions(-)
+ arch/avr32/include/asm/dma-mapping.h | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/arch/metag/include/asm/dma-mapping.h b/arch/metag/include/asm/dma-mapping.h
-index eb5cdec..2ae9057 100644
---- a/arch/metag/include/asm/dma-mapping.h
-+++ b/arch/metag/include/asm/dma-mapping.h
-@@ -55,10 +55,9 @@ dma_map_sg(struct device *dev, struct scatterlist *sglist, int nents,
- 	WARN_ON(nents == 0 || sglist[0].length == 0);
+diff --git a/arch/avr32/include/asm/dma-mapping.h b/arch/avr32/include/asm/dma-mapping.h
+index ae7ac92..a662ce2 100644
+--- a/arch/avr32/include/asm/dma-mapping.h
++++ b/arch/avr32/include/asm/dma-mapping.h
+@@ -216,11 +216,9 @@ dma_map_sg(struct device *dev, struct scatterlist *sglist, int nents,
+ 	struct scatterlist *sg;
  
  	for_each_sg(sglist, sg, nents, i) {
--		BUG_ON(!sg_page(sg));
+-		char *virt;
 -
- 		sg->dma_address = sg_phys(sg);
--		dma_sync_for_device(sg_virt(sg), sg->length, direction);
+-		sg->dma_address = page_to_bus(sg_page(sg)) + sg->offset;
+-		virt = sg_virt(sg);
+-		dma_cache_sync(dev, virt, sg->length, direction);
++		sg->dma_address = sg_phys(sg);
 +		if (sg_has_page(sg))
-+			dma_sync_for_device(sg_virt(sg), sg->length, direction);
++			dma_cache_sync(dev, sg_virt(sg), sg->length, direction);
  	}
  
  	return nents;
-@@ -94,10 +93,9 @@ dma_unmap_sg(struct device *dev, struct scatterlist *sglist, int nhwentries,
- 	WARN_ON(nhwentries == 0 || sglist[0].length == 0);
- 
- 	for_each_sg(sglist, sg, nhwentries, i) {
--		BUG_ON(!sg_page(sg));
--
- 		sg->dma_address = sg_phys(sg);
--		dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
-+		if (sg_has_page(sg))
-+			dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
- 	}
- }
- 
-@@ -140,8 +138,10 @@ dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sglist, int nelems,
+@@ -328,8 +326,10 @@ dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist,
  	int i;
  	struct scatterlist *sg;
  
--	for_each_sg(sglist, sg, nelems, i)
--		dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
-+	for_each_sg(sglist, sg, nelems, i) {
+-	for_each_sg(sglist, sg, nents, i)
+-		dma_cache_sync(dev, sg_virt(sg), sg->length, direction);
++	for_each_sg(sglist, sg, nents, i) {
 +		if (sg_has_page(sg))
-+			dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
++			dma_cache_sync(dev, sg_virt(sg), sg->length, direction);
 +	}
  }
  
- static inline void
-@@ -151,8 +151,10 @@ dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist,
- 	int i;
- 	struct scatterlist *sg;
- 
--	for_each_sg(sglist, sg, nelems, i)
--		dma_sync_for_device(sg_virt(sg), sg->length, direction);
-+	for_each_sg(sglist, sg, nelems, i) {
-+		if (sg_has_page(sg))
-+			dma_sync_for_device(sg_virt(sg), sg->length, direction);
-+	}
- }
- 
- static inline int
+ /* Now for the API extensions over the pci_ one */
 -- 
 1.9.1
 
