@@ -1,65 +1,48 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [BELATED CORE TOPIC] context tracking / nohz / RCU state
-Date: Wed, 12 Aug 2015 08:59:19 -0700
-Message-ID: <20150812155919.GU3895@linux.vnet.ibm.com>
-References: <CALCETrW7OiEYFm9FLbC_pnRLMvwb0nTKRWRDMXB3PMc_0H+UoA@mail.gmail.com>
- <20150811183312.GE3895@linux.vnet.ibm.com>
- <20150812143819.GE21542@lerouge>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH 29/31] parisc: handle page-less SG entries
+Date: Wed, 12 Aug 2015 09:01:02 -0700
+Message-ID: <CA+55aFxsH9Lde7wqZi555vqfH2uxeQqC9cjeca9L6Wr=XpyzXA@mail.gmail.com>
+References: <1439363150-8661-1-git-send-email-hch@lst.de>
+	<1439363150-8661-30-git-send-email-hch@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e33.co.us.ibm.com ([32.97.110.151]:59117 "EHLO
-	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753477AbbHLP70 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Aug 2015 11:59:26 -0400
-Received: from /spool/local
-	by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Wed, 12 Aug 2015 09:59:25 -0600
-Content-Disposition: inline
-In-Reply-To: <20150812143819.GE21542@lerouge>
+Received: from mail-io0-f169.google.com ([209.85.223.169]:36078 "EHLO
+	mail-io0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753552AbbHLQBD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Aug 2015 12:01:03 -0400
+In-Reply-To: <1439363150-8661-30-git-send-email-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, "ksummit-discuss@lists.linuxfoundation.org" <ksummit-discuss@lists.linuxfoundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Christoph Lameter <cl@linux.com>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <peterz@infradead.org>, Chris Metcalf <cmetcalf@ezchip.com>, Rik van Riel <riel@redhat.com>, benh@kernel.crashing.org, will.deacon@arm.com, linux-arch@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: Jens Axboe <axboe@kernel.dk>, Dan Williams <dan.j.williams@intel.com>, Vineet Gupta <vgupta@synopsys.com>, =?UTF-8?Q?H=C3=A5vard_Skinnemoen?= <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Miao Steven <realmz6@gmail.com>, David Howells <dhowells@redhat.com>, Michal Simek <monstr@monstr.eu>, the arch/x86 maintainers <x86@kernel.org>, David Woodhouse <dwmw2@infradead.org>, Alex Williamson <alex.williamson@redhat.com>, grundler@parisc-linux.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-alpha@vger.kernel.org, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-metag@vger.kernel.org, linux-mips <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390 <linux-s390@vger.kernel.org>s
 
-On Wed, Aug 12, 2015 at 04:38:21PM +0200, Frederic Weisbecker wrote:
-> On Tue, Aug 11, 2015 at 11:33:12AM -0700, Paul E. McKenney wrote:
-> > On Tue, Aug 11, 2015 at 10:49:36AM -0700, Andy Lutomirski wrote:
-> > > Some arches may need:
-> > > 
-> > > i_am_lame_and_forgot_my_previous_context()
-> > > 
-> > > x86 will soon (4.3 or 4.4, depending on how my syscall cleanup goes)
-> > > no longer need that.
-> > > 
-> > > Paul says that some arches need something that goes straight from IRQ
-> > > to user mode (?) -- sigh.
-> > 
-> > Straight from IRQ to process-level kernel mode.  I ran into this in
-> > late 2011, and clearly should have documented exactly what code was
-> > doing this.  Something about invoking system calls from within the
-> > kernel on some architectures.
-> > 
-> > Hey, if no architectures do this anymore, I could simplify RCU a bit!  ;-)
-> 
-> That issue has always been a bit foggy to me :-)
-> 
-> We never really stated what exactly the issue was. Just performing syscalls
-> from kernel mode shouldn't fiddle with the dynticks count.
-> 
-> IIUC, the issue was that some IRQs triggered and never returned. But we
-> certainly can't remove the safety code without clearly identifying the
-> issue...
+On Wed, Aug 12, 2015 at 12:05 AM, Christoph Hellwig <hch@lst.de> wrote:
+> Make all cache invalidation conditional on sg_has_page() and use
+> sg_phys to get the physical address directly.
 
-This was not a theoretical problem -- there were real failures.
+So this worries me a bit (I'm just reacting to one random patch in the series).
 
-But yes, the safety code is there and seems to work OK, so I do need
-confirmation of a change before removing it.  I do recall someone
-arguing that the half-interrupts should go away, but I never did hear
-that they really did go away.
+The reason?
 
-Adding linux-arch in the hope that someone can say for sure.
+I think this wants a big honking comment somewhere saying "non-sg_page
+accesses are not necessarily cache coherent").
 
-							Thanx, Paul
+Now, I don't think that's _wrong_, but it's an important distinction:
+if you look up pages in the page tables directly, there's a very
+subtle difference between then saving just the pfn and saving the
+"struct page" of the result.
+
+On sane architectures, this whole cache flushing thing doesn't matter.
+Which just means that it's going to be even more subtle on the odd
+broken ones..
+
+I'm assuming that anybody who wants to use the page-less
+scatter-gather lists always does so on memory that isn't actually
+virtually mapped at all, or only does so on sane architectures that
+are cache coherent at a physical level, but I'd like that assumption
+*documented* somewhere.
+
+(And maybe it is, and I just didn't get to that patch yet)
+
+                   Linus
