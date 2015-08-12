@@ -1,70 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:53320 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.9]:53291 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965308AbbHLHJz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Aug 2015 03:09:55 -0400
+	with ESMTP id S965302AbbHLHJw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Aug 2015 03:09:52 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 24/31] xtensa: handle page-less SG entries
-Date: Wed, 12 Aug 2015 09:05:43 +0200
-Message-ID: <1439363150-8661-25-git-send-email-hch@lst.de>
+Subject: [PATCH 23/31] sh: handle page-less SG entries
+Date: Wed, 12 Aug 2015 09:05:42 +0200
+Message-ID: <1439363150-8661-24-git-send-email-hch@lst.de>
 In-Reply-To: <1439363150-8661-1-git-send-email-hch@lst.de>
 References: <1439363150-8661-1-git-send-email-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org, axboe@kernel.dk
 Cc: dan.j.williams@intel.com, vgupta@synopsys.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, dhowells@redhat.com, monstr@monstr.eu, x86@kernel.org, dwmw2@infradead.org, alex.williamson@redhat.com, grundler@parisc-linux.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-nvdimm@ml01.01.org, linux-media@vger.kernel.org
-Message-ID: <20150812070543.um5TZX48YlzdJVVLrkzt1K3D6MUBSuOSXxe71SgEelE@z>
+Message-ID: <20150812070542.eH_4B6L1GnjI4gfdRaEU1d-_MmCXAYI8QFy5pwzGmes@z>
 
 Make all cache invalidation conditional on sg_has_page().
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/xtensa/include/asm/dma-mapping.h | 17 ++++++++++-------
- 1 file changed, 10 insertions(+), 7 deletions(-)
+ arch/sh/kernel/dma-nommu.c | 11 ++++++-----
+ 1 file changed, 6 insertions(+), 5 deletions(-)
 
-diff --git a/arch/xtensa/include/asm/dma-mapping.h b/arch/xtensa/include/asm/dma-mapping.h
-index 1f5f6dc..262a1d1 100644
---- a/arch/xtensa/include/asm/dma-mapping.h
-+++ b/arch/xtensa/include/asm/dma-mapping.h
-@@ -61,10 +61,9 @@ dma_map_sg(struct device *dev, struct scatterlist *sglist, int nents,
- 	BUG_ON(direction == DMA_NONE);
+diff --git a/arch/sh/kernel/dma-nommu.c b/arch/sh/kernel/dma-nommu.c
+index 5b0bfcd..3b64dc7 100644
+--- a/arch/sh/kernel/dma-nommu.c
++++ b/arch/sh/kernel/dma-nommu.c
+@@ -33,9 +33,8 @@ static int nommu_map_sg(struct device *dev, struct scatterlist *sg,
+ 	WARN_ON(nents == 0 || sg[0].length == 0);
  
- 	for_each_sg(sglist, sg, nents, i) {
--		BUG_ON(!sg_page(sg));
+ 	for_each_sg(sg, s, nents, i) {
+-		BUG_ON(!sg_page(s));
 -
- 		sg->dma_address = sg_phys(sg);
--		consistent_sync(sg_virt(sg), sg->length, direction);
-+		if (sg_has_page(sg))
-+			consistent_sync(sg_virt(sg), sg->length, direction);
- 	}
+-		dma_cache_sync(dev, sg_virt(s), s->length, dir);
++		if (sg_has_page(s))
++			dma_cache_sync(dev, sg_virt(s), s->length, dir);
  
- 	return nents;
-@@ -131,8 +130,10 @@ dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sglist, int nelems,
+ 		s->dma_address = sg_phys(s);
+ 		s->dma_length = s->length;
+@@ -57,8 +56,10 @@ static void nommu_sync_sg(struct device *dev, struct scatterlist *sg,
+ 	struct scatterlist *s;
  	int i;
- 	struct scatterlist *sg;
  
--	for_each_sg(sglist, sg, nelems, i)
--		consistent_sync(sg_virt(sg), sg->length, dir);
-+	for_each_sg(sglist, sg, nelems, i) {
-+		if (sg_has_page(sg))
-+			consistent_sync(sg_virt(sg), sg->length, dir);
+-	for_each_sg(sg, s, nelems, i)
+-		dma_cache_sync(dev, sg_virt(s), s->length, dir);
++	for_each_sg(sg, s, nelems, i) {
++		if (sg_has_page(s))
++			dma_cache_sync(dev, sg_virt(s), s->length, dir);
 +	}
  }
+ #endif
  
- static inline void
-@@ -142,8 +143,10 @@ dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist,
- 	int i;
- 	struct scatterlist *sg;
- 
--	for_each_sg(sglist, sg, nelems, i)
--		consistent_sync(sg_virt(sg), sg->length, dir);
-+	for_each_sg(sglist, sg, nelems, i) {
-+		if (sg_has_page(sg))
-+			consistent_sync(sg_virt(sg), sg->length, dir);
-+	}
- }
- static inline int
- dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
 -- 
 1.9.1
 
