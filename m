@@ -1,98 +1,34 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH v2 08/25] arch: introduce memremap()
-Date: Tue, 11 Aug 2015 16:13:44 -0700
-Message-ID: <CAPcyv4g0-CcFRCWPBdKB7h0zZEO5qzT-N9YLYJw9sb=_HYnXiA@mail.gmail.com>
-References: <20150726172527.GA29513@lst.de>
-	<CAPcyv4igoopDPpcCRU1TNYdwPhiYdcDiRA7L9Jdian=0rtexRg@mail.gmail.com>
-	<20150727051258.GB15836@lst.de>
-	<CAPcyv4jN6jYzw11qOOR-xd_w6s5dguQSoHyvmPFSWtL9S+tz3w@mail.gmail.com>
-	<20150729065004.GA17162@lst.de>
-	<20150729182712.GI30479@wotan.suse.de>
-	<CAPcyv4iAeMAmU1QRZ1=WTav0cg2=-gqzzrt3nMC1QoD1+hOeBg@mail.gmail.com>
-	<1438203638.3214.418.camel@hp.com>
-	<20150729214358.GK30479@wotan.suse.de>
-	<1438214404.3214.438.camel@hp.com>
-	<20150811213021.GD30479@wotan.suse.de>
-	<1439332857.24434.37.camel@hp.com>
-	<CAB=NE6U+k5mucfGOhuFoayZB48YMJ0d6o0o8Xe4jH=3ZNgrf-g@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f174.google.com ([209.85.212.174]:35052 "EHLO
-	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752675AbbHKXNq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Aug 2015 19:13:46 -0400
-Received: by wicne3 with SMTP id ne3so79557160wic.0
-        for <linux-arch@vger.kernel.org>; Tue, 11 Aug 2015 16:13:45 -0700 (PDT)
-In-Reply-To: <CAB=NE6U+k5mucfGOhuFoayZB48YMJ0d6o0o8Xe4jH=3ZNgrf-g@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@suse.com>
-Cc: Toshi Kani <toshi.kani@hp.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@kernel.org>, Geert Uytterhoeven <geert@linux-m68k.org>, "H. Peter Anvin" <hpa@zytor.com>, Russell King <rmk+kernel@arm.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Christoph Hellwig <hch@lst.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 04/31] x86/pci-nommu: handle page-less SG entries
+Date: Wed, 12 Aug 2015 09:05:23 +0200
+Message-ID: <1439363150-8661-5-git-send-email-hch@lst.de>
+References: <1439363150-8661-1-git-send-email-hch@lst.de>
+Return-path: <linux-parisc-owner@vger.kernel.org>
+In-Reply-To: <1439363150-8661-1-git-send-email-hch@lst.de>
+Sender: linux-parisc-owner@vger.kernel.org
+To: torvalds@linux-foundation.org, axboe@kernel.dk
+Cc: dan.j.williams@intel.com, vgupta@synopsys.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, dhowells@redhat.com, monstr@monstr.eu, x86@kernel.org, dwmw2@infradead.org, alex.williamson@redhat.com, grundler@parisc-linux.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-nvdimm@ml01.01.org, linux-media@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Aug 11, 2015 at 3:52 PM, Luis R. Rodriguez <mcgrof@suse.com> wrote:
-> On Tue, Aug 11, 2015 at 3:40 PM, Toshi Kani <toshi.kani@hp.com> wrote:
->> On Tue, 2015-08-11 at 23:30 +0200, Luis R. Rodriguez wrote:
->>> On Wed, Jul 29, 2015 at 06:00:04PM -0600, Toshi Kani wrote:
->>> > On Wed, 2015-07-29 at 23:43 +0200, Luis R. Rodriguez wrote:
->>> > > On Wed, Jul 29, 2015 at 03:00:38PM -0600, Toshi Kani wrote:
->>> > > > On Wed, 2015-07-29 at 11:33 -0700, Dan Williams wrote:
->>   :
->>> > > That would depend on the purpose of the region and the driver
->>> > > developer should in theory know best. One issue with this of course is
->>> > > that, as we've discovered, the semantics of on the ioremap*() variant
->>> > > front regarding cache types is not clearly well defined, or at least
->>> > > it may be only well defined implicitly on x86 only, so the driver
->>> > > developer can only *hope* for the best across architectures. Our
->>> > > ambiguity on our semantics on ioremap*() variants therefore means
->>> > > driver developers can resonably be puzzled by what fallbacks to use.
->>> > > That also means architectures maintainers should not whip driver
->>> > > developers for any misuse. Such considerations are why although we're
->>> > > now revisiting semantics for ioremap*() variants I was in hopes we
->>> > > could be at least somewhat pedantic about memremap() semantics.
->>> >
->>> > I agree.  However, there are a few exceptions like /dev/mem, which can
->>> > map a target range without knowledge.
->>>
->>> Still, the expectation to require support for overlapping ioremap() calls
->>> would seem to be more of an exception than the norm, so I'd argue that
->>> requiring callers who know they do need overlapping support to be explicit
->>> about it may help us simplify expecations on semantics in other areas of
->>> the kernel.
->>
->> Again, I agree.  I am simply saying that the fallback in an overlapping case
->> may need to remain supported for such exceptional cases, possibly with a
->> separate interface.
->
-> Great.
->
->>> > > For instance since memremap() only has 2 types right now can a
->>> > > respective fallback be documented as an alternative to help with this
->>> > > ? Or can we not generalize this ?  One for MEMREMAP_WB and one for
->>> > > MEMREMAP_WT ?
->>> >
->>> > Yes, if a target range can be only mapped by memremap().  However, there
->>> > is no restriction that a range can be mapped with a single interface
->>> > alone.  For example, a range can be mapped with remap_pfn_range() to
->>> > user space with any cache type.  So, in theory, memremap() can overlap
->>> > with any other types.
->>>
->>> Shouldn't that be an issue or area of concern ? It seems the flakiness on
->>> ioremap() and its wide array flexibility would spill over the any
->>> semantics which folks would be trying to set out with memremap(). That
->>> should not stop the evolution of memremap() though, just pointing out that
->>> perhaps we should be a bit more restrictive over how things can criss
->>> -cross and who areas can do it.
->>
->> reserve_pfn_range() allows the caller to specify if the fallback needs to be
->> enabled or disabled with 'strict_prot'.  track_pfn_remap() called from
->> remap_pfn_range() enables it, and track_pfn_copy() disables it.  I think we
->> can do similar for the memremap and ioremap families as well.  The fallback
->> could be set disabled in the regular interfaces, and enabled in some
->> interface as necessary.  This also allows gradual transition, ex. disable in
->> memremap while ioremap remains enabled for now.
->
-> Sounds sexy to me.
+Just remove a BUG_ON, the code handles them just fine as-is.
 
-Cool, sounds like something we can tackle in 4.4 along with the
-ioremap_cache removal cleanups.
+Signed-off-by: Christoph Hellwig <hch@lst.de>
+---
+ arch/x86/kernel/pci-nommu.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/arch/x86/kernel/pci-nommu.c b/arch/x86/kernel/pci-nommu.c
+index da15918..a218059 100644
+--- a/arch/x86/kernel/pci-nommu.c
++++ b/arch/x86/kernel/pci-nommu.c
+@@ -63,7 +63,6 @@ static int nommu_map_sg(struct device *hwdev, struct scatterlist *sg,
+ 	WARN_ON(nents == 0 || sg[0].length == 0);
+ 
+ 	for_each_sg(sg, s, nents, i) {
+-		BUG_ON(!sg_page(s));
+ 		s->dma_address = sg_phys(s);
+ 		if (!check_addr("map_sg", hwdev, s->dma_address, s->length))
+ 			return 0;
+-- 
+1.9.1
+
