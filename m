@@ -1,55 +1,91 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 20/31] avr32: handle page-less SG entries
-Date: Wed, 12 Aug 2015 09:05:39 +0200
-Message-ID: <1439363150-8661-21-git-send-email-hch@lst.de>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 18/31] nios2: handle page-less SG entries
+Date: Wed, 12 Aug 2015 09:05:37 +0200
+Message-ID: <1439363150-8661-19-git-send-email-hch@lst.de>
 References: <1439363150-8661-1-git-send-email-hch@lst.de>
-Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1439363150-8661-1-git-send-email-hch-jcswGhMUV9g@public.gmane.org>
-Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, axboe-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org
-Cc: dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, vgupta-HKixBCOQz3hWk0Htik3J/w@public.gmane.org, hskinnemoen-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, egtvedt-BrfabpQBY5qlHtIdYg32fQ@public.gmane.org, realmz6-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, dwmw2-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, alex.williamson-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, grundler-6jwH94ZQLHl74goWV3ctuw@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, linux-nvdimm-y27Ovi1pjclAfugRpC6u6w@public.gmane.org, linux-media-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Return-path: <linux-mips-bounce@linux-mips.org>
+In-Reply-To: <1439363150-8661-1-git-send-email-hch@lst.de>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: torvalds@linux-foundation.org, axboe@kernel.dk
+Cc: dan.j.williams@intel.com, vgupta@synopsys.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, dhowells@redhat.com, monstr@monstr.eu, x86@kernel.org, dwmw2@infradead.org, alex.williamson@redhat.com, grundler@parisc-linux.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-nvdimm@ml01.01.org, linux-media@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 Make all cache invalidation conditional on sg_has_page() and use
-sg_phys to get the physical address directly, bypassing the noop
-page_to_bus.
+sg_phys to get the physical address directly.
 
-Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- arch/avr32/include/asm/dma-mapping.h | 14 +++++++-------
- 1 file changed, 7 insertions(+), 7 deletions(-)
+ arch/nios2/mm/dma-mapping.c | 29 +++++++++++++++--------------
+ 1 file changed, 15 insertions(+), 14 deletions(-)
 
-diff --git a/arch/avr32/include/asm/dma-mapping.h b/arch/avr32/include/asm/dma-mapping.h
-index ae7ac92..a662ce2 100644
---- a/arch/avr32/include/asm/dma-mapping.h
-+++ b/arch/avr32/include/asm/dma-mapping.h
-@@ -216,11 +216,9 @@ dma_map_sg(struct device *dev, struct scatterlist *sglist, int nents,
- 	struct scatterlist *sg;
+diff --git a/arch/nios2/mm/dma-mapping.c b/arch/nios2/mm/dma-mapping.c
+index ac5da75..1a0a68d 100644
+--- a/arch/nios2/mm/dma-mapping.c
++++ b/arch/nios2/mm/dma-mapping.c
+@@ -64,13 +64,11 @@ int dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
+ 	BUG_ON(!valid_dma_direction(direction));
  
- 	for_each_sg(sglist, sg, nents, i) {
--		char *virt;
+ 	for_each_sg(sg, sg, nents, i) {
+-		void *addr;
 -
--		sg->dma_address = page_to_bus(sg_page(sg)) + sg->offset;
--		virt = sg_virt(sg);
--		dma_cache_sync(dev, virt, sg->length, direction);
+-		addr = sg_virt(sg);
+-		if (addr) {
+-			__dma_sync_for_device(addr, sg->length, direction);
+-			sg->dma_address = sg_phys(sg);
++		if (sg_has_page(sg)) {
++			__dma_sync_for_device(sg_virt(sg), sg->length,
++						direction);
+ 		}
 +		sg->dma_address = sg_phys(sg);
-+		if (sg_has_page(sg))
-+			dma_cache_sync(dev, sg_virt(sg), sg->length, direction);
  	}
  
  	return nents;
-@@ -328,8 +326,10 @@ dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist,
- 	int i;
- 	struct scatterlist *sg;
+@@ -113,9 +111,8 @@ void dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nhwentries,
+ 		return;
  
--	for_each_sg(sglist, sg, nents, i)
--		dma_cache_sync(dev, sg_virt(sg), sg->length, direction);
-+	for_each_sg(sglist, sg, nents, i) {
+ 	for_each_sg(sg, sg, nhwentries, i) {
+-		addr = sg_virt(sg);
+-		if (addr)
+-			__dma_sync_for_cpu(addr, sg->length, direction);
 +		if (sg_has_page(sg))
-+			dma_cache_sync(dev, sg_virt(sg), sg->length, direction);
++			__dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
+ 	}
+ }
+ EXPORT_SYMBOL(dma_unmap_sg);
+@@ -166,8 +163,10 @@ void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg, int nelems,
+ 	BUG_ON(!valid_dma_direction(direction));
+ 
+ 	/* Make sure that gcc doesn't leave the empty loop body.  */
+-	for_each_sg(sg, sg, nelems, i)
+-		__dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
++	for_each_sg(sg, sg, nelems, i) {
++		if (sg_has_page(sg))
++			__dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
 +	}
  }
+ EXPORT_SYMBOL(dma_sync_sg_for_cpu);
  
- /* Now for the API extensions over the pci_ one */
+@@ -179,8 +178,10 @@ void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+ 	BUG_ON(!valid_dma_direction(direction));
+ 
+ 	/* Make sure that gcc doesn't leave the empty loop body.  */
+-	for_each_sg(sg, sg, nelems, i)
+-		__dma_sync_for_device(sg_virt(sg), sg->length, direction);
+-
++	for_each_sg(sg, sg, nelems, i) {
++		if (sg_has_page(sg))
++			__dma_sync_for_device(sg_virt(sg), sg->length,
++					direction);
++	}
+ }
+ EXPORT_SYMBOL(dma_sync_sg_for_device);
 -- 
 1.9.1
