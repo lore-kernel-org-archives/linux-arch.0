@@ -1,77 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:52910 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.9]:52906 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934044AbbHLHIz (ORCPT
+	with ESMTP id S933581AbbHLHIz (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Aug 2015 03:08:55 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 03/31] dma-debug: handle page-less SG entries
-Date: Wed, 12 Aug 2015 09:05:22 +0200
-Message-ID: <1439363150-8661-4-git-send-email-hch@lst.de>
+Subject: [PATCH 01/31] scatterlist: add sg_pfn and sg_has_page helpers
+Date: Wed, 12 Aug 2015 09:05:20 +0200
+Message-ID: <1439363150-8661-2-git-send-email-hch@lst.de>
 In-Reply-To: <1439363150-8661-1-git-send-email-hch@lst.de>
 References: <1439363150-8661-1-git-send-email-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: torvalds@linux-foundation.org, axboe@kernel.dk
 Cc: dan.j.williams@intel.com, vgupta@synopsys.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, dhowells@redhat.com, monstr@monstr.eu, x86@kernel.org, dwmw2@infradead.org, alex.williamson@redhat.com, grundler@parisc-linux.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-nvdimm@ml01.01.org, linux-media@vger.kernel.org
-Message-ID: <20150812070522.IfqRy459Q-kqcuRCDki9ZJY-131MksMZSOGJQVakp-8@z>
-
-Use sg_pfn to get a the PFN and skip checks that require a kernel
-virtual address.
+Message-ID: <20150812070520.YuzHkSlpGJoJptT4SWfrQQt5dynN3SBwv_kOhMklrqg@z>
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- lib/dma-debug.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ include/linux/scatterlist.h | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
-diff --git a/lib/dma-debug.c b/lib/dma-debug.c
-index dace71f..a215a80 100644
---- a/lib/dma-debug.c
-+++ b/lib/dma-debug.c
-@@ -1368,7 +1368,7 @@ void debug_dma_map_sg(struct device *dev, struct scatterlist *sg,
+diff --git a/include/linux/scatterlist.h b/include/linux/scatterlist.h
+index 9b1ef0c..b1056bf 100644
+--- a/include/linux/scatterlist.h
++++ b/include/linux/scatterlist.h
+@@ -230,6 +230,16 @@ static inline dma_addr_t sg_phys(struct scatterlist *sg)
+ 	return page_to_phys(sg_page(sg)) + sg->offset;
+ }
  
- 		entry->type           = dma_debug_sg;
- 		entry->dev            = dev;
--		entry->pfn	      = page_to_pfn(sg_page(s));
-+		entry->pfn	      = sg_pfn(s);
- 		entry->offset	      = s->offset,
- 		entry->size           = sg_dma_len(s);
- 		entry->dev_addr       = sg_dma_address(s);
-@@ -1376,7 +1376,7 @@ void debug_dma_map_sg(struct device *dev, struct scatterlist *sg,
- 		entry->sg_call_ents   = nents;
- 		entry->sg_mapped_ents = mapped_ents;
- 
--		if (!PageHighMem(sg_page(s))) {
-+		if (sg_has_page(s) && !PageHighMem(sg_page(s))) {
- 			check_for_stack(dev, sg_virt(s));
- 			check_for_illegal_area(dev, sg_virt(s), sg_dma_len(s));
- 		}
-@@ -1419,7 +1419,7 @@ void debug_dma_unmap_sg(struct device *dev, struct scatterlist *sglist,
- 		struct dma_debug_entry ref = {
- 			.type           = dma_debug_sg,
- 			.dev            = dev,
--			.pfn		= page_to_pfn(sg_page(s)),
-+			.pfn		= sg_pfn(s),
- 			.offset		= s->offset,
- 			.dev_addr       = sg_dma_address(s),
- 			.size           = sg_dma_len(s),
-@@ -1580,7 +1580,7 @@ void debug_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
- 		struct dma_debug_entry ref = {
- 			.type           = dma_debug_sg,
- 			.dev            = dev,
--			.pfn		= page_to_pfn(sg_page(s)),
-+			.pfn		= sg_pfn(s),
- 			.offset		= s->offset,
- 			.dev_addr       = sg_dma_address(s),
- 			.size           = sg_dma_len(s),
-@@ -1613,7 +1613,7 @@ void debug_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
- 		struct dma_debug_entry ref = {
- 			.type           = dma_debug_sg,
- 			.dev            = dev,
--			.pfn		= page_to_pfn(sg_page(s)),
-+			.pfn		= sg_pfn(s),
- 			.offset		= s->offset,
- 			.dev_addr       = sg_dma_address(s),
- 			.size           = sg_dma_len(s),
++static inline unsigned long sg_pfn(struct scatterlist *sg)
++{
++	return page_to_pfn(sg_page(sg));
++}
++
++static inline bool sg_has_page(struct scatterlist *sg)
++{
++	return true;
++}
++
+ /**
+  * sg_virt - Return virtual address of an sg entry
+  * @sg:      SG entry
 -- 
 1.9.1
 
