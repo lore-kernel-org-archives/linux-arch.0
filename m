@@ -1,104 +1,92 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:48860 "EHLO
-	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751976AbbHLLwM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Aug 2015 07:52:12 -0400
-Received: from /spool/local
-	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <sebott@linux.vnet.ibm.com>;
-	Wed, 12 Aug 2015 12:52:10 +0100
-Date: Wed, 12 Aug 2015 13:51:58 +0200 (CEST)
-From: Sebastian Ott <sebott@linux.vnet.ibm.com>
-Subject: Re: [PATCH 16/31] s390: handle page-less SG entries
-In-Reply-To: <1439363150-8661-17-git-send-email-hch@lst.de>
-Message-ID: <alpine.LFD.2.11.1508121350090.1732@denkbrett>
-References: <1439363150-8661-1-git-send-email-hch@lst.de> <1439363150-8661-17-git-send-email-hch@lst.de>
+Received: from mail-wi0-f173.google.com ([209.85.212.173]:33025 "EHLO
+	mail-wi0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752747AbbHLMmw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Aug 2015 08:42:52 -0400
+Received: by wijp15 with SMTP id p15so216061412wij.0
+        for <linux-arch@vger.kernel.org>; Wed, 12 Aug 2015 05:42:51 -0700 (PDT)
+Message-ID: <55CB3F47.3000902@plexistor.com>
+Date: Wed, 12 Aug 2015 15:42:47 +0300
+From: Boaz Harrosh <boaz@plexistor.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Subject: Re: RFC: prepare for struct scatterlist entries without page backing
+References: <1439363150-8661-1-git-send-email-hch@lst.de>
+In-Reply-To: <1439363150-8661-1-git-send-email-hch@lst.de>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: torvalds@linux-foundation.org, axboe@kernel.dk, dan.j.williams@intel.com, vgupta@synopsys.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, dhowells@redhat.com, monstr@monstr.eu, x86@kernel.org, dwmw2@infradead.org, alex.williamson@redhat.com, grundler@parisc-linux.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-nvdimm@ml01.01.org, linux-media@vger.kernel.org
-Message-ID: <20150812115158.f9IN-b82lX1oVWx0QN5RoTJMXKPkPCnAGN0O6fHYKLc@z>
+To: Christoph Hellwig <hch@lst.de>, torvalds@linux-foundation.org, axboe@kernel.dk
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-nvdimm@ml01.01.org, dhowells@redhat.com, sparclinux@vger.kernel.org, egtvedt@samfundet.no, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, dwmw2@infradead.org, hskinnemoen@gmail.com, linux-xtensa@linux-xtensa.org, grundler@parisc-linux.org, realmz6@gmail.com, alex.williamson@redhat.com, linux-metag@vger.kernel.org, monstr@monstr.eu, linux-parisc@vger.kernel.org, vgupta@synopsys.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-media@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20150812124247.iFXFDMOgfRARG0psIyJehPPyLdwwQj5lwcWYOW_uqig@z>
 
-On Wed, 12 Aug 2015, Christoph Hellwig wrote:
-
-> Use sg_phys() instead of page_to_phys(sg_page(sg)) so that we don't
-> require a page structure for all DMA memory.
+On 08/12/2015 10:05 AM, Christoph Hellwig wrote:
+> Dan Williams started to look into addressing I/O to and from
+> Persistent Memory in his series from June:
 > 
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-
-Acked-by: Sebastian Ott <sebott@linux.vnet.ibm.com>
-
-
-> ---
->  arch/s390/pci/pci_dma.c | 20 ++++++++++++++------
->  1 file changed, 14 insertions(+), 6 deletions(-)
+> 	http://thread.gmane.org/gmane.linux.kernel.cross-arch/27944
 > 
-> diff --git a/arch/s390/pci/pci_dma.c b/arch/s390/pci/pci_dma.c
-> index 6fd8d58..aae5a47 100644
-> --- a/arch/s390/pci/pci_dma.c
-> +++ b/arch/s390/pci/pci_dma.c
-> @@ -272,14 +272,13 @@ int dma_set_mask(struct device *dev, u64 mask)
->  }
->  EXPORT_SYMBOL_GPL(dma_set_mask);
->  
-> -static dma_addr_t s390_dma_map_pages(struct device *dev, struct page *page,
-> -				     unsigned long offset, size_t size,
-> +static dma_addr_t s390_dma_map_phys(struct device *dev, unsigned long pa,
-> +				     size_t size,
->  				     enum dma_data_direction direction,
->  				     struct dma_attrs *attrs)
->  {
->  	struct zpci_dev *zdev = get_zdev(to_pci_dev(dev));
->  	unsigned long nr_pages, iommu_page_index;
-> -	unsigned long pa = page_to_phys(page) + offset;
->  	int flags = ZPCI_PTE_VALID;
->  	dma_addr_t dma_addr;
->  
-> @@ -301,7 +300,7 @@ static dma_addr_t s390_dma_map_pages(struct device *dev, struct page *page,
->  
->  	if (!dma_update_trans(zdev, pa, dma_addr, size, flags)) {
->  		atomic64_add(nr_pages, &zdev->mapped_pages);
-> -		return dma_addr + (offset & ~PAGE_MASK);
-> +		return dma_addr + (pa & ~PAGE_MASK);
->  	}
->  
->  out_free:
-> @@ -312,6 +311,16 @@ out_err:
->  	return DMA_ERROR_CODE;
->  }
->  
-> +static dma_addr_t s390_dma_map_pages(struct device *dev, struct page *page,
-> +				     unsigned long offset, size_t size,
-> +				     enum dma_data_direction direction,
-> +				     struct dma_attrs *attrs)
-> +{
-> +	unsigned long pa = page_to_phys(page) + offset;
-> +
-> +	return s390_dma_map_phys(dev, pa, size, direction, attrs);
-> +}
-> +
->  static void s390_dma_unmap_pages(struct device *dev, dma_addr_t dma_addr,
->  				 size_t size, enum dma_data_direction direction,
->  				 struct dma_attrs *attrs)
-> @@ -384,8 +393,7 @@ static int s390_dma_map_sg(struct device *dev, struct scatterlist *sg,
->  	int i;
->  
->  	for_each_sg(sg, s, nr_elements, i) {
-> -		struct page *page = sg_page(s);
-> -		s->dma_address = s390_dma_map_pages(dev, page, s->offset,
-> +		s->dma_address = s390_dma_map_phys(dev, sg_phys(s),
->  						    s->length, dir, NULL);
->  		if (!dma_mapping_error(dev, s->dma_address)) {
->  			s->dma_length = s->length;
-> -- 
-> 1.9.1
+> I've started looking into DMA mapping of these SGLs specifically instead
+> of the map_pfn method in there.  In addition to supporting NVDIMM backed
+> I/O I also suspect this would be highly useful for media drivers that
+> go through nasty hoops to be able to DMA from/to their ioremapped regions,
+> with vb2_dc_get_userptr in drivers/media/v4l2-core/videobuf2-dma-contig.c
+> being a prime example for the unsafe hacks currently used.
 > 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+
+The support I have suggested and submitted for zone-less sections.
+(In my add_persistent_memory() patchset)
+
+Would work perfectly well and transparent for all such multimedia cases.
+(All hacks removed). In fact I have loaded pmem (with-pages) on a VRAM
+a few times and it is great easy fun. (I wanted to experiment with cached
+memory over a pcie)
+
+> It turns out most DMA mapping implementation can handle SGLs without
+> page structures with some fairly simple mechanical work.  Most of it
+> is just about consistently using sg_phys.  For implementations that
+> need to flush caches we need a new helper that skips these cache
+> flushes if a entry doesn't have a kernel virtual address.
 > 
+> However the ccio (parisc) and sba_iommu (parisc & ia64) IOMMUs seem
+> to be operate mostly on virtual addresses.  It's a fairly odd concept
+> that I don't fully grasp, so I'll need some help with those if we want
+> to bring this forward.
+> 
+> Additional this series skips ARM entirely for now.  The reason is
+> that most arm implementations of the .map_sg operation just iterate
+> over all entries and call ->map_page for it, which means we'd need
+> to convert those to a ->map_pfn similar to Dan's previous approach.
+> 
+
+All this endless work for nothing more than uglyfing the Kernel, and
+It will never end. When a real and fully working solution is right
+here for more then a year.
+
+If you are really up for a deep audit and a mammoth testing effort,
+why not do a more worthy, and order of magnitude smaller work and support
+2M and 1G variable sized "pages". All the virtual-vs-phisical-vs-caching
+just works.
+
+Most of the core work is there. Block layer and lots of other subsytems
+already support sending a single page-pointer with bvec_offset bvec_len
+bigger then 4K. Other system will be small fixes sprinkled around but
+not at all this endless stream of subsystem after another of patches.
+And for why.
+
+The novelty of pages is the section object, the section is reached
+from page* from virtual as well as physical planes. And is a center
+that translate from all plains to all plains. You keep this concept
+only make 2M-page sections and 1G-page sections.
+
+It is a bit of work but is worth while, and accelerating tremendously
+lots of workloads. Not like this abomination which only branches
+things more and more, and making things fatter and slower.
+
+It all feels like a typhoon, the inertia of tones and tons of
+men hours work, in a huge wave. How will you ever stop such a
+rushing mass. I'm trying to dock under but, surly it makes me sad.
+
+Thanks
+Boaz
 
