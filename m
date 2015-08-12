@@ -1,79 +1,84 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 03/31] dma-debug: handle page-less SG entries
-Date: Wed, 12 Aug 2015 09:05:22 +0200
-Message-ID: <1439363150-8661-4-git-send-email-hch@lst.de>
+Subject: [PATCH 29/31] parisc: handle page-less SG entries
+Date: Wed, 12 Aug 2015 09:05:48 +0200
+Message-ID: <1439363150-8661-30-git-send-email-hch@lst.de>
 References: <1439363150-8661-1-git-send-email-hch@lst.de>
-Return-path: <linux-mips-bounce@linux-mips.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1439363150-8661-1-git-send-email-hch@lst.de>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+Sender: linux-kernel-owner@vger.kernel.org
 To: torvalds@linux-foundation.org, axboe@kernel.dk
 Cc: dan.j.williams@intel.com, vgupta@synopsys.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, dhowells@redhat.com, monstr@monstr.eu, x86@kernel.org, dwmw2@infradead.org, alex.williamson@redhat.com, grundler@parisc-linux.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-nvdimm@ml01.01.org, linux-media@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Use sg_pfn to get a the PFN and skip checks that require a kernel
-virtual address.
+Make all cache invalidation conditional on sg_has_page() and use
+sg_phys to get the physical address directly.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- lib/dma-debug.c | 10 +++++-----
- 1 file changed, 5 insertions(+), 5 deletions(-)
+ arch/parisc/kernel/pci-dma.c | 29 ++++++++++++++++++-----------
+ 1 file changed, 18 insertions(+), 11 deletions(-)
 
-diff --git a/lib/dma-debug.c b/lib/dma-debug.c
-index dace71f..a215a80 100644
---- a/lib/dma-debug.c
-+++ b/lib/dma-debug.c
-@@ -1368,7 +1368,7 @@ void debug_dma_map_sg(struct device *dev, struct scatterlist *sg,
+diff --git a/arch/parisc/kernel/pci-dma.c b/arch/parisc/kernel/pci-dma.c
+index b9402c9..6cad0e0 100644
+--- a/arch/parisc/kernel/pci-dma.c
++++ b/arch/parisc/kernel/pci-dma.c
+@@ -483,11 +483,13 @@ static int pa11_dma_map_sg(struct device *dev, struct scatterlist *sglist, int n
+ 	BUG_ON(direction == DMA_NONE);
  
- 		entry->type           = dma_debug_sg;
- 		entry->dev            = dev;
--		entry->pfn	      = page_to_pfn(sg_page(s));
-+		entry->pfn	      = sg_pfn(s);
- 		entry->offset	      = s->offset,
- 		entry->size           = sg_dma_len(s);
- 		entry->dev_addr       = sg_dma_address(s);
-@@ -1376,7 +1376,7 @@ void debug_dma_map_sg(struct device *dev, struct scatterlist *sg,
- 		entry->sg_call_ents   = nents;
- 		entry->sg_mapped_ents = mapped_ents;
+ 	for_each_sg(sglist, sg, nents, i) {
+-		unsigned long vaddr = (unsigned long)sg_virt(sg);
+-
+-		sg_dma_address(sg) = (dma_addr_t) virt_to_phys(vaddr);
++		sg_dma_address(sg) = sg_phys(sg);
+ 		sg_dma_len(sg) = sg->length;
+-		flush_kernel_dcache_range(vaddr, sg->length);
++
++		if (sg_has_page(sg)) {
++			flush_kernel_dcache_range((unsigned long)sg_virt(sg),
++						  sg->length);
++		}
+ 	}
+ 	return nents;
+ }
+@@ -504,9 +506,10 @@ static void pa11_dma_unmap_sg(struct device *dev, struct scatterlist *sglist, in
  
--		if (!PageHighMem(sg_page(s))) {
-+		if (sg_has_page(s) && !PageHighMem(sg_page(s))) {
- 			check_for_stack(dev, sg_virt(s));
- 			check_for_illegal_area(dev, sg_virt(s), sg_dma_len(s));
- 		}
-@@ -1419,7 +1419,7 @@ void debug_dma_unmap_sg(struct device *dev, struct scatterlist *sglist,
- 		struct dma_debug_entry ref = {
- 			.type           = dma_debug_sg,
- 			.dev            = dev,
--			.pfn		= page_to_pfn(sg_page(s)),
-+			.pfn		= sg_pfn(s),
- 			.offset		= s->offset,
- 			.dev_addr       = sg_dma_address(s),
- 			.size           = sg_dma_len(s),
-@@ -1580,7 +1580,7 @@ void debug_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
- 		struct dma_debug_entry ref = {
- 			.type           = dma_debug_sg,
- 			.dev            = dev,
--			.pfn		= page_to_pfn(sg_page(s)),
-+			.pfn		= sg_pfn(s),
- 			.offset		= s->offset,
- 			.dev_addr       = sg_dma_address(s),
- 			.size           = sg_dma_len(s),
-@@ -1613,7 +1613,7 @@ void debug_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
- 		struct dma_debug_entry ref = {
- 			.type           = dma_debug_sg,
- 			.dev            = dev,
--			.pfn		= page_to_pfn(sg_page(s)),
-+			.pfn		= sg_pfn(s),
- 			.offset		= s->offset,
- 			.dev_addr       = sg_dma_address(s),
- 			.size           = sg_dma_len(s),
+ 	/* once we do combining we'll need to use phys_to_virt(sg_dma_address(sglist)) */
+ 
+-	for_each_sg(sglist, sg, nents, i)
+-		flush_kernel_vmap_range(sg_virt(sg), sg->length);
+-	return;
++	for_each_sg(sglist, sg, nents, i) {
++		if (sg_has_page(sg))
++			flush_kernel_vmap_range(sg_virt(sg), sg->length);
++	}
+ }
+ 
+ static void pa11_dma_sync_single_for_cpu(struct device *dev, dma_addr_t dma_handle, unsigned long offset, size_t size, enum dma_data_direction direction)
+@@ -530,8 +533,10 @@ static void pa11_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sgl
+ 
+ 	/* once we do combining we'll need to use phys_to_virt(sg_dma_address(sglist)) */
+ 
+-	for_each_sg(sglist, sg, nents, i)
+-		flush_kernel_vmap_range(sg_virt(sg), sg->length);
++	for_each_sg(sglist, sg, nents, i) {
++		if (sg_has_page(sg))
++			flush_kernel_vmap_range(sg_virt(sg), sg->length);
++	}
+ }
+ 
+ static void pa11_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist, int nents, enum dma_data_direction direction)
+@@ -541,8 +546,10 @@ static void pa11_dma_sync_sg_for_device(struct device *dev, struct scatterlist *
+ 
+ 	/* once we do combining we'll need to use phys_to_virt(sg_dma_address(sglist)) */
+ 
+-	for_each_sg(sglist, sg, nents, i)
+-		flush_kernel_vmap_range(sg_virt(sg), sg->length);
++	for_each_sg(sglist, sg, nents, i) {
++		if (sg_has_page(sg))
++			flush_kernel_vmap_range(sg_virt(sg), sg->length);
++	}
+ }
+ 
+ struct hppa_dma_ops pcxl_dma_ops = {
 -- 
 1.9.1
