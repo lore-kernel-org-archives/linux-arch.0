@@ -1,87 +1,55 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 16/31] s390: handle page-less SG entries
-Date: Wed, 12 Aug 2015 09:05:35 +0200
-Message-ID: <1439363150-8661-17-git-send-email-hch@lst.de>
+From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Subject: [PATCH 20/31] avr32: handle page-less SG entries
+Date: Wed, 12 Aug 2015 09:05:39 +0200
+Message-ID: <1439363150-8661-21-git-send-email-hch@lst.de>
 References: <1439363150-8661-1-git-send-email-hch@lst.de>
-Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <1439363150-8661-1-git-send-email-hch@lst.de>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: torvalds@linux-foundation.org, axboe@kernel.dk
-Cc: dan.j.williams@intel.com, vgupta@synopsys.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, dhowells@redhat.com, monstr@monstr.eu, x86@kernel.org, dwmw2@infradead.org, alex.williamson@redhat.com, grundler@parisc-linux.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-nvdimm@ml01.01.org, linux-media@vger.kernel.org
+Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1439363150-8661-1-git-send-email-hch-jcswGhMUV9g@public.gmane.org>
+Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, axboe-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org
+Cc: dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, vgupta-HKixBCOQz3hWk0Htik3J/w@public.gmane.org, hskinnemoen-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, egtvedt-BrfabpQBY5qlHtIdYg32fQ@public.gmane.org, realmz6-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, dwmw2-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, alex.williamson-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, grundler-6jwH94ZQLHl74goWV3ctuw@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, linux-nvdimm-y27Ovi1pjclAfugRpC6u6w@public.gmane.org, linux-media-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-Use sg_phys() instead of page_to_phys(sg_page(sg)) so that we don't
-require a page structure for all DMA memory.
+Make all cache invalidation conditional on sg_has_page() and use
+sg_phys to get the physical address directly, bypassing the noop
+page_to_bus.
 
-Signed-off-by: Christoph Hellwig <hch@lst.de>
+Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
 ---
- arch/s390/pci/pci_dma.c | 20 ++++++++++++++------
- 1 file changed, 14 insertions(+), 6 deletions(-)
+ arch/avr32/include/asm/dma-mapping.h | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
 
-diff --git a/arch/s390/pci/pci_dma.c b/arch/s390/pci/pci_dma.c
-index 6fd8d58..aae5a47 100644
---- a/arch/s390/pci/pci_dma.c
-+++ b/arch/s390/pci/pci_dma.c
-@@ -272,14 +272,13 @@ int dma_set_mask(struct device *dev, u64 mask)
- }
- EXPORT_SYMBOL_GPL(dma_set_mask);
+diff --git a/arch/avr32/include/asm/dma-mapping.h b/arch/avr32/include/asm/dma-mapping.h
+index ae7ac92..a662ce2 100644
+--- a/arch/avr32/include/asm/dma-mapping.h
++++ b/arch/avr32/include/asm/dma-mapping.h
+@@ -216,11 +216,9 @@ dma_map_sg(struct device *dev, struct scatterlist *sglist, int nents,
+ 	struct scatterlist *sg;
  
--static dma_addr_t s390_dma_map_pages(struct device *dev, struct page *page,
--				     unsigned long offset, size_t size,
-+static dma_addr_t s390_dma_map_phys(struct device *dev, unsigned long pa,
-+				     size_t size,
- 				     enum dma_data_direction direction,
- 				     struct dma_attrs *attrs)
- {
- 	struct zpci_dev *zdev = get_zdev(to_pci_dev(dev));
- 	unsigned long nr_pages, iommu_page_index;
--	unsigned long pa = page_to_phys(page) + offset;
- 	int flags = ZPCI_PTE_VALID;
- 	dma_addr_t dma_addr;
- 
-@@ -301,7 +300,7 @@ static dma_addr_t s390_dma_map_pages(struct device *dev, struct page *page,
- 
- 	if (!dma_update_trans(zdev, pa, dma_addr, size, flags)) {
- 		atomic64_add(nr_pages, &zdev->mapped_pages);
--		return dma_addr + (offset & ~PAGE_MASK);
-+		return dma_addr + (pa & ~PAGE_MASK);
+ 	for_each_sg(sglist, sg, nents, i) {
+-		char *virt;
+-
+-		sg->dma_address = page_to_bus(sg_page(sg)) + sg->offset;
+-		virt = sg_virt(sg);
+-		dma_cache_sync(dev, virt, sg->length, direction);
++		sg->dma_address = sg_phys(sg);
++		if (sg_has_page(sg))
++			dma_cache_sync(dev, sg_virt(sg), sg->length, direction);
  	}
  
- out_free:
-@@ -312,6 +311,16 @@ out_err:
- 	return DMA_ERROR_CODE;
+ 	return nents;
+@@ -328,8 +326,10 @@ dma_sync_sg_for_device(struct device *dev, struct scatterlist *sglist,
+ 	int i;
+ 	struct scatterlist *sg;
+ 
+-	for_each_sg(sglist, sg, nents, i)
+-		dma_cache_sync(dev, sg_virt(sg), sg->length, direction);
++	for_each_sg(sglist, sg, nents, i) {
++		if (sg_has_page(sg))
++			dma_cache_sync(dev, sg_virt(sg), sg->length, direction);
++	}
  }
  
-+static dma_addr_t s390_dma_map_pages(struct device *dev, struct page *page,
-+				     unsigned long offset, size_t size,
-+				     enum dma_data_direction direction,
-+				     struct dma_attrs *attrs)
-+{
-+	unsigned long pa = page_to_phys(page) + offset;
-+
-+	return s390_dma_map_phys(dev, pa, size, direction, attrs);
-+}
-+
- static void s390_dma_unmap_pages(struct device *dev, dma_addr_t dma_addr,
- 				 size_t size, enum dma_data_direction direction,
- 				 struct dma_attrs *attrs)
-@@ -384,8 +393,7 @@ static int s390_dma_map_sg(struct device *dev, struct scatterlist *sg,
- 	int i;
- 
- 	for_each_sg(sg, s, nr_elements, i) {
--		struct page *page = sg_page(s);
--		s->dma_address = s390_dma_map_pages(dev, page, s->offset,
-+		s->dma_address = s390_dma_map_phys(dev, sg_phys(s),
- 						    s->length, dir, NULL);
- 		if (!dma_mapping_error(dev, s->dma_address)) {
- 			s->dma_length = s->length;
+ /* Now for the API extensions over the pci_ one */
 -- 
 1.9.1
