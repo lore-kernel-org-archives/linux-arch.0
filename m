@@ -1,99 +1,140 @@
-From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
-Subject: [PATCH 15/31] sparc32/iommu: handle page-less SG entries
-Date: Wed, 12 Aug 2015 09:05:34 +0200
-Message-ID: <1439363150-8661-16-git-send-email-hch@lst.de>
+From: Christoph Hellwig <hch@lst.de>
+Subject: [PATCH 02/31] scatterlist: use sg_phys()
+Date: Wed, 12 Aug 2015 09:05:21 +0200
+Message-ID: <1439363150-8661-3-git-send-email-hch@lst.de>
 References: <1439363150-8661-1-git-send-email-hch@lst.de>
-Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1439363150-8661-1-git-send-email-hch-jcswGhMUV9g@public.gmane.org>
-Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: torvalds-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, axboe-tSWWG44O7X1aa/9Udqfwiw@public.gmane.org
-Cc: dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, vgupta-HKixBCOQz3hWk0Htik3J/w@public.gmane.org, hskinnemoen-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, egtvedt-BrfabpQBY5qlHtIdYg32fQ@public.gmane.org, realmz6-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, dwmw2-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org, alex.williamson-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, grundler-6jwH94ZQLHl74goWV3ctuw@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-alpha-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, linux-parisc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, linux-nvdimm-y27Ovi1pjclAfugRpC6u6w@public.gmane.org, linux-media-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Return-path: <linux-mips-bounce@linux-mips.org>
+In-Reply-To: <1439363150-8661-1-git-send-email-hch@lst.de>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: torvalds@linux-foundation.org, axboe@kernel.dk
+Cc: dan.j.williams@intel.com, vgupta@synopsys.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, dhowells@redhat.com, monstr@monstr.eu, x86@kernel.org, dwmw2@infradead.org, alex.williamson@redhat.com, grundler@parisc-linux.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-nvdimm@ml01.01.org, linux-media@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Pass a PFN to iommu_get_one instad of calculating it locall from a
-page structure so that we don't need pages for every address we can
-DMA to or from.
+From: Dan Williams <dan.j.williams@intel.com>
 
-Also further restrict the cache flushing as we now have a non-highmem
-way of not kernel virtual mapped physical addresses.
+Coccinelle cleanup to replace open coded sg to physical address
+translations.  This is in preparation for introducing scatterlists that
+reference __pfn_t.
 
-Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+// sg_phys.cocci: convert usage page_to_phys(sg_page(sg)) to sg_phys(sg)
+// usage: make coccicheck COCCI=sg_phys.cocci MODE=patch
+
+virtual patch
+
+@@
+struct scatterlist *sg;
+@@
+
+- page_to_phys(sg_page(sg)) + sg->offset
++ sg_phys(sg)
+
+@@
+struct scatterlist *sg;
+@@
+
+- page_to_phys(sg_page(sg))
++ sg_phys(sg) & PAGE_MASK
+
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/sparc/mm/iommu.c | 17 +++++++++--------
- 1 file changed, 9 insertions(+), 8 deletions(-)
+ arch/arm/mm/dma-mapping.c                    | 2 +-
+ arch/microblaze/kernel/dma.c                 | 3 +--
+ drivers/iommu/intel-iommu.c                  | 4 ++--
+ drivers/iommu/iommu.c                        | 2 +-
+ drivers/staging/android/ion/ion_chunk_heap.c | 4 ++--
+ 5 files changed, 7 insertions(+), 8 deletions(-)
 
-diff --git a/arch/sparc/mm/iommu.c b/arch/sparc/mm/iommu.c
-index 491511d..3ed53d7 100644
---- a/arch/sparc/mm/iommu.c
-+++ b/arch/sparc/mm/iommu.c
-@@ -174,7 +174,7 @@ static void iommu_flush_iotlb(iopte_t *iopte, unsigned int niopte)
- 	}
- }
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index cba12f3..3d3d6aa 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -1520,7 +1520,7 @@ static int __map_sg_chunk(struct device *dev, struct scatterlist *sg,
+ 		return -ENOMEM;
  
--static u32 iommu_get_one(struct device *dev, struct page *page, int npages)
-+static u32 iommu_get_one(struct device *dev, unsigned long pfn, int npages)
- {
- 	struct iommu_struct *iommu = dev->archdata.iommu;
- 	int ioptex;
-@@ -183,7 +183,7 @@ static u32 iommu_get_one(struct device *dev, struct page *page, int npages)
- 	int i;
+ 	for (count = 0, s = sg; count < (size >> PAGE_SHIFT); s = sg_next(s)) {
+-		phys_addr_t phys = page_to_phys(sg_page(s));
++		phys_addr_t phys = sg_phys(s) & PAGE_MASK;
+ 		unsigned int len = PAGE_ALIGN(s->offset + s->length);
  
- 	/* page color = pfn of page */
--	ioptex = bit_map_string_get(&iommu->usemap, npages, page_to_pfn(page));
-+	ioptex = bit_map_string_get(&iommu->usemap, npages, pfn);
- 	if (ioptex < 0)
- 		panic("iommu out");
- 	busa0 = iommu->start + (ioptex << PAGE_SHIFT);
-@@ -192,11 +192,11 @@ static u32 iommu_get_one(struct device *dev, struct page *page, int npages)
- 	busa = busa0;
- 	iopte = iopte0;
- 	for (i = 0; i < npages; i++) {
--		iopte_val(*iopte) = MKIOPTE(page_to_pfn(page), IOPERM);
-+		iopte_val(*iopte) = MKIOPTE(pfn, IOPERM);
- 		iommu_invalidate_page(iommu->regs, busa);
- 		busa += PAGE_SIZE;
- 		iopte++;
--		page++;
-+		pfn++;
+ 		if (!is_coherent &&
+diff --git a/arch/microblaze/kernel/dma.c b/arch/microblaze/kernel/dma.c
+index bf4dec2..c89da63 100644
+--- a/arch/microblaze/kernel/dma.c
++++ b/arch/microblaze/kernel/dma.c
+@@ -61,8 +61,7 @@ static int dma_direct_map_sg(struct device *dev, struct scatterlist *sgl,
+ 	/* FIXME this part of code is untested */
+ 	for_each_sg(sgl, sg, nents, i) {
+ 		sg->dma_address = sg_phys(sg);
+-		__dma_sync(page_to_phys(sg_page(sg)) + sg->offset,
+-							sg->length, direction);
++		__dma_sync(sg_phys(sg), sg->length, direction);
  	}
  
- 	iommu_flush_iotlb(iopte0, npages);
-@@ -214,7 +214,7 @@ static u32 iommu_get_scsi_one(struct device *dev, char *vaddr, unsigned int len)
- 	off = (unsigned long)vaddr & ~PAGE_MASK;
- 	npages = (off + len + PAGE_SIZE-1) >> PAGE_SHIFT;
- 	page = virt_to_page((unsigned long)vaddr & PAGE_MASK);
--	busa = iommu_get_one(dev, page, npages);
-+	busa = iommu_get_one(dev, page_to_pfn(page), npages);
- 	return busa + off;
- }
- 
-@@ -243,7 +243,7 @@ static void iommu_get_scsi_sgl_gflush(struct device *dev, struct scatterlist *sg
- 	while (sz != 0) {
- 		--sz;
- 		n = (sg->length + sg->offset + PAGE_SIZE-1) >> PAGE_SHIFT;
--		sg->dma_address = iommu_get_one(dev, sg_page(sg), n) + sg->offset;
-+		sg->dma_address = iommu_get_one(dev, sg_pfn(sg), n) + sg->offset;
- 		sg->dma_length = sg->length;
- 		sg = sg_next(sg);
- 	}
-@@ -264,7 +264,8 @@ static void iommu_get_scsi_sgl_pflush(struct device *dev, struct scatterlist *sg
- 		 * XXX Is this a good assumption?
- 		 * XXX What if someone else unmaps it here and races us?
- 		 */
--		if ((page = (unsigned long) page_address(sg_page(sg))) != 0) {
-+		if (sg_has_page(sg) &&
-+		    (page = (unsigned long) page_address(sg_page(sg))) != 0) {
- 			for (i = 0; i < n; i++) {
- 				if (page != oldpage) {	/* Already flushed? */
- 					flush_page_for_dma(page);
-@@ -274,7 +275,7 @@ static void iommu_get_scsi_sgl_pflush(struct device *dev, struct scatterlist *sg
- 			}
+ 	return nents;
+diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
+index 0649b94..3541d65 100644
+--- a/drivers/iommu/intel-iommu.c
++++ b/drivers/iommu/intel-iommu.c
+@@ -2097,7 +2097,7 @@ static int __domain_mapping(struct dmar_domain *domain, unsigned long iov_pfn,
+ 			sg_res = aligned_nrpages(sg->offset, sg->length);
+ 			sg->dma_address = ((dma_addr_t)iov_pfn << VTD_PAGE_SHIFT) + sg->offset;
+ 			sg->dma_length = sg->length;
+-			pteval = page_to_phys(sg_page(sg)) | prot;
++			pteval = (sg_phys(sg) & PAGE_MASK) | prot;
+ 			phys_pfn = pteval >> VTD_PAGE_SHIFT;
  		}
  
--		sg->dma_address = iommu_get_one(dev, sg_page(sg), n) + sg->offset;
-+		sg->dma_address = iommu_get_one(dev, sg_pfn(sg), n) + sg->offset;
+@@ -3623,7 +3623,7 @@ static int intel_nontranslate_map_sg(struct device *hddev,
+ 
+ 	for_each_sg(sglist, sg, nelems, i) {
+ 		BUG_ON(!sg_page(sg));
+-		sg->dma_address = page_to_phys(sg_page(sg)) + sg->offset;
++		sg->dma_address = sg_phys(sg);
  		sg->dma_length = sg->length;
+ 	}
+ 	return nelems;
+diff --git a/drivers/iommu/iommu.c b/drivers/iommu/iommu.c
+index f286090..049df49 100644
+--- a/drivers/iommu/iommu.c
++++ b/drivers/iommu/iommu.c
+@@ -1408,7 +1408,7 @@ size_t default_iommu_map_sg(struct iommu_domain *domain, unsigned long iova,
+ 	min_pagesz = 1 << __ffs(domain->ops->pgsize_bitmap);
+ 
+ 	for_each_sg(sg, s, nents, i) {
+-		phys_addr_t phys = page_to_phys(sg_page(s)) + s->offset;
++		phys_addr_t phys = sg_phys(s);
+ 
+ 		/*
+ 		 * We are mapping on IOMMU page boundaries, so offset within
+diff --git a/drivers/staging/android/ion/ion_chunk_heap.c b/drivers/staging/android/ion/ion_chunk_heap.c
+index 5474615..f7b6ef9 100644
+--- a/drivers/staging/android/ion/ion_chunk_heap.c
++++ b/drivers/staging/android/ion/ion_chunk_heap.c
+@@ -81,7 +81,7 @@ static int ion_chunk_heap_allocate(struct ion_heap *heap,
+ err:
+ 	sg = table->sgl;
+ 	for (i -= 1; i >= 0; i--) {
+-		gen_pool_free(chunk_heap->pool, page_to_phys(sg_page(sg)),
++		gen_pool_free(chunk_heap->pool, sg_phys(sg) & PAGE_MASK,
+ 			      sg->length);
  		sg = sg_next(sg);
  	}
+@@ -109,7 +109,7 @@ static void ion_chunk_heap_free(struct ion_buffer *buffer)
+ 							DMA_BIDIRECTIONAL);
+ 
+ 	for_each_sg(table->sgl, sg, table->nents, i) {
+-		gen_pool_free(chunk_heap->pool, page_to_phys(sg_page(sg)),
++		gen_pool_free(chunk_heap->pool, sg_phys(sg) & PAGE_MASK,
+ 			      sg->length);
+ 	}
+ 	chunk_heap->allocated -= allocated_size;
 -- 
 1.9.1
