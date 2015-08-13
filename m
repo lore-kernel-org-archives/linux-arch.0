@@ -1,34 +1,36 @@
 From: Christoph Hellwig <hch@lst.de>
-Subject: Re: [PATCH 31/31] dma-mapping-common: skip kmemleak checks for
-	page-less SG entries
-Date: Thu, 13 Aug 2015 16:33:25 +0200
-Message-ID: <20150813143325.GB17183@lst.de>
-References: <1439363150-8661-1-git-send-email-hch@lst.de> <1439363150-8661-32-git-send-email-hch@lst.de> <CA+55aFxfZM81HNfo2ysfhGwrhx6GX-+F--+jLFmMVv+Z0id2rw@mail.gmail.com>
+Subject: Re: RFC: prepare for struct scatterlist entries without page
+	backing
+Date: Thu, 13 Aug 2015 16:35:28 +0200
+Message-ID: <20150813143528.GC17183@lst.de>
+References: <1439363150-8661-1-git-send-email-hch@lst.de> <55CB3F47.3000902@plexistor.com> <CAGRGNgUKkaPnyvn30DXyNpdiXQzS6J=1+mQ3ick8C8=bhx_RHA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:48737 "EHLO newverein.lst.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752474AbbHMOd2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 13 Aug 2015 10:33:28 -0400
+Return-path: <linux-alpha-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CA+55aFxfZM81HNfo2ysfhGwrhx6GX-+F--+jLFmMVv+Z0id2rw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Christoph Hellwig <hch@lst.de>, Jens Axboe <axboe@kernel.dk>, Dan Williams <dan.j.williams@intel.com>, Vineet Gupta <vgupta@synopsys.com>, =?iso-8859-1?Q?H=E5vard?= Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Miao Steven <realmz6@gmail.com>, David Howells <dhowells@redhat.com>, Michal Simek <monstr@monstr.eu>, the arch/x86 maintainers <x86@kernel.org>, David Woodhouse <dwmw2@infradead.org>, Alex Williamson <alex.williamson@redhat.com>, grundler@parisc-linux.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-alpha@vger.kernel.org, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, linux-metag@vger.kernel.org, linux-mips <linux-mips@linux-mips.org>, Parisc List <linux-parisc@vger.kernel.org>, ppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390
+In-Reply-To: <CAGRGNgUKkaPnyvn30DXyNpdiXQzS6J=1+mQ3ick8C8=bhx_RHA@mail.gmail.com>
+Sender: linux-alpha-owner@vger.kernel.org
+To: Julian Calaby <julian.calaby@gmail.com>
+Cc: Boaz Harrosh <boaz@plexistor.com>, Christoph Hellwig <hch@lst.de>, Linus Torvalds <torvalds@linux-foundation.org>, axboe@kernel.dk, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-nvdimm@ml01.01.org, David Howells <dhowells@redhat.com>, sparclinux <sparclinux@vger.kernel.org>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, David Woodhouse <dwmw2@infradead.org>, =?iso-8859-1?Q?H=E5vard?= Skinnemoen <hskinnemoen@gmail.com>, linux-xtensa@linux-xtensa.org, grundler@parisc-linux.org, realmz6@gmail.com, alex.williamson@redhat.com, linux-metag@vger.kernel.org, Michal Simek <monstr@monstr.eu>, linux-parisc@vger.kernel.org, vgupta@synopsys.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-alpha@vger.kernel.org, Linux Media Mailing List <linux-media@vger.kernel.org>li
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Aug 12, 2015 at 09:05:15AM -0700, Linus Torvalds wrote:
-> [ Again, I'm responding to one random patch - this pattern was in
-> other patches too.  ]
-> 
-> A question: do we actually expect to mix page-less and pageful SG
-> entries in the same SG list?
-> 
-> How does that happen?
+On Thu, Aug 13, 2015 at 09:37:37AM +1000, Julian Calaby wrote:
+> I.e. ~90% of this patch set seems to be just mechanically dropping
+> BUG_ON()s and converting open coded stuff to use accessor functions
+> (which should be macros or get inlined, right?) - and the remaining
+> bit is not flushing if we don't have a physical page somewhere.
 
-Both for DAX and the video buffer case people could do direct I/O
-spanning the boundary between such a VMA and a normal one unless
-we add special code to prevent that.  Right now I don't think it's
-all that useful, but then again it doesn't seem harmful either
-and adding those checks might add up.
+Which is was 90%.  By lines changed most actually is the diffs for
+the cache flushing.
+
+> Would it make sense to split this patch set into a few bits: one to
+> drop all the useless BUG_ON()s, one to convert all the open coded
+> stuff to accessor functions, then another to do the actual page-less
+> sg stuff?
+
+Without the ifs the BUG_ON() actually are useful to assert we
+never feed the sort of physical addresses we can't otherwise support,
+so I don't think that part is doable.
+
+A simple series to make more use of sg_phys and add sg_pfn might
+still be useful, though.
