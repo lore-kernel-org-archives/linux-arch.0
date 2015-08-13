@@ -1,100 +1,254 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f177.google.com ([209.85.212.177]:38258 "EHLO
-	mail-wi0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751654AbbHMJcx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Aug 2015 05:32:53 -0400
-Received: by wicja10 with SMTP id ja10so61831676wic.1
-        for <linux-arch@vger.kernel.org>; Thu, 13 Aug 2015 02:32:52 -0700 (PDT)
+Received: from mail-wi0-f173.google.com ([209.85.212.173]:36260 "EHLO
+	mail-wi0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752122AbbHMJcy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Aug 2015 05:32:54 -0400
+Received: by wicja10 with SMTP id ja10so143954220wic.1
+        for <linux-arch@vger.kernel.org>; Thu, 13 Aug 2015 02:32:53 -0700 (PDT)
 From: David Drysdale <drysdale@google.com>
-Subject: [PATCHv4 0/3] fs: add O_BENEATH flag to openat(2)
-Date: Thu, 13 Aug 2015 10:32:43 +0100
-Message-ID: <1439458366-8223-1-git-send-email-drysdale@google.com>
+Subject: [PATCHv4 1/3] fs: add O_BENEATH flag to openat(2)
+Date: Thu, 13 Aug 2015 10:32:44 +0100
+Message-ID: <1439458366-8223-2-git-send-email-drysdale@google.com>
+In-Reply-To: <1439458366-8223-1-git-send-email-drysdale@google.com>
+References: <1439458366-8223-1-git-send-email-drysdale@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Kees Cook <keescook@chromium.org>, "Eric W. Biederman" <ebiederm@xmission.com>
 Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Meredydd Luff <meredydd@senatehouse.org>, Will Drewry <wad@chromium.org>, Jorge Lucangeli Obes <jorgelo@google.com>, Ricky Zhou <rickyz@google.com>, Lee Campbell <leecam@google.com>, Julien Tinnes <jln@google.com>, Mike Depinet <mdepinet@google.com>, James Morris <james.l.morris@oracle.com>, Andy Lutomirski <luto@amacapital.net>, Paolo Bonzini <pbonzini@redhat.com>, Paul Moore <paul@paul-moore.com>, Christoph Hellwig <hch@infradead.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Dave Chinner <david@fromorbit.com>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, linux-fsdevel@vger.kernel.org, fstests@vger.kernel.org, David Drysdale <drysdale@google.com>
-Message-ID: <20150813093243.F7gZKHjpowmarhMbPhpZk9mWxIbfLJ8M7gPXr5TLJwY@z>
+Message-ID: <20150813093244.QN9fs6m6jQnmPN5qOhoTCeJqV5FAYspxZFhjb7cAcRM@z>
 
-A couple of questions with this iteration:
- - Should we create a new errno (say ENOTBENEATH) for this policing, to
-   make it easier to distinguish this case from other EPERM failures?
-   (The FreeBSD implementation is considering this approach.)
- - Al, does the code look OK for (in particular) integrating with the
-   shiny new re-worked fs/namei.c code?
-Thanks.
-
-
-This change adds a new O_BENEATH flag for openat(2) which restricts the
+Add a new O_BENEATH flag for openat(2) which restricts the
 provided path, rejecting (with -EPERM) paths that are not beneath
-the provided dfd.
+the provided dfd.  In particular, reject:
+ - paths that contain .. components
+ - paths that begin with /
+ - symlinks that have paths as above.
 
-This functionality was originally implemented as part of the internals
-of the Capsicum security framework, which is available in FreeBSD 10.x
-and which has previously had a Linux kernel port proposed [1].
+Also disallow use of nd_jump_link() for following symlinks without
+path expansion, when O_BENEATH is set.
 
-However, as this behaviour is potentially useful as an independent feature,
-this change exposes it via an openat(2) flag.  (This variant was not
-originally exposed in FreeBSD, but is currently being proposed there
-too [2].)
+Signed-off-by: David Drysdale <drysdale@google.com>
+---
+ arch/alpha/include/uapi/asm/fcntl.h  |  1 +
+ arch/parisc/include/uapi/asm/fcntl.h |  1 +
+ arch/sparc/include/uapi/asm/fcntl.h  |  1 +
+ fs/fcntl.c                           |  4 ++--
+ fs/namei.c                           | 12 +++++++++++-
+ fs/open.c                            |  4 +++-
+ fs/proc/base.c                       |  4 +++-
+ fs/proc/namespaces.c                 |  8 ++++++--
+ include/linux/namei.h                |  3 ++-
+ include/uapi/asm-generic/fcntl.h     |  4 ++++
+ 10 files changed, 34 insertions(+), 8 deletions(-)
 
-Various folks from Chrome[OS] have indicated an interest in having this
-functionality -- when combined with a seccomp filter it allows a directory
-to be more safely accessed by a sandboxed process.  Other folk have also
-expressed an interest [3].
-
-
-[1] https://lkml.org/lkml/2014/7/25/426
-[2] https://reviews.freebsd.org/D2808
-[3] https://groups.google.com/d/msg/capnproto/sKpzanYNZmQ/T9IbJIB-rqQJ
-
-Changes since v3:
- - Merge up to v4.2-rc6
- - Reinstate local selftests (I'll send xfstest changes separately
-   if and when this is merged)
- - Pull in common selftests makefile
-
-Changes since v2:
- - Move tests into xfstests [Dave Chinner, with thanks for feedback
-   on initial version]
- - Merge up to v4.0-rc3 & latest man-pages
-
-Changes since v1:
- - Don't needlessly duplicate flags [Al Viro]
- - Use EPERM rather than EACCES as error code [Paolo Bonzini]
- - Disallow nd_jump_link for O_BENEATH [Al Viro/Andy Lutomirski]
- - Add test of a jumped symlink (/proc/self/root)
-
-Changes since the version included in the Capsicum v2 patchset:
- - Add tests of normal symlinks
- - Fix man-page typo
- - Update patch to 3.17
-
-Changes from v1 to v2 of Capsicum patchset:
- - renamed O_BENEATH_ONLY to O_BENEATH [Christoph Hellwig]
-
-
-David Drysdale (2):
-  fs: add O_BENEATH flag to openat(2)
-  selftests: Add test of O_BENEATH & openat(2)
-
- arch/alpha/include/uapi/asm/fcntl.h       |   1 +
- arch/parisc/include/uapi/asm/fcntl.h      |   1 +
- arch/sparc/include/uapi/asm/fcntl.h       |   1 +
- fs/fcntl.c                                |   4 +-
- fs/namei.c                                |  12 +-
- fs/open.c                                 |   4 +-
- fs/proc/base.c                            |   4 +-
- fs/proc/namespaces.c                      |   8 +-
- include/linux/namei.h                     |   3 +-
- include/uapi/asm-generic/fcntl.h          |   4 +
- tools/testing/selftests/Makefile          |   1 +
- tools/testing/selftests/openat/.gitignore |   4 +
- tools/testing/selftests/openat/Makefile   |  29 ++++
- tools/testing/selftests/openat/openat.c   | 258 ++++++++++++++++++++++++++++++
- 14 files changed, 326 insertions(+), 8 deletions(-)
- create mode 100644 tools/testing/selftests/openat/.gitignore
- create mode 100644 tools/testing/selftests/openat/Makefile
- create mode 100644 tools/testing/selftests/openat/openat.c
-
---
+diff --git a/arch/alpha/include/uapi/asm/fcntl.h b/arch/alpha/include/uapi/asm/fcntl.h
+index 09f49a6b87d1..76a87038d2c1 100644
+--- a/arch/alpha/include/uapi/asm/fcntl.h
++++ b/arch/alpha/include/uapi/asm/fcntl.h
+@@ -33,6 +33,7 @@
+ 
+ #define O_PATH		040000000
+ #define __O_TMPFILE	0100000000
++#define O_BENEATH	0200000000	/* no / or .. in openat path */
+ 
+ #define F_GETLK		7
+ #define F_SETLK		8
+diff --git a/arch/parisc/include/uapi/asm/fcntl.h b/arch/parisc/include/uapi/asm/fcntl.h
+index 34a46cbc76ed..3adadf72f929 100644
+--- a/arch/parisc/include/uapi/asm/fcntl.h
++++ b/arch/parisc/include/uapi/asm/fcntl.h
+@@ -21,6 +21,7 @@
+ 
+ #define O_PATH		020000000
+ #define __O_TMPFILE	040000000
++#define O_BENEATH	080000000	/* no / or .. in openat path */
+ 
+ #define F_GETLK64	8
+ #define F_SETLK64	9
+diff --git a/arch/sparc/include/uapi/asm/fcntl.h b/arch/sparc/include/uapi/asm/fcntl.h
+index 7e8ace5bf760..ea38f0bd6cec 100644
+--- a/arch/sparc/include/uapi/asm/fcntl.h
++++ b/arch/sparc/include/uapi/asm/fcntl.h
+@@ -36,6 +36,7 @@
+ 
+ #define O_PATH		0x1000000
+ #define __O_TMPFILE	0x2000000
++#define O_BENEATH	0x4000000	/* no / or .. in openat path */
+ 
+ #define F_GETOWN	5	/*  for sockets. */
+ #define F_SETOWN	6	/*  for sockets. */
+diff --git a/fs/fcntl.c b/fs/fcntl.c
+index ee85cd4e136a..3169693e9390 100644
+--- a/fs/fcntl.c
++++ b/fs/fcntl.c
+@@ -740,7 +740,7 @@ static int __init fcntl_init(void)
+ 	 * Exceptions: O_NONBLOCK is a two bit define on parisc; O_NDELAY
+ 	 * is defined as O_NONBLOCK on some platforms and not on others.
+ 	 */
+-	BUILD_BUG_ON(21 - 1 /* for O_RDONLY being 0 */ != HWEIGHT32(
++	BUILD_BUG_ON(22 - 1 /* for O_RDONLY being 0 */ != HWEIGHT32(
+ 		O_RDONLY	| O_WRONLY	| O_RDWR	|
+ 		O_CREAT		| O_EXCL	| O_NOCTTY	|
+ 		O_TRUNC		| O_APPEND	| /* O_NONBLOCK	| */
+@@ -748,7 +748,7 @@ static int __init fcntl_init(void)
+ 		O_DIRECT	| O_LARGEFILE	| O_DIRECTORY	|
+ 		O_NOFOLLOW	| O_NOATIME	| O_CLOEXEC	|
+ 		__FMODE_EXEC	| O_PATH	| __O_TMPFILE	|
+-		__FMODE_NONOTIFY
++		__FMODE_NONOTIFY| O_BENEATH
+ 		));
+ 
+ 	fasync_cache = kmem_cache_create("fasync_cache",
+diff --git a/fs/namei.c b/fs/namei.c
+index fbbcf0993312..978f07d91a11 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -827,14 +827,18 @@ static inline void path_to_nameidata(const struct path *path,
+  * Helper to directly jump to a known parsed path from ->follow_link,
+  * caller must have taken a reference to path beforehand.
+  */
+-void nd_jump_link(struct path *path)
++int nd_jump_link(struct path *path)
+ {
+ 	struct nameidata *nd = current->nameidata;
++
++	if (nd->flags & LOOKUP_BENEATH)
++		return -EPERM;
+ 	path_put(&nd->path);
+ 
+ 	nd->path = *path;
+ 	nd->inode = nd->path.dentry->d_inode;
+ 	nd->flags |= LOOKUP_JUMPED;
++	return 0;
+ }
+ 
+ static inline void put_link(struct nameidata *nd)
+@@ -1000,6 +1004,8 @@ const char *get_link(struct nameidata *nd)
+ 		}
+ 	}
+ 	if (*res == '/') {
++		if (nd->flags & LOOKUP_BENEATH)
++			return ERR_PTR(-EPERM);
+ 		if (nd->flags & LOOKUP_RCU) {
+ 			struct dentry *d;
+ 			if (!nd->root.mnt)
+@@ -1888,6 +1894,8 @@ static int link_path_walk(const char *name, struct nameidata *nd)
+ 		if (name[0] == '.') switch (hashlen_len(hash_len)) {
+ 			case 2:
+ 				if (name[1] == '.') {
++					if (nd->flags & LOOKUP_BENEATH)
++						return -EPERM;
+ 					type = LAST_DOTDOT;
+ 					nd->flags |= LOOKUP_JUMPED;
+ 				}
+@@ -2000,6 +2008,8 @@ static const char *path_init(struct nameidata *nd, unsigned flags)
+ 
+ 	nd->m_seq = read_seqbegin(&mount_lock);
+ 	if (*s == '/') {
++		if (flags & LOOKUP_BENEATH)
++			return ERR_PTR(-EPERM);
+ 		if (flags & LOOKUP_RCU) {
+ 			rcu_read_lock();
+ 			set_root_rcu(nd);
+diff --git a/fs/open.c b/fs/open.c
+index e33dab287fa0..29208cd307f7 100644
+--- a/fs/open.c
++++ b/fs/open.c
+@@ -917,7 +917,7 @@ static inline int build_open_flags(int flags, umode_t mode, struct open_flags *o
+ 		 * If we have O_PATH in the open flag. Then we
+ 		 * cannot have anything other than the below set of flags
+ 		 */
+-		flags &= O_DIRECTORY | O_NOFOLLOW | O_PATH;
++		flags &= O_DIRECTORY | O_NOFOLLOW | O_PATH | O_BENEATH;
+ 		acc_mode = 0;
+ 	} else {
+ 		acc_mode = MAY_OPEN | ACC_MODE(flags);
+@@ -948,6 +948,8 @@ static inline int build_open_flags(int flags, umode_t mode, struct open_flags *o
+ 		lookup_flags |= LOOKUP_DIRECTORY;
+ 	if (!(flags & O_NOFOLLOW))
+ 		lookup_flags |= LOOKUP_FOLLOW;
++	if (flags & O_BENEATH)
++		lookup_flags |= LOOKUP_BENEATH;
+ 	op->lookup_flags = lookup_flags;
+ 	return 0;
+ }
+diff --git a/fs/proc/base.c b/fs/proc/base.c
+index aa50d1ac28fc..281f7a8d8060 100644
+--- a/fs/proc/base.c
++++ b/fs/proc/base.c
+@@ -1589,7 +1589,9 @@ static const char *proc_pid_follow_link(struct dentry *dentry, void **cookie)
+ 	if (error)
+ 		goto out;
+ 
+-	nd_jump_link(&path);
++	error = nd_jump_link(&path);
++	if (error)
++		goto out;
+ 	return NULL;
+ out:
+ 	return ERR_PTR(error);
+diff --git a/fs/proc/namespaces.c b/fs/proc/namespaces.c
+index f6e8354b8cea..beb5aa3ad38c 100644
+--- a/fs/proc/namespaces.c
++++ b/fs/proc/namespaces.c
+@@ -36,6 +36,7 @@ static const char *proc_ns_follow_link(struct dentry *dentry, void **cookie)
+ 	const struct proc_ns_operations *ns_ops = PROC_I(inode)->ns_ops;
+ 	struct task_struct *task;
+ 	struct path ns_path;
++	int err;
+ 	void *error = ERR_PTR(-EACCES);
+ 
+ 	task = get_proc_task(inode);
+@@ -44,8 +45,11 @@ static const char *proc_ns_follow_link(struct dentry *dentry, void **cookie)
+ 
+ 	if (ptrace_may_access(task, PTRACE_MODE_READ)) {
+ 		error = ns_get_path(&ns_path, task, ns_ops);
+-		if (!error)
+-			nd_jump_link(&ns_path);
++		if (!error) {
++			err = nd_jump_link(&ns_path);
++			if (err)
++				error = ERR_PTR(err);
++		}
+ 	}
+ 	put_task_struct(task);
+ 	return error;
+diff --git a/include/linux/namei.h b/include/linux/namei.h
+index d8c6334cd150..a5a262c85e49 100644
+--- a/include/linux/namei.h
++++ b/include/linux/namei.h
+@@ -27,6 +27,7 @@ enum {LAST_NORM, LAST_ROOT, LAST_DOT, LAST_DOTDOT, LAST_BIND};
+ #define LOOKUP_FOLLOW		0x0001
+ #define LOOKUP_DIRECTORY	0x0002
+ #define LOOKUP_AUTOMOUNT	0x0004
++#define LOOKUP_BENEATH		0x0008
+ 
+ #define LOOKUP_PARENT		0x0010
+ #define LOOKUP_REVAL		0x0020
+@@ -85,7 +86,7 @@ extern int follow_up(struct path *);
+ extern struct dentry *lock_rename(struct dentry *, struct dentry *);
+ extern void unlock_rename(struct dentry *, struct dentry *);
+ 
+-extern void nd_jump_link(struct path *path);
++extern int nd_jump_link(struct path *path);
+ 
+ static inline void nd_terminate_link(void *name, size_t len, size_t maxlen)
+ {
+diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
+index e063effe0cc1..4542bc6a2950 100644
+--- a/include/uapi/asm-generic/fcntl.h
++++ b/include/uapi/asm-generic/fcntl.h
+@@ -92,6 +92,10 @@
+ #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
+ #define O_TMPFILE_MASK (__O_TMPFILE | O_DIRECTORY | O_CREAT)      
+ 
++#ifndef O_BENEATH
++#define O_BENEATH	040000000	/* no / or .. in openat path */
++#endif
++
+ #ifndef O_NDELAY
+ #define O_NDELAY	O_NONBLOCK
+ #endif
+-- 
 1.9.1
+
