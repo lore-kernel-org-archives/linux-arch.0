@@ -1,52 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f171.google.com ([209.85.212.171]:37887 "EHLO
-	mail-wi0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751053AbbHLR43 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Aug 2015 13:56:29 -0400
-MIME-Version: 1.0
-In-Reply-To: <1439398807.2825.51.camel@HansenPartnership.com>
-References: <1439363150-8661-1-git-send-email-hch@lst.de>
-	<1439398807.2825.51.camel@HansenPartnership.com>
-Date: Wed, 12 Aug 2015 10:56:26 -0700
-Message-ID: <CAP6odjhfTHzgEivDUxXyU=VBG4U85ETxv1gcogE9GVGoGQ37-w@mail.gmail.com>
-Subject: Re: RFC: prepare for struct scatterlist entries without page backing
-From: Grant Grundler <grantgrundler@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Received: from mail-wi0-f177.google.com ([209.85.212.177]:36354 "EHLO
+	mail-wi0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752747AbbHMJc7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Aug 2015 05:32:59 -0400
+Received: by wicja10 with SMTP id ja10so143956643wic.1
+        for <linux-arch@vger.kernel.org>; Thu, 13 Aug 2015 02:32:58 -0700 (PDT)
+From: David Drysdale <drysdale@google.com>
+Subject: [PATCHv4 man-pages 3/3] open.2: describe O_BENEATH flag
+Date: Thu, 13 Aug 2015 10:32:46 +0100
+Message-ID: <1439458366-8223-4-git-send-email-drysdale@google.com>
+In-Reply-To: <1439458366-8223-1-git-send-email-drysdale@google.com>
+References: <1439458366-8223-1-git-send-email-drysdale@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@hansenpartnership.com>
-Cc: Christoph Hellwig <hch@lst.de>, Linus Torvalds <torvalds@linux-foundation.org>, axboe@kernel.dk, dan.j.williams@intel.com, vgupta@synopsys.com, hskinnemoen@gmail.com, egtvedt@samfundet.no, realmz6@gmail.com, dhowells@redhat.com, monstr@monstr.eu, x86@kernel.org, David Woodhouse <dwmw2@infradead.org>, alex.williamson@redhat.com, Grant Grundler <grundler@parisc-linux.org>, open list <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc <linux-parisc@vger.kernel.org>, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-nvdimm@ml01.01.org, linux-media@vger.kernel.org
-Message-ID: <20150812175626.r7IsVTpUxKQk61ubNWrXGYKtdCehkgjiPFhi8oXckMc@z>
+To: linux-kernel@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>, Kees Cook <keescook@chromium.org>, "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Meredydd Luff <meredydd@senatehouse.org>, Will Drewry <wad@chromium.org>, Jorge Lucangeli Obes <jorgelo@google.com>, Ricky Zhou <rickyz@google.com>, Lee Campbell <leecam@google.com>, Julien Tinnes <jln@google.com>, Mike Depinet <mdepinet@google.com>, James Morris <james.l.morris@oracle.com>, Andy Lutomirski <luto@amacapital.net>, Paolo Bonzini <pbonzini@redhat.com>, Paul Moore <paul@paul-moore.com>, Christoph Hellwig <hch@infradead.org>, Michael Kerrisk <mtk.manpages@gmail.com>, Dave Chinner <david@fromorbit.com>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-security-module@vger.kernel.org, linux-fsdevel@vger.kernel.org, fstests@vger.kernel.org, David Drysdale <drysdale@google.com>
+Message-ID: <20150813093246.jwZjR0S07fu-VDREDeTHVww19ElkUbHJkGqvz5kVJM4@z>
 
-On Wed, Aug 12, 2015 at 10:00 AM, James Bottomley
-<James.Bottomley@hansenpartnership.com> wrote:
-> On Wed, 2015-08-12 at 09:05 +0200, Christoph Hellwig wrote:
-...
->> However the ccio (parisc) and sba_iommu (parisc & ia64) IOMMUs seem
->> to be operate mostly on virtual addresses.  It's a fairly odd concept
->> that I don't fully grasp, so I'll need some help with those if we want
->> to bring this forward.
+Signed-off-by: David Drysdale <drysdale@google.com>
+---
+ man2/open.2 | 44 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 44 insertions(+)
 
-James explained the primary function of IOMMUs on parisc (DMA-Cache
-coherency) much better than I ever could.
-
-Three more observations:
-1) the IOMMU can be bypassed by 64-bit DMA devices on IA64.
-
-2) IOMMU enables 32-bit DMA devices to reach > 32-bit physical memory
-and thus avoiding bounce buffers. parisc and older IA-64 have some
-32-bit PCI devices - e.g. IDE boot HDD.
-
-3) IOMMU acts as a proxy for IO devices by fetching cachelines of data
-for PA-RISC systems whose memory controllers ONLY serve cacheline
-sized transactions. ie. 32-bit DMA results in the IOMMU fetching the
-cacheline and updating just the 32-bits in a DMA cache coherent
-fashion.
-
-Bonus thought:
-4) IOMMU can improve DMA performance in some cases using "hints"
-provided by the OS (e.g. prefetching DMA data or using READ_CURRENT
-bus transactions instead of normal memory fetches.)
-
-cheers,
-grant
+diff --git a/man2/open.2 b/man2/open.2
+index f49ab3042161..d09511f9ffb0 100644
+--- a/man2/open.2
++++ b/man2/open.2
+@@ -201,6 +201,43 @@ See
+ for further details.
+ See also BUGS, below.
+ .TP
++.B O_BENEATH " (since Linux 4.??)"
++Ensure that the
++.I pathname
++is beneath the current working directory (for
++.BR open (2))
++or the
++.I dirfd
++(for
++.BR openat (2)).
++If the
++.I pathname
++is absolute or contains a path component of "..", the
++.BR open ()
++fails with the error
++.BR EPERM.
++This occurs even if ".." path component would not actually
++escape the original directory; for example, a
++.I pathname
++of "subdir/../filename" would be rejected.
++Path components that are symbolic links to absolute paths, or that are
++relative paths containing a ".." component, will also cause the
++.BR open ()
++operation to fail with the error
++.BR EPERM.
++
++This feature allows applications to be sure that the opened file is
++within the specified directory, regardless of the original source of the
++.I pathname
++argument.
++Some security-conscious programs may further ensure
++this by imposing a system call filter (with
++.BR seccomp (2))
++that requires this flag for all
++.BR open ()
++operations, so that the program cannot open files outside of
++specified directories even if subverted.
++.TP
+ .BR O_CLOEXEC " (since Linux 2.6.23)"
+ .\" NOTE! several other man pages refer to this text
+ Enable the close-on-exec flag for the new file descriptor.
+@@ -1015,6 +1052,13 @@ did not match the owner of the file and the caller was not privileged
+ The operation was prevented by a file seal; see
+ .BR fcntl (2).
+ .TP
++.B EPERM
++The
++.B O_BENEATH
++flag was specified and the
++.I pathname
++was not beneath the relevant directory.
++.TP
+ .B EROFS
+ .I pathname
+ refers to a file on a read-only filesystem and write access was
+--
+2.5.0.rc2.392.g76e840b
