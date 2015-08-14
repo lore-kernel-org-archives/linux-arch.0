@@ -1,61 +1,47 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 29/31] parisc: handle page-less SG entries
-Date: Thu, 13 Aug 2015 21:11:55 -0700 (PDT)
-Message-ID: <20150813.211155.1774898831276303437.davem@davemloft.net>
-References: <20150813143150.GA17183@lst.de>
-	<CAA9_cmcNA__N_yVTKsEqLAKBuoL-hx73t6opdsmb7w-0qKXaWg@mail.gmail.com>
-	<1439524760.8421.23.camel@HansenPartnership.com>
+From: "Michael Kerrisk (man-pages)" <mtk.manpages@gmail.com>
+Subject: Re: [PATCHv4 man-pages 3/3] open.2: describe O_BENEATH flag
+Date: Fri, 14 Aug 2015 07:33:17 +0200
+Message-ID: <CAKgNAkj+fZJnzKbHb8UvZg-0kNfB7MQHQYoAz-dVhnkso0Uq2A@mail.gmail.com>
+References: <1439458366-8223-1-git-send-email-drysdale@google.com>
+ <1439458366-8223-4-git-send-email-drysdale@google.com> <CALCETrWusE9CbQ6A1iqgBVjei-_JWL4o4ezS14JLEAbrGJmaNg@mail.gmail.com>
+Reply-To: mtk.manpages@gmail.com
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-alpha-owner@vger.kernel.org>
-In-Reply-To: <1439524760.8421.23.camel@HansenPartnership.com>
-Sender: linux-alpha-owner@vger.kernel.org
-To: James.Bottomley@HansenPartnership.com
-Cc: dan.j.williams@intel.com, hch@lst.de, torvalds@linux-foundation.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-nvdimm@ml01.01.org, dhowells@redhat.com, sparclinux@vger.kernel.org, egtvedt@samfundet.no, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, dwmw2@infradead.org, hskinnemoen@gmail.com, linux-xtensa@linux-xtensa.org, grundler@parisc-linux.org, realmz6@gmail.com, alex.williamson@redhat.com, linux-metag@vger.kernel.org, axboe@kernel.dk, monstr@monstr.eu, linux-parisc@vger.kernel.org, vgupta@synopsys.com, linux-kernel@vger.kernel.org, linux-alpha@vger.kernel.org, linux-media@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <fstests-owner@vger.kernel.org>
+In-Reply-To: <CALCETrWusE9CbQ6A1iqgBVjei-_JWL4o4ezS14JLEAbrGJmaNg@mail.gmail.com>
+Sender: fstests-owner@vger.kernel.org
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: David Drysdale <drysdale@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, Kees Cook <keescook@chromium.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Meredydd Luff <meredydd@senatehouse.org>, Will Drewry <wad@chromium.org>, Jorge Lucangeli Obes <jorgelo@google.com>, Ricky Zhou <rickyz@google.com>, Lee Campbell <leecam@google.com>, Julien Tinnes <jln@google.com>, Mike Depinet <mdepinet@google.com>, James Morris <james.l.morris@oracle.com>, Paolo Bonzini <pbonzini@redhat.com>, Paul Moore <paul@paul-moore.com>, Christoph Hellwig <hch@infradead.org>, Dave Chinner <david@fromorbit.com>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, LSM List <linux-security-module@vger.kernel.org>, Linux FS Devel <linux-fsdevel@vger>
 List-Id: linux-arch.vger.kernel.org
 
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Date: Thu, 13 Aug 2015 20:59:20 -0700
+On 13 August 2015 at 19:38, Andy Lutomirski <luto@amacapital.net> wrote:
+> On Thu, Aug 13, 2015 at 2:32 AM, David Drysdale <drysdale@google.com> wrote:
+>> Signed-off-by: David Drysdale <drysdale@google.com>
+>
+> What's the behavior wrt fcntl(F_GETFL, etc)?
 
-> On Thu, 2015-08-13 at 20:30 -0700, Dan Williams wrote:
->> On Thu, Aug 13, 2015 at 7:31 AM, Christoph Hellwig <hch@lst.de> wrote:
->> > On Wed, Aug 12, 2015 at 09:01:02AM -0700, Linus Torvalds wrote:
->> >> I'm assuming that anybody who wants to use the page-less
->> >> scatter-gather lists always does so on memory that isn't actually
->> >> virtually mapped at all, or only does so on sane architectures that
->> >> are cache coherent at a physical level, but I'd like that assumption
->> >> *documented* somewhere.
->> >
->> > It's temporarily mapped by kmap-like helpers.  That code isn't in
->> > this series. The most recent version of it is here:
->> >
->> > https://git.kernel.org/cgit/linux/kernel/git/djbw/nvdimm.git/commit/?h=pfn&id=de8237c99fdb4352be2193f3a7610e902b9bb2f0
->> >
->> > note that it's not doing the cache flushing it would have to do yet, but
->> > it's also only enabled for x86 at the moment.
->> 
->> For virtually tagged caches I assume we would temporarily map with
->> kmap_atomic_pfn_t(), similar to how drm_clflush_pages() implements
->> powerpc support.  However with DAX we could end up with multiple
->> virtual aliases for a page-less pfn.
-> 
-> At least on some PA architectures, you have to be very careful.
-> Improperly managed, multiple aliases will cause the system to crash
-> (actually a machine check in the cache chequerboard). For the most
-> temperamental systems, we need the cache line flushed and the alias
-> mapping ejected from the TLB cache before we access the same page at an
-> inequivalent alias.
+I would presume that O_BENEATH is one of the so-called "file creation
+flags". See this paragraph of the DESCRIPTION:
 
-Also, I want to mention that on sparc64 we manage the cache aliasing
-state in the page struct.
+       In addition, zero or more file creation  flags  and  file  status
+       flags  can be bitwise-or'd in flags.  The file creation flags are
+       O_CLOEXEC, O_CREAT, O_DIRECTORY,  O_EXCL,  O_NOCTTY,  O_NOFOLLOW,
+       O_TMPFILE,  O_TRUNC,  and  O_TTY_INIT.  The file status flags are
+       all of the remaining flags listed below.  The distinction between
+       these  two  groups  of flags is that the file status flags can be
+       retrieved and (in some cases) modified; see fcntl(2) for details.
 
-Until a page is mapped into userspace, we just record the most recent
-cpu to store into that page with kernel side mappings.  Once the page
-ends up being mapped or the cpu doing kernel side stores changes, we
-actually perform the cache flush.
+David, presuming this is correct (I can't see how O_BENEATH could be a
+"file *status* flag"), your patch should also add O_BENEATH to the
+list in that paragraph.
 
-Generally speaking, I think that all actual physical memory the kernel
-operates on should have a struct page backing it.  So this whole
-discussion of operating on physical memory in scatter lists without
-backing page structs feels really foreign to me.
+Cheers,
+
+Michael
+
+
+
+-- 
+Michael Kerrisk
+Linux man-pages maintainer; http://www.kernel.org/doc/man-pages/
+Linux/UNIX System Programming Training: http://man7.org/training/
