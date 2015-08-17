@@ -1,53 +1,60 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH] ARC: add negative dependency for VGA_CONSOLE
-Date: Mon, 17 Aug 2015 18:21:01 +0200
-Message-ID: <CAMuHMdW0hzGN74pCRhCUwJ0Ua3YN94csFfu3Mb-STeCuLosoGw@mail.gmail.com>
-References: <1439826777-11489-1-git-send-email-yuriy.kolerov@synopsys.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f172.google.com ([209.85.214.172]:33683 "EHLO
-	mail-ob0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753703AbbHQQVD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Aug 2015 12:21:03 -0400
-In-Reply-To: <1439826777-11489-1-git-send-email-yuriy.kolerov@synopsys.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yuriy Kolerov <yuriy.kolerov@synopsys.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Fbdev development list <linux-fbdev@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Tomi Valkeinen <tomi.valkeinen@ti.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Anton.Kolesov@synopsys.com, Francois Bedard <Francois.Bedard@synopsys.com>
+From: Mark Salter <msalter@redhat.com>
+Subject: [PATCH V4 0/3] mm: Add generic copy from early unmapped RAM
+Date: Mon, 17 Aug 2015 13:01:04 -0400
+Message-ID: <1439830867-14935-1-git-send-email-msalter@redhat.com>
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, x86@kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Aug 17, 2015 at 5:52 PM, Yuriy Kolerov
-<yuriy.kolerov@synopsys.com> wrote:
-> Architectures which support VGA console must define screen_info
-> structurture from "uapi/linux/screen_info.h". Otherwise undefined
-> symbol error occurs. Usually it's defined in "setup.c" for each
-> architecture.
->
-> If an architecture does not support VGA console (ARC's case)
-> there are 2 ways: define a dummy instance of screen_info or add
-> a negative dependency for VGA_CONSOLE in to prevent selecting
-> this option.
->
-> I've implemented the second way. However the best solution is to
-> add HAVE_VGA_CONSOLE option for targets which support VGA
-> console. Then turn off VGA_CONSOLE by default and add dependency
-> to HAVE_VGA_CONSOLE. But right now it's better to just add a
-> negative dependency for ARC and then consider how to collaborate
-> about this issue with maintainers of other architectures.
+When booting an arm64 kernel w/initrd using UEFI/grub, use of mem= will likely
+cut off part or all of the initrd. This leaves it outside the kernel linear
+map which leads to failure when unpacking. The x86 code has a similar need to
+relocate an initrd outside of mapped memory in some cases.
 
-+1
+The current x86 code uses early_memremap() to copy the original initrd from
+unmapped to mapped RAM. This patchset creates a generic copy_from_early_mem()
+utility based on that x86 code and has arm64 and x86 share it in their
+respective initrd relocation code.
 
-> Signed-off-by: Yuriy Kolerov <yuriy.kolerov@synopsys.com>
+Changes from V3:
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+  * Fixed arm64 build error with !CONFIG_BLK_DEV_INITRD case
 
-Gr{oetje,eeting}s,
+  * Fixed nonsensical comment in arm64 relocate_initrd()
 
-                        Geert
+Changes from V2:
+
+  * Fixed sparse warning in copy_from_early_mem()
+
+  * Removed unneeded MAX_MAP_CHUNK from x86 setup.c
+
+  * Moved #ifdef outside arm64 relocate_initrd() definition.
+  
+Changes from V1:
+
+  * Change cover letter subject to highlight the added generic code
+
+  * Add patch for x86 to use common copy_from_early_mem()
+
+
+Mark Salter (3):
+  mm: add utility for early copy from unmapped ram
+  arm64: support initrd outside kernel linear map
+  x86: use generic early mem copy
+
+ arch/arm64/kernel/setup.c           | 62 +++++++++++++++++++++++++++++++++++++
+ arch/x86/kernel/setup.c             | 22 +------------
+ include/asm-generic/early_ioremap.h |  6 ++++
+ mm/early_ioremap.c                  | 22 +++++++++++++
+ 4 files changed, 91 insertions(+), 21 deletions(-)
+
+-- 
+2.4.3
 
 --
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
