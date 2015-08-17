@@ -1,7 +1,7 @@
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH V4 1/3] mm: add utility for early copy from unmapped ram
-Date: Mon, 17 Aug 2015 13:01:05 -0400
-Message-ID: <1439830867-14935-2-git-send-email-msalter@redhat.com>
+Subject: [PATCH V4 3/3] x86: use generic early mem copy
+Date: Mon, 17 Aug 2015 13:01:07 -0400
+Message-ID: <1439830867-14935-4-git-send-email-msalter@redhat.com>
 References: <1439830867-14935-1-git-send-email-msalter@redhat.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1439830867-14935-1-git-send-email-msalter@redhat.com>
@@ -10,67 +10,61 @@ To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-In some early boot circumstances, it may be necessary to copy
-from RAM outside the kernel linear mapping to mapped RAM. The
-need to relocate an initrd is one example in the x86 code. This
-patch creates a helper function based on current x86 code.
+The early_ioremap library now has a generic copy_from_early_mem()
+function. Use the generic copy function for x86 relocate_initrd().
 
 Signed-off-by: Mark Salter <msalter@redhat.com>
 ---
- include/asm-generic/early_ioremap.h |  6 ++++++
- mm/early_ioremap.c                  | 22 ++++++++++++++++++++++
- 2 files changed, 28 insertions(+)
+ arch/x86/kernel/setup.c | 22 +---------------------
+ 1 file changed, 1 insertion(+), 21 deletions(-)
 
-diff --git a/include/asm-generic/early_ioremap.h b/include/asm-generic/early_ioremap.h
-index a5de55c..e539f27 100644
---- a/include/asm-generic/early_ioremap.h
-+++ b/include/asm-generic/early_ioremap.h
-@@ -33,6 +33,12 @@ extern void early_ioremap_setup(void);
-  */
- extern void early_ioremap_reset(void);
- 
-+/*
-+ * Early copy from unmapped memory to kernel mapped memory.
-+ */
-+extern void copy_from_early_mem(void *dest, phys_addr_t src,
-+				unsigned long size);
-+
- #else
- static inline void early_ioremap_init(void) { }
- static inline void early_ioremap_setup(void) { }
-diff --git a/mm/early_ioremap.c b/mm/early_ioremap.c
-index e10ccd2..a0baeb4 100644
---- a/mm/early_ioremap.c
-+++ b/mm/early_ioremap.c
-@@ -217,6 +217,28 @@ early_memremap(resource_size_t phys_addr, unsigned long size)
- 	return (__force void *)__early_ioremap(phys_addr, size,
- 					       FIXMAP_PAGE_NORMAL);
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index 80f874b..21fa9a3 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -317,15 +317,12 @@ static u64 __init get_ramdisk_size(void)
+ 	return ramdisk_size;
  }
-+
-+#define MAX_MAP_CHUNK	(NR_FIX_BTMAPS << PAGE_SHIFT)
-+
-+void __init copy_from_early_mem(void *dest, phys_addr_t src, unsigned long size)
-+{
-+	unsigned long slop, clen;
-+	char *p;
-+
-+	while (size) {
-+		slop = src & ~PAGE_MASK;
-+		clen = size;
-+		if (clen > MAX_MAP_CHUNK - slop)
-+			clen = MAX_MAP_CHUNK - slop;
-+		p = early_memremap(src & PAGE_MASK, clen + slop);
-+		memcpy(dest, p + slop, clen);
-+		early_memunmap(p, clen + slop);
-+		dest += clen;
-+		src += clen;
-+		size -= clen;
-+	}
-+}
-+
- #else /* CONFIG_MMU */
  
- void __init __iomem *
+-#define MAX_MAP_CHUNK	(NR_FIX_BTMAPS << PAGE_SHIFT)
+ static void __init relocate_initrd(void)
+ {
+ 	/* Assume only end is not page aligned */
+ 	u64 ramdisk_image = get_ramdisk_image();
+ 	u64 ramdisk_size  = get_ramdisk_size();
+ 	u64 area_size     = PAGE_ALIGN(ramdisk_size);
+-	unsigned long slop, clen, mapaddr;
+-	char *p, *q;
+ 
+ 	/* We need to move the initrd down into directly mapped mem */
+ 	relocated_ramdisk = memblock_find_in_range(0, PFN_PHYS(max_pfn_mapped),
+@@ -343,25 +340,8 @@ static void __init relocate_initrd(void)
+ 	printk(KERN_INFO "Allocated new RAMDISK: [mem %#010llx-%#010llx]\n",
+ 	       relocated_ramdisk, relocated_ramdisk + ramdisk_size - 1);
+ 
+-	q = (char *)initrd_start;
+-
+-	/* Copy the initrd */
+-	while (ramdisk_size) {
+-		slop = ramdisk_image & ~PAGE_MASK;
+-		clen = ramdisk_size;
+-		if (clen > MAX_MAP_CHUNK-slop)
+-			clen = MAX_MAP_CHUNK-slop;
+-		mapaddr = ramdisk_image & PAGE_MASK;
+-		p = early_memremap(mapaddr, clen+slop);
+-		memcpy(q, p+slop, clen);
+-		early_memunmap(p, clen+slop);
+-		q += clen;
+-		ramdisk_image += clen;
+-		ramdisk_size  -= clen;
+-	}
++	copy_from_early_mem((void *)initrd_start, ramdisk_image, ramdisk_size);
+ 
+-	ramdisk_image = get_ramdisk_image();
+-	ramdisk_size  = get_ramdisk_size();
+ 	printk(KERN_INFO "Move RAMDISK from [mem %#010llx-%#010llx] to"
+ 		" [mem %#010llx-%#010llx]\n",
+ 		ramdisk_image, ramdisk_image + ramdisk_size - 1,
 -- 
 2.4.3
 
