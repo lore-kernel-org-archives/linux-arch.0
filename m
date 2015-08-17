@@ -1,75 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:51419 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:51318 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752168AbbHPUti (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 16 Aug 2015 16:49:38 -0400
+	id S1755554AbbHQRBR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 17 Aug 2015 13:01:17 -0400
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH V3 3/3] x86: use generic early mem copy
-Date: Sun, 16 Aug 2015 16:49:28 -0400
-Message-ID: <1439758168-29427-4-git-send-email-msalter@redhat.com>
-In-Reply-To: <1439758168-29427-1-git-send-email-msalter@redhat.com>
-References: <1439758168-29427-1-git-send-email-msalter@redhat.com>
+Subject: [PATCH V4 0/3] mm: Add generic copy from early unmapped RAM
+Date: Mon, 17 Aug 2015 13:01:04 -0400
+Message-ID: <1439830867-14935-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, x86@kernel.org
 Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
-Message-ID: <20150816204928.ViLq225T6YlaFb4MOmzziB79FXLIWS12oTEHGtCLZcM@z>
+Message-ID: <20150817170104.2MLTOq7LFllgjgCKGnOYwTafuGmnDObgroB6cC783ys@z>
 
-The early_ioremap library now has a generic copy_from_early_mem()
-function. Use the generic copy function for x86 relocate_initrd().
+When booting an arm64 kernel w/initrd using UEFI/grub, use of mem= will likely
+cut off part or all of the initrd. This leaves it outside the kernel linear
+map which leads to failure when unpacking. The x86 code has a similar need to
+relocate an initrd outside of mapped memory in some cases.
 
-Signed-off-by: Mark Salter <msalter@redhat.com>
----
- arch/x86/kernel/setup.c | 22 +---------------------
- 1 file changed, 1 insertion(+), 21 deletions(-)
+The current x86 code uses early_memremap() to copy the original initrd from
+unmapped to mapped RAM. This patchset creates a generic copy_from_early_mem()
+utility based on that x86 code and has arm64 and x86 share it in their
+respective initrd relocation code.
 
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index 80f874b..21fa9a3 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -317,15 +317,12 @@ static u64 __init get_ramdisk_size(void)
- 	return ramdisk_size;
- }
- 
--#define MAX_MAP_CHUNK	(NR_FIX_BTMAPS << PAGE_SHIFT)
- static void __init relocate_initrd(void)
- {
- 	/* Assume only end is not page aligned */
- 	u64 ramdisk_image = get_ramdisk_image();
- 	u64 ramdisk_size  = get_ramdisk_size();
- 	u64 area_size     = PAGE_ALIGN(ramdisk_size);
--	unsigned long slop, clen, mapaddr;
--	char *p, *q;
- 
- 	/* We need to move the initrd down into directly mapped mem */
- 	relocated_ramdisk = memblock_find_in_range(0, PFN_PHYS(max_pfn_mapped),
-@@ -343,25 +340,8 @@ static void __init relocate_initrd(void)
- 	printk(KERN_INFO "Allocated new RAMDISK: [mem %#010llx-%#010llx]\n",
- 	       relocated_ramdisk, relocated_ramdisk + ramdisk_size - 1);
- 
--	q = (char *)initrd_start;
--
--	/* Copy the initrd */
--	while (ramdisk_size) {
--		slop = ramdisk_image & ~PAGE_MASK;
--		clen = ramdisk_size;
--		if (clen > MAX_MAP_CHUNK-slop)
--			clen = MAX_MAP_CHUNK-slop;
--		mapaddr = ramdisk_image & PAGE_MASK;
--		p = early_memremap(mapaddr, clen+slop);
--		memcpy(q, p+slop, clen);
--		early_memunmap(p, clen+slop);
--		q += clen;
--		ramdisk_image += clen;
--		ramdisk_size  -= clen;
--	}
-+	copy_from_early_mem((void *)initrd_start, ramdisk_image, ramdisk_size);
- 
--	ramdisk_image = get_ramdisk_image();
--	ramdisk_size  = get_ramdisk_size();
- 	printk(KERN_INFO "Move RAMDISK from [mem %#010llx-%#010llx] to"
- 		" [mem %#010llx-%#010llx]\n",
- 		ramdisk_image, ramdisk_image + ramdisk_size - 1,
+Changes from V3:
+
+  * Fixed arm64 build error with !CONFIG_BLK_DEV_INITRD case
+
+  * Fixed nonsensical comment in arm64 relocate_initrd()
+
+Changes from V2:
+
+  * Fixed sparse warning in copy_from_early_mem()
+
+  * Removed unneeded MAX_MAP_CHUNK from x86 setup.c
+
+  * Moved #ifdef outside arm64 relocate_initrd() definition.
+  
+Changes from V1:
+
+  * Change cover letter subject to highlight the added generic code
+
+  * Add patch for x86 to use common copy_from_early_mem()
+
+
+Mark Salter (3):
+  mm: add utility for early copy from unmapped ram
+  arm64: support initrd outside kernel linear map
+  x86: use generic early mem copy
+
+ arch/arm64/kernel/setup.c           | 62 +++++++++++++++++++++++++++++++++++++
+ arch/x86/kernel/setup.c             | 22 +------------
+ include/asm-generic/early_ioremap.h |  6 ++++
+ mm/early_ioremap.c                  | 22 +++++++++++++
+ 4 files changed, 91 insertions(+), 21 deletions(-)
+
 -- 
 2.4.3
 
