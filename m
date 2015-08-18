@@ -1,56 +1,47 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: [PATCH v2 3/8] ARCv2: perf: implement "event_set_period" for
- future use with interrupts
-Date: Tue, 18 Aug 2015 18:03:07 +0000
-Message-ID: <1439920986.28471.13.camel@synopsys.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 4/8] ARCv2: perf: Support sampling events using
+ overflow interrupts
+Date: Wed, 19 Aug 2015 00:12:15 +0200
+Message-ID: <20150818221215.GO20948@worktop>
 References: <1438787614-14074-1-git-send-email-abrodkin@synopsys.com>
-	 <1438787614-14074-4-git-send-email-abrodkin@synopsys.com>
-	 <20150818175203.GM20948@worktop>
+ <1438787614-14074-5-git-send-email-abrodkin@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-7"
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:41971 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751458AbbHRSDM convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Aug 2015 14:03:12 -0400
-In-Reply-To: <20150818175203.GM20948@worktop>
-Content-Language: en-US
-Content-ID: <092324AB9CF8F74EAF2EC78C6DE4AF2E@internal.synopsys.com>
+Received: from bombadil.infradead.org ([198.137.202.9]:55595 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751902AbbHRWMT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Aug 2015 18:12:19 -0400
+Content-Disposition: inline
+In-Reply-To: <1438787614-14074-5-git-send-email-abrodkin@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "peterz@infradead.org" <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "arnd@arndb.de" <arnd@arndb.de>, "acme@kernel.org" <acme@kernel.org>
+To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Vineet.Gupta1@synopsys.com, arc-linux-dev@synopsys.com, arnd@arndb.de, Arnaldo Carvalho de Melo <acme@kernel.org>
 
-Hi Peter,
+On Wed, Aug 05, 2015 at 06:13:30PM +0300, Alexey Brodkin wrote:
+> @@ -319,6 +336,20 @@ static int arc_pmu_add(struct perf_event *event, int flags)
+>  	}
+>  
+>  	write_aux_reg(ARC_REG_PCT_INDEX, idx);
+> +
+> +	arc_pmu->act_counter[idx] = event;
+> +
+> +	if (is_sampling_event(event)) {
+> +		/* Mimic full counter overflow as other arches do */
+> +		write_aux_reg(ARC_REG_PCT_INT_CNTL, (u32)arc_pmu->max_period);
+> +		write_aux_reg(ARC_REG_PCT_INT_CNTH,
+> +			      (arc_pmu->max_period >> 32));
+> +
+> +		/* Enable interrupt for this counter */
+> +		write_aux_reg(ARC_REG_PCT_INT_CTRL,
+> +			      read_aux_reg(ARC_REG_PCT_INT_CTRL) | (1 << idx));
+> +	}
 
-On Tue, 2015-08-18 at 19:52 +-0200, Peter Zijlstra wrote:
-+AD4- On Wed, Aug 05, 2015 at 06:13:29PM +-0300, Alexey Brodkin wrote:
-+AD4- +AD4- Even though this hardware implementation allows for more flexibility,
-+AD4- +AD4- in Linux kernel we decided to mimic behavior of other architectures this
-+AD4- +AD4- way:
-+AD4- +AD4- 
-+AD4- +AD4-  +AFs-1+AF0- Set limit value as half of counter's max value (to allow counter to
-+AD4- +AD4-      run after reaching it limit, see below for more explanation):
-+AD4- +AD4-  ----------+AD4-8-----------
-+AD4- +AD4-  arc+AF8-pmu-+AD4-max+AF8-period +AD0- (1ULL +ADwAPA- counter+AF8-size) / 2 - 1ULL+ADs-
-+AD4- +AD4-  ----------+AD4-8-----------
-+AD4- 
-+AD4- +AD4- +AEAAQA- -317,10 +-365,11 +AEAAQA- static int arc+AF8-pmu+AF8-device+AF8-probe(struct platform+AF8-device +ACo-pdev)
-+AD4- +AD4-  		return -ENOMEM+ADs-
-+AD4- +AD4-  
-+AD4- +AD4-  	arc+AF8-pmu-+AD4-n+AF8-counters +AD0- pct+AF8-bcr.c+ADs-
-+AD4- +AD4- -	arc+AF8-pmu-+AD4-counter+AF8-size +AD0- 32 +- (pct+AF8-bcr.s +ADwAPA- 4)+ADs-
-+AD4- +AD4- +-	counter+AF8-size +AD0- 32 +- (pct+AF8-bcr.s +ADwAPA- 4)+ADs-
-+AD4- +AD4- +-	arc+AF8-pmu-+AD4-max+AF8-period +AD0- (1ULL +ADwAPA- counter+AF8-size) - 1ULL+ADs-
-+AD4- +AD4-  
-+AD4- 
-+AD4- I don't see that /2 there..
+*confused* pmu::add should only start on flags & PERF_EF_START, and then
+we start with hwc->sample_period, not the max_period.
 
-My comment was a bit too early.
-That +ACI-/2+ACI- was actually introduced in the subsequent commit.
-
-Do you think I need to do a re-spin of that patch with commit
-message which matches real code (i.e. no +ACI-/2+ACI-)?
-
--Alexey
+> +
+>  	write_aux_reg(ARC_REG_PCT_CONFIG, 0);
+>  	write_aux_reg(ARC_REG_PCT_COUNTL, 0);
+>  	write_aux_reg(ARC_REG_PCT_COUNTH, 0);
