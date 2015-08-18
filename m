@@ -1,111 +1,54 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH V4 2/3] arm64: support initrd outside kernel linear map
-Date: Mon, 17 Aug 2015 13:01:06 -0400
-Message-ID: <1439830867-14935-3-git-send-email-msalter@redhat.com>
-References: <1439830867-14935-1-git-send-email-msalter@redhat.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1439830867-14935-1-git-send-email-msalter@redhat.com>
-Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, x86@kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mark Rutland <mark.rutland@arm.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+Date: Tue, 18 Aug 2015 11:50:55 +1000
+Message-ID: <1439862655.1763.2.camel@ellerman.id.au>
+References: <20150714193144.GP3717@linux.vnet.ibm.com>
+	 <20150715013820.GA21971@linux.vnet.ibm.com> <20150715105135.GE1005@arm.com>
+	 <20150715131221.GY3717@linux.vnet.ibm.com> <20150724113101.GE30410@arm.com>
+	 <20150724153046.GJ3717@linux.vnet.ibm.com> <20150812134415.GC23540@arm.com>
+	 <20150812154346.GR3895@linux.vnet.ibm.com>
+	 <1439784367.14494.3.camel@ellerman.id.au>
+	 <20150817061501.GF11078@linux.vnet.ibm.com> <20150817085759.GB1688@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([103.22.144.67]:52197 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751133AbbHRBu5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 17 Aug 2015 21:50:57 -0400
+In-Reply-To: <20150817085759.GB1688@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-The use of mem= could leave part or all of the initrd outside of
-the kernel linear map. This will lead to an error when unpacking
-the initrd and a probable failure to boot. This patch catches that
-situation and relocates the initrd to be fully within the linear
-map.
+On Mon, 2015-08-17 at 09:57 +0100, Will Deacon wrote:
+> On Mon, Aug 17, 2015 at 07:15:01AM +0100, Paul E. McKenney wrote:
+> > On Mon, Aug 17, 2015 at 02:06:07PM +1000, Michael Ellerman wrote:
+> > > On Wed, 2015-08-12 at 08:43 -0700, Paul E. McKenney wrote:
+> > > I thought the end result of this thread was that we didn't *need* to change the
+> > > powerpc lock semantics? Or did I read it wrong?
+> > > 
+> > > ie. the docs now say that RELEASE+ACQUIRE is not a full barrier, which is
+> > > consistent with our current implementation.
+> > 
+> > That change happened about 1.5 years ago, and I thought that the
+> > current discussion was about reversing it, based in part on the
+> > recent powerpc benchmarks of locking primitives with and without the
+> > sync instruction.  But regardless, I clearly cannot remove either the
+> > smp_mb__after_unlock_lock() or the powerpc definition of it to be smp_mb()
+> > if powerpc unlock/lock is not strengthened.
+> 
+> Yup. Peter and I would really like to get rid of smp_mb__after_unlock_lock
+> entirely, which would mean strengthening the ppc spinlocks. Moving the
+> barrier primitive into RCU is a good step to prevent more widespread usage
+> of the barrier, but we'd really like to go further if the performance impact
+> is deemed acceptable (which is what this thread is about).
 
-Signed-off-by: Mark Salter <msalter@redhat.com>
----
- arch/arm64/kernel/setup.c | 62 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 62 insertions(+)
+OK, sorry for completely missing the point, too many balls in the air here.
 
-diff --git a/arch/arm64/kernel/setup.c b/arch/arm64/kernel/setup.c
-index f3067d4..40a894e 100644
---- a/arch/arm64/kernel/setup.c
-+++ b/arch/arm64/kernel/setup.c
-@@ -359,6 +359,67 @@ static void __init request_standard_resources(void)
- 	}
- }
- 
-+#ifdef CONFIG_BLK_DEV_INITRD
-+/*
-+ * Relocate initrd if it is not completely within the linear mapping.
-+ * This would be the case if mem= cuts out all or part of it.
-+ */
-+static void __init relocate_initrd(void)
-+{
-+	phys_addr_t orig_start = __virt_to_phys(initrd_start);
-+	phys_addr_t orig_end = __virt_to_phys(initrd_end);
-+	phys_addr_t ram_end = memblock_end_of_DRAM();
-+	phys_addr_t new_start;
-+	unsigned long size, to_free = 0;
-+	void *dest;
-+
-+	if (orig_end <= ram_end)
-+		return;
-+
-+	/*
-+	 * Any of the original initrd which overlaps the linear map should
-+	 * be freed after relocating.
-+	 */
-+	if (orig_start < ram_end)
-+		to_free = ram_end - orig_start;
-+
-+	size = orig_end - orig_start;
-+
-+	/* initrd needs to be relocated completely inside linear mapping */
-+	new_start = memblock_find_in_range(0, PFN_PHYS(max_pfn),
-+					   size, PAGE_SIZE);
-+	if (!new_start)
-+		panic("Cannot relocate initrd of size %ld\n", size);
-+	memblock_reserve(new_start, size);
-+
-+	initrd_start = __phys_to_virt(new_start);
-+	initrd_end   = initrd_start + size;
-+
-+	pr_info("Moving initrd from [%llx-%llx] to [%llx-%llx]\n",
-+		orig_start, orig_start + size - 1,
-+		new_start, new_start + size - 1);
-+
-+	dest = (void *)initrd_start;
-+
-+	if (to_free) {
-+		memcpy(dest, (void *)__phys_to_virt(orig_start), to_free);
-+		dest += to_free;
-+	}
-+
-+	copy_from_early_mem(dest, orig_start + to_free, size - to_free);
-+
-+	if (to_free) {
-+		pr_info("Freeing original RAMDISK from [%llx-%llx]\n",
-+			orig_start, orig_start + to_free - 1);
-+		memblock_free(orig_start, to_free);
-+	}
-+}
-+#else
-+static inline void __init relocate_initrd(void)
-+{
-+}
-+#endif
-+
- u64 __cpu_logical_map[NR_CPUS] = { [0 ... NR_CPUS-1] = INVALID_HWID };
- 
- void __init setup_arch(char **cmdline_p)
-@@ -392,6 +453,7 @@ void __init setup_arch(char **cmdline_p)
- 	acpi_boot_table_init();
- 
- 	paging_init();
-+	relocate_initrd();
- 	request_standard_resources();
- 
- 	early_ioremap_reset();
--- 
-2.4.3
+I'll do some benchmarks and see what we come up with.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+cheers
