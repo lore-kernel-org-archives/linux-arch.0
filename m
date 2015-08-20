@@ -1,73 +1,71 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [RFC PATCH v2] memory-barriers: remove
- smp_mb__after_unlock_lock()
-Date: Thu, 20 Aug 2015 19:45:05 +1000
-Message-ID: <1440063905.11564.5.camel@ellerman.id.au>
-References: <20150715105135.GE1005@arm.com>
-	 <20150715131221.GY3717@linux.vnet.ibm.com> <20150724113101.GE30410@arm.com>
-	 <20150724153046.GJ3717@linux.vnet.ibm.com> <20150812134415.GC23540@arm.com>
-	 <20150812154346.GR3895@linux.vnet.ibm.com>
-	 <1439784367.14494.3.camel@ellerman.id.au>
-	 <20150817061501.GF11078@linux.vnet.ibm.com> <20150817085759.GB1688@arm.com>
-	 <1439862655.1763.2.camel@ellerman.id.au> <20150818083704.GC10301@arm.com>
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: RE: [PATCH v2 3/8] ARCv2: perf: implement "event_set_period" for
+ future use with interrupts
+Date: Thu, 20 Aug 2015 10:46:56 +0000
+Message-ID: <4881796E12491D4BB15146FE0209CE64657848C6@DE02WEMBXB.internal.synopsys.com>
+References: <1438787614-14074-1-git-send-email-abrodkin@synopsys.com>
+ <1438787614-14074-4-git-send-email-abrodkin@synopsys.com>
+ <20150818175203.GM20948@worktop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=koi8-r
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:52721 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751136AbbHTJpN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 20 Aug 2015 05:45:13 -0400
-In-Reply-To: <20150818083704.GC10301@arm.com>
+Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:40515 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751828AbbHTKrP convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Aug 2015 06:47:15 -0400
+In-Reply-To: <20150818175203.GM20948@worktop>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: 'Peter Zijlstra' <peterz@infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "arnd@arndb.de" <arnd@arndb.de>, Arnaldo Carvalho de Melo <acme@kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
-On Tue, 2015-08-18 at 09:37 +0100, Will Deacon wrote:
-> On Tue, Aug 18, 2015 at 02:50:55AM +0100, Michael Ellerman wrote:
-> > On Mon, 2015-08-17 at 09:57 +0100, Will Deacon wrote:
-> > > On Mon, Aug 17, 2015 at 07:15:01AM +0100, Paul E. McKenney wrote:
-> > > > On Mon, Aug 17, 2015 at 02:06:07PM +1000, Michael Ellerman wrote:
-> > > > > On Wed, 2015-08-12 at 08:43 -0700, Paul E. McKenney wrote:
-> > > > > I thought the end result of this thread was that we didn't *need* to change the
-> > > > > powerpc lock semantics? Or did I read it wrong?
-> > > > > 
-> > > > > ie. the docs now say that RELEASE+ACQUIRE is not a full barrier, which is
-> > > > > consistent with our current implementation.
-> > > > 
-> > > > That change happened about 1.5 years ago, and I thought that the
-> > > > current discussion was about reversing it, based in part on the
-> > > > recent powerpc benchmarks of locking primitives with and without the
-> > > > sync instruction.  But regardless, I clearly cannot remove either the
-> > > > smp_mb__after_unlock_lock() or the powerpc definition of it to be smp_mb()
-> > > > if powerpc unlock/lock is not strengthened.
-> > > 
-> > > Yup. Peter and I would really like to get rid of smp_mb__after_unlock_lock
-> > > entirely, which would mean strengthening the ppc spinlocks. Moving the
-> > > barrier primitive into RCU is a good step to prevent more widespread usage
-> > > of the barrier, but we'd really like to go further if the performance impact
-> > > is deemed acceptable (which is what this thread is about).
-> > 
-> > OK, sorry for completely missing the point, too many balls in the air here.
-> 
-> No problem!
-> 
-> > I'll do some benchmarks and see what we come up with.
-> 
-> Thanks, that sounds great. FWIW, there are multiple ways of implementing
-> the patch (i.e. whether you strengthen lock or unlock). I had a crack at
-> something here, but it's not tested:
-> 
->   http://marc.info/?l=linux-arch&m=143758379023849&w=2
+Hi Peter,
 
-Thanks.
+> -----Original Message-----
+> From: Peter Zijlstra [mailto:peterz@infradead.org]
+> Sent: 18 =C1=D7=C7=D5=D3=D4=C1 2015 =C7. 20:52
+> To: Alexey Brodkin
+> Cc: linux-arch@vger.kernel.org; linux-kernel@vger.kernel.org; Vineet.=
+Gupta1@synopsys.com; arc-linux-dev@synopsys.com;
+> arnd@arndb.de; Arnaldo Carvalho de Melo
+> Subject: Re: [PATCH v2 3/8] ARCv2: perf: implement "event_set_period"=
+ for future use with interrupts
+>=20
+> On Wed, Aug 05, 2015 at 06:13:29PM +0300, Alexey Brodkin wrote:
+> > Even though this hardware implementation allows for more flexibilit=
+y,
+> > in Linux kernel we decided to mimic behavior of other architectures=
+ this
+> > way:
+> >
+> >  [1] Set limit value as half of counter's max value (to allow count=
+er to
+> >      run after reaching it limit, see below for more explanation):
+> >  ---------->8-----------
+> >  arc_pmu->max_period =3D (1ULL << counter_size) / 2 - 1ULL;
+> >  ---------->8-----------
+>=20
+> > @@ -317,10 +365,11 @@ static int arc_pmu_device_probe(struct platfo=
+rm_device *pdev)
+> >  		return -ENOMEM;
+> >
+> >  	arc_pmu->n_counters =3D pct_bcr.c;
+> > -	arc_pmu->counter_size =3D 32 + (pct_bcr.s << 4);
+> > +	counter_size =3D 32 + (pct_bcr.s << 4);
+> > +	arc_pmu->max_period =3D (1ULL << counter_size) - 1ULL;
+> >
+>=20
+> I don't see that /2 there..
 
-I notice you are not changing PPC_RELEASE_BARRIER, but only the spin unlock
-code. But from my reading of the docs we need to make sure any UNLOCK+LOCK is a
-full barrier, not just spin unlock/lock?
+Probably another good solution for that coupl be merging of 2 following=
+ patches in one:
+ [1]  [PATCH v2 3/8] ARCv2: perf: implement "event_set_period" for futu=
+re use with interrupts
+ [2] [PATCH v2 5/8] ARCv2: perf: set usable max period as a half of rea=
+l max period
 
-So don't we need to worry about some of the other locks as well? At least
-rwlock, and mutex fast path?
+And then comment will become valid.
 
-cheers
+-Alexey
