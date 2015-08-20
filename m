@@ -1,73 +1,79 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: RE: [PATCH v2 6/8] ARCv2: perf: implement exclusion of event
- counting in user or kernel mode
-Date: Thu, 20 Aug 2015 11:33:54 +0000
-Message-ID: <4881796E12491D4BB15146FE0209CE6465784970@DE02WEMBXB.internal.synopsys.com>
-References: <1438787614-14074-1-git-send-email-abrodkin@synopsys.com>
- <1438787614-14074-7-git-send-email-abrodkin@synopsys.com>
- <20150818233713.GP20948@worktop>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+Date: Thu, 20 Aug 2015 16:56:04 +0100
+Message-ID: <20150820155604.GB24100@arm.com>
+References: <20150724113101.GE30410@arm.com>
+ <20150724153046.GJ3717@linux.vnet.ibm.com>
+ <20150812134415.GC23540@arm.com>
+ <20150812154346.GR3895@linux.vnet.ibm.com>
+ <1439784367.14494.3.camel@ellerman.id.au>
+ <20150817061501.GF11078@linux.vnet.ibm.com>
+ <20150817085759.GB1688@arm.com>
+ <1439862655.1763.2.camel@ellerman.id.au>
+ <20150818083704.GC10301@arm.com>
+ <1440063905.11564.5.camel@ellerman.id.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=koi8-r
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.60.111]:49158 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751210AbbHTLd7 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Aug 2015 07:33:59 -0400
-In-Reply-To: <20150818233713.GP20948@worktop>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: 'Peter Zijlstra' <peterz@infradead.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, "arnd@arndb.de" <arnd@arndb.de>, Arnaldo Carvalho de Melo <acme@kernel.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1440063905.11564.5.camel@ellerman.id.au>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Peter,
+On Thu, Aug 20, 2015 at 10:45:05AM +0100, Michael Ellerman wrote:
+> On Tue, 2015-08-18 at 09:37 +0100, Will Deacon wrote:
+> > On Tue, Aug 18, 2015 at 02:50:55AM +0100, Michael Ellerman wrote:
+> > > On Mon, 2015-08-17 at 09:57 +0100, Will Deacon wrote:
+> > > > On Mon, Aug 17, 2015 at 07:15:01AM +0100, Paul E. McKenney wrote:
+> > > > > On Mon, Aug 17, 2015 at 02:06:07PM +1000, Michael Ellerman wrote:
+> > > > > > On Wed, 2015-08-12 at 08:43 -0700, Paul E. McKenney wrote:
+> > > > > > I thought the end result of this thread was that we didn't *need* to change the
+> > > > > > powerpc lock semantics? Or did I read it wrong?
+> > > > > > 
+> > > > > > ie. the docs now say that RELEASE+ACQUIRE is not a full barrier, which is
+> > > > > > consistent with our current implementation.
+> > > > > 
+> > > > > That change happened about 1.5 years ago, and I thought that the
+> > > > > current discussion was about reversing it, based in part on the
+> > > > > recent powerpc benchmarks of locking primitives with and without the
+> > > > > sync instruction.  But regardless, I clearly cannot remove either the
+> > > > > smp_mb__after_unlock_lock() or the powerpc definition of it to be smp_mb()
+> > > > > if powerpc unlock/lock is not strengthened.
+> > > > 
+> > > > Yup. Peter and I would really like to get rid of smp_mb__after_unlock_lock
+> > > > entirely, which would mean strengthening the ppc spinlocks. Moving the
+> > > > barrier primitive into RCU is a good step to prevent more widespread usage
+> > > > of the barrier, but we'd really like to go further if the performance impact
+> > > > is deemed acceptable (which is what this thread is about).
+> > > 
+> > > OK, sorry for completely missing the point, too many balls in the air here.
+> > 
+> > No problem!
+> > 
+> > > I'll do some benchmarks and see what we come up with.
+> > 
+> > Thanks, that sounds great. FWIW, there are multiple ways of implementing
+> > the patch (i.e. whether you strengthen lock or unlock). I had a crack at
+> > something here, but it's not tested:
+> > 
+> >   http://marc.info/?l=linux-arch&m=143758379023849&w=2
+> 
+> Thanks.
+> 
+> I notice you are not changing PPC_RELEASE_BARRIER, but only the spin unlock
+> code. But from my reading of the docs we need to make sure any UNLOCK+LOCK is a
+> full barrier, not just spin unlock/lock?
+> 
+> So don't we need to worry about some of the other locks as well? At least
+> rwlock, and mutex fast path?
 
-> -----Original Message-----
-> From: Peter Zijlstra [mailto:peterz@infradead.org]
-> Sent: 19 =C1=D7=C7=D5=D3=D4=C1 2015 =C7. 2:37
-> To: Alexey Brodkin
-> Cc: linux-arch@vger.kernel.org; linux-kernel@vger.kernel.org; Vineet.=
-Gupta1@synopsys.com; arc-linux-dev@synopsys.com;
-> arnd@arndb.de; Arnaldo Carvalho de Melo
-> Subject: Re: [PATCH v2 6/8] ARCv2: perf: implement exclusion of event=
- counting in user or kernel mode
->=20
-> On Wed, Aug 05, 2015 at 06:13:32PM +0300, Alexey Brodkin wrote:
-> > +	hwc->config =3D 0;
-> > +
-> > +	if (is_isa_arcv2()) {
-> > +		/* "exclude user" means "count only kernel" */
-> > +		if (event->attr.exclude_user)
-> > +			hwc->config |=3D ARC_REG_PCT_CONFIG_KERN;
-> > +
-> > +		/* "exclude kernel" means "count only user" */
-> > +		if (event->attr.exclude_kernel)
-> > +			hwc->config |=3D ARC_REG_PCT_CONFIG_USER;
-> > +	}
-> > +
-> >  	switch (event->attr.type) {
-> >  	case PERF_TYPE_HARDWARE:
-> >  		if (event->attr.config >=3D PERF_COUNT_HW_MAX)
-> >  			return -ENOENT;
-> >  		if (arc_pmu->ev_hw_idx[event->attr.config] < 0)
-> >  			return -ENOENT;
-> > -		hwc->config =3D arc_pmu->ev_hw_idx[event->attr.config];
-> > +		hwc->config |=3D arc_pmu->ev_hw_idx[event->attr.config];
->=20
-> So I would still very much like perf_event_attr::config to reflect th=
-e
-> value you'll program into hardware.
->=20
-> If you want to do that weird 4 character lookup thing, use a special
-> hardware event (possibly 0 if that is not a valid value), and stuff t=
-he
-> 4 chars in ::config1
+Hmm, that's a good question. I notice that you don't do any of the SYNC_IO
+stuff for any locks other than spinlocks but I don't know whether
+smp_mb__after_unlock_lock is similarly limited in scope.
 
-Ok I understand your concern here but I cannot quite understand
-what do you mean saying "stuff the 4 chars in ::config1".
+Paul?
 
-Could you please explain this a bit more verbose?
-Is there an example of something similar I may take a look at?
-
--Alexey
+Will
