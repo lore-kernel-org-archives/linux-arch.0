@@ -1,206 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:46522 "EHLO
-	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753710AbbHUGXN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Aug 2015 02:23:13 -0400
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH v4 31/52] PCI: Unify skip_ioresource_align()
-Date: Thu, 20 Aug 2015 23:20:46 -0700
-Message-ID: <1440138067-4314-32-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1440138067-4314-1-git-send-email-yinghai@kernel.org>
-References: <1440138067-4314-1-git-send-email-yinghai@kernel.org>
+Received: from smtprelay.synopsys.com ([198.182.47.9]:38074 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753824AbbHXOUv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Aug 2015 10:20:51 -0400
+From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
+Subject: [PATCH v3 4/6] ARCv2: perf: implement exclusion of event counting in user or kernel mode
+Date: Mon, 24 Aug 2015 17:20:21 +0300
+Message-ID: <1440426023-2792-5-git-send-email-abrodkin@synopsys.com>
+In-Reply-To: <1440426023-2792-1-git-send-email-abrodkin@synopsys.com>
+References: <1440426023-2792-1-git-send-email-abrodkin@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Wei Yang <weiyang@linux.vnet.ibm.com>, TJ <linux@iam.tj>, Yijing Wang <wangyijing@huawei.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Michal Simek <monstr@monstr.eu>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
-Message-ID: <20150821062046.MnXi3kFxNgn8yTtdklgPzyE49sS9bUgAUa1ijU9agsc@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Vineet.Gupta1@synopsys.com, arc-linux-dev@synopsys.com, arnd@arndb.de, peterz@infradead.org, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Arnaldo Carvalho de Melo <acme@kernel.org>
+Message-ID: <20150824142021.tOSgLbwqTd_jw4mUGQ-nXPzS9ZN1CeIIluz1CsAO01k@z>
 
-There are powerpc generic version and x86 local version for
-skip_ioresource_align().
-
-Move the powerpc version to setup-bus.c, and kill x86 local version.
-
-Also kill dummy version in microblaze.
-
-Cc: Michal Simek <monstr@monstr.eu>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Arnaldo Carvalho de Melo <acme@kernel.org>
+Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
 ---
- arch/microblaze/pci/pci-common.c |  8 --------
- arch/powerpc/kernel/pci-common.c | 11 +----------
- arch/x86/include/asm/pci_x86.h   |  1 -
- arch/x86/pci/common.c            |  4 ++--
- arch/x86/pci/i386.c              | 12 ++----------
- drivers/pci/setup-bus.c          |  9 +++++++++
- include/asm-generic/pci-bridge.h |  2 ++
- 7 files changed, 16 insertions(+), 31 deletions(-)
 
-diff --git a/arch/microblaze/pci/pci-common.c b/arch/microblaze/pci/pci-common.c
-index ae838ed..09b1af6 100644
---- a/arch/microblaze/pci/pci-common.c
-+++ b/arch/microblaze/pci/pci-common.c
-@@ -878,11 +878,6 @@ void pcibios_fixup_bus(struct pci_bus *bus)
- }
- EXPORT_SYMBOL(pcibios_fixup_bus);
+No changes since v2.
+
+No changes since v1.
+
+ arch/arc/include/asm/perf_event.h |  3 +++
+ arch/arc/kernel/perf_event.c      | 16 ++++++++++++++--
+ 2 files changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arc/include/asm/perf_event.h b/arch/arc/include/asm/perf_event.h
+index 9ed593e..876e216 100644
+--- a/arch/arc/include/asm/perf_event.h
++++ b/arch/arc/include/asm/perf_event.h
+@@ -34,6 +34,9 @@
+ #define ARC_REG_PCT_INT_CTRL	0x25E
+ #define ARC_REG_PCT_INT_ACT	0x25F
  
--static int skip_isa_ioresource_align(struct pci_dev *dev)
--{
--	return 0;
--}
--
- /*
-  * We need to avoid collisions with `mirrored' VGA ports
-  * and other strange ISA hardware, so we always want the
-@@ -899,12 +894,9 @@ static int skip_isa_ioresource_align(struct pci_dev *dev)
- resource_size_t pcibios_align_resource(void *data, const struct resource *res,
- 				resource_size_t size, resource_size_t align)
- {
--	struct pci_dev *dev = data;
- 	resource_size_t start = res->start;
++#define ARC_REG_PCT_CONFIG_USER	(1 << 18)	/* count in user mode */
++#define ARC_REG_PCT_CONFIG_KERN	(1 << 19)	/* count in kernel mode */
++
+ #define ARC_REG_PCT_CONTROL_CC	(1 << 16)	/* clear counts */
+ #define ARC_REG_PCT_CONTROL_SN	(1 << 17)	/* snapshot */
  
- 	if (res->flags & IORESOURCE_IO) {
--		if (skip_isa_ioresource_align(dev))
--			return start;
- 		if (start & 0x300)
- 			start = (start + 0x3ff) & ~0x3ff;
+diff --git a/arch/arc/kernel/perf_event.c b/arch/arc/kernel/perf_event.c
+index ce0fa60..997ccbd 100644
+--- a/arch/arc/kernel/perf_event.c
++++ b/arch/arc/kernel/perf_event.c
+@@ -147,13 +147,25 @@ static int arc_pmu_event_init(struct perf_event *event)
+ 		local64_set(&hwc->period_left, hwc->sample_period);
  	}
-diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
-index b9de34d..2d8d654 100644
---- a/arch/powerpc/kernel/pci-common.c
-+++ b/arch/powerpc/kernel/pci-common.c
-@@ -1064,15 +1064,6 @@ void pci_fixup_cardbus(struct pci_bus *bus)
- 	pcibios_setup_bus_devices(bus);
- }
  
--
--static int skip_isa_ioresource_align(struct pci_dev *dev)
--{
--	if (pci_has_flag(PCI_CAN_SKIP_ISA_ALIGN) &&
--	    !(dev->bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
--		return 1;
--	return 0;
--}
--
- /*
-  * We need to avoid collisions with `mirrored' VGA ports
-  * and other strange ISA hardware, so we always want the
-@@ -1093,7 +1084,7 @@ resource_size_t pcibios_align_resource(void *data, const struct resource *res,
- 	resource_size_t start = res->start;
- 
- 	if (res->flags & IORESOURCE_IO) {
--		if (skip_isa_ioresource_align(dev))
-+		if (skip_isa_ioresource_align(dev->bus))
- 			return start;
- 		if (start & 0x300)
- 			start = (start + 0x3ff) & ~0x3ff;
-diff --git a/arch/x86/include/asm/pci_x86.h b/arch/x86/include/asm/pci_x86.h
-index 164e3f8..ddac225 100644
---- a/arch/x86/include/asm/pci_x86.h
-+++ b/arch/x86/include/asm/pci_x86.h
-@@ -28,7 +28,6 @@ do {						\
- #define PCI_ASSIGN_ROMS		0x1000
- #define PCI_BIOS_IRQ_SCAN	0x2000
- #define PCI_ASSIGN_ALL_BUSSES	0x4000
--#define PCI_CAN_SKIP_ISA_ALIGN	0x8000
- #define PCI_USE__CRS		0x10000
- #define PCI_CHECK_ENABLE_AMD_MMCONF	0x20000
- #define PCI_HAS_IO_ECS		0x40000
-diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
-index 8fd6f44..e8df922 100644
---- a/arch/x86/pci/common.c
-+++ b/arch/x86/pci/common.c
-@@ -83,7 +83,7 @@ DEFINE_RAW_SPINLOCK(pci_config_lock);
- 
- static int __init can_skip_ioresource_align(const struct dmi_system_id *d)
- {
--	pci_probe |= PCI_CAN_SKIP_ISA_ALIGN;
-+	pci_add_flags(PCI_CAN_SKIP_ISA_ALIGN);
- 	printk(KERN_INFO "PCI: %s detected, can skip ISA alignment\n", d->ident);
- 	return 0;
- }
-@@ -619,7 +619,7 @@ char *__init pcibios_setup(char *str)
- 		pci_routeirq = 1;
- 		return NULL;
- 	} else if (!strcmp(str, "skip_isa_align")) {
--		pci_probe |= PCI_CAN_SKIP_ISA_ALIGN;
-+		pci_add_flags(PCI_CAN_SKIP_ISA_ALIGN);
- 		return NULL;
- 	} else if (!strcmp(str, "noioapicquirk")) {
- 		noioapicquirk = 1;
-diff --git a/arch/x86/pci/i386.c b/arch/x86/pci/i386.c
-index 0a9f2ca..3f17726 100644
---- a/arch/x86/pci/i386.c
-+++ b/arch/x86/pci/i386.c
-@@ -33,6 +33,7 @@
- #include <linux/errno.h>
- #include <linux/bootmem.h>
- 
-+#include <asm-generic/pci-bridge.h>
- #include <asm/pat.h>
- #include <asm/e820.h>
- #include <asm/pci_x86.h>
-@@ -128,15 +129,6 @@ static void __init pcibios_fw_addr_list_del(void)
- 	pcibios_fw_addr_done = true;
- }
- 
--static int
--skip_isa_ioresource_align(struct pci_dev *dev) {
--
--	if ((pci_probe & PCI_CAN_SKIP_ISA_ALIGN) &&
--	    !(dev->bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
--		return 1;
--	return 0;
--}
--
- /*
-  * We need to avoid collisions with `mirrored' VGA ports
-  * and other strange ISA hardware, so we always want the
-@@ -158,7 +150,7 @@ pcibios_align_resource(void *data, const struct resource *res,
- 	resource_size_t start = res->start;
- 
- 	if (res->flags & IORESOURCE_IO) {
--		if (skip_isa_ioresource_align(dev))
-+		if (skip_isa_ioresource_align(dev->bus))
- 			return start;
- 		if (start & 0x300)
- 			start = (start + 0x3ff) & ~0x3ff;
-diff --git a/drivers/pci/setup-bus.c b/drivers/pci/setup-bus.c
-index 7fb08ef..1f08bed 100644
---- a/drivers/pci/setup-bus.c
-+++ b/drivers/pci/setup-bus.c
-@@ -1157,6 +1157,15 @@ static resource_size_t window_alignment(struct pci_bus *bus,
- 	return max(align, arch_align);
- }
- 
-+int skip_isa_ioresource_align(struct pci_bus *bus)
-+{
-+	if (pci_has_flag(PCI_CAN_SKIP_ISA_ALIGN) &&
-+	    !(bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
-+		return 1;
++	hwc->config = 0;
 +
-+	return 0;
-+}
++	if (is_isa_arcv2()) {
++		/* "exclude user" means "count only kernel" */
++		if (event->attr.exclude_user)
++			hwc->config |= ARC_REG_PCT_CONFIG_KERN;
 +
- static resource_size_t size_aligned_for_isa(resource_size_t size)
- {
- 	/*
-diff --git a/include/asm-generic/pci-bridge.h b/include/asm-generic/pci-bridge.h
-index 20db2e5..fab4bd0 100644
---- a/include/asm-generic/pci-bridge.h
-+++ b/include/asm-generic/pci-bridge.h
-@@ -60,6 +60,8 @@ static inline int pci_has_flag(int flag)
- {
- 	return pci_flags & flag;
- }
++		/* "exclude kernel" means "count only user" */
++		if (event->attr.exclude_kernel)
++			hwc->config |= ARC_REG_PCT_CONFIG_USER;
++	}
 +
-+int skip_isa_ioresource_align(struct pci_bus *bus);
- #else
- static inline void pci_set_flags(int flags) { }
- static inline void pci_add_flags(int flags) { }
+ 	switch (event->attr.type) {
+ 	case PERF_TYPE_HARDWARE:
+ 		if (event->attr.config >= PERF_COUNT_HW_MAX)
+ 			return -ENOENT;
+ 		if (arc_pmu->ev_hw_idx[event->attr.config] < 0)
+ 			return -ENOENT;
+-		hwc->config = arc_pmu->ev_hw_idx[event->attr.config];
++		hwc->config |= arc_pmu->ev_hw_idx[event->attr.config];
+ 		pr_debug("init event %d with h/w %d \'%s\'\n",
+ 			 (int) event->attr.config, (int) hwc->config,
+ 			 arc_pmu_ev_hw_map[event->attr.config]);
+@@ -163,7 +175,7 @@ static int arc_pmu_event_init(struct perf_event *event)
+ 		ret = arc_pmu_cache_event(event->attr.config);
+ 		if (ret < 0)
+ 			return ret;
+-		hwc->config = arc_pmu->ev_hw_idx[ret];
++		hwc->config |= arc_pmu->ev_hw_idx[ret];
+ 		return 0;
+ 	default:
+ 		return -ENOENT;
 -- 
-1.8.4.5
+2.4.3
 
