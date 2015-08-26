@@ -1,65 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:57931 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752320AbbHYHrv convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 25 Aug 2015 03:47:51 -0400
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH] ARC: add negative dependency for VGA_CONSOLE
-Date: Tue, 25 Aug 2015 07:47:44 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075CFB85748@IN01WEMBXB.internal.synopsys.com>
-References: <1439826777-11489-1-git-send-email-yuriy.kolerov@synopsys.com>
- <CAMuHMdW0hzGN74pCRhCUwJ0Ua3YN94csFfu3Mb-STeCuLosoGw@mail.gmail.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Received: from comal.ext.ti.com ([198.47.26.152]:51462 "EHLO comal.ext.ti.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756539AbbHZLeR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Aug 2015 07:34:17 -0400
+Message-ID: <55DDA428.1020509@ti.com>
+Date: Wed, 26 Aug 2015 14:34:00 +0300
+From: Tomi Valkeinen <tomi.valkeinen@ti.com>
 MIME-Version: 1.0
+Subject: Re: [PATCH] ARC: add negative dependency for VGA_CONSOLE
+References: <1439826777-11489-1-git-send-email-yuriy.kolerov@synopsys.com> <CAMuHMdW0hzGN74pCRhCUwJ0Ua3YN94csFfu3Mb-STeCuLosoGw@mail.gmail.com> <C2D7FE5348E1B147BCA15975FBA23075CFB85748@IN01WEMBXB.internal.synopsys.com>
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075CFB85748@IN01WEMBXB.internal.synopsys.com>
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature";
+	boundary="pO597gJbjtr5TQ2tXf98PMkVqR3SUouhL"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Yuriy Kolerov <yuriy.kolerov@synopsys.com>, Tomi Valkeinen <tomi.valkeinen@ti.com>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Yuriy Kolerov <yuriy.kolerov@synopsys.com>
 Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Fbdev development list <linux-fbdev@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "Anton.Kolesov@synopsys.com" <Anton.Kolesov@synopsys.com>, Francois Bedard <Francois.Bedard@synopsys.com>
-Message-ID: <20150825074744.aDaXwjiLMCOS8acW6ZlE0dVS7AMcIC_TTWJiuskEBIk@z>
+Message-ID: <20150826113400._ieozE6eW3IvU-H72t7YIvqwoN13r1fMCH0YBAYNlyI@z>
 
-On Monday 17 August 2015 09:51 PM, Geert Uytterhoeven wrote:
-> On Mon, Aug 17, 2015 at 5:52 PM, Yuriy Kolerov
-> <yuriy.kolerov@synopsys.com> wrote:
->> Architectures which support VGA console must define screen_info
->> structurture from "uapi/linux/screen_info.h". Otherwise undefined
->> symbol error occurs. Usually it's defined in "setup.c" for each
->> architecture.
+--pO597gJbjtr5TQ2tXf98PMkVqR3SUouhL
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: quoted-printable
+
+
+
+On 25/08/15 10:47, Vineet Gupta wrote:
+> On Monday 17 August 2015 09:51 PM, Geert Uytterhoeven wrote:
+>> On Mon, Aug 17, 2015 at 5:52 PM, Yuriy Kolerov
+>> <yuriy.kolerov@synopsys.com> wrote:
+>>> Architectures which support VGA console must define screen_info
+>>> structurture from "uapi/linux/screen_info.h". Otherwise undefined
+>>> symbol error occurs. Usually it's defined in "setup.c" for each
+>>> architecture.
+>>>
+>>> If an architecture does not support VGA console (ARC's case)
+>>> there are 2 ways: define a dummy instance of screen_info or add
+>>> a negative dependency for VGA_CONSOLE in to prevent selecting
+>>> this option.
+>>>
+>>> I've implemented the second way. However the best solution is to
+>>> add HAVE_VGA_CONSOLE option for targets which support VGA
+>>> console. Then turn off VGA_CONSOLE by default and add dependency
+>>> to HAVE_VGA_CONSOLE. But right now it's better to just add a
+>>> negative dependency for ARC and then consider how to collaborate
+>>> about this issue with maintainers of other architectures.
+>> +1
 >>
->> If an architecture does not support VGA console (ARC's case)
->> there are 2 ways: define a dummy instance of screen_info or add
->> a negative dependency for VGA_CONSOLE in to prevent selecting
->> this option.
->>
->> I've implemented the second way. However the best solution is to
->> add HAVE_VGA_CONSOLE option for targets which support VGA
->> console. Then turn off VGA_CONSOLE by default and add dependency
->> to HAVE_VGA_CONSOLE. But right now it's better to just add a
->> negative dependency for ARC and then consider how to collaborate
->> about this issue with maintainers of other architectures.
-> +1
->
->> Signed-off-by: Yuriy Kolerov <yuriy.kolerov@synopsys.com>
-> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+>>> Signed-off-by: Yuriy Kolerov <yuriy.kolerov@synopsys.com>
+>> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+>=20
+> Hi Tomi,
+>=20
+> Is anything else needed for this to be merged.
 
-Hi Tomi,
+This is already in linux-next, merged by Andrew Morton.
 
-Is anything else needed for this to be merged.
+ Tomi
 
-Thx,
--Vineet
 
->
-> Gr{oetje,eeting}s,
->
->                         Geert
->
-> --
-> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
->
-> In personal conversations with technical people, I call myself a hacker. But
-> when I'm talking to journalists I just say "programmer" or something like that.
->                                 -- Linus Torvalds
->
+--pO597gJbjtr5TQ2tXf98PMkVqR3SUouhL
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
 
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBCAAGBQJV3aQoAAoJEPo9qoy8lh71ekgQAII7Jofzf90mgYWLxyiGcCxL
+rzkurPMzuF9gfLiqkGCgPhUlnl0aEpqW85NNsX+zls3aU5eqg94okcPCFeaXtmg2
+RTdqO16NJWyynVYoRzH3zWiH/aKG2MBc0NGaIE9zd8uowxxNnNB5KBKKiytndcUz
+SvYx/zpV+JDKOb4RoC/475UAflkn8Geetj/414YuZWU9HOitsrmHFUaefzoTHFnS
+nVWeupR8j//2MPWKBm8uIQprYDaNxMnjwlxcZa1MDjhxde0DTq4IV3MsYT0Qn/UI
+xImImOtlR5Qx2Jdf165vUx6xkmYHE/7ZvywBd2skgI+WZ4fj2qY/Z6fQF9FfbWF0
+iUb8hd4ZWx0y+7d7Hvl/YvPZ9uDo+TXgePQwcK7Q/bU+0BSMvpLbomzrbIAjGjCE
+6Um6o4mkwzWl6Zql8iQP5GDN+PSzAggpf9gGZ2JaURPzApnIzqPURZzk33ABVnhu
+FAeTUTHKDl3i3PhreGwm0EKtj1XAuPkHXMDQhD6Tw/8ZmGNMWVTAy9ndPLRDRl/p
+NJt0F+9d/gFlbwJW1ISkPlfphcTADC6/IR8pKWGl/utYPJ2tpJh5wkip53B16S1G
+1m8QnR3MHOPYL56D2lS9NJqFbMAWWLrLLVJ6IF1i8YvtwbNgwwtbvqCXVpeZD7cg
+Pbm3tytZABcDblQ417hA
+=JDdC
+-----END PGP SIGNATURE-----
+
+--pO597gJbjtr5TQ2tXf98PMkVqR3SUouhL--
