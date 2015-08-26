@@ -1,85 +1,141 @@
-From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
-Subject: Re: [arc-linux-dev] Re: [PATCH v3 3/6] ARCv2: perf: Support
- sampling events using overflow interrupts
-Date: Wed, 26 Aug 2015 14:42:51 +0000
-Message-ID: <1440600170.15478.53.camel@synopsys.com>
-References: <1440426023-2792-1-git-send-email-abrodkin@synopsys.com>
-	 <1440426023-2792-4-git-send-email-abrodkin@synopsys.com>
-	 <20150826130752.GC19282@twins.programming.kicks-ass.net>
-	 <1440595040.15478.44.camel@synopsys.com>
-	 <20150826143518.GV16853@twins.programming.kicks-ass.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-7"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:60644 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752102AbbHZOmz convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Aug 2015 10:42:55 -0400
-In-Reply-To: <20150826143518.GV16853@twins.programming.kicks-ass.net>
-Content-Language: en-US
-Content-ID: <064B87CA2B062E40825A0FB444753DBD@internal.synopsys.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Vineet.Gupta1@synopsys.com" <Vineet.Gupta1@synopsys.com>, "arnd@arndb.de" <arnd@arndb.de>, "acme@kernel.org" <acme@kernel.org>
+From: Eric B Munson <emunson@akamai.com>
+Subject: [PATCH v8 2/6] mm: mlock: Add new mlock system call
+Date: Wed, 26 Aug 2015 14:24:21 -0400
+Message-ID: <1440613465-30393-3-git-send-email-emunson@akamai.com>
+References: <1440613465-30393-1-git-send-email-emunson@akamai.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1440613465-30393-1-git-send-email-emunson@akamai.com>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Eric B Munson <emunson@akamai.com>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, Heiko Carstens <heiko.carstens@de.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Guenter Roeck <linux@roeck-us.net>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-cris-kernel@axis.com, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-am33-list@redhat.com, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi Peter,
+With the refactored mlock code, introduce a new system call for mlock.
+The new call will allow the user to specify what lock states are being
+added.  mlock2 is trivial at the moment, but a follow on patch will add
+a new mlock state making it useful.
 
-On Wed, 2015-08-26 at 16:35 +-0200, Peter Zijlstra wrote:
-+AD4- On Wed, Aug 26, 2015 at 01:17:20PM +-0000, Alexey Brodkin wrote:
-+AD4- +AD4- Hi Peter,
-+AD4- +AD4- 
-+AD4- +AD4- On Wed, 2015-08-26 at 15:07 +-0200, Peter Zijlstra wrote:
-+AD4- +AD4- +AD4- On Mon, Aug 24, 2015 at 05:20:20PM +-0300, Alexey Brodkin wrote:
-+AD4- +AD4- +AD4- +AD4- +AEAAQA- -139,9 +-141,11 +AEAAQA- static int arc+AF8-pmu+AF8-event+AF8-init(struct perf+AF8-event +ACo-event)
-+AD4- +AD4- +AD4- +AD4-  	struct hw+AF8-perf+AF8-event +ACo-hwc +AD0- +ACY-event-+AD4-hw+ADs-
-+AD4- +AD4- +AD4- +AD4-  	int ret+ADs-
-+AD4- +AD4- +AD4- +AD4-  
-+AD4- +AD4- +AD4- +AD4- -	hwc-+AD4-sample+AF8-period  +AD0- arc+AF8-pmu-+AD4-max+AF8-period+ADs-
-+AD4- +AD4- +AD4- +AD4- -	hwc-+AD4-last+AF8-period +AD0- hwc-+AD4-sample+AF8-period+ADs-
-+AD4- +AD4- +AD4- +AD4- -	local64+AF8-set(+ACY-hwc-+AD4-period+AF8-left, hwc-+AD4-sample+AF8-period)+ADs-
-+AD4- +AD4- +AD4- +AD4- +-	if (+ACE-is+AF8-sampling+AF8-event(event)) +AHs-
-+AD4- +AD4- +AD4- +AD4- +-		hwc-+AD4-sample+AF8-period  +AD0- arc+AF8-pmu-+AD4-max+AF8-period+ADs-
-+AD4- +AD4- +AD4- +AD4- +-		hwc-+AD4-last+AF8-period +AD0- hwc-+AD4-sample+AF8-period+ADs-
-+AD4- +AD4- +AD4- +AD4- +-		local64+AF8-set(+ACY-hwc-+AD4-period+AF8-left, hwc-+AD4-sample+AF8-period)+ADs-
-+AD4- +AD4- +AD4- +AD4- +-	+AH0-
-+AD4- +AD4- +AD4- 
-+AD4- +AD4- +AD4- So here we set a max+AF8-period sample period for +ACE-sampling events such that
-+AD4- +AD4- +AD4- we can properly deal with (short) counter overflow and accumulate into a
-+AD4- +AD4- +AD4- 64bit value.
-+AD4- +AD4- +AD4- 
-+AD4- +AD4- +AD4- +AD4-  	switch (event-+AD4-attr.type) +AHs-
-+AD4- +AD4- +AD4- +AD4-  	case PERF+AF8-TYPE+AF8-HARDWARE:
-+AD4- +AD4- +AD4- +AD4- +AEAAQA- -243,6 +-247,11 +AEAAQA- static void arc+AF8-pmu+AF8-start(struct perf+AF8-event +ACo-event, int flags)
-+AD4- +AD4- +AD4- +AD4-  
-+AD4- +AD4- +AD4- +AD4-  	arc+AF8-pmu+AF8-event+AF8-set+AF8-period(event)+ADs-
-+AD4- +AD4- +AD4- +AD4-  
-+AD4- +AD4- +AD4- +AD4- +-	/+ACo- Enable interrupt for this counter +ACo-/
-+AD4- +AD4- +AD4- +AD4- +-	if (is+AF8-sampling+AF8-event(event))
-+AD4- +AD4- +AD4- +AD4- +-		write+AF8-aux+AF8-reg(ARC+AF8-REG+AF8-PCT+AF8-INT+AF8-CTRL,
-+AD4- +AD4- +AD4- +AD4- +-			      read+AF8-aux+AF8-reg(ARC+AF8-REG+AF8-PCT+AF8-INT+AF8-CTRL) +AHw- (1 +ADwAPA- idx))+ADs-
-+AD4- +AD4- +AD4- +AD4- +-
-+AD4- +AD4- +AD4- 
-+AD4- +AD4- +AD4- Yet here you fail to actually enable the interrupt for the non sampling
-+AD4- +AD4- +AD4- events, which makes the above not work.
-+AD4- +AD4- 
-+AD4- +AD4- Indeed we intentionally leave interrupts disabled for non-sampling events.
-+AD4- +AD4-  +AFs-1+AF0- We have quite large counters so we don't expect to overflow normally
-+AD4- +AD4-  +AFs-2+AF0- We may re-use the same code for hardware that lacks support of IRQs in PCT.
-+AD4- +AD4-      See we check if IRQs are available and if not set PERF+AF8-PMU+AF8-CAP+AF8-NO+AF8-INTERRUPT
-+AD4- +AD4-      that will guarantee we won't get sampling event and for non-sampling events
-+AD4- +AD4-      we won't use IRQs.
-+AD4- 
-+AD4- Tricky, I was seeing is+AF8-isa+AF8-arcv2() calls elsewhere, so I figured you'd
-+AD4- make it conditional on that.
-+AD4- 
-+AD4- But sure, if you think you can live with 1 this'll work.
+Signed-off-by: Eric B Munson <emunson@akamai.com>
+Acked-by: Vlastimil Babka <vbabka@suse.cz>
+Acked-by: Michal Hocko <mhocko@suse.com>
+Cc: Michal Hocko <mhocko@suse.cz>
+Cc: Vlastimil Babka <vbabka@suse.cz>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Guenter Roeck <linux@roeck-us.net>
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: adi-buildroot-devel@lists.sourceforge.net
+Cc: linux-cris-kernel@axis.com
+Cc: linux-ia64@vger.kernel.org
+Cc: linux-m68k@lists.linux-m68k.org
+Cc: linux-am33-list@redhat.com
+Cc: linux-parisc@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-sh@vger.kernel.org
+Cc: sparclinux@vger.kernel.org
+Cc: linux-xtensa@linux-xtensa.org
+Cc: linux-api@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mm@kvack.org
+---
+ arch/x86/entry/syscalls/syscall_32.tbl | 1 +
+ arch/x86/entry/syscalls/syscall_64.tbl | 1 +
+ include/linux/syscalls.h               | 2 ++
+ include/uapi/asm-generic/unistd.h      | 4 +++-
+ kernel/sys_ni.c                        | 1 +
+ mm/mlock.c                             | 8 ++++++++
+ 6 files changed, 16 insertions(+), 1 deletion(-)
 
-Well indeed there's a room for improvement always.
-But from our current experience existing implementation works pretty fine.
+diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
+index ef8187f..8e06da6 100644
+--- a/arch/x86/entry/syscalls/syscall_32.tbl
++++ b/arch/x86/entry/syscalls/syscall_32.tbl
+@@ -365,3 +365,4 @@
+ 356	i386	memfd_create		sys_memfd_create
+ 357	i386	bpf			sys_bpf
+ 358	i386	execveat		sys_execveat			stub32_execveat
++360	i386	mlock2			sys_mlock2
+diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
+index 9ef32d5..67601e7 100644
+--- a/arch/x86/entry/syscalls/syscall_64.tbl
++++ b/arch/x86/entry/syscalls/syscall_64.tbl
+@@ -329,6 +329,7 @@
+ 320	common	kexec_file_load		sys_kexec_file_load
+ 321	common	bpf			sys_bpf
+ 322	64	execveat		stub_execveat
++324	common	mlock2			sys_mlock2
+ 
+ #
+ # x32-specific system call numbers start at 512 to avoid cache impact
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index b45c45b..56a3d59 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -884,4 +884,6 @@ asmlinkage long sys_execveat(int dfd, const char __user *filename,
+ 			const char __user *const __user *argv,
+ 			const char __user *const __user *envp, int flags);
+ 
++asmlinkage long sys_mlock2(unsigned long start, size_t len, int flags);
++
+ #endif
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index e016bd9..14a6013 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -709,9 +709,11 @@ __SYSCALL(__NR_memfd_create, sys_memfd_create)
+ __SYSCALL(__NR_bpf, sys_bpf)
+ #define __NR_execveat 281
+ __SC_COMP(__NR_execveat, sys_execveat, compat_sys_execveat)
++#define __NR_mlock2 282
++__SYSCALL(__NR_mlock2, sys_mlock2)
+ 
+ #undef __NR_syscalls
+-#define __NR_syscalls 282
++#define __NR_syscalls 283
+ 
+ /*
+  * All syscalls below here should go away really,
+diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
+index 7995ef5..4818b71 100644
+--- a/kernel/sys_ni.c
++++ b/kernel/sys_ni.c
+@@ -193,6 +193,7 @@ cond_syscall(sys_mlock);
+ cond_syscall(sys_munlock);
+ cond_syscall(sys_mlockall);
+ cond_syscall(sys_munlockall);
++cond_syscall(sys_mlock2);
+ cond_syscall(sys_mincore);
+ cond_syscall(sys_madvise);
+ cond_syscall(sys_mremap);
+diff --git a/mm/mlock.c b/mm/mlock.c
+index 5692ee5..3094f27 100644
+--- a/mm/mlock.c
++++ b/mm/mlock.c
+@@ -643,6 +643,14 @@ SYSCALL_DEFINE2(mlock, unsigned long, start, size_t, len)
+ 	return do_mlock(start, len, VM_LOCKED);
+ }
+ 
++SYSCALL_DEFINE3(mlock2, unsigned long, start, size_t, len, int, flags)
++{
++	if (flags)
++		return -EINVAL;
++
++	return do_mlock(start, len, VM_LOCKED);
++}
++
+ SYSCALL_DEFINE2(munlock, unsigned long, start, size_t, len)
+ {
+ 	int ret;
+-- 
+1.9.1
 
-Moreover having now PCT IRQs we mostly use sampling events that allow doing
-real profiling.
-
--Alexey
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
