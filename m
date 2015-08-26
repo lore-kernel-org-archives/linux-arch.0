@@ -1,141 +1,80 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v5 0/8] Add generic support for relaxed atomics
-Date: Wed, 26 Aug 2015 11:41:00 +0100
-Message-ID: <20150826104100.GB30466@arm.com>
-References: <1438880084-18856-1-git-send-email-will.deacon@arm.com>
- <20150826042834.GA10432@fixme-laptop.cn.ibm.com>
+From: Tomi Valkeinen <tomi.valkeinen@ti.com>
+Subject: Re: [PATCH] ARC: add negative dependency for VGA_CONSOLE
+Date: Wed, 26 Aug 2015 14:34:00 +0300
+Message-ID: <55DDA428.1020509@ti.com>
+References: <1439826777-11489-1-git-send-email-yuriy.kolerov@synopsys.com> <CAMuHMdW0hzGN74pCRhCUwJ0Ua3YN94csFfu3Mb-STeCuLosoGw@mail.gmail.com> <C2D7FE5348E1B147BCA15975FBA23075CFB85748@IN01WEMBXB.internal.synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:44395 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932972AbbHZKlA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Aug 2015 06:41:00 -0400
-Content-Disposition: inline
-In-Reply-To: <20150826042834.GA10432@fixme-laptop.cn.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Waiman.Long@hp.com" <Waiman.Long@hp.com>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "mingo@kernel.org" <mingo@kernel.org>
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature";
+	boundary="pO597gJbjtr5TQ2tXf98PMkVqR3SUouhL"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075CFB85748@IN01WEMBXB.internal.synopsys.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Yuriy Kolerov <yuriy.kolerov@synopsys.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Fbdev development list <linux-fbdev@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "Anton.Kolesov@synopsys.com" <Anton.Kolesov@synopsys.com>, Francois Bedard <Francois.Bedard@synopsys.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Boqun,
+--pO597gJbjtr5TQ2tXf98PMkVqR3SUouhL
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: quoted-printable
 
-On Wed, Aug 26, 2015 at 05:28:34AM +0100, Boqun Feng wrote:
-> On Thu, Aug 06, 2015 at 05:54:36PM +0100, Will Deacon wrote:
-> > Will Deacon (8):
-> >   atomics: add acquire/release/relaxed variants of some atomic
-> >     operations
-> >   asm-generic: rework atomic-long.h to avoid bulk code duplication
-> >   asm-generic: add relaxed/acquire/release variants for atomic_long_t
-> >   lockref: remove homebrew cmpxchg64_relaxed macro definition
-> >   locking/qrwlock: implement queue_write_unlock using smp_store_release
-> >   locking/qrwlock: make use of acquire/release/relaxed atomics
-> >   include/llist: use linux/atomic.h instead of asm/cmpxchg.h
-> 
-> Should we step further to privatize asm/cmpxchg.h entirely? Keep it only
-> included in arch/*?
-> 
-> Because after your next patch, in some configurations, asm/cmpxchg.h of
-> ARM only provides the definition of {cmpxchg,xchg}_relaxed, others are
-> built in linux/atomic.h. Further more, other architecture may implement
-> asm/cmpxchg.h similarly in the future. So, IIUC, we actually don't
-> guarantee all cmpxchg(), xchg() and their variants are defined in
-> asm/cmpxchg.h.
-> 
-> Though current users of asm/cmpxchg.h outside arch/* are fine,
-> because they all happen to have got linux/atomic.h included. But we'd
-> better change the current users and call out that asm/cmpxchg.h is
-> privatized in the document.
-> 
-> >   ARM: atomics: define our SMP atomics in terms of _relaxed operations
-> 
-> 
-> Consider this patch maybe? I did a simple build test on X86.
 
-I'm not sure that the addition to Documentation/atomic_ops.txt is really
-worth it, but either way:
 
-  Acked-by: Will Deacon <will.deacon@arm.com>
+On 25/08/15 10:47, Vineet Gupta wrote:
+> On Monday 17 August 2015 09:51 PM, Geert Uytterhoeven wrote:
+>> On Mon, Aug 17, 2015 at 5:52 PM, Yuriy Kolerov
+>> <yuriy.kolerov@synopsys.com> wrote:
+>>> Architectures which support VGA console must define screen_info
+>>> structurture from "uapi/linux/screen_info.h". Otherwise undefined
+>>> symbol error occurs. Usually it's defined in "setup.c" for each
+>>> architecture.
+>>>
+>>> If an architecture does not support VGA console (ARC's case)
+>>> there are 2 ways: define a dummy instance of screen_info or add
+>>> a negative dependency for VGA_CONSOLE in to prevent selecting
+>>> this option.
+>>>
+>>> I've implemented the second way. However the best solution is to
+>>> add HAVE_VGA_CONSOLE option for targets which support VGA
+>>> console. Then turn off VGA_CONSOLE by default and add dependency
+>>> to HAVE_VGA_CONSOLE. But right now it's better to just add a
+>>> negative dependency for ARC and then consider how to collaborate
+>>> about this issue with maintainers of other architectures.
+>> +1
+>>
+>>> Signed-off-by: Yuriy Kolerov <yuriy.kolerov@synopsys.com>
+>> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+>=20
+> Hi Tomi,
+>=20
+> Is anything else needed for this to be merged.
 
-It's probably best to send this as a standalone patch, since the relaxed
-parts are already queued in -tip.
+This is already in linux-next, merged by Andrew Morton.
 
-Will
+ Tomi
 
-> -----------------------------------------------------------------------
-> Subject: [PATCH] atomics,cmpxchg: Privatize the inclusion of asm/cmpxchg.h
-> 
-> After commit:
-> 
-> atomics: add acquire/release/relaxed variants of some atomic operations
-> 
-> Architectures may only provide {cmp,}xchg_relaxed definitions in
-> asm/cmpxchg.h. Other variants, such as {cmp,}xchg, may be built in
-> linux/atomic.h, which means simply including asm/cmpxchg.h may not get
-> the definitions of all the{cmp,}xchg variants. Therefore, we should
-> privatize the inclusions of asm/cmpxchg.h to keep it only included in
-> arch/* and replace the inclusions outside with linux/atomic.h
-> 
-> Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
-> ---
->  Documentation/atomic_ops.txt        | 4 ++++
->  drivers/net/ethernet/sfc/mcdi.c     | 2 +-
->  drivers/phy/phy-rcar-gen2.c         | 3 +--
->  drivers/staging/speakup/selection.c | 2 +-
->  4 files changed, 7 insertions(+), 4 deletions(-)
-> 
-> diff --git a/Documentation/atomic_ops.txt b/Documentation/atomic_ops.txt
-> index b19fc34..c9d1cac 100644
-> --- a/Documentation/atomic_ops.txt
-> +++ b/Documentation/atomic_ops.txt
-> @@ -542,6 +542,10 @@ The routines xchg() and cmpxchg() must provide the same exact
->  memory-barrier semantics as the atomic and bit operations returning
->  values.
->  
-> +Note: If someone wants to use xchg(), cmpxchg() and their variants,
-> +linux/atomic.h should be included rather than asm/cmpxchg.h, unless
-> +the code is in arch/* and can take care of itself.
-> +
->  Spinlocks and rwlocks have memory barrier expectations as well.
->  The rule to follow is simple:
->  
-> diff --git a/drivers/net/ethernet/sfc/mcdi.c b/drivers/net/ethernet/sfc/mcdi.c
-> index 81640f8..968383e 100644
-> --- a/drivers/net/ethernet/sfc/mcdi.c
-> +++ b/drivers/net/ethernet/sfc/mcdi.c
-> @@ -9,7 +9,7 @@
->  
->  #include <linux/delay.h>
->  #include <linux/moduleparam.h>
-> -#include <asm/cmpxchg.h>
-> +#include <linux/atomic.h>
->  #include "net_driver.h"
->  #include "nic.h"
->  #include "io.h"
-> diff --git a/drivers/phy/phy-rcar-gen2.c b/drivers/phy/phy-rcar-gen2.c
-> index 39d9b29..117b495 100644
-> --- a/drivers/phy/phy-rcar-gen2.c
-> +++ b/drivers/phy/phy-rcar-gen2.c
-> @@ -17,8 +17,7 @@
->  #include <linux/phy/phy.h>
->  #include <linux/platform_device.h>
->  #include <linux/spinlock.h>
-> -
-> -#include <asm/cmpxchg.h>
-> +#include <linux/atomic.h>
->  
->  #define USBHS_LPSTS			0x02
->  #define USBHS_UGCTRL			0x80
-> diff --git a/drivers/staging/speakup/selection.c b/drivers/staging/speakup/selection.c
-> index a031570..81c0888 100644
-> --- a/drivers/staging/speakup/selection.c
-> +++ b/drivers/staging/speakup/selection.c
-> @@ -7,7 +7,7 @@
->  #include <linux/workqueue.h>
->  #include <linux/tty.h>
->  #include <linux/tty_flip.h>
-> -#include <asm/cmpxchg.h>
-> +#include <linux/atomic.h>
->  
->  #include "speakup.h"
-> 
+
+--pO597gJbjtr5TQ2tXf98PMkVqR3SUouhL
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBCAAGBQJV3aQoAAoJEPo9qoy8lh71ekgQAII7Jofzf90mgYWLxyiGcCxL
+rzkurPMzuF9gfLiqkGCgPhUlnl0aEpqW85NNsX+zls3aU5eqg94okcPCFeaXtmg2
+RTdqO16NJWyynVYoRzH3zWiH/aKG2MBc0NGaIE9zd8uowxxNnNB5KBKKiytndcUz
+SvYx/zpV+JDKOb4RoC/475UAflkn8Geetj/414YuZWU9HOitsrmHFUaefzoTHFnS
+nVWeupR8j//2MPWKBm8uIQprYDaNxMnjwlxcZa1MDjhxde0DTq4IV3MsYT0Qn/UI
+xImImOtlR5Qx2Jdf165vUx6xkmYHE/7ZvywBd2skgI+WZ4fj2qY/Z6fQF9FfbWF0
+iUb8hd4ZWx0y+7d7Hvl/YvPZ9uDo+TXgePQwcK7Q/bU+0BSMvpLbomzrbIAjGjCE
+6Um6o4mkwzWl6Zql8iQP5GDN+PSzAggpf9gGZ2JaURPzApnIzqPURZzk33ABVnhu
+FAeTUTHKDl3i3PhreGwm0EKtj1XAuPkHXMDQhD6Tw/8ZmGNMWVTAy9ndPLRDRl/p
+NJt0F+9d/gFlbwJW1ISkPlfphcTADC6/IR8pKWGl/utYPJ2tpJh5wkip53B16S1G
+1m8QnR3MHOPYL56D2lS9NJqFbMAWWLrLLVJ6IF1i8YvtwbNgwwtbvqCXVpeZD7cg
+Pbm3tytZABcDblQ417hA
+=JDdC
+-----END PGP SIGNATURE-----
+
+--pO597gJbjtr5TQ2tXf98PMkVqR3SUouhL--
