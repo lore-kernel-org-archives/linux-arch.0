@@ -1,80 +1,103 @@
-From: Tomi Valkeinen <tomi.valkeinen@ti.com>
-Subject: Re: [PATCH] ARC: add negative dependency for VGA_CONSOLE
-Date: Wed, 26 Aug 2015 14:34:00 +0300
-Message-ID: <55DDA428.1020509@ti.com>
-References: <1439826777-11489-1-git-send-email-yuriy.kolerov@synopsys.com> <CAMuHMdW0hzGN74pCRhCUwJ0Ua3YN94csFfu3Mb-STeCuLosoGw@mail.gmail.com> <C2D7FE5348E1B147BCA15975FBA23075CFB85748@IN01WEMBXB.internal.synopsys.com>
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [PATCH v5 0/8] Add generic support for relaxed atomics
+Date: Wed, 26 Aug 2015 19:35:07 +0800
+Message-ID: <20150826113507.GA7922@fixme-laptop.cn.ibm.com>
+References: <1438880084-18856-1-git-send-email-will.deacon@arm.com>
+ <20150826042834.GA10432@fixme-laptop.cn.ibm.com>
+ <20150826104100.GB30466@arm.com>
 Mime-Version: 1.0
 Content-Type: multipart/signed; micalg=pgp-sha256;
-	protocol="application/pgp-signature";
-	boundary="pO597gJbjtr5TQ2tXf98PMkVqR3SUouhL"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075CFB85748@IN01WEMBXB.internal.synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Yuriy Kolerov <yuriy.kolerov@synopsys.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Fbdev development list <linux-fbdev@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "Anton.Kolesov@synopsys.com" <Anton.Kolesov@synopsys.com>, Francois Bedard <Francois.Bedard@synopsys.com>
-List-Id: linux-arch.vger.kernel.org
+	protocol="application/pgp-signature"; boundary="ZGiS0Q5IWpPtfppv"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f43.google.com ([209.85.220.43]:36126 "EHLO
+	mail-pa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752748AbbHZLfZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Aug 2015 07:35:25 -0400
+Content-Disposition: inline
+In-Reply-To: <20150826104100.GB30466@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Waiman.Long@hp.com" <Waiman.Long@hp.com>, "peterz@infradead.org" <peterz@infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paulmck@linux.vnet.ibm.com" <paulmck@linux.vnet.ibm.com>, "mingo@kernel.org" <mingo@kernel.org>
 
---pO597gJbjtr5TQ2tXf98PMkVqR3SUouhL
-Content-Type: text/plain; charset=windows-1252
+
+--ZGiS0Q5IWpPtfppv
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
 
+Hi Will,
 
-
-On 25/08/15 10:47, Vineet Gupta wrote:
-> On Monday 17 August 2015 09:51 PM, Geert Uytterhoeven wrote:
->> On Mon, Aug 17, 2015 at 5:52 PM, Yuriy Kolerov
->> <yuriy.kolerov@synopsys.com> wrote:
->>> Architectures which support VGA console must define screen_info
->>> structurture from "uapi/linux/screen_info.h". Otherwise undefined
->>> symbol error occurs. Usually it's defined in "setup.c" for each
->>> architecture.
->>>
->>> If an architecture does not support VGA console (ARC's case)
->>> there are 2 ways: define a dummy instance of screen_info or add
->>> a negative dependency for VGA_CONSOLE in to prevent selecting
->>> this option.
->>>
->>> I've implemented the second way. However the best solution is to
->>> add HAVE_VGA_CONSOLE option for targets which support VGA
->>> console. Then turn off VGA_CONSOLE by default and add dependency
->>> to HAVE_VGA_CONSOLE. But right now it's better to just add a
->>> negative dependency for ARC and then consider how to collaborate
->>> about this issue with maintainers of other architectures.
->> +1
->>
->>> Signed-off-by: Yuriy Kolerov <yuriy.kolerov@synopsys.com>
->> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+On Wed, Aug 26, 2015 at 11:41:00AM +0100, Will Deacon wrote:
+> Hi Boqun,
 >=20
-> Hi Tomi,
+> On Wed, Aug 26, 2015 at 05:28:34AM +0100, Boqun Feng wrote:
+> > On Thu, Aug 06, 2015 at 05:54:36PM +0100, Will Deacon wrote:
+> > > Will Deacon (8):
+> > >   atomics: add acquire/release/relaxed variants of some atomic
+> > >     operations
+> > >   asm-generic: rework atomic-long.h to avoid bulk code duplication
+> > >   asm-generic: add relaxed/acquire/release variants for atomic_long_t
+> > >   lockref: remove homebrew cmpxchg64_relaxed macro definition
+> > >   locking/qrwlock: implement queue_write_unlock using smp_store_relea=
+se
+> > >   locking/qrwlock: make use of acquire/release/relaxed atomics
+> > >   include/llist: use linux/atomic.h instead of asm/cmpxchg.h
+> >=20
+> > Should we step further to privatize asm/cmpxchg.h entirely? Keep it only
+> > included in arch/*?
+> >=20
+> > Because after your next patch, in some configurations, asm/cmpxchg.h of
+> > ARM only provides the definition of {cmpxchg,xchg}_relaxed, others are
+> > built in linux/atomic.h. Further more, other architecture may implement
+> > asm/cmpxchg.h similarly in the future. So, IIUC, we actually don't
+> > guarantee all cmpxchg(), xchg() and their variants are defined in
+> > asm/cmpxchg.h.
+> >=20
+> > Though current users of asm/cmpxchg.h outside arch/* are fine,
+> > because they all happen to have got linux/atomic.h included. But we'd
+> > better change the current users and call out that asm/cmpxchg.h is
+> > privatized in the document.
+> >=20
+> > >   ARM: atomics: define our SMP atomics in terms of _relaxed operations
+> >=20
+> >=20
+> > Consider this patch maybe? I did a simple build test on X86.
 >=20
-> Is anything else needed for this to be merged.
+> I'm not sure that the addition to Documentation/atomic_ops.txt is really
 
-This is already in linux-next, merged by Andrew Morton.
+Well.. I think at least we'd better say "to use {cmp,}xchg, include
+linux/atomic.h" somewhere, because these two function families don't
+have atomic_ prefix and don't take atomic{,64}_t as a parameter.
 
- Tomi
+> worth it, but either way:
+>=20
+>   Acked-by: Will Deacon <will.deacon@arm.com>
 
+Thank you!
 
---pO597gJbjtr5TQ2tXf98PMkVqR3SUouhL
+>=20
+> It's probably best to send this as a standalone patch, since the relaxed
+> parts are already queued in -tip.
+
+Good point. Will send a standalone patch.
+
+Regards,
+Boqun
+
+--ZGiS0Q5IWpPtfppv
 Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v2
 
-iQIcBAEBCAAGBQJV3aQoAAoJEPo9qoy8lh71ekgQAII7Jofzf90mgYWLxyiGcCxL
-rzkurPMzuF9gfLiqkGCgPhUlnl0aEpqW85NNsX+zls3aU5eqg94okcPCFeaXtmg2
-RTdqO16NJWyynVYoRzH3zWiH/aKG2MBc0NGaIE9zd8uowxxNnNB5KBKKiytndcUz
-SvYx/zpV+JDKOb4RoC/475UAflkn8Geetj/414YuZWU9HOitsrmHFUaefzoTHFnS
-nVWeupR8j//2MPWKBm8uIQprYDaNxMnjwlxcZa1MDjhxde0DTq4IV3MsYT0Qn/UI
-xImImOtlR5Qx2Jdf165vUx6xkmYHE/7ZvywBd2skgI+WZ4fj2qY/Z6fQF9FfbWF0
-iUb8hd4ZWx0y+7d7Hvl/YvPZ9uDo+TXgePQwcK7Q/bU+0BSMvpLbomzrbIAjGjCE
-6Um6o4mkwzWl6Zql8iQP5GDN+PSzAggpf9gGZ2JaURPzApnIzqPURZzk33ABVnhu
-FAeTUTHKDl3i3PhreGwm0EKtj1XAuPkHXMDQhD6Tw/8ZmGNMWVTAy9ndPLRDRl/p
-NJt0F+9d/gFlbwJW1ISkPlfphcTADC6/IR8pKWGl/utYPJ2tpJh5wkip53B16S1G
-1m8QnR3MHOPYL56D2lS9NJqFbMAWWLrLLVJ6IF1i8YvtwbNgwwtbvqCXVpeZD7cg
-Pbm3tytZABcDblQ417hA
-=JDdC
+iQEcBAABCAAGBQJV3aRmAAoJEEl56MO1B/q4iQ0H/0/fRBzscQr/9QnpLGcsshu1
+4YD2Ox58WCujtu4j2svfe23+3gwBc94NN/0yGFv9HJoA1DB1GplDTb6zYcSjxsPF
+zkD1k3IX/ZPTgouPyKDcayRnuXiQhCzyBIZVqsoi4igKEb0H8npVWQbjgrSCcpN0
+SFbZU1Q+ji+8HVAx5PH2s7+t7Gmhc24f+nRQjRyNX9MedTHrt1tiyzK+PAjG9jp/
+7TtxKrDhiQtnZUMn0Z7gkKh2kJkUGKbhbUBp2L3ONwqjZ67v7oUFjpfdytXf4knd
+YcYxFwlRPfrP/RnCnmbFzJBcCqOvyR+HhhFVjOT9I9FhWTmDE/k4znT8M+P5XOo=
+=V6DK
 -----END PGP SIGNATURE-----
 
---pO597gJbjtr5TQ2tXf98PMkVqR3SUouhL--
+--ZGiS0Q5IWpPtfppv--
