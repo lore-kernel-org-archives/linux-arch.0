@@ -1,67 +1,133 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [RFC PATCH v2] memory-barriers: remove
- smp_mb__after_unlock_lock()
-Date: Wed, 26 Aug 2015 14:06:11 +1000
-Message-ID: <1440561971.20743.2.camel@ellerman.id.au>
-References: <20150724153046.GJ3717@linux.vnet.ibm.com>
-	 <20150812134415.GC23540@arm.com> <20150812154346.GR3895@linux.vnet.ibm.com>
-	 <1439784367.14494.3.camel@ellerman.id.au>
-	 <20150817061501.GF11078@linux.vnet.ibm.com> <20150817085759.GB1688@arm.com>
-	 <1439862655.1763.2.camel@ellerman.id.au> <20150818083704.GC10301@arm.com>
-	 <1440063905.11564.5.camel@ellerman.id.au> <20150820155604.GB24100@arm.com>
-	 <20150826002744.GA11078@linux.vnet.ibm.com>
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [PATCH v5 0/8] Add generic support for relaxed atomics
+Date: Wed, 26 Aug 2015 12:28:34 +0800
+Message-ID: <20150826042834.GA10432@fixme-laptop.cn.ibm.com>
+References: <1438880084-18856-1-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:36719 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750794AbbHZEGN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Aug 2015 00:06:13 -0400
-In-Reply-To: <20150826002744.GA11078@linux.vnet.ibm.com>
+Received: from mail-pa0-f53.google.com ([209.85.220.53]:32805 "EHLO
+	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750979AbbHZE2u (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Aug 2015 00:28:50 -0400
+Content-Disposition: inline
+In-Reply-To: <1438880084-18856-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulmck@linux.vnet.ibm.com
-Cc: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org, Waiman.Long@hp.com, peterz@infradead.org, linux-kernel@vger.kernel.org, paulmck@linux.vnet.ibm.com, mingo@kernel.org
 
-On Tue, 2015-08-25 at 17:27 -0700, Paul E. McKenney wrote:
-> On Thu, Aug 20, 2015 at 04:56:04PM +0100, Will Deacon wrote:
-> > On Thu, Aug 20, 2015 at 10:45:05AM +0100, Michael Ellerman wrote:
-> > > On Tue, 2015-08-18 at 09:37 +0100, Will Deacon wrote:
-> > > > 
-> > > > Thanks, that sounds great. FWIW, there are multiple ways of implementing
-> > > > the patch (i.e. whether you strengthen lock or unlock). I had a crack at
-> > > > something here, but it's not tested:
-> > > > 
-> > > >   http://marc.info/?l=linux-arch&m=143758379023849&w=2
-> > > 
-> > > I notice you are not changing PPC_RELEASE_BARRIER, but only the spin unlock
-> > > code. But from my reading of the docs we need to make sure any UNLOCK+LOCK is a
-> > > full barrier, not just spin unlock/lock?
-> > > 
-> > > So don't we need to worry about some of the other locks as well? At least
-> > > rwlock, and mutex fast path?
-> > 
-> > Hmm, that's a good question. I notice that you don't do any of the SYNC_IO
-> > stuff for any locks other than spinlocks but I don't know whether
-> > smp_mb__after_unlock_lock is similarly limited in scope.
-> > 
-> > Paul?
+Hi Will,
+
+On Thu, Aug 06, 2015 at 05:54:36PM +0100, Will Deacon wrote:
+<snip>
 > 
-> I would expect the various locks to have similar ordering characteristics.
-> 
-> Or am I missing something subtle here?
+> Will Deacon (8):
+>   atomics: add acquire/release/relaxed variants of some atomic
+>     operations
+>   asm-generic: rework atomic-long.h to avoid bulk code duplication
+>   asm-generic: add relaxed/acquire/release variants for atomic_long_t
+>   lockref: remove homebrew cmpxchg64_relaxed macro definition
+>   locking/qrwlock: implement queue_write_unlock using smp_store_release
+>   locking/qrwlock: make use of acquire/release/relaxed atomics
+>   include/llist: use linux/atomic.h instead of asm/cmpxchg.h
 
-I don't think so.
+Should we step further to privatize asm/cmpxchg.h entirely? Keep it only
+included in arch/*?
 
-The docs just talk about ACQUIRE/RELEASE, so I think it needs to apply to all
-lock types. Or at least the list mentioned in the docs which is:
+Because after your next patch, in some configurations, asm/cmpxchg.h of
+ARM only provides the definition of {cmpxchg,xchg}_relaxed, others are
+built in linux/atomic.h. Further more, other architecture may implement
+asm/cmpxchg.h similarly in the future. So, IIUC, we actually don't
+guarantee all cmpxchg(), xchg() and their variants are defined in
+asm/cmpxchg.h.
 
- (*) spin locks
- (*) R/W spin locks
- (*) mutexes
- (*) semaphores
- (*) R/W semaphores
- (*) RCU
+Though current users of asm/cmpxchg.h outside arch/* are fine,
+because they all happen to have got linux/atomic.h included. But we'd
+better change the current users and call out that asm/cmpxchg.h is
+privatized in the document.
 
-cheers
+>   ARM: atomics: define our SMP atomics in terms of _relaxed operations
+
+
+Consider this patch maybe? I did a simple build test on X86.
+
+Regards,
+Boqun
+
+-----------------------------------------------------------------------
+Subject: [PATCH] atomics,cmpxchg: Privatize the inclusion of asm/cmpxchg.h
+
+After commit:
+
+atomics: add acquire/release/relaxed variants of some atomic operations
+
+Architectures may only provide {cmp,}xchg_relaxed definitions in
+asm/cmpxchg.h. Other variants, such as {cmp,}xchg, may be built in
+linux/atomic.h, which means simply including asm/cmpxchg.h may not get
+the definitions of all the{cmp,}xchg variants. Therefore, we should
+privatize the inclusions of asm/cmpxchg.h to keep it only included in
+arch/* and replace the inclusions outside with linux/atomic.h
+
+Signed-off-by: Boqun Feng <boqun.feng@gmail.com>
+---
+ Documentation/atomic_ops.txt        | 4 ++++
+ drivers/net/ethernet/sfc/mcdi.c     | 2 +-
+ drivers/phy/phy-rcar-gen2.c         | 3 +--
+ drivers/staging/speakup/selection.c | 2 +-
+ 4 files changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/Documentation/atomic_ops.txt b/Documentation/atomic_ops.txt
+index b19fc34..c9d1cac 100644
+--- a/Documentation/atomic_ops.txt
++++ b/Documentation/atomic_ops.txt
+@@ -542,6 +542,10 @@ The routines xchg() and cmpxchg() must provide the same exact
+ memory-barrier semantics as the atomic and bit operations returning
+ values.
+ 
++Note: If someone wants to use xchg(), cmpxchg() and their variants,
++linux/atomic.h should be included rather than asm/cmpxchg.h, unless
++the code is in arch/* and can take care of itself.
++
+ Spinlocks and rwlocks have memory barrier expectations as well.
+ The rule to follow is simple:
+ 
+diff --git a/drivers/net/ethernet/sfc/mcdi.c b/drivers/net/ethernet/sfc/mcdi.c
+index 81640f8..968383e 100644
+--- a/drivers/net/ethernet/sfc/mcdi.c
++++ b/drivers/net/ethernet/sfc/mcdi.c
+@@ -9,7 +9,7 @@
+ 
+ #include <linux/delay.h>
+ #include <linux/moduleparam.h>
+-#include <asm/cmpxchg.h>
++#include <linux/atomic.h>
+ #include "net_driver.h"
+ #include "nic.h"
+ #include "io.h"
+diff --git a/drivers/phy/phy-rcar-gen2.c b/drivers/phy/phy-rcar-gen2.c
+index 39d9b29..117b495 100644
+--- a/drivers/phy/phy-rcar-gen2.c
++++ b/drivers/phy/phy-rcar-gen2.c
+@@ -17,8 +17,7 @@
+ #include <linux/phy/phy.h>
+ #include <linux/platform_device.h>
+ #include <linux/spinlock.h>
+-
+-#include <asm/cmpxchg.h>
++#include <linux/atomic.h>
+ 
+ #define USBHS_LPSTS			0x02
+ #define USBHS_UGCTRL			0x80
+diff --git a/drivers/staging/speakup/selection.c b/drivers/staging/speakup/selection.c
+index a031570..81c0888 100644
+--- a/drivers/staging/speakup/selection.c
++++ b/drivers/staging/speakup/selection.c
+@@ -7,7 +7,7 @@
+ #include <linux/workqueue.h>
+ #include <linux/tty.h>
+ #include <linux/tty_flip.h>
+-#include <asm/cmpxchg.h>
++#include <linux/atomic.h>
+ 
+ #include "speakup.h"
