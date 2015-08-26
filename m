@@ -1,22 +1,22 @@
 From: Alexey Brodkin <Alexey.Brodkin@synopsys.com>
 Subject: Re: [PATCH v3 3/6] ARCv2: perf: Support sampling events using
  overflow interrupts
-Date: Wed, 26 Aug 2015 13:17:20 +0000
-Message-ID: <1440595040.15478.44.camel@synopsys.com>
+Date: Wed, 26 Aug 2015 13:21:08 +0000
+Message-ID: <1440595268.15478.47.camel@synopsys.com>
 References: <1440426023-2792-1-git-send-email-abrodkin@synopsys.com>
 	 <1440426023-2792-4-git-send-email-abrodkin@synopsys.com>
-	 <20150826130752.GC19282@twins.programming.kicks-ass.net>
+	 <20150826131225.GD19282@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-7"
 Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay.synopsys.com ([198.182.47.9]:59298 "EHLO
+Received: from us01smtprelay-2.synopsys.com ([198.182.60.111]:38866 "EHLO
 	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755717AbbHZNR2 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Aug 2015 09:17:28 -0400
-In-Reply-To: <20150826130752.GC19282@twins.programming.kicks-ass.net>
+	with ESMTP id S1751879AbbHZNVL convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 26 Aug 2015 09:21:11 -0400
+In-Reply-To: <20150826131225.GD19282@twins.programming.kicks-ass.net>
 Content-Language: en-US
-Content-ID: <07FB645ED189E745AB2845B3718777DE@internal.synopsys.com>
+Content-ID: <80CD624BB37B65419F4AD8B4132EA9F5@internal.synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "peterz@infradead.org" <peterz@infradead.org>
@@ -24,45 +24,32 @@ Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vge
 
 Hi Peter,
 
-On Wed, 2015-08-26 at 15:07 +-0200, Peter Zijlstra wrote:
+On Wed, 2015-08-26 at 15:12 +-0200, Peter Zijlstra wrote:
 +AD4- On Mon, Aug 24, 2015 at 05:20:20PM +-0300, Alexey Brodkin wrote:
-+AD4- +AD4- +AEAAQA- -139,9 +-141,11 +AEAAQA- static int arc+AF8-pmu+AF8-event+AF8-init(struct perf+AF8-event +ACo-event)
-+AD4- +AD4-  	struct hw+AF8-perf+AF8-event +ACo-hwc +AD0- +ACY-event-+AD4-hw+ADs-
-+AD4- +AD4-  	int ret+ADs-
++AD4- +AD4- +AEAAQA- -295,6 +-317,16 +AEAAQA- static int arc+AF8-pmu+AF8-add(struct perf+AF8-event +ACo-event, int flags)
++AD4- +AD4-  	+AH0-
 +AD4- +AD4-  
-+AD4- +AD4- -	hwc-+AD4-sample+AF8-period  +AD0- arc+AF8-pmu-+AD4-max+AF8-period+ADs-
-+AD4- +AD4- -	hwc-+AD4-last+AF8-period +AD0- hwc-+AD4-sample+AF8-period+ADs-
-+AD4- +AD4- -	local64+AF8-set(+ACY-hwc-+AD4-period+AF8-left, hwc-+AD4-sample+AF8-period)+ADs-
-+AD4- +AD4- +-	if (+ACE-is+AF8-sampling+AF8-event(event)) +AHs-
-+AD4- +AD4- +-		hwc-+AD4-sample+AF8-period  +AD0- arc+AF8-pmu-+AD4-max+AF8-period+ADs-
-+AD4- +AD4- +-		hwc-+AD4-last+AF8-period +AD0- hwc-+AD4-sample+AF8-period+ADs-
-+AD4- +AD4- +-		local64+AF8-set(+ACY-hwc-+AD4-period+AF8-left, hwc-+AD4-sample+AF8-period)+ADs-
++AD4- +AD4-  	write+AF8-aux+AF8-reg(ARC+AF8-REG+AF8-PCT+AF8-INDEX, idx)+ADs-
++AD4- +AD4- +-
++AD4- +AD4- +-	arc+AF8-pmu-+AD4-act+AF8-counter+AFs-idx+AF0- +AD0- event+ADs-
++AD4- +AD4- +-
++AD4- +AD4- +-	if (is+AF8-sampling+AF8-event(event)) +AHs-
++AD4- +AD4- +-		/+ACo- Mimic full counter overflow as other arches do +ACo-/
++AD4- +AD4- +-		write+AF8-aux+AF8-reg(ARC+AF8-REG+AF8-PCT+AF8-INT+AF8-CNTL, (u32)arc+AF8-pmu-+AD4-max+AF8-period)+ADs-
++AD4- +AD4- +-		write+AF8-aux+AF8-reg(ARC+AF8-REG+AF8-PCT+AF8-INT+AF8-CNTH,
++AD4- +AD4- +-			      (arc+AF8-pmu-+AD4-max+AF8-period +AD4APg- 32))+ADs-
 +AD4- +AD4- +-	+AH0-
-+AD4- 
-+AD4- So here we set a max+AF8-period sample period for +ACE-sampling events such that
-+AD4- we can properly deal with (short) counter overflow and accumulate into a
-+AD4- 64bit value.
-+AD4- 
-+AD4- +AD4-  	switch (event-+AD4-attr.type) +AHs-
-+AD4- +AD4-  	case PERF+AF8-TYPE+AF8-HARDWARE:
-+AD4- +AD4- +AEAAQA- -243,6 +-247,11 +AEAAQA- static void arc+AF8-pmu+AF8-start(struct perf+AF8-event +ACo-event, int flags)
-+AD4- +AD4-  
-+AD4- +AD4-  	arc+AF8-pmu+AF8-event+AF8-set+AF8-period(event)+ADs-
-+AD4- +AD4-  
-+AD4- +AD4- +-	/+ACo- Enable interrupt for this counter +ACo-/
-+AD4- +AD4- +-	if (is+AF8-sampling+AF8-event(event))
-+AD4- +AD4- +-		write+AF8-aux+AF8-reg(ARC+AF8-REG+AF8-PCT+AF8-INT+AF8-CTRL,
-+AD4- +AD4- +-			      read+AF8-aux+AF8-reg(ARC+AF8-REG+AF8-PCT+AF8-INT+AF8-CTRL) +AHw- (1 +ADwAPA- idx))+ADs-
 +AD4- +AD4- +-
 +AD4- 
-+AD4- Yet here you fail to actually enable the interrupt for the non sampling
-+AD4- events, which makes the above not work.
++AD4- pmu::add should call pmu::start when PERF+AF8-EF+AF8-START, without that it
++AD4- should not start the counter, only schedule it.
++AD4- 
++AD4- (although currently all pmu::add() calls will have EF+AF8-START set)
 
-Indeed we intentionally leave interrupts disabled for non-sampling events.
- +AFs-1+AF0- We have quite large counters so we don't expect to overflow normally
- +AFs-2+AF0- We may re-use the same code for hardware that lacks support of IRQs in PCT.
-     See we check if IRQs are available and if not set PERF+AF8-PMU+AF8-CAP+AF8-NO+AF8-INTERRUPT
-     that will guarantee we won't get sampling event and for non-sampling events
-     we won't use IRQs.
+And that's what we do, don't we?
+-----------------------+AD4-8-----------------------
+	if (flags +ACY- PERF+AF8-EF+AF8-START)
+		arc+AF8-pmu+AF8-start(event, PERF+AF8-EF+AF8-RELOAD)+ADs-
+-----------------------+AD4-8-----------------------
 
 -Alexey
