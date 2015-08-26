@@ -1,85 +1,236 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from comal.ext.ti.com ([198.47.26.152]:51462 "EHLO comal.ext.ti.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756539AbbHZLeR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Aug 2015 07:34:17 -0400
-Message-ID: <55DDA428.1020509@ti.com>
-Date: Wed, 26 Aug 2015 14:34:00 +0300
-From: Tomi Valkeinen <tomi.valkeinen@ti.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH] ARC: add negative dependency for VGA_CONSOLE
-References: <1439826777-11489-1-git-send-email-yuriy.kolerov@synopsys.com> <CAMuHMdW0hzGN74pCRhCUwJ0Ua3YN94csFfu3Mb-STeCuLosoGw@mail.gmail.com> <C2D7FE5348E1B147BCA15975FBA23075CFB85748@IN01WEMBXB.internal.synopsys.com>
-In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075CFB85748@IN01WEMBXB.internal.synopsys.com>
-Content-Type: multipart/signed; micalg=pgp-sha256;
-	protocol="application/pgp-signature";
-	boundary="pO597gJbjtr5TQ2tXf98PMkVqR3SUouhL"
+Received: from a23-79-238-179.deploy.static.akamaitechnologies.com ([23.79.238.179]:13399
+	"EHLO prod-mail-xrelay05.akamai.com" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1752198AbbHZSYa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Aug 2015 14:24:30 -0400
+From: Eric B Munson <emunson@akamai.com>
+Subject: [PATCH v8 0/6] Allow user to request memory to be locked on page fault
+Date: Wed, 26 Aug 2015 14:24:19 -0400
+Message-ID: <1440613465-30393-1-git-send-email-emunson@akamai.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Yuriy Kolerov <yuriy.kolerov@synopsys.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Linux Fbdev development list <linux-fbdev@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "Anton.Kolesov@synopsys.com" <Anton.Kolesov@synopsys.com>, Francois Bedard <Francois.Bedard@synopsys.com>
-Message-ID: <20150826113400._ieozE6eW3IvU-H72t7YIvqwoN13r1fMCH0YBAYNlyI@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Eric B Munson <emunson@akamai.com>, Shuah Khan <shuahkh@osg.samsung.com>, Michal Hocko <mhocko@suse.cz>, Michael Kerrisk <mtk.manpages@gmail.com>, Vlastimil Babka <vbabka@suse.cz>, Jonathan Corbet <corbet@lwn.net>, Ralf Baechle <ralf@linux-mips.org>, Andrea Arcangeli <aarcange@redhat.com>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20150826182419.DWO-vKPLlGAwDU3selA05zH6WUfHj7Wqk0NorXjPLzQ@z>
 
---pO597gJbjtr5TQ2tXf98PMkVqR3SUouhL
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: quoted-printable
+mlock() allows a user to control page out of program memory, but this
+comes at the cost of faulting in the entire mapping when it is
+allocated.  For large mappings where the entire area is not necessary
+this is not ideal.  Instead of forcing all locked pages to be present
+when they are allocated, this set creates a middle ground.  Pages are
+marked to be placed on the unevictable LRU (locked) when they are first
+used, but they are not faulted in by the mlock call.
 
+This series introduces a new mlock() system call that takes a flags
+argument along with the start address and size.  This flags argument
+gives the caller the ability to request memory be locked in the
+traditional way, or to be locked after the page is faulted in.  A new
+MCL flag is added to mirror the lock on fault behavior from mlock() in
+mlockall().
 
+There are two main use cases that this set covers.  The first is the
+security focussed mlock case.  A buffer is needed that cannot be written
+to swap.  The maximum size is known, but on average the memory used is
+significantly less than this maximum.  With lock on fault, the buffer
+is guaranteed to never be paged out without consuming the maximum size
+every time such a buffer is created.
 
-On 25/08/15 10:47, Vineet Gupta wrote:
-> On Monday 17 August 2015 09:51 PM, Geert Uytterhoeven wrote:
->> On Mon, Aug 17, 2015 at 5:52 PM, Yuriy Kolerov
->> <yuriy.kolerov@synopsys.com> wrote:
->>> Architectures which support VGA console must define screen_info
->>> structurture from "uapi/linux/screen_info.h". Otherwise undefined
->>> symbol error occurs. Usually it's defined in "setup.c" for each
->>> architecture.
->>>
->>> If an architecture does not support VGA console (ARC's case)
->>> there are 2 ways: define a dummy instance of screen_info or add
->>> a negative dependency for VGA_CONSOLE in to prevent selecting
->>> this option.
->>>
->>> I've implemented the second way. However the best solution is to
->>> add HAVE_VGA_CONSOLE option for targets which support VGA
->>> console. Then turn off VGA_CONSOLE by default and add dependency
->>> to HAVE_VGA_CONSOLE. But right now it's better to just add a
->>> negative dependency for ARC and then consider how to collaborate
->>> about this issue with maintainers of other architectures.
->> +1
->>
->>> Signed-off-by: Yuriy Kolerov <yuriy.kolerov@synopsys.com>
->> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
->=20
-> Hi Tomi,
->=20
-> Is anything else needed for this to be merged.
+The second use case is focussed on performance.  Portions of a large
+file are needed and we want to keep the used portions in memory once
+accessed.  This is the case for large graphical models where the path
+through the graph is not known until run time.  The entire graph is
+unlikely to be used in a given invocation, but once a node has been
+used it needs to stay resident for further processing.  Given these
+constraints we have a number of options.  We can potentially waste a
+large amount of memory by mlocking the entire region (this can also
+cause a significant stall at startup as the entire file is read in).
+We can mlock every page as we access them without tracking if the page
+is already resident but this introduces large overhead for each access.
+The third option is mapping the entire region with PROT_NONE and using
+a signal handler for SIGSEGV to mprotect(PROT_READ) and mlock() the
+needed page.  Doing this page at a time adds a significant performance
+penalty.  Batching can be used to mitigate this overhead, but in order
+to safely avoid trying to mprotect pages outside of the mapping, the
+boundaries of each mapping to be used in this way must be tracked and
+available to the signal handler.  This is precisely what the mm system
+in the kernel should already be doing.
 
-This is already in linux-next, merged by Andrew Morton.
+For mlock(MLOCK_ONFAULT) the user is charged against RLIMIT_MEMLOCK as
+if mlock(MLOCK_LOCKED) or mmap(MAP_LOCKED) was used, so when the VMA is
+created not when the pages are faulted in.  For mlockall(MCL_ONFAULT)
+the user is charged as if MCL_FUTURE was used.  This decision was made
+to keep the accounting checks out of the page fault path.
 
- Tomi
+To illustrate the benefit of this set I wrote a test program that mmaps
+a 5 GB file filled with random data and then makes 15,000,000 accesses
+to random addresses in that mapping.  The test program was run 20 times
+for each setup.  Results are reported for two program portions, setup
+and execution.  The setup phase is calling mmap and optionally mlock on
+the entire region.  For most experiments this is trivial, but it
+highlights the cost of faulting in the entire region.  Results are
+averages across the 20 runs in milliseconds.
 
+mmap with mlock(MLOCK_LOCKED) on entire range:
+Setup avg:      8228.666
+Processing avg: 8274.257
 
---pO597gJbjtr5TQ2tXf98PMkVqR3SUouhL
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
+mmap with mlock(MLOCK_LOCKED) before each access:
+Setup avg:      0.113
+Processing avg: 90993.552
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
+mmap with PROT_NONE and signal handler and batch size of 1 page:
+With the default value in max_map_count, this gets ENOMEM as I attempt
+to change the permissions, after upping the sysctl significantly I get:
+Setup avg:      0.058
+Processing avg: 69488.073
+mmap with PROT_NONE and signal handler and batch size of 8 pages:
+Setup avg:      0.068
+Processing avg: 38204.116
 
-iQIcBAEBCAAGBQJV3aQoAAoJEPo9qoy8lh71ekgQAII7Jofzf90mgYWLxyiGcCxL
-rzkurPMzuF9gfLiqkGCgPhUlnl0aEpqW85NNsX+zls3aU5eqg94okcPCFeaXtmg2
-RTdqO16NJWyynVYoRzH3zWiH/aKG2MBc0NGaIE9zd8uowxxNnNB5KBKKiytndcUz
-SvYx/zpV+JDKOb4RoC/475UAflkn8Geetj/414YuZWU9HOitsrmHFUaefzoTHFnS
-nVWeupR8j//2MPWKBm8uIQprYDaNxMnjwlxcZa1MDjhxde0DTq4IV3MsYT0Qn/UI
-xImImOtlR5Qx2Jdf165vUx6xkmYHE/7ZvywBd2skgI+WZ4fj2qY/Z6fQF9FfbWF0
-iUb8hd4ZWx0y+7d7Hvl/YvPZ9uDo+TXgePQwcK7Q/bU+0BSMvpLbomzrbIAjGjCE
-6Um6o4mkwzWl6Zql8iQP5GDN+PSzAggpf9gGZ2JaURPzApnIzqPURZzk33ABVnhu
-FAeTUTHKDl3i3PhreGwm0EKtj1XAuPkHXMDQhD6Tw/8ZmGNMWVTAy9ndPLRDRl/p
-NJt0F+9d/gFlbwJW1ISkPlfphcTADC6/IR8pKWGl/utYPJ2tpJh5wkip53B16S1G
-1m8QnR3MHOPYL56D2lS9NJqFbMAWWLrLLVJ6IF1i8YvtwbNgwwtbvqCXVpeZD7cg
-Pbm3tytZABcDblQ417hA
-=JDdC
------END PGP SIGNATURE-----
+mmap with PROT_NONE and signal handler and batch size of 16 pages:
+Setup avg:      0.044
+Processing avg: 29671.180
 
---pO597gJbjtr5TQ2tXf98PMkVqR3SUouhL--
+mmap with mlock(MLOCK_ONFAULT) on entire range:
+Setup avg:      0.189
+Processing avg: 17904.899
+
+The signal handler in the batch cases faulted in memory in two steps to
+avoid having to know the start and end of the faulting mapping.  The
+first step covers the page that caused the fault as we know that it will
+be possible to lock.  The second step speculatively tries to mlock and
+mprotect the batch size - 1 pages that follow.  There may be a clever
+way to avoid this without having the program track each mapping to be
+covered by this handeler in a globally accessible structure, but I could
+not find it.  It should be noted that with a large enough batch size
+this two step fault handler can still cause the program to crash if it
+reaches far beyond the end of the mapping.
+
+These results show that if the developer knows that a majority of the
+mapping will be used, it is better to try and fault it in at once,
+otherwise mlock(MLOCK_ONFAULT) is significantly faster.
+
+The performance cost of these patches are minimal on the two benchmarks
+I have tested (stream and kernbench).  The following are the average
+values across 20 runs of stream and 10 runs of kernbench after a warmup
+run whose results were discarded.
+
+Avg throughput in MB/s from stream using 1000000 element arrays
+Test     4.2-rc1      4.2-rc1+lock-on-fault
+Copy:    10,566.5     10,421
+Scale:   10,685       10,503.5
+Add:     12,044.1     11,814.2
+Triad:   12,064.8     11,846.3
+
+Kernbench optimal load
+                 4.2-rc1  4.2-rc1+lock-on-fault
+Elapsed Time     78.453   78.991
+User Time        64.2395  65.2355
+System Time      9.7335   9.7085
+Context Switches 22211.5  22412.1
+Sleeps           14965.3  14956.1
+
+---
+Changes from V7:
+* Do not expose the VM_LOCKONFAULT flag to userspace via proc
+* Fix mlock2 self tests
+
+Changes from V6:
+* Bump the x86 system call number to avoid collision with userfaultfd
+* Fix FOLL_POPULATE and FOLL_MLOCK usage when mmap is called with
+ MAP_POPULATE
+* Add documentation for the proc smaps change
+* checkpatch fixes
+
+Changes from V5:
+Drop MLOCK_LOCKED flag
+* MLOCK_ONFAULT and MCL_ONFAULT are treated as a modifier to other locking
+ operations, mirroring the relationship between VM_LOCKED and
+ VM_LOCKONFAULT
+* Drop mmap flag and related tests
+* Fix clearing of MCL_CURRENT when mlockall is called with MCL_FUTURE,
+ mlockall behavoir now matches the old behavior WRT to ordering
+
+Changes from V4:
+Drop all architectures for new sys call entries except x86[_64] and MIPS
+Drop munlock2 and munlockall2
+Make VM_LOCKONFAULT a modifier to VM_LOCKED only to simplify book keeping
+Adjust tests to match
+
+Changes from V3:
+Ensure that pages present when mlock2(MLOCK_ONFAULT) is called are locked
+Ensure that VM_LOCKONFAULT is handled in cases that used to only check VM_LOCKED
+Add tests for new system calls
+Add missing syscall entries, fix NR_syscalls on multiple arch's
+Add missing MAP_LOCKONFAULT for tile
+
+Changes from V2:
+Added new system calls for mlock, munlock, and munlockall with added
+flags arguments for controlling how memory is locked or unlocked.
+
+Eric B Munson (6):
+  mm: mlock: Refactor mlock, munlock, and munlockall code
+  mm: mlock: Add new mlock system call
+  mm: Introduce VM_LOCKONFAULT
+  mm: mlock: Add mlock flags to enable VM_LOCKONFAULT usage
+  selftests: vm: Add tests for lock on fault
+  mips: Add entry for new mlock2 syscall
+
+ arch/alpha/include/uapi/asm/mman.h          |   3 +
+ arch/mips/include/uapi/asm/mman.h           |   6 +
+ arch/mips/include/uapi/asm/unistd.h         |  15 +-
+ arch/mips/kernel/scall32-o32.S              |   1 +
+ arch/mips/kernel/scall64-64.S               |   1 +
+ arch/mips/kernel/scall64-n32.S              |   1 +
+ arch/mips/kernel/scall64-o32.S              |   1 +
+ arch/parisc/include/uapi/asm/mman.h         |   3 +
+ arch/powerpc/include/uapi/asm/mman.h        |   1 +
+ arch/sparc/include/uapi/asm/mman.h          |   1 +
+ arch/tile/include/uapi/asm/mman.h           |   1 +
+ arch/x86/entry/syscalls/syscall_32.tbl      |   1 +
+ arch/x86/entry/syscalls/syscall_64.tbl      |   1 +
+ arch/xtensa/include/uapi/asm/mman.h         |   6 +
+ include/linux/mm.h                          |   5 +
+ include/linux/syscalls.h                    |   2 +
+ include/uapi/asm-generic/mman-common.h      |   5 +
+ include/uapi/asm-generic/mman.h             |   1 +
+ include/uapi/asm-generic/unistd.h           |   4 +-
+ kernel/fork.c                               |   2 +-
+ kernel/sys_ni.c                             |   1 +
+ mm/debug.c                                  |   1 +
+ mm/gup.c                                    |  10 +-
+ mm/huge_memory.c                            |   2 +-
+ mm/hugetlb.c                                |   4 +-
+ mm/mlock.c                                  |  86 +++-
+ mm/mmap.c                                   |   2 +-
+ mm/rmap.c                                   |   6 +-
+ tools/testing/selftests/vm/Makefile         |   2 +
+ tools/testing/selftests/vm/mlock2-tests.c   | 737 ++++++++++++++++++++++++++++
+ tools/testing/selftests/vm/on-fault-limit.c |  47 ++
+ tools/testing/selftests/vm/run_vmtests      |  22 +
+ 32 files changed, 941 insertions(+), 40 deletions(-)
+ create mode 100644 tools/testing/selftests/vm/mlock2-tests.c
+ create mode 100644 tools/testing/selftests/vm/on-fault-limit.c
+
+Cc: Shuah Khan <shuahkh@osg.samsung.com>
+Cc: Michal Hocko <mhocko@suse.cz>
+Cc: Michael Kerrisk <mtk.manpages@gmail.com>
+Cc: Vlastimil Babka <vbabka@suse.cz>
+Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Andrea Arcangeli <aarcange@redhat.com>
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+Cc: linux-parisc@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: sparclinux@vger.kernel.org
+Cc: linux-xtensa@linux-xtensa.org
+Cc: linux-mm@kvack.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-api@vger.kernel.org
+
+-- 
+1.9.1
+
