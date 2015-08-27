@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 07/11] mm: move some code around
-Date: Thu, 27 Aug 2015 14:33:10 +0530
-Message-ID: <1440666194-21478-8-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 09/11] mm,thp: introduce flush_pmd_tlb_range
+Date: Thu, 27 Aug 2015 14:33:12 +0530
+Message-ID: <1440666194-21478-10-git-send-email-vgupta@synopsys.com>
 References: <1440666194-21478-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -13,89 +13,103 @@ To: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-This reduces/simplifies the diff for the next patch which moves THP
-specific code.
-
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- mm/pgtable-generic.c | 50 +++++++++++++++++++++++++-------------------------
- 1 file changed, 25 insertions(+), 25 deletions(-)
+ mm/huge_memory.c     |  2 +-
+ mm/pgtable-generic.c | 25 +++++++++++++++++++------
+ 2 files changed, 20 insertions(+), 7 deletions(-)
 
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 79b7a6826766..8d301dfc9d73 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -1915,7 +1915,7 @@ static int __split_huge_page_map(struct page *page,
+ 		 * here). But it is generally safer to never allow
+ 		 * small and huge TLB entries for the same virtual
+ 		 * address to be loaded simultaneously. So instead of
+-		 * doing "pmd_populate(); flush_tlb_range();" we first
++		 * doing "pmd_populate(); flush_pmd_tlb_range();" we first
+ 		 * mark the current pmd notpresent (atomically because
+ 		 * here the pmd_trans_huge and pmd_trans_splitting
+ 		 * must remain set at all times on the pmd until the
 diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
-index 6b674e00153c..48851894e699 100644
+index c9c59bb75a17..b0fed9a4776e 100644
 --- a/mm/pgtable-generic.c
 +++ b/mm/pgtable-generic.c
-@@ -57,6 +57,31 @@ int ptep_set_access_flags(struct vm_area_struct *vma,
- }
- #endif
+@@ -84,6 +84,19 @@ pte_t ptep_clear_flush(struct vm_area_struct *vma, unsigned long address,
  
-+#ifndef __HAVE_ARCH_PTEP_CLEAR_YOUNG_FLUSH
-+int ptep_clear_flush_young(struct vm_area_struct *vma,
-+			   unsigned long address, pte_t *ptep)
-+{
-+	int young;
-+	young = ptep_test_and_clear_young(vma, address, ptep);
-+	if (young)
-+		flush_tlb_page(vma, address);
-+	return young;
-+}
-+#endif
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ 
++#ifndef __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
 +
-+#ifndef __HAVE_ARCH_PTEP_CLEAR_FLUSH
-+pte_t ptep_clear_flush(struct vm_area_struct *vma, unsigned long address,
-+		       pte_t *ptep)
-+{
-+	struct mm_struct *mm = (vma)->vm_mm;
-+	pte_t pte;
-+	pte = ptep_get_and_clear(mm, address, ptep);
-+	if (pte_accessible(mm, pte))
-+		flush_tlb_page(vma, address);
-+	return pte;
-+}
++/*
++ * ARCHes with special requirements for evicting THP backing TLB entries can
++ * implement this. Otherwise also, it can help optimizing thp flush operation.
++ * flush_tlb_range() can have optimization to nuke the entire TLB if flush span
++ * is greater than a threashhold, which will likely be true for a single
++ * huge page.
++ * e.g. see arch/arc: flush_pmd_tlb_range
++ */
++#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
 +#endif
 +
  #ifndef __HAVE_ARCH_PMDP_SET_ACCESS_FLAGS
  int pmdp_set_access_flags(struct vm_area_struct *vma,
  			  unsigned long address, pmd_t *pmdp,
-@@ -77,18 +102,6 @@ int pmdp_set_access_flags(struct vm_area_struct *vma,
+@@ -93,7 +106,7 @@ int pmdp_set_access_flags(struct vm_area_struct *vma,
+ 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
+ 	if (changed) {
+ 		set_pmd_at(vma->vm_mm, address, pmdp, entry);
+-		flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
++		flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
+ 	}
+ 	return changed;
+ }
+@@ -107,7 +120,7 @@ int pmdp_clear_flush_young(struct vm_area_struct *vma,
+ 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
+ 	young = pmdp_test_and_clear_young(vma, address, pmdp);
+ 	if (young)
+-		flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
++		flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
+ 	return young;
+ }
+ #endif
+@@ -120,7 +133,7 @@ pmd_t pmdp_huge_clear_flush(struct vm_area_struct *vma, unsigned long address,
+ 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
+ 	VM_BUG_ON(!pmd_trans_huge(*pmdp));
+ 	pmd = pmdp_huge_get_and_clear(vma->vm_mm, address, pmdp);
+-	flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
++	flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
+ 	return pmd;
+ }
+ #endif
+@@ -133,7 +146,7 @@ void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
+ 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
+ 	set_pmd_at(vma->vm_mm, address, pmdp, pmd);
+ 	/* tlb flush only to serialize against gup-fast */
+-	flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
++	flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
  }
  #endif
  
--#ifndef __HAVE_ARCH_PTEP_CLEAR_YOUNG_FLUSH
--int ptep_clear_flush_young(struct vm_area_struct *vma,
--			   unsigned long address, pte_t *ptep)
--{
--	int young;
--	young = ptep_test_and_clear_young(vma, address, ptep);
--	if (young)
--		flush_tlb_page(vma, address);
--	return young;
--}
--#endif
--
- #ifndef __HAVE_ARCH_PMDP_CLEAR_YOUNG_FLUSH
- int pmdp_clear_flush_young(struct vm_area_struct *vma,
- 			   unsigned long address, pmd_t *pmdp)
-@@ -106,19 +119,6 @@ int pmdp_clear_flush_young(struct vm_area_struct *vma,
+@@ -179,7 +192,7 @@ void pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
+ {
+ 	pmd_t entry = *pmdp;
+ 	set_pmd_at(vma->vm_mm, address, pmdp, pmd_mknotpresent(entry));
+-	flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
++	flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
  }
  #endif
  
--#ifndef __HAVE_ARCH_PTEP_CLEAR_FLUSH
--pte_t ptep_clear_flush(struct vm_area_struct *vma, unsigned long address,
--		       pte_t *ptep)
--{
--	struct mm_struct *mm = (vma)->vm_mm;
--	pte_t pte;
--	pte = ptep_get_and_clear(mm, address, ptep);
--	if (pte_accessible(mm, pte))
--		flush_tlb_page(vma, address);
--	return pte;
--}
--#endif
--
- #ifndef __HAVE_ARCH_PMDP_HUGE_CLEAR_FLUSH
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- pmd_t pmdp_huge_clear_flush(struct vm_area_struct *vma, unsigned long address,
+@@ -196,7 +209,7 @@ pmd_t pmdp_collapse_flush(struct vm_area_struct *vma, unsigned long address,
+ 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
+ 	VM_BUG_ON(pmd_trans_huge(*pmdp));
+ 	pmd = pmdp_huge_get_and_clear(vma->vm_mm, address, pmdp);
+-	flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
++	flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
+ 	return pmd;
+ }
+ #endif
 -- 
 1.9.1
 
