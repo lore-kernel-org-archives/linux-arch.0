@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 08/11] mm,thp: reduce ifdef'ery for THP in generic code
-Date: Thu, 27 Aug 2015 14:33:11 +0530
-Message-ID: <1440666194-21478-9-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 07/11] mm: move some code around
+Date: Thu, 27 Aug 2015 14:33:10 +0530
+Message-ID: <1440666194-21478-8-git-send-email-vgupta@synopsys.com>
 References: <1440666194-21478-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -13,174 +13,89 @@ To: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-This is purely cosmetic, just makes code more readable
+This reduces/simplifies the diff for the next patch which moves THP
+specific code.
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- include/asm-generic/pgtable.h | 20 ++++++++++++++++++++
- mm/pgtable-generic.c          | 24 +++---------------------
- 2 files changed, 23 insertions(+), 21 deletions(-)
+ mm/pgtable-generic.c | 50 +++++++++++++++++++++++++-------------------------
+ 1 file changed, 25 insertions(+), 25 deletions(-)
 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 29c57b2cb344..11e8bf45a08f 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -30,9 +30,20 @@ extern int ptep_set_access_flags(struct vm_area_struct *vma,
- #endif
- 
- #ifndef __HAVE_ARCH_PMDP_SET_ACCESS_FLAGS
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
- extern int pmdp_set_access_flags(struct vm_area_struct *vma,
- 				 unsigned long address, pmd_t *pmdp,
- 				 pmd_t entry, int dirty);
-+#else /* CONFIG_TRANSPARENT_HUGEPAGE */
-+static inline int pmdp_set_access_flags(struct vm_area_struct *vma,
-+					unsigned long address, pmd_t *pmdp,
-+					pmd_t entry, int dirty)
-+{
-+	BUG();
-+	return 0;
-+}
-+
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif
- 
- #ifndef __HAVE_ARCH_PTEP_TEST_AND_CLEAR_YOUNG
-@@ -81,8 +92,17 @@ int ptep_clear_flush_young(struct vm_area_struct *vma,
- #endif
- 
- #ifndef __HAVE_ARCH_PMDP_CLEAR_YOUNG_FLUSH
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
- int pmdp_clear_flush_young(struct vm_area_struct *vma,
- 			   unsigned long address, pmd_t *pmdp);
-+#else /* CONFIG_TRANSPARENT_HUGEPAGE */
-+static inline int pmdp_clear_flush_young(struct vm_area_struct *vma,
-+					 unsigned long address, pmd_t *pmdp)
-+{
-+	BUG();
-+	return 0;
-+}
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif
- 
- #ifndef __HAVE_ARCH_PTEP_GET_AND_CLEAR
 diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
-index 48851894e699..c9c59bb75a17 100644
+index 6b674e00153c..48851894e699 100644
 --- a/mm/pgtable-generic.c
 +++ b/mm/pgtable-generic.c
-@@ -82,12 +82,13 @@ pte_t ptep_clear_flush(struct vm_area_struct *vma, unsigned long address,
+@@ -57,6 +57,31 @@ int ptep_set_access_flags(struct vm_area_struct *vma,
  }
  #endif
  
-+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++#ifndef __HAVE_ARCH_PTEP_CLEAR_YOUNG_FLUSH
++int ptep_clear_flush_young(struct vm_area_struct *vma,
++			   unsigned long address, pte_t *ptep)
++{
++	int young;
++	young = ptep_test_and_clear_young(vma, address, ptep);
++	if (young)
++		flush_tlb_page(vma, address);
++	return young;
++}
++#endif
++
++#ifndef __HAVE_ARCH_PTEP_CLEAR_FLUSH
++pte_t ptep_clear_flush(struct vm_area_struct *vma, unsigned long address,
++		       pte_t *ptep)
++{
++	struct mm_struct *mm = (vma)->vm_mm;
++	pte_t pte;
++	pte = ptep_get_and_clear(mm, address, ptep);
++	if (pte_accessible(mm, pte))
++		flush_tlb_page(vma, address);
++	return pte;
++}
++#endif
 +
  #ifndef __HAVE_ARCH_PMDP_SET_ACCESS_FLAGS
  int pmdp_set_access_flags(struct vm_area_struct *vma,
  			  unsigned long address, pmd_t *pmdp,
- 			  pmd_t entry, int dirty)
- {
--#ifdef CONFIG_TRANSPARENT_HUGEPAGE
- 	int changed = !pmd_same(*pmdp, entry);
- 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
- 	if (changed) {
-@@ -95,10 +96,6 @@ int pmdp_set_access_flags(struct vm_area_struct *vma,
- 		flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
- 	}
- 	return changed;
--#else /* CONFIG_TRANSPARENT_HUGEPAGE */
--	BUG();
--	return 0;
--#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+@@ -77,18 +102,6 @@ int pmdp_set_access_flags(struct vm_area_struct *vma,
  }
  #endif
  
-@@ -107,11 +104,7 @@ int pmdp_clear_flush_young(struct vm_area_struct *vma,
+-#ifndef __HAVE_ARCH_PTEP_CLEAR_YOUNG_FLUSH
+-int ptep_clear_flush_young(struct vm_area_struct *vma,
+-			   unsigned long address, pte_t *ptep)
+-{
+-	int young;
+-	young = ptep_test_and_clear_young(vma, address, ptep);
+-	if (young)
+-		flush_tlb_page(vma, address);
+-	return young;
+-}
+-#endif
+-
+ #ifndef __HAVE_ARCH_PMDP_CLEAR_YOUNG_FLUSH
+ int pmdp_clear_flush_young(struct vm_area_struct *vma,
  			   unsigned long address, pmd_t *pmdp)
- {
- 	int young;
--#ifdef CONFIG_TRANSPARENT_HUGEPAGE
- 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
--#else
--	BUG();
--#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- 	young = pmdp_test_and_clear_young(vma, address, pmdp);
- 	if (young)
- 		flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
-@@ -120,7 +113,6 @@ int pmdp_clear_flush_young(struct vm_area_struct *vma,
+@@ -106,19 +119,6 @@ int pmdp_clear_flush_young(struct vm_area_struct *vma,
+ }
  #endif
  
+-#ifndef __HAVE_ARCH_PTEP_CLEAR_FLUSH
+-pte_t ptep_clear_flush(struct vm_area_struct *vma, unsigned long address,
+-		       pte_t *ptep)
+-{
+-	struct mm_struct *mm = (vma)->vm_mm;
+-	pte_t pte;
+-	pte = ptep_get_and_clear(mm, address, ptep);
+-	if (pte_accessible(mm, pte))
+-		flush_tlb_page(vma, address);
+-	return pte;
+-}
+-#endif
+-
  #ifndef __HAVE_ARCH_PMDP_HUGE_CLEAR_FLUSH
--#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
  pmd_t pmdp_huge_clear_flush(struct vm_area_struct *vma, unsigned long address,
- 			    pmd_t *pmdp)
- {
-@@ -131,11 +123,9 @@ pmd_t pmdp_huge_clear_flush(struct vm_area_struct *vma, unsigned long address,
- 	flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
- 	return pmd;
- }
--#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif
- 
- #ifndef __HAVE_ARCH_PMDP_SPLITTING_FLUSH
--#ifdef CONFIG_TRANSPARENT_HUGEPAGE
- void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
- 			  pmd_t *pmdp)
- {
-@@ -145,11 +135,9 @@ void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
- 	/* tlb flush only to serialize against gup-fast */
- 	flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
- }
--#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif
- 
- #ifndef __HAVE_ARCH_PGTABLE_DEPOSIT
--#ifdef CONFIG_TRANSPARENT_HUGEPAGE
- void pgtable_trans_huge_deposit(struct mm_struct *mm, pmd_t *pmdp,
- 				pgtable_t pgtable)
- {
-@@ -162,11 +150,9 @@ void pgtable_trans_huge_deposit(struct mm_struct *mm, pmd_t *pmdp,
- 		list_add(&pgtable->lru, &pmd_huge_pte(mm, pmdp)->lru);
- 	pmd_huge_pte(mm, pmdp) = pgtable;
- }
--#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif
- 
- #ifndef __HAVE_ARCH_PGTABLE_WITHDRAW
--#ifdef CONFIG_TRANSPARENT_HUGEPAGE
- /* no "address" argument so destroys page coloring of some arch */
- pgtable_t pgtable_trans_huge_withdraw(struct mm_struct *mm, pmd_t *pmdp)
- {
-@@ -185,11 +171,9 @@ pgtable_t pgtable_trans_huge_withdraw(struct mm_struct *mm, pmd_t *pmdp)
- 	}
- 	return pgtable;
- }
--#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif
- 
- #ifndef __HAVE_ARCH_PMDP_INVALIDATE
--#ifdef CONFIG_TRANSPARENT_HUGEPAGE
- void pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
- 		     pmd_t *pmdp)
- {
-@@ -197,11 +181,9 @@ void pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
- 	set_pmd_at(vma->vm_mm, address, pmdp, pmd_mknotpresent(entry));
- 	flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
- }
--#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif
- 
- #ifndef pmdp_collapse_flush
--#ifdef CONFIG_TRANSPARENT_HUGEPAGE
- pmd_t pmdp_collapse_flush(struct vm_area_struct *vma, unsigned long address,
- 			  pmd_t *pmdp)
- {
-@@ -217,5 +199,5 @@ pmd_t pmdp_collapse_flush(struct vm_area_struct *vma, unsigned long address,
- 	flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
- 	return pmd;
- }
--#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- #endif
-+#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
 -- 
 1.9.1
 
