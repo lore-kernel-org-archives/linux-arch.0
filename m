@@ -1,76 +1,36 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 10/11] ARCv2: mm: THP: Implement flush_pmd_tlb_range() optimization
-Date: Thu, 27 Aug 2015 14:33:13 +0530
-Message-ID: <1440666194-21478-11-git-send-email-vgupta@synopsys.com>
-References: <1440666194-21478-1-git-send-email-vgupta@synopsys.com>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [arc-linux-dev] Re: [PATCH v3 0/6] ARCv2 port to Linux - (C) perf
+Date: Thu, 27 Aug 2015 11:18:22 +0200
+Message-ID: <20150827091822.GM3161@worktop.event.rightround.com>
+References: <1440426023-2792-1-git-send-email-abrodkin@synopsys.com>
+ <1440590824.15478.38.camel@synopsys.com>
+ <1440658683.15478.59.camel@synopsys.com>
+ <C2D7FE5348E1B147BCA15975FBA23075CFB864CB@IN01WEMBXB.internal.synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1440666194-21478-1-git-send-email-vgupta@synopsys.com>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Mel Gorman <mgorman@suse.de>, Matthew
- Wilcox <matthew.r.wilcox@intel.com>, Minchan Kim <minchan@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bombadil.infradead.org ([198.137.202.9]:51847 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753115AbbH0JSZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2015 05:18:25 -0400
+Content-Disposition: inline
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA23075CFB864CB@IN01WEMBXB.internal.synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>
 
-Implement the TLB flush routine to evict a sepcific Super TLB entry,
-vs. moving to a new ASID on every such flush.
+On Thu, Aug 27, 2015 at 07:14:52AM +0000, Vineet Gupta wrote:
+> On Thursday 27 August 2015 12:28 PM, Alexey Brodkin wrote:
+> > I'm wondering if you have any other comments on this series,
+> > otherwise please consider it for applying.
+> 
+> IMO it is better if this goes via ARC tree !
+> 
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- arch/arc/include/asm/hugepage.h |  4 ++++
- arch/arc/mm/tlb.c               | 20 ++++++++++++++++++++
- 2 files changed, 24 insertions(+)
+I agree, please take it through the ARC tree.
 
-diff --git a/arch/arc/include/asm/hugepage.h b/arch/arc/include/asm/hugepage.h
-index d7614d2af454..bf74f507e038 100644
---- a/arch/arc/include/asm/hugepage.h
-+++ b/arch/arc/include/asm/hugepage.h
-@@ -75,4 +75,8 @@ extern void pgtable_trans_huge_deposit(struct mm_struct *mm, pmd_t *pmdp,
- #define __HAVE_ARCH_PGTABLE_WITHDRAW
- extern pgtable_t pgtable_trans_huge_withdraw(struct mm_struct *mm, pmd_t *pmdp);
- 
-+#define __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
-+extern void flush_pmd_tlb_range(struct vm_area_struct *vma, unsigned long start,
-+				unsigned long end);
-+
- #endif
-diff --git a/arch/arc/mm/tlb.c b/arch/arc/mm/tlb.c
-index 211d59347047..d57272c4caf7 100644
---- a/arch/arc/mm/tlb.c
-+++ b/arch/arc/mm/tlb.c
-@@ -629,6 +629,26 @@ pgtable_t pgtable_trans_huge_withdraw(struct mm_struct *mm, pmd_t *pmdp)
- 	return pgtable;
- }
- 
-+void flush_pmd_tlb_range(struct vm_area_struct *vma, unsigned long start,
-+			 unsigned long end)
-+{
-+	unsigned int cpu;
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+
-+	cpu = smp_processor_id();
-+
-+	if (likely(asid_mm(vma->vm_mm, cpu) != MM_CTXT_NO_ASID)) {
-+		unsigned int asid = hw_pid(vma->vm_mm, cpu);
-+
-+		/* No need to loop here: this will always be for 1 Huge Page */
-+		tlb_entry_erase(start | _PAGE_HW_SZ | asid);
-+	}
-+
-+	local_irq_restore(flags);
-+}
-+
- #endif
- 
- /* Read the Cache Build Confuration Registers, Decode them and save into
--- 
-1.9.1
+The code looks good and the issues that I found were concious choices
+that I see no real problems with.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
