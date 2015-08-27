@@ -1,142 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a23-79-238-179.deploy.static.akamaitechnologies.com ([23.79.238.179]:13453
-	"EHLO prod-mail-xrelay05.akamai.com" rhost-flags-OK-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1752211AbbHZSY3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Aug 2015 14:24:29 -0400
-From: Eric B Munson <emunson@akamai.com>
-Subject: [PATCH v8 6/6] mips: Add entry for new mlock2 syscall
-Date: Wed, 26 Aug 2015 14:24:25 -0400
-Message-ID: <1440613465-30393-7-git-send-email-emunson@akamai.com>
-In-Reply-To: <1440613465-30393-1-git-send-email-emunson@akamai.com>
-References: <1440613465-30393-1-git-send-email-emunson@akamai.com>
+Received: from mail-wi0-f178.google.com ([209.85.212.178]:33887 "EHLO
+	mail-wi0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753629AbbH0Pc5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2015 11:32:57 -0400
+Received: by widdq5 with SMTP id dq5so81794498wid.1
+        for <linux-arch@vger.kernel.org>; Thu, 27 Aug 2015 08:32:56 -0700 (PDT)
+Date: Thu, 27 Aug 2015 18:32:54 +0300
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCH 04/11] ARCv2: mm: THP support
+Message-ID: <20150827153254.GA21103@node.dhcp.inet.fi>
+References: <1440666194-21478-1-git-send-email-vgupta@synopsys.com>
+ <1440666194-21478-5-git-send-email-vgupta@synopsys.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1440666194-21478-5-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Eric B Munson <emunson@akamai.com>, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org
-Message-ID: <20150826182425.nhVafduzqbdGqJv-SMUl6wXClu-R7HsJyKIldHz5Dbc@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Mel Gorman <mgorman@suse.de>, Matthew Wilcox <matthew.r.wilcox@intel.com>, Minchan Kim <minchan@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, arc-linux-dev@synopsys.com
+Message-ID: <20150827153254.PhWG6KmFB-IicGzc2jk8DX-09nH8ntcKSWItlCLM_Bs@z>
 
-A previous commit introduced the new mlock2 syscall, add entries for the
-MIPS architecture.
+On Thu, Aug 27, 2015 at 02:33:07PM +0530, Vineet Gupta wrote:
+> +pgtable_t pgtable_trans_huge_withdraw(struct mm_struct *mm, pmd_t *pmdp)
+> +{
+> +	struct list_head *lh;
+> +	pgtable_t pgtable;
+> +	pte_t *ptep;
+> +
+> +	assert_spin_locked(&mm->page_table_lock);
+> +
+> +	pgtable = pmd_huge_pte(mm, pmdp);
+> +	lh = (struct list_head *) pgtable;
+> +	if (list_empty(lh))
+> +		pmd_huge_pte(mm, pmdp) = (pgtable_t) NULL;
+> +	else {
+> +		pmd_huge_pte(mm, pmdp) = (pgtable_t) lh->next;
+> +		list_del(lh);
+> +	}
 
-Signed-off-by: Eric B Munson <emunson@akamai.com>
-Acked-by: Ralf Baechle <ralf@linux-mips.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-mips@linux-mips.org
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mm@kvack.org
-Cc: linux-kernel@vger.kernel.org
----
- arch/mips/include/uapi/asm/unistd.h | 15 +++++++++------
- arch/mips/kernel/scall32-o32.S      |  1 +
- arch/mips/kernel/scall64-64.S       |  1 +
- arch/mips/kernel/scall64-n32.S      |  1 +
- arch/mips/kernel/scall64-o32.S      |  1 +
- 5 files changed, 13 insertions(+), 6 deletions(-)
+Side question: why pgtable_t is unsigned long on ARC and not struct page *
+or pte_t *, like on other archs? We could avoid these casts.
 
-diff --git a/arch/mips/include/uapi/asm/unistd.h b/arch/mips/include/uapi/asm/unistd.h
-index c03088f..d0bdfaa 100644
---- a/arch/mips/include/uapi/asm/unistd.h
-+++ b/arch/mips/include/uapi/asm/unistd.h
-@@ -377,16 +377,17 @@
- #define __NR_memfd_create		(__NR_Linux + 354)
- #define __NR_bpf			(__NR_Linux + 355)
- #define __NR_execveat			(__NR_Linux + 356)
-+#define __NR_mlock2			(__NR_Linux + 357)
- 
- /*
-  * Offset of the last Linux o32 flavoured syscall
-  */
--#define __NR_Linux_syscalls		356
-+#define __NR_Linux_syscalls		357
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI32 */
- 
- #define __NR_O32_Linux			4000
--#define __NR_O32_Linux_syscalls		356
-+#define __NR_O32_Linux_syscalls		357
- 
- #if _MIPS_SIM == _MIPS_SIM_ABI64
- 
-@@ -711,16 +712,17 @@
- #define __NR_memfd_create		(__NR_Linux + 314)
- #define __NR_bpf			(__NR_Linux + 315)
- #define __NR_execveat			(__NR_Linux + 316)
-+#define __NR_mlock2			(__NR_Linux + 317)
- 
- /*
-  * Offset of the last Linux 64-bit flavoured syscall
-  */
--#define __NR_Linux_syscalls		316
-+#define __NR_Linux_syscalls		317
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_ABI64 */
- 
- #define __NR_64_Linux			5000
--#define __NR_64_Linux_syscalls		316
-+#define __NR_64_Linux_syscalls		317
- 
- #if _MIPS_SIM == _MIPS_SIM_NABI32
- 
-@@ -1049,15 +1051,16 @@
- #define __NR_memfd_create		(__NR_Linux + 318)
- #define __NR_bpf			(__NR_Linux + 319)
- #define __NR_execveat			(__NR_Linux + 320)
-+#define __NR_mlock2			(__NR_Linux + 321)
- 
- /*
-  * Offset of the last N32 flavoured syscall
-  */
--#define __NR_Linux_syscalls		320
-+#define __NR_Linux_syscalls		321
- 
- #endif /* _MIPS_SIM == _MIPS_SIM_NABI32 */
- 
- #define __NR_N32_Linux			6000
--#define __NR_N32_Linux_syscalls		320
-+#define __NR_N32_Linux_syscalls		321
- 
- #endif /* _UAPI_ASM_UNISTD_H */
-diff --git a/arch/mips/kernel/scall32-o32.S b/arch/mips/kernel/scall32-o32.S
-index 4cc1350..b0b377a 100644
---- a/arch/mips/kernel/scall32-o32.S
-+++ b/arch/mips/kernel/scall32-o32.S
-@@ -599,3 +599,4 @@ EXPORT(sys_call_table)
- 	PTR	sys_memfd_create
- 	PTR	sys_bpf				/* 4355 */
- 	PTR	sys_execveat
-+	PTR	sys_mlock2
-diff --git a/arch/mips/kernel/scall64-64.S b/arch/mips/kernel/scall64-64.S
-index a6f6b76..f12eb03 100644
---- a/arch/mips/kernel/scall64-64.S
-+++ b/arch/mips/kernel/scall64-64.S
-@@ -436,4 +436,5 @@ EXPORT(sys_call_table)
- 	PTR	sys_memfd_create
- 	PTR	sys_bpf				/* 5315 */
- 	PTR	sys_execveat
-+	PTR	sys_mlock2
- 	.size	sys_call_table,.-sys_call_table
-diff --git a/arch/mips/kernel/scall64-n32.S b/arch/mips/kernel/scall64-n32.S
-index 4b20106..ecdd65a 100644
---- a/arch/mips/kernel/scall64-n32.S
-+++ b/arch/mips/kernel/scall64-n32.S
-@@ -429,4 +429,5 @@ EXPORT(sysn32_call_table)
- 	PTR	sys_memfd_create
- 	PTR	sys_bpf
- 	PTR	compat_sys_execveat		/* 6320 */
-+	PTR	sys_mlock2
- 	.size	sysn32_call_table,.-sysn32_call_table
-diff --git a/arch/mips/kernel/scall64-o32.S b/arch/mips/kernel/scall64-o32.S
-index f543ff4..7a8b2df 100644
---- a/arch/mips/kernel/scall64-o32.S
-+++ b/arch/mips/kernel/scall64-o32.S
-@@ -584,4 +584,5 @@ EXPORT(sys32_call_table)
- 	PTR	sys_memfd_create
- 	PTR	sys_bpf				/* 4355 */
- 	PTR	compat_sys_execveat
-+	PTR	sys_mlock2
- 	.size	sys32_call_table,.-sys32_call_table
 -- 
-1.9.1
-
+ Kirill A. Shutemov
