@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 09/11] mm,thp: introduce flush_pmd_tlb_range
-Date: Thu, 27 Aug 2015 14:33:12 +0530
-Message-ID: <1440666194-21478-10-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 11/11] ARCv2: Add a DT which enables THP
+Date: Thu, 27 Aug 2015 14:33:14 +0530
+Message-ID: <1440666194-21478-12-git-send-email-vgupta@synopsys.com>
 References: <1440666194-21478-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -13,103 +13,80 @@ To: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
+* Enable THP at bootup
+* More than 512M RAM (kernel auto-disabled THP for smaller systems)
+
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- mm/huge_memory.c     |  2 +-
- mm/pgtable-generic.c | 25 +++++++++++++++++++------
- 2 files changed, 20 insertions(+), 7 deletions(-)
+ arch/arc/boot/dts/hs_thp.dts | 59 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 59 insertions(+)
+ create mode 100644 arch/arc/boot/dts/hs_thp.dts
 
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 79b7a6826766..8d301dfc9d73 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -1915,7 +1915,7 @@ static int __split_huge_page_map(struct page *page,
- 		 * here). But it is generally safer to never allow
- 		 * small and huge TLB entries for the same virtual
- 		 * address to be loaded simultaneously. So instead of
--		 * doing "pmd_populate(); flush_tlb_range();" we first
-+		 * doing "pmd_populate(); flush_pmd_tlb_range();" we first
- 		 * mark the current pmd notpresent (atomically because
- 		 * here the pmd_trans_huge and pmd_trans_splitting
- 		 * must remain set at all times on the pmd until the
-diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
-index c9c59bb75a17..b0fed9a4776e 100644
---- a/mm/pgtable-generic.c
-+++ b/mm/pgtable-generic.c
-@@ -84,6 +84,19 @@ pte_t ptep_clear_flush(struct vm_area_struct *vma, unsigned long address,
- 
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- 
-+#ifndef __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
-+
+diff --git a/arch/arc/boot/dts/hs_thp.dts b/arch/arc/boot/dts/hs_thp.dts
+new file mode 100644
+index 000000000000..818a8c968330
+--- /dev/null
++++ b/arch/arc/boot/dts/hs_thp.dts
+@@ -0,0 +1,59 @@
 +/*
-+ * ARCHes with special requirements for evicting THP backing TLB entries can
-+ * implement this. Otherwise also, it can help optimizing thp flush operation.
-+ * flush_tlb_range() can have optimization to nuke the entire TLB if flush span
-+ * is greater than a threashhold, which will likely be true for a single
-+ * huge page.
-+ * e.g. see arch/arc: flush_pmd_tlb_range
++ * Copyright (C) 2015 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
 + */
-+#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, end)
-+#endif
++/dts-v1/;
 +
- #ifndef __HAVE_ARCH_PMDP_SET_ACCESS_FLAGS
- int pmdp_set_access_flags(struct vm_area_struct *vma,
- 			  unsigned long address, pmd_t *pmdp,
-@@ -93,7 +106,7 @@ int pmdp_set_access_flags(struct vm_area_struct *vma,
- 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
- 	if (changed) {
- 		set_pmd_at(vma->vm_mm, address, pmdp, entry);
--		flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
-+		flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
- 	}
- 	return changed;
- }
-@@ -107,7 +120,7 @@ int pmdp_clear_flush_young(struct vm_area_struct *vma,
- 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
- 	young = pmdp_test_and_clear_young(vma, address, pmdp);
- 	if (young)
--		flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
-+		flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
- 	return young;
- }
- #endif
-@@ -120,7 +133,7 @@ pmd_t pmdp_huge_clear_flush(struct vm_area_struct *vma, unsigned long address,
- 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
- 	VM_BUG_ON(!pmd_trans_huge(*pmdp));
- 	pmd = pmdp_huge_get_and_clear(vma->vm_mm, address, pmdp);
--	flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
-+	flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
- 	return pmd;
- }
- #endif
-@@ -133,7 +146,7 @@ void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
- 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
- 	set_pmd_at(vma->vm_mm, address, pmdp, pmd);
- 	/* tlb flush only to serialize against gup-fast */
--	flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
-+	flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
- }
- #endif
- 
-@@ -179,7 +192,7 @@ void pmdp_invalidate(struct vm_area_struct *vma, unsigned long address,
- {
- 	pmd_t entry = *pmdp;
- 	set_pmd_at(vma->vm_mm, address, pmdp, pmd_mknotpresent(entry));
--	flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
-+	flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
- }
- #endif
- 
-@@ -196,7 +209,7 @@ pmd_t pmdp_collapse_flush(struct vm_area_struct *vma, unsigned long address,
- 	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
- 	VM_BUG_ON(pmd_trans_huge(*pmdp));
- 	pmd = pmdp_huge_get_and_clear(vma->vm_mm, address, pmdp);
--	flush_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
-+	flush_pmd_tlb_range(vma, address, address + HPAGE_PMD_SIZE);
- 	return pmd;
- }
- #endif
++/include/ "skeleton.dtsi"
++
++/ {
++	compatible = "snps,nsim_hs";
++	interrupt-parent = <&core_intc>;
++
++	chosen {
++		bootargs = "earlycon=arc_uart,mmio32,0xc0fc1000,115200n8 console=ttyARC0,115200n8 transparent_hugepage=always";
++	};
++
++	aliases {
++		serial0 = &arcuart0;
++	};
++
++	memory {
++		device_type = "memory";
++		/* reg = <0x00000000 0x28000000>; */
++		reg = <0x00000000 0x40000000>;
++	};
++
++	fpga {
++		compatible = "simple-bus";
++		#address-cells = <1>;
++		#size-cells = <1>;
++
++		/* child and parent address space 1:1 mapped */
++		ranges;
++
++		core_intc: core-interrupt-controller {
++			compatible = "snps,archs-intc";
++			interrupt-controller;
++			#interrupt-cells = <1>;
++		};
++
++		arcuart0: serial@c0fc1000 {
++			compatible = "snps,arc-uart";
++			reg = <0xc0fc1000 0x100>;
++			interrupts = <24>;
++			clock-frequency = <80000000>;
++			current-speed = <115200>;
++			status = "okay";
++		};
++
++		arcpct0: pct {
++			compatible = "snps,archs-pct";
++			#interrupt-cells = <1>;
++			interrupts = <20>;
++		};
++	};
++};
 -- 
 1.9.1
 
