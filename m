@@ -1,62 +1,63 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [arc-linux-dev] Re: [PATCH v3 0/6] ARCv2 port to Linux - (C)
- perf
-Date: Thu, 27 Aug 2015 07:14:52 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075CFB864CB@IN01WEMBXB.internal.synopsys.com>
-References: <1440426023-2792-1-git-send-email-abrodkin@synopsys.com>
- <1440590824.15478.38.camel@synopsys.com>
- <1440658683.15478.59.camel@synopsys.com>
+Subject: [PATCH 00/11] THP support for ARC
+Date: Thu, 27 Aug 2015 14:33:03 +0530
+Message-ID: <1440666194-21478-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay2.synopsys.com ([198.182.60.111]:57097 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751354AbbH0HQD convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Aug 2015 03:16:03 -0400
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "peterz@infradead.org" <peterz@infradead.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>
+Content-Type: text/plain
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Mel Gorman <mgorman@suse.de>, Matthew
+ Wilcox <matthew.r.wilcox@intel.com>, Minchan Kim <minchan@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thursday 27 August 2015 12:28 PM, Alexey Brodkin wrote:
-> Hi Peter,
->
-> On Wed, 2015-08-26 at 12:07 +0000, Alexey Brodkin wrote:
->> > Hi Peter,
->> > 
->> > On Mon, 2015-08-24 at 17:20 +0300, Alexey Brodkin wrote:
->>> > > Hi Peter,
->>> > > 
->>> > > This mini-series adds perf support for ARCv2 based cores, which brings in
->>> > > overflow interupts and SMP. Additionally now raw events are supported as well.
->>> > > 
->>> > > Please review !
->>> > > 
->>> > > Compared to v2 this series has:
->>> > >  [1] Removed patch with raw-events support.
->>> > >      It needs some rework and let's then discuss it separately.
->>> > >      Still I plan to send it shortly.
->>> > >  [2] Merged "set usable max period as a half of real max period" into
->>> > >      "implement "event_set_period".
->>> > >  [3] Fixed arc_pmu_event_set_period() in regard of incorrect
->>> > >      "hwc->period_left" setup.
->>> > >  [4] Moved interrupts enabling from arc_pmu_add() to arc_pmu_start()
->>> > > 
->>> > > Compared to v1 this series has:
->>> > >  [1] Addressed review comments
->>> > >  [2] More verbose commit messages and comments in sources
->>> > >  [3] Minor cosmetics
->>> > > 
->>> > > Thanks,
->>> > > Alexey
-> I'm wondering if you have any other comments on this series,
-> otherwise please consider it for applying.
+Hi,
 
-IMO it is better if this goes via ARC tree !
+This series brings THP support to ARC. It also introduces an optional new
+thp hook for arches to possibly optimize the TLB flush in thp regime.
 
+Rebased against linux-next of today so includes new hook for Minchan's
+madvise(MADV_FREE).
+
+Please review !
+
+Thx,
 -Vineet
 
->
-> -Alexey
+Vineet Gupta (11):
+  ARC: mm: pte flags comsetic cleanups, comments
+  ARC: mm: Introduce PTE_SPECIAL
+  Documentation/features/vm: pte_special now supported by ARC
+  ARCv2: mm: THP support
+  ARCv2: mm: THP: boot validation/reporting
+  Documentation/features/vm: THP now supported by ARC
+  mm: move some code around
+  mm,thp: reduce ifdef'ery for THP in generic code
+  mm,thp: introduce flush_pmd_tlb_range
+  ARCv2: mm: THP: Implement flush_pmd_tlb_range() optimization
+  ARCv2: Add a DT which enables THP
+
+ Documentation/features/vm/THP/arch-support.txt     |  2 +-
+ .../features/vm/pte_special/arch-support.txt       |  2 +-
+ arch/arc/Kconfig                                   |  4 +
+ arch/arc/boot/dts/hs_thp.dts                       | 59 +++++++++++++
+ arch/arc/include/asm/hugepage.h                    | 82 ++++++++++++++++++
+ arch/arc/include/asm/page.h                        |  1 +
+ arch/arc/include/asm/pgtable.h                     | 60 +++++++------
+ arch/arc/mm/tlb.c                                  | 79 ++++++++++++++++-
+ arch/arc/mm/tlbex.S                                | 21 +++--
+ include/asm-generic/pgtable.h                      | 20 +++++
+ mm/huge_memory.c                                   |  2 +-
+ mm/pgtable-generic.c                               | 99 ++++++++++------------
+ 12 files changed, 345 insertions(+), 86 deletions(-)
+ create mode 100644 arch/arc/boot/dts/hs_thp.dts
+ create mode 100644 arch/arc/include/asm/hugepage.h
+
+-- 
+1.9.1
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
