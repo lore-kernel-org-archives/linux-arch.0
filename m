@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 11/11] ARCv2: Add a DT which enables THP
-Date: Thu, 27 Aug 2015 14:33:14 +0530
-Message-ID: <1440666194-21478-12-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH 10/11] ARCv2: mm: THP: Implement flush_pmd_tlb_range() optimization
+Date: Thu, 27 Aug 2015 14:33:13 +0530
+Message-ID: <1440666194-21478-11-git-send-email-vgupta@synopsys.com>
 References: <1440666194-21478-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -13,80 +13,59 @@ To: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, arc-linux-dev@synopsys.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-* Enable THP at bootup
-* More than 512M RAM (kernel auto-disabled THP for smaller systems)
+Implement the TLB flush routine to evict a sepcific Super TLB entry,
+vs. moving to a new ASID on every such flush.
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/boot/dts/hs_thp.dts | 59 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 59 insertions(+)
- create mode 100644 arch/arc/boot/dts/hs_thp.dts
+ arch/arc/include/asm/hugepage.h |  4 ++++
+ arch/arc/mm/tlb.c               | 20 ++++++++++++++++++++
+ 2 files changed, 24 insertions(+)
 
-diff --git a/arch/arc/boot/dts/hs_thp.dts b/arch/arc/boot/dts/hs_thp.dts
-new file mode 100644
-index 000000000000..818a8c968330
---- /dev/null
-+++ b/arch/arc/boot/dts/hs_thp.dts
-@@ -0,0 +1,59 @@
-+/*
-+ * Copyright (C) 2015 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+/dts-v1/;
+diff --git a/arch/arc/include/asm/hugepage.h b/arch/arc/include/asm/hugepage.h
+index d7614d2af454..bf74f507e038 100644
+--- a/arch/arc/include/asm/hugepage.h
++++ b/arch/arc/include/asm/hugepage.h
+@@ -75,4 +75,8 @@ extern void pgtable_trans_huge_deposit(struct mm_struct *mm, pmd_t *pmdp,
+ #define __HAVE_ARCH_PGTABLE_WITHDRAW
+ extern pgtable_t pgtable_trans_huge_withdraw(struct mm_struct *mm, pmd_t *pmdp);
+ 
++#define __HAVE_ARCH_FLUSH_PMD_TLB_RANGE
++extern void flush_pmd_tlb_range(struct vm_area_struct *vma, unsigned long start,
++				unsigned long end);
 +
-+/include/ "skeleton.dtsi"
+ #endif
+diff --git a/arch/arc/mm/tlb.c b/arch/arc/mm/tlb.c
+index 211d59347047..d57272c4caf7 100644
+--- a/arch/arc/mm/tlb.c
++++ b/arch/arc/mm/tlb.c
+@@ -629,6 +629,26 @@ pgtable_t pgtable_trans_huge_withdraw(struct mm_struct *mm, pmd_t *pmdp)
+ 	return pgtable;
+ }
+ 
++void flush_pmd_tlb_range(struct vm_area_struct *vma, unsigned long start,
++			 unsigned long end)
++{
++	unsigned int cpu;
++	unsigned long flags;
 +
-+/ {
-+	compatible = "snps,nsim_hs";
-+	interrupt-parent = <&core_intc>;
++	local_irq_save(flags);
 +
-+	chosen {
-+		bootargs = "earlycon=arc_uart,mmio32,0xc0fc1000,115200n8 console=ttyARC0,115200n8 transparent_hugepage=always";
-+	};
++	cpu = smp_processor_id();
 +
-+	aliases {
-+		serial0 = &arcuart0;
-+	};
++	if (likely(asid_mm(vma->vm_mm, cpu) != MM_CTXT_NO_ASID)) {
++		unsigned int asid = hw_pid(vma->vm_mm, cpu);
 +
-+	memory {
-+		device_type = "memory";
-+		/* reg = <0x00000000 0x28000000>; */
-+		reg = <0x00000000 0x40000000>;
-+	};
++		/* No need to loop here: this will always be for 1 Huge Page */
++		tlb_entry_erase(start | _PAGE_HW_SZ | asid);
++	}
 +
-+	fpga {
-+		compatible = "simple-bus";
-+		#address-cells = <1>;
-+		#size-cells = <1>;
++	local_irq_restore(flags);
++}
 +
-+		/* child and parent address space 1:1 mapped */
-+		ranges;
-+
-+		core_intc: core-interrupt-controller {
-+			compatible = "snps,archs-intc";
-+			interrupt-controller;
-+			#interrupt-cells = <1>;
-+		};
-+
-+		arcuart0: serial@c0fc1000 {
-+			compatible = "snps,arc-uart";
-+			reg = <0xc0fc1000 0x100>;
-+			interrupts = <24>;
-+			clock-frequency = <80000000>;
-+			current-speed = <115200>;
-+			status = "okay";
-+		};
-+
-+		arcpct0: pct {
-+			compatible = "snps,archs-pct";
-+			#interrupt-cells = <1>;
-+			interrupts = <20>;
-+		};
-+	};
-+};
+ #endif
+ 
+ /* Read the Cache Build Confuration Registers, Decode them and save into
 -- 
 1.9.1
 
