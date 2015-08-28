@@ -1,50 +1,35 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: Re: [PATCH v8 4/6] mm: mlock: Add mlock flags to enable
- VM_LOCKONFAULT usage
-Date: Fri, 28 Aug 2015 16:32:51 +0200
-Message-ID: <20150828143251.GF5301@dhcp22.suse.cz>
-References: <1440613465-30393-1-git-send-email-emunson@akamai.com>
- <1440613465-30393-5-git-send-email-emunson@akamai.com>
- <20150828143130.GE5301@dhcp22.suse.cz>
+From: Darren Hart <dvhart@infradead.org>
+Subject: Re: [PATCH 1/9] move io-64-nonatomic*.h out of asm-generic
+Date: Fri, 28 Aug 2015 11:19:28 -0700
+Message-ID: <20150828181928.GD33809@vmdeb7>
+References: <1440746842-19029-1-git-send-email-hch@lst.de>
+ <1440746842-19029-2-git-send-email-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f174.google.com ([209.85.212.174]:37873 "EHLO
-	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751963AbbH1Ocz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Aug 2015 10:32:55 -0400
+Return-path: <linux-gpio-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20150828143130.GE5301@dhcp22.suse.cz>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@akamai.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Vlastimil Babka <vbabka@suse.cz>, Jonathan Corbet <corbet@lwn.net>, "Kirill A. Shutemov" <kirill@shutemov.name>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-mm@kvack.org
+In-Reply-To: <1440746842-19029-2-git-send-email-hch@lst.de>
+Sender: linux-gpio-owner@vger.kernel.org
+To: Christoph Hellwig <hch@lst.de>
+Cc: arnd@arndb.de, mitake@dcl.info.waseda.ac.jp, dhowells@redhat.com, herbert@gondor.apana.org.au, oded.gabbay@amd.com, eli@mellanox.com, james_p_freyensee@linux.intel.com, linux-gpio@vger.kernel.org, drbd-dev@lists.linbit.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri 28-08-15 16:31:30, Michal Hocko wrote:
-> On Wed 26-08-15 14:24:23, Eric B Munson wrote:
-> > The previous patch introduced a flag that specified pages in a VMA
-> > should be placed on the unevictable LRU, but they should not be made
-> > present when the area is created.  This patch adds the ability to set
-> > this state via the new mlock system calls.
-> > 
-> > We add MLOCK_ONFAULT for mlock2 and MCL_ONFAULT for mlockall.
-> > MLOCK_ONFAULT will set the VM_LOCKONFAULT modifier for VM_LOCKED.
-> > MCL_ONFAULT should be used as a modifier to the two other mlockall
-> > flags.  When used with MCL_CURRENT, all current mappings will be marked
-> > with VM_LOCKED | VM_LOCKONFAULT.  When used with MCL_FUTURE, the
-> > mm->def_flags will be marked with VM_LOCKED | VM_LOCKONFAULT.  When used
-> > with both MCL_CURRENT and MCL_FUTURE, all current mappings and
-> > mm->def_flags will be marked with VM_LOCKED | VM_LOCKONFAULT.
-> > 
-> > Prior to this patch, mlockall() will unconditionally clear the
-> > mm->def_flags any time it is called without MCL_FUTURE.  This behavior
-> > is maintained after adding MCL_ONFAULT.  If a call to
-> > mlockall(MCL_FUTURE) is followed by mlockall(MCL_CURRENT), the
-> > mm->def_flags will be cleared and new VMAs will be unlocked.  This
-> > remains true with or without MCL_ONFAULT in either mlockall()
-> > invocation.
+On Fri, Aug 28, 2015 at 09:27:14AM +0200, Christoph Hellwig wrote:
+> These are not implementations of default architecture code but helpers
+> for drivers. Move them to the place they belong to.
+> 
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
 
-Btw. I think we really want a man page for this new mlock call.
+...
+
+>  drivers/platform/x86/ibm_rtl.c                 |  2 +-
+>  drivers/platform/x86/intel_ips.c               |  2 +-
+
+No objection for platform/drivers/x86
+
+Acked-by: Darren Hart <dvhart@linux.intel.com>
+
 -- 
-Michal Hocko
-SUSE Labs
+Darren Hart
+Intel Open Source Technology Center
