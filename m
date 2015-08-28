@@ -1,42 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:33500 "EHLO
+Received: from bombadil.infradead.org ([198.137.202.9]:33447 "EHLO
 	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752296AbbH1HbN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Aug 2015 03:31:13 -0400
+	with ESMTP id S1752123AbbH1Ha7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Aug 2015 03:30:59 -0400
 From: Christoph Hellwig <hch@lst.de>
-Subject: [PATCH 9/9] gpio-mxc: stop including <asm-generic/bug>
-Date: Fri, 28 Aug 2015 09:27:22 +0200
-Message-ID: <1440746842-19029-10-git-send-email-hch@lst.de>
+Subject: [PATCH 6/9] mlx5: stop including <asm-generic/kmap_types.h>
+Date: Fri, 28 Aug 2015 09:27:19 +0200
+Message-ID: <1440746842-19029-7-git-send-email-hch@lst.de>
 In-Reply-To: <1440746842-19029-1-git-send-email-hch@lst.de>
 References: <1440746842-19029-1-git-send-email-hch@lst.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de
 Cc: mitake@dcl.info.waseda.ac.jp, dhowells@redhat.com, herbert@gondor.apana.org.au, oded.gabbay@amd.com, eli@mellanox.com, james_p_freyensee@linux.intel.com, linux-gpio@vger.kernel.org, drbd-dev@lists.linbit.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20150828072722.NkwjjItk7T-UA_wOtjAs9_LzmtLaYdUWtqIozUnSv2o@z>
+Message-ID: <20150828072719.Zunz58EUEbWW1OBoj87bPgFxe2iuPsP7Q8-rCNjAZt4@z>
 
-<asm-generic/bug> contains the default implementation of BUG() and friends,
-which architectures may decide to use.  The proper way to get them is
-<linux/bug.h>, so use that.
+<linux/highmem.h> is the placace the get the kmap type flags, asm-generic
+files are generic implementations only to be used by architecture code.
 
 Signed-off-by: Christoph Hellwig <hch@lst.de>
 ---
- drivers/gpio/gpio-mxc.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ drivers/infiniband/hw/mlx5/main.c                   | 2 +-
+ drivers/net/ethernet/mellanox/mlx5/core/cmd.c       | 2 +-
+ drivers/net/ethernet/mellanox/mlx5/core/main.c      | 2 +-
+ drivers/net/ethernet/mellanox/mlx5/core/pagealloc.c | 2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/drivers/gpio/gpio-mxc.c b/drivers/gpio/gpio-mxc.c
-index ec1eb1b..95be265 100644
---- a/drivers/gpio/gpio-mxc.c
-+++ b/drivers/gpio/gpio-mxc.c
-@@ -33,7 +33,7 @@
- #include <linux/of.h>
- #include <linux/of_device.h>
- #include <linux/module.h>
--#include <asm-generic/bug.h>
-+#include <linux/bug.h>
+diff --git a/drivers/infiniband/hw/mlx5/main.c b/drivers/infiniband/hw/mlx5/main.c
+index 085c24b..37d7c0e 100644
+--- a/drivers/infiniband/hw/mlx5/main.c
++++ b/drivers/infiniband/hw/mlx5/main.c
+@@ -30,7 +30,7 @@
+  * SOFTWARE.
+  */
  
- enum mxc_gpio_hwtype {
- 	IMX1_GPIO,	/* runs on i.mx1 */
+-#include <asm-generic/kmap_types.h>
++#include <linux/highmem.h>
+ #include <linux/module.h>
+ #include <linux/init.h>
+ #include <linux/errno.h>
+diff --git a/drivers/net/ethernet/mellanox/mlx5/core/cmd.c b/drivers/net/ethernet/mellanox/mlx5/core/cmd.c
+index 75ff58d..594a149 100644
+--- a/drivers/net/ethernet/mellanox/mlx5/core/cmd.c
++++ b/drivers/net/ethernet/mellanox/mlx5/core/cmd.c
+@@ -30,7 +30,7 @@
+  * SOFTWARE.
+  */
+ 
+-#include <asm-generic/kmap_types.h>
++#include <linux/highmem.h>
+ #include <linux/module.h>
+ #include <linux/errno.h>
+ #include <linux/pci.h>
+diff --git a/drivers/net/ethernet/mellanox/mlx5/core/main.c b/drivers/net/ethernet/mellanox/mlx5/core/main.c
+index 06e3e1e..b9140b0 100644
+--- a/drivers/net/ethernet/mellanox/mlx5/core/main.c
++++ b/drivers/net/ethernet/mellanox/mlx5/core/main.c
+@@ -30,7 +30,7 @@
+  * SOFTWARE.
+  */
+ 
+-#include <asm-generic/kmap_types.h>
++#include <linux/highmem.h>
+ #include <linux/module.h>
+ #include <linux/init.h>
+ #include <linux/errno.h>
+diff --git a/drivers/net/ethernet/mellanox/mlx5/core/pagealloc.c b/drivers/net/ethernet/mellanox/mlx5/core/pagealloc.c
+index 8a64542..fda02ec 100644
+--- a/drivers/net/ethernet/mellanox/mlx5/core/pagealloc.c
++++ b/drivers/net/ethernet/mellanox/mlx5/core/pagealloc.c
+@@ -30,7 +30,7 @@
+  * SOFTWARE.
+  */
+ 
+-#include <asm-generic/kmap_types.h>
++#include <linux/highmem.h>
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+ #include <linux/mlx5/driver.h>
 -- 
 1.9.1
 
