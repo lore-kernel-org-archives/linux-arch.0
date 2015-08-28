@@ -1,137 +1,190 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 04/11] ARCv2: mm: THP support
-Date: Fri, 28 Aug 2015 06:09:37 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075CFB86BEE@IN01WEMBXB.internal.synopsys.com>
-References: <1440666194-21478-1-git-send-email-vgupta@synopsys.com>
- <1440666194-21478-5-git-send-email-vgupta@synopsys.com>
- <20150827153254.GA21103@node.dhcp.inet.fi>
+From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Subject: [PATCH 2/9] move count_zeroes.h out of asm-generic
+Date: Fri, 28 Aug 2015 09:27:15 +0200
+Message-ID: <1440746842-19029-3-git-send-email-hch@lst.de>
+References: <1440746842-19029-1-git-send-email-hch@lst.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Mel Gorman <mgorman@suse.de>, Matthew
- Wilcox <matthew.r.wilcox@intel.com>, Minchan Kim <minchan@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>
+Content-Transfer-Encoding: 7bit
+Return-path: <drbd-dev-bounces-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org>
+In-Reply-To: <1440746842-19029-1-git-send-email-hch-jcswGhMUV9g@public.gmane.org>
+List-Unsubscribe: <http://lists.linbit.com/mailman/options/drbd-dev>,
+	<mailto:drbd-dev-request-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linbit.com/pipermail/drbd-dev>
+List-Post: <mailto:drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org>
+List-Help: <mailto:drbd-dev-request-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org?subject=help>
+List-Subscribe: <http://lists.linbit.com/mailman/listinfo/drbd-dev>,
+	<mailto:drbd-dev-request-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org?subject=subscribe>
+Sender: drbd-dev-bounces-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org
+Errors-To: drbd-dev-bounces-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org
+To: arnd-r2nGTMty4D4@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, mitake-uo9agqpHHEbPUJYwFPjUlCGn5s73+xxf@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, oded.gabbay-5C7GfCeVMHo@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, linux-gpio-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, eli-VPRAkNaXOzVWk0Htik3J/w@public.gmane.org, james_p_freyensee-VuQAYsv1563Yd54FQh9/CA@public.gmane.org, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org, herbert-lOAM2aK0SrRLBo1qDEOMRrpzq4S04n8Q@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On Thursday 27 August 2015 09:03 PM, Kirill A. Shutemov wrote:=0A=
-> On Thu, Aug 27, 2015 at 02:33:07PM +0530, Vineet Gupta wrote:=0A=
->> +pgtable_t pgtable_trans_huge_withdraw(struct mm_struct *mm, pmd_t *pmdp=
-)=0A=
->> +{=0A=
->> +	struct list_head *lh;=0A=
->> +	pgtable_t pgtable;=0A=
->> +	pte_t *ptep;=0A=
->> +=0A=
->> +	assert_spin_locked(&mm->page_table_lock);=0A=
->> +=0A=
->> +	pgtable =3D pmd_huge_pte(mm, pmdp);=0A=
->> +	lh =3D (struct list_head *) pgtable;=0A=
->> +	if (list_empty(lh))=0A=
->> +		pmd_huge_pte(mm, pmdp) =3D (pgtable_t) NULL;=0A=
->> +	else {=0A=
->> +		pmd_huge_pte(mm, pmdp) =3D (pgtable_t) lh->next;=0A=
->> +		list_del(lh);=0A=
->> +	}=0A=
-> Side question: why pgtable_t is unsigned long on ARC and not struct page =
-*=0A=
-> or pte_t *, like on other archs? We could avoid these casts.=0A=
-=0A=
-Well we avoid some and add some, but I agree that it is better as pte_t *=
-=0A=
-=0A=
--------------->=0A=
-From 7170a998bd4d5014ade94f4e5ba979c929d1ee18 Mon Sep 17 00:00:00 2001=0A=
-From: Vineet Gupta <vgupta@synopsys.com>=0A=
-Date: Fri, 28 Aug 2015 08:39:57 +0530=0A=
-Subject: [PATCH] ARC: mm: switch pgtable_to to pte_t *=0A=
-=0A=
-ARC is the only arch with unsigned long type (vs. struct page *).=0A=
-Historically this was done to avoid the page_address() calls in various=0A=
-arch hooks which need to get the virtual/logical address of the table.=0A=
-=0A=
-Some arches alternately define it as pte_t *, and is as efficient as=0A=
-unsigned long (generated code doesn't change)=0A=
-=0A=
-Suggested-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>=0A=
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>=0A=
----=0A=
- arch/arc/include/asm/page.h    | 4 ++--=0A=
- arch/arc/include/asm/pgalloc.h | 6 +++---=0A=
- 2 files changed, 5 insertions(+), 5 deletions(-)=0A=
-=0A=
-diff --git a/arch/arc/include/asm/page.h b/arch/arc/include/asm/page.h=0A=
-index 9c8aa41e45c2..2994cac1069e 100644=0A=
---- a/arch/arc/include/asm/page.h=0A=
-+++ b/arch/arc/include/asm/page.h=0A=
-@@ -43,7 +43,6 @@ typedef struct {=0A=
- typedef struct {=0A=
-     unsigned long pgprot;=0A=
- } pgprot_t;=0A=
--typedef unsigned long pgtable_t;=0A=
- =0A=
- #define pte_val(x)      ((x).pte)=0A=
- #define pgd_val(x)      ((x).pgd)=0A=
-@@ -60,7 +59,6 @@ typedef unsigned long pgtable_t;=0A=
- typedef unsigned long pte_t;=0A=
- typedef unsigned long pgd_t;=0A=
- typedef unsigned long pgprot_t;=0A=
--typedef unsigned long pgtable_t;=0A=
- =0A=
- #define pte_val(x)    (x)=0A=
- #define pgd_val(x)    (x)=0A=
-@@ -71,6 +69,8 @@ typedef unsigned long pgtable_t;=0A=
- =0A=
- #endif=0A=
- =0A=
-+typedef pte_t * pgtable_t;=0A=
-+=0A=
- #define ARCH_PFN_OFFSET     (CONFIG_LINUX_LINK_BASE >> PAGE_SHIFT)=0A=
- =0A=
- #define pfn_valid(pfn)      (((pfn) - ARCH_PFN_OFFSET) < max_mapnr)=0A=
-diff --git a/arch/arc/include/asm/pgalloc.h b/arch/arc/include/asm/pgalloc.=
-h=0A=
-index 81208bfd9dcb..9149b5ca26d7 100644=0A=
---- a/arch/arc/include/asm/pgalloc.h=0A=
-+++ b/arch/arc/include/asm/pgalloc.h=0A=
-@@ -107,7 +107,7 @@ pte_alloc_one(struct mm_struct *mm, unsigned long addre=
-ss)=0A=
-     pgtable_t pte_pg;=0A=
-     struct page *page;=0A=
- =0A=
--    pte_pg =3D __get_free_pages(GFP_KERNEL | __GFP_REPEAT, __get_order_pte=
-());=0A=
-+    pte_pg =3D (pgtable_t)__get_free_pages(GFP_KERNEL | __GFP_REPEAT,=0A=
-__get_order_pte());=0A=
-     if (!pte_pg)=0A=
-         return 0;=0A=
-     memzero((void *)pte_pg, PTRS_PER_PTE * 4);=0A=
-@@ -128,12 +128,12 @@ static inline void pte_free_kernel(struct mm_struct *=
-mm,=0A=
-pte_t *pte)=0A=
- static inline void pte_free(struct mm_struct *mm, pgtable_t ptep)=0A=
- {=0A=
-     pgtable_page_dtor(virt_to_page(ptep));=0A=
--    free_pages(ptep, __get_order_pte());=0A=
-+    free_pages((unsigned long)ptep, __get_order_pte());=0A=
- }=0A=
- =0A=
- #define __pte_free_tlb(tlb, pte, addr)  pte_free((tlb)->mm, pte)=0A=
- =0A=
- #define check_pgt_cache()   do { } while (0)=0A=
--#define pmd_pgtable(pmd) pmd_page_vaddr(pmd)=0A=
-+#define pmd_pgtable(pmd)    ((pgtable_t) pmd_page_vaddr(pmd))=0A=
- =0A=
- #endif /* _ASM_ARC_PGALLOC_H */=0A=
--- =0A=
-1.9.1=0A=
-=0A=
-=0A=
+This header contains a few helpers currenly only used by the mpi
+implementation, and not default implementation of architecture code.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Signed-off-by: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+---
+ include/asm-generic/bitops/count_zeros.h | 57 --------------------------------
+ include/linux/count_zeros.h              | 57 ++++++++++++++++++++++++++++++++
+ lib/mpi/longlong.h                       |  2 +-
+ lib/mpi/mpicoder.c                       |  2 +-
+ 4 files changed, 59 insertions(+), 59 deletions(-)
+ delete mode 100644 include/asm-generic/bitops/count_zeros.h
+ create mode 100644 include/linux/count_zeros.h
+
+diff --git a/include/asm-generic/bitops/count_zeros.h b/include/asm-generic/bitops/count_zeros.h
+deleted file mode 100644
+index 97520d2..0000000
+--- a/include/asm-generic/bitops/count_zeros.h
++++ /dev/null
+@@ -1,57 +0,0 @@
+-/* Count leading and trailing zeros functions
+- *
+- * Copyright (C) 2012 Red Hat, Inc. All Rights Reserved.
+- * Written by David Howells (dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org)
+- *
+- * This program is free software; you can redistribute it and/or
+- * modify it under the terms of the GNU General Public Licence
+- * as published by the Free Software Foundation; either version
+- * 2 of the Licence, or (at your option) any later version.
+- */
+-
+-#ifndef _ASM_GENERIC_BITOPS_COUNT_ZEROS_H_
+-#define _ASM_GENERIC_BITOPS_COUNT_ZEROS_H_
+-
+-#include <asm/bitops.h>
+-
+-/**
+- * count_leading_zeros - Count the number of zeros from the MSB back
+- * @x: The value
+- *
+- * Count the number of leading zeros from the MSB going towards the LSB in @x.
+- *
+- * If the MSB of @x is set, the result is 0.
+- * If only the LSB of @x is set, then the result is BITS_PER_LONG-1.
+- * If @x is 0 then the result is COUNT_LEADING_ZEROS_0.
+- */
+-static inline int count_leading_zeros(unsigned long x)
+-{
+-	if (sizeof(x) == 4)
+-		return BITS_PER_LONG - fls(x);
+-	else
+-		return BITS_PER_LONG - fls64(x);
+-}
+-
+-#define COUNT_LEADING_ZEROS_0 BITS_PER_LONG
+-
+-/**
+- * count_trailing_zeros - Count the number of zeros from the LSB forwards
+- * @x: The value
+- *
+- * Count the number of trailing zeros from the LSB going towards the MSB in @x.
+- *
+- * If the LSB of @x is set, the result is 0.
+- * If only the MSB of @x is set, then the result is BITS_PER_LONG-1.
+- * If @x is 0 then the result is COUNT_TRAILING_ZEROS_0.
+- */
+-static inline int count_trailing_zeros(unsigned long x)
+-{
+-#define COUNT_TRAILING_ZEROS_0 (-1)
+-
+-	if (sizeof(x) == 4)
+-		return ffs(x);
+-	else
+-		return (x != 0) ? __ffs(x) : COUNT_TRAILING_ZEROS_0;
+-}
+-
+-#endif /* _ASM_GENERIC_BITOPS_COUNT_ZEROS_H_ */
+diff --git a/include/linux/count_zeros.h b/include/linux/count_zeros.h
+new file mode 100644
+index 0000000..363da78
+--- /dev/null
++++ b/include/linux/count_zeros.h
+@@ -0,0 +1,57 @@
++/* Count leading and trailing zeros functions
++ *
++ * Copyright (C) 2012 Red Hat, Inc. All Rights Reserved.
++ * Written by David Howells (dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org)
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public Licence
++ * as published by the Free Software Foundation; either version
++ * 2 of the Licence, or (at your option) any later version.
++ */
++
++#ifndef _LINUX_BITOPS_COUNT_ZEROS_H_
++#define _LINUX_BITOPS_COUNT_ZEROS_H_
++
++#include <asm/bitops.h>
++
++/**
++ * count_leading_zeros - Count the number of zeros from the MSB back
++ * @x: The value
++ *
++ * Count the number of leading zeros from the MSB going towards the LSB in @x.
++ *
++ * If the MSB of @x is set, the result is 0.
++ * If only the LSB of @x is set, then the result is BITS_PER_LONG-1.
++ * If @x is 0 then the result is COUNT_LEADING_ZEROS_0.
++ */
++static inline int count_leading_zeros(unsigned long x)
++{
++	if (sizeof(x) == 4)
++		return BITS_PER_LONG - fls(x);
++	else
++		return BITS_PER_LONG - fls64(x);
++}
++
++#define COUNT_LEADING_ZEROS_0 BITS_PER_LONG
++
++/**
++ * count_trailing_zeros - Count the number of zeros from the LSB forwards
++ * @x: The value
++ *
++ * Count the number of trailing zeros from the LSB going towards the MSB in @x.
++ *
++ * If the LSB of @x is set, the result is 0.
++ * If only the MSB of @x is set, then the result is BITS_PER_LONG-1.
++ * If @x is 0 then the result is COUNT_TRAILING_ZEROS_0.
++ */
++static inline int count_trailing_zeros(unsigned long x)
++{
++#define COUNT_TRAILING_ZEROS_0 (-1)
++
++	if (sizeof(x) == 4)
++		return ffs(x);
++	else
++		return (x != 0) ? __ffs(x) : COUNT_TRAILING_ZEROS_0;
++}
++
++#endif /* _LINUX_BITOPS_COUNT_ZEROS_H_ */
+diff --git a/lib/mpi/longlong.h b/lib/mpi/longlong.h
+index a89d041..b90e255 100644
+--- a/lib/mpi/longlong.h
++++ b/lib/mpi/longlong.h
+@@ -19,7 +19,7 @@
+  * the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
+  * MA 02111-1307, USA. */
+ 
+-#include <asm-generic/bitops/count_zeros.h>
++#include <linux/count_zeros.h>
+ 
+ /* You have to define the following before including this file:
+  *
+diff --git a/lib/mpi/mpicoder.c b/lib/mpi/mpicoder.c
+index bc0a1da..9e1ec99 100644
+--- a/lib/mpi/mpicoder.c
++++ b/lib/mpi/mpicoder.c
+@@ -19,7 +19,7 @@
+  */
+ 
+ #include <linux/bitops.h>
+-#include <asm-generic/bitops/count_zeros.h>
++#include <linux/count_zeros.h>
+ #include "mpi-internal.h"
+ 
+ #define MAX_EXTERN_MPI_BITS 16384
+-- 
+1.9.1
