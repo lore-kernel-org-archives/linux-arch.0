@@ -1,64 +1,52 @@
-From: Randy Dunlap <rdunlap@infradead.org>
-Subject: Re: [RFC] asm-generic/pci_iomap.h: make custom PCI BAR requirements
- explicit
-Date: Fri, 28 Aug 2015 19:13:08 -0700
-Message-ID: <55E11534.2050508@infradead.org>
-References: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
+From: Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>
+Subject: Re: fix various asm-generic abuses
+Date: Sat, 29 Aug 2015 15:49:37 +0200
+Message-ID: <20150829134937.GA13103@lst.de>
+References: <1440746842-19029-1-git-send-email-hch@lst.de>
+	<22516156.tfGZvl13aG@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:55177 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751853AbbH2CNP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Aug 2015 22:13:15 -0400
-In-Reply-To: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, arnd@arndb.de, linux-arch@vger.kernel.org
-Cc: mingo@kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, bp@suse.de, linux@roeck-us.net, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org, "Luis R. Rodriguez" <mcgrof@suse.com>
+Return-path: <drbd-dev-bounces-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <22516156.tfGZvl13aG@wuerfel>
+List-Unsubscribe: <http://lists.linbit.com/mailman/options/drbd-dev>,
+	<mailto:drbd-dev-request-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linbit.com/pipermail/drbd-dev>
+List-Post: <mailto:drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org>
+List-Help: <mailto:drbd-dev-request-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org?subject=help>
+List-Subscribe: <http://lists.linbit.com/mailman/listinfo/drbd-dev>,
+	<mailto:drbd-dev-request-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org?subject=subscribe>
+Sender: drbd-dev-bounces-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org
+Errors-To: drbd-dev-bounces-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org
+To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, herbert-lOAM2aK0SrRLBo1qDEOMRrpzq4S04n8Q@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, oded.gabbay-5C7GfCeVMHo@public.gmane.org, dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, linux-gpio-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, eli-VPRAkNaXOzVWk0Htik3J/w@public.gmane.org, james_p_freyensee-VuQAYsv1563Yd54FQh9/CA@public.gmane.org, drbd-dev-cunTk1MwBs8qoQakbn7OcQ@public.gmane.org, Christoph Hellwig <hch-jcswGhMUV9g@public.gmane.org>, mitake-uo9agqpHHEbPUJYwFPjUlCGn5s73+xxf@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On 08/28/15 17:17, Luis R. Rodriguez wrote:
+On Fri, Aug 28, 2015 at 09:16:51PM +0200, Arnd Bergmann wrote:
+> On Friday 28 August 2015 09:27:13 Christoph Hellwig wrote:
+> > This fixes two trivial classes of asm-generic abuse.  First two headers
+> > that are intended for drivers are moved to include/linux, and second
+> > various drivers that incorrectly use asm-generic headers directly are
+> > switched over to use the proper public headers.  There are a few more
+> > asm-generic abuse, but they aren't quite as trivial so they will take
+> > a little more effort to fix.
 > 
->  arch/s390/Kconfig                 |  8 +++++
->  arch/s390/include/asm/io.h        | 11 -------
->  arch/s390/include/asm/pci.h       |  2 --
->  arch/s390/include/asm/pci_iomap.h | 33 +++++++++++++++++++++
->  arch/s390/pci/pci.c               |  2 ++
->  include/asm-generic/io.h          | 12 --------
->  include/asm-generic/iomap.h       | 10 -------
->  include/asm-generic/pci_iomap.h   | 62 +++++++++++++++++++++++++++++++++++----
->  lib/Kconfig                       |  1 +
->  lib/pci_iomap.c                   |  5 ++++
->  10 files changed, 105 insertions(+), 41 deletions(-)
->  create mode 100644 arch/s390/include/asm/pci_iomap.h
+> Thanks a lot, these all look really useful. My normal way of dealing
+> with asm-generic patches is to have changes go through the tree of
+> whichever maintainer needs the changes for their own work with my
+> Ack, but I guess in this case you don't actually have other patches
+> depending on them, right?
+
+No, there's nothing depending on it.
+
+> If driver maintainers want to pick individual patches from this series,
+> please add my
 > 
-> diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-> index 1d57000b1b24..1217b7db4265 100644
-> --- a/arch/s390/Kconfig
-> +++ b/arch/s390/Kconfig
-> @@ -614,6 +614,14 @@ endif	# PCI
->  config PCI_DOMAINS
->  	def_bool PCI
->  
-> +config ARCH_PCI_NON_DISJUNCTIVE
-> +	def_bool PCI
-> +	help
-> +	  On the S390 architecture PCI BAR spaces are not disjunctive, as such
+> Acked-by: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+> 
+> otherwise let me know if I should put them into my asm-generic git
+> tree (which is currently empty, but part of linux-next).
 
-	are not disjoint?  may be overlapping?
-
-> +	  the PCI bar is required on a series of otherwise asm generic PCI
-> +	  routines, as such S390 requires itw own implemention for these
-
-	                                  its own implementation
-
-> +	  routines.
-> +
->  config HAS_IOMEM
->  	def_bool PCI
->  
-
-
--- 
-~Randy
+Note that the first two are something you should probably pick up either
+way as they aren't really specific to a driver.
