@@ -1,47 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from verein.lst.de ([213.95.11.211]:53064 "EHLO newverein.lst.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752002AbbH2Ntj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 29 Aug 2015 09:49:39 -0400
-Date: Sat, 29 Aug 2015 15:49:37 +0200
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: fix various asm-generic abuses
-Message-ID: <20150829134937.GA13103@lst.de>
-References: <1440746842-19029-1-git-send-email-hch@lst.de> <22516156.tfGZvl13aG@wuerfel>
+Received: from mail-wi0-f173.google.com ([209.85.212.173]:37230 "EHLO
+	mail-wi0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753218AbbH3Jnt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 30 Aug 2015 05:43:49 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <22516156.tfGZvl13aG@wuerfel>
+In-Reply-To: <1440746842-19029-4-git-send-email-hch@lst.de>
+References: <1440746842-19029-1-git-send-email-hch@lst.de> <1440746842-19029-4-git-send-email-hch@lst.de>
+From: Oded Gabbay <oded.gabbay@gmail.com>
+Date: Sun, 30 Aug 2015 12:43:19 +0300
+Message-ID: <CAFCwf13VzCeJsKtf5aOj0QTT6ciV=7PvPpeezyUjje3rOKQKfg@mail.gmail.com>
+Subject: Re: [PATCH 3/9] amdkfd: use <linux/mman.h> instead of <uapi/asm-generic/mman-common.h>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@lst.de>, mitake@dcl.info.waseda.ac.jp, dhowells@redhat.com, herbert@gondor.apana.org.au, oded.gabbay@amd.com, eli@mellanox.com, james_p_freyensee@linux.intel.com, linux-gpio@vger.kernel.org, drbd-dev@lists.linbit.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20150829134937.WYNRq1pDYnpxvfJ7qPyTwYKPcS9oJ4b9_Y1mhtPvk2s@z>
+To: Christoph Hellwig <hch@lst.de>
+Cc: arnd@arndb.de, mitake@dcl.info.waseda.ac.jp, dhowells@redhat.com, herbert@gondor.apana.org.au, oded.gabbay@amd.com, eli@mellanox.com, james_p_freyensee@linux.intel.com, linux-gpio@vger.kernel.org, drbd-dev@lists.linbit.com, linux-arch@vger.kernel.org, "Linux-Kernel@Vger. Kernel. Org" <linux-kernel@vger.kernel.org>
+Message-ID: <20150830094319.jz5JP8v0pbIUKpyEWOH1BlLhwBsiwooOF2QL3ICr9is@z>
 
-On Fri, Aug 28, 2015 at 09:16:51PM +0200, Arnd Bergmann wrote:
-> On Friday 28 August 2015 09:27:13 Christoph Hellwig wrote:
-> > This fixes two trivial classes of asm-generic abuse.  First two headers
-> > that are intended for drivers are moved to include/linux, and second
-> > various drivers that incorrectly use asm-generic headers directly are
-> > switched over to use the proper public headers.  There are a few more
-> > asm-generic abuse, but they aren't quite as trivial so they will take
-> > a little more effort to fix.
-> 
-> Thanks a lot, these all look really useful. My normal way of dealing
-> with asm-generic patches is to have changes go through the tree of
-> whichever maintainer needs the changes for their own work with my
-> Ack, but I guess in this case you don't actually have other patches
-> depending on them, right?
+On Fri, Aug 28, 2015 at 10:27 AM, Christoph Hellwig <hch@lst.de> wrote:
+>
+> The latter is a default version of <asm/mman.h> and not for driver use.
+>
+> Signed-off-by: Christoph Hellwig <hch@lst.de>
+> ---
+>  drivers/gpu/drm/amd/amdkfd/kfd_chardev.c     | 2 +-
+>  drivers/gpu/drm/amd/amdkfd/kfd_flat_memory.c | 2 +-
+>  2 files changed, 2 insertions(+), 2 deletions(-)
+>
+> diff --git a/drivers/gpu/drm/amd/amdkfd/kfd_chardev.c b/drivers/gpu/drm/amd/amdkfd/kfd_chardev.c
+> index c991973..c6a1b4c 100644
+> --- a/drivers/gpu/drm/amd/amdkfd/kfd_chardev.c
+> +++ b/drivers/gpu/drm/amd/amdkfd/kfd_chardev.c
+> @@ -31,7 +31,7 @@
+>  #include <uapi/linux/kfd_ioctl.h>
+>  #include <linux/time.h>
+>  #include <linux/mm.h>
+> -#include <uapi/asm-generic/mman-common.h>
+> +#include <linux/mman.h>
+>  #include <asm/processor.h>
+>  #include "kfd_priv.h"
+>  #include "kfd_device_queue_manager.h"
+> diff --git a/drivers/gpu/drm/amd/amdkfd/kfd_flat_memory.c b/drivers/gpu/drm/amd/amdkfd/kfd_flat_memory.c
+> index 35b9875..2b65510 100644
+> --- a/drivers/gpu/drm/amd/amdkfd/kfd_flat_memory.c
+> +++ b/drivers/gpu/drm/amd/amdkfd/kfd_flat_memory.c
+> @@ -33,7 +33,7 @@
+>  #include <linux/time.h>
+>  #include "kfd_priv.h"
+>  #include <linux/mm.h>
+> -#include <uapi/asm-generic/mman-common.h>
+> +#include <linux/mman.h>
+>  #include <asm/processor.h>
+>
+>  /*
+> --
+> 1.9.1
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
 
-No, there's nothing depending on it.
 
-> If driver maintainers want to pick individual patches from this series,
-> please add my
-> 
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-> 
-> otherwise let me know if I should put them into my asm-generic git
-> tree (which is currently empty, but part of linux-next).
+Thanks,
+Applied to my -next-fixes tree
 
-Note that the first two are something you should probably pick up either
-way as they aren't really specific to a driver.
+     Oded
