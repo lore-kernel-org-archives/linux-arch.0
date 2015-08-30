@@ -1,64 +1,82 @@
-From: Oded Gabbay <oded.gabbay@gmail.com>
-Subject: Re: [PATCH 3/9] amdkfd: use <linux/mman.h> instead of <uapi/asm-generic/mman-common.h>
-Date: Sun, 30 Aug 2015 12:43:19 +0300
-Message-ID: <CAFCwf13VzCeJsKtf5aOj0QTT6ciV=7PvPpeezyUjje3rOKQKfg@mail.gmail.com>
-References: <1440746842-19029-1-git-send-email-hch@lst.de> <1440746842-19029-4-git-send-email-hch@lst.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC] asm-generic/pci_iomap.h: make custom PCI BAR requirements explicit
+Date: Sun, 30 Aug 2015 21:30:26 +0200
+Message-ID: <3544271.GfynADMPqZ@wuerfel>
+References: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1440746842-19029-4-git-send-email-hch@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: arnd@arndb.de, mitake@dcl.info.waseda.ac.jp, dhowells@redhat.com, herbert@gondor.apana.org.au, oded.gabbay@amd.com, eli@mellanox.com, james_p_freyensee@linux.intel.com, linux-gpio@vger.kernel.org, drbd-dev@lists.linbit.com, linux-arch@vger.kernel.org, "Linux-Kernel@Vger. Kernel. Org" <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.17.10]:64687 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753611AbbH3Tap (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 30 Aug 2015 15:30:45 -0400
+In-Reply-To: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Luis R. Rodriguez" <mcgrof@do-not-panic.com>
+Cc: linux-arch@vger.kernel.org, mingo@kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, bp@suse.de, linux@roeck-us.net, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org, "Luis R. Rodriguez" <mcgrof@suse.com>
 
-On Fri, Aug 28, 2015 at 10:27 AM, Christoph Hellwig <hch@lst.de> wrote:
->
-> The latter is a default version of <asm/mman.h> and not for driver use.
->
-> Signed-off-by: Christoph Hellwig <hch@lst.de>
-> ---
->  drivers/gpu/drm/amd/amdkfd/kfd_chardev.c     | 2 +-
->  drivers/gpu/drm/amd/amdkfd/kfd_flat_memory.c | 2 +-
->  2 files changed, 2 insertions(+), 2 deletions(-)
->
-> diff --git a/drivers/gpu/drm/amd/amdkfd/kfd_chardev.c b/drivers/gpu/drm/amd/amdkfd/kfd_chardev.c
-> index c991973..c6a1b4c 100644
-> --- a/drivers/gpu/drm/amd/amdkfd/kfd_chardev.c
-> +++ b/drivers/gpu/drm/amd/amdkfd/kfd_chardev.c
-> @@ -31,7 +31,7 @@
->  #include <uapi/linux/kfd_ioctl.h>
->  #include <linux/time.h>
->  #include <linux/mm.h>
-> -#include <uapi/asm-generic/mman-common.h>
-> +#include <linux/mman.h>
->  #include <asm/processor.h>
->  #include "kfd_priv.h"
->  #include "kfd_device_queue_manager.h"
-> diff --git a/drivers/gpu/drm/amd/amdkfd/kfd_flat_memory.c b/drivers/gpu/drm/amd/amdkfd/kfd_flat_memory.c
-> index 35b9875..2b65510 100644
-> --- a/drivers/gpu/drm/amd/amdkfd/kfd_flat_memory.c
-> +++ b/drivers/gpu/drm/amd/amdkfd/kfd_flat_memory.c
-> @@ -33,7 +33,7 @@
->  #include <linux/time.h>
->  #include "kfd_priv.h"
->  #include <linux/mm.h>
-> -#include <uapi/asm-generic/mman-common.h>
-> +#include <linux/mman.h>
->  #include <asm/processor.h>
->
->  /*
-> --
-> 1.9.1
->
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+On Friday 28 August 2015 17:17:27 Luis R. Rodriguez wrote:
+> From: "Luis R. Rodriguez" <mcgrof@suse.com>
+> 
+> The S390 architecture requires a custom pci_iomap() implementation
+> as the asm-generic implementation assumes there are disjunctions
+> between PCI BARs, and on S390 PCI BAR are not disjunctive, S390 requires
+> the bar parameter in order to find the corresponding device and create
+> the mapping cookie.
+> 
+> This clash with the asm-generic pci_iomap() implementation is implicit,
+> there are no current semantics to make this incompatability explicit.
+> Make the S390 PCI BAR non-disjunction incompatibility explicit, and
+> also pave the way for alternative incompatibilities to be defined.
 
+I don't think we really need to spell it out here. s390 PCI is different
+from everybody else's in a lot of ways, so a simple 'depends on PCI &&
+!S390' for CONFIG_PCI_IOMAP seems simpler and more intuitive.
 
-Thanks,
-Applied to my -next-fixes tree
+> While at it, as with the ioremap*() variants, since we have no clear
+> semantics yet well defined provide a solution for them that returns
+> NULL. This allows architectures to move forward by defining pci_ioremap*()
+> variants without requiring immediate changes to all architectures. Each
+> architecture then can implement their own solution as needed and
+> when they get to it.
 
-     Oded
+Which architectures are you thinking about here?
+
+> Build tested with allyesconfig on:
+> 
+>         * S390
+>         * x86_64
+> 
+> Signed-off-by: Luis R. Rodriguez <mcgrof@suse.com>
+
+It's not really clear to me what the purpose of the patch is, is this 
+meant as a cleanup, or are you trying to avoid some real-life bugs
+you ran into?
+
+> This came up as an idea after noting that S390 has no way to be
+> explicit about its requirements, this also means we don't have a
+> quick easy way to ensure that other architectures might have a
+> conflict as well. This provides an easy way to do that by having
+> the architectures define their incompatibilities and allowing those
+> then to negate GENERIC_PCI_IOMAP on lib/Kconfig.
+
+PCI_IOMAP seems much simpler than ioport_map here, as a lot of
+architectures can have overlapping port numbers across PCI host
+bridges.
+ 
+> I think a next cleanup could be the move of the pci_iounmap() out to
+> pci_iomap.h to avoid having each arch having to declare it. That's
+> a separate atomic change though so should go in separately.
+
+pci_iounmap() is rather tricky, and I think some architectures currently
+get it wrong and will actually unmap parts of the I/O port ranges from
+the PCI host controller mapping. It might be rare enough that it never
+caused problems (that got reported), but it might be nice to actually
+provide an implementation that has a chance of working.
+
+The version from lib/iomap.c seems correct for uses of CONFIG_GENERIC_IOMAP,
+but most architectures can do better without that option.
+
+	Arnd
