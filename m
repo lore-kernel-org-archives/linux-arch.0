@@ -1,82 +1,70 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC] asm-generic/pci_iomap.h: make custom PCI BAR requirements explicit
-Date: Sun, 30 Aug 2015 21:30:26 +0200
-Message-ID: <3544271.GfynADMPqZ@wuerfel>
-References: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
+From: Paul Mackerras <paulus@ozlabs.org>
+Subject: Re: [RFC PATCH v2] memory-barriers: remove
+ smp_mb__after_unlock_lock()
+Date: Tue, 1 Sep 2015 12:57:16 +1000
+Message-ID: <20150901025716.GA28069@fergus.ozlabs.ibm.com>
+References: <1436789704-10086-1-git-send-email-will.deacon@arm.com>
+ <1436826689.3948.233.camel@kernel.crashing.org>
+ <1436929578.10956.3.camel@ellerman.id.au>
+ <20150715104420.GD1005@arm.com>
+ <1437012028.28475.2.camel@ellerman.id.au>
+ <1437023004.28088.27.camel@kernel.crashing.org>
+ <1437023695.28088.29.camel@kernel.crashing.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:64687 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753611AbbH3Tap (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 30 Aug 2015 15:30:45 -0400
-In-Reply-To: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
+Received: from ozlabs.org ([103.22.144.67]:35178 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751828AbbIAC5j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 31 Aug 2015 22:57:39 -0400
+Content-Disposition: inline
+In-Reply-To: <1437023695.28088.29.camel@kernel.crashing.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@do-not-panic.com>
-Cc: linux-arch@vger.kernel.org, mingo@kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, bp@suse.de, linux@roeck-us.net, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org, "Luis R. Rodriguez" <mcgrof@suse.com>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will.deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul McKenney <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>
 
-On Friday 28 August 2015 17:17:27 Luis R. Rodriguez wrote:
-> From: "Luis R. Rodriguez" <mcgrof@suse.com>
+On Thu, Jul 16, 2015 at 03:14:55PM +1000, Benjamin Herrenschmidt wrote:
+> On Thu, 2015-07-16 at 15:03 +1000, Benjamin Herrenschmidt wrote:
+> > On Thu, 2015-07-16 at 12:00 +1000, Michael Ellerman wrote:
+> > > That would fix the problem with smp_mb__after_unlock_lock(), but not
+> > > the original worry we had about loads happening before the SC in lock.
+> > 
+> > However I think isync fixes *that* :-) The problem with isync is as you
+> > said, it's not a -memory- barrier per-se, it's an execution barrier /
+> > context synchronizing instruction. The combination stwcx. + bne + isync
+> > however prevents the execution of anything past the isync until the
+> > stwcx has completed and the bne has been "decided", which prevents loads
+> > from leaking into the LL/SC loop. It will also prevent a store in the
+> > lock from being issued before the stwcx. has completed. It does *not*
+> > prevent as far as I can tell another unrelated store before the lock
+> > from leaking into the lock, including the one used to unlock a different
+> > lock.
 > 
-> The S390 architecture requires a custom pci_iomap() implementation
-> as the asm-generic implementation assumes there are disjunctions
-> between PCI BARs, and on S390 PCI BAR are not disjunctive, S390 requires
-> the bar parameter in order to find the corresponding device and create
-> the mapping cookie.
+> Except that the architecture says:
 > 
-> This clash with the asm-generic pci_iomap() implementation is implicit,
-> there are no current semantics to make this incompatability explicit.
-> Make the S390 PCI BAR non-disjunction incompatibility explicit, and
-> also pave the way for alternative incompatibilities to be defined.
-
-I don't think we really need to spell it out here. s390 PCI is different
-from everybody else's in a lot of ways, so a simple 'depends on PCI &&
-!S390' for CONFIG_PCI_IOMAP seems simpler and more intuitive.
-
-> While at it, as with the ioremap*() variants, since we have no clear
-> semantics yet well defined provide a solution for them that returns
-> NULL. This allows architectures to move forward by defining pci_ioremap*()
-> variants without requiring immediate changes to all architectures. Each
-> architecture then can implement their own solution as needed and
-> when they get to it.
-
-Which architectures are you thinking about here?
-
-> Build tested with allyesconfig on:
+> <<
+> Because a Store Conditional instruction may com-
+> plete before its store has been performed, a condi-
+> tional Branch instruction that depends on the CR0
+> value set by a Store Conditional instruction does
+> not order the Store Conditional's store with respect
+> to storage accesses caused by instructions that
+> follow the Branch
+> >>
 > 
->         * S390
->         * x86_64
-> 
-> Signed-off-by: Luis R. Rodriguez <mcgrof@suse.com>
+> So isync in lock in architecturally incorrect, despite being what the
+> architecture recommends using, yay !
 
-It's not really clear to me what the purpose of the patch is, is this 
-meant as a cleanup, or are you trying to avoid some real-life bugs
-you ran into?
+That paragraph doesn't say anything about isync.  Doing stcx., bne,
+isync to acquire a lock will ensure that the instructions inside the
+locked region can't execute until the lock is globally known to be
+acquired.  It is true that another CPU that doesn't take the lock
+could see the effect of some load or store inside the locked region
+and then see the lock variable itself being clear; but any CPU that
+tried to acquire the lock would have its stcx. fail (at least until
+the first CPU releases the lock).
 
-> This came up as an idea after noting that S390 has no way to be
-> explicit about its requirements, this also means we don't have a
-> quick easy way to ensure that other architectures might have a
-> conflict as well. This provides an easy way to do that by having
-> the architectures define their incompatibilities and allowing those
-> then to negate GENERIC_PCI_IOMAP on lib/Kconfig.
+So isync in the lock sequence is architecturally correct.
 
-PCI_IOMAP seems much simpler than ioport_map here, as a lot of
-architectures can have overlapping port numbers across PCI host
-bridges.
- 
-> I think a next cleanup could be the move of the pci_iounmap() out to
-> pci_iomap.h to avoid having each arch having to declare it. That's
-> a separate atomic change though so should go in separately.
-
-pci_iounmap() is rather tricky, and I think some architectures currently
-get it wrong and will actually unmap parts of the I/O port ranges from
-the PCI host controller mapping. It might be rare enough that it never
-caused problems (that got reported), but it might be nice to actually
-provide an implementation that has a chance of working.
-
-The version from lib/iomap.c seems correct for uses of CONFIG_GENERIC_IOMAP,
-but most architectures can do better without that option.
-
-	Arnd
+Paul.
