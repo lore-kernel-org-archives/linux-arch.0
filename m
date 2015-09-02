@@ -1,62 +1,33 @@
-From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH] Remove #ifdef CONFIG_64BIT from all asm-generic/fcntl.h
-Date: Tue,  1 Sep 2015 17:10:10 -0700
-Message-ID: <1441152610-22566-1-git-send-email-palmer@dabbelt.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f49.google.com ([209.85.220.49]:33108 "EHLO
-	mail-pa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755559AbbIBRJA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Sep 2015 13:09:00 -0400
-Received: by pacex6 with SMTP id ex6so12440566pac.0
-        for <linux-arch@vger.kernel.org>; Wed, 02 Sep 2015 10:08:59 -0700 (PDT)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-api@vger.kernel.org, linux-kernel@vger.kernel.org, Palmer Dabbelt <palmer.dabbelt@eecs.berkeley.edu>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH] x86: Wire up 32-bit direct socket calls
+Date: Wed, 02 Sep 2015 13:16:19 -0700
+Message-ID: <55E75913.5050605@zytor.com>
+References: <cb5138299d37d5800e2d135b01a7667fa6115854.1436912629.git.luto@kernel.org> <CAMuHMdXKA_+JY2ryf-yoJxQnbW=jsOjj_w2-Nsybpx0310neDA@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
+Return-path: <libc-alpha-return-62908-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
+In-Reply-To: <CAMuHMdXKA_+JY2ryf-yoJxQnbW=jsOjj_w2-Nsybpx0310neDA@mail.gmail.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Andy Lutomirski <luto@kernel.org>
+Cc: X86 ML <x86@kernel.org>, Network Development <netdev@vger.kernel.org>, Tulio Magno Quites Machado Filho <tuliom@linux.vnet.ibm.com>, Andy Lutomirski <luto@amacapital.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexander Larsson <alexl@redhat.com>, Cosimo Cecchi <cosimo@endlessm.com>, Dan Nicholson <nicholson@endlessm.com>, libc-alpha <libc-alpha@sourceware.org>, Rajalakshmi Srinivasaraghavan <raji@linux.vnet.ibm.com>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: Palmer Dabbelt <palmer.dabbelt@eecs.berkeley.edu>
+On 09/02/2015 02:48 AM, Geert Uytterhoeven wrote:
+> 
+> Should all other architectures follow suit?
+> Or should we follow the s390 approach:
+> 
 
-When working on the RISC-V port I noticed that F_SETLK64 was being
-defined on our 64-bit platform, despite our port being so new that
-we've only ever had the 64-bit file ops.  Since there's not compat
-layer for these, this causes fcntl to bail out.
+It is up to the maintainer(s), largely dependent on how likely you are
+going to want to support this in your libc, but in general, socketcall
+is an abomination which there is no reason not to bypass.
 
-It turns out that one of the ways in with F_SETLK64 was being defined
-(there's some more in glibc, but that's a whole different story... :))
-is the result of CONFIG_64BIT showing up in this user-visible header.
-<asm-generic/bitsperlong.h> confirms this isn't sane, so I replaced it
-with a __BITS_PER_LONG check.
+So follow suit unless you have a strong reason not to.
 
-I went ahead and grep'd for any more of these (with
-headers_install_all), and this was the only one I found.
-
-Signed-off-by: Palmer Dabbelt <palmer.dabbelt@eecs.berkeley.edu>
-Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
-Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
----
- include/uapi/asm-generic/fcntl.h | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
-
-diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
-index e063effe0cc1..14a5c8237d84 100644
---- a/include/uapi/asm-generic/fcntl.h
-+++ b/include/uapi/asm-generic/fcntl.h
-@@ -1,6 +1,7 @@
- #ifndef _ASM_GENERIC_FCNTL_H
- #define _ASM_GENERIC_FCNTL_H
- 
-+#include <asm/bitsperlong.h>
- #include <linux/types.h>
- 
- /*
-@@ -115,7 +116,7 @@
- #define F_GETSIG	11	/* for sockets. */
- #endif
- 
--#ifndef CONFIG_64BIT
-+#if (__BITS_PER_LONG == 32)
- #ifndef F_GETLK64
- #define F_GETLK64	12	/*  using 'struct flock64' */
- #define F_SETLK64	13
--- 
-2.4.6
+	-hpa
