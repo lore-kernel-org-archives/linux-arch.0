@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f45.google.com ([209.85.220.45]:35393 "EHLO
-	mail-pa0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932324AbbICORn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2015 10:17:43 -0400
+Received: from mail-pa0-f46.google.com ([209.85.220.46]:35734 "EHLO
+	mail-pa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932435AbbICOSE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2015 10:18:04 -0400
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [PATCH v6 06/10] lib: sysctl handling (kernel glue code)
-Date: Thu,  3 Sep 2015 23:16:28 +0900
-Message-ID: <1441289792-64064-7-git-send-email-thehajime@gmail.com>
+Subject: [PATCH v6 10/10] lib: tools used for test scripts
+Date: Thu,  3 Sep 2015 23:16:32 +0900
+Message-ID: <1441289792-64064-11-git-send-email-thehajime@gmail.com>
 In-Reply-To: <1441289792-64064-1-git-send-email-thehajime@gmail.com>
 References: <1431494921-24746-1-git-send-email-tazaki@sfc.wide.ad.jp>
  <1441289792-64064-1-git-send-email-thehajime@gmail.com>
@@ -14,293 +14,212 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Hajime Tazaki <thehajime@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Christoph Lameter <cl@linux.com>, Jekka Enberg <penberg@kernel.org>, Javid Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Jndrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Rusty Russell <rusty@rustcorp.com.au>, Ryo Nakamura <upa@haeena.net>, Christoph Paasch <christoph.paasch@gmail.com>, Mathieu Lacage <mathieu.lacage@gmail.com>, libos-nuse@googlegroups.com
-Message-ID: <20150903141628.6m5GQF4tUrC7ifDQ3r15Io_Z9xAmDtXqjcD-ZjammfE@z>
+Message-ID: <20150903141632.987xicORQXwFQuaYU7tjxb7Elj6iOz0-VSotO35vkPE@z>
 
-This interacts with fs/proc_fs.c for sysctl-like interface registered via
-lib_init() API.
+These auxiliary files are used for testing and debugging of net/ code
+with libos. a simple test is implemented with make test ARCH=lib.
 
 Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
 ---
- arch/lib/sysctl.c | 270 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 270 insertions(+)
- create mode 100644 arch/lib/sysctl.c
+ tools/testing/libos/.gitignore   |  6 +++++
+ tools/testing/libos/Makefile     | 38 +++++++++++++++++++++++++++
+ tools/testing/libos/README       | 15 +++++++++++
+ tools/testing/libos/bisect.sh    | 10 +++++++
+ tools/testing/libos/dce-test.sh  | 23 ++++++++++++++++
+ tools/testing/libos/nuse-test.sh | 57 ++++++++++++++++++++++++++++++++++++++++
+ 6 files changed, 149 insertions(+)
+ create mode 100644 tools/testing/libos/.gitignore
+ create mode 100644 tools/testing/libos/Makefile
+ create mode 100644 tools/testing/libos/README
+ create mode 100755 tools/testing/libos/bisect.sh
+ create mode 100755 tools/testing/libos/dce-test.sh
+ create mode 100755 tools/testing/libos/nuse-test.sh
 
-diff --git a/arch/lib/sysctl.c b/arch/lib/sysctl.c
+diff --git a/tools/testing/libos/.gitignore b/tools/testing/libos/.gitignore
 new file mode 100644
-index 000000000000..5f08f9f97103
+index 000000000000..57a74a05482c
 --- /dev/null
-+++ b/arch/lib/sysctl.c
-@@ -0,0 +1,270 @@
-+/*
-+ * sysctl wrapper for library version of Linux kernel
-+ * Copyright (c) 2015 INRIA, Hajime Tazaki
-+ *
-+ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
-+ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-+ */
++++ b/tools/testing/libos/.gitignore
+@@ -0,0 +1,6 @@
++*.pcap
++files-*
++bake
++buildtop
++core
++exitprocs
+diff --git a/tools/testing/libos/Makefile b/tools/testing/libos/Makefile
+new file mode 100644
+index 000000000000..a27eb84e7712
+--- /dev/null
++++ b/tools/testing/libos/Makefile
+@@ -0,0 +1,38 @@
++ADD_PARAM?=
 +
-+#include <linux/mm.h>
-+#include <linux/mmzone.h>
-+#include <linux/mman.h>
-+#include <linux/ratelimit.h>
-+#include <linux/proc_fs.h>
-+#include "sim-assert.h"
-+#include "sim-types.h"
++all: test
 +
-+int drop_caches_sysctl_handler(struct ctl_table *table, int write,
-+			       void *buffer, size_t *length, loff_t *ppos)
-+{
-+	lib_assert(false);
-+	return 0;
-+}
-+int lowmem_reserve_ratio_sysctl_handler(struct ctl_table *table, int write,
-+					void *buffer, size_t *length,
-+					loff_t *ppos)
-+{
-+	lib_assert(false);
-+	return 0;
-+}
-+int min_free_kbytes_sysctl_handler(struct ctl_table *table, int write,
-+				   void *buffer, size_t *length, loff_t *ppos)
-+{
-+	lib_assert(false);
-+	return 0;
-+}
++bake:
++	hg clone http://code.nsnam.org/bake
 +
-+int percpu_pagelist_fraction_sysctl_handler(struct ctl_table *table, int write,
-+					    void *buffer, size_t *length,
-+					    loff_t *ppos)
-+{
-+	lib_assert(false);
-+	return 0;
-+}
-+int dirty_background_ratio_handler(struct ctl_table *table, int write,
-+				   void *buffer, size_t *lenp,
-+				   loff_t *ppos)
-+{
-+	lib_assert(false);
-+	return 0;
-+}
-+int dirty_background_bytes_handler(struct ctl_table *table, int write,
-+				   void *buffer, size_t *lenp,
-+				   loff_t *ppos)
-+{
-+	lib_assert(false);
-+	return 0;
-+}
-+int dirty_ratio_handler(struct ctl_table *table, int write,
-+			void *buffer, size_t *lenp,
-+			loff_t *ppos)
-+{
-+	lib_assert(false);
-+	return 0;
-+}
-+int dirty_bytes_handler(struct ctl_table *table, int write,
-+			void *buffer, size_t *lenp,
-+			loff_t *ppos)
-+{
-+	lib_assert(false);
-+	return 0;
-+}
-+int dirty_writeback_centisecs_handler(struct ctl_table *table, int write,
-+				      void *buffer, size_t *length,
-+				      loff_t *ppos)
-+{
-+	lib_assert(false);
-+	return 0;
-+}
-+int scan_unevictable_handler(struct ctl_table *table, int write,
-+			     void __user *buffer,
-+			     size_t *length, loff_t *ppos)
-+{
-+	lib_assert(false);
-+	return 0;
-+}
-+int sched_rt_handler(struct ctl_table *table, int write,
-+		     void __user *buffer, size_t *lenp,
-+		     loff_t *ppos)
-+{
-+	lib_assert(false);
-+	return 0;
-+}
++check_pkgs:
++	@./bake/bake.py check | grep Bazaar | grep OK || (echo "bzr is missing" && ./bake/bake.py check)
++	@./bake/bake.py check | grep autoreconf | grep OK || (echo "autotools is missing" && ./bake/bake.py check && exit 1)
 +
-+int sysctl_overcommit_memory = OVERCOMMIT_GUESS;
-+int sysctl_overcommit_ratio = 50;
-+int sysctl_panic_on_oom = 0;
-+int sysctl_oom_dump_tasks = 0;
-+int sysctl_oom_kill_allocating_task = 0;
-+int sysctl_nr_trim_pages = 0;
-+int sysctl_drop_caches = 0;
-+int sysctl_lowmem_reserve_ratio[MAX_NR_ZONES - 1] = { 32 };
-+unsigned int sysctl_sched_child_runs_first = 0;
-+unsigned int sysctl_sched_compat_yield = 0;
-+unsigned int sysctl_sched_rt_period = 1000000;
-+int sysctl_sched_rt_runtime = 950000;
++testbin: bake check_pkgs
++	@cp ../../../arch/lib/tools/bakeconf-linux.xml bake/bakeconf.xml
++	@mkdir -p buildtop/build/bin_dce
++	cd buildtop ; \
++	../bake/bake.py configure -e dce-linux-inkernel $(BAKECONF_PARAMS)
++	cd buildtop ; \
++	../bake/bake.py show --enabledTree | grep -v  -E "pygoocanvas|graphviz|python-dev" | grep Missing && (echo "required packages are missing") || echo ""
++	cd buildtop ; \
++	../bake/bake.py download ; \
++	../bake/bake.py update ; \
++	../bake/bake.py build $(BAKEBUILD_PARAMS)
 +
-+int vm_highmem_is_dirtyable;
-+unsigned long vm_dirty_bytes = 0;
-+int vm_dirty_ratio = 20;
-+int dirty_background_ratio = 10;
-+unsigned int dirty_expire_interval = 30 * 100;
-+unsigned int dirty_writeback_interval = 5 * 100;
-+unsigned long dirty_background_bytes = 0;
-+int percpu_pagelist_fraction = 0;
-+int panic_timeout = 0;
-+int panic_on_oops = 0;
-+int printk_delay_msec = 0;
-+int panic_on_warn = 0;
-+DEFINE_RATELIMIT_STATE(printk_ratelimit_state, 5 * HZ, 10);
++test:
++	@./dce-test.sh ADD_PARAM=$(ADD_PARAM)
 +
-+#define RESERVED_PIDS 300
-+int pid_max = PID_MAX_DEFAULT;
-+int pid_max_min = RESERVED_PIDS + 1;
-+int pid_max_max = PID_MAX_LIMIT;
-+int min_free_kbytes = 1024;
-+int max_threads = 100;
-+int laptop_mode = 0;
++test-valgrind:
++	@./dce-test.sh -g ADD_PARAM=$(ADD_PARAM)
 +
-+#define DEFAULT_MESSAGE_LOGLEVEL 4
-+#define MINIMUM_CONSOLE_LOGLEVEL 1
-+#define DEFAULT_CONSOLE_LOGLEVEL 7
-+int console_printk[4] = {
-+	DEFAULT_CONSOLE_LOGLEVEL,       /* console_loglevel */
-+	DEFAULT_MESSAGE_LOGLEVEL,       /* default_message_loglevel */
-+	MINIMUM_CONSOLE_LOGLEVEL,       /* minimum_console_loglevel */
-+	DEFAULT_CONSOLE_LOGLEVEL,       /* default_console_loglevel */
-+};
++test-fault-injection:
++	@./dce-test.sh -f ADD_PARAM=$(ADD_PARAM)
 +
-+int print_fatal_signals = 0;
-+unsigned int core_pipe_limit = 0;
-+int core_uses_pid = 0;
-+int vm_swappiness = 60;
-+int nr_pdflush_threads = 0;
-+unsigned long scan_unevictable_pages = 0;
-+int suid_dumpable = 0;
-+int page_cluster = 0;
-+int block_dump = 0;
-+int C_A_D = 0;
-+#include <linux/nsproxy.h>
-+struct nsproxy init_nsproxy;
-+#include <linux/reboot.h>
-+char poweroff_cmd[POWEROFF_CMD_PATH_LEN] = "/sbin/poweroff";
-+unsigned long sysctl_user_reserve_kbytes __read_mostly = 1UL << 17; /* 128MB */
-+unsigned long sysctl_admin_reserve_kbytes __read_mostly = 1UL << 13; /* 8MB */
++clean:
++#	@rm -rf buildtop
++	@rm -f *.pcap
++	@rm -rf files-*
++	@rm -f exitprocs
++	@rm -f core
+diff --git a/tools/testing/libos/README b/tools/testing/libos/README
+new file mode 100644
+index 000000000000..51ac5a52336e
+--- /dev/null
++++ b/tools/testing/libos/README
+@@ -0,0 +1,15 @@
 +
-+int pdflush_proc_obsolete(struct ctl_table *table, int write,
-+			  void __user *buffer, size_t *lenp, loff_t *ppos)
-+{
-+	return nr_pdflush_threads;
-+}
-+#include <linux/fs.h>
++- bisect.sh
++a sample script to bisect an issue of network stack code with the help
++of LibOS (and ns-3 network simulator). This was used to detect the issue
++for the following patch.
 +
-+/**
-+ * Honestly, I don't understand half of that code.
-+ * It was modeled after fs/proc/proc_sysctl.c proc_sys_readdir
-+ *
-+ * Me either ;) (Hajime, Jan 2013)
-+ */
++http://patchwork.ozlabs.org/patch/436351/
 +
-+/* from proc_sysctl.c (XXX) */
-+extern struct ctl_table_root sysctl_table_root;
-+void ctl_table_first_entry(struct ctl_dir *dir,
-+		 struct ctl_table_header **phead, struct ctl_table **pentry);
-+void ctl_table_next_entry(struct ctl_table_header **phead, struct ctl_table **pentry);
-+struct ctl_table *ctl_table_find_entry(struct ctl_table_header **phead,
-+			     struct ctl_dir *dir, const char *name,
-+			     int namelen);
-+struct ctl_dir *ctl_table_xlate_dir(struct ctl_table_set *set, struct ctl_dir *dir);
-+/* for init_net (XXX, should be fixed) */
-+#include <net/net_namespace.h>
++- dce-test.sh
++a test script invoked by 'make test ARCH=lib'. The contents of test
++scenario are implemented as test suites of ns-3 network simulator.
 +
-+static void iterate_table_recursive(const struct SimSysIterator *iter,
-+				    struct ctl_table_header *head)
-+{
-+	struct ctl_table *entry;
++- nuse-test.sh
++a simple test script for Network Stack in Userspace (NUSE).
 +
-+	for (entry = head->ctl_table; entry->procname; entry++) {
-+		bool may_read = (head->ctl_table->mode & MAY_READ);
-+		bool may_write = (head->ctl_table->mode & MAY_WRITE);
-+		int flags = 0;
+diff --git a/tools/testing/libos/bisect.sh b/tools/testing/libos/bisect.sh
+new file mode 100755
+index 000000000000..9377ac3214c1
+--- /dev/null
++++ b/tools/testing/libos/bisect.sh
+@@ -0,0 +1,10 @@
++#!/bin/sh
 +
-+		flags |= may_read ? SIM_SYS_FILE_READ : 0;
-+		flags |= may_write ? SIM_SYS_FILE_WRITE : 0;
-+		iter->report_file(iter, entry->procname, flags,
-+				  (struct SimSysFile *)entry);
-+	}
-+}
++git merge origin/nuse --no-commit
++make clean ARCH=lib
++make library ARCH=lib OPT=no
++make test ARCH=lib ADD_PARAM=" -s dce-umip"
++RET=$?
++git reset --hard
 +
++exit $RET
+diff --git a/tools/testing/libos/dce-test.sh b/tools/testing/libos/dce-test.sh
+new file mode 100755
+index 000000000000..e81e2d84c156
+--- /dev/null
++++ b/tools/testing/libos/dce-test.sh
+@@ -0,0 +1,23 @@
++#!/bin/sh
 +
-+static void iterate_recursive(const struct SimSysIterator *iter,
-+			      struct ctl_table_header *head)
-+{
-+	struct ctl_table_header *h = NULL;
-+	struct ctl_table *entry;
-+	struct ctl_dir *ctl_dir;
++set -e
++#set -x
++export LD_LOG=symbol-fail
++#VERBOSE="-v"
++VALGRIND=""
++FAULT_INJECTION=""
 +
-+	ctl_dir = container_of(head, struct ctl_dir, header);
-+	for (ctl_table_first_entry(ctl_dir, &h, &entry); h;
-+	     ctl_table_next_entry(&h, &entry)) {
-+		struct ctl_dir *dir;
-+		int ret;
-+		const char *procname;
++if [ "$1" = "-g" ] ; then
++ VALGRIND="-g"
++# Not implemneted yet.
++#elif [ "$1" = "-f" ] ; then
++# FAULT_INJECTION="-f"
++fi
 +
-+		/* copy from sysctl_follow_link () */
-+		if (S_ISLNK(entry->mode)) {
-+			dir = ctl_table_xlate_dir(&init_net.sysctls, h->parent);
-+			if (IS_ERR(dir)) {
-+				ret = PTR_ERR(dir);
-+				lib_assert(false);
-+			} else {
-+				procname = entry->procname;
-+				h = NULL;
-+				entry =
-+					ctl_table_find_entry(&h, dir, procname,
-+							     strlen(procname));
-+				ret = -ENOENT;
-+			}
-+		}
++# FIXME
++#export NS_ATTRIBUTE_DEFAULT='ns3::DceManagerHelper::LoaderFactory=ns3::\
++#DlmLoaderFactory[];ns3::TaskManager::FiberManagerType=UcontextFiberManager'
 +
-+		if (S_ISDIR(entry->mode)) {
-+			iter->report_start_dir(iter, entry->procname);
-+			iterate_recursive(iter, h);
-+			iter->report_end_dir(iter);
-+		} else
-+			iterate_table_recursive(iter, h);
-+	}
++cd buildtop/source/ns-3-dce
++LD_LIBRARY_PATH=${srctree} ./test.py -n ${VALGRIND} ${FAULT_INJECTION}\
++	   ${VERBOSE} ${ADD_PARAM}
+diff --git a/tools/testing/libos/nuse-test.sh b/tools/testing/libos/nuse-test.sh
+new file mode 100755
+index 000000000000..198e7e4c66ac
+--- /dev/null
++++ b/tools/testing/libos/nuse-test.sh
+@@ -0,0 +1,57 @@
++#!/bin/bash -e
 +
-+}
++LIBOS_TOOLS=arch/lib/tools
 +
++IFNAME=`ip route |grep default | awk '{print $5}'`
++GW=`ip route |grep default | awk '{print $3}'`
++#XXX
++IPADDR=`echo $GW | sed -r "s/([0-9]+\.[0-9]+\.[0-9]+\.)([0-9]+)$/\1\`expr \2 + 10\`/"`
 +
-+void lib_sys_iterate_files(const struct SimSysIterator *iter)
-+{
-+	struct ctl_table_header *root =
-+		&sysctl_table_root.default_set.dir.header;
++# ip route
++# ip address
++# ip link
 +
-+	iterate_recursive(iter, root);
-+}
++NUSE_CONF=/tmp/nuse.conf
 +
-+int lib_sys_file_read(const struct SimSysFile *file, char *buffer, int size,
-+		      int offset)
-+{
-+	struct ctl_table *table = (struct ctl_table *)file;
-+	loff_t ppos = offset;
-+	size_t result = size;
-+	int error;
++cat > ${NUSE_CONF} << ENDCONF
 +
-+	error = table->proc_handler(table, 0, buffer, &result, &ppos);
-+	return result;
-+}
-+int lib_sys_file_write(const struct SimSysFile *file, const char *buffer,
-+		       int size, int offset)
-+{
-+	struct ctl_table *table = (struct ctl_table *)file;
-+	loff_t ppos = offset;
-+	size_t result = size;
-+	int error;
++interface ${IFNAME}
++	address ${IPADDR}
++	netmask 255.255.255.0
++	macaddr 00:01:01:01:01:02
++	viftype RAW
 +
-+	error = table->proc_handler(table, 1, (char *)buffer, &result, &ppos);
-+	return result;
-+}
++route
++	network 0.0.0.0
++	netmask 0.0.0.0
++	gateway ${GW}
++
++ENDCONF
++
++cd ${LIBOS_TOOLS}
++sudo NUSECONF=${NUSE_CONF} ./nuse ping 127.0.0.1 -c 2
++
++# rump test
++sudo NUSECONF=${NUSE_CONF} ./nuse sleep 5 &
++
++sleep 2
++PID_SLEEP=`/bin/ls -ltr /tmp/rump-server-nuse.* | tail -1 | awk '{print $9}' | sed -e "s/.*rump-server-nuse\.//g" | sed "s/=//"`
++RUMP_URL=unix:///tmp/rump-server-nuse.$PID_SLEEP
++# ls -ltr /tmp/*
++
++sudo chmod 777 /tmp/rump-server-nuse.$PID_SLEEP
++LD_PRELOAD=./libnuse-hijack.so  RUMPHIJACK=socket=all \
++    RUMP_SERVER=$RUMP_URL ip addr show
++
++wait %1
++
++if [ "$1" == "--extended" ] ; then
++sudo NUSECONF=${NUSE_CONF} ./nuse ping ${GW} -c 2
++sudo NUSECONF=${NUSE_CONF} ./nuse iperf -c ${GW} -p 2000 -t 3
++sudo NUSECONF=${NUSE_CONF} ./nuse iperf -c ${GW} -p 8 -u -t 3
++sudo NUSECONF=${NUSE_CONF} ./nuse dig www.google.com
++sudo NUSECONF=${NUSE_CONF} ./nuse host www.google.com
++sudo NUSECONF=${NUSE_CONF} ./nuse nslookup www.google.com
++#sudo NUSECONF=${NUSE_CONF} ./nuse nc www.google.com 80
++sudo NUSECONF=${NUSE_CONF} ./nuse wget www.google.com -O -
++fi
 -- 
 2.1.0
 
