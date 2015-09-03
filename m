@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f43.google.com ([209.85.220.43]:33723 "EHLO
-	mail-pa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932359AbbICORs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2015 10:17:48 -0400
+Received: from mail-pa0-f54.google.com ([209.85.220.54]:34949 "EHLO
+	mail-pa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755669AbbICORQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Sep 2015 10:17:16 -0400
 From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [PATCH v6 07/10] lib: other kernel glue layer code
-Date: Thu,  3 Sep 2015 23:16:29 +0900
-Message-ID: <1441289792-64064-8-git-send-email-thehajime@gmail.com>
+Subject: [PATCH v6 01/10] sysctl: make some functions unstatic to access by arch/lib
+Date: Thu,  3 Sep 2015 23:16:23 +0900
+Message-ID: <1441289792-64064-2-git-send-email-thehajime@gmail.com>
 In-Reply-To: <1441289792-64064-1-git-send-email-thehajime@gmail.com>
 References: <1431494921-24746-1-git-send-email-tazaki@sfc.wide.ad.jp>
  <1441289792-64064-1-git-send-email-thehajime@gmail.com>
@@ -14,835 +14,165 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: Hajime Tazaki <thehajime@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Christoph Lameter <cl@linux.com>, Jekka Enberg <penberg@kernel.org>, Javid Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Jndrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Rusty Russell <rusty@rustcorp.com.au>, Ryo Nakamura <upa@haeena.net>, Christoph Paasch <christoph.paasch@gmail.com>, Mathieu Lacage <mathieu.lacage@gmail.com>, libos-nuse@googlegroups.com
-Message-ID: <20150903141629.X7OlEg0waFdsl_gR7QXDe_3exENelmkwtzsKY41xf4E@z>
+Message-ID: <20150903141623.fud0adhjMzE53k2GAK4D6aAsxh-41GhUsQVOKWfQ_2Q@z>
 
-These files are used to provide the same function calls so that other
-network stack code keeps untouched.
+libos (arch/lib) emulates a sysctl-like interface by a function call of
+userspace by enumerating sysctl tree from sysctl_table_root. It requires
+to be publicly accessible to this symbol and related functions.
 
 Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
-Signed-off-by: Christoph Paasch <christoph.paasch@gmail.com>
 ---
- arch/lib/capability.c |  25 +++++
- arch/lib/filemap.c    |  32 ++++++
- arch/lib/fs.c         |  70 +++++++++++++
- arch/lib/glue.c       | 284 ++++++++++++++++++++++++++++++++++++++++++++++++++
- arch/lib/modules.c    |  36 +++++++
- arch/lib/pid.c        |  29 ++++++
- arch/lib/print.c      |  56 ++++++++++
- arch/lib/proc.c       |  36 +++++++
- arch/lib/random.c     |  54 ++++++++++
- arch/lib/sysfs.c      |  83 +++++++++++++++
- arch/lib/vmscan.c     |  26 +++++
- 11 files changed, 731 insertions(+)
- create mode 100644 arch/lib/capability.c
- create mode 100644 arch/lib/filemap.c
- create mode 100644 arch/lib/fs.c
- create mode 100644 arch/lib/glue.c
- create mode 100644 arch/lib/modules.c
- create mode 100644 arch/lib/pid.c
- create mode 100644 arch/lib/print.c
- create mode 100644 arch/lib/proc.c
- create mode 100644 arch/lib/random.c
- create mode 100644 arch/lib/sysfs.c
- create mode 100644 arch/lib/vmscan.c
+ fs/proc/proc_sysctl.c | 36 +++++++++++++++++++-----------------
+ 1 file changed, 19 insertions(+), 17 deletions(-)
 
-diff --git a/arch/lib/capability.c b/arch/lib/capability.c
-new file mode 100644
-index 000000000000..3a1f30129fb7
---- /dev/null
-+++ b/arch/lib/capability.c
-@@ -0,0 +1,25 @@
-+/*
-+ * glue code for library version of Linux kernel
-+ * Copyright (c) 2015 INRIA, Hajime Tazaki
-+ *
-+ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
-+ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-+ */
-+
-+#include "linux/capability.h"
-+
-+struct sock;
-+struct sk_buff;
-+
-+int file_caps_enabled = 0;
-+
-+int cap_netlink_send(struct sock *sk, struct sk_buff *skb)
-+{
-+	return 0;
-+}
-+
-+bool file_ns_capable(const struct file *file, struct user_namespace *ns,
-+		     int cap)
-+{
-+	return true;
-+}
-diff --git a/arch/lib/filemap.c b/arch/lib/filemap.c
-new file mode 100644
-index 000000000000..ce424ffae8c2
---- /dev/null
-+++ b/arch/lib/filemap.c
-@@ -0,0 +1,32 @@
-+/*
-+ * glue code for library version of Linux kernel
-+ * Copyright (c) 2015 INRIA, Hajime Tazaki
-+ *
-+ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
-+ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-+ *         Frederic Urbani
-+ */
-+
-+#include "sim.h"
-+#include "sim-assert.h"
-+#include <linux/fs.h>
-+
-+
-+ssize_t generic_file_aio_read(struct kiocb *a, const struct iovec *b,
-+			      unsigned long c, loff_t d)
-+{
-+	lib_assert(false);
-+
-+	return 0;
-+}
-+
-+int generic_file_readonly_mmap(struct file *file, struct vm_area_struct *vma)
-+{
-+	return -ENOSYS;
-+}
-+
-+ssize_t
-+generic_file_read_iter(struct kiocb *iocb, struct iov_iter *iter)
-+{
-+	return 0;
-+}
-diff --git a/arch/lib/fs.c b/arch/lib/fs.c
-new file mode 100644
-index 000000000000..33efe5f1da32
---- /dev/null
-+++ b/arch/lib/fs.c
-@@ -0,0 +1,70 @@
-+/*
-+ * glue code for library version of Linux kernel
-+ * Copyright (c) 2015 INRIA, Hajime Tazaki
-+ *
-+ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
-+ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-+ *         Frederic Urbani
-+ */
-+
-+#include <fs/mount.h>
-+
-+#include "sim-assert.h"
-+
-+__cacheline_aligned_in_smp DEFINE_SEQLOCK(mount_lock);
-+unsigned int dirtytime_expire_interval;
-+
-+void __init mnt_init(void)
-+{
-+}
-+
-+/* Implementation taken from vfs_kern_mount from linux/namespace.c */
-+struct vfsmount *kern_mount_data(struct file_system_type *type, void *data)
-+{
-+	static struct mount local_mnt;
-+	static int count = 0;
-+	struct mount *mnt = &local_mnt;
-+	struct dentry *root = 0;
-+
-+	/* XXX */
-+	if (count != 0) return &local_mnt.mnt;
-+	count++;
-+
-+	memset(mnt, 0, sizeof(struct mount));
-+	if (!type)
-+		return ERR_PTR(-ENODEV);
-+	int flags = MS_KERNMOUNT;
-+	char *name = (char *)type->name;
-+
-+	if (flags & MS_KERNMOUNT)
-+		mnt->mnt.mnt_flags = MNT_INTERNAL;
-+
-+	root = type->mount(type, flags, name, data);
-+	if (IS_ERR(root))
-+		return ERR_CAST(root);
-+
-+	mnt->mnt.mnt_root = root;
-+	mnt->mnt.mnt_sb = root->d_sb;
-+	mnt->mnt_mountpoint = mnt->mnt.mnt_root;
-+	mnt->mnt_parent = mnt;
-+	/* DCE is monothreaded , so we do not care of lock here */
-+	list_add_tail(&mnt->mnt_instance, &root->d_sb->s_mounts);
-+
-+	return &mnt->mnt;
-+}
-+void inode_wait_for_writeback(struct inode *inode)
-+{
-+}
-+void truncate_inode_pages_final(struct address_space *mapping)
-+{
-+}
-+int dirtytime_interval_handler(struct ctl_table *table, int write,
-+			       void __user *buffer, size_t *lenp, loff_t *ppos)
-+{
-+	return -ENOSYS;
-+}
-+
-+unsigned int nr_free_buffer_pages(void)
-+{
-+	return 65535;
-+}
-diff --git a/arch/lib/glue.c b/arch/lib/glue.c
-new file mode 100644
-index 000000000000..bdbed913ee9e
---- /dev/null
-+++ b/arch/lib/glue.c
-@@ -0,0 +1,284 @@
-+/*
-+ * glue code for library version of Linux kernel
-+ * Copyright (c) 2015 INRIA, Hajime Tazaki
-+ *
-+ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
-+ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-+ *         Frederic Urbani
-+ */
-+
-+#include <linux/types.h>        /* loff_t */
-+#include <linux/errno.h>        /* ESPIPE */
-+#include <linux/pagemap.h>      /* PAGE_CACHE_SIZE */
-+#include <linux/limits.h>       /* NAME_MAX */
-+#include <linux/statfs.h>       /* struct kstatfs */
-+#include <linux/bootmem.h>      /* HASHDIST_DEFAULT */
-+#include <linux/utsname.h>
-+#include <linux/binfmts.h>
-+#include <linux/init_task.h>
-+#include <linux/sched/rt.h>
-+#include <linux/backing-dev.h>
-+#include <stdarg.h>
-+#include "sim-assert.h"
-+#include "sim.h"
-+#include "lib.h"
-+
-+
-+struct pipe_buffer;
-+struct file;
-+struct pipe_inode_info;
-+struct wait_queue_t;
-+struct kernel_param;
-+struct super_block;
-+
-+/* defined in sched.c, used in net/sched/em_meta.c */
-+unsigned long avenrun[3];
-+/* defined in mm/page_alloc.c */
-+struct pglist_data __refdata contig_page_data;
-+/* defined in linux/mmzone.h mm/memory.c */
-+struct page *mem_map = 0;
-+/* used by sysinfo in kernel/timer.c */
-+int nr_threads = 0;
-+/* not very useful in mm/vmstat.c */
-+atomic_long_t vm_stat[NR_VM_ZONE_STAT_ITEMS];
-+
-+/* XXX: used in network stack ! */
-+unsigned long num_physpages = 0;
-+unsigned long totalram_pages = 0;
-+
-+/* XXX figure out initial value */
-+unsigned int interrupt_pending = 0;
-+static unsigned long g_irqflags = 0;
-+static unsigned long local_irqflags = 0;
-+int overflowgid = 0;
-+int overflowuid = 0;
-+int fs_overflowgid = 0;
-+int fs_overflowuid = 0;
-+unsigned long sysctl_overcommit_kbytes __read_mostly;
-+DEFINE_PER_CPU(struct task_struct *, ksoftirqd);
-+static DECLARE_BITMAP(cpu_possible_bits, CONFIG_NR_CPUS) __read_mostly;
-+const struct cpumask *const cpu_possible_mask = to_cpumask(cpu_possible_bits);
-+
-+struct backing_dev_info noop_backing_dev_info = {
-+	.name		= "noop",
-+	.capabilities	= 0,
-+};
-+
-+/* from rt.c */
-+int sched_rr_timeslice = RR_TIMESLICE;
-+/* from main.c */
-+bool initcall_debug;
-+bool static_key_initialized __read_mostly = false;
-+unsigned long __start_rodata, __end_rodata;
-+
-+unsigned long arch_local_save_flags(void)
-+{
-+	return local_irqflags;
-+}
-+void arch_local_irq_restore(unsigned long flags)
-+{
-+	local_irqflags = flags;
-+}
-+
-+
-+unsigned long long nr_context_switches(void)
-+{
-+	/* we just need to return >0 to avoid the warning
-+	   in kernel/rcupdate.c */
-+	return 1;
-+}
-+
-+
-+long get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
-+		    unsigned long start, unsigned long nr_pages,
-+		    int write, int force, struct page **pages,
-+		    struct vm_area_struct **vmas)
-+{
-+	/* in practice, this function is never called. It's linked in because */
-+	/* we link in get_user_pages_fast which is included only because it */
-+	/* is located in mm/util.c */
-+	lib_assert(false);
-+	return 0;
-+}
-+
-+
-+void dump_stack(void)
-+{
-+	/* we assert to make sure that we catch whoever calls dump_stack */
-+	lib_assert(false);
-+}
-+
-+
-+void lib_printf(const char *str, ...)
-+{
-+	va_list args;
-+
-+	va_start(args, str);
-+	lib_vprintf(str, args);
-+	va_end(args);
-+}
-+
-+#include <linux/vmalloc.h>
-+#include <linux/kmemleak.h>
-+
-+static unsigned long __meminitdata nr_kernel_pages = 8192;
-+static unsigned long __meminitdata nr_all_pages = 81920;
-+/*
-+ * allocate a large system hash table from bootmem
-+ * - it is assumed that the hash table must contain an exact power-of-2
-+ *   quantity of entries
-+ * - limit is the number of hash buckets, not the total allocation size
-+ */
-+void *__init alloc_large_system_hash(const char *tablename,
-+				     unsigned long bucketsize,
-+				     unsigned long numentries,
-+				     int scale,
-+				     int flags,
-+				     unsigned int *_hash_shift,
-+				     unsigned int *_hash_mask,
-+				     unsigned long low_limit,
-+				     unsigned long high_limit)
-+{
-+	unsigned long long max = high_limit;
-+	unsigned long log2qty, size;
-+	void *table = NULL;
-+
-+	/* allow the kernel cmdline to have a say */
-+	if (!numentries) {
-+		/* round applicable memory size up to nearest megabyte */
-+		numentries = nr_kernel_pages;
-+		numentries += (1UL << (20 - PAGE_SHIFT)) - 1;
-+		numentries >>= 20 - PAGE_SHIFT;
-+		numentries <<= 20 - PAGE_SHIFT;
-+
-+		/* limit to 1 bucket per 2^scale bytes of low memory */
-+		if (scale > PAGE_SHIFT)
-+			numentries >>= (scale - PAGE_SHIFT);
-+		else
-+			numentries <<= (PAGE_SHIFT - scale);
-+
-+		/* Make sure we've got at least a 0-order allocation.. */
-+		if (unlikely(flags & HASH_SMALL)) {
-+			/* Makes no sense without HASH_EARLY */
-+			WARN_ON(!(flags & HASH_EARLY));
-+			if (!(numentries >> *_hash_shift)) {
-+				numentries = 1UL << *_hash_shift;
-+				BUG_ON(!numentries);
-+			}
-+		} else if (unlikely((numentries * bucketsize) < PAGE_SIZE))
-+			numentries = PAGE_SIZE / bucketsize;
-+	}
-+	numentries = roundup_pow_of_two(numentries);
-+
-+	/* limit allocation size to 1/16 total memory by default */
-+	if (max == 0) {
-+		max = ((unsigned long long)nr_all_pages << PAGE_SHIFT) >> 4;
-+		do_div(max, bucketsize);
-+	}
-+
-+	if (numentries > max)
-+		numentries = max;
-+
-+	log2qty = ilog2(numentries);
-+
-+	do {
-+		size = bucketsize << log2qty;
-+		if (flags & HASH_EARLY)
-+			table = alloc_bootmem_nopanic(size);
-+		else if (hashdist)
-+			table = __vmalloc(size, GFP_ATOMIC, PAGE_KERNEL);
-+		else {
-+			/*
-+			 * If bucketsize is not a power-of-two, we may free
-+			 * some pages at the end of hash table which
-+			 * alloc_pages_exact() automatically does
-+			 */
-+			if (get_order(size) < MAX_ORDER) {
-+				table = alloc_pages_exact(size, GFP_ATOMIC);
-+				kmemleak_alloc(table, size, 1, GFP_ATOMIC);
-+			}
-+		}
-+	} while (!table && size > PAGE_SIZE && --log2qty);
-+
-+	if (!table)
-+		panic("Failed to allocate %s hash table\n", tablename);
-+
-+	pr_info("%s hash table entries: %d (order: %d, %lu bytes)\n",
-+	       tablename,
-+	       (1U << log2qty),
-+	       ilog2(size) - PAGE_SHIFT,
-+	       size);
-+
-+	if (_hash_shift)
-+		*_hash_shift = log2qty;
-+	if (_hash_mask)
-+		*_hash_mask = (1 << log2qty) - 1;
-+
-+	return table;
-+}
-+
-+void si_meminfo(struct sysinfo *val)
-+{
-+	/* This function is called from the ip layer to get information about
-+	   the amount of memory in the system and make some educated guesses
-+	   about some default buffer sizes. We pick a value which ensures
-+	   small buffers. */
-+	val->totalram = 0;
-+}
-+int slab_is_available(void)
-+{
-+	/* called from kernel/param.c. */
-+	return 1;
-+}
-+
-+/* used from kern_ptr_validate from mm/util.c which is never called */
-+void *high_memory = 0;
-+
-+
-+
-+void async_synchronize_full(void)
-+{
-+	/* called from drivers/base/ *.c */
-+	/* there is nothing to do, really. */
-+}
-+
-+int send_sig(int signal, struct task_struct *task, int x)
-+{
-+	struct SimTask *lib_task = container_of(task, struct SimTask,
-+						kernel_task);
-+
-+	lib_signal_raised((struct SimTask *)lib_task, signal);
-+	/* lib_assert (false); */
-+	return 0;
-+}
-+unsigned long get_taint(void)
-+{
-+	/* never tainted. */
-+	return 0;
-+}
-+void add_taint(unsigned flag, enum lockdep_ok lockdep_ok)
-+{
-+}
-+struct pid *cad_pid = 0;
-+
-+void add_device_randomness(const void *buf, unsigned int size)
-+{
-+}
-+
-+int sched_rr_handler(struct ctl_table *table, int write,
-+		     void __user *buffer, size_t *lenp,
-+		     loff_t *ppos)
-+{
-+	return 0;
-+}
-+
-+int sysctl_max_threads(struct ctl_table *table, int write,
-+		       void __user *buffer, size_t *lenp, loff_t *ppos)
-+{
-+	return 1;
-+}
-+
-+void on_each_cpu_mask(const struct cpumask *mask,
-+		      smp_call_func_t func, void *info, bool wait)
-+{
-+}
-diff --git a/arch/lib/modules.c b/arch/lib/modules.c
-new file mode 100644
-index 000000000000..ca43fdc691b0
---- /dev/null
-+++ b/arch/lib/modules.c
-@@ -0,0 +1,36 @@
-+/*
-+ * glue code for library version of Linux kernel
-+ * Copyright (c) 2015 INRIA, Hajime Tazaki
-+ *
-+ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
-+ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-+ *         Frederic Urbani
-+ */
-+
-+#include "sim-assert.h"
-+#include <linux/moduleparam.h>
-+#include <linux/kmod.h>
-+#include <linux/module.h>
-+
-+int modules_disabled = 0;
-+char modprobe_path[KMOD_PATH_LEN] = "/sbin/modprobe";
-+
-+static struct module_version_attribute g_empty_attr_buffer;
-+/* we make the array empty by default because, really, we don't need */
-+/* to look at the builtin params */
-+const struct kernel_param __start___param[] = {{0}} ;
-+const struct kernel_param __stop___param[] = {{0}} ;
-+const struct module_version_attribute *__start___modver[] = {
-+	&g_empty_attr_buffer};
-+const struct module_version_attribute *__stop___modver[] = {
-+	&g_empty_attr_buffer};
-+
-+struct module_attribute module_uevent;
-+struct ctl_table usermodehelper_table[] = {};
-+
-+int __request_module(bool wait, const char *fmt, ...)
-+{
-+	/* we really should never be trying to load modules that way. */
-+	/*  lib_assert (false); */
-+	return 0;
-+}
-diff --git a/arch/lib/pid.c b/arch/lib/pid.c
-new file mode 100644
-index 000000000000..00cf7b620c43
---- /dev/null
-+++ b/arch/lib/pid.c
-@@ -0,0 +1,29 @@
-+/*
-+ * glue code for library version of Linux kernel
-+ * Copyright (c) 2015 INRIA, Hajime Tazaki
-+ *
-+ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
-+ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-+ */
-+
-+#include <linux/pid.h>
-+#include "sim.h"
-+#include "sim-assert.h"
-+
-+void put_pid(struct pid *pid)
-+{
-+}
-+pid_t pid_vnr(struct pid *pid)
-+{
-+	return pid_nr(pid);
-+}
-+struct task_struct *find_task_by_vpid(pid_t nr)
-+{
-+	lib_assert(false);
-+	return 0;
-+}
-+struct pid *find_get_pid(int nr)
-+{
-+	lib_assert(false);
-+	return 0;
-+}
-diff --git a/arch/lib/print.c b/arch/lib/print.c
-new file mode 100644
-index 000000000000..09b1bb54790a
---- /dev/null
-+++ b/arch/lib/print.c
-@@ -0,0 +1,56 @@
-+/*
-+ * glue code for library version of Linux kernel
-+ * Copyright (c) 2015 INRIA, Hajime Tazaki
-+ *
-+ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
-+ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-+ */
-+
-+#include <stdarg.h>
-+#include <linux/string.h>
-+#include <linux/printk.h>
-+#include "sim.h"
-+#include "sim-assert.h"
-+
-+int dmesg_restrict = 1;
-+
-+/* from lib/vsprintf.c */
-+int vsnprintf(char *buf, size_t size, const char *fmt, va_list args);
-+
-+int printk(const char *fmt, ...)
-+{
-+	va_list args;
-+	static char buf[256];
-+	int value;
-+
-+	va_start(args, fmt);
-+	value = vsnprintf(buf, 256, printk_skip_level(fmt), args);
-+	lib_printf("<%c>%s", printk_get_level(fmt), buf);
-+	va_end(args);
-+	return value;
-+}
-+void panic(const char *fmt, ...)
-+{
-+	va_list args;
-+
-+	va_start(args, fmt);
-+	lib_vprintf(fmt, args);
-+	va_end(args);
-+	lib_assert(false);
-+}
-+
-+void warn_slowpath_fmt(const char *file, int line, const char *fmt, ...)
-+{
-+	va_list args;
-+
-+	printk("%s:%d -- ", file, line);
-+	va_start(args, fmt);
-+	lib_vprintf(fmt, args);
-+	va_end(args);
-+}
-+
-+void warn_slowpath_null(const char *file, int line)
-+{
-+	printk("%s:%d -- ", file, line);
-+}
-+
-diff --git a/arch/lib/proc.c b/arch/lib/proc.c
-new file mode 100644
-index 000000000000..3183d05f2c91
---- /dev/null
-+++ b/arch/lib/proc.c
-@@ -0,0 +1,36 @@
-+/*
-+ * glue code for library version of Linux kernel
-+ * Copyright (c) 2014 Hajime Tazaki
-+ *
-+ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
-+ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-+ */
-+
-+#include <linux/fs.h>
-+#include <linux/net.h>
-+#include <linux/slab.h>
-+#include <linux/proc_fs.h>
-+#include <linux/string.h>
-+#include <net/net_namespace.h>
-+#include "sim-types.h"
-+#include "sim-assert.h"
-+#include "fs/proc/internal.h"           /* XXX */
-+
-+struct proc_dir_entry;
-+static char proc_root_data[sizeof(struct proc_dir_entry) + 4];
-+
-+static struct proc_dir_entry *proc_root_sim  =
-+	(struct proc_dir_entry *)proc_root_data;
-+extern const struct inode_operations proc_link_inode_operations;
-+
-+void lib_proc_net_initialize(void)
-+{
-+	proc_root_sim->parent = proc_root_sim;
-+	strcpy(proc_root_sim->name, "net");
-+	proc_root_sim->mode = S_IFDIR | S_IRUGO | S_IXUGO;
-+	proc_root_sim->subdir = RB_ROOT;
-+	proc_root_sim->proc_iops = &proc_link_inode_operations;
-+	init_net.proc_net = proc_root_sim;
-+	init_net.proc_net_stat = proc_mkdir("stat", proc_root_sim);
-+}
-+
-diff --git a/arch/lib/random.c b/arch/lib/random.c
-new file mode 100644
-index 000000000000..282678d31f03
---- /dev/null
-+++ b/arch/lib/random.c
-@@ -0,0 +1,54 @@
-+/*
-+ * glue code for library version of Linux kernel
-+ * Copyright (c) 2015 INRIA, Hajime Tazaki
-+ *
-+ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
-+ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-+ */
-+
-+#include "sim.h"
-+#include <linux/random.h>
-+
-+u32 random32(void)
-+{
-+	return lib_random();
-+}
-+
-+void get_random_bytes(void *buf, int nbytes)
-+{
-+	char *p = (char *)buf;
-+	int i;
-+
-+	for (i = 0; i < nbytes; i++)
-+		p[i] = lib_random();
-+}
-+void srandom32(u32 entropy)
-+{
-+}
-+
-+u32 prandom_u32(void)
-+{
-+	return lib_random();
-+}
-+void prandom_seed(u32 entropy)
-+{
-+}
-+
-+void prandom_bytes(void *buf, size_t bytes)
-+{
-+	return get_random_bytes(buf, bytes);
-+}
-+
-+#include <linux/sysctl.h>
-+
-+static int nothing;
-+struct ctl_table random_table[] = {
-+	{
-+		.procname       = "nothing",
-+		.data           = &nothing,
-+		.maxlen         = sizeof(int),
-+		.mode           = 0444,
-+		.proc_handler   = proc_dointvec,
-+	},
-+	{}
-+};
-diff --git a/arch/lib/sysfs.c b/arch/lib/sysfs.c
-new file mode 100644
-index 000000000000..2def2caab454
---- /dev/null
-+++ b/arch/lib/sysfs.c
-@@ -0,0 +1,83 @@
-+/*
-+ * glue code for library version of Linux kernel
-+ * Copyright (c) 2015 INRIA, Hajime Tazaki
-+ *
-+ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
-+ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-+ */
-+
-+#include <linux/sysfs.h>
-+#include <linux/kobject.h>
-+#include "sim.h"
-+#include "sim-assert.h"
-+
-+int sysfs_create_bin_file(struct kobject *kobj,
-+			  const struct bin_attribute *attr)
-+{
-+	return 0;
-+}
-+void sysfs_remove_bin_file(struct kobject *kobj,
-+			   const struct bin_attribute *attr)
-+{
-+}
-+int sysfs_create_dir(struct kobject *kobj)
-+{
-+	return 0;
-+}
-+int sysfs_create_link(struct kobject *kobj, struct kobject *target,
-+		      const char *name)
-+{
-+	return 0;
-+}
-+int sysfs_move_dir(struct kobject *kobj,
-+		   struct kobject *new_parent_kobj)
-+{
-+	return 0;
-+}
-+void sysfs_remove_dir(struct kobject *kobj)
-+{
-+}
-+void sysfs_remove_group(struct kobject *kobj,
-+			const struct attribute_group *grp)
-+{
-+}
-+int sysfs_rename_dir(struct kobject *kobj, const char *new_name)
-+{
-+	return 0;
-+}
-+int __must_check sysfs_create_group(struct kobject *kobj,
-+				    const struct attribute_group *grp)
-+{
-+	return 0;
-+}
-+int sysfs_create_groups(struct kobject *kobj,
-+			const struct attribute_group **groups)
-+{
-+	return 0;
-+}
-+int sysfs_schedule_callback(struct kobject *kobj,
-+			    void (*func)(
-+				    void *), void *data, struct module *owner)
-+{
-+	return 0;
-+}
-+void sysfs_delete_link(struct kobject *dir, struct kobject *targ,
-+		       const char *name)
-+{
-+}
-+void sysfs_exit_ns(enum kobj_ns_type type, const void *tag)
-+{
-+}
-+void sysfs_notify(struct kobject *kobj, const char *dir, const char *attr)
-+{
-+}
-+int sysfs_create_dir_ns(struct kobject *kobj, const void *ns)
-+{
-+	kobj->sd = lib_malloc(sizeof(struct kernfs_node));
-+	return 0;
-+}
-+int sysfs_create_file_ns(struct kobject *kobj, const struct attribute *attr,
-+			 const void *ns)
-+{
-+	return 0;
-+}
-diff --git a/arch/lib/vmscan.c b/arch/lib/vmscan.c
-new file mode 100644
-index 000000000000..3132f66d5085
---- /dev/null
-+++ b/arch/lib/vmscan.c
-@@ -0,0 +1,26 @@
-+/*
-+ * glue code for library version of Linux kernel
-+ * Copyright (c) 2015 INRIA, Hajime Tazaki
-+ *
-+ * Author: Mathieu Lacage <mathieu.lacage@gmail.com>
-+ *         Hajime Tazaki <tazaki@sfc.wide.ad.jp>
-+ */
-+
-+#include <linux/mm.h>
-+#include <linux/shrinker.h>
-+
-+/*
-+ * Add a shrinker callback to be called from the vm
-+ */
-+int register_shrinker(struct shrinker *shrinker)
-+{
-+	return 0;
-+}
-+
-+/*
-+ * Remove one
-+ */
-+void unregister_shrinker(struct shrinker *shrinker)
-+{
-+}
-+
+diff --git a/fs/proc/proc_sysctl.c b/fs/proc/proc_sysctl.c
+index fdda62e6115e..e1003cf51d22 100644
+--- a/fs/proc/proc_sysctl.c
++++ b/fs/proc/proc_sysctl.c
+@@ -57,7 +57,7 @@ static struct ctl_table root_table[] = {
+ 	},
+ 	{ }
+ };
+-static struct ctl_table_root sysctl_table_root = {
++struct ctl_table_root sysctl_table_root = {
+ 	.default_set.dir.header = {
+ 		{{.count = 1,
+ 		  .nreg = 1,
+@@ -99,8 +99,9 @@ static int namecmp(const char *name1, int len1, const char *name2, int len2)
+ }
+ 
+ /* Called under sysctl_lock */
+-static struct ctl_table *find_entry(struct ctl_table_header **phead,
+-	struct ctl_dir *dir, const char *name, int namelen)
++struct ctl_table *ctl_table_find_entry(struct ctl_table_header **phead,
++				       struct ctl_dir *dir, const char *name,
++				       int namelen)
+ {
+ 	struct ctl_table_header *head;
+ 	struct ctl_table *entry;
+@@ -335,7 +336,7 @@ static struct ctl_table *lookup_entry(struct ctl_table_header **phead,
+ 	struct ctl_table *entry;
+ 
+ 	spin_lock(&sysctl_lock);
+-	entry = find_entry(&head, dir, name, namelen);
++	entry = ctl_table_find_entry(&head, dir, name, namelen);
+ 	if (entry && use_table(head))
+ 		*phead = head;
+ 	else
+@@ -356,7 +357,7 @@ static struct ctl_node *first_usable_entry(struct rb_node *node)
+ 	return NULL;
+ }
+ 
+-static void first_entry(struct ctl_dir *dir,
++void ctl_table_first_entry(struct ctl_dir *dir,
+ 	struct ctl_table_header **phead, struct ctl_table **pentry)
+ {
+ 	struct ctl_table_header *head = NULL;
+@@ -374,7 +375,7 @@ static void first_entry(struct ctl_dir *dir,
+ 	*pentry = entry;
+ }
+ 
+-static void next_entry(struct ctl_table_header **phead, struct ctl_table **pentry)
++void ctl_table_next_entry(struct ctl_table_header **phead, struct ctl_table **pentry)
+ {
+ 	struct ctl_table_header *head = *phead;
+ 	struct ctl_table *entry = *pentry;
+@@ -707,7 +708,8 @@ static int proc_sys_readdir(struct file *file, struct dir_context *ctx)
+ 
+ 	pos = 2;
+ 
+-	for (first_entry(ctl_dir, &h, &entry); h; next_entry(&h, &entry)) {
++	for (ctl_table_first_entry(ctl_dir, &h, &entry); h;
++	     ctl_table_next_entry(&h, &entry)) {
+ 		if (!scan(h, entry, &pos, file, ctx)) {
+ 			sysctl_head_finish(h);
+ 			break;
+@@ -865,7 +867,7 @@ static struct ctl_dir *find_subdir(struct ctl_dir *dir,
+ 	struct ctl_table_header *head;
+ 	struct ctl_table *entry;
+ 
+-	entry = find_entry(&head, dir, name, namelen);
++	entry = ctl_table_find_entry(&head, dir, name, namelen);
+ 	if (!entry)
+ 		return ERR_PTR(-ENOENT);
+ 	if (!S_ISDIR(entry->mode))
+@@ -961,13 +963,13 @@ failed:
+ 	return subdir;
+ }
+ 
+-static struct ctl_dir *xlate_dir(struct ctl_table_set *set, struct ctl_dir *dir)
++struct ctl_dir *ctl_table_xlate_dir(struct ctl_table_set *set, struct ctl_dir *dir)
+ {
+ 	struct ctl_dir *parent;
+ 	const char *procname;
+ 	if (!dir->header.parent)
+ 		return &set->dir;
+-	parent = xlate_dir(set, dir->header.parent);
++	parent = ctl_table_xlate_dir(set, dir->header.parent);
+ 	if (IS_ERR(parent))
+ 		return parent;
+ 	procname = dir->header.ctl_table[0].procname;
+@@ -988,13 +990,13 @@ static int sysctl_follow_link(struct ctl_table_header **phead,
+ 	spin_lock(&sysctl_lock);
+ 	root = (*pentry)->data;
+ 	set = lookup_header_set(root, namespaces);
+-	dir = xlate_dir(set, (*phead)->parent);
++	dir = ctl_table_xlate_dir(set, (*phead)->parent);
+ 	if (IS_ERR(dir))
+ 		ret = PTR_ERR(dir);
+ 	else {
+ 		const char *procname = (*pentry)->procname;
+ 		head = NULL;
+-		entry = find_entry(&head, dir, procname, strlen(procname));
++		entry = ctl_table_find_entry(&head, dir, procname, strlen(procname));
+ 		ret = -ENOENT;
+ 		if (entry && use_table(head)) {
+ 			unuse_table(*phead);
+@@ -1106,7 +1108,7 @@ static bool get_links(struct ctl_dir *dir,
+ 	/* Are there links available for every entry in table? */
+ 	for (entry = table; entry->procname; entry++) {
+ 		const char *procname = entry->procname;
+-		link = find_entry(&head, dir, procname, strlen(procname));
++		link = ctl_table_find_entry(&head, dir, procname, strlen(procname));
+ 		if (!link)
+ 			return false;
+ 		if (S_ISDIR(link->mode) && S_ISDIR(entry->mode))
+@@ -1119,7 +1121,7 @@ static bool get_links(struct ctl_dir *dir,
+ 	/* The checks passed.  Increase the registration count on the links */
+ 	for (entry = table; entry->procname; entry++) {
+ 		const char *procname = entry->procname;
+-		link = find_entry(&head, dir, procname, strlen(procname));
++		link = ctl_table_find_entry(&head, dir, procname, strlen(procname));
+ 		head->nreg++;
+ 	}
+ 	return true;
+@@ -1135,7 +1137,7 @@ static int insert_links(struct ctl_table_header *head)
+ 	if (head->set == root_set)
+ 		return 0;
+ 
+-	core_parent = xlate_dir(root_set, head->parent);
++	core_parent = ctl_table_xlate_dir(root_set, head->parent);
+ 	if (IS_ERR(core_parent))
+ 		return 0;
+ 
+@@ -1516,7 +1518,7 @@ static void put_links(struct ctl_table_header *header)
+ 	if (header->set == root_set)
+ 		return;
+ 
+-	core_parent = xlate_dir(root_set, parent);
++	core_parent = ctl_table_xlate_dir(root_set, parent);
+ 	if (IS_ERR(core_parent))
+ 		return;
+ 
+@@ -1525,7 +1527,7 @@ static void put_links(struct ctl_table_header *header)
+ 		struct ctl_table *link;
+ 		const char *name = entry->procname;
+ 
+-		link = find_entry(&link_head, core_parent, name, strlen(name));
++		link = ctl_table_find_entry(&link_head, core_parent, name, strlen(name));
+ 		if (link &&
+ 		    ((S_ISDIR(link->mode) && S_ISDIR(entry->mode)) ||
+ 		     (S_ISLNK(link->mode) && (link->data == root)))) {
 -- 
 2.1.0
 
