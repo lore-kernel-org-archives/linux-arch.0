@@ -1,31 +1,48 @@
-From: "Luis R. Rodriguez" <mcgrof@do-not-panic.com>
-Subject: Re: [RFC] asm-generic/pci_iomap.h: make custom PCI BAR requirements explicit
-Date: Wed, 2 Sep 2015 18:47:29 -0700
-Message-ID: <CAB=NE6VAj8bV1RXRjh=wH=J+MQPDfS2K3RgRSCcjLGHqs1m6uw@mail.gmail.com>
-References: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
- <3544271.GfynADMPqZ@wuerfel> <20150903014415.GQ8051@wotan.suse.de>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH 00/11] THP support for ARC
+Date: Thu, 3 Sep 2015 14:16:26 +0530
+Message-ID: <55E808E2.2080102@synopsys.com>
+References: <1440666194-21478-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f50.google.com ([209.85.218.50]:36357 "EHLO
-	mail-oi0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756342AbbICBrt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Sep 2015 21:47:49 -0400
-In-Reply-To: <20150903014415.GQ8051@wotan.suse.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, Borislav Petkov <bp@suse.de>, Guenter Roeck <linux@roeck-us.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1440666194-21478-1-git-send-email-vgupta@synopsys.com>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Mel Gorman <mgorman@suse.de>, Matthew
+ Wilcox <matthew.r.wilcox@intel.com>, Minchan Kim <minchan@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, arc-linux-dev@synopsys.com
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Sep 2, 2015 at 6:44 PM, Luis R. Rodriguez <mcgrof@suse.com> wrote:
->> I don't think we really need to spell it out here. s390 PCI is different
->> from everybody else's in a lot of ways, so a simple 'depends on PCI &&
->> !S390' for CONFIG_PCI_IOMAP seems simpler and more intuitive.
->
-> Sure that would work as well.
+Hi all,
 
-But on second thought it still would leave us reactive to S390, this
-solution would get folks extending this asm-generic stuff to also have
-something in place for S390, even if its just returning NULL.
+On Thursday 27 August 2015 02:33 PM, Vineet Gupta wrote:
+> Hi,
+> 
+> This series brings THP support to ARC. It also introduces an optional new
+> thp hook for arches to possibly optimize the TLB flush in thp regime.
+> 
+> Rebased against linux-next of today so includes new hook for Minchan's
+> madvise(MADV_FREE).
+> 
+> Please review !
+> 
+> Thx,
+> -Vineet
 
- Luis
+I understand that this is busy time for people due to merge window. However is
+this series in a a review'able state or do people think more changes are needed
+before they can take a look.
+
+I already did the pgtable_t switch to pte_t * as requested by Kirill (as a
+separate precursor patch) and that does requires one patch in this series to be
+updated. I will spin this in v2 but was wondering if we are on the right track here.
+
+Thx,
+-Vineet
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
