@@ -1,225 +1,34 @@
-From: Hajime Tazaki <thehajime@gmail.com>
-Subject: [PATCH v6 10/10] lib: tools used for test scripts
-Date: Thu,  3 Sep 2015 23:16:32 +0900
-Message-ID: <1441289792-64064-11-git-send-email-thehajime@gmail.com>
-References: <1431494921-24746-1-git-send-email-tazaki@sfc.wide.ad.jp>
- <1441289792-64064-1-git-send-email-thehajime@gmail.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1441289792-64064-1-git-send-email-thehajime@gmail.com>
-Sender: owner-linux-mm@kvack.org
+From: iSayor <iSayor@iSayor.com>
+Subject: usually 3000 customers/Where 100,000+ customers worldwide?
+Date: Sun, 06 Sep 2015 15:08:36 -0700
+Message-ID: <01d0e8f0$Blat.v3.2.4$93edda83$108dceb@localhost>
+Reply-To: iSayor <iSayor@163.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from [106.6.186.155] ([106.6.186.155]:1289 "EHLO iSayor.com"
+	rhost-flags-FAIL-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752425AbbIFQ45 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 6 Sep 2015 12:56:57 -0400
+Received: from sun (127.0.0.1) by iSayor.com for <linux-arch@vger.kernel.org>; Sun, 6 Sep 2015 15:08:36 -0700 (envelope-from <iSayor@iSayor.com>)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: Hajime Tazaki <thehajime@gmail.com>, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, Christoph Lameter <cl@linux.com>, Jekka Enberg <penberg@kernel.org>, Javid Rientjes <rientjes@google.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>, Jndrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-doc@vger.kernel.org, netdev@vger.kernel.org, linux-mm@kvack.org, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Rusty Russell <rusty@rustcorp.com.au>, Ryo Nakamura <upa@haeena.net>, Christoph Paasch <christoph.paasch@gmail.com>, Mathieu Lacage <mathieu.lacage@gmail.com>, libos-nuse@googlegroups.com
-List-Id: linux-arch.vger.kernel.org
 
-These auxiliary files are used for testing and debugging of net/ code
-with libos. a simple test is implemented with make test ARCH=lib.
-
-Signed-off-by: Hajime Tazaki <thehajime@gmail.com>
----
- tools/testing/libos/.gitignore   |  6 +++++
- tools/testing/libos/Makefile     | 38 +++++++++++++++++++++++++++
- tools/testing/libos/README       | 15 +++++++++++
- tools/testing/libos/bisect.sh    | 10 +++++++
- tools/testing/libos/dce-test.sh  | 23 ++++++++++++++++
- tools/testing/libos/nuse-test.sh | 57 ++++++++++++++++++++++++++++++++++++++++
- 6 files changed, 149 insertions(+)
- create mode 100644 tools/testing/libos/.gitignore
- create mode 100644 tools/testing/libos/Makefile
- create mode 100644 tools/testing/libos/README
- create mode 100755 tools/testing/libos/bisect.sh
- create mode 100755 tools/testing/libos/dce-test.sh
- create mode 100755 tools/testing/libos/nuse-test.sh
-
-diff --git a/tools/testing/libos/.gitignore b/tools/testing/libos/.gitignore
-new file mode 100644
-index 000000000000..57a74a05482c
---- /dev/null
-+++ b/tools/testing/libos/.gitignore
-@@ -0,0 +1,6 @@
-+*.pcap
-+files-*
-+bake
-+buildtop
-+core
-+exitprocs
-diff --git a/tools/testing/libos/Makefile b/tools/testing/libos/Makefile
-new file mode 100644
-index 000000000000..a27eb84e7712
---- /dev/null
-+++ b/tools/testing/libos/Makefile
-@@ -0,0 +1,38 @@
-+ADD_PARAM?=
-+
-+all: test
-+
-+bake:
-+	hg clone http://code.nsnam.org/bake
-+
-+check_pkgs:
-+	@./bake/bake.py check | grep Bazaar | grep OK || (echo "bzr is missing" && ./bake/bake.py check)
-+	@./bake/bake.py check | grep autoreconf | grep OK || (echo "autotools is missing" && ./bake/bake.py check && exit 1)
-+
-+testbin: bake check_pkgs
-+	@cp ../../../arch/lib/tools/bakeconf-linux.xml bake/bakeconf.xml
-+	@mkdir -p buildtop/build/bin_dce
-+	cd buildtop ; \
-+	../bake/bake.py configure -e dce-linux-inkernel $(BAKECONF_PARAMS)
-+	cd buildtop ; \
-+	../bake/bake.py show --enabledTree | grep -v  -E "pygoocanvas|graphviz|python-dev" | grep Missing && (echo "required packages are missing") || echo ""
-+	cd buildtop ; \
-+	../bake/bake.py download ; \
-+	../bake/bake.py update ; \
-+	../bake/bake.py build $(BAKEBUILD_PARAMS)
-+
-+test:
-+	@./dce-test.sh ADD_PARAM=$(ADD_PARAM)
-+
-+test-valgrind:
-+	@./dce-test.sh -g ADD_PARAM=$(ADD_PARAM)
-+
-+test-fault-injection:
-+	@./dce-test.sh -f ADD_PARAM=$(ADD_PARAM)
-+
-+clean:
-+#	@rm -rf buildtop
-+	@rm -f *.pcap
-+	@rm -rf files-*
-+	@rm -f exitprocs
-+	@rm -f core
-diff --git a/tools/testing/libos/README b/tools/testing/libos/README
-new file mode 100644
-index 000000000000..51ac5a52336e
---- /dev/null
-+++ b/tools/testing/libos/README
-@@ -0,0 +1,15 @@
-+
-+- bisect.sh
-+a sample script to bisect an issue of network stack code with the help
-+of LibOS (and ns-3 network simulator). This was used to detect the issue
-+for the following patch.
-+
-+http://patchwork.ozlabs.org/patch/436351/
-+
-+- dce-test.sh
-+a test script invoked by 'make test ARCH=lib'. The contents of test
-+scenario are implemented as test suites of ns-3 network simulator.
-+
-+- nuse-test.sh
-+a simple test script for Network Stack in Userspace (NUSE).
-+
-diff --git a/tools/testing/libos/bisect.sh b/tools/testing/libos/bisect.sh
-new file mode 100755
-index 000000000000..9377ac3214c1
---- /dev/null
-+++ b/tools/testing/libos/bisect.sh
-@@ -0,0 +1,10 @@
-+#!/bin/sh
-+
-+git merge origin/nuse --no-commit
-+make clean ARCH=lib
-+make library ARCH=lib OPT=no
-+make test ARCH=lib ADD_PARAM=" -s dce-umip"
-+RET=$?
-+git reset --hard
-+
-+exit $RET
-diff --git a/tools/testing/libos/dce-test.sh b/tools/testing/libos/dce-test.sh
-new file mode 100755
-index 000000000000..e81e2d84c156
---- /dev/null
-+++ b/tools/testing/libos/dce-test.sh
-@@ -0,0 +1,23 @@
-+#!/bin/sh
-+
-+set -e
-+#set -x
-+export LD_LOG=symbol-fail
-+#VERBOSE="-v"
-+VALGRIND=""
-+FAULT_INJECTION=""
-+
-+if [ "$1" = "-g" ] ; then
-+ VALGRIND="-g"
-+# Not implemneted yet.
-+#elif [ "$1" = "-f" ] ; then
-+# FAULT_INJECTION="-f"
-+fi
-+
-+# FIXME
-+#export NS_ATTRIBUTE_DEFAULT='ns3::DceManagerHelper::LoaderFactory=ns3::\
-+#DlmLoaderFactory[];ns3::TaskManager::FiberManagerType=UcontextFiberManager'
-+
-+cd buildtop/source/ns-3-dce
-+LD_LIBRARY_PATH=${srctree} ./test.py -n ${VALGRIND} ${FAULT_INJECTION}\
-+	   ${VERBOSE} ${ADD_PARAM}
-diff --git a/tools/testing/libos/nuse-test.sh b/tools/testing/libos/nuse-test.sh
-new file mode 100755
-index 000000000000..198e7e4c66ac
---- /dev/null
-+++ b/tools/testing/libos/nuse-test.sh
-@@ -0,0 +1,57 @@
-+#!/bin/bash -e
-+
-+LIBOS_TOOLS=arch/lib/tools
-+
-+IFNAME=`ip route |grep default | awk '{print $5}'`
-+GW=`ip route |grep default | awk '{print $3}'`
-+#XXX
-+IPADDR=`echo $GW | sed -r "s/([0-9]+\.[0-9]+\.[0-9]+\.)([0-9]+)$/\1\`expr \2 + 10\`/"`
-+
-+# ip route
-+# ip address
-+# ip link
-+
-+NUSE_CONF=/tmp/nuse.conf
-+
-+cat > ${NUSE_CONF} << ENDCONF
-+
-+interface ${IFNAME}
-+	address ${IPADDR}
-+	netmask 255.255.255.0
-+	macaddr 00:01:01:01:01:02
-+	viftype RAW
-+
-+route
-+	network 0.0.0.0
-+	netmask 0.0.0.0
-+	gateway ${GW}
-+
-+ENDCONF
-+
-+cd ${LIBOS_TOOLS}
-+sudo NUSECONF=${NUSE_CONF} ./nuse ping 127.0.0.1 -c 2
-+
-+# rump test
-+sudo NUSECONF=${NUSE_CONF} ./nuse sleep 5 &
-+
-+sleep 2
-+PID_SLEEP=`/bin/ls -ltr /tmp/rump-server-nuse.* | tail -1 | awk '{print $9}' | sed -e "s/.*rump-server-nuse\.//g" | sed "s/=//"`
-+RUMP_URL=unix:///tmp/rump-server-nuse.$PID_SLEEP
-+# ls -ltr /tmp/*
-+
-+sudo chmod 777 /tmp/rump-server-nuse.$PID_SLEEP
-+LD_PRELOAD=./libnuse-hijack.so  RUMPHIJACK=socket=all \
-+    RUMP_SERVER=$RUMP_URL ip addr show
-+
-+wait %1
-+
-+if [ "$1" == "--extended" ] ; then
-+sudo NUSECONF=${NUSE_CONF} ./nuse ping ${GW} -c 2
-+sudo NUSECONF=${NUSE_CONF} ./nuse iperf -c ${GW} -p 2000 -t 3
-+sudo NUSECONF=${NUSE_CONF} ./nuse iperf -c ${GW} -p 8 -u -t 3
-+sudo NUSECONF=${NUSE_CONF} ./nuse dig www.google.com
-+sudo NUSECONF=${NUSE_CONF} ./nuse host www.google.com
-+sudo NUSECONF=${NUSE_CONF} ./nuse nslookup www.google.com
-+#sudo NUSECONF=${NUSE_CONF} ./nuse nc www.google.com 80
-+sudo NUSECONF=${NUSE_CONF} ./nuse wget www.google.com -O -
-+fi
--- 
-2.1.0
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Hi
+=C2=A0=C2=A0Are you still develop foreign customers with alibaba, exhib=
+ition?
+=C2=A0=C2=A0=C2=A0=C2=A0=C2=A0You out of!!!
+=C2=A0 Are you looking other channel beside exhibition/B2B when you fee=
+l difficult to find foreign customers?
+=C2=A0 Industry hundreds of thousands of customers worldwide, usually w=
+e can only contact three thousand, do you want to rest also developed?
+=C2=A0 Guangdong General Chamber of Commerce recommended the initiative=
+ customer develop first brand, nearly ten thousand companies are benefi=
+ting.
+  the first benefit with first use, nearly twenty thousand companies le=
+ad you!
+  You can not use, but not without understanding.
+=C2=A0 Add QQ2652697913/Skype:iSayor let's show you the initiative cust=
+omer develop means.
