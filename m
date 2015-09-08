@@ -1,91 +1,138 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC] asm-generic/pci_iomap.h: make custom PCI BAR requirements explicit
-Date: Tue, 08 Sep 2015 15:42:40 +0200
-Message-ID: <1866509.8pE0MIz57e@wuerfel>
-References: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com> <3544271.GfynADMPqZ@wuerfel> <20150903014415.GQ8051@wotan.suse.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:57199 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753254AbbIHNm7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Sep 2015 09:42:59 -0400
-In-Reply-To: <20150903014415.GQ8051@wotan.suse.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@suse.com>
-Cc: "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, linux-arch@vger.kernel.org, mingo@kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, bp@suse.de, linux@roeck-us.net, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org
+From: Eric B Munson <emunson@akamai.com>
+Subject: [PATCH v9 2/6] mm: mlock: Add new mlock system call
+Date: Tue,  8 Sep 2015 09:58:58 -0400
+Message-ID: <1441720742-7803-3-git-send-email-emunson@akamai.com>
+References: <1441720742-7803-1-git-send-email-emunson@akamai.com>
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <1441720742-7803-1-git-send-email-emunson@akamai.com>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Eric B Munson <emunson@akamai.com>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, Heiko Carstens <heiko.carstens@de.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Guenter Roeck <linux@roeck-us.net>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-cris-kernel@axis.com, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-am33-list@redhat.com, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thursday 03 September 2015 03:44:15 Luis R. Rodriguez wrote:
-> On Sun, Aug 30, 2015 at 09:30:26PM +0200, Arnd Bergmann wrote:
-> > On Friday 28 August 2015 17:17:27 Luis R. Rodriguez wrote:
-> > > While at it, as with the ioremap*() variants, since we have no clear
-> > > semantics yet well defined provide a solution for them that returns
-> > > NULL. This allows architectures to move forward by defining pci_ioremap*()
-> > > variants without requiring immediate changes to all architectures. Each
-> > > architecture then can implement their own solution as needed and
-> > > when they get to it.
-> > 
-> > Which architectures are you thinking about here?
-> 
-> Really only S390 would benefit from this now.
+With the refactored mlock code, introduce a new system call for mlock.
+The new call will allow the user to specify what lock states are being
+added.  mlock2 is trivial at the moment, but a follow on patch will add
+a new mlock state making it useful.
 
-Ok
+Signed-off-by: Eric B Munson <emunson@akamai.com>
+Acked-by: Vlastimil Babka <vbabka@suse.cz>
+Acked-by: Michal Hocko <mhocko@suse.com>
+Cc: Michal Hocko <mhocko@suse.cz>
+Cc: Vlastimil Babka <vbabka@suse.cz>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Guenter Roeck <linux@roeck-us.net>
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: adi-buildroot-devel@lists.sourceforge.net
+Cc: linux-cris-kernel@axis.com
+Cc: linux-ia64@vger.kernel.org
+Cc: linux-m68k@lists.linux-m68k.org
+Cc: linux-am33-list@redhat.com
+Cc: linux-parisc@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-sh@vger.kernel.org
+Cc: sparclinux@vger.kernel.org
+Cc: linux-xtensa@linux-xtensa.org
+Cc: linux-api@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mm@kvack.org
+---
+Changes from V8:
+* Update x86[_64] syscall numbers to follow the new userfaultfd syscalls
 
-> > > Build tested with allyesconfig on:
-> > > 
-> > >         * S390
-> > >         * x86_64
-> > > 
-> > > Signed-off-by: Luis R. Rodriguez <mcgrof@suse.com>
-> > 
-> > It's not really clear to me what the purpose of the patch is, is this 
-> > meant as a cleanup, or are you trying to avoid some real-life bugs
-> > you ran into?
-> 
-> Upon adding a new helper into CONFIG_PCI_IOMAP it was only through
-> 0-day build testing that I found that I needed to add something for S390.
-> This means we fix S390 reactively. With the asm-generic stuff in place
-> to return NULL we don't need to do anything but a respective return
-> NULL static inline, the moment that is done the author would know some
-> architectures may not get support for the functionality they are adding.
-> Without this we only find out reactively.
+ arch/x86/entry/syscalls/syscall_32.tbl | 1 +
+ arch/x86/entry/syscalls/syscall_64.tbl | 1 +
+ include/linux/syscalls.h               | 2 ++
+ include/uapi/asm-generic/unistd.h      | 4 +++-
+ kernel/sys_ni.c                        | 1 +
+ mm/mlock.c                             | 8 ++++++++
+ 6 files changed, 16 insertions(+), 1 deletion(-)
 
-Hmm, my gut feeling tells me that your approach won't solve the problem
-in general. s390 PCI is just weird in many ways and it will occasionally
-suffer from problems like this (as do other aspects of the s390 architecture
-that are unlike the rest of the world).
-
-Maybe Martin and Heiko can comment on this, they may have a preference
-from the s390 point of view.
-
-> > The version from lib/iomap.c seems correct for uses of CONFIG_GENERIC_IOMAP,
-> > but most architectures can do better without that option.
-> 
-> By do better do you mean a more optimized solution ?
-
-Yes: most architectures access the PCI I/O space through memory mapped I/O,
-so we can return a regular __iomem pointer from ioport_map, rather than
-a garbled pointer that the x86 version has to use.
-
-This means we also get to define iowrite32() to be identical to writel()
-and can save the conditional for each caller.
-
-The lib/iomap.c version is really only needed for architectures that use
-pointer access for PCI memory space, and special instructions for PCI
-I/O space, like x86. s390 has special instructions for both, some
-architectures do not have any I/O port access at all, and most of them
-treat memory and I/O space the same way.
-
-Note that there are still two possible implementations for ioport_map
-on those:
-
-a) just return a pointer from ioport_map() that points to the existing
-   mapping, define ioport_unmap() as an empty function, and have
-   pci_iounmap() check the pointer.
-
-b) create a new ioremap() mapping in ioport_map(), and define both
-   ioport_unmap() and pci_iounmap as iounmap.
-
-	Arnd
+diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
+index 477bfa6..41e72a5 100644
+--- a/arch/x86/entry/syscalls/syscall_32.tbl
++++ b/arch/x86/entry/syscalls/syscall_32.tbl
+@@ -381,3 +381,4 @@
+ 372	i386	recvmsg			sys_recvmsg			compat_sys_recvmsg
+ 373	i386	shutdown		sys_shutdown
+ 374	i386	userfaultfd		sys_userfaultfd
++375	i386	mlock2			sys_mlock2
+diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
+index 81c4906..2366900 100644
+--- a/arch/x86/entry/syscalls/syscall_64.tbl
++++ b/arch/x86/entry/syscalls/syscall_64.tbl
+@@ -330,6 +330,7 @@
+ 321	common	bpf			sys_bpf
+ 322	64	execveat		stub_execveat
+ 323	common	userfaultfd		sys_userfaultfd
++324	common	mlock2			sys_mlock2
+ 
+ #
+ # x32-specific system call numbers start at 512 to avoid cache impact
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 0800131..890632c 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -885,4 +885,6 @@ asmlinkage long sys_execveat(int dfd, const char __user *filename,
+ 			const char __user *const __user *argv,
+ 			const char __user *const __user *envp, int flags);
+ 
++asmlinkage long sys_mlock2(unsigned long start, size_t len, int flags);
++
+ #endif
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index e016bd9..14a6013 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -709,9 +709,11 @@ __SYSCALL(__NR_memfd_create, sys_memfd_create)
+ __SYSCALL(__NR_bpf, sys_bpf)
+ #define __NR_execveat 281
+ __SC_COMP(__NR_execveat, sys_execveat, compat_sys_execveat)
++#define __NR_mlock2 282
++__SYSCALL(__NR_mlock2, sys_mlock2)
+ 
+ #undef __NR_syscalls
+-#define __NR_syscalls 282
++#define __NR_syscalls 283
+ 
+ /*
+  * All syscalls below here should go away really,
+diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
+index 03c3875..8de5b26 100644
+--- a/kernel/sys_ni.c
++++ b/kernel/sys_ni.c
+@@ -194,6 +194,7 @@ cond_syscall(sys_mlock);
+ cond_syscall(sys_munlock);
+ cond_syscall(sys_mlockall);
+ cond_syscall(sys_munlockall);
++cond_syscall(sys_mlock2);
+ cond_syscall(sys_mincore);
+ cond_syscall(sys_madvise);
+ cond_syscall(sys_mremap);
+diff --git a/mm/mlock.c b/mm/mlock.c
+index c32ad8f..a23a533 100644
+--- a/mm/mlock.c
++++ b/mm/mlock.c
+@@ -644,6 +644,14 @@ SYSCALL_DEFINE2(mlock, unsigned long, start, size_t, len)
+ 	return do_mlock(start, len, VM_LOCKED);
+ }
+ 
++SYSCALL_DEFINE3(mlock2, unsigned long, start, size_t, len, int, flags)
++{
++	if (flags)
++		return -EINVAL;
++
++	return do_mlock(start, len, VM_LOCKED);
++}
++
+ SYSCALL_DEFINE2(munlock, unsigned long, start, size_t, len)
+ {
+ 	int ret;
+-- 
+1.9.1
