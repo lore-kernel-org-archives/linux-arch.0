@@ -1,35 +1,52 @@
-From: "Luis R. Rodriguez" <mcgrof@do-not-panic.com>
-Subject: Re: [RFC] asm-generic/pci_iomap.h: make custom PCI BAR requirements explicit
-Date: Tue, 8 Sep 2015 02:54:47 -0700
-Message-ID: <CAB=NE6UiqjP18pUgGVXJiBjTi+=3Q8kVmwTC=p2NKu-c0A6t3w@mail.gmail.com>
-References: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
- <3544271.GfynADMPqZ@wuerfel> <20150903014415.GQ8051@wotan.suse.de> <CAB=NE6VAj8bV1RXRjh=wH=J+MQPDfS2K3RgRSCcjLGHqs1m6uw@mail.gmail.com>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH V4 2/3] arm64: support initrd outside kernel linear map
+Date: Tue, 8 Sep 2015 12:31:13 +0100
+Message-ID: <20150908113113.GA20562@leverpostej>
+References: <1439830867-14935-1-git-send-email-msalter@redhat.com>
+ <1439830867-14935-3-git-send-email-msalter@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f46.google.com ([209.85.218.46]:33704 "EHLO
-	mail-oi0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753369AbbIHJzH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Sep 2015 05:55:07 -0400
-In-Reply-To: <CAB=NE6VAj8bV1RXRjh=wH=J+MQPDfS2K3RgRSCcjLGHqs1m6uw@mail.gmail.com>
+Received: from foss.arm.com ([217.140.101.70]:54054 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754142AbbIHLb6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 8 Sep 2015 07:31:58 -0400
+Content-Disposition: inline
+In-Reply-To: <1439830867-14935-3-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, Borislav Petkov <bp@suse.de>, Guenter Roeck <linux@roeck-us.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Steven Rostedt <rostedt@goodmis.org>
+To: Mark Salter <msalter@redhat.com>
+Cc: Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, "x86@kernel.org" <x86@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Wed, Sep 2, 2015 at 6:47 PM, Luis R. Rodriguez
-<mcgrof@do-not-panic.com> wrote:
-> On Wed, Sep 2, 2015 at 6:44 PM, Luis R. Rodriguez <mcgrof@suse.com> wrote:
->>> I don't think we really need to spell it out here. s390 PCI is different
->>> from everybody else's in a lot of ways, so a simple 'depends on PCI &&
->>> !S390' for CONFIG_PCI_IOMAP seems simpler and more intuitive.
->>
->> Sure that would work as well.
->
-> But on second thought it still would leave us reactive to S390, this
-> solution would get folks extending this asm-generic stuff to also have
-> something in place for S390, even if its just returning NULL.
+Hi Mark,
 
-Arnd, thoughts?
+On Mon, Aug 17, 2015 at 06:01:06PM +0100, Mark Salter wrote:
+> The use of mem= could leave part or all of the initrd outside of
+> the kernel linear map. This will lead to an error when unpacking
+> the initrd and a probable failure to boot. This patch catches that
+> situation and relocates the initrd to be fully within the linear
+> map.
 
- Luis
+With next-20150908, this patch results in a confusing message at boot when not
+using an initrd:
+
+Moving initrd from [4080000000-407fffffff] to [9fff49000-9fff48fff]
+
+I think that can be solved by folding in the diff below.
+
+Thanks,
+Mark.
+
+diff --git a/arch/arm64/kernel/setup.c b/arch/arm64/kernel/setup.c
+index 6bab21f..2322479 100644
+--- a/arch/arm64/kernel/setup.c
++++ b/arch/arm64/kernel/setup.c
+@@ -364,6 +364,8 @@ static void __init relocate_initrd(void)
+                to_free = ram_end - orig_start;
+ 
+        size = orig_end - orig_start;
++       if (!size)
++               return;
+ 
+        /* initrd needs to be relocated completely inside linear mapping */
+        new_start = memblock_find_in_range(0, PFN_PHYS(max_pfn),
