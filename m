@@ -1,56 +1,144 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.131]:52786 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750964AbbIGMyd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Sep 2015 08:54:33 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] x86: Wire up 32-bit direct socket calls
-Date: Mon, 07 Sep 2015 14:53:12 +0200
-Message-ID: <3193269.4TGcgnGPrm@wuerfel>
-In-Reply-To: <55E75913.5050605@zytor.com>
-References: <cb5138299d37d5800e2d135b01a7667fa6115854.1436912629.git.luto@kernel.org> <CAMuHMdXKA_+JY2ryf-yoJxQnbW=jsOjj_w2-Nsybpx0310neDA@mail.gmail.com> <55E75913.5050605@zytor.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Received: from a23-79-238-179.deploy.static.akamaitechnologies.com ([23.79.238.179]:47459
+	"EHLO prod-mail-xrelay05.akamai.com" rhost-flags-OK-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1754705AbbIHN7I (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Sep 2015 09:59:08 -0400
+From: Eric B Munson <emunson@akamai.com>
+Subject: [PATCH v9 2/6] mm: mlock: Add new mlock system call
+Date: Tue,  8 Sep 2015 09:58:58 -0400
+Message-ID: <1441720742-7803-3-git-send-email-emunson@akamai.com>
+In-Reply-To: <1441720742-7803-1-git-send-email-emunson@akamai.com>
+References: <1441720742-7803-1-git-send-email-emunson@akamai.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, Network Development <netdev@vger.kernel.org>, Tulio Magno Quites Machado Filho <tuliom@linux.vnet.ibm.com>, Andy Lutomirski <luto@amacapital.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexander Larsson <alexl@redhat.com>, Cosimo Cecchi <cosimo@endlessm.com>, Dan Nicholson <nicholson@endlessm.com>, libc-alpha <libc-alpha@sourceware.org>, Rajalakshmi Srinivasaraghavan <raji@linux.vnet.ibm.com>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20150907125312.twQZUfwSiF-T4QaYjzwXUyxt0JPZDIDXQmicjL8dLIc@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Eric B Munson <emunson@akamai.com>, Michal Hocko <mhocko@suse.cz>, Vlastimil Babka <vbabka@suse.cz>, Heiko Carstens <heiko.carstens@de.ibm.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Catalin Marinas <catalin.marinas@arm.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Guenter Roeck <linux@roeck-us.net>, linux-alpha@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, adi-buildroot-devel@lists.sourceforge.net, linux-cris-kernel@axis.com, linux-ia64@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-am33-list@redhat.com, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20150908135858.EguyH2QES0CDrHqQyvgWBdUrNjWaQT0XwcCa4elQyNs@z>
 
-On Wednesday 02 September 2015 13:16:19 H. Peter Anvin wrote:
-> On 09/02/2015 02:48 AM, Geert Uytterhoeven wrote:
-> > 
-> > Should all other architectures follow suit?
-> > Or should we follow the s390 approach:
-> > 
-> 
-> It is up to the maintainer(s), largely dependent on how likely you are
-> going to want to support this in your libc, but in general, socketcall
-> is an abomination which there is no reason not to bypass.
-> 
-> So follow suit unless you have a strong reason not to.
+With the refactored mlock code, introduce a new system call for mlock.
+The new call will allow the user to specify what lock states are being
+added.  mlock2 is trivial at the moment, but a follow on patch will add
+a new mlock state making it useful.
 
-+1
+Signed-off-by: Eric B Munson <emunson@akamai.com>
+Acked-by: Vlastimil Babka <vbabka@suse.cz>
+Acked-by: Michal Hocko <mhocko@suse.com>
+Cc: Michal Hocko <mhocko@suse.cz>
+Cc: Vlastimil Babka <vbabka@suse.cz>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Guenter Roeck <linux@roeck-us.net>
+Cc: linux-alpha@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: adi-buildroot-devel@lists.sourceforge.net
+Cc: linux-cris-kernel@axis.com
+Cc: linux-ia64@vger.kernel.org
+Cc: linux-m68k@lists.linux-m68k.org
+Cc: linux-am33-list@redhat.com
+Cc: linux-parisc@vger.kernel.org
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-s390@vger.kernel.org
+Cc: linux-sh@vger.kernel.org
+Cc: sparclinux@vger.kernel.org
+Cc: linux-xtensa@linux-xtensa.org
+Cc: linux-api@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mm@kvack.org
+---
+Changes from V8:
+* Update x86[_64] syscall numbers to follow the new userfaultfd syscalls
 
-In my y2038 syscall series, I'm adding a new recvmmsg64 call, and
-we may decide to add new setsockopt/getsockopt variants as well.
-This is probably not the last change to socketcall, and it would
-be made much easier if all architectures had separate calls here.
+ arch/x86/entry/syscalls/syscall_32.tbl | 1 +
+ arch/x86/entry/syscalls/syscall_64.tbl | 1 +
+ include/linux/syscalls.h               | 2 ++
+ include/uapi/asm-generic/unistd.h      | 4 +++-
+ kernel/sys_ni.c                        | 1 +
+ mm/mlock.c                             | 8 ++++++++
+ 6 files changed, 16 insertions(+), 1 deletion(-)
 
-It seems that there are very few architectures that don't already have
-the separate calls:
+diff --git a/arch/x86/entry/syscalls/syscall_32.tbl b/arch/x86/entry/syscalls/syscall_32.tbl
+index 477bfa6..41e72a5 100644
+--- a/arch/x86/entry/syscalls/syscall_32.tbl
++++ b/arch/x86/entry/syscalls/syscall_32.tbl
+@@ -381,3 +381,4 @@
+ 372	i386	recvmsg			sys_recvmsg			compat_sys_recvmsg
+ 373	i386	shutdown		sys_shutdown
+ 374	i386	userfaultfd		sys_userfaultfd
++375	i386	mlock2			sys_mlock2
+diff --git a/arch/x86/entry/syscalls/syscall_64.tbl b/arch/x86/entry/syscalls/syscall_64.tbl
+index 81c4906..2366900 100644
+--- a/arch/x86/entry/syscalls/syscall_64.tbl
++++ b/arch/x86/entry/syscalls/syscall_64.tbl
+@@ -330,6 +330,7 @@
+ 321	common	bpf			sys_bpf
+ 322	64	execveat		stub_execveat
+ 323	common	userfaultfd		sys_userfaultfd
++324	common	mlock2			sys_mlock2
+ 
+ #
+ # x32-specific system call numbers start at 512 to avoid cache impact
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index 0800131..890632c 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -885,4 +885,6 @@ asmlinkage long sys_execveat(int dfd, const char __user *filename,
+ 			const char __user *const __user *argv,
+ 			const char __user *const __user *envp, int flags);
+ 
++asmlinkage long sys_mlock2(unsigned long start, size_t len, int flags);
++
+ #endif
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index e016bd9..14a6013 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -709,9 +709,11 @@ __SYSCALL(__NR_memfd_create, sys_memfd_create)
+ __SYSCALL(__NR_bpf, sys_bpf)
+ #define __NR_execveat 281
+ __SC_COMP(__NR_execveat, sys_execveat, compat_sys_execveat)
++#define __NR_mlock2 282
++__SYSCALL(__NR_mlock2, sys_mlock2)
+ 
+ #undef __NR_syscalls
+-#define __NR_syscalls 282
++#define __NR_syscalls 283
+ 
+ /*
+  * All syscalls below here should go away really,
+diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
+index 03c3875..8de5b26 100644
+--- a/kernel/sys_ni.c
++++ b/kernel/sys_ni.c
+@@ -194,6 +194,7 @@ cond_syscall(sys_mlock);
+ cond_syscall(sys_munlock);
+ cond_syscall(sys_mlockall);
+ cond_syscall(sys_munlockall);
++cond_syscall(sys_mlock2);
+ cond_syscall(sys_mincore);
+ cond_syscall(sys_madvise);
+ cond_syscall(sys_mremap);
+diff --git a/mm/mlock.c b/mm/mlock.c
+index c32ad8f..a23a533 100644
+--- a/mm/mlock.c
++++ b/mm/mlock.c
+@@ -644,6 +644,14 @@ SYSCALL_DEFINE2(mlock, unsigned long, start, size_t, len)
+ 	return do_mlock(start, len, VM_LOCKED);
+ }
+ 
++SYSCALL_DEFINE3(mlock2, unsigned long, start, size_t, len, int, flags)
++{
++	if (flags)
++		return -EINVAL;
++
++	return do_mlock(start, len, VM_LOCKED);
++}
++
+ SYSCALL_DEFINE2(munlock, unsigned long, start, size_t, len)
+ {
+ 	int ret;
+-- 
+1.9.1
 
-$ git grep -l __NR_socketcall arch/*/include/uapi  | xargs git grep -L recvmsg 
-arch/cris/include/uapi/asm/unistd.h
-arch/frv/include/uapi/asm/unistd.h
-arch/m32r/include/uapi/asm/unistd.h
-arch/m68k/include/uapi/asm/unistd.h
-arch/mn10300/include/uapi/asm/unistd.h
-arch/s390/include/uapi/asm/unistd.h
-
-These are of course all examples of architectures that originally followed
-the i386 syscall scheme closely rather than trying to leave out obsolete
-calls.
-
-	Arnd
