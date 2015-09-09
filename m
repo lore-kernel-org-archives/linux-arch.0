@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f53.google.com ([209.85.220.53]:36203 "EHLO
-	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754816AbbIIVI6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Sep 2015 17:08:58 -0400
-Received: by padhk3 with SMTP id hk3so20677122pad.3
-        for <linux-arch@vger.kernel.org>; Wed, 09 Sep 2015 14:08:57 -0700 (PDT)
+Received: from mail-pa0-f48.google.com ([209.85.220.48]:36049 "EHLO
+	mail-pa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751862AbbIIVIq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Sep 2015 17:08:46 -0400
+Received: by padhk3 with SMTP id hk3so20673230pad.3
+        for <linux-arch@vger.kernel.org>; Wed, 09 Sep 2015 14:08:46 -0700 (PDT)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 11/13] Hide MAX_RAW_MINORS behind #ifdef __KERNEL__
-Date: Wed,  9 Sep 2015 14:08:20 -0700
-Message-ID: <1441832902-28993-12-git-send-email-palmer@dabbelt.com>
+Subject: [PATCH 01/13] Remove #ifdef CONFIG_64BIT from all asm-generic/fcntl.h
+Date: Wed,  9 Sep 2015 14:08:10 -0700
+Message-ID: <1441832902-28993-2-git-send-email-palmer@dabbelt.com>
 In-Reply-To: <1441832902-28993-1-git-send-email-palmer@dabbelt.com>
 References: <2644177.lVCYzIBfPW@wuerfel>
  <1441832902-28993-1-git-send-email-palmer@dabbelt.com>
@@ -16,30 +16,47 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de
 Cc: 3chas3@gmail.com, hpa@zytor.com, mingo@redhat.com, plagnioj@jcrosoft.com, jikos@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-atm-general@lists.sourceforge.net, linux-fbdev@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, tglx@linutronix.de, tomi.valkeinen@ti.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20150909210820.shDB_veiJnvbIfPjHU7ep_PEBuWJxK4wzFzD65dQFBQ@z>
+Message-ID: <20150909210810.t4CtL1T9xpNyXJe5KVYCwb-a4ogIJyN0VCerCZHf8aM@z>
 
-I don't think this was ever meant to be exposed to userspace.
+When working on the RISC-V port I noticed that F_SETLK64 was being
+defined on our 64-bit platform, despite our port being so new that
+we've only ever had the 64-bit file ops.  Since there's not compat
+layer for these, this causes fcntl to bail out.
+
+It turns out that one of the ways in with F_SETLK64 was being defined
+(there's some more in glibc, but that's a whole different story... :))
+is the result of CONFIG_64BIT showing up in this user-visible header.
+<asm-generic/bitsperlong.h> confirms this isn't sane, so I replaced it
+with a __BITS_PER_LONG check.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
 Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
 ---
- include/uapi/linux/raw.h | 2 ++
- 1 file changed, 2 insertions(+)
+ include/uapi/asm-generic/fcntl.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/include/uapi/linux/raw.h b/include/uapi/linux/raw.h
-index 62d543e70603..6d8d87524ff2 100644
---- a/include/uapi/linux/raw.h
-+++ b/include/uapi/linux/raw.h
-@@ -13,6 +13,8 @@ struct raw_config_request
- 	__u64	block_minor;
- };
+diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
+index e063effe0cc1..14a5c8237d84 100644
+--- a/include/uapi/asm-generic/fcntl.h
++++ b/include/uapi/asm-generic/fcntl.h
+@@ -1,6 +1,7 @@
+ #ifndef _ASM_GENERIC_FCNTL_H
+ #define _ASM_GENERIC_FCNTL_H
  
-+#ifdef __KERNEL__
- #define MAX_RAW_MINORS CONFIG_MAX_RAW_DEVS
-+#endif
++#include <asm/bitsperlong.h>
+ #include <linux/types.h>
  
- #endif /* __LINUX_RAW_H */
+ /*
+@@ -115,7 +116,7 @@
+ #define F_GETSIG	11	/* for sockets. */
+ #endif
+ 
+-#ifndef CONFIG_64BIT
++#if (__BITS_PER_LONG == 32)
+ #ifndef F_GETLK64
+ #define F_GETLK64	12	/*  using 'struct flock64' */
+ #define F_SETLK64	13
 -- 
 2.4.6
 
