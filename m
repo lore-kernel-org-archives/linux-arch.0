@@ -1,61 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f43.google.com ([209.85.220.43]:34615 "EHLO
-	mail-pa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754044AbbIIVIu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Sep 2015 17:08:50 -0400
-Received: by padhy16 with SMTP id hy16so20834768pad.1
-        for <linux-arch@vger.kernel.org>; Wed, 09 Sep 2015 14:08:50 -0700 (PDT)
-From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 05/13] Hide some of "struct elf_prstatus" behind #ifdef __KERNEL__
-Date: Wed,  9 Sep 2015 14:08:14 -0700
-Message-ID: <1441832902-28993-6-git-send-email-palmer@dabbelt.com>
-In-Reply-To: <1441832902-28993-1-git-send-email-palmer@dabbelt.com>
-References: <2644177.lVCYzIBfPW@wuerfel>
- <1441832902-28993-1-git-send-email-palmer@dabbelt.com>
+Received: from mx1.redhat.com ([209.132.183.28]:41753 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753416AbbIJLNm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Sep 2015 07:13:42 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <1441832902-28993-12-git-send-email-palmer@dabbelt.com>
+References: <1441832902-28993-12-git-send-email-palmer@dabbelt.com> <2644177.lVCYzIBfPW@wuerfel> <1441832902-28993-1-git-send-email-palmer@dabbelt.com>
+Subject: Re: [PATCH 11/13] Hide MAX_RAW_MINORS behind #ifdef __KERNEL__
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-ID: <18102.1441883614.1@warthog.procyon.org.uk>
+Date: Thu, 10 Sep 2015 12:13:34 +0100
+Message-ID: <18103.1441883614@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: 3chas3@gmail.com, hpa@zytor.com, mingo@redhat.com, plagnioj@jcrosoft.com, jikos@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-atm-general@lists.sourceforge.net, linux-fbdev@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, tglx@linutronix.de, tomi.valkeinen@ti.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20150909210814.ui1iwRY2I2rA0wf3Nqeg_oy9jTxtjgawHuAOiO1urFE@z>
+To: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: dhowells@redhat.com, arnd@arndb.de, 3chas3@gmail.com, hpa@zytor.com, mingo@redhat.com, plagnioj@jcrosoft.com, jikos@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-atm-general@lists.sourceforge.net, linux-fbdev@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, tglx@linutronix.de, tomi.valkeinen@ti.com, x86@kernel.org
+Message-ID: <20150910111334._ZvBV-GkdEcbASEtVD-w0Cktaccyjm9EqtzRFZKkrzc@z>
 
-This one scares me: while I can't find any system calls that directly
-take this as an argument, a comment in <linux/ptrace.h>
+Palmer Dabbelt <palmer@dabbelt.com> wrote:
 
-  "
-   Generic ptrace interface that exports the architecture specific
-   regsets using the corresponding NT_* types (which are also used in
-   the core dump).  Please note that the NT_PRSTATUS note type in a
-   core dump contains a full 'struct elf_prstatus'. But the
-   user_regset for NT_PRSTATUS contains just the elf_gregset_t that is
-   the pr_reg field of 'struct elf_prstatus'. For all the other
-   user_regset flavors, the user_regset layout and the ELF core dump
-   note payload are exactly the same layout.
-  "
+> I don't think this was ever meant to be exposed to userspace.
 
-seems to indicate that it's possible to see this sometimes.  Since
-this would only be visible to userspace in a somewhat convoluted
-manner, I'm going to try and keep it as it was.
+Then it should be in include/linux/raw.h
 
-Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
-Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
-Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
----
- include/uapi/linux/elfcore.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/include/uapi/linux/elfcore.h b/include/uapi/linux/elfcore.h
-index 569737cfb557..f9320b588937 100644
---- a/include/uapi/linux/elfcore.h
-+++ b/include/uapi/linux/elfcore.h
-@@ -60,7 +60,7 @@ struct elf_prstatus
- 	long	pr_instr;		/* Current instruction */
- #endif
- 	elf_gregset_t pr_reg;	/* GP registers */
--#ifdef CONFIG_BINFMT_ELF_FDPIC
-+#if defined(__KERNEL__) && defined(CONFIG_BINFMT_ELF_FDPIC)
- 	/* When using FDPIC, the loadmap addresses need to be communicated
- 	 * to GDB in order for GDB to do the necessary relocations.  The
- 	 * fields (below) used to communicate this information are placed
--- 
-2.4.6
-
+David
