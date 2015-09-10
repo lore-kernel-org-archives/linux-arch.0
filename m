@@ -1,47 +1,37 @@
-From: Palmer Dabbelt <palmer-96lFi9zoCfxBDgjK7y7TUQ@public.gmane.org>
-Subject: [PATCH 02/13] Always expose __SYSCALL(... fork ...)
-Date: Wed,  9 Sep 2015 14:08:11 -0700
-Message-ID: <1441832902-28993-3-git-send-email-palmer@dabbelt.com>
-References: <2644177.lVCYzIBfPW@wuerfel>
- <1441832902-28993-1-git-send-email-palmer@dabbelt.com>
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1441832902-28993-1-git-send-email-palmer-96lFi9zoCfxBDgjK7y7TUQ@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: arnd-r2nGTMty4D4@public.gmane.org
-Cc: 3chas3-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org, mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, plagnioj-sclMFOaUSTBWk0Htik3J/w@public.gmane.org, jikos-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-atm-general-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-fbdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, tomi.valkeinen-l0cyMroinI0@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Palmer Dabbelt <palmer-96lFi9zoCfxBDgjK7y7TUQ@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH 09/13] Hide bp_type_idx behind #ifdef __KERNEL__
+Date: Thu, 10 Sep 2015 12:11:15 +0100
+Message-ID: <18025.1441883475@warthog.procyon.org.uk>
+References: <1441832902-28993-10-git-send-email-palmer@dabbelt.com> <2644177.lVCYzIBfPW@wuerfel> <1441832902-28993-1-git-send-email-palmer@dabbelt.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:41428 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751263AbbIJLLY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Sep 2015 07:11:24 -0400
+In-Reply-To: <1441832902-28993-10-git-send-email-palmer@dabbelt.com>
+Content-ID: <18024.1441883475.1@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: dhowells@redhat.com, arnd@arndb.de, 3chas3@gmail.com, hpa@zytor.com, mingo@redhat.com, plagnioj@jcrosoft.com, jikos@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-atm-general@lists.sourceforge.net, linux-fbdev@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, tglx@linutronix.de, tomi.valkeinen@ti.com, x86@kernel.org
 
-I think this change actually doesn't do anything: __NR_fork was still
-being defined either way, and on my machine fork() in <unistd.h> comes
-from libc.
+Palmer Dabbelt <palmer@dabbelt.com> wrote:
 
-That said, I don't think there's any way to determine this
-automatically, so this at least quiets the checker.
+> +#ifdef __KERNEL__
+>  enum bp_type_idx {
+>  	TYPE_INST 	= 0,
+> -#ifdef CONFIG_HAVE_MIXED_BREAKPOINTS_REGS
+> +#if defined(CONFIG_HAVE_MIXED_BREAKPOINTS_REGS)
+>  	TYPE_DATA	= 0,
+>  #else
+>  	TYPE_DATA	= 1,
+>  #endif
+>  	TYPE_MAX
+>  };
+> +#endif /* __KERNEL__ */
 
-Signed-off-by: Palmer Dabbelt <palmer-96lFi9zoCfxBDgjK7y7TUQ@public.gmane.org>
-Reviewed-by: Andrew Waterman <waterman-aFE07iDfcCIb0cFwG/AQJIdd74u8MsAO@public.gmane.org>
-Reviewed-by: Albert Ou <aou-aFE07iDfcCIb0cFwG/AQJIdd74u8MsAO@public.gmane.org>
----
- include/uapi/asm-generic/unistd.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+This should be in include/linux/hw_breakpoint.h without __KERNEL__ markings.
 
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index e016bd9b1a04..e027ef7aa01f 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -865,11 +865,11 @@ __SYSCALL(__NR_uselib, sys_uselib)
- __SYSCALL(__NR__sysctl, sys_sysctl)
- 
- #define __NR_fork 1079
--#ifdef CONFIG_MMU
-+#if !defined(__KERNEL__) || defined(CONFIG_MMU)
- __SYSCALL(__NR_fork, sys_fork)
- #else
- __SYSCALL(__NR_fork, sys_ni_syscall)
--#endif /* CONFIG_MMU */
-+#endif /* !__KERNEL__ || CONFIG_MMU */
- 
- #undef __NR_syscalls
- #define __NR_syscalls (__NR_fork+1)
--- 
-2.4.6
+David
