@@ -1,46 +1,54 @@
-From: iSayor <iSayor@iSayor.com>
-Subject: =?UTF-8?B?5bmz5pe25pyA5aSa5Lmf5bCx6IGU57O75LqG5LiJ5Y2D5a6277yM5YWo?=
- =?UTF-8?B?55CD6L+Y5pyJ5Y2B5Yeg5LiH5a6i5oi35Zyo5ZOq6YeM77yf?=
-Date: Fri, 11 Sep 2015 21:51:13 +0800
-Message-ID: <01d0ec98$Blat.v3.2.4$ec011962$25484f79@localhost>
-Reply-To: iSayor <iSayor@163.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH] x86: Wire up 32-bit direct socket calls
+Date: Fri, 11 Sep 2015 09:32:46 -0700
+Message-ID: <CALCETrVbNs-bOfr8cC3CC2RrBtKctdw4d0o9Ds6RQfXEm466YQ@mail.gmail.com>
+References: <cb5138299d37d5800e2d135b01a7667fa6115854.1436912629.git.luto@kernel.org>
+ <49726621.LPTnfQXYGz@wuerfel> <CAMuHMdXX31xZ4AS6FbeXLXgDn5UV5=0C3hrihuwDOP_abuJsBg@mail.gmail.com>
+ <2108882.tTxglVCXxY@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 89.112.212.118.adsl-pool.jx.chinaunicom.com ([118.212.112.89]:2037
-	"EHLO iSayor.com" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1752777AbbIKNv2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Sep 2015 09:51:28 -0400
-Received: from andy.iSayor.com (127.0.0.1) by iSayor.com for <linux-arch@vger.kernel.org>; Fri, 11 Sep 2015 21:51:13 +0800 (envelope-from <iSayor@iSayor.com>)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <2108882.tTxglVCXxY@wuerfel>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, Network Development <netdev@vger.kernel.org>, Tulio Magno Quites Machado Filho <tuliom@linux.vnet.ibm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexander Larsson <alexl@redhat.com>, Cosimo Cecchi <cosimo@endlessm.com>, Dan Nicholson <nicholson@endlessm.com>, libc-alpha <libc-alpha@sourceware.org>, Rajalakshmi Srinivasaraghavan <raji@linux.vnet.ibm.com>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-=E6=82=A8=E5=A5=BD:
-    =E6=82=A8=E8=BF=98=E5=9C=A8=E7=94=A8ali=E5=B9=B3=E5=8F=B0=E5=BC=80=E5=
-=8F=91=E5=A4=96=E8=B4=B8=E5=AE=A2=E6=88=B7?
-       =E8=BF=98=E5=9C=A8=E4=BD=BF=E7=94=A8=E5=B1=95=E4=BC=9A=E5=AE=A3=E4=
-=BC=A0=E4=BC=81=E4=B8=9A=E5=92=8C=E4=BA=A7=E5=93=81?
-             =E4=BD=A0out=E4=BA=86!!!
- =E5=BD=93=E5=89=8D=E5=A4=96=E8=B4=B8=E5=AE=A2=E6=88=B7=E5=BC=80=E5=8F=91=
-=E9=9A=BE=EF=BC=8C=E6=82=A8=E6=98=AF=E5=90=A6=E4=B9=9F=E5=9C=A8=E5=AF=BB=
-=E6=89=BE=E5=B1=95=E4=BC=9A=EF=BC=8CB2B=E4=B9=8B=E5=A4=96=E5=A5=BD=E7=9A=
-=84=E6=B8=A0=E9=81=93=EF=BC=9F=20
- =E8=A1=8C=E4=B8=9A=E5=85=A8=E7=90=83=E5=8D=81=E5=87=A0=E4=B8=87=E5=AE=A2=
-=E6=88=B7=EF=BC=8C=E5=B9=B3=E6=97=B6=E6=9C=80=E5=A4=9A=E4=B9=9F=E5=B0=B1=
-=E8=81=94=E7=B3=BB=E4=BA=86=E4=B8=89=E5=8D=83=E5=AE=B6=EF=BC=8C=E6=82=A8=
-=E6=98=AF=E5=90=A6=E6=83=B3=E6=8A=8A=E5=89=A9=E4=B8=8B=E7=9A=84=E4=B9=9F=
-=E5=BC=80=E5=8F=91=E5=88=B0=EF=BC=9F
- =E5=8A=A0QQ2652697913=E7=BB=99=E6=82=A8=E6=BC=94=E7=A4=BA=E4=B8=8B=E4=B8=
-=BB=E5=8A=A8=E5=BC=80=E5=8F=91=E5=AE=A2=E6=88=B7=E7=9A=84=E6=96=B9=E6=B3=
-=95=EF=BC=8C=E5=85=88=E7=94=A8=E5=85=88=E5=8F=97=E7=9B=8A=EF=BC=8C=E5=B7=
-=B2=E7=BB=8F=E6=9C=89=E8=BF=91=E4=B8=87=E5=AE=B6=E4=BC=81=E4=B8=9A=E9=A2=
-=86=E5=85=88=E6=82=A8=E4=BD=BF=E7=94=A8=EF=BC=81=EF=BC=81=E3=80=82
- =E5=B9=BF=E4=B8=9C=E7=9C=81=E5=95=86=E4=B8=9A=E8=81=94=E5=90=88=E4=BC=9A=
-=E6=8E=A8=E8=8D=90=EF=BC=8C=E4=B8=BB=E5=8A=A8=E5=BC=80=E5=8F=91=E5=AE=A2=
-=E6=88=B7=E7=AC=AC=E4=B8=80=E5=93=81=E7=89=8C=EF=BC=8C=E8=BF=91=E4=B8=87=
-=E5=AE=B6=E4=BC=81=E4=B8=9A=E6=AD=A3=E5=9C=A8=E8=8E=B7=E7=9B=8A=E3=80=82=
-=E6=82=A8=E5=8F=AF=E4=BB=A5=E6=B2=A1=E6=9C=89=E4=BD=BF=E7=94=A8=EF=BC=8C=
-=E4=BD=86=E6=98=AF=E4=B8=8D=E8=83=BD=E6=B2=A1=E6=9C=89=E4=BA=86=E8=A7=A3=
-=E3=80=82
+On Fri, Sep 11, 2015 at 3:14 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Friday 11 September 2015 11:54:50 Geert Uytterhoeven wrote:
+>> To make sure I don't miss any (it seems I missed recvmmsg and sendmmsg for
+>> the socketcall case, sigh), this is the list of ipc syscalls to implement?
+>>
+>>     sys_msgget
+>>     sys_msgctl
+>>     sys_msgrcv
+>>     sys_msgsnd
+>>     sys_semget
+>>     sys_semctl
+>>     sys_semtimedop
+>>     sys_shmget
+>>     sys_shmctl
+>>     sys_shmat
+>>     sys_shmdt
+>>
+>> sys_semop() seems to be unneeded because it can be implemented using
+>> sys_semtimedop()?
+>>
+>
+> Yes, that list looks right. IPC also includes a set of six sys_mq_*
+> call, but I believe that everyone already has those as they are not
+> covered by sys_ipc.
+>
+> For y2038 compatibility, we will likely add a new variant of
+> semtimedop that takes a 64-bit timespec. While the argument passed
+> there is a relative time that will never need to be longer than 68
+> years, we need to accommodate user space that defines timespec
+> in a sane way, and converting the argument in libc would be awkward.
+>
+
+I missed sys_ipc entirely.
+
+Ingo, Thomas, want to just wire those up, too?  I can send a patch
+next week, but it'll be as trivial as the socket one.
+
+--Andy
