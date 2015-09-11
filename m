@@ -1,32 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:54004 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750831AbbIJLSN convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Sep 2015 07:18:13 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <18147.1441883729@warthog.procyon.org.uk>
-References: <18147.1441883729@warthog.procyon.org.uk> <1441832902-28993-1-git-send-email-palmer@dabbelt.com> <2644177.lVCYzIBfPW@wuerfel>
-Subject: Re: [PATCH] Remove #ifdef CONFIG_64BIT from all asm-generic/fcntl.h
+Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:48546 "EHLO
+	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751499AbbIKIYh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Sep 2015 04:24:37 -0400
+Received: from /spool/local
+	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+	Fri, 11 Sep 2015 09:24:35 +0100
+Date: Fri, 11 Sep 2015 10:24:29 +0200
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH] x86: Wire up 32-bit direct socket calls
+Message-ID: <20150911082429.GA12452@osiris>
+References: <cb5138299d37d5800e2d135b01a7667fa6115854.1436912629.git.luto@kernel.org>
+ <CAMuHMdXKA_+JY2ryf-yoJxQnbW=jsOjj_w2-Nsybpx0310neDA@mail.gmail.com>
+ <55E75913.5050605@zytor.com>
+ <3193269.4TGcgnGPrm@wuerfel>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <18246.1441883885.1@warthog.procyon.org.uk>
-Content-Transfer-Encoding: 8BIT
-Date: Thu, 10 Sep 2015 12:18:05 +0100
-Message-ID: <18247.1441883885@warthog.procyon.org.uk>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <3193269.4TGcgnGPrm@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: dhowells@redhat.com, arnd@arndb.de, 3chas3@gmail.com, hpa@zytor.com, mingo@redhat.com, plagnioj@jcrosoft.com, jikos@kernel.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-atm-general@lists.sourceforge.net, linux-fbdev@vger.kernel.org, linux-kernel@vger.kernel.org, netdev@vger.kernel.org, tglx@linutronix.de, tomi.valkeinen@ti.com, x86@kernel.org
-Message-ID: <20150910111805.r7p5q3SxUT3EkJ5qEHHph-e2Wro0SK87RML6Vgmg__w@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, Network Development <netdev@vger.kernel.org>, Tulio Magno Quites Machado Filho <tuliom@linux.vnet.ibm.com>, Andy Lutomirski <luto@amacapital.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexander Larsson <alexl@redhat.com>, Cosimo Cecchi <cosimo@endlessm.com>, Dan Nicholson <nicholson@endlessm.com>, libc-alpha <libc-alpha@sourceware.org>, Rajalakshmi Srinivasaraghavan <raji@linux.vnet.ibm.com>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20150911082429.YVKcM2jOsotwIZdawXq15f_YP-Hb4J88dT5amJ5Q0vo@z>
 
-David Howells <dhowells@redhat.com> wrote:
+On Mon, Sep 07, 2015 at 02:53:12PM +0200, Arnd Bergmann wrote:
+> On Wednesday 02 September 2015 13:16:19 H. Peter Anvin wrote:
+> > On 09/02/2015 02:48 AM, Geert Uytterhoeven wrote:
+> > > 
+> > > Should all other architectures follow suit?
+> > > Or should we follow the s390 approach:
+> > > 
+> > 
+> > It is up to the maintainer(s), largely dependent on how likely you are
+> > going to want to support this in your libc, but in general, socketcall
+> > is an abomination which there is no reason not to bypass.
+> > 
+> > So follow suit unless you have a strong reason not to.
+> 
+> +1
+> 
+> In my y2038 syscall series, I'm adding a new recvmmsg64 call, and
+> we may decide to add new setsockopt/getsockopt variants as well.
+> This is probably not the last change to socketcall, and it would
+> be made much easier if all architectures had separate calls here.
+> 
+> It seems that there are very few architectures that don't already have
+> the separate calls:
+> 
+> $ git grep -l __NR_socketcall arch/*/include/uapi  | xargs git grep -L recvmsg 
+> arch/cris/include/uapi/asm/unistd.h
+> arch/frv/include/uapi/asm/unistd.h
+> arch/m32r/include/uapi/asm/unistd.h
+> arch/m68k/include/uapi/asm/unistd.h
+> arch/mn10300/include/uapi/asm/unistd.h
+> arch/s390/include/uapi/asm/unistd.h
+> 
+> These are of course all examples of architectures that originally followed
+> the i386 syscall scheme closely rather than trying to leave out obsolete
+> calls.
 
-> Rather than iterating through all the rest of your patches and saying the same
-> thing, if there's something in a UAPI header that needs wrapping in __KERNEL__
-> to exclude it from userspace's use, then it should be transferred to the
-> non-UAPI variant of that header (which should #include the UAPI variant).
+FWIW, the s390 approach (ignoring the "new" system calls) is only temporarily.
+I'll enable the seperate calls later when I have time to test everything,
+especially the glibc stuff.
 
-I should mention that there is the odd case where this is difficult to
-achieve.  See include/uapi/linux/acct.h for an example...
+The same is true for the ipc system call. (any reason why the seperate system
+calls haven't been enabled on x86 now as well?)
 
-David
