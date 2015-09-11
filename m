@@ -1,90 +1,65 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [RFC] asm-generic/pci_iomap.h: make custom PCI BAR requirements
- explicit
-Date: Fri, 11 Sep 2015 10:14:09 +0200
-Message-ID: <20150911101409.79a7b3ef@mschwide>
-References: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
-	<3544271.GfynADMPqZ@wuerfel>
-	<20150903014415.GQ8051@wotan.suse.de>
-	<1866509.8pE0MIz57e@wuerfel>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH] x86: Wire up 32-bit direct socket calls
+Date: Fri, 11 Sep 2015 10:24:29 +0200
+Message-ID: <20150911082429.GA12452@osiris>
+References: <cb5138299d37d5800e2d135b01a7667fa6115854.1436912629.git.luto@kernel.org>
+ <CAMuHMdXKA_+JY2ryf-yoJxQnbW=jsOjj_w2-Nsybpx0310neDA@mail.gmail.com>
+ <55E75913.5050605@zytor.com>
+ <3193269.4TGcgnGPrm@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:47870 "EHLO
-	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751455AbbIKIOY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Sep 2015 04:14:24 -0400
-Received: from /spool/local
-	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-	Fri, 11 Sep 2015 09:14:22 +0100
-In-Reply-To: <1866509.8pE0MIz57e@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <libc-alpha-return-63115-glibc-alpha=m.gmane.org@sourceware.org>
+List-Unsubscribe: <mailto:libc-alpha-unsubscribe-glibc-alpha=m.gmane.org@sourceware.org>
+List-Subscribe: <mailto:libc-alpha-subscribe@sourceware.org>
+List-Archive: <http://sourceware.org/ml/libc-alpha/>
+List-Post: <mailto:libc-alpha@sourceware.org>
+List-Help: <mailto:libc-alpha-help@sourceware.org>, <http://sourceware.org/ml/#faqs>
+Sender: libc-alpha-owner@sourceware.org
+Content-Disposition: inline
+In-Reply-To: <3193269.4TGcgnGPrm@wuerfel>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: "Luis R. Rodriguez" <mcgrof@suse.com>, "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, linux-arch@vger.kernel.org, mingo@kernel.org, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, bp@suse.de, linux@roeck-us.net, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Andy Lutomirski <luto@kernel.org>, X86 ML <x86@kernel.org>, Network Development <netdev@vger.kernel.org>, Tulio Magno Quites Machado Filho <tuliom@linux.vnet.ibm.com>, Andy Lutomirski <luto@amacapital.net>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Alexander Larsson <alexl@redhat.com>, Cosimo Cecchi <cosimo@endlessm.com>, Dan Nicholson <nicholson@endlessm.com>, libc-alpha <libc-alpha@sourceware.org>, Rajalakshmi Srinivasaraghavan <raji@linux.vnet.ibm.com>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 08 Sep 2015 15:42:40 +0200
-Arnd Bergmann <arnd@arndb.de> wrote:
-
-> On Thursday 03 September 2015 03:44:15 Luis R. Rodriguez wrote:
-> > On Sun, Aug 30, 2015 at 09:30:26PM +0200, Arnd Bergmann wrote:
-> > > On Friday 28 August 2015 17:17:27 Luis R. Rodriguez wrote:
-> > > > While at it, as with the ioremap*() variants, since we have no clear
-> > > > semantics yet well defined provide a solution for them that returns
-> > > > NULL. This allows architectures to move forward by defining pci_ioremap*()
-> > > > variants without requiring immediate changes to all architectures. Each
-> > > > architecture then can implement their own solution as needed and
-> > > > when they get to it.
+On Mon, Sep 07, 2015 at 02:53:12PM +0200, Arnd Bergmann wrote:
+> On Wednesday 02 September 2015 13:16:19 H. Peter Anvin wrote:
+> > On 09/02/2015 02:48 AM, Geert Uytterhoeven wrote:
 > > > 
-> > > Which architectures are you thinking about here?
-> > 
-> > Really only S390 would benefit from this now.
-> 
-> Ok
-> 
-> > > > Build tested with allyesconfig on:
-> > > > 
-> > > >         * S390
-> > > >         * x86_64
-> > > > 
-> > > > Signed-off-by: Luis R. Rodriguez <mcgrof@suse.com>
+> > > Should all other architectures follow suit?
+> > > Or should we follow the s390 approach:
 > > > 
-> > > It's not really clear to me what the purpose of the patch is, is this 
-> > > meant as a cleanup, or are you trying to avoid some real-life bugs
-> > > you ran into?
 > > 
-> > Upon adding a new helper into CONFIG_PCI_IOMAP it was only through
-> > 0-day build testing that I found that I needed to add something for S390.
-> > This means we fix S390 reactively. With the asm-generic stuff in place
-> > to return NULL we don't need to do anything but a respective return
-> > NULL static inline, the moment that is done the author would know some
-> > architectures may not get support for the functionality they are adding.
-> > Without this we only find out reactively.
+> > It is up to the maintainer(s), largely dependent on how likely you are
+> > going to want to support this in your libc, but in general, socketcall
+> > is an abomination which there is no reason not to bypass.
+> > 
+> > So follow suit unless you have a strong reason not to.
 > 
-> Hmm, my gut feeling tells me that your approach won't solve the problem
-> in general. s390 PCI is just weird in many ways and it will occasionally
-> suffer from problems like this (as do other aspects of the s390 architecture
-> that are unlike the rest of the world).
+> +1
 > 
-> Maybe Martin and Heiko can comment on this, they may have a preference
-> from the s390 point of view.
+> In my y2038 syscall series, I'm adding a new recvmmsg64 call, and
+> we may decide to add new setsockopt/getsockopt variants as well.
+> This is probably not the last change to socketcall, and it would
+> be made much easier if all architectures had separate calls here.
+> 
+> It seems that there are very few architectures that don't already have
+> the separate calls:
+> 
+> $ git grep -l __NR_socketcall arch/*/include/uapi  | xargs git grep -L recvmsg 
+> arch/cris/include/uapi/asm/unistd.h
+> arch/frv/include/uapi/asm/unistd.h
+> arch/m32r/include/uapi/asm/unistd.h
+> arch/m68k/include/uapi/asm/unistd.h
+> arch/mn10300/include/uapi/asm/unistd.h
+> arch/s390/include/uapi/asm/unistd.h
+> 
+> These are of course all examples of architectures that originally followed
+> the i386 syscall scheme closely rather than trying to leave out obsolete
+> calls.
 
-I do not see how the additional Kconfig ARCH_PCI_NON_DISJUNCTIVE and the
-#ifdef indirections help with anything. An extension to lib/pci_iomap.c
-now requires an extra inline function in include/asm-generic/pci_iomap.h
-which I am sure will be added blindly without any consideration what
-s390 needs.
+FWIW, the s390 approach (ignoring the "new" system calls) is only temporarily.
+I'll enable the seperate calls later when I have time to test everything,
+especially the glibc stuff.
 
-Actually the patch makes it worse as the new inline will cover things up.
-Instead of a zero day compile error we will be left with a silently broken
-extension.
-
-I prefer a compile error as it points out that there is a problem.
-
--- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
+The same is true for the ipc system call. (any reason why the seperate system
+calls haven't been enabled on x86 now as well?)
