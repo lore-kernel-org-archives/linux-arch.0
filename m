@@ -1,27 +1,90 @@
-From: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH] Remove #ifdef CONFIG_64BIT from all asm-generic/fcntl.h
-Date: Thu, 10 Sep 2015 12:18:05 +0100
-Message-ID: <18247.1441883885@warthog.procyon.org.uk>
-References: <18147.1441883729@warthog.procyon.org.uk> <1441832902-28993-1-git-send-email-palmer@dabbelt.com> <2644177.lVCYzIBfPW@wuerfel>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [RFC] asm-generic/pci_iomap.h: make custom PCI BAR requirements
+ explicit
+Date: Fri, 11 Sep 2015 10:14:09 +0200
+Message-ID: <20150911101409.79a7b3ef@mschwide>
+References: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
+	<3544271.GfynADMPqZ@wuerfel>
+	<20150903014415.GQ8051@wotan.suse.de>
+	<1866509.8pE0MIz57e@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <18147.1441883729-S6HVgzuS8uM4Awkfq6JHfwNdhmdF6hFW@public.gmane.org>
-Content-ID: <18246.1441883885.1-S6HVgzuS8uM4Awkfq6JHfwNdhmdF6hFW@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Palmer Dabbelt <palmer-96lFi9zoCfxBDgjK7y7TUQ@public.gmane.org>
-Cc: dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, 3chas3-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org, mingo-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, plagnioj-sclMFOaUSTBWk0Htik3J/w@public.gmane.org, jikos-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-atm-general-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-fbdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, netdev-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org, tomi.valkeinen-l0cyMroinI0@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:47870 "EHLO
+	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751455AbbIKIOY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Sep 2015 04:14:24 -0400
+Received: from /spool/local
+	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+	Fri, 11 Sep 2015 09:14:22 +0100
+In-Reply-To: <1866509.8pE0MIz57e@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "Luis R. Rodriguez" <mcgrof@suse.com>, "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, linux-arch@vger.kernel.org, mingo@kernel.org, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, bp@suse.de, linux@roeck-us.net, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org
 
-David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org> wrote:
+On Tue, 08 Sep 2015 15:42:40 +0200
+Arnd Bergmann <arnd@arndb.de> wrote:
 
-> Rather than iterating through all the rest of your patches and saying the same
-> thing, if there's something in a UAPI header that needs wrapping in __KERNEL__
-> to exclude it from userspace's use, then it should be transferred to the
-> non-UAPI variant of that header (which should #include the UAPI variant).
+> On Thursday 03 September 2015 03:44:15 Luis R. Rodriguez wrote:
+> > On Sun, Aug 30, 2015 at 09:30:26PM +0200, Arnd Bergmann wrote:
+> > > On Friday 28 August 2015 17:17:27 Luis R. Rodriguez wrote:
+> > > > While at it, as with the ioremap*() variants, since we have no clear
+> > > > semantics yet well defined provide a solution for them that returns
+> > > > NULL. This allows architectures to move forward by defining pci_ioremap*()
+> > > > variants without requiring immediate changes to all architectures. Each
+> > > > architecture then can implement their own solution as needed and
+> > > > when they get to it.
+> > > 
+> > > Which architectures are you thinking about here?
+> > 
+> > Really only S390 would benefit from this now.
+> 
+> Ok
+> 
+> > > > Build tested with allyesconfig on:
+> > > > 
+> > > >         * S390
+> > > >         * x86_64
+> > > > 
+> > > > Signed-off-by: Luis R. Rodriguez <mcgrof@suse.com>
+> > > 
+> > > It's not really clear to me what the purpose of the patch is, is this 
+> > > meant as a cleanup, or are you trying to avoid some real-life bugs
+> > > you ran into?
+> > 
+> > Upon adding a new helper into CONFIG_PCI_IOMAP it was only through
+> > 0-day build testing that I found that I needed to add something for S390.
+> > This means we fix S390 reactively. With the asm-generic stuff in place
+> > to return NULL we don't need to do anything but a respective return
+> > NULL static inline, the moment that is done the author would know some
+> > architectures may not get support for the functionality they are adding.
+> > Without this we only find out reactively.
+> 
+> Hmm, my gut feeling tells me that your approach won't solve the problem
+> in general. s390 PCI is just weird in many ways and it will occasionally
+> suffer from problems like this (as do other aspects of the s390 architecture
+> that are unlike the rest of the world).
+> 
+> Maybe Martin and Heiko can comment on this, they may have a preference
+> from the s390 point of view.
 
-I should mention that there is the odd case where this is difficult to
-achieve.  See include/uapi/linux/acct.h for an example...
+I do not see how the additional Kconfig ARCH_PCI_NON_DISJUNCTIVE and the
+#ifdef indirections help with anything. An extension to lib/pci_iomap.c
+now requires an extra inline function in include/asm-generic/pci_iomap.h
+which I am sure will be added blindly without any consideration what
+s390 needs.
 
-David
+Actually the patch makes it worse as the new inline will cover things up.
+Instead of a zero day compile error we will be left with a silently broken
+extension.
+
+I prefer a compile error as it points out that there is a problem.
+
+-- 
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
