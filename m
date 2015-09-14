@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f41.google.com ([209.85.220.41]:33788 "EHLO
-	mail-pa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751960AbbINWvG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Sep 2015 18:51:06 -0400
-Received: by pacex6 with SMTP id ex6so156275709pac.0
-        for <linux-arch@vger.kernel.org>; Mon, 14 Sep 2015 15:51:06 -0700 (PDT)
+Received: from mail-pa0-f50.google.com ([209.85.220.50]:33802 "EHLO
+	mail-pa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752744AbbINWvL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Sep 2015 18:51:11 -0400
+Received: by padhy16 with SMTP id hy16so155879468pad.1
+        for <linux-arch@vger.kernel.org>; Mon, 14 Sep 2015 15:51:11 -0700 (PDT)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 01/13] Remove #ifdef CONFIG_64BIT from all asm-generic/fcntl.h
-Date: Mon, 14 Sep 2015 15:50:35 -0700
-Message-ID: <1442271047-4908-2-git-send-email-palmer@dabbelt.com>
+Subject: [PATCH 06/13] Move ep_take_care_of_epollwakeup() to fs/eventpoll.c
+Date: Mon, 14 Sep 2015 15:50:40 -0700
+Message-ID: <1442271047-4908-7-git-send-email-palmer@dabbelt.com>
 In-Reply-To: <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
 References: <1441832902-28993-1-git-send-email-palmer@dabbelt.com>
  <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
@@ -16,47 +16,65 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, dhowells@redhat.com
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20150914225035.mb9m8JWzWofnM2buRFIgSvLZHkBqgndSOjZ3UF8qmJ8@z>
+Message-ID: <20150914225040.Pu_nhXlJOUlz4HKP6NL_VaBVvUS4pmpKp2t5l6-9k04@z>
 
-When working on the RISC-V port I noticed that F_SETLK64 was being
-defined on our 64-bit platform, despite our port being so new that
-we've only ever had the 64-bit file ops.  Since there's not compat
-layer for these, this causes fcntl to bail out.
-
-It turns out that one of the ways in with F_SETLK64 was being defined
-(there's some more in glibc, but that's a whole different story... :))
-is the result of CONFIG_64BIT showing up in this user-visible header.
-<asm-generic/bitsperlong.h> confirms this isn't sane, so I replaced it
-with a __BITS_PER_LONG check.
+This doesn't make any sense to expose to userspace, so it's been moved
+to the one user.  This was introduced by commit 95f19f658ce1 ("epoll:
+drop EPOLLWAKEUP if PM_SLEEP is disabled").
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
 Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
 ---
- include/uapi/asm-generic/fcntl.h | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ fs/eventpoll.c                 | 13 +++++++++++++
+ include/uapi/linux/eventpoll.h | 12 ------------
+ 2 files changed, 13 insertions(+), 12 deletions(-)
 
-diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
-index e063effe0cc1..14a5c8237d84 100644
---- a/include/uapi/asm-generic/fcntl.h
-+++ b/include/uapi/asm-generic/fcntl.h
-@@ -1,6 +1,7 @@
- #ifndef _ASM_GENERIC_FCNTL_H
- #define _ASM_GENERIC_FCNTL_H
+diff --git a/fs/eventpoll.c b/fs/eventpoll.c
+index 1e009cad8d5c..aadee3d1931a 100644
+--- a/fs/eventpoll.c
++++ b/fs/eventpoll.c
+@@ -1812,6 +1812,19 @@ SYSCALL_DEFINE1(epoll_create, int, size)
+ 	return sys_epoll_create1(0);
+ }
  
-+#include <asm/bitsperlong.h>
- #include <linux/types.h>
- 
++#ifdef CONFIG_PM_SLEEP
++static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
++{
++	if ((epev->events & EPOLLWAKEUP) && !capable(CAP_BLOCK_SUSPEND))
++		epev->events &= ~EPOLLWAKEUP;
++}
++#else
++static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
++{
++	epev->events &= ~EPOLLWAKEUP;
++}
++#endif
++
  /*
-@@ -115,7 +116,7 @@
- #define F_GETSIG	11	/* for sockets. */
- #endif
+  * The following function implements the controller interface for
+  * the eventpoll file that enables the insertion/removal/change of
+diff --git a/include/uapi/linux/eventpoll.h b/include/uapi/linux/eventpoll.h
+index bc81fb2e1f0e..7850373079ee 100644
+--- a/include/uapi/linux/eventpoll.h
++++ b/include/uapi/linux/eventpoll.h
+@@ -61,16 +61,4 @@ struct epoll_event {
+ 	__u64 data;
+ } EPOLL_PACKED;
  
--#ifndef CONFIG_64BIT
-+#if (__BITS_PER_LONG == 32)
- #ifndef F_GETLK64
- #define F_GETLK64	12	/*  using 'struct flock64' */
- #define F_SETLK64	13
+-#ifdef CONFIG_PM_SLEEP
+-static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
+-{
+-	if ((epev->events & EPOLLWAKEUP) && !capable(CAP_BLOCK_SUSPEND))
+-		epev->events &= ~EPOLLWAKEUP;
+-}
+-#else
+-static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
+-{
+-	epev->events &= ~EPOLLWAKEUP;
+-}
+-#endif
+ #endif /* _UAPI_LINUX_EVENTPOLL_H */
 -- 
 2.4.6
 
