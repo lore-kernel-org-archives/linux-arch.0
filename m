@@ -1,15 +1,21 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: [PATCH 05/13] Split FDPIC "struct elf_prstatus" to "struct elf_fdpic_prstatus"
 Date: Mon, 14 Sep 2015 15:50:39 -0700
-Message-ID: <1442271047-4908-6-git-send-email-palmer__43742.1927847483$1442271328$gmane$org@dabbelt.com>
+Message-ID: <1442271047-4908-6-git-send-email-palmer__35530.1836425953$1442271330$gmane$org@dabbelt.com>
 References: <1441832902-28993-1-git-send-email-palmer@dabbelt.com>
  <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f45.google.com ([209.85.220.45]:35329 "EHLO
+	mail-pa0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752714AbbINWvK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Sep 2015 18:51:10 -0400
+Received: by pacfv12 with SMTP id fv12so159043189pac.2
+        for <linux-arch@vger.kernel.org>; Mon, 14 Sep 2015 15:51:10 -0700 (PDT)
 In-Reply-To: <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, dhowells@redhat.com
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-List-Id: linux-arch.vger.kernel.org
 
 This is a pretty big change that I haven't tested any, which worries
 me a lot.  The general idea here is that "struct elf_prstatus" can be
