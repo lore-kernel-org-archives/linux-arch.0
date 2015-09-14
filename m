@@ -1,21 +1,15 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: [PATCH 02/13] Use sys_ni.c instead of #ifdef to disable fork on CONFIG_NOMMU
 Date: Mon, 14 Sep 2015 15:50:36 -0700
-Message-ID: <1442271047-4908-3-git-send-email-palmer@dabbelt.com>
+Message-ID: <1442271047-4908-3-git-send-email-palmer__15692.9469937042$1442271404$gmane$org@dabbelt.com>
 References: <1441832902-28993-1-git-send-email-palmer@dabbelt.com>
  <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f50.google.com ([209.85.220.50]:35279 "EHLO
-	mail-pa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752244AbbINWvH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Sep 2015 18:51:07 -0400
-Received: by pacfv12 with SMTP id fv12so159041969pac.2
-        for <linux-arch@vger.kernel.org>; Mon, 14 Sep 2015 15:51:07 -0700 (PDT)
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: arnd@arndb.de, dhowells@redhat.com
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
+List-Id: linux-arch.vger.kernel.org
 
 I think this change actually doesn't do anything: __NR_fork was still
 being defined either way, and on my machine fork() in <unistd.h> comes
