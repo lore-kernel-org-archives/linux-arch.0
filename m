@@ -1,167 +1,82 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH] barriers: introduce smp_mb__release_acquire and update
- documentation
-Date: Tue, 15 Sep 2015 10:47:24 -0700
-Message-ID: <20150915174724.GP4029@linux.vnet.ibm.com>
-References: <1442333610-16228-1-git-send-email-will.deacon@arm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e33.co.us.ibm.com ([32.97.110.151]:36357 "EHLO
-	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751070AbbIORr2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Sep 2015 13:47:28 -0400
-Received: from /spool/local
-	by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 15 Sep 2015 11:47:28 -0600
-Content-Disposition: inline
-In-Reply-To: <1442333610-16228-1-git-send-email-will.deacon@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: Re: [PATCH 09/13] Move bp_type_idx to kernel/event/hw_breakpoint.c
+Date: Tue, 15 Sep 2015 11:40:11 -0700 (PDT)
+Message-ID: <55f8660b.84bd440a.620d1.ffffe1cb@mx.google.com>
+References: <20150915080607.GW16853@twins.programming.kicks-ass.net>
+Return-path: <linux-fsdevel-owner@vger.kernel.org>
+In-Reply-To: <20150915080607.GW16853@twins.programming.kicks-ass.net>
+Sender: linux-fsdevel-owner@vger.kernel.org
+To: peterz@infradead.org
+Cc: arnd@arndb.de, dhowells@redhat.com, viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, fweisbec@gmail.com
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 15, 2015 at 05:13:30PM +0100, Will Deacon wrote:
-> As much as we'd like to live in a world where RELEASE -> ACQUIRE is
-> always cheaply ordered and can be used to construct UNLOCK -> LOCK
-> definitions with similar guarantees, the grim reality is that this isn't
-> even possible on x86 (thanks to Paul for bringing us crashing down to
-> Earth).
+On Tue, 15 Sep 2015 01:06:07 PDT (-0700), peterz@infradead.org wrote:
+> On Mon, Sep 14, 2015 at 03:50:43PM -0700, Palmer Dabbelt wrote:
+>> This has a "#ifdef CONFIG_*" that used to be exposed to userspace.
+>>
+>> The names in here are so generic that I don't think it's a good idea
+>> to expose them to userspace (or even the rest of the kernel).  Since
+>> there's only one kernel user, it's been moved to that file.
+>>
+>> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+>> Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
+>> Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
+>> ---
+>>  include/uapi/linux/hw_breakpoint.h | 10 ----------
+>>  kernel/events/hw_breakpoint.c      | 10 ++++++++++
+>>  2 files changed, 10 insertions(+), 10 deletions(-)
+>>
+>> diff --git a/include/uapi/linux/hw_breakpoint.h b/include/uapi/linux/hw_breakpoint.h
+>> index b04000a2296a..7a6a5a7f9511 100644
+>> --- a/include/uapi/linux/hw_breakpoint.h
+>> +++ b/include/uapi/linux/hw_breakpoint.h
+>> @@ -17,14 +17,4 @@ enum {
+>>  	HW_BREAKPOINT_INVALID   = HW_BREAKPOINT_RW | HW_BREAKPOINT_X,
+>>  };
+>>
+>> -enum bp_type_idx {
+>> -	TYPE_INST 	= 0,
+>> -#ifdef CONFIG_HAVE_MIXED_BREAKPOINTS_REGS
+>> -	TYPE_DATA	= 0,
+>> -#else
+>> -	TYPE_DATA	= 1,
+>> -#endif
+>> -	TYPE_MAX
+>> -};
+>
+> This is rather unfortunate; you are correct that the naming is too
+> generic (and I tend to agree), but I think these values are required by
+> userspace to fill out:
+>
+>   perf_event_attr::bp_type
+>
+> So removing them will break things.
+>
+> Frederic?
 
-"It is a service that I provide."  ;-)
+perf_event_open(2) says
 
-> This patch handles the issue by introducing a new barrier macro,
-> smp_mb__release_acquire, that can be placed between a RELEASE and a
-> subsequent ACQUIRE operation in order to upgrade them to a full memory
-> barrier. At the moment, it doesn't have any users, so its existence
-> serves mainly as a documentation aid.
-> 
-> Documentation/memory-barriers.txt is updated to describe more clearly
-> the ACQUIRE and RELEASE ordering in this area and to show an example of
-> the new barrier in action.
-> 
-> Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-> Cc: Peter Zijlstra <peterz@infradead.org>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
+       bp_type (since Linux 2.6.33)
+              This chooses the breakpoint type.  It is one of:
 
-Some questions and comments below.
+              HW_BREAKPOINT_EMPTY
+                     No breakpoint.
 
-							Thanx, Paul
+              HW_BREAKPOINT_R
+                     Count when we read the memory location.
 
-> ---
-> 
-> Following our discussion at [1], I thought I'd try to write something
-> down...
-> 
-> [1] http://lkml.kernel.org/r/20150828104854.GB16853@twins.programming.kicks-ass.net
-> 
->  Documentation/memory-barriers.txt  | 23 ++++++++++++++++++++++-
->  arch/powerpc/include/asm/barrier.h |  1 +
->  arch/x86/include/asm/barrier.h     |  2 ++
->  include/asm-generic/barrier.h      |  4 ++++
->  4 files changed, 29 insertions(+), 1 deletion(-)
-> 
-> diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-> index 2ba8461b0631..46a85abb77c6 100644
-> --- a/Documentation/memory-barriers.txt
-> +++ b/Documentation/memory-barriers.txt
-> @@ -459,11 +459,18 @@ And a couple of implicit varieties:
->       RELEASE on that same variable are guaranteed to be visible.  In other
->       words, within a given variable's critical section, all accesses of all
->       previous critical sections for that variable are guaranteed to have
-> -     completed.
-> +     completed.  If the RELEASE and ACQUIRE operations act on independent
-> +     variables, an smp_mb__release_acquire() barrier can be placed between
-> +     them to upgrade the sequence to a full barrier.
-> 
->       This means that ACQUIRE acts as a minimal "acquire" operation and
->       RELEASE acts as a minimal "release" operation.
-> 
-> +A subset of the atomic operations described in atomic_ops.txt have ACQUIRE
-> +and RELEASE variants in addition to fully-ordered and relaxed definitions.
-> +For compound atomics performing both a load and a store, ACQUIRE semantics
-> +apply only to the load and RELEASE semantics only to the store portion of
-> +the operation.
-> 
->  Memory barriers are only required where there's a possibility of interaction
->  between two CPUs or between a CPU and a device.  If it can be guaranteed that
-> @@ -1895,6 +1902,20 @@ the RELEASE would simply complete, thereby avoiding the deadlock.
->  	a sleep-unlock race, but the locking primitive needs to resolve
->  	such races properly in any case.
-> 
-> +If necessary, ordering can be enforced by use of an
-> +smp_mb__release_acquire() barrier:
-> +
-> +	*A = a;
-> +	RELEASE M
-> +	smp_mb__release_acquire();
-> +	ACQUIRE N
-> +	*B = b;
-> +
-> +in which case, the only permitted sequences are:
-> +
-> +	STORE *A, RELEASE M, ACQUIRE N, STORE *B
-> +	STORE *A, ACQUIRE N, RELEASE M, STORE *B
-> +
->  Locks and semaphores may not provide any guarantee of ordering on UP compiled
->  systems, and so cannot be counted on in such a situation to actually achieve
->  anything at all - especially with respect to I/O accesses - unless combined
-> diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
-> index 0eca6efc0631..919624634d0a 100644
-> --- a/arch/powerpc/include/asm/barrier.h
-> +++ b/arch/powerpc/include/asm/barrier.h
-> @@ -87,6 +87,7 @@ do {									\
->  	___p1;								\
->  })
-> 
-> +#define smp_mb__release_acquire()   smp_mb()
+              HW_BREAKPOINT_W
+                     Count when we write the memory location.
 
-If we are handling locking the same as atomic acquire and release
-operations, this could also be placed between the unlock and the lock.
+              HW_BREAKPOINT_RW
+                     Count when we read or write the memory location.
 
-However, independently of the unlock/lock case, this definition and
-use of smp_mb__release_acquire() does not handle full ordering of a
-release by one CPU and an acquire of that same variable by another.
-In that case, we need roughly the same setup as the much-maligned
-smp_mb__after_unlock_lock().  So, do we care about this case?  (RCU does,
-though not 100% sure about any other subsystems.)
+              HW_BREAKPOINT_X
+                     Count when we execute code at the memory location.
 
->  #define smp_mb__before_atomic()     smp_mb()
->  #define smp_mb__after_atomic()      smp_mb()
->  #define smp_mb__before_spinlock()   smp_mb()
-> diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
-> index 0681d2532527..1c61ad251e0e 100644
-> --- a/arch/x86/include/asm/barrier.h
-> +++ b/arch/x86/include/asm/barrier.h
-> @@ -85,6 +85,8 @@ do {									\
->  	___p1;								\
->  })
-> 
-> +#define smp_mb__release_acquire()	smp_mb()
-> +
->  #endif
-> 
->  /* Atomic operations are already serializing on x86 */
-> diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-> index b42afada1280..61ae95199397 100644
-> --- a/include/asm-generic/barrier.h
-> +++ b/include/asm-generic/barrier.h
-> @@ -119,5 +119,9 @@ do {									\
->  	___p1;								\
->  })
-> 
-> +#ifndef smp_mb__release_acquire
-> +#define smp_mb__release_acquire()	do { } while (0)
+              The values can be combined via a bitwise or, but the combination
+              of HW_BREAKPOINT_R or HW_BREAKPOINT_W  with  HW_BREAKPOINT_X  is
+              not allowed.
 
-Doesn't this need to be barrier() in the case where one variable was
-released and another was acquired?
-
-> +#endif
-> +
->  #endif /* !__ASSEMBLY__ */
->  #endif /* __ASM_GENERIC_BARRIER_H */
-> -- 
-> 2.1.4
-> 
+so I think removing this enum from userspace is OK.  Did I miss
+something?
