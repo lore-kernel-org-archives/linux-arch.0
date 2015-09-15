@@ -1,14 +1,20 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: Re: [PATCH 04/13] Always expose MAP_UNINITIALIZED to userspace
 Date: Mon, 14 Sep 2015 17:52:24 -0700 (PDT)
-Message-ID: <55f76bc8.2108450a.97c6e.129a__14936.612887732$1442278392$gmane$org@mx.google.com>
+Message-ID: <55f76bc8.2108450a.97c6e.129a__22512.2110372924$1442278395$gmane$org@mx.google.com>
 References: <20150915002358.GA12618@node.dhcp.inet.fi>
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f53.google.com ([209.85.220.53]:36543 "EHLO
+	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751595AbbIOAw0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Sep 2015 20:52:26 -0400
+Received: by padhk3 with SMTP id hk3so158418191pad.3
+        for <linux-arch@vger.kernel.org>; Mon, 14 Sep 2015 17:52:25 -0700 (PDT)
 In-Reply-To: <20150915002358.GA12618@node.dhcp.inet.fi>
-Sender: linux-fsdevel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: kirill@shutemov.name, arnd@arndb.de
 Cc: dhowells@redhat.com, viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org
-List-Id: linux-arch.vger.kernel.org
 
 On Mon, 14 Sep 2015 17:23:58 PDT (-0700), kirill@shutemov.name wrote:
 > On Mon, Sep 14, 2015 at 03:50:38PM -0700, Palmer Dabbelt wrote:
