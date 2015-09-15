@@ -1,100 +1,133 @@
-From: Josh Triplett <josh@joshtriplett.org>
-Subject: Re: [PATCH 04/13] Always expose MAP_UNINITIALIZED to userspace
-Date: Tue, 15 Sep 2015 07:07:42 -0700
-Message-ID: <20150915140742.GA11938@x>
-References: <1441832902-28993-1-git-send-email-palmer@dabbelt.com>
- <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
- <1442271047-4908-5-git-send-email-palmer@dabbelt.com>
- <20150915002358.GA12618@node.dhcp.inet.fi>
- <20150915051919.GB4091@x>
- <20150915094200.GA15444@node.dhcp.inet.fi>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20150915094200.GA15444@node.dhcp.inet.fi>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>, arnd@arndb.de, dhowells@redhat.com, viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Will Deacon <will.deacon@arm.com>
+Subject: [PATCH] barriers: introduce smp_mb__release_acquire and update documentation
+Date: Tue, 15 Sep 2015 17:13:30 +0100
+Message-ID: <1442333610-16228-1-git-send-email-will.deacon@arm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:44139 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752786AbbIOQNx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 15 Sep 2015 12:13:53 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>
 
-On Tue, Sep 15, 2015 at 12:42:00PM +0300, Kirill A. Shutemov wrote:
-> On Mon, Sep 14, 2015 at 10:19:19PM -0700, Josh Triplett wrote:
-> > On Tue, Sep 15, 2015 at 03:23:58AM +0300, Kirill A. Shutemov wrote:
-> > > On Mon, Sep 14, 2015 at 03:50:38PM -0700, Palmer Dabbelt wrote:
-> > > > This used to be hidden behind CONFIG_MMAP_ALLOW_UNINITIALIZED, so
-> > > > userspace wouldn't actually ever see it be non-zero.  While I could
-> > > > have kept hiding it, the man pages seem to indicate that
-> > > > MAP_UNINITIALIZED should be visible:
-> > > > 
-> > > >   mmap(2)
-> > > >   MAP_UNINITIALIZED (since Linux 2.6.33)
-> > > >     Don't clear anonymous pages.  This flag is intended to improve
-> > > >     performance on embedded devices.  This flag is honored only if the
-> > > >     kernel was configured with the CONFIG_MMAP_ALLOW_UNINITIALIZED
-> > > >     option.  Because of the security implications, that option is
-> > > >     normally enabled only on embedded devices (i.e., devices where one
-> > > >     has complete control of the contents of user memory).
-> > > > 
-> > > > and since the only time it shows up in my /usr/include is in this
-> > > > header I believe this should have been visible to userspace (as
-> > > > non-zero, which wouldn't do anything when or'd into the flags) all
-> > > > along.
-> > > 
-> > > Are you sure about "wouldn't do anything"?
-> > > Suspiciously, 0x4000000 is also (1 << MAP_HUGE_SHIFT). I'm not sure if any
-> > > architecture has order-1 huge pages, but still looks like we have conflict
-> > > here.
-> > > 
-> > > I think it's harmful to expose non-zero MAP_UNINITIALIZED to system which
-> > > potentially can handle multiple users. Or non-trivial user space in
-> > > general.
-> > 
-> > The flag should always exist.
-> 
-> Sure. And 0 is perfectly fine value for the flag. Like with MAP_FILE.
+As much as we'd like to live in a world where RELEASE -> ACQUIRE is
+always cheaply ordered and can be used to construct UNLOCK -> LOCK
+definitions with similar guarantees, the grim reality is that this isn't
+even possible on x86 (thanks to Paul for bringing us crashing down to
+Earth).
 
-Rephrasing: the flag should always exist with the correct value.
-Whether the kernel handles it or not, the kernel *headers* shouldn't
-change to match the kernel, not least of which because they don't
-necessarily match the running kernel.  Just like we define the
-prototypes for syscalls that the running kernel may return ENOSYS for.
+This patch handles the issue by introducing a new barrier macro,
+smp_mb__release_acquire, that can be placed between a RELEASE and a
+subsequent ACQUIRE operation in order to upgrade them to a full memory
+barrier. At the moment, it doesn't have any users, so its existence
+serves mainly as a documentation aid.
 
-> > If it was defined to conflict with
-> > something else, that's a serious ABI problem.  But the flag
-> > should always exist, even if the kernel ends up ignoring it.
-> > 
-> > > Should we leave it at least under '#ifndef CONFIG_MMU'? I don't think it's
-> > > possible to have single ABI for MMU and MMU-less systems anyway. And we
-> > > can avoid conflict with MAP_HUGE_SHIFT this way.
-> > 
-> > No; even if you have an MMU (which is useful for things like fork()), a
-> > system without user separation (for instance, without CONFIG_MULTIUSER)
-> > can reasonably use MAP_UNINITIALIZED.
-> 
-> Can? Yes. Reasonably? I don't think so.
+Documentation/memory-barriers.txt is updated to describe more clearly
+the ACQUIRE and RELEASE ordering in this area and to show an example of
+the new barrier in action.
 
-Not all systems care.  Otherwise you should be complaining more bitterly
-about options like CONFIG_MMU=n, which (*gasp*) allow access to *arbitrary
-memory*.
+Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
 
-> > > P.S. MAP_UNINITIALIZED itself looks very broken to me. I probably need dig
-> > > mailing list on why it was allowed.
-> > 
-> > That's what the config option *and* explicit flag are for; there are
-> > more than enough warnings about the implications.
-> 
-> I think it's misdesigned. It doesn't require explicid opt-in from a
-> process who owned the page allocated in MAP_UNINITIALIZED mapping before.
-> 
-> #define MAP_LEAK_ME_SOME_DATA MAP_UNINITIALIZED
+Following our discussion at [1], I thought I'd try to write something
+down...
 
-Hence why it has a config option.
+[1] http://lkml.kernel.org/r/20150828104854.GB16853@twins.programming.kicks-ass.net
 
-The userspace option exists primarily because otherwise userspace might
-get surprised by receiving a non-zeroed page.  On a system with the
-config option turned on, processes have access to arbitrary freed
-memory, as long as they say they can handle not having their memory
-pre-zeroed.
+ Documentation/memory-barriers.txt  | 23 ++++++++++++++++++++++-
+ arch/powerpc/include/asm/barrier.h |  1 +
+ arch/x86/include/asm/barrier.h     |  2 ++
+ include/asm-generic/barrier.h      |  4 ++++
+ 4 files changed, 29 insertions(+), 1 deletion(-)
 
-- Josh Triplett
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index 2ba8461b0631..46a85abb77c6 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -459,11 +459,18 @@ And a couple of implicit varieties:
+      RELEASE on that same variable are guaranteed to be visible.  In other
+      words, within a given variable's critical section, all accesses of all
+      previous critical sections for that variable are guaranteed to have
+-     completed.
++     completed.  If the RELEASE and ACQUIRE operations act on independent
++     variables, an smp_mb__release_acquire() barrier can be placed between
++     them to upgrade the sequence to a full barrier.
+ 
+      This means that ACQUIRE acts as a minimal "acquire" operation and
+      RELEASE acts as a minimal "release" operation.
+ 
++A subset of the atomic operations described in atomic_ops.txt have ACQUIRE
++and RELEASE variants in addition to fully-ordered and relaxed definitions.
++For compound atomics performing both a load and a store, ACQUIRE semantics
++apply only to the load and RELEASE semantics only to the store portion of
++the operation.
+ 
+ Memory barriers are only required where there's a possibility of interaction
+ between two CPUs or between a CPU and a device.  If it can be guaranteed that
+@@ -1895,6 +1902,20 @@ the RELEASE would simply complete, thereby avoiding the deadlock.
+ 	a sleep-unlock race, but the locking primitive needs to resolve
+ 	such races properly in any case.
+ 
++If necessary, ordering can be enforced by use of an
++smp_mb__release_acquire() barrier:
++
++	*A = a;
++	RELEASE M
++	smp_mb__release_acquire();
++	ACQUIRE N
++	*B = b;
++
++in which case, the only permitted sequences are:
++
++	STORE *A, RELEASE M, ACQUIRE N, STORE *B
++	STORE *A, ACQUIRE N, RELEASE M, STORE *B
++
+ Locks and semaphores may not provide any guarantee of ordering on UP compiled
+ systems, and so cannot be counted on in such a situation to actually achieve
+ anything at all - especially with respect to I/O accesses - unless combined
+diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
+index 0eca6efc0631..919624634d0a 100644
+--- a/arch/powerpc/include/asm/barrier.h
++++ b/arch/powerpc/include/asm/barrier.h
+@@ -87,6 +87,7 @@ do {									\
+ 	___p1;								\
+ })
+ 
++#define smp_mb__release_acquire()   smp_mb()
+ #define smp_mb__before_atomic()     smp_mb()
+ #define smp_mb__after_atomic()      smp_mb()
+ #define smp_mb__before_spinlock()   smp_mb()
+diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
+index 0681d2532527..1c61ad251e0e 100644
+--- a/arch/x86/include/asm/barrier.h
++++ b/arch/x86/include/asm/barrier.h
+@@ -85,6 +85,8 @@ do {									\
+ 	___p1;								\
+ })
+ 
++#define smp_mb__release_acquire()	smp_mb()
++
+ #endif
+ 
+ /* Atomic operations are already serializing on x86 */
+diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
+index b42afada1280..61ae95199397 100644
+--- a/include/asm-generic/barrier.h
++++ b/include/asm-generic/barrier.h
+@@ -119,5 +119,9 @@ do {									\
+ 	___p1;								\
+ })
+ 
++#ifndef smp_mb__release_acquire
++#define smp_mb__release_acquire()	do { } while (0)
++#endif
++
+ #endif /* !__ASSEMBLY__ */
+ #endif /* __ASM_GENERIC_BARRIER_H */
+-- 
+2.1.4
