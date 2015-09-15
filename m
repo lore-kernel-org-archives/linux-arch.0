@@ -1,72 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from relay5-d.mail.gandi.net ([217.70.183.197]:41990 "EHLO
-	relay5-d.mail.gandi.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750750AbbIOFTr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Sep 2015 01:19:47 -0400
-Date: Mon, 14 Sep 2015 22:19:19 -0700
-From: Josh Triplett <josh@joshtriplett.org>
-Subject: Re: [PATCH 04/13] Always expose MAP_UNINITIALIZED to userspace
-Message-ID: <20150915051919.GB4091@x>
+Received: from bombadil.infradead.org ([198.137.202.9]:51347 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751477AbbIOIG2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Sep 2015 04:06:28 -0400
+Date: Tue, 15 Sep 2015 10:06:07 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 09/13] Move bp_type_idx to kernel/event/hw_breakpoint.c
+Message-ID: <20150915080607.GW16853@twins.programming.kicks-ass.net>
 References: <1441832902-28993-1-git-send-email-palmer@dabbelt.com>
  <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
- <1442271047-4908-5-git-send-email-palmer@dabbelt.com>
- <20150915002358.GA12618@node.dhcp.inet.fi>
+ <1442271047-4908-10-git-send-email-palmer@dabbelt.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20150915002358.GA12618@node.dhcp.inet.fi>
+In-Reply-To: <1442271047-4908-10-git-send-email-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Palmer Dabbelt <palmer@dabbelt.com>, arnd@arndb.de, dhowells@redhat.com, viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org
-Message-ID: <20150915051919.9H6UCvXw0hAvwDDZRvntA1_-C83HVPyocWWb1f0hDdk@z>
+To: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: arnd@arndb.de, dhowells@redhat.com, viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Frederic Weisbecker <fweisbec@gmail.com>
+Message-ID: <20150915080607.e2DfjEQZB1Lm0h8Z9FolY5IbQKjvyu-008kPSWndPSc@z>
 
-On Tue, Sep 15, 2015 at 03:23:58AM +0300, Kirill A. Shutemov wrote:
-> On Mon, Sep 14, 2015 at 03:50:38PM -0700, Palmer Dabbelt wrote:
-> > This used to be hidden behind CONFIG_MMAP_ALLOW_UNINITIALIZED, so
-> > userspace wouldn't actually ever see it be non-zero.  While I could
-> > have kept hiding it, the man pages seem to indicate that
-> > MAP_UNINITIALIZED should be visible:
-> > 
-> >   mmap(2)
-> >   MAP_UNINITIALIZED (since Linux 2.6.33)
-> >     Don't clear anonymous pages.  This flag is intended to improve
-> >     performance on embedded devices.  This flag is honored only if the
-> >     kernel was configured with the CONFIG_MMAP_ALLOW_UNINITIALIZED
-> >     option.  Because of the security implications, that option is
-> >     normally enabled only on embedded devices (i.e., devices where one
-> >     has complete control of the contents of user memory).
-> > 
-> > and since the only time it shows up in my /usr/include is in this
-> > header I believe this should have been visible to userspace (as
-> > non-zero, which wouldn't do anything when or'd into the flags) all
-> > along.
+On Mon, Sep 14, 2015 at 03:50:43PM -0700, Palmer Dabbelt wrote:
+> This has a "#ifdef CONFIG_*" that used to be exposed to userspace.
 > 
-> Are you sure about "wouldn't do anything"?
-> Suspiciously, 0x4000000 is also (1 << MAP_HUGE_SHIFT). I'm not sure if any
-> architecture has order-1 huge pages, but still looks like we have conflict
-> here.
+> The names in here are so generic that I don't think it's a good idea
+> to expose them to userspace (or even the rest of the kernel).  Since
+> there's only one kernel user, it's been moved to that file.
 > 
-> I think it's harmful to expose non-zero MAP_UNINITIALIZED to system which
-> potentially can handle multiple users. Or non-trivial user space in
-> general.
+> Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+> Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
+> Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
+> ---
+>  include/uapi/linux/hw_breakpoint.h | 10 ----------
+>  kernel/events/hw_breakpoint.c      | 10 ++++++++++
+>  2 files changed, 10 insertions(+), 10 deletions(-)
+> 
+> diff --git a/include/uapi/linux/hw_breakpoint.h b/include/uapi/linux/hw_breakpoint.h
+> index b04000a2296a..7a6a5a7f9511 100644
+> --- a/include/uapi/linux/hw_breakpoint.h
+> +++ b/include/uapi/linux/hw_breakpoint.h
+> @@ -17,14 +17,4 @@ enum {
+>  	HW_BREAKPOINT_INVALID   = HW_BREAKPOINT_RW | HW_BREAKPOINT_X,
+>  };
+>  
+> -enum bp_type_idx {
+> -	TYPE_INST 	= 0,
+> -#ifdef CONFIG_HAVE_MIXED_BREAKPOINTS_REGS
+> -	TYPE_DATA	= 0,
+> -#else
+> -	TYPE_DATA	= 1,
+> -#endif
+> -	TYPE_MAX
+> -};
 
-The flag should always exist.  If it was defined to conflict with
-something else, that's a serious ABI problem.  But the flag
-should always exist, even if the kernel ends up ignoring it.
+This is rather unfortunate; you are correct that the naming is too
+generic (and I tend to agree), but I think these values are required by
+userspace to fill out:
 
-> Should we leave it at least under '#ifndef CONFIG_MMU'? I don't think it's
-> possible to have single ABI for MMU and MMU-less systems anyway. And we
-> can avoid conflict with MAP_HUGE_SHIFT this way.
+  perf_event_attr::bp_type
 
-No; even if you have an MMU (which is useful for things like fork()), a
-system without user separation (for instance, without CONFIG_MULTIUSER)
-can reasonably use MAP_UNINITIALIZED.
+So removing them will break things.
 
-> P.S. MAP_UNINITIALIZED itself looks very broken to me. I probably need dig
-> mailing list on why it was allowed.
-
-That's what the config option *and* explicit flag are for; there are
-more than enough warnings about the implications.
-
-- Josh Triplett
+Frederic?
