@@ -1,145 +1,200 @@
-From: Dave Hansen <dave@sr71.net>
-Subject: Fwd: [PATCH 00/26] [RFCv2] x86: Memory Protection Keys
-Date: Wed, 16 Sep 2015 10:51:14 -0700
-Message-ID: <55F9AC12.5030208@sr71.net>
-References: <20150916174903.E112E464@viggo.jf.intel.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.sr71.net ([198.145.64.142]:40377 "EHLO blackbird.sr71.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754796AbbIPSA0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 16 Sep 2015 14:00:26 -0400
-Received: from [127.0.0.1] (unknown [192.183.194.2])
-	(Authenticated sender: dave)
-	by blackbird.sr71.net (Postfix) with ESMTPSA id 2D771FA886
-	for <linux-arch@vger.kernel.org>; Wed, 16 Sep 2015 10:51:17 -0700 (PDT)
-In-Reply-To: <20150916174903.E112E464@viggo.jf.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch <linux-arch@vger.kernel.org>
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH v5 30/53] PCI: Unify skip_ioresource_align()
+Date: Wed, 16 Sep 2015 14:57:28 -0700
+Message-ID: <1442440671-5361-31-git-send-email-yinghai@kernel.org>
+References: <1442440671-5361-1-git-send-email-yinghai@kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1442440671-5361-1-git-send-email-yinghai@kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Bjorn Helgaas <bhelgaas@google.com>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Wei Yang <weiyang@linux.vnet.ibm.com>, TJ <linux@iam.tj>, Yijing Wang <wangyijing@huawei.com>
+Cc: linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Michal Simek <monstr@monstr.eu>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-I'm sending this along to linux-arch as an FYI.
+There are powerpc generic version and x86 local version for
+skip_ioresource_align().
 
-If your architecture has "protection keys" or "storage keys" or some
-similar mechanism, I'd appreciate a look through these patches,
-especially the syscalls.
+Move the powerpc version to setup-bus.c, and kill x86 local version.
 
--------- Forwarded Message --------
-Subject: [PATCH 00/26] [RFCv2] x86: Memory Protection Keys
-Date: Wed, 16 Sep 2015 10:49:03 -0700
-From: Dave Hansen <dave@sr71.net>
-To: dave@sr71.net
-CC: x86@kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
+Also kill dummy version in microblaze.
 
-MM reviewers, if you are going to look at one thing, please look
-at patch 14 which adds a bunch of additional vma/pte permission
-checks.  Everybody else, please take a look at the two syscall
-alternatives, especially the non-x86 folk.
+Cc: Michal Simek <monstr@monstr.eu>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/microblaze/pci/pci-common.c |  8 --------
+ arch/powerpc/kernel/pci-common.c | 11 +----------
+ arch/x86/include/asm/pci_x86.h   |  1 -
+ arch/x86/pci/common.c            |  4 ++--
+ arch/x86/pci/i386.c              | 12 ++----------
+ drivers/pci/setup-bus.c          |  9 +++++++++
+ include/asm-generic/pci-bridge.h |  2 ++
+ 7 files changed, 16 insertions(+), 31 deletions(-)
 
-This is a second big, fat RFC.  This code is not runnable to
-anyone outside of Intel unless they have some special hardware or
-a fancy simulator.  If you are interested in running this for
-real, please get in touch with me.  Hardware is available to
-a very small but nonzero number of people.
-
-Since the last posting, I have implemented almost all of the
-"software enforcement" for protection keys.  Basically, in places
-where we look at VMA or PTE permissions, we try to enforce
-protection keys to make it act similarly to mprotect().  This is
-the part of the approach that really needs the most review and is
-almost entirely contained in the "check VMAs and PTEs for
-protection keys".
-
-I also implemented a new system call.  There are basically two
-possibilities for plumbing protection keys out to userspace.
-I've included *both* approaches here:
-1. Create a new system call: mprotect_key().  It's mprotect(),
-   plus a protection key.  The patches implementing this have
-   [NEWSYSCALL] in the subject.
-2. Hijack some space in the PROT_* bits and pass a protection key
-   in there.  That way, existing system calls like mmap(),
-   mprotect(), etc... just work.  The patches implementing this
-   have [HIJACKPROT] in the subject and must be applied without
-   the [NEWSYSCALL] ones.
-
-There is still work left to do here.  Current TODO:
- * Build on something other than x86
- * Do some more exhaustive x86 randconfig tests
- * Make sure DAX mappings work
- * Pound on some of the modified paths to ensure limited
-   performance impact from modifications to hot paths.
-
-This set is also available here (with the new syscall):
-
-	git://git.kernel.org/pub/scm/linux/kernel/git/daveh/x86-pkeys.git
-pkeys-v005
-
-A version with the modification of the PROT_ syscalls is tagged
-as 'pkeys-v005-protsyscalls'.
-
-=== diffstat (new syscall version) ===
-
- Documentation/kernel-parameters.txt         |    3
- Documentation/x86/protection-keys.txt       |   65 ++++++++++++++++++++
- arch/powerpc/include/asm/mman.h             |    5 -
- arch/x86/Kconfig                            |   15 ++++
- arch/x86/entry/syscalls/syscall_32.tbl      |    1
- arch/x86/entry/syscalls/syscall_64.tbl      |    1
- arch/x86/include/asm/cpufeature.h           |   54 ++++++++++------
- arch/x86/include/asm/disabled-features.h    |   12 +++
- arch/x86/include/asm/fpu/types.h            |   17 +++++
- arch/x86/include/asm/fpu/xstate.h           |    4 -
- arch/x86/include/asm/mmu_context.h          |   66 ++++++++++++++++++++
- arch/x86/include/asm/pgtable.h              |   37 +++++++++++
- arch/x86/include/asm/pgtable_types.h        |   34 +++++++++-
- arch/x86/include/asm/required-features.h    |    4 +
- arch/x86/include/asm/special_insns.h        |   33 ++++++++++
- arch/x86/include/uapi/asm/mman.h            |   23 +++++++
- arch/x86/include/uapi/asm/processor-flags.h |    2
- arch/x86/kernel/cpu/common.c                |   27 ++++++++
- arch/x86/kernel/fpu/xstate.c                |   10 ++-
- arch/x86/kernel/process_64.c                |    2
- arch/x86/kernel/setup.c                     |    9 ++
- arch/x86/mm/fault.c                         |   89
-++++++++++++++++++++++++++--
- arch/x86/mm/gup.c                           |   37 ++++++-----
- drivers/char/agp/frontend.c                 |    2
- drivers/staging/android/ashmem.c            |    3
- fs/proc/task_mmu.c                          |    5 +
- include/asm-generic/mm_hooks.h              |   12 +++
- include/linux/mm.h                          |   15 ++++
- include/linux/mman.h                        |    6 -
- include/uapi/asm-generic/siginfo.h          |   11 +++
- mm/Kconfig                                  |   11 +++
- mm/gup.c                                    |   28 +++++++-
- mm/memory.c                                 |    8 +-
- mm/mmap.c                                   |    2
- mm/mprotect.c                               |   20 +++++-
- 35 files changed, 607 insertions(+), 66 deletions(-)
-
-== FEATURE OVERVIEW ==
-
-Memory Protection Keys for Userspace (PKU aka PKEYs) is a CPU
-feature which will be found in future Intel CPUs.  The work here
-was done with the aid of simulators.
-
-Memory Protection Keys provides a mechanism for enforcing
-page-based protections, but without requiring modification of the
-page tables when an application changes protection domains.  It
-works by dedicating 4 previously ignored bits in each page table
-entry to assigning a "protection key", giving 16 possible keys to
-each page mapping.
-
-There is also a new user-accessible register (PKRU) with two
-separate bits (Access Disable and Write Disable) for each key.
-Being a CPU register, PKRU is inherently thread-local,
-potentially giving each thread a different set of protections
-from every other thread.
-
-There are two new instructions (RDPKRU/WRPKRU) for reading and
-writing to the new register.  The feature is only available in
-64-bit mode, even though there is theoretically space in the PAE
-PTEs.  These permissions are enforced on data access only and
-have no effect on instruction fetches.
+diff --git a/arch/microblaze/pci/pci-common.c b/arch/microblaze/pci/pci-common.c
+index ae838ed..09b1af6 100644
+--- a/arch/microblaze/pci/pci-common.c
++++ b/arch/microblaze/pci/pci-common.c
+@@ -878,11 +878,6 @@ void pcibios_fixup_bus(struct pci_bus *bus)
+ }
+ EXPORT_SYMBOL(pcibios_fixup_bus);
+ 
+-static int skip_isa_ioresource_align(struct pci_dev *dev)
+-{
+-	return 0;
+-}
+-
+ /*
+  * We need to avoid collisions with `mirrored' VGA ports
+  * and other strange ISA hardware, so we always want the
+@@ -899,12 +894,9 @@ static int skip_isa_ioresource_align(struct pci_dev *dev)
+ resource_size_t pcibios_align_resource(void *data, const struct resource *res,
+ 				resource_size_t size, resource_size_t align)
+ {
+-	struct pci_dev *dev = data;
+ 	resource_size_t start = res->start;
+ 
+ 	if (res->flags & IORESOURCE_IO) {
+-		if (skip_isa_ioresource_align(dev))
+-			return start;
+ 		if (start & 0x300)
+ 			start = (start + 0x3ff) & ~0x3ff;
+ 	}
+diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
+index 7587b2a..8853667 100644
+--- a/arch/powerpc/kernel/pci-common.c
++++ b/arch/powerpc/kernel/pci-common.c
+@@ -1052,15 +1052,6 @@ void pci_fixup_cardbus(struct pci_bus *bus)
+ 	pcibios_setup_bus_devices(bus);
+ }
+ 
+-
+-static int skip_isa_ioresource_align(struct pci_dev *dev)
+-{
+-	if (pci_has_flag(PCI_CAN_SKIP_ISA_ALIGN) &&
+-	    !(dev->bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
+-		return 1;
+-	return 0;
+-}
+-
+ /*
+  * We need to avoid collisions with `mirrored' VGA ports
+  * and other strange ISA hardware, so we always want the
+@@ -1081,7 +1072,7 @@ resource_size_t pcibios_align_resource(void *data, const struct resource *res,
+ 	resource_size_t start = res->start;
+ 
+ 	if (res->flags & IORESOURCE_IO) {
+-		if (skip_isa_ioresource_align(dev))
++		if (skip_isa_ioresource_align(dev->bus))
+ 			return start;
+ 		if (start & 0x300)
+ 			start = (start + 0x3ff) & ~0x3ff;
+diff --git a/arch/x86/include/asm/pci_x86.h b/arch/x86/include/asm/pci_x86.h
+index fa1195d..81a7abf 100644
+--- a/arch/x86/include/asm/pci_x86.h
++++ b/arch/x86/include/asm/pci_x86.h
+@@ -28,7 +28,6 @@ do {						\
+ #define PCI_ASSIGN_ROMS		0x1000
+ #define PCI_BIOS_IRQ_SCAN	0x2000
+ #define PCI_ASSIGN_ALL_BUSSES	0x4000
+-#define PCI_CAN_SKIP_ISA_ALIGN	0x8000
+ #define PCI_USE__CRS		0x10000
+ #define PCI_CHECK_ENABLE_AMD_MMCONF	0x20000
+ #define PCI_HAS_IO_ECS		0x40000
+diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
+index dc78a4a..7c018df 100644
+--- a/arch/x86/pci/common.c
++++ b/arch/x86/pci/common.c
+@@ -83,7 +83,7 @@ DEFINE_RAW_SPINLOCK(pci_config_lock);
+ 
+ static int __init can_skip_ioresource_align(const struct dmi_system_id *d)
+ {
+-	pci_probe |= PCI_CAN_SKIP_ISA_ALIGN;
++	pci_add_flags(PCI_CAN_SKIP_ISA_ALIGN);
+ 	printk(KERN_INFO "PCI: %s detected, can skip ISA alignment\n", d->ident);
+ 	return 0;
+ }
+@@ -619,7 +619,7 @@ char *__init pcibios_setup(char *str)
+ 		pci_routeirq = 1;
+ 		return NULL;
+ 	} else if (!strcmp(str, "skip_isa_align")) {
+-		pci_probe |= PCI_CAN_SKIP_ISA_ALIGN;
++		pci_add_flags(PCI_CAN_SKIP_ISA_ALIGN);
+ 		return NULL;
+ 	} else if (!strcmp(str, "noioapicquirk")) {
+ 		noioapicquirk = 1;
+diff --git a/arch/x86/pci/i386.c b/arch/x86/pci/i386.c
+index 0a9f2ca..3f17726 100644
+--- a/arch/x86/pci/i386.c
++++ b/arch/x86/pci/i386.c
+@@ -33,6 +33,7 @@
+ #include <linux/errno.h>
+ #include <linux/bootmem.h>
+ 
++#include <asm-generic/pci-bridge.h>
+ #include <asm/pat.h>
+ #include <asm/e820.h>
+ #include <asm/pci_x86.h>
+@@ -128,15 +129,6 @@ static void __init pcibios_fw_addr_list_del(void)
+ 	pcibios_fw_addr_done = true;
+ }
+ 
+-static int
+-skip_isa_ioresource_align(struct pci_dev *dev) {
+-
+-	if ((pci_probe & PCI_CAN_SKIP_ISA_ALIGN) &&
+-	    !(dev->bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
+-		return 1;
+-	return 0;
+-}
+-
+ /*
+  * We need to avoid collisions with `mirrored' VGA ports
+  * and other strange ISA hardware, so we always want the
+@@ -158,7 +150,7 @@ pcibios_align_resource(void *data, const struct resource *res,
+ 	resource_size_t start = res->start;
+ 
+ 	if (res->flags & IORESOURCE_IO) {
+-		if (skip_isa_ioresource_align(dev))
++		if (skip_isa_ioresource_align(dev->bus))
+ 			return start;
+ 		if (start & 0x300)
+ 			start = (start + 0x3ff) & ~0x3ff;
+diff --git a/drivers/pci/setup-bus.c b/drivers/pci/setup-bus.c
+index 7a6476f..b05507e 100644
+--- a/drivers/pci/setup-bus.c
++++ b/drivers/pci/setup-bus.c
+@@ -1113,6 +1113,15 @@ static resource_size_t window_alignment(struct pci_bus *bus,
+ 	return max(align, arch_align);
+ }
+ 
++int skip_isa_ioresource_align(struct pci_bus *bus)
++{
++	if (pci_has_flag(PCI_CAN_SKIP_ISA_ALIGN) &&
++	    !(bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
++		return 1;
++
++	return 0;
++}
++
+ static resource_size_t size_aligned_for_isa(resource_size_t size)
+ {
+ 	/*
+diff --git a/include/asm-generic/pci-bridge.h b/include/asm-generic/pci-bridge.h
+index 20db2e5..fab4bd0 100644
+--- a/include/asm-generic/pci-bridge.h
++++ b/include/asm-generic/pci-bridge.h
+@@ -60,6 +60,8 @@ static inline int pci_has_flag(int flag)
+ {
+ 	return pci_flags & flag;
+ }
++
++int skip_isa_ioresource_align(struct pci_bus *bus);
+ #else
+ static inline void pci_set_flags(int flags) { }
+ static inline void pci_add_flags(int flags) { }
+-- 
+1.8.4.5
