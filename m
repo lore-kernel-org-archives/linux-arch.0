@@ -1,79 +1,206 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:54954 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753099AbbIPLHE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 16 Sep 2015 07:07:04 -0400
-Date: Wed, 16 Sep 2015 12:07:06 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH] barriers: introduce smp_mb__release_acquire and update
- documentation
-Message-ID: <20150916110706.GF28771@arm.com>
-References: <1442333610-16228-1-git-send-email-will.deacon@arm.com>
- <20150915174724.GP4029@linux.vnet.ibm.com>
- <20150916091452.GC3816@twins.programming.kicks-ass.net>
- <20150916102908.GA28771@arm.com>
- <20150916104314.GA3604@twins.programming.kicks-ass.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20150916104314.GA3604@twins.programming.kicks-ass.net>
+Received: from aserp1040.oracle.com ([141.146.126.69]:26555 "EHLO
+	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753517AbbIPWEJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Sep 2015 18:04:09 -0400
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH v5 30/53] PCI: Unify skip_ioresource_align()
+Date: Wed, 16 Sep 2015 14:57:28 -0700
+Message-ID: <1442440671-5361-31-git-send-email-yinghai@kernel.org>
+In-Reply-To: <1442440671-5361-1-git-send-email-yinghai@kernel.org>
+References: <1442440671-5361-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20150916110706.708CfGpgj3t1Tg5oW36inqQFKchnfRCXNHkGMxzR6DE@z>
+To: Bjorn Helgaas <bhelgaas@google.com>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Wei Yang <weiyang@linux.vnet.ibm.com>, TJ <linux@iam.tj>, Yijing Wang <wangyijing@huawei.com>
+Cc: linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Michal Simek <monstr@monstr.eu>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
+Message-ID: <20150916215728.TlJXITqy1FJf910halGu0wEYgxxxDI9pSI0AyNTKXwg@z>
 
-On Wed, Sep 16, 2015 at 11:43:14AM +0100, Peter Zijlstra wrote:
-> On Wed, Sep 16, 2015 at 11:29:08AM +0100, Will Deacon wrote:
-> > > Indeed, that is a hole in the definition, that I think we should close.
-> 
-> > I'm struggling to understand the hole, but here's my intuition. If an
-> > ACQUIRE on CPUx reads from a RELEASE by CPUy, then I'd expect CPUx to
-> > observe all memory accessed performed by CPUy prior to the RELEASE
-> > before it observes the RELEASE itself, regardless of this new barrier.
-> > I think this matches what we currently have in memory-barriers.txt (i.e.
-> > acquire/release are neither transitive or multi-copy atomic).
-> 
-> Ah agreed. I seem to have gotten my brain in a tangle.
-> 
-> Basically where a program order release+acquire relies on an address
-> dependency, a cross cpu release+acquire relies on causality. If we
-> observe the release, we must also observe everything prior to it etc.
+There are powerpc generic version and x86 local version for
+skip_ioresource_align().
 
-Yes, and crucially, the "everything prior to it" only encompasses accesses
-made by the releasing CPU itself (in the absence of other barriers and
-synchronisation).
+Move the powerpc version to setup-bus.c, and kill x86 local version.
 
-Given that we managed to get confused, it doesn't hurt to call this out
-explicitly in the doc, so I can add the following extra text.
+Also kill dummy version in microblaze.
 
-Will
+Cc: Michal Simek <monstr@monstr.eu>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/microblaze/pci/pci-common.c |  8 --------
+ arch/powerpc/kernel/pci-common.c | 11 +----------
+ arch/x86/include/asm/pci_x86.h   |  1 -
+ arch/x86/pci/common.c            |  4 ++--
+ arch/x86/pci/i386.c              | 12 ++----------
+ drivers/pci/setup-bus.c          |  9 +++++++++
+ include/asm-generic/pci-bridge.h |  2 ++
+ 7 files changed, 16 insertions(+), 31 deletions(-)
 
---->8
-
-diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-index 46a85abb77c6..794d102d06df 100644
---- a/Documentation/memory-barriers.txt
-+++ b/Documentation/memory-barriers.txt
-@@ -1902,8 +1902,8 @@ the RELEASE would simply complete, thereby avoiding the deadlock.
- 	a sleep-unlock race, but the locking primitive needs to resolve
- 	such races properly in any case.
+diff --git a/arch/microblaze/pci/pci-common.c b/arch/microblaze/pci/pci-common.c
+index ae838ed..09b1af6 100644
+--- a/arch/microblaze/pci/pci-common.c
++++ b/arch/microblaze/pci/pci-common.c
+@@ -878,11 +878,6 @@ void pcibios_fixup_bus(struct pci_bus *bus)
+ }
+ EXPORT_SYMBOL(pcibios_fixup_bus);
  
--If necessary, ordering can be enforced by use of an
--smp_mb__release_acquire() barrier:
-+Where the RELEASE and ACQUIRE operations are performed by the same CPU,
-+ordering can be enforced by use of an smp_mb__release_acquire() barrier:
+-static int skip_isa_ioresource_align(struct pci_dev *dev)
+-{
+-	return 0;
+-}
+-
+ /*
+  * We need to avoid collisions with `mirrored' VGA ports
+  * and other strange ISA hardware, so we always want the
+@@ -899,12 +894,9 @@ static int skip_isa_ioresource_align(struct pci_dev *dev)
+ resource_size_t pcibios_align_resource(void *data, const struct resource *res,
+ 				resource_size_t size, resource_size_t align)
+ {
+-	struct pci_dev *dev = data;
+ 	resource_size_t start = res->start;
  
- 	*A = a;
- 	RELEASE M
-@@ -1916,6 +1916,10 @@ in which case, the only permitted sequences are:
- 	STORE *A, RELEASE M, ACQUIRE N, STORE *B
- 	STORE *A, ACQUIRE N, RELEASE M, STORE *B
+ 	if (res->flags & IORESOURCE_IO) {
+-		if (skip_isa_ioresource_align(dev))
+-			return start;
+ 		if (start & 0x300)
+ 			start = (start + 0x3ff) & ~0x3ff;
+ 	}
+diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
+index 7587b2a..8853667 100644
+--- a/arch/powerpc/kernel/pci-common.c
++++ b/arch/powerpc/kernel/pci-common.c
+@@ -1052,15 +1052,6 @@ void pci_fixup_cardbus(struct pci_bus *bus)
+ 	pcibios_setup_bus_devices(bus);
+ }
  
-+Note that smp_mb__release_acquire() has no effect on ACQUIRE or RELEASE
-+operations performed by other CPUs, even if they are to the same variable.
-+In cases where transitivity is required, smp_mb() should be used explicitly.
+-
+-static int skip_isa_ioresource_align(struct pci_dev *dev)
+-{
+-	if (pci_has_flag(PCI_CAN_SKIP_ISA_ALIGN) &&
+-	    !(dev->bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
+-		return 1;
+-	return 0;
+-}
+-
+ /*
+  * We need to avoid collisions with `mirrored' VGA ports
+  * and other strange ISA hardware, so we always want the
+@@ -1081,7 +1072,7 @@ resource_size_t pcibios_align_resource(void *data, const struct resource *res,
+ 	resource_size_t start = res->start;
+ 
+ 	if (res->flags & IORESOURCE_IO) {
+-		if (skip_isa_ioresource_align(dev))
++		if (skip_isa_ioresource_align(dev->bus))
+ 			return start;
+ 		if (start & 0x300)
+ 			start = (start + 0x3ff) & ~0x3ff;
+diff --git a/arch/x86/include/asm/pci_x86.h b/arch/x86/include/asm/pci_x86.h
+index fa1195d..81a7abf 100644
+--- a/arch/x86/include/asm/pci_x86.h
++++ b/arch/x86/include/asm/pci_x86.h
+@@ -28,7 +28,6 @@ do {						\
+ #define PCI_ASSIGN_ROMS		0x1000
+ #define PCI_BIOS_IRQ_SCAN	0x2000
+ #define PCI_ASSIGN_ALL_BUSSES	0x4000
+-#define PCI_CAN_SKIP_ISA_ALIGN	0x8000
+ #define PCI_USE__CRS		0x10000
+ #define PCI_CHECK_ENABLE_AMD_MMCONF	0x20000
+ #define PCI_HAS_IO_ECS		0x40000
+diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
+index dc78a4a..7c018df 100644
+--- a/arch/x86/pci/common.c
++++ b/arch/x86/pci/common.c
+@@ -83,7 +83,7 @@ DEFINE_RAW_SPINLOCK(pci_config_lock);
+ 
+ static int __init can_skip_ioresource_align(const struct dmi_system_id *d)
+ {
+-	pci_probe |= PCI_CAN_SKIP_ISA_ALIGN;
++	pci_add_flags(PCI_CAN_SKIP_ISA_ALIGN);
+ 	printk(KERN_INFO "PCI: %s detected, can skip ISA alignment\n", d->ident);
+ 	return 0;
+ }
+@@ -619,7 +619,7 @@ char *__init pcibios_setup(char *str)
+ 		pci_routeirq = 1;
+ 		return NULL;
+ 	} else if (!strcmp(str, "skip_isa_align")) {
+-		pci_probe |= PCI_CAN_SKIP_ISA_ALIGN;
++		pci_add_flags(PCI_CAN_SKIP_ISA_ALIGN);
+ 		return NULL;
+ 	} else if (!strcmp(str, "noioapicquirk")) {
+ 		noioapicquirk = 1;
+diff --git a/arch/x86/pci/i386.c b/arch/x86/pci/i386.c
+index 0a9f2ca..3f17726 100644
+--- a/arch/x86/pci/i386.c
++++ b/arch/x86/pci/i386.c
+@@ -33,6 +33,7 @@
+ #include <linux/errno.h>
+ #include <linux/bootmem.h>
+ 
++#include <asm-generic/pci-bridge.h>
+ #include <asm/pat.h>
+ #include <asm/e820.h>
+ #include <asm/pci_x86.h>
+@@ -128,15 +129,6 @@ static void __init pcibios_fw_addr_list_del(void)
+ 	pcibios_fw_addr_done = true;
+ }
+ 
+-static int
+-skip_isa_ioresource_align(struct pci_dev *dev) {
+-
+-	if ((pci_probe & PCI_CAN_SKIP_ISA_ALIGN) &&
+-	    !(dev->bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
+-		return 1;
+-	return 0;
+-}
+-
+ /*
+  * We need to avoid collisions with `mirrored' VGA ports
+  * and other strange ISA hardware, so we always want the
+@@ -158,7 +150,7 @@ pcibios_align_resource(void *data, const struct resource *res,
+ 	resource_size_t start = res->start;
+ 
+ 	if (res->flags & IORESOURCE_IO) {
+-		if (skip_isa_ioresource_align(dev))
++		if (skip_isa_ioresource_align(dev->bus))
+ 			return start;
+ 		if (start & 0x300)
+ 			start = (start + 0x3ff) & ~0x3ff;
+diff --git a/drivers/pci/setup-bus.c b/drivers/pci/setup-bus.c
+index 7a6476f..b05507e 100644
+--- a/drivers/pci/setup-bus.c
++++ b/drivers/pci/setup-bus.c
+@@ -1113,6 +1113,15 @@ static resource_size_t window_alignment(struct pci_bus *bus,
+ 	return max(align, arch_align);
+ }
+ 
++int skip_isa_ioresource_align(struct pci_bus *bus)
++{
++	if (pci_has_flag(PCI_CAN_SKIP_ISA_ALIGN) &&
++	    !(bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
++		return 1;
 +
- Locks and semaphores may not provide any guarantee of ordering on UP compiled
- systems, and so cannot be counted on in such a situation to actually achieve
- anything at all - especially with respect to I/O accesses - unless combined
++	return 0;
++}
++
+ static resource_size_t size_aligned_for_isa(resource_size_t size)
+ {
+ 	/*
+diff --git a/include/asm-generic/pci-bridge.h b/include/asm-generic/pci-bridge.h
+index 20db2e5..fab4bd0 100644
+--- a/include/asm-generic/pci-bridge.h
++++ b/include/asm-generic/pci-bridge.h
+@@ -60,6 +60,8 @@ static inline int pci_has_flag(int flag)
+ {
+ 	return pci_flags & flag;
+ }
++
++int skip_isa_ioresource_align(struct pci_bus *bus);
+ #else
+ static inline void pci_set_flags(int flags) { }
+ static inline void pci_add_flags(int flags) { }
+-- 
+1.8.4.5
+
