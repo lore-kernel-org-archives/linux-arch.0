@@ -1,44 +1,145 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH] barriers: introduce smp_mb__release_acquire and update
- documentation
-Date: Wed, 16 Sep 2015 17:38:14 +0100
-Message-ID: <20150916163813.GP28771@arm.com>
-References: <1442333610-16228-1-git-send-email-will.deacon@arm.com>
- <20150916114918.GA12664@fixme-laptop.cn.ibm.com>
+From: Dave Hansen <dave@sr71.net>
+Subject: Fwd: [PATCH 00/26] [RFCv2] x86: Memory Protection Keys
+Date: Wed, 16 Sep 2015 10:51:14 -0700
+Message-ID: <55F9AC12.5030208@sr71.net>
+References: <20150916174903.E112E464@viggo.jf.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:37507 "EHLO foss.arm.com"
+Received: from www.sr71.net ([198.145.64.142]:40377 "EHLO blackbird.sr71.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751965AbbIPQiL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 16 Sep 2015 12:38:11 -0400
-Content-Disposition: inline
-In-Reply-To: <20150916114918.GA12664@fixme-laptop.cn.ibm.com>
+	id S1754796AbbIPSA0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 16 Sep 2015 14:00:26 -0400
+Received: from [127.0.0.1] (unknown [192.183.194.2])
+	(Authenticated sender: dave)
+	by blackbird.sr71.net (Postfix) with ESMTPSA id 2D771FA886
+	for <linux-arch@vger.kernel.org>; Wed, 16 Sep 2015 10:51:17 -0700 (PDT)
+In-Reply-To: <20150916174903.E112E464@viggo.jf.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>
+To: linux-arch <linux-arch@vger.kernel.org>
 
-On Wed, Sep 16, 2015 at 12:49:18PM +0100, Boqun Feng wrote:
-> Hi Will,
+I'm sending this along to linux-arch as an FYI.
 
-Hello,
+If your architecture has "protection keys" or "storage keys" or some
+similar mechanism, I'd appreciate a look through these patches,
+especially the syscalls.
 
-> On Tue, Sep 15, 2015 at 05:13:30PM +0100, Will Deacon wrote:
-> > +If necessary, ordering can be enforced by use of an
-> > +smp_mb__release_acquire() barrier:
-> > +
-> > +	*A = a;
-> > +	RELEASE M
-> > +	smp_mb__release_acquire();
-> 
-> Should this barrier be placed after the ACQUIRE? Because we do actually
-> want(?) and allow RELEASE and ACQUIRE operations to reorder in this
-> case, like your following example, right?
+-------- Forwarded Message --------
+Subject: [PATCH 00/26] [RFCv2] x86: Memory Protection Keys
+Date: Wed, 16 Sep 2015 10:49:03 -0700
+From: Dave Hansen <dave@sr71.net>
+To: dave@sr71.net
+CC: x86@kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
 
-I think it's a lot simpler to keep it where it is, in all honesty. The
-relaxation for the RELEASE/ACQUIRE access ordering is mainly there to
-allow architectures building those operations out of explicit barriers
-to get away without a definition of smp_mb__release_acquire.
+MM reviewers, if you are going to look at one thing, please look
+at patch 14 which adds a bunch of additional vma/pte permission
+checks.  Everybody else, please take a look at the two syscall
+alternatives, especially the non-x86 folk.
 
-Will
+This is a second big, fat RFC.  This code is not runnable to
+anyone outside of Intel unless they have some special hardware or
+a fancy simulator.  If you are interested in running this for
+real, please get in touch with me.  Hardware is available to
+a very small but nonzero number of people.
+
+Since the last posting, I have implemented almost all of the
+"software enforcement" for protection keys.  Basically, in places
+where we look at VMA or PTE permissions, we try to enforce
+protection keys to make it act similarly to mprotect().  This is
+the part of the approach that really needs the most review and is
+almost entirely contained in the "check VMAs and PTEs for
+protection keys".
+
+I also implemented a new system call.  There are basically two
+possibilities for plumbing protection keys out to userspace.
+I've included *both* approaches here:
+1. Create a new system call: mprotect_key().  It's mprotect(),
+   plus a protection key.  The patches implementing this have
+   [NEWSYSCALL] in the subject.
+2. Hijack some space in the PROT_* bits and pass a protection key
+   in there.  That way, existing system calls like mmap(),
+   mprotect(), etc... just work.  The patches implementing this
+   have [HIJACKPROT] in the subject and must be applied without
+   the [NEWSYSCALL] ones.
+
+There is still work left to do here.  Current TODO:
+ * Build on something other than x86
+ * Do some more exhaustive x86 randconfig tests
+ * Make sure DAX mappings work
+ * Pound on some of the modified paths to ensure limited
+   performance impact from modifications to hot paths.
+
+This set is also available here (with the new syscall):
+
+	git://git.kernel.org/pub/scm/linux/kernel/git/daveh/x86-pkeys.git
+pkeys-v005
+
+A version with the modification of the PROT_ syscalls is tagged
+as 'pkeys-v005-protsyscalls'.
+
+=== diffstat (new syscall version) ===
+
+ Documentation/kernel-parameters.txt         |    3
+ Documentation/x86/protection-keys.txt       |   65 ++++++++++++++++++++
+ arch/powerpc/include/asm/mman.h             |    5 -
+ arch/x86/Kconfig                            |   15 ++++
+ arch/x86/entry/syscalls/syscall_32.tbl      |    1
+ arch/x86/entry/syscalls/syscall_64.tbl      |    1
+ arch/x86/include/asm/cpufeature.h           |   54 ++++++++++------
+ arch/x86/include/asm/disabled-features.h    |   12 +++
+ arch/x86/include/asm/fpu/types.h            |   17 +++++
+ arch/x86/include/asm/fpu/xstate.h           |    4 -
+ arch/x86/include/asm/mmu_context.h          |   66 ++++++++++++++++++++
+ arch/x86/include/asm/pgtable.h              |   37 +++++++++++
+ arch/x86/include/asm/pgtable_types.h        |   34 +++++++++-
+ arch/x86/include/asm/required-features.h    |    4 +
+ arch/x86/include/asm/special_insns.h        |   33 ++++++++++
+ arch/x86/include/uapi/asm/mman.h            |   23 +++++++
+ arch/x86/include/uapi/asm/processor-flags.h |    2
+ arch/x86/kernel/cpu/common.c                |   27 ++++++++
+ arch/x86/kernel/fpu/xstate.c                |   10 ++-
+ arch/x86/kernel/process_64.c                |    2
+ arch/x86/kernel/setup.c                     |    9 ++
+ arch/x86/mm/fault.c                         |   89
+++++++++++++++++++++++++++--
+ arch/x86/mm/gup.c                           |   37 ++++++-----
+ drivers/char/agp/frontend.c                 |    2
+ drivers/staging/android/ashmem.c            |    3
+ fs/proc/task_mmu.c                          |    5 +
+ include/asm-generic/mm_hooks.h              |   12 +++
+ include/linux/mm.h                          |   15 ++++
+ include/linux/mman.h                        |    6 -
+ include/uapi/asm-generic/siginfo.h          |   11 +++
+ mm/Kconfig                                  |   11 +++
+ mm/gup.c                                    |   28 +++++++-
+ mm/memory.c                                 |    8 +-
+ mm/mmap.c                                   |    2
+ mm/mprotect.c                               |   20 +++++-
+ 35 files changed, 607 insertions(+), 66 deletions(-)
+
+== FEATURE OVERVIEW ==
+
+Memory Protection Keys for Userspace (PKU aka PKEYs) is a CPU
+feature which will be found in future Intel CPUs.  The work here
+was done with the aid of simulators.
+
+Memory Protection Keys provides a mechanism for enforcing
+page-based protections, but without requiring modification of the
+page tables when an application changes protection domains.  It
+works by dedicating 4 previously ignored bits in each page table
+entry to assigning a "protection key", giving 16 possible keys to
+each page mapping.
+
+There is also a new user-accessible register (PKRU) with two
+separate bits (Access Disable and Write Disable) for each key.
+Being a CPU register, PKRU is inherently thread-local,
+potentially giving each thread a different set of protections
+from every other thread.
+
+There are two new instructions (RDPKRU/WRPKRU) for reading and
+writing to the new register.  The feature is only available in
+64-bit mode, even though there is theoretically space in the PAE
+PTEs.  These permissions are enforced on data access only and
+have no effect on instruction fetches.
