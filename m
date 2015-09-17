@@ -1,67 +1,77 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 09/11] mm,thp: introduce flush_pmd_tlb_range
-Date: Wed, 16 Sep 2015 23:57:45 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075D7817CDC@IN01WEMBXB.internal.synopsys.com>
-References: <1440666194-21478-1-git-send-email-vgupta@synopsys.com>
- <1440666194-21478-10-git-send-email-vgupta@synopsys.com>
- <20150916152628.32073b37c02550557672092c@linux-foundation.org>
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [PATCH] barriers: introduce smp_mb__release_acquire and update
+ documentation
+Date: Thu, 17 Sep 2015 09:56:14 +0800
+Message-ID: <20150917015614.GA4000@fixme-laptop.cn.ibm.com>
+References: <1442333610-16228-1-git-send-email-will.deacon@arm.com>
+ <20150916114918.GA12664@fixme-laptop.cn.ibm.com>
+ <20150916163813.GP28771@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature"; boundary="WIyZ46R2i8wDzkSu"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-oi0-f44.google.com ([209.85.218.44]:33938 "EHLO
+	mail-oi0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752931AbbIQB4j (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Sep 2015 21:56:39 -0400
+Content-Disposition: inline
+In-Reply-To: <20150916163813.GP28771@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>
+
+
+--WIyZ46R2i8wDzkSu
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Mel Gorman <mgorman@suse.de>, Matthew
- Wilcox <matthew.r.wilcox@intel.com>, Minchan Kim <minchan@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>
-List-Id: linux-arch.vger.kernel.org
 
-On Wednesday 16 September 2015 03:26 PM, Andrew Morton wrote:=0A=
-> On Thu, 27 Aug 2015 14:33:12 +0530 Vineet Gupta <Vineet.Gupta1@synopsys.c=
-om> wrote:=0A=
->=0A=
->> --- a/mm/pgtable-generic.c=0A=
->> +++ b/mm/pgtable-generic.c=0A=
->> @@ -84,6 +84,19 @@ pte_t ptep_clear_flush(struct vm_area_struct *vma, un=
-signed long address,=0A=
->>  =0A=
->>  #ifdef CONFIG_TRANSPARENT_HUGEPAGE=0A=
->>  =0A=
->> +#ifndef __HAVE_ARCH_FLUSH_PMD_TLB_RANGE=0A=
->> +=0A=
->> +/*=0A=
->> + * ARCHes with special requirements for evicting THP backing TLB entrie=
-s can=0A=
->> + * implement this. Otherwise also, it can help optimizing thp flush ope=
-ration.=0A=
->> + * flush_tlb_range() can have optimization to nuke the entire TLB if fl=
-ush span=0A=
->> + * is greater than a threashhold, which will likely be true for a singl=
-e=0A=
->> + * huge page.=0A=
->> + * e.g. see arch/arc: flush_pmd_tlb_range=0A=
->> + */=0A=
->> +#define flush_pmd_tlb_range(vma, addr, end)	flush_tlb_range(vma, addr, =
-end)=0A=
->> +#endif=0A=
-> Did you consider using a __weak function here?=0A=
-=0A=
-IMHO weak doesn't apply here. All arches already have flush_tlb_range() whi=
-ch is=0A=
-called by normal and THP code to flush the corresponding normal/THP page TL=
-B=0A=
-entry. What I want to do is differentiate the THP page flush case - bu call=
-ing a=0A=
-different API (which can be optionally implemented by arch or fall back to =
-vanilla=0A=
-flush_tlb_page()). So we need to change the call itself here while weak len=
-ds=0A=
-itself better to keeping the call same but just swapping the implementation=
-.=0A=
-=0A=
+On Wed, Sep 16, 2015 at 05:38:14PM +0100, Will Deacon wrote:
+> On Wed, Sep 16, 2015 at 12:49:18PM +0100, Boqun Feng wrote:
+> > Hi Will,
+>=20
+> Hello,
+>=20
+> > On Tue, Sep 15, 2015 at 05:13:30PM +0100, Will Deacon wrote:
+> > > +If necessary, ordering can be enforced by use of an
+> > > +smp_mb__release_acquire() barrier:
+> > > +
+> > > +	*A =3D a;
+> > > +	RELEASE M
+> > > +	smp_mb__release_acquire();
+> >=20
+> > Should this barrier be placed after the ACQUIRE? Because we do actually
+> > want(?) and allow RELEASE and ACQUIRE operations to reorder in this
+> > case, like your following example, right?
+>=20
+> I think it's a lot simpler to keep it where it is, in all honesty. The
+> relaxation for the RELEASE/ACQUIRE access ordering is mainly there to
+> allow architectures building those operations out of explicit barriers
+> to get away without a definition of smp_mb__release_acquire.
+>=20
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Fair enough, and plus there is actually no user(even potential user) of
+this for now, it may be too early to argue where the barrier should be
+put.
+
+Regards,
+Boqun
+
+
+--WIyZ46R2i8wDzkSu
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQEcBAABCAAGBQJV+h26AAoJEEl56MO1B/q4FKsH/2aF83W1AMADgMSN87h7mEPk
+pewbz/83gvzp4oq8ZMWWZACBWn7je05XGxkk1h3BHs7el5WHaTDwKsjhmt8LrP8D
+P7YlvTDCzsJw9GU9ngGqYcjhtM7FYSqw941ta9czFWPeWRCCY/ZK2TZ/XkzDgsVr
+KXTGcMkfa+SJz+G24vIiE6PxGgN3K0p1ySgG7p1oIJMtLv4pp3seebjWyHc7ATGf
+tDpV1cscUctcVr4ay2fFWPkgZkQckbugxYRBNjZB2z3veeNKn2oV18aIwChqq5Lu
+gt4bLx5iwJUttwQFvqwLI4tETRJpBj10bgBaGGoLJlhSM6jjo2y4ImWO0U8Wv2U=
+=Nov9
+-----END PGP SIGNATURE-----
+
+--WIyZ46R2i8wDzkSu--
