@@ -1,32 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f53.google.com ([209.85.220.53]:33223 "EHLO
-	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751816AbbIQUxR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Sep 2015 16:53:17 -0400
-Received: by pacex6 with SMTP id ex6so29251508pac.0
-        for <linux-arch@vger.kernel.org>; Thu, 17 Sep 2015 13:53:16 -0700 (PDT)
-Message-ID: <55fb283c.f039440a.427ff.fffff187@mx.google.com>
-Date: Thu, 17 Sep 2015 13:53:16 -0700 (PDT)
-From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: Re: [PATCH 03/13] Move COMPAT_ATM_ADDPARTY to net/atm/svc.c
-In-Reply-To: <15268.1442483832@warthog.procyon.org.uk>
+Received: from mail-out.m-online.net ([212.18.0.10]:48066 "EHLO
+	mail-out.m-online.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754833AbbITKiy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 20 Sep 2015 06:38:54 -0400
+From: Andreas Schwab <schwab@linux-m68k.org>
+Subject: Re: Drop IPC_OLD for direct ipc syscalls?
+References: <CAMuHMdW-w6yMDcgK-T38n45c1rURPHsVw+SwULjbgoG7d1HOOA@mail.gmail.com>
+Date: Sun, 20 Sep 2015 12:38:46 +0200
+In-Reply-To: <CAMuHMdW-w6yMDcgK-T38n45c1rURPHsVw+SwULjbgoG7d1HOOA@mail.gmail.com>
+	(Geert Uytterhoeven's message of "Sun, 20 Sep 2015 11:07:28 +0200")
+Message-ID: <87pp1dv0i1.fsf@igel.home>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: dhowells@redhat.com
-Cc: arnd@arndb.de, viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org
-Message-ID: <20150917205316.4G2cbOrpZIP6rKeSsbC1P6QXlIG6vb1Nv2u-yrgz9LE@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Greg Ungerer <gerg@uclinux.org>, Linux/m68k <linux-m68k@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@linux.intel.com>
+Message-ID: <20150920103846.l5UziQ--j7uBkJj54k18RQK_tdZENAjfsDD5FqKd4CA@z>
 
-On Thu, 17 Sep 2015 02:57:12 PDT (-0700), dhowells@redhat.com wrote:
-> Palmer Dabbelt <palmer@dabbelt.com> wrote:
->
->> +#ifdef CONFIG_COMPAT
->> +/* It actually takes struct sockaddr_atmsvc, not struct atm_iobuf */
->> +#define COMPAT_ATM_ADDPARTY _IOW('a', ATMIOC_SPECIAL+4, struct compat_atm_iobuf)
->> +#endif
->
-> I wonder if it would hurt to ditch the conditionals entirely.  It only eats
-> cpp namespace, not C namespace so it won't affect the output if it is not used
-> because the code that uses it is compiled out.
+Geert Uytterhoeven <geert@linux-m68k.org> writes:
 
-Makes sense to me.
+> Should I postpone wiring up the direct ipc syscalls on m68k (and thus renumber
+> __NR_membarrier) until the above is resolved, or can they go in in v4.3?
 
+If you wire up the direct ipc calls know you create an ABI that is
+harder to get rid of.
+
+Andreas.
+
+-- 
+Andreas Schwab, schwab@linux-m68k.org
+GPG Key fingerprint = 58CA 54C7 6D53 942B 1756  01D3 44D5 214B 8276 4ED5
+"And now for something completely different."
