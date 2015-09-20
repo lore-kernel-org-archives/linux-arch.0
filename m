@@ -1,88 +1,68 @@
-From: Marek Vasut <marex@denx.de>
-Subject: [PATCH] asm-generic: cmpxchg: avoid warnings from macro-ized cmpxchg() implementations
-Date: Sat, 19 Sep 2015 06:42:21 +0200
-Message-ID: <1442637741-10807-1-git-send-email-marex@denx.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Drop IPC_OLD for direct ipc syscalls? (was: Re: [PATCH v2 3/4] m68k:
+ Wire up direct ipc calls)
+Date: Sun, 20 Sep 2015 11:07:28 +0200
+Message-ID: <CAMuHMdW-w6yMDcgK-T38n45c1rURPHsVw+SwULjbgoG7d1HOOA@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-out.m-online.net ([212.18.0.10]:47265 "EHLO
-	mail-out.m-online.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750811AbbISEmQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 Sep 2015 00:42:16 -0400
+Received: from mail-ob0-f179.google.com ([209.85.214.179]:35570 "EHLO
+	mail-ob0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753765AbbITJH3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 20 Sep 2015 05:07:29 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: lftan@altera.com, arnd@arndb.de, linux-arch@vger.kernel.org, Marek Vasut <marex@denx.de>, Russell King <rmk+kernel@arm.linux.org.uk>
+To: Andreas Schwab <schwab@linux-m68k.org>
+Cc: Greg Ungerer <gerg@uclinux.org>, Linux/m68k <linux-m68k@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@linux.intel.com>
 
-This change is similar to e001bbae7147b111fe1aa42beaf835635f3c016e
-ARM: cmpxchg: avoid warnings from macro-ized cmpxchg() implementations
+Hi Andreas,
 
-A recent change in kernel/acct.c added a new warning for many
-configurations using generic __xchg() implementation:
+On Thu, Sep 17, 2015 at 5:39 PM, Andreas Schwab <schwab@linux-m68k.org> wrote:
+> Geert Uytterhoeven <geert@linux-m68k.org> writes:
+> > > > > It would be nice if the direct syscalls would drop the use of
+> > > > > ipc_parse_version.  Currently, apart from going through the ipc
+> > > > > multiplexer, the semctl, shmctl and msgctl wrappers in libc need to add
+> > > > > the IPC_64 bit to the cmd operand.  If that would be implied then no
+> > > > > special wrappers would be needed any more for direct syscalls.
+> > > >
+> > > > You mean that we should drop "select ARCH_WANT_IPC_PARSE_VERSION",
+> > > > but we can't do that because an indirect call through sys_ipc() would
+> > > > still need it when dispatching to sys_{sem,shm,msg}ctl()?
+> > >
+> > > Yes.  But all architectures that currently use both sys_ipc and
+> > > ARCH_WANT_IPC_PARSE_VERSION would benefit from decoupling it when they
+> > > add the direct syscalls.
+> >
+> > Do we currently have architectures that use both sys_ipc and the direct
+> > syscalls, where keeping ipc_parse_version() in the direct syscalls is
+> > required?
+>
+> IMHO it doesn't make sense to suport IPC_OLD via the direct syscalls,
+> even for those architectures that started with them in the first place.
+> There are quite a few architectures that define
+> ARCH_WANT_IPC_PARSE_VERSION even though they started life after IPC_64
+> was added.  They probably just forgot to adjust ipc/util.h back then.
 
-In file included from ./arch/nios2/include/asm/cmpxchg.h:12:0,
-                 from include/asm-generic/atomic.h:18,
-                 from arch/nios2/include/generated/asm/atomic.h:1,
-                 from include/linux/atomic.h:4,
-                 from include/linux/spinlock.h:406,
-                 from include/linux/mmzone.h:7,
-                 from include/linux/gfp.h:5,
-                 from include/linux/mm.h:9,
-                 from kernel/acct.c:46:
-kernel/acct.c: In function 'acct_pin_kill':
-include/asm-generic/cmpxchg.h:94:3: warning: value computed is not used [-Wunused-value]
-  ((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
-   ^
-include/asm-generic/cmpxchg.h:102:28: note: in expansion of macro 'cmpxchg_local'
- #define cmpxchg(ptr, o, n) cmpxchg_local((ptr), (o), (n))
-                            ^
-kernel/acct.c:177:2: note: in expansion of macro 'cmpxchg'
-  cmpxchg(&acct->ns->bacct, pin, NULL);
-  ^
+Thanks!
 
-The code is in fact correct, it's just a cmpxchg() call that
-intentionally ignores the result, and no other code does that.  The
-warning does not show up on x86 because of the way that its cmpxchg()
-macro is written. This changes the asm-ggeneric implementation to use
-a similar construct with a compound expression instead of a typecast,
-which causes the compiler to not complain about an unused result.
+I had a quick look at the code, but I'm not feeling sufficiently familiar with
+the (g)libc interaction to cook up a patch dropping ipc_parse_version() from
+direct ipc calls.
 
-Fix the other macros in this file in a similar way, and place them
-just below their function implementations.
+Should I postpone wiring up the direct ipc syscalls on m68k (and thus renumber
+__NR_membarrier) until the above is resolved, or can they go in in v4.3?
 
-Signed-off-by: Marek Vasut <marex@denx.de>
-Cc: Russell King <rmk+kernel@arm.linux.org.uk>
----
- include/asm-generic/cmpxchg.h | 11 +++++++----
- 1 file changed, 7 insertions(+), 4 deletions(-)
+I guess the same is true for x86-32.
 
-diff --git a/include/asm-generic/cmpxchg.h b/include/asm-generic/cmpxchg.h
-index 3766ab3..e5f9080 100644
---- a/include/asm-generic/cmpxchg.h
-+++ b/include/asm-generic/cmpxchg.h
-@@ -79,8 +79,10 @@ unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
- 	}
- }
- 
--#define xchg(ptr, x) \
--	((__typeof__(*(ptr))) __xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
-+#define xchg(ptr, x) ({							\
-+	((__typeof__(*(ptr)))						\
-+		__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))));	\
-+})
- 
- #endif /* xchg */
- 
-@@ -90,9 +92,10 @@ unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
- #include <asm-generic/cmpxchg-local.h>
- 
- #ifndef cmpxchg_local
--#define cmpxchg_local(ptr, o, n)				  	       \
-+#define cmpxchg_local(ptr, o, n) ({					       \
- 	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
--			(unsigned long)(n), sizeof(*(ptr))))
-+			(unsigned long)(n), sizeof(*(ptr))));		       \
-+})
- #endif
- 
- #ifndef cmpxchg64_local
--- 
-2.1.4
+Thanks again!
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
