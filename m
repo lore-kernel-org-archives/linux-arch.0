@@ -1,213 +1,180 @@
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [PATCH] barriers: introduce smp_mb__release_acquire and update
- documentation
-Date: Mon, 21 Sep 2015 22:10:38 +0800
-Message-ID: <20150921141038.GB970@fixme-laptop.cn.ibm.com>
-References: <1442333610-16228-1-git-send-email-will.deacon@arm.com>
- <20150915174724.GP4029@linux.vnet.ibm.com>
- <20150916091452.GC3816@twins.programming.kicks-ass.net>
- <20150916102908.GA28771@arm.com>
- <20150916104314.GA3604@twins.programming.kicks-ass.net>
- <20150916110706.GF28771@arm.com>
- <20150917025012.GB4000@fixme-laptop.cn.ibm.com>
- <20150917180001.GR25634@arm.com>
- <20150921134515.GA970@fixme-laptop.cn.ibm.com>
-Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-	protocol="application/pgp-signature"; boundary="K8nIJk4ghYZn606h"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20150921134515.GA970@fixme-laptop.cn.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: [PATCH 2/2] s390/mm: implement soft-dirty bits for user memory change tracking
+Date: Mon, 21 Sep 2015 17:22:20 +0200
+Message-ID: <1442848940-22108-3-git-send-email-schwidefsky@de.ibm.com>
+References: <1442848940-22108-1-git-send-email-schwidefsky@de.ibm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp09.uk.ibm.com ([195.75.94.105]:36662 "EHLO
+	e06smtp09.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756608AbbIUPWZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Sep 2015 11:22:25 -0400
+Received: from /spool/local
+	by e06smtp09.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+	Mon, 21 Sep 2015 16:22:23 +0100
+Received: from b06cxnps3074.portsmouth.uk.ibm.com (d06relay09.portsmouth.uk.ibm.com [9.149.109.194])
+	by d06dlp02.portsmouth.uk.ibm.com (Postfix) with ESMTP id 754C5219005F
+	for <linux-arch@vger.kernel.org>; Mon, 21 Sep 2015 16:21:52 +0100 (BST)
+Received: from d06av10.portsmouth.uk.ibm.com (d06av10.portsmouth.uk.ibm.com [9.149.37.251])
+	by b06cxnps3074.portsmouth.uk.ibm.com (8.14.9/8.14.9/NCO v10.0) with ESMTP id t8LFMLBm29491288
+	for <linux-arch@vger.kernel.org>; Mon, 21 Sep 2015 15:22:21 GMT
+Received: from d06av10.portsmouth.uk.ibm.com (localhost [127.0.0.1])
+	by d06av10.portsmouth.uk.ibm.com (8.14.4/8.14.4/NCO v10.0 AVout) with ESMTP id t8LEML5H009190
+	for <linux-arch@vger.kernel.org>; Mon, 21 Sep 2015 08:22:22 -0600
+In-Reply-To: <1442848940-22108-1-git-send-email-schwidefsky@de.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Cyrill Gorcunov <gorcunov@gmail.com>, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
+Use bit 2**1 of the pte and bit 2**14 of the pmd for the soft dirty
+bit. The fault mechanism to do dirty tracking is already in place.
 
---K8nIJk4ghYZn606h
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
+---
+ arch/s390/Kconfig               |  1 +
+ arch/s390/include/asm/pgtable.h | 59 ++++++++++++++++++++++++++++++++++++++---
+ arch/s390/mm/hugetlbpage.c      |  2 ++
+ 3 files changed, 58 insertions(+), 4 deletions(-)
 
-On Mon, Sep 21, 2015 at 09:45:15PM +0800, Boqun Feng wrote:
-> On Thu, Sep 17, 2015 at 07:00:01PM +0100, Will Deacon wrote:
-> > On Thu, Sep 17, 2015 at 03:50:12AM +0100, Boqun Feng wrote:
-> > > On Wed, Sep 16, 2015 at 12:07:06PM +0100, Will Deacon wrote:
-> > > > On Wed, Sep 16, 2015 at 11:43:14AM +0100, Peter Zijlstra wrote:
-> > > > > On Wed, Sep 16, 2015 at 11:29:08AM +0100, Will Deacon wrote:
-> > > > > > > Indeed, that is a hole in the definition, that I think we sho=
-uld close.
-> > > > >=20
-> > > > > > I'm struggling to understand the hole, but here's my intuition.=
- If an
-> > > > > > ACQUIRE on CPUx reads from a RELEASE by CPUy, then I'd expect C=
-PUx to
-> > > > > > observe all memory accessed performed by CPUy prior to the RELE=
-ASE
-> > > > > > before it observes the RELEASE itself, regardless of this new b=
-arrier.
-> > > > > > I think this matches what we currently have in memory-barriers.=
-txt (i.e.
-> > > > > > acquire/release are neither transitive or multi-copy atomic).
-> > > > >=20
-> > > > > Ah agreed. I seem to have gotten my brain in a tangle.
-> > > > >=20
-> > > > > Basically where a program order release+acquire relies on an addr=
-ess
-> > > > > dependency, a cross cpu release+acquire relies on causality. If we
-> > > > > observe the release, we must also observe everything prior to it =
-etc.
-> > > >=20
-> > > > Yes, and crucially, the "everything prior to it" only encompasses a=
-ccesses
-> > > > made by the releasing CPU itself (in the absence of other barriers =
-and
-> > > > synchronisation).
-> > > >=20
-> > >=20
-> > > Just want to make sure I understand you correctly, do you mean that in
-> > > the following case:
-> > >=20
-> > > CPU 1			CPU 2				CPU 3
-> > > =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D		=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D	=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-> > > { A =3D 0, B =3D 0 }
-> > > WRITE_ONCE(A,1);	r1 =3D READ_ONCE(A);		r2 =3D smp_load_acquire(&B);
-> > > 			smp_store_release(&B, 1);	r3 =3D READ_ONCE(A);
-> > >=20
-> > > r1 =3D=3D 1 && r2 =3D=3D 1 && r3 =3D=3D 0 is not prohibitted?
-> > >=20
-> > > However, according to the discussion of Paul and Peter:
-> > >=20
-> > > https://lkml.org/lkml/2015/9/15/707
-> > >=20
-> > > I think that's prohibitted on architectures except s390 for sure. And
-> > > for s390, we are waiting for the maintainers to verify this. If s390
-> > > also prohibits this, then a release-acquire pair(on different CPUs) to
-> > > the same variable does guarantee transitivity.
-> > >=20
-> > > Did I misunderstand you or miss something here?
-> >=20
-> > That certainly works on arm and arm64, so if it works everywhere else t=
-oo,
-> > then we can strengthen this (but see below).
-> >=20
-> > > > diff --git a/Documentation/memory-barriers.txt b/Documentation/memo=
-ry-barriers.txt
-> > > > index 46a85abb77c6..794d102d06df 100644
-> > > > --- a/Documentation/memory-barriers.txt
-> > > > +++ b/Documentation/memory-barriers.txt
-> > > > @@ -1902,8 +1902,8 @@ the RELEASE would simply complete, thereby av=
-oiding the deadlock.
-> > > >  	a sleep-unlock race, but the locking primitive needs to resolve
-> > > >  	such races properly in any case.
-> > > > =20
-> > > > -If necessary, ordering can be enforced by use of an
-> > > > -smp_mb__release_acquire() barrier:
-> > > > +Where the RELEASE and ACQUIRE operations are performed by the same=
- CPU,
-> > > > +ordering can be enforced by use of an smp_mb__release_acquire() ba=
-rrier:
-> > > > =20
-> > > >  	*A =3D a;
-> > > >  	RELEASE M
-> > > > @@ -1916,6 +1916,10 @@ in which case, the only permitted sequences =
-are:
-> > > >  	STORE *A, RELEASE M, ACQUIRE N, STORE *B
-> > > >  	STORE *A, ACQUIRE N, RELEASE M, STORE *B
-> > > > =20
-> > > > +Note that smp_mb__release_acquire() has no effect on ACQUIRE or RE=
-LEASE
-> > > > +operations performed by other CPUs, even if they are to the same v=
-ariable.
-> > > > +In cases where transitivity is required, smp_mb() should be used e=
-xplicitly.
-> > > > +
-> > >=20
-> > > Then, IIRC, the memory order effect of RELEASE+ACQUIRE should be:
-> >=20
-> > [updated from your reply]
-> >=20
-> > > If an ACQUIRE loads the value of stored by a RELEASE, then after the
-> > > ACQUIRE operation, the CPU executing the ACQUIRE operation will perce=
-ive
-> > > all the memory operations that have been perceived by the CPU executi=
-ng
-> > > the RELEASE operation before the RELEASE operation.=20
-> > >=20
-> > > Which means a release+acquire pair to the same variable guarantees
-> > > transitivity.
-> >=20
-> > Almost, but on arm64 at least, "all the memory operations" above doesn't
-> > include reads by other CPUs. I'm struggling to figure out whether that's
-> > actually an issue.
-> >=20
->=20
-> Ah.. that's indeed an issue! for example:
->=20
-> CPU 0			CPU 1				CPU 2
-> =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D	=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D	=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-> {a =3D 0, b =3D 0, c =3D 0}
-> r1 =3D READ_ONCE(a);	WRITE_ONCE(b, 1);		r3 =3D smp_load_acquire(&c);
-> smp_rmb();		smp_store_release(&c, 1);	WRITE_ONCE(a, 1);
-> r2 =3D READ_ONCE(b)
->=20
-> where r1 =3D=3D 1 && r2 =3D=3D 0 && r3 =3D=3D 1 is actually not prohibitt=
-ed, at
-> least on POWER.
->=20
-
-Oops.. I use wrong litmus here.. so this is prohibitted on POWER. Sorry
-for the misleading. How about the behavior of that on arm and arm64?
-
-If prohibitted too, please ignore below.
-
-Apologies again for that..
-
-Regards,
-Boqun
-
-> However, I think that doens't mean a release+acquire pair to the same
-> variable doesn't guarantee transitivity, because the transitivity is
-> actually broken at the smp_rmb(). But yes, my document is incorrect.
-> How about:
->=20
-> If an ACQUIRE loads the value of stored by a RELEASE, then after the
-> ACQUIRE operation, the CPU executing the ACQUIRE operation will perceive
-> all the memory operations that have been perceived by the CPU executing
-> the RELEASE operation *transitively* before the RELEASE operation.=20
-> ("transitively before" means that a memory operation is either executed
-> on the same CPU before the other, or guaranteed executed before the
-> other by a transitive barrier).
->=20
-> Which means a release+acquire pair to the same variable guarantees
-> transitivity.
->=20
->=20
-> Maybe we can avoid to use term "transitively before" here, but it's not
-> bad to distinguish different kinds of "before"s.
->=20
-> Regards,
-> Boqun
-
-
-
---K8nIJk4ghYZn606h
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQEcBAABCAAGBQJWAA/aAAoJEEl56MO1B/q4b08IAJBj6KwyWSiv+rl4A24OmX3f
-nIxBIUqbr/vmVDmCR5lgBR2GW1jmaIfnKJzsOGG2m0EMV47tgetNtJEib60zkoGe
-ISlxhCa86h7yp0pLN2oSURQessat8lH6vnLn22IPcE1ZKeUocriMW9oquA4B7JRR
-MyJ4Jb7h3OMhsqVQZYb2CyeL8DGpm12vCivbl8MktCK41M2as/yx+kTYQT4HbANp
-RVP0zr9KZFXKctn+Piwzet4pijeAZcATAYO9IIG8Uj2tgkZjcjIgjr2B3BOToqwA
-AXLA3zMd+N0dR/vfgxh9Qpy2WNSpD7wtPjAaUmKCO9dih7jd99GlbhLeivRGFKA=
-=l/VP
------END PGP SIGNATURE-----
-
---K8nIJk4ghYZn606h--
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index 1d57000..44cb7de 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -118,6 +118,7 @@ config S390
+ 	select HAVE_ARCH_EARLY_PFN_TO_NID
+ 	select HAVE_ARCH_JUMP_LABEL
+ 	select HAVE_ARCH_SECCOMP_FILTER
++	select HAVE_ARCH_SOFT_DIRTY
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+ 	select HAVE_BPF_JIT if PACK_STACK && HAVE_MARCH_Z196_FEATURES
+diff --git a/arch/s390/include/asm/pgtable.h b/arch/s390/include/asm/pgtable.h
+index bdb2f51..4d7e2e9 100644
+--- a/arch/s390/include/asm/pgtable.h
++++ b/arch/s390/include/asm/pgtable.h
+@@ -193,9 +193,15 @@ static inline int is_module_addr(void *addr)
+ #define _PAGE_UNUSED	0x080		/* SW bit for pgste usage state */
+ #define __HAVE_ARCH_PTE_SPECIAL
+ 
++#ifdef CONFIG_MEM_SOFT_DIRTY
++#define _PAGE_SOFT_DIRTY 0x002		/* SW pte soft dirty bit */
++#else
++#define _PAGE_SOFT_DIRTY 0x000
++#endif
++
+ /* Set of bits not changed in pte_modify */
+ #define _PAGE_CHG_MASK		(PAGE_MASK | _PAGE_SPECIAL | _PAGE_DIRTY | \
+-				 _PAGE_YOUNG)
++				 _PAGE_YOUNG | _PAGE_SOFT_DIRTY)
+ 
+ /*
+  * handle_pte_fault uses pte_present and pte_none to find out the pte type
+@@ -285,6 +291,12 @@ static inline int is_module_addr(void *addr)
+ #define _SEGMENT_ENTRY_READ	0x0002	/* SW segment read bit */
+ #define _SEGMENT_ENTRY_WRITE	0x0001	/* SW segment write bit */
+ 
++#ifdef CONFIG_MEM_SOFT_DIRTY
++#define _SEGMENT_ENTRY_SOFT_DIRTY 0x4000 /* SW segment soft dirty bit */
++#else
++#define _SEGMENT_ENTRY_SOFT_DIRTY 0x0000 /* SW segment soft dirty bit */
++#endif
++
+ /*
+  * Segment table entry encoding (R = read-only, I = invalid, y = young bit):
+  *				dy..R...I...wr
+@@ -589,6 +601,43 @@ static inline int pmd_protnone(pmd_t pmd)
+ }
+ #endif
+ 
++static inline int pte_soft_dirty(pte_t pte)
++{
++	return pte_val(pte) & _PAGE_SOFT_DIRTY;
++}
++#define pte_swp_soft_dirty pte_soft_dirty
++
++static inline pte_t pte_mksoft_dirty(pte_t pte)
++{
++	pte_val(pte) |= _PAGE_SOFT_DIRTY;
++	return pte;
++}
++#define pte_swp_mksoft_dirty pte_mksoft_dirty
++
++static inline pte_t pte_clear_soft_dirty(pte_t pte)
++{
++	pte_val(pte) &= ~_PAGE_SOFT_DIRTY;
++	return pte;
++}
++#define pte_swp_clear_soft_dirty pte_clear_soft_dirty
++
++static inline int pmd_soft_dirty(pmd_t pmd)
++{
++	return pmd_val(pmd) & _SEGMENT_ENTRY_SOFT_DIRTY;
++}
++
++static inline pmd_t pmd_mksoft_dirty(pmd_t pmd)
++{
++	pmd_val(pmd) |= _SEGMENT_ENTRY_SOFT_DIRTY;
++	return pmd;
++}
++
++static inline pmd_t pmd_clear_soft_dirty(pmd_t pmd)
++{
++	pmd_val(pmd) &= ~_SEGMENT_ENTRY_SOFT_DIRTY;
++	return pmd;
++}
++
+ static inline pgste_t pgste_get_lock(pte_t *ptep)
+ {
+ 	unsigned long new = 0;
+@@ -889,7 +938,7 @@ static inline pte_t pte_mkclean(pte_t pte)
+ 
+ static inline pte_t pte_mkdirty(pte_t pte)
+ {
+-	pte_val(pte) |= _PAGE_DIRTY;
++	pte_val(pte) |= _PAGE_DIRTY | _PAGE_SOFT_DIRTY;
+ 	if (pte_val(pte) & _PAGE_WRITE)
+ 		pte_val(pte) &= ~_PAGE_PROTECT;
+ 	return pte;
+@@ -1340,7 +1389,8 @@ static inline pmd_t pmd_mkclean(pmd_t pmd)
+ static inline pmd_t pmd_mkdirty(pmd_t pmd)
+ {
+ 	if (pmd_large(pmd)) {
+-		pmd_val(pmd) |= _SEGMENT_ENTRY_DIRTY;
++		pmd_val(pmd) |= _SEGMENT_ENTRY_DIRTY |
++				_SEGMENT_ENTRY_SOFT_DIRTY;
+ 		if (pmd_val(pmd) & _SEGMENT_ENTRY_WRITE)
+ 			pmd_val(pmd) &= ~_SEGMENT_ENTRY_PROTECT;
+ 	}
+@@ -1371,7 +1421,8 @@ static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
+ 	if (pmd_large(pmd)) {
+ 		pmd_val(pmd) &= _SEGMENT_ENTRY_ORIGIN_LARGE |
+ 			_SEGMENT_ENTRY_DIRTY | _SEGMENT_ENTRY_YOUNG |
+-			_SEGMENT_ENTRY_LARGE | _SEGMENT_ENTRY_SPLIT;
++			_SEGMENT_ENTRY_LARGE | _SEGMENT_ENTRY_SPLIT |
++			_SEGMENT_ENTRY_SOFT_DIRTY;
+ 		pmd_val(pmd) |= massage_pgprot_pmd(newprot);
+ 		if (!(pmd_val(pmd) & _SEGMENT_ENTRY_DIRTY))
+ 			pmd_val(pmd) |= _SEGMENT_ENTRY_PROTECT;
+diff --git a/arch/s390/mm/hugetlbpage.c b/arch/s390/mm/hugetlbpage.c
+index fb4bf2c..f81096b 100644
+--- a/arch/s390/mm/hugetlbpage.c
++++ b/arch/s390/mm/hugetlbpage.c
+@@ -40,6 +40,7 @@ static inline pmd_t __pte_to_pmd(pte_t pte)
+ 		pmd_val(pmd) |= (pte_val(pte) & _PAGE_PROTECT);
+ 		pmd_val(pmd) |= (pte_val(pte) & _PAGE_DIRTY) << 10;
+ 		pmd_val(pmd) |= (pte_val(pte) & _PAGE_YOUNG) << 10;
++		pmd_val(pmd) |= (pte_val(pte) & _PAGE_SOFT_DIRTY) << 13;
+ 	} else
+ 		pmd_val(pmd) = _SEGMENT_ENTRY_INVALID;
+ 	return pmd;
+@@ -78,6 +79,7 @@ static inline pte_t __pmd_to_pte(pmd_t pmd)
+ 		pte_val(pte) |= (pmd_val(pmd) & _SEGMENT_ENTRY_PROTECT);
+ 		pte_val(pte) |= (pmd_val(pmd) & _SEGMENT_ENTRY_DIRTY) >> 10;
+ 		pte_val(pte) |= (pmd_val(pmd) & _SEGMENT_ENTRY_YOUNG) >> 10;
++		pte_val(pte) |= (pmd_val(pmd) & _SEGMENT_ENTRY_SOFT_DIRTY) >> 13;
+ 	} else
+ 		pte_val(pte) = _PAGE_INVALID;
+ 	return pte;
+-- 
+1.9.1
