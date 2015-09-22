@@ -1,50 +1,65 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [PATCH 1/2] mm: add architecture primitives for software dirty
- bit clearing
-Date: Tue, 22 Sep 2015 12:30:01 +0200
-Message-ID: <20150922123001.09449feb@mschwide>
-References: <1442848940-22108-1-git-send-email-schwidefsky@de.ibm.com>
-	<1442848940-22108-2-git-send-email-schwidefsky@de.ibm.com>
-	<20150921194854.GD3181@uranus>
-	<20150922093549.504a5fb3@mschwide>
-	<20150922090935.GA10131@uranus>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH v2 00/12] THP support for ARC
+Date: Tue, 22 Sep 2015 16:04:44 +0530
+Message-ID: <1442918096-17454-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20150922090935.GA10131@uranus>
 Sender: owner-linux-mm@kvack.org
-To: Cyrill Gorcunov <gorcunov@gmail.com>
-Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linuxfoundation.org>, Pavel Emelyanov <xemul@virtuozzo.com>
+To: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Mel Gorman <mgorman@suse.de>, Matthew
+ Wilcox <matthew.r.wilcox@intel.com>, Minchan Kim <minchan@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 22 Sep 2015 12:09:35 +0300
-Cyrill Gorcunov <gorcunov@gmail.com> wrote:
+Hi,
 
-> On Tue, Sep 22, 2015 at 09:35:49AM +0200, Martin Schwidefsky wrote:
-> > Thanks. I have added both patches to the features branch of linux-s390
-> > for the 4.4 merge window.
-> 
-> The first patch (x86 and general helpers) seems better to go via
-> Andrew (CC'ed) becase they are not s390 only. And while these
-> changes are fine for me and you as far as I can say, lets them
-> floating around for some more review just to make sure we're not
-> missing something obvious.
-> 
-> And initially the soft-dirty feature has been hittin vanilla by
-> -mm tree so I suppose we should continue this way, though I
-> don't mind if it gonna be merged via pull request from s390
-> side but still ;)
- 
-Well, the patches will be included in linux-next automatically and
-they will get a fair share of testing before the 4.4 merge window
-opens. If the patches get picked up via -mm as well, be my guest.
+This series brings THP support to ARC. It also introduces an optional new
+thp hook for arches to possibly optimize the TLB flush in thp regime.
+
+Please review !
+
+Changes Since v1 [*]
+   - Rebased against v4.3-rc2
+   - Switched ARC pgtable_t to pte_t * 		(Kiril)
+   - Removed stub implementations for		(Andrew)
+	pmdp_set_access_flags, pmdp_test_and_clear_young, pmdp_set_wrprotect,
+	pmdp_collapse_flush, pmd_same
+
+[*] http://lkml.kernel.org/r/1440666194-21478-1-git-send-email-vgupta@synopsys.com
+
+Vineet Gupta (12):
+  ARC: mm: switch pgtable_to to pte_t *
+  ARC: mm: pte flags comsetic cleanups, comments
+  ARC: mm: Introduce PTE_SPECIAL
+  Documentation/features/vm: pte_special now supported by ARC
+  ARCv2: mm: THP support
+  ARCv2: mm: THP: boot validation/reporting
+  Documentation/features/vm: THP now supported by ARC
+  mm: move some code around
+  mm,thp: reduce ifdef'ery for THP in generic code
+  mm,thp: introduce flush_pmd_tlb_range
+  ARCv2: mm: THP: Implement flush_pmd_tlb_range() optimization
+  ARCv2: Add a DT which enables THP
+
+ Documentation/features/vm/THP/arch-support.txt     |  2 +-
+ .../features/vm/pte_special/arch-support.txt       |  2 +-
+ arch/arc/Kconfig                                   |  4 +
+ arch/arc/boot/dts/hs_thp.dts                       | 59 +++++++++++++
+ arch/arc/include/asm/hugepage.h                    | 82 ++++++++++++++++++
+ arch/arc/include/asm/page.h                        |  5 +-
+ arch/arc/include/asm/pgalloc.h                     |  6 +-
+ arch/arc/include/asm/pgtable.h                     | 60 +++++++------
+ arch/arc/mm/tlb.c                                  | 76 ++++++++++++++++-
+ arch/arc/mm/tlbex.S                                | 21 +++--
+ include/asm-generic/pgtable.h                      | 49 ++++-------
+ mm/huge_memory.c                                   |  2 +-
+ mm/pgtable-generic.c                               | 99 ++++++++++------------
+ 13 files changed, 345 insertions(+), 122 deletions(-)
+ create mode 100644 arch/arc/boot/dts/hs_thp.dts
+ create mode 100644 arch/arc/include/asm/hugepage.h
 
 -- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
+1.9.1
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
