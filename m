@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 07/12] Documentation/features/vm: THP now supported by ARC
-Date: Tue, 22 Sep 2015 16:04:51 +0530
-Message-ID: <1442918096-17454-8-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 08/12] mm: move some code around
+Date: Tue, 22 Sep 2015 16:04:52 +0530
+Message-ID: <1442918096-17454-9-git-send-email-vgupta@synopsys.com>
 References: <1442918096-17454-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -13,24 +13,89 @@ To: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
+This reduces/simplifies the diff for the next patch which moves THP
+specific code.
+
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- Documentation/features/vm/THP/arch-support.txt | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ mm/pgtable-generic.c | 50 +++++++++++++++++++++++++-------------------------
+ 1 file changed, 25 insertions(+), 25 deletions(-)
 
-diff --git a/Documentation/features/vm/THP/arch-support.txt b/Documentation/features/vm/THP/arch-support.txt
-index df384e3e845f..523f8307b9cd 100644
---- a/Documentation/features/vm/THP/arch-support.txt
-+++ b/Documentation/features/vm/THP/arch-support.txt
-@@ -7,7 +7,7 @@
-     |         arch |status|
-     -----------------------
-     |       alpha: | TODO |
--    |         arc: |  ..  |
-+    |         arc: |  ok  |
-     |         arm: |  ok  |
-     |       arm64: |  ok  |
-     |       avr32: |  ..  |
+diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
+index 6b674e00153c..48851894e699 100644
+--- a/mm/pgtable-generic.c
++++ b/mm/pgtable-generic.c
+@@ -57,6 +57,31 @@ int ptep_set_access_flags(struct vm_area_struct *vma,
+ }
+ #endif
+ 
++#ifndef __HAVE_ARCH_PTEP_CLEAR_YOUNG_FLUSH
++int ptep_clear_flush_young(struct vm_area_struct *vma,
++			   unsigned long address, pte_t *ptep)
++{
++	int young;
++	young = ptep_test_and_clear_young(vma, address, ptep);
++	if (young)
++		flush_tlb_page(vma, address);
++	return young;
++}
++#endif
++
++#ifndef __HAVE_ARCH_PTEP_CLEAR_FLUSH
++pte_t ptep_clear_flush(struct vm_area_struct *vma, unsigned long address,
++		       pte_t *ptep)
++{
++	struct mm_struct *mm = (vma)->vm_mm;
++	pte_t pte;
++	pte = ptep_get_and_clear(mm, address, ptep);
++	if (pte_accessible(mm, pte))
++		flush_tlb_page(vma, address);
++	return pte;
++}
++#endif
++
+ #ifndef __HAVE_ARCH_PMDP_SET_ACCESS_FLAGS
+ int pmdp_set_access_flags(struct vm_area_struct *vma,
+ 			  unsigned long address, pmd_t *pmdp,
+@@ -77,18 +102,6 @@ int pmdp_set_access_flags(struct vm_area_struct *vma,
+ }
+ #endif
+ 
+-#ifndef __HAVE_ARCH_PTEP_CLEAR_YOUNG_FLUSH
+-int ptep_clear_flush_young(struct vm_area_struct *vma,
+-			   unsigned long address, pte_t *ptep)
+-{
+-	int young;
+-	young = ptep_test_and_clear_young(vma, address, ptep);
+-	if (young)
+-		flush_tlb_page(vma, address);
+-	return young;
+-}
+-#endif
+-
+ #ifndef __HAVE_ARCH_PMDP_CLEAR_YOUNG_FLUSH
+ int pmdp_clear_flush_young(struct vm_area_struct *vma,
+ 			   unsigned long address, pmd_t *pmdp)
+@@ -106,19 +119,6 @@ int pmdp_clear_flush_young(struct vm_area_struct *vma,
+ }
+ #endif
+ 
+-#ifndef __HAVE_ARCH_PTEP_CLEAR_FLUSH
+-pte_t ptep_clear_flush(struct vm_area_struct *vma, unsigned long address,
+-		       pte_t *ptep)
+-{
+-	struct mm_struct *mm = (vma)->vm_mm;
+-	pte_t pte;
+-	pte = ptep_get_and_clear(mm, address, ptep);
+-	if (pte_accessible(mm, pte))
+-		flush_tlb_page(vma, address);
+-	return pte;
+-}
+-#endif
+-
+ #ifndef __HAVE_ARCH_PMDP_HUGE_CLEAR_FLUSH
+ #ifdef CONFIG_TRANSPARENT_HUGEPAGE
+ pmd_t pmdp_huge_clear_flush(struct vm_area_struct *vma, unsigned long address,
 -- 
 1.9.1
 
