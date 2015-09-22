@@ -1,97 +1,37 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 12/12] ARCv2: Add a DT which enables THP
-Date: Tue, 22 Sep 2015 16:04:56 +0530
-Message-ID: <1442918096-17454-13-git-send-email-vgupta@synopsys.com>
-References: <1442918096-17454-1-git-send-email-vgupta@synopsys.com>
-Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1442918096-17454-1-git-send-email-vgupta@synopsys.com>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Mel Gorman <mgorman@suse.de>, Matthew
- Wilcox <matthew.r.wilcox@intel.com>, Minchan Kim <minchan@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+From: Andre Przywara <andre.przywara-5wv7dgnIgG8@public.gmane.org>
+Subject: [PATCH] generic syscalls: wire up userfaultfd syscall
+Date: Tue, 22 Sep 2015 11:52:19 +0100
+Message-ID: <1442919139-18027-1-git-send-email-andre.przywara@arm.com>
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, catalin.marinas-5wv7dgnIgG8@public.gmane.org, will.deacon-5wv7dgnIgG8@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-* Enable THP at bootup
-* More than 512M RAM (kernel auto-disabled THP for smaller systems)
+Enable the new userfaultfd syscall in the generic syscall table.
+Briefly tested on arm64 with the selftest from the tools directory.
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+Signed-off-by: Andre Przywara <andre.przywara-5wv7dgnIgG8@public.gmane.org>
 ---
- arch/arc/boot/dts/hs_thp.dts | 59 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 59 insertions(+)
- create mode 100644 arch/arc/boot/dts/hs_thp.dts
+ include/uapi/asm-generic/unistd.h | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/arch/arc/boot/dts/hs_thp.dts b/arch/arc/boot/dts/hs_thp.dts
-new file mode 100644
-index 000000000000..818a8c968330
---- /dev/null
-+++ b/arch/arc/boot/dts/hs_thp.dts
-@@ -0,0 +1,59 @@
-+/*
-+ * Copyright (C) 2015 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+/dts-v1/;
-+
-+/include/ "skeleton.dtsi"
-+
-+/ {
-+	compatible = "snps,nsim_hs";
-+	interrupt-parent = <&core_intc>;
-+
-+	chosen {
-+		bootargs = "earlycon=arc_uart,mmio32,0xc0fc1000,115200n8 console=ttyARC0,115200n8 transparent_hugepage=always";
-+	};
-+
-+	aliases {
-+		serial0 = &arcuart0;
-+	};
-+
-+	memory {
-+		device_type = "memory";
-+		/* reg = <0x00000000 0x28000000>; */
-+		reg = <0x00000000 0x40000000>;
-+	};
-+
-+	fpga {
-+		compatible = "simple-bus";
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+
-+		/* child and parent address space 1:1 mapped */
-+		ranges;
-+
-+		core_intc: core-interrupt-controller {
-+			compatible = "snps,archs-intc";
-+			interrupt-controller;
-+			#interrupt-cells = <1>;
-+		};
-+
-+		arcuart0: serial@c0fc1000 {
-+			compatible = "snps,arc-uart";
-+			reg = <0xc0fc1000 0x100>;
-+			interrupts = <24>;
-+			clock-frequency = <80000000>;
-+			current-speed = <115200>;
-+			status = "okay";
-+		};
-+
-+		arcpct0: pct {
-+			compatible = "snps,archs-pct";
-+			#interrupt-cells = <1>;
-+			interrupts = <20>;
-+		};
-+	};
-+};
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index 8da542a..82c91bc 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -711,9 +711,11 @@ __SYSCALL(__NR_bpf, sys_bpf)
+ __SC_COMP(__NR_execveat, sys_execveat, compat_sys_execveat)
+ #define __NR_membarrier 282
+ __SYSCALL(__NR_membarrier, sys_membarrier)
++#define __NR_userfaultfd 283
++__SYSCALL(__NR_userfaultfd, sys_userfaultfd)
+ 
+ #undef __NR_syscalls
+-#define __NR_syscalls 283
++#define __NR_syscalls 284
+ 
+ /*
+  * All syscalls below here should go away really,
 -- 
-1.9.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+2.5.1
