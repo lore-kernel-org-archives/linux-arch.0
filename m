@@ -1,60 +1,51 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/2] nios2: Add architectural support for PCIe
-Date: Tue, 22 Sep 2015 10:18:58 +0200
-Message-ID: <65590637.5YmBIDOvTf@wuerfel>
-References: <1442906367-10935-1-git-send-email-lftan@altera.com> <1442906367-10935-2-git-send-email-lftan@altera.com>
+From: Cyrill Gorcunov <gorcunov@gmail.com>
+Subject: Re: [PATCH 1/2] mm: add architecture primitives for software dirty
+ bit clearing
+Date: Tue, 22 Sep 2015 12:09:35 +0300
+Message-ID: <20150922090935.GA10131@uranus>
+References: <1442848940-22108-1-git-send-email-schwidefsky@de.ibm.com>
+ <1442848940-22108-2-git-send-email-schwidefsky@de.ibm.com>
+ <20150921194854.GD3181@uranus>
+ <20150922093549.504a5fb3@mschwide>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.13]:53924 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753746AbbIVITF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Sep 2015 04:19:05 -0400
-In-Reply-To: <1442906367-10935-2-git-send-email-lftan@altera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, lftan.linux@gmail.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20150922093549.504a5fb3@mschwide>
+Sender: owner-linux-mm@kvack.org
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: linux-mm@kvack.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linuxfoundation.org>, Pavel Emelyanov <xemul@virtuozzo.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 22 September 2015 15:19:26 Ley Foon Tan wrote:
-> +
-> +config PCI_SYSCALL
-> +	def_bool PCI
+On Tue, Sep 22, 2015 at 09:35:49AM +0200, Martin Schwidefsky wrote:
+> > 
+> > Looks good to me. Thank you, Martin!
+> > (I cant ack s390 part 'casuse I simply not familiar
+> >  with the architecture).
+> 
+> Sure, the s390 patch just shows why the new arch functions are needed..
 
-IIRC, PCI_SYSCALL is deprecated and you should just leave that
-turned off.
+A see, thanks!
 
-In any case, you enable the syscalls here but don't assign a
-system call number, so that is rather pointless. I 
+> 
+> > Acked-by: Cyrill Gorcunov <gorcunov@openvz.org>
+> 
+> Thanks. I have added both patches to the features branch of linux-s390
+> for the 4.4 merge window.
 
-I might be missing something though. Bjorn?
+The first patch (x86 and general helpers) seems better to go via
+Andrew (CC'ed) becase they are not s390 only. And while these
+changes are fine for me and you as far as I can say, lets them
+floating around for some more review just to make sure we're not
+missing something obvious.
 
-> @@ -14,7 +14,7 @@
->  #include <linux/types.h>
->  #include <asm/pgtable-bits.h>
->  
-> -/* PCI is not supported in nios2, set this to 0. */
-> +/* PCI I/O space is not supported, set this to 0. */
->  #define IO_SPACE_LIMIT 0
->  
->  #define readb_relaxed(addr)	readb(addr)
+And initially the soft-dirty feature has been hittin vanilla by
+-mm tree so I suppose we should continue this way, though I
+don't mind if it gonna be merged via pull request from s390
+side but still ;)
 
-It might be useful to enable this, just in case someone connects
-a PCI host bridge that does support I/O space.
-
-Which host bridge do you use? Are you sure there is no I/O space?
-Most of them use a set of translation windows to set up a mapping
-between bus address (memory, config and io space) and physical
-(mmio) space.
-
-> diff --git a/arch/nios2/include/asm/pci.h b/arch/nios2/include/asm/pci.h
-> new file mode 100644
-> index 0000000..f2cba05
-> --- /dev/null
-> +++ b/arch/nios2/include/asm/pci.h
-
-What happens if you use the asm-generic header? If there is something
-missing in it, we can try to get it to do the right things.
-
-	Arnd
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
