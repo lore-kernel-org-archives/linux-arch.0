@@ -1,85 +1,229 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:55426 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932577AbbIUWXH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 21 Sep 2015 18:23:07 -0400
-Date: Mon, 21 Sep 2015 23:23:01 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH] barriers: introduce smp_mb__release_acquire and update
- documentation
-Message-ID: <20150921222301.GF7356@arm.com>
-References: <1442333610-16228-1-git-send-email-will.deacon@arm.com>
- <20150915174724.GP4029@linux.vnet.ibm.com>
- <20150916091452.GC3816@twins.programming.kicks-ass.net>
- <20150916102908.GA28771@arm.com>
- <20150916104314.GA3604@twins.programming.kicks-ass.net>
- <20150916110706.GF28771@arm.com>
- <20150917025012.GB4000@fixme-laptop.cn.ibm.com>
- <20150917180001.GR25634@arm.com>
- <20150921134515.GA970@fixme-laptop.cn.ibm.com>
- <20150921141038.GB970@fixme-laptop.cn.ibm.com>
+Received: from mail-bn1bon0053.outbound.protection.outlook.com ([157.56.111.53]:14112
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S932340AbbIVHeo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Sep 2015 03:34:44 -0400
+From: Ley Foon Tan <lftan@altera.com>
+Subject: [PATCH 1/2] nios2: Add architectural support for PCIe
+Date: Tue, 22 Sep 2015 15:19:26 +0800
+Message-ID: <1442906367-10935-2-git-send-email-lftan@altera.com>
+In-Reply-To: <1442906367-10935-1-git-send-email-lftan@altera.com>
+References: <1442906367-10935-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20150921141038.GB970@fixme-laptop.cn.ibm.com>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20150921222301.fPvT2k-rwxAdlcuq09TINzc8N44Q98d37fhT8-miqiY@z>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com
+Message-ID: <20150922071926.Ac8u83OqdU7ZDBwM8wDzg0KOLUZUyzxB4TdKYvebI9E@z>
 
-On Mon, Sep 21, 2015 at 03:10:38PM +0100, Boqun Feng wrote:
-> On Mon, Sep 21, 2015 at 09:45:15PM +0800, Boqun Feng wrote:
-> > On Thu, Sep 17, 2015 at 07:00:01PM +0100, Will Deacon wrote:
-> > > On Thu, Sep 17, 2015 at 03:50:12AM +0100, Boqun Feng wrote:
-> > > > If an ACQUIRE loads the value of stored by a RELEASE, then after the
-> > > > ACQUIRE operation, the CPU executing the ACQUIRE operation will perceive
-> > > > all the memory operations that have been perceived by the CPU executing
-> > > > the RELEASE operation before the RELEASE operation. 
-> > > > 
-> > > > Which means a release+acquire pair to the same variable guarantees
-> > > > transitivity.
-> > > 
-> > > Almost, but on arm64 at least, "all the memory operations" above doesn't
-> > > include reads by other CPUs. I'm struggling to figure out whether that's
-> > > actually an issue.
-> > > 
-> > 
-> > Ah.. that's indeed an issue! for example:
-> > 
-> > CPU 0			CPU 1				CPU 2
-> > =====================	==========================	================
-> > {a = 0, b = 0, c = 0}
-> > r1 = READ_ONCE(a);	WRITE_ONCE(b, 1);		r3 = smp_load_acquire(&c);
-> > smp_rmb();		smp_store_release(&c, 1);	WRITE_ONCE(a, 1);
-> > r2 = READ_ONCE(b)
-> > 
-> > where r1 == 1 && r2 == 0 && r3 == 1 is actually not prohibitted, at
-> > least on POWER.
-> > 
-> 
-> Oops.. I use wrong litmus here.. so this is prohibitted on POWER. Sorry
-> for the misleading. How about the behavior of that on arm and arm64?
+This patch add pcie support on nios2 platform.
 
-That explicit test is forbidden on arm/arm64 because of the smp_rmb(),
-but if you rewrite it as (LDAR is acquire, STLR is release):
+Signed-off-by: Ley Foon Tan <lftan@altera.com>
+---
+ arch/nios2/Kconfig            | 24 +++++++++++++++++++++
+ arch/nios2/include/asm/Kbuild |  2 +-
+ arch/nios2/include/asm/io.h   | 11 +++++++++-
+ arch/nios2/include/asm/pci.h  | 50 +++++++++++++++++++++++++++++++++++++++++++
+ arch/nios2/kernel/Makefile    |  1 +
+ arch/nios2/kernel/pci.c       | 33 ++++++++++++++++++++++++++++
+ 6 files changed, 119 insertions(+), 2 deletions(-)
+ create mode 100644 arch/nios2/include/asm/pci.h
+ create mode 100644 arch/nios2/kernel/pci.c
 
+diff --git a/arch/nios2/Kconfig b/arch/nios2/Kconfig
+index 4375554..9e0a291 100644
+--- a/arch/nios2/Kconfig
++++ b/arch/nios2/Kconfig
+@@ -11,6 +11,7 @@ config NIOS2
+ 	select HAVE_ARCH_KGDB
+ 	select IRQ_DOMAIN
+ 	select MODULES_USE_ELF_RELA
++	select MIGHT_HAVE_PCI
+ 	select OF
+ 	select OF_EARLY_FLATTREE
+ 	select SOC_BUS
+@@ -194,6 +195,29 @@ config NIOS2_IO_REGION_BASE
+ 
+ endmenu
+ 
++menu "Bus support"
++config PCI
++	bool "PCI support"
++	select GENERIC_PCI_IOMAP
++	help
++	  This feature enables support for PCIe bus system. If you say Y
++	  here, the kernel will include drivers and infrastructure code
++	  to support PCIe bus devices.
++
++config PCI_DOMAINS
++	def_bool PCI
++
++config PCI_DOMAINS_GENERIC
++	def_bool PCI
++
++config PCI_SYSCALL
++	def_bool PCI
++
++source "drivers/pci/Kconfig"
++source "drivers/pci/pcie/Kconfig"
++
++endmenu
++
+ menu "Executable file formats"
+ 
+ source "fs/Kconfig.binfmt"
+diff --git a/arch/nios2/include/asm/Kbuild b/arch/nios2/include/asm/Kbuild
+index 914864e..8b928ba 100644
+--- a/arch/nios2/include/asm/Kbuild
++++ b/arch/nios2/include/asm/Kbuild
+@@ -34,8 +34,8 @@ generic-y += mm-arch-hooks.h
+ generic-y += mman.h
+ generic-y += module.h
+ generic-y += msgbuf.h
++generic-y += msi.h
+ generic-y += param.h
+-generic-y += pci.h
+ generic-y += percpu.h
+ generic-y += poll.h
+ generic-y += posix_types.h
+diff --git a/arch/nios2/include/asm/io.h b/arch/nios2/include/asm/io.h
+index c5a62da..74ba082 100644
+--- a/arch/nios2/include/asm/io.h
++++ b/arch/nios2/include/asm/io.h
+@@ -14,7 +14,7 @@
+ #include <linux/types.h>
+ #include <asm/pgtable-bits.h>
+ 
+-/* PCI is not supported in nios2, set this to 0. */
++/* PCI I/O space is not supported, set this to 0. */
+ #define IO_SPACE_LIMIT 0
+ 
+ #define readb_relaxed(addr)	readb(addr)
+@@ -45,6 +45,15 @@ static inline void iounmap(void __iomem *addr)
+ 	__iounmap(addr);
+ }
+ 
++static inline void __iomem *ioport_map(unsigned long port, unsigned int nr)
++{
++	return NULL;
++}
++
++static inline void ioport_unmap(void __iomem *p)
++{
++}
++
+ #define ioremap_wc ioremap_nocache
+ #define ioremap_wt ioremap_nocache
+ 
+diff --git a/arch/nios2/include/asm/pci.h b/arch/nios2/include/asm/pci.h
+new file mode 100644
+index 0000000..f2cba05
+--- /dev/null
++++ b/arch/nios2/include/asm/pci.h
+@@ -0,0 +1,50 @@
++/* Copyright Altera Corporation (C) 2015. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License, version 2,
++ * as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++#ifndef _ASM_NIOS2_PCI_H
++#define _ASM_NIOS2_PCI_H
++
++#ifdef __KERNEL__
++#include <linux/dma-mapping.h>
++
++#include <asm/io.h>
++#include <asm-generic/pci-bridge.h>
++#include <asm-generic/pci-dma-compat.h>
++
++#define PCIBIOS_MIN_IO	0UL
++#define PCIBIOS_MIN_MEM	0UL
++
++/*
++ * Set to 1 if the kernel should re-assign all PCI bus numbers
++ */
++#define pcibios_assign_all_busses()	(pci_has_flag(PCI_REASSIGN_ALL_BUS))
++
++#ifdef CONFIG_PCI
++extern int isa_dma_bridge_buggy;
++#else
++#define isa_dma_bridge_buggy	(0)
++#endif
++
++#ifdef CONFIG_PCI_DOMAINS
++static inline int pci_proc_domain(struct pci_bus *bus)
++{
++	return pci_domain_nr(bus);
++}
++#endif /* CONFIG_PCI_DOMAINS */
++
++#endif /* __KERNEL__ */
++
++#endif
+diff --git a/arch/nios2/kernel/Makefile b/arch/nios2/kernel/Makefile
+index 1aae257..bb1ef81 100644
+--- a/arch/nios2/kernel/Makefile
++++ b/arch/nios2/kernel/Makefile
+@@ -10,6 +10,7 @@ obj-y	+= entry.o
+ obj-y	+= insnemu.o
+ obj-y	+= irq.o
+ obj-y	+= nios2_ksyms.o
++obj-y	+= pci.o
+ obj-y	+= process.o
+ obj-y	+= prom.o
+ obj-y	+= ptrace.o
+diff --git a/arch/nios2/kernel/pci.c b/arch/nios2/kernel/pci.c
+new file mode 100644
+index 0000000..d28aed7
+--- /dev/null
++++ b/arch/nios2/kernel/pci.c
+@@ -0,0 +1,33 @@
++/* Copyright Altera Corporation (C) 2015. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License, version 2,
++ * as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++#include <linux/pci.h>
++
++/*
++ * Called after each bus is probed, but before its children are examined
++ */
++void pcibios_fixup_bus(struct pci_bus *bus)
++{
++	/* nothing to do, expected to be removed in the future */
++}
++
++/*
++ * We don't have to worry about legacy ISA devices, so nothing to do here
++ */
++resource_size_t pcibios_align_resource(void *data, const struct resource *res,
++				resource_size_t size, resource_size_t align)
++{
++	return res->start;
++}
+-- 
+1.8.2.1
 
-  {
-  0:X1=x; 0:X3=y;
-  1:X1=y; 1:X2=z;
-  2:X1=z; 2:X3=x;
-  }
-   P0           | P1           | P2                ;
-   LDAR W0,[X1] | MOV W0,#1    | LDAR W0,[X1]      ;
-   LDR W2,[X3]  | STR W0,[X1]  | MOV W2,#1         ;
-                | STLR W0,[X2] | STR W2,[X3]       ;
-
-  Observed
-      0:X0=1; 0:X2=0; 2:X0=1;
-
-
-then it is permitted on arm64. Note that herd currently claims that this
-is forbidden, but I'm talking to the authors about getting that fixed :)
-
-Will
