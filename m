@@ -1,86 +1,85 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/2] nios2: Add architectural support for PCIe
-Date: Tue, 22 Sep 2015 13:42:28 +0200
-Message-ID: <5408024.XroFc5QNep@wuerfel>
-References: <1442906367-10935-1-git-send-email-lftan@altera.com> <65590637.5YmBIDOvTf@wuerfel> <CAFiDJ59EeokEJVXCY7DEmDRp0hnd3he3f2fwjO-2tNN5VXrBgQ@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH] barriers: introduce smp_mb__release_acquire and update
+ documentation
+Date: Tue, 22 Sep 2015 08:22:41 -0700
+Message-ID: <20150922152241.GN4029@linux.vnet.ibm.com>
+References: <20150915174724.GP4029@linux.vnet.ibm.com>
+ <20150916091452.GC3816@twins.programming.kicks-ass.net>
+ <20150916102908.GA28771@arm.com>
+ <20150916104314.GA3604@twins.programming.kicks-ass.net>
+ <20150916110706.GF28771@arm.com>
+ <20150917025012.GB4000@fixme-laptop.cn.ibm.com>
+ <20150917180001.GR25634@arm.com>
+ <20150921134515.GA970@fixme-laptop.cn.ibm.com>
+ <20150921141038.GB970@fixme-laptop.cn.ibm.com>
+ <20150921222301.GF7356@arm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <CAFiDJ59EeokEJVXCY7DEmDRp0hnd3he3f2fwjO-2tNN5VXrBgQ@mail.gmail.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-pci@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20150921222301.GF7356@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: Boqun Feng <boqun.feng@gmail.com>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 22 September 2015 18:53:50 Ley Foon Tan wrote:
-> On Tue, Sep 22, 2015 at 4:18 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > On Tuesday 22 September 2015 15:19:26 Ley Foon Tan wrote:
-> > I might be missing something though. Bjorn?
-> >
-> >> @@ -14,7 +14,7 @@
-> >>  #include <linux/types.h>
-> >>  #include <asm/pgtable-bits.h>
-> >>
-> >> -/* PCI is not supported in nios2, set this to 0. */
-> >> +/* PCI I/O space is not supported, set this to 0. */
-> >>  #define IO_SPACE_LIMIT 0
-> >>
-> >>  #define readb_relaxed(addr)  readb(addr)
-> >
-> > It might be useful to enable this, just in case someone connects
-> > a PCI host bridge that does support I/O space.
-> >
-> > Which host bridge do you use? Are you sure there is no I/O space?
-> > Most of them use a set of translation windows to set up a mapping
-> > between bus address (memory, config and io space) and physical
-> > (mmio) space.
->
-> I'm using Altera PCIe IP. But, you are right. We should enable this,
-> because it shouldn't limited to support Altera PCIe only.
-> BTW, any rule/requirement for the IO_SPACE_LIMIT?
+On Mon, Sep 21, 2015 at 11:23:01PM +0100, Will Deacon wrote:
+> On Mon, Sep 21, 2015 at 03:10:38PM +0100, Boqun Feng wrote:
+> > On Mon, Sep 21, 2015 at 09:45:15PM +0800, Boqun Feng wrote:
+> > > On Thu, Sep 17, 2015 at 07:00:01PM +0100, Will Deacon wrote:
+> > > > On Thu, Sep 17, 2015 at 03:50:12AM +0100, Boqun Feng wrote:
+> > > > > If an ACQUIRE loads the value of stored by a RELEASE, then after the
+> > > > > ACQUIRE operation, the CPU executing the ACQUIRE operation will perceive
+> > > > > all the memory operations that have been perceived by the CPU executing
+> > > > > the RELEASE operation before the RELEASE operation. 
+> > > > > 
+> > > > > Which means a release+acquire pair to the same variable guarantees
+> > > > > transitivity.
+> > > > 
+> > > > Almost, but on arm64 at least, "all the memory operations" above doesn't
+> > > > include reads by other CPUs. I'm struggling to figure out whether that's
+> > > > actually an issue.
+> > > > 
+> > > 
+> > > Ah.. that's indeed an issue! for example:
+> > > 
+> > > CPU 0			CPU 1				CPU 2
+> > > =====================	==========================	================
+> > > {a = 0, b = 0, c = 0}
+> > > r1 = READ_ONCE(a);	WRITE_ONCE(b, 1);		r3 = smp_load_acquire(&c);
+> > > smp_rmb();		smp_store_release(&c, 1);	WRITE_ONCE(a, 1);
+> > > r2 = READ_ONCE(b)
+> > > 
+> > > where r1 == 1 && r2 == 0 && r3 == 1 is actually not prohibitted, at
+> > > least on POWER.
+> > > 
+> > 
+> > Oops.. I use wrong litmus here.. so this is prohibitted on POWER. Sorry
+> > for the misleading. How about the behavior of that on arm and arm64?
+> 
+> That explicit test is forbidden on arm/arm64 because of the smp_rmb(),
+> but if you rewrite it as (LDAR is acquire, STLR is release):
+> 
+> 
+>   {
+>   0:X1=x; 0:X3=y;
+>   1:X1=y; 1:X2=z;
+>   2:X1=z; 2:X3=x;
+>   }
+>    P0           | P1           | P2                ;
+>    LDAR W0,[X1] | MOV W0,#1    | LDAR W0,[X1]      ;
+>    LDR W2,[X3]  | STR W0,[X1]  | MOV W2,#1         ;
+>                 | STLR W0,[X2] | STR W2,[X3]       ;
+> 
+>   Observed
+>       0:X0=1; 0:X2=0; 2:X0=1;
+> 
+> 
+> then it is permitted on arm64. Note that herd currently claims that this
+> is forbidden, but I'm talking to the authors about getting that fixed :)
 
-If you want to allow just one PCI host bridge, set it to 0xffff, otherwise
-use 0xfffff (for up to 16 bridges)
+But a pure store-release/load-acquire chain would be forbidden in
+hardware as well as by herd, correct?
 
-> And PCIBIOS_MIN_IO should be non-zero if we enable IO_SPACE_LIMIT?
-
-If you define pcibios_align_resource() as an empty function, that can
-remain zero as well, it's only meant to stay out of the way of ISA
-devices.
-
-> >> diff --git a/arch/nios2/include/asm/pci.h b/arch/nios2/include/asm/pci.h
-> >> new file mode 100644
-> >> index 0000000..f2cba05
-> >> --- /dev/null
-> >> +++ b/arch/nios2/include/asm/pci.h
-> >
-> > What happens if you use the asm-generic header? If there is something
-> > missing in it, we can try to get it to do the right things.
-> All the defines in arch/nios2/include/asm/pci.h are required by PCI framework.
-> It will trigger undefined symbols/define error if without them. Seem
-> all architectures must provide all these defines.
-> So, we can consider to add default defines for these in asm-generic.
-
-I think that would be good, yes. We probably picked defaults for the
-asm-generic version that are enough to build with CONFIG_PCI disabled,
-but there are useful defaults for the other case as well.
-
-Most architectures that use the file don't support PCI, so you can just
-add stuff inside of #ifdef CONFIG_PCI. For the remaining 13 architectures
-(git grep -l generic/pci.h  | wc), see whether there are conflicts first.
-The normal way would be to have the arch specific definition come before
-the #include, and then do something like
-
-#ifndef pci_proc_domain
-#define pci_proc_domain pci_proc_domain
-static inline int pci_proc_domain(struct pci_bus *bus)
-{
-#ifdef CONFIG_PCI_DOMAINS_GENERIC
-        return pci_domain_nr(bus);
-#else
-	return 1;
-}
-#endif
-
-	Arnd
+							Thanx, Paul
