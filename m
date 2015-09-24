@@ -1,80 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e31.co.us.ibm.com ([32.97.110.149]:52531 "EHLO
-	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752393AbbIVRAm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Sep 2015 13:00:42 -0400
-Received: from /spool/local
-	by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 22 Sep 2015 11:00:41 -0600
-Date: Tue, 22 Sep 2015 10:00:31 -0700
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: Compilers and RCU readers: Once more unto the breach!
-Message-ID: <20150922170031.GA15901@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20150520005510.GA23559@linux.vnet.ibm.com>
- <20150714004459.GA3090@linux.vnet.ibm.com>
+Received: from mail-wi0-f172.google.com ([209.85.212.172]:35879 "EHLO
+	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754248AbbIXMP3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Sep 2015 08:15:29 -0400
+Date: Thu, 24 Sep 2015 14:15:25 +0200
+From: Frederic Weisbecker <fweisbec@gmail.com>
+Subject: Re: [PATCH 09/13] Move bp_type_idx to kernel/event/hw_breakpoint.c
+Message-ID: <20150924121524.GA6050@lerouge>
+References: <1441832902-28993-1-git-send-email-palmer@dabbelt.com>
+ <1442271047-4908-10-git-send-email-palmer@dabbelt.com>
+ <20150915080607.GW16853@twins.programming.kicks-ass.net>
+ <2023922.x7a6gQp0x7@wuerfel>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20150714004459.GA3090@linux.vnet.ibm.com>
+In-Reply-To: <2023922.x7a6gQp0x7@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, c++std-parallel@accu.org, linux-arch@vger.kernel.org, gcc@gcc.gnu.org
-Cc: Peter.Sewell@cl.cam.ac.uk, torvalds@linux-foundation.org, Mark.Batty@cl.cam.ac.uk, peterz@infradead.org, will.deacon@arm.com, Ramana.Radhakrishnan@arm.com, dhowells@redhat.com, akpm@linux-foundation.org, mingo@kernel.org, michaelw@ca.ibm.com
-Message-ID: <20150922170031.F4yvmU1LoVcryLHu1kHIhIGjdQhaqtsHk1A0Gn8tmxA@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Peter Zijlstra <peterz@infradead.org>, mathieu.desnoyers@efficios.com, Palmer Dabbelt <palmer@dabbelt.com>, dhowells@redhat.com, viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org
+Message-ID: <20150924121525.AypCD0yP5m7kjLI7koguwaHQzNW8LB-rNwIBZx4MCRE@z>
 
-On Mon, Jul 13, 2015 at 05:44:59PM -0700, Paul E. McKenney wrote:
-> On Tue, May 19, 2015 at 05:55:10PM -0700, Paul E. McKenney wrote:
-> > Hello!
+On Tue, Sep 15, 2015 at 11:15:29PM +0200, Arnd Bergmann wrote:
+> On Tuesday 15 September 2015 10:06:07 Peter Zijlstra wrote:
+> > > diff --git a/include/uapi/linux/hw_breakpoint.h b/include/uapi/linux/hw_breakpoint.h
+> > > index b04000a2296a..7a6a5a7f9511 100644
+> > > --- a/include/uapi/linux/hw_breakpoint.h
+> > > +++ b/include/uapi/linux/hw_breakpoint.h
+> > > @@ -17,14 +17,4 @@ enum {
+> > >       HW_BREAKPOINT_INVALID   = HW_BREAKPOINT_RW | HW_BREAKPOINT_X,
+> > >  };
+> > >  
+> > > -enum bp_type_idx {
+> > > -     TYPE_INST       = 0,
+> > > -#ifdef CONFIG_HAVE_MIXED_BREAKPOINTS_REGS
+> > > -     TYPE_DATA       = 0,
+> > > -#else
+> > > -     TYPE_DATA       = 1,
+> > > -#endif
+> > > -     TYPE_MAX
+> > > -};
 > > 
-> > Following up on last year's discussion (https://lwn.net/Articles/586838/,
-> > https://lwn.net/Articles/588300/), I believe that we have a solution.  If
-> > I am wrong, I am sure you all will let me know, and in great detail.  ;-)
+> > This is rather unfortunate; you are correct that the naming is too
+> > generic (and I tend to agree), but I think these values are required by
+> > userspace to fill out:
 > > 
-> > The key simplification is to "just say no" to RCU-protected array indexes:
-> > https://lkml.org/lkml/2015/5/12/827, as was suggested by several people.
-> > This simplification means that rcu_dereference (AKA memory_order_consume)
-> > need only return pointers.  This in ture avoids things like (x-x),
-> > (x*0), and (x%1) because if "x" is a pointer, these expressions either
-> > return non-pointers are compilation errors.  With a very few exceptions,
-> > dependency chains can lead -to- non-pointers, but cannot pass -through-
-> > them.
+> >   perf_event_attr::bp_type
 > > 
-> > The result is that dependencies are carried only by operations for
-> > which the compiler cannot easily optimize the away those dependencies,
-> > these operations including simple assignment, integer offset (including
-> > indexing), dereferencing, casts, passing as a function argument, return
-> > values from functions and so on.  A complete list with commentary starts
-> > on page 28 of:
+> > So removing them will break things.
 > > 
-> > 	http://www.rdrop.com/users/paulmck/RCU/consume.2015.05.18a.pdf
+> > Frederic?
 > 
-> And an update is available here:
+> If user space actually relies on the definition from this header file,
+> then it will use the wrong one on x86 and get 'TYPE_DATA = 1', while the
+> kernel uses 'TYPE_DATA = 0'.
 > 
-> 	http://www.rdrop.com/users/paulmck/RCU/consume.2015.07.13a.pdf
+> That seems unlikely to work, so I suspect it gets a different definition.
+> If it uses this definition and it does work, we can probably use
 > 
-> Among other things, this update addresses the points about equality
-> comparisons introduced by the compiler, and outlines some of the
-> issues head-/tail-marked alternatives face with respect to abstraction.
-> The updated "Restricted Dependency Chains" section starts on page 28.
+> #if defined(__KERNEL__) && defined(CONFIG_HAVE_MIXED_BREAKPOINTS_REGS)
 > 
-> Thoughts?
+> but that requires a comment explaining exactly why that works.
 
-This is updated based on many offline discussions.  Section 7.9 has
-been updated accordingly, but still starts on page 28.  This approach is
-again intended for large existing RCU code bases such as the Linux kernel.
+I think this TYPE_DATA/TYPE_INST can be safely removed from uapi. This is only
+about internal kernel code. Userspace only relies on HW_BREAKPOINT_[R/W/X]
+to tell about the nature of the breakpoint.
 
-A new Section 7.10 starting on page 35 describes a possible longer-term
-solution for new-to-RCU code bases.  This approach adds a storage class
-that indicates that the marked object carries dependencies.  This allows
-better diagnostics (and arguably better code self-documentation) as well
-as providing something that formal-verification tools can handle while
-avoiding the need for compilers to trace dependency chains.
+If userspace ever relies on it, which I have no idea why, it even needs to define
+CONFIG_HAVE_MIXED_BREAKPOINTS_REGS. No really there shouldn't be any user of that outside
+the kernel.
 
-http://www.rdrop.com/users/paulmck/submission/consume.2015.09.22a.pdf
+Thanks.
 
-Thoughts?
-
-							Thanx, Paul
-
+> 
+> 	Arnd
