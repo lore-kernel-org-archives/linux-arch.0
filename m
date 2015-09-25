@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from eu-smtp-delivery-143.mimecast.com ([146.101.78.143]:18013 "EHLO
+Received: from eu-smtp-delivery-143.mimecast.com ([146.101.78.143]:28938 "EHLO
 	eu-smtp-delivery-143.mimecast.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754412AbbIYMP5 (ORCPT
+	by vger.kernel.org with ESMTP id S1755862AbbIYMP7 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 Sep 2015 08:15:57 -0400
+	Fri, 25 Sep 2015 08:15:59 -0400
 From: Robin Murphy <robin.murphy@arm.com>
-Subject: [PATCH 2/4] dma-mapping: Tidy up dma_parms default handling
-Date: Fri, 25 Sep 2015 13:15:44 +0100
-Message-ID: <003734bc1b15a4dd4f4fc1a32109f448509ed846.1443178314.git.robin.murphy@arm.com>
+Subject: [PATCH 4/4] dma-debug: Allow poisoning nonzero allocations
+Date: Fri, 25 Sep 2015 13:15:46 +0100
+Message-ID: <0405c6131def5aa179ff4ba5d4201ebde89cede3.1443178314.git.robin.murphy@arm.com>
 In-Reply-To: <cover.1443178314.git.robin.murphy@arm.com>
 References: <cover.1443178314.git.robin.murphy@arm.com>
 Content-Type: text/plain; charset=WINDOWS-1252
@@ -16,78 +16,136 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, m.szyprowski@samsung.com, sumit.semwal@linaro.org, sakari.ailus@iki.fi, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150925121544.a8cbP_5-nLqmfP-ggjXQUh_VSxm8T7_JOjpsdTnKvqQ@z>
+Message-ID: <20150925121546.zhx-HJnpEAQ_ebBLPIx0lxJlfBdoSs3XnUiUZJp9DO4@z>
 
-Many DMA controllers and other devices set max_segment_size to
-indicate their scatter-gather capability, but have no interest in
-segment_boundary_mask. However, the existence of a dma_parms structure
-precludes the use of any default value, leaving them as zeros (assuming
-a properly kzalloc'ed structure). If a well-behaved IOMMU (or SWIOTLB)
-then tries to respect this by ensuring a mapped segment does not cross
-a zero-byte boundary, hilarity ensues.
+Since some dma_alloc_coherent implementations return a zeroed buffer
+regardless of whether __GFP_ZERO is passed, there exist drivers which
+are implicitly dependent on this and pass otherwise uninitialised
+buffers to hardware. This can lead to subtle and awkward-to-debug issues
+using those drivers on different platforms, where nonzero uninitialised
+junk may for instance occasionally look like a valid command which
+causes the hardware to start misbehaving. To help with debugging such
+issues, add the option to make uninitialised buffers much more obvious.
 
-Since zero is a nonsensical value for either parameter, treat it as an
-indicator for "default", as might be expected. In the process, clean up
-a bit by replacing the bare constants with slightly more meaningful
-macros and removing the superfluous "else" statements.
-
-Acked-by: Marek Szyprowski <m.szyprowski@samsung.com>
-Reviewed-by: Sumit Semwal <sumit.semwal@linaro.org>
 Signed-off-by: Robin Murphy <robin.murphy@arm.com>
 ---
- include/linux/dma-mapping.h | 17 ++++++++++-------
- 1 file changed, 10 insertions(+), 7 deletions(-)
+ include/asm-generic/dma-mapping-common.h |  2 +-
+ include/linux/dma-debug.h                |  6 ++++--
+ include/linux/poison.h                   |  3 +++
+ lib/Kconfig.debug                        | 10 ++++++++++
+ lib/dma-debug.c                          |  6 +++++-
+ 5 files changed, 23 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
-index ac07ff0..ac9af22 100644
---- a/include/linux/dma-mapping.h
-+++ b/include/linux/dma-mapping.h
-@@ -145,7 +145,9 @@ static inline void arch_teardown_dma_ops(struct device =
-*dev) { }
+diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic=
+/dma-mapping-common.h
+index b1bc954..0f3e16b 100644
+--- a/include/asm-generic/dma-mapping-common.h
++++ b/include/asm-generic/dma-mapping-common.h
+@@ -260,7 +260,7 @@ static inline void *dma_alloc_attrs(struct device *dev,=
+ size_t size,
+ =09=09return NULL;
 =20
- static inline unsigned int dma_get_max_seg_size(struct device *dev)
+ =09cpu_addr =3D ops->alloc(dev, size, dma_handle, flag, attrs);
+-=09debug_dma_alloc_coherent(dev, size, *dma_handle, cpu_addr);
++=09debug_dma_alloc_coherent(dev, size, *dma_handle, cpu_addr, flag);
+ =09return cpu_addr;
+ }
+=20
+diff --git a/include/linux/dma-debug.h b/include/linux/dma-debug.h
+index fe8cb61..e5f539d 100644
+--- a/include/linux/dma-debug.h
++++ b/include/linux/dma-debug.h
+@@ -51,7 +51,8 @@ extern void debug_dma_unmap_sg(struct device *dev, struct=
+ scatterlist *sglist,
+ =09=09=09       int nelems, int dir);
+=20
+ extern void debug_dma_alloc_coherent(struct device *dev, size_t size,
+-=09=09=09=09     dma_addr_t dma_addr, void *virt);
++=09=09=09=09     dma_addr_t dma_addr, void *virt,
++=09=09=09=09     gfp_t flags);
+=20
+ extern void debug_dma_free_coherent(struct device *dev, size_t size,
+ =09=09=09=09    void *virt, dma_addr_t addr);
+@@ -132,7 +133,8 @@ static inline void debug_dma_unmap_sg(struct device *de=
+v,
+ }
+=20
+ static inline void debug_dma_alloc_coherent(struct device *dev, size_t siz=
+e,
+-=09=09=09=09=09    dma_addr_t dma_addr, void *virt)
++=09=09=09=09=09    dma_addr_t dma_addr, void *virt,
++=09=09=09=09=09    gfp_t flags)
  {
--=09return dev->dma_parms ? dev->dma_parms->max_segment_size : 65536;
-+=09if (dev->dma_parms && dev->dma_parms->max_segment_size)
-+=09=09return dev->dma_parms->max_segment_size;
-+=09return SZ_64K;
  }
 =20
- static inline unsigned int dma_set_max_seg_size(struct device *dev,
-@@ -154,14 +156,15 @@ static inline unsigned int dma_set_max_seg_size(struc=
-t device *dev,
- =09if (dev->dma_parms) {
- =09=09dev->dma_parms->max_segment_size =3D size;
- =09=09return 0;
--=09} else
--=09=09return -EIO;
-+=09}
-+=09return -EIO;
- }
+diff --git a/include/linux/poison.h b/include/linux/poison.h
+index 317e16d..174104e 100644
+--- a/include/linux/poison.h
++++ b/include/linux/poison.h
+@@ -73,6 +73,9 @@
+ #define MUTEX_DEBUG_INIT=090x11
+ #define MUTEX_DEBUG_FREE=090x22
 =20
- static inline unsigned long dma_get_seg_boundary(struct device *dev)
++/********** lib/dma_debug.c **********/
++#define DMA_ALLOC_POISON=090xee
++
+ /********** lib/flex_array.c **********/
+ #define FLEX_ARRAY_FREE=090x6c=09/* for use-after-free poisoning */
+=20
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index ab76b99..f2da7a1 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -1752,6 +1752,16 @@ config DMA_API_DEBUG
+=20
+ =09  If unsure, say N.
+=20
++config DMA_API_DEBUG_POISON
++=09bool "Poison coherent DMA buffers"
++=09depends on DMA_API_DEBUG && EXPERT
++=09help
++=09  Poison DMA buffers returned by dma_alloc_coherent unless __GFP_ZERO
++=09  is explicitly specified, to catch drivers depending on zeroed buffers
++=09  without passing the correct flags.
++
++=09  Only say Y if you're prepared for almost everything to break.
++
+ config TEST_LKM
+ =09tristate "Test module loading with 'hello world' module"
+ =09default n
+diff --git a/lib/dma-debug.c b/lib/dma-debug.c
+index 908fb35..40514ed 100644
+--- a/lib/dma-debug.c
++++ b/lib/dma-debug.c
+@@ -30,6 +30,7 @@
+ #include <linux/sched.h>
+ #include <linux/ctype.h>
+ #include <linux/list.h>
++#include <linux/poison.h>
+ #include <linux/slab.h>
+=20
+ #include <asm/sections.h>
+@@ -1447,7 +1448,7 @@ void debug_dma_unmap_sg(struct device *dev, struct sc=
+atterlist *sglist,
+ EXPORT_SYMBOL(debug_dma_unmap_sg);
+=20
+ void debug_dma_alloc_coherent(struct device *dev, size_t size,
+-=09=09=09      dma_addr_t dma_addr, void *virt)
++=09=09=09      dma_addr_t dma_addr, void *virt, gfp_t flags)
  {
--=09return dev->dma_parms ?
--=09=09dev->dma_parms->segment_boundary_mask : 0xffffffff;
-+=09if (dev->dma_parms && dev->dma_parms->segment_boundary_mask)
-+=09=09return dev->dma_parms->segment_boundary_mask;
-+=09return DMA_BIT_MASK(32);
- }
+ =09struct dma_debug_entry *entry;
 =20
- static inline int dma_set_seg_boundary(struct device *dev, unsigned long m=
-ask)
-@@ -169,8 +172,8 @@ static inline int dma_set_seg_boundary(struct device *d=
-ev, unsigned long mask)
- =09if (dev->dma_parms) {
- =09=09dev->dma_parms->segment_boundary_mask =3D mask;
- =09=09return 0;
--=09} else
--=09=09return -EIO;
-+=09}
-+=09return -EIO;
- }
+@@ -1457,6 +1458,9 @@ void debug_dma_alloc_coherent(struct device *dev, siz=
+e_t size,
+ =09if (unlikely(virt =3D=3D NULL))
+ =09=09return;
 =20
- #ifndef dma_max_pfn
++=09if (IS_ENABLED(CONFIG_DMA_API_DEBUG_POISON) && !(flags & __GFP_ZERO))
++=09=09memset(virt, DMA_ALLOC_POISON, size);
++
+ =09entry =3D dma_entry_alloc();
+ =09if (!entry)
+ =09=09return;
 --=20
 1.9.1
 
