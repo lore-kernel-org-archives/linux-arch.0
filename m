@@ -1,76 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f172.google.com ([209.85.212.172]:35879 "EHLO
-	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754248AbbIXMP3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 Sep 2015 08:15:29 -0400
-Date: Thu, 24 Sep 2015 14:15:25 +0200
-From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: Re: [PATCH 09/13] Move bp_type_idx to kernel/event/hw_breakpoint.c
-Message-ID: <20150924121524.GA6050@lerouge>
-References: <1441832902-28993-1-git-send-email-palmer@dabbelt.com>
- <1442271047-4908-10-git-send-email-palmer@dabbelt.com>
- <20150915080607.GW16853@twins.programming.kicks-ass.net>
- <2023922.x7a6gQp0x7@wuerfel>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <2023922.x7a6gQp0x7@wuerfel>
+Received: from eu-smtp-delivery-143.mimecast.com ([146.101.78.143]:7749 "EHLO
+	eu-smtp-delivery-143.mimecast.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755830AbbIYMP5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 25 Sep 2015 08:15:57 -0400
+From: Robin Murphy <robin.murphy@arm.com>
+Subject: [PATCH 1/4] dmapool: Fix overflow condition in pool_find_page
+Date: Fri, 25 Sep 2015 13:15:43 +0100
+Message-ID: <be19713dc9e80c6486e86c60a43e149d45b104a3.1443178314.git.robin.murphy@arm.com>
+In-Reply-To: <cover.1443178314.git.robin.murphy@arm.com>
+References: <cover.1443178314.git.robin.murphy@arm.com>
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Peter Zijlstra <peterz@infradead.org>, mathieu.desnoyers@efficios.com, Palmer Dabbelt <palmer@dabbelt.com>, dhowells@redhat.com, viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org
-Message-ID: <20150924121525.AypCD0yP5m7kjLI7koguwaHQzNW8LB-rNwIBZx4MCRE@z>
+To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org
+Cc: arnd@arndb.de, m.szyprowski@samsung.com, sumit.semwal@linaro.org, sakari.ailus@iki.fi, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20150925121543.YT6AH18Kg5bCLKHpb7G0s7exCatReRRXtJmeftSUCZs@z>
 
-On Tue, Sep 15, 2015 at 11:15:29PM +0200, Arnd Bergmann wrote:
-> On Tuesday 15 September 2015 10:06:07 Peter Zijlstra wrote:
-> > > diff --git a/include/uapi/linux/hw_breakpoint.h b/include/uapi/linux/hw_breakpoint.h
-> > > index b04000a2296a..7a6a5a7f9511 100644
-> > > --- a/include/uapi/linux/hw_breakpoint.h
-> > > +++ b/include/uapi/linux/hw_breakpoint.h
-> > > @@ -17,14 +17,4 @@ enum {
-> > >       HW_BREAKPOINT_INVALID   = HW_BREAKPOINT_RW | HW_BREAKPOINT_X,
-> > >  };
-> > >  
-> > > -enum bp_type_idx {
-> > > -     TYPE_INST       = 0,
-> > > -#ifdef CONFIG_HAVE_MIXED_BREAKPOINTS_REGS
-> > > -     TYPE_DATA       = 0,
-> > > -#else
-> > > -     TYPE_DATA       = 1,
-> > > -#endif
-> > > -     TYPE_MAX
-> > > -};
-> > 
-> > This is rather unfortunate; you are correct that the naming is too
-> > generic (and I tend to agree), but I think these values are required by
-> > userspace to fill out:
-> > 
-> >   perf_event_attr::bp_type
-> > 
-> > So removing them will break things.
-> > 
-> > Frederic?
-> 
-> If user space actually relies on the definition from this header file,
-> then it will use the wrong one on x86 and get 'TYPE_DATA = 1', while the
-> kernel uses 'TYPE_DATA = 0'.
-> 
-> That seems unlikely to work, so I suspect it gets a different definition.
-> If it uses this definition and it does work, we can probably use
-> 
-> #if defined(__KERNEL__) && defined(CONFIG_HAVE_MIXED_BREAKPOINTS_REGS)
-> 
-> but that requires a comment explaining exactly why that works.
+If a DMA pool lies at the very top of the dma_addr_t range (as may
+happen with an IOMMU involved), the calculated end address of the pool
+wraps around to zero, and page lookup always fails. Tweak the relevant
+calculation to be overflow-proof.
 
-I think this TYPE_DATA/TYPE_INST can be safely removed from uapi. This is only
-about internal kernel code. Userspace only relies on HW_BREAKPOINT_[R/W/X]
-to tell about the nature of the breakpoint.
+Signed-off-by: Robin Murphy <robin.murphy@arm.com>
+---
+ mm/dmapool.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-If userspace ever relies on it, which I have no idea why, it even needs to define
-CONFIG_HAVE_MIXED_BREAKPOINTS_REGS. No really there shouldn't be any user of that outside
-the kernel.
+diff --git a/mm/dmapool.c b/mm/dmapool.c
+index 71a8998..312a716 100644
+--- a/mm/dmapool.c
++++ b/mm/dmapool.c
+@@ -394,7 +394,7 @@ static struct dma_page *pool_find_page(struct dma_pool =
+*pool, dma_addr_t dma)
+ =09list_for_each_entry(page, &pool->page_list, page_list) {
+ =09=09if (dma < page->dma)
+ =09=09=09continue;
+-=09=09if (dma < (page->dma + pool->allocation))
++=09=09if ((dma - page->dma) < pool->allocation)
+ =09=09=09return page;
+ =09}
+ =09return NULL;
+--=20
+1.9.1
 
-Thanks.
-
-> 
-> 	Arnd
