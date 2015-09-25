@@ -1,71 +1,92 @@
-From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: Re: [PATCH 09/13] Move bp_type_idx to kernel/event/hw_breakpoint.c
-Date: Thu, 24 Sep 2015 14:15:25 +0200
-Message-ID: <20150924121524.GA6050@lerouge>
-References: <1441832902-28993-1-git-send-email-palmer@dabbelt.com>
- <1442271047-4908-10-git-send-email-palmer@dabbelt.com>
- <20150915080607.GW16853@twins.programming.kicks-ass.net>
- <2023922.x7a6gQp0x7@wuerfel>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <2023922.x7a6gQp0x7@wuerfel>
-Sender: linux-fsdevel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Peter Zijlstra <peterz@infradead.org>, mathieu.desnoyers@efficios.com, Palmer Dabbelt <palmer@dabbelt.com>, dhowells@redhat.com, viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org
+From: Robin Murphy <robin.murphy@arm.com>
+Subject: [PATCH 2/4] dma-mapping: Tidy up dma_parms default handling
+Date: Fri, 25 Sep 2015 13:15:44 +0100
+Message-ID: <003734bc1b15a4dd4f4fc1a32109f448509ed846.1443178314.git.robin.murphy@arm.com>
+References: <cover.1443178314.git.robin.murphy@arm.com>
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <cover.1443178314.git.robin.murphy@arm.com>
+Sender: owner-linux-mm@kvack.org
+To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org
+Cc: arnd@arndb.de, m.szyprowski@samsung.com, sumit.semwal@linaro.org, sakari.ailus@iki.fi, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Sep 15, 2015 at 11:15:29PM +0200, Arnd Bergmann wrote:
-> On Tuesday 15 September 2015 10:06:07 Peter Zijlstra wrote:
-> > > diff --git a/include/uapi/linux/hw_breakpoint.h b/include/uapi/linux/hw_breakpoint.h
-> > > index b04000a2296a..7a6a5a7f9511 100644
-> > > --- a/include/uapi/linux/hw_breakpoint.h
-> > > +++ b/include/uapi/linux/hw_breakpoint.h
-> > > @@ -17,14 +17,4 @@ enum {
-> > >       HW_BREAKPOINT_INVALID   = HW_BREAKPOINT_RW | HW_BREAKPOINT_X,
-> > >  };
-> > >  
-> > > -enum bp_type_idx {
-> > > -     TYPE_INST       = 0,
-> > > -#ifdef CONFIG_HAVE_MIXED_BREAKPOINTS_REGS
-> > > -     TYPE_DATA       = 0,
-> > > -#else
-> > > -     TYPE_DATA       = 1,
-> > > -#endif
-> > > -     TYPE_MAX
-> > > -};
-> > 
-> > This is rather unfortunate; you are correct that the naming is too
-> > generic (and I tend to agree), but I think these values are required by
-> > userspace to fill out:
-> > 
-> >   perf_event_attr::bp_type
-> > 
-> > So removing them will break things.
-> > 
-> > Frederic?
-> 
-> If user space actually relies on the definition from this header file,
-> then it will use the wrong one on x86 and get 'TYPE_DATA = 1', while the
-> kernel uses 'TYPE_DATA = 0'.
-> 
-> That seems unlikely to work, so I suspect it gets a different definition.
-> If it uses this definition and it does work, we can probably use
-> 
-> #if defined(__KERNEL__) && defined(CONFIG_HAVE_MIXED_BREAKPOINTS_REGS)
-> 
-> but that requires a comment explaining exactly why that works.
+Many DMA controllers and other devices set max_segment_size to
+indicate their scatter-gather capability, but have no interest in
+segment_boundary_mask. However, the existence of a dma_parms structure
+precludes the use of any default value, leaving them as zeros (assuming
+a properly kzalloc'ed structure). If a well-behaved IOMMU (or SWIOTLB)
+then tries to respect this by ensuring a mapped segment does not cross
+a zero-byte boundary, hilarity ensues.
 
-I think this TYPE_DATA/TYPE_INST can be safely removed from uapi. This is only
-about internal kernel code. Userspace only relies on HW_BREAKPOINT_[R/W/X]
-to tell about the nature of the breakpoint.
+Since zero is a nonsensical value for either parameter, treat it as an
+indicator for "default", as might be expected. In the process, clean up
+a bit by replacing the bare constants with slightly more meaningful
+macros and removing the superfluous "else" statements.
 
-If userspace ever relies on it, which I have no idea why, it even needs to define
-CONFIG_HAVE_MIXED_BREAKPOINTS_REGS. No really there shouldn't be any user of that outside
-the kernel.
+Acked-by: Marek Szyprowski <m.szyprowski@samsung.com>
+Reviewed-by: Sumit Semwal <sumit.semwal@linaro.org>
+Signed-off-by: Robin Murphy <robin.murphy@arm.com>
+---
+ include/linux/dma-mapping.h | 17 ++++++++++-------
+ 1 file changed, 10 insertions(+), 7 deletions(-)
 
-Thanks.
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index ac07ff0..ac9af22 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -145,7 +145,9 @@ static inline void arch_teardown_dma_ops(struct device =
+*dev) { }
+=20
+ static inline unsigned int dma_get_max_seg_size(struct device *dev)
+ {
+-=09return dev->dma_parms ? dev->dma_parms->max_segment_size : 65536;
++=09if (dev->dma_parms && dev->dma_parms->max_segment_size)
++=09=09return dev->dma_parms->max_segment_size;
++=09return SZ_64K;
+ }
+=20
+ static inline unsigned int dma_set_max_seg_size(struct device *dev,
+@@ -154,14 +156,15 @@ static inline unsigned int dma_set_max_seg_size(struc=
+t device *dev,
+ =09if (dev->dma_parms) {
+ =09=09dev->dma_parms->max_segment_size =3D size;
+ =09=09return 0;
+-=09} else
+-=09=09return -EIO;
++=09}
++=09return -EIO;
+ }
+=20
+ static inline unsigned long dma_get_seg_boundary(struct device *dev)
+ {
+-=09return dev->dma_parms ?
+-=09=09dev->dma_parms->segment_boundary_mask : 0xffffffff;
++=09if (dev->dma_parms && dev->dma_parms->segment_boundary_mask)
++=09=09return dev->dma_parms->segment_boundary_mask;
++=09return DMA_BIT_MASK(32);
+ }
+=20
+ static inline int dma_set_seg_boundary(struct device *dev, unsigned long m=
+ask)
+@@ -169,8 +172,8 @@ static inline int dma_set_seg_boundary(struct device *d=
+ev, unsigned long mask)
+ =09if (dev->dma_parms) {
+ =09=09dev->dma_parms->segment_boundary_mask =3D mask;
+ =09=09return 0;
+-=09} else
+-=09=09return -EIO;
++=09}
++=09return -EIO;
+ }
+=20
+ #ifndef dma_max_pfn
+--=20
+1.9.1
 
-> 
-> 	Arnd
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
