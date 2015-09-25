@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from eu-smtp-delivery-143.mimecast.com ([146.101.78.143]:7749 "EHLO
+Received: from eu-smtp-delivery-143.mimecast.com ([146.101.78.143]:46198 "EHLO
 	eu-smtp-delivery-143.mimecast.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755830AbbIYMP5 (ORCPT
+	by vger.kernel.org with ESMTP id S1755834AbbIYMP6 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 Sep 2015 08:15:57 -0400
+	Fri, 25 Sep 2015 08:15:58 -0400
 From: Robin Murphy <robin.murphy@arm.com>
-Subject: [PATCH 1/4] dmapool: Fix overflow condition in pool_find_page
-Date: Fri, 25 Sep 2015 13:15:43 +0100
-Message-ID: <be19713dc9e80c6486e86c60a43e149d45b104a3.1443178314.git.robin.murphy@arm.com>
+Subject: [PATCH 3/4] dma-debug: Check nents in dma_sync_sg*
+Date: Fri, 25 Sep 2015 13:15:45 +0100
+Message-ID: <c725a1746c556d8aa532a53a5f30bb2005a9ddae.1443178314.git.robin.murphy@arm.com>
 In-Reply-To: <cover.1443178314.git.robin.murphy@arm.com>
 References: <cover.1443178314.git.robin.murphy@arm.com>
 Content-Type: text/plain; charset=WINDOWS-1252
@@ -16,32 +16,36 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, m.szyprowski@samsung.com, sumit.semwal@linaro.org, sakari.ailus@iki.fi, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150925121543.YT6AH18Kg5bCLKHpb7G0s7exCatReRRXtJmeftSUCZs@z>
+Message-ID: <20150925121545.ROMh0pCGP_JlJ9LhO-BSB9_ON0Q2hIQvm6n6OloryPQ@z>
 
-If a DMA pool lies at the very top of the dma_addr_t range (as may
-happen with an IOMMU involved), the calculated end address of the pool
-wraps around to zero, and page lookup always fails. Tweak the relevant
-calculation to be overflow-proof.
+Like dma_unmap_sg, dma_sync_sg* should be called with the original
+number of entries passed to dma_map_sg, so do the same check in the sync
+path as we do in the unmap path.
 
 Signed-off-by: Robin Murphy <robin.murphy@arm.com>
 ---
- mm/dmapool.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ lib/dma-debug.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
 
-diff --git a/mm/dmapool.c b/mm/dmapool.c
-index 71a8998..312a716 100644
---- a/mm/dmapool.c
-+++ b/mm/dmapool.c
-@@ -394,7 +394,7 @@ static struct dma_page *pool_find_page(struct dma_pool =
-*pool, dma_addr_t dma)
- =09list_for_each_entry(page, &pool->page_list, page_list) {
- =09=09if (dma < page->dma)
- =09=09=09continue;
--=09=09if (dma < (page->dma + pool->allocation))
-+=09=09if ((dma - page->dma) < pool->allocation)
- =09=09=09return page;
- =09}
- =09return NULL;
+diff --git a/lib/dma-debug.c b/lib/dma-debug.c
+index dace71f..908fb35 100644
+--- a/lib/dma-debug.c
++++ b/lib/dma-debug.c
+@@ -1249,6 +1249,14 @@ static void check_sync(struct device *dev,
+ =09=09=09=09dir2name[entry->direction],
+ =09=09=09=09dir2name[ref->direction]);
+=20
++=09if (ref->sg_call_ents && ref->type =3D=3D dma_debug_sg &&
++=09    ref->sg_call_ents !=3D entry->sg_call_ents) {
++=09=09err_printk(ref->dev, entry, "DMA-API: device driver syncs "
++=09=09=09   "DMA sg list with different entry count "
++=09=09=09   "[map count=3D%d] [sync count=3D%d]\n",
++=09=09=09   entry->sg_call_ents, ref->sg_call_ents);
++=09}
++
+ out:
+ =09put_hash_bucket(bucket, &flags);
+ }
 --=20
 1.9.1
 
