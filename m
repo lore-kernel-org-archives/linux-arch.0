@@ -1,151 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from eu-smtp-delivery-143.mimecast.com ([146.101.78.143]:28938 "EHLO
-	eu-smtp-delivery-143.mimecast.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755862AbbIYMP7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 Sep 2015 08:15:59 -0400
-From: Robin Murphy <robin.murphy@arm.com>
-Subject: [PATCH 4/4] dma-debug: Allow poisoning nonzero allocations
-Date: Fri, 25 Sep 2015 13:15:46 +0100
-Message-ID: <0405c6131def5aa179ff4ba5d4201ebde89cede3.1443178314.git.robin.murphy@arm.com>
-In-Reply-To: <cover.1443178314.git.robin.murphy@arm.com>
+Received: from pandora.arm.linux.org.uk ([78.32.30.218]:46787 "EHLO
+	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756176AbbIYMo6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Sep 2015 08:44:58 -0400
+Date: Fri, 25 Sep 2015 13:44:47 +0100
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 4/4] dma-debug: Allow poisoning nonzero allocations
+Message-ID: <20150925124447.GO21513@n2100.arm.linux.org.uk>
 References: <cover.1443178314.git.robin.murphy@arm.com>
-Content-Type: text/plain; charset=WINDOWS-1252
-Content-Transfer-Encoding: quoted-printable
+ <0405c6131def5aa179ff4ba5d4201ebde89cede3.1443178314.git.robin.murphy@arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <0405c6131def5aa179ff4ba5d4201ebde89cede3.1443178314.git.robin.murphy@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, m.szyprowski@samsung.com, sumit.semwal@linaro.org, sakari.ailus@iki.fi, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20150925121546.zhx-HJnpEAQ_ebBLPIx0lxJlfBdoSs3XnUiUZJp9DO4@z>
+To: Robin Murphy <robin.murphy@arm.com>
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-mm@kvack.org, sakari.ailus@iki.fi, sumit.semwal@linaro.org, linux-arm-kernel@lists.infradead.org, m.szyprowski@samsung.com
+Message-ID: <20150925124447.fhG5AZEKjdZIt-tM-ISBiEV_xTiM11HSBeLDvi8g3-M@z>
 
-Since some dma_alloc_coherent implementations return a zeroed buffer
-regardless of whether __GFP_ZERO is passed, there exist drivers which
-are implicitly dependent on this and pass otherwise uninitialised
-buffers to hardware. This can lead to subtle and awkward-to-debug issues
-using those drivers on different platforms, where nonzero uninitialised
-junk may for instance occasionally look like a valid command which
-causes the hardware to start misbehaving. To help with debugging such
-issues, add the option to make uninitialised buffers much more obvious.
+On Fri, Sep 25, 2015 at 01:15:46PM +0100, Robin Murphy wrote:
+> Since some dma_alloc_coherent implementations return a zeroed buffer
+> regardless of whether __GFP_ZERO is passed, there exist drivers which
+> are implicitly dependent on this and pass otherwise uninitialised
+> buffers to hardware. This can lead to subtle and awkward-to-debug issues
+> using those drivers on different platforms, where nonzero uninitialised
+> junk may for instance occasionally look like a valid command which
+> causes the hardware to start misbehaving. To help with debugging such
+> issues, add the option to make uninitialised buffers much more obvious.
 
-Signed-off-by: Robin Murphy <robin.murphy@arm.com>
----
- include/asm-generic/dma-mapping-common.h |  2 +-
- include/linux/dma-debug.h                |  6 ++++--
- include/linux/poison.h                   |  3 +++
- lib/Kconfig.debug                        | 10 ++++++++++
- lib/dma-debug.c                          |  6 +++++-
- 5 files changed, 23 insertions(+), 4 deletions(-)
+The reason people started to do this is to stop a security leak in the
+ALSA code: ALSA allocates the ring buffer with dma_alloc_coherent()
+which used to grab pages and return them uninitialised.  These pages
+could contain anything - including the contents of /etc/shadow, or
+your bank details.
 
-diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic=
-/dma-mapping-common.h
-index b1bc954..0f3e16b 100644
---- a/include/asm-generic/dma-mapping-common.h
-+++ b/include/asm-generic/dma-mapping-common.h
-@@ -260,7 +260,7 @@ static inline void *dma_alloc_attrs(struct device *dev,=
- size_t size,
- =09=09return NULL;
-=20
- =09cpu_addr =3D ops->alloc(dev, size, dma_handle, flag, attrs);
--=09debug_dma_alloc_coherent(dev, size, *dma_handle, cpu_addr);
-+=09debug_dma_alloc_coherent(dev, size, *dma_handle, cpu_addr, flag);
- =09return cpu_addr;
- }
-=20
-diff --git a/include/linux/dma-debug.h b/include/linux/dma-debug.h
-index fe8cb61..e5f539d 100644
---- a/include/linux/dma-debug.h
-+++ b/include/linux/dma-debug.h
-@@ -51,7 +51,8 @@ extern void debug_dma_unmap_sg(struct device *dev, struct=
- scatterlist *sglist,
- =09=09=09       int nelems, int dir);
-=20
- extern void debug_dma_alloc_coherent(struct device *dev, size_t size,
--=09=09=09=09     dma_addr_t dma_addr, void *virt);
-+=09=09=09=09     dma_addr_t dma_addr, void *virt,
-+=09=09=09=09     gfp_t flags);
-=20
- extern void debug_dma_free_coherent(struct device *dev, size_t size,
- =09=09=09=09    void *virt, dma_addr_t addr);
-@@ -132,7 +133,8 @@ static inline void debug_dma_unmap_sg(struct device *de=
-v,
- }
-=20
- static inline void debug_dma_alloc_coherent(struct device *dev, size_t siz=
-e,
--=09=09=09=09=09    dma_addr_t dma_addr, void *virt)
-+=09=09=09=09=09    dma_addr_t dma_addr, void *virt,
-+=09=09=09=09=09    gfp_t flags)
- {
- }
-=20
-diff --git a/include/linux/poison.h b/include/linux/poison.h
-index 317e16d..174104e 100644
---- a/include/linux/poison.h
-+++ b/include/linux/poison.h
-@@ -73,6 +73,9 @@
- #define MUTEX_DEBUG_INIT=090x11
- #define MUTEX_DEBUG_FREE=090x22
-=20
-+/********** lib/dma_debug.c **********/
-+#define DMA_ALLOC_POISON=090xee
-+
- /********** lib/flex_array.c **********/
- #define FLEX_ARRAY_FREE=090x6c=09/* for use-after-free poisoning */
-=20
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index ab76b99..f2da7a1 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -1752,6 +1752,16 @@ config DMA_API_DEBUG
-=20
- =09  If unsure, say N.
-=20
-+config DMA_API_DEBUG_POISON
-+=09bool "Poison coherent DMA buffers"
-+=09depends on DMA_API_DEBUG && EXPERT
-+=09help
-+=09  Poison DMA buffers returned by dma_alloc_coherent unless __GFP_ZERO
-+=09  is explicitly specified, to catch drivers depending on zeroed buffers
-+=09  without passing the correct flags.
-+
-+=09  Only say Y if you're prepared for almost everything to break.
-+
- config TEST_LKM
- =09tristate "Test module loading with 'hello world' module"
- =09default n
-diff --git a/lib/dma-debug.c b/lib/dma-debug.c
-index 908fb35..40514ed 100644
---- a/lib/dma-debug.c
-+++ b/lib/dma-debug.c
-@@ -30,6 +30,7 @@
- #include <linux/sched.h>
- #include <linux/ctype.h>
- #include <linux/list.h>
-+#include <linux/poison.h>
- #include <linux/slab.h>
-=20
- #include <asm/sections.h>
-@@ -1447,7 +1448,7 @@ void debug_dma_unmap_sg(struct device *dev, struct sc=
-atterlist *sglist,
- EXPORT_SYMBOL(debug_dma_unmap_sg);
-=20
- void debug_dma_alloc_coherent(struct device *dev, size_t size,
--=09=09=09      dma_addr_t dma_addr, void *virt)
-+=09=09=09      dma_addr_t dma_addr, void *virt, gfp_t flags)
- {
- =09struct dma_debug_entry *entry;
-=20
-@@ -1457,6 +1458,9 @@ void debug_dma_alloc_coherent(struct device *dev, siz=
-e_t size,
- =09if (unlikely(virt =3D=3D NULL))
- =09=09return;
-=20
-+=09if (IS_ENABLED(CONFIG_DMA_API_DEBUG_POISON) && !(flags & __GFP_ZERO))
-+=09=09memset(virt, DMA_ALLOC_POISON, size);
-+
- =09entry =3D dma_entry_alloc();
- =09if (!entry)
- =09=09return;
---=20
-1.9.1
+ALSA then lets userspace mmap() that memory, which means any user process
+which has access to the sound devices can read data leaked from kernel
+memory.
 
+I think I did bring it up at the time I found it, and decided that the
+safest thing to do was to always return an initialised buffer - short of
+constantly auditing every dma_alloc_coherent() user which also mmap()s
+the buffer into userspace, I couldn't convince myself that it was safe
+to avoid initialising the buffer.
+
+I don't know whether the original problem still exists in ALSA or not,
+but I do know that there are dma_alloc_coherent() implementations out
+there which do not initialise prior to returning memory.
+
+> diff --git a/lib/dma-debug.c b/lib/dma-debug.c
+> index 908fb35..40514ed 100644
+> --- a/lib/dma-debug.c
+> +++ b/lib/dma-debug.c
+> @@ -30,6 +30,7 @@
+>  #include <linux/sched.h>
+>  #include <linux/ctype.h>
+>  #include <linux/list.h>
+> +#include <linux/poison.h>
+>  #include <linux/slab.h>
+>  
+>  #include <asm/sections.h>
+> @@ -1447,7 +1448,7 @@ void debug_dma_unmap_sg(struct device *dev, struct scatterlist *sglist,
+>  EXPORT_SYMBOL(debug_dma_unmap_sg);
+>  
+>  void debug_dma_alloc_coherent(struct device *dev, size_t size,
+> -			      dma_addr_t dma_addr, void *virt)
+> +			      dma_addr_t dma_addr, void *virt, gfp_t flags)
+>  {
+>  	struct dma_debug_entry *entry;
+>  
+> @@ -1457,6 +1458,9 @@ void debug_dma_alloc_coherent(struct device *dev, size_t size,
+>  	if (unlikely(virt == NULL))
+>  		return;
+>  
+> +	if (IS_ENABLED(CONFIG_DMA_API_DEBUG_POISON) && !(flags & __GFP_ZERO))
+> +		memset(virt, DMA_ALLOC_POISON, size);
+> +
+
+This is likely to be slow in the case of non-cached memory and large
+allocations.  The config option should come with a warning.
+
+-- 
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
