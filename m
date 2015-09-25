@@ -1,47 +1,84 @@
-From: Robin Murphy <robin.murphy@arm.com>
-Subject: [PATCH 3/4] dma-debug: Check nents in dma_sync_sg*
-Date: Fri, 25 Sep 2015 13:15:45 +0100
-Message-ID: <c725a1746c556d8aa532a53a5f30bb2005a9ddae.1443178314.git.robin.murphy@arm.com>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 4/4] dma-debug: Allow poisoning nonzero allocations
+Date: Fri, 25 Sep 2015 13:44:47 +0100
+Message-ID: <20150925124447.GO21513@n2100.arm.linux.org.uk>
 References: <cover.1443178314.git.robin.murphy@arm.com>
-Content-Type: text/plain; charset=WINDOWS-1252
-Content-Transfer-Encoding: quoted-printable
+ <0405c6131def5aa179ff4ba5d4201ebde89cede3.1443178314.git.robin.murphy@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <cover.1443178314.git.robin.murphy@arm.com>
+Content-Disposition: inline
+In-Reply-To: <0405c6131def5aa179ff4ba5d4201ebde89cede3.1443178314.git.robin.murphy@arm.com>
 Sender: owner-linux-mm@kvack.org
-To: akpm@linux-foundation.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, m.szyprowski@samsung.com, sumit.semwal@linaro.org, sakari.ailus@iki.fi, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-arm-kernel@lists.infradead.org
+To: Robin Murphy <robin.murphy@arm.com>
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-mm@kvack.org, sakari.ailus@iki.fi, sumit.semwal@linaro.org, linux-arm-kernel@lists.infradead.org, m.szyprowski@samsung.com
 List-Id: linux-arch.vger.kernel.org
 
-Like dma_unmap_sg, dma_sync_sg* should be called with the original
-number of entries passed to dma_map_sg, so do the same check in the sync
-path as we do in the unmap path.
+On Fri, Sep 25, 2015 at 01:15:46PM +0100, Robin Murphy wrote:
+> Since some dma_alloc_coherent implementations return a zeroed buffer
+> regardless of whether __GFP_ZERO is passed, there exist drivers which
+> are implicitly dependent on this and pass otherwise uninitialised
+> buffers to hardware. This can lead to subtle and awkward-to-debug issues
+> using those drivers on different platforms, where nonzero uninitialised
+> junk may for instance occasionally look like a valid command which
+> causes the hardware to start misbehaving. To help with debugging such
+> issues, add the option to make uninitialised buffers much more obvious.
 
-Signed-off-by: Robin Murphy <robin.murphy@arm.com>
----
- lib/dma-debug.c | 8 ++++++++
- 1 file changed, 8 insertions(+)
+The reason people started to do this is to stop a security leak in the
+ALSA code: ALSA allocates the ring buffer with dma_alloc_coherent()
+which used to grab pages and return them uninitialised.  These pages
+could contain anything - including the contents of /etc/shadow, or
+your bank details.
 
-diff --git a/lib/dma-debug.c b/lib/dma-debug.c
-index dace71f..908fb35 100644
---- a/lib/dma-debug.c
-+++ b/lib/dma-debug.c
-@@ -1249,6 +1249,14 @@ static void check_sync(struct device *dev,
- =09=09=09=09dir2name[entry->direction],
- =09=09=09=09dir2name[ref->direction]);
-=20
-+=09if (ref->sg_call_ents && ref->type =3D=3D dma_debug_sg &&
-+=09    ref->sg_call_ents !=3D entry->sg_call_ents) {
-+=09=09err_printk(ref->dev, entry, "DMA-API: device driver syncs "
-+=09=09=09   "DMA sg list with different entry count "
-+=09=09=09   "[map count=3D%d] [sync count=3D%d]\n",
-+=09=09=09   entry->sg_call_ents, ref->sg_call_ents);
-+=09}
-+
- out:
- =09put_hash_bucket(bucket, &flags);
- }
---=20
-1.9.1
+ALSA then lets userspace mmap() that memory, which means any user process
+which has access to the sound devices can read data leaked from kernel
+memory.
+
+I think I did bring it up at the time I found it, and decided that the
+safest thing to do was to always return an initialised buffer - short of
+constantly auditing every dma_alloc_coherent() user which also mmap()s
+the buffer into userspace, I couldn't convince myself that it was safe
+to avoid initialising the buffer.
+
+I don't know whether the original problem still exists in ALSA or not,
+but I do know that there are dma_alloc_coherent() implementations out
+there which do not initialise prior to returning memory.
+
+> diff --git a/lib/dma-debug.c b/lib/dma-debug.c
+> index 908fb35..40514ed 100644
+> --- a/lib/dma-debug.c
+> +++ b/lib/dma-debug.c
+> @@ -30,6 +30,7 @@
+>  #include <linux/sched.h>
+>  #include <linux/ctype.h>
+>  #include <linux/list.h>
+> +#include <linux/poison.h>
+>  #include <linux/slab.h>
+>  
+>  #include <asm/sections.h>
+> @@ -1447,7 +1448,7 @@ void debug_dma_unmap_sg(struct device *dev, struct scatterlist *sglist,
+>  EXPORT_SYMBOL(debug_dma_unmap_sg);
+>  
+>  void debug_dma_alloc_coherent(struct device *dev, size_t size,
+> -			      dma_addr_t dma_addr, void *virt)
+> +			      dma_addr_t dma_addr, void *virt, gfp_t flags)
+>  {
+>  	struct dma_debug_entry *entry;
+>  
+> @@ -1457,6 +1458,9 @@ void debug_dma_alloc_coherent(struct device *dev, size_t size,
+>  	if (unlikely(virt == NULL))
+>  		return;
+>  
+> +	if (IS_ENABLED(CONFIG_DMA_API_DEBUG_POISON) && !(flags & __GFP_ZERO))
+> +		memset(virt, DMA_ALLOC_POISON, size);
+> +
+
+This is likely to be slow in the case of non-cached memory and large
+allocations.  The config option should come with a warning.
+
+-- 
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
