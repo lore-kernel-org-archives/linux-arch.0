@@ -1,108 +1,157 @@
 From: Dave Hansen <dave@sr71.net>
-Subject: [PATCH 00/25] x86: Memory Protection Keys
-Date: Mon, 28 Sep 2015 12:18:17 -0700
-Message-ID: <20150928191817.035A64E2@viggo.jf.intel.com>
-Return-path: <owner-linux-mm@kvack.org>
-Sender: owner-linux-mm@kvack.org
+Subject: [PATCH 20/25] mm, multi-arch: pass a protection key in to calc_vm_flag_bits()
+Date: Mon, 28 Sep 2015 12:18:25 -0700
+Message-ID: <20150928191825.4E183654@viggo.jf.intel.com>
+References: <20150928191817.035A64E2@viggo.jf.intel.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20150928191817.035A64E2@viggo.jf.intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: dave@sr71.net
-Cc: borntraeger@de.ibm.com, x86@kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: borntraeger@de.ibm.com, x86@kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, dave.hansen@linux.intel.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-I have addressed all known issues and review comments.  I believe
-they are ready to be pulled in to the x86 tree.  Note that this
-is also the first time anyone has seen the new 'selftests' code.
-If there are issues limited to it, I'd prefer to fix those up
-separately post-merge.
 
-Changes from RFCv2 (Thanks Ingo and Thomas for most of these):
+From: Dave Hansen <dave.hansen@linux.intel.com>
 
- * few minor compile warnings
- * changed 'nopku' interaction with cpuid bits.  Now, we do not
-   clear the PKU cpuid bit, we just skip enabling it.
- * changed __pkru_allows_write() to also check access disable bit
- * removed the unused write_pkru()
- * made si_pkey a u64 and added some patch description details.
-   Also made it share space in siginfo with MPX and clarified
-   comments.
- * give some real text for the Processor Trace xsave state
- * made vma_pkey() less ugly (and much more optimized actually)
- * added SEGV_PKUERR to copy_siginfo_to_user()
- * remove page table walk when filling in si_pkey, added some
-   big fat comments about it being inherently racy.
- * added self test code
+This plumbs a protection key through calc_vm_flag_bits().
+We could of done this in calc_vm_prot_bits(), but I did not
+feel super strongly which way to go.  It was pretty arbitrary
+which one to use.
 
-MM reviewers, if you are going to look at one thing, please look
-at patch 14 which adds a bunch of additional vma/pte permission
-checks.
-
-This code contains a new system call: mprotect_key(),  This needs
-the usual amount of rigor around new interfaces.  Review there
-would be much appreciated.
-
-This code is not runnable to anyone outside of Intel unless they
-have some special hardware or a fancy simulator.  If you are
-interested in running this for real, please get in touch with me.
-Hardware is available to a very small but nonzero number of
-people.
-
-This set is also available here (with the new syscall):
-
-	git://git.kernel.org/pub/scm/linux/kernel/git/daveh/x86-pkeys.git pkeys-v006
-
-=== diffstat ===
-
-(note that over half of this is kselftests)
-
- Documentation/kernel-parameters.txt           |    3 
- Documentation/x86/protection-keys.txt         |   54 +
- arch/powerpc/include/asm/mman.h               |    5 
- arch/powerpc/include/asm/mmu_context.h        |   11 
- arch/s390/include/asm/mmu_context.h           |   11 
- arch/unicore32/include/asm/mmu_context.h      |   11 
- arch/x86/Kconfig                              |   15 
- arch/x86/entry/syscalls/syscall_32.tbl        |    1 
- arch/x86/entry/syscalls/syscall_64.tbl        |    1 
- arch/x86/include/asm/cpufeature.h             |   54 +
- arch/x86/include/asm/disabled-features.h      |   12 
- arch/x86/include/asm/fpu/types.h              |   16 
- arch/x86/include/asm/fpu/xstate.h             |    4 
- arch/x86/include/asm/mmu_context.h            |   71 ++
- arch/x86/include/asm/pgtable.h                |   45 +
- arch/x86/include/asm/pgtable_types.h          |   34 -
- arch/x86/include/asm/required-features.h      |    4 
- arch/x86/include/asm/special_insns.h          |   32 +
- arch/x86/include/uapi/asm/mman.h              |   23 
- arch/x86/include/uapi/asm/processor-flags.h   |    2 
- arch/x86/kernel/cpu/common.c                  |   42 +
- arch/x86/kernel/fpu/xstate.c                  |    7 
- arch/x86/kernel/process_64.c                  |    2 
- arch/x86/kernel/setup.c                       |    9 
- arch/x86/mm/fault.c                           |  143 +++-
- arch/x86/mm/gup.c                             |   37 -
- drivers/char/agp/frontend.c                   |    2 
- drivers/staging/android/ashmem.c              |    9 
- fs/proc/task_mmu.c                            |    5 
- include/asm-generic/mm_hooks.h                |   11 
- include/linux/mm.h                            |   13 
- include/linux/mman.h                          |    6 
- include/uapi/asm-generic/siginfo.h            |   17 
- kernel/signal.c                               |    4 
- mm/Kconfig                                    |   11 
- mm/gup.c                                      |   28 
- mm/memory.c                                   |    4 
- mm/mmap.c                                     |    2 
- mm/mprotect.c                                 |   20 
- mm/nommu.c                                    |    2 
- tools/testing/selftests/x86/Makefile          |    3 
- tools/testing/selftests/x86/pkey-helpers.h    |  182 +++++
- tools/testing/selftests/x86/protection_keys.c |  828 ++++++++++++++++++++++++++
- 43 files changed, 1705 insertions(+), 91 deletions(-)
-
+Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
 Cc: linux-api@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
+---
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+ b/arch/powerpc/include/asm/mman.h  |    5 +++--
+ b/drivers/char/agp/frontend.c      |    2 +-
+ b/drivers/staging/android/ashmem.c |    9 +++++----
+ b/include/linux/mman.h             |    6 +++---
+ b/mm/mmap.c                        |    2 +-
+ b/mm/mprotect.c                    |    2 +-
+ b/mm/nommu.c                       |    2 +-
+ 7 files changed, 15 insertions(+), 13 deletions(-)
+
+diff -puN arch/powerpc/include/asm/mman.h~pkeys-84-calc_vm_prot_bits arch/powerpc/include/asm/mman.h
+--- a/arch/powerpc/include/asm/mman.h~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.962365460 -0700
++++ b/arch/powerpc/include/asm/mman.h	2015-09-28 11:39:49.976366097 -0700
+@@ -18,11 +18,12 @@
+  * This file is included by linux/mman.h, so we can't use cacl_vm_prot_bits()
+  * here.  How important is the optimization?
+  */
+-static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot)
++static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot,
++		unsigned long pkey)
+ {
+ 	return (prot & PROT_SAO) ? VM_SAO : 0;
+ }
+-#define arch_calc_vm_prot_bits(prot) arch_calc_vm_prot_bits(prot)
++#define arch_calc_vm_prot_bits(prot, pkey) arch_calc_vm_prot_bits(prot, pkey)
+ 
+ static inline pgprot_t arch_vm_get_page_prot(unsigned long vm_flags)
+ {
+diff -puN drivers/char/agp/frontend.c~pkeys-84-calc_vm_prot_bits drivers/char/agp/frontend.c
+--- a/drivers/char/agp/frontend.c~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.964365551 -0700
++++ b/drivers/char/agp/frontend.c	2015-09-28 11:39:49.977366142 -0700
+@@ -156,7 +156,7 @@ static pgprot_t agp_convert_mmap_flags(i
+ {
+ 	unsigned long prot_bits;
+ 
+-	prot_bits = calc_vm_prot_bits(prot) | VM_SHARED;
++	prot_bits = calc_vm_prot_bits(prot, 0) | VM_SHARED;
+ 	return vm_get_page_prot(prot_bits);
+ }
+ 
+diff -puN drivers/staging/android/ashmem.c~pkeys-84-calc_vm_prot_bits drivers/staging/android/ashmem.c
+--- a/drivers/staging/android/ashmem.c~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.966365642 -0700
++++ b/drivers/staging/android/ashmem.c	2015-09-28 11:39:49.977366142 -0700
+@@ -351,7 +351,8 @@ out:
+ 	return ret;
+ }
+ 
+-static inline vm_flags_t calc_vm_may_flags(unsigned long prot)
++static inline vm_flags_t calc_vm_may_flags(unsigned long prot,
++		unsigned long pkey)
+ {
+ 	return _calc_vm_trans(prot, PROT_READ,  VM_MAYREAD) |
+ 	       _calc_vm_trans(prot, PROT_WRITE, VM_MAYWRITE) |
+@@ -372,12 +373,12 @@ static int ashmem_mmap(struct file *file
+ 	}
+ 
+ 	/* requested protection bits must match our allowed protection mask */
+-	if (unlikely((vma->vm_flags & ~calc_vm_prot_bits(asma->prot_mask)) &
+-		     calc_vm_prot_bits(PROT_MASK))) {
++	if (unlikely((vma->vm_flags & ~calc_vm_prot_bits(asma->prot_mask, 0)) &
++		     calc_vm_prot_bits(PROT_MASK, 0))) {
+ 		ret = -EPERM;
+ 		goto out;
+ 	}
+-	vma->vm_flags &= ~calc_vm_may_flags(~asma->prot_mask);
++	vma->vm_flags &= ~calc_vm_may_flags(~asma->prot_mask, 0);
+ 
+ 	if (!asma->file) {
+ 		char *name = ASHMEM_NAME_DEF;
+diff -puN include/linux/mman.h~pkeys-84-calc_vm_prot_bits include/linux/mman.h
+--- a/include/linux/mman.h~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.967365688 -0700
++++ b/include/linux/mman.h	2015-09-28 11:39:49.977366142 -0700
+@@ -35,7 +35,7 @@ static inline void vm_unacct_memory(long
+  */
+ 
+ #ifndef arch_calc_vm_prot_bits
+-#define arch_calc_vm_prot_bits(prot) 0
++#define arch_calc_vm_prot_bits(prot, pkey) 0
+ #endif
+ 
+ #ifndef arch_vm_get_page_prot
+@@ -70,12 +70,12 @@ static inline int arch_validate_prot(uns
+  * Combine the mmap "prot" argument into "vm_flags" used internally.
+  */
+ static inline unsigned long
+-calc_vm_prot_bits(unsigned long prot)
++calc_vm_prot_bits(unsigned long prot, unsigned long pkey)
+ {
+ 	return _calc_vm_trans(prot, PROT_READ,  VM_READ ) |
+ 	       _calc_vm_trans(prot, PROT_WRITE, VM_WRITE) |
+ 	       _calc_vm_trans(prot, PROT_EXEC,  VM_EXEC) |
+-	       arch_calc_vm_prot_bits(prot);
++	       arch_calc_vm_prot_bits(prot, pkey);
+ }
+ 
+ /*
+diff -puN mm/mmap.c~pkeys-84-calc_vm_prot_bits mm/mmap.c
+--- a/mm/mmap.c~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.969365779 -0700
++++ b/mm/mmap.c	2015-09-28 11:39:49.978366188 -0700
+@@ -1311,7 +1311,7 @@ unsigned long do_mmap(struct file *file,
+ 	 * to. we assume access permissions have been handled by the open
+ 	 * of the memory object, so we don't do any here.
+ 	 */
+-	vm_flags |= calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags) |
++	vm_flags |= calc_vm_prot_bits(prot, 0) | calc_vm_flag_bits(flags) |
+ 			mm->def_flags | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC;
+ 
+ 	if (flags & MAP_LOCKED)
+diff -puN mm/mprotect.c~pkeys-84-calc_vm_prot_bits mm/mprotect.c
+--- a/mm/mprotect.c~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.971365870 -0700
++++ b/mm/mprotect.c	2015-09-28 11:39:49.979366234 -0700
+@@ -373,7 +373,7 @@ SYSCALL_DEFINE3(mprotect, unsigned long,
+ 	if ((prot & PROT_READ) && (current->personality & READ_IMPLIES_EXEC))
+ 		prot |= PROT_EXEC;
+ 
+-	vm_flags = calc_vm_prot_bits(prot);
++	vm_flags = calc_vm_prot_bits(prot, 0);
+ 
+ 	down_write(&current->mm->mmap_sem);
+ 
+diff -puN mm/nommu.c~pkeys-84-calc_vm_prot_bits mm/nommu.c
+--- a/mm/nommu.c~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.973365961 -0700
++++ b/mm/nommu.c	2015-09-28 11:39:49.980366279 -0700
+@@ -1084,7 +1084,7 @@ static unsigned long determine_vm_flags(
+ {
+ 	unsigned long vm_flags;
+ 
+-	vm_flags = calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags);
++	vm_flags = calc_vm_prot_bits(prot, 0) | calc_vm_flag_bits(flags);
+ 	/* vm_flags |= mm->def_flags; */
+ 
+ 	if (!(capabilities & NOMMU_MAP_DIRECT)) {
+_
