@@ -1,126 +1,162 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from eu-smtp-delivery-143.mimecast.com ([207.82.80.143]:21097 "EHLO
-	eu-smtp-delivery-143.mimecast.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756807AbbIYRfn convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 Sep 2015 13:35:43 -0400
-Subject: Re: [PATCH 4/4] dma-debug: Allow poisoning nonzero allocations
-References: <cover.1443178314.git.robin.murphy@arm.com>
- <0405c6131def5aa179ff4ba5d4201ebde89cede3.1443178314.git.robin.murphy@arm.com>
- <20150925124447.GO21513@n2100.arm.linux.org.uk>
-From: Robin Murphy <robin.murphy@arm.com>
-Message-ID: <560585EB.3060908@arm.com>
-Date: Fri, 25 Sep 2015 18:35:39 +0100
-MIME-Version: 1.0
-In-Reply-To: <20150925124447.GO21513@n2100.arm.linux.org.uk>
-Content-Type: text/plain; charset=WINDOWS-1252; format=flowed
-Content-Transfer-Encoding: 8BIT
+Received: from mga02.intel.com ([134.134.136.20]:16244 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751754AbbI1TS0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 Sep 2015 15:18:26 -0400
+Subject: [PATCH 20/25] mm, multi-arch: pass a protection key in to calc_vm_flag_bits()
+From: Dave Hansen <dave@sr71.net>
+Date: Mon, 28 Sep 2015 12:18:25 -0700
+References: <20150928191817.035A64E2@viggo.jf.intel.com>
+In-Reply-To: <20150928191817.035A64E2@viggo.jf.intel.com>
+Message-ID: <20150928191825.4E183654@viggo.jf.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "sakari.ailus@iki.fi" <sakari.ailus@iki.fi>, "sumit.semwal@linaro.org" <sumit.semwal@linaro.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "m.szyprowski@samsung.com" <m.szyprowski@samsung.com>
-Message-ID: <20150925173539.aHWIC4VMSKuZt2mHRqqlKAoYZ6Hcuu3sR2zhgFw0jZo@z>
+To: dave@sr71.net
+Cc: borntraeger@de.ibm.com, x86@kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, dave.hansen@linux.intel.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20150928191825.8g75UarbVAysJzvFuE5F3Ku4MdZ3ghE-LXxzADG0OG8@z>
 
-Hi Russell,
 
-On 25/09/15 13:44, Russell King - ARM Linux wrote:
-> On Fri, Sep 25, 2015 at 01:15:46PM +0100, Robin Murphy wrote:
->> Since some dma_alloc_coherent implementations return a zeroed buffer
->> regardless of whether __GFP_ZERO is passed, there exist drivers which
->> are implicitly dependent on this and pass otherwise uninitialised
->> buffers to hardware. This can lead to subtle and awkward-to-debug issues
->> using those drivers on different platforms, where nonzero uninitialised
->> junk may for instance occasionally look like a valid command which
->> causes the hardware to start misbehaving. To help with debugging such
->> issues, add the option to make uninitialised buffers much more obvious.
->
-> The reason people started to do this is to stop a security leak in the
-> ALSA code: ALSA allocates the ring buffer with dma_alloc_coherent()
-> which used to grab pages and return them uninitialised.  These pages
-> could contain anything - including the contents of /etc/shadow, or
-> your bank details.
->
-> ALSA then lets userspace mmap() that memory, which means any user process
-> which has access to the sound devices can read data leaked from kernel
-> memory.
->
-> I think I did bring it up at the time I found it, and decided that the
-> safest thing to do was to always return an initialised buffer - short of
-> constantly auditing every dma_alloc_coherent() user which also mmap()s
-> the buffer into userspace, I couldn't convince myself that it was safe
-> to avoid initialising the buffer.
->
-> I don't know whether the original problem still exists in ALSA or not,
-> but I do know that there are dma_alloc_coherent() implementations out
-> there which do not initialise prior to returning memory.
+From: Dave Hansen <dave.hansen@linux.intel.com>
 
-Indeed, I think we've discussed this before, and I don't imagine we'll 
-be changing the actual behaviour of the existing allocators any time soon.
+This plumbs a protection key through calc_vm_flag_bits().
+We could of done this in calc_vm_prot_bits(), but I did not
+feel super strongly which way to go.  It was pretty arbitrary
+which one to use.
 
-[ I still don't see that as an excuse for callers not to be fixed, 
-though - anyone allocating something that may be exposed to userspace 
-has a responsibility to initialise it appropriately. After all, the DMA 
-API is just one source, what do we do if such a careless subsystem got 
-some uninitialised pages of leftover sensitive data from, say, 
-alloc_pages() instead? ]
+Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: linux-api@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+---
 
-That's a bit of a separate issue though. If a driver itself _needs_ a 
-zeroed buffer but doesn't specifically request one, or doesn't get one 
-even if it did, then that's just a regular bug, and it's what this patch 
-is intended to help weed out. We've no need for a special poison value 
-for data protection in the general case; zero is just fine for that.
+ b/arch/powerpc/include/asm/mman.h  |    5 +++--
+ b/drivers/char/agp/frontend.c      |    2 +-
+ b/drivers/staging/android/ashmem.c |    9 +++++----
+ b/include/linux/mman.h             |    6 +++---
+ b/mm/mmap.c                        |    2 +-
+ b/mm/mprotect.c                    |    2 +-
+ b/mm/nommu.c                       |    2 +-
+ 7 files changed, 15 insertions(+), 13 deletions(-)
 
->> diff --git a/lib/dma-debug.c b/lib/dma-debug.c
->> index 908fb35..40514ed 100644
->> --- a/lib/dma-debug.c
->> +++ b/lib/dma-debug.c
->> @@ -30,6 +30,7 @@
->>   #include <linux/sched.h>
->>   #include <linux/ctype.h>
->>   #include <linux/list.h>
->> +#include <linux/poison.h>
->>   #include <linux/slab.h>
->>
->>   #include <asm/sections.h>
->> @@ -1447,7 +1448,7 @@ void debug_dma_unmap_sg(struct device *dev, struct scatterlist *sglist,
->>   EXPORT_SYMBOL(debug_dma_unmap_sg);
->>
->>   void debug_dma_alloc_coherent(struct device *dev, size_t size,
->> -			      dma_addr_t dma_addr, void *virt)
->> +			      dma_addr_t dma_addr, void *virt, gfp_t flags)
->>   {
->>   	struct dma_debug_entry *entry;
->>
->> @@ -1457,6 +1458,9 @@ void debug_dma_alloc_coherent(struct device *dev, size_t size,
->>   	if (unlikely(virt == NULL))
->>   		return;
->>
->> +	if (IS_ENABLED(CONFIG_DMA_API_DEBUG_POISON) && !(flags & __GFP_ZERO))
->> +		memset(virt, DMA_ALLOC_POISON, size);
->> +
->
-> This is likely to be slow in the case of non-cached memory and large
-> allocations.  The config option should come with a warning.
-
-It depends on DMA_API_DEBUG, which already has a stern performance 
-warning, is additionally hidden behind EXPERT, and carries a slightly 
-flippant yet largely truthful warning that actually using it could break 
-pretty much every driver in your system; is that not enough?
-
-If I was feeling particularly antagonistic, I'd also point out that as 
-discussed above you've already taken the hit of a memset(0) and cache 
-flush that you _didn't_ ask for, and there was no warning on that ;)
-
-The intent is a specific troubleshooting tool - realistically it's 
-probably only usable at all when restricting DMA debug to a per-driver 
-basis. My hunch is that nobody's too fussed about the performance of a 
-driver that doesn't work properly, especially once they've reached the 
-point of dumping buffers in an attempt to figure out why, when seeing 
-the presence or not of uniform poison values could be helpful.
-
-(Of course, sometimes you end up debugging the allocator itself - see 
-commit 7132813c3845 - which was one of the motivating factors for this 
-patch).
-
-Robin.
-
+diff -puN arch/powerpc/include/asm/mman.h~pkeys-84-calc_vm_prot_bits arch/powerpc/include/asm/mman.h
+--- a/arch/powerpc/include/asm/mman.h~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.962365460 -0700
++++ b/arch/powerpc/include/asm/mman.h	2015-09-28 11:39:49.976366097 -0700
+@@ -18,11 +18,12 @@
+  * This file is included by linux/mman.h, so we can't use cacl_vm_prot_bits()
+  * here.  How important is the optimization?
+  */
+-static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot)
++static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot,
++		unsigned long pkey)
+ {
+ 	return (prot & PROT_SAO) ? VM_SAO : 0;
+ }
+-#define arch_calc_vm_prot_bits(prot) arch_calc_vm_prot_bits(prot)
++#define arch_calc_vm_prot_bits(prot, pkey) arch_calc_vm_prot_bits(prot, pkey)
+ 
+ static inline pgprot_t arch_vm_get_page_prot(unsigned long vm_flags)
+ {
+diff -puN drivers/char/agp/frontend.c~pkeys-84-calc_vm_prot_bits drivers/char/agp/frontend.c
+--- a/drivers/char/agp/frontend.c~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.964365551 -0700
++++ b/drivers/char/agp/frontend.c	2015-09-28 11:39:49.977366142 -0700
+@@ -156,7 +156,7 @@ static pgprot_t agp_convert_mmap_flags(i
+ {
+ 	unsigned long prot_bits;
+ 
+-	prot_bits = calc_vm_prot_bits(prot) | VM_SHARED;
++	prot_bits = calc_vm_prot_bits(prot, 0) | VM_SHARED;
+ 	return vm_get_page_prot(prot_bits);
+ }
+ 
+diff -puN drivers/staging/android/ashmem.c~pkeys-84-calc_vm_prot_bits drivers/staging/android/ashmem.c
+--- a/drivers/staging/android/ashmem.c~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.966365642 -0700
++++ b/drivers/staging/android/ashmem.c	2015-09-28 11:39:49.977366142 -0700
+@@ -351,7 +351,8 @@ out:
+ 	return ret;
+ }
+ 
+-static inline vm_flags_t calc_vm_may_flags(unsigned long prot)
++static inline vm_flags_t calc_vm_may_flags(unsigned long prot,
++		unsigned long pkey)
+ {
+ 	return _calc_vm_trans(prot, PROT_READ,  VM_MAYREAD) |
+ 	       _calc_vm_trans(prot, PROT_WRITE, VM_MAYWRITE) |
+@@ -372,12 +373,12 @@ static int ashmem_mmap(struct file *file
+ 	}
+ 
+ 	/* requested protection bits must match our allowed protection mask */
+-	if (unlikely((vma->vm_flags & ~calc_vm_prot_bits(asma->prot_mask)) &
+-		     calc_vm_prot_bits(PROT_MASK))) {
++	if (unlikely((vma->vm_flags & ~calc_vm_prot_bits(asma->prot_mask, 0)) &
++		     calc_vm_prot_bits(PROT_MASK, 0))) {
+ 		ret = -EPERM;
+ 		goto out;
+ 	}
+-	vma->vm_flags &= ~calc_vm_may_flags(~asma->prot_mask);
++	vma->vm_flags &= ~calc_vm_may_flags(~asma->prot_mask, 0);
+ 
+ 	if (!asma->file) {
+ 		char *name = ASHMEM_NAME_DEF;
+diff -puN include/linux/mman.h~pkeys-84-calc_vm_prot_bits include/linux/mman.h
+--- a/include/linux/mman.h~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.967365688 -0700
++++ b/include/linux/mman.h	2015-09-28 11:39:49.977366142 -0700
+@@ -35,7 +35,7 @@ static inline void vm_unacct_memory(long
+  */
+ 
+ #ifndef arch_calc_vm_prot_bits
+-#define arch_calc_vm_prot_bits(prot) 0
++#define arch_calc_vm_prot_bits(prot, pkey) 0
+ #endif
+ 
+ #ifndef arch_vm_get_page_prot
+@@ -70,12 +70,12 @@ static inline int arch_validate_prot(uns
+  * Combine the mmap "prot" argument into "vm_flags" used internally.
+  */
+ static inline unsigned long
+-calc_vm_prot_bits(unsigned long prot)
++calc_vm_prot_bits(unsigned long prot, unsigned long pkey)
+ {
+ 	return _calc_vm_trans(prot, PROT_READ,  VM_READ ) |
+ 	       _calc_vm_trans(prot, PROT_WRITE, VM_WRITE) |
+ 	       _calc_vm_trans(prot, PROT_EXEC,  VM_EXEC) |
+-	       arch_calc_vm_prot_bits(prot);
++	       arch_calc_vm_prot_bits(prot, pkey);
+ }
+ 
+ /*
+diff -puN mm/mmap.c~pkeys-84-calc_vm_prot_bits mm/mmap.c
+--- a/mm/mmap.c~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.969365779 -0700
++++ b/mm/mmap.c	2015-09-28 11:39:49.978366188 -0700
+@@ -1311,7 +1311,7 @@ unsigned long do_mmap(struct file *file,
+ 	 * to. we assume access permissions have been handled by the open
+ 	 * of the memory object, so we don't do any here.
+ 	 */
+-	vm_flags |= calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags) |
++	vm_flags |= calc_vm_prot_bits(prot, 0) | calc_vm_flag_bits(flags) |
+ 			mm->def_flags | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC;
+ 
+ 	if (flags & MAP_LOCKED)
+diff -puN mm/mprotect.c~pkeys-84-calc_vm_prot_bits mm/mprotect.c
+--- a/mm/mprotect.c~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.971365870 -0700
++++ b/mm/mprotect.c	2015-09-28 11:39:49.979366234 -0700
+@@ -373,7 +373,7 @@ SYSCALL_DEFINE3(mprotect, unsigned long,
+ 	if ((prot & PROT_READ) && (current->personality & READ_IMPLIES_EXEC))
+ 		prot |= PROT_EXEC;
+ 
+-	vm_flags = calc_vm_prot_bits(prot);
++	vm_flags = calc_vm_prot_bits(prot, 0);
+ 
+ 	down_write(&current->mm->mmap_sem);
+ 
+diff -puN mm/nommu.c~pkeys-84-calc_vm_prot_bits mm/nommu.c
+--- a/mm/nommu.c~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.973365961 -0700
++++ b/mm/nommu.c	2015-09-28 11:39:49.980366279 -0700
+@@ -1084,7 +1084,7 @@ static unsigned long determine_vm_flags(
+ {
+ 	unsigned long vm_flags;
+ 
+-	vm_flags = calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags);
++	vm_flags = calc_vm_prot_bits(prot, 0) | calc_vm_flag_bits(flags);
+ 	/* vm_flags |= mm->def_flags; */
+ 
+ 	if (!(capabilities & NOMMU_MAP_DIRECT)) {
+_
