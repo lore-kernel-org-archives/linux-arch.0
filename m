@@ -1,157 +1,100 @@
-From: Dave Hansen <dave@sr71.net>
-Subject: [PATCH 20/25] mm, multi-arch: pass a protection key in to calc_vm_flag_bits()
-Date: Mon, 28 Sep 2015 12:18:25 -0700
-Message-ID: <20150928191825.4E183654@viggo.jf.intel.com>
-References: <20150928191817.035A64E2@viggo.jf.intel.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20150928191817.035A64E2@viggo.jf.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: dave@sr71.net
-Cc: borntraeger@de.ibm.com, x86@kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, dave.hansen@linux.intel.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH 1/2] nios2: Add architectural support for PCIe
+Date: Tue, 29 Sep 2015 11:12:24 +0800
+Message-ID: <CAFiDJ5_jkEqdAY=TtKOg6=GzT8i4qAFdnSH_z1RsoPVU2Vfr1Q@mail.gmail.com>
+References: <1442906367-10935-1-git-send-email-lftan@altera.com>
+	<65590637.5YmBIDOvTf@wuerfel>
+	<CAFiDJ59EeokEJVXCY7DEmDRp0hnd3he3f2fwjO-2tNN5VXrBgQ@mail.gmail.com>
+	<5408024.XroFc5QNep@wuerfel>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-la0-f53.google.com ([209.85.215.53]:35527 "EHLO
+	mail-la0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932154AbbI2DM0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Sep 2015 23:12:26 -0400
+In-Reply-To: <5408024.XroFc5QNep@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-pci@vger.kernel.org
 
+On Tue, Sep 22, 2015 at 7:42 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Tuesday 22 September 2015 18:53:50 Ley Foon Tan wrote:
+>> On Tue, Sep 22, 2015 at 4:18 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> > On Tuesday 22 September 2015 15:19:26 Ley Foon Tan wrote:
+>> > I might be missing something though. Bjorn?
+>> >
+>> >> @@ -14,7 +14,7 @@
+>> >>  #include <linux/types.h>
+>> >>  #include <asm/pgtable-bits.h>
+>> >>
+>> >> -/* PCI is not supported in nios2, set this to 0. */
+>> >> +/* PCI I/O space is not supported, set this to 0. */
+>> >>  #define IO_SPACE_LIMIT 0
+>> >>
+>> >>  #define readb_relaxed(addr)  readb(addr)
+>> >
+>> > It might be useful to enable this, just in case someone connects
+>> > a PCI host bridge that does support I/O space.
+>> >
+>> > Which host bridge do you use? Are you sure there is no I/O space?
+>> > Most of them use a set of translation windows to set up a mapping
+>> > between bus address (memory, config and io space) and physical
+>> > (mmio) space.
+>>
+>> I'm using Altera PCIe IP. But, you are right. We should enable this,
+>> because it shouldn't limited to support Altera PCIe only.
+>> BTW, any rule/requirement for the IO_SPACE_LIMIT?
+>
+> If you want to allow just one PCI host bridge, set it to 0xffff, otherwise
+> use 0xfffff (for up to 16 bridges)
+Okay, will set it to 0xffff.
+>
+>> And PCIBIOS_MIN_IO should be non-zero if we enable IO_SPACE_LIMIT?
+>
+> If you define pcibios_align_resource() as an empty function, that can
+> remain zero as well, it's only meant to stay out of the way of ISA
+> devices.
+Okay.
+>
+>> >> diff --git a/arch/nios2/include/asm/pci.h b/arch/nios2/include/asm/pci.h
+>> >> new file mode 100644
+>> >> index 0000000..f2cba05
+>> >> --- /dev/null
+>> >> +++ b/arch/nios2/include/asm/pci.h
+>> >
+>> > What happens if you use the asm-generic header? If there is something
+>> > missing in it, we can try to get it to do the right things.
+>> All the defines in arch/nios2/include/asm/pci.h are required by PCI framework.
+>> It will trigger undefined symbols/define error if without them. Seem
+>> all architectures must provide all these defines.
+>> So, we can consider to add default defines for these in asm-generic.
+>
+> I think that would be good, yes. We probably picked defaults for the
+> asm-generic version that are enough to build with CONFIG_PCI disabled,
+> but there are useful defaults for the other case as well.
+>
+> Most architectures that use the file don't support PCI, so you can just
+> add stuff inside of #ifdef CONFIG_PCI. For the remaining 13 architectures
+> (git grep -l generic/pci.h  | wc), see whether there are conflicts first.
+> The normal way would be to have the arch specific definition come before
+> the #include, and then do something like
+>
+> #ifndef pci_proc_domain
+> #define pci_proc_domain pci_proc_domain
+> static inline int pci_proc_domain(struct pci_bus *bus)
+> {
+> #ifdef CONFIG_PCI_DOMAINS_GENERIC
+>         return pci_domain_nr(bus);
+> #else
+>         return 1;
+> }
+> #endif
 
-From: Dave Hansen <dave.hansen@linux.intel.com>
+Okay, will try add them to asm-generic.
+Do you prefer to send it as separate patch or can be part of this patchset?
+Thanks.
 
-This plumbs a protection key through calc_vm_flag_bits().
-We could of done this in calc_vm_prot_bits(), but I did not
-feel super strongly which way to go.  It was pretty arbitrary
-which one to use.
-
-Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
----
-
- b/arch/powerpc/include/asm/mman.h  |    5 +++--
- b/drivers/char/agp/frontend.c      |    2 +-
- b/drivers/staging/android/ashmem.c |    9 +++++----
- b/include/linux/mman.h             |    6 +++---
- b/mm/mmap.c                        |    2 +-
- b/mm/mprotect.c                    |    2 +-
- b/mm/nommu.c                       |    2 +-
- 7 files changed, 15 insertions(+), 13 deletions(-)
-
-diff -puN arch/powerpc/include/asm/mman.h~pkeys-84-calc_vm_prot_bits arch/powerpc/include/asm/mman.h
---- a/arch/powerpc/include/asm/mman.h~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.962365460 -0700
-+++ b/arch/powerpc/include/asm/mman.h	2015-09-28 11:39:49.976366097 -0700
-@@ -18,11 +18,12 @@
-  * This file is included by linux/mman.h, so we can't use cacl_vm_prot_bits()
-  * here.  How important is the optimization?
-  */
--static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot)
-+static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot,
-+		unsigned long pkey)
- {
- 	return (prot & PROT_SAO) ? VM_SAO : 0;
- }
--#define arch_calc_vm_prot_bits(prot) arch_calc_vm_prot_bits(prot)
-+#define arch_calc_vm_prot_bits(prot, pkey) arch_calc_vm_prot_bits(prot, pkey)
- 
- static inline pgprot_t arch_vm_get_page_prot(unsigned long vm_flags)
- {
-diff -puN drivers/char/agp/frontend.c~pkeys-84-calc_vm_prot_bits drivers/char/agp/frontend.c
---- a/drivers/char/agp/frontend.c~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.964365551 -0700
-+++ b/drivers/char/agp/frontend.c	2015-09-28 11:39:49.977366142 -0700
-@@ -156,7 +156,7 @@ static pgprot_t agp_convert_mmap_flags(i
- {
- 	unsigned long prot_bits;
- 
--	prot_bits = calc_vm_prot_bits(prot) | VM_SHARED;
-+	prot_bits = calc_vm_prot_bits(prot, 0) | VM_SHARED;
- 	return vm_get_page_prot(prot_bits);
- }
- 
-diff -puN drivers/staging/android/ashmem.c~pkeys-84-calc_vm_prot_bits drivers/staging/android/ashmem.c
---- a/drivers/staging/android/ashmem.c~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.966365642 -0700
-+++ b/drivers/staging/android/ashmem.c	2015-09-28 11:39:49.977366142 -0700
-@@ -351,7 +351,8 @@ out:
- 	return ret;
- }
- 
--static inline vm_flags_t calc_vm_may_flags(unsigned long prot)
-+static inline vm_flags_t calc_vm_may_flags(unsigned long prot,
-+		unsigned long pkey)
- {
- 	return _calc_vm_trans(prot, PROT_READ,  VM_MAYREAD) |
- 	       _calc_vm_trans(prot, PROT_WRITE, VM_MAYWRITE) |
-@@ -372,12 +373,12 @@ static int ashmem_mmap(struct file *file
- 	}
- 
- 	/* requested protection bits must match our allowed protection mask */
--	if (unlikely((vma->vm_flags & ~calc_vm_prot_bits(asma->prot_mask)) &
--		     calc_vm_prot_bits(PROT_MASK))) {
-+	if (unlikely((vma->vm_flags & ~calc_vm_prot_bits(asma->prot_mask, 0)) &
-+		     calc_vm_prot_bits(PROT_MASK, 0))) {
- 		ret = -EPERM;
- 		goto out;
- 	}
--	vma->vm_flags &= ~calc_vm_may_flags(~asma->prot_mask);
-+	vma->vm_flags &= ~calc_vm_may_flags(~asma->prot_mask, 0);
- 
- 	if (!asma->file) {
- 		char *name = ASHMEM_NAME_DEF;
-diff -puN include/linux/mman.h~pkeys-84-calc_vm_prot_bits include/linux/mman.h
---- a/include/linux/mman.h~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.967365688 -0700
-+++ b/include/linux/mman.h	2015-09-28 11:39:49.977366142 -0700
-@@ -35,7 +35,7 @@ static inline void vm_unacct_memory(long
-  */
- 
- #ifndef arch_calc_vm_prot_bits
--#define arch_calc_vm_prot_bits(prot) 0
-+#define arch_calc_vm_prot_bits(prot, pkey) 0
- #endif
- 
- #ifndef arch_vm_get_page_prot
-@@ -70,12 +70,12 @@ static inline int arch_validate_prot(uns
-  * Combine the mmap "prot" argument into "vm_flags" used internally.
-  */
- static inline unsigned long
--calc_vm_prot_bits(unsigned long prot)
-+calc_vm_prot_bits(unsigned long prot, unsigned long pkey)
- {
- 	return _calc_vm_trans(prot, PROT_READ,  VM_READ ) |
- 	       _calc_vm_trans(prot, PROT_WRITE, VM_WRITE) |
- 	       _calc_vm_trans(prot, PROT_EXEC,  VM_EXEC) |
--	       arch_calc_vm_prot_bits(prot);
-+	       arch_calc_vm_prot_bits(prot, pkey);
- }
- 
- /*
-diff -puN mm/mmap.c~pkeys-84-calc_vm_prot_bits mm/mmap.c
---- a/mm/mmap.c~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.969365779 -0700
-+++ b/mm/mmap.c	2015-09-28 11:39:49.978366188 -0700
-@@ -1311,7 +1311,7 @@ unsigned long do_mmap(struct file *file,
- 	 * to. we assume access permissions have been handled by the open
- 	 * of the memory object, so we don't do any here.
- 	 */
--	vm_flags |= calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags) |
-+	vm_flags |= calc_vm_prot_bits(prot, 0) | calc_vm_flag_bits(flags) |
- 			mm->def_flags | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC;
- 
- 	if (flags & MAP_LOCKED)
-diff -puN mm/mprotect.c~pkeys-84-calc_vm_prot_bits mm/mprotect.c
---- a/mm/mprotect.c~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.971365870 -0700
-+++ b/mm/mprotect.c	2015-09-28 11:39:49.979366234 -0700
-@@ -373,7 +373,7 @@ SYSCALL_DEFINE3(mprotect, unsigned long,
- 	if ((prot & PROT_READ) && (current->personality & READ_IMPLIES_EXEC))
- 		prot |= PROT_EXEC;
- 
--	vm_flags = calc_vm_prot_bits(prot);
-+	vm_flags = calc_vm_prot_bits(prot, 0);
- 
- 	down_write(&current->mm->mmap_sem);
- 
-diff -puN mm/nommu.c~pkeys-84-calc_vm_prot_bits mm/nommu.c
---- a/mm/nommu.c~pkeys-84-calc_vm_prot_bits	2015-09-28 11:39:49.973365961 -0700
-+++ b/mm/nommu.c	2015-09-28 11:39:49.980366279 -0700
-@@ -1084,7 +1084,7 @@ static unsigned long determine_vm_flags(
- {
- 	unsigned long vm_flags;
- 
--	vm_flags = calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags);
-+	vm_flags = calc_vm_prot_bits(prot, 0) | calc_vm_flag_bits(flags);
- 	/* vm_flags |= mm->def_flags; */
- 
- 	if (!(capabilities & NOMMU_MAP_DIRECT)) {
-_
+Regards
+Ley Foon
