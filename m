@@ -1,53 +1,206 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:50449 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755934AbbI2HhR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Sep 2015 03:37:17 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/2] nios2: Add architectural support for PCIe
-Date: Tue, 29 Sep 2015 09:37:09 +0200
-Message-ID: <3218771.zBxT0jYLDs@wuerfel>
-In-Reply-To: <CAFiDJ5_jkEqdAY=TtKOg6=GzT8i4qAFdnSH_z1RsoPVU2Vfr1Q@mail.gmail.com>
-References: <1442906367-10935-1-git-send-email-lftan@altera.com> <5408024.XroFc5QNep@wuerfel> <CAFiDJ5_jkEqdAY=TtKOg6=GzT8i4qAFdnSH_z1RsoPVU2Vfr1Q@mail.gmail.com>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Received: from userp1040.oracle.com ([156.151.31.81]:29323 "EHLO
+	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756381AbbJAGAE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Oct 2015 02:00:04 -0400
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH v6 40/53] PCI: Unify skip_ioresource_align()
+Date: Wed, 30 Sep 2015 22:53:14 -0700
+Message-ID: <1443678807-786-41-git-send-email-yinghai@kernel.org>
+In-Reply-To: <1443678807-786-1-git-send-email-yinghai@kernel.org>
+References: <1443678807-786-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-pci@vger.kernel.org
-Message-ID: <20150929073709.Yu4GHYyQ5ylNSos0u9VccWec_9Q7cPhJ6SOyUxzibM0@z>
+To: Bjorn Helgaas <bhelgaas@google.com>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Wei Yang <weiyang@linux.vnet.ibm.com>, TJ <linux@iam.tj>, Yijing Wang <wangyijing@huawei.com>
+Cc: linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Michal Simek <monstr@monstr.eu>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
+Message-ID: <20151001055314.YOQ2e9cGxmY4R887viJxWFwkZJk4CNp-QTmXmLLiWHo@z>
 
-On Tuesday 29 September 2015 11:12:24 Ley Foon Tan wrote:
-> >
-> > I think that would be good, yes. We probably picked defaults for the
-> > asm-generic version that are enough to build with CONFIG_PCI disabled,
-> > but there are useful defaults for the other case as well.
-> >
-> > Most architectures that use the file don't support PCI, so you can just
-> > add stuff inside of #ifdef CONFIG_PCI. For the remaining 13 architectures
-> > (git grep -l generic/pci.h  | wc), see whether there are conflicts first.
-> > The normal way would be to have the arch specific definition come before
-> > the #include, and then do something like
-> >
-> > #ifndef pci_proc_domain
-> > #define pci_proc_domain pci_proc_domain
-> > static inline int pci_proc_domain(struct pci_bus *bus)
-> > {
-> > #ifdef CONFIG_PCI_DOMAINS_GENERIC
-> >         return pci_domain_nr(bus);
-> > #else
-> >         return 1;
-> > }
-> > #endif
-> 
-> Okay, will try add them to asm-generic.
+There are powerpc generic version and x86 local version for
+skip_ioresource_align().
 
-Thanks
+Move the powerpc version to setup-bus.c, and kill x86 local version.
 
-> Do you prefer to send it as separate patch or can be part of this patchset?
+Also kill dummy version in microblaze.
 
-I prefer the patches to be part of this series and merged through together
-with them.
+Cc: Michal Simek <monstr@monstr.eu>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Michael Ellerman <mpe@ellerman.id.au>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/microblaze/pci/pci-common.c |  8 --------
+ arch/powerpc/kernel/pci-common.c | 11 +----------
+ arch/x86/include/asm/pci_x86.h   |  1 -
+ arch/x86/pci/common.c            |  4 ++--
+ arch/x86/pci/i386.c              | 12 ++----------
+ drivers/pci/setup-bus.c          |  9 +++++++++
+ include/asm-generic/pci-bridge.h |  2 ++
+ 7 files changed, 16 insertions(+), 31 deletions(-)
 
-	Arnd
+diff --git a/arch/microblaze/pci/pci-common.c b/arch/microblaze/pci/pci-common.c
+index ae838ed..09b1af6 100644
+--- a/arch/microblaze/pci/pci-common.c
++++ b/arch/microblaze/pci/pci-common.c
+@@ -878,11 +878,6 @@ void pcibios_fixup_bus(struct pci_bus *bus)
+ }
+ EXPORT_SYMBOL(pcibios_fixup_bus);
+ 
+-static int skip_isa_ioresource_align(struct pci_dev *dev)
+-{
+-	return 0;
+-}
+-
+ /*
+  * We need to avoid collisions with `mirrored' VGA ports
+  * and other strange ISA hardware, so we always want the
+@@ -899,12 +894,9 @@ static int skip_isa_ioresource_align(struct pci_dev *dev)
+ resource_size_t pcibios_align_resource(void *data, const struct resource *res,
+ 				resource_size_t size, resource_size_t align)
+ {
+-	struct pci_dev *dev = data;
+ 	resource_size_t start = res->start;
+ 
+ 	if (res->flags & IORESOURCE_IO) {
+-		if (skip_isa_ioresource_align(dev))
+-			return start;
+ 		if (start & 0x300)
+ 			start = (start + 0x3ff) & ~0x3ff;
+ 	}
+diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
+index 7587b2a..8853667 100644
+--- a/arch/powerpc/kernel/pci-common.c
++++ b/arch/powerpc/kernel/pci-common.c
+@@ -1052,15 +1052,6 @@ void pci_fixup_cardbus(struct pci_bus *bus)
+ 	pcibios_setup_bus_devices(bus);
+ }
+ 
+-
+-static int skip_isa_ioresource_align(struct pci_dev *dev)
+-{
+-	if (pci_has_flag(PCI_CAN_SKIP_ISA_ALIGN) &&
+-	    !(dev->bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
+-		return 1;
+-	return 0;
+-}
+-
+ /*
+  * We need to avoid collisions with `mirrored' VGA ports
+  * and other strange ISA hardware, so we always want the
+@@ -1081,7 +1072,7 @@ resource_size_t pcibios_align_resource(void *data, const struct resource *res,
+ 	resource_size_t start = res->start;
+ 
+ 	if (res->flags & IORESOURCE_IO) {
+-		if (skip_isa_ioresource_align(dev))
++		if (skip_isa_ioresource_align(dev->bus))
+ 			return start;
+ 		if (start & 0x300)
+ 			start = (start + 0x3ff) & ~0x3ff;
+diff --git a/arch/x86/include/asm/pci_x86.h b/arch/x86/include/asm/pci_x86.h
+index fa1195d..81a7abf 100644
+--- a/arch/x86/include/asm/pci_x86.h
++++ b/arch/x86/include/asm/pci_x86.h
+@@ -28,7 +28,6 @@ do {						\
+ #define PCI_ASSIGN_ROMS		0x1000
+ #define PCI_BIOS_IRQ_SCAN	0x2000
+ #define PCI_ASSIGN_ALL_BUSSES	0x4000
+-#define PCI_CAN_SKIP_ISA_ALIGN	0x8000
+ #define PCI_USE__CRS		0x10000
+ #define PCI_CHECK_ENABLE_AMD_MMCONF	0x20000
+ #define PCI_HAS_IO_ECS		0x40000
+diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
+index dc78a4a..7c018df 100644
+--- a/arch/x86/pci/common.c
++++ b/arch/x86/pci/common.c
+@@ -83,7 +83,7 @@ DEFINE_RAW_SPINLOCK(pci_config_lock);
+ 
+ static int __init can_skip_ioresource_align(const struct dmi_system_id *d)
+ {
+-	pci_probe |= PCI_CAN_SKIP_ISA_ALIGN;
++	pci_add_flags(PCI_CAN_SKIP_ISA_ALIGN);
+ 	printk(KERN_INFO "PCI: %s detected, can skip ISA alignment\n", d->ident);
+ 	return 0;
+ }
+@@ -619,7 +619,7 @@ char *__init pcibios_setup(char *str)
+ 		pci_routeirq = 1;
+ 		return NULL;
+ 	} else if (!strcmp(str, "skip_isa_align")) {
+-		pci_probe |= PCI_CAN_SKIP_ISA_ALIGN;
++		pci_add_flags(PCI_CAN_SKIP_ISA_ALIGN);
+ 		return NULL;
+ 	} else if (!strcmp(str, "noioapicquirk")) {
+ 		noioapicquirk = 1;
+diff --git a/arch/x86/pci/i386.c b/arch/x86/pci/i386.c
+index 0a9f2ca..3f17726 100644
+--- a/arch/x86/pci/i386.c
++++ b/arch/x86/pci/i386.c
+@@ -33,6 +33,7 @@
+ #include <linux/errno.h>
+ #include <linux/bootmem.h>
+ 
++#include <asm-generic/pci-bridge.h>
+ #include <asm/pat.h>
+ #include <asm/e820.h>
+ #include <asm/pci_x86.h>
+@@ -128,15 +129,6 @@ static void __init pcibios_fw_addr_list_del(void)
+ 	pcibios_fw_addr_done = true;
+ }
+ 
+-static int
+-skip_isa_ioresource_align(struct pci_dev *dev) {
+-
+-	if ((pci_probe & PCI_CAN_SKIP_ISA_ALIGN) &&
+-	    !(dev->bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
+-		return 1;
+-	return 0;
+-}
+-
+ /*
+  * We need to avoid collisions with `mirrored' VGA ports
+  * and other strange ISA hardware, so we always want the
+@@ -158,7 +150,7 @@ pcibios_align_resource(void *data, const struct resource *res,
+ 	resource_size_t start = res->start;
+ 
+ 	if (res->flags & IORESOURCE_IO) {
+-		if (skip_isa_ioresource_align(dev))
++		if (skip_isa_ioresource_align(dev->bus))
+ 			return start;
+ 		if (start & 0x300)
+ 			start = (start + 0x3ff) & ~0x3ff;
+diff --git a/drivers/pci/setup-bus.c b/drivers/pci/setup-bus.c
+index 7a474d9..7d449d8 100644
+--- a/drivers/pci/setup-bus.c
++++ b/drivers/pci/setup-bus.c
+@@ -1113,6 +1113,15 @@ static resource_size_t window_alignment(struct pci_bus *bus,
+ 	return max(align, arch_align);
+ }
+ 
++int skip_isa_ioresource_align(struct pci_bus *bus)
++{
++	if (pci_has_flag(PCI_CAN_SKIP_ISA_ALIGN) &&
++	    !(bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
++		return 1;
++
++	return 0;
++}
++
+ static resource_size_t size_aligned_for_isa(resource_size_t size)
+ {
+ 	/*
+diff --git a/include/asm-generic/pci-bridge.h b/include/asm-generic/pci-bridge.h
+index 20db2e5..fab4bd0 100644
+--- a/include/asm-generic/pci-bridge.h
++++ b/include/asm-generic/pci-bridge.h
+@@ -60,6 +60,8 @@ static inline int pci_has_flag(int flag)
+ {
+ 	return pci_flags & flag;
+ }
++
++int skip_isa_ioresource_align(struct pci_bus *bus);
+ #else
+ static inline void pci_set_flags(int flags) { }
+ static inline void pci_add_flags(int flags) { }
+-- 
+1.8.4.5
+
