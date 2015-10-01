@@ -1,51 +1,63 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2] of/fdt: Allow memory node and root to have different size/address cells
-Date: Thu, 01 Oct 2015 14:21:59 +0200
-Message-ID: <1712345.yOlLsP4Oji@wuerfel>
-References: <1443701901-362-1-git-send-email-vgupta@synopsys.com>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: Re: [PATCH] asm-generic: cmpxchg: avoid warnings from macro-ized
+ cmpxchg() implementations
+Date: Thu, 1 Oct 2015 22:06:53 +0800
+Message-ID: <CAFiDJ59-pOvaayPBexsP7nJFMFOzY7h2m_e0UG8t9T4NO4K=2Q@mail.gmail.com>
+References: <1442637741-10807-1-git-send-email-marex@denx.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:64246 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933132AbbJAMWT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Oct 2015 08:22:19 -0400
-In-Reply-To: <1443701901-362-1-git-send-email-vgupta@synopsys.com>
+Received: from mail-la0-f51.google.com ([209.85.215.51]:35196 "EHLO
+	mail-la0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756593AbbJAOGz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Oct 2015 10:06:55 -0400
+In-Reply-To: <1442637741-10807-1-git-send-email-marex@denx.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Rob Herring <robh+dt@kernel.org>, kbuild test robot <lkp@intel.com>, "kbuild-all@01.org" <kbuild-all@01.org>, Grant Likely <grant.likely@linaro.org>, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Marek Vasut <marex@denx.de>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, Russell King <rmk+kernel@arm.linux.org.uk>
 
-On Thursday 01 October 2015 17:48:21 Vineet Gupta wrote:
-> Currently memory node parsing uses root "#size-cells", "#address-cells"
-> This doesn't work correctly when memory address/size is different or
-> greater than root's.
-> 
-> e.g. ARC 32-bit systems implementing physical adressing extension and
-> say 4GB of memory. All peripherals mappings stay within the 4GB (so root
-> address/size cells remain 1 each), only the memory node address/size
-> cells needs to specify greater than 32-bits as below
-> 
->         memory {
->                 device_type = "memory";
->                 reg = <0x0 0x80000000 0x1 0x00000000>;  /* 4 GB */
->                 #address-cells = <2>;
->                 #size-cells = <2>;
->         };
-> 
-> This patch lets me boot a ARC system with PAE40 + 4GB of memory specified
-> as above and fails to boot otherwise as memory parsing doesn't populate
-> right base, size.
-> 
+On Sat, Sep 19, 2015 at 12:42 PM, Marek Vasut <marex@denx.de> wrote:
+> This change is similar to e001bbae7147b111fe1aa42beaf835635f3c016e
+> ARM: cmpxchg: avoid warnings from macro-ized cmpxchg() implementations
+>
+> A recent change in kernel/acct.c added a new warning for many
+> configurations using generic __xchg() implementation:
+>
+> In file included from ./arch/nios2/include/asm/cmpxchg.h:12:0,
+>                  from include/asm-generic/atomic.h:18,
+>                  from arch/nios2/include/generated/asm/atomic.h:1,
+>                  from include/linux/atomic.h:4,
+>                  from include/linux/spinlock.h:406,
+>                  from include/linux/mmzone.h:7,
+>                  from include/linux/gfp.h:5,
+>                  from include/linux/mm.h:9,
+>                  from kernel/acct.c:46:
+> kernel/acct.c: In function 'acct_pin_kill':
+> include/asm-generic/cmpxchg.h:94:3: warning: value computed is not used [-Wunused-value]
+>   ((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
+>    ^
+> include/asm-generic/cmpxchg.h:102:28: note: in expansion of macro 'cmpxchg_local'
+>  #define cmpxchg(ptr, o, n) cmpxchg_local((ptr), (o), (n))
+>                             ^
+> kernel/acct.c:177:2: note: in expansion of macro 'cmpxchg'
+>   cmpxchg(&acct->ns->bacct, pin, NULL);
+>   ^
+>
+> The code is in fact correct, it's just a cmpxchg() call that
+> intentionally ignores the result, and no other code does that.  The
+> warning does not show up on x86 because of the way that its cmpxchg()
+> macro is written. This changes the asm-ggeneric implementation to use
+> a similar construct with a compound expression instead of a typecast,
+> which causes the compiler to not complain about an unused result.
+>
+> Fix the other macros in this file in a similar way, and place them
+> just below their function implementations.
+>
+> Signed-off-by: Marek Vasut <marex@denx.de>
+> Cc: Russell King <rmk+kernel@arm.linux.org.uk>
+> ---
+Tested with arch/nios2.
 
-This looks wrong: the #address-cells property in a device node is used
-to parse the reg property of its child nodes, not the node itself.
-
-The only way to list memory like this is to put #size-cells=<2>
-into the root node. All lower bus nodes can then use the
-normal #address-cells/#size-cells again and use a ranges property
-to convert the register ranges so you don't need to update all
-nodes.
-
-	Arnd
+Regards
+Ley Foon
