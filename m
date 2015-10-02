@@ -1,57 +1,80 @@
-From: Brian Norris <computersforpeace@gmail.com>
-Subject: Re: [PATCH v2 19/25] pxa2xx-flash: switch from ioremap_cache to
- memremap
-Date: Fri, 2 Oct 2015 10:51:27 -0700
-Message-ID: <20151002175127.GH107187@google.com>
-References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
- <20150725023945.8664.34842.stgit@dwillia2-desk3.amr.corp.intel.com>
+From: "Luis R. Rodriguez" <mcgrof@suse.com>
+Subject: Re: [RFC] asm-generic/pci_iomap.h: make custom PCI BAR requirements
+ explicit
+Date: Sat, 3 Oct 2015 01:17:06 +0200
+Message-ID: <20151002231706.GI14464@wotan.suse.de>
+References: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
+ <55E11534.2050508@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f49.google.com ([209.85.220.49]:36061 "EHLO
-	mail-pa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752278AbbJBRvb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Oct 2015 13:51:31 -0400
+Received: from mx2.suse.de ([195.135.220.15]:48554 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751499AbbJBXRK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 2 Oct 2015 19:17:10 -0400
 Content-Disposition: inline
-In-Reply-To: <20150725023945.8664.34842.stgit@dwillia2-desk3.amr.corp.intel.com>
+In-Reply-To: <55E11534.2050508@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, David Woodhouse <dwmw2@infradead.org>, hch@lst.de, linux-arm-kernel@lists.infradead.org, linux-mtd@lists.infradead.org
+To: Randy Dunlap <rdunlap@infradead.org>
+Cc: "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, arnd@arndb.de, linux-arch@vger.kernel.org, mingo@kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, bp@suse.de, linux@roeck-us.net, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org
 
-+ linux-mtd
-
-On Fri, Jul 24, 2015 at 10:39:45PM -0400, Dan Williams wrote:
-> In preparation for deprecating ioremap_cache() convert its usage in
-> pxa2xx-flash to memremap.
+On Fri, Aug 28, 2015 at 07:13:08PM -0700, Randy Dunlap wrote:
+> On 08/28/15 17:17, Luis R. Rodriguez wrote:
+> > 
+> >  arch/s390/Kconfig                 |  8 +++++
+> >  arch/s390/include/asm/io.h        | 11 -------
+> >  arch/s390/include/asm/pci.h       |  2 --
+> >  arch/s390/include/asm/pci_iomap.h | 33 +++++++++++++++++++++
+> >  arch/s390/pci/pci.c               |  2 ++
+> >  include/asm-generic/io.h          | 12 --------
+> >  include/asm-generic/iomap.h       | 10 -------
+> >  include/asm-generic/pci_iomap.h   | 62 +++++++++++++++++++++++++++++++++++----
+> >  lib/Kconfig                       |  1 +
+> >  lib/pci_iomap.c                   |  5 ++++
+> >  10 files changed, 105 insertions(+), 41 deletions(-)
+> >  create mode 100644 arch/s390/include/asm/pci_iomap.h
+> > 
+> > diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+> > index 1d57000b1b24..1217b7db4265 100644
+> > --- a/arch/s390/Kconfig
+> > +++ b/arch/s390/Kconfig
+> > @@ -614,6 +614,14 @@ endif	# PCI
+> >  config PCI_DOMAINS
+> >  	def_bool PCI
+> >  
+> > +config ARCH_PCI_NON_DISJUNCTIVE
+> > +	def_bool PCI
+> > +	help
+> > +	  On the S390 architecture PCI BAR spaces are not disjunctive, as such
 > 
-> Cc: David Woodhouse <dwmw2@infradead.org>
-> Cc: Brian Norris <computersforpeace@gmail.com>
-> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-> ---
->  drivers/mtd/maps/pxa2xx-flash.c |    4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
+> 	are not disjoint?  may be overlapping?
 > 
-> diff --git a/drivers/mtd/maps/pxa2xx-flash.c b/drivers/mtd/maps/pxa2xx-flash.c
-> index 12fa75df5008..758a8a7f86d9 100644
-> --- a/drivers/mtd/maps/pxa2xx-flash.c
-> +++ b/drivers/mtd/maps/pxa2xx-flash.c
-> @@ -71,8 +71,8 @@ static int pxa2xx_flash_probe(struct platform_device *pdev)
->  		       info->map.name);
->  		return -ENOMEM;
->  	}
-> -	info->map.cached =
-> -		ioremap_cache(info->map.phys, info->map.size);
-> +	info->map.cached = memremap(info->map.phys, info->map.size,
-> +			MEMREMAP_CACHE);
-
-Should the corresponding iounmap() be changed too? Looks like a pretty
-thin wrapper right now, but it seems like the API would suggest we do
-this anyway.
-
->  	if (!info->map.cached)
->  		printk(KERN_WARNING "Failed to ioremap cached %s\n",
->  		       info->map.name);
+> > +	  the PCI bar is required on a series of otherwise asm generic PCI
+> > +	  routines, as such S390 requires itw own implemention for these
 > 
+> 	                                  its own implementation
 
-Brian
+Thanks, I've re-written this as:
+
+mcgrof@ergon ~/linux-next (git::(no branch, rebasing 20150805-pend-all))$ git diff
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index f4725d1af438..8ba5826ed13b 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -618,10 +618,10 @@ config PCI_DOMAINS
+ config ARCH_PCI_NON_DISJUNCTIVE
+        def_bool PCI
+        help
+-         On the S390 architecture PCI BAR spaces are not disjunctive, as such
+-         the PCI bar is required on a series of otherwise asm generic PCI
+-         routines, as such S390 requires itw own implemention for these
+-         routines.
++         On the S390 architecture PCI BAR spaces may overlap with each other,
++         because of this the PCI bar is required on a series of otherwise asm
++         generic PCI routines and this in turn requires S390 to provide its
++         own implementation for these routines.
+ 
+ config HAS_IOMEM
+        def_bool PCI
+> 
