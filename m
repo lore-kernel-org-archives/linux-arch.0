@@ -1,63 +1,57 @@
-From: Ley Foon Tan <lftan@altera.com>
-Subject: Re: [PATCH] asm-generic: cmpxchg: avoid warnings from macro-ized
- cmpxchg() implementations
-Date: Thu, 1 Oct 2015 22:06:53 +0800
-Message-ID: <CAFiDJ59-pOvaayPBexsP7nJFMFOzY7h2m_e0UG8t9T4NO4K=2Q@mail.gmail.com>
-References: <1442637741-10807-1-git-send-email-marex@denx.de>
+From: Brian Norris <computersforpeace@gmail.com>
+Subject: Re: [PATCH v2 19/25] pxa2xx-flash: switch from ioremap_cache to
+ memremap
+Date: Fri, 2 Oct 2015 10:51:27 -0700
+Message-ID: <20151002175127.GH107187@google.com>
+References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
+ <20150725023945.8664.34842.stgit@dwillia2-desk3.amr.corp.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f51.google.com ([209.85.215.51]:35196 "EHLO
-	mail-la0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756593AbbJAOGz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Oct 2015 10:06:55 -0400
-In-Reply-To: <1442637741-10807-1-git-send-email-marex@denx.de>
+Received: from mail-pa0-f49.google.com ([209.85.220.49]:36061 "EHLO
+	mail-pa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752278AbbJBRvb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Oct 2015 13:51:31 -0400
+Content-Disposition: inline
+In-Reply-To: <20150725023945.8664.34842.stgit@dwillia2-desk3.amr.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marek Vasut <marex@denx.de>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>, Russell King <rmk+kernel@arm.linux.org.uk>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: tglx@linutronix.de, mingo@kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, toshi.kani@hp.com, linux-nvdimm@lists.01.org, linux-kernel@vger.kernel.org, rmk+kernel@arm.linux.org.uk, David Woodhouse <dwmw2@infradead.org>, hch@lst.de, linux-arm-kernel@lists.infradead.org, linux-mtd@lists.infradead.org
 
-On Sat, Sep 19, 2015 at 12:42 PM, Marek Vasut <marex@denx.de> wrote:
-> This change is similar to e001bbae7147b111fe1aa42beaf835635f3c016e
-> ARM: cmpxchg: avoid warnings from macro-ized cmpxchg() implementations
->
-> A recent change in kernel/acct.c added a new warning for many
-> configurations using generic __xchg() implementation:
->
-> In file included from ./arch/nios2/include/asm/cmpxchg.h:12:0,
->                  from include/asm-generic/atomic.h:18,
->                  from arch/nios2/include/generated/asm/atomic.h:1,
->                  from include/linux/atomic.h:4,
->                  from include/linux/spinlock.h:406,
->                  from include/linux/mmzone.h:7,
->                  from include/linux/gfp.h:5,
->                  from include/linux/mm.h:9,
->                  from kernel/acct.c:46:
-> kernel/acct.c: In function 'acct_pin_kill':
-> include/asm-generic/cmpxchg.h:94:3: warning: value computed is not used [-Wunused-value]
->   ((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
->    ^
-> include/asm-generic/cmpxchg.h:102:28: note: in expansion of macro 'cmpxchg_local'
->  #define cmpxchg(ptr, o, n) cmpxchg_local((ptr), (o), (n))
->                             ^
-> kernel/acct.c:177:2: note: in expansion of macro 'cmpxchg'
->   cmpxchg(&acct->ns->bacct, pin, NULL);
->   ^
->
-> The code is in fact correct, it's just a cmpxchg() call that
-> intentionally ignores the result, and no other code does that.  The
-> warning does not show up on x86 because of the way that its cmpxchg()
-> macro is written. This changes the asm-ggeneric implementation to use
-> a similar construct with a compound expression instead of a typecast,
-> which causes the compiler to not complain about an unused result.
->
-> Fix the other macros in this file in a similar way, and place them
-> just below their function implementations.
->
-> Signed-off-by: Marek Vasut <marex@denx.de>
-> Cc: Russell King <rmk+kernel@arm.linux.org.uk>
++ linux-mtd
+
+On Fri, Jul 24, 2015 at 10:39:45PM -0400, Dan Williams wrote:
+> In preparation for deprecating ioremap_cache() convert its usage in
+> pxa2xx-flash to memremap.
+> 
+> Cc: David Woodhouse <dwmw2@infradead.org>
+> Cc: Brian Norris <computersforpeace@gmail.com>
+> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 > ---
-Tested with arch/nios2.
+>  drivers/mtd/maps/pxa2xx-flash.c |    4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+> 
+> diff --git a/drivers/mtd/maps/pxa2xx-flash.c b/drivers/mtd/maps/pxa2xx-flash.c
+> index 12fa75df5008..758a8a7f86d9 100644
+> --- a/drivers/mtd/maps/pxa2xx-flash.c
+> +++ b/drivers/mtd/maps/pxa2xx-flash.c
+> @@ -71,8 +71,8 @@ static int pxa2xx_flash_probe(struct platform_device *pdev)
+>  		       info->map.name);
+>  		return -ENOMEM;
+>  	}
+> -	info->map.cached =
+> -		ioremap_cache(info->map.phys, info->map.size);
+> +	info->map.cached = memremap(info->map.phys, info->map.size,
+> +			MEMREMAP_CACHE);
 
-Regards
-Ley Foon
+Should the corresponding iounmap() be changed too? Looks like a pretty
+thin wrapper right now, but it seems like the API would suggest we do
+this anyway.
+
+>  	if (!info->map.cached)
+>  		printk(KERN_WARNING "Failed to ioremap cached %s\n",
+>  		       info->map.name);
+> 
+
+Brian
