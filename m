@@ -1,53 +1,54 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2] of/fdt: Allow memory node and root to have different
- size/address cells
-Date: Sat, 3 Oct 2015 08:08:12 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075D781A265@IN01WEMBXB.internal.synopsys.com>
-References: <1443701901-362-1-git-send-email-vgupta@synopsys.com>
- <1712345.yOlLsP4Oji@wuerfel>
+Subject: New helper to free highmem pages in larger chunks
+Date: Sat, 3 Oct 2015 18:25:13 +0530
+Message-ID: <560FD031.3030909@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Language: en-US
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Rob Herring <robh+dt@kernel.org>, kbuild test robot <lkp@intel.com>, "kbuild-all@01.org" <kbuild-all@01.org>, Grant Likely <grant.likely@linaro.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:46976 "EHLO
+	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752155AbbJCM5n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 3 Oct 2015 08:57:43 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>, Robin Holt <robin.m.holt@gmail.com>, Nathan Zimmer <nzimmer@sgi.com>
+Cc: Jiang Liu <liuj97@gmail.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Mel Gorman <mgorman@suse.de>
 
-On Thursday 01 October 2015 05:52 PM, Arnd Bergmann wrote:
-> On Thursday 01 October 2015 17:48:21 Vineet Gupta wrote:
->> Currently memory node parsing uses root "#size-cells", "#address-cells"
->> This doesn't work correctly when memory address/size is different or
->> greater than root's.
->>
->> e.g. ARC 32-bit systems implementing physical adressing extension and
->> say 4GB of memory. All peripherals mappings stay within the 4GB (so root
->> address/size cells remain 1 each), only the memory node address/size
->> cells needs to specify greater than 32-bits as below
->>
->>         memory {
->>                 device_type = "memory";
->>                 reg = <0x0 0x80000000 0x1 0x00000000>;  /* 4 GB */
->>                 #address-cells = <2>;
->>                 #size-cells = <2>;
->>         };
->>
->> This patch lets me boot a ARC system with PAE40 + 4GB of memory specified
->> as above and fails to boot otherwise as memory parsing doesn't populate
->> right base, size.
->>
-> This looks wrong: the #address-cells property in a device node is used
-> to parse the reg property of its child nodes, not the node itself.
->
-> The only way to list memory like this is to put #size-cells=<2>
-> into the root node. All lower bus nodes can then use the
-> normal #address-cells/#size-cells again and use a ranges property
-> to convert the register ranges so you don't need to update all
-> nodes.
+Hi,
 
-Thx for taking a look Arnd. I changed the DT per your suggestion and that works
-equally well.
+I noticed increased boot time when enabling highmem for ARC. Turns out that
+freeing highmem pages into buddy allocator is done page at a time, while it is
+batched for low mem pages. Below is call flow.
 
-Thx,
--Vineet
+I'm thinking of writing free_highmem_pages() which takes start and end pfn and
+want to solicit some ideas whether to write it from scratch or preferably call
+existing __free_pages_memory() to reuse the logic to convert a pfn range into
+{pfn, order} tuples.
+
+For latter however there are semantical differences as you can see below which I'm
+not sure of:
+  -highmem page->count is set to 1, while 0 for low mem
+  -atomic clearing of page reserved flag vs. non atomic
+
+
+mem_init
+     for (tmp = min_high_pfn; tmp < max_pfn; tmp++)
+	free_highmem_page(pfn_to_page(tmp));
+	     __free_reserved_page
+		ClearPageReserved(page);   <--- atomic
+		init_page_count(page);  <-- _count = 1
+		__free_page(page);    <-- free SINGLE page
+
+
+     free_all_bootmem
+	free_low_memory_core_early
+	   __free_memory_core(start, end)
+	       __free_pages_memory(s_pfn, e_pfn) <- creates "order" sized batches
+		    __free_pages_bootmem(pfn, order)
+		        __free_pages_boot_core(start_page, start_pfn, order)
+				loops from 0 to (1 << order)
+				    __ClearPageReserved(p);   <-- non atomic
+				    set_page_count(p, 0);  <--- _count = 0
+
+				__free_pages(page, order);    <--- free BATCH
