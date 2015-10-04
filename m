@@ -1,54 +1,89 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: New helper to free highmem pages in larger chunks
-Date: Sat, 3 Oct 2015 18:25:13 +0530
-Message-ID: <560FD031.3030909@synopsys.com>
+From: Randy Dunlap <rdunlap@infradead.org>
+Subject: Re: [RFC] asm-generic/pci_iomap.h: make custom PCI BAR requirements
+ explicit
+Date: Sat, 3 Oct 2015 17:14:20 -0700
+Message-ID: <56106F5C.5060409@infradead.org>
+References: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
+ <55E11534.2050508@infradead.org> <20151002231706.GI14464@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:46976 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752155AbbJCM5n (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 3 Oct 2015 08:57:43 -0400
+Received: from bombadil.infradead.org ([198.137.202.9]:41830 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750843AbbJDAOZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 3 Oct 2015 20:14:25 -0400
+In-Reply-To: <20151002231706.GI14464@wotan.suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Robin Holt <robin.m.holt@gmail.com>, Nathan Zimmer <nzimmer@sgi.com>
-Cc: Jiang Liu <liuj97@gmail.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Mel Gorman <mgorman@suse.de>
+To: "Luis R. Rodriguez" <mcgrof@suse.com>
+Cc: "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, arnd@arndb.de, linux-arch@vger.kernel.org, mingo@kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, bp@suse.de, linux@roeck-us.net, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org
 
-Hi,
+On 10/02/15 16:17, Luis R. Rodriguez wrote:
+> On Fri, Aug 28, 2015 at 07:13:08PM -0700, Randy Dunlap wrote:
+>> On 08/28/15 17:17, Luis R. Rodriguez wrote:
+>>>
+>>>  arch/s390/Kconfig                 |  8 +++++
+>>>  arch/s390/include/asm/io.h        | 11 -------
+>>>  arch/s390/include/asm/pci.h       |  2 --
+>>>  arch/s390/include/asm/pci_iomap.h | 33 +++++++++++++++++++++
+>>>  arch/s390/pci/pci.c               |  2 ++
+>>>  include/asm-generic/io.h          | 12 --------
+>>>  include/asm-generic/iomap.h       | 10 -------
+>>>  include/asm-generic/pci_iomap.h   | 62 +++++++++++++++++++++++++++++++++++----
+>>>  lib/Kconfig                       |  1 +
+>>>  lib/pci_iomap.c                   |  5 ++++
+>>>  10 files changed, 105 insertions(+), 41 deletions(-)
+>>>  create mode 100644 arch/s390/include/asm/pci_iomap.h
+>>>
+>>> diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+>>> index 1d57000b1b24..1217b7db4265 100644
+>>> --- a/arch/s390/Kconfig
+>>> +++ b/arch/s390/Kconfig
+>>> @@ -614,6 +614,14 @@ endif	# PCI
+>>>  config PCI_DOMAINS
+>>>  	def_bool PCI
+>>>  
+>>> +config ARCH_PCI_NON_DISJUNCTIVE
+>>> +	def_bool PCI
+>>> +	help
+>>> +	  On the S390 architecture PCI BAR spaces are not disjunctive, as such
+>>
+>> 	are not disjoint?  may be overlapping?
+>>
+>>> +	  the PCI bar is required on a series of otherwise asm generic PCI
+>>> +	  routines, as such S390 requires itw own implemention for these
+>>
+>> 	                                  its own implementation
+> 
+> Thanks, I've re-written this as:
+> 
+> mcgrof@ergon ~/linux-next (git::(no branch, rebasing 20150805-pend-all))$ git diff
+> diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+> index f4725d1af438..8ba5826ed13b 100644
+> --- a/arch/s390/Kconfig
+> +++ b/arch/s390/Kconfig
+> @@ -618,10 +618,10 @@ config PCI_DOMAINS
+>  config ARCH_PCI_NON_DISJUNCTIVE
+>         def_bool PCI
+>         help
+> -         On the S390 architecture PCI BAR spaces are not disjunctive, as such
+> -         the PCI bar is required on a series of otherwise asm generic PCI
+> -         routines, as such S390 requires itw own implemention for these
+> -         routines.
+> +         On the S390 architecture PCI BAR spaces may overlap with each other,
 
-I noticed increased boot time when enabling highmem for ARC. Turns out that
-freeing highmem pages into buddy allocator is done page at a time, while it is
-batched for low mem pages. Below is call flow.
+That "other," should not end with a comma.  Either use a semi-colon or use a
+period and begin the next sentence with Because.
 
-I'm thinking of writing free_highmem_pages() which takes start and end pfn and
-want to solicit some ideas whether to write it from scratch or preferably call
-existing __free_pages_memory() to reuse the logic to convert a pfn range into
-{pfn, order} tuples.
-
-For latter however there are semantical differences as you can see below which I'm
-not sure of:
-  -highmem page->count is set to 1, while 0 for low mem
-  -atomic clearing of page reserved flag vs. non atomic
+> +         because of this the PCI bar is required on a series of otherwise asm
+> +         generic PCI routines and this in turn requires S390 to provide its
+> +         own implementation for these routines.
+>  
+>  config HAS_IOMEM
+>         def_bool PCI
+>>
 
 
-mem_init
-     for (tmp = min_high_pfn; tmp < max_pfn; tmp++)
-	free_highmem_page(pfn_to_page(tmp));
-	     __free_reserved_page
-		ClearPageReserved(page);   <--- atomic
-		init_page_count(page);  <-- _count = 1
-		__free_page(page);    <-- free SINGLE page
-
-
-     free_all_bootmem
-	free_low_memory_core_early
-	   __free_memory_core(start, end)
-	       __free_pages_memory(s_pfn, e_pfn) <- creates "order" sized batches
-		    __free_pages_bootmem(pfn, order)
-		        __free_pages_boot_core(start_page, start_pfn, order)
-				loops from 0 to (1 << order)
-				    __ClearPageReserved(p);   <-- non atomic
-				    set_page_count(p, 0);  <--- _count = 0
-
-				__free_pages(page, order);    <--- free BATCH
+-- 
+~Randy
