@@ -1,59 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay4.synopsys.com ([198.182.47.9]:44613 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750998AbbJCIIS convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 3 Oct 2015 04:08:18 -0400
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2] of/fdt: Allow memory node and root to have different
- size/address cells
-Date: Sat, 3 Oct 2015 08:08:12 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075D781A265@IN01WEMBXB.internal.synopsys.com>
-References: <1443701901-362-1-git-send-email-vgupta@synopsys.com>
- <1712345.yOlLsP4Oji@wuerfel>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
+Received: from mout.kundenserver.de ([212.227.126.187]:55561 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751518AbbJDTCN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Oct 2015 15:02:13 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC] asm-generic/pci_iomap.h: make custom PCI BAR requirements explicit
+Date: Sun, 04 Oct 2015 21:02:04 +0200
+Message-ID: <8902671.32Mbh7QhE4@wuerfel>
+In-Reply-To: <20151002235346.GJ14464@wotan.suse.de>
+References: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com> <1866509.8pE0MIz57e@wuerfel> <20151002235346.GJ14464@wotan.suse.de>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Rob Herring <robh+dt@kernel.org>, kbuild test robot <lkp@intel.com>, "kbuild-all@01.org" <kbuild-all@01.org>, Grant Likely <grant.likely@linaro.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20151003080812.32S7Wc-_IdwRxgbO-o2j5ZpMv7OZN4m5WvPbVnm8ses@z>
+To: "Luis R. Rodriguez" <mcgrof@suse.com>
+Cc: "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, linux-arch@vger.kernel.org, mingo@kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, bp@suse.de, linux@roeck-us.net, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org
+Message-ID: <20151004190204.jp4x4NRX1_BWiUHMlYbFIr01vOUjRUrXmKCqvRZ-i7w@z>
 
-On Thursday 01 October 2015 05:52 PM, Arnd Bergmann wrote:
-> On Thursday 01 October 2015 17:48:21 Vineet Gupta wrote:
->> Currently memory node parsing uses root "#size-cells", "#address-cells"
->> This doesn't work correctly when memory address/size is different or
->> greater than root's.
->>
->> e.g. ARC 32-bit systems implementing physical adressing extension and
->> say 4GB of memory. All peripherals mappings stay within the 4GB (so root
->> address/size cells remain 1 each), only the memory node address/size
->> cells needs to specify greater than 32-bits as below
->>
->>         memory {
->>                 device_type = "memory";
->>                 reg = <0x0 0x80000000 0x1 0x00000000>;  /* 4 GB */
->>                 #address-cells = <2>;
->>                 #size-cells = <2>;
->>         };
->>
->> This patch lets me boot a ARC system with PAE40 + 4GB of memory specified
->> as above and fails to boot otherwise as memory parsing doesn't populate
->> right base, size.
->>
-> This looks wrong: the #address-cells property in a device node is used
-> to parse the reg property of its child nodes, not the node itself.
->
-> The only way to list memory like this is to put #size-cells=<2>
-> into the root node. All lower bus nodes can then use the
-> normal #address-cells/#size-cells again and use a ranges property
-> to convert the register ranges so you don't need to update all
-> nodes.
+On Saturday 03 October 2015 01:53:46 Luis R. Rodriguez wrote:
+> > 
+> > Hmm, my gut feeling tells me that your approach won't solve the problem
+> > in general. s390 PCI is just weird in many ways and it will occasionally
+> > suffer from problems like this (as do other aspects of the s390 architecture
+> > that are unlike the rest of the world).
+> > 
+> > Maybe Martin and Heiko can comment on this, they may have a preference
+> > from the s390 point of view.
+> 
+> Hrm, so S390 is quirky is really odd ways that no other architecture is or
+> is at least for now not expected to be ?
 
-Thx for taking a look Arnd. I changed the DT per your suggestion and that works
-equally well.
+Absolutely correct. It is the only architecture I'm aware of that tries to
+support PCI that does not use pointer dereferences for MMIO.
 
-Thx,
--Vineet
-
+	Arnd
