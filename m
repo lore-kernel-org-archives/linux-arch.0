@@ -1,41 +1,46 @@
-From: "Luis R. Rodriguez" <mcgrof@suse.com>
-Subject: Re: [RFC] asm-generic/pci_iomap.h: make custom PCI BAR requirements
- explicit
-Date: Mon, 5 Oct 2015 19:09:14 +0200
-Message-ID: <20151005170914.GM14464@wotan.suse.de>
-References: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
- <1866509.8pE0MIz57e@wuerfel>
- <20151002235346.GJ14464@wotan.suse.de>
- <8902671.32Mbh7QhE4@wuerfel>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: New helper to free highmem pages in larger chunks
+Date: Mon, 5 Oct 2015 15:09:55 -0700
+Message-ID: <20151005150955.3e1da261449ae046e1be3989@linux-foundation.org>
+References: <560FD031.3030909@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <8902671.32Mbh7QhE4@wuerfel>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, linux-arch@vger.kernel.org, mingo@kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, bp@suse.de, linux@roeck-us.net, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:50360 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750987AbbJEWJ5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 Oct 2015 18:09:57 -0400
+In-Reply-To: <560FD031.3030909@synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Robin Holt <robin.m.holt@gmail.com>, Nathan Zimmer <nzimmer@sgi.com>, Jiang Liu <liuj97@gmail.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Mel Gorman <mgorman@suse.de>
 
-On Sun, Oct 04, 2015 at 09:02:04PM +0200, Arnd Bergmann wrote:
-> On Saturday 03 October 2015 01:53:46 Luis R. Rodriguez wrote:
-> > > 
-> > > Hmm, my gut feeling tells me that your approach won't solve the problem
-> > > in general. s390 PCI is just weird in many ways and it will occasionally
-> > > suffer from problems like this (as do other aspects of the s390 architecture
-> > > that are unlike the rest of the world).
-> > > 
-> > > Maybe Martin and Heiko can comment on this, they may have a preference
-> > > from the s390 point of view.
-> > 
-> > Hrm, so S390 is quirky is really odd ways that no other architecture is or
-> > is at least for now not expected to be ?
+On Sat, 3 Oct 2015 18:25:13 +0530 Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
+
+> Hi,
 > 
-> Absolutely correct. It is the only architecture I'm aware of that tries to
-> support PCI that does not use pointer dereferences for MMIO.
+> I noticed increased boot time when enabling highmem for ARC. Turns out that
+> freeing highmem pages into buddy allocator is done page at a time, while it is
+> batched for low mem pages. Below is call flow.
+> 
+> I'm thinking of writing free_highmem_pages() which takes start and end pfn and
+> want to solicit some ideas whether to write it from scratch or preferably call
+> existing __free_pages_memory() to reuse the logic to convert a pfn range into
+> {pfn, order} tuples.
+> 
+> For latter however there are semantical differences as you can see below which I'm
+> not sure of:
+>   -highmem page->count is set to 1, while 0 for low mem
 
-So its not worth it to have a formal semantic via Kconfig for this and are
-happy with the status quo of having to find out through a bot compile test
-any changes in this domain fails?
+That would be weird.
 
-  Luis
+Look more closely at __free_pages_boot_core() - it uses
+set_page_refcounted() to set the page's refcount to 1.  Those
+set_page_count() calls look superfluous to me.
+
+>   -atomic clearing of page reserved flag vs. non atomic
+
+I doubt if the atomic is needed - who else can be looking at this page
+at this time?
