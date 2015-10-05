@@ -1,33 +1,84 @@
-From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Subject: Re: [PATCH] ARM64:Fix MINSIGSTKSZ and SIGSTKSZ
-Date: Mon, 05 Oct 2015 12:58:04 +0200
-Message-ID: <5166889.dum1bb5mjD@wuerfel>
-References: <1444038969-14112-1-git-send-email-manjeet.p@samsung.com>
+From: "Luis R. Rodriguez" <mcgrof@suse.com>
+Subject: Re: [RFC] asm-generic/pci_iomap.h: make custom PCI BAR requirements
+ explicit
+Date: Mon, 5 Oct 2015 18:58:56 +0200
+Message-ID: <20151005165856.GL14464@wotan.suse.de>
+References: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
+ <55E11534.2050508@infradead.org>
+ <20151002231706.GI14464@wotan.suse.de>
+ <56106F5C.5060409@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1444038969-14112-1-git-send-email-manjeet.p-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Manjeet Pawar <manjeet.p-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, pankaj.m-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org, Akhilesh Kumar <akhilesh.k-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Rohit Thapliyal <r.thapliyal-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx2.suse.de ([195.135.220.15]:48651 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751083AbbJEQ7A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 Oct 2015 12:59:00 -0400
+Content-Disposition: inline
+In-Reply-To: <56106F5C.5060409@infradead.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Randy Dunlap <rdunlap@infradead.org>
+Cc: "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, arnd@arndb.de, linux-arch@vger.kernel.org, mingo@kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, bp@suse.de, linux@roeck-us.net, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org
 
-On Monday 05 October 2015 15:26:09 Manjeet Pawar wrote:
-> -#define MINSIGSTKSZ    2048
-> -#define SIGSTKSZ       8192
-> +#ifdef CONFIG_ARM64
-> +#define MINSIGSTKSZ 5120
-> +#define SIGSTKSZ    16384
-> +#else
-> +#define MINSIGSTKSZ 2048
-> +#define SIGSTKSZ    8192
-> +#endif
+On Sat, Oct 03, 2015 at 05:14:20PM -0700, Randy Dunlap wrote:
+> On 10/02/15 16:17, Luis R. Rodriguez wrote:
+> > On Fri, Aug 28, 2015 at 07:13:08PM -0700, Randy Dunlap wrote:
+> >> On 08/28/15 17:17, Luis R. Rodriguez wrote:
+> >>>
+> >>>  arch/s390/Kconfig                 |  8 +++++
+> >>>  arch/s390/include/asm/io.h        | 11 -------
+> >>>  arch/s390/include/asm/pci.h       |  2 --
+> >>>  arch/s390/include/asm/pci_iomap.h | 33 +++++++++++++++++++++
+> >>>  arch/s390/pci/pci.c               |  2 ++
+> >>>  include/asm-generic/io.h          | 12 --------
+> >>>  include/asm-generic/iomap.h       | 10 -------
+> >>>  include/asm-generic/pci_iomap.h   | 62 +++++++++++++++++++++++++++++++++++----
+> >>>  lib/Kconfig                       |  1 +
+> >>>  lib/pci_iomap.c                   |  5 ++++
+> >>>  10 files changed, 105 insertions(+), 41 deletions(-)
+> >>>  create mode 100644 arch/s390/include/asm/pci_iomap.h
+> >>>
+> >>> diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+> >>> index 1d57000b1b24..1217b7db4265 100644
+> >>> --- a/arch/s390/Kconfig
+> >>> +++ b/arch/s390/Kconfig
+> >>> @@ -614,6 +614,14 @@ endif	# PCI
+> >>>  config PCI_DOMAINS
+> >>>  	def_bool PCI
+> >>>  
+> >>> +config ARCH_PCI_NON_DISJUNCTIVE
+> >>> +	def_bool PCI
+> >>> +	help
+> >>> +	  On the S390 architecture PCI BAR spaces are not disjunctive, as such
+> >>
+> >> 	are not disjoint?  may be overlapping?
+> >>
+> >>> +	  the PCI bar is required on a series of otherwise asm generic PCI
+> >>> +	  routines, as such S390 requires itw own implemention for these
+> >>
+> >> 	                                  its own implementation
+> > 
+> > Thanks, I've re-written this as:
+> > 
+> > mcgrof@ergon ~/linux-next (git::(no branch, rebasing 20150805-pend-all))$ git diff
+> > diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+> > index f4725d1af438..8ba5826ed13b 100644
+> > --- a/arch/s390/Kconfig
+> > +++ b/arch/s390/Kconfig
+> > @@ -618,10 +618,10 @@ config PCI_DOMAINS
+> >  config ARCH_PCI_NON_DISJUNCTIVE
+> >         def_bool PCI
+> >         help
+> > -         On the S390 architecture PCI BAR spaces are not disjunctive, as such
+> > -         the PCI bar is required on a series of otherwise asm generic PCI
+> > -         routines, as such S390 requires itw own implemention for these
+> > -         routines.
+> > +         On the S390 architecture PCI BAR spaces may overlap with each other,
+> 
+> That "other," should not end with a comma.  Either use a semi-colon or use a
+> period and begin the next sentence with Because.
 
-uapi header files cannot use CONFIG_* symbols, as they are not visible
-in user space.
+Amended, thanks.
 
-If these have to be architecture-specific, override them in
-arch/arm64/include/uapi/asm/signal.h
-
-	Arnd
+ Luis
