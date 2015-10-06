@@ -1,123 +1,62 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [arc-linux-dev] Re: New helper to free highmem pages in larger
- chunks
-Date: Tue, 6 Oct 2015 08:42:32 +0000
-Message-ID: <C2D7FE5348E1B147BCA15975FBA23075D781AB9A@IN01WEMBXB.internal.synopsys.com>
-References: <560FD031.3030909@synopsys.com>
- <20151005150955.3e1da261449ae046e1be3989@linux-foundation.org>
- <C2D7FE5348E1B147BCA15975FBA23075D781AB03@IN01WEMBXB.internal.synopsys.com>
-Reply-To: "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [RFC] asm-generic/pci_iomap.h: make custom PCI BAR requirements
+ explicit
+Date: Tue, 6 Oct 2015 13:15:04 +0200
+Message-ID: <20151006131504.4385c598@mschwide>
+References: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
+	<1866509.8pE0MIz57e@wuerfel>
+	<20151002235346.GJ14464@wotan.suse.de>
+	<8902671.32Mbh7QhE4@wuerfel>
+	<20151005170914.GM14464@wotan.suse.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, Robin Holt <robin.m.holt@gmail.com>, Nathan Zimmer <nzimmer@sgi.com>, Jiang Liu <liuj97@gmail.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Mel Gorman <mgorman@suse.de>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:37125 "EHLO
+	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752574AbbJFLPO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Oct 2015 07:15:14 -0400
+Received: from localhost
+	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+	Tue, 6 Oct 2015 12:15:12 +0100
+In-Reply-To: <20151005170914.GM14464@wotan.suse.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Luis R. Rodriguez" <mcgrof@suse.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, linux-arch@vger.kernel.org, mingo@kernel.org, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, bp@suse.de, linux@roeck-us.net, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org
 
-On Tuesday 06 October 2015 11:06 AM, Vineet Gupta wrote:=0A=
-> On Tuesday 06 October 2015 03:40 AM, Andrew Morton wrote:=0A=
->> On Sat, 3 Oct 2015 18:25:13 +0530 Vineet Gupta <Vineet.Gupta1@synopsys.c=
-om> wrote:=0A=
->>=0A=
->>> Hi,=0A=
->>>=0A=
->>> I noticed increased boot time when enabling highmem for ARC. Turns out =
-that=0A=
->>> freeing highmem pages into buddy allocator is done page at a time, whil=
-e it is=0A=
->>> batched for low mem pages. Below is call flow.=0A=
->>>=0A=
->>> I'm thinking of writing free_highmem_pages() which takes start and end =
-pfn and=0A=
->>> want to solicit some ideas whether to write it from scratch or preferab=
-ly call=0A=
->>> existing __free_pages_memory() to reuse the logic to convert a pfn rang=
-e into=0A=
->>> {pfn, order} tuples.=0A=
->>>=0A=
->>> For latter however there are semantical differences as you can see belo=
-w which I'm=0A=
->>> not sure of:=0A=
->>>   -highmem page->count is set to 1, while 0 for low mem=0A=
->> That would be weird.=0A=
->>=0A=
->> Look more closely at __free_pages_boot_core() - it uses=0A=
->> set_page_refcounted() to set the page's refcount to 1.  Those=0A=
->> set_page_count() calls look superfluous to me.=0A=
-> If you closer still, set_page_refcounted() is called outside the loop for=
- the=0A=
-> first page only. For all pages, loop iterator sets them to 1. Turns out t=
-here's=0A=
-> more fun here....=0A=
->=0A=
-> I ran this under a debugger and much earlier in boot process, there's exi=
-sting=0A=
-> setting of page count to 1 for *all* pages of *all* zones (include highme=
-m pages).=0A=
-> See call flow below.=0A=
->=0A=
-> free_area_init_node=0A=
->     free_area_init_core=0A=
->         loops thru all zones=0A=
->             memmap_init_zone=0A=
->                loops thru all pages of zones=0A=
->                __init_single_page=0A=
->=0A=
-> This means the subsequent setting of page count to 0 (or 1 for the specia=
-l first=0A=
-> page) is superfluous - actually buggy at best. I will send a patch to fix=
- that. I=0A=
-> hope I don't break some obscure init path which doesn't hit the above ini=
-t.=0A=
-=0A=
-So I took a stab at it and broke it royally. I was too naive for this to be=
-gin=0A=
-with. The explicit setting to 1 for high mem pages, 0 for all low mem pages=
- except=0A=
-1st page in @order which has 1 is all by design.=0A=
-=0A=
-__free_pages() called by both code paths,  always decrements the refcount o=
-f=0A=
-struct page. In case of page batch (order !=3D0) it only decrements the fir=
-st page's=0A=
-refcount. This was my find of the month - but you probably have known this =
-for=0A=
-longest amount of time ! Live and learn.=0A=
-=0A=
-The current High mem page only uses order =3D=3D 0, so init ref count of 1 =
-is needed=0A=
-(although done from __init_single_page is sufficient - no need to do that a=
-gain in=0A=
-free_highmem_page()). The low mem pages though typically call free_pages() =
-with=0A=
-order > 0, thus the caller carefully setsup the first page in @order to ref=
-count 1=0A=
-(using set_page_refcounted()), while rest of pages are set to 0 refcount in=
- the loop.=0A=
-=0A=
-Thus the seeming redundant setting of 0 seems to be fine IMHO - perhaps bet=
-ter to=0A=
-document it - assuming I got it right so far.=0A=
-=0A=
-=0A=
->>>   -atomic clearing of page reserved flag vs. non atomic=0A=
->> I doubt if the atomic is needed - who else can be looking at this page=
-=0A=
->> at this time?=0A=
-> I'll send another one to separately fix that as well. Seems like boot mem=
- setup is=0A=
-> a relatively neglect part of kernel.=0A=
->=0A=
-> -Vineet=0A=
->=0A=
->=0A=
-=0A=
+On Mon, 5 Oct 2015 19:09:14 +0200
+"Luis R. Rodriguez" <mcgrof@suse.com> wrote:
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> On Sun, Oct 04, 2015 at 09:02:04PM +0200, Arnd Bergmann wrote:
+> > On Saturday 03 October 2015 01:53:46 Luis R. Rodriguez wrote:
+> > > > 
+> > > > Hmm, my gut feeling tells me that your approach won't solve the problem
+> > > > in general. s390 PCI is just weird in many ways and it will occasionally
+> > > > suffer from problems like this (as do other aspects of the s390 architecture
+> > > > that are unlike the rest of the world).
+> > > > 
+> > > > Maybe Martin and Heiko can comment on this, they may have a preference
+> > > > from the s390 point of view.
+> > > 
+> > > Hrm, so S390 is quirky is really odd ways that no other architecture is or
+> > > is at least for now not expected to be ?
+> > 
+> > Absolutely correct. It is the only architecture I'm aware of that tries to
+> > support PCI that does not use pointer dereferences for MMIO.
+> 
+> So its not worth it to have a formal semantic via Kconfig for this and are
+> happy with the status quo of having to find out through a bot compile test
+> any changes in this domain fails?
+
+For my part I still do not see the value in ARCH_PCI_NON_DISJUNCTIVE.
+The existing GENERIC_PCI_IOMAP already allows an architecture to select
+the generic implementation (or not to select it). To add another Kconfig
+symbol and make GENERIC_PCI_IOMAP depend on it doesn't help.
+
+-- 
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
