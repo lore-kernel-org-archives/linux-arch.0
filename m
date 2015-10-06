@@ -1,62 +1,70 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [RFC] asm-generic/pci_iomap.h: make custom PCI BAR requirements
- explicit
-Date: Tue, 6 Oct 2015 13:15:04 +0200
-Message-ID: <20151006131504.4385c598@mschwide>
-References: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
-	<1866509.8pE0MIz57e@wuerfel>
-	<20151002235346.GJ14464@wotan.suse.de>
-	<8902671.32Mbh7QhE4@wuerfel>
-	<20151005170914.GM14464@wotan.suse.de>
+From: Mark Rutland <mark.rutland@arm.com>
+Subject: Re: [PATCH V4 2/3] arm64: support initrd outside kernel linear map
+Date: Tue, 6 Oct 2015 18:11:40 +0100
+Message-ID: <20151006171140.GE26433@leverpostej>
+References: <1439830867-14935-1-git-send-email-msalter@redhat.com>
+ <1439830867-14935-3-git-send-email-msalter@redhat.com>
+ <20150908113113.GA20562@leverpostej>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:37125 "EHLO
-	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752574AbbJFLPO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Oct 2015 07:15:14 -0400
-Received: from localhost
-	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-	Tue, 6 Oct 2015 12:15:12 +0100
-In-Reply-To: <20151005170914.GM14464@wotan.suse.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Luis R. Rodriguez" <mcgrof@suse.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, linux-arch@vger.kernel.org, mingo@kernel.org, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, bp@suse.de, linux@roeck-us.net, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20150908113113.GA20562@leverpostej>
+Sender: owner-linux-mm@kvack.org
+To: "msalter@redhat.com" <msalter@redhat.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "x86@kernel.org" <x86@kernel.org>, Will Deacon <Will.Deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 5 Oct 2015 19:09:14 +0200
-"Luis R. Rodriguez" <mcgrof@suse.com> wrote:
-
-> On Sun, Oct 04, 2015 at 09:02:04PM +0200, Arnd Bergmann wrote:
-> > On Saturday 03 October 2015 01:53:46 Luis R. Rodriguez wrote:
-> > > > 
-> > > > Hmm, my gut feeling tells me that your approach won't solve the problem
-> > > > in general. s390 PCI is just weird in many ways and it will occasionally
-> > > > suffer from problems like this (as do other aspects of the s390 architecture
-> > > > that are unlike the rest of the world).
-> > > > 
-> > > > Maybe Martin and Heiko can comment on this, they may have a preference
-> > > > from the s390 point of view.
-> > > 
-> > > Hrm, so S390 is quirky is really odd ways that no other architecture is or
-> > > is at least for now not expected to be ?
-> > 
-> > Absolutely correct. It is the only architecture I'm aware of that tries to
-> > support PCI that does not use pointer dereferences for MMIO.
+On Tue, Sep 08, 2015 at 12:31:13PM +0100, Mark Rutland wrote:
+> Hi Mark,
 > 
-> So its not worth it to have a formal semantic via Kconfig for this and are
-> happy with the status quo of having to find out through a bot compile test
-> any changes in this domain fails?
+> On Mon, Aug 17, 2015 at 06:01:06PM +0100, Mark Salter wrote:
+> > The use of mem= could leave part or all of the initrd outside of
+> > the kernel linear map. This will lead to an error when unpacking
+> > the initrd and a probable failure to boot. This patch catches that
+> > situation and relocates the initrd to be fully within the linear
+> > map.
+> 
+> With next-20150908, this patch results in a confusing message at boot when not
+> using an initrd:
+> 
+> Moving initrd from [4080000000-407fffffff] to [9fff49000-9fff48fff]
+> 
+> I think that can be solved by folding in the diff below.
 
-For my part I still do not see the value in ARCH_PCI_NON_DISJUNCTIVE.
-The existing GENERIC_PCI_IOMAP already allows an architecture to select
-the generic implementation (or not to select it). To add another Kconfig
-symbol and make GENERIC_PCI_IOMAP depend on it doesn't help.
+Mark, it looks like this fell by the wayside.
 
--- 
-blue skies,
-   Martin.
+Do you have any objection to this? I'll promote this to it's own patch
+if not.
 
-"Reality continues to ruin my life." - Calvin.
+Mark.
+
+> 
+> Thanks,
+> Mark.
+> 
+> diff --git a/arch/arm64/kernel/setup.c b/arch/arm64/kernel/setup.c
+> index 6bab21f..2322479 100644
+> --- a/arch/arm64/kernel/setup.c
+> +++ b/arch/arm64/kernel/setup.c
+> @@ -364,6 +364,8 @@ static void __init relocate_initrd(void)
+>                 to_free = ram_end - orig_start;
+>  
+>         size = orig_end - orig_start;
+> +       if (!size)
+> +               return;
+>  
+>         /* initrd needs to be relocated completely inside linear mapping */
+>         new_start = memblock_find_in_range(0, PFN_PHYS(max_pfn),
+> 
+> _______________________________________________
+> linux-arm-kernel mailing list
+> linux-arm-kernel@lists.infradead.org
+> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+> 
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
