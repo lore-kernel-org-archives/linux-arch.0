@@ -1,46 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:49258 "EHLO mx2.suse.de"
+Received: from verein.lst.de ([213.95.11.211]:57171 "EHLO newverein.lst.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752524AbbJERJQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 5 Oct 2015 13:09:16 -0400
-Date: Mon, 5 Oct 2015 19:09:14 +0200
-From: "Luis R. Rodriguez" <mcgrof@suse.com>
-Subject: Re: [RFC] asm-generic/pci_iomap.h: make custom PCI BAR requirements
- explicit
-Message-ID: <20151005170914.GM14464@wotan.suse.de>
-References: <1440807447-584-1-git-send-email-mcgrof@do-not-panic.com>
- <1866509.8pE0MIz57e@wuerfel>
- <20151002235346.GJ14464@wotan.suse.de>
- <8902671.32Mbh7QhE4@wuerfel>
+	id S1750812AbbJFIiH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 6 Oct 2015 04:38:07 -0400
+Date: Tue, 6 Oct 2015 10:38:05 +0200
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: fix various asm-generic abuses
+Message-ID: <20151006083805.GA28030@lst.de>
+References: <1440746842-19029-1-git-send-email-hch@lst.de> <22516156.tfGZvl13aG@wuerfel>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <8902671.32Mbh7QhE4@wuerfel>
+In-Reply-To: <22516156.tfGZvl13aG@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: "Luis R. Rodriguez" <mcgrof@do-not-panic.com>, linux-arch@vger.kernel.org, mingo@kernel.org, schwidefsky@de.ibm.com, heiko.carstens@de.ibm.com, linux-s390@vger.kernel.org, bp@suse.de, linux@roeck-us.net, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, rostedt@goodmis.org
-Message-ID: <20151005170914.qDZWWvusr9VGJsEeucbS3Yj5tpVKDiFwzStZsVrbyRM@z>
+Cc: Christoph Hellwig <hch@lst.de>, mitake@dcl.info.waseda.ac.jp, dhowells@redhat.com, herbert@gondor.apana.org.au, oded.gabbay@amd.com, eli@mellanox.com, james_p_freyensee@linux.intel.com, linux-gpio@vger.kernel.org, drbd-dev@lists.linbit.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20151006083805.KaoWNEkeo3yox7r2GmzDe9LeuL9KfyISQ3YKDh-uT60@z>
 
-On Sun, Oct 04, 2015 at 09:02:04PM +0200, Arnd Bergmann wrote:
-> On Saturday 03 October 2015 01:53:46 Luis R. Rodriguez wrote:
-> > > 
-> > > Hmm, my gut feeling tells me that your approach won't solve the problem
-> > > in general. s390 PCI is just weird in many ways and it will occasionally
-> > > suffer from problems like this (as do other aspects of the s390 architecture
-> > > that are unlike the rest of the world).
-> > > 
-> > > Maybe Martin and Heiko can comment on this, they may have a preference
-> > > from the s390 point of view.
-> > 
-> > Hrm, so S390 is quirky is really odd ways that no other architecture is or
-> > is at least for now not expected to be ?
+On Fri, Aug 28, 2015 at 09:16:51PM +0200, Arnd Bergmann wrote:
+> with asm-generic patches is to have changes go through the tree of
+> whichever maintainer needs the changes for their own work with my
+> Ack, but I guess in this case you don't actually have other patches
+> depending on them, right?
 > 
-> Absolutely correct. It is the only architecture I'm aware of that tries to
-> support PCI that does not use pointer dereferences for MMIO.
+> If driver maintainers want to pick individual patches from this series,
+> please add my
+> 
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> 
+> otherwise let me know if I should put them into my asm-generic git
+> tree (which is currently empty, but part of linux-next).
 
-So its not worth it to have a formal semantic via Kconfig for this and are
-happy with the status quo of having to find out through a bot compile test
-any changes in this domain fails?
-
-  Luis
+Seems like none of them made it into 4.3-rc - was that intentional or an
+oversight?
