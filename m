@@ -1,31 +1,123 @@
-From: Christoph Hellwig <hch@lst.de>
-Subject: Re: fix various asm-generic abuses
-Date: Tue, 6 Oct 2015 10:38:05 +0200
-Message-ID: <20151006083805.GA28030@lst.de>
-References: <1440746842-19029-1-git-send-email-hch@lst.de> <22516156.tfGZvl13aG@wuerfel>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [arc-linux-dev] Re: New helper to free highmem pages in larger
+ chunks
+Date: Tue, 6 Oct 2015 08:42:32 +0000
+Message-ID: <C2D7FE5348E1B147BCA15975FBA23075D781AB9A@IN01WEMBXB.internal.synopsys.com>
+References: <560FD031.3030909@synopsys.com>
+ <20151005150955.3e1da261449ae046e1be3989@linux-foundation.org>
+ <C2D7FE5348E1B147BCA15975FBA23075D781AB03@IN01WEMBXB.internal.synopsys.com>
+Reply-To: "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <22516156.tfGZvl13aG@wuerfel>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Christoph Hellwig <hch@lst.de>, mitake@dcl.info.waseda.ac.jp, dhowells@redhat.com, herbert@gondor.apana.org.au, oded.gabbay@amd.com, eli@mellanox.com, james_p_freyensee@linux.intel.com, linux-gpio@vger.kernel.org, drbd-dev@lists.linbit.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+Content-Language: en-US
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>, Robin Holt <robin.m.holt@gmail.com>, Nathan Zimmer <nzimmer@sgi.com>, Jiang Liu <liuj97@gmail.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Mel Gorman <mgorman@suse.de>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Aug 28, 2015 at 09:16:51PM +0200, Arnd Bergmann wrote:
-> with asm-generic patches is to have changes go through the tree of
-> whichever maintainer needs the changes for their own work with my
-> Ack, but I guess in this case you don't actually have other patches
-> depending on them, right?
-> 
-> If driver maintainers want to pick individual patches from this series,
-> please add my
-> 
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-> 
-> otherwise let me know if I should put them into my asm-generic git
-> tree (which is currently empty, but part of linux-next).
+On Tuesday 06 October 2015 11:06 AM, Vineet Gupta wrote:=0A=
+> On Tuesday 06 October 2015 03:40 AM, Andrew Morton wrote:=0A=
+>> On Sat, 3 Oct 2015 18:25:13 +0530 Vineet Gupta <Vineet.Gupta1@synopsys.c=
+om> wrote:=0A=
+>>=0A=
+>>> Hi,=0A=
+>>>=0A=
+>>> I noticed increased boot time when enabling highmem for ARC. Turns out =
+that=0A=
+>>> freeing highmem pages into buddy allocator is done page at a time, whil=
+e it is=0A=
+>>> batched for low mem pages. Below is call flow.=0A=
+>>>=0A=
+>>> I'm thinking of writing free_highmem_pages() which takes start and end =
+pfn and=0A=
+>>> want to solicit some ideas whether to write it from scratch or preferab=
+ly call=0A=
+>>> existing __free_pages_memory() to reuse the logic to convert a pfn rang=
+e into=0A=
+>>> {pfn, order} tuples.=0A=
+>>>=0A=
+>>> For latter however there are semantical differences as you can see belo=
+w which I'm=0A=
+>>> not sure of:=0A=
+>>>   -highmem page->count is set to 1, while 0 for low mem=0A=
+>> That would be weird.=0A=
+>>=0A=
+>> Look more closely at __free_pages_boot_core() - it uses=0A=
+>> set_page_refcounted() to set the page's refcount to 1.  Those=0A=
+>> set_page_count() calls look superfluous to me.=0A=
+> If you closer still, set_page_refcounted() is called outside the loop for=
+ the=0A=
+> first page only. For all pages, loop iterator sets them to 1. Turns out t=
+here's=0A=
+> more fun here....=0A=
+>=0A=
+> I ran this under a debugger and much earlier in boot process, there's exi=
+sting=0A=
+> setting of page count to 1 for *all* pages of *all* zones (include highme=
+m pages).=0A=
+> See call flow below.=0A=
+>=0A=
+> free_area_init_node=0A=
+>     free_area_init_core=0A=
+>         loops thru all zones=0A=
+>             memmap_init_zone=0A=
+>                loops thru all pages of zones=0A=
+>                __init_single_page=0A=
+>=0A=
+> This means the subsequent setting of page count to 0 (or 1 for the specia=
+l first=0A=
+> page) is superfluous - actually buggy at best. I will send a patch to fix=
+ that. I=0A=
+> hope I don't break some obscure init path which doesn't hit the above ini=
+t.=0A=
+=0A=
+So I took a stab at it and broke it royally. I was too naive for this to be=
+gin=0A=
+with. The explicit setting to 1 for high mem pages, 0 for all low mem pages=
+ except=0A=
+1st page in @order which has 1 is all by design.=0A=
+=0A=
+__free_pages() called by both code paths,  always decrements the refcount o=
+f=0A=
+struct page. In case of page batch (order !=3D0) it only decrements the fir=
+st page's=0A=
+refcount. This was my find of the month - but you probably have known this =
+for=0A=
+longest amount of time ! Live and learn.=0A=
+=0A=
+The current High mem page only uses order =3D=3D 0, so init ref count of 1 =
+is needed=0A=
+(although done from __init_single_page is sufficient - no need to do that a=
+gain in=0A=
+free_highmem_page()). The low mem pages though typically call free_pages() =
+with=0A=
+order > 0, thus the caller carefully setsup the first page in @order to ref=
+count 1=0A=
+(using set_page_refcounted()), while rest of pages are set to 0 refcount in=
+ the loop.=0A=
+=0A=
+Thus the seeming redundant setting of 0 seems to be fine IMHO - perhaps bet=
+ter to=0A=
+document it - assuming I got it right so far.=0A=
+=0A=
+=0A=
+>>>   -atomic clearing of page reserved flag vs. non atomic=0A=
+>> I doubt if the atomic is needed - who else can be looking at this page=
+=0A=
+>> at this time?=0A=
+> I'll send another one to separately fix that as well. Seems like boot mem=
+ setup is=0A=
+> a relatively neglect part of kernel.=0A=
+>=0A=
+> -Vineet=0A=
+>=0A=
+>=0A=
+=0A=
 
-Seems like none of them made it into 4.3-rc - was that intentional or an
-oversight?
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
