@@ -1,69 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:53699 "EHLO foss.arm.com"
+Received: from foss.arm.com ([217.140.101.70]:57643 "EHLO foss.arm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751709AbbJFRMC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 6 Oct 2015 13:12:02 -0400
-Date: Tue, 6 Oct 2015 18:11:40 +0100
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH V4 2/3] arm64: support initrd outside kernel linear map
-Message-ID: <20151006171140.GE26433@leverpostej>
-References: <1439830867-14935-1-git-send-email-msalter@redhat.com>
- <1439830867-14935-3-git-send-email-msalter@redhat.com>
- <20150908113113.GA20562@leverpostej>
+	id S1752428AbbJGNXV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 7 Oct 2015 09:23:21 -0400
+Date: Wed, 7 Oct 2015 14:23:17 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
+ update documentation
+Message-ID: <20151007132317.GK16065@arm.com>
+References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
+ <20151007111915.GF17308@twins.programming.kicks-ass.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20150908113113.GA20562@leverpostej>
+In-Reply-To: <20151007111915.GF17308@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "msalter@redhat.com" <msalter@redhat.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "x86@kernel.org" <x86@kernel.org>, Will Deacon <Will.Deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20151006171140.FoI5vB9S-I_jMMENhZ_fe_qBP7VP197XDljdskjiEbI@z>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, mpe@ellerman.id.au
+Message-ID: <20151007132317.bdb7U5ZBws2EgoDVp4dhdqU_avFwOKR2_tI-IvQJOqA@z>
 
-On Tue, Sep 08, 2015 at 12:31:13PM +0100, Mark Rutland wrote:
-> Hi Mark,
-> 
-> On Mon, Aug 17, 2015 at 06:01:06PM +0100, Mark Salter wrote:
-> > The use of mem= could leave part or all of the initrd outside of
-> > the kernel linear map. This will lead to an error when unpacking
-> > the initrd and a probable failure to boot. This patch catches that
-> > situation and relocates the initrd to be fully within the linear
-> > map.
-> 
-> With next-20150908, this patch results in a confusing message at boot when not
-> using an initrd:
-> 
-> Moving initrd from [4080000000-407fffffff] to [9fff49000-9fff48fff]
-> 
-> I think that can be solved by folding in the diff below.
+Hi Peter,
 
-Mark, it looks like this fell by the wayside.
+Thanks for the headache ;)
 
-Do you have any objection to this? I'll promote this to it's own patch
-if not.
+On Wed, Oct 07, 2015 at 01:19:15PM +0200, Peter Zijlstra wrote:
+> On Wed, Oct 07, 2015 at 11:59:28AM +0100, Will Deacon wrote:
+> > As much as we'd like to live in a world where RELEASE -> ACQUIRE is
+> > always cheaply ordered and can be used to construct UNLOCK -> LOCK
+> > definitions with similar guarantees, the grim reality is that this isn't
+> > even possible on x86 (thanks to Paul for bringing us crashing down to
+> > Earth).
+> > 
+> > This patch handles the issue by introducing a new barrier macro,
+> > smp_mb__release_acquire, that can be placed between a RELEASE and a
+> > subsequent ACQUIRE operation in order to upgrade them to a full memory
+> > barrier. At the moment, it doesn't have any users, so its existence
+> > serves mainly as a documentation aid.
+> 
+> Does we want to go revert 12d560f4ea87 ("rcu,locking: Privatize
+> smp_mb__after_unlock_lock()") for that same reason?
 
-Mark.
+I don't think we want a straight revert. smp_mb__after_unlock_lock could
+largely die if PPC strengthened its locks, whereas smp_mb__release_acquire
+is needed by quite a few architectures.
 
+> > Documentation/memory-barriers.txt is updated to describe more clearly
+> > the ACQUIRE and RELEASE ordering in this area and to show an example of
+> > the new barrier in action.
 > 
-> Thanks,
-> Mark.
-> 
-> diff --git a/arch/arm64/kernel/setup.c b/arch/arm64/kernel/setup.c
-> index 6bab21f..2322479 100644
-> --- a/arch/arm64/kernel/setup.c
-> +++ b/arch/arm64/kernel/setup.c
-> @@ -364,6 +364,8 @@ static void __init relocate_initrd(void)
->                 to_free = ram_end - orig_start;
->  
->         size = orig_end - orig_start;
-> +       if (!size)
-> +               return;
->  
->         /* initrd needs to be relocated completely inside linear mapping */
->         new_start = memblock_find_in_range(0, PFN_PHYS(max_pfn),
-> 
-> _______________________________________________
-> linux-arm-kernel mailing list
-> linux-arm-kernel@lists.infradead.org
-> http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
-> 
+> The only nit I have is that if we revert the above it might be make
+> sense to more clearly call out the distinction between the two.
+
+Right. Where I think we'd like to get to is:
+
+ - RELEASE -> ACQUIRE acts as a full barrier if they operate on the same
+   variable and the ACQUIRE reads from the RELEASE
+
+ - RELEASE -> ACQUIRE acts as a full barrier if they execute on the same
+   CPU and are interleaved with an smp_mb__release_acquire barrier.
+
+ - RELEASE -> ACQUIRE ordering is transitive
+
+[only the transitivity part is missing in this patch, because I lost
+ track of that discussion]
+
+We could then use these same guarantees for UNLOCK -> LOCK in RCU,
+defining smp_mb__after_unlock_lock to be the same as
+smp_mb__release_acquire, but only applying to UNLOCK -> LOCK. That's a
+slight relaxation of how it's defined at the moment (and I guess would
+need some work on PPC?), but it keeps things consistent which is
+especially important as core locking primitives are ported over to the
+ACQUIRE/RELEASE primitives.
+
+Thoughts?
+
+Will
