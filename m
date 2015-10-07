@@ -1,78 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:57643 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752428AbbJGNXV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 7 Oct 2015 09:23:21 -0400
-Date: Wed, 7 Oct 2015 14:23:17 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
- update documentation
-Message-ID: <20151007132317.GK16065@arm.com>
-References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
- <20151007111915.GF17308@twins.programming.kicks-ass.net>
+Received: from eu-smtp-delivery-143.mimecast.com ([146.101.78.143]:19850 "EHLO
+	eu-smtp-delivery-143.mimecast.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751259AbbJGTRH convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 7 Oct 2015 15:17:07 -0400
+Subject: Re: [PATCH 4/4] dma-debug: Allow poisoning nonzero allocations
+References: <cover.1443178314.git.robin.murphy@arm.com>
+ <0405c6131def5aa179ff4ba5d4201ebde89cede3.1443178314.git.robin.murphy@arm.com>
+ <20150925124447.GO21513@n2100.arm.linux.org.uk> <560585EB.3060908@arm.com>
+ <20150929142727.e95a2d2ebff65dda86315248@linux-foundation.org>
+From: Robin Murphy <robin.murphy@arm.com>
+Message-ID: <56156FAF.9020002@arm.com>
+Date: Wed, 7 Oct 2015 20:17:03 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20151007111915.GF17308@twins.programming.kicks-ass.net>
+In-Reply-To: <20150929142727.e95a2d2ebff65dda86315248@linux-foundation.org>
+Content-Type: text/plain; charset=WINDOWS-1252; format=flowed
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, mpe@ellerman.id.au
-Message-ID: <20151007132317.bdb7U5ZBws2EgoDVp4dhdqU_avFwOKR2_tI-IvQJOqA@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "arnd@arndb.de" <arnd@arndb.de>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "sakari.ailus@iki.fi" <sakari.ailus@iki.fi>, "sumit.semwal@linaro.org" <sumit.semwal@linaro.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "m.szyprowski@samsung.com" <m.szyprowski@samsung.com>
+Message-ID: <20151007191703.n77_IL135sHb6_d5XC_qE7lpjwr-j6BQl6hK0QfhSh0@z>
 
-Hi Peter,
+On 29/09/15 22:27, Andrew Morton wrote:
+[...]
+> If I'm understanding things correctly, some allocators zero the memory
+> by default and others do not.  And we have an unknown number of drivers
+> which are assuming that the memory is zeroed.
+>
+> Correct?
 
-Thanks for the headache ;)
+That's precisely the motivation here, yes.
 
-On Wed, Oct 07, 2015 at 01:19:15PM +0200, Peter Zijlstra wrote:
-> On Wed, Oct 07, 2015 at 11:59:28AM +0100, Will Deacon wrote:
-> > As much as we'd like to live in a world where RELEASE -> ACQUIRE is
-> > always cheaply ordered and can be used to construct UNLOCK -> LOCK
-> > definitions with similar guarantees, the grim reality is that this isn't
-> > even possible on x86 (thanks to Paul for bringing us crashing down to
-> > Earth).
-> > 
-> > This patch handles the issue by introducing a new barrier macro,
-> > smp_mb__release_acquire, that can be placed between a RELEASE and a
-> > subsequent ACQUIRE operation in order to upgrade them to a full memory
-> > barrier. At the moment, it doesn't have any users, so its existence
-> > serves mainly as a documentation aid.
-> 
-> Does we want to go revert 12d560f4ea87 ("rcu,locking: Privatize
-> smp_mb__after_unlock_lock()") for that same reason?
+> If so, our options are
+>
+> a) audit all callers, find the ones which expect zeroed memory but
+>     aren't passing __GFP_ZERO and fix them.
+>
+> b) convert all allocators to zero the memory by default.
+>
+> Obviously, a) is better.  How big a job is it?
 
-I don't think we want a straight revert. smp_mb__after_unlock_lock could
-largely die if PPC strengthened its locks, whereas smp_mb__release_acquire
-is needed by quite a few architectures.
+This I'm not so sure of, hence the very tentative first step. For a very 
+crude guess at an an upper bound:
 
-> > Documentation/memory-barriers.txt is updated to describe more clearly
-> > the ACQUIRE and RELEASE ordering in this area and to show an example of
-> > the new barrier in action.
-> 
-> The only nit I have is that if we revert the above it might be make
-> sense to more clearly call out the distinction between the two.
+$ git grep -E '(dma|pci)_alloc_co(her|nsist)ent' drivers/ | wc -l
+1148
 
-Right. Where I think we'd like to get to is:
+vs.
 
- - RELEASE -> ACQUIRE acts as a full barrier if they operate on the same
-   variable and the ACQUIRE reads from the RELEASE
+$ git grep -E '(dma|pci)_zalloc_co(her|nsist)ent' drivers/ | wc -l
+234
 
- - RELEASE -> ACQUIRE acts as a full barrier if they execute on the same
-   CPU and are interleaved with an smp_mb__release_acquire barrier.
+noting that the vast majority of the former are still probably benign, 
+but picking out those which aren't from the code alone without knowledge 
+of and/or access to the hardware might be non-trivial.
 
- - RELEASE -> ACQUIRE ordering is transitive
+> This patch will help the process, if people use it.
+>
+>>>> +	if (IS_ENABLED(CONFIG_DMA_API_DEBUG_POISON) && !(flags & __GFP_ZERO))
+>>>> +		memset(virt, DMA_ALLOC_POISON, size);
+>>>> +
+>>>
+>>> This is likely to be slow in the case of non-cached memory and large
+>>> allocations.  The config option should come with a warning.
+>>
+>> It depends on DMA_API_DEBUG, which already has a stern performance
+>> warning, is additionally hidden behind EXPERT, and carries a slightly
+>> flippant yet largely truthful warning that actually using it could break
+>> pretty much every driver in your system; is that not enough?
+>
+> It might be helpful to provide a runtime knob as well - having to
+> rebuild&reinstall just to enable/disable this feature is a bit painful.
 
-[only the transitivity part is missing in this patch, because I lost
- track of that discussion]
+Good point - there's always the global DMA debug disable knob, but this 
+particular feature probably does warrant finer-grained control to be 
+really practical. Having thought about it some more, it's also probably 
+wrong that this doesn't respect the dma_debug_driver filter, given that 
+it is actually invasive; in fixing that, how about if it also *only* 
+applied when a specific driver is filtered? Then there would be no 
+problematic "break anything and everything" mode, and the existing 
+debugfs controls should suffice.
 
-We could then use these same guarantees for UNLOCK -> LOCK in RCU,
-defining smp_mb__after_unlock_lock to be the same as
-smp_mb__release_acquire, but only applying to UNLOCK -> LOCK. That's a
-slight relaxation of how it's defined at the moment (and I guess would
-need some work on PPC?), but it keeps things consistent which is
-especially important as core locking primitives are ported over to the
-ACQUIRE/RELEASE primitives.
+Robin.
 
-Thoughts?
-
-Will
