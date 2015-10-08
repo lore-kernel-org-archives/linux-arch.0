@@ -1,61 +1,84 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
- update documentation
-Date: Thu, 08 Oct 2015 14:50:36 +1100
-Message-ID: <1444276236.9940.5.camel@ellerman.id.au>
-References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
-	 <20151007111915.GF17308@twins.programming.kicks-ass.net>
-	 <20151007132317.GK16065@arm.com> <20151007152501.GI3910@linux.vnet.ibm.com>
+From: Christoffer Dall <christoffer.dall@linaro.org>
+Subject: Re: [PATCH V4 2/3] arm64: support initrd outside kernel linear map
+Date: Thu, 8 Oct 2015 10:49:53 +0200
+Message-ID: <20151008084953.GA20114@cbox>
+References: <1439830867-14935-1-git-send-email-msalter@redhat.com>
+ <1439830867-14935-3-git-send-email-msalter@redhat.com>
+ <20150908113113.GA20562@leverpostej>
+ <20151006171140.GE26433@leverpostej>
+ <1444151812.10788.14.camel@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20151007152501.GI3910@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: paulmck@linux.vnet.ibm.com
-Cc: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1444151812.10788.14.camel@redhat.com>
+Sender: owner-linux-mm@kvack.org
+To: Mark Salter <msalter@redhat.com>
+Cc: Mark Rutland <mark.rutland@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "x86@kernel.org" <x86@kernel.org>, Will Deacon <Will.Deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2015-10-07 at 08:25 -0700, Paul E. McKenney wrote:
-> On Wed, Oct 07, 2015 at 02:23:17PM +0100, Will Deacon wrote:
-> > Hi Peter,
-> > 
-> > Thanks for the headache ;)
-> > 
-> > On Wed, Oct 07, 2015 at 01:19:15PM +0200, Peter Zijlstra wrote:
-> > > On Wed, Oct 07, 2015 at 11:59:28AM +0100, Will Deacon wrote:
-> > > > As much as we'd like to live in a world where RELEASE -> ACQUIRE is
-> > > > always cheaply ordered and can be used to construct UNLOCK -> LOCK
-> > > > definitions with similar guarantees, the grim reality is that this isn't
-> > > > even possible on x86 (thanks to Paul for bringing us crashing down to
-> > > > Earth).
-> > > > 
-> > > > This patch handles the issue by introducing a new barrier macro,
-> > > > smp_mb__release_acquire, that can be placed between a RELEASE and a
-> > > > subsequent ACQUIRE operation in order to upgrade them to a full memory
-> > > > barrier. At the moment, it doesn't have any users, so its existence
-> > > > serves mainly as a documentation aid.
+On Tue, Oct 06, 2015 at 01:16:52PM -0400, Mark Salter wrote:
+> On Tue, 2015-10-06 at 18:11 +0100, Mark Rutland wrote:
+> > On Tue, Sep 08, 2015 at 12:31:13PM +0100, Mark Rutland wrote:
+> > > Hi Mark,
 > > > 
-> > > Does we want to go revert 12d560f4ea87 ("rcu,locking: Privatize
-> > > smp_mb__after_unlock_lock()") for that same reason?
+> > > On Mon, Aug 17, 2015 at 06:01:06PM +0100, Mark Salter wrote:
+> > > > The use of mem= could leave part or all of the initrd outside of
+> > > > the kernel linear map. This will lead to an error when unpacking
+> > > > the initrd and a probable failure to boot. This patch catches that
+> > > > situation and relocates the initrd to be fully within the linear
+> > > > map.
+> > > 
+> > > With next-20150908, this patch results in a confusing message at boot when not
+> > > using an initrd:
+> > > 
+> > > Moving initrd from [4080000000-407fffffff] to [9fff49000-9fff48fff]
+> > > 
+> > > I think that can be solved by folding in the diff below.
 > > 
-> > I don't think we want a straight revert. smp_mb__after_unlock_lock could
-> > largely die if PPC strengthened its locks, whereas smp_mb__release_acquire
-> > is needed by quite a few architectures.
+> > Mark, it looks like this fell by the wayside.
+> > 
+> > Do you have any objection to this? I'll promote this to it's own patch
+> > if not.
+> > 
+> > Mark.
+> > 
+> > > 
+> > > Thanks,
+> > > Mark.
+> > > 
+> > > diff --git a/arch/arm64/kernel/setup.c b/arch/arm64/kernel/setup.c
+> > > index 6bab21f..2322479 100644
+> > > --- a/arch/arm64/kernel/setup.c
+> > > +++ b/arch/arm64/kernel/setup.c
+> > > @@ -364,6 +364,8 @@ static void __init relocate_initrd(void)
+> > >                 to_free = ram_end - orig_start;
+> > >  
+> > >         size = orig_end - orig_start;
+> > > +       if (!size)
+> > > +               return;
+> > >  
+> > >         /* initrd needs to be relocated completely inside linear mapping */
+> > >         new_start = memblock_find_in_range(0, PFN_PHYS(max_pfn),
 > 
-> Currently, we do need smp_mb__after_unlock_lock() to be after the
-> acquisition on PPC -- putting it between the unlock and the lock
-> of course doesn't cut it for the cross-thread unlock/lock case.
+> Sorry, no. That looks perfectly good to me.
 > 
-> I am with Peter -- we do need the benchmark results for PPC.
+FYI: I applied these patches to 4.0 (only a trivial conflict on the x86
+side) and this fixed an issue for me booting systems with mem=X,
+reducing the amount of physical memory available on a system, which
+would otherwise cause the system to just silently halt during boot.
 
-Urgh, sorry guys. I have been slowly doing some benchmarks, but time is not
-plentiful at the moment.
+Note that this seems to fix even more than it promises, because one of
+those systems does not use an initrd, but I'm thinking maybe this fixes
+issues with the DT as well?
 
-If we do a straight lwsync -> sync conversion for unlock it looks like that
-will cost us ~4.2% on Anton's standard context switch benchmark.
+In any case, I think this may be a good candidate for cc'ing to stable?
 
-So that's not all that nice. But we also don't want to be the only arch that
-has the weird lock semantics and has to find all the bugs.
+Thanks,
+-Christoffer
 
-cheers
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
