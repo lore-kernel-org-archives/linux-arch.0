@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:15263 "EHLO mga03.intel.com"
+Received: from mga01.intel.com ([192.55.52.88]:43962 "EHLO mga01.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932961AbbJIWWI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 9 Oct 2015 18:22:08 -0400
-Subject: [PATCH 09/20] i915: switch from acpi_os_ioremap to memremap
+	id S932844AbbJIWWN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 9 Oct 2015 18:22:13 -0400
+Subject: [PATCH 10/20] acpi: switch from ioremap_cache to memremap
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 09 Oct 2015 18:16:25 -0400
-Message-ID: <20151009221625.32203.74117.stgit@dwillia2-desk3.jf.intel.com>
+Date: Fri, 09 Oct 2015 18:16:30 -0400
+Message-ID: <20151009221630.32203.96152.stgit@dwillia2-desk3.jf.intel.com>
 In-Reply-To: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
 References: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
 MIME-Version: 1.0
@@ -15,352 +15,353 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, intel-gfx@lists.freedesktop.org, Jani Nikula <jani.nikula@linux.intel.com>, dri-devel@lists.freedesktop.org, Daniel Vetter <daniel.vetter@intel.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20151009221625.45BYjKk2cR5ErtJwJaLsJOJDcAlo4exITRyZG-xB1MM@z>
+Cc: linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Bob Moore <robert.moore@intel.com>, Lv Zheng <lv.zheng@intel.com>, Russell King <rmk+kernel@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20151009221630.dyDyi_2ZJ_DIyl2zmEkhn2gJeCUXMvBPb6AYpOqaaDE@z>
 
-i915 expects the OpRegion to be cached (i.e. not __iomem), so explicitly
-map it with memremap rather than the implied cache setting of
-acpi_os_ioremap().
+In preparation for deprecating ioremap_cache() convert its usage in
+drivers/acpi and include/acpi/ to memremap.  This includes dropping the
+__iomem annotation throughout ACPI since the memremap can be treated as
+a normal memory pointer.
 
-Cc: Daniel Vetter <daniel.vetter@intel.com>
-Cc: Jani Nikula <jani.nikula@linux.intel.com>
-Cc: intel-gfx@lists.freedesktop.org
-Cc: David Airlie <airlied@linux.ie>
-Cc: dri-devel@lists.freedesktop.org
+Finally, memremap automatically handles requests to map normal memory
+pages, so this also drops the calls to "should_use_kmap()".
+
+It seems ARM had a local definition of acpi_os_ioremap() to handle RAM
+addresses, but it can be deleted now that memremap() handles this
+generically.
+
+Cc: Bob Moore <robert.moore@intel.com>
+Cc: Lv Zheng <lv.zheng@intel.com>
+Cc: Russell King <rmk+kernel@arm.linux.org.uk>
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/gpu/drm/i915/i915_debugfs.c   |    2 -
- drivers/gpu/drm/i915/i915_drv.h       |   12 +++--
- drivers/gpu/drm/i915/intel_bios.c     |    7 +--
- drivers/gpu/drm/i915/intel_opregion.c |   73 ++++++++++++++++-----------------
- drivers/gpu/drm/i915/intel_panel.c    |    2 -
- 5 files changed, 47 insertions(+), 49 deletions(-)
+ arch/arm64/include/asm/acpi.h |    8 -----
+ drivers/acpi/apei/einj.c      |    9 +++--
+ drivers/acpi/apei/erst.c      |    6 ++--
+ drivers/acpi/nvs.c            |    6 ++--
+ drivers/acpi/osl.c            |   70 +++++++++++------------------------------
+ include/acpi/acpi_io.h        |    6 +---
+ 6 files changed, 32 insertions(+), 73 deletions(-)
 
-diff --git a/drivers/gpu/drm/i915/i915_debugfs.c b/drivers/gpu/drm/i915/i915_debugfs.c
-index e3ec9049081f..15989cc16e92 100644
---- a/drivers/gpu/drm/i915/i915_debugfs.c
-+++ b/drivers/gpu/drm/i915/i915_debugfs.c
-@@ -1849,7 +1849,7 @@ static int i915_opregion(struct seq_file *m, void *unused)
+diff --git a/arch/arm64/include/asm/acpi.h b/arch/arm64/include/asm/acpi.h
+index a24a9b1cc91d..197d02047d00 100644
+--- a/arch/arm64/include/asm/acpi.h
++++ b/arch/arm64/include/asm/acpi.h
+@@ -29,14 +29,6 @@
+ 
+ /* Basic configuration for ACPI */
+ #ifdef	CONFIG_ACPI
+-/* ACPI table mapping after acpi_gbl_permanent_mmap is set */
+-static inline void __iomem *acpi_os_ioremap(acpi_physical_address phys,
+-					    acpi_size size)
+-{
+-	return memremap(phys, size, MEMREMAP_WB);
+-}
+-#define acpi_os_ioremap acpi_os_ioremap
+-
+ typedef u64 phys_cpuid_t;
+ #define PHYS_CPUID_INVALID INVALID_HWID
+ 
+diff --git a/drivers/acpi/apei/einj.c b/drivers/acpi/apei/einj.c
+index 0431883653be..9f71010f6339 100644
+--- a/drivers/acpi/apei/einj.c
++++ b/drivers/acpi/apei/einj.c
+@@ -314,7 +314,8 @@ static int __einj_error_trigger(u64 trigger_paddr, u32 type,
+ 			    sizeof(*trigger_tab) - 1);
  		goto out;
- 
- 	if (opregion->header) {
--		memcpy_fromio(data, opregion->header, OPREGION_SIZE);
-+		memcpy(data, opregion->header, OPREGION_SIZE);
- 		seq_write(m, data, OPREGION_SIZE);
  	}
+-	trigger_tab = ioremap_cache(trigger_paddr, sizeof(*trigger_tab));
++	trigger_tab = memremap(trigger_paddr, sizeof(*trigger_tab),
++			MEMREMAP_WB);
+ 	if (!trigger_tab) {
+ 		pr_err(EINJ_PFX "Failed to map trigger table!\n");
+ 		goto out_rel_header;
+@@ -342,8 +343,8 @@ static int __einj_error_trigger(u64 trigger_paddr, u32 type,
+ 		       (unsigned long long)trigger_paddr + table_size - 1);
+ 		goto out_rel_header;
+ 	}
+-	iounmap(trigger_tab);
+-	trigger_tab = ioremap_cache(trigger_paddr, table_size);
++	memunmap(trigger_tab);
++	trigger_tab = memremap(trigger_paddr, table_size, MEMREMAP_WB);
+ 	if (!trigger_tab) {
+ 		pr_err(EINJ_PFX "Failed to map trigger table!\n");
+ 		goto out_rel_entry;
+@@ -405,7 +406,7 @@ out_rel_header:
+ 	release_mem_region(trigger_paddr, sizeof(*trigger_tab));
+ out:
+ 	if (trigger_tab)
+-		iounmap(trigger_tab);
++		memunmap(trigger_tab);
  
-diff --git a/drivers/gpu/drm/i915/i915_drv.h b/drivers/gpu/drm/i915/i915_drv.h
-index e1db8de52851..d8684634a31d 100644
---- a/drivers/gpu/drm/i915/i915_drv.h
-+++ b/drivers/gpu/drm/i915/i915_drv.h
-@@ -444,14 +444,14 @@ struct opregion_swsci;
- struct opregion_asle;
+ 	return rc;
+ }
+diff --git a/drivers/acpi/apei/erst.c b/drivers/acpi/apei/erst.c
+index 6682c5daf742..4ef62b54fabf 100644
+--- a/drivers/acpi/apei/erst.c
++++ b/drivers/acpi/apei/erst.c
+@@ -73,7 +73,7 @@ static struct acpi_table_erst *erst_tab;
+ static struct erst_erange {
+ 	u64 base;
+ 	u64 size;
+-	void __iomem *vaddr;
++	void *vaddr;
+ 	u32 attr;
+ } erst_erange;
  
- struct intel_opregion {
--	struct opregion_header __iomem *header;
--	struct opregion_acpi __iomem *acpi;
--	struct opregion_swsci __iomem *swsci;
-+	struct opregion_header *header;
-+	struct opregion_acpi *acpi;
-+	struct opregion_swsci *swsci;
- 	u32 swsci_gbda_sub_functions;
- 	u32 swsci_sbcb_sub_functions;
--	struct opregion_asle __iomem *asle;
--	void __iomem *vbt;
--	u32 __iomem *lid_state;
-+	struct opregion_asle *asle;
-+	void *vbt;
-+	u32 *lid_state;
- 	struct work_struct asle_work;
- };
- #define OPREGION_SIZE            (8*1024)
-diff --git a/drivers/gpu/drm/i915/intel_bios.c b/drivers/gpu/drm/i915/intel_bios.c
-index c19e669ffe50..1ee2f11d355d 100644
---- a/drivers/gpu/drm/i915/intel_bios.c
-+++ b/drivers/gpu/drm/i915/intel_bios.c
-@@ -1238,11 +1238,10 @@ static const struct bdb_header *validate_vbt(const void __iomem *_base,
+@@ -1181,8 +1181,8 @@ static int __init erst_init(void)
+ 		goto err_unmap_reg;
+ 	}
+ 	rc = -ENOMEM;
+-	erst_erange.vaddr = ioremap_cache(erst_erange.base,
+-					  erst_erange.size);
++	erst_erange.vaddr = memremap(erst_erange.base, erst_erange.size,
++			MEMREMAP_WB);
+ 	if (!erst_erange.vaddr)
+ 		goto err_release_erange;
+ 
+diff --git a/drivers/acpi/nvs.c b/drivers/acpi/nvs.c
+index 85287b8fe3aa..e0e15af93b22 100644
+--- a/drivers/acpi/nvs.c
++++ b/drivers/acpi/nvs.c
+@@ -136,7 +136,7 @@ void suspend_nvs_free(void)
+ 			entry->data = NULL;
+ 			if (entry->kaddr) {
+ 				if (entry->unmap) {
+-					iounmap(entry->kaddr);
++					memunmap(entry->kaddr);
+ 					entry->unmap = false;
+ 				} else {
+ 					acpi_os_unmap_iomem(entry->kaddr,
+@@ -180,7 +180,7 @@ int suspend_nvs_save(void)
+ 
+ 			entry->kaddr = acpi_os_get_iomem(phys, size);
+ 			if (!entry->kaddr) {
+-				entry->kaddr = acpi_os_ioremap(phys, size);
++				entry->kaddr = acpi_os_memremap(phys, size);
+ 				entry->unmap = !!entry->kaddr;
+ 			}
+ 			if (!entry->kaddr) {
+@@ -197,7 +197,7 @@ int suspend_nvs_save(void)
+  *	suspend_nvs_restore - restore NVS memory regions
+  *
+  *	This function is going to be called with interrupts disabled, so it
+- *	cannot iounmap the virtual addresses used to access the NVS region.
++ *	cannot memunmap the virtual addresses used to access the NVS region.
+  */
+ void suspend_nvs_restore(void)
  {
- 	/*
- 	 * This is the one place where we explicitly discard the address space
--	 * (__iomem) of the BIOS/VBT. (And this will cause a sparse complaint.)
--	 * From now on everything is based on 'base', and treated as regular
--	 * memory.
-+	 * (__iomem) of the BIOS/VBT. From now on everything is based on
-+	 * 'base', and treated as regular memory.
- 	 */
--	const void *base = (const void *) _base;
-+	const void *base = (const void __force *) _base;
- 	size_t offset = _vbt - _base;
- 	const struct vbt_header *vbt = base + offset;
- 	const struct bdb_header *bdb;
-diff --git a/drivers/gpu/drm/i915/intel_opregion.c b/drivers/gpu/drm/i915/intel_opregion.c
-index cb1c65739425..4f65cdb38e1b 100644
---- a/drivers/gpu/drm/i915/intel_opregion.c
-+++ b/drivers/gpu/drm/i915/intel_opregion.c
-@@ -239,7 +239,7 @@ struct opregion_asle {
- static int swsci(struct drm_device *dev, u32 function, u32 parm, u32 *parm_out)
- {
- 	struct drm_i915_private *dev_priv = dev->dev_private;
--	struct opregion_swsci __iomem *swsci = dev_priv->opregion.swsci;
-+	struct opregion_swsci *swsci = dev_priv->opregion.swsci;
- 	u32 main_function, sub_function, scic;
- 	u16 pci_swsci;
- 	u32 dslp;
-@@ -264,7 +264,7 @@ static int swsci(struct drm_device *dev, u32 function, u32 parm, u32 *parm_out)
- 	}
+diff --git a/drivers/acpi/osl.c b/drivers/acpi/osl.c
+index 739a4a6b3b9b..d629eef2a56e 100644
+--- a/drivers/acpi/osl.c
++++ b/drivers/acpi/osl.c
+@@ -27,7 +27,6 @@
+ #include <linux/kernel.h>
+ #include <linux/slab.h>
+ #include <linux/mm.h>
+-#include <linux/highmem.h>
+ #include <linux/pci.h>
+ #include <linux/interrupt.h>
+ #include <linux/kmod.h>
+@@ -40,8 +39,8 @@
+ #include <linux/list.h>
+ #include <linux/jiffies.h>
+ #include <linux/semaphore.h>
++#include <linux/io.h>
  
- 	/* Driver sleep timeout in ms. */
--	dslp = ioread32(&swsci->dslp);
-+	dslp = swsci->dslp;
- 	if (!dslp) {
- 		/* The spec says 2ms should be the default, but it's too small
- 		 * for some machines. */
-@@ -277,7 +277,7 @@ static int swsci(struct drm_device *dev, u32 function, u32 parm, u32 *parm_out)
- 	}
+-#include <asm/io.h>
+ #include <asm/uaccess.h>
+ #include <asm-generic/io-64-nonatomic-lo-hi.h>
  
- 	/* The spec tells us to do this, but we are the only user... */
--	scic = ioread32(&swsci->scic);
-+	scic = swsci->scic;
- 	if (scic & SWSCI_SCIC_INDICATOR) {
- 		DRM_DEBUG_DRIVER("SWSCI request already in progress\n");
- 		return -EBUSY;
-@@ -285,8 +285,8 @@ static int swsci(struct drm_device *dev, u32 function, u32 parm, u32 *parm_out)
- 
- 	scic = function | SWSCI_SCIC_INDICATOR;
- 
--	iowrite32(parm, &swsci->parm);
--	iowrite32(scic, &swsci->scic);
-+	swsci->parm = parm;
-+	swsci->scic = scic;
- 
- 	/* Ensure SCI event is selected and event trigger is cleared. */
- 	pci_read_config_word(dev->pdev, PCI_SWSCI, &pci_swsci);
-@@ -301,7 +301,7 @@ static int swsci(struct drm_device *dev, u32 function, u32 parm, u32 *parm_out)
- 	pci_write_config_word(dev->pdev, PCI_SWSCI, pci_swsci);
- 
- 	/* Poll for the result. */
--#define C (((scic = ioread32(&swsci->scic)) & SWSCI_SCIC_INDICATOR) == 0)
-+#define C (((scic = swsci->scic) & SWSCI_SCIC_INDICATOR) == 0)
- 	if (wait_for(C, dslp)) {
- 		DRM_DEBUG_DRIVER("SWSCI request timed out\n");
- 		return -ETIMEDOUT;
-@@ -317,7 +317,7 @@ static int swsci(struct drm_device *dev, u32 function, u32 parm, u32 *parm_out)
- 	}
- 
- 	if (parm_out)
--		*parm_out = ioread32(&swsci->parm);
-+		*parm_out = swsci->parm;
- 
- 	return 0;
- 
-@@ -407,7 +407,7 @@ static u32 asle_set_backlight(struct drm_device *dev, u32 bclp)
- {
- 	struct drm_i915_private *dev_priv = dev->dev_private;
- 	struct intel_connector *intel_connector;
--	struct opregion_asle __iomem *asle = dev_priv->opregion.asle;
-+	struct opregion_asle *asle = dev_priv->opregion.asle;
- 
- 	DRM_DEBUG_DRIVER("bclp = 0x%08x\n", bclp);
- 
-@@ -432,7 +432,7 @@ static u32 asle_set_backlight(struct drm_device *dev, u32 bclp)
- 	DRM_DEBUG_KMS("updating opregion backlight %d/255\n", bclp);
- 	list_for_each_entry(intel_connector, &dev->mode_config.connector_list, base.head)
- 		intel_panel_set_backlight_acpi(intel_connector, bclp, 255);
--	iowrite32(DIV_ROUND_UP(bclp * 100, 255) | ASLE_CBLV_VALID, &asle->cblv);
-+	asle->cblv = DIV_ROUND_UP(bclp * 100, 255) | ASLE_CBLV_VALID;
- 
- 	drm_modeset_unlock(&dev->mode_config.connection_mutex);
- 
-@@ -519,14 +519,14 @@ static void asle_work(struct work_struct *work)
- 	struct drm_i915_private *dev_priv =
- 		container_of(opregion, struct drm_i915_private, opregion);
- 	struct drm_device *dev = dev_priv->dev;
--	struct opregion_asle __iomem *asle = dev_priv->opregion.asle;
-+	struct opregion_asle *asle = dev_priv->opregion.asle;
- 	u32 aslc_stat = 0;
- 	u32 aslc_req;
- 
- 	if (!asle)
- 		return;
- 
--	aslc_req = ioread32(&asle->aslc);
-+	aslc_req = asle->aslc;
- 
- 	if (!(aslc_req & ASLC_REQ_MSK)) {
- 		DRM_DEBUG_DRIVER("No request on ASLC interrupt 0x%08x\n",
-@@ -535,34 +535,34 @@ static void asle_work(struct work_struct *work)
- 	}
- 
- 	if (aslc_req & ASLC_SET_ALS_ILLUM)
--		aslc_stat |= asle_set_als_illum(dev, ioread32(&asle->alsi));
-+		aslc_stat |= asle_set_als_illum(dev, asle->alsi);
- 
- 	if (aslc_req & ASLC_SET_BACKLIGHT)
--		aslc_stat |= asle_set_backlight(dev, ioread32(&asle->bclp));
-+		aslc_stat |= asle_set_backlight(dev, asle->bclp);
- 
- 	if (aslc_req & ASLC_SET_PFIT)
--		aslc_stat |= asle_set_pfit(dev, ioread32(&asle->pfit));
-+		aslc_stat |= asle_set_pfit(dev, asle->pfit);
- 
- 	if (aslc_req & ASLC_SET_PWM_FREQ)
--		aslc_stat |= asle_set_pwm_freq(dev, ioread32(&asle->pfmb));
-+		aslc_stat |= asle_set_pwm_freq(dev, asle->pfmb);
- 
- 	if (aslc_req & ASLC_SUPPORTED_ROTATION_ANGLES)
- 		aslc_stat |= asle_set_supported_rotation_angles(dev,
--							ioread32(&asle->srot));
-+							asle->srot);
- 
- 	if (aslc_req & ASLC_BUTTON_ARRAY)
--		aslc_stat |= asle_set_button_array(dev, ioread32(&asle->iuer));
-+		aslc_stat |= asle_set_button_array(dev, asle->iuer);
- 
- 	if (aslc_req & ASLC_CONVERTIBLE_INDICATOR)
--		aslc_stat |= asle_set_convertible(dev, ioread32(&asle->iuer));
-+		aslc_stat |= asle_set_convertible(dev, asle->iuer);
- 
- 	if (aslc_req & ASLC_DOCKING_INDICATOR)
--		aslc_stat |= asle_set_docking(dev, ioread32(&asle->iuer));
-+		aslc_stat |= asle_set_docking(dev, asle->iuer);
- 
- 	if (aslc_req & ASLC_ISCT_STATE_CHANGE)
- 		aslc_stat |= asle_isct_state(dev);
- 
--	iowrite32(aslc_stat, &asle->aslc);
-+	asle->aslc = aslc_stat;
+@@ -88,7 +87,7 @@ static bool acpi_os_initialized;
+  */
+ struct acpi_ioremap {
+ 	struct list_head list;
+-	void __iomem *virt;
++	void *virt;
+ 	acpi_physical_address phys;
+ 	acpi_size size;
+ 	unsigned long refcount;
+@@ -292,7 +291,7 @@ acpi_map_lookup(acpi_physical_address phys, acpi_size size)
  }
  
- void intel_opregion_asle_intr(struct drm_device *dev)
-@@ -587,8 +587,8 @@ static int intel_opregion_video_event(struct notifier_block *nb,
- 	   Linux, these are handled by the dock, button and video drivers.
- 	*/
- 
--	struct opregion_acpi __iomem *acpi;
- 	struct acpi_bus_event *event = data;
-+	struct opregion_acpi *acpi;
- 	int ret = NOTIFY_OK;
- 
- 	if (strcmp(event->device_class, ACPI_VIDEO_CLASS) != 0)
-@@ -599,11 +599,10 @@ static int intel_opregion_video_event(struct notifier_block *nb,
- 
- 	acpi = system_opregion->acpi;
- 
--	if (event->type == 0x80 &&
--	    (ioread32(&acpi->cevt) & 1) == 0)
-+	if (event->type == 0x80 && ((acpi->cevt & 1) == 0))
- 		ret = NOTIFY_BAD;
- 
--	iowrite32(0, &acpi->csts);
-+	acpi->csts = 0;
- 
- 	return ret;
- }
-@@ -787,16 +786,16 @@ void intel_opregion_init(struct drm_device *dev)
- 		/* Notify BIOS we are ready to handle ACPI video ext notifs.
- 		 * Right now, all the events are handled by the ACPI video module.
- 		 * We don't actually need to do anything with them. */
--		iowrite32(0, &opregion->acpi->csts);
--		iowrite32(1, &opregion->acpi->drdy);
-+		opregion->acpi->csts = 0;
-+		opregion->acpi->drdy = 1;
- 
- 		system_opregion = opregion;
- 		register_acpi_notifier(&intel_opregion_notifier);
- 	}
- 
- 	if (opregion->asle) {
--		iowrite32(ASLE_TCHE_BLC_EN, &opregion->asle->tche);
--		iowrite32(ASLE_ARDY_READY, &opregion->asle->ardy);
-+		opregion->asle->tche = ASLE_TCHE_BLC_EN;
-+		opregion->asle->ardy = ASLE_ARDY_READY;
- 	}
- }
- 
-@@ -809,19 +808,19 @@ void intel_opregion_fini(struct drm_device *dev)
- 		return;
- 
- 	if (opregion->asle)
--		iowrite32(ASLE_ARDY_NOT_READY, &opregion->asle->ardy);
-+		opregion->asle->ardy = ASLE_ARDY_NOT_READY;
- 
- 	cancel_work_sync(&dev_priv->opregion.asle_work);
- 
- 	if (opregion->acpi) {
--		iowrite32(0, &opregion->acpi->drdy);
-+		opregion->acpi->drdy = 0;
- 
- 		system_opregion = NULL;
- 		unregister_acpi_notifier(&intel_opregion_notifier);
- 	}
- 
- 	/* just clear all opregion memory pointers now */
--	iounmap(opregion->header);
-+	memunmap(opregion->header);
- 	opregion->header = NULL;
- 	opregion->acpi = NULL;
- 	opregion->swsci = NULL;
-@@ -894,10 +893,10 @@ int intel_opregion_setup(struct drm_device *dev)
+ /* Must be called with 'acpi_ioremap_lock' or RCU read lock held. */
+-static void __iomem *
++static void *
+ acpi_map_vaddr_lookup(acpi_physical_address phys, unsigned int size)
  {
- 	struct drm_i915_private *dev_priv = dev->dev_private;
- 	struct intel_opregion *opregion = &dev_priv->opregion;
--	void __iomem *base;
- 	u32 asls, mboxes;
- 	char buf[sizeof(OPREGION_SIGNATURE)];
- 	int err = 0;
-+	void *base;
- 
- 	BUILD_BUG_ON(sizeof(struct opregion_header) != 0x100);
- 	BUILD_BUG_ON(sizeof(struct opregion_acpi) != 0x100);
-@@ -915,11 +914,11 @@ int intel_opregion_setup(struct drm_device *dev)
- 	INIT_WORK(&opregion->asle_work, asle_work);
- #endif
- 
--	base = acpi_os_ioremap(asls, OPREGION_SIZE);
-+	base = memremap(asls, OPREGION_SIZE, MEMREMAP_WB);
- 	if (!base)
- 		return -ENOMEM;
- 
--	memcpy_fromio(buf, base, sizeof(buf));
-+	memcpy(buf, base, sizeof(buf));
- 
- 	if (memcmp(buf, OPREGION_SIGNATURE, 16)) {
- 		DRM_DEBUG_DRIVER("opregion signature mismatch\n");
-@@ -931,7 +930,7 @@ int intel_opregion_setup(struct drm_device *dev)
- 
- 	opregion->lid_state = base + ACPI_CLID;
- 
--	mboxes = ioread32(&opregion->header->mboxes);
-+	mboxes = opregion->header->mboxes;
- 	if (mboxes & MBOX_ACPI) {
- 		DRM_DEBUG_DRIVER("Public ACPI methods supported\n");
- 		opregion->acpi = base + OPREGION_ACPI_OFFSET;
-@@ -946,12 +945,12 @@ int intel_opregion_setup(struct drm_device *dev)
- 		DRM_DEBUG_DRIVER("ASLE supported\n");
- 		opregion->asle = base + OPREGION_ASLE_OFFSET;
- 
--		iowrite32(ASLE_ARDY_NOT_READY, &opregion->asle->ardy);
-+		opregion->asle->ardy = ASLE_ARDY_NOT_READY;
- 	}
- 
- 	return 0;
- 
- err_out:
--	iounmap(base);
-+	memunmap(base);
- 	return err;
+ 	struct acpi_ioremap *map;
+@@ -304,10 +303,10 @@ acpi_map_vaddr_lookup(acpi_physical_address phys, unsigned int size)
+ 	return NULL;
  }
-diff --git a/drivers/gpu/drm/i915/intel_panel.c b/drivers/gpu/drm/i915/intel_panel.c
-index e2ab3f6ed022..c8444d5f549f 100644
---- a/drivers/gpu/drm/i915/intel_panel.c
-+++ b/drivers/gpu/drm/i915/intel_panel.c
-@@ -387,7 +387,7 @@ intel_panel_detect(struct drm_device *dev)
  
- 	/* Assume that the BIOS does not lie through the OpRegion... */
- 	if (!i915.panel_ignore_lid && dev_priv->opregion.lid_state) {
--		return ioread32(dev_priv->opregion.lid_state) & 0x1 ?
-+		return *(dev_priv->opregion.lid_state) & 0x1 ?
- 			connector_status_connected :
- 			connector_status_disconnected;
+-void __iomem *acpi_os_get_iomem(acpi_physical_address phys, unsigned int size)
++void *acpi_os_get_iomem(acpi_physical_address phys, unsigned int size)
+ {
+ 	struct acpi_ioremap *map;
+-	void __iomem *virt = NULL;
++	void *virt = NULL;
+ 
+ 	mutex_lock(&acpi_ioremap_lock);
+ 	map = acpi_map_lookup(phys, size);
+@@ -322,7 +321,7 @@ EXPORT_SYMBOL_GPL(acpi_os_get_iomem);
+ 
+ /* Must be called with 'acpi_ioremap_lock' or RCU read lock held. */
+ static struct acpi_ioremap *
+-acpi_map_lookup_virt(void __iomem *virt, acpi_size size)
++acpi_map_lookup_virt(void *virt, acpi_size size)
+ {
+ 	struct acpi_ioremap *map;
+ 
+@@ -334,44 +333,13 @@ acpi_map_lookup_virt(void __iomem *virt, acpi_size size)
+ 	return NULL;
+ }
+ 
+-#if defined(CONFIG_IA64) || defined(CONFIG_ARM64)
+-/* ioremap will take care of cache attributes */
+-#define should_use_kmap(pfn)   0
+-#else
+-#define should_use_kmap(pfn)   page_is_ram(pfn)
+-#endif
+-
+-static void __iomem *acpi_map(acpi_physical_address pg_off, unsigned long pg_sz)
+-{
+-	unsigned long pfn;
+-
+-	pfn = pg_off >> PAGE_SHIFT;
+-	if (should_use_kmap(pfn)) {
+-		if (pg_sz > PAGE_SIZE)
+-			return NULL;
+-		return (void __iomem __force *)kmap(pfn_to_page(pfn));
+-	} else
+-		return acpi_os_ioremap(pg_off, pg_sz);
+-}
+-
+-static void acpi_unmap(acpi_physical_address pg_off, void __iomem *vaddr)
+-{
+-	unsigned long pfn;
+-
+-	pfn = pg_off >> PAGE_SHIFT;
+-	if (should_use_kmap(pfn))
+-		kunmap(pfn_to_page(pfn));
+-	else
+-		iounmap(vaddr);
+-}
+-
+-void __iomem *__init_refok
++void *__init_refok
+ acpi_os_map_iomem(acpi_physical_address phys, acpi_size size)
+ {
+ 	struct acpi_ioremap *map;
+-	void __iomem *virt;
+ 	acpi_physical_address pg_off;
+ 	acpi_size pg_sz;
++	void *virt;
+ 
+ 	if (phys > ULONG_MAX) {
+ 		printk(KERN_ERR PREFIX "Cannot map memory that high\n");
+@@ -397,7 +365,7 @@ acpi_os_map_iomem(acpi_physical_address phys, acpi_size size)
+ 
+ 	pg_off = round_down(phys, PAGE_SIZE);
+ 	pg_sz = round_up(phys + size, PAGE_SIZE) - pg_off;
+-	virt = acpi_map(pg_off, pg_sz);
++	virt = acpi_os_memremap(pg_off, pg_sz);
+ 	if (!virt) {
+ 		mutex_unlock(&acpi_ioremap_lock);
+ 		kfree(map);
+@@ -435,7 +403,7 @@ static void acpi_os_map_cleanup(struct acpi_ioremap *map)
+ {
+ 	if (!map->refcount) {
+ 		synchronize_rcu_expedited();
+-		acpi_unmap(map->phys, map->virt);
++		memunmap(map->virt);
+ 		kfree(map);
  	}
+ }
+@@ -948,7 +916,7 @@ EXPORT_SYMBOL(acpi_os_write_port);
+ acpi_status
+ acpi_os_read_memory(acpi_physical_address phys_addr, u64 *value, u32 width)
+ {
+-	void __iomem *virt_addr;
++	void *virt_addr;
+ 	unsigned int size = width / 8;
+ 	bool unmap = false;
+ 	u64 dummy;
+@@ -957,7 +925,7 @@ acpi_os_read_memory(acpi_physical_address phys_addr, u64 *value, u32 width)
+ 	virt_addr = acpi_map_vaddr_lookup(phys_addr, size);
+ 	if (!virt_addr) {
+ 		rcu_read_unlock();
+-		virt_addr = acpi_os_ioremap(phys_addr, size);
++		virt_addr = acpi_os_memremap(phys_addr, size);
+ 		if (!virt_addr)
+ 			return AE_BAD_ADDRESS;
+ 		unmap = true;
+@@ -968,23 +936,23 @@ acpi_os_read_memory(acpi_physical_address phys_addr, u64 *value, u32 width)
+ 
+ 	switch (width) {
+ 	case 8:
+-		*(u8 *) value = readb(virt_addr);
++		*(u8 *) value = *(u8 *) virt_addr;
+ 		break;
+ 	case 16:
+-		*(u16 *) value = readw(virt_addr);
++		*(u16 *) value = *(u16 *) virt_addr;
+ 		break;
+ 	case 32:
+-		*(u32 *) value = readl(virt_addr);
++		*(u32 *) value = *(u32 *) virt_addr;
+ 		break;
+ 	case 64:
+-		*(u64 *) value = readq(virt_addr);
++		*(u64 *) value = *(u64 *) virt_addr;
+ 		break;
+ 	default:
+ 		BUG();
+ 	}
+ 
+ 	if (unmap)
+-		iounmap(virt_addr);
++		memunmap(virt_addr);
+ 	else
+ 		rcu_read_unlock();
+ 
+@@ -1002,7 +970,7 @@ acpi_os_write_memory(acpi_physical_address phys_addr, u64 value, u32 width)
+ 	virt_addr = acpi_map_vaddr_lookup(phys_addr, size);
+ 	if (!virt_addr) {
+ 		rcu_read_unlock();
+-		virt_addr = acpi_os_ioremap(phys_addr, size);
++		virt_addr = acpi_os_memremap(phys_addr, size);
+ 		if (!virt_addr)
+ 			return AE_BAD_ADDRESS;
+ 		unmap = true;
+@@ -1026,7 +994,7 @@ acpi_os_write_memory(acpi_physical_address phys_addr, u64 value, u32 width)
+ 	}
+ 
+ 	if (unmap)
+-		iounmap(virt_addr);
++		memunmap(virt_addr);
+ 	else
+ 		rcu_read_unlock();
+ 
+diff --git a/include/acpi/acpi_io.h b/include/acpi/acpi_io.h
+index dd86c5fc102d..646ce8714109 100644
+--- a/include/acpi/acpi_io.h
++++ b/include/acpi/acpi_io.h
+@@ -5,13 +5,11 @@
+ 
+ #include <asm/acpi.h>
+ 
+-#ifndef acpi_os_ioremap
+-static inline void __iomem *acpi_os_ioremap(acpi_physical_address phys,
++static inline void *acpi_os_memremap(acpi_physical_address phys,
+ 					    acpi_size size)
+ {
+-       return ioremap_cache(phys, size);
++       return memremap(phys, size, MEMREMAP_WB);
+ }
+-#endif
+ 
+ void __iomem *__init_refok
+ acpi_os_map_iomem(acpi_physical_address phys, acpi_size size);
 
