@@ -1,123 +1,56 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
- update documentation
-Date: Fri, 9 Oct 2015 19:33:28 +0100
-Message-ID: <20151009183328.GV26278@arm.com>
-References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
- <20151007111915.GF17308@twins.programming.kicks-ass.net>
- <20151007132317.GK16065@arm.com>
- <20151007152501.GI3910@linux.vnet.ibm.com>
- <1444276236.9940.5.camel@ellerman.id.au>
- <20151008111638.GL3816@twins.programming.kicks-ass.net>
- <20151008125937.GH16807@arm.com>
- <20151008221716.GF3910@linux.vnet.ibm.com>
- <20151009095129.GF26278@arm.com>
- <20151009174327.GV3910@linux.vnet.ibm.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH v2 19/25] pxa2xx-flash: switch from ioremap_cache to memremap
+Date: Fri, 9 Oct 2015 14:33:22 -0700
+Message-ID: <CAPcyv4hVNykjWbmdpm4rN3Kf7GNPzNXxxH0jriMe2fpjNJYukg@mail.gmail.com>
+References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
+	<20150725023945.8664.34842.stgit@dwillia2-desk3.amr.corp.intel.com>
+	<20151002175127.GH107187@google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:40811 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752367AbbJISdb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 9 Oct 2015 14:33:31 -0400
-Content-Disposition: inline
-In-Reply-To: <20151009174327.GV3910@linux.vnet.ibm.com>
+Received: from mail-wi0-f179.google.com ([209.85.212.179]:36047 "EHLO
+	mail-wi0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754067AbbJIVdY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Oct 2015 17:33:24 -0400
+Received: by wicgb1 with SMTP id gb1so84704941wic.1
+        for <linux-arch@vger.kernel.org>; Fri, 09 Oct 2015 14:33:22 -0700 (PDT)
+In-Reply-To: <20151002175127.GH107187@google.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+To: Brian Norris <computersforpeace@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Kani, Toshimitsu" <toshi.kani@hp.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Christoph Hellwig <hch@lst.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mtd@lists.infradead.org
 
-On Fri, Oct 09, 2015 at 10:43:27AM -0700, Paul E. McKenney wrote:
-> On Fri, Oct 09, 2015 at 10:51:29AM +0100, Will Deacon wrote:
-> > How do people feel about including these in memory-barriers.txt? I find
-> > them considerably easier to read than our current kernel code + list of
-> > possible orderings + wall of text, but there's a good chance that my
-> > brain has been corrupted from staring at this stuff for too long.
-> > 
-> > The only snag is the ppc assembly code, but it's not *too* horrific ;)
-> 
-> Maybe we should include them as separate files in Documentation/litmus
-> or some such.  We could then use a litmus-test style with Linux-kernel
-> C code, and reference litmus tests for various architectures.  Maybe
-> Documentation/litmus/{arm,arm64,powerpc,x86}/ and so on.
+On Fri, Oct 2, 2015 at 10:51 AM, Brian Norris
+<computersforpeace@gmail.com> wrote:
+> + linux-mtd
+>
+> On Fri, Jul 24, 2015 at 10:39:45PM -0400, Dan Williams wrote:
+>> In preparation for deprecating ioremap_cache() convert its usage in
+>> pxa2xx-flash to memremap.
+>>
+>> Cc: David Woodhouse <dwmw2@infradead.org>
+>> Cc: Brian Norris <computersforpeace@gmail.com>
+>> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+>> ---
+>>  drivers/mtd/maps/pxa2xx-flash.c |    4 ++--
+>>  1 file changed, 2 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/drivers/mtd/maps/pxa2xx-flash.c b/drivers/mtd/maps/pxa2xx-flash.c
+>> index 12fa75df5008..758a8a7f86d9 100644
+>> --- a/drivers/mtd/maps/pxa2xx-flash.c
+>> +++ b/drivers/mtd/maps/pxa2xx-flash.c
+>> @@ -71,8 +71,8 @@ static int pxa2xx_flash_probe(struct platform_device *pdev)
+>>                      info->map.name);
+>>               return -ENOMEM;
+>>       }
+>> -     info->map.cached =
+>> -             ioremap_cache(info->map.phys, info->map.size);
+>> +     info->map.cached = memremap(info->map.phys, info->map.size,
+>> +                     MEMREMAP_CACHE);
+>
+> Should the corresponding iounmap() be changed too? Looks like a pretty
+> thin wrapper right now, but it seems like the API would suggest we do
+> this anyway.
+>
 
-I think that would be useful, particularly if we had a way to "compile"
-a kernel litmus test into one for a particular architecture.
-
-> For example, the first example in memory-barriers.txt is this:
-> 
-> ------------------------------------------------------------------------
-> 	CPU 1		CPU 2
-> 	===============	===============
-> 	{ A == 1; B == 2 }
-> 	A = 3;		x = B;
-> 	B = 4;		y = A;
-> 
-> The set of accesses as seen by the memory system in the middle can be arranged
-> in 24 different combinations:
-> 
-> 	STORE A=3,	STORE B=4,	y=LOAD A->3,	x=LOAD B->4
-> 	STORE A=3,	STORE B=4,	x=LOAD B->4,	y=LOAD A->3
-> 	STORE A=3,	y=LOAD A->3,	STORE B=4,	x=LOAD B->4
-> 	STORE A=3,	y=LOAD A->3,	x=LOAD B->2,	STORE B=4
-> 	STORE A=3,	x=LOAD B->2,	STORE B=4,	y=LOAD A->3
-> 	STORE A=3,	x=LOAD B->2,	y=LOAD A->3,	STORE B=4
-> 	STORE B=4,	STORE A=3,	y=LOAD A->3,	x=LOAD B->4
-> 	STORE B=4, ...
-> 	...
-> 
-> and can thus result in four different combinations of values:
-> 
-> 	x == 2, y == 1
-> 	x == 2, y == 3
-> 	x == 4, y == 1
-> 	x == 4, y == 3
-> ------------------------------------------------------------------------
-> 
-> Maybe this changes to:
-> 
-> ------------------------------------------------------------------------
-> Linux MP
-> ""
-> {
-> a=1; b=2;
-> }
->  P0               | P1                ;
->  WRITE_ONCE(a, 3) | r1 = READ_ONCE(b) ;
->  WRITE_ONCE(b, 4) | r2 = READ_ONCE(a) ;
-> 
-> exists (2:r1=4 /\ 2:r2=3)
-> ------------------------------------------------------------------------
-> 
-> We can then state that this assertion can fail.  We could include
-> either ppcmem or herd output along with the litmus tests, which would
-> allow the curious to see a full list of the possible outcomes.
-
-More importantly, it would allow them to make small changes to the test
-and see what the outcome is, without us having to spawn another
-thread-of-death on LKML :)
-
-> > We could also include a link to the ppcmem/herd web frontends and your
-> > lwn.net article. (ppcmem is already linked, but it's not obvious that
-> > you can run litmus tests in your browser).
-> 
-> I bet that the URLs for the web frontends are not stable long term.
-> Don't get me wrong, PPCMEM/ARMMEM has been there for me for a goodly
-> number of years, but professors do occasionally move from one institution
-> to another.  For but one example, Susmit Sarkar is now at University
-> of St. Andrews rather than at Cambridge.
-> 
-> So to make this work, we probably need to be thinking in terms of
-> asking the researchers for permission to include their ocaml code in the
-> Linux-kernel source tree.  I would be strongly in favor of this, actually.
-> 
-> Thoughts?
-
-I'm extremely hesitant to import a bunch of dubiously licensed, academic
-ocaml code into the kernel. Even if we did, who would maintain it?
-
-A better solution might be to host a mirror of the code on kernel.org,
-along with a web front-end for people to play with (the tests we're talking
-about here do seem to run ok in my browser).
-
-Will
+Yes, thanks for that catch, addressed in the next rev.
