@@ -1,7 +1,7 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH 16/20] fbdev: switch from ioremap_wt to memremap
-Date: Fri, 09 Oct 2015 18:17:02 -0400
-Message-ID: <20151009221702.32203.34504.stgit@dwillia2-desk3.jf.intel.com>
+Subject: [PATCH 17/20] arch: kill ioremap_cached()
+Date: Fri, 09 Oct 2015 18:17:07 -0400
+Message-ID: <20151009221707.32203.94356.stgit@dwillia2-desk3.jf.intel.com>
 References: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,95 +10,87 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-fbdev@vger.kernel.org, Tomi Valkeinen <tomi.valkeinen@ti.com>, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-In preparation for deprecating ioremap_wt() convert its usage in
-drivers/video/fbdev to memremap.
+Nothing calls this helper, and now that ioremap_cache() is being
+deprecated these can also be removed.
 
-Cc: Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>
-Cc: Tomi Valkeinen <tomi.valkeinen@ti.com>
-Cc: linux-fbdev@vger.kernel.org
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/video/fbdev/amifb.c |    5 +++--
- drivers/video/fbdev/atafb.c |    5 +++--
- drivers/video/fbdev/hpfb.c  |    6 +++---
- 3 files changed, 9 insertions(+), 7 deletions(-)
+ arch/arm/mm/mmu.c               |    2 +-
+ arch/metag/include/asm/io.h     |    3 ---
+ arch/unicore32/include/asm/io.h |    4 +---
+ arch/unicore32/mm/ioremap.c     |    8 --------
+ 4 files changed, 2 insertions(+), 15 deletions(-)
 
-diff --git a/drivers/video/fbdev/amifb.c b/drivers/video/fbdev/amifb.c
-index 1d702e13aaff..0cde451046d0 100644
---- a/drivers/video/fbdev/amifb.c
-+++ b/drivers/video/fbdev/amifb.c
-@@ -52,6 +52,7 @@
- #include <linux/ioport.h>
- #include <linux/platform_device.h>
- #include <linux/uaccess.h>
-+#include <linux/io.h>
+diff --git a/arch/arm/mm/mmu.c b/arch/arm/mm/mmu.c
+index 7cd15143a507..da3ce68a89b3 100644
+--- a/arch/arm/mm/mmu.c
++++ b/arch/arm/mm/mmu.c
+@@ -259,7 +259,7 @@ static struct mem_type mem_types[] = {
+ 		.prot_sect	= PROT_SECT_DEVICE,
+ 		.domain		= DOMAIN_IO,
+ 	},
+-	[MT_DEVICE_CACHED] = {	  /* ioremap_cached */
++	[MT_DEVICE_CACHED] = {	  /* memremap(MEMREMAP_WB) */
+ 		.prot_pte	= PROT_PTE_DEVICE | L_PTE_MT_DEV_CACHED,
+ 		.prot_l1	= PMD_TYPE_TABLE,
+ 		.prot_sect	= PROT_SECT_DEVICE | PMD_SECT_WB,
+diff --git a/arch/metag/include/asm/io.h b/arch/metag/include/asm/io.h
+index 9890f21eadbe..5432949e627e 100644
+--- a/arch/metag/include/asm/io.h
++++ b/arch/metag/include/asm/io.h
+@@ -154,9 +154,6 @@ extern void __iounmap(void __iomem *addr);
+ #define ioremap_nocache(offset, size)           \
+ 	__ioremap((offset), (size), 0)
  
- #include <asm/irq.h>
- #include <asm/amigahw.h>
-@@ -3705,8 +3706,8 @@ default_chipset:
- 	 * access the videomem with writethrough cache
- 	 */
- 	info->fix.smem_start = (u_long)ZTWO_PADDR(videomemory);
--	videomemory = (u_long)ioremap_wt(info->fix.smem_start,
--					 info->fix.smem_len);
-+	videomemory = (u_long)memremap(info->fix.smem_start, info->fix.smem_len,
-+			MEMREMAP_WT);
- 	if (!videomemory) {
- 		dev_warn(&pdev->dev,
- 			 "Unable to map videomem cached writethrough\n");
-diff --git a/drivers/video/fbdev/atafb.c b/drivers/video/fbdev/atafb.c
-index d6ce613e12ad..5615e8c31ea2 100644
---- a/drivers/video/fbdev/atafb.c
-+++ b/drivers/video/fbdev/atafb.c
-@@ -55,12 +55,12 @@
- #include <linux/delay.h>
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/io.h>
+-#define ioremap_cached(offset, size)            \
+-	__ioremap((offset), (size), _PAGE_CACHEABLE)
+-
+ #define ioremap_wc(offset, size)                \
+ 	__ioremap((offset), (size), _PAGE_WR_COMBINE)
  
- #include <asm/setup.h>
- #include <linux/uaccess.h>
- #include <asm/pgtable.h>
- #include <asm/irq.h>
--#include <asm/io.h>
+diff --git a/arch/unicore32/include/asm/io.h b/arch/unicore32/include/asm/io.h
+index cb1d8fd2b16b..1eea482b3cb9 100644
+--- a/arch/unicore32/include/asm/io.h
++++ b/arch/unicore32/include/asm/io.h
+@@ -21,10 +21,9 @@
+ #include <asm-generic/io.h>
  
- #include <asm/atarihw.h>
- #include <asm/atariints.h>
-@@ -3185,7 +3185,8 @@ int __init atafb_init(void)
- 		/* Map the video memory (physical address given) to somewhere
- 		 * in the kernel address space.
- 		 */
--		external_screen_base = ioremap_wt(external_addr, external_len);
-+		external_screen_base = memremap(external_addr, external_len,
-+				MEMREMAP_WT);
- 		if (external_vgaiobase)
- 			external_vgaiobase =
- 			  (unsigned long)ioremap(external_vgaiobase, 0x10000);
-diff --git a/drivers/video/fbdev/hpfb.c b/drivers/video/fbdev/hpfb.c
-index 9476d196f510..d08c320b06fc 100644
---- a/drivers/video/fbdev/hpfb.c
-+++ b/drivers/video/fbdev/hpfb.c
-@@ -14,8 +14,8 @@
- #include <linux/init.h>
- #include <linux/fb.h>
- #include <linux/dio.h>
-+#include <linux/io.h>
+ /*
+- * __uc32_ioremap and __uc32_ioremap_cached takes CPU physical address.
++ * __uc32_ioremap takes CPU physical address.
+  */
+ extern void __iomem *__uc32_ioremap(unsigned long, size_t);
+-extern void __iomem *__uc32_ioremap_cached(unsigned long, size_t);
+ extern void __uc32_iounmap(volatile void __iomem *addr);
  
--#include <asm/io.h>
- #include <asm/uaccess.h>
+ /*
+@@ -35,7 +34,6 @@ extern void __uc32_iounmap(volatile void __iomem *addr);
+  *
+  */
+ #define ioremap(cookie, size)		__uc32_ioremap(cookie, size)
+-#define ioremap_cached(cookie, size)	__uc32_ioremap_cached(cookie, size)
+ #define ioremap_nocache(cookie, size)	__uc32_ioremap(cookie, size)
+ #define iounmap(cookie)			__uc32_iounmap(cookie)
  
- static struct fb_info fb_info = {
-@@ -241,8 +241,8 @@ static int hpfb_init_one(unsigned long phys_base, unsigned long virt_base)
- 	fb_info.fix.line_length = fb_width;
- 	fb_height = (in_8(fb_regs + HPFB_FBHMSB) << 8) | in_8(fb_regs + HPFB_FBHLSB);
- 	fb_info.fix.smem_len = fb_width * fb_height;
--	fb_start = (unsigned long)ioremap_wt(fb_info.fix.smem_start,
--					     fb_info.fix.smem_len);
-+	fb_start = (unsigned long) memremap(fb_info.fix.smem_start,
-+					     fb_info.fix.smem_len, MEMREMAP_WT);
- 	hpfb_defined.xres = (in_8(fb_regs + HPFB_DWMSB) << 8) | in_8(fb_regs + HPFB_DWLSB);
- 	hpfb_defined.yres = (in_8(fb_regs + HPFB_DHMSB) << 8) | in_8(fb_regs + HPFB_DHLSB);
- 	hpfb_defined.xres_virtual = hpfb_defined.xres;
+diff --git a/arch/unicore32/mm/ioremap.c b/arch/unicore32/mm/ioremap.c
+index bf012b2b71a9..f9b6d918de6f 100644
+--- a/arch/unicore32/mm/ioremap.c
++++ b/arch/unicore32/mm/ioremap.c
+@@ -224,14 +224,6 @@ __uc32_ioremap(unsigned long phys_addr, size_t size)
+ }
+ EXPORT_SYMBOL(__uc32_ioremap);
+ 
+-void __iomem *
+-__uc32_ioremap_cached(unsigned long phys_addr, size_t size)
+-{
+-	return __uc32_ioremap_caller(phys_addr, size, MT_DEVICE_CACHED,
+-			__builtin_return_address(0));
+-}
+-EXPORT_SYMBOL(__uc32_ioremap_cached);
+-
+ void __uc32_iounmap(volatile void __iomem *io_addr)
+ {
+ 	void *addr = (void *)(PAGE_MASK & (unsigned long)io_addr);
