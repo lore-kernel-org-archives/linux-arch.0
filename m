@@ -1,94 +1,81 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
- update documentation
-Date: Fri, 9 Oct 2015 10:31:38 +0200
-Message-ID: <20151009083138.GU3816@twins.programming.kicks-ass.net>
-References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
- <20151007111915.GF17308@twins.programming.kicks-ass.net>
- <20151007132317.GK16065@arm.com>
- <20151007152501.GI3910@linux.vnet.ibm.com>
- <1444276236.9940.5.camel@ellerman.id.au>
- <20151008111638.GL3816@twins.programming.kicks-ass.net>
- <20151008214439.GE3910@linux.vnet.ibm.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH v2 00/12] THP support for ARC
+Date: Fri, 9 Oct 2015 15:03:26 +0530
+Message-ID: <561789E6.9090800@synopsys.com>
+References: <1442918096-17454-1-git-send-email-vgupta@synopsys.com>
+ <560CCC73.9080705@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:51077 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933880AbbJIIbn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Oct 2015 04:31:43 -0400
-Content-Disposition: inline
-In-Reply-To: <20151008214439.GE3910@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <560CCC73.9080705@synopsys.com>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Mel Gorman <mgorman@suse.de>, Matthew
+ Wilcox <matthew.r.wilcox@intel.com>, Minchan Kim <minchan@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 08, 2015 at 02:44:39PM -0700, Paul E. McKenney wrote:
-> On Thu, Oct 08, 2015 at 01:16:38PM +0200, Peter Zijlstra wrote:
-> > On Thu, Oct 08, 2015 at 02:50:36PM +1100, Michael Ellerman wrote:
-> > > On Wed, 2015-10-07 at 08:25 -0700, Paul E. McKenney wrote:
-> > 
-> > > > Currently, we do need smp_mb__after_unlock_lock() to be after the
-> > > > acquisition on PPC -- putting it between the unlock and the lock
-> > > > of course doesn't cut it for the cross-thread unlock/lock case.
-> > 
-> > This ^, that makes me think I don't understand
-> > smp_mb__after_unlock_lock.
-> > 
-> > How is:
-> > 
-> > 	UNLOCK x
-> > 	smp_mb__after_unlock_lock()
-> > 	LOCK y
-> > 
-> > a problem? That's still a full barrier.
-> 
-> The problem is that I need smp_mb__after_unlock_lock() to give me
-> transitivity even if the UNLOCK happened on one CPU and the LOCK
-> on another.  For that to work, the smp_mb__after_unlock_lock() needs
-> to be either immediately after the acquire (the current choice) or
-> immediately before the release (which would also work from a purely
-> technical viewpoint, but I much prefer the current choice).
-> 
-> Or am I missing your point?
+On Thursday 01 October 2015 11:32 AM, Vineet Gupta wrote:
+> On Tuesday 22 September 2015 04:04 PM, Vineet Gupta wrote:
+>> > Hi,
+>> > 
+>> > This series brings THP support to ARC. It also introduces an optional new
+>> > thp hook for arches to possibly optimize the TLB flush in thp regime.
+>> > 
+>> > Please review !
+>> > 
+>> > Changes Since v1 [*]
+>> >    - Rebased against v4.3-rc2
+>> >    - Switched ARC pgtable_t to pte_t * 		(Kiril)
+>> >    - Removed stub implementations for		(Andrew)
+>> > 	pmdp_set_access_flags, pmdp_test_and_clear_young, pmdp_set_wrprotect,
+>> > 	pmdp_collapse_flush, pmd_same
+>> > 
+>> > [*] http://lkml.kernel.org/r/1440666194-21478-1-git-send-email-vgupta@synopsys.com
+>> > 
+>> > Vineet Gupta (12):
+>> >   ARC: mm: switch pgtable_to to pte_t *
+>> >   ARC: mm: pte flags comsetic cleanups, comments
+>> >   ARC: mm: Introduce PTE_SPECIAL
+>> >   Documentation/features/vm: pte_special now supported by ARC
+>> >   ARCv2: mm: THP support
+>> >   ARCv2: mm: THP: boot validation/reporting
+>> >   Documentation/features/vm: THP now supported by ARC
+>> >   mm: move some code around
+>> >   mm,thp: reduce ifdef'ery for THP in generic code
+>> >   mm,thp: introduce flush_pmd_tlb_range
+>> >   ARCv2: mm: THP: Implement flush_pmd_tlb_range() optimization
+>> >   ARCv2: Add a DT which enables THP
+>> > 
+>> >  Documentation/features/vm/THP/arch-support.txt     |  2 +-
+>> >  .../features/vm/pte_special/arch-support.txt       |  2 +-
+>> >  arch/arc/Kconfig                                   |  4 +
+>> >  arch/arc/boot/dts/hs_thp.dts                       | 59 +++++++++++++
+>> >  arch/arc/include/asm/hugepage.h                    | 82 ++++++++++++++++++
+>> >  arch/arc/include/asm/page.h                        |  5 +-
+>> >  arch/arc/include/asm/pgalloc.h                     |  6 +-
+>> >  arch/arc/include/asm/pgtable.h                     | 60 +++++++------
+>> >  arch/arc/mm/tlb.c                                  | 76 ++++++++++++++++-
+>> >  arch/arc/mm/tlbex.S                                | 21 +++--
+>> >  include/asm-generic/pgtable.h                      | 49 ++++-------
+>> >  mm/huge_memory.c                                   |  2 +-
+>> >  mm/pgtable-generic.c                               | 99 ++++++++++------------
+>> >  13 files changed, 345 insertions(+), 122 deletions(-)
+>> >  create mode 100644 arch/arc/boot/dts/hs_thp.dts
+>> >  create mode 100644 arch/arc/include/asm/hugepage.h
+> Andrew, Kirill, could you please review/ack the generic mm bits atleast so I can
+> proceed with moving the stuff into linux-next !
 
-So lots of little confusions added up to complete fail :-{
+Ping 2 ! Can I please get some acks on the generic mm bits. Some of the changes
+will likely collide Kirill's THP rework !
 
-Mostly I think it was the UNLOCK x + LOCK x are fully ordered (where I
-forgot: but not against uninvolved CPUs) and RELEASE/ACQUIRE are
-transitive (where I forgot: RELEASE/ACQUIRE _chains_ are transitive, but
-again not against uninvolved CPUs).
+Given people rebase off of mmtomm would it be better if generic patches went thru
+Andrew and probably included sooner for 4.4 target ?
 
-Which leads me to think I would like to suggest alternative rules for
-RELEASE/ACQUIRE (to replace those Will suggested; as I think those are
-partly responsible for my confusion).
+-Vineet
 
- - RELEASE -> ACQUIRE is fully ordered (but not a full barrier) when
-   they operate on the same variable and the ACQUIRE reads from the
-   RELEASE. Notable, RELEASE/ACQUIRE are RCpc and lack transitivity.
-
- - RELEASE -> ACQUIRE can be upgraded to a full barrier (including
-   transitivity) using smp_mb__release_acquire(), either before RELEASE
-   or after ACQUIRE (but consistently [*]).
-
- - RELEASE -> ACQUIRE _chains_ (on shared variables) preserve causality,
-   (because each link is fully ordered) but are not transitive.
-
-And I think that in the past few weeks we've been using transitive
-ambiguously, the definition we have in Documentation/memory-barriers.txt
-is a _strong_ transitivity, where we can make guarantees about CPUs not
-directly involved.
-
-What we have here (due to RCpc) is a weak form of transitivity, which,
-while it preserves the natural concept of causality, does not extend to
-other CPUs.
-
-So we could go around and call them 'strong' and 'weak' transitivity,
-but I suspect its easier for everyone involved if we come up with
-separate terms (less room for error if we accidentally omit the
-'strong/weak' qualifier).
-
-
-[*] Do we want to take that choice away and go for:
-smp_mb__after_release_acquire() ?
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
