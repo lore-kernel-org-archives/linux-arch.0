@@ -1,8 +1,8 @@
 From: Peter Zijlstra <peterz@infradead.org>
 Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
  update documentation
-Date: Fri, 9 Oct 2015 09:29:31 +0200
-Message-ID: <20151009072931.GT3816@twins.programming.kicks-ass.net>
+Date: Fri, 9 Oct 2015 10:31:38 +0200
+Message-ID: <20151009083138.GU3816@twins.programming.kicks-ass.net>
 References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
  <20151007111915.GF17308@twins.programming.kicks-ass.net>
  <20151007132317.GK16065@arm.com>
@@ -13,10 +13,10 @@ References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:38963 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750949AbbJIH3l (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Oct 2015 03:29:41 -0400
+Received: from casper.infradead.org ([85.118.1.10]:51077 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933880AbbJIIbn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Oct 2015 04:31:43 -0400
 Content-Disposition: inline
 In-Reply-To: <20151008214439.GE3910@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
@@ -25,27 +25,70 @@ To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Cc: Michael Ellerman <mpe@ellerman.id.au>, Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
 
 On Thu, Oct 08, 2015 at 02:44:39PM -0700, Paul E. McKenney wrote:
-
-> > > > I am with Peter -- we do need the benchmark results for PPC.
-> > > 
-> > > Urgh, sorry guys. I have been slowly doing some benchmarks, but time is not
-> > > plentiful at the moment.
-> > > 
-> > > If we do a straight lwsync -> sync conversion for unlock it looks like that
-> > > will cost us ~4.2% on Anton's standard context switch benchmark.
+> On Thu, Oct 08, 2015 at 01:16:38PM +0200, Peter Zijlstra wrote:
+> > On Thu, Oct 08, 2015 at 02:50:36PM +1100, Michael Ellerman wrote:
+> > > On Wed, 2015-10-07 at 08:25 -0700, Paul E. McKenney wrote:
 > > 
-> > And that does not seem to agree with Paul's smp_mb__after_unlock_lock()
-> > usage and would not be sufficient for the same (as of yet unexplained)
-> > reason.
+> > > > Currently, we do need smp_mb__after_unlock_lock() to be after the
+> > > > acquisition on PPC -- putting it between the unlock and the lock
+> > > > of course doesn't cut it for the cross-thread unlock/lock case.
 > > 
-> > Why does it matter which of the LOCK or UNLOCK gets promoted to full
-> > barrier on PPC in order to become RCsc?
+> > This ^, that makes me think I don't understand
+> > smp_mb__after_unlock_lock.
+> > 
+> > How is:
+> > 
+> > 	UNLOCK x
+> > 	smp_mb__after_unlock_lock()
+> > 	LOCK y
+> > 
+> > a problem? That's still a full barrier.
 > 
-> You could do either.  However, as I understand it, there is hardware for
-> which bc;isync is faster than lwsync.  For such hardware, it is cheaper
-> to upgrade the unlock from lwsync to sync than to upgrade the lock from
-> bc;isync to sync.  If I recall correctly, the kernel rewrites itself at
-> boot to select whichever of lwsync or bc;isync is better for the hardware
-> at hand.
+> The problem is that I need smp_mb__after_unlock_lock() to give me
+> transitivity even if the UNLOCK happened on one CPU and the LOCK
+> on another.  For that to work, the smp_mb__after_unlock_lock() needs
+> to be either immediately after the acquire (the current choice) or
+> immediately before the release (which would also work from a purely
+> technical viewpoint, but I much prefer the current choice).
+> 
+> Or am I missing your point?
 
-Fair enough. I'll go wake up and think about the other issue ;-)
+So lots of little confusions added up to complete fail :-{
+
+Mostly I think it was the UNLOCK x + LOCK x are fully ordered (where I
+forgot: but not against uninvolved CPUs) and RELEASE/ACQUIRE are
+transitive (where I forgot: RELEASE/ACQUIRE _chains_ are transitive, but
+again not against uninvolved CPUs).
+
+Which leads me to think I would like to suggest alternative rules for
+RELEASE/ACQUIRE (to replace those Will suggested; as I think those are
+partly responsible for my confusion).
+
+ - RELEASE -> ACQUIRE is fully ordered (but not a full barrier) when
+   they operate on the same variable and the ACQUIRE reads from the
+   RELEASE. Notable, RELEASE/ACQUIRE are RCpc and lack transitivity.
+
+ - RELEASE -> ACQUIRE can be upgraded to a full barrier (including
+   transitivity) using smp_mb__release_acquire(), either before RELEASE
+   or after ACQUIRE (but consistently [*]).
+
+ - RELEASE -> ACQUIRE _chains_ (on shared variables) preserve causality,
+   (because each link is fully ordered) but are not transitive.
+
+And I think that in the past few weeks we've been using transitive
+ambiguously, the definition we have in Documentation/memory-barriers.txt
+is a _strong_ transitivity, where we can make guarantees about CPUs not
+directly involved.
+
+What we have here (due to RCpc) is a weak form of transitivity, which,
+while it preserves the natural concept of causality, does not extend to
+other CPUs.
+
+So we could go around and call them 'strong' and 'weak' transitivity,
+but I suspect its easier for everyone involved if we come up with
+separate terms (less room for error if we accidentally omit the
+'strong/weak' qualifier).
+
+
+[*] Do we want to take that choice away and go for:
+smp_mb__after_release_acquire() ?
