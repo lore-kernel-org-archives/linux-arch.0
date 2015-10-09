@@ -1,38 +1,108 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
- update documentation
-Date: Fri, 9 Oct 2015 13:25:54 +0200
-Message-ID: <20151009112554.GB3816@twins.programming.kicks-ass.net>
-References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
- <20151007111915.GF17308@twins.programming.kicks-ass.net>
- <20151007132317.GK16065@arm.com>
- <20151007152501.GI3910@linux.vnet.ibm.com>
- <1444276236.9940.5.camel@ellerman.id.au>
- <20151008111638.GL3816@twins.programming.kicks-ass.net>
- <20151008125937.GH16807@arm.com>
- <20151008221716.GF3910@linux.vnet.ibm.com>
- <20151009095129.GF26278@arm.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH v2 00/12] THP support for ARC
+Date: Fri, 9 Oct 2015 16:59:43 +0530
+Message-ID: <5617A527.9030902@synopsys.com>
+References: <1442918096-17454-1-git-send-email-vgupta@synopsys.com>
+ <560CCC73.9080705@synopsys.com> <561789E6.9090800@synopsys.com>
+ <20151009101046.GA8081@node>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20151009095129.GF26278@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Content-Type: text/plain; charset="windows-1252"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20151009101046.GA8081@node>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill@shutemov.name>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Mel Gorman <mgorman@suse.de>, Matthew
+ Wilcox <matthew.r.wilcox@intel.com>, Minchan Kim <minchan@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Oct 09, 2015 at 10:51:29AM +0100, Will Deacon wrote:
-> > The corresponding litmus tests are below.
+On Friday 09 October 2015 03:40 PM, Kirill A. Shutemov wrote:
+> On Fri, Oct 09, 2015 at 03:03:26PM +0530, Vineet Gupta wrote:
+>> On Thursday 01 October 2015 11:32 AM, Vineet Gupta wrote:
+>>> On Tuesday 22 September 2015 04:04 PM, Vineet Gupta wrote:
+>>>>> Hi,
+>>>>>
+>>>>> This series brings THP support to ARC. It also introduces an optional new
+>>>>> thp hook for arches to possibly optimize the TLB flush in thp regime.
+>>>>>
+>>>>> Please review !
+>>>>>
+>>>>> Changes Since v1 [*]
+>>>>>    - Rebased against v4.3-rc2
+>>>>>    - Switched ARC pgtable_t to pte_t * 		(Kiril)
+>>>>>    - Removed stub implementations for		(Andrew)
+>>>>> 	pmdp_set_access_flags, pmdp_test_and_clear_young, pmdp_set_wrprotect,
+>>>>> 	pmdp_collapse_flush, pmd_same
+>>>>>
+>>>>> [*] http://lkml.kernel.org/r/1440666194-21478-1-git-send-email-vgupta@synopsys.com
+>>>>>
+>>>>> Vineet Gupta (12):
+>>>>>   ARC: mm: switch pgtable_to to pte_t *
+>>>>>   ARC: mm: pte flags comsetic cleanups, comments
+>>>>>   ARC: mm: Introduce PTE_SPECIAL
+>>>>>   Documentation/features/vm: pte_special now supported by ARC
+>>>>>   ARCv2: mm: THP support
+>>>>>   ARCv2: mm: THP: boot validation/reporting
+>>>>>   Documentation/features/vm: THP now supported by ARC
+>>>>>   mm: move some code around
+>>>>>   mm,thp: reduce ifdef'ery for THP in generic code
+>>>>>   mm,thp: introduce flush_pmd_tlb_range
+>>>>>   ARCv2: mm: THP: Implement flush_pmd_tlb_range() optimization
+>>>>>   ARCv2: Add a DT which enables THP
+>>>>>
+>>>>>  Documentation/features/vm/THP/arch-support.txt     |  2 +-
+>>>>>  .../features/vm/pte_special/arch-support.txt       |  2 +-
+>>>>>  arch/arc/Kconfig                                   |  4 +
+>>>>>  arch/arc/boot/dts/hs_thp.dts                       | 59 +++++++++++++
+>>>>>  arch/arc/include/asm/hugepage.h                    | 82 ++++++++++++++++++
+>>>>>  arch/arc/include/asm/page.h                        |  5 +-
+>>>>>  arch/arc/include/asm/pgalloc.h                     |  6 +-
+>>>>>  arch/arc/include/asm/pgtable.h                     | 60 +++++++------
+>>>>>  arch/arc/mm/tlb.c                                  | 76 ++++++++++++++++-
+>>>>>  arch/arc/mm/tlbex.S                                | 21 +++--
+>>>>>  include/asm-generic/pgtable.h                      | 49 ++++-------
+>>>>>  mm/huge_memory.c                                   |  2 +-
+>>>>>  mm/pgtable-generic.c                               | 99 ++++++++++------------
+>>>>>  13 files changed, 345 insertions(+), 122 deletions(-)
+>>>>>  create mode 100644 arch/arc/boot/dts/hs_thp.dts
+>>>>>  create mode 100644 arch/arc/include/asm/hugepage.h
+>>> Andrew, Kirill, could you please review/ack the generic mm bits atleast so I can
+>>> proceed with moving the stuff into linux-next !
+>>
+>> Ping 2 !
 > 
-> How do people feel about including these in memory-barriers.txt? I find
-> them considerably easier to read than our current kernel code + list of
-> possible orderings + wall of text, but there's a good chance that my
-> brain has been corrupted from staring at this stuff for too long.
+> Sorry.
+> 
+>> Can I please get some acks on the generic mm bits. Some of the changes
+>> will likely collide Kirill's THP rework !
+> 
+> Could you check if it acctually collides?
 
-Your brain is corrupt (but then, so probably is mine, just differently
-so).
+I rebased my changes on top of your v12 branch. As expected I get two merge
+conflicts as my patches update code which u have removed. But looks straight
+forward to resolve. Meaning we can carry respective patches and give Linus a heads
+up abt the merge conflict.
 
-I've not yet mastered the knack of reading those things; then again, I
-suspect its not too hard, just not something I've had the time to play
-with.
+There's also a fixup needed for ARC to remove the pmdp splitting assuming ARC THP
+makes it into mainline first.
+
+-Vineet
+
+> 
+>> Given people rebase off of mmtomm would it be better if generic patches went thru
+>> Andrew and probably included sooner for 4.4 target ?
+>>
+>> -Vineet
+>>
+>> --
+>> To unsubscribe, send a message with 'unsubscribe linux-mm' in
+>> the body to majordomo@kvack.org.  For more info on Linux MM,
+>> see: http://www.linux-mm.org/ .
+>> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> 
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
