@@ -1,101 +1,102 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
- update documentation
-Date: Fri, 9 Oct 2015 10:51:29 +0100
-Message-ID: <20151009095129.GF26278@arm.com>
-References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
- <20151007111915.GF17308@twins.programming.kicks-ass.net>
- <20151007132317.GK16065@arm.com>
- <20151007152501.GI3910@linux.vnet.ibm.com>
- <1444276236.9940.5.camel@ellerman.id.au>
- <20151008111638.GL3816@twins.programming.kicks-ass.net>
- <20151008125937.GH16807@arm.com>
- <20151008221716.GF3910@linux.vnet.ibm.com>
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCH v2 09/12] mm,thp: reduce ifdef'ery for THP in generic code
+Date: Fri, 9 Oct 2015 12:53:59 +0300
+Message-ID: <20151009095359.GA7971@node>
+References: <1442918096-17454-1-git-send-email-vgupta@synopsys.com>
+ <1442918096-17454-10-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20151008221716.GF3910@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+In-Reply-To: <1442918096-17454-10-git-send-email-vgupta@synopsys.com>
+Sender: owner-linux-mm@kvack.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Mel Gorman <mgorman@suse.de>, Matthew Wilcox <matthew.r.wilcox@intel.com>, Minchan Kim <minchan@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Paul,
+On Tue, Sep 22, 2015 at 04:04:53PM +0530, Vineet Gupta wrote:
+> - pgtable-generic.c: Fold individual #ifdef for each helper into a top
+>   level #ifdef. Makes code more readable
 
-On Thu, Oct 08, 2015 at 03:17:16PM -0700, Paul E. McKenney wrote:
-> On Thu, Oct 08, 2015 at 01:59:38PM +0100, Will Deacon wrote:
-> > I thought Paul was talking about something like this case:
-> > 
-> > CPU A     CPU B              CPU C
-> > foo = 1
-> > UNLOCK x
-> >           LOCK x
-> >           (RELEASE) bar = 1
-> >                              ACQUIRE bar = 1
-> >                              READ_ONCE foo = 0
+Makes sense.
+
+> - Per Andrew's suggestion removed the dummy implementations for !THP
+>   in asm-generic/page-table.h to have build time failures vs. runtime.
+
+I'm not sure it's a good idea. This can lead to unnecessary #ifdefs where
+otherwise call to helper would be eliminated by compiler as dead code.
+
+What about dummy helpers with BUILD_BUG()?
+
+> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+> ---
+>  include/asm-generic/pgtable.h | 49 ++++++++++++++++---------------------------
+>  mm/pgtable-generic.c          | 24 +++------------------
+>  2 files changed, 21 insertions(+), 52 deletions(-)
 > 
-> More like this:
-> 
-> CPU A			CPU B			CPU C
-> WRITE_ONCE(foo, 1);
-> UNLOCK x
-> 			LOCK x
-> 			r1 = READ_ONCE(bar);
-> 						WRITE_ONCE(bar, 1);
-> 						smp_mb();
-> 						r2 = READ_ONCE(foo);
-> 
-> This can result in r1==0 && r2==0.
+> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+> index 29c57b2cb344..2112f4147816 100644
+> --- a/include/asm-generic/pgtable.h
+> +++ b/include/asm-generic/pgtable.h
+> @@ -30,9 +30,12 @@ extern int ptep_set_access_flags(struct vm_area_struct *vma,
+>  #endif
+>  
+>  #ifndef __HAVE_ARCH_PMDP_SET_ACCESS_FLAGS
+> +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+>  extern int pmdp_set_access_flags(struct vm_area_struct *vma,
+>  				 unsigned long address, pmd_t *pmdp,
+>  				 pmd_t entry, int dirty);
+> +
+> +#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+>  #endif
+>  
+>  #ifndef __HAVE_ARCH_PTEP_TEST_AND_CLEAR_YOUNG
+> @@ -64,14 +67,6 @@ static inline int pmdp_test_and_clear_young(struct vm_area_struct *vma,
+>  		set_pmd_at(vma->vm_mm, address, pmdp, pmd_mkold(pmd));
+>  	return r;
+>  }
+> -#else /* CONFIG_TRANSPARENT_HUGEPAGE */
+> -static inline int pmdp_test_and_clear_young(struct vm_area_struct *vma,
+> -					    unsigned long address,
+> -					    pmd_t *pmdp)
+> -{
+> -	BUG();
+> -	return 0;
+> -}
+>  #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+>  #endif
+>  
+> @@ -81,8 +76,21 @@ int ptep_clear_flush_young(struct vm_area_struct *vma,
+>  #endif
+>  
+>  #ifndef __HAVE_ARCH_PMDP_CLEAR_YOUNG_FLUSH
+> -int pmdp_clear_flush_young(struct vm_area_struct *vma,
+> -			   unsigned long address, pmd_t *pmdp);
+> +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+> +extern int pmdp_clear_flush_young(struct vm_area_struct *vma,
+> +				  unsigned long address, pmd_t *pmdp);
+> +#else
+> +/*
+> + * Despite relevant to THP only, this API is called from generic rmap code
+> + * under PageTransHuge(), hence needs a dummy implementation for !THP
+> + */
 
-Thank you, that is extremely enlightening :)
+Looks like a case I described above. BUILD_BUG_ON() should work fine here.
 
-> > I think we need a PPC litmus test illustrating the inter-thread, same
-> > lock failure case when smp_mb__after_unlock_lock is not present so that
-> > we can reason about this properly. Paul?
-> 
-> Please see above.  ;-)
-> 
-> The corresponding litmus tests are below.
+> +static inline int pmdp_clear_flush_young(struct vm_area_struct *vma,
+> +					 unsigned long address, pmd_t *pmdp)
+> +{
+> +	BUG();
+> +	return 0;
+> +}
+> +#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+>  #endif
 
-How do people feel about including these in memory-barriers.txt? I find
-them considerably easier to read than our current kernel code + list of
-possible orderings + wall of text, but there's a good chance that my
-brain has been corrupted from staring at this stuff for too long.
+-- 
+ Kirill A. Shutemov
 
-The only snag is the ppc assembly code, but it's not *too* horrific ;)
-
-> PPC lock-2thread-WR-barrier.litmus
-> ""
-> (*
->  * Does 3.0 Linux-kernel Power lock-unlock provide local 
->  * barrier that orders prior stores against subsequent loads,
->  * if the unlock and lock happen on different threads?
->  * This version uses lwsync instead of isync.
->  *)
-> (* 23-July-2013: ppcmem says "Sometimes" *)
-> {
-> l=1;
-> 0:r1=1;          0:r4=x;         0:r10=0;          0:r12=l;
-> 1:r1=1; 1:r3=42; 1:r4=x; 1:r5=y; 1:r10=0; 1:r11=0; 1:r12=l;
-> 2:r1=1;          2:r4=x; 2:r5=y;
-> }
->  P0             | P1                 | P2;
->  stw r1,0(r4)   | lwarx r11,r10,r12  | stw r1,0(r5) ;
->  lwsync         | cmpwi r11,0        | lwsync       ;
->  stw r10,0(r12) | bne Fail1          | lwz r7,0(r4) ;
->                 | stwcx. r1,r10,r12  | ;
->                 | bne Fail1          | ;
->                 | isync              | ;
->                 | lwz r3,0(r5)       | ;
->                 | Fail1:             | ;
-> 
-> 
-> exists
-> (1:r3=0 /\ 2:r7=0)
-
-We could also include a link to the ppcmem/herd web frontends and your
-lwn.net article. (ppcmem is already linked, but it's not obvious that
-you can run litmus tests in your browser).
-
-Will
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
