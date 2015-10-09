@@ -1,56 +1,121 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH v2 19/25] pxa2xx-flash: switch from ioremap_cache to memremap
-Date: Fri, 9 Oct 2015 14:33:22 -0700
-Message-ID: <CAPcyv4hVNykjWbmdpm4rN3Kf7GNPzNXxxH0jriMe2fpjNJYukg@mail.gmail.com>
-References: <20150725023649.8664.59145.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20150725023945.8664.34842.stgit@dwillia2-desk3.amr.corp.intel.com>
-	<20151002175127.GH107187@google.com>
+Subject: [PATCH 00/20] tree-wide convert to memremap()
+Date: Fri, 09 Oct 2015 18:15:37 -0400
+Message-ID: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f179.google.com ([209.85.212.179]:36047 "EHLO
-	mail-wi0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754067AbbJIVdY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Oct 2015 17:33:24 -0400
-Received: by wicgb1 with SMTP id gb1so84704941wic.1
-        for <linux-arch@vger.kernel.org>; Fri, 09 Oct 2015 14:33:22 -0700 (PDT)
-In-Reply-To: <20151002175127.GH107187@google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Brian Norris <computersforpeace@gmail.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, "Kani, Toshimitsu" <toshi.kani@hp.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <rmk+kernel@arm.linux.org.uk>, David Woodhouse <dwmw2@infradead.org>, Christoph Hellwig <hch@lst.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-mtd@lists.infradead.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <intel-gfx-bounces@lists.freedesktop.org>
+List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/intel-gfx>,
+ <mailto:intel-gfx-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <http://lists.freedesktop.org/archives/intel-gfx>
+List-Post: <mailto:intel-gfx@lists.freedesktop.org>
+List-Help: <mailto:intel-gfx-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/intel-gfx>,
+ <mailto:intel-gfx-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: intel-gfx-bounces@lists.freedesktop.org
+Sender: "Intel-gfx" <intel-gfx-bounces@lists.freedesktop.org>
+To: linux-kernel@vger.kernel.org
+Cc: linux-fbdev@vger.kernel.org, David Airlie <airlied@linux.ie>, dri-devel@lists.freedesktop.org, Jaroslav Kysela <perex@perex.cz>, Lv Zheng <lv.zheng@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Daniel Vetter <daniel.vetter@intel.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Bob Moore <robert.moore@intel.com>, Mike Waychison <mikew@google.com>, Tomi Valkeinen <tomi.valkeinen@ti.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Russell King <rmk+kernel@arm.linux.org.uk>, Ross Zwisler <ross.zwisler@linux.intel.com>, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>, Len Brown <lenb@kernel.org>, Jeeja KP <jeeja.kp@intel.com>, Joerg Roedel <jroedel@suse.de>, Arnd Bergmann <arnd@arndb.de>, intel-gfx@lists.freedesktop.org, Mark Brown <broonie@kernel.org>, Borislav Petkov <bp@alien8.de>, Takashi Iwai <tiwai@suse.com>, Thomas
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Oct 2, 2015 at 10:51 AM, Brian Norris
-<computersforpeace@gmail.com> wrote:
-> + linux-mtd
->
-> On Fri, Jul 24, 2015 at 10:39:45PM -0400, Dan Williams wrote:
->> In preparation for deprecating ioremap_cache() convert its usage in
->> pxa2xx-flash to memremap.
->>
->> Cc: David Woodhouse <dwmw2@infradead.org>
->> Cc: Brian Norris <computersforpeace@gmail.com>
->> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
->> ---
->>  drivers/mtd/maps/pxa2xx-flash.c |    4 ++--
->>  1 file changed, 2 insertions(+), 2 deletions(-)
->>
->> diff --git a/drivers/mtd/maps/pxa2xx-flash.c b/drivers/mtd/maps/pxa2xx-flash.c
->> index 12fa75df5008..758a8a7f86d9 100644
->> --- a/drivers/mtd/maps/pxa2xx-flash.c
->> +++ b/drivers/mtd/maps/pxa2xx-flash.c
->> @@ -71,8 +71,8 @@ static int pxa2xx_flash_probe(struct platform_device *pdev)
->>                      info->map.name);
->>               return -ENOMEM;
->>       }
->> -     info->map.cached =
->> -             ioremap_cache(info->map.phys, info->map.size);
->> +     info->map.cached = memremap(info->map.phys, info->map.size,
->> +                     MEMREMAP_CACHE);
->
-> Should the corresponding iounmap() be changed too? Looks like a pretty
-> thin wrapper right now, but it seems like the API would suggest we do
-> this anyway.
->
-
-Yes, thanks for that catch, addressed in the next rev.
+VGhlIG1lbXJlbWFwKCkgYXBpIFsxXSB3YXMgbWVyZ2VkIGluIDQuMyBbMl0gd2l0aCBhbiBpbml0
+aWFsCmltcGxlbWVudGF0aW9uIGZvciB4ODYgYW5kIGEgY29udmVyc2lvbiBvZiB0aGUgcG1lbSBk
+cml2ZXIuIENvbXBsZXRlIHRoZQpjb252ZXJzaW9uIGZvciB0aGUgcmVzdCBvZiB0aGUga2VybmVs
+LgoKRmVlbCBmcmVlIHRvIGVpdGhlciBhY2sgb3IgZGlyZWN0bHkgYXBwbHkgYSBjb252ZXJzaW9u
+LXBhdGNoIGFzIEkgd2lsbApkZWZlciB0aGUgZmluYWwgcmVtb3ZhbCBwYXRjaGVzIHVudGlsIGFs
+bCB0aGUgY29udmVyc2lvbnMgaGF2ZSBsYW5kZWQuCgpbMV06IGh0dHBzOi8vbHduLm5ldC9BcnRp
+Y2xlcy82NTM1ODUvClsyXTogY29tbWl0IDkyMjgxZGVlODI1ZiBhcmNoOiBpbnRyb2R1Y2UgbWVt
+cmVtYXAoKQoKLS0tCgpEYW4gV2lsbGlhbXMgKDIwKToKICAgICAgeDg2OiBpbnRyb2R1Y2UgYXJj
+aF9tZW1yZW1hcCgpCiAgICAgIGFybTogaW50cm9kdWNlIGFyY2hfbWVtcmVtYXAoKQogICAgICBp
+YTY0OiBpbnRyb2R1Y2UgYXJjaF9tZW1yZW1hcCgpCiAgICAgIHNoOiBpbnRyb2R1Y2UgYXJjaF9t
+ZW1yZW1hcCgpCiAgICAgIG02OGs6IGludHJvZHVjZSBhcmNoX21lbXJlbWFwKCkKICAgICAgYXJt
+OiBzd2l0Y2ggZnJvbSBpb3JlbWFwX2NhY2hlIHRvIG1lbXJlbWFwCiAgICAgIHg4Njogc3dpdGNo
+IGZyb20gaW9yZW1hcF9jYWNoZSB0byBtZW1yZW1hcAogICAgICBnbWE1MDA6IHN3aXRjaCBmcm9t
+IGFjcGlfb3NfaW9yZW1hcCB0byBtZW1yZW1hcAogICAgICBpOTE1OiBzd2l0Y2ggZnJvbSBhY3Bp
+X29zX2lvcmVtYXAgdG8gbWVtcmVtYXAKICAgICAgYWNwaTogc3dpdGNoIGZyb20gaW9yZW1hcF9j
+YWNoZSB0byBtZW1yZW1hcAogICAgICBzb3VuZCwgc2t5bGFrZTogc3dpdGNoIGZyb20gaW9yZW1h
+cF9jYWNoZSB0byBtZW1yZW1hcAogICAgICBtZW1jb25zb2xlOiBmaXggX19pb21lbSBtaXNoYW5k
+bGluZywgc3dpdGNoIHRvIG1lbXJlbWFwCiAgICAgIGludGVsLWlvbW11OiBzd2l0Y2ggZnJvbSBp
+b3JlbWFwX2NhY2hlIHRvIG1lbXJlbWFwCiAgICAgIHB4YTJ4eC1mbGFzaDogc3dpdGNoIGZyb20g
+aW9yZW1hcF9jYWNoZSB0byBtZW1yZW1hcAogICAgICBzZmk6IHN3aXRjaCBmcm9tIGlvcmVtYXBf
+Y2FjaGUgdG8gbWVtcmVtYXAKICAgICAgZmJkZXY6IHN3aXRjaCBmcm9tIGlvcmVtYXBfd3QgdG8g
+bWVtcmVtYXAKICAgICAgYXJjaDoga2lsbCBpb3JlbWFwX2NhY2hlZCgpCiAgICAgIGFyY2g6IGtp
+bGwgaW9yZW1hcF9mdWxsY2FjaGUoKQogICAgICBhcmNoOiByZW1vdmUgaW9yZW1hcF9jYWNoZSwg
+cmVwbGFjZSB3aXRoIGFyY2hfbWVtcmVtYXAKICAgICAgYXJjaDogcmVtb3ZlIGlvcmVtYXBfd3Qs
+IG9wdGlvbmFsbHkgcmVwbGFjZSB3aXRoIGFyY2hfbWVtcmVtYXAKCgogRG9jdW1lbnRhdGlvbi94
+ODYvcGF0LnR4dCAgICAgICAgICAgICB8ICAgIDYgKy0tCiBhcmNoL2FyYy9pbmNsdWRlL2FzbS9p
+by5oICAgICAgICAgICAgIHwgICAgMSAKIGFyY2gvYXJtL0tjb25maWcgICAgICAgICAgICAgICAg
+ICAgICAgfCAgICAxIAogYXJjaC9hcm0vaW5jbHVkZS9hc20vaW8uaCAgICAgICAgICAgICB8ICAg
+IDcgLS0tCiBhcmNoL2FybS9pbmNsdWRlL2FzbS94ZW4vcGFnZS5oICAgICAgIHwgICAgNCArLQog
+YXJjaC9hcm0vbW0vaW9yZW1hcC5jICAgICAgICAgICAgICAgICB8ICAgMTIgKysrKy0KIGFyY2gv
+YXJtL21tL21tdS5jICAgICAgICAgICAgICAgICAgICAgfCAgICAyIC0KIGFyY2gvYXJtL21tL25v
+bW11LmMgICAgICAgICAgICAgICAgICAgfCAgIDExICsrKy0tCiBhcmNoL2FybTY0L0tjb25maWcg
+ICAgICAgICAgICAgICAgICAgIHwgICAgMSAKIGFyY2gvYXJtNjQvaW5jbHVkZS9hc20vYWNwaS5o
+ICAgICAgICAgfCAgIDExIC0tLS0tCiBhcmNoL2FybTY0L2luY2x1ZGUvYXNtL2RtaS5oICAgICAg
+ICAgIHwgICAgOCArKy0tCiBhcmNoL2FybTY0L2luY2x1ZGUvYXNtL2lvLmggICAgICAgICAgIHwg
+ICAgMiAtCiBhcmNoL2FybTY0L2tlcm5lbC9lZmkuYyAgICAgICAgICAgICAgIHwgICAgOSArKy0t
+CiBhcmNoL2FybTY0L2tlcm5lbC9zbXBfc3Bpbl90YWJsZS5jICAgIHwgICAxOSArKysrLS0tLS0K
+IGFyY2gvYXJtNjQvbW0vaW9yZW1hcC5jICAgICAgICAgICAgICAgfCAgIDIwICsrKy0tLS0tLQog
+YXJjaC9hdnIzMi9pbmNsdWRlL2FzbS9pby5oICAgICAgICAgICB8ICAgIDEgCiBhcmNoL2Zydi9p
+bmNsdWRlL2FzbS9pby5oICAgICAgICAgICAgIHwgICAxMiAtLS0tLQogYXJjaC9pYTY0L0tjb25m
+aWcgICAgICAgICAgICAgICAgICAgICB8ICAgIDEgCiBhcmNoL2lhNjQvaW5jbHVkZS9hc20vaW8u
+aCAgICAgICAgICAgIHwgICAgNiAtLS0KIGFyY2gvaWE2NC9tbS9pb3JlbWFwLmMgICAgICAgICAg
+ICAgICAgfCAgIDEwICsrKysrCiBhcmNoL20zMnIvaW5jbHVkZS9hc20vaW8uaCAgICAgICAgICAg
+IHwgICAgMSAKIGFyY2gvbTY4ay9LY29uZmlnICAgICAgICAgICAgICAgICAgICAgfCAgICAxIAog
+YXJjaC9tNjhrL2luY2x1ZGUvYXNtL2lvX21tLmggICAgICAgICB8ICAgMTMgLS0tLS0tCiBhcmNo
+L202OGsvaW5jbHVkZS9hc20vaW9fbm8uaCAgICAgICAgIHwgICAxMSAtLS0tLQogYXJjaC9tNjhr
+L2luY2x1ZGUvYXNtL3Jhd19pby5oICAgICAgICB8ICAgIDEgCiBhcmNoL202OGsvbW0va21hcC5j
+ICAgICAgICAgICAgICAgICAgIHwgICAxNyArKysrKysrLQogYXJjaC9tNjhrL21tL3N1bjNrbWFw
+LmMgICAgICAgICAgICAgICB8ICAgIDcgKysrCiBhcmNoL21ldGFnL2luY2x1ZGUvYXNtL2lvLmgg
+ICAgICAgICAgIHwgICAgNiAtLS0KIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2FzbS9pby5oICAg
+ICAgfCAgICAyIC0KIGFyY2gvbW4xMDMwMC9pbmNsdWRlL2FzbS9pby5oICAgICAgICAgfCAgICAx
+IAogYXJjaC9uaW9zMi9pbmNsdWRlL2FzbS9pby5oICAgICAgICAgICB8ICAgIDEgCiBhcmNoL3Mz
+OTAvaW5jbHVkZS9hc20vaW8uaCAgICAgICAgICAgIHwgICAgMSAKIGFyY2gvc2gvS2NvbmZpZyAg
+ICAgICAgICAgICAgICAgICAgICAgfCAgICAxIAogYXJjaC9zaC9pbmNsdWRlL2FzbS9pby5oICAg
+ICAgICAgICAgICB8ICAgIDcgLS0tCiBhcmNoL3NoL21tL2lvcmVtYXAuYyAgICAgICAgICAgICAg
+ICAgIHwgICAgOSArKysrCiBhcmNoL3NwYXJjL2luY2x1ZGUvYXNtL2lvXzMyLmggICAgICAgIHwg
+ICAgMSAKIGFyY2gvc3BhcmMvaW5jbHVkZS9hc20vaW9fNjQuaCAgICAgICAgfCAgICAxIAogYXJj
+aC90aWxlL2luY2x1ZGUvYXNtL2lvLmggICAgICAgICAgICB8ICAgIDIgLQogYXJjaC91bmljb3Jl
+MzIvaW5jbHVkZS9hc20vaW8uaCAgICAgICB8ICAgIDQgLS0KIGFyY2gvdW5pY29yZTMyL21tL2lv
+cmVtYXAuYyAgICAgICAgICAgfCAgICA4IC0tLS0KIGFyY2gveDg2L0tjb25maWcgICAgICAgICAg
+ICAgICAgICAgICAgfCAgICAxIAogYXJjaC94ODYvaW5jbHVkZS9hc20vZWZpLmggICAgICAgICAg
+ICB8ICAgIDMgKwogYXJjaC94ODYvaW5jbHVkZS9hc20vaW8uaCAgICAgICAgICAgICB8ICAgIDQg
+LS0KIGFyY2gveDg2L2tlcm5lbC9jcmFzaF9kdW1wXzY0LmMgICAgICAgfCAgICA2ICstLQogYXJj
+aC94ODYva2VybmVsL2tkZWJ1Z2ZzLmMgICAgICAgICAgICB8ICAgIDggKystLQogYXJjaC94ODYv
+a2VybmVsL2tzeXNmcy5jICAgICAgICAgICAgICB8ICAgMjggKysrKysrLS0tLS0tLQogYXJjaC94
+ODYvbW0vaW9yZW1hcC5jICAgICAgICAgICAgICAgICB8ICAgNDMgKysrKysrKystLS0tLS0tLS0t
+LQogYXJjaC94dGVuc2EvaW5jbHVkZS9hc20vaW8uaCAgICAgICAgICB8ICAgMTIgLS0tLS0KIGRy
+aXZlcnMvYWNwaS9hcGVpL2VpbmouYyAgICAgICAgICAgICAgfCAgICA5ICsrLS0KIGRyaXZlcnMv
+YWNwaS9hcGVpL2Vyc3QuYyAgICAgICAgICAgICAgfCAgICA2ICstLQogZHJpdmVycy9hY3BpL252
+cy5jICAgICAgICAgICAgICAgICAgICB8ICAgIDYgKy0tCiBkcml2ZXJzL2FjcGkvb3NsLmMgICAg
+ICAgICAgICAgICAgICAgIHwgICA3MCArKysrKysrKystLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQog
+ZHJpdmVycy9maXJtd2FyZS9nb29nbGUvbWVtY29uc29sZS5jICB8ICAgIDcgKystCiBkcml2ZXJz
+L2dwdS9kcm0vZ21hNTAwL29wcmVnaW9uLmMgICAgIHwgICAgOCArKy0tCiBkcml2ZXJzL2dwdS9k
+cm0vZ21hNTAwL3BzYl9kcnYuaCAgICAgIHwgICAgMiAtCiBkcml2ZXJzL2dwdS9kcm0vZ21hNTAw
+L3BzYl9saWQuYyAgICAgIHwgICAgOCArKy0tCiBkcml2ZXJzL2dwdS9kcm0vaTkxNS9pOTE1X2Rl
+YnVnZnMuYyAgIHwgICAgMiAtCiBkcml2ZXJzL2dwdS9kcm0vaTkxNS9pOTE1X2Rydi5oICAgICAg
+IHwgICAxMiArKystLQogZHJpdmVycy9ncHUvZHJtL2k5MTUvaW50ZWxfYmlvcy5jICAgICB8ICAg
+IDcgKy0tCiBkcml2ZXJzL2dwdS9kcm0vaTkxNS9pbnRlbF9vcHJlZ2lvbi5jIHwgICA3MyArKysr
+KysrKysrKysrKysrLS0tLS0tLS0tLS0tLS0tLS0KIGRyaXZlcnMvZ3B1L2RybS9pOTE1L2ludGVs
+X3BhbmVsLmMgICAgfCAgICAyIC0KIGRyaXZlcnMvaW9tbXUvaW50ZWwtaW9tbXUuYyAgICAgICAg
+ICAgfCAgIDIwICsrKysrLS0tLQogZHJpdmVycy9pb21tdS9pbnRlbF9pcnFfcmVtYXBwaW5nLmMg
+ICB8ICAgIDggKystLQogZHJpdmVycy9tdGQvbWFwcy9weGEyeHgtZmxhc2guYyAgICAgICB8ICAg
+IDYgKy0tCiBkcml2ZXJzL252ZGltbS9LY29uZmlnICAgICAgICAgICAgICAgIHwgICAgMiAtCiBk
+cml2ZXJzL3NmaS9zZmlfY29yZS5jICAgICAgICAgICAgICAgIHwgICAgNCArLQogZHJpdmVycy92
+aWRlby9mYmRldi9LY29uZmlnICAgICAgICAgICB8ICAgIDIgLQogZHJpdmVycy92aWRlby9mYmRl
+di9hbWlmYi5jICAgICAgICAgICB8ICAgIDUgKy0KIGRyaXZlcnMvdmlkZW8vZmJkZXYvYXRhZmIu
+YyAgICAgICAgICAgfCAgICA1ICstCiBkcml2ZXJzL3ZpZGVvL2ZiZGV2L2hwZmIuYyAgICAgICAg
+ICAgIHwgICAgNiArLS0KIGluY2x1ZGUvYWNwaS9hY3BpX2lvLmggICAgICAgICAgICAgICAgfCAg
+ICA2ICstLQogaW5jbHVkZS9hc20tZ2VuZXJpYy9pby5oICAgICAgICAgICAgICB8ICAgIDggLS0t
+LQogaW5jbHVkZS9hc20tZ2VuZXJpYy9pb21hcC5oICAgICAgICAgICB8ICAgIDQgLS0KIGluY2x1
+ZGUvbGludXgvaW8uaCAgICAgICAgICAgICAgICAgICAgfCAgICAxIAoga2VybmVsL01ha2VmaWxl
+ICAgICAgICAgICAgICAgICAgICAgICB8ICAgIDIgLQoga2VybmVsL21lbXJlbWFwLmMgICAgICAg
+ICAgICAgICAgICAgICB8ICAgMjcgKysrKystLS0tLS0tCiBsaWIvS2NvbmZpZyAgICAgICAgICAg
+ICAgICAgICAgICAgICAgIHwgICAgNiArKy0KIHNvdW5kL3NvYy9pbnRlbC9za3lsYWtlL3NrbC1u
+aGx0LmMgICAgfCAgIDEwICsrLS0tCiBzb3VuZC9zb2MvaW50ZWwvc2t5bGFrZS9za2wuaCAgICAg
+ICAgIHwgICAgNiArLS0KIDc5IGZpbGVzIGNoYW5nZWQsIDI4NCBpbnNlcnRpb25zKCspLCA0MDAg
+ZGVsZXRpb25zKC0pCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fCkludGVsLWdmeCBtYWlsaW5nIGxpc3QKSW50ZWwtZ2Z4QGxpc3RzLmZyZWVkZXNrdG9wLm9y
+ZwpodHRwOi8vbGlzdHMuZnJlZWRlc2t0b3Aub3JnL21haWxtYW4vbGlzdGluZm8vaW50ZWwtZ2Z4
+Cg==
