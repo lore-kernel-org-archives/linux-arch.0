@@ -1,12 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([192.55.52.115]:57966 "EHLO mga14.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:14034 "EHLO mga11.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932961AbbJIWWS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 9 Oct 2015 18:22:18 -0400
-Subject: [PATCH 11/20] sound, skylake: switch from ioremap_cache to memremap
+	id S932175AbbJIWWX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 9 Oct 2015 18:22:23 -0400
+Subject: [PATCH 12/20] memconsole: fix __iomem mishandling,
+ switch to memremap
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 09 Oct 2015 18:16:36 -0400
-Message-ID: <20151009221635.32203.30755.stgit@dwillia2-desk3.jf.intel.com>
+Date: Fri, 09 Oct 2015 18:16:41 -0400
+Message-ID: <20151009221641.32203.201.stgit@dwillia2-desk3.jf.intel.com>
 In-Reply-To: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
 References: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
 MIME-Version: 1.0
@@ -15,80 +16,40 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Liam Girdwood <lgirdwood@gmail.com>, Takashi Iwai <tiwai@suse.com>, Jaroslav Kysela <perex@perex.cz>, Mark Brown <broonie@kernel.org>, Jeeja KP <jeeja.kp@intel.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20151009221636.6Eux0HAy1nvGmcmInHZ3B7aiTAhnp3sxL6nvhIomTrk@z>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Mike Waychison <mikew@google.com>
+Message-ID: <20151009221641.6SQZ1dXOZTa6iLzO-JUSxk9TyiCaV7dtxxF10hA6j0Q@z>
 
-In preparation for deprecating ioremap_cache() convert its usage in
-skl-nhlt to memremap.
+The memconsole driver is not using proper accessors for __iomem.  Switch
+to memremap to fix this issue, and this also prepares the driver for the
+removal of ioremap_cache.
 
-Cc: Liam Girdwood <lgirdwood@gmail.com>
-Cc: Mark Brown <broonie@kernel.org>
-Cc: Jaroslav Kysela <perex@perex.cz>
-Cc: Takashi Iwai <tiwai@suse.com>
-Cc: Jeeja KP <jeeja.kp@intel.com>
+Cc: Mike Waychison <mikew@google.com>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- sound/soc/intel/skylake/skl-nhlt.c |   10 +++++-----
- sound/soc/intel/skylake/skl.h      |    6 +++---
- 2 files changed, 8 insertions(+), 8 deletions(-)
+ drivers/firmware/google/memconsole.c |    7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/sound/soc/intel/skylake/skl-nhlt.c b/sound/soc/intel/skylake/skl-nhlt.c
-index 13036b19d7e5..b0c7bd113aac 100644
---- a/sound/soc/intel/skylake/skl-nhlt.c
-+++ b/sound/soc/intel/skylake/skl-nhlt.c
-@@ -25,7 +25,7 @@ static u8 OSC_UUID[16] = {0x6E, 0x88, 0x9F, 0xA6, 0xEB, 0x6C, 0x94, 0x45,
+diff --git a/drivers/firmware/google/memconsole.c b/drivers/firmware/google/memconsole.c
+index 2f569aaed4c7..fd5041716860 100644
+--- a/drivers/firmware/google/memconsole.c
++++ b/drivers/firmware/google/memconsole.c
+@@ -52,14 +52,15 @@ static ssize_t memconsole_read(struct file *filp, struct kobject *kobp,
+ 	char *memconsole;
+ 	ssize_t ret;
  
- #define DSDT_NHLT_PATH "\\_SB.PCI0.HDAS"
- 
--void __iomem *skl_nhlt_init(struct device *dev)
-+void *skl_nhlt_init(struct device *dev)
- {
- 	acpi_handle handle;
- 	union acpi_object *obj;
-@@ -40,17 +40,17 @@ void __iomem *skl_nhlt_init(struct device *dev)
- 	if (obj && obj->type == ACPI_TYPE_BUFFER) {
- 		nhlt_ptr = (struct nhlt_resource_desc  *)obj->buffer.pointer;
- 
--		return ioremap_cache(nhlt_ptr->min_addr, nhlt_ptr->length);
-+		return memremap(nhlt_ptr->min_addr, nhlt_ptr->length,
-+				MEMREMAP_WB);
+-	memconsole = ioremap_cache(memconsole_baseaddr, memconsole_length);
++	memconsole = memremap(memconsole_baseaddr, memconsole_length,
++			MEMREMAP_WB);
+ 	if (!memconsole) {
+-		pr_err("memconsole: ioremap_cache failed\n");
++		pr_err("memconsole: memremap failed\n");
+ 		return -ENOMEM;
  	}
- 
- 	dev_err(dev, "device specific method to extract NHLT blob failed\n");
- 	return NULL;
+ 	ret = memory_read_from_buffer(buf, count, &pos, memconsole,
+ 				      memconsole_length);
+-	iounmap(memconsole);
++	memunmap(memconsole);
+ 	return ret;
  }
- 
--void skl_nhlt_free(void __iomem *addr)
-+void skl_nhlt_free(void *addr)
- {
--	iounmap(addr);
--	addr = NULL;
-+	memunmap(addr);
- }
- 
- static struct nhlt_specific_cfg *skl_get_specific_cfg(
-diff --git a/sound/soc/intel/skylake/skl.h b/sound/soc/intel/skylake/skl.h
-index f7fdbb02947f..551c6db25f34 100644
---- a/sound/soc/intel/skylake/skl.h
-+++ b/sound/soc/intel/skylake/skl.h
-@@ -55,7 +55,7 @@ struct skl {
- 	unsigned int init_failed:1; /* delayed init failed */
- 	struct platform_device *dmic_dev;
- 
--	void __iomem *nhlt; /* nhlt ptr */
-+	void *nhlt; /* nhlt ptr */
- 	struct skl_sst *skl_sst; /* sst skl ctx */
- };
- 
-@@ -72,8 +72,8 @@ struct skl_dma_params {
- int skl_platform_unregister(struct device *dev);
- int skl_platform_register(struct device *dev);
- 
--void __iomem *skl_nhlt_init(struct device *dev);
--void skl_nhlt_free(void __iomem *addr);
-+void *skl_nhlt_init(struct device *dev);
-+void skl_nhlt_free(void *addr);
- struct nhlt_specific_cfg *skl_get_ep_blob(struct skl *skl, u32 instance,
- 			u8 link_type, u8 s_fmt, u8 no_ch, u32 s_rate, u8 dirn);
  
 
