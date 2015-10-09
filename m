@@ -1,103 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f176.google.com ([209.85.212.176]:34516 "EHLO
-	mail-wi0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753653AbbJIJyC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Oct 2015 05:54:02 -0400
-Received: by wicfx3 with SMTP id fx3so62920240wic.1
-        for <linux-arch@vger.kernel.org>; Fri, 09 Oct 2015 02:54:01 -0700 (PDT)
-Date: Fri, 9 Oct 2015 12:53:59 +0300
+Received: from mail-wi0-f173.google.com ([209.85.212.173]:34966 "EHLO
+	mail-wi0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757276AbbJIKIU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Oct 2015 06:08:20 -0400
+Received: by wicge5 with SMTP id ge5so61371346wic.0
+        for <linux-arch@vger.kernel.org>; Fri, 09 Oct 2015 03:08:18 -0700 (PDT)
+Date: Fri, 9 Oct 2015 13:08:16 +0300
 From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH v2 09/12] mm,thp: reduce ifdef'ery for THP in generic code
-Message-ID: <20151009095359.GA7971@node>
+Subject: Re: [PATCH v2 10/12] mm,thp: introduce flush_pmd_tlb_range
+Message-ID: <20151009100816.GC7873@node>
 References: <1442918096-17454-1-git-send-email-vgupta@synopsys.com>
- <1442918096-17454-10-git-send-email-vgupta@synopsys.com>
+ <1442918096-17454-11-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1442918096-17454-10-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1442918096-17454-11-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Mel Gorman <mgorman@suse.de>, Matthew Wilcox <matthew.r.wilcox@intel.com>, Minchan Kim <minchan@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20151009095359.GAurDeIYsFl5ZKF69lQ6ssmVZsr271DME9wORmeTs6k@z>
+Message-ID: <20151009100816.Xp9xm3fRllzYyEi8KdySQtHdx5USHyj478Q3h93Czk8@z>
 
-On Tue, Sep 22, 2015 at 04:04:53PM +0530, Vineet Gupta wrote:
-> - pgtable-generic.c: Fold individual #ifdef for each helper into a top
->   level #ifdef. Makes code more readable
+On Tue, Sep 22, 2015 at 04:04:54PM +0530, Vineet Gupta wrote:
 
-Makes sense.
+Commit message: -ENOENT.
 
-> - Per Andrew's suggestion removed the dummy implementations for !THP
->   in asm-generic/page-table.h to have build time failures vs. runtime.
+Otherwise, looks good:
 
-I'm not sure it's a good idea. This can lead to unnecessary #ifdefs where
-otherwise call to helper would be eliminated by compiler as dead code.
-
-What about dummy helpers with BUILD_BUG()?
-
-> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-> ---
->  include/asm-generic/pgtable.h | 49 ++++++++++++++++---------------------------
->  mm/pgtable-generic.c          | 24 +++------------------
->  2 files changed, 21 insertions(+), 52 deletions(-)
-> 
-> diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-> index 29c57b2cb344..2112f4147816 100644
-> --- a/include/asm-generic/pgtable.h
-> +++ b/include/asm-generic/pgtable.h
-> @@ -30,9 +30,12 @@ extern int ptep_set_access_flags(struct vm_area_struct *vma,
->  #endif
->  
->  #ifndef __HAVE_ARCH_PMDP_SET_ACCESS_FLAGS
-> +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
->  extern int pmdp_set_access_flags(struct vm_area_struct *vma,
->  				 unsigned long address, pmd_t *pmdp,
->  				 pmd_t entry, int dirty);
-> +
-> +#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
->  #endif
->  
->  #ifndef __HAVE_ARCH_PTEP_TEST_AND_CLEAR_YOUNG
-> @@ -64,14 +67,6 @@ static inline int pmdp_test_and_clear_young(struct vm_area_struct *vma,
->  		set_pmd_at(vma->vm_mm, address, pmdp, pmd_mkold(pmd));
->  	return r;
->  }
-> -#else /* CONFIG_TRANSPARENT_HUGEPAGE */
-> -static inline int pmdp_test_and_clear_young(struct vm_area_struct *vma,
-> -					    unsigned long address,
-> -					    pmd_t *pmdp)
-> -{
-> -	BUG();
-> -	return 0;
-> -}
->  #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
->  #endif
->  
-> @@ -81,8 +76,21 @@ int ptep_clear_flush_young(struct vm_area_struct *vma,
->  #endif
->  
->  #ifndef __HAVE_ARCH_PMDP_CLEAR_YOUNG_FLUSH
-> -int pmdp_clear_flush_young(struct vm_area_struct *vma,
-> -			   unsigned long address, pmd_t *pmdp);
-> +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-> +extern int pmdp_clear_flush_young(struct vm_area_struct *vma,
-> +				  unsigned long address, pmd_t *pmdp);
-> +#else
-> +/*
-> + * Despite relevant to THP only, this API is called from generic rmap code
-> + * under PageTransHuge(), hence needs a dummy implementation for !THP
-> + */
-
-Looks like a case I described above. BUILD_BUG_ON() should work fine here.
-
-> +static inline int pmdp_clear_flush_young(struct vm_area_struct *vma,
-> +					 unsigned long address, pmd_t *pmdp)
-> +{
-> +	BUG();
-> +	return 0;
-> +}
-> +#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
->  #endif
+Acked-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 
 -- 
  Kirill A. Shutemov
