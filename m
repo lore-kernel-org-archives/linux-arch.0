@@ -1,43 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:59618 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758060AbbJIL0C (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Oct 2015 07:26:02 -0400
-Date: Fri, 9 Oct 2015 13:25:54 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
- update documentation
-Message-ID: <20151009112554.GB3816@twins.programming.kicks-ass.net>
-References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
- <20151007111915.GF17308@twins.programming.kicks-ass.net>
- <20151007132317.GK16065@arm.com>
- <20151007152501.GI3910@linux.vnet.ibm.com>
- <1444276236.9940.5.camel@ellerman.id.au>
- <20151008111638.GL3816@twins.programming.kicks-ass.net>
- <20151008125937.GH16807@arm.com>
- <20151008221716.GF3910@linux.vnet.ibm.com>
- <20151009095129.GF26278@arm.com>
+Received: from mail-wi0-f172.google.com ([209.85.212.172]:35772 "EHLO
+	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934875AbbJILnj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Oct 2015 07:43:39 -0400
+Received: by wicge5 with SMTP id ge5so64657439wic.0
+        for <linux-arch@vger.kernel.org>; Fri, 09 Oct 2015 04:43:38 -0700 (PDT)
+Date: Fri, 9 Oct 2015 14:43:36 +0300
+From: "Kirill A. Shutemov" <kirill@shutemov.name>
+Subject: Re: [PATCH v2 00/12] THP support for ARC
+Message-ID: <20151009114336.GB8081@node>
+References: <1442918096-17454-1-git-send-email-vgupta@synopsys.com>
+ <560CCC73.9080705@synopsys.com>
+ <561789E6.9090800@synopsys.com>
+ <20151009101046.GA8081@node>
+ <5617A527.9030902@synopsys.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20151009095129.GF26278@arm.com>
+In-Reply-To: <5617A527.9030902@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20151009112554.c29Fb4Jzd-1KAYD6EJc8nhqFm395WL31hd0DwCMxNmI@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Mel Gorman <mgorman@suse.de>, Matthew Wilcox <matthew.r.wilcox@intel.com>, Minchan Kim <minchan@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20151009114336.qCOymzN7oxniv0U29VXwP7M6Hvo5ti-C2IUJUM1nfyU@z>
 
-On Fri, Oct 09, 2015 at 10:51:29AM +0100, Will Deacon wrote:
-> > The corresponding litmus tests are below.
+On Fri, Oct 09, 2015 at 04:59:43PM +0530, Vineet Gupta wrote:
+> On Friday 09 October 2015 03:40 PM, Kirill A. Shutemov wrote:
+> > On Fri, Oct 09, 2015 at 03:03:26PM +0530, Vineet Gupta wrote:
+> >> On Thursday 01 October 2015 11:32 AM, Vineet Gupta wrote:
+> >>> On Tuesday 22 September 2015 04:04 PM, Vineet Gupta wrote:
+> >>>>> Hi,
+> >>>>>
+> >>>>> This series brings THP support to ARC. It also introduces an optional new
+> >>>>> thp hook for arches to possibly optimize the TLB flush in thp regime.
+> >>>>>
+> >>>>> Please review !
+> >>>>>
+> >>>>> Changes Since v1 [*]
+> >>>>>    - Rebased against v4.3-rc2
+> >>>>>    - Switched ARC pgtable_t to pte_t * 		(Kiril)
+> >>>>>    - Removed stub implementations for		(Andrew)
+> >>>>> 	pmdp_set_access_flags, pmdp_test_and_clear_young, pmdp_set_wrprotect,
+> >>>>> 	pmdp_collapse_flush, pmd_same
+> >>>>>
+> >>>>> [*] http://lkml.kernel.org/r/1440666194-21478-1-git-send-email-vgupta@synopsys.com
+> >>>>>
+> >>>>> Vineet Gupta (12):
+> >>>>>   ARC: mm: switch pgtable_to to pte_t *
+> >>>>>   ARC: mm: pte flags comsetic cleanups, comments
+> >>>>>   ARC: mm: Introduce PTE_SPECIAL
+> >>>>>   Documentation/features/vm: pte_special now supported by ARC
+> >>>>>   ARCv2: mm: THP support
+> >>>>>   ARCv2: mm: THP: boot validation/reporting
+> >>>>>   Documentation/features/vm: THP now supported by ARC
+> >>>>>   mm: move some code around
+> >>>>>   mm,thp: reduce ifdef'ery for THP in generic code
+> >>>>>   mm,thp: introduce flush_pmd_tlb_range
+> >>>>>   ARCv2: mm: THP: Implement flush_pmd_tlb_range() optimization
+> >>>>>   ARCv2: Add a DT which enables THP
+> >>>>>
+> >>>>>  Documentation/features/vm/THP/arch-support.txt     |  2 +-
+> >>>>>  .../features/vm/pte_special/arch-support.txt       |  2 +-
+> >>>>>  arch/arc/Kconfig                                   |  4 +
+> >>>>>  arch/arc/boot/dts/hs_thp.dts                       | 59 +++++++++++++
+> >>>>>  arch/arc/include/asm/hugepage.h                    | 82 ++++++++++++++++++
+> >>>>>  arch/arc/include/asm/page.h                        |  5 +-
+> >>>>>  arch/arc/include/asm/pgalloc.h                     |  6 +-
+> >>>>>  arch/arc/include/asm/pgtable.h                     | 60 +++++++------
+> >>>>>  arch/arc/mm/tlb.c                                  | 76 ++++++++++++++++-
+> >>>>>  arch/arc/mm/tlbex.S                                | 21 +++--
+> >>>>>  include/asm-generic/pgtable.h                      | 49 ++++-------
+> >>>>>  mm/huge_memory.c                                   |  2 +-
+> >>>>>  mm/pgtable-generic.c                               | 99 ++++++++++------------
+> >>>>>  13 files changed, 345 insertions(+), 122 deletions(-)
+> >>>>>  create mode 100644 arch/arc/boot/dts/hs_thp.dts
+> >>>>>  create mode 100644 arch/arc/include/asm/hugepage.h
+> >>> Andrew, Kirill, could you please review/ack the generic mm bits atleast so I can
+> >>> proceed with moving the stuff into linux-next !
+> >>
+> >> Ping 2 !
+> > 
+> > Sorry.
+> > 
+> >> Can I please get some acks on the generic mm bits. Some of the changes
+> >> will likely collide Kirill's THP rework !
+> > 
+> > Could you check if it acctually collides?
 > 
-> How do people feel about including these in memory-barriers.txt? I find
-> them considerably easier to read than our current kernel code + list of
-> possible orderings + wall of text, but there's a good chance that my
-> brain has been corrupted from staring at this stuff for too long.
+> I rebased my changes on top of your v12 branch. As expected I get two merge
+> conflicts as my patches update code which u have removed. But looks straight
+> forward to resolve. Meaning we can carry respective patches and give Linus a heads
+> up abt the merge conflict.
+> 
+> There's also a fixup needed for ARC to remove the pmdp splitting assuming ARC THP
+> makes it into mainline first.
 
-Your brain is corrupt (but then, so probably is mine, just differently
-so).
+Okay. Let's see what hits upstream first.
 
-I've not yet mastered the knack of reading those things; then again, I
-suspect its not too hard, just not something I've had the time to play
-with.
+Side question: I was surprised by your patchset. I didn't think about ARC
+as an architecture which would benefit from THP. How big ARC systems
+nowadays? How big benefit did you measured there from THP? 
+
+-- 
+ Kirill A. Shutemov
