@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:31171 "EHLO mga09.intel.com"
+Received: from mga01.intel.com ([192.55.52.88]:32573 "EHLO mga01.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932961AbbJIWWp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 9 Oct 2015 18:22:45 -0400
-Subject: [PATCH 16/20] fbdev: switch from ioremap_wt to memremap
+	id S932961AbbJIWW3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 9 Oct 2015 18:22:29 -0400
+Subject: [PATCH 13/20] intel-iommu: switch from ioremap_cache to memremap
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 09 Oct 2015 18:17:02 -0400
-Message-ID: <20151009221702.32203.34504.stgit@dwillia2-desk3.jf.intel.com>
+Date: Fri, 09 Oct 2015 18:16:46 -0400
+Message-ID: <20151009221646.32203.98367.stgit@dwillia2-desk3.jf.intel.com>
 In-Reply-To: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
 References: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
 MIME-Version: 1.0
@@ -15,96 +15,146 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-fbdev@vger.kernel.org, Tomi Valkeinen <tomi.valkeinen@ti.com>, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20151009221702.26RrSF4GWTs94y9yoYUCOOvA82y8-H1Xdh816frCSMg@z>
+Cc: linux-arch@vger.kernel.org, Joerg Roedel <jroedel@suse.de>, David Woodhouse <dwmw2@infradead.org>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20151009221646._E80PGZSw5cCUIB1Y_XHO2XVRarpRMj5bXeud3s4UeI@z>
 
-In preparation for deprecating ioremap_wt() convert its usage in
-drivers/video/fbdev to memremap.
+In preparation for deprecating ioremap_cache() convert its usage in
+intel-iommu to memremap.  This also eliminates the mishandling of the
+__iomem annotation in the implementation.
 
-Cc: Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>
-Cc: Tomi Valkeinen <tomi.valkeinen@ti.com>
-Cc: linux-fbdev@vger.kernel.org
+Cc: David Woodhouse <dwmw2@infradead.org>
+Acked-by: Joerg Roedel <jroedel@suse.de>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- drivers/video/fbdev/amifb.c |    5 +++--
- drivers/video/fbdev/atafb.c |    5 +++--
- drivers/video/fbdev/hpfb.c  |    6 +++---
- 3 files changed, 9 insertions(+), 7 deletions(-)
+ drivers/iommu/intel-iommu.c         |   20 +++++++++++---------
+ drivers/iommu/intel_irq_remapping.c |    8 ++++----
+ 2 files changed, 15 insertions(+), 13 deletions(-)
 
-diff --git a/drivers/video/fbdev/amifb.c b/drivers/video/fbdev/amifb.c
-index 1d702e13aaff..0cde451046d0 100644
---- a/drivers/video/fbdev/amifb.c
-+++ b/drivers/video/fbdev/amifb.c
-@@ -52,6 +52,7 @@
- #include <linux/ioport.h>
- #include <linux/platform_device.h>
- #include <linux/uaccess.h>
+diff --git a/drivers/iommu/intel-iommu.c b/drivers/iommu/intel-iommu.c
+index 041bc1810a86..a089177db372 100644
+--- a/drivers/iommu/intel-iommu.c
++++ b/drivers/iommu/intel-iommu.c
+@@ -34,6 +34,7 @@
+ #include <linux/mempool.h>
+ #include <linux/memory.h>
+ #include <linux/timer.h>
 +#include <linux/io.h>
+ #include <linux/iova.h>
+ #include <linux/iommu.h>
+ #include <linux/intel-iommu.h>
+@@ -2807,18 +2808,18 @@ static void intel_iommu_init_qi(struct intel_iommu *iommu)
+ }
  
- #include <asm/irq.h>
- #include <asm/amigahw.h>
-@@ -3705,8 +3706,8 @@ default_chipset:
- 	 * access the videomem with writethrough cache
- 	 */
- 	info->fix.smem_start = (u_long)ZTWO_PADDR(videomemory);
--	videomemory = (u_long)ioremap_wt(info->fix.smem_start,
--					 info->fix.smem_len);
-+	videomemory = (u_long)memremap(info->fix.smem_start, info->fix.smem_len,
-+			MEMREMAP_WT);
- 	if (!videomemory) {
- 		dev_warn(&pdev->dev,
- 			 "Unable to map videomem cached writethrough\n");
-diff --git a/drivers/video/fbdev/atafb.c b/drivers/video/fbdev/atafb.c
-index d6ce613e12ad..5615e8c31ea2 100644
---- a/drivers/video/fbdev/atafb.c
-+++ b/drivers/video/fbdev/atafb.c
-@@ -55,12 +55,12 @@
- #include <linux/delay.h>
- #include <linux/init.h>
- #include <linux/interrupt.h>
-+#include <linux/io.h>
+ static int copy_context_table(struct intel_iommu *iommu,
+-			      struct root_entry __iomem *old_re,
++			      struct root_entry *old_re,
+ 			      struct context_entry **tbl,
+ 			      int bus, bool ext)
+ {
+ 	int tbl_idx, pos = 0, idx, devfn, ret = 0, did;
+-	struct context_entry __iomem *old_ce = NULL;
+ 	struct context_entry *new_ce = NULL, ce;
++	struct context_entry *old_ce = NULL;
+ 	struct root_entry re;
+ 	phys_addr_t old_ce_phys;
  
- #include <asm/setup.h>
- #include <linux/uaccess.h>
- #include <asm/pgtable.h>
- #include <asm/irq.h>
--#include <asm/io.h>
+ 	tbl_idx = ext ? bus * 2 : bus;
+-	memcpy_fromio(&re, old_re, sizeof(re));
++	memcpy(&re, old_re, sizeof(re));
  
- #include <asm/atarihw.h>
- #include <asm/atariints.h>
-@@ -3185,7 +3185,8 @@ int __init atafb_init(void)
- 		/* Map the video memory (physical address given) to somewhere
- 		 * in the kernel address space.
- 		 */
--		external_screen_base = ioremap_wt(external_addr, external_len);
-+		external_screen_base = memremap(external_addr, external_len,
-+				MEMREMAP_WT);
- 		if (external_vgaiobase)
- 			external_vgaiobase =
- 			  (unsigned long)ioremap(external_vgaiobase, 0x10000);
-diff --git a/drivers/video/fbdev/hpfb.c b/drivers/video/fbdev/hpfb.c
-index 9476d196f510..d08c320b06fc 100644
---- a/drivers/video/fbdev/hpfb.c
-+++ b/drivers/video/fbdev/hpfb.c
-@@ -14,8 +14,8 @@
- #include <linux/init.h>
- #include <linux/fb.h>
- #include <linux/dio.h>
-+#include <linux/io.h>
+ 	for (devfn = 0; devfn < 256; devfn++) {
+ 		/* First calculate the correct index */
+@@ -2853,7 +2854,8 @@ static int copy_context_table(struct intel_iommu *iommu,
+ 			}
  
--#include <asm/io.h>
- #include <asm/uaccess.h>
+ 			ret = -ENOMEM;
+-			old_ce = ioremap_cache(old_ce_phys, PAGE_SIZE);
++			old_ce = memremap(old_ce_phys, PAGE_SIZE,
++					MEMREMAP_WB);
+ 			if (!old_ce)
+ 				goto out;
  
- static struct fb_info fb_info = {
-@@ -241,8 +241,8 @@ static int hpfb_init_one(unsigned long phys_base, unsigned long virt_base)
- 	fb_info.fix.line_length = fb_width;
- 	fb_height = (in_8(fb_regs + HPFB_FBHMSB) << 8) | in_8(fb_regs + HPFB_FBHLSB);
- 	fb_info.fix.smem_len = fb_width * fb_height;
--	fb_start = (unsigned long)ioremap_wt(fb_info.fix.smem_start,
--					     fb_info.fix.smem_len);
-+	fb_start = (unsigned long) memremap(fb_info.fix.smem_start,
-+					     fb_info.fix.smem_len, MEMREMAP_WT);
- 	hpfb_defined.xres = (in_8(fb_regs + HPFB_DWMSB) << 8) | in_8(fb_regs + HPFB_DWLSB);
- 	hpfb_defined.yres = (in_8(fb_regs + HPFB_DHMSB) << 8) | in_8(fb_regs + HPFB_DHLSB);
- 	hpfb_defined.xres_virtual = hpfb_defined.xres;
+@@ -2865,7 +2867,7 @@ static int copy_context_table(struct intel_iommu *iommu,
+ 		}
+ 
+ 		/* Now copy the context entry */
+-		memcpy_fromio(&ce, old_ce + idx, sizeof(ce));
++		memcpy(&ce, old_ce + idx, sizeof(ce));
+ 
+ 		if (!__context_present(&ce))
+ 			continue;
+@@ -2901,7 +2903,7 @@ static int copy_context_table(struct intel_iommu *iommu,
+ 	__iommu_flush_cache(iommu, new_ce, VTD_PAGE_SIZE);
+ 
+ out_unmap:
+-	iounmap(old_ce);
++	memunmap(old_ce);
+ 
+ out:
+ 	return ret;
+@@ -2909,8 +2911,8 @@ out:
+ 
+ static int copy_translation_tables(struct intel_iommu *iommu)
+ {
+-	struct root_entry __iomem *old_rt;
+ 	struct context_entry **ctxt_tbls;
++	struct root_entry *old_rt;
+ 	phys_addr_t old_rt_phys;
+ 	int ctxt_table_entries;
+ 	unsigned long flags;
+@@ -2935,7 +2937,7 @@ static int copy_translation_tables(struct intel_iommu *iommu)
+ 	if (!old_rt_phys)
+ 		return -EINVAL;
+ 
+-	old_rt = ioremap_cache(old_rt_phys, PAGE_SIZE);
++	old_rt = memremap(old_rt_phys, PAGE_SIZE, MEMREMAP_WB);
+ 	if (!old_rt)
+ 		return -ENOMEM;
+ 
+@@ -2984,7 +2986,7 @@ static int copy_translation_tables(struct intel_iommu *iommu)
+ 	ret = 0;
+ 
+ out_unmap:
+-	iounmap(old_rt);
++	memunmap(old_rt);
+ 
+ 	return ret;
+ }
+diff --git a/drivers/iommu/intel_irq_remapping.c b/drivers/iommu/intel_irq_remapping.c
+index 9ec4e0d94ffd..bdc52cc6ed23 100644
+--- a/drivers/iommu/intel_irq_remapping.c
++++ b/drivers/iommu/intel_irq_remapping.c
+@@ -384,7 +384,7 @@ static int set_msi_sid(struct irte *irte, struct pci_dev *dev)
+ 
+ static int iommu_load_old_irte(struct intel_iommu *iommu)
+ {
+-	struct irte __iomem *old_ir_table;
++	struct irte *old_ir_table;
+ 	phys_addr_t irt_phys;
+ 	unsigned int i;
+ 	size_t size;
+@@ -408,12 +408,12 @@ static int iommu_load_old_irte(struct intel_iommu *iommu)
+ 	size     = INTR_REMAP_TABLE_ENTRIES*sizeof(struct irte);
+ 
+ 	/* Map the old IR table */
+-	old_ir_table = ioremap_cache(irt_phys, size);
++	old_ir_table = memremap(irt_phys, size, MEMREMAP_WB);
+ 	if (!old_ir_table)
+ 		return -ENOMEM;
+ 
+ 	/* Copy data over */
+-	memcpy_fromio(iommu->ir_table->base, old_ir_table, size);
++	memcpy(iommu->ir_table->base, old_ir_table, size);
+ 
+ 	__iommu_flush_cache(iommu, iommu->ir_table->base, size);
+ 
+@@ -426,7 +426,7 @@ static int iommu_load_old_irte(struct intel_iommu *iommu)
+ 			bitmap_set(iommu->ir_table->bitmap, i, 1);
+ 	}
+ 
+-	iounmap(old_ir_table);
++	memunmap(old_ir_table);
+ 
+ 	return 0;
+ }
 
