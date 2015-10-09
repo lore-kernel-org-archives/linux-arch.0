@@ -1,7 +1,7 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH 05/20] m68k: introduce arch_memremap()
-Date: Fri, 09 Oct 2015 18:16:04 -0400
-Message-ID: <20151009221604.32203.58114.stgit@dwillia2-desk3.jf.intel.com>
+Subject: [PATCH 06/20] arm: switch from ioremap_cache to memremap
+Date: Fri, 09 Oct 2015 18:16:09 -0400
+Message-ID: <20151009221609.32203.79381.stgit@dwillia2-desk3.jf.intel.com>
 References: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,90 +10,164 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Ross Zwisler <ross.zwisler@linux.intel.com>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-arm-kernel@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, Russell King <rmk+kernel@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-In preparation for removing ioremap_wt() introduce arch_memremap()
-for m68k.  This simply enforces that attempts to establish writethrough
-mappings fail rather than silently fall back to uncached.
+In preparation for deprecating ioremap_cache() convert its usage in
+arch/arm[64]/ to memremap.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Ross Zwisler <ross.zwisler@linux.intel.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Russell King <rmk+kernel@arm.linux.org.uk>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/m68k/Kconfig       |    1 +
- arch/m68k/mm/kmap.c     |   17 ++++++++++++++++-
- arch/m68k/mm/sun3kmap.c |    7 +++++++
- 3 files changed, 24 insertions(+), 1 deletion(-)
+ arch/arm/include/asm/xen/page.h    |    4 ++--
+ arch/arm64/include/asm/acpi.h      |    5 +----
+ arch/arm64/include/asm/dmi.h       |    8 ++++----
+ arch/arm64/kernel/efi.c            |    9 +++++----
+ arch/arm64/kernel/smp_spin_table.c |   19 +++++++++----------
+ 5 files changed, 21 insertions(+), 24 deletions(-)
 
-diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
-index 498b567f007b..468b9ea6d042 100644
---- a/arch/m68k/Kconfig
-+++ b/arch/m68k/Kconfig
-@@ -9,6 +9,7 @@ config M68K
- 	select GENERIC_ATOMIC64
- 	select HAVE_UID16
- 	select VIRT_TO_BUS
-+	select ARCH_HAS_MEMREMAP
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG if RMW_INSNS
- 	select GENERIC_CPU_DEVICES
- 	select GENERIC_IOMAP
-diff --git a/arch/m68k/mm/kmap.c b/arch/m68k/mm/kmap.c
-index 6e4955bc542b..519c45865127 100644
---- a/arch/m68k/mm/kmap.c
-+++ b/arch/m68k/mm/kmap.c
-@@ -14,12 +14,12 @@
- #include <linux/types.h>
+diff --git a/arch/arm/include/asm/xen/page.h b/arch/arm/include/asm/xen/page.h
+index 127956353b00..91ac751a5baa 100644
+--- a/arch/arm/include/asm/xen/page.h
++++ b/arch/arm/include/asm/xen/page.h
+@@ -103,8 +103,8 @@ static inline bool set_phys_to_machine(unsigned long pfn, unsigned long mfn)
+ 	return __set_phys_to_machine(pfn, mfn);
+ }
+ 
+-#define xen_remap(cookie, size) ioremap_cache((cookie), (size))
+-#define xen_unmap(cookie) iounmap((cookie))
++#define xen_remap(cookie, size) memremap((cookie), (size), MEMREMAP_WB)
++#define xen_unmap(cookie) memunmap((cookie))
+ 
+ bool xen_arch_need_swiotlb(struct device *dev,
+ 			   unsigned long pfn,
+diff --git a/arch/arm64/include/asm/acpi.h b/arch/arm64/include/asm/acpi.h
+index 208cec08a74f..a24a9b1cc91d 100644
+--- a/arch/arm64/include/asm/acpi.h
++++ b/arch/arm64/include/asm/acpi.h
+@@ -33,10 +33,7 @@
+ static inline void __iomem *acpi_os_ioremap(acpi_physical_address phys,
+ 					    acpi_size size)
+ {
+-	if (!page_is_ram(phys >> PAGE_SHIFT))
+-		return ioremap(phys, size);
+-
+-	return ioremap_cache(phys, size);
++	return memremap(phys, size, MEMREMAP_WB);
+ }
+ #define acpi_os_ioremap acpi_os_ioremap
+ 
+diff --git a/arch/arm64/include/asm/dmi.h b/arch/arm64/include/asm/dmi.h
+index 69d37d87b159..82682d27c6ee 100644
+--- a/arch/arm64/include/asm/dmi.h
++++ b/arch/arm64/include/asm/dmi.h
+@@ -22,10 +22,10 @@
+  * request a virtual mapping for configuration tables such as SMBIOS.
+  * This means we have to map them before use.
+  */
+-#define dmi_early_remap(x, l)		ioremap_cache(x, l)
+-#define dmi_early_unmap(x, l)		iounmap(x)
+-#define dmi_remap(x, l)			ioremap_cache(x, l)
+-#define dmi_unmap(x)			iounmap(x)
++#define dmi_early_remap(x, l)		memremap(x, l, MEMREMAP_WB)
++#define dmi_early_unmap(x, l)		memunmap(x)
++#define dmi_remap(x, l)			memremap(x, l, MEMREMAP_WB)
++#define dmi_unmap(x)			memunmap(x)
+ #define dmi_alloc(l)			kzalloc(l, GFP_KERNEL)
+ 
+ #endif
+diff --git a/arch/arm64/kernel/efi.c b/arch/arm64/kernel/efi.c
+index 13671a9cf016..7dd05eb2c186 100644
+--- a/arch/arm64/kernel/efi.c
++++ b/arch/arm64/kernel/efi.c
+@@ -26,6 +26,7 @@
+ #include <linux/sched.h>
  #include <linux/slab.h>
- #include <linux/vmalloc.h>
+ #include <linux/spinlock.h>
 +#include <linux/io.h>
  
- #include <asm/setup.h>
- #include <asm/segment.h>
- #include <asm/page.h>
- #include <asm/pgalloc.h>
+ #include <asm/cacheflush.h>
+ #include <asm/efi.h>
+@@ -291,8 +292,8 @@ static int __init arm64_enable_runtime_services(void)
+ 	pr_info("Remapping and enabling EFI services.\n");
+ 
+ 	mapsize = memmap.map_end - memmap.map;
+-	memmap.map = (__force void *)ioremap_cache((phys_addr_t)memmap.phys_map,
+-						   mapsize);
++	memmap.map = memremap((phys_addr_t) memmap.phys_map, mapsize,
++			MEMREMAP_WB);
+ 	if (!memmap.map) {
+ 		pr_err("Failed to remap EFI memory map\n");
+ 		return -1;
+@@ -300,8 +301,8 @@ static int __init arm64_enable_runtime_services(void)
+ 	memmap.map_end = memmap.map + mapsize;
+ 	efi.memmap = &memmap;
+ 
+-	efi.systab = (__force void *)ioremap_cache(efi_system_table,
+-						   sizeof(efi_system_table_t));
++	efi.systab = memremap(efi_system_table, sizeof(efi_system_table_t),
++			MEMREMAP_WB);
+ 	if (!efi.systab) {
+ 		pr_err("Failed to remap EFI System Table\n");
+ 		return -1;
+diff --git a/arch/arm64/kernel/smp_spin_table.c b/arch/arm64/kernel/smp_spin_table.c
+index aef3605a8c47..2c06c1a36154 100644
+--- a/arch/arm64/kernel/smp_spin_table.c
++++ b/arch/arm64/kernel/smp_spin_table.c
+@@ -21,11 +21,11 @@
+ #include <linux/of.h>
+ #include <linux/smp.h>
+ #include <linux/types.h>
++#include <linux/io.h>
+ 
+ #include <asm/cacheflush.h>
+ #include <asm/cpu_ops.h>
+ #include <asm/cputype.h>
 -#include <asm/io.h>
+ #include <asm/smp_plat.h>
  
- #undef DEBUG
+ extern void secondary_holding_pen(void);
+@@ -73,19 +73,19 @@ static int smp_spin_table_cpu_init(unsigned int cpu)
  
-@@ -223,6 +223,21 @@ void __iomem *__ioremap(unsigned long physaddr, unsigned long size, int cachefla
- }
- EXPORT_SYMBOL(__ioremap);
- 
-+void *arch_memremap(resource_size_t offset, size_t size, unsigned long flags)
-+{
-+	int mode;
-+
-+	if (flags & MEMREMAP_WB)
-+		mode = IOMAP_FULL_CACHING;
-+	else if (flags & MEMREMAP_WT)
-+		mode = IOMAP_WRITETHROUGH;
-+	else
-+		return NULL;
-+
-+	return (void __force *) __ioremap(offset, size, mode);
-+}
-+EXPORT_SYMBOL(arch_memremap);
-+
- /*
-  * Unmap an ioremap()ed region again
-  */
-diff --git a/arch/m68k/mm/sun3kmap.c b/arch/m68k/mm/sun3kmap.c
-index 3dc41158c05e..981a9e423b23 100644
---- a/arch/m68k/mm/sun3kmap.c
-+++ b/arch/m68k/mm/sun3kmap.c
-@@ -116,6 +116,13 @@ void __iomem *__ioremap(unsigned long phys, unsigned long size, int cache)
- }
- EXPORT_SYMBOL(__ioremap);
- 
-+void *arch_memremap(resource_size_t offset, size_t size, unsigned long flags)
-+{
-+	pr_err_once("sun3: no support for memremap\n");
-+	return NULL;
-+}
-+EXPORT_SYMBOL(arch_memremap);
-+
- void iounmap(void __iomem *addr)
+ static int smp_spin_table_cpu_prepare(unsigned int cpu)
  {
- 	vfree((void *)(PAGE_MASK & (unsigned long)addr));
+-	__le64 __iomem *release_addr;
++	__le64 *release_addr;
+ 
+ 	if (!cpu_release_addr[cpu])
+ 		return -ENODEV;
+ 
+ 	/*
+ 	 * The cpu-release-addr may or may not be inside the linear mapping.
+-	 * As ioremap_cache will either give us a new mapping or reuse the
+-	 * existing linear mapping, we can use it to cover both cases. In
+-	 * either case the memory will be MT_NORMAL.
++	 * As memremap will either give us a new mapping or reuse the existing
++	 * linear mapping, we can use it to cover both cases. In either case
++	 * the memory will be MT_NORMAL.
+ 	 */
+-	release_addr = ioremap_cache(cpu_release_addr[cpu],
+-				     sizeof(*release_addr));
++	release_addr = memremap(cpu_release_addr[cpu], sizeof(*release_addr),
++			MEMREMAP_WB);
+ 	if (!release_addr)
+ 		return -ENOMEM;
+ 
+@@ -97,15 +97,14 @@ static int smp_spin_table_cpu_prepare(unsigned int cpu)
+ 	 * the boot protocol.
+ 	 */
+ 	writeq_relaxed(__pa(secondary_holding_pen), release_addr);
+-	__flush_dcache_area((__force void *)release_addr,
+-			    sizeof(*release_addr));
++	__flush_dcache_area(release_addr, sizeof(*release_addr));
+ 
+ 	/*
+ 	 * Send an event to wake up the secondary CPU.
+ 	 */
+ 	sev();
+ 
+-	iounmap(release_addr);
++	memunmap(release_addr);
+ 
+ 	return 0;
+ }
