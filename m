@@ -1,332 +1,178 @@
 From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
  update documentation
-Date: Fri, 9 Oct 2015 10:21:54 -0700
-Message-ID: <20151009172154.GU3910@linux.vnet.ibm.com>
+Date: Fri, 9 Oct 2015 10:43:27 -0700
+Message-ID: <20151009174327.GV3910@linux.vnet.ibm.com>
 References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
  <20151007111915.GF17308@twins.programming.kicks-ass.net>
  <20151007132317.GK16065@arm.com>
  <20151007152501.GI3910@linux.vnet.ibm.com>
  <1444276236.9940.5.camel@ellerman.id.au>
  <20151008111638.GL3816@twins.programming.kicks-ass.net>
- <20151008214439.GE3910@linux.vnet.ibm.com>
- <20151009083138.GU3816@twins.programming.kicks-ass.net>
- <20151009094039.GD26278@arm.com>
+ <20151008125937.GH16807@arm.com>
+ <20151008221716.GF3910@linux.vnet.ibm.com>
+ <20151009095129.GF26278@arm.com>
 Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e35.co.us.ibm.com ([32.97.110.153]:37327 "EHLO
-	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751670AbbJIRV4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Oct 2015 13:21:56 -0400
+Received: from e34.co.us.ibm.com ([32.97.110.152]:52713 "EHLO
+	e34.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932692AbbJIRn3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Oct 2015 13:43:29 -0400
 Received: from localhost
-	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e34.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Fri, 9 Oct 2015 11:21:56 -0600
+	Fri, 9 Oct 2015 11:43:28 -0600
 Content-Disposition: inline
-In-Reply-To: <20151009094039.GD26278@arm.com>
+In-Reply-To: <20151009095129.GF26278@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Will Deacon <will.deacon@arm.com>
 Cc: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
 
-On Fri, Oct 09, 2015 at 10:40:39AM +0100, Will Deacon wrote:
-> On Fri, Oct 09, 2015 at 10:31:38AM +0200, Peter Zijlstra wrote:
-> > On Thu, Oct 08, 2015 at 02:44:39PM -0700, Paul E. McKenney wrote:
-> > > On Thu, Oct 08, 2015 at 01:16:38PM +0200, Peter Zijlstra wrote:
-> > > > On Thu, Oct 08, 2015 at 02:50:36PM +1100, Michael Ellerman wrote:
-> > > > > On Wed, 2015-10-07 at 08:25 -0700, Paul E. McKenney wrote:
-> > > > 
-> > > > > > Currently, we do need smp_mb__after_unlock_lock() to be after the
-> > > > > > acquisition on PPC -- putting it between the unlock and the lock
-> > > > > > of course doesn't cut it for the cross-thread unlock/lock case.
-> > > > 
-> > > > This ^, that makes me think I don't understand
-> > > > smp_mb__after_unlock_lock.
-> > > > 
-> > > > How is:
-> > > > 
-> > > > 	UNLOCK x
-> > > > 	smp_mb__after_unlock_lock()
-> > > > 	LOCK y
-> > > > 
-> > > > a problem? That's still a full barrier.
+On Fri, Oct 09, 2015 at 10:51:29AM +0100, Will Deacon wrote:
+> Hi Paul,
+> 
+> On Thu, Oct 08, 2015 at 03:17:16PM -0700, Paul E. McKenney wrote:
+> > On Thu, Oct 08, 2015 at 01:59:38PM +0100, Will Deacon wrote:
+> > > I thought Paul was talking about something like this case:
 > > > 
-> > > The problem is that I need smp_mb__after_unlock_lock() to give me
-> > > transitivity even if the UNLOCK happened on one CPU and the LOCK
-> > > on another.  For that to work, the smp_mb__after_unlock_lock() needs
-> > > to be either immediately after the acquire (the current choice) or
-> > > immediately before the release (which would also work from a purely
-> > > technical viewpoint, but I much prefer the current choice).
-> > > 
-> > > Or am I missing your point?
+> > > CPU A     CPU B              CPU C
+> > > foo = 1
+> > > UNLOCK x
+> > >           LOCK x
+> > >           (RELEASE) bar = 1
+> > >                              ACQUIRE bar = 1
+> > >                              READ_ONCE foo = 0
 > > 
-> > So lots of little confusions added up to complete fail :-{
-
-I know that feeling!
-
-> > Mostly I think it was the UNLOCK x + LOCK x are fully ordered (where I
-> > forgot: but not against uninvolved CPUs) and RELEASE/ACQUIRE are
-> > transitive (where I forgot: RELEASE/ACQUIRE _chains_ are transitive, but
-> > again not against uninvolved CPUs).
+> > More like this:
 > > 
-> > Which leads me to think I would like to suggest alternative rules for
-> > RELEASE/ACQUIRE (to replace those Will suggested; as I think those are
-> > partly responsible for my confusion).
+> > CPU A			CPU B			CPU C
+> > WRITE_ONCE(foo, 1);
+> > UNLOCK x
+> > 			LOCK x
+> > 			r1 = READ_ONCE(bar);
+> > 						WRITE_ONCE(bar, 1);
+> > 						smp_mb();
+> > 						r2 = READ_ONCE(foo);
+> > 
+> > This can result in r1==0 && r2==0.
 > 
-> Yeah, sorry. I originally used the phrase "fully ordered" but changed it
-> to "full barrier", which has stronger transitivity (newly understood
-> definition) requirements that I didn't intend.
+> Thank you, that is extremely enlightening :)
 > 
-> RELEASE -> ACQUIRE should be used for message passing between two CPUs
-> and not have ordering effects on other observers unless they're part of
-> the RELEASE -> ACQUIRE chain.
+> > > I think we need a PPC litmus test illustrating the inter-thread, same
+> > > lock failure case when smp_mb__after_unlock_lock is not present so that
+> > > we can reason about this properly. Paul?
+> > 
+> > Please see above.  ;-)
+> > 
+> > The corresponding litmus tests are below.
 > 
-> >  - RELEASE -> ACQUIRE is fully ordered (but not a full barrier) when
-> >    they operate on the same variable and the ACQUIRE reads from the
-> >    RELEASE. Notable, RELEASE/ACQUIRE are RCpc and lack transitivity.
+> How do people feel about including these in memory-barriers.txt? I find
+> them considerably easier to read than our current kernel code + list of
+> possible orderings + wall of text, but there's a good chance that my
+> brain has been corrupted from staring at this stuff for too long.
+> 
+> The only snag is the ppc assembly code, but it's not *too* horrific ;)
 
-RELEASE->ACQUIRE has local transistivity/causality.  However, it is more
-than just message passing:
+Maybe we should include them as separate files in Documentation/litmus
+or some such.  We could then use a litmus-test style with Linux-kernel
+C code, and reference litmus tests for various architectures.  Maybe
+Documentation/litmus/{arm,arm64,powerpc,x86}/ and so on.
 
-	void thread0(void)
-	{
-		r1 = READ_ONCE(a);
-		WRITE_ONCE(b, 1);
-		smp_store_release(&c, 1);
-	}
-
-	void thread1(void)
-	{
-		r2 = smp_store_acquire(&c);
-		WRITE_ONCE(a, 1);
-		r3 = READ_ONCE(b);
-		smp_store_release(&d, 1);
-	}
-
-	void thread2(void)
-	{
-		r4 = smp_load_acquire(&d);
-		WRITE_ONCE(a, 2);
-		r5 = READ_ONCE(b);
-	}
-
-After the dust settles, if r2==1&&r4==1, we should also have
-r1==0&&r3==1&&r5==1.  And here is the PowerPC ppcmem/herd model:
+For example, the first example in memory-barriers.txt is this:
 
 ------------------------------------------------------------------------
+	CPU 1		CPU 2
+	===============	===============
+	{ A == 1; B == 2 }
+	A = 3;		x = B;
+	B = 4;		y = A;
 
-PPC LinuxAcqRelLocal
+The set of accesses as seen by the memory system in the middle can be arranged
+in 24 different combinations:
+
+	STORE A=3,	STORE B=4,	y=LOAD A->3,	x=LOAD B->4
+	STORE A=3,	STORE B=4,	x=LOAD B->4,	y=LOAD A->3
+	STORE A=3,	y=LOAD A->3,	STORE B=4,	x=LOAD B->4
+	STORE A=3,	y=LOAD A->3,	x=LOAD B->2,	STORE B=4
+	STORE A=3,	x=LOAD B->2,	STORE B=4,	y=LOAD A->3
+	STORE A=3,	x=LOAD B->2,	y=LOAD A->3,	STORE B=4
+	STORE B=4,	STORE A=3,	y=LOAD A->3,	x=LOAD B->4
+	STORE B=4, ...
+	...
+
+and can thus result in four different combinations of values:
+
+	x == 2, y == 1
+	x == 2, y == 3
+	x == 4, y == 1
+	x == 4, y == 3
+------------------------------------------------------------------------
+
+Maybe this changes to:
+
+------------------------------------------------------------------------
+Linux MP
 ""
-(*
- * Does a powerpc lwsync-based Acq-Rel chain provide local causality?
- * October 9, 2015: Yes.
- *)
 {
-a=0; b=0; c=0; d=0;
-0:r0=1; 0:r11=a; 0:r12=b; 0:r13=c; 0:r14=d;
-1:r0=1; 1:r11=a; 1:r12=b; 1:r13=c; 1:r14=d;
-2:r0=2; 2:r11=a; 2:r12=b; 2:r13=c; 2:r14=d;
+a=1; b=2;
 }
- P0            | P1            | P2            ;
- lwz r1,0(r11) | lwz r2,0(r13) | lwz r4,0(r14) ;
- stw r0,0(r12) | lwsync        | lwsync        ;
- lwsync        | stw r0,0(r11) | stw r0,0(r11) ;
- stw r0,0(r13) | lwz r3,0(r12) | lwz r5,0(r12) ;
-               | lwsync        |               ;
-               | stw r0,0(r14) |               ;
-exists
-(1:r2=1 /\ 2:r4=1 /\ (0:r1=1 \/ 0:r1=2 \/ 1:r3=0 \/ 2:r5=0))
+ P0               | P1                ;
+ WRITE_ONCE(a, 3) | r1 = READ_ONCE(b) ;
+ WRITE_ONCE(b, 4) | r2 = READ_ONCE(a) ;
 
+exists (2:r1=4 /\ 2:r2=3)
 ------------------------------------------------------------------------
 
-This confirms the local causality/transitivity.
+We can then state that this assertion can fail.  We could include
+either ppcmem or herd output along with the litmus tests, which would
+allow the curious to see a full list of the possible outcomes.
 
-So let's add an uninvolved observer thread, which will also require adding
-another variable to avoid ordering via cache coherence:
-
-	void thread0(void)
-	{
-		r1 = READ_ONCE(a);
-		WRITE_ONCE(b, 1);
-		smp_store_release(&c, 1);
-	}
-
-	void thread1(void)
-	{
-		r2 = smp_store_acquire(&c);
-		WRITE_ONCE(a, 1);
-		r3 = READ_ONCE(b);
-		smp_store_release(&d, 1);
-	}
-
-	void thread2(void)
-	{
-		r4 = smp_load_acquire(&d);
-		WRITE_ONCE(a, 2);
-		r5 = READ_ONCE(b);
-		r6 = READ_ONCE(e);
-	}
-
-	void thread3(void) /* uninvolved observer */
-	{
-		WRITE_ONCE(e, 1);
-		smp_mb();
-		r7 = READ_ONCE(b);
-	}
-
-Can we see r2==1&&r4==1&&r6=0&&r7==0?  Here is the PowerPC model:
-
-------------------------------------------------------------------------
-
-PPC LinuxAcqRelGlobal
-""
-(*
- * Does a powerpc lwsync-based Acq-Rel chain provide global causality?
- * October 9, 2015: No.
- *)
-{
-a=0; b=0; c=0; d=0; e=0;
-0:r0=1; 0:r11=a; 0:r12=b; 0:r13=c; 0:r14=d; 0:r15=e;
-1:r0=1; 1:r11=a; 1:r12=b; 1:r13=c; 1:r14=d; 1:r15=e;
-2:r0=2; 2:r11=a; 2:r12=b; 2:r13=c; 2:r14=d; 2:r15=e;
-3:r0=1; 3:r11=a; 3:r12=b; 3:r13=c; 3:r14=d; 3:r15=e;
-}
- P0            | P1            | P2            | P3            ;
- lwz r1,0(r11) | lwz r2,0(r13) | lwz r4,0(r14) | stw r0,0(r15) ;
- stw r0,0(r12) | lwsync        | lwsync        | sync          ;
- lwsync        | stw r0,0(r11) | stw r0,0(r11) | lwz r7,0(r12) ;
- stw r0,0(r13) | lwz r3,0(r12) | lwz r5,0(r12) |               ;
-               | lwsync        | lwz r6,0(r15) |               ;
-               | stw r0,0(r14) |               |               ;
-exists
-(1:r2=1 /\ 2:r4=1 /\ 2:r6=0 /\ 3:r7=0)
-
-------------------------------------------------------------------------
-
-And, as expected, P3 can see misordering because it is not involved
-in the acquire-release chain.
-
-> Are we explicit about the difference between "fully ordered" and "full
-> barrier" somewhere else, because this looks like it will confuse people.
-
-Probably not.  We need something meaning "local transitivity" on the
-one hand and "global transitivity" on the other.  I suppose we could use
-"causality" for the local case and "transitivity" for the global case,
-but I do not believe that normal formal/mathematical usage matches this.
-
-The term "single-copy atomic" could reasonably be used to mean "local
-transitivity" and "multi-copy atomic" to mean "global transitivity",
-but those are all too easy to confuse with each other, require a lot of
-knowledge to understand, and don't exactly roll off the tongue.
-
-The phrases "locally visible causality" and "globally visible causality"
-should be (relatively) easy to understand, but don't exactly roll off
-the tongue, either.
-
-Maybe LVC and GVC?
-
-LVC:  Locally visible causality:  If you are in the causal chain,
-	you are guaranteed to see the ordering.  Otherwise, you
-	might not.
-
-GVC: Globally visible causality:  You are guarantee to see the
-	ordering whether or not you are in the causal chain.
-
-I could of course poll the memory-ordering academics and get more options.  ;-)
-
-> >  - RELEASE -> ACQUIRE can be upgraded to a full barrier (including
-> >    transitivity) using smp_mb__release_acquire(), either before RELEASE
-> >    or after ACQUIRE (but consistently [*]).
-> 
-> Hmm, but we don't actually need this for RELEASE -> ACQUIRE, afaict. This
-> is just needed for UNLOCK -> LOCK, and is exactly what RCU is currently
-> using (for PPC only).
-
-If by "don't actually need this" you mean "don't currently know of a
-use case", I agree.  For now, anyway.  ;-)
-
-> Stepping back a second, I believe that there are three cases:
-> 
-> 
->  RELEASE X -> ACQUIRE Y (same CPU)
->    * Needs a barrier on TSO architectures for full ordering
-
-Agreed, assuming these restatements match your views:
-
-Compiler barrier() for TSO for ordering to be visible within the causal chain.
-
-Memory-barrier instruction for TSO for ordering to be visible globally.
-
->  UNLOCK X -> LOCK Y (same CPU)
->    * Needs a barrier on PPC for full ordering
-
-Where "full ordering" is what I have been calling "globally visible
-ordering" (or transitivity or causality or whatever), agreed.
-
->  RELEASE X -> ACQUIRE X (different CPUs)
->  UNLOCK X -> ACQUIRE X (different CPUs)
->    * Fully ordered everywhere...
->    * ... but needs a barrier on PPC to become a full barrier
-
-Agreed, assuming these restatements match your views:
-
-With compiler barrier (for TSO) or lwsync-capable memory-barrier instruction
-(for weakly ordered systems), ordering is visible within the causal chain.
-
-With compiler barrier (for TSO) or full memory-barrier instruction
-(for weakly ordered systems), ordering is visible globally.
-
-> so maybe it makes more sense to split out the local and inter-cpu ordering
-> with something like:
-> 
->   smp_mb__after_release_acquire()
->   smp_mb__after_release_acquire_local()
-> 
-> then the first one directly replaces smp_mb__after_unlock_lock, and is
-> only defined for PPC, whereas the second one is also defined for TSO archs.
-
-I don't see the need for the _local() variant.  We already have
-smp_store_release() and smp_load_acquire(), both of which imply any
-barriers needed for the case of locally visible causality.
-
-> >  - RELEASE -> ACQUIRE _chains_ (on shared variables) preserve causality,
-> >    (because each link is fully ordered) but are not transitive.
-> 
-> Yup, and that's the same for UNLOCK -> LOCK, too.
-
-Any transitive ordering is visible only locally, within the chain.
-For global visibility, you need smp_mb__after_release_acquire().
-
-> > And I think that in the past few weeks we've been using transitive
-> > ambiguously, the definition we have in Documentation/memory-barriers.txt
-> > is a _strong_ transitivity, where we can make guarantees about CPUs not
-> > directly involved.
+> > PPC lock-2thread-WR-barrier.litmus
+> > ""
+> > (*
+> >  * Does 3.0 Linux-kernel Power lock-unlock provide local 
+> >  * barrier that orders prior stores against subsequent loads,
+> >  * if the unlock and lock happen on different threads?
+> >  * This version uses lwsync instead of isync.
+> >  *)
+> > (* 23-July-2013: ppcmem says "Sometimes" *)
+> > {
+> > l=1;
+> > 0:r1=1;          0:r4=x;         0:r10=0;          0:r12=l;
+> > 1:r1=1; 1:r3=42; 1:r4=x; 1:r5=y; 1:r10=0; 1:r11=0; 1:r12=l;
+> > 2:r1=1;          2:r4=x; 2:r5=y;
+> > }
+> >  P0             | P1                 | P2;
+> >  stw r1,0(r4)   | lwarx r11,r10,r12  | stw r1,0(r5) ;
+> >  lwsync         | cmpwi r11,0        | lwsync       ;
+> >  stw r10,0(r12) | bne Fail1          | lwz r7,0(r4) ;
+> >                 | stwcx. r1,r10,r12  | ;
+> >                 | bne Fail1          | ;
+> >                 | isync              | ;
+> >                 | lwz r3,0(r5)       | ;
+> >                 | Fail1:             | ;
 > > 
-> > What we have here (due to RCpc) is a weak form of transitivity, which,
-> > while it preserves the natural concept of causality, does not extend to
-> > other CPUs.
 > > 
-> > So we could go around and call them 'strong' and 'weak' transitivity,
-> > but I suspect its easier for everyone involved if we come up with
-> > separate terms (less room for error if we accidentally omit the
-> > 'strong/weak' qualifier).
+> > exists
+> > (1:r3=0 /\ 2:r7=0)
 > 
-> Surely the general case is message passing and so "transitivity" should
-> just refer to chains of RELEASE -> ACQUIRE? Then "strong transitivity"
-> could refer to the far more complicated (imo) case that is synonymous
-> with "full barrier".
+> We could also include a link to the ppcmem/herd web frontends and your
+> lwn.net article. (ppcmem is already linked, but it's not obvious that
+> you can run litmus tests in your browser).
 
-We should have fun agreeing on the best words to describe all this, but
-agreed.
+I bet that the URLs for the web frontends are not stable long term.
+Don't get me wrong, PPCMEM/ARMMEM has been there for me for a goodly
+number of years, but professors do occasionally move from one institution
+to another.  For but one example, Susmit Sarkar is now at University
+of St. Andrews rather than at Cambridge.
 
-One nit:  RELEASE->ACQUIRE chains can do more than message passing.
-Anything before the RELEASE, be it a load or a store, is visible to
-anything after any ACQUIRE further down the chain.  Here a prior load is
-"visible" to a subsequent store in the sense that the store cannot affect
-the value loaded.  This is consistent with the C11/C++11 memory model.
+So to make this work, we probably need to be thinking in terms of
+asking the researchers for permission to include their ocaml code in the
+Linux-kernel source tree.  I would be strongly in favor of this, actually.
 
-Seem reasonable?
+Thoughts?
 
 							Thanx, Paul
