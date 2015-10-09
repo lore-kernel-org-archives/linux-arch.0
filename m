@@ -1,43 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout4.samsung.com ([203.254.224.34]:59657 "EHLO
-	mailout4.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757974AbbJIK5m (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Oct 2015 06:57:42 -0400
-Received: from epcpsbgr3.samsung.com
- (u143.gpu120.samsung.co.kr [203.254.230.143])
- by mailout4.samsung.com (Oracle Communications Messaging Server 7.0.5.31.0
- 64bit (built May  5 2014))
- with ESMTP id <0NVY02TNK945KA30@mailout4.samsung.com> for
- linux-arch@vger.kernel.org; Fri, 09 Oct 2015 19:57:41 +0900 (KST)
-Date: Fri, 09 Oct 2015 10:57:41 +0000 (GMT)
-From: Manjeet Pawar <manjeet.p@samsung.com>
-Subject: Re: Re: [PATCHv3] ARM64:Fix MINSIGSTKSZ and SIGSTKSZ
-Reply-to: manjeet.p@samsung.com
-MIME-version: 1.0
-Content-transfer-encoding: base64
-Content-type: text/plain; charset=windows-1252
-MIME-version: 1.0
-Message-ID: <1555376844.801271444388258512.JavaMail.weblogic@epmlwas03a>
+Received: from bombadil.infradead.org ([198.137.202.9]:59618 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758060AbbJIL0C (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Oct 2015 07:26:02 -0400
+Date: Fri, 9 Oct 2015 13:25:54 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
+ update documentation
+Message-ID: <20151009112554.GB3816@twins.programming.kicks-ass.net>
+References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
+ <20151007111915.GF17308@twins.programming.kicks-ass.net>
+ <20151007132317.GK16065@arm.com>
+ <20151007152501.GI3910@linux.vnet.ibm.com>
+ <1444276236.9940.5.camel@ellerman.id.au>
+ <20151008111638.GL3816@twins.programming.kicks-ass.net>
+ <20151008125937.GH16807@arm.com>
+ <20151008221716.GF3910@linux.vnet.ibm.com>
+ <20151009095129.GF26278@arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20151009095129.GF26278@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Will Deacon <will.deacon@arm.com>
-Cc: "catalin.marinas@arm.com" <catalin.marinas@arm.com>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, PANKAJ MISHRA <pankaj.m@samsung.com>, AKHILESH KUMAR <akhilesh.k@samsung.com>, Rohit Thapliyal <r.thapliyal@samsung.com>
-Message-ID: <20151009105741.JLX64llIOGK5ZmRrz8qjBDOG9Uld85Hr7nHFypabo7I@z>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20151009112554.c29Fb4Jzd-1KAYD6EJc8nhqFm395WL31hd0DwCMxNmI@z>
 
-Pj4gTUlOU0lHU1RLU1ogYW5kIFNJR1NUS1NaIGZvciBBUk02NCBhcmUgbm90IGNvcnJlY3RseSBz
-ZXQgaW4gbGF0ZXN0IGtlcm5lbC4NCj4+IFRoaXMgcGF0Y2ggZml4ZXMgdGhpcyBpc3N1ZS4NCj4+
-IA0KPj4gVGhpcyBpc3N1ZSBpcyByZXBvcnRlZCBpbiBMVFAgKHRlc3RjYXNlOiBzaWdhbHRzdGFj
-azAyLmMpLg0KPj4gVGVzdGNhc2UgZmFpbGVkIHdoZW4gc2lnYWx0c3RhY2soKSBjYWxsZWQgd2l0
-aCBzdGFjayBzaXplICJNSU5TSUdTVEtTWiAtIDEiDQo+PiBTaW5jZSBpbiBHbGliYy0yLjIyLCBN
-SU5TSUdTVEtTWiBpcyBzZXQgdG8gNTEyMCBidXQgaW4ga2VybmVsDQo+PiBpdCBpcyBzZXQgdG8g
-MjA0OCBzbyB0ZXN0Y2FzZSBnZXRzIGZhaWxlZC4NCj4+IA0KPj4gVGVzdGNhc2UgT3V0cHV0Og0K
-Pj4gc2lnYWx0c3RhY2swMiAxICBUUEFTUyAgOiAgc3RnYWx0c3RhY2soKSBmYWlscywgSW52YWxp
-ZCBGbGFnIHZhbHVlLGVycm5vOjIyDQo+PiBzaWdhbHRzdGFjazAyIDIgIFRGQUlMICA6ICBzaWdh
-bHRzdGFjaygpIHJldHVybmVkIDAsIGV4cGVjdGVkIC0xLGVycm5vOjEyDQoNCj5JJ20gc3RpbGwg
-dW5hYmxlIHRvIHJlcHJvZHVjZSB0aGlzIGZhaWx1cmUuIElzIHRoaXMgd2l0aCBkZWZjb25maWc/
-DQoNCndlIHVzZWQgTFRQIHRlc3RzdWl0ZSAodmVyc2lvbiA6IC0gMjAxNDAxMTUpICwgDQpjb21w
-aWxlIExUUCB0ZXN0c3VpdGUgd2l0aCBhcm02NCB0b29sY2hhaW4gKGNoYW5nZXMgYmFja3BvcnRl
-ZCBmb3JtIExhdGVzdCBnbGliYyAyLjIyKQ0KVGhlbiB0aGlzIGlzc3VlIG9jY3VyLg0KDQoNCg0K
-DQogICAgICAgDQogIA0KICAgICAgICAgDQo=
+On Fri, Oct 09, 2015 at 10:51:29AM +0100, Will Deacon wrote:
+> > The corresponding litmus tests are below.
+> 
+> How do people feel about including these in memory-barriers.txt? I find
+> them considerably easier to read than our current kernel code + list of
+> possible orderings + wall of text, but there's a good chance that my
+> brain has been corrupted from staring at this stuff for too long.
 
+Your brain is corrupt (but then, so probably is mine, just differently
+so).
 
+I've not yet mastered the knack of reading those things; then again, I
+suspect its not too hard, just not something I've had the time to play
+with.
