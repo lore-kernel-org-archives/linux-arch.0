@@ -1,121 +1,211 @@
 From: Dan Williams <dan.j.williams@intel.com>
-Subject: [PATCH 00/20] tree-wide convert to memremap()
-Date: Fri, 09 Oct 2015 18:15:37 -0400
-Message-ID: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
+Subject: [PATCH 01/20] x86: introduce arch_memremap()
+Date: Fri, 09 Oct 2015 18:15:43 -0400
+Message-ID: <20151009221543.32203.63200.stgit@dwillia2-desk3.jf.intel.com>
+References: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <intel-gfx-bounces@lists.freedesktop.org>
-List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/intel-gfx>,
- <mailto:intel-gfx-request@lists.freedesktop.org?subject=unsubscribe>
-List-Archive: <http://lists.freedesktop.org/archives/intel-gfx>
-List-Post: <mailto:intel-gfx@lists.freedesktop.org>
-List-Help: <mailto:intel-gfx-request@lists.freedesktop.org?subject=help>
-List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/intel-gfx>,
- <mailto:intel-gfx-request@lists.freedesktop.org?subject=subscribe>
-Errors-To: intel-gfx-bounces@lists.freedesktop.org
-Sender: "Intel-gfx" <intel-gfx-bounces@lists.freedesktop.org>
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-fbdev@vger.kernel.org, David Airlie <airlied@linux.ie>, dri-devel@lists.freedesktop.org, Jaroslav Kysela <perex@perex.cz>, Lv Zheng <lv.zheng@intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Daniel Vetter <daniel.vetter@intel.com>, linux-arch@vger.kernel.org, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Bob Moore <robert.moore@intel.com>, Mike Waychison <mikew@google.com>, Tomi Valkeinen <tomi.valkeinen@ti.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Russell King <rmk+kernel@arm.linux.org.uk>, Ross Zwisler <ross.zwisler@linux.intel.com>, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>, Len Brown <lenb@kernel.org>, Jeeja KP <jeeja.kp@intel.com>, Joerg Roedel <jroedel@suse.de>, Arnd Bergmann <arnd@arndb.de>, intel-gfx@lists.freedesktop.org, Mark Brown <broonie@kernel.org>, Borislav Petkov <bp@alien8.de>, Takashi Iwai <tiwai@suse.com>, Thomas
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Ross Zwisler <ross.zwisler@linux.intel.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-VGhlIG1lbXJlbWFwKCkgYXBpIFsxXSB3YXMgbWVyZ2VkIGluIDQuMyBbMl0gd2l0aCBhbiBpbml0
-aWFsCmltcGxlbWVudGF0aW9uIGZvciB4ODYgYW5kIGEgY29udmVyc2lvbiBvZiB0aGUgcG1lbSBk
-cml2ZXIuIENvbXBsZXRlIHRoZQpjb252ZXJzaW9uIGZvciB0aGUgcmVzdCBvZiB0aGUga2VybmVs
-LgoKRmVlbCBmcmVlIHRvIGVpdGhlciBhY2sgb3IgZGlyZWN0bHkgYXBwbHkgYSBjb252ZXJzaW9u
-LXBhdGNoIGFzIEkgd2lsbApkZWZlciB0aGUgZmluYWwgcmVtb3ZhbCBwYXRjaGVzIHVudGlsIGFs
-bCB0aGUgY29udmVyc2lvbnMgaGF2ZSBsYW5kZWQuCgpbMV06IGh0dHBzOi8vbHduLm5ldC9BcnRp
-Y2xlcy82NTM1ODUvClsyXTogY29tbWl0IDkyMjgxZGVlODI1ZiBhcmNoOiBpbnRyb2R1Y2UgbWVt
-cmVtYXAoKQoKLS0tCgpEYW4gV2lsbGlhbXMgKDIwKToKICAgICAgeDg2OiBpbnRyb2R1Y2UgYXJj
-aF9tZW1yZW1hcCgpCiAgICAgIGFybTogaW50cm9kdWNlIGFyY2hfbWVtcmVtYXAoKQogICAgICBp
-YTY0OiBpbnRyb2R1Y2UgYXJjaF9tZW1yZW1hcCgpCiAgICAgIHNoOiBpbnRyb2R1Y2UgYXJjaF9t
-ZW1yZW1hcCgpCiAgICAgIG02OGs6IGludHJvZHVjZSBhcmNoX21lbXJlbWFwKCkKICAgICAgYXJt
-OiBzd2l0Y2ggZnJvbSBpb3JlbWFwX2NhY2hlIHRvIG1lbXJlbWFwCiAgICAgIHg4Njogc3dpdGNo
-IGZyb20gaW9yZW1hcF9jYWNoZSB0byBtZW1yZW1hcAogICAgICBnbWE1MDA6IHN3aXRjaCBmcm9t
-IGFjcGlfb3NfaW9yZW1hcCB0byBtZW1yZW1hcAogICAgICBpOTE1OiBzd2l0Y2ggZnJvbSBhY3Bp
-X29zX2lvcmVtYXAgdG8gbWVtcmVtYXAKICAgICAgYWNwaTogc3dpdGNoIGZyb20gaW9yZW1hcF9j
-YWNoZSB0byBtZW1yZW1hcAogICAgICBzb3VuZCwgc2t5bGFrZTogc3dpdGNoIGZyb20gaW9yZW1h
-cF9jYWNoZSB0byBtZW1yZW1hcAogICAgICBtZW1jb25zb2xlOiBmaXggX19pb21lbSBtaXNoYW5k
-bGluZywgc3dpdGNoIHRvIG1lbXJlbWFwCiAgICAgIGludGVsLWlvbW11OiBzd2l0Y2ggZnJvbSBp
-b3JlbWFwX2NhY2hlIHRvIG1lbXJlbWFwCiAgICAgIHB4YTJ4eC1mbGFzaDogc3dpdGNoIGZyb20g
-aW9yZW1hcF9jYWNoZSB0byBtZW1yZW1hcAogICAgICBzZmk6IHN3aXRjaCBmcm9tIGlvcmVtYXBf
-Y2FjaGUgdG8gbWVtcmVtYXAKICAgICAgZmJkZXY6IHN3aXRjaCBmcm9tIGlvcmVtYXBfd3QgdG8g
-bWVtcmVtYXAKICAgICAgYXJjaDoga2lsbCBpb3JlbWFwX2NhY2hlZCgpCiAgICAgIGFyY2g6IGtp
-bGwgaW9yZW1hcF9mdWxsY2FjaGUoKQogICAgICBhcmNoOiByZW1vdmUgaW9yZW1hcF9jYWNoZSwg
-cmVwbGFjZSB3aXRoIGFyY2hfbWVtcmVtYXAKICAgICAgYXJjaDogcmVtb3ZlIGlvcmVtYXBfd3Qs
-IG9wdGlvbmFsbHkgcmVwbGFjZSB3aXRoIGFyY2hfbWVtcmVtYXAKCgogRG9jdW1lbnRhdGlvbi94
-ODYvcGF0LnR4dCAgICAgICAgICAgICB8ICAgIDYgKy0tCiBhcmNoL2FyYy9pbmNsdWRlL2FzbS9p
-by5oICAgICAgICAgICAgIHwgICAgMSAKIGFyY2gvYXJtL0tjb25maWcgICAgICAgICAgICAgICAg
-ICAgICAgfCAgICAxIAogYXJjaC9hcm0vaW5jbHVkZS9hc20vaW8uaCAgICAgICAgICAgICB8ICAg
-IDcgLS0tCiBhcmNoL2FybS9pbmNsdWRlL2FzbS94ZW4vcGFnZS5oICAgICAgIHwgICAgNCArLQog
-YXJjaC9hcm0vbW0vaW9yZW1hcC5jICAgICAgICAgICAgICAgICB8ICAgMTIgKysrKy0KIGFyY2gv
-YXJtL21tL21tdS5jICAgICAgICAgICAgICAgICAgICAgfCAgICAyIC0KIGFyY2gvYXJtL21tL25v
-bW11LmMgICAgICAgICAgICAgICAgICAgfCAgIDExICsrKy0tCiBhcmNoL2FybTY0L0tjb25maWcg
-ICAgICAgICAgICAgICAgICAgIHwgICAgMSAKIGFyY2gvYXJtNjQvaW5jbHVkZS9hc20vYWNwaS5o
-ICAgICAgICAgfCAgIDExIC0tLS0tCiBhcmNoL2FybTY0L2luY2x1ZGUvYXNtL2RtaS5oICAgICAg
-ICAgIHwgICAgOCArKy0tCiBhcmNoL2FybTY0L2luY2x1ZGUvYXNtL2lvLmggICAgICAgICAgIHwg
-ICAgMiAtCiBhcmNoL2FybTY0L2tlcm5lbC9lZmkuYyAgICAgICAgICAgICAgIHwgICAgOSArKy0t
-CiBhcmNoL2FybTY0L2tlcm5lbC9zbXBfc3Bpbl90YWJsZS5jICAgIHwgICAxOSArKysrLS0tLS0K
-IGFyY2gvYXJtNjQvbW0vaW9yZW1hcC5jICAgICAgICAgICAgICAgfCAgIDIwICsrKy0tLS0tLQog
-YXJjaC9hdnIzMi9pbmNsdWRlL2FzbS9pby5oICAgICAgICAgICB8ICAgIDEgCiBhcmNoL2Zydi9p
-bmNsdWRlL2FzbS9pby5oICAgICAgICAgICAgIHwgICAxMiAtLS0tLQogYXJjaC9pYTY0L0tjb25m
-aWcgICAgICAgICAgICAgICAgICAgICB8ICAgIDEgCiBhcmNoL2lhNjQvaW5jbHVkZS9hc20vaW8u
-aCAgICAgICAgICAgIHwgICAgNiAtLS0KIGFyY2gvaWE2NC9tbS9pb3JlbWFwLmMgICAgICAgICAg
-ICAgICAgfCAgIDEwICsrKysrCiBhcmNoL20zMnIvaW5jbHVkZS9hc20vaW8uaCAgICAgICAgICAg
-IHwgICAgMSAKIGFyY2gvbTY4ay9LY29uZmlnICAgICAgICAgICAgICAgICAgICAgfCAgICAxIAog
-YXJjaC9tNjhrL2luY2x1ZGUvYXNtL2lvX21tLmggICAgICAgICB8ICAgMTMgLS0tLS0tCiBhcmNo
-L202OGsvaW5jbHVkZS9hc20vaW9fbm8uaCAgICAgICAgIHwgICAxMSAtLS0tLQogYXJjaC9tNjhr
-L2luY2x1ZGUvYXNtL3Jhd19pby5oICAgICAgICB8ICAgIDEgCiBhcmNoL202OGsvbW0va21hcC5j
-ICAgICAgICAgICAgICAgICAgIHwgICAxNyArKysrKysrLQogYXJjaC9tNjhrL21tL3N1bjNrbWFw
-LmMgICAgICAgICAgICAgICB8ICAgIDcgKysrCiBhcmNoL21ldGFnL2luY2x1ZGUvYXNtL2lvLmgg
-ICAgICAgICAgIHwgICAgNiAtLS0KIGFyY2gvbWljcm9ibGF6ZS9pbmNsdWRlL2FzbS9pby5oICAg
-ICAgfCAgICAyIC0KIGFyY2gvbW4xMDMwMC9pbmNsdWRlL2FzbS9pby5oICAgICAgICAgfCAgICAx
-IAogYXJjaC9uaW9zMi9pbmNsdWRlL2FzbS9pby5oICAgICAgICAgICB8ICAgIDEgCiBhcmNoL3Mz
-OTAvaW5jbHVkZS9hc20vaW8uaCAgICAgICAgICAgIHwgICAgMSAKIGFyY2gvc2gvS2NvbmZpZyAg
-ICAgICAgICAgICAgICAgICAgICAgfCAgICAxIAogYXJjaC9zaC9pbmNsdWRlL2FzbS9pby5oICAg
-ICAgICAgICAgICB8ICAgIDcgLS0tCiBhcmNoL3NoL21tL2lvcmVtYXAuYyAgICAgICAgICAgICAg
-ICAgIHwgICAgOSArKysrCiBhcmNoL3NwYXJjL2luY2x1ZGUvYXNtL2lvXzMyLmggICAgICAgIHwg
-ICAgMSAKIGFyY2gvc3BhcmMvaW5jbHVkZS9hc20vaW9fNjQuaCAgICAgICAgfCAgICAxIAogYXJj
-aC90aWxlL2luY2x1ZGUvYXNtL2lvLmggICAgICAgICAgICB8ICAgIDIgLQogYXJjaC91bmljb3Jl
-MzIvaW5jbHVkZS9hc20vaW8uaCAgICAgICB8ICAgIDQgLS0KIGFyY2gvdW5pY29yZTMyL21tL2lv
-cmVtYXAuYyAgICAgICAgICAgfCAgICA4IC0tLS0KIGFyY2gveDg2L0tjb25maWcgICAgICAgICAg
-ICAgICAgICAgICAgfCAgICAxIAogYXJjaC94ODYvaW5jbHVkZS9hc20vZWZpLmggICAgICAgICAg
-ICB8ICAgIDMgKwogYXJjaC94ODYvaW5jbHVkZS9hc20vaW8uaCAgICAgICAgICAgICB8ICAgIDQg
-LS0KIGFyY2gveDg2L2tlcm5lbC9jcmFzaF9kdW1wXzY0LmMgICAgICAgfCAgICA2ICstLQogYXJj
-aC94ODYva2VybmVsL2tkZWJ1Z2ZzLmMgICAgICAgICAgICB8ICAgIDggKystLQogYXJjaC94ODYv
-a2VybmVsL2tzeXNmcy5jICAgICAgICAgICAgICB8ICAgMjggKysrKysrLS0tLS0tLQogYXJjaC94
-ODYvbW0vaW9yZW1hcC5jICAgICAgICAgICAgICAgICB8ICAgNDMgKysrKysrKystLS0tLS0tLS0t
-LQogYXJjaC94dGVuc2EvaW5jbHVkZS9hc20vaW8uaCAgICAgICAgICB8ICAgMTIgLS0tLS0KIGRy
-aXZlcnMvYWNwaS9hcGVpL2VpbmouYyAgICAgICAgICAgICAgfCAgICA5ICsrLS0KIGRyaXZlcnMv
-YWNwaS9hcGVpL2Vyc3QuYyAgICAgICAgICAgICAgfCAgICA2ICstLQogZHJpdmVycy9hY3BpL252
-cy5jICAgICAgICAgICAgICAgICAgICB8ICAgIDYgKy0tCiBkcml2ZXJzL2FjcGkvb3NsLmMgICAg
-ICAgICAgICAgICAgICAgIHwgICA3MCArKysrKysrKystLS0tLS0tLS0tLS0tLS0tLS0tLS0tLQog
-ZHJpdmVycy9maXJtd2FyZS9nb29nbGUvbWVtY29uc29sZS5jICB8ICAgIDcgKystCiBkcml2ZXJz
-L2dwdS9kcm0vZ21hNTAwL29wcmVnaW9uLmMgICAgIHwgICAgOCArKy0tCiBkcml2ZXJzL2dwdS9k
-cm0vZ21hNTAwL3BzYl9kcnYuaCAgICAgIHwgICAgMiAtCiBkcml2ZXJzL2dwdS9kcm0vZ21hNTAw
-L3BzYl9saWQuYyAgICAgIHwgICAgOCArKy0tCiBkcml2ZXJzL2dwdS9kcm0vaTkxNS9pOTE1X2Rl
-YnVnZnMuYyAgIHwgICAgMiAtCiBkcml2ZXJzL2dwdS9kcm0vaTkxNS9pOTE1X2Rydi5oICAgICAg
-IHwgICAxMiArKystLQogZHJpdmVycy9ncHUvZHJtL2k5MTUvaW50ZWxfYmlvcy5jICAgICB8ICAg
-IDcgKy0tCiBkcml2ZXJzL2dwdS9kcm0vaTkxNS9pbnRlbF9vcHJlZ2lvbi5jIHwgICA3MyArKysr
-KysrKysrKysrKysrLS0tLS0tLS0tLS0tLS0tLS0KIGRyaXZlcnMvZ3B1L2RybS9pOTE1L2ludGVs
-X3BhbmVsLmMgICAgfCAgICAyIC0KIGRyaXZlcnMvaW9tbXUvaW50ZWwtaW9tbXUuYyAgICAgICAg
-ICAgfCAgIDIwICsrKysrLS0tLQogZHJpdmVycy9pb21tdS9pbnRlbF9pcnFfcmVtYXBwaW5nLmMg
-ICB8ICAgIDggKystLQogZHJpdmVycy9tdGQvbWFwcy9weGEyeHgtZmxhc2guYyAgICAgICB8ICAg
-IDYgKy0tCiBkcml2ZXJzL252ZGltbS9LY29uZmlnICAgICAgICAgICAgICAgIHwgICAgMiAtCiBk
-cml2ZXJzL3NmaS9zZmlfY29yZS5jICAgICAgICAgICAgICAgIHwgICAgNCArLQogZHJpdmVycy92
-aWRlby9mYmRldi9LY29uZmlnICAgICAgICAgICB8ICAgIDIgLQogZHJpdmVycy92aWRlby9mYmRl
-di9hbWlmYi5jICAgICAgICAgICB8ICAgIDUgKy0KIGRyaXZlcnMvdmlkZW8vZmJkZXYvYXRhZmIu
-YyAgICAgICAgICAgfCAgICA1ICstCiBkcml2ZXJzL3ZpZGVvL2ZiZGV2L2hwZmIuYyAgICAgICAg
-ICAgIHwgICAgNiArLS0KIGluY2x1ZGUvYWNwaS9hY3BpX2lvLmggICAgICAgICAgICAgICAgfCAg
-ICA2ICstLQogaW5jbHVkZS9hc20tZ2VuZXJpYy9pby5oICAgICAgICAgICAgICB8ICAgIDggLS0t
-LQogaW5jbHVkZS9hc20tZ2VuZXJpYy9pb21hcC5oICAgICAgICAgICB8ICAgIDQgLS0KIGluY2x1
-ZGUvbGludXgvaW8uaCAgICAgICAgICAgICAgICAgICAgfCAgICAxIAoga2VybmVsL01ha2VmaWxl
-ICAgICAgICAgICAgICAgICAgICAgICB8ICAgIDIgLQoga2VybmVsL21lbXJlbWFwLmMgICAgICAg
-ICAgICAgICAgICAgICB8ICAgMjcgKysrKystLS0tLS0tCiBsaWIvS2NvbmZpZyAgICAgICAgICAg
-ICAgICAgICAgICAgICAgIHwgICAgNiArKy0KIHNvdW5kL3NvYy9pbnRlbC9za3lsYWtlL3NrbC1u
-aGx0LmMgICAgfCAgIDEwICsrLS0tCiBzb3VuZC9zb2MvaW50ZWwvc2t5bGFrZS9za2wuaCAgICAg
-ICAgIHwgICAgNiArLS0KIDc5IGZpbGVzIGNoYW5nZWQsIDI4NCBpbnNlcnRpb25zKCspLCA0MDAg
-ZGVsZXRpb25zKC0pCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fCkludGVsLWdmeCBtYWlsaW5nIGxpc3QKSW50ZWwtZ2Z4QGxpc3RzLmZyZWVkZXNrdG9wLm9y
-ZwpodHRwOi8vbGlzdHMuZnJlZWRlc2t0b3Aub3JnL21haWxtYW4vbGlzdGluZm8vaW50ZWwtZ2Z4
-Cg==
+In preparation for removing ioremap_cache() introduce arch_memremap()
+for x86.  For now, arch_memremap(..., MEMREMAP_WB) and
+arch_memremap(..., MEMREMAP_WT) are aliases for ioremap_cache() and
+ioremap_wt() respectively.  While the memremap() conversion patches are
+filtering through the other sub-systems further development of the
+memremap interface may proceed.
+
+This also initiates the guarantee that a successful call to
+memremap(..., MEMREMAP_WB) has indeed established a cached mapping and
+has not silently fallen back to uncached.
+
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: H. Peter Anvin <hpa@zytor.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Ross Zwisler <ross.zwisler@linux.intel.com>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+---
+ Documentation/x86/pat.txt |    2 ++
+ arch/x86/Kconfig          |    1 +
+ arch/x86/mm/ioremap.c     |   17 +++++++++++++++++
+ drivers/nvdimm/Kconfig    |    2 +-
+ include/linux/io.h        |    1 +
+ kernel/memremap.c         |   25 +++++++++++++------------
+ lib/Kconfig               |    5 ++++-
+ 7 files changed, 39 insertions(+), 14 deletions(-)
+
+diff --git a/Documentation/x86/pat.txt b/Documentation/x86/pat.txt
+index 54944c71b819..8c908fa5ea26 100644
+--- a/Documentation/x86/pat.txt
++++ b/Documentation/x86/pat.txt
+@@ -40,6 +40,8 @@ ioremap_nocache        |    --    |    UC-     |       UC-        |
+                        |          |            |                  |
+ ioremap_wc             |    --    |    --      |       WC         |
+                        |          |            |                  |
++memremap(MEMREMAP_WB)  |    WB    |    WB      |       WB         |
++                       |          |            |                  |
+ ioremap_wt             |    --    |    --      |       WT         |
+                        |          |            |                  |
+ set_memory_uc          |    UC-   |    --      |       --         |
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 328c8352480c..488cb210d055 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -27,6 +27,7 @@ config X86
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_FAST_MULTIPLIER
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
++	select ARCH_HAS_MEMREMAP
+ 	select ARCH_HAS_PMEM_API		if X86_64
+ 	select ARCH_HAS_MMIO_FLUSH
+ 	select ARCH_HAS_SG_CHAIN
+diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
+index b9c78f3bcd67..123431ae702f 100644
+--- a/arch/x86/mm/ioremap.c
++++ b/arch/x86/mm/ioremap.c
+@@ -317,6 +317,23 @@ void __iomem *ioremap_cache(resource_size_t phys_addr, unsigned long size)
+ }
+ EXPORT_SYMBOL(ioremap_cache);
+ 
++void *arch_memremap(resource_size_t phys_addr, size_t size,
++		unsigned long flags)
++{
++	int prot;
++
++	if (flags & MEMREMAP_WB)
++		prot = _PAGE_CACHE_MODE_WB;
++	else if (flags & MEMREMAP_WT)
++		prot = _PAGE_CACHE_MODE_WT;
++	else
++		return NULL;
++
++	return (void __force *) __ioremap_caller(phys_addr, size, prot,
++			__builtin_return_address(0));
++}
++EXPORT_SYMBOL(arch_memremap);
++
+ void __iomem *ioremap_prot(resource_size_t phys_addr, unsigned long size,
+ 				unsigned long prot_val)
+ {
+diff --git a/drivers/nvdimm/Kconfig b/drivers/nvdimm/Kconfig
+index 53c11621d5b1..b8e9d8b46f33 100644
+--- a/drivers/nvdimm/Kconfig
++++ b/drivers/nvdimm/Kconfig
+@@ -1,5 +1,6 @@
+ menuconfig LIBNVDIMM
+ 	tristate "NVDIMM (Non-Volatile Memory Device) Support"
++	depends on ARCH_HAS_MEMREMAP
+ 	depends on PHYS_ADDR_T_64BIT
+ 	depends on BLK_DEV
+ 	help
+@@ -19,7 +20,6 @@ if LIBNVDIMM
+ config BLK_DEV_PMEM
+ 	tristate "PMEM: Persistent memory block device support"
+ 	default LIBNVDIMM
+-	depends on HAS_IOMEM
+ 	select ND_BTT if BTT
+ 	select ND_PFN if NVDIMM_PFN
+ 	help
+diff --git a/include/linux/io.h b/include/linux/io.h
+index de64c1e53612..4f150781735d 100644
+--- a/include/linux/io.h
++++ b/include/linux/io.h
+@@ -153,5 +153,6 @@ enum {
+ 
+ void *memremap(resource_size_t offset, size_t size, unsigned long flags);
+ void memunmap(void *addr);
++void *arch_memremap(resource_size_t offset, size_t size, unsigned long flags);
+ 
+ #endif /* _LINUX_IO_H */
+diff --git a/kernel/memremap.c b/kernel/memremap.c
+index 72b0c66628b6..8bd5fe05d4a4 100644
+--- a/kernel/memremap.c
++++ b/kernel/memremap.c
+@@ -24,6 +24,16 @@ __weak void __iomem *ioremap_cache(resource_size_t offset, unsigned long size)
+ }
+ #endif
+ 
++/* temporary while we convert arch implementations to arch_memremap */
++__weak void *arch_memremap(resource_size_t offset, size_t size,
++		unsigned long flags)
++{
++	if (flags & MEMREMAP_WB)
++		return (void __force *) ioremap_cache(offset, size);
++	else if (flags & MEMREMAP_WT)
++		return (void __force *) ioremap_wt(offset, size);
++}
++
+ /**
+  * memremap() - remap an iomem_resource as cacheable memory
+  * @offset: iomem resource start address
+@@ -48,7 +58,6 @@ __weak void __iomem *ioremap_cache(resource_size_t offset, unsigned long size)
+ void *memremap(resource_size_t offset, size_t size, unsigned long flags)
+ {
+ 	int is_ram = region_intersects(offset, size, "System RAM");
+-	void *addr = NULL;
+ 
+ 	if (is_ram == REGION_MIXED) {
+ 		WARN_ONCE(1, "memremap attempted on mixed range %pa size: %#lx\n",
+@@ -58,7 +67,6 @@ void *memremap(resource_size_t offset, size_t size, unsigned long flags)
+ 
+ 	/* Try all mapping types requested until one returns non-NULL */
+ 	if (flags & MEMREMAP_WB) {
+-		flags &= ~MEMREMAP_WB;
+ 		/*
+ 		 * MEMREMAP_WB is special in that it can be satisifed
+ 		 * from the direct map.  Some archs depend on the
+@@ -66,9 +74,7 @@ void *memremap(resource_size_t offset, size_t size, unsigned long flags)
+ 		 * the requested range is potentially in "System RAM"
+ 		 */
+ 		if (is_ram == REGION_INTERSECTS)
+-			addr = __va(offset);
+-		else
+-			addr = ioremap_cache(offset, size);
++			return __va(offset);
+ 	}
+ 
+ 	/*
+@@ -77,18 +83,13 @@ void *memremap(resource_size_t offset, size_t size, unsigned long flags)
+ 	 * address mapping.  Enforce that this mapping is not aliasing
+ 	 * "System RAM"
+ 	 */
+-	if (!addr && is_ram == REGION_INTERSECTS && flags) {
++	if (is_ram == REGION_INTERSECTS) {
+ 		WARN_ONCE(1, "memremap attempted on ram %pa size: %#lx\n",
+ 				&offset, (unsigned long) size);
+ 		return NULL;
+ 	}
+ 
+-	if (!addr && (flags & MEMREMAP_WT)) {
+-		flags &= ~MEMREMAP_WT;
+-		addr = ioremap_wt(offset, size);
+-	}
+-
+-	return addr;
++	return arch_memremap(offset, size, flags);
+ }
+ EXPORT_SYMBOL(memremap);
+ 
+diff --git a/lib/Kconfig b/lib/Kconfig
+index 2e491ac15622..8d99b4e6a45b 100644
+--- a/lib/Kconfig
++++ b/lib/Kconfig
+@@ -520,7 +520,10 @@ config SG_SPLIT
+ #
+ 
+ config ARCH_HAS_SG_CHAIN
+-	def_bool n
++	bool
++
++config ARCH_HAS_MEMREMAP
++	bool
+ 
+ config ARCH_HAS_PMEM_API
+ 	bool
