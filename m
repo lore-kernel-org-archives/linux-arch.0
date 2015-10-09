@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:31171 "EHLO mga09.intel.com"
+Received: from mga09.intel.com ([134.134.136.24]:55333 "EHLO mga09.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932961AbbJIWWv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 9 Oct 2015 18:22:51 -0400
-Subject: [PATCH 17/20] arch: kill ioremap_cached()
+	id S1750760AbbJIWW7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 9 Oct 2015 18:22:59 -0400
+Subject: [PATCH 18/20] arch: kill ioremap_fullcache()
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 09 Oct 2015 18:17:07 -0400
-Message-ID: <20151009221707.32203.94356.stgit@dwillia2-desk3.jf.intel.com>
+Date: Fri, 09 Oct 2015 18:17:13 -0400
+Message-ID: <20151009221712.32203.57265.stgit@dwillia2-desk3.jf.intel.com>
 In-Reply-To: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
 References: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
 MIME-Version: 1.0
@@ -16,87 +16,91 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20151009221707.MeJIybi2ROVGxjZSfHCtiBhJICQp2uN7desrE0si5XY@z>
+Message-ID: <20151009221713.NmKQ_DT4aKrikm4mQjegFTXxKF0DtlaOTRbhxWkQYZY@z>
 
 Nothing calls this helper, and now that ioremap_cache() is being
 deprecated these can also be removed.
 
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/arm/mm/mmu.c               |    2 +-
- arch/metag/include/asm/io.h     |    3 ---
- arch/unicore32/include/asm/io.h |    4 +---
- arch/unicore32/mm/ioremap.c     |    8 --------
- 4 files changed, 2 insertions(+), 15 deletions(-)
+ arch/frv/include/asm/io.h        |    5 -----
+ arch/m68k/include/asm/io_mm.h    |    6 ------
+ arch/m68k/include/asm/io_no.h    |    5 -----
+ arch/microblaze/include/asm/io.h |    1 -
+ arch/tile/include/asm/io.h       |    1 -
+ 5 files changed, 18 deletions(-)
 
-diff --git a/arch/arm/mm/mmu.c b/arch/arm/mm/mmu.c
-index 7cd15143a507..da3ce68a89b3 100644
---- a/arch/arm/mm/mmu.c
-+++ b/arch/arm/mm/mmu.c
-@@ -259,7 +259,7 @@ static struct mem_type mem_types[] = {
- 		.prot_sect	= PROT_SECT_DEVICE,
- 		.domain		= DOMAIN_IO,
- 	},
--	[MT_DEVICE_CACHED] = {	  /* ioremap_cached */
-+	[MT_DEVICE_CACHED] = {	  /* memremap(MEMREMAP_WB) */
- 		.prot_pte	= PROT_PTE_DEVICE | L_PTE_MT_DEV_CACHED,
- 		.prot_l1	= PMD_TYPE_TABLE,
- 		.prot_sect	= PROT_SECT_DEVICE | PMD_SECT_WB,
-diff --git a/arch/metag/include/asm/io.h b/arch/metag/include/asm/io.h
-index 9890f21eadbe..5432949e627e 100644
---- a/arch/metag/include/asm/io.h
-+++ b/arch/metag/include/asm/io.h
-@@ -154,9 +154,6 @@ extern void __iounmap(void __iomem *addr);
- #define ioremap_nocache(offset, size)           \
- 	__ioremap((offset), (size), 0)
- 
--#define ioremap_cached(offset, size)            \
--	__ioremap((offset), (size), _PAGE_CACHEABLE)
--
- #define ioremap_wc(offset, size)                \
- 	__ioremap((offset), (size), _PAGE_WR_COMBINE)
- 
-diff --git a/arch/unicore32/include/asm/io.h b/arch/unicore32/include/asm/io.h
-index cb1d8fd2b16b..1eea482b3cb9 100644
---- a/arch/unicore32/include/asm/io.h
-+++ b/arch/unicore32/include/asm/io.h
-@@ -21,10 +21,9 @@
- #include <asm-generic/io.h>
- 
- /*
-- * __uc32_ioremap and __uc32_ioremap_cached takes CPU physical address.
-+ * __uc32_ioremap takes CPU physical address.
-  */
- extern void __iomem *__uc32_ioremap(unsigned long, size_t);
--extern void __iomem *__uc32_ioremap_cached(unsigned long, size_t);
- extern void __uc32_iounmap(volatile void __iomem *addr);
- 
- /*
-@@ -35,7 +34,6 @@ extern void __uc32_iounmap(volatile void __iomem *addr);
-  *
-  */
- #define ioremap(cookie, size)		__uc32_ioremap(cookie, size)
--#define ioremap_cached(cookie, size)	__uc32_ioremap_cached(cookie, size)
- #define ioremap_nocache(cookie, size)	__uc32_ioremap(cookie, size)
- #define iounmap(cookie)			__uc32_iounmap(cookie)
- 
-diff --git a/arch/unicore32/mm/ioremap.c b/arch/unicore32/mm/ioremap.c
-index bf012b2b71a9..f9b6d918de6f 100644
---- a/arch/unicore32/mm/ioremap.c
-+++ b/arch/unicore32/mm/ioremap.c
-@@ -224,14 +224,6 @@ __uc32_ioremap(unsigned long phys_addr, size_t size)
+diff --git a/arch/frv/include/asm/io.h b/arch/frv/include/asm/io.h
+index 70dfbea8c8d7..2b6ff56a2d2f 100644
+--- a/arch/frv/include/asm/io.h
++++ b/arch/frv/include/asm/io.h
+@@ -272,11 +272,6 @@ static inline void __iomem *ioremap_wt(unsigned long physaddr, unsigned long siz
+ 	return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
  }
- EXPORT_SYMBOL(__uc32_ioremap);
  
--void __iomem *
--__uc32_ioremap_cached(unsigned long phys_addr, size_t size)
+-static inline void __iomem *ioremap_fullcache(unsigned long physaddr, unsigned long size)
 -{
--	return __uc32_ioremap_caller(phys_addr, size, MT_DEVICE_CACHED,
--			__builtin_return_address(0));
+-	return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
 -}
--EXPORT_SYMBOL(__uc32_ioremap_cached);
 -
- void __uc32_iounmap(volatile void __iomem *io_addr)
+ #define ioremap_wc ioremap_nocache
+ #define ioremap_uc ioremap_nocache
+ 
+diff --git a/arch/m68k/include/asm/io_mm.h b/arch/m68k/include/asm/io_mm.h
+index c98ac81582ac..89361b7bfafc 100644
+--- a/arch/m68k/include/asm/io_mm.h
++++ b/arch/m68k/include/asm/io_mm.h
+@@ -474,12 +474,6 @@ static inline void __iomem *ioremap_wt(unsigned long physaddr,
  {
- 	void *addr = (void *)(PAGE_MASK & (unsigned long)io_addr);
+ 	return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
+ }
+-static inline void __iomem *ioremap_fullcache(unsigned long physaddr,
+-				      unsigned long size)
+-{
+-	return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
+-}
+-
+ static inline void memset_io(volatile void __iomem *addr, unsigned char val, int count)
+ {
+ 	__builtin_memset((void __force *) addr, val, count);
+diff --git a/arch/m68k/include/asm/io_no.h b/arch/m68k/include/asm/io_no.h
+index ad7bd40e6742..2690fa99dc56 100644
+--- a/arch/m68k/include/asm/io_no.h
++++ b/arch/m68k/include/asm/io_no.h
+@@ -159,11 +159,6 @@ static inline void *ioremap_wt(unsigned long physaddr, unsigned long size)
+ {
+ 	return __ioremap(physaddr, size, IOMAP_WRITETHROUGH);
+ }
+-static inline void *ioremap_fullcache(unsigned long physaddr, unsigned long size)
+-{
+-	return __ioremap(physaddr, size, IOMAP_FULL_CACHING);
+-}
+-
+ #define	iounmap(addr)	do { } while(0)
+ 
+ /*
+diff --git a/arch/microblaze/include/asm/io.h b/arch/microblaze/include/asm/io.h
+index 39b6315db82e..5e0cbf4e4204 100644
+--- a/arch/microblaze/include/asm/io.h
++++ b/arch/microblaze/include/asm/io.h
+@@ -40,7 +40,6 @@ extern void iounmap(void __iomem *addr);
+ 
+ extern void __iomem *ioremap(phys_addr_t address, unsigned long size);
+ #define ioremap_nocache(addr, size)		ioremap((addr), (size))
+-#define ioremap_fullcache(addr, size)		ioremap((addr), (size))
+ #define ioremap_wc(addr, size)			ioremap((addr), (size))
+ #define ioremap_wt(addr, size)			ioremap((addr), (size))
+ 
+diff --git a/arch/tile/include/asm/io.h b/arch/tile/include/asm/io.h
+index 322b5fe94781..5879af3568c5 100644
+--- a/arch/tile/include/asm/io.h
++++ b/arch/tile/include/asm/io.h
+@@ -56,7 +56,6 @@ extern void iounmap(volatile void __iomem *addr);
+ #define ioremap_wc(physaddr, size)		ioremap(physaddr, size)
+ #define ioremap_wt(physaddr, size)		ioremap(physaddr, size)
+ #define ioremap_uc(physaddr, size)		ioremap(physaddr, size)
+-#define ioremap_fullcache(physaddr, size)	ioremap(physaddr, size)
+ 
+ #define mmiowb()
+ 
 
