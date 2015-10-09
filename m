@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:49811 "EHLO mga02.intel.com"
+Received: from mga11.intel.com ([192.55.52.93]:3588 "EHLO mga11.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932994AbbJIWWM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 9 Oct 2015 18:22:12 -0400
-Subject: [PATCH 07/20] x86: switch from ioremap_cache to memremap
+	id S932844AbbJIWVw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 9 Oct 2015 18:21:52 -0400
+Subject: [PATCH 06/20] arm: switch from ioremap_cache to memremap
 From: Dan Williams <dan.j.williams@intel.com>
-Date: Fri, 09 Oct 2015 18:16:14 -0400
-Message-ID: <20151009221614.32203.43576.stgit@dwillia2-desk3.jf.intel.com>
+Date: Fri, 09 Oct 2015 18:16:09 -0400
+Message-ID: <20151009221609.32203.79381.stgit@dwillia2-desk3.jf.intel.com>
 In-Reply-To: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
 References: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
 MIME-Version: 1.0
@@ -15,242 +15,165 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@alien8.de>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20151009221614.LkftPTiVAVpgWsprnYi8t9eVaVSuO-qWFLT2Yjzm5Dw@z>
+Cc: linux-arch@vger.kernel.org, Russell King <rmk+kernel@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20151009221609.VdaEPAMoayoUpSd_ZtHw25PUtt4qqnv24CxZMSfwHJA@z>
 
 In preparation for deprecating ioremap_cache() convert its usage in
-arch/x86/ to memremap.
+arch/arm[64]/ to memremap.
 
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>
+Cc: Russell King <rmk+kernel@arm.linux.org.uk>
 Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 ---
- arch/x86/include/asm/efi.h      |    3 ++-
- arch/x86/kernel/crash_dump_64.c |    6 +++---
- arch/x86/kernel/kdebugfs.c      |    8 ++++----
- arch/x86/kernel/ksysfs.c        |   28 ++++++++++++++--------------
- arch/x86/mm/ioremap.c           |   10 ++++------
- 5 files changed, 27 insertions(+), 28 deletions(-)
+ arch/arm/include/asm/xen/page.h    |    4 ++--
+ arch/arm64/include/asm/acpi.h      |    5 +----
+ arch/arm64/include/asm/dmi.h       |    8 ++++----
+ arch/arm64/kernel/efi.c            |    9 +++++----
+ arch/arm64/kernel/smp_spin_table.c |   19 +++++++++----------
+ 5 files changed, 21 insertions(+), 24 deletions(-)
 
-diff --git a/arch/x86/include/asm/efi.h b/arch/x86/include/asm/efi.h
-index ae68be92f755..322dde9e0c3c 100644
---- a/arch/x86/include/asm/efi.h
-+++ b/arch/x86/include/asm/efi.h
-@@ -54,7 +54,8 @@ extern unsigned long asmlinkage efi_call_phys(void *, ...);
- 	kernel_fpu_end();						\
- })
- 
--#define efi_ioremap(addr, size, type, attr)	ioremap_cache(addr, size)
-+#define efi_ioremap(addr, size, type, attr)				\
-+	memremap(addr, size, MEMREMAP_WB)
- 
- #else /* !CONFIG_X86_32 */
- 
-diff --git a/arch/x86/kernel/crash_dump_64.c b/arch/x86/kernel/crash_dump_64.c
-index afa64adb75ee..941609ab9aa9 100644
---- a/arch/x86/kernel/crash_dump_64.c
-+++ b/arch/x86/kernel/crash_dump_64.c
-@@ -31,19 +31,19 @@ ssize_t copy_oldmem_page(unsigned long pfn, char *buf,
- 	if (!csize)
- 		return 0;
- 
--	vaddr = ioremap_cache(pfn << PAGE_SHIFT, PAGE_SIZE);
-+	vaddr = memremap(pfn << PAGE_SHIFT, PAGE_SIZE, MEMREMAP_WB);
- 	if (!vaddr)
- 		return -ENOMEM;
- 
- 	if (userbuf) {
- 		if (copy_to_user(buf, vaddr + offset, csize)) {
--			iounmap(vaddr);
-+			memunmap(vaddr);
- 			return -EFAULT;
- 		}
- 	} else
- 		memcpy(buf, vaddr + offset, csize);
- 
- 	set_iounmap_nonlazy();
--	iounmap(vaddr);
-+	memunmap(vaddr);
- 	return csize;
+diff --git a/arch/arm/include/asm/xen/page.h b/arch/arm/include/asm/xen/page.h
+index 127956353b00..91ac751a5baa 100644
+--- a/arch/arm/include/asm/xen/page.h
++++ b/arch/arm/include/asm/xen/page.h
+@@ -103,8 +103,8 @@ static inline bool set_phys_to_machine(unsigned long pfn, unsigned long mfn)
+ 	return __set_phys_to_machine(pfn, mfn);
  }
-diff --git a/arch/x86/kernel/kdebugfs.c b/arch/x86/kernel/kdebugfs.c
-index dc1404bf8e4b..fa30f85b4333 100644
---- a/arch/x86/kernel/kdebugfs.c
-+++ b/arch/x86/kernel/kdebugfs.c
-@@ -49,7 +49,7 @@ static ssize_t setup_data_read(struct file *file, char __user *user_buf,
- 	pa = node->paddr + sizeof(struct setup_data) + pos;
- 	pg = pfn_to_page((pa + count - 1) >> PAGE_SHIFT);
- 	if (PageHighMem(pg)) {
--		p = ioremap_cache(pa, count);
-+		p = memremap(pa, count, MEMREMAP_WB);
- 		if (!p)
- 			return -ENXIO;
- 	} else
-@@ -58,7 +58,7 @@ static ssize_t setup_data_read(struct file *file, char __user *user_buf,
- 	remain = copy_to_user(user_buf, p, count);
  
- 	if (PageHighMem(pg))
--		iounmap(p);
-+		memunmap(p);
+-#define xen_remap(cookie, size) ioremap_cache((cookie), (size))
+-#define xen_unmap(cookie) iounmap((cookie))
++#define xen_remap(cookie, size) memremap((cookie), (size), MEMREMAP_WB)
++#define xen_unmap(cookie) memunmap((cookie))
  
- 	if (remain)
- 		return -EFAULT;
-@@ -128,7 +128,7 @@ static int __init create_setup_data_nodes(struct dentry *parent)
+ bool xen_arch_need_swiotlb(struct device *dev,
+ 			   unsigned long pfn,
+diff --git a/arch/arm64/include/asm/acpi.h b/arch/arm64/include/asm/acpi.h
+index 208cec08a74f..a24a9b1cc91d 100644
+--- a/arch/arm64/include/asm/acpi.h
++++ b/arch/arm64/include/asm/acpi.h
+@@ -33,10 +33,7 @@
+ static inline void __iomem *acpi_os_ioremap(acpi_physical_address phys,
+ 					    acpi_size size)
+ {
+-	if (!page_is_ram(phys >> PAGE_SHIFT))
+-		return ioremap(phys, size);
+-
+-	return ioremap_cache(phys, size);
++	return memremap(phys, size, MEMREMAP_WB);
+ }
+ #define acpi_os_ioremap acpi_os_ioremap
  
- 		pg = pfn_to_page((pa_data+sizeof(*data)-1) >> PAGE_SHIFT);
- 		if (PageHighMem(pg)) {
--			data = ioremap_cache(pa_data, sizeof(*data));
-+			data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
- 			if (!data) {
- 				kfree(node);
- 				error = -ENXIO;
-@@ -144,7 +144,7 @@ static int __init create_setup_data_nodes(struct dentry *parent)
- 		pa_data = data->next;
+diff --git a/arch/arm64/include/asm/dmi.h b/arch/arm64/include/asm/dmi.h
+index 69d37d87b159..82682d27c6ee 100644
+--- a/arch/arm64/include/asm/dmi.h
++++ b/arch/arm64/include/asm/dmi.h
+@@ -22,10 +22,10 @@
+  * request a virtual mapping for configuration tables such as SMBIOS.
+  * This means we have to map them before use.
+  */
+-#define dmi_early_remap(x, l)		ioremap_cache(x, l)
+-#define dmi_early_unmap(x, l)		iounmap(x)
+-#define dmi_remap(x, l)			ioremap_cache(x, l)
+-#define dmi_unmap(x)			iounmap(x)
++#define dmi_early_remap(x, l)		memremap(x, l, MEMREMAP_WB)
++#define dmi_early_unmap(x, l)		memunmap(x)
++#define dmi_remap(x, l)			memremap(x, l, MEMREMAP_WB)
++#define dmi_unmap(x)			memunmap(x)
+ #define dmi_alloc(l)			kzalloc(l, GFP_KERNEL)
  
- 		if (PageHighMem(pg))
--			iounmap(data);
-+			memunmap(data);
- 		if (error)
- 			goto err_dir;
- 		no++;
-diff --git a/arch/x86/kernel/ksysfs.c b/arch/x86/kernel/ksysfs.c
-index c2bedaea11f7..2d6ae3baafb8 100644
---- a/arch/x86/kernel/ksysfs.c
-+++ b/arch/x86/kernel/ksysfs.c
-@@ -16,8 +16,8 @@
- #include <linux/stat.h>
+ #endif
+diff --git a/arch/arm64/kernel/efi.c b/arch/arm64/kernel/efi.c
+index 13671a9cf016..7dd05eb2c186 100644
+--- a/arch/arm64/kernel/efi.c
++++ b/arch/arm64/kernel/efi.c
+@@ -26,6 +26,7 @@
+ #include <linux/sched.h>
  #include <linux/slab.h>
- #include <linux/mm.h>
+ #include <linux/spinlock.h>
 +#include <linux/io.h>
  
+ #include <asm/cacheflush.h>
+ #include <asm/efi.h>
+@@ -291,8 +292,8 @@ static int __init arm64_enable_runtime_services(void)
+ 	pr_info("Remapping and enabling EFI services.\n");
+ 
+ 	mapsize = memmap.map_end - memmap.map;
+-	memmap.map = (__force void *)ioremap_cache((phys_addr_t)memmap.phys_map,
+-						   mapsize);
++	memmap.map = memremap((phys_addr_t) memmap.phys_map, mapsize,
++			MEMREMAP_WB);
+ 	if (!memmap.map) {
+ 		pr_err("Failed to remap EFI memory map\n");
+ 		return -1;
+@@ -300,8 +301,8 @@ static int __init arm64_enable_runtime_services(void)
+ 	memmap.map_end = memmap.map + mapsize;
+ 	efi.memmap = &memmap;
+ 
+-	efi.systab = (__force void *)ioremap_cache(efi_system_table,
+-						   sizeof(efi_system_table_t));
++	efi.systab = memremap(efi_system_table, sizeof(efi_system_table_t),
++			MEMREMAP_WB);
+ 	if (!efi.systab) {
+ 		pr_err("Failed to remap EFI System Table\n");
+ 		return -1;
+diff --git a/arch/arm64/kernel/smp_spin_table.c b/arch/arm64/kernel/smp_spin_table.c
+index aef3605a8c47..2c06c1a36154 100644
+--- a/arch/arm64/kernel/smp_spin_table.c
++++ b/arch/arm64/kernel/smp_spin_table.c
+@@ -21,11 +21,11 @@
+ #include <linux/of.h>
+ #include <linux/smp.h>
+ #include <linux/types.h>
++#include <linux/io.h>
+ 
+ #include <asm/cacheflush.h>
+ #include <asm/cpu_ops.h>
+ #include <asm/cputype.h>
 -#include <asm/io.h>
- #include <asm/setup.h>
+ #include <asm/smp_plat.h>
  
- static ssize_t version_show(struct kobject *kobj,
-@@ -79,12 +79,12 @@ static int get_setup_data_paddr(int nr, u64 *paddr)
- 			*paddr = pa_data;
- 			return 0;
- 		}
--		data = ioremap_cache(pa_data, sizeof(*data));
-+		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
- 		if (!data)
- 			return -ENOMEM;
+ extern void secondary_holding_pen(void);
+@@ -73,19 +73,19 @@ static int smp_spin_table_cpu_init(unsigned int cpu)
  
- 		pa_data = data->next;
--		iounmap(data);
-+		memunmap(data);
- 		i++;
- 	}
- 	return -EINVAL;
-@@ -97,17 +97,17 @@ static int __init get_setup_data_size(int nr, size_t *size)
- 	u64 pa_data = boot_params.hdr.setup_data;
+ static int smp_spin_table_cpu_prepare(unsigned int cpu)
+ {
+-	__le64 __iomem *release_addr;
++	__le64 *release_addr;
  
- 	while (pa_data) {
--		data = ioremap_cache(pa_data, sizeof(*data));
-+		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
- 		if (!data)
- 			return -ENOMEM;
- 		if (nr == i) {
- 			*size = data->len;
--			iounmap(data);
-+			memunmap(data);
- 			return 0;
- 		}
+ 	if (!cpu_release_addr[cpu])
+ 		return -ENODEV;
  
- 		pa_data = data->next;
--		iounmap(data);
-+		memunmap(data);
- 		i++;
- 	}
- 	return -EINVAL;
-@@ -127,12 +127,12 @@ static ssize_t type_show(struct kobject *kobj,
- 	ret = get_setup_data_paddr(nr, &paddr);
- 	if (ret)
- 		return ret;
--	data = ioremap_cache(paddr, sizeof(*data));
-+	data = memremap(paddr, sizeof(*data), MEMREMAP_WB);
- 	if (!data)
+ 	/*
+ 	 * The cpu-release-addr may or may not be inside the linear mapping.
+-	 * As ioremap_cache will either give us a new mapping or reuse the
+-	 * existing linear mapping, we can use it to cover both cases. In
+-	 * either case the memory will be MT_NORMAL.
++	 * As memremap will either give us a new mapping or reuse the existing
++	 * linear mapping, we can use it to cover both cases. In either case
++	 * the memory will be MT_NORMAL.
+ 	 */
+-	release_addr = ioremap_cache(cpu_release_addr[cpu],
+-				     sizeof(*release_addr));
++	release_addr = memremap(cpu_release_addr[cpu], sizeof(*release_addr),
++			MEMREMAP_WB);
+ 	if (!release_addr)
  		return -ENOMEM;
  
- 	ret = sprintf(buf, "0x%x\n", data->type);
--	iounmap(data);
-+	memunmap(data);
- 	return ret;
+@@ -97,15 +97,14 @@ static int smp_spin_table_cpu_prepare(unsigned int cpu)
+ 	 * the boot protocol.
+ 	 */
+ 	writeq_relaxed(__pa(secondary_holding_pen), release_addr);
+-	__flush_dcache_area((__force void *)release_addr,
+-			    sizeof(*release_addr));
++	__flush_dcache_area(release_addr, sizeof(*release_addr));
+ 
+ 	/*
+ 	 * Send an event to wake up the secondary CPU.
+ 	 */
+ 	sev();
+ 
+-	iounmap(release_addr);
++	memunmap(release_addr);
+ 
+ 	return 0;
  }
- 
-@@ -154,7 +154,7 @@ static ssize_t setup_data_data_read(struct file *fp,
- 	ret = get_setup_data_paddr(nr, &paddr);
- 	if (ret)
- 		return ret;
--	data = ioremap_cache(paddr, sizeof(*data));
-+	data = memremap(paddr, sizeof(*data), MEMREMAP_WB);
- 	if (!data)
- 		return -ENOMEM;
- 
-@@ -170,15 +170,15 @@ static ssize_t setup_data_data_read(struct file *fp,
- 		goto out;
- 
- 	ret = count;
--	p = ioremap_cache(paddr + sizeof(*data), data->len);
-+	p = memremap(paddr + sizeof(*data), data->len, MEMREMAP_WB);
- 	if (!p) {
- 		ret = -ENOMEM;
- 		goto out;
- 	}
- 	memcpy(buf, p + off, count);
--	iounmap(p);
-+	memunmap(p);
- out:
--	iounmap(data);
-+	memunmap(data);
- 	return ret;
- }
- 
-@@ -250,13 +250,13 @@ static int __init get_setup_data_total_num(u64 pa_data, int *nr)
- 	*nr = 0;
- 	while (pa_data) {
- 		*nr += 1;
--		data = ioremap_cache(pa_data, sizeof(*data));
-+		data = memremap(pa_data, sizeof(*data), MEMREMAP_WB);
- 		if (!data) {
- 			ret = -ENOMEM;
- 			goto out;
- 		}
- 		pa_data = data->next;
--		iounmap(data);
-+		memunmap(data);
- 	}
- 
- out:
-diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
-index 123431ae702f..3762ad93bd87 100644
---- a/arch/x86/mm/ioremap.c
-+++ b/arch/x86/mm/ioremap.c
-@@ -420,12 +420,10 @@ void *xlate_dev_mem_ptr(phys_addr_t phys)
- 	if (page_is_ram(start >> PAGE_SHIFT))
- 		return __va(phys);
- 
--	vaddr = ioremap_cache(start, PAGE_SIZE);
--	/* Only add the offset on success and return NULL if the ioremap() failed: */
-+	vaddr = memremap(start, PAGE_SIZE, MEMREMAP_WB);
- 	if (vaddr)
--		vaddr += offset;
--
--	return vaddr;
-+		return vaddr + offset;
-+	return NULL;
- }
- 
- void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
-@@ -433,7 +431,7 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
- 	if (page_is_ram(phys >> PAGE_SHIFT))
- 		return;
- 
--	iounmap((void __iomem *)((unsigned long)addr & PAGE_MASK));
-+	memunmap((void *)((unsigned long)addr & PAGE_MASK));
- }
- 
- static pte_t bm_pte[PAGE_SIZE/sizeof(pte_t)] __page_aligned_bss;
 
