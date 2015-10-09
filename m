@@ -1,41 +1,73 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2 09/12] mm,thp: reduce ifdef'ery for THP in generic code
-Date: Fri, 9 Oct 2015 15:58:11 +0530
-Message-ID: <561796BB.8040905@synopsys.com>
-References: <1442918096-17454-1-git-send-email-vgupta@synopsys.com>
- <1442918096-17454-10-git-send-email-vgupta@synopsys.com>
- <20151009095359.GA7971@node>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20151009095359.GA7971@node>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Mel Gorman <mgorman@suse.de>, Matthew
- Wilcox <matthew.r.wilcox@intel.com>, Minchan Kim <minchan@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+From: Manjeet Pawar <manjeet.p@samsung.com>
+Subject: [PATCHv3] ARM64:Fix MINSIGSTKSZ and SIGSTKSZ
+Date: Fri, 09 Oct 2015 15:59:40 +0530
+Message-ID: <1444386580-10917-1-git-send-email-manjeet.p@samsung.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailout4.samsung.com ([203.254.224.34]:44703 "EHLO
+	mailout4.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965502AbbJIKaP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Oct 2015 06:30:15 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: catalin.marinas@arm.com, will.deacon@arm.com, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Cc: pankaj.m@samsung.com, Manjeet Pawar <manjeet.p@samsung.com>, Akhilesh Kumar <akhilesh.k@samsung.com>, Rohit Thapliyal <r.thapliyal@samsung.com>
 
-On Friday 09 October 2015 03:23 PM, Kirill A. Shutemov wrote:
-> On Tue, Sep 22, 2015 at 04:04:53PM +0530, Vineet Gupta wrote:
->> > - pgtable-generic.c: Fold individual #ifdef for each helper into a top
->> >   level #ifdef. Makes code more readable
-> Makes sense.
-> 
->> > - Per Andrew's suggestion removed the dummy implementations for !THP
->> >   in asm-generic/page-table.h to have build time failures vs. runtime.
-> I'm not sure it's a good idea. This can lead to unnecessary #ifdefs where
-> otherwise call to helper would be eliminated by compiler as dead code.
-> 
-> What about dummy helpers with BUILD_BUG()?
-> 
+MINSIGSTKSZ and SIGSTKSZ for ARM64 are not correctly set in latest kernel.
+This patch fixes this issue.
 
-You are right after all. It is not so much related to __HAVE_ARCH_PMDP_xyz, but
-the fact that generic code can call them under PageTransHuge(). So better to
-provide stubs with BUILD_BUG
+This issue is reported in LTP (testcase: sigaltstack02.c).
+Testcase failed when sigaltstack() called with stack size "MINSIGSTKSZ - 1"
+Since in Glibc-2.22, MINSIGSTKSZ is set to 5120 but in kernel
+it is set to 2048 so testcase gets failed.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Testcase Output:
+sigaltstack02 1  TPASS  :  stgaltstack() fails, Invalid Flag value,errno:22
+sigaltstack02 2  TFAIL  :  sigaltstack() returned 0, expected -1,errno:12
+
+Reported Issue in Glibc Bugzilla:
+Bugfix in Glibc-2.22: [Bug 16850]
+https://sourceware.org/bugzilla/show_bug.cgi?id=16850
+
+Signed-off-by: Akhilesh Kumar <akhilesh.k@samsung.com>
+Signed-off-by: Manjeet Pawar <manjeet.p@samsung.com>
+Signed-off-by: Rohit Thapliyal <r.thapliyal@samsung.com>
+---
+v1 -> Changes in uapi overall header
+v2 -> Changes done in arm64 headers
+v3 -> Changes done in both uapi & arm64 headers
+
+ arch/arm64/include/uapi/asm/signal.h |    3 +++
+ include/uapi/asm-generic/signal.h    |    2 ++
+ 2 files changed, 5 insertions(+)
+
+diff --git a/arch/arm64/include/uapi/asm/signal.h b/arch/arm64/include/uapi/asm/signal.h
+index 8d1e723..991bf5d 100644
+--- a/arch/arm64/include/uapi/asm/signal.h
++++ b/arch/arm64/include/uapi/asm/signal.h
+@@ -19,6 +19,9 @@
+ /* Required for AArch32 compatibility. */
+ #define SA_RESTORER	0x04000000
+ 
++#define MINSIGSTKSZ 5120
++#define SIGSTKSZ    16384
++
+ #include <asm-generic/signal.h>
+ 
+ #endif
+diff --git a/include/uapi/asm-generic/signal.h b/include/uapi/asm-generic/signal.h
+index 9df61f1..b98b67b 100644
+--- a/include/uapi/asm-generic/signal.h
++++ b/include/uapi/asm-generic/signal.h
+@@ -80,8 +80,10 @@
+  *	SA_RESTORER	0x04000000
+  */
+ 
++#if !defined MINSIGSTKSZ || !defined SIGSTKSZ
+ #define MINSIGSTKSZ	2048
+ #define SIGSTKSZ	8192
++#endif
+ 
+ #ifndef __ASSEMBLY__
+ typedef struct {
+-- 
+1.7.9.5
