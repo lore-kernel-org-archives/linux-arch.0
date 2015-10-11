@@ -1,140 +1,23 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
- update documentation
-Date: Mon, 12 Oct 2015 16:30:48 -0700
-Message-ID: <20151012233048.GK3910@linux.vnet.ibm.com>
-References: <20151007111915.GF17308@twins.programming.kicks-ass.net>
- <20151007132317.GK16065@arm.com>
- <20151007152501.GI3910@linux.vnet.ibm.com>
- <1444276236.9940.5.camel@ellerman.id.au>
- <20151008111638.GL3816@twins.programming.kicks-ass.net>
- <20151008125937.GH16807@arm.com>
- <20151008221716.GF3910@linux.vnet.ibm.com>
- <20151009095129.GF26278@arm.com>
- <20151009174327.GV3910@linux.vnet.ibm.com>
- <20151009183328.GV26278@arm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Christine McCarthy <Christine.McCarthy@co.lake.mn.us>
+Subject: Unexpected Luck
+Date: Sun, 11 Oct 2015 17:02:47 -0400
+Message-ID: <279ed73b-7190-4872-a9da-fbd3af605c73@EXCHANGE-SERVRM.LakeCounty.local>
+Reply-To: <monicatorresesp@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e35.co.us.ibm.com ([32.97.110.153]:58030 "EHLO
-	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751878AbbJLXat (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Oct 2015 19:30:49 -0400
-Received: from localhost
-	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Mon, 12 Oct 2015 17:30:49 -0600
-Content-Disposition: inline
-In-Reply-To: <20151009183328.GV26278@arm.com>
+Received: from zixvpm01.solbrekk.com ([216.17.49.110]:29299 "EHLO
+	zixvpm01.solbrekk.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932278AbbJMDpF convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Oct 2015 23:45:05 -0400
+Received: from 127.0.0.1 (ZixVPM [127.0.0.1])
+	by Outbound.solbrekk.com (Proprietary) with SMTP id 6AC7534C77
+	for <linux-arch@vger.kernel.org>; Mon, 12 Oct 2015 22:36:10 -0500 (CDT)
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+To: Recipients <Christine.McCarthy@co.lake.mn.us>
 
-On Fri, Oct 09, 2015 at 07:33:28PM +0100, Will Deacon wrote:
-> On Fri, Oct 09, 2015 at 10:43:27AM -0700, Paul E. McKenney wrote:
-> > On Fri, Oct 09, 2015 at 10:51:29AM +0100, Will Deacon wrote:
-> > > How do people feel about including these in memory-barriers.txt? I find
-> > > them considerably easier to read than our current kernel code + list of
-> > > possible orderings + wall of text, but there's a good chance that my
-> > > brain has been corrupted from staring at this stuff for too long.
-> > > 
-> > > The only snag is the ppc assembly code, but it's not *too* horrific ;)
-> > 
-> > Maybe we should include them as separate files in Documentation/litmus
-> > or some such.  We could then use a litmus-test style with Linux-kernel
-> > C code, and reference litmus tests for various architectures.  Maybe
-> > Documentation/litmus/{arm,arm64,powerpc,x86}/ and so on.
-> 
-> I think that would be useful, particularly if we had a way to "compile"
-> a kernel litmus test into one for a particular architecture.
-
-Very useful!  Probably some limitations, especially for loops and lock
-acquisition, but what else is new?
-
-> > For example, the first example in memory-barriers.txt is this:
-> > 
-> > ------------------------------------------------------------------------
-> > 	CPU 1		CPU 2
-> > 	===============	===============
-> > 	{ A == 1; B == 2 }
-> > 	A = 3;		x = B;
-> > 	B = 4;		y = A;
-> > 
-> > The set of accesses as seen by the memory system in the middle can be arranged
-> > in 24 different combinations:
-> > 
-> > 	STORE A=3,	STORE B=4,	y=LOAD A->3,	x=LOAD B->4
-> > 	STORE A=3,	STORE B=4,	x=LOAD B->4,	y=LOAD A->3
-> > 	STORE A=3,	y=LOAD A->3,	STORE B=4,	x=LOAD B->4
-> > 	STORE A=3,	y=LOAD A->3,	x=LOAD B->2,	STORE B=4
-> > 	STORE A=3,	x=LOAD B->2,	STORE B=4,	y=LOAD A->3
-> > 	STORE A=3,	x=LOAD B->2,	y=LOAD A->3,	STORE B=4
-> > 	STORE B=4,	STORE A=3,	y=LOAD A->3,	x=LOAD B->4
-> > 	STORE B=4, ...
-> > 	...
-> > 
-> > and can thus result in four different combinations of values:
-> > 
-> > 	x == 2, y == 1
-> > 	x == 2, y == 3
-> > 	x == 4, y == 1
-> > 	x == 4, y == 3
-> > ------------------------------------------------------------------------
-> > > > Maybe this changes to:
-> > 
-> > ------------------------------------------------------------------------
-> > Linux MP
-> > ""
-> > {
-> > a=1; b=2;
-> > }
-> >  P0               | P1                ;
-> >  WRITE_ONCE(a, 3) | r1 = READ_ONCE(b) ;
-> >  WRITE_ONCE(b, 4) | r2 = READ_ONCE(a) ;
-> > 
-> > exists (2:r1=4 /\ 2:r2=3)
-> > ------------------------------------------------------------------------
-> > 
-> > We can then state that this assertion can fail.  We could include
-> > either ppcmem or herd output along with the litmus tests, which would
-> > allow the curious to see a full list of the possible outcomes.
-> 
-> More importantly, it would allow them to make small changes to the test
-> and see what the outcome is, without us having to spawn another
-> thread-of-death on LKML :)
-
-Or perhaps we could at least hope for thread-of-tool-supported-death
-on LKML.  ;-)
-
-> > > We could also include a link to the ppcmem/herd web frontends and your
-> > > lwn.net article. (ppcmem is already linked, but it's not obvious that
-> > > you can run litmus tests in your browser).
-> > 
-> > I bet that the URLs for the web frontends are not stable long term.
-> > Don't get me wrong, PPCMEM/ARMMEM has been there for me for a goodly
-> > number of years, but professors do occasionally move from one institution
-> > to another.  For but one example, Susmit Sarkar is now at University
-> > of St. Andrews rather than at Cambridge.
-> > 
-> > So to make this work, we probably need to be thinking in terms of
-> > asking the researchers for permission to include their ocaml code in the
-> > Linux-kernel source tree.  I would be strongly in favor of this, actually.
-> > 
-> > Thoughts?
-> 
-> I'm extremely hesitant to import a bunch of dubiously licensed, academic
-> ocaml code into the kernel. Even if we did, who would maintain it?
-> 
-> A better solution might be to host a mirror of the code on kernel.org,
-> along with a web front-end for people to play with (the tests we're talking
-> about here do seem to run ok in my browser).
-
-I am not too worried about how this happens, but we should avoid
-constraining the work of our academic partners.  The reason I was thinking
-in terms of in the kernel was to avoid version-synchronization issues.
-"Wait, this is Linux kernel v4.17, which means that you need to use
-version 8.3.5.1 of the tooling...  And with these four patches as well."
-
-							Thanx, Paul
+Contact Monica Torres via email: monicatorresesp@gmail.com for your win=
+nings of =E2=82=AC1,000,000.00.
