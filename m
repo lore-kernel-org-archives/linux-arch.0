@@ -1,59 +1,44 @@
-From: Daniel Vetter <daniel@ffwll.ch>
-Subject: Re: [Intel-gfx] [PATCH 09/20] i915: switch from acpi_os_ioremap to
- memremap
-Date: Mon, 12 Oct 2015 09:01:02 +0200
-Message-ID: <20151012070102.GV26718@phenom.ffwll.local>
-References: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
- <20151009221625.32203.74117.stgit@dwillia2-desk3.jf.intel.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <dri-devel-bounces@lists.freedesktop.org>
-Content-Disposition: inline
-In-Reply-To: <20151009221625.32203.74117.stgit@dwillia2-desk3.jf.intel.com>
-List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
-List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
-List-Post: <mailto:dri-devel@lists.freedesktop.org>
-List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
-List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
- <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
-Errors-To: dri-devel-bounces@lists.freedesktop.org
-Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: linux-arch@vger.kernel.org, intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, Daniel Vetter <daniel.vetter@intel.com>, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+From: yalin wang <yalin.wang2010@gmail.com>
+Subject: [RFC] fixmap: change temp variable name
+Date: Mon, 12 Oct 2015 16:08:28 +0800
+Message-ID: <1444637308-23390-1-git-send-email-yalin.wang2010@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f45.google.com ([209.85.220.45]:36757 "EHLO
+	mail-pa0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751157AbbJLIIn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Oct 2015 04:08:43 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: yalin wang <yalin.wang2010@gmail.com>
 
-T24gRnJpLCBPY3QgMDksIDIwMTUgYXQgMDY6MTY6MjVQTSAtMDQwMCwgRGFuIFdpbGxpYW1zIHdy
-b3RlOgo+IGk5MTUgZXhwZWN0cyB0aGUgT3BSZWdpb24gdG8gYmUgY2FjaGVkIChpLmUuIG5vdCBf
-X2lvbWVtKSwgc28gZXhwbGljaXRseQo+IG1hcCBpdCB3aXRoIG1lbXJlbWFwIHJhdGhlciB0aGFu
-IHRoZSBpbXBsaWVkIGNhY2hlIHNldHRpbmcgb2YKPiBhY3BpX29zX2lvcmVtYXAoKS4KPiAKPiBD
-YzogRGFuaWVsIFZldHRlciA8ZGFuaWVsLnZldHRlckBpbnRlbC5jb20+Cj4gQ2M6IEphbmkgTmlr
-dWxhIDxqYW5pLm5pa3VsYUBsaW51eC5pbnRlbC5jb20+Cj4gQ2M6IGludGVsLWdmeEBsaXN0cy5m
-cmVlZGVza3RvcC5vcmcKPiBDYzogRGF2aWQgQWlybGllIDxhaXJsaWVkQGxpbnV4LmllPgo+IENj
-OiBkcmktZGV2ZWxAbGlzdHMuZnJlZWRlc2t0b3Aub3JnCj4gU2lnbmVkLW9mZi1ieTogRGFuIFdp
-bGxpYW1zIDxkYW4uai53aWxsaWFtc0BpbnRlbC5jb20+CgpBc3N1bWluZyB5b3UndmUgcnVuIHNw
-YXJzZSBvdmVyIHRoaXMgdG8gbWFrZSBzdXJlIHlvdSd2ZSBjYXVnaHQgdGhlbSBhbGwsCmFuZCB3
-aXRoIHRoZSBuaXQgYmVsb3cgYWRkcmVzc2VkIHRoaXMgaXMKClJldmlld2VkLWJ5OiBEYW5pZWwg
-VmV0dGVyIDxkYW5pZWwudmV0dGVyQGZmd2xsLmNoPgoKRmVlbCBmcmVlIHRvIHB1bGwgdjIgaW50
-byB3aGF0ZXZlciB0cmVlIHlvdSB0aGluayBpdCdzIHN1aXRhYmxlIGZvciAoYnV0CnlvdSBjYW4g
-YWxzbyByZXNlbmQgYW5kIEknbGwgcGljayBpdCB1cCkuCgo+IGRpZmYgLS1naXQgYS9kcml2ZXJz
-L2dwdS9kcm0vaTkxNS9pbnRlbF9wYW5lbC5jIGIvZHJpdmVycy9ncHUvZHJtL2k5MTUvaW50ZWxf
-cGFuZWwuYwo+IGluZGV4IGUyYWIzZjZlZDAyMi4uYzg0NDRkNWY1NDlmIDEwMDY0NAo+IC0tLSBh
-L2RyaXZlcnMvZ3B1L2RybS9pOTE1L2ludGVsX3BhbmVsLmMKPiArKysgYi9kcml2ZXJzL2dwdS9k
-cm0vaTkxNS9pbnRlbF9wYW5lbC5jCj4gQEAgLTM4Nyw3ICszODcsNyBAQCBpbnRlbF9wYW5lbF9k
-ZXRlY3Qoc3RydWN0IGRybV9kZXZpY2UgKmRldikKPiAgCj4gIAkvKiBBc3N1bWUgdGhhdCB0aGUg
-QklPUyBkb2VzIG5vdCBsaWUgdGhyb3VnaCB0aGUgT3BSZWdpb24uLi4gKi8KPiAgCWlmICghaTkx
-NS5wYW5lbF9pZ25vcmVfbGlkICYmIGRldl9wcml2LT5vcHJlZ2lvbi5saWRfc3RhdGUpIHsKPiAt
-CQlyZXR1cm4gaW9yZWFkMzIoZGV2X3ByaXYtPm9wcmVnaW9uLmxpZF9zdGF0ZSkgJiAweDEgPwo+
-ICsJCXJldHVybiAqKGRldl9wcml2LT5vcHJlZ2lvbi5saWRfc3RhdGUpICYgMHgxID8KCigpIGFy
-ZSByZWR1bmRhbnQgbm93IGhlcmUuCi1EYW5pZWwKCj4gIAkJCWNvbm5lY3Rvcl9zdGF0dXNfY29u
-bmVjdGVkIDoKPiAgCQkJY29ubmVjdG9yX3N0YXR1c19kaXNjb25uZWN0ZWQ7Cj4gIAl9Cj4gCj4g
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KPiBJbnRlbC1n
-ZnggbWFpbGluZyBsaXN0Cj4gSW50ZWwtZ2Z4QGxpc3RzLmZyZWVkZXNrdG9wLm9yZwo+IGh0dHA6
-Ly9saXN0cy5mcmVlZGVza3RvcC5vcmcvbWFpbG1hbi9saXN0aW5mby9pbnRlbC1nZngKCi0tIApE
-YW5pZWwgVmV0dGVyClNvZnR3YXJlIEVuZ2luZWVyLCBJbnRlbCBDb3Jwb3JhdGlvbgpodHRwOi8v
-YmxvZy5mZndsbC5jaApfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fXwpkcmktZGV2ZWwgbWFpbGluZyBsaXN0CmRyaS1kZXZlbEBsaXN0cy5mcmVlZGVza3RvcC5v
-cmcKaHR0cDovL2xpc3RzLmZyZWVkZXNrdG9wLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2RyaS1kZXZl
-bAo=
+Change temp variable name addr to ____addr,
+so that not conflict with the caller's variable name,
+it will build error if call like this:
+__set_fixmap_offset(idx, addr, flags)
+
+Signed-off-by: yalin wang <yalin.wang2010@gmail.com>
+---
+ include/asm-generic/fixmap.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
+index 1cbb833..91ecaed 100644
+--- a/include/asm-generic/fixmap.h
++++ b/include/asm-generic/fixmap.h
+@@ -72,10 +72,10 @@ static inline unsigned long virt_to_fix(const unsigned long vaddr)
+ /* Return a pointer with offset calculated */
+ #define __set_fixmap_offset(idx, phys, flags)		      \
+ ({							      \
+-	unsigned long addr;				      \
++	unsigned long ____addr;				      \
+ 	__set_fixmap(idx, phys, flags);			      \
+-	addr = fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1)); \
+-	addr;						      \
++	____addr = fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1)); \
++	____addr;						      \
+ })
+ 
+ #define set_fixmap_offset(idx, phys) \
+-- 
+1.9.1
