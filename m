@@ -1,35 +1,59 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC] arm: add __initbss section attribute
-Date: Mon, 12 Oct 2015 12:21:16 +0200
-Message-ID: <8530796.1MzFUDEUSY@wuerfel>
-References: <1444622356-8263-1-git-send-email-yalin.wang2010@gmail.com>
+From: Brian Norris <computersforpeace@gmail.com>
+Subject: Re: [PATCH 14/20] pxa2xx-flash: switch from ioremap_cache to memremap
+Date: Mon, 12 Oct 2015 10:58:03 -0700
+Message-ID: <20151012175803.GL107187@google.com>
+References: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
+ <20151009221651.32203.63446.stgit@dwillia2-desk3.jf.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1444622356-8263-1-git-send-email-yalin.wang2010@gmail.com>
-Sender: owner-linux-mm@kvack.org
-To: yalin wang <yalin.wang2010@gmail.com>
-Cc: linux@arm.linux.org.uk, ard.biesheuvel@linaro.org, will.deacon@arm.com, nico@linaro.org, keescook@chromium.org, catalin.marinas@arm.com, victor.kamensky@linaro.org, msalter@redhat.com, vladimir.murzin@arm.com, ggdavisiv@gmail.com, paul.gortmaker@windriver.com, mingo@kernel.org, rusty@rustcorp.com.au, mcgrof@suse.com, akpm@linux-foundation.org, kirill.shutemov@linux.intel.com, n-horiguchi@ah.jp.nec.com, aarcange@redhat.com, mhocko@suse.com, jack@suse.cz, iamjoonsoo.kim@lge.com, xiexiuqi@huawei.com, vbabka@suse.cz, Vineet.Gupta1@synopsys.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20151009221651.32203.63446.stgit@dwillia2-desk3.jf.intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Woodhouse <dwmw2@infradead.org>, linux-arm-kernel@lists.infradead.org, linux-mtd@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Monday 12 October 2015 11:59:16 yalin wang wrote:
-> This attribute can make init data to be into .initbss section,
-> this will make the data to be NO_BITS in vmlinux, can shrink the
-> Image file size, and speed up the boot up time.
+You missed linux-mtd again. Please use scripts/get_maintainer.pl next
+time to at least get the relevant mailing list(s). (The individual CC's
+are not always necessary, but the subsystem lists definitely are.)
+
+Brian
+
+On Fri, Oct 09, 2015 at 06:16:51PM -0400, Dan Williams wrote:
+> In preparation for deprecating ioremap_cache() convert its usage in
+> pxa2xx-flash to memremap.
 > 
-> Signed-off-by: yalin wang <yalin.wang2010@gmail.com>
-
-Do you have an estimate of how much it gains?
-
-In multi_v7_defconfig, I see a total of 3367 symbols with
-406016 bytes init.data, but only 348 bytes of those are
-in zero-initialized symbols.
-
-	Arnd
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> Cc: David Woodhouse <dwmw2@infradead.org>
+> Cc: Brian Norris <computersforpeace@gmail.com>
+> [brian: also convert iounmap to memunmap]
+> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+> ---
+>  drivers/mtd/maps/pxa2xx-flash.c |    6 +++---
+>  1 file changed, 3 insertions(+), 3 deletions(-)
+> 
+> diff --git a/drivers/mtd/maps/pxa2xx-flash.c b/drivers/mtd/maps/pxa2xx-flash.c
+> index 12fa75df5008..5ff6cc5b4844 100644
+> --- a/drivers/mtd/maps/pxa2xx-flash.c
+> +++ b/drivers/mtd/maps/pxa2xx-flash.c
+> @@ -71,8 +71,8 @@ static int pxa2xx_flash_probe(struct platform_device *pdev)
+>  		       info->map.name);
+>  		return -ENOMEM;
+>  	}
+> -	info->map.cached =
+> -		ioremap_cache(info->map.phys, info->map.size);
+> +	info->map.cached = memremap(info->map.phys, info->map.size,
+> +			MEMREMAP_WB);
+>  	if (!info->map.cached)
+>  		printk(KERN_WARNING "Failed to ioremap cached %s\n",
+>  		       info->map.name);
+> @@ -111,7 +111,7 @@ static int pxa2xx_flash_remove(struct platform_device *dev)
+>  	map_destroy(info->mtd);
+>  	iounmap(info->map.virt);
+>  	if (info->map.cached)
+> -		iounmap(info->map.cached);
+> +		memunmap(info->map.cached);
+>  	kfree(info);
+>  	return 0;
+>  }
+> 
