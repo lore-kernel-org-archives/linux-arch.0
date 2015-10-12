@@ -1,135 +1,59 @@
-From: yalin wang <yalin.wang2010@gmail.com>
-Subject: [RFC] arm: add __initbss section attribute
-Date: Mon, 12 Oct 2015 11:59:16 +0800
-Message-ID: <1444622356-8263-1-git-send-email-yalin.wang2010@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f65.google.com ([209.85.220.65]:35321 "EHLO
-	mail-pa0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750705AbbJLEAe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Oct 2015 00:00:34 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux@arm.linux.org.uk, arnd@arndb.de, ard.biesheuvel@linaro.org, will.deacon@arm.com, nico@linaro.org, keescook@chromium.org, yalin.wang2010@gmail.com, catalin.marinas@arm.com, victor.kamensky@linaro.org, msalter@redhat.com, vladimir.murzin@arm.com, ggdavisiv@gmail.com, paul.gortmaker@windriver.com, mingo@kernel.org, rusty@rustcorp.com.au, mcgrof@suse.com, akpm@linux-foundation.org, kirill.shutemov@linux.intel.com, n-horiguchi@ah.jp.nec.com, aarcange@redhat.com, mhocko@suse.com, jack@suse.cz, iamjoonsoo.kim@lge.com, xiexiuqi@huawei.com, vbabka@suse.cz, Vineet.Gupta1@synopsys.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+From: Daniel Vetter <daniel@ffwll.ch>
+Subject: Re: [Intel-gfx] [PATCH 09/20] i915: switch from acpi_os_ioremap to
+ memremap
+Date: Mon, 12 Oct 2015 09:01:02 +0200
+Message-ID: <20151012070102.GV26718@phenom.ffwll.local>
+References: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
+ <20151009221625.32203.74117.stgit@dwillia2-desk3.jf.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <dri-devel-bounces@lists.freedesktop.org>
+Content-Disposition: inline
+In-Reply-To: <20151009221625.32203.74117.stgit@dwillia2-desk3.jf.intel.com>
+List-Unsubscribe: <http://lists.freedesktop.org/mailman/options/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=unsubscribe>
+List-Archive: <http://lists.freedesktop.org/archives/dri-devel>
+List-Post: <mailto:dri-devel@lists.freedesktop.org>
+List-Help: <mailto:dri-devel-request@lists.freedesktop.org?subject=help>
+List-Subscribe: <http://lists.freedesktop.org/mailman/listinfo/dri-devel>,
+ <mailto:dri-devel-request@lists.freedesktop.org?subject=subscribe>
+Errors-To: dri-devel-bounces@lists.freedesktop.org
+Sender: "dri-devel" <dri-devel-bounces@lists.freedesktop.org>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-arch@vger.kernel.org, intel-gfx@lists.freedesktop.org, linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org, Daniel Vetter <daniel.vetter@intel.com>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-This attribute can make init data to be into .initbss section,
-this will make the data to be NO_BITS in vmlinux, can shrink the
-Image file size, and speed up the boot up time.
-
-Signed-off-by: yalin wang <yalin.wang2010@gmail.com>
----
- arch/arm/kernel/vmlinux.lds.S     |  2 +-
- arch/arm/mm/init.c                |  1 +
- include/asm-generic/sections.h    |  1 +
- include/asm-generic/vmlinux.lds.h | 11 ++++++++++-
- include/linux/init.h              |  1 +
- include/linux/mm.h                |  4 +++-
- 6 files changed, 17 insertions(+), 3 deletions(-)
-
-diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
-index 8b60fde..ad6d740 100644
---- a/arch/arm/kernel/vmlinux.lds.S
-+++ b/arch/arm/kernel/vmlinux.lds.S
-@@ -330,7 +330,7 @@ SECTIONS
- 	}
- #endif
- 
--	BSS_SECTION(0, 0, 0)
-+	BSS_SECTION(0, 0, 0, 0)
- 	_end = .;
- 
- 	STABS_DEBUG
-diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
-index 8a63b4c..50b881e 100644
---- a/arch/arm/mm/init.c
-+++ b/arch/arm/mm/init.c
-@@ -722,6 +722,7 @@ void free_initmem(void)
- 	free_tcmmem();
- 
- 	poison_init_mem(__init_begin, __init_end - __init_begin);
-+	poison_init_mem(__initbss_start, __initbss_start - __initbss_end);
- 	if (!machine_is_integrator() && !machine_is_cintegrator())
- 		free_initmem_default(-1);
- }
-diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
-index b58fd66..a63ebe9 100644
---- a/include/asm-generic/sections.h
-+++ b/include/asm-generic/sections.h
-@@ -29,6 +29,7 @@ extern char _text[], _stext[], _etext[];
- extern char _data[], _sdata[], _edata[];
- extern char __bss_start[], __bss_stop[];
- extern char __init_begin[], __init_end[];
-+extern char __initbss_start[], __initbss_end[];
- extern char _sinittext[], _einittext[];
- extern char _end[];
- extern char __per_cpu_load[], __per_cpu_start[], __per_cpu_end[];
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index c4bd0e2..b3db62d 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -574,6 +574,14 @@
- 		*(COMMON)						\
- 	}
- 
-+#define INITBSS(initbss_align)						\
-+	. = ALIGN(initbss_align);					\
-+	.initbss : AT(ADDR(.initbss) - LOAD_OFFSET) {			\
-+		VMLINUX_SYMBOL(__initbss_start) = .;			\
-+		*(.bss.init.data)					\
-+		VMLINUX_SYMBOL(__initbss_end) = .;			\
-+	}
-+
- /*
-  * DWARF debug sections.
-  * Symbols in the DWARF debugging sections are relative to
-@@ -831,10 +839,11 @@
- 		INIT_RAM_FS						\
- 	}
- 
--#define BSS_SECTION(sbss_align, bss_align, stop_align)			\
-+#define BSS_SECTION(sbss_align, bss_align, initbss_align, stop_align)			\
- 	. = ALIGN(sbss_align);						\
- 	VMLINUX_SYMBOL(__bss_start) = .;				\
- 	SBSS(sbss_align)						\
- 	BSS(bss_align)							\
-+	INITBSS(initbss_align)						\
- 	. = ALIGN(stop_align);						\
- 	VMLINUX_SYMBOL(__bss_stop) = .;
-diff --git a/include/linux/init.h b/include/linux/init.h
-index b449f37..f2960b2 100644
---- a/include/linux/init.h
-+++ b/include/linux/init.h
-@@ -41,6 +41,7 @@
-    discard it in modules) */
- #define __init		__section(.init.text) __cold notrace
- #define __initdata	__section(.init.data)
-+#define __initbss	__section(.bss.init.data)
- #define __initconst	__constsection(.init.rodata)
- #define __exitdata	__section(.exit.data)
- #define __exit_call	__used __section(.exitcall.exit)
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index d30eea3..1f266f7 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -21,6 +21,7 @@
- #include <linux/resource.h>
- #include <linux/page_ext.h>
- #include <linux/err.h>
-+#include <asm/sections.h>
- 
- struct mempolicy;
- struct anon_vma;
-@@ -1722,10 +1723,11 @@ static inline void mark_page_reserved(struct page *page)
-  */
- static inline unsigned long free_initmem_default(int poison)
- {
--	extern char __init_begin[], __init_end[];
- 
- 	return free_reserved_area(&__init_begin, &__init_end,
- 				  poison, "unused kernel");
-+	return free_reserved_area(&__initbss_start, &__initbss_end,
-+				  poison, "unused kernel");
- }
- 
- static inline unsigned long get_num_physpages(void)
--- 
-1.9.1
+T24gRnJpLCBPY3QgMDksIDIwMTUgYXQgMDY6MTY6MjVQTSAtMDQwMCwgRGFuIFdpbGxpYW1zIHdy
+b3RlOgo+IGk5MTUgZXhwZWN0cyB0aGUgT3BSZWdpb24gdG8gYmUgY2FjaGVkIChpLmUuIG5vdCBf
+X2lvbWVtKSwgc28gZXhwbGljaXRseQo+IG1hcCBpdCB3aXRoIG1lbXJlbWFwIHJhdGhlciB0aGFu
+IHRoZSBpbXBsaWVkIGNhY2hlIHNldHRpbmcgb2YKPiBhY3BpX29zX2lvcmVtYXAoKS4KPiAKPiBD
+YzogRGFuaWVsIFZldHRlciA8ZGFuaWVsLnZldHRlckBpbnRlbC5jb20+Cj4gQ2M6IEphbmkgTmlr
+dWxhIDxqYW5pLm5pa3VsYUBsaW51eC5pbnRlbC5jb20+Cj4gQ2M6IGludGVsLWdmeEBsaXN0cy5m
+cmVlZGVza3RvcC5vcmcKPiBDYzogRGF2aWQgQWlybGllIDxhaXJsaWVkQGxpbnV4LmllPgo+IENj
+OiBkcmktZGV2ZWxAbGlzdHMuZnJlZWRlc2t0b3Aub3JnCj4gU2lnbmVkLW9mZi1ieTogRGFuIFdp
+bGxpYW1zIDxkYW4uai53aWxsaWFtc0BpbnRlbC5jb20+CgpBc3N1bWluZyB5b3UndmUgcnVuIHNw
+YXJzZSBvdmVyIHRoaXMgdG8gbWFrZSBzdXJlIHlvdSd2ZSBjYXVnaHQgdGhlbSBhbGwsCmFuZCB3
+aXRoIHRoZSBuaXQgYmVsb3cgYWRkcmVzc2VkIHRoaXMgaXMKClJldmlld2VkLWJ5OiBEYW5pZWwg
+VmV0dGVyIDxkYW5pZWwudmV0dGVyQGZmd2xsLmNoPgoKRmVlbCBmcmVlIHRvIHB1bGwgdjIgaW50
+byB3aGF0ZXZlciB0cmVlIHlvdSB0aGluayBpdCdzIHN1aXRhYmxlIGZvciAoYnV0CnlvdSBjYW4g
+YWxzbyByZXNlbmQgYW5kIEknbGwgcGljayBpdCB1cCkuCgo+IGRpZmYgLS1naXQgYS9kcml2ZXJz
+L2dwdS9kcm0vaTkxNS9pbnRlbF9wYW5lbC5jIGIvZHJpdmVycy9ncHUvZHJtL2k5MTUvaW50ZWxf
+cGFuZWwuYwo+IGluZGV4IGUyYWIzZjZlZDAyMi4uYzg0NDRkNWY1NDlmIDEwMDY0NAo+IC0tLSBh
+L2RyaXZlcnMvZ3B1L2RybS9pOTE1L2ludGVsX3BhbmVsLmMKPiArKysgYi9kcml2ZXJzL2dwdS9k
+cm0vaTkxNS9pbnRlbF9wYW5lbC5jCj4gQEAgLTM4Nyw3ICszODcsNyBAQCBpbnRlbF9wYW5lbF9k
+ZXRlY3Qoc3RydWN0IGRybV9kZXZpY2UgKmRldikKPiAgCj4gIAkvKiBBc3N1bWUgdGhhdCB0aGUg
+QklPUyBkb2VzIG5vdCBsaWUgdGhyb3VnaCB0aGUgT3BSZWdpb24uLi4gKi8KPiAgCWlmICghaTkx
+NS5wYW5lbF9pZ25vcmVfbGlkICYmIGRldl9wcml2LT5vcHJlZ2lvbi5saWRfc3RhdGUpIHsKPiAt
+CQlyZXR1cm4gaW9yZWFkMzIoZGV2X3ByaXYtPm9wcmVnaW9uLmxpZF9zdGF0ZSkgJiAweDEgPwo+
+ICsJCXJldHVybiAqKGRldl9wcml2LT5vcHJlZ2lvbi5saWRfc3RhdGUpICYgMHgxID8KCigpIGFy
+ZSByZWR1bmRhbnQgbm93IGhlcmUuCi1EYW5pZWwKCj4gIAkJCWNvbm5lY3Rvcl9zdGF0dXNfY29u
+bmVjdGVkIDoKPiAgCQkJY29ubmVjdG9yX3N0YXR1c19kaXNjb25uZWN0ZWQ7Cj4gIAl9Cj4gCj4g
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KPiBJbnRlbC1n
+ZnggbWFpbGluZyBsaXN0Cj4gSW50ZWwtZ2Z4QGxpc3RzLmZyZWVkZXNrdG9wLm9yZwo+IGh0dHA6
+Ly9saXN0cy5mcmVlZGVza3RvcC5vcmcvbWFpbG1hbi9saXN0aW5mby9pbnRlbC1nZngKCi0tIApE
+YW5pZWwgVmV0dGVyClNvZnR3YXJlIEVuZ2luZWVyLCBJbnRlbCBDb3Jwb3JhdGlvbgpodHRwOi8v
+YmxvZy5mZndsbC5jaApfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fXwpkcmktZGV2ZWwgbWFpbGluZyBsaXN0CmRyaS1kZXZlbEBsaXN0cy5mcmVlZGVza3RvcC5v
+cmcKaHR0cDovL2xpc3RzLmZyZWVkZXNrdG9wLm9yZy9tYWlsbWFuL2xpc3RpbmZvL2RyaS1kZXZl
+bAo=
