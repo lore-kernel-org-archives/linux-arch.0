@@ -1,183 +1,37 @@
-From: yalin wang <yalin.wang2010@gmail.com>
-Subject: Re: [RFC] arm: add __initbss section attribute
-Date: Tue, 13 Oct 2015 17:51:32 +0800
-Message-ID: <8004E8C3-F1EC-45C3-A995-88726B257563@gmail.com>
-References: <1444622356-8263-1-git-send-email-yalin.wang2010@gmail.com> <20151012200422.GA29175@ravnborg.org> <FEDC4251-5A6A-4E3C-AE36-8E5B55D9D6CF@gmail.com> <5369261.8uuGVmeUFP@wuerfel>
-Mime-Version: 1.0 (Mac OS X Mail 9.0 \(3094\))
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 8BIT
+From: "Mrs Hayet Zara" <hayetzaara@gmail.com>
+Subject: PLS I NEED YOUR HELP
+Date: Tue, 13 Oct 2015 00:19:48 +0300 (EEST)
+Message-ID: <8ef859dd5adb2f73cb9bb7eb6c128f87.squirrel__104.401089675044$1444731906$gmane$org@82.79.55.74>
+Reply-To: geldkantornl@aim.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f66.google.com ([209.85.220.66]:35452 "EHLO
-	mail-pa0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752146AbbJMJvp convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Oct 2015 05:51:45 -0400
-In-Reply-To: <5369261.8uuGVmeUFP@wuerfel>
+Received: from [82.79.55.74] ([82.79.55.74]:42609 "EHLO
+	server-servicii.uvvgsm.ro" rhost-flags-FAIL-FAIL-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751930AbbJMKYP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 13 Oct 2015 06:24:15 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Sam Ravnborg <sam@ravnborg.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Will Deacon <will.deacon@arm.com>, Nicolas Pitre <nico@linaro.org>, Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Victor Kamensky <victor.kamensky@linaro.org>, Mark Salter <msalter@redhat.com>, vladimir.murzin@arm.com, ggdavisiv@gmail.com, paul.gortmaker@windriver.com, mingo@kernel.org, rusty@rustcorp.com.au, mcgrof@suse.com, akpm@linux-foundation.org, kirill.shutemov@linux.intel.com, n-horiguchi@ah.jp.nec.com, aarcange@redhat.com, mhocko@suse.com, jack@suse.cz, iamjoonsoo.kim@lge.com, xiexiuqi@huawei.com, vbabka@suse.cz, Vineet.Gupta1@synopsys.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 
 
-> On Oct 13, 2015, at 17:40, Arnd Bergmann <arnd@arndb.de> wrote:
-> 
-> On Tuesday 13 October 2015 15:33:10 yalin wang wrote:
->> 
->>> On Oct 13, 2015, at 04:04, Sam Ravnborg <sam@ravnborg.org> wrote:
->>> 
->>>> --- a/include/asm-generic/vmlinux.lds.h
->>>> +++ b/include/asm-generic/vmlinux.lds.h
->>>> 
->>>> -#define BSS_SECTION(sbss_align, bss_align, stop_align)			\
->>>> +#define BSS_SECTION(sbss_align, bss_align, initbss_align, stop_align)			\
->>> 
->>> A few comments:
->>> 
->>> 1) - please align the backslash at the end of the
->>>    line with the backslash above it.
->>> 2) - you need to fix all the remaining users of BSS_SECTION.
->>> 3) - do we really need the flexibility to specify an alignment (stop_align)?
->>>       If not - drop the extra argument.
->>> 
->>> 	Sam
->> i change lots of __initdata to __initbss to test it on ARM arch,
->> 
-> 
-> Ok, I found my mistake in the script I used to calculate the savings,
-> here is the correct output showing all uninitialized variables in
-> multi_v7_defconfig:
-> 
-> 4	done.44688
-> 1024	boot_command_line
-> 1024	tmp_cmdline.44689
-> 4	late_time_init
-> 4	root_mount_data
-> 4	root_fs_names
-> 4	rd_doload
-> 4	root_delay
-> 64	saved_root_name
-> 4	root_device_name
-> 4	message
-> 4	byte_count
-> 4	victim
-> 4	collected
-> 8	this_header
-> 4	state
-> 4	collect
-> 4	remains
-> 4	next_state
-> 8	header_buf
-> 8	next_header
-> 4	do_retain_initrd
-> 4	name_len
-> 4	body_len
-> 4	gid
-> 4	uid
-> 4	mtime
-> 4	wfd
-> 4	vcollected
-> 4	ino
-> 4	mode
-> 4	nlink
-> 4	major
-> 4	minor
-> 4	rdev
-> 4	symlink_buf
-> 4	name_buf
-> 64	msg_buf.29770
-> 128	head
-> 4	machine_desc
-> 4	usermem.34390
-> 4	__atags_pointer
-> 1024	cmd_line
-> 1024	default_command_line
-> 1536	atags_copy
-> 4	dma_mmu_remap_num
-> 64	dma_mmu_remap
-> 4	phys_initrd_start
-> 4024	phys_initrd_size
-> 4096	bm_pte
-> 4	ecc_mask
-> 4	initial_pmd_value
-> 4	arm_lowmem_limit
-> 24	s5p_mfc_mem
-> 28	tx_pad_name
-> 4	use_gptimer_clksrc
-> 4	omap_table_init
-> 4	mpurate
-> 4	am35xx_aes_hwmod_ocp_ifs
-> 4	am35xx_sham_hwmod_ocp_ifs
-> 4	dra72x_hwmod_ocp_ifs
-> 4	rx51_vibra_data
-> 4	num_special_pds
-> 128	special_pds
-> 4	main_extable_sort_needed
-> 4	new_log_buf_len
-> 24	opts.36513
-> 512	smap.22469
-> 512	dmap.22470
-> 64	group_map.22521
-> 64	group_cnt.22522
-> 4	pcpu_chosen_fc
-> 4	vmlist
-> 4	vm_init_off.26867
-> 4	reset_managed_pages_done
-> 116	boot_kmem_cache_node.32827
-> 116	boot_kmem_cache.32826
-> 4	dhash_entries
-> 4	ihash_entries
-> 4	mhash_entries
-> 4	mphash_entries
-> 256	nfs_root_parms
-> 1028	nfs_export_path
-> 1028	nfs_root_device
-> 4	gic_cnt
-> 4	threshold_index
-> 4096	ata_force_param_buf
-> 4	mtd_devs
-> 2432	mtd_dev_param
-> 8	m68k_probes
-> 8	isa_probes
-> 4	arch_timers_present
-> 4	dt_root_size_cells
-> 4	dt_root_addr_cells
-> 4	imx_keep_uart_clocks
-> 4	imx_uart_clocks
-> 4	mt8173_top_clk_data
-> 4	mt8173_pll_clk_data
-> 4	cpg_mode
-> 4	cpg_mode_rates
-> 4	cpg_mode_divs
-> 4	cpg_mode
-> 4	cpg_mode
-> 4	thash_entries
-> 4	uhash_entries
-> 4	ic_got_reply
-> 4	ic_first_dev
-> 4	ic_dev
-> 16	user_dev_name
-> 4	ic_dhcp_msgtype
-> 4	ic_host_name_set
-> 4	ic_dev_mtu
-> 4	ic_set_manually
-> 4	ic_enable
-> 256	vendor_class_identifier
-> 4	ic_proto_have_if
-> 4	dma_reserve
-> 4	nr_kernel_pages
-> 4	nr_all_pages
-> 196	__clk_of_table_sentinel
-> 200	__rmem_of_table_sentinel
-> 196	__clksrc_of_table_sentinel
-> 200	__iommu_of_table_sentinel
-> 8	__cpu_method_of_table_sentinel
-> 8	__cpuidle_method_of_table_sentinel
-> 196	irqchip_of_match_end
-> 32	__earlycon_table_sentinel
-> 200	__earlycon_of_table_sentinel
-> 6	__irf_end
-> 
-> 
-> 26398 total
-i am curious about your scripts ,
-could you show me ?
-Thank you !
+
+
+I am Mrs Zaara Heyet an oil-servicing equipment merchant, am writing this
+mail to you with tears and love from my heart of charity work i could not
+fulfill before the end of my days due to my present healness ,Please do
+not think of this letter as one of those being sent around to ask for
+money,I got your email id from our chambers of commerce while searching
+for a reliable person to help me carry out this project.
+
+I have an urgent and confidential business proposition involving transfer
+of Nine Million $9,000.000.00 USD ,it will be of great benefit for both of
+us especially you as my days are number on earth. I will give you more
+details as regards this transaction as soon as you, reply me of your
+interest via my personal E-mail: geldkantornl@aim.com , Thanks for your
+interested .
+
+WARNING!!WARNING!!
+This winning notification is expected to be read and/or used only by the
+individual(s) for whom it is intended.:**************
