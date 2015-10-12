@@ -1,71 +1,155 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f179.google.com ([209.85.212.179]:37882 "EHLO
-	mail-wi0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750835AbbJLG6J (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Oct 2015 02:58:09 -0400
-Received: by wijq8 with SMTP id q8so42706232wij.0
-        for <linux-arch@vger.kernel.org>; Sun, 11 Oct 2015 23:58:08 -0700 (PDT)
-Date: Mon, 12 Oct 2015 09:01:02 +0200
-From: Daniel Vetter <daniel@ffwll.ch>
-Subject: Re: [Intel-gfx] [PATCH 09/20] i915: switch from acpi_os_ioremap to
- memremap
-Message-ID: <20151012070102.GV26718@phenom.ffwll.local>
-References: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
- <20151009221625.32203.74117.stgit@dwillia2-desk3.jf.intel.com>
+Received: from mail-io0-f173.google.com ([209.85.223.173]:36673 "EHLO
+	mail-io0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751633AbbJLIWF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Oct 2015 04:22:05 -0400
+Received: by ioii196 with SMTP id i196so143961498ioi.3
+        for <linux-arch@vger.kernel.org>; Mon, 12 Oct 2015 01:22:05 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20151009221625.32203.74117.stgit@dwillia2-desk3.jf.intel.com>
+In-Reply-To: <1444622356-8263-1-git-send-email-yalin.wang2010@gmail.com>
+References: <1444622356-8263-1-git-send-email-yalin.wang2010@gmail.com>
+Date: Mon, 12 Oct 2015 10:22:04 +0200
+Message-ID: <CAKv+Gu8rf2qsK4Q9UBxNUo0GDVO+5_SP0mXjuEfcG2WOMdpmZQ@mail.gmail.com>
+Subject: Re: [RFC] arm: add __initbss section attribute
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Airlie <airlied@linux.ie>, intel-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org, Daniel Vetter <daniel.vetter@intel.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20151012070102.VtQ-1oysgQ8_RfiPLsVwlV_q2tuEq7N8lHzZdoLOrsw@z>
+To: yalin wang <yalin.wang2010@gmail.com>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Nicolas Pitre <nico@linaro.org>, Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Victor Kamensky <victor.kamensky@linaro.org>, Mark Salter <msalter@redhat.com>, vladimir.murzin@arm.com, ggdavisiv@gmail.com, paul.gortmaker@windriver.com, Ingo Molnar <mingo@kernel.org>, Rusty Russell <rusty@rustcorp.com.au>, mcgrof@suse.com, Andrew Morton <akpm@linux-foundation.org>, kirill.shutemov@linux.intel.com, n-horiguchi@ah.jp.nec.com, aarcange@redhat.com, mhocko@suse.com, jack@suse.cz, iamjoonsoo.kim@lge.com, xiexiuqi@huawei.com, vbabka@suse.cz, Vineet.Gupta1@synopsys.com, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+Message-ID: <20151012082204.w43Lx63WEHdCdWUpP5fk_wspq4xiIglV-TikPfFHLqw@z>
 
-On Fri, Oct 09, 2015 at 06:16:25PM -0400, Dan Williams wrote:
-> i915 expects the OpRegion to be cached (i.e. not __iomem), so explicitly
-> map it with memremap rather than the implied cache setting of
-> acpi_os_ioremap().
-> 
-> Cc: Daniel Vetter <daniel.vetter@intel.com>
-> Cc: Jani Nikula <jani.nikula@linux.intel.com>
-> Cc: intel-gfx@lists.freedesktop.org
-> Cc: David Airlie <airlied@linux.ie>
-> Cc: dri-devel@lists.freedesktop.org
-> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+On 12 October 2015 at 05:59, yalin wang <yalin.wang2010@gmail.com> wrote:
+> This attribute can make init data to be into .initbss section,
+> this will make the data to be NO_BITS in vmlinux, can shrink the
+> Image file size, and speed up the boot up time.
+>
+> Signed-off-by: yalin wang <yalin.wang2010@gmail.com>
+> ---
+>  arch/arm/kernel/vmlinux.lds.S     |  2 +-
+>  arch/arm/mm/init.c                |  1 +
+>  include/asm-generic/sections.h    |  1 +
+>  include/asm-generic/vmlinux.lds.h | 11 ++++++++++-
+>  include/linux/init.h              |  1 +
+>  include/linux/mm.h                |  4 +++-
+>  6 files changed, 17 insertions(+), 3 deletions(-)
+>
+> diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
+> index 8b60fde..ad6d740 100644
+> --- a/arch/arm/kernel/vmlinux.lds.S
+> +++ b/arch/arm/kernel/vmlinux.lds.S
+> @@ -330,7 +330,7 @@ SECTIONS
+>         }
+>  #endif
+>
+> -       BSS_SECTION(0, 0, 0)
+> +       BSS_SECTION(0, 0, 0, 0)
+>         _end = .;
+>
+>         STABS_DEBUG
+> diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
+> index 8a63b4c..50b881e 100644
+> --- a/arch/arm/mm/init.c
+> +++ b/arch/arm/mm/init.c
+> @@ -722,6 +722,7 @@ void free_initmem(void)
+>         free_tcmmem();
+>
+>         poison_init_mem(__init_begin, __init_end - __init_begin);
+> +       poison_init_mem(__initbss_start, __initbss_start - __initbss_end);
+>         if (!machine_is_integrator() && !machine_is_cintegrator())
+>                 free_initmem_default(-1);
+>  }
+> diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+> index b58fd66..a63ebe9 100644
+> --- a/include/asm-generic/sections.h
+> +++ b/include/asm-generic/sections.h
+> @@ -29,6 +29,7 @@ extern char _text[], _stext[], _etext[];
+>  extern char _data[], _sdata[], _edata[];
+>  extern char __bss_start[], __bss_stop[];
+>  extern char __init_begin[], __init_end[];
+> +extern char __initbss_start[], __initbss_end[];
+>  extern char _sinittext[], _einittext[];
+>  extern char _end[];
+>  extern char __per_cpu_load[], __per_cpu_start[], __per_cpu_end[];
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index c4bd0e2..b3db62d 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -574,6 +574,14 @@
+>                 *(COMMON)                                               \
+>         }
+>
+> +#define INITBSS(initbss_align)                                         \
+> +       . = ALIGN(initbss_align);                                       \
+> +       .initbss : AT(ADDR(.initbss) - LOAD_OFFSET) {                   \
+> +               VMLINUX_SYMBOL(__initbss_start) = .;                    \
+> +               *(.bss.init.data)                                       \
+> +               VMLINUX_SYMBOL(__initbss_end) = .;                      \
+> +       }
+> +
+>  /*
+>   * DWARF debug sections.
+>   * Symbols in the DWARF debugging sections are relative to
+> @@ -831,10 +839,11 @@
+>                 INIT_RAM_FS                                             \
+>         }
+>
+> -#define BSS_SECTION(sbss_align, bss_align, stop_align)                 \
+> +#define BSS_SECTION(sbss_align, bss_align, initbss_align, stop_align)                  \
+>         . = ALIGN(sbss_align);                                          \
+>         VMLINUX_SYMBOL(__bss_start) = .;                                \
+>         SBSS(sbss_align)                                                \
+>         BSS(bss_align)                                                  \
+> +       INITBSS(initbss_align)                                          \
+>         . = ALIGN(stop_align);                                          \
+>         VMLINUX_SYMBOL(__bss_stop) = .;
+> diff --git a/include/linux/init.h b/include/linux/init.h
+> index b449f37..f2960b2 100644
+> --- a/include/linux/init.h
+> +++ b/include/linux/init.h
+> @@ -41,6 +41,7 @@
+>     discard it in modules) */
+>  #define __init         __section(.init.text) __cold notrace
+>  #define __initdata     __section(.init.data)
+> +#define __initbss      __section(.bss.init.data)
 
-Assuming you've run sparse over this to make sure you've caught them all,
-and with the nit below addressed this is
+Shouldn't this be .init.bss ?
 
-Reviewed-by: Daniel Vetter <daniel.vetter@ffwll.ch>
+>  #define __initconst    __constsection(.init.rodata)
+>  #define __exitdata     __section(.exit.data)
+>  #define __exit_call    __used __section(.exitcall.exit)
+> diff --git a/include/linux/mm.h b/include/linux/mm.h
+> index d30eea3..1f266f7 100644
+> --- a/include/linux/mm.h
+> +++ b/include/linux/mm.h
+> @@ -21,6 +21,7 @@
+>  #include <linux/resource.h>
+>  #include <linux/page_ext.h>
+>  #include <linux/err.h>
+> +#include <asm/sections.h>
+>
+>  struct mempolicy;
+>  struct anon_vma;
+> @@ -1722,10 +1723,11 @@ static inline void mark_page_reserved(struct page *page)
+>   */
+>  static inline unsigned long free_initmem_default(int poison)
+>  {
+> -       extern char __init_begin[], __init_end[];
+>
+>         return free_reserved_area(&__init_begin, &__init_end,
+>                                   poison, "unused kernel");
+> +       return free_reserved_area(&__initbss_start, &__initbss_end,
+> +                                 poison, "unused kernel");
 
-Feel free to pull v2 into whatever tree you think it's suitable for (but
-you can also resend and I'll pick it up).
+You obviously have not tested this code, since the first return makes
+the second unreachable.
 
-> diff --git a/drivers/gpu/drm/i915/intel_panel.c b/drivers/gpu/drm/i915/intel_panel.c
-> index e2ab3f6ed022..c8444d5f549f 100644
-> --- a/drivers/gpu/drm/i915/intel_panel.c
-> +++ b/drivers/gpu/drm/i915/intel_panel.c
-> @@ -387,7 +387,7 @@ intel_panel_detect(struct drm_device *dev)
->  
->  	/* Assume that the BIOS does not lie through the OpRegion... */
->  	if (!i915.panel_ignore_lid && dev_priv->opregion.lid_state) {
-> -		return ioread32(dev_priv->opregion.lid_state) & 0x1 ?
-> +		return *(dev_priv->opregion.lid_state) & 0x1 ?
-
-() are redundant now here.
--Daniel
-
->  			connector_status_connected :
->  			connector_status_disconnected;
->  	}
-> 
-> _______________________________________________
-> Intel-gfx mailing list
-> Intel-gfx@lists.freedesktop.org
-> http://lists.freedesktop.org/mailman/listinfo/intel-gfx
+So you will need to put __initbss annotations all over the tree to
+actually populate and then free this section (after you have fixed
+your code). Before we do that, could we have an estimate of how much
+memory it actually frees up, especially since the zImage compression
+should ensure that zero initialized PROGBITS .data does not take very
+much additional space in the first place.
 
 -- 
-Daniel Vetter
-Software Engineer, Intel Corporation
-http://blog.ffwll.ch
+Ard.
