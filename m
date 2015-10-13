@@ -1,37 +1,41 @@
-From: "Mrs Hayet Zara" <hayetzaara@gmail.com>
-Subject: PLS I NEED YOUR HELP
-Date: Tue, 13 Oct 2015 00:19:48 +0300 (EEST)
-Message-ID: <8ef859dd5adb2f73cb9bb7eb6c128f87.squirrel__104.401089675044$1444731906$gmane$org@82.79.55.74>
-Reply-To: geldkantornl@aim.com
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC] arm: add __initbss section attribute
+Date: Tue, 13 Oct 2015 13:28:18 +0200
+Message-ID: <5171473.bOz59Zi81c__42333.6262502291$1444735797$gmane$org@wuerfel>
+References: <1444622356-8263-1-git-send-email-yalin.wang2010@gmail.com> <5369261.8uuGVmeUFP@wuerfel> <8004E8C3-F1EC-45C3-A995-88726B257563@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [82.79.55.74] ([82.79.55.74]:42609 "EHLO
-	server-servicii.uvvgsm.ro" rhost-flags-FAIL-FAIL-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751930AbbJMKYP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 Oct 2015 06:24:15 -0400
+Received: from mout.kundenserver.de ([212.227.17.24]:58905 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752301AbbJML3i (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Oct 2015 07:29:38 -0400
+In-Reply-To: <8004E8C3-F1EC-45C3-A995-88726B257563@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: yalin wang <yalin.wang2010@gmail.com>
+Cc: Sam Ravnborg <sam@ravnborg.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Will Deacon <will.deacon@arm.com>, Nicolas Pitre <nico@linaro.org>, Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Victor Kamensky <victor.kamensky@linaro.org>, Mark Salter <msalter@redhat.com>, vladimir.murzin@arm.com, ggdavisiv@gmail.com, paul.gortmaker@windriver.com, mingo@kernel.org, rusty@rustcorp.com.au, mcgrof@suse.com, akpm@linux-foundation.org, kirill.shutemov@linux.intel.com, n-horiguchi@ah.jp.nec.com, aarcange@redhat.com, mhocko@suse.com, jack@suse.cz, iamjoonsoo.kim@lge.com, xiexiuqi@huawei.com, vbabka@suse.cz, Vineet.Gupta1@synopsys.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 
+On Tuesday 13 October 2015 17:51:32 yalin wang wrote:
 
+> > 32	__earlycon_table_sentinel
+> > 200	__earlycon_of_table_sentinel
+> > 6	__irf_end
+> > 
+> > 
+> > 26398 total
+> i am curious about your scripts ,
+> could you show me ?
 
+I was using some ad-hoc command line tricks, including
 
-I am Mrs Zaara Heyet an oil-servicing equipment merchant, am writing this
-mail to you with tears and love from my heart of charity work i could not
-fulfill before the end of my days due to my present healness ,Please do
-not think of this letter as one of those being sent around to ask for
-money,I got your email id from our chambers of commerce while searching
-for a reliable person to help me carry out this project.
+objcopy  -j .init.data  build/multi_v7_defconfig/vmlinux   /tmp/initdata
+nm initdata  | sort -n | { read start b sym ; while read a b c ; do objdump -Dr --start-address=0x$start --stop-address=0x$a initdata > initdata.d/$sym  ; start=$a ; sym=$c  ; done }
+(some manual sorting to delete the files that have pre-initialized symbols)
+sum=0 ; nm /tmp/initdata  | sort -n | { read start b sym ; while read a b c ; do test -e ../$sym  && { echo $[0x$a - 0x$start]\      $sym  ; sum=$[$sum + $[0x$a - 0x$start]] ; } ; start=$a ; sym=$c ; done ; echo $sum;}
 
-I have an urgent and confidential business proposition involving transfer
-of Nine Million $9,000.000.00 USD ,it will be of great benefit for both of
-us especially you as my days are number on earth. I will give you more
-details as regards this transaction as soon as you, reply me of your
-interest via my personal E-mail: geldkantornl@aim.com , Thanks for your
-interested .
+I'm sure there are better ways to do this, and the manual step I used at
+first was faulty.
 
-WARNING!!WARNING!!
-This winning notification is expected to be read and/or used only by the
-individual(s) for whom it is intended.:**************
+	Arnd
