@@ -1,68 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:52494 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751801AbbJMJpr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 Oct 2015 05:45:47 -0400
-In-Reply-To: <1444340359-8011-52-git-send-email-yinghai@kernel.org>
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [v7,51/60] PCI: Unify skip_ioresource_align()
-Message-ID: <20151013094545.BD37A14029E@ozlabs.org>
-Date: Tue, 13 Oct 2015 20:45:45 +1100 (AEDT)
+Received: from mout.kundenserver.de ([212.227.17.24]:58905 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752301AbbJML3i (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Oct 2015 07:29:38 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC] arm: add __initbss section attribute
+Date: Tue, 13 Oct 2015 13:28:18 +0200
+Message-ID: <5171473.bOz59Zi81c@wuerfel>
+In-Reply-To: <8004E8C3-F1EC-45C3-A995-88726B257563@gmail.com>
+References: <1444622356-8263-1-git-send-email-yalin.wang2010@gmail.com> <5369261.8uuGVmeUFP@wuerfel> <8004E8C3-F1EC-45C3-A995-88726B257563@gmail.com>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Wei Yang <weiyang@linux.vnet.ibm.com>, TJ <linux@iam.tj>, Yijing Wang <wangyijing@huawei.com>, Khalid Aziz <khalid.aziz@oracle.com>
-Cc: linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Arnd Bergmann <arnd@arndb.de>, linux-pci@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>
-Message-ID: <20151013094545.AVbpKD30lFSWRnkOXKLebpRZ_X-h9idMlYC4-lPQKQE@z>
+To: yalin wang <yalin.wang2010@gmail.com>
+Cc: Sam Ravnborg <sam@ravnborg.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Will Deacon <will.deacon@arm.com>, Nicolas Pitre <nico@linaro.org>, Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Victor Kamensky <victor.kamensky@linaro.org>, Mark Salter <msalter@redhat.com>, vladimir.murzin@arm.com, ggdavisiv@gmail.com, paul.gortmaker@windriver.com, mingo@kernel.org, rusty@rustcorp.com.au, mcgrof@suse.com, akpm@linux-foundation.org, kirill.shutemov@linux.intel.com, n-horiguchi@ah.jp.nec.com, aarcange@redhat.com, mhocko@suse.com, jack@suse.cz, iamjoonsoo.kim@lge.com, xiexiuqi@huawei.com, vbabka@suse.cz, Vineet.Gupta1@synopsys.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 
-On Thu, 2015-08-10 at 21:39:10 UTC, Yinghai Lu wrote:
-> There are powerpc generic version and x86 local version for
-> skip_ioresource_align().
-> 
-> Move the powerpc version to setup-bus.c, and kill x86 local version.
-> 
-> Also kill dummy version in microblaze.
-> 
-> Cc: Michal Simek <monstr@monstr.eu>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Michael Ellerman <mpe@ellerman.id.au>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Cc: linux-arch@vger.kernel.org
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
-> 
-> diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
-> index 7587b2a..8853667 100644
-> --- a/arch/powerpc/kernel/pci-common.c
-> +++ b/arch/powerpc/kernel/pci-common.c
-> @@ -1052,15 +1052,6 @@ void pci_fixup_cardbus(struct pci_bus *bus)
->  	pcibios_setup_bus_devices(bus);
->  }
->  
-> -
-> -static int skip_isa_ioresource_align(struct pci_dev *dev)
-> -{
-> -	if (pci_has_flag(PCI_CAN_SKIP_ISA_ALIGN) &&
-> -	    !(dev->bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
-> -		return 1;
-> -	return 0;
-> -}
-> -
->  /*
->   * We need to avoid collisions with `mirrored' VGA ports
->   * and other strange ISA hardware, so we always want the
-> @@ -1081,7 +1072,7 @@ resource_size_t pcibios_align_resource(void *data, const struct resource *res,
->  	resource_size_t start = res->start;
->  
->  	if (res->flags & IORESOURCE_IO) {
-> -		if (skip_isa_ioresource_align(dev))
-> +		if (skip_isa_ioresource_align(dev->bus))
->  			return start;
->  		if (start & 0x300)
->  			start = (start + 0x3ff) & ~0x3ff;
+On Tuesday 13 October 2015 17:51:32 yalin wang wrote:
 
-LGTM.
+> > 32	__earlycon_table_sentinel
+> > 200	__earlycon_of_table_sentinel
+> > 6	__irf_end
+> > 
+> > 
+> > 26398 total
+> i am curious about your scripts ,
+> could you show me ?
 
-Acked-by: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
+I was using some ad-hoc command line tricks, including
 
-cheers
+objcopy  -j .init.data  build/multi_v7_defconfig/vmlinux   /tmp/initdata
+nm initdata  | sort -n | { read start b sym ; while read a b c ; do objdump -Dr --start-address=0x$start --stop-address=0x$a initdata > initdata.d/$sym  ; start=$a ; sym=$c  ; done }
+(some manual sorting to delete the files that have pre-initialized symbols)
+sum=0 ; nm /tmp/initdata  | sort -n | { read start b sym ; while read a b c ; do test -e ../$sym  && { echo $[0x$a - 0x$start]\      $sym  ; sum=$[$sum + $[0x$a - 0x$start]] ; } ; start=$a ; sym=$c ; done ; echo $sum;}
+
+I'm sure there are better ways to do this, and the manual step I used at
+first was faulty.
+
+	Arnd
