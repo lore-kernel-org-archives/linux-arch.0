@@ -1,51 +1,48 @@
-From: Joerg Roedel <jroedel@suse.de>
-Subject: Re: [PATCH 13/20] intel-iommu: switch from ioremap_cache to memremap
-Date: Wed, 14 Oct 2015 15:22:51 +0200
-Message-ID: <20151014132251.GV10641@suse.de>
-References: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
- <20151009221646.32203.98367.stgit@dwillia2-desk3.jf.intel.com>
- <20151012215830.GT10641@suse.de>
- <CAPcyv4h8zca3uNUH3ZoSVxrTYXr1XPD8AFrs60JzjKAu+45nog@mail.gmail.com>
- <CAPcyv4i=cAT-mmhCbbv_77gdJggXxHk3jRoOg=Qm5H3tsMAK1Q@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: fix various asm-generic abuses
+Date: Wed, 14 Oct 2015 16:41:49 +0200
+Message-ID: <5693903.Ud0gtefqqr@wuerfel>
+References: <1440746842-19029-1-git-send-email-hch@lst.de> <22516156.tfGZvl13aG@wuerfel> <20150829134937.GA13103@lst.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAPcyv4i=cAT-mmhCbbv_77gdJggXxHk3jRoOg=Qm5H3tsMAK1Q@mail.gmail.com>
+In-Reply-To: <20150829134937.GA13103@lst.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, David Woodhouse <dwmw2@infradead.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+To: Christoph Hellwig <hch@lst.de>
+Cc: mitake@dcl.info.waseda.ac.jp, dhowells@redhat.com, herbert@gondor.apana.org.au, oded.gabbay@amd.com, eli@mellanox.com, james_p_freyensee@linux.intel.com, linux-gpio@vger.kernel.org, drbd-dev@lists.linbit.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Oct 12, 2015 at 03:19:24PM -0700, Dan Williams wrote:
-> On Mon, Oct 12, 2015 at 3:05 PM, Dan Williams <dan.j.williams@intel.com> wrote:
-> > On Mon, Oct 12, 2015 at 2:58 PM, Joerg Roedel <jroedel@suse.de> wrote:
-> >> Hi Dan,
-> >>
-> >> On Fri, Oct 09, 2015 at 06:16:46PM -0400, Dan Williams wrote:
-> >>> In preparation for deprecating ioremap_cache() convert its usage in
-> >>> intel-iommu to memremap.  This also eliminates the mishandling of the
-> >>> __iomem annotation in the implementation.
-> >>
-> >> I appreciate the change, but in the cover letter you write the API is
-> >> only implemented for x86 so far? The VT-d driver is also used on ia64,
-> >> will it still work there with this patch?
-> >>
-> >>
-> >
-> > I did convert ia64 in the series [1]  but you're right this patch
-> > can't go in independently of that conversion.  If you ack this one
-> > I'll carry them in order.
-> >
-> > [1]: https://lkml.org/lkml/2015/10/9/702
+On Saturday 29 August 2015 15:49:37 Christoph Hellwig wrote:
+> On Fri, Aug 28, 2015 at 09:16:51PM +0200, Arnd Bergmann wrote:
+> > On Friday 28 August 2015 09:27:13 Christoph Hellwig wrote:
+> > > This fixes two trivial classes of asm-generic abuse.  First two headers
+> > > that are intended for drivers are moved to include/linux, and second
+> > > various drivers that incorrectly use asm-generic headers directly are
+> > > switched over to use the proper public headers.  There are a few more
+> > > asm-generic abuse, but they aren't quite as trivial so they will take
+> > > a little more effort to fix.
+> > 
+> > Thanks a lot, these all look really useful. My normal way of dealing
+> > with asm-generic patches is to have changes go through the tree of
+> > whichever maintainer needs the changes for their own work with my
+> > Ack, but I guess in this case you don't actually have other patches
+> > depending on them, right?
 > 
-> Ah sorry, got ahead of myself ;-p.  You can safely take this patch
-> through your tree.  The ia64 patch can happen asynchronously because
-> kernel/memremap.c has:
+> No, there's nothing depending on it.
 > 
-> __weak void *arch_memremap(resource_size_t offset, size_t size,
-> unsigned long flags)
+> > If driver maintainers want to pick individual patches from this series,
+> > please add my
+> > 
+> > Acked-by: Arnd Bergmann <arnd@arndb.de>
+> > 
+> > otherwise let me know if I should put them into my asm-generic git
+> > tree (which is currently empty, but part of linux-next).
 > 
-> ...as a temporary fallback until the conversion is complete.
+> Note that the first two are something you should probably pick up either
+> way as they aren't really specific to a driver.
 
-Okay, thanks, applied.
+I've applied the remaining patches to my asm-generic tree now, with
+the Acks from Herbert, Darren and Hitoshi.
+
+	Arnd
