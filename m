@@ -1,41 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:58905 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752301AbbJML3i (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Oct 2015 07:29:38 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC] arm: add __initbss section attribute
-Date: Tue, 13 Oct 2015 13:28:18 +0200
-Message-ID: <5171473.bOz59Zi81c@wuerfel>
-In-Reply-To: <8004E8C3-F1EC-45C3-A995-88726B257563@gmail.com>
-References: <1444622356-8263-1-git-send-email-yalin.wang2010@gmail.com> <5369261.8uuGVmeUFP@wuerfel> <8004E8C3-F1EC-45C3-A995-88726B257563@gmail.com>
+Received: from mail-bn1bon0085.outbound.protection.outlook.com ([157.56.111.85]:37312
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751875AbbJNGcB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 Oct 2015 02:32:01 -0400
+From: Ley Foon Tan <lftan@altera.com>
+Subject: [PATCH v2 2/4] pci: add include <linux/dma-mapping.h>
+Date: Wed, 14 Oct 2015 14:31:42 +0800
+Message-ID: <1444804304-5213-3-git-send-email-lftan@altera.com>
+In-Reply-To: <1444804304-5213-1-git-send-email-lftan@altera.com>
+References: <1444804304-5213-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: yalin wang <yalin.wang2010@gmail.com>
-Cc: Sam Ravnborg <sam@ravnborg.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Will Deacon <will.deacon@arm.com>, Nicolas Pitre <nico@linaro.org>, Kees Cook <keescook@chromium.org>, Catalin Marinas <catalin.marinas@arm.com>, Victor Kamensky <victor.kamensky@linaro.org>, Mark Salter <msalter@redhat.com>, vladimir.murzin@arm.com, ggdavisiv@gmail.com, paul.gortmaker@windriver.com, mingo@kernel.org, rusty@rustcorp.com.au, mcgrof@suse.com, akpm@linux-foundation.org, kirill.shutemov@linux.intel.com, n-horiguchi@ah.jp.nec.com, aarcange@redhat.com, mhocko@suse.com, jack@suse.cz, iamjoonsoo.kim@lge.com, xiexiuqi@huawei.com, vbabka@suse.cz, Vineet.Gupta1@synopsys.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com
+Message-ID: <20151014063142.7jZUCti_8slb1kDYOcTuGRb89m_pvTEs-UE0PH1nQOg@z>
 
-On Tuesday 13 October 2015 17:51:32 yalin wang wrote:
+Include <linux/dma-mapping.h> explicitly, it depends on architecture's pci.h
+to include it before this. It cause compilation error when we move to
+asm-generic pci.
 
-> > 32	__earlycon_table_sentinel
-> > 200	__earlycon_of_table_sentinel
-> > 6	__irf_end
-> > 
-> > 
-> > 26398 total
-> i am curious about your scripts ,
-> could you show me ?
+Signed-off-by: Ley Foon Tan <lftan@altera.com>
+---
+ drivers/pci/pci.c | 1 +
+ 1 file changed, 1 insertion(+)
 
-I was using some ad-hoc command line tricks, including
+diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
+index 6a9a111..ef2f09e 100644
+--- a/drivers/pci/pci.c
++++ b/drivers/pci/pci.c
+@@ -25,6 +25,7 @@
+ #include <linux/device.h>
+ #include <linux/pm_runtime.h>
+ #include <linux/pci_hotplug.h>
++#include <linux/dma-mapping.h>
+ #include <asm-generic/pci-bridge.h>
+ #include <asm/setup.h>
+ #include "pci.h"
+-- 
+1.8.2.1
 
-objcopy  -j .init.data  build/multi_v7_defconfig/vmlinux   /tmp/initdata
-nm initdata  | sort -n | { read start b sym ; while read a b c ; do objdump -Dr --start-address=0x$start --stop-address=0x$a initdata > initdata.d/$sym  ; start=$a ; sym=$c  ; done }
-(some manual sorting to delete the files that have pre-initialized symbols)
-sum=0 ; nm /tmp/initdata  | sort -n | { read start b sym ; while read a b c ; do test -e ../$sym  && { echo $[0x$a - 0x$start]\      $sym  ; sum=$[$sum + $[0x$a - 0x$start]] ; } ; start=$a ; sym=$c ; done ; echo $sum;}
-
-I'm sure there are better ways to do this, and the manual step I used at
-first was faulty.
-
-	Arnd
