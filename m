@@ -1,48 +1,63 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: fix various asm-generic abuses
-Date: Wed, 14 Oct 2015 16:41:49 +0200
-Message-ID: <5693903.Ud0gtefqqr@wuerfel>
-References: <1440746842-19029-1-git-send-email-hch@lst.de> <22516156.tfGZvl13aG@wuerfel> <20150829134937.GA13103@lst.de>
+Subject: Re: [PATCH] asm-generic: cmpxchg: avoid warnings from macro-ized cmpxchg() implementations
+Date: Wed, 14 Oct 2015 17:01:45 +0200
+Message-ID: <50122244.xQZES6VAKE@wuerfel>
+References: <1442637741-10807-1-git-send-email-marex@denx.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20150829134937.GA13103@lst.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: mitake@dcl.info.waseda.ac.jp, dhowells@redhat.com, herbert@gondor.apana.org.au, oded.gabbay@amd.com, eli@mellanox.com, james_p_freyensee@linux.intel.com, linux-gpio@vger.kernel.org, drbd-dev@lists.linbit.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.17.10]:52523 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751947AbbJNPBw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Oct 2015 11:01:52 -0400
+In-Reply-To: <1442637741-10807-1-git-send-email-marex@denx.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Marek Vasut <marex@denx.de>
+Cc: linux-kernel@vger.kernel.org, lftan@altera.com, linux-arch@vger.kernel.org, Russell King <rmk+kernel@arm.linux.org.uk>
 
-On Saturday 29 August 2015 15:49:37 Christoph Hellwig wrote:
-> On Fri, Aug 28, 2015 at 09:16:51PM +0200, Arnd Bergmann wrote:
-> > On Friday 28 August 2015 09:27:13 Christoph Hellwig wrote:
-> > > This fixes two trivial classes of asm-generic abuse.  First two headers
-> > > that are intended for drivers are moved to include/linux, and second
-> > > various drivers that incorrectly use asm-generic headers directly are
-> > > switched over to use the proper public headers.  There are a few more
-> > > asm-generic abuse, but they aren't quite as trivial so they will take
-> > > a little more effort to fix.
-> > 
-> > Thanks a lot, these all look really useful. My normal way of dealing
-> > with asm-generic patches is to have changes go through the tree of
-> > whichever maintainer needs the changes for their own work with my
-> > Ack, but I guess in this case you don't actually have other patches
-> > depending on them, right?
+On Saturday 19 September 2015 06:42:21 Marek Vasut wrote:
+> This change is similar to e001bbae7147b111fe1aa42beaf835635f3c016e
+> ARM: cmpxchg: avoid warnings from macro-ized cmpxchg() implementations
 > 
-> No, there's nothing depending on it.
+> A recent change in kernel/acct.c added a new warning for many
+> configurations using generic __xchg() implementation:
 > 
-> > If driver maintainers want to pick individual patches from this series,
-> > please add my
-> > 
-> > Acked-by: Arnd Bergmann <arnd@arndb.de>
-> > 
-> > otherwise let me know if I should put them into my asm-generic git
-> > tree (which is currently empty, but part of linux-next).
+> In file included from ./arch/nios2/include/asm/cmpxchg.h:12:0,
+>                  from include/asm-generic/atomic.h:18,
+>                  from arch/nios2/include/generated/asm/atomic.h:1,
+>                  from include/linux/atomic.h:4,
+>                  from include/linux/spinlock.h:406,
+>                  from include/linux/mmzone.h:7,
+>                  from include/linux/gfp.h:5,
+>                  from include/linux/mm.h:9,
+>                  from kernel/acct.c:46:
+> kernel/acct.c: In function 'acct_pin_kill':
+> include/asm-generic/cmpxchg.h:94:3: warning: value computed is not used [-Wunused-value]
+>   ((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
+>    ^
+> include/asm-generic/cmpxchg.h:102:28: note: in expansion of macro 'cmpxchg_local'
+>  #define cmpxchg(ptr, o, n) cmpxchg_local((ptr), (o), (n))
+>                             ^
+> kernel/acct.c:177:2: note: in expansion of macro 'cmpxchg'
+>   cmpxchg(&acct->ns->bacct, pin, NULL);
+>   ^
 > 
-> Note that the first two are something you should probably pick up either
-> way as they aren't really specific to a driver.
+> The code is in fact correct, it's just a cmpxchg() call that
+> intentionally ignores the result, and no other code does that.  The
+> warning does not show up on x86 because of the way that its cmpxchg()
+> macro is written. This changes the asm-ggeneric implementation to use
+> a similar construct with a compound expression instead of a typecast,
+> which causes the compiler to not complain about an unused result.
+> 
+> Fix the other macros in this file in a similar way, and place them
+> just below their function implementations.
+> 
+> Signed-off-by: Marek Vasut <marex@denx.de>
+> Cc: Russell King <rmk+kernel@arm.linux.org.uk>
 
-I've applied the remaining patches to my asm-generic tree now, with
-the Acks from Herbert, Darren and Hitoshi.
+
+Applied to my asm-generic tree, thanks!
 
 	Arnd
