@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bon0085.outbound.protection.outlook.com ([157.56.111.85]:37312
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+Received: from mail-by2on0062.outbound.protection.outlook.com ([207.46.100.62]:52304
+	"EHLO na01-by2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751875AbbJNGcB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Oct 2015 02:32:01 -0400
+	id S1750845AbbJNGqi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 Oct 2015 02:46:38 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v2 2/4] pci: add include <linux/dma-mapping.h>
-Date: Wed, 14 Oct 2015 14:31:42 +0800
-Message-ID: <1444804304-5213-3-git-send-email-lftan@altera.com>
+Subject: [PATCH v2 3/4] PCI: Build setup-irq.o for nios2
+Date: Wed, 14 Oct 2015 14:31:43 +0800
+Message-ID: <1444804304-5213-4-git-send-email-lftan@altera.com>
 In-Reply-To: <1444804304-5213-1-git-send-email-lftan@altera.com>
 References: <1444804304-5213-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,29 +16,27 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com
-Message-ID: <20151014063142.7jZUCti_8slb1kDYOcTuGRb89m_pvTEs-UE0PH1nQOg@z>
+Message-ID: <20151014063143.LytMvRysj6nyOtThhIqeoQuHKZwk9w_4hygztitcBv8@z>
 
-Include <linux/dma-mapping.h> explicitly, it depends on architecture's pci.h
-to include it before this. It cause compilation error when we move to
-asm-generic pci.
+nios2 requires setup-irq.o to provide pci_fixup_irqs() implementation.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- drivers/pci/pci.c | 1 +
+ drivers/pci/Makefile | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/drivers/pci/pci.c b/drivers/pci/pci.c
-index 6a9a111..ef2f09e 100644
---- a/drivers/pci/pci.c
-+++ b/drivers/pci/pci.c
-@@ -25,6 +25,7 @@
- #include <linux/device.h>
- #include <linux/pm_runtime.h>
- #include <linux/pci_hotplug.h>
-+#include <linux/dma-mapping.h>
- #include <asm-generic/pci-bridge.h>
- #include <asm/setup.h>
- #include "pci.h"
+diff --git a/drivers/pci/Makefile b/drivers/pci/Makefile
+index be3f631..282b1b4 100644
+--- a/drivers/pci/Makefile
++++ b/drivers/pci/Makefile
+@@ -40,6 +40,7 @@ obj-$(CONFIG_MIPS) += setup-irq.o
+ obj-$(CONFIG_TILE) += setup-irq.o
+ obj-$(CONFIG_SPARC_LEON) += setup-irq.o
+ obj-$(CONFIG_M68K) += setup-irq.o
++obj-$(CONFIG_NIOS2) += setup-irq.o
+ 
+ #
+ # ACPI Related PCI FW Functions
 -- 
 1.8.2.1
 
