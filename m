@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-by2on0062.outbound.protection.outlook.com ([207.46.100.62]:52304
+Received: from mail-by2on0098.outbound.protection.outlook.com ([207.46.100.98]:45920
 	"EHLO na01-by2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1750845AbbJNGqi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Oct 2015 02:46:38 -0400
+	id S1751276AbbJNGqw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 Oct 2015 02:46:52 -0400
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v2 3/4] PCI: Build setup-irq.o for nios2
-Date: Wed, 14 Oct 2015 14:31:43 +0800
-Message-ID: <1444804304-5213-4-git-send-email-lftan@altera.com>
+Subject: [PATCH v2 1/4] asm-generic: add pci required defines and functions
+Date: Wed, 14 Oct 2015 14:31:41 +0800
+Message-ID: <1444804304-5213-2-git-send-email-lftan@altera.com>
 In-Reply-To: <1444804304-5213-1-git-send-email-lftan@altera.com>
 References: <1444804304-5213-1-git-send-email-lftan@altera.com>
 MIME-Version: 1.0
@@ -16,27 +16,59 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com
-Message-ID: <20151014063143.LytMvRysj6nyOtThhIqeoQuHKZwk9w_4hygztitcBv8@z>
+Message-ID: <20151014063141.ou2KAfKWCriKtN53d-S5h5USmJvt0EEnRpnbNsth0Ws@z>
 
-nios2 requires setup-irq.o to provide pci_fixup_irqs() implementation.
+Add the generic #define and functions that required by the PCI framework.
+Architecture pci.h can overwrite with their implementation if needed.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- drivers/pci/Makefile | 1 +
- 1 file changed, 1 insertion(+)
+ include/asm-generic/pci.h | 34 ++++++++++++++++++++++++++++++++++
+ 1 file changed, 34 insertions(+)
 
-diff --git a/drivers/pci/Makefile b/drivers/pci/Makefile
-index be3f631..282b1b4 100644
---- a/drivers/pci/Makefile
-+++ b/drivers/pci/Makefile
-@@ -40,6 +40,7 @@ obj-$(CONFIG_MIPS) += setup-irq.o
- obj-$(CONFIG_TILE) += setup-irq.o
- obj-$(CONFIG_SPARC_LEON) += setup-irq.o
- obj-$(CONFIG_M68K) += setup-irq.o
-+obj-$(CONFIG_NIOS2) += setup-irq.o
+diff --git a/include/asm-generic/pci.h b/include/asm-generic/pci.h
+index f24bc51..2771b32 100644
+--- a/include/asm-generic/pci.h
++++ b/include/asm-generic/pci.h
+@@ -21,4 +21,38 @@ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
+ #define PCI_DMA_BUS_IS_PHYS	(1)
+ #endif
  
- #
- # ACPI Related PCI FW Functions
++#ifdef CONFIG_PCI
++
++#ifndef PCIBIOS_MIN_IO
++#define PCIBIOS_MIN_IO	(0UL)
++#endif
++
++#ifndef PCIBIOS_MIN_MEM
++#define PCIBIOS_MIN_MEM	(0UL)
++#endif
++
++#ifndef pcibios_assign_all_busses
++#define pcibios_assign_all_busses()	(pci_has_flag(PCI_REASSIGN_ALL_BUS))
++#endif
++
++#ifndef pci_proc_domain
++#define pci_proc_domain pci_proc_domain
++static inline int pci_proc_domain(struct pci_bus *bus)
++{
++#ifdef CONFIG_PCI_DOMAINS_GENERIC
++	return pci_domain_nr(bus);
++#else
++	return 1;
++#endif
++}
++#endif
++
++extern int isa_dma_bridge_buggy;
++
++#else
++
++#define isa_dma_bridge_buggy	(0)
++
++#endif /* CONFIG_PCI */
++
+ #endif /* _ASM_GENERIC_PCI_H */
 -- 
 1.8.2.1
 
