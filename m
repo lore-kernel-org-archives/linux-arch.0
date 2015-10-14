@@ -1,67 +1,35 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v2 1/4] asm-generic: add pci required defines and functions
-Date: Wed, 14 Oct 2015 14:31:41 +0800
-Message-ID: <1444804304-5213-2-git-send-email-lftan@altera.com>
+Subject: [PATCH v2 3/4] PCI: Build setup-irq.o for nios2
+Date: Wed, 14 Oct 2015 14:31:43 +0800
+Message-ID: <1444804304-5213-4-git-send-email-lftan@altera.com>
 References: <1444804304-5213-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <1444804304-5213-1-git-send-email-lftan@altera.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-pci-owner@vger.kernel.org
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-Add the generic #define and functions that required by the PCI framework.
-Architecture pci.h can overwrite with their implementation if needed.
+nios2 requires setup-irq.o to provide pci_fixup_irqs() implementation.
 
 Signed-off-by: Ley Foon Tan <lftan@altera.com>
 ---
- include/asm-generic/pci.h | 34 ++++++++++++++++++++++++++++++++++
- 1 file changed, 34 insertions(+)
+ drivers/pci/Makefile | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/include/asm-generic/pci.h b/include/asm-generic/pci.h
-index f24bc51..2771b32 100644
---- a/include/asm-generic/pci.h
-+++ b/include/asm-generic/pci.h
-@@ -21,4 +21,38 @@ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
- #define PCI_DMA_BUS_IS_PHYS	(1)
- #endif
+diff --git a/drivers/pci/Makefile b/drivers/pci/Makefile
+index be3f631..282b1b4 100644
+--- a/drivers/pci/Makefile
++++ b/drivers/pci/Makefile
+@@ -40,6 +40,7 @@ obj-$(CONFIG_MIPS) += setup-irq.o
+ obj-$(CONFIG_TILE) += setup-irq.o
+ obj-$(CONFIG_SPARC_LEON) += setup-irq.o
+ obj-$(CONFIG_M68K) += setup-irq.o
++obj-$(CONFIG_NIOS2) += setup-irq.o
  
-+#ifdef CONFIG_PCI
-+
-+#ifndef PCIBIOS_MIN_IO
-+#define PCIBIOS_MIN_IO	(0UL)
-+#endif
-+
-+#ifndef PCIBIOS_MIN_MEM
-+#define PCIBIOS_MIN_MEM	(0UL)
-+#endif
-+
-+#ifndef pcibios_assign_all_busses
-+#define pcibios_assign_all_busses()	(pci_has_flag(PCI_REASSIGN_ALL_BUS))
-+#endif
-+
-+#ifndef pci_proc_domain
-+#define pci_proc_domain pci_proc_domain
-+static inline int pci_proc_domain(struct pci_bus *bus)
-+{
-+#ifdef CONFIG_PCI_DOMAINS_GENERIC
-+	return pci_domain_nr(bus);
-+#else
-+	return 1;
-+#endif
-+}
-+#endif
-+
-+extern int isa_dma_bridge_buggy;
-+
-+#else
-+
-+#define isa_dma_bridge_buggy	(0)
-+
-+#endif /* CONFIG_PCI */
-+
- #endif /* _ASM_GENERIC_PCI_H */
+ #
+ # ACPI Related PCI FW Functions
 -- 
 1.8.2.1
