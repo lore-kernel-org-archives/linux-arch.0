@@ -1,52 +1,67 @@
 From: Ley Foon Tan <lftan@altera.com>
-Subject: [PATCH v2 0/4] Add PCI support on nios2 architecture
-Date: Wed, 14 Oct 2015 14:31:40 +0800
-Message-ID: <1444804304-5213-1-git-send-email-lftan@altera.com>
+Subject: [PATCH v2 1/4] asm-generic: add pci required defines and functions
+Date: Wed, 14 Oct 2015 14:31:41 +0800
+Message-ID: <1444804304-5213-2-git-send-email-lftan@altera.com>
+References: <1444804304-5213-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bon0059.outbound.protection.outlook.com ([157.56.111.59]:63776
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751020AbbJNGbv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Oct 2015 02:31:51 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1444804304-5213-1-git-send-email-lftan@altera.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com
+List-Id: linux-arch.vger.kernel.org
 
-This is 2nd version of patch to add pci support for nios2 architecture.
-This patchset also update asm-generic/pci.h to include PCI generic define/function
-as suggested by Arnd.
-It requires pci_fixup_irqs() from setup-irq.c.
+Add the generic #define and functions that required by the PCI framework.
+Architecture pci.h can overwrite with their implementation if needed.
 
-v1->v2 changes:
-- nios2: remove PCI_SYSCALL from Kconfig
-- nios2: set IO_SPACE_LIMIT to 0xffff
-- nios2: remove arch/nios2/include/asm/pci.h and use asm-generic pci.h
-- pci: add include <linux/dma-mapping.h> to pci.c
-- asm-generic: add pci generic functions/defines to pci.h
+Signed-off-by: Ley Foon Tan <lftan@altera.com>
+---
+ include/asm-generic/pci.h | 34 ++++++++++++++++++++++++++++++++++
+ 1 file changed, 34 insertions(+)
 
-History
--------
-[v1]: https://lkml.org/lkml/2015/9/22/44
-
-Ley Foon Tan (4):
-  asm-generic: add pci required defines and functions
-  pci: add include <linux/dma-mapping.h>
-  PCI: Build setup-irq.o for nios2
-  nios2: Add architectural support for PCIe
-
- arch/nios2/Kconfig            | 21 +++++++++++++++++++++
- arch/nios2/include/asm/Kbuild |  1 +
- arch/nios2/include/asm/io.h   | 12 ++++++++++--
- arch/nios2/kernel/Makefile    |  1 +
- arch/nios2/kernel/pci.c       | 33 +++++++++++++++++++++++++++++++++
- drivers/pci/Makefile          |  1 +
- drivers/pci/pci.c             |  1 +
- include/asm-generic/pci.h     | 34 ++++++++++++++++++++++++++++++++++
- 8 files changed, 102 insertions(+), 2 deletions(-)
- create mode 100644 arch/nios2/kernel/pci.c
-
+diff --git a/include/asm-generic/pci.h b/include/asm-generic/pci.h
+index f24bc51..2771b32 100644
+--- a/include/asm-generic/pci.h
++++ b/include/asm-generic/pci.h
+@@ -21,4 +21,38 @@ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
+ #define PCI_DMA_BUS_IS_PHYS	(1)
+ #endif
+ 
++#ifdef CONFIG_PCI
++
++#ifndef PCIBIOS_MIN_IO
++#define PCIBIOS_MIN_IO	(0UL)
++#endif
++
++#ifndef PCIBIOS_MIN_MEM
++#define PCIBIOS_MIN_MEM	(0UL)
++#endif
++
++#ifndef pcibios_assign_all_busses
++#define pcibios_assign_all_busses()	(pci_has_flag(PCI_REASSIGN_ALL_BUS))
++#endif
++
++#ifndef pci_proc_domain
++#define pci_proc_domain pci_proc_domain
++static inline int pci_proc_domain(struct pci_bus *bus)
++{
++#ifdef CONFIG_PCI_DOMAINS_GENERIC
++	return pci_domain_nr(bus);
++#else
++	return 1;
++#endif
++}
++#endif
++
++extern int isa_dma_bridge_buggy;
++
++#else
++
++#define isa_dma_bridge_buggy	(0)
++
++#endif /* CONFIG_PCI */
++
+ #endif /* _ASM_GENERIC_PCI_H */
 -- 
 1.8.2.1
