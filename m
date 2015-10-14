@@ -1,59 +1,52 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [Intel-gfx] [PATCH 09/20] i915: switch from acpi_os_ioremap to memremap
-Date: Tue, 13 Oct 2015 09:24:26 -0700
-Message-ID: <CAPcyv4i6SFziAr_O1YB7hdpPTUdXM3FEsi-3AMF9-KBLJmtT2g@mail.gmail.com>
-References: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
-	<20151009221625.32203.74117.stgit@dwillia2-desk3.jf.intel.com>
-	<20151012070102.GV26718@phenom.ffwll.local>
-	<1444684376.9780.5.camel@intel.com>
-	<20151013082416.GF26718@phenom.ffwll.local>
+From: Ley Foon Tan <lftan@altera.com>
+Subject: [PATCH v2 0/4] Add PCI support on nios2 architecture
+Date: Wed, 14 Oct 2015 14:31:40 +0800
+Message-ID: <1444804304-5213-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f174.google.com ([209.85.212.174]:38069 "EHLO
-	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753083AbbJMQY2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Oct 2015 12:24:28 -0400
-Received: by wieq12 with SMTP id q12so40485383wie.1
-        for <linux-arch@vger.kernel.org>; Tue, 13 Oct 2015 09:24:27 -0700 (PDT)
-In-Reply-To: <20151013082416.GF26718@phenom.ffwll.local>
+Received: from mail-bn1bon0059.outbound.protection.outlook.com ([157.56.111.59]:63776
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751020AbbJNGbv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 Oct 2015 02:31:51 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Williams, Dan J" <dan.j.williams@intel.com>, "dri-devel@lists.freedesktop.org" <dri-devel@lists.freedesktop.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "intel-gfx@lists.freedesktop.org" <intel-gfx@lists.freedesktop.org>, "Vetter, Daniel" <daniel.vetter@intel.com>, "airlied@linux.ie" <airlied@linux.ie>
-Cc: "daniel@ffwll.ch" <daniel@ffwll.ch>
+To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Ley Foon Tan <lftan@altera.com>, lftan.linux@gmail.com
 
-On Tue, Oct 13, 2015 at 1:24 AM, Daniel Vetter <daniel@ffwll.ch> wrote:
-> On Mon, Oct 12, 2015 at 09:12:57PM +0000, Williams, Dan J wrote:
->> On Mon, 2015-10-12 at 09:01 +0200, Daniel Vetter wrote:
->> > On Fri, Oct 09, 2015 at 06:16:25PM -0400, Dan Williams wrote:
->> > > i915 expects the OpRegion to be cached (i.e. not __iomem), so explicitly
->> > > map it with memremap rather than the implied cache setting of
->> > > acpi_os_ioremap().
->> > >
->> > > Cc: Daniel Vetter <daniel.vetter@intel.com>
->> > > Cc: Jani Nikula <jani.nikula@linux.intel.com>
->> > > Cc: intel-gfx@lists.freedesktop.org
->> > > Cc: David Airlie <airlied@linux.ie>
->> > > Cc: dri-devel@lists.freedesktop.org
->> > > Signed-off-by: Dan Williams <dan.j.williams@intel.com>
->> >
->> > Assuming you've run sparse over this to make sure you've caught them all,
->> > and with the nit below addressed this is
->> >
->> > Reviewed-by: Daniel Vetter <daniel.vetter@ffwll.ch>
->>
->> Indeed, re-running sparse again found a few conversions of ioread* I
->> missed as well as moving the force casting out of validate_vbt() to
->> find_vbt().
->>
->> > Feel free to pull v2 into whatever tree you think it's suitable for (but
->> > you can also resend and I'll pick it up).
->>
->> Please pick up v2 below.
->
-> Queued for -next, thanks for the patch. Aside: Attached or separate mail
-> seems easier, somehow git apply-mbox can't auto-eat this for of patch.
-> -Daniel
->
+This is 2nd version of patch to add pci support for nios2 architecture.
+This patchset also update asm-generic/pci.h to include PCI generic define/function
+as suggested by Arnd.
+It requires pci_fixup_irqs() from setup-irq.c.
 
-"git am --scissors" should detect the "8<---" cut line.
+v1->v2 changes:
+- nios2: remove PCI_SYSCALL from Kconfig
+- nios2: set IO_SPACE_LIMIT to 0xffff
+- nios2: remove arch/nios2/include/asm/pci.h and use asm-generic pci.h
+- pci: add include <linux/dma-mapping.h> to pci.c
+- asm-generic: add pci generic functions/defines to pci.h
+
+History
+-------
+[v1]: https://lkml.org/lkml/2015/9/22/44
+
+Ley Foon Tan (4):
+  asm-generic: add pci required defines and functions
+  pci: add include <linux/dma-mapping.h>
+  PCI: Build setup-irq.o for nios2
+  nios2: Add architectural support for PCIe
+
+ arch/nios2/Kconfig            | 21 +++++++++++++++++++++
+ arch/nios2/include/asm/Kbuild |  1 +
+ arch/nios2/include/asm/io.h   | 12 ++++++++++--
+ arch/nios2/kernel/Makefile    |  1 +
+ arch/nios2/kernel/pci.c       | 33 +++++++++++++++++++++++++++++++++
+ drivers/pci/Makefile          |  1 +
+ drivers/pci/pci.c             |  1 +
+ include/asm-generic/pci.h     | 34 ++++++++++++++++++++++++++++++++++
+ 8 files changed, 102 insertions(+), 2 deletions(-)
+ create mode 100644 arch/nios2/kernel/pci.c
+
+-- 
+1.8.2.1
