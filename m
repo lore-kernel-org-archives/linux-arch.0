@@ -1,40 +1,42 @@
-From: Mikko Rapeli <mikko.rapeli@iki.fi>
-Subject: [PATCH v4 36/79] include/uapi/asm-generic/signal.h: use __kernel_size_t instead of size_t
-Date: Thu, 15 Oct 2015 07:56:14 +0200
-Message-ID: <1444888618-4506-37-git-send-email-mikko.rapeli@iki.fi>
+From: Mikko Rapeli <mikko.rapeli-X3B1VOXEql0@public.gmane.org>
+Subject: [PATCH v4 35/79] asm-generic/sembuf.h: include asm/posix_types.h and asm/ipcbuf.h
+Date: Thu, 15 Oct 2015 07:56:13 +0200
+Message-ID: <1444888618-4506-36-git-send-email-mikko.rapeli@iki.fi>
 References: <1444888618-4506-1-git-send-email-mikko.rapeli@iki.fi>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1444888618-4506-1-git-send-email-mikko.rapeli@iki.fi>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: mikko.rapeli@iki.fi, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1444888618-4506-1-git-send-email-mikko.rapeli-X3B1VOXEql0@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: mikko.rapeli-X3B1VOXEql0@public.gmane.org, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-=46ixes userspace compiler error:
+=46ixes userspace compilation errors like:
 
-error: unknown type name =E2=80=98size_t=E2=80=99
+error: field =E2=80=98msg_perm=E2=80=99 has incomplete type
+struct ipc64_perm msg_perm;
+error: unknown type name =E2=80=98__kernel_ulong_t=E2=80=99
 
-Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
+Signed-off-by: Mikko Rapeli <mikko.rapeli-X3B1VOXEql0@public.gmane.org>
 ---
- include/uapi/asm-generic/signal.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ include/uapi/asm-generic/sembuf.h | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/include/uapi/asm-generic/signal.h b/include/uapi/asm-gener=
-ic/signal.h
-index 9df61f1..0a7c415 100644
---- a/include/uapi/asm-generic/signal.h
-+++ b/include/uapi/asm-generic/signal.h
-@@ -111,7 +111,7 @@ struct sigaction {
- typedef struct sigaltstack {
- 	void __user *ss_sp;
- 	int ss_flags;
--	size_t ss_size;
-+	__kernel_size_t ss_size;
- } stack_t;
+diff --git a/include/uapi/asm-generic/sembuf.h b/include/uapi/asm-gener=
+ic/sembuf.h
+index 4cb2c13..17d523f 100644
+--- a/include/uapi/asm-generic/sembuf.h
++++ b/include/uapi/asm-generic/sembuf.h
+@@ -2,6 +2,8 @@
+ #define __ASM_GENERIC_SEMBUF_H
 =20
- #endif /* __ASSEMBLY__ */
+ #include <asm/bitsperlong.h>
++#include <asm/posix_types.h>
++#include <asm/ipcbuf.h>
+=20
+ /*
+  * The semid64_ds structure for x86 architecture.
 --=20
 2.5.0
