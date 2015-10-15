@@ -1,74 +1,82 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCHv3] ARM64:Fix MINSIGSTKSZ and SIGSTKSZ
-Date: Thu, 15 Oct 2015 13:47:56 +0100
-Message-ID: <20151015124756.GB27524@arm.com>
-References: <1444386580-10917-1-git-send-email-manjeet.p@samsung.com>
- <20151009103352.GK26278@arm.com>
- <20151015121241.GA26080@port70.net>
+From: Marek Vasut <marex@denx.de>
+Subject: Re: [PATCH] asm-generic: cmpxchg: avoid warnings from macro-ized cmpxchg() implementations
+Date: Thu, 15 Oct 2015 16:25:56 +0200
+Message-ID: <201510151625.56383.marex@denx.de>
+References: <1442637741-10807-1-git-send-email-marex@denx.de> <50122244.xQZES6VAKE@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain;
+  charset="us-ascii"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:35468 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752675AbbJOMr5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 Oct 2015 08:47:57 -0400
-Content-Disposition: inline
-In-Reply-To: <20151015121241.GA26080@port70.net>
+Received: from mail-out.m-online.net ([212.18.0.9]:51970 "EHLO
+	mail-out.m-online.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751769AbbJOO3S (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Oct 2015 10:29:18 -0400
+In-Reply-To: <50122244.xQZES6VAKE@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Szabolcs Nagy <nsz@port70.net>
-Cc: Manjeet Pawar <manjeet.p@samsung.com>, catalin.marinas@arm.com, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org, pankaj.m@samsung.com, Akhilesh Kumar <akhilesh.k@samsung.com>, Rohit Thapliyal <r.thapliyal@samsung.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, lftan@altera.com, linux-arch@vger.kernel.org, Russell King <rmk+kernel@arm.linux.org.uk>
 
-On Thu, Oct 15, 2015 at 02:12:41PM +0200, Szabolcs Nagy wrote:
-> * Will Deacon <will.deacon@arm.com> [2015-10-09 11:33:52 +0100]:
+On Wednesday, October 14, 2015 at 05:01:45 PM, Arnd Bergmann wrote:
+> On Saturday 19 September 2015 06:42:21 Marek Vasut wrote:
+> > This change is similar to e001bbae7147b111fe1aa42beaf835635f3c016e
+> > ARM: cmpxchg: avoid warnings from macro-ized cmpxchg() implementations
+> > 
+> > A recent change in kernel/acct.c added a new warning for many
+> > configurations using generic __xchg() implementation:
+> > 
+> > In file included from ./arch/nios2/include/asm/cmpxchg.h:12:0,
+> > 
+> >                  from include/asm-generic/atomic.h:18,
+> >                  from arch/nios2/include/generated/asm/atomic.h:1,
+> >                  from include/linux/atomic.h:4,
+> >                  from include/linux/spinlock.h:406,
+> >                  from include/linux/mmzone.h:7,
+> >                  from include/linux/gfp.h:5,
+> >                  from include/linux/mm.h:9,
+> > 
+> >                  from kernel/acct.c:46:
+> > kernel/acct.c: In function 'acct_pin_kill':
+> > include/asm-generic/cmpxchg.h:94:3: warning: value computed is not used
+> > [-Wunused-value]
+> > 
+> >   ((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned
+> >   long)(o),\
+> >   
+> >    ^
+> > 
+> > include/asm-generic/cmpxchg.h:102:28: note: in expansion of macro
+> > 'cmpxchg_local'
+> > 
+> >  #define cmpxchg(ptr, o, n) cmpxchg_local((ptr), (o), (n))
+> >  
+> >                             ^
+> > 
+> > kernel/acct.c:177:2: note: in expansion of macro 'cmpxchg'
+> > 
+> >   cmpxchg(&acct->ns->bacct, pin, NULL);
+> >   ^
+> > 
+> > The code is in fact correct, it's just a cmpxchg() call that
+> > intentionally ignores the result, and no other code does that.  The
+> > warning does not show up on x86 because of the way that its cmpxchg()
+> > macro is written. This changes the asm-ggeneric implementation to use
+> > a similar construct with a compound expression instead of a typecast,
+> > which causes the compiler to not complain about an unused result.
+> > 
+> > Fix the other macros in this file in a similar way, and place them
+> > just below their function implementations.
+> > 
+> > Signed-off-by: Marek Vasut <marex@denx.de>
+> > Cc: Russell King <rmk+kernel@arm.linux.org.uk>
 > 
-> > On Fri, Oct 09, 2015 at 03:59:40PM +0530, Manjeet Pawar wrote:
-> > > MINSIGSTKSZ and SIGSTKSZ for ARM64 are not correctly set in latest kernel.
-> > > This patch fixes this issue.
-> > > 
-> > > This issue is reported in LTP (testcase: sigaltstack02.c).
-> > > Testcase failed when sigaltstack() called with stack size "MINSIGSTKSZ - 1"
-> > > Since in Glibc-2.22, MINSIGSTKSZ is set to 5120 but in kernel
-> > > it is set to 2048 so testcase gets failed.
-> > > 
-> > > Testcase Output:
-> > > sigaltstack02 1  TPASS  :  stgaltstack() fails, Invalid Flag value,errno:22
-> > > sigaltstack02 2  TFAIL  :  sigaltstack() returned 0, expected -1,errno:12
-> > 
-> > I'm still unable to reproduce this failure. Is this with defconfig?
-> > 
-> > > Reported Issue in Glibc Bugzilla:
-> > > Bugfix in Glibc-2.22: [Bug 16850]
-> > > https://sourceware.org/bugzilla/show_bug.cgi?id=16850
-> > > 
-> > > Signed-off-by: Akhilesh Kumar <akhilesh.k@samsung.com>
-> > > Signed-off-by: Manjeet Pawar <manjeet.p@samsung.com>
-> > > Signed-off-by: Rohit Thapliyal <r.thapliyal@samsung.com>
-> > > ---
-> > > v1 -> Changes in uapi overall header
-> > > v2 -> Changes done in arm64 headers
-> > > v3 -> Changes done in both uapi & arm64 headers
-> > > 
-> > >  arch/arm64/include/uapi/asm/signal.h |    3 +++
-> > >  include/uapi/asm-generic/signal.h    |    2 ++
-> > >  2 files changed, 5 insertions(+)
-> > 
-> > Acked-by: Will Deacon <will.deacon@arm.com>
-> > 
-> > Arnd: are you planning to take this via asm-generic, or shall I queue it
-> > on the arm64 fixes branch?
-> > 
-> 
-> i just noticed this and wanted to note that an old
-> glibc can fail on a new kernel with this patch if
-> an application uses MINSIGSTKSZ altstack.
+> Applied to my asm-generic tree, thanks!
 
-I was worried about that (which was also why I didn't Cc stable on this,
-because we shouldn't pretend that glibc and the kernel are synchronised),
-but the value *is* incorrect and glibc has already been updated. In
-other words, not merging this patch is also problematic, because we're
-advertising a size that's significantly too small.
+Thank you!
 
-Would you rather we kept the old incorrect value in the kernel headers?
+Now I really hope someone doesn't flame me to a crisp for breaking some odd
+architecture ;-)
 
-Will
+Best regards,
+Marek Vasut
