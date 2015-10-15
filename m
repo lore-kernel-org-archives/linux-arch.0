@@ -1,32 +1,40 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [asm-generic:master 1/9] drivers/acpi/osl.c:46:47: fatal error: asm-generic/io-64-nonatomic-lo-hi.h: No such file or directory
-Date: Thu, 15 Oct 2015 00:22:09 +0200
-Message-ID: <4999622.4rUkrmXVCv@wuerfel>
-References: <201510150219.aKvmPaBr%fengguang.wu@intel.com>
+From: Mikko Rapeli <mikko.rapeli@iki.fi>
+Subject: [PATCH v4 36/79] include/uapi/asm-generic/signal.h: use __kernel_size_t instead of size_t
+Date: Thu, 15 Oct 2015 07:56:14 +0200
+Message-ID: <1444888618-4506-37-git-send-email-mikko.rapeli@iki.fi>
+References: <1444888618-4506-1-git-send-email-mikko.rapeli@iki.fi>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:52577 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754539AbbJNWWS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Oct 2015 18:22:18 -0400
-In-Reply-To: <201510150219.aKvmPaBr%fengguang.wu@intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: kbuild test robot <fengguang.wu@intel.com>
-Cc: Christoph Hellwig <hch@lst.de>, kbuild-all@01.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1444888618-4506-1-git-send-email-mikko.rapeli@iki.fi>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: mikko.rapeli@iki.fi, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thursday 15 October 2015 02:50:22 kbuild test robot wrote:
-> tree:   https://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic master
-> head:   9fe5cf2f2b493fbd47541d1c073b67680a2f9dfe
-> commit: f626fe17485b6dc8f0706edfd5c60206c479553f [1/9] move io-64-nonatomic*.h out of asm-generic
-> config: i386-randconfig-s1-201541 (attached as .config)
-> reproduce:
->         git checkout f626fe17485b6dc8f0706edfd5c60206c479553f
->         # save the attached .config to linux build tree
->         make ARCH=i386 
+=46ixes userspace compiler error:
 
-Fixed it up in the branch, thanks for the report!
+error: unknown type name =E2=80=98size_t=E2=80=99
 
-	Arnd
+Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
+---
+ include/uapi/asm-generic/signal.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/uapi/asm-generic/signal.h b/include/uapi/asm-gener=
+ic/signal.h
+index 9df61f1..0a7c415 100644
+--- a/include/uapi/asm-generic/signal.h
++++ b/include/uapi/asm-generic/signal.h
+@@ -111,7 +111,7 @@ struct sigaction {
+ typedef struct sigaltstack {
+ 	void __user *ss_sp;
+ 	int ss_flags;
+-	size_t ss_size;
++	__kernel_size_t ss_size;
+ } stack_t;
+=20
+ #endif /* __ASSEMBLY__ */
+--=20
+2.5.0
