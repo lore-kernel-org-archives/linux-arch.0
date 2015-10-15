@@ -1,53 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:59035 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753341AbbJNOmM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Oct 2015 10:42:12 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: fix various asm-generic abuses
-Date: Wed, 14 Oct 2015 16:41:49 +0200
-Message-ID: <5693903.Ud0gtefqqr@wuerfel>
-In-Reply-To: <20150829134937.GA13103@lst.de>
-References: <1440746842-19029-1-git-send-email-hch@lst.de> <22516156.tfGZvl13aG@wuerfel> <20150829134937.GA13103@lst.de>
+Received: from mail.kapsi.fi ([217.30.184.167]:51457 "EHLO mail.kapsi.fi"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932747AbbJOF7M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Oct 2015 01:59:12 -0400
+From: Mikko Rapeli <mikko.rapeli@iki.fi>
+Subject: [PATCH v4 36/79] include/uapi/asm-generic/signal.h: use __kernel_size_t instead of size_t
+Date: Thu, 15 Oct 2015 07:56:14 +0200
+Message-ID: <1444888618-4506-37-git-send-email-mikko.rapeli@iki.fi>
+In-Reply-To: <1444888618-4506-1-git-send-email-mikko.rapeli@iki.fi>
+References: <1444888618-4506-1-git-send-email-mikko.rapeli@iki.fi>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: mitake@dcl.info.waseda.ac.jp, dhowells@redhat.com, herbert@gondor.apana.org.au, oded.gabbay@amd.com, eli@mellanox.com, james_p_freyensee@linux.intel.com, linux-gpio@vger.kernel.org, drbd-dev@lists.linbit.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20151014144149.bCVMX7zWc_34ghZ0wIFAK4Bv-T_Kzj7T6WfnYw8zQog@z>
+To: linux-kernel@vger.kernel.org
+Cc: mikko.rapeli@iki.fi, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20151015055614.lLC-5_EKDLzErjtAIeFma3mc97SqV8wB0mbh7fVn7e0@z>
 
-On Saturday 29 August 2015 15:49:37 Christoph Hellwig wrote:
-> On Fri, Aug 28, 2015 at 09:16:51PM +0200, Arnd Bergmann wrote:
-> > On Friday 28 August 2015 09:27:13 Christoph Hellwig wrote:
-> > > This fixes two trivial classes of asm-generic abuse.  First two headers
-> > > that are intended for drivers are moved to include/linux, and second
-> > > various drivers that incorrectly use asm-generic headers directly are
-> > > switched over to use the proper public headers.  There are a few more
-> > > asm-generic abuse, but they aren't quite as trivial so they will take
-> > > a little more effort to fix.
-> > 
-> > Thanks a lot, these all look really useful. My normal way of dealing
-> > with asm-generic patches is to have changes go through the tree of
-> > whichever maintainer needs the changes for their own work with my
-> > Ack, but I guess in this case you don't actually have other patches
-> > depending on them, right?
-> 
-> No, there's nothing depending on it.
-> 
-> > If driver maintainers want to pick individual patches from this series,
-> > please add my
-> > 
-> > Acked-by: Arnd Bergmann <arnd@arndb.de>
-> > 
-> > otherwise let me know if I should put them into my asm-generic git
-> > tree (which is currently empty, but part of linux-next).
-> 
-> Note that the first two are something you should probably pick up either
-> way as they aren't really specific to a driver.
+Fixes userspace compiler error:
 
-I've applied the remaining patches to my asm-generic tree now, with
-the Acks from Herbert, Darren and Hitoshi.
+error: unknown type name ‘size_t’
 
-	Arnd
+Signed-off-by: Mikko Rapeli <mikko.rapeli@iki.fi>
+---
+ include/uapi/asm-generic/signal.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/uapi/asm-generic/signal.h b/include/uapi/asm-generic/signal.h
+index 9df61f1..0a7c415 100644
+--- a/include/uapi/asm-generic/signal.h
++++ b/include/uapi/asm-generic/signal.h
+@@ -111,7 +111,7 @@ struct sigaction {
+ typedef struct sigaltstack {
+ 	void __user *ss_sp;
+ 	int ss_flags;
+-	size_t ss_size;
++	__kernel_size_t ss_size;
+ } stack_t;
+ 
+ #endif /* __ASSEMBLY__ */
+-- 
+2.5.0
+
