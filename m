@@ -1,82 +1,137 @@
-From: Szabolcs Nagy <nsz-4P1ElwuDYu6sTnJN9+BGXg@public.gmane.org>
-Subject: Re: [PATCHv3] ARM64:Fix MINSIGSTKSZ and SIGSTKSZ
-Date: Thu, 15 Oct 2015 17:10:06 +0200
-Message-ID: <20151015151006.GT10551@port70.net>
-References: <1444386580-10917-1-git-send-email-manjeet.p@samsung.com>
- <20151009103352.GK26278@arm.com>
- <20151015121241.GA26080@port70.net>
- <20151015124756.GB27524@arm.com>
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
+ update documentation
+Date: Mon, 19 Oct 2015 09:17:18 +0800
+Message-ID: <20151019011718.GB924@fixme-laptop.cn.ibm.com>
+References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
+ <20151007111915.GF17308@twins.programming.kicks-ass.net>
+ <20151007132317.GK16065@arm.com>
+ <20151007152501.GI3910@linux.vnet.ibm.com>
+ <1444276236.9940.5.camel@ellerman.id.au>
+ <20151008111638.GL3816@twins.programming.kicks-ass.net>
+ <20151008214439.GE3910@linux.vnet.ibm.com>
+ <20151009083138.GU3816@twins.programming.kicks-ass.net>
+ <20151009094039.GD26278@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature"; boundary="TakKZr9L6Hm6aLOc"
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20151015124756.GB27524-5wv7dgnIgG8@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>
-Cc: Manjeet Pawar <manjeet.p-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, catalin.marinas-5wv7dgnIgG8@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, pankaj.m-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org, Akhilesh Kumar <akhilesh.k-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Rohit Thapliyal <r.thapliyal-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
+In-Reply-To: <20151009094039.GD26278@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-* Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org> [2015-10-15 13:47:56 +0100]:
-> On Thu, Oct 15, 2015 at 02:12:41PM +0200, Szabolcs Nagy wrote:
-> > * Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org> [2015-10-09 11:33:52 +0100]:
-> > 
-> > > On Fri, Oct 09, 2015 at 03:59:40PM +0530, Manjeet Pawar wrote:
-> > > > MINSIGSTKSZ and SIGSTKSZ for ARM64 are not correctly set in latest kernel.
-> > > > This patch fixes this issue.
-> > > > 
-> > > > This issue is reported in LTP (testcase: sigaltstack02.c).
-> > > > Testcase failed when sigaltstack() called with stack size "MINSIGSTKSZ - 1"
-> > > > Since in Glibc-2.22, MINSIGSTKSZ is set to 5120 but in kernel
-> > > > it is set to 2048 so testcase gets failed.
-> > > > 
-> > > > Testcase Output:
-> > > > sigaltstack02 1  TPASS  :  stgaltstack() fails, Invalid Flag value,errno:22
-> > > > sigaltstack02 2  TFAIL  :  sigaltstack() returned 0, expected -1,errno:12
-> > > 
-> > > I'm still unable to reproduce this failure. Is this with defconfig?
-> > > 
-> > > > Reported Issue in Glibc Bugzilla:
-> > > > Bugfix in Glibc-2.22: [Bug 16850]
-> > > > https://sourceware.org/bugzilla/show_bug.cgi?id=16850
-> > > > 
-> > > > Signed-off-by: Akhilesh Kumar <akhilesh.k-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-> > > > Signed-off-by: Manjeet Pawar <manjeet.p-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-> > > > Signed-off-by: Rohit Thapliyal <r.thapliyal-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-> > > > ---
-> > > > v1 -> Changes in uapi overall header
-> > > > v2 -> Changes done in arm64 headers
-> > > > v3 -> Changes done in both uapi & arm64 headers
-> > > > 
-> > > >  arch/arm64/include/uapi/asm/signal.h |    3 +++
-> > > >  include/uapi/asm-generic/signal.h    |    2 ++
-> > > >  2 files changed, 5 insertions(+)
-> > > 
-> > > Acked-by: Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>
-> > > 
-> > > Arnd: are you planning to take this via asm-generic, or shall I queue it
-> > > on the arm64 fixes branch?
-> > > 
-> > 
-> > i just noticed this and wanted to note that an old
-> > glibc can fail on a new kernel with this patch if
-> > an application uses MINSIGSTKSZ altstack.
-> 
-> I was worried about that (which was also why I didn't Cc stable on this,
-> because we shouldn't pretend that glibc and the kernel are synchronised),
-> but the value *is* incorrect and glibc has already been updated. In
-> other words, not merging this patch is also problematic, because we're
-> advertising a size that's significantly too small.
-> 
-> Would you rather we kept the old incorrect value in the kernel headers?
-> 
 
-i think the change is ok and it is good that it is not yet in stable.
+--TakKZr9L6Hm6aLOc
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-(for posix conformance only the value in libc matters though, the
-kernel definition is not visible as glibc does not use it and even
-in posix the semantics of this macro is not entirely clear so leaving
-the wrong value in kernel uapi is not that terrible.. e.g. the x86
-definition was not updated when avx extension was added, for abi
-stability i guess.  in musl libc this was set to 6K when i did the
-aarch64 port, had i used 5000 as the limit i would be upset by such
-a change, but i have nothing to complain about now..)
+On Fri, Oct 09, 2015 at 10:40:39AM +0100, Will Deacon wrote:
+> On Fri, Oct 09, 2015 at 10:31:38AM +0200, Peter Zijlstra wrote:
+[snip]
+> >=20
+> > So lots of little confusions added up to complete fail :-{
+> >=20
+> > Mostly I think it was the UNLOCK x + LOCK x are fully ordered (where I
+> > forgot: but not against uninvolved CPUs) and RELEASE/ACQUIRE are
+> > transitive (where I forgot: RELEASE/ACQUIRE _chains_ are transitive, but
+> > again not against uninvolved CPUs).
+> >=20
+> > Which leads me to think I would like to suggest alternative rules for
+> > RELEASE/ACQUIRE (to replace those Will suggested; as I think those are
+> > partly responsible for my confusion).
+>=20
+> Yeah, sorry. I originally used the phrase "fully ordered" but changed it
+> to "full barrier", which has stronger transitivity (newly understood
+> definition) requirements that I didn't intend.
+>=20
+> RELEASE -> ACQUIRE should be used for message passing between two CPUs
+> and not have ordering effects on other observers unless they're part of
+> the RELEASE -> ACQUIRE chain.
+>=20
+> >  - RELEASE -> ACQUIRE is fully ordered (but not a full barrier) when
+> >    they operate on the same variable and the ACQUIRE reads from the
+> >    RELEASE. Notable, RELEASE/ACQUIRE are RCpc and lack transitivity.
+>=20
+> Are we explicit about the difference between "fully ordered" and "full
+> barrier" somewhere else, because this looks like it will confuse people.
+>=20
+
+This is confusing me right now. ;-)
+
+Let's use a simple example for only one primitive, as I understand it,
+if we say a primitive A is "fully ordered", we actually mean:
+
+1.	The memory operations preceding(in program order) A can't be
+	reordered after the memory operations following(in PO) A.
+
+and
+
+2.	The memory operation(s) in A can't be reordered before the
+	memory operations preceding(in PO) A and after the memory
+	operations following(in PO) A.
+
+If we say A is a "full barrier", we actually means:
+
+1.	The memory operations preceding(in program order) A can't be
+	reordered after the memory operations following(in PO) A.
+
+and
+
+2.	The memory ordering guarantee in #1 is visible globally.
+
+Is that correct? Or "full barrier" is more strong than I understand,
+i.e. there is a third property of "full barrier":
+
+3.	The memory operation(s) in A can't be reordered before the
+	memory operations preceding(in PO) A and after the memory
+	operations following(in PO) A.
+
+IOW, is "full barrier" a more strong version of "fully ordered" or not?
+
+Regards,
+Boqun
+
+> >  - RELEASE -> ACQUIRE can be upgraded to a full barrier (including
+> >    transitivity) using smp_mb__release_acquire(), either before RELEASE
+> >    or after ACQUIRE (but consistently [*]).
+>=20
+> Hmm, but we don't actually need this for RELEASE -> ACQUIRE, afaict. This
+> is just needed for UNLOCK -> LOCK, and is exactly what RCU is currently
+> using (for PPC only).
+>=20
+> Stepping back a second, I believe that there are three cases:
+>=20
+>=20
+>  RELEASE X -> ACQUIRE Y (same CPU)
+>    * Needs a barrier on TSO architectures for full ordering
+>=20
+>  UNLOCK X -> LOCK Y (same CPU)
+>    * Needs a barrier on PPC for full ordering
+>=20
+>  RELEASE X -> ACQUIRE X (different CPUs)
+>  UNLOCK X -> ACQUIRE X (different CPUs)
+>    * Fully ordered everywhere...
+>    * ... but needs a barrier on PPC to become a full barrier
+>=20
+>=20
+
+--TakKZr9L6Hm6aLOc
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQEcBAABCAAGBQJWJESaAAoJEEl56MO1B/q4OI0H/3FnMOzqUgNp4XTZkmZTJm7Y
++ioXFNtiZBjqs1tigV7PRXGMgbvUfttapKzh9gd0GSppLzKj4FB0tePKugQawERR
+0QVUpDt8HdLzL5qSMKVZwC5yMPUprz5TysbwGFuk+gVZPwOpp1pjTHETSHD2oKfJ
+wRWTNq5JSytUaJDqxyCzNW6HJNzYExXTjCRVM97wZr3zh1NXlZ0nLIxGtZBe3lFZ
+tTMx734LkzwRcLOyTWOeLiokdy3yZZju46RRMt2qZzGERgqe5R/aqf0aVSXSl4ML
+/ChHtJqCIdTP4IisLqQdDbMIxUtF+Zl2lDDVxJcijZ401gzsq7l5p6HQFDf319E=
+=4e2l
+-----END PGP SIGNATURE-----
+
+--TakKZr9L6Hm6aLOc--
