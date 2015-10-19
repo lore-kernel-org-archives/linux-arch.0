@@ -1,83 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:40633 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753125AbbJSKXe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Oct 2015 06:23:34 -0400
-Date: Mon, 19 Oct 2015 12:23:24 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
- update documentation
-Message-ID: <20151019102324.GO3816@twins.programming.kicks-ass.net>
-References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
- <20151007111915.GF17308@twins.programming.kicks-ass.net>
- <20151007132317.GK16065@arm.com>
- <20151007152501.GI3910@linux.vnet.ibm.com>
- <1444276236.9940.5.camel@ellerman.id.au>
- <20151008111638.GL3816@twins.programming.kicks-ass.net>
- <20151008214439.GE3910@linux.vnet.ibm.com>
- <20151009083138.GU3816@twins.programming.kicks-ass.net>
- <20151009094039.GD26278@arm.com>
- <20151019011718.GB924@fixme-laptop.cn.ibm.com>
+Received: from mezzanine.sirena.org.uk ([106.187.55.193]:37488 "EHLO
+	mezzanine.sirena.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753670AbbJSQIx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Oct 2015 12:08:53 -0400
+Date: Mon, 19 Oct 2015 17:08:42 +0100
+From: Mark Brown <broonie@kernel.org>
+Message-ID: <20151019160842.GF32054@sirena.org.uk>
+References: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
+ <20151009221635.32203.30755.stgit@dwillia2-desk3.jf.intel.com>
+ <20151019152641.GC32054@sirena.org.uk>
+ <s5hk2qi3m93.wl-tiwai@suse.de>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature"; boundary="tmoQ0UElFV5VgXgH"
 Content-Disposition: inline
-In-Reply-To: <20151019011718.GB924@fixme-laptop.cn.ibm.com>
+In-Reply-To: <s5hk2qi3m93.wl-tiwai@suse.de>
+Subject: Re: [PATCH 11/20] sound, skylake: switch from ioremap_cache to
+ memremap
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20151019102324.kbzkwxgxXbN6yQYLOyY25NyKPIrfQnnLExe51k3Jhn4@z>
+To: Takashi Iwai <tiwai@suse.de>
+Cc: Dan Williams <dan.j.williams@intel.com>, Liam Girdwood <lgirdwood@gmail.com>, Jeeja KP <jeeja.kp@intel.com>, linux-arm-kernel@lists.infradead.org, Jaroslav Kysela <perex@perex.cz>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20151019160842.BXdP-71RzqOVF8FdaJAP8xYLNYBpKh8BVjECpqa8tss@z>
 
-On Mon, Oct 19, 2015 at 09:17:18AM +0800, Boqun Feng wrote:
-> This is confusing me right now. ;-)
-> 
-> Let's use a simple example for only one primitive, as I understand it,
-> if we say a primitive A is "fully ordered", we actually mean:
-> 
-> 1.	The memory operations preceding(in program order) A can't be
-> 	reordered after the memory operations following(in PO) A.
-> 
-> and
-> 
-> 2.	The memory operation(s) in A can't be reordered before the
-> 	memory operations preceding(in PO) A and after the memory
-> 	operations following(in PO) A.
-> 
-> If we say A is a "full barrier", we actually means:
-> 
-> 1.	The memory operations preceding(in program order) A can't be
-> 	reordered after the memory operations following(in PO) A.
-> 
-> and
-> 
-> 2.	The memory ordering guarantee in #1 is visible globally.
-> 
-> Is that correct? Or "full barrier" is more strong than I understand,
-> i.e. there is a third property of "full barrier":
-> 
-> 3.	The memory operation(s) in A can't be reordered before the
-> 	memory operations preceding(in PO) A and after the memory
-> 	operations following(in PO) A.
-> 
-> IOW, is "full barrier" a more strong version of "fully ordered" or not?
 
-Yes, that was how I used it.
+--tmoQ0UElFV5VgXgH
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-Now of course; the big question is do we want to promote this usage or
-come up with a different set of words describing this stuff.
+On Mon, Oct 19, 2015 at 05:34:48PM +0200, Takashi Iwai wrote:
+> Mark Brown wrote:
 
-I think separating the ordering from the transitivity is useful, for we
-can then talk about and specify them independently.
+> > On Fri, Oct 09, 2015 at 06:16:36PM -0400, Dan Williams wrote:
+> > > In preparation for deprecating ioremap_cache() convert its usage in
+> > > skl-nhlt to memremap.
 
-That is, we can say:
+> > > -void __iomem *skl_nhlt_init(struct device *dev)
+> > > +void *skl_nhlt_init(struct device *dev)
 
-	LOAD-ACQUIRE: orders LOAD->{LOAD,STORE}
-	              weak transitivity (RCpc)
+> > Why are we loosing the annotation here?
 
-	MB: orders {LOAD,STORE}->{LOAD,STORE} (fully ordered)
-	    strong transitivity (RCsc)
+> It's the exact purpose of this patchset, as far as I understand.
+> memremap() allows the driver accessing the mapped memory just like a
+> normal memory unlike ioremap().
 
-etc..
+There's no mention of what the purpose of the conversion is in either
+the patch or the cover letter so it's a bit unclear, some confirmation
+would be good :(
 
-Also, in the above I used weak and strong transitivity, but that too is
-of course up for grabs.
+--tmoQ0UElFV5VgXgH
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQEcBAEBCAAGBQJWJRWJAAoJECTWi3JdVIfQDnkH/21yDAfjjam01THCt1nwF38r
+dtojzNsMzERp8iWqE6hXTB0w2bunlH1JRvXgpQjoSe+ZugH/82OoL+rF0AlQbsWf
+uO0JUsWEUgicgr+y1bnRy97h0gbIY402nr1c/VvyoVK+ITV9FLrgrfKrkFWXJH8n
+jvOLz+vOYtWQWq1jKK0b0E4gdJ5TrQwYxDyFVZL9MMvQMl3c5eeoduGB5ssjxTdj
+15j0ku8/Q0TqQTYPRul37wrSaOD62iRCbKxzkEGH6hzlTcJRPEPLBj35fEuRIbLA
+SkXmQcaotdEcwMj5u0OMq+/gPKVe9Vqx8VQ62uF6rKLOJCkML5fzytb+GGRlpJ4=
+=WgRq
+-----END PGP SIGNATURE-----
+
+--tmoQ0UElFV5VgXgH--
