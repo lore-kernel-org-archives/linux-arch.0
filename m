@@ -1,46 +1,133 @@
-From: Dan Williams <dan.j.williams@intel.com>
-Subject: Re: [PATCH 11/20] sound, skylake: switch from ioremap_cache to memremap
-Date: Mon, 19 Oct 2015 09:59:29 -0700
-Message-ID: <CAPcyv4jper5Byz2782MHbi-_RjDiDna4hYCHG1UBacE3YXd96A@mail.gmail.com>
-References: <20151009221537.32203.5867.stgit@dwillia2-desk3.jf.intel.com>
-	<20151009221635.32203.30755.stgit@dwillia2-desk3.jf.intel.com>
-	<20151019152641.GC32054@sirena.org.uk>
-	<s5hk2qi3m93.wl-tiwai@suse.de>
-	<20151019160842.GF32054@sirena.org.uk>
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
+ update documentation
+Date: Tue, 20 Oct 2015 15:35:23 +0800
+Message-ID: <20151020073523.GC17714@fixme-laptop.cn.ibm.com>
+References: <20151007111915.GF17308@twins.programming.kicks-ass.net>
+ <20151007132317.GK16065@arm.com>
+ <20151007152501.GI3910@linux.vnet.ibm.com>
+ <1444276236.9940.5.camel@ellerman.id.au>
+ <20151008111638.GL3816@twins.programming.kicks-ass.net>
+ <20151008214439.GE3910@linux.vnet.ibm.com>
+ <20151009083138.GU3816@twins.programming.kicks-ass.net>
+ <20151009094039.GD26278@arm.com>
+ <20151019011718.GB924@fixme-laptop.cn.ibm.com>
+ <20151019102324.GO3816@twins.programming.kicks-ass.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature"; boundary="iFRdW5/EC4oqxDHL"
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20151019160842.GF32054@sirena.org.uk>
+Content-Disposition: inline
+In-Reply-To: <20151019102324.GO3816@twins.programming.kicks-ass.net>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Mark Brown <broonie@kernel.org>
-Cc: Takashi Iwai <tiwai@suse.de>, Liam Girdwood <lgirdwood@gmail.com>, Jeeja KP <jeeja.kp@intel.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Jaroslav Kysela <perex@perex.cz>, linux-arch@vger.kernel.org, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Oct 19, 2015 at 9:08 AM, Mark Brown <broonie@kernel.org> wrote:
-> On Mon, Oct 19, 2015 at 05:34:48PM +0200, Takashi Iwai wrote:
->> Mark Brown wrote:
->
->> > On Fri, Oct 09, 2015 at 06:16:36PM -0400, Dan Williams wrote:
->> > > In preparation for deprecating ioremap_cache() convert its usage in
->> > > skl-nhlt to memremap.
->
->> > > -void __iomem *skl_nhlt_init(struct device *dev)
->> > > +void *skl_nhlt_init(struct device *dev)
->
->> > Why are we loosing the annotation here?
->
->> It's the exact purpose of this patchset, as far as I understand.
->> memremap() allows the driver accessing the mapped memory just like a
->> normal memory unlike ioremap().
->
-> There's no mention of what the purpose of the conversion is in either
-> the patch or the cover letter so it's a bit unclear, some confirmation
-> would be good :(
 
-The cover letter linked this article which talked through the
-motivation: https://lwn.net/Articles/653585/
+--iFRdW5/EC4oqxDHL
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Essentially an "__iomem" annotation on a cached mapping is
-inconsistent as __iomem indicates "may have side effects, use special
-accessors" and cached means "pre-fetching, asynchronous write-backs,
-and cpu determined i/o sizes are permissible".
+On Mon, Oct 19, 2015 at 12:23:24PM +0200, Peter Zijlstra wrote:
+> On Mon, Oct 19, 2015 at 09:17:18AM +0800, Boqun Feng wrote:
+> > This is confusing me right now. ;-)
+> >=20
+> > Let's use a simple example for only one primitive, as I understand it,
+> > if we say a primitive A is "fully ordered", we actually mean:
+> >=20
+> > 1.	The memory operations preceding(in program order) A can't be
+> > 	reordered after the memory operations following(in PO) A.
+> >=20
+> > and
+> >=20
+> > 2.	The memory operation(s) in A can't be reordered before the
+> > 	memory operations preceding(in PO) A and after the memory
+> > 	operations following(in PO) A.
+> >=20
+> > If we say A is a "full barrier", we actually means:
+> >=20
+> > 1.	The memory operations preceding(in program order) A can't be
+> > 	reordered after the memory operations following(in PO) A.
+> >=20
+> > and
+> >=20
+> > 2.	The memory ordering guarantee in #1 is visible globally.
+> >=20
+> > Is that correct? Or "full barrier" is more strong than I understand,
+> > i.e. there is a third property of "full barrier":
+> >=20
+> > 3.	The memory operation(s) in A can't be reordered before the
+> > 	memory operations preceding(in PO) A and after the memory
+> > 	operations following(in PO) A.
+> >=20
+> > IOW, is "full barrier" a more strong version of "fully ordered" or not?
+>=20
+> Yes, that was how I used it.
+>=20
+> Now of course; the big question is do we want to promote this usage or
+> come up with a different set of words describing this stuff.
+>=20
+> I think separating the ordering from the transitivity is useful, for we
+> can then talk about and specify them independently.
+>=20
+
+Great idea!=20
+
+> That is, we can say:
+>=20
+> 	LOAD-ACQUIRE: orders LOAD->{LOAD,STORE}
+> 	              weak transitivity (RCpc)
+>=20
+> 	MB: orders {LOAD,STORE}->{LOAD,STORE} (fully ordered)
+> 	    strong transitivity (RCsc)
+>=20
+
+It will be helpful if we have this kind of description for each
+primitive mentioned in memory-barriers.txt, which, IMO, is better than
+the description like the following:
+
+"""
+Any atomic operation that modifies some state in memory and returns informa=
+tion
+about the state (old or new) implies an SMP-conditional general memory barr=
+ier
+(smp_mb()) on each side of the actual operation (with the exception of
+"""
+
+I'm assuming that the arrow "->" stands for the program order, and word
+"orders" means that a primitive guarantees some program order becomes
+the memory operation order, so that the description above can be
+rewritten as:
+
+value-returning atomics:
+	orders {LOAD,STORE}->RmW(atomic operation)->{LOAD,STORE}
+	strong transitivity
+=09
+much simpler and clearer for discussion and reasoning
+
+Regards,
+Boqun
+
+> etc..
+>=20
+> Also, in the above I used weak and strong transitivity, but that too is
+> of course up for grabs.
+
+--iFRdW5/EC4oqxDHL
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQEcBAABCAAGBQJWJe63AAoJEEl56MO1B/q4IXMIALFiMMtTYpSRYHPMx1/zBJxJ
+3AtwxeRMDfXgWCI6Y8IvrWyOjJq12pLn3YnZKPmefFh86y0NaIyUJ3xfX6DPCxDO
+oU7KqWuhnAKFkafAxxXsVM8bIIN8DIrp3eMCn/zOk5hLcgiNVTnA9Wl47uKHivps
+p9mcI092cPayTcehgzegDCkXdjHAQCdMdugGlZpQ9MNLjnJ6+dFSU43UuHUKYjrA
+UQfNQ+PvNuIce2rk2OWNg0iqil3ap+dRqnmZcTb1DLkt1xS131NH4EeYS63DUunG
+meUwDFoDBdvHPzHAwtSRmfpMa8clA/7yh52Xn2iIps+LA3bnkfnZ71wE9ZqMIws=
+=fIvL
+-----END PGP SIGNATURE-----
+
+--iFRdW5/EC4oqxDHL--
