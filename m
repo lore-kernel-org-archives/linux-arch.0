@@ -1,103 +1,148 @@
-From: Boqun Feng <boqun.feng@gmail.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
  update documentation
-Date: Tue, 20 Oct 2015 22:20:40 +0800
-Message-ID: <20151020142040.GD17714@fixme-laptop.cn.ibm.com>
-References: <20151007132317.GK16065@arm.com>
+Date: Tue, 20 Oct 2015 16:34:51 -0700
+Message-ID: <20151020233451.GI5105@linux.vnet.ibm.com>
+References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
+ <20151007111915.GF17308@twins.programming.kicks-ass.net>
+ <20151007132317.GK16065@arm.com>
  <20151007152501.GI3910@linux.vnet.ibm.com>
  <1444276236.9940.5.camel@ellerman.id.au>
  <20151008111638.GL3816@twins.programming.kicks-ass.net>
- <20151008125937.GH16807@arm.com>
- <20151008221716.GF3910@linux.vnet.ibm.com>
- <20151009095129.GF26278@arm.com>
- <20151009174327.GV3910@linux.vnet.ibm.com>
- <20151009183328.GV26278@arm.com>
- <20151012233048.GK3910@linux.vnet.ibm.com>
+ <20151008214439.GE3910@linux.vnet.ibm.com>
+ <20151009083138.GU3816@twins.programming.kicks-ass.net>
+ <20151009094039.GD26278@arm.com>
+ <20151019011718.GB924@fixme-laptop.cn.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-	protocol="application/pgp-signature"; boundary="hoZxPH4CaxYzWscb"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f47.google.com ([209.85.220.47]:34415 "EHLO
-	mail-pa0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752229AbbJTOVI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Oct 2015 10:21:08 -0400
+Received: from e38.co.us.ibm.com ([32.97.110.159]:45248 "EHLO
+	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751457AbbJTXet (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Oct 2015 19:34:49 -0400
+Received: from localhost
+	by e38.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Tue, 20 Oct 2015 17:34:49 -0600
 Content-Disposition: inline
-In-Reply-To: <20151012233048.GK3910@linux.vnet.ibm.com>
+In-Reply-To: <20151019011718.GB924@fixme-laptop.cn.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+To: Boqun Feng <boqun.feng@gmail.com>
 Cc: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
 
+On Mon, Oct 19, 2015 at 09:17:18AM +0800, Boqun Feng wrote:
+> On Fri, Oct 09, 2015 at 10:40:39AM +0100, Will Deacon wrote:
+> > On Fri, Oct 09, 2015 at 10:31:38AM +0200, Peter Zijlstra wrote:
+> [snip]
+> > > 
+> > > So lots of little confusions added up to complete fail :-{
+> > > 
+> > > Mostly I think it was the UNLOCK x + LOCK x are fully ordered (where I
+> > > forgot: but not against uninvolved CPUs) and RELEASE/ACQUIRE are
+> > > transitive (where I forgot: RELEASE/ACQUIRE _chains_ are transitive, but
+> > > again not against uninvolved CPUs).
+> > > 
+> > > Which leads me to think I would like to suggest alternative rules for
+> > > RELEASE/ACQUIRE (to replace those Will suggested; as I think those are
+> > > partly responsible for my confusion).
+> > 
+> > Yeah, sorry. I originally used the phrase "fully ordered" but changed it
+> > to "full barrier", which has stronger transitivity (newly understood
+> > definition) requirements that I didn't intend.
+> > 
+> > RELEASE -> ACQUIRE should be used for message passing between two CPUs
+> > and not have ordering effects on other observers unless they're part of
+> > the RELEASE -> ACQUIRE chain.
+> > 
+> > >  - RELEASE -> ACQUIRE is fully ordered (but not a full barrier) when
+> > >    they operate on the same variable and the ACQUIRE reads from the
+> > >    RELEASE. Notable, RELEASE/ACQUIRE are RCpc and lack transitivity.
+> > 
+> > Are we explicit about the difference between "fully ordered" and "full
+> > barrier" somewhere else, because this looks like it will confuse people.
+> > 
+> 
+> This is confusing me right now. ;-)
+> 
+> Let's use a simple example for only one primitive, as I understand it,
+> if we say a primitive A is "fully ordered", we actually mean:
+> 
+> 1.	The memory operations preceding(in program order) A can't be
+> 	reordered after the memory operations following(in PO) A.
+> 
+> and
+> 
+> 2.	The memory operation(s) in A can't be reordered before the
+> 	memory operations preceding(in PO) A and after the memory
+> 	operations following(in PO) A.
+> 
+> If we say A is a "full barrier", we actually means:
+> 
+> 1.	The memory operations preceding(in program order) A can't be
+> 	reordered after the memory operations following(in PO) A.
+> 
+> and
+> 
+> 2.	The memory ordering guarantee in #1 is visible globally.
+> 
+> Is that correct? Or "full barrier" is more strong than I understand,
+> i.e. there is a third property of "full barrier":
+> 
+> 3.	The memory operation(s) in A can't be reordered before the
+> 	memory operations preceding(in PO) A and after the memory
+> 	operations following(in PO) A.
+> 
+> IOW, is "full barrier" a more strong version of "fully ordered" or not?
 
---hoZxPH4CaxYzWscb
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+There is also the question of whether the barrier forces ordering
+of unrelated stores, everything initially zero and all accesses
+READ_ONCE() or WRITE_ONCE():
 
-On Mon, Oct 12, 2015 at 04:30:48PM -0700, Paul E. McKenney wrote:
-> On Fri, Oct 09, 2015 at 07:33:28PM +0100, Will Deacon wrote:
-> > On Fri, Oct 09, 2015 at 10:43:27AM -0700, Paul E. McKenney wrote:
-> > > On Fri, Oct 09, 2015 at 10:51:29AM +0100, Will Deacon wrote:
-[snip]
->=20
-> > > > We could also include a link to the ppcmem/herd web frontends and y=
-our
-> > > > lwn.net article. (ppcmem is already linked, but it's not obvious th=
-at
-> > > > you can run litmus tests in your browser).
-> > >=20
-> > > I bet that the URLs for the web frontends are not stable long term.
-> > > Don't get me wrong, PPCMEM/ARMMEM has been there for me for a goodly
-> > > number of years, but professors do occasionally move from one institu=
-tion
-> > > to another.  For but one example, Susmit Sarkar is now at University
-> > > of St. Andrews rather than at Cambridge.
-> > >=20
-> > > So to make this work, we probably need to be thinking in terms of
-> > > asking the researchers for permission to include their ocaml code in =
-the
-> > > Linux-kernel source tree.  I would be strongly in favor of this, actu=
-ally.
-> > >=20
-> > > Thoughts?
-> >=20
-> > I'm extremely hesitant to import a bunch of dubiously licensed, academic
-> > ocaml code into the kernel. Even if we did, who would maintain it?
-> >=20
-> > A better solution might be to host a mirror of the code on kernel.org,
-> > along with a web front-end for people to play with (the tests we're tal=
-king
-> > about here do seem to run ok in my browser).
->=20
-> I am not too worried about how this happens, but we should avoid
-> constraining the work of our academic partners.  The reason I was thinking
-> in terms of in the kernel was to avoid version-synchronization issues.
-> "Wait, this is Linux kernel v4.17, which means that you need to use
-> version 8.3.5.1 of the tooling...  And with these four patches as well."
->=20
+	P0		P1		P2		P3
+	X = 1;		Y = 1;		r1 = X;		r3 = Y;
+					some_barrier();	some_barrier();
+					r2 = Y;		r4 = X;
 
-Maybe including only the models' code(arm.cat, ppc.cat, etc.) into
-kernel rather than the whole code base could also solve the
-version-synchronization in some degree, and avoid maintaining the whole
-tool code? I'm assuming modifying the verifier's code other than the
-models' code will unlikely change the result of a litmus test.
+P2's and P3's ordering could be globally visible without requiring
+P0's and P1's independent stores to be ordered, for example, if you
+used smp_rmb() for some_barrier().  In contrast, if we used smp_mb()
+for barrier, everyone would agree on the order of P0's and P0's stores.
 
-Regards,
-Boqun
+There are actually a fair number of different combinations of
+aspects of memory ordering.  We will need to choose wisely.  ;-)
 
---hoZxPH4CaxYzWscb
-Content-Type: application/pgp-signature; name="signature.asc"
+My hope is that the store-ordering gets folded into the globally
+visible transitive level.  Especially given that I have not (yet)
+seen any algorithms used in production that relied on the ordering of
+independent stores.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
+							Thanx, Paul
 
-iQEcBAABCAAGBQJWJk20AAoJEEl56MO1B/q4ZhgIAIJNKrEF8I4MaF7LblwtWQzy
-ZUULOT+HNdB8QIEjg2jg0eimdW4BjsI+ISr0330Hu6x2gSjmgPVUaSz0xniAXpCC
-pfytWZFIxQC8KX5i5AceCKpmaaBEVWjMR8zjc20VXffNCyI7Jnt/UlMy+vPIgh8m
-qN4G4GToiNQAltlNKJs0tikoAz75uS0WKpgzvQrc5kGUa03HYcXG9w0jGpfs7lEN
-W38loU2QFBqMlWJU/XKSTF0JeJqtLxMc/4YOZlcMUCWy/6nEM1BhO+jqbKkWgCYl
-gWn57Z+Vv6uHWcL1ojbOm6/9KJ3DQwa7aZTzUy10xBlsa3uY9jIkJ/0CtDH+o9Y=
-=aig7
------END PGP SIGNATURE-----
-
---hoZxPH4CaxYzWscb--
+> Regards,
+> Boqun
+> 
+> > >  - RELEASE -> ACQUIRE can be upgraded to a full barrier (including
+> > >    transitivity) using smp_mb__release_acquire(), either before RELEASE
+> > >    or after ACQUIRE (but consistently [*]).
+> > 
+> > Hmm, but we don't actually need this for RELEASE -> ACQUIRE, afaict. This
+> > is just needed for UNLOCK -> LOCK, and is exactly what RCU is currently
+> > using (for PPC only).
+> > 
+> > Stepping back a second, I believe that there are three cases:
+> > 
+> > 
+> >  RELEASE X -> ACQUIRE Y (same CPU)
+> >    * Needs a barrier on TSO architectures for full ordering
+> > 
+> >  UNLOCK X -> LOCK Y (same CPU)
+> >    * Needs a barrier on PPC for full ordering
+> > 
+> >  RELEASE X -> ACQUIRE X (different CPUs)
+> >  UNLOCK X -> ACQUIRE X (different CPUs)
+> >    * Fully ordered everywhere...
+> >    * ... but needs a barrier on PPC to become a full barrier
+> > 
+> > 
