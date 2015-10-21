@@ -1,16 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out6.electric.net ([192.162.217.182]:51176 "EHLO
-	smtp-out6.electric.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750990AbbJUSkF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Oct 2015 14:40:05 -0400
-From: David Laight <David.Laight@ACULAB.COM>
-Subject: RE: [PATCH v2] barriers: introduce smp_mb__release_acquire and
+Received: from casper.infradead.org ([85.118.1.10]:37761 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755671AbbJUTgd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Oct 2015 15:36:33 -0400
+Date: Wed, 21 Oct 2015 21:36:44 +0200
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
  update documentation
-Date: Wed, 21 Oct 2015 16:04:04 +0000
-Message-ID: <063D6719AE5E284EB5DD2968C1650D6D1CBBD844@AcuExch.aculab.com>
-References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
- <20151007111915.GF17308@twins.programming.kicks-ass.net>
- <20151007132317.GK16065@arm.com> <20151007152501.GI3910@linux.vnet.ibm.com>
+Message-ID: <20151021193644.GG2508@worktop.programming.kicks-ass.net>
+References: <20151007152501.GI3910@linux.vnet.ibm.com>
  <1444276236.9940.5.camel@ellerman.id.au>
  <20151008111638.GL3816@twins.programming.kicks-ass.net>
  <20151008214439.GE3910@linux.vnet.ibm.com>
@@ -18,41 +16,43 @@ References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
  <20151009094039.GD26278@arm.com>
  <20151019011718.GB924@fixme-laptop.cn.ibm.com>
  <20151020233451.GI5105@linux.vnet.ibm.com>
-In-Reply-To: <20151020233451.GI5105@linux.vnet.ibm.com>
-Content-Language: en-US
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+ <20151021082452.GC2881@worktop.programming.kicks-ass.net>
+ <20151021192923.GR5105@linux.vnet.ibm.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20151021192923.GR5105@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "'paulmck@linux.vnet.ibm.com'" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, Anton Blanchard <anton@samba.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>
-Message-ID: <20151021160404.H3fGkGpFTzm_wD2MwKqWnf_6THT3N1UMa9Zl2JvVPRQ@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Boqun Feng <boqun.feng@gmail.com>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20151021193644.cXJ_MzPf0C0STzPPPoC5jSA--P6vJC_hE_9dzkgLVIA@z>
 
-RnJvbTogUGF1bCBFLiBNY0tlbm5leQ0KPiBTZW50OiAyMSBPY3RvYmVyIDIwMTUgMDA6MzUNCi4u
-Lg0KPiBUaGVyZSBpcyBhbHNvIHRoZSBxdWVzdGlvbiBvZiB3aGV0aGVyIHRoZSBiYXJyaWVyIGZv
-cmNlcyBvcmRlcmluZw0KPiBvZiB1bnJlbGF0ZWQgc3RvcmVzLCBldmVyeXRoaW5nIGluaXRpYWxs
-eSB6ZXJvIGFuZCBhbGwgYWNjZXNzZXMNCj4gUkVBRF9PTkNFKCkgb3IgV1JJVEVfT05DRSgpOg0K
-PiANCj4gCVAwCQlQMQkJUDIJCVAzDQo+IAlYID0gMTsJCVkgPSAxOwkJcjEgPSBYOwkJcjMgPSBZ
-Ow0KPiAJCQkJCXNvbWVfYmFycmllcigpOwlzb21lX2JhcnJpZXIoKTsNCj4gCQkJCQlyMiA9IFk7
-CQlyNCA9IFg7DQo+IA0KPiBQMidzIGFuZCBQMydzIG9yZGVyaW5nIGNvdWxkIGJlIGdsb2JhbGx5
-IHZpc2libGUgd2l0aG91dCByZXF1aXJpbmcNCj4gUDAncyBhbmQgUDEncyBpbmRlcGVuZGVudCBz
-dG9yZXMgdG8gYmUgb3JkZXJlZCwgZm9yIGV4YW1wbGUsIGlmIHlvdQ0KPiB1c2VkIHNtcF9ybWIo
-KSBmb3Igc29tZV9iYXJyaWVyKCkuICBJbiBjb250cmFzdCwgaWYgd2UgdXNlZCBzbXBfbWIoKQ0K
-PiBmb3IgYmFycmllciwgZXZlcnlvbmUgd291bGQgYWdyZWUgb24gdGhlIG9yZGVyIG9mIFAwJ3Mg
-YW5kIFAwJ3Mgc3RvcmVzLg0KPiANCj4gVGhlcmUgYXJlIGFjdHVhbGx5IGEgZmFpciBudW1iZXIg
-b2YgZGlmZmVyZW50IGNvbWJpbmF0aW9ucyBvZg0KPiBhc3BlY3RzIG9mIG1lbW9yeSBvcmRlcmlu
-Zy4gIFdlIHdpbGwgbmVlZCB0byBjaG9vc2Ugd2lzZWx5LiAgOy0pDQoNCk15IHRob3VnaHRzIG9u
-IHRoaXMgYXJlIHRoYXQgbW9zdCBjb2RlIHByb2JhYmx5IGlzbid0IHBlcmZvcm1hbmNlIGNyaXRp
-Y2FsDQplbm91Z2ggdG8gYmUgdXNpbmcgYW55dGhpbmcgb3RoZXIgdGhhbiBub3JtYWwgbG9ja3Mg
-Zm9yIGludGVyLWNwdQ0Kc3luY2hyb25pc2F0aW9uLg0KQ2VydGFpbmx5IG1vc3QgcGVvcGxlIGFy
-ZSBsaWtlbHkgdG8gZ2V0IGl0IHdyb25nIHNvbWV3aGVyZS4NClNvIHlvdSB3YW50IGEgYmlnIHJl
-ZCBzdGlja2VyIHNheWluZyAnRG9uJ3QgdHJ5IHRvIGJlIHRvbyBjbGV2ZXInLg0KDQpBbHNvIHdp
-dGhvdXQgZXhhbXBsZXMgb2Ygd2h5IHRoaW5ncyBnbyB3cm9uZyAoZWcgbWVtYmVyX2NvbnN1bWVy
-KCkNCmFuZCBhbHBoYSkgaXQgaXMgZGlmZmljdWx0IHRvIHVuZGVyc3RhbmQgdGhlIGRpZmZlcmVu
-Y2VzIGJldHdlZW4NCmFsbCB0aGUgYmFycmllcnMgKGV0YykuDQoNCk9UT0ggZGV2aWNlIGRyaXZl
-ciBjb2RlIG1heSBuZWVkIHRoaW5ncyBzbGlnaHRseSBzdHJvbmdlciB0aGFuDQpiYXJyaWVyKCkg
-KHdoaWNoIEkgdGhpbmsgaXMgYXNtKDo6OiJtZW1vcnkiKSkgdG8gc2VxdWVuY2UgYWNjZXNzZXMN
-CnRvIGhhcmR3YXJlIGRldmljZXMgKGFuZCBtZW1vcnkgdGhlIGhhcmR3YXJlIHJlYWRzKSwgYnV0
-IHdpdGhvdXQNCmhhdmluZyBhIHN0cm9uZyBiYXJyaWVyIGluIGV2ZXJ5IGlvcmVhZC93cml0ZSgp
-IGFjY2Vzcy4NCg0KCURhdmlkDQoNCg==
+On Wed, Oct 21, 2015 at 12:29:23PM -0700, Paul E. McKenney wrote:
+> On Wed, Oct 21, 2015 at 10:24:52AM +0200, Peter Zijlstra wrote:
+> > On Tue, Oct 20, 2015 at 04:34:51PM -0700, Paul E. McKenney wrote:
+> > > There is also the question of whether the barrier forces ordering
+> > > of unrelated stores, everything initially zero and all accesses
+> > > READ_ONCE() or WRITE_ONCE():
+> > > 
+> > > 	P0		P1		P2		P3
+> > > 	X = 1;		Y = 1;		r1 = X;		r3 = Y;
+> > > 					some_barrier();	some_barrier();
+> > > 					r2 = Y;		r4 = X;
+> > > 
+> > > P2's and P3's ordering could be globally visible without requiring
+> > > P0's and P1's independent stores to be ordered, for example, if you
+> > > used smp_rmb() for some_barrier().  In contrast, if we used smp_mb()
+> > > for barrier, everyone would agree on the order of P0's and P0's stores.
+> > 
+> > Oh!?
+> 
+> Behold sequential consistency, worshipped fervently by a surprisingly
+> large number of people!  Something about legacy proof methods, as near
+> as I can tell.  ;-)
+
+But how can smp_mb() guarantee anything about P[01]? There is but the
+single store, which can race against P[23] arbitrarily. There is nothing
+to order.
+
+Maybe I'm confused again..
