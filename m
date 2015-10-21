@@ -1,74 +1,67 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
- update documentation
-Date: Wed, 21 Oct 2015 12:56:12 -0700
-Message-ID: <20151021195612.GW5105@linux.vnet.ibm.com>
-References: <1444276236.9940.5.camel@ellerman.id.au>
- <20151008111638.GL3816@twins.programming.kicks-ass.net>
- <20151008214439.GE3910@linux.vnet.ibm.com>
- <20151009083138.GU3816@twins.programming.kicks-ass.net>
- <20151009094039.GD26278@arm.com>
- <20151019011718.GB924@fixme-laptop.cn.ibm.com>
- <20151020233451.GI5105@linux.vnet.ibm.com>
- <20151021082452.GC2881@worktop.programming.kicks-ass.net>
- <20151021192923.GR5105@linux.vnet.ibm.com>
- <20151021193644.GG2508@worktop.programming.kicks-ass.net>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Bjorn Helgaas <helgaas@kernel.org>
+Subject: Re: [PATCH v2 0/4] Add PCI support on nios2 architecture
+Date: Wed, 21 Oct 2015 15:44:30 -0500
+Message-ID: <20151021204430.GG1583@localhost>
+References: <1444804304-5213-1-git-send-email-lftan@altera.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e39.co.us.ibm.com ([32.97.110.160]:37817 "EHLO
-	e39.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754330AbbJUT4L (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Oct 2015 15:56:11 -0400
-Received: from localhost
-	by e39.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Wed, 21 Oct 2015 13:56:10 -0600
+Received: from mail.kernel.org ([198.145.29.136]:55033 "EHLO mail.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755535AbbJUUog (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 21 Oct 2015 16:44:36 -0400
 Content-Disposition: inline
-In-Reply-To: <20151021193644.GG2508@worktop.programming.kicks-ass.net>
+In-Reply-To: <1444804304-5213-1-git-send-email-lftan@altera.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Boqun Feng <boqun.feng@gmail.com>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+To: Ley Foon Tan <lftan@altera.com>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, lftan.linux@gmail.com
 
-On Wed, Oct 21, 2015 at 09:36:44PM +0200, Peter Zijlstra wrote:
-> On Wed, Oct 21, 2015 at 12:29:23PM -0700, Paul E. McKenney wrote:
-> > On Wed, Oct 21, 2015 at 10:24:52AM +0200, Peter Zijlstra wrote:
-> > > On Tue, Oct 20, 2015 at 04:34:51PM -0700, Paul E. McKenney wrote:
-> > > > There is also the question of whether the barrier forces ordering
-> > > > of unrelated stores, everything initially zero and all accesses
-> > > > READ_ONCE() or WRITE_ONCE():
-> > > > 
-> > > > 	P0		P1		P2		P3
-> > > > 	X = 1;		Y = 1;		r1 = X;		r3 = Y;
-> > > > 					some_barrier();	some_barrier();
-> > > > 					r2 = Y;		r4 = X;
-> > > > 
-> > > > P2's and P3's ordering could be globally visible without requiring
-> > > > P0's and P1's independent stores to be ordered, for example, if you
-> > > > used smp_rmb() for some_barrier().  In contrast, if we used smp_mb()
-> > > > for barrier, everyone would agree on the order of P0's and P0's stores.
-> > > 
-> > > Oh!?
-> > 
-> > Behold sequential consistency, worshipped fervently by a surprisingly
-> > large number of people!  Something about legacy proof methods, as near
-> > as I can tell.  ;-)
+Hi Ley,
+
+I'm ignoring this series for now because of the build errors reported by
+the kbuild test robot.
+
+Bjorn
+
+On Wed, Oct 14, 2015 at 02:31:40PM +0800, Ley Foon Tan wrote:
+> This is 2nd version of patch to add pci support for nios2 architecture.
+> This patchset also update asm-generic/pci.h to include PCI generic define/function
+> as suggested by Arnd.
+> It requires pci_fixup_irqs() from setup-irq.c.
 > 
-> But how can smp_mb() guarantee anything about P[01]? There is but the
-> single store, which can race against P[23] arbitrarily. There is nothing
-> to order.
-
-Indeed, if your barrier is only acting locally, there is no way that
-you can order the two stores.  However, some barriers act non-locally,
-and this non-local action can order the stores.  This non-locality is
-"cumulativity" in the PowerPC docs.
-
-And x86 can also order P0's and P1's stores, courtesy of the "T" in "TSO".
-
-> Maybe I'm confused again..
-
-They say that confusion is the most productive frame of mind...
-
-							Thanx, Paul
+> v1->v2 changes:
+> - nios2: remove PCI_SYSCALL from Kconfig
+> - nios2: set IO_SPACE_LIMIT to 0xffff
+> - nios2: remove arch/nios2/include/asm/pci.h and use asm-generic pci.h
+> - pci: add include <linux/dma-mapping.h> to pci.c
+> - asm-generic: add pci generic functions/defines to pci.h
+> 
+> History
+> -------
+> [v1]: https://lkml.org/lkml/2015/9/22/44
+> 
+> Ley Foon Tan (4):
+>   asm-generic: add pci required defines and functions
+>   pci: add include <linux/dma-mapping.h>
+>   PCI: Build setup-irq.o for nios2
+>   nios2: Add architectural support for PCIe
+> 
+>  arch/nios2/Kconfig            | 21 +++++++++++++++++++++
+>  arch/nios2/include/asm/Kbuild |  1 +
+>  arch/nios2/include/asm/io.h   | 12 ++++++++++--
+>  arch/nios2/kernel/Makefile    |  1 +
+>  arch/nios2/kernel/pci.c       | 33 +++++++++++++++++++++++++++++++++
+>  drivers/pci/Makefile          |  1 +
+>  drivers/pci/pci.c             |  1 +
+>  include/asm-generic/pci.h     | 34 ++++++++++++++++++++++++++++++++++
+>  8 files changed, 102 insertions(+), 2 deletions(-)
+>  create mode 100644 arch/nios2/kernel/pci.c
+> 
+> -- 
+> 1.8.2.1
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
