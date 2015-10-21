@@ -1,138 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f169.google.com ([209.85.223.169]:34898 "EHLO
-	mail-io0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752691AbbJTHfp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Oct 2015 03:35:45 -0400
-Date: Tue, 20 Oct 2015 15:35:23 +0800
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
+Received: from smtp-out6.electric.net ([192.162.217.182]:51176 "EHLO
+	smtp-out6.electric.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750990AbbJUSkF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Oct 2015 14:40:05 -0400
+From: David Laight <David.Laight@ACULAB.COM>
+Subject: RE: [PATCH v2] barriers: introduce smp_mb__release_acquire and
  update documentation
-Message-ID: <20151020073523.GC17714@fixme-laptop.cn.ibm.com>
-References: <20151007111915.GF17308@twins.programming.kicks-ass.net>
- <20151007132317.GK16065@arm.com>
- <20151007152501.GI3910@linux.vnet.ibm.com>
+Date: Wed, 21 Oct 2015 16:04:04 +0000
+Message-ID: <063D6719AE5E284EB5DD2968C1650D6D1CBBD844@AcuExch.aculab.com>
+References: <1444215568-24732-1-git-send-email-will.deacon@arm.com>
+ <20151007111915.GF17308@twins.programming.kicks-ass.net>
+ <20151007132317.GK16065@arm.com> <20151007152501.GI3910@linux.vnet.ibm.com>
  <1444276236.9940.5.camel@ellerman.id.au>
  <20151008111638.GL3816@twins.programming.kicks-ass.net>
  <20151008214439.GE3910@linux.vnet.ibm.com>
  <20151009083138.GU3816@twins.programming.kicks-ass.net>
  <20151009094039.GD26278@arm.com>
  <20151019011718.GB924@fixme-laptop.cn.ibm.com>
- <20151019102324.GO3816@twins.programming.kicks-ass.net>
+ <20151020233451.GI5105@linux.vnet.ibm.com>
+In-Reply-To: <20151020233451.GI5105@linux.vnet.ibm.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-	protocol="application/pgp-signature"; boundary="iFRdW5/EC4oqxDHL"
-Content-Disposition: inline
-In-Reply-To: <20151019102324.GO3816@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Will Deacon <will.deacon@arm.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20151020073523.W791Ljc-EOUWzF1184OI_EkTozNWhBvEitvtf4ifUUw@z>
+To: "'paulmck@linux.vnet.ibm.com'" <paulmck@linux.vnet.ibm.com>, Boqun Feng <boqun.feng@gmail.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Paul Mackerras <paulus@samba.org>, Anton Blanchard <anton@samba.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>
+Message-ID: <20151021160404.H3fGkGpFTzm_wD2MwKqWnf_6THT3N1UMa9Zl2JvVPRQ@z>
 
-
---iFRdW5/EC4oqxDHL
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-On Mon, Oct 19, 2015 at 12:23:24PM +0200, Peter Zijlstra wrote:
-> On Mon, Oct 19, 2015 at 09:17:18AM +0800, Boqun Feng wrote:
-> > This is confusing me right now. ;-)
-> >=20
-> > Let's use a simple example for only one primitive, as I understand it,
-> > if we say a primitive A is "fully ordered", we actually mean:
-> >=20
-> > 1.	The memory operations preceding(in program order) A can't be
-> > 	reordered after the memory operations following(in PO) A.
-> >=20
-> > and
-> >=20
-> > 2.	The memory operation(s) in A can't be reordered before the
-> > 	memory operations preceding(in PO) A and after the memory
-> > 	operations following(in PO) A.
-> >=20
-> > If we say A is a "full barrier", we actually means:
-> >=20
-> > 1.	The memory operations preceding(in program order) A can't be
-> > 	reordered after the memory operations following(in PO) A.
-> >=20
-> > and
-> >=20
-> > 2.	The memory ordering guarantee in #1 is visible globally.
-> >=20
-> > Is that correct? Or "full barrier" is more strong than I understand,
-> > i.e. there is a third property of "full barrier":
-> >=20
-> > 3.	The memory operation(s) in A can't be reordered before the
-> > 	memory operations preceding(in PO) A and after the memory
-> > 	operations following(in PO) A.
-> >=20
-> > IOW, is "full barrier" a more strong version of "fully ordered" or not?
->=20
-> Yes, that was how I used it.
->=20
-> Now of course; the big question is do we want to promote this usage or
-> come up with a different set of words describing this stuff.
->=20
-> I think separating the ordering from the transitivity is useful, for we
-> can then talk about and specify them independently.
->=20
-
-Great idea!=20
-
-> That is, we can say:
->=20
-> 	LOAD-ACQUIRE: orders LOAD->{LOAD,STORE}
-> 	              weak transitivity (RCpc)
->=20
-> 	MB: orders {LOAD,STORE}->{LOAD,STORE} (fully ordered)
-> 	    strong transitivity (RCsc)
->=20
-
-It will be helpful if we have this kind of description for each
-primitive mentioned in memory-barriers.txt, which, IMO, is better than
-the description like the following:
-
-"""
-Any atomic operation that modifies some state in memory and returns informa=
-tion
-about the state (old or new) implies an SMP-conditional general memory barr=
-ier
-(smp_mb()) on each side of the actual operation (with the exception of
-"""
-
-I'm assuming that the arrow "->" stands for the program order, and word
-"orders" means that a primitive guarantees some program order becomes
-the memory operation order, so that the description above can be
-rewritten as:
-
-value-returning atomics:
-	orders {LOAD,STORE}->RmW(atomic operation)->{LOAD,STORE}
-	strong transitivity
-=09
-much simpler and clearer for discussion and reasoning
-
-Regards,
-Boqun
-
-> etc..
->=20
-> Also, in the above I used weak and strong transitivity, but that too is
-> of course up for grabs.
-
---iFRdW5/EC4oqxDHL
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQEcBAABCAAGBQJWJe63AAoJEEl56MO1B/q4IXMIALFiMMtTYpSRYHPMx1/zBJxJ
-3AtwxeRMDfXgWCI6Y8IvrWyOjJq12pLn3YnZKPmefFh86y0NaIyUJ3xfX6DPCxDO
-oU7KqWuhnAKFkafAxxXsVM8bIIN8DIrp3eMCn/zOk5hLcgiNVTnA9Wl47uKHivps
-p9mcI092cPayTcehgzegDCkXdjHAQCdMdugGlZpQ9MNLjnJ6+dFSU43UuHUKYjrA
-UQfNQ+PvNuIce2rk2OWNg0iqil3ap+dRqnmZcTb1DLkt1xS131NH4EeYS63DUunG
-meUwDFoDBdvHPzHAwtSRmfpMa8clA/7yh52Xn2iIps+LA3bnkfnZ71wE9ZqMIws=
-=fIvL
------END PGP SIGNATURE-----
-
---iFRdW5/EC4oqxDHL--
+RnJvbTogUGF1bCBFLiBNY0tlbm5leQ0KPiBTZW50OiAyMSBPY3RvYmVyIDIwMTUgMDA6MzUNCi4u
+Lg0KPiBUaGVyZSBpcyBhbHNvIHRoZSBxdWVzdGlvbiBvZiB3aGV0aGVyIHRoZSBiYXJyaWVyIGZv
+cmNlcyBvcmRlcmluZw0KPiBvZiB1bnJlbGF0ZWQgc3RvcmVzLCBldmVyeXRoaW5nIGluaXRpYWxs
+eSB6ZXJvIGFuZCBhbGwgYWNjZXNzZXMNCj4gUkVBRF9PTkNFKCkgb3IgV1JJVEVfT05DRSgpOg0K
+PiANCj4gCVAwCQlQMQkJUDIJCVAzDQo+IAlYID0gMTsJCVkgPSAxOwkJcjEgPSBYOwkJcjMgPSBZ
+Ow0KPiAJCQkJCXNvbWVfYmFycmllcigpOwlzb21lX2JhcnJpZXIoKTsNCj4gCQkJCQlyMiA9IFk7
+CQlyNCA9IFg7DQo+IA0KPiBQMidzIGFuZCBQMydzIG9yZGVyaW5nIGNvdWxkIGJlIGdsb2JhbGx5
+IHZpc2libGUgd2l0aG91dCByZXF1aXJpbmcNCj4gUDAncyBhbmQgUDEncyBpbmRlcGVuZGVudCBz
+dG9yZXMgdG8gYmUgb3JkZXJlZCwgZm9yIGV4YW1wbGUsIGlmIHlvdQ0KPiB1c2VkIHNtcF9ybWIo
+KSBmb3Igc29tZV9iYXJyaWVyKCkuICBJbiBjb250cmFzdCwgaWYgd2UgdXNlZCBzbXBfbWIoKQ0K
+PiBmb3IgYmFycmllciwgZXZlcnlvbmUgd291bGQgYWdyZWUgb24gdGhlIG9yZGVyIG9mIFAwJ3Mg
+YW5kIFAwJ3Mgc3RvcmVzLg0KPiANCj4gVGhlcmUgYXJlIGFjdHVhbGx5IGEgZmFpciBudW1iZXIg
+b2YgZGlmZmVyZW50IGNvbWJpbmF0aW9ucyBvZg0KPiBhc3BlY3RzIG9mIG1lbW9yeSBvcmRlcmlu
+Zy4gIFdlIHdpbGwgbmVlZCB0byBjaG9vc2Ugd2lzZWx5LiAgOy0pDQoNCk15IHRob3VnaHRzIG9u
+IHRoaXMgYXJlIHRoYXQgbW9zdCBjb2RlIHByb2JhYmx5IGlzbid0IHBlcmZvcm1hbmNlIGNyaXRp
+Y2FsDQplbm91Z2ggdG8gYmUgdXNpbmcgYW55dGhpbmcgb3RoZXIgdGhhbiBub3JtYWwgbG9ja3Mg
+Zm9yIGludGVyLWNwdQ0Kc3luY2hyb25pc2F0aW9uLg0KQ2VydGFpbmx5IG1vc3QgcGVvcGxlIGFy
+ZSBsaWtlbHkgdG8gZ2V0IGl0IHdyb25nIHNvbWV3aGVyZS4NClNvIHlvdSB3YW50IGEgYmlnIHJl
+ZCBzdGlja2VyIHNheWluZyAnRG9uJ3QgdHJ5IHRvIGJlIHRvbyBjbGV2ZXInLg0KDQpBbHNvIHdp
+dGhvdXQgZXhhbXBsZXMgb2Ygd2h5IHRoaW5ncyBnbyB3cm9uZyAoZWcgbWVtYmVyX2NvbnN1bWVy
+KCkNCmFuZCBhbHBoYSkgaXQgaXMgZGlmZmljdWx0IHRvIHVuZGVyc3RhbmQgdGhlIGRpZmZlcmVu
+Y2VzIGJldHdlZW4NCmFsbCB0aGUgYmFycmllcnMgKGV0YykuDQoNCk9UT0ggZGV2aWNlIGRyaXZl
+ciBjb2RlIG1heSBuZWVkIHRoaW5ncyBzbGlnaHRseSBzdHJvbmdlciB0aGFuDQpiYXJyaWVyKCkg
+KHdoaWNoIEkgdGhpbmsgaXMgYXNtKDo6OiJtZW1vcnkiKSkgdG8gc2VxdWVuY2UgYWNjZXNzZXMN
+CnRvIGhhcmR3YXJlIGRldmljZXMgKGFuZCBtZW1vcnkgdGhlIGhhcmR3YXJlIHJlYWRzKSwgYnV0
+IHdpdGhvdXQNCmhhdmluZyBhIHN0cm9uZyBiYXJyaWVyIGluIGV2ZXJ5IGlvcmVhZC93cml0ZSgp
+IGFjY2Vzcy4NCg0KCURhdmlkDQoNCg==
