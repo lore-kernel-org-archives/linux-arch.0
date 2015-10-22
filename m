@@ -1,67 +1,34 @@
-From: Bjorn Helgaas <helgaas@kernel.org>
+From: Ley Foon Tan <lftan@altera.com>
 Subject: Re: [PATCH v2 0/4] Add PCI support on nios2 architecture
-Date: Wed, 21 Oct 2015 15:44:30 -0500
-Message-ID: <20151021204430.GG1583@localhost>
+Date: Thu, 22 Oct 2015 09:34:04 +0800
+Message-ID: <CAFiDJ59X4prLPZ4_3FB1GGMJpeeQ7Nn79Sp5jnTk5x7xnOQEsQ@mail.gmail.com>
 References: <1444804304-5213-1-git-send-email-lftan@altera.com>
+	<20151021204430.GG1583@localhost>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:55033 "EHLO mail.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755535AbbJUUog (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 21 Oct 2015 16:44:36 -0400
-Content-Disposition: inline
-In-Reply-To: <1444804304-5213-1-git-send-email-lftan@altera.com>
+Received: from mail-lf0-f54.google.com ([209.85.215.54]:33801 "EHLO
+	mail-lf0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753158AbbJVBeI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Oct 2015 21:34:08 -0400
+In-Reply-To: <20151021204430.GG1583@localhost>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ley Foon Tan <lftan@altera.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, lftan.linux@gmail.com
+To: Bjorn Helgaas <helgaas@kernel.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-pci@vger.kernel.org
 
-Hi Ley,
+On Thu, Oct 22, 2015 at 4:44 AM, Bjorn Helgaas <helgaas@kernel.org> wrote:
+> Hi Ley,
+>
+> I'm ignoring this series for now because of the build errors reported by
+> the kbuild test robot.
+>
+> Bjorn
+>
+Hi Bjorn
 
-I'm ignoring this series for now because of the build errors reported by
-the kbuild test robot.
+I'm working on the newer version to fix the build errors.
+Thanks.
 
-Bjorn
-
-On Wed, Oct 14, 2015 at 02:31:40PM +0800, Ley Foon Tan wrote:
-> This is 2nd version of patch to add pci support for nios2 architecture.
-> This patchset also update asm-generic/pci.h to include PCI generic define/function
-> as suggested by Arnd.
-> It requires pci_fixup_irqs() from setup-irq.c.
-> 
-> v1->v2 changes:
-> - nios2: remove PCI_SYSCALL from Kconfig
-> - nios2: set IO_SPACE_LIMIT to 0xffff
-> - nios2: remove arch/nios2/include/asm/pci.h and use asm-generic pci.h
-> - pci: add include <linux/dma-mapping.h> to pci.c
-> - asm-generic: add pci generic functions/defines to pci.h
-> 
-> History
-> -------
-> [v1]: https://lkml.org/lkml/2015/9/22/44
-> 
-> Ley Foon Tan (4):
->   asm-generic: add pci required defines and functions
->   pci: add include <linux/dma-mapping.h>
->   PCI: Build setup-irq.o for nios2
->   nios2: Add architectural support for PCIe
-> 
->  arch/nios2/Kconfig            | 21 +++++++++++++++++++++
->  arch/nios2/include/asm/Kbuild |  1 +
->  arch/nios2/include/asm/io.h   | 12 ++++++++++--
->  arch/nios2/kernel/Makefile    |  1 +
->  arch/nios2/kernel/pci.c       | 33 +++++++++++++++++++++++++++++++++
->  drivers/pci/Makefile          |  1 +
->  drivers/pci/pci.c             |  1 +
->  include/asm-generic/pci.h     | 34 ++++++++++++++++++++++++++++++++++
->  8 files changed, 102 insertions(+), 2 deletions(-)
->  create mode 100644 arch/nios2/kernel/pci.c
-> 
-> -- 
-> 1.8.2.1
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Regards
+Ley Foon
