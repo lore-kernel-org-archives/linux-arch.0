@@ -1,58 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:37761 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755671AbbJUTgd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Oct 2015 15:36:33 -0400
-Date: Wed, 21 Oct 2015 21:36:44 +0200
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH v2] barriers: introduce smp_mb__release_acquire and
- update documentation
-Message-ID: <20151021193644.GG2508@worktop.programming.kicks-ass.net>
-References: <20151007152501.GI3910@linux.vnet.ibm.com>
- <1444276236.9940.5.camel@ellerman.id.au>
- <20151008111638.GL3816@twins.programming.kicks-ass.net>
- <20151008214439.GE3910@linux.vnet.ibm.com>
- <20151009083138.GU3816@twins.programming.kicks-ass.net>
- <20151009094039.GD26278@arm.com>
- <20151019011718.GB924@fixme-laptop.cn.ibm.com>
- <20151020233451.GI5105@linux.vnet.ibm.com>
- <20151021082452.GC2881@worktop.programming.kicks-ass.net>
- <20151021192923.GR5105@linux.vnet.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20151021192923.GR5105@linux.vnet.ibm.com>
+Received: from aserp1040.oracle.com ([141.146.126.69]:46649 "EHLO
+	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751876AbbJYQiK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 25 Oct 2015 12:38:10 -0400
+From: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
+Subject: [PATCH v1 1/2] dma-mapping-common: add dma_map_page_attrs API
+Date: Sun, 25 Oct 2015 09:37:57 -0700
+Message-ID: <1445791078-28244-1-git-send-email-shamir.rabinovitch@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Boqun Feng <boqun.feng@gmail.com>, Will Deacon <will.deacon@arm.com>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Anton Blanchard <anton@samba.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20151021193644.cXJ_MzPf0C0STzPPPoC5jSA--P6vJC_hE_9dzkgLVIA@z>
+To: linux-arch@vger.kernel.org
+Cc: arnd@arndb.de, corbet@lwn.net, linux-doc@vger.kernel.org
+Message-ID: <20151025163757.uMLJKNDXIDj2HFNhdJ9ycaf5-32EATFgdZTAHCJR2EQ@z>
 
-On Wed, Oct 21, 2015 at 12:29:23PM -0700, Paul E. McKenney wrote:
-> On Wed, Oct 21, 2015 at 10:24:52AM +0200, Peter Zijlstra wrote:
-> > On Tue, Oct 20, 2015 at 04:34:51PM -0700, Paul E. McKenney wrote:
-> > > There is also the question of whether the barrier forces ordering
-> > > of unrelated stores, everything initially zero and all accesses
-> > > READ_ONCE() or WRITE_ONCE():
-> > > 
-> > > 	P0		P1		P2		P3
-> > > 	X = 1;		Y = 1;		r1 = X;		r3 = Y;
-> > > 					some_barrier();	some_barrier();
-> > > 					r2 = Y;		r4 = X;
-> > > 
-> > > P2's and P3's ordering could be globally visible without requiring
-> > > P0's and P1's independent stores to be ordered, for example, if you
-> > > used smp_rmb() for some_barrier().  In contrast, if we used smp_mb()
-> > > for barrier, everyone would agree on the order of P0's and P0's stores.
-> > 
-> > Oh!?
-> 
-> Behold sequential consistency, worshipped fervently by a surprisingly
-> large number of people!  Something about legacy proof methods, as near
-> as I can tell.  ;-)
+SPARC64 arch need the ability to pass DMA attributes when mapping
+pages. DMA performance will be low if specific attributes such as
+DMA_ATTR_WEAK_ORDERING are not used.
 
-But how can smp_mb() guarantee anything about P[01]? There is but the
-single store, which can race against P[23] arbitrarily. There is nothing
-to order.
+Signed-off-by: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
+---
+ include/asm-generic/dma-mapping-common.h |   32 +++++++++++++++++++++++------
+ 1 files changed, 25 insertions(+), 7 deletions(-)
 
-Maybe I'm confused again..
+diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
+index b1bc954..b816ed7 100644
+--- a/include/asm-generic/dma-mapping-common.h
++++ b/include/asm-generic/dma-mapping-common.h
+@@ -74,32 +74,50 @@ static inline void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg
+ 		ops->unmap_sg(dev, sg, nents, dir, attrs);
+ }
+ 
+-static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
+-				      size_t offset, size_t size,
+-				      enum dma_data_direction dir)
++static inline dma_addr_t dma_map_page_attrs(struct device *dev,
++					    struct page *page,
++					    size_t offset, size_t size,
++					    enum dma_data_direction dir,
++					    struct dma_attrs *attrs)
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+ 	dma_addr_t addr;
+ 
+ 	kmemcheck_mark_initialized(page_address(page) + offset, size);
+ 	BUG_ON(!valid_dma_direction(dir));
+-	addr = ops->map_page(dev, page, offset, size, dir, NULL);
++	addr = ops->map_page(dev, page, offset, size, dir, attrs);
+ 	debug_dma_map_page(dev, page, offset, size, dir, addr, false);
+ 
+ 	return addr;
+ }
+ 
+-static inline void dma_unmap_page(struct device *dev, dma_addr_t addr,
+-				  size_t size, enum dma_data_direction dir)
++static inline void dma_unmap_page_attrs(struct device *dev, dma_addr_t addr,
++					size_t size,
++					enum dma_data_direction dir,
++					struct dma_attrs *attrs)
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+ 
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	if (ops->unmap_page)
+-		ops->unmap_page(dev, addr, size, dir, NULL);
++		ops->unmap_page(dev, addr, size, dir, attrs);
+ 	debug_dma_unmap_page(dev, addr, size, dir, false);
+ }
+ 
++static inline dma_addr_t dma_map_page(struct device *dev,
++				      struct page *page,
++				      size_t offset, size_t size,
++				      enum dma_data_direction dir)
++{
++	return dma_map_page_attrs(dev, page, offset, size, dir, NULL);
++}
++
++static inline void dma_unmap_page(struct device *dev, dma_addr_t addr,
++				  size_t size, enum dma_data_direction dir)
++{
++	return dma_unmap_page_attrs(dev, addr, size, dir, NULL);
++}
++
+ static inline void dma_sync_single_for_cpu(struct device *dev, dma_addr_t addr,
+ 					   size_t size,
+ 					   enum dma_data_direction dir)
+-- 
+1.7.1
+
