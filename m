@@ -1,59 +1,84 @@
 From: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
-Subject: [PATCH v1 2/2] dma-mapping-common: add DMA attribute - DMA_ATTR_IOMMU_BYPASS
-Date: Sun, 25 Oct 2015 09:37:58 -0700
-Message-ID: <1445791078-28244-2-git-send-email-shamir.rabinovitch@oracle.com>
-References: <1445791078-28244-1-git-send-email-shamir.rabinovitch@oracle.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:20574 "EHLO
-	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751852AbbJYQiK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 25 Oct 2015 12:38:10 -0400
-In-Reply-To: <1445791078-28244-1-git-send-email-shamir.rabinovitch@oracle.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH v1 1/2] dma-mapping-common: add dma_map_page_attrs API
+Date: Sun, 25 Oct 2015 09:37:57 -0700
+Message-ID: <1445791078-28244-1-git-send-email-shamir.rabinovitch@oracle.com>
+Return-path: <linux-doc-owner@vger.kernel.org>
+Sender: linux-doc-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: arnd@arndb.de, corbet@lwn.net, linux-doc@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-For systems with IOMMU it is assumed all DMA translations use the IOMMU.
-There are, however, cases when IOMMU might map only limited range of the
-memory or when the cost of setting IOMMU dma mapping is too big. For those
-cases, this flag can be used to request the DMA-mapping subsystem to bypass
-the IOMMU if applicable.
+SPARC64 arch need the ability to pass DMA attributes when mapping
+pages. DMA performance will be low if specific attributes such as
+DMA_ATTR_WEAK_ORDERING are not used.
 
 Signed-off-by: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
 ---
- Documentation/DMA-attributes.txt |    9 +++++++++
- include/linux/dma-attrs.h        |    1 +
- 2 files changed, 10 insertions(+), 0 deletions(-)
+ include/asm-generic/dma-mapping-common.h |   32 +++++++++++++++++++++++------
+ 1 files changed, 25 insertions(+), 7 deletions(-)
 
-diff --git a/Documentation/DMA-attributes.txt b/Documentation/DMA-attributes.txt
-index 18dc52c..1174afc 100644
---- a/Documentation/DMA-attributes.txt
-+++ b/Documentation/DMA-attributes.txt
-@@ -100,3 +100,12 @@ allocated by dma_alloc_attrs() function from individual pages if it can
- be mapped as contiguous chunk into device dma address space. By
- specifying this attribute the allocated buffer is forced to be contiguous
- also in physical memory.
-+
-+DMA_ATTR_IOMMU_BYPASS
-+---------------------
-+
-+For systems with IOMMU it is assumed all DMA translations use the IOMMU.
-+There are, however, cases when IOMMU might map only limited range of the
-+memory or when the cost of setting IOMMU dma mapping is too big. For those
-+cases, this flag can be used to request the DMA-mapping subsystem to bypass
-+the IOMMU if applicable.
-diff --git a/include/linux/dma-attrs.h b/include/linux/dma-attrs.h
-index c8e1831..7c78691 100644
---- a/include/linux/dma-attrs.h
-+++ b/include/linux/dma-attrs.h
-@@ -18,6 +18,7 @@ enum dma_attr {
- 	DMA_ATTR_NO_KERNEL_MAPPING,
- 	DMA_ATTR_SKIP_CPU_SYNC,
- 	DMA_ATTR_FORCE_CONTIGUOUS,
-+	DMA_ATTR_IOMMU_BYPASS,
- 	DMA_ATTR_MAX,
- };
+diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
+index b1bc954..b816ed7 100644
+--- a/include/asm-generic/dma-mapping-common.h
++++ b/include/asm-generic/dma-mapping-common.h
+@@ -74,32 +74,50 @@ static inline void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg
+ 		ops->unmap_sg(dev, sg, nents, dir, attrs);
+ }
  
+-static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
+-				      size_t offset, size_t size,
+-				      enum dma_data_direction dir)
++static inline dma_addr_t dma_map_page_attrs(struct device *dev,
++					    struct page *page,
++					    size_t offset, size_t size,
++					    enum dma_data_direction dir,
++					    struct dma_attrs *attrs)
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+ 	dma_addr_t addr;
+ 
+ 	kmemcheck_mark_initialized(page_address(page) + offset, size);
+ 	BUG_ON(!valid_dma_direction(dir));
+-	addr = ops->map_page(dev, page, offset, size, dir, NULL);
++	addr = ops->map_page(dev, page, offset, size, dir, attrs);
+ 	debug_dma_map_page(dev, page, offset, size, dir, addr, false);
+ 
+ 	return addr;
+ }
+ 
+-static inline void dma_unmap_page(struct device *dev, dma_addr_t addr,
+-				  size_t size, enum dma_data_direction dir)
++static inline void dma_unmap_page_attrs(struct device *dev, dma_addr_t addr,
++					size_t size,
++					enum dma_data_direction dir,
++					struct dma_attrs *attrs)
+ {
+ 	struct dma_map_ops *ops = get_dma_ops(dev);
+ 
+ 	BUG_ON(!valid_dma_direction(dir));
+ 	if (ops->unmap_page)
+-		ops->unmap_page(dev, addr, size, dir, NULL);
++		ops->unmap_page(dev, addr, size, dir, attrs);
+ 	debug_dma_unmap_page(dev, addr, size, dir, false);
+ }
+ 
++static inline dma_addr_t dma_map_page(struct device *dev,
++				      struct page *page,
++				      size_t offset, size_t size,
++				      enum dma_data_direction dir)
++{
++	return dma_map_page_attrs(dev, page, offset, size, dir, NULL);
++}
++
++static inline void dma_unmap_page(struct device *dev, dma_addr_t addr,
++				  size_t size, enum dma_data_direction dir)
++{
++	return dma_unmap_page_attrs(dev, addr, size, dir, NULL);
++}
++
+ static inline void dma_sync_single_for_cpu(struct device *dev, dma_addr_t addr,
+ 					   size_t size,
+ 					   enum dma_data_direction dir)
 -- 
 1.7.1
+
