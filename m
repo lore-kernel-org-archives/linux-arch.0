@@ -1,17 +1,18 @@
 From: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
 Subject: [PATCH v1 2/2] dma-mapping-common: add DMA attribute - DMA_ATTR_IOMMU_BYPASS
-Date: Sun, 25 Oct 2015 09:07:04 -0700
-Message-ID: <1445789224-28032-2-git-send-email-shamir.rabinovitch@oracle.com>
-References: <1445789224-28032-1-git-send-email-shamir.rabinovitch@oracle.com>
+Date: Sun, 25 Oct 2015 09:37:58 -0700
+Message-ID: <1445791078-28244-2-git-send-email-shamir.rabinovitch@oracle.com>
+References: <1445791078-28244-1-git-send-email-shamir.rabinovitch@oracle.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:16611 "EHLO
+Received: from userp1040.oracle.com ([156.151.31.81]:20574 "EHLO
 	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751705AbbJYQHS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 25 Oct 2015 12:07:18 -0400
-In-Reply-To: <1445789224-28032-1-git-send-email-shamir.rabinovitch@oracle.com>
+	with ESMTP id S1751852AbbJYQiK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 25 Oct 2015 12:38:10 -0400
+In-Reply-To: <1445791078-28244-1-git-send-email-shamir.rabinovitch@oracle.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, corbet@lwn.net, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org
+To: linux-arch@vger.kernel.org
+Cc: arnd@arndb.de, corbet@lwn.net, linux-doc@vger.kernel.org
 
 For systems with IOMMU it is assumed all DMA translations use the IOMMU.
 There are, however, cases when IOMMU might map only limited range of the
