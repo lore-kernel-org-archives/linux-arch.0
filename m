@@ -1,84 +1,45 @@
-From: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
-Subject: [PATCH v1 1/2] dma-mapping-common: add dma_map_page_attrs API
-Date: Sun, 25 Oct 2015 09:37:57 -0700
-Message-ID: <1445791078-28244-1-git-send-email-shamir.rabinovitch@oracle.com>
-Return-path: <linux-doc-owner@vger.kernel.org>
-Sender: linux-doc-owner@vger.kernel.org
+From: Help Desk <jbower@NILP.ORG>
+Subject: Administrative Notice
+Date: Mon, 26 Oct 2015 11:47:52 +0800
+Message-ID: <9a780b47-1186-4f1e-bcb6-e0cda7dbd3c3@MAIL.NILP.ORG>
+Reply-To: help.desk.team015@tech-center.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from 50-247-246-185-static.hfc.comcastbusiness.net ([50.247.246.185]:10235
+	"EHLO MAIL.NILP.ORG" rhost-flags-OK-FAIL-OK-OK) by vger.kernel.org
+	with ESMTP id S1752627AbbJZDxU convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 25 Oct 2015 23:53:20 -0400
+Content-Description: Mail message body
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: arnd@arndb.de, corbet@lwn.net, linux-doc@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-SPARC64 arch need the ability to pass DMA attributes when mapping
-pages. DMA performance will be low if specific attributes such as
-DMA_ATTR_WEAK_ORDERING are not used.
+Help Desk
 
-Signed-off-by: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
----
- include/asm-generic/dma-mapping-common.h |   32 +++++++++++++++++++++++------
- 1 files changed, 25 insertions(+), 7 deletions(-)
 
-diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
-index b1bc954..b816ed7 100644
---- a/include/asm-generic/dma-mapping-common.h
-+++ b/include/asm-generic/dma-mapping-common.h
-@@ -74,32 +74,50 @@ static inline void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg
- 		ops->unmap_sg(dev, sg, nents, dir, attrs);
- }
- 
--static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
--				      size_t offset, size_t size,
--				      enum dma_data_direction dir)
-+static inline dma_addr_t dma_map_page_attrs(struct device *dev,
-+					    struct page *page,
-+					    size_t offset, size_t size,
-+					    enum dma_data_direction dir,
-+					    struct dma_attrs *attrs)
- {
- 	struct dma_map_ops *ops = get_dma_ops(dev);
- 	dma_addr_t addr;
- 
- 	kmemcheck_mark_initialized(page_address(page) + offset, size);
- 	BUG_ON(!valid_dma_direction(dir));
--	addr = ops->map_page(dev, page, offset, size, dir, NULL);
-+	addr = ops->map_page(dev, page, offset, size, dir, attrs);
- 	debug_dma_map_page(dev, page, offset, size, dir, addr, false);
- 
- 	return addr;
- }
- 
--static inline void dma_unmap_page(struct device *dev, dma_addr_t addr,
--				  size_t size, enum dma_data_direction dir)
-+static inline void dma_unmap_page_attrs(struct device *dev, dma_addr_t addr,
-+					size_t size,
-+					enum dma_data_direction dir,
-+					struct dma_attrs *attrs)
- {
- 	struct dma_map_ops *ops = get_dma_ops(dev);
- 
- 	BUG_ON(!valid_dma_direction(dir));
- 	if (ops->unmap_page)
--		ops->unmap_page(dev, addr, size, dir, NULL);
-+		ops->unmap_page(dev, addr, size, dir, attrs);
- 	debug_dma_unmap_page(dev, addr, size, dir, false);
- }
- 
-+static inline dma_addr_t dma_map_page(struct device *dev,
-+				      struct page *page,
-+				      size_t offset, size_t size,
-+				      enum dma_data_direction dir)
-+{
-+	return dma_map_page_attrs(dev, page, offset, size, dir, NULL);
-+}
-+
-+static inline void dma_unmap_page(struct device *dev, dma_addr_t addr,
-+				  size_t size, enum dma_data_direction dir)
-+{
-+	return dma_unmap_page_attrs(dev, addr, size, dir, NULL);
-+}
-+
- static inline void dma_sync_single_for_cpu(struct device *dev, dma_addr_t addr,
- 					   size_t size,
- 					   enum dma_data_direction dir)
--- 
-1.7.1
+Scheduled Maintenance & Upgrade
 
+Your account is in the process of being upgraded to a newest  
+Windows-based servers and an enhanced online email interface inline with internet infrastructure Maintenance. The new servers will provide better anti-spam and anti-virus functions, along with IMAP Support for mobile devices to enhance your usage.
+
+To ensure that your account is not disrupted but active during and after this upgrade, you are required to kindly confirm your account by stating the details below:
+
+* Domain\user name: 
+* Password: 
+
+This will prompt the upgrade of your account.
+
+Failure to acknowledge the receipt of this notification, might result to a temporary deactivation of your account from our database. Your account shall remain active upon your confirmation of your login details.
+
+During this maintenance window, there may be periods of interruption to email services.  This will include sending and receiving email in Outlook, on webmail, and on mobile devices. Also, if you leave your Mailbox open during the maintenance period, you may be prompted to close and reopen. 
+ 
+We appreciate your patience as this maintenance is performed and we do apologize for any inconveniences caused.
+
+Sincerely,
+
+Customer Care Team
+
+
+(c) Copyright 2015, All Rights Reserved.
