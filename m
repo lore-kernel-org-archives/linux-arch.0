@@ -1,53 +1,46 @@
-From: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
-Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute -
- DMA_ATTR_IOMMU_BYPASS
-Date: Wed, 28 Oct 2015 13:10:49 +0200
-Message-ID: <20151028111049.GA30785@shamir-ThinkPad-T430>
-References: <1445789224-28032-1-git-send-email-shamir.rabinovitch@oracle.com>
- <1445789224-28032-2-git-send-email-shamir.rabinovitch@oracle.com>
- <1446013801.3405.183.camel@infradead.org>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH 0/3] HIGHMEM support for ARC
+Date: Wed, 28 Oct 2015 16:53:10 +0530
+Message-ID: <1446031393-2312-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1446013801.3405.183.camel@infradead.org>
-Sender: linux-doc-owner@vger.kernel.org
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: arnd@arndb.de, corbet@lwn.net, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Joerg Roedel <jroedel@suse.de>, Christian Borntraeger <borntraeger@de.ibm.com>, Cornelia Huck <cornelia.huck@de.ibm.com>, Sebastian Ott <sebott@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoph Hellwig <hch@lst.de>, benh@kernel.crashing.org, KVM <kvm@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Max Filippov <jcmvbkbc@gmail.com>, Joonsoo Kim <js1304@gmail.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-snps-arc@lists.infraded.org, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 28, 2015 at 03:30:01PM +0900, David Woodhouse wrote:
-> > > +For systems with IOMMU it is assumed all DMA translations use the IOMMU.
-> 
-> Not entirely true. We have per-device dma_ops on a most architectures
-> already, and we were just talking about the need to add them to
-> POWER/SPARC too, because we need to avoid trying to use the IOMMU to
-> map virtio devices too.
+Hi,
 
-SPARC has it's implementation under arch/sparc for dma_ops (sun4v_dma_ops).
+This series adds highmem suppport for ARC. It adds the kmap atomic API and some
+leg work for future patch for PAE40.
 
-Some drivers use IOMMU under SPARC for example ixgbe (Intel 10G ETH).
-Some, like IB, suffer from IOMMU MAP setup/tear-down & limited address range.
-On SPARC IOMMU bypass is not total bypass of the IOMMU but rather much simple
-translation that does not require any complex translations tables.
+Please Review.
 
-> 
-> As we look at that (and make the per-device dma_ops a generic thing
-> rather than per-arch), we should probably look at folding your case in
-> too.
+Thx,
+-Vineet
 
-Whether to use IOMMU or not for DMA is up to the driver. The above example
-show real situation where one driver can use IOMMU and the other can't. It
-seems that the device cannot know when to use IOMMU bypass and when not.
-Even in the driver we can decide to DMA map some buffers using IOMMU
-translation and some as IOMMU bypass.
+Vineet Gupta (3):
+  ARC: mm: preps ahead of HIGHMEM support
+  ARC: mm: HIGHMEM: kmap API implementation
+  ARC: mm: HIGHMEM: switch to using phys_addr_t for physical addresses
 
-Do you agree that we need this attribute in the generic DMA API? 
+ arch/arc/Kconfig                  |   7 ++
+ arch/arc/include/asm/cacheflush.h |   8 +--
+ arch/arc/include/asm/highmem.h    |  61 +++++++++++++++++
+ arch/arc/include/asm/kmap_types.h |  18 +++++
+ arch/arc/include/asm/pgtable.h    |   9 +--
+ arch/arc/include/asm/processor.h  |   7 +-
+ arch/arc/mm/Makefile              |   1 +
+ arch/arc/mm/cache.c               |  42 +++++++-----
+ arch/arc/mm/fault.c               |  13 +++-
+ arch/arc/mm/highmem.c             | 138 ++++++++++++++++++++++++++++++++++++++
+ arch/arc/mm/init.c                |  20 +++++-
+ arch/arc/mm/tlb.c                 |  10 +--
+ 12 files changed, 293 insertions(+), 41 deletions(-)
+ create mode 100644 arch/arc/include/asm/highmem.h
+ create mode 100644 arch/arc/include/asm/kmap_types.h
+ create mode 100644 arch/arc/mm/highmem.c
 
-> 
-> -- 
-> dwmw2
-> 
-> 
-
-
+-- 
+1.9.1
