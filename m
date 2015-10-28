@@ -1,125 +1,53 @@
-From: Chen Gang <xili_gchen_5257@hotmail.com>
-Subject: Re: [PATCH] arch: uapi: asm: mman.h: Let MADV_FREE have same value
- for all architectures
-Date: Wed, 28 Oct 2015 16:45:48 +0800
-Message-ID: <COL130-W37C2F06A47515014535992B9210@phx.gbl>
-References: <5480E715.3020900@gmail.com>
- <20151028071843.GH26803@bbox>,<56308B0B.3000801@hotmail.com>
+From: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
+Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute -
+ DMA_ATTR_IOMMU_BYPASS
+Date: Wed, 28 Oct 2015 13:10:49 +0200
+Message-ID: <20151028111049.GA30785@shamir-ThinkPad-T430>
+References: <1445789224-28032-1-git-send-email-shamir.rabinovitch@oracle.com>
+ <1445789224-28032-2-git-send-email-shamir.rabinovitch@oracle.com>
+ <1446013801.3405.183.camel@infradead.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="gb2312"
-Content-Transfer-Encoding: base64
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from col004-omc3s8.hotmail.com ([65.55.34.146]:58595 "EHLO
-	COL004-OMC3S8.hotmail.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754770AbbJ1Ipt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Oct 2015 04:45:49 -0400
-In-Reply-To: <56308B0B.3000801@hotmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Minchan Kim <minchan@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "rth@twiddle.net" <rth@twiddle.net>, "ink@jurassic.park.msu.ru" <ink@jurassic.park.msu.ru>, "mattst88@gmail.com" <mattst88@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "deller@gmx.de" <deller@gmx.de>, "chris@zankel.net" <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, kernel mailing list <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "gang.chen.5i5j@gmail.com" <gang.chen.5i5j@gmail.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1446013801.3405.183.camel@infradead.org>
+Sender: linux-doc-owner@vger.kernel.org
+To: David Woodhouse <dwmw2@infradead.org>
+Cc: arnd@arndb.de, corbet@lwn.net, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Joerg Roedel <jroedel@suse.de>, Christian Borntraeger <borntraeger@de.ibm.com>, Cornelia Huck <cornelia.huck@de.ibm.com>, Sebastian Ott <sebott@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoph Hellwig <hch@lst.de>, benh@kernel.crashing.org, KVM <kvm@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-T24gMjAxNcTqMTDUwjI4yNUgMTU6MTgsIE1pbmNoYW4gS2ltIHdyb3RlOgo+IEhlbGxvIENoZW4s
-Cj4KPiBuIEZyaSwgRGVjIDA1LCAyMDE0IGF0IDA2OjU4OjI5QU0gKzA4MDAsIENoZW4gR2FuZyB3
-cm90ZToKPj4gRm9yIHVhcGksIG5lZWQgdHJ5IHRvIGxldCBhbGwgbWFjcm9zIGhhdmUgc2FtZSB2
-YWx1ZSwgYW5kIE1BRFZfRlJFRSBpcwo+PiBhZGRlZCBpbnRvIG1haW4gYnJhbmNoIHJlY2VudGx5
-LCBzbyBuZWVkIHJlZGVmaW5lIE1BRFZfRlJFRSBmb3IgaXQuCj4+Cj4+IEF0IHByZXNlbnQsICc4
-JyBjYW4gYmUgc2hhcmVkIHdpdGggYWxsIGFyY2hpdGVjdHVyZXMsIHNvIHJlZGVmaW5lIGl0IHRv
-Cj4+ICc4Jy4KPgo+IFJlY2VudGx5LCBJIGNsZWFuZWQgTUFEVl9GUkVFIHBhdGNoc2V0IHVwIGFu
-ZCB3aWxsIHNlbmQgdXB0b2RhdGUgdmVyc2lvbgo+IHRvIEFuZHJldyB0byByZXBsYWNlIG9sZCBp
-bXBsZW1lbnRhdGlvbiBpbiBtbW90bSB0cmVlIHdoaWNoIGlzIG5vdCBhCj4gbGludXMncyB0cmVl
-IHNvIHRoaXMgY2hhbmdlIHNob3VsZG4ndCBicmVhayBhbnl0aW5nLgo+Cj4gV2hlbiBJIGxvb2sg
-YXQgc3RhdHVzIG9mIHRoaXMgcGF0Y2gsIGl0IHNlZW1zIEFuZHJldyBtaXNzZWQgaXQKPiBzbyBJ
-IHdhbnQgdG8gaW5jbHVkZSB0aGlzIHBhdGNoIHdoZW4gSSByZXNwaW4gaWYgeW91IGRvbid0IG1p
-bmQuCj4KPiBJcyBpdCBva2F5IGZvciB5b3U/Cj4KCkZvciBtZSwgaXQgaXMgT0suIEFuZCB0aGFu
-ayB5b3UgZm9yIHlvdXIgd29yay4gOi0pCgoKPiBUaGFua3MuCj4KPj4KPj4gU2lnbmVkLW9mZi1i
-eTogQ2hlbiBHYW5nIDxnYW5nLmNoZW4uNWk1akBnbWFpbC5jb20+Cj4+IC0tLQo+PiAgYXJjaC9h
-bHBoYS9pbmNsdWRlL3VhcGkvYXNtL21tYW4uaCAgICAgfCAyICstCj4+ICBhcmNoL21pcHMvaW5j
-bHVkZS91YXBpL2FzbS9tbWFuLmggICAgICB8IDIgKy0KPj4gIGFyY2gvcGFyaXNjL2luY2x1ZGUv
-dWFwaS9hc20vbW1hbi5oICAgIHwgMiArLQo+PiAgYXJjaC94dGVuc2EvaW5jbHVkZS91YXBpL2Fz
-bS9tbWFuLmggICAgfCAyICstCj4+ICBpbmNsdWRlL3VhcGkvYXNtLWdlbmVyaWMvbW1hbi1jb21t
-b24uaCB8IDIgKy0KPj4gIDUgZmlsZXMgY2hhbmdlZCwgNSBpbnNlcnRpb25zKCspLCA1IGRlbGV0
-aW9ucygtKQo+Pgo+PiBkaWZmIC0tZ2l0IGEvYXJjaC9hbHBoYS9pbmNsdWRlL3VhcGkvYXNtL21t
-YW4uaCBiL2FyY2gvYWxwaGEvaW5jbHVkZS91YXBpL2FzbS9tbWFuLmgKPj4gaW5kZXggODM2ZmJk
-NC4uMGI4YTVkZSAxMDA2NDQKPj4gLS0tIGEvYXJjaC9hbHBoYS9pbmNsdWRlL3VhcGkvYXNtL21t
-YW4uaAo+PiArKysgYi9hcmNoL2FscGhhL2luY2x1ZGUvdWFwaS9hc20vbW1hbi5oCj4+IEBAIC00
-NCw5ICs0NCw5IEBACj4+ICAjZGVmaW5lIE1BRFZfV0lMTE5FRUQgICAgICAgMyAgICAgICAgICAg
-ICAgIC8qIHdpbGwgbmVlZCB0aGVzZSBwYWdlcyAqLwo+PiAgI2RlZmluZSAgICAgTUFEVl9TUEFD
-RUFWQUlMIDUgICAgICAgICAgICAgICAvKiBlbnN1cmUgcmVzb3VyY2VzIGFyZSBhdmFpbGFibGUg
-Ki8KPj4gICNkZWZpbmUgTUFEVl9ET05UTkVFRCAgICAgICA2ICAgICAgICAgICAgICAgLyogZG9u
-J3QgbmVlZCB0aGVzZSBwYWdlcyAqLwo+PiAtI2RlZmluZSBNQURWX0ZSRUUgICA3ICAgICAgICAg
-ICAgICAgLyogZnJlZSBwYWdlcyBvbmx5IGlmIG1lbW9yeSBwcmVzc3VyZSAqLwo+Pgo+PiAgLyog
-Y29tbW9uL2dlbmVyaWMgcGFyYW1ldGVycyAqLwo+PiArI2RlZmluZSBNQURWX0ZSRUUgICA4ICAg
-ICAgICAgICAgICAgLyogZnJlZSBwYWdlcyBvbmx5IGlmIG1lbW9yeSBwcmVzc3VyZSAqLwo+PiAg
-I2RlZmluZSBNQURWX1JFTU9WRSA5ICAgICAgICAgICAgICAgLyogcmVtb3ZlIHRoZXNlIHBhZ2Vz
-ICYgcmVzb3VyY2VzICovCj4+ICAjZGVmaW5lIE1BRFZfRE9OVEZPUksgICAgICAgMTAgICAgICAg
-ICAgICAgIC8qIGRvbid0IGluaGVyaXQgYWNyb3NzIGZvcmsgKi8KPj4gICNkZWZpbmUgTUFEVl9E
-T0ZPUksgMTEgICAgICAgICAgICAgIC8qIGRvIGluaGVyaXQgYWNyb3NzIGZvcmsgKi8KPj4gZGlm
-ZiAtLWdpdCBhL2FyY2gvbWlwcy9pbmNsdWRlL3VhcGkvYXNtL21tYW4uaCBiL2FyY2gvbWlwcy9p
-bmNsdWRlL3VhcGkvYXNtL21tYW4uaAo+PiBpbmRleCAxMDZlNzQxLi5kMjQ3ZjU0IDEwMDY0NAo+
-PiAtLS0gYS9hcmNoL21pcHMvaW5jbHVkZS91YXBpL2FzbS9tbWFuLmgKPj4gKysrIGIvYXJjaC9t
-aXBzL2luY2x1ZGUvdWFwaS9hc20vbW1hbi5oCj4+IEBAIC02Nyw5ICs2Nyw5IEBACj4+ICAjZGVm
-aW5lIE1BRFZfU0VRVUVOVElBTCAyICAgICAgICAgICAvKiBleHBlY3Qgc2VxdWVudGlhbCBwYWdl
-IHJlZmVyZW5jZXMgKi8KPj4gICNkZWZpbmUgTUFEVl9XSUxMTkVFRCAgICAgICAzICAgICAgICAg
-ICAgICAgLyogd2lsbCBuZWVkIHRoZXNlIHBhZ2VzICovCj4+ICAjZGVmaW5lIE1BRFZfRE9OVE5F
-RUQgICAgICAgNCAgICAgICAgICAgICAgIC8qIGRvbid0IG5lZWQgdGhlc2UgcGFnZXMgKi8KPj4g
-LSNkZWZpbmUgTUFEVl9GUkVFICAgNSAgICAgICAgICAgICAgIC8qIGZyZWUgcGFnZXMgb25seSBp
-ZiBtZW1vcnkgcHJlc3N1cmUgKi8KPj4KPj4gIC8qIGNvbW1vbiBwYXJhbWV0ZXJzOiB0cnkgdG8g
-a2VlcCB0aGVzZSBjb25zaXN0ZW50IGFjcm9zcyBhcmNoaXRlY3R1cmVzICovCj4+ICsjZGVmaW5l
-IE1BRFZfRlJFRSAgIDggICAgICAgICAgICAgICAvKiBmcmVlIHBhZ2VzIG9ubHkgaWYgbWVtb3J5
-IHByZXNzdXJlICovCj4+ICAjZGVmaW5lIE1BRFZfUkVNT1ZFIDkgICAgICAgICAgICAgICAvKiBy
-ZW1vdmUgdGhlc2UgcGFnZXMgJiByZXNvdXJjZXMgKi8KPj4gICNkZWZpbmUgTUFEVl9ET05URk9S
-SyAgICAgICAxMCAgICAgICAgICAgICAgLyogZG9uJ3QgaW5oZXJpdCBhY3Jvc3MgZm9yayAqLwo+
-PiAgI2RlZmluZSBNQURWX0RPRk9SSyAxMSAgICAgICAgICAgICAgLyogZG8gaW5oZXJpdCBhY3Jv
-c3MgZm9yayAqLwo+PiBkaWZmIC0tZ2l0IGEvYXJjaC9wYXJpc2MvaW5jbHVkZS91YXBpL2FzbS9t
-bWFuLmggYi9hcmNoL3BhcmlzYy9pbmNsdWRlL3VhcGkvYXNtL21tYW4uaAo+PiBpbmRleCA2Y2I4
-ZGI3Li43MDBkODNmIDEwMDY0NAo+PiAtLS0gYS9hcmNoL3BhcmlzYy9pbmNsdWRlL3VhcGkvYXNt
-L21tYW4uaAo+PiArKysgYi9hcmNoL3BhcmlzYy9pbmNsdWRlL3VhcGkvYXNtL21tYW4uaAo+PiBA
-QCAtNDAsOSArNDAsOSBAQAo+PiAgI2RlZmluZSBNQURWX1NQQUNFQVZBSUwgNSAgICAgICAgICAg
-ICAgIC8qIGluc3VyZSB0aGF0IHJlc291cmNlcyBhcmUgcmVzZXJ2ZWQgKi8KPj4gICNkZWZpbmUg
-TUFEVl9WUFNfUFVSR0UgIDYgICAgICAgICAgICAgICAvKiBQdXJnZSBwYWdlcyBmcm9tIFZNIHBh
-Z2UgY2FjaGUgKi8KPj4gICNkZWZpbmUgTUFEVl9WUFNfSU5IRVJJVCA3ICAgICAgICAgICAgICAv
-KiBJbmhlcml0IHBhcmVudHMgcGFnZSBzaXplICovCj4+IC0jZGVmaW5lIE1BRFZfRlJFRSAgIDgg
-ICAgICAgICAgICAgICAvKiBmcmVlIHBhZ2VzIG9ubHkgaWYgbWVtb3J5IHByZXNzdXJlICovCj4+
-Cj4+ICAvKiBjb21tb24vZ2VuZXJpYyBwYXJhbWV0ZXJzICovCj4+ICsjZGVmaW5lIE1BRFZfRlJF
-RSAgIDggICAgICAgICAgICAgICAvKiBmcmVlIHBhZ2VzIG9ubHkgaWYgbWVtb3J5IHByZXNzdXJl
-ICovCj4+ICAjZGVmaW5lIE1BRFZfUkVNT1ZFIDkgICAgICAgICAgICAgICAvKiByZW1vdmUgdGhl
-c2UgcGFnZXMgJiByZXNvdXJjZXMgKi8KPj4gICNkZWZpbmUgTUFEVl9ET05URk9SSyAgICAgICAx
-MCAgICAgICAgICAgICAgLyogZG9uJ3QgaW5oZXJpdCBhY3Jvc3MgZm9yayAqLwo+PiAgI2RlZmlu
-ZSBNQURWX0RPRk9SSyAxMSAgICAgICAgICAgICAgLyogZG8gaW5oZXJpdCBhY3Jvc3MgZm9yayAq
-Lwo+PiBkaWZmIC0tZ2l0IGEvYXJjaC94dGVuc2EvaW5jbHVkZS91YXBpL2FzbS9tbWFuLmggYi9h
-cmNoL3h0ZW5zYS9pbmNsdWRlL3VhcGkvYXNtL21tYW4uaAo+PiBpbmRleCAxYjE5ZjI1Li43N2Vh
-Y2E0IDEwMDY0NAo+PiAtLS0gYS9hcmNoL3h0ZW5zYS9pbmNsdWRlL3VhcGkvYXNtL21tYW4uaAo+
-PiArKysgYi9hcmNoL3h0ZW5zYS9pbmNsdWRlL3VhcGkvYXNtL21tYW4uaAo+PiBAQCAtODAsOSAr
-ODAsOSBAQAo+PiAgI2RlZmluZSBNQURWX1NFUVVFTlRJQUwgICAgIDIgICAgICAgICAgICAgICAv
-KiBleHBlY3Qgc2VxdWVudGlhbCBwYWdlIHJlZmVyZW5jZXMgKi8KPj4gICNkZWZpbmUgTUFEVl9X
-SUxMTkVFRCAgICAgICAzICAgICAgICAgICAgICAgLyogd2lsbCBuZWVkIHRoZXNlIHBhZ2VzICov
-Cj4+ICAjZGVmaW5lIE1BRFZfRE9OVE5FRUQgICAgICAgNCAgICAgICAgICAgICAgIC8qIGRvbid0
-IG5lZWQgdGhlc2UgcGFnZXMgKi8KPj4gLSNkZWZpbmUgTUFEVl9GUkVFICAgNSAgICAgICAgICAg
-ICAgIC8qIGZyZWUgcGFnZXMgb25seSBpZiBtZW1vcnkgcHJlc3N1cmUgKi8KPj4KPj4gIC8qIGNv
-bW1vbiBwYXJhbWV0ZXJzOiB0cnkgdG8ga2VlcCB0aGVzZSBjb25zaXN0ZW50IGFjcm9zcyBhcmNo
-aXRlY3R1cmVzICovCj4+ICsjZGVmaW5lIE1BRFZfRlJFRSAgIDggICAgICAgICAgICAgICAvKiBm
-cmVlIHBhZ2VzIG9ubHkgaWYgbWVtb3J5IHByZXNzdXJlICovCj4+ICAjZGVmaW5lIE1BRFZfUkVN
-T1ZFIDkgICAgICAgICAgICAgICAvKiByZW1vdmUgdGhlc2UgcGFnZXMgJiByZXNvdXJjZXMgKi8K
-Pj4gICNkZWZpbmUgTUFEVl9ET05URk9SSyAgICAgICAxMCAgICAgICAgICAgICAgLyogZG9uJ3Qg
-aW5oZXJpdCBhY3Jvc3MgZm9yayAqLwo+PiAgI2RlZmluZSBNQURWX0RPRk9SSyAxMSAgICAgICAg
-ICAgICAgLyogZG8gaW5oZXJpdCBhY3Jvc3MgZm9yayAqLwo+PiBkaWZmIC0tZ2l0IGEvaW5jbHVk
-ZS91YXBpL2FzbS1nZW5lcmljL21tYW4tY29tbW9uLmggYi9pbmNsdWRlL3VhcGkvYXNtLWdlbmVy
-aWMvbW1hbi1jb21tb24uaAo+PiBpbmRleCA3YTk0MTAyLi44Njk1OTU5IDEwMDY0NAo+PiAtLS0g
-YS9pbmNsdWRlL3VhcGkvYXNtLWdlbmVyaWMvbW1hbi1jb21tb24uaAo+PiArKysgYi9pbmNsdWRl
-L3VhcGkvYXNtLWdlbmVyaWMvbW1hbi1jb21tb24uaAo+PiBAQCAtMzQsOSArMzQsOSBAQAo+PiAg
-I2RlZmluZSBNQURWX1NFUVVFTlRJQUwgICAgIDIgICAgICAgICAgICAgICAvKiBleHBlY3Qgc2Vx
-dWVudGlhbCBwYWdlIHJlZmVyZW5jZXMgKi8KPj4gICNkZWZpbmUgTUFEVl9XSUxMTkVFRCAgICAg
-ICAzICAgICAgICAgICAgICAgLyogd2lsbCBuZWVkIHRoZXNlIHBhZ2VzICovCj4+ICAjZGVmaW5l
-IE1BRFZfRE9OVE5FRUQgICAgICAgNCAgICAgICAgICAgICAgIC8qIGRvbid0IG5lZWQgdGhlc2Ug
-cGFnZXMgKi8KPj4gLSNkZWZpbmUgTUFEVl9GUkVFICAgNSAgICAgICAgICAgICAgIC8qIGZyZWUg
-cGFnZXMgb25seSBpZiBtZW1vcnkgcHJlc3N1cmUgKi8KPj4KPj4gIC8qIGNvbW1vbiBwYXJhbWV0
-ZXJzOiB0cnkgdG8ga2VlcCB0aGVzZSBjb25zaXN0ZW50IGFjcm9zcyBhcmNoaXRlY3R1cmVzICov
-Cj4+ICsjZGVmaW5lIE1BRFZfRlJFRSAgIDggICAgICAgICAgICAgICAvKiBmcmVlIHBhZ2VzIG9u
-bHkgaWYgbWVtb3J5IHByZXNzdXJlICovCj4+ICAjZGVmaW5lIE1BRFZfUkVNT1ZFIDkgICAgICAg
-ICAgICAgICAvKiByZW1vdmUgdGhlc2UgcGFnZXMgJiByZXNvdXJjZXMgKi8KPj4gICNkZWZpbmUg
-TUFEVl9ET05URk9SSyAgICAgICAxMCAgICAgICAgICAgICAgLyogZG9uJ3QgaW5oZXJpdCBhY3Jv
-c3MgZm9yayAqLwo+PiAgI2RlZmluZSBNQURWX0RPRk9SSyAxMSAgICAgICAgICAgICAgLyogZG8g
-aW5oZXJpdCBhY3Jvc3MgZm9yayAqLwo+PiAtLQo+PiAxLjkuMwoKLS0KQ2hlbiBHYW5nCgpPcGVu
-LCBzaGFyZSwgYW5kIGF0dGl0dWRlIGxpa2UgYWlyLCB3YXRlciwgYW5kIGxpZmUgd2hpY2ggR29k
-IGJsZXNzZWQKIAkJIAkgICAJCSAg
+On Wed, Oct 28, 2015 at 03:30:01PM +0900, David Woodhouse wrote:
+> > > +For systems with IOMMU it is assumed all DMA translations use the IOMMU.
+> 
+> Not entirely true. We have per-device dma_ops on a most architectures
+> already, and we were just talking about the need to add them to
+> POWER/SPARC too, because we need to avoid trying to use the IOMMU to
+> map virtio devices too.
+
+SPARC has it's implementation under arch/sparc for dma_ops (sun4v_dma_ops).
+
+Some drivers use IOMMU under SPARC for example ixgbe (Intel 10G ETH).
+Some, like IB, suffer from IOMMU MAP setup/tear-down & limited address range.
+On SPARC IOMMU bypass is not total bypass of the IOMMU but rather much simple
+translation that does not require any complex translations tables.
+
+> 
+> As we look at that (and make the per-device dma_ops a generic thing
+> rather than per-arch), we should probably look at folding your case in
+> too.
+
+Whether to use IOMMU or not for DMA is up to the driver. The above example
+show real situation where one driver can use IOMMU and the other can't. It
+seems that the device cannot know when to use IOMMU bypass and when not.
+Even in the driver we can decide to DMA map some buffers using IOMMU
+translation and some as IOMMU bypass.
+
+Do you agree that we need this attribute in the generic DMA API? 
+
+> 
+> -- 
+> dwmw2
+> 
+> 
+
+
