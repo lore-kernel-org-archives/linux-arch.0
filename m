@@ -1,208 +1,128 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:40240 "EHLO
-	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965634AbbJ0VCe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Oct 2015 17:02:34 -0400
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH v8 52/61] PCI: Unify skip_ioresource_align()
-Date: Tue, 27 Oct 2015 13:55:44 -0700
-Message-ID: <1445979353-1728-53-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1445979353-1728-1-git-send-email-yinghai@kernel.org>
-References: <1445979353-1728-1-git-send-email-yinghai@kernel.org>
+Received: from mail-pa0-f68.google.com ([209.85.220.68]:35464 "EHLO
+	mail-pa0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932384AbbJ1HSW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Oct 2015 03:18:22 -0400
+Date: Wed, 28 Oct 2015 16:18:43 +0900
+From: Minchan Kim <minchan@kernel.org>
+Subject: Re: [PATCH] arch: uapi: asm: mman.h: Let MADV_FREE have same value
+ for all architectures
+Message-ID: <20151028071843.GH26803@bbox>
+References: <5480E715.3020900@gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <5480E715.3020900@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Wei Yang <weiyang@linux.vnet.ibm.com>, TJ <linux@iam.tj>, Yijing Wang <wangyijing@huawei.com>, Khalid Aziz <khalid.aziz@oracle.com>
-Cc: linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Michal Simek <monstr@monstr.eu>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Arnd Bergmann <arnd@arndb.de>, linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
-Message-ID: <20151027205544.T2DprPURIWzzSztyn3flQ0wtUfdqlN7qFSiSjN5ZhpU@z>
+To: Chen Gang <gang.chen.5i5j@gmail.com>
+Cc: "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "rth@twiddle.net" <rth@twiddle.net>, "ink@jurassic.park.msu.ru" <ink@jurassic.park.msu.ru>, "mattst88@gmail.com" <mattst88@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "deller@gmx.de" <deller@gmx.de>, "chris@zankel.net" <chris@zankel.net>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20151028071843.MX0mvX7OAO5loSyvyboR8YdRs--nsp83pNq2kGBgD_Q@z>
 
-There are powerpc generic version and x86 local version for
-skip_ioresource_align().
+Hello Chen,
 
-Move the powerpc version to setup-bus.c, and kill x86 local version.
+n Fri, Dec 05, 2014 at 06:58:29AM +0800, Chen Gang wrote:
+> For uapi, need try to let all macros have same value, and MADV_FREE is
+> added into main branch recently, so need redefine MADV_FREE for it.
+> 
+> At present, '8' can be shared with all architectures, so redefine it to
+> '8'.
 
-Also kill dummy version in microblaze.
+Recently, I cleaned MADV_FREE patchset up and will send uptodate version
+to Andrew to replace old implementation in mmotm tree which is not a
+linus's tree so this change shouldn't break anyting.
 
-Cc: Michal Simek <monstr@monstr.eu>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linuxppc-dev@lists.ozlabs.org
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
-Acked-by: Michael Ellerman <mpe@ellerman.id.au>
----
- arch/microblaze/pci/pci-common.c |  8 --------
- arch/powerpc/kernel/pci-common.c | 11 +----------
- arch/x86/include/asm/pci_x86.h   |  1 -
- arch/x86/pci/common.c            |  4 ++--
- arch/x86/pci/i386.c              | 12 ++----------
- drivers/pci/setup-bus.c          |  9 +++++++++
- include/asm-generic/pci-bridge.h |  2 ++
- 7 files changed, 16 insertions(+), 31 deletions(-)
+When I look at status of this patch, it seems Andrew missed it
+so I want to include this patch when I respin if you don't mind.
 
-diff --git a/arch/microblaze/pci/pci-common.c b/arch/microblaze/pci/pci-common.c
-index ae838ed..09b1af6 100644
---- a/arch/microblaze/pci/pci-common.c
-+++ b/arch/microblaze/pci/pci-common.c
-@@ -878,11 +878,6 @@ void pcibios_fixup_bus(struct pci_bus *bus)
- }
- EXPORT_SYMBOL(pcibios_fixup_bus);
- 
--static int skip_isa_ioresource_align(struct pci_dev *dev)
--{
--	return 0;
--}
--
- /*
-  * We need to avoid collisions with `mirrored' VGA ports
-  * and other strange ISA hardware, so we always want the
-@@ -899,12 +894,9 @@ static int skip_isa_ioresource_align(struct pci_dev *dev)
- resource_size_t pcibios_align_resource(void *data, const struct resource *res,
- 				resource_size_t size, resource_size_t align)
- {
--	struct pci_dev *dev = data;
- 	resource_size_t start = res->start;
- 
- 	if (res->flags & IORESOURCE_IO) {
--		if (skip_isa_ioresource_align(dev))
--			return start;
- 		if (start & 0x300)
- 			start = (start + 0x3ff) & ~0x3ff;
- 	}
-diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
-index 7587b2a..8853667 100644
---- a/arch/powerpc/kernel/pci-common.c
-+++ b/arch/powerpc/kernel/pci-common.c
-@@ -1052,15 +1052,6 @@ void pci_fixup_cardbus(struct pci_bus *bus)
- 	pcibios_setup_bus_devices(bus);
- }
- 
--
--static int skip_isa_ioresource_align(struct pci_dev *dev)
--{
--	if (pci_has_flag(PCI_CAN_SKIP_ISA_ALIGN) &&
--	    !(dev->bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
--		return 1;
--	return 0;
--}
--
- /*
-  * We need to avoid collisions with `mirrored' VGA ports
-  * and other strange ISA hardware, so we always want the
-@@ -1081,7 +1072,7 @@ resource_size_t pcibios_align_resource(void *data, const struct resource *res,
- 	resource_size_t start = res->start;
- 
- 	if (res->flags & IORESOURCE_IO) {
--		if (skip_isa_ioresource_align(dev))
-+		if (skip_isa_ioresource_align(dev->bus))
- 			return start;
- 		if (start & 0x300)
- 			start = (start + 0x3ff) & ~0x3ff;
-diff --git a/arch/x86/include/asm/pci_x86.h b/arch/x86/include/asm/pci_x86.h
-index fa1195d..81a7abf 100644
---- a/arch/x86/include/asm/pci_x86.h
-+++ b/arch/x86/include/asm/pci_x86.h
-@@ -28,7 +28,6 @@ do {						\
- #define PCI_ASSIGN_ROMS		0x1000
- #define PCI_BIOS_IRQ_SCAN	0x2000
- #define PCI_ASSIGN_ALL_BUSSES	0x4000
--#define PCI_CAN_SKIP_ISA_ALIGN	0x8000
- #define PCI_USE__CRS		0x10000
- #define PCI_CHECK_ENABLE_AMD_MMCONF	0x20000
- #define PCI_HAS_IO_ECS		0x40000
-diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
-index dc78a4a..7c018df 100644
---- a/arch/x86/pci/common.c
-+++ b/arch/x86/pci/common.c
-@@ -83,7 +83,7 @@ DEFINE_RAW_SPINLOCK(pci_config_lock);
- 
- static int __init can_skip_ioresource_align(const struct dmi_system_id *d)
- {
--	pci_probe |= PCI_CAN_SKIP_ISA_ALIGN;
-+	pci_add_flags(PCI_CAN_SKIP_ISA_ALIGN);
- 	printk(KERN_INFO "PCI: %s detected, can skip ISA alignment\n", d->ident);
- 	return 0;
- }
-@@ -619,7 +619,7 @@ char *__init pcibios_setup(char *str)
- 		pci_routeirq = 1;
- 		return NULL;
- 	} else if (!strcmp(str, "skip_isa_align")) {
--		pci_probe |= PCI_CAN_SKIP_ISA_ALIGN;
-+		pci_add_flags(PCI_CAN_SKIP_ISA_ALIGN);
- 		return NULL;
- 	} else if (!strcmp(str, "noioapicquirk")) {
- 		noioapicquirk = 1;
-diff --git a/arch/x86/pci/i386.c b/arch/x86/pci/i386.c
-index 0a9f2ca..3f17726 100644
---- a/arch/x86/pci/i386.c
-+++ b/arch/x86/pci/i386.c
-@@ -33,6 +33,7 @@
- #include <linux/errno.h>
- #include <linux/bootmem.h>
- 
-+#include <asm-generic/pci-bridge.h>
- #include <asm/pat.h>
- #include <asm/e820.h>
- #include <asm/pci_x86.h>
-@@ -128,15 +129,6 @@ static void __init pcibios_fw_addr_list_del(void)
- 	pcibios_fw_addr_done = true;
- }
- 
--static int
--skip_isa_ioresource_align(struct pci_dev *dev) {
--
--	if ((pci_probe & PCI_CAN_SKIP_ISA_ALIGN) &&
--	    !(dev->bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
--		return 1;
--	return 0;
--}
--
- /*
-  * We need to avoid collisions with `mirrored' VGA ports
-  * and other strange ISA hardware, so we always want the
-@@ -158,7 +150,7 @@ pcibios_align_resource(void *data, const struct resource *res,
- 	resource_size_t start = res->start;
- 
- 	if (res->flags & IORESOURCE_IO) {
--		if (skip_isa_ioresource_align(dev))
-+		if (skip_isa_ioresource_align(dev->bus))
- 			return start;
- 		if (start & 0x300)
- 			start = (start + 0x3ff) & ~0x3ff;
-diff --git a/drivers/pci/setup-bus.c b/drivers/pci/setup-bus.c
-index bbc10d8..f1c7b46 100644
---- a/drivers/pci/setup-bus.c
-+++ b/drivers/pci/setup-bus.c
-@@ -1151,6 +1151,15 @@ static resource_size_t window_alignment(struct pci_bus *bus,
- 	return max(align, arch_align);
- }
- 
-+int skip_isa_ioresource_align(struct pci_bus *bus)
-+{
-+	if (pci_has_flag(PCI_CAN_SKIP_ISA_ALIGN) &&
-+	    !(bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
-+		return 1;
-+
-+	return 0;
-+}
-+
- static resource_size_t size_aligned_for_isa(resource_size_t size)
- {
- 	/*
-diff --git a/include/asm-generic/pci-bridge.h b/include/asm-generic/pci-bridge.h
-index 20db2e5..fab4bd0 100644
---- a/include/asm-generic/pci-bridge.h
-+++ b/include/asm-generic/pci-bridge.h
-@@ -60,6 +60,8 @@ static inline int pci_has_flag(int flag)
- {
- 	return pci_flags & flag;
- }
-+
-+int skip_isa_ioresource_align(struct pci_bus *bus);
- #else
- static inline void pci_set_flags(int flags) { }
- static inline void pci_add_flags(int flags) { }
--- 
-1.8.4.5
+Is it okay for you?
 
+Thanks.
+
+> 
+> Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
+> ---
+>  arch/alpha/include/uapi/asm/mman.h     | 2 +-
+>  arch/mips/include/uapi/asm/mman.h      | 2 +-
+>  arch/parisc/include/uapi/asm/mman.h    | 2 +-
+>  arch/xtensa/include/uapi/asm/mman.h    | 2 +-
+>  include/uapi/asm-generic/mman-common.h | 2 +-
+>  5 files changed, 5 insertions(+), 5 deletions(-)
+> 
+> diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
+> index 836fbd4..0b8a5de 100644
+> --- a/arch/alpha/include/uapi/asm/mman.h
+> +++ b/arch/alpha/include/uapi/asm/mman.h
+> @@ -44,9 +44,9 @@
+>  #define MADV_WILLNEED	3		/* will need these pages */
+>  #define	MADV_SPACEAVAIL	5		/* ensure resources are available */
+>  #define MADV_DONTNEED	6		/* don't need these pages */
+> -#define MADV_FREE	7		/* free pages only if memory pressure */
+>  
+>  /* common/generic parameters */
+> +#define MADV_FREE	8		/* free pages only if memory pressure */
+>  #define MADV_REMOVE	9		/* remove these pages & resources */
+>  #define MADV_DONTFORK	10		/* don't inherit across fork */
+>  #define MADV_DOFORK	11		/* do inherit across fork */
+> diff --git a/arch/mips/include/uapi/asm/mman.h b/arch/mips/include/uapi/asm/mman.h
+> index 106e741..d247f54 100644
+> --- a/arch/mips/include/uapi/asm/mman.h
+> +++ b/arch/mips/include/uapi/asm/mman.h
+> @@ -67,9 +67,9 @@
+>  #define MADV_SEQUENTIAL 2		/* expect sequential page references */
+>  #define MADV_WILLNEED	3		/* will need these pages */
+>  #define MADV_DONTNEED	4		/* don't need these pages */
+> -#define MADV_FREE	5		/* free pages only if memory pressure */
+>  
+>  /* common parameters: try to keep these consistent across architectures */
+> +#define MADV_FREE	8		/* free pages only if memory pressure */
+>  #define MADV_REMOVE	9		/* remove these pages & resources */
+>  #define MADV_DONTFORK	10		/* don't inherit across fork */
+>  #define MADV_DOFORK	11		/* do inherit across fork */
+> diff --git a/arch/parisc/include/uapi/asm/mman.h b/arch/parisc/include/uapi/asm/mman.h
+> index 6cb8db7..700d83f 100644
+> --- a/arch/parisc/include/uapi/asm/mman.h
+> +++ b/arch/parisc/include/uapi/asm/mman.h
+> @@ -40,9 +40,9 @@
+>  #define MADV_SPACEAVAIL 5               /* insure that resources are reserved */
+>  #define MADV_VPS_PURGE  6               /* Purge pages from VM page cache */
+>  #define MADV_VPS_INHERIT 7              /* Inherit parents page size */
+> -#define MADV_FREE	8		/* free pages only if memory pressure */
+>  
+>  /* common/generic parameters */
+> +#define MADV_FREE	8		/* free pages only if memory pressure */
+>  #define MADV_REMOVE	9		/* remove these pages & resources */
+>  #define MADV_DONTFORK	10		/* don't inherit across fork */
+>  #define MADV_DOFORK	11		/* do inherit across fork */
+> diff --git a/arch/xtensa/include/uapi/asm/mman.h b/arch/xtensa/include/uapi/asm/mman.h
+> index 1b19f25..77eaca4 100644
+> --- a/arch/xtensa/include/uapi/asm/mman.h
+> +++ b/arch/xtensa/include/uapi/asm/mman.h
+> @@ -80,9 +80,9 @@
+>  #define MADV_SEQUENTIAL	2		/* expect sequential page references */
+>  #define MADV_WILLNEED	3		/* will need these pages */
+>  #define MADV_DONTNEED	4		/* don't need these pages */
+> -#define MADV_FREE	5		/* free pages only if memory pressure */
+>  
+>  /* common parameters: try to keep these consistent across architectures */
+> +#define MADV_FREE	8		/* free pages only if memory pressure */
+>  #define MADV_REMOVE	9		/* remove these pages & resources */
+>  #define MADV_DONTFORK	10		/* don't inherit across fork */
+>  #define MADV_DOFORK	11		/* do inherit across fork */
+> diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
+> index 7a94102..8695959 100644
+> --- a/include/uapi/asm-generic/mman-common.h
+> +++ b/include/uapi/asm-generic/mman-common.h
+> @@ -34,9 +34,9 @@
+>  #define MADV_SEQUENTIAL	2		/* expect sequential page references */
+>  #define MADV_WILLNEED	3		/* will need these pages */
+>  #define MADV_DONTNEED	4		/* don't need these pages */
+> -#define MADV_FREE	5		/* free pages only if memory pressure */
+>  
+>  /* common parameters: try to keep these consistent across architectures */
+> +#define MADV_FREE	8		/* free pages only if memory pressure */
+>  #define MADV_REMOVE	9		/* remove these pages & resources */
+>  #define MADV_DONTFORK	10		/* don't inherit across fork */
+>  #define MADV_DOFORK	11		/* do inherit across fork */
+> -- 
+> 1.9.3
