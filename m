@@ -1,68 +1,64 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute -
- DMA_ATTR_IOMMU_BYPASS
-Date: Wed, 28 Oct 2015 22:57:12 +0900
-Message-ID: <1446040632.3405.222.camel@infradead.org>
-References: <1446013801.3405.183.camel@infradead.org>
-	 <20151028111049.GA30785@shamir-ThinkPad-T430>
-	 <1446039110.3405.212.camel@infradead.org>
-	 <20151028.070705.1277125569024626755.davem@davemloft.net>
+Subject: [RFC] Enable ARCH_USE_BUILTIN_BSWAP by default
+Date: Wed, 28 Oct 2015 23:53:52 +0900
+Message-ID: <1446044032.3405.241.camel@infradead.org>
 Mime-Version: 1.0
 Content-Type: multipart/signed; micalg="sha-1"; protocol="application/x-pkcs7-signature";
-	boundary="=-z9yOlZyiozL9R9oBcARC"
-Return-path: <kvm-owner@vger.kernel.org>
-In-Reply-To: <20151028.070705.1277125569024626755.davem@davemloft.net>
-Sender: kvm-owner@vger.kernel.org
-To: David Miller <davem@davemloft.net>
-Cc: shamir.rabinovitch@oracle.com, arnd@arndb.de, corbet@lwn.net, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, luto@kernel.org, jroedel@suse.de, borntraeger@de.ibm.com, cornelia.huck@de.ibm.com, sebott@linux.vnet.ibm.com, pbonzini@redhat.com, hch@lst.de, benh@kernel.crashing.org, kvm@vger.kernel.org, schwidefsky@de.ibm.com, linux-s390@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+	boundary="=-wTHotXE70wgFZgM/nZKj"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from casper.infradead.org ([85.118.1.10]:45775 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750964AbbJ1OyE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Oct 2015 10:54:04 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, Fengguang Wu <fengguang.wu@intel.com>
 
 
---=-z9yOlZyiozL9R9oBcARC
+--=-wTHotXE70wgFZgM/nZKj
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
-On Wed, 2015-10-28 at 07:07 -0700, David Miller wrote:
-> In the sparc64 case, the 64-bit DMA address space is divided into
-> IOMMU translated and non-IOMMU translated.
->=20
-> You just set the high bits differently depending upon what you want.
+Not sure we should actually *do* this, and if we did it'd be done
+differently. But... Fengguang, please could you add this (from
+git://git.infradead.org/users/dwmw2/byteswap.git ) and we can see what
+breaks? Thanks.
 
-Wait, does that mean a (rogue) device could *always* get full access to
-physical memory just by setting the high bits appropriately? That
-mapping is *always* available?
+I know MIPS will need some additional libgcc functionality brought into
+the kernel, and Ralf has already been looking at that; not sure about
+other platforms. Let's find out :)
 
-> So a device could use both IOMMU translated and bypass accesses at=20
-> the same time.  While seemingly interesting, I do not recommend we=20
-> provide this kind of flexibility in our DMA interfaces.
+Subject: [PATCH] TEST COMMIT: Enable CONFIG_ARCH_USE_BUILTIN_BSWAP for all
+ architectures
 
-Now I could understand this if the answer to my question above was
-'no'. We absolutely want the *security* all the time, and we don't want
-the device to be able to do stupid stuff. But if the answer was 'yes'
-then we take the map/unmap performance hit for... *what* benefit?
+Let's see what breaks...
 
-On Intel we have the passthrough as an *option* and I have the same
-initial reaction =E2=80=94 "Hell no, we want the security". But I concede t=
-he
-performance motivation for it, and I'm not *dead* set against
-permitting it.
+Signed-off-by: David Woodhouse <David.Woodhouse@intel.com>
+---
+ arch/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
 
-If I tolerate a per-device request for passthrough mode, that might
-prevent people from disabling the IOMMU or putting it into passthrough
-mode *entirely*. So actually, I'm *improving* security...
-
-I think it makes sense to allow performance sensitive device drivers to
-*request* a passthrough mode. The platform can reserve the right to
-refuse, if either the IOMMU hardware doesn't support that, or we're in
-a paranoid mode (with iommu=3Dalways or something on the command line).
-
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 4e949e5..8680d1b 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -144,6 +144,7 @@ config HAVE_EFFICIENT_UNALIGNED_ACCESS
+=20
+ config ARCH_USE_BUILTIN_BSWAP
+        bool
++       default y
+        help
+ 	 Modern versions of GCC (since 4.4) have builtin functions
+ 	 for handling byte-swapping. Using these, instead of the old
+--=20
+2.4.3
 
 --=20
-dwmw2
+David Woodhouse                            Open Source Technology Centre
+David.Woodhouse@intel.com                              Intel Corporation
 
 
-
---=-z9yOlZyiozL9R9oBcARC
+--=-wTHotXE70wgFZgM/nZKj
 Content-Type: application/x-pkcs7-signature; name="smime.p7s"
 Content-Disposition: attachment; filename="smime.p7s"
 Content-Transfer-Encoding: base64
@@ -155,19 +151,18 @@ Qy7VFBkoLINszBrOUeIxggNvMIIDawIBATCBlDCBjDELMAkGA1UEBhMCSUwxFjAUBgNVBAoTDVN0
 YXJ0Q29tIEx0ZC4xKzApBgNVBAsTIlNlY3VyZSBEaWdpdGFsIENlcnRpZmljYXRlIFNpZ25pbmcx
 ODA2BgNVBAMTL1N0YXJ0Q29tIENsYXNzIDEgUHJpbWFyeSBJbnRlcm1lZGlhdGUgQ2xpZW50IENB
 AgMN7zcwCQYFKw4DAhoFAKCCAa8wGAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0B
-CQUxDxcNMTUxMDI4MTM1NzEyWjAjBgkqhkiG9w0BCQQxFgQUFOT8ftyhOftD4rbsKlcXUbA7Z34w
+CQUxDxcNMTUxMDI4MTQ1MzUyWjAjBgkqhkiG9w0BCQQxFgQUT8R9fsxgX3BUt5Km+V3z2N/7uUYw
 gaUGCSsGAQQBgjcQBDGBlzCBlDCBjDELMAkGA1UEBhMCSUwxFjAUBgNVBAoTDVN0YXJ0Q29tIEx0
 ZC4xKzApBgNVBAsTIlNlY3VyZSBEaWdpdGFsIENlcnRpZmljYXRlIFNpZ25pbmcxODA2BgNVBAMT
 L1N0YXJ0Q29tIENsYXNzIDEgUHJpbWFyeSBJbnRlcm1lZGlhdGUgQ2xpZW50IENBAgMN7zcwgacG
 CyqGSIb3DQEJEAILMYGXoIGUMIGMMQswCQYDVQQGEwJJTDEWMBQGA1UEChMNU3RhcnRDb20gTHRk
 LjErMCkGA1UECxMiU2VjdXJlIERpZ2l0YWwgQ2VydGlmaWNhdGUgU2lnbmluZzE4MDYGA1UEAxMv
 U3RhcnRDb20gQ2xhc3MgMSBQcmltYXJ5IEludGVybWVkaWF0ZSBDbGllbnQgQ0ECAw3vNzANBgkq
-hkiG9w0BAQEFAASCAQCF25XIrH/gpVWI15vFN29+kslCXZX2VT/JowNLBctEcV6L1HZeS4AggeZ1
-aPv2KrCZLxSW6T4TnPihN5Zzxoruw2+yKEEnW7LBWOgE6Wx6YVlGiKlvVAlE4O1f6D+12Dz1xRVu
-bFCL+2s5JhbEmPpx2gnE6OzD02jmwd7ozNfAwdVjaXRCZjLOR93tNcfomoRgbnHt7ZqB52nD6xbx
-J/G/40RDYo9Fyy4EvSvKkpjOMIuV5II1FtKXmpp/UiW1yOA7EechJ6/2IZJ3lXeC6yZM1rp/wXIh
-dK77aYnsueYfmPuuXGNTJehDatlpKiMYbwoRJNWOFvrDBCb96pO0kWOeAAAAAAAA
+hkiG9w0BAQEFAASCAQCW6kB8/y3iCTWCQGMuf6pm2GeGZyq14feYr5hTBFQKFQaUaGMI91tG+qdH
+Y2xaLTywGO1TvXiIJCzAZQqXpXCOXx5tqtRvYGIEYaM4OBkvnbpkVNs78HLhkL8sWnCSRSeoDCN0
+FG5ufEiM6GU1lOv/abGAhOO30bBSN5AT3hwNiTRbvb6DpAIjGfq/g9WDLSwRajCsTbrCs0krF/AJ
+vZDB47vWIe3N6sP5xrdsBM+VfbxLM3iABC5sSGq1emyX8rwAHQr1WOyODoMM2LUZ/HhXV++7oENk
+f54Ya5ekMZ6j1uECV2L+aOx2w4DNJJaGc4b7zVuI2t791YZ/EASoXPgAAAAAAAAA
 
 
---=-z9yOlZyiozL9R9oBcARC--
-
+--=-wTHotXE70wgFZgM/nZKj--
