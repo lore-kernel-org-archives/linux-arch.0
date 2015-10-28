@@ -1,158 +1,203 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtprelay-2.synopsys.com ([198.182.47.9]:33790 "EHLO
-	smtprelay.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755489AbbJ1LXu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Oct 2015 07:23:50 -0400
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 1/3] ARC: mm: preps ahead of HIGHMEM support
-Date: Wed, 28 Oct 2015 16:53:11 +0530
-Message-ID: <1446031393-2312-2-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <1446031393-2312-1-git-send-email-vgupta@synopsys.com>
-References: <1446031393-2312-1-git-send-email-vgupta@synopsys.com>
-MIME-Version: 1.0
-Content-Type: text/plain
+Received: from casper.infradead.org ([85.118.1.10]:43088 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932384AbbJ1NcH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Oct 2015 09:32:07 -0400
+Message-ID: <1446039110.3405.212.camel@infradead.org>
+Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute -
+ DMA_ATTR_IOMMU_BYPASS
+From: David Woodhouse <dwmw2@infradead.org>
+Date: Wed, 28 Oct 2015 22:31:50 +0900
+In-Reply-To: <20151028111049.GA30785@shamir-ThinkPad-T430>
+References: <1445789224-28032-1-git-send-email-shamir.rabinovitch@oracle.com>
+	 <1445789224-28032-2-git-send-email-shamir.rabinovitch@oracle.com>
+	 <1446013801.3405.183.camel@infradead.org>
+	 <20151028111049.GA30785@shamir-ThinkPad-T430>
+Content-Type: multipart/signed; micalg="sha-1"; protocol="application/x-pkcs7-signature";
+	boundary="=-UWt460THBQw95cktZ8Mf"
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Max Filippov <jcmvbkbc@gmail.com>, Joonsoo Kim <js1304@gmail.com>, Mel Gorman <mgorman@suse.de>, Minchan Kim <minchan@kernel.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-snps-arc@lists.infraded.org, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20151028112311.vZxG56Qede28AtrYyM_Tczo3czHI47UQxZgbYzdYVcc@z>
+To: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
+Cc: arnd@arndb.de, corbet@lwn.net, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Joerg Roedel <jroedel@suse.de>, Christian Borntraeger <borntraeger@de.ibm.com>, Cornelia Huck <cornelia.huck@de.ibm.com>, Sebastian Ott <sebott@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoph Hellwig <hch@lst.de>, benh@kernel.crashing.org, KVM <kvm@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>
+Message-ID: <20151028133150.PbRrHVV4EgLtHsC6FeQQM8o3kQmqSDoAgBORqlKslKE@z>
 
-Before we plug in highmem support, some of code needs to be ready for it
- - copy_user_highpage() needs to be using the kmap_atomic API
- - max_low_pfn can't be assumed to be same as max_pfn
- - mk_pte() can't assume page_address()
- - do_page_fault() can't assume VMALLOC_END is end of kernel vaddr space
 
-Signed-off-by: Alexey Brodkin <abrodkin@synopsys.com>
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- arch/arc/include/asm/pgtable.h |  9 +--------
- arch/arc/mm/cache.c            | 16 +++++++++++-----
- arch/arc/mm/fault.c            | 13 ++++++++++---
- arch/arc/mm/init.c             |  2 +-
- 4 files changed, 23 insertions(+), 17 deletions(-)
+--=-UWt460THBQw95cktZ8Mf
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-diff --git a/arch/arc/include/asm/pgtable.h b/arch/arc/include/asm/pgtable.h
-index f7c7273cd537..bd771351a1d1 100644
---- a/arch/arc/include/asm/pgtable.h
-+++ b/arch/arc/include/asm/pgtable.h
-@@ -270,13 +270,7 @@ static inline void pmd_set(pmd_t *pmdp, pte_t *ptep)
- 		(unsigned long)(((pte_val(x) - CONFIG_LINUX_LINK_BASE) >> \
- 				PAGE_SHIFT)))
- 
--#define mk_pte(page, pgprot)						\
--({									\
--	pte_t pte;							\
--	pte_val(pte) = __pa(page_address(page)) + pgprot_val(pgprot);	\
--	pte;								\
--})
--
-+#define mk_pte(page, prot)	pfn_pte(page_to_pfn(page), prot)
- #define pte_pfn(pte)		(pte_val(pte) >> PAGE_SHIFT)
- #define pfn_pte(pfn, prot)	(__pte(((pfn) << PAGE_SHIFT) | pgprot_val(prot)))
- #define __pte_index(addr)	(((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
-@@ -360,7 +354,6 @@ static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
- #define pgd_offset_fast(mm, addr)	pgd_offset(mm, addr)
- #endif
- 
--extern void paging_init(void);
- extern pgd_t swapper_pg_dir[] __aligned(PAGE_SIZE);
- void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
- 		      pte_t *ptep);
-diff --git a/arch/arc/mm/cache.c b/arch/arc/mm/cache.c
-index 27d255d3dc5d..08a7cc0ac100 100644
---- a/arch/arc/mm/cache.c
-+++ b/arch/arc/mm/cache.c
-@@ -813,8 +813,8 @@ void flush_anon_page(struct vm_area_struct *vma, struct page *page,
- void copy_user_highpage(struct page *to, struct page *from,
- 	unsigned long u_vaddr, struct vm_area_struct *vma)
- {
--	unsigned long kfrom = (unsigned long)page_address(from);
--	unsigned long kto = (unsigned long)page_address(to);
-+	void *kfrom = kmap_atomic(from);
-+	void *kto = kmap_atomic(to);
- 	int clean_src_k_mappings = 0;
- 
- 	/*
-@@ -824,13 +824,16 @@ void copy_user_highpage(struct page *to, struct page *from,
- 	 *
- 	 * Note that while @u_vaddr refers to DST page's userspace vaddr, it is
- 	 * equally valid for SRC page as well
-+	 *
-+	 * For !VIPT cache, all of this gets compiled out as
-+	 * addr_not_cache_congruent() is 0
- 	 */
- 	if (page_mapped(from) && addr_not_cache_congruent(kfrom, u_vaddr)) {
--		__flush_dcache_page(kfrom, u_vaddr);
-+		__flush_dcache_page((unsigned long)kfrom, u_vaddr);
- 		clean_src_k_mappings = 1;
- 	}
- 
--	copy_page((void *)kto, (void *)kfrom);
-+	copy_page(kto, kfrom);
- 
- 	/*
- 	 * Mark DST page K-mapping as dirty for a later finalization by
-@@ -847,11 +850,14 @@ void copy_user_highpage(struct page *to, struct page *from,
- 	 * sync the kernel mapping back to physical page
- 	 */
- 	if (clean_src_k_mappings) {
--		__flush_dcache_page(kfrom, kfrom);
-+		__flush_dcache_page((unsigned long)kfrom, (unsigned long)kfrom);
- 		set_bit(PG_dc_clean, &from->flags);
- 	} else {
- 		clear_bit(PG_dc_clean, &from->flags);
- 	}
-+
-+	kunmap_atomic(kto);
-+	kunmap_atomic(kfrom);
- }
- 
- void clear_user_page(void *to, unsigned long u_vaddr, struct page *page)
-diff --git a/arch/arc/mm/fault.c b/arch/arc/mm/fault.c
-index d948e4e9d89c..af63f4a13e60 100644
---- a/arch/arc/mm/fault.c
-+++ b/arch/arc/mm/fault.c
-@@ -18,7 +18,14 @@
- #include <asm/pgalloc.h>
- #include <asm/mmu.h>
- 
--static int handle_vmalloc_fault(unsigned long address)
-+/*
-+ * kernel virtual address is required to implement vmalloc/pkmap/fixmap
-+ * Refer to asm/processor.h for System Memory Map
-+ *
-+ * It simply copies the PMD entry (pointer to 2nd level page table or hugepage)
-+ * from swapper pgdir to task pgdir. The 2nd level table/page is thus shared
-+ */
-+noinline static int handle_kernel_vaddr_fault(unsigned long address)
- {
- 	/*
- 	 * Synchronize this task's top level page-table
-@@ -72,8 +79,8 @@ void do_page_fault(unsigned long address, struct pt_regs *regs)
- 	 * only copy the information from the master page table,
- 	 * nothing more.
- 	 */
--	if (address >= VMALLOC_START && address <= VMALLOC_END) {
--		ret = handle_vmalloc_fault(address);
-+	if (address >= VMALLOC_START) {
-+		ret = handle_kernel_vaddr_fault(address);
- 		if (unlikely(ret))
- 			goto bad_area_nosemaphore;
- 		else
-diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
-index 5121b9b16ba8..5256765d5db0 100644
---- a/arch/arc/mm/init.c
-+++ b/arch/arc/mm/init.c
-@@ -97,7 +97,7 @@ void __init setup_arch_memory(void)
- 	/* Last usable page of low mem (no HIGHMEM yet for ARC port) */
- 	max_low_pfn = max_pfn = PFN_DOWN(end_mem);
- 
--	max_mapnr = max_low_pfn - min_low_pfn;
-+	max_mapnr = max_pfn - min_low_pfn;
- 
- 	/*------------- reserve kernel image -----------------------*/
- 	memblock_reserve(CONFIG_LINUX_LINK_BASE,
--- 
-1.9.1
+On Wed, 2015-10-28 at 13:10 +0200, Shamir Rabinovitch wrote:
+> On Wed, Oct 28, 2015 at 03:30:01PM +0900, David Woodhouse wrote:
+> > > > +For systems with IOMMU it is assumed all DMA translations use the =
+IOMMU.
+> >=20
+> > Not entirely true. We have per-device dma_ops on a most architectures
+> > already, and we were just talking about the need to add them to
+> > POWER/SPARC too, because we need to avoid trying to use the IOMMU to
+> > map virtio devices too.
+>=20
+> SPARC has it's implementation under arch/sparc for dma_ops (sun4v_dma_ops=
+).
+>=20
+> Some drivers use IOMMU under SPARC for example ixgbe (Intel 10G ETH).
+> Some, like IB, suffer from IOMMU MAP setup/tear-down & limited address ra=
+nge.
+> On SPARC IOMMU bypass is not total bypass of the IOMMU but rather much si=
+mple
+> translation that does not require any complex translations tables.
+
+We have an option in the Intel IOMMU for pass-through mode too, which
+basically *is* a total bypass. In practice, what's the difference
+between that and a "simple translation that does not require any
+[translation]"? We set up a full 1:1 mapping of all memory, and then
+the map/unmap methods become no-ops.
+
+Currently we have no way to request that mode on a per-device basis; we
+only have 'iommu=3Dpt' on the command line to set it for *all* devices.
+But performance-sensitive devices might want it, while we keep doing
+proper translation for others.
+
+> >=20
+> > As we look at that (and make the per-device dma_ops a generic thing
+> > rather than per-arch), we should probably look at folding your case in
+> > too.
+>=20
+> Whether to use IOMMU or not for DMA is up to the driver. The above exampl=
+e
+> show real situation where one driver can use IOMMU and the other can't. I=
+t
+> seems that the device cannot know when to use IOMMU bypass and when not.
+> Even in the driver we can decide to DMA map some buffers using IOMMU
+> translation and some as IOMMU bypass.
+
+In practice there are multiple possibilities =E2=80=94 there are cases wher=
+e
+you *must* use an IOMMU and do full translation, and there is no option
+of a bypass. There are cases where there just isn't an IOMMU (and
+sometimes that's a per-device fact, like with virtio). And there are
+cases where you *can* use the IOMMU, but if you ask nicely you can get
+away without it.
+
+My point in linking up these two threads is that we should contemplate
+all of those use cases and come up with something that addresses it
+all.
+
+> Do you agree that we need this attribute in the generic DMA API?=20
+
+Yeah, I think it can be useful.
+
+--=20
+David Woodhouse                            Open Source Technology Centre
+David.Woodhouse@intel.com                              Intel Corporation
+
+
+--=-UWt460THBQw95cktZ8Mf
+Content-Type: application/x-pkcs7-signature; name="smime.p7s"
+Content-Disposition: attachment; filename="smime.p7s"
+Content-Transfer-Encoding: base64
+
+MIAGCSqGSIb3DQEHAqCAMIACAQExCzAJBgUrDgMCGgUAMIAGCSqGSIb3DQEHAQAAoIISjjCCBicw
+ggUPoAMCAQICAw3vNzANBgkqhkiG9w0BAQUFADCBjDELMAkGA1UEBhMCSUwxFjAUBgNVBAoTDVN0
+YXJ0Q29tIEx0ZC4xKzApBgNVBAsTIlNlY3VyZSBEaWdpdGFsIENlcnRpZmljYXRlIFNpZ25pbmcx
+ODA2BgNVBAMTL1N0YXJ0Q29tIENsYXNzIDEgUHJpbWFyeSBJbnRlcm1lZGlhdGUgQ2xpZW50IENB
+MB4XDTE1MDUwNTA5NDM0MVoXDTE2MDUwNTA5NTMzNlowQjEcMBoGA1UEAwwTZHdtdzJAaW5mcmFk
+ZWFkLm9yZzEiMCAGCSqGSIb3DQEJARYTZHdtdzJAaW5mcmFkZWFkLm9yZzCCASIwDQYJKoZIhvcN
+AQEBBQADggEPADCCAQoCggEBAMkbm9kPbx1j/X4RVyf/pPKSYwelcco69TvnQQbKM8m8xkWjXJI1
+jpJ1jMaGUZGFToINMSZi7lZawUozudWbXSKy1SikENSTJHffsdRAIlsp+hR8vWvjsKUry6sEdqPG
+doa5RY7+N4WRusWZDYW/RRWE6i9EL9qV86CVPYqw22UBOUw4/j/HVGCV6TSB8yE5iEwhk/hUuzRr
+FZm1MJMR7mCS7BCR8Lr5jFY61lWpBiXNXIxLZCvDc26KR5L5tYX43iUVO3fzES1GRVoYnxxk2tmz
+fcsZG5vK+Trc9L8OZJfkYrEHH3+Iw41MQ0w/djVtYr1+HYldx0QmYXAtnhIj+UMCAwEAAaOCAtkw
+ggLVMAkGA1UdEwQCMAAwCwYDVR0PBAQDAgSwMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggrBgEFBQcD
+BDAdBgNVHQ4EFgQUszC96C3w5/2+d+atSr0IpT26YI4wHwYDVR0jBBgwFoAUU3Ltkpzg2ssBXHx+
+ljVO8tS4UYIwHgYDVR0RBBcwFYETZHdtdzJAaW5mcmFkZWFkLm9yZzCCAUwGA1UdIASCAUMwggE/
+MIIBOwYLKwYBBAGBtTcBAgMwggEqMC4GCCsGAQUFBwIBFiJodHRwOi8vd3d3LnN0YXJ0c3NsLmNv
+bS9wb2xpY3kucGRmMIH3BggrBgEFBQcCAjCB6jAnFiBTdGFydENvbSBDZXJ0aWZpY2F0aW9uIEF1
+dGhvcml0eTADAgEBGoG+VGhpcyBjZXJ0aWZpY2F0ZSB3YXMgaXNzdWVkIGFjY29yZGluZyB0byB0
+aGUgQ2xhc3MgMSBWYWxpZGF0aW9uIHJlcXVpcmVtZW50cyBvZiB0aGUgU3RhcnRDb20gQ0EgcG9s
+aWN5LCByZWxpYW5jZSBvbmx5IGZvciB0aGUgaW50ZW5kZWQgcHVycG9zZSBpbiBjb21wbGlhbmNl
+IG9mIHRoZSByZWx5aW5nIHBhcnR5IG9ibGlnYXRpb25zLjA2BgNVHR8ELzAtMCugKaAnhiVodHRw
+Oi8vY3JsLnN0YXJ0c3NsLmNvbS9jcnR1MS1jcmwuY3JsMIGOBggrBgEFBQcBAQSBgTB/MDkGCCsG
+AQUFBzABhi1odHRwOi8vb2NzcC5zdGFydHNzbC5jb20vc3ViL2NsYXNzMS9jbGllbnQvY2EwQgYI
+KwYBBQUHMAKGNmh0dHA6Ly9haWEuc3RhcnRzc2wuY29tL2NlcnRzL3N1Yi5jbGFzczEuY2xpZW50
+LmNhLmNydDAjBgNVHRIEHDAahhhodHRwOi8vd3d3LnN0YXJ0c3NsLmNvbS8wDQYJKoZIhvcNAQEF
+BQADggEBAHMQmxHHodpS85X8HRyxhvfkys7r+taCNOaNU9cxQu/cZ/6k5nS2qGNMzZ6jb7ueY/V7
+7p+4DW/9ZWODDTf4Fz00mh5SSVc20Bz7t+hhxwHd62PZgENh5i76Qq2tw48U8AsYo5damHby1epf
+neZafLpUkLLO7AGBJIiRVTevdvyXQ0qnixOmKMWyvrhSNGuVIKVdeqLP+102Dwf+dpFyw+j1hz28
+jEEKpHa+NR1b2kXuSPi/rMGhexwlJOh4tK8KQ6Ryr0rIN//NSbOgbyYZrzc/ZUWX9V5OA84ChFb2
+vkFl0OcYrttp/rhDBLITwffPxSZeoBh9H7zYzkbCXKL3BUIwggYnMIIFD6ADAgECAgMN7zcwDQYJ
+KoZIhvcNAQEFBQAwgYwxCzAJBgNVBAYTAklMMRYwFAYDVQQKEw1TdGFydENvbSBMdGQuMSswKQYD
+VQQLEyJTZWN1cmUgRGlnaXRhbCBDZXJ0aWZpY2F0ZSBTaWduaW5nMTgwNgYDVQQDEy9TdGFydENv
+bSBDbGFzcyAxIFByaW1hcnkgSW50ZXJtZWRpYXRlIENsaWVudCBDQTAeFw0xNTA1MDUwOTQzNDFa
+Fw0xNjA1MDUwOTUzMzZaMEIxHDAaBgNVBAMME2R3bXcyQGluZnJhZGVhZC5vcmcxIjAgBgkqhkiG
+9w0BCQEWE2R3bXcyQGluZnJhZGVhZC5vcmcwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIB
+AQDJG5vZD28dY/1+EVcn/6TykmMHpXHKOvU750EGyjPJvMZFo1ySNY6SdYzGhlGRhU6CDTEmYu5W
+WsFKM7nVm10istUopBDUkyR337HUQCJbKfoUfL1r47ClK8urBHajxnaGuUWO/jeFkbrFmQ2Fv0UV
+hOovRC/alfOglT2KsNtlATlMOP4/x1Rglek0gfMhOYhMIZP4VLs0axWZtTCTEe5gkuwQkfC6+YxW
+OtZVqQYlzVyMS2Qrw3NuikeS+bWF+N4lFTt38xEtRkVaGJ8cZNrZs33LGRubyvk63PS/DmSX5GKx
+Bx9/iMONTENMP3Y1bWK9fh2JXcdEJmFwLZ4SI/lDAgMBAAGjggLZMIIC1TAJBgNVHRMEAjAAMAsG
+A1UdDwQEAwIEsDAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwQwHQYDVR0OBBYEFLMwvegt
+8Of9vnfmrUq9CKU9umCOMB8GA1UdIwQYMBaAFFNy7ZKc4NrLAVx8fpY1TvLUuFGCMB4GA1UdEQQX
+MBWBE2R3bXcyQGluZnJhZGVhZC5vcmcwggFMBgNVHSAEggFDMIIBPzCCATsGCysGAQQBgbU3AQID
+MIIBKjAuBggrBgEFBQcCARYiaHR0cDovL3d3dy5zdGFydHNzbC5jb20vcG9saWN5LnBkZjCB9wYI
+KwYBBQUHAgIwgeowJxYgU3RhcnRDb20gQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkwAwIBARqBvlRo
+aXMgY2VydGlmaWNhdGUgd2FzIGlzc3VlZCBhY2NvcmRpbmcgdG8gdGhlIENsYXNzIDEgVmFsaWRh
+dGlvbiByZXF1aXJlbWVudHMgb2YgdGhlIFN0YXJ0Q29tIENBIHBvbGljeSwgcmVsaWFuY2Ugb25s
+eSBmb3IgdGhlIGludGVuZGVkIHB1cnBvc2UgaW4gY29tcGxpYW5jZSBvZiB0aGUgcmVseWluZyBw
+YXJ0eSBvYmxpZ2F0aW9ucy4wNgYDVR0fBC8wLTAroCmgJ4YlaHR0cDovL2NybC5zdGFydHNzbC5j
+b20vY3J0dTEtY3JsLmNybDCBjgYIKwYBBQUHAQEEgYEwfzA5BggrBgEFBQcwAYYtaHR0cDovL29j
+c3Auc3RhcnRzc2wuY29tL3N1Yi9jbGFzczEvY2xpZW50L2NhMEIGCCsGAQUFBzAChjZodHRwOi8v
+YWlhLnN0YXJ0c3NsLmNvbS9jZXJ0cy9zdWIuY2xhc3MxLmNsaWVudC5jYS5jcnQwIwYDVR0SBBww
+GoYYaHR0cDovL3d3dy5zdGFydHNzbC5jb20vMA0GCSqGSIb3DQEBBQUAA4IBAQBzEJsRx6HaUvOV
+/B0csYb35MrO6/rWgjTmjVPXMULv3Gf+pOZ0tqhjTM2eo2+7nmP1e+6fuA1v/WVjgw03+Bc9NJoe
+UklXNtAc+7foYccB3etj2YBDYeYu+kKtrcOPFPALGKOXWph28tXqX53mWny6VJCyzuwBgSSIkVU3
+r3b8l0NKp4sTpijFsr64UjRrlSClXXqiz/tdNg8H/naRcsPo9Yc9vIxBCqR2vjUdW9pF7kj4v6zB
+oXscJSToeLSvCkOkcq9KyDf/zUmzoG8mGa83P2VFl/VeTgPOAoRW9r5BZdDnGK7baf64QwSyE8H3
+z8UmXqAYfR+82M5Gwlyi9wVCMIIGNDCCBBygAwIBAgIBHjANBgkqhkiG9w0BAQUFADB9MQswCQYD
+VQQGEwJJTDEWMBQGA1UEChMNU3RhcnRDb20gTHRkLjErMCkGA1UECxMiU2VjdXJlIERpZ2l0YWwg
+Q2VydGlmaWNhdGUgU2lnbmluZzEpMCcGA1UEAxMgU3RhcnRDb20gQ2VydGlmaWNhdGlvbiBBdXRo
+b3JpdHkwHhcNMDcxMDI0MjEwMTU1WhcNMTcxMDI0MjEwMTU1WjCBjDELMAkGA1UEBhMCSUwxFjAU
+BgNVBAoTDVN0YXJ0Q29tIEx0ZC4xKzApBgNVBAsTIlNlY3VyZSBEaWdpdGFsIENlcnRpZmljYXRl
+IFNpZ25pbmcxODA2BgNVBAMTL1N0YXJ0Q29tIENsYXNzIDEgUHJpbWFyeSBJbnRlcm1lZGlhdGUg
+Q2xpZW50IENBMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxwmDzM4t2BqxKaQuE6uW
+vooyg4ymiEGWVUet1G8SD+rqvyNH4QrvnEIaFHxOhESip7vMz39ScLpNLbL1QpOlPW/tFIzNHS3q
+d2XRNYG5Sv9RcGE+T4qbLtsjjJbi6sL7Ls/f/X9ftTyhxvxWkf8KW37iKrueKsxw2HqolH7GM6FX
+5UfNAwAu4ZifkpmZzU1slBhyWwaQPEPPZRsWoTb7q8hmgv6Nv3Hg9rmA1/VPBIOQ6SKRkHXG0Hhm
+q1dOFoAFI411+a/9nWm5rcVjGcIWZ2v/43Yksq60jExipA4l5uv9/+Hm33mbgmCszdj/Dthf13tg
+Av2O83hLJ0exTqfrlwIDAQABo4IBrTCCAakwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC
+AQYwHQYDVR0OBBYEFFNy7ZKc4NrLAVx8fpY1TvLUuFGCMB8GA1UdIwQYMBaAFE4L7xqkQFulF2mH
+MMo0aEPQQa7yMGYGCCsGAQUFBwEBBFowWDAnBggrBgEFBQcwAYYbaHR0cDovL29jc3Auc3RhcnRz
+c2wuY29tL2NhMC0GCCsGAQUFBzAChiFodHRwOi8vd3d3LnN0YXJ0c3NsLmNvbS9zZnNjYS5jcnQw
+WwYDVR0fBFQwUjAnoCWgI4YhaHR0cDovL3d3dy5zdGFydHNzbC5jb20vc2ZzY2EuY3JsMCegJaAj
+hiFodHRwOi8vY3JsLnN0YXJ0c3NsLmNvbS9zZnNjYS5jcmwwgYAGA1UdIAR5MHcwdQYLKwYBBAGB
+tTcBAgEwZjAuBggrBgEFBQcCARYiaHR0cDovL3d3dy5zdGFydHNzbC5jb20vcG9saWN5LnBkZjA0
+BggrBgEFBQcCARYoaHR0cDovL3d3dy5zdGFydHNzbC5jb20vaW50ZXJtZWRpYXRlLnBkZjANBgkq
+hkiG9w0BAQUFAAOCAgEACoMIfXirLAZcuGOMXq4cuSN3TaFx2H2GvD5VSy/6rV55BYHbWNaPeQn3
+oBSU8KgQZn/Kck1JxbLpAxVCNtsxeW1R87ifhsYZ0qjdrA9anrW2MAWCtosmAOT4OxK9QPoSjCMx
+M3HbkZCDJgnlE8jMopH21BbyAYr7b5EfGRQJNtgWcvqSXwKHnTutR08+Kkn0KAkXCzeQNLeA5LlY
+UzFyM7kPAp8pIRMQ+seHunmyG642S2+y/qHEdMuGIwpfz3eDF1PdctL04qYK/zu+Qg1Bw0RwgigV
+Zs/0c5HP2/e9DBHh7eSwtzYlk4AUr6yxLlcwSjOfOmKEQ/Q8tzh0IFiNu9IPuTGAPBn4CPxD0+Ru
+8T2wg8/s43R/PT3kd1OEqOJUl7q+h+r6fpvU0Fzxd2tC8Ga6fDEPme+1Nbi+03pVjuZQKbGwKJ66
+gEn06WqaxVZC+J8hh/jR0k9mST1iAZPNYulcNJ8tKmVtjYsv0L1TSm2+NwON58tO+pIVzu3DWwSE
+XSf+qkDavQam+QtEOZxLBXI++aMUEapSn+k3Lxm48ZCYfAWLb/Xj7F5JQMbZvCexglAbYR0kIHqW
+5DnsYSdMD/IplJMojx0NBrxJ3fN9dvX2Y6BIXRsF1du4qESm4/3CKuyUV7p9DW3mPlHTGLvYxnyK
+Qy7VFBkoLINszBrOUeIxggNvMIIDawIBATCBlDCBjDELMAkGA1UEBhMCSUwxFjAUBgNVBAoTDVN0
+YXJ0Q29tIEx0ZC4xKzApBgNVBAsTIlNlY3VyZSBEaWdpdGFsIENlcnRpZmljYXRlIFNpZ25pbmcx
+ODA2BgNVBAMTL1N0YXJ0Q29tIENsYXNzIDEgUHJpbWFyeSBJbnRlcm1lZGlhdGUgQ2xpZW50IENB
+AgMN7zcwCQYFKw4DAhoFAKCCAa8wGAYJKoZIhvcNAQkDMQsGCSqGSIb3DQEHATAcBgkqhkiG9w0B
+CQUxDxcNMTUxMDI4MTMzMTUwWjAjBgkqhkiG9w0BCQQxFgQUR/M4CxnQ7LhjgrY2nUWc33RtTIUw
+gaUGCSsGAQQBgjcQBDGBlzCBlDCBjDELMAkGA1UEBhMCSUwxFjAUBgNVBAoTDVN0YXJ0Q29tIEx0
+ZC4xKzApBgNVBAsTIlNlY3VyZSBEaWdpdGFsIENlcnRpZmljYXRlIFNpZ25pbmcxODA2BgNVBAMT
+L1N0YXJ0Q29tIENsYXNzIDEgUHJpbWFyeSBJbnRlcm1lZGlhdGUgQ2xpZW50IENBAgMN7zcwgacG
+CyqGSIb3DQEJEAILMYGXoIGUMIGMMQswCQYDVQQGEwJJTDEWMBQGA1UEChMNU3RhcnRDb20gTHRk
+LjErMCkGA1UECxMiU2VjdXJlIERpZ2l0YWwgQ2VydGlmaWNhdGUgU2lnbmluZzE4MDYGA1UEAxMv
+U3RhcnRDb20gQ2xhc3MgMSBQcmltYXJ5IEludGVybWVkaWF0ZSBDbGllbnQgQ0ECAw3vNzANBgkq
+hkiG9w0BAQEFAASCAQBFFjhzmPu/DFhF8m8Rh+5mOvtfjqi0cPtDMxAilafmmXP11JcOstF1fV3b
+rG6vpgShXH+wGp7hnbT7VjsVc7YITz1jgFmE7uZy5yHKd5bHxNgvy4Gdul+jlPrX5pKwGTbtvXNU
+jnIDjIckK0/Ib4yT/AA/SPwI3KyNjD+X/FxhJT+l9MIVggt0nX8e54O6ro++o9s6yhnFp2B4b7ko
+4MsrsZWGkydK8zEVYS8cP881aqCNX7Rv8lF/tfOfe+TVTavIrMYfQFNnKvuNhAdQ/k2FysXuoWNL
+QK/7bhE/NGeduwjZM3AIeJpTBObrqYvYfPamh11MYqFgRiDTcaqGaJciAAAAAAAA
+
+
+--=-UWt460THBQw95cktZ8Mf--
 
