@@ -1,50 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f43.google.com ([74.125.82.43]:37832 "EHLO
-	mail-wm0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756650AbbJ2IbY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Oct 2015 04:31:24 -0400
-From: Thierry Reding <thierry.reding@gmail.com>
-Subject: [PATCH 1/2] asm/sections: Add helpers to check for section data
-Date: Thu, 29 Oct 2015 09:26:06 +0100
-Message-ID: <1446107167-7001-1-git-send-email-thierry.reding@gmail.com>
+Received: from mail-ob0-f174.google.com ([209.85.214.174]:33476 "EHLO
+	mail-ob0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751017AbbJ2ScJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Oct 2015 14:32:09 -0400
+Received: by obbwb3 with SMTP id wb3so24928965obb.0
+        for <linux-arch@vger.kernel.org>; Thu, 29 Oct 2015 11:32:09 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <1446081046.1856.55.camel@kernel.crashing.org>
+References: <1445789224-28032-1-git-send-email-shamir.rabinovitch@oracle.com>
+ <1445789224-28032-2-git-send-email-shamir.rabinovitch@oracle.com>
+ <1446013801.3405.183.camel@infradead.org> <20151028111049.GA30785@shamir-ThinkPad-T430>
+ <1446039110.3405.212.camel@infradead.org> <1446078721.1856.49.camel@kernel.crashing.org>
+ <1446079332.3405.273.camel@infradead.org> <1446081046.1856.55.camel@kernel.crashing.org>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Thu, 29 Oct 2015 11:31:49 -0700
+Message-ID: <CALCETrXrzq1f9sMAbKcmhpEtiyq5FE871=4+YspA=X+RjD7p8Q@mail.gmail.com>
+Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute - DMA_ATTR_IOMMU_BYPASS
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Joe Perches <joe@perches.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20151029082606.luaM24-bC9JzR-G27qPL1nMV8od4UsIxoLWtxJYu84Y@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>, linux-arch <linux-arch@vger.kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Shamir Rabinovitch <shamir.rabinovitch@oracle.com>, David Woodhouse <dwmw2@infradead.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Sebastian Ott <sebott@linux.vnet.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, Cornelia Huck <cornelia.huck@de.ibm.com>, Joerg Roedel <jroedel@suse.de>, Jonathan Corbet <corbet@lwn.net>, KVM <kvm@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>
+Message-ID: <20151029183149.W_B70VdbzdbjXtrBr7BeUTClsYw2FMwSLdDlpvy4xEE@z>
 
-From: Thierry Reding <treding@nvidia.com>
+On Oct 28, 2015 6:11 PM, "Benjamin Herrenschmidt"
+<benh@kernel.crashing.org> wrote:
+>
+> On Thu, 2015-10-29 at 09:42 +0900, David Woodhouse wrote:
+> > On Thu, 2015-10-29 at 09:32 +0900, Benjamin Herrenschmidt wrote:
+> >
+> > > On Power, I generally have 2 IOMMU windows for a device, one at the
+> > > bottom is remapped, and is generally used for 32-bit devices and the
+> > > one at the top us setup as a bypass
+> >
+> > So in the normal case of decent 64-bit devices (and not in a VM),
+> > they'll *already* be using the bypass region and have full access to
+> > all of memory, all of the time? And you have no protection against
+> > driver and firmware bugs causing stray DMA?
+>
+> Correct, we chose to do that for performance reasons.
 
-Add a helper to check if an object (given an address and a size) is part
-of a section (given beginning and end addresses). For convenience, also
-provide a helper that performs this check for __init data using the
-__init_begin and __init_end limits.
+Could this be mitigated using pools?  I don't know if the net code
+would play along easily.
 
-Signed-off-by: Thierry Reding <treding@nvidia.com>
----
- include/asm-generic/sections.h | 11 +++++++++++
- 1 file changed, 11 insertions(+)
-
-diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
-index b58fd667f87b..529909090cd6 100644
---- a/include/asm-generic/sections.h
-+++ b/include/asm-generic/sections.h
-@@ -63,4 +63,15 @@ static inline int arch_is_kernel_data(unsigned long addr)
- }
- #endif
- 
-+static inline bool section_contains(void *virt, size_t size, void *begin,
-+				    void *end)
-+{
-+	return virt >= begin && virt + size <= end;
-+}
-+
-+static inline bool init_section_contains(void *virt, size_t size)
-+{
-+	return section_contains(virt, size, __init_begin, __init_end);
-+}
-+
- #endif /* _ASM_GENERIC_SECTIONS_H_ */
--- 
-2.5.0
-
+--Andy
