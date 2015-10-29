@@ -1,53 +1,61 @@
-From: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
-Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute -
- DMA_ATTR_IOMMU_BYPASS
-Date: Thu, 29 Oct 2015 09:32:32 +0200
-Message-ID: <20151029073231.GE30785@shamir-ThinkPad-T430>
-References: <1445789224-28032-1-git-send-email-shamir.rabinovitch@oracle.com>
- <1445789224-28032-2-git-send-email-shamir.rabinovitch@oracle.com>
- <1446013801.3405.183.camel@infradead.org>
- <20151028111049.GA30785@shamir-ThinkPad-T430>
- <1446039110.3405.212.camel@infradead.org>
- <1446078721.1856.49.camel@kernel.crashing.org>
- <1446079332.3405.273.camel@infradead.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from userp1040.oracle.com ([156.151.31.81]:19320 "EHLO
-	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750916AbbJ2Hda (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Oct 2015 03:33:30 -0400
-Content-Disposition: inline
-In-Reply-To: <1446079332.3405.273.camel@infradead.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, arnd@arndb.de, corbet@lwn.net, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Joerg Roedel <jroedel@suse.de>, Christian Borntraeger <borntraeger@de.ibm.com>, Cornelia Huck <cornelia.huck@de.ibm.com>, Sebastian Ott <sebott@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoph Hellwig <hch@lst.de>, KVM <kvm@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>
+From: Thierry Reding <thierry.reding@gmail.com>
+Subject: [PATCH 2/2] printk: Only unregister boot consoles when necessary
+Date: Thu, 29 Oct 2015 09:26:07 +0100
+Message-ID: <1446107167-7001-2-git-send-email-thierry.reding@gmail.com>
+References: <1446107167-7001-1-git-send-email-thierry.reding@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1446107167-7001-1-git-send-email-thierry.reding@gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Joe Perches <joe@perches.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 29, 2015 at 09:42:12AM +0900, David Woodhouse wrote:
+From: Thierry Reding <treding@nvidia.com>
 
-> Aside from the lack of security, the other disadvantage of that is that
-> you have to pin *all* pages of a guest in case DMA happens; you don't
-> get to pin *only* those pages which are referenced by that guest's
-> IOMMU page tables...
+Boot consoles are typically replaced by proper consoles during the boot
+process. This can be problematic if the boot console data is part of the
+init section that is reclaimed late during boot. If the proper console
+does not register before this point in time, the boot console will need
+to be removed (so that the freed memory is not accessed), leaving the
+system without output for some time.
 
-We do bypass the IOMMU but not the DMA API and given that before we call 
-the DMA API we pin the page then we do not need to pin all the pages.
-Just the ones we use for the DMA. 
+There are various reasons why the proper console may not register early
+enough, such as deferred probe or the driver being a loadable module. If
+that happens, there is some amount of time where no console messages are
+visible to the user, which in turn can mean that they won't see crashes
+or other potentially useful information.
 
-For me this flag looks orthogonal to the page pinning issue you brought. It
-is just a hint to the DMA API that we want to use simple & fast mapping while
-knowing we loose IOMMU protection for this memory.
+To avoid this situation, only remove the boot console when it resides in
+the init section. Code exists to replace the boot console by the proper
+console when it is registered, keeping a seamless transition between the
+boot and proper consoles.
 
-For the IB case, setting and tearing DMA mappings for the drivers data buffers
-is expensive. But we could for example consider to map all the HW control objects
-that validate the HW access to the drivers data buffers as IOMMU protected and so
-have IOMMU protection on those critical objects while having fast set-up/tear-down
-of driver data buffers. The HW control objects have stable mapping for the lifetime
-of the system. So the case of using both types of DMA mappings is still valid. 
+Signed-off-by: Thierry Reding <treding@nvidia.com>
+---
+ kernel/printk/printk.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
+index b16f35487b67..6164b6f48930 100644
+--- a/kernel/printk/printk.c
++++ b/kernel/printk/printk.c
+@@ -48,6 +48,7 @@
+ #include <linux/uio.h>
  
-> 
-> -- 
-> dwmw2
-> 
-> 
+ #include <asm/uaccess.h>
++#include <asm-generic/sections.h>
+ 
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/printk.h>
+@@ -2661,7 +2662,8 @@ static int __init printk_late_init(void)
+ 
+ 	for_each_console(con) {
+ 		if (!keep_bootcon && con->flags & CON_BOOT) {
+-			unregister_console(con);
++			if (init_section_contains(con, sizeof(*con)))
++				unregister_console(con);
+ 		}
+ 	}
+ 	hotcpu_notifier(console_cpu_notify, 0);
+-- 
+2.5.0
