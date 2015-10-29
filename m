@@ -1,75 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:53819 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751504AbbJ2CUZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Oct 2015 22:20:25 -0400
-Message-ID: <1446081046.1856.55.camel@kernel.crashing.org>
-Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute -
- DMA_ATTR_IOMMU_BYPASS
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Thu, 29 Oct 2015 10:10:46 +0900
-In-Reply-To: <1446079332.3405.273.camel@infradead.org>
-References: <1445789224-28032-1-git-send-email-shamir.rabinovitch@oracle.com>
-	 <1445789224-28032-2-git-send-email-shamir.rabinovitch@oracle.com>
-	 <1446013801.3405.183.camel@infradead.org>
-	 <20151028111049.GA30785@shamir-ThinkPad-T430>
-	 <1446039110.3405.212.camel@infradead.org>
-	 <1446078721.1856.49.camel@kernel.crashing.org>
-	 <1446079332.3405.273.camel@infradead.org>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-wi0-f169.google.com ([209.85.212.169]:35270 "EHLO
+	mail-wi0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751089AbbJ2I0M (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Oct 2015 04:26:12 -0400
+From: Thierry Reding <thierry.reding@gmail.com>
+Subject: [PATCH 2/2] printk: Only unregister boot consoles when necessary
+Date: Thu, 29 Oct 2015 09:26:07 +0100
+Message-ID: <1446107167-7001-2-git-send-email-thierry.reding@gmail.com>
+In-Reply-To: <1446107167-7001-1-git-send-email-thierry.reding@gmail.com>
+References: <1446107167-7001-1-git-send-email-thierry.reding@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Woodhouse <dwmw2@infradead.org>, Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
-Cc: arnd@arndb.de, corbet@lwn.net, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Joerg Roedel <jroedel@suse.de>, Christian Borntraeger <borntraeger@de.ibm.com>, Cornelia Huck <cornelia.huck@de.ibm.com>, Sebastian Ott <sebott@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoph Hellwig <hch@lst.de>, KVM <kvm@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>
-Message-ID: <20151029011046.2TMVPLwKHkqCKcNXjwntwzK_JMv9QukUdpErAg8Fr58@z>
+To: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Joe Perches <joe@perches.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20151029082607.mQaRkwGBiOMKRSwX2OqL24PFkhM2gWfeLsxbILoewNQ@z>
 
-On Thu, 2015-10-29 at 09:42 +0900, David Woodhouse wrote:
-> On Thu, 2015-10-29 at 09:32 +0900, Benjamin Herrenschmidt wrote:
-> 
-> > On Power, I generally have 2 IOMMU windows for a device, one at the
-> > bottom is remapped, and is generally used for 32-bit devices and the
-> > one at the top us setup as a bypass 
-> 
-> So in the normal case of decent 64-bit devices (and not in a VM),
-> they'll *already* be using the bypass region and have full access to
-> all of memory, all of the time? And you have no protection against
-> driver and firmware bugs causing stray DMA?
+From: Thierry Reding <treding@nvidia.com>
 
-Correct, we chose to do that for performance reasons.
+Boot consoles are typically replaced by proper consoles during the boot
+process. This can be problematic if the boot console data is part of the
+init section that is reclaimed late during boot. If the proper console
+does not register before this point in time, the boot console will need
+to be removed (so that the freed memory is not accessed), leaving the
+system without output for some time.
 
-> > I don't see how thata ttribute would work for us.
-> 
-> Because you're already doing it anyway without being asked :)
-> 
-> If SPARC and POWER are both doing that, perhaps we should change the
-> default for Intel too?
-> 
-> Aside from the lack of security, the other disadvantage of that is that
-> you have to pin *all* pages of a guest in case DMA happens; you don't
-> get to pin *only* those pages which are referenced by that guest's
-> IOMMU page tables...
+There are various reasons why the proper console may not register early
+enough, such as deferred probe or the driver being a loadable module. If
+that happens, there is some amount of time where no console messages are
+visible to the user, which in turn can mean that they won't see crashes
+or other potentially useful information.
 
-Correct, the problem is that the cost of doing map/unmap from a guest
-is really a huge hit on things like network devices.
+To avoid this situation, only remove the boot console when it resides in
+the init section. Code exists to replace the boot console by the proper
+console when it is registered, keeping a seamless transition between the
+boot and proper consoles.
 
-Another problem is that the failure mode isn't great if you don't pin. 
+Signed-off-by: Thierry Reding <treding@nvidia.com>
+---
+ kernel/printk/printk.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-IE. You have to pin pages as they get mapped into the iommu by the
-guest, but you don't know in advance how much and you may hit the
-process ulimit on pinned pages half way through.
-
-We tried to address that in various ways but it always ended up horrid.
-
-> Maybe we should at least coordinate IOMMU 'paranoid/fast' modes across
-> architectures, and then the DMA_ATTR_IOMMU_BYPASS flag would have a
-> sane meaning in the paranoid mode (and perhaps we'd want an ultra
-> -paranoid mode where it's not honoured).
-
-Possibly, though ideally that would be a user policy but of course by
-the time you get to userspace it's generally too late.
-
-Cheers,
-Ben.
+diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
+index b16f35487b67..6164b6f48930 100644
+--- a/kernel/printk/printk.c
++++ b/kernel/printk/printk.c
+@@ -48,6 +48,7 @@
+ #include <linux/uio.h>
+ 
+ #include <asm/uaccess.h>
++#include <asm-generic/sections.h>
+ 
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/printk.h>
+@@ -2661,7 +2662,8 @@ static int __init printk_late_init(void)
+ 
+ 	for_each_console(con) {
+ 		if (!keep_bootcon && con->flags & CON_BOOT) {
+-			unregister_console(con);
++			if (init_section_contains(con, sizeof(*con)))
++				unregister_console(con);
+ 		}
+ 	}
+ 	hotcpu_notifier(console_cpu_notify, 0);
+-- 
+2.5.0
 
