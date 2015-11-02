@@ -1,144 +1,99 @@
-From: Hugh Dickins <hughd-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH 3/8] arch: uapi: asm: mman.h: Let MADV_FREE have same
- value for all architectures
-Date: Sun, 1 Nov 2015 16:08:27 -0800 (PST)
-Message-ID: <alpine.LSU.2.11.1511011542030.11427@eggly.anvils>
-References: <1446188504-28023-1-git-send-email-minchan@kernel.org> <1446188504-28023-4-git-send-email-minchan@kernel.org>
+From: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
+Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute -
+ DMA_ATTR_IOMMU_BYPASS
+Date: Mon, 2 Nov 2015 09:23:58 +0200
+Message-ID: <20151102072358.GA4642@shamir-ThinkPad-T430>
+References: <1446013801.3405.183.camel@infradead.org>
+ <20151028111049.GA30785@shamir-ThinkPad-T430>
+ <1446039110.3405.212.camel@infradead.org>
+ <1446078721.1856.49.camel@kernel.crashing.org>
+ <1446079332.3405.273.camel@infradead.org>
+ <1446081046.1856.55.camel@kernel.crashing.org>
+ <CALCETrXrzq1f9sMAbKcmhpEtiyq5FE871=4+YspA=X+RjD7p8Q@mail.gmail.com>
+ <1446158125.4471.5.camel@infradead.org>
+ <20151101074534.GC23022@shamir-ThinkPad-T430>
+ <1446412249.4060.7.camel@kernel.crashing.org>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1446188504-28023-4-git-send-email-minchan-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Minchan Kim <minchan-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-Cc: Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, Michael Kerrisk <mtk.manpages-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Hugh Dickins <hughd-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Johannes Weiner <hannes-druUgvl0LCNAfugRpC6u6w@public.gmane.org>, zhangyanfei-BthXqXjhjHXQFUHtdCDX3A@public.gmane.org, Rik van Riel <riel-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Mel Gorman <mgorman-l3A5Bk7waGM@public.gmane.org>, KOSAKI Motohiro <kosaki.motohiro-+CUm20s59erQFUHtdCDX3A@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, "Darrick J. Wong" <darrick.wong-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>, Roland Dreier <roland-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Jason Evans <je-b10kYP2dOMg@public.gmane.org>, Daniel Micay <danielmicay-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, "Kirill A. Shutemov" <kirill-oKw7cIdHH8eLwutG50LtGA@public.gmane.org>, Michal Hocko <mhocko-AlSwsSmVLrQ@public.gmane.org>, yalin.wang2010-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org, Shaohua Li <shli-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Chen Gang <gang.chen.5i5j-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, "rth-hL46jP5Bxq7R7s880joybQ@public.gmane.org" <rth-hL46jP5Bxq7R7s880joybQ@public.gmane.org>, "ink-biIs/Y0ymYJMZLIVYojuPNP0rXTJTi09@public.gmane.org" <ink-biIs/Y0ymYJMZLIVYojuPNP0rXTJTi09@public.gmane.org>, "mattst88-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org" <mattst88-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Ralf Baechle <ralf@l>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from userp1040.oracle.com ([156.151.31.81]:18027 "EHLO
+	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752617AbbKBHaK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Nov 2015 02:30:10 -0500
+Content-Disposition: inline
+In-Reply-To: <1446412249.4060.7.camel@kernel.crashing.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: David Woodhouse <dwmw2@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Christian Borntraeger <borntraeger@de.ibm.com>, linux-arch <linux-arch@vger.kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Sebastian Ott <sebott@linux.vnet.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, Cornelia Huck <cornelia.huck@de.ibm.com>, Joerg Roedel <jroedel@suse.de>, Jonathan Corbet <corbet@lwn.net>, KVM <kvm@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Christoph Hellwig <hch@lst.de>
 
-On Fri, 30 Oct 2015, Minchan Kim wrote:
-> From: Chen Gang <gang.chen.5i5j-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+On Mon, Nov 02, 2015 at 08:10:49AM +1100, Benjamin Herrenschmidt wrote:
+> But but but ...
 > 
-> For uapi, need try to let all macros have same value, and MADV_FREE is
-> added into main branch recently, so need redefine MADV_FREE for it.
+> What I don't understand is how that brings you any safety.
+
+Limited safety maybe? If some device DMA mappings are via IOMMU 
+and this fall to some address range that is far from the bypass / 
+pass through range then small drifts in address might be still figured 
+if we do not bypass / pass through the IOMMU - right?
+
+Device can sure use the bypass address and just reach the memory w/o 
+IOMMU protection. See some comments about that below.
+
 > 
-> At present, '8' can be shared with all architectures, so redefine it to
-> '8'.
+> Basically, either your bridge has a bypass window, or it doesn't. (Or
+> it has one and it's enabled or not, same thing).
+
+Agree.
+
 > 
-> Cc: rth-hL46jP5Bxq7R7s880joybQ@public.gmane.org <rth-hL46jP5Bxq7R7s880joybQ@public.gmane.org>,
-> Cc: ink-biIs/Y0ymYJMZLIVYojuPNP0rXTJTi09@public.gmane.org <ink-biIs/Y0ymYJMZLIVYojuPNP0rXTJTi09@public.gmane.org>
-> Cc: mattst88-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org <mattst88-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-> Cc: Ralf Baechle <ralf-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org>
-> Cc: jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org <jejb-6jwH94ZQLHl74goWV3ctuw@public.gmane.org>
-> Cc: deller-Mmb7MZpHnFY@public.gmane.org <deller-Mmb7MZpHnFY@public.gmane.org>
-> Cc: chris-YvXeqwSYzG2sTnJN9+BGXg@public.gmane.org <chris-YvXeqwSYzG2sTnJN9+BGXg@public.gmane.org>
-> Cc: jcmvbkbc-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org <jcmvbkbc-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-> Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-> Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-> Cc: linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-> Acked-by: Minchan Kim <minchan-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-> Signed-off-by: Chen Gang <gang.chen.5i5j-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-
-Let me add
-Acked-by: Hugh Dickins <hughd-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>
-to this one too.
-
-But I have extended your mail's Cc list: Darrick pointed out earlier
-that dietlibc has a Solaris #define MADV_FREE 0x5 in its mman.h,
-and that was in the kernel's sparc mman.h up until 2.6.25.  I doubt
-that presents any obstacle nowadays, but Dave Miller should be Cc'ed.
-
-I was a little suspicious that 8 is available for MADV_FREE: why did
-the common/generic parameters start at 9 instead of 8 back in 2.6.16?
-I think the answer is that we had MADV_REMOVE coming in from one
-direction, and MADV_DONTFORK coming from another direction, and when
-Roland looked for where to start the commons for MADV_DONTFORK, it
-appeared that 8 was occupied - by MADV_REMOVE; then a little later
-MADV_REMOVE was shifted to become the first of the commons, at 9.
-
-Hugh
-
-> ---
->  arch/alpha/include/uapi/asm/mman.h     | 2 +-
->  arch/mips/include/uapi/asm/mman.h      | 2 +-
->  arch/parisc/include/uapi/asm/mman.h    | 2 +-
->  arch/xtensa/include/uapi/asm/mman.h    | 2 +-
->  include/uapi/asm-generic/mman-common.h | 2 +-
->  5 files changed, 5 insertions(+), 5 deletions(-)
+> If you request the bypass on a per-mapping basis, you basically have to
+> keep the window always enabled, unless you do some nasty refcounting of
+> how many people have a bypass mapping in flight, but that doesn't seem
+> useful.
 > 
-> diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
-> index 836fbd44f65b..0b8a5de7aee3 100644
-> --- a/arch/alpha/include/uapi/asm/mman.h
-> +++ b/arch/alpha/include/uapi/asm/mman.h
-> @@ -44,9 +44,9 @@
->  #define MADV_WILLNEED	3		/* will need these pages */
->  #define	MADV_SPACEAVAIL	5		/* ensure resources are available */
->  #define MADV_DONTNEED	6		/* don't need these pages */
-> -#define MADV_FREE	7		/* free pages only if memory pressure */
->  
->  /* common/generic parameters */
-> +#define MADV_FREE	8		/* free pages only if memory pressure */
->  #define MADV_REMOVE	9		/* remove these pages & resources */
->  #define MADV_DONTFORK	10		/* don't inherit across fork */
->  #define MADV_DOFORK	11		/* do inherit across fork */
-> diff --git a/arch/mips/include/uapi/asm/mman.h b/arch/mips/include/uapi/asm/mman.h
-> index 106e741aa7ee..d247f5457944 100644
-> --- a/arch/mips/include/uapi/asm/mman.h
-> +++ b/arch/mips/include/uapi/asm/mman.h
-> @@ -67,9 +67,9 @@
->  #define MADV_SEQUENTIAL 2		/* expect sequential page references */
->  #define MADV_WILLNEED	3		/* will need these pages */
->  #define MADV_DONTNEED	4		/* don't need these pages */
-> -#define MADV_FREE	5		/* free pages only if memory pressure */
->  
->  /* common parameters: try to keep these consistent across architectures */
-> +#define MADV_FREE	8		/* free pages only if memory pressure */
->  #define MADV_REMOVE	9		/* remove these pages & resources */
->  #define MADV_DONTFORK	10		/* don't inherit across fork */
->  #define MADV_DOFORK	11		/* do inherit across fork */
-> diff --git a/arch/parisc/include/uapi/asm/mman.h b/arch/parisc/include/uapi/asm/mman.h
-> index 6cb8db76fd4e..700d83fd9352 100644
-> --- a/arch/parisc/include/uapi/asm/mman.h
-> +++ b/arch/parisc/include/uapi/asm/mman.h
-> @@ -40,9 +40,9 @@
->  #define MADV_SPACEAVAIL 5               /* insure that resources are reserved */
->  #define MADV_VPS_PURGE  6               /* Purge pages from VM page cache */
->  #define MADV_VPS_INHERIT 7              /* Inherit parents page size */
-> -#define MADV_FREE	8		/* free pages only if memory pressure */
->  
->  /* common/generic parameters */
-> +#define MADV_FREE	8		/* free pages only if memory pressure */
->  #define MADV_REMOVE	9		/* remove these pages & resources */
->  #define MADV_DONTFORK	10		/* don't inherit across fork */
->  #define MADV_DOFORK	11		/* do inherit across fork */
-> diff --git a/arch/xtensa/include/uapi/asm/mman.h b/arch/xtensa/include/uapi/asm/mman.h
-> index 1b19f25bc567..77eaca434071 100644
-> --- a/arch/xtensa/include/uapi/asm/mman.h
-> +++ b/arch/xtensa/include/uapi/asm/mman.h
-> @@ -80,9 +80,9 @@
->  #define MADV_SEQUENTIAL	2		/* expect sequential page references */
->  #define MADV_WILLNEED	3		/* will need these pages */
->  #define MADV_DONTNEED	4		/* don't need these pages */
-> -#define MADV_FREE	5		/* free pages only if memory pressure */
->  
->  /* common parameters: try to keep these consistent across architectures */
-> +#define MADV_FREE	8		/* free pages only if memory pressure */
->  #define MADV_REMOVE	9		/* remove these pages & resources */
->  #define MADV_DONTFORK	10		/* don't inherit across fork */
->  #define MADV_DOFORK	11		/* do inherit across fork */
-> diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
-> index 7a94102b7a02..869595947873 100644
-> --- a/include/uapi/asm-generic/mman-common.h
-> +++ b/include/uapi/asm-generic/mman-common.h
-> @@ -34,9 +34,9 @@
->  #define MADV_SEQUENTIAL	2		/* expect sequential page references */
->  #define MADV_WILLNEED	3		/* will need these pages */
->  #define MADV_DONTNEED	4		/* don't need these pages */
-> -#define MADV_FREE	5		/* free pages only if memory pressure */
->  
->  /* common parameters: try to keep these consistent across architectures */
-> +#define MADV_FREE	8		/* free pages only if memory pressure */
->  #define MADV_REMOVE	9		/* remove these pages & resources */
->  #define MADV_DONTFORK	10		/* don't inherit across fork */
->  #define MADV_DOFORK	11		/* do inherit across fork */
-> -- 
-> 1.9.1
+> Thus you have already lost all protection from the device, since your
+> entire memory is accessible via the bypass mapping.
+
+Correct, see my above comment. 
+
 > 
+> Which means what is the point of then having non-bypass mappings for
+> other things ? Just to make things slower ?
+> 
+> I really don't see what this whole "bypass on a per-mapping basis" buys
+> you.
+> 
+> Note that we implicitly already do that on powerpc, but not for those
+> reasons, we do it based on the DMA mask, so that if your coherent mask
+> is 32-bit but your dma mask is 64-bit (which is not an uncommon
+> combination), we service the "coherent" requests (basically the long
+> lifed dma allocs) from the remapped region and the "stream" requests
+> (ie, map_page/map_sg) from the bypass.
+
+
+
+To summary -
+
+1. The whole point of the IOMMU pass through was to get bigger address space
+	and faster map/unmap operations for performance critical hardware
+2. SPARC IOMMU in particular has the ability to DVMA which adress all the 
+	protection concerns raised above. Not sure what will be the performance
+	impact though. This still need a lot of work before we could test this.
+3. On x86 we use IOMMU in pass through mode so all the above concerns are valid
+
+The question are -
+
+1. Does partial use of IOMMU while the pass through window is enabled add some
+	protection?
+2. Do we rather the x86 way of doing this which is enable / disable IOMMU 
+	translations at kernel level?
+
+I think that I can live with option (2) till I have DVMA if there is strong
+disagree on the need for per allocation IOMMU bypass.
+
+
+> 
+> Cheers,
+> Ben.
 > 
