@@ -1,151 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f41.google.com ([209.85.220.41]:34149 "EHLO
-	mail-pa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753087AbbKBAIc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Nov 2015 19:08:32 -0500
-Received: by padec8 with SMTP id ec8so19745849pad.1
-        for <linux-arch@vger.kernel.org>; Sun, 01 Nov 2015 16:08:31 -0800 (PST)
-Date: Sun, 1 Nov 2015 16:08:27 -0800 (PST)
-From: Hugh Dickins <hughd@google.com>
-Subject: Re: [PATCH 3/8] arch: uapi: asm: mman.h: Let MADV_FREE have same
- value for all architectures
-In-Reply-To: <1446188504-28023-4-git-send-email-minchan@kernel.org>
-Message-ID: <alpine.LSU.2.11.1511011542030.11427@eggly.anvils>
-References: <1446188504-28023-1-git-send-email-minchan@kernel.org> <1446188504-28023-4-git-send-email-minchan@kernel.org>
+Received: from userp1040.oracle.com ([156.151.31.81]:42372 "EHLO
+	userp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753263AbbKBRdP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Nov 2015 12:33:15 -0500
+Date: Mon, 2 Nov 2015 19:32:19 +0200
+From: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
+Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute -
+ DMA_ATTR_IOMMU_BYPASS
+Message-ID: <20151102173218.GC12484@shamir-ThinkPad-T430>
+References: <1445789224-28032-1-git-send-email-shamir.rabinovitch@oracle.com>
+ <1445789224-28032-2-git-send-email-shamir.rabinovitch@oracle.com>
+ <1446013801.3405.183.camel@infradead.org>
+ <20151028111049.GA30785@shamir-ThinkPad-T430>
+ <1446039110.3405.212.camel@infradead.org>
+ <1446078721.1856.49.camel@kernel.crashing.org>
+ <1446079332.3405.273.camel@infradead.org>
+ <20151029073231.GE30785@shamir-ThinkPad-T430>
+ <20151102144427.GA2876@suse.de>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20151102144427.GA2876@suse.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Minchan Kim <minchan@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-api@vger.kernel.org, Hugh Dickins <hughd@google.com>, Johannes Weiner <hannes@cmpxchg.org>, zhangyanfei@cn.fujitsu.com, Rik van Riel <riel@redhat.com>, Mel Gorman <mgorman@suse.de>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, David Miller <davem@davemloft.net>, "Darrick J. Wong" <darrick.wong@oracle.com>, Roland Dreier <roland@kernel.org>, Jason Evans <je@fb.com>, Daniel Micay <danielmicay@gmail.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Michal Hocko <mhocko@suse.cz>, yalin.wang2010@gmail.com, Shaohua Li <shli@kernel.org>, Chen Gang <gang.chen.5i5j@gmail.com>, "rth@twiddle.net" <rth@twiddle.net>, "ink@jurassic.park.msu.ru" <ink@jurassic.park.msu.ru>, "mattst88@gmail.com" <mattst88@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "deller@gmx.de" <deller@gmx.de>, "chris@zankel.net" <chris@zankel.net>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20151102000827.CzR1eSyiQQuTq9edf03xObNuTPOjQjTeJfC755vwZfA@z>
+To: Joerg Roedel <jroedel@suse.de>
+Cc: David Woodhouse <dwmw2@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, arnd@arndb.de, corbet@lwn.net, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Cornelia Huck <cornelia.huck@de.ibm.com>, Sebastian Ott <sebott@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoph Hellwig <hch@lst.de>, KVM <kvm@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>
+Message-ID: <20151102173219.VtPlxByPeoKA5HIzlGgmwIkFUO2G0qU2FxxCl2RSidU@z>
 
-On Fri, 30 Oct 2015, Minchan Kim wrote:
-> From: Chen Gang <gang.chen.5i5j@gmail.com>
+On Mon, Nov 02, 2015 at 03:44:27PM +0100, Joerg Roedel wrote:
 > 
-> For uapi, need try to let all macros have same value, and MADV_FREE is
-> added into main branch recently, so need redefine MADV_FREE for it.
+> How do you envision this per-mapping by-pass to work? For the DMA-API
+> mappings you have only one device address space. For by-pass to work,
+> you need to map all physical memory of the machine into this space,
+> which leaves the question where you want to put the window for
+> remapping.
 > 
-> At present, '8' can be shared with all architectures, so redefine it to
-> '8'.
-> 
-> Cc: rth@twiddle.net <rth@twiddle.net>,
-> Cc: ink@jurassic.park.msu.ru <ink@jurassic.park.msu.ru>
-> Cc: mattst88@gmail.com <mattst88@gmail.com>
-> Cc: Ralf Baechle <ralf@linux-mips.org>
-> Cc: jejb@parisc-linux.org <jejb@parisc-linux.org>
-> Cc: deller@gmx.de <deller@gmx.de>
-> Cc: chris@zankel.net <chris@zankel.net>
-> Cc: jcmvbkbc@gmail.com <jcmvbkbc@gmail.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-api@vger.kernel.org
-> Acked-by: Minchan Kim <minchan@kernel.org>
-> Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
+> You surely have to put it after the physical mappings, but any
+> protection will be gone, as the device can access all physical memory.
 
-Let me add
-Acked-by: Hugh Dickins <hughd@google.com>
-to this one too.
+Correct. This issue is one of the concerns here in the previous replies.
+I will take different approach which will not require the IOMMU bypass
+per mapping. Will try to shift to the x86 'iommu=pt' approach.
 
-But I have extended your mail's Cc list: Darrick pointed out earlier
-that dietlibc has a Solaris #define MADV_FREE 0x5 in its mman.h,
-and that was in the kernel's sparc mman.h up until 2.6.25.  I doubt
-that presents any obstacle nowadays, but Dave Miller should be Cc'ed.
-
-I was a little suspicious that 8 is available for MADV_FREE: why did
-the common/generic parameters start at 9 instead of 8 back in 2.6.16?
-I think the answer is that we had MADV_REMOVE coming in from one
-direction, and MADV_DONTFORK coming from another direction, and when
-Roland looked for where to start the commons for MADV_DONTFORK, it
-appeared that 8 was occupied - by MADV_REMOVE; then a little later
-MADV_REMOVE was shifted to become the first of the commons, at 9.
-
-Hugh
-
-> ---
->  arch/alpha/include/uapi/asm/mman.h     | 2 +-
->  arch/mips/include/uapi/asm/mman.h      | 2 +-
->  arch/parisc/include/uapi/asm/mman.h    | 2 +-
->  arch/xtensa/include/uapi/asm/mman.h    | 2 +-
->  include/uapi/asm-generic/mman-common.h | 2 +-
->  5 files changed, 5 insertions(+), 5 deletions(-)
 > 
-> diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
-> index 836fbd44f65b..0b8a5de7aee3 100644
-> --- a/arch/alpha/include/uapi/asm/mman.h
-> +++ b/arch/alpha/include/uapi/asm/mman.h
-> @@ -44,9 +44,9 @@
->  #define MADV_WILLNEED	3		/* will need these pages */
->  #define	MADV_SPACEAVAIL	5		/* ensure resources are available */
->  #define MADV_DONTNEED	6		/* don't need these pages */
-> -#define MADV_FREE	7		/* free pages only if memory pressure */
->  
->  /* common/generic parameters */
-> +#define MADV_FREE	8		/* free pages only if memory pressure */
->  #define MADV_REMOVE	9		/* remove these pages & resources */
->  #define MADV_DONTFORK	10		/* don't inherit across fork */
->  #define MADV_DOFORK	11		/* do inherit across fork */
-> diff --git a/arch/mips/include/uapi/asm/mman.h b/arch/mips/include/uapi/asm/mman.h
-> index 106e741aa7ee..d247f5457944 100644
-> --- a/arch/mips/include/uapi/asm/mman.h
-> +++ b/arch/mips/include/uapi/asm/mman.h
-> @@ -67,9 +67,9 @@
->  #define MADV_SEQUENTIAL 2		/* expect sequential page references */
->  #define MADV_WILLNEED	3		/* will need these pages */
->  #define MADV_DONTNEED	4		/* don't need these pages */
-> -#define MADV_FREE	5		/* free pages only if memory pressure */
->  
->  /* common parameters: try to keep these consistent across architectures */
-> +#define MADV_FREE	8		/* free pages only if memory pressure */
->  #define MADV_REMOVE	9		/* remove these pages & resources */
->  #define MADV_DONTFORK	10		/* don't inherit across fork */
->  #define MADV_DOFORK	11		/* do inherit across fork */
-> diff --git a/arch/parisc/include/uapi/asm/mman.h b/arch/parisc/include/uapi/asm/mman.h
-> index 6cb8db76fd4e..700d83fd9352 100644
-> --- a/arch/parisc/include/uapi/asm/mman.h
-> +++ b/arch/parisc/include/uapi/asm/mman.h
-> @@ -40,9 +40,9 @@
->  #define MADV_SPACEAVAIL 5               /* insure that resources are reserved */
->  #define MADV_VPS_PURGE  6               /* Purge pages from VM page cache */
->  #define MADV_VPS_INHERIT 7              /* Inherit parents page size */
-> -#define MADV_FREE	8		/* free pages only if memory pressure */
->  
->  /* common/generic parameters */
-> +#define MADV_FREE	8		/* free pages only if memory pressure */
->  #define MADV_REMOVE	9		/* remove these pages & resources */
->  #define MADV_DONTFORK	10		/* don't inherit across fork */
->  #define MADV_DOFORK	11		/* do inherit across fork */
-> diff --git a/arch/xtensa/include/uapi/asm/mman.h b/arch/xtensa/include/uapi/asm/mman.h
-> index 1b19f25bc567..77eaca434071 100644
-> --- a/arch/xtensa/include/uapi/asm/mman.h
-> +++ b/arch/xtensa/include/uapi/asm/mman.h
-> @@ -80,9 +80,9 @@
->  #define MADV_SEQUENTIAL	2		/* expect sequential page references */
->  #define MADV_WILLNEED	3		/* will need these pages */
->  #define MADV_DONTNEED	4		/* don't need these pages */
-> -#define MADV_FREE	5		/* free pages only if memory pressure */
->  
->  /* common parameters: try to keep these consistent across architectures */
-> +#define MADV_FREE	8		/* free pages only if memory pressure */
->  #define MADV_REMOVE	9		/* remove these pages & resources */
->  #define MADV_DONTFORK	10		/* don't inherit across fork */
->  #define MADV_DOFORK	11		/* do inherit across fork */
-> diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
-> index 7a94102b7a02..869595947873 100644
-> --- a/include/uapi/asm-generic/mman-common.h
-> +++ b/include/uapi/asm-generic/mman-common.h
-> @@ -34,9 +34,9 @@
->  #define MADV_SEQUENTIAL	2		/* expect sequential page references */
->  #define MADV_WILLNEED	3		/* will need these pages */
->  #define MADV_DONTNEED	4		/* don't need these pages */
-> -#define MADV_FREE	5		/* free pages only if memory pressure */
->  
->  /* common parameters: try to keep these consistent across architectures */
-> +#define MADV_FREE	8		/* free pages only if memory pressure */
->  #define MADV_REMOVE	9		/* remove these pages & resources */
->  #define MADV_DONTFORK	10		/* don't inherit across fork */
->  #define MADV_DOFORK	11		/* do inherit across fork */
-> -- 
-> 1.9.1
+> So instead of working around the shortcomings of DMA-API
+> implementations, can you present us some numbers and analysis of how bad
+> the performance impact with an IOMMU is and what causes it?
+
+We had a bunch of issues around SPARC IOMMU. Not all of them relate to
+performance. The first issue was that on SPARC, currently, we only have 
+limited address space to IOMMU so we had issue to do large DMA mappings
+for Infiniband. Second issue was that we identified high contention on 
+the IOMMU locks even in ETH driver. 
+
 > 
+> I know that we have lock-contention issues in our IOMMU drivers, which
+> can be fixed. Maybe the performance problems you are seeing can be fixed
+> too, when you give us more details about them.
 > 
+
+I do not want to put too much information here but you can see some results:
+
+rds-stress test from sparc t5-2 -> x86:
+
+with iommu bypass:
+---------------------
+sparc->x86 cmdline = -r XXX -s XXX -q 256 -a 8192 -T 10 -d 10 -t 3 -o XXX
+tsks   tx/s   rx/s  tx+rx K/s    mbi K/s    mbo K/s tx us/c   rtt us cpu %
+   3 141278      0 1165565.81       0.00       0.00    8.93   376.60 -1.00  (average)
+
+without iommu bypass:
+---------------------
+sparc->x86 cmdline = -r XXX -s XXX -q 256 -a 8192 -T 10 -d 10 -t 3 -o XXX
+tsks   tx/s   rx/s  tx+rx K/s    mbi K/s    mbo K/s tx us/c   rtt us cpu %
+   3  78558      0  648101.41       0.00       0.00   15.05   876.72 -1.00  (average)
+
++ RDMA tests are totally not working (might be due to failure to DMA map all the memory).
+
+So IOMMU bypass give ~80% performance boost.
+
+> 
+> 	Joerg
