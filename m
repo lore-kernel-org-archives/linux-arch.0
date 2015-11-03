@@ -1,160 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:1240 "EHLO mga03.intel.com"
+Received: from mga03.intel.com ([134.134.136.65]:38789 "EHLO mga03.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S964818AbbKCUXL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Nov 2015 15:23:11 -0500
+	id S964846AbbKCUXN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 Nov 2015 15:23:13 -0500
 From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: [RFC PATCH 09/28] lkl: timers, time and delay support
-Date: Tue,  3 Nov 2015 22:20:40 +0200
-Message-ID: <1446582059-17355-10-git-send-email-octavian.purdila@intel.com>
+Subject: [RFC PATCH 14/28] lkl: plug in the build system
+Date: Tue,  3 Nov 2015 22:20:45 +0200
+Message-ID: <1446582059-17355-15-git-send-email-octavian.purdila@intel.com>
 In-Reply-To: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, thehajime@gmail.com, Octavian Purdila <octavian.purdila@intel.com>
-Message-ID: <20151103202040.xa69dIRB-Rt4Wd2Hm0J2hloycwkKUykQjHXwfqKmAPA@z>
+Message-ID: <20151103202045.lfOsAuUqIoJYjxIwTOSwuFVsTqqfL9_cGBFOcHjjllU@z>
 
-Clockevent driver based on host timer operations and clocksource
-driver and udelay support based on host time operations.
+Basic Makefiles for building LKL. Add a new architecture specific
+target for installing the resulting library files and headers.
 
 Signed-off-by: Octavian Purdila <octavian.purdila@intel.com>
 ---
- arch/lkl/kernel/time.c | 125 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 125 insertions(+)
- create mode 100644 arch/lkl/kernel/time.c
+ arch/lkl/Makefile        | 35 +++++++++++++++++++++++++++++++++++
+ arch/lkl/kernel/Makefile |  3 +++
+ 2 files changed, 38 insertions(+)
+ create mode 100644 arch/lkl/Makefile
+ create mode 100644 arch/lkl/kernel/Makefile
 
-diff --git a/arch/lkl/kernel/time.c b/arch/lkl/kernel/time.c
+diff --git a/arch/lkl/Makefile b/arch/lkl/Makefile
 new file mode 100644
-index 0000000..d099736
+index 0000000..7545830
 --- /dev/null
-+++ b/arch/lkl/kernel/time.c
-@@ -0,0 +1,125 @@
-+#include <linux/clocksource.h>
-+#include <linux/clockchips.h>
-+#include <linux/jiffies.h>
-+#include <linux/module.h>
-+#include <linux/init.h>
-+#include <linux/interrupt.h>
-+#include <linux/irq.h>
-+#include <asm/host_ops.h>
++++ b/arch/lkl/Makefile
+@@ -0,0 +1,35 @@
++include arch/lkl/auto.conf
 +
-+void __ndelay(unsigned long nsecs)
-+{
-+	unsigned long long start = lkl_ops->time();
++KBUILD_CFLAGS += -fno-builtin
 +
-+	while (lkl_ops->time() < start + nsecs)
-+		;
-+}
++ifeq ($(OUTPUT_FORMAT),elf64-x86-64)
++KBUILD_CFLAGS += -fPIC
++endif
 +
-+void __udelay(unsigned long usecs)
-+{
-+	__ndelay(usecs * NSEC_PER_USEC);
-+}
++LDFLAGS_vmlinux += -r
++LKL_ENTRY_POINTS := lkl_start_kernel lkl_sys_halt lkl_syscall lkl_trigger_irq \
++	lkl_get_free_irq lkl_put_irq
 +
-+void __const_udelay(unsigned long xloops)
-+{
-+	__udelay(xloops / 5);
-+}
++core-y += arch/lkl/kernel/
 +
-+void calibrate_delay(void)
-+{
-+}
++all: lkl.o
 +
-+static cycle_t clock_read(struct clocksource *cs)
-+{
-+	return lkl_ops->time();
-+}
++lkl.o: vmlinux
++	$(OBJCOPY) $(foreach sym,$(LKL_ENTRY_POINTS),-G$(prefix)$(sym)) vmlinux lkl.o
 +
-+static struct clocksource clocksource = {
-+	.name	= "lkl",
-+	.rating = 499,
-+	.read	= clock_read,
-+	.flags	= CLOCK_SOURCE_IS_CONTINUOUS,
-+	.mask	= CLOCKSOURCE_MASK(64),
-+};
++install: lkl.o __headers
++	@echo "  INSTALL\t$(INSTALL_PATH)/lib/lkl.o"
++	@cp lkl.o $(INSTALL_PATH)/lib/
++	@arch/lkl/scripts/headers_install.py \
++		$(subst -j,-j$(shell nproc),$(findstring -j,$(MAKEFLAGS))) \
++		$(INSTALL_PATH)/include
 +
-+static void *timer;
++archclean:
++	$(Q)$(MAKE) $(clean)=$(boot)
 +
-+static int timer_irq;
++define archhelp
++  echo '  install	- Install library and headers to INSTALL_PATH/{lib,include}'
++endef
 +
-+static void timer_fn(void *arg)
-+{
-+	lkl_trigger_irq(timer_irq, NULL);
-+}
 +
-+static int clockevent_set_state_shutdown(struct clock_event_device *evt)
-+{
-+	if (timer) {
-+		lkl_ops->timer_free(timer);
-+		timer = NULL;
-+	}
 +
-+	return 0;
-+}
+diff --git a/arch/lkl/kernel/Makefile b/arch/lkl/kernel/Makefile
+new file mode 100644
+index 0000000..47036c0
+--- /dev/null
++++ b/arch/lkl/kernel/Makefile
+@@ -0,0 +1,3 @@
++extra-y := vmlinux.lds
 +
-+static int clockevent_set_state_oneshot(struct clock_event_device *evt)
-+{
-+	timer = lkl_ops->timer_alloc(timer_fn, NULL);
-+	if (!timer)
-+		return -ENOMEM;
-+
-+	return 0;
-+}
-+
-+static irqreturn_t timer_irq_handler(int irq, void *dev_id)
-+{
-+	struct clock_event_device *dev = (struct clock_event_device *)dev_id;
-+
-+	dev->event_handler(dev);
-+
-+	return IRQ_HANDLED;
-+}
-+
-+static int clockevent_next_event(unsigned long hz,
-+				 struct clock_event_device *evt)
-+{
-+	unsigned long ns = 1000000000 * hz / HZ;
-+
-+	return lkl_ops->timer_set_oneshot(timer, ns);
-+}
-+
-+static struct clock_event_device clockevent = {
-+	.name			= "lkl",
-+	.features		= CLOCK_EVT_FEAT_ONESHOT,
-+	.set_state_oneshot	= clockevent_set_state_oneshot,
-+	.set_next_event		= clockevent_next_event,
-+	.set_state_shutdown	= clockevent_set_state_shutdown,
-+};
-+
-+static struct irqaction irq0  = {
-+	.handler = timer_irq_handler,
-+	.flags = IRQF_NOBALANCING | IRQF_TIMER,
-+	.dev_id = &clockevent,
-+	.name = "timer"
-+};
-+
-+void __init time_init(void)
-+{
-+	int ret;
-+
-+	if (!lkl_ops->timer_alloc || !lkl_ops->timer_free ||
-+	    !lkl_ops->timer_set_oneshot || !lkl_ops->time) {
-+		pr_err("lkl: no time or timer support provided by host\n");
-+		return;
-+	}
-+
-+	timer_irq = lkl_get_free_irq("timer");
-+	setup_irq(timer_irq, &irq0);
-+
-+	ret = clocksource_register_khz(&clocksource, 1000000);
-+	if (ret)
-+		pr_err("lkl: unable to register clocksource\n");
-+
-+	clockevents_config_and_register(&clockevent, HZ, 0, 0xffffffff);
-+
-+	pr_info("lkl: time and timers initialized\n");
-+}
++obj-y = setup.o threads.o irq.o time.o syscalls.o misc.o mem.o console.o
 -- 
 2.1.0
 
