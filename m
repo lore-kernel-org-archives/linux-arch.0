@@ -1,249 +1,261 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:18465 "EHLO mga03.intel.com"
+Received: from mga03.intel.com ([134.134.136.65]:1240 "EHLO mga03.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S964845AbbKCUXN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Nov 2015 15:23:13 -0500
+	id S964923AbbKCUXR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 Nov 2015 15:23:17 -0500
 From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: [RFC PATCH 13/28] lkl: initialization and cleanup
-Date: Tue,  3 Nov 2015 22:20:44 +0200
-Message-ID: <1446582059-17355-14-git-send-email-octavian.purdila@intel.com>
+Subject: [RFC PATCH 21/28] lkl tools: host lib: posix host operations
+Date: Tue,  3 Nov 2015 22:20:52 +0200
+Message-ID: <1446582059-17355-22-git-send-email-octavian.purdila@intel.com>
 In-Reply-To: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, thehajime@gmail.com, Octavian Purdila <octavian.purdila@intel.com>
-Message-ID: <20151103202044.tCPyf6aumEcB1CWSxJBhSgs_2sRWhLdFD4AuZQibzQI@z>
+Message-ID: <20151103202052.D-Kol-wxs-ygID85BsD23KcN60k9H3Tidkq80WBckiU@z>
 
-Add the lkl_start_kernel and lkl_sys_halt APIs that start and
-respectively stops the Linux kernel.
-
-lkl_start_kernel creates a separate threads that will run the initial
-and idle kernel thread. It waits for the kernel to complete
-initialization before returning, to avoid races with system calls
-issues by the host application.
-
-During the setup phase, we create "/init" in initial ramfs root
-filesystem to avoid mounting the "real" rootfs since ramfs is good
-enough for now.
-
-lkl_stop_kernel will shutdown the kernel, terminate all threads and
-free all host resources used by the kernel before returning.
-
-This patch also introduces idle CPU handling since it is closely
-related to the shutdown process. A host semaphore is used to wait for
-new interrupts when the kernel switches the CPU to idle to avoid
-wasting host CPU cycles. When the kernel is shutdown we terminate the
-idle thread at the first CPU idle event.
+Implement LKL host operations for POSIX hosts.
 
 Signed-off-by: Octavian Purdila <octavian.purdila@intel.com>
 ---
- arch/lkl/include/asm/setup.h |  12 +++
- arch/lkl/kernel/setup.c      | 176 +++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 188 insertions(+)
- create mode 100644 arch/lkl/include/asm/setup.h
- create mode 100644 arch/lkl/kernel/setup.c
+ tools/lkl/Makefile         |   6 ++
+ tools/lkl/lib/posix-host.c | 206 +++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 212 insertions(+)
+ create mode 100644 tools/lkl/lib/posix-host.c
 
-diff --git a/arch/lkl/include/asm/setup.h b/arch/lkl/include/asm/setup.h
+diff --git a/tools/lkl/Makefile b/tools/lkl/Makefile
+index b13472b..cf97d27 100644
+--- a/tools/lkl/Makefile
++++ b/tools/lkl/Makefile
+@@ -3,9 +3,15 @@ CFLAGS := -Iinclude -Wall -g
+ ifdef CROSS_COMPILE
+ CC=$(CROSS_COMPILE)gcc
+ AR=$(CROSS_COMPILE)ar
++LD=$(CROSS_COMPILE)ld
+ endif
+ 
+ lib_source = $(filter-out %-host.c,$(wildcard lib/*.c))
++ifneq (,$(filter $(shell $(LD) -r -print-output-format),elf64-x86-64 elf32-i386))
++lib_source += lib/posix-host.c
++LDFLAGS += -lpthread -lrt
++endif
++
+ lib_objs = $(patsubst %.c,%.o, $(lib_source)) lib/lkl.o
+ 
+ all: lib/liblkl.a
+diff --git a/tools/lkl/lib/posix-host.c b/tools/lkl/lib/posix-host.c
 new file mode 100644
-index 0000000..b82cdbf
+index 0000000..4bc1de7
 --- /dev/null
-+++ b/arch/lkl/include/asm/setup.h
-@@ -0,0 +1,12 @@
-+#ifndef _ASM_LKL_SETUP_H
-+#define _ASM_LKL_SETUP_H
++++ b/tools/lkl/lib/posix-host.c
+@@ -0,0 +1,206 @@
++#include <pthread.h>
++#include <malloc.h>
++#include <sys/time.h>
++#include <time.h>
++#include <signal.h>
++#include <assert.h>
++#include <unistd.h>
++#include <stdio.h>
++#include <errno.h>
++#include <string.h>
++#include <time.h>
++#include <execinfo.h>
++#include <stdint.h>
++#include <sys/uio.h>
++#include <lkl_host.h>
++#include "iomem.h"
 +
-+#define COMMAND_LINE_SIZE 4096
-+
-+#ifndef __ASSEMBLY__
-+#define ARCH_RUN_INIT_PROCESS
-+int run_init_process(const char *init_filename);
-+void wakeup_cpu(void);
-+#endif
-+
-+#endif
-diff --git a/arch/lkl/kernel/setup.c b/arch/lkl/kernel/setup.c
-new file mode 100644
-index 0000000..aad2ad7
---- /dev/null
-+++ b/arch/lkl/kernel/setup.c
-@@ -0,0 +1,176 @@
-+#include <linux/init.h>
-+#include <linux/init_task.h>
-+#include <linux/reboot.h>
-+#include <linux/fs.h>
-+#include <linux/start_kernel.h>
-+#include <linux/syscalls.h>
-+#include <asm/host_ops.h>
-+#include <asm/irq.h>
-+#include <asm/unistd.h>
-+
-+struct lkl_host_operations *lkl_ops;
-+static char cmd_line[COMMAND_LINE_SIZE];
-+static void *idle_sem;
-+static void *init_sem;
-+static void *halt_sem;
-+static bool halt;
-+void (*pm_power_off)(void) = NULL;
-+static unsigned long mem_size;
-+
-+long lkl_panic_blink(int state)
++static void print(const char *str, int len)
 +{
-+	lkl_ops->panic();
++	write(STDOUT_FILENO, str, len);
++}
++
++struct pthread_sem {
++	pthread_mutex_t lock;
++	int count;
++	pthread_cond_t cond;
++};
++
++static void *sem_alloc(int count)
++{
++	struct pthread_sem *sem;
++
++	sem = malloc(sizeof(*sem));
++	if (!sem)
++		return NULL;
++
++	pthread_mutex_init(&sem->lock, NULL);
++	sem->count = count;
++	pthread_cond_init(&sem->cond, NULL);
++
++	return sem;
++}
++
++static void sem_free(void *sem)
++{
++	free(sem);
++}
++
++static void sem_up(void *_sem)
++{
++	struct pthread_sem *sem = (struct pthread_sem *)_sem;
++
++	pthread_mutex_lock(&sem->lock);
++	sem->count++;
++	if (sem->count > 0)
++		pthread_cond_signal(&sem->cond);
++	pthread_mutex_unlock(&sem->lock);
++}
++
++static void sem_down(void *_sem)
++{
++	struct pthread_sem *sem = (struct pthread_sem *)_sem;
++
++	pthread_mutex_lock(&sem->lock);
++	while (sem->count <= 0)
++		pthread_cond_wait(&sem->cond, &sem->lock);
++	sem->count--;
++	pthread_mutex_unlock(&sem->lock);
++}
++
++static int thread_create(void (*fn)(void *), void *arg)
++{
++	pthread_t thread;
++
++	return pthread_create(&thread, NULL, (void* (*)(void *))fn, arg);
++}
++
++static void thread_exit(void)
++{
++	pthread_exit(NULL);
++}
++
++static unsigned long long time_ns(void)
++{
++	struct timeval tv;
++
++	gettimeofday(&tv, NULL);
++
++	return tv.tv_sec * 1000000000ULL + tv.tv_usec * 1000ULL;
++}
++
++static void *timer_alloc(void (*fn)(void *), void *arg)
++{
++	int err;
++	timer_t timer;
++	struct sigevent se =  {
++		.sigev_notify = SIGEV_THREAD,
++		.sigev_value = {
++			.sival_ptr = arg,
++		},
++		.sigev_notify_function = (void (*)(union sigval))fn,
++	};
++
++	err = timer_create(CLOCK_REALTIME, &se, &timer);
++	if (err)
++		return NULL;
++
++	return (void *)(long)timer;
++}
++
++static int timer_set_oneshot(void *_timer, unsigned long ns)
++{
++	timer_t timer = (timer_t)(long)_timer;
++	struct itimerspec ts = {
++		.it_value = {
++			.tv_sec = ns / 1000000000,
++			.tv_nsec = ns % 1000000000,
++		},
++	};
++
++	if (!ts.it_value.tv_nsec)
++		ts.it_value.tv_nsec++;
++
++	return timer_settime(timer, 0, &ts, NULL);
++}
++
++static void timer_free(void *_timer)
++{
++	timer_t timer = (timer_t)(long)_timer;
++
++	timer_delete(timer);
++}
++
++static void panic(void)
++{
++	assert(0);
++}
++
++struct lkl_host_operations lkl_host_ops = {
++	.panic = panic,
++	.thread_create = thread_create,
++	.thread_exit = thread_exit,
++	.sem_alloc = sem_alloc,
++	.sem_free = sem_free,
++	.sem_up = sem_up,
++	.sem_down = sem_down,
++	.time = time_ns,
++	.timer_alloc = timer_alloc,
++	.timer_set_oneshot = timer_set_oneshot,
++	.timer_free = timer_free,
++	.print = print,
++	.mem_alloc = malloc,
++	.mem_free = free,
++	.ioremap = lkl_ioremap,
++	.iomem_access = lkl_iomem_access,
++	.virtio_devices = lkl_virtio_devs,
++};
++
++int fd_get_capacity(union lkl_disk_backstore bs, unsigned long long *res)
++{
++	off_t off;
++
++	off = lseek(bs.fd, 0, SEEK_END);
++	if (off < 0)
++		return -1;
++
++	*res = off;
 +	return 0;
 +}
 +
-+void __init setup_arch(char **cl)
++void fd_do_rw(union lkl_disk_backstore bs, unsigned int type, unsigned int prio,
++	      unsigned long long sector, struct lkl_dev_buf *bufs, int count)
 +{
-+	*cl = cmd_line;
-+	panic_blink = lkl_panic_blink;
-+	bootmem_init(mem_size);
-+}
++	int err = 0;
++	struct iovec *iovec = (struct iovec *)bufs;
 +
-+int run_init_process(const char *init_filename)
-+{
-+	lkl_ops->sem_up(init_sem);
++	if (count > 1)
++		lkl_printf("%s: %d\n", __func__, count);
 +
-+	run_syscalls();
-+
-+	kernel_halt();
-+
-+	/* We want to kill init without panic()ing */
-+	init_pid_ns.child_reaper = 0;
-+	do_exit(0);
-+
-+	return 0;
-+}
-+
-+static void __init lkl_run_kernel(void *arg)
-+{
-+	start_kernel();
-+}
-+
-+int __init lkl_start_kernel(struct lkl_host_operations *ops,
-+			    unsigned long _mem_size,
-+			    const char *fmt, ...)
-+{
-+	va_list ap;
-+	int ret;
-+
-+	lkl_ops = ops;
-+	mem_size = _mem_size;
-+
-+	va_start(ap, fmt);
-+	ret = vsnprintf(boot_command_line, COMMAND_LINE_SIZE, fmt, ap);
-+	va_end(ap);
-+
-+	if (ops->virtio_devices)
-+		strncpy(boot_command_line + ret, ops->virtio_devices,
-+			COMMAND_LINE_SIZE - ret);
-+
-+	memcpy(cmd_line, boot_command_line, COMMAND_LINE_SIZE);
-+
-+	ret = threads_init();
-+	if (ret)
-+		return ret;
-+
-+	init_sem = lkl_ops->sem_alloc(0);
-+	if (!init_sem)
-+		return -ENOMEM;
-+
-+	idle_sem = lkl_ops->sem_alloc(0);
-+	if (!idle_sem) {
-+		ret = -ENOMEM;
-+		goto out_free_init_sem;
++	/* TODO: handle short reads/writes */
++	switch (type) {
++	case LKL_DEV_BLK_TYPE_READ:
++		err = preadv(bs.fd, iovec, count, sector * 512);
++		break;
++	case LKL_DEV_BLK_TYPE_WRITE:
++		err = pwritev(bs.fd, iovec, count, sector * 512);
++		break;
++	case LKL_DEV_BLK_TYPE_FLUSH:
++	case LKL_DEV_BLK_TYPE_FLUSH_OUT:
++		err = fdatasync(bs.fd);
++		break;
++	default:
++		lkl_dev_blk_complete(bufs, LKL_DEV_BLK_STATUS_UNSUP, 0);
++		return;
 +	}
 +
-+	ret = lkl_ops->thread_create(lkl_run_kernel, NULL);
-+	if (ret) {
-+		ret = -ENOMEM;
-+		goto out_free_idle_sem;
-+	}
-+
-+	lkl_ops->sem_down(init_sem);
-+
-+	return 0;
-+
-+out_free_idle_sem:
-+	lkl_ops->sem_free(idle_sem);
-+
-+out_free_init_sem:
-+	lkl_ops->sem_free(init_sem);
-+
-+	return ret;
++	if (err < 0)
++		lkl_dev_blk_complete(bufs, LKL_DEV_BLK_STATUS_IOERR, 0);
++	else
++		lkl_dev_blk_complete(bufs, LKL_DEV_BLK_STATUS_OK, err);
 +}
 +
-+void machine_halt(void)
-+{
-+	halt = true;
-+}
-+
-+void machine_power_off(void)
-+{
-+	machine_halt();
-+}
-+
-+void machine_restart(char *unused)
-+{
-+	machine_halt();
-+}
-+
-+long lkl_sys_halt(void)
-+{
-+	long err;
-+	long params[6] = { 0, };
-+
-+	halt_sem = lkl_ops->sem_alloc(0);
-+	if (!halt_sem)
-+		return -ENOMEM;
-+
-+	err = lkl_syscall(__NR_reboot, params);
-+	if (err < 0) {
-+		lkl_ops->sem_free(halt_sem);
-+		return err;
-+	}
-+
-+	lkl_ops->sem_down(halt_sem);
-+
-+	lkl_ops->sem_free(halt_sem);
-+	lkl_ops->sem_free(idle_sem);
-+	lkl_ops->sem_free(init_sem);
-+
-+	return 0;
-+}
-+
-+void arch_cpu_idle(void)
-+{
-+	if (halt) {
-+		threads_cleanup();
-+		free_IRQ();
-+		free_mem();
-+		lkl_ops->sem_up(halt_sem);
-+		lkl_ops->thread_exit();
-+	}
-+
-+	lkl_ops->sem_down(idle_sem);
-+
-+	local_irq_enable();
-+}
-+
-+void wakeup_cpu(void)
-+{
-+	lkl_ops->sem_up(idle_sem);
-+}
-+
-+/* skip mounting the "real" rootfs. ramfs is good enough. */
-+static int __init fs_setup(void)
-+{
-+	int fd;
-+
-+	fd = sys_open("/init", O_CREAT, 0600);
-+	WARN_ON(fd < 0);
-+	sys_close(fd);
-+
-+	return 0;
-+}
-+late_initcall(fs_setup);
++struct lkl_dev_blk_ops lkl_dev_blk_ops = {
++	.get_capacity = fd_get_capacity,
++	.request = fd_do_rw,
++};
 -- 
 2.1.0
 
