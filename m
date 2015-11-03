@@ -1,183 +1,256 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:38789 "EHLO mga03.intel.com"
+Received: from mga03.intel.com ([134.134.136.65]:18465 "EHLO mga03.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S964879AbbKCUXO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Nov 2015 15:23:14 -0500
+	id S964780AbbKCUXJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 Nov 2015 15:23:09 -0500
 From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: [RFC PATCH 17/28] lkl tools: host lib: memory mapped I/O helpers
-Date: Tue,  3 Nov 2015 22:20:48 +0200
-Message-ID: <1446582059-17355-18-git-send-email-octavian.purdila@intel.com>
+Subject: [RFC PATCH 07/28] lkl: interrupt support
+Date: Tue,  3 Nov 2015 22:20:38 +0200
+Message-ID: <1446582059-17355-8-git-send-email-octavian.purdila@intel.com>
 In-Reply-To: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, thehajime@gmail.com, Octavian Purdila <octavian.purdila@intel.com>
-Message-ID: <20151103202048.F4Nn4tdMlZyxgogHN3blCIxh41Urvyt14v6J7eAwBBw@z>
+Message-ID: <20151103202038.vjZWDjf233rRQ2jhOx4gV_ToQJMO5BF7dKXhOcKZSC4@z>
 
-This patch adds helpers for implementing the memory mapped I/O host
-operations that can be used by code that implements host
-devices. Generic host operations for lkl_ioremap and lkl_iomem_access
-are provided that allows multiplexing multiple I/O memory mapped
-regions.
+Add APIs that allows the host to reserve and free and interrupt number
+and also to trigger an interrupt.
 
-The host device code can create a new memory mapped I/O region with
-register_iomem(). Read and write access functions need to be provided
-by the caller.
+The trigger operation will simply store the interrupt data in
+queue. The interrupt handler is run later, at the first opportunity it
+has to avoid races with any kernel threads.
+
+Currently, interrupts are run on the first interrupt enable operation
+if interrupts are disabled and if we are not already in interrupt
+context.
+
+When triggering an interrupt the host can also send a void pointer
+that is going to be available to the handler routine via
+get_irq_regs()->irq_data. This allows to easly create host <-> kernel
+synchronous communication channels and is currently used by the system
+call interface.
 
 Signed-off-by: Octavian Purdila <octavian.purdila@intel.com>
 ---
- tools/lkl/lib/iomem.c | 119 ++++++++++++++++++++++++++++++++++++++++++++++++++
- tools/lkl/lib/iomem.h |  14 ++++++
- 2 files changed, 133 insertions(+)
- create mode 100644 tools/lkl/lib/iomem.c
- create mode 100644 tools/lkl/lib/iomem.h
+ arch/lkl/include/asm/irq.h             |  10 +++
+ arch/lkl/include/uapi/asm/irq.h        |  37 ++++++++++
+ arch/lkl/include/uapi/asm/sigcontext.h |   1 +
+ arch/lkl/kernel/irq.c                  | 131 +++++++++++++++++++++++++++++++++
+ 4 files changed, 179 insertions(+)
+ create mode 100644 arch/lkl/include/asm/irq.h
+ create mode 100644 arch/lkl/include/uapi/asm/irq.h
+ create mode 100644 arch/lkl/kernel/irq.c
 
-diff --git a/tools/lkl/lib/iomem.c b/tools/lkl/lib/iomem.c
+diff --git a/arch/lkl/include/asm/irq.h b/arch/lkl/include/asm/irq.h
 new file mode 100644
-index 0000000..bef6b71
+index 0000000..f4ceb5a
 --- /dev/null
-+++ b/tools/lkl/lib/iomem.c
-@@ -0,0 +1,119 @@
-+#include <string.h>
-+#include <stdint.h>
-+#include <lkl_host.h>
++++ b/arch/lkl/include/asm/irq.h
+@@ -0,0 +1,10 @@
++#ifndef _ASM_LKL_IRQ_H
++#define _ASM_LKL_IRQ_H
 +
-+#include "iomem.h"
++#define NR_IRQS		32
 +
-+#define IOMEM_OFFSET_BITS		24
-+#define IOMEM_ADDR_MARK			0x8000000
-+#define MAX_IOMEM_REGIONS		(IOMEM_ADDR_MARK >> IOMEM_OFFSET_BITS)
++void free_IRQ(void);
 +
-+#define IOMEM_ADDR_TO_INDEX(addr) \
-+	((((uintptr_t)addr & ~IOMEM_ADDR_MARK) >> IOMEM_OFFSET_BITS))
-+#define IOMEM_ADDR_TO_OFFSET(addr) \
-+	(((uintptr_t)addr) & ((1 << IOMEM_OFFSET_BITS) - 1))
-+#define IOMEM_INDEX_TO_ADDR(i) \
-+	(void *)(uintptr_t)((i << IOMEM_OFFSET_BITS) | IOMEM_ADDR_MARK)
++#include <uapi/asm/irq.h>
 +
-+static struct iomem_region {
-+	void *base;
-+	void *iomem_addr;
-+	int size;
-+	const struct lkl_iomem_ops *ops;
-+} *iomem_regions[MAX_IOMEM_REGIONS];
++#endif
+diff --git a/arch/lkl/include/uapi/asm/irq.h b/arch/lkl/include/uapi/asm/irq.h
+new file mode 100644
+index 0000000..a33f5c5
+--- /dev/null
++++ b/arch/lkl/include/uapi/asm/irq.h
+@@ -0,0 +1,37 @@
++#ifndef _ASM_UAPI_LKL_IRQ_H
++#define _ASM_UAPI_LKL_IRQ_H
 +
-+static struct iomem_region *find_iomem_reg(void *base)
++/**
++ * lkl_trigger_irq - generate an interrupt
++ *
++ * This function is used by the device host side to signal its Linux counterpart
++ * that some event happened.
++ *
++ * @irq - the irq number to signal
++ * @data - data to be passed to the irq handler; available via
++ * get_irq_regs()->irq_data
++ */
++int lkl_trigger_irq(int irq, void *data);
++
++/**
++ * lkl_get_free_irq - find and reserve a free IRQ number
++ *
++ * This function is called by the host device code to find an unused IRQ number
++ * and reserved it for its own use.
++ *
++ * @user - a string to identify the user
++ * @returns - and irq number that can be used by request_irq or an negative
++ * value in case of an error
++ */
++int lkl_get_free_irq(const char *user);
++
++/**
++ * lkl_put_irq - release an IRQ number previously obtained with lkl_get_free_irq
++ *
++ * @irq - irq number to release
++ * @user - string identifying the user; should be the same as the one passed to
++ * lkl_get_free_irq when the irq number was obtained
++ */
++void lkl_put_irq(int irq, const char *name);
++
++#endif
+diff --git a/arch/lkl/include/uapi/asm/sigcontext.h b/arch/lkl/include/uapi/asm/sigcontext.h
+index 99b2d53..77aba40 100644
+--- a/arch/lkl/include/uapi/asm/sigcontext.h
++++ b/arch/lkl/include/uapi/asm/sigcontext.h
+@@ -4,6 +4,7 @@
+ #include <asm/ptrace.h>
+ 
+ struct pt_regs {
++	void *irq_data;
+ };
+ 
+ struct sigcontext {
+diff --git a/arch/lkl/kernel/irq.c b/arch/lkl/kernel/irq.c
+new file mode 100644
+index 0000000..9ff0e12
+--- /dev/null
++++ b/arch/lkl/kernel/irq.c
+@@ -0,0 +1,131 @@
++#include <linux/kernel.h>
++#include <linux/init.h>
++#include <linux/irq.h>
++#include <linux/hardirq.h>
++#include <asm/irq_regs.h>
++#include <linux/sched.h>
++#include <linux/seq_file.h>
++#include <linux/tick.h>
++#include <asm/irqflags.h>
++#include <asm/host_ops.h>
++
++static bool irqs_enabled;
++
++#define MAX_IRQS	16
++static struct irq_info {
++	struct pt_regs regs[MAX_IRQS];
++	const char *user;
++	int count;
++} irqs[NR_IRQS];
++static void *irqs_lock;
++
++static void do_IRQ(int irq, struct pt_regs *regs)
 +{
-+	int i;
++	struct pt_regs *old_regs = set_irq_regs(regs);
 +
-+	for (i = 0; i < MAX_IOMEM_REGIONS; i++)
-+		if (iomem_regions[i] && iomem_regions[i]->base == base)
-+			return iomem_regions[i];
++	irq_enter();
++	generic_handle_irq(irq);
++	irq_exit();
 +
-+	return NULL;
++	set_irq_regs(old_regs);
 +}
 +
-+int register_iomem(void *base, int size, const struct lkl_iomem_ops *ops)
++int lkl_trigger_irq(int irq, void *data)
 +{
-+	struct iomem_region *iomem_reg;
-+	int i;
++	struct pt_regs regs = {
++		.irq_data = data,
++	};
++	int ret = 0;
 +
-+	if (size > (1 << IOMEM_OFFSET_BITS) - 1)
-+		return -1;
++	if (irq >= NR_IRQS)
++		return -EINVAL;
 +
-+	if (find_iomem_reg(base))
-+		return -1;
-+
-+	for (i = 0; i < MAX_IOMEM_REGIONS; i++)
-+		if (!iomem_regions[i])
-+			break;
-+
-+	if (i >= MAX_IOMEM_REGIONS)
-+		return -1;
-+
-+	iomem_reg = lkl_host_ops.mem_alloc(sizeof(*iomem_reg));
-+	if (!iomem_reg)
-+		return -1;
-+
-+	iomem_reg->base = base;
-+	iomem_reg->size = size;
-+	iomem_reg->ops = ops;
-+	iomem_reg->iomem_addr = IOMEM_INDEX_TO_ADDR(i);
-+
-+	iomem_regions[i] = iomem_reg;
-+
-+	return 0;
-+}
-+
-+void unregister_iomem(void *iomem_base)
-+{
-+	struct iomem_region *iomem_reg = find_iomem_reg(iomem_base);
-+	unsigned int index;
-+
-+	if (!iomem_reg) {
-+		lkl_printf("%s: invalid iomem base %p\n", __func__, iomem_base);
-+		return;
++	lkl_ops->sem_down(irqs_lock);
++	if (irqs[irq].count < MAX_IRQS) {
++		irqs[irq].regs[irqs[irq].count] = regs;
++		irqs[irq].count++;
++	} else {
++		ret = -EOVERFLOW;
 +	}
++	lkl_ops->sem_up(irqs_lock);
 +
-+	index = IOMEM_ADDR_TO_INDEX(iomem_reg->iomem_addr);
-+	if (index >= MAX_IOMEM_REGIONS) {
-+		lkl_printf("%s: invalid iomem_addr %p\n", __func__,
-+			   iomem_reg->iomem_addr);
-+		return;
-+	}
-+
-+	iomem_regions[index] = NULL;
-+	lkl_host_ops.mem_free(iomem_reg->base);
-+	lkl_host_ops.mem_free(iomem_reg);
-+}
-+
-+void *lkl_ioremap(long addr, int size)
-+{
-+	struct iomem_region *iomem_reg = find_iomem_reg((void *)addr);
-+
-+	if (iomem_reg && size <= iomem_reg->size)
-+		return iomem_reg->iomem_addr;
-+
-+	return NULL;
-+}
-+
-+int lkl_iomem_access(const volatile void *addr, void *res, int size, int write)
-+{
-+	struct iomem_region *iomem_reg;
-+	int index = IOMEM_ADDR_TO_INDEX(addr);
-+	int offset = IOMEM_ADDR_TO_OFFSET(addr);
-+	int ret;
-+
-+	if (index > MAX_IOMEM_REGIONS || !iomem_regions[index] ||
-+	    offset + size > iomem_regions[index]->size)
-+		return -1;
-+
-+	iomem_reg = iomem_regions[index];
-+
-+	if (write)
-+		ret = iomem_reg->ops->write(iomem_reg->base, offset, res, size);
-+	else
-+		ret = iomem_reg->ops->read(iomem_reg->base, offset, res, size);
++	wakeup_cpu();
 +
 +	return ret;
 +}
-diff --git a/tools/lkl/lib/iomem.h b/tools/lkl/lib/iomem.h
-new file mode 100644
-index 0000000..53707d7
---- /dev/null
-+++ b/tools/lkl/lib/iomem.h
-@@ -0,0 +1,14 @@
-+#ifndef _LKL_LIB_IOMEM_H
-+#define _LKL_LIB_IOMEM_H
 +
-+struct lkl_iomem_ops {
-+	int (*read)(void *data, int offset, void *res, int size);
-+	int (*write)(void *data, int offset, void *value, int size);
-+};
++static void run_irqs(void)
++{
++	int i, j;
 +
-+int register_iomem(void *base, int size, const struct lkl_iomem_ops *ops);
-+void unregister_iomem(void *iomem_base);
-+void *lkl_ioremap(long addr, int size);
-+int lkl_iomem_access(const volatile void *addr, void *res, int size, int write);
++	lkl_ops->sem_down(irqs_lock);
++	for (i = 0; i < NR_IRQS; i++) {
++		for (j = 0; j < irqs[i].count; j++)
++			do_IRQ(i, &irqs[i].regs[j]);
++		irqs[i].count = 0;
++	}
++	lkl_ops->sem_up(irqs_lock);
++}
 +
-+#endif /* _LKL_LIB_IOMEM_H */
++int show_interrupts(struct seq_file *p, void *v)
++{
++	return 0;
++}
++
++int lkl_get_free_irq(const char *user)
++{
++	int i;
++	int ret = -EBUSY;
++
++	/* 0 is not a valid IRQ */
++	for (i = 1; i < NR_IRQS; i++) {
++		if (!irqs[i].user) {
++			irqs[i].user = user;
++			ret = i;
++			break;
++		}
++	}
++
++	return ret;
++}
++
++void lkl_put_irq(int i, const char *user)
++{
++	if (!irqs[i].user || strcmp(irqs[i].user, user) != 0) {
++		WARN("%s tried to release %s's irq %d", user, irqs[i].user, i);
++		return;
++	}
++
++	irqs[i].user = NULL;
++}
++
++unsigned long arch_local_save_flags(void)
++{
++	return irqs_enabled;
++}
++
++void arch_local_irq_restore(unsigned long flags)
++{
++	if (flags == ARCH_IRQ_ENABLED && irqs_enabled == ARCH_IRQ_DISABLED &&
++	    !in_interrupt())
++		run_irqs();
++	irqs_enabled = flags;
++}
++
++void free_IRQ(void)
++{
++	lkl_ops->sem_free(irqs_lock);
++}
++
++void init_IRQ(void)
++{
++	int i;
++
++	irqs_lock = lkl_ops->sem_alloc(1);
++	BUG_ON(!irqs_lock);
++
++	for (i = 0; i < NR_IRQS; i++)
++		irq_set_chip_and_handler(i, &dummy_irq_chip, handle_simple_irq);
++
++	pr_info("lkl: irqs initialized\n");
++}
 -- 
 2.1.0
 
