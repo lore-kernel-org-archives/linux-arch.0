@@ -1,39 +1,57 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute -
- DMA_ATTR_IOMMU_BYPASS
-Date: Wed, 04 Nov 2015 06:35:10 +1100
-Message-ID: <1446579310.17404.36.camel@kernel.crashing.org>
-References: <1446039110.3405.212.camel@infradead.org>
-	 <20151102120659.GC4642@shamir-ThinkPad-T430>
-	 <1446495208.17404.11.camel@kernel.crashing.org>
-	 <5270615.Sf6ng964Qt@wuerfel>
-	 <1446505693.17404.20.camel@kernel.crashing.org>
-	 <20151103131134.GA6384@lst.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <kvm-owner@vger.kernel.org>
-In-Reply-To: <20151103131134.GA6384@lst.de>
-Sender: kvm-owner@vger.kernel.org
-To: Christoph Hellwig <hch@lst.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Shamir Rabinovitch <shamir.rabinovitch@oracle.com>, David Woodhouse <dwmw2@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Christian Borntraeger <borntraeger@de.ibm.com>, linux-arch <linux-arch@vger.kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Sebastian Ott <sebott@linux.vnet.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, Cornelia Huck <cornelia.huck@de.ibm.com>, Joerg Roedel <jroedel@suse.de>, Jonathan Corbet <corbet@lwn.net>, KVM <kvm@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: [PATCH v4] Remove #ifdef CONFIG_* from all userspace headers
+Date: Tue,  3 Nov 2015 11:46:21 -0800
+Message-ID: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
+References: <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f47.google.com ([209.85.220.47]:36457 "EHLO
+	mail-pa0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755707AbbKCTqp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2015 14:46:45 -0500
+Received: by pacdm15 with SMTP id dm15so2817425pac.3
+        for <linux-arch@vger.kernel.org>; Tue, 03 Nov 2015 11:46:45 -0800 (PST)
+In-Reply-To: <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: arnd@arndb.de, dhowells@redhat.com
+Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org
 
-On Tue, 2015-11-03 at 14:11 +0100, Christoph Hellwig wrote:
-> > xHCI for example, vs. something like 10G ethernet... but yes I agree it
-> > sucks. I don't like that sort of policy anywhere in drivers. On the
-> > other hand the platform doesn't have much information to make that sort
-> > of decision either.
-> 
-> Mabye because it should simply use what's optimal?  E.g. passthrough
-> whenever possible, where arguments against possible are:  dma_mask, vfio
-> requirements, kernel command line option. 
+I think this is good to go.  There are two acks, but I wasn't sure if I was
+supposed to collect them in the patches or not.  Arnd Bergman acked #1 and #7.
 
-Right this is what I do today on powerpc with the exception of
-the command line option.
+Changes since v3 (<1442271047-4908-1-git-send-email-palmer@dabbelt.com>)
 
->  This is what a lot of
-> architectures already do, I remember the SGI Origin / Altix code has the
-> same behavior as well.  Those IOMMUs already had the 64 bit passthrough
-> and 32-bit sliding window in addition to the real IOMMU 10 years ago.
-> --
+ * #4 is very different: rather than defining a canonical value for
+   MAP_UNINITIALIZED, it just punts on the problem and lets arch maintainers
+   deal with it.  There's still an #ifndef MAP_UNINITIALIZED in there, but that
+   shouldn't get triggered by anything because the arch headers should set it
+   to whatever they actually want.
+
+ * #11 defines MAX_RAW_MINORS to 2^20 instead of 2^16.
+
+ * #13 moves the variable around a bit so it gets initialized.  I forgot I was
+   in perl and not C :).
+
+Changes since v2 (<1441832902-28993-1-git-send-email-palmer@dabbelt.com>)
+
+ * Patch set renamed.
+
+ * #2 is rewritten to use sys_ni.c instead of an #ifdef
+
+ * #3, #6, #8, #9, #10, and #11 no longer use "#ifdef __KERNEL__" but
+   have instead moved the offending lines to the correct, kernel-only
+   files.
+
+ * #4 has been rewritten to always define MAP_UNINITIALIZED to
+   non-zero, rather than defining it to zero when in userspace.
+
+ * #5 got a whole lot longer -- rather than just always hiding these
+   fields from userspace, there is now a second "struct
+   elf_fdpic_prstatus" structure.  This should allow userspace to
+   parse core dumps correctly.
+
+ * Rebased onto 9c488de24f7264f08d341024bffdd637b4d04c96.
+
+Changes since v1 (<1441152610-22566-1-git-send-email-palmer@dabbelt.com>)
+
+ * All patches but #1 were added.
