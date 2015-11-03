@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f47.google.com ([209.85.220.47]:33414 "EHLO
-	mail-pa0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932517AbbKCTq5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2015 14:46:57 -0500
-Received: by pabfh17 with SMTP id fh17so27166456pab.0
-        for <linux-arch@vger.kernel.org>; Tue, 03 Nov 2015 11:46:57 -0800 (PST)
+Received: from mail-pa0-f53.google.com ([209.85.220.53]:36574 "EHLO
+	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932479AbbKCTqy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2015 14:46:54 -0500
+Received: by pacdm15 with SMTP id dm15so2820743pac.3
+        for <linux-arch@vger.kernel.org>; Tue, 03 Nov 2015 11:46:53 -0800 (PST)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 09/13] Move bp_type_idx to kernel/event/hw_breakpoint.c
-Date: Tue,  3 Nov 2015 11:46:30 -0800
-Message-ID: <1446579994-9937-10-git-send-email-palmer@dabbelt.com>
+Subject: [PATCH 06/13] Move ep_take_care_of_epollwakeup() to fs/eventpoll.c
+Date: Tue,  3 Nov 2015 11:46:27 -0800
+Message-ID: <1446579994-9937-7-git-send-email-palmer@dabbelt.com>
 In-Reply-To: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
 References: <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
  <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
@@ -16,62 +16,65 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, dhowells@redhat.com
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20151103194630.14JXsgvpdtOPNmfUcM_tg48mo2dM6QD8e3Saoxebf3E@z>
+Message-ID: <20151103194627.d6_3U2sE09vwyZ2wPq4uO_-yKe_EH41KLQ2W0DSItfQ@z>
 
-This has a "#ifdef CONFIG_*" that used to be exposed to userspace.
-
-The names in here are so generic that I don't think it's a good idea
-to expose them to userspace (or even the rest of the kernel).  Since
-there's only one kernel user, it's been moved to that file.
+This doesn't make any sense to expose to userspace, so it's been moved
+to the one user.  This was introduced by commit 95f19f658ce1 ("epoll:
+drop EPOLLWAKEUP if PM_SLEEP is disabled").
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
 Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
 ---
- include/uapi/linux/hw_breakpoint.h | 10 ----------
- kernel/events/hw_breakpoint.c      | 10 ++++++++++
- 2 files changed, 10 insertions(+), 10 deletions(-)
+ fs/eventpoll.c                 | 13 +++++++++++++
+ include/uapi/linux/eventpoll.h | 12 ------------
+ 2 files changed, 13 insertions(+), 12 deletions(-)
 
-diff --git a/include/uapi/linux/hw_breakpoint.h b/include/uapi/linux/hw_breakpoint.h
-index b04000a..7a6a5a7 100644
---- a/include/uapi/linux/hw_breakpoint.h
-+++ b/include/uapi/linux/hw_breakpoint.h
-@@ -17,14 +17,4 @@ enum {
- 	HW_BREAKPOINT_INVALID   = HW_BREAKPOINT_RW | HW_BREAKPOINT_X,
- };
+diff --git a/fs/eventpoll.c b/fs/eventpoll.c
+index 1e009ca..aadee3d 100644
+--- a/fs/eventpoll.c
++++ b/fs/eventpoll.c
+@@ -1812,6 +1812,19 @@ SYSCALL_DEFINE1(epoll_create, int, size)
+ 	return sys_epoll_create1(0);
+ }
  
--enum bp_type_idx {
--	TYPE_INST 	= 0,
--#ifdef CONFIG_HAVE_MIXED_BREAKPOINTS_REGS
--	TYPE_DATA	= 0,
--#else
--	TYPE_DATA	= 1,
--#endif
--	TYPE_MAX
--};
--
- #endif /* _UAPI_LINUX_HW_BREAKPOINT_H */
-diff --git a/kernel/events/hw_breakpoint.c b/kernel/events/hw_breakpoint.c
-index 92ce5f4..5ad117e 100644
---- a/kernel/events/hw_breakpoint.c
-+++ b/kernel/events/hw_breakpoint.c
-@@ -58,6 +58,16 @@ struct bp_cpuinfo {
- 	unsigned int	flexible; /* XXX: placeholder, see fetch_this_slot() */
- };
- 
-+enum bp_type_idx {
-+	TYPE_INST	= 0,
-+#if defined(CONFIG_HAVE_MIXED_BREAKPOINTS_REGS)
-+	TYPE_DATA	= 0,
++#ifdef CONFIG_PM_SLEEP
++static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
++{
++	if ((epev->events & EPOLLWAKEUP) && !capable(CAP_BLOCK_SUSPEND))
++		epev->events &= ~EPOLLWAKEUP;
++}
 +#else
-+	TYPE_DATA	= 1,
++static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
++{
++	epev->events &= ~EPOLLWAKEUP;
++}
 +#endif
-+	TYPE_MAX
-+};
 +
- static DEFINE_PER_CPU(struct bp_cpuinfo, bp_cpuinfo[TYPE_MAX]);
- static int nr_slots[TYPE_MAX];
+ /*
+  * The following function implements the controller interface for
+  * the eventpoll file that enables the insertion/removal/change of
+diff --git a/include/uapi/linux/eventpoll.h b/include/uapi/linux/eventpoll.h
+index bc81fb2..7850373 100644
+--- a/include/uapi/linux/eventpoll.h
++++ b/include/uapi/linux/eventpoll.h
+@@ -61,16 +61,4 @@ struct epoll_event {
+ 	__u64 data;
+ } EPOLL_PACKED;
  
+-#ifdef CONFIG_PM_SLEEP
+-static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
+-{
+-	if ((epev->events & EPOLLWAKEUP) && !capable(CAP_BLOCK_SUSPEND))
+-		epev->events &= ~EPOLLWAKEUP;
+-}
+-#else
+-static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
+-{
+-	epev->events &= ~EPOLLWAKEUP;
+-}
+-#endif
+ #endif /* _UAPI_LINUX_EVENTPOLL_H */
 -- 
 2.4.10
 
