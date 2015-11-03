@@ -1,41 +1,37 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 2/5] do_div(): generic optimization for constant divisor on 32-bit machines
-Date: Tue, 03 Nov 2015 10:15:13 +0100
-Message-ID: <21544300.LSjO3j3Xy7@wuerfel>
-References: <201511031333.Yk9ngQZJ%fengguang.wu@intel.com>
+From: Christoph Hellwig <hch@lst.de>
+Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute -
+	DMA_ATTR_IOMMU_BYPASS
+Date: Tue, 3 Nov 2015 14:11:34 +0100
+Message-ID: <20151103131134.GA6384@lst.de>
+References: <1446039110.3405.212.camel@infradead.org> <20151102120659.GC4642@shamir-ThinkPad-T430> <1446495208.17404.11.camel@kernel.crashing.org> <5270615.Sf6ng964Qt@wuerfel> <1446505693.17404.20.camel@kernel.crashing.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.10]:59476 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751288AbbKCJQE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2015 04:16:04 -0500
-In-Reply-To: <201511031333.Yk9ngQZJ%fengguang.wu@intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: kbuild test robot <lkp@intel.com>
-Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, kbuild-all@01.org, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, =?ISO-8859-1?Q?M=E5ns_Rullg=E5rd?= <mans@mansr.com>, rmk+kernel@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1446505693.17404.20.camel@kernel.crashing.org>
+Sender: linux-doc-owner@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Shamir Rabinovitch <shamir.rabinovitch@oracle.com>, David Woodhouse <dwmw2@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Christian Borntraeger <borntraeger@de.ibm.com>, linux-arch <linux-arch@vger.kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Sebastian Ott <sebott@linux.vnet.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, Cornelia Huck <cornelia.huck@de.ibm.com>, Joerg Roedel <jroedel@suse.de>, Jonathan Corbet <corbet@lwn.net>, KVM <kvm@vger.kernel.org>, Christoph Hellwig <hch@lst.de>
+List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 03 November 2015 13:32:17 kbuild test robot wrote:
+On Tue, Nov 03, 2015 at 10:08:13AM +1100, Benjamin Herrenschmidt wrote:
+> On Mon, 2015-11-02 at 22:45 +0100, Arnd Bergmann wrote:
+> > > Then I would argue for naming this differently. Make it an optional
+> > > hint "DMA_ATTR_HIGH_PERF" or something like that. Whether this is
+> > > achieved via using a bypass or other means in the backend not the
+> > > business of the driver.
+> > > 
+> > 
+> > With a name like that, who wouldn't pass that flag? ;-)
 > 
->    net/can/bcm.c: In function 'bcm_proc_show':
-> >> net/can/bcm.c:223:1: warning: the frame size of 1156 bytes is larger than 1024 bytes [-Wframe-larger-than=]
->     }
+> xHCI for example, vs. something like 10G ethernet... but yes I agree it
+> sucks. I don't like that sort of policy anywhere in drivers. On the
+> other hand the platform doesn't have much information to make that sort
+> of decision either.
 
-Interesting, that is a lot of stack for a function that only has a couple
-of local variables:
-
-#define IFNAMSIZ        16
-        char ifname[IFNAMSIZ];
-        struct sock *sk = (struct sock *)m->private;
-        struct bcm_sock *bo = bcm_sk(sk);
-        struct bcm_op *op;
-
-
-This is a parisc-allyesconfig kernel, so I assume that CONFIG_PROFILE_ALL_BRANCHES
-is on, which instruments every 'if' in the kernel. If that causes problems,
-we could decide to disable the do_div optimization whenever CONFIG_PROFILE_ALL_BRANCHES
-is enabled.
-
-	Arnd
+Mabye because it should simply use what's optimal?  E.g. passthrough
+whenever possible, where arguments against possible are:  dma_mask, vfio
+requirements, kernel command line option.  This is what a lot of
+architectures already do, I remember the SGI Origin / Altix code has the
+same behavior as well.  Those IOMMUs already had the 64 bit passthrough
+and 32-bit sliding window in addition to the real IOMMU 10 years ago.
