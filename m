@@ -1,44 +1,81 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:59454 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755888AbbKCTgY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Nov 2015 14:36:24 -0500
-Message-ID: <1446579310.17404.36.camel@kernel.crashing.org>
-Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute -
- DMA_ATTR_IOMMU_BYPASS
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Wed, 04 Nov 2015 06:35:10 +1100
-In-Reply-To: <20151103131134.GA6384@lst.de>
-References: <1446039110.3405.212.camel@infradead.org>
-	 <20151102120659.GC4642@shamir-ThinkPad-T430>
-	 <1446495208.17404.11.camel@kernel.crashing.org>
-	 <5270615.Sf6ng964Qt@wuerfel>
-	 <1446505693.17404.20.camel@kernel.crashing.org>
-	 <20151103131134.GA6384@lst.de>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-pa0-f52.google.com ([209.85.220.52]:35117 "EHLO
+	mail-pa0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932591AbbKCTrD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2015 14:47:03 -0500
+Received: by pasz6 with SMTP id z6so27440903pas.2
+        for <linux-arch@vger.kernel.org>; Tue, 03 Nov 2015 11:47:01 -0800 (PST)
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: [PATCH 13/13] Re-enable and clean up "check_config()" in headers_check.pl
+Date: Tue,  3 Nov 2015 11:46:34 -0800
+Message-ID: <1446579994-9937-14-git-send-email-palmer@dabbelt.com>
+In-Reply-To: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
+References: <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
+ <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christoph Hellwig <hch@lst.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Shamir Rabinovitch <shamir.rabinovitch@oracle.com>, David Woodhouse <dwmw2@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Christian Borntraeger <borntraeger@de.ibm.com>, linux-arch <linux-arch@vger.kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Sebastian Ott <sebott@linux.vnet.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, Cornelia Huck <cornelia.huck@de.ibm.com>, Joerg Roedel <jroedel@suse.de>, Jonathan Corbet <corbet@lwn.net>, KVM <kvm@vger.kernel.org>
-Message-ID: <20151103193510.gjagZfNamJoOjyy2psQjo9_4zAHlHdyrlcc4NbxQfL4@z>
+To: arnd@arndb.de, dhowells@redhat.com
+Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
+Message-ID: <20151103194634.FkhNOlq4M7k3M8jYnPN83BF1XeBpPD2Yf8jHW7Sfp5I@z>
 
-On Tue, 2015-11-03 at 14:11 +0100, Christoph Hellwig wrote:
-> > xHCI for example, vs. something like 10G ethernet... but yes I agree it
-> > sucks. I don't like that sort of policy anywhere in drivers. On the
-> > other hand the platform doesn't have much information to make that sort
-> > of decision either.
-> 
-> Mabye because it should simply use what's optimal?  E.g. passthrough
-> whenever possible, where arguments against possible are:  dma_mask, vfio
-> requirements, kernel command line option. 
+I recently got bit by a CONFIG_ in userspace bug.  This has apparently
+happened before, but the check got disabled for triggering too much.
+In order to reduce false positives, I added some hueristics to avoid
+detecting comments.
 
-Right this is what I do today on powerpc with the exception of
-the command line option.
+Since these tests all pass, I've now re-enabled them.
 
->  This is what a lot of
-> architectures already do, I remember the SGI Origin / Altix code has the
-> same behavior as well.  Those IOMMUs already had the 64 bit passthrough
-> and 32-bit sliding window in addition to the real IOMMU 10 years ago.
-> --
+Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
+Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
+---
+ scripts/headers_check.pl | 19 +++++++++++++++++--
+ 1 file changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/scripts/headers_check.pl b/scripts/headers_check.pl
+index 62320f9..1634b51 100755
+--- a/scripts/headers_check.pl
++++ b/scripts/headers_check.pl
+@@ -27,6 +27,7 @@ my $ret = 0;
+ my $line;
+ my $lineno = 0;
+ my $filename;
++my $check_config_in_multiline_comment = 0;
+ 
+ foreach my $file (@files) {
+ 	$filename = $file;
+@@ -40,7 +41,7 @@ foreach my $file (@files) {
+ 		&check_asm_types();
+ 		&check_sizetypes();
+ 		&check_declarations();
+-		# Dropped for now. Too much noise &check_config();
++		&check_config();
+ 	}
+ 	close $fh;
+ }
+@@ -78,7 +79,21 @@ sub check_declarations
+ 
+ sub check_config
+ {
+-	if ($line =~ m/[^a-zA-Z0-9_]+CONFIG_([a-zA-Z0-9_]+)[^a-zA-Z0-9_]/) {
++	my $nocomments = $line;
++	$nocomments =~ s/\/\*.*\*\///; # Remove ANSI-style comments (/* to */)
++	$nocomments =~ s/\/\/.*//;     # Remove C99-style comments (// to EOL)
++
++	# Check to see if we're within a multiline comment, and if so
++	# just remove the whole line.  I tried matching on '^ * ', but
++	# there's one header that doesn't prepend multi-line comments
++	# with * so that won't work.
++	if ($nocomments =~ m/\/\*/) { $check_config_in_multiline_comment = 1; }
++	if ($nocomments =~ m/\*\//) { $check_config_in_multiline_comment = 0; }
++	if ($check_config_in_multiline_comment == 1) { $nocomments = "" }
++
++	# Check to see if there is something that looks like CONFIG_
++	# inside a userspace-accessible header file and if so, print that out.
++	if ($nocomments =~ m/[^a-zA-Z0-9_]+CONFIG_([a-zA-Z0-9_]+)[^a-zA-Z0-9_]/) {
+ 		printf STDERR "$filename:$lineno: leaks CONFIG_$1 to userspace where it is not valid\n";
+ 	}
+ }
+-- 
+2.4.10
+
