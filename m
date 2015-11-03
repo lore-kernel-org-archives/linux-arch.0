@@ -1,71 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mga03.intel.com ([134.134.136.65]:34871 "EHLO mga03.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S965001AbbKCUXZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Nov 2015 15:23:25 -0500
+	id S964980AbbKCUXY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 Nov 2015 15:23:24 -0500
 From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: [RFC PATCH 26/28] asm-generic: vmlinux.lds.h: allow customized rodata section name
-Date: Tue,  3 Nov 2015 22:20:57 +0200
-Message-ID: <1446582059-17355-27-git-send-email-octavian.purdila@intel.com>
+Subject: [RFC PATCH 25/28] signal: use CONFIG_X86_32 instead of __i386__
+Date: Tue,  3 Nov 2015 22:20:56 +0200
+Message-ID: <1446582059-17355-26-git-send-email-octavian.purdila@intel.com>
 In-Reply-To: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, thehajime@gmail.com, Octavian Purdila <octavian.purdila@intel.com>
-Message-ID: <20151103202057.ZBVPg5eMYKVU8qq6PPTrLK2fqGfaAFuiVkRB_DAqJXM@z>
-
-Some architectures needs customized rodata section names (e.g. lkl for
-Windows host). Allow them to set the rodata section name.
+Message-ID: <20151103202056.r9hgK-j9Xe4p_X-2Lok1zBiIQThVOOSHc_b9NbMtQeU@z>
 
 Signed-off-by: Octavian Purdila <octavian.purdila@intel.com>
 ---
- arch/lkl/include/asm/vmlinux.lds.h | 5 -----
- include/asm-generic/vmlinux.lds.h  | 9 +++++++--
- 2 files changed, 7 insertions(+), 7 deletions(-)
+ kernel/signal.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/lkl/include/asm/vmlinux.lds.h b/arch/lkl/include/asm/vmlinux.lds.h
-index 392c94a..7c1a640 100644
---- a/arch/lkl/include/asm/vmlinux.lds.h
-+++ b/arch/lkl/include/asm/vmlinux.lds.h
-@@ -2,14 +2,9 @@
- #define _LKL_VMLINUX_LDS_H
+diff --git a/kernel/signal.c b/kernel/signal.c
+index 0f6bbbe..0367131 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -1137,7 +1137,7 @@ static void print_fatal_signal(int signr)
+ 	struct pt_regs *regs = signal_pt_regs();
+ 	printk(KERN_INFO "potentially unexpected fatal signal %d.\n", signr);
  
- #ifdef __MINGW32__
--#define VMLINUX_SYMBOL(sym) _##sym
- #define RODATA_SECTION .rdata
- #endif
- 
- #include <asm-generic/vmlinux.lds.h>
- 
--#ifndef RODATA_SECTION
--#define RODATA_SECTION .rodata
--#endif
--
- #endif
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 1781e54..8bd8b90 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -241,11 +241,16 @@
- /*
-  * Read only Data
-  */
-+
-+#ifndef RODATA_SECTION
-+#define RODATA_SECTION .rodata
-+#endif
-+
- #define RO_DATA_SECTION(align)						\
- 	. = ALIGN((align));						\
--	.rodata           : AT(ADDR(.rodata) - LOAD_OFFSET) {		\
-+	RODATA_SECTION    : AT(ADDR(RODATA_SECTION) - LOAD_OFFSET) {	\
- 		VMLINUX_SYMBOL(__start_rodata) = .;			\
--		*(.rodata) *(.rodata.*)					\
-+		*(RODATA_SECTION) *(RODATA_SECTION.*)			\
- 		*(__vermagic)		/* Kernel version magic */	\
- 		. = ALIGN(8);						\
- 		VMLINUX_SYMBOL(__start___tracepoints_ptrs) = .;		\
+-#if defined(__i386__) && !defined(__arch_um__)
++#ifdef CONFIG_X86_32
+ 	printk(KERN_INFO "code at %08lx: ", regs->ip);
+ 	{
+ 		int i;
 -- 
 2.1.0
 
