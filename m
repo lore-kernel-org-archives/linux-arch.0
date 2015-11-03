@@ -1,7 +1,7 @@
 From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: [RFC PATCH 13/28] lkl: initialization and cleanup
-Date: Tue,  3 Nov 2015 22:20:44 +0200
-Message-ID: <1446582059-17355-14-git-send-email-octavian.purdila@intel.com>
+Subject: [RFC PATCH 27/28] lkl: add support for Windows hosts
+Date: Tue,  3 Nov 2015 22:20:58 +0200
+Message-ID: <1446582059-17355-28-git-send-email-octavian.purdila@intel.com>
 References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
@@ -10,234 +10,116 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, thehajime@gmail.com, Octavian Purdila <octavian.purdila@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Add the lkl_start_kernel and lkl_sys_halt APIs that start and
-respectively stops the Linux kernel.
+This patch allows LKL to be compiled for windows hosts with the mingw
+toolchain. Note that patches [1] that fix weak symbols linking are
+required to successfully compile LKL with mingw.
 
-lkl_start_kernel creates a separate threads that will run the initial
-and idle kernel thread. It waits for the kernel to complete
-initialization before returning, to avoid races with system calls
-issues by the host application.
+The patch disables the modpost pass over vmlinux since modpost only
+works with ELF objects.
 
-During the setup phase, we create "/init" in initial ramfs root
-filesystem to avoid mounting the "real" rootfs since ramfs is good
-enough for now.
+It also adds and workaround to an #include_next <stdard.h> error which
+is apparently caused by using -nosdtinc.
 
-lkl_stop_kernel will shutdown the kernel, terminate all threads and
-free all host resources used by the kernel before returning.
-
-This patch also introduces idle CPU handling since it is closely
-related to the shutdown process. A host semaphore is used to wait for
-new interrupts when the kernel switches the CPU to idle to avoid
-wasting host CPU cycles. When the kernel is shutdown we terminate the
-idle thread at the first CPU idle event.
+[1] https://sourceware.org/ml/binutils/2015-10/msg00234.html
 
 Signed-off-by: Octavian Purdila <octavian.purdila@intel.com>
 ---
- arch/lkl/include/asm/setup.h |  12 +++
- arch/lkl/kernel/setup.c      | 176 +++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 188 insertions(+)
- create mode 100644 arch/lkl/include/asm/setup.h
- create mode 100644 arch/lkl/kernel/setup.c
+ arch/lkl/Kconfig                 |  1 +
+ arch/lkl/Makefile                |  4 ++++
+ arch/lkl/include/system/stdarg.h |  1 +
+ include/linux/compiler-gcc.h     |  4 ++++
+ scripts/Makefile                 |  2 ++
+ scripts/link-vmlinux.sh          | 12 +++++++-----
+ 6 files changed, 19 insertions(+), 5 deletions(-)
+ create mode 100644 arch/lkl/include/system/stdarg.h
 
-diff --git a/arch/lkl/include/asm/setup.h b/arch/lkl/include/asm/setup.h
+diff --git a/arch/lkl/Kconfig b/arch/lkl/Kconfig
+index 064960b..567533b 100644
+--- a/arch/lkl/Kconfig
++++ b/arch/lkl/Kconfig
+@@ -18,6 +18,7 @@ config LKL
+        select ARCH_WANT_FRAME_POINTERS
+        select PHYS_ADDR_T_64BIT if 64BIT
+        select 64BIT if OUTPUT_FORMAT = "elf64-x86-64"
++       select HAVE_UNDERSCORE_SYMBOL_PREFIX if OUTPUT_FORMAT = "pe-i386"
+ 
+ config OUTPUTFORMAT
+        string
+diff --git a/arch/lkl/Makefile b/arch/lkl/Makefile
+index 7545830..51ad096 100644
+--- a/arch/lkl/Makefile
++++ b/arch/lkl/Makefile
+@@ -4,6 +4,10 @@ KBUILD_CFLAGS += -fno-builtin
+ 
+ ifeq ($(OUTPUT_FORMAT),elf64-x86-64)
+ KBUILD_CFLAGS += -fPIC
++else ifeq ($(OUTPUT_FORMAT),pe-i386)
++prefix=_
++# workaround for #include_next<stdarg.h> errors
++LINUXINCLUDE := -isystem arch/lkl/include/system $(LINUXINCLUDE)
+ endif
+ 
+ LDFLAGS_vmlinux += -r
+diff --git a/arch/lkl/include/system/stdarg.h b/arch/lkl/include/system/stdarg.h
 new file mode 100644
-index 0000000..b82cdbf
+index 0000000..db463c5
 --- /dev/null
-+++ b/arch/lkl/include/asm/setup.h
-@@ -0,0 +1,12 @@
-+#ifndef _ASM_LKL_SETUP_H
-+#define _ASM_LKL_SETUP_H
-+
-+#define COMMAND_LINE_SIZE 4096
-+
-+#ifndef __ASSEMBLY__
-+#define ARCH_RUN_INIT_PROCESS
-+int run_init_process(const char *init_filename);
-+void wakeup_cpu(void);
++++ b/arch/lkl/include/system/stdarg.h
+@@ -0,0 +1 @@
++/* empty file to avoid #include_next<stdarg.h> error */
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+index 8efb40e..87ddae7 100644
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -116,7 +116,11 @@
+  */
+ #define __pure			__attribute__((pure))
+ #define __aligned(x)		__attribute__((aligned(x)))
++#ifdef __MINGW32__
++#define __printf(a, b)		__attribute__((format(gnu_printf, a, b)))
++#else
+ #define __printf(a, b)		__attribute__((format(printf, a, b)))
 +#endif
-+
-+#endif
-diff --git a/arch/lkl/kernel/setup.c b/arch/lkl/kernel/setup.c
-new file mode 100644
-index 0000000..aad2ad7
---- /dev/null
-+++ b/arch/lkl/kernel/setup.c
-@@ -0,0 +1,176 @@
-+#include <linux/init.h>
-+#include <linux/init_task.h>
-+#include <linux/reboot.h>
-+#include <linux/fs.h>
-+#include <linux/start_kernel.h>
-+#include <linux/syscalls.h>
-+#include <asm/host_ops.h>
-+#include <asm/irq.h>
-+#include <asm/unistd.h>
-+
-+struct lkl_host_operations *lkl_ops;
-+static char cmd_line[COMMAND_LINE_SIZE];
-+static void *idle_sem;
-+static void *init_sem;
-+static void *halt_sem;
-+static bool halt;
-+void (*pm_power_off)(void) = NULL;
-+static unsigned long mem_size;
-+
-+long lkl_panic_blink(int state)
-+{
-+	lkl_ops->panic();
-+	return 0;
-+}
-+
-+void __init setup_arch(char **cl)
-+{
-+	*cl = cmd_line;
-+	panic_blink = lkl_panic_blink;
-+	bootmem_init(mem_size);
-+}
-+
-+int run_init_process(const char *init_filename)
-+{
-+	lkl_ops->sem_up(init_sem);
-+
-+	run_syscalls();
-+
-+	kernel_halt();
-+
-+	/* We want to kill init without panic()ing */
-+	init_pid_ns.child_reaper = 0;
-+	do_exit(0);
-+
-+	return 0;
-+}
-+
-+static void __init lkl_run_kernel(void *arg)
-+{
-+	start_kernel();
-+}
-+
-+int __init lkl_start_kernel(struct lkl_host_operations *ops,
-+			    unsigned long _mem_size,
-+			    const char *fmt, ...)
-+{
-+	va_list ap;
-+	int ret;
-+
-+	lkl_ops = ops;
-+	mem_size = _mem_size;
-+
-+	va_start(ap, fmt);
-+	ret = vsnprintf(boot_command_line, COMMAND_LINE_SIZE, fmt, ap);
-+	va_end(ap);
-+
-+	if (ops->virtio_devices)
-+		strncpy(boot_command_line + ret, ops->virtio_devices,
-+			COMMAND_LINE_SIZE - ret);
-+
-+	memcpy(cmd_line, boot_command_line, COMMAND_LINE_SIZE);
-+
-+	ret = threads_init();
-+	if (ret)
-+		return ret;
-+
-+	init_sem = lkl_ops->sem_alloc(0);
-+	if (!init_sem)
-+		return -ENOMEM;
-+
-+	idle_sem = lkl_ops->sem_alloc(0);
-+	if (!idle_sem) {
-+		ret = -ENOMEM;
-+		goto out_free_init_sem;
-+	}
-+
-+	ret = lkl_ops->thread_create(lkl_run_kernel, NULL);
-+	if (ret) {
-+		ret = -ENOMEM;
-+		goto out_free_idle_sem;
-+	}
-+
-+	lkl_ops->sem_down(init_sem);
-+
-+	return 0;
-+
-+out_free_idle_sem:
-+	lkl_ops->sem_free(idle_sem);
-+
-+out_free_init_sem:
-+	lkl_ops->sem_free(init_sem);
-+
-+	return ret;
-+}
-+
-+void machine_halt(void)
-+{
-+	halt = true;
-+}
-+
-+void machine_power_off(void)
-+{
-+	machine_halt();
-+}
-+
-+void machine_restart(char *unused)
-+{
-+	machine_halt();
-+}
-+
-+long lkl_sys_halt(void)
-+{
-+	long err;
-+	long params[6] = { 0, };
-+
-+	halt_sem = lkl_ops->sem_alloc(0);
-+	if (!halt_sem)
-+		return -ENOMEM;
-+
-+	err = lkl_syscall(__NR_reboot, params);
-+	if (err < 0) {
-+		lkl_ops->sem_free(halt_sem);
-+		return err;
-+	}
-+
-+	lkl_ops->sem_down(halt_sem);
-+
-+	lkl_ops->sem_free(halt_sem);
-+	lkl_ops->sem_free(idle_sem);
-+	lkl_ops->sem_free(init_sem);
-+
-+	return 0;
-+}
-+
-+void arch_cpu_idle(void)
-+{
-+	if (halt) {
-+		threads_cleanup();
-+		free_IRQ();
-+		free_mem();
-+		lkl_ops->sem_up(halt_sem);
-+		lkl_ops->thread_exit();
-+	}
-+
-+	lkl_ops->sem_down(idle_sem);
-+
-+	local_irq_enable();
-+}
-+
-+void wakeup_cpu(void)
-+{
-+	lkl_ops->sem_up(idle_sem);
-+}
-+
-+/* skip mounting the "real" rootfs. ramfs is good enough. */
-+static int __init fs_setup(void)
-+{
-+	int fd;
-+
-+	fd = sys_open("/init", O_CREAT, 0600);
-+	WARN_ON(fd < 0);
-+	sys_close(fd);
-+
-+	return 0;
-+}
-+late_initcall(fs_setup);
+ #define __scanf(a, b)		__attribute__((format(scanf, a, b)))
+ #define __attribute_const__	__attribute__((__const__))
+ #define __maybe_unused		__attribute__((unused))
+diff --git a/scripts/Makefile b/scripts/Makefile
+index 1b26617..3036a7b 100644
+--- a/scripts/Makefile
++++ b/scripts/Makefile
+@@ -37,7 +37,9 @@ build_docproc: $(obj)/docproc
+ 	@:
+ 
+ subdir-$(CONFIG_MODVERSIONS) += genksyms
++ifeq ($(findstring elf,$(if $(CONFIG_OUTPUT_FORMAT),$(CONFIG_OUTPUT_FORMAT),elf)),elf)
+ subdir-y                     += mod
++endif
+ subdir-$(CONFIG_SECURITY_SELINUX) += selinux
+ subdir-$(CONFIG_DTC)         += dtc
+ subdir-$(CONFIG_GDB_SCRIPTS) += gdb
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index 1a10d8a..f9e7586 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -161,12 +161,14 @@ case "${KCONFIG_CONFIG}" in
+ 	. "./${KCONFIG_CONFIG}"
+ esac
+ 
+-#link vmlinux.o
+-info LD vmlinux.o
+-modpost_link vmlinux.o
++if [ -e scripts/mod/modpost ]; then
++    #link vmlinux.o
++    info LD vmlinux.o
++    modpost_link vmlinux.o
+ 
+-# modpost vmlinux.o to check for section mismatches
+-${MAKE} -f "${srctree}/scripts/Makefile.modpost" vmlinux.o
++    # modpost vmlinux.o to check for section mismatches
++    ${MAKE} -f "${srctree}/scripts/Makefile.modpost" vmlinux.o
++fi
+ 
+ # Update version
+ info GEN .version
 -- 
 2.1.0
