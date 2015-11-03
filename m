@@ -1,7 +1,7 @@
 From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: [RFC PATCH 21/28] lkl tools: host lib: posix host operations
-Date: Tue,  3 Nov 2015 22:20:52 +0200
-Message-ID: <1446582059-17355-22-git-send-email-octavian.purdila@intel.com>
+Subject: [RFC PATCH 19/28] lkl tools: host lib: virtio block device
+Date: Tue,  3 Nov 2015 22:20:50 +0200
+Message-ID: <1446582059-17355-20-git-send-email-octavian.purdila@intel.com>
 References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
@@ -10,246 +10,201 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, thehajime@gmail.com, Octavian Purdila <octavian.purdila@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Implement LKL host operations for POSIX hosts.
+Host independent implementation for virtio block devices. The host
+dependent part of the host library must provide an implementation for
+lkl_dev_block_ops.
+
+Disks can be added to the LKL configuration via lkl_disk_add(), a new
+LKL application API.
 
 Signed-off-by: Octavian Purdila <octavian.purdila@intel.com>
 ---
- tools/lkl/Makefile         |   6 ++
- tools/lkl/lib/posix-host.c | 206 +++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 212 insertions(+)
- create mode 100644 tools/lkl/lib/posix-host.c
+ tools/lkl/include/lkl.h      |  20 ++++++++
+ tools/lkl/include/lkl_host.h |  21 ++++++++
+ tools/lkl/lib/virtio_blk.c   | 116 +++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 157 insertions(+)
+ create mode 100644 tools/lkl/lib/virtio_blk.c
 
-diff --git a/tools/lkl/Makefile b/tools/lkl/Makefile
-index b13472b..cf97d27 100644
---- a/tools/lkl/Makefile
-+++ b/tools/lkl/Makefile
-@@ -3,9 +3,15 @@ CFLAGS := -Iinclude -Wall -g
- ifdef CROSS_COMPILE
- CC=$(CROSS_COMPILE)gcc
- AR=$(CROSS_COMPILE)ar
-+LD=$(CROSS_COMPILE)ld
- endif
+diff --git a/tools/lkl/include/lkl.h b/tools/lkl/include/lkl.h
+index 958614d..0c30b23 100644
+--- a/tools/lkl/include/lkl.h
++++ b/tools/lkl/include/lkl.h
+@@ -20,4 +20,24 @@ static inline long lkl_sys_lseek(unsigned int fd, __lkl__kernel_loff_t off,
+  */
+ const char *lkl_strerror(int err);
  
- lib_source = $(filter-out %-host.c,$(wildcard lib/*.c))
-+ifneq (,$(filter $(shell $(LD) -r -print-output-format),elf64-x86-64 elf32-i386))
-+lib_source += lib/posix-host.c
-+LDFLAGS += -lpthread -lrt
-+endif
++/**
++ * lkl_disk_backstore - host dependend disk backstore
++ *
++ * @fd - an open file descriptor that can be used by preadv/pwritev; used by
++ * POSIX hosts
++ */
++union lkl_disk_backstore {
++	int fd;
++};
 +
- lib_objs = $(patsubst %.c,%.o, $(lib_source)) lib/lkl.o
++/**
++ * lkl_disk_add - add a new disk
++ *
++ * Must be called before calling lkl_start_kernel.
++ *
++ * @backstore - the disk backstore
++ * @returns a disk id (0 is valid) or a strictly negative value in case of error
++ */
++int lkl_disk_add(union lkl_disk_backstore backstore);
++
+ #endif
+diff --git a/tools/lkl/include/lkl_host.h b/tools/lkl/include/lkl_host.h
+index 26d3e43..2dafaa8 100644
+--- a/tools/lkl/include/lkl_host.h
++++ b/tools/lkl/include/lkl_host.h
+@@ -20,4 +20,25 @@ struct lkl_dev_buf {
+ 	unsigned int len;
+ };
  
- all: lib/liblkl.a
-diff --git a/tools/lkl/lib/posix-host.c b/tools/lkl/lib/posix-host.c
++extern struct lkl_dev_blk_ops lkl_dev_blk_ops;
++
++#define LKL_DEV_BLK_TYPE_READ		0
++#define LKL_DEV_BLK_TYPE_WRITE		1
++#define LKL_DEV_BLK_TYPE_FLUSH		4
++#define LKL_DEV_BLK_TYPE_FLUSH_OUT	5
++
++struct lkl_dev_blk_ops {
++	int (*get_capacity)(union lkl_disk_backstore bs,
++			    unsigned long long *res);
++	void (*request)(union lkl_disk_backstore bs, unsigned int type,
++			unsigned int prio, unsigned long long sector,
++			struct lkl_dev_buf *bufs, int count);
++};
++
++#define LKL_DEV_BLK_STATUS_OK		0
++#define LKL_DEV_BLK_STATUS_IOERR	1
++#define LKL_DEV_BLK_STATUS_UNSUP	2
++
++void lkl_dev_blk_complete(struct lkl_dev_buf *bufs, unsigned char status,
++			  int len);
+ #endif
+diff --git a/tools/lkl/lib/virtio_blk.c b/tools/lkl/lib/virtio_blk.c
 new file mode 100644
-index 0000000..4bc1de7
+index 0000000..3262f42
 --- /dev/null
-+++ b/tools/lkl/lib/posix-host.c
-@@ -0,0 +1,206 @@
-+#include <pthread.h>
-+#include <malloc.h>
-+#include <sys/time.h>
-+#include <time.h>
-+#include <signal.h>
-+#include <assert.h>
-+#include <unistd.h>
-+#include <stdio.h>
-+#include <errno.h>
-+#include <string.h>
-+#include <time.h>
-+#include <execinfo.h>
-+#include <stdint.h>
-+#include <sys/uio.h>
++++ b/tools/lkl/lib/virtio_blk.c
+@@ -0,0 +1,116 @@
 +#include <lkl_host.h>
-+#include "iomem.h"
++#include "virtio.h"
 +
-+static void print(const char *str, int len)
-+{
-+	write(STDOUT_FILENO, str, len);
-+}
-+
-+struct pthread_sem {
-+	pthread_mutex_t lock;
-+	int count;
-+	pthread_cond_t cond;
++struct virtio_blk_dev {
++	struct virtio_dev dev;
++	struct {
++		uint64_t capacity;
++	} config;
++	struct lkl_dev_blk_ops *ops;
++	union lkl_disk_backstore backstore;
 +};
 +
-+static void *sem_alloc(int count)
-+{
-+	struct pthread_sem *sem;
-+
-+	sem = malloc(sizeof(*sem));
-+	if (!sem)
-+		return NULL;
-+
-+	pthread_mutex_init(&sem->lock, NULL);
-+	sem->count = count;
-+	pthread_cond_init(&sem->cond, NULL);
-+
-+	return sem;
-+}
-+
-+static void sem_free(void *sem)
-+{
-+	free(sem);
-+}
-+
-+static void sem_up(void *_sem)
-+{
-+	struct pthread_sem *sem = (struct pthread_sem *)_sem;
-+
-+	pthread_mutex_lock(&sem->lock);
-+	sem->count++;
-+	if (sem->count > 0)
-+		pthread_cond_signal(&sem->cond);
-+	pthread_mutex_unlock(&sem->lock);
-+}
-+
-+static void sem_down(void *_sem)
-+{
-+	struct pthread_sem *sem = (struct pthread_sem *)_sem;
-+
-+	pthread_mutex_lock(&sem->lock);
-+	while (sem->count <= 0)
-+		pthread_cond_wait(&sem->cond, &sem->lock);
-+	sem->count--;
-+	pthread_mutex_unlock(&sem->lock);
-+}
-+
-+static int thread_create(void (*fn)(void *), void *arg)
-+{
-+	pthread_t thread;
-+
-+	return pthread_create(&thread, NULL, (void* (*)(void *))fn, arg);
-+}
-+
-+static void thread_exit(void)
-+{
-+	pthread_exit(NULL);
-+}
-+
-+static unsigned long long time_ns(void)
-+{
-+	struct timeval tv;
-+
-+	gettimeofday(&tv, NULL);
-+
-+	return tv.tv_sec * 1000000000ULL + tv.tv_usec * 1000ULL;
-+}
-+
-+static void *timer_alloc(void (*fn)(void *), void *arg)
-+{
-+	int err;
-+	timer_t timer;
-+	struct sigevent se =  {
-+		.sigev_notify = SIGEV_THREAD,
-+		.sigev_value = {
-+			.sival_ptr = arg,
-+		},
-+		.sigev_notify_function = (void (*)(union sigval))fn,
-+	};
-+
-+	err = timer_create(CLOCK_REALTIME, &se, &timer);
-+	if (err)
-+		return NULL;
-+
-+	return (void *)(long)timer;
-+}
-+
-+static int timer_set_oneshot(void *_timer, unsigned long ns)
-+{
-+	timer_t timer = (timer_t)(long)_timer;
-+	struct itimerspec ts = {
-+		.it_value = {
-+			.tv_sec = ns / 1000000000,
-+			.tv_nsec = ns % 1000000000,
-+		},
-+	};
-+
-+	if (!ts.it_value.tv_nsec)
-+		ts.it_value.tv_nsec++;
-+
-+	return timer_settime(timer, 0, &ts, NULL);
-+}
-+
-+static void timer_free(void *_timer)
-+{
-+	timer_t timer = (timer_t)(long)_timer;
-+
-+	timer_delete(timer);
-+}
-+
-+static void panic(void)
-+{
-+	assert(0);
-+}
-+
-+struct lkl_host_operations lkl_host_ops = {
-+	.panic = panic,
-+	.thread_create = thread_create,
-+	.thread_exit = thread_exit,
-+	.sem_alloc = sem_alloc,
-+	.sem_free = sem_free,
-+	.sem_up = sem_up,
-+	.sem_down = sem_down,
-+	.time = time_ns,
-+	.timer_alloc = timer_alloc,
-+	.timer_set_oneshot = timer_set_oneshot,
-+	.timer_free = timer_free,
-+	.print = print,
-+	.mem_alloc = malloc,
-+	.mem_free = free,
-+	.ioremap = lkl_ioremap,
-+	.iomem_access = lkl_iomem_access,
-+	.virtio_devices = lkl_virtio_devs,
++struct virtio_blk_req_header {
++	uint32_t type;
++	uint32_t prio;
++	uint64_t sector;
 +};
 +
-+int fd_get_capacity(union lkl_disk_backstore bs, unsigned long long *res)
++struct virtio_blk_req_trailer {
++	uint8_t status;
++};
++
++static int blk_check_features(uint32_t features)
 +{
-+	off_t off;
++	if (!features)
++		return 0;
 +
-+	off = lseek(bs.fd, 0, SEEK_END);
-+	if (off < 0)
-+		return -1;
-+
-+	*res = off;
-+	return 0;
++	return -LKL_EINVAL;
 +}
 +
-+void fd_do_rw(union lkl_disk_backstore bs, unsigned int type, unsigned int prio,
-+	      unsigned long long sector, struct lkl_dev_buf *bufs, int count)
++void lkl_dev_blk_complete(struct lkl_dev_buf *bufs, unsigned char status,
++			  int len)
 +{
-+	int err = 0;
-+	struct iovec *iovec = (struct iovec *)bufs;
++	struct virtio_dev_req *req;
++	struct virtio_blk_req_trailer *f;
 +
-+	if (count > 1)
-+		lkl_printf("%s: %d\n", __func__, count);
++	req = container_of(bufs - 1, struct virtio_dev_req, buf);
 +
-+	/* TODO: handle short reads/writes */
-+	switch (type) {
-+	case LKL_DEV_BLK_TYPE_READ:
-+		err = preadv(bs.fd, iovec, count, sector * 512);
-+		break;
-+	case LKL_DEV_BLK_TYPE_WRITE:
-+		err = pwritev(bs.fd, iovec, count, sector * 512);
-+		break;
-+	case LKL_DEV_BLK_TYPE_FLUSH:
-+	case LKL_DEV_BLK_TYPE_FLUSH_OUT:
-+		err = fdatasync(bs.fd);
-+		break;
-+	default:
-+		lkl_dev_blk_complete(bufs, LKL_DEV_BLK_STATUS_UNSUP, 0);
++	if (req->buf_count < 2) {
++		lkl_printf("virtio_blk: no status buf\n");
 +		return;
 +	}
 +
-+	if (err < 0)
-+		lkl_dev_blk_complete(bufs, LKL_DEV_BLK_STATUS_IOERR, 0);
-+	else
-+		lkl_dev_blk_complete(bufs, LKL_DEV_BLK_STATUS_OK, err);
++	if (req->buf[req->buf_count - 1].len != sizeof(*f)) {
++		lkl_printf("virtio_blk: bad status buf\n");
++	} else {
++		f = req->buf[req->buf_count - 1].addr;
++		f->status = status;
++	}
++
++	virtio_dev_complete(req, len);
 +}
 +
-+struct lkl_dev_blk_ops lkl_dev_blk_ops = {
-+	.get_capacity = fd_get_capacity,
-+	.request = fd_do_rw,
++static void blk_queue(struct virtio_dev *dev, struct virtio_dev_req *req)
++{
++	struct virtio_blk_req_header *h;
++	struct virtio_blk_dev *blk_dev;
++
++	if (req->buf[0].len != sizeof(struct virtio_blk_req_header)) {
++		lkl_printf("virtio_blk: bad header buf\n");
++		lkl_dev_blk_complete(&req->buf[1], LKL_DEV_BLK_STATUS_UNSUP, 0);
++		return;
++	}
++
++	h = req->buf[0].addr;
++	blk_dev = container_of(dev, struct virtio_blk_dev, dev);
++
++	blk_dev->ops->request(blk_dev->backstore, le32toh(h->type),
++			      le32toh(h->prio), le32toh(h->sector),
++			      &req->buf[1], req->buf_count - 2);
++}
++
++static struct virtio_dev_ops blk_ops = {
++	.check_features = blk_check_features,
++	.queue = blk_queue,
 +};
++
++int lkl_disk_add(union lkl_disk_backstore backstore)
++{
++	struct virtio_blk_dev *dev;
++	unsigned long long capacity;
++	int ret;
++	static int count;
++
++	dev = lkl_host_ops.mem_alloc(sizeof(*dev));
++	if (!dev)
++		return -LKL_ENOMEM;
++
++	dev->dev.device_id = 2;
++	dev->dev.vendor_id = 0;
++	dev->dev.device_features = 0;
++	dev->dev.config_gen = 0;
++	dev->dev.config_data = &dev->config;
++	dev->dev.config_len = sizeof(dev->config);
++	dev->dev.ops = &blk_ops;
++	dev->ops = &lkl_dev_blk_ops;
++	dev->backstore = backstore;
++
++	ret = dev->ops->get_capacity(backstore, &capacity);
++	if (ret) {
++		ret = -LKL_ENOMEM;
++		goto out_free;
++	}
++	dev->config.capacity = capacity;
++
++	ret = virtio_dev_setup(&dev->dev, 1, 65536);
++	if (ret)
++		goto out_free;
++
++	return count++;
++
++out_free:
++	lkl_host_ops.mem_free(dev);
++
++	return ret;
++}
 -- 
 2.1.0
