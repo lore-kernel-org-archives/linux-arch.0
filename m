@@ -1,7 +1,7 @@
 From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: [RFC PATCH 15/28] lkl tools: skeleton for host side library, tests and tools
-Date: Tue,  3 Nov 2015 22:20:46 +0200
-Message-ID: <1446582059-17355-16-git-send-email-octavian.purdila@intel.com>
+Subject: [RFC PATCH 07/28] lkl: interrupt support
+Date: Tue,  3 Nov 2015 22:20:38 +0200
+Message-ID: <1446582059-17355-8-git-send-email-octavian.purdila@intel.com>
 References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
@@ -10,131 +10,241 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, thehajime@gmail.com, Octavian Purdila <octavian.purdila@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds the skeleton for the host library, tests and
-application examples.
+Add APIs that allows the host to reserve and free and interrupt number
+and also to trigger an interrupt.
 
-The host library is implementing the host operations needed by LKL and
-is split into host dependent (depends on a specific host, e.g. POSIX
-hosts) and host independent parts (will work on all supported hosts).
+The trigger operation will simply store the interrupt data in
+queue. The interrupt handler is run later, at the first opportunity it
+has to avoid races with any kernel threads.
+
+Currently, interrupts are run on the first interrupt enable operation
+if interrupts are disabled and if we are not already in interrupt
+context.
+
+When triggering an interrupt the host can also send a void pointer
+that is going to be available to the handler routine via
+get_irq_regs()->irq_data. This allows to easly create host <-> kernel
+synchronous communication channels and is currently used by the system
+call interface.
 
 Signed-off-by: Octavian Purdila <octavian.purdila@intel.com>
 ---
- MAINTAINERS                  |  1 +
- tools/lkl/.gitignore         |  0
- tools/lkl/Makefile           | 28 ++++++++++++++++++++++++++++
- tools/lkl/include/.gitignore |  1 +
- tools/lkl/include/lkl.h      | 15 +++++++++++++++
- tools/lkl/include/lkl_host.h |  9 +++++++++
- tools/lkl/lib/.gitignore     |  3 +++
- 7 files changed, 57 insertions(+)
- create mode 100644 tools/lkl/.gitignore
- create mode 100644 tools/lkl/Makefile
- create mode 100644 tools/lkl/include/.gitignore
- create mode 100644 tools/lkl/include/lkl.h
- create mode 100644 tools/lkl/include/lkl_host.h
- create mode 100644 tools/lkl/lib/.gitignore
+ arch/lkl/include/asm/irq.h             |  10 +++
+ arch/lkl/include/uapi/asm/irq.h        |  37 ++++++++++
+ arch/lkl/include/uapi/asm/sigcontext.h |   1 +
+ arch/lkl/kernel/irq.c                  | 131 +++++++++++++++++++++++++++++++++
+ 4 files changed, 179 insertions(+)
+ create mode 100644 arch/lkl/include/asm/irq.h
+ create mode 100644 arch/lkl/include/uapi/asm/irq.h
+ create mode 100644 arch/lkl/kernel/irq.c
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index e2a737f..4e78669 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -6359,6 +6359,7 @@ LINUX KERNEL LIBRARY
- M:	Octavian Purdila <octavian.purdila@intel.com>
- S:	Maintained
- F:	arch/lkl/
-+F:	tools/lkl/
- 
- LINUX SECURITY MODULE (LSM) FRAMEWORK
- M:	Chris Wright <chrisw@sous-sol.org>
-diff --git a/tools/lkl/.gitignore b/tools/lkl/.gitignore
+diff --git a/arch/lkl/include/asm/irq.h b/arch/lkl/include/asm/irq.h
 new file mode 100644
-index 0000000..e69de29
-diff --git a/tools/lkl/Makefile b/tools/lkl/Makefile
-new file mode 100644
-index 0000000..b13472b
+index 0000000..f4ceb5a
 --- /dev/null
-+++ b/tools/lkl/Makefile
-@@ -0,0 +1,28 @@
-+CFLAGS := -Iinclude -Wall -g
++++ b/arch/lkl/include/asm/irq.h
+@@ -0,0 +1,10 @@
++#ifndef _ASM_LKL_IRQ_H
++#define _ASM_LKL_IRQ_H
 +
-+ifdef CROSS_COMPILE
-+CC=$(CROSS_COMPILE)gcc
-+AR=$(CROSS_COMPILE)ar
-+endif
++#define NR_IRQS		32
 +
-+lib_source = $(filter-out %-host.c,$(wildcard lib/*.c))
-+lib_objs = $(patsubst %.c,%.o, $(lib_source)) lib/lkl.o
++void free_IRQ(void);
 +
-+all: lib/liblkl.a
++#include <uapi/asm/irq.h>
 +
-+lib/liblkl.a: $(lib_objs)
-+	$(AR) -rc $@ $^
-+
-+lib/lkl.o:
-+	$(MAKE) -C ../.. ARCH=lkl defconfig
-+	$(MAKE) -C ../.. ARCH=lkl install INSTALL_PATH=$(PWD)
-+
-+%: %.o
-+	$(CC) -o $@ $^ $(LDFLAGS)
-+
-+$(lib_objs): lib/lkl.o
-+$(objs): lib/lkl.o
-+$(execs): lib/liblkl.a
-+
-+clean:
-+	-rm -rf include/lkl/ lib/liblkl.a $(lib_objs)
-diff --git a/tools/lkl/include/.gitignore b/tools/lkl/include/.gitignore
++#endif
+diff --git a/arch/lkl/include/uapi/asm/irq.h b/arch/lkl/include/uapi/asm/irq.h
 new file mode 100644
-index 0000000..c41a463
+index 0000000..a33f5c5
 --- /dev/null
-+++ b/tools/lkl/include/.gitignore
-@@ -0,0 +1 @@
-+lkl/
-\ No newline at end of file
-diff --git a/tools/lkl/include/lkl.h b/tools/lkl/include/lkl.h
-new file mode 100644
-index 0000000..2de5ed4
---- /dev/null
-+++ b/tools/lkl/include/lkl.h
-@@ -0,0 +1,15 @@
-+#ifndef _LKL_H
-+#define _LKL_H
-+
-+#include <lkl/asm/unistd.h>
++++ b/arch/lkl/include/uapi/asm/irq.h
+@@ -0,0 +1,37 @@
++#ifndef _ASM_UAPI_LKL_IRQ_H
++#define _ASM_UAPI_LKL_IRQ_H
 +
 +/**
-+ * lkl_sys_lseek - wrapper for lkl_sys_llseek
++ * lkl_trigger_irq - generate an interrupt
++ *
++ * This function is used by the device host side to signal its Linux counterpart
++ * that some event happened.
++ *
++ * @irq - the irq number to signal
++ * @data - data to be passed to the irq handler; available via
++ * get_irq_regs()->irq_data
 + */
-+static inline long lkl_sys_lseek(unsigned int fd, __lkl__kernel_loff_t off,
-+				 __lkl__kernel_loff_t *res, unsigned int whence)
++int lkl_trigger_irq(int irq, void *data);
++
++/**
++ * lkl_get_free_irq - find and reserve a free IRQ number
++ *
++ * This function is called by the host device code to find an unused IRQ number
++ * and reserved it for its own use.
++ *
++ * @user - a string to identify the user
++ * @returns - and irq number that can be used by request_irq or an negative
++ * value in case of an error
++ */
++int lkl_get_free_irq(const char *user);
++
++/**
++ * lkl_put_irq - release an IRQ number previously obtained with lkl_get_free_irq
++ *
++ * @irq - irq number to release
++ * @user - string identifying the user; should be the same as the one passed to
++ * lkl_get_free_irq when the irq number was obtained
++ */
++void lkl_put_irq(int irq, const char *name);
++
++#endif
+diff --git a/arch/lkl/include/uapi/asm/sigcontext.h b/arch/lkl/include/uapi/asm/sigcontext.h
+index 99b2d53..77aba40 100644
+--- a/arch/lkl/include/uapi/asm/sigcontext.h
++++ b/arch/lkl/include/uapi/asm/sigcontext.h
+@@ -4,6 +4,7 @@
+ #include <asm/ptrace.h>
+ 
+ struct pt_regs {
++	void *irq_data;
+ };
+ 
+ struct sigcontext {
+diff --git a/arch/lkl/kernel/irq.c b/arch/lkl/kernel/irq.c
+new file mode 100644
+index 0000000..9ff0e12
+--- /dev/null
++++ b/arch/lkl/kernel/irq.c
+@@ -0,0 +1,131 @@
++#include <linux/kernel.h>
++#include <linux/init.h>
++#include <linux/irq.h>
++#include <linux/hardirq.h>
++#include <asm/irq_regs.h>
++#include <linux/sched.h>
++#include <linux/seq_file.h>
++#include <linux/tick.h>
++#include <asm/irqflags.h>
++#include <asm/host_ops.h>
++
++static bool irqs_enabled;
++
++#define MAX_IRQS	16
++static struct irq_info {
++	struct pt_regs regs[MAX_IRQS];
++	const char *user;
++	int count;
++} irqs[NR_IRQS];
++static void *irqs_lock;
++
++static void do_IRQ(int irq, struct pt_regs *regs)
 +{
-+	return lkl_sys_llseek(fd, off >> 32, off & 0xffffffff, res, whence);
++	struct pt_regs *old_regs = set_irq_regs(regs);
++
++	irq_enter();
++	generic_handle_irq(irq);
++	irq_exit();
++
++	set_irq_regs(old_regs);
 +}
 +
-+#endif
-diff --git a/tools/lkl/include/lkl_host.h b/tools/lkl/include/lkl_host.h
-new file mode 100644
-index 0000000..8ee9ba0
---- /dev/null
-+++ b/tools/lkl/include/lkl_host.h
-@@ -0,0 +1,9 @@
-+#ifndef _LKL_HOST_H
-+#define _LKL_HOST_H
++int lkl_trigger_irq(int irq, void *data)
++{
++	struct pt_regs regs = {
++		.irq_data = data,
++	};
++	int ret = 0;
 +
-+#include <lkl/asm/host_ops.h>
-+#include <lkl.h>
++	if (irq >= NR_IRQS)
++		return -EINVAL;
 +
-+extern struct lkl_host_operations lkl_host_ops;
++	lkl_ops->sem_down(irqs_lock);
++	if (irqs[irq].count < MAX_IRQS) {
++		irqs[irq].regs[irqs[irq].count] = regs;
++		irqs[irq].count++;
++	} else {
++		ret = -EOVERFLOW;
++	}
++	lkl_ops->sem_up(irqs_lock);
 +
-+#endif
-diff --git a/tools/lkl/lib/.gitignore b/tools/lkl/lib/.gitignore
-new file mode 100644
-index 0000000..427ae02
---- /dev/null
-+++ b/tools/lkl/lib/.gitignore
-@@ -0,0 +1,3 @@
-+lkl.o
-+liblkl.a
++	wakeup_cpu();
 +
++	return ret;
++}
++
++static void run_irqs(void)
++{
++	int i, j;
++
++	lkl_ops->sem_down(irqs_lock);
++	for (i = 0; i < NR_IRQS; i++) {
++		for (j = 0; j < irqs[i].count; j++)
++			do_IRQ(i, &irqs[i].regs[j]);
++		irqs[i].count = 0;
++	}
++	lkl_ops->sem_up(irqs_lock);
++}
++
++int show_interrupts(struct seq_file *p, void *v)
++{
++	return 0;
++}
++
++int lkl_get_free_irq(const char *user)
++{
++	int i;
++	int ret = -EBUSY;
++
++	/* 0 is not a valid IRQ */
++	for (i = 1; i < NR_IRQS; i++) {
++		if (!irqs[i].user) {
++			irqs[i].user = user;
++			ret = i;
++			break;
++		}
++	}
++
++	return ret;
++}
++
++void lkl_put_irq(int i, const char *user)
++{
++	if (!irqs[i].user || strcmp(irqs[i].user, user) != 0) {
++		WARN("%s tried to release %s's irq %d", user, irqs[i].user, i);
++		return;
++	}
++
++	irqs[i].user = NULL;
++}
++
++unsigned long arch_local_save_flags(void)
++{
++	return irqs_enabled;
++}
++
++void arch_local_irq_restore(unsigned long flags)
++{
++	if (flags == ARCH_IRQ_ENABLED && irqs_enabled == ARCH_IRQ_DISABLED &&
++	    !in_interrupt())
++		run_irqs();
++	irqs_enabled = flags;
++}
++
++void free_IRQ(void)
++{
++	lkl_ops->sem_free(irqs_lock);
++}
++
++void init_IRQ(void)
++{
++	int i;
++
++	irqs_lock = lkl_ops->sem_alloc(1);
++	BUG_ON(!irqs_lock);
++
++	for (i = 0; i < NR_IRQS; i++)
++		irq_set_chip_and_handler(i, &dummy_irq_chip, handle_simple_irq);
++
++	pr_info("lkl: irqs initialized\n");
++}
 -- 
 2.1.0
