@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f43.google.com ([209.85.220.43]:34460 "EHLO
+Received: from mail-pa0-f43.google.com ([209.85.220.43]:33335 "EHLO
 	mail-pa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932498AbbKCTq4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2015 14:46:56 -0500
-Received: by padhx2 with SMTP id hx2so19311260pad.1
-        for <linux-arch@vger.kernel.org>; Tue, 03 Nov 2015 11:46:56 -0800 (PST)
+	with ESMTP id S932460AbbKCTqv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2015 14:46:51 -0500
+Received: by pabfh17 with SMTP id fh17so27164195pab.0
+        for <linux-arch@vger.kernel.org>; Tue, 03 Nov 2015 11:46:51 -0800 (PST)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 08/13] Move MAX_SHARED_LIBS to fs/binfmt_flat.c
-Date: Tue,  3 Nov 2015 11:46:29 -0800
-Message-ID: <1446579994-9937-9-git-send-email-palmer@dabbelt.com>
+Subject: [PATCH 04/13] Always expose MAP_UNINITIALIZED to userspace
+Date: Tue,  3 Nov 2015 11:46:25 -0800
+Message-ID: <1446579994-9937-5-git-send-email-palmer@dabbelt.com>
 In-Reply-To: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
 References: <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
  <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
@@ -16,55 +16,41 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, dhowells@redhat.com
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20151103194629.AYXu1Gk-S_uGddh5PpJEBMZzMB1O3o5VfNyDSelt51U@z>
+Message-ID: <20151103194625.r6sTWeN-dumOeeHP-isfCH0mpQVhxkIZDg46evt_c-U@z>
 
-I'm not sure what this is, but it doesn't feel like something that
-should be exposed to userspace here.  I'm assuming this file was
-exposed for the structure in it, which doesn't depend on
-MAX_SHARED_LIBS.
+This used to be hidden behind CONFIG_MMAP_ALLOW_UNINITIALIZED, so
+userspace wouldn't actually ever see it be non-zero.  While I had
+originally hoped to avoid hiding it, it looks like this conflicts with
+MAP_HUGE_SHIFT so I think it's safer to just keep this 0.
+
+Architectures that want to define this can still override it.  In
+fact, the Xtensa port already overrides it in a very similar manner to
+the previously broken one (but due to lots of conflicting opinions on
+how to solve this correctly, I'm just taking the easy way out and
+letting their arch maintainers deal with it -- sorry).
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
 Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
 ---
- fs/binfmt_flat.c          | 6 ++++++
- include/uapi/linux/flat.h | 6 ------
- 2 files changed, 6 insertions(+), 6 deletions(-)
+ include/uapi/asm-generic/mman-common.h | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
 
-diff --git a/fs/binfmt_flat.c b/fs/binfmt_flat.c
-index f723cd3..e89fb43 100644
---- a/fs/binfmt_flat.c
-+++ b/fs/binfmt_flat.c
-@@ -72,6 +72,12 @@
- #define RELOC_FAILED 0xff00ff01		/* Relocation incorrect somewhere */
- #define UNLOADED_LIB 0x7ff000ff		/* Placeholder for unused library */
- 
-+#ifdef CONFIG_BINFMT_SHARED_FLAT
-+#define	MAX_SHARED_LIBS			(4)
-+#else
-+#define	MAX_SHARED_LIBS			(1)
-+#endif
-+
- struct lib_info {
- 	struct {
- 		unsigned long start_code;		/* Start of text segment */
-diff --git a/include/uapi/linux/flat.h b/include/uapi/linux/flat.h
-index 88cd6ba..1b177c7 100644
---- a/include/uapi/linux/flat.h
-+++ b/include/uapi/linux/flat.h
-@@ -13,12 +13,6 @@
- 
- #define	FLAT_VERSION			0x00000004L
- 
--#ifdef CONFIG_BINFMT_SHARED_FLAT
--#define	MAX_SHARED_LIBS			(4)
+diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
+index ddc3b36..0ce2a13 100644
+--- a/include/uapi/asm-generic/mman-common.h
++++ b/include/uapi/asm-generic/mman-common.h
+@@ -19,9 +19,7 @@
+ #define MAP_TYPE	0x0f		/* Mask for type of mapping */
+ #define MAP_FIXED	0x10		/* Interpret addr exactly */
+ #define MAP_ANONYMOUS	0x20		/* don't use a file */
+-#ifdef CONFIG_MMAP_ALLOW_UNINITIALIZED
+-# define MAP_UNINITIALIZED 0x4000000	/* For anonymous mmap, memory could be uninitialized */
 -#else
--#define	MAX_SHARED_LIBS			(1)
--#endif
--
- /*
-  * To make everything easier to port and manage cross platform
-  * development,  all fields are in network byte order.
++#ifndef MAP_UNINITIALIZED
+ # define MAP_UNINITIALIZED 0x0		/* Don't support this flag */
+ #endif
+ 
 -- 
 2.4.10
 
