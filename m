@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f43.google.com ([209.85.220.43]:34505 "EHLO
-	mail-pa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932557AbbKCTrA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2015 14:47:00 -0500
-Received: by padhx2 with SMTP id hx2so19312493pad.1
-        for <linux-arch@vger.kernel.org>; Tue, 03 Nov 2015 11:46:59 -0800 (PST)
+Received: from mail-pa0-f52.google.com ([209.85.220.52]:36507 "EHLO
+	mail-pa0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932435AbbKCTqt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2015 14:46:49 -0500
+Received: by pacdm15 with SMTP id dm15so2818868pac.3
+        for <linux-arch@vger.kernel.org>; Tue, 03 Nov 2015 11:46:48 -0800 (PST)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 11/13] Always define MAX_RAW_MINORS as 2**20 in userspace
-Date: Tue,  3 Nov 2015 11:46:32 -0800
-Message-ID: <1446579994-9937-12-git-send-email-palmer@dabbelt.com>
+Subject: [PATCH 02/13] Use sys_ni.c instead of #ifdef to disable fork on CONFIG_NOMMU
+Date: Tue,  3 Nov 2015 11:46:23 -0800
+Message-ID: <1446579994-9937-3-git-send-email-palmer@dabbelt.com>
 In-Reply-To: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
 References: <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
  <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
@@ -16,63 +16,52 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, dhowells@redhat.com
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20151103194632.hWxkhbwt_Wj060HWV3-Alfavu3MfCV_3pS-dPENq0XI@z>
+Message-ID: <20151103194623.BOv6QrWY-nbLYoEgT4N0yPCnZHB4eleEz0bOvwfTUXg@z>
 
-While I don't think this was ever meant to be exposed to userspace, if
-anyone is using it then this will at least provide a correct (if
-unlikely) definition.
+I think this change actually doesn't do anything: __NR_fork was still
+being defined either way, and on my machine fork() in <unistd.h> comes
+from libc.
 
-MAX_RAW_MINORS used to be used in the kernel, where it's been replaced
-with CONFIG_MAX_RAW_MINORS.
-
-Note that there's a checkpatch.pl warning about a split config string
-here, but I've left that alone.
+This just moves to the standard mechanism for defining syscalls that
+aren't implemented instead, which has the side-effect of no longer
+having an #ifdef CONFIG_* in a user-visible header.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
 Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
 ---
- drivers/char/raw.c       | 7 ++++---
- include/uapi/linux/raw.h | 2 +-
- 2 files changed, 5 insertions(+), 4 deletions(-)
+ include/uapi/asm-generic/unistd.h | 4 ----
+ kernel/sys_ni.c                   | 1 +
+ 2 files changed, 1 insertion(+), 4 deletions(-)
 
-diff --git a/drivers/char/raw.c b/drivers/char/raw.c
-index 60316fb..362d7a6 100644
---- a/drivers/char/raw.c
-+++ b/drivers/char/raw.c
-@@ -36,7 +36,7 @@ static struct raw_device_data *raw_devices;
- static DEFINE_MUTEX(raw_mutex);
- static const struct file_operations raw_ctl_fops; /* forward declaration */
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index ee12400..ffd2957 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -869,11 +869,7 @@ __SYSCALL(__NR_uselib, sys_uselib)
+ __SYSCALL(__NR__sysctl, sys_sysctl)
  
--static int max_raw_minors = MAX_RAW_MINORS;
-+static int max_raw_minors = CONFIG_MAX_RAW_MINORS;
+ #define __NR_fork 1079
+-#ifdef CONFIG_MMU
+ __SYSCALL(__NR_fork, sys_fork)
+-#else
+-__SYSCALL(__NR_fork, sys_ni_syscall)
+-#endif /* CONFIG_MMU */
  
- module_param(max_raw_minors, int, 0);
- MODULE_PARM_DESC(max_raw_minors, "Maximum number of raw devices (1-65536)");
-@@ -317,8 +317,9 @@ static int __init raw_init(void)
+ #undef __NR_syscalls
+ #define __NR_syscalls (__NR_fork+1)
+diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
+index a02decf..c830f7f 100644
+--- a/kernel/sys_ni.c
++++ b/kernel/sys_ni.c
+@@ -174,6 +174,7 @@ cond_syscall(sys_setfsuid);
+ cond_syscall(sys_setfsgid);
+ cond_syscall(sys_capget);
+ cond_syscall(sys_capset);
++cond_syscall(sys_fork);
  
- 	if (max_raw_minors < 1 || max_raw_minors > 65536) {
- 		printk(KERN_WARNING "raw: invalid max_raw_minors (must be"
--			" between 1 and 65536), using %d\n", MAX_RAW_MINORS);
--		max_raw_minors = MAX_RAW_MINORS;
-+			" between 1 and 65536), using %d\n",
-+		       CONFIG_MAX_RAW_MINORS);
-+		max_raw_minors = CONFIG_MAX_RAW_MINORS;
- 	}
- 
- 	raw_devices = vzalloc(sizeof(struct raw_device_data) * max_raw_minors);
-diff --git a/include/uapi/linux/raw.h b/include/uapi/linux/raw.h
-index 62d543e..f3d009b 100644
---- a/include/uapi/linux/raw.h
-+++ b/include/uapi/linux/raw.h
-@@ -13,6 +13,6 @@ struct raw_config_request
- 	__u64	block_minor;
- };
- 
--#define MAX_RAW_MINORS CONFIG_MAX_RAW_DEVS
-+#define MAX_RAW_MINORS (1 << 20)
- 
- #endif /* __LINUX_RAW_H */
+ /* arch-specific weak syscall entries */
+ cond_syscall(sys_pciconfig_read);
 -- 
 2.4.10
 
