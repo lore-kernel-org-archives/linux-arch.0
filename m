@@ -1,7 +1,7 @@
 From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: [RFC PATCH 09/28] lkl: timers, time and delay support
-Date: Tue,  3 Nov 2015 22:20:40 +0200
-Message-ID: <1446582059-17355-10-git-send-email-octavian.purdila@intel.com>
+Subject: [RFC PATCH 22/28] lkl tools: "boot" test
+Date: Tue,  3 Nov 2015 22:20:53 +0200
+Message-ID: <1446582059-17355-23-git-send-email-octavian.purdila@intel.com>
 References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
@@ -10,145 +10,563 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, thehajime@gmail.com, Octavian Purdila <octavian.purdila@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Clockevent driver based on host timer operations and clocksource
-driver and udelay support based on host time operations.
+Add a simple LKL test applications that starts the kernel and performs
+simple tests that minimally exercise the LKL API.
 
 Signed-off-by: Octavian Purdila <octavian.purdila@intel.com>
 ---
- arch/lkl/kernel/time.c | 125 +++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 125 insertions(+)
- create mode 100644 arch/lkl/kernel/time.c
+ tools/lkl/.gitignore    |   1 +
+ tools/lkl/Makefile      |   7 +-
+ tools/lkl/tests/boot.c  | 488 ++++++++++++++++++++++++++++++++++++++++++++++++
+ tools/lkl/tests/boot.sh |  10 +
+ 4 files changed, 504 insertions(+), 2 deletions(-)
+ create mode 100644 tools/lkl/tests/boot.c
+ create mode 100755 tools/lkl/tests/boot.sh
 
-diff --git a/arch/lkl/kernel/time.c b/arch/lkl/kernel/time.c
+diff --git a/tools/lkl/.gitignore b/tools/lkl/.gitignore
+index e69de29..7c456f2 100644
+--- a/tools/lkl/.gitignore
++++ b/tools/lkl/.gitignore
+@@ -0,0 +1 @@
++test/boot
+diff --git a/tools/lkl/Makefile b/tools/lkl/Makefile
+index cf97d27..1ae4481 100644
+--- a/tools/lkl/Makefile
++++ b/tools/lkl/Makefile
+@@ -7,14 +7,17 @@ LD=$(CROSS_COMPILE)ld
+ endif
+ 
+ lib_source = $(filter-out %-host.c,$(wildcard lib/*.c))
++source = $(wildcard tests/*.c)
+ ifneq (,$(filter $(shell $(LD) -r -print-output-format),elf64-x86-64 elf32-i386))
+ lib_source += lib/posix-host.c
+ LDFLAGS += -lpthread -lrt
+ endif
+ 
+ lib_objs = $(patsubst %.c,%.o, $(lib_source)) lib/lkl.o
++objs = $(patsubst %.c,%.o, $(source))
++execs = $(patsubst %.c,%, $(source))
+ 
+-all: lib/liblkl.a
++all: lib/liblkl.a $(execs)
+ 
+ lib/liblkl.a: $(lib_objs)
+ 	$(AR) -rc $@ $^
+@@ -31,4 +34,4 @@ $(objs): lib/lkl.o
+ $(execs): lib/liblkl.a
+ 
+ clean:
+-	-rm -rf include/lkl/ lib/liblkl.a $(lib_objs)
++	-rm -rf include/lkl/ lib/liblkl.a $(lib_objs) $(objs) $(execs)
+diff --git a/tools/lkl/tests/boot.c b/tools/lkl/tests/boot.c
 new file mode 100644
-index 0000000..d099736
+index 0000000..f5945aa
 --- /dev/null
-+++ b/arch/lkl/kernel/time.c
-@@ -0,0 +1,125 @@
-+#include <linux/clocksource.h>
-+#include <linux/clockchips.h>
-+#include <linux/jiffies.h>
-+#include <linux/module.h>
-+#include <linux/init.h>
-+#include <linux/interrupt.h>
-+#include <linux/irq.h>
-+#include <asm/host_ops.h>
++++ b/tools/lkl/tests/boot.c
+@@ -0,0 +1,488 @@
++#include <stdio.h>
++#include <unistd.h>
++#include <string.h>
++#include <time.h>
++#include <stdlib.h>
++#include <stdint.h>
++#include <lkl.h>
++#include <lkl_host.h>
++#include <sys/stat.h>
++#include <fcntl.h>
 +
-+void __ndelay(unsigned long nsecs)
-+{
-+	unsigned long long start = lkl_ops->time();
++static struct cl_args {
++	int printk;
++	const char *disk_filename;
++} cla;
 +
-+	while (lkl_ops->time() < start + nsecs)
-+		;
-+}
-+
-+void __udelay(unsigned long usecs)
-+{
-+	__ndelay(usecs * NSEC_PER_USEC);
-+}
-+
-+void __const_udelay(unsigned long xloops)
-+{
-+	__udelay(xloops / 5);
-+}
-+
-+void calibrate_delay(void)
-+{
-+}
-+
-+static cycle_t clock_read(struct clocksource *cs)
-+{
-+	return lkl_ops->time();
-+}
-+
-+static struct clocksource clocksource = {
-+	.name	= "lkl",
-+	.rating = 499,
-+	.read	= clock_read,
-+	.flags	= CLOCK_SOURCE_IS_CONTINUOUS,
-+	.mask	= CLOCKSOURCE_MASK(64),
++static struct cl_option {
++	const char *long_name;
++	char short_name;
++	const char *help;
++	int has_arg;
++} options[] = {
++	{"enable-printk", 'p', "show Linux printks", 0},
++	{"disk-file", 'd', "disk file to use", 1},
++	{0},
 +};
 +
-+static void *timer;
-+
-+static int timer_irq;
-+
-+static void timer_fn(void *arg)
++static int parse_opt(int key, char *arg)
 +{
-+	lkl_trigger_irq(timer_irq, NULL);
-+}
-+
-+static int clockevent_set_state_shutdown(struct clock_event_device *evt)
-+{
-+	if (timer) {
-+		lkl_ops->timer_free(timer);
-+		timer = NULL;
++	switch (key) {
++	case 'p':
++		cla.printk = 1;
++		break;
++	case 'd':
++		cla.disk_filename = arg;
++		break;
++	default:
++		return -1;
 +	}
 +
 +	return 0;
 +}
 +
-+static int clockevent_set_state_oneshot(struct clock_event_device *evt)
++void printk(const char *str, int len)
 +{
-+	timer = lkl_ops->timer_alloc(timer_fn, NULL);
-+	if (!timer)
-+		return -ENOMEM;
++	if (cla.printk)
++		write(STDOUT_FILENO, str, len);
++}
++
++#define TEST(name) do_test(#name, test_##name)
++
++static void do_test(char *name, int (*fn)(char *, int))
++{
++	char str[60];
++	int result;
++
++	result = fn(str, sizeof(str));
++	printf("%-20s %s [%s]\n", name, result ? "passed" : "failed", str);
++}
++
++#define sleep_ns 87654321
++
++int test_nanosleep(char *str, int len)
++{
++	struct lkl_timespec ts = {
++		.tv_sec = 0,
++		.tv_nsec = sleep_ns,
++	};
++	struct timespec start, stop;
++	long delta;
++	long ret;
++
++	clock_gettime(CLOCK_MONOTONIC, &start);
++	ret = lkl_sys_nanosleep(&ts, NULL);
++	clock_gettime(CLOCK_MONOTONIC, &stop);
++
++	delta = (stop.tv_sec - start.tv_sec) +
++		(stop.tv_nsec - start.tv_nsec);
++
++	snprintf(str, len, "%ld", delta);
++
++	if (ret == 0 && delta > sleep_ns * 0.9 && delta < sleep_ns * 1.1)
++		return 1;
 +
 +	return 0;
 +}
 +
-+static irqreturn_t timer_irq_handler(int irq, void *dev_id)
++int test_getpid(char *str, int len)
 +{
-+	struct clock_event_device *dev = (struct clock_event_device *)dev_id;
++	long ret;
 +
-+	dev->event_handler(dev);
++	ret = lkl_sys_getpid();
 +
-+	return IRQ_HANDLED;
++	snprintf(str, len, "%ld", ret);
++
++	if (ret == 1)
++		return 1;
++
++	return 0;
 +}
 +
-+static int clockevent_next_event(unsigned long hz,
-+				 struct clock_event_device *evt)
-+{
-+	unsigned long ns = 1000000000 * hz / HZ;
++#define access_rights 0721
 +
-+	return lkl_ops->timer_set_oneshot(timer, ns);
++int test_creat(char *str, int len)
++{
++	long ret;
++
++	ret = lkl_sys_creat("/file", access_rights);
++
++	snprintf(str, len, "%ld", ret);
++
++	if (ret == 0)
++		return 1;
++
++	return 0;
 +}
 +
-+static struct clock_event_device clockevent = {
-+	.name			= "lkl",
-+	.features		= CLOCK_EVT_FEAT_ONESHOT,
-+	.set_state_oneshot	= clockevent_set_state_oneshot,
-+	.set_next_event		= clockevent_next_event,
-+	.set_state_shutdown	= clockevent_set_state_shutdown,
-+};
-+
-+static struct irqaction irq0  = {
-+	.handler = timer_irq_handler,
-+	.flags = IRQF_NOBALANCING | IRQF_TIMER,
-+	.dev_id = &clockevent,
-+	.name = "timer"
-+};
-+
-+void __init time_init(void)
++int test_close(char *str, int len)
 +{
-+	int ret;
++	long ret;
 +
-+	if (!lkl_ops->timer_alloc || !lkl_ops->timer_free ||
-+	    !lkl_ops->timer_set_oneshot || !lkl_ops->time) {
-+		pr_err("lkl: no time or timer support provided by host\n");
-+		return;
++	ret = lkl_sys_close(0);
++
++	snprintf(str, len, "%ld", ret);
++
++	if (ret == 0)
++		return 1;
++
++	return 0;
++}
++
++int test_failopen(char *str, int len)
++{
++	long ret;
++
++	ret = lkl_sys_open("/file2", 0, 0);
++
++	snprintf(str, len, "%ld", ret);
++
++	if (ret == -LKL_ENOENT)
++		return 1;
++
++	return 0;
++}
++
++int test_umask(char *str, int len)
++{
++	long ret, ret2;
++
++	ret = lkl_sys_umask(0777);
++
++	ret2 = lkl_sys_umask(0);
++
++	snprintf(str, len, "%lo %lo", ret, ret2);
++
++	if (ret > 0 && ret2 == 0777)
++		return 1;
++
++	return 0;
++}
++
++int test_open(char *str, int len)
++{
++	long ret;
++
++	ret = lkl_sys_open("/file", LKL_O_RDWR, 0);
++
++	snprintf(str, len, "%ld", ret);
++
++	if (ret == 0)
++		return 1;
++
++	return 0;
++}
++
++static const char write_test[] = "test";
++
++int test_write(char *str, int len)
++{
++	long ret;
++
++	ret = lkl_sys_write(0, write_test, sizeof(write_test));
++
++	snprintf(str, len, "%ld", ret);
++
++	if (ret == sizeof(write_test))
++		return 1;
++
++	return 0;
++}
++
++int test_lseek(char *str, int len)
++{
++	long ret;
++	__lkl__kernel_loff_t res;
++
++	ret = lkl_sys_lseek(0, 0, &res, LKL_SEEK_SET);
++
++	snprintf(str, len, "%ld %lld", ret, res);
++
++	if (ret == 0)
++		return 1;
++
++	return 0;
++}
++
++int test_read(char *str, int len)
++{
++	char buf[10] = { 0, };
++	long ret;
++
++	ret = lkl_sys_read(0, buf, sizeof(buf));
++
++	snprintf(str, len, "%ld %s", ret, buf);
++
++	if (ret == sizeof(write_test) && strcmp(write_test, buf) == 0)
++		return 1;
++
++	return 0;
++}
++
++int test_fstat64(char *str, int len)
++{
++	struct lkl_stat64 stat;
++	long ret;
++
++	ret = lkl_sys_fstat64(0, &stat);
++
++	snprintf(str, len, "%ld %o %lld", ret, stat.st_mode, stat.st_size);
++
++	if (ret == 0 && stat.st_size == sizeof(write_test) &&
++	    stat.st_mode == (access_rights | LKL_S_IFREG))
++		return 1;
++
++	return 0;
++}
++
++int test_mkdir(char *str, int len)
++{
++	long ret;
++
++	ret = lkl_sys_mkdir("/mnt", access_rights);
++
++	snprintf(str, len, "%ld", ret);
++
++	if (ret == 0)
++		return 1;
++
++	return 0;
++}
++
++int test_stat64(char *str, int len)
++{
++	struct lkl_stat64 stat;
++	long ret;
++
++	ret = lkl_sys_stat64("/mnt", &stat);
++
++	snprintf(str, len, "%ld %o", ret, stat.st_mode);
++
++	if (ret == 0 && stat.st_mode == (access_rights | LKL_S_IFDIR))
++		return 1;
++
++	return 0;
++}
++
++static const char *tmp_file;
++static union lkl_disk_backstore bs;
++static int disk_id = -1;
++
++int test_disk_add(char *str, int len)
++{
++	bs.fd = open(cla.disk_filename, O_RDWR);
++	if (bs.fd < 0)
++		goto out_unlink;
++
++	disk_id = lkl_disk_add(bs);
++	if (disk_id < 0)
++		goto out_close;
++
++	goto out;
++
++out_close:
++	close(bs.fd);
++out_unlink:
++	unlink(cla.disk_filename);
++
++out:
++	snprintf(str, len, "%x %d", bs.fd, disk_id);
++
++	if (disk_id >= 0)
++		return 1;
++
++	return 0;
++}
++
++static char mnt_point[32];
++
++static int test_mount(char *str, int len)
++{
++	long ret;
++
++	ret = lkl_mount_dev(disk_id, "ext4", 0, NULL, mnt_point,
++			    sizeof(mnt_point));
++
++	snprintf(str, len, "%ld", ret);
++
++	if (ret == 0)
++		return 1;
++
++	return 0;
++}
++
++static int test_chdir(char *str, int len)
++{
++	long ret;
++
++	ret = lkl_sys_chdir(mnt_point);
++
++	snprintf(str, len, "%ld", ret);
++
++	if (ret == 0)
++		return 1;
++
++	return 0;
++}
++
++static int dir_fd;
++
++static int test_opendir(char *str, int len)
++{
++	dir_fd = lkl_sys_open(".", LKL_O_RDONLY | LKL_O_DIRECTORY, 0);
++
++	snprintf(str, len, "%d", dir_fd);
++
++	if (dir_fd > 0)
++		return 1;
++
++	return 0;
++}
++
++static int test_getdents64(char *str, int len)
++{
++	long ret;
++	char buf[1024], *pos;
++	struct lkl_dirent64 *de;
++	int wr;
++
++	ret = lkl_sys_getdents64(dir_fd, buf, sizeof(buf));
++
++	wr = snprintf(str, len, "%d ", dir_fd);
++	str += wr;
++	len -= wr;
++
++	if (ret < 0)
++		return 0;
++
++	for (pos = buf; pos - buf < ret; pos += de->d_reclen) {
++		de = (struct lkl_dirent64 *)pos;
++
++		wr = snprintf(str, len, "%s ", de->d_name);
++		str += wr;
++		len -= wr;
 +	}
 +
-+	timer_irq = lkl_get_free_irq("timer");
-+	setup_irq(timer_irq, &irq0);
-+
-+	ret = clocksource_register_khz(&clocksource, 1000000);
-+	if (ret)
-+		pr_err("lkl: unable to register clocksource\n");
-+
-+	clockevents_config_and_register(&clockevent, HZ, 0, 0xffffffff);
-+
-+	pr_info("lkl: time and timers initialized\n");
++	return 1;
 +}
++
++static int test_umount(char *str, int len)
++{
++	long ret, ret2, ret3;
++
++	ret = lkl_sys_close(dir_fd);
++
++	ret2 = lkl_sys_chdir("/");
++
++	ret3 = lkl_umount_dev(disk_id, 0, 1000);
++
++	snprintf(str, len, "%ld %ld %ld", ret, ret2, ret3);
++
++	if (!ret && !ret2 && !ret3)
++		return 1;
++
++	return 0;
++}
++
++static struct cl_option *find_short_opt(char name)
++{
++	struct cl_option *opt;
++
++	for (opt = options; opt->short_name != 0; opt++) {
++		if (opt->short_name == name)
++			return opt;
++	}
++
++	return NULL;
++}
++
++static struct cl_option *find_long_opt(const char *name)
++{
++	struct cl_option *opt;
++
++	for (opt = options; opt->long_name; opt++) {
++		if (strcmp(opt->long_name, name) == 0)
++			return opt;
++	}
++
++	return NULL;
++}
++
++static void print_help(void)
++{
++	struct cl_option *opt;
++
++	printf("usage:\n");
++	for (opt = options; opt->long_name; opt++)
++		printf("-%c, --%-20s %s\n", opt->short_name, opt->long_name,
++		       opt->help);
++}
++
++static int parse_opts(int argc, char **argv)
++{
++	int i;
++
++	for (i = 1; i < argc; i++) {
++		struct cl_option *opt = NULL;
++
++		if (argv[i][0] == '-') {
++			if (argv[i][1] != '-')
++				opt = find_short_opt(argv[i][1]);
++			else
++				opt = find_long_opt(&argv[i][2]);
++		}
++
++		if (!opt) {
++			print_help();
++			return -1;
++		}
++
++		if (parse_opt(opt->short_name, argv[i + 1]) < 0) {
++			print_help();
++			return -1;
++		}
++
++		if (opt->has_arg)
++			i++;
++	}
++
++	return 0;
++}
++
++int main(int argc, char **argv)
++{
++	if (parse_opts(argc, argv) < 0)
++		return -1;
++
++	lkl_host_ops.print = printk;
++
++	TEST(disk_add);
++
++	lkl_start_kernel(&lkl_host_ops, 10 * 1024 * 1024, "");
++
++	TEST(getpid);
++	TEST(umask);
++	TEST(creat);
++	TEST(close);
++	TEST(failopen);
++	TEST(open);
++	TEST(write);
++	TEST(lseek);
++	TEST(read);
++	TEST(fstat64);
++	TEST(mkdir);
++	TEST(stat64);
++	TEST(nanosleep);
++	TEST(mount);
++	TEST(chdir);
++	TEST(opendir);
++	TEST(getdents64);
++	TEST(umount);
++
++	lkl_sys_halt();
++
++	close(bs.fd);
++	unlink(tmp_file);
++
++	return 0;
++}
+diff --git a/tools/lkl/tests/boot.sh b/tools/lkl/tests/boot.sh
+new file mode 100755
+index 0000000..3fb7b1f
+--- /dev/null
++++ b/tools/lkl/tests/boot.sh
+@@ -0,0 +1,10 @@
++#!/bin/bash
++
++file=`mktemp`
++dd if=/dev/zero of=$file bs=1024 count=10240
++
++yes | mkfs.ext4 -q $file
++
++./boot -d $file $@
++
++rm $file
 -- 
 2.1.0
