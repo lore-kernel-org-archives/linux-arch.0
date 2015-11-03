@@ -1,215 +1,159 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:18465 "EHLO mga03.intel.com"
+Received: from mga03.intel.com ([134.134.136.65]:1240 "EHLO mga03.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S964904AbbKCUXQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Nov 2015 15:23:16 -0500
+	id S964818AbbKCUXL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 Nov 2015 15:23:11 -0500
 From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: [RFC PATCH 19/28] lkl tools: host lib: virtio block device
-Date: Tue,  3 Nov 2015 22:20:50 +0200
-Message-ID: <1446582059-17355-20-git-send-email-octavian.purdila@intel.com>
+Subject: [RFC PATCH 09/28] lkl: timers, time and delay support
+Date: Tue,  3 Nov 2015 22:20:40 +0200
+Message-ID: <1446582059-17355-10-git-send-email-octavian.purdila@intel.com>
 In-Reply-To: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, thehajime@gmail.com, Octavian Purdila <octavian.purdila@intel.com>
-Message-ID: <20151103202050.GbHejYYbAcnXPntlVCgIZFl09EOFX01M1Qy7CWGSt0k@z>
+Message-ID: <20151103202040.xa69dIRB-Rt4Wd2Hm0J2hloycwkKUykQjHXwfqKmAPA@z>
 
-Host independent implementation for virtio block devices. The host
-dependent part of the host library must provide an implementation for
-lkl_dev_block_ops.
-
-Disks can be added to the LKL configuration via lkl_disk_add(), a new
-LKL application API.
+Clockevent driver based on host timer operations and clocksource
+driver and udelay support based on host time operations.
 
 Signed-off-by: Octavian Purdila <octavian.purdila@intel.com>
 ---
- tools/lkl/include/lkl.h      |  20 ++++++++
- tools/lkl/include/lkl_host.h |  21 ++++++++
- tools/lkl/lib/virtio_blk.c   | 116 +++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 157 insertions(+)
- create mode 100644 tools/lkl/lib/virtio_blk.c
+ arch/lkl/kernel/time.c | 125 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 125 insertions(+)
+ create mode 100644 arch/lkl/kernel/time.c
 
-diff --git a/tools/lkl/include/lkl.h b/tools/lkl/include/lkl.h
-index 958614d..0c30b23 100644
---- a/tools/lkl/include/lkl.h
-+++ b/tools/lkl/include/lkl.h
-@@ -20,4 +20,24 @@ static inline long lkl_sys_lseek(unsigned int fd, __lkl__kernel_loff_t off,
-  */
- const char *lkl_strerror(int err);
- 
-+/**
-+ * lkl_disk_backstore - host dependend disk backstore
-+ *
-+ * @fd - an open file descriptor that can be used by preadv/pwritev; used by
-+ * POSIX hosts
-+ */
-+union lkl_disk_backstore {
-+	int fd;
-+};
-+
-+/**
-+ * lkl_disk_add - add a new disk
-+ *
-+ * Must be called before calling lkl_start_kernel.
-+ *
-+ * @backstore - the disk backstore
-+ * @returns a disk id (0 is valid) or a strictly negative value in case of error
-+ */
-+int lkl_disk_add(union lkl_disk_backstore backstore);
-+
- #endif
-diff --git a/tools/lkl/include/lkl_host.h b/tools/lkl/include/lkl_host.h
-index 26d3e43..2dafaa8 100644
---- a/tools/lkl/include/lkl_host.h
-+++ b/tools/lkl/include/lkl_host.h
-@@ -20,4 +20,25 @@ struct lkl_dev_buf {
- 	unsigned int len;
- };
- 
-+extern struct lkl_dev_blk_ops lkl_dev_blk_ops;
-+
-+#define LKL_DEV_BLK_TYPE_READ		0
-+#define LKL_DEV_BLK_TYPE_WRITE		1
-+#define LKL_DEV_BLK_TYPE_FLUSH		4
-+#define LKL_DEV_BLK_TYPE_FLUSH_OUT	5
-+
-+struct lkl_dev_blk_ops {
-+	int (*get_capacity)(union lkl_disk_backstore bs,
-+			    unsigned long long *res);
-+	void (*request)(union lkl_disk_backstore bs, unsigned int type,
-+			unsigned int prio, unsigned long long sector,
-+			struct lkl_dev_buf *bufs, int count);
-+};
-+
-+#define LKL_DEV_BLK_STATUS_OK		0
-+#define LKL_DEV_BLK_STATUS_IOERR	1
-+#define LKL_DEV_BLK_STATUS_UNSUP	2
-+
-+void lkl_dev_blk_complete(struct lkl_dev_buf *bufs, unsigned char status,
-+			  int len);
- #endif
-diff --git a/tools/lkl/lib/virtio_blk.c b/tools/lkl/lib/virtio_blk.c
+diff --git a/arch/lkl/kernel/time.c b/arch/lkl/kernel/time.c
 new file mode 100644
-index 0000000..3262f42
+index 0000000..d099736
 --- /dev/null
-+++ b/tools/lkl/lib/virtio_blk.c
-@@ -0,0 +1,116 @@
-+#include <lkl_host.h>
-+#include "virtio.h"
++++ b/arch/lkl/kernel/time.c
+@@ -0,0 +1,125 @@
++#include <linux/clocksource.h>
++#include <linux/clockchips.h>
++#include <linux/jiffies.h>
++#include <linux/module.h>
++#include <linux/init.h>
++#include <linux/interrupt.h>
++#include <linux/irq.h>
++#include <asm/host_ops.h>
 +
-+struct virtio_blk_dev {
-+	struct virtio_dev dev;
-+	struct {
-+		uint64_t capacity;
-+	} config;
-+	struct lkl_dev_blk_ops *ops;
-+	union lkl_disk_backstore backstore;
-+};
-+
-+struct virtio_blk_req_header {
-+	uint32_t type;
-+	uint32_t prio;
-+	uint64_t sector;
-+};
-+
-+struct virtio_blk_req_trailer {
-+	uint8_t status;
-+};
-+
-+static int blk_check_features(uint32_t features)
++void __ndelay(unsigned long nsecs)
 +{
-+	if (!features)
-+		return 0;
++	unsigned long long start = lkl_ops->time();
 +
-+	return -LKL_EINVAL;
++	while (lkl_ops->time() < start + nsecs)
++		;
 +}
 +
-+void lkl_dev_blk_complete(struct lkl_dev_buf *bufs, unsigned char status,
-+			  int len)
++void __udelay(unsigned long usecs)
 +{
-+	struct virtio_dev_req *req;
-+	struct virtio_blk_req_trailer *f;
-+
-+	req = container_of(bufs - 1, struct virtio_dev_req, buf);
-+
-+	if (req->buf_count < 2) {
-+		lkl_printf("virtio_blk: no status buf\n");
-+		return;
-+	}
-+
-+	if (req->buf[req->buf_count - 1].len != sizeof(*f)) {
-+		lkl_printf("virtio_blk: bad status buf\n");
-+	} else {
-+		f = req->buf[req->buf_count - 1].addr;
-+		f->status = status;
-+	}
-+
-+	virtio_dev_complete(req, len);
++	__ndelay(usecs * NSEC_PER_USEC);
 +}
 +
-+static void blk_queue(struct virtio_dev *dev, struct virtio_dev_req *req)
++void __const_udelay(unsigned long xloops)
 +{
-+	struct virtio_blk_req_header *h;
-+	struct virtio_blk_dev *blk_dev;
-+
-+	if (req->buf[0].len != sizeof(struct virtio_blk_req_header)) {
-+		lkl_printf("virtio_blk: bad header buf\n");
-+		lkl_dev_blk_complete(&req->buf[1], LKL_DEV_BLK_STATUS_UNSUP, 0);
-+		return;
-+	}
-+
-+	h = req->buf[0].addr;
-+	blk_dev = container_of(dev, struct virtio_blk_dev, dev);
-+
-+	blk_dev->ops->request(blk_dev->backstore, le32toh(h->type),
-+			      le32toh(h->prio), le32toh(h->sector),
-+			      &req->buf[1], req->buf_count - 2);
++	__udelay(xloops / 5);
 +}
 +
-+static struct virtio_dev_ops blk_ops = {
-+	.check_features = blk_check_features,
-+	.queue = blk_queue,
++void calibrate_delay(void)
++{
++}
++
++static cycle_t clock_read(struct clocksource *cs)
++{
++	return lkl_ops->time();
++}
++
++static struct clocksource clocksource = {
++	.name	= "lkl",
++	.rating = 499,
++	.read	= clock_read,
++	.flags	= CLOCK_SOURCE_IS_CONTINUOUS,
++	.mask	= CLOCKSOURCE_MASK(64),
 +};
 +
-+int lkl_disk_add(union lkl_disk_backstore backstore)
++static void *timer;
++
++static int timer_irq;
++
++static void timer_fn(void *arg)
 +{
-+	struct virtio_blk_dev *dev;
-+	unsigned long long capacity;
++	lkl_trigger_irq(timer_irq, NULL);
++}
++
++static int clockevent_set_state_shutdown(struct clock_event_device *evt)
++{
++	if (timer) {
++		lkl_ops->timer_free(timer);
++		timer = NULL;
++	}
++
++	return 0;
++}
++
++static int clockevent_set_state_oneshot(struct clock_event_device *evt)
++{
++	timer = lkl_ops->timer_alloc(timer_fn, NULL);
++	if (!timer)
++		return -ENOMEM;
++
++	return 0;
++}
++
++static irqreturn_t timer_irq_handler(int irq, void *dev_id)
++{
++	struct clock_event_device *dev = (struct clock_event_device *)dev_id;
++
++	dev->event_handler(dev);
++
++	return IRQ_HANDLED;
++}
++
++static int clockevent_next_event(unsigned long hz,
++				 struct clock_event_device *evt)
++{
++	unsigned long ns = 1000000000 * hz / HZ;
++
++	return lkl_ops->timer_set_oneshot(timer, ns);
++}
++
++static struct clock_event_device clockevent = {
++	.name			= "lkl",
++	.features		= CLOCK_EVT_FEAT_ONESHOT,
++	.set_state_oneshot	= clockevent_set_state_oneshot,
++	.set_next_event		= clockevent_next_event,
++	.set_state_shutdown	= clockevent_set_state_shutdown,
++};
++
++static struct irqaction irq0  = {
++	.handler = timer_irq_handler,
++	.flags = IRQF_NOBALANCING | IRQF_TIMER,
++	.dev_id = &clockevent,
++	.name = "timer"
++};
++
++void __init time_init(void)
++{
 +	int ret;
-+	static int count;
 +
-+	dev = lkl_host_ops.mem_alloc(sizeof(*dev));
-+	if (!dev)
-+		return -LKL_ENOMEM;
-+
-+	dev->dev.device_id = 2;
-+	dev->dev.vendor_id = 0;
-+	dev->dev.device_features = 0;
-+	dev->dev.config_gen = 0;
-+	dev->dev.config_data = &dev->config;
-+	dev->dev.config_len = sizeof(dev->config);
-+	dev->dev.ops = &blk_ops;
-+	dev->ops = &lkl_dev_blk_ops;
-+	dev->backstore = backstore;
-+
-+	ret = dev->ops->get_capacity(backstore, &capacity);
-+	if (ret) {
-+		ret = -LKL_ENOMEM;
-+		goto out_free;
++	if (!lkl_ops->timer_alloc || !lkl_ops->timer_free ||
++	    !lkl_ops->timer_set_oneshot || !lkl_ops->time) {
++		pr_err("lkl: no time or timer support provided by host\n");
++		return;
 +	}
-+	dev->config.capacity = capacity;
 +
-+	ret = virtio_dev_setup(&dev->dev, 1, 65536);
++	timer_irq = lkl_get_free_irq("timer");
++	setup_irq(timer_irq, &irq0);
++
++	ret = clocksource_register_khz(&clocksource, 1000000);
 +	if (ret)
-+		goto out_free;
++		pr_err("lkl: unable to register clocksource\n");
 +
-+	return count++;
++	clockevents_config_and_register(&clockevent, HZ, 0, 0xffffffff);
 +
-+out_free:
-+	lkl_host_ops.mem_free(dev);
-+
-+	return ret;
++	pr_info("lkl: time and timers initialized\n");
 +}
 -- 
 2.1.0
