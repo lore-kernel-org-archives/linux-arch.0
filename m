@@ -1,255 +1,378 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:18465 "EHLO mga03.intel.com"
+Received: from mga03.intel.com ([134.134.136.65]:1240 "EHLO mga03.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S964780AbbKCUXJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Nov 2015 15:23:09 -0500
+	id S932568AbbKCUXI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 Nov 2015 15:23:08 -0500
 From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: [RFC PATCH 07/28] lkl: interrupt support
-Date: Tue,  3 Nov 2015 22:20:38 +0200
-Message-ID: <1446582059-17355-8-git-send-email-octavian.purdila@intel.com>
+Subject: [RFC PATCH 06/28] lkl: kernel threads support
+Date: Tue,  3 Nov 2015 22:20:37 +0200
+Message-ID: <1446582059-17355-7-git-send-email-octavian.purdila@intel.com>
 In-Reply-To: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, thehajime@gmail.com, Octavian Purdila <octavian.purdila@intel.com>
-Message-ID: <20151103202038.vjZWDjf233rRQ2jhOx4gV_ToQJMO5BF7dKXhOcKZSC4@z>
+Message-ID: <20151103202037.Pq5fJxnbowTLcUaBdolsMgWKqDHlvjuA8OyPhS4Rxnw@z>
 
-Add APIs that allows the host to reserve and free and interrupt number
-and also to trigger an interrupt.
+LKL does not support user processes but it must support kernel threads
+as part as the normal kernel work-flow. It uses host operations to
+create and terminate host threads that are going to run the kernel
+threads. It also uses semaphores to synchronize those threads and to
+allow the Linux kernel scheduler to control how the kernel threads
+run.
 
-The trigger operation will simply store the interrupt data in
-queue. The interrupt handler is run later, at the first opportunity it
-has to avoid races with any kernel threads.
+Each kernel thread runs in a host threads and has a host semaphore
+associated with it - the thread's scheduling semaphore. The semaphore
+counter is initialized to 0. The first thing a kernel thread does
+after getting spawned, before running any kernel code, is to perform a
+down operation to block the thread.
 
-Currently, interrupts are run on the first interrupt enable operation
-if interrupts are disabled and if we are not already in interrupt
-context.
+The kernel controls host threads scheduling by performing up and down
+operations on the scheduling semaphore. In __switch_context an up
+operation on the next thread is performed to wake up a blocked thread,
+and a down operation is performed on the prev thread to block it.
 
-When triggering an interrupt the host can also send a void pointer
-that is going to be available to the handler routine via
-get_irq_regs()->irq_data. This allows to easly create host <-> kernel
-synchronous communication channels and is currently used by the system
-call interface.
+A thread is terminated by marking it in free_thread_info and
+performing an up operation on the scheduling semaphore at which point
+the marked thread will terminate itself.
 
 Signed-off-by: Octavian Purdila <octavian.purdila@intel.com>
 ---
- arch/lkl/include/asm/irq.h             |  10 +++
- arch/lkl/include/uapi/asm/irq.h        |  37 ++++++++++
- arch/lkl/include/uapi/asm/sigcontext.h |   1 +
- arch/lkl/kernel/irq.c                  | 131 +++++++++++++++++++++++++++++++++
- 4 files changed, 179 insertions(+)
- create mode 100644 arch/lkl/include/asm/irq.h
- create mode 100644 arch/lkl/include/uapi/asm/irq.h
- create mode 100644 arch/lkl/kernel/irq.c
+ arch/lkl/include/asm/thread_info.h |  82 +++++++++++++
+ arch/lkl/kernel/threads.c          | 235 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 317 insertions(+)
+ create mode 100644 arch/lkl/include/asm/thread_info.h
+ create mode 100644 arch/lkl/kernel/threads.c
 
-diff --git a/arch/lkl/include/asm/irq.h b/arch/lkl/include/asm/irq.h
+diff --git a/arch/lkl/include/asm/thread_info.h b/arch/lkl/include/asm/thread_info.h
 new file mode 100644
-index 0000000..f4ceb5a
+index 0000000..7636227
 --- /dev/null
-+++ b/arch/lkl/include/asm/irq.h
-@@ -0,0 +1,10 @@
-+#ifndef _ASM_LKL_IRQ_H
-+#define _ASM_LKL_IRQ_H
++++ b/arch/lkl/include/asm/thread_info.h
+@@ -0,0 +1,82 @@
++#ifndef _ASM_LKL_THREAD_INFO_H
++#define _ASM_LKL_THREAD_INFO_H
 +
-+#define NR_IRQS		32
++#define THREAD_SIZE	       (4096)
 +
-+void free_IRQ(void);
++#ifndef __ASSEMBLY__
++#include <asm/types.h>
++#include <asm/processor.h>
 +
-+#include <uapi/asm/irq.h>
++typedef struct {
++	unsigned long seg;
++} mm_segment_t;
++
++struct thread_exit_info {
++	bool dead;
++	void *sched_sem;
++};
++
++struct thread_info {
++	struct task_struct *task;
++	unsigned long flags;
++	int preempt_count;
++	mm_segment_t addr_limit;
++	void *sched_sem;
++	struct thread_exit_info *exit_info;
++	struct task_struct *prev_sched;
++	unsigned long stackend;
++};
++
++#define INIT_THREAD_INFO(tsk)				\
++{							\
++	.task		= &tsk,				\
++	.preempt_count	= INIT_PREEMPT_COUNT,		\
++	.flags		= 0,				\
++	.addr_limit	= KERNEL_DS,			\
++}
++
++#define init_thread_info	(init_thread_union.thread_info)
++#define init_stack		(init_thread_union.stack)
++
++/* how to get the thread information struct from C */
++extern struct thread_info *_current_thread_info;
++static inline struct thread_info *current_thread_info(void)
++{
++	return _current_thread_info;
++}
++
++/* thread information allocation */
++struct thread_info *alloc_thread_info_node(struct task_struct *, int node);
++void free_thread_info(struct thread_info *);
++
++int threads_init(void);
++void threads_cleanup(void);
++
++#define TIF_SYSCALL_TRACE		0
++#define TIF_NOTIFY_RESUME		1
++#define TIF_SIGPENDING			2
++#define TIF_NEED_RESCHED		3
++#define TIF_RESTORE_SIGMASK		4
++#define TIF_MEMDIE			5
++#define TIF_NOHZ			6
++
++#define __HAVE_THREAD_FUNCTIONS
++
++#define task_thread_info(task)	((struct thread_info *)(task)->stack)
++#define task_stack_page(task)	((task)->stack)
++
++/*
++ * Nothing to do here. The only new tasks created are kernel threads that have a
++ * predefined starting point thus no stack copy is required as for regular
++ * forked tasks.
++ */
++static inline void setup_thread_stack(struct task_struct *p,
++				      struct task_struct *org)
++{
++}
++
++#define end_of_stack(p) (&task_thread_info(p)->stackend)
++
++#endif /* __ASSEMBLY__ */
 +
 +#endif
-diff --git a/arch/lkl/include/uapi/asm/irq.h b/arch/lkl/include/uapi/asm/irq.h
+diff --git a/arch/lkl/kernel/threads.c b/arch/lkl/kernel/threads.c
 new file mode 100644
-index 0000000..a33f5c5
+index 0000000..aa13e57
 --- /dev/null
-+++ b/arch/lkl/include/uapi/asm/irq.h
-@@ -0,0 +1,37 @@
-+#ifndef _ASM_UAPI_LKL_IRQ_H
-+#define _ASM_UAPI_LKL_IRQ_H
-+
-+/**
-+ * lkl_trigger_irq - generate an interrupt
-+ *
-+ * This function is used by the device host side to signal its Linux counterpart
-+ * that some event happened.
-+ *
-+ * @irq - the irq number to signal
-+ * @data - data to be passed to the irq handler; available via
-+ * get_irq_regs()->irq_data
-+ */
-+int lkl_trigger_irq(int irq, void *data);
-+
-+/**
-+ * lkl_get_free_irq - find and reserve a free IRQ number
-+ *
-+ * This function is called by the host device code to find an unused IRQ number
-+ * and reserved it for its own use.
-+ *
-+ * @user - a string to identify the user
-+ * @returns - and irq number that can be used by request_irq or an negative
-+ * value in case of an error
-+ */
-+int lkl_get_free_irq(const char *user);
-+
-+/**
-+ * lkl_put_irq - release an IRQ number previously obtained with lkl_get_free_irq
-+ *
-+ * @irq - irq number to release
-+ * @user - string identifying the user; should be the same as the one passed to
-+ * lkl_get_free_irq when the irq number was obtained
-+ */
-+void lkl_put_irq(int irq, const char *name);
-+
-+#endif
-diff --git a/arch/lkl/include/uapi/asm/sigcontext.h b/arch/lkl/include/uapi/asm/sigcontext.h
-index 99b2d53..77aba40 100644
---- a/arch/lkl/include/uapi/asm/sigcontext.h
-+++ b/arch/lkl/include/uapi/asm/sigcontext.h
-@@ -4,6 +4,7 @@
- #include <asm/ptrace.h>
- 
- struct pt_regs {
-+	void *irq_data;
- };
- 
- struct sigcontext {
-diff --git a/arch/lkl/kernel/irq.c b/arch/lkl/kernel/irq.c
-new file mode 100644
-index 0000000..9ff0e12
---- /dev/null
-+++ b/arch/lkl/kernel/irq.c
-@@ -0,0 +1,131 @@
-+#include <linux/kernel.h>
-+#include <linux/init.h>
-+#include <linux/irq.h>
-+#include <linux/hardirq.h>
-+#include <asm/irq_regs.h>
++++ b/arch/lkl/kernel/threads.c
+@@ -0,0 +1,235 @@
++#include <linux/module.h>
++#include <linux/slab.h>
 +#include <linux/sched.h>
-+#include <linux/seq_file.h>
-+#include <linux/tick.h>
-+#include <asm/irqflags.h>
 +#include <asm/host_ops.h>
 +
-+static bool irqs_enabled;
++static int threads_counter;
++static void *threads_counter_lock;
 +
-+#define MAX_IRQS	16
-+static struct irq_info {
-+	struct pt_regs regs[MAX_IRQS];
-+	const char *user;
-+	int count;
-+} irqs[NR_IRQS];
-+static void *irqs_lock;
-+
-+static void do_IRQ(int irq, struct pt_regs *regs)
++static inline void threads_counter_inc(void)
 +{
-+	struct pt_regs *old_regs = set_irq_regs(regs);
-+
-+	irq_enter();
-+	generic_handle_irq(irq);
-+	irq_exit();
-+
-+	set_irq_regs(old_regs);
++	lkl_ops->sem_down(threads_counter_lock);
++	threads_counter++;
++	lkl_ops->sem_up(threads_counter_lock);
 +}
 +
-+int lkl_trigger_irq(int irq, void *data)
++static inline void threads_counter_dec(void)
 +{
-+	struct pt_regs regs = {
-+		.irq_data = data,
++	lkl_ops->sem_down(threads_counter_lock);
++	threads_counter--;
++	lkl_ops->sem_up(threads_counter_lock);
++}
++
++static inline int threads_counter_get(void)
++{
++	int counter;
++
++	lkl_ops->sem_down(threads_counter_lock);
++	counter = threads_counter;
++	lkl_ops->sem_up(threads_counter_lock);
++
++	return counter;
++}
++
++struct thread_info *alloc_thread_info_node(struct task_struct *task, int node)
++{
++	struct thread_info *ti;
++
++	ti = kmalloc(sizeof(*ti), GFP_KERNEL);
++	if (!ti)
++		return NULL;
++
++	ti->exit_info = NULL;
++	ti->prev_sched = NULL;
++	ti->sched_sem = lkl_ops->sem_alloc(0);
++	ti->task = task;
++	if (!ti->sched_sem) {
++		kfree(ti);
++		return NULL;
++	}
++
++	return ti;
++}
++
++static void kill_thread(struct thread_exit_info *ei)
++{
++	if (WARN_ON(!ei))
++		return;
++
++	ei->dead = true;
++	lkl_ops->sem_up(ei->sched_sem);
++}
++
++void free_thread_info(struct thread_info *ti)
++{
++	struct thread_exit_info *ei = ti->exit_info;
++
++	kfree(ti);
++	kill_thread(ei);
++}
++
++struct thread_info *_current_thread_info = &init_thread_union.thread_info;
++
++struct task_struct *__switch_to(struct task_struct *prev,
++				struct task_struct *next)
++{
++	struct thread_info *_prev = task_thread_info(prev);
++	struct thread_info *_next = task_thread_info(next);
++	/*
++	 * schedule() expects the return of this function to be the task that we
++	 * switched away from. Returning prev is not going to work because we
++	 * are actually going to return the previous taks that was scheduled
++	 * before the task we are going to wake up, and not the current task,
++	 * e.g.:
++	 *
++	 * swapper -> init: saved prev on swapper stack is swapper
++	 * init -> ksoftirqd0: saved prev on init stack is init
++	 * ksoftirqd0 -> swapper: returned prev is swapper
++	 */
++	static struct task_struct *abs_prev = &init_task;
++	/*
++	 * We need to free the thread_info structure in free_thread_info to
++	 * avoid races between the dying thread and other threads. We also need
++	 * to cleanup sched_sem and signal to the prev thread that it needs to
++	 * exit, and we use this stack varible to pass this info.
++	 */
++	struct thread_exit_info ei = {
++		.dead = false,
++		.sched_sem = _prev->sched_sem,
 +	};
-+	int ret = 0;
 +
-+	if (irq >= NR_IRQS)
-+		return -EINVAL;
++	_current_thread_info = task_thread_info(next);
++	_next->prev_sched = prev;
++	abs_prev = prev;
++	_prev->exit_info = &ei;
 +
-+	lkl_ops->sem_down(irqs_lock);
-+	if (irqs[irq].count < MAX_IRQS) {
-+		irqs[irq].regs[irqs[irq].count] = regs;
-+		irqs[irq].count++;
-+	} else {
-+		ret = -EOVERFLOW;
++	lkl_ops->sem_up(_next->sched_sem);
++	/* _next may be already gone so use ei instead */
++	lkl_ops->sem_down(ei.sched_sem);
++
++	if (ei.dead) {
++		lkl_ops->sem_free(ei.sched_sem);
++		threads_counter_dec();
++		lkl_ops->thread_exit();
 +	}
-+	lkl_ops->sem_up(irqs_lock);
 +
-+	wakeup_cpu();
++	_prev->exit_info = NULL;
 +
-+	return ret;
++	return abs_prev;
 +}
 +
-+static void run_irqs(void)
-+{
-+	int i, j;
++struct thread_bootstrap_arg {
++	struct thread_info *ti;
++	int (*f)(void *);
++	void *arg;
++};
 +
-+	lkl_ops->sem_down(irqs_lock);
-+	for (i = 0; i < NR_IRQS; i++) {
-+		for (j = 0; j < irqs[i].count; j++)
-+			do_IRQ(i, &irqs[i].regs[j]);
-+		irqs[i].count = 0;
-+	}
-+	lkl_ops->sem_up(irqs_lock);
++static void thread_bootstrap(void *_tba)
++{
++	struct thread_bootstrap_arg *tba = (struct thread_bootstrap_arg *)_tba;
++	struct thread_info *ti = tba->ti;
++	int (*f)(void *) = tba->f;
++	void *arg = tba->arg;
++
++	lkl_ops->sem_down(ti->sched_sem);
++	kfree(tba);
++	if (ti->prev_sched)
++		schedule_tail(ti->prev_sched);
++
++	f(arg);
++	do_exit(0);
 +}
 +
-+int show_interrupts(struct seq_file *p, void *v)
++int copy_thread(unsigned long clone_flags, unsigned long esp,
++		unsigned long unused, struct task_struct *p)
 +{
++	struct thread_info *ti = task_thread_info(p);
++	struct thread_bootstrap_arg *tba;
++	int ret;
++
++	tba = kmalloc(sizeof(*tba), GFP_KERNEL);
++	if (!tba)
++		return -ENOMEM;
++
++	tba->f = (int (*)(void *))esp;
++	tba->arg = (void *)unused;
++	tba->ti = ti;
++
++	ret = lkl_ops->thread_create(thread_bootstrap, tba);
++	if (ret) {
++		kfree(tba);
++		return -ENOMEM;
++	}
++
++	threads_counter_inc();
++
 +	return 0;
 +}
 +
-+int lkl_get_free_irq(const char *user)
++void show_stack(struct task_struct *task, unsigned long *esp)
 +{
-+	int i;
-+	int ret = -EBUSY;
++}
 +
-+	/* 0 is not a valid IRQ */
-+	for (i = 1; i < NR_IRQS; i++) {
-+		if (!irqs[i].user) {
-+			irqs[i].user = user;
-+			ret = i;
-+			break;
-+		}
++static inline void pr_early(const char *str)
++{
++	if (lkl_ops->print)
++		lkl_ops->print(str, strlen(str));
++}
++
++/**
++ * This is called before the kernel initializes, so no kernel calls (including
++ * printk) can't be made yet.
++ */
++int threads_init(void)
++{
++	struct thread_info *ti = &init_thread_union.thread_info;
++	int ret = 0;
++
++	ti->exit_info = NULL;
++	ti->prev_sched = NULL;
++
++	ti->sched_sem = lkl_ops->sem_alloc(0);
++	if (!ti->sched_sem) {
++		pr_early("lkl: failed to allocate init schedule semaphore\n");
++		ret = -ENOMEM;
++		goto out;
 +	}
 +
++	threads_counter_lock = lkl_ops->sem_alloc(1);
++	if (!threads_counter_lock) {
++		pr_early("lkl: failed to alllocate threads counter lock\n");
++		ret = -ENOMEM;
++		goto out_free_init_sched_sem;
++	}
++
++	return 0;
++
++out_free_init_sched_sem:
++	lkl_ops->sem_free(ti->sched_sem);
++
++out:
 +	return ret;
 +}
 +
-+void lkl_put_irq(int i, const char *user)
++void threads_cleanup(void)
 +{
-+	if (!irqs[i].user || strcmp(irqs[i].user, user) != 0) {
-+		WARN("%s tried to release %s's irq %d", user, irqs[i].user, i);
-+		return;
++	struct task_struct *p;
++
++	for_each_process(p) {
++		struct thread_info *ti = task_thread_info(p);
++
++		if (p->pid != 1)
++			WARN(!(p->flags & PF_KTHREAD),
++			     "non kernel thread task %p\n", p->comm);
++		WARN(p->state == TASK_RUNNING,
++		     "thread %s still running while halting\n", p->comm);
++
++		kill_thread(ti->exit_info);
 +	}
 +
-+	irqs[i].user = NULL;
-+}
++	while (threads_counter_get())
++		;
 +
-+unsigned long arch_local_save_flags(void)
-+{
-+	return irqs_enabled;
-+}
-+
-+void arch_local_irq_restore(unsigned long flags)
-+{
-+	if (flags == ARCH_IRQ_ENABLED && irqs_enabled == ARCH_IRQ_DISABLED &&
-+	    !in_interrupt())
-+		run_irqs();
-+	irqs_enabled = flags;
-+}
-+
-+void free_IRQ(void)
-+{
-+	lkl_ops->sem_free(irqs_lock);
-+}
-+
-+void init_IRQ(void)
-+{
-+	int i;
-+
-+	irqs_lock = lkl_ops->sem_alloc(1);
-+	BUG_ON(!irqs_lock);
-+
-+	for (i = 0; i < NR_IRQS; i++)
-+		irq_set_chip_and_handler(i, &dummy_irq_chip, handle_simple_irq);
-+
-+	pr_info("lkl: irqs initialized\n");
++	lkl_ops->sem_free(init_thread_union.thread_info.sched_sem);
++	lkl_ops->sem_free(threads_counter_lock);
 +}
 -- 
 2.1.0
