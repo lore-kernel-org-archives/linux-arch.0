@@ -1,41 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:44190 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751527AbbKCAZp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 2 Nov 2015 19:25:45 -0500
-Message-ID: <1446505693.17404.20.camel@kernel.crashing.org>
-Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute -
- DMA_ATTR_IOMMU_BYPASS
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Tue, 03 Nov 2015 10:08:13 +1100
-In-Reply-To: <5270615.Sf6ng964Qt@wuerfel>
-References: <1446039110.3405.212.camel@infradead.org>
-	 <20151102120659.GC4642@shamir-ThinkPad-T430>
-	 <1446495208.17404.11.camel@kernel.crashing.org>
-	 <5270615.Sf6ng964Qt@wuerfel>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from LGEAMRELO13.lge.com ([156.147.23.53]:56082 "EHLO
+	lgeamrelo13.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753883AbbKCCcu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Nov 2015 21:32:50 -0500
+Date: Tue, 3 Nov 2015 11:32:51 +0900
+From: Minchan Kim <minchan@kernel.org>
+Subject: Re: [PATCH 3/8] arch: uapi: asm: mman.h: Let MADV_FREE have same
+ value for all architectures
+Message-ID: <20151103023250.GH17906@bbox>
+References: <1446188504-28023-1-git-send-email-minchan@kernel.org>
+ <1446188504-28023-4-git-send-email-minchan@kernel.org>
+ <alpine.LSU.2.11.1511011542030.11427@eggly.anvils>
+MIME-Version: 1.0
+In-Reply-To: <alpine.LSU.2.11.1511011542030.11427@eggly.anvils>
+Content-Type: text/plain; charset="us-ascii"
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>, David Woodhouse <dwmw2@infradead.org>, Andy Lutomirski <luto@amacapital.net>, Christian Borntraeger <borntraeger@de.ibm.com>, linux-arch <linux-arch@vger.kernel.org>, Paolo Bonzini <pbonzini@redhat.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, "linux-doc@vger.kernel.org" <linux-doc@vger.kernel.org>, Sebastian Ott <sebott@linux.vnet.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>, Cornelia Huck <cornelia.huck@de.ibm.com>, Joerg Roedel <jroedel@suse.de>, Jonathan Corbet <corbet@lwn.net>, KVM <kvm@vger.kernel.org>, Christoph Hellwig <hch@lst.de>
-Message-ID: <20151102230813.dD22GSpQ1G05l4UI_s3Xqpo9DAd2mreNqg3fcyzfePw@z>
+To: Hugh Dickins <hughd@google.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-api@vger.kernel.org, Johannes Weiner <hannes@cmpxchg.org>, zhangyanfei@cn.fujitsu.com, Rik van Riel <riel@redhat.com>, Mel Gorman <mgorman@suse.de>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, David Miller <davem@davemloft.net>, "Darrick J. Wong" <darrick.wong@oracle.com>, Roland Dreier <roland@kernel.org>, Jason Evans <je@fb.com>, Daniel Micay <danielmicay@gmail.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Michal Hocko <mhocko@suse.cz>, yalin.wang2010@gmail.com, Shaohua Li <shli@kernel.org>, Chen Gang <gang.chen.5i5j@gmail.com>, "rth@twiddle.net" <rth@twiddle.net>, "ink@jurassic.park.msu.ru" <ink@jurassic.park.msu.ru>, "mattst88@gmail.com" <mattst88@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "deller@gmx.de" <deller@gmx.de>, "chris@zankel.net" <chris@zankel.net>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20151103023251.J0s413rsPWQrMDZ9ftWW2cDZMmrC4M5C5NmWWC9YZRY@z>
 
-On Mon, 2015-11-02 at 22:45 +0100, Arnd Bergmann wrote:
-> > Then I would argue for naming this differently. Make it an optional
-> > hint "DMA_ATTR_HIGH_PERF" or something like that. Whether this is
-> > achieved via using a bypass or other means in the backend not the
-> > business of the driver.
+On Sun, Nov 01, 2015 at 04:08:27PM -0800, Hugh Dickins wrote:
+> On Fri, 30 Oct 2015, Minchan Kim wrote:
+> > From: Chen Gang <gang.chen.5i5j@gmail.com>
 > > 
+> > For uapi, need try to let all macros have same value, and MADV_FREE is
+> > added into main branch recently, so need redefine MADV_FREE for it.
+> > 
+> > At present, '8' can be shared with all architectures, so redefine it to
+> > '8'.
+> > 
+> > Cc: rth@twiddle.net <rth@twiddle.net>,
+> > Cc: ink@jurassic.park.msu.ru <ink@jurassic.park.msu.ru>
+> > Cc: mattst88@gmail.com <mattst88@gmail.com>
+> > Cc: Ralf Baechle <ralf@linux-mips.org>
+> > Cc: jejb@parisc-linux.org <jejb@parisc-linux.org>
+> > Cc: deller@gmx.de <deller@gmx.de>
+> > Cc: chris@zankel.net <chris@zankel.net>
+> > Cc: jcmvbkbc@gmail.com <jcmvbkbc@gmail.com>
+> > Cc: Arnd Bergmann <arnd@arndb.de>
+> > Cc: linux-arch@vger.kernel.org
+> > Cc: linux-api@vger.kernel.org
+> > Acked-by: Minchan Kim <minchan@kernel.org>
+> > Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
 > 
-> With a name like that, who wouldn't pass that flag? ;-)
+> Let me add
+> Acked-by: Hugh Dickins <hughd@google.com>
+> to this one too.
+> 
+> But I have extended your mail's Cc list: Darrick pointed out earlier
+> that dietlibc has a Solaris #define MADV_FREE 0x5 in its mman.h,
+> and that was in the kernel's sparc mman.h up until 2.6.25.  I doubt
+> that presents any obstacle nowadays, but Dave Miller should be Cc'ed.
+> 
+> I was a little suspicious that 8 is available for MADV_FREE: why did
+> the common/generic parameters start at 9 instead of 8 back in 2.6.16?
+> I think the answer is that we had MADV_REMOVE coming in from one
+> direction, and MADV_DONTFORK coming from another direction, and when
+> Roland looked for where to start the commons for MADV_DONTFORK, it
+> appeared that 8 was occupied - by MADV_REMOVE; then a little later
+> MADV_REMOVE was shifted to become the first of the commons, at 9.
 
-xHCI for example, vs. something like 10G ethernet... but yes I agree it
-sucks. I don't like that sort of policy anywhere in drivers. On the
-other hand the platform doesn't have much information to make that sort
-of decision either.
-
-Cheers,
-Ben.
-
+Thanks for Ack, Ccing relevant people and history!
