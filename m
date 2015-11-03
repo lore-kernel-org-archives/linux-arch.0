@@ -1,7 +1,7 @@
 From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: [RFC PATCH 22/28] lkl tools: "boot" test
-Date: Tue,  3 Nov 2015 22:20:53 +0200
-Message-ID: <1446582059-17355-23-git-send-email-octavian.purdila@intel.com>
+Subject: [RFC PATCH 21/28] lkl tools: host lib: posix host operations
+Date: Tue,  3 Nov 2015 22:20:52 +0200
+Message-ID: <1446582059-17355-22-git-send-email-octavian.purdila@intel.com>
 References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
@@ -10,563 +10,246 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, thehajime@gmail.com, Octavian Purdila <octavian.purdila@intel.com>
 List-Id: linux-arch.vger.kernel.org
 
-Add a simple LKL test applications that starts the kernel and performs
-simple tests that minimally exercise the LKL API.
+Implement LKL host operations for POSIX hosts.
 
 Signed-off-by: Octavian Purdila <octavian.purdila@intel.com>
 ---
- tools/lkl/.gitignore    |   1 +
- tools/lkl/Makefile      |   7 +-
- tools/lkl/tests/boot.c  | 488 ++++++++++++++++++++++++++++++++++++++++++++++++
- tools/lkl/tests/boot.sh |  10 +
- 4 files changed, 504 insertions(+), 2 deletions(-)
- create mode 100644 tools/lkl/tests/boot.c
- create mode 100755 tools/lkl/tests/boot.sh
+ tools/lkl/Makefile         |   6 ++
+ tools/lkl/lib/posix-host.c | 206 +++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 212 insertions(+)
+ create mode 100644 tools/lkl/lib/posix-host.c
 
-diff --git a/tools/lkl/.gitignore b/tools/lkl/.gitignore
-index e69de29..7c456f2 100644
---- a/tools/lkl/.gitignore
-+++ b/tools/lkl/.gitignore
-@@ -0,0 +1 @@
-+test/boot
 diff --git a/tools/lkl/Makefile b/tools/lkl/Makefile
-index cf97d27..1ae4481 100644
+index b13472b..cf97d27 100644
 --- a/tools/lkl/Makefile
 +++ b/tools/lkl/Makefile
-@@ -7,14 +7,17 @@ LD=$(CROSS_COMPILE)ld
+@@ -3,9 +3,15 @@ CFLAGS := -Iinclude -Wall -g
+ ifdef CROSS_COMPILE
+ CC=$(CROSS_COMPILE)gcc
+ AR=$(CROSS_COMPILE)ar
++LD=$(CROSS_COMPILE)ld
  endif
  
  lib_source = $(filter-out %-host.c,$(wildcard lib/*.c))
-+source = $(wildcard tests/*.c)
- ifneq (,$(filter $(shell $(LD) -r -print-output-format),elf64-x86-64 elf32-i386))
- lib_source += lib/posix-host.c
- LDFLAGS += -lpthread -lrt
- endif
- 
++ifneq (,$(filter $(shell $(LD) -r -print-output-format),elf64-x86-64 elf32-i386))
++lib_source += lib/posix-host.c
++LDFLAGS += -lpthread -lrt
++endif
++
  lib_objs = $(patsubst %.c,%.o, $(lib_source)) lib/lkl.o
-+objs = $(patsubst %.c,%.o, $(source))
-+execs = $(patsubst %.c,%, $(source))
  
--all: lib/liblkl.a
-+all: lib/liblkl.a $(execs)
- 
- lib/liblkl.a: $(lib_objs)
- 	$(AR) -rc $@ $^
-@@ -31,4 +34,4 @@ $(objs): lib/lkl.o
- $(execs): lib/liblkl.a
- 
- clean:
--	-rm -rf include/lkl/ lib/liblkl.a $(lib_objs)
-+	-rm -rf include/lkl/ lib/liblkl.a $(lib_objs) $(objs) $(execs)
-diff --git a/tools/lkl/tests/boot.c b/tools/lkl/tests/boot.c
+ all: lib/liblkl.a
+diff --git a/tools/lkl/lib/posix-host.c b/tools/lkl/lib/posix-host.c
 new file mode 100644
-index 0000000..f5945aa
+index 0000000..4bc1de7
 --- /dev/null
-+++ b/tools/lkl/tests/boot.c
-@@ -0,0 +1,488 @@
-+#include <stdio.h>
++++ b/tools/lkl/lib/posix-host.c
+@@ -0,0 +1,206 @@
++#include <pthread.h>
++#include <malloc.h>
++#include <sys/time.h>
++#include <time.h>
++#include <signal.h>
++#include <assert.h>
 +#include <unistd.h>
++#include <stdio.h>
++#include <errno.h>
 +#include <string.h>
 +#include <time.h>
-+#include <stdlib.h>
++#include <execinfo.h>
 +#include <stdint.h>
-+#include <lkl.h>
++#include <sys/uio.h>
 +#include <lkl_host.h>
-+#include <sys/stat.h>
-+#include <fcntl.h>
++#include "iomem.h"
 +
-+static struct cl_args {
-+	int printk;
-+	const char *disk_filename;
-+} cla;
++static void print(const char *str, int len)
++{
++	write(STDOUT_FILENO, str, len);
++}
 +
-+static struct cl_option {
-+	const char *long_name;
-+	char short_name;
-+	const char *help;
-+	int has_arg;
-+} options[] = {
-+	{"enable-printk", 'p', "show Linux printks", 0},
-+	{"disk-file", 'd', "disk file to use", 1},
-+	{0},
++struct pthread_sem {
++	pthread_mutex_t lock;
++	int count;
++	pthread_cond_t cond;
 +};
 +
-+static int parse_opt(int key, char *arg)
++static void *sem_alloc(int count)
 +{
-+	switch (key) {
-+	case 'p':
-+		cla.printk = 1;
++	struct pthread_sem *sem;
++
++	sem = malloc(sizeof(*sem));
++	if (!sem)
++		return NULL;
++
++	pthread_mutex_init(&sem->lock, NULL);
++	sem->count = count;
++	pthread_cond_init(&sem->cond, NULL);
++
++	return sem;
++}
++
++static void sem_free(void *sem)
++{
++	free(sem);
++}
++
++static void sem_up(void *_sem)
++{
++	struct pthread_sem *sem = (struct pthread_sem *)_sem;
++
++	pthread_mutex_lock(&sem->lock);
++	sem->count++;
++	if (sem->count > 0)
++		pthread_cond_signal(&sem->cond);
++	pthread_mutex_unlock(&sem->lock);
++}
++
++static void sem_down(void *_sem)
++{
++	struct pthread_sem *sem = (struct pthread_sem *)_sem;
++
++	pthread_mutex_lock(&sem->lock);
++	while (sem->count <= 0)
++		pthread_cond_wait(&sem->cond, &sem->lock);
++	sem->count--;
++	pthread_mutex_unlock(&sem->lock);
++}
++
++static int thread_create(void (*fn)(void *), void *arg)
++{
++	pthread_t thread;
++
++	return pthread_create(&thread, NULL, (void* (*)(void *))fn, arg);
++}
++
++static void thread_exit(void)
++{
++	pthread_exit(NULL);
++}
++
++static unsigned long long time_ns(void)
++{
++	struct timeval tv;
++
++	gettimeofday(&tv, NULL);
++
++	return tv.tv_sec * 1000000000ULL + tv.tv_usec * 1000ULL;
++}
++
++static void *timer_alloc(void (*fn)(void *), void *arg)
++{
++	int err;
++	timer_t timer;
++	struct sigevent se =  {
++		.sigev_notify = SIGEV_THREAD,
++		.sigev_value = {
++			.sival_ptr = arg,
++		},
++		.sigev_notify_function = (void (*)(union sigval))fn,
++	};
++
++	err = timer_create(CLOCK_REALTIME, &se, &timer);
++	if (err)
++		return NULL;
++
++	return (void *)(long)timer;
++}
++
++static int timer_set_oneshot(void *_timer, unsigned long ns)
++{
++	timer_t timer = (timer_t)(long)_timer;
++	struct itimerspec ts = {
++		.it_value = {
++			.tv_sec = ns / 1000000000,
++			.tv_nsec = ns % 1000000000,
++		},
++	};
++
++	if (!ts.it_value.tv_nsec)
++		ts.it_value.tv_nsec++;
++
++	return timer_settime(timer, 0, &ts, NULL);
++}
++
++static void timer_free(void *_timer)
++{
++	timer_t timer = (timer_t)(long)_timer;
++
++	timer_delete(timer);
++}
++
++static void panic(void)
++{
++	assert(0);
++}
++
++struct lkl_host_operations lkl_host_ops = {
++	.panic = panic,
++	.thread_create = thread_create,
++	.thread_exit = thread_exit,
++	.sem_alloc = sem_alloc,
++	.sem_free = sem_free,
++	.sem_up = sem_up,
++	.sem_down = sem_down,
++	.time = time_ns,
++	.timer_alloc = timer_alloc,
++	.timer_set_oneshot = timer_set_oneshot,
++	.timer_free = timer_free,
++	.print = print,
++	.mem_alloc = malloc,
++	.mem_free = free,
++	.ioremap = lkl_ioremap,
++	.iomem_access = lkl_iomem_access,
++	.virtio_devices = lkl_virtio_devs,
++};
++
++int fd_get_capacity(union lkl_disk_backstore bs, unsigned long long *res)
++{
++	off_t off;
++
++	off = lseek(bs.fd, 0, SEEK_END);
++	if (off < 0)
++		return -1;
++
++	*res = off;
++	return 0;
++}
++
++void fd_do_rw(union lkl_disk_backstore bs, unsigned int type, unsigned int prio,
++	      unsigned long long sector, struct lkl_dev_buf *bufs, int count)
++{
++	int err = 0;
++	struct iovec *iovec = (struct iovec *)bufs;
++
++	if (count > 1)
++		lkl_printf("%s: %d\n", __func__, count);
++
++	/* TODO: handle short reads/writes */
++	switch (type) {
++	case LKL_DEV_BLK_TYPE_READ:
++		err = preadv(bs.fd, iovec, count, sector * 512);
 +		break;
-+	case 'd':
-+		cla.disk_filename = arg;
++	case LKL_DEV_BLK_TYPE_WRITE:
++		err = pwritev(bs.fd, iovec, count, sector * 512);
++		break;
++	case LKL_DEV_BLK_TYPE_FLUSH:
++	case LKL_DEV_BLK_TYPE_FLUSH_OUT:
++		err = fdatasync(bs.fd);
 +		break;
 +	default:
-+		return -1;
++		lkl_dev_blk_complete(bufs, LKL_DEV_BLK_STATUS_UNSUP, 0);
++		return;
 +	}
 +
-+	return 0;
++	if (err < 0)
++		lkl_dev_blk_complete(bufs, LKL_DEV_BLK_STATUS_IOERR, 0);
++	else
++		lkl_dev_blk_complete(bufs, LKL_DEV_BLK_STATUS_OK, err);
 +}
 +
-+void printk(const char *str, int len)
-+{
-+	if (cla.printk)
-+		write(STDOUT_FILENO, str, len);
-+}
-+
-+#define TEST(name) do_test(#name, test_##name)
-+
-+static void do_test(char *name, int (*fn)(char *, int))
-+{
-+	char str[60];
-+	int result;
-+
-+	result = fn(str, sizeof(str));
-+	printf("%-20s %s [%s]\n", name, result ? "passed" : "failed", str);
-+}
-+
-+#define sleep_ns 87654321
-+
-+int test_nanosleep(char *str, int len)
-+{
-+	struct lkl_timespec ts = {
-+		.tv_sec = 0,
-+		.tv_nsec = sleep_ns,
-+	};
-+	struct timespec start, stop;
-+	long delta;
-+	long ret;
-+
-+	clock_gettime(CLOCK_MONOTONIC, &start);
-+	ret = lkl_sys_nanosleep(&ts, NULL);
-+	clock_gettime(CLOCK_MONOTONIC, &stop);
-+
-+	delta = (stop.tv_sec - start.tv_sec) +
-+		(stop.tv_nsec - start.tv_nsec);
-+
-+	snprintf(str, len, "%ld", delta);
-+
-+	if (ret == 0 && delta > sleep_ns * 0.9 && delta < sleep_ns * 1.1)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+int test_getpid(char *str, int len)
-+{
-+	long ret;
-+
-+	ret = lkl_sys_getpid();
-+
-+	snprintf(str, len, "%ld", ret);
-+
-+	if (ret == 1)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+#define access_rights 0721
-+
-+int test_creat(char *str, int len)
-+{
-+	long ret;
-+
-+	ret = lkl_sys_creat("/file", access_rights);
-+
-+	snprintf(str, len, "%ld", ret);
-+
-+	if (ret == 0)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+int test_close(char *str, int len)
-+{
-+	long ret;
-+
-+	ret = lkl_sys_close(0);
-+
-+	snprintf(str, len, "%ld", ret);
-+
-+	if (ret == 0)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+int test_failopen(char *str, int len)
-+{
-+	long ret;
-+
-+	ret = lkl_sys_open("/file2", 0, 0);
-+
-+	snprintf(str, len, "%ld", ret);
-+
-+	if (ret == -LKL_ENOENT)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+int test_umask(char *str, int len)
-+{
-+	long ret, ret2;
-+
-+	ret = lkl_sys_umask(0777);
-+
-+	ret2 = lkl_sys_umask(0);
-+
-+	snprintf(str, len, "%lo %lo", ret, ret2);
-+
-+	if (ret > 0 && ret2 == 0777)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+int test_open(char *str, int len)
-+{
-+	long ret;
-+
-+	ret = lkl_sys_open("/file", LKL_O_RDWR, 0);
-+
-+	snprintf(str, len, "%ld", ret);
-+
-+	if (ret == 0)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+static const char write_test[] = "test";
-+
-+int test_write(char *str, int len)
-+{
-+	long ret;
-+
-+	ret = lkl_sys_write(0, write_test, sizeof(write_test));
-+
-+	snprintf(str, len, "%ld", ret);
-+
-+	if (ret == sizeof(write_test))
-+		return 1;
-+
-+	return 0;
-+}
-+
-+int test_lseek(char *str, int len)
-+{
-+	long ret;
-+	__lkl__kernel_loff_t res;
-+
-+	ret = lkl_sys_lseek(0, 0, &res, LKL_SEEK_SET);
-+
-+	snprintf(str, len, "%ld %lld", ret, res);
-+
-+	if (ret == 0)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+int test_read(char *str, int len)
-+{
-+	char buf[10] = { 0, };
-+	long ret;
-+
-+	ret = lkl_sys_read(0, buf, sizeof(buf));
-+
-+	snprintf(str, len, "%ld %s", ret, buf);
-+
-+	if (ret == sizeof(write_test) && strcmp(write_test, buf) == 0)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+int test_fstat64(char *str, int len)
-+{
-+	struct lkl_stat64 stat;
-+	long ret;
-+
-+	ret = lkl_sys_fstat64(0, &stat);
-+
-+	snprintf(str, len, "%ld %o %lld", ret, stat.st_mode, stat.st_size);
-+
-+	if (ret == 0 && stat.st_size == sizeof(write_test) &&
-+	    stat.st_mode == (access_rights | LKL_S_IFREG))
-+		return 1;
-+
-+	return 0;
-+}
-+
-+int test_mkdir(char *str, int len)
-+{
-+	long ret;
-+
-+	ret = lkl_sys_mkdir("/mnt", access_rights);
-+
-+	snprintf(str, len, "%ld", ret);
-+
-+	if (ret == 0)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+int test_stat64(char *str, int len)
-+{
-+	struct lkl_stat64 stat;
-+	long ret;
-+
-+	ret = lkl_sys_stat64("/mnt", &stat);
-+
-+	snprintf(str, len, "%ld %o", ret, stat.st_mode);
-+
-+	if (ret == 0 && stat.st_mode == (access_rights | LKL_S_IFDIR))
-+		return 1;
-+
-+	return 0;
-+}
-+
-+static const char *tmp_file;
-+static union lkl_disk_backstore bs;
-+static int disk_id = -1;
-+
-+int test_disk_add(char *str, int len)
-+{
-+	bs.fd = open(cla.disk_filename, O_RDWR);
-+	if (bs.fd < 0)
-+		goto out_unlink;
-+
-+	disk_id = lkl_disk_add(bs);
-+	if (disk_id < 0)
-+		goto out_close;
-+
-+	goto out;
-+
-+out_close:
-+	close(bs.fd);
-+out_unlink:
-+	unlink(cla.disk_filename);
-+
-+out:
-+	snprintf(str, len, "%x %d", bs.fd, disk_id);
-+
-+	if (disk_id >= 0)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+static char mnt_point[32];
-+
-+static int test_mount(char *str, int len)
-+{
-+	long ret;
-+
-+	ret = lkl_mount_dev(disk_id, "ext4", 0, NULL, mnt_point,
-+			    sizeof(mnt_point));
-+
-+	snprintf(str, len, "%ld", ret);
-+
-+	if (ret == 0)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+static int test_chdir(char *str, int len)
-+{
-+	long ret;
-+
-+	ret = lkl_sys_chdir(mnt_point);
-+
-+	snprintf(str, len, "%ld", ret);
-+
-+	if (ret == 0)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+static int dir_fd;
-+
-+static int test_opendir(char *str, int len)
-+{
-+	dir_fd = lkl_sys_open(".", LKL_O_RDONLY | LKL_O_DIRECTORY, 0);
-+
-+	snprintf(str, len, "%d", dir_fd);
-+
-+	if (dir_fd > 0)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+static int test_getdents64(char *str, int len)
-+{
-+	long ret;
-+	char buf[1024], *pos;
-+	struct lkl_dirent64 *de;
-+	int wr;
-+
-+	ret = lkl_sys_getdents64(dir_fd, buf, sizeof(buf));
-+
-+	wr = snprintf(str, len, "%d ", dir_fd);
-+	str += wr;
-+	len -= wr;
-+
-+	if (ret < 0)
-+		return 0;
-+
-+	for (pos = buf; pos - buf < ret; pos += de->d_reclen) {
-+		de = (struct lkl_dirent64 *)pos;
-+
-+		wr = snprintf(str, len, "%s ", de->d_name);
-+		str += wr;
-+		len -= wr;
-+	}
-+
-+	return 1;
-+}
-+
-+static int test_umount(char *str, int len)
-+{
-+	long ret, ret2, ret3;
-+
-+	ret = lkl_sys_close(dir_fd);
-+
-+	ret2 = lkl_sys_chdir("/");
-+
-+	ret3 = lkl_umount_dev(disk_id, 0, 1000);
-+
-+	snprintf(str, len, "%ld %ld %ld", ret, ret2, ret3);
-+
-+	if (!ret && !ret2 && !ret3)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+static struct cl_option *find_short_opt(char name)
-+{
-+	struct cl_option *opt;
-+
-+	for (opt = options; opt->short_name != 0; opt++) {
-+		if (opt->short_name == name)
-+			return opt;
-+	}
-+
-+	return NULL;
-+}
-+
-+static struct cl_option *find_long_opt(const char *name)
-+{
-+	struct cl_option *opt;
-+
-+	for (opt = options; opt->long_name; opt++) {
-+		if (strcmp(opt->long_name, name) == 0)
-+			return opt;
-+	}
-+
-+	return NULL;
-+}
-+
-+static void print_help(void)
-+{
-+	struct cl_option *opt;
-+
-+	printf("usage:\n");
-+	for (opt = options; opt->long_name; opt++)
-+		printf("-%c, --%-20s %s\n", opt->short_name, opt->long_name,
-+		       opt->help);
-+}
-+
-+static int parse_opts(int argc, char **argv)
-+{
-+	int i;
-+
-+	for (i = 1; i < argc; i++) {
-+		struct cl_option *opt = NULL;
-+
-+		if (argv[i][0] == '-') {
-+			if (argv[i][1] != '-')
-+				opt = find_short_opt(argv[i][1]);
-+			else
-+				opt = find_long_opt(&argv[i][2]);
-+		}
-+
-+		if (!opt) {
-+			print_help();
-+			return -1;
-+		}
-+
-+		if (parse_opt(opt->short_name, argv[i + 1]) < 0) {
-+			print_help();
-+			return -1;
-+		}
-+
-+		if (opt->has_arg)
-+			i++;
-+	}
-+
-+	return 0;
-+}
-+
-+int main(int argc, char **argv)
-+{
-+	if (parse_opts(argc, argv) < 0)
-+		return -1;
-+
-+	lkl_host_ops.print = printk;
-+
-+	TEST(disk_add);
-+
-+	lkl_start_kernel(&lkl_host_ops, 10 * 1024 * 1024, "");
-+
-+	TEST(getpid);
-+	TEST(umask);
-+	TEST(creat);
-+	TEST(close);
-+	TEST(failopen);
-+	TEST(open);
-+	TEST(write);
-+	TEST(lseek);
-+	TEST(read);
-+	TEST(fstat64);
-+	TEST(mkdir);
-+	TEST(stat64);
-+	TEST(nanosleep);
-+	TEST(mount);
-+	TEST(chdir);
-+	TEST(opendir);
-+	TEST(getdents64);
-+	TEST(umount);
-+
-+	lkl_sys_halt();
-+
-+	close(bs.fd);
-+	unlink(tmp_file);
-+
-+	return 0;
-+}
-diff --git a/tools/lkl/tests/boot.sh b/tools/lkl/tests/boot.sh
-new file mode 100755
-index 0000000..3fb7b1f
---- /dev/null
-+++ b/tools/lkl/tests/boot.sh
-@@ -0,0 +1,10 @@
-+#!/bin/bash
-+
-+file=`mktemp`
-+dd if=/dev/zero of=$file bs=1024 count=10240
-+
-+yes | mkfs.ext4 -q $file
-+
-+./boot -d $file $@
-+
-+rm $file
++struct lkl_dev_blk_ops lkl_dev_blk_ops = {
++	.get_capacity = fd_get_capacity,
++	.request = fd_do_rw,
++};
 -- 
 2.1.0
