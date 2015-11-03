@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f43.google.com ([209.85.220.43]:33335 "EHLO
+Received: from mail-pa0-f43.google.com ([209.85.220.43]:33286 "EHLO
 	mail-pa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932460AbbKCTqv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2015 14:46:51 -0500
-Received: by pabfh17 with SMTP id fh17so27164195pab.0
-        for <linux-arch@vger.kernel.org>; Tue, 03 Nov 2015 11:46:51 -0800 (PST)
+	with ESMTP id S932305AbbKCTqr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2015 14:46:47 -0500
+Received: by pabfh17 with SMTP id fh17so27162769pab.0
+        for <linux-arch@vger.kernel.org>; Tue, 03 Nov 2015 11:46:47 -0800 (PST)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 04/13] Always expose MAP_UNINITIALIZED to userspace
-Date: Tue,  3 Nov 2015 11:46:25 -0800
-Message-ID: <1446579994-9937-5-git-send-email-palmer@dabbelt.com>
+Subject: [PATCH 01/13] Remove #ifdef CONFIG_64BIT from all asm-generic/fcntl.h
+Date: Tue,  3 Nov 2015 11:46:22 -0800
+Message-ID: <1446579994-9937-2-git-send-email-palmer@dabbelt.com>
 In-Reply-To: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
 References: <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
  <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
@@ -16,41 +16,47 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, dhowells@redhat.com
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20151103194625.r6sTWeN-dumOeeHP-isfCH0mpQVhxkIZDg46evt_c-U@z>
+Message-ID: <20151103194622.Vm7NrZaVnSoohbFIGBRgG9_N95n36sCJjHwg042xB10@z>
 
-This used to be hidden behind CONFIG_MMAP_ALLOW_UNINITIALIZED, so
-userspace wouldn't actually ever see it be non-zero.  While I had
-originally hoped to avoid hiding it, it looks like this conflicts with
-MAP_HUGE_SHIFT so I think it's safer to just keep this 0.
+When working on the RISC-V port I noticed that F_SETLK64 was being
+defined on our 64-bit platform, despite our port being so new that
+we've only ever had the 64-bit file ops.  Since there's not compat
+layer for these, this causes fcntl to bail out.
 
-Architectures that want to define this can still override it.  In
-fact, the Xtensa port already overrides it in a very similar manner to
-the previously broken one (but due to lots of conflicting opinions on
-how to solve this correctly, I'm just taking the easy way out and
-letting their arch maintainers deal with it -- sorry).
+It turns out that one of the ways in with F_SETLK64 was being defined
+(there's some more in glibc, but that's a whole different story... :))
+is the result of CONFIG_64BIT showing up in this user-visible header.
+<asm-generic/bitsperlong.h> confirms this isn't sane, so I replaced it
+with a __BITS_PER_LONG check.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
 Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
 ---
- include/uapi/asm-generic/mman-common.h | 4 +---
- 1 file changed, 1 insertion(+), 3 deletions(-)
+ include/uapi/asm-generic/fcntl.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
-index ddc3b36..0ce2a13 100644
---- a/include/uapi/asm-generic/mman-common.h
-+++ b/include/uapi/asm-generic/mman-common.h
-@@ -19,9 +19,7 @@
- #define MAP_TYPE	0x0f		/* Mask for type of mapping */
- #define MAP_FIXED	0x10		/* Interpret addr exactly */
- #define MAP_ANONYMOUS	0x20		/* don't use a file */
--#ifdef CONFIG_MMAP_ALLOW_UNINITIALIZED
--# define MAP_UNINITIALIZED 0x4000000	/* For anonymous mmap, memory could be uninitialized */
--#else
-+#ifndef MAP_UNINITIALIZED
- # define MAP_UNINITIALIZED 0x0		/* Don't support this flag */
+diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
+index e063eff..14a5c82 100644
+--- a/include/uapi/asm-generic/fcntl.h
++++ b/include/uapi/asm-generic/fcntl.h
+@@ -1,6 +1,7 @@
+ #ifndef _ASM_GENERIC_FCNTL_H
+ #define _ASM_GENERIC_FCNTL_H
+ 
++#include <asm/bitsperlong.h>
+ #include <linux/types.h>
+ 
+ /*
+@@ -115,7 +116,7 @@
+ #define F_GETSIG	11	/* for sockets. */
  #endif
  
+-#ifndef CONFIG_64BIT
++#if (__BITS_PER_LONG == 32)
+ #ifndef F_GETLK64
+ #define F_GETLK64	12	/*  using 'struct flock64' */
+ #define F_SETLK64	13
 -- 
 2.4.10
 
