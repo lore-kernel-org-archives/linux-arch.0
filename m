@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f43.google.com ([209.85.220.43]:34383 "EHLO
-	mail-pa0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932458AbbKCTqu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2015 14:46:50 -0500
-Received: by padhx2 with SMTP id hx2so19309110pad.1
-        for <linux-arch@vger.kernel.org>; Tue, 03 Nov 2015 11:46:49 -0800 (PST)
+Received: from mail-pa0-f47.google.com ([209.85.220.47]:33414 "EHLO
+	mail-pa0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932517AbbKCTq5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2015 14:46:57 -0500
+Received: by pabfh17 with SMTP id fh17so27166456pab.0
+        for <linux-arch@vger.kernel.org>; Tue, 03 Nov 2015 11:46:57 -0800 (PST)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 03/13] Move COMPAT_ATM_ADDPARTY to net/atm/svc.c
-Date: Tue,  3 Nov 2015 11:46:24 -0800
-Message-ID: <1446579994-9937-4-git-send-email-palmer@dabbelt.com>
+Subject: [PATCH 09/13] Move bp_type_idx to kernel/event/hw_breakpoint.c
+Date: Tue,  3 Nov 2015 11:46:30 -0800
+Message-ID: <1446579994-9937-10-git-send-email-palmer@dabbelt.com>
 In-Reply-To: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
 References: <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
  <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
@@ -16,51 +16,61 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, dhowells@redhat.com
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20151103194624.AGnaS8b-e88r2A-qmVdUNvmw60STzJDNFrRSB0EbBeA@z>
+Message-ID: <20151103194630.14JXsgvpdtOPNmfUcM_tg48mo2dM6QD8e3Saoxebf3E@z>
 
-This used to be behind an #ifdef COMPAT_COMPAT, so most of userspace
-wouldn't have seen the definition before.  Unfortunately this header
-file became visible to userspace, so the definition has instead been
-moved to net/atm/svc.c (the only user).
+This has a "#ifdef CONFIG_*" that used to be exposed to userspace.
+
+The names in here are so generic that I don't think it's a good idea
+to expose them to userspace (or even the rest of the kernel).  Since
+there's only one kernel user, it's been moved to that file.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
 Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
 ---
- include/uapi/linux/atmdev.h | 4 ----
- net/atm/svc.c               | 5 +++++
- 2 files changed, 5 insertions(+), 4 deletions(-)
+ include/uapi/linux/hw_breakpoint.h | 10 ----------
+ kernel/events/hw_breakpoint.c      | 10 ++++++++++
+ 2 files changed, 10 insertions(+), 10 deletions(-)
 
-diff --git a/include/uapi/linux/atmdev.h b/include/uapi/linux/atmdev.h
-index 93e0ec0..3dcec70 100644
---- a/include/uapi/linux/atmdev.h
-+++ b/include/uapi/linux/atmdev.h
-@@ -100,10 +100,6 @@ struct atm_dev_stats {
- 					/* use backend to make new if */
- #define ATM_ADDPARTY  	_IOW('a', ATMIOC_SPECIAL+4,struct atm_iobuf)
-  					/* add party to p2mp call */
--#ifdef CONFIG_COMPAT
--/* It actually takes struct sockaddr_atmsvc, not struct atm_iobuf */
--#define COMPAT_ATM_ADDPARTY  	_IOW('a', ATMIOC_SPECIAL+4,struct compat_atm_iobuf)
+diff --git a/include/uapi/linux/hw_breakpoint.h b/include/uapi/linux/hw_breakpoint.h
+index b04000a..7a6a5a7 100644
+--- a/include/uapi/linux/hw_breakpoint.h
++++ b/include/uapi/linux/hw_breakpoint.h
+@@ -17,14 +17,4 @@ enum {
+ 	HW_BREAKPOINT_INVALID   = HW_BREAKPOINT_RW | HW_BREAKPOINT_X,
+ };
+ 
+-enum bp_type_idx {
+-	TYPE_INST 	= 0,
+-#ifdef CONFIG_HAVE_MIXED_BREAKPOINTS_REGS
+-	TYPE_DATA	= 0,
+-#else
+-	TYPE_DATA	= 1,
 -#endif
- #define ATM_DROPPARTY 	_IOW('a', ATMIOC_SPECIAL+5,int)
- 					/* drop party from p2mp call */
+-	TYPE_MAX
+-};
+-
+ #endif /* _UAPI_LINUX_HW_BREAKPOINT_H */
+diff --git a/kernel/events/hw_breakpoint.c b/kernel/events/hw_breakpoint.c
+index 92ce5f4..5ad117e 100644
+--- a/kernel/events/hw_breakpoint.c
++++ b/kernel/events/hw_breakpoint.c
+@@ -58,6 +58,16 @@ struct bp_cpuinfo {
+ 	unsigned int	flexible; /* XXX: placeholder, see fetch_this_slot() */
+ };
  
-diff --git a/net/atm/svc.c b/net/atm/svc.c
-index 3fa0a9e..9e2e6ef 100644
---- a/net/atm/svc.c
-+++ b/net/atm/svc.c
-@@ -27,6 +27,11 @@
- #include "signaling.h"
- #include "addr.h"
- 
-+#ifdef CONFIG_COMPAT
-+/* It actually takes struct sockaddr_atmsvc, not struct atm_iobuf */
-+#define COMPAT_ATM_ADDPARTY _IOW('a', ATMIOC_SPECIAL+4, struct compat_atm_iobuf)
++enum bp_type_idx {
++	TYPE_INST	= 0,
++#if defined(CONFIG_HAVE_MIXED_BREAKPOINTS_REGS)
++	TYPE_DATA	= 0,
++#else
++	TYPE_DATA	= 1,
 +#endif
++	TYPE_MAX
++};
 +
- static int svc_create(struct net *net, struct socket *sock, int protocol,
- 		      int kern);
+ static DEFINE_PER_CPU(struct bp_cpuinfo, bp_cpuinfo[TYPE_MAX]);
+ static int nr_slots[TYPE_MAX];
  
 -- 
 2.4.10
