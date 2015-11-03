@@ -1,146 +1,183 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:1240 "EHLO mga03.intel.com"
+Received: from mga03.intel.com ([134.134.136.65]:38789 "EHLO mga03.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S964847AbbKCUXN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Nov 2015 15:23:13 -0500
+	id S964879AbbKCUXO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 Nov 2015 15:23:14 -0500
 From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: [RFC PATCH 15/28] lkl tools: skeleton for host side library, tests and tools
-Date: Tue,  3 Nov 2015 22:20:46 +0200
-Message-ID: <1446582059-17355-16-git-send-email-octavian.purdila@intel.com>
+Subject: [RFC PATCH 17/28] lkl tools: host lib: memory mapped I/O helpers
+Date: Tue,  3 Nov 2015 22:20:48 +0200
+Message-ID: <1446582059-17355-18-git-send-email-octavian.purdila@intel.com>
 In-Reply-To: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, thehajime@gmail.com, Octavian Purdila <octavian.purdila@intel.com>
-Message-ID: <20151103202046.5gKTpnn2I_ahCc3pYOd3Pm61EQ558sl4gmoEV0ZPGgw@z>
+Message-ID: <20151103202048.F4Nn4tdMlZyxgogHN3blCIxh41Urvyt14v6J7eAwBBw@z>
 
-This patch adds the skeleton for the host library, tests and
-application examples.
+This patch adds helpers for implementing the memory mapped I/O host
+operations that can be used by code that implements host
+devices. Generic host operations for lkl_ioremap and lkl_iomem_access
+are provided that allows multiplexing multiple I/O memory mapped
+regions.
 
-The host library is implementing the host operations needed by LKL and
-is split into host dependent (depends on a specific host, e.g. POSIX
-hosts) and host independent parts (will work on all supported hosts).
+The host device code can create a new memory mapped I/O region with
+register_iomem(). Read and write access functions need to be provided
+by the caller.
 
 Signed-off-by: Octavian Purdila <octavian.purdila@intel.com>
 ---
- MAINTAINERS                  |  1 +
- tools/lkl/.gitignore         |  0
- tools/lkl/Makefile           | 28 ++++++++++++++++++++++++++++
- tools/lkl/include/.gitignore |  1 +
- tools/lkl/include/lkl.h      | 15 +++++++++++++++
- tools/lkl/include/lkl_host.h |  9 +++++++++
- tools/lkl/lib/.gitignore     |  3 +++
- 7 files changed, 57 insertions(+)
- create mode 100644 tools/lkl/.gitignore
- create mode 100644 tools/lkl/Makefile
- create mode 100644 tools/lkl/include/.gitignore
- create mode 100644 tools/lkl/include/lkl.h
- create mode 100644 tools/lkl/include/lkl_host.h
- create mode 100644 tools/lkl/lib/.gitignore
+ tools/lkl/lib/iomem.c | 119 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ tools/lkl/lib/iomem.h |  14 ++++++
+ 2 files changed, 133 insertions(+)
+ create mode 100644 tools/lkl/lib/iomem.c
+ create mode 100644 tools/lkl/lib/iomem.h
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index e2a737f..4e78669 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -6359,6 +6359,7 @@ LINUX KERNEL LIBRARY
- M:	Octavian Purdila <octavian.purdila@intel.com>
- S:	Maintained
- F:	arch/lkl/
-+F:	tools/lkl/
- 
- LINUX SECURITY MODULE (LSM) FRAMEWORK
- M:	Chris Wright <chrisw@sous-sol.org>
-diff --git a/tools/lkl/.gitignore b/tools/lkl/.gitignore
+diff --git a/tools/lkl/lib/iomem.c b/tools/lkl/lib/iomem.c
 new file mode 100644
-index 0000000..e69de29
-diff --git a/tools/lkl/Makefile b/tools/lkl/Makefile
-new file mode 100644
-index 0000000..b13472b
+index 0000000..bef6b71
 --- /dev/null
-+++ b/tools/lkl/Makefile
-@@ -0,0 +1,28 @@
-+CFLAGS := -Iinclude -Wall -g
++++ b/tools/lkl/lib/iomem.c
+@@ -0,0 +1,119 @@
++#include <string.h>
++#include <stdint.h>
++#include <lkl_host.h>
 +
-+ifdef CROSS_COMPILE
-+CC=$(CROSS_COMPILE)gcc
-+AR=$(CROSS_COMPILE)ar
-+endif
++#include "iomem.h"
 +
-+lib_source = $(filter-out %-host.c,$(wildcard lib/*.c))
-+lib_objs = $(patsubst %.c,%.o, $(lib_source)) lib/lkl.o
++#define IOMEM_OFFSET_BITS		24
++#define IOMEM_ADDR_MARK			0x8000000
++#define MAX_IOMEM_REGIONS		(IOMEM_ADDR_MARK >> IOMEM_OFFSET_BITS)
 +
-+all: lib/liblkl.a
++#define IOMEM_ADDR_TO_INDEX(addr) \
++	((((uintptr_t)addr & ~IOMEM_ADDR_MARK) >> IOMEM_OFFSET_BITS))
++#define IOMEM_ADDR_TO_OFFSET(addr) \
++	(((uintptr_t)addr) & ((1 << IOMEM_OFFSET_BITS) - 1))
++#define IOMEM_INDEX_TO_ADDR(i) \
++	(void *)(uintptr_t)((i << IOMEM_OFFSET_BITS) | IOMEM_ADDR_MARK)
 +
-+lib/liblkl.a: $(lib_objs)
-+	$(AR) -rc $@ $^
++static struct iomem_region {
++	void *base;
++	void *iomem_addr;
++	int size;
++	const struct lkl_iomem_ops *ops;
++} *iomem_regions[MAX_IOMEM_REGIONS];
 +
-+lib/lkl.o:
-+	$(MAKE) -C ../.. ARCH=lkl defconfig
-+	$(MAKE) -C ../.. ARCH=lkl install INSTALL_PATH=$(PWD)
-+
-+%: %.o
-+	$(CC) -o $@ $^ $(LDFLAGS)
-+
-+$(lib_objs): lib/lkl.o
-+$(objs): lib/lkl.o
-+$(execs): lib/liblkl.a
-+
-+clean:
-+	-rm -rf include/lkl/ lib/liblkl.a $(lib_objs)
-diff --git a/tools/lkl/include/.gitignore b/tools/lkl/include/.gitignore
-new file mode 100644
-index 0000000..c41a463
---- /dev/null
-+++ b/tools/lkl/include/.gitignore
-@@ -0,0 +1 @@
-+lkl/
-\ No newline at end of file
-diff --git a/tools/lkl/include/lkl.h b/tools/lkl/include/lkl.h
-new file mode 100644
-index 0000000..2de5ed4
---- /dev/null
-+++ b/tools/lkl/include/lkl.h
-@@ -0,0 +1,15 @@
-+#ifndef _LKL_H
-+#define _LKL_H
-+
-+#include <lkl/asm/unistd.h>
-+
-+/**
-+ * lkl_sys_lseek - wrapper for lkl_sys_llseek
-+ */
-+static inline long lkl_sys_lseek(unsigned int fd, __lkl__kernel_loff_t off,
-+				 __lkl__kernel_loff_t *res, unsigned int whence)
++static struct iomem_region *find_iomem_reg(void *base)
 +{
-+	return lkl_sys_llseek(fd, off >> 32, off & 0xffffffff, res, whence);
++	int i;
++
++	for (i = 0; i < MAX_IOMEM_REGIONS; i++)
++		if (iomem_regions[i] && iomem_regions[i]->base == base)
++			return iomem_regions[i];
++
++	return NULL;
 +}
 +
-+#endif
-diff --git a/tools/lkl/include/lkl_host.h b/tools/lkl/include/lkl_host.h
++int register_iomem(void *base, int size, const struct lkl_iomem_ops *ops)
++{
++	struct iomem_region *iomem_reg;
++	int i;
++
++	if (size > (1 << IOMEM_OFFSET_BITS) - 1)
++		return -1;
++
++	if (find_iomem_reg(base))
++		return -1;
++
++	for (i = 0; i < MAX_IOMEM_REGIONS; i++)
++		if (!iomem_regions[i])
++			break;
++
++	if (i >= MAX_IOMEM_REGIONS)
++		return -1;
++
++	iomem_reg = lkl_host_ops.mem_alloc(sizeof(*iomem_reg));
++	if (!iomem_reg)
++		return -1;
++
++	iomem_reg->base = base;
++	iomem_reg->size = size;
++	iomem_reg->ops = ops;
++	iomem_reg->iomem_addr = IOMEM_INDEX_TO_ADDR(i);
++
++	iomem_regions[i] = iomem_reg;
++
++	return 0;
++}
++
++void unregister_iomem(void *iomem_base)
++{
++	struct iomem_region *iomem_reg = find_iomem_reg(iomem_base);
++	unsigned int index;
++
++	if (!iomem_reg) {
++		lkl_printf("%s: invalid iomem base %p\n", __func__, iomem_base);
++		return;
++	}
++
++	index = IOMEM_ADDR_TO_INDEX(iomem_reg->iomem_addr);
++	if (index >= MAX_IOMEM_REGIONS) {
++		lkl_printf("%s: invalid iomem_addr %p\n", __func__,
++			   iomem_reg->iomem_addr);
++		return;
++	}
++
++	iomem_regions[index] = NULL;
++	lkl_host_ops.mem_free(iomem_reg->base);
++	lkl_host_ops.mem_free(iomem_reg);
++}
++
++void *lkl_ioremap(long addr, int size)
++{
++	struct iomem_region *iomem_reg = find_iomem_reg((void *)addr);
++
++	if (iomem_reg && size <= iomem_reg->size)
++		return iomem_reg->iomem_addr;
++
++	return NULL;
++}
++
++int lkl_iomem_access(const volatile void *addr, void *res, int size, int write)
++{
++	struct iomem_region *iomem_reg;
++	int index = IOMEM_ADDR_TO_INDEX(addr);
++	int offset = IOMEM_ADDR_TO_OFFSET(addr);
++	int ret;
++
++	if (index > MAX_IOMEM_REGIONS || !iomem_regions[index] ||
++	    offset + size > iomem_regions[index]->size)
++		return -1;
++
++	iomem_reg = iomem_regions[index];
++
++	if (write)
++		ret = iomem_reg->ops->write(iomem_reg->base, offset, res, size);
++	else
++		ret = iomem_reg->ops->read(iomem_reg->base, offset, res, size);
++
++	return ret;
++}
+diff --git a/tools/lkl/lib/iomem.h b/tools/lkl/lib/iomem.h
 new file mode 100644
-index 0000000..8ee9ba0
+index 0000000..53707d7
 --- /dev/null
-+++ b/tools/lkl/include/lkl_host.h
-@@ -0,0 +1,9 @@
-+#ifndef _LKL_HOST_H
-+#define _LKL_HOST_H
++++ b/tools/lkl/lib/iomem.h
+@@ -0,0 +1,14 @@
++#ifndef _LKL_LIB_IOMEM_H
++#define _LKL_LIB_IOMEM_H
 +
-+#include <lkl/asm/host_ops.h>
-+#include <lkl.h>
++struct lkl_iomem_ops {
++	int (*read)(void *data, int offset, void *res, int size);
++	int (*write)(void *data, int offset, void *value, int size);
++};
 +
-+extern struct lkl_host_operations lkl_host_ops;
++int register_iomem(void *base, int size, const struct lkl_iomem_ops *ops);
++void unregister_iomem(void *iomem_base);
++void *lkl_ioremap(long addr, int size);
++int lkl_iomem_access(const volatile void *addr, void *res, int size, int write);
 +
-+#endif
-diff --git a/tools/lkl/lib/.gitignore b/tools/lkl/lib/.gitignore
-new file mode 100644
-index 0000000..427ae02
---- /dev/null
-+++ b/tools/lkl/lib/.gitignore
-@@ -0,0 +1,3 @@
-+lkl.o
-+liblkl.a
-+
++#endif /* _LKL_LIB_IOMEM_H */
 -- 
 2.1.0
 
