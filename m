@@ -1,248 +1,215 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mga03.intel.com ([134.134.136.65]:18465 "EHLO mga03.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S964859AbbKCUXO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Nov 2015 15:23:14 -0500
+	id S964904AbbKCUXQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 3 Nov 2015 15:23:16 -0500
 From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: [RFC PATCH 16/28] lkl tools: host lib: add lkl_strerror and lkl_printf
-Date: Tue,  3 Nov 2015 22:20:47 +0200
-Message-ID: <1446582059-17355-17-git-send-email-octavian.purdila@intel.com>
+Subject: [RFC PATCH 19/28] lkl tools: host lib: virtio block device
+Date: Tue,  3 Nov 2015 22:20:50 +0200
+Message-ID: <1446582059-17355-20-git-send-email-octavian.purdila@intel.com>
 In-Reply-To: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, thehajime@gmail.com, Octavian Purdila <octavian.purdila@intel.com>
-Message-ID: <20151103202047.XQVH50ZRA_qFWl0chlNbiGDvhl0IoXfYyezcWceqxZQ@z>
+Message-ID: <20151103202050.GbHejYYbAcnXPntlVCgIZFl09EOFX01M1Qy7CWGSt0k@z>
 
-Add basic utility functions for getting a string from a kernel error
-code and a fprintf like function that uses the host print
-operation. The latter is useful for informing the user about errors
-that occur in the host library.
+Host independent implementation for virtio block devices. The host
+dependent part of the host library must provide an implementation for
+lkl_dev_block_ops.
+
+Disks can be added to the LKL configuration via lkl_disk_add(), a new
+LKL application API.
 
 Signed-off-by: Octavian Purdila <octavian.purdila@intel.com>
 ---
- tools/lkl/include/lkl.h      |   8 ++
- tools/lkl/include/lkl_host.h |   7 ++
- tools/lkl/lib/utils.c        | 177 +++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 192 insertions(+)
- create mode 100644 tools/lkl/lib/utils.c
+ tools/lkl/include/lkl.h      |  20 ++++++++
+ tools/lkl/include/lkl_host.h |  21 ++++++++
+ tools/lkl/lib/virtio_blk.c   | 116 +++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 157 insertions(+)
+ create mode 100644 tools/lkl/lib/virtio_blk.c
 
 diff --git a/tools/lkl/include/lkl.h b/tools/lkl/include/lkl.h
-index 2de5ed4..958614d 100644
+index 958614d..0c30b23 100644
 --- a/tools/lkl/include/lkl.h
 +++ b/tools/lkl/include/lkl.h
-@@ -12,4 +12,12 @@ static inline long lkl_sys_lseek(unsigned int fd, __lkl__kernel_loff_t off,
- 	return lkl_sys_llseek(fd, off >> 32, off & 0xffffffff, res, whence);
- }
+@@ -20,4 +20,24 @@ static inline long lkl_sys_lseek(unsigned int fd, __lkl__kernel_loff_t off,
+  */
+ const char *lkl_strerror(int err);
  
 +/**
-+ * lkl_strerror - returns a string describing the given error code
++ * lkl_disk_backstore - host dependend disk backstore
 + *
-+ * @err - error code
-+ * @returns - string for the given error code
++ * @fd - an open file descriptor that can be used by preadv/pwritev; used by
++ * POSIX hosts
 + */
-+const char *lkl_strerror(int err);
++union lkl_disk_backstore {
++	int fd;
++};
++
++/**
++ * lkl_disk_add - add a new disk
++ *
++ * Must be called before calling lkl_start_kernel.
++ *
++ * @backstore - the disk backstore
++ * @returns a disk id (0 is valid) or a strictly negative value in case of error
++ */
++int lkl_disk_add(union lkl_disk_backstore backstore);
 +
  #endif
 diff --git a/tools/lkl/include/lkl_host.h b/tools/lkl/include/lkl_host.h
-index 8ee9ba0..9f1c270 100644
+index 26d3e43..2dafaa8 100644
 --- a/tools/lkl/include/lkl_host.h
 +++ b/tools/lkl/include/lkl_host.h
-@@ -6,4 +6,11 @@
+@@ -20,4 +20,25 @@ struct lkl_dev_buf {
+ 	unsigned int len;
+ };
  
- extern struct lkl_host_operations lkl_host_ops;
- 
-+/**
-+ * lkl_printf - print a message via the host print operation
-+ *
-+ * @fmt - printf like format string
-+ */
-+int lkl_printf(const char *fmt, ...);
++extern struct lkl_dev_blk_ops lkl_dev_blk_ops;
 +
- #endif
-diff --git a/tools/lkl/lib/utils.c b/tools/lkl/lib/utils.c
-new file mode 100644
-index 0000000..f8b676f
---- /dev/null
-+++ b/tools/lkl/lib/utils.c
-@@ -0,0 +1,177 @@
-+#include <stdarg.h>
-+#include <stdio.h>
-+#include <lkl_host.h>
++#define LKL_DEV_BLK_TYPE_READ		0
++#define LKL_DEV_BLK_TYPE_WRITE		1
++#define LKL_DEV_BLK_TYPE_FLUSH		4
++#define LKL_DEV_BLK_TYPE_FLUSH_OUT	5
 +
-+static const char * const lkl_err_strings[] = {
-+	"Success",
-+	"Operation not permitted",
-+	"No such file or directory",
-+	"No such process",
-+	"Interrupted system call",
-+	"I/O error",
-+	"No such device or address",
-+	"Argument list too long",
-+	"Exec format error",
-+	"Bad file number",
-+	"No child processes",
-+	"Try again",
-+	"Out of memory",
-+	"Permission denied",
-+	"Bad address",
-+	"Block device required",
-+	"Device or resource busy",
-+	"File exists",
-+	"Cross-device link",
-+	"No such device",
-+	"Not a directory",
-+	"Is a directory",
-+	"Invalid argument",
-+	"File table overflow",
-+	"Too many open files",
-+	"Not a typewriter",
-+	"Text file busy",
-+	"File too large",
-+	"No space left on device",
-+	"Illegal seek",
-+	"Read-only file system",
-+	"Too many links",
-+	"Broken pipe",
-+	"Math argument out of domain of func",
-+	"Math result not representable",
-+	"Resource deadlock would occur",
-+	"File name too long",
-+	"No record locks available",
-+	"Invalid system call number",
-+	"Directory not empty",
-+	"Too many symbolic links encountered",
-+	"Bad error code", /* EWOULDBLOCK is EAGAIN */
-+	"No message of desired type",
-+	"Identifier removed",
-+	"Channel number out of range",
-+	"Level 2 not synchronized",
-+	"Level 3 halted",
-+	"Level 3 reset",
-+	"Link number out of range",
-+	"Protocol driver not attached",
-+	"No CSI structure available",
-+	"Level 2 halted",
-+	"Invalid exchange",
-+	"Invalid request descriptor",
-+	"Exchange full",
-+	"No anode",
-+	"Invalid request code",
-+	"Invalid slot",
-+	"Bad error code", /* EDEADLOCK is EDEADLK */
-+	"Bad font file format",
-+	"Device not a stream",
-+	"No data available",
-+	"Timer expired",
-+	"Out of streams resources",
-+	"Machine is not on the network",
-+	"Package not installed",
-+	"Object is remote",
-+	"Link has been severed",
-+	"Advertise error",
-+	"Srmount error",
-+	"Communication error on send",
-+	"Protocol error",
-+	"Multihop attempted",
-+	"RFS specific error",
-+	"Not a data message",
-+	"Value too large for defined data type",
-+	"Name not unique on network",
-+	"File descriptor in bad state",
-+	"Remote address changed",
-+	"Can not access a needed shared library",
-+	"Accessing a corrupted shared library",
-+	".lib section in a.out corrupted",
-+	"Attempting to link in too many shared libraries",
-+	"Cannot exec a shared library directly",
-+	"Illegal byte sequence",
-+	"Interrupted system call should be restarted",
-+	"Streams pipe error",
-+	"Too many users",
-+	"Socket operation on non-socket",
-+	"Destination address required",
-+	"Message too long",
-+	"Protocol wrong type for socket",
-+	"Protocol not available",
-+	"Protocol not supported",
-+	"Socket type not supported",
-+	"Operation not supported on transport endpoint",
-+	"Protocol family not supported",
-+	"Address family not supported by protocol",
-+	"Address already in use",
-+	"Cannot assign requested address",
-+	"Network is down",
-+	"Network is unreachable",
-+	"Network dropped connection because of reset",
-+	"Software caused connection abort",
-+	"Connection reset by peer",
-+	"No buffer space available",
-+	"Transport endpoint is already connected",
-+	"Transport endpoint is not connected",
-+	"Cannot send after transport endpoint shutdown",
-+	"Too many references: cannot splice",
-+	"Connection timed out",
-+	"Connection refused",
-+	"Host is down",
-+	"No route to host",
-+	"Operation already in progress",
-+	"Operation now in progress",
-+	"Stale file handle",
-+	"Structure needs cleaning",
-+	"Not a XENIX named type file",
-+	"No XENIX semaphores available",
-+	"Is a named type file",
-+	"Remote I/O error",
-+	"Quota exceeded",
-+	"No medium found",
-+	"Wrong medium type",
-+	"Operation Canceled",
-+	"Required key not available",
-+	"Key has expired",
-+	"Key has been revoked",
-+	"Key was rejected by service",
-+	"Owner died",
-+	"State not recoverable",
-+	"Operation not possible due to RF-kill",
-+	"Memory page has hardware error",
++struct lkl_dev_blk_ops {
++	int (*get_capacity)(union lkl_disk_backstore bs,
++			    unsigned long long *res);
++	void (*request)(union lkl_disk_backstore bs, unsigned int type,
++			unsigned int prio, unsigned long long sector,
++			struct lkl_dev_buf *bufs, int count);
 +};
 +
-+const char *lkl_strerror(int err)
++#define LKL_DEV_BLK_STATUS_OK		0
++#define LKL_DEV_BLK_STATUS_IOERR	1
++#define LKL_DEV_BLK_STATUS_UNSUP	2
++
++void lkl_dev_blk_complete(struct lkl_dev_buf *bufs, unsigned char status,
++			  int len);
+ #endif
+diff --git a/tools/lkl/lib/virtio_blk.c b/tools/lkl/lib/virtio_blk.c
+new file mode 100644
+index 0000000..3262f42
+--- /dev/null
++++ b/tools/lkl/lib/virtio_blk.c
+@@ -0,0 +1,116 @@
++#include <lkl_host.h>
++#include "virtio.h"
++
++struct virtio_blk_dev {
++	struct virtio_dev dev;
++	struct {
++		uint64_t capacity;
++	} config;
++	struct lkl_dev_blk_ops *ops;
++	union lkl_disk_backstore backstore;
++};
++
++struct virtio_blk_req_header {
++	uint32_t type;
++	uint32_t prio;
++	uint64_t sector;
++};
++
++struct virtio_blk_req_trailer {
++	uint8_t status;
++};
++
++static int blk_check_features(uint32_t features)
 +{
-+	if (err < 0)
-+		err = -err;
++	if (!features)
++		return 0;
 +
-+	if (err >= sizeof(lkl_err_strings) / sizeof(const char *))
-+		return "Bad error code";
-+
-+	return lkl_err_strings[err];
++	return -LKL_EINVAL;
 +}
 +
-+int lkl_printf(const char *fmt, ...)
++void lkl_dev_blk_complete(struct lkl_dev_buf *bufs, unsigned char status,
++			  int len)
 +{
-+	char *buffer;
-+	va_list args, copy;
-+	int n;
++	struct virtio_dev_req *req;
++	struct virtio_blk_req_trailer *f;
 +
-+	va_start(args, fmt);
-+	va_copy(copy, args);
-+	n = vsnprintf(NULL, 0, fmt, copy);
-+	va_end(copy);
++	req = container_of(bufs - 1, struct virtio_dev_req, buf);
 +
-+	buffer = lkl_host_ops.mem_alloc(n + 1);
-+	if (!buffer) {
-+		va_end(args);
-+		return 0;
++	if (req->buf_count < 2) {
++		lkl_printf("virtio_blk: no status buf\n");
++		return;
 +	}
-+	vsnprintf(buffer, n + 1, fmt, args);
-+	va_end(args);
 +
-+	lkl_host_ops.print(buffer, n);
++	if (req->buf[req->buf_count - 1].len != sizeof(*f)) {
++		lkl_printf("virtio_blk: bad status buf\n");
++	} else {
++		f = req->buf[req->buf_count - 1].addr;
++		f->status = status;
++	}
 +
-+	lkl_host_ops.mem_free(buffer);
++	virtio_dev_complete(req, len);
++}
 +
-+	return n;
++static void blk_queue(struct virtio_dev *dev, struct virtio_dev_req *req)
++{
++	struct virtio_blk_req_header *h;
++	struct virtio_blk_dev *blk_dev;
++
++	if (req->buf[0].len != sizeof(struct virtio_blk_req_header)) {
++		lkl_printf("virtio_blk: bad header buf\n");
++		lkl_dev_blk_complete(&req->buf[1], LKL_DEV_BLK_STATUS_UNSUP, 0);
++		return;
++	}
++
++	h = req->buf[0].addr;
++	blk_dev = container_of(dev, struct virtio_blk_dev, dev);
++
++	blk_dev->ops->request(blk_dev->backstore, le32toh(h->type),
++			      le32toh(h->prio), le32toh(h->sector),
++			      &req->buf[1], req->buf_count - 2);
++}
++
++static struct virtio_dev_ops blk_ops = {
++	.check_features = blk_check_features,
++	.queue = blk_queue,
++};
++
++int lkl_disk_add(union lkl_disk_backstore backstore)
++{
++	struct virtio_blk_dev *dev;
++	unsigned long long capacity;
++	int ret;
++	static int count;
++
++	dev = lkl_host_ops.mem_alloc(sizeof(*dev));
++	if (!dev)
++		return -LKL_ENOMEM;
++
++	dev->dev.device_id = 2;
++	dev->dev.vendor_id = 0;
++	dev->dev.device_features = 0;
++	dev->dev.config_gen = 0;
++	dev->dev.config_data = &dev->config;
++	dev->dev.config_len = sizeof(dev->config);
++	dev->dev.ops = &blk_ops;
++	dev->ops = &lkl_dev_blk_ops;
++	dev->backstore = backstore;
++
++	ret = dev->ops->get_capacity(backstore, &capacity);
++	if (ret) {
++		ret = -LKL_ENOMEM;
++		goto out_free;
++	}
++	dev->config.capacity = capacity;
++
++	ret = virtio_dev_setup(&dev->dev, 1, 65536);
++	if (ret)
++		goto out_free;
++
++	return count++;
++
++out_free:
++	lkl_host_ops.mem_free(dev);
++
++	return ret;
 +}
 -- 
 2.1.0
