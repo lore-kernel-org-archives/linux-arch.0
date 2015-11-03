@@ -1,21 +1,15 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: [PATCH 09/13] Move bp_type_idx to kernel/event/hw_breakpoint.c
 Date: Tue,  3 Nov 2015 11:46:30 -0800
-Message-ID: <1446579994-9937-10-git-send-email-palmer__8351.58813647485$1446580195$gmane$org@dabbelt.com>
+Message-ID: <1446579994-9937-10-git-send-email-palmer__35878.956403076$1446580195$gmane$org@dabbelt.com>
 References: <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
  <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f47.google.com ([209.85.220.47]:33414 "EHLO
-	mail-pa0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932517AbbKCTq5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2015 14:46:57 -0500
-Received: by pabfh17 with SMTP id fh17so27166456pab.0
-        for <linux-arch@vger.kernel.org>; Tue, 03 Nov 2015 11:46:57 -0800 (PST)
+Return-path: <linux-fsdevel-owner@vger.kernel.org>
 In-Reply-To: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-fsdevel-owner@vger.kernel.org
 To: arnd@arndb.de, dhowells@redhat.com
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
+List-Id: linux-arch.vger.kernel.org
 
 This has a "#ifdef CONFIG_*" that used to be exposed to userspace.
 
@@ -73,3 +67,4 @@ index 92ce5f4..5ad117e 100644
  
 -- 
 2.4.10
+
