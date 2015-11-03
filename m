@@ -1,194 +1,373 @@
 From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: [RFC PATCH 05/28] lkl: memory handling
-Date: Tue,  3 Nov 2015 22:20:36 +0200
-Message-ID: <1446582059-17355-6-git-send-email-octavian.purdila@intel.com>
+Subject: [RFC PATCH 06/28] lkl: kernel threads support
+Date: Tue,  3 Nov 2015 22:20:37 +0200
+Message-ID: <1446582059-17355-7-git-send-email-octavian.purdila@intel.com>
 References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga03.intel.com ([134.134.136.65]:38789 "EHLO mga03.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753672AbbKCUXI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Nov 2015 15:23:08 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, thehajime@gmail.com, Octavian Purdila <octavian.purdila@intel.com>
+List-Id: linux-arch.vger.kernel.org
 
-LKL is a non MMU architecture and hence there is not much work left to
-do other than initializing the boot allocator and providing the page
-and page table definitions.
+LKL does not support user processes but it must support kernel threads
+as part as the normal kernel work-flow. It uses host operations to
+create and terminate host threads that are going to run the kernel
+threads. It also uses semaphores to synchronize those threads and to
+allow the Linux kernel scheduler to control how the kernel threads
+run.
 
-The backstore memory is allocated via a host operation and the memory
-size to be used is specified when the kernel is started, in the
-lkl_start_kernel call.
+Each kernel thread runs in a host threads and has a host semaphore
+associated with it - the thread's scheduling semaphore. The semaphore
+counter is initialized to 0. The first thing a kernel thread does
+after getting spawned, before running any kernel code, is to perform a
+down operation to block the thread.
+
+The kernel controls host threads scheduling by performing up and down
+operations on the scheduling semaphore. In __switch_context an up
+operation on the next thread is performed to wake up a blocked thread,
+and a down operation is performed on the prev thread to block it.
+
+A thread is terminated by marking it in free_thread_info and
+performing an up operation on the scheduling semaphore at which point
+the marked thread will terminate itself.
 
 Signed-off-by: Octavian Purdila <octavian.purdila@intel.com>
 ---
- arch/lkl/include/asm/page.h    | 13 ++++++++
- arch/lkl/include/asm/pgtable.h | 60 +++++++++++++++++++++++++++++++++++++
- arch/lkl/kernel/mem.c          | 67 ++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 140 insertions(+)
- create mode 100644 arch/lkl/include/asm/page.h
- create mode 100644 arch/lkl/include/asm/pgtable.h
- create mode 100644 arch/lkl/kernel/mem.c
+ arch/lkl/include/asm/thread_info.h |  82 +++++++++++++
+ arch/lkl/kernel/threads.c          | 235 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 317 insertions(+)
+ create mode 100644 arch/lkl/include/asm/thread_info.h
+ create mode 100644 arch/lkl/kernel/threads.c
 
-diff --git a/arch/lkl/include/asm/page.h b/arch/lkl/include/asm/page.h
+diff --git a/arch/lkl/include/asm/thread_info.h b/arch/lkl/include/asm/thread_info.h
 new file mode 100644
-index 0000000..455bf62
+index 0000000..7636227
 --- /dev/null
-+++ b/arch/lkl/include/asm/page.h
-@@ -0,0 +1,13 @@
-+#ifndef _ASM_LKL_PAGE_H
-+#define _ASM_LKL_PAGE_H
++++ b/arch/lkl/include/asm/thread_info.h
+@@ -0,0 +1,82 @@
++#ifndef _ASM_LKL_THREAD_INFO_H
++#define _ASM_LKL_THREAD_INFO_H
 +
-+#define CONFIG_KERNEL_RAM_BASE_ADDRESS memory_start
++#define THREAD_SIZE	       (4096)
 +
 +#ifndef __ASSEMBLY__
-+void free_mem(void);
-+void bootmem_init(int mem_size);
-+#endif
-+
-+#include <asm-generic/page.h>
-+
-+#endif /* _ASM_LKL_PAGE_H */
-diff --git a/arch/lkl/include/asm/pgtable.h b/arch/lkl/include/asm/pgtable.h
-new file mode 100644
-index 0000000..726675a
---- /dev/null
-+++ b/arch/lkl/include/asm/pgtable.h
-@@ -0,0 +1,60 @@
-+#ifndef _LKL_PGTABLE_H
-+#define _LKL_PGTABLE_H
-+
-+#include <asm-generic/4level-fixup.h>
-+
-+/*
-+ * (C) Copyright 2000-2002, Greg Ungerer <gerg@snapgear.com>
-+ */
-+
-+#include <linux/slab.h>
++#include <asm/types.h>
 +#include <asm/processor.h>
-+#include <asm/io.h>
 +
-+#define pgd_present(pgd)	(1)
-+#define pgd_none(pgd)		(0)
-+#define pgd_bad(pgd)		(0)
-+#define pgd_clear(pgdp)
-+#define kern_addr_valid(addr)	(1)
-+#define	pmd_offset(a, b)	((void *)0)
++typedef struct {
++	unsigned long seg;
++} mm_segment_t;
 +
-+#define PAGE_NONE		__pgprot(0)
-+#define PAGE_SHARED		__pgprot(0)
-+#define PAGE_COPY		__pgprot(0)
-+#define PAGE_READONLY		__pgprot(0)
-+#define PAGE_KERNEL		__pgprot(0)
++struct thread_exit_info {
++	bool dead;
++	void *sched_sem;
++};
 +
-+void paging_init(void);
-+#define swapper_pg_dir		((pgd_t *)0)
++struct thread_info {
++	struct task_struct *task;
++	unsigned long flags;
++	int preempt_count;
++	mm_segment_t addr_limit;
++	void *sched_sem;
++	struct thread_exit_info *exit_info;
++	struct task_struct *prev_sched;
++	unsigned long stackend;
++};
 +
-+#define __swp_type(x)		(0)
-+#define __swp_offset(x)		(0)
-+#define __swp_entry(typ, off)	((swp_entry_t) { ((typ) | ((off) << 7)) })
-+#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
-+#define __swp_entry_to_pte(x)	((pte_t) { (x).val })
++#define INIT_THREAD_INFO(tsk)				\
++{							\
++	.task		= &tsk,				\
++	.preempt_count	= INIT_PREEMPT_COUNT,		\
++	.flags		= 0,				\
++	.addr_limit	= KERNEL_DS,			\
++}
++
++#define init_thread_info	(init_thread_union.thread_info)
++#define init_stack		(init_thread_union.stack)
++
++/* how to get the thread information struct from C */
++extern struct thread_info *_current_thread_info;
++static inline struct thread_info *current_thread_info(void)
++{
++	return _current_thread_info;
++}
++
++/* thread information allocation */
++struct thread_info *alloc_thread_info_node(struct task_struct *, int node);
++void free_thread_info(struct thread_info *);
++
++int threads_init(void);
++void threads_cleanup(void);
++
++#define TIF_SYSCALL_TRACE		0
++#define TIF_NOTIFY_RESUME		1
++#define TIF_SIGPENDING			2
++#define TIF_NEED_RESCHED		3
++#define TIF_RESTORE_SIGMASK		4
++#define TIF_MEMDIE			5
++#define TIF_NOHZ			6
++
++#define __HAVE_THREAD_FUNCTIONS
++
++#define task_thread_info(task)	((struct thread_info *)(task)->stack)
++#define task_stack_page(task)	((task)->stack)
 +
 +/*
-+ * ZERO_PAGE is a global shared page that is always zero: used
-+ * for zero-mapped memory areas etc..
++ * Nothing to do here. The only new tasks created are kernel threads that have a
++ * predefined starting point thus no stack copy is required as for regular
++ * forked tasks.
 + */
-+#define ZERO_PAGE(vaddr)	(virt_to_page(0))
++static inline void setup_thread_stack(struct task_struct *p,
++				      struct task_struct *org)
++{
++}
 +
-+/*
-+ * No page table caches to initialise.
-+ */
-+#define pgtable_cache_init()	do { } while (0)
++#define end_of_stack(p) (&task_thread_info(p)->stackend)
 +
-+/*
-+ * All 32bit addresses are effectively valid for vmalloc...
-+ * Sort of meaningless for non-VM targets.
-+ */
-+#define	VMALLOC_START		0
-+#define	VMALLOC_END		0xffffffff
-+#define	KMAP_START		0
-+#define	KMAP_END		0xffffffff
-+
-+#include <asm-generic/pgtable.h>
-+
-+#define check_pgt_cache()	do { } while (0)
++#endif /* __ASSEMBLY__ */
 +
 +#endif
-diff --git a/arch/lkl/kernel/mem.c b/arch/lkl/kernel/mem.c
+diff --git a/arch/lkl/kernel/threads.c b/arch/lkl/kernel/threads.c
 new file mode 100644
-index 0000000..225c2cc
+index 0000000..aa13e57
 --- /dev/null
-+++ b/arch/lkl/kernel/mem.c
-@@ -0,0 +1,67 @@
-+#include <linux/bootmem.h>
-+#include <linux/mm.h>
-+#include <linux/swap.h>
++++ b/arch/lkl/kernel/threads.c
+@@ -0,0 +1,235 @@
++#include <linux/module.h>
++#include <linux/slab.h>
++#include <linux/sched.h>
++#include <asm/host_ops.h>
 +
-+unsigned long memory_start, memory_end;
-+static unsigned long _memory_start, mem_size;
++static int threads_counter;
++static void *threads_counter_lock;
 +
-+void __init bootmem_init(int mem_size)
++static inline void threads_counter_inc(void)
 +{
-+	int bootmap_size;
-+
-+	_memory_start = (unsigned long)lkl_ops->mem_alloc(mem_size);
-+	memory_start = _memory_start;
-+	BUG_ON(!memory_start);
-+	memory_end = memory_start + mem_size;
-+
-+	if (PAGE_ALIGN(memory_start) != memory_start) {
-+		mem_size -= PAGE_ALIGN(memory_start) - memory_start;
-+		memory_start = PAGE_ALIGN(memory_start);
-+		mem_size = (mem_size / PAGE_SIZE) * PAGE_SIZE;
-+	}
-+
-+	/*
-+	 * Give all the memory to the bootmap allocator, tell it to put the
-+	 * boot mem_map at the start of memory.
-+	 */
-+	max_low_pfn = virt_to_pfn(memory_end);
-+	min_low_pfn = virt_to_pfn(memory_start);
-+	bootmap_size = init_bootmem_node(NODE_DATA(0), min_low_pfn, min_low_pfn,
-+					 max_low_pfn);
-+
-+	/*
-+	 * Free the usable memory, we have to make sure we do not free
-+	 * the bootmem bitmap so we then reserve it after freeing it :-)
-+	 */
-+	free_bootmem(memory_start, mem_size);
-+	reserve_bootmem(memory_start, bootmap_size, BOOTMEM_DEFAULT);
-+
-+	{
-+		unsigned long zones_size[MAX_NR_ZONES] = {0, };
-+
-+		zones_size[ZONE_NORMAL] = (mem_size) >> PAGE_SHIFT;
-+		free_area_init(zones_size);
-+	}
++	lkl_ops->sem_down(threads_counter_lock);
++	threads_counter++;
++	lkl_ops->sem_up(threads_counter_lock);
 +}
 +
-+void __init mem_init(void)
++static inline void threads_counter_dec(void)
 +{
-+	max_mapnr = (((unsigned long)high_memory) - PAGE_OFFSET) >> PAGE_SHIFT;
-+	/* this will put all memory onto the freelists */
-+	totalram_pages = free_all_bootmem();
-+	pr_info("Memory available: %luk/%luk RAM\n",
-+		(nr_free_pages() << PAGE_SHIFT) >> 10, mem_size >> 10);
++	lkl_ops->sem_down(threads_counter_lock);
++	threads_counter--;
++	lkl_ops->sem_up(threads_counter_lock);
 +}
 +
-+/*
-+ * In our case __init memory is not part of the page allocator so there is
-+ * nothing to free.
++static inline int threads_counter_get(void)
++{
++	int counter;
++
++	lkl_ops->sem_down(threads_counter_lock);
++	counter = threads_counter;
++	lkl_ops->sem_up(threads_counter_lock);
++
++	return counter;
++}
++
++struct thread_info *alloc_thread_info_node(struct task_struct *task, int node)
++{
++	struct thread_info *ti;
++
++	ti = kmalloc(sizeof(*ti), GFP_KERNEL);
++	if (!ti)
++		return NULL;
++
++	ti->exit_info = NULL;
++	ti->prev_sched = NULL;
++	ti->sched_sem = lkl_ops->sem_alloc(0);
++	ti->task = task;
++	if (!ti->sched_sem) {
++		kfree(ti);
++		return NULL;
++	}
++
++	return ti;
++}
++
++static void kill_thread(struct thread_exit_info *ei)
++{
++	if (WARN_ON(!ei))
++		return;
++
++	ei->dead = true;
++	lkl_ops->sem_up(ei->sched_sem);
++}
++
++void free_thread_info(struct thread_info *ti)
++{
++	struct thread_exit_info *ei = ti->exit_info;
++
++	kfree(ti);
++	kill_thread(ei);
++}
++
++struct thread_info *_current_thread_info = &init_thread_union.thread_info;
++
++struct task_struct *__switch_to(struct task_struct *prev,
++				struct task_struct *next)
++{
++	struct thread_info *_prev = task_thread_info(prev);
++	struct thread_info *_next = task_thread_info(next);
++	/*
++	 * schedule() expects the return of this function to be the task that we
++	 * switched away from. Returning prev is not going to work because we
++	 * are actually going to return the previous taks that was scheduled
++	 * before the task we are going to wake up, and not the current task,
++	 * e.g.:
++	 *
++	 * swapper -> init: saved prev on swapper stack is swapper
++	 * init -> ksoftirqd0: saved prev on init stack is init
++	 * ksoftirqd0 -> swapper: returned prev is swapper
++	 */
++	static struct task_struct *abs_prev = &init_task;
++	/*
++	 * We need to free the thread_info structure in free_thread_info to
++	 * avoid races between the dying thread and other threads. We also need
++	 * to cleanup sched_sem and signal to the prev thread that it needs to
++	 * exit, and we use this stack varible to pass this info.
++	 */
++	struct thread_exit_info ei = {
++		.dead = false,
++		.sched_sem = _prev->sched_sem,
++	};
++
++	_current_thread_info = task_thread_info(next);
++	_next->prev_sched = prev;
++	abs_prev = prev;
++	_prev->exit_info = &ei;
++
++	lkl_ops->sem_up(_next->sched_sem);
++	/* _next may be already gone so use ei instead */
++	lkl_ops->sem_down(ei.sched_sem);
++
++	if (ei.dead) {
++		lkl_ops->sem_free(ei.sched_sem);
++		threads_counter_dec();
++		lkl_ops->thread_exit();
++	}
++
++	_prev->exit_info = NULL;
++
++	return abs_prev;
++}
++
++struct thread_bootstrap_arg {
++	struct thread_info *ti;
++	int (*f)(void *);
++	void *arg;
++};
++
++static void thread_bootstrap(void *_tba)
++{
++	struct thread_bootstrap_arg *tba = (struct thread_bootstrap_arg *)_tba;
++	struct thread_info *ti = tba->ti;
++	int (*f)(void *) = tba->f;
++	void *arg = tba->arg;
++
++	lkl_ops->sem_down(ti->sched_sem);
++	kfree(tba);
++	if (ti->prev_sched)
++		schedule_tail(ti->prev_sched);
++
++	f(arg);
++	do_exit(0);
++}
++
++int copy_thread(unsigned long clone_flags, unsigned long esp,
++		unsigned long unused, struct task_struct *p)
++{
++	struct thread_info *ti = task_thread_info(p);
++	struct thread_bootstrap_arg *tba;
++	int ret;
++
++	tba = kmalloc(sizeof(*tba), GFP_KERNEL);
++	if (!tba)
++		return -ENOMEM;
++
++	tba->f = (int (*)(void *))esp;
++	tba->arg = (void *)unused;
++	tba->ti = ti;
++
++	ret = lkl_ops->thread_create(thread_bootstrap, tba);
++	if (ret) {
++		kfree(tba);
++		return -ENOMEM;
++	}
++
++	threads_counter_inc();
++
++	return 0;
++}
++
++void show_stack(struct task_struct *task, unsigned long *esp)
++{
++}
++
++static inline void pr_early(const char *str)
++{
++	if (lkl_ops->print)
++		lkl_ops->print(str, strlen(str));
++}
++
++/**
++ * This is called before the kernel initializes, so no kernel calls (including
++ * printk) can't be made yet.
 + */
-+void free_initmem(void)
++int threads_init(void)
 +{
++	struct thread_info *ti = &init_thread_union.thread_info;
++	int ret = 0;
++
++	ti->exit_info = NULL;
++	ti->prev_sched = NULL;
++
++	ti->sched_sem = lkl_ops->sem_alloc(0);
++	if (!ti->sched_sem) {
++		pr_early("lkl: failed to allocate init schedule semaphore\n");
++		ret = -ENOMEM;
++		goto out;
++	}
++
++	threads_counter_lock = lkl_ops->sem_alloc(1);
++	if (!threads_counter_lock) {
++		pr_early("lkl: failed to alllocate threads counter lock\n");
++		ret = -ENOMEM;
++		goto out_free_init_sched_sem;
++	}
++
++	return 0;
++
++out_free_init_sched_sem:
++	lkl_ops->sem_free(ti->sched_sem);
++
++out:
++	return ret;
 +}
 +
-+void free_mem(void)
++void threads_cleanup(void)
 +{
-+	lkl_ops->mem_free((void *)_memory_start);
++	struct task_struct *p;
++
++	for_each_process(p) {
++		struct thread_info *ti = task_thread_info(p);
++
++		if (p->pid != 1)
++			WARN(!(p->flags & PF_KTHREAD),
++			     "non kernel thread task %p\n", p->comm);
++		WARN(p->state == TASK_RUNNING,
++		     "thread %s still running while halting\n", p->comm);
++
++		kill_thread(ti->exit_info);
++	}
++
++	while (threads_counter_get())
++		;
++
++	lkl_ops->sem_free(init_thread_union.thread_info.sched_sem);
++	lkl_ops->sem_free(threads_counter_lock);
 +}
 -- 
 2.1.0
