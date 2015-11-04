@@ -1,45 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:48437 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754519AbbKDMV6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Nov 2015 07:21:58 -0500
-Date: Wed, 4 Nov 2015 13:21:51 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 09/13] Move bp_type_idx to kernel/event/hw_breakpoint.c
-Message-ID: <20151104122151.GB11639@twins.programming.kicks-ass.net>
-References: <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
- <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
- <1446579994-9937-10-git-send-email-palmer@dabbelt.com>
- <20151104114106.GJ17308@twins.programming.kicks-ass.net>
+Received: from unicorn.mansr.com ([81.2.72.234]:49722 "EHLO unicorn.mansr.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S965372AbbKDVnA convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Nov 2015 16:43:00 -0500
+From: =?iso-8859-1?Q?M=E5ns_Rullg=E5rd?= <mans@mansr.com>
+Subject: Re: [PATCH 2/5] do_div(): generic optimization for constant divisor on 32-bit machines
+References: <201511031333.Yk9ngQZJ%fengguang.wu@intel.com>
+	<21544300.LSjO3j3Xy7@wuerfel>
+	<alpine.LFD.2.20.1511041542130.630@knanqh.ubzr>
+Date: Wed, 04 Nov 2015 21:42:58 +0000
+In-Reply-To: <alpine.LFD.2.20.1511041542130.630@knanqh.ubzr> (Nicolas Pitre's
+	message of "Wed, 4 Nov 2015 16:04:57 -0500 (EST)")
+Message-ID: <yw1xoaf97865.fsf@unicorn.mansr.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20151104114106.GJ17308@twins.programming.kicks-ass.net>
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Palmer Dabbelt <palmer@dabbelt.com>
-Cc: arnd@arndb.de, dhowells@redhat.com, viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org
-Message-ID: <20151104122151.BcwEqmLg1dpIDiH790abnziWj0j8MvITBRZaqcyrF18@z>
+To: Nicolas Pitre <nicolas.pitre@linaro.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, kbuild test robot <lkp@intel.com>, kbuild-all@01.org, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, rmk+kernel@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20151104214258.kbyikTWCV5oO01NG4wOVhr1UjFWVxcJTNbUMISDd_Sw@z>
 
-On Wed, Nov 04, 2015 at 12:41:06PM +0100, Peter Zijlstra wrote:
-> On Tue, Nov 03, 2015 at 11:46:30AM -0800, Palmer Dabbelt wrote:
-> > This has a "#ifdef CONFIG_*" that used to be exposed to userspace.
-> > 
-> > The names in here are so generic that I don't think it's a good idea
-> > to expose them to userspace (or even the rest of the kernel).  Since
-> > there's only one kernel user, it's been moved to that file.
-> > 
-> > Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
-> > Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
-> > Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
-> 
-> Assuming you want to keep all these patches together in a tree or so.
-> Let me know if you want me to take this patch.
-> 
-> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Nicolas Pitre <nicolas.pitre@linaro.org> writes:
 
-Ah, build-bot finds your change is broken and you didn't grep right. It
-is used in more places.
+> On Tue, 3 Nov 2015, Arnd Bergmann wrote:
+>
+>> On Tuesday 03 November 2015 13:32:17 kbuild test robot wrote:
+>> > 
+>> >    net/can/bcm.c: In function 'bcm_proc_show':
+>> > >> net/can/bcm.c:223:1: warning: the frame size of 1156 bytes is larger than 1024 bytes [-Wframe-larger-than=]
+>> >     }
+>> 
+>> Interesting, that is a lot of stack for a function that only has a couple
+>> of local variables:
+>> 
+>> #define IFNAMSIZ        16
+>>         char ifname[IFNAMSIZ];
+>>         struct sock *sk = (struct sock *)m->private;
+>>         struct bcm_sock *bo = bcm_sk(sk);
+>>         struct bcm_op *op;
+>> 
+>> 
+>> This is a parisc-allyesconfig kernel, so I assume that CONFIG_PROFILE_ALL_BRANCHES
+>> is on, which instruments every 'if' in the kernel. If that causes problems,
+>> we could decide to disable the do_div optimization whenever CONFIG_PROFILE_ALL_BRANCHES
+>> is enabled.
+>
+> I have an ARM allyesconfig build here where that function needs a frame 
+> of 88 bytes only. And that is with my do_div optimization applied.
+>
+> With the do_div optimization turned off, the stack frame is still 88 
+> bytes.
+>
+> Turning on CONFIG_PROFILE_ALL_BRANCHES makes the frame size to grow to 
+> 96 bytes.
+>
+> Keeping CONFIG_PROFILE_ALL_BRANCHES=y and activating the do_div 
+> optimization again, and the function frame size goes back to 88 bytes.
+>
+> So I wonder what parisc gcc could be doing with this code.
 
-How about moving it to include/linux/hw_breakpoint.h, instead of having
-it in the uapi crud?
+I've seen parisc gcc do many strange things.
+
+-- 
+Måns Rullgård
+mans@mansr.com
