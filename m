@@ -1,129 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from LGEAMRELO11.lge.com ([156.147.23.51]:41313 "EHLO
-	lgeamrelo11.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965059AbbKDB0I (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Nov 2015 20:26:08 -0500
-From: Minchan Kim <minchan@kernel.org>
-Subject: [PATCH v2 03/13] arch: uapi: asm: mman.h: Let MADV_FREE have same value for all architectures
-Date: Wed,  4 Nov 2015 10:25:57 +0900
-Message-ID: <1446600367-7976-4-git-send-email-minchan@kernel.org>
-In-Reply-To: <1446600367-7976-1-git-send-email-minchan@kernel.org>
-References: <1446600367-7976-1-git-send-email-minchan@kernel.org>
+Received: from casper.infradead.org ([85.118.1.10]:48437 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754519AbbKDMV6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Nov 2015 07:21:58 -0500
+Date: Wed, 4 Nov 2015 13:21:51 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 09/13] Move bp_type_idx to kernel/event/hw_breakpoint.c
+Message-ID: <20151104122151.GB11639@twins.programming.kicks-ass.net>
+References: <1442271047-4908-1-git-send-email-palmer@dabbelt.com>
+ <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
+ <1446579994-9937-10-git-send-email-palmer@dabbelt.com>
+ <20151104114106.GJ17308@twins.programming.kicks-ass.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20151104114106.GJ17308@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-api@vger.kernel.org, Hugh Dickins <hughd@google.com>, Johannes Weiner <hannes@cmpxchg.org>, Rik van Riel <riel@redhat.com>, Mel Gorman <mgorman@suse.de>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Jason Evans <je@fb.com>, Daniel Micay <danielmicay@gmail.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Shaohua Li <shli@kernel.org>, Michal Hocko <mhocko@suse.cz>, yalin.wang2010@gmail.com, Chen Gang <gang.chen.5i5j@gmail.com>, "rth@twiddle.net" <rth@twiddle.net>, "ink@jurassic.park.msu.ru" <ink@jurassic.park.msu.ru>, "mattst88@gmail.com" <mattst88@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "deller@gmx.de" <deller@gmx.de>, "chris@zankel.net" <chris@zankel.net>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, roland@kernel.org, darrick.wong@oracle.com, davem@davemloft.net, Minchan Kim <minchan@kernel.org>
-Message-ID: <20151104012557.o5FehTJxsm_Vt5efSccG35zksAgJhY2tBoPme85MZu4@z>
+To: Palmer Dabbelt <palmer@dabbelt.com>
+Cc: arnd@arndb.de, dhowells@redhat.com, viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org
+Message-ID: <20151104122151.BcwEqmLg1dpIDiH790abnziWj0j8MvITBRZaqcyrF18@z>
 
-From: Chen Gang <gang.chen.5i5j@gmail.com>
+On Wed, Nov 04, 2015 at 12:41:06PM +0100, Peter Zijlstra wrote:
+> On Tue, Nov 03, 2015 at 11:46:30AM -0800, Palmer Dabbelt wrote:
+> > This has a "#ifdef CONFIG_*" that used to be exposed to userspace.
+> > 
+> > The names in here are so generic that I don't think it's a good idea
+> > to expose them to userspace (or even the rest of the kernel).  Since
+> > there's only one kernel user, it's been moved to that file.
+> > 
+> > Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+> > Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
+> > Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
+> 
+> Assuming you want to keep all these patches together in a tree or so.
+> Let me know if you want me to take this patch.
+> 
+> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 
-For uapi, need try to let all macros have same value, and MADV_FREE is
-added into main branch recently, so need redefine MADV_FREE for it.
+Ah, build-bot finds your change is broken and you didn't grep right. It
+is used in more places.
 
-At present, '8' can be shared with all architectures, so redefine it to
-'8'.
-
-Cc: rth@twiddle.net <rth@twiddle.net>,
-Cc: ink@jurassic.park.msu.ru <ink@jurassic.park.msu.ru>
-Cc: mattst88@gmail.com <mattst88@gmail.com>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: jejb@parisc-linux.org <jejb@parisc-linux.org>
-Cc: deller@gmx.de <deller@gmx.de>
-Cc: chris@zankel.net <chris@zankel.net>
-Cc: jcmvbkbc@gmail.com <jcmvbkbc@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-api@vger.kernel.org
-Cc: sparclinux@vger.kernel.org
-Cc: roland@kernel.org
-Cc: darrick.wong@oracle.com
-Cc: davem@davemloft.net
-Acked-by: Hugh Dickins <hughd@google.com>
-Acked-by: Minchan Kim <minchan@kernel.org>
-Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
----
- arch/alpha/include/uapi/asm/mman.h     | 2 +-
- arch/mips/include/uapi/asm/mman.h      | 2 +-
- arch/parisc/include/uapi/asm/mman.h    | 2 +-
- arch/xtensa/include/uapi/asm/mman.h    | 2 +-
- include/uapi/asm-generic/mman-common.h | 2 +-
- 5 files changed, 5 insertions(+), 5 deletions(-)
-
-diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
-index 836fbd44f65b..0b8a5de7aee3 100644
---- a/arch/alpha/include/uapi/asm/mman.h
-+++ b/arch/alpha/include/uapi/asm/mman.h
-@@ -44,9 +44,9 @@
- #define MADV_WILLNEED	3		/* will need these pages */
- #define	MADV_SPACEAVAIL	5		/* ensure resources are available */
- #define MADV_DONTNEED	6		/* don't need these pages */
--#define MADV_FREE	7		/* free pages only if memory pressure */
- 
- /* common/generic parameters */
-+#define MADV_FREE	8		/* free pages only if memory pressure */
- #define MADV_REMOVE	9		/* remove these pages & resources */
- #define MADV_DONTFORK	10		/* don't inherit across fork */
- #define MADV_DOFORK	11		/* do inherit across fork */
-diff --git a/arch/mips/include/uapi/asm/mman.h b/arch/mips/include/uapi/asm/mman.h
-index 106e741aa7ee..d247f5457944 100644
---- a/arch/mips/include/uapi/asm/mman.h
-+++ b/arch/mips/include/uapi/asm/mman.h
-@@ -67,9 +67,9 @@
- #define MADV_SEQUENTIAL 2		/* expect sequential page references */
- #define MADV_WILLNEED	3		/* will need these pages */
- #define MADV_DONTNEED	4		/* don't need these pages */
--#define MADV_FREE	5		/* free pages only if memory pressure */
- 
- /* common parameters: try to keep these consistent across architectures */
-+#define MADV_FREE	8		/* free pages only if memory pressure */
- #define MADV_REMOVE	9		/* remove these pages & resources */
- #define MADV_DONTFORK	10		/* don't inherit across fork */
- #define MADV_DOFORK	11		/* do inherit across fork */
-diff --git a/arch/parisc/include/uapi/asm/mman.h b/arch/parisc/include/uapi/asm/mman.h
-index 6cb8db76fd4e..700d83fd9352 100644
---- a/arch/parisc/include/uapi/asm/mman.h
-+++ b/arch/parisc/include/uapi/asm/mman.h
-@@ -40,9 +40,9 @@
- #define MADV_SPACEAVAIL 5               /* insure that resources are reserved */
- #define MADV_VPS_PURGE  6               /* Purge pages from VM page cache */
- #define MADV_VPS_INHERIT 7              /* Inherit parents page size */
--#define MADV_FREE	8		/* free pages only if memory pressure */
- 
- /* common/generic parameters */
-+#define MADV_FREE	8		/* free pages only if memory pressure */
- #define MADV_REMOVE	9		/* remove these pages & resources */
- #define MADV_DONTFORK	10		/* don't inherit across fork */
- #define MADV_DOFORK	11		/* do inherit across fork */
-diff --git a/arch/xtensa/include/uapi/asm/mman.h b/arch/xtensa/include/uapi/asm/mman.h
-index 1b19f25bc567..77eaca434071 100644
---- a/arch/xtensa/include/uapi/asm/mman.h
-+++ b/arch/xtensa/include/uapi/asm/mman.h
-@@ -80,9 +80,9 @@
- #define MADV_SEQUENTIAL	2		/* expect sequential page references */
- #define MADV_WILLNEED	3		/* will need these pages */
- #define MADV_DONTNEED	4		/* don't need these pages */
--#define MADV_FREE	5		/* free pages only if memory pressure */
- 
- /* common parameters: try to keep these consistent across architectures */
-+#define MADV_FREE	8		/* free pages only if memory pressure */
- #define MADV_REMOVE	9		/* remove these pages & resources */
- #define MADV_DONTFORK	10		/* don't inherit across fork */
- #define MADV_DOFORK	11		/* do inherit across fork */
-diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
-index 7a94102b7a02..869595947873 100644
---- a/include/uapi/asm-generic/mman-common.h
-+++ b/include/uapi/asm-generic/mman-common.h
-@@ -34,9 +34,9 @@
- #define MADV_SEQUENTIAL	2		/* expect sequential page references */
- #define MADV_WILLNEED	3		/* will need these pages */
- #define MADV_DONTNEED	4		/* don't need these pages */
--#define MADV_FREE	5		/* free pages only if memory pressure */
- 
- /* common parameters: try to keep these consistent across architectures */
-+#define MADV_FREE	8		/* free pages only if memory pressure */
- #define MADV_REMOVE	9		/* remove these pages & resources */
- #define MADV_DONTFORK	10		/* don't inherit across fork */
- #define MADV_DOFORK	11		/* do inherit across fork */
--- 
-1.9.1
-
+How about moving it to include/linux/hw_breakpoint.h, instead of having
+it in the uapi crud?
