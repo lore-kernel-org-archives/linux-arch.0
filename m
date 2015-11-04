@@ -1,70 +1,60 @@
-From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: Re: [RFC PATCH 00/28] Linux Kernel Library
-Date: Wed, 4 Nov 2015 16:15:46 +0200
-Message-ID: <CAE1zotLMxGH1BWXg6JRSs9HD=Wfhee9OSsaufUjmxQXsTRqs=Q@mail.gmail.com>
-References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
-	<CAFLxGvzZozV0rDpY_VcQaFH+dx_+tHGyEy+22kgL=wdS5pSqCw@mail.gmail.com>
-	<20151103224545.GI29330@redhat.com>
-	<CAE1zotKa5B4xW5dzbrkGFcf7=ZTyVRLjvxnHtXV2nUzZ8HW_0g@mail.gmail.com>
-	<20151104135015.GN29330@redhat.com>
+From: Nicolas Pitre <nicolas.pitre@linaro.org>
+Subject: Re: [PATCH 2/5] do_div(): generic optimization for constant divisor
+ on 32-bit machines
+Date: Wed, 4 Nov 2015 16:04:57 -0500 (EST)
+Message-ID: <alpine.LFD.2.20.1511041542130.630@knanqh.ubzr>
+References: <201511031333.Yk9ngQZJ%fengguang.wu@intel.com> <21544300.LSjO3j3Xy7@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f46.google.com ([74.125.82.46]:35647 "EHLO
-	mail-wm0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750727AbbKDOPr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Nov 2015 09:15:47 -0500
-Received: by wmll128 with SMTP id l128so115288769wml.0
-        for <linux-arch@vger.kernel.org>; Wed, 04 Nov 2015 06:15:46 -0800 (PST)
-In-Reply-To: <20151104135015.GN29330@redhat.com>
+Received: from mail-qk0-f178.google.com ([209.85.220.178]:33207 "EHLO
+	mail-qk0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1030567AbbKDVFA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Nov 2015 16:05:00 -0500
+Received: by qkas77 with SMTP id s77so21695502qka.0
+        for <linux-arch@vger.kernel.org>; Wed, 04 Nov 2015 13:05:00 -0800 (PST)
+In-Reply-To: <21544300.LSjO3j3Xy7@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Richard W.M. Jones" <rjones@redhat.com>
-Cc: Richard Weinberger <richard.weinberger@gmail.com>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Hajime Tazaki <thehajime@gmail.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: kbuild test robot <lkp@intel.com>, kbuild-all@01.org, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, =?ISO-8859-15?Q?M=E5ns_Rullg=E5rd?= <mans@mansr.com>, rmk+kernel@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Wed, Nov 4, 2015 at 3:50 PM, Richard W.M. Jones <rjones@redhat.com> wrote:
-> On Wed, Nov 04, 2015 at 01:24:03AM +0200, Octavian Purdila wrote:
->> Thanks for the pointers Richard, I am going to take a look at it.
->
-> Now I've had a chance to look at some of the example LKL tools, here's
-> what this actually involves.  It's not actually a great deal of work,
-> it could probably be done in a day or two, but see my question about
-> `lkl_sys_*' below.
->
-> libguestfs (the library part) needs to talk over an RPC connection to
-> its daemon.  See diagram here:
->
-> http://libguestfs.org/guestfs-internals.1.html
->
-> The code in src/launch-{direct,libvirt,uml,...}.c sets up that
-> connection and runs the daemon -- normally inside a qemu wrapper, but
-> it could be inside UML.  For LKL I think it should just fork the
-> daemon directly.
->
-> The daemon would then be linked to LKL.
->
-> So really what's needed is a src/launch-lkl.c probably modelled after
-> one of these current backends:
->
-> https://github.com/libguestfs/libguestfs/blob/master/src/launch-uml.c
-> https://github.com/libguestfs/libguestfs/blob/master/src/launch-unix.c
->
-> and then recompile the daemon to link to LKL:
->
-> https://github.com/libguestfs/libguestfs/tree/master/daemon
->
-> and pass the list of disk images to the daemon, probably best to do
-> that on the guestfsd command line.
->
-> My only problem here: you can't just link to daemon to LKL, do you
-> have to change all of the system calls from `foo' to `lkl_sys_foo'?
-> That's an awful lot of #ifdefs ...
->
+On Tue, 3 Nov 2015, Arnd Bergmann wrote:
 
-We could redefine the syscalls/libc symbols to call lkl_sys_ functions
-in launch-lkl, e.g.:
+> On Tuesday 03 November 2015 13:32:17 kbuild test robot wrote:
+> > 
+> >    net/can/bcm.c: In function 'bcm_proc_show':
+> > >> net/can/bcm.c:223:1: warning: the frame size of 1156 bytes is larger than 1024 bytes [-Wframe-larger-than=]
+> >     }
+> 
+> Interesting, that is a lot of stack for a function that only has a couple
+> of local variables:
+> 
+> #define IFNAMSIZ        16
+>         char ifname[IFNAMSIZ];
+>         struct sock *sk = (struct sock *)m->private;
+>         struct bcm_sock *bo = bcm_sk(sk);
+>         struct bcm_op *op;
+> 
+> 
+> This is a parisc-allyesconfig kernel, so I assume that CONFIG_PROFILE_ALL_BRANCHES
+> is on, which instruments every 'if' in the kernel. If that causes problems,
+> we could decide to disable the do_div optimization whenever CONFIG_PROFILE_ALL_BRANCHES
+> is enabled.
 
-int opendir(const char *path)
-{
-   return lkl_opendir(new_path)
-}
+I have an ARM allyesconfig build here where that function needs a frame 
+of 88 bytes only. And that is with my do_div optimization applied.
+
+With the do_div optimization turned off, the stack frame is still 88 
+bytes.
+
+Turning on CONFIG_PROFILE_ALL_BRANCHES makes the frame size to grow to 
+96 bytes.
+
+Keeping CONFIG_PROFILE_ALL_BRANCHES=y and activating the do_div 
+optimization again, and the function frame size goes back to 88 bytes.
+
+So I wonder what parisc gcc could be doing with this code.
+
+
+Nicolas
