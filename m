@@ -1,74 +1,72 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 2/2] printk: Only unregister boot consoles when
- necessary
-Date: Thu, 5 Nov 2015 03:05:43 -0800
-Message-ID: <20151105030543.84877221.akpm@linux-foundation.org>
-References: <1446107167-7001-1-git-send-email-thierry.reding@gmail.com>
-	<1446107167-7001-2-git-send-email-thierry.reding@gmail.com>
+From: Joerg Roedel <jroedel@suse.de>
+Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute -
+ DMA_ATTR_IOMMU_BYPASS
+Date: Thu, 5 Nov 2015 14:42:06 +0100
+Message-ID: <20151105134206.GD2255@suse.de>
+References: <1445789224-28032-1-git-send-email-shamir.rabinovitch@oracle.com>
+ <1445789224-28032-2-git-send-email-shamir.rabinovitch@oracle.com>
+ <1446013801.3405.183.camel@infradead.org>
+ <20151028111049.GA30785@shamir-ThinkPad-T430>
+ <1446039110.3405.212.camel@infradead.org>
+ <1446078721.1856.49.camel@kernel.crashing.org>
+ <1446079332.3405.273.camel@infradead.org>
+ <20151029073231.GE30785@shamir-ThinkPad-T430>
+ <20151102144427.GA2876@suse.de>
+ <20151102173218.GC12484@shamir-ThinkPad-T430>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:57824 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1031209AbbKELCX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Nov 2015 06:02:23 -0500
-In-Reply-To: <1446107167-7001-2-git-send-email-thierry.reding@gmail.com>
+Received: from mx2.suse.de ([195.135.220.15]:36270 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1161233AbbKENmK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 5 Nov 2015 08:42:10 -0500
+Content-Disposition: inline
+In-Reply-To: <20151102173218.GC12484@shamir-ThinkPad-T430>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thierry Reding <thierry.reding@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Joe Perches <joe@perches.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
+Cc: David Woodhouse <dwmw2@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, arnd@arndb.de, corbet@lwn.net, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Cornelia Huck <cornelia.huck@de.ibm.com>, Sebastian Ott <sebott@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoph Hellwig <hch@lst.de>, KVM <kvm@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>
 
-On Thu, 29 Oct 2015 09:26:07 +0100 Thierry Reding <thierry.reding@gmail.com> wrote:
+On Mon, Nov 02, 2015 at 07:32:19PM +0200, Shamir Rabinovitch wrote:
+> Correct. This issue is one of the concerns here in the previous replies.
+> I will take different approach which will not require the IOMMU bypass
+> per mapping. Will try to shift to the x86 'iommu=pt' approach.
 
-> From: Thierry Reding <treding@nvidia.com>
+Yeah, it doesn't really make sense to have an extra remappable area when
+the device can access all physical memory anyway.
+
+> We had a bunch of issues around SPARC IOMMU. Not all of them relate to
+> performance. The first issue was that on SPARC, currently, we only have 
+> limited address space to IOMMU so we had issue to do large DMA mappings
+> for Infiniband. Second issue was that we identified high contention on 
+> the IOMMU locks even in ETH driver.
+
+Contended IOMMU locks are not only a problem on SPARC, but on x86 and
+various other IOMMU drivers too. But I have some ideas on how to improve
+the situation there.
+
+> I do not want to put too much information here but you can see some results:
 > 
-> Boot consoles are typically replaced by proper consoles during the boot
-> process. This can be problematic if the boot console data is part of the
-> init section that is reclaimed late during boot. If the proper console
-> does not register before this point in time, the boot console will need
-> to be removed (so that the freed memory is not accessed), leaving the
-> system without output for some time.
+> rds-stress test from sparc t5-2 -> x86:
 > 
-> There are various reasons why the proper console may not register early
-> enough, such as deferred probe or the driver being a loadable module. If
-> that happens, there is some amount of time where no console messages are
-> visible to the user, which in turn can mean that they won't see crashes
-> or other potentially useful information.
+> with iommu bypass:
+> ---------------------
+> sparc->x86 cmdline = -r XXX -s XXX -q 256 -a 8192 -T 10 -d 10 -t 3 -o XXX
+> tsks   tx/s   rx/s  tx+rx K/s    mbi K/s    mbo K/s tx us/c   rtt us cpu %
+>    3 141278      0 1165565.81       0.00       0.00    8.93   376.60 -1.00  (average)
 > 
-> To avoid this situation, only remove the boot console when it resides in
-> the init section. Code exists to replace the boot console by the proper
-> console when it is registered, keeping a seamless transition between the
-> boot and proper consoles.
+> without iommu bypass:
+> ---------------------
+> sparc->x86 cmdline = -r XXX -s XXX -q 256 -a 8192 -T 10 -d 10 -t 3 -o XXX
+> tsks   tx/s   rx/s  tx+rx K/s    mbi K/s    mbo K/s tx us/c   rtt us cpu %
+>    3  78558      0  648101.41       0.00       0.00   15.05   876.72 -1.00  (average)
+> 
+> + RDMA tests are totally not working (might be due to failure to DMA map all the memory).
+> 
+> So IOMMU bypass give ~80% performance boost.
 
-OK.
-
-> --- a/kernel/printk/printk.c
-> +++ b/kernel/printk/printk.c
-> @@ -48,6 +48,7 @@
->  #include <linux/uio.h>
->  
->  #include <asm/uaccess.h>
-> +#include <asm-generic/sections.h>
->  
->  #define CREATE_TRACE_POINTS
->  #include <trace/events/printk.h>
-> @@ -2661,7 +2662,8 @@ static int __init printk_late_init(void)
->  
->  	for_each_console(con) {
->  		if (!keep_bootcon && con->flags & CON_BOOT) {
-> -			unregister_console(con);
-> +			if (init_section_contains(con, sizeof(*con)))
-> +				unregister_console(con);
->  		}
-
-It's a bit hacky.  It might be nicer to add a new CON_foo flag
-specifying the treatment but a) there are waaay too many consoles in
-the kernel and b) it's fragile to require every register_console()
-caller to remember to do this, and to maintain the CON_foo as code
-evolves.  So I guess we go with hacky.
+Interesting. Have you looked more closely on what causes the performance
+degradation? Is it the lock contention or something else?
 
 
-There is no way in which a reader can work out why this code is here,
-without forcing them to go off and wrestle with git-blame.  Can we
-please add a comment to save them from this fate?
+	Joerg
