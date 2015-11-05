@@ -1,72 +1,255 @@
-From: Joerg Roedel <jroedel@suse.de>
-Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute -
- DMA_ATTR_IOMMU_BYPASS
-Date: Thu, 5 Nov 2015 14:42:06 +0100
-Message-ID: <20151105134206.GD2255@suse.de>
-References: <1445789224-28032-1-git-send-email-shamir.rabinovitch@oracle.com>
- <1445789224-28032-2-git-send-email-shamir.rabinovitch@oracle.com>
- <1446013801.3405.183.camel@infradead.org>
- <20151028111049.GA30785@shamir-ThinkPad-T430>
- <1446039110.3405.212.camel@infradead.org>
- <1446078721.1856.49.camel@kernel.crashing.org>
- <1446079332.3405.273.camel@infradead.org>
- <20151029073231.GE30785@shamir-ThinkPad-T430>
- <20151102144427.GA2876@suse.de>
- <20151102173218.GC12484@shamir-ThinkPad-T430>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:36270 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1161233AbbKENmK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 5 Nov 2015 08:42:10 -0500
-Content-Disposition: inline
-In-Reply-To: <20151102173218.GC12484@shamir-ThinkPad-T430>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
-Cc: David Woodhouse <dwmw2@infradead.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, arnd@arndb.de, corbet@lwn.net, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, Andy Lutomirski <luto@kernel.org>, Christian Borntraeger <borntraeger@de.ibm.com>, Cornelia Huck <cornelia.huck@de.ibm.com>, Sebastian Ott <sebott@linux.vnet.ibm.com>, Paolo Bonzini <pbonzini@redhat.com>, Christoph Hellwig <hch@lst.de>, KVM <kvm@vger.kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390 <linux-s390@vger.kernel.org>
+From: mhocko@kernel.org
+Subject: [PATCH 2/3] tree wide: get rid of __GFP_REPEAT for small order requests
+Date: Thu,  5 Nov 2015 17:15:59 +0100
+Message-ID: <1446740160-29094-3-git-send-email-mhocko@kernel.org>
+References: <1446740160-29094-1-git-send-email-mhocko@kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1446740160-29094-1-git-send-email-mhocko@kernel.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-mm@kvack.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, LKML <linux-kernel@vger.kernel.org>, Michal Hocko <mhocko@suse.com>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Nov 02, 2015 at 07:32:19PM +0200, Shamir Rabinovitch wrote:
-> Correct. This issue is one of the concerns here in the previous replies.
-> I will take different approach which will not require the IOMMU bypass
-> per mapping. Will try to shift to the x86 'iommu=pt' approach.
+From: Michal Hocko <mhocko@suse.com>
 
-Yeah, it doesn't really make sense to have an extra remappable area when
-the device can access all physical memory anyway.
+__GFP_REPEAT has a rather weak semantic but since it has been introduced
+around 2.6.12 it has been ignored for low order allocations. Yet we have
+users which require this flag even though they are doing order-0 or
+small order allocation in the end:
 
-> We had a bunch of issues around SPARC IOMMU. Not all of them relate to
-> performance. The first issue was that on SPARC, currently, we only have 
-> limited address space to IOMMU so we had issue to do large DMA mappings
-> for Infiniband. Second issue was that we identified high contention on 
-> the IOMMU locks even in ETH driver.
+* arc: pte_alloc_one_kernel uses __get_order_pte but this is obviously
+  always zero because BITS_FOR_PTE is not larger than 9 yet the page
+  size is always larger than 4K
+* arm: hides __GFP_REPEAT behind PGALLOC_GFP but the actual allocations
+  are always order-0. __pgd_alloc is doing order-2 but this is still
+  not costly allocation
+* arm64: does basically the same except it can have PGD_SIZE != PAGE_SIZE
+  so let's keep __GFP_REPEAT explicit there
+* mips, nios2, parisc, score, x86: hide behind PTE_ORDER and PMD_ORDER but
+  both are not larger than 1 and this seems like a copy&paste between
+  arches.
 
-Contended IOMMU locks are not only a problem on SPARC, but on x86 and
-various other IOMMU drivers too. But I have some ideas on how to improve
-the situation there.
+This is really confusing because __GFP_REPEAT is explicitly documented
+to allow allocation failures which is a weaker semantic than the current
+order-0 has (basically nofail).
 
-> I do not want to put too much information here but you can see some results:
-> 
-> rds-stress test from sparc t5-2 -> x86:
-> 
-> with iommu bypass:
-> ---------------------
-> sparc->x86 cmdline = -r XXX -s XXX -q 256 -a 8192 -T 10 -d 10 -t 3 -o XXX
-> tsks   tx/s   rx/s  tx+rx K/s    mbi K/s    mbo K/s tx us/c   rtt us cpu %
->    3 141278      0 1165565.81       0.00       0.00    8.93   376.60 -1.00  (average)
-> 
-> without iommu bypass:
-> ---------------------
-> sparc->x86 cmdline = -r XXX -s XXX -q 256 -a 8192 -T 10 -d 10 -t 3 -o XXX
-> tsks   tx/s   rx/s  tx+rx K/s    mbi K/s    mbo K/s tx us/c   rtt us cpu %
->    3  78558      0  648101.41       0.00       0.00   15.05   876.72 -1.00  (average)
-> 
-> + RDMA tests are totally not working (might be due to failure to DMA map all the memory).
-> 
-> So IOMMU bypass give ~80% performance boost.
+Let's simply reap out __GFP_REPEAT from those places. This would allow
+to identify place which really need allocator to retry harder and
+formulate a more specific semantic for what the flag is supposed to do
+actually.
 
-Interesting. Have you looked more closely on what causes the performance
-degradation? Is it the lock contention or something else?
+Cc: linux-arch@vger.kernel.org
+Signed-off-by: Michal Hocko <mhocko@suse.com>
+---
+ arch/arc/include/asm/pgalloc.h    | 4 ++--
+ arch/arm/include/asm/pgalloc.h    | 2 +-
+ arch/arm/mm/pgd.c                 | 2 +-
+ arch/arm64/include/asm/pgalloc.h  | 2 +-
+ arch/arm64/mm/pgd.c               | 2 +-
+ arch/mips/include/asm/pgalloc.h   | 6 +++---
+ arch/nios2/include/asm/pgalloc.h  | 5 ++---
+ arch/parisc/include/asm/pgalloc.h | 3 +--
+ arch/score/include/asm/pgalloc.h  | 5 ++---
+ arch/x86/kernel/espfix_64.c       | 2 +-
+ arch/x86/mm/pgtable.c             | 2 +-
+ 11 files changed, 16 insertions(+), 19 deletions(-)
 
+diff --git a/arch/arc/include/asm/pgalloc.h b/arch/arc/include/asm/pgalloc.h
+index 86ed671286df..3749234b7419 100644
+--- a/arch/arc/include/asm/pgalloc.h
++++ b/arch/arc/include/asm/pgalloc.h
+@@ -95,7 +95,7 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+ {
+ 	pte_t *pte;
+ 
+-	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO,
++	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_ZERO,
+ 					 __get_order_pte());
+ 
+ 	return pte;
+@@ -107,7 +107,7 @@ pte_alloc_one(struct mm_struct *mm, unsigned long address)
+ 	pgtable_t pte_pg;
+ 	struct page *page;
+ 
+-	pte_pg = (pgtable_t)__get_free_pages(GFP_KERNEL | __GFP_REPEAT, __get_order_pte());
++	pte_pg = (pgtable_t)__get_free_pages(GFP_KERNEL, __get_order_pte());
+ 	if (!pte_pg)
+ 		return 0;
+ 	memzero((void *)pte_pg, PTRS_PER_PTE * sizeof(pte_t));
+diff --git a/arch/arm/include/asm/pgalloc.h b/arch/arm/include/asm/pgalloc.h
+index 20febb368844..b2902a5cd780 100644
+--- a/arch/arm/include/asm/pgalloc.h
++++ b/arch/arm/include/asm/pgalloc.h
+@@ -57,7 +57,7 @@ static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
+ extern pgd_t *pgd_alloc(struct mm_struct *mm);
+ extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
+ 
+-#define PGALLOC_GFP	(GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_ZERO)
++#define PGALLOC_GFP	(GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO)
+ 
+ static inline void clean_pte_table(pte_t *pte)
+ {
+diff --git a/arch/arm/mm/pgd.c b/arch/arm/mm/pgd.c
+index e683db1b90a3..107a2792d0a2 100644
+--- a/arch/arm/mm/pgd.c
++++ b/arch/arm/mm/pgd.c
+@@ -23,7 +23,7 @@
+ #define __pgd_alloc()	kmalloc(PTRS_PER_PGD * sizeof(pgd_t), GFP_KERNEL)
+ #define __pgd_free(pgd)	kfree(pgd)
+ #else
+-#define __pgd_alloc()	(pgd_t *)__get_free_pages(GFP_KERNEL | __GFP_REPEAT, 2)
++#define __pgd_alloc()	(pgd_t *)__get_free_pages(GFP_KERNEL, 2)
+ #define __pgd_free(pgd)	free_pages((unsigned long)pgd, 2)
+ #endif
+ 
+diff --git a/arch/arm64/include/asm/pgalloc.h b/arch/arm64/include/asm/pgalloc.h
+index c15053902942..ea515f74ac02 100644
+--- a/arch/arm64/include/asm/pgalloc.h
++++ b/arch/arm64/include/asm/pgalloc.h
+@@ -26,7 +26,7 @@
+ 
+ #define check_pgt_cache()		do { } while (0)
+ 
+-#define PGALLOC_GFP	(GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_ZERO)
++#define PGALLOC_GFP	(GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO)
+ #define PGD_SIZE	(PTRS_PER_PGD * sizeof(pgd_t))
+ 
+ #if CONFIG_PGTABLE_LEVELS > 2
+diff --git a/arch/arm64/mm/pgd.c b/arch/arm64/mm/pgd.c
+index cb3ba1b812e7..77902d234498 100644
+--- a/arch/arm64/mm/pgd.c
++++ b/arch/arm64/mm/pgd.c
+@@ -35,7 +35,7 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
+ 	if (PGD_SIZE == PAGE_SIZE)
+ 		return (pgd_t *)__get_free_page(PGALLOC_GFP);
+ 	else
+-		return kmem_cache_alloc(pgd_cache, PGALLOC_GFP);
++		return kmem_cache_alloc(pgd_cache, PGALLOC_GFP | __GFP_REPEAT);
+ }
+ 
+ void pgd_free(struct mm_struct *mm, pgd_t *pgd)
+diff --git a/arch/mips/include/asm/pgalloc.h b/arch/mips/include/asm/pgalloc.h
+index b336037e8768..93c079a1cfc8 100644
+--- a/arch/mips/include/asm/pgalloc.h
++++ b/arch/mips/include/asm/pgalloc.h
+@@ -69,7 +69,7 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+ {
+ 	pte_t *pte;
+ 
+-	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO, PTE_ORDER);
++	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_ZERO, PTE_ORDER);
+ 
+ 	return pte;
+ }
+@@ -79,7 +79,7 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
+ {
+ 	struct page *pte;
+ 
+-	pte = alloc_pages(GFP_KERNEL | __GFP_REPEAT, PTE_ORDER);
++	pte = alloc_pages(GFP_KERNEL, PTE_ORDER);
+ 	if (!pte)
+ 		return NULL;
+ 	clear_highpage(pte);
+@@ -113,7 +113,7 @@ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
+ {
+ 	pmd_t *pmd;
+ 
+-	pmd = (pmd_t *) __get_free_pages(GFP_KERNEL|__GFP_REPEAT, PMD_ORDER);
++	pmd = (pmd_t *) __get_free_pages(GFP_KERNEL, PMD_ORDER);
+ 	if (pmd)
+ 		pmd_init((unsigned long)pmd, (unsigned long)invalid_pte_table);
+ 	return pmd;
+diff --git a/arch/nios2/include/asm/pgalloc.h b/arch/nios2/include/asm/pgalloc.h
+index 6e2985e0a7b9..bb47d08c8ef7 100644
+--- a/arch/nios2/include/asm/pgalloc.h
++++ b/arch/nios2/include/asm/pgalloc.h
+@@ -42,8 +42,7 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+ {
+ 	pte_t *pte;
+ 
+-	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO,
+-					PTE_ORDER);
++	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_ZERO, PTE_ORDER);
+ 
+ 	return pte;
+ }
+@@ -53,7 +52,7 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm,
+ {
+ 	struct page *pte;
+ 
+-	pte = alloc_pages(GFP_KERNEL | __GFP_REPEAT, PTE_ORDER);
++	pte = alloc_pages(GFP_KERNEL, PTE_ORDER);
+ 	if (pte) {
+ 		if (!pgtable_page_ctor(pte)) {
+ 			__free_page(pte);
+diff --git a/arch/parisc/include/asm/pgalloc.h b/arch/parisc/include/asm/pgalloc.h
+index b7e4027aac4b..bd388cfd8141 100644
+--- a/arch/parisc/include/asm/pgalloc.h
++++ b/arch/parisc/include/asm/pgalloc.h
+@@ -63,8 +63,7 @@ static inline void pgd_populate(struct mm_struct *mm, pgd_t *pgd, pmd_t *pmd)
+ 
+ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address)
+ {
+-	pmd_t *pmd = (pmd_t *)__get_free_pages(GFP_KERNEL|__GFP_REPEAT,
+-					       PMD_ORDER);
++	pmd_t *pmd = (pmd_t *)__get_free_pages(GFP_KERNEL, PMD_ORDER);
+ 	if (pmd)
+ 		memset(pmd, 0, PAGE_SIZE<<PMD_ORDER);
+ 	return pmd;
+diff --git a/arch/score/include/asm/pgalloc.h b/arch/score/include/asm/pgalloc.h
+index 2e067657db98..49b012d78c1a 100644
+--- a/arch/score/include/asm/pgalloc.h
++++ b/arch/score/include/asm/pgalloc.h
+@@ -42,8 +42,7 @@ static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
+ {
+ 	pte_t *pte;
+ 
+-	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_REPEAT|__GFP_ZERO,
+-					PTE_ORDER);
++	pte = (pte_t *) __get_free_pages(GFP_KERNEL|__GFP_ZERO, PTE_ORDER);
+ 
+ 	return pte;
+ }
+@@ -53,7 +52,7 @@ static inline struct page *pte_alloc_one(struct mm_struct *mm,
+ {
+ 	struct page *pte;
+ 
+-	pte = alloc_pages(GFP_KERNEL | __GFP_REPEAT, PTE_ORDER);
++	pte = alloc_pages(GFP_KERNEL, PTE_ORDER);
+ 	if (!pte)
+ 		return NULL;
+ 	clear_highpage(pte);
+diff --git a/arch/x86/kernel/espfix_64.c b/arch/x86/kernel/espfix_64.c
+index 4d38416e2a7f..04f89caef9c4 100644
+--- a/arch/x86/kernel/espfix_64.c
++++ b/arch/x86/kernel/espfix_64.c
+@@ -57,7 +57,7 @@
+ # error "Need more than one PGD for the ESPFIX hack"
+ #endif
+ 
+-#define PGALLOC_GFP (GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_ZERO)
++#define PGALLOC_GFP (GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO)
+ 
+ /* This contains the *bottom* address of the espfix stack */
+ DEFINE_PER_CPU_READ_MOSTLY(unsigned long, espfix_stack);
+diff --git a/arch/x86/mm/pgtable.c b/arch/x86/mm/pgtable.c
+index f52caf9c519b..bdbb3213f670 100644
+--- a/arch/x86/mm/pgtable.c
++++ b/arch/x86/mm/pgtable.c
+@@ -6,7 +6,7 @@
+ #include <asm/fixmap.h>
+ #include <asm/mtrr.h>
+ 
+-#define PGALLOC_GFP GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_ZERO
++#define PGALLOC_GFP GFP_KERNEL | __GFP_NOTRACK | __GFP_ZERO
+ 
+ #ifdef CONFIG_HIGHPTE
+ #define PGALLOC_USER_GFP __GFP_HIGHMEM
+-- 
+2.6.1
 
-	Joerg
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
