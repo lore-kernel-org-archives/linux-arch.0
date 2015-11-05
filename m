@@ -1,67 +1,420 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from unicorn.mansr.com ([81.2.72.234]:49722 "EHLO unicorn.mansr.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S965372AbbKDVnA convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Nov 2015 16:43:00 -0500
-From: =?iso-8859-1?Q?M=E5ns_Rullg=E5rd?= <mans@mansr.com>
-Subject: Re: [PATCH 2/5] do_div(): generic optimization for constant divisor on 32-bit machines
-References: <201511031333.Yk9ngQZJ%fengguang.wu@intel.com>
-	<21544300.LSjO3j3Xy7@wuerfel>
-	<alpine.LFD.2.20.1511041542130.630@knanqh.ubzr>
-Date: Wed, 04 Nov 2015 21:42:58 +0000
-In-Reply-To: <alpine.LFD.2.20.1511041542130.630@knanqh.ubzr> (Nicolas Pitre's
-	message of "Wed, 4 Nov 2015 16:04:57 -0500 (EST)")
-Message-ID: <yw1xoaf97865.fsf@unicorn.mansr.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:36018 "EHLO
+	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965621AbbKEAvm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Nov 2015 19:51:42 -0500
+From: Amanieu d'Antras <amanieu@gmail.com>
+Subject: [PATCH v2 02/20] compat: Add generic copy_siginfo_{to,from}_user32
+Date: Thu,  5 Nov 2015 00:50:21 +0000
+Message-ID: <1446684640-4112-3-git-send-email-amanieu@gmail.com>
+In-Reply-To: <1446684640-4112-1-git-send-email-amanieu@gmail.com>
+References: <1446684640-4112-1-git-send-email-amanieu@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Pitre <nicolas.pitre@linaro.org>
-Cc: Arnd Bergmann <arnd@arndb.de>, kbuild test robot <lkp@intel.com>, kbuild-all@01.org, Alexey Brodkin <Alexey.Brodkin@synopsys.com>, rmk+kernel@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20151104214258.kbyikTWCV5oO01NG4wOVhr1UjFWVxcJTNbUMISDd_Sw@z>
+To: linux-kernel@vger.kernel.org
+Cc: Oleg Nesterov <oleg@redhat.com>, Amanieu d'Antras <amanieu@gmail.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@ezchip.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
+Message-ID: <20151105005021.6BinWYSqTXABGSInjKxzr0GwHlaB-iYMCV4h52ecG8w@z>
 
-Nicolas Pitre <nicolas.pitre@linaro.org> writes:
+These routines try to match the behavior of native 32-bit kernels
+as closely as possible. They will replace architecture-specific
+versions that are missing support for some fields and have various
+bugs that cause behavior to diverge from that of a 32-bit kernel.
 
-> On Tue, 3 Nov 2015, Arnd Bergmann wrote:
->
->> On Tuesday 03 November 2015 13:32:17 kbuild test robot wrote:
->> > 
->> >    net/can/bcm.c: In function 'bcm_proc_show':
->> > >> net/can/bcm.c:223:1: warning: the frame size of 1156 bytes is larger than 1024 bytes [-Wframe-larger-than=]
->> >     }
->> 
->> Interesting, that is a lot of stack for a function that only has a couple
->> of local variables:
->> 
->> #define IFNAMSIZ        16
->>         char ifname[IFNAMSIZ];
->>         struct sock *sk = (struct sock *)m->private;
->>         struct bcm_sock *bo = bcm_sk(sk);
->>         struct bcm_op *op;
->> 
->> 
->> This is a parisc-allyesconfig kernel, so I assume that CONFIG_PROFILE_ALL_BRANCHES
->> is on, which instruments every 'if' in the kernel. If that causes problems,
->> we could decide to disable the do_div optimization whenever CONFIG_PROFILE_ALL_BRANCHES
->> is enabled.
->
-> I have an ARM allyesconfig build here where that function needs a frame 
-> of 88 bytes only. And that is with my do_div optimization applied.
->
-> With the do_div optimization turned off, the stack frame is still 88 
-> bytes.
->
-> Turning on CONFIG_PROFILE_ALL_BRANCHES makes the frame size to grow to 
-> 96 bytes.
->
-> Keeping CONFIG_PROFILE_ALL_BRANCHES=y and activating the do_div 
-> optimization again, and the function frame size goes back to 88 bytes.
->
-> So I wonder what parisc gcc could be doing with this code.
+The only problematic situation is when sending a si_ptr from a
+32-bit process to a 64-bit process or vice-versa, but this has
+never worked correctly in the past anyways.
 
-I've seen parisc gcc do many strange things.
+One thing to note is that, because the size of the siginfo_t union
+differs between 32-bit and 64-bit systems, we need to stash the
+last 4 bytes of the union in the 4 bytes of padding between the
+64-bit union and the initial 3 siginfo_t members.
 
+Signed-off-by: Amanieu d'Antras <amanieu@gmail.com>
+---
+ arch/arm64/include/asm/compat.h    |   2 +
+ arch/mips/include/asm/compat.h     |   2 +
+ arch/parisc/include/asm/compat.h   |   2 +
+ arch/powerpc/include/asm/compat.h  |   2 +
+ arch/s390/include/asm/compat.h     |   2 +
+ arch/sparc/include/asm/compat.h    |   2 +
+ arch/tile/include/asm/compat.h     |   2 +
+ arch/x86/include/asm/compat.h      |   2 +
+ include/uapi/asm-generic/siginfo.h |   1 +
+ kernel/compat.c                    | 224 +++++++++++++++++++++++++++++++++++++
+ kernel/signal.c                    |  12 +-
+ 11 files changed, 248 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm64/include/asm/compat.h b/arch/arm64/include/asm/compat.h
+index ff4e294..5eae749 100644
+--- a/arch/arm64/include/asm/compat.h
++++ b/arch/arm64/include/asm/compat.h
+@@ -156,6 +156,8 @@ typedef union compat_sigval {
+ } compat_sigval_t;
+ 
+ #define HAVE_ARCH_COMPAT_SIGINFO_T
++#define HAVE_ARCH_COPY_SIGINFO_TO_USER32
++#define HAVE_ARCH_COPY_SIGINFO_FROM_USER32
+ 
+ typedef struct compat_siginfo {
+ 	int si_signo;
+diff --git a/arch/mips/include/asm/compat.h b/arch/mips/include/asm/compat.h
+index 5f1f816..1e5ba38 100644
+--- a/arch/mips/include/asm/compat.h
++++ b/arch/mips/include/asm/compat.h
+@@ -131,6 +131,8 @@ typedef union compat_sigval {
+ } compat_sigval_t;
+ 
+ #define HAVE_ARCH_COMPAT_SIGINFO_T
++#define HAVE_ARCH_COPY_SIGINFO_TO_USER32
++#define HAVE_ARCH_COPY_SIGINFO_FROM_USER32
+ #define SI_PAD_SIZE32	(128/sizeof(int) - 3)
+ 
+ typedef struct compat_siginfo {
+diff --git a/arch/parisc/include/asm/compat.h b/arch/parisc/include/asm/compat.h
+index e0be05f..46a0a8a 100644
+--- a/arch/parisc/include/asm/compat.h
++++ b/arch/parisc/include/asm/compat.h
+@@ -135,6 +135,8 @@ typedef union compat_sigval {
+ } compat_sigval_t;
+ 
+ #define HAVE_ARCH_COMPAT_SIGINFO_T
++#define HAVE_ARCH_COPY_SIGINFO_TO_USER32
++#define HAVE_ARCH_COPY_SIGINFO_FROM_USER32
+ 
+ typedef struct compat_siginfo {
+ 	int si_signo;
+diff --git a/arch/powerpc/include/asm/compat.h b/arch/powerpc/include/asm/compat.h
+index 75b25ff..cdc8638 100644
+--- a/arch/powerpc/include/asm/compat.h
++++ b/arch/powerpc/include/asm/compat.h
+@@ -125,6 +125,8 @@ typedef union compat_sigval {
+ } compat_sigval_t;
+ 
+ #define HAVE_ARCH_COMPAT_SIGINFO_T
++#define HAVE_ARCH_COPY_SIGINFO_TO_USER32
++#define HAVE_ARCH_COPY_SIGINFO_FROM_USER32
+ #define SI_PAD_SIZE32	(128/sizeof(int) - 3)
+ 
+ typedef struct compat_siginfo {
+diff --git a/arch/s390/include/asm/compat.h b/arch/s390/include/asm/compat.h
+index ac73ac7..497af62 100644
+--- a/arch/s390/include/asm/compat.h
++++ b/arch/s390/include/asm/compat.h
+@@ -193,6 +193,8 @@ typedef union compat_sigval {
+ } compat_sigval_t;
+ 
+ #define HAVE_ARCH_COMPAT_SIGINFO_T
++#define HAVE_ARCH_COPY_SIGINFO_TO_USER32
++#define HAVE_ARCH_COPY_SIGINFO_FROM_USER32
+ 
+ typedef struct compat_siginfo {
+ 	int	si_signo;
+diff --git a/arch/sparc/include/asm/compat.h b/arch/sparc/include/asm/compat.h
+index 0c80f59..9357014 100644
+--- a/arch/sparc/include/asm/compat.h
++++ b/arch/sparc/include/asm/compat.h
+@@ -154,6 +154,8 @@ typedef union compat_sigval {
+ } compat_sigval_t;
+ 
+ #define HAVE_ARCH_COMPAT_SIGINFO_T
++#define HAVE_ARCH_COPY_SIGINFO_TO_USER32
++#define HAVE_ARCH_COPY_SIGINFO_FROM_USER32
+ #define SI_PAD_SIZE32	(128/sizeof(int) - 3)
+ 
+ typedef struct compat_siginfo {
+diff --git a/arch/tile/include/asm/compat.h b/arch/tile/include/asm/compat.h
+index f9bba8d..e0c61da 100644
+--- a/arch/tile/include/asm/compat.h
++++ b/arch/tile/include/asm/compat.h
+@@ -116,6 +116,8 @@ typedef union compat_sigval {
+ } compat_sigval_t;
+ 
+ #define HAVE_ARCH_COMPAT_SIGINFO_T
++#define HAVE_ARCH_COPY_SIGINFO_TO_USER32
++#define HAVE_ARCH_COPY_SIGINFO_FROM_USER32
+ #define COMPAT_SI_PAD_SIZE	(128/sizeof(int) - 3)
+ 
+ typedef struct compat_siginfo {
+diff --git a/arch/x86/include/asm/compat.h b/arch/x86/include/asm/compat.h
+index 69176b4..c6b58b1 100644
+--- a/arch/x86/include/asm/compat.h
++++ b/arch/x86/include/asm/compat.h
+@@ -131,6 +131,8 @@ typedef union compat_sigval {
+ } compat_sigval_t;
+ 
+ #define HAVE_ARCH_COMPAT_SIGINFO_T
++#define HAVE_ARCH_COPY_SIGINFO_TO_USER32
++#define HAVE_ARCH_COPY_SIGINFO_FROM_USER32
+ 
+ typedef struct compat_siginfo {
+ 	int si_signo;
+diff --git a/include/uapi/asm-generic/siginfo.h b/include/uapi/asm-generic/siginfo.h
+index 1e35520..cc8d95e 100644
+--- a/include/uapi/asm-generic/siginfo.h
++++ b/include/uapi/asm-generic/siginfo.h
+@@ -49,6 +49,7 @@ typedef struct siginfo {
+ 	int si_signo;
+ 	int si_errno;
+ 	int si_code;
++	int _pad2[__ARCH_SI_PREAMBLE_SIZE / sizeof(int) - 3];
+ 
+ 	union {
+ 		int _pad[SI_PAD_SIZE];
+diff --git a/kernel/compat.c b/kernel/compat.c
+index 333d364..644da25 100644
+--- a/kernel/compat.c
++++ b/kernel/compat.c
+@@ -1174,3 +1174,227 @@ void __user *compat_alloc_user_space(unsigned long len)
+ 	return ptr;
+ }
+ EXPORT_SYMBOL_GPL(compat_alloc_user_space);
++
++#ifndef HAVE_ARCH_COPY_SIGINFO_TO_USER32
++int copy_siginfo_to_user32(compat_siginfo_t __user *to, const siginfo_t *from)
++{
++	int err, si_code;
++
++	if (!access_ok(VERIFY_WRITE, to, sizeof(compat_siginfo_t)))
++		return -EFAULT;
++
++	/*
++	 * Get the user-visible si_code by hiding the top 16 bits if this is a
++	 * kernel-generated signal.
++	 */
++	si_code = from->si_code < 0 ? from->si_code : (short)from->si_code;
++
++	/*
++	 * If you change siginfo_t structure, please be sure that
++	 * all these functions are fixed accordingly:
++	 * copy_siginfo_to_user
++	 * copy_siginfo_to_user32
++	 * copy_siginfo_from_user32
++	 * signalfd_copyinfo
++	 * They should never copy any pad contained in the structure
++	 * to avoid security leaks, but must copy the generic
++	 * 3 ints plus the relevant union member.
++	 */
++	err = __put_user(from->si_signo, &to->si_signo);
++	err |= __put_user(from->si_errno, &to->si_errno);
++	err |= __put_user(si_code, &to->si_code);
++	if (from->si_code < 0) {
++		/*
++		 * Copy the tail bytes of the union from the padding, see the
++		 * comment in copy_siginfo_from_user32. Note that this padding
++		 * is always initialized when si_code < 0.
++		 */
++		BUILD_BUG_ON(sizeof(to->_sifields._pad) !=
++			sizeof(from->_sifields._pad) + sizeof(from->_pad2));
++		err |= __copy_to_user(to->_sifields._pad, from->_sifields._pad,
++			sizeof(from->_sifields._pad)) ? -EFAULT : 0;
++		err |= __copy_to_user(to->_sifields._pad + SI_PAD_SIZE,
++			from->_pad2, sizeof(from->_pad2)) ? -EFAULT : 0;
++		return err;
++	}
++	switch (from->si_code & __SI_MASK) {
++	case __SI_KILL:
++		err |= __put_user(from->si_pid, &to->si_pid);
++		err |= __put_user(from->si_uid, &to->si_uid);
++		break;
++	case __SI_TIMER:
++		err |= __put_user(from->si_tid, &to->si_tid);
++		err |= __put_user(from->si_overrun, &to->si_overrun);
++		/*
++		 * Get the sigval from si_int, which matches the convention
++		 * used in get_compat_sigevent.
++		 */
++		err |= __put_user(from->si_int, &to->si_int);
++		break;
++	case __SI_POLL:
++		err |= __put_user(from->si_band, &to->si_band);
++		err |= __put_user(from->si_fd, &to->si_fd);
++		break;
++	case __SI_FAULT:
++		err |= __put_user(ptr_to_compat(from->si_addr), &to->si_addr);
++#ifdef __ARCH_SI_TRAPNO
++		err |= __put_user(from->si_trapno, &to->si_trapno);
++#endif
++#ifdef BUS_MCEERR_AO
++		/*
++		 * Other callers might not initialize the si_lsb field,
++		 * so check explicitly for the right codes here.
++		 */
++		if (from->si_signo == SIGBUS &&
++		    (from->si_code == BUS_MCEERR_AR ||
++		     from->si_code == BUS_MCEERR_AO))
++			err |= __put_user(from->si_addr_lsb, &to->si_addr_lsb);
++#endif
++#ifdef SEGV_BNDERR
++		if (from->si_signo == SIGSEGV && from->si_code == SEGV_BNDERR) {
++			err |= __put_user(ptr_to_compat(from->si_lower),
++				&to->si_lower);
++			err |= __put_user(ptr_to_compat(from->si_upper),
++				&to->si_upper);
++		}
++#endif
++		break;
++	case __SI_CHLD:
++		err |= __put_user(from->si_pid, &to->si_pid);
++		err |= __put_user(from->si_uid, &to->si_uid);
++		err |= __put_user(from->si_status, &to->si_status);
++		err |= __put_user(from->si_utime, &to->si_utime);
++		err |= __put_user(from->si_stime, &to->si_stime);
++		break;
++	case __SI_RT: /* This is not generated by the kernel as of now. */
++	case __SI_MESGQ: /* But this is */
++		err |= __put_user(from->si_pid, &to->si_pid);
++		err |= __put_user(from->si_uid, &to->si_uid);
++		/*
++		 * Get the sigval from si_int, which matches the convention
++		 * used in get_compat_sigevent.
++		 */
++		err |= __put_user(from->si_int, &to->si_int);
++		break;
++#ifdef __ARCH_SIGSYS
++	case __SI_SYS:
++		err |= __put_user(ptr_to_compat(from->si_call_addr),
++			&to->si_call_addr);
++		err |= __put_user(from->si_syscall, &to->si_syscall);
++		err |= __put_user(from->si_arch, &to->si_arch);
++		break;
++#endif
++	default: /* this is just in case for now ... */
++		err |= __put_user(from->si_pid, &to->si_pid);
++		err |= __put_user(from->si_uid, &to->si_uid);
++		break;
++	}
++	return err;
++}
++#endif
++
++#ifndef HAVE_ARCH_COPY_SIGINFO_FROM_USER32
++int copy_siginfo_from_user32(siginfo_t *to, compat_siginfo_t __user *from)
++{
++	int err;
++	compat_uptr_t ptr32;
++
++	if (!access_ok(VERIFY_READ, from, sizeof(compat_siginfo_t)))
++		return -EFAULT;
++
++	/*
++	 * If you change siginfo_t structure, please be sure that
++	 * all these functions are fixed accordingly:
++	 * copy_siginfo_to_user
++	 * copy_siginfo_to_user32
++	 * copy_siginfo_from_user32
++	 * signalfd_copyinfo
++	 * They should never copy any pad contained in the structure
++	 * to avoid security leaks, but must copy the generic
++	 * 3 ints plus the relevant union member.
++	 */
++	err = __get_user(to->si_signo, &from->si_signo);
++	err |= __get_user(to->si_errno, &from->si_errno);
++	err |= __get_user(to->si_code, &from->si_code);
++	if (to->si_code < 0) {
++		/*
++		 * Note that the compat union may be larger than the normal one
++		 * due to alignment. We work around this by copying any data
++		 * that doesn't fit in the normal union into the padding before
++		 * the union.
++		 */
++		BUILD_BUG_ON(sizeof(to->_sifields._pad) + sizeof(to->_pad2) !=
++			sizeof(from->_sifields._pad));
++		err |= __copy_from_user(to->_sifields._pad,
++			from->_sifields._pad,
++			sizeof(to->_sifields._pad)) ? -EFAULT : 0;
++		err |= __copy_from_user(to->_pad2,
++			from->_sifields._pad + SI_PAD_SIZE, sizeof(to->_pad2))
++			? -EFAULT : 0;
++		return err;
++	}
++	switch (to->si_code & __SI_MASK) {
++	case __SI_KILL:
++		err |= __get_user(to->si_pid, &from->si_pid);
++		err |= __get_user(to->si_uid, &from->si_uid);
++		break;
++	case __SI_TIMER:
++		err |= __get_user(to->si_tid, &from->si_tid);
++		err |= __get_user(to->si_overrun, &from->si_overrun);
++		/*
++		 * Put the sigval in si_int, which matches the convention
++		 * used in get_compat_sigevent.
++		 */
++		to->si_ptr = NULL; /* Avoid uninitialized bits in the union */
++		err |= __get_user(to->si_int, &from->si_int);
++		break;
++	case __SI_POLL:
++		err |= __get_user(to->si_band, &from->si_band);
++		err |= __get_user(to->si_fd, &from->si_fd);
++		break;
++	case __SI_FAULT:
++		err |= __get_user(ptr32, &from->si_addr);
++		to->si_addr = compat_ptr(ptr32);
++#ifdef __ARCH_SI_TRAPNO
++		err |= __get_user(to->si_trapno, &from->si_trapno);
++#endif
++		err |= __get_user(to->si_addr_lsb, &from->si_addr_lsb);
++		err |= __get_user(ptr32, &from->si_lower);
++		to->si_lower = compat_ptr(ptr32);
++		err |= __get_user(ptr32, &from->si_upper);
++		to->si_upper = compat_ptr(ptr32);
++		break;
++	case __SI_CHLD:
++		err |= __get_user(to->si_pid, &from->si_pid);
++		err |= __get_user(to->si_uid, &from->si_uid);
++		err |= __get_user(to->si_status, &from->si_status);
++		err |= __get_user(to->si_utime, &from->si_utime);
++		err |= __get_user(to->si_stime, &from->si_stime);
++		break;
++	case __SI_RT: /* This is not generated by the kernel as of now. */
++	case __SI_MESGQ: /* But this is */
++		err |= __get_user(to->si_pid, &from->si_pid);
++		err |= __get_user(to->si_uid, &from->si_uid);
++		/*
++		 * Put the sigval in si_int, which matches the convention
++		 * used in get_compat_sigevent.
++		 */
++		to->si_ptr = NULL; /* Avoid uninitialized bits in the union */
++		err |= __get_user(to->si_int, &from->si_int);
++		break;
++#ifdef __ARCH_SIGSYS
++	case __SI_SYS:
++		err |= __get_user(ptr32, &from->si_call_addr);
++		to->si_call_addr = compat_ptr(ptr32);
++		err |= __get_user(to->si_syscall, &from->si_syscall);
++		err |= __get_user(to->si_arch, &from->si_arch);
++		break;
++#endif
++	default: /* this is just in case for now ... */
++		err |= __get_user(to->si_pid, &from->si_pid);
++		err |= __get_user(to->si_uid, &from->si_uid);
++		break;
++	}
++	return err;
++}
++#endif
+diff --git a/kernel/signal.c b/kernel/signal.c
+index 0f6bbbe..873e8e2 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -2713,11 +2713,13 @@ int copy_siginfo_to_user(siginfo_t __user *to, const siginfo_t *from)
+ 		return __copy_to_user(to, from, sizeof(siginfo_t))
+ 			? -EFAULT : 0;
+ 	/*
+-	 * If you change siginfo_t structure, please be sure
+-	 * this code is fixed accordingly.
+-	 * Please remember to update the signalfd_copyinfo() function
+-	 * inside fs/signalfd.c too, in case siginfo_t changes.
+-	 * It should never copy any pad contained in the structure
++	 * If you change siginfo_t structure, please be sure that
++	 * all these functions are fixed accordingly:
++	 * copy_siginfo_to_user
++	 * copy_siginfo_to_user32
++	 * copy_siginfo_from_user32
++	 * signalfd_copyinfo
++	 * They should never copy any pad contained in the structure
+ 	 * to avoid security leaks, but must copy the generic
+ 	 * 3 ints plus the relevant union member.
+ 	 */
 -- 
-Måns Rullgård
-mans@mansr.com
+2.6.2
+
