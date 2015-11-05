@@ -1,91 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f44.google.com ([74.125.82.44]:33334 "EHLO
-	mail-wm0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S964795AbbKEAvj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Nov 2015 19:51:39 -0500
-From: Amanieu d'Antras <amanieu@gmail.com>
-Subject: [PATCH v2 00/20] Fix handling of compat_siginfo_t
-Date: Thu,  5 Nov 2015 00:50:19 +0000
-Message-ID: <1446684640-4112-1-git-send-email-amanieu@gmail.com>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:57526 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1032102AbbKEK7B (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Nov 2015 05:59:01 -0500
+Date: Thu, 5 Nov 2015 03:02:21 -0800
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 1/2] asm/sections: Add helpers to check for section data
+Message-ID: <20151105030221.68b7e98c.akpm@linux-foundation.org>
+In-Reply-To: <1446107167-7001-1-git-send-email-thierry.reding@gmail.com>
+References: <1446107167-7001-1-git-send-email-thierry.reding@gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Oleg Nesterov <oleg@redhat.com>, Amanieu d'Antras <amanieu@gmail.com>, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kernel.org
-Message-ID: <20151105005019.gc1kq_q_bitJ36--RdZGmt0CJDVPauLfNx9xx6fOF3k@z>
+To: Thierry Reding <thierry.reding@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Joe Perches <joe@perches.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20151105110221.SJDhSiM4JwEYlBKW893u7dLfBooV9_2boBei2JBkB4Q@z>
 
-The current handling of compat_siginfo_t is a mess: each architecture has its
-own implementation, all of which are incorrect in different ways. This patch
-series replaces all of the arch-specific versions with a single generic one that
-is guaranteed to produce the same results as a 32-bit kernel.
+On Thu, 29 Oct 2015 09:26:06 +0100 Thierry Reding <thierry.reding@gmail.com> wrote:
 
-Most architectures are able to use the generic compat_siginfo_t, except x86 and
-MIPS. MIPS uses a slightly different compat_siginfo_t structure for ABI reasons
-but can still use the generic copy_siginfo_{to,from}_user32. x86 can't use the
-generic versions because it needs special handling for __SI_CHLD for x32 tasks.
+> From: Thierry Reding <treding@nvidia.com>
+> 
+> Add a helper to check if an object (given an address and a size) is part
+> of a section (given beginning and end addresses). For convenience, also
+> provide a helper that performs this check for __init data using the
+> __init_begin and __init_end limits.
+> 
+> ...
+>
+> --- a/include/asm-generic/sections.h
+> +++ b/include/asm-generic/sections.h
+> @@ -63,4 +63,15 @@ static inline int arch_is_kernel_data(unsigned long addr)
+>  }
+>  #endif
+>  
+> +static inline bool section_contains(void *virt, size_t size, void *begin,
+> +				    void *end)
+> +{
+> +	return virt >= begin && virt + size <= end;
+> +}
 
-One issue that isn't resolved in this series is sending signals between a 32-bit
-process and 64-bit process. Sending a si_int will work correctly, but a si_ptr
-value will likely get corrupted due to the different layouts of the 32-bit and
-64-bit siginfo_t structures.
+This is ambiguous: does it return true if the object is wholly within
+the region, or if it is only partially within the region.  A code
+comment will help.  Something like
 
-signalfd_copyinfo was also modified to properly generate data for compat tasks.
-In particular the ssi_ptr and ssi_data members need to be sign-extended to 64
-bits rather than zero-extended, since that is the behavior in 32-bit kernels.
+/*
+ * Return true if the region described by [virt, virt+size) is wholly contained
+ * within the region described by [begin, end).
+ */
 
-This series has been tested on x86_64 and arm64.
 
-Changes since v1:
-- Properly copy padding bytes and avoid leaking uninitialized data to userspace
-- Fixed compile errors on mips and powerpc
-- Fixed some compiler warnings
-- Fixed some formatting issues
+Which makes me wonder whether this function should in fact do
+"partially within".  Shrug, doesn't matter much I guess.
 
-Amanieu d'Antras (20):
-  compat: Add generic compat_siginfo_t
-  compat: Add generic copy_siginfo_{to,from}_user32
-  x86: Update compat_siginfo_t to be closer to the generic version
-  x86: Rewrite copy_siginfo_{to,from}_user32
-  mips: Clean up compat_siginfo_t
-  mips: Use generic copy_siginfo_{to,from}_user32
-  arm64: Use generic compat_siginfo_t
-  arm64: Use generic copy_siginfo_{to,from}_user32
-  parisc: Use generic compat_siginfo_t
-  parsic: Use generic copy_siginfo_{to,from}_user32
-  s390: Use generic compat_siginfo_t
-  s390: Use generic copy_siginfo_{to,from}_user32
-  powerpc: Use generic compat_siginfo_t
-  powerpc: Use generic copy_siginfo_{to,from}_user32
-  tile: Use generic compat_siginfo_t
-  tile: Use generic copy_siginfo_{to,from}_user32
-  sparc: Use generic compat_siginfo_t
-  sparc: Use generic copy_siginfo_{to,from}_user32
-  signalfd: Fix some issues in signalfd_copyinfo
-  signal: Remove unnecessary zero-initialization of siginfo_t
-
- arch/arm64/include/asm/compat.h    |  59 --------
- arch/arm64/kernel/signal32.c       |  85 -----------
- arch/mips/include/asm/compat.h     |  63 ++++----
- arch/mips/kernel/signal32.c        |  62 --------
- arch/parisc/include/asm/compat.h   |  52 -------
- arch/parisc/kernel/signal32.c      | 102 -------------
- arch/powerpc/include/asm/compat.h  |  60 --------
- arch/powerpc/kernel/signal_32.c    |  72 +---------
- arch/s390/include/asm/compat.h     |  51 -------
- arch/s390/kernel/compat_signal.c   | 102 -------------
- arch/sparc/include/asm/compat.h    |  54 -------
- arch/sparc/kernel/signal32.c       |  69 ---------
- arch/tile/include/asm/compat.h     |  57 --------
- arch/tile/kernel/compat_signal.c   |  75 ----------
- arch/x86/include/asm/compat.h      |  39 +++--
- arch/x86/kernel/signal_compat.c    | 285 ++++++++++++++++++++++++++++---------
- fs/signalfd.c                      |  58 +++++---
- include/linux/compat.h             |  66 ++++++++-
- include/uapi/asm-generic/siginfo.h |   1 +
- kernel/compat.c                    | 224 +++++++++++++++++++++++++++++
- kernel/ptrace.c                    |   1 -
- kernel/signal.c                    |  16 ++-
- 22 files changed, 615 insertions(+), 1038 deletions(-)
-
--- 
-2.6.2
 
