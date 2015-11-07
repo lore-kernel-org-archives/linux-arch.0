@@ -1,47 +1,57 @@
-From: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>
-Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute -
- DMA_ATTR_IOMMU_BYPASS
-Date: Sat, 7 Nov 2015 17:06:42 +0200
-Message-ID: <20151107150642.GA4405@shamir-ThinkPad-T430>
-References: <20151102144427.GA2876@suse.de>
- <20151102173218.GC12484@shamir-ThinkPad-T430>
- <20151105134206.GD2255@suse.de>
- <20151105.161121.188431695871972310.davem@davemloft.net>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC PATCH 21/28] lkl tools: host lib: posix host operations
+Date: Sun, 08 Nov 2015 00:16:40 +0100
+Message-ID: <42449799.QsmXDGnQ4P@wuerfel>
+References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com> <1446582059-17355-22-git-send-email-octavian.purdila@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from aserp1040.oracle.com ([141.146.126.69]:27173 "EHLO
-	aserp1040.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750856AbbKGPHn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 Nov 2015 10:07:43 -0500
-Content-Disposition: inline
-In-Reply-To: <20151105.161121.188431695871972310.davem@davemloft.net>
+Received: from mout.kundenserver.de ([212.227.17.13]:58970 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933091AbbKGXQu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 Nov 2015 18:16:50 -0500
+In-Reply-To: <1446582059-17355-22-git-send-email-octavian.purdila@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: jroedel@suse.de, dwmw2@infradead.org, benh@kernel.crashing.org, arnd@arndb.de, corbet@lwn.net, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, luto@kernel.org, borntraeger@de.ibm.com, cornelia.huck@de.ibm.com, sebott@linux.vnet.ibm.com, pbonzini@redhat.com, hch@lst.de, kvm@vger.kernel.org, schwidefsky@de.ibm.com, linux-s390@vger.kernel.org
+To: Octavian Purdila <octavian.purdila@intel.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, thehajime@gmail.com
 
-On Thu, Nov 05, 2015 at 04:11:21PM -0500, David Miller wrote:
-> 
-> And for the record Sowmini fixed a lot of the lock contention:
-> 
-> commit ff7d37a502022149655c18035b99a53391be0383
-> Author: Sowmini Varadhan <sowmini.varadhan@oracle.com>
-> Date:   Thu Apr 9 15:33:30 2015 -0400
-> 
->     Break up monolithic iommu table/lock into finer graularity pools and lock
->     
+On Tuesday 03 November 2015 22:20:52 Octavian Purdila wrote:
+> +struct pthread_sem {
+> +	pthread_mutex_t lock;
+> +	int count;
+> +	pthread_cond_t cond;
+> +};
+> +
+> +static void *sem_alloc(int count)
+> +{
+> +	struct pthread_sem *sem;
+> +
+> +	sem = malloc(sizeof(*sem));
+> +	if (!sem)
+> +		return NULL;
+> +
+> +	pthread_mutex_init(&sem->lock, NULL);
+> +	sem->count = count;
+> +	pthread_cond_init(&sem->cond, NULL);
+> +
+> +	return sem;
+> +}
 
-The poor rds-stress results w/o IOMMU bypass I sent in early post were taken from
-kernel that has the above patch and that has all the needed changes in arch/sparc
-to use this new feature.
+What is the reason to have generalized semaphores in the
+host API rather than a simple mutex?
 
-It seems that it worked well for 10G ETH IOMMU lock contention but it still not solving
-the rds-stress issue.
+> +static unsigned long long time_ns(void)
+> +{
+> +	struct timeval tv;
+> +
+> +	gettimeofday(&tv, NULL);
+> +
+> +	return tv.tv_sec * 1000000000ULL + tv.tv_usec * 1000ULL;
+> +}
 
-The difference can be from:
+clock_gettime() has been around since POSIX.1-2001 and provides the
+nanosecond resolution you use in the interface.
 
-1. Lock contention still left with this enhancement <-- zero in bypass
-2. Overhead to setup the IOMMU mapping <-- almost zero in bypass (require 1 HV call)
-3. Overhead to use the IOMMU mapping <-- not sure how to measure this
-4. Overhead to tear the IOMMU mapping <-- zero in bypass 
+	Arnd
