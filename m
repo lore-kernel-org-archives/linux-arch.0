@@ -1,92 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.131]:62336 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755516AbbKFQ6H (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Nov 2015 11:58:07 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [GIT PULL] asm-generic cleanups
-Date: Fri, 06 Nov 2015 17:57:38 +0100
-Message-ID: <33040668.avNmVjd66u@wuerfel>
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Received: from mail-pa0-f54.google.com ([209.85.220.54]:35931 "EHLO
+	mail-pa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750983AbbKGGoJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 Nov 2015 01:44:09 -0500
+Received: by pacdm15 with SMTP id dm15so120236700pac.3
+        for <linux-arch@vger.kernel.org>; Fri, 06 Nov 2015 22:44:08 -0800 (PST)
+Message-ID: <563d9db7.6293420a.cdda3.ffffa5c8@mx.google.com>
+Date: Fri, 06 Nov 2015 22:44:07 -0800 (PST)
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: Re: [PATCH 09/13] Move bp_type_idx to kernel/event/hw_breakpoint.c
+In-Reply-To: <20151104122151.GB11639@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org, Christoph Hellwig <hch@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20151106165738.I4H8w12IYyQ4ftOuyT37Cevd2KU8RqPjb3-0yx0948s@z>
+To: peterz@infradead.org
+Cc: arnd@arndb.de, dhowells@redhat.com, viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org
+Message-ID: <20151107064407.ChmYQl3_5EBreIvl_5JmewHY-ybX_asUJMkGFaCDJlY@z>
 
-The following changes since commit 049e6dde7e57f0054fdc49102e7ef4830c698b46:
+On Wed, 04 Nov 2015 04:21:51 PST (-0800), peterz@infradead.org wrote:
+> On Wed, Nov 04, 2015 at 12:41:06PM +0100, Peter Zijlstra wrote:
+>> On Tue, Nov 03, 2015 at 11:46:30AM -0800, Palmer Dabbelt wrote:
+>> > This has a "#ifdef CONFIG_*" that used to be exposed to userspace.
+>> >
+>> > The names in here are so generic that I don't think it's a good idea
+>> > to expose them to userspace (or even the rest of the kernel).  Since
+>> > there's only one kernel user, it's been moved to that file.
+>> >
+>> > Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+>> > Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
+>> > Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
+>>
+>> Assuming you want to keep all these patches together in a tree or so.
+>> Let me know if you want me to take this patch.
 
-  Linux 4.3-rc4 (2015-10-04 16:57:17 +0100)
+Well, the plan was to try to get the whole patch set all upstream together.
+I'd prefer that, because it'll be easier to make sure everything gets in before
+the last checker patch.  Since it touches so many different places I'd be OK
+with doing it peicemeal.
 
-are available in the git repository at:
+I'm kind of new to this whole process: do you think someone is likely to take
+this patch set all together?
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic-for-linus
+>> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+>
+> Ah, build-bot finds your change is broken and you didn't grep right. It
+> is used in more places.
 
-for you to fetch changes up to 4008cb3ad223e39273b9cdfa578d04861b197c86:
+Sorry about that, I must have mis-grep'd.  I guess that's what the build-bot is
+for :).
 
-  asm-generic: temporarily add back asm-generic/io-64-nonatomic*.h (2015-10-16 12:08:53 +0200)
+> How about moving it to include/linux/hw_breakpoint.h, instead of having
+> it in the uapi crud?
 
-----------------------------------------------------------------
-asm-generic cleanups
+Yep, that makes sense.
 
-The asm-generic changes for 4.4 are mostly a series from Christoph Hellwig
-to clean up various abuses of headers in there. The patch to rename the
-io-64-nonatomic-*.h headers caused some conflicts with new users, so I
-added a workaround that we can remove in the next merge window.
-
-The only other patch is a warning fix from Marek Vasut
-
-----------------------------------------------------------------
-Arnd Bergmann (1):
-      asm-generic: temporarily add back asm-generic/io-64-nonatomic*.h
-
-Christoph Hellwig (8):
-      move io-64-nonatomic*.h out of asm-generic
-      move count_zeroes.h out of asm-generic
-      drbd: stop including <asm-generic/kmap_types.h>
-      hifn_795x: stop including <asm-generic/kmap_types.h>
-      mlx5: stop including <asm-generic/kmap_types.h>
-      n_tracerouter: stop including <asm-generic/bug>
-      n_tracesink: stop including <asm-generic/bug>
-      gpio-mxc: stop including <asm-generic/bug>
-
-Marek Vasut (1):
-      asm-generic: cmpxchg: avoid warnings from macro-ized cmpxchg() implementations
-
- drivers/acpi/nfit.c                                |  2 +-
- drivers/acpi/osl.c                                 |  2 +-
- drivers/block/drbd/drbd_bitmap.c                   |  2 +-
- drivers/block/nvme-core.c                          |  2 +-
- drivers/crypto/hifn_795x.c                         |  2 --
- drivers/edac/i3200_edac.c                          |  2 +-
- drivers/edac/ie31200_edac.c                        |  2 +-
- drivers/edac/x38_edac.c                            |  2 +-
- drivers/gpio/gpio-mxc.c                            |  2 +-
- drivers/i2c/busses/i2c-ismt.c                      |  2 +-
- drivers/infiniband/hw/mlx5/main.c                  |  2 +-
- drivers/net/ethernet/intel/i40e/i40e_osdep.h       |  2 +-
- drivers/net/ethernet/intel/i40evf/i40e_osdep.h     |  2 +-
- drivers/net/ethernet/mellanox/mlx5/core/cmd.c      |  2 +-
- drivers/net/ethernet/mellanox/mlx5/core/main.c     |  2 +-
- .../net/ethernet/mellanox/mlx5/core/pagealloc.c    |  2 +-
- drivers/net/ethernet/rocker/rocker.c               |  2 +-
- drivers/platform/x86/ibm_rtl.c                     |  2 +-
- drivers/platform/x86/intel_ips.c                   |  2 +-
- drivers/scsi/qla4xxx/ql4_nx.c                      |  2 +-
- drivers/tty/n_tracerouter.c                        |  2 +-
- drivers/tty/n_tracesink.c                          |  2 +-
- include/asm-generic/cmpxchg.h                      | 11 ++++---
- include/asm-generic/io-64-nonatomic-hi-lo.h        | 34 ++--------------------
- include/asm-generic/io-64-nonatomic-lo-hi.h        | 34 ++--------------------
- .../{asm-generic/bitops => linux}/count_zeros.h    |  6 ++--
- include/linux/io-64-nonatomic-hi-lo.h              | 32 ++++++++++++++++++++
- include/linux/io-64-nonatomic-lo-hi.h              | 32 ++++++++++++++++++++
- lib/mpi/longlong.h                                 |  2 +-
- lib/mpi/mpicoder.c                                 |  2 +-
- 30 files changed, 101 insertions(+), 96 deletions(-)
- rename include/{asm-generic/bitops => linux}/count_zeros.h (92%)
- create mode 100644 include/linux/io-64-nonatomic-hi-lo.h
- create mode 100644 include/linux/io-64-nonatomic-lo-hi.h
-
+I'm going to re-submit a v5 of this patch set, since there was also a missing
+patch for blackfin that the buildbot found.
