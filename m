@@ -1,44 +1,51 @@
-From: "Richard W.M. Jones" <rjones@redhat.com>
-Subject: Re: [RFC PATCH 00/28] Linux Kernel Library
-Date: Sat, 7 Nov 2015 10:48:06 +0000
-Message-ID: <20151107104806.GV29330@redhat.com>
+From: Richard Weinberger <richard.weinberger@gmail.com>
+Subject: Re: [RFC PATCH 19/28] lkl tools: host lib: virtio block device
+Date: Sat, 7 Nov 2015 13:24:03 +0100
+Message-ID: <CAFLxGvyS3Ru4Pu2WV9ssSTOQRRi4GLs9uGs=-7_8WJh5FVbdeg@mail.gmail.com>
 References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
- <CAFLxGvzZozV0rDpY_VcQaFH+dx_+tHGyEy+22kgL=wdS5pSqCw@mail.gmail.com>
- <20151103224545.GI29330@redhat.com>
- <CAE1zotKa5B4xW5dzbrkGFcf7=ZTyVRLjvxnHtXV2nUzZ8HW_0g@mail.gmail.com>
- <20151104135015.GN29330@redhat.com>
- <CAE1zotLMxGH1BWXg6JRSs9HD=Wfhee9OSsaufUjmxQXsTRqs=Q@mail.gmail.com>
- <563D4758.9080507@nod.at>
+	<1446582059-17355-20-git-send-email-octavian.purdila@intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:38519 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752085AbbKGKsI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 7 Nov 2015 05:48:08 -0500
-Content-Disposition: inline
-In-Reply-To: <563D4758.9080507@nod.at>
+Received: from mail-oi0-f42.google.com ([209.85.218.42]:36147 "EHLO
+	mail-oi0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751378AbbKGMYE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 Nov 2015 07:24:04 -0500
+In-Reply-To: <1446582059-17355-20-git-send-email-octavian.purdila@intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
-Cc: Octavian Purdila <octavian.purdila@intel.com>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Hajime Tazaki <thehajime@gmail.com>
+To: Octavian Purdila <octavian.purdila@intel.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, thehajime@gmail.com, Anton Ivanov <anton.ivanov@kot-begemot.co.uk>
 
+On Tue, Nov 3, 2015 at 9:20 PM, Octavian Purdila
+<octavian.purdila@intel.com> wrote:
+> Host independent implementation for virtio block devices. The host
+> dependent part of the host library must provide an implementation for
+> lkl_dev_block_ops.
+>
+> Disks can be added to the LKL configuration via lkl_disk_add(), a new
+> LKL application API.
+>
+> Signed-off-by: Octavian Purdila <octavian.purdila@intel.com>
+> ---
+>  tools/lkl/include/lkl.h      |  20 ++++++++
+>  tools/lkl/include/lkl_host.h |  21 ++++++++
+>  tools/lkl/lib/virtio_blk.c   | 116 +++++++++++++++++++++++++++++++++++++++++++
+>  3 files changed, 157 insertions(+)
+>  create mode 100644 tools/lkl/lib/virtio_blk.c
 
-I just pushed a (very early) WIP branch that contains changes to
-libguestfs to add an LKL backend:
+Can you please outline what the differences between this driver and
+UML's block driver are?
 
-  https://github.com/rwmjones/libguestfs/tree/lkl
-
-Read the README file in the libguestfs sources before starting,
-followed by the instructions in the commit message:
-
-  https://github.com/rwmjones/libguestfs/commit/e38525f0b984d0a426f3348d95f2033673d4eaa4
-
-Rich.
+While UML and LKL have different goals they could at least share some drivers.
+UML also has networking drivers you could reuse.
+Maybe it would make sense to integrate LKL completely into arch/um if
+we find a nice way
+to combine them.
+CONFIG_UML_LIBRARY, hmm?
+Would be a nice opportunity to clear away some dung from arch/um and
+refactor it. :-)
 
 -- 
-Richard Jones, Virtualization Group, Red Hat http://people.redhat.com/~rjones
-Read my programming and virtualization blog: http://rwmj.wordpress.com
-virt-df lists disk usage of guests without needing to install any
-software inside the virtual machine.  Supports Linux and Windows.
-http://people.redhat.com/~rjones/virt-df/
+Thanks,
+//richard
