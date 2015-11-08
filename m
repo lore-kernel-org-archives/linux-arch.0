@@ -1,46 +1,36 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v2 00/20] Fix handling of compat_siginfo_t
-Date: Sat, 7 Nov 2015 21:09:27 -0800
-Message-ID: <CALCETrWKK_REdX7TJO8X7jC=8k=YdgJH_txXpC4Pdzn-tukg5A@mail.gmail.com>
-References: <1446684640-4112-1-git-send-email-amanieu@gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC PATCH 08/28] lkl: system call interface and application API
+Date: Sun, 08 Nov 2015 11:26:22 +0100
+Message-ID: <7048391.CAJ2UxAV77@wuerfel>
+References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com> <4119283.3hnNZZdIi2@wuerfel> <CAE1zotJhGqHnj=+SHDv=ButnqpB3j5V7jqYbBDTPpqSuB4jZfg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <sparclinux-owner@vger.kernel.org>
-In-Reply-To: <1446684640-4112-1-git-send-email-amanieu@gmail.com>
-Sender: sparclinux-owner@vger.kernel.org
-To: Amanieu d'Antras <amanieu@gmail.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, sparclinux@vger.kernel.org, Linux FS Devel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Kenton Varda <kenton@sandstorm.io>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.187]:62617 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750943AbbKHK03 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 8 Nov 2015 05:26:29 -0500
+In-Reply-To: <CAE1zotJhGqHnj=+SHDv=ButnqpB3j5V7jqYbBDTPpqSuB4jZfg@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Octavian Purdila <octavian.purdila@intel.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Hajime Tazaki <thehajime@gmail.com>
 
-On Wed, Nov 4, 2015 at 4:50 PM, Amanieu d'Antras <amanieu@gmail.com> wrote:
-> One issue that isn't resolved in this series is sending signals between a 32-bit
-> process and 64-bit process. Sending a si_int will work correctly, but a si_ptr
-> value will likely get corrupted due to the different layouts of the 32-bit and
-> 64-bit siginfo_t structures.
+On Sunday 08 November 2015 05:49:00 Octavian Purdila wrote:
+> > Could you use the standard numbers from include/uapi/asm-generic/unistd.h?
+> > Maybe include that header and then #undef the ones you don't support?
+> > That would avoid having to assign a new number of each future syscall
+> > that gets added.
+> 
+> It would be nice to do that but if we undef them warnings will be
+> generated during the build (e.g. "warning: #warning syscall pause not
+> implemented"). Is there a way to disable those warnings?
 
-This is so screwed up it's not even funny.
+Yes:
 
-A 64-bit big-endian compat calls rt_sigqueueinfo.  It passes in (among
-other things) a sigval_t.  The kernel can choose to interpret it as a
-pointer (call it p) or an integer (call it i).  Then (unsigned long)p
-= (i<<32) | [something].  If the number was an integer to begin with
-*and* user code zeroed out the mess first, then [something] will be 0.
-Regardless, p != i unless they're both zero.
+#define __IGNORE_restart_syscall
+#define __IGNORE_exit
+...
 
-If the result gets delivered to a signalfd, then it's plausible that
-everything could work.  If it gets delivered to a 64-bit siginfo, then
-all is well because it's in exactly the same screwed up state it was
-in when the signal gets sent.
-
-If, however, it's delivered to a compat task, wtf is the kernel
-supposed to do?  We're effectively supposed to convert a 64-bit
-sigval_t to a 32-bit sigval_t.  On a little-endian architecture, we
-can fudge it because it doesn't really matter whether we consider the
-pointer or the int to be authoritative.  I think that, on big-endian,
-we're screwed.
-
-BTW, x86 has its own set of screwups here.  Somehow cr2 and error_code
-ended up as part of ucontext instead of siginfo, which makes
-absolutely no sense to me and bloats task_struct.
-
---Andy
+	Arnd
