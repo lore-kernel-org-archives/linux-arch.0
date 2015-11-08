@@ -1,63 +1,46 @@
-From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: Re: [RFC PATCH 00/28] Linux Kernel Library
-Date: Sun, 8 Nov 2015 06:36:04 +0200
-Message-ID: <CAE1zotK1SbHhcmrdJCp3CWX-2epWSojEmM4UR0SCDZbwU3XiCQ@mail.gmail.com>
-References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
-	<CAFLxGvzZozV0rDpY_VcQaFH+dx_+tHGyEy+22kgL=wdS5pSqCw@mail.gmail.com>
-	<20151103224545.GI29330@redhat.com>
-	<CAE1zotKa5B4xW5dzbrkGFcf7=ZTyVRLjvxnHtXV2nUzZ8HW_0g@mail.gmail.com>
-	<20151104135015.GN29330@redhat.com>
-	<CAE1zotLMxGH1BWXg6JRSs9HD=Wfhee9OSsaufUjmxQXsTRqs=Q@mail.gmail.com>
-	<563D4758.9080507@nod.at>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH v2 00/20] Fix handling of compat_siginfo_t
+Date: Sat, 7 Nov 2015 21:09:27 -0800
+Message-ID: <CALCETrWKK_REdX7TJO8X7jC=8k=YdgJH_txXpC4Pdzn-tukg5A@mail.gmail.com>
+References: <1446684640-4112-1-git-send-email-amanieu@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f50.google.com ([74.125.82.50]:35431 "EHLO
-	mail-wm0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752771AbbKHEgH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 Nov 2015 23:36:07 -0500
-Received: by wmdw130 with SMTP id w130so7190004wmd.0
-        for <linux-arch@vger.kernel.org>; Sat, 07 Nov 2015 20:36:04 -0800 (PST)
-In-Reply-To: <563D4758.9080507@nod.at>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
-Cc: "Richard W.M. Jones" <rjones@redhat.com>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Hajime Tazaki <thehajime@gmail.com>
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <1446684640-4112-1-git-send-email-amanieu@gmail.com>
+Sender: sparclinux-owner@vger.kernel.org
+To: Amanieu d'Antras <amanieu@gmail.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, sparclinux@vger.kernel.org, Linux FS Devel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Kenton Varda <kenton@sandstorm.io>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Nov 7, 2015 at 2:35 AM, Richard Weinberger <richard@nod.at> wrote:
-> Am 04.11.2015 um 15:15 schrieb Octavian Purdila:
->> We could redefine the syscalls/libc symbols to call lkl_sys_ functions
->> in launch-lkl, e.g.:
->>
->> int opendir(const char *path)
->> {
->>    return lkl_opendir(new_path)
->> }
->
-> To get a better feeling how LKL behaves I've started with a tool
-> to mount any Linux filesystem by FUSE.
-> I.e. such that we can finally automount without root and bugs in filesystem
-> code won't hurt that much.
->
+On Wed, Nov 4, 2015 at 4:50 PM, Amanieu d'Antras <amanieu@gmail.com> wrote:
+> One issue that isn't resolved in this series is sending signals between a 32-bit
+> process and 64-bit process. Sending a si_int will work correctly, but a si_ptr
+> value will likely get corrupted due to the different layouts of the 32-bit and
+> 64-bit siginfo_t structures.
 
-Hi Richard,
+This is so screwed up it's not even funny.
 
-I finished coding mine up yesterday :) I've just pushed it to github
-if you want to take a look at it (together with some small fixes).
+A 64-bit big-endian compat calls rt_sigqueueinfo.  It passes in (among
+other things) a sigval_t.  The kernel can choose to interpret it as a
+pointer (call it p) or an integer (call it i).  Then (unsigned long)p
+= (i<<32) | [something].  If the number was an integer to begin with
+*and* user code zeroed out the mess first, then [something] will be 0.
+Regardless, p != i unless they're both zero.
 
-> lkl_sys_fstatat64() uses the type struct lkl_stat64. Where is it defined?
-> git grep is unable to locate it.
-> At least it seems to be incompatible with my local struct stat.
->
+If the result gets delivered to a signalfd, then it's plausible that
+everything could work.  If it gets delivered to a 64-bit siginfo, then
+all is well because it's in exactly the same screwed up state it was
+in when the signal gets sent.
 
-When doing the build in tools/lkl the LKL headers are installed in
-include/lkl. You should find it in there:
+If, however, it's delivered to a compat task, wtf is the kernel
+supposed to do?  We're effectively supposed to convert a 64-bit
+sigval_t to a 32-bit sigval_t.  On a little-endian architecture, we
+can fudge it because it doesn't really matter whether we consider the
+pointer or the int to be authoritative.  I think that, on big-endian,
+we're screwed.
 
-$:~/src/linux/tools/lkl$ find include/ -type f | xargs grep lkl_stat64
-include/lkl/asm-generic/stat.h:struct lkl_stat64 {
+BTW, x86 has its own set of screwups here.  Somehow cr2 and error_code
+ended up as part of ucontext instead of siginfo, which makes
+absolutely no sense to me and bloats task_struct.
 
-> And why is there no lkl_sys_openat() syscall?
->
-
-Didn't get to test it hence I didn't add it to the API yet, as many
-other system calls.
+--Andy
