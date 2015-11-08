@@ -1,54 +1,82 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH 21/28] lkl tools: host lib: posix host operations
-Date: Sun, 08 Nov 2015 11:35:46 +0100
-Message-ID: <3793143.1m2WrnCXBd@wuerfel>
-References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com> <42449799.QsmXDGnQ4P@wuerfel> <CAE1zotLiR_4KdPtVr8MANb2kKVhUZKzCCaUdEV=0cBTfkV2KQw@mail.gmail.com>
+From: Richard Weinberger <richard@nod.at>
+Subject: Re: [RFC PATCH 19/28] lkl tools: host lib: virtio block device
+Date: Sun, 8 Nov 2015 14:30:34 +0100
+Message-ID: <563F4E7A.9040704@nod.at>
+References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
+ <1446582059-17355-20-git-send-email-octavian.purdila@intel.com>
+ <CAFLxGvyS3Ru4Pu2WV9ssSTOQRRi4GLs9uGs=-7_8WJh5FVbdeg@mail.gmail.com>
+ <CAE1zot+uEvkYd9B4861rZW2iGnai7fk_p0=kczfCYYvqCFa07g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.17.24]:60908 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750788AbbKHKf5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 8 Nov 2015 05:35:57 -0500
-In-Reply-To: <CAE1zotLiR_4KdPtVr8MANb2kKVhUZKzCCaUdEV=0cBTfkV2KQw@mail.gmail.com>
+Received: from a.ns.miles-group.at ([95.130.255.143]:11950 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751249AbbKHNaj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 8 Nov 2015 08:30:39 -0500
+In-Reply-To: <CAE1zot+uEvkYd9B4861rZW2iGnai7fk_p0=kczfCYYvqCFa07g@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Octavian Purdila <octavian.purdila@intel.com>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Hajime Tazaki <thehajime@gmail.com>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Hajime Tazaki <thehajime@gmail.com>, Anton Ivanov <anton.ivanov@kot-begemot.co.uk>
 
-On Sunday 08 November 2015 06:01:08 Octavian Purdila wrote:
-> >> +static void *sem_alloc(int count)
-> >> +{
-> >> +     struct pthread_sem *sem;
-> >> +
-> >> +     sem = malloc(sizeof(*sem));
-> >> +     if (!sem)
-> >> +             return NULL;
-> >> +
-> >> +     pthread_mutex_init(&sem->lock, NULL);
-> >> +     sem->count = count;
-> >> +     pthread_cond_init(&sem->cond, NULL);
-> >> +
-> >> +     return sem;
-> >> +}
-> >
-> > What is the reason to have generalized semaphores in the
-> > host API rather than a simple mutex?
-> >
+Am 08.11.2015 um 05:15 schrieb Octavian Purdila:
+> On Sat, Nov 7, 2015 at 2:24 PM, Richard Weinberger
+> <richard.weinberger@gmail.com> wrote:
+>> On Tue, Nov 3, 2015 at 9:20 PM, Octavian Purdila
+>> <octavian.purdila@intel.com> wrote:
+>>> Host independent implementation for virtio block devices. The host
+>>> dependent part of the host library must provide an implementation for
+>>> lkl_dev_block_ops.
+>>>
+>>> Disks can be added to the LKL configuration via lkl_disk_add(), a new
+>>> LKL application API.
+>>>
+>>> Signed-off-by: Octavian Purdila <octavian.purdila@intel.com>
+>>> ---
+>>>  tools/lkl/include/lkl.h      |  20 ++++++++
+>>>  tools/lkl/include/lkl_host.h |  21 ++++++++
+>>>  tools/lkl/lib/virtio_blk.c   | 116 +++++++++++++++++++++++++++++++++++++++++++
+>>>  3 files changed, 157 insertions(+)
+>>>  create mode 100644 tools/lkl/lib/virtio_blk.c
+>>
 > 
-> Currently waking up from idle after an IRQ event requires a semaphore.
-> I'll see if we can use a simple mutex for this.
+> Hi Richard,
+> 
+>> Can you please outline what the differences between this driver and
+>> UML's block driver are?
+>>
+> 
+> LKL actually uses the standard virtio block driver, it does not
+> implement a new (Linux kernel) driver.
+> 
+> This patch is the implementation for the host side device (in virtio's
+> spec lingo).
+> 
+> Or maybe I misunderstood your question?
 
-According to the pthread_mutex_unlock() man page, you are not allowed
-to unlock a mutex from any thread other than the one that owns the
-mutex through pthread_mutex_lock(), so if the IRQ event is sent to
-another thread, that would not be safe even if it happens to work
-on linux+glibc.
+I just realized, that virtio does not depend on PCI, I thought you've implemented something
+on your own. That said, UML could also use virtio block.
 
-Another option would be to use futexes as the basic primitive, which
-might make the implementation for Linux hosts a bit more efficient,
-but complicates the implementation for hosts that do not implement
-those.
+>> While UML and LKL have different goals they could at least share some drivers.
+>> UML also has networking drivers you could reuse.
+>> Maybe it would make sense to integrate LKL completely into arch/um if
+>> we find a nice way
+>> to combine them.
+>> CONFIG_UML_LIBRARY, hmm?
+>> Would be a nice opportunity to clear away some dung from arch/um and
+>> refactor it. :-)
+>>
+> 
+> Yeah, that would be nice :) I think the key part is to define the
+> right host operations (in LKL terms) that can support UML. I'll have
+> to spend some time to study UML's internals a bit to see if that would
+> be doable.
 
-	Arnd
+arch/um/os-Linux/ is a good place to start. It implements most things on the host side.
+Drivers like UML'S block driver always have foo_user.c and foo_kern.c part.
+
+In case of any questions, just ask!
+
+Thanks,
+//richard
