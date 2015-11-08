@@ -1,7 +1,7 @@
 From: Octavian Purdila <octavian.purdila@intel.com>
 Subject: Re: [RFC PATCH 00/28] Linux Kernel Library
-Date: Sun, 8 Nov 2015 06:16:39 +0200
-Message-ID: <CAE1zotLjngqdKnM+VZxBKag1Doqnp8VJy0U+2Kt6DC-ueA2HRQ@mail.gmail.com>
+Date: Sun, 8 Nov 2015 06:36:04 +0200
+Message-ID: <CAE1zotK1SbHhcmrdJCp3CWX-2epWSojEmM4UR0SCDZbwU3XiCQ@mail.gmail.com>
 References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 	<CAFLxGvzZozV0rDpY_VcQaFH+dx_+tHGyEy+22kgL=wdS5pSqCw@mail.gmail.com>
 	<20151103224545.GI29330@redhat.com>
@@ -12,12 +12,12 @@ References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f180.google.com ([209.85.212.180]:35528 "EHLO
-	mail-wi0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753228AbbKHEQk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 Nov 2015 23:16:40 -0500
-Received: by wicll6 with SMTP id ll6so51470060wic.0
-        for <linux-arch@vger.kernel.org>; Sat, 07 Nov 2015 20:16:39 -0800 (PST)
+Received: from mail-wm0-f50.google.com ([74.125.82.50]:35431 "EHLO
+	mail-wm0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752771AbbKHEgH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 Nov 2015 23:36:07 -0500
+Received: by wmdw130 with SMTP id w130so7190004wmd.0
+        for <linux-arch@vger.kernel.org>; Sat, 07 Nov 2015 20:36:04 -0800 (PST)
 In-Reply-To: <563D4758.9080507@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -39,11 +39,25 @@ On Sat, Nov 7, 2015 at 2:35 AM, Richard Weinberger <richard@nod.at> wrote:
 > I.e. such that we can finally automount without root and bugs in filesystem
 > code won't hurt that much.
 >
+
+Hi Richard,
+
+I finished coding mine up yesterday :) I've just pushed it to github
+if you want to take a look at it (together with some small fixes).
+
 > lkl_sys_fstatat64() uses the type struct lkl_stat64. Where is it defined?
 > git grep is unable to locate it.
 > At least it seems to be incompatible with my local struct stat.
 >
+
+When doing the build in tools/lkl the LKL headers are installed in
+include/lkl. You should find it in there:
+
+$:~/src/linux/tools/lkl$ find include/ -type f | xargs grep lkl_stat64
+include/lkl/asm-generic/stat.h:struct lkl_stat64 {
+
 > And why is there no lkl_sys_openat() syscall?
 >
-> Thanks,
-> //richard
+
+Didn't get to test it hence I didn't add it to the API yet, as many
+other system calls.
