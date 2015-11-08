@@ -1,36 +1,54 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH 08/28] lkl: system call interface and application API
-Date: Sun, 08 Nov 2015 11:26:22 +0100
-Message-ID: <7048391.CAJ2UxAV77@wuerfel>
-References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com> <4119283.3hnNZZdIi2@wuerfel> <CAE1zotJhGqHnj=+SHDv=ButnqpB3j5V7jqYbBDTPpqSuB4jZfg@mail.gmail.com>
+Subject: Re: [RFC PATCH 21/28] lkl tools: host lib: posix host operations
+Date: Sun, 08 Nov 2015 11:35:46 +0100
+Message-ID: <3793143.1m2WrnCXBd@wuerfel>
+References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com> <42449799.QsmXDGnQ4P@wuerfel> <CAE1zotLiR_4KdPtVr8MANb2kKVhUZKzCCaUdEV=0cBTfkV2KQw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.187]:62617 "EHLO
+Received: from mout.kundenserver.de ([212.227.17.24]:60908 "EHLO
 	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750943AbbKHK03 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 8 Nov 2015 05:26:29 -0500
-In-Reply-To: <CAE1zotJhGqHnj=+SHDv=ButnqpB3j5V7jqYbBDTPpqSuB4jZfg@mail.gmail.com>
+	with ESMTP id S1750788AbbKHKf5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 8 Nov 2015 05:35:57 -0500
+In-Reply-To: <CAE1zotLiR_4KdPtVr8MANb2kKVhUZKzCCaUdEV=0cBTfkV2KQw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Octavian Purdila <octavian.purdila@intel.com>
 Cc: Linux-Arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Hajime Tazaki <thehajime@gmail.com>
 
-On Sunday 08 November 2015 05:49:00 Octavian Purdila wrote:
-> > Could you use the standard numbers from include/uapi/asm-generic/unistd.h?
-> > Maybe include that header and then #undef the ones you don't support?
-> > That would avoid having to assign a new number of each future syscall
-> > that gets added.
+On Sunday 08 November 2015 06:01:08 Octavian Purdila wrote:
+> >> +static void *sem_alloc(int count)
+> >> +{
+> >> +     struct pthread_sem *sem;
+> >> +
+> >> +     sem = malloc(sizeof(*sem));
+> >> +     if (!sem)
+> >> +             return NULL;
+> >> +
+> >> +     pthread_mutex_init(&sem->lock, NULL);
+> >> +     sem->count = count;
+> >> +     pthread_cond_init(&sem->cond, NULL);
+> >> +
+> >> +     return sem;
+> >> +}
+> >
+> > What is the reason to have generalized semaphores in the
+> > host API rather than a simple mutex?
+> >
 > 
-> It would be nice to do that but if we undef them warnings will be
-> generated during the build (e.g. "warning: #warning syscall pause not
-> implemented"). Is there a way to disable those warnings?
+> Currently waking up from idle after an IRQ event requires a semaphore.
+> I'll see if we can use a simple mutex for this.
 
-Yes:
+According to the pthread_mutex_unlock() man page, you are not allowed
+to unlock a mutex from any thread other than the one that owns the
+mutex through pthread_mutex_lock(), so if the IRQ event is sent to
+another thread, that would not be safe even if it happens to work
+on linux+glibc.
 
-#define __IGNORE_restart_syscall
-#define __IGNORE_exit
-...
+Another option would be to use futexes as the basic primitive, which
+might make the implementation for Linux hosts a bit more efficient,
+but complicates the implementation for hosts that do not implement
+those.
 
 	Arnd
