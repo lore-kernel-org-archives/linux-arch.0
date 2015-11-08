@@ -1,57 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f54.google.com ([209.85.220.54]:35931 "EHLO
-	mail-pa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750983AbbKGGoJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 7 Nov 2015 01:44:09 -0500
-Received: by pacdm15 with SMTP id dm15so120236700pac.3
-        for <linux-arch@vger.kernel.org>; Fri, 06 Nov 2015 22:44:08 -0800 (PST)
-Message-ID: <563d9db7.6293420a.cdda3.ffffa5c8@mx.google.com>
-Date: Fri, 06 Nov 2015 22:44:07 -0800 (PST)
-From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: Re: [PATCH 09/13] Move bp_type_idx to kernel/event/hw_breakpoint.c
-In-Reply-To: <20151104122151.GB11639@twins.programming.kicks-ass.net>
+Received: from mail-oi0-f43.google.com ([209.85.218.43]:34841 "EHLO
+	mail-oi0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754538AbbKHFJr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 8 Nov 2015 00:09:47 -0500
+Received: by oige206 with SMTP id e206so31863177oig.2
+        for <linux-arch@vger.kernel.org>; Sat, 07 Nov 2015 21:09:47 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <1446684640-4112-1-git-send-email-amanieu@gmail.com>
+References: <1446684640-4112-1-git-send-email-amanieu@gmail.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Sat, 7 Nov 2015 21:09:27 -0800
+Message-ID: <CALCETrWKK_REdX7TJO8X7jC=8k=YdgJH_txXpC4Pdzn-tukg5A@mail.gmail.com>
+Subject: Re: [PATCH v2 00/20] Fix handling of compat_siginfo_t
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: peterz@infradead.org
-Cc: arnd@arndb.de, dhowells@redhat.com, viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, kexec@lists.infradead.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org
-Message-ID: <20151107064407.ChmYQl3_5EBreIvl_5JmewHY-ybX_asUJMkGFaCDJlY@z>
+To: Amanieu d'Antras <amanieu@gmail.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Oleg Nesterov <oleg@redhat.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, sparclinux@vger.kernel.org, Linux FS Devel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>, Kenton Varda <kenton@sandstorm.io>
+Message-ID: <20151108050927.tSPXJ163DQbHg2Z2cC05UJ-aFR3SuAvslEEwWHQMt98@z>
 
-On Wed, 04 Nov 2015 04:21:51 PST (-0800), peterz@infradead.org wrote:
-> On Wed, Nov 04, 2015 at 12:41:06PM +0100, Peter Zijlstra wrote:
->> On Tue, Nov 03, 2015 at 11:46:30AM -0800, Palmer Dabbelt wrote:
->> > This has a "#ifdef CONFIG_*" that used to be exposed to userspace.
->> >
->> > The names in here are so generic that I don't think it's a good idea
->> > to expose them to userspace (or even the rest of the kernel).  Since
->> > there's only one kernel user, it's been moved to that file.
->> >
->> > Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
->> > Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
->> > Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
->>
->> Assuming you want to keep all these patches together in a tree or so.
->> Let me know if you want me to take this patch.
+On Wed, Nov 4, 2015 at 4:50 PM, Amanieu d'Antras <amanieu@gmail.com> wrote:
+> One issue that isn't resolved in this series is sending signals between a 32-bit
+> process and 64-bit process. Sending a si_int will work correctly, but a si_ptr
+> value will likely get corrupted due to the different layouts of the 32-bit and
+> 64-bit siginfo_t structures.
 
-Well, the plan was to try to get the whole patch set all upstream together.
-I'd prefer that, because it'll be easier to make sure everything gets in before
-the last checker patch.  Since it touches so many different places I'd be OK
-with doing it peicemeal.
+This is so screwed up it's not even funny.
 
-I'm kind of new to this whole process: do you think someone is likely to take
-this patch set all together?
+A 64-bit big-endian compat calls rt_sigqueueinfo.  It passes in (among
+other things) a sigval_t.  The kernel can choose to interpret it as a
+pointer (call it p) or an integer (call it i).  Then (unsigned long)p
+= (i<<32) | [something].  If the number was an integer to begin with
+*and* user code zeroed out the mess first, then [something] will be 0.
+Regardless, p != i unless they're both zero.
 
->> Acked-by: Peter Zijlstra (Intel) <peterz@infradead.org>
->
-> Ah, build-bot finds your change is broken and you didn't grep right. It
-> is used in more places.
+If the result gets delivered to a signalfd, then it's plausible that
+everything could work.  If it gets delivered to a 64-bit siginfo, then
+all is well because it's in exactly the same screwed up state it was
+in when the signal gets sent.
 
-Sorry about that, I must have mis-grep'd.  I guess that's what the build-bot is
-for :).
+If, however, it's delivered to a compat task, wtf is the kernel
+supposed to do?  We're effectively supposed to convert a 64-bit
+sigval_t to a 32-bit sigval_t.  On a little-endian architecture, we
+can fudge it because it doesn't really matter whether we consider the
+pointer or the int to be authoritative.  I think that, on big-endian,
+we're screwed.
 
-> How about moving it to include/linux/hw_breakpoint.h, instead of having
-> it in the uapi crud?
+BTW, x86 has its own set of screwups here.  Somehow cr2 and error_code
+ended up as part of ucontext instead of siginfo, which makes
+absolutely no sense to me and bloats task_struct.
 
-Yep, that makes sense.
-
-I'm going to re-submit a v5 of this patch set, since there was also a missing
-patch for blackfin that the buildbot found.
+--Andy
