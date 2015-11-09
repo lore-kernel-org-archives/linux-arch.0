@@ -1,51 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f52.google.com ([74.125.82.52]:32969 "EHLO
-	mail-wm0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751675AbbKIQft (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 11:35:49 -0500
-Received: by wmec201 with SMTP id c201so89312456wme.0
-        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 08:35:48 -0800 (PST)
+Received: from mail-ob0-f179.google.com ([209.85.214.179]:34797 "EHLO
+	mail-ob0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750819AbbKIUni (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 15:43:38 -0500
 MIME-Version: 1.0
-In-Reply-To: <20151107104806.GV29330@redhat.com>
-References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
-	<CAFLxGvzZozV0rDpY_VcQaFH+dx_+tHGyEy+22kgL=wdS5pSqCw@mail.gmail.com>
-	<20151103224545.GI29330@redhat.com>
-	<CAE1zotKa5B4xW5dzbrkGFcf7=ZTyVRLjvxnHtXV2nUzZ8HW_0g@mail.gmail.com>
-	<20151104135015.GN29330@redhat.com>
-	<CAE1zotLMxGH1BWXg6JRSs9HD=Wfhee9OSsaufUjmxQXsTRqs=Q@mail.gmail.com>
-	<563D4758.9080507@nod.at>
-	<20151107104806.GV29330@redhat.com>
-Date: Mon, 9 Nov 2015 18:35:48 +0200
-Message-ID: <CAE1zotLvd3wpym0jnQhi7cBRPu3wsVxg7reBqXY8SnqS8Mp+-Q@mail.gmail.com>
-Subject: Re: [RFC PATCH 00/28] Linux Kernel Library
-From: Octavian Purdila <octavian.purdila@intel.com>
+In-Reply-To: <20151109154836.GA28486@akamai.com>
+References: <1447064069-21469-1-git-send-email-geert@linux-m68k.org>
+	<20151109154836.GA28486@akamai.com>
+Date: Mon, 9 Nov 2015 21:43:37 +0100
+Message-ID: <CAMuHMdV3cUafEh-_m199ta14RcM4FmyxXMHt_WiL75wtHfVO6g@mail.gmail.com>
+Subject: Re: [PATCH 0/2] selftests/mlock2: Build warning fixes on Debian/m68k 4.0
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Richard W.M. Jones" <rjones@redhat.com>
-Cc: Richard Weinberger <richard@nod.at>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Hajime Tazaki <thehajime@gmail.com>
-Message-ID: <20151109163548.fOiMai5hINeJN7vKnYTWkzJgGs8_9ti5LJ2nydD6AZg@z>
+To: Eric B Munson <emunson@akamai.com>
+Cc: Thierry Reding <treding@nvidia.com>, Andrew Morton <akpm@linux-foundation.org>, Shuah Khan <shuahkh@osg.samsung.com>, "linux-api@vger.kernel.org" <linux-api@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20151109204337.bFdj8Nu_I6TaRKyd68lOznt_uWV_UPKOxoHR7IL9wSQ@z>
 
-On Sat, Nov 7, 2015 at 12:48 PM, Richard W.M. Jones <rjones@redhat.com> wrote:
->
-> I just pushed a (very early) WIP branch that contains changes to
-> libguestfs to add an LKL backend:
->
->   https://github.com/rwmjones/libguestfs/tree/lkl
->
-> Read the README file in the libguestfs sources before starting,
-> followed by the instructions in the commit message:
->
->   https://github.com/rwmjones/libguestfs/commit/e38525f0b984d0a426f3348d95f2033673d4eaa4
->
+Hi Eric,
 
-Hi Richard,
+[CC linux-arch for more architecture-specific breakage]
 
-Thanks for this, I was able to replicate it locally.
+On Mon, Nov 9, 2015 at 4:48 PM, Eric B Munson <emunson@akamai.com> wrote:
+> On Mon, 09 Nov 2015, Geert Uytterhoeven wrote:
+>> The following 2 patches are needed to fix build warnings on Debian/m68k
+>> 4.0.
+>>
+>> However, after wiring up the mlock2 syscall, the test fails with:
+>>
+>> # ./mlock2-tests
+>> fread kpageflags: Success
+>> #
+>>
+>> as the fread() call returns 0, not 1.
+>
+> This would fail is the index into the kpageflags file is not being
+> calculated properly.  This tests works on x86_64 (I am in the process of
+> testing x86 incase this is a 32bit issue).  I am fairly sure that I
+> tested it on x86, but it has been a while.
 
-I started working on adding a new library, liblkl-redirect.a, that
-redefines common libc symbols to use lkl. We then can link the daemon
-with this lib and lkl to avoid ugly ifdefs in the daemon code.
+Found it: /proc/kpageflags is always empty, as m68k doesn't set up max_pfn.
 
-Thanks,
-Tavi
+After fixing that, the test is working fine.
+Funny how we managed to survive that long without setting it ;-)
+
+Note that several other architectures also don't set max_pfn. Some may
+be nommu, and are thus not affected, but others probably are:
+
+    hexagon
+    mn10300
+    nios2
+    score
+
+And a few of the others (e.g. avr32, didn't check all of them) assign to a
+local max_pfn variable instead of the global one, so it won't work on those
+neither.
+
+>> The original commit description for the test said "Note that the limit
+>> test needs to be run a normal user.". But running it as a non-root user
+>> also fails:
+>
+> The original commit says that the on-fault-limit test needs to be run as
+> a regular user becuase it relies on enforcing memory limits.
+> mlock2-tests has to be run as root to get access to the various files
+> under /proc it needs to verify things are working.
+
+Ah, I just used "git log -p" on mlock2-tests.c, and didn't notice the commit
+actually added two tests.
+
+Thanks!
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
