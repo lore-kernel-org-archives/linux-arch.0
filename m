@@ -1,44 +1,78 @@
-From: Octavian Purdila <octavian.purdila@intel.com>
-Subject: Re: [RFC PATCH 00/28] Linux Kernel Library
-Date: Mon, 9 Nov 2015 18:35:48 +0200
-Message-ID: <CAE1zotLvd3wpym0jnQhi7cBRPu3wsVxg7reBqXY8SnqS8Mp+-Q@mail.gmail.com>
-References: <1446582059-17355-1-git-send-email-octavian.purdila@intel.com>
-	<CAFLxGvzZozV0rDpY_VcQaFH+dx_+tHGyEy+22kgL=wdS5pSqCw@mail.gmail.com>
-	<20151103224545.GI29330@redhat.com>
-	<CAE1zotKa5B4xW5dzbrkGFcf7=ZTyVRLjvxnHtXV2nUzZ8HW_0g@mail.gmail.com>
-	<20151104135015.GN29330@redhat.com>
-	<CAE1zotLMxGH1BWXg6JRSs9HD=Wfhee9OSsaufUjmxQXsTRqs=Q@mail.gmail.com>
-	<563D4758.9080507@nod.at>
-	<20151107104806.GV29330@redhat.com>
+From: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
+Subject: Re: [PATCH 0/2] selftests/mlock2: Build warning fixes on Debian/m68k 4.0
+Date: Mon, 9 Nov 2015 21:43:37 +0100
+Message-ID: <CAMuHMdV3cUafEh-_m199ta14RcM4FmyxXMHt_WiL75wtHfVO6g@mail.gmail.com>
+References: <1447064069-21469-1-git-send-email-geert@linux-m68k.org>
+	<20151109154836.GA28486@akamai.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20151107104806.GV29330@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Richard W.M. Jones" <rjones@redhat.com>
-Cc: Richard Weinberger <richard@nod.at>, Linux-Arch <linux-arch@vger.kernel.org>, LKML <linux-kernel@vger.kernel.org>, Hajime Tazaki <thehajime@gmail.com>
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20151109154836.GA28486-JqFfY2XvxFXQT0dZR+AlfA@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Eric B Munson <emunson-JqFfY2XvxFXQT0dZR+AlfA@public.gmane.org>
+Cc: Thierry Reding <treding-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Shuah Khan <shuahkh-JPH+aEBZ4P+UEJcrhfAQsw@public.gmane.org>, "linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux-Arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Nov 7, 2015 at 12:48 PM, Richard W.M. Jones <rjones@redhat.com> wrote:
->
-> I just pushed a (very early) WIP branch that contains changes to
-> libguestfs to add an LKL backend:
->
->   https://github.com/rwmjones/libguestfs/tree/lkl
->
-> Read the README file in the libguestfs sources before starting,
-> followed by the instructions in the commit message:
->
->   https://github.com/rwmjones/libguestfs/commit/e38525f0b984d0a426f3348d95f2033673d4eaa4
->
+Hi Eric,
 
-Hi Richard,
+[CC linux-arch for more architecture-specific breakage]
 
-Thanks for this, I was able to replicate it locally.
+On Mon, Nov 9, 2015 at 4:48 PM, Eric B Munson <emunson-JqFfY2XvxFXQT0dZR+AlfA@public.gmane.org> wrote:
+> On Mon, 09 Nov 2015, Geert Uytterhoeven wrote:
+>> The following 2 patches are needed to fix build warnings on Debian/m68k
+>> 4.0.
+>>
+>> However, after wiring up the mlock2 syscall, the test fails with:
+>>
+>> # ./mlock2-tests
+>> fread kpageflags: Success
+>> #
+>>
+>> as the fread() call returns 0, not 1.
+>
+> This would fail is the index into the kpageflags file is not being
+> calculated properly.  This tests works on x86_64 (I am in the process of
+> testing x86 incase this is a 32bit issue).  I am fairly sure that I
+> tested it on x86, but it has been a while.
 
-I started working on adding a new library, liblkl-redirect.a, that
-redefines common libc symbols to use lkl. We then can link the daemon
-with this lib and lkl to avoid ugly ifdefs in the daemon code.
+Found it: /proc/kpageflags is always empty, as m68k doesn't set up max_pfn.
 
-Thanks,
-Tavi
+After fixing that, the test is working fine.
+Funny how we managed to survive that long without setting it ;-)
+
+Note that several other architectures also don't set max_pfn. Some may
+be nommu, and are thus not affected, but others probably are:
+
+    hexagon
+    mn10300
+    nios2
+    score
+
+And a few of the others (e.g. avr32, didn't check all of them) assign to a
+local max_pfn variable instead of the global one, so it won't work on those
+neither.
+
+>> The original commit description for the test said "Note that the limit
+>> test needs to be run a normal user.". But running it as a non-root user
+>> also fails:
+>
+> The original commit says that the on-fault-limit test needs to be run as
+> a regular user becuase it relies on enforcing memory limits.
+> mlock2-tests has to be run as root to get access to the various files
+> under /proc it needs to verify things are working.
+
+Ah, I just used "git log -p" on mlock2-tests.c, and didn't notice the commit
+actually added two tests.
+
+Thanks!
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
