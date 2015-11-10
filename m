@@ -1,56 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f47.google.com ([209.85.220.47]:35467 "EHLO
-	mail-pa0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752199AbbKJBbu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:31:50 -0500
-Received: by pasz6 with SMTP id z6so223480150pas.2
-        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:31:50 -0800 (PST)
+Received: from mail-pa0-f42.google.com ([209.85.220.42]:35365 "EHLO
+	mail-pa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751237AbbKJBbp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:31:45 -0500
+Received: by pasz6 with SMTP id z6so223477321pas.2
+        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:31:44 -0800 (PST)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 04/14] Always expose MAP_UNINITIALIZED to userspace
-Date: Mon,  9 Nov 2015 17:31:01 -0800
-Message-ID: <1447119071-19392-5-git-send-email-palmer@dabbelt.com>
-In-Reply-To: <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
+Subject: [PATCH v5] Remove #ifdef CONFIG_* from all userspace headers
+Date: Mon,  9 Nov 2015 17:30:57 -0800
+Message-ID: <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
+In-Reply-To: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
 References: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
- <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, dhowells@redhat.com, peterz@infradead.org
-Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20151110013101.rZIksG8RcmJzpnZQSH0zOnGNFvDjCMACXTT-Szc15Ok@z>
+Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org
+Message-ID: <20151110013057.Pt6x_NQ_q4to--HfLGrc7RTf3MqyH6PYb3YjlA1Wei4@z>
 
-This used to be hidden behind CONFIG_MMAP_ALLOW_UNINITIALIZED, so
-userspace wouldn't actually ever see it be non-zero.  While I had
-originally hoped to avoid hiding it, it looks like this conflicts with
-MAP_HUGE_SHIFT so I think it's safer to just keep this 0.
+I think this should _actually_ be ready to go this time, the buildbot found
+some errors in arches that I didn't test for.
 
-Architectures that want to define this can still override it.  In
-fact, the Xtensa port already overrides it in a very similar manner to
-the previously broken one (but due to lots of conflicting opinions on
-how to solve this correctly, I'm just taking the easy way out and
-letting their arch maintainers deal with it -- sorry).
+Changes since v4 (<1446579994-9937-1-git-send-email-palmer@dabbelt.com>)
 
-Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
-Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
-Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
----
- include/uapi/asm-generic/mman-common.h | 4 +---
- 1 file changed, 1 insertion(+), 3 deletions(-)
+ * #9 was changed to work on arm by moving the enum to an in-kernel header
+   file.
 
-diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
-index a74dd84..25ca92c 100644
---- a/include/uapi/asm-generic/mman-common.h
-+++ b/include/uapi/asm-generic/mman-common.h
-@@ -19,9 +19,7 @@
- #define MAP_TYPE	0x0f		/* Mask for type of mapping */
- #define MAP_FIXED	0x10		/* Interpret addr exactly */
- #define MAP_ANONYMOUS	0x20		/* don't use a file */
--#ifdef CONFIG_MMAP_ALLOW_UNINITIALIZED
--# define MAP_UNINITIALIZED 0x4000000	/* For anonymous mmap, memory could be uninitialized */
--#else
-+#ifndef MAP_UNINITIALIZED
- # define MAP_UNINITIALIZED 0x0		/* Don't support this flag */
- #endif
- 
--- 
-2.4.10
+ * #13 was added, this fixes a problem on blackfin.
+
+Changes since v3 (<1442271047-4908-1-git-send-email-palmer@dabbelt.com>)
+
+ * #4 is very different: rather than defining a canonical value for
+   MAP_UNINITIALIZED, it just punts on the problem and lets arch maintainers
+   deal with it.  There's still an #ifndef MAP_UNINITIALIZED in there, but that
+   shouldn't get triggered by anything because the arch headers should set it
+   to whatever they actually want.
+
+ * #11 defines MAX_RAW_MINORS to 2^20 instead of 2^16.
+
+ * #13 moves the variable around a bit so it gets initialized.  I forgot I was
+   in perl and not C :).
+
+Changes since v2 (<1441832902-28993-1-git-send-email-palmer@dabbelt.com>)
+
+ * Patch set renamed.
+
+ * #2 is rewritten to use sys_ni.c instead of an #ifdef
+
+ * #3, #6, #8, #9, #10, and #11 no longer use "#ifdef __KERNEL__" but
+   have instead moved the offending lines to the correct, kernel-only
+   files.
+
+ * #4 has been rewritten to always define MAP_UNINITIALIZED to
+   non-zero, rather than defining it to zero when in userspace.
+
+ * #5 got a whole lot longer -- rather than just always hiding these
+   fields from userspace, there is now a second "struct
+   elf_fdpic_prstatus" structure.  This should allow userspace to
+   parse core dumps correctly.
+
+ * Rebased onto 9c488de24f7264f08d341024bffdd637b4d04c96.
+
+Changes since v1 (<1441152610-22566-1-git-send-email-palmer@dabbelt.com>)
+
+ * All patches but #1 were added.
 
