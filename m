@@ -1,56 +1,113 @@
-From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 01/14] Remove #ifdef CONFIG_64BIT from all asm-generic/fcntl.h
-Date: Mon,  9 Nov 2015 17:30:58 -0800
-Message-ID: <1447119071-19392-2-git-send-email-palmer__2327.68602804772$1447119527$gmane$org@dabbelt.com>
-References: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
- <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
-In-Reply-To: <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
-Sender: linux-fsdevel-owner@vger.kernel.org
-To: arnd@arndb.de, dhowells@redhat.com, peterz@infradead.org
-Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-List-Id: linux-arch.vger.kernel.org
+From: Thierry Reding <thierry.reding@gmail.com>
+Subject: [PATCH v2 1/2] asm/sections: Add helpers to check for section data
+Date: Tue, 10 Nov 2015 18:11:56 +0100
+Message-ID: <1447175517-10933-1-git-send-email-thierry.reding@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f53.google.com ([74.125.82.53]:33786 "EHLO
+	mail-wm0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753544AbbKJRMA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Nov 2015 12:12:00 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Joe Perches <joe@perches.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-When working on the RISC-V port I noticed that F_SETLK64 was being
-defined on our 64-bit platform, despite our port being so new that
-we've only ever had the 64-bit file ops.  Since there's not compat
-layer for these, this causes fcntl to bail out.
+From: Thierry Reding <treding@nvidia.com>
 
-It turns out that one of the ways in with F_SETLK64 was being defined
-(there's some more in glibc, but that's a whole different story... :))
-is the result of CONFIG_64BIT showing up in this user-visible header.
-<asm-generic/bitsperlong.h> confirms this isn't sane, so I replaced it
-with a __BITS_PER_LONG check.
+Add a helper to check if an object (given an address and a size) is part
+of a section (given beginning and end addresses). For convenience, also
+provide a helper that performs this check for __init data using the
+__init_begin and __init_end limits.
 
-Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
-Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
-Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
-Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Thierry Reding <treding@nvidia.com>
 ---
- include/uapi/asm-generic/fcntl.h | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+Changes in v2:
+- use less ambiguous function names
+- add comments to clarify further
+---
+ include/asm-generic/sections.h | 65 ++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 65 insertions(+)
 
-diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
-index e063eff..14a5c82 100644
---- a/include/uapi/asm-generic/fcntl.h
-+++ b/include/uapi/asm-generic/fcntl.h
-@@ -1,6 +1,7 @@
- #ifndef _ASM_GENERIC_FCNTL_H
- #define _ASM_GENERIC_FCNTL_H
+diff --git a/include/asm-generic/sections.h b/include/asm-generic/sections.h
+index b58fd667f87b..af0254c09424 100644
+--- a/include/asm-generic/sections.h
++++ b/include/asm-generic/sections.h
+@@ -4,6 +4,7 @@
+ /* References to section boundaries */
  
-+#include <asm/bitsperlong.h>
- #include <linux/types.h>
+ #include <linux/compiler.h>
++#include <linux/types.h>
  
  /*
-@@ -115,7 +116,7 @@
- #define F_GETSIG	11	/* for sockets. */
+  * Usage guidelines:
+@@ -63,4 +64,68 @@ static inline int arch_is_kernel_data(unsigned long addr)
+ }
  #endif
  
--#ifndef CONFIG_64BIT
-+#if (__BITS_PER_LONG == 32)
- #ifndef F_GETLK64
- #define F_GETLK64	12	/*  using 'struct flock64' */
- #define F_SETLK64	13
++/**
++ * memory_contains - checks if an object is contained within a memory region
++ * @begin: virtual address of the beginning of the memory region
++ * @end: virtual address of the end of the memory region
++ * @virt: virtual address of the memory object
++ * @size: size of the memory object
++ *
++ * Returns: true if the object specified by @virt and @size is entirely
++ * contained within the memory region defined by @begin and @end, false
++ * otherwise.
++ */
++static inline bool memory_contains(void *begin, void *end, void *virt,
++				   size_t size)
++{
++	return virt >= begin && virt + size <= end;
++}
++
++/**
++ * memory_intersects - checks if the region occupied by an object intersects
++ *                     with another memory region
++ * @begin: virtual address of the beginning of the memory regien
++ * @end: virtual address of the end of the memory region
++ * @virt: virtual address of the memory object
++ * @size: size of the memory object
++ *
++ * Returns: true if an object's memory region, specified by @virt and @size,
++ * intersects with the region specified by @begin and @end, false otherwise.
++ */
++static inline bool memory_intersects(void *begin, void *end, void *virt,
++				     size_t size)
++{
++	void *vend = virt + size;
++
++	return (virt >= begin && virt < end) || (vend >= begin && vend < end);
++}
++
++/**
++ * init_section_contains - checks if an object is contained within the init
++ *                         section
++ * @virt: virtual address of the memory object
++ * @size: size of the memory object
++ *
++ * Returns: true if the object specified by @virt and @size is entirely
++ * contained within the init section, false otherwise.
++ */
++static inline bool init_section_contains(void *virt, size_t size)
++{
++	return memory_contains(__init_begin, __init_end, virt, size);
++}
++
++/**
++ * init_section_intersects - checks if the region occupied by an object
++ *                           intersects with the init section
++ * @virt: virtual address of the memory object
++ * @size: size of the memory object
++ *
++ * Returns: true if an object's memory region, specified by @virt and @size,
++ * intersects with the init section, false otherwise.
++ */
++static inline bool init_section_intersects(void *virt, size_t size)
++{
++	return memory_intersects(__init_begin, __init_end, virt, size);
++}
++
+ #endif /* _ASM_GENERIC_SECTIONS_H_ */
 -- 
-2.4.10
-
+2.5.0
