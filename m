@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f50.google.com ([209.85.220.50]:35562 "EHLO
-	mail-pa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752056AbbKJBbz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:31:55 -0500
-Received: by pasz6 with SMTP id z6so223482603pas.2
-        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:31:55 -0800 (PST)
+Received: from mail-pa0-f48.google.com ([209.85.220.48]:33241 "EHLO
+	mail-pa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752417AbbKJBb6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:31:58 -0500
+Received: by pabfh17 with SMTP id fh17so217046444pab.0
+        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:31:58 -0800 (PST)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 08/14] Move MAX_SHARED_LIBS to fs/binfmt_flat.c
-Date: Mon,  9 Nov 2015 17:31:05 -0800
-Message-ID: <1447119071-19392-9-git-send-email-palmer@dabbelt.com>
+Subject: [PATCH 10/14] Move USE_WCACHING to drivers/block/pktcdvd.c
+Date: Mon,  9 Nov 2015 17:31:07 -0800
+Message-ID: <1447119071-19392-11-git-send-email-palmer@dabbelt.com>
 In-Reply-To: <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
 References: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
  <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
@@ -16,55 +16,65 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, dhowells@redhat.com, peterz@infradead.org
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20151110013105.GmnESIv9OXY7Q-HelMa_7p5FwEeVd-oqXXGy72MSMR0@z>
+Message-ID: <20151110013107.rb2zi_2n7y235V7WSJUUKmzysBW3WMVoJblw6IhygAY@z>
 
-I'm not sure what this is, but it doesn't feel like something that
-should be exposed to userspace here.  I'm assuming this file was
-exposed for the structure in it, which doesn't depend on
-MAX_SHARED_LIBS.
+I don't think this was ever intended to be exposed to userspace, but
+it did require an "#ifdef CONFIG_*".  Since the name is kind of
+generic and was only used in one place, I've moved the definition to
+the one user.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
 Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
 ---
- fs/binfmt_flat.c          | 6 ++++++
- include/uapi/linux/flat.h | 6 ------
- 2 files changed, 6 insertions(+), 6 deletions(-)
+ drivers/block/pktcdvd.c      | 11 +++++++++++
+ include/uapi/linux/pktcdvd.h | 11 -----------
+ 2 files changed, 11 insertions(+), 11 deletions(-)
 
-diff --git a/fs/binfmt_flat.c b/fs/binfmt_flat.c
-index f723cd3..e89fb43 100644
---- a/fs/binfmt_flat.c
-+++ b/fs/binfmt_flat.c
-@@ -72,6 +72,12 @@
- #define RELOC_FAILED 0xff00ff01		/* Relocation incorrect somewhere */
- #define UNLOADED_LIB 0x7ff000ff		/* Placeholder for unused library */
+diff --git a/drivers/block/pktcdvd.c b/drivers/block/pktcdvd.c
+index 2f477d4..55f0df3 100644
+--- a/drivers/block/pktcdvd.c
++++ b/drivers/block/pktcdvd.c
+@@ -90,6 +90,17 @@ do {									\
  
-+#ifdef CONFIG_BINFMT_SHARED_FLAT
-+#define	MAX_SHARED_LIBS			(4)
+ #define MAX_SPEED 0xffff
+ 
++/*
++ * use drive write caching -- we need deferred error handling to be
++ * able to successfully recover with this option (drive will return good
++ * status as soon as the cdb is validated).
++ */
++#if defined(CONFIG_CDROM_PKTCDVD_WCACHE)
++#define USE_WCACHING		1
 +#else
-+#define	MAX_SHARED_LIBS			(1)
++#define USE_WCACHING		0
 +#endif
 +
- struct lib_info {
- 	struct {
- 		unsigned long start_code;		/* Start of text segment */
-diff --git a/include/uapi/linux/flat.h b/include/uapi/linux/flat.h
-index 88cd6ba..1b177c7 100644
---- a/include/uapi/linux/flat.h
-+++ b/include/uapi/linux/flat.h
-@@ -13,12 +13,6 @@
+ static DEFINE_MUTEX(pktcdvd_mutex);
+ static struct pktcdvd_device *pkt_devs[MAX_WRITERS];
+ static struct proc_dir_entry *pkt_proc;
+diff --git a/include/uapi/linux/pktcdvd.h b/include/uapi/linux/pktcdvd.h
+index 2640b9d..05c2bee 100644
+--- a/include/uapi/linux/pktcdvd.h
++++ b/include/uapi/linux/pktcdvd.h
+@@ -29,17 +29,6 @@
+ #define PACKET_WAIT_TIME	(HZ * 5 / 1000)
  
- #define	FLAT_VERSION			0x00000004L
- 
--#ifdef CONFIG_BINFMT_SHARED_FLAT
--#define	MAX_SHARED_LIBS			(4)
+ /*
+- * use drive write caching -- we need deferred error handling to be
+- * able to successfully recover with this option (drive will return good
+- * status as soon as the cdb is validated).
+- */
+-#if defined(CONFIG_CDROM_PKTCDVD_WCACHE)
+-#define USE_WCACHING		1
 -#else
--#define	MAX_SHARED_LIBS			(1)
+-#define USE_WCACHING		0
 -#endif
 -
- /*
-  * To make everything easier to port and manage cross platform
-  * development,  all fields are in network byte order.
+-/*
+  * No user-servicable parts beyond this point ->
+  */
+ 
 -- 
 2.4.10
 
