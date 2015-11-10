@@ -1,15 +1,21 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: [PATCH 09/14] Move bp_type_idx to include/linux/hw_breakpoint.h
 Date: Mon,  9 Nov 2015 17:31:06 -0800
-Message-ID: <1447119071-19392-10-git-send-email-palmer@dabbelt.com>
+Message-ID: <1447119071-19392-10-git-send-email-palmer__1724.59136597372$1447119148$gmane$org@dabbelt.com>
 References: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
  <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f42.google.com ([209.85.220.42]:35586 "EHLO
+	mail-pa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752395AbbKJBb5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:31:57 -0500
+Received: by pasz6 with SMTP id z6so223483204pas.2
+        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:31:56 -0800 (PST)
 In-Reply-To: <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
-Sender: linux-fsdevel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, dhowells@redhat.com, peterz@infradead.org
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-List-Id: linux-arch.vger.kernel.org
 
 This has a "#ifdef CONFIG_*" that used to be exposed to userspace.
 
@@ -67,4 +73,3 @@ index b04000a..7a6a5a7 100644
  #endif /* _UAPI_LINUX_HW_BREAKPOINT_H */
 -- 
 2.4.10
-
