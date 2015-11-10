@@ -1,21 +1,15 @@
 From: Palmer Dabbelt <palmer@dabbelt.com>
 Subject: [PATCH 06/14] Move ep_take_care_of_epollwakeup() to fs/eventpoll.c
 Date: Mon,  9 Nov 2015 17:31:03 -0800
-Message-ID: <1447119071-19392-7-git-send-email-palmer__35516.0371204422$1447119419$gmane$org@dabbelt.com>
+Message-ID: <1447119071-19392-7-git-send-email-palmer__15844.8605718606$1447119420$gmane$org@dabbelt.com>
 References: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
  <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f48.google.com ([209.85.220.48]:36122 "EHLO
-	mail-pa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752257AbbKJBbx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:31:53 -0500
-Received: by pacdm15 with SMTP id dm15so192689119pac.3
-        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:31:53 -0800 (PST)
+Return-path: <linux-fsdevel-owner@vger.kernel.org>
 In-Reply-To: <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-fsdevel-owner@vger.kernel.org
 To: arnd@arndb.de, dhowells@redhat.com, peterz@infradead.org
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
+List-Id: linux-arch.vger.kernel.org
 
 This doesn't make any sense to expose to userspace, so it's been moved
 to the one user.  This was introduced by commit 95f19f658ce1 ("epoll:
@@ -76,3 +70,4 @@ index bc81fb2..7850373 100644
  #endif /* _UAPI_LINUX_EVENTPOLL_H */
 -- 
 2.4.10
+
