@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f48.google.com ([209.85.220.48]:36122 "EHLO
-	mail-pa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752257AbbKJBbx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:31:53 -0500
-Received: by pacdm15 with SMTP id dm15so192689119pac.3
-        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:31:53 -0800 (PST)
+Received: from mail-pa0-f53.google.com ([209.85.220.53]:33896 "EHLO
+	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752054AbbKJBbs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:31:48 -0500
+Received: by padhx2 with SMTP id hx2so208467964pad.1
+        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:31:47 -0800 (PST)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 06/14] Move ep_take_care_of_epollwakeup() to fs/eventpoll.c
-Date: Mon,  9 Nov 2015 17:31:03 -0800
-Message-ID: <1447119071-19392-7-git-send-email-palmer@dabbelt.com>
+Subject: [PATCH 02/14] Use sys_ni.c instead of #ifdef to disable fork on CONFIG_NOMMU
+Date: Mon,  9 Nov 2015 17:30:59 -0800
+Message-ID: <1447119071-19392-3-git-send-email-palmer@dabbelt.com>
 In-Reply-To: <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
 References: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
  <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
@@ -16,65 +16,52 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, dhowells@redhat.com, peterz@infradead.org
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20151110013103.trylwcCRaanfKXrjBioJDpPpzlyx86ZrYewy3FOIT6o@z>
+Message-ID: <20151110013059.G55tPwp8pkEZ7XpZdankt-cnNO4jAm4ipunuhamxsHg@z>
 
-This doesn't make any sense to expose to userspace, so it's been moved
-to the one user.  This was introduced by commit 95f19f658ce1 ("epoll:
-drop EPOLLWAKEUP if PM_SLEEP is disabled").
+I think this change actually doesn't do anything: __NR_fork was still
+being defined either way, and on my machine fork() in <unistd.h> comes
+from libc.
+
+This just moves to the standard mechanism for defining syscalls that
+aren't implemented instead, which has the side-effect of no longer
+having an #ifdef CONFIG_* in a user-visible header.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
 Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
 ---
- fs/eventpoll.c                 | 13 +++++++++++++
- include/uapi/linux/eventpoll.h | 12 ------------
- 2 files changed, 13 insertions(+), 12 deletions(-)
+ include/uapi/asm-generic/unistd.h | 4 ----
+ kernel/sys_ni.c                   | 1 +
+ 2 files changed, 1 insertion(+), 4 deletions(-)
 
-diff --git a/fs/eventpoll.c b/fs/eventpoll.c
-index 1e009ca..aadee3d 100644
---- a/fs/eventpoll.c
-+++ b/fs/eventpoll.c
-@@ -1812,6 +1812,19 @@ SYSCALL_DEFINE1(epoll_create, int, size)
- 	return sys_epoll_create1(0);
- }
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index 1324b02..9a95912 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -871,11 +871,7 @@ __SYSCALL(__NR_uselib, sys_uselib)
+ __SYSCALL(__NR__sysctl, sys_sysctl)
  
-+#ifdef CONFIG_PM_SLEEP
-+static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
-+{
-+	if ((epev->events & EPOLLWAKEUP) && !capable(CAP_BLOCK_SUSPEND))
-+		epev->events &= ~EPOLLWAKEUP;
-+}
-+#else
-+static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
-+{
-+	epev->events &= ~EPOLLWAKEUP;
-+}
-+#endif
-+
- /*
-  * The following function implements the controller interface for
-  * the eventpoll file that enables the insertion/removal/change of
-diff --git a/include/uapi/linux/eventpoll.h b/include/uapi/linux/eventpoll.h
-index bc81fb2..7850373 100644
---- a/include/uapi/linux/eventpoll.h
-+++ b/include/uapi/linux/eventpoll.h
-@@ -61,16 +61,4 @@ struct epoll_event {
- 	__u64 data;
- } EPOLL_PACKED;
- 
--#ifdef CONFIG_PM_SLEEP
--static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
--{
--	if ((epev->events & EPOLLWAKEUP) && !capable(CAP_BLOCK_SUSPEND))
--		epev->events &= ~EPOLLWAKEUP;
--}
+ #define __NR_fork 1079
+-#ifdef CONFIG_MMU
+ __SYSCALL(__NR_fork, sys_fork)
 -#else
--static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
--{
--	epev->events &= ~EPOLLWAKEUP;
--}
--#endif
- #endif /* _UAPI_LINUX_EVENTPOLL_H */
+-__SYSCALL(__NR_fork, sys_ni_syscall)
+-#endif /* CONFIG_MMU */
+ 
+ #undef __NR_syscalls
+ #define __NR_syscalls (__NR_fork+1)
+diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
+index 0623787..e251b30 100644
+--- a/kernel/sys_ni.c
++++ b/kernel/sys_ni.c
+@@ -174,6 +174,7 @@ cond_syscall(sys_setfsuid);
+ cond_syscall(sys_setfsgid);
+ cond_syscall(sys_capget);
+ cond_syscall(sys_capset);
++cond_syscall(sys_fork);
+ 
+ /* arch-specific weak syscall entries */
+ cond_syscall(sys_pciconfig_read);
 -- 
 2.4.10
 
