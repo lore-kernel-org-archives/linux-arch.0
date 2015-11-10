@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f53.google.com ([209.85.220.53]:33896 "EHLO
-	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752054AbbKJBbs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:31:48 -0500
-Received: by padhx2 with SMTP id hx2so208467964pad.1
-        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:31:47 -0800 (PST)
+Received: from mail-pa0-f47.google.com ([209.85.220.47]:35467 "EHLO
+	mail-pa0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752199AbbKJBbu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:31:50 -0500
+Received: by pasz6 with SMTP id z6so223480150pas.2
+        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:31:50 -0800 (PST)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 02/14] Use sys_ni.c instead of #ifdef to disable fork on CONFIG_NOMMU
-Date: Mon,  9 Nov 2015 17:30:59 -0800
-Message-ID: <1447119071-19392-3-git-send-email-palmer@dabbelt.com>
+Subject: [PATCH 04/14] Always expose MAP_UNINITIALIZED to userspace
+Date: Mon,  9 Nov 2015 17:31:01 -0800
+Message-ID: <1447119071-19392-5-git-send-email-palmer@dabbelt.com>
 In-Reply-To: <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
 References: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
  <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
@@ -16,52 +16,41 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, dhowells@redhat.com, peterz@infradead.org
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20151110013059.G55tPwp8pkEZ7XpZdankt-cnNO4jAm4ipunuhamxsHg@z>
+Message-ID: <20151110013101.rZIksG8RcmJzpnZQSH0zOnGNFvDjCMACXTT-Szc15Ok@z>
 
-I think this change actually doesn't do anything: __NR_fork was still
-being defined either way, and on my machine fork() in <unistd.h> comes
-from libc.
+This used to be hidden behind CONFIG_MMAP_ALLOW_UNINITIALIZED, so
+userspace wouldn't actually ever see it be non-zero.  While I had
+originally hoped to avoid hiding it, it looks like this conflicts with
+MAP_HUGE_SHIFT so I think it's safer to just keep this 0.
 
-This just moves to the standard mechanism for defining syscalls that
-aren't implemented instead, which has the side-effect of no longer
-having an #ifdef CONFIG_* in a user-visible header.
+Architectures that want to define this can still override it.  In
+fact, the Xtensa port already overrides it in a very similar manner to
+the previously broken one (but due to lots of conflicting opinions on
+how to solve this correctly, I'm just taking the easy way out and
+letting their arch maintainers deal with it -- sorry).
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
 Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
 ---
- include/uapi/asm-generic/unistd.h | 4 ----
- kernel/sys_ni.c                   | 1 +
- 2 files changed, 1 insertion(+), 4 deletions(-)
+ include/uapi/asm-generic/mman-common.h | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
 
-diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
-index 1324b02..9a95912 100644
---- a/include/uapi/asm-generic/unistd.h
-+++ b/include/uapi/asm-generic/unistd.h
-@@ -871,11 +871,7 @@ __SYSCALL(__NR_uselib, sys_uselib)
- __SYSCALL(__NR__sysctl, sys_sysctl)
- 
- #define __NR_fork 1079
--#ifdef CONFIG_MMU
- __SYSCALL(__NR_fork, sys_fork)
+diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
+index a74dd84..25ca92c 100644
+--- a/include/uapi/asm-generic/mman-common.h
++++ b/include/uapi/asm-generic/mman-common.h
+@@ -19,9 +19,7 @@
+ #define MAP_TYPE	0x0f		/* Mask for type of mapping */
+ #define MAP_FIXED	0x10		/* Interpret addr exactly */
+ #define MAP_ANONYMOUS	0x20		/* don't use a file */
+-#ifdef CONFIG_MMAP_ALLOW_UNINITIALIZED
+-# define MAP_UNINITIALIZED 0x4000000	/* For anonymous mmap, memory could be uninitialized */
 -#else
--__SYSCALL(__NR_fork, sys_ni_syscall)
--#endif /* CONFIG_MMU */
++#ifndef MAP_UNINITIALIZED
+ # define MAP_UNINITIALIZED 0x0		/* Don't support this flag */
+ #endif
  
- #undef __NR_syscalls
- #define __NR_syscalls (__NR_fork+1)
-diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
-index 0623787..e251b30 100644
---- a/kernel/sys_ni.c
-+++ b/kernel/sys_ni.c
-@@ -174,6 +174,7 @@ cond_syscall(sys_setfsuid);
- cond_syscall(sys_setfsgid);
- cond_syscall(sys_capget);
- cond_syscall(sys_capset);
-+cond_syscall(sys_fork);
- 
- /* arch-specific weak syscall entries */
- cond_syscall(sys_pciconfig_read);
 -- 
 2.4.10
 
