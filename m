@@ -1,67 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f47.google.com ([209.85.220.47]:33919 "EHLO
-	mail-pa0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752149AbbKJBbt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:31:49 -0500
-Received: by padhx2 with SMTP id hx2so208468593pad.1
-        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:31:49 -0800 (PST)
-From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 03/14] Move COMPAT_ATM_ADDPARTY to net/atm/svc.c
-Date: Mon,  9 Nov 2015 17:31:00 -0800
-Message-ID: <1447119071-19392-4-git-send-email-palmer@dabbelt.com>
-In-Reply-To: <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
-References: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
- <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
+Received: from mail-wm0-f50.google.com ([74.125.82.50]:37086 "EHLO
+	mail-wm0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753829AbbKJRMB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Nov 2015 12:12:01 -0500
+From: Thierry Reding <thierry.reding@gmail.com>
+Subject: [PATCH v2 2/2] printk: Only unregister boot consoles when necessary
+Date: Tue, 10 Nov 2015 18:11:57 +0100
+Message-ID: <1447175517-10933-2-git-send-email-thierry.reding@gmail.com>
+In-Reply-To: <1447175517-10933-1-git-send-email-thierry.reding@gmail.com>
+References: <1447175517-10933-1-git-send-email-thierry.reding@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, dhowells@redhat.com, peterz@infradead.org
-Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20151110013100.r99m5NX_dCtuu6V3Mr-A2J_cDRTzJzhr63tKzGjdrCE@z>
+To: Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Joe Perches <joe@perches.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20151110171157._9DiLM51AmLxywfEGsxYKDWVoAYXqv6KU-K-WFka8h4@z>
 
-This used to be behind an #ifdef COMPAT_COMPAT, so most of userspace
-wouldn't have seen the definition before.  Unfortunately this header
-file became visible to userspace, so the definition has instead been
-moved to net/atm/svc.c (the only user).
+From: Thierry Reding <treding@nvidia.com>
 
-Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
-Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
-Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
+Boot consoles are typically replaced by proper consoles during the boot
+process. This can be problematic if the boot console data is part of the
+init section that is reclaimed late during boot. If the proper console
+does not register before this point in time, the boot console will need
+to be removed (so that the freed memory is not accessed), leaving the
+system without output for some time.
+
+There are various reasons why the proper console may not register early
+enough, such as deferred probe or the driver being a loadable module. If
+that happens, there is some amount of time where no console messages are
+visible to the user, which in turn can mean that they won't see crashes
+or other potentially useful information.
+
+To avoid this situation, only remove the boot console when it resides in
+the init section. Code exists to replace the boot console by the proper
+console when it is registered, keeping a seamless transition between the
+boot and proper consoles.
+
+Signed-off-by: Thierry Reding <treding@nvidia.com>
 ---
- include/uapi/linux/atmdev.h | 4 ----
- net/atm/svc.c               | 5 +++++
- 2 files changed, 5 insertions(+), 4 deletions(-)
+Changes in v2:
+- add comments with the rationale for this change
+---
+ kernel/printk/printk.c | 26 +++++++++++++++++++++++++-
+ 1 file changed, 25 insertions(+), 1 deletion(-)
 
-diff --git a/include/uapi/linux/atmdev.h b/include/uapi/linux/atmdev.h
-index 93e0ec0..3dcec70 100644
---- a/include/uapi/linux/atmdev.h
-+++ b/include/uapi/linux/atmdev.h
-@@ -100,10 +100,6 @@ struct atm_dev_stats {
- 					/* use backend to make new if */
- #define ATM_ADDPARTY  	_IOW('a', ATMIOC_SPECIAL+4,struct atm_iobuf)
-  					/* add party to p2mp call */
--#ifdef CONFIG_COMPAT
--/* It actually takes struct sockaddr_atmsvc, not struct atm_iobuf */
--#define COMPAT_ATM_ADDPARTY  	_IOW('a', ATMIOC_SPECIAL+4,struct compat_atm_iobuf)
--#endif
- #define ATM_DROPPARTY 	_IOW('a', ATMIOC_SPECIAL+5,int)
- 					/* drop party from p2mp call */
+diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
+index 2ce8826f1053..0c9f02506169 100644
+--- a/kernel/printk/printk.c
++++ b/kernel/printk/printk.c
+@@ -48,6 +48,7 @@
+ #include <linux/uio.h>
  
-diff --git a/net/atm/svc.c b/net/atm/svc.c
-index 3fa0a9e..9e2e6ef 100644
---- a/net/atm/svc.c
-+++ b/net/atm/svc.c
-@@ -27,6 +27,11 @@
- #include "signaling.h"
- #include "addr.h"
+ #include <asm/uaccess.h>
++#include <asm-generic/sections.h>
  
-+#ifdef CONFIG_COMPAT
-+/* It actually takes struct sockaddr_atmsvc, not struct atm_iobuf */
-+#define COMPAT_ATM_ADDPARTY _IOW('a', ATMIOC_SPECIAL+4, struct compat_atm_iobuf)
-+#endif
-+
- static int svc_create(struct net *net, struct socket *sock, int protocol,
- 		      int kern);
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/printk.h>
+@@ -2658,13 +2659,36 @@ int unregister_console(struct console *console)
+ }
+ EXPORT_SYMBOL(unregister_console);
  
++/*
++ * Some boot consoles access data that is in the init section and which will
++ * be discarded after the initcalls have been run. To make sure that no code
++ * will access this data, unregister the boot consoles in a late initcall.
++ *
++ * If for some reason, such as deferred probe or the driver being a loadable
++ * module, the real console hasn't registered yet at this point, there will
++ * be a brief interval in which no messages are logged to the console, which
++ * makes it difficult to diagnose problems that occur during this time.
++ *
++ * To mitigate this problem somewhat, only unregister consoles whose memory
++ * intersects with the init section. Note that code exists elsewhere to get
++ * rid of the boot console as soon as the proper console shows up, so there
++ * won't be side-effects from postponing the removal.
++ */
+ static int __init printk_late_init(void)
+ {
+ 	struct console *con;
+ 
+ 	for_each_console(con) {
+ 		if (!keep_bootcon && con->flags & CON_BOOT) {
+-			unregister_console(con);
++			/*
++			 * Make sure to unregister boot consoles whose data
++			 * resides in the init section before the init section
++			 * is discarded. Boot consoles whose data will stick
++			 * around will automatically be unregistered when the
++			 * proper console replaces them.
++			 */
++			if (init_section_intersects(con, sizeof(*con)))
++				unregister_console(con);
+ 		}
+ 	}
+ 	hotcpu_notifier(console_cpu_notify, 0);
 -- 
-2.4.10
+2.5.0
 
