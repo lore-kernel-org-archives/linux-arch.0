@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f42.google.com ([209.85.220.42]:34098 "EHLO
-	mail-pa0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752428AbbKJBb7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:31:59 -0500
-Received: by padhx2 with SMTP id hx2so208473194pad.1
-        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:31:59 -0800 (PST)
+Received: from mail-pa0-f48.google.com ([209.85.220.48]:36122 "EHLO
+	mail-pa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752257AbbKJBbx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:31:53 -0500
+Received: by pacdm15 with SMTP id dm15so192689119pac.3
+        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:31:53 -0800 (PST)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 11/14] Always define MAX_RAW_MINORS as 2**20 in userspace
-Date: Mon,  9 Nov 2015 17:31:08 -0800
-Message-ID: <1447119071-19392-12-git-send-email-palmer@dabbelt.com>
+Subject: [PATCH 06/14] Move ep_take_care_of_epollwakeup() to fs/eventpoll.c
+Date: Mon,  9 Nov 2015 17:31:03 -0800
+Message-ID: <1447119071-19392-7-git-send-email-palmer@dabbelt.com>
 In-Reply-To: <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
 References: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
  <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
@@ -16,63 +16,65 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, dhowells@redhat.com, peterz@infradead.org
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20151110013108.amv6LBwjiO4IOxlDoDOOMgOEoBHJ6E1G4awuQqsix4o@z>
+Message-ID: <20151110013103.trylwcCRaanfKXrjBioJDpPpzlyx86ZrYewy3FOIT6o@z>
 
-While I don't think this was ever meant to be exposed to userspace, if
-anyone is using it then this will at least provide a correct (if
-unlikely) definition.
-
-MAX_RAW_MINORS used to be used in the kernel, where it's been replaced
-with CONFIG_MAX_RAW_MINORS.
-
-Note that there's a checkpatch.pl warning about a split config string
-here, but I've left that alone.
+This doesn't make any sense to expose to userspace, so it's been moved
+to the one user.  This was introduced by commit 95f19f658ce1 ("epoll:
+drop EPOLLWAKEUP if PM_SLEEP is disabled").
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
 Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
 ---
- drivers/char/raw.c       | 7 ++++---
- include/uapi/linux/raw.h | 2 +-
- 2 files changed, 5 insertions(+), 4 deletions(-)
+ fs/eventpoll.c                 | 13 +++++++++++++
+ include/uapi/linux/eventpoll.h | 12 ------------
+ 2 files changed, 13 insertions(+), 12 deletions(-)
 
-diff --git a/drivers/char/raw.c b/drivers/char/raw.c
-index 60316fb..2a69117 100644
---- a/drivers/char/raw.c
-+++ b/drivers/char/raw.c
-@@ -36,7 +36,7 @@ static struct raw_device_data *raw_devices;
- static DEFINE_MUTEX(raw_mutex);
- static const struct file_operations raw_ctl_fops; /* forward declaration */
+diff --git a/fs/eventpoll.c b/fs/eventpoll.c
+index 1e009ca..aadee3d 100644
+--- a/fs/eventpoll.c
++++ b/fs/eventpoll.c
+@@ -1812,6 +1812,19 @@ SYSCALL_DEFINE1(epoll_create, int, size)
+ 	return sys_epoll_create1(0);
+ }
  
--static int max_raw_minors = MAX_RAW_MINORS;
-+static int max_raw_minors = CONFIG_MAX_RAW_DEVS;
++#ifdef CONFIG_PM_SLEEP
++static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
++{
++	if ((epev->events & EPOLLWAKEUP) && !capable(CAP_BLOCK_SUSPEND))
++		epev->events &= ~EPOLLWAKEUP;
++}
++#else
++static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
++{
++	epev->events &= ~EPOLLWAKEUP;
++}
++#endif
++
+ /*
+  * The following function implements the controller interface for
+  * the eventpoll file that enables the insertion/removal/change of
+diff --git a/include/uapi/linux/eventpoll.h b/include/uapi/linux/eventpoll.h
+index bc81fb2..7850373 100644
+--- a/include/uapi/linux/eventpoll.h
++++ b/include/uapi/linux/eventpoll.h
+@@ -61,16 +61,4 @@ struct epoll_event {
+ 	__u64 data;
+ } EPOLL_PACKED;
  
- module_param(max_raw_minors, int, 0);
- MODULE_PARM_DESC(max_raw_minors, "Maximum number of raw devices (1-65536)");
-@@ -317,8 +317,9 @@ static int __init raw_init(void)
- 
- 	if (max_raw_minors < 1 || max_raw_minors > 65536) {
- 		printk(KERN_WARNING "raw: invalid max_raw_minors (must be"
--			" between 1 and 65536), using %d\n", MAX_RAW_MINORS);
--		max_raw_minors = MAX_RAW_MINORS;
-+			" between 1 and 65536), using %d\n",
-+		       max_raw_minors);
-+		max_raw_minors = 65536;
- 	}
- 
- 	raw_devices = vzalloc(sizeof(struct raw_device_data) * max_raw_minors);
-diff --git a/include/uapi/linux/raw.h b/include/uapi/linux/raw.h
-index 62d543e..f3d009b 100644
---- a/include/uapi/linux/raw.h
-+++ b/include/uapi/linux/raw.h
-@@ -13,6 +13,6 @@ struct raw_config_request
- 	__u64	block_minor;
- };
- 
--#define MAX_RAW_MINORS CONFIG_MAX_RAW_DEVS
-+#define MAX_RAW_MINORS (1 << 20)
- 
- #endif /* __LINUX_RAW_H */
+-#ifdef CONFIG_PM_SLEEP
+-static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
+-{
+-	if ((epev->events & EPOLLWAKEUP) && !capable(CAP_BLOCK_SUSPEND))
+-		epev->events &= ~EPOLLWAKEUP;
+-}
+-#else
+-static inline void ep_take_care_of_epollwakeup(struct epoll_event *epev)
+-{
+-	epev->events &= ~EPOLLWAKEUP;
+-}
+-#endif
+ #endif /* _UAPI_LINUX_EVENTPOLL_H */
 -- 
 2.4.10
 
