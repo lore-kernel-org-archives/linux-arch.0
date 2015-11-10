@@ -1,78 +1,61 @@
-From: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
-Subject: Re: [PATCH 0/2] selftests/mlock2: Build warning fixes on Debian/m68k 4.0
-Date: Mon, 9 Nov 2015 21:43:37 +0100
-Message-ID: <CAMuHMdV3cUafEh-_m199ta14RcM4FmyxXMHt_WiL75wtHfVO6g@mail.gmail.com>
-References: <1447064069-21469-1-git-send-email-geert@linux-m68k.org>
-	<20151109154836.GA28486@akamai.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20151109154836.GA28486-JqFfY2XvxFXQT0dZR+AlfA@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Eric B Munson <emunson-JqFfY2XvxFXQT0dZR+AlfA@public.gmane.org>
-Cc: Thierry Reding <treding-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Shuah Khan <shuahkh-JPH+aEBZ4P+UEJcrhfAQsw@public.gmane.org>, "linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Linux-Arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+From: Palmer Dabbelt <palmer@dabbelt.com>
+Subject: [PATCH 01/14] Remove #ifdef CONFIG_64BIT from all asm-generic/fcntl.h
+Date: Mon,  9 Nov 2015 17:30:58 -0800
+Message-ID: <1447119071-19392-2-git-send-email-palmer@dabbelt.com>
+References: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
+ <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f51.google.com ([209.85.220.51]:36004 "EHLO
+	mail-pa0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751602AbbKJBbq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:31:46 -0500
+Received: by pacdm15 with SMTP id dm15so192686039pac.3
+        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:31:46 -0800 (PST)
+In-Reply-To: <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: arnd@arndb.de, dhowells@redhat.com, peterz@infradead.org
+Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
 
-Hi Eric,
+When working on the RISC-V port I noticed that F_SETLK64 was being
+defined on our 64-bit platform, despite our port being so new that
+we've only ever had the 64-bit file ops.  Since there's not compat
+layer for these, this causes fcntl to bail out.
 
-[CC linux-arch for more architecture-specific breakage]
+It turns out that one of the ways in with F_SETLK64 was being defined
+(there's some more in glibc, but that's a whole different story... :))
+is the result of CONFIG_64BIT showing up in this user-visible header.
+<asm-generic/bitsperlong.h> confirms this isn't sane, so I replaced it
+with a __BITS_PER_LONG check.
 
-On Mon, Nov 9, 2015 at 4:48 PM, Eric B Munson <emunson-JqFfY2XvxFXQT0dZR+AlfA@public.gmane.org> wrote:
-> On Mon, 09 Nov 2015, Geert Uytterhoeven wrote:
->> The following 2 patches are needed to fix build warnings on Debian/m68k
->> 4.0.
->>
->> However, after wiring up the mlock2 syscall, the test fails with:
->>
->> # ./mlock2-tests
->> fread kpageflags: Success
->> #
->>
->> as the fread() call returns 0, not 1.
->
-> This would fail is the index into the kpageflags file is not being
-> calculated properly.  This tests works on x86_64 (I am in the process of
-> testing x86 incase this is a 32bit issue).  I am fairly sure that I
-> tested it on x86, but it has been a while.
+Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
+Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
+Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+---
+ include/uapi/asm-generic/fcntl.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
-Found it: /proc/kpageflags is always empty, as m68k doesn't set up max_pfn.
-
-After fixing that, the test is working fine.
-Funny how we managed to survive that long without setting it ;-)
-
-Note that several other architectures also don't set max_pfn. Some may
-be nommu, and are thus not affected, but others probably are:
-
-    hexagon
-    mn10300
-    nios2
-    score
-
-And a few of the others (e.g. avr32, didn't check all of them) assign to a
-local max_pfn variable instead of the global one, so it won't work on those
-neither.
-
->> The original commit description for the test said "Note that the limit
->> test needs to be run a normal user.". But running it as a non-root user
->> also fails:
->
-> The original commit says that the on-fault-limit test needs to be run as
-> a regular user becuase it relies on enforcing memory limits.
-> mlock2-tests has to be run as root to get access to the various files
-> under /proc it needs to verify things are working.
-
-Ah, I just used "git log -p" on mlock2-tests.c, and didn't notice the commit
-actually added two tests.
-
-Thanks!
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
+index e063eff..14a5c82 100644
+--- a/include/uapi/asm-generic/fcntl.h
++++ b/include/uapi/asm-generic/fcntl.h
+@@ -1,6 +1,7 @@
+ #ifndef _ASM_GENERIC_FCNTL_H
+ #define _ASM_GENERIC_FCNTL_H
+ 
++#include <asm/bitsperlong.h>
+ #include <linux/types.h>
+ 
+ /*
+@@ -115,7 +116,7 @@
+ #define F_GETSIG	11	/* for sockets. */
+ #endif
+ 
+-#ifndef CONFIG_64BIT
++#if (__BITS_PER_LONG == 32)
+ #ifndef F_GETLK64
+ #define F_GETLK64	12	/*  using 'struct flock64' */
+ #define F_SETLK64	13
+-- 
+2.4.10
