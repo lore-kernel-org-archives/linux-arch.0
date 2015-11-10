@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f48.google.com ([209.85.220.48]:33241 "EHLO
-	mail-pa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752417AbbKJBb6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:31:58 -0500
-Received: by pabfh17 with SMTP id fh17so217046444pab.0
-        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:31:58 -0800 (PST)
+Received: from mail-pa0-f52.google.com ([209.85.220.52]:33285 "EHLO
+	mail-pa0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752294AbbKJBcB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:32:01 -0500
+Received: by pabfh17 with SMTP id fh17so217047619pab.0
+        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:32:00 -0800 (PST)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 10/14] Move USE_WCACHING to drivers/block/pktcdvd.c
-Date: Mon,  9 Nov 2015 17:31:07 -0800
-Message-ID: <1447119071-19392-11-git-send-email-palmer@dabbelt.com>
+Subject: [PATCH 12/14] Remove AT_VECTOR_SIZE_ARCH on x86
+Date: Mon,  9 Nov 2015 17:31:09 -0800
+Message-ID: <1447119071-19392-13-git-send-email-palmer@dabbelt.com>
 In-Reply-To: <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
 References: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
  <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
@@ -16,65 +16,46 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, dhowells@redhat.com, peterz@infradead.org
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20151110013107.rb2zi_2n7y235V7WSJUUKmzysBW3WMVoJblw6IhygAY@z>
+Message-ID: <20151110013109.cquEzIPAskIH86d_ViLhTEVOVOFxrwa9HHNasmxv8Ns@z>
 
-I don't think this was ever intended to be exposed to userspace, but
-it did require an "#ifdef CONFIG_*".  Since the name is kind of
-generic and was only used in one place, I've moved the definition to
-the one user.
+It looks like there aren't actually users of this macro anywhere:
+
+ * The kernel doesn't use it on x86 because we don't suppor ELF FDPIC.
+
+ * The only Google results point to LMKL patches, both the one that
+   wrote this (from 2010) and my patch to hide it behind __KERNEL__.
+
+ * I grep'd through all the source tarballs on my machine, and the
+   only packages that matched were the kernel and crui (which copied a
+   PPC kernel header).
+
+Since I'm not sure how to actually provide the right answer (if I
+understand correctly, CONFIG_IA32_EMULATION is not __i386__), the only
+thing I can think of to do is to just remove the definition.
 
 Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
 Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
 Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
 ---
- drivers/block/pktcdvd.c      | 11 +++++++++++
- include/uapi/linux/pktcdvd.h | 11 -----------
- 2 files changed, 11 insertions(+), 11 deletions(-)
+ arch/x86/include/uapi/asm/auxvec.h | 7 -------
+ 1 file changed, 7 deletions(-)
 
-diff --git a/drivers/block/pktcdvd.c b/drivers/block/pktcdvd.c
-index 2f477d4..55f0df3 100644
---- a/drivers/block/pktcdvd.c
-+++ b/drivers/block/pktcdvd.c
-@@ -90,6 +90,17 @@ do {									\
+diff --git a/arch/x86/include/uapi/asm/auxvec.h b/arch/x86/include/uapi/asm/auxvec.h
+index 77203ac..1316b4c 100644
+--- a/arch/x86/include/uapi/asm/auxvec.h
++++ b/arch/x86/include/uapi/asm/auxvec.h
+@@ -9,11 +9,4 @@
+ #endif
+ #define AT_SYSINFO_EHDR		33
  
- #define MAX_SPEED 0xffff
- 
-+/*
-+ * use drive write caching -- we need deferred error handling to be
-+ * able to successfully recover with this option (drive will return good
-+ * status as soon as the cdb is validated).
-+ */
-+#if defined(CONFIG_CDROM_PKTCDVD_WCACHE)
-+#define USE_WCACHING		1
-+#else
-+#define USE_WCACHING		0
-+#endif
-+
- static DEFINE_MUTEX(pktcdvd_mutex);
- static struct pktcdvd_device *pkt_devs[MAX_WRITERS];
- static struct proc_dir_entry *pkt_proc;
-diff --git a/include/uapi/linux/pktcdvd.h b/include/uapi/linux/pktcdvd.h
-index 2640b9d..05c2bee 100644
---- a/include/uapi/linux/pktcdvd.h
-+++ b/include/uapi/linux/pktcdvd.h
-@@ -29,17 +29,6 @@
- #define PACKET_WAIT_TIME	(HZ * 5 / 1000)
- 
- /*
-- * use drive write caching -- we need deferred error handling to be
-- * able to successfully recover with this option (drive will return good
-- * status as soon as the cdb is validated).
-- */
--#if defined(CONFIG_CDROM_PKTCDVD_WCACHE)
--#define USE_WCACHING		1
--#else
--#define USE_WCACHING		0
+-/* entries in ARCH_DLINFO: */
+-#if defined(CONFIG_IA32_EMULATION) || !defined(CONFIG_X86_64)
+-# define AT_VECTOR_SIZE_ARCH 2
+-#else /* else it's non-compat x86-64 */
+-# define AT_VECTOR_SIZE_ARCH 1
 -#endif
 -
--/*
-  * No user-servicable parts beyond this point ->
-  */
- 
+ #endif /* _ASM_X86_AUXVEC_H */
 -- 
 2.4.10
 
