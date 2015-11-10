@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f47.google.com ([209.85.220.47]:33303 "EHLO
-	mail-pa0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752056AbbKJBcD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:32:03 -0500
-Received: by pabfh17 with SMTP id fh17so217048108pab.0
-        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:32:01 -0800 (PST)
+Received: from mail-pa0-f50.google.com ([209.85.220.50]:35562 "EHLO
+	mail-pa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752056AbbKJBbz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Nov 2015 20:31:55 -0500
+Received: by pasz6 with SMTP id z6so223482603pas.2
+        for <linux-arch@vger.kernel.org>; Mon, 09 Nov 2015 17:31:55 -0800 (PST)
 From: Palmer Dabbelt <palmer@dabbelt.com>
-Subject: [PATCH 13/14] Hide CONFIG_PHY_RAM_BASE_ADDRESS from userspace
-Date: Mon,  9 Nov 2015 17:31:10 -0800
-Message-ID: <1447119071-19392-14-git-send-email-palmer@dabbelt.com>
+Subject: [PATCH 08/14] Move MAX_SHARED_LIBS to fs/binfmt_flat.c
+Date: Mon,  9 Nov 2015 17:31:05 -0800
+Message-ID: <1447119071-19392-9-git-send-email-palmer@dabbelt.com>
 In-Reply-To: <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
 References: <1446579994-9937-1-git-send-email-palmer@dabbelt.com>
  <1447119071-19392-1-git-send-email-palmer@dabbelt.com>
@@ -16,92 +16,55 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, dhowells@redhat.com, peterz@infradead.org
 Cc: viro@zeniv.linux.org.uk, ast@plumgrid.com, aishchuk@linux.vnet.ibm.com, aarcange@redhat.com, akpm@linux-foundation.org, luto@kernel.org, acme@kernel.org, bhe@redhat.com, 3chas3@gmail.com, chris@zankel.net, dave@sr71.net, dyoung@redhat.com, drysdale@google.com, davem@davemloft.net, ebiederm@xmission.com, geoff@infradead.org, gregkh@linuxfoundation.org, hpa@zytor.com, mingo@kernel.org, iulia.manda21@gmail.com, plagnioj@jcrosoft.com, jikos@kernel.org, josh@joshtriplett.org, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, mathieu.desnoyers@efficios.com, jcmvbkbc@gmail.com, paulmck@linux.vnet.ibm.com, a.p.zijlstra@chello.nl, tglx@linutronix.de, tomi.valkeinen@ti.com, vgoyal@redhat.com, x86@kernel.org, Palmer Dabbelt <palmer@dabbelt.com>
-Message-ID: <20151110013110.XOmtJYA_aq9d_VvxGO_FHbUQjdnaJshceLhfWKC-riA@z>
+Message-ID: <20151110013105.GmnESIv9OXY7Q-HelMa_7p5FwEeVd-oqXXGy72MSMR0@z>
 
-This feels a bit odd, but I couldn't really come up with a better way to
-do it.  There already appears to be a workaround for this macro not
-being defined in userspace, so I figured I'd better leave that in place,
-since someone is probably using it.
+I'm not sure what this is, but it doesn't feel like something that
+should be exposed to userspace here.  I'm assuming this file was
+exposed for the structure in it, which doesn't depend on
+MAX_SHARED_LIBS.
 
-The result is that unless you include <asm/fixed_code.h> before
-<uapi/asm/fixed_code.h> then you'll get the wrong offsets.  The only
-user of <uapi/asm/fixed_code.h> is currently <asm/fixed_code.h>, so it's
-at least safe for now.  There's a CPP error in there to check for this.
+Signed-off-by: Palmer Dabbelt <palmer@dabbelt.com>
+Reviewed-by: Andrew Waterman <waterman@eecs.berkeley.edu>
+Reviewed-by: Albert Ou <aou@eecs.berkeley.edu>
 ---
- arch/blackfin/include/asm/fixed_code.h      |  6 +++++
- arch/blackfin/include/uapi/asm/fixed_code.h | 35 ++++++++++++++++-------------
- 2 files changed, 25 insertions(+), 16 deletions(-)
+ fs/binfmt_flat.c          | 6 ++++++
+ include/uapi/linux/flat.h | 6 ------
+ 2 files changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/arch/blackfin/include/asm/fixed_code.h b/arch/blackfin/include/asm/fixed_code.h
-index bc330f0..7e03b9b 100644
---- a/arch/blackfin/include/asm/fixed_code.h
-+++ b/arch/blackfin/include/asm/fixed_code.h
-@@ -9,6 +9,12 @@
- #ifndef __BFIN_ASM_FIXED_CODE_H__
- #define __BFIN_ASM_FIXED_CODE_H__
+diff --git a/fs/binfmt_flat.c b/fs/binfmt_flat.c
+index f723cd3..e89fb43 100644
+--- a/fs/binfmt_flat.c
++++ b/fs/binfmt_flat.c
+@@ -72,6 +72,12 @@
+ #define RELOC_FAILED 0xff00ff01		/* Relocation incorrect somewhere */
+ #define UNLOADED_LIB 0x7ff000ff		/* Placeholder for unused library */
  
-+#ifdef CONFIG_PHY_RAM_BASE_ADDRESS
-+#define CONFIG_PHY_RAM_BASE_ADDRESS 0x0
-+#endif
-+
-+#define PHY_RAM_BASE_ADDRESS CONFIG_PHY_RAM_BASE_ADDRESS
-+
- #include <uapi/asm/fixed_code.h>
- 
- #ifndef __ASSEMBLY__
-diff --git a/arch/blackfin/include/uapi/asm/fixed_code.h b/arch/blackfin/include/uapi/asm/fixed_code.h
-index 3bef1dc..50b70a0 100644
---- a/arch/blackfin/include/uapi/asm/fixed_code.h
-+++ b/arch/blackfin/include/uapi/asm/fixed_code.h
-@@ -10,29 +10,32 @@
- #ifndef _UAPI__BFIN_ASM_FIXED_CODE_H__
- #define _UAPI__BFIN_ASM_FIXED_CODE_H__
- 
--
--#ifndef CONFIG_PHY_RAM_BASE_ADDRESS
--#define CONFIG_PHY_RAM_BASE_ADDRESS	0x0
-+#ifndef PHY_RAM_BASE_ADDRESS
-+#ifdef __KERNEL__
-+#error "Don't include <uapi/asm/fixed_code.h>, include <asm/fixed_code.h>"
++#ifdef CONFIG_BINFMT_SHARED_FLAT
++#define	MAX_SHARED_LIBS			(4)
 +#else
-+#define PHY_RAM_BASE_ADDRESS	0x0
++#define	MAX_SHARED_LIBS			(1)
 +#endif
- #endif
++
+ struct lib_info {
+ 	struct {
+ 		unsigned long start_code;		/* Start of text segment */
+diff --git a/include/uapi/linux/flat.h b/include/uapi/linux/flat.h
+index 88cd6ba..1b177c7 100644
+--- a/include/uapi/linux/flat.h
++++ b/include/uapi/linux/flat.h
+@@ -13,12 +13,6 @@
  
--#define FIXED_CODE_START	(CONFIG_PHY_RAM_BASE_ADDRESS + 0x400)
-+#define FIXED_CODE_START	(PHY_RAM_BASE_ADDRESS + 0x400)
+ #define	FLAT_VERSION			0x00000004L
  
--#define SIGRETURN_STUB		(CONFIG_PHY_RAM_BASE_ADDRESS + 0x400)
-+#define SIGRETURN_STUB		(PHY_RAM_BASE_ADDRESS + 0x400)
- 
--#define ATOMIC_SEQS_START	(CONFIG_PHY_RAM_BASE_ADDRESS + 0x410)
-+#define ATOMIC_SEQS_START	(PHY_RAM_BASE_ADDRESS + 0x410)
- 
--#define ATOMIC_XCHG32		(CONFIG_PHY_RAM_BASE_ADDRESS + 0x410)
--#define ATOMIC_CAS32		(CONFIG_PHY_RAM_BASE_ADDRESS + 0x420)
--#define ATOMIC_ADD32		(CONFIG_PHY_RAM_BASE_ADDRESS + 0x430)
--#define ATOMIC_SUB32		(CONFIG_PHY_RAM_BASE_ADDRESS + 0x440)
--#define ATOMIC_IOR32		(CONFIG_PHY_RAM_BASE_ADDRESS + 0x450)
--#define ATOMIC_AND32		(CONFIG_PHY_RAM_BASE_ADDRESS + 0x460)
--#define ATOMIC_XOR32		(CONFIG_PHY_RAM_BASE_ADDRESS + 0x470)
-+#define ATOMIC_XCHG32		(PHY_RAM_BASE_ADDRESS + 0x410)
-+#define ATOMIC_CAS32		(PHY_RAM_BASE_ADDRESS + 0x420)
-+#define ATOMIC_ADD32		(PHY_RAM_BASE_ADDRESS + 0x430)
-+#define ATOMIC_SUB32		(PHY_RAM_BASE_ADDRESS + 0x440)
-+#define ATOMIC_IOR32		(PHY_RAM_BASE_ADDRESS + 0x450)
-+#define ATOMIC_AND32		(PHY_RAM_BASE_ADDRESS + 0x460)
-+#define ATOMIC_XOR32		(PHY_RAM_BASE_ADDRESS + 0x470)
- 
--#define ATOMIC_SEQS_END		(CONFIG_PHY_RAM_BASE_ADDRESS + 0x480)
-+#define ATOMIC_SEQS_END		(PHY_RAM_BASE_ADDRESS + 0x480)
- 
--#define SAFE_USER_INSTRUCTION   (CONFIG_PHY_RAM_BASE_ADDRESS + 0x480)
-+#define SAFE_USER_INSTRUCTION   (PHY_RAM_BASE_ADDRESS + 0x480)
- 
--#define FIXED_CODE_END		(CONFIG_PHY_RAM_BASE_ADDRESS + 0x490)
-+#define FIXED_CODE_END		(PHY_RAM_BASE_ADDRESS + 0x490)
- 
- #endif /* _UAPI__BFIN_ASM_FIXED_CODE_H__ */
+-#ifdef CONFIG_BINFMT_SHARED_FLAT
+-#define	MAX_SHARED_LIBS			(4)
+-#else
+-#define	MAX_SHARED_LIBS			(1)
+-#endif
+-
+ /*
+  * To make everything easier to port and manage cross platform
+  * development,  all fields are in network byte order.
 -- 
 2.4.10
 
