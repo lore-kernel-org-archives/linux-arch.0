@@ -1,36 +1,48 @@
-From: Minchan Kim <minchan@kernel.org>
-Subject: Re: [PATCH v3 03/17] arch: uapi: asm: mman.h: Let MADV_FREE have
- same value for all architectures
-Date: Fri, 13 Nov 2015 15:18:55 +0900
-Message-ID: <20151113061855.GD5235@bbox>
-References: <1447302793-5376-1-git-send-email-minchan@kernel.org>
- <1447302793-5376-4-git-send-email-minchan@kernel.org>
- <20151112112753.GC22481@node.shutemov.name>
+From: DR ZONGO AMADU <drzongo7amadu@gmail.com>
+Subject: Reply Me Immediately
+Date: Fri, 13 Nov 2015 11:35:53 +0000
+Message-ID: <CAKybhK=h3_bv6RL-0yoZPmzTfx+VNGYFchCdvitDhEuzdCQbEA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from LGEAMRELO13.lge.com ([156.147.23.53]:48989 "EHLO
-	lgeamrelo13.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751728AbbKMGSV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Nov 2015 01:18:21 -0500
-In-Reply-To: <20151112112753.GC22481@node.shutemov.name>
-Content-Disposition: inline
+Received: from mail-yk0-f196.google.com ([209.85.160.196]:36675 "EHLO
+	mail-yk0-f196.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754175AbbKMLfy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 13 Nov 2015 06:35:54 -0500
+Received: by ykdr82 with SMTP id r82so13291581ykd.3
+        for <linux-arch@vger.kernel.org>; Fri, 13 Nov 2015 03:35:54 -0800 (PST)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-api@vger.kernel.org, Hugh Dickins <hughd@google.com>, Johannes Weiner <hannes@cmpxchg.org>, Rik van Riel <riel@redhat.com>, Mel Gorman <mgorman@suse.de>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Jason Evans <je@fb.com>, Daniel Micay <danielmicay@gmail.com>, Shaohua Li <shli@kernel.org>, Michal Hocko <mhocko@suse.cz>, yalin.wang2010@gmail.com, Chen Gang <gang.chen.5i5j@gmail.com>, "rth@twiddle.net" <rth@twiddle.net>, "ink@jurassic.park.msu.ru" <ink@jurassic.park.msu.ru>, "mattst88@gmail.com" <mattst88@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "deller@gmx.de" <deller@gmx.de>, "chris@zankel.net" <chris@zankel.net>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, Arnd
 
-On Thu, Nov 12, 2015 at 01:27:53PM +0200, Kirill A. Shutemov wrote:
-> On Thu, Nov 12, 2015 at 01:32:59PM +0900, Minchan Kim wrote:
-> > From: Chen Gang <gang.chen.5i5j@gmail.com>
-> > 
-> > For uapi, need try to let all macros have same value, and MADV_FREE is
-> > added into main branch recently, so need redefine MADV_FREE for it.
-> > 
-> > At present, '8' can be shared with all architectures, so redefine it to
-> > '8'.
-> 
-> Why not fold the patch into thre previous one?
+FROM DR ZONGO AMADU
 
-Because it was a little bit arguable at that time whether we could use
-number 8 for all of arches. If so, simply I can drop this patch only.
+peace be upon you
+
+For your kind attention, I will be very glad if you do assist me
+to relocate a sum of(US$10,200,000.00Million) to your personal bank
+account for the benefit of both of us. This is a genuine business
+transaction, only that i can not operate it alone without using a
+Foreigner as required in my bank law, therefore am contacting you to
+stand before my bank as the beneficiary/next of kin tor this fund, that
+is my reason of contacting you in this manner to assist me actualize
+this better opportunity, also to share the benefit together with me
+Insha Allah.
+
+
+You will be entitled to have 30% of this fund as a
+foreignpartner,since you will provide a bank account where this money
+will be transferred to, while 70% will be for me, by indicating your
+interest and assurance of trust, I will send you the full details and
+how this business will be eluted.
+Please keep this proposal as a top secret between both of us
+because the secret of this transaction is as well as the success of it,
+and if you are really sure of your integrity, trustworthy and
+confidentiality reply back to me immediately to prove your sincerity,
+And if you are not interested in this business, delete it immediately
+in your email box. I will be looking forward for your urgent response.
+drzongo7amadu@gmail.com
+
+
+Regards, in sincerity,
+
+DR ZONGO AMADU
