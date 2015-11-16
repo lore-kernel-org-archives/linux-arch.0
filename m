@@ -1,67 +1,72 @@
 From: Greg Ungerer <gerg@uclinux.org>
 Subject: Re: [PATCH 4/4] m68knommu: Add missing initialization of max_pfn and
  {min,max}_low_pfn
-Date: Tue, 17 Nov 2015 09:46:33 +1000
-Message-ID: <564A6AD9.6010307@uclinux.org>
+Date: Tue, 17 Nov 2015 09:54:12 +1000
+Message-ID: <564A6CA4.9000206@uclinux.org>
 References: <1447585455-19671-1-git-send-email-geert@linux-m68k.org>
  <1447585455-19671-5-git-send-email-geert@linux-m68k.org>
- <5649C987.3050600@uclinux.org>
- <CAMuHMdXt=UH_YoiRDRHCiHBCAsyyHenz2bDKkqUxF85tj2y6mw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from icp-osb-irony-out4.external.iinet.net.au ([203.59.1.220]:39000
+Received: from icp-osb-irony-out4.external.iinet.net.au ([203.59.1.220]:47602
 	"EHLO icp-osb-irony-out4.external.iinet.net.au" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751786AbbKPXqh (ORCPT
+	by vger.kernel.org with ESMTP id S1751236AbbKPXyN (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 Nov 2015 18:46:37 -0500
-In-Reply-To: <CAMuHMdXt=UH_YoiRDRHCiHBCAsyyHenz2bDKkqUxF85tj2y6mw@mail.gmail.com>
+	Mon, 16 Nov 2015 18:54:13 -0500
+In-Reply-To: <1447585455-19671-5-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Sam Creasey <sammy@sammy.net>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Sam Creasey <sammy@sammy.net>, linux-m68k@lists.linux-m68k.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
 Hi Geert,
 
-On 16/11/15 23:05, Geert Uytterhoeven wrote:
-> On Mon, Nov 16, 2015 at 1:18 PM, Greg Ungerer <gerg@uclinux.org> wrote:
->>> --- a/arch/m68k/kernel/setup_no.c
->>> +++ b/arch/m68k/kernel/setup_no.c
->>> @@ -238,11 +238,14 @@ void __init setup_arch(char **cmdline_p)
->>>          * Give all the memory to the bootmap allocator, tell it to put
->>> the
->>>          * boot mem_map at the start of memory.
->>>          */
->>> +       min_low_pfn = PFN_DOWN(memory_start);
->>> +       max_pfn = max_low_pfn = PFN_DOWN(memory_end);
->>> +
->>>         bootmap_size = init_bootmem_node(
->>>                         NODE_DATA(0),
->>> -                       memory_start >> PAGE_SHIFT, /* map goes here */
->>> -                       PAGE_OFFSET >> PAGE_SHIFT,      /* 0 on coldfire
->>> */
->>> -                       memory_end >> PAGE_SHIFT);
->>> +                       min_low_pfn,            /* map goes here */
->>> +                       PFN_DOWN(PAGE_OFFSET),  /* 0 on coldfire */
->>> +                       max_pfn);
->>>         /*
->>>          * Free the usable memory, we have to make sure we do not free
->>>          * the bootmem bitmap so we then reserve it after freeing it :-)
->>
->> Should this be changed to use init_bootmem() as per your changes
->> in patch 3 ("m68k/mm: sun3 - Add missing initialization of max_pfn and
->> {min,max}_low_pfn")? For the same reason?
+On 15/11/15 21:04, Geert Uytterhoeven wrote:
+> If max_pfn is not initialized, the block layer may use wrong DMA masks.
 > 
-> No. PAGE_OFFSET = PAGE_OFFSET_RAW = CONFIG_RAMBASE.
-> As the comment says, this is zero on coldfire, but not on all m68knommu
-> platforms.
+> Replace open-coded shifts by PFN_DOWN() while we're at it.
 > 
-> Upon closer look, this isn't even true on all Coldfire boards:
-> 
-> arch/m68k/configs/m5208evb_defconfig:CONFIG_RAMBASE=0x40000000
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-Yes, that comment is definitely wrong!
+Tested and working fine on m68knommu. So:
+
+Tested-By: Greg Ungerer <gerg@uclinux.org>
+
+If you respin this patch for any reason I wouldn't object
+to removing the "/* 0 on coldfire */" comment...
 
 Regards
 Greg
+
+
+
+> ---
+> Compile-tested only.
+> ---
+>  arch/m68k/kernel/setup_no.c | 9 ++++++---
+>  1 file changed, 6 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/m68k/kernel/setup_no.c b/arch/m68k/kernel/setup_no.c
+> index 88c27d94a7214c95..29b44e69f0f47375 100644
+> --- a/arch/m68k/kernel/setup_no.c
+> +++ b/arch/m68k/kernel/setup_no.c
+> @@ -238,11 +238,14 @@ void __init setup_arch(char **cmdline_p)
+>  	 * Give all the memory to the bootmap allocator, tell it to put the
+>  	 * boot mem_map at the start of memory.
+>  	 */
+> +	min_low_pfn = PFN_DOWN(memory_start);
+> +	max_pfn = max_low_pfn = PFN_DOWN(memory_end);
+> +
+>  	bootmap_size = init_bootmem_node(
+>  			NODE_DATA(0),
+> -			memory_start >> PAGE_SHIFT, /* map goes here */
+> -			PAGE_OFFSET >> PAGE_SHIFT,	/* 0 on coldfire */
+> -			memory_end >> PAGE_SHIFT);
+> +			min_low_pfn,		/* map goes here */
+> +			PFN_DOWN(PAGE_OFFSET),	/* 0 on coldfire */
+> +			max_pfn);
+>  	/*
+>  	 * Free the usable memory, we have to make sure we do not free
+>  	 * the bootmem bitmap so we then reserve it after freeing it :-)
+> 
