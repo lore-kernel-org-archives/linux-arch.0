@@ -1,69 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from xavier.telenet-ops.be ([195.130.132.52]:46789 "EHLO
-	xavier.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751653AbbKOLnQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 15 Nov 2015 06:43:16 -0500
+Received: from mail-ob0-f176.google.com ([209.85.214.176]:33667 "EHLO
+	mail-ob0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751928AbbKPI2K (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Nov 2015 03:28:10 -0500
+MIME-Version: 1.0
+In-Reply-To: <56498D0A.3070000@synopsys.com>
+References: <5613F3DE.4010406@suse.cz>
+	<1444165543-2209-1-git-send-email-linux@rasmusvillemoes.dk>
+	<56498D0A.3070000@synopsys.com>
+Date: Mon, 16 Nov 2015 09:28:09 +0100
+Message-ID: <CAMuHMdVEK041TFY3JJ1kvYE_e_C72+FcRu3ewDipLPi-kN-h=A@mail.gmail.com>
+Subject: Re: using IS_ENABLED(CONFIG_xyz) effectively
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 0/4] m68k/mm: Add missing initialization of max_pfn and {min,max}_low_pfn
-Date: Sun, 15 Nov 2015 12:04:11 +0100
-Message-ID: <1447585455-19671-1-git-send-email-geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg Ungerer <gerg@uclinux.org>, Sam Creasey <sammy@sammy.net>, linux-m68k@lists.linux-m68k.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
-Message-ID: <20151115110411.oyMS4UlXnCStZjzq6ZBA7YpSBDiXaxlaaWu3WMcfB8I@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>, Paul Gortmaker <paul.gortmaker@windriver.com>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Michal Marek <mmarek@suse.cz>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, arcml <linux-snps-arc@lists.infradead.org>
+Message-ID: <20151116082809.DlO6IOskRNnC_s4ToWUxYxJ8VxRWg1LnjKq-P9TETq8@z>
 
-	Hi,
+Hi Vineet,
 
-This patch series adds missing initialization of max_pfn, min_low_pfn,
-and max_low_pfn on various m68k platforms.
+On Mon, Nov 16, 2015 at 9:00 AM, Vineet Gupta
+<Vineet.Gupta1@synopsys.com> wrote:
+> I've been using IS_ENABLED for some time and once in a while run into an issue
+> which prevents seamless use. Hence posing this question to experts in the area.
+>
+> C macro processor evaluates the ensuing control block even if IS_ENABLED evaluates
+> to false. This requires dummy #defines or worse still removing usage of IS_ENABLED
+> altogether.
+>
+> e.g. In example below even for ARCOMPACT builds, we need the ARCV2 specific define
+> ARCV2_IRQ_DEF_PRIO.
+>
+> void arch_cpu_idle(void)
+> {
+>         if (is_isa_arcompact()) {    <---- IS_ENABLED(CONFIG_ISA_ARCOMPACT)
+>                 __asm__("sleep 0x3");
+>         } else {
+>                 const int arg = 0x10 | ARCV2_IRQ_DEF_PRIO;
+>                __asm__("sleep 0x10");
+>         }
+> }
+>
+> One could argue that the interface needs to be cleanly defined to not have such
+> specific #defines in common code in first place. However sometime that becomes
+> just too tedious.
+>
+> Is there a way to get around by this ?
 
-This was exposed by failing selftests/vm/mlock2-tests.
+Use #ifdef CONFIG_...?
 
-Note that several other architectures lack a proper initialization of
-max_pfn. On some of them it's completely missing, on others max_pfn is a
-local variable, hence it hides the global max_pfn, which is thus not
-initialized neither.
-
-On platforms with MMU, this can easily be verified by reading the
-following virtual files (CONFIG_PROC_PAGE_MONITOR=y):
-
-    /proc/kpagecount
-    /proc/kpageflags
-    /proc/kpagecgroup (CONFIG_MEMCG=y)
-
-If max_pfn is not initialized, all three virtual files are empty.
-
-Besides the above, max_pfn is also used to calculate DMA masks for block
-devices. An uninitialized (zero) value means all RAM is suitable for
-DMA.
-
-Absence of initialization of min_low_pfn and max_low_pfn is more subtle.
-(are there any bad side-effects?).
-
-Geert Uytterhoeven (4):
-  m68k/mm: motorola - Add missing initialization of max_pfn
-  m68k/mm: m54xx - Add missing initialization of max_pfn
-  m68k/mm: sun3 - Add missing initialization of max_pfn and
-    {min,max}_low_pfn
-  m68knommu: Add missing initialization of max_pfn and {min,max}_low_pfn
-
- arch/m68k/coldfire/m54xx.c  | 2 +-
- arch/m68k/kernel/setup_no.c | 9 ++++++---
- arch/m68k/mm/motorola.c     | 2 +-
- arch/m68k/sun3/config.c     | 4 ++--
- 4 files changed, 10 insertions(+), 7 deletions(-)
-
--- 
-1.9.1
+The advantage of IS_ENABLED() over #ifdef is that it allows compile-testing of
+the disabled code path. Of course it should only be compiled if it makes
+sense. And that's exactly what you're running into.
 
 Gr{oetje,eeting}s,
 
-						Geert
+                        Geert
 
 --
 Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
 In personal conversations with technical people, I call myself a hacker. But
 when I'm talking to journalists I just say "programmer" or something like that.
-							    -- Linus Torvalds
+                                -- Linus Torvalds
