@@ -1,72 +1,57 @@
 From: Greg Ungerer <gerg@uclinux.org>
-Subject: Re: [PATCH 4/4] m68knommu: Add missing initialization of max_pfn and
- {min,max}_low_pfn
-Date: Tue, 17 Nov 2015 09:54:12 +1000
-Message-ID: <564A6CA4.9000206@uclinux.org>
+Subject: Re: [PATCH 2/4] m68k/mm: m54xx - Add missing initialization of
+ max_pfn
+Date: Tue, 17 Nov 2015 10:16:07 +1000
+Message-ID: <564A71C7.1070902@uclinux.org>
 References: <1447585455-19671-1-git-send-email-geert@linux-m68k.org>
- <1447585455-19671-5-git-send-email-geert@linux-m68k.org>
+ <1447585455-19671-3-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=windows-1252
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from icp-osb-irony-out4.external.iinet.net.au ([203.59.1.220]:47602
-	"EHLO icp-osb-irony-out4.external.iinet.net.au" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751236AbbKPXyN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 Nov 2015 18:54:13 -0500
-In-Reply-To: <1447585455-19671-5-git-send-email-geert@linux-m68k.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <1447585455-19671-3-git-send-email-geert@linux-m68k.org>
+Sender: linux-m68k-owner@vger.kernel.org
 To: Geert Uytterhoeven <geert@linux-m68k.org>, Sam Creasey <sammy@sammy.net>, linux-m68k@lists.linux-m68k.org
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 Hi Geert,
 
 On 15/11/15 21:04, Geert Uytterhoeven wrote:
-> If max_pfn is not initialized, the block layer may use wrong DMA masks.
-> 
-> Replace open-coded shifts by PFN_DOWN() while we're at it.
+> If max_pfn is not initialized, the various /proc/kpage* files are empty,
+> and selftests/vm/mlock2-tests will fail. max_pfn is also used by the
+> block layer to calculate DMA masks.
 > 
 > Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> ---
+> Compile-tested only.
 
-Tested and working fine on m68knommu. So:
+Tested and seems to work fine on MMU ColdFire (I didn't check
+the actual entries for accuracy - but /proc/kpageflags and
+/proc/kpagecount look to be reporting correctly now).
 
-Tested-By: Greg Ungerer <gerg@uclinux.org>
-
-If you respin this patch for any reason I wouldn't object
-to removing the "/* 0 on coldfire */" comment...
+Tested-by: Greg Ungerer <gerg@uclinux.org>
 
 Regards
 Greg
 
-
+
 
 > ---
-> Compile-tested only.
-> ---
->  arch/m68k/kernel/setup_no.c | 9 ++++++---
->  1 file changed, 6 insertions(+), 3 deletions(-)
+>  arch/m68k/coldfire/m54xx.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> diff --git a/arch/m68k/kernel/setup_no.c b/arch/m68k/kernel/setup_no.c
-> index 88c27d94a7214c95..29b44e69f0f47375 100644
-> --- a/arch/m68k/kernel/setup_no.c
-> +++ b/arch/m68k/kernel/setup_no.c
-> @@ -238,11 +238,14 @@ void __init setup_arch(char **cmdline_p)
->  	 * Give all the memory to the bootmap allocator, tell it to put the
->  	 * boot mem_map at the start of memory.
->  	 */
-> +	min_low_pfn = PFN_DOWN(memory_start);
-> +	max_pfn = max_low_pfn = PFN_DOWN(memory_end);
-> +
->  	bootmap_size = init_bootmem_node(
->  			NODE_DATA(0),
-> -			memory_start >> PAGE_SHIFT, /* map goes here */
-> -			PAGE_OFFSET >> PAGE_SHIFT,	/* 0 on coldfire */
-> -			memory_end >> PAGE_SHIFT);
-> +			min_low_pfn,		/* map goes here */
-> +			PFN_DOWN(PAGE_OFFSET),	/* 0 on coldfire */
-> +			max_pfn);
->  	/*
->  	 * Free the usable memory, we have to make sure we do not free
->  	 * the bootmem bitmap so we then reserve it after freeing it :-)
+> diff --git a/arch/m68k/coldfire/m54xx.c b/arch/m68k/coldfire/m54xx.c
+> index f7836c6a6b60eb24..c32f76791f488ae1 100644
+> --- a/arch/m68k/coldfire/m54xx.c
+> +++ b/arch/m68k/coldfire/m54xx.c
+> @@ -98,7 +98,7 @@ static void __init mcf54xx_bootmem_alloc(void)
+>  	memstart = PAGE_ALIGN(_ramstart);
+>  	min_low_pfn = PFN_DOWN(_rambase);
+>  	start_pfn = PFN_DOWN(memstart);
+> -	max_low_pfn = PFN_DOWN(_ramend);
+> +	max_pfn = max_low_pfn = PFN_DOWN(_ramend);
+>  	high_memory = (void *)_ramend;
+>  
+>  	m68k_virt_to_node_shift = fls(_ramend - _rambase - 1) - 6;
 > 
