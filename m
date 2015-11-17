@@ -1,73 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from icp-osb-irony-out9.external.iinet.net.au ([203.59.1.226]:24289
-	"EHLO icp-osb-irony-out9.external.iinet.net.au" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751438AbbKQARn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 Nov 2015 19:17:43 -0500
-Subject: Re: [PATCH 0/4] m68k/mm: Add missing initialization of max_pfn and
- {min,max}_low_pfn
-References: <1447585455-19671-1-git-send-email-geert@linux-m68k.org>
-From: Greg Ungerer <gerg@uclinux.org>
-Message-ID: <564A7224.2030105@uclinux.org>
-Date: Tue, 17 Nov 2015 10:17:40 +1000
+Received: from mail-qg0-f51.google.com ([209.85.192.51]:36784 "EHLO
+	mail-qg0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750967AbbKQBUn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Nov 2015 20:20:43 -0500
+Received: by qgad10 with SMTP id d10so63307120qga.3
+        for <linux-arch@vger.kernel.org>; Mon, 16 Nov 2015 17:20:41 -0800 (PST)
+Date: Mon, 16 Nov 2015 20:20:38 -0500 (EST)
+From: Nicolas Pitre <nicolas.pitre@linaro.org>
+Subject: [GIT PULL] optimize 64-by-32 ddivision for constant divisors on
+ 32-bit machines
+Message-ID: <alpine.LFD.2.20.1511161710270.5826@knanqh.ubzr>
 MIME-Version: 1.0
-In-Reply-To: <1447585455-19671-1-git-send-email-geert@linux-m68k.org>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Sam Creasey <sammy@sammy.net>, linux-m68k@lists.linux-m68k.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20151117001740.S9Ox_33OL8em5dVvQzS8XTkRD-MJ6STjg2HIZ-y-pkY@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20151117012038.rpb2HMm_pzyhSyGKA7DYZi6Oo61YzXA3cl8TfEXEjd4@z>
 
-Hi Geert,
+Arnd,
 
-On 15/11/15 21:04, Geert Uytterhoeven wrote:
-> This patch series adds missing initialization of max_pfn, min_low_pfn,
-> and max_low_pfn on various m68k platforms.
-> 
-> This was exposed by failing selftests/vm/mlock2-tests.
-> 
-> Note that several other architectures lack a proper initialization of
-> max_pfn. On some of them it's completely missing, on others max_pfn is a
-> local variable, hence it hides the global max_pfn, which is thus not
-> initialized neither.
-> 
-> On platforms with MMU, this can easily be verified by reading the
-> following virtual files (CONFIG_PROC_PAGE_MONITOR=y):
-> 
->     /proc/kpagecount
->     /proc/kpageflags
->     /proc/kpagecgroup (CONFIG_MEMCG=y)
-> 
-> If max_pfn is not initialized, all three virtual files are empty.
-> 
-> Besides the above, max_pfn is also used to calculate DMA masks for block
-> devices. An uninitialized (zero) value means all RAM is suitable for
-> DMA.
+Please pull the following branch:
 
-All looks good to me. Tested-by acks set separately. But otherwise
+	git://git.linaro.org/people/nicolas.pitre/linux div64
 
-Acked-by: Greg Ungerer <gerg@uclinux.org>
+This contains those patches I've initially posted here:
 
-Regards
-Greg
+	https://lkml.org/lkml/2015/11/2/715
 
+Only changes to those posted patches are cosmetic improvements such as 
+the use of ilog2() replacing the custom __div64_ffs(). Exposure in 
+linux-next would be a good thing.
 
-> Absence of initialization of min_low_pfn and max_low_pfn is more subtle.
-> (are there any bad side-effects?).
-> 
-> Geert Uytterhoeven (4):
->   m68k/mm: motorola - Add missing initialization of max_pfn
->   m68k/mm: m54xx - Add missing initialization of max_pfn
->   m68k/mm: sun3 - Add missing initialization of max_pfn and
->     {min,max}_low_pfn
->   m68knommu: Add missing initialization of max_pfn and {min,max}_low_pfn
-> 
->  arch/m68k/coldfire/m54xx.c  | 2 +-
->  arch/m68k/kernel/setup_no.c | 9 ++++++---
->  arch/m68k/mm/motorola.c     | 2 +-
->  arch/m68k/sun3/config.c     | 4 ++--
->  4 files changed, 10 insertions(+), 7 deletions(-)
-> 
+I also included fixes for a couple do_div() misuses that an allyesconfig 
+build turned up after switching ARM to the generic do_div() code.  
+Those patches have been posted separately and addressed to relevant 
+maintainers. They are included here until/unless those maintainers 
+include those patches in their tree.
+
+Original cover letter:
+
+This is a generalization of the optimization I produced for ARM a decade
+ago to turn constant divisors into a multiplication by the divisor
+reciprocal. Turns out that after all those years gcc is still not
+optimizing things on its own for that case.
+
+This has important performance benefits as discussed in this thread:
+
+	https://lkml.org/lkml/2015/10/28/851
+
+This series brings the formerly ARM-only optimization to all 32-bit
+architectures using C code by default.  The possibility for the actual
+multiplication to be implemented in assembly is provided in order to get
+optimal code.  The ARM version can be used as an example implementation
+for other interested architectures to implement.
 
