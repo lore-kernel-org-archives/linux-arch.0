@@ -1,316 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f46.google.com ([74.125.82.46]:32939 "EHLO
-	mail-wm0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751611AbbKPSmY convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Nov 2015 13:42:24 -0500
-Received: by wmec201 with SMTP id c201so191746227wme.0
-        for <linux-arch@vger.kernel.org>; Mon, 16 Nov 2015 10:42:23 -0800 (PST)
+Received: from icp-osb-irony-out9.external.iinet.net.au ([203.59.1.226]:23862
+	"EHLO icp-osb-irony-out9.external.iinet.net.au" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751630AbbKQAQL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 16 Nov 2015 19:16:11 -0500
+Subject: Re: [PATCH 2/4] m68k/mm: m54xx - Add missing initialization of
+ max_pfn
+References: <1447585455-19671-1-git-send-email-geert@linux-m68k.org>
+ <1447585455-19671-3-git-send-email-geert@linux-m68k.org>
+From: Greg Ungerer <gerg@uclinux.org>
+Message-ID: <564A71C7.1070902@uclinux.org>
+Date: Tue, 17 Nov 2015 10:16:07 +1000
 MIME-Version: 1.0
-In-Reply-To: <CAN+hb0UWpfcS5DvgMxNjY-5JOztw2mO1r2FJAW17fn974mhxPA@mail.gmail.com>
-References: <20151102144427.GA2876@suse.de>
-	<20151102173218.GC12484@shamir-ThinkPad-T430>
-	<20151105134206.GD2255@suse.de>
-	<20151105.161121.188431695871972310.davem@davemloft.net>
-	<20151107150642.GA4405@shamir-ThinkPad-T430>
-	<CAN+hb0UvztgwNuAh93XdJEe7vgiZgNMc9mHNziHpEopg8Oi4Mg@mail.gmail.com>
-	<1447663353.145626.46.camel@infradead.org>
-	<CAN+hb0UWpfcS5DvgMxNjY-5JOztw2mO1r2FJAW17fn974mhxPA@mail.gmail.com>
-Date: Mon, 16 Nov 2015 10:42:23 -0800
-Message-ID: <CAN+hb0XLpQs9UiuWkzU=xBT_Tpfntd+XGCLYQDagwsY+HeN-kw@mail.gmail.com>
-Subject: Re: [PATCH v1 2/2] dma-mapping-common: add DMA attribute - DMA_ATTR_IOMMU_BYPASS
-From: Benjamin Serebrin <serebrin@google.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+In-Reply-To: <1447585455-19671-3-git-send-email-geert@linux-m68k.org>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Woodhouse <dwmw2@infradead.org>
-Cc: Shamir Rabinovitch <shamir.rabinovitch@oracle.com>, David Miller <davem@davemloft.net>, Joerg Roedel <jroedel@suse.de>, benh@kernel.crashing.org, Arnd Bergmann <arnd@arndb.de>, Jonathan Corbet <corbet@lwn.net>, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, luto@kernel.org, borntraeger@de.ibm.com, cornelia.huck@de.ibm.com, sebott@linux.vnet.ibm.com, Paolo Bonzini <pbonzini@redhat.com>, hch@lst.de, kvm@vger.kernel.org, schwidefsky@de.ibm.com, linux-s390@vger.kernel.org
-Message-ID: <20151116184223.JbUNX1Bn3Dmz6Bah6AGzY9AdBvoeGCsY9n4PU8qTyIg@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Sam Creasey <sammy@sammy.net>, linux-m68k@lists.linux-m68k.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20151117001607.Y5ifDgUs0isS5ilVhcjTL1ulOpDNxlmyoQ289iwooi4@z>
 
-On Mon, Nov 16, 2015 at 12:42 AM, David Woodhouse <dwmw2@infradead.org> wrote:
->
-> On Sun, 2015-11-15 at 22:54 -0800, Benjamin Serebrin wrote:
-> > We looked into Intel IOMMU performance a while ago and learned a few
-> > useful things.  We generally did a parallel 200 thread TCP_RR test,
-> > as this churns through mappings quickly and uses all available cores.
-> >
-> > First, the main bottleneck was software performance[1].
->
-> For the Intel IOMMU, *all* we need to do is put a PTE in place. For
-> real hardware (i.e not an IOMMU emulated by qemu for a VM), we don't
-> need to do an IOTLB flush. It's a single 64-bit write of the PTE.
->
-> All else is software overhead.
->
+Hi Geert,
 
-Agreed!
+On 15/11/15 21:04, Geert Uytterhoeven wrote:
+> If max_pfn is not initialized, the various /proc/kpage* files are empty,
+> and selftests/vm/mlock2-tests will fail. max_pfn is also used by the
+> block layer to calculate DMA masks.
+> 
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> ---
+> Compile-tested only.
 
->
-> (I'm deliberately ignoring the stupid chipsets where DMA page tables
-> aren't cache coherent and we need a clflush too. They make me too sad.)
+Tested and seems to work fine on MMU ColdFire (I didn't check
+the actual entries for accuracy - but /proc/kpageflags and
+/proc/kpagecount look to be reporting correctly now).
 
+Tested-by: Greg Ungerer <gerg@uclinux.org>
 
+Regards
+Greg
 
-How much does Linux need to care about such chipsets?  Can we argue
-that they get very sad performance and so be it?
+
 
->
->
->
-> >   This study preceded the recent patch to break the locks into pools
-> > ("Break up monolithic iommu table/lock into finer graularity pools
-> > and lock").  There were several points of lock contention:
-> > - the RB tree ...
-> > - the RB tree ...
-> > - the RB tree ...
-> >
-> > Omer's paper (https://www.usenix.org/system/files/conference/atc15/at
-> > c15-paper-peleg.pdf) has some promising approaches.  The magazine
-> > avoids the RB tree issue.
->
-> I'm thinking of ditching the RB tree altogether and switching to the
-> allocator in lib/iommu-common.c (and thus getting the benefit of the
-> finer granularity pools).
+> ---
+>  arch/m68k/coldfire/m54xx.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/arch/m68k/coldfire/m54xx.c b/arch/m68k/coldfire/m54xx.c
+> index f7836c6a6b60eb24..c32f76791f488ae1 100644
+> --- a/arch/m68k/coldfire/m54xx.c
+> +++ b/arch/m68k/coldfire/m54xx.c
+> @@ -98,7 +98,7 @@ static void __init mcf54xx_bootmem_alloc(void)
+>  	memstart = PAGE_ALIGN(_ramstart);
+>  	min_low_pfn = PFN_DOWN(_rambase);
+>  	start_pfn = PFN_DOWN(memstart);
+> -	max_low_pfn = PFN_DOWN(_ramend);
+> +	max_pfn = max_low_pfn = PFN_DOWN(_ramend);
+>  	high_memory = (void *)_ramend;
+>  
+>  	m68k_virt_to_node_shift = fls(_ramend - _rambase - 1) - 6;
+> 
 
-
-Sounds promising!  Is 4 parallel arenas enough?  We'll try to play
-with that here.
-I think lazy_flush leaves dangling references.
-
->
->
-> > I'm interested in seeing if the dynamic 1:1 with a mostly-lock-free
-> > page table cleanup algorithm could do well.
->
-> When you say 'dynamic 1:1 mapping', is that the same thing that's been
-> suggested elsewhere — avoiding the IOVA allocator completely by using a
-> virtual address which *matches* the physical address, if that virtual
-> address is available?
-
-
-Yes.  We munge in 2 upper address bits in the IOVA to encode read and
-write permissions as well.
-
->
-> Simply cmpxchg on the PTE itself, and if it was
-> already set *then* we fall back to the allocator, obviously configured
-> to allocate from a range *higher* than the available physical memory.
->
-> Jörg has been looking at this too, and was even trying to find space in
-> the PTE for a use count so a given page could be in more than one
-> mapping before we call back to the IOVA allocator.
-
-
-Aren't bits 63:52 available at all levels?
-
->
->
->
-> > There are correctness fixes and optimizations left in the
-> > invalidation path: I want strict-ish semantics (a page doesn't go
-> > back into the freelist until the last IOTLB/IOMMU TLB entry is
-> > invalidated) with good performance, and that seems to imply that an
-> > additional page reference should be gotten at dma_map time and put
-> > back at the completion of the IOMMU flush routine.  (This is worthy
-> > of much discussion.)
->
-> We already do something like this for page table pages which are freed
-> by an unmap, FWIW.
-
-
-As I understood the code when I last looked, this was true only if a
-single unmap operation covered an entire table's worth (2MByte, or
-1GByte, etc) of mappings.  The caffeine hasn't hit yet, though, so I
-can't even begin to dive into the new calls into mm.c.
-
-
->
->
-> > Additionally, we can find ways to optimize the flush routine by
-> > realizing that if we have frequent maps and unmaps, it may be because
-> > the device creates and destroys buffers a lot; these kind of
-> > workloads use an IOVA for one event and then never come back.  Maybe
-> > TLBs don't do much good and we could just flush the entire IOMMU TLB
-> > [and ATS cache] for that BDF.
->
-> That would be a very interesting thing to look at. Although it would be
-> nice if we had a better way to measure the performance impact of IOTLB
-> misses — currently we don't have a lot of visibility at all.
-
-
-All benchmarks are lies.  But we intend to run internal workloads as
-well as well-agreed loads and see how things go.
-
->
->
-> > 1: We verified that the IOMMU costs are almost entirely software
-> > overheads by forcing software 1:1 mode, where we create page tables
-> > for all physical addresses.  We tested using leaf nodes of size 4KB,
-> > of 2MB, and of 1GB.  In call cases, there is zero runtime maintenance
-> > of the page tables, and no IOMMU invalidations.  We did piles of DMA
-> > maximizing x16 PCIe bandwidth on multiple lanes, to random DRAM
-> > addresses.  At 4KB page size, we could see some bandwidth slowdown,
-> > but at 2MB and 1GB, there was < 1% performance loss as compared with
-> > IOMMU off.
->
-> Was this with ATS on or off? With ATS, the cost of the page walk can be
-> amortised in some cases — you can look up the physical address *before*
-> you are ready to actually start the DMA to it, and don't take that
-> latency at the time you're actually moving the data.
-
-
-This was with ATS intentionally disabled; we wanted to stress the
-IOMMU's page walker.
-Most devices aren't as smart as you describe, though in any kind of
-ring buffer where storage is posted,
-the device should be doing that.
-
-On Mon, Nov 16, 2015 at 10:09 AM, Benjamin Serebrin <serebrin@google.com> wrote:
->
->
-> On Mon, Nov 16, 2015 at 12:42 AM, David Woodhouse <dwmw2@infradead.org>
-> wrote:
->>
->> On Sun, 2015-11-15 at 22:54 -0800, Benjamin Serebrin wrote:
->> > We looked into Intel IOMMU performance a while ago and learned a few
->> > useful things.  We generally did a parallel 200 thread TCP_RR test,
->> > as this churns through mappings quickly and uses all available cores.
->> >
->> > First, the main bottleneck was software performance[1].
->>
->> For the Intel IOMMU, *all* we need to do is put a PTE in place. For
->> real hardware (i.e not an IOMMU emulated by qemu for a VM), we don't
->> need to do an IOTLB flush. It's a single 64-bit write of the PTE.
->>
->> All else is software overhead.
->>
->
-> Agreed!
->
->>
->> (I'm deliberately ignoring the stupid chipsets where DMA page tables
->> aren't cache coherent and we need a clflush too. They make me too sad.)
->
->
->
-> How much does Linux need to care about such chipsets?  Can we argue that
-> they get very sad performance and so be it?
->
->>
->>
->>
->> >   This study preceded the recent patch to break the locks into pools
->> > ("Break up monolithic iommu table/lock into finer graularity pools
->> > and lock").  There were several points of lock contention:
->> > - the RB tree ...
->> > - the RB tree ...
->> > - the RB tree ...
->> >
->> > Omer's paper (https://www.usenix.org/system/files/conference/atc15/at
->> > c15-paper-peleg.pdf) has some promising approaches.  The magazine
->> > avoids the RB tree issue.
->>
->> I'm thinking of ditching the RB tree altogether and switching to the
->> allocator in lib/iommu-common.c (and thus getting the benefit of the
->> finer granularity pools).
->
->
-> Sounds promising!  Is 4 parallel arenas enough?  We'll try to play with that
-> here.
-> I think lazy_flush leaves dangling references.
->
->>
->>
->> > I'm interested in seeing if the dynamic 1:1 with a mostly-lock-free
->> > page table cleanup algorithm could do well.
->>
->> When you say 'dynamic 1:1 mapping', is that the same thing that's been
->> suggested elsewhere — avoiding the IOVA allocator completely by using a
->> virtual address which *matches* the physical address, if that virtual
->> address is available?
->
->
-> Yes.  We munge in 2 upper address bits in the IOVA to encode read and write
-> permissions as well.
->
->>
->> Simply cmpxchg on the PTE itself, and if it was
->> already set *then* we fall back to the allocator, obviously configured
->> to allocate from a range *higher* than the available physical memory.
->>
->> Jörg has been looking at this too, and was even trying to find space in
->> the PTE for a use count so a given page could be in more than one
->> mapping before we call back to the IOVA allocator.
->
->
-> Aren't bits 63:52 available at all levels?
->
->>
->>
->>
->> > There are correctness fixes and optimizations left in the
->> > invalidation path: I want strict-ish semantics (a page doesn't go
->> > back into the freelist until the last IOTLB/IOMMU TLB entry is
->> > invalidated) with good performance, and that seems to imply that an
->> > additional page reference should be gotten at dma_map time and put
->> > back at the completion of the IOMMU flush routine.  (This is worthy
->> > of much discussion.)
->>
->> We already do something like this for page table pages which are freed
->> by an unmap, FWIW.
->
->
-> As I understood the code when I last looked, this was true only if a single
-> unmap operation covered an entire table's worth (2MByte, or 1GByte, etc) of
-> mappings.  The caffeine hasn't hit yet, though, so I can't even begin to
-> dive into the new calls into mm.c.
->
->
->>
->>
->> > Additionally, we can find ways to optimize the flush routine by
->> > realizing that if we have frequent maps and unmaps, it may be because
->> > the device creates and destroys buffers a lot; these kind of
->> > workloads use an IOVA for one event and then never come back.  Maybe
->> > TLBs don't do much good and we could just flush the entire IOMMU TLB
->> > [and ATS cache] for that BDF.
->>
->> That would be a very interesting thing to look at. Although it would be
->> nice if we had a better way to measure the performance impact of IOTLB
->> misses — currently we don't have a lot of visibility at all.
->
->
-> All benchmarks are lies.  But we intend to run internal workloads as well as
-> well-agreed loads and see how things go.
->
->>
->>
->> > 1: We verified that the IOMMU costs are almost entirely software
->> > overheads by forcing software 1:1 mode, where we create page tables
->> > for all physical addresses.  We tested using leaf nodes of size 4KB,
->> > of 2MB, and of 1GB.  In call cases, there is zero runtime maintenance
->> > of the page tables, and no IOMMU invalidations.  We did piles of DMA
->> > maximizing x16 PCIe bandwidth on multiple lanes, to random DRAM
->> > addresses.  At 4KB page size, we could see some bandwidth slowdown,
->> > but at 2MB and 1GB, there was < 1% performance loss as compared with
->> > IOMMU off.
->>
->> Was this with ATS on or off? With ATS, the cost of the page walk can be
->> amortised in some cases — you can look up the physical address *before*
->> you are ready to actually start the DMA to it, and don't take that
->> latency at the time you're actually moving the data.
->
->
-> This was with ATS intentionally disabled; we wanted to stress the IOMMU's
-> page walker.
-> Most devices aren't as smart as you describe, though in any kind of ring
-> buffer where storage is posted,
-> the device should be doing that.
->
->>
->>
->> --
->> David Woodhouse                            Open Source Technology Centre
->> David.Woodhouse@intel.com                              Intel Corporation
->>
->
