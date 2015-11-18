@@ -1,40 +1,48 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 1/4] m68k/mm: motorola - Add missing initialization of max_pfn
-Date: Tue, 17 Nov 2015 20:54:30 +0100
-Message-ID: <CAMuHMdUQCpPhFHOBm=xk6NkNaEt9HyB7OH4Rumpx2W5x=Aup1w@mail.gmail.com>
-References: <1447585455-19671-1-git-send-email-geert@linux-m68k.org>
-	<1447585455-19671-2-git-send-email-geert@linux-m68k.org>
-	<564AB03A.80303@gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: spin_lock() ordering on ia64
+Date: Wed, 18 Nov 2015 13:11:06 +0000
+Message-ID: <20151118131106.GE1588@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <564AB03A.80303@gmail.com>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Michael Schmitz <schmitzmic@gmail.com>
-Cc: Greg Ungerer <gerg@uclinux.org>, Sam Creasey <sammy@sammy.net>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:34585 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754900AbbKRNLJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Nov 2015 08:11:09 -0500
+Content-Disposition: inline
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: tony.luck@intel.com
+Cc: peterz@infradead.org, linux-arch@vger.kernel.org
 
-Hi Michael,
+Hi Tony,
 
-On Tue, Nov 17, 2015 at 5:42 AM, Michael Schmitz <schmitzmic@gmail.com> wrote:
-> Am 16.11.2015 um 00:04 schrieb Geert Uytterhoeven:
->> If max_pfn is not initialized, the various /proc/kpage* files are empty,
->> and selftests/vm/mlock2-tests will fail. max_pfn is also used by the
->> block layer to calculate DMA masks.
->
-> What about platforms where the DMA can't address all available physical
-> memory?
+I recently took a look at the ia64 spinlock implementation in hope of
+some inspiration regarding spin_unlock_wait, but I'm actually having
+trouble understanding how spin_lock() guarantees ordering between taking
+the lock and reads of some shared data in the critical section.
 
-There are many other checks, using max_low_pfn and/or zone_dma.
-I'm not 100% clear on the impact of max_pfn in blk_settings_init().
+In particular, the loop where the locker spins awaiting its turn in the
+queue:
 
-Gr{oetje,eeting}s,
 
-                        Geert
+for (;;) {
+	asm volatile ("ld4.c.nc %0=[%1]" : "=r"(serve) : "r"(p) : "memory");
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+	if (!(((serve >> TICKET_SHIFT) ^ ticket) & TICKET_MASK))
+		return;
+	cpu_relax();
+}
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+
+AFAIU, ld4.c.nc doesn't provide any ordering semantics, so a load to an
+unrelated address from within the following critical section could be
+speculated before we've actually acquired the lock.
+
+What am I missing? Does the ALAT provide guarantees against other loads
+somehow or does ld4.c.nc provide ordering guarantees that I didn't spot
+in the manuals?
+
+Cheers,
+
+Will
