@@ -1,58 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f194.google.com ([209.85.213.194]:35761 "EHLO
-	mail-ig0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757796AbbKSGt3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Nov 2015 01:49:29 -0500
-From: Jia He <hejianet@gmail.com>
-Subject: [PATCH v2 1/3] linux/bitmap: Move 2 mask macro from bitmap.h to bitops.h
-Date: Thu, 19 Nov 2015 14:48:42 +0800
-Message-ID: <1447915724-29709-2-git-send-email-hejianet@gmail.com>
-In-Reply-To: <1447915724-29709-1-git-send-email-hejianet@gmail.com>
-References: <1447915724-29709-1-git-send-email-hejianet@gmail.com>
+Received: from mout.kundenserver.de ([212.227.126.131]:51096 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758193AbbKSL00 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Nov 2015 06:26:26 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] include: asm-generic: page.h: Remove useless get_user_page and free_user_page
+Date: Thu, 19 Nov 2015 12:25:45 +0100
+Message-ID: <5663971.11WtULN11Y@wuerfel>
+In-Reply-To: <COL130-W7B5F0BB94C76AF6B12EA7B91C0@phx.gbl>
+References: <COL130-W7B5F0BB94C76AF6B12EA7B91C0@phx.gbl>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Denys Vlasenko <dvlasenk@redhat.com>, Kyungmin Park <kyungmin.park@samsung.com>, Michal Nazarewicz <mina86@mina86.com>, Yury Norov <yury.norov@gmail.com>, Tejun Heo <tj@kernel.org>, Martin Kepplinger <martink@posteo.de>, George Spelvin <linux@horizon.com>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Jia He <hejianet@gmail.com>
-Message-ID: <20151119064842.oTbxrSLOF4FqKCmWbkiL63MsS3TYwJutoaECHpqCCu0@z>
+To: linux-arm-kernel@lists.infradead.org, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>
+Cc: Chen Gang <xili_gchen_5257@hotmail.com>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "gerg@uclinux.org" <gerg@uclinux.org>, "jonas@southpole.se" <jonas@southpole.se>, "abrodkin@synopsys.com" <abrodkin@synopsys.com>, Andrew Morton <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, kernel mailing list <linux-kernel@vger.kernel.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>
+Message-ID: <20151119112545.NkiQCK6MLGYOBWH-ZZyg3lIaPSCBfHaDgOZo7uJq8pE@z>
 
-This patch moves the mask macro to bitops.h and then the new introduced
-api in find_bit.c can use it.
+On Thursday 19 November 2015 03:40:25 Chen Gang wrote:
+> diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
+> index 37d1fe2..67cfb7d 100644
+> --- a/include/asm-generic/page.h
+> +++ b/include/asm-generic/page.h
+> @@ -24,9 +24,6 @@
+>  
+>  #ifndef __ASSEMBLY__
+>  
+> -#define get_user_page(vaddr)           __get_free_page(GFP_KERNEL)
+> -#define free_user_page(page, addr)     free_page(addr)
+> -
+>  #define clear_page(page)       memset((page), 0, PAGE_SIZE)
+>  #define copy_page(to,from)     memcpy((to), (from), PAGE_SIZE)
+>  
+> 
 
-Signed-off-by: Jia He <hejianet@gmail.com>
----
- include/linux/bitmap.h | 3 ---
- include/linux/bitops.h | 4 ++++
- 2 files changed, 4 insertions(+), 3 deletions(-)
+Looks good. I can take the asm-generic portion when you split it up, and
+I can also help you merge the remaining patches in case some of
+the arch maintainers fail to pick them up. I think all five of them
+are actively maintained though, so the patches should just go through
+the respective architecture trees.
 
-diff --git a/include/linux/bitmap.h b/include/linux/bitmap.h
-index 9653fdb..15524f6 100644
---- a/include/linux/bitmap.h
-+++ b/include/linux/bitmap.h
-@@ -172,9 +172,6 @@ extern unsigned int bitmap_ord_to_pos(const unsigned long *bitmap, unsigned int
- extern int bitmap_print_to_pagebuf(bool list, char *buf,
- 				   const unsigned long *maskp, int nmaskbits);
- 
--#define BITMAP_FIRST_WORD_MASK(start) (~0UL << ((start) & (BITS_PER_LONG - 1)))
--#define BITMAP_LAST_WORD_MASK(nbits) (~0UL >> (-(nbits) & (BITS_PER_LONG - 1)))
--
- #define small_const_nbits(nbits) \
- 	(__builtin_constant_p(nbits) && (nbits) <= BITS_PER_LONG)
- 
-diff --git a/include/linux/bitops.h b/include/linux/bitops.h
-index 2b8ed12..b881028 100644
---- a/include/linux/bitops.h
-+++ b/include/linux/bitops.h
-@@ -24,6 +24,10 @@
- #define GENMASK_ULL(h, l) \
- 	(((~0ULL) << (l)) & (~0ULL >> (BITS_PER_LONG_LONG - 1 - (h))))
- 
-+/* For bitmap ops*/
-+#define BITMAP_FIRST_WORD_MASK(start) (~0UL << ((start) & (BITS_PER_LONG - 1)))
-+#define BITMAP_LAST_WORD_MASK(nbits) (~0UL >> (-(nbits) & (BITS_PER_LONG - 1)))
-+
- extern unsigned int __sw_hweight8(unsigned int w);
- extern unsigned int __sw_hweight16(unsigned int w);
- extern unsigned int __sw_hweight32(unsigned int w);
--- 
-2.5.0
-
+	Arnd
