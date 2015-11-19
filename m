@@ -1,44 +1,31 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH] include: asm-generic: page.h: Remove useless
- get_user_page and free_user_page
-Date: Thu, 19 Nov 2015 00:11:26 +0000
-Message-ID: <20151119001126.GT8644@n2100.arm.linux.org.uk>
-References: <COL130-W7B5F0BB94C76AF6B12EA7B91C0@phx.gbl>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+From: Jia He <hejianet@gmail.com>
+Subject: [PATCH 0/3] Improve bitmap_empty and bitmap_full
+Date: Thu, 19 Nov 2015 10:31:51 +0800
+Message-ID: <1447900314-5727-1-git-send-email-hejianet@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.arm.linux.org.uk ([78.32.30.218]:38733 "EHLO
-	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755806AbbKSALv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Nov 2015 19:11:51 -0500
-Content-Disposition: inline
-In-Reply-To: <COL130-W7B5F0BB94C76AF6B12EA7B91C0@phx.gbl>
+Received: from mail-io0-f194.google.com ([209.85.223.194]:35655 "EHLO
+	mail-io0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752587AbbKSCcJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Nov 2015 21:32:09 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Gang <xili_gchen_5257@hotmail.com>
-Cc: "vgupta@synopsys.com" <vgupta@synopsys.com>, "dhowells@redhat.com" <dhowells@redhat.com>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "gerg@uclinux.org" <gerg@uclinux.org>, "jonas@southpole.se" <jonas@southpole.se>, Arnd Bergmann <arnd@arndb.de>, "abrodkin@synopsys.com" <abrodkin@synopsys.com>, Andrew Morton <akpm@linux-foundation.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, kernel mailing list <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux@lists.openrisc.net
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Denys Vlasenko <dvlasenk@redhat.com>, Kyungmin Park <kyungmin.park@samsung.com>, Michal Nazarewicz <mina86@mina86.com>, Yury Norov <yury.norov@gmail.com>, Tejun Heo <tj@kernel.org>, Martin Kepplinger <martink@posteo.de>, George Spelvin <linux@horizon.com>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Jia He <hejianet@gmail.com>
 
-On Thu, Nov 19, 2015 at 03:40:25AM +0800, Chen Gang wrote:
-> >From ba7c00c4cb976109b6a35812ce9649aaeda81e2d Mon Sep 17 00:00:00 20=
-01
-> From: Chen Gang <gang.chen.5i5j@gmail.com>
-> Date: Thu, 19 Nov 2015 03:24:42 +0800
-> Subject: [PATCH] include: asm-generic: page.h: Remove useless get_use=
-r_page and free_user_page
->=20
-> They are not symmetric with each other, neither are used in real worl=
-d
-> (can not be found by grep command in source code root directory), so
-> remove them.
->=20
-> Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
+find_fisrt_{zero_}bit are too heavy for bitmap_{full,empty}. We don't 
+need to calculate and compare the position of bitmap. This set of patch
+instroduces lightweight api and replaces the heavy one.
 
-=46or:
-> =A0arch/arm/include/asm/page-nommu.h | 3 ---
+Jia He (3):
+  linux/bitmap: Move 2 mask macro from bitmap.h to bitops.h
+  lib: Introduce 2 find bit api: all_is_bit_{one,zero}
+  linux/bitmap: Replace find_fisrt_{zero_}bit with the new lightweight api 
 
-Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
+ include/asm-generic/bitops/find.h |  3 +++
+ include/linux/bitmap.h            |  7 ++----
+ include/linux/bitops.h            |  4 ++++
+ lib/find_bit.c                    | 50 +++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 59 insertions(+), 5 deletions(-)
 
---=20
-=46TTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+-- 
+2.5.0
