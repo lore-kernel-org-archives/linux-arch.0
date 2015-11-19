@@ -1,47 +1,49 @@
-From: Richard Weinberger <richard@nod.at>
-Subject: Re: [RFC] Limiting linker scope
-Date: Fri, 20 Nov 2015 00:34:20 +0100
-Message-ID: <564E5C7C.7090407@nod.at>
-References: <564E5232.201@nod.at>
+From: Michael Ellerman <mpe@ellerman.id.au>
+Subject: Re: [PATCH] Kconfig: remove HAVE_LATENCYTOP_SUPPORT
+Date: Fri, 20 Nov 2015 10:51:37 +1100
+Message-ID: <1447977097.2262.5.camel@ellerman.id.au>
+References: <1447956664-2553-1-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <564E5232.201@nod.at>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, octavian.purdila@intel.com
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from ozlabs.org ([103.22.144.67]:49472 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1759290AbbKSXvj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Nov 2015 18:51:39 -0500
+In-Reply-To: <1447956664-2553-1-git-send-email-will.deacon@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>, linux-arch@vger.kernel.org
+Cc: Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>, Helge Deller <deller@gmx.de>, "David S. Miller" <davem@davemloft.net>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>
 
-Am 19.11.2015 um 23:50 schrieb Richard Weinberger:
-> Hi!
+On Thu, 2015-11-19 at 18:11 +0000, Will Deacon wrote:
+> As illustrated by a3afe70b83fd ("[S390] latencytop s390 support."),
+> HAVE_LATENCYTOP_SUPPORT is defined by an architecture to advertise an
+> implementation of save_stack_trace_tsk.
 > 
-> UML recently had an interesting bug[1] where the host side of UML
-> tried to call sigsuspend() but as the kernel itself offers a function
-> with the same name it called sigsuspend() on
-> the UML kernel side and funny things happened.
+> However, as of 9212ddb5eada ("stacktrace: provide save_stack_trace_tsk()
+> weak alias") a dummy implementation is provided if STACKTRACE=y.
+> Given that LATENCYTOP already depends on STACKTRACE_SUPPORT and selects
+> STACKTRACE, we can remove HAVE_LATENCYTOP_SUPPORT altogether.
 > 
-> The root cause of the problem is that the UML links userspace
-> code like glibc, libpcap, etc. to the kernel image and symbols can
-> clash. Especially if one side is a shared library it will not noticed
-> at compile time.
-> 
-> As this is not the first bug of this kind I'm facing on UML I've
-> started to think how to deal with that.
-> 
-> Is it somehow possible to limit the linker scope?
-> Such that we can force LD no not blindly link every symbols of
-> vmlinux into another object? Maybe using a white list?
-> I have do admit I've never used LD scripts nor GNU export maps,
-> maybe they can help. Currently I'm reading their docs and hope
-> to find a way to implement my idea.
-> 
-> The problem is also not specific to UML, the emerging Linux Kernel
-> Library will suffer from the same issue.
+> Cc: Vineet Gupta <vgupta@synopsys.com>
+> Cc: Russell King <linux@arm.linux.org.uk>
+> Cc: James Hogan <james.hogan@imgtec.com>
+> Cc: Michal Simek <monstr@monstr.eu>
+> Cc: Helge Deller <deller@gmx.de>
+> Cc: Michael Ellerman <mpe@ellerman.id.au>
+> Cc: "David S. Miller" <davem@davemloft.net>
+> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> ---
+>  arch/powerpc/Kconfig    | 3 ---
 
-I take this back. LKL continues to impress me.
-It creates a new kernel object using objcopy -G and marks only some
-symbols as global. This approach could work for UML too.
+LGTM.
 
-Thanks,
-//richard
+Acked-by: Michael Ellerman <mpe@ellerman.id.au>
+
+cheers
