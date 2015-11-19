@@ -1,222 +1,68 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH] Kconfig: remove HAVE_LATENCYTOP_SUPPORT
-Date: Thu, 19 Nov 2015 18:11:04 +0000
-Message-ID: <1447956664-2553-1-git-send-email-will.deacon@arm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:37028 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754690AbbKSSLw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 19 Nov 2015 13:11:52 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: Will Deacon <will.deacon@arm.com>, Vineet Gupta <vgupta@synopsys.com>, Russell King <linux@arm.linux.org.uk>, James Hogan <james.hogan@imgtec.com>, Michal Simek <monstr@monstr.eu>, Helge Deller <deller@gmx.de>, Michael Ellerman <mpe@ellerman.id.au>, "David S. Miller" <davem@davemloft.net>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Ingo Molnar <mingo@redhat.com>, Andrew Morton <akpm@linux-foundation.org>
+From: Chen Gang <xili_gchen_5257@hotmail.com>
+Subject: Re: [PATCH] include: asm-generic: page.h: Remove useless get_user_page
+ and free_user_page
+Date: Fri, 20 Nov 2015 02:59:29 +0800
+Message-ID: <BLU436-SMTP973338A6E3B4F01477630DB91B0@phx.gbl>
+References: <COL130-W7B5F0BB94C76AF6B12EA7B91C0@phx.gbl>
+ <5663971.11WtULN11Y@wuerfel> <20151119161843.GA8644@n2100.arm.linux.org.uk>
+ <4559060.7YuVHsgd4d@wuerfel>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
+In-Reply-To: <4559060.7YuVHsgd4d@wuerfel>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
+List-Post: <mailto:linux-snps-arc@lists.infradead.org>
+List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
+ <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
+Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
+To: Arnd Bergmann <arnd@arndb.de>, Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: "jonas@southpole.se" <jonas@southpole.se>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "abrodkin@synopsys.com" <abrodkin@synopsys.com>, kernel mailing list <linux-kernel@vger.kernel.org>, "dhowells@redhat.com" <dhowells@redhat.com>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "gerg@uclinux.org" <gerg@uclinux.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-As illustrated by a3afe70b83fd ("[S390] latencytop s390 support."),
-HAVE_LATENCYTOP_SUPPORT is defined by an architecture to advertise an
-implementation of save_stack_trace_tsk.
-
-However, as of 9212ddb5eada ("stacktrace: provide save_stack_trace_tsk()
-weak alias") a dummy implementation is provided if STACKTRACE=y.
-Given that LATENCYTOP already depends on STACKTRACE_SUPPORT and selects
-STACKTRACE, we can remove HAVE_LATENCYTOP_SUPPORT altogether.
-
-Cc: Vineet Gupta <vgupta@synopsys.com>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: James Hogan <james.hogan@imgtec.com>
-Cc: Michal Simek <monstr@monstr.eu>
-Cc: Helge Deller <deller@gmx.de>
-Cc: Michael Ellerman <mpe@ellerman.id.au>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
----
- arch/arc/Kconfig        | 3 ---
- arch/arm/Kconfig        | 5 -----
- arch/metag/Kconfig      | 3 ---
- arch/microblaze/Kconfig | 3 ---
- arch/parisc/Kconfig     | 3 ---
- arch/powerpc/Kconfig    | 3 ---
- arch/s390/Kconfig       | 3 ---
- arch/sh/Kconfig         | 3 ---
- arch/sparc/Kconfig      | 4 ----
- arch/unicore32/Kconfig  | 3 ---
- arch/x86/Kconfig        | 3 ---
- lib/Kconfig.debug       | 1 -
- 12 files changed, 37 deletions(-)
-
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 2c2ac3f3ff80..6dc312fd6480 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -73,9 +73,6 @@ config STACKTRACE_SUPPORT
- 	def_bool y
- 	select STACKTRACE
- 
--config HAVE_LATENCYTOP_SUPPORT
--	def_bool y
--
- config HAVE_ARCH_TRANSPARENT_HUGEPAGE
- 	def_bool y
- 	depends on ARC_MMU_V4
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 857d39fcbad0..6322a203fece 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -162,11 +162,6 @@ config STACKTRACE_SUPPORT
- 	bool
- 	default y
- 
--config HAVE_LATENCYTOP_SUPPORT
--	bool
--	depends on !SMP
--	default y
--
- config LOCKDEP_SUPPORT
- 	bool
- 	default y
-diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
-index 0b389a81c43a..a0fa88da3e31 100644
---- a/arch/metag/Kconfig
-+++ b/arch/metag/Kconfig
-@@ -36,9 +36,6 @@ config STACKTRACE_SUPPORT
- config LOCKDEP_SUPPORT
- 	def_bool y
- 
--config HAVE_LATENCYTOP_SUPPORT
--	def_bool y
--
- config RWSEM_GENERIC_SPINLOCK
- 	def_bool y
- 
-diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
-index 0bce820428fc..5ecd0287a874 100644
---- a/arch/microblaze/Kconfig
-+++ b/arch/microblaze/Kconfig
-@@ -67,9 +67,6 @@ config STACKTRACE_SUPPORT
- config LOCKDEP_SUPPORT
- 	def_bool y
- 
--config HAVE_LATENCYTOP_SUPPORT
--	def_bool y
--
- source "init/Kconfig"
- 
- source "kernel/Kconfig.freezer"
-diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
-index c36546959e86..16276d505cd6 100644
---- a/arch/parisc/Kconfig
-+++ b/arch/parisc/Kconfig
-@@ -79,9 +79,6 @@ config TIME_LOW_RES
- 	depends on SMP
- 	default y
- 
--config HAVE_LATENCYTOP_SUPPORT
--        def_bool y
--
- # unless you want to implement ACPI on PA-RISC ... ;-)
- config PM
- 	bool
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index db49e0d796b1..89210bfdfc7a 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -47,9 +47,6 @@ config STACKTRACE_SUPPORT
- 	bool
- 	default y
- 
--config HAVE_LATENCYTOP_SUPPORT
--	def_bool y
--
- config TRACE_IRQFLAGS_SUPPORT
- 	bool
- 	default y
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index 3a55f493c7da..69e22b502d09 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -10,9 +10,6 @@ config LOCKDEP_SUPPORT
- config STACKTRACE_SUPPORT
- 	def_bool y
- 
--config HAVE_LATENCYTOP_SUPPORT
--	def_bool y
--
- config RWSEM_GENERIC_SPINLOCK
- 	bool
- 
-diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
-index d514df7e04dd..6c391a5d3e5c 100644
---- a/arch/sh/Kconfig
-+++ b/arch/sh/Kconfig
-@@ -130,9 +130,6 @@ config STACKTRACE_SUPPORT
- config LOCKDEP_SUPPORT
- 	def_bool y
- 
--config HAVE_LATENCYTOP_SUPPORT
--	def_bool y
--
- config ARCH_HAS_ILOG2_U32
- 	def_bool n
- 
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index 56442d2d7bbc..3203e42190dd 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -101,10 +101,6 @@ config LOCKDEP_SUPPORT
- 	bool
- 	default y if SPARC64
- 
--config HAVE_LATENCYTOP_SUPPORT
--	bool
--	default y if SPARC64
--
- config ARCH_HIBERNATION_POSSIBLE
- 	def_bool y if SPARC64
- 
-diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
-index c9faddc61100..910aaaaed969 100644
---- a/arch/unicore32/Kconfig
-+++ b/arch/unicore32/Kconfig
-@@ -33,9 +33,6 @@ config NO_IOPORT_MAP
- config STACKTRACE_SUPPORT
- 	def_bool y
- 
--config HAVE_LATENCYTOP_SUPPORT
--	def_bool y
--
- config LOCKDEP_SUPPORT
- 	def_bool y
- 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index db3622f22b61..9574f7d1fe97 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -177,9 +177,6 @@ config LOCKDEP_SUPPORT
- config STACKTRACE_SUPPORT
- 	def_bool y
- 
--config HAVE_LATENCYTOP_SUPPORT
--	def_bool y
--
- config MMU
- 	def_bool y
- 
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index 8c15b29d5adc..97af31700828 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -1556,7 +1556,6 @@ config FAULT_INJECTION_STACKTRACE_FILTER
- 
- config LATENCYTOP
- 	bool "Latency measuring infrastructure"
--	depends on HAVE_LATENCYTOP_SUPPORT
- 	depends on DEBUG_KERNEL
- 	depends on STACKTRACE_SUPPORT
- 	depends on PROC_FS
--- 
-2.1.4
+ClRoYW5rIGFsbCBvZiB5b3UgZm9yIHlvdXIgd29yay4gQXQgcHJlc2VudCwgaXQgaXMgYWxzbyBx
+dWV1ZWQgaW50byBha3BtCnRyZWUsIGFuZCB3aWxsIGJlIHNlZW4gaW4gdGhlIG5leHQtdHJlZSBz
+b29uLgoKRm9yIG1lLCB0aGlzIHBhdGNoIGxvb2tzIGNyb3NzIG11bHRpLWFyY2hzLCBidXQgaXQg
+aXMgc3RpbGwgdmVyeSBzaW1wbGUuCkkgZm91bmQgdGhpcyBwYXRjaCBvbmx5IGJlY2F1c2UgSSBh
+bSBsZWFybmluZyBtbSBzdWItc3lzdGVtLgoKSSBhbSByZWFkaW5nIG1tIGhlYWRlcnMgdG8gYmUg
+ZmFtaWxpYXIgd2l0aCB0aGVtLCBzbyBjYW4gdW5kZXJzdGFuZCBtbQpnbG9iYWxseSBiYXNlZCBv
+biBjb2RlLiBUaGVzZSBoZWFkZXJzIGFyZSBjb21tb24gc2Vuc2UgZm9yIG1vc3QgbW0vYXJjaApt
+ZW1iZXJzLCBidXQgZm9yIG1lIChhbG1vc3QgYSBuZXdiaWUpLCB0aGV5IGFyZSBub3QgKG5lZWQg
+YmUgZmFtaWxpYXIpLgoKClRoYW5rcy4KCk9uIDExLzIwLzE1IDAwOjM1LCBBcm5kIEJlcmdtYW5u
+IHdyb3RlOgo+IE9uIFRodXJzZGF5IDE5IE5vdmVtYmVyIDIwMTUgMTY6MTg6NDMgUnVzc2VsbCBL
+aW5nIC0gQVJNIExpbnV4IHdyb3RlOgo+PiBPbiBUaHUsIE5vdiAxOSwgMjAxNSBhdCAxMjoyNTo0
+NVBNICswMTAwLCBBcm5kIEJlcmdtYW5uIHdyb3RlOgo+Pj4gT24gVGh1cnNkYXkgMTkgTm92ZW1i
+ZXIgMjAxNSAwMzo0MDoyNSBDaGVuIEdhbmcgd3JvdGU6Cj4+Pj4gZGlmZiAtLWdpdCBhL2luY2x1
+ZGUvYXNtLWdlbmVyaWMvcGFnZS5oIGIvaW5jbHVkZS9hc20tZ2VuZXJpYy9wYWdlLmgKPj4+PiBp
+bmRleCAzN2QxZmUyLi42N2NmYjdkIDEwMDY0NAo+Pj4+IC0tLSBhL2luY2x1ZGUvYXNtLWdlbmVy
+aWMvcGFnZS5oCj4+Pj4gKysrIGIvaW5jbHVkZS9hc20tZ2VuZXJpYy9wYWdlLmgKPj4+PiBAQCAt
+MjQsOSArMjQsNiBAQAo+Pj4+ICAKPj4+PiAgI2lmbmRlZiBfX0FTU0VNQkxZX18KPj4+PiAgCj4+
+Pj4gLSNkZWZpbmUgZ2V0X3VzZXJfcGFnZSh2YWRkcikgICAgICAgICAgIF9fZ2V0X2ZyZWVfcGFn
+ZShHRlBfS0VSTkVMKQo+Pj4+IC0jZGVmaW5lIGZyZWVfdXNlcl9wYWdlKHBhZ2UsIGFkZHIpICAg
+ICBmcmVlX3BhZ2UoYWRkcikKPj4+PiAtCj4+Pj4gICNkZWZpbmUgY2xlYXJfcGFnZShwYWdlKSAg
+ICAgICBtZW1zZXQoKHBhZ2UpLCAwLCBQQUdFX1NJWkUpCj4+Pj4gICNkZWZpbmUgY29weV9wYWdl
+KHRvLGZyb20pICAgICBtZW1jcHkoKHRvKSwgKGZyb20pLCBQQUdFX1NJWkUpCj4+Pj4gIAo+Pj4+
+Cj4+Pgo+Pj4gTG9va3MgZ29vZC4gSSBjYW4gdGFrZSB0aGUgYXNtLWdlbmVyaWMgcG9ydGlvbiB3
+aGVuIHlvdSBzcGxpdCBpdCB1cCwgYW5kCj4+PiBJIGNhbiBhbHNvIGhlbHAgeW91IG1lcmdlIHRo
+ZSByZW1haW5pbmcgcGF0Y2hlcyBpbiBjYXNlIHNvbWUgb2YKPj4+IHRoZSBhcmNoIG1haW50YWlu
+ZXJzIGZhaWwgdG8gcGljayB0aGVtIHVwLiBJIHRoaW5rIGFsbCBmaXZlIG9mIHRoZW0KPj4+IGFy
+ZSBhY3RpdmVseSBtYWludGFpbmVkIHRob3VnaCwgc28gdGhlIHBhdGNoZXMgc2hvdWxkIGp1c3Qg
+Z28gdGhyb3VnaAo+Pj4gdGhlIHJlc3BlY3RpdmUgYXJjaGl0ZWN0dXJlIHRyZWVzLgo+Pgo+PiBP
+ciB3ZSBqdXN0IGFjayB0aGUgcGF0Y2ggYW5kIGhhdmUgaXQgZ28gdGhyb3VnaCBvbmUgdHJlZSwg
+d2hpY2ggSSB0aGluawo+PiBpcyB0aGUgbW9zdCBzZW5zaWJsZS4gIEkgY2FuJ3QgaW1hZ2luZSB0
+aGF0IHRoZXJlIHdvdWxkIGJlIGFueSBtYWpvcgo+PiBjb25mbGljdHMgaGVyZSwgc3VyZWx5IG5v
+IG9uZSBpcyBjb25zdGFudGx5IGNoYW5naW5nIHRoZWlyIGFzbS9wYWdlLmggPwo+IAo+IFllcywg
+Z29vZCBwb2ludCwgdGhlcmUgaXMgcmVhbGx5IHZlcnkgbGl0dGxlIHBvdGVudGlhbCBmb3IgY29u
+ZmxpY3RzCj4gaGVyZS4gSSd2ZSBhcHBsaWVkIGl0IGludG8gbXkgYXNtLWdlbmVyaWMgdHJlZSBm
+b3Igbm93LCBidXQgd2lsbAo+IHJldmVydCBpdCBpZiB3ZSBnZXQgcmVncmVzc2lvbnMgb3IgTkFL
+cy4KPiAKPiBGb3Igc29tZSByZWFzb24sIHRoZSBwYXRjaCB3YXMgd2hpdGVzcGFjZSBicm9rZW4s
+IGJ1dCBJIG1hbmFnZWQgdG8KPiBleHRyYWN0IGl0IGZyb20gdGhlIGF0dGFjaG1lbnQuCj4gCj4g
+CUFybmQKPiAKCi0tIApDaGVuIEdhbmcgKOmZiOWImikKCk9wZW4sIHNoYXJlLCBhbmQgYXR0aXR1
+ZGUgbGlrZSBhaXIsIHdhdGVyLCBhbmQgbGlmZSB3aGljaCBHb2QgYmxlc3NlZAoKX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KbGludXgtc25wcy1hcmMgbWFp
+bGluZyBsaXN0CmxpbnV4LXNucHMtYXJjQGxpc3RzLmluZnJhZGVhZC5vcmcKaHR0cDovL2xpc3Rz
+LmluZnJhZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9saW51eC1zbnBzLWFyYw==
