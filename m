@@ -1,68 +1,53 @@
-From: Chen Gang <xili_gchen_5257@hotmail.com>
-Subject: Re: [PATCH] include: asm-generic: page.h: Remove useless get_user_page
- and free_user_page
-Date: Fri, 20 Nov 2015 02:59:29 +0800
-Message-ID: <BLU436-SMTP973338A6E3B4F01477630DB91B0@phx.gbl>
-References: <COL130-W7B5F0BB94C76AF6B12EA7B91C0@phx.gbl>
- <5663971.11WtULN11Y@wuerfel> <20151119161843.GA8644@n2100.arm.linux.org.uk>
- <4559060.7YuVHsgd4d@wuerfel>
+From: Richard Weinberger <richard@nod.at>
+Subject: [RFC] Limiting linker scope
+Date: Thu, 19 Nov 2015 23:50:26 +0100
+Message-ID: <564E5232.201@nod.at>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org>
-In-Reply-To: <4559060.7YuVHsgd4d@wuerfel>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-snps-arc/>
-List-Post: <mailto:linux-snps-arc@lists.infradead.org>
-List-Help: <mailto:linux-snps-arc-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-snps-arc>,
- <mailto:linux-snps-arc-request@lists.infradead.org?subject=subscribe>
-Sender: "linux-snps-arc" <linux-snps-arc-bounces@lists.infradead.org>
-Errors-To: linux-snps-arc-bounces+gla-linux-snps-arc=m.gmane.org@lists.infradead.org
-To: Arnd Bergmann <arnd@arndb.de>, Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: "jonas@southpole.se" <jonas@southpole.se>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "vgupta@synopsys.com" <vgupta@synopsys.com>, "abrodkin@synopsys.com" <abrodkin@synopsys.com>, kernel mailing list <linux-kernel@vger.kernel.org>, "dhowells@redhat.com" <dhowells@redhat.com>, "linux-m68k@lists.linux-m68k.org" <linux-m68k@lists.linux-m68k.org>, "geert@linux-m68k.org" <geert@linux-m68k.org>, "gerg@uclinux.org" <gerg@uclinux.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-snps-arc@lists.infradead.org" <linux-snps-arc@lists.infradead.org>, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from a.ns.miles-group.at ([95.130.255.143]:11949 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751891AbbKSWuc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Nov 2015 17:50:32 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, octavian.purdila@intel.com
 
-ClRoYW5rIGFsbCBvZiB5b3UgZm9yIHlvdXIgd29yay4gQXQgcHJlc2VudCwgaXQgaXMgYWxzbyBx
-dWV1ZWQgaW50byBha3BtCnRyZWUsIGFuZCB3aWxsIGJlIHNlZW4gaW4gdGhlIG5leHQtdHJlZSBz
-b29uLgoKRm9yIG1lLCB0aGlzIHBhdGNoIGxvb2tzIGNyb3NzIG11bHRpLWFyY2hzLCBidXQgaXQg
-aXMgc3RpbGwgdmVyeSBzaW1wbGUuCkkgZm91bmQgdGhpcyBwYXRjaCBvbmx5IGJlY2F1c2UgSSBh
-bSBsZWFybmluZyBtbSBzdWItc3lzdGVtLgoKSSBhbSByZWFkaW5nIG1tIGhlYWRlcnMgdG8gYmUg
-ZmFtaWxpYXIgd2l0aCB0aGVtLCBzbyBjYW4gdW5kZXJzdGFuZCBtbQpnbG9iYWxseSBiYXNlZCBv
-biBjb2RlLiBUaGVzZSBoZWFkZXJzIGFyZSBjb21tb24gc2Vuc2UgZm9yIG1vc3QgbW0vYXJjaApt
-ZW1iZXJzLCBidXQgZm9yIG1lIChhbG1vc3QgYSBuZXdiaWUpLCB0aGV5IGFyZSBub3QgKG5lZWQg
-YmUgZmFtaWxpYXIpLgoKClRoYW5rcy4KCk9uIDExLzIwLzE1IDAwOjM1LCBBcm5kIEJlcmdtYW5u
-IHdyb3RlOgo+IE9uIFRodXJzZGF5IDE5IE5vdmVtYmVyIDIwMTUgMTY6MTg6NDMgUnVzc2VsbCBL
-aW5nIC0gQVJNIExpbnV4IHdyb3RlOgo+PiBPbiBUaHUsIE5vdiAxOSwgMjAxNSBhdCAxMjoyNTo0
-NVBNICswMTAwLCBBcm5kIEJlcmdtYW5uIHdyb3RlOgo+Pj4gT24gVGh1cnNkYXkgMTkgTm92ZW1i
-ZXIgMjAxNSAwMzo0MDoyNSBDaGVuIEdhbmcgd3JvdGU6Cj4+Pj4gZGlmZiAtLWdpdCBhL2luY2x1
-ZGUvYXNtLWdlbmVyaWMvcGFnZS5oIGIvaW5jbHVkZS9hc20tZ2VuZXJpYy9wYWdlLmgKPj4+PiBp
-bmRleCAzN2QxZmUyLi42N2NmYjdkIDEwMDY0NAo+Pj4+IC0tLSBhL2luY2x1ZGUvYXNtLWdlbmVy
-aWMvcGFnZS5oCj4+Pj4gKysrIGIvaW5jbHVkZS9hc20tZ2VuZXJpYy9wYWdlLmgKPj4+PiBAQCAt
-MjQsOSArMjQsNiBAQAo+Pj4+ICAKPj4+PiAgI2lmbmRlZiBfX0FTU0VNQkxZX18KPj4+PiAgCj4+
-Pj4gLSNkZWZpbmUgZ2V0X3VzZXJfcGFnZSh2YWRkcikgICAgICAgICAgIF9fZ2V0X2ZyZWVfcGFn
-ZShHRlBfS0VSTkVMKQo+Pj4+IC0jZGVmaW5lIGZyZWVfdXNlcl9wYWdlKHBhZ2UsIGFkZHIpICAg
-ICBmcmVlX3BhZ2UoYWRkcikKPj4+PiAtCj4+Pj4gICNkZWZpbmUgY2xlYXJfcGFnZShwYWdlKSAg
-ICAgICBtZW1zZXQoKHBhZ2UpLCAwLCBQQUdFX1NJWkUpCj4+Pj4gICNkZWZpbmUgY29weV9wYWdl
-KHRvLGZyb20pICAgICBtZW1jcHkoKHRvKSwgKGZyb20pLCBQQUdFX1NJWkUpCj4+Pj4gIAo+Pj4+
-Cj4+Pgo+Pj4gTG9va3MgZ29vZC4gSSBjYW4gdGFrZSB0aGUgYXNtLWdlbmVyaWMgcG9ydGlvbiB3
-aGVuIHlvdSBzcGxpdCBpdCB1cCwgYW5kCj4+PiBJIGNhbiBhbHNvIGhlbHAgeW91IG1lcmdlIHRo
-ZSByZW1haW5pbmcgcGF0Y2hlcyBpbiBjYXNlIHNvbWUgb2YKPj4+IHRoZSBhcmNoIG1haW50YWlu
-ZXJzIGZhaWwgdG8gcGljayB0aGVtIHVwLiBJIHRoaW5rIGFsbCBmaXZlIG9mIHRoZW0KPj4+IGFy
-ZSBhY3RpdmVseSBtYWludGFpbmVkIHRob3VnaCwgc28gdGhlIHBhdGNoZXMgc2hvdWxkIGp1c3Qg
-Z28gdGhyb3VnaAo+Pj4gdGhlIHJlc3BlY3RpdmUgYXJjaGl0ZWN0dXJlIHRyZWVzLgo+Pgo+PiBP
-ciB3ZSBqdXN0IGFjayB0aGUgcGF0Y2ggYW5kIGhhdmUgaXQgZ28gdGhyb3VnaCBvbmUgdHJlZSwg
-d2hpY2ggSSB0aGluawo+PiBpcyB0aGUgbW9zdCBzZW5zaWJsZS4gIEkgY2FuJ3QgaW1hZ2luZSB0
-aGF0IHRoZXJlIHdvdWxkIGJlIGFueSBtYWpvcgo+PiBjb25mbGljdHMgaGVyZSwgc3VyZWx5IG5v
-IG9uZSBpcyBjb25zdGFudGx5IGNoYW5naW5nIHRoZWlyIGFzbS9wYWdlLmggPwo+IAo+IFllcywg
-Z29vZCBwb2ludCwgdGhlcmUgaXMgcmVhbGx5IHZlcnkgbGl0dGxlIHBvdGVudGlhbCBmb3IgY29u
-ZmxpY3RzCj4gaGVyZS4gSSd2ZSBhcHBsaWVkIGl0IGludG8gbXkgYXNtLWdlbmVyaWMgdHJlZSBm
-b3Igbm93LCBidXQgd2lsbAo+IHJldmVydCBpdCBpZiB3ZSBnZXQgcmVncmVzc2lvbnMgb3IgTkFL
-cy4KPiAKPiBGb3Igc29tZSByZWFzb24sIHRoZSBwYXRjaCB3YXMgd2hpdGVzcGFjZSBicm9rZW4s
-IGJ1dCBJIG1hbmFnZWQgdG8KPiBleHRyYWN0IGl0IGZyb20gdGhlIGF0dGFjaG1lbnQuCj4gCj4g
-CUFybmQKPiAKCi0tIApDaGVuIEdhbmcgKOmZiOWImikKCk9wZW4sIHNoYXJlLCBhbmQgYXR0aXR1
-ZGUgbGlrZSBhaXIsIHdhdGVyLCBhbmQgbGlmZSB3aGljaCBHb2QgYmxlc3NlZAoKX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KbGludXgtc25wcy1hcmMgbWFp
-bGluZyBsaXN0CmxpbnV4LXNucHMtYXJjQGxpc3RzLmluZnJhZGVhZC5vcmcKaHR0cDovL2xpc3Rz
-LmluZnJhZGVhZC5vcmcvbWFpbG1hbi9saXN0aW5mby9saW51eC1zbnBzLWFyYw==
+Hi!
+
+UML recently had an interesting bug[1] where the host side of UML
+tried to call sigsuspend() but as the kernel itself offers a function
+with the same name it called sigsuspend() on
+the UML kernel side and funny things happened.
+
+The root cause of the problem is that the UML links userspace
+code like glibc, libpcap, etc. to the kernel image and symbols can
+clash. Especially if one side is a shared library it will not noticed
+at compile time.
+
+As this is not the first bug of this kind I'm facing on UML I've
+started to think how to deal with that.
+
+Is it somehow possible to limit the linker scope?
+Such that we can force LD no not blindly link every symbols of
+vmlinux into another object? Maybe using a white list?
+I have do admit I've never used LD scripts nor GNU export maps,
+maybe they can help. Currently I'm reading their docs and hope
+to find a way to implement my idea.
+
+The problem is also not specific to UML, the emerging Linux Kernel
+Library will suffer from the same issue.
+As random programs will link the kernel as library the chance is
+high to face similar symbol conflicts.
+
+Maybe we can also find a nice generic solution to limit the linker
+scope within the kernel. Such that it does not hurt when a random device
+driver exports a symbol like "i".
+It would also help to define subsystem interface more strict manner.
+
+Thanks,
+//richard
+
+[1] https://lkml.org/lkml/2015/11/16/601
