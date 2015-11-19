@@ -1,47 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f43.google.com ([209.85.218.43]:34433 "EHLO
-	mail-oi0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751822AbbKQTya (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Nov 2015 14:54:30 -0500
-Received: by oies6 with SMTP id s6so11917845oie.1
-        for <linux-arch@vger.kernel.org>; Tue, 17 Nov 2015 11:54:30 -0800 (PST)
-MIME-Version: 1.0
-In-Reply-To: <564AB03A.80303@gmail.com>
-References: <1447585455-19671-1-git-send-email-geert@linux-m68k.org>
-	<1447585455-19671-2-git-send-email-geert@linux-m68k.org>
-	<564AB03A.80303@gmail.com>
-Date: Tue, 17 Nov 2015 20:54:30 +0100
-Message-ID: <CAMuHMdUQCpPhFHOBm=xk6NkNaEt9HyB7OH4Rumpx2W5x=Aup1w@mail.gmail.com>
-Subject: Re: [PATCH 1/4] m68k/mm: motorola - Add missing initialization of max_pfn
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Received: from mail-ig0-f194.google.com ([209.85.213.194]:34588 "EHLO
+	mail-ig0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754537AbbKSCcS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Nov 2015 21:32:18 -0500
+From: Jia He <hejianet@gmail.com>
+Subject: [PATCH 2/3] lib: Introduce 2 find bit api: all_is_bit_{one,zero}
+Date: Thu, 19 Nov 2015 10:31:53 +0800
+Message-ID: <1447900314-5727-3-git-send-email-hejianet@gmail.com>
+In-Reply-To: <1447900314-5727-1-git-send-email-hejianet@gmail.com>
+References: <1447900314-5727-1-git-send-email-hejianet@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michael Schmitz <schmitzmic@gmail.com>
-Cc: Greg Ungerer <gerg@uclinux.org>, Sam Creasey <sammy@sammy.net>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20151117195430.Xh3JJWDStzqpwKUWj3BSh5KLo2qc10WHARL0p9uS6Po@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Denys Vlasenko <dvlasenk@redhat.com>, Kyungmin Park <kyungmin.park@samsung.com>, Michal Nazarewicz <mina86@mina86.com>, Yury Norov <yury.norov@gmail.com>, Tejun Heo <tj@kernel.org>, Martin Kepplinger <martink@posteo.de>, George Spelvin <linux@horizon.com>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Jia He <hejianet@gmail.com>
+Message-ID: <20151119023153.Yevr3TZtrG3O3RPkgWyIsEX7yJC2yBCzko_sl6bGX1s@z>
 
-Hi Michael,
+This patch introduces 2 lightweight bit api.
+all_bit_is_zero return 1 if the bit string is all zero.
+The addr is the start address, the size is the bit size of the bit string.
+all_bit_is_one is the opposite.
 
-On Tue, Nov 17, 2015 at 5:42 AM, Michael Schmitz <schmitzmic@gmail.com> wrote:
-> Am 16.11.2015 um 00:04 schrieb Geert Uytterhoeven:
->> If max_pfn is not initialized, the various /proc/kpage* files are empty,
->> and selftests/vm/mlock2-tests will fail. max_pfn is also used by the
->> block layer to calculate DMA masks.
->
-> What about platforms where the DMA can't address all available physical
-> memory?
+Signed-off-by: Jia He <hejianet@gmail.com>
+---
+ lib/find_bit.c | 50 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 50 insertions(+)
 
-There are many other checks, using max_low_pfn and/or zone_dma.
-I'm not 100% clear on the impact of max_pfn in blk_settings_init().
+diff --git a/lib/find_bit.c b/lib/find_bit.c
+index 18072ea..1d56d8d 100644
+--- a/lib/find_bit.c
++++ b/lib/find_bit.c
+@@ -131,6 +131,56 @@ unsigned long find_last_bit(const unsigned long *addr, unsigned long size)
+ EXPORT_SYMBOL(find_last_bit);
+ #endif
+ 
++#ifndef all_bit_is_zero
++/*
++ * return val: 1 means all bit is zero
++ */
++unsigned int all_bit_is_zero(const unsigned long *addr, unsigned size)
++{
++	unsigned long idx;
++	unsigned long mask = size;
++
++	if (unlikely(size == 0))
++		return 1;
++
++	if (size > BITS_PER_LONG) {
++		for (idx = 0; idx * BITS_PER_LONG < size; idx++)
++			if (addr[idx])
++				return 0;
++
++		mask = size - (idx - 1) * BITS_PER_LONG;
++	}
++
++	return !(*addr & BITMAP_LAST_WORD_MASK(mask));
++}
++EXPORT_SYMBOL(all_bit_is_zero);
++#endif
++
++#ifndef all_bit_is_one
++/*
++ * return val: 1 means all bit is one
++ */
++unsigned int all_bit_is_one(const unsigned long *addr, unsigned size)
++{
++	unsigned long idx;
++	unsigned long mask = size;
++
++	if (unlikely(size == 0))
++		return 1;
++
++	if (size > BITS_PER_LONG) {
++		for (idx = 0; idx * BITS_PER_LONG < size; idx++)
++			if (~addr[idx])
++				return 0;
++
++		mask = size - (idx - 1) * BITS_PER_LONG;
++	}
++
++	return !(~(*addr) & BITMAP_LAST_WORD_MASK(mask));
++}
++EXPORT_SYMBOL(all_bit_is_one);
++#endif
++
+ #ifdef __BIG_ENDIAN
+ 
+ /* include/linux/byteorder does not support "unsigned long" type */
+-- 
+2.5.0
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
