@@ -1,50 +1,129 @@
-From: Nicolas Pitre <nicolas.pitre@linaro.org>
-Subject: Re: [GIT PULL] optimize 64-by-32 ddivision for constant divisors on
- 32-bit machines
-Date: Thu, 19 Nov 2015 19:29:33 -0500 (EST)
-Message-ID: <alpine.LFD.2.20.1511191920470.22569@knanqh.ubzr>
-References: <alpine.LFD.2.20.1511161710270.5826@knanqh.ubzr> <3830931.6tMHPeiNRU@wuerfel>
-Mime-Version: 1.0
-Content-Type: multipart/mixed; BOUNDARY="8323328-650366564-1447979374=:22569"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f170.google.com ([209.85.220.170]:34978 "EHLO
-	mail-qk0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759371AbbKTA3g (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Nov 2015 19:29:36 -0500
-Received: by qkao63 with SMTP id o63so31682613qka.2
-        for <linux-arch@vger.kernel.org>; Thu, 19 Nov 2015 16:29:35 -0800 (PST)
-In-Reply-To: <3830931.6tMHPeiNRU@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+From: Minchan Kim <minchan@kernel.org>
+Subject: [PATCH v4 03/16] arch: uapi: asm: mman.h: Let MADV_FREE have same value for all architectures
+Date: Fri, 20 Nov 2015 17:02:35 +0900
+Message-ID: <1448006568-16031-4-git-send-email-minchan@kernel.org>
+References: <1448006568-16031-1-git-send-email-minchan@kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1448006568-16031-1-git-send-email-minchan@kernel.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-api@vger.kernel.org, Hugh Dickins <hughd@google.com>, Johannes Weiner <hannes@cmpxchg.org>, Rik van Riel <riel@redhat.com>, Mel Gorman <mgorman@suse.de>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Jason Evans <je@fb.com>, Daniel Micay <danielmicay@gmail.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Shaohua Li <shli@kernel.org>, Michal Hocko <mhocko@suse.cz>, yalin.wang2010@gmail.com, Andy Lutomirski <luto@amacapital.net>, Chen Gang <gang.chen.5i5j@gmail.com>, "rth@twiddle.net" <rth@twiddle.net>, "ink@jurassic.park.msu.ru" <ink@jurassic.park.msu.ru>, "mattst88@gmail.com" <mattst88@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "deller@gmx.de" <deller@gmx.de>, "chris@zankel.net" <chris@zankel.net>, jcmvb
+List-Id: linux-arch.vger.kernel.org
 
-  This message is in MIME format.  The first part should be readable text,
-  while the remaining parts are likely unreadable without MIME-aware tools.
+From: Chen Gang <gang.chen.5i5j@gmail.com>
 
---8323328-650366564-1447979374=:22569
-Content-Type: text/plain; charset=ISO-8859-15
-Content-Transfer-Encoding: 8BIT
+For uapi, need try to let all macros have same value, and MADV_FREE is
+added into main branch recently, so need redefine MADV_FREE for it.
 
-On Thu, 19 Nov 2015, Arnd Bergmann wrote:
+At present, '8' can be shared with all architectures, so redefine it to
+'8'.
 
-> On Monday 16 November 2015 20:20:38 Nicolas Pitre wrote:
-> > Arnd,
-> > 
-> > Please pull the following branch:
-> > 
-> > 	git://git.linaro.org/people/nicolas.pitre/linux div64
-> 
-> Pulled into my asm-generic tree now, it should show up in linux-next
-> tomorrow.
+Cc: rth@twiddle.net <rth@twiddle.net>,
+Cc: ink@jurassic.park.msu.ru <ink@jurassic.park.msu.ru>
+Cc: mattst88@gmail.com <mattst88@gmail.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: jejb@parisc-linux.org <jejb@parisc-linux.org>
+Cc: deller@gmx.de <deller@gmx.de>
+Cc: chris@zankel.net <chris@zankel.net>
+Cc: jcmvbkbc@gmail.com <jcmvbkbc@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-api@vger.kernel.org
+Cc: sparclinux@vger.kernel.org
+Cc: roland@kernel.org
+Cc: darrick.wong@oracle.com
+Cc: davem@davemloft.net
+Acked-by: Hugh Dickins <hughd@google.com>
+Acked-by: Minchan Kim <minchan@kernel.org>
+Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
+---
+ arch/alpha/include/uapi/asm/mman.h     | 2 +-
+ arch/mips/include/uapi/asm/mman.h      | 2 +-
+ arch/parisc/include/uapi/asm/mman.h    | 2 +-
+ arch/xtensa/include/uapi/asm/mman.h    | 2 +-
+ include/uapi/asm-generic/mman-common.h | 2 +-
+ 5 files changed, 5 insertions(+), 5 deletions(-)
 
-Thanks.
+diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
+index 836fbd44f65b..0b8a5de7aee3 100644
+--- a/arch/alpha/include/uapi/asm/mman.h
++++ b/arch/alpha/include/uapi/asm/mman.h
+@@ -44,9 +44,9 @@
+ #define MADV_WILLNEED	3		/* will need these pages */
+ #define	MADV_SPACEAVAIL	5		/* ensure resources are available */
+ #define MADV_DONTNEED	6		/* don't need these pages */
+-#define MADV_FREE	7		/* free pages only if memory pressure */
+ 
+ /* common/generic parameters */
++#define MADV_FREE	8		/* free pages only if memory pressure */
+ #define MADV_REMOVE	9		/* remove these pages & resources */
+ #define MADV_DONTFORK	10		/* don't inherit across fork */
+ #define MADV_DOFORK	11		/* do inherit across fork */
+diff --git a/arch/mips/include/uapi/asm/mman.h b/arch/mips/include/uapi/asm/mman.h
+index 106e741aa7ee..d247f5457944 100644
+--- a/arch/mips/include/uapi/asm/mman.h
++++ b/arch/mips/include/uapi/asm/mman.h
+@@ -67,9 +67,9 @@
+ #define MADV_SEQUENTIAL 2		/* expect sequential page references */
+ #define MADV_WILLNEED	3		/* will need these pages */
+ #define MADV_DONTNEED	4		/* don't need these pages */
+-#define MADV_FREE	5		/* free pages only if memory pressure */
+ 
+ /* common parameters: try to keep these consistent across architectures */
++#define MADV_FREE	8		/* free pages only if memory pressure */
+ #define MADV_REMOVE	9		/* remove these pages & resources */
+ #define MADV_DONTFORK	10		/* don't inherit across fork */
+ #define MADV_DOFORK	11		/* do inherit across fork */
+diff --git a/arch/parisc/include/uapi/asm/mman.h b/arch/parisc/include/uapi/asm/mman.h
+index 6cb8db76fd4e..700d83fd9352 100644
+--- a/arch/parisc/include/uapi/asm/mman.h
++++ b/arch/parisc/include/uapi/asm/mman.h
+@@ -40,9 +40,9 @@
+ #define MADV_SPACEAVAIL 5               /* insure that resources are reserved */
+ #define MADV_VPS_PURGE  6               /* Purge pages from VM page cache */
+ #define MADV_VPS_INHERIT 7              /* Inherit parents page size */
+-#define MADV_FREE	8		/* free pages only if memory pressure */
+ 
+ /* common/generic parameters */
++#define MADV_FREE	8		/* free pages only if memory pressure */
+ #define MADV_REMOVE	9		/* remove these pages & resources */
+ #define MADV_DONTFORK	10		/* don't inherit across fork */
+ #define MADV_DOFORK	11		/* do inherit across fork */
+diff --git a/arch/xtensa/include/uapi/asm/mman.h b/arch/xtensa/include/uapi/asm/mman.h
+index 1b19f25bc567..77eaca434071 100644
+--- a/arch/xtensa/include/uapi/asm/mman.h
++++ b/arch/xtensa/include/uapi/asm/mman.h
+@@ -80,9 +80,9 @@
+ #define MADV_SEQUENTIAL	2		/* expect sequential page references */
+ #define MADV_WILLNEED	3		/* will need these pages */
+ #define MADV_DONTNEED	4		/* don't need these pages */
+-#define MADV_FREE	5		/* free pages only if memory pressure */
+ 
+ /* common parameters: try to keep these consistent across architectures */
++#define MADV_FREE	8		/* free pages only if memory pressure */
+ #define MADV_REMOVE	9		/* remove these pages & resources */
+ #define MADV_DONTFORK	10		/* don't inherit across fork */
+ #define MADV_DOFORK	11		/* do inherit across fork */
+diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
+index 7a94102b7a02..869595947873 100644
+--- a/include/uapi/asm-generic/mman-common.h
++++ b/include/uapi/asm-generic/mman-common.h
+@@ -34,9 +34,9 @@
+ #define MADV_SEQUENTIAL	2		/* expect sequential page references */
+ #define MADV_WILLNEED	3		/* will need these pages */
+ #define MADV_DONTNEED	4		/* don't need these pages */
+-#define MADV_FREE	5		/* free pages only if memory pressure */
+ 
+ /* common parameters: try to keep these consistent across architectures */
++#define MADV_FREE	8		/* free pages only if memory pressure */
+ #define MADV_REMOVE	9		/* remove these pages & resources */
+ #define MADV_DONTFORK	10		/* don't inherit across fork */
+ #define MADV_DOFORK	11		/* do inherit across fork */
+-- 
+1.9.1
 
-I removed a small optimization from the top commit that was included by 
-mistake into a patch that was supposed to produce identical code 
-(noticed by Måns). It's not urgent but it would be good if you could 
-repull at some point.
-
-
-Nicolas
---8323328-650366564-1447979374=:22569--
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
