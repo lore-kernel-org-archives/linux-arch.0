@@ -1,129 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from LGEAMRELO11.lge.com ([156.147.23.51]:45237 "EHLO
-	lgeamrelo11.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934293AbbKTICq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Nov 2015 03:02:46 -0500
-From: Minchan Kim <minchan@kernel.org>
-Subject: [PATCH v4 03/16] arch: uapi: asm: mman.h: Let MADV_FREE have same value for all architectures
-Date: Fri, 20 Nov 2015 17:02:35 +0900
-Message-ID: <1448006568-16031-4-git-send-email-minchan@kernel.org>
-In-Reply-To: <1448006568-16031-1-git-send-email-minchan@kernel.org>
-References: <1448006568-16031-1-git-send-email-minchan@kernel.org>
+Received: from mail-oi0-f66.google.com ([209.85.218.66]:35056 "EHLO
+	mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1161067AbbKTIwa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Nov 2015 03:52:30 -0500
+MIME-Version: 1.0
+In-Reply-To: <1447900314-5727-3-git-send-email-hejianet@gmail.com>
+References: <1447900314-5727-1-git-send-email-hejianet@gmail.com>
+	<1447900314-5727-3-git-send-email-hejianet@gmail.com>
+Date: Fri, 20 Nov 2015 09:52:29 +0100
+Message-ID: <CAMuHMdXd4BC7mqmKU-qA3KpVUVS1gPRw8OTu0Mi=aEUJxcd+KA@mail.gmail.com>
+Subject: Re: [PATCH 2/3] lib: Introduce 2 find bit api: all_is_bit_{one,zero}
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-api@vger.kernel.org, Hugh Dickins <hughd@google.com>, Johannes Weiner <hannes@cmpxchg.org>, Rik van Riel <riel@redhat.com>, Mel Gorman <mgorman@suse.de>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Jason Evans <je@fb.com>, Daniel Micay <danielmicay@gmail.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Shaohua Li <shli@kernel.org>, Michal Hocko <mhocko@suse.cz>, yalin.wang2010@gmail.com, Andy Lutomirski <luto@amacapital.net>, Chen Gang <gang.chen.5i5j@gmail.com>, "rth@twiddle.net" <rth@twiddle.net>, "ink@jurassic.park.msu.ru" <ink@jurassic.park.msu.ru>, "mattst88@gmail.com" <mattst88@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "deller@gmx.de" <deller@gmx.de>, "chris@zankel.net" <chris@zankel.net>, "jcmvbkbc@gmail.com" <jcmvbkbc@gmail.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org, roland@kernel.org, darrick.wong@oracle.com, davem@davemloft.net, Minchan Kim <minchan@kernel.org>
-Message-ID: <20151120080235.yR2f2ePztL4GZnJkEcV4n8G3Q0VDCTqcIJiap-9OM9Q@z>
+To: Jia He <hejianet@gmail.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Denys Vlasenko <dvlasenk@redhat.com>, Kyungmin Park <kyungmin.park@samsung.com>, Michal Nazarewicz <mina86@mina86.com>, Yury Norov <yury.norov@gmail.com>, Tejun Heo <tj@kernel.org>, Martin Kepplinger <martink@posteo.de>, George Spelvin <linux@horizon.com>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20151120085229.WQiwWtgulJUqccbeamKYcgu8WeMNDyUqnw05aRjll0w@z>
 
-From: Chen Gang <gang.chen.5i5j@gmail.com>
+On Thu, Nov 19, 2015 at 3:31 AM, Jia He <hejianet@gmail.com> wrote:
+> --- a/lib/find_bit.c
+> +++ b/lib/find_bit.c
+> @@ -131,6 +131,56 @@ unsigned long find_last_bit(const unsigned long *addr, unsigned long size)
+>  EXPORT_SYMBOL(find_last_bit);
+>  #endif
+>
+> +#ifndef all_bit_is_zero
+> +/*
+> + * return val: 1 means all bit is zero
+> + */
+> +unsigned int all_bit_is_zero(const unsigned long *addr, unsigned size)
+> +{
+> +       unsigned long idx;
+> +       unsigned long mask = size;
+> +
+> +       if (unlikely(size == 0))
+> +               return 1;
+> +
+> +       if (size > BITS_PER_LONG) {
+> +               for (idx = 0; idx * BITS_PER_LONG < size; idx++)
 
-For uapi, need try to let all macros have same value, and MADV_FREE is
-added into main branch recently, so need redefine MADV_FREE for it.
+Please move the multiplication (yes, a shift) out of the loop. Not all CPUs
+have barrel shifters.
 
-At present, '8' can be shared with all architectures, so redefine it to
-'8'.
+> +                       if (addr[idx])
+> +                               return 0;
+> +
+> +               mask = size - (idx - 1) * BITS_PER_LONG;
+> +       }
+> +
+> +       return !(*addr & BITMAP_LAST_WORD_MASK(mask));
+> +}
+> +EXPORT_SYMBOL(all_bit_is_zero);
 
-Cc: rth@twiddle.net <rth@twiddle.net>,
-Cc: ink@jurassic.park.msu.ru <ink@jurassic.park.msu.ru>
-Cc: mattst88@gmail.com <mattst88@gmail.com>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: jejb@parisc-linux.org <jejb@parisc-linux.org>
-Cc: deller@gmx.de <deller@gmx.de>
-Cc: chris@zankel.net <chris@zankel.net>
-Cc: jcmvbkbc@gmail.com <jcmvbkbc@gmail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-api@vger.kernel.org
-Cc: sparclinux@vger.kernel.org
-Cc: roland@kernel.org
-Cc: darrick.wong@oracle.com
-Cc: davem@davemloft.net
-Acked-by: Hugh Dickins <hughd@google.com>
-Acked-by: Minchan Kim <minchan@kernel.org>
-Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
----
- arch/alpha/include/uapi/asm/mman.h     | 2 +-
- arch/mips/include/uapi/asm/mman.h      | 2 +-
- arch/parisc/include/uapi/asm/mman.h    | 2 +-
- arch/xtensa/include/uapi/asm/mman.h    | 2 +-
- include/uapi/asm-generic/mman-common.h | 2 +-
- 5 files changed, 5 insertions(+), 5 deletions(-)
+Gr{oetje,eeting}s,
 
-diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
-index 836fbd44f65b..0b8a5de7aee3 100644
---- a/arch/alpha/include/uapi/asm/mman.h
-+++ b/arch/alpha/include/uapi/asm/mman.h
-@@ -44,9 +44,9 @@
- #define MADV_WILLNEED	3		/* will need these pages */
- #define	MADV_SPACEAVAIL	5		/* ensure resources are available */
- #define MADV_DONTNEED	6		/* don't need these pages */
--#define MADV_FREE	7		/* free pages only if memory pressure */
- 
- /* common/generic parameters */
-+#define MADV_FREE	8		/* free pages only if memory pressure */
- #define MADV_REMOVE	9		/* remove these pages & resources */
- #define MADV_DONTFORK	10		/* don't inherit across fork */
- #define MADV_DOFORK	11		/* do inherit across fork */
-diff --git a/arch/mips/include/uapi/asm/mman.h b/arch/mips/include/uapi/asm/mman.h
-index 106e741aa7ee..d247f5457944 100644
---- a/arch/mips/include/uapi/asm/mman.h
-+++ b/arch/mips/include/uapi/asm/mman.h
-@@ -67,9 +67,9 @@
- #define MADV_SEQUENTIAL 2		/* expect sequential page references */
- #define MADV_WILLNEED	3		/* will need these pages */
- #define MADV_DONTNEED	4		/* don't need these pages */
--#define MADV_FREE	5		/* free pages only if memory pressure */
- 
- /* common parameters: try to keep these consistent across architectures */
-+#define MADV_FREE	8		/* free pages only if memory pressure */
- #define MADV_REMOVE	9		/* remove these pages & resources */
- #define MADV_DONTFORK	10		/* don't inherit across fork */
- #define MADV_DOFORK	11		/* do inherit across fork */
-diff --git a/arch/parisc/include/uapi/asm/mman.h b/arch/parisc/include/uapi/asm/mman.h
-index 6cb8db76fd4e..700d83fd9352 100644
---- a/arch/parisc/include/uapi/asm/mman.h
-+++ b/arch/parisc/include/uapi/asm/mman.h
-@@ -40,9 +40,9 @@
- #define MADV_SPACEAVAIL 5               /* insure that resources are reserved */
- #define MADV_VPS_PURGE  6               /* Purge pages from VM page cache */
- #define MADV_VPS_INHERIT 7              /* Inherit parents page size */
--#define MADV_FREE	8		/* free pages only if memory pressure */
- 
- /* common/generic parameters */
-+#define MADV_FREE	8		/* free pages only if memory pressure */
- #define MADV_REMOVE	9		/* remove these pages & resources */
- #define MADV_DONTFORK	10		/* don't inherit across fork */
- #define MADV_DOFORK	11		/* do inherit across fork */
-diff --git a/arch/xtensa/include/uapi/asm/mman.h b/arch/xtensa/include/uapi/asm/mman.h
-index 1b19f25bc567..77eaca434071 100644
---- a/arch/xtensa/include/uapi/asm/mman.h
-+++ b/arch/xtensa/include/uapi/asm/mman.h
-@@ -80,9 +80,9 @@
- #define MADV_SEQUENTIAL	2		/* expect sequential page references */
- #define MADV_WILLNEED	3		/* will need these pages */
- #define MADV_DONTNEED	4		/* don't need these pages */
--#define MADV_FREE	5		/* free pages only if memory pressure */
- 
- /* common parameters: try to keep these consistent across architectures */
-+#define MADV_FREE	8		/* free pages only if memory pressure */
- #define MADV_REMOVE	9		/* remove these pages & resources */
- #define MADV_DONTFORK	10		/* don't inherit across fork */
- #define MADV_DOFORK	11		/* do inherit across fork */
-diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
-index 7a94102b7a02..869595947873 100644
---- a/include/uapi/asm-generic/mman-common.h
-+++ b/include/uapi/asm-generic/mman-common.h
-@@ -34,9 +34,9 @@
- #define MADV_SEQUENTIAL	2		/* expect sequential page references */
- #define MADV_WILLNEED	3		/* will need these pages */
- #define MADV_DONTNEED	4		/* don't need these pages */
--#define MADV_FREE	5		/* free pages only if memory pressure */
- 
- /* common parameters: try to keep these consistent across architectures */
-+#define MADV_FREE	8		/* free pages only if memory pressure */
- #define MADV_REMOVE	9		/* remove these pages & resources */
- #define MADV_DONTFORK	10		/* don't inherit across fork */
- #define MADV_DOFORK	11		/* do inherit across fork */
--- 
-1.9.1
+                        Geert
 
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
