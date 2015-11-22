@@ -1,49 +1,75 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 4/4] m68knommu: Add missing initialization of max_pfn and {min,max}_low_pfn
-Date: Sun, 22 Nov 2015 11:38:08 +0100
-Message-ID: <CAMuHMdWzJq5yrchmRSc3_W7-7VZ7zbvU4mwhzWDdjdXndr0mWw@mail.gmail.com>
-References: <1447585455-19671-1-git-send-email-geert@linux-m68k.org>
-	<1447585455-19671-5-git-send-email-geert@linux-m68k.org>
-	<564A6CA4.9000206@uclinux.org>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Subject: Re: [PATCH 1/3] linux/bitmap: Move 2 mask macro to bitops.h
+Date: Sun, 22 Nov 2015 21:17:16 +0200
+Message-ID: <CAHp75Vcyq48yrswRX_v80fHg_qd0irKxU742nv7JUwS=9QER7g@mail.gmail.com>
+References: <1447900314-5727-1-git-send-email-hejianet@gmail.com>
+	<1447900314-5727-2-git-send-email-hejianet@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f66.google.com ([209.85.218.66]:32931 "EHLO
-	mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751105AbbKVKiJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Nov 2015 05:38:09 -0500
-In-Reply-To: <564A6CA4.9000206@uclinux.org>
+Received: from mail-yk0-f176.google.com ([209.85.160.176]:35179 "EHLO
+	mail-yk0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751736AbbKVTRQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Nov 2015 14:17:16 -0500
+In-Reply-To: <1447900314-5727-2-git-send-email-hejianet@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg Ungerer <gerg@uclinux.org>
-Cc: Sam Creasey <sammy@sammy.net>, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Jia He <hejianet@gmail.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Denys Vlasenko <dvlasenk@redhat.com>, Kyungmin Park <kyungmin.park@samsung.com>, Michal Nazarewicz <mina86@mina86.com>, Yury Norov <yury.norov@gmail.com>, Tejun Heo <tj@kernel.org>, Martin Kepplinger <martink@posteo.de>, George Spelvin <linux@horizon.com>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>
 
-Hi Greg,
+On Thu, Nov 19, 2015 at 4:31 AM, Jia He <hejianet@gmail.com> wrote:
+> This patch moves the mask macro to bitops.h and then the new introduced
+> api in find_bit.c can use it.
 
-On Tue, Nov 17, 2015 at 12:54 AM, Greg Ungerer <gerg@uclinux.org> wrote:
-> On 15/11/15 21:04, Geert Uytterhoeven wrote:
->> If max_pfn is not initialized, the block layer may use wrong DMA masks.
->>
->> Replace open-coded shifts by PFN_DOWN() while we're at it.
->>
->> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Why API can't use GENMASK() instead?
+
 >
-> Tested and working fine on m68knommu. So:
+> Signed-off-by: Jia He <hejianet@gmail.com>
+> ---
+>  include/linux/bitmap.h | 3 ---
+>  include/linux/bitops.h | 4 ++++
+>  2 files changed, 4 insertions(+), 3 deletions(-)
 >
-> Tested-By: Greg Ungerer <gerg@uclinux.org>
+> diff --git a/include/linux/bitmap.h b/include/linux/bitmap.h
+> index 9653fdb..15524f6 100644
+> --- a/include/linux/bitmap.h
+> +++ b/include/linux/bitmap.h
+> @@ -172,9 +172,6 @@ extern unsigned int bitmap_ord_to_pos(const unsigned long *bitmap, unsigned int
+>  extern int bitmap_print_to_pagebuf(bool list, char *buf,
+>                                    const unsigned long *maskp, int nmaskbits);
 >
-> If you respin this patch for any reason I wouldn't object
-> to removing the "/* 0 on coldfire */" comment...
+> -#define BITMAP_FIRST_WORD_MASK(start) (~0UL << ((start) & (BITS_PER_LONG - 1)))
+> -#define BITMAP_LAST_WORD_MASK(nbits) (~0UL >> (-(nbits) & (BITS_PER_LONG - 1)))
+> -
+>  #define small_const_nbits(nbits) \
+>         (__builtin_constant_p(nbits) && (nbits) <= BITS_PER_LONG)
+>
+> diff --git a/include/linux/bitops.h b/include/linux/bitops.h
+> index 2b8ed12..b881028 100644
+> --- a/include/linux/bitops.h
+> +++ b/include/linux/bitops.h
+> @@ -24,6 +24,10 @@
+>  #define GENMASK_ULL(h, l) \
+>         (((~0ULL) << (l)) & (~0ULL >> (BITS_PER_LONG_LONG - 1 - (h))))
+>
+> +/* For bitmap ops*/
+> +#define BITMAP_FIRST_WORD_MASK(start) (~0UL << ((start) & (BITS_PER_LONG - 1)))
+> +#define BITMAP_LAST_WORD_MASK(nbits) (~0UL >> (-(nbits) & (BITS_PER_LONG - 1)))
+> +
+>  extern unsigned int __sw_hweight8(unsigned int w);
+>  extern unsigned int __sw_hweight16(unsigned int w);
+>  extern unsigned int __sw_hweight32(unsigned int w);
+> --
+> 2.5.0
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
 
-Thanks, done, applied, and queued for v4.4.
 
-Gr{oetje,eeting}s,
 
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+-- 
+With Best Regards,
+Andy Shevchenko
