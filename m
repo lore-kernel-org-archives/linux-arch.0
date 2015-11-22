@@ -1,129 +1,242 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f42.google.com ([74.125.82.42]:36839 "EHLO
-	mail-wm0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1162343AbbKTN5I convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Nov 2015 08:57:08 -0500
-Received: by wmww144 with SMTP id w144so20425115wmw.1
-        for <linux-arch@vger.kernel.org>; Fri, 20 Nov 2015 05:57:07 -0800 (PST)
-From: Michal Nazarewicz <mina86@mina86.com>
-Subject: Re: [PATCH 2/3] lib: Introduce 2 find bit api: all_is_bit_{one,zero}
-In-Reply-To: <1447900314-5727-3-git-send-email-hejianet@gmail.com>
-References: <1447900314-5727-1-git-send-email-hejianet@gmail.com> <1447900314-5727-3-git-send-email-hejianet@gmail.com>
-Date: Fri, 20 Nov 2015 14:57:03 +0100
-Message-ID: <xa1tziy893kg.fsf@mina86.com>
+Received: from mga11.intel.com ([192.55.52.93]:29894 "EHLO mga11.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750967AbbKVD5a (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 21 Nov 2015 22:57:30 -0500
+Subject: [PATCH 1/2] arch: consolidate CONFIG_STRICT_DEVM in
+ lib/Kconfig.debug
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Sat, 21 Nov 2015 19:57:02 -0800
+Message-ID: <20151122035702.9313.52457.stgit@dwillia2-desk3.jf.intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jia He <hejianet@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Denys Vlasenko <dvlasenk@redhat.com>, Kyungmin Park <kyungmin.park@samsung.com>, Yury Norov <yury.norov@gmail.com>, Tejun Heo <tj@kernel.org>, Martin Kepplinger <martink@posteo.de>, George Spelvin <linux@horizon.com>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20151120135703.JnygqLwe474u1OPoZ4e7mlY-NEQVidqWlO2rgFd9rzE@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-nvdimm@lists.01.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "H. Peter Anvin" <hpa@zytor.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20151122035702.zEgWEMw-rTOkTkw_jhyB5vTRx8FAH8YMt_rgEcU3iCI@z>
 
-On Thu, Nov 19 2015, Jia He wrote:
-> This patch introduces 2 lightweight bit api.
-> all_bit_is_zero return 1 if the bit string is all zero.
-> The addr is the start address, the size is the bit size of the bit string.
-> all_bit_is_one is the opposite.
->
-> Signed-off-by: Jia He <hejianet@gmail.com>
-> ---
->  lib/find_bit.c | 50 ++++++++++++++++++++++++++++++++++++++++++++++++++
->  1 file changed, 50 insertions(+)
->
-> diff --git a/lib/find_bit.c b/lib/find_bit.c
-> index 18072ea..1d56d8d 100644
-> --- a/lib/find_bit.c
-> +++ b/lib/find_bit.c
-> @@ -131,6 +131,56 @@ unsigned long find_last_bit(const unsigned long *addr, unsigned long size)
->  EXPORT_SYMBOL(find_last_bit);
->  #endif
->  
-> +#ifndef all_bit_is_zero
-> +/*
-> + * return val: 1 means all bit is zero
-> + */
-> +unsigned int all_bit_is_zero(const unsigned long *addr, unsigned
-> size)
+Let all the archs that implement CONFIG_STRICT_DEVM use a common
+definition in lib/Kconfig.debug.
 
-Why does it return unsigned int, not bool?
+Note, the 'depends on !SPARC' is due to sparc not implementing
+devmem_is_allowed().
 
-> +{
-> +	unsigned long idx;
-> +	unsigned long mask = size;
-> +
-> +	if (unlikely(size == 0))
-> +		return 1;
-> +
-> +	if (size > BITS_PER_LONG) {
-> +		for (idx = 0; idx * BITS_PER_LONG < size; idx++)
-> +			if (addr[idx])
-> +				return 0;
-> +
-> +		mask = size - (idx - 1) * BITS_PER_LONG;
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: "David S. Miller" <davem@davemloft.net>
+Suggested-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+---
+ arch/arm/Kconfig.debug       |   14 --------------
+ arch/arm64/Kconfig.debug     |   14 --------------
+ arch/powerpc/Kconfig.debug   |   12 ------------
+ arch/s390/Kconfig.debug      |   12 ------------
+ arch/tile/Kconfig            |    3 ---
+ arch/unicore32/Kconfig.debug |   14 --------------
+ arch/x86/Kconfig.debug       |   17 -----------------
+ lib/Kconfig.debug            |   19 +++++++++++++++++++
+ 8 files changed, 19 insertions(+), 86 deletions(-)
 
-Uh?
+diff --git a/arch/arm/Kconfig.debug b/arch/arm/Kconfig.debug
+index 259c0ca9c99a..e356357d86bb 100644
+--- a/arch/arm/Kconfig.debug
++++ b/arch/arm/Kconfig.debug
+@@ -15,20 +15,6 @@ config ARM_PTDUMP
+ 	  kernel.
+ 	  If in doubt, say "N"
+ 
+-config STRICT_DEVMEM
+-	bool "Filter access to /dev/mem"
+-	depends on MMU
+-	---help---
+-	  If this option is disabled, you allow userspace (root) access to all
+-	  of memory, including kernel and userspace memory. Accidental
+-	  access to this is obviously disastrous, but specific access can
+-	  be used by people debugging the kernel.
+-
+-	  If this option is switched on, the /dev/mem file only allows
+-	  userspace access to memory mapped peripherals.
+-
+-          If in doubt, say Y.
+-
+ # RMK wants arm kernels compiled with frame pointers or stack unwinding.
+ # If you know what you are doing and are willing to live without stack
+ # traces, you can get a slightly smaller kernel by setting this option to
+diff --git a/arch/arm64/Kconfig.debug b/arch/arm64/Kconfig.debug
+index 04fb73b973f1..e13c4bf84d9e 100644
+--- a/arch/arm64/Kconfig.debug
++++ b/arch/arm64/Kconfig.debug
+@@ -14,20 +14,6 @@ config ARM64_PTDUMP
+ 	  kernel.
+ 	  If in doubt, say "N"
+ 
+-config STRICT_DEVMEM
+-	bool "Filter access to /dev/mem"
+-	depends on MMU
+-	help
+-	  If this option is disabled, you allow userspace (root) access to all
+-	  of memory, including kernel and userspace memory. Accidental
+-	  access to this is obviously disastrous, but specific access can
+-	  be used by people debugging the kernel.
+-
+-	  If this option is switched on, the /dev/mem file only allows
+-	  userspace access to memory mapped peripherals.
+-
+-	  If in doubt, say Y.
+-
+ config PID_IN_CONTEXTIDR
+ 	bool "Write the current PID to the CONTEXTIDR register"
+ 	help
+diff --git a/arch/powerpc/Kconfig.debug b/arch/powerpc/Kconfig.debug
+index 3a510f4a6b68..a0e44a9c456f 100644
+--- a/arch/powerpc/Kconfig.debug
++++ b/arch/powerpc/Kconfig.debug
+@@ -335,18 +335,6 @@ config PPC_EARLY_DEBUG_CPM_ADDR
+ 	  platform probing is done, all platforms selected must
+ 	  share the same address.
+ 
+-config STRICT_DEVMEM
+-	def_bool y
+-	prompt "Filter access to /dev/mem"
+-	help
+-	  This option restricts access to /dev/mem.  If this option is
+-	  disabled, you allow userspace access to all memory, including
+-	  kernel and userspace memory. Accidental memory access is likely
+-	  to be disastrous.
+-	  Memory access is required for experts who want to debug the kernel.
+-
+-	  If you are unsure, say Y.
+-
+ config FAIL_IOMMU
+ 	bool "Fault-injection capability for IOMMU"
+ 	depends on FAULT_INJECTION
+diff --git a/arch/s390/Kconfig.debug b/arch/s390/Kconfig.debug
+index c56878e1245f..26c5d5beb4be 100644
+--- a/arch/s390/Kconfig.debug
++++ b/arch/s390/Kconfig.debug
+@@ -5,18 +5,6 @@ config TRACE_IRQFLAGS_SUPPORT
+ 
+ source "lib/Kconfig.debug"
+ 
+-config STRICT_DEVMEM
+-	def_bool y
+-	prompt "Filter access to /dev/mem"
+-	---help---
+-	  This option restricts access to /dev/mem.  If this option is
+-	  disabled, you allow userspace access to all memory, including
+-	  kernel and userspace memory. Accidental memory access is likely
+-	  to be disastrous.
+-	  Memory access is required for experts who want to debug the kernel.
+-
+-	  If you are unsure, say Y.
+-
+ config S390_PTDUMP
+ 	bool "Export kernel pagetable layout to userspace via debugfs"
+ 	depends on DEBUG_KERNEL
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+index 106c21bd7f44..7b2d40db11fa 100644
+--- a/arch/tile/Kconfig
++++ b/arch/tile/Kconfig
+@@ -116,9 +116,6 @@ config ARCH_DISCONTIGMEM_DEFAULT
+ config TRACE_IRQFLAGS_SUPPORT
+ 	def_bool y
+ 
+-config STRICT_DEVMEM
+-	def_bool y
+-
+ # SMP is required for Tilera Linux.
+ config SMP
+ 	def_bool y
+diff --git a/arch/unicore32/Kconfig.debug b/arch/unicore32/Kconfig.debug
+index 1a3626239843..f075bbe1d46f 100644
+--- a/arch/unicore32/Kconfig.debug
++++ b/arch/unicore32/Kconfig.debug
+@@ -2,20 +2,6 @@ menu "Kernel hacking"
+ 
+ source "lib/Kconfig.debug"
+ 
+-config STRICT_DEVMEM
+-	bool "Filter access to /dev/mem"
+-	depends on MMU
+-	---help---
+-	  If this option is disabled, you allow userspace (root) access to all
+-	  of memory, including kernel and userspace memory. Accidental
+-	  access to this is obviously disastrous, but specific access can
+-	  be used by people debugging the kernel.
+-
+-	  If this option is switched on, the /dev/mem file only allows
+-	  userspace access to memory mapped peripherals.
+-
+-          If in doubt, say Y.
+-
+ config EARLY_PRINTK
+ 	def_bool DEBUG_OCD
+ 	help
+diff --git a/arch/x86/Kconfig.debug b/arch/x86/Kconfig.debug
+index 137dfa96aa14..1116452fcfc2 100644
+--- a/arch/x86/Kconfig.debug
++++ b/arch/x86/Kconfig.debug
+@@ -5,23 +5,6 @@ config TRACE_IRQFLAGS_SUPPORT
+ 
+ source "lib/Kconfig.debug"
+ 
+-config STRICT_DEVMEM
+-	bool "Filter access to /dev/mem"
+-	---help---
+-	  If this option is disabled, you allow userspace (root) access to all
+-	  of memory, including kernel and userspace memory. Accidental
+-	  access to this is obviously disastrous, but specific access can
+-	  be used by people debugging the kernel. Note that with PAT support
+-	  enabled, even in this case there are restrictions on /dev/mem
+-	  use due to the cache aliasing requirements.
+-
+-	  If this option is switched on, the /dev/mem file only allows
+-	  userspace access to PCI space and the BIOS code and data regions.
+-	  This is sufficient for dosemu and X and all common users of
+-	  /dev/mem.
+-
+-	  If in doubt, say Y.
+-
+ config X86_VERBOSE_BOOTUP
+ 	bool "Enable verbose x86 bootup info messages"
+ 	default y
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 8c15b29d5adc..ad85145d0047 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -1853,3 +1853,22 @@ source "samples/Kconfig"
+ 
+ source "lib/Kconfig.kgdb"
+ 
++config STRICT_DEVMEM
++	bool "Filter access to /dev/mem"
++	depends on MMU
++	depends on !SPARC
++	default y if TILE || PPC || S390
++	---help---
++	  If this option is disabled, you allow userspace (root) access to all
++	  of memory, including kernel and userspace memory. Accidental
++	  access to this is obviously disastrous, but specific access can
++	  be used by people debugging the kernel. Note that with PAT support
++	  enabled, even in this case there are restrictions on /dev/mem
++	  use due to the cache aliasing requirements.
++
++	  If this option is switched on, the /dev/mem file only allows
++	  userspace access to PCI space and the BIOS code and data regions.
++	  This is sufficient for dosemu and X and all common users of
++	  /dev/mem.
++
++	  If in doubt, say Y.
 
-> +	}
-> +
-> +	return !(*addr & BITMAP_LAST_WORD_MASK(mask));
-
-BITMAP_LAST_WORD_MASK takes size not mask.
-
-> +}
-
-The whole implementation seems weird, this seems much better to me:
-
-unsigned int all_bit_is_zero(const unsigned long *addr, unsigned size)
-{
-	for (; size > BITS_PER_LONG; size -= BITS_PER_LONG, ++addr)
-		if (*addr)
-			return 0;
-	return !size || !(*addr & BITMAP_LAST_WORD_MASK(size));
-}
-
-But to be honest I’m not entirely sure this is worth the effort.
-find_next_bit and find_next_zero_bit may do a little bit more work but
-some architectures have specialised optimised versions which will be
-lost if all_bit_is_zero and all_bit_is_one are introduced.
-
-> +EXPORT_SYMBOL(all_bit_is_zero);
-> +#endif
-> +
-> +#ifndef all_bit_is_one
-> +/*
-> + * return val: 1 means all bit is one
-> + */
-> +unsigned int all_bit_is_one(const unsigned long *addr, unsigned size)
-> +{
-> +	unsigned long idx;
-> +	unsigned long mask = size;
-> +
-> +	if (unlikely(size == 0))
-> +		return 1;
-> +
-> +	if (size > BITS_PER_LONG) {
-> +		for (idx = 0; idx * BITS_PER_LONG < size; idx++)
-> +			if (~addr[idx])
-> +				return 0;
-> +
-> +		mask = size - (idx - 1) * BITS_PER_LONG;
-> +	}
-> +
-> +	return !(~(*addr) & BITMAP_LAST_WORD_MASK(mask));
-> +}
-> +EXPORT_SYMBOL(all_bit_is_one);
-> +#endif
-> +
->  #ifdef __BIG_ENDIAN
->  
->  /* include/linux/byteorder does not support "unsigned long" type */
-> -- 
-> 2.5.0
->
-
--- 
-Best regards,                                            _     _
-.o. | Liege of Serenely Enlightened Majesty of         o' \,=./ `o
-..o | Computer Science,  ミハウ “mina86” ナザレヴイツ  (o o)
-ooo +--<mpn@google.com>--<xmpp:mina86@jabber.org>-----ooO--(_)--Ooo--
