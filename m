@@ -1,66 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qg0-f53.google.com ([209.85.192.53]:34468 "EHLO
-	mail-qg0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754416AbbKWO7M (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2015 09:59:12 -0500
-Received: by qgeb1 with SMTP id b1so115549239qge.1
-        for <linux-arch@vger.kernel.org>; Mon, 23 Nov 2015 06:59:10 -0800 (PST)
-Date: Mon, 23 Nov 2015 09:59:07 -0500 (EST)
-From: Nicolas Pitre <nicolas.pitre@linaro.org>
-Subject: Re: [GIT PULL] optimize 64-by-32 ddivision for constant divisors on
- 32-bit machines
-In-Reply-To: <4172767.ihrTf0eWtM@wuerfel>
-Message-ID: <alpine.LFD.2.20.1511230949310.22569@knanqh.ubzr>
-References: <alpine.LFD.2.20.1511161710270.5826@knanqh.ubzr> <4206238.8hPtvbUZ9X@wuerfel> <alpine.LFD.2.20.1511221721320.22569@knanqh.ubzr> <4172767.ihrTf0eWtM@wuerfel>
+Received: from mout.kundenserver.de ([212.227.126.131]:55256 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751049AbbKWQLY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2015 11:11:24 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [GIT PULL] optimize 64-by-32 ddivision for constant divisors on 32-bit machines
+Date: Mon, 23 Nov 2015 17:11:20 +0100
+Message-ID: <4277009.MDAEAbRExl@wuerfel>
+In-Reply-To: <alpine.LFD.2.20.1511231053450.22569@knanqh.ubzr>
+References: <alpine.LFD.2.20.1511161710270.5826@knanqh.ubzr> <alpine.LFD.2.20.1511230949310.22569@knanqh.ubzr> <alpine.LFD.2.20.1511231053450.22569@knanqh.ubzr>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="us-ascii"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+To: Nicolas Pitre <nicolas.pitre@linaro.org>
 Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20151123145907.cGeNOf3Co_hKKFbE6sceXGrX3hZdZQnb3YUTneB6X7o@z>
+Message-ID: <20151123161120.v0EwcAuh6SnDNl9puo3VYAjnVrktrjN70jeS4ajq7no@z>
 
-On Mon, 23 Nov 2015, Arnd Bergmann wrote:
-
-> On Sunday 22 November 2015 17:28:33 Nicolas Pitre wrote:
-> > On Sun, 22 Nov 2015, Arnd Bergmann wrote:
-> > > On Monday 16 November 2015 20:20:38 you wrote:
-> > > I'm now getting a build regressing with the attached randconfig configuration,
-> > > when compiling drivers/net/wireless/iwlegacy/common.o:
-> > > 
-> > > drivers/built-in.o: In function `il_send_rxon_timing':
-> > > :(.text+0xbbac80): undefined reference to `__aeabi_uldivmod'
-> > > :(.text+0xbbac9c): undefined reference to `__aeabi_uldivmod'
-> > > :(.text+0xbbacdc): undefined reference to `__aeabi_uldivmod'
-> > > :(.text+0xbbadc8): undefined reference to `__aeabi_uldivmod'
-> > > :(.text+0xbbadf8): undefined reference to `__aeabi_uldivmod'
-> > > :(.text+0xbbae3c): more undefined references to `__aeabi_uldivmod' follow
-> > > drivers/built-in.o: In function `il_send_rxon_timing':
-> > > :(.text+0xbbb11c): undefined reference to `____ilog2_NaN'
-> > 
-> > This looks like some gcc bug from a few years ago.
+On Monday 23 November 2015 11:04:33 Nicolas Pitre wrote:
 > 
-> Yes, I clearly remember debugging something in this area before,
-> but I don't remember what we did about it.
+> OK... I'm able to "fix" the build with:
 > 
-> We already have the workaround for OABI (which you kept), and I have
-> another workaround to disable the optimized function for ARMv3 as
-> well, as newer gcc versions also get that wrong here (internal compiler
-> error IIRC).
+> diff --git a/include/asm-generic/div64.h b/include/asm-generic/div64.h
+> index 163f77999e..d246c4c801 100644
+> --- a/include/asm-generic/div64.h
+> +++ b/include/asm-generic/div64.h
+> @@ -206,7 +206,7 @@ extern uint32_t __div64_32(uint64_t *dividend, uint32_t divisor);
+>         uint32_t __rem;                                 \
+>         (void)(((typeof((n)) *)0) == ((uint64_t *)0));  \
+>         if (__builtin_constant_p(__base) &&             \
+> -           is_power_of_2(__base)) {                    \
+> +           is_power_of_2(__base) && __base != 0) {     \
+>                 __rem = (n) & (__base - 1);             \
+>                 (n) >>= ilog2(__base);                  \
+>         } else if (__div64_const32_is_OK &&             \
+> 
+> What doesn't make sense to me is the fact that is_power_of_2() is 
+> defined as:
+> 
+> static inline __attribute__((const))
+> bool is_power_of_2(unsigned long n)
+> {
+>         return (n != 0 && ((n & (n - 1)) == 0));
+> }
+> 
+> So the test for zero is already in there.
+> 
+> And adding BUILD_BUG_ON(__builtin_constant_p(__base) && __base == 0) 
+> before the if doesn't trig either.
 
-Although we no longer support ARMv3 targets, the only reason 
--march=armv3 is used is to prevent gcc from using strh/ldrh instructions 
-on RiscPC whose memory bus can't accommodate it.  Still, this would be 
-worth reporting a bug for it.
+I've seen similarly messed up situations with PROFILE_ALL_BRANCHES
+before, I think it's got something to do with how __builtin_constant_p()
+is used inside of the __trace_if() macro, and how gcc sometimes falls
+back to treating variables as not-really-constant based on context.
 
-> We could add yet another such workaround for CONFIG_PROFILE_ALL_BRANCHES,
-> but I don't have a good feeling about doing this unless we understand
-> well enough why it breaks.
+To gcc, __builtin_constant_p is just best-effort, and they don't care
+about returning false sometimes if they catch most cases in practice.
 
-I'm able to reproduce it, and I am in the process of reintroducing the 
-last patch piece by piece to see what breaks.  The presence of 
-____ilog2_NaN is particularly intriguing as this would mean 0 is passed 
-to ilog2() somewhere.
+Note that llvm will always return false for __builtin_constant_p on
+non-pointer arguments, which breaks a lot of optimizations.
 
-
-Nicolas
+	Arnd
