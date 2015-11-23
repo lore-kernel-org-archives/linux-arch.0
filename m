@@ -1,59 +1,81 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [GIT PULL] optimize 64-by-32 ddivision for constant divisors on 32-bit machines
-Date: Mon, 23 Nov 2015 17:11:20 +0100
-Message-ID: <4277009.MDAEAbRExl@wuerfel>
-References: <alpine.LFD.2.20.1511161710270.5826@knanqh.ubzr> <alpine.LFD.2.20.1511230949310.22569@knanqh.ubzr> <alpine.LFD.2.20.1511231053450.22569@knanqh.ubzr>
+Subject: [RFC] asm-generic: default BUG_ON(x) to "if(x) BUG()"
+Date: Mon, 23 Nov 2015 17:25:28 +0100
+Message-ID: <5868782.RxZY0W5S4d@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <alpine.LFD.2.20.1511231053450.22569@knanqh.ubzr>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Nicolas Pitre <nicolas.pitre@linaro.org>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.126.131]:55925 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754023AbbKWQZz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2015 11:25:55 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, rmk@arm.linux.org.uk, josh@joshtriplett.org
 
-On Monday 23 November 2015 11:04:33 Nicolas Pitre wrote:
-> 
-> OK... I'm able to "fix" the build with:
-> 
-> diff --git a/include/asm-generic/div64.h b/include/asm-generic/div64.h
-> index 163f77999e..d246c4c801 100644
-> --- a/include/asm-generic/div64.h
-> +++ b/include/asm-generic/div64.h
-> @@ -206,7 +206,7 @@ extern uint32_t __div64_32(uint64_t *dividend, uint32_t divisor);
->         uint32_t __rem;                                 \
->         (void)(((typeof((n)) *)0) == ((uint64_t *)0));  \
->         if (__builtin_constant_p(__base) &&             \
-> -           is_power_of_2(__base)) {                    \
-> +           is_power_of_2(__base) && __base != 0) {     \
->                 __rem = (n) & (__base - 1);             \
->                 (n) >>= ilog2(__base);                  \
->         } else if (__div64_const32_is_OK &&             \
-> 
-> What doesn't make sense to me is the fact that is_power_of_2() is 
-> defined as:
-> 
-> static inline __attribute__((const))
-> bool is_power_of_2(unsigned long n)
-> {
->         return (n != 0 && ((n & (n - 1)) == 0));
-> }
-> 
-> So the test for zero is already in there.
-> 
-> And adding BUILD_BUG_ON(__builtin_constant_p(__base) && __base == 0) 
-> before the if doesn't trig either.
+When CONFIG_BUG is disabled, BUG_ON() will only evaluate the condition,
+but will not actually stop the current thread. GCC warns about a couple
+of BUG_ON() users where this actually leads to further undefined
+behavior:
 
-I've seen similarly messed up situations with PROFILE_ALL_BRANCHES
-before, I think it's got something to do with how __builtin_constant_p()
-is used inside of the __trace_if() macro, and how gcc sometimes falls
-back to treating variables as not-really-constant based on context.
+include/linux/ceph/osdmap.h: In function 'ceph_can_shift_osds':
+include/linux/ceph/osdmap.h:54:1: warning: control reaches end of non-void function
+fs/ext4/inode.c: In function 'ext4_map_blocks':
+fs/ext4/inode.c:548:5: warning: 'retval' may be used uninitialized in this function
+drivers/mfd/db8500-prcmu.c: In function 'prcmu_config_clkout':
+drivers/mfd/db8500-prcmu.c:762:10: warning: 'div_mask' may be used uninitialized in this function
+drivers/mfd/db8500-prcmu.c:769:13: warning: 'mask' may be used uninitialized in this function
+drivers/mfd/db8500-prcmu.c:757:7: warning: 'bits' may be used uninitialized in this function
+drivers/tty/serial/8250/8250_core.c: In function 'univ8250_release_irq':
+drivers/tty/serial/8250/8250_core.c:252:18: warning: 'i' may be used uninitialized in this function
+drivers/tty/serial/8250/8250_core.c:235:19: note: 'i' was declared here
 
-To gcc, __builtin_constant_p is just best-effort, and they don't care
-about returning false sometimes if they catch most cases in practice.
+There is an obvious conflict of interest here: on the one hand, someone
+who disables CONFIG_BUG() will want the kernel to be as small as possible
+and doesn't care about printing error messages to a console that nobody
+looks at. On the other hand, running into a BUG_ON() condition means that
+something has gone wrong, and we probably want to also stop doing things
+that might cause data corruption.
 
-Note that llvm will always return false for __builtin_constant_p on
-non-pointer arguments, which breaks a lot of optimizations.
+This patch picks the second choice, and changes the NOP to BUG(), which
+normally stops the execution of the current thread in some form (endless
+loop or a trap). This follows the logic we applied in a4b5d580e078 ("bug:
+Make BUG() always stop the machine").
 
-	Arnd
+For ARM multi_v7_defconfig, the size slightly increases:
+
+section		CONFIG_BUG=y	CONFIG_BUG=n	CONFIG_BUG=n+patch
+
+  .text            8320248   |     8180944   |     8207688
+  .rodata          3633720   |     3567144   |     3570648
+  __bug_table        32508   |         ---   |         ---
+  __modver             692   |        1584   |        2176
+  .init.text        558132   |      548300   |      550088
+  .exit.text         12380   |       12256   |       12380
+  .data            1016672   |     1016064   |     1016128
+  Total           14622556   |    14374510   |    14407326
+
+So instead of saving 1.70% of the total image size, we only save 1.48%
+by turning off CONFIG_BUG, but in return we can ensure that we don't run
+into cases of uninitialized variable or return code uses when something
+bad happens. Aside from that, we significantly reduce the number of
+warnings in randconfig builds, which makes it easier to fix the warnings
+about other problems.
+
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 630dd2372238..58bd1f08c5c7 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -142,7 +142,7 @@ extern void warn_slowpath_null(const char *file, const int line);
+ #endif
+ 
+ #ifndef HAVE_ARCH_BUG_ON
+-#define BUG_ON(condition) do { if (condition) ; } while (0)
++#define BUG_ON(condition) do { if (condition) BUG(); } while (0)
+ #endif
+ 
+ #ifndef HAVE_ARCH_WARN_ON
