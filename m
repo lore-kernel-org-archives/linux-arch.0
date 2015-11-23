@@ -1,104 +1,47 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 2/2] restrict /dev/mem to idle io memory ranges
-Date: Mon, 23 Nov 2015 11:00:45 -0800
-Message-ID: <CAGXu5jLpZLRbhK2+TuKhcDSujR91662SGLkTwC-mQCT8fFQ_1w@mail.gmail.com>
-References: <20151122035702.9313.52457.stgit@dwillia2-desk3.jf.intel.com>
-	<20151122035707.9313.59919.stgit@dwillia2-desk3.jf.intel.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC] asm-generic: default BUG_ON(x) to "if(x) BUG()"
+Date: Mon, 23 Nov 2015 20:29:44 +0100
+Message-ID: <5556176.D98dCq6i5B@wuerfel>
+References: <5868782.RxZY0W5S4d@wuerfel> <4150271.zrLzq08T60@wuerfel> <20151123172203.GU8644@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f170.google.com ([209.85.223.170]:36204 "EHLO
-	mail-io0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753227AbbKWTAq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2015 14:00:46 -0500
-Received: by iofh3 with SMTP id h3so197711099iof.3
-        for <linux-arch@vger.kernel.org>; Mon, 23 Nov 2015 11:00:45 -0800 (PST)
-In-Reply-To: <20151122035707.9313.59919.stgit@dwillia2-desk3.jf.intel.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-nvdimm@lists.01.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20151123172203.GU8644@n2100.arm.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Willy Tarreau <w@1wt.eu>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, josh@joshtriplett.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Nov 21, 2015 at 7:57 PM, Dan Williams <dan.j.williams@intel.com> wrote:
-> This effectively promotes IORESOURCE_BUSY to IORESOURCE_EXCLUSIVE
-> semantics by default.  If userspace really believes it is safe to access
-> the memory region it can also perform the extra step of disabling an
-> active driver.  This protects device address ranges with read side
-> effects and otherwise directs userspace to use the driver.
->
-> Persistent memory presents a large "mistake surface" to /dev/mem as now
-> accidental writes can corrupt a filesystem.
->
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Kees Cook <keescook@chromium.org>
-> Cc: Russell King <linux@arm.linux.org.uk>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+On Monday 23 November 2015 17:22:03 Russell King - ARM Linux wrote:
+> On Mon, Nov 23, 2015 at 05:52:38PM +0100, Arnd Bergmann wrote:
+> > On Monday 23 November 2015 16:37:50 Russell King - ARM Linux wrote:
+> > > Does that not depend on the architectures BUG() implementation?  If an
+> > > architecture implements it as a signalling illegal instruction and a
+> > > lookup table, changing it to be a panic() would probably be more code.
+> > 
+> > Correct, overall, we are down to a 1.40% size reduction compared to
+> > 1.70% without my patch and 1.49% with my version:
+> > 
+> > section     CONFIG_BUG=y    CONFIG_BUG=n    CONFIG_BUG=n+patch    panic("BUG!")
+> > 
+> >  .text            8320248   |     8180944   |     8207688     |  8221848
+> >  .rodata          3633720   |     3567144   |     3570648     |  3567344
+> >  __bug_table        32508   |         ---   |         ---     |      ---
+> >  __modver             692   |        1584   |        2176     |     1384
+> >  .init.text        558132   |      548300   |      550088     |   550592
+> >  .exit.text         12380   |       12256   |       12380     |    12448
+> >  .data            1016672   |     1016064   |     1016128     |  1016064
+> >  Total           14622556   |    14374510   |    14407326     | 14417898
+> 
+> Are you including dropping the bug table in these stats?  See BUG_TABLE
+> in include/asm-generic/vmlinux.lds.h.
+> 
 
-Acked-by: Kees Cook <keescook@chromium.org>
+Yes, it's the output from "size -A vmlinux", with the lines dropped that
+are unchanged. See the __bug_table above for the part that got dropped in
+all but the first column. This is included in the "Total" row, but is
+only 13% of the size difference, 32508 bytes for BUG_TABLE in
+multi_v7_defconfig, compared to 139304 bytes difference in .text.
 
-Thanks!
-
--Kees
-
-> ---
->  kernel/resource.c |    3 +++
->  lib/Kconfig.debug |   23 ++++++++++++++++++++---
->  2 files changed, 23 insertions(+), 3 deletions(-)
->
-> diff --git a/kernel/resource.c b/kernel/resource.c
-> index f150dbbe6f62..03a8b09f68a8 100644
-> --- a/kernel/resource.c
-> +++ b/kernel/resource.c
-> @@ -1498,6 +1498,9 @@ int iomem_is_exclusive(u64 addr)
->                         break;
->                 if (p->end < addr)
->                         continue;
-> +               if (IS_ENABLED(CONFIG_IO_STRICT_DEVMEM)
-> +                               && p->flags & IORESOURCE_BUSY)
-> +                       break;
->                 if (p->flags & IORESOURCE_BUSY &&
->                      p->flags & IORESOURCE_EXCLUSIVE) {
->                         err = 1;
-> diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-> index ad85145d0047..be47f99fb191 100644
-> --- a/lib/Kconfig.debug
-> +++ b/lib/Kconfig.debug
-> @@ -1866,9 +1866,26 @@ config STRICT_DEVMEM
->           enabled, even in this case there are restrictions on /dev/mem
->           use due to the cache aliasing requirements.
->
-> +         If this option is switched on, and IO_STRICT_DEVMEM=n, the /dev/mem
-> +         file only allows userspace access to PCI space and the BIOS code and
-> +         data regions.  This is sufficient for dosemu and X and all common
-> +         users of /dev/mem.
-> +
-> +         If in doubt, say Y.
-> +
-> +config IO_STRICT_DEVMEM
-> +       bool "Filter I/O access to /dev/mem"
-> +       depends on STRICT_DEVMEM
-> +       default STRICT_DEVMEM
-> +       ---help---
-> +         If this option is disabled, you allow userspace (root) access to all
-> +         io-memory regardless of whether a driver is actively using that
-> +         range.  Accidental access to this is obviously disastrous, but
-> +         specific access can be used by people debugging kernel drivers.
-> +
->           If this option is switched on, the /dev/mem file only allows
-> -         userspace access to PCI space and the BIOS code and data regions.
-> -         This is sufficient for dosemu and X and all common users of
-> -         /dev/mem.
-> +         userspace access to *idle* io-memory ranges (see /proc/iomem) This
-> +         may break traditional users of /dev/mem (dosemu, legacy X, etc...)
-> +         if the driver using a given range cannot be disabled.
->
->           If in doubt, say Y.
->
-
-
-
--- 
-Kees Cook
-Chrome OS Security
+	Arnd
