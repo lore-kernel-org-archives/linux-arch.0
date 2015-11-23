@@ -1,85 +1,81 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH] ARM64: fix building without CONFIG_UID16
-Date: Mon, 23 Nov 2015 15:22:25 +0000
-Message-ID: <20151123152225.GE4236@arm.com>
-References: <3891403.6hGat7eHq5@wuerfel>
+From: Nicolas Pitre <nicolas.pitre@linaro.org>
+Subject: Re: [GIT PULL] optimize 64-by-32 ddivision for constant divisors on
+ 32-bit machines
+Date: Mon, 23 Nov 2015 11:04:33 -0500 (EST)
+Message-ID: <alpine.LFD.2.20.1511231053450.22569@knanqh.ubzr>
+References: <alpine.LFD.2.20.1511161710270.5826@knanqh.ubzr> <4206238.8hPtvbUZ9X@wuerfel> <alpine.LFD.2.20.1511221721320.22569@knanqh.ubzr> <4172767.ihrTf0eWtM@wuerfel> <alpine.LFD.2.20.1511230949310.22569@knanqh.ubzr>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:56665 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754867AbbKWPW1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 23 Nov 2015 10:22:27 -0500
-Content-Disposition: inline
-In-Reply-To: <3891403.6hGat7eHq5@wuerfel>
+Received: from mail-qg0-f48.google.com ([209.85.192.48]:35040 "EHLO
+	mail-qg0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750735AbbKWQEg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2015 11:04:36 -0500
+Received: by qgec40 with SMTP id c40so116442373qge.2
+        for <linux-arch@vger.kernel.org>; Mon, 23 Nov 2015 08:04:35 -0800 (PST)
+In-Reply-To: <alpine.LFD.2.20.1511230949310.22569@knanqh.ubzr>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, Michal Simek <monstr@monstr.eu>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, Nov 20, 2015 at 12:12:21PM +0100, Arnd Bergmann wrote:
-> As reported by Michal Simek, building an ARM64 kernel with CONFIG_UID16
-> disabled currently fails because the system call table still needs to
-> reference the individual function entry points that are provided by
-> kernel/sys_ni.c in this case, and the declarations are hidden inside
-> of #ifdef CONFIG_UID16:
-> 
-> arch/arm64/include/asm/unistd32.h:57:8: error: 'sys_lchown16' undeclared here (not in a function)
->  __SYSCALL(__NR_lchown, sys_lchown16)
-> 
-> I believe this problem only exists on ARM64, because older architectures
-> tend to not need declarations when their system call table is built
-> in assembly code, while newer architectures tend to not need UID16
-> support. ARM64 only uses these system calls for compatibility with
-> 32-bit ARM binaries.
-> 
-> This changes the CONFIG_UID16 check into CONFIG_HAVE_UID16, which is
-> set unconditionally on ARM64 with CONFIG_COMPAT, so we see the
-> declarations whenever we need them, but otherwise the behavior is
-> unchanged.
-> 
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> Cc: stable@vger.kernel.org
-> Fixes: af1839eb4bd4 ("Kconfig: clean up the long arch list for the UID16 config option")
-> ---
-> I would suggest merging this through the arm64 tree, as this is
-> likely the only architecture that cares about it, and there is little
-> risk of clashes with other patches in the global headers.
-> 
-> The bug goes back to when arch/arm64 was introduced as far as I can
-> tell, but I'm not sure if we care about stable backports or not.
-> I've put stable on Cc anyway, let me know if anyone thinks we should not.
+On Mon, 23 Nov 2015, Nicolas Pitre wrote:
 
-Acked-by: Will Deacon <will.deacon@arm.com>
-
-Catalin, can you pick this one up, please?
-
-Will
-
-> diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
-> index a156b82dd14c..c2b66a277e98 100644
-> --- a/include/linux/syscalls.h
-> +++ b/include/linux/syscalls.h
-> @@ -524,7 +524,7 @@ asmlinkage long sys_chown(const char __user *filename,
->  asmlinkage long sys_lchown(const char __user *filename,
->  				uid_t user, gid_t group);
->  asmlinkage long sys_fchown(unsigned int fd, uid_t user, gid_t group);
-> -#ifdef CONFIG_UID16
-> +#ifdef CONFIG_HAVE_UID16
->  asmlinkage long sys_chown16(const char __user *filename,
->  				old_uid_t user, old_gid_t group);
->  asmlinkage long sys_lchown16(const char __user *filename,
-> diff --git a/include/linux/types.h b/include/linux/types.h
-> index 70d8500bddf1..70dd3dfde631 100644
-> --- a/include/linux/types.h
-> +++ b/include/linux/types.h
-> @@ -35,7 +35,7 @@ typedef __kernel_gid16_t        gid16_t;
->  
->  typedef unsigned long		uintptr_t;
->  
-> -#ifdef CONFIG_UID16
-> +#ifdef CONFIG_HAVE_UID16
->  /* This is defined by include/asm-{arch}/posix_types.h */
->  typedef __kernel_old_uid_t	old_uid_t;
->  typedef __kernel_old_gid_t	old_gid_t;
+> On Mon, 23 Nov 2015, Arnd Bergmann wrote:
 > 
+> > On Sunday 22 November 2015 17:28:33 Nicolas Pitre wrote:
+> > > On Sun, 22 Nov 2015, Arnd Bergmann wrote:
+> > > > On Monday 16 November 2015 20:20:38 you wrote:
+> > > > I'm now getting a build regressing with the attached randconfig configuration,
+> > > > when compiling drivers/net/wireless/iwlegacy/common.o:
+> > > > 
+> > > > drivers/built-in.o: In function `il_send_rxon_timing':
+> > > > :(.text+0xbbac80): undefined reference to `__aeabi_uldivmod'
+> > > > :(.text+0xbbac9c): undefined reference to `__aeabi_uldivmod'
+> > > > :(.text+0xbbacdc): undefined reference to `__aeabi_uldivmod'
+> > > > :(.text+0xbbadc8): undefined reference to `__aeabi_uldivmod'
+> > > > :(.text+0xbbadf8): undefined reference to `__aeabi_uldivmod'
+> > > > :(.text+0xbbae3c): more undefined references to `__aeabi_uldivmod' follow
+> > > > drivers/built-in.o: In function `il_send_rxon_timing':
+> > > > :(.text+0xbbb11c): undefined reference to `____ilog2_NaN'
+> > > 
+> 
+> I'm able to reproduce it, and I am in the process of reintroducing the 
+> last patch piece by piece to see what breaks.  The presence of 
+> ____ilog2_NaN is particularly intriguing as this would mean 0 is passed 
+> to ilog2() somewhere.
+
+OK... I'm able to "fix" the build with:
+
+diff --git a/include/asm-generic/div64.h b/include/asm-generic/div64.h
+index 163f77999e..d246c4c801 100644
+--- a/include/asm-generic/div64.h
++++ b/include/asm-generic/div64.h
+@@ -206,7 +206,7 @@ extern uint32_t __div64_32(uint64_t *dividend, uint32_t divisor);
+ 	uint32_t __rem;					\
+ 	(void)(((typeof((n)) *)0) == ((uint64_t *)0));	\
+ 	if (__builtin_constant_p(__base) &&		\
+-	    is_power_of_2(__base)) {			\
++	    is_power_of_2(__base) && __base != 0) {	\
+ 		__rem = (n) & (__base - 1);		\
+ 		(n) >>= ilog2(__base);			\
+ 	} else if (__div64_const32_is_OK &&		\
+
+What doesn't make sense to me is the fact that is_power_of_2() is 
+defined as:
+
+static inline __attribute__((const))
+bool is_power_of_2(unsigned long n)
+{
+        return (n != 0 && ((n & (n - 1)) == 0));
+}
+
+So the test for zero is already in there.
+
+And adding BUILD_BUG_ON(__builtin_constant_p(__base) && __base == 0) 
+before the if doesn't trig either.
+
+Confused.
+
+
+Nicolas
