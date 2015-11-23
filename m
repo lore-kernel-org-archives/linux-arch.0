@@ -1,78 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:58405 "EHLO
-	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753816AbbKWJxM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2015 04:53:12 -0500
-Received: from localhost
-	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-	Mon, 23 Nov 2015 09:53:10 -0000
-Date: Mon, 23 Nov 2015 10:53:02 +0100
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH 1/2] arch: consolidate CONFIG_STRICT_DEVM in
- lib/Kconfig.debug
-Message-ID: <20151123095302.GA4436@osiris>
-References: <20151122035702.9313.52457.stgit@dwillia2-desk3.jf.intel.com>
+Received: from mail-qg0-f53.google.com ([209.85.192.53]:34468 "EHLO
+	mail-qg0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754416AbbKWO7M (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2015 09:59:12 -0500
+Received: by qgeb1 with SMTP id b1so115549239qge.1
+        for <linux-arch@vger.kernel.org>; Mon, 23 Nov 2015 06:59:10 -0800 (PST)
+Date: Mon, 23 Nov 2015 09:59:07 -0500 (EST)
+From: Nicolas Pitre <nicolas.pitre@linaro.org>
+Subject: Re: [GIT PULL] optimize 64-by-32 ddivision for constant divisors on
+ 32-bit machines
+In-Reply-To: <4172767.ihrTf0eWtM@wuerfel>
+Message-ID: <alpine.LFD.2.20.1511230949310.22569@knanqh.ubzr>
+References: <alpine.LFD.2.20.1511161710270.5826@knanqh.ubzr> <4206238.8hPtvbUZ9X@wuerfel> <alpine.LFD.2.20.1511221721320.22569@knanqh.ubzr> <4172767.ihrTf0eWtM@wuerfel>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20151122035702.9313.52457.stgit@dwillia2-desk3.jf.intel.com>
+Content-Type: text/plain; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-nvdimm@lists.01.org, Andrew Morton <akpm@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "H. Peter Anvin" <hpa@zytor.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20151123095302.X4QvJDBI92yMgNylzicdW11q4niWFbxZdrrjxekoLOM@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20151123145907.cGeNOf3Co_hKKFbE6sceXGrX3hZdZQnb3YUTneB6X7o@z>
 
-On Sat, Nov 21, 2015 at 07:57:02PM -0800, Dan Williams wrote:
-> Let all the archs that implement CONFIG_STRICT_DEVM use a common
-> definition in lib/Kconfig.debug.
+On Mon, 23 Nov 2015, Arnd Bergmann wrote:
+
+> On Sunday 22 November 2015 17:28:33 Nicolas Pitre wrote:
+> > On Sun, 22 Nov 2015, Arnd Bergmann wrote:
+> > > On Monday 16 November 2015 20:20:38 you wrote:
+> > > I'm now getting a build regressing with the attached randconfig configuration,
+> > > when compiling drivers/net/wireless/iwlegacy/common.o:
+> > > 
+> > > drivers/built-in.o: In function `il_send_rxon_timing':
+> > > :(.text+0xbbac80): undefined reference to `__aeabi_uldivmod'
+> > > :(.text+0xbbac9c): undefined reference to `__aeabi_uldivmod'
+> > > :(.text+0xbbacdc): undefined reference to `__aeabi_uldivmod'
+> > > :(.text+0xbbadc8): undefined reference to `__aeabi_uldivmod'
+> > > :(.text+0xbbadf8): undefined reference to `__aeabi_uldivmod'
+> > > :(.text+0xbbae3c): more undefined references to `__aeabi_uldivmod' follow
+> > > drivers/built-in.o: In function `il_send_rxon_timing':
+> > > :(.text+0xbbb11c): undefined reference to `____ilog2_NaN'
+> > 
+> > This looks like some gcc bug from a few years ago.
 > 
-> Note, the 'depends on !SPARC' is due to sparc not implementing
-> devmem_is_allowed().
+> Yes, I clearly remember debugging something in this area before,
+> but I don't remember what we did about it.
 > 
-> Cc: Kees Cook <keescook@chromium.org>
-> Cc: Russell King <linux@arm.linux.org.uk>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Will Deacon <will.deacon@arm.com>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-> Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Ingo Molnar <mingo@redhat.com>
-> Cc: "H. Peter Anvin" <hpa@zytor.com>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-> Cc: "David S. Miller" <davem@davemloft.net>
-> Suggested-by: Arnd Bergmann <arnd@arndb.de>
-> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
-> ---
->  arch/arm/Kconfig.debug       |   14 --------------
->  arch/arm64/Kconfig.debug     |   14 --------------
->  arch/powerpc/Kconfig.debug   |   12 ------------
->  arch/s390/Kconfig.debug      |   12 ------------
->  arch/tile/Kconfig            |    3 ---
->  arch/unicore32/Kconfig.debug |   14 --------------
->  arch/x86/Kconfig.debug       |   17 -----------------
->  lib/Kconfig.debug            |   19 +++++++++++++++++++
->  8 files changed, 19 insertions(+), 86 deletions(-)
+> We already have the workaround for OABI (which you kept), and I have
+> another workaround to disable the optimized function for ARMv3 as
+> well, as newer gcc versions also get that wrong here (internal compiler
+> error IIRC).
 
-For s390
+Although we no longer support ARMv3 targets, the only reason 
+-march=armv3 is used is to prevent gcc from using strh/ldrh instructions 
+on RiscPC whose memory bus can't accommodate it.  Still, this would be 
+worth reporting a bug for it.
 
-Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+> We could add yet another such workaround for CONFIG_PROFILE_ALL_BRANCHES,
+> but I don't have a good feeling about doing this unless we understand
+> well enough why it breaks.
 
-> diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-> index 8c15b29d5adc..ad85145d0047 100644
-> --- a/lib/Kconfig.debug
-> +++ b/lib/Kconfig.debug
-> @@ -1853,3 +1853,22 @@ source "samples/Kconfig"
-> 
->  source "lib/Kconfig.kgdb"
-> 
-> +config STRICT_DEVMEM
-> +	bool "Filter access to /dev/mem"
-> +	depends on MMU
-> +	depends on !SPARC
-> +	default y if TILE || PPC || S390
+I'm able to reproduce it, and I am in the process of reintroducing the 
+last patch piece by piece to see what breaks.  The presence of 
+____ilog2_NaN is particularly intriguing as this would mean 0 is passed 
+to ilog2() somewhere.
 
-I wouldn't mind if you would remove s390 from this list.
 
+Nicolas
