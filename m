@@ -1,81 +1,55 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: [RFC] asm-generic: default BUG_ON(x) to "if(x) BUG()"
-Date: Mon, 23 Nov 2015 17:25:28 +0100
-Message-ID: <5868782.RxZY0W5S4d@wuerfel>
+Subject: [PATCH] Kbuild: disable 'maybe-uninitialized' warning for CONFIG_PROFILE_ALL_BRANCHES
+Date: Mon, 23 Nov 2015 17:26:45 +0100
+Message-ID: <3799453.oCg1CdOrtm@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.131]:55925 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754023AbbKWQZz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2015 11:25:55 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, rmk@arm.linux.org.uk, josh@joshtriplett.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Michal Marek <mmarek@suse.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-When CONFIG_BUG is disabled, BUG_ON() will only evaluate the condition,
-but will not actually stop the current thread. GCC warns about a couple
-of BUG_ON() users where this actually leads to further undefined
-behavior:
+CONFIG_PROFILE_ALL_BRANCHES confuses gcc-5.x to the degree that it prints
+incorrect warnings about a lot of variables that it thinks can be used
+uninitialized, e.g.:
 
-include/linux/ceph/osdmap.h: In function 'ceph_can_shift_osds':
-include/linux/ceph/osdmap.h:54:1: warning: control reaches end of non-void function
-fs/ext4/inode.c: In function 'ext4_map_blocks':
-fs/ext4/inode.c:548:5: warning: 'retval' may be used uninitialized in this function
-drivers/mfd/db8500-prcmu.c: In function 'prcmu_config_clkout':
-drivers/mfd/db8500-prcmu.c:762:10: warning: 'div_mask' may be used uninitialized in this function
-drivers/mfd/db8500-prcmu.c:769:13: warning: 'mask' may be used uninitialized in this function
-drivers/mfd/db8500-prcmu.c:757:7: warning: 'bits' may be used uninitialized in this function
-drivers/tty/serial/8250/8250_core.c: In function 'univ8250_release_irq':
-drivers/tty/serial/8250/8250_core.c:252:18: warning: 'i' may be used uninitialized in this function
-drivers/tty/serial/8250/8250_core.c:235:19: note: 'i' was declared here
+i2c/busses/i2c-diolan-u2c.c: In function 'diolan_usb_xfer':
+i2c/busses/i2c-diolan-u2c.c:391:16: warning: 'byte' may be used uninitialized in this function
+iio/gyro/itg3200_core.c: In function 'itg3200_probe':
+iio/gyro/itg3200_core.c:213:6: warning: 'val' may be used uninitialized in this function
+leds/leds-lp55xx-common.c: In function 'lp55xx_update_bits':
+leds/leds-lp55xx-common.c:350:6: warning: 'tmp' may be used uninitialized in this function
+misc/bmp085.c: In function 'show_pressure':
+misc/bmp085.c:363:10: warning: 'pressure' may be used uninitialized in this function
+power/ds2782_battery.c: In function 'ds2786_get_capacity':
+power/ds2782_battery.c:214:17: warning: 'raw' may be used uninitialized in this function
 
-There is an obvious conflict of interest here: on the one hand, someone
-who disables CONFIG_BUG() will want the kernel to be as small as possible
-and doesn't care about printing error messages to a console that nobody
-looks at. On the other hand, running into a BUG_ON() condition means that
-something has gone wrong, and we probably want to also stop doing things
-that might cause data corruption.
+These are all false positives that either rob someone's time when trying
+to figure out whether they are real, or they get people to send wrong
+patches to shut up the warnings.
 
-This patch picks the second choice, and changes the NOP to BUG(), which
-normally stops the execution of the current thread in some form (endless
-loop or a trap). This follows the logic we applied in a4b5d580e078 ("bug:
-Make BUG() always stop the machine").
-
-For ARM multi_v7_defconfig, the size slightly increases:
-
-section		CONFIG_BUG=y	CONFIG_BUG=n	CONFIG_BUG=n+patch
-
-  .text            8320248   |     8180944   |     8207688
-  .rodata          3633720   |     3567144   |     3570648
-  __bug_table        32508   |         ---   |         ---
-  __modver             692   |        1584   |        2176
-  .init.text        558132   |      548300   |      550088
-  .exit.text         12380   |       12256   |       12380
-  .data            1016672   |     1016064   |     1016128
-  Total           14622556   |    14374510   |    14407326
-
-So instead of saving 1.70% of the total image size, we only save 1.48%
-by turning off CONFIG_BUG, but in return we can ensure that we don't run
-into cases of uninitialized variable or return code uses when something
-bad happens. Aside from that, we significantly reduce the number of
-warnings in randconfig builds, which makes it easier to fix the warnings
-about other problems.
+Nobody normally wants to run a CONFIG_PROFILE_ALL_BRANCHES kernel in
+production, so disabling the whole class of warnings for this configuration
+has no serious downsides either.
 
 Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 630dd2372238..58bd1f08c5c7 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -142,7 +142,7 @@ extern void warn_slowpath_null(const char *file, const int line);
- #endif
+diff --git a/Makefile b/Makefile
+index 5e01a416c6e4..f8b921658f29 100644
+--- a/Makefile
++++ b/Makefile
+@@ -626,7 +626,11 @@ KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks,)
+ ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+ KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
+ else
+-KBUILD_CFLAGS	+= -O2
++ifdef CONFIG_PROFILE_ALL_BRANCHES
++KBUILD_CFLAGS	+= -O2 $(call cc-disable-warning,maybe-uninitialized,)
++else
++KBUILD_CFLAGS   += -O2
++endif
+ endif
  
- #ifndef HAVE_ARCH_BUG_ON
--#define BUG_ON(condition) do { if (condition) ; } while (0)
-+#define BUG_ON(condition) do { if (condition) BUG(); } while (0)
- #endif
- 
- #ifndef HAVE_ARCH_WARN_ON
+ # Tell gcc to never replace conditional load with a non-conditional one
