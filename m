@@ -1,59 +1,85 @@
-From: Nicolas Pitre <nicolas.pitre@linaro.org>
-Subject: Re: [GIT PULL] optimize 64-by-32 ddivision for constant divisors on
- 32-bit machines
-Date: Mon, 23 Nov 2015 09:59:07 -0500 (EST)
-Message-ID: <alpine.LFD.2.20.1511230949310.22569@knanqh.ubzr>
-References: <alpine.LFD.2.20.1511161710270.5826@knanqh.ubzr> <4206238.8hPtvbUZ9X@wuerfel> <alpine.LFD.2.20.1511221721320.22569@knanqh.ubzr> <4172767.ihrTf0eWtM@wuerfel>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH] ARM64: fix building without CONFIG_UID16
+Date: Mon, 23 Nov 2015 15:22:25 +0000
+Message-ID: <20151123152225.GE4236@arm.com>
+References: <3891403.6hGat7eHq5@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <4172767.ihrTf0eWtM@wuerfel>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:56665 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754867AbbKWPW1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 Nov 2015 10:22:27 -0500
+Content-Disposition: inline
+In-Reply-To: <3891403.6hGat7eHq5@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, Michal Simek <monstr@monstr.eu>
 
-On Mon, 23 Nov 2015, Arnd Bergmann wrote:
-
-> On Sunday 22 November 2015 17:28:33 Nicolas Pitre wrote:
-> > On Sun, 22 Nov 2015, Arnd Bergmann wrote:
-> > > On Monday 16 November 2015 20:20:38 you wrote:
-> > > I'm now getting a build regressing with the attached randconfig configuration,
-> > > when compiling drivers/net/wireless/iwlegacy/common.o:
-> > > 
-> > > drivers/built-in.o: In function `il_send_rxon_timing':
-> > > :(.text+0xbbac80): undefined reference to `__aeabi_uldivmod'
-> > > :(.text+0xbbac9c): undefined reference to `__aeabi_uldivmod'
-> > > :(.text+0xbbacdc): undefined reference to `__aeabi_uldivmod'
-> > > :(.text+0xbbadc8): undefined reference to `__aeabi_uldivmod'
-> > > :(.text+0xbbadf8): undefined reference to `__aeabi_uldivmod'
-> > > :(.text+0xbbae3c): more undefined references to `__aeabi_uldivmod' follow
-> > > drivers/built-in.o: In function `il_send_rxon_timing':
-> > > :(.text+0xbbb11c): undefined reference to `____ilog2_NaN'
-> > 
-> > This looks like some gcc bug from a few years ago.
+On Fri, Nov 20, 2015 at 12:12:21PM +0100, Arnd Bergmann wrote:
+> As reported by Michal Simek, building an ARM64 kernel with CONFIG_UID16
+> disabled currently fails because the system call table still needs to
+> reference the individual function entry points that are provided by
+> kernel/sys_ni.c in this case, and the declarations are hidden inside
+> of #ifdef CONFIG_UID16:
 > 
-> Yes, I clearly remember debugging something in this area before,
-> but I don't remember what we did about it.
+> arch/arm64/include/asm/unistd32.h:57:8: error: 'sys_lchown16' undeclared here (not in a function)
+>  __SYSCALL(__NR_lchown, sys_lchown16)
 > 
-> We already have the workaround for OABI (which you kept), and I have
-> another workaround to disable the optimized function for ARMv3 as
-> well, as newer gcc versions also get that wrong here (internal compiler
-> error IIRC).
+> I believe this problem only exists on ARM64, because older architectures
+> tend to not need declarations when their system call table is built
+> in assembly code, while newer architectures tend to not need UID16
+> support. ARM64 only uses these system calls for compatibility with
+> 32-bit ARM binaries.
+> 
+> This changes the CONFIG_UID16 check into CONFIG_HAVE_UID16, which is
+> set unconditionally on ARM64 with CONFIG_COMPAT, so we see the
+> declarations whenever we need them, but otherwise the behavior is
+> unchanged.
+> 
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> Cc: stable@vger.kernel.org
+> Fixes: af1839eb4bd4 ("Kconfig: clean up the long arch list for the UID16 config option")
+> ---
+> I would suggest merging this through the arm64 tree, as this is
+> likely the only architecture that cares about it, and there is little
+> risk of clashes with other patches in the global headers.
+> 
+> The bug goes back to when arch/arm64 was introduced as far as I can
+> tell, but I'm not sure if we care about stable backports or not.
+> I've put stable on Cc anyway, let me know if anyone thinks we should not.
 
-Although we no longer support ARMv3 targets, the only reason 
--march=armv3 is used is to prevent gcc from using strh/ldrh instructions 
-on RiscPC whose memory bus can't accommodate it.  Still, this would be 
-worth reporting a bug for it.
+Acked-by: Will Deacon <will.deacon@arm.com>
 
-> We could add yet another such workaround for CONFIG_PROFILE_ALL_BRANCHES,
-> but I don't have a good feeling about doing this unless we understand
-> well enough why it breaks.
+Catalin, can you pick this one up, please?
 
-I'm able to reproduce it, and I am in the process of reintroducing the 
-last patch piece by piece to see what breaks.  The presence of 
-____ilog2_NaN is particularly intriguing as this would mean 0 is passed 
-to ilog2() somewhere.
+Will
 
-
-Nicolas
+> diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+> index a156b82dd14c..c2b66a277e98 100644
+> --- a/include/linux/syscalls.h
+> +++ b/include/linux/syscalls.h
+> @@ -524,7 +524,7 @@ asmlinkage long sys_chown(const char __user *filename,
+>  asmlinkage long sys_lchown(const char __user *filename,
+>  				uid_t user, gid_t group);
+>  asmlinkage long sys_fchown(unsigned int fd, uid_t user, gid_t group);
+> -#ifdef CONFIG_UID16
+> +#ifdef CONFIG_HAVE_UID16
+>  asmlinkage long sys_chown16(const char __user *filename,
+>  				old_uid_t user, old_gid_t group);
+>  asmlinkage long sys_lchown16(const char __user *filename,
+> diff --git a/include/linux/types.h b/include/linux/types.h
+> index 70d8500bddf1..70dd3dfde631 100644
+> --- a/include/linux/types.h
+> +++ b/include/linux/types.h
+> @@ -35,7 +35,7 @@ typedef __kernel_gid16_t        gid16_t;
+>  
+>  typedef unsigned long		uintptr_t;
+>  
+> -#ifdef CONFIG_UID16
+> +#ifdef CONFIG_HAVE_UID16
+>  /* This is defined by include/asm-{arch}/posix_types.h */
+>  typedef __kernel_old_uid_t	old_uid_t;
+>  typedef __kernel_old_gid_t	old_gid_t;
+> 
