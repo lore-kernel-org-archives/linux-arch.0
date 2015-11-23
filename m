@@ -1,49 +1,103 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH 1/2] arch: consolidate CONFIG_STRICT_DEVM in lib/Kconfig.debug
-Date: Mon, 23 Nov 2015 10:56:11 -0800
-Message-ID: <CAGXu5jLpm7iG17+ws2MfK7ZG9KEDaHWd5xxHSk7KHPyizYEm2A@mail.gmail.com>
+Subject: Re: [PATCH 2/2] restrict /dev/mem to idle io memory ranges
+Date: Mon, 23 Nov 2015 11:00:45 -0800
+Message-ID: <CAGXu5jLpZLRbhK2+TuKhcDSujR91662SGLkTwC-mQCT8fFQ_1w@mail.gmail.com>
 References: <20151122035702.9313.52457.stgit@dwillia2-desk3.jf.intel.com>
-	<20151123081235.GA23661@gmail.com>
-	<CAPcyv4hDbi5KJ+tGJnEwQV5G=PM+ZRooQbgTNrYxyyVVPA3EwA@mail.gmail.com>
+	<20151122035707.9313.59919.stgit@dwillia2-desk3.jf.intel.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f170.google.com ([209.85.213.170]:36775 "EHLO
-	mail-ig0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753349AbbKWS4N (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2015 13:56:13 -0500
-Received: by igcph11 with SMTP id ph11so57477541igc.1
-        for <linux-arch@vger.kernel.org>; Mon, 23 Nov 2015 10:56:12 -0800 (PST)
-In-Reply-To: <CAPcyv4hDbi5KJ+tGJnEwQV5G=PM+ZRooQbgTNrYxyyVVPA3EwA@mail.gmail.com>
+Received: from mail-io0-f170.google.com ([209.85.223.170]:36204 "EHLO
+	mail-io0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753227AbbKWTAq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2015 14:00:46 -0500
+Received: by iofh3 with SMTP id h3so197711099iof.3
+        for <linux-arch@vger.kernel.org>; Mon, 23 Nov 2015 11:00:45 -0800 (PST)
+In-Reply-To: <20151122035707.9313.59919.stgit@dwillia2-desk3.jf.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Dan Williams <dan.j.williams@intel.com>
-Cc: Ingo Molnar <mingo@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Catalin Marinas <catalin.marinas@arm.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "H. Peter Anvin" <hpa@zytor.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-nvdimm@lists.01.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-On Mon, Nov 23, 2015 at 9:12 AM, Dan Williams <dan.j.williams@intel.com> wrote:
-> On Mon, Nov 23, 2015 at 12:12 AM, Ingo Molnar <mingo@kernel.org> wrote:
->>
->> * Dan Williams <dan.j.williams@intel.com> wrote:
->>
->>> Let all the archs that implement CONFIG_STRICT_DEVM use a common
->>> definition in lib/Kconfig.debug.
->>
->> For the x86 bit:
->>
->> Acked-by: Ingo Molnar <mingo@kernel.org>
->>
->>> Note, the 'depends on !SPARC' is due to sparc not implementing
->>> devmem_is_allowed().
->>
->> Maybe that should be converted into a helper Kconfig switch for architectures to
->> opt in to /dev/mem restrictions?
+On Sat, Nov 21, 2015 at 7:57 PM, Dan Williams <dan.j.williams@intel.com> wrote:
+> This effectively promotes IORESOURCE_BUSY to IORESOURCE_EXCLUSIVE
+> semantics by default.  If userspace really believes it is safe to access
+> the memory region it can also perform the extra step of disabling an
+> active driver.  This protects device address ranges with read side
+> effects and otherwise directs userspace to use the driver.
 >
-> Sure, easy enough to add a ARCH_HAS_DEVMEM_IS_ALLOWED opt-in.
+> Persistent memory presents a large "mistake surface" to /dev/mem as now
+> accidental writes can corrupt a filesystem.
+>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Kees Cook <keescook@chromium.org>
+> Cc: Russell King <linux@arm.linux.org.uk>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+> Signed-off-by: Dan Williams <dan.j.williams@intel.com>
 
-Is there some hidden meaning about the difference between ARCH_HAS_...
-and HAVE_ARCH_... and HAVE_... ?
+Acked-by: Kees Cook <keescook@chromium.org>
+
+Thanks!
 
 -Kees
+
+> ---
+>  kernel/resource.c |    3 +++
+>  lib/Kconfig.debug |   23 ++++++++++++++++++++---
+>  2 files changed, 23 insertions(+), 3 deletions(-)
+>
+> diff --git a/kernel/resource.c b/kernel/resource.c
+> index f150dbbe6f62..03a8b09f68a8 100644
+> --- a/kernel/resource.c
+> +++ b/kernel/resource.c
+> @@ -1498,6 +1498,9 @@ int iomem_is_exclusive(u64 addr)
+>                         break;
+>                 if (p->end < addr)
+>                         continue;
+> +               if (IS_ENABLED(CONFIG_IO_STRICT_DEVMEM)
+> +                               && p->flags & IORESOURCE_BUSY)
+> +                       break;
+>                 if (p->flags & IORESOURCE_BUSY &&
+>                      p->flags & IORESOURCE_EXCLUSIVE) {
+>                         err = 1;
+> diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+> index ad85145d0047..be47f99fb191 100644
+> --- a/lib/Kconfig.debug
+> +++ b/lib/Kconfig.debug
+> @@ -1866,9 +1866,26 @@ config STRICT_DEVMEM
+>           enabled, even in this case there are restrictions on /dev/mem
+>           use due to the cache aliasing requirements.
+>
+> +         If this option is switched on, and IO_STRICT_DEVMEM=n, the /dev/mem
+> +         file only allows userspace access to PCI space and the BIOS code and
+> +         data regions.  This is sufficient for dosemu and X and all common
+> +         users of /dev/mem.
+> +
+> +         If in doubt, say Y.
+> +
+> +config IO_STRICT_DEVMEM
+> +       bool "Filter I/O access to /dev/mem"
+> +       depends on STRICT_DEVMEM
+> +       default STRICT_DEVMEM
+> +       ---help---
+> +         If this option is disabled, you allow userspace (root) access to all
+> +         io-memory regardless of whether a driver is actively using that
+> +         range.  Accidental access to this is obviously disastrous, but
+> +         specific access can be used by people debugging kernel drivers.
+> +
+>           If this option is switched on, the /dev/mem file only allows
+> -         userspace access to PCI space and the BIOS code and data regions.
+> -         This is sufficient for dosemu and X and all common users of
+> -         /dev/mem.
+> +         userspace access to *idle* io-memory ranges (see /proc/iomem) This
+> +         may break traditional users of /dev/mem (dosemu, legacy X, etc...)
+> +         if the driver using a given range cannot be disabled.
+>
+>           If in doubt, say Y.
+>
+
+
 
 -- 
 Kees Cook
