@@ -1,44 +1,48 @@
-From: Michal Marek <mmarek@suse.com>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH] Kbuild: disable 'maybe-uninitialized' warning for
  CONFIG_PROFILE_ALL_BRANCHES
-Date: Tue, 24 Nov 2015 11:20:43 +0100
-Message-ID: <565439FB.6050800@suse.com>
-References: <3799453.oCg1CdOrtm@wuerfel>
+Date: Tue, 24 Nov 2015 11:42:09 +0100
+Message-ID: <20825812.L9y0yMCgts@wuerfel>
+References: <3799453.oCg1CdOrtm@wuerfel> <565439FB.6050800@suse.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:37945 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752712AbbKXKUp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 Nov 2015 05:20:45 -0500
-In-Reply-To: <3799453.oCg1CdOrtm@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <565439FB.6050800@suse.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Michal Marek <mmarek@suse.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kbuild@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 2015-11-23 17:26, Arnd Bergmann wrote:
-> These are all false positives that either rob someone's time when trying
-> to figure out whether they are real, or they get people to send wrong
-> patches to shut up the warnings.
-[...]
-> diff --git a/Makefile b/Makefile
-> index 5e01a416c6e4..f8b921658f29 100644
-> --- a/Makefile
-> +++ b/Makefile
-> @@ -626,7 +626,11 @@ KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks,)
->  ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
->  KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
->  else
-> -KBUILD_CFLAGS	+= -O2
-> +ifdef CONFIG_PROFILE_ALL_BRANCHES
-> +KBUILD_CFLAGS	+= -O2 $(call cc-disable-warning,maybe-uninitialized,)
-> +else
-> +KBUILD_CFLAGS   += -O2
-> +endif
+On Tuesday 24 November 2015 11:20:43 Michal Marek wrote:
+> > diff --git a/Makefile b/Makefile
+> > index 5e01a416c6e4..f8b921658f29 100644
+> > --- a/Makefile
+> > +++ b/Makefile
+> > @@ -626,7 +626,11 @@ KBUILD_CFLAGS    += $(call cc-option,-fno-delete-null-pointer-checks,)
+> >  ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+> >  KBUILD_CFLAGS        += -Os $(call cc-disable-warning,maybe-uninitialized,)
+> >  else
+> > -KBUILD_CFLAGS        += -O2
+> > +ifdef CONFIG_PROFILE_ALL_BRANCHES
+> > +KBUILD_CFLAGS        += -O2 $(call cc-disable-warning,maybe-uninitialized,)
+> > +else
+> > +KBUILD_CFLAGS   += -O2
+> > +endif
+> 
+> Does it only happen with -O2? Normally, we would add it outside the
+> ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE.
+> 
 
-Does it only happen with -O2? Normally, we would add it outside the
-ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE.
+We already disable the warning for -Os builds based on a patch we merged
+a while ago. It seems easier to add it to the block we already have.
 
-Michal
+	Arnd
