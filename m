@@ -1,89 +1,58 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 2/2] x86, vdso: mark vDSO read-only after init
-Date: Tue, 24 Nov 2015 13:38:34 -0800
-Message-ID: <1448401114-24650-3-git-send-email-keescook@chromium.org>
-References: <1448401114-24650-1-git-send-email-keescook@chromium.org>
-Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-1953-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <1448401114-24650-1-git-send-email-keescook@chromium.org>
-To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com
-List-Id: linux-arch.vger.kernel.org
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v2 2/2] restrict /dev/mem to idle io memory ranges
+Date: Tue, 24 Nov 2015 14:25:21 -0800
+Message-ID: <20151124142521.e6d23e44a8b2c24c044c2dec@linux-foundation.org>
+References: <20151124000553.26360.57819.stgit@dwillia2-desk3.jf.intel.com>
+	<20151124000604.26360.56945.stgit@dwillia2-desk3.jf.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:55159 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754307AbbKXWZW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Nov 2015 17:25:22 -0500
+In-Reply-To: <20151124000604.26360.56945.stgit@dwillia2-desk3.jf.intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, linux-arm-kernel@lists.infradead.org
 
-The vDSO does not need to be writable after __init, so mark it as
-__read_only. The result kills the exploit method of writing to the vDSO
-from kernel space resulting in userspace executing the modified code,
-as shown here to bypass SMEP restrictions: http://itszn.com/blog/?p=21
+On Mon, 23 Nov 2015 16:06:04 -0800 Dan Williams <dan.j.williams@intel.com> wrote:
 
-The memory map (with added vDSO address reporting) shows the vDSO moving
-into read-only memory:
+> This effectively promotes IORESOURCE_BUSY to IORESOURCE_EXCLUSIVE
+> semantics by default.  If userspace really believes it is safe to access
+> the memory region it can also perform the extra step of disabling an
+> active driver.  This protects device address ranges with read side
+> effects and otherwise directs userspace to use the driver.
 
-Before:
-[    0.143067] vDSO @ ffffffff82004000
-[    0.143551] vDSO @ ffffffff82006000
----[ High Kernel Mapping ]---
-0xffffffff80000000-0xffffffff81000000      16M                         pmd
-0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
-0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
-0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
-0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
-0xffffffff81e00000-0xffffffff81e05000      20K   ro             GLB NX pte
-0xffffffff81e05000-0xffffffff82000000    2028K   ro                 NX pte
-0xffffffff82000000-0xffffffff8214f000    1340K   RW             GLB NX pte
-0xffffffff8214f000-0xffffffff82281000    1224K   RW                 NX pte
-0xffffffff82281000-0xffffffff82400000    1532K   RW             GLB NX pte
-0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
-0xffffffff83200000-0xffffffffc0000000     974M                         pmd
+I don't think I'm sufficiently understanding what this is all needed
+for, sorry.  A better changelog would help: what's wrong with the
+current code, how you propose it be changed, how the kernel's
+externally-visible behaviour is altered, etc.
 
-After:
-[    0.145062] vDSO @ ffffffff81da1000
-[    0.146057] vDSO @ ffffffff81da4000
----[ High Kernel Mapping ]---
-0xffffffff80000000-0xffffffff81000000      16M                         pmd
-0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
-0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
-0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
-0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
-0xffffffff81e00000-0xffffffff81e0b000      44K   ro             GLB NX pte
-0xffffffff81e0b000-0xffffffff82000000    2004K   ro                 NX pte
-0xffffffff82000000-0xffffffff8214c000    1328K   RW             GLB NX pte
-0xffffffff8214c000-0xffffffff8227e000    1224K   RW                 NX pte
-0xffffffff8227e000-0xffffffff82400000    1544K   RW             GLB NX pte
-0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
-0xffffffff83200000-0xffffffffc0000000     974M                         pmd
+Please pay particular attention to the back-compatibility issues which
+will be encountered when people enable these options.
 
-Based on work by Brad Spengler.
+Perhaps when all that material is described, I'll understand why the
+heck we're doing this with a build-time switch rather than a runtime
+one...
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/x86/entry/vdso/vdso2c.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+> Persistent memory presents a large "mistake surface" to /dev/mem as now
+> accidental writes can corrupt a filesystem.
 
-diff --git a/arch/x86/entry/vdso/vdso2c.h b/arch/x86/entry/vdso/vdso2c.h
-index 0224987556ce..677ce3ac4d34 100644
---- a/arch/x86/entry/vdso/vdso2c.h
-+++ b/arch/x86/entry/vdso/vdso2c.h
-@@ -140,7 +140,7 @@ static void BITSFUNC(go)(void *raw_addr, size_t raw_len,
- 	fprintf(outfile, "#include <asm/vdso.h>\n");
- 	fprintf(outfile, "\n");
- 	fprintf(outfile,
--		"static unsigned char raw_data[%lu] __page_aligned_data = {",
-+		"static unsigned char raw_data[%lu] __read_only __aligned(PAGE_SIZE) = {",
- 		mapping_size);
- 	for (j = 0; j < stripped_len; j++) {
- 		if (j % 10 == 0)
-@@ -150,7 +150,7 @@ static void BITSFUNC(go)(void *raw_addr, size_t raw_len,
- 	}
- 	fprintf(outfile, "\n};\n\n");
- 
--	fprintf(outfile, "static struct page *pages[%lu];\n\n",
-+	fprintf(outfile, "static struct page *pages[%lu] __read_only;\n\n",
- 		mapping_size / 4096);
- 
- 	fprintf(outfile, "const struct vdso_image %s = {\n", name);
--- 
-1.9.1
+Is that the motivation?  root can come in and accidentally alter
+persistent memory contents?  If so, 
+
+- why do we care?  There are all sorts of ways in which root can muck
+  up the persistent memory, starting with dd(1).  What's special about
+  /dev/mem?
+
+- why is the patch mucking with access to PCI and BIOS space?  Is the
+  persistent memory even mappable in those regions?  Or is the concern
+  that userspace can access control registers associated with the
+  persistent memory?  What is the problem scenario?
+
+
+IOW, a very good description of the problem-being-solved would help out
+a lot here...
