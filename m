@@ -1,76 +1,54 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC] asm-generic: default BUG_ON(x) to "if(x) BUG()"
-Date: Mon, 23 Nov 2015 22:30:56 +0100
-Message-ID: <4745584.7EJGtZoN8U@wuerfel>
-References: <5868782.RxZY0W5S4d@wuerfel> <4102055.db40h1joXM@wuerfel> <20151123211748.GA30660@x>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: [PATCH v2 0/2] restrict /dev/mem to idle io memory ranges
+Date: Mon, 23 Nov 2015 16:05:53 -0800
+Message-ID: <20151124000553.26360.57819.stgit@dwillia2-desk3.jf.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20151123211748.GA30660@x>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Josh Triplett <josh@joshtriplett.org>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, rmk@arm.linux.org.uk
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga14.intel.com ([192.55.52.115]:27278 "EHLO mga14.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751881AbbKXAGV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 Nov 2015 19:06:21 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, "H. Peter Anvin" <hpa@zytor.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Will Deacon <will.deacon@arm.com>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org
 
-On Monday 23 November 2015 13:17:48 Josh Triplett wrote:
-> > not sure where I can find tinyconfig,
-> 
-> "make tinyconfig" in the standard kernel tree.  It turns on a few
-> options that make the kernel even smaller.
+Changes since v1 [1]:
 
-I should learn how that works. We have way too many configuration
-files on ARM and it would be nice to use Kconfig fragments to
-simplify it a little for things like enabling LPAE or big-endian.
-The kernelci.org folks do that already, but it's not in mainline.
+1/ Introduce ARCH_HAS_DEVMEM_IS_ALLOWED to flag archs where
+   CONFIG_STRICT_DEVMEM will compile (Ingo)
 
-FWIW, on tinyconfig, the __modver section remains at 1784 with or
-without my patch, and the size difference with my patch applied
-is down to 5412 bytes mostly in .text, around 0.50% of the total size.
+2/ Drop "default y" for s390 (Heiko)
 
-> > this is what I get for ARM allnoconfig
-> > (only totals, let me know if you need more details):
-> > 
-> > original:             961307
-> > patched:              969167 (+0.82%)
-> > CONFIG_BUG:           994695 (+3.36%)
-> 
-> "patched" here represents allnoconfig with your patch added, but with
-> CONFIG_BUG still turned off?
+3/ Fix iomem_is_exclusive() return value in the
+   CONFIG_IO_STRICT_DEVMEM=y case.
 
-Correct.
+[1]: https://lkml.org/lkml/2015/11/21/183
 
-> Doesn't seem too bad.  Rather large, but I think we ought to fix the
-> problem by 1) reducing the number of uses of BUG_ON in the kernel, and
-> 2) compiling out more bits of the kernel entirely, including their calls
-> to BUG_ON.  Eliminating a class of warnings that cause people grief when
-> trying to build and contribute to tiny kernels seems worth it, at least
-> for now.
+---
 
-Ok
+Dan Williams (2):
+      arch: consolidate CONFIG_STRICT_DEVM in lib/Kconfig.debug
+      restrict /dev/mem to idle io memory ranges
 
-> > > >  #ifndef HAVE_ARCH_BUG_ON
-> > > > -#define BUG_ON(condition) do { if (condition) ; } while (0)
-> > > > +#define BUG_ON(condition) do { if (condition) BUG(); } while (0)
-> > > 
-> > > This makes BUG_ON in the !CONFIG_BUG case almost identical to the
-> > > CONFIG_BUG=y case, except for the use of unlikely(condition), which this
-> > > ought to do as well.
-> > > 
-> > > Given that, could you pull the definition *out* of the #ifdef/#else for
-> > > CONFIG_BUG entirely, and define it the same way in both cases?
-> > 
-> > Yes, I thought about that already and decided to keep the patch simple
-> > instead. I can do that of course once we get consensus on the general
-> > approach.
-> 
-> Looking at the thread, I think you have it at this point.
-> 
-> And personally I value simplicity of the patched code over simplicity of
-> the patch. 
 
-Ok, I'll prepare an updated version with that change.
-
-Thanks,
-
-	Arnd
+ arch/arm/Kconfig             |    1 +
+ arch/arm/Kconfig.debug       |   14 --------------
+ arch/arm64/Kconfig           |    1 +
+ arch/arm64/Kconfig.debug     |   14 --------------
+ arch/frv/Kconfig             |    1 +
+ arch/m32r/Kconfig            |    1 +
+ arch/powerpc/Kconfig         |    1 +
+ arch/powerpc/Kconfig.debug   |   12 ------------
+ arch/s390/Kconfig            |    1 +
+ arch/s390/Kconfig.debug      |   12 ------------
+ arch/tile/Kconfig            |    4 +---
+ arch/unicore32/Kconfig       |    1 +
+ arch/unicore32/Kconfig.debug |   14 --------------
+ arch/x86/Kconfig             |    1 +
+ arch/x86/Kconfig.debug       |   17 -----------------
+ kernel/resource.c            |   11 +++++++++--
+ lib/Kconfig.debug            |   39 +++++++++++++++++++++++++++++++++++++++
+ 17 files changed, 57 insertions(+), 88 deletions(-)
