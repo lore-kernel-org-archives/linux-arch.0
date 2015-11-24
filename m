@@ -1,60 +1,44 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 1/2] arch: consolidate CONFIG_STRICT_DEVM in
- lib/Kconfig.debug
-Date: Tue, 24 Nov 2015 09:27:57 +0100
-Message-ID: <20151124082757.GB23624@gmail.com>
-References: <20151122035702.9313.52457.stgit@dwillia2-desk3.jf.intel.com>
- <20151123081235.GA23661@gmail.com>
- <CAPcyv4hDbi5KJ+tGJnEwQV5G=PM+ZRooQbgTNrYxyyVVPA3EwA@mail.gmail.com>
- <CAGXu5jLpm7iG17+ws2MfK7ZG9KEDaHWd5xxHSk7KHPyizYEm2A@mail.gmail.com>
+From: Michal Marek <mmarek@suse.com>
+Subject: Re: [PATCH] Kbuild: disable 'maybe-uninitialized' warning for
+ CONFIG_PROFILE_ALL_BRANCHES
+Date: Tue, 24 Nov 2015 11:20:43 +0100
+Message-ID: <565439FB.6050800@suse.com>
+References: <3799453.oCg1CdOrtm@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f48.google.com ([74.125.82.48]:38886 "EHLO
-	mail-wm0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752571AbbKXI2C (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Nov 2015 03:28:02 -0500
-Content-Disposition: inline
-In-Reply-To: <CAGXu5jLpm7iG17+ws2MfK7ZG9KEDaHWd5xxHSk7KHPyizYEm2A@mail.gmail.com>
+Received: from mx2.suse.de ([195.135.220.15]:37945 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752712AbbKXKUp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 24 Nov 2015 05:20:45 -0500
+In-Reply-To: <3799453.oCg1CdOrtm@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Dan Williams <dan.j.williams@intel.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Catalin Marinas <catalin.marinas@arm.com>, "linux-nvdimm@lists.01.org" <linux-nvdimm@lists.01.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@redhat.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "H. Peter Anvin" <hpa@zytor.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, "David S. Miller" <davem@davemloft.net>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
+On 2015-11-23 17:26, Arnd Bergmann wrote:
+> These are all false positives that either rob someone's time when trying
+> to figure out whether they are real, or they get people to send wrong
+> patches to shut up the warnings.
+[...]
+> diff --git a/Makefile b/Makefile
+> index 5e01a416c6e4..f8b921658f29 100644
+> --- a/Makefile
+> +++ b/Makefile
+> @@ -626,7 +626,11 @@ KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks,)
+>  ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+>  KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
+>  else
+> -KBUILD_CFLAGS	+= -O2
+> +ifdef CONFIG_PROFILE_ALL_BRANCHES
+> +KBUILD_CFLAGS	+= -O2 $(call cc-disable-warning,maybe-uninitialized,)
+> +else
+> +KBUILD_CFLAGS   += -O2
+> +endif
 
-* Kees Cook <keescook@chromium.org> wrote:
+Does it only happen with -O2? Normally, we would add it outside the
+ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE.
 
-> On Mon, Nov 23, 2015 at 9:12 AM, Dan Williams <dan.j.williams@intel.com> wrote:
-> > On Mon, Nov 23, 2015 at 12:12 AM, Ingo Molnar <mingo@kernel.org> wrote:
-> >>
-> >> * Dan Williams <dan.j.williams@intel.com> wrote:
-> >>
-> >>> Let all the archs that implement CONFIG_STRICT_DEVM use a common
-> >>> definition in lib/Kconfig.debug.
-> >>
-> >> For the x86 bit:
-> >>
-> >> Acked-by: Ingo Molnar <mingo@kernel.org>
-> >>
-> >>> Note, the 'depends on !SPARC' is due to sparc not implementing
-> >>> devmem_is_allowed().
-> >>
-> >> Maybe that should be converted into a helper Kconfig switch for architectures to
-> >> opt in to /dev/mem restrictions?
-> >
-> > Sure, easy enough to add a ARCH_HAS_DEVMEM_IS_ALLOWED opt-in.
-> 
-> Is there some hidden meaning about the difference between ARCH_HAS_...
-> and HAVE_ARCH_... and HAVE_... ?
-
-There's also the double underscore variants such as __HAVE_ARCH_STRNCASECMP! ;-)
-
-It's all just nonsensical historic muck: because no-one ever was confronted with 
-the messy global picture.
-
-Today you can run Documentation/features/list-arch.sh and wonder at the zoo of 
-options ;-)
-
-Thanks,
-
-	Ingo
+Michal
