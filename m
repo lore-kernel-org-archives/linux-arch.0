@@ -1,81 +1,356 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.134]:62384 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751704AbbKWVbY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Nov 2015 16:31:24 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC] asm-generic: default BUG_ON(x) to "if(x) BUG()"
-Date: Mon, 23 Nov 2015 22:30:56 +0100
-Message-ID: <4745584.7EJGtZoN8U@wuerfel>
-In-Reply-To: <20151123211748.GA30660@x>
-References: <5868782.RxZY0W5S4d@wuerfel> <4102055.db40h1joXM@wuerfel> <20151123211748.GA30660@x>
+Received: from mga11.intel.com ([192.55.52.93]:4603 "EHLO mga11.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752256AbbKXAG1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 23 Nov 2015 19:06:27 -0500
+Subject: [PATCH v2 1/2] arch: consolidate CONFIG_STRICT_DEVM in
+ lib/Kconfig.debug
+From: Dan Williams <dan.j.williams@intel.com>
+Date: Mon, 23 Nov 2015 16:05:58 -0800
+Message-ID: <20151124000558.26360.79354.stgit@dwillia2-desk3.jf.intel.com>
+In-Reply-To: <20151124000553.26360.57819.stgit@dwillia2-desk3.jf.intel.com>
+References: <20151124000553.26360.57819.stgit@dwillia2-desk3.jf.intel.com>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 7Bit
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Josh Triplett <josh@joshtriplett.org>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, rmk@arm.linux.org.uk
-Message-ID: <20151123213056.hoHLeauztxGMlGTfBs-GA1Mx5rf7BtvDPzHsVDD-G4Q@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "H. Peter Anvin" <hpa@zytor.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Andrew Morton <akpm@linux-foundation.org>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@redhat.com>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Catalin Marinas <catalin.marinas@arm.com>, "David S. Miller" <davem@davemloft.net>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20151124000558.BMRlA_KW47mj-zQwXJZI3voGiMTKzSz6MT9eM26e6Do@z>
 
-On Monday 23 November 2015 13:17:48 Josh Triplett wrote:
-> > not sure where I can find tinyconfig,
-> 
-> "make tinyconfig" in the standard kernel tree.  It turns on a few
-> options that make the kernel even smaller.
+Let all the archs that implement devmem_is_allowed() opt-in to a common
+definition of CONFIG_STRICT_DEVM in lib/Kconfig.debug.
 
-I should learn how that works. We have way too many configuration
-files on ARM and it would be nice to use Kconfig fragments to
-simplify it a little for things like enabling LPAE or big-endian.
-The kernelci.org folks do that already, but it's not in mainline.
+Cc: Kees Cook <keescook@chromium.org>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: "David S. Miller" <davem@davemloft.net>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+[heiko: drop 'default y' for s390]
+Acked-by: Ingo Molnar <mingo@redhat.com>
+Suggested-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+---
+ arch/arm/Kconfig             |    1 +
+ arch/arm/Kconfig.debug       |   14 --------------
+ arch/arm64/Kconfig           |    1 +
+ arch/arm64/Kconfig.debug     |   14 --------------
+ arch/frv/Kconfig             |    1 +
+ arch/m32r/Kconfig            |    1 +
+ arch/powerpc/Kconfig         |    1 +
+ arch/powerpc/Kconfig.debug   |   12 ------------
+ arch/s390/Kconfig            |    1 +
+ arch/s390/Kconfig.debug      |   12 ------------
+ arch/tile/Kconfig            |    4 +---
+ arch/unicore32/Kconfig       |    1 +
+ arch/unicore32/Kconfig.debug |   14 --------------
+ arch/x86/Kconfig             |    1 +
+ arch/x86/Kconfig.debug       |   17 -----------------
+ lib/Kconfig.debug            |   22 ++++++++++++++++++++++
+ 16 files changed, 31 insertions(+), 86 deletions(-)
 
-FWIW, on tinyconfig, the __modver section remains at 1784 with or
-without my patch, and the size difference with my patch applied
-is down to 5412 bytes mostly in .text, around 0.50% of the total size.
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 0365cbbc9179..c7d92948bb49 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -2,6 +2,7 @@ config ARM
+ 	bool
+ 	default y
+ 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
++	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
+ 	select ARCH_HAVE_CUSTOM_GPIO_H
+diff --git a/arch/arm/Kconfig.debug b/arch/arm/Kconfig.debug
+index 259c0ca9c99a..e356357d86bb 100644
+--- a/arch/arm/Kconfig.debug
++++ b/arch/arm/Kconfig.debug
+@@ -15,20 +15,6 @@ config ARM_PTDUMP
+ 	  kernel.
+ 	  If in doubt, say "N"
+ 
+-config STRICT_DEVMEM
+-	bool "Filter access to /dev/mem"
+-	depends on MMU
+-	---help---
+-	  If this option is disabled, you allow userspace (root) access to all
+-	  of memory, including kernel and userspace memory. Accidental
+-	  access to this is obviously disastrous, but specific access can
+-	  be used by people debugging the kernel.
+-
+-	  If this option is switched on, the /dev/mem file only allows
+-	  userspace access to memory mapped peripherals.
+-
+-          If in doubt, say Y.
+-
+ # RMK wants arm kernels compiled with frame pointers or stack unwinding.
+ # If you know what you are doing and are willing to live without stack
+ # traces, you can get a slightly smaller kernel by setting this option to
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 9ac16a482ff1..4e7bf1d73038 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -3,6 +3,7 @@ config ARM64
+ 	select ACPI_CCA_REQUIRED if ACPI
+ 	select ACPI_GENERIC_GSI if ACPI
+ 	select ACPI_REDUCED_HARDWARE_ONLY if ACPI
++	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+diff --git a/arch/arm64/Kconfig.debug b/arch/arm64/Kconfig.debug
+index 04fb73b973f1..e13c4bf84d9e 100644
+--- a/arch/arm64/Kconfig.debug
++++ b/arch/arm64/Kconfig.debug
+@@ -14,20 +14,6 @@ config ARM64_PTDUMP
+ 	  kernel.
+ 	  If in doubt, say "N"
+ 
+-config STRICT_DEVMEM
+-	bool "Filter access to /dev/mem"
+-	depends on MMU
+-	help
+-	  If this option is disabled, you allow userspace (root) access to all
+-	  of memory, including kernel and userspace memory. Accidental
+-	  access to this is obviously disastrous, but specific access can
+-	  be used by people debugging the kernel.
+-
+-	  If this option is switched on, the /dev/mem file only allows
+-	  userspace access to memory mapped peripherals.
+-
+-	  If in doubt, say Y.
+-
+ config PID_IN_CONTEXTIDR
+ 	bool "Write the current PID to the CONTEXTIDR register"
+ 	help
+diff --git a/arch/frv/Kconfig b/arch/frv/Kconfig
+index 34aa19352dc1..03bfd6bf03e7 100644
+--- a/arch/frv/Kconfig
++++ b/arch/frv/Kconfig
+@@ -10,6 +10,7 @@ config FRV
+ 	select HAVE_DEBUG_BUGVERBOSE
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select GENERIC_CPU_DEVICES
++	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+ 	select OLD_SIGSUSPEND3
+ 	select OLD_SIGACTION
+diff --git a/arch/m32r/Kconfig b/arch/m32r/Kconfig
+index 9e44bbd8051e..836ac5a963c8 100644
+--- a/arch/m32r/Kconfig
++++ b/arch/m32r/Kconfig
+@@ -13,6 +13,7 @@ config M32R
+ 	select GENERIC_IRQ_PROBE
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_ATOMIC64
++	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_USES_GETTIMEOFFSET
+ 	select MODULES_USE_ELF_RELA
+ 	select HAVE_DEBUG_STACKOVERFLOW
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index db49e0d796b1..85eabc49de61 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -159,6 +159,7 @@ config PPC
+ 	select EDAC_SUPPORT
+ 	select EDAC_ATOMIC_SCRUB
+ 	select ARCH_HAS_DMA_SET_COHERENT_MASK
++	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select HAVE_ARCH_SECCOMP_FILTER
+ 
+ config GENERIC_CSUM
+diff --git a/arch/powerpc/Kconfig.debug b/arch/powerpc/Kconfig.debug
+index 3a510f4a6b68..a0e44a9c456f 100644
+--- a/arch/powerpc/Kconfig.debug
++++ b/arch/powerpc/Kconfig.debug
+@@ -335,18 +335,6 @@ config PPC_EARLY_DEBUG_CPM_ADDR
+ 	  platform probing is done, all platforms selected must
+ 	  share the same address.
+ 
+-config STRICT_DEVMEM
+-	def_bool y
+-	prompt "Filter access to /dev/mem"
+-	help
+-	  This option restricts access to /dev/mem.  If this option is
+-	  disabled, you allow userspace access to all memory, including
+-	  kernel and userspace memory. Accidental memory access is likely
+-	  to be disastrous.
+-	  Memory access is required for experts who want to debug the kernel.
+-
+-	  If you are unsure, say Y.
+-
+ config FAIL_IOMMU
+ 	bool "Fault-injection capability for IOMMU"
+ 	depends on FAULT_INJECTION
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index 3a55f493c7da..779becb895be 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -66,6 +66,7 @@ config S390
+ 	def_bool y
+ 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+ 	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
++	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+ 	select ARCH_HAS_SG_CHAIN
+diff --git a/arch/s390/Kconfig.debug b/arch/s390/Kconfig.debug
+index c56878e1245f..26c5d5beb4be 100644
+--- a/arch/s390/Kconfig.debug
++++ b/arch/s390/Kconfig.debug
+@@ -5,18 +5,6 @@ config TRACE_IRQFLAGS_SUPPORT
+ 
+ source "lib/Kconfig.debug"
+ 
+-config STRICT_DEVMEM
+-	def_bool y
+-	prompt "Filter access to /dev/mem"
+-	---help---
+-	  This option restricts access to /dev/mem.  If this option is
+-	  disabled, you allow userspace access to all memory, including
+-	  kernel and userspace memory. Accidental memory access is likely
+-	  to be disastrous.
+-	  Memory access is required for experts who want to debug the kernel.
+-
+-	  If you are unsure, say Y.
+-
+ config S390_PTDUMP
+ 	bool "Export kernel pagetable layout to userspace via debugfs"
+ 	depends on DEBUG_KERNEL
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+index 106c21bd7f44..cf3116887509 100644
+--- a/arch/tile/Kconfig
++++ b/arch/tile/Kconfig
+@@ -19,6 +19,7 @@ config TILE
+ 	select VIRT_TO_BUS
+ 	select SYS_HYPERVISOR
+ 	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
++	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select GENERIC_CLOCKEVENTS
+ 	select MODULES_USE_ELF_RELA
+@@ -116,9 +117,6 @@ config ARCH_DISCONTIGMEM_DEFAULT
+ config TRACE_IRQFLAGS_SUPPORT
+ 	def_bool y
+ 
+-config STRICT_DEVMEM
+-	def_bool y
+-
+ # SMP is required for Tilera Linux.
+ config SMP
+ 	def_bool y
+diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
+index c9faddc61100..5dc4c0a43ccd 100644
+--- a/arch/unicore32/Kconfig
++++ b/arch/unicore32/Kconfig
+@@ -1,5 +1,6 @@
+ config UNICORE32
+ 	def_bool y
++	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_MIGHT_HAVE_PC_SERIO
+ 	select HAVE_MEMBLOCK
+diff --git a/arch/unicore32/Kconfig.debug b/arch/unicore32/Kconfig.debug
+index 1a3626239843..f075bbe1d46f 100644
+--- a/arch/unicore32/Kconfig.debug
++++ b/arch/unicore32/Kconfig.debug
+@@ -2,20 +2,6 @@ menu "Kernel hacking"
+ 
+ source "lib/Kconfig.debug"
+ 
+-config STRICT_DEVMEM
+-	bool "Filter access to /dev/mem"
+-	depends on MMU
+-	---help---
+-	  If this option is disabled, you allow userspace (root) access to all
+-	  of memory, including kernel and userspace memory. Accidental
+-	  access to this is obviously disastrous, but specific access can
+-	  be used by people debugging the kernel.
+-
+-	  If this option is switched on, the /dev/mem file only allows
+-	  userspace access to memory mapped peripherals.
+-
+-          If in doubt, say Y.
+-
+ config EARLY_PRINTK
+ 	def_bool DEBUG_OCD
+ 	help
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index db3622f22b61..75fba1fc205d 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -24,6 +24,7 @@ config X86
+ 	select ARCH_DISCARD_MEMBLOCK
+ 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+ 	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
++	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_FAST_MULTIPLIER
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+diff --git a/arch/x86/Kconfig.debug b/arch/x86/Kconfig.debug
+index 137dfa96aa14..1116452fcfc2 100644
+--- a/arch/x86/Kconfig.debug
++++ b/arch/x86/Kconfig.debug
+@@ -5,23 +5,6 @@ config TRACE_IRQFLAGS_SUPPORT
+ 
+ source "lib/Kconfig.debug"
+ 
+-config STRICT_DEVMEM
+-	bool "Filter access to /dev/mem"
+-	---help---
+-	  If this option is disabled, you allow userspace (root) access to all
+-	  of memory, including kernel and userspace memory. Accidental
+-	  access to this is obviously disastrous, but specific access can
+-	  be used by people debugging the kernel. Note that with PAT support
+-	  enabled, even in this case there are restrictions on /dev/mem
+-	  use due to the cache aliasing requirements.
+-
+-	  If this option is switched on, the /dev/mem file only allows
+-	  userspace access to PCI space and the BIOS code and data regions.
+-	  This is sufficient for dosemu and X and all common users of
+-	  /dev/mem.
+-
+-	  If in doubt, say Y.
+-
+ config X86_VERBOSE_BOOTUP
+ 	bool "Enable verbose x86 bootup info messages"
+ 	default y
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 8c15b29d5adc..289dfcbc14eb 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -1853,3 +1853,25 @@ source "samples/Kconfig"
+ 
+ source "lib/Kconfig.kgdb"
+ 
++config ARCH_HAS_DEVMEM_IS_ALLOWED
++	bool
++
++config STRICT_DEVMEM
++	bool "Filter access to /dev/mem"
++	depends on MMU
++	depends on ARCH_HAS_DEVMEM_IS_ALLOWED
++	default y if TILE || PPC
++	---help---
++	  If this option is disabled, you allow userspace (root) access to all
++	  of memory, including kernel and userspace memory. Accidental
++	  access to this is obviously disastrous, but specific access can
++	  be used by people debugging the kernel. Note that with PAT support
++	  enabled, even in this case there are restrictions on /dev/mem
++	  use due to the cache aliasing requirements.
++
++	  If this option is switched on, the /dev/mem file only allows
++	  userspace access to PCI space and the BIOS code and data regions.
++	  This is sufficient for dosemu and X and all common users of
++	  /dev/mem.
++
++	  If in doubt, say Y.
 
-> > this is what I get for ARM allnoconfig
-> > (only totals, let me know if you need more details):
-> > 
-> > original:             961307
-> > patched:              969167 (+0.82%)
-> > CONFIG_BUG:           994695 (+3.36%)
-> 
-> "patched" here represents allnoconfig with your patch added, but with
-> CONFIG_BUG still turned off?
-
-Correct.
-
-> Doesn't seem too bad.  Rather large, but I think we ought to fix the
-> problem by 1) reducing the number of uses of BUG_ON in the kernel, and
-> 2) compiling out more bits of the kernel entirely, including their calls
-> to BUG_ON.  Eliminating a class of warnings that cause people grief when
-> trying to build and contribute to tiny kernels seems worth it, at least
-> for now.
-
-Ok
-
-> > > >  #ifndef HAVE_ARCH_BUG_ON
-> > > > -#define BUG_ON(condition) do { if (condition) ; } while (0)
-> > > > +#define BUG_ON(condition) do { if (condition) BUG(); } while (0)
-> > > 
-> > > This makes BUG_ON in the !CONFIG_BUG case almost identical to the
-> > > CONFIG_BUG=y case, except for the use of unlikely(condition), which this
-> > > ought to do as well.
-> > > 
-> > > Given that, could you pull the definition *out* of the #ifdef/#else for
-> > > CONFIG_BUG entirely, and define it the same way in both cases?
-> > 
-> > Yes, I thought about that already and decided to keep the patch simple
-> > instead. I can do that of course once we get consensus on the general
-> > approach.
-> 
-> Looking at the thread, I think you have it at this point.
-> 
-> And personally I value simplicity of the patched code over simplicity of
-> the patch. 
-
-Ok, I'll prepare an updated version with that change.
-
-Thanks,
-
-	Arnd
