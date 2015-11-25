@@ -1,53 +1,47 @@
-From: Michael Ellerman <mpe@ellerman.id.au>
-Subject: Re: [kernel-hardening] Re: [PATCH 1/2] x86: introduce post-init
- read-only memory
-Date: Wed, 25 Nov 2015 11:54:43 +1100
-Message-ID: <1448412883.3762.1.camel@ellerman.id.au>
-References: <1448401114-24650-1-git-send-email-keescook@chromium.org>
-	 <1448401114-24650-2-git-send-email-keescook@chromium.org>
-	 <CALCETrXNe5Ow0cxLACzVpx3HdR_b_XCB3_VUtsAphVjCQpRZwA@mail.gmail.com>
-	 <CAGXu5jKe5hZtrUJ7SJ2WTcJvKXftgkAkPjxmvoVjewbC3Kqg9Q@mail.gmail.com>
+From: Dan Williams <dan.j.williams@intel.com>
+Subject: Re: [PATCH v2 2/2] restrict /dev/mem to idle io memory ranges
+Date: Tue, 24 Nov 2015 17:28:54 -0800
+Message-ID: <CAPcyv4jtWocaoocfzvpHgR=0mg0GPo7-nBrzkARQpTz6=oAupg@mail.gmail.com>
+References: <20151124000553.26360.57819.stgit@dwillia2-desk3.jf.intel.com>
+	<20151124000604.26360.56945.stgit@dwillia2-desk3.jf.intel.com>
+	<20151124142521.e6d23e44a8b2c24c044c2dec@linux-foundation.org>
+	<CAPcyv4ijWns879DytqUa+=r5hzQ1qzmB83VV6Z16kQNtmHUtbA@mail.gmail.com>
+	<20151124164711.0cb9ecdbba2fc729273f3240@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([103.22.144.67]:34653 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753852AbbKYAyp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 Nov 2015 19:54:45 -0500
-In-Reply-To: <CAGXu5jKe5hZtrUJ7SJ2WTcJvKXftgkAkPjxmvoVjewbC3Kqg9Q@mail.gmail.com>
+Received: from mail-wm0-f52.google.com ([74.125.82.52]:34266 "EHLO
+	mail-wm0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754255AbbKYB24 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Nov 2015 20:28:56 -0500
+Received: by wmvv187 with SMTP id v187so235496436wmv.1
+        for <linux-arch@vger.kernel.org>; Tue, 24 Nov 2015 17:28:54 -0800 (PST)
+In-Reply-To: <20151124164711.0cb9ecdbba2fc729273f3240@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kernel-hardening@lists.openwall.com, Andy Lutomirski <luto@amacapital.net>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-On Tue, 2015-11-24 at 16:44 -0800, Kees Cook wrote:
-> On Tue, Nov 24, 2015 at 4:34 PM, Andy Lutomirski <luto@amacapital.net> wrote:
-> > On Nov 24, 2015 1:38 PM, "Kees Cook" <keescook@chromium.org> wrote:
-> > > 
-> > > One of the easiest ways to protect the kernel from attack is to reduce
-> > > the internal attack surface exposed when a "write" flaw is available. By
-> > > making as much of the kernel read-only as possible, we reduce the
-> > > attack surface.
-> > > 
-> > > Many things are written to only during __init, and never changed
-> > > again. These cannot be made "const" since the compiler will do the wrong
-> > > thing (we do actually need to write to them). Instead, move these items
-> > > into a memory region that will be made read-only during mark_rodata_ro()
-> > > which happens after all kernel __init code has finished.
-> > > 
-> > > This introduces __read_only as a way to mark such memory, and adds some
-> > > documentation about the existing __read_mostly marking.
-> > 
-> > Obligatory bikeshed:  __ro_after_init, please.  It's barely longer,
-> > and it directly explains what's going on.  __read_only makes me think
-> > that it's really read-only and could, for example, actually be in ROM.
-> 
-> I'm fine with that. Anyone else want to chime in before I send a v2?
+On Tue, Nov 24, 2015 at 4:47 PM, Andrew Morton
+<akpm@linux-foundation.org> wrote:
+> On Tue, 24 Nov 2015 16:34:19 -0800 Dan Williams <dan.j.williams@intel.com> wrote:
+>
+>> > IOW, a very good description of the problem-being-solved would help out
+>> > a lot here...
+>>
+>> I'll fold the eventual result of this discussion into the changelog if
+>> I can convince you it's worth moving forward.
+>
+> I'm easily convinced ;) Please let's get all the info into the right
+> place, make sure it answers the thus-far-asked questions (at least) and
+> we'll take it from there.
+>
+> And please do have a think about switching as much as possible over to
+> runtime-configurability.  Because "please echo foo > /proc" is a heck
+> of a lot nicer than "please reboot with iomem=" which is a heck of a lot
+> nicer than "please ask vendor for a new kernel".
 
-I'm not clear on why this is x86 only?
+Actually, we already have runtime configuration.  For example, if you
+want to muck with pmem via /dev/mem, just do this first:
 
-It looks like it would work on any arch, or is there some toolchain
-requirement?
-
-cheers
+    echo namespace0.0 > /sys/bus/nd/drivers/nd_pmem/unbind
