@@ -1,57 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:46936 "EHLO mail.zytor.com"
+Received: from smtp.outflux.net ([198.145.64.163]:34422 "EHLO smtp.outflux.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751074AbbKYRbr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Nov 2015 12:31:47 -0500
-Subject: Re: [kernel-hardening] [PATCH 0/2] introduce post-init read-only
- memory
-References: <1448401114-24650-1-git-send-email-keescook@chromium.org>
- <CA+rthh-euk2hGGWjsDqXogWSmzmJNV1aiUVfnTfrzyQhndgbOQ@mail.gmail.com>
-From: "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <5655F059.4010801@zytor.com>
-Date: Wed, 25 Nov 2015 09:31:05 -0800
-MIME-Version: 1.0
-In-Reply-To: <CA+rthh-euk2hGGWjsDqXogWSmzmJNV1aiUVfnTfrzyQhndgbOQ@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+	id S1752207AbbKYXcR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 Nov 2015 18:32:17 -0500
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v2 4/4] x86, vdso: mark vDSO read-only after init
+Date: Wed, 25 Nov 2015 15:31:26 -0800
+Message-ID: <1448494286-16029-5-git-send-email-keescook@chromium.org>
+In-Reply-To: <1448494286-16029-1-git-send-email-keescook@chromium.org>
+References: <1448494286-16029-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mathias Krause <minipli@googlemail.com>, kernel-hardening@lists.openwall.com
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>
-Message-ID: <20151125173105.LwEdxi8Mmw5a-Xj7lKWwTi4Xm-kJFPZ66GtHOmGx3Bs@z>
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20151125233126.AY3tORJusJKzAxKD3eptf5tZzXUC_1eQZ5iSb6XqAck@z>
 
-On 11/25/15 01:13, Mathias Krause wrote:
-> 
-> While having that annotation makes perfect sense, not only from a
-> security perspective but also from a micro-optimization point of view
-> (much like the already existing __read_mostly annotation), it has its
-> drawbacks. Violating the "r/o after init" rule by writing to such
-> annotated variables from non-init code goes unnoticed as far as it
-> concerns the toolchain. Neither the compiler nor the linker will flag
-> that incorrect use. It'll just trap at runtime and that's bad.
-> 
-> I myself had some educating experience seeing my machine triple fault
-> when resuming from a S3 sleep. The root cause was a variable that was
-> annotated __read_only but that was (unnecessarily) modified during CPU
-> bring-up phase. Debugging that kind of problems is sort of a PITA, you
-> could imagine.
-> 
-> So, prior extending the usage of the __read_only annotation some
-> toolchain support is needed. Maybe a gcc plugin that'll warn/error on
-> code that writes to such a variable but is not __init itself. The
-> initify and checker plugins from the PaX patch might be worth to look
-> at for that purpose, as they're doing similar things already. Adding
-> such a check to sparse might be worth it, too.
-> A modpost check probably won't work as it's unable to tell if it's a
-> legitimate access (r/o) or a violation (/w access). So the gcc plugin
-> is the way to go, IMHO.
-> 
+The vDSO does not need to be writable after __init, so mark it as
+__ro_after_init. The result kills the exploit method of writing to the
+vDSO from kernel space resulting in userspace executing the modified code,
+as shown here to bypass SMEP restrictions: http://itszn.com/blog/?p=21
 
-We should not wait for compile-time support, that doesn't make any
-sense.  What would be useful would be a way to override this on the
-command line -- that way, if disabling RO or RO-after-init memory makes
-something work, we have an instant diagnosis.
+The memory map (with added vDSO address reporting) shows the vDSO moving
+into read-only memory:
 
-	-hpa
+Before:
+[    0.143067] vDSO @ ffffffff82004000
+[    0.143551] vDSO @ ffffffff82006000
+---[ High Kernel Mapping ]---
+0xffffffff80000000-0xffffffff81000000      16M                         pmd
+0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
+0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
+0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
+0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
+0xffffffff81e00000-0xffffffff81e05000      20K   ro             GLB NX pte
+0xffffffff81e05000-0xffffffff82000000    2028K   ro                 NX pte
+0xffffffff82000000-0xffffffff8214f000    1340K   RW             GLB NX pte
+0xffffffff8214f000-0xffffffff82281000    1224K   RW                 NX pte
+0xffffffff82281000-0xffffffff82400000    1532K   RW             GLB NX pte
+0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
+0xffffffff83200000-0xffffffffc0000000     974M                         pmd
 
+After:
+[    0.145062] vDSO @ ffffffff81da1000
+[    0.146057] vDSO @ ffffffff81da4000
+---[ High Kernel Mapping ]---
+0xffffffff80000000-0xffffffff81000000      16M                         pmd
+0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
+0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
+0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
+0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
+0xffffffff81e00000-0xffffffff81e0b000      44K   ro             GLB NX pte
+0xffffffff81e0b000-0xffffffff82000000    2004K   ro                 NX pte
+0xffffffff82000000-0xffffffff8214c000    1328K   RW             GLB NX pte
+0xffffffff8214c000-0xffffffff8227e000    1224K   RW                 NX pte
+0xffffffff8227e000-0xffffffff82400000    1544K   RW             GLB NX pte
+0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
+0xffffffff83200000-0xffffffffc0000000     974M                         pmd
+
+Based on work by PaX Team and Brad Spengler.
+
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/x86/entry/vdso/vdso2c.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/x86/entry/vdso/vdso2c.h b/arch/x86/entry/vdso/vdso2c.h
+index 0224987556ce..eb93a3137ed2 100644
+--- a/arch/x86/entry/vdso/vdso2c.h
++++ b/arch/x86/entry/vdso/vdso2c.h
+@@ -140,7 +140,7 @@ static void BITSFUNC(go)(void *raw_addr, size_t raw_len,
+ 	fprintf(outfile, "#include <asm/vdso.h>\n");
+ 	fprintf(outfile, "\n");
+ 	fprintf(outfile,
+-		"static unsigned char raw_data[%lu] __page_aligned_data = {",
++		"static unsigned char raw_data[%lu] __ro_after_init __aligned(PAGE_SIZE) = {",
+ 		mapping_size);
+ 	for (j = 0; j < stripped_len; j++) {
+ 		if (j % 10 == 0)
+@@ -150,7 +150,7 @@ static void BITSFUNC(go)(void *raw_addr, size_t raw_len,
+ 	}
+ 	fprintf(outfile, "\n};\n\n");
+ 
+-	fprintf(outfile, "static struct page *pages[%lu];\n\n",
++	fprintf(outfile, "static struct page *pages[%lu] __ro_after_init;\n\n",
+ 		mapping_size / 4096);
+ 
+ 	fprintf(outfile, "const struct vdso_image %s = {\n", name);
+-- 
+1.9.1
 
