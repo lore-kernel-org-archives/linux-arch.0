@@ -1,91 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.outflux.net ([198.145.64.163]:34422 "EHLO smtp.outflux.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752207AbbKYXcR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Nov 2015 18:32:17 -0500
+Received: from mail-ig0-f169.google.com ([209.85.213.169]:38034 "EHLO
+	mail-ig0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752247AbbKYXc6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Nov 2015 18:32:58 -0500
+Received: by igbxm8 with SMTP id xm8so927722igb.1
+        for <linux-arch@vger.kernel.org>; Wed, 25 Nov 2015 15:32:57 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <1448492749.22705.1.camel@ellerman.id.au>
+References: <1448401114-24650-1-git-send-email-keescook@chromium.org>
+	<1448401114-24650-2-git-send-email-keescook@chromium.org>
+	<CALCETrXNe5Ow0cxLACzVpx3HdR_b_XCB3_VUtsAphVjCQpRZwA@mail.gmail.com>
+	<CAGXu5jKe5hZtrUJ7SJ2WTcJvKXftgkAkPjxmvoVjewbC3Kqg9Q@mail.gmail.com>
+	<1448412883.3762.1.camel@ellerman.id.au>
+	<CAGXu5jKAeKDxpWMgZpvB-aHNdAqDEVtHOiDz3joC+bZns6FBJQ@mail.gmail.com>
+	<1448492749.22705.1.camel@ellerman.id.au>
+Date: Wed, 25 Nov 2015 15:32:56 -0800
+Message-ID: <CAGXu5jLD1qXmbdu9TpEsRxraHMtKvgf0VaiWe0+0koLbruxXgg@mail.gmail.com>
+Subject: Re: [kernel-hardening] Re: [PATCH 1/2] x86: introduce post-init
+ read-only memory
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v2 4/4] x86, vdso: mark vDSO read-only after init
-Date: Wed, 25 Nov 2015 15:31:26 -0800
-Message-ID: <1448494286-16029-5-git-send-email-keescook@chromium.org>
-In-Reply-To: <1448494286-16029-1-git-send-email-keescook@chromium.org>
-References: <1448494286-16029-1-git-send-email-keescook@chromium.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20151125233126.AY3tORJusJKzAxKD3eptf5tZzXUC_1eQZ5iSb6XqAck@z>
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20151125233256.-Kz1IVVDMBqq1k8udKCaJenGQaUzScfj8AJtQGDWcK8@z>
 
-The vDSO does not need to be writable after __init, so mark it as
-__ro_after_init. The result kills the exploit method of writing to the
-vDSO from kernel space resulting in userspace executing the modified code,
-as shown here to bypass SMEP restrictions: http://itszn.com/blog/?p=21
+On Wed, Nov 25, 2015 at 3:05 PM, Michael Ellerman <mpe@ellerman.id.au> wrote:
+> On Wed, 2015-11-25 at 07:03 -0800, Kees Cook wrote:
+>> On Tue, Nov 24, 2015 at 4:54 PM, Michael Ellerman <mpe@ellerman.id.au> wrote:
+>> > On Tue, 2015-11-24 at 16:44 -0800, Kees Cook wrote:
+>> > > On Tue, Nov 24, 2015 at 4:34 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+>> > > > On Nov 24, 2015 1:38 PM, "Kees Cook" <keescook@chromium.org> wrote:
+>> > > > >
+>> > > > > One of the easiest ways to protect the kernel from attack is to reduce
+>> > > > > the internal attack surface exposed when a "write" flaw is available. By
+>> > > > > making as much of the kernel read-only as possible, we reduce the
+>> > > > > attack surface.
+>> > > > >
+>> > > > > Many things are written to only during __init, and never changed
+>> > > > > again. These cannot be made "const" since the compiler will do the wrong
+>> > > > > thing (we do actually need to write to them). Instead, move these items
+>> > > > > into a memory region that will be made read-only during mark_rodata_ro()
+>> > > > > which happens after all kernel __init code has finished.
+>> > > > >
+>> > > > > This introduces __read_only as a way to mark such memory, and adds some
+>> > > > > documentation about the existing __read_mostly marking.
+>> > > >
+>> > > > Obligatory bikeshed:  __ro_after_init, please.  It's barely longer,
+>> > > > and it directly explains what's going on.  __read_only makes me think
+>> > > > that it's really read-only and could, for example, actually be in ROM.
+>> > >
+>> > > I'm fine with that. Anyone else want to chime in before I send a v2?
+>> >
+>> > I'm not clear on why this is x86 only?
+>>
+>> I was initially looking at how __read_mostly got implemented, and it
+>> seemed like section names were done on a per-arch basis. But it
+>> doesn't seem like that needs to be true.
+>
+> Yeah I saw that too, but I couldn't see anything in the commit history that
+> explained why it was per-arch.
 
-The memory map (with added vDSO address reporting) shows the vDSO moving
-into read-only memory:
+Best I was able to see was that architectures weren't (aren't?) using
+the common RODATA section macros in their linker scripts. From a quick
+inspection, I think these are all okay now.
 
-Before:
-[    0.143067] vDSO @ ffffffff82004000
-[    0.143551] vDSO @ ffffffff82006000
----[ High Kernel Mapping ]---
-0xffffffff80000000-0xffffffff81000000      16M                         pmd
-0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
-0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
-0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
-0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
-0xffffffff81e00000-0xffffffff81e05000      20K   ro             GLB NX pte
-0xffffffff81e05000-0xffffffff82000000    2028K   ro                 NX pte
-0xffffffff82000000-0xffffffff8214f000    1340K   RW             GLB NX pte
-0xffffffff8214f000-0xffffffff82281000    1224K   RW                 NX pte
-0xffffffff82281000-0xffffffff82400000    1532K   RW             GLB NX pte
-0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
-0xffffffff83200000-0xffffffffc0000000     974M                         pmd
+-Kees
 
-After:
-[    0.145062] vDSO @ ffffffff81da1000
-[    0.146057] vDSO @ ffffffff81da4000
----[ High Kernel Mapping ]---
-0xffffffff80000000-0xffffffff81000000      16M                         pmd
-0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
-0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
-0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
-0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
-0xffffffff81e00000-0xffffffff81e0b000      44K   ro             GLB NX pte
-0xffffffff81e0b000-0xffffffff82000000    2004K   ro                 NX pte
-0xffffffff82000000-0xffffffff8214c000    1328K   RW             GLB NX pte
-0xffffffff8214c000-0xffffffff8227e000    1224K   RW                 NX pte
-0xffffffff8227e000-0xffffffff82400000    1544K   RW             GLB NX pte
-0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
-0xffffffff83200000-0xffffffffc0000000     974M                         pmd
+>
+>> > It looks like it would work on any arch, or is there some toolchain
+>> > requirement?
+>>
+>> Given that the other sections are in the common linux.lds.h file, it
+>> seems unlikely to me. I'll try it in an arch-agnostic way and see what
+>> happens. :)
+>
+> That'd be great, I can test on powerpc, and build test other arches too.
+>
+> cheers
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
 
-Based on work by PaX Team and Brad Spengler.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/x86/entry/vdso/vdso2c.h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/entry/vdso/vdso2c.h b/arch/x86/entry/vdso/vdso2c.h
-index 0224987556ce..eb93a3137ed2 100644
---- a/arch/x86/entry/vdso/vdso2c.h
-+++ b/arch/x86/entry/vdso/vdso2c.h
-@@ -140,7 +140,7 @@ static void BITSFUNC(go)(void *raw_addr, size_t raw_len,
- 	fprintf(outfile, "#include <asm/vdso.h>\n");
- 	fprintf(outfile, "\n");
- 	fprintf(outfile,
--		"static unsigned char raw_data[%lu] __page_aligned_data = {",
-+		"static unsigned char raw_data[%lu] __ro_after_init __aligned(PAGE_SIZE) = {",
- 		mapping_size);
- 	for (j = 0; j < stripped_len; j++) {
- 		if (j % 10 == 0)
-@@ -150,7 +150,7 @@ static void BITSFUNC(go)(void *raw_addr, size_t raw_len,
- 	}
- 	fprintf(outfile, "\n};\n\n");
- 
--	fprintf(outfile, "static struct page *pages[%lu];\n\n",
-+	fprintf(outfile, "static struct page *pages[%lu] __ro_after_init;\n\n",
- 		mapping_size / 4096);
- 
- 	fprintf(outfile, "const struct vdso_image %s = {\n", name);
 -- 
-1.9.1
-
+Kees Cook
+Chrome OS & Brillo Security
