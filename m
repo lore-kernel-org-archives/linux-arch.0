@@ -1,44 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from r00tworld.com ([212.85.137.150]:46350 "EHLO r00tworld.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751671AbbKYLO4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Nov 2015 06:14:56 -0500
-From: "PaX Team" <pageexec@freemail.hu>
-Date: Wed, 25 Nov 2015 12:14:29 +0100
+Received: from mail-ig0-f175.google.com ([209.85.213.175]:36558 "EHLO
+	mail-ig0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751692AbbKYR0X (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Nov 2015 12:26:23 -0500
+Received: by igcph11 with SMTP id ph11so97966213igc.1
+        for <linux-arch@vger.kernel.org>; Wed, 25 Nov 2015 09:26:22 -0800 (PST)
 MIME-Version: 1.0
+In-Reply-To: <CA+rthh-euk2hGGWjsDqXogWSmzmJNV1aiUVfnTfrzyQhndgbOQ@mail.gmail.com>
+References: <1448401114-24650-1-git-send-email-keescook@chromium.org>
+	<CA+rthh-euk2hGGWjsDqXogWSmzmJNV1aiUVfnTfrzyQhndgbOQ@mail.gmail.com>
+Date: Wed, 25 Nov 2015 09:26:22 -0800
+Message-ID: <CAGXu5jLXukRLg=0i00fYjZpaVj1hzcyf81aKa6mN4LNPnsfWNw@mail.gmail.com>
 Subject: Re: [kernel-hardening] [PATCH 0/2] introduce post-init read-only memory
-Reply-to: pageexec@freemail.hu
-Message-ID: <56559815.30416.DC24D0B@pageexec.freemail.hu>
-In-reply-to: <56558826.1060202@ladisch.de>
-References: <1448401114-24650-1-git-send-email-keescook@chromium.org>, <CA+rthh-euk2hGGWjsDqXogWSmzmJNV1aiUVfnTfrzyQhndgbOQ@mail.gmail.com>, <56558826.1060202@ladisch.de>
-Content-type: text/plain; charset=US-ASCII
-Content-transfer-encoding: 7BIT
-Content-description: Mail message body
+From: Kees Cook <keescook@chromium.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mathias Krause <minipli@googlemail.com>, kernel-hardening@lists.openwall.com, Clemens Ladisch <clemens@ladisch.de>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86-ml <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, Emese Revfy <re.emese@gmail.com>
-Message-ID: <20151125111429.iXWjMeBWnopj6f-eCGAuWFwDgzChm77ta0KwzYJuZ2s@z>
+To: Mathias Krause <minipli@googlemail.com>
+Cc: "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86-ml <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch <linux-arch@vger.kernel.org>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>
+Message-ID: <20151125172622.UCRcQUPMS39M7dbAJPnG_qv-ntHqdz153v7z2K15QyI@z>
 
-On 25 Nov 2015 at 11:06, Clemens Ladisch wrote:
+On Wed, Nov 25, 2015 at 1:13 AM, Mathias Krause <minipli@googlemail.com> wrote:
+> On 24 November 2015 at 22:38, Kees Cook <keescook@chromium.org> wrote:
+>> Many things are written to only during __init, and never changed
+>> again. These cannot be made "const" since the compiler will do the wrong
+>> thing (we do actually need to write to them). Instead, move these items
+>> into a memory region that will be made read-only during mark_rodata_ro()
+>> which happens after all kernel __init code has finished.
+>>
+>> This introduces __read_only as a way to mark such memory, and uses it on
+>> the x86 vDSO to kill an extant kernel exploitation method.
+>
+> ...just some random notes on the experience with kernels implementing
+> such a feature for quite a lot of locations, not just the vDSO.
+>
+> While having that annotation makes perfect sense, not only from a
+> security perspective but also from a micro-optimization point of view
+> (much like the already existing __read_mostly annotation), it has its
+> drawbacks. Violating the "r/o after init" rule by writing to such
+> annotated variables from non-init code goes unnoticed as far as it
+> concerns the toolchain. Neither the compiler nor the linker will flag
+> that incorrect use. It'll just trap at runtime and that's bad.
 
-> Mathias Krause wrote:
-> > [...]
-> > So, prior extending the usage of the __read_only annotation some
-> > toolchain support is needed. Maybe a gcc plugin that'll warn/error on
-> > code that writes to such a variable but is not __init itself.
-> 
-> Or mark them as "const".  This would require the initialization code to
-> cast it away, probably with a helper macro.
+Well, or, it's good: that's the point of it. Either from the
+perspective of robustness or from that of security.
 
-no, that'd be undefined behaviour and in practice gcc would take advantage
-of it and produce unintended (and quite broken) code. if the constified object
-is modified from a different translation unit then the compiler is free
-to assume that it can constant propagate its initialization value into uses,
-completely breaking the code that (forcibly) writes to it.
+> I myself had some educating experience seeing my machine triple fault
+> when resuming from a S3 sleep. The root cause was a variable that was
+> annotated __read_only but that was (unnecessarily) modified during CPU
+> bring-up phase. Debugging that kind of problems is sort of a PITA, you
+> could imagine.
 
-however as a poor man's detector for such __read_only violations it's
-possible to just make the object const temporarily (without casting away
-the write attempts!), recompile the tree and see if any writes outside
-__init functions pop up.
+As PaX Team mentions, it should be easy to catch these traps and
+report them. That could certainly be a nice addition.
 
+> So, prior extending the usage of the __read_only annotation some
+> toolchain support is needed. Maybe a gcc plugin that'll warn/error on
+> code that writes to such a variable but is not __init itself. The
+> initify and checker plugins from the PaX patch might be worth to look
+> at for that purpose, as they're doing similar things already. Adding
+> such a check to sparse might be worth it, too.
+> A modpost check probably won't work as it's unable to tell if it's a
+> legitimate access (r/o) or a violation (/w access). So the gcc plugin
+> is the way to go, IMHO.
+
+There are many more pieces to add to the annotation use, but I don't
+want to risk getting us into a Catch-22. Emese's work on the plugin
+side will see this usage and utility grow, and I think getting these
+basic building blocks in place is the right place to start.
+
+-Kees
+
+
+-- 
+Kees Cook
+Chrome OS & Brillo Security
