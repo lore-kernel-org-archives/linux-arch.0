@@ -1,97 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.outflux.net ([198.145.64.163]:59335 "EHLO smtp.outflux.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754013AbbKXVrS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 Nov 2015 16:47:18 -0500
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH 1/2] x86: introduce post-init read-only memory
-Date: Tue, 24 Nov 2015 13:38:33 -0800
-Message-ID: <1448401114-24650-2-git-send-email-keescook@chromium.org>
-In-Reply-To: <1448401114-24650-1-git-send-email-keescook@chromium.org>
-References: <1448401114-24650-1-git-send-email-keescook@chromium.org>
+Received: from mail-ob0-f176.google.com ([209.85.214.176]:33761 "EHLO
+	mail-ob0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755859AbbKYAeZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Nov 2015 19:34:25 -0500
+Received: by obbww6 with SMTP id ww6so27346780obb.0
+        for <linux-arch@vger.kernel.org>; Tue, 24 Nov 2015 16:34:24 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <1448401114-24650-2-git-send-email-keescook@chromium.org>
+References: <1448401114-24650-1-git-send-email-keescook@chromium.org> <1448401114-24650-2-git-send-email-keescook@chromium.org>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Tue, 24 Nov 2015 16:34:04 -0800
+Message-ID: <CALCETrXNe5Ow0cxLACzVpx3HdR_b_XCB3_VUtsAphVjCQpRZwA@mail.gmail.com>
+Subject: Re: [PATCH 1/2] x86: introduce post-init read-only memory
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, kernel-hardening@lists.openwall.com
-Message-ID: <20151124213833.SFUy_qYxr0rM4J7IkfQPZGuVnrGLh4Uce5xbAIdbtBs@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>
+Message-ID: <20151125003404.g_7IGtK5jWmqPN299JWYs5L4n4v6H5QcSUL6wTCtHDc@z>
 
-One of the easiest ways to protect the kernel from attack is to reduce
-the internal attack surface exposed when a "write" flaw is available. By
-making as much of the kernel read-only as possible, we reduce the
-attack surface.
+On Nov 24, 2015 1:38 PM, "Kees Cook" <keescook@chromium.org> wrote:
+>
+> One of the easiest ways to protect the kernel from attack is to reduce
+> the internal attack surface exposed when a "write" flaw is available. By
+> making as much of the kernel read-only as possible, we reduce the
+> attack surface.
+>
+> Many things are written to only during __init, and never changed
+> again. These cannot be made "const" since the compiler will do the wrong
+> thing (we do actually need to write to them). Instead, move these items
+> into a memory region that will be made read-only during mark_rodata_ro()
+> which happens after all kernel __init code has finished.
+>
+> This introduces __read_only as a way to mark such memory, and adds some
+> documentation about the existing __read_mostly marking.
 
-Many things are written to only during __init, and never changed
-again. These cannot be made "const" since the compiler will do the wrong
-thing (we do actually need to write to them). Instead, move these items
-into a memory region that will be made read-only during mark_rodata_ro()
-which happens after all kernel __init code has finished.
+Obligatory bikeshed:  __ro_after_init, please.  It's barely longer,
+and it directly explains what's going on.  __read_only makes me think
+that it's really read-only and could, for example, actually be in ROM.
 
-This introduces __read_only as a way to mark such memory, and adds some
-documentation about the existing __read_mostly marking.
-
-Based on work by PaX Team and Brad Spengler.
-
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/x86/include/asm/cache.h      |  1 +
- include/asm-generic/vmlinux.lds.h |  1 +
- include/linux/cache.h             | 15 +++++++++++++++
- 3 files changed, 17 insertions(+)
-
-diff --git a/arch/x86/include/asm/cache.h b/arch/x86/include/asm/cache.h
-index 48f99f15452e..982b21c5eb1f 100644
---- a/arch/x86/include/asm/cache.h
-+++ b/arch/x86/include/asm/cache.h
-@@ -8,6 +8,7 @@
- #define L1_CACHE_BYTES	(1 << L1_CACHE_SHIFT)
- 
- #define __read_mostly __attribute__((__section__(".data..read_mostly")))
-+#define __read_only __attribute__((__section__(".data..read_only")))
- 
- #define INTERNODE_CACHE_SHIFT CONFIG_X86_INTERNODE_CACHE_SHIFT
- #define INTERNODE_CACHE_BYTES (1 << INTERNODE_CACHE_SHIFT)
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index c4bd0e2c173c..998a09d7731c 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -256,6 +256,7 @@
- 	.rodata           : AT(ADDR(.rodata) - LOAD_OFFSET) {		\
- 		VMLINUX_SYMBOL(__start_rodata) = .;			\
- 		*(.rodata) *(.rodata.*)					\
-+		*(.data..read_only)	/* Read only after init */	\
- 		*(__vermagic)		/* Kernel version magic */	\
- 		. = ALIGN(8);						\
- 		VMLINUX_SYMBOL(__start___tracepoints_ptrs) = .;		\
-diff --git a/include/linux/cache.h b/include/linux/cache.h
-index 17e7e82d2aa7..b2967e711a75 100644
---- a/include/linux/cache.h
-+++ b/include/linux/cache.h
-@@ -12,10 +12,25 @@
- #define SMP_CACHE_BYTES L1_CACHE_BYTES
- #endif
- 
-+/*
-+ * __read_mostly is used to keep rarely changing variables out of frequently
-+ * updated cachelines. If an architecture doesn't support it, ignore the
-+ * hint.
-+ */
- #ifndef __read_mostly
- #define __read_mostly
- #endif
- 
-+/*
-+ * __read_only is used to mark things that are read-only after init (i.e.
-+ * after mark_rodata_ro() has been called). These are effectively read-only,
-+ * but may get written to during init, so can't live in .rodata (via "const").
-+ * Hint to __read_mostly if the architecture hasn't wired this up.
-+ */
-+#ifndef __read_only
-+#define __read_only __read_mostly
-+#endif
-+
- #ifndef ____cacheline_aligned
- #define ____cacheline_aligned __attribute__((__aligned__(SMP_CACHE_BYTES)))
- #endif
--- 
-1.9.1
-
+--Andy
