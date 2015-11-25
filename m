@@ -1,48 +1,68 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH] ARM64: fix building without CONFIG_UID16
-Date: Wed, 25 Nov 2015 12:16:28 +0000
-Message-ID: <20151125121628.GE3109@e104818-lin.cambridge.arm.com>
-References: <3891403.6hGat7eHq5@wuerfel>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [kernel-hardening] Re: [PATCH 1/2] x86: introduce post-init
+ read-only memory
+Date: Wed, 25 Nov 2015 07:03:37 -0800
+Message-ID: <CAGXu5jKAeKDxpWMgZpvB-aHNdAqDEVtHOiDz3joC+bZns6FBJQ@mail.gmail.com>
+References: <1448401114-24650-1-git-send-email-keescook@chromium.org>
+	<1448401114-24650-2-git-send-email-keescook@chromium.org>
+	<CALCETrXNe5Ow0cxLACzVpx3HdR_b_XCB3_VUtsAphVjCQpRZwA@mail.gmail.com>
+	<CAGXu5jKe5hZtrUJ7SJ2WTcJvKXftgkAkPjxmvoVjewbC3Kqg9Q@mail.gmail.com>
+	<1448412883.3762.1.camel@ellerman.id.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:39299 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753146AbbKYMQc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Nov 2015 07:16:32 -0500
-Content-Disposition: inline
-In-Reply-To: <3891403.6hGat7eHq5@wuerfel>
+Received: from mail-ig0-f178.google.com ([209.85.213.178]:35278 "EHLO
+	mail-ig0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751060AbbKYPDj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Nov 2015 10:03:39 -0500
+Received: by igl9 with SMTP id 9so95520187igl.0
+        for <linux-arch@vger.kernel.org>; Wed, 25 Nov 2015 07:03:39 -0800 (PST)
+In-Reply-To: <1448412883.3762.1.camel@ellerman.id.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: will.deacon@arm.com, linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+To: Michael Ellerman <mpe@ellerman.id.au>
+Cc: "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Andy Lutomirski <luto@amacapital.net>, linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>
 
-On Fri, Nov 20, 2015 at 12:12:21PM +0100, Arnd Bergmann wrote:
-> As reported by Michal Simek, building an ARM64 kernel with CONFIG_UID16
-> disabled currently fails because the system call table still needs to
-> reference the individual function entry points that are provided by
-> kernel/sys_ni.c in this case, and the declarations are hidden inside
-> of #ifdef CONFIG_UID16:
-> 
-> arch/arm64/include/asm/unistd32.h:57:8: error: 'sys_lchown16' undeclared here (not in a function)
->  __SYSCALL(__NR_lchown, sys_lchown16)
-> 
-> I believe this problem only exists on ARM64, because older architectures
-> tend to not need declarations when their system call table is built
-> in assembly code, while newer architectures tend to not need UID16
-> support. ARM64 only uses these system calls for compatibility with
-> 32-bit ARM binaries.
-> 
-> This changes the CONFIG_UID16 check into CONFIG_HAVE_UID16, which is
-> set unconditionally on ARM64 with CONFIG_COMPAT, so we see the
-> declarations whenever we need them, but otherwise the behavior is
-> unchanged.
-> 
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> Cc: stable@vger.kernel.org
-> Fixes: af1839eb4bd4 ("Kconfig: clean up the long arch list for the UID16 config option")
+On Tue, Nov 24, 2015 at 4:54 PM, Michael Ellerman <mpe@ellerman.id.au> wrote:
+> On Tue, 2015-11-24 at 16:44 -0800, Kees Cook wrote:
+>> On Tue, Nov 24, 2015 at 4:34 PM, Andy Lutomirski <luto@amacapital.net> wrote:
+>> > On Nov 24, 2015 1:38 PM, "Kees Cook" <keescook@chromium.org> wrote:
+>> > >
+>> > > One of the easiest ways to protect the kernel from attack is to reduce
+>> > > the internal attack surface exposed when a "write" flaw is available. By
+>> > > making as much of the kernel read-only as possible, we reduce the
+>> > > attack surface.
+>> > >
+>> > > Many things are written to only during __init, and never changed
+>> > > again. These cannot be made "const" since the compiler will do the wrong
+>> > > thing (we do actually need to write to them). Instead, move these items
+>> > > into a memory region that will be made read-only during mark_rodata_ro()
+>> > > which happens after all kernel __init code has finished.
+>> > >
+>> > > This introduces __read_only as a way to mark such memory, and adds some
+>> > > documentation about the existing __read_mostly marking.
+>> >
+>> > Obligatory bikeshed:  __ro_after_init, please.  It's barely longer,
+>> > and it directly explains what's going on.  __read_only makes me think
+>> > that it's really read-only and could, for example, actually be in ROM.
+>>
+>> I'm fine with that. Anyone else want to chime in before I send a v2?
+>
+> I'm not clear on why this is x86 only?
 
-Applied. Thank.
+I was initially looking at how __read_mostly got implemented, and it
+seemed like section names were done on a per-arch basis. But it
+doesn't seem like that needs to be true.
+
+> It looks like it would work on any arch, or is there some toolchain
+> requirement?
+
+Given that the other sections are in the common linux.lds.h file, it
+seems unlikely to me. I'll try it in an arch-agnostic way and see what
+happens. :)
+
+-Kees
 
 -- 
-Catalin
+Kees Cook
+Chrome OS & Brillo Security
