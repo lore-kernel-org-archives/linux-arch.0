@@ -1,42 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f176.google.com ([209.85.214.176]:33761 "EHLO
-	mail-ob0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755859AbbKYAeZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Nov 2015 19:34:25 -0500
-Received: by obbww6 with SMTP id ww6so27346780obb.0
-        for <linux-arch@vger.kernel.org>; Tue, 24 Nov 2015 16:34:24 -0800 (PST)
+Received: from mail-yk0-f195.google.com ([209.85.160.195]:33228 "EHLO
+	mail-yk0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754721AbbKYJNI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Nov 2015 04:13:08 -0500
 MIME-Version: 1.0
-In-Reply-To: <1448401114-24650-2-git-send-email-keescook@chromium.org>
-References: <1448401114-24650-1-git-send-email-keescook@chromium.org> <1448401114-24650-2-git-send-email-keescook@chromium.org>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Tue, 24 Nov 2015 16:34:04 -0800
-Message-ID: <CALCETrXNe5Ow0cxLACzVpx3HdR_b_XCB3_VUtsAphVjCQpRZwA@mail.gmail.com>
-Subject: Re: [PATCH 1/2] x86: introduce post-init read-only memory
+In-Reply-To: <1448401114-24650-1-git-send-email-keescook@chromium.org>
+References: <1448401114-24650-1-git-send-email-keescook@chromium.org>
+Date: Wed, 25 Nov 2015 10:13:07 +0100
+Message-ID: <CA+rthh-euk2hGGWjsDqXogWSmzmJNV1aiUVfnTfrzyQhndgbOQ@mail.gmail.com>
+Subject: Re: [kernel-hardening] [PATCH 0/2] introduce post-init read-only memory
+From: Mathias Krause <minipli@googlemail.com>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Arnd Bergmann <arnd@arndb.de>, X86 ML <x86@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>
-Message-ID: <20151125003404.g_7IGtK5jWmqPN299JWYs5L4n4v6H5QcSUL6wTCtHDc@z>
+To: kernel-hardening@lists.openwall.com
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86-ml <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>
+Message-ID: <20151125091307.qB3cc5Li0pOIFU3EOukOYtVh0n0hLbN-bZd3zzzlXZY@z>
 
-On Nov 24, 2015 1:38 PM, "Kees Cook" <keescook@chromium.org> wrote:
->
-> One of the easiest ways to protect the kernel from attack is to reduce
-> the internal attack surface exposed when a "write" flaw is available. By
-> making as much of the kernel read-only as possible, we reduce the
-> attack surface.
->
+On 24 November 2015 at 22:38, Kees Cook <keescook@chromium.org> wrote:
 > Many things are written to only during __init, and never changed
 > again. These cannot be made "const" since the compiler will do the wrong
 > thing (we do actually need to write to them). Instead, move these items
 > into a memory region that will be made read-only during mark_rodata_ro()
 > which happens after all kernel __init code has finished.
 >
-> This introduces __read_only as a way to mark such memory, and adds some
-> documentation about the existing __read_mostly marking.
+> This introduces __read_only as a way to mark such memory, and uses it on
+> the x86 vDSO to kill an extant kernel exploitation method.
 
-Obligatory bikeshed:  __ro_after_init, please.  It's barely longer,
-and it directly explains what's going on.  __read_only makes me think
-that it's really read-only and could, for example, actually be in ROM.
+...just some random notes on the experience with kernels implementing
+such a feature for quite a lot of locations, not just the vDSO.
 
---Andy
+While having that annotation makes perfect sense, not only from a
+security perspective but also from a micro-optimization point of view
+(much like the already existing __read_mostly annotation), it has its
+drawbacks. Violating the "r/o after init" rule by writing to such
+annotated variables from non-init code goes unnoticed as far as it
+concerns the toolchain. Neither the compiler nor the linker will flag
+that incorrect use. It'll just trap at runtime and that's bad.
+
+I myself had some educating experience seeing my machine triple fault
+when resuming from a S3 sleep. The root cause was a variable that was
+annotated __read_only but that was (unnecessarily) modified during CPU
+bring-up phase. Debugging that kind of problems is sort of a PITA, you
+could imagine.
+
+So, prior extending the usage of the __read_only annotation some
+toolchain support is needed. Maybe a gcc plugin that'll warn/error on
+code that writes to such a variable but is not __init itself. The
+initify and checker plugins from the PaX patch might be worth to look
+at for that purpose, as they're doing similar things already. Adding
+such a check to sparse might be worth it, too.
+A modpost check probably won't work as it's unable to tell if it's a
+legitimate access (r/o) or a violation (/w access). So the gcc plugin
+is the way to go, IMHO.
+
+
+Regards,
+Mathias
