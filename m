@@ -1,82 +1,61 @@
 From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2 1/4] init: create cmdline param to disable readonly
-Date: Thu, 26 Nov 2015 08:51:30 +0100
-Message-ID: <20151126075130.GB18742@gmail.com>
-References: <1448494286-16029-1-git-send-email-keescook@chromium.org>
- <1448494286-16029-2-git-send-email-keescook@chromium.org>
-Reply-To: kernel-hardening@lists.openwall.com
+Subject: Re: [kernel-hardening] [PATCH 0/2] introduce post-init read-only
+ memory
+Date: Thu, 26 Nov 2015 09:54:25 +0100
+Message-ID: <20151126085425.GA29848@gmail.com>
+References: <1448401114-24650-1-git-send-email-keescook@chromium.org>
+ <CA+rthh-euk2hGGWjsDqXogWSmzmJNV1aiUVfnTfrzyQhndgbOQ@mail.gmail.com>
+ <565595F5.32536.DB9FE75@pageexec.freemail.hu>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <kernel-hardening-return-1983-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-Sender: Ingo Molnar <mingo.kernel.org@gmail.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f54.google.com ([74.125.82.54]:38133 "EHLO
+	mail-wm0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752639AbbKZIyf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Nov 2015 03:54:35 -0500
 Content-Disposition: inline
-In-Reply-To: <1448494286-16029-2-git-send-email-keescook@chromium.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <565595F5.32536.DB9FE75@pageexec.freemail.hu>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: PaX Team <pageexec@freemail.hu>
+Cc: kernel-hardening@lists.openwall.com, Mathias Krause <minipli@googlemail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86-ml <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, Emese Revfy <re.emese@gmail.com>
 
 
-* Kees Cook <keescook@chromium.org> wrote:
+* PaX Team <pageexec@freemail.hu> wrote:
 
-> It may be useful to debug writes to the readonly sections of memory,
-> so provide a cmdline "rodata=off" to allow for this.
+> On 25 Nov 2015 at 10:13, Mathias Krause wrote:
 > 
-> Suggested-by: H. Peter Anvin <hpa@zytor.com>
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
->  Documentation/kernel-parameters.txt |  4 ++++
->  init/main.c                         | 31 +++++++++++++++++++++++++++----
->  2 files changed, 31 insertions(+), 4 deletions(-)
-> 
-> diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-parameters.txt
-> index 742f69d18fc8..21cf76dbba90 100644
-> --- a/Documentation/kernel-parameters.txt
-> +++ b/Documentation/kernel-parameters.txt
-> @@ -3409,6 +3409,10 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
->  
->  	ro		[KNL] Mount root device read-only on boot
->  
-> +	rodata=		[KNL]
-> +		on	Mark read-only kernel memory as read-only (default).
-> +		off	Leave read-only kernel memory writable for debugging.
-> +
->  	root=		[KNL] Root filesystem
->  			See name_to_dev_t comment in init/do_mounts.c.
->  
-> diff --git a/init/main.c b/init/main.c
-> index 9e64d7097f1a..06200d2fbf08 100644
-> --- a/init/main.c
-> +++ b/init/main.c
-> @@ -93,9 +93,6 @@ static int kernel_init(void *);
->  extern void init_IRQ(void);
->  extern void fork_init(void);
->  extern void radix_tree_init(void);
-> -#ifndef CONFIG_DEBUG_RODATA
-> -static inline void mark_rodata_ro(void) { }
-> -#endif
->  
->  /*
->   * Debug helper: via this flag we know that we are in 'early bootup code'
-> @@ -929,6 +926,32 @@ static int try_to_run_init_process(const char *init_filename)
->  
->  static noinline void __init kernel_init_freeable(void);
->  
-> +#ifdef CONFIG_DEBUG_RODATA
+> > I myself had some educating experience seeing my machine triple fault
+> > when resuming from a S3 sleep. The root cause was a variable that was
+> > annotated __read_only but that was (unnecessarily) modified during CPU
+> > bring-up phase. Debugging that kind of problems is sort of a PITA, you
+> > could imagine.
 
-Btw., could you please remove the Kconfig option altogether in an additional patch 
-and make read-only sections an always-on feature? It has been default-y for years 
-and all distros have it enabled.
+( Sidenote: I don't think a ro-faults typically result in triple faults, but yeah, 
+  even having a regular oops (followed by a hang or reboot) during such an 
+  undebuggable state of the system is a major PITA. )
 
-The 'debug rodata' naming is purely historic: this started out as a simple 
-debugging feature, but meanwhile it has spread and has become an essential kernel 
-robustness feature.
+> actually the kernel could silently recover from this given how the page fault 
+> handler could easily determine that the fault address fell into the 
+> data..read_only section and just silently undo the read-only property, log the 
+> event to dmesg and retry the faulting access.
 
-The boot option you added can be used if anyone needs to disable it. (Never heard 
-of such a case though.)
+So a safer method would be to decode the faulting instruction, to skip it by 
+fixing up the return RIP and to log the event. It would be mostly equivalent to 
+trying to write to ROM (which get ignored as well), so it's a recoverable (and 
+debuggable) event.
+
+We have all the necessary code in place in the kprobes code, see 
+arch/x86/lib/insn.c, it's a simplified x86 decoder that knows about instruction 
+length (but not about semantics).
+
+Simple skipping plus setting arithmetic flags to init value should be enough I 
+think: I don't think we use fancy instructions to write to ro variables, such as 
+PUSH/POP with other side effects. If such instructions exist we could minimally 
+extend the decoder to do those fixups as well - in addition to double checking 
+that we skip simple instructions only with no side effects.
+
+Can you see any fragility in such a technique?
 
 Thanks,
 
