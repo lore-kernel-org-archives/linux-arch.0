@@ -1,83 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f52.google.com ([74.125.82.52]:37742 "EHLO
-	mail-wm0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753082AbbKZHvf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Nov 2015 02:51:35 -0500
-Date: Thu, 26 Nov 2015 08:51:30 +0100
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2 1/4] init: create cmdline param to disable readonly
-Message-ID: <20151126075130.GB18742@gmail.com>
-References: <1448494286-16029-1-git-send-email-keescook@chromium.org>
- <1448494286-16029-2-git-send-email-keescook@chromium.org>
+Received: from r00tworld.com ([212.85.137.150]:38816 "EHLO r00tworld.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750845AbbKZJ5v (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Nov 2015 04:57:51 -0500
+From: "PaX Team" <pageexec@freemail.hu>
+Date: Thu, 26 Nov 2015 10:57:13 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1448494286-16029-2-git-send-email-keescook@chromium.org>
+Subject: Re: [kernel-hardening] [PATCH 0/2] introduce post-init read-only memory
+Reply-to: pageexec@freemail.hu
+Message-ID: <5656D779.17137.12A1EA53@pageexec.freemail.hu>
+In-reply-to: <20151126085425.GA29848@gmail.com>
+References: <1448401114-24650-1-git-send-email-keescook@chromium.org>, <565595F5.32536.DB9FE75@pageexec.freemail.hu>, <20151126085425.GA29848@gmail.com>
+Content-type: text/plain; charset=US-ASCII
+Content-transfer-encoding: 7BIT
+Content-description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20151126075130.j6BIWiio-76kiM5yFWIpLWz1vx_seShltAR-tglGTYA@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: kernel-hardening@lists.openwall.com, Mathias Krause <minipli@googlemail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86-ml <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, Emese Revfy <re.emese@gmail.com>
+Message-ID: <20151126095713.Pq8PwiG7G3NHt1v8i0fqI4cwNDQENyTSRj-u1c-bGeE@z>
 
+On 26 Nov 2015 at 9:54, Ingo Molnar wrote:
 
-* Kees Cook <keescook@chromium.org> wrote:
-
-> It may be useful to debug writes to the readonly sections of memory,
-> so provide a cmdline "rodata=off" to allow for this.
+> * PaX Team <pageexec@freemail.hu> wrote:
 > 
-> Suggested-by: H. Peter Anvin <hpa@zytor.com>
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> ---
->  Documentation/kernel-parameters.txt |  4 ++++
->  init/main.c                         | 31 +++++++++++++++++++++++++++----
->  2 files changed, 31 insertions(+), 4 deletions(-)
+> > actually the kernel could silently recover from this given how the page fault 
+> > handler could easily determine that the fault address fell into the 
+> > data..read_only section and just silently undo the read-only property, log the 
+> > event to dmesg and retry the faulting access.
 > 
-> diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-parameters.txt
-> index 742f69d18fc8..21cf76dbba90 100644
-> --- a/Documentation/kernel-parameters.txt
-> +++ b/Documentation/kernel-parameters.txt
-> @@ -3409,6 +3409,10 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
->  
->  	ro		[KNL] Mount root device read-only on boot
->  
-> +	rodata=		[KNL]
-> +		on	Mark read-only kernel memory as read-only (default).
-> +		off	Leave read-only kernel memory writable for debugging.
-> +
->  	root=		[KNL] Root filesystem
->  			See name_to_dev_t comment in init/do_mounts.c.
->  
-> diff --git a/init/main.c b/init/main.c
-> index 9e64d7097f1a..06200d2fbf08 100644
-> --- a/init/main.c
-> +++ b/init/main.c
-> @@ -93,9 +93,6 @@ static int kernel_init(void *);
->  extern void init_IRQ(void);
->  extern void fork_init(void);
->  extern void radix_tree_init(void);
-> -#ifndef CONFIG_DEBUG_RODATA
-> -static inline void mark_rodata_ro(void) { }
-> -#endif
->  
->  /*
->   * Debug helper: via this flag we know that we are in 'early bootup code'
-> @@ -929,6 +926,32 @@ static int try_to_run_init_process(const char *init_filename)
->  
->  static noinline void __init kernel_init_freeable(void);
->  
-> +#ifdef CONFIG_DEBUG_RODATA
+> So a safer method would be to decode the faulting instruction, to skip it by 
+> fixing up the return RIP and to log the event. It would be mostly equivalent to 
+> trying to write to ROM (which get ignored as well), so it's a recoverable (and 
+> debuggable) event.
 
-Btw., could you please remove the Kconfig option altogether in an additional patch 
-and make read-only sections an always-on feature? It has been default-y for years 
-and all distros have it enabled.
+if by skipping you mean ignoring the write attempt then it's not a good idea
+as it has a good chance to cause unexpected behaviour down the line.
 
-The 'debug rodata' naming is purely historic: this started out as a simple 
-debugging feature, but meanwhile it has spread and has become an essential kernel 
-robustness feature.
+e.g., imagine that the write was to a function pointer (even an entire ops
+structure) or a boolean that controls some important feature for after-init
+code. ignoring/dropping such writes could cause all kinds of logic bugs (if
+not worse).
 
-The boot option you added can be used if anyone needs to disable it. (Never heard 
-of such a case though.)
+my somewhat related war story is that i once tried to constify machine_ops
+(both the struct and the variable of the same name) directly and just forced
+the writes in kvm/xen/etc via type casts. now i knew it was all undefined
+behaviour but i didn't expect gcc to take advantage of it but it did (const
+propagated the *initial* fptr values into the indirect calls by turning them
+into direct calls) and which in turn prevented proper reboots for guests
+(an event which obviously happens much later after init/boot to the great
+puzzlement of end users and myself).
 
-Thanks,
+misusing __read_only and ignoring write attempts would effectively produce
+the same misbehaviour as above so i strongly advise against it.
 
-	Ingo
+now i understand that the motivation is probably to preserve the read-only
+property despite wrong use of __read_only but for this i'd suggest to simply
+not make the silent recovery the default behaviour and enable it on the
+kernel command line only. after all, this is expected to be a reproducible
+problem and affected users can just reboot (in fact, they'd be advised to)
+when it happens and get a proper report that they could then send back to lkml.
+
+i also don't expect this to be a frequent problem as __read_only will have
+to be handled carefully in every case and not just at the time of adding it
+to a variable but also later during code evolution. as i suggested in the
+constify plugin thread earlier, use of __read_only should be tied to compile
+time checking of all uses of the affected variable to eliminate the entire
+problem of problematic writes.
+
