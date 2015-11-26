@@ -1,25 +1,27 @@
-From: Greg KH <greg@kroah.com>
-Subject: Re: [PATCH v2 1/4] init: create cmdline param to
- disable readonly
-Date: Wed, 25 Nov 2015 16:44:02 -0800
-Message-ID: <20151126004402.GA30235@kroah.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v2 1/4] init: create cmdline param to disable readonly
+Date: Thu, 26 Nov 2015 08:51:30 +0100
+Message-ID: <20151126075130.GB18742@gmail.com>
 References: <1448494286-16029-1-git-send-email-keescook@chromium.org>
  <1448494286-16029-2-git-send-email-keescook@chromium.org>
 Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <kernel-hardening-return-1979-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+Return-path: <kernel-hardening-return-1983-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
 List-Post: <mailto:kernel-hardening@lists.openwall.com>
 List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
 List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
 List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Sender: Ingo Molnar <mingo.kernel.org@gmail.com>
 Content-Disposition: inline
 In-Reply-To: <1448494286-16029-2-git-send-email-keescook@chromium.org>
-To: kernel-hardening@lists.openwall.com
-Cc: linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, linux-arch <linux-arch@vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: linux-kernel@vger.kernel.org, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 25, 2015 at 03:31:23PM -0800, Kees Cook wrote:
+
+* Kees Cook <keescook@chromium.org> wrote:
+
 > It may be useful to debug writes to the readonly sections of memory,
 > so provide a cmdline "rodata=off" to allow for this.
 > 
@@ -64,14 +66,18 @@ On Wed, Nov 25, 2015 at 03:31:23PM -0800, Kees Cook wrote:
 >  static noinline void __init kernel_init_freeable(void);
 >  
 > +#ifdef CONFIG_DEBUG_RODATA
-> +bool disable_mark_readonly;
-> +static int __init set_debug_rodata(char *str)
-> +{
-> +	if (!str)
-> +		return -EINVAL;
-> +	if (!strncmp(str, "on", 2))
-> +		disable_mark_readonly = false;
-> +	else if (!strncmp(str, "off", 3))
-> +		disable_mark_readonly = true;
 
-strtobool()?
+Btw., could you please remove the Kconfig option altogether in an additional patch 
+and make read-only sections an always-on feature? It has been default-y for years 
+and all distros have it enabled.
+
+The 'debug rodata' naming is purely historic: this started out as a simple 
+debugging feature, but meanwhile it has spread and has become an essential kernel 
+robustness feature.
+
+The boot option you added can be used if anyone needs to disable it. (Never heard 
+of such a case though.)
+
+Thanks,
+
+	Ingo
