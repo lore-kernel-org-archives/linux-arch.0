@@ -1,53 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f51.google.com ([74.125.82.51]:35496 "EHLO
-	mail-wm0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750698AbbKZLJA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Nov 2015 06:09:00 -0500
-Date: Thu, 26 Nov 2015 12:08:55 +0100
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2 2/2] restrict /dev/mem to idle io memory ranges
-Message-ID: <20151126110855.GA32226@gmail.com>
-References: <20151124000553.26360.57819.stgit@dwillia2-desk3.jf.intel.com>
- <20151124000604.26360.56945.stgit@dwillia2-desk3.jf.intel.com>
- <20151124142521.e6d23e44a8b2c24c044c2dec@linux-foundation.org>
- <CAPcyv4ijWns879DytqUa+=r5hzQ1qzmB83VV6Z16kQNtmHUtbA@mail.gmail.com>
+Received: from r00tworld.com ([212.85.137.150]:41219 "EHLO r00tworld.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750852AbbKZMPF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 26 Nov 2015 07:15:05 -0500
+From: "PaX Team" <pageexec@freemail.hu>
+Date: Thu, 26 Nov 2015 13:14:26 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAPcyv4ijWns879DytqUa+=r5hzQ1qzmB83VV6Z16kQNtmHUtbA@mail.gmail.com>
+Subject: Re: [kernel-hardening] [PATCH 0/2] introduce post-init read-only memory
+Reply-to: pageexec@freemail.hu
+Message-ID: <5656F7A2.738.131F89C0@pageexec.freemail.hu>
+In-reply-to: <20151126104229.GA8530@gmail.com>
+References: <1448401114-24650-1-git-send-email-keescook@chromium.org>, <5656D779.17137.12A1EA53@pageexec.freemail.hu>, <20151126104229.GA8530@gmail.com>
+Content-type: text/plain; charset=US-ASCII
+Content-transfer-encoding: 7BIT
+Content-description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dan Williams <dan.j.williams@intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Ingo Molnar <mingo@redhat.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20151126110855.z9nt5AqUDOi-6QG6H-R12UbXnkP1cI3Mq5Q1KWuphxg@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: kernel-hardening@lists.openwall.com, Mathias Krause <minipli@googlemail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86-ml <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, Emese Revfy <re.emese@gmail.com>
+Message-ID: <20151126121426.LmwSGS_9PxN4hH0NMqngVLW3EXTntHFkZNQuxnUdoE4@z>
 
+On 26 Nov 2015 at 11:42, Ingo Molnar wrote:
 
-* Dan Williams <dan.j.williams@intel.com> wrote:
-
-> > - why is the patch mucking with access to PCI and BIOS space?  Is the
-> >   persistent memory even mappable in those regions?  Or is the concern
-> >   that userspace can access control registers associated with the
-> >   persistent memory?  What is the problem scenario?
+> * PaX Team <pageexec@freemail.hu> wrote:
 > 
-> It seems to me that letting /dev/mem do arbitrary access to any region
-> of memory is a dangerous capability for a production environment.
+> > On 26 Nov 2015 at 9:54, Ingo Molnar wrote:
+>
+> > e.g., imagine that the write was to a function pointer (even an entire ops 
+> > structure) or a boolean that controls some important feature for after-init 
+> > code. ignoring/dropping such writes could cause all kinds of logic bugs (if not 
+> > worse).
+> 
+> Well, the typical case is that it's a logic bug to _do_ the write: the structure 
+> was marked readonly for a reason but some init code re-runs during suspend or so.
 
-So basically the original motivation years ago was to disable /dev/mem altogether: 
-it used to be a wide open roothole if anything with write access to it (such as 
-old Xorg) is exploited, plus it's a favorite and convenient tool for stealth 
-access to system areas of memory in cases where the attacker already has root. 
+that's actually not the typical case in my experience, but rather these two:
 
-(this is relevant as even being root might not give easy access to system mmio 
-areas if things like being able to load modules is restricted even for room, and 
-if the system has readonly storage and a few other things configured.)
+1. initial mistake: someone didn't actually check whether the given object can
+   be __read_only
 
-But we couldn't disable /dev/mem completely due to Xorg and dosemu legacies - so 
-we came up with this restriction feature that limits its scope.
+2. code evolution: an object that was once written by __init code only (and
+   thus proactively subjected to __read_only) gets modified by non-init code
+   due to later changes
 
-Any additional steps that limit the scope of access under the STRICT_DEVMEM option 
-(which is really a misnomer: it should be RESTRICT_DEVMEM instead) are welcome 
-from a generic Linux distro POV.
+what you described above is a third case where there's a latent bug to begin
+(unintended write) with that __read_only merely exposes but doesn't create
+itself, unlike the two cases above (intended writes getting caught by wrong
+use of __read_only).
 
-Thanks,
+> But yes, logic bugs might trigger - but that is true in the opposite case as well, 
+> if we do the write despite it being marked readonly:
 
-	Ingo
+not really, the two cases above are not a priori bugs, they become bugs due
+to using __read_only without due care (which is why i suggested to detect
+them at compile time).
+
+> > misusing __read_only and ignoring write attempts would effectively produce the 
+> > same misbehaviour as above so i strongly advise against it.
+> 
+> No, the difference to the GCC related aliasing bug is that with my technique the 
+> kernel would immediately produce a very visible kernel warning, which is a very 
+> clear sign that is wrong - and with a very clear backtrace in the warning that 
+> points right to the problematic code - which signature shows us (and users) what 
+> is wrong.
+
+my proposal would produce the exact same reports, the difference is in letting
+the write attempt succeed vs. skipping it. this latter step is what is wrong
+since it introduces at least a logic bug the same way the constprop optimization
+created a logic bug.
+
+> Plus the truly paranoid might panic/halt the system on such warnings, so for 
+> highly secure systems there's a way to not even allow the possibility of logic 
+> bugs. (at the cost of stopping the system when a bug triggers.)
+
+this would/should be the default behaviour, i.e., no attempt at being smart by
+either allowing or skipping the faulting insn, just report the event and trigger
+whatever fancy future exploit reaction mechanism will get into the kernel.
+
