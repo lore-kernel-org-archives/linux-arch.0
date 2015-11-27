@@ -1,78 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f175.google.com ([209.85.214.175]:36666 "EHLO
-	mail-ob0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751270AbbKZQMC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Nov 2015 11:12:02 -0500
-Received: by obdgf3 with SMTP id gf3so66316792obd.3
-        for <linux-arch@vger.kernel.org>; Thu, 26 Nov 2015 08:12:01 -0800 (PST)
-MIME-Version: 1.0
-In-Reply-To: <20151126085425.GA29848@gmail.com>
+Received: from mail-wm0-f48.google.com ([74.125.82.48]:33826 "EHLO
+	mail-wm0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752010AbbK0IAE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Nov 2015 03:00:04 -0500
+Date: Fri, 27 Nov 2015 08:59:59 +0100
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [kernel-hardening] [PATCH 0/2] introduce post-init read-only
+ memory
+Message-ID: <20151127075959.GA24991@gmail.com>
 References: <1448401114-24650-1-git-send-email-keescook@chromium.org>
  <CA+rthh-euk2hGGWjsDqXogWSmzmJNV1aiUVfnTfrzyQhndgbOQ@mail.gmail.com>
- <565595F5.32536.DB9FE75@pageexec.freemail.hu> <20151126085425.GA29848@gmail.com>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Thu, 26 Nov 2015 08:11:41 -0800
-Message-ID: <CALCETrXrvAY+mXx+JULw7W+xokcSPFgWm5-McJf9EKhYehPhbA@mail.gmail.com>
-Subject: Re: [kernel-hardening] [PATCH 0/2] introduce post-init read-only memory
-Content-Type: text/plain; charset=UTF-8
+ <565595F5.32536.DB9FE75@pageexec.freemail.hu>
+ <20151126085425.GA29848@gmail.com>
+ <CALCETrXrvAY+mXx+JULw7W+xokcSPFgWm5-McJf9EKhYehPhbA@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CALCETrXrvAY+mXx+JULw7W+xokcSPFgWm5-McJf9EKhYehPhbA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
+To: Andy Lutomirski <luto@amacapital.net>, Linus Torvalds <torvalds@linux-foundation.org>
 Cc: PaX Team <pageexec@freemail.hu>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Mathias Krause <minipli@googlemail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86-ml <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch <linux-arch@vger.kernel.org>, Emese Revfy <re.emese@gmail.com>
-Message-ID: <20151126161141.1Mg1PNH1OcsBROKN1JirQXJvYhVYIop7RFgl24MZ9yo@z>
+Message-ID: <20151127075959.GvFeUtny5JylS3sopNafLEtJC3H-hlGTek69qNYELAc@z>
 
-On Thu, Nov 26, 2015 at 12:54 AM, Ingo Molnar <mingo@kernel.org> wrote:
->
-> * PaX Team <pageexec@freemail.hu> wrote:
->
->> On 25 Nov 2015 at 10:13, Mathias Krause wrote:
->>
->> > I myself had some educating experience seeing my machine triple fault
->> > when resuming from a S3 sleep. The root cause was a variable that was
->> > annotated __read_only but that was (unnecessarily) modified during CPU
->> > bring-up phase. Debugging that kind of problems is sort of a PITA, you
->> > could imagine.
->
-> ( Sidenote: I don't think a ro-faults typically result in triple faults, but yeah,
->   even having a regular oops (followed by a hang or reboot) during such an
->   undebuggable state of the system is a major PITA. )
->
->> actually the kernel could silently recover from this given how the page fault
->> handler could easily determine that the fault address fell into the
->> data..read_only section and just silently undo the read-only property, log the
->> event to dmesg and retry the faulting access.
->
-> So a safer method would be to decode the faulting instruction, to skip it by
-> fixing up the return RIP and to log the event. It would be mostly equivalent to
-> trying to write to ROM (which get ignored as well), so it's a recoverable (and
-> debuggable) event.
->
-> We have all the necessary code in place in the kprobes code, see
-> arch/x86/lib/insn.c, it's a simplified x86 decoder that knows about instruction
-> length (but not about semantics).
->
-> Simple skipping plus setting arithmetic flags to init value should be enough I
-> think: I don't think we use fancy instructions to write to ro variables, such as
-> PUSH/POP with other side effects. If such instructions exist we could minimally
-> extend the decoder to do those fixups as well - in addition to double checking
-> that we skip simple instructions only with no side effects.
->
-> Can you see any fragility in such a technique?
->
 
-After Linus shot down my rdmsr/rwmsr decoding patch, good luck...
+* Andy Lutomirski <luto@amacapital.net> wrote:
 
-More seriously, though, I think this is mostly just like any other
-in-kernel fault.  We failed, me might be under attack, let's oops.  In
-the particular case of suspend/resume, we could consider a debug flag
-to allow writes to these variables during suspend/resume.  In fact,
-that might even be a reasonable default.  We might want to allow
-writes during module unload as well.
+> > Can you see any fragility in such a technique?
+> 
+> After Linus shot down my rdmsr/rwmsr decoding patch, good luck...
 
-For everything else, we should probably focus more on getting OOPSes
-to display reliably, which is supposed to work but, on my shiny new
-i915-based laptop, is clearly not ready yet (I oopsed it yesterday due
-to my own bug and all I had to show for it was a blinking capslock
-key, and yes, modesetting works).
+I think that case was entirely different, but I've Cc:-ed Linus to shoot my idea 
+down if it's crap.
 
---Andy
+> More seriously, though, I think this is mostly just like any other in-kernel 
+> fault.  We failed, me might be under attack, let's oops.  In the particular case 
+> of suspend/resume, we could consider a debug flag to allow writes to these 
+> variables during suspend/resume.  In fact, that might even be a reasonable 
+> default.  We might want to allow writes during module unload as well.
+
+We are getting the _same_ information: we generate a reliable stack trace right 
+there. We don't ignore anything.
+
+What my suggestion would do is to turn a 'sure system crasher' into a 
+'informational debug message'.
+
+On today's typical desktop systems I can tell you with 110% confidence that the 
+vast majority of 'system crasher' oopses never reaches a kernel developer's 
+attention, because the oops message is not propagated to the user, while the 'dump 
+stack trace and try to continue' approach will result in proper bugzillas.
+
+And that's really an important distinction IMHO. Getting debug info out of the 
+system is very important - and those who are paranoid can set a Kconfig value to 
+crash their systems on any hint of a problem.
+
+> For everything else, we should probably focus more on getting OOPSes to display 
+> reliably, which is supposed to work but, on my shiny new i915-based laptop, is 
+> clearly not ready yet (I oopsed it yesterday due to my own bug and all I had to 
+> show for it was a blinking capslock key, and yes, modesetting works).
+
+That's absolutely true as well but an independent issue: it does not invalidate my 
+argument that is based on the status quo, which is that the vast majority 
+panics/oopses, _especially_ during suspend/resume that was mentioned in this case, 
+does not reach any kernel developer.
+
+Thanks,
+
+	Ingo
