@@ -1,87 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from r00tworld.com ([212.85.137.150]:44161 "EHLO r00tworld.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754792AbbK0Pal (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 27 Nov 2015 10:30:41 -0500
-From: "PaX Team" <pageexec@freemail.hu>
-Date: Fri, 27 Nov 2015 16:29:55 +0100
+Received: from mail-io0-f178.google.com ([209.85.223.178]:34791 "EHLO
+	mail-io0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755013AbbK0SDC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Nov 2015 13:03:02 -0500
 MIME-Version: 1.0
+In-Reply-To: <CA+55aFxH+Gy4U8WbGWXh+ybrvng8tw1=2CrjPnJSju3+c5XpbA@mail.gmail.com>
+References: <1448401114-24650-1-git-send-email-keescook@chromium.org>
+	<CA+rthh-euk2hGGWjsDqXogWSmzmJNV1aiUVfnTfrzyQhndgbOQ@mail.gmail.com>
+	<565595F5.32536.DB9FE75@pageexec.freemail.hu>
+	<20151126085425.GA29848@gmail.com>
+	<CALCETrXrvAY+mXx+JULw7W+xokcSPFgWm5-McJf9EKhYehPhbA@mail.gmail.com>
+	<20151127075959.GA24991@gmail.com>
+	<CA+55aFxH+Gy4U8WbGWXh+ybrvng8tw1=2CrjPnJSju3+c5XpbA@mail.gmail.com>
+Date: Fri, 27 Nov 2015 10:03:01 -0800
+Message-ID: <CA+55aFziK-bv2eyK4PULJfV3qZeCLeKjBjUtrN96Kc-UpXrB9A@mail.gmail.com>
 Subject: Re: [kernel-hardening] [PATCH 0/2] introduce post-init read-only memory
-Reply-to: pageexec@freemail.hu
-Message-ID: <565876F3.21515.18F8DF8F@pageexec.freemail.hu>
-In-reply-to: <20151127080554.GB24991@gmail.com>
-References: <1448401114-24650-1-git-send-email-keescook@chromium.org>, <5656F7A2.738.131F89C0@pageexec.freemail.hu>, <20151127080554.GB24991@gmail.com>
-Content-type: text/plain; charset=US-ASCII
-Content-transfer-encoding: 7BIT
-Content-description: Mail message body
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>
-Cc: kernel-hardening@lists.openwall.com, Mathias Krause <minipli@googlemail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86-ml <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, Emese Revfy <re.emese@gmail.com>
-Message-ID: <20151127152955.1N73lzXc9jwW3SuPXLeFLea2JmblwG-dF0b94aTd4Js@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Andy Lutomirski <luto@amacapital.net>, PaX Team <pageexec@freemail.hu>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Mathias Krause <minipli@googlemail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86-ml <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch <linux-arch@vger.kernel.org>, Emese Revfy <re.emese@gmail.com>
+Message-ID: <20151127180301.uNbywDLYCyx_fY64FDZMPVBX8LwLe4In6eY6rsX6dyo@z>
 
-On 27 Nov 2015 at 9:05, Ingo Molnar wrote:
+On Fri, Nov 27, 2015 at 10:00 AM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+>
+>  - just oops and kill the machine, like for any other unhandled kernel
+> page fault. This is probably what you should have on a server
 
-> * PaX Team <pageexec@freemail.hu> wrote:
-> 
-> > On 26 Nov 2015 at 11:42, Ingo Molnar wrote:
-> > 
-> > > * PaX Team <pageexec@freemail.hu> wrote:
-> > that's actually not the typical case in my experience, but rather these two:
-> > 
-> > 1. initial mistake: someone didn't actually check whether the given object can
-> >    be __read_only
-> > 
-> > 2. code evolution: an object that was once written by __init code only (and
-> >    thus proactively subjected to __read_only) gets modified by non-init code
-> >    due to later changes
-> > 
-> > what you described above is a third case where there's a latent bug to begin 
-> > (unintended write) with that __read_only merely exposes but doesn't create 
-> > itself, unlike the two cases above (intended writes getting caught by wrong use 
-> > of __read_only).
-> 
-> You are right, I concede this part of the argument - what you describe is probably 
-> the most typical way to get ro-faults.
-> 
-> I do maintain the (sub-)argument that oopsing or relying on tooling help years 
-> down the line is vastly inferior to fixing up the problem and generating a 
-> one-time stack dump so that kernel developers have a chance to fix the bug. The 
-> sooner we detect and dump such information the more likely it is that such bugs 
-> don't get into end user kernel versions.
+Just to clarify: the "just oops" obviously doesn't have to kill the
+machine, it depends on what your oops policy is, with the default
+obviously being the normal "kill that particular thread" if at all
+possible.
 
-i don't see the compile time vs. runtime detection as 'competing' approaches,
-both have their own role. in general, i think it's safe to say that compile
-time problem detection is preferred to the runtime one since it subjects less
-users to the side effects of the bug. runtime detection is needed to augment
-(even complete) the coverage that compile time detection may not be able to
-provide.
+Machine-killing is appropriate in some secure situations, but most of
+the time it just makes it too damn hard to debug since the error often
+doesn't get logged. In some situations we obviously can't avoid it,
+but..
 
-that said, for __read_only related problems the compiler can actually do a
-pretty good job, basically it could detect most of them except special cases
-where the 'bad' write is somehow hidden from it. the only examples i recall
-are like the one that Mathias already mentioned where the 'bad' write was
-done from asm code or out-of-kernel code (think UEFI runtime services) that
-is obviously not visible to the compiler (the resume/mmu_cr4_features problem
-also happens to be an example where runtime detection did not help due to the
-circumstances).
-
-so let me summarize how i expect the runtime detection part to work:
-
-1. in normal use any write attempt to read-only kernel data should only
-   be reported as usual (the oops info already has rip/cr2/backtrace),
-   but no smart recovery attempts should be made since they may end up
-   actually helping a real exploit attempt.
-
-2. if necessary for debugging purposes (i.e., when the above reporting
-   mechanism didn't produce the necessary logs and the problem is
-   reproducible and wasn't an attack), a kernel command line option can
-   be used to make an attempt at smart recovery instead of oopsing (but
-   the same information would still be reported of course).
-
-   for this smart recovery we differ(ed?) in opinion, i say that allowing
-   the write in this case (vs. ignoring it) is the least likely to introduce
-   a logic bug (and its cascading effects) since the expected problem is
-   to be case #1 or #2 above (i.e., the write is intended but prevented
-   by __read_only).
-
+               Linus
