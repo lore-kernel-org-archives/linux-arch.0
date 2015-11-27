@@ -1,76 +1,48 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 0/2] introduce post-init read-only
- memory
-Date: Fri, 27 Nov 2015 09:05:54 +0100
-Message-ID: <20151127080554.GB24991@gmail.com>
-References: <1448401114-24650-1-git-send-email-keescook@chromium.org>
- <5656D779.17137.12A1EA53@pageexec.freemail.hu>
- <20151126104229.GA8530@gmail.com>
- <5656F7A2.738.131F89C0@pageexec.freemail.hu>
-Reply-To: kernel-hardening@lists.openwall.com
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH] ARM: avoid ARCH_MMAP_RND_BITS for NOMMU
+Date: Fri, 27 Nov 2015 15:04:03 +0100
+Message-ID: <2874133.c4GDUf0t6t@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <kernel-hardening-return-1996-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-Sender: Ingo Molnar <mingo.kernel.org@gmail.com>
-Content-Disposition: inline
-In-Reply-To: <5656F7A2.738.131F89C0@pageexec.freemail.hu>
-To: PaX Team <pageexec@freemail.hu>, Linus Torvalds <torvalds@linux-foundation.org>
-Cc: kernel-hardening@lists.openwall.com, Mathias Krause <minipli@googlemail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86-ml <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, Emese Revfy <re.emese@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.17.10]:49688 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751165AbbK0OEb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Nov 2015 09:04:31 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Daniel Cashman <dcashman@google.com>, linux-arch@vger.kernel.org
 
+ARM kernels with MMU disabled fail to build because of CONFIG_ARCH_MMAP_RND_BITS:
 
-* PaX Team <pageexec@freemail.hu> wrote:
+kernel/built-in.o:(.data+0x754): undefined reference to `mmap_rnd_bits'
+kernel/built-in.o:(.data+0x76c): undefined reference to `mmap_rnd_bits_min'
+kernel/built-in.o:(.data+0x770): undefined reference to `mmap_rnd_bits_max'
 
-> On 26 Nov 2015 at 11:42, Ingo Molnar wrote:
-> 
-> > * PaX Team <pageexec@freemail.hu> wrote:
-> > 
-> > > On 26 Nov 2015 at 9:54, Ingo Molnar wrote:
-> >
-> > > e.g., imagine that the write was to a function pointer (even an entire ops 
-> > > structure) or a boolean that controls some important feature for after-init 
-> > > code. ignoring/dropping such writes could cause all kinds of logic bugs (if not 
-> > > worse).
-> > 
-> > Well, the typical case is that it's a logic bug to _do_ the write: the structure 
-> > was marked readonly for a reason but some init code re-runs during suspend or so.
-> 
-> that's actually not the typical case in my experience, but rather these two:
-> 
-> 1. initial mistake: someone didn't actually check whether the given object can
->    be __read_only
-> 
-> 2. code evolution: an object that was once written by __init code only (and
->    thus proactively subjected to __read_only) gets modified by non-init code
->    due to later changes
-> 
-> what you described above is a third case where there's a latent bug to begin 
-> (unintended write) with that __read_only merely exposes but doesn't create 
-> itself, unlike the two cases above (intended writes getting caught by wrong use 
-> of __read_only).
+This changes the newly added line to only select this allow for
+MMU-enabled kernels.
 
-You are right, I concede this part of the argument - what you describe is probably 
-the most typical way to get ro-faults.
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Fixes: 14570b3fd31a ("arm: mm: support ARCH_MMAP_RND_BITS")
+---
+Found on yesterday's linux-next with ARM randconfig. The commit that
+introduced this is currently in Andrew's tree.
 
-I do maintain the (sub-)argument that oopsing or relying on tooling help years 
-down the line is vastly inferior to fixing up the problem and generating a 
-one-time stack dump so that kernel developers have a chance to fix the bug. The 
-sooner we detect and dump such information the more likely it is that such bugs 
-don't get into end user kernel versions.
+If you don't already have a fix, please either apply this patch on top,
+or fold it into the original patch.
 
-> my proposal would produce the exact same reports, the difference is in letting 
-> the write attempt succeed vs. skipping it. this latter step is what is wrong 
-> since it introduces at least a logic bug the same way the constprop optimization 
-> created a logic bug.
-
-Yes, you are right and I agree.
-
-Does anyone want to submit such a patch for upstream? Looks like a good change.
-
-Thanks,
-
-	Ingo
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index b64f64d124c4..5a0957e3ea36 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -34,7 +34,7 @@ config ARM
+ 	select HAVE_ARCH_BITREVERSE if (CPU_32v7M || CPU_32v7) && !CPU_32v6
+ 	select HAVE_ARCH_JUMP_LABEL if !XIP_KERNEL && !CPU_ENDIAN_BE32 && MMU
+ 	select HAVE_ARCH_KGDB if !CPU_ENDIAN_BE32 && MMU
+-	select HAVE_ARCH_MMAP_RND_BITS
++	select HAVE_ARCH_MMAP_RND_BITS if MMU
+ 	select HAVE_ARCH_SECCOMP_FILTER if (AEABI && !OABI_COMPAT)
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_BPF_JIT
