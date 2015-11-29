@@ -1,61 +1,31 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [kernel-hardening] [PATCH 0/2] introduce post-init read-only memory
-Date: Fri, 27 Nov 2015 12:09:23 -0800
-Message-ID: <CALCETrVVYMUgxABoEVfJgLtE+nB44aijqG5saq8dTQSTVWxbMA@mail.gmail.com>
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [kernel-hardening] [PATCH 0/2] introduce post-init read-only
+ memory
+Date: Sun, 29 Nov 2015 09:08:53 +0100
+Message-ID: <20151129080853.GB23721@gmail.com>
 References: <1448401114-24650-1-git-send-email-keescook@chromium.org>
- <CA+rthh-euk2hGGWjsDqXogWSmzmJNV1aiUVfnTfrzyQhndgbOQ@mail.gmail.com>
- <565595F5.32536.DB9FE75@pageexec.freemail.hu> <20151126085425.GA29848@gmail.com>
- <CALCETrXrvAY+mXx+JULw7W+xokcSPFgWm5-McJf9EKhYehPhbA@mail.gmail.com>
- <20151127075959.GA24991@gmail.com> <CA+55aFxH+Gy4U8WbGWXh+ybrvng8tw1=2CrjPnJSju3+c5XpbA@mail.gmail.com>
- <CAGXu5j+mvknX69Kk1S8u54LR4T+KED8zZdkqQWA9KMrOvtVQtQ@mail.gmail.com>
+ <5656F7A2.738.131F89C0@pageexec.freemail.hu>
+ <20151127080554.GB24991@gmail.com>
+ <565876F3.21515.18F8DF8F@pageexec.freemail.hu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f53.google.com ([209.85.218.53]:36623 "EHLO
-	mail-oi0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754143AbbK0UJn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Nov 2015 15:09:43 -0500
-Received: by oiww189 with SMTP id w189so66566013oiw.3
-        for <linux-arch@vger.kernel.org>; Fri, 27 Nov 2015 12:09:43 -0800 (PST)
-In-Reply-To: <CAGXu5j+mvknX69Kk1S8u54LR4T+KED8zZdkqQWA9KMrOvtVQtQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, PaX Team <pageexec@freemail.hu>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Mathias Krause <minipli@googlemail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86-ml <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch <linux-arch@vger.kernel.org>, Emese Revfy <re.emese@gmail.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <565876F3.21515.18F8DF8F@pageexec.freemail.hu>
+Sender: linux-kernel-owner@vger.kernel.org
+To: PaX Team <pageexec@freemail.hu>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, kernel-hardening@lists.openwall.com, Mathias Krause <minipli@googlemail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86-ml <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, Emese Revfy <re.emese@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Nov 27, 2015 at 12:03 PM, Kees Cook <keescook@chromium.org> wrote:
-> On Fri, Nov 27, 2015 at 10:00 AM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
->> On Thu, Nov 26, 2015 at 11:59 PM, Ingo Molnar <mingo@kernel.org> wrote:
->>>
->>> * Andy Lutomirski <luto@amacapital.net> wrote:
->>>
->>>> > Can you see any fragility in such a technique?
->>>>
->>>> After Linus shot down my rdmsr/rwmsr decoding patch, good luck...
->>>
->>> I think that case was entirely different, but I've Cc:-ed Linus to shoot my idea
->>> down if it's crap.
->>
->> Yeah, no, I hate it. I'm with the PaX team on this one - I think there
->> are three valid responses, and I think we might want to have a dynamic
->> config option (kernel command line or proc or whatever) to pick
->> between the two:
->>
->>  - just oops and kill the machine, like for any other unhandled kernel
->> page fault. This is probably what you should have on a server
->
-> This is how the v2 series works now.
->
->>  - print a warning and a backtrace, and just mark the page read-write
->> so that the machine survives, but we get notified and can fix whatever
->> broken code
->
-> This seems very easy to add. Should I basically reverse the effects of
-> mark_rodata_ro(), or should I only make the new ro-after-init section
-> as RW? (I think the former would be easier.)
 
-I'd suggest verifying that the page in question is
-.data..ro_after_init and, if so, marking that one page RW.
+* PaX Team <pageexec@freemail.hu> wrote:
 
---Andy
+> i don't see the compile time vs. runtime detection as 'competing' approaches, 
+> both have their own role. [...]
+
+That's true - but only as long as 'this can be solved in tooling!' is not used as 
+an excuse to oppose the runtime solution and we end up doing neither.
+
+Thanks,
+
+	Ingo
