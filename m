@@ -1,36 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f46.google.com ([74.125.82.46]:35643 "EHLO
-	mail-wm0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751193AbbK2II5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 29 Nov 2015 03:08:57 -0500
-Date: Sun, 29 Nov 2015 09:08:53 +0100
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [kernel-hardening] [PATCH 0/2] introduce post-init read-only
- memory
-Message-ID: <20151129080853.GB23721@gmail.com>
-References: <1448401114-24650-1-git-send-email-keescook@chromium.org>
- <5656F7A2.738.131F89C0@pageexec.freemail.hu>
- <20151127080554.GB24991@gmail.com>
- <565876F3.21515.18F8DF8F@pageexec.freemail.hu>
+Received: from r00tworld.com ([212.85.137.150]:50918 "EHLO r00tworld.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752119AbbK2LPs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 29 Nov 2015 06:15:48 -0500
+From: "PaX Team" <pageexec@freemail.hu>
+Date: Sun, 29 Nov 2015 12:15:01 +0100
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <565876F3.21515.18F8DF8F@pageexec.freemail.hu>
+Subject: Re: [kernel-hardening] [PATCH 0/2] introduce post-init read-only memory
+Reply-to: pageexec@freemail.hu
+Message-ID: <565ADE35.20892.225C67C2@pageexec.freemail.hu>
+In-reply-to: <20151129080853.GB23721@gmail.com>
+References: <1448401114-24650-1-git-send-email-keescook@chromium.org>, <565876F3.21515.18F8DF8F@pageexec.freemail.hu>, <20151129080853.GB23721@gmail.com>
+Content-type: text/plain; charset=US-ASCII
+Content-transfer-encoding: 7BIT
+Content-description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: PaX Team <pageexec@freemail.hu>
+To: Ingo Molnar <mingo@kernel.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, kernel-hardening@lists.openwall.com, Mathias Krause <minipli@googlemail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86-ml <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, Emese Revfy <re.emese@gmail.com>
-Message-ID: <20151129080853.pSG0QboPHoOedNdXAcd4kkdULjV64ljbTjV_2GryMuM@z>
+Message-ID: <20151129111501.MMEQiN2lcyPuCY1i5nvkzxF2CrgSPnsuqtyr-h_kID8@z>
 
+On 29 Nov 2015 at 9:08, Ingo Molnar wrote:
 
-* PaX Team <pageexec@freemail.hu> wrote:
+> 
+> * PaX Team <pageexec@freemail.hu> wrote:
+> 
+> > i don't see the compile time vs. runtime detection as 'competing' approaches, 
+> > both have their own role. [...]
+> 
+> That's true - but only as long as 'this can be solved in tooling!' is not used as 
+> an excuse to oppose the runtime solution and we end up doing neither.
 
-> i don't see the compile time vs. runtime detection as 'competing' approaches, 
-> both have their own role. [...]
+actually, i already voiced my opinion elsewhere in the constify thread on
+the kernel hardening list that adding/using __read_only is somewhat premature
+without also adding the compile time verification part (as part of the
+constify plugin for example). right now its use on the embedded vdso image
+is simple and easy to verify but once people begin to add it to variables
+that the compiler knows and cares about (say, the ops structures) then
+things can become fragile without compile checking. so yes, i'd also advise
+to get such tooling in *before* more __read_only usage is added.
 
-That's true - but only as long as 'this can be solved in tooling!' is not used as 
-an excuse to oppose the runtime solution and we end up doing neither.
-
-Thanks,
-
-	Ingo
