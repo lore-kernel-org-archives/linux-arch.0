@@ -1,72 +1,117 @@
-From: Mathias Krause <minipli@googlemail.com>
-Subject: Re: [PATCH 0/2] introduce post-init read-only memory
-Date: Sun, 29 Nov 2015 19:05:52 +0100
-Message-ID: <CA+rthh_vXtYqvgcLJm=Xq8BniKMbffQrJJ8Gt_BWoAKbow8_Ow@mail.gmail.com>
-References: <1448401114-24650-1-git-send-email-keescook@chromium.org>
-	<565876F3.21515.18F8DF8F@pageexec.freemail.hu>
-	<20151129080853.GB23721@gmail.com>
-	<565ADE35.20892.225C67C2@pageexec.freemail.hu>
-	<20151129153918.GA12215@gmail.com>
-Reply-To: kernel-hardening@lists.openwall.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <kernel-hardening-return-2013-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <20151129153918.GA12215@gmail.com>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: PaX Team <pageexec@freemail.hu>, Linus Torvalds <torvalds@linux-foundation.org>, kernel-hardening@lists.openwall.com, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, x86-ml <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch@vger.kernel.org, Emese Revfy <re.emese@gmail.com>
+From: Minchan Kim <minchan@kernel.org>
+Subject: [PATCH v5 03/12] arch: uapi: asm: mman.h: Let MADV_FREE have same value for all architectures
+Date: Mon, 30 Nov 2015 15:39:34 +0900
+Message-ID: <1448865583-2446-4-git-send-email-minchan@kernel.org>
+References: <1448865583-2446-1-git-send-email-minchan@kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1448865583-2446-1-git-send-email-minchan@kernel.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-mm@kvack.org, Michael Kerrisk <mtk.manpages@gmail.com>, linux-api@vger.kernel.org, Hugh Dickins <hughd@google.com>, Johannes Weiner <hannes@cmpxchg.org>, Rik van Riel <riel@redhat.com>, Mel Gorman <mgorman@suse.de>, KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com>, Jason Evans <je@fb.com>, Daniel Micay <danielmicay@gmail.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Shaohua Li <shli@kernel.org>, Michal Hocko <mhocko@suse.cz>, yalin.wang2010@gmail.com, Andy Lutomirski <luto@amacapital.net>, Chen Gang <gang.chen.5i5j@gmail.com>, "rth@twiddle.net" <rth@twiddle.net>, "ink@jurassic.park.msu.ru" <ink@jurassic.park.msu.ru>, "mattst88@gmail.com" <mattst88@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, "jejb@parisc-linux.org" <jejb@parisc-linux.org>, "deller@gmx.de" <deller@gmx.de>, "chris@zankel.net" <chris@zankel.net>, jcmvb
 List-Id: linux-arch.vger.kernel.org
 
-On 29 November 2015 at 16:39, Ingo Molnar <mingo@kernel.org> wrote:
->
-> * PaX Team <pageexec@freemail.hu> wrote:
->
->> On 29 Nov 2015 at 9:08, Ingo Molnar wrote:
->>
->> >
->> > * PaX Team <pageexec@freemail.hu> wrote:
->> >
->> > > i don't see the compile time vs. runtime detection as 'competing' approaches,
->> > > both have their own role. [...]
->> >
->> > That's true - but only as long as 'this can be solved in tooling!' is not used as
->> > an excuse to oppose the runtime solution and we end up doing neither.
->>
->> actually, i already voiced my opinion elsewhere in the constify thread on the
->> kernel hardening list that adding/using __read_only is somewhat premature
->> without also adding the compile time verification part (as part of the constify
->> plugin for example). right now its use on the embedded vdso image is simple and
->> easy to verify but once people begin to add it to variables that the compiler
->> knows and cares about (say, the ops structures) then things can become fragile
->> without compile checking. so yes, i'd also advise to get such tooling in
->> *before* more __read_only usage is added.
->
-> I think you are mistaken there: if we add the page fault fixup to make sure we
-> don't crash if a read-only variable is accessed, then we'll have most of the
-> benefits of read-only mappings and no fragility - without having to wait for
-> tooling.
+From: Chen Gang <gang.chen.5i5j@gmail.com>
 
-I guess the point PaX Team (and me earlier in this thread) wanted to
-make is that having misuse detection *only* at run-time will make
-those kind of bugs visible too late -- as late as on the wrong write
-attempt actually happening. It would be much better to have the
-compiler complain about invalid write statements already during
-compilation, much like it does when one wants to assign some value to
-a const object.
+For uapi, need try to let all macros have same value, and MADV_FREE is
+added into main branch recently, so need redefine MADV_FREE for it.
 
-Having the page fault handler being able to recover from
-__ro_after_init faults is a nice feature to support users, actually
-being able to report bugs. But it shouldn't be the only way to detect
-those kinds of bugs. In fact, we've tools in our toolchain that try to
-detect and flag wrong usage of __init / __exit, so why not cover
-__ro_after_init as well? Admitted, that won't be possible with modpost
-in its current state, but would require a compiler extension instead.
-Its current non-existence shouldn't be a show-stopper for
-__ro_after_init but the very next step to take care of before
-extending the usage of that annotation.
+At present, '8' can be shared with all architectures, so redefine it to
+'8'.
 
-Just my 2ct,
-Mathias
+Cc: rth@twiddle.net <rth@twiddle.net>,
+Cc: ink@jurassic.park.msu.ru <ink@jurassic.park.msu.ru>
+Cc: mattst88@gmail.com <mattst88@gmail.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: jejb@parisc-linux.org <jejb@parisc-linux.org>
+Cc: deller@gmx.de <deller@gmx.de>
+Cc: chris@zankel.net <chris@zankel.net>
+Cc: jcmvbkbc@gmail.com <jcmvbkbc@gmail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-api@vger.kernel.org
+Cc: sparclinux@vger.kernel.org
+Cc: roland@kernel.org
+Cc: darrick.wong@oracle.com
+Cc: davem@davemloft.net
+Acked-by: Hugh Dickins <hughd@google.com>
+Acked-by: Minchan Kim <minchan@kernel.org>
+Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
+---
+ arch/alpha/include/uapi/asm/mman.h     | 1 +
+ arch/mips/include/uapi/asm/mman.h      | 1 +
+ arch/parisc/include/uapi/asm/mman.h    | 1 +
+ arch/xtensa/include/uapi/asm/mman.h    | 1 +
+ include/uapi/asm-generic/mman-common.h | 2 +-
+ 5 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/arch/alpha/include/uapi/asm/mman.h b/arch/alpha/include/uapi/asm/mman.h
+index d828beb5e69b..ab336c06153e 100644
+--- a/arch/alpha/include/uapi/asm/mman.h
++++ b/arch/alpha/include/uapi/asm/mman.h
+@@ -50,6 +50,7 @@
+ #define MADV_FREE	7		/* free pages only if memory pressure */
+ 
+ /* common/generic parameters */
++#define MADV_FREE	8		/* free pages only if memory pressure */
+ #define MADV_REMOVE	9		/* remove these pages & resources */
+ #define MADV_DONTFORK	10		/* don't inherit across fork */
+ #define MADV_DOFORK	11		/* do inherit across fork */
+diff --git a/arch/mips/include/uapi/asm/mman.h b/arch/mips/include/uapi/asm/mman.h
+index a6f8daff8e3b..b0ebe59f73fd 100644
+--- a/arch/mips/include/uapi/asm/mman.h
++++ b/arch/mips/include/uapi/asm/mman.h
+@@ -76,6 +76,7 @@
+ #define MADV_FREE	5		/* free pages only if memory pressure */
+ 
+ /* common parameters: try to keep these consistent across architectures */
++#define MADV_FREE	8		/* free pages only if memory pressure */
+ #define MADV_REMOVE	9		/* remove these pages & resources */
+ #define MADV_DONTFORK	10		/* don't inherit across fork */
+ #define MADV_DOFORK	11		/* do inherit across fork */
+diff --git a/arch/parisc/include/uapi/asm/mman.h b/arch/parisc/include/uapi/asm/mman.h
+index bda94f0d0b94..cf830d465f75 100644
+--- a/arch/parisc/include/uapi/asm/mman.h
++++ b/arch/parisc/include/uapi/asm/mman.h
+@@ -46,6 +46,7 @@
+ #define MADV_FREE	8		/* free pages only if memory pressure */
+ 
+ /* common/generic parameters */
++#define MADV_FREE	8		/* free pages only if memory pressure */
+ #define MADV_REMOVE	9		/* remove these pages & resources */
+ #define MADV_DONTFORK	10		/* don't inherit across fork */
+ #define MADV_DOFORK	11		/* do inherit across fork */
+diff --git a/arch/xtensa/include/uapi/asm/mman.h b/arch/xtensa/include/uapi/asm/mman.h
+index 83c5150b06f9..d030594ed22b 100644
+--- a/arch/xtensa/include/uapi/asm/mman.h
++++ b/arch/xtensa/include/uapi/asm/mman.h
+@@ -89,6 +89,7 @@
+ #define MADV_FREE	5		/* free pages only if memory pressure */
+ 
+ /* common parameters: try to keep these consistent across architectures */
++#define MADV_FREE	8		/* free pages only if memory pressure */
+ #define MADV_REMOVE	9		/* remove these pages & resources */
+ #define MADV_DONTFORK	10		/* don't inherit across fork */
+ #define MADV_DOFORK	11		/* do inherit across fork */
+diff --git a/include/uapi/asm-generic/mman-common.h b/include/uapi/asm-generic/mman-common.h
+index 0e821e3c3d45..58274382a616 100644
+--- a/include/uapi/asm-generic/mman-common.h
++++ b/include/uapi/asm-generic/mman-common.h
+@@ -39,9 +39,9 @@
+ #define MADV_SEQUENTIAL	2		/* expect sequential page references */
+ #define MADV_WILLNEED	3		/* will need these pages */
+ #define MADV_DONTNEED	4		/* don't need these pages */
+-#define MADV_FREE	5		/* free pages only if memory pressure */
+ 
+ /* common parameters: try to keep these consistent across architectures */
++#define MADV_FREE	8		/* free pages only if memory pressure */
+ #define MADV_REMOVE	9		/* remove these pages & resources */
+ #define MADV_DONTFORK	10		/* don't inherit across fork */
+ #define MADV_DOFORK	11		/* do inherit across fork */
+-- 
+1.9.1
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
