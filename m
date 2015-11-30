@@ -1,75 +1,66 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2 1/4] init: create cmdline param to disable readonly
-Date: Mon, 30 Nov 2015 14:34:04 -0800
-Message-ID: <CAGXu5jJu3oRGRTUQzSpJ0SyZFQdX6UoERE-F6A9==jzAdRnQwA@mail.gmail.com>
-References: <1448494286-16029-1-git-send-email-keescook@chromium.org>
-	<1448494286-16029-2-git-send-email-keescook@chromium.org>
-	<20151126075130.GB18742@gmail.com>
-	<CAGXu5j+Mom2oYbsSE65BMCAgio68J6ST4wODUf8-qHdxOe0jOQ@mail.gmail.com>
-	<20151130222437.GT8644@n2100.arm.linux.org.uk>
+From: Daniel Cashman <dcashman@google.com>
+Subject: Re: [PATCH] ARM: avoid ARCH_MMAP_RND_BITS for NOMMU
+Date: Mon, 30 Nov 2015 15:40:10 -0800
+Message-ID: <CAJQetW5j4+XPyJMyFFVKyxOaLOKtA4pnKZsZTrxDKqYJ-mtDkA@mail.gmail.com>
+References: <2874133.c4GDUf0t6t@wuerfel>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f170.google.com ([209.85.213.170]:37756 "EHLO
-	mail-ig0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754915AbbK3WeF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Nov 2015 17:34:05 -0500
-Received: by igcto18 with SMTP id to18so82562981igc.0
-        for <linux-arch@vger.kernel.org>; Mon, 30 Nov 2015 14:34:04 -0800 (PST)
-In-Reply-To: <20151130222437.GT8644@n2100.arm.linux.org.uk>
+Received: from mail-oi0-f54.google.com ([209.85.218.54]:35122 "EHLO
+	mail-oi0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754496AbbK3XkM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Nov 2015 18:40:12 -0500
+Received: by oige206 with SMTP id e206so105786151oig.2
+        for <linux-arch@vger.kernel.org>; Mon, 30 Nov 2015 15:40:11 -0800 (PST)
+In-Reply-To: <2874133.c4GDUf0t6t@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Ingo Molnar <mingo@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Catalin Marinas <catalin.marinas@arm.com>, LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Mathias Krause <minipli@googlemail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, Nov 30, 2015 at 2:24 PM, Russell King - ARM Linux
-<linux@arm.linux.org.uk> wrote:
-> On Mon, Nov 30, 2015 at 01:52:10PM -0800, Kees Cook wrote:
->> On Wed, Nov 25, 2015 at 11:51 PM, Ingo Molnar <mingo@kernel.org> wrote:
->> > * Kees Cook <keescook@chromium.org> wrote:
->> >> +#ifdef CONFIG_DEBUG_RODATA
->> >
->> > Btw., could you please remove the Kconfig option altogether in an additional patch
->> > and make read-only sections an always-on feature? It has been default-y for years
->> > and all distros have it enabled.
->>
->> Yeah, this is something I've wanted to do for a while, but I would
->> point out that only a few architectures have actually implemented it,
->> and for arm and arm64 it was very recent:
+Thank you for this.  I will add this to the recently posted patchset
+v4.   Without CONFIG_MMU, arch_pick_mmap_layout() is a no-op and the
+arch/$ARCH/mm/mmap.c source is not included, so this change makes
+sense.  In addition, we should drop the nommu default and add
+depends-on for the Kconfig portions.
+
+-Dan
+
+On Fri, Nov 27, 2015 at 6:04 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> ARM kernels with MMU disabled fail to build because of CONFIG_ARCH_MMAP_RND_BITS:
 >
-> I don't think it can entirely be a kernel command line option.  On ARM,
-> enabling DEBUG_RODATA has a substantial effect on the size of the kernel
-> image - we have to pad various sections to 1MB boundaries so we can
-> set the appropriate permissions.
+> kernel/built-in.o:(.data+0x754): undefined reference to `mmap_rnd_bits'
+> kernel/built-in.o:(.data+0x76c): undefined reference to `mmap_rnd_bits_min'
+> kernel/built-in.o:(.data+0x770): undefined reference to `mmap_rnd_bits_max'
 >
-> Forcing this layout on everyone won't work.
+> This changes the newly added line to only select this allow for
+> MMU-enabled kernels.
 >
-> What we can do is the half-way house: we can have the kernel command
-> line option which enables and disables the protections, but the layout
-> of the kernel image would still need to be controlled by DEBUG_RODATA.
-> I'm left wondering what the advantage of that would be: it'd end up
-> offering a suboptimal layout, additional memory usage but without the
-> benefits of memory protections.
-
-Right, I think it'll be there just as a debugging assist: something
-broke with DEBUG_RODATA, let's boot with rodata=off and see what
-happens.
-
-> The alternative is keeping the kernel in unlinked object form, and
-> laying out and linking the kernel at boot time, probably in PIC
-> assembly code.  That's possible but I think is undesirable.
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> Fixes: 14570b3fd31a ("arm: mm: support ARCH_MMAP_RND_BITS")
+> ---
+> Found on yesterday's linux-next with ARM randconfig. The commit that
+> introduced this is currently in Andrew's tree.
 >
-> So all in all, I'm in favour of keeping things as they are on ARM.
+> If you don't already have a fix, please either apply this patch on top,
+> or fold it into the original patch.
+>
+> diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+> index b64f64d124c4..5a0957e3ea36 100644
+> --- a/arch/arm/Kconfig
+> +++ b/arch/arm/Kconfig
+> @@ -34,7 +34,7 @@ config ARM
+>         select HAVE_ARCH_BITREVERSE if (CPU_32v7M || CPU_32v7) && !CPU_32v6
+>         select HAVE_ARCH_JUMP_LABEL if !XIP_KERNEL && !CPU_ENDIAN_BE32 && MMU
+>         select HAVE_ARCH_KGDB if !CPU_ENDIAN_BE32 && MMU
+> -       select HAVE_ARCH_MMAP_RND_BITS
+> +       select HAVE_ARCH_MMAP_RND_BITS if MMU
+>         select HAVE_ARCH_SECCOMP_FILTER if (AEABI && !OABI_COMPAT)
+>         select HAVE_ARCH_TRACEHOOK
+>         select HAVE_BPF_JIT
+>
 
-I've looked at the implementation in ARM again, and I think I see how
-it can be improved slightly. I think I named things incorrectly when I
-implemented, and I'll be sending a patch to fix that up. In the end,
-though, I agree: the thing that is CONFIG_DEBUG_RODATA may change its
-name, but on some architectures, there is a cost to using it, so it
-needs to remain a CONFIG.
 
--Kees
 
 -- 
-Kees Cook
-Chrome OS & Brillo Security
+Dan Cashman
