@@ -1,62 +1,54 @@
-From: Kees Cook <keescook@chromium.org>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
 Subject: Re: [PATCH v2 1/4] init: create cmdline param to disable readonly
-Date: Mon, 30 Nov 2015 13:52:10 -0800
-Message-ID: <CAGXu5j+Mom2oYbsSE65BMCAgio68J6ST4wODUf8-qHdxOe0jOQ@mail.gmail.com>
+Date: Mon, 30 Nov 2015 22:24:37 +0000
+Message-ID: <20151130222437.GT8644@n2100.arm.linux.org.uk>
 References: <1448494286-16029-1-git-send-email-keescook@chromium.org>
-	<1448494286-16029-2-git-send-email-keescook@chromium.org>
-	<20151126075130.GB18742@gmail.com>
+ <1448494286-16029-2-git-send-email-keescook@chromium.org>
+ <20151126075130.GB18742@gmail.com>
+ <CAGXu5j+Mom2oYbsSE65BMCAgio68J6ST4wODUf8-qHdxOe0jOQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f178.google.com ([209.85.223.178]:33661 "EHLO
-	mail-io0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752538AbbK3VwL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Nov 2015 16:52:11 -0500
-Received: by iouu10 with SMTP id u10so192223856iou.0
-        for <linux-arch@vger.kernel.org>; Mon, 30 Nov 2015 13:52:10 -0800 (PST)
-In-Reply-To: <20151126075130.GB18742@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Catalin Marinas <catalin.marinas@arm.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Mathias Krause <minipli@googlemail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CAGXu5j+Mom2oYbsSE65BMCAgio68J6ST4wODUf8-qHdxOe0jOQ@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Ingo Molnar <mingo@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Catalin Marinas <catalin.marinas@arm.com>, LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Mathias Krause <minipli@googlemail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 25, 2015 at 11:51 PM, Ingo Molnar <mingo@kernel.org> wrote:
-> * Kees Cook <keescook@chromium.org> wrote:
->> +#ifdef CONFIG_DEBUG_RODATA
->
-> Btw., could you please remove the Kconfig option altogether in an additional patch
-> and make read-only sections an always-on feature? It has been default-y for years
-> and all distros have it enabled.
+On Mon, Nov 30, 2015 at 01:52:10PM -0800, Kees Cook wrote:
+> On Wed, Nov 25, 2015 at 11:51 PM, Ingo Molnar <mingo@kernel.org> wrote:
+> > * Kees Cook <keescook@chromium.org> wrote:
+> >> +#ifdef CONFIG_DEBUG_RODATA
+> >
+> > Btw., could you please remove the Kconfig option altogether in an additional patch
+> > and make read-only sections an always-on feature? It has been default-y for years
+> > and all distros have it enabled.
+> 
+> Yeah, this is something I've wanted to do for a while, but I would
+> point out that only a few architectures have actually implemented it,
+> and for arm and arm64 it was very recent:
 
-Yeah, this is something I've wanted to do for a while, but I would
-point out that only a few architectures have actually implemented it,
-and for arm and arm64 it was very recent:
+I don't think it can entirely be a kernel command line option.  On ARM,
+enabling DEBUG_RODATA has a substantial effect on the size of the kernel
+image - we have to pad various sections to 1MB boundaries so we can
+set the appropriate permissions.
 
-$ git grep 'config DEBUG_RODATA'
-arch/arm/mm/Kconfig:config DEBUG_RODATA
-arch/arm64/Kconfig.debug:config DEBUG_RODATA
-arch/parisc/Kconfig.debug:config DEBUG_RODATA
-arch/x86/Kconfig.debug:config DEBUG_RODATA
+Forcing this layout on everyone won't work.
 
-I think s390 already has strict kernel memory permissions, but they
-set it up ahead of time. And now, I see in reading the parisc tree,
-they do too, and mark_rodata_ro() is effectively a no-op. How does
-powerpc handle permissions for kernel rodata?
+What we can do is the half-way house: we can have the kernel command
+line option which enables and disables the protections, but the layout
+of the kernel image would still need to be controlled by DEBUG_RODATA.
+I'm left wondering what the advantage of that would be: it'd end up
+offering a suboptimal layout, additional memory usage but without the
+benefits of memory protections.
 
-For parisc (and maybe powerpc and s390) we'll need additional changes
-to support __ro_after_init, since they may be making the ro section ro
-_before_ init runs. But, that's okay since this series only uses
-__ro_after_init on x86 for the moment. ;)
+The alternative is keeping the kernel in unlinked object form, and
+laying out and linking the kernel at boot time, probably in PIC
+assembly code.  That's possible but I think is undesirable.
 
-> The 'debug rodata' naming is purely historic: this started out as a simple
-> debugging feature, but meanwhile it has spread and has become an essential kernel
-> robustness feature.
-
-I agree completely. I suspect I would turn this into
-ARCH_HAS_STRICT_KERNMEM or something.
-
--Kees
+So all in all, I'm in favour of keeping things as they are on ARM.
 
 -- 
-Kees Cook
-Chrome OS & Brillo Security
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
