@@ -1,46 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:60090 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753602AbbK3Vnu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 Nov 2015 16:43:50 -0500
-Subject: Re: [kernel-hardening] [PATCH 0/2] introduce post-init read-only
- memory
-References: <1448401114-24650-1-git-send-email-keescook@chromium.org>
- <CA+rthh-euk2hGGWjsDqXogWSmzmJNV1aiUVfnTfrzyQhndgbOQ@mail.gmail.com>
- <565595F5.32536.DB9FE75@pageexec.freemail.hu>
- <20151126085425.GA29848@gmail.com>
- <CALCETrXrvAY+mXx+JULw7W+xokcSPFgWm5-McJf9EKhYehPhbA@mail.gmail.com>
- <20151127075959.GA24991@gmail.com>
- <CA+55aFxH+Gy4U8WbGWXh+ybrvng8tw1=2CrjPnJSju3+c5XpbA@mail.gmail.com>
- <CAGXu5j+mvknX69Kk1S8u54LR4T+KED8zZdkqQWA9KMrOvtVQtQ@mail.gmail.com>
- <CALCETrVVYMUgxABoEVfJgLtE+nB44aijqG5saq8dTQSTVWxbMA@mail.gmail.com>
- <20151129080505.GA23721@gmail.com> <565CBC37.9090106@zytor.com>
- <CAGXu5jK+5UjQt+YZV_oe286+_5NrsZ7gTyVr-v+R7mF1uHskTg@mail.gmail.com>
-From: "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <565CC2F2.4020808@zytor.com>
-Date: Mon, 30 Nov 2015 13:43:14 -0800
+Received: from pandora.arm.linux.org.uk ([78.32.30.218]:42898 "EHLO
+	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755047AbbK3WZD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Nov 2015 17:25:03 -0500
+Date: Mon, 30 Nov 2015 22:24:37 +0000
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH v2 1/4] init: create cmdline param to disable readonly
+Message-ID: <20151130222437.GT8644@n2100.arm.linux.org.uk>
+References: <1448494286-16029-1-git-send-email-keescook@chromium.org>
+ <1448494286-16029-2-git-send-email-keescook@chromium.org>
+ <20151126075130.GB18742@gmail.com>
+ <CAGXu5j+Mom2oYbsSE65BMCAgio68J6ST4wODUf8-qHdxOe0jOQ@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <CAGXu5jK+5UjQt+YZV_oe286+_5NrsZ7gTyVr-v+R7mF1uHskTg@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAGXu5j+Mom2oYbsSE65BMCAgio68J6ST4wODUf8-qHdxOe0jOQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Kees Cook <keescook@chromium.org>
-Cc: Ingo Molnar <mingo@kernel.org>, Andy Lutomirski <luto@amacapital.net>, Linus Torvalds <torvalds@linux-foundation.org>, PaX Team <pageexec@freemail.hu>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Mathias Krause <minipli@googlemail.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, x86-ml <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Michael Ellerman <mpe@ellerman.id.au>, linux-arch <linux-arch@vger.kernel.org>, Emese Revfy <re.emese@gmail.com>
-Message-ID: <20151130214314.itqlV_U2S-0eYhkFK71sFcb1WNmwzNW2FbIuWK5hX2c@z>
+Cc: Ingo Molnar <mingo@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Catalin Marinas <catalin.marinas@arm.com>, LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Mathias Krause <minipli@googlemail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20151130222437.DQLvqwBLPsod2-D4YjnTykiupuYjKwN-AE4VByWDKUA@z>
 
-On 11/30/15 13:33, Kees Cook wrote:
->>
->> I think what should do is have a debug option which can be set to "rw",
->> "log" or "oops"; the latter should probably be the default.
+On Mon, Nov 30, 2015 at 01:52:10PM -0800, Kees Cook wrote:
+> On Wed, Nov 25, 2015 at 11:51 PM, Ingo Molnar <mingo@kernel.org> wrote:
+> > * Kees Cook <keescook@chromium.org> wrote:
+> >> +#ifdef CONFIG_DEBUG_RODATA
+> >
+> > Btw., could you please remove the Kconfig option altogether in an additional patch
+> > and make read-only sections an always-on feature? It has been default-y for years
+> > and all distros have it enabled.
 > 
-> Can someone write that patch, and then I will include it in the
-> series? I haven't touched fault handler code, and it would be faster
-> if someone more familiar with that area did it. :)
-> 
+> Yeah, this is something I've wanted to do for a while, but I would
+> point out that only a few architectures have actually implemented it,
+> and for arm and arm64 it was very recent:
 
-The "log" option (the only hard one) can be added as a later
-enhancement, and probably should be.  It shouldn't block the series.
+I don't think it can entirely be a kernel command line option.  On ARM,
+enabling DEBUG_RODATA has a substantial effect on the size of the kernel
+image - we have to pad various sections to 1MB boundaries so we can
+set the appropriate permissions.
 
-	-hpa
+Forcing this layout on everyone won't work.
 
+What we can do is the half-way house: we can have the kernel command
+line option which enables and disables the protections, but the layout
+of the kernel image would still need to be controlled by DEBUG_RODATA.
+I'm left wondering what the advantage of that would be: it'd end up
+offering a suboptimal layout, additional memory usage but without the
+benefits of memory protections.
+
+The alternative is keeping the kernel in unlinked object form, and
+laying out and linking the kernel at boot time, probably in PIC
+assembly code.  That's possible but I think is undesirable.
+
+So all in all, I'm in favour of keeping things as they are on ARM.
+
+-- 
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
