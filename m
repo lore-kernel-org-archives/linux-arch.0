@@ -1,70 +1,71 @@
-From: Andi Kleen <andi@firstfloor.org>
-Subject: [PATCH] Kbuild: Enable interprocedural register allocation for gcc 5
-Date: Mon, 30 Nov 2015 22:00:43 -0800
-Message-ID: <1448949643-6059-1-git-send-email-andi@firstfloor.org>
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: mmarek@suse.com
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Andi Kleen <ak@linux.intel.com>
-List-Id: linux-arch.vger.kernel.org
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH v2 1/4] init: create cmdline param to disable readonly
+Date: Tue, 1 Dec 2015 08:19:05 +0100
+Message-ID: <20151201071905.GA3956@osiris>
+References: <1448494286-16029-1-git-send-email-keescook@chromium.org>
+ <1448494286-16029-2-git-send-email-keescook@chromium.org>
+ <20151126075130.GB18742@gmail.com>
+ <CAGXu5j+Mom2oYbsSE65BMCAgio68J6ST4wODUf8-qHdxOe0jOQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:41441 "EHLO
+	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754537AbbLAHTN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Dec 2015 02:19:13 -0500
+Received: from localhost
+	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+	Tue, 1 Dec 2015 07:19:11 -0000
+Content-Disposition: inline
+In-Reply-To: <CAGXu5j+Mom2oYbsSE65BMCAgio68J6ST4wODUf8-qHdxOe0jOQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: Ingo Molnar <mingo@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Catalin Marinas <catalin.marinas@arm.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Mathias Krause <minipli@googlemail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>
 
-From: Andi Kleen <ak@linux.intel.com>
+On Mon, Nov 30, 2015 at 01:52:10PM -0800, Kees Cook wrote:
+> On Wed, Nov 25, 2015 at 11:51 PM, Ingo Molnar <mingo@kernel.org> wrote:
+> > * Kees Cook <keescook@chromium.org> wrote:
+> >> +#ifdef CONFIG_DEBUG_RODATA
+> >
+> > Btw., could you please remove the Kconfig option altogether in an additional patch
+> > and make read-only sections an always-on feature? It has been default-y for years
+> > and all distros have it enabled.
+> 
+> Yeah, this is something I've wanted to do for a while, but I would
+> point out that only a few architectures have actually implemented it,
+> and for arm and arm64 it was very recent:
+> 
+> $ git grep 'config DEBUG_RODATA'
+> arch/arm/mm/Kconfig:config DEBUG_RODATA
+> arch/arm64/Kconfig.debug:config DEBUG_RODATA
+> arch/parisc/Kconfig.debug:config DEBUG_RODATA
+> arch/x86/Kconfig.debug:config DEBUG_RODATA
+> 
+> I think s390 already has strict kernel memory permissions, but they
+> set it up ahead of time. And now, I see in reading the parisc tree,
+> they do too, and mark_rodata_ro() is effectively a no-op. How does
+> powerpc handle permissions for kernel rodata?
+> 
+> For parisc (and maybe powerpc and s390) we'll need additional changes
+> to support __ro_after_init, since they may be making the ro section ro
+> _before_ init runs. But, that's okay since this series only uses
+> __ro_after_init on x86 for the moment. ;)
 
-gcc 5 has a new -fipa-ra option that enables limited interprocedural
-register allocation. When it generates a function it remembers
-what registers it clobbered. Later when the function is called
-it only saves registers that are actually clobbered by the function.
+s390 marks the ro sections read-only on paging_init() for the kernel
+1:1 mapping before we enable address translation.  Afterwards we
+currently do not support modification of the kernel 1:1 mapping.
+This also might be larger change, since we may need to split large
+2GB mappings into 1MB or 4KB mappings.
 
-This only really works when caller and callee are in the same compilation unit
-(except with LTO)
+Given that s390 has priviledged instructions that can easily bypass
+page table based write protection (we use that for ftrace for
+example), I certainly have doubts about the security value here.  For
+me this is more a debugging help which catches random writes to kernel
+text and which makes life for "security" module writers a bit more
+difficult who try to modify the system call table.
 
-In principle this violates the ABI which specifies which registers
-are saved and which are clobbered on a call. However there shouldn't
-be anything else relying on this: while we have multiple subsystems
-that patch binaries (like ftrace, kprobes) they all cannot know
-which registers are used as arguments, so always need to save/restore
-all registers.
-
-Similarly gdb and other debuggers cannot rely on the ABI either.
-
-It has some risk that it breaks something obscure, but so far I haven't
-seen or found anything.
-
-On my system with gcc 5.2 it saves about 40k in binary size
-
-   text    data     bss     dec     hex filename
-9583446 2178288 1675264 13436998         cd0846 vmlinux-base
-9542180 2178096 1675264 13395540         cc6654 vmlinux-ipara   -0.4%
-
-pretty much all in missing spill code. So it's not a dramatic win,
-but still a nice improvement.
-
-Open: for now I enabled it for all architectures, although it's
-only tested on x86-64. It may be safer to move it to be x86
-specific or guard with an CONFIG option, until more testing can be done.
-
-Signed-off-by: Andi Kleen <ak@linux.intel.com>
----
- Makefile | 6 ++++++
- 1 file changed, 6 insertions(+)
-
-diff --git a/Makefile b/Makefile
-index 2ffdf9d..c95320f 100644
---- a/Makefile
-+++ b/Makefile
-@@ -626,6 +626,12 @@ KBUILD_CFLAGS += $(call cc-option,-fno-reorder-blocks,) \
-                  $(call cc-option,-fno-partial-inlining)
- endif
- 
-+# Ask gcc to use interprocedural register allocation when possible.
-+# This allows it to violate the callee-saved register ABI and avoid
-+# generating register spills in the caller when it knows the function does
-+# not clobber these registers
-+KBUILD_CFLAGS += $(call cc-option,-fipa-ra,)
-+
- ifneq ($(CONFIG_FRAME_WARN),0)
- KBUILD_CFLAGS += $(call cc-option,-Wframe-larger-than=${CONFIG_FRAME_WARN})
- endif
--- 
-2.6.3
-
+Anyway, if you remove CONFIG_DEBUG_RODATA you could simply make the
+existing mark_rodata_ro() function in kernel/init.c a weak function
+and architectures could override it if wanted.
