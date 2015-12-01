@@ -1,44 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:60597 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753956AbbK3WZj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 Nov 2015 17:25:39 -0500
-Subject: Re: [PATCH v2 2/4] introduce post-init read-only memory
-References: <1448494286-16029-1-git-send-email-keescook@chromium.org>
- <1448494286-16029-3-git-send-email-keescook@chromium.org>
- <56564F0F.3158.108D0B78@pageexec.freemail.hu>
-From: "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <565CCCBB.1070500@zytor.com>
-Date: Mon, 30 Nov 2015 14:24:59 -0800
-MIME-Version: 1.0
-In-Reply-To: <56564F0F.3158.108D0B78@pageexec.freemail.hu>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Received: from one.firstfloor.org ([193.170.194.197]:41253 "EHLO
+	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750741AbbLAGDk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Dec 2015 01:03:40 -0500
+From: Andi Kleen <andi@firstfloor.org>
+Subject: [PATCH] Kbuild: Enable interprocedural register allocation for gcc 5
+Date: Mon, 30 Nov 2015 22:00:43 -0800
+Message-ID: <1448949643-6059-1-git-send-email-andi@firstfloor.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: pageexec@freemail.hu, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>
-Cc: Andy Lutomirski <luto@amacapital.net>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20151130222459.W78Fj5U2ICmMf95nlzg0NX2jkbuLrpoKwchZox_bl08@z>
+To: mmarek@suse.com
+Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Andi Kleen <ak@linux.intel.com>
+Message-ID: <20151201060043.rTV26WiMMiTXUkgDQpd2w9VVW80ZhcNZjg1lwOhYwcU@z>
 
-On 11/25/15 16:15, PaX Team wrote:
-> On 25 Nov 2015 at 15:31, Kees Cook wrote:
-> 
->> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
->> index c4bd0e2c173c..772c784ba763 100644
->> --- a/include/asm-generic/vmlinux.lds.h
->> +++ b/include/asm-generic/vmlinux.lds.h
->> @@ -256,6 +256,7 @@
->>   .rodata           : AT(ADDR(.rodata) - LOAD_OFFSET) {		\
->>    VMLINUX_SYMBOL(__start_rodata) = .;			\
->>    *(.rodata) *(.rodata.*)					\
->> +		*(.data..ro_after_init)	/* Read only after init */	\
->    ^^^^^^^^^^^
-> looks like it's tabs vs. spaces...
-> 
+From: Andi Kleen <ak@linux.intel.com>
 
-One more thing... double dots I think has special meanings to gcc, so it
-might be better to avoid.
+gcc 5 has a new -fipa-ra option that enables limited interprocedural
+register allocation. When it generates a function it remembers
+what registers it clobbered. Later when the function is called
+it only saves registers that are actually clobbered by the function.
 
-	-hpa
+This only really works when caller and callee are in the same compilation unit
+(except with LTO)
 
+In principle this violates the ABI which specifies which registers
+are saved and which are clobbered on a call. However there shouldn't
+be anything else relying on this: while we have multiple subsystems
+that patch binaries (like ftrace, kprobes) they all cannot know
+which registers are used as arguments, so always need to save/restore
+all registers.
+
+Similarly gdb and other debuggers cannot rely on the ABI either.
+
+It has some risk that it breaks something obscure, but so far I haven't
+seen or found anything.
+
+On my system with gcc 5.2 it saves about 40k in binary size
+
+   text    data     bss     dec     hex filename
+9583446 2178288 1675264 13436998         cd0846 vmlinux-base
+9542180 2178096 1675264 13395540         cc6654 vmlinux-ipara   -0.4%
+
+pretty much all in missing spill code. So it's not a dramatic win,
+but still a nice improvement.
+
+Open: for now I enabled it for all architectures, although it's
+only tested on x86-64. It may be safer to move it to be x86
+specific or guard with an CONFIG option, until more testing can be done.
+
+Signed-off-by: Andi Kleen <ak@linux.intel.com>
+---
+ Makefile | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/Makefile b/Makefile
+index 2ffdf9d..c95320f 100644
+--- a/Makefile
++++ b/Makefile
+@@ -626,6 +626,12 @@ KBUILD_CFLAGS += $(call cc-option,-fno-reorder-blocks,) \
+                  $(call cc-option,-fno-partial-inlining)
+ endif
+ 
++# Ask gcc to use interprocedural register allocation when possible.
++# This allows it to violate the callee-saved register ABI and avoid
++# generating register spills in the caller when it knows the function does
++# not clobber these registers
++KBUILD_CFLAGS += $(call cc-option,-fipa-ra,)
++
+ ifneq ($(CONFIG_FRAME_WARN),0)
+ KBUILD_CFLAGS += $(call cc-option,-Wframe-larger-than=${CONFIG_FRAME_WARN})
+ endif
+-- 
+2.6.3
 
