@@ -1,75 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from one.firstfloor.org ([193.170.194.197]:41253 "EHLO
-	one.firstfloor.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750741AbbLAGDk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Dec 2015 01:03:40 -0500
-From: Andi Kleen <andi@firstfloor.org>
-Subject: [PATCH] Kbuild: Enable interprocedural register allocation for gcc 5
-Date: Mon, 30 Nov 2015 22:00:43 -0800
-Message-ID: <1448949643-6059-1-git-send-email-andi@firstfloor.org>
+Received: from mail-wm0-f50.google.com ([74.125.82.50]:37863 "EHLO
+	mail-wm0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751359AbbLAHYJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Dec 2015 02:24:09 -0500
+Date: Tue, 1 Dec 2015 08:24:03 +0100
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [PATCH v2 1/4] init: create cmdline param to disable readonly
+Message-ID: <20151201072403.GA28270@gmail.com>
+References: <1448494286-16029-1-git-send-email-keescook@chromium.org>
+ <1448494286-16029-2-git-send-email-keescook@chromium.org>
+ <20151126075130.GB18742@gmail.com>
+ <CAGXu5j+Mom2oYbsSE65BMCAgio68J6ST4wODUf8-qHdxOe0jOQ@mail.gmail.com>
+ <20151130222437.GT8644@n2100.arm.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20151130222437.GT8644@n2100.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mmarek@suse.com
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Andi Kleen <ak@linux.intel.com>
-Message-ID: <20151201060043.rTV26WiMMiTXUkgDQpd2w9VVW80ZhcNZjg1lwOhYwcU@z>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Kees Cook <keescook@chromium.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Catalin Marinas <catalin.marinas@arm.com>, LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Mathias Krause <minipli@googlemail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20151201072403.d9YZw0oEAWUmF3W_4HIQv89UCynNEWxPWfHm-jxI9io@z>
 
-From: Andi Kleen <ak@linux.intel.com>
 
-gcc 5 has a new -fipa-ra option that enables limited interprocedural
-register allocation. When it generates a function it remembers
-what registers it clobbered. Later when the function is called
-it only saves registers that are actually clobbered by the function.
+* Russell King - ARM Linux <linux@arm.linux.org.uk> wrote:
 
-This only really works when caller and callee are in the same compilation unit
-(except with LTO)
+> On Mon, Nov 30, 2015 at 01:52:10PM -0800, Kees Cook wrote:
+> > On Wed, Nov 25, 2015 at 11:51 PM, Ingo Molnar <mingo@kernel.org> wrote:
+> > > * Kees Cook <keescook@chromium.org> wrote:
+> > >> +#ifdef CONFIG_DEBUG_RODATA
+> > >
+> > > Btw., could you please remove the Kconfig option altogether in an additional patch
+> > > and make read-only sections an always-on feature? It has been default-y for years
+> > > and all distros have it enabled.
+> > 
+> > Yeah, this is something I've wanted to do for a while, but I would
+> > point out that only a few architectures have actually implemented it,
+> > and for arm and arm64 it was very recent:
+> 
+> I don't think it can entirely be a kernel command line option.  On ARM,
+> enabling DEBUG_RODATA has a substantial effect on the size of the kernel
+> image - we have to pad various sections to 1MB boundaries so we can
+> set the appropriate permissions.
+> 
+> Forcing this layout on everyone won't work.
 
-In principle this violates the ABI which specifies which registers
-are saved and which are clobbered on a call. However there shouldn't
-be anything else relying on this: while we have multiple subsystems
-that patch binaries (like ftrace, kprobes) they all cannot know
-which registers are used as arguments, so always need to save/restore
-all registers.
+Yeah, so I'd suggest to have it always-on on x86 (after adding the boot option), 
+to simplify the x86 code and to make it more obvious that we rely on this.
 
-Similarly gdb and other debuggers cannot rely on the ABI either.
+There's a moderate amount of #ifdeffery around this:
 
-It has some risk that it breaks something obscure, but so far I haven't
-seen or found anything.
+  triton:~/tip> git grep -w CONFIG_DEBUG_RODATA arch/x86/  | grep \# | wc -l
+  15
 
-On my system with gcc 5.2 it saves about 40k in binary size
+Thanks,
 
-   text    data     bss     dec     hex filename
-9583446 2178288 1675264 13436998         cd0846 vmlinux-base
-9542180 2178096 1675264 13395540         cc6654 vmlinux-ipara   -0.4%
-
-pretty much all in missing spill code. So it's not a dramatic win,
-but still a nice improvement.
-
-Open: for now I enabled it for all architectures, although it's
-only tested on x86-64. It may be safer to move it to be x86
-specific or guard with an CONFIG option, until more testing can be done.
-
-Signed-off-by: Andi Kleen <ak@linux.intel.com>
----
- Makefile | 6 ++++++
- 1 file changed, 6 insertions(+)
-
-diff --git a/Makefile b/Makefile
-index 2ffdf9d..c95320f 100644
---- a/Makefile
-+++ b/Makefile
-@@ -626,6 +626,12 @@ KBUILD_CFLAGS += $(call cc-option,-fno-reorder-blocks,) \
-                  $(call cc-option,-fno-partial-inlining)
- endif
- 
-+# Ask gcc to use interprocedural register allocation when possible.
-+# This allows it to violate the callee-saved register ABI and avoid
-+# generating register spills in the caller when it knows the function does
-+# not clobber these registers
-+KBUILD_CFLAGS += $(call cc-option,-fipa-ra,)
-+
- ifneq ($(CONFIG_FRAME_WARN),0)
- KBUILD_CFLAGS += $(call cc-option,-Wframe-larger-than=${CONFIG_FRAME_WARN})
- endif
--- 
-2.6.3
-
+	Ingo
