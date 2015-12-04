@@ -1,58 +1,200 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2 1/4] init: create cmdline param to disable readonly
-Date: Tue, 1 Dec 2015 08:24:03 +0100
-Message-ID: <20151201072403.GA28270@gmail.com>
-References: <1448494286-16029-1-git-send-email-keescook@chromium.org>
- <1448494286-16029-2-git-send-email-keescook@chromium.org>
- <20151126075130.GB18742@gmail.com>
- <CAGXu5j+Mom2oYbsSE65BMCAgio68J6ST4wODUf8-qHdxOe0jOQ@mail.gmail.com>
- <20151130222437.GT8644@n2100.arm.linux.org.uk>
-Reply-To: kernel-hardening@lists.openwall.com
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <kernel-hardening-return-2033-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-Sender: Ingo Molnar <mingo.kernel.org@gmail.com>
-Content-Disposition: inline
-In-Reply-To: <20151130222437.GT8644@n2100.arm.linux.org.uk>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Kees Cook <keescook@chromium.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Catalin Marinas <catalin.marinas@arm.com>, LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Mathias Krause <minipli@googlemail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>
+From: Dave Hansen <dave-gkUM19QKKo4@public.gmane.org>
+Subject: [PATCH 00/34] x86: Memory Protection Keys (v5)
+Date: Thu, 03 Dec 2015 17:14:24 -0800
+Message-ID: <20151204011424.8A36E365@viggo.jf.intel.com>
+Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, Dave Hansen <dave-gkUM19QKKo4@public.gmane.org>, linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, aarcange-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org, jack-AlSwsSmVLrQ@public.gmane.org, kirill.shutemov-VuQAYsv1563Yd54FQh9/CA@public.gmane.org, n-horiguchi-PaJj6Psr51x8UrSeD/g0lQ@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
+Memory Protection Keys for User pages is a CPU feature which will
+first appear on Skylake Servers, but will also be supported on
+future non-server parts.  It provides a mechanism for enforcing
+page-based protections, but without requiring modification of the
+page tables when an application changes protection domains.  See
+the Documentation/ patch for more details.
 
-* Russell King - ARM Linux <linux@arm.linux.org.uk> wrote:
+Changes from v4:
 
-> On Mon, Nov 30, 2015 at 01:52:10PM -0800, Kees Cook wrote:
-> > On Wed, Nov 25, 2015 at 11:51 PM, Ingo Molnar <mingo@kernel.org> wrote:
-> > > * Kees Cook <keescook@chromium.org> wrote:
-> > >> +#ifdef CONFIG_DEBUG_RODATA
-> > >
-> > > Btw., could you please remove the Kconfig option altogether in an additional patch
-> > > and make read-only sections an always-on feature? It has been default-y for years
-> > > and all distros have it enabled.
-> > 
-> > Yeah, this is something I've wanted to do for a while, but I would
-> > point out that only a few architectures have actually implemented it,
-> > and for arm and arm64 it was very recent:
-> 
-> I don't think it can entirely be a kernel command line option.  On ARM,
-> enabling DEBUG_RODATA has a substantial effect on the size of the kernel
-> image - we have to pad various sections to 1MB boundaries so we can
-> set the appropriate permissions.
-> 
-> Forcing this layout on everyone won't work.
+ * Made "allow setting of XSAVE state" safe if we got preempted
+   between when we saved our FPU state and when we restore it.
+   (I would appreciate a look from Ingo on this patch).
+ * Fixed up a few things from Thomas's latest comments: splt up
+   siginfo in to x86 and generic, removed extra 'eax' variable
+   in rdpkru function, reworked vm_flags assignment, reworded
+   a comment in pte_allows_gup()
+ * Add missing DISABLED/REQUIRED_MASK14 in cpufeature.h
+ * Added comment about compile optimization in fault path
+ * Left get_user_pages_locked() alone.  Andrea thinks we need it.
 
-Yeah, so I'd suggest to have it always-on on x86 (after adding the boot option), 
-to simplify the x86 code and to make it more obvious that we rely on this.
+Changes from RFCv3:
 
-There's a moderate amount of #ifdeffery around this:
+ * Added 'current' and 'foreign' variants of get_user_pages() to
+   help indicate whether protection keys should be enforced.
+   Thanks to Jerome Glisse for pointing out this issue.
+ * Added "allocation" and set/get system calls so that we can do
+   management of proection keys in the kernel.  This opens the
+   door to use of specific protection keys for kernel use in the
+   future, such as for execute-only memory.
+ * Removed the kselftest code for the moment.  It will be
+   submitted separately.
 
-  triton:~/tip> git grep -w CONFIG_DEBUG_RODATA arch/x86/  | grep \# | wc -l
-  15
+Thanks Ingo and Thomas for most of these):
+Changes from RFCv2 (Thanks Ingo and Thomas for most of these):
 
-Thanks,
+ * few minor compile warnings
+ * changed 'nopku' interaction with cpuid bits.  Now, we do not
+   clear the PKU cpuid bit, we just skip enabling it.
+ * changed __pkru_allows_write() to also check access disable bit
+ * removed the unused write_pkru()
+ * made si_pkey a u64 and added some patch description details.
+   Also made it share space in siginfo with MPX and clarified
+   comments.
+ * give some real text for the Processor Trace xsave state
+ * made vma_pkey() less ugly (and much more optimized actually)
+ * added SEGV_PKUERR to copy_siginfo_to_user()
+ * remove page table walk when filling in si_pkey, added some
+   big fat comments about it being inherently racy.
+ * added self test code
 
-	Ingo
+This code is not runnable to anyone outside of Intel unless they
+have some special hardware or a fancy simulator.  If you are
+interested in running this for real, please get in touch with me.
+Hardware is available to a very small but nonzero number of
+people.
+
+This set is also available here (with the new syscall):
+
+	git://git.kernel.org/pub/scm/linux/kernel/git/daveh/x86-pkeys.git pkeys-v014
+
+=== diffstat ===
+
+Dave Hansen (34):
+      mm, gup: introduce concept of "foreign" get_user_pages()
+      x86, fpu: add placeholder for Processor Trace XSAVE state
+      x86, pkeys: Add Kconfig option
+      x86, pkeys: cpuid bit definition
+      x86, pkeys: define new CR4 bit
+      x86, pkeys: add PKRU xsave fields and data structure(s)
+      x86, pkeys: PTE bits for storing protection key
+      x86, pkeys: new page fault error code bit: PF_PK
+      x86, pkeys: store protection in high VMA flags
+      x86, pkeys: arch-specific protection bits
+      x86, pkeys: pass VMA down in to fault signal generation code
+      signals, pkeys: notify userspace about protection key faults
+      x86, pkeys: fill in pkey field in siginfo
+      x86, pkeys: add functions to fetch PKRU
+      mm: factor out VMA fault permission checking
+      x86, mm: simplify get_user_pages() PTE bit handling
+      x86, pkeys: check VMAs and PTEs for protection keys
+      mm: add gup flag to indicate "foreign" mm access
+      x86, pkeys: optimize fault handling in access_error()
+      x86, pkeys: differentiate instruction fetches
+      x86, pkeys: dump PKRU with other kernel registers
+      x86, pkeys: dump PTE pkey in /proc/pid/smaps
+      x86, pkeys: add Kconfig prompt to existing config option
+      mm, multi-arch: pass a protection key in to calc_vm_flag_bits()
+      x86, pkeys: add arch_validate_pkey()
+      mm: implement new mprotect_key() system call
+      x86, pkeys: make mprotect_key() mask off additional vm_flags
+      x86: wire up mprotect_key() system call
+      x86: separate out LDT init from context init
+      x86, fpu: allow setting of XSAVE state
+      x86, pkeys: allocation/free syscalls
+      x86, pkeys: add pkey set/get syscalls
+      x86, pkeys: actually enable Memory Protection Keys in CPU
+      x86, pkeys: Documentation
+
+ Documentation/kernel-parameters.txt         |   3 +
+ Documentation/x86/protection-keys.txt       |  53 +++++
+ arch/mips/mm/gup.c                          |   3 +-
+ arch/powerpc/include/asm/mman.h             |   5 +-
+ arch/powerpc/include/asm/mmu_context.h      |  12 +
+ arch/s390/include/asm/mmu_context.h         |  12 +
+ arch/s390/mm/gup.c                          |   3 +-
+ arch/sh/mm/gup.c                            |   2 +-
+ arch/sparc/mm/gup.c                         |   2 +-
+ arch/unicore32/include/asm/mmu_context.h    |  12 +
+ arch/x86/Kconfig                            |  16 ++
+ arch/x86/entry/syscalls/syscall_32.tbl      |   5 +
+ arch/x86/entry/syscalls/syscall_64.tbl      |   5 +
+ arch/x86/include/asm/cpufeature.h           |  56 +++--
+ arch/x86/include/asm/disabled-features.h    |  13 ++
+ arch/x86/include/asm/fpu/internal.h         |   2 +
+ arch/x86/include/asm/fpu/types.h            |  12 +
+ arch/x86/include/asm/fpu/xstate.h           |   4 +-
+ arch/x86/include/asm/mmu.h                  |   7 +
+ arch/x86/include/asm/mmu_context.h          | 110 ++++++++-
+ arch/x86/include/asm/pgtable.h              |  38 +++
+ arch/x86/include/asm/pgtable_types.h        |  34 ++-
+ arch/x86/include/asm/pkeys.h                |  67 ++++++
+ arch/x86/include/asm/required-features.h    |   5 +
+ arch/x86/include/asm/special_insns.h        |  22 ++
+ arch/x86/include/uapi/asm/mman.h            |  22 ++
+ arch/x86/include/uapi/asm/processor-flags.h |   2 +
+ arch/x86/kernel/cpu/common.c                |  42 ++++
+ arch/x86/kernel/fpu/core.c                  |  63 +++++
+ arch/x86/kernel/fpu/xstate.c                | 241 +++++++++++++++++++-
+ arch/x86/kernel/ldt.c                       |   4 +-
+ arch/x86/kernel/process_64.c                |   2 +
+ arch/x86/kernel/setup.c                     |   9 +
+ arch/x86/mm/fault.c                         | 158 +++++++++++--
+ arch/x86/mm/gup.c                           |  51 +++--
+ arch/x86/mm/mpx.c                           |   4 +-
+ drivers/char/agp/frontend.c                 |   2 +-
+ drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c     |   4 +-
+ drivers/gpu/drm/i915/i915_gem_userptr.c     |   2 +-
+ drivers/gpu/drm/radeon/radeon_ttm.c         |   4 +-
+ drivers/gpu/drm/via/via_dmablit.c           |   3 +-
+ drivers/infiniband/core/umem.c              |   2 +-
+ drivers/infiniband/core/umem_odp.c          |   8 +-
+ drivers/infiniband/hw/mthca/mthca_memfree.c |   3 +-
+ drivers/infiniband/hw/qib/qib_user_pages.c  |   3 +-
+ drivers/infiniband/hw/usnic/usnic_uiom.c    |   2 +-
+ drivers/iommu/amd_iommu_v2.c                |   8 +-
+ drivers/media/pci/ivtv/ivtv-udma.c          |   4 +-
+ drivers/media/pci/ivtv/ivtv-yuv.c           |  10 +-
+ drivers/media/v4l2-core/videobuf-dma-sg.c   |   3 +-
+ drivers/misc/sgi-gru/grufault.c             |   3 +-
+ drivers/scsi/st.c                           |   2 -
+ drivers/staging/android/ashmem.c            |   4 +-
+ drivers/video/fbdev/pvr2fb.c                |   4 +-
+ drivers/virt/fsl_hypervisor.c               |   5 +-
+ fs/exec.c                                   |   8 +-
+ fs/proc/task_mmu.c                          |   5 +
+ include/asm-generic/mm_hooks.h              |  12 +
+ include/linux/mm.h                          |  55 ++++-
+ include/linux/mman.h                        |   6 +-
+ include/linux/pkeys.h                       |  59 +++++
+ include/uapi/asm-generic/mman-common.h      |   5 +
+ include/uapi/asm-generic/siginfo.h          |  17 +-
+ kernel/events/uprobes.c                     |   4 +-
+ kernel/signal.c                             |   4 +
+ mm/Kconfig                                  |  13 ++
+ mm/frame_vector.c                           |   2 +-
+ mm/gup.c                                    |  93 ++++++--
+ mm/ksm.c                                    |  10 +-
+ mm/memory.c                                 |   8 +-
+ mm/mempolicy.c                              |   6 +-
+ mm/mmap.c                                   |   2 +-
+ mm/mprotect.c                               | 136 ++++++++++-
+ mm/nommu.c                                  |  35 ++-
+ mm/process_vm_access.c                      |   6 +-
+ mm/util.c                                   |   4 +-
+ net/ceph/pagevec.c                          |   2 +-
+ security/tomoyo/domain.c                    |   9 +-
+ virt/kvm/async_pf.c                         |   2 +-
+ virt/kvm/kvm_main.c                         |  13 +-
+ 80 files changed, 1470 insertions(+), 223 deletions(-)
+
+Cc: linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: aarcange-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org
+Cc: akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org
+Cc: jack-AlSwsSmVLrQ@public.gmane.org
+Cc: kirill.shutemov-VuQAYsv1563Yd54FQh9/CA@public.gmane.org
+Cc: linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: n-horiguchi-PaJj6Psr51x8UrSeD/g0lQ@public.gmane.org
+Cc: x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org
