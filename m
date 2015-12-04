@@ -1,148 +1,109 @@
-From: Dave Hansen <dave@sr71.net>
-Subject: [PATCH 24/34] mm, multi-arch: pass a protection key in to calc_vm_flag_bits()
-Date: Thu, 03 Dec 2015 17:14:57 -0800
-Message-ID: <20151204011457.65933803@viggo.jf.intel.com>
-References: <20151204011424.8A36E365@viggo.jf.intel.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20151204011424.8A36E365@viggo.jf.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-mm@kvack.org, x86@kernel.org, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+From: tip-bot for Davidlohr Bueso <tipbot@zytor.com>
+Subject: [tip:locking/core] locking/cmpxchg, arch: Remove tas()
+  definitions
+Date: Fri, 4 Dec 2015 04:01:18 -0800
+Message-ID: <tip-fbd35c0d2fb41b75863a0e45fe939c8440375b0a@git.kernel.org>
+References: <1445975631-17047-2-git-send-email-dave@stgolabs.net>
+Reply-To: mingo@kernel.org, paulmck@linux.vnet.ibm.com,
+	  akpm@linux-foundation.org, hpa@zytor.com, peterz@infradead.org,
+	  dave@stgolabs.net, tglx@linutronix.de,
+	  linux-kernel@vger.kernel.org, dbueso@suse.de,
+	  torvalds@linux-foundation.org, realmz6@gmail.com,
+	  a-jacquiot@ti.com, linux-arch@vger.kernel.org,
+	  cmetcalf@ezchip.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1445975631-17047-2-git-send-email-dave@stgolabs.net>
+Content-Disposition: inline
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-tip-commits@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, cmetcalf@ezchip.com, realmz6@gmail.com, a-jacquiot@ti.com, linux-kernel@vger.kernel.org, dbueso@suse.de, torvalds@linux-foundation.org, tglx@linutronix.de, dave@stgolabs.net, hpa@zytor.com, peterz@infradead.org, paulmck@linux.vnet.ibm.com, akpm@linux-foundation.org, mingo@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+Commit-ID:  fbd35c0d2fb41b75863a0e45fe939c8440375b0a
+Gitweb:     http://git.kernel.org/tip/fbd35c0d2fb41b75863a0e45fe939c8440375b0a
+Author:     Davidlohr Bueso <dave@stgolabs.net>
+AuthorDate: Tue, 27 Oct 2015 12:53:48 -0700
+Committer:  Ingo Molnar <mingo@kernel.org>
+CommitDate: Fri, 4 Dec 2015 11:39:51 +0100
 
-From: Dave Hansen <dave.hansen@linux.intel.com>
+locking/cmpxchg, arch: Remove tas() definitions
 
-This plumbs a protection key through calc_vm_flag_bits().  We
-could have done this in calc_vm_prot_bits(), but I did not feel
-super strongly which way to go.  It was pretty arbitrary which
-one to use.
+It seems that commit 5dc12ddee93 ("Remove tas()") missed some files.
+Correct this and fully drop this macro, for which we should be using
+cmpxchg() like calls.
 
-Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
+Signed-off-by: Davidlohr Bueso <dbueso@suse.de>
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+Cc: <linux-arch@vger.kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+Cc: Chris Metcalf <cmetcalf@ezchip.com>
+Cc: David Howells <dhowells@re hat.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Steven Miao <realmz6@gmail.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: dave@stgolabs.net
+Link: http://lkml.kernel.org/r/1445975631-17047-2-git-send-email-dave@stgolabs.net
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
+ arch/blackfin/include/asm/cmpxchg.h | 1 -
+ arch/c6x/include/asm/cmpxchg.h      | 2 --
+ arch/frv/include/asm/cmpxchg.h      | 2 --
+ arch/tile/include/asm/cmpxchg.h     | 2 --
+ 4 files changed, 7 deletions(-)
 
- b/arch/powerpc/include/asm/mman.h  |    5 +++--
- b/drivers/char/agp/frontend.c      |    2 +-
- b/drivers/staging/android/ashmem.c |    4 ++--
- b/include/linux/mman.h             |    6 +++---
- b/mm/mmap.c                        |    2 +-
- b/mm/mprotect.c                    |    2 +-
- b/mm/nommu.c                       |    2 +-
- 7 files changed, 12 insertions(+), 11 deletions(-)
-
-diff -puN arch/powerpc/include/asm/mman.h~pkeys-84-calc_vm_prot_bits arch/powerpc/include/asm/mman.h
---- a/arch/powerpc/include/asm/mman.h~pkeys-84-calc_vm_prot_bits	2015-12-03 16:21:29.142830772 -0800
-+++ b/arch/powerpc/include/asm/mman.h	2015-12-03 16:21:29.155831361 -0800
-@@ -18,11 +18,12 @@
-  * This file is included by linux/mman.h, so we can't use cacl_vm_prot_bits()
-  * here.  How important is the optimization?
-  */
--static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot)
-+static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot,
-+		unsigned long pkey)
- {
- 	return (prot & PROT_SAO) ? VM_SAO : 0;
- }
--#define arch_calc_vm_prot_bits(prot) arch_calc_vm_prot_bits(prot)
-+#define arch_calc_vm_prot_bits(prot, pkey) arch_calc_vm_prot_bits(prot, pkey)
+diff --git a/arch/blackfin/include/asm/cmpxchg.h b/arch/blackfin/include/asm/cmpxchg.h
+index c05868c..2539288 100644
+--- a/arch/blackfin/include/asm/cmpxchg.h
++++ b/arch/blackfin/include/asm/cmpxchg.h
+@@ -128,6 +128,5 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
+ #endif /* !CONFIG_SMP */
  
- static inline pgprot_t arch_vm_get_page_prot(unsigned long vm_flags)
- {
-diff -puN drivers/char/agp/frontend.c~pkeys-84-calc_vm_prot_bits drivers/char/agp/frontend.c
---- a/drivers/char/agp/frontend.c~pkeys-84-calc_vm_prot_bits	2015-12-03 16:21:29.143830817 -0800
-+++ b/drivers/char/agp/frontend.c	2015-12-03 16:21:29.155831361 -0800
-@@ -156,7 +156,7 @@ static pgprot_t agp_convert_mmap_flags(i
- {
- 	unsigned long prot_bits;
+ #define xchg(ptr, x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
+-#define tas(ptr) ((void)xchg((ptr), 1))
  
--	prot_bits = calc_vm_prot_bits(prot) | VM_SHARED;
-+	prot_bits = calc_vm_prot_bits(prot, 0) | VM_SHARED;
- 	return vm_get_page_prot(prot_bits);
- }
+ #endif /* __ARCH_BLACKFIN_CMPXCHG__ */
+diff --git a/arch/c6x/include/asm/cmpxchg.h b/arch/c6x/include/asm/cmpxchg.h
+index b27c8ce..93d0a5a 100644
+--- a/arch/c6x/include/asm/cmpxchg.h
++++ b/arch/c6x/include/asm/cmpxchg.h
+@@ -47,8 +47,6 @@ static inline unsigned int __xchg(unsigned int x, volatile void *ptr, int size)
+ #define xchg(ptr, x) \
+ 	((__typeof__(*(ptr)))__xchg((unsigned int)(x), (void *) (ptr), \
+ 				    sizeof(*(ptr))))
+-#define tas(ptr)    xchg((ptr), 1)
+-
  
-diff -puN drivers/staging/android/ashmem.c~pkeys-84-calc_vm_prot_bits drivers/staging/android/ashmem.c
---- a/drivers/staging/android/ashmem.c~pkeys-84-calc_vm_prot_bits	2015-12-03 16:21:29.145830908 -0800
-+++ b/drivers/staging/android/ashmem.c	2015-12-03 16:21:29.156831407 -0800
-@@ -372,8 +372,8 @@ static int ashmem_mmap(struct file *file
- 	}
+ #include <asm-generic/cmpxchg-local.h>
  
- 	/* requested protection bits must match our allowed protection mask */
--	if (unlikely((vma->vm_flags & ~calc_vm_prot_bits(asma->prot_mask)) &
--		     calc_vm_prot_bits(PROT_MASK))) {
-+	if (unlikely((vma->vm_flags & ~calc_vm_prot_bits(asma->prot_mask, 0)) &
-+		     calc_vm_prot_bits(PROT_MASK, 0))) {
- 		ret = -EPERM;
- 		goto out;
- 	}
-diff -puN include/linux/mman.h~pkeys-84-calc_vm_prot_bits include/linux/mman.h
---- a/include/linux/mman.h~pkeys-84-calc_vm_prot_bits	2015-12-03 16:21:29.147830999 -0800
-+++ b/include/linux/mman.h	2015-12-03 16:21:29.156831407 -0800
-@@ -35,7 +35,7 @@ static inline void vm_unacct_memory(long
-  */
+diff --git a/arch/frv/include/asm/cmpxchg.h b/arch/frv/include/asm/cmpxchg.h
+index 5b04dd0..a899765 100644
+--- a/arch/frv/include/asm/cmpxchg.h
++++ b/arch/frv/include/asm/cmpxchg.h
+@@ -69,8 +69,6 @@ extern uint32_t __xchg_32(uint32_t i, volatile void *v);
  
- #ifndef arch_calc_vm_prot_bits
--#define arch_calc_vm_prot_bits(prot) 0
-+#define arch_calc_vm_prot_bits(prot, pkey) 0
  #endif
  
- #ifndef arch_vm_get_page_prot
-@@ -70,12 +70,12 @@ static inline int arch_validate_prot(uns
-  * Combine the mmap "prot" argument into "vm_flags" used internally.
-  */
- static inline unsigned long
--calc_vm_prot_bits(unsigned long prot)
-+calc_vm_prot_bits(unsigned long prot, unsigned long pkey)
- {
- 	return _calc_vm_trans(prot, PROT_READ,  VM_READ ) |
- 	       _calc_vm_trans(prot, PROT_WRITE, VM_WRITE) |
- 	       _calc_vm_trans(prot, PROT_EXEC,  VM_EXEC) |
--	       arch_calc_vm_prot_bits(prot);
-+	       arch_calc_vm_prot_bits(prot, pkey);
- }
- 
+-#define tas(ptr) (xchg((ptr), 1))
+-
+ /*****************************************************************************/
  /*
-diff -puN mm/mmap.c~pkeys-84-calc_vm_prot_bits mm/mmap.c
---- a/mm/mmap.c~pkeys-84-calc_vm_prot_bits	2015-12-03 16:21:29.148831044 -0800
-+++ b/mm/mmap.c	2015-12-03 16:21:29.157831452 -0800
-@@ -1309,7 +1309,7 @@ unsigned long do_mmap(struct file *file,
- 	 * to. we assume access permissions have been handled by the open
- 	 * of the memory object, so we don't do any here.
- 	 */
--	vm_flags |= calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags) |
-+	vm_flags |= calc_vm_prot_bits(prot, 0) | calc_vm_flag_bits(flags) |
- 			mm->def_flags | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC;
+  * compare and conditionally exchange value with memory
+diff --git a/arch/tile/include/asm/cmpxchg.h b/arch/tile/include/asm/cmpxchg.h
+index 0ccda3c..25d5899 100644
+--- a/arch/tile/include/asm/cmpxchg.h
++++ b/arch/tile/include/asm/cmpxchg.h
+@@ -127,8 +127,6 @@ long long _atomic64_cmpxchg(long long *v, long long o, long long n);
  
- 	if (flags & MAP_LOCKED)
-diff -puN mm/mprotect.c~pkeys-84-calc_vm_prot_bits mm/mprotect.c
---- a/mm/mprotect.c~pkeys-84-calc_vm_prot_bits	2015-12-03 16:21:29.150831135 -0800
-+++ b/mm/mprotect.c	2015-12-03 16:21:29.158831497 -0800
-@@ -373,7 +373,7 @@ SYSCALL_DEFINE3(mprotect, unsigned long,
- 	if ((prot & PROT_READ) && (current->personality & READ_IMPLIES_EXEC))
- 		prot |= PROT_EXEC;
+ #endif
  
--	vm_flags = calc_vm_prot_bits(prot);
-+	vm_flags = calc_vm_prot_bits(prot, 0);
+-#define tas(ptr) xchg((ptr), 1)
+-
+ #endif /* __ASSEMBLY__ */
  
- 	down_write(&current->mm->mmap_sem);
- 
-diff -puN mm/nommu.c~pkeys-84-calc_vm_prot_bits mm/nommu.c
---- a/mm/nommu.c~pkeys-84-calc_vm_prot_bits	2015-12-03 16:21:29.152831225 -0800
-+++ b/mm/nommu.c	2015-12-03 16:21:29.158831497 -0800
-@@ -1090,7 +1090,7 @@ static unsigned long determine_vm_flags(
- {
- 	unsigned long vm_flags;
- 
--	vm_flags = calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags);
-+	vm_flags = calc_vm_prot_bits(prot, 0) | calc_vm_flag_bits(flags);
- 	/* vm_flags |= mm->def_flags; */
- 
- 	if (!(capabilities & NOMMU_MAP_DIRECT)) {
-_
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+ #endif /* _ASM_TILE_CMPXCHG_H */
