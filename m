@@ -1,116 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:60469 "EHLO
-	terminus.zytor.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753169AbbLDMCf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Dec 2015 07:02:35 -0500
-Date: Fri, 4 Dec 2015 04:01:37 -0800
-From: tip-bot for Davidlohr Bueso <tipbot@zytor.com>
-Message-ID: <tip-d5a73cadf3fdec95e9518ee5bb91bd0747c42b30@git.kernel.org>
-Reply-To: peterz@infradead.org, heiko.carstens@de.ibm.com,
-	  akpm@linux-foundation.org, linux-arch@vger.kernel.org,
-	  tony.luck@intel.com, hpa@zytor.com, dave@stgolabs.net,
-	  torvalds@linux-foundation.org, linux-kernel@vger.kernel.org,
-	  benh@kernel.crashing.org, dbueso@suse.de, tglx@linutronix.de,
-	  paulmck@linux.vnet.ibm.com, mingo@kernel.org
-In-Reply-To: <1445975631-17047-3-git-send-email-dave@stgolabs.net>
-References: <1445975631-17047-3-git-send-email-dave@stgolabs.net>
-Subject: [tip:locking/core] lcoking/barriers, arch:
-  Use smp barriers in smp_store_release()
+Received: from www.sr71.net ([198.145.64.142]:47221 "EHLO blackbird.sr71.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750962AbbLDXio (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 4 Dec 2015 18:38:44 -0500
+Subject: Re: [PATCH 00/34] x86: Memory Protection Keys (v5)
+References: <20151204011424.8A36E365@viggo.jf.intel.com>
+ <CALCETrXwVb99hAvqR2o54aPwtpr8oubROtiRt45SiYRfUTAxCw@mail.gmail.com>
+From: Dave Hansen <dave@sr71.net>
+Message-ID: <56622401.20001@sr71.net>
+Date: Fri, 4 Dec 2015 15:38:41 -0800
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-Content-Type: text/plain; charset=UTF-8
-Content-Disposition: inline
+In-Reply-To: <CALCETrXwVb99hAvqR2o54aPwtpr8oubROtiRt45SiYRfUTAxCw@mail.gmail.com>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-tip-commits@vger.kernel.org
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, dave@stgolabs.net, hpa@zytor.com, tony.luck@intel.com, linux-arch@vger.kernel.org, heiko.carstens@de.ibm.com, akpm@linux-foundation.org, peterz@infradead.org, mingo@kernel.org, paulmck@linux.vnet.ibm.com, tglx@linutronix.de, dbueso@suse.de, benh@kernel.crashing.org
-Message-ID: <20151204120137.ao-Bp3GK4YSzra1blfSjJEVCBVqu8v9OdDeOcYaXvMY@z>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, X86 ML <x86@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrea Arcangeli <aarcange@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Jan Kara <jack@suse.cz>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
+Message-ID: <20151204233841.H7ZHMSCIYjJUvPswiIr-A-2G2Dv3-DYmlkir2LYNWB0@z>
 
-Commit-ID:  d5a73cadf3fdec95e9518ee5bb91bd0747c42b30
-Gitweb:     http://git.kernel.org/tip/d5a73cadf3fdec95e9518ee5bb91bd0747c42b30
-Author:     Davidlohr Bueso <dave@stgolabs.net>
-AuthorDate: Tue, 27 Oct 2015 12:53:49 -0700
-Committer:  Ingo Molnar <mingo@kernel.org>
-CommitDate: Fri, 4 Dec 2015 11:39:51 +0100
+On 12/04/2015 03:31 PM, Andy Lutomirski wrote:
+> On Thu, Dec 3, 2015 at 5:14 PM, Dave Hansen <dave@sr71.net> wrote:
+>> Memory Protection Keys for User pages is a CPU feature which will
+>> first appear on Skylake Servers, but will also be supported on
+>> future non-server parts.  It provides a mechanism for enforcing
+>> page-based protections, but without requiring modification of the
+>> page tables when an application changes protection domains.  See
+>> the Documentation/ patch for more details.
+> 
+> What, if anything, happened to the signal handling parts?
 
-lcoking/barriers, arch: Use smp barriers in smp_store_release()
+Patches 12 and 13 contain most of it:
 
-With commit b92b8b35a2e ("locking/arch: Rename set_mb() to smp_store_mb()")
-it was made clear that the context of this call (and thus set_mb)
-is strictly for CPU ordering, as opposed to IO. As such all archs
-should use the smp variant of mb(), respecting the semantics and
-saving a mandatory barrier on UP.
+	x86, pkeys: fill in pkey field in siginfo
+	signals, pkeys: notify userspace about protection key faults	
 
-Signed-off-by: Davidlohr Bueso <dbueso@suse.de>
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
-Cc: <linux-arch@vger.kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: dave@stgolabs.net
-Link: http://lkml.kernel.org/r/1445975631-17047-3-git-send-email-dave@stgolabs.net
-Signed-off-by: Ingo Molnar <mingo@kernel.org>
----
- arch/ia64/include/asm/barrier.h    | 2 +-
- arch/powerpc/include/asm/barrier.h | 2 +-
- arch/s390/include/asm/barrier.h    | 2 +-
- include/asm-generic/barrier.h      | 2 +-
- 4 files changed, 4 insertions(+), 4 deletions(-)
+I decided to just not try to preserve the pkey_get/set() semantics
+across entering and returning from signals, fwiw.
 
-diff --git a/arch/ia64/include/asm/barrier.h b/arch/ia64/include/asm/barrier.h
-index df896a1..209c4b8 100644
---- a/arch/ia64/include/asm/barrier.h
-+++ b/arch/ia64/include/asm/barrier.h
-@@ -77,7 +77,7 @@ do {									\
- 	___p1;								\
- })
- 
--#define smp_store_mb(var, value)	do { WRITE_ONCE(var, value); mb(); } while (0)
-+#define smp_store_mb(var, value) do { WRITE_ONCE(var, value); smp_mb(); } while (0)
- 
- /*
-  * The group barrier in front of the rsm & ssm are necessary to ensure
-diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
-index 0eca6ef..a7af5fb 100644
---- a/arch/powerpc/include/asm/barrier.h
-+++ b/arch/powerpc/include/asm/barrier.h
-@@ -34,7 +34,7 @@
- #define rmb()  __asm__ __volatile__ ("sync" : : : "memory")
- #define wmb()  __asm__ __volatile__ ("sync" : : : "memory")
- 
--#define smp_store_mb(var, value)	do { WRITE_ONCE(var, value); mb(); } while (0)
-+#define smp_store_mb(var, value) do { WRITE_ONCE(var, value); smp_mb(); } while (0)
- 
- #ifdef __SUBARCH_HAS_LWSYNC
- #    define SMPWMB      LWSYNC
-diff --git a/arch/s390/include/asm/barrier.h b/arch/s390/include/asm/barrier.h
-index d68e11e..7ffd0b1 100644
---- a/arch/s390/include/asm/barrier.h
-+++ b/arch/s390/include/asm/barrier.h
-@@ -36,7 +36,7 @@
- #define smp_mb__before_atomic()		smp_mb()
- #define smp_mb__after_atomic()		smp_mb()
- 
--#define smp_store_mb(var, value)		do { WRITE_ONCE(var, value); mb(); } while (0)
-+#define smp_store_mb(var, value)	do { WRITE_ONCE(var, value); smp_mb(); } while (0)
- 
- #define smp_store_release(p, v)						\
- do {									\
-diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-index b42afad..0f45f93 100644
---- a/include/asm-generic/barrier.h
-+++ b/include/asm-generic/barrier.h
-@@ -93,7 +93,7 @@
- #endif	/* CONFIG_SMP */
- 
- #ifndef smp_store_mb
--#define smp_store_mb(var, value)  do { WRITE_ONCE(var, value); mb(); } while (0)
-+#define smp_store_mb(var, value)  do { WRITE_ONCE(var, value); smp_mb(); } while (0)
- #endif
- 
- #ifndef smp_mb__before_atomic
+> Also, do you have a git tree for this somewhere?  I can't actually
+> enable it (my laptop, while very shiny, is not a Skylake server), but
+> I can poke around a bit.
+
+http://git.kernel.org/cgit/linux/kernel/git/daveh/x86-pkeys.git/
+
+Thanks for taking a look!
