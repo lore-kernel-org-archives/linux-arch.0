@@ -1,67 +1,111 @@
 From: tip-bot for Davidlohr Bueso <tipbot@zytor.com>
-Subject: [tip:locking/core] locking/barriers, arch:
-  Remove ambiguous statement in the smp_store_mb() documentation
-Date: Fri, 4 Dec 2015 04:01:56 -0800
-Message-ID: <tip-2d142e599bf73ab70a3457e6947f86935245415e@git.kernel.org>
-References: <1445975631-17047-5-git-send-email-dave@stgolabs.net>
-Reply-To: linux-kernel@vger.kernel.org, hpa@zytor.com, corbet@lwn.net,
-	  tglx@linutronix.de, paulmck@linux.vnet.ibm.com,
-	  linux-arch@vger.kernel.org, dave@stgolabs.net,
-	  torvalds@linux-foundation.org, mingo@kernel.org,
-	  akpm@linux-foundation.org, peterz@infradead.org
+Subject: [tip:locking/core] lcoking/barriers, arch:
+  Use smp barriers in smp_store_release()
+Date: Fri, 4 Dec 2015 04:01:37 -0800
+Message-ID: <tip-d5a73cadf3fdec95e9518ee5bb91bd0747c42b30@git.kernel.org>
+References: <1445975631-17047-3-git-send-email-dave@stgolabs.net>
+Reply-To: peterz@infradead.org, heiko.carstens@de.ibm.com,
+	  akpm@linux-foundation.org, linux-arch@vger.kernel.org,
+	  tony.luck@intel.com, hpa@zytor.com, dave@stgolabs.net,
+	  torvalds@linux-foundation.org, linux-kernel@vger.kernel.org,
+	  benh@kernel.crashing.org, dbueso@suse.de, tglx@linutronix.de,
+	  paulmck@linux.vnet.ibm.com, mingo@kernel.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1445975631-17047-5-git-send-email-dave@stgolabs.net>
+In-Reply-To: <1445975631-17047-3-git-send-email-dave@stgolabs.net>
 Content-Disposition: inline
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-tip-commits@vger.kernel.org
-Cc: corbet@lwn.net, tglx@linutronix.de, linux-kernel@vger.kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org, dave@stgolabs.net, peterz@infradead.org, akpm@linux-foundation.org
+Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, dave@stgolabs.net, hpa@zytor.com, tony.luck@intel.com, linux-arch@vger.kernel.org, heiko.carstens@de.ibm.com, akpm@linux-foundation.org, peterz@infradead.org, mingo@kernel.org, paulmck@linux.vnet.ibm.com, tglx@linutronix.de, dbueso@suse.de, benh@kernel.crashing.org
 List-Id: linux-arch.vger.kernel.org
 
-Commit-ID:  2d142e599bf73ab70a3457e6947f86935245415e
-Gitweb:     http://git.kernel.org/tip/2d142e599bf73ab70a3457e6947f86935245415e
+Commit-ID:  d5a73cadf3fdec95e9518ee5bb91bd0747c42b30
+Gitweb:     http://git.kernel.org/tip/d5a73cadf3fdec95e9518ee5bb91bd0747c42b30
 Author:     Davidlohr Bueso <dave@stgolabs.net>
-AuthorDate: Tue, 27 Oct 2015 12:53:51 -0700
+AuthorDate: Tue, 27 Oct 2015 12:53:49 -0700
 Committer:  Ingo Molnar <mingo@kernel.org>
 CommitDate: Fri, 4 Dec 2015 11:39:51 +0100
 
-locking/barriers, arch: Remove ambiguous statement in the smp_store_mb() documentation
+lcoking/barriers, arch: Use smp barriers in smp_store_release()
 
-It serves no purpose but to confuse readers, and is most
-likely a left over from constant memory-barriers.txt
-updates. I.e.:
+With commit b92b8b35a2e ("locking/arch: Rename set_mb() to smp_store_mb()")
+it was made clear that the context of this call (and thus set_mb)
+is strictly for CPU ordering, as opposed to IO. As such all archs
+should use the smp variant of mb(), respecting the semantics and
+saving a mandatory barrier on UP.
 
-  http://lists.openwall.net/linux-kernel/2006/07/15/27
-
-Signed-off-by: Davidlohr Bueso <dave@stgolabs.net>
+Signed-off-by: Davidlohr Bueso <dbueso@suse.de>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 Cc: <linux-arch@vger.kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Jonathan Corbet <corbet@lwn.net>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 Cc: Peter Zijlstra <peterz@infradead.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Link: http://lkml.kernel.org/r/1445975631-17047-5-git-send-email-dave@stgolabs.net
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: dave@stgolabs.net
+Link: http://lkml.kernel.org/r/1445975631-17047-3-git-send-email-dave@stgolabs.net
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- Documentation/memory-barriers.txt | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/ia64/include/asm/barrier.h    | 2 +-
+ arch/powerpc/include/asm/barrier.h | 2 +-
+ arch/s390/include/asm/barrier.h    | 2 +-
+ include/asm-generic/barrier.h      | 2 +-
+ 4 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-index aef9487..c85054d 100644
---- a/Documentation/memory-barriers.txt
-+++ b/Documentation/memory-barriers.txt
-@@ -1673,8 +1673,8 @@ There are some more advanced barrier functions:
-  (*) smp_store_mb(var, value)
+diff --git a/arch/ia64/include/asm/barrier.h b/arch/ia64/include/asm/barrier.h
+index df896a1..209c4b8 100644
+--- a/arch/ia64/include/asm/barrier.h
++++ b/arch/ia64/include/asm/barrier.h
+@@ -77,7 +77,7 @@ do {									\
+ 	___p1;								\
+ })
  
-      This assigns the value to the variable and then inserts a full memory
--     barrier after it, depending on the function.  It isn't guaranteed to
--     insert anything more than a compiler barrier in a UP compilation.
-+     barrier after it.  It isn't guaranteed to insert anything more than a
-+     compiler barrier in a UP compilation.
+-#define smp_store_mb(var, value)	do { WRITE_ONCE(var, value); mb(); } while (0)
++#define smp_store_mb(var, value) do { WRITE_ONCE(var, value); smp_mb(); } while (0)
  
+ /*
+  * The group barrier in front of the rsm & ssm are necessary to ensure
+diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
+index 0eca6ef..a7af5fb 100644
+--- a/arch/powerpc/include/asm/barrier.h
++++ b/arch/powerpc/include/asm/barrier.h
+@@ -34,7 +34,7 @@
+ #define rmb()  __asm__ __volatile__ ("sync" : : : "memory")
+ #define wmb()  __asm__ __volatile__ ("sync" : : : "memory")
  
-  (*) smp_mb__before_atomic();
+-#define smp_store_mb(var, value)	do { WRITE_ONCE(var, value); mb(); } while (0)
++#define smp_store_mb(var, value) do { WRITE_ONCE(var, value); smp_mb(); } while (0)
+ 
+ #ifdef __SUBARCH_HAS_LWSYNC
+ #    define SMPWMB      LWSYNC
+diff --git a/arch/s390/include/asm/barrier.h b/arch/s390/include/asm/barrier.h
+index d68e11e..7ffd0b1 100644
+--- a/arch/s390/include/asm/barrier.h
++++ b/arch/s390/include/asm/barrier.h
+@@ -36,7 +36,7 @@
+ #define smp_mb__before_atomic()		smp_mb()
+ #define smp_mb__after_atomic()		smp_mb()
+ 
+-#define smp_store_mb(var, value)		do { WRITE_ONCE(var, value); mb(); } while (0)
++#define smp_store_mb(var, value)	do { WRITE_ONCE(var, value); smp_mb(); } while (0)
+ 
+ #define smp_store_release(p, v)						\
+ do {									\
+diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
+index b42afad..0f45f93 100644
+--- a/include/asm-generic/barrier.h
++++ b/include/asm-generic/barrier.h
+@@ -93,7 +93,7 @@
+ #endif	/* CONFIG_SMP */
+ 
+ #ifndef smp_store_mb
+-#define smp_store_mb(var, value)  do { WRITE_ONCE(var, value); mb(); } while (0)
++#define smp_store_mb(var, value)  do { WRITE_ONCE(var, value); smp_mb(); } while (0)
+ #endif
+ 
+ #ifndef smp_mb__before_atomic
