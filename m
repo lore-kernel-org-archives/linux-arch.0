@@ -1,58 +1,147 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f50.google.com ([74.125.82.50]:37863 "EHLO
-	mail-wm0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751359AbbLAHYJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Dec 2015 02:24:09 -0500
-Date: Tue, 1 Dec 2015 08:24:03 +0100
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH v2 1/4] init: create cmdline param to disable readonly
-Message-ID: <20151201072403.GA28270@gmail.com>
-References: <1448494286-16029-1-git-send-email-keescook@chromium.org>
- <1448494286-16029-2-git-send-email-keescook@chromium.org>
- <20151126075130.GB18742@gmail.com>
- <CAGXu5j+Mom2oYbsSE65BMCAgio68J6ST4wODUf8-qHdxOe0jOQ@mail.gmail.com>
- <20151130222437.GT8644@n2100.arm.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20151130222437.GT8644@n2100.arm.linux.org.uk>
+Received: from mga02.intel.com ([134.134.136.20]:19406 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754861AbbLDBPA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 3 Dec 2015 20:15:00 -0500
+Subject: [PATCH 24/34] mm, multi-arch: pass a protection key in to calc_vm_flag_bits()
+From: Dave Hansen <dave@sr71.net>
+Date: Thu, 03 Dec 2015 17:14:57 -0800
+References: <20151204011424.8A36E365@viggo.jf.intel.com>
+In-Reply-To: <20151204011424.8A36E365@viggo.jf.intel.com>
+Message-ID: <20151204011457.65933803@viggo.jf.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Kees Cook <keescook@chromium.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Michael Ellerman <mpe@ellerman.id.au>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Catalin Marinas <catalin.marinas@arm.com>, LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Mathias Krause <minipli@googlemail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20151201072403.d9YZw0oEAWUmF3W_4HIQv89UCynNEWxPWfHm-jxI9io@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-mm@kvack.org, x86@kernel.org, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20151204011457.XSdhbegdq2YBhOLKLwdzpYzy6QoYOEbheBHU4cV_AKU@z>
 
 
-* Russell King - ARM Linux <linux@arm.linux.org.uk> wrote:
+From: Dave Hansen <dave.hansen@linux.intel.com>
 
-> On Mon, Nov 30, 2015 at 01:52:10PM -0800, Kees Cook wrote:
-> > On Wed, Nov 25, 2015 at 11:51 PM, Ingo Molnar <mingo@kernel.org> wrote:
-> > > * Kees Cook <keescook@chromium.org> wrote:
-> > >> +#ifdef CONFIG_DEBUG_RODATA
-> > >
-> > > Btw., could you please remove the Kconfig option altogether in an additional patch
-> > > and make read-only sections an always-on feature? It has been default-y for years
-> > > and all distros have it enabled.
-> > 
-> > Yeah, this is something I've wanted to do for a while, but I would
-> > point out that only a few architectures have actually implemented it,
-> > and for arm and arm64 it was very recent:
-> 
-> I don't think it can entirely be a kernel command line option.  On ARM,
-> enabling DEBUG_RODATA has a substantial effect on the size of the kernel
-> image - we have to pad various sections to 1MB boundaries so we can
-> set the appropriate permissions.
-> 
-> Forcing this layout on everyone won't work.
+This plumbs a protection key through calc_vm_flag_bits().  We
+could have done this in calc_vm_prot_bits(), but I did not feel
+super strongly which way to go.  It was pretty arbitrary which
+one to use.
 
-Yeah, so I'd suggest to have it always-on on x86 (after adding the boot option), 
-to simplify the x86 code and to make it more obvious that we rely on this.
+Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: linux-api@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+---
 
-There's a moderate amount of #ifdeffery around this:
+ b/arch/powerpc/include/asm/mman.h  |    5 +++--
+ b/drivers/char/agp/frontend.c      |    2 +-
+ b/drivers/staging/android/ashmem.c |    4 ++--
+ b/include/linux/mman.h             |    6 +++---
+ b/mm/mmap.c                        |    2 +-
+ b/mm/mprotect.c                    |    2 +-
+ b/mm/nommu.c                       |    2 +-
+ 7 files changed, 12 insertions(+), 11 deletions(-)
 
-  triton:~/tip> git grep -w CONFIG_DEBUG_RODATA arch/x86/  | grep \# | wc -l
-  15
-
-Thanks,
-
-	Ingo
+diff -puN arch/powerpc/include/asm/mman.h~pkeys-84-calc_vm_prot_bits arch/powerpc/include/asm/mman.h
+--- a/arch/powerpc/include/asm/mman.h~pkeys-84-calc_vm_prot_bits	2015-12-03 16:21:29.142830772 -0800
++++ b/arch/powerpc/include/asm/mman.h	2015-12-03 16:21:29.155831361 -0800
+@@ -18,11 +18,12 @@
+  * This file is included by linux/mman.h, so we can't use cacl_vm_prot_bits()
+  * here.  How important is the optimization?
+  */
+-static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot)
++static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot,
++		unsigned long pkey)
+ {
+ 	return (prot & PROT_SAO) ? VM_SAO : 0;
+ }
+-#define arch_calc_vm_prot_bits(prot) arch_calc_vm_prot_bits(prot)
++#define arch_calc_vm_prot_bits(prot, pkey) arch_calc_vm_prot_bits(prot, pkey)
+ 
+ static inline pgprot_t arch_vm_get_page_prot(unsigned long vm_flags)
+ {
+diff -puN drivers/char/agp/frontend.c~pkeys-84-calc_vm_prot_bits drivers/char/agp/frontend.c
+--- a/drivers/char/agp/frontend.c~pkeys-84-calc_vm_prot_bits	2015-12-03 16:21:29.143830817 -0800
++++ b/drivers/char/agp/frontend.c	2015-12-03 16:21:29.155831361 -0800
+@@ -156,7 +156,7 @@ static pgprot_t agp_convert_mmap_flags(i
+ {
+ 	unsigned long prot_bits;
+ 
+-	prot_bits = calc_vm_prot_bits(prot) | VM_SHARED;
++	prot_bits = calc_vm_prot_bits(prot, 0) | VM_SHARED;
+ 	return vm_get_page_prot(prot_bits);
+ }
+ 
+diff -puN drivers/staging/android/ashmem.c~pkeys-84-calc_vm_prot_bits drivers/staging/android/ashmem.c
+--- a/drivers/staging/android/ashmem.c~pkeys-84-calc_vm_prot_bits	2015-12-03 16:21:29.145830908 -0800
++++ b/drivers/staging/android/ashmem.c	2015-12-03 16:21:29.156831407 -0800
+@@ -372,8 +372,8 @@ static int ashmem_mmap(struct file *file
+ 	}
+ 
+ 	/* requested protection bits must match our allowed protection mask */
+-	if (unlikely((vma->vm_flags & ~calc_vm_prot_bits(asma->prot_mask)) &
+-		     calc_vm_prot_bits(PROT_MASK))) {
++	if (unlikely((vma->vm_flags & ~calc_vm_prot_bits(asma->prot_mask, 0)) &
++		     calc_vm_prot_bits(PROT_MASK, 0))) {
+ 		ret = -EPERM;
+ 		goto out;
+ 	}
+diff -puN include/linux/mman.h~pkeys-84-calc_vm_prot_bits include/linux/mman.h
+--- a/include/linux/mman.h~pkeys-84-calc_vm_prot_bits	2015-12-03 16:21:29.147830999 -0800
++++ b/include/linux/mman.h	2015-12-03 16:21:29.156831407 -0800
+@@ -35,7 +35,7 @@ static inline void vm_unacct_memory(long
+  */
+ 
+ #ifndef arch_calc_vm_prot_bits
+-#define arch_calc_vm_prot_bits(prot) 0
++#define arch_calc_vm_prot_bits(prot, pkey) 0
+ #endif
+ 
+ #ifndef arch_vm_get_page_prot
+@@ -70,12 +70,12 @@ static inline int arch_validate_prot(uns
+  * Combine the mmap "prot" argument into "vm_flags" used internally.
+  */
+ static inline unsigned long
+-calc_vm_prot_bits(unsigned long prot)
++calc_vm_prot_bits(unsigned long prot, unsigned long pkey)
+ {
+ 	return _calc_vm_trans(prot, PROT_READ,  VM_READ ) |
+ 	       _calc_vm_trans(prot, PROT_WRITE, VM_WRITE) |
+ 	       _calc_vm_trans(prot, PROT_EXEC,  VM_EXEC) |
+-	       arch_calc_vm_prot_bits(prot);
++	       arch_calc_vm_prot_bits(prot, pkey);
+ }
+ 
+ /*
+diff -puN mm/mmap.c~pkeys-84-calc_vm_prot_bits mm/mmap.c
+--- a/mm/mmap.c~pkeys-84-calc_vm_prot_bits	2015-12-03 16:21:29.148831044 -0800
++++ b/mm/mmap.c	2015-12-03 16:21:29.157831452 -0800
+@@ -1309,7 +1309,7 @@ unsigned long do_mmap(struct file *file,
+ 	 * to. we assume access permissions have been handled by the open
+ 	 * of the memory object, so we don't do any here.
+ 	 */
+-	vm_flags |= calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags) |
++	vm_flags |= calc_vm_prot_bits(prot, 0) | calc_vm_flag_bits(flags) |
+ 			mm->def_flags | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC;
+ 
+ 	if (flags & MAP_LOCKED)
+diff -puN mm/mprotect.c~pkeys-84-calc_vm_prot_bits mm/mprotect.c
+--- a/mm/mprotect.c~pkeys-84-calc_vm_prot_bits	2015-12-03 16:21:29.150831135 -0800
++++ b/mm/mprotect.c	2015-12-03 16:21:29.158831497 -0800
+@@ -373,7 +373,7 @@ SYSCALL_DEFINE3(mprotect, unsigned long,
+ 	if ((prot & PROT_READ) && (current->personality & READ_IMPLIES_EXEC))
+ 		prot |= PROT_EXEC;
+ 
+-	vm_flags = calc_vm_prot_bits(prot);
++	vm_flags = calc_vm_prot_bits(prot, 0);
+ 
+ 	down_write(&current->mm->mmap_sem);
+ 
+diff -puN mm/nommu.c~pkeys-84-calc_vm_prot_bits mm/nommu.c
+--- a/mm/nommu.c~pkeys-84-calc_vm_prot_bits	2015-12-03 16:21:29.152831225 -0800
++++ b/mm/nommu.c	2015-12-03 16:21:29.158831497 -0800
+@@ -1090,7 +1090,7 @@ static unsigned long determine_vm_flags(
+ {
+ 	unsigned long vm_flags;
+ 
+-	vm_flags = calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags);
++	vm_flags = calc_vm_prot_bits(prot, 0) | calc_vm_flag_bits(flags);
+ 	/* vm_flags |= mm->def_flags; */
+ 
+ 	if (!(capabilities & NOMMU_MAP_DIRECT)) {
+_
