@@ -1,109 +1,67 @@
 From: tip-bot for Davidlohr Bueso <tipbot@zytor.com>
-Subject: [tip:locking/core] locking/cmpxchg, arch: Remove tas()
-  definitions
-Date: Fri, 4 Dec 2015 04:01:18 -0800
-Message-ID: <tip-fbd35c0d2fb41b75863a0e45fe939c8440375b0a@git.kernel.org>
-References: <1445975631-17047-2-git-send-email-dave@stgolabs.net>
-Reply-To: mingo@kernel.org, paulmck@linux.vnet.ibm.com,
-	  akpm@linux-foundation.org, hpa@zytor.com, peterz@infradead.org,
-	  dave@stgolabs.net, tglx@linutronix.de,
-	  linux-kernel@vger.kernel.org, dbueso@suse.de,
-	  torvalds@linux-foundation.org, realmz6@gmail.com,
-	  a-jacquiot@ti.com, linux-arch@vger.kernel.org,
-	  cmetcalf@ezchip.com
+Subject: [tip:locking/core] locking/barriers, arch:
+  Remove ambiguous statement in the smp_store_mb() documentation
+Date: Fri, 4 Dec 2015 04:01:56 -0800
+Message-ID: <tip-2d142e599bf73ab70a3457e6947f86935245415e@git.kernel.org>
+References: <1445975631-17047-5-git-send-email-dave@stgolabs.net>
+Reply-To: linux-kernel@vger.kernel.org, hpa@zytor.com, corbet@lwn.net,
+	  tglx@linutronix.de, paulmck@linux.vnet.ibm.com,
+	  linux-arch@vger.kernel.org, dave@stgolabs.net,
+	  torvalds@linux-foundation.org, mingo@kernel.org,
+	  akpm@linux-foundation.org, peterz@infradead.org
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1445975631-17047-2-git-send-email-dave@stgolabs.net>
+In-Reply-To: <1445975631-17047-5-git-send-email-dave@stgolabs.net>
 Content-Disposition: inline
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-tip-commits@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, cmetcalf@ezchip.com, realmz6@gmail.com, a-jacquiot@ti.com, linux-kernel@vger.kernel.org, dbueso@suse.de, torvalds@linux-foundation.org, tglx@linutronix.de, dave@stgolabs.net, hpa@zytor.com, peterz@infradead.org, paulmck@linux.vnet.ibm.com, akpm@linux-foundation.org, mingo@kernel.org
+Cc: corbet@lwn.net, tglx@linutronix.de, linux-kernel@vger.kernel.org, hpa@zytor.com, linux-arch@vger.kernel.org, paulmck@linux.vnet.ibm.com, torvalds@linux-foundation.org, mingo@kernel.org, dave@stgolabs.net, peterz@infradead.org, akpm@linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
-Commit-ID:  fbd35c0d2fb41b75863a0e45fe939c8440375b0a
-Gitweb:     http://git.kernel.org/tip/fbd35c0d2fb41b75863a0e45fe939c8440375b0a
+Commit-ID:  2d142e599bf73ab70a3457e6947f86935245415e
+Gitweb:     http://git.kernel.org/tip/2d142e599bf73ab70a3457e6947f86935245415e
 Author:     Davidlohr Bueso <dave@stgolabs.net>
-AuthorDate: Tue, 27 Oct 2015 12:53:48 -0700
+AuthorDate: Tue, 27 Oct 2015 12:53:51 -0700
 Committer:  Ingo Molnar <mingo@kernel.org>
 CommitDate: Fri, 4 Dec 2015 11:39:51 +0100
 
-locking/cmpxchg, arch: Remove tas() definitions
+locking/barriers, arch: Remove ambiguous statement in the smp_store_mb() documentation
 
-It seems that commit 5dc12ddee93 ("Remove tas()") missed some files.
-Correct this and fully drop this macro, for which we should be using
-cmpxchg() like calls.
+It serves no purpose but to confuse readers, and is most
+likely a left over from constant memory-barriers.txt
+updates. I.e.:
 
-Signed-off-by: Davidlohr Bueso <dbueso@suse.de>
+  http://lists.openwall.net/linux-kernel/2006/07/15/27
+
+Signed-off-by: Davidlohr Bueso <dave@stgolabs.net>
 Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
 Cc: <linux-arch@vger.kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
-Cc: Chris Metcalf <cmetcalf@ezchip.com>
-Cc: David Howells <dhowells@re hat.com>
+Cc: Jonathan Corbet <corbet@lwn.net>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
 Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Steven Miao <realmz6@gmail.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: dave@stgolabs.net
-Link: http://lkml.kernel.org/r/1445975631-17047-2-git-send-email-dave@stgolabs.net
+Link: http://lkml.kernel.org/r/1445975631-17047-5-git-send-email-dave@stgolabs.net
 Signed-off-by: Ingo Molnar <mingo@kernel.org>
 ---
- arch/blackfin/include/asm/cmpxchg.h | 1 -
- arch/c6x/include/asm/cmpxchg.h      | 2 --
- arch/frv/include/asm/cmpxchg.h      | 2 --
- arch/tile/include/asm/cmpxchg.h     | 2 --
- 4 files changed, 7 deletions(-)
+ Documentation/memory-barriers.txt | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/blackfin/include/asm/cmpxchg.h b/arch/blackfin/include/asm/cmpxchg.h
-index c05868c..2539288 100644
---- a/arch/blackfin/include/asm/cmpxchg.h
-+++ b/arch/blackfin/include/asm/cmpxchg.h
-@@ -128,6 +128,5 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
- #endif /* !CONFIG_SMP */
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index aef9487..c85054d 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -1673,8 +1673,8 @@ There are some more advanced barrier functions:
+  (*) smp_store_mb(var, value)
  
- #define xchg(ptr, x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
--#define tas(ptr) ((void)xchg((ptr), 1))
+      This assigns the value to the variable and then inserts a full memory
+-     barrier after it, depending on the function.  It isn't guaranteed to
+-     insert anything more than a compiler barrier in a UP compilation.
++     barrier after it.  It isn't guaranteed to insert anything more than a
++     compiler barrier in a UP compilation.
  
- #endif /* __ARCH_BLACKFIN_CMPXCHG__ */
-diff --git a/arch/c6x/include/asm/cmpxchg.h b/arch/c6x/include/asm/cmpxchg.h
-index b27c8ce..93d0a5a 100644
---- a/arch/c6x/include/asm/cmpxchg.h
-+++ b/arch/c6x/include/asm/cmpxchg.h
-@@ -47,8 +47,6 @@ static inline unsigned int __xchg(unsigned int x, volatile void *ptr, int size)
- #define xchg(ptr, x) \
- 	((__typeof__(*(ptr)))__xchg((unsigned int)(x), (void *) (ptr), \
- 				    sizeof(*(ptr))))
--#define tas(ptr)    xchg((ptr), 1)
--
  
- #include <asm-generic/cmpxchg-local.h>
- 
-diff --git a/arch/frv/include/asm/cmpxchg.h b/arch/frv/include/asm/cmpxchg.h
-index 5b04dd0..a899765 100644
---- a/arch/frv/include/asm/cmpxchg.h
-+++ b/arch/frv/include/asm/cmpxchg.h
-@@ -69,8 +69,6 @@ extern uint32_t __xchg_32(uint32_t i, volatile void *v);
- 
- #endif
- 
--#define tas(ptr) (xchg((ptr), 1))
--
- /*****************************************************************************/
- /*
-  * compare and conditionally exchange value with memory
-diff --git a/arch/tile/include/asm/cmpxchg.h b/arch/tile/include/asm/cmpxchg.h
-index 0ccda3c..25d5899 100644
---- a/arch/tile/include/asm/cmpxchg.h
-+++ b/arch/tile/include/asm/cmpxchg.h
-@@ -127,8 +127,6 @@ long long _atomic64_cmpxchg(long long *v, long long o, long long n);
- 
- #endif
- 
--#define tas(ptr) xchg((ptr), 1)
--
- #endif /* __ASSEMBLY__ */
- 
- #endif /* _ASM_TILE_CMPXCHG_H */
+  (*) smp_mb__before_atomic();
