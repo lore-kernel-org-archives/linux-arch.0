@@ -1,47 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.sr71.net ([198.145.64.142]:47221 "EHLO blackbird.sr71.net"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750962AbbLDXio (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 4 Dec 2015 18:38:44 -0500
-Subject: Re: [PATCH 00/34] x86: Memory Protection Keys (v5)
-References: <20151204011424.8A36E365@viggo.jf.intel.com>
- <CALCETrXwVb99hAvqR2o54aPwtpr8oubROtiRt45SiYRfUTAxCw@mail.gmail.com>
-From: Dave Hansen <dave@sr71.net>
-Message-ID: <56622401.20001@sr71.net>
-Date: Fri, 4 Dec 2015 15:38:41 -0800
+Received: from metis.ext.4.pengutronix.de ([92.198.50.35]:53871 "EHLO
+	metis.ext.4.pengutronix.de" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752776AbbLGHVE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Dec 2015 02:21:04 -0500
+Date: Mon, 7 Dec 2015 08:21:00 +0100
+From: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?=
+	<u.kleine-koenig@pengutronix.de>
+Subject: Re: [PATCH] ARM: avoid ARCH_MMAP_RND_BITS for NOMMU
+Message-ID: <20151207072100.GQ5072@pengutronix.de>
+References: <2874133.c4GDUf0t6t@wuerfel>
 MIME-Version: 1.0
-In-Reply-To: <CALCETrXwVb99hAvqR2o54aPwtpr8oubROtiRt45SiYRfUTAxCw@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <2874133.c4GDUf0t6t@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, X86 ML <x86@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrea Arcangeli <aarcange@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Jan Kara <jack@suse.cz>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
-Message-ID: <20151204233841.H7ZHMSCIYjJUvPswiIr-A-2G2Dv3-DYmlkir2LYNWB0@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Daniel Cashman <dcashman@google.com>
+Message-ID: <20151207072100.jLscEMzULiRXN4ZUsPJNfNtKETDlJ705YX9T77KcQ60@z>
 
-On 12/04/2015 03:31 PM, Andy Lutomirski wrote:
-> On Thu, Dec 3, 2015 at 5:14 PM, Dave Hansen <dave@sr71.net> wrote:
->> Memory Protection Keys for User pages is a CPU feature which will
->> first appear on Skylake Servers, but will also be supported on
->> future non-server parts.  It provides a mechanism for enforcing
->> page-based protections, but without requiring modification of the
->> page tables when an application changes protection domains.  See
->> the Documentation/ patch for more details.
+On Fri, Nov 27, 2015 at 03:04:03PM +0100, Arnd Bergmann wrote:
+> ARM kernels with MMU disabled fail to build because of CONFIG_ARCH_MMAP_RND_BITS:
 > 
-> What, if anything, happened to the signal handling parts?
+> kernel/built-in.o:(.data+0x754): undefined reference to `mmap_rnd_bits'
+> kernel/built-in.o:(.data+0x76c): undefined reference to `mmap_rnd_bits_min'
+> kernel/built-in.o:(.data+0x770): undefined reference to `mmap_rnd_bits_max'
+> 
+> This changes the newly added line to only select this allow for
+> MMU-enabled kernels.
+> 
+> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+> Fixes: 14570b3fd31a ("arm: mm: support ARCH_MMAP_RND_BITS")
+> ---
+> Found on yesterday's linux-next with ARM randconfig. The commit that
+> introduced this is currently in Andrew's tree.
+> 
+> If you don't already have a fix, please either apply this patch on top,
+> or fold it into the original patch.
+hmm, our autobuilder still fails on this one because there has been no
+next release since some time. I hope the best for tomorrow's build :-)
 
-Patches 12 and 13 contain most of it:
+Anyhow, it fixes the build for efm32_defconfig, so
 
-	x86, pkeys: fill in pkey field in siginfo
-	signals, pkeys: notify userspace about protection key faults	
+Acked-by: Uwe Kleine-König <u.kleine-koenig@pengutronix.de>
 
-I decided to just not try to preserve the pkey_get/set() semantics
-across entering and returning from signals, fwiw.
+Best regards
+Uwe
 
-> Also, do you have a git tree for this somewhere?  I can't actually
-> enable it (my laptop, while very shiny, is not a Skylake server), but
-> I can poke around a bit.
-
-http://git.kernel.org/cgit/linux/kernel/git/daveh/x86-pkeys.git/
-
-Thanks for taking a look!
+-- 
+Pengutronix e.K.                           | Uwe Kleine-König            |
+Industrial Linux Solutions                 | http://www.pengutronix.de/  |
