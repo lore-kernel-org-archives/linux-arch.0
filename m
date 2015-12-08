@@ -1,53 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from metis.ext.4.pengutronix.de ([92.198.50.35]:53871 "EHLO
-	metis.ext.4.pengutronix.de" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752776AbbLGHVE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Dec 2015 02:21:04 -0500
-Date: Mon, 7 Dec 2015 08:21:00 +0100
-From: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?=
-	<u.kleine-koenig@pengutronix.de>
-Subject: Re: [PATCH] ARM: avoid ARCH_MMAP_RND_BITS for NOMMU
-Message-ID: <20151207072100.GQ5072@pengutronix.de>
-References: <2874133.c4GDUf0t6t@wuerfel>
+Received: from mail-oi0-f44.google.com ([209.85.218.44]:33719 "EHLO
+	mail-oi0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932723AbbLHFwv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Dec 2015 00:52:51 -0500
+Received: by oixx65 with SMTP id x65so5018764oix.0
+        for <linux-arch@vger.kernel.org>; Mon, 07 Dec 2015 21:52:51 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <2874133.c4GDUf0t6t@wuerfel>
+In-Reply-To: <20151208051505.GL20997@ZenIV.linux.org.uk>
+References: <CALCETrWkrtiwCVpqiWuD1Hf2BekCo+5F_orQdN2-K3osqze4Uw@mail.gmail.com>
+ <11525805.FykVOSlruZ@wuerfel> <20151208043648.GA2182@gmail.com>
+ <20151208044937.GK20997@ZenIV.linux.org.uk> <20151208050148.GA3968@gmail.com> <20151208051505.GL20997@ZenIV.linux.org.uk>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Mon, 7 Dec 2015 21:52:31 -0800
+Message-ID: <CALCETrXSS3K8v_o18F50nmdUtZ1DAhnbmFtnLgrqwH1SXPxiOg@mail.gmail.com>
+Subject: Re: [PSEUDOPATCH] rename is_compat_task
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Daniel Cashman <dcashman@google.com>
-Message-ID: <20151207072100.jLscEMzULiRXN4ZUsPJNfNtKETDlJ705YX9T77KcQ60@z>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, David Miller <davem@davemloft.net>
+Message-ID: <20151208055231.TrUuZjB5s7_WUCLOkgTuJSbnhbP40dICP4prawTJOCM@z>
 
-On Fri, Nov 27, 2015 at 03:04:03PM +0100, Arnd Bergmann wrote:
-> ARM kernels with MMU disabled fail to build because of CONFIG_ARCH_MMAP_RND_BITS:
-> 
-> kernel/built-in.o:(.data+0x754): undefined reference to `mmap_rnd_bits'
-> kernel/built-in.o:(.data+0x76c): undefined reference to `mmap_rnd_bits_min'
-> kernel/built-in.o:(.data+0x770): undefined reference to `mmap_rnd_bits_max'
-> 
-> This changes the newly added line to only select this allow for
-> MMU-enabled kernels.
-> 
-> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
-> Fixes: 14570b3fd31a ("arm: mm: support ARCH_MMAP_RND_BITS")
-> ---
-> Found on yesterday's linux-next with ARM randconfig. The commit that
-> introduced this is currently in Andrew's tree.
-> 
-> If you don't already have a fix, please either apply this patch on top,
-> or fold it into the original patch.
-hmm, our autobuilder still fails on this one because there has been no
-next release since some time. I hope the best for tomorrow's build :-)
+On Mon, Dec 7, 2015 at 9:15 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> On Tue, Dec 08, 2015 at 06:01:48AM +0100, Ingo Molnar wrote:
+>
+>> Hm, so if Sparc has no notion of compat-ness of the system call then how does it
+>> implement runtime compat checks, such as AUDIT_ARCH et al?
+>
+> Badly.  Things like compat_sys_ioctl() vs. ioctl() work (we use different
+> arrays of function pointers in 32bit and 64bit traps), but anything
+> dynamic assumes that things match the task.  Not that we had a lot of
+> such dynamic checks, actually...
 
-Anyhow, it fixes the build for efm32_defconfig, so
+I wouldn't take x86 as a shining example of how to do this, but it
+does mostly work.  In 4.4, it's not even all that messy, modulo a
+bunch of checks that check the wrong condition (hence, in part, this
+proposal).
 
-Acked-by: Uwe Kleine-König <u.kleine-koenig@pengutronix.de>
-
-Best regards
-Uwe
-
--- 
-Pengutronix e.K.                           | Uwe Kleine-König            |
-Industrial Linux Solutions                 | http://www.pengutronix.de/  |
+--Andy
