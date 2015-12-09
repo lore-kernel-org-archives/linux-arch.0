@@ -1,51 +1,97 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v2 2/4] introduce post-init read-only memory
-Date: Wed, 9 Dec 2015 11:35:11 -0800
-Message-ID: <CAGXu5jLNpccwENe7c=uPeqFV+5ZFe+xOxS5djffPuEuCEw8gHQ@mail.gmail.com>
-References: <1448494286-16029-1-git-send-email-keescook@chromium.org>
-	<1448494286-16029-3-git-send-email-keescook@chromium.org>
-	<56564F0F.3158.108D0B78@pageexec.freemail.hu>
-	<565CCCBB.1070500@zytor.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f182.google.com ([209.85.213.182]:32779 "EHLO
-	mail-ig0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753550AbbLITfM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Dec 2015 14:35:12 -0500
-Received: by mail-ig0-f182.google.com with SMTP id mv3so271615igc.0
-        for <linux-arch@vger.kernel.org>; Wed, 09 Dec 2015 11:35:12 -0800 (PST)
-In-Reply-To: <565CCCBB.1070500@zytor.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: PaX Team <pageexec@freemail.hu>, LKML <linux-kernel@vger.kernel.org>, Andy Lutomirski <luto@amacapital.net>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>
+Subject: [PATCH v3 7/8] lkdtm: verify that __ro_after_init works correctly
+Date: Wed,  9 Dec 2015 13:43:23 -0800
+Message-ID: <1449697404-21076-8-git-send-email-keescook@chromium.org>
+References: <1449697404-21076-1-git-send-email-keescook@chromium.org>
+Reply-To: kernel-hardening@lists.openwall.com
+Return-path: <kernel-hardening-return-2050-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <1449697404-21076-1-git-send-email-keescook@chromium.org>
+To: linux-kernel@vger.kernel.org
+Cc: Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Nov 30, 2015 at 2:24 PM, H. Peter Anvin <hpa@zytor.com> wrote:
-> On 11/25/15 16:15, PaX Team wrote:
->> On 25 Nov 2015 at 15:31, Kees Cook wrote:
->>
->>> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
->>> index c4bd0e2c173c..772c784ba763 100644
->>> --- a/include/asm-generic/vmlinux.lds.h
->>> +++ b/include/asm-generic/vmlinux.lds.h
->>> @@ -256,6 +256,7 @@
->>>   .rodata           : AT(ADDR(.rodata) - LOAD_OFFSET) {              \
->>>    VMLINUX_SYMBOL(__start_rodata) = .;                       \
->>>    *(.rodata) *(.rodata.*)                                   \
->>> +            *(.data..ro_after_init) /* Read only after init */      \
->>    ^^^^^^^^^^^
->> looks like it's tabs vs. spaces...
+The new __ro_after_init section should be writable before init, but
+not after. Validate that it gets updated at init and can't be written
+to afterwards.
 
-Not sure what caused that, but I see it as tabs in my tree.
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ drivers/misc/lkdtm.c | 29 ++++++++++++++++++++++++++---
+ 1 file changed, 26 insertions(+), 3 deletions(-)
 
-> One more thing... double dots I think has special meanings to gcc, so it
-> might be better to avoid.
-
-Hrm, I could find no information about this, so I've left it as-is.
-
--Kees
-
+diff --git a/drivers/misc/lkdtm.c b/drivers/misc/lkdtm.c
+index 11fdadc68e53..2a6eaf1122b4 100644
+--- a/drivers/misc/lkdtm.c
++++ b/drivers/misc/lkdtm.c
+@@ -103,6 +103,7 @@ enum ctype {
+ 	CT_EXEC_USERSPACE,
+ 	CT_ACCESS_USERSPACE,
+ 	CT_WRITE_RO,
++	CT_WRITE_RO_AFTER_INIT,
+ 	CT_WRITE_KERN,
+ };
+ 
+@@ -140,6 +141,7 @@ static char* cp_type[] = {
+ 	"EXEC_USERSPACE",
+ 	"ACCESS_USERSPACE",
+ 	"WRITE_RO",
++	"WRITE_RO_AFTER_INIT",
+ 	"WRITE_KERN",
+ };
+ 
+@@ -162,6 +164,7 @@ static DEFINE_SPINLOCK(lock_me_up);
+ static u8 data_area[EXEC_SIZE];
+ 
+ static const unsigned long rodata = 0xAA55AA55;
++static unsigned long ro_after_init __ro_after_init = 0x55AA5500;
+ 
+ module_param(recur_count, int, 0644);
+ MODULE_PARM_DESC(recur_count, " Recursion level for the stack overflow test");
+@@ -503,11 +506,28 @@ static void lkdtm_do_action(enum ctype which)
+ 		break;
+ 	}
+ 	case CT_WRITE_RO: {
+-		unsigned long *ptr;
++		/* Explicitly cast away "const" for the test. */
++		unsigned long *ptr = (unsigned long *)&rodata;
+ 
+-		ptr = (unsigned long *)&rodata;
++		pr_info("attempting bad rodata write at %p\n", ptr);
++		*ptr ^= 0xabcd1234;
+ 
+-		pr_info("attempting bad write at %p\n", ptr);
++		break;
++	}
++	case CT_WRITE_RO_AFTER_INIT: {
++		unsigned long *ptr = &ro_after_init;
++
++		/*
++		 * Verify we were written to during init. Since an Oops
++		 * is considered a "success", a failure is to just skip the
++		 * real test.
++		 */
++		if ((*ptr & 0xAA) != 0xAA) {
++			pr_info("%p was NOT written during init!?\n", ptr);
++			break;
++		}
++
++		pr_info("attempting bad ro_after_init write at %p\n", ptr);
+ 		*ptr ^= 0xabcd1234;
+ 
+ 		break;
+@@ -817,6 +837,9 @@ static int __init lkdtm_module_init(void)
+ 	int n_debugfs_entries = 1; /* Assume only the direct entry */
+ 	int i;
+ 
++	/* Make sure we can write to __ro_after_init values during __init */
++	ro_after_init |= 0xAA;
++
+ 	/* Register debugfs interface */
+ 	lkdtm_debugfs_root = debugfs_create_dir("provoke-crash", NULL);
+ 	if (!lkdtm_debugfs_root) {
 -- 
-Kees Cook
-Chrome OS & Brillo Security
+1.9.1
