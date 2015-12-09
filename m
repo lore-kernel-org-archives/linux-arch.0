@@ -1,349 +1,266 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.outflux.net ([198.145.64.163]:34553 "EHLO smtp.outflux.net"
+Received: from smtp.outflux.net ([198.145.64.163]:46884 "EHLO smtp.outflux.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752723AbbLIVoV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1753712AbbLIVoV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Wed, 9 Dec 2015 16:44:21 -0500
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 5/8] x86: make CONFIG_DEBUG_RODATA non-optional
-Date: Wed,  9 Dec 2015 13:43:21 -0800
-Message-ID: <1449697404-21076-6-git-send-email-keescook@chromium.org>
+Subject: [PATCH v3 3/8] param: convert some "on"/"off" users to strtobool
+Date: Wed,  9 Dec 2015 13:43:19 -0800
+Message-ID: <1449697404-21076-4-git-send-email-keescook@chromium.org>
 In-Reply-To: <1449697404-21076-1-git-send-email-keescook@chromium.org>
 References: <1449697404-21076-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20151209214321.slwr3H6Nf-L1w-sKGEuuxKT2xx-hapbFc3YSDzZoK4o@z>
+Message-ID: <20151209214319.RNMMv8gxcp4iD4Sd0Iz5WXSOG-i_CqUm5tpaz5C2Dzs@z>
 
-This removes the CONFIG_DEBUG_RODATA option and makes it always enabled.
+This changes several users of manual "on"/"off" parsing to use strtobool.
 
-Suggested-by: Ingo Molnar <mingo@kernel.org>
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/x86/Kconfig                  |  3 +++
- arch/x86/Kconfig.debug            | 18 +++---------------
- arch/x86/include/asm/cacheflush.h |  5 -----
- arch/x86/include/asm/kvm_para.h   |  7 -------
- arch/x86/include/asm/sections.h   |  2 +-
- arch/x86/kernel/ftrace.c          |  6 +++---
- arch/x86/kernel/kgdb.c            |  8 ++------
- arch/x86/kernel/test_nx.c         |  2 --
- arch/x86/kernel/test_rodata.c     |  2 +-
- arch/x86/kernel/vmlinux.lds.S     | 25 +++++++++++--------------
- arch/x86/mm/init_32.c             |  3 ---
- arch/x86/mm/init_64.c             |  3 ---
- arch/x86/mm/pageattr.c            |  2 +-
- 13 files changed, 25 insertions(+), 61 deletions(-)
+ arch/powerpc/kernel/rtasd.c                  | 10 +++-------
+ arch/powerpc/platforms/pseries/hotplug-cpu.c | 11 +++--------
+ arch/s390/kernel/time.c                      |  8 ++------
+ arch/s390/kernel/topology.c                  |  8 +++-----
+ arch/x86/kernel/aperture_64.c                | 13 +++----------
+ kernel/time/hrtimer.c                        | 11 +++--------
+ kernel/time/tick-sched.c                     | 11 +++--------
+ 7 files changed, 20 insertions(+), 52 deletions(-)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index db3622f22b61..f7c69436accc 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -289,6 +289,9 @@ config ARCH_SUPPORTS_UPROBES
- config FIX_EARLYCON_MEM
- 	def_bool y
+diff --git a/arch/powerpc/kernel/rtasd.c b/arch/powerpc/kernel/rtasd.c
+index 5a2c049c1c61..984e67e91ba3 100644
+--- a/arch/powerpc/kernel/rtasd.c
++++ b/arch/powerpc/kernel/rtasd.c
+@@ -21,6 +21,7 @@
+ #include <linux/cpu.h>
+ #include <linux/workqueue.h>
+ #include <linux/slab.h>
++#include <linux/string.h>
  
-+config DEBUG_RODATA
-+	def_bool y
-+
- config PGTABLE_LEVELS
- 	int
- 	default 4 if X86_64
-diff --git a/arch/x86/Kconfig.debug b/arch/x86/Kconfig.debug
-index 137dfa96aa14..1f6c306a9a00 100644
---- a/arch/x86/Kconfig.debug
-+++ b/arch/x86/Kconfig.debug
-@@ -91,28 +91,16 @@ config EFI_PGT_DUMP
- 	  issues with the mapping of the EFI runtime regions into that
- 	  table.
+ #include <asm/uaccess.h>
+ #include <asm/io.h>
+@@ -49,7 +50,7 @@ static unsigned int rtas_error_log_buffer_max;
+ static unsigned int event_scan;
+ static unsigned int rtas_event_scan_rate;
  
--config DEBUG_RODATA
--	bool "Write protect kernel read-only data structures"
--	default y
--	depends on DEBUG_KERNEL
--	---help---
--	  Mark the kernel read-only data as write-protected in the pagetables,
--	  in order to catch accidental (and incorrect) writes to such const
--	  data. This is recommended so that we can catch kernel bugs sooner.
--	  If in doubt, say "Y".
+-static int full_rtas_msgs = 0;
++static bool full_rtas_msgs;
+ 
+ /* Stop logging to nvram after first fatal error */
+ static int logging_enabled; /* Until we initialize everything,
+@@ -592,11 +593,6 @@ __setup("surveillance=", surveillance_setup);
+ 
+ static int __init rtasmsgs_setup(char *str)
+ {
+-	if (strcmp(str, "on") == 0)
+-		full_rtas_msgs = 1;
+-	else if (strcmp(str, "off") == 0)
+-		full_rtas_msgs = 0;
 -
- config DEBUG_RODATA_TEST
--	bool "Testcase for the DEBUG_RODATA feature"
--	depends on DEBUG_RODATA
-+	bool "Testcase for the marking rodata read-only"
- 	default y
- 	---help---
--	  This option enables a testcase for the DEBUG_RODATA
--	  feature as well as for the change_page_attr() infrastructure.
-+	  This option enables a testcase for the setting rodata read-only
-+	  as well as for the change_page_attr() infrastructure.
- 	  If in doubt, say "N"
- 
- config DEBUG_WX
- 	bool "Warn on W+X mappings at boot"
--	depends on DEBUG_RODATA
- 	select X86_PTDUMP_CORE
- 	---help---
- 	  Generate a warning if any W+X mappings are found at boot.
-diff --git a/arch/x86/include/asm/cacheflush.h b/arch/x86/include/asm/cacheflush.h
-index c8cff75c5b21..61518cf79437 100644
---- a/arch/x86/include/asm/cacheflush.h
-+++ b/arch/x86/include/asm/cacheflush.h
-@@ -91,15 +91,10 @@ void clflush_cache_range(void *addr, unsigned int size);
- 
- #define mmio_flush_range(addr, size) clflush_cache_range(addr, size)
- 
--#ifdef CONFIG_DEBUG_RODATA
- extern const int rodata_test_data;
- extern int kernel_set_to_readonly;
- void set_kernel_text_rw(void);
- void set_kernel_text_ro(void);
--#else
--static inline void set_kernel_text_rw(void) { }
--static inline void set_kernel_text_ro(void) { }
--#endif
- 
- #ifdef CONFIG_DEBUG_RODATA_TEST
- int rodata_test(void);
-diff --git a/arch/x86/include/asm/kvm_para.h b/arch/x86/include/asm/kvm_para.h
-index c1adf33fdd0d..bc62e7cbf1b1 100644
---- a/arch/x86/include/asm/kvm_para.h
-+++ b/arch/x86/include/asm/kvm_para.h
-@@ -17,15 +17,8 @@ static inline bool kvm_check_and_clear_guest_paused(void)
+-	return 1;
++	return strtobool(str, &full_rtas_msgs);
  }
- #endif /* CONFIG_KVM_GUEST */
+ __setup("rtasmsgs=", rtasmsgs_setup);
+diff --git a/arch/powerpc/platforms/pseries/hotplug-cpu.c b/arch/powerpc/platforms/pseries/hotplug-cpu.c
+index 62475440fd45..ffed89818d39 100644
+--- a/arch/powerpc/platforms/pseries/hotplug-cpu.c
++++ b/arch/powerpc/platforms/pseries/hotplug-cpu.c
+@@ -24,6 +24,7 @@
+ #include <linux/sched.h>	/* for idle_task_exit */
+ #include <linux/cpu.h>
+ #include <linux/of.h>
++#include <linux/string.h>
+ #include <asm/prom.h>
+ #include <asm/rtas.h>
+ #include <asm/firmware.h>
+@@ -43,20 +44,14 @@ static DEFINE_PER_CPU(enum cpu_state_vals, current_state) = CPU_STATE_OFFLINE;
  
--#ifdef CONFIG_DEBUG_RODATA
- #define KVM_HYPERCALL \
-         ALTERNATIVE(".byte 0x0f,0x01,0xc1", ".byte 0x0f,0x01,0xd9", X86_FEATURE_VMMCALL)
--#else
--/* On AMD processors, vmcall will generate a trap that we will
-- * then rewrite to the appropriate instruction.
-- */
--#define KVM_HYPERCALL ".byte 0x0f,0x01,0xc1"
--#endif
+ static enum cpu_state_vals default_offline_state = CPU_STATE_OFFLINE;
  
- /* For KVM hypercalls, a three-byte sequence of either the vmcall or the vmmcall
-  * instruction.  The hypervisor may replace it with something else but only the
-diff --git a/arch/x86/include/asm/sections.h b/arch/x86/include/asm/sections.h
-index 0a5242428659..13b6cdd0af57 100644
---- a/arch/x86/include/asm/sections.h
-+++ b/arch/x86/include/asm/sections.h
-@@ -7,7 +7,7 @@
- extern char __brk_base[], __brk_limit[];
- extern struct exception_table_entry __stop___ex_table[];
+-static int cede_offline_enabled __read_mostly = 1;
++static bool cede_offline_enabled __read_mostly = true;
  
--#if defined(CONFIG_X86_64) && defined(CONFIG_DEBUG_RODATA)
-+#if defined(CONFIG_X86_64)
- extern char __end_rodata_hpage_align[];
- #endif
- 
-diff --git a/arch/x86/kernel/ftrace.c b/arch/x86/kernel/ftrace.c
-index 311bcf338f07..eb6bd34582c6 100644
---- a/arch/x86/kernel/ftrace.c
-+++ b/arch/x86/kernel/ftrace.c
-@@ -81,9 +81,9 @@ within(unsigned long addr, unsigned long start, unsigned long end)
- static unsigned long text_ip_addr(unsigned long ip)
- {
- 	/*
--	 * On x86_64, kernel text mappings are mapped read-only with
--	 * CONFIG_DEBUG_RODATA. So we use the kernel identity mapping instead
--	 * of the kernel text mapping to modify the kernel text.
-+	 * On x86_64, kernel text mappings are mapped read-only, so we use
-+	 * the kernel identity mapping instead of the kernel text mapping
-+	 * to modify the kernel text.
- 	 *
- 	 * For 32bit kernels, these mappings are same and we can use
- 	 * kernel identity mapping to modify code.
-diff --git a/arch/x86/kernel/kgdb.c b/arch/x86/kernel/kgdb.c
-index 44256a62702b..ed15cd486d06 100644
---- a/arch/x86/kernel/kgdb.c
-+++ b/arch/x86/kernel/kgdb.c
-@@ -750,9 +750,7 @@ void kgdb_arch_set_pc(struct pt_regs *regs, unsigned long ip)
- int kgdb_arch_set_breakpoint(struct kgdb_bkpt *bpt)
- {
- 	int err;
--#ifdef CONFIG_DEBUG_RODATA
- 	char opc[BREAK_INSTR_SIZE];
--#endif /* CONFIG_DEBUG_RODATA */
- 
- 	bpt->type = BP_BREAKPOINT;
- 	err = probe_kernel_read(bpt->saved_instr, (char *)bpt->bpt_addr,
-@@ -761,7 +759,6 @@ int kgdb_arch_set_breakpoint(struct kgdb_bkpt *bpt)
- 		return err;
- 	err = probe_kernel_write((char *)bpt->bpt_addr,
- 				 arch_kgdb_ops.gdb_bpt_instr, BREAK_INSTR_SIZE);
--#ifdef CONFIG_DEBUG_RODATA
- 	if (!err)
- 		return err;
- 	/*
-@@ -778,13 +775,12 @@ int kgdb_arch_set_breakpoint(struct kgdb_bkpt *bpt)
- 	if (memcmp(opc, arch_kgdb_ops.gdb_bpt_instr, BREAK_INSTR_SIZE))
- 		return -EINVAL;
- 	bpt->type = BP_POKE_BREAKPOINT;
--#endif /* CONFIG_DEBUG_RODATA */
-+
- 	return err;
- }
- 
- int kgdb_arch_remove_breakpoint(struct kgdb_bkpt *bpt)
- {
--#ifdef CONFIG_DEBUG_RODATA
- 	int err;
- 	char opc[BREAK_INSTR_SIZE];
- 
-@@ -801,8 +797,8 @@ int kgdb_arch_remove_breakpoint(struct kgdb_bkpt *bpt)
- 	if (err || memcmp(opc, bpt->saved_instr, BREAK_INSTR_SIZE))
- 		goto knl_write;
- 	return err;
-+
- knl_write:
--#endif /* CONFIG_DEBUG_RODATA */
- 	return probe_kernel_write((char *)bpt->bpt_addr,
- 				  (char *)bpt->saved_instr, BREAK_INSTR_SIZE);
- }
-diff --git a/arch/x86/kernel/test_nx.c b/arch/x86/kernel/test_nx.c
-index 3f92ce07e525..27538f183c3b 100644
---- a/arch/x86/kernel/test_nx.c
-+++ b/arch/x86/kernel/test_nx.c
-@@ -142,7 +142,6 @@ static int test_NX(void)
- 	 * by the error message
- 	 */
- 
--#ifdef CONFIG_DEBUG_RODATA
- 	/* Test 3: Check if the .rodata section is executable */
- 	if (rodata_test_data != 0xC3) {
- 		printk(KERN_ERR "test_nx: .rodata marker has invalid value\n");
-@@ -151,7 +150,6 @@ static int test_NX(void)
- 		printk(KERN_ERR "test_nx: .rodata section is executable\n");
- 		ret = -ENODEV;
- 	}
--#endif
- 
- #if 0
- 	/* Test 4: Check if the .data section of a module is executable */
-diff --git a/arch/x86/kernel/test_rodata.c b/arch/x86/kernel/test_rodata.c
-index 5ecbfe5099da..cb4a01b41e27 100644
---- a/arch/x86/kernel/test_rodata.c
-+++ b/arch/x86/kernel/test_rodata.c
-@@ -76,5 +76,5 @@ int rodata_test(void)
- }
- 
- MODULE_LICENSE("GPL");
--MODULE_DESCRIPTION("Testcase for the DEBUG_RODATA infrastructure");
-+MODULE_DESCRIPTION("Testcase for marking rodata as read-only");
- MODULE_AUTHOR("Arjan van de Ven <arjan@linux.intel.com>");
-diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
-index 74e4bf11f562..fe133b710bef 100644
---- a/arch/x86/kernel/vmlinux.lds.S
-+++ b/arch/x86/kernel/vmlinux.lds.S
-@@ -41,29 +41,28 @@ ENTRY(phys_startup_64)
- jiffies_64 = jiffies;
- #endif
- 
--#if defined(CONFIG_X86_64) && defined(CONFIG_DEBUG_RODATA)
-+#if defined(CONFIG_X86_64)
  /*
-- * On 64-bit, align RODATA to 2MB so that even with CONFIG_DEBUG_RODATA
-- * we retain large page mappings for boundaries spanning kernel text, rodata
-- * and data sections.
-+ * On 64-bit, align RODATA to 2MB so we retain large page mappings for
-+ * boundaries spanning kernel text, rodata and data sections.
-  *
-  * However, kernel identity mappings will have different RWX permissions
-  * to the pages mapping to text and to the pages padding (which are freed) the
-  * text section. Hence kernel identity mappings will be broken to smaller
-  * pages. For 64-bit, kernel text and kernel identity mappings are different,
-- * so we can enable protection checks that come with CONFIG_DEBUG_RODATA,
-- * as well as retain 2MB large page mappings for kernel text.
-+ * so we can enable protection checks as well as retain 2MB large page
-+ * mappings for kernel text.
+  * Enable/disable cede_offline when available.
   */
--#define X64_ALIGN_DEBUG_RODATA_BEGIN	. = ALIGN(HPAGE_SIZE);
-+#define X64_ALIGN_RODATA_BEGIN	. = ALIGN(HPAGE_SIZE);
- 
--#define X64_ALIGN_DEBUG_RODATA_END				\
-+#define X64_ALIGN_RODATA_END					\
- 		. = ALIGN(HPAGE_SIZE);				\
- 		__end_rodata_hpage_align = .;
- 
- #else
- 
--#define X64_ALIGN_DEBUG_RODATA_BEGIN
--#define X64_ALIGN_DEBUG_RODATA_END
-+#define X64_ALIGN_RODATA_BEGIN
-+#define X64_ALIGN_RODATA_END
- 
- #endif
- 
-@@ -112,13 +111,11 @@ SECTIONS
- 
- 	EXCEPTION_TABLE(16) :text = 0x9090
- 
--#if defined(CONFIG_DEBUG_RODATA)
- 	/* .text should occupy whole number of pages */
- 	. = ALIGN(PAGE_SIZE);
--#endif
--	X64_ALIGN_DEBUG_RODATA_BEGIN
-+	X64_ALIGN_RODATA_BEGIN
- 	RO_DATA(PAGE_SIZE)
--	X64_ALIGN_DEBUG_RODATA_END
-+	X64_ALIGN_RODATA_END
- 
- 	/* Data */
- 	.data : AT(ADDR(.data) - LOAD_OFFSET) {
-diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-index cb4ef3de61f9..2ebfbaf61142 100644
---- a/arch/x86/mm/init_32.c
-+++ b/arch/x86/mm/init_32.c
-@@ -871,7 +871,6 @@ static noinline int do_test_wp_bit(void)
- 	return flag;
- }
- 
--#ifdef CONFIG_DEBUG_RODATA
- const int rodata_test_data = 0xC3;
- EXPORT_SYMBOL_GPL(rodata_test_data);
- 
-@@ -960,5 +959,3 @@ void mark_rodata_ro(void)
- 	if (__supported_pte_mask & _PAGE_NX)
- 		debug_checkwx();
- }
--#endif
--
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index ec081fe0ce2c..e08d141844ee 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -1062,7 +1062,6 @@ void __init mem_init(void)
- 	mem_init_print_info(NULL);
- }
- 
--#ifdef CONFIG_DEBUG_RODATA
- const int rodata_test_data = 0xC3;
- EXPORT_SYMBOL_GPL(rodata_test_data);
- 
-@@ -1154,8 +1153,6 @@ void mark_rodata_ro(void)
- 	debug_checkwx();
- }
- 
--#endif
--
- int kern_addr_valid(unsigned long addr)
+ static int __init setup_cede_offline(char *str)
  {
- 	unsigned long above = ((long)addr) >> __VIRTUAL_MASK_SHIFT;
-diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
-index a3137a4feed1..8d77c7f7a614 100644
---- a/arch/x86/mm/pageattr.c
-+++ b/arch/x86/mm/pageattr.c
-@@ -278,7 +278,7 @@ static inline pgprot_t static_protections(pgprot_t prot, unsigned long address,
- 		   __pa_symbol(__end_rodata) >> PAGE_SHIFT))
- 		pgprot_val(forbidden) |= _PAGE_RW;
+-	if (!strcmp(str, "off"))
+-		cede_offline_enabled = 0;
+-	else if (!strcmp(str, "on"))
+-		cede_offline_enabled = 1;
+-	else
+-		return 0;
+-	return 1;
++	return strtobool(str, &cede_offline_enabled);
+ }
  
--#if defined(CONFIG_X86_64) && defined(CONFIG_DEBUG_RODATA)
-+#if defined(CONFIG_X86_64)
- 	/*
- 	 * Once the kernel maps the text as RO (kernel_set_to_readonly is set),
- 	 * kernel text mappings for the large page aligned text, rodata sections
+ __setup("cede_offline=", setup_cede_offline);
+diff --git a/arch/s390/kernel/time.c b/arch/s390/kernel/time.c
+index 99f84ac31307..afc7fc9684ba 100644
+--- a/arch/s390/kernel/time.c
++++ b/arch/s390/kernel/time.c
+@@ -1433,7 +1433,7 @@ device_initcall(etr_init_sysfs);
+ /*
+  * Server Time Protocol (STP) code.
+  */
+-static int stp_online;
++static bool stp_online;
+ static struct stp_sstpi stp_info;
+ static void *stp_page;
+ 
+@@ -1444,11 +1444,7 @@ static struct timer_list stp_timer;
+ 
+ static int __init early_parse_stp(char *p)
+ {
+-	if (strncmp(p, "off", 3) == 0)
+-		stp_online = 0;
+-	else if (strncmp(p, "on", 2) == 0)
+-		stp_online = 1;
+-	return 0;
++	return strtobool(p, &stp_online);
+ }
+ early_param("stp", early_parse_stp);
+ 
+diff --git a/arch/s390/kernel/topology.c b/arch/s390/kernel/topology.c
+index 40b8102fdadb..10e388216307 100644
+--- a/arch/s390/kernel/topology.c
++++ b/arch/s390/kernel/topology.c
+@@ -15,6 +15,7 @@
+ #include <linux/delay.h>
+ #include <linux/init.h>
+ #include <linux/slab.h>
++#include <linux/string.h>
+ #include <linux/cpu.h>
+ #include <linux/smp.h>
+ #include <linux/mm.h>
+@@ -37,7 +38,7 @@ static void set_topology_timer(void);
+ static void topology_work_fn(struct work_struct *work);
+ static struct sysinfo_15_1_x *tl_info;
+ 
+-static int topology_enabled = 1;
++static bool topology_enabled = true;
+ static DECLARE_WORK(topology_work, topology_work_fn);
+ 
+ /*
+@@ -444,10 +445,7 @@ static const struct cpumask *cpu_book_mask(int cpu)
+ 
+ static int __init early_parse_topology(char *p)
+ {
+-	if (strncmp(p, "off", 3))
+-		return 0;
+-	topology_enabled = 0;
+-	return 0;
++	return strtobool(p, &topology_enabled);
+ }
+ early_param("topology", early_parse_topology);
+ 
+diff --git a/arch/x86/kernel/aperture_64.c b/arch/x86/kernel/aperture_64.c
+index 6e85f713641d..6608b00a516a 100644
+--- a/arch/x86/kernel/aperture_64.c
++++ b/arch/x86/kernel/aperture_64.c
+@@ -20,6 +20,7 @@
+ #include <linux/pci_ids.h>
+ #include <linux/pci.h>
+ #include <linux/bitops.h>
++#include <linux/string.h>
+ #include <linux/suspend.h>
+ #include <asm/e820.h>
+ #include <asm/io.h>
+@@ -227,19 +228,11 @@ static u32 __init search_agp_bridge(u32 *order, int *valid_agp)
+ 	return 0;
+ }
+ 
+-static int gart_fix_e820 __initdata = 1;
++static bool gart_fix_e820 __initdata = true;
+ 
+ static int __init parse_gart_mem(char *p)
+ {
+-	if (!p)
+-		return -EINVAL;
+-
+-	if (!strncmp(p, "off", 3))
+-		gart_fix_e820 = 0;
+-	else if (!strncmp(p, "on", 2))
+-		gart_fix_e820 = 1;
+-
+-	return 0;
++	return strtobool(p, &gart_fix_e820);
+ }
+ early_param("gart_fix_e820", parse_gart_mem);
+ 
+diff --git a/kernel/time/hrtimer.c b/kernel/time/hrtimer.c
+index 435b8850dd80..40d82fe4d2a5 100644
+--- a/kernel/time/hrtimer.c
++++ b/kernel/time/hrtimer.c
+@@ -39,6 +39,7 @@
+ #include <linux/syscalls.h>
+ #include <linux/kallsyms.h>
+ #include <linux/interrupt.h>
++#include <linux/string.h>
+ #include <linux/tick.h>
+ #include <linux/seq_file.h>
+ #include <linux/err.h>
+@@ -515,7 +516,7 @@ static inline ktime_t hrtimer_update_base(struct hrtimer_cpu_base *base)
+ /*
+  * High resolution timer enabled ?
+  */
+-static int hrtimer_hres_enabled __read_mostly  = 1;
++static bool hrtimer_hres_enabled __read_mostly  = true;
+ unsigned int hrtimer_resolution __read_mostly = LOW_RES_NSEC;
+ EXPORT_SYMBOL_GPL(hrtimer_resolution);
+ 
+@@ -524,13 +525,7 @@ EXPORT_SYMBOL_GPL(hrtimer_resolution);
+  */
+ static int __init setup_hrtimer_hres(char *str)
+ {
+-	if (!strcmp(str, "off"))
+-		hrtimer_hres_enabled = 0;
+-	else if (!strcmp(str, "on"))
+-		hrtimer_hres_enabled = 1;
+-	else
+-		return 0;
+-	return 1;
++	return strtobool(str, &hrtimer_hres_enabled);
+ }
+ 
+ __setup("highres=", setup_hrtimer_hres);
+diff --git a/kernel/time/tick-sched.c b/kernel/time/tick-sched.c
+index 7c7ec4515983..dad2b3bec58b 100644
+--- a/kernel/time/tick-sched.c
++++ b/kernel/time/tick-sched.c
+@@ -19,6 +19,7 @@
+ #include <linux/percpu.h>
+ #include <linux/profile.h>
+ #include <linux/sched.h>
++#include <linux/string.h>
+ #include <linux/module.h>
+ #include <linux/irq_work.h>
+ #include <linux/posix-timers.h>
+@@ -387,20 +388,14 @@ void __init tick_nohz_init(void)
+ /*
+  * NO HZ enabled ?
+  */
+-static int tick_nohz_enabled __read_mostly  = 1;
++static bool tick_nohz_enabled __read_mostly  = true;
+ unsigned long tick_nohz_active  __read_mostly;
+ /*
+  * Enable / Disable tickless mode
+  */
+ static int __init setup_tick_nohz(char *str)
+ {
+-	if (!strcmp(str, "off"))
+-		tick_nohz_enabled = 0;
+-	else if (!strcmp(str, "on"))
+-		tick_nohz_enabled = 1;
+-	else
+-		return 0;
+-	return 1;
++	return strtobool(str, &tick_nohz_enabled);
+ }
+ 
+ __setup("nohz=", setup_tick_nohz);
 -- 
 1.9.1
 
