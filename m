@@ -1,98 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.outflux.net ([198.145.64.163]:43198 "EHLO smtp.outflux.net"
+Received: from smtp.outflux.net ([198.145.64.163]:50860 "EHLO smtp.outflux.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753700AbbLIVoV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1753713AbbLIVoV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Wed, 9 Dec 2015 16:44:21 -0500
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 6/8] introduce post-init read-only memory
-Date: Wed,  9 Dec 2015 13:43:22 -0800
-Message-ID: <1449697404-21076-7-git-send-email-keescook@chromium.org>
+Subject: [PATCH v3 8/8] x86, vdso: mark vDSO read-only after init
+Date: Wed,  9 Dec 2015 13:43:24 -0800
+Message-ID: <1449697404-21076-9-git-send-email-keescook@chromium.org>
 In-Reply-To: <1449697404-21076-1-git-send-email-keescook@chromium.org>
 References: <1449697404-21076-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20151209214322.G0Z4IV2nun5eNzoOHREOiygLMSq0xAPtR3onFIxwRPM@z>
+Message-ID: <20151209214324.CgsfBGXC6aITMq7z5CFclPYGfi_93FBuDhstZQcbor8@z>
 
-One of the easiest ways to protect the kernel from attack is to reduce
-the internal attack surface exposed when a "write" flaw is available. By
-making as much of the kernel read-only as possible, we reduce the
-attack surface.
+The vDSO does not need to be writable after __init, so mark it as
+__ro_after_init. The result kills the exploit method of writing to the
+vDSO from kernel space resulting in userspace executing the modified code,
+as shown here to bypass SMEP restrictions: http://itszn.com/blog/?p=21
 
-Many things are written to only during __init, and never changed
-again. These cannot be made "const" since the compiler will do the wrong
-thing (we do actually need to write to them). Instead, move these items
-into a memory region that will be made read-only during mark_rodata_ro()
-which happens after all kernel __init code has finished.
+The memory map (with added vDSO address reporting) shows the vDSO moving
+into read-only memory:
 
-This introduces __ro_after_init as a way to mark such memory, and adds
-some documentation about the existing __read_mostly marking.
+Before:
+[    0.143067] vDSO @ ffffffff82004000
+[    0.143551] vDSO @ ffffffff82006000
+---[ High Kernel Mapping ]---
+0xffffffff80000000-0xffffffff81000000      16M                         pmd
+0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
+0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
+0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
+0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
+0xffffffff81e00000-0xffffffff81e05000      20K   ro             GLB NX pte
+0xffffffff81e05000-0xffffffff82000000    2028K   ro                 NX pte
+0xffffffff82000000-0xffffffff8214f000    1340K   RW             GLB NX pte
+0xffffffff8214f000-0xffffffff82281000    1224K   RW                 NX pte
+0xffffffff82281000-0xffffffff82400000    1532K   RW             GLB NX pte
+0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
+0xffffffff83200000-0xffffffffc0000000     974M                         pmd
+
+After:
+[    0.145062] vDSO @ ffffffff81da1000
+[    0.146057] vDSO @ ffffffff81da4000
+---[ High Kernel Mapping ]---
+0xffffffff80000000-0xffffffff81000000      16M                         pmd
+0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
+0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
+0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
+0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
+0xffffffff81e00000-0xffffffff81e0b000      44K   ro             GLB NX pte
+0xffffffff81e0b000-0xffffffff82000000    2004K   ro                 NX pte
+0xffffffff82000000-0xffffffff8214c000    1328K   RW             GLB NX pte
+0xffffffff8214c000-0xffffffff8227e000    1224K   RW                 NX pte
+0xffffffff8227e000-0xffffffff82400000    1544K   RW             GLB NX pte
+0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
+0xffffffff83200000-0xffffffffc0000000     974M                         pmd
 
 Based on work by PaX Team and Brad Spengler.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/parisc/include/asm/cache.h   |  3 +++
- include/asm-generic/vmlinux.lds.h |  1 +
- include/linux/cache.h             | 14 ++++++++++++++
- 3 files changed, 18 insertions(+)
+ arch/x86/entry/vdso/vdso2c.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/parisc/include/asm/cache.h b/arch/parisc/include/asm/cache.h
-index 3d0e17bcc8e9..df0f52bd18b4 100644
---- a/arch/parisc/include/asm/cache.h
-+++ b/arch/parisc/include/asm/cache.h
-@@ -22,6 +22,9 @@
+diff --git a/arch/x86/entry/vdso/vdso2c.h b/arch/x86/entry/vdso/vdso2c.h
+index 0224987556ce..eb93a3137ed2 100644
+--- a/arch/x86/entry/vdso/vdso2c.h
++++ b/arch/x86/entry/vdso/vdso2c.h
+@@ -140,7 +140,7 @@ static void BITSFUNC(go)(void *raw_addr, size_t raw_len,
+ 	fprintf(outfile, "#include <asm/vdso.h>\n");
+ 	fprintf(outfile, "\n");
+ 	fprintf(outfile,
+-		"static unsigned char raw_data[%lu] __page_aligned_data = {",
++		"static unsigned char raw_data[%lu] __ro_after_init __aligned(PAGE_SIZE) = {",
+ 		mapping_size);
+ 	for (j = 0; j < stripped_len; j++) {
+ 		if (j % 10 == 0)
+@@ -150,7 +150,7 @@ static void BITSFUNC(go)(void *raw_addr, size_t raw_len,
+ 	}
+ 	fprintf(outfile, "\n};\n\n");
  
- #define __read_mostly __attribute__((__section__(".data..read_mostly")))
+-	fprintf(outfile, "static struct page *pages[%lu];\n\n",
++	fprintf(outfile, "static struct page *pages[%lu] __ro_after_init;\n\n",
+ 		mapping_size / 4096);
  
-+/* Read-only memory is marked before mark_rodata_ro() is called. */
-+#define __ro_after_init	__read_mostly
-+
- void parisc_cache_init(void);	/* initializes cache-flushing */
- void disable_sr_hashing_asm(int); /* low level support for above */
- void disable_sr_hashing(void);   /* turns off space register hashing */
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index c4bd0e2c173c..772c784ba763 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -256,6 +256,7 @@
- 	.rodata           : AT(ADDR(.rodata) - LOAD_OFFSET) {		\
- 		VMLINUX_SYMBOL(__start_rodata) = .;			\
- 		*(.rodata) *(.rodata.*)					\
-+		*(.data..ro_after_init)	/* Read only after init */	\
- 		*(__vermagic)		/* Kernel version magic */	\
- 		. = ALIGN(8);						\
- 		VMLINUX_SYMBOL(__start___tracepoints_ptrs) = .;		\
-diff --git a/include/linux/cache.h b/include/linux/cache.h
-index 17e7e82d2aa7..1be04f8c563a 100644
---- a/include/linux/cache.h
-+++ b/include/linux/cache.h
-@@ -12,10 +12,24 @@
- #define SMP_CACHE_BYTES L1_CACHE_BYTES
- #endif
- 
-+/*
-+ * __read_mostly is used to keep rarely changing variables out of frequently
-+ * updated cachelines. If an architecture doesn't support it, ignore the
-+ * hint.
-+ */
- #ifndef __read_mostly
- #define __read_mostly
- #endif
- 
-+/*
-+ * __ro_after_init is used to mark things that are read-only after init (i.e.
-+ * after mark_rodata_ro() has been called). These are effectively read-only,
-+ * but may get written to during init, so can't live in .rodata (via "const").
-+ */
-+#ifndef __ro_after_init
-+#define __ro_after_init __attribute__((__section__(".data..ro_after_init")))
-+#endif
-+
- #ifndef ____cacheline_aligned
- #define ____cacheline_aligned __attribute__((__aligned__(SMP_CACHE_BYTES)))
- #endif
+ 	fprintf(outfile, "const struct vdso_image %s = {\n", name);
 -- 
 1.9.1
 
