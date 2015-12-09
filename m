@@ -1,41 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.outflux.net ([198.145.64.163]:43258 "EHLO smtp.outflux.net"
+Received: from smtp.outflux.net ([198.145.64.163]:39524 "EHLO smtp.outflux.net"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753703AbbLIVoV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 9 Dec 2015 16:44:21 -0500
+	id S1753705AbbLIVoc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 9 Dec 2015 16:44:32 -0500
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v3 0/8] introduce post-init read-only memory
-Date: Wed,  9 Dec 2015 13:43:16 -0800
-Message-ID: <1449697404-21076-1-git-send-email-keescook@chromium.org>
+Subject: [PATCH v3 2/8] lib: add "on" and "off" to strtobool
+Date: Wed,  9 Dec 2015 13:43:18 -0800
+Message-ID: <1449697404-21076-3-git-send-email-keescook@chromium.org>
+In-Reply-To: <1449697404-21076-1-git-send-email-keescook@chromium.org>
+References: <1449697404-21076-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20151209214316.PIKY5_pITJjM_BMEcbJZy7JCKCRU7_U6D_A9wg5sPJ8@z>
+Cc: Kees Cook <keescook@chromium.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Daniel Borkmann <daniel@iogearbox.net>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20151209214318.yMNtk-LzmZmyBJkQma2cEtsGCW5DddH_hOBBCPjhXA0@z>
 
-One of the easiest ways to protect the kernel from attack is to reduce
-the internal attack surface exposed when a "write" flaw is available. By
-making as much of the kernel read-only as possible, we reduce the
-attack surface.
+Several places in the kernel expect to use "on" and "off" for their
+boolean signifiers, so add them to strtobool.
 
-Many things are written to only during __init, and never changed
-again. These cannot be made "const" since the compiler will do the wrong
-thing (we do actually need to write to them). Instead, move these items
-into a memory region that will be made read-only during mark_rodata_ro()
-which happens after all kernel __init code has finished.
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Cc: Daniel Borkmann <daniel@iogearbox.net>
+---
+ lib/string.c | 21 ++++++++++++++++++++-
+ 1 file changed, 20 insertions(+), 1 deletion(-)
 
-This introduces __ro_after_init as a way to mark such memory, and uses
-it on the x86 vDSO to kill an extant kernel exploitation method. Also
-adds a new kernel parameter to help debug future use and adds an lkdtm
-test to check the results.
-
--Kees
-
-v3:
-- conslidated mark_rodata_ro()
-- make CONFIG_DEBUG_RODATA always enabled on x86, mingo
-- enhanced strtobool and potential callers to use "on"/"off"
-- use strtobool for rodata= param, gregkh
-v2:
-- renamed __read_only to __ro_after_init
+diff --git a/lib/string.c b/lib/string.c
+index 0323c0d5629a..d7550432f91c 100644
+--- a/lib/string.c
++++ b/lib/string.c
+@@ -635,12 +635,16 @@ EXPORT_SYMBOL(sysfs_streq);
+  * @s: input string
+  * @res: result
+  *
+- * This routine returns 0 iff the first character is one of 'Yy1Nn0'.
++ * This routine returns 0 iff the first character is one of 'Yy1Nn0', or
++ * 'Oo' when the second character is one of 'fFnN' (for "on" and "off").
+  * Otherwise it will return -EINVAL.  Value pointed to by res is
+  * updated upon finding a match.
+  */
+ int strtobool(const char *s, bool *res)
+ {
++	if (!s)
++		return -EINVAL;
++
+ 	switch (s[0]) {
+ 	case 'y':
+ 	case 'Y':
+@@ -652,6 +656,21 @@ int strtobool(const char *s, bool *res)
+ 	case '0':
+ 		*res = false;
+ 		break;
++	case 'o':
++	case 'O':
++		switch (s[1]) {
++		case 'n':
++		case 'N':
++			*res = true;
++			break;
++		case 'f':
++		case 'F':
++			*res = false;
++			break;
++		default:
++			return -EINVAL;
++		}
++		break;
+ 	default:
+ 		return -EINVAL;
+ 	}
+-- 
+1.9.1
 
