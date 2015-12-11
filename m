@@ -1,39 +1,72 @@
-From: Andy Lutomirski <luto-kltTT9wpgjJwATOyAt5JVQ@public.gmane.org>
-Subject: Re: [PATCH 00/34] x86: Memory Protection Keys (v5)
-Date: Fri, 11 Dec 2015 12:16:00 -0800
-Message-ID: <CALCETrXxe0cWXz9TG__Ju8hFXg0X9gKfBjU_GvFK3DWTW6AL0w@mail.gmail.com>
-References: <20151204011424.8A36E365@viggo.jf.intel.com> <CALCETrXwVb99hAvqR2o54aPwtpr8oubROtiRt45SiYRfUTAxCw@mail.gmail.com>
- <56622401.20001@sr71.net>
+From: Andy Shevchenko <andy.shevchenko@gmail.com>
+Subject: Re: [PATCH v3 2/8] lib: add "on" and "off" to strtobool
+Date: Fri, 11 Dec 2015 23:20:28 +0200
+Message-ID: <CAHp75Vf-Y+8PUMnU9k9pAjXbdWwiZoTnOhcohKeKS+aTt_fC3Q@mail.gmail.com>
+References: <1449697404-21076-1-git-send-email-keescook@chromium.org>
+	<1449697404-21076-3-git-send-email-keescook@chromium.org>
+	<CAHp75VeJovidU+dWL6Su9YkpP+zmMUw=yrtLh2PmGRZRun-D8g@mail.gmail.com>
+	<CAGXu5jK8dTL5PVnF7G+xf=RvWX82G9NFy+jEqkNmV7V0zc-LxQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <56622401.20001-gkUM19QKKo4@public.gmane.org>
-Sender: linux-api-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Dave Hansen <dave-gkUM19QKKo4@public.gmane.org>
-Cc: "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org" <linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org>, X86 ML <x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Linux API <linux-api-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-arch <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Andrea Arcangeli <aarcange-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Andrew Morton <akpm-de/tnXTf+JLsfHDXvbKv3WD2FQJk+8+b@public.gmane.org>, Jan Kara <jack-AlSwsSmVLrQ@public.gmane.org>, "Kirill A. Shutemov" <kirill.shutemov-VuQAYsv1563Yd54FQh9/CA@public.gmane.org>, Naoya Horiguchi <n-horiguchi-PaJj6Psr51x8UrSeD/g0lQ@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qk0-f173.google.com ([209.85.220.173]:34396 "EHLO
+	mail-qk0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751437AbbLKVU3 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Dec 2015 16:20:29 -0500
+In-Reply-To: <CAGXu5jK8dTL5PVnF7G+xf=RvWX82G9NFy+jEqkNmV7V0zc-LxQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Daniel Borkmann <daniel@iogearbox.net>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>
 
-On Fri, Dec 4, 2015 at 3:38 PM, Dave Hansen <dave-gkUM19QKKo4@public.gmane.org> wrote:
-> On 12/04/2015 03:31 PM, Andy Lutomirski wrote:
->> On Thu, Dec 3, 2015 at 5:14 PM, Dave Hansen <dave-gkUM19QKKo4@public.gmane.org> wrote:
->>> Memory Protection Keys for User pages is a CPU feature which will
->>> first appear on Skylake Servers, but will also be supported on
->>> future non-server parts.  It provides a mechanism for enforcing
->>> page-based protections, but without requiring modification of the
->>> page tables when an application changes protection domains.  See
->>> the Documentation/ patch for more details.
+On Fri, Dec 11, 2015 at 8:50 PM, Kees Cook <keescook@chromium.org> wrot=
+e:
+> On Fri, Dec 11, 2015 at 9:00 AM, Andy Shevchenko
+> <andy.shevchenko@gmail.com> wrote:
+>> On Wed, Dec 9, 2015 at 11:43 PM, Kees Cook <keescook@chromium.org> w=
+rote:
+>>> Several places in the kernel expect to use "on" and "off" for their
+>>> boolean signifiers, so add them to strtobool.
+
+>>> +       if (!s)
+>>> +               return -EINVAL;
+>>> +
 >>
->> What, if anything, happened to the signal handling parts?
+>> This change I think is better to do separately. Do we have even need=
+ for it?
 >
-> Patches 12 and 13 contain most of it:
->
->         x86, pkeys: fill in pkey field in siginfo
->         signals, pkeys: notify userspace about protection key faults
->
-> I decided to just not try to preserve the pkey_get/set() semantics
-> across entering and returning from signals, fwiw.
+> I'm happy to separate it, sure. I added it here because several of th=
+e
+> __setup and param callers do a check for !NULL input, and it made thi=
+s
+> cleaner. Also it seems sensible to do this check anyway.
 
-Hmm.  I'll see if I can find some time this weekend to play with that
-bit.  Maybe I can test by faking it and tweaking MPX instead of PKRU.
+OK.
 
---Andy
+>>> +               default:
+>>> +                       return -EINVAL;
+>>> +               }
+>>> +               break;
+>>>         default:
+>>>                 return -EINVAL;
+>>
+>> Maybe in both cases
+>> default:
+>>  break;
+>> }
+>> =E2=80=A6
+>> }
+>> return -EINVAL;
+>
+> I went back and forth on this. To switch to the fall-back being EINVA=
+L
+> meant I had to change all the other "breaks" into "return 0", and it
+> just looked ugly to me. If that is preferred, though, I'm happy to do
+> it.
+
+I have no strong feelings about that, I prefer whatever looks neater.
+
+--=20
+With Best Regards,
+Andy Shevchenko
