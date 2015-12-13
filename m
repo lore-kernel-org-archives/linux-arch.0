@@ -1,96 +1,65 @@
 From: Chen Gang <chengang@emindsoft.com.cn>
-Subject: [PATCH trivial] include/asm-generic/pgtable.h: Notice about coding
- styles
-Date: Sun, 13 Dec 2015 17:08:14 +0800
-Message-ID: <566D357E.3030004@emindsoft.com.cn>
+Subject: [PATCH trivial] include/asm-generic/tlb.h: Notice about the coding
+ style
+Date: Sun, 13 Dec 2015 17:06:15 +0800
+Message-ID: <566D3507.9050204@emindsoft.com.cn>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail113-248.mail.alibaba.com ([205.204.113.248]:43431 "EHLO
+Received: from mail113-251.mail.alibaba.com ([205.204.113.251]:38278 "EHLO
 	us-alimail-mta1.hst.scl.en.alidc.net" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751210AbbLMJGI (ORCPT
+	by vger.kernel.org with ESMTP id S1751210AbbLMJJr (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 13 Dec 2015 04:06:08 -0500
+	Sun, 13 Dec 2015 04:09:47 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, trivial@kernel.org
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Chen Gang <gang.chen.5i5j@gmail.com>, chenwei@emindsoft.com.cn
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chen Gang <gang.chen.5i5j@gmail.com>, chenwei@emindsoft.com.cn
 
 
-Notice about 80 columns, and function parameters alignment.
+Notice about 80 columns.
 
-Export zero_pfn only once.
+Notice about function parameter alignment.
 
-Remove pte variable in ptep_get_and_clear_full().
+Append 'UL' to hard code numbers which are related with the unsigned
+long variables.
 
 Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
 ---
- include/asm-generic/pgtable.h | 16 +++++++---------
- 1 file changed, 7 insertions(+), 9 deletions(-)
+ include/asm-generic/tlb.h | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index 63abda1..aecf0141 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -135,8 +135,8 @@ static inline pmd_t pmdp_huge_get_and_clear(struct mm_struct *mm,
- #ifndef __HAVE_ARCH_PMDP_HUGE_GET_AND_CLEAR_FULL
- #ifdef CONFIG_TRANSPARENT_HUGEPAGE
- static inline pmd_t pmdp_huge_get_and_clear_full(struct mm_struct *mm,
--					    unsigned long address, pmd_t *pmdp,
--					    int full)
-+						 unsigned long address,
-+						 pmd_t *pmdp, int full)
- {
- 	return pmdp_huge_get_and_clear(mm, address, pmdp);
- }
-@@ -148,9 +148,7 @@ static inline pte_t ptep_get_and_clear_full(struct mm_struct *mm,
- 					    unsigned long address, pte_t *ptep,
- 					    int full)
- {
--	pte_t pte;
--	pte = ptep_get_and_clear(mm, address, ptep);
--	return pte;
-+	return ptep_get_and_clear(mm, address, ptep);
- }
- #endif
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 9dbb739..3fc72bd 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -111,10 +111,11 @@ struct mmu_gather {
  
-@@ -183,7 +181,8 @@ extern pmd_t pmdp_huge_clear_flush(struct vm_area_struct *vma,
+ #define HAVE_GENERIC_MMU_GATHER
  
- #ifndef __HAVE_ARCH_PTEP_SET_WRPROTECT
- struct mm_struct;
--static inline void ptep_set_wrprotect(struct mm_struct *mm, unsigned long address, pte_t *ptep)
-+static inline void ptep_set_wrprotect(struct mm_struct *mm,
-+				      unsigned long address, pte_t *ptep)
- {
- 	pte_t old_pte = *ptep;
- 	set_pte_at(mm, address, ptep, pte_wrprotect(old_pte));
-@@ -583,10 +582,11 @@ extern void untrack_pfn(struct vm_area_struct *vma, unsigned long pfn,
- 			unsigned long size);
- #endif
+-void tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned long start, unsigned long end);
++void tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
++		    unsigned long start, unsigned long end);
+ void tlb_flush_mmu(struct mmu_gather *tlb);
+ void tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start,
+-							unsigned long end);
++		    unsigned long end);
+ int __tlb_remove_page(struct mmu_gather *tlb, struct page *page);
  
-+extern unsigned long zero_pfn;
-+
- #ifdef __HAVE_COLOR_ZERO_PAGE
- static inline int is_zero_pfn(unsigned long pfn)
+ /* tlb_remove_page
+@@ -137,10 +138,10 @@ static inline void __tlb_adjust_range(struct mmu_gather *tlb,
+ static inline void __tlb_reset_range(struct mmu_gather *tlb)
  {
--	extern unsigned long zero_pfn;
- 	unsigned long offset_from_zero_pfn = pfn - zero_pfn;
- 	return offset_from_zero_pfn <= (zero_page_mask >> PAGE_SHIFT);
- }
-@@ -596,13 +596,11 @@ static inline int is_zero_pfn(unsigned long pfn)
- #else
- static inline int is_zero_pfn(unsigned long pfn)
- {
--	extern unsigned long zero_pfn;
- 	return pfn == zero_pfn;
+ 	if (tlb->fullmm) {
+-		tlb->start = tlb->end = ~0;
++		tlb->start = tlb->end = ~0UL;
+ 	} else {
+ 		tlb->start = TASK_SIZE;
+-		tlb->end = 0;
++		tlb->end = 0UL;
+ 	}
  }
  
- static inline unsigned long my_zero_pfn(unsigned long addr)
- {
--	extern unsigned long zero_pfn;
- 	return zero_pfn;
- }
- #endif
 -- 
 1.9.3
