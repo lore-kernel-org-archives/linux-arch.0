@@ -1,72 +1,42 @@
-From: Andy Shevchenko <andy.shevchenko@gmail.com>
-Subject: Re: [PATCH v3 2/8] lib: add "on" and "off" to strtobool
-Date: Fri, 11 Dec 2015 23:20:28 +0200
-Message-ID: <CAHp75Vf-Y+8PUMnU9k9pAjXbdWwiZoTnOhcohKeKS+aTt_fC3Q@mail.gmail.com>
-References: <1449697404-21076-1-git-send-email-keescook@chromium.org>
-	<1449697404-21076-3-git-send-email-keescook@chromium.org>
-	<CAHp75VeJovidU+dWL6Su9YkpP+zmMUw=yrtLh2PmGRZRun-D8g@mail.gmail.com>
-	<CAGXu5jK8dTL5PVnF7G+xf=RvWX82G9NFy+jEqkNmV7V0zc-LxQ@mail.gmail.com>
+From: Chen Gang <chengang@emindsoft.com.cn>
+Subject: [PATCH trivial] include/asm-generic/page.h: Notice about 80 columns
+Date: Sun, 13 Dec 2015 17:04:36 +0800
+Message-ID: <566D34A4.1040103@emindsoft.com.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qk0-f173.google.com ([209.85.220.173]:34396 "EHLO
-	mail-qk0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751437AbbLKVU3 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Dec 2015 16:20:29 -0500
-In-Reply-To: <CAGXu5jK8dTL5PVnF7G+xf=RvWX82G9NFy+jEqkNmV7V0zc-LxQ@mail.gmail.com>
+Received: from mail113-251.mail.alibaba.com ([205.204.113.251]:54742 "EHLO
+	us-alimail-mta1.hst.scl.en.alidc.net" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751210AbbLMJCo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 13 Dec 2015 04:02:44 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Daniel Borkmann <daniel@iogearbox.net>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, linux-arch <linux-arch@vger.kernel.org>
+To: arnd@arndb.de, trivial@kernel.org
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Chen Gang <gang.chen.5i5j@gmail.com>, chenwei@emindsoft.com.cn
 
-On Fri, Dec 11, 2015 at 8:50 PM, Kees Cook <keescook@chromium.org> wrot=
-e:
-> On Fri, Dec 11, 2015 at 9:00 AM, Andy Shevchenko
-> <andy.shevchenko@gmail.com> wrote:
->> On Wed, Dec 9, 2015 at 11:43 PM, Kees Cook <keescook@chromium.org> w=
-rote:
->>> Several places in the kernel expect to use "on" and "off" for their
->>> boolean signifiers, so add them to strtobool.
 
->>> +       if (!s)
->>> +               return -EINVAL;
->>> +
->>
->> This change I think is better to do separately. Do we have even need=
- for it?
->
-> I'm happy to separate it, sure. I added it here because several of th=
-e
-> __setup and param callers do a check for !NULL input, and it made thi=
-s
-> cleaner. Also it seems sensible to do this check anyway.
+It is a trivial patch.
 
-OK.
+Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
+---
+ include/asm-generic/page.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
->>> +               default:
->>> +                       return -EINVAL;
->>> +               }
->>> +               break;
->>>         default:
->>>                 return -EINVAL;
->>
->> Maybe in both cases
->> default:
->>  break;
->> }
->> =E2=80=A6
->> }
->> return -EINVAL;
->
-> I went back and forth on this. To switch to the fall-back being EINVA=
-L
-> meant I had to change all the other "breaks" into "return 0", and it
-> just looked ugly to me. If that is preferred, though, I'm happy to do
-> it.
-
-I have no strong feelings about that, I prefer whatever looks neater.
-
---=20
-With Best Regards,
-Andy Shevchenko
+diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
+index 67cfb7d..e04cef4 100644
+--- a/include/asm-generic/page.h
++++ b/include/asm-generic/page.h
+@@ -87,7 +87,8 @@ extern unsigned long memory_end;
+ #define page_to_phys(page)      ((dma_addr_t)page_to_pfn(page) << PAGE_SHIFT)
+ #endif
+ 
+-#define pfn_valid(pfn)		((pfn) >= ARCH_PFN_OFFSET && ((pfn) - ARCH_PFN_OFFSET) < max_mapnr)
++#define pfn_valid(pfn)		((pfn) >= ARCH_PFN_OFFSET && \
++				((pfn) - ARCH_PFN_OFFSET) < max_mapnr)
+ 
+ #define	virt_addr_valid(kaddr)	(((void *)(kaddr) >= (void *)PAGE_OFFSET) && \
+ 				((void *)(kaddr) < (void *)memory_end))
+-- 
+1.9.3
