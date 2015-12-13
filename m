@@ -1,46 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f175.google.com ([209.85.214.175]:33021 "EHLO
-	mail-ob0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752929AbbLKUQU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Dec 2015 15:16:20 -0500
-Received: by obbsd4 with SMTP id sd4so41854373obb.0
-        for <linux-arch@vger.kernel.org>; Fri, 11 Dec 2015 12:16:19 -0800 (PST)
+Received: from mail113-249.mail.alibaba.com ([205.204.113.249]:55992 "EHLO
+	us-alimail-mta2.hst.scl.en.alidc.net" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1751308AbbLMJJs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 13 Dec 2015 04:09:48 -0500
+Message-ID: <566D3662.6080804@emindsoft.com.cn>
+Date: Sun, 13 Dec 2015 17:12:02 +0800
+From: Chen Gang <chengang@emindsoft.com.cn>
 MIME-Version: 1.0
-In-Reply-To: <56622401.20001@sr71.net>
-References: <20151204011424.8A36E365@viggo.jf.intel.com> <CALCETrXwVb99hAvqR2o54aPwtpr8oubROtiRt45SiYRfUTAxCw@mail.gmail.com>
- <56622401.20001@sr71.net>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Fri, 11 Dec 2015 12:16:00 -0800
-Message-ID: <CALCETrXxe0cWXz9TG__Ju8hFXg0X9gKfBjU_GvFK3DWTW6AL0w@mail.gmail.com>
-Subject: Re: [PATCH 00/34] x86: Memory Protection Keys (v5)
-Content-Type: text/plain; charset=UTF-8
+Subject: [PATCH] include/asm-generic/pgtable.h: Check once and return for
+ pgprot_modify
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave@sr71.net>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, X86 ML <x86@kernel.org>, Linux API <linux-api@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Andrea Arcangeli <aarcange@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Jan Kara <jack@suse.cz>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
-Message-ID: <20151211201600.LRFjnbblTQgiKD-nNNLFTNnRHk37Y8A4bukYKWpdklM@z>
+To: arnd@arndb.de, Andrew Morton <akpm@linux-foundation.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Chen Gang <gang.chen.5i5j@gmail.com>, chenwei@emindsoft.com.cn
+Message-ID: <20151213091202.MhiJeuuBeP86wixW1ClvZX8sI53oFT8lvDyr-P0cjgI@z>
 
-On Fri, Dec 4, 2015 at 3:38 PM, Dave Hansen <dave@sr71.net> wrote:
-> On 12/04/2015 03:31 PM, Andy Lutomirski wrote:
->> On Thu, Dec 3, 2015 at 5:14 PM, Dave Hansen <dave@sr71.net> wrote:
->>> Memory Protection Keys for User pages is a CPU feature which will
->>> first appear on Skylake Servers, but will also be supported on
->>> future non-server parts.  It provides a mechanism for enforcing
->>> page-based protections, but without requiring modification of the
->>> page tables when an application changes protection domains.  See
->>> the Documentation/ patch for more details.
->>
->> What, if anything, happened to the signal handling parts?
->
-> Patches 12 and 13 contain most of it:
->
->         x86, pkeys: fill in pkey field in siginfo
->         signals, pkeys: notify userspace about protection key faults
->
-> I decided to just not try to preserve the pkey_get/set() semantics
-> across entering and returning from signals, fwiw.
 
-Hmm.  I'll see if I can find some time this weekend to play with that
-bit.  Maybe I can test by faking it and tweaking MPX instead of PKRU.
+pgprot_val() likes an empty operation, and all three checking statements
+are related with oldprot, so only check once is enough, the reason is:
 
---Andy
+ - if both "oldprot == pgprot_noncached(oldprot)" and "oldprot ==
+   pgprot_writecombine(oldprot)" are satisfied.
+
+ - So "pgprot_noncached(oldprot) == pgprot_writecombine(oldprot)", too.
+
+ - So as the result, it is still equal to check once (for pgprot_device
+   can get the same result).
+
+Then can return directly.
+
+Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
+---
+ include/asm-generic/pgtable.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 069536a..cd9e7c4 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -306,11 +306,11 @@ static inline int pmd_same(pmd_t pmd_a, pmd_t pmd_b)
+ static inline pgprot_t pgprot_modify(pgprot_t oldprot, pgprot_t newprot)
+ {
+ 	if (pgprot_val(oldprot) == pgprot_val(pgprot_noncached(oldprot)))
+-		newprot = pgprot_noncached(newprot);
++		return pgprot_noncached(newprot);
+ 	if (pgprot_val(oldprot) == pgprot_val(pgprot_writecombine(oldprot)))
+-		newprot = pgprot_writecombine(newprot);
++		return pgprot_writecombine(newprot);
+ 	if (pgprot_val(oldprot) == pgprot_val(pgprot_device(oldprot)))
+-		newprot = pgprot_device(newprot);
++		return pgprot_device(newprot);
+ 	return newprot;
+ }
+ #endif
+-- 
+1.9.3
