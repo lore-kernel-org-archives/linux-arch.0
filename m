@@ -1,65 +1,54 @@
 From: Chen Gang <chengang@emindsoft.com.cn>
-Subject: [PATCH trivial] include/asm-generic/tlb.h: Notice about the coding
- style
-Date: Sun, 13 Dec 2015 17:06:15 +0800
-Message-ID: <566D3507.9050204@emindsoft.com.cn>
+Subject: [PATCH] include/asm-generic/pgtable.h: Check once and return for
+ pgprot_modify
+Date: Sun, 13 Dec 2015 17:12:02 +0800
+Message-ID: <566D3662.6080804@emindsoft.com.cn>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail113-251.mail.alibaba.com ([205.204.113.251]:38278 "EHLO
-	us-alimail-mta1.hst.scl.en.alidc.net" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751210AbbLMJJr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 13 Dec 2015 04:09:47 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de, trivial@kernel.org
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Chen Gang <gang.chen.5i5j@gmail.com>, chenwei@emindsoft.com.cn
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: arnd@arndb.de, Andrew Morton <akpm@linux-foundation.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Chen Gang <gang.chen.5i5j@gmail.com>, chenwei@emindsoft.com.cn
+List-Id: linux-arch.vger.kernel.org
 
 
-Notice about 80 columns.
+pgprot_val() likes an empty operation, and all three checking statements
+are related with oldprot, so only check once is enough, the reason is:
 
-Notice about function parameter alignment.
+ - if both "oldprot == pgprot_noncached(oldprot)" and "oldprot ==
+   pgprot_writecombine(oldprot)" are satisfied.
 
-Append 'UL' to hard code numbers which are related with the unsigned
-long variables.
+ - So "pgprot_noncached(oldprot) == pgprot_writecombine(oldprot)", too.
+
+ - So as the result, it is still equal to check once (for pgprot_device
+   can get the same result).
+
+Then can return directly.
 
 Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
 ---
- include/asm-generic/tlb.h | 9 +++++----
- 1 file changed, 5 insertions(+), 4 deletions(-)
+ include/asm-generic/pgtable.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
-index 9dbb739..3fc72bd 100644
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -111,10 +111,11 @@ struct mmu_gather {
- 
- #define HAVE_GENERIC_MMU_GATHER
- 
--void tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned long start, unsigned long end);
-+void tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm,
-+		    unsigned long start, unsigned long end);
- void tlb_flush_mmu(struct mmu_gather *tlb);
- void tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start,
--							unsigned long end);
-+		    unsigned long end);
- int __tlb_remove_page(struct mmu_gather *tlb, struct page *page);
- 
- /* tlb_remove_page
-@@ -137,10 +138,10 @@ static inline void __tlb_adjust_range(struct mmu_gather *tlb,
- static inline void __tlb_reset_range(struct mmu_gather *tlb)
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index 069536a..cd9e7c4 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -306,11 +306,11 @@ static inline int pmd_same(pmd_t pmd_a, pmd_t pmd_b)
+ static inline pgprot_t pgprot_modify(pgprot_t oldprot, pgprot_t newprot)
  {
- 	if (tlb->fullmm) {
--		tlb->start = tlb->end = ~0;
-+		tlb->start = tlb->end = ~0UL;
- 	} else {
- 		tlb->start = TASK_SIZE;
--		tlb->end = 0;
-+		tlb->end = 0UL;
- 	}
+ 	if (pgprot_val(oldprot) == pgprot_val(pgprot_noncached(oldprot)))
+-		newprot = pgprot_noncached(newprot);
++		return pgprot_noncached(newprot);
+ 	if (pgprot_val(oldprot) == pgprot_val(pgprot_writecombine(oldprot)))
+-		newprot = pgprot_writecombine(newprot);
++		return pgprot_writecombine(newprot);
+ 	if (pgprot_val(oldprot) == pgprot_val(pgprot_device(oldprot)))
+-		newprot = pgprot_device(newprot);
++		return pgprot_device(newprot);
+ 	return newprot;
  }
- 
+ #endif
 -- 
 1.9.3
