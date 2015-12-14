@@ -1,45 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t5009.houston.hp.com ([15.240.92.67]:33156 "EHLO
-	g9t5009.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932990AbbLNXiM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Dec 2015 18:38:12 -0500
+Received: from g9t1613g.houston.hp.com ([15.240.0.71]:53023 "EHLO
+	g9t1613g.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932646AbbLNXid (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Dec 2015 18:38:33 -0500
+Received: from g4t3428.houston.hp.com (g4t3428.houston.hp.com [15.201.208.56])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+	(No client certificate requested)
+	by g9t1613g.houston.hp.com (Postfix) with ESMTPS id E5BDF643E7
+	for <linux-arch@vger.kernel.org>; Mon, 14 Dec 2015 23:38:05 +0000 (UTC)
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH 10/11] arm/samsung: Change s3c_pm_run_res() to use System RAM type
-Date: Mon, 14 Dec 2015 16:37:25 -0700
-Message-ID: <1450136246-17053-10-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH 07/11] memory-hotplug: Set IORESOURCE_SYSTEM_RAM to System RAM
+Date: Mon, 14 Dec 2015 16:37:22 -0700
+Message-ID: <1450136246-17053-7-git-send-email-toshi.kani@hpe.com>
 In-Reply-To: <1450136246-17053-1-git-send-email-toshi.kani@hpe.com>
 References: <1450136246-17053-1-git-send-email-toshi.kani@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Kukjin Kim <kgene@kernel.org>, Krzysztof Kozlowski <k.kozlowski@samsung.com>, linux-samsung-soc@vger.kernel.org, Toshi Kani <toshi.kani@hpe.com>
-Message-ID: <20151214233725.XVVujVkBXRmrNI9uEIxC4qHpbzk5XGC78JMsUFmsZbY@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Tang Chen <tangchen@cn.fujitsu.com>, Toshi Kani <toshi.kani@hpe.com>
+Message-ID: <20151214233722.UaIABVpkNHLtJis74VmmVbYxqrw64wxkMXCrS4FZBTw@z>
 
-Change s3c_pm_run_res() to check with IORESOURCE_SYSTEM_RAM,
-instead of strcmp() with "System RAM", in the resource table.
+Set IORESOURCE_SYSTEM_RAM to the flags of memory hotplug resource
+ranges with "System RAM".
 
-No functional change is made to the interface.
-
-Cc: Kukjin Kim <kgene@kernel.org>
-Cc: Krzysztof Kozlowski <k.kozlowski@samsung.com>
-Cc: linux-samsung-soc@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Tang Chen <tangchen@cn.fujitsu.com>
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- arch/arm/plat-samsung/pm-check.c |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ mm/memory_hotplug.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/arm/plat-samsung/pm-check.c b/arch/arm/plat-samsung/pm-check.c
-index 04aff2c..70f2f69 100644
---- a/arch/arm/plat-samsung/pm-check.c
-+++ b/arch/arm/plat-samsung/pm-check.c
-@@ -53,8 +53,8 @@ static void s3c_pm_run_res(struct resource *ptr, run_fn_t fn, u32 *arg)
- 		if (ptr->child != NULL)
- 			s3c_pm_run_res(ptr->child, fn, arg);
- 
--		if ((ptr->flags & IORESOURCE_MEM) &&
--		    strcmp(ptr->name, "System RAM") == 0) {
-+		if ((ptr->flags & IORESOURCE_SYSTEM_RAM)
-+				== IORESOURCE_SYSTEM_RAM) {
- 			S3C_PMDBG("Found system RAM at %08lx..%08lx\n",
- 				  (unsigned long)ptr->start,
- 				  (unsigned long)ptr->end);
+diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
+index 67d488a..9458423 100644
+--- a/mm/memory_hotplug.c
++++ b/mm/memory_hotplug.c
+@@ -136,7 +136,7 @@ static struct resource *register_memory_resource(u64 start, u64 size)
+ 	res->name = "System RAM";
+ 	res->start = start;
+ 	res->end = start + size - 1;
+-	res->flags = IORESOURCE_MEM | IORESOURCE_BUSY;
++	res->flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
+ 	if (request_resource(&iomem_resource, res) < 0) {
+ 		pr_debug("System RAM resource %pR cannot be added\n", res);
+ 		kfree(res);
