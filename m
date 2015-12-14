@@ -1,38 +1,106 @@
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH 07/11] memory-hotplug: Set IORESOURCE_SYSTEM_RAM to System RAM
-Date: Mon, 14 Dec 2015 16:37:22 -0700
-Message-ID: <1450136246-17053-7-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH 09/11] resource: Change walk_system_ram to use System RAM type
+Date: Mon, 14 Dec 2015 16:37:24 -0700
+Message-ID: <1450136246-17053-9-git-send-email-toshi.kani@hpe.com>
 References: <1450136246-17053-1-git-send-email-toshi.kani@hpe.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1450136246-17053-1-git-send-email-toshi.kani@hpe.com>
 Sender: owner-linux-mm@kvack.org
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Tang Chen <tangchen@cn.fujitsu.com>, Toshi Kani <toshi.kani@hpe.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Toshi Kani <toshi.kani@hpe.com>
 List-Id: linux-arch.vger.kernel.org
 
-Set IORESOURCE_SYSTEM_RAM to the flags of memory hotplug resource
-ranges with "System RAM".
+Change walk_system_ram_res() and walk_system_ram_range() to
+call find_next_iomem_res() by setting IORESOURCE_SYSTEM_RAM
+to @res->flags and NULL to @name.  With this change, they
+walk through the resource table without doing strcmp().
+
+No functional change is made to the interfaces.
 
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Tang Chen <tangchen@cn.fujitsu.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- mm/memory_hotplug.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ kernel/resource.c |   26 +++++++++++++-------------
+ 1 file changed, 13 insertions(+), 13 deletions(-)
 
-diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
-index 67d488a..9458423 100644
---- a/mm/memory_hotplug.c
-+++ b/mm/memory_hotplug.c
-@@ -136,7 +136,7 @@ static struct resource *register_memory_resource(u64 start, u64 size)
- 	res->name = "System RAM";
- 	res->start = start;
- 	res->end = start + size - 1;
--	res->flags = IORESOURCE_MEM | IORESOURCE_BUSY;
-+	res->flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
- 	if (request_resource(&iomem_resource, res) < 0) {
- 		pr_debug("System RAM resource %pR cannot be added\n", res);
- 		kfree(res);
+diff --git a/kernel/resource.c b/kernel/resource.c
+index 56bed6d..c6f13d0 100644
+--- a/kernel/resource.c
++++ b/kernel/resource.c
+@@ -334,8 +334,8 @@ EXPORT_SYMBOL(release_resource);
+ 
+ /*
+  * Finds the lowest iomem reosurce exists with-in [res->start.res->end)
+- * the caller must specify res->start, res->end, res->flags and "name".
+- * If found, returns 0, res is overwritten, if not found, returns -1.
++ * the caller must specify res->start, res->end, res->flags and optionally
++ * "name".  If found, returns 0, res is overwritten, if not found, returns -1.
+  * This walks through whole tree and not just first level children
+  * until and unless first_level_children_only is true.
+  */
+@@ -415,9 +415,9 @@ int walk_iomem_res(char *name, unsigned long flags, u64 start, u64 end,
+ }
+ 
+ /*
+- * This function calls callback against all memory range of "System RAM"
+- * which are marked as IORESOURCE_MEM and IORESOUCE_BUSY.
+- * Now, this function is only for "System RAM". This function deals with
++ * This function calls callback against all memory range of System RAM
++ * which are marked as IORESOURCE_SYSTEM_RAM and IORESOUCE_BUSY.
++ * Now, this function is only for System RAM. This function deals with
+  * full ranges and not pfn. If resources are not pfn aligned, dealing
+  * with pfn can truncate ranges.
+  */
+@@ -430,10 +430,10 @@ int walk_system_ram_res(u64 start, u64 end, void *arg,
+ 
+ 	res.start = start;
+ 	res.end = end;
+-	res.flags = IORESOURCE_MEM | IORESOURCE_BUSY;
++	res.flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
+ 	orig_end = res.end;
+ 	while ((res.start < res.end) &&
+-		(!find_next_iomem_res(&res, "System RAM", true))) {
++		(!find_next_iomem_res(&res, NULL, true))) {
+ 		ret = (*func)(res.start, res.end, arg);
+ 		if (ret)
+ 			break;
+@@ -446,9 +446,9 @@ int walk_system_ram_res(u64 start, u64 end, void *arg,
+ #if !defined(CONFIG_ARCH_HAS_WALK_MEMORY)
+ 
+ /*
+- * This function calls callback against all memory range of "System RAM"
+- * which are marked as IORESOURCE_MEM and IORESOUCE_BUSY.
+- * Now, this function is only for "System RAM".
++ * This function calls callback against all memory range of System RAM
++ * which are marked as IORESOURCE_SYSTEM_RAM and IORESOUCE_BUSY.
++ * Now, this function is only for System RAM.
+  */
+ int walk_system_ram_range(unsigned long start_pfn, unsigned long nr_pages,
+ 		void *arg, int (*func)(unsigned long, unsigned long, void *))
+@@ -460,10 +460,10 @@ int walk_system_ram_range(unsigned long start_pfn, unsigned long nr_pages,
+ 
+ 	res.start = (u64) start_pfn << PAGE_SHIFT;
+ 	res.end = ((u64)(start_pfn + nr_pages) << PAGE_SHIFT) - 1;
+-	res.flags = IORESOURCE_MEM | IORESOURCE_BUSY;
++	res.flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
+ 	orig_end = res.end;
+ 	while ((res.start < res.end) &&
+-		(find_next_iomem_res(&res, "System RAM", true) >= 0)) {
++		(find_next_iomem_res(&res, NULL, true) >= 0)) {
+ 		pfn = (res.start + PAGE_SIZE - 1) >> PAGE_SHIFT;
+ 		end_pfn = (res.end + 1) >> PAGE_SHIFT;
+ 		if (end_pfn > pfn)
+@@ -484,7 +484,7 @@ static int __is_ram(unsigned long pfn, unsigned long nr_pages, void *arg)
+ }
+ /*
+  * This generic page_is_ram() returns true if specified address is
+- * registered as "System RAM" in iomem_resource list.
++ * registered as System RAM in iomem_resource list.
+  */
+ int __weak page_is_ram(unsigned long pfn)
+ {
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
