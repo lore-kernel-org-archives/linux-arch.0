@@ -1,73 +1,38 @@
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH 06/11] kexec: Set IORESOURCE_SYSTEM_RAM to System RAM
-Date: Mon, 14 Dec 2015 16:37:21 -0700
-Message-ID: <1450136246-17053-6-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH 05/11] xen: Set IORESOURCE_SYSTEM_RAM to System RAM
+Date: Mon, 14 Dec 2015 16:37:20 -0700
+Message-ID: <1450136246-17053-5-git-send-email-toshi.kani@hpe.com>
 References: <1450136246-17053-1-git-send-email-toshi.kani@hpe.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1450136246-17053-1-git-send-email-toshi.kani@hpe.com>
 Sender: owner-linux-mm@kvack.org
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dave Young <dyoung@redhat.com>, Vivek Goyal <vgoyal@redhat.com>, Toshi Kani <toshi.kani@hpe.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, xen-devel@lists.xenproject.org, Toshi Kani <toshi.kani@hpe.com>
 List-Id: linux-arch.vger.kernel.org
 
-Set IORESOURCE_SYSTEM_RAM to the flags of resource ranges with
-"System RAM", and "Crash kernel", which is a child node of
-System RAM.
+Set IORESOURCE_SYSTEM_RAM to the flags of memory hotplug resource
+ranges with "System RAM".
 
-Change kexec_add_buffer() to call walk_iomem_res() with
-IORESOURCE_SYSTEM_RAM type for "Crash kernel".
-
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Dave Young <dyoung@redhat.com>
-Cc: Vivek Goyal <vgoyal@redhat.com>
+Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: xen-devel@lists.xenproject.org
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- kernel/kexec_core.c |    6 +++---
- kernel/kexec_file.c |    2 +-
- 2 files changed, 4 insertions(+), 4 deletions(-)
+ drivers/xen/balloon.c |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/kernel/kexec_core.c b/kernel/kexec_core.c
-index 11b64a6..c47cd98 100644
---- a/kernel/kexec_core.c
-+++ b/kernel/kexec_core.c
-@@ -66,13 +66,13 @@ struct resource crashk_res = {
- 	.name  = "Crash kernel",
- 	.start = 0,
- 	.end   = 0,
--	.flags = IORESOURCE_BUSY | IORESOURCE_MEM
-+	.flags = IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
- };
- struct resource crashk_low_res = {
- 	.name  = "Crash kernel",
- 	.start = 0,
- 	.end   = 0,
--	.flags = IORESOURCE_BUSY | IORESOURCE_MEM
-+	.flags = IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
- };
+diff --git a/drivers/xen/balloon.c b/drivers/xen/balloon.c
+index 12eab50..dc4305b 100644
+--- a/drivers/xen/balloon.c
++++ b/drivers/xen/balloon.c
+@@ -257,7 +257,7 @@ static struct resource *additional_memory_resource(phys_addr_t size)
+ 		return NULL;
  
- int kexec_should_crash(struct task_struct *p)
-@@ -934,7 +934,7 @@ int crash_shrink_memory(unsigned long new_size)
+ 	res->name = "System RAM";
+-	res->flags = IORESOURCE_MEM | IORESOURCE_BUSY;
++	res->flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
  
- 	ram_res->start = end;
- 	ram_res->end = crashk_res.end;
--	ram_res->flags = IORESOURCE_BUSY | IORESOURCE_MEM;
-+	ram_res->flags = IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM;
- 	ram_res->name = "System RAM";
- 
- 	crashk_res.end = end - 1;
-diff --git a/kernel/kexec_file.c b/kernel/kexec_file.c
-index b70ada0..c245085 100644
---- a/kernel/kexec_file.c
-+++ b/kernel/kexec_file.c
-@@ -523,7 +523,7 @@ int kexec_add_buffer(struct kimage *image, char *buffer, unsigned long bufsz,
- 	/* Walk the RAM ranges and allocate a suitable range for the buffer */
- 	if (image->type == KEXEC_TYPE_CRASH)
- 		ret = walk_iomem_res("Crash kernel",
--				     IORESOURCE_MEM | IORESOURCE_BUSY,
-+				     IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY,
- 				     crashk_res.start, crashk_res.end, kbuf,
- 				     locate_mem_hole_callback);
- 	else
+ 	ret = allocate_resource(&iomem_resource, res,
+ 				size, 0, -1,
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
