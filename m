@@ -1,45 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t1613g.houston.hp.com ([15.240.0.71]:53023 "EHLO
-	g9t1613g.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932646AbbLNXid (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Dec 2015 18:38:33 -0500
-Received: from g4t3428.houston.hp.com (g4t3428.houston.hp.com [15.201.208.56])
-	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
-	(No client certificate requested)
-	by g9t1613g.houston.hp.com (Postfix) with ESMTPS id E5BDF643E7
-	for <linux-arch@vger.kernel.org>; Mon, 14 Dec 2015 23:38:05 +0000 (UTC)
+Received: from g4t3425.houston.hp.com ([15.201.208.53]:34244 "EHLO
+	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932990AbbLNXiR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Dec 2015 18:38:17 -0500
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH 07/11] memory-hotplug: Set IORESOURCE_SYSTEM_RAM to System RAM
-Date: Mon, 14 Dec 2015 16:37:22 -0700
-Message-ID: <1450136246-17053-7-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH 11/11] ACPI/EINJ: Allow memory error injection to NVDIMM
+Date: Mon, 14 Dec 2015 16:37:26 -0700
+Message-ID: <1450136246-17053-11-git-send-email-toshi.kani@hpe.com>
 In-Reply-To: <1450136246-17053-1-git-send-email-toshi.kani@hpe.com>
 References: <1450136246-17053-1-git-send-email-toshi.kani@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Tang Chen <tangchen@cn.fujitsu.com>, Toshi Kani <toshi.kani@hpe.com>
-Message-ID: <20151214233722.UaIABVpkNHLtJis74VmmVbYxqrw64wxkMXCrS4FZBTw@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Vishal Verma <vishal.l.verma@intel.com>, linux-nvdimm@lists.01.org, linux-acpi@vger.kernel.org, Toshi Kani <toshi.kani@hpe.com>
+Message-ID: <20151214233726.oHXrs10Kjmp7IUzCCDB2Iefrx-NxV2RrKXRYyMCHHZM@z>
 
-Set IORESOURCE_SYSTEM_RAM to the flags of memory hotplug resource
-ranges with "System RAM".
+In the case of memory error injection, einj_error_inject() checks
+if a target address is System RAM.  Change this check to allow
+injecting a memory error to NVDIMM by calling region_intersects()
+with "Persistent Memory".  This enables memory error testing on
+both System RAM and NVDIMM.
 
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Tang Chen <tangchen@cn.fujitsu.com>
+In addition, page_is_ram() is replaced with region_intersects()
+with IORESOURCE_SYSTEM_RAM, so that it can verify a target address
+range with the requested size.
+
+Cc: Rafael J. Wysocki <rjw@rjwysocki.net>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Vishal Verma <vishal.l.verma@intel.com>
+Cc: linux-nvdimm@lists.01.org
+Cc: linux-acpi@vger.kernel.org
+Acked-by: Tony Luck <tony.luck@intel.com>
+Reviewed-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- mm/memory_hotplug.c |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ drivers/acpi/apei/einj.c |   15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
 
-diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
-index 67d488a..9458423 100644
---- a/mm/memory_hotplug.c
-+++ b/mm/memory_hotplug.c
-@@ -136,7 +136,7 @@ static struct resource *register_memory_resource(u64 start, u64 size)
- 	res->name = "System RAM";
- 	res->start = start;
- 	res->end = start + size - 1;
--	res->flags = IORESOURCE_MEM | IORESOURCE_BUSY;
-+	res->flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
- 	if (request_resource(&iomem_resource, res) < 0) {
- 		pr_debug("System RAM resource %pR cannot be added\n", res);
- 		kfree(res);
+diff --git a/drivers/acpi/apei/einj.c b/drivers/acpi/apei/einj.c
+index 0431883..cad6fd7 100644
+--- a/drivers/acpi/apei/einj.c
++++ b/drivers/acpi/apei/einj.c
+@@ -519,7 +519,7 @@ static int einj_error_inject(u32 type, u32 flags, u64 param1, u64 param2,
+ 			     u64 param3, u64 param4)
+ {
+ 	int rc;
+-	unsigned long pfn;
++	u64 base_addr, size;
+ 
+ 	/* If user manually set "flags", make sure it is legal */
+ 	if (flags && (flags &
+@@ -545,10 +545,17 @@ static int einj_error_inject(u32 type, u32 flags, u64 param1, u64 param2,
+ 	/*
+ 	 * Disallow crazy address masks that give BIOS leeway to pick
+ 	 * injection address almost anywhere. Insist on page or
+-	 * better granularity and that target address is normal RAM.
++	 * better granularity and that target address is normal RAM or
++	 * NVDIMM.
+ 	 */
+-	pfn = PFN_DOWN(param1 & param2);
+-	if (!page_is_ram(pfn) || ((param2 & PAGE_MASK) != PAGE_MASK))
++	base_addr = param1 & param2;
++	size = ~param2 + 1;
++
++	if (((param2 & PAGE_MASK) != PAGE_MASK) ||
++	    ((region_intersects(base_addr, size, IORESOURCE_SYSTEM_RAM,
++				NULL) != REGION_INTERSECTS) &&
++	     (region_intersects(base_addr, size, IORESOURCE_MEM,
++				"Persistent Memory") != REGION_INTERSECTS)))
+ 		return -EINVAL;
+ 
+ inject:
