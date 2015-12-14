@@ -1,310 +1,274 @@
-From: Dave Hansen <dave@sr71.net>
-Subject: [PATCH 18/32] mm: add gup flag to indicate "foreign" mm access
-Date: Mon, 14 Dec 2015 11:06:13 -0800
-Message-ID: <20151214190613.AA211AF3@viggo.jf.intel.com>
-References: <20151214190542.39C4886D@viggo.jf.intel.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20151214190542.39C4886D@viggo.jf.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-mm@kvack.org, x86@kernel.org, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Kamal Mostafa <kamal@canonical.com>
+Subject: [3.13.y-ckt stable] Patch "stackprotector: Introduce CONFIG_CC_STACKPROTECTOR_STRONG" has been added to staging queue
+Date: Mon, 14 Dec 2015 12:12:07 -0800
+Message-ID: <1450123927-20384-1-git-send-email-kamal@canonical.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from youngberry.canonical.com ([91.189.89.112]:55576 "EHLO
+	youngberry.canonical.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753201AbbLNUNT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Dec 2015 15:13:19 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: Arjan van de Ven <arjan@linux.intel.com>, Michal Marek <mmarek@suse.cz>, Russell King <linux@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, James Hogan <james.hogan@imgtec.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Shawn Guo <shawn.guo@linaro.org>, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Peter Zijlstra <peterz@infradead.org>, linux-arm-kernel@lists.infradead.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, Kamal Mostafa <kamal@canonical.com>, kernel-team@lists.ubuntu.com
 
+This is a note to let you know that I have just added a patch titled
 
-From: Dave Hansen <dave.hansen@linux.intel.com>
+    stackprotector: Introduce CONFIG_CC_STACKPROTECTOR_STRONG
 
-We try to enforce protection keys in software the same way that we
-do in hardware.  (See long example below).
+to the linux-3.13.y-queue branch of the 3.13.y-ckt extended stable tree 
+which can be found at:
 
-But, we only want to do this when accessing our *own* process's
-memory.  If GDB set PKRU[6].AD=1 (disable access to PKEY 6), then
-tried to PTRACE_POKE a target process which just happened to have
-some mprotect_pkey(pkey=6) memory, we do *not* want to deny the
-debugger access to that memory.  PKRU is fundamentally a
-thread-local structure and we do not want to enforce it on access
-to _another_ thread's data.
+    http://kernel.ubuntu.com/git/ubuntu/linux.git/log/?h=linux-3.13.y-queue
 
-This gets especially tricky when we have workqueues or other
-delayed-work mechanisms that might run in a random process's context.
-We can check that we only enforce pkeys when operating on our *own* mm,
-but delayed work gets performed when a random user context is active.
-We might end up with a situation where a delayed-work gup fails when
-running randomly under its "own" task but succeeds when running under
-another process.  We want to avoid that.
+This patch is scheduled to be released in version 3.13.11-ckt32.
 
-To avoid that, we add a GUP flag: FOLL_FOREIGN and a fault flag:
-FAULT_FLAG_FOREIGN.  They indicate that we are walking an mm
-which is not guranteed to be the same as current->mm and should
-not be subject to protection key enforcement.
+If you, or anyone else, feels it should not be added to this tree, please 
+reply to this email.
 
-Thanks to Jerome Glisse for pointing out this scenario.
+For more information about the 3.13.y-ckt tree, see
+https://wiki.ubuntu.com/Kernel/Dev/ExtendedStable
 
-*** Why do we enforce protection keys in software?? ***
+Thanks.
+-Kamal
 
-Imagine that we disabled access to the memory pointer to by 'buf'.
-The, we implemented sys_write() like this:
+------
 
-	sys_read(fd, buf, len...)
-	{
-		struct page *page = follow_page(buf);
-		void *buf_mapped = kmap(page);
-		memcpy(buf_mapped, fd_data, len);
-		...
-	}
+From 3952e7442ebeb676691504375730ab5ef02f9fda Mon Sep 17 00:00:00 2001
+From: Kees Cook <keescook@chromium.org>
+Date: Thu, 19 Dec 2013 11:35:59 -0800
+Subject: stackprotector: Introduce CONFIG_CC_STACKPROTECTOR_STRONG
 
-This writes to 'buf' via a *kernel* mapping, without a protection
-key.  While this implementation does the same thing:
+commit 8779657d29c0ebcc0c94ede4df2f497baf1b563f upstream.
 
-	sys_read(fd, buf, len...)
-	{
-		copy_to_user(buf, fd_data, len);
-		...
-	}
+This changes the stack protector config option into a choice of
+"None", "Regular", and "Strong":
 
-but would hit a protection key fault because the userspace 'buf'
-mapping has a protection key set.
+   CONFIG_CC_STACKPROTECTOR_NONE
+   CONFIG_CC_STACKPROTECTOR_REGULAR
+   CONFIG_CC_STACKPROTECTOR_STRONG
 
-To provide consistency, and to make key-protected memory work
-as much like mprotect()ed memory as possible, we try to enforce
-the same protections as the hardware would when the *kernel* walks
-the page tables (and other mm structures).
+"Regular" means the old CONFIG_CC_STACKPROTECTOR=y option.
 
-Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
+"Strong" is a new mode introduced by this patch. With "Strong" the
+kernel is built with -fstack-protector-strong (available in
+gcc 4.9 and later). This option increases the coverage of the stack
+protector without the heavy performance hit of -fstack-protector-all.
+
+For reference, the stack protector options available in gcc are:
+
+-fstack-protector-all:
+  Adds the stack-canary saving prefix and stack-canary checking
+  suffix to _all_ function entry and exit. Results in substantial
+  use of stack space for saving the canary for deep stack users
+  (e.g. historically xfs), and measurable (though shockingly still
+  low) performance hit due to all the saving/checking. Really not
+  suitable for sane systems, and was entirely removed as an option
+  from the kernel many years ago.
+
+-fstack-protector:
+  Adds the canary save/check to functions that define an 8
+  (--param=ssp-buffer-size=N, N=8 by default) or more byte local
+  char array. Traditionally, stack overflows happened with
+  string-based manipulations, so this was a way to find those
+  functions. Very few total functions actually get the canary; no
+  measurable performance or size overhead.
+
+-fstack-protector-strong
+  Adds the canary for a wider set of functions, since it's not
+  just those with strings that have ultimately been vulnerable to
+  stack-busting. With this superset, more functions end up with a
+  canary, but it still remains small compared to all functions
+  with only a small change in performance. Based on the original
+  design document, a function gets the canary when it contains any
+  of:
+
+    - local variable's address used as part of the right hand side
+      of an assignment or function argument
+    - local variable is an array (or union containing an array),
+      regardless of array type or length
+    - uses register local variables
+
+  https://docs.google.com/a/google.com/document/d/1xXBH6rRZue4f296vGt9YQcuLVQHeE516stHwt8M9xyU
+
+Find below a comparison of "size" and "objdump" output when built with
+gcc-4.9 in three configurations:
+
+  - defconfig
+	11430641 kernel text size
+	36110 function bodies
+
+  - defconfig + CONFIG_CC_STACKPROTECTOR_REGULAR
+	11468490 kernel text size (+0.33%)
+	1015 of 36110 functions are stack-protected (2.81%)
+
+  - defconfig + CONFIG_CC_STACKPROTECTOR_STRONG via this patch
+	11692790 kernel text size (+2.24%)
+	7401 of 36110 functions are stack-protected (20.5%)
+
+With -strong, ARM's compressed boot code now triggers stack
+protection, so a static guard was added. Since this is only used
+during decompression and was never used before, the exposure
+here is very small. Once it switches to the full kernel, the
+stack guard is back to normal.
+
+Chrome OS has been using -fstack-protector-strong for its kernel
+builds for the last 8 months with no problems.
+
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Cc: Arjan van de Ven <arjan@linux.intel.com>
+Cc: Michal Marek <mmarek@suse.cz>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: James Hogan <james.hogan@imgtec.com>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Shawn Guo <shawn.guo@linaro.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linux-mips@linux-mips.org
 Cc: linux-arch@vger.kernel.org
+Link: http://lkml.kernel.org/r/1387481759-14535-3-git-send-email-keescook@chromium.org
+[ Improved the changelog and descriptions some more. ]
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+[ kamal: 3.13-stable: need these arch/arm/boot/compressed/misc.c __stack_chk
+  canary functions, even for just the old CONFIG_CC_STACKPROTECTOR ]
+Signed-off-by: Kamal Mostafa <kamal@canonical.com>
 ---
+ Makefile                        |  8 ++++++-
+ arch/Kconfig                    | 51 ++++++++++++++++++++++++++++++++++++++---
+ arch/arm/boot/compressed/misc.c | 14 +++++++++++
+ 3 files changed, 69 insertions(+), 4 deletions(-)
 
- b/arch/powerpc/include/asm/mmu_context.h   |    3 ++-
- b/arch/s390/include/asm/mmu_context.h      |    3 ++-
- b/arch/unicore32/include/asm/mmu_context.h |    3 ++-
- b/arch/x86/include/asm/mmu_context.h       |    5 +++--
- b/drivers/iommu/amd_iommu_v2.c             |    8 +++++---
- b/include/asm-generic/mm_hooks.h           |    3 ++-
- b/include/linux/mm.h                       |    2 ++
- b/mm/gup.c                                 |   15 ++++++++++-----
- b/mm/ksm.c                                 |   10 ++++++++--
- b/mm/memory.c                              |    3 ++-
- 10 files changed, 38 insertions(+), 17 deletions(-)
+diff --git a/Makefile b/Makefile
+index 58a799e..b43786f 100644
+--- a/Makefile
++++ b/Makefile
+@@ -598,12 +598,18 @@ KBUILD_CFLAGS += $(call cc-option,-Wframe-larger-than=${CONFIG_FRAME_WARN})
+ endif
 
-diff -puN arch/powerpc/include/asm/mmu_context.h~pkeys-14-gup-fault-foreign-flag arch/powerpc/include/asm/mmu_context.h
---- a/arch/powerpc/include/asm/mmu_context.h~pkeys-14-gup-fault-foreign-flag	2015-12-14 10:42:46.751979986 -0800
-+++ b/arch/powerpc/include/asm/mmu_context.h	2015-12-14 10:42:46.769980793 -0800
-@@ -148,7 +148,8 @@ static inline void arch_bprm_mm_init(str
- {
- }
- 
--static inline bool arch_vma_access_permitted(struct vm_area_struct *vma, bool write)
-+static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
-+		bool write, bool foreign)
- {
- 	/* by default, allow everything */
- 	return true;
-diff -puN arch/s390/include/asm/mmu_context.h~pkeys-14-gup-fault-foreign-flag arch/s390/include/asm/mmu_context.h
---- a/arch/s390/include/asm/mmu_context.h~pkeys-14-gup-fault-foreign-flag	2015-12-14 10:42:46.753980076 -0800
-+++ b/arch/s390/include/asm/mmu_context.h	2015-12-14 10:42:46.769980793 -0800
-@@ -130,7 +130,8 @@ static inline void arch_bprm_mm_init(str
- {
- }
- 
--static inline bool arch_vma_access_permitted(struct vm_area_struct *vma, bool write)
-+static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
-+		bool write, bool foreign)
- {
- 	/* by default, allow everything */
- 	return true;
-diff -puN arch/unicore32/include/asm/mmu_context.h~pkeys-14-gup-fault-foreign-flag arch/unicore32/include/asm/mmu_context.h
---- a/arch/unicore32/include/asm/mmu_context.h~pkeys-14-gup-fault-foreign-flag	2015-12-14 10:42:46.754980121 -0800
-+++ b/arch/unicore32/include/asm/mmu_context.h	2015-12-14 10:42:46.770980838 -0800
-@@ -97,7 +97,8 @@ static inline void arch_bprm_mm_init(str
- {
- }
- 
--static inline bool arch_vma_access_permitted(struct vm_area_struct *vma, bool write)
-+static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
-+		bool write, bool foreign)
- {
- 	/* by default, allow everything */
- 	return true;
-diff -puN arch/x86/include/asm/mmu_context.h~pkeys-14-gup-fault-foreign-flag arch/x86/include/asm/mmu_context.h
---- a/arch/x86/include/asm/mmu_context.h~pkeys-14-gup-fault-foreign-flag	2015-12-14 10:42:46.756980210 -0800
-+++ b/arch/x86/include/asm/mmu_context.h	2015-12-14 10:42:46.770980838 -0800
-@@ -290,10 +290,11 @@ static inline bool vma_is_foreign(struct
- 	return false;
- }
- 
--static inline bool arch_vma_access_permitted(struct vm_area_struct *vma, bool write)
-+static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
-+		bool write, bool foreign)
- {
- 	/* allow access if the VMA is not one from this process */
--	if (vma_is_foreign(vma))
-+	if (foreign || vma_is_foreign(vma))
- 		return true;
- 	return __pkru_allows_pkey(vma_pkey(vma), write);
- }
-diff -puN drivers/iommu/amd_iommu_v2.c~pkeys-14-gup-fault-foreign-flag drivers/iommu/amd_iommu_v2.c
---- a/drivers/iommu/amd_iommu_v2.c~pkeys-14-gup-fault-foreign-flag	2015-12-14 10:42:46.757980255 -0800
-+++ b/drivers/iommu/amd_iommu_v2.c	2015-12-14 10:42:46.771980883 -0800
-@@ -500,9 +500,11 @@ static void do_fault(struct work_struct
- 	struct mm_struct *mm;
- 	struct vm_area_struct *vma;
- 	u64 address;
--	int ret, write;
-+	int ret, flags;
- 
--	write = !!(fault->flags & PPR_FAULT_WRITE);
-+	if (fault->flags & PPR_FAULT_WRITE)
-+		flags = FAULT_FLAG_WRITE;
-+	flags |= FAULT_FLAG_FOREIGN;
- 
- 	mm = fault->state->mm;
- 	address = fault->address;
-@@ -523,7 +525,7 @@ static void do_fault(struct work_struct
- 		goto out;
- 	}
- 
--	ret = handle_mm_fault(mm, vma, address, write);
-+	ret = handle_mm_fault(mm, vma, address, flags);
- 	if (ret & VM_FAULT_ERROR) {
- 		/* failed to service fault */
- 		up_read(&mm->mmap_sem);
-diff -puN include/asm-generic/mm_hooks.h~pkeys-14-gup-fault-foreign-flag include/asm-generic/mm_hooks.h
---- a/include/asm-generic/mm_hooks.h~pkeys-14-gup-fault-foreign-flag	2015-12-14 10:42:46.759980345 -0800
-+++ b/include/asm-generic/mm_hooks.h	2015-12-14 10:42:46.771980883 -0800
-@@ -26,7 +26,8 @@ static inline void arch_bprm_mm_init(str
- {
- }
- 
--static inline bool arch_vma_access_permitted(struct vm_area_struct *vma, bool write)
-+static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
-+		bool write, bool foreign)
- {
- 	/* by default, allow everything */
- 	return true;
-diff -puN include/linux/mm.h~pkeys-14-gup-fault-foreign-flag include/linux/mm.h
---- a/include/linux/mm.h~pkeys-14-gup-fault-foreign-flag	2015-12-14 10:42:46.761980434 -0800
-+++ b/include/linux/mm.h	2015-12-14 10:42:46.772980927 -0800
-@@ -237,6 +237,7 @@ extern pgprot_t protection_map[16];
- #define FAULT_FLAG_KILLABLE	0x10	/* The fault task is in SIGKILL killable region */
- #define FAULT_FLAG_TRIED	0x20	/* Second try */
- #define FAULT_FLAG_USER		0x40	/* The fault originated in userspace */
-+#define FAULT_FLAG_FOREIGN	0x80	/* faulting for non current tsk/mm */
- 
- /*
-  * vm_fault is filled by the the pagefault handler and passed to the vma's
-@@ -2143,6 +2144,7 @@ static inline struct page *follow_page(s
- #define FOLL_MIGRATION	0x400	/* wait for page to replace migration entry */
- #define FOLL_TRIED	0x800	/* a retry, previous pass started an IO */
- #define FOLL_MLOCK	0x1000	/* lock present pages */
-+#define FOLL_FOREIGN	0x2000	/* we are working on non-current tsk/mm */
- 
- typedef int (*pte_fn_t)(pte_t *pte, pgtable_t token, unsigned long addr,
- 			void *data);
-diff -puN mm/gup.c~pkeys-14-gup-fault-foreign-flag mm/gup.c
---- a/mm/gup.c~pkeys-14-gup-fault-foreign-flag	2015-12-14 10:42:46.762980479 -0800
-+++ b/mm/gup.c	2015-12-14 10:42:46.772980927 -0800
-@@ -310,6 +310,8 @@ static int faultin_page(struct task_stru
- 		return -ENOENT;
- 	if (*flags & FOLL_WRITE)
- 		fault_flags |= FAULT_FLAG_WRITE;
-+	if (*flags & FOLL_FOREIGN)
-+		fault_flags |= FAULT_FLAG_FOREIGN;
- 	if (nonblocking)
- 		fault_flags |= FAULT_FLAG_ALLOW_RETRY;
- 	if (*flags & FOLL_NOWAIT)
-@@ -360,11 +362,13 @@ static int faultin_page(struct task_stru
- static int check_vma_flags(struct vm_area_struct *vma, unsigned long gup_flags)
- {
- 	vm_flags_t vm_flags = vma->vm_flags;
-+	int write = (gup_flags & FOLL_WRITE);
-+	int foreign = (gup_flags & FOLL_FOREIGN);
- 
- 	if (vm_flags & (VM_IO | VM_PFNMAP))
- 		return -EFAULT;
- 
--	if (gup_flags & FOLL_WRITE) {
-+	if (write) {
- 		if (!(vm_flags & VM_WRITE)) {
- 			if (!(gup_flags & FOLL_FORCE))
- 				return -EFAULT;
-@@ -392,7 +396,7 @@ static int check_vma_flags(struct vm_are
- 		if (!(vm_flags & VM_MAYREAD))
- 			return -EFAULT;
- 	}
--	if (!arch_vma_access_permitted(vma, (gup_flags & FOLL_WRITE)))
-+	if (!arch_vma_access_permitted(vma, write, foreign))
- 		return -EFAULT;
- 	return 0;
- }
-@@ -562,7 +566,8 @@ EXPORT_SYMBOL(__get_user_pages);
- 
- bool vma_permits_fault(struct vm_area_struct *vma, unsigned int fault_flags)
- {
--	bool write = !!(fault_flags & FAULT_FLAG_WRITE);
-+	bool write   = !!(fault_flags & FAULT_FLAG_WRITE);
-+	bool foreign = !!(fault_flags & FAULT_FLAG_FOREIGN);
- 	vm_flags_t vm_flags = write ? VM_WRITE : VM_READ;
- 
- 	if (!(vm_flags & vma->vm_flags))
-@@ -570,9 +575,9 @@ bool vma_permits_fault(struct vm_area_st
- 
- 	/*
- 	 * The architecture might have a hardware protection
--	 * mechanism other than read/write that can deny access
-+	 * mechanism other than read/write that can deny access.
- 	 */
--	if (!arch_vma_access_permitted(vma, write))
-+	if (!arch_vma_access_permitted(vma, write, foreign))
- 		return false;
- 
- 	return true;
-diff -puN mm/ksm.c~pkeys-14-gup-fault-foreign-flag mm/ksm.c
---- a/mm/ksm.c~pkeys-14-gup-fault-foreign-flag	2015-12-14 10:42:46.764980569 -0800
-+++ b/mm/ksm.c	2015-12-14 10:42:46.773980972 -0800
-@@ -359,6 +359,10 @@ static inline bool ksm_test_exit(struct
-  * in case the application has unmapped and remapped mm,addr meanwhile.
-  * Could a ksm page appear anywhere else?  Actually yes, in a VM_PFNMAP
-  * mmap of /dev/mem or /dev/kmem, where we would not want to touch it.
-+ *
-+ * FAULT_FLAG/FOLL_FOREIGN are because we do this outside the context
-+ * of the process that owns 'vma'.  We also do not want to enforce
-+ * protection keys here anyway.
-  */
- static int break_ksm(struct vm_area_struct *vma, unsigned long addr)
- {
-@@ -367,12 +371,14 @@ static int break_ksm(struct vm_area_stru
- 
- 	do {
- 		cond_resched();
--		page = follow_page(vma, addr, FOLL_GET | FOLL_MIGRATION);
-+		page = follow_page(vma, addr,
-+				FOLL_GET | FOLL_MIGRATION | FOLL_FOREIGN);
- 		if (IS_ERR_OR_NULL(page))
- 			break;
- 		if (PageKsm(page))
- 			ret = handle_mm_fault(vma->vm_mm, vma, addr,
--							FAULT_FLAG_WRITE);
-+							FAULT_FLAG_WRITE |
-+							FAULT_FLAG_FOREIGN);
- 		else
- 			ret = VM_FAULT_WRITE;
- 		put_page(page);
-diff -puN mm/memory.c~pkeys-14-gup-fault-foreign-flag mm/memory.c
---- a/mm/memory.c~pkeys-14-gup-fault-foreign-flag	2015-12-14 10:42:46.766980658 -0800
-+++ b/mm/memory.c	2015-12-14 10:42:46.774981017 -0800
-@@ -3345,7 +3345,8 @@ static int __handle_mm_fault(struct mm_s
- 	pmd_t *pmd;
- 	pte_t *pte;
- 
--	if (!arch_vma_access_permitted(vma, flags & FAULT_FLAG_WRITE))
-+	if (!arch_vma_access_permitted(vma, flags & FAULT_FLAG_WRITE,
-+					    flags & FAULT_FLAG_FOREIGN))
- 		return VM_FAULT_SIGSEGV;
- 
- 	if (unlikely(is_vm_hugetlb_page(vma)))
-_
+ # Handle stack protector mode.
+-ifdef CONFIG_CC_STACKPROTECTOR
++ifdef CONFIG_CC_STACKPROTECTOR_REGULAR
+   stackp-flag := -fstack-protector
+   ifeq ($(call cc-option, $(stackp-flag)),)
+     $(warning Cannot use CONFIG_CC_STACKPROTECTOR: \
+ 	      -fstack-protector not supported by compiler))
+   endif
++else ifdef CONFIG_CC_STACKPROTECTOR_STRONG
++  stackp-flag := -fstack-protector-strong
++  ifeq ($(call cc-option, $(stackp-flag)),)
++    $(warning Cannot use CONFIG_CC_STACKPROTECTOR_STRONG: \
++	      -fstack-protector-strong not supported by compiler)
++  endif
+ else
+   # Force off for distro compilers that enable stack protector by default.
+   stackp-flag := $(call cc-option, -fno-stack-protector)
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 24e026d..80bbb8c 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -344,10 +344,17 @@ config HAVE_CC_STACKPROTECTOR
+ 	  - it has implemented a stack canary (e.g. __stack_chk_guard)
 
+ config CC_STACKPROTECTOR
+-	bool "Enable -fstack-protector buffer overflow detection"
++	def_bool n
++	help
++	  Set when a stack-protector mode is enabled, so that the build
++	  can enable kernel-side support for the GCC feature.
++
++choice
++	prompt "Stack Protector buffer overflow detection"
+ 	depends on HAVE_CC_STACKPROTECTOR
++	default CC_STACKPROTECTOR_NONE
+ 	help
+-	  This option turns on the -fstack-protector GCC feature. This
++	  This option turns on the "stack-protector" GCC feature. This
+ 	  feature puts, at the beginning of functions, a canary value on
+ 	  the stack just before the return address, and validates
+ 	  the value just before actually returning.  Stack based buffer
+@@ -355,8 +362,46 @@ config CC_STACKPROTECTOR
+ 	  overwrite the canary, which gets detected and the attack is then
+ 	  neutralized via a kernel panic.
+
++config CC_STACKPROTECTOR_NONE
++	bool "None"
++	help
++	  Disable "stack-protector" GCC feature.
++
++config CC_STACKPROTECTOR_REGULAR
++	bool "Regular"
++	select CC_STACKPROTECTOR
++	help
++	  Functions will have the stack-protector canary logic added if they
++	  have an 8-byte or larger character array on the stack.
++
+ 	  This feature requires gcc version 4.2 or above, or a distribution
+-	  gcc with the feature backported.
++	  gcc with the feature backported ("-fstack-protector").
++
++	  On an x86 "defconfig" build, this feature adds canary checks to
++	  about 3% of all kernel functions, which increases kernel code size
++	  by about 0.3%.
++
++config CC_STACKPROTECTOR_STRONG
++	bool "Strong"
++	select CC_STACKPROTECTOR
++	help
++	  Functions will have the stack-protector canary logic added in any
++	  of the following conditions:
++
++	  - local variable's address used as part of the right hand side of an
++	    assignment or function argument
++	  - local variable is an array (or union containing an array),
++	    regardless of array type or length
++	  - uses register local variables
++
++	  This feature requires gcc version 4.9 or above, or a distribution
++	  gcc with the feature backported ("-fstack-protector-strong").
++
++	  On an x86 "defconfig" build, this feature adds canary checks to
++	  about 20% of all kernel functions, which increases the kernel code
++	  size by about 2%.
++
++endchoice
+
+ config HAVE_CONTEXT_TRACKING
+ 	bool
+diff --git a/arch/arm/boot/compressed/misc.c b/arch/arm/boot/compressed/misc.c
+index 31bd43b..d4f891f 100644
+--- a/arch/arm/boot/compressed/misc.c
++++ b/arch/arm/boot/compressed/misc.c
+@@ -127,6 +127,18 @@ asmlinkage void __div0(void)
+ 	error("Attempting division by 0!");
+ }
+
++unsigned long __stack_chk_guard;
++
++void __stack_chk_guard_setup(void)
++{
++	__stack_chk_guard = 0x000a0dff;
++}
++
++void __stack_chk_fail(void)
++{
++	error("stack-protector: Kernel stack is corrupted\n");
++}
++
+ extern int do_decompress(u8 *input, int len, u8 *output, void (*error)(char *x));
+
+
+@@ -137,6 +149,8 @@ decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
+ {
+ 	int ret;
+
++	__stack_chk_guard_setup();
++
+ 	output_data		= (unsigned char *)output_start;
+ 	free_mem_ptr		= free_mem_ptr_p;
+ 	free_mem_end_ptr	= free_mem_ptr_end_p;
 --
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+1.9.1
