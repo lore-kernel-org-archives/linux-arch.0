@@ -1,41 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout2.w1.samsung.com ([210.118.77.12]:47232 "EHLO
-	mailout2.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932649AbbLOAUF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Dec 2015 19:20:05 -0500
-Subject: Re: [PATCH 10/11] arm/samsung: Change s3c_pm_run_res() to use System
- RAM type
-References: <1450136246-17053-1-git-send-email-toshi.kani@hpe.com>
- <1450136246-17053-10-git-send-email-toshi.kani@hpe.com>
-From: Krzysztof Kozlowski <k.kozlowski@samsung.com>
-Message-ID: <566F5CAE.5020004@samsung.com>
-Date: Tue, 15 Dec 2015 09:19:58 +0900
-MIME-version: 1.0
-In-reply-to: <1450136246-17053-10-git-send-email-toshi.kani@hpe.com>
-Content-type: text/plain; charset=windows-1252
-Content-transfer-encoding: 7bit
+Received: from mail113-248.mail.alibaba.com ([205.204.113.248]:53197 "EHLO
+	us-alimail-mta1.hst.scl.en.alidc.net" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1753682AbbLOOR5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 15 Dec 2015 09:17:57 -0500
+Message-ID: <56702193.9040004@emindsoft.com.cn>
+Date: Tue, 15 Dec 2015 22:20:03 +0800
+From: Chen Gang <chengang@emindsoft.com.cn>
+MIME-Version: 1.0
+Subject: Re: [PATCH trivial] include: asm-generic: Notice about 80 columns
+ in pgtable-no*.h
+References: <56702088.9080605@emindsoft.com.cn>
+In-Reply-To: <56702088.9080605@emindsoft.com.cn>
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Toshi Kani <toshi.kani@hpe.com>, akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Kukjin Kim <kgene@kernel.org>, linux-samsung-soc@vger.kernel.org
-Message-ID: <20151215001958.f_zcpkq0d9JeRLIqWMJ5UEqpYO0iJU3UAfBJD72nO7M@z>
+To: Arnd Bergmann <arnd@arndb.de>, trivial@kernel.org
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20151215142003.7Rao8223Ar6D48N8leld4V6xztEsrlNT7fNWLQh1ADM@z>
 
-On 15.12.2015 08:37, Toshi Kani wrote:
-> Change s3c_pm_run_res() to check with IORESOURCE_SYSTEM_RAM,
-> instead of strcmp() with "System RAM", in the resource table.
+
+After this patch, I finish 'scanning' mm related headers in
+"include/asm-genric/*".
+
+Next I shall continue 'scanning' mm related headers in
+"include/linux/*" to know about the common sense information.
+
+Thanks.
+
+On 12/15/15 22:15, Chen Gang wrote:
 > 
-> No functional change is made to the interface.
+> It is a trivial patch.
 > 
-> Cc: Kukjin Kim <kgene@kernel.org>
-> Cc: Krzysztof Kozlowski <k.kozlowski@samsung.com>
-> Cc: linux-samsung-soc@vger.kernel.org
-> Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
+> Signed-off-by: Chen Gang <gang.chen.5i5j@gmail.com>
 > ---
->  arch/arm/plat-samsung/pm-check.c |    4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
+>  include/asm-generic/pgtable-nopmd.h | 3 ++-
+>  include/asm-generic/pgtable-nopud.h | 3 ++-
+>  2 files changed, 4 insertions(+), 2 deletions(-)
+> 
+> diff --git a/include/asm-generic/pgtable-nopmd.h b/include/asm-generic/pgtable-nopmd.h
+> index 725612b..7a81185 100644
+> --- a/include/asm-generic/pgtable-nopmd.h
+> +++ b/include/asm-generic/pgtable-nopmd.h
+> @@ -38,7 +38,8 @@ static inline void pud_clear(pud_t *pud)	{ }
+>   * (pmds are folded into puds so this doesn't get actually called,
+>   * but the define is needed for a generic inline function.)
+>   */
+> -#define set_pud(pudptr, pudval)			set_pmd((pmd_t *)(pudptr), (pmd_t) { pudval })
+> +#define set_pud(pudptr, pudval)			(set_pmd((pmd_t *)(pudptr), \
+> +							(pmd_t) { pudval }))
+>  
+>  static inline pmd_t * pmd_offset(pud_t * pud, unsigned long address)
+>  {
+> diff --git a/include/asm-generic/pgtable-nopud.h b/include/asm-generic/pgtable-nopud.h
+> index 810431d..bc78818 100644
+> --- a/include/asm-generic/pgtable-nopud.h
+> +++ b/include/asm-generic/pgtable-nopud.h
+> @@ -33,7 +33,8 @@ static inline void pgd_clear(pgd_t *pgd)	{ }
+>   * (puds are folded into pgds so this doesn't get actually called,
+>   * but the define is needed for a generic inline function.)
+>   */
+> -#define set_pgd(pgdptr, pgdval)			set_pud((pud_t *)(pgdptr), (pud_t) { pgdval })
+> +#define set_pgd(pgdptr, pgdval)			(set_pud((pud_t *)(pgdptr), \
+> +							(pud_t) { pgdval }))
+>  
+>  static inline pud_t * pud_offset(pgd_t * pgd, unsigned long address)
+>  {
+> 
 
-Reviewed-by: Krzysztof Kozlowski <k.kozlowski@samsung.com>
+-- 
+Chen Gang (陈刚)
 
-Best regards,
-Krzysztof
-
+Open, share, and attitude like air, water, and life which God blessed
