@@ -1,112 +1,263 @@
-From: Toshi Kani <toshi.kani@hpe.com>
-Subject: Re: [PATCH 01/11] resource: Add System RAM resource type
-Date: Wed, 16 Dec 2015 14:52:38 -0700
-Message-ID: <1450302758.20148.75.camel@hpe.com>
-References: <1450136246-17053-1-git-send-email-toshi.kani@hpe.com>
-	 <20151216122642.GE29775@pd.tnic> <1450280642.29051.76.camel@hpe.com>
-	 <20151216154916.GF29775@pd.tnic> <1450283759.20148.11.camel@hpe.com>
-	 <20151216174523.GH29775@pd.tnic>
-	 <CAPcyv4h+n51Z2hskP2+PX44OB47OQwrKcqVr3nrvMzG++qjC+w@mail.gmail.com>
-	 <20151216181712.GJ29775@pd.tnic>
+From: Kamal Mostafa <kamal@canonical.com>
+Subject: [PATCH 3.13.y-ckt 03/78] stackprotector: Introduce
+ CONFIG_CC_STACKPROTECTOR_STRONG
+Date: Wed, 16 Dec 2015 16:38:47 -0800
+Message-ID: <1450312802-4938-4-git-send-email-kamal@canonical.com>
+References: <1450312802-4938-1-git-send-email-kamal@canonical.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t5425.austin.hp.com ([15.216.225.55]:33219 "EHLO
-	g1t5425.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S966109AbbLPVwx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 Dec 2015 16:52:53 -0500
-In-Reply-To: <20151216181712.GJ29775@pd.tnic>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>, Dan Williams <dan.j.williams@intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Linux MM <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <1450312802-4938-1-git-send-email-kamal@canonical.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: linux-kernel@vger.kernel.org, stable@vger.kernel.org, kernel-team@lists.ubuntu.com
+Cc: Michal Marek <mmarek@suse.cz>, Stephen Rothwell <sfr@canb.auug.org.au>, James Hogan <james.hogan@imgtec.com>, Russell King <linux@arm.linux.org.uk>, Kees Cook <keescook@chromium.org>, linux-mips@linux-mips.org, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Kamal Mostafa <kamal@canonical.com>, Ralf Baechle <ralf@linux-mips.org>, Paul Mundt <lethal@linux-sh.org>, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Shawn Guo <shawn.guo@linaro.org>, Arjan van de Ven <arjan@linux.intel.com>, Ingo Molnar <mingo@kernel.org>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2015-12-16 at 19:17 +0100, Borislav Petkov wrote:
-> On Wed, Dec 16, 2015 at 09:52:37AM -0800, Dan Williams wrote:
-> > It's possible that as far as the resource table is concerned the
-> > resource type might just be "reserved".  It may not be until after a
-> > driver loads that we discover the memory range type.  The identifying
-> > string is driver specific at that point.
-> 
-> So how many types are we talking about here? Because I don't find a whole
-> lot:
-> 
-> $ git grep -E "(walk_iomem_res|find_next_iomem_res|region_intersects)" --
-> *.c | grep -Eo '\".*\"'
-> "GART"
-> "ACPI Tables"
-> "ACPI Non-volatile Storage"
-> "Crash kernel"
-> "System RAM"
-> "System RAM"
-> "System RAM"
-> 
-> An int type could contain 2^32 different types.
+3.13.11-ckt32 -stable review patch.  If anyone has any objections, please let me know.
 
-In this approach, as I understand, we add a new field to 'struct resource',
-i.e. 'type' in this example.
+------------------
 
- struct resource crashk_res = {
-        .name  = "Crash kernel",
-        .start = 0,
-        .end   = 0,
-        .flags = IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM,
-+ 	.type  = RES_TYPE_CRASH_KERNEL,
- };
+From: Kees Cook <keescook@chromium.org>
 
-And we change the callers, such as "kernel/kexec_file.c" to search with
-this RES_TYPE.
+commit 8779657d29c0ebcc0c94ede4df2f497baf1b563f upstream.
 
- ret = walk_iomem_res(RES_TYPE_CRASH_KERNEL,
-		IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY, ...);
+This changes the stack protector config option into a choice of
+"None", "Regular", and "Strong":
 
-We only change the resource entries that support the search interfaces to:
- - Assign RES_TYPE_XXX.
- - Initialize 'type' in its 'struct resource' with the type.
+   CONFIG_CC_STACKPROTECTOR_NONE
+   CONFIG_CC_STACKPROTECTOR_REGULAR
+   CONFIG_CC_STACKPROTECTOR_STRONG
 
-This avoids changing all drivers.  When we have a new search for "foo", we
-will then need to:
- - Define RES_TYPE_FOO.
- - Add '.type = RES_TYPE_FOO' to the code where it initializes the "foo"
-entry.
+"Regular" means the old CONFIG_CC_STACKPROTECTOR=y option.
 
-This scheme may have a problem, though.  For instance, when someone writes
-a loadable module that searches for "foo", but the "foo" entry may be
-initialized in a distro kernel/driver that cannot be modified.  Since this
-search is only necessary to obtain a range initialized by other module,
-this scenario is likely to happen.  We no longer have ability to search for
-a new entry unless we modify the code that initializes the entry first.
+"Strong" is a new mode introduced by this patch. With "Strong" the
+kernel is built with -fstack-protector-strong (available in
+gcc 4.9 and later). This option increases the coverage of the stack
+protector without the heavy performance hit of -fstack-protector-all.
 
-> > All this to say that with strcmp we can search for any custom type .
-> > Otherwise I think we're looking at updating the request_region()
-> > interface to take a type parameter.  That makes strcmp capability more
-> > attractive compared to updating a potentially large number of
-> > request_region() call sites.
-> 
-> Right, but I don't think that @name param to request_region() was ever
-> meant to be mis-used as a matching attribute when iterating over the
-> resource types.
+For reference, the stack protector options available in gcc are:
 
-Even if we avoid strcmp() with @name in the kernel, user applications will
-continue to use @name since that is the only type available in /proc/iomem.
- For instance, kexec has its own search function with a string name.
+-fstack-protector-all:
+  Adds the stack-canary saving prefix and stack-canary checking
+  suffix to _all_ function entry and exit. Results in substantial
+  use of stack space for saving the canary for deep stack users
+  (e.g. historically xfs), and measurable (though shockingly still
+  low) performance hit due to all the saving/checking. Really not
+  suitable for sane systems, and was entirely removed as an option
+  from the kernel many years ago.
 
- https://github.com/Tasssadar/kexec-tools/blob/master/kexec/kexec-iomem.c
+-fstack-protector:
+  Adds the canary save/check to functions that define an 8
+  (--param=ssp-buffer-size=N, N=8 by default) or more byte local
+  char array. Traditionally, stack overflows happened with
+  string-based manipulations, so this was a way to find those
+  functions. Very few total functions actually get the canary; no
+  measurable performance or size overhead.
 
-> Now, imagine you have to do this pretty often. Which is faster: a
-> strcmp() or an int comparison...?
-> 
-> Even if this cannot be changed easily/in one go, maybe we should at
-> least think about starting doing it right so that the strcmp() "fun" is
-> phased out gradually...
+-fstack-protector-strong
+  Adds the canary for a wider set of functions, since it's not
+  just those with strings that have ultimately been vulnerable to
+  stack-busting. With this superset, more functions end up with a
+  canary, but it still remains small compared to all functions
+  with only a small change in performance. Based on the original
+  design document, a function gets the canary when it contains any
+  of:
 
-When a new commonly-used search name comes up, we can define it as a new
-extended I/O resource type similar to IORESOURCE_SYSTEM_RAM.  For the
-current remaining cases, i.e. crash, kexec, and einj, they have no impact
-to performance.  Leaving these special cases aside will keep the ability to
-search for any entry without changing the kernel, and save some memory
-space from adding the new 'type'.
+    - local variable's address used as part of the right hand side
+      of an assignment or function argument
+    - local variable is an array (or union containing an array),
+      regardless of array type or length
+    - uses register local variables
 
-Thanks,
--Toshi
+  https://docs.google.com/a/google.com/document/d/1xXBH6rRZue4f296vGt9YQcuLVQHeE516stHwt8M9xyU
+
+Find below a comparison of "size" and "objdump" output when built with
+gcc-4.9 in three configurations:
+
+  - defconfig
+	11430641 kernel text size
+	36110 function bodies
+
+  - defconfig + CONFIG_CC_STACKPROTECTOR_REGULAR
+	11468490 kernel text size (+0.33%)
+	1015 of 36110 functions are stack-protected (2.81%)
+
+  - defconfig + CONFIG_CC_STACKPROTECTOR_STRONG via this patch
+	11692790 kernel text size (+2.24%)
+	7401 of 36110 functions are stack-protected (20.5%)
+
+With -strong, ARM's compressed boot code now triggers stack
+protection, so a static guard was added. Since this is only used
+during decompression and was never used before, the exposure
+here is very small. Once it switches to the full kernel, the
+stack guard is back to normal.
+
+Chrome OS has been using -fstack-protector-strong for its kernel
+builds for the last 8 months with no problems.
+
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Cc: Arjan van de Ven <arjan@linux.intel.com>
+Cc: Michal Marek <mmarek@suse.cz>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: James Hogan <james.hogan@imgtec.com>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Shawn Guo <shawn.guo@linaro.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: linux-arm-kernel@lists.infradead.org
+Cc: linux-mips@linux-mips.org
+Cc: linux-arch@vger.kernel.org
+Link: http://lkml.kernel.org/r/1387481759-14535-3-git-send-email-keescook@chromium.org
+[ Improved the changelog and descriptions some more. ]
+Signed-off-by: Ingo Molnar <mingo@kernel.org>
+[ kamal: 3.13-stable: need these arch/arm/boot/compressed/misc.c __stack_chk
+  canary functions, even for just the old CONFIG_CC_STACKPROTECTOR ]
+Signed-off-by: Kamal Mostafa <kamal@canonical.com>
+---
+ Makefile                        |  8 ++++++-
+ arch/Kconfig                    | 51 ++++++++++++++++++++++++++++++++++++++---
+ arch/arm/boot/compressed/misc.c | 14 +++++++++++
+ 3 files changed, 69 insertions(+), 4 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 58a799e..b43786f 100644
+--- a/Makefile
++++ b/Makefile
+@@ -598,12 +598,18 @@ KBUILD_CFLAGS += $(call cc-option,-Wframe-larger-than=${CONFIG_FRAME_WARN})
+ endif
+ 
+ # Handle stack protector mode.
+-ifdef CONFIG_CC_STACKPROTECTOR
++ifdef CONFIG_CC_STACKPROTECTOR_REGULAR
+   stackp-flag := -fstack-protector
+   ifeq ($(call cc-option, $(stackp-flag)),)
+     $(warning Cannot use CONFIG_CC_STACKPROTECTOR: \
+ 	      -fstack-protector not supported by compiler))
+   endif
++else ifdef CONFIG_CC_STACKPROTECTOR_STRONG
++  stackp-flag := -fstack-protector-strong
++  ifeq ($(call cc-option, $(stackp-flag)),)
++    $(warning Cannot use CONFIG_CC_STACKPROTECTOR_STRONG: \
++	      -fstack-protector-strong not supported by compiler)
++  endif
+ else
+   # Force off for distro compilers that enable stack protector by default.
+   stackp-flag := $(call cc-option, -fno-stack-protector)
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 24e026d..80bbb8c 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -344,10 +344,17 @@ config HAVE_CC_STACKPROTECTOR
+ 	  - it has implemented a stack canary (e.g. __stack_chk_guard)
+ 
+ config CC_STACKPROTECTOR
+-	bool "Enable -fstack-protector buffer overflow detection"
++	def_bool n
++	help
++	  Set when a stack-protector mode is enabled, so that the build
++	  can enable kernel-side support for the GCC feature.
++
++choice
++	prompt "Stack Protector buffer overflow detection"
+ 	depends on HAVE_CC_STACKPROTECTOR
++	default CC_STACKPROTECTOR_NONE
+ 	help
+-	  This option turns on the -fstack-protector GCC feature. This
++	  This option turns on the "stack-protector" GCC feature. This
+ 	  feature puts, at the beginning of functions, a canary value on
+ 	  the stack just before the return address, and validates
+ 	  the value just before actually returning.  Stack based buffer
+@@ -355,8 +362,46 @@ config CC_STACKPROTECTOR
+ 	  overwrite the canary, which gets detected and the attack is then
+ 	  neutralized via a kernel panic.
+ 
++config CC_STACKPROTECTOR_NONE
++	bool "None"
++	help
++	  Disable "stack-protector" GCC feature.
++
++config CC_STACKPROTECTOR_REGULAR
++	bool "Regular"
++	select CC_STACKPROTECTOR
++	help
++	  Functions will have the stack-protector canary logic added if they
++	  have an 8-byte or larger character array on the stack.
++
+ 	  This feature requires gcc version 4.2 or above, or a distribution
+-	  gcc with the feature backported.
++	  gcc with the feature backported ("-fstack-protector").
++
++	  On an x86 "defconfig" build, this feature adds canary checks to
++	  about 3% of all kernel functions, which increases kernel code size
++	  by about 0.3%.
++
++config CC_STACKPROTECTOR_STRONG
++	bool "Strong"
++	select CC_STACKPROTECTOR
++	help
++	  Functions will have the stack-protector canary logic added in any
++	  of the following conditions:
++
++	  - local variable's address used as part of the right hand side of an
++	    assignment or function argument
++	  - local variable is an array (or union containing an array),
++	    regardless of array type or length
++	  - uses register local variables
++
++	  This feature requires gcc version 4.9 or above, or a distribution
++	  gcc with the feature backported ("-fstack-protector-strong").
++
++	  On an x86 "defconfig" build, this feature adds canary checks to
++	  about 20% of all kernel functions, which increases the kernel code
++	  size by about 2%.
++
++endchoice
+ 
+ config HAVE_CONTEXT_TRACKING
+ 	bool
+diff --git a/arch/arm/boot/compressed/misc.c b/arch/arm/boot/compressed/misc.c
+index 31bd43b..d4f891f 100644
+--- a/arch/arm/boot/compressed/misc.c
++++ b/arch/arm/boot/compressed/misc.c
+@@ -127,6 +127,18 @@ asmlinkage void __div0(void)
+ 	error("Attempting division by 0!");
+ }
+ 
++unsigned long __stack_chk_guard;
++
++void __stack_chk_guard_setup(void)
++{
++	__stack_chk_guard = 0x000a0dff;
++}
++
++void __stack_chk_fail(void)
++{
++	error("stack-protector: Kernel stack is corrupted\n");
++}
++
+ extern int do_decompress(u8 *input, int len, u8 *output, void (*error)(char *x));
+ 
+ 
+@@ -137,6 +149,8 @@ decompress_kernel(unsigned long output_start, unsigned long free_mem_ptr_p,
+ {
+ 	int ret;
+ 
++	__stack_chk_guard_setup();
++
+ 	output_data		= (unsigned char *)output_start;
+ 	free_mem_ptr		= free_mem_ptr_p;
+ 	free_mem_end_ptr	= free_mem_ptr_end_p;
+-- 
+1.9.1
