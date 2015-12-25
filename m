@@ -1,118 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3428.houston.hp.com ([15.201.208.56]:24905 "EHLO
-	g4t3428.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754330AbbLYWKO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Dec 2015 17:10:14 -0500
+Received: from g4t3425.houston.hp.com ([15.201.208.53]:60050 "EHLO
+	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753788AbbLYWJ7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Dec 2015 17:09:59 -0500
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v2 05/16] ia64: Set System RAM type and descriptor
-Date: Fri, 25 Dec 2015 15:09:14 -0700
-Message-ID: <1451081365-15190-5-git-send-email-toshi.kani@hpe.com>
-In-Reply-To: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
-References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH v2 01/16] resource: Add System RAM resource type
+Date: Fri, 25 Dec 2015 15:09:10 -0700
+Message-ID: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, Toshi Kani <toshi.kani@hpe.com>
-Message-ID: <20151225220914.72BX2BgjgPouhl8pXPe97iWth30pBcBcKBv8R5d3bOs@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Dan Williams <dan.j.williams@intel.com>, Toshi Kani <toshi.kani@hpe.com>
+Message-ID: <20151225220910.m_dxFZINOvELcTtAttZv6GkLl-I2szraMgTzEY0dSHw@z>
 
-Change efi_initialize_iomem_resources() to set 'flags' and 'desc'
-from EFI memory types.  IORESOURCE_SYSRAM, a modifier bit, is
-set to 'flags' for System RAM as IORESOURCE_MEM is already set.
-IORESOURCE_SYSTEM_RAM is defined as (IORESOURCE_MEM|IORESOURCE_SYSRAM).
-I/O resource descritor is set to 'desc' for "ACPI Non-volatile
-Storage" and "Persistent Memory".
+I/O resource type, IORESOURCE_MEM, is used for all types of
+memory-mapped ranges, ex. System RAM, System ROM, Video RAM,
+Persistent Memory, PCI Bus, PCI MMCONFIG, ACPI Tables, IOAPIC,
+reserved, and so on.  This requires walk_system_ram_range(),
+walk_system_ram_res(), and region_intersects() to use strcmp()
+against string "System RAM" to search for System RAM ranges in
+the iomem table, which is inefficient.  __ioremap_caller() and
+reserve_memtype() on x86, for instance, call walk_system_ram_range()
+for every request to check if a given range is in System RAM ranges.
 
-Also set IORESOURCE_SYSTEM_RAM to 'flags' for "Kernel code",
-"Kernel data", and "Kernel bss".
+However, adding a new I/O resource type for System RAM is not
+a viable option [1].  There are approx. 3800 references to
+IORESOURCE_MEM in the kernel/drivers, which make it very
+difficult to distinguish their usages between new type and
+IORESOURCE_MEM.  The I/O resource types are also used by the
+PNP subsystem.  Therefore, this patch introduces an extended
+I/O resource type, IORESOURCE_SYSTEM_RAM, which consists of
+IORESOURCE_MEM and a new modifier flag IORESOURCE_SYSRAM [2].
 
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: linux-ia64@vger.kernel.org
+To keep the code 'if (resource_type(r) == IORESOURCE_MEM)' to
+work continuously for System RAM, resource_ext_type() is added
+for extracting extended type bit(s).
+
+Link[1]: http://lkml.kernel.org/r/<1449168859.9855.54.camel@hpe.com>
+Link[2]: http://lkml.kernel.org/r/<CA+55aFy4WQrWexC4u2LxX9Mw2NVoznw7p3Yh=iF4Xtf7zKWnRw@mail.gmail.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+Cc: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- arch/ia64/kernel/efi.c   |   13 ++++++++++---
- arch/ia64/kernel/setup.c |    6 +++---
- 2 files changed, 13 insertions(+), 6 deletions(-)
+ include/linux/ioport.h |   11 +++++++++++
+ 1 file changed, 11 insertions(+)
 
-diff --git a/arch/ia64/kernel/efi.c b/arch/ia64/kernel/efi.c
-index caae3f4..300dac3 100644
---- a/arch/ia64/kernel/efi.c
-+++ b/arch/ia64/kernel/efi.c
-@@ -1178,7 +1178,7 @@ efi_initialize_iomem_resources(struct resource *code_resource,
- 	efi_memory_desc_t *md;
- 	u64 efi_desc_size;
- 	char *name;
--	unsigned long flags;
-+	unsigned long flags, desc;
+diff --git a/include/linux/ioport.h b/include/linux/ioport.h
+index 24bea08..4b65d94 100644
+--- a/include/linux/ioport.h
++++ b/include/linux/ioport.h
+@@ -49,12 +49,19 @@ struct resource {
+ #define IORESOURCE_WINDOW	0x00200000	/* forwarded by bridge */
+ #define IORESOURCE_MUXED	0x00400000	/* Resource is software muxed */
  
- 	efi_map_start = __va(ia64_boot_param->efi_memmap);
- 	efi_map_end   = efi_map_start + ia64_boot_param->efi_memmap_size;
-@@ -1193,6 +1193,8 @@ efi_initialize_iomem_resources(struct resource *code_resource,
- 			continue;
- 
- 		flags = IORESOURCE_MEM | IORESOURCE_BUSY;
-+		desc = IORES_DESC_NONE;
++#define IORESOURCE_EXT_TYPE_BITS 0x01000000	/* Resource extended types */
++#define IORESOURCE_SYSRAM	0x01000000	/* System RAM (modifier) */
 +
- 		switch (md->type) {
+ #define IORESOURCE_EXCLUSIVE	0x08000000	/* Userland may not map this resource */
++
+ #define IORESOURCE_DISABLED	0x10000000
+ #define IORESOURCE_UNSET	0x20000000	/* No address assigned yet */
+ #define IORESOURCE_AUTO		0x40000000
+ #define IORESOURCE_BUSY		0x80000000	/* Driver has marked this resource busy */
  
- 			case EFI_MEMORY_MAPPED_IO:
-@@ -1207,14 +1209,17 @@ efi_initialize_iomem_resources(struct resource *code_resource,
- 				if (md->attribute & EFI_MEMORY_WP) {
- 					name = "System ROM";
- 					flags |= IORESOURCE_READONLY;
--				} else if (md->attribute == EFI_MEMORY_UC)
-+				} else if (md->attribute == EFI_MEMORY_UC) {
- 					name = "Uncached RAM";
--				else
-+				} else {
- 					name = "System RAM";
-+					flags |= IORESOURCE_SYSRAM;
-+				}
- 				break;
- 
- 			case EFI_ACPI_MEMORY_NVS:
- 				name = "ACPI Non-volatile Storage";
-+				desc = IORES_DESC_ACPI_NV_STORAGE;
- 				break;
- 
- 			case EFI_UNUSABLE_MEMORY:
-@@ -1224,6 +1229,7 @@ efi_initialize_iomem_resources(struct resource *code_resource,
- 
- 			case EFI_PERSISTENT_MEMORY:
- 				name = "Persistent Memory";
-+				desc = IORES_DESC_PERSISTENT_MEMORY;
- 				break;
- 
- 			case EFI_RESERVED_TYPE:
-@@ -1246,6 +1252,7 @@ efi_initialize_iomem_resources(struct resource *code_resource,
- 		res->start = md->phys_addr;
- 		res->end = md->phys_addr + efi_md_size(md) - 1;
- 		res->flags = flags;
-+		res->desc = desc;
- 
- 		if (insert_resource(&iomem_resource, res) < 0)
- 			kfree(res);
-diff --git a/arch/ia64/kernel/setup.c b/arch/ia64/kernel/setup.c
-index 4f118b0..2029a38 100644
---- a/arch/ia64/kernel/setup.c
-+++ b/arch/ia64/kernel/setup.c
-@@ -80,17 +80,17 @@ unsigned long vga_console_membase;
- 
- static struct resource data_resource = {
- 	.name	= "Kernel data",
--	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
-+	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
- };
- 
- static struct resource code_resource = {
- 	.name	= "Kernel code",
--	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
-+	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
- };
- 
- static struct resource bss_resource = {
- 	.name	= "Kernel bss",
--	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
-+	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
- };
- 
- unsigned long ia64_max_cacheline_size;
++/* I/O resource extended types */
++#define IORESOURCE_SYSTEM_RAM		(IORESOURCE_MEM|IORESOURCE_SYSRAM)
++
+ /* PnP IRQ specific bits (IORESOURCE_BITS) */
+ #define IORESOURCE_IRQ_HIGHEDGE		(1<<0)
+ #define IORESOURCE_IRQ_LOWEDGE		(1<<1)
+@@ -170,6 +177,10 @@ static inline unsigned long resource_type(const struct resource *res)
+ {
+ 	return res->flags & IORESOURCE_TYPE_BITS;
+ }
++static inline unsigned long resource_ext_type(const struct resource *res)
++{
++	return res->flags & IORESOURCE_EXT_TYPE_BITS;
++}
+ /* True iff r1 completely contains r2 */
+ static inline bool resource_contains(struct resource *r1, struct resource *r2)
+ {
