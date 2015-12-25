@@ -1,46 +1,118 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3428.houston.hp.com ([15.201.208.56]:24988 "EHLO
+Received: from g4t3428.houston.hp.com ([15.201.208.56]:24905 "EHLO
 	g4t3428.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754485AbbLYWKe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Dec 2015 17:10:34 -0500
+	with ESMTP id S1754330AbbLYWKO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Dec 2015 17:10:14 -0500
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v2 15/16] checkpatch: Add warning on deprecated walk_iomem_res
-Date: Fri, 25 Dec 2015 15:09:24 -0700
-Message-ID: <1451081365-15190-15-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH v2 05/16] ia64: Set System RAM type and descriptor
+Date: Fri, 25 Dec 2015 15:09:14 -0700
+Message-ID: <1451081365-15190-5-git-send-email-toshi.kani@hpe.com>
 In-Reply-To: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
 References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Andy Whitcroft <apw@canonical.com>, Joe Perches <joe@perches.com>, Toshi Kani <toshi.kani@hpe.com>
-Message-ID: <20151225220924.rOoktJ1OdIglSufkO2S62FF2LCUN6P9xZeFcA8F6Zs8@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, Toshi Kani <toshi.kani@hpe.com>
+Message-ID: <20151225220914.72BX2BgjgPouhl8pXPe97iWth30pBcBcKBv8R5d3bOs@z>
 
-Use of walk_iomem_res() is deprecated in new code.  Change
-checkpatch.pl to check new use of walk_iomem_res() and suggest
-to use walk_iomem_res_desc() instead.
+Change efi_initialize_iomem_resources() to set 'flags' and 'desc'
+from EFI memory types.  IORESOURCE_SYSRAM, a modifier bit, is
+set to 'flags' for System RAM as IORESOURCE_MEM is already set.
+IORESOURCE_SYSTEM_RAM is defined as (IORESOURCE_MEM|IORESOURCE_SYSRAM).
+I/O resource descritor is set to 'desc' for "ACPI Non-volatile
+Storage" and "Persistent Memory".
 
-Cc: Andy Whitcroft <apw@canonical.com>
-Cc: Joe Perches <joe@perches.com>
-Cc: Borislav Petkov <bp@alien8.de>
+Also set IORESOURCE_SYSTEM_RAM to 'flags' for "Kernel code",
+"Kernel data", and "Kernel bss".
+
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: linux-ia64@vger.kernel.org
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- scripts/checkpatch.pl |    6 ++++++
- 1 file changed, 6 insertions(+)
+ arch/ia64/kernel/efi.c   |   13 ++++++++++---
+ arch/ia64/kernel/setup.c |    6 +++---
+ 2 files changed, 13 insertions(+), 6 deletions(-)
 
-diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
-index 2b3c228..07a2dbe 100755
---- a/scripts/checkpatch.pl
-+++ b/scripts/checkpatch.pl
-@@ -3424,6 +3424,12 @@ sub process {
- 			}
- 		}
+diff --git a/arch/ia64/kernel/efi.c b/arch/ia64/kernel/efi.c
+index caae3f4..300dac3 100644
+--- a/arch/ia64/kernel/efi.c
++++ b/arch/ia64/kernel/efi.c
+@@ -1178,7 +1178,7 @@ efi_initialize_iomem_resources(struct resource *code_resource,
+ 	efi_memory_desc_t *md;
+ 	u64 efi_desc_size;
+ 	char *name;
+-	unsigned long flags;
++	unsigned long flags, desc;
  
-+# check for uses of walk_iomem_res()
-+		if ($line =~ /\bwalk_iomem_res\(/) {
-+			WARN("walk_iomem_res",
-+			     "Use of walk_iomem_res is deprecated, please use walk_iomem_res_desc instead\n" . $herecurr)
-+		}
+ 	efi_map_start = __va(ia64_boot_param->efi_memmap);
+ 	efi_map_end   = efi_map_start + ia64_boot_param->efi_memmap_size;
+@@ -1193,6 +1193,8 @@ efi_initialize_iomem_resources(struct resource *code_resource,
+ 			continue;
+ 
+ 		flags = IORESOURCE_MEM | IORESOURCE_BUSY;
++		desc = IORES_DESC_NONE;
 +
- # check for new typedefs, only function parameters and sparse annotations
- # make sense.
- 		if ($line =~ /\btypedef\s/ &&
+ 		switch (md->type) {
+ 
+ 			case EFI_MEMORY_MAPPED_IO:
+@@ -1207,14 +1209,17 @@ efi_initialize_iomem_resources(struct resource *code_resource,
+ 				if (md->attribute & EFI_MEMORY_WP) {
+ 					name = "System ROM";
+ 					flags |= IORESOURCE_READONLY;
+-				} else if (md->attribute == EFI_MEMORY_UC)
++				} else if (md->attribute == EFI_MEMORY_UC) {
+ 					name = "Uncached RAM";
+-				else
++				} else {
+ 					name = "System RAM";
++					flags |= IORESOURCE_SYSRAM;
++				}
+ 				break;
+ 
+ 			case EFI_ACPI_MEMORY_NVS:
+ 				name = "ACPI Non-volatile Storage";
++				desc = IORES_DESC_ACPI_NV_STORAGE;
+ 				break;
+ 
+ 			case EFI_UNUSABLE_MEMORY:
+@@ -1224,6 +1229,7 @@ efi_initialize_iomem_resources(struct resource *code_resource,
+ 
+ 			case EFI_PERSISTENT_MEMORY:
+ 				name = "Persistent Memory";
++				desc = IORES_DESC_PERSISTENT_MEMORY;
+ 				break;
+ 
+ 			case EFI_RESERVED_TYPE:
+@@ -1246,6 +1252,7 @@ efi_initialize_iomem_resources(struct resource *code_resource,
+ 		res->start = md->phys_addr;
+ 		res->end = md->phys_addr + efi_md_size(md) - 1;
+ 		res->flags = flags;
++		res->desc = desc;
+ 
+ 		if (insert_resource(&iomem_resource, res) < 0)
+ 			kfree(res);
+diff --git a/arch/ia64/kernel/setup.c b/arch/ia64/kernel/setup.c
+index 4f118b0..2029a38 100644
+--- a/arch/ia64/kernel/setup.c
++++ b/arch/ia64/kernel/setup.c
+@@ -80,17 +80,17 @@ unsigned long vga_console_membase;
+ 
+ static struct resource data_resource = {
+ 	.name	= "Kernel data",
+-	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
++	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
+ };
+ 
+ static struct resource code_resource = {
+ 	.name	= "Kernel code",
+-	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
++	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
+ };
+ 
+ static struct resource bss_resource = {
+ 	.name	= "Kernel bss",
+-	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
++	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
+ };
+ 
+ unsigned long ia64_max_cacheline_size;
