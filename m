@@ -1,113 +1,122 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3425.houston.hp.com ([15.201.208.53]:59998 "EHLO
-	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753883AbbLYWJe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Dec 2015 17:09:34 -0500
+Received: from g9t5008.houston.hp.com ([15.240.92.66]:49156 "EHLO
+	g9t5008.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754316AbbLYWKK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Dec 2015 17:10:10 -0500
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v2 00/16] Enhance iomem search interfaces and support EINJ to NVDIMM
-Date: Fri, 25 Dec 2015 15:09:04 -0700
-Message-ID: <1451081344-15145-1-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH v2 04/16] x86/e820: Set System RAM type and descriptor
+Date: Fri, 25 Dec 2015 15:09:13 -0700
+Message-ID: <1451081365-15190-4-git-send-email-toshi.kani@hpe.com>
+In-Reply-To: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
+References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: torvalds@linux-foundation.org, rafael.j.wysocki@intel.com, dan.j.williams@intel.com, x86@kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, konrad.wilk@oracle.com, xen-devel@lists.xenproject.org, dyoung@redhat.com, k.kozlowski@samsung.com, linux-samsung-soc@vger.kernel.org, vishal.l.verma@intel.com, tony.luck@intel.com, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-nvdimm@lists.01.org, linux-acpi@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20151225220904.XBbEnNN0SKTSayhK1qb2-7c9S6x43H9Kp7Wl5-ejlgQ@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, x86@kernel.org, Toshi Kani <toshi.kani@hpe.com>
+Message-ID: <20151225220913.mYPRFCyciJSb6gFIlCtbBvkM9lt0dRSM36lKnsto6-o@z>
 
-This patch-set enhances the iomem table and its search interfacs, and
-then changes EINJ to support NVDIMM.
+Change e820_reserve_resources() to set 'flags' and 'desc' from
+e820 types.
 
- - Patches 1-2 add a new System RAM type, IORESOURCE_SYSTEM_RAM, and
-   make the iomem search interfaces work with resource flags with
-   modifier bits set.  IORESOURCE_SYSTEM_RAM has IORESOURCE_MEM bit set
-   for backward compatibility.
+IORESOURCE_SYSTEM_RAM is set to 'flags' for System RAM, which
+are E820_RESERVED_KERN and E820_RAM.  IORESOURCE_SYSTEM_RAM is
+also set to "Kernel data", "Kernel code", and "Kernel bss",
+which are children nodes of System RAM.
 
- - Patch 3 adds a new field, I/O resource descriptor, in struct resource.
-   Drivers can assign their unique descritor to a range when they
-   support the iomem search interfaces.
+I/O resource descriptor is set to 'desc' for entries that are
+(and will be) target ranges of walk_iomem_res() and
+region_intersects().
 
- - Patches 4-9 changes initializations of resource entries.  They set
-   the System RAM type to System RAM ranges, set I/O resource descriptors
-   to the regions targeted by the iomem search interfaces, and change
-   to call kzalloc() where kmalloc() is used to allocate struct resource
-   ranges.
-
- - Patches 10-14 extend the iomem interfaces to check System RAM ranges
-   with the System RAM type and the I/O resource descriptor.
-
- - Patch 15 adds a check to checkpatch.pl to warn on new use of
-   walk_iomem_res().
-
- - Patch 16 changes the EINJ driver to allow injecting a memory error
-   to NVDIMM.
-
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: x86@kernel.org
+Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
-v2:
- - Add 'desc' to struct resource, and add a new iomem interface to
-   search with the desc. (Borislav Petkov)
- - Add a check to checkpatch.pl to warn on new use of walk_iomem_res().
-   (Borislav Petkov)
+ arch/x86/kernel/e820.c  |   38 +++++++++++++++++++++++++++++++++++++-
+ arch/x86/kernel/setup.c |    6 +++---
+ 2 files changed, 40 insertions(+), 4 deletions(-)
 
-v1:
- - Searching for System RAM in the resource table should not require
-   strcmp(). (Borislav Petkov)
- - Add a new System RAM type as a modifier to IORESOURCE_MEM.
-   (Linus Torvalds)
- - NVDIMM check needs to be able to distinguish legacy and NFIT pmem
-   ranges. (Dan Williams)
-
----
-Toshi Kani (16):
- 01/16 resource: Add System RAM resource type
- 02/16 resource: make resource flags handled properly
- 03/16 resource: Add I/O resource descriptor
- 04/16 x86/e820: Set System RAM type and descriptor
- 05/16 ia64: Set System RAM type and descriptor
- 06/16 arch: Set IORESOURCE_SYSTEM_RAM to System RAM
- 07/16 kexec: Set IORESOURCE_SYSTEM_RAM to System RAM
- 08/16 xen, mm: Set IORESOURCE_SYSTEM_RAM to System RAM
- 09/16 drivers: Initialize resource entry to zero
- 10/16 resource: Change walk_system_ram to use System RAM type
- 11/16 arm/samsung: Change s3c_pm_run_res() to use System RAM type
- 12/16 memremap: Change region_intersects() to take @flags and @desc
- 13/16 resource: Add walk_iomem_res_desc()
- 14/16 x86,nvdimm,kexec: Use walk_iomem_res_desc() for iomem search
- 15/16 checkpatch: Add warning on deprecated walk_iomem_res
- 16/16 ACPI/EINJ: Allow memory error injection to NVDIMM
-
----
- arch/arm/kernel/setup.c            |   6 +-
- arch/arm/plat-samsung/pm-check.c   |   4 +-
- arch/arm64/kernel/setup.c          |   6 +-
- arch/avr32/kernel/setup.c          |   6 +-
- arch/ia64/kernel/efi.c             |  13 ++++-
- arch/ia64/kernel/setup.c           |   6 +-
- arch/m32r/kernel/setup.c           |   4 +-
- arch/mips/kernel/setup.c           |  10 ++--
- arch/parisc/mm/init.c              |   6 +-
- arch/powerpc/mm/mem.c              |   2 +-
- arch/s390/kernel/setup.c           |   8 +--
- arch/score/kernel/setup.c          |   2 +-
- arch/sh/kernel/setup.c             |   8 +--
- arch/sparc/mm/init_64.c            |   8 +--
- arch/tile/kernel/setup.c           |  11 +++-
- arch/unicore32/kernel/setup.c      |   6 +-
- arch/x86/kernel/crash.c            |   4 +-
- arch/x86/kernel/e820.c             |  38 ++++++++++++-
- arch/x86/kernel/pmem.c             |   4 +-
- arch/x86/kernel/setup.c            |   6 +-
- drivers/acpi/acpi_platform.c       |   2 +-
- drivers/acpi/apei/einj.c           |  15 +++--
- drivers/nvdimm/e820.c              |   2 +-
- drivers/parisc/eisa_enumerator.c   |   4 +-
- drivers/rapidio/rio.c              |   8 +--
- drivers/sh/superhyway/superhyway.c |   2 +-
- drivers/xen/balloon.c              |   2 +-
- include/linux/ioport.h             |  33 +++++++++++
- include/linux/mm.h                 |   3 +-
- kernel/kexec_core.c                |   8 ++-
- kernel/kexec_file.c                |   8 +--
- kernel/memremap.c                  |  13 +++--
- kernel/resource.c                  | 110 +++++++++++++++++++++++++++----------
- mm/memory_hotplug.c                |   2 +-
- scripts/checkpatch.pl              |   6 ++
- 35 files changed, 265 insertions(+), 111 deletions(-)
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index 569c1e4..837365f 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -925,6 +925,41 @@ static const char *e820_type_to_string(int e820_type)
+ 	}
+ }
+ 
++static unsigned long e820_type_to_iomem_type(int e820_type)
++{
++	switch (e820_type) {
++	case E820_RESERVED_KERN:
++	case E820_RAM:
++		return IORESOURCE_SYSTEM_RAM;
++	case E820_ACPI:
++	case E820_NVS:
++	case E820_UNUSABLE:
++	case E820_PRAM:
++	case E820_PMEM:
++	default:
++		return IORESOURCE_MEM;
++	}
++}
++
++static unsigned long e820_type_to_iores_desc(int e820_type)
++{
++	switch (e820_type) {
++	case E820_ACPI:
++		return IORES_DESC_ACPI_TABLES;
++	case E820_NVS:
++		return IORES_DESC_ACPI_NV_STORAGE;
++	case E820_PMEM:
++		return IORES_DESC_PERSISTENT_MEMORY;
++	case E820_PRAM:
++		return IORES_DESC_PERSISTENT_MEMORY_LEGACY;
++	case E820_RESERVED_KERN:
++	case E820_RAM:
++	case E820_UNUSABLE:
++	default:
++		return IORES_DESC_NONE;
++	}
++}
++
+ static bool do_mark_busy(u32 type, struct resource *res)
+ {
+ 	/* this is the legacy bios/dos rom-shadow + mmio region */
+@@ -967,7 +1002,8 @@ void __init e820_reserve_resources(void)
+ 		res->start = e820.map[i].addr;
+ 		res->end = end;
+ 
+-		res->flags = IORESOURCE_MEM;
++		res->flags = e820_type_to_iomem_type(e820.map[i].type);
++		res->desc = e820_type_to_iores_desc(e820.map[i].type);
+ 
+ 		/*
+ 		 * don't register the region that could be conflicted with
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index d2bbe34..a492c30 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -152,21 +152,21 @@ static struct resource data_resource = {
+ 	.name	= "Kernel data",
+ 	.start	= 0,
+ 	.end	= 0,
+-	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
++	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
+ };
+ 
+ static struct resource code_resource = {
+ 	.name	= "Kernel code",
+ 	.start	= 0,
+ 	.end	= 0,
+-	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
++	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
+ };
+ 
+ static struct resource bss_resource = {
+ 	.name	= "Kernel bss",
+ 	.start	= 0,
+ 	.end	= 0,
+-	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
++	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
+ };
+ 
+ 
