@@ -1,164 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3426.houston.hp.com ([15.201.208.54]:30752 "EHLO
-	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754464AbbLYWK2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Dec 2015 17:10:28 -0500
+Received: from g4t3427.houston.hp.com ([15.201.208.55]:50507 "EHLO
+	g4t3427.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754548AbbLYWKh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Dec 2015 17:10:37 -0500
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v2 12/16] memremap: Change region_intersects() to take @flags and @desc
-Date: Fri, 25 Dec 2015 15:09:21 -0700
-Message-ID: <1451081365-15190-12-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH v2 16/16] ACPI/EINJ: Allow memory error injection to NVDIMM
+Date: Fri, 25 Dec 2015 15:09:25 -0700
+Message-ID: <1451081365-15190-16-git-send-email-toshi.kani@hpe.com>
 In-Reply-To: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
 References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Toshi Kani <toshi.kani@hpe.com>
-Message-ID: <20151225220921.07ITf2hWYw291XmvNG6zJEr1kkPeYxSJmVqsVwfl6kI@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Vishal Verma <vishal.l.verma@intel.com>, Tony Luck <tony.luck@intel.com>, Dan Williams <dan.j.williams@intel.com>, linux-nvdimm@lists.01.org, linux-acpi@vger.kernel.org, Toshi Kani <toshi.kani@hpe.com>
+Message-ID: <20151225220925.wFP0yadG1CnzXMctc3nhJEUyQXsVYlijncdhH3TtDhk@z>
 
-Change region_intersects() to identify a target with @flags
-and @desc, instead of @name with strcmp().
+In the case of memory error injection, einj_error_inject() checks
+if a target address is System RAM.  Change this check to allow
+injecting a memory error to NVDIMM by calling region_intersects()
+with IORES_DESC_PERSISTENT_MEMORY.  This enables memory error
+testing on both System RAM and NVDIMM.
 
-Change the callers of region_intersects(), memremap() and
-devm_memremap(), to set IORESOURCE_SYSTEM_RAM to @flags and
-IORES_DESC_NONE to @desc for searching System RAM.
+In addition, page_is_ram() is replaced with region_intersects()
+with IORESOURCE_SYSTEM_RAM, so that it can verify a target address
+range with the requested size.
 
-Also, export region_intersects() so that the EINJ driver can
-call this function in a later patch.
-
-Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Rafael J. Wysocki <rjw@rjwysocki.net>
 Cc: Borislav Petkov <bp@alien8.de>
+Cc: Vishal Verma <vishal.l.verma@intel.com>
+Cc: Tony Luck <tony.luck@intel.com>
 Cc: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-nvdimm@lists.01.org
+Cc: linux-acpi@vger.kernel.org
+Acked-by: Tony Luck <tony.luck@intel.com>
+Reviewed-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- include/linux/mm.h |    3 ++-
- kernel/memremap.c  |   13 +++++++------
- kernel/resource.c  |   26 +++++++++++++++-----------
- 3 files changed, 24 insertions(+), 18 deletions(-)
+ drivers/acpi/apei/einj.c |   15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 00bad77..82f6ca9 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -362,7 +362,8 @@ enum {
- 	REGION_MIXED,
- };
- 
--int region_intersects(resource_size_t offset, size_t size, const char *type);
-+int region_intersects(resource_size_t offset, size_t size, unsigned long flags,
-+			unsigned long desc);
- 
- /* Support for virtually mapped pages */
- struct page *vmalloc_to_page(const void *addr);
-diff --git a/kernel/memremap.c b/kernel/memremap.c
-index 7658d32..47f3436 100644
---- a/kernel/memremap.c
-+++ b/kernel/memremap.c
-@@ -44,7 +44,7 @@ static void *try_ram_remap(resource_size_t offset, size_t size)
-  * being mapped does not have i/o side effects and the __iomem
-  * annotation is not applicable.
-  *
-- * MEMREMAP_WB - matches the default mapping for "System RAM" on
-+ * MEMREMAP_WB - matches the default mapping for System RAM on
-  * the architecture.  This is usually a read-allocate write-back cache.
-  * Morever, if MEMREMAP_WB is specified and the requested remap region is RAM
-  * memremap() will bypass establishing a new mapping and instead return
-@@ -53,11 +53,12 @@ static void *try_ram_remap(resource_size_t offset, size_t size)
-  * MEMREMAP_WT - establish a mapping whereby writes either bypass the
-  * cache or are written through to memory and never exist in a
-  * cache-dirty state with respect to program visibility.  Attempts to
-- * map "System RAM" with this mapping type will fail.
-+ * map System RAM with this mapping type will fail.
-  */
- void *memremap(resource_size_t offset, size_t size, unsigned long flags)
+diff --git a/drivers/acpi/apei/einj.c b/drivers/acpi/apei/einj.c
+index 0431883..16cae66 100644
+--- a/drivers/acpi/apei/einj.c
++++ b/drivers/acpi/apei/einj.c
+@@ -519,7 +519,7 @@ static int einj_error_inject(u32 type, u32 flags, u64 param1, u64 param2,
+ 			     u64 param3, u64 param4)
  {
--	int is_ram = region_intersects(offset, size, "System RAM");
-+	int is_ram = region_intersects(offset, size,
-+					IORESOURCE_SYSTEM_RAM, IORES_DESC_NONE);
- 	void *addr = NULL;
+ 	int rc;
+-	unsigned long pfn;
++	u64 base_addr, size;
  
- 	if (is_ram == REGION_MIXED) {
-@@ -73,7 +74,7 @@ void *memremap(resource_size_t offset, size_t size, unsigned long flags)
- 		 * MEMREMAP_WB is special in that it can be satisifed
- 		 * from the direct map.  Some archs depend on the
- 		 * capability of memremap() to autodetect cases where
--		 * the requested range is potentially in "System RAM"
-+		 * the requested range is potentially in System RAM.
- 		 */
- 		if (is_ram == REGION_INTERSECTS)
- 			addr = try_ram_remap(offset, size);
-@@ -85,7 +86,7 @@ void *memremap(resource_size_t offset, size_t size, unsigned long flags)
- 	 * If we don't have a mapping yet and more request flags are
- 	 * pending then we will be attempting to establish a new virtual
- 	 * address mapping.  Enforce that this mapping is not aliasing
--	 * "System RAM"
-+	 * System RAM.
+ 	/* If user manually set "flags", make sure it is legal */
+ 	if (flags && (flags &
+@@ -545,10 +545,17 @@ static int einj_error_inject(u32 type, u32 flags, u64 param1, u64 param2,
+ 	/*
+ 	 * Disallow crazy address masks that give BIOS leeway to pick
+ 	 * injection address almost anywhere. Insist on page or
+-	 * better granularity and that target address is normal RAM.
++	 * better granularity and that target address is normal RAM or
++	 * NVDIMM.
  	 */
- 	if (!addr && is_ram == REGION_INTERSECTS && flags) {
- 		WARN_ONCE(1, "memremap attempted on ram %pa size: %#lx\n",
-@@ -163,7 +164,7 @@ static void devm_memremap_pages_release(struct device *dev, void *res)
- void *devm_memremap_pages(struct device *dev, struct resource *res)
- {
- 	int is_ram = region_intersects(res->start, resource_size(res),
--			"System RAM");
-+					IORESOURCE_SYSTEM_RAM, IORES_DESC_NONE);
- 	struct page_map *page_map;
- 	int error, nid;
+-	pfn = PFN_DOWN(param1 & param2);
+-	if (!page_is_ram(pfn) || ((param2 & PAGE_MASK) != PAGE_MASK))
++	base_addr = param1 & param2;
++	size = ~param2 + 1;
++
++	if (((param2 & PAGE_MASK) != PAGE_MASK) ||
++	    ((region_intersects(base_addr, size, IORESOURCE_SYSTEM_RAM,
++			IORES_DESC_NONE) != REGION_INTERSECTS) &&
++	     (region_intersects(base_addr, size, IORESOURCE_MEM,
++			IORES_DESC_PERSISTENT_MEMORY) != REGION_INTERSECTS)))
+ 		return -EINVAL;
  
-diff --git a/kernel/resource.c b/kernel/resource.c
-index 1d3ea50..52e6380 100644
---- a/kernel/resource.c
-+++ b/kernel/resource.c
-@@ -496,31 +496,34 @@ EXPORT_SYMBOL_GPL(page_is_ram);
-  * region_intersects() - determine intersection of region with known resources
-  * @start: region start address
-  * @size: size of region
-- * @name: name of resource (in iomem_resource)
-+ * @flags: flags of resource (in iomem_resource)
-+ * @desc: descriptor of resource (in iomem_resource) or IORES_DESC_NONE
-  *
-  * Check if the specified region partially overlaps or fully eclipses a
-- * resource identified by @name.  Return REGION_DISJOINT if the region
-- * does not overlap @name, return REGION_MIXED if the region overlaps
-- * @type and another resource, and return REGION_INTERSECTS if the
-- * region overlaps @type and no other defined resource. Note, that
-- * REGION_INTERSECTS is also returned in the case when the specified
-- * region overlaps RAM and undefined memory holes.
-+ * resource identified by @flags and @desc (optinal with IORES_DESC_NONE).
-+ * Return REGION_DISJOINT if the region does not overlap @flags/@desc,
-+ * return REGION_MIXED if the region overlaps @flags/@desc and another
-+ * resource, and return REGION_INTERSECTS if the region overlaps @flags/@desc
-+ * and no other defined resource. Note, that REGION_INTERSECTS is also
-+ * returned in the case when the specified region overlaps RAM and undefined
-+ * memory holes.
-  *
-  * region_intersect() is used by memory remapping functions to ensure
-  * the user is not remapping RAM and is a vast speed up over walking
-  * through the resource table page by page.
-  */
--int region_intersects(resource_size_t start, size_t size, const char *name)
-+int region_intersects(resource_size_t start, size_t size, unsigned long flags,
-+			unsigned long desc)
- {
--	unsigned long flags = IORESOURCE_MEM | IORESOURCE_BUSY;
- 	resource_size_t end = start + size - 1;
- 	int type = 0; int other = 0;
- 	struct resource *p;
- 
- 	read_lock(&resource_lock);
- 	for (p = iomem_resource.child; p ; p = p->sibling) {
--		bool is_type = strcmp(p->name, name) == 0 &&
--				((p->flags & flags) == flags);
-+		bool is_type = (((p->flags & flags) == flags) &&
-+				((desc == IORES_DESC_NONE) ||
-+				 (desc == p->desc)));
- 
- 		if (start >= p->start && start <= p->end)
- 			is_type ? type++ : other++;
-@@ -539,6 +542,7 @@ int region_intersects(resource_size_t start, size_t size, const char *name)
- 
- 	return REGION_DISJOINT;
- }
-+EXPORT_SYMBOL_GPL(region_intersects);
- 
- void __weak arch_remove_reservations(struct resource *avail)
- {
+ inject:
