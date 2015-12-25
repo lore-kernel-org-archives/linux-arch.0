@@ -1,122 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t5008.houston.hp.com ([15.240.92.66]:49156 "EHLO
-	g9t5008.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754316AbbLYWKK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Dec 2015 17:10:10 -0500
+Received: from g4t3428.houston.hp.com ([15.201.208.56]:24913 "EHLO
+	g4t3428.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754381AbbLYWKS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 Dec 2015 17:10:18 -0500
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v2 04/16] x86/e820: Set System RAM type and descriptor
-Date: Fri, 25 Dec 2015 15:09:13 -0700
-Message-ID: <1451081365-15190-4-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH v2 07/16] kexec: Set IORESOURCE_SYSTEM_RAM to System RAM
+Date: Fri, 25 Dec 2015 15:09:16 -0700
+Message-ID: <1451081365-15190-7-git-send-email-toshi.kani@hpe.com>
 In-Reply-To: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
 References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, x86@kernel.org, Toshi Kani <toshi.kani@hpe.com>
-Message-ID: <20151225220913.mYPRFCyciJSb6gFIlCtbBvkM9lt0dRSM36lKnsto6-o@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dave Young <dyoung@redhat.com>, Toshi Kani <toshi.kani@hpe.com>
+Message-ID: <20151225220916.l8R6-MrHXrEyIBJ1jc9Te1WA70sSELuewvrNsOggveM@z>
 
-Change e820_reserve_resources() to set 'flags' and 'desc' from
-e820 types.
+Set IORESOURCE_SYSTEM_RAM to 'flags' and IORES_DESC_CRASH_KERNEL
+to 'desc' of "Crash kernel" resource ranges, which are child
+nodes of System RAM.
 
-IORESOURCE_SYSTEM_RAM is set to 'flags' for System RAM, which
-are E820_RESERVED_KERN and E820_RAM.  IORESOURCE_SYSTEM_RAM is
-also set to "Kernel data", "Kernel code", and "Kernel bss",
-which are children nodes of System RAM.
+Change crash_shrink_memory() to set IORESOURCE_SYSTEM_RAM for
+a System RAM range.
 
-I/O resource descriptor is set to 'desc' for entries that are
-(and will be) target ranges of walk_iomem_res() and
-region_intersects().
+Change kexec_add_buffer() to call walk_iomem_res() with
+IORESOURCE_SYSTEM_RAM type for "Crash kernel".
 
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: x86@kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Dave Young <dyoung@redhat.com>
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- arch/x86/kernel/e820.c  |   38 +++++++++++++++++++++++++++++++++++++-
- arch/x86/kernel/setup.c |    6 +++---
- 2 files changed, 40 insertions(+), 4 deletions(-)
+ kernel/kexec_core.c |    8 +++++---
+ kernel/kexec_file.c |    2 +-
+ 2 files changed, 6 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index 569c1e4..837365f 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -925,6 +925,41 @@ static const char *e820_type_to_string(int e820_type)
- 	}
- }
- 
-+static unsigned long e820_type_to_iomem_type(int e820_type)
-+{
-+	switch (e820_type) {
-+	case E820_RESERVED_KERN:
-+	case E820_RAM:
-+		return IORESOURCE_SYSTEM_RAM;
-+	case E820_ACPI:
-+	case E820_NVS:
-+	case E820_UNUSABLE:
-+	case E820_PRAM:
-+	case E820_PMEM:
-+	default:
-+		return IORESOURCE_MEM;
-+	}
-+}
-+
-+static unsigned long e820_type_to_iores_desc(int e820_type)
-+{
-+	switch (e820_type) {
-+	case E820_ACPI:
-+		return IORES_DESC_ACPI_TABLES;
-+	case E820_NVS:
-+		return IORES_DESC_ACPI_NV_STORAGE;
-+	case E820_PMEM:
-+		return IORES_DESC_PERSISTENT_MEMORY;
-+	case E820_PRAM:
-+		return IORES_DESC_PERSISTENT_MEMORY_LEGACY;
-+	case E820_RESERVED_KERN:
-+	case E820_RAM:
-+	case E820_UNUSABLE:
-+	default:
-+		return IORES_DESC_NONE;
-+	}
-+}
-+
- static bool do_mark_busy(u32 type, struct resource *res)
- {
- 	/* this is the legacy bios/dos rom-shadow + mmio region */
-@@ -967,7 +1002,8 @@ void __init e820_reserve_resources(void)
- 		res->start = e820.map[i].addr;
- 		res->end = end;
- 
--		res->flags = IORESOURCE_MEM;
-+		res->flags = e820_type_to_iomem_type(e820.map[i].type);
-+		res->desc = e820_type_to_iores_desc(e820.map[i].type);
- 
- 		/*
- 		 * don't register the region that could be conflicted with
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index d2bbe34..a492c30 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -152,21 +152,21 @@ static struct resource data_resource = {
- 	.name	= "Kernel data",
- 	.start	= 0,
- 	.end	= 0,
--	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
-+	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
+diff --git a/kernel/kexec_core.c b/kernel/kexec_core.c
+index 11b64a6..80bff05 100644
+--- a/kernel/kexec_core.c
++++ b/kernel/kexec_core.c
+@@ -66,13 +66,15 @@ struct resource crashk_res = {
+ 	.name  = "Crash kernel",
+ 	.start = 0,
+ 	.end   = 0,
+-	.flags = IORESOURCE_BUSY | IORESOURCE_MEM
++	.flags = IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM,
++	.desc  = IORES_DESC_CRASH_KERNEL
+ };
+ struct resource crashk_low_res = {
+ 	.name  = "Crash kernel",
+ 	.start = 0,
+ 	.end   = 0,
+-	.flags = IORESOURCE_BUSY | IORESOURCE_MEM
++	.flags = IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM,
++	.desc  = IORES_DESC_CRASH_KERNEL
  };
  
- static struct resource code_resource = {
- 	.name	= "Kernel code",
- 	.start	= 0,
- 	.end	= 0,
--	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
-+	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
- };
+ int kexec_should_crash(struct task_struct *p)
+@@ -934,7 +936,7 @@ int crash_shrink_memory(unsigned long new_size)
  
- static struct resource bss_resource = {
- 	.name	= "Kernel bss",
- 	.start	= 0,
- 	.end	= 0,
--	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
-+	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
- };
+ 	ram_res->start = end;
+ 	ram_res->end = crashk_res.end;
+-	ram_res->flags = IORESOURCE_BUSY | IORESOURCE_MEM;
++	ram_res->flags = IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM;
+ 	ram_res->name = "System RAM";
  
- 
+ 	crashk_res.end = end - 1;
+diff --git a/kernel/kexec_file.c b/kernel/kexec_file.c
+index b70ada0..c245085 100644
+--- a/kernel/kexec_file.c
++++ b/kernel/kexec_file.c
+@@ -523,7 +523,7 @@ int kexec_add_buffer(struct kimage *image, char *buffer, unsigned long bufsz,
+ 	/* Walk the RAM ranges and allocate a suitable range for the buffer */
+ 	if (image->type == KEXEC_TYPE_CRASH)
+ 		ret = walk_iomem_res("Crash kernel",
+-				     IORESOURCE_MEM | IORESOURCE_BUSY,
++				     IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY,
+ 				     crashk_res.start, crashk_res.end, kbuf,
+ 				     locate_mem_hole_callback);
+ 	else
