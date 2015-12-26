@@ -1,48 +1,45 @@
-From: Joe Perches <joe@perches.com>
-Subject: Re: [PATCH v2 15/16] checkpatch: Add warning on deprecated
- walk_iomem_res
-Date: Fri, 25 Dec 2015 16:05:07 -0800
-Message-ID: <1451088307.12498.3.camel@perches.com>
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v2 14/16] x86,nvdimm,kexec: Use walk_iomem_res_desc() for
+ iomem search
+Date: Sat, 26 Dec 2015 11:38:04 +0100
+Message-ID: <20151226103804.GB21988@pd.tnic>
 References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
-	 <1451081365-15190-15-git-send-email-toshi.kani@hpe.com>
+ <1451081365-15190-14-git-send-email-toshi.kani@hpe.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1451081365-15190-15-git-send-email-toshi.kani@hpe.com>
-Sender: owner-linux-mm@kvack.org
-To: Toshi Kani <toshi.kani@hpe.com>, akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Andy Whitcroft <apw@canonical.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.skyhub.de ([78.46.96.112]:56466 "EHLO mail.skyhub.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750913AbbLZKiN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 26 Dec 2015 05:38:13 -0500
+Content-Disposition: inline
+In-Reply-To: <1451081365-15190-14-git-send-email-toshi.kani@hpe.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Toshi Kani <toshi.kani@hpe.com>
+Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Dave Young <dyoung@redhat.com>, x86@kernel.org, linux-nvdimm@lists.01.org
 
-On Fri, 2015-12-25 at 15:09 -0700, Toshi Kani wrote:
-> Use of walk_iomem_res() is deprecated in new code.=A0=A0Change
-> checkpatch.pl to check new use of walk_iomem_res() and suggest
-> to use walk_iomem_res_desc() instead.
-[]
-> diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
-[]
-> @@ -3424,6 +3424,12 @@ sub process {
-> =A0			}
-> =A0		}
-> =A0
-> +# check for uses of walk_iomem_res()
-> +		if ($line =3D~ /\bwalk_iomem_res\(/) {
-> +			WARN("walk_iomem_res",
-> +			=A0=A0=A0=A0=A0"Use of walk_iomem_res is deprecated, please use wal=
-k_iomem_res_desc instead\n" . $herecurr)
-> +		}
-> +
-> =A0# check for new typedefs, only function parameters and sparse annota=
-tions
-> =A0# make sense.
-> =A0		if ($line =3D~ /\btypedef\s/ &&
+On Fri, Dec 25, 2015 at 03:09:23PM -0700, Toshi Kani wrote:
+> Change to call walk_iomem_res_desc() for searching resource entries
+> with the following names:
+>  "ACPI Tables"
+>  "ACPI Non-volatile Storage"
+>  "Persistent Memory (legacy)"
+>  "Crash kernel"
+> 
+> Note, the caller of walk_iomem_res() with "GART" is left unchanged
+> because this entry may be initialized by out-of-tree drivers, which
+> do not have 'desc' set to IORES_DESC_GART.
 
-There are 6 uses of this function in the entire kernel tree.
-Why not just change them, remove the function and avoid this?
+There's this out-of-tree bogus argument again. :\
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
+Why do we care about out-of-tree drivers?
+
+You can just as well fix the "GART" case too and kill walk_iomem_res()
+altogether...
+
+-- 
+Regards/Gruss,
+    Boris.
+
+ECO tip #101: Trim your mails when you reply.
