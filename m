@@ -1,53 +1,63 @@
-From: Minfei Huang <mhuang@redhat.com>
-Subject: Re: [PATCH v2 14/16] x86,nvdimm,kexec: Use walk_iomem_res_desc() for
- iomem search
-Date: Sun, 27 Dec 2015 00:05:22 +0800
-Message-ID: <20151226160522.GA28533@dhcp-128-25.nay.redhat.com>
-References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
- <1451081365-15190-14-git-send-email-toshi.kani@hpe.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: [PATCH 0/2] ABI: handle 32-bit off_t for 32-bit and compat ABIs
+Date: Sat, 26 Dec 2015 19:06:38 +0300
+Message-ID: <1451146000-5646-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1451081365-15190-14-git-send-email-toshi.kani@hpe.com>
-Sender: owner-linux-mm@kvack.org
-To: Toshi Kani <toshi.kani@hpe.com>
-Cc: akpm@linux-foundation.org, bp@alien8.de, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Dave Young <dyoung@redhat.com>, x86@kernel.org, linux-nvdimm@ml01.01.org, kexec@lists.infradead.org
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org, arnd@arndb.de
+Cc: linux-kernel@vger.kernel.org, klimov.linux@gmail.com, Yury Norov <ynorov@caviumnetworks.com>
 List-Id: linux-arch.vger.kernel.org
 
-Ccing kexec maillist.
+32-bit off_t is supported only for old 32-bit and compat ABIs. New ABIs
+are 64-bit length only. This patchset makes 64-bit length the default
+for off_t, and reverts it for old architectures where needed. It does not
+change the behaviour of existing code.
 
-On 12/25/15 at 03:09pm, Toshi Kani wrote:
-> diff --git a/kernel/kexec_file.c b/kernel/kexec_file.c
-> index c245085..e2bd737 100644
-> --- a/kernel/kexec_file.c
-> +++ b/kernel/kexec_file.c
-> @@ -522,10 +522,10 @@ int kexec_add_buffer(struct kimage *image, char *buffer, unsigned long bufsz,
->  
->  	/* Walk the RAM ranges and allocate a suitable range for the buffer */
->  	if (image->type == KEXEC_TYPE_CRASH)
-> -		ret = walk_iomem_res("Crash kernel",
-> -				     IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY,
-> -				     crashk_res.start, crashk_res.end, kbuf,
-> -				     locate_mem_hole_callback);
-> +		ret = walk_iomem_res_desc(IORES_DESC_CRASH_KERNEL,
+First patch makes all compat users of generic unistd.h to use non-compat
+versions of openat and open_by_handle_at. Tile that requires old behaviour
+is turned around.
 
-Since crashk_res's desc has been assigned to IORES_DESC_CRASH_KERNEL, it
-is better to use crashk_res.desc, instead of using
-IORES_DESC_CRASH_KERNEL directly.
+Second patch introduces ARCH_32BIT_OFF_T config option, disabled by default,
+but enables it explicitly for existing 32-bit architectures.
 
-Thanks
-Minfei
+Yury Norov (2):
+  ABI: compat: use non-compat openat and open_by_handle_at variants
+  32-bit ABI: introduce ARCH_32BIT_OFF_T config option
 
-> +				IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY,
-> +				crashk_res.start, crashk_res.end, kbuf,
-> +				locate_mem_hole_callback);
->  	else
->  		ret = walk_system_ram_res(0, -1, kbuf,
->  					  locate_mem_hole_callback);
+ arch/Kconfig                      | 4 ++++
+ arch/arc/Kconfig                  | 1 +
+ arch/arm/Kconfig                  | 1 +
+ arch/blackfin/Kconfig             | 1 +
+ arch/cris/Kconfig                 | 1 +
+ arch/frv/Kconfig                  | 1 +
+ arch/h8300/Kconfig                | 1 +
+ arch/hexagon/Kconfig              | 1 +
+ arch/ia64/Kconfig                 | 1 +
+ arch/m32r/Kconfig                 | 1 +
+ arch/m68k/Kconfig                 | 1 +
+ arch/metag/Kconfig                | 1 +
+ arch/microblaze/Kconfig           | 1 +
+ arch/mips/Kconfig                 | 1 +
+ arch/mn10300/Kconfig              | 1 +
+ arch/nios2/Kconfig                | 1 +
+ arch/openrisc/Kconfig             | 1 +
+ arch/parisc/Kconfig               | 1 +
+ arch/powerpc/Kconfig              | 1 +
+ arch/s390/Kconfig                 | 1 +
+ arch/score/Kconfig                | 1 +
+ arch/sh/Kconfig                   | 1 +
+ arch/sparc/Kconfig                | 1 +
+ arch/tile/Kconfig                 | 1 +
+ arch/tile/kernel/compat.c         | 3 +++
+ arch/unicore32/Kconfig            | 1 +
+ arch/x86/Kconfig                  | 1 +
+ arch/x86/um/Kconfig               | 1 +
+ arch/xtensa/Kconfig               | 1 +
+ include/linux/fcntl.h             | 3 ++-
+ include/uapi/asm-generic/unistd.h | 5 ++---
+ 31 files changed, 38 insertions(+), 4 deletions(-)
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+2.5.0
