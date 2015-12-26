@@ -1,63 +1,64 @@
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 0/2] ABI: handle 32-bit off_t for 32-bit and compat ABIs
-Date: Sat, 26 Dec 2015 19:06:38 +0300
-Message-ID: <1451146000-5646-1-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 1/2] compat ABI: use non-compat openat and open_by_handle_at variants
+Date: Sat, 26 Dec 2015 19:06:39 +0300
+Message-ID: <1451146000-5646-2-git-send-email-ynorov@caviumnetworks.com>
+References: <1451146000-5646-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1451146000-5646-1-git-send-email-ynorov@caviumnetworks.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, arnd@arndb.de
 Cc: linux-kernel@vger.kernel.org, klimov.linux@gmail.com, Yury Norov <ynorov@caviumnetworks.com>
 List-Id: linux-arch.vger.kernel.org
 
-32-bit off_t is supported only for old 32-bit and compat ABIs. New ABIs
-are 64-bit length only. This patchset makes 64-bit length the default
-for off_t, and reverts it for old architectures where needed. It does not
-change the behaviour of existing code.
+The only difference is that non-compat version forces O_LARGEFILE,
+and it should be the default behaviour for all architectures, as
+we don't support 32-bit off_t. The only exception is tile32, that
+continues with compat version of syscalls.
 
-First patch makes all compat users of generic unistd.h to use non-compat
-versions of openat and open_by_handle_at. Tile that requires old behaviour
-is turned around.
-
-Second patch introduces ARCH_32BIT_OFF_T config option, disabled by default,
-but enables it explicitly for existing 32-bit architectures.
-
-Yury Norov (2):
-  ABI: compat: use non-compat openat and open_by_handle_at variants
-  32-bit ABI: introduce ARCH_32BIT_OFF_T config option
-
- arch/Kconfig                      | 4 ++++
- arch/arc/Kconfig                  | 1 +
- arch/arm/Kconfig                  | 1 +
- arch/blackfin/Kconfig             | 1 +
- arch/cris/Kconfig                 | 1 +
- arch/frv/Kconfig                  | 1 +
- arch/h8300/Kconfig                | 1 +
- arch/hexagon/Kconfig              | 1 +
- arch/ia64/Kconfig                 | 1 +
- arch/m32r/Kconfig                 | 1 +
- arch/m68k/Kconfig                 | 1 +
- arch/metag/Kconfig                | 1 +
- arch/microblaze/Kconfig           | 1 +
- arch/mips/Kconfig                 | 1 +
- arch/mn10300/Kconfig              | 1 +
- arch/nios2/Kconfig                | 1 +
- arch/openrisc/Kconfig             | 1 +
- arch/parisc/Kconfig               | 1 +
- arch/powerpc/Kconfig              | 1 +
- arch/s390/Kconfig                 | 1 +
- arch/score/Kconfig                | 1 +
- arch/sh/Kconfig                   | 1 +
- arch/sparc/Kconfig                | 1 +
- arch/tile/Kconfig                 | 1 +
+Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+---
  arch/tile/kernel/compat.c         | 3 +++
- arch/unicore32/Kconfig            | 1 +
- arch/x86/Kconfig                  | 1 +
- arch/x86/um/Kconfig               | 1 +
- arch/xtensa/Kconfig               | 1 +
- include/linux/fcntl.h             | 3 ++-
  include/uapi/asm-generic/unistd.h | 5 ++---
- 31 files changed, 38 insertions(+), 4 deletions(-)
+ 2 files changed, 5 insertions(+), 3 deletions(-)
 
+diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
+index 4912084..489ae19 100644
+--- a/arch/tile/kernel/compat.c
++++ b/arch/tile/kernel/compat.c
+@@ -94,6 +94,9 @@ COMPAT_SYSCALL_DEFINE5(llseek, unsigned int, fd, unsigned int, offset_high,
+ #define compat_sys_readahead sys32_readahead
+ #define sys_llseek compat_sys_llseek
+ 
++#define sys_openat		compat_sys_openat
++#define sys_open_by_handle_at	compat_sys_open_by_handle_at
++
+ /* Call the assembly trampolines where necessary. */
+ #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
+ #define sys_clone _sys_clone
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index 1324b02..07761e5 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -175,7 +175,7 @@ __SYSCALL(__NR_fchownat, sys_fchownat)
+ #define __NR_fchown 55
+ __SYSCALL(__NR_fchown, sys_fchown)
+ #define __NR_openat 56
+-__SC_COMP(__NR_openat, sys_openat, compat_sys_openat)
++__SYSCALL(__NR_openat, sys_openat)
+ #define __NR_close 57
+ __SYSCALL(__NR_close, sys_close)
+ #define __NR_vhangup 58
+@@ -673,8 +673,7 @@ __SYSCALL(__NR_fanotify_mark, sys_fanotify_mark)
+ #define __NR_name_to_handle_at         264
+ __SYSCALL(__NR_name_to_handle_at, sys_name_to_handle_at)
+ #define __NR_open_by_handle_at         265
+-__SC_COMP(__NR_open_by_handle_at, sys_open_by_handle_at, \
+-	  compat_sys_open_by_handle_at)
++__SYSCALL(__NR_open_by_handle_at, sys_open_by_handle_at)
+ #define __NR_clock_adjtime 266
+ __SC_COMP(__NR_clock_adjtime, sys_clock_adjtime, compat_sys_clock_adjtime)
+ #define __NR_syncfs 267
 -- 
 2.5.0
