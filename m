@@ -1,47 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0075.hostedemail.com ([216.40.44.75]:46507 "EHLO
-	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1753788AbbLZAFL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 Dec 2015 19:05:11 -0500
-Message-ID: <1451088307.12498.3.camel@perches.com>
-Subject: Re: [PATCH v2 15/16] checkpatch: Add warning on deprecated
- walk_iomem_res
-From: Joe Perches <joe@perches.com>
-Date: Fri, 25 Dec 2015 16:05:07 -0800
-In-Reply-To: <1451081365-15190-15-git-send-email-toshi.kani@hpe.com>
+Received: from mx1.redhat.com ([209.132.183.28]:57143 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750885AbbLZQC4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 26 Dec 2015 11:02:56 -0500
+Date: Sun, 27 Dec 2015 00:05:22 +0800
+From: Minfei Huang <mhuang@redhat.com>
+Subject: Re: [PATCH v2 14/16] x86,nvdimm,kexec: Use walk_iomem_res_desc() for
+ iomem search
+Message-ID: <20151226160522.GA28533@dhcp-128-25.nay.redhat.com>
 References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
-	 <1451081365-15190-15-git-send-email-toshi.kani@hpe.com>
-Content-Type: text/plain; charset="ISO-8859-1"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+ <1451081365-15190-14-git-send-email-toshi.kani@hpe.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1451081365-15190-14-git-send-email-toshi.kani@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Toshi Kani <toshi.kani@hpe.com>, akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Andy Whitcroft <apw@canonical.com>
-Message-ID: <20151226000507.zISaADyhmqKlPQ6mwHUD6oWnANB5IQSMu3FZrY9JE6Q@z>
+To: Toshi Kani <toshi.kani@hpe.com>
+Cc: akpm@linux-foundation.org, bp@alien8.de, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Dave Young <dyoung@redhat.com>, x86@kernel.org, linux-nvdimm@ml01.01.org, kexec@lists.infradead.org
+Message-ID: <20151226160522.G5872yxSctpTAVPOsdxmXJgmKcdrPA0Ea3VE6CYpZCg@z>
 
-On Fri, 2015-12-25 at 15:09 -0700, Toshi Kani wrote:
-> Use of walk_iomem_res() is deprecated in new code.  Change
-> checkpatch.pl to check new use of walk_iomem_res() and suggest
-> to use walk_iomem_res_desc() instead.
-[]
-> diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
-[]
-> @@ -3424,6 +3424,12 @@ sub process {
->  			}
->  		}
->  
-> +# check for uses of walk_iomem_res()
-> +		if ($line =~ /\bwalk_iomem_res\(/) {
-> +			WARN("walk_iomem_res",
-> +			     "Use of walk_iomem_res is deprecated, please use walk_iomem_res_desc instead\n" . $herecurr)
-> +		}
-> +
->  # check for new typedefs, only function parameters and sparse annotations
->  # make sense.
->  		if ($line =~ /\btypedef\s/ &&
+Ccing kexec maillist.
 
-There are 6 uses of this function in the entire kernel tree.
-Why not just change them, remove the function and avoid this?
+On 12/25/15 at 03:09pm, Toshi Kani wrote:
+> diff --git a/kernel/kexec_file.c b/kernel/kexec_file.c
+> index c245085..e2bd737 100644
+> --- a/kernel/kexec_file.c
+> +++ b/kernel/kexec_file.c
+> @@ -522,10 +522,10 @@ int kexec_add_buffer(struct kimage *image, char *buffer, unsigned long bufsz,
+>  
+>  	/* Walk the RAM ranges and allocate a suitable range for the buffer */
+>  	if (image->type == KEXEC_TYPE_CRASH)
+> -		ret = walk_iomem_res("Crash kernel",
+> -				     IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY,
+> -				     crashk_res.start, crashk_res.end, kbuf,
+> -				     locate_mem_hole_callback);
+> +		ret = walk_iomem_res_desc(IORES_DESC_CRASH_KERNEL,
 
+Since crashk_res's desc has been assigned to IORES_DESC_CRASH_KERNEL, it
+is better to use crashk_res.desc, instead of using
+IORES_DESC_CRASH_KERNEL directly.
+
+Thanks
+Minfei
+
+> +				IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY,
+> +				crashk_res.start, crashk_res.end, kbuf,
+> +				locate_mem_hole_callback);
+>  	else
+>  		ret = walk_system_ram_res(0, -1, kbuf,
+>  					  locate_mem_hole_callback);
