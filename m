@@ -1,76 +1,48 @@
-From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v2 16/16] ACPI/EINJ: Allow memory error injection to NVDIMM
-Date: Fri, 25 Dec 2015 15:09:25 -0700
-Message-ID: <1451081365-15190-16-git-send-email-toshi.kani@hpe.com>
+From: Joe Perches <joe@perches.com>
+Subject: Re: [PATCH v2 15/16] checkpatch: Add warning on deprecated
+ walk_iomem_res
+Date: Fri, 25 Dec 2015 16:05:07 -0800
+Message-ID: <1451088307.12498.3.camel@perches.com>
 References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
+	 <1451081365-15190-15-git-send-email-toshi.kani@hpe.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: quoted-printable
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
+In-Reply-To: <1451081365-15190-15-git-send-email-toshi.kani@hpe.com>
 Sender: owner-linux-mm@kvack.org
-To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Vishal Verma <vishal.l.verma@intel.com>, Tony Luck <tony.luck@intel.com>, Dan Williams <dan.j.williams@intel.com>, linux-nvdimm@lists.01.org, linux-acpi@vger.kernel.org, Toshi Kani <toshi.kani@hpe.com>
+To: Toshi Kani <toshi.kani@hpe.com>, akpm@linux-foundation.org, bp@alien8.de
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Andy Whitcroft <apw@canonical.com>
 List-Id: linux-arch.vger.kernel.org
 
-In the case of memory error injection, einj_error_inject() checks
-if a target address is System RAM.  Change this check to allow
-injecting a memory error to NVDIMM by calling region_intersects()
-with IORES_DESC_PERSISTENT_MEMORY.  This enables memory error
-testing on both System RAM and NVDIMM.
+On Fri, 2015-12-25 at 15:09 -0700, Toshi Kani wrote:
+> Use of walk_iomem_res() is deprecated in new code.=A0=A0Change
+> checkpatch.pl to check new use of walk_iomem_res() and suggest
+> to use walk_iomem_res_desc() instead.
+[]
+> diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
+[]
+> @@ -3424,6 +3424,12 @@ sub process {
+> =A0			}
+> =A0		}
+> =A0
+> +# check for uses of walk_iomem_res()
+> +		if ($line =3D~ /\bwalk_iomem_res\(/) {
+> +			WARN("walk_iomem_res",
+> +			=A0=A0=A0=A0=A0"Use of walk_iomem_res is deprecated, please use wal=
+k_iomem_res_desc instead\n" . $herecurr)
+> +		}
+> +
+> =A0# check for new typedefs, only function parameters and sparse annota=
+tions
+> =A0# make sense.
+> =A0		if ($line =3D~ /\btypedef\s/ &&
 
-In addition, page_is_ram() is replaced with region_intersects()
-with IORESOURCE_SYSTEM_RAM, so that it can verify a target address
-range with the requested size.
-
-Cc: Rafael J. Wysocki <rjw@rjwysocki.net>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Vishal Verma <vishal.l.verma@intel.com>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Dan Williams <dan.j.williams@intel.com>
-Cc: linux-nvdimm@lists.01.org
-Cc: linux-acpi@vger.kernel.org
-Acked-by: Tony Luck <tony.luck@intel.com>
-Reviewed-by: Dan Williams <dan.j.williams@intel.com>
-Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
----
- drivers/acpi/apei/einj.c |   15 +++++++++++----
- 1 file changed, 11 insertions(+), 4 deletions(-)
-
-diff --git a/drivers/acpi/apei/einj.c b/drivers/acpi/apei/einj.c
-index 0431883..16cae66 100644
---- a/drivers/acpi/apei/einj.c
-+++ b/drivers/acpi/apei/einj.c
-@@ -519,7 +519,7 @@ static int einj_error_inject(u32 type, u32 flags, u64 param1, u64 param2,
- 			     u64 param3, u64 param4)
- {
- 	int rc;
--	unsigned long pfn;
-+	u64 base_addr, size;
- 
- 	/* If user manually set "flags", make sure it is legal */
- 	if (flags && (flags &
-@@ -545,10 +545,17 @@ static int einj_error_inject(u32 type, u32 flags, u64 param1, u64 param2,
- 	/*
- 	 * Disallow crazy address masks that give BIOS leeway to pick
- 	 * injection address almost anywhere. Insist on page or
--	 * better granularity and that target address is normal RAM.
-+	 * better granularity and that target address is normal RAM or
-+	 * NVDIMM.
- 	 */
--	pfn = PFN_DOWN(param1 & param2);
--	if (!page_is_ram(pfn) || ((param2 & PAGE_MASK) != PAGE_MASK))
-+	base_addr = param1 & param2;
-+	size = ~param2 + 1;
-+
-+	if (((param2 & PAGE_MASK) != PAGE_MASK) ||
-+	    ((region_intersects(base_addr, size, IORESOURCE_SYSTEM_RAM,
-+			IORES_DESC_NONE) != REGION_INTERSECTS) &&
-+	     (region_intersects(base_addr, size, IORESOURCE_MEM,
-+			IORES_DESC_PERSISTENT_MEMORY) != REGION_INTERSECTS)))
- 		return -EINVAL;
- 
- inject:
+There are 6 uses of this function in the entire kernel tree.
+Why not just change them, remove the function and avoid this?
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
 the body to majordomo@kvack.org.  For more info on Linux MM,
 see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Don't email: <a href=3Dmailto:"dont@kvack.org"> email@kvack.org </a>
