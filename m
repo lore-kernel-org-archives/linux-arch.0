@@ -1,405 +1,51 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 2/2] 32-bit ABI: introduce ARCH_32BIT_OFF_T config option
-Date: Sat, 26 Dec 2015 19:06:40 +0300
-Message-ID: <1451146000-5646-3-git-send-email-ynorov@caviumnetworks.com>
-References: <1451146000-5646-1-git-send-email-ynorov@caviumnetworks.com>
+From: Toshi Kani <toshi.kani@hpe.com>
+Subject: Re: [PATCH v2 14/16] x86,nvdimm,kexec: Use walk_iomem_res_desc() for
+ iomem search
+Date: Sat, 26 Dec 2015 17:31:23 -0700
+Message-ID: <567F315B.8080005@hpe.com>
+References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
+ <1451081365-15190-14-git-send-email-toshi.kani@hpe.com>
+ <20151226103804.GB21988@pd.tnic>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1451146000-5646-1-git-send-email-ynorov@caviumnetworks.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, arnd@arndb.de
-Cc: linux-kernel@vger.kernel.org, klimov.linux@gmail.com, Yury Norov <ynorov@caviumnetworks.com>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20151226103804.GB21988@pd.tnic>
+Sender: owner-linux-mm@kvack.org
+To: Borislav Petkov <bp@alien8.de>
+Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, kexec@lists.infradead.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Dave Young <dyoung@redhat.com>, x86@kernel.org, linux-nvdimm@lists.01.org
 List-Id: linux-arch.vger.kernel.org
 
-All new 32-bit architectures should have 64-bit off_t type, but existing
-architectures has 32-bit ones.
++ cc: kexec list
 
-To handle it, new config option is added to arch/Kconfig that defaults
-ARCH_32BIT_OFF_T to be disabled by default. All existing 32-bit architectures
-enable it explicitly here.
+On 12/26/2015 3:38 AM, Borislav Petkov wrote:
+> On Fri, Dec 25, 2015 at 03:09:23PM -0700, Toshi Kani wrote:
+>> Change to call walk_iomem_res_desc() for searching resource entries
+>> with the following names:
+>>   "ACPI Tables"
+>>   "ACPI Non-volatile Storage"
+>>   "Persistent Memory (legacy)"
+>>   "Crash kernel"
+>>
+>> Note, the caller of walk_iomem_res() with "GART" is left unchanged
+>> because this entry may be initialized by out-of-tree drivers, which
+>> do not have 'desc' set to IORES_DESC_GART.
+>
+> There's this out-of-tree bogus argument again. :\
+>
+> Why do we care about out-of-tree drivers?
+>
+> You can just as well fix the "GART" case too and kill walk_iomem_res()
+> altogether...
 
-New option affects force_o_largefile() behaviour. Namely, if off_t is
-64-bits long, we have no reason to reject user to open big files.
+Right, but I do not see any "GART" case in the upstream code, so I 
+cannot change it...
 
-Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
----
- arch/Kconfig            | 4 ++++
- arch/arc/Kconfig        | 1 +
- arch/arm/Kconfig        | 1 +
- arch/blackfin/Kconfig   | 1 +
- arch/cris/Kconfig       | 1 +
- arch/frv/Kconfig        | 1 +
- arch/h8300/Kconfig      | 1 +
- arch/hexagon/Kconfig    | 1 +
- arch/ia64/Kconfig       | 1 +
- arch/m32r/Kconfig       | 1 +
- arch/m68k/Kconfig       | 1 +
- arch/metag/Kconfig      | 1 +
- arch/microblaze/Kconfig | 1 +
- arch/mips/Kconfig       | 1 +
- arch/mn10300/Kconfig    | 1 +
- arch/nios2/Kconfig      | 1 +
- arch/openrisc/Kconfig   | 1 +
- arch/parisc/Kconfig     | 1 +
- arch/powerpc/Kconfig    | 1 +
- arch/s390/Kconfig       | 1 +
- arch/score/Kconfig      | 1 +
- arch/sh/Kconfig         | 1 +
- arch/sparc/Kconfig      | 1 +
- arch/tile/Kconfig       | 1 +
- arch/unicore32/Kconfig  | 1 +
- arch/x86/Kconfig        | 1 +
- arch/x86/um/Kconfig     | 1 +
- arch/xtensa/Kconfig     | 1 +
- include/linux/fcntl.h   | 3 ++-
- 29 files changed, 33 insertions(+), 1 deletion(-)
+Thanks,
+-Toshi
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 4e949e5..1e5e6c8 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -233,6 +233,10 @@ config ARCH_THREAD_INFO_ALLOCATOR
- config ARCH_WANTS_DYNAMIC_TASK_STRUCT
- 	bool
- 
-+config ARCH_32BIT_OFF_T
-+	def_bool n
-+	depends on !64BIT
-+
- config HAVE_REGS_AND_STACK_ACCESS_API
- 	bool
- 	help
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 6312f60..570dc39 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -9,6 +9,7 @@
- config ARC
- 	def_bool y
- 	select ARCH_SUPPORTS_ATOMIC_RMW if ARC_HAS_LLSC
-+	select ARCH_32BIT_OFF_T
- 	select BUILDTIME_EXTABLE_SORT
- 	select COMMON_CLK
- 	select CLONE_BACKWARDS
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 34e1569..dafdebe 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -1,6 +1,7 @@
- config ARM
- 	bool
- 	default y
-+	select ARCH_32BIT_OFF_T
- 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
- 	select ARCH_HAS_ELF_RANDOMIZE
- 	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
-diff --git a/arch/blackfin/Kconfig b/arch/blackfin/Kconfig
-index af76634..9b5fc06 100644
---- a/arch/blackfin/Kconfig
-+++ b/arch/blackfin/Kconfig
-@@ -12,6 +12,7 @@ config RWSEM_XCHGADD_ALGORITHM
- 
- config BLACKFIN
- 	def_bool y
-+	select ARCH_32BIT_OFF_T
- 	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_DYNAMIC_FTRACE
-diff --git a/arch/cris/Kconfig b/arch/cris/Kconfig
-index e086f9e..5bc9203 100644
---- a/arch/cris/Kconfig
-+++ b/arch/cris/Kconfig
-@@ -50,6 +50,7 @@ config LOCKDEP_SUPPORT
- config CRIS
- 	bool
- 	default y
-+	select ARCH_32BIT_OFF_T
- 	select HAVE_IDE
- 	select GENERIC_ATOMIC64
- 	select HAVE_UID16
-diff --git a/arch/frv/Kconfig b/arch/frv/Kconfig
-index 34aa193..09b82fc 100644
---- a/arch/frv/Kconfig
-+++ b/arch/frv/Kconfig
-@@ -1,6 +1,7 @@
- config FRV
- 	bool
- 	default y
-+	select ARCH_32BIT_OFF_T
- 	select HAVE_IDE
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_PERF_EVENTS
-diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
-index dd3ac75..7761f4a 100644
---- a/arch/h8300/Kconfig
-+++ b/arch/h8300/Kconfig
-@@ -1,5 +1,6 @@
- config H8300
-         def_bool y
-+	select ARCH_32BIT_OFF_T
- 	select GENERIC_ATOMIC64
- 	select HAVE_UID16
- 	select VIRT_TO_BUS
-diff --git a/arch/hexagon/Kconfig b/arch/hexagon/Kconfig
-index 4dc89d1..29836fc 100644
---- a/arch/hexagon/Kconfig
-+++ b/arch/hexagon/Kconfig
-@@ -3,6 +3,7 @@ comment "Linux Kernel Configuration for Hexagon"
- 
- config HEXAGON
- 	def_bool y
-+	select ARCH_32BIT_OFF_T
- 	select HAVE_OPROFILE
- 	# Other pending projects/to-do items.
- 	# select HAVE_REGS_AND_STACK_ACCESS_API
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index eb0249e..370fcab 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -11,6 +11,7 @@ menu "Processor type and features"
- 
- config IA64
- 	bool
-+	select ARCH_32BIT_OFF_T if !64BIT
- 	select ARCH_MIGHT_HAVE_PC_PARPORT
- 	select ARCH_MIGHT_HAVE_PC_SERIO
- 	select PCI if (!IA64_HP_SIM)
-diff --git a/arch/m32r/Kconfig b/arch/m32r/Kconfig
-index 9e44bbd..c6865a9 100644
---- a/arch/m32r/Kconfig
-+++ b/arch/m32r/Kconfig
-@@ -1,6 +1,7 @@
- config M32R
- 	bool
- 	default y
-+	select ARCH_32BIT_OFF_T
- 	select HAVE_IDE
- 	select HAVE_OPROFILE
- 	select INIT_ALL_POSSIBLE
-diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
-index 498b567..e9897e4 100644
---- a/arch/m68k/Kconfig
-+++ b/arch/m68k/Kconfig
-@@ -1,6 +1,7 @@
- config M68K
- 	bool
- 	default y
-+	select ARCH_32BIT_OFF_T
- 	select ARCH_MIGHT_HAVE_PC_PARPORT if ISA
- 	select HAVE_IDE
- 	select HAVE_AOUT if MMU
-diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
-index 0b389a8..6b44d37 100644
---- a/arch/metag/Kconfig
-+++ b/arch/metag/Kconfig
-@@ -1,5 +1,6 @@
- config METAG
- 	def_bool y
-+	select ARCH_32BIT_OFF_T
- 	select EMBEDDED
- 	select GENERIC_ATOMIC64
- 	select GENERIC_CLOCKEVENTS
-diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
-index 0bce820..4b293e5 100644
---- a/arch/microblaze/Kconfig
-+++ b/arch/microblaze/Kconfig
-@@ -1,5 +1,6 @@
- config MICROBLAZE
- 	def_bool y
-+	select ARCH_32BIT_OFF_T
- 	select ARCH_HAS_GCOV_PROFILE_ALL
- 	select ARCH_MIGHT_HAVE_PC_PARPORT
- 	select ARCH_WANT_IPC_PARSE_VERSION
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index 71683a8..2e42c26 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -1,6 +1,7 @@
- config MIPS
- 	bool
- 	default y
-+	select ARCH_32BIT_OFF_T if !64BIT
- 	select ARCH_SUPPORTS_UPROBES
- 	select ARCH_MIGHT_HAVE_PC_PARPORT
- 	select ARCH_MIGHT_HAVE_PC_SERIO
-diff --git a/arch/mn10300/Kconfig b/arch/mn10300/Kconfig
-index 78ae555..edf7372 100644
---- a/arch/mn10300/Kconfig
-+++ b/arch/mn10300/Kconfig
-@@ -1,5 +1,6 @@
- config MN10300
- 	def_bool y
-+	select ARCH_32BIT_OFF_T
- 	select HAVE_OPROFILE
- 	select HAVE_UID16
- 	select GENERIC_IRQ_SHOW
-diff --git a/arch/nios2/Kconfig b/arch/nios2/Kconfig
-index 4375554..a38fc38 100644
---- a/arch/nios2/Kconfig
-+++ b/arch/nios2/Kconfig
-@@ -1,5 +1,6 @@
- config NIOS2
- 	def_bool y
-+	select ARCH_32BIT_OFF_T
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
- 	select CLKSRC_OF
- 	select GENERIC_ATOMIC64
-diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
-index 443f44d..7bef847 100644
---- a/arch/openrisc/Kconfig
-+++ b/arch/openrisc/Kconfig
-@@ -5,6 +5,7 @@
- 
- config OPENRISC
- 	def_bool y
-+	select ARCH_32BIT_OFF_T
- 	select OF
- 	select OF_EARLY_FLATTREE
- 	select IRQ_DOMAIN
-diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
-index 729f891..8bf0fe2 100644
---- a/arch/parisc/Kconfig
-+++ b/arch/parisc/Kconfig
-@@ -1,5 +1,6 @@
- config PARISC
- 	def_bool y
-+	select ARCH_32BIT_OFF_T if !64BIT
- 	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
- 	select ARCH_MIGHT_HAVE_PC_PARPORT
- 	select HAVE_IDE
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index db49e0d..2026a9e 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -7,6 +7,7 @@ config PPC32
- config 32BIT
- 	bool
- 	default y if PPC32
-+	select ARCH_32BIT_OFF_T
- 
- config 64BIT
- 	bool
-diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index 3a55f49..d05a143 100644
---- a/arch/s390/Kconfig
-+++ b/arch/s390/Kconfig
-@@ -64,6 +64,7 @@ config ARCH_SUPPORTS_UPROBES
- 
- config S390
- 	def_bool y
-+	select ARCH_32BIT_OFF_T if !64BIT
- 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
- 	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
- 	select ARCH_HAS_ELF_RANDOMIZE
-diff --git a/arch/score/Kconfig b/arch/score/Kconfig
-index 366e1b5..bc7bc7a 100644
---- a/arch/score/Kconfig
-+++ b/arch/score/Kconfig
-@@ -2,6 +2,7 @@ menu "Machine selection"
- 
- config SCORE
-        def_bool y
-+       select ARCH_32BIT_OFF_T
-        select GENERIC_IRQ_SHOW
-        select GENERIC_IOMAP
-        select GENERIC_ATOMIC64
-diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
-index d514df7e..1e9d63a 100644
---- a/arch/sh/Kconfig
-+++ b/arch/sh/Kconfig
-@@ -52,6 +52,7 @@ config SUPERH
- 
- config SUPERH32
- 	def_bool ARCH = "sh"
-+	select ARCH_32BIT_OFF_T
- 	select HAVE_KPROBES
- 	select HAVE_KRETPROBES
- 	select HAVE_IOREMAP_PROT if MMU && !X2TLB
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index 56442d2..1268a2a 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -46,6 +46,7 @@ config SPARC
- 
- config SPARC32
- 	def_bool !64BIT
-+	select ARCH_32BIT_OFF_T
- 	select GENERIC_ATOMIC64
- 	select CLZ_TAB
- 	select HAVE_UID16
-diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
-index 106c21b..ef2e7ec 100644
---- a/arch/tile/Kconfig
-+++ b/arch/tile/Kconfig
-@@ -3,6 +3,7 @@
- 
- config TILE
- 	def_bool y
-+	select ARCH_32BIT_OFF_T if !64BIT
- 	select HAVE_PERF_EVENTS
- 	select USE_PMC if PERF_EVENTS
- 	select HAVE_DMA_ATTRS
-diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
-index c9faddc..1a8c3c0 100644
---- a/arch/unicore32/Kconfig
-+++ b/arch/unicore32/Kconfig
-@@ -1,5 +1,6 @@
- config UNICORE32
- 	def_bool y
-+	select ARCH_32BIT_OFF_T
- 	select ARCH_MIGHT_HAVE_PC_PARPORT
- 	select ARCH_MIGHT_HAVE_PC_SERIO
- 	select HAVE_MEMBLOCK
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index db3622f..cc16336 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -20,6 +20,7 @@ config X86
- 	select ACPI_LEGACY_TABLES_LOOKUP	if ACPI
- 	select ACPI_SYSTEM_POWER_STATES_SUPPORT	if ACPI
- 	select ANON_INODES
-+	select ARCH_32BIT_OFF_T			if X86_32
- 	select ARCH_CLOCKSOURCE_DATA
- 	select ARCH_DISCARD_MEMBLOCK
- 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
-diff --git a/arch/x86/um/Kconfig b/arch/x86/um/Kconfig
-index ed56a1c..8436bcd 100644
---- a/arch/x86/um/Kconfig
-+++ b/arch/x86/um/Kconfig
-@@ -21,6 +21,7 @@ config 64BIT
- config X86_32
- 	def_bool !64BIT
- 	select HAVE_AOUT
-+	select ARCH_32BIT_OFF_T
- 	select ARCH_WANT_IPC_PARSE_VERSION
- 	select MODULES_USE_ELF_REL
- 	select CLONE_BACKWARDS
-diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
-index 82044f7..7ff155a 100644
---- a/arch/xtensa/Kconfig
-+++ b/arch/xtensa/Kconfig
-@@ -3,6 +3,7 @@ config ZONE_DMA
- 
- config XTENSA
- 	def_bool y
-+	select ARCH_32BIT_OFF_T
- 	select ARCH_WANT_FRAME_POINTERS
- 	select ARCH_WANT_IPC_PARSE_VERSION
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
-diff --git a/include/linux/fcntl.h b/include/linux/fcntl.h
-index 76ce329..2e27443 100644
---- a/include/linux/fcntl.h
-+++ b/include/linux/fcntl.h
-@@ -5,7 +5,8 @@
- 
- 
- #ifndef force_o_largefile
--#define force_o_largefile() (BITS_PER_LONG != 32)
-+#define force_o_largefile() ((BITS_PER_LONG != 32)			\
-+				|| !IS_ENABLED(CONFIG_ARCH_32BIT_OFF_T))
- #endif
- 
- #if BITS_PER_LONG == 32
--- 
-2.5.0
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
