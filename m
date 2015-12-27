@@ -1,59 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t6220.austin.hp.com ([15.73.96.84]:48098 "EHLO
-	g1t6220.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754031AbbL0AwK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 26 Dec 2015 19:52:10 -0500
-Subject: Re: [PATCH v2 15/16] checkpatch: Add warning on deprecated
- walk_iomem_res
+Received: from mail.skyhub.de ([78.46.96.112]:42474 "EHLO mail.skyhub.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750957AbbL0KYa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 27 Dec 2015 05:24:30 -0500
+Date: Sun, 27 Dec 2015 11:24:06 +0100
+From: Borislav Petkov <bp@alien8.de>
+Subject: Re: [PATCH v2 14/16] x86, nvdimm, kexec: Use walk_iomem_res_desc()
+ for iomem search
+Message-ID: <20151227102406.GB19398@nazgul.tnic>
 References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
- <1451081365-15190-15-git-send-email-toshi.kani@hpe.com>
- <1451088307.12498.3.camel@perches.com>
-From: Toshi Kani <toshi.kani@hpe.com>
-Message-ID: <567F3638.7050008@hpe.com>
-Date: Sat, 26 Dec 2015 17:52:08 -0700
+ <1451081365-15190-14-git-send-email-toshi.kani@hpe.com>
+ <20151226103804.GB21988@pd.tnic>
+ <567F315B.8080005@hpe.com>
+ <20151227021257.GA13560@dhcp-128-25.nay.redhat.com>
 MIME-Version: 1.0
-In-Reply-To: <1451088307.12498.3.camel@perches.com>
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20151227021257.GA13560@dhcp-128-25.nay.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joe Perches <joe@perches.com>, akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Andy Whitcroft <apw@canonical.com>
-Message-ID: <20151227005208.KUHEDc5gzxC1_K1vN-wxeY-dNqoYL2T4lE5scKE7Cdw@z>
+To: Minfei Huang <mhuang@redhat.com>, Toshi Kani <toshi.kani@hpe.com>
+Cc: linux-arch@vger.kernel.org, linux-nvdimm@ml01.01.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, akpm@linux-foundation.org, Dave Young <dyoung@redhat.com>, Dan Williams <dan.j.williams@intel.com>
+Message-ID: <20151227102406.Diq4GfB84WBPamTA4-OgBm7xEht0Ildd_WfITXg_X8Y@z>
 
-On 12/25/2015 5:05 PM, Joe Perches wrote:
-> On Fri, 2015-12-25 at 15:09 -0700, Toshi Kani wrote:
->> Use of walk_iomem_res() is deprecated in new code.  Change
->> checkpatch.pl to check new use of walk_iomem_res() and suggest
->> to use walk_iomem_res_desc() instead.
-> []
->> diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
-> []
->> @@ -3424,6 +3424,12 @@ sub process {
->>   			}
->>   		}
->>
->> +# check for uses of walk_iomem_res()
->> +		if ($line =~ /\bwalk_iomem_res\(/) {
->> +			WARN("walk_iomem_res",
->> +			     "Use of walk_iomem_res is deprecated, please use walk_iomem_res_desc instead\n" . $herecurr)
->> +		}
->> +
->>   # check for new typedefs, only function parameters and sparse annotations
->>   # make sense.
->>   		if ($line =~ /\btypedef\s/ &&
->
-> There are 6 uses of this function in the entire kernel tree.
-> Why not just change them, remove the function and avoid this?
+On Sun, Dec 27, 2015 at 10:12:57AM +0800, Minfei Huang wrote:
+> You can refer the below link that you may get a clue about GART. This is
+> the fisrt time kexec-tools tried to support to ignore GART region in 2nd
+> kernel.
+> 
+> http://lists.infradead.org/pipermail/kexec/2008-December/003096.html
 
-Sorry, I should have put some background in the description.  We have 
-discussed if we can remove walk_iomem_res() in the thread below.
-https://lkml.org/lkml/2015/12/23/248
+So theoretically we could export that IORES_DESC* enum in an uapi header and
+move kexec-tools to use that.
 
-But this may depend on how we deal with the last remaining caller, 
-walk_iomem_res() with "GART", being discussed in the thread below.  I 
-will update according to the outcome.
-https://lkml.org/lkml/2015/12/26/144
+However, I'm fuzzy on how exactly the whole compatibility thing is done
+with kexec-tools and the kernel. We probably would have to support
+newer kexec-tools on an older kernel and vice versa so I'd guess we
+should mark walk_iomem_res() deprecated so that people are encouraged to
+upgrade to newer kexec-tools...
 
-Thanks,
--Toshi
+
+Hmmm.
+
+-- 
+Regards/Gruss,
+    Boris.
+
+ECO tip #101: Trim your mails when you reply.
+--
