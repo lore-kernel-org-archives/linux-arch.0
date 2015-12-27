@@ -1,44 +1,54 @@
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: Re: [PATCH v2 14/16] x86,nvdimm,kexec: Use walk_iomem_res_desc() for
- iomem search
-Date: Sat, 26 Dec 2015 17:39:05 -0700
-Message-ID: <567F3329.2030808@hpe.com>
+Subject: Re: [PATCH v2 15/16] checkpatch: Add warning on deprecated
+ walk_iomem_res
+Date: Sat, 26 Dec 2015 17:52:08 -0700
+Message-ID: <567F3638.7050008@hpe.com>
 References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
- <1451081365-15190-14-git-send-email-toshi.kani@hpe.com>
- <20151226160522.GA28533@dhcp-128-25.nay.redhat.com>
+ <1451081365-15190-15-git-send-email-toshi.kani@hpe.com>
+ <1451088307.12498.3.camel@perches.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20151226160522.GA28533@dhcp-128-25.nay.redhat.com>
+In-Reply-To: <1451088307.12498.3.camel@perches.com>
 Sender: owner-linux-mm@kvack.org
-To: Minfei Huang <mhuang@redhat.com>
-Cc: akpm@linux-foundation.org, bp@alien8.de, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Dave Young <dyoung@redhat.com>, x86@kernel.org, linux-nvdimm@ml01.01.org, kexec@lists.infradead.org
+To: Joe Perches <joe@perches.com>, akpm@linux-foundation.org, bp@alien8.de
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Andy Whitcroft <apw@canonical.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 12/26/2015 9:05 AM, Minfei Huang wrote:
-> Ccing kexec maillist.
->
-> On 12/25/15 at 03:09pm, Toshi Kani wrote:
->> diff --git a/kernel/kexec_file.c b/kernel/kexec_file.c
->> index c245085..e2bd737 100644
->> --- a/kernel/kexec_file.c
->> +++ b/kernel/kexec_file.c
->> @@ -522,10 +522,10 @@ int kexec_add_buffer(struct kimage *image, char *buffer, unsigned long bufsz,
+On 12/25/2015 5:05 PM, Joe Perches wrote:
+> On Fri, 2015-12-25 at 15:09 -0700, Toshi Kani wrote:
+>> Use of walk_iomem_res() is deprecated in new code.  Change
+>> checkpatch.pl to check new use of walk_iomem_res() and suggest
+>> to use walk_iomem_res_desc() instead.
+> []
+>> diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
+> []
+>> @@ -3424,6 +3424,12 @@ sub process {
+>>   			}
+>>   		}
 >>
->>   	/* Walk the RAM ranges and allocate a suitable range for the buffer */
->>   	if (image->type == KEXEC_TYPE_CRASH)
->> -		ret = walk_iomem_res("Crash kernel",
->> -				     IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY,
->> -				     crashk_res.start, crashk_res.end, kbuf,
->> -				     locate_mem_hole_callback);
->> +		ret = walk_iomem_res_desc(IORES_DESC_CRASH_KERNEL,
+>> +# check for uses of walk_iomem_res()
+>> +		if ($line =~ /\bwalk_iomem_res\(/) {
+>> +			WARN("walk_iomem_res",
+>> +			     "Use of walk_iomem_res is deprecated, please use walk_iomem_res_desc instead\n" . $herecurr)
+>> +		}
+>> +
+>>   # check for new typedefs, only function parameters and sparse annotations
+>>   # make sense.
+>>   		if ($line =~ /\btypedef\s/ &&
 >
-> Since crashk_res's desc has been assigned to IORES_DESC_CRASH_KERNEL, it
-> is better to use crashk_res.desc, instead of using
-> IORES_DESC_CRASH_KERNEL directly.
+> There are 6 uses of this function in the entire kernel tree.
+> Why not just change them, remove the function and avoid this?
 
-Sounds good. I will change it to use crashk_res.desc.
+Sorry, I should have put some background in the description.  We have 
+discussed if we can remove walk_iomem_res() in the thread below.
+https://lkml.org/lkml/2015/12/23/248
+
+But this may depend on how we deal with the last remaining caller, 
+walk_iomem_res() with "GART", being discussed in the thread below.  I 
+will update according to the outcome.
+https://lkml.org/lkml/2015/12/26/144
 
 Thanks,
 -Toshi
