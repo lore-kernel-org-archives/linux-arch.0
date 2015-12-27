@@ -1,60 +1,59 @@
-From: Toshi Kani <toshi.kani@hpe.com>
-Subject: Re: [PATCH v2 15/16] checkpatch: Add warning on deprecated
- walk_iomem_res
-Date: Sat, 26 Dec 2015 17:52:08 -0700
-Message-ID: <567F3638.7050008@hpe.com>
+From: Minfei Huang <mhuang@redhat.com>
+Subject: Re: [PATCH v2 14/16] x86, nvdimm, kexec: Use walk_iomem_res_desc()
+ for iomem search
+Date: Sun, 27 Dec 2015 10:12:57 +0800
+Message-ID: <20151227021257.GA13560@dhcp-128-25.nay.redhat.com>
 References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
- <1451081365-15190-15-git-send-email-toshi.kani@hpe.com>
- <1451088307.12498.3.camel@perches.com>
+ <1451081365-15190-14-git-send-email-toshi.kani@hpe.com>
+ <20151226103804.GB21988@pd.tnic>
+ <567F315B.8080005@hpe.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1451088307.12498.3.camel@perches.com>
-Sender: owner-linux-mm@kvack.org
-To: Joe Perches <joe@perches.com>, akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Andy Whitcroft <apw@canonical.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:54828 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753387AbbL0CK3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 26 Dec 2015 21:10:29 -0500
+Content-Disposition: inline
+In-Reply-To: <567F315B.8080005@hpe.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Toshi Kani <toshi.kani@hpe.com>
+Cc: Borislav Petkov <bp@alien8.de>, linux-arch@vger.kernel.org, linux-nvdimm@ml01.01.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, akpm@linux-foundation.org, Dave Young <dyoung@redhat.com>, Dan Williams <dan.j.williams@intel.com>
 
-On 12/25/2015 5:05 PM, Joe Perches wrote:
-> On Fri, 2015-12-25 at 15:09 -0700, Toshi Kani wrote:
->> Use of walk_iomem_res() is deprecated in new code.  Change
->> checkpatch.pl to check new use of walk_iomem_res() and suggest
->> to use walk_iomem_res_desc() instead.
-> []
->> diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
-> []
->> @@ -3424,6 +3424,12 @@ sub process {
->>   			}
->>   		}
->>
->> +# check for uses of walk_iomem_res()
->> +		if ($line =~ /\bwalk_iomem_res\(/) {
->> +			WARN("walk_iomem_res",
->> +			     "Use of walk_iomem_res is deprecated, please use walk_iomem_res_desc instead\n" . $herecurr)
->> +		}
->> +
->>   # check for new typedefs, only function parameters and sparse annotations
->>   # make sense.
->>   		if ($line =~ /\btypedef\s/ &&
->
-> There are 6 uses of this function in the entire kernel tree.
-> Why not just change them, remove the function and avoid this?
+On 12/26/15 at 05:31pm, Toshi Kani wrote:
+> + cc: kexec list
+> 
+> On 12/26/2015 3:38 AM, Borislav Petkov wrote:
+> >On Fri, Dec 25, 2015 at 03:09:23PM -0700, Toshi Kani wrote:
+> >>Change to call walk_iomem_res_desc() for searching resource entries
+> >>with the following names:
+> >>  "ACPI Tables"
+> >>  "ACPI Non-volatile Storage"
+> >>  "Persistent Memory (legacy)"
+> >>  "Crash kernel"
+> >>
+> >>Note, the caller of walk_iomem_res() with "GART" is left unchanged
+> >>because this entry may be initialized by out-of-tree drivers, which
+> >>do not have 'desc' set to IORES_DESC_GART.
+> >
+> >There's this out-of-tree bogus argument again. :\
+> >
+> >Why do we care about out-of-tree drivers?
+> >
+> >You can just as well fix the "GART" case too and kill walk_iomem_res()
+> >altogether...
+> 
+> Right, but I do not see any "GART" case in the upstream code, so I
+> cannot change it...
 
-Sorry, I should have put some background in the description.  We have 
-discussed if we can remove walk_iomem_res() in the thread below.
-https://lkml.org/lkml/2015/12/23/248
+Hi, Toshi.
 
-But this may depend on how we deal with the last remaining caller, 
-walk_iomem_res() with "GART", being discussed in the thread below.  I 
-will update according to the outcome.
-https://lkml.org/lkml/2015/12/26/144
+You can refer the below link that you may get a clue about GART. This is
+the fisrt time kexec-tools tried to support to ignore GART region in 2nd
+kernel.
 
-Thanks,
--Toshi
+http://lists.infradead.org/pipermail/kexec/2008-December/003096.html
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Thanks
+Minfei
