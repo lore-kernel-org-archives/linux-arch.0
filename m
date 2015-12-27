@@ -1,70 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bon0065.outbound.protection.outlook.com ([157.56.111.65]:9556
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751490AbbLZQjq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 26 Dec 2015 11:39:46 -0500
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 0/2] ABI: handle 32-bit off_t for 32-bit and compat ABIs
-Date: Sat, 26 Dec 2015 19:06:38 +0300
-Message-ID: <1451146000-5646-1-git-send-email-ynorov@caviumnetworks.com>
+Received: from g2t4625.austin.hp.com ([15.73.212.76]:58028 "EHLO
+	g2t4625.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753438AbbL0Ab2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 26 Dec 2015 19:31:28 -0500
+Subject: Re: [PATCH v2 14/16] x86,nvdimm,kexec: Use walk_iomem_res_desc() for
+ iomem search
+References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
+ <1451081365-15190-14-git-send-email-toshi.kani@hpe.com>
+ <20151226103804.GB21988@pd.tnic>
+From: Toshi Kani <toshi.kani@hpe.com>
+Message-ID: <567F315B.8080005@hpe.com>
+Date: Sat, 26 Dec 2015 17:31:23 -0700
 MIME-Version: 1.0
-Content-Type: text/plain
+In-Reply-To: <20151226103804.GB21988@pd.tnic>
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, arnd@arndb.de
-Cc: linux-kernel@vger.kernel.org, klimov.linux@gmail.com, Yury Norov <ynorov@caviumnetworks.com>
-Message-ID: <20151226160638.IJIym6dHwiBLaoUVuMwhtDOkNteCVYCpblN5YkzsUNA@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: akpm@linux-foundation.org, linux-arch@vger.kernel.org, kexec@lists.infradead.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Dave Young <dyoung@redhat.com>, x86@kernel.org, linux-nvdimm@lists.01.org
+Message-ID: <20151227003123.G7SNu4FvRO16r4xbKSFyWJ9qNzXZHNA7R7jMYwd4ydU@z>
 
-32-bit off_t is supported only for old 32-bit and compat ABIs. New ABIs
-are 64-bit length only. This patchset makes 64-bit length the default
-for off_t, and reverts it for old architectures where needed. It does not
-change the behaviour of existing code.
++ cc: kexec list
 
-First patch makes all compat users of generic unistd.h to use non-compat
-versions of openat and open_by_handle_at. Tile that requires old behaviour
-is turned around.
+On 12/26/2015 3:38 AM, Borislav Petkov wrote:
+> On Fri, Dec 25, 2015 at 03:09:23PM -0700, Toshi Kani wrote:
+>> Change to call walk_iomem_res_desc() for searching resource entries
+>> with the following names:
+>>   "ACPI Tables"
+>>   "ACPI Non-volatile Storage"
+>>   "Persistent Memory (legacy)"
+>>   "Crash kernel"
+>>
+>> Note, the caller of walk_iomem_res() with "GART" is left unchanged
+>> because this entry may be initialized by out-of-tree drivers, which
+>> do not have 'desc' set to IORES_DESC_GART.
+>
+> There's this out-of-tree bogus argument again. :\
+>
+> Why do we care about out-of-tree drivers?
+>
+> You can just as well fix the "GART" case too and kill walk_iomem_res()
+> altogether...
 
-Second patch introduces ARCH_32BIT_OFF_T config option, disabled by default,
-but enables it explicitly for existing 32-bit architectures.
+Right, but I do not see any "GART" case in the upstream code, so I 
+cannot change it...
 
-Yury Norov (2):
-  ABI: compat: use non-compat openat and open_by_handle_at variants
-  32-bit ABI: introduce ARCH_32BIT_OFF_T config option
-
- arch/Kconfig                      | 4 ++++
- arch/arc/Kconfig                  | 1 +
- arch/arm/Kconfig                  | 1 +
- arch/blackfin/Kconfig             | 1 +
- arch/cris/Kconfig                 | 1 +
- arch/frv/Kconfig                  | 1 +
- arch/h8300/Kconfig                | 1 +
- arch/hexagon/Kconfig              | 1 +
- arch/ia64/Kconfig                 | 1 +
- arch/m32r/Kconfig                 | 1 +
- arch/m68k/Kconfig                 | 1 +
- arch/metag/Kconfig                | 1 +
- arch/microblaze/Kconfig           | 1 +
- arch/mips/Kconfig                 | 1 +
- arch/mn10300/Kconfig              | 1 +
- arch/nios2/Kconfig                | 1 +
- arch/openrisc/Kconfig             | 1 +
- arch/parisc/Kconfig               | 1 +
- arch/powerpc/Kconfig              | 1 +
- arch/s390/Kconfig                 | 1 +
- arch/score/Kconfig                | 1 +
- arch/sh/Kconfig                   | 1 +
- arch/sparc/Kconfig                | 1 +
- arch/tile/Kconfig                 | 1 +
- arch/tile/kernel/compat.c         | 3 +++
- arch/unicore32/Kconfig            | 1 +
- arch/x86/Kconfig                  | 1 +
- arch/x86/um/Kconfig               | 1 +
- arch/xtensa/Kconfig               | 1 +
- include/linux/fcntl.h             | 3 ++-
- include/uapi/asm-generic/unistd.h | 5 ++---
- 31 files changed, 38 insertions(+), 4 deletions(-)
-
--- 
-2.5.0
-
+Thanks,
+-Toshi
