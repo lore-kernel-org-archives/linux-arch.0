@@ -1,50 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:42474 "EHLO mail.skyhub.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750957AbbL0KYa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 27 Dec 2015 05:24:30 -0500
-Date: Sun, 27 Dec 2015 11:24:06 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v2 14/16] x86, nvdimm, kexec: Use walk_iomem_res_desc()
- for iomem search
-Message-ID: <20151227102406.GB19398@nazgul.tnic>
-References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
- <1451081365-15190-14-git-send-email-toshi.kani@hpe.com>
- <20151226103804.GB21988@pd.tnic>
- <567F315B.8080005@hpe.com>
- <20151227021257.GA13560@dhcp-128-25.nay.redhat.com>
+Received: from mail-am1on0096.outbound.protection.outlook.com ([157.56.112.96]:12849
+	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751199AbbL1SMS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 Dec 2015 13:12:18 -0500
+Subject: Re: [PATCH 1/2] compat ABI: use non-compat openat and
+ open_by_handle_at variants
+References: <1451146000-5646-1-git-send-email-ynorov@caviumnetworks.com>
+ <1451146000-5646-2-git-send-email-ynorov@caviumnetworks.com>
+ <5945276.2UuG1prsU3@wuerfel>
+From: Chris Metcalf <cmetcalf@ezchip.com>
+Message-ID: <56817824.8020609@ezchip.com>
+Date: Mon, 28 Dec 2015 12:57:56 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20151227021257.GA13560@dhcp-128-25.nay.redhat.com>
+In-Reply-To: <5945276.2UuG1prsU3@wuerfel>
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Minfei Huang <mhuang@redhat.com>, Toshi Kani <toshi.kani@hpe.com>
-Cc: linux-arch@vger.kernel.org, linux-nvdimm@ml01.01.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, akpm@linux-foundation.org, Dave Young <dyoung@redhat.com>, Dan Williams <dan.j.williams@intel.com>
-Message-ID: <20151227102406.Diq4GfB84WBPamTA4-OgBm7xEht0Ildd_WfITXg_X8Y@z>
+To: Arnd Bergmann <arnd@arndb.de>, Yury Norov <ynorov@caviumnetworks.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, klimov.linux@gmail.com
+Message-ID: <20151228175756.vm1vYtPOWcI-3RurPhoGCq0Ra5a7a_Ko414xuMmMbDg@z>
 
-On Sun, Dec 27, 2015 at 10:12:57AM +0800, Minfei Huang wrote:
-> You can refer the below link that you may get a clue about GART. This is
-> the fisrt time kexec-tools tried to support to ignore GART region in 2nd
-> kernel.
-> 
-> http://lists.infradead.org/pipermail/kexec/2008-December/003096.html
+On 12/28/2015 06:18 AM, Arnd Bergmann wrote:
+> On Saturday 26 December 2015 19:06:39 Yury Norov wrote:
+>> >The only difference is that non-compat version forces O_LARGEFILE,
+>> >and it should be the default behaviour for all architectures, as
+>> >we don't support 32-bit off_t. The only exception is tile32, that
+>> >continues with compat version of syscalls.
+>> >
+>> >Signed-off-by: Yury Norov<ynorov@caviumnetworks.com>
+> Looks good,
+>
+> Acked-by: Arnd Bergmann<arnd@arndb.de>
+>
+> (adding Chris to Cc a well, in case he has further comments)
 
-So theoretically we could export that IORES_DESC* enum in an uapi header and
-move kexec-tools to use that.
+Seems plausible.
 
-However, I'm fuzzy on how exactly the whole compatibility thing is done
-with kexec-tools and the kernel. We probably would have to support
-newer kexec-tools on an older kernel and vice versa so I'd guess we
-should mark walk_iomem_res() deprecated so that people are encouraged to
-upgrade to newer kexec-tools...
-
-
-Hmmm.
+Acked-by: Chris Metcalf <cmetcalf@ezchip.com> [for tile]
 
 -- 
-Regards/Gruss,
-    Boris.
+Chris Metcalf, EZChip Semiconductor
+http://www.ezchip.com
 
-ECO tip #101: Trim your mails when you reply.
---
