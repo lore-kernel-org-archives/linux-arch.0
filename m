@@ -1,39 +1,42 @@
-From: Chris Metcalf <cmetcalf@ezchip.com>
-Subject: Re: [PATCH 1/2] compat ABI: use non-compat openat and
- open_by_handle_at variants
-Date: Mon, 28 Dec 2015 12:57:56 -0500
-Message-ID: <56817824.8020609@ezchip.com>
-References: <1451146000-5646-1-git-send-email-ynorov@caviumnetworks.com>
- <1451146000-5646-2-git-send-email-ynorov@caviumnetworks.com>
- <5945276.2UuG1prsU3@wuerfel>
+From: Simon Horman <horms@verge.net.au>
+Subject: Re: [PATCH v2 09/16] drivers: Initialize resource entry to zero
+Date: Tue, 29 Dec 2015 08:37:33 +1100
+Message-ID: <20151228213733.GA16152@verge.net.au>
+References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
+ <1451081365-15190-9-git-send-email-toshi.kani@hpe.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <5945276.2UuG1prsU3@wuerfel>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>, Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, klimov.linux@gmail.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1451081365-15190-9-git-send-email-toshi.kani@hpe.com>
+Sender: owner-linux-mm@kvack.org
+To: Toshi Kani <toshi.kani@hpe.com>
+Cc: akpm@linux-foundation.org, bp@alien8.de, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 12/28/2015 06:18 AM, Arnd Bergmann wrote:
-> On Saturday 26 December 2015 19:06:39 Yury Norov wrote:
->> >The only difference is that non-compat version forces O_LARGEFILE,
->> >and it should be the default behaviour for all architectures, as
->> >we don't support 32-bit off_t. The only exception is tile32, that
->> >continues with compat version of syscalls.
->> >
->> >Signed-off-by: Yury Norov<ynorov@caviumnetworks.com>
-> Looks good,
->
-> Acked-by: Arnd Bergmann<arnd@arndb.de>
->
-> (adding Chris to Cc a well, in case he has further comments)
+On Fri, Dec 25, 2015 at 03:09:18PM -0700, Toshi Kani wrote:
+> I/O resource descriptor, 'desc' added to struct resource, needs
+> to be initialized to zero by default.  Some drivers call kmalloc()
+> to allocate a resource entry, but does not initialize it to zero
+> by memset().  Change these drivers to call kzalloc(), instead.
+> 
+> Cc: linux-acpi@vger.kernel.org
+> Cc: linux-parisc@vger.kernel.org
+> Cc: linux-sh@vger.kernel.org
+> Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
+> ---
+>  drivers/acpi/acpi_platform.c       |    2 +-
+>  drivers/parisc/eisa_enumerator.c   |    4 ++--
+>  drivers/rapidio/rio.c              |    8 ++++----
+>  drivers/sh/superhyway/superhyway.c |    2 +-
+>  4 files changed, 8 insertions(+), 8 deletions(-)
 
-Seems plausible.
+drivers/sh/ portion:
 
-Acked-by: Chris Metcalf <cmetcalf@ezchip.com> [for tile]
+Acked-by: Simon Horman <horms+renesas@verge.net.au>
 
--- 
-Chris Metcalf, EZChip Semiconductor
-http://www.ezchip.com
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
