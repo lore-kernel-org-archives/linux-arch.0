@@ -1,46 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-am1on0096.outbound.protection.outlook.com ([157.56.112.96]:12849
-	"EHLO emea01-am1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1751199AbbL1SMS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 28 Dec 2015 13:12:18 -0500
-Subject: Re: [PATCH 1/2] compat ABI: use non-compat openat and
- open_by_handle_at variants
-References: <1451146000-5646-1-git-send-email-ynorov@caviumnetworks.com>
- <1451146000-5646-2-git-send-email-ynorov@caviumnetworks.com>
- <5945276.2UuG1prsU3@wuerfel>
-From: Chris Metcalf <cmetcalf@ezchip.com>
-Message-ID: <56817824.8020609@ezchip.com>
-Date: Mon, 28 Dec 2015 12:57:56 -0500
+Received: from kirsty.vergenet.net ([202.4.237.240]:39258 "EHLO
+	kirsty.vergenet.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752469AbbL1Vhg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Dec 2015 16:37:36 -0500
+Date: Tue, 29 Dec 2015 08:37:33 +1100
+From: Simon Horman <horms@verge.net.au>
+Subject: Re: [PATCH v2 09/16] drivers: Initialize resource entry to zero
+Message-ID: <20151228213733.GA16152@verge.net.au>
+References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
+ <1451081365-15190-9-git-send-email-toshi.kani@hpe.com>
 MIME-Version: 1.0
-In-Reply-To: <5945276.2UuG1prsU3@wuerfel>
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1451081365-15190-9-git-send-email-toshi.kani@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, klimov.linux@gmail.com
-Message-ID: <20151228175756.vm1vYtPOWcI-3RurPhoGCq0Ra5a7a_Ko414xuMmMbDg@z>
+To: Toshi Kani <toshi.kani@hpe.com>
+Cc: akpm@linux-foundation.org, bp@alien8.de, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org
+Message-ID: <20151228213733.ey5BFHH__R73mfmmPYGliShOo877J8GhxyxMke6kgU8@z>
 
-On 12/28/2015 06:18 AM, Arnd Bergmann wrote:
-> On Saturday 26 December 2015 19:06:39 Yury Norov wrote:
->> >The only difference is that non-compat version forces O_LARGEFILE,
->> >and it should be the default behaviour for all architectures, as
->> >we don't support 32-bit off_t. The only exception is tile32, that
->> >continues with compat version of syscalls.
->> >
->> >Signed-off-by: Yury Norov<ynorov@caviumnetworks.com>
-> Looks good,
->
-> Acked-by: Arnd Bergmann<arnd@arndb.de>
->
-> (adding Chris to Cc a well, in case he has further comments)
+On Fri, Dec 25, 2015 at 03:09:18PM -0700, Toshi Kani wrote:
+> I/O resource descriptor, 'desc' added to struct resource, needs
+> to be initialized to zero by default.  Some drivers call kmalloc()
+> to allocate a resource entry, but does not initialize it to zero
+> by memset().  Change these drivers to call kzalloc(), instead.
+> 
+> Cc: linux-acpi@vger.kernel.org
+> Cc: linux-parisc@vger.kernel.org
+> Cc: linux-sh@vger.kernel.org
+> Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
+> ---
+>  drivers/acpi/acpi_platform.c       |    2 +-
+>  drivers/parisc/eisa_enumerator.c   |    4 ++--
+>  drivers/rapidio/rio.c              |    8 ++++----
+>  drivers/sh/superhyway/superhyway.c |    2 +-
+>  4 files changed, 8 insertions(+), 8 deletions(-)
 
-Seems plausible.
+drivers/sh/ portion:
 
-Acked-by: Chris Metcalf <cmetcalf@ezchip.com> [for tile]
-
--- 
-Chris Metcalf, EZChip Semiconductor
-http://www.ezchip.com
+Acked-by: Simon Horman <horms+renesas@verge.net.au>
 
