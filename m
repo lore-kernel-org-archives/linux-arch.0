@@ -1,42 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from kirsty.vergenet.net ([202.4.237.240]:39258 "EHLO
-	kirsty.vergenet.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752469AbbL1Vhg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 28 Dec 2015 16:37:36 -0500
-Date: Tue, 29 Dec 2015 08:37:33 +1100
-From: Simon Horman <horms@verge.net.au>
-Subject: Re: [PATCH v2 09/16] drivers: Initialize resource entry to zero
-Message-ID: <20151228213733.GA16152@verge.net.au>
-References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
- <1451081365-15190-9-git-send-email-toshi.kani@hpe.com>
+Received: from mail-bn1bon0077.outbound.protection.outlook.com ([157.56.111.77]:57760
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1750906AbbL2JmM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 29 Dec 2015 04:42:12 -0500
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: [PATCH v2 0/2] ABI: handle 32-bit off_t for 32-bit and compat ABIs
+Date: Tue, 29 Dec 2015 12:26:33 +0300
+Message-ID: <1451381195-9315-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1451081365-15190-9-git-send-email-toshi.kani@hpe.com>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Toshi Kani <toshi.kani@hpe.com>
-Cc: akpm@linux-foundation.org, bp@alien8.de, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org
-Message-ID: <20151228213733.ey5BFHH__R73mfmmPYGliShOo877J8GhxyxMke6kgU8@z>
+To: arnd@arndb.de, cmetcalf@ezchip.com, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, klimov.linux@gmail.com, Yury Norov <ynorov@caviumnetworks.com>
+Message-ID: <20151229092633.dYjycHbzpepugZk5i-mPWXJb4b3SmKfxpuew5H-3eH4@z>
 
-On Fri, Dec 25, 2015 at 03:09:18PM -0700, Toshi Kani wrote:
-> I/O resource descriptor, 'desc' added to struct resource, needs
-> to be initialized to zero by default.  Some drivers call kmalloc()
-> to allocate a resource entry, but does not initialize it to zero
-> by memset().  Change these drivers to call kzalloc(), instead.
-> 
-> Cc: linux-acpi@vger.kernel.org
-> Cc: linux-parisc@vger.kernel.org
-> Cc: linux-sh@vger.kernel.org
-> Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
-> ---
->  drivers/acpi/acpi_platform.c       |    2 +-
->  drivers/parisc/eisa_enumerator.c   |    4 ++--
->  drivers/rapidio/rio.c              |    8 ++++----
->  drivers/sh/superhyway/superhyway.c |    2 +-
->  4 files changed, 8 insertions(+), 8 deletions(-)
+32-bit off_t is supported only for old 32-bit and compat ABIs. New ABIs
+are 64-bit length only. This patchset makes 64-bit length the default
+for off_t, and reverts it for old architectures where needed. It does not
+change the behaviour of existing code.
 
-drivers/sh/ portion:
+First patch makes all compat users of generic unistd.h to use non-compat
+versions of openat and open_by_handle_at. Tile that requires old behaviour
+is turned around.
 
-Acked-by: Simon Horman <horms+renesas@verge.net.au>
+Second patch introduces ARCH_32BIT_OFF_T config option, disabled by default,
+but enables it explicitly for existing 32-bit architectures.
+
+v2:
+ - removed ARCH_32BIT_OFF_T for IA64, s390, as 32-bit kernels are not supported there.
+ - patch 2: added Arnd's note,
+ - patch 2: stylistic changes.
+
+Yury Norov (2):
+  ABI: compat: use non-compat openat and open_by_handle_at variants
+  32-bit ABI: introduce ARCH_32BIT_OFF_T config option
+
+ arch/Kconfig                      | 4 ++++
+ arch/arc/Kconfig                  | 1 +
+ arch/arm/Kconfig                  | 1 +
+ arch/blackfin/Kconfig             | 1 +
+ arch/cris/Kconfig                 | 1 +
+ arch/frv/Kconfig                  | 1 +
+ arch/h8300/Kconfig                | 1 +
+ arch/hexagon/Kconfig              | 1 +
+ arch/ia64/Kconfig                 | 1 +
+ arch/m32r/Kconfig                 | 1 +
+ arch/m68k/Kconfig                 | 1 +
+ arch/metag/Kconfig                | 1 +
+ arch/microblaze/Kconfig           | 1 +
+ arch/mips/Kconfig                 | 1 +
+ arch/mn10300/Kconfig              | 1 +
+ arch/nios2/Kconfig                | 1 +
+ arch/openrisc/Kconfig             | 1 +
+ arch/parisc/Kconfig               | 1 +
+ arch/powerpc/Kconfig              | 1 +
+ arch/s390/Kconfig                 | 1 +
+ arch/score/Kconfig                | 1 +
+ arch/sh/Kconfig                   | 1 +
+ arch/sparc/Kconfig                | 1 +
+ arch/tile/Kconfig                 | 1 +
+ arch/tile/kernel/compat.c         | 3 +++
+ arch/unicore32/Kconfig            | 1 +
+ arch/x86/Kconfig                  | 1 +
+ arch/x86/um/Kconfig               | 1 +
+ arch/xtensa/Kconfig               | 1 +
+ include/linux/fcntl.h             | 3 ++-
+ include/uapi/asm-generic/unistd.h | 5 ++---
+ 31 files changed, 38 insertions(+), 4 deletions(-)
+
+-- 
+2.5.0
 
