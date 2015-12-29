@@ -1,34 +1,68 @@
-From: "Jeff Skoll" <verna.viajar@icdd.uni-kassel.de>
-Subject: Donation/Charity
-Date: Mon, 28 Dec 2015 23:32:37 -0500
-Message-ID: <auto-000005734366@mailadmin.uni-kassel.de>
-Reply-To: jeff.skoll@skollcharity.org
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: [PATCH v2 0/2] ABI: handle 32-bit off_t for 32-bit and compat ABIs
+Date: Tue, 29 Dec 2015 12:26:33 +0300
+Message-ID: <1451381195-9315-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx3.its.uni-kassel.de ([141.51.12.64]:48183 "EHLO
-	mx3.its.uni-kassel.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750966AbbL2Fkf convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 29 Dec 2015 00:40:35 -0500
-Content-Description: Mail message body
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Me <verna.viajar@icdd.uni-kassel.de>
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: arnd@arndb.de, cmetcalf@ezchip.com, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, klimov.linux@gmail.com, Yury Norov <ynorov@caviumnetworks.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi,
-My name is Jeffrey Skoll, a philanthropist and the founder of one of th=
-e largest private foundations in the world. I believe strongly in =E2=80=
-=98giving while living.=E2=80=99 I had one idea that never changed in m=
-y mind =E2=80=94 that you should use your wealth to help people and I h=
-ave decided to secretly give USD2.498 Million to a randomly selected in=
-dividual. On receipt of this email, you should count yourself as the in=
-dividual. Kindly get back to me at your earliest convenience, so I know=
- your email address is valid.
+32-bit off_t is supported only for old 32-bit and compat ABIs. New ABIs
+are 64-bit length only. This patchset makes 64-bit length the default
+for off_t, and reverts it for old architectures where needed. It does not
+change the behaviour of existing code.
 
-Visit the web page to know more about me: http://www.theglobeandmail.co=
-m/news/national/meet-the-canadian-billionaire-whos-giving-it-all-away/a=
-rticle4209888/ or you can read an article of me on Wikipedia.
+First patch makes all compat users of generic unistd.h to use non-compat
+versions of openat and open_by_handle_at. Tile that requires old behaviour
+is turned around.
 
-Regards,
-Jeffrey Skoll.
+Second patch introduces ARCH_32BIT_OFF_T config option, disabled by default,
+but enables it explicitly for existing 32-bit architectures.
+
+v2:
+ - removed ARCH_32BIT_OFF_T for IA64, s390, as 32-bit kernels are not supported there.
+ - patch 2: added Arnd's note,
+ - patch 2: stylistic changes.
+
+Yury Norov (2):
+  ABI: compat: use non-compat openat and open_by_handle_at variants
+  32-bit ABI: introduce ARCH_32BIT_OFF_T config option
+
+ arch/Kconfig                      | 4 ++++
+ arch/arc/Kconfig                  | 1 +
+ arch/arm/Kconfig                  | 1 +
+ arch/blackfin/Kconfig             | 1 +
+ arch/cris/Kconfig                 | 1 +
+ arch/frv/Kconfig                  | 1 +
+ arch/h8300/Kconfig                | 1 +
+ arch/hexagon/Kconfig              | 1 +
+ arch/ia64/Kconfig                 | 1 +
+ arch/m32r/Kconfig                 | 1 +
+ arch/m68k/Kconfig                 | 1 +
+ arch/metag/Kconfig                | 1 +
+ arch/microblaze/Kconfig           | 1 +
+ arch/mips/Kconfig                 | 1 +
+ arch/mn10300/Kconfig              | 1 +
+ arch/nios2/Kconfig                | 1 +
+ arch/openrisc/Kconfig             | 1 +
+ arch/parisc/Kconfig               | 1 +
+ arch/powerpc/Kconfig              | 1 +
+ arch/s390/Kconfig                 | 1 +
+ arch/score/Kconfig                | 1 +
+ arch/sh/Kconfig                   | 1 +
+ arch/sparc/Kconfig                | 1 +
+ arch/tile/Kconfig                 | 1 +
+ arch/tile/kernel/compat.c         | 3 +++
+ arch/unicore32/Kconfig            | 1 +
+ arch/x86/Kconfig                  | 1 +
+ arch/x86/um/Kconfig               | 1 +
+ arch/xtensa/Kconfig               | 1 +
+ include/linux/fcntl.h             | 3 ++-
+ include/uapi/asm-generic/unistd.h | 5 ++---
+ 31 files changed, 38 insertions(+), 4 deletions(-)
+
+-- 
+2.5.0
