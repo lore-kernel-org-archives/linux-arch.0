@@ -1,42 +1,25 @@
-From: Simon Horman <horms@verge.net.au>
-Subject: Re: [PATCH v2 09/16] drivers: Initialize resource entry to zero
-Date: Tue, 29 Dec 2015 08:37:33 +1100
-Message-ID: <20151228213733.GA16152@verge.net.au>
-References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
- <1451081365-15190-9-git-send-email-toshi.kani@hpe.com>
+From: "Zahra Robert" <jakonyvtar@pr.hu>
+Subject: Assalam o Alaikum
+Date: Tue, 29 Dec 2015 03:02:44 +0100
+Message-ID: <d3a557ac994b6ba939ddbf988e86137e.squirrel@oldwebmail.prtelecom.hu>
+Reply-To: zahrarobert@yahoo.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1451081365-15190-9-git-send-email-toshi.kani@hpe.com>
-Sender: owner-linux-mm@kvack.org
-To: Toshi Kani <toshi.kani@hpe.com>
-Cc: akpm@linux-foundation.org, bp@alien8.de, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail9.pr.hu ([87.242.0.9]:55515 "EHLO mail9.pr.hu"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752854AbbL2CDG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 Dec 2015 21:03:06 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: jakonyvtar@pr.hu
 
-On Fri, Dec 25, 2015 at 03:09:18PM -0700, Toshi Kani wrote:
-> I/O resource descriptor, 'desc' added to struct resource, needs
-> to be initialized to zero by default.  Some drivers call kmalloc()
-> to allocate a resource entry, but does not initialize it to zero
-> by memset().  Change these drivers to call kzalloc(), instead.
-> 
-> Cc: linux-acpi@vger.kernel.org
-> Cc: linux-parisc@vger.kernel.org
-> Cc: linux-sh@vger.kernel.org
-> Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
-> ---
->  drivers/acpi/acpi_platform.c       |    2 +-
->  drivers/parisc/eisa_enumerator.c   |    4 ++--
->  drivers/rapidio/rio.c              |    8 ++++----
->  drivers/sh/superhyway/superhyway.c |    2 +-
->  4 files changed, 8 insertions(+), 8 deletions(-)
 
-drivers/sh/ portion:
 
-Acked-by: Simon Horman <horms+renesas@verge.net.au>
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Cordial greeting message from Eva Zahra, I am seeking for your help,I will
+be very glad if you do assist me to relocate a sum of (US$4 Million
+Dollars)into your Bank account in your country for the benefit of both of
+us i want to use this money for investment. I will give you more details
+as you reply Yours Eva Zahra Robert
