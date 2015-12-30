@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53076 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:45746 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754861AbbL3NY2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Dec 2015 08:24:28 -0500
-Date: Wed, 30 Dec 2015 15:24:23 +0200
+	id S1755057AbbL3NZQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Dec 2015 08:25:16 -0500
+Date: Wed, 30 Dec 2015 15:25:09 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 03/34] ia64: rename nop->iosapic_nop
-Message-ID: <1451473761-30019-4-git-send-email-mst@redhat.com>
+Subject: [PATCH 13/34] x86/um: reuse asm-generic/barrier.h
+Message-ID: <1451473761-30019-14-git-send-email-mst@redhat.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,52 +15,39 @@ In-Reply-To: <1451473761-30019-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Thomas Gleixner <tglx@linutronix.de>, Rusty Russell <rusty@rustcorp.com.au>, Jiang Liu <jiang.liu@linux.intel.com>, linux-ia64@vger.kernel.org
-Message-ID: <20151230132423.Hhgz3WLWETHo3dkSMzhngk9gv_LOh6KEI6lNQVy8jO8@z>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Borislav Petkov <bp@suse.de>, Andy Lutomirski <luto@kernel.org>, user-mode-linux-devel@lists.sourceforge.net, user-mode-linux-user@lists.sourceforge.net
+Message-ID: <20151230132509.nT8iLiU3i8fv1KK0wQq_iI0io1lnwDwJU2wRYyCapig@z>
 
-asm-generic/barrier.h defines a nop() macro.
-To be able to use this header on ia64, we shouldn't
-call local functions/variables nop().
+On x86/um CONFIG_SMP is never defined.  As a result, several macros
+match the asm-generic variant exactly. Drop the local definitions and
+pull in asm-generic/barrier.h instead.
 
-There's one instance where this breaks on ia64:
-rename the function to iosapic_nop to avoid the conflict.
+This is in preparation to refactoring this code area.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/ia64/kernel/iosapic.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+ arch/x86/um/asm/barrier.h | 9 +--------
+ 1 file changed, 1 insertion(+), 8 deletions(-)
 
-diff --git a/arch/ia64/kernel/iosapic.c b/arch/ia64/kernel/iosapic.c
-index d2fae05..90fde5b 100644
---- a/arch/ia64/kernel/iosapic.c
-+++ b/arch/ia64/kernel/iosapic.c
-@@ -256,7 +256,7 @@ set_rte (unsigned int gsi, unsigned int irq, unsigned int dest, int mask)
- }
+diff --git a/arch/x86/um/asm/barrier.h b/arch/x86/um/asm/barrier.h
+index 755481f..174781a 100644
+--- a/arch/x86/um/asm/barrier.h
++++ b/arch/x86/um/asm/barrier.h
+@@ -36,13 +36,6 @@
+ #endif /* CONFIG_X86_PPRO_FENCE */
+ #define dma_wmb()	barrier()
  
- static void
--nop (struct irq_data *data)
-+iosapic_nop (struct irq_data *data)
- {
- 	/* do nothing... */
- }
-@@ -415,7 +415,7 @@ iosapic_unmask_level_irq (struct irq_data *data)
- #define iosapic_shutdown_level_irq	mask_irq
- #define iosapic_enable_level_irq	unmask_irq
- #define iosapic_disable_level_irq	mask_irq
--#define iosapic_ack_level_irq		nop
-+#define iosapic_ack_level_irq		iosapic_nop
+-#define smp_mb()	barrier()
+-#define smp_rmb()	barrier()
+-#define smp_wmb()	barrier()
+-
+-#define smp_store_mb(var, value) do { WRITE_ONCE(var, value); barrier(); } while (0)
+-
+-#define read_barrier_depends()		do { } while (0)
+-#define smp_read_barrier_depends()	do { } while (0)
++#include <asm-generic/barrier.h>
  
- static struct irq_chip irq_type_iosapic_level = {
- 	.name =			"IO-SAPIC-level",
-@@ -453,7 +453,7 @@ iosapic_ack_edge_irq (struct irq_data *data)
- }
- 
- #define iosapic_enable_edge_irq		unmask_irq
--#define iosapic_disable_edge_irq	nop
-+#define iosapic_disable_edge_irq	iosapic_nop
- 
- static struct irq_chip irq_type_iosapic_edge = {
- 	.name =			"IO-SAPIC-edge",
+ #endif
 -- 
 MST
 
