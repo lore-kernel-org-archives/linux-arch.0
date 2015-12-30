@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:55511 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:45057 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754973AbbL3NY5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Dec 2015 08:24:57 -0500
-Date: Wed, 30 Dec 2015 15:24:50 +0200
+	id S1755002AbbL3NZF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Dec 2015 08:25:05 -0500
+Date: Wed, 30 Dec 2015 15:25:00 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 09/34] arm: reuse asm-generic/barrier.h
-Message-ID: <1451473761-30019-10-git-send-email-mst@redhat.com>
+Subject: [PATCH 11/34] metag: reuse asm-generic/barrier.h
+Message-ID: <1451473761-30019-12-git-send-email-mst@redhat.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,29 +15,48 @@ In-Reply-To: <1451473761-30019-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Russell King <linux@arm.linux.org.uk>, Ingo Molnar <mingo@kernel.org>, Tony Lindgren <tony@atomide.com>, Andrey Konovalov <andreyknvl@google.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20151230132450.M1SD-m1J1U2NViISvj5fdvYv7pPv1gASRxRjbFHeTDU@z>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, James Hogan <james.hogan@imgtec.com>, Ingo Molnar <mingo@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Andrey Konovalov <andreyknvl@google.com>, linux-metag@vger.kernel.org
+Message-ID: <20151230132500.fZWVxzd-pAo8rMn1ti6ur1PPfMshGZAgwUp-629OONo@z>
 
-On arm smp_store_mb, read_barrier_depends, smp_read_barrier_depends,
-smp_store_release, smp_load_acquire, smp_mb__before_atomic and
-smp_mb__after_atomic match the asm-generic variants exactly. Drop the
-local definitions and pull in asm-generic/barrier.h instead.
+On metag dma_rmb, dma_wmb, smp_store_mb, read_barrier_depends,
+smp_read_barrier_depends, smp_store_release and smp_load_acquire  match
+the asm-generic variants exactly. Drop the local definitions and pull in
+asm-generic/barrier.h instead.
 
 This is in preparation to refactoring this code area.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/arm/include/asm/barrier.h | 23 +----------------------
- 1 file changed, 1 insertion(+), 22 deletions(-)
 
-diff --git a/arch/arm/include/asm/barrier.h b/arch/arm/include/asm/barrier.h
-index 3ff5642..31152e8 100644
---- a/arch/arm/include/asm/barrier.h
-+++ b/arch/arm/include/asm/barrier.h
-@@ -70,28 +70,7 @@ extern void arm_heavy_mb(void);
- #define smp_wmb()	dmb(ishst)
+This is straightforward, but unfortunately untested: I don't have a metag compiler.
+I would appreciate an ack from someone with a metag compiler.
+
+ arch/metag/include/asm/barrier.h | 25 ++-----------------------
+ 1 file changed, 2 insertions(+), 23 deletions(-)
+
+diff --git a/arch/metag/include/asm/barrier.h b/arch/metag/include/asm/barrier.h
+index 172b7e5..b5b778b 100644
+--- a/arch/metag/include/asm/barrier.h
++++ b/arch/metag/include/asm/barrier.h
+@@ -44,9 +44,6 @@ static inline void wr_fence(void)
+ #define rmb()		barrier()
+ #define wmb()		mb()
+ 
+-#define dma_rmb()	rmb()
+-#define dma_wmb()	wmb()
+-
+ #ifndef CONFIG_SMP
+ #define fence()		do { } while (0)
+ #define smp_mb()        barrier()
+@@ -81,27 +78,9 @@ static inline void fence(void)
+ #endif
  #endif
  
+-#define read_barrier_depends()		do { } while (0)
+-#define smp_read_barrier_depends()	do { } while (0)
+-
+-#define smp_store_mb(var, value) do { WRITE_ONCE(var, value); smp_mb(); } while (0)
+-
 -#define smp_store_release(p, v)						\
 -do {									\
 -	compiletime_assert_atomic_type(*p);				\
@@ -53,17 +72,12 @@ index 3ff5642..31152e8 100644
 -	___p1;								\
 -})
 -
--#define read_barrier_depends()		do { } while(0)
--#define smp_read_barrier_depends()	do { } while(0)
--
--#define smp_store_mb(var, value)	do { WRITE_ONCE(var, value); smp_mb(); } while (0)
--
--#define smp_mb__before_atomic()	smp_mb()
--#define smp_mb__after_atomic()	smp_mb()
-+#include <asm-generic/barrier.h>
+ #define smp_mb__before_atomic()	barrier()
+ #define smp_mb__after_atomic()	barrier()
  
- #endif /* !__ASSEMBLY__ */
- #endif /* __ASM_BARRIER_H */
++#include <asm-generic/barrier.h>
++
+ #endif /* _ASM_METAG_BARRIER_H */
 -- 
 MST
 
