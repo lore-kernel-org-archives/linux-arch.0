@@ -1,100 +1,103 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 32/34] xen/io: use __smp_XXX barriers
-Date: Wed, 30 Dec 2015 15:26:28 +0200
-Message-ID: <1451473761-30019-33-git-send-email-mst@redhat.com>
+Subject: [PATCH 21/34] metag: define __smp_XXX
+Date: Wed, 30 Dec 2015 15:25:44 +0200
+Message-ID: <1451473761-30019-22-git-send-email-mst@redhat.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <xen-devel-bounces@lists.xen.org>
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 Content-Disposition: inline
 In-Reply-To: <1451473761-30019-1-git-send-email-mst@redhat.com>
-List-Unsubscribe: <http://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
-	<mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <http://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
-	<mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Sender: xen-devel-bounces@lists.xen.org
-Errors-To: xen-devel-bounces@lists.xen.org
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, David Vrabel <david.vrabel@citrix.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: linux-arch@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Cooper <andrew.cooper3@citrix.com>, Ralf Baechle <ralf@linux-mips.org>, virtualization@lists.linux-foundation.org, linux-metag@vger.kernel.org, Andrey Konovalov <andreyknvl@google.com>, Ingo Molnar <mingo@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-include/xen/interface/io/ring.h uses
-full memory barriers to communicate with the other side.
+This defines __smp_XXX barriers for metag,
+for use by virtualization.
 
-For guests compiled with CONFIG_SMP, smp_wmb and smp_mb
-would be sufficient, so mb() and wmb() here are only needed if
-a non-SMP guest runs on an SMP host.
+smp_XXX barriers are removed as they are
+defined correctly by asm-generic/barriers.h
 
-Switch to __smp_XXX barriers which serve this exact purpose.
+Note: as __smp_XX macros should not depend on CONFIG_SMP, they can not
+use the existing fence() macro since that is defined differently between
+SMP and !SMP.  For this reason, this patch introduces a wrapper
+metag_fence() that doesn't depend on CONFIG_SMP.
+fence() is then defined using that, depending on CONFIG_SMP.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- include/xen/interface/io/ring.h | 16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
+ arch/metag/include/asm/barrier.h | 32 +++++++++++++++-----------------
+ 1 file changed, 15 insertions(+), 17 deletions(-)
 
-diff --git a/include/xen/interface/io/ring.h b/include/xen/interface/io/ring.h
-index 7dc685b..46dfc65 100644
---- a/include/xen/interface/io/ring.h
-+++ b/include/xen/interface/io/ring.h
-@@ -208,12 +208,12 @@ struct __name##_back_ring {						\
+diff --git a/arch/metag/include/asm/barrier.h b/arch/metag/include/asm/barrier.h
+index b5b778b..84880c9 100644
+--- a/arch/metag/include/asm/barrier.h
++++ b/arch/metag/include/asm/barrier.h
+@@ -44,13 +44,6 @@ static inline void wr_fence(void)
+ #define rmb()		barrier()
+ #define wmb()		mb()
  
+-#ifndef CONFIG_SMP
+-#define fence()		do { } while (0)
+-#define smp_mb()        barrier()
+-#define smp_rmb()       barrier()
+-#define smp_wmb()       barrier()
+-#else
+-
+ #ifdef CONFIG_METAG_SMP_WRITE_REORDERING
+ /*
+  * Write to the atomic memory unlock system event register (command 0). This is
+@@ -60,26 +53,31 @@ static inline void wr_fence(void)
+  * incoherence). It is therefore ineffective if used after and on the same
+  * thread as a write.
+  */
+-static inline void fence(void)
++static inline void metag_fence(void)
+ {
+ 	volatile int *flushptr = (volatile int *) LINSYSEVENT_WR_ATOMIC_UNLOCK;
+ 	barrier();
+ 	*flushptr = 0;
+ 	barrier();
+ }
+-#define smp_mb()        fence()
+-#define smp_rmb()       fence()
+-#define smp_wmb()       barrier()
++#define __smp_mb()        metag_fence()
++#define __smp_rmb()       metag_fence()
++#define __smp_wmb()       barrier()
+ #else
+-#define fence()		do { } while (0)
+-#define smp_mb()        barrier()
+-#define smp_rmb()       barrier()
+-#define smp_wmb()       barrier()
++#define metag_fence()		do { } while (0)
++#define __smp_mb()        barrier()
++#define __smp_rmb()       barrier()
++#define __smp_wmb()       barrier()
+ #endif
++
++#ifdef CONFIG_SMP
++#define fence() metag_fence()
++#else
++#define fence()		do { } while (0)
+ #endif
  
- #define RING_PUSH_REQUESTS(_r) do {					\
--    wmb(); /* back sees requests /before/ updated producer index */	\
-+    __smp_wmb(); /* back sees requests /before/ updated producer index */	\
-     (_r)->sring->req_prod = (_r)->req_prod_pvt;				\
- } while (0)
+-#define smp_mb__before_atomic()	barrier()
+-#define smp_mb__after_atomic()	barrier()
++#define __smp_mb__before_atomic()	barrier()
++#define __smp_mb__after_atomic()	barrier()
  
- #define RING_PUSH_RESPONSES(_r) do {					\
--    wmb(); /* front sees responses /before/ updated producer index */	\
-+    __smp_wmb(); /* front sees responses /before/ updated producer index */	\
-     (_r)->sring->rsp_prod = (_r)->rsp_prod_pvt;				\
- } while (0)
- 
-@@ -250,9 +250,9 @@ struct __name##_back_ring {						\
- #define RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(_r, _notify) do {		\
-     RING_IDX __old = (_r)->sring->req_prod;				\
-     RING_IDX __new = (_r)->req_prod_pvt;				\
--    wmb(); /* back sees requests /before/ updated producer index */	\
-+    __smp_wmb(); /* back sees requests /before/ updated producer index */	\
-     (_r)->sring->req_prod = __new;					\
--    mb(); /* back sees new requests /before/ we check req_event */	\
-+    __smp_mb(); /* back sees new requests /before/ we check req_event */	\
-     (_notify) = ((RING_IDX)(__new - (_r)->sring->req_event) <		\
- 		 (RING_IDX)(__new - __old));				\
- } while (0)
-@@ -260,9 +260,9 @@ struct __name##_back_ring {						\
- #define RING_PUSH_RESPONSES_AND_CHECK_NOTIFY(_r, _notify) do {		\
-     RING_IDX __old = (_r)->sring->rsp_prod;				\
-     RING_IDX __new = (_r)->rsp_prod_pvt;				\
--    wmb(); /* front sees responses /before/ updated producer index */	\
-+    __smp_wmb(); /* front sees responses /before/ updated producer index */	\
-     (_r)->sring->rsp_prod = __new;					\
--    mb(); /* front sees new responses /before/ we check rsp_event */	\
-+    __smp_mb(); /* front sees new responses /before/ we check rsp_event */	\
-     (_notify) = ((RING_IDX)(__new - (_r)->sring->rsp_event) <		\
- 		 (RING_IDX)(__new - __old));				\
- } while (0)
-@@ -271,7 +271,7 @@ struct __name##_back_ring {						\
-     (_work_to_do) = RING_HAS_UNCONSUMED_REQUESTS(_r);			\
-     if (_work_to_do) break;						\
-     (_r)->sring->req_event = (_r)->req_cons + 1;			\
--    mb();								\
-+    __smp_mb();								\
-     (_work_to_do) = RING_HAS_UNCONSUMED_REQUESTS(_r);			\
- } while (0)
- 
-@@ -279,7 +279,7 @@ struct __name##_back_ring {						\
-     (_work_to_do) = RING_HAS_UNCONSUMED_RESPONSES(_r);			\
-     if (_work_to_do) break;						\
-     (_r)->sring->rsp_event = (_r)->rsp_cons + 1;			\
--    mb();								\
-+    __smp_mb();								\
-     (_work_to_do) = RING_HAS_UNCONSUMED_RESPONSES(_r);			\
- } while (0)
+ #include <asm-generic/barrier.h>
  
 -- 
 MST
