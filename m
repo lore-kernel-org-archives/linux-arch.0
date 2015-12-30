@@ -1,85 +1,52 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 31/34] xenbus: use __smp_XXX barriers
-Date: Wed, 30 Dec 2015 15:26:24 +0200
-Message-ID: <1451473761-30019-32-git-send-email-mst@redhat.com>
+Subject: [PATCH 19/34] blackfin: define __smp_XXX
+Date: Wed, 30 Dec 2015 15:25:36 +0200
+Message-ID: <1451473761-30019-20-git-send-email-mst@redhat.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <xen-devel-bounces@lists.xen.org>
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 Content-Disposition: inline
 In-Reply-To: <1451473761-30019-1-git-send-email-mst@redhat.com>
-List-Unsubscribe: <http://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
-	<mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
-List-Post: <mailto:xen-devel@lists.xen.org>
-List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
-List-Subscribe: <http://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
-	<mailto:xen-devel-request@lists.xen.org?subject=subscribe>
-Sender: xen-devel-bounces@lists.xen.org
-Errors-To: xen-devel-bounces@lists.xen.org
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, David Vrabel <david.vrabel@citrix.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Cooper <andrew.cooper3@citrix.com>, adi-buildroot-devel@lists.sourceforge.net, virtualization@lists.linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
-drivers/xen/xenbus/xenbus_comms.c uses
-full memory barriers to communicate with the other side.
+This defines __smp_XXX barriers for blackfin,
+for use by virtualization.
 
-For guests compiled with CONFIG_SMP, smp_wmb and smp_mb
-would be sufficient, so mb() and wmb() here are only needed if
-a non-SMP guest runs on an SMP host.
-
-Switch to __smp_XXX barriers which serve this exact purpose.
+smp_XXX barriers are removed as they are
+defined correctly by asm-generic/barriers.h
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
+ arch/blackfin/include/asm/barrier.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-This is straight-forward, but untested.
-I can either merge this patchset through my tree if this is
-acked, or defer this and merge the patchset first,
-and xen bits through xen tree afterwards.
-
-Pls let me know.
-
- drivers/xen/xenbus/xenbus_comms.c | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
-
-diff --git a/drivers/xen/xenbus/xenbus_comms.c b/drivers/xen/xenbus/xenbus_comms.c
-index fdb0f33..09b17c7 100644
---- a/drivers/xen/xenbus/xenbus_comms.c
-+++ b/drivers/xen/xenbus/xenbus_comms.c
-@@ -123,14 +123,14 @@ int xb_write(const void *data, unsigned len)
- 			avail = len;
+diff --git a/arch/blackfin/include/asm/barrier.h b/arch/blackfin/include/asm/barrier.h
+index dfb66fe..7cca51c 100644
+--- a/arch/blackfin/include/asm/barrier.h
++++ b/arch/blackfin/include/asm/barrier.h
+@@ -78,8 +78,8 @@
  
- 		/* Must write data /after/ reading the consumer index. */
--		mb();
-+		__smp_mb();
+ #endif /* !CONFIG_SMP */
  
- 		memcpy(dst, data, avail);
- 		data += avail;
- 		len -= avail;
+-#define smp_mb__before_atomic()	barrier()
+-#define smp_mb__after_atomic()	barrier()
++#define __smp_mb__before_atomic()	barrier()
++#define __smp_mb__after_atomic()	barrier()
  
- 		/* Other side must not see new producer until data is there. */
--		wmb();
-+		__smp_wmb();
- 		intf->req_prod += avail;
+ #include <asm-generic/barrier.h>
  
- 		/* Implies mb(): other side will see the updated producer. */
-@@ -180,14 +180,14 @@ int xb_read(void *data, unsigned len)
- 			avail = len;
- 
- 		/* Must read data /after/ reading the producer index. */
--		rmb();
-+		__smp_rmb();
- 
- 		memcpy(data, src, avail);
- 		data += avail;
- 		len -= avail;
- 
- 		/* Other side must not see free space until we've copied out */
--		mb();
-+		__smp_mb();
- 		intf->rsp_cons += avail;
- 
- 		pr_debug("Finished read of %i bytes (%i to go)\n", avail, len);
 -- 
 MST
