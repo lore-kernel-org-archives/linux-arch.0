@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:42224 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:38353 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754976AbbL3NZB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Dec 2015 08:25:01 -0500
-Date: Wed, 30 Dec 2015 15:24:56 +0200
+	id S1754907AbbL3NYj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Dec 2015 08:24:39 -0500
+Date: Wed, 30 Dec 2015 15:24:32 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 10/34] arm64: reuse asm-generic/barrier.h
-Message-ID: <1451473761-30019-11-git-send-email-mst@redhat.com>
+Subject: [PATCH 05/34] powerpc: reuse asm-generic/barrier.h
+Message-ID: <1451473761-30019-6-git-send-email-mst@redhat.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,10 +15,10 @@ In-Reply-To: <1451473761-30019-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Ingo Molnar <mingo@kernel.org>, Andre Przywara <andre.przywara@arm.com>, Andrey Konovalov <andreyknvl@google.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20151230132456.WO-kSTgMyFRbQ2iEzN_M0dbz9NvndSLtaj_Itd8GzUI@z>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Ingo Molnar <mingo@kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Andrey Konovalov <andreyknvl@google.com>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20151230132432.wfm5qjnq49nG0riLGHGN-ui4XXLvzLXPkZstIaXhGkg@z>
 
-On arm64 nop, read_barrier_depends, smp_read_barrier_depends
+On powerpc read_barrier_depends, smp_read_barrier_depends
 smp_store_mb(), smp_mb__before_atomic and smp_mb__after_atomic match the
 asm-generic variants exactly. Drop the local definitions and pull in
 asm-generic/barrier.h instead.
@@ -27,29 +27,43 @@ This is in preparation to refactoring this code area.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/arm64/include/asm/barrier.h | 9 +--------
- 1 file changed, 1 insertion(+), 8 deletions(-)
+ arch/powerpc/include/asm/barrier.h | 9 ++-------
+ 1 file changed, 2 insertions(+), 7 deletions(-)
 
-diff --git a/arch/arm64/include/asm/barrier.h b/arch/arm64/include/asm/barrier.h
-index 9622eb4..91a43f4 100644
---- a/arch/arm64/include/asm/barrier.h
-+++ b/arch/arm64/include/asm/barrier.h
-@@ -91,14 +91,7 @@ do {									\
- 	__u.__val;							\
+diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
+index 0eca6ef..980ad0c 100644
+--- a/arch/powerpc/include/asm/barrier.h
++++ b/arch/powerpc/include/asm/barrier.h
+@@ -34,8 +34,6 @@
+ #define rmb()  __asm__ __volatile__ ("sync" : : : "memory")
+ #define wmb()  __asm__ __volatile__ ("sync" : : : "memory")
+ 
+-#define smp_store_mb(var, value)	do { WRITE_ONCE(var, value); mb(); } while (0)
+-
+ #ifdef __SUBARCH_HAS_LWSYNC
+ #    define SMPWMB      LWSYNC
+ #else
+@@ -60,9 +58,6 @@
+ #define smp_wmb()	barrier()
+ #endif /* CONFIG_SMP */
+ 
+-#define read_barrier_depends()		do { } while (0)
+-#define smp_read_barrier_depends()	do { } while (0)
+-
+ /*
+  * This is a barrier which prevents following instructions from being
+  * started until the value of the argument x is known.  For example, if
+@@ -87,8 +82,8 @@ do {									\
+ 	___p1;								\
  })
  
--#define read_barrier_depends()		do { } while(0)
--#define smp_read_barrier_depends()	do { } while(0)
--
--#define smp_store_mb(var, value)	do { WRITE_ONCE(var, value); smp_mb(); } while (0)
--#define nop()		asm volatile("nop");
--
--#define smp_mb__before_atomic()	smp_mb()
--#define smp_mb__after_atomic()	smp_mb()
+-#define smp_mb__before_atomic()     smp_mb()
+-#define smp_mb__after_atomic()      smp_mb()
+ #define smp_mb__before_spinlock()   smp_mb()
+ 
 +#include <asm-generic/barrier.h>
- 
- #endif	/* __ASSEMBLY__ */
- 
++
+ #endif /* _ASM_POWERPC_BARRIER_H */
 -- 
 MST
 
