@@ -1,12 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:42270 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:55743 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755061AbbL3NZU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Dec 2015 08:25:20 -0500
-Date: Wed, 30 Dec 2015 15:25:15 +0200
+	id S1754819AbbL3N0V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Dec 2015 08:26:21 -0500
+Date: Wed, 30 Dec 2015 15:26:18 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 14/34] x86: reuse asm-generic/barrier.h
-Message-ID: <1451473761-30019-15-git-send-email-mst@redhat.com>
+Subject: [PATCH 29/34] Revert "virtio_ring: Update weak barriers to use
+ dma_wmb/rmb"
+Message-ID: <1451473761-30019-30-git-send-email-mst@redhat.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,41 +16,84 @@ In-Reply-To: <1451473761-30019-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Andrey Konovalov <andreyknvl@google.com>
-Message-ID: <20151230132515.-FlRWmI8AMjXgKwEqzjSImsVpKRQ_2sdw2rAqtPmZgo@z>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Alexander Duyck <alexander.duyck@gmail.com>
+Message-ID: <20151230132618.XD5Q2NWqs3kw--sDFMyytJRHnjRSqY0ONDuVP2Ek7_U@z>
 
-As on most architectures, on x86 read_barrier_depends and
-smp_read_barrier_depends are empty.  Drop the local definitions and pull
-the generic ones from asm-generic/barrier.h instead: they are identical.
+This reverts commit 9e1a27ea42691429e31f158cce6fc61bc79bb2e9.
 
-This is in preparation to refactoring this code area.
+While that commit optimizes !CONFIG_SMP, it mixes
+up DMA and SMP concepts, making the code hard
+to figure out.
 
+A better way to optimize this is with the new __smp_XXX
+barriers.
+
+As a first step, go back to full rmb/wmb barriers
+for !SMP.
+We switch to __smp_XXX barriers in the next patch.
+
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Alexander Duyck <alexander.duyck@gmail.com>
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/x86/include/asm/barrier.h | 5 ++---
- 1 file changed, 2 insertions(+), 3 deletions(-)
+ include/linux/virtio_ring.h | 23 +++++++++++++++++++----
+ 1 file changed, 19 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
-index 0681d25..cc4c2a7 100644
---- a/arch/x86/include/asm/barrier.h
-+++ b/arch/x86/include/asm/barrier.h
-@@ -43,9 +43,6 @@
- #define smp_store_mb(var, value) do { WRITE_ONCE(var, value); barrier(); } while (0)
- #endif /* SMP */
+diff --git a/include/linux/virtio_ring.h b/include/linux/virtio_ring.h
+index 8e50888..67e06fe 100644
+--- a/include/linux/virtio_ring.h
++++ b/include/linux/virtio_ring.h
+@@ -21,20 +21,19 @@
+  * actually quite cheap.
+  */
  
--#define read_barrier_depends()		do { } while (0)
--#define smp_read_barrier_depends()	do { } while (0)
--
- #if defined(CONFIG_X86_PPRO_FENCE)
++#ifdef CONFIG_SMP
+ static inline void virtio_mb(bool weak_barriers)
+ {
+-#ifdef CONFIG_SMP
+ 	if (weak_barriers)
+ 		smp_mb();
+ 	else
+-#endif
+ 		mb();
+ }
  
- /*
-@@ -91,4 +88,6 @@ do {									\
- #define smp_mb__before_atomic()	barrier()
- #define smp_mb__after_atomic()	barrier()
- 
-+#include <asm-generic/barrier.h>
+ static inline void virtio_rmb(bool weak_barriers)
+ {
+ 	if (weak_barriers)
+-		dma_rmb();
++		smp_rmb();
+ 	else
+ 		rmb();
+ }
+@@ -42,10 +41,26 @@ static inline void virtio_rmb(bool weak_barriers)
+ static inline void virtio_wmb(bool weak_barriers)
+ {
+ 	if (weak_barriers)
+-		dma_wmb();
++		smp_wmb();
+ 	else
+ 		wmb();
+ }
++#else
++static inline void virtio_mb(bool weak_barriers)
++{
++	mb();
++}
 +
- #endif /* _ASM_X86_BARRIER_H */
++static inline void virtio_rmb(bool weak_barriers)
++{
++	rmb();
++}
++
++static inline void virtio_wmb(bool weak_barriers)
++{
++	wmb();
++}
++#endif
+ 
+ struct virtio_device;
+ struct virtqueue;
 -- 
 MST
 
