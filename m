@@ -1,222 +1,201 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:41125 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:48011 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754116AbbL3Tdk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Dec 2015 14:33:40 -0500
-Received: from int-mx10.intmail.prod.int.phx2.redhat.com (int-mx10.intmail.prod.int.phx2.redhat.com [10.5.11.23])
-	by mx1.redhat.com (Postfix) with ESMTPS id C4EF5106E
-	for <linux-arch@vger.kernel.org>; Wed, 30 Dec 2015 19:33:39 +0000 (UTC)
+	id S1753004AbbL3Te6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Dec 2015 14:34:58 -0500
+Received: from int-mx13.intmail.prod.int.phx2.redhat.com (int-mx13.intmail.prod.int.phx2.redhat.com [10.5.11.26])
+	by mx1.redhat.com (Postfix) with ESMTPS id 584482197
+	for <linux-arch@vger.kernel.org>; Wed, 30 Dec 2015 19:34:58 +0000 (UTC)
 Received: from redhat.com (vpn1-6-186.ams2.redhat.com [10.36.6.186])
-	by int-mx10.intmail.prod.int.phx2.redhat.com (8.14.4/8.14.4) with SMTP id tBUJXccg032219
-	for <linux-arch@vger.kernel.org>; Wed, 30 Dec 2015 14:33:39 -0500
-Date: Wed, 30 Dec 2015 14:58:19 +0200
+	by int-mx13.intmail.prod.int.phx2.redhat.com (8.14.4/8.14.4) with SMTP id tBUJYv9N025766
+	for <linux-arch@vger.kernel.org>; Wed, 30 Dec 2015 14:34:57 -0500
+Date: Wed, 30 Dec 2015 15:25:20 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 00/34] arch: barrier cleanup + __smp_xxx barriers for virt
-Message-ID: <1451473761-30019-1-git-send-email-mst@redhat.com>
+Subject: [PATCH 15/34] asm-generic: add __smp_xxx wrappers
+Message-ID: <1451473761-30019-16-git-send-email-mst@redhat.com>
+References: <1451473761-30019-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
+In-Reply-To: <1451473761-30019-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>
-Message-ID: <20151230125819.GU3VaiI-s0JzLgVwE8cFsz5zhP29Iv4kcz3bs5ce4Gk@z>
+Message-ID: <20151230132520.k_RDTvzeQmJmFFHU8AyAnNKFjvv9Faqvlhog9IOmL9U@z>
 
-Reposting without XXX in subject: vger does not like them :(
+On !SMP, most architectures define their
+barriers as compiler barriers.
+On SMP, most need an actual barrier.
 
-This is really trying to cleanup some virt code, as suggested by Peter, who
-said
-> You could of course go fix that instead of mutilating things into
-> sort-of functional state.
+Make it possible to remove the code duplication for
+!SMP by defining a low-level __smp_XXX barriers
+which do not depend on the value of SMP, then
+use them from asm-generic conditionally.
 
-This work is needed for virtio, so it's probably easiest to
-merge it through my tree - is this fine by everyone?
-Arnd, if you agree, could you ack this please?
+Besides reducing code duplication, these low level APIs will also be
+useful for virtualization, where a barrier is sometimes needed even if
+!SMP since we might be talking to another kernel on the same SMP system.
 
-Note to arch maintainers: please don't cherry-pick patches out of this patchset
-as it's been structured in this order to avoid breaking bisect.
-Please send acks instead!
+Both virtio and Xen drivers will benefit.
 
-Sometimes, virtualization is weird. For example, virtio does this (conceptually):
+The smp_XXX variants should use __smp_XXX ones or barrier() depending on
+SMP, identically for all architectures.
 
-#ifdef CONFIG_SMP
-                smp_mb();
-#else
-                mb();
-#endif
+We keep ifndef guards around them for now - once all
+architectures have been converted to use the generic
+code, we'll be able to remove these.
 
-Similarly, Xen calls mb() when it's not doing any MMIO at all.
+Suggested-by: Peter Zijlstra <peterz@infradead.org>
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+---
+ include/asm-generic/barrier.h | 91 ++++++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 82 insertions(+), 9 deletions(-)
 
-Of course it's wrong in the sense that it's suboptimal. What we would really
-like is to have, on UP, exactly the same barrier as on SMP.  This is because a
-UP guest can run on an SMP host.
-
-But Linux doesn't provide this ability: if CONFIG_SMP is not defined is
-optimizes most barriers out to a compiler barrier.
-
-Consider for example x86: what we want is xchg (NOT mfence - there's no real IO
-going on here - just switching out of the VM - more like a function call
-really) but if built without CONFIG_SMP smp_store_mb does not include this.
-
-Virt in general is probably the only use-case, because this really is an
-artifact of interfacing with an SMP host while running an UP kernel,
-but since we have (at least) two users, it seems to make sense to
-put these APIs in a central place.
-
-In fact, smp_ barriers are stubs on !SMP, so they can be defined as follows:
-
-arch/XXX/include/asm/barrier.h:
-
-#define __smp_mb() DOSOMETHING
-
-include/asm-generic/barrier.h:
-
-#ifdef CONFIG_SMP
-#define smp_mb() __smp_mb()
-#else
-#define smp_mb() barrier()
-#endif
-
-This has the benefit of cleaning out a bunch of duplicated
-ifdefs on a bunch of architectures - this patchset brings
-about a net reduction in LOC, compensated for by extra documentation :)
-
-Then virt can use __smp_XXX when talking to an SMP host.
-
-Touching all archs is a tad tedious, but its fairly straight forward.
-
-The rest of the patchset is structured as follows:
-
--. Patch 1 documents the __smp APIs, and explains why they are
-   useful for virt
-
--. Patches 2-7 makes sure barrier.h on ia64, powerpc, s390 and sparc
-   includes asm-generic/barrier.h: this is safe because code there matches
-   asm-generic/barrier.h almost verbatim.
-   Minor code tweaks were required in a couple of places.
-   Macros duplicated from asm-generic/barrier.h are dropped
-   in the process.
-
-   I compiled these arches before and after the changes,
-   dumped the .text section (using objdump -O binary) and
-   made sure that the object code is exactly identical
-   before and after the change.
-
-
--. Patch 8 fixes up smp_store_mb in asm-generic/barrier.h:
-   it should call smp_mb and not mb. Luckily only used
-   in core kernel so we know no one misused it for an
-   MMIO barrier (so far).
-   This is the only patch that affects code behaviour
-   outside virt, and that for !SMP only.
-   Compile-tested on a bunch of architectures (x86
-   hardware which I have is unaffected by this).
-   It's very straightforward so I hope it's enough.
-   Hoping for some acks on this architecture.
-
--. Patches 9-14 make sure barrier.h on all remaining
-   architectures includes asm-generic/barrier.h:
-   after the change in Patch 8, code there matches
-   asm-generic/barrier.h almost verbatim.
-   Macros duplicated from asm-generic/barrier.h are dropped
-   in the process.
-
-After all that preparatory work, we are getting to the actual change.
-
--. Patches 15 adds generic smp_XXX wrappers in asm-generic
-   these select __smp_XXX or barrier() depending on CONFIG_SMP
-
--. Patches 16-28 change all architectures to
-   define __smp_XXX macros; the generic code in asm-generic/barrier.h
-   then defines smp_XXX macros
-
-   I compiled the affected arches before and after the changes,
-   dumped the .text section (using objdump -O binary) and
-   made sure that the object code is exactly identical
-   before and after the change.
-   I couldn't fully build sh,tile,xtensa but I did this test
-   kernel/rcu/tree.o kernel/sched/wait.o and
-   kernel/futex.o and tested these instead.
-
-Unfortunately, I don't have a metag cross-build toolset ready.
-Hoping for some acks on this architecture.
-
-Finally, the following patches put the __smp_XXX APIs to work for virt:
-
--. Patches 29-31 convert virtio and xen drivers to use the __smp_XXX APIs
-
-   xen patches are untested
-   virtio ones have been tested on x86
-
--. Patches 33-34 teach virtio to use
-   __smp_load_acquire/__smp_store_release/__smp_store_mb
-   This is what started all this work.
-
-   tested on x86
-
-The patchset has been in linux-next for a bit, so far without issues.
-
-Michael S. Tsirkin (34):
-  Documentation/memory-barriers.txt: document __smb_mb()
-  asm-generic: guard smp_store_release/load_acquire
-  ia64: rename nop->iosapic_nop
-  ia64: reuse asm-generic/barrier.h
-  powerpc: reuse asm-generic/barrier.h
-  s390: reuse asm-generic/barrier.h
-  sparc: reuse asm-generic/barrier.h
-  asm-generic: smp_store_mb should use smp_mb
-  arm: reuse asm-generic/barrier.h
-  arm64: reuse asm-generic/barrier.h
-  metag: reuse asm-generic/barrier.h
-  mips: reuse asm-generic/barrier.h
-  x86/um: reuse asm-generic/barrier.h
-  x86: reuse asm-generic/barrier.h
-  asm-generic: add __smp_XXX wrappers
-  powerpc: define __smp_XXX
-  arm64: define __smp_XXX
-  arm: define __smp_XXX
-  blackfin: define __smp_XXX
-  ia64: define __smp_XXX
-  metag: define __smp_XXX
-  mips: define __smp_XXX
-  s390: define __smp_XXX
-  sh: define __smp_XXX, fix smp_store_mb for !SMP
-  sparc: define __smp_XXX
-  tile: define __smp_XXX
-  xtensa: define __smp_XXX
-  x86: define __smp_XXX
-  Revert "virtio_ring: Update weak barriers to use dma_wmb/rmb"
-  virtio_ring: update weak barriers to use __smp_XXX
-  xenbus: use __smp_XXX barriers
-  xen/io: use __smp_XXX barriers
-  virtio: use __smp_load_acquire/__smp_store_release
-  virtio_ring: use __smp_store_mb
-
- arch/arm/include/asm/barrier.h      | 35 ++------------
- arch/arm64/include/asm/barrier.h    | 19 +++-----
- arch/blackfin/include/asm/barrier.h |  4 +-
- arch/ia64/include/asm/barrier.h     | 24 +++-------
- arch/metag/include/asm/barrier.h    | 55 +++++++--------------
- arch/mips/include/asm/barrier.h     | 51 +++++++-------------
- arch/powerpc/include/asm/barrier.h  | 33 ++++---------
- arch/s390/include/asm/barrier.h     | 25 +++++-----
- arch/sh/include/asm/barrier.h       |  3 +-
- arch/sparc/include/asm/barrier_32.h |  1 -
- arch/sparc/include/asm/barrier_64.h | 29 +++--------
- arch/sparc/include/asm/processor.h  |  3 --
- arch/tile/include/asm/barrier.h     |  9 ++--
- arch/x86/include/asm/barrier.h      | 36 ++++++--------
- arch/x86/um/asm/barrier.h           |  9 +---
- arch/xtensa/include/asm/barrier.h   |  4 +-
- include/asm-generic/barrier.h       | 95 +++++++++++++++++++++++++++++++++----
- include/linux/virtio_ring.h         | 48 ++++++++++++++++---
- include/xen/interface/io/ring.h     | 16 +++----
- arch/ia64/kernel/iosapic.c          |  6 +--
- drivers/virtio/virtio_ring.c        | 35 +++++++-------
- drivers/xen/xenbus/xenbus_comms.c   |  8 ++--
- Documentation/memory-barriers.txt   | 33 +++++++++++--
- 23 files changed, 292 insertions(+), 289 deletions(-)
-
+diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
+index 987b2e0..8752964 100644
+--- a/include/asm-generic/barrier.h
++++ b/include/asm-generic/barrier.h
+@@ -54,22 +54,38 @@
+ #define read_barrier_depends()		do { } while (0)
+ #endif
+ 
++#ifndef __smp_mb
++#define __smp_mb()	mb()
++#endif
++
++#ifndef __smp_rmb
++#define __smp_rmb()	rmb()
++#endif
++
++#ifndef __smp_wmb
++#define __smp_wmb()	wmb()
++#endif
++
++#ifndef __smp_read_barrier_depends
++#define __smp_read_barrier_depends()	read_barrier_depends()
++#endif
++
+ #ifdef CONFIG_SMP
+ 
+ #ifndef smp_mb
+-#define smp_mb()	mb()
++#define smp_mb()	__smp_mb()
+ #endif
+ 
+ #ifndef smp_rmb
+-#define smp_rmb()	rmb()
++#define smp_rmb()	__smp_rmb()
+ #endif
+ 
+ #ifndef smp_wmb
+-#define smp_wmb()	wmb()
++#define smp_wmb()	__smp_wmb()
+ #endif
+ 
+ #ifndef smp_read_barrier_depends
+-#define smp_read_barrier_depends()	read_barrier_depends()
++#define smp_read_barrier_depends()	__smp_read_barrier_depends()
+ #endif
+ 
+ #else	/* !CONFIG_SMP */
+@@ -92,23 +108,78 @@
+ 
+ #endif	/* CONFIG_SMP */
+ 
++#ifndef __smp_store_mb
++#define __smp_store_mb(var, value)  do { WRITE_ONCE(var, value); __smp_mb(); } while (0)
++#endif
++
++#ifndef __smp_mb__before_atomic
++#define __smp_mb__before_atomic()	__smp_mb()
++#endif
++
++#ifndef __smp_mb__after_atomic
++#define __smp_mb__after_atomic()	__smp_mb()
++#endif
++
++#ifndef __smp_store_release
++#define __smp_store_release(p, v)					\
++do {									\
++	compiletime_assert_atomic_type(*p);				\
++	__smp_mb();							\
++	WRITE_ONCE(*p, v);						\
++} while (0)
++#endif
++
++#ifndef __smp_load_acquire
++#define __smp_load_acquire(p)						\
++({									\
++	typeof(*p) ___p1 = READ_ONCE(*p);				\
++	compiletime_assert_atomic_type(*p);				\
++	__smp_mb();							\
++	___p1;								\
++})
++#endif
++
++#ifdef CONFIG_SMP
++
++#ifndef smp_store_mb
++#define smp_store_mb(var, value)  __smp_store_mb(var, value)
++#endif
++
++#ifndef smp_mb__before_atomic
++#define smp_mb__before_atomic()	__smp_mb__before_atomic()
++#endif
++
++#ifndef smp_mb__after_atomic
++#define smp_mb__after_atomic()	__smp_mb__after_atomic()
++#endif
++
++#ifndef smp_store_release
++#define smp_store_release(p, v) __smp_store_release(p, v)
++#endif
++
++#ifndef smp_load_acquire
++#define smp_load_acquire(p) __smp_load_acquire(p)
++#endif
++
++#else	/* !CONFIG_SMP */
++
+ #ifndef smp_store_mb
+-#define smp_store_mb(var, value)  do { WRITE_ONCE(var, value); smp_mb(); } while (0)
++#define smp_store_mb(var, value)  do { WRITE_ONCE(var, value); barrier(); } while (0)
+ #endif
+ 
+ #ifndef smp_mb__before_atomic
+-#define smp_mb__before_atomic()	smp_mb()
++#define smp_mb__before_atomic()	barrier()
+ #endif
+ 
+ #ifndef smp_mb__after_atomic
+-#define smp_mb__after_atomic()	smp_mb()
++#define smp_mb__after_atomic()	barrier()
+ #endif
+ 
+ #ifndef smp_store_release
+ #define smp_store_release(p, v)						\
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+-	smp_mb();							\
++	barrier();							\
+ 	WRITE_ONCE(*p, v);						\
+ } while (0)
+ #endif
+@@ -118,10 +189,12 @@ do {									\
+ ({									\
+ 	typeof(*p) ___p1 = READ_ONCE(*p);				\
+ 	compiletime_assert_atomic_type(*p);				\
+-	smp_mb();							\
++	barrier();							\
+ 	___p1;								\
+ })
+ #endif
+ 
++#endif
++
+ #endif /* !__ASSEMBLY__ */
+ #endif /* __ASM_GENERIC_BARRIER_H */
 -- 
 MST
 
