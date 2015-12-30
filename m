@@ -1,98 +1,69 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 07/34] sparc: reuse asm-generic/barrier.h
-Date: Wed, 30 Dec 2015 15:24:43 +0200
-Message-ID: <1451473761-30019-8-git-send-email-mst@redhat.com>
+Subject: [PATCH 04/34] ia64: reuse asm-generic/barrier.h
+Date: Wed, 30 Dec 2015 15:24:27 +0200
+Message-ID: <1451473761-30019-5-git-send-email-mst@redhat.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 Content-Disposition: inline
 In-Reply-To: <1451473761-30019-1-git-send-email-mst@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
 To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, "David S. Miller" <davem@davemloft.net>, Ingo Molnar <mingo@kernel.org>, Michael Ellerman <mpe@ellerman.id.au>, Andrey Konovalov <andreyknvl@google.com>, sparclinux@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Fenghua Yu <fenghua.yu@intel.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Cooper <andrew.cooper3@citrix.com>, Andrey Konovalov <andreyknvl@google.com>, virtualization@lists.linux-foundation.org, Michael Ellerman <mpe@ellerman.id.au>, Ingo Molnar <mingo@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On sparc 64 bit dma_rmb, dma_wmb, smp_store_mb, smp_mb, smp_rmb,
-smp_wmb, read_barrier_depends and smp_read_barrier_depends match the
-asm-generic variants exactly. Drop the local definitions and pull in
-asm-generic/barrier.h instead.
-
-nop uses __asm__ __volatile but is otherwise identical to
-the generic version, drop that as well.
+On ia64 smp_rmb, smp_wmb, read_barrier_depends, smp_read_barrier_depends
+and smp_store_mb() match the asm-generic variants exactly. Drop the
+local definitions and pull in asm-generic/barrier.h instead.
 
 This is in preparation to refactoring this code area.
 
-Note: nop() was in processor.h and not in barrier.h as on other
-architectures. Nothing seems to depend on it being there though.
-
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/sparc/include/asm/barrier_32.h |  1 -
- arch/sparc/include/asm/barrier_64.h | 21 ++-------------------
- arch/sparc/include/asm/processor.h  |  3 ---
- 3 files changed, 2 insertions(+), 23 deletions(-)
+ arch/ia64/include/asm/barrier.h | 10 ++--------
+ 1 file changed, 2 insertions(+), 8 deletions(-)
 
-diff --git a/arch/sparc/include/asm/barrier_32.h b/arch/sparc/include/asm/barrier_32.h
-index ae69eda..8059130 100644
---- a/arch/sparc/include/asm/barrier_32.h
-+++ b/arch/sparc/include/asm/barrier_32.h
-@@ -1,7 +1,6 @@
- #ifndef __SPARC_BARRIER_H
- #define __SPARC_BARRIER_H
+diff --git a/arch/ia64/include/asm/barrier.h b/arch/ia64/include/asm/barrier.h
+index df896a1..2f93348 100644
+--- a/arch/ia64/include/asm/barrier.h
++++ b/arch/ia64/include/asm/barrier.h
+@@ -48,12 +48,6 @@
+ # define smp_mb()	barrier()
+ #endif
  
--#include <asm/processor.h> /* for nop() */
- #include <asm-generic/barrier.h>
- 
- #endif /* !(__SPARC_BARRIER_H) */
-diff --git a/arch/sparc/include/asm/barrier_64.h b/arch/sparc/include/asm/barrier_64.h
-index 14a9286..26c3f72 100644
---- a/arch/sparc/include/asm/barrier_64.h
-+++ b/arch/sparc/include/asm/barrier_64.h
-@@ -37,25 +37,6 @@ do {	__asm__ __volatile__("ba,pt	%%xcc, 1f\n\t" \
- #define rmb()	__asm__ __volatile__("":::"memory")
- #define wmb()	__asm__ __volatile__("":::"memory")
- 
--#define dma_rmb()	rmb()
--#define dma_wmb()	wmb()
--
--#define smp_store_mb(__var, __value) \
--	do { WRITE_ONCE(__var, __value); membar_safe("#StoreLoad"); } while(0)
--
--#ifdef CONFIG_SMP
--#define smp_mb()	mb()
--#define smp_rmb()	rmb()
--#define smp_wmb()	wmb()
--#else
--#define smp_mb()	__asm__ __volatile__("":::"memory")
--#define smp_rmb()	__asm__ __volatile__("":::"memory")
--#define smp_wmb()	__asm__ __volatile__("":::"memory")
--#endif
+-#define smp_rmb()	smp_mb()
+-#define smp_wmb()	smp_mb()
 -
 -#define read_barrier_depends()		do { } while (0)
 -#define smp_read_barrier_depends()	do { } while (0)
 -
- #define smp_store_release(p, v)						\
- do {									\
- 	compiletime_assert_atomic_type(*p);				\
-@@ -74,4 +55,6 @@ do {									\
  #define smp_mb__before_atomic()	barrier()
  #define smp_mb__after_atomic()	barrier()
  
+@@ -77,12 +71,12 @@ do {									\
+ 	___p1;								\
+ })
+ 
+-#define smp_store_mb(var, value)	do { WRITE_ONCE(var, value); mb(); } while (0)
+-
+ /*
+  * The group barrier in front of the rsm & ssm are necessary to ensure
+  * that none of the previous instructions in the same group are
+  * affected by the rsm/ssm.
+  */
+ 
 +#include <asm-generic/barrier.h>
 +
- #endif /* !(__SPARC64_BARRIER_H) */
-diff --git a/arch/sparc/include/asm/processor.h b/arch/sparc/include/asm/processor.h
-index 2fe99e6..9da9646 100644
---- a/arch/sparc/include/asm/processor.h
-+++ b/arch/sparc/include/asm/processor.h
-@@ -5,7 +5,4 @@
- #else
- #include <asm/processor_32.h>
- #endif
--
--#define nop() 		__asm__ __volatile__ ("nop")
--
- #endif
+ #endif /* _ASM_IA64_BARRIER_H */
 -- 
 MST
