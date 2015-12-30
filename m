@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:38474 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:55511 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754999AbbL3NZJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Dec 2015 08:25:09 -0500
-Date: Wed, 30 Dec 2015 15:25:05 +0200
+	id S1754973AbbL3NY5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Dec 2015 08:24:57 -0500
+Date: Wed, 30 Dec 2015 15:24:50 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 12/34] mips: reuse asm-generic/barrier.h
-Message-ID: <1451473761-30019-13-git-send-email-mst@redhat.com>
+Subject: [PATCH 09/34] arm: reuse asm-generic/barrier.h
+Message-ID: <1451473761-30019-10-git-send-email-mst@redhat.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,56 +15,27 @@ In-Reply-To: <1451473761-30019-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Ralf Baechle <ralf@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, Davidlohr Bueso <dbueso@suse.de>, Andrey Konovalov <andreyknvl@google.com>, linux-mips@linux-mips.org
-Message-ID: <20151230132505.lzUtxxjj954GkIW_uheL2xCcwM4K35C9nMtd-QhfRk8@z>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Russell King <linux@arm.linux.org.uk>, Ingo Molnar <mingo@kernel.org>, Tony Lindgren <tony@atomide.com>, Andrey Konovalov <andreyknvl@google.com>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20151230132450.M1SD-m1J1U2NViISvj5fdvYv7pPv1gASRxRjbFHeTDU@z>
 
-On mips dma_rmb, dma_wmb, smp_store_mb, read_barrier_depends,
-smp_read_barrier_depends, smp_store_release and smp_load_acquire  match
-the asm-generic variants exactly. Drop the local definitions and pull in
-asm-generic/barrier.h instead.
+On arm smp_store_mb, read_barrier_depends, smp_read_barrier_depends,
+smp_store_release, smp_load_acquire, smp_mb__before_atomic and
+smp_mb__after_atomic match the asm-generic variants exactly. Drop the
+local definitions and pull in asm-generic/barrier.h instead.
 
 This is in preparation to refactoring this code area.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/mips/include/asm/barrier.h | 25 ++-----------------------
- 1 file changed, 2 insertions(+), 23 deletions(-)
+ arch/arm/include/asm/barrier.h | 23 +----------------------
+ 1 file changed, 1 insertion(+), 22 deletions(-)
 
-diff --git a/arch/mips/include/asm/barrier.h b/arch/mips/include/asm/barrier.h
-index 752e0b8..3eac4b9 100644
---- a/arch/mips/include/asm/barrier.h
-+++ b/arch/mips/include/asm/barrier.h
-@@ -10,9 +10,6 @@
- 
- #include <asm/addrspace.h>
- 
--#define read_barrier_depends()		do { } while(0)
--#define smp_read_barrier_depends()	do { } while(0)
--
- #ifdef CONFIG_CPU_HAS_SYNC
- #define __sync()				\
- 	__asm__ __volatile__(			\
-@@ -87,8 +84,6 @@
- 
- #define wmb()		fast_wmb()
- #define rmb()		fast_rmb()
--#define dma_wmb()	fast_wmb()
--#define dma_rmb()	fast_rmb()
- 
- #if defined(CONFIG_WEAK_ORDERING) && defined(CONFIG_SMP)
- # ifdef CONFIG_CPU_CAVIUM_OCTEON
-@@ -112,9 +107,6 @@
- #define __WEAK_LLSC_MB		"		\n"
- #endif
- 
--#define smp_store_mb(var, value) \
--	do { WRITE_ONCE(var, value); smp_mb(); } while (0)
--
- #define smp_llsc_mb()	__asm__ __volatile__(__WEAK_LLSC_MB : : :"memory")
- 
- #ifdef CONFIG_CPU_CAVIUM_OCTEON
-@@ -129,22 +121,9 @@
- #define nudge_writes() mb()
+diff --git a/arch/arm/include/asm/barrier.h b/arch/arm/include/asm/barrier.h
+index 3ff5642..31152e8 100644
+--- a/arch/arm/include/asm/barrier.h
++++ b/arch/arm/include/asm/barrier.h
+@@ -70,28 +70,7 @@ extern void arm_heavy_mb(void);
+ #define smp_wmb()	dmb(ishst)
  #endif
  
 -#define smp_store_release(p, v)						\
@@ -82,11 +53,16 @@ index 752e0b8..3eac4b9 100644
 -	___p1;								\
 -})
 -
- #define smp_mb__before_atomic()	smp_mb__before_llsc()
- #define smp_mb__after_atomic()	smp_llsc_mb()
- 
+-#define read_barrier_depends()		do { } while(0)
+-#define smp_read_barrier_depends()	do { } while(0)
+-
+-#define smp_store_mb(var, value)	do { WRITE_ONCE(var, value); smp_mb(); } while (0)
+-
+-#define smp_mb__before_atomic()	smp_mb()
+-#define smp_mb__after_atomic()	smp_mb()
 +#include <asm-generic/barrier.h>
-+
+ 
+ #endif /* !__ASSEMBLY__ */
  #endif /* __ASM_BARRIER_H */
 -- 
 MST
