@@ -1,93 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:39669 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:39820 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754465AbbL3Tfr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Dec 2015 14:35:47 -0500
-Received: from int-mx14.intmail.prod.int.phx2.redhat.com (int-mx14.intmail.prod.int.phx2.redhat.com [10.5.11.27])
-	by mx1.redhat.com (Postfix) with ESMTPS id 1FEC68F506
-	for <linux-arch@vger.kernel.org>; Wed, 30 Dec 2015 19:35:45 +0000 (UTC)
-Received: from redhat.com (vpn1-6-186.ams2.redhat.com [10.36.6.186])
-	by int-mx14.intmail.prod.int.phx2.redhat.com (8.14.4/8.14.4) with SMTP id tBUJZh3O011751
-	for <linux-arch@vger.kernel.org>; Wed, 30 Dec 2015 14:35:44 -0500
-Date: Wed, 30 Dec 2015 15:25:23 +0200
+	id S1753898AbbL3Tzi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Dec 2015 14:55:38 -0500
+Date: Wed, 30 Dec 2015 21:55:33 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 16/34] powerpc: define __smp_xxx
-Message-ID: <1451473761-30019-17-git-send-email-mst@redhat.com>
+Subject: Re: [PATCH 07/34] sparc: reuse asm-generic/barrier.h
+Message-ID: <20151230215303-mutt-send-email-mst@redhat.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
+ <1451473761-30019-8-git-send-email-mst@redhat.com>
+ <20151230.125603.75638711551088484.davem@davemloft.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1451473761-30019-1-git-send-email-mst@redhat.com>
+In-Reply-To: <20151230.125603.75638711551088484.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Ingo Molnar <mingo@kernel.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Andrey Konovalov <andreyknvl@google.com>, linuxppc-dev@lists.ozlabs.org
-Message-ID: <20151230132523.v5K3nsNCoQB-cLlKKX_cL0QEUeeHxF0UTA7GiFg5avA@z>
+To: David Miller <davem@davemloft.net>
+Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, arnd@arndb.de, linux-arch@vger.kernel.org, andrew.cooper3@citrix.com, virtualization@lists.linux-foundation.org, stefano.stabellini@eu.citrix.com, mingo@kernel.org, mpe@ellerman.id.au, andreyknvl@google.com, sparclinux@vger.kernel.org
+Message-ID: <20151230195533.GzlkQHXWAlSp699ecllYfUeHSoht4wgdYtDYtyiq2-4@z>
 
-This defines __smp_XXX barriers for powerpc
-for use by virtualization.
+On Wed, Dec 30, 2015 at 12:56:03PM -0500, David Miller wrote:
+> 
+> I find it a little bit irritating when I receive a patch directly
+> addressed to me to review, but I don't see the "00/34" cover letter.
+> 
+> I want to see what this series is about, and what the motiviation
+> for this change is.
+> 
+> I'm also highly frustrated, in general, with mix-and-match CC: lists
+> for patch series.  Just put everyone relevant in the CC: for the
+> entire series.  That way I can easily inspect other parts of the
+> series to see infrastructure buildup, and examples of other
+> conversions or versions of the change.
+> 
+> Thanks.
 
-smp_XXX barriers are removed as they are
-defined correctly by asm-generic/barriers.h
+Hi Dave.
+Sorry about that.
 
-This reduces the amount of arch-specific boiler-plate code.
+The problem I had in the past is that vger rejects email with
+too many CC addresses.
 
-Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
----
- arch/powerpc/include/asm/barrier.h | 24 ++++++++----------------
- 1 file changed, 8 insertions(+), 16 deletions(-)
+(It also rejected email with __smp_XXX in the subject
+suspecting it's spam :( )
 
-diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
-index 980ad0c..c0deafc 100644
---- a/arch/powerpc/include/asm/barrier.h
-+++ b/arch/powerpc/include/asm/barrier.h
-@@ -44,19 +44,11 @@
- #define dma_rmb()	__lwsync()
- #define dma_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
- 
--#ifdef CONFIG_SMP
--#define smp_lwsync()	__lwsync()
-+#define __smp_lwsync()	__lwsync()
- 
--#define smp_mb()	mb()
--#define smp_rmb()	__lwsync()
--#define smp_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
--#else
--#define smp_lwsync()	barrier()
--
--#define smp_mb()	barrier()
--#define smp_rmb()	barrier()
--#define smp_wmb()	barrier()
--#endif /* CONFIG_SMP */
-+#define __smp_mb()	mb()
-+#define __smp_rmb()	__lwsync()
-+#define __smp_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
- 
- /*
-  * This is a barrier which prevents following instructions from being
-@@ -67,18 +59,18 @@
- #define data_barrier(x)	\
- 	asm volatile("twi 0,%0,0; isync" : : "r" (x) : "memory");
- 
--#define smp_store_release(p, v)						\
-+#define __smp_store_release(p, v)						\
- do {									\
- 	compiletime_assert_atomic_type(*p);				\
--	smp_lwsync();							\
-+	__smp_lwsync();							\
- 	WRITE_ONCE(*p, v);						\
- } while (0)
- 
--#define smp_load_acquire(p)						\
-+#define __smp_load_acquire(p)						\
- ({									\
- 	typeof(*p) ___p1 = READ_ONCE(*p);				\
- 	compiletime_assert_atomic_type(*p);				\
--	smp_lwsync();							\
-+	__smp_lwsync();							\
- 	___p1;								\
- })
- 
+I'll look for better solutions next time - for now, would it help if I
+bounced the whole patchset to you?
+
 -- 
 MST
-
