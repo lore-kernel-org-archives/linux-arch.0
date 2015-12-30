@@ -1,35 +1,34 @@
-From: "Luck, Tony" <tony.luck@intel.com>
-Subject: RE: [PATCH 20/34] ia64: define __smp_XXX
-Date: Wed, 30 Dec 2015 16:43:00 +0000
-Message-ID: <3908561D78D1C84285E8C5FCA982C28F39F9D09A@ORSMSX114.amr.corp.intel.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 07/34] sparc: reuse asm-generic/barrier.h
+Date: Wed, 30 Dec 2015 12:56:03 -0500 (EST)
+Message-ID: <20151230.125603.75638711551088484.davem@davemloft.net>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
-	<1451473761-30019-21-git-send-email-mst@redhat.com>
+	<1451473761-30019-8-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <1451473761-30019-21-git-send-email-mst@redhat.com>
-Content-Language: en-US
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: "Michael S. Tsirkin" <mst@redhat.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "Yu,
-	Fenghua" <fenghua.yu@intel.com>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Cooper <andrew.cooper3@citrix.com>, Davidlohr Bueso <dbueso@suse.de>, "virtualization@lists.linux-foundation.org" <virtualization@lists.linux-foundation.org>, Andrey Konovalov <andreyknvl@google.com>, Ingo Molnar <mingo@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from shards.monkeyblade.net ([149.20.54.216]:38479 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753007AbbL3R4G (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Dec 2015 12:56:06 -0500
+In-Reply-To: <1451473761-30019-8-git-send-email-mst@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: mst@redhat.com
+Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, arnd@arndb.de, linux-arch@vger.kernel.org, andrew.cooper3@citrix.com, virtualization@lists.linux-foundation.org, stefano.stabellini@eu.citrix.com, mingo@kernel.org, mpe@ellerman.id.au, andreyknvl@google.com, sparclinux@vger.kernel.org
 
-> This defines __smp_XXX barriers for ia64,
-> for use by virtualization.
->
-> smp_XXX barriers are removed as they are
-> defined correctly by asm-generic/barriers.h
->
-> This reduces the amount of arch-specific boiler-plate code.
 
-Acked-by: Tony Luck <tony.luck@intel.com>
+I find it a little bit irritating when I receive a patch directly
+addressed to me to review, but I don't see the "00/34" cover letter.
+
+I want to see what this series is about, and what the motiviation
+for this change is.
+
+I'm also highly frustrated, in general, with mix-and-match CC: lists
+for patch series.  Just put everyone relevant in the CC: for the
+entire series.  That way I can easily inspect other parts of the
+series to see infrastructure buildup, and examples of other
+conversions or versions of the change.
+
+Thanks.
