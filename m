@@ -1,41 +1,53 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
+From: David Miller <davem@davemloft.net>
 Subject: Re: [PATCH 00/34] arch: barrier cleanup + __smp_xxx barriers for virt
-Date: Wed, 30 Dec 2015 23:45:41 +0200
-Message-ID: <20151230234521-mutt-send-email-mst@redhat.com>
+Date: Wed, 30 Dec 2015 16:59:08 -0500 (EST)
+Message-ID: <20151230.165908.1627575055770897057.davem@davemloft.net>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
- <11919001.9WHgFoPpmK@wuerfel>
+	<20151230.154646.596597479469584255.davem@davemloft.net>
+	<20151230224855-mutt-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:56287 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750940AbbL3Vpo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Dec 2015 16:45:44 -0500
-Content-Disposition: inline
-In-Reply-To: <11919001.9WHgFoPpmK@wuerfel>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <20151230224855-mutt-send-email-mst@redhat.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: mst@redhat.com
+Cc: linux-arch@vger.kernel.org, arnd@arndb.de, stefano.stabellini@eu.citrix.com, peterz@infradead.org, andrew.cooper3@citrix.com, linux-kernel@vger.kernel.org, virtualization@lists.linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Dec 30, 2015 at 02:49:53PM +0100, Arnd Bergmann wrote:
-> On Wednesday 30 December 2015 15:24:12 Michael S. Tsirkin wrote:
-> > This is really trying to cleanup some virt code, as suggested by Peter, who
-> > said
-> > > You could of course go fix that instead of mutilating things into
-> > > sort-of functional state.
-> > 
-> > This work is needed for virtio, so it's probably easiest to
-> > merge it through my tree - is this fine by everyone?
-> > Arnd, if you agree, could you ack this please?
-> 
-> I've looked over all patches now, and everything seems fine (I had one
-> small comment about a duplicate patch). It's a very nice cleanup, both
-> for using the asm-generic file, and for the virtualization users.
-> 
-> Please add my "Acked-by: Arnd Bergmann <arnd@arndb.de>" when merging the
-> series through your tree.
-> 
-> 	Arnd
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Date: Wed, 30 Dec 2015 23:36:29 +0200
 
-To all patches in the series?
+> On Wed, Dec 30, 2015 at 03:46:46PM -0500, David Miller wrote:
+>> From: "Michael S. Tsirkin" <mst@redhat.com>
+>> Date: Wed, 30 Dec 2015 14:58:19 +0200
+>> 
+>> > -. Patch 1 documents the __smp APIs, and explains why they are
+>> >    useful for virt
+>> 
+>> If virt is doing things like interacting with descriptors that are
+>> shared with a (potentially SMP) host, why don't we just annotate those
+>> specific cases?
+> 
+> Using a bunch of per-arch ifdefs in virtio?
+> That's fundamentally what we have now.
+
+I was suggesting a generic interface to get what you want.
+
+virt_mb() or something like that.  You can name it something
+else, that's not the important part.
+
+> Or do you mean wrappers for __smp_XXX that explicitly
+> say they are for talking to host?
+> E.g. pv_mb() pv_rmb() etc.
+> That sounds very reasonable to me.
+
+Exactly!
