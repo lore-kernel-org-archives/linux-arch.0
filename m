@@ -1,7 +1,7 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 24/34] sh: define __smp_XXX, fix smp_store_mb for !SMP
-Date: Wed, 30 Dec 2015 15:25:57 +0200
-Message-ID: <1451473761-30019-25-git-send-email-mst@redhat.com>
+Subject: [PATCH 25/34] sparc: define __smp_XXX
+Date: Wed, 30 Dec 2015 15:26:01 +0200
+Message-ID: <1451473761-30019-26-git-send-email-mst@redhat.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -19,32 +19,49 @@ List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualizati
 Sender: virtualization-bounces@lists.linux-foundation.org
 Errors-To: virtualization-bounces@lists.linux-foundation.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Cooper <andrew.cooper3@citrix.com>, linux-sh@vger.kernel.org, virtualization@lists.linux-foundation.org, Ingo Molnar <mingo@kernel.org>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Cooper <andrew.cooper3@citrix.com>, Ingo Molnar <mingo@kernel.org>, Andrey Konovalov <andreyknvl@google.com>, virtualization@lists.linux-foundation.org, Michael Ellerman <mpe@ellerman.id.au>, sparclinux@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-sh variant of smp_store_mb() calls xchg() on !SMP which is stronger than
-implied by both the name and the documentation.
+This defines __smp_XXX barriers for sparc,
+for use by virtualization.
 
-define __smp_store_mb instead: code in asm-generic/barrier.h
-will then define smp_store_mb correctly depending on
-CONFIG_SMP.
+smp_XXX barriers are removed as they are
+defined correctly by asm-generic/barriers.h
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/sh/include/asm/barrier.h | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ arch/sparc/include/asm/barrier_64.h | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/sh/include/asm/barrier.h b/arch/sh/include/asm/barrier.h
-index bf91037..f887c64 100644
---- a/arch/sh/include/asm/barrier.h
-+++ b/arch/sh/include/asm/barrier.h
-@@ -32,7 +32,8 @@
- #define ctrl_barrier()	__asm__ __volatile__ ("nop;nop;nop;nop;nop;nop;nop;nop")
- #endif
+diff --git a/arch/sparc/include/asm/barrier_64.h b/arch/sparc/include/asm/barrier_64.h
+index 26c3f72..c9f6ee6 100644
+--- a/arch/sparc/include/asm/barrier_64.h
++++ b/arch/sparc/include/asm/barrier_64.h
+@@ -37,14 +37,14 @@ do {	__asm__ __volatile__("ba,pt	%%xcc, 1f\n\t" \
+ #define rmb()	__asm__ __volatile__("":::"memory")
+ #define wmb()	__asm__ __volatile__("":::"memory")
  
--#define smp_store_mb(var, value) do { (void)xchg(&var, value); } while (0)
-+#define __smp_store_mb(var, value) do { (void)xchg(&var, value); } while (0)
-+#define smp_store_mb(var, value) __smp_store_mb(var, value)
+-#define smp_store_release(p, v)						\
++#define __smp_store_release(p, v)						\
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	barrier();							\
+ 	WRITE_ONCE(*p, v);						\
+ } while (0)
+ 
+-#define smp_load_acquire(p)						\
++#define __smp_load_acquire(p)						\
+ ({									\
+ 	typeof(*p) ___p1 = READ_ONCE(*p);				\
+ 	compiletime_assert_atomic_type(*p);				\
+@@ -52,8 +52,8 @@ do {									\
+ 	___p1;								\
+ })
+ 
+-#define smp_mb__before_atomic()	barrier()
+-#define smp_mb__after_atomic()	barrier()
++#define __smp_mb__before_atomic()	barrier()
++#define __smp_mb__after_atomic()	barrier()
  
  #include <asm-generic/barrier.h>
  
