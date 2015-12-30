@@ -1,69 +1,63 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 04/34] ia64: reuse asm-generic/barrier.h
-Date: Wed, 30 Dec 2015 15:24:27 +0200
-Message-ID: <1451473761-30019-5-git-send-email-mst@redhat.com>
+Subject: [PATCH 09/34] arm: reuse asm-generic/barrier.h
+Date: Wed, 30 Dec 2015 15:24:50 +0200
+Message-ID: <1451473761-30019-10-git-send-email-mst@redhat.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
 In-Reply-To: <1451473761-30019-1-git-send-email-mst@redhat.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Fenghua Yu <fenghua.yu@intel.com>, Tony Luck <tony.luck@intel.com>, linux-ia64@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Cooper <andrew.cooper3@citrix.com>, Andrey Konovalov <andreyknvl@google.com>, virtualization@lists.linux-foundation.org, Michael Ellerman <mpe@ellerman.id.au>, Ingo Molnar <mingo@kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Russell King <linux@arm.linux.org.uk>, Ingo Molnar <mingo@kernel.org>, Tony Lindgren <tony@atomide.com>, Andrey Konovalov <andreyknvl@google.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On ia64 smp_rmb, smp_wmb, read_barrier_depends, smp_read_barrier_depends
-and smp_store_mb() match the asm-generic variants exactly. Drop the
+On arm smp_store_mb, read_barrier_depends, smp_read_barrier_depends,
+smp_store_release, smp_load_acquire, smp_mb__before_atomic and
+smp_mb__after_atomic match the asm-generic variants exactly. Drop the
 local definitions and pull in asm-generic/barrier.h instead.
 
 This is in preparation to refactoring this code area.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/ia64/include/asm/barrier.h | 10 ++--------
- 1 file changed, 2 insertions(+), 8 deletions(-)
+ arch/arm/include/asm/barrier.h | 23 +----------------------
+ 1 file changed, 1 insertion(+), 22 deletions(-)
 
-diff --git a/arch/ia64/include/asm/barrier.h b/arch/ia64/include/asm/barrier.h
-index df896a1..2f93348 100644
---- a/arch/ia64/include/asm/barrier.h
-+++ b/arch/ia64/include/asm/barrier.h
-@@ -48,12 +48,6 @@
- # define smp_mb()	barrier()
+diff --git a/arch/arm/include/asm/barrier.h b/arch/arm/include/asm/barrier.h
+index 3ff5642..31152e8 100644
+--- a/arch/arm/include/asm/barrier.h
++++ b/arch/arm/include/asm/barrier.h
+@@ -70,28 +70,7 @@ extern void arm_heavy_mb(void);
+ #define smp_wmb()	dmb(ishst)
  #endif
  
--#define smp_rmb()	smp_mb()
--#define smp_wmb()	smp_mb()
+-#define smp_store_release(p, v)						\
+-do {									\
+-	compiletime_assert_atomic_type(*p);				\
+-	smp_mb();							\
+-	WRITE_ONCE(*p, v);						\
+-} while (0)
 -
--#define read_barrier_depends()		do { } while (0)
--#define smp_read_barrier_depends()	do { } while (0)
+-#define smp_load_acquire(p)						\
+-({									\
+-	typeof(*p) ___p1 = READ_ONCE(*p);				\
+-	compiletime_assert_atomic_type(*p);				\
+-	smp_mb();							\
+-	___p1;								\
+-})
 -
- #define smp_mb__before_atomic()	barrier()
- #define smp_mb__after_atomic()	barrier()
- 
-@@ -77,12 +71,12 @@ do {									\
- 	___p1;								\
- })
- 
--#define smp_store_mb(var, value)	do { WRITE_ONCE(var, value); mb(); } while (0)
+-#define read_barrier_depends()		do { } while(0)
+-#define smp_read_barrier_depends()	do { } while(0)
 -
- /*
-  * The group barrier in front of the rsm & ssm are necessary to ensure
-  * that none of the previous instructions in the same group are
-  * affected by the rsm/ssm.
-  */
- 
+-#define smp_store_mb(var, value)	do { WRITE_ONCE(var, value); smp_mb(); } while (0)
+-
+-#define smp_mb__before_atomic()	smp_mb()
+-#define smp_mb__after_atomic()	smp_mb()
 +#include <asm-generic/barrier.h>
-+
- #endif /* _ASM_IA64_BARRIER_H */
+ 
+ #endif /* !__ASSEMBLY__ */
+ #endif /* __ASM_BARRIER_H */
 -- 
 MST
