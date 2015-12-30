@@ -1,52 +1,99 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 08/34] asm-generic: smp_store_mb should use smp_mb
-Date: Wed, 30 Dec 2015 15:24:47 +0200
-Message-ID: <1451473761-30019-9-git-send-email-mst@redhat.com>
+Subject: [PATCH 22/34] mips: define __smp_XXX
+Date: Wed, 30 Dec 2015 15:25:48 +0200
+Message-ID: <1451473761-30019-23-git-send-email-mst@redhat.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-mips-bounce@linux-mips.org>
 Content-Disposition: inline
 In-Reply-To: <1451473761-30019-1-git-send-email-mst@redhat.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Ralf Baechle <ralf@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, Davidlohr Bueso <dbueso@suse.de>, Andrey Konovalov <andreyknvl@google.com>, linux-mips@linux-mips.org
 List-Id: linux-arch.vger.kernel.org
 
-asm-generic variant of smp_store_mb() calls mb() which is stronger
-than implied by both the name and the documentation.
+This defines __smp_XXX barriers for mips,
+for use by virtualization.
 
-smp_store_mb is only used by core kernel code at the moment, so
-we know no one mis-uses it for an MMIO barrier.
-Make it call smp_mb consistently before some arch-specific
-code uses it as such by mistake.
+smp_XXX barriers are removed as they are
+defined correctly by asm-generic/barriers.h
+
+Note: the only exception is smp_mb__before_llsc which is mips-specific.
+We define both the __smp_mb__before_llsc variant (for use in
+asm/barriers.h) and smp_mb__before_llsc (for use elsewhere on this
+architecture).
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- include/asm-generic/barrier.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ arch/mips/include/asm/barrier.h | 26 ++++++++++++++------------
+ 1 file changed, 14 insertions(+), 12 deletions(-)
 
-diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
-index 538f8d1..987b2e0 100644
---- a/include/asm-generic/barrier.h
-+++ b/include/asm-generic/barrier.h
-@@ -93,7 +93,7 @@
- #endif	/* CONFIG_SMP */
+diff --git a/arch/mips/include/asm/barrier.h b/arch/mips/include/asm/barrier.h
+index 3eac4b9..d296633 100644
+--- a/arch/mips/include/asm/barrier.h
++++ b/arch/mips/include/asm/barrier.h
+@@ -85,20 +85,20 @@
+ #define wmb()		fast_wmb()
+ #define rmb()		fast_rmb()
  
- #ifndef smp_store_mb
--#define smp_store_mb(var, value)  do { WRITE_ONCE(var, value); mb(); } while (0)
-+#define smp_store_mb(var, value)  do { WRITE_ONCE(var, value); smp_mb(); } while (0)
+-#if defined(CONFIG_WEAK_ORDERING) && defined(CONFIG_SMP)
++#if defined(CONFIG_WEAK_ORDERING)
+ # ifdef CONFIG_CPU_CAVIUM_OCTEON
+-#  define smp_mb()	__sync()
+-#  define smp_rmb()	barrier()
+-#  define smp_wmb()	__syncw()
++#  define __smp_mb()	__sync()
++#  define __smp_rmb()	barrier()
++#  define __smp_wmb()	__syncw()
+ # else
+-#  define smp_mb()	__asm__ __volatile__("sync" : : :"memory")
+-#  define smp_rmb()	__asm__ __volatile__("sync" : : :"memory")
+-#  define smp_wmb()	__asm__ __volatile__("sync" : : :"memory")
++#  define __smp_mb()	__asm__ __volatile__("sync" : : :"memory")
++#  define __smp_rmb()	__asm__ __volatile__("sync" : : :"memory")
++#  define __smp_wmb()	__asm__ __volatile__("sync" : : :"memory")
+ # endif
+ #else
+-#define smp_mb()	barrier()
+-#define smp_rmb()	barrier()
+-#define smp_wmb()	barrier()
++#define __smp_mb()	barrier()
++#define __smp_rmb()	barrier()
++#define __smp_wmb()	barrier()
  #endif
  
- #ifndef smp_mb__before_atomic
+ #if defined(CONFIG_WEAK_REORDERING_BEYOND_LLSC) && defined(CONFIG_SMP)
+@@ -111,6 +111,7 @@
+ 
+ #ifdef CONFIG_CPU_CAVIUM_OCTEON
+ #define smp_mb__before_llsc() smp_wmb()
++#define __smp_mb__before_llsc() __smp_wmb()
+ /* Cause previous writes to become visible on all CPUs as soon as possible */
+ #define nudge_writes() __asm__ __volatile__(".set push\n\t"		\
+ 					    ".set arch=octeon\n\t"	\
+@@ -118,11 +119,12 @@
+ 					    ".set pop" : : : "memory")
+ #else
+ #define smp_mb__before_llsc() smp_llsc_mb()
++#define __smp_mb__before_llsc() smp_llsc_mb()
+ #define nudge_writes() mb()
+ #endif
+ 
+-#define smp_mb__before_atomic()	smp_mb__before_llsc()
+-#define smp_mb__after_atomic()	smp_llsc_mb()
++#define __smp_mb__before_atomic()	__smp_mb__before_llsc()
++#define __smp_mb__after_atomic()	smp_llsc_mb()
+ 
+ #include <asm-generic/barrier.h>
+ 
 -- 
 MST
