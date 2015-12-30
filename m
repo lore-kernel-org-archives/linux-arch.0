@@ -1,93 +1,62 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 29/34] Revert "virtio_ring: Update weak barriers to use
- dma_wmb/rmb"
-Date: Wed, 30 Dec 2015 15:26:18 +0200
-Message-ID: <1451473761-30019-30-git-send-email-mst@redhat.com>
+Subject: [PATCH 18/34] arm: define __smp_XXX
+Date: Wed, 30 Dec 2015 15:25:32 +0200
+Message-ID: <1451473761-30019-19-git-send-email-mst@redhat.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 Content-Disposition: inline
 In-Reply-To: <1451473761-30019-1-git-send-email-mst@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: "linux-arm-kernel" <linux-arm-kernel-bounces@lists.infradead.org>
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Alexander Duyck <alexander.duyck@gmail.com>
+Cc: linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Tony Lindgren <tony@atomide.com>, Andrey Konovalov <andreyknvl@google.com>, Ingo Molnar <mingo@kernel.org>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-This reverts commit 9e1a27ea42691429e31f158cce6fc61bc79bb2e9.
+This defines __smp_XXX barriers for arm,
+for use by virtualization.
 
-While that commit optimizes !CONFIG_SMP, it mixes
-up DMA and SMP concepts, making the code hard
-to figure out.
+smp_XXX barriers are removed as they are
+defined correctly by asm-generic/barriers.h
 
-A better way to optimize this is with the new __smp_XXX
-barriers.
+This reduces the amount of arch-specific boiler-plate code.
 
-As a first step, go back to full rmb/wmb barriers
-for !SMP.
-We switch to __smp_XXX barriers in the next patch.
-
-Cc: Peter Zijlstra <peterz@infradead.org>
-Cc: Alexander Duyck <alexander.duyck@gmail.com>
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- include/linux/virtio_ring.h | 23 +++++++++++++++++++----
- 1 file changed, 19 insertions(+), 4 deletions(-)
+ arch/arm/include/asm/barrier.h | 12 +++---------
+ 1 file changed, 3 insertions(+), 9 deletions(-)
 
-diff --git a/include/linux/virtio_ring.h b/include/linux/virtio_ring.h
-index 8e50888..67e06fe 100644
---- a/include/linux/virtio_ring.h
-+++ b/include/linux/virtio_ring.h
-@@ -21,20 +21,19 @@
-  * actually quite cheap.
-  */
+diff --git a/arch/arm/include/asm/barrier.h b/arch/arm/include/asm/barrier.h
+index 31152e8..112cc1a 100644
+--- a/arch/arm/include/asm/barrier.h
++++ b/arch/arm/include/asm/barrier.h
+@@ -60,15 +60,9 @@ extern void arm_heavy_mb(void);
+ #define dma_wmb()	barrier()
+ #endif
  
-+#ifdef CONFIG_SMP
- static inline void virtio_mb(bool weak_barriers)
- {
--#ifdef CONFIG_SMP
- 	if (weak_barriers)
- 		smp_mb();
- 	else
+-#ifndef CONFIG_SMP
+-#define smp_mb()	barrier()
+-#define smp_rmb()	barrier()
+-#define smp_wmb()	barrier()
+-#else
+-#define smp_mb()	dmb(ish)
+-#define smp_rmb()	smp_mb()
+-#define smp_wmb()	dmb(ishst)
 -#endif
- 		mb();
- }
++#define __smp_mb()	dmb(ish)
++#define __smp_rmb()	__smp_mb()
++#define __smp_wmb()	dmb(ishst)
  
- static inline void virtio_rmb(bool weak_barriers)
- {
- 	if (weak_barriers)
--		dma_rmb();
-+		smp_rmb();
- 	else
- 		rmb();
- }
-@@ -42,10 +41,26 @@ static inline void virtio_rmb(bool weak_barriers)
- static inline void virtio_wmb(bool weak_barriers)
- {
- 	if (weak_barriers)
--		dma_wmb();
-+		smp_wmb();
- 	else
- 		wmb();
- }
-+#else
-+static inline void virtio_mb(bool weak_barriers)
-+{
-+	mb();
-+}
-+
-+static inline void virtio_rmb(bool weak_barriers)
-+{
-+	rmb();
-+}
-+
-+static inline void virtio_wmb(bool weak_barriers)
-+{
-+	wmb();
-+}
-+#endif
+ #include <asm-generic/barrier.h>
  
- struct virtio_device;
- struct virtqueue;
 -- 
 MST
