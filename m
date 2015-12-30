@@ -1,38 +1,47 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 07/34] sparc: reuse asm-generic/barrier.h
-Date: Wed, 30 Dec 2015 15:47:39 -0500 (EST)
-Message-ID: <20151230.154739.2088097882831259841.davem@davemloft.net>
-References: <1451473761-30019-8-git-send-email-mst@redhat.com>
-	<20151230.125603.75638711551088484.davem@davemloft.net>
-	<20151230215303-mutt-send-email-mst@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <20151230215303-mutt-send-email-mst@redhat.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: mst@redhat.com
-Cc: linux-arch@vger.kernel.org, arnd@arndb.de, stefano.stabellini@eu.citrix.com, peterz@infradead.org, andrew.cooper3@citrix.com, linux-kernel@vger.kernel.org, andreyknvl@google.com, virtualization@lists.linux-foundation.org, mpe@ellerman.id.au, sparclinux@vger.kernel.org, mingo@kernel.org
-List-Id: linux-arch.vger.kernel.org
-
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Date: Wed, 30 Dec 2015 21:55:33 +0200
+Subject: Re: [PATCH 00/34] arch: barrier cleanup + __smp_xxx barriers for virt
+Date: Wed, 30 Dec 2015 23:36:29 +0200
+Message-ID: <20151230224855-mutt-send-email-mst@redhat.com>
+References: <1451473761-30019-1-git-send-email-mst@redhat.com>
+ <20151230.154646.596597479469584255.davem@davemloft.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:32991 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753466AbbL3Vgd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 30 Dec 2015 16:36:33 -0500
+Content-Disposition: inline
+In-Reply-To: <20151230.154646.596597479469584255.davem@davemloft.net>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Miller <davem@davemloft.net>
+Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, arnd@arndb.de, linux-arch@vger.kernel.org, andrew.cooper3@citrix.com, virtualization@lists.linux-foundation.org, stefano.stabellini@eu.citrix.com
 
-> The problem I had in the past is that vger rejects email with
-> too many CC addresses.
+On Wed, Dec 30, 2015 at 03:46:46PM -0500, David Miller wrote:
+> From: "Michael S. Tsirkin" <mst@redhat.com>
+> Date: Wed, 30 Dec 2015 14:58:19 +0200
+> 
+> > -. Patch 1 documents the __smp APIs, and explains why they are
+> >    useful for virt
+> 
+> If virt is doing things like interacting with descriptors that are
+> shared with a (potentially SMP) host, why don't we just annotate those
+> specific cases?
 
-I can't think of a patch set where a > 1024 character CC: list is
-legitimate anyways, even if all interested parties are included.
+Using a bunch of per-arch ifdefs in virtio?
+That's fundamentally what we have now.
 
-> I'll look for better solutions next time - for now, would it help if I
-> bounced the whole patchset to you?
+But basically the rework reduces the LOC count in kernel anyway
+by moving all ifdef CONFIG_SMP hacks into asm-generic.
+So why not let virt benefit?
 
-Not necessary, I provided a reply to your 00/NN repost.
+Or do you mean wrappers for __smp_XXX that explicitly
+say they are for talking to host?
+E.g. pv_mb() pv_rmb() etc.
+That sounds very reasonable to me.
+
+__smp_XXX things then become an implementation detail.
+
+> The other memory barriers in the kernel do not matter for SMP'ness
+> when build UP.
