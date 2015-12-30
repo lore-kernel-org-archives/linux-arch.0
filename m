@@ -1,104 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:38008 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755464AbbL3Vw6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 30 Dec 2015 16:52:58 -0500
-Received: from int-mx10.intmail.prod.int.phx2.redhat.com (int-mx10.intmail.prod.int.phx2.redhat.com [10.5.11.23])
-	by mx1.redhat.com (Postfix) with ESMTPS id F296F14CAB2
-	for <linux-arch@vger.kernel.org>; Wed, 30 Dec 2015 21:52:57 +0000 (UTC)
-Received: from redhat.com (vpn1-6-186.ams2.redhat.com [10.36.6.186])
-	by int-mx10.intmail.prod.int.phx2.redhat.com (8.14.4/8.14.4) with SMTP id tBULquOp007610
-	for <linux-arch@vger.kernel.org>; Wed, 30 Dec 2015 16:52:57 -0500
-Date: Wed, 30 Dec 2015 15:26:28 +0200
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 32/34] xen/io: use __smp_xxx barriers
-Message-ID: <1451473761-30019-33-git-send-email-mst@redhat.com>
+Received: from shards.monkeyblade.net ([149.20.54.216]:39804 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753004AbbL3V7K (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Dec 2015 16:59:10 -0500
+Date: Wed, 30 Dec 2015 16:59:08 -0500 (EST)
+Message-ID: <20151230.165908.1627575055770897057.davem@davemloft.net>
+Subject: Re: [PATCH 00/34] arch: barrier cleanup + __smp_xxx barriers for
+ virt
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <20151230224855-mutt-send-email-mst@redhat.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1451473761-30019-1-git-send-email-mst@redhat.com>
+	<20151230.154646.596597479469584255.davem@davemloft.net>
+	<20151230224855-mutt-send-email-mst@redhat.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, David Vrabel <david.vrabel@citrix.com>, xen-devel@lists.xenproject.org
-Message-ID: <20151230132628.WE-PybAeLWcvzctsD9YG9tXeeP3n-8-RG0cQOscnFxU@z>
+To: mst@redhat.com
+Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, arnd@arndb.de, linux-arch@vger.kernel.org, andrew.cooper3@citrix.com, virtualization@lists.linux-foundation.org, stefano.stabellini@eu.citrix.com
+Message-ID: <20151230215908.pYlnEjqBziry8XHJRjUVr_21bXDmZ8Ad5Vj-wasEbVo@z>
 
-include/xen/interface/io/ring.h uses
-full memory barriers to communicate with the other side.
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Date: Wed, 30 Dec 2015 23:36:29 +0200
 
-For guests compiled with CONFIG_SMP, smp_wmb and smp_mb
-would be sufficient, so mb() and wmb() here are only needed if
-a non-SMP guest runs on an SMP host.
+> On Wed, Dec 30, 2015 at 03:46:46PM -0500, David Miller wrote:
+>> From: "Michael S. Tsirkin" <mst@redhat.com>
+>> Date: Wed, 30 Dec 2015 14:58:19 +0200
+>> 
+>> > -. Patch 1 documents the __smp APIs, and explains why they are
+>> >    useful for virt
+>> 
+>> If virt is doing things like interacting with descriptors that are
+>> shared with a (potentially SMP) host, why don't we just annotate those
+>> specific cases?
+> 
+> Using a bunch of per-arch ifdefs in virtio?
+> That's fundamentally what we have now.
 
-Switch to __smp_XXX barriers which serve this exact purpose.
+I was suggesting a generic interface to get what you want.
 
-Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
----
- include/xen/interface/io/ring.h | 16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
+virt_mb() or something like that.  You can name it something
+else, that's not the important part.
 
-diff --git a/include/xen/interface/io/ring.h b/include/xen/interface/io/ring.h
-index 7dc685b..46dfc65 100644
---- a/include/xen/interface/io/ring.h
-+++ b/include/xen/interface/io/ring.h
-@@ -208,12 +208,12 @@ struct __name##_back_ring {						\
- 
- 
- #define RING_PUSH_REQUESTS(_r) do {					\
--    wmb(); /* back sees requests /before/ updated producer index */	\
-+    __smp_wmb(); /* back sees requests /before/ updated producer index */	\
-     (_r)->sring->req_prod = (_r)->req_prod_pvt;				\
- } while (0)
- 
- #define RING_PUSH_RESPONSES(_r) do {					\
--    wmb(); /* front sees responses /before/ updated producer index */	\
-+    __smp_wmb(); /* front sees responses /before/ updated producer index */	\
-     (_r)->sring->rsp_prod = (_r)->rsp_prod_pvt;				\
- } while (0)
- 
-@@ -250,9 +250,9 @@ struct __name##_back_ring {						\
- #define RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(_r, _notify) do {		\
-     RING_IDX __old = (_r)->sring->req_prod;				\
-     RING_IDX __new = (_r)->req_prod_pvt;				\
--    wmb(); /* back sees requests /before/ updated producer index */	\
-+    __smp_wmb(); /* back sees requests /before/ updated producer index */	\
-     (_r)->sring->req_prod = __new;					\
--    mb(); /* back sees new requests /before/ we check req_event */	\
-+    __smp_mb(); /* back sees new requests /before/ we check req_event */	\
-     (_notify) = ((RING_IDX)(__new - (_r)->sring->req_event) <		\
- 		 (RING_IDX)(__new - __old));				\
- } while (0)
-@@ -260,9 +260,9 @@ struct __name##_back_ring {						\
- #define RING_PUSH_RESPONSES_AND_CHECK_NOTIFY(_r, _notify) do {		\
-     RING_IDX __old = (_r)->sring->rsp_prod;				\
-     RING_IDX __new = (_r)->rsp_prod_pvt;				\
--    wmb(); /* front sees responses /before/ updated producer index */	\
-+    __smp_wmb(); /* front sees responses /before/ updated producer index */	\
-     (_r)->sring->rsp_prod = __new;					\
--    mb(); /* front sees new responses /before/ we check rsp_event */	\
-+    __smp_mb(); /* front sees new responses /before/ we check rsp_event */	\
-     (_notify) = ((RING_IDX)(__new - (_r)->sring->rsp_event) <		\
- 		 (RING_IDX)(__new - __old));				\
- } while (0)
-@@ -271,7 +271,7 @@ struct __name##_back_ring {						\
-     (_work_to_do) = RING_HAS_UNCONSUMED_REQUESTS(_r);			\
-     if (_work_to_do) break;						\
-     (_r)->sring->req_event = (_r)->req_cons + 1;			\
--    mb();								\
-+    __smp_mb();								\
-     (_work_to_do) = RING_HAS_UNCONSUMED_REQUESTS(_r);			\
- } while (0)
- 
-@@ -279,7 +279,7 @@ struct __name##_back_ring {						\
-     (_work_to_do) = RING_HAS_UNCONSUMED_RESPONSES(_r);			\
-     if (_work_to_do) break;						\
-     (_r)->sring->rsp_event = (_r)->rsp_cons + 1;			\
--    mb();								\
-+    __smp_mb();								\
-     (_work_to_do) = RING_HAS_UNCONSUMED_RESPONSES(_r);			\
- } while (0)
- 
--- 
-MST
+> Or do you mean wrappers for __smp_XXX that explicitly
+> say they are for talking to host?
+> E.g. pv_mb() pv_rmb() etc.
+> That sounds very reasonable to me.
 
+Exactly!
