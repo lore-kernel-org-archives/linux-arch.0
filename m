@@ -1,49 +1,52 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 14/34] x86: reuse asm-generic/barrier.h
-Date: Wed, 30 Dec 2015 15:25:15 +0200
-Message-ID: <1451473761-30019-15-git-send-email-mst@redhat.com>
+Subject: [PATCH 08/34] asm-generic: smp_store_mb should use smp_mb
+Date: Wed, 30 Dec 2015 15:24:47 +0200
+Message-ID: <1451473761-30019-9-git-send-email-mst@redhat.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 Content-Disposition: inline
 In-Reply-To: <1451473761-30019-1-git-send-email-mst@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
 To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Andy Lutomirski <luto@kernel.org>, Borislav Petkov <bp@suse.de>, Andrey Konovalov <andreyknvl@google.com>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org
 List-Id: linux-arch.vger.kernel.org
 
-As on most architectures, on x86 read_barrier_depends and
-smp_read_barrier_depends are empty.  Drop the local definitions and pull
-the generic ones from asm-generic/barrier.h instead: they are identical.
+asm-generic variant of smp_store_mb() calls mb() which is stronger
+than implied by both the name and the documentation.
 
-This is in preparation to refactoring this code area.
+smp_store_mb is only used by core kernel code at the moment, so
+we know no one mis-uses it for an MMIO barrier.
+Make it call smp_mb consistently before some arch-specific
+code uses it as such by mistake.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- arch/x86/include/asm/barrier.h | 5 ++---
- 1 file changed, 2 insertions(+), 3 deletions(-)
+ include/asm-generic/barrier.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/x86/include/asm/barrier.h b/arch/x86/include/asm/barrier.h
-index 0681d25..cc4c2a7 100644
---- a/arch/x86/include/asm/barrier.h
-+++ b/arch/x86/include/asm/barrier.h
-@@ -43,9 +43,6 @@
- #define smp_store_mb(var, value) do { WRITE_ONCE(var, value); barrier(); } while (0)
- #endif /* SMP */
+diff --git a/include/asm-generic/barrier.h b/include/asm-generic/barrier.h
+index 538f8d1..987b2e0 100644
+--- a/include/asm-generic/barrier.h
++++ b/include/asm-generic/barrier.h
+@@ -93,7 +93,7 @@
+ #endif	/* CONFIG_SMP */
  
--#define read_barrier_depends()		do { } while (0)
--#define smp_read_barrier_depends()	do { } while (0)
--
- #if defined(CONFIG_X86_PPRO_FENCE)
+ #ifndef smp_store_mb
+-#define smp_store_mb(var, value)  do { WRITE_ONCE(var, value); mb(); } while (0)
++#define smp_store_mb(var, value)  do { WRITE_ONCE(var, value); smp_mb(); } while (0)
+ #endif
  
- /*
-@@ -91,4 +88,6 @@ do {									\
- #define smp_mb__before_atomic()	barrier()
- #define smp_mb__after_atomic()	barrier()
- 
-+#include <asm-generic/barrier.h>
-+
- #endif /* _ASM_X86_BARRIER_H */
+ #ifndef smp_mb__before_atomic
 -- 
 MST
