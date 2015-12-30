@@ -1,62 +1,85 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 16/34] powerpc: define __smp_XXX
-Date: Wed, 30 Dec 2015 15:25:23 +0200
-Message-ID: <1451473761-30019-17-git-send-email-mst@redhat.com>
+Subject: [PATCH 31/34] xenbus: use __smp_XXX barriers
+Date: Wed, 30 Dec 2015 15:26:24 +0200
+Message-ID: <1451473761-30019-32-git-send-email-mst@redhat.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <xen-devel-bounces@lists.xen.org>
 Content-Disposition: inline
 In-Reply-To: <1451473761-30019-1-git-send-email-mst@redhat.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+List-Unsubscribe: <http://lists.xen.org/cgi-bin/mailman/options/xen-devel>,
+	<mailto:xen-devel-request@lists.xen.org?subject=unsubscribe>
+List-Post: <mailto:xen-devel@lists.xen.org>
+List-Help: <mailto:xen-devel-request@lists.xen.org?subject=help>
+List-Subscribe: <http://lists.xen.org/cgi-bin/mailman/listinfo/xen-devel>,
+	<mailto:xen-devel-request@lists.xen.org?subject=subscribe>
+Sender: xen-devel-bounces@lists.xen.org
+Errors-To: xen-devel-bounces@lists.xen.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Cooper <andrew.cooper3@citrix.com>, Andrey Konovalov <andreyknvl@google.com>, virtualization@lists.linux-foundation.org, Paul Mackerras <paulus@samba.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linuxppc-dev@lists.ozlabs.org, Ingo Molnar <mingo@kernel.org>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Peter Zijlstra <peterz@infradead.org>, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, David Vrabel <david.vrabel@citrix.com>, xen-devel@lists.xenproject.org, Boris Ostrovsky <boris.ostrovsky@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
-VGhpcyBkZWZpbmVzIF9fc21wX1hYWCBiYXJyaWVycyBmb3IgcG93ZXJwYwpmb3IgdXNlIGJ5IHZp
-cnR1YWxpemF0aW9uLgoKc21wX1hYWCBiYXJyaWVycyBhcmUgcmVtb3ZlZCBhcyB0aGV5IGFyZQpk
-ZWZpbmVkIGNvcnJlY3RseSBieSBhc20tZ2VuZXJpYy9iYXJyaWVycy5oCgpUaGlzIHJlZHVjZXMg
-dGhlIGFtb3VudCBvZiBhcmNoLXNwZWNpZmljIGJvaWxlci1wbGF0ZSBjb2RlLgoKU2lnbmVkLW9m
-Zi1ieTogTWljaGFlbCBTLiBUc2lya2luIDxtc3RAcmVkaGF0LmNvbT4KLS0tCiBhcmNoL3Bvd2Vy
-cGMvaW5jbHVkZS9hc20vYmFycmllci5oIHwgMjQgKysrKysrKystLS0tLS0tLS0tLS0tLS0tCiAx
-IGZpbGUgY2hhbmdlZCwgOCBpbnNlcnRpb25zKCspLCAxNiBkZWxldGlvbnMoLSkKCmRpZmYgLS1n
-aXQgYS9hcmNoL3Bvd2VycGMvaW5jbHVkZS9hc20vYmFycmllci5oIGIvYXJjaC9wb3dlcnBjL2lu
-Y2x1ZGUvYXNtL2JhcnJpZXIuaAppbmRleCA5ODBhZDBjLi5jMGRlYWZjIDEwMDY0NAotLS0gYS9h
-cmNoL3Bvd2VycGMvaW5jbHVkZS9hc20vYmFycmllci5oCisrKyBiL2FyY2gvcG93ZXJwYy9pbmNs
-dWRlL2FzbS9iYXJyaWVyLmgKQEAgLTQ0LDE5ICs0NCwxMSBAQAogI2RlZmluZSBkbWFfcm1iKCkJ
-X19sd3N5bmMoKQogI2RlZmluZSBkbWFfd21iKCkJX19hc21fXyBfX3ZvbGF0aWxlX18gKHN0cmlu
-Z2lmeV9pbl9jKFNNUFdNQikgOiA6IDoibWVtb3J5IikKIAotI2lmZGVmIENPTkZJR19TTVAKLSNk
-ZWZpbmUgc21wX2x3c3luYygpCV9fbHdzeW5jKCkKKyNkZWZpbmUgX19zbXBfbHdzeW5jKCkJX19s
-d3N5bmMoKQogCi0jZGVmaW5lIHNtcF9tYigpCW1iKCkKLSNkZWZpbmUgc21wX3JtYigpCV9fbHdz
-eW5jKCkKLSNkZWZpbmUgc21wX3dtYigpCV9fYXNtX18gX192b2xhdGlsZV9fIChzdHJpbmdpZnlf
-aW5fYyhTTVBXTUIpIDogOiA6Im1lbW9yeSIpCi0jZWxzZQotI2RlZmluZSBzbXBfbHdzeW5jKCkJ
-YmFycmllcigpCi0KLSNkZWZpbmUgc21wX21iKCkJYmFycmllcigpCi0jZGVmaW5lIHNtcF9ybWIo
-KQliYXJyaWVyKCkKLSNkZWZpbmUgc21wX3dtYigpCWJhcnJpZXIoKQotI2VuZGlmIC8qIENPTkZJ
-R19TTVAgKi8KKyNkZWZpbmUgX19zbXBfbWIoKQltYigpCisjZGVmaW5lIF9fc21wX3JtYigpCV9f
-bHdzeW5jKCkKKyNkZWZpbmUgX19zbXBfd21iKCkJX19hc21fXyBfX3ZvbGF0aWxlX18gKHN0cmlu
-Z2lmeV9pbl9jKFNNUFdNQikgOiA6IDoibWVtb3J5IikKIAogLyoKICAqIFRoaXMgaXMgYSBiYXJy
-aWVyIHdoaWNoIHByZXZlbnRzIGZvbGxvd2luZyBpbnN0cnVjdGlvbnMgZnJvbSBiZWluZwpAQCAt
-NjcsMTggKzU5LDE4IEBACiAjZGVmaW5lIGRhdGFfYmFycmllcih4KQlcCiAJYXNtIHZvbGF0aWxl
-KCJ0d2kgMCwlMCwwOyBpc3luYyIgOiA6ICJyIiAoeCkgOiAibWVtb3J5Iik7CiAKLSNkZWZpbmUg
-c21wX3N0b3JlX3JlbGVhc2UocCwgdikJCQkJCQlcCisjZGVmaW5lIF9fc21wX3N0b3JlX3JlbGVh
-c2UocCwgdikJCQkJCQlcCiBkbyB7CQkJCQkJCQkJXAogCWNvbXBpbGV0aW1lX2Fzc2VydF9hdG9t
-aWNfdHlwZSgqcCk7CQkJCVwKLQlzbXBfbHdzeW5jKCk7CQkJCQkJCVwKKwlfX3NtcF9sd3N5bmMo
-KTsJCQkJCQkJXAogCVdSSVRFX09OQ0UoKnAsIHYpOwkJCQkJCVwKIH0gd2hpbGUgKDApCiAKLSNk
-ZWZpbmUgc21wX2xvYWRfYWNxdWlyZShwKQkJCQkJCVwKKyNkZWZpbmUgX19zbXBfbG9hZF9hY3F1
-aXJlKHApCQkJCQkJXAogKHsJCQkJCQkJCQlcCiAJdHlwZW9mKCpwKSBfX19wMSA9IFJFQURfT05D
-RSgqcCk7CQkJCVwKIAljb21waWxldGltZV9hc3NlcnRfYXRvbWljX3R5cGUoKnApOwkJCQlcCi0J
-c21wX2x3c3luYygpOwkJCQkJCQlcCisJX19zbXBfbHdzeW5jKCk7CQkJCQkJCVwKIAlfX19wMTsJ
-CQkJCQkJCVwKIH0pCiAKLS0gCk1TVAoKX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX18KTGludXhwcGMtZGV2IG1haWxpbmcgbGlzdApMaW51eHBwYy1kZXZAbGlz
-dHMub3psYWJzLm9yZwpodHRwczovL2xpc3RzLm96bGFicy5vcmcvbGlzdGluZm8vbGludXhwcGMt
-ZGV2
+drivers/xen/xenbus/xenbus_comms.c uses
+full memory barriers to communicate with the other side.
+
+For guests compiled with CONFIG_SMP, smp_wmb and smp_mb
+would be sufficient, so mb() and wmb() here are only needed if
+a non-SMP guest runs on an SMP host.
+
+Switch to __smp_XXX barriers which serve this exact purpose.
+
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+---
+
+This is straight-forward, but untested.
+I can either merge this patchset through my tree if this is
+acked, or defer this and merge the patchset first,
+and xen bits through xen tree afterwards.
+
+Pls let me know.
+
+ drivers/xen/xenbus/xenbus_comms.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/xen/xenbus/xenbus_comms.c b/drivers/xen/xenbus/xenbus_comms.c
+index fdb0f33..09b17c7 100644
+--- a/drivers/xen/xenbus/xenbus_comms.c
++++ b/drivers/xen/xenbus/xenbus_comms.c
+@@ -123,14 +123,14 @@ int xb_write(const void *data, unsigned len)
+ 			avail = len;
+ 
+ 		/* Must write data /after/ reading the consumer index. */
+-		mb();
++		__smp_mb();
+ 
+ 		memcpy(dst, data, avail);
+ 		data += avail;
+ 		len -= avail;
+ 
+ 		/* Other side must not see new producer until data is there. */
+-		wmb();
++		__smp_wmb();
+ 		intf->req_prod += avail;
+ 
+ 		/* Implies mb(): other side will see the updated producer. */
+@@ -180,14 +180,14 @@ int xb_read(void *data, unsigned len)
+ 			avail = len;
+ 
+ 		/* Must read data /after/ reading the producer index. */
+-		rmb();
++		__smp_rmb();
+ 
+ 		memcpy(data, src, avail);
+ 		data += avail;
+ 		len -= avail;
+ 
+ 		/* Other side must not see free space until we've copied out */
+-		mb();
++		__smp_mb();
+ 		intf->rsp_cons += avail;
+ 
+ 		pr_debug("Finished read of %i bytes (%i to go)\n", avail, len);
+-- 
+MST
