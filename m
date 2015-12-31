@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:37346 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:40857 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754543AbbLaTIa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 31 Dec 2015 14:08:30 -0500
-Date: Thu, 31 Dec 2015 21:08:22 +0200
+	id S1751602AbbLaTHv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 31 Dec 2015 14:07:51 -0500
+Date: Thu, 31 Dec 2015 21:07:42 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 20/32] metag: define __smp_xxx
-Message-ID: <1451572003-2440-21-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 15/32] powerpc: define __smp_xxx
+Message-ID: <1451572003-2440-16-git-send-email-mst@redhat.com>
 References: <1451572003-2440-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,86 +15,73 @@ In-Reply-To: <1451572003-2440-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, James Hogan <james.hogan@imgtec.com>, Ingo Molnar <mingo@kernel.org>, Davidlohr Bueso <dbueso@suse.de>, Andrey Konovalov <andreyknvl@google.com>
-Message-ID: <20151231190822.cYju4GD4Hv9PW14uNrpTwOvgoxfikJ6-x7uaXSWBDIk@z>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Ingo Molnar <mingo@kernel.org>, Davidlohr Bueso <dave@stgolabs.net>, Andrey Konovalov <andreyknvl@google.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20151231190742.oyeqMCta9REKIZ__luhT1Ya2w4APUakdCpEVHny2AA4@z>
 
-This defines __smp_xxx barriers for metag,
+This defines __smp_xxx barriers for powerpc
 for use by virtualization.
 
 smp_xxx barriers are removed as they are
 defined correctly by asm-generic/barriers.h
 
-Note: as __smp_XX macros should not depend on CONFIG_SMP, they can not
-use the existing fence() macro since that is defined differently between
-SMP and !SMP.  For this reason, this patch introduces a wrapper
-metag_fence() that doesn't depend on CONFIG_SMP.
-fence() is then defined using that, depending on CONFIG_SMP.
+This reduces the amount of arch-specific boiler-plate code.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/metag/include/asm/barrier.h | 32 +++++++++++++++-----------------
- 1 file changed, 15 insertions(+), 17 deletions(-)
+ arch/powerpc/include/asm/barrier.h | 24 ++++++++----------------
+ 1 file changed, 8 insertions(+), 16 deletions(-)
 
-diff --git a/arch/metag/include/asm/barrier.h b/arch/metag/include/asm/barrier.h
-index b5b778b..84880c9 100644
---- a/arch/metag/include/asm/barrier.h
-+++ b/arch/metag/include/asm/barrier.h
-@@ -44,13 +44,6 @@ static inline void wr_fence(void)
- #define rmb()		barrier()
- #define wmb()		mb()
+diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
+index 980ad0c..c0deafc 100644
+--- a/arch/powerpc/include/asm/barrier.h
++++ b/arch/powerpc/include/asm/barrier.h
+@@ -44,19 +44,11 @@
+ #define dma_rmb()	__lwsync()
+ #define dma_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
  
--#ifndef CONFIG_SMP
--#define fence()		do { } while (0)
--#define smp_mb()        barrier()
--#define smp_rmb()       barrier()
--#define smp_wmb()       barrier()
+-#ifdef CONFIG_SMP
+-#define smp_lwsync()	__lwsync()
++#define __smp_lwsync()	__lwsync()
+ 
+-#define smp_mb()	mb()
+-#define smp_rmb()	__lwsync()
+-#define smp_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
 -#else
+-#define smp_lwsync()	barrier()
 -
- #ifdef CONFIG_METAG_SMP_WRITE_REORDERING
+-#define smp_mb()	barrier()
+-#define smp_rmb()	barrier()
+-#define smp_wmb()	barrier()
+-#endif /* CONFIG_SMP */
++#define __smp_mb()	mb()
++#define __smp_rmb()	__lwsync()
++#define __smp_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
+ 
  /*
-  * Write to the atomic memory unlock system event register (command 0). This is
-@@ -60,26 +53,31 @@ static inline void wr_fence(void)
-  * incoherence). It is therefore ineffective if used after and on the same
-  * thread as a write.
-  */
--static inline void fence(void)
-+static inline void metag_fence(void)
- {
- 	volatile int *flushptr = (volatile int *) LINSYSEVENT_WR_ATOMIC_UNLOCK;
- 	barrier();
- 	*flushptr = 0;
- 	barrier();
- }
--#define smp_mb()        fence()
--#define smp_rmb()       fence()
--#define smp_wmb()       barrier()
-+#define __smp_mb()        metag_fence()
-+#define __smp_rmb()       metag_fence()
-+#define __smp_wmb()       barrier()
- #else
--#define fence()		do { } while (0)
--#define smp_mb()        barrier()
--#define smp_rmb()       barrier()
--#define smp_wmb()       barrier()
-+#define metag_fence()		do { } while (0)
-+#define __smp_mb()        barrier()
-+#define __smp_rmb()       barrier()
-+#define __smp_wmb()       barrier()
- #endif
-+
-+#ifdef CONFIG_SMP
-+#define fence() metag_fence()
-+#else
-+#define fence()		do { } while (0)
- #endif
+  * This is a barrier which prevents following instructions from being
+@@ -67,18 +59,18 @@
+ #define data_barrier(x)	\
+ 	asm volatile("twi 0,%0,0; isync" : : "r" (x) : "memory");
  
--#define smp_mb__before_atomic()	barrier()
--#define smp_mb__after_atomic()	barrier()
-+#define __smp_mb__before_atomic()	barrier()
-+#define __smp_mb__after_atomic()	barrier()
+-#define smp_store_release(p, v)						\
++#define __smp_store_release(p, v)						\
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+-	smp_lwsync();							\
++	__smp_lwsync();							\
+ 	WRITE_ONCE(*p, v);						\
+ } while (0)
  
- #include <asm-generic/barrier.h>
+-#define smp_load_acquire(p)						\
++#define __smp_load_acquire(p)						\
+ ({									\
+ 	typeof(*p) ___p1 = READ_ONCE(*p);				\
+ 	compiletime_assert_atomic_type(*p);				\
+-	smp_lwsync();							\
++	__smp_lwsync();							\
+ 	___p1;								\
+ })
  
 -- 
 MST
