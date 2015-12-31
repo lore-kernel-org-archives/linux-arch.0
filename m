@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:51362 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:47101 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754026AbbLaTIi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 31 Dec 2015 14:08:38 -0500
-Date: Thu, 31 Dec 2015 21:08:30 +0200
+	id S1753115AbbLaTIW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 31 Dec 2015 14:08:22 -0500
+Date: Thu, 31 Dec 2015 21:08:14 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v2 21/32] mips: define __smp_xxx
-Message-ID: <1451572003-2440-22-git-send-email-mst@redhat.com>
+Subject: [PATCH v2 19/32] ia64: define __smp_xxx
+Message-ID: <1451572003-2440-20-git-send-email-mst@redhat.com>
 References: <1451572003-2440-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,84 +15,62 @@ In-Reply-To: <1451572003-2440-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ralf Baechle <ralf@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, Andrey Konovalov <andreyknvl@google.com>
-Message-ID: <20151231190830.ZTzgXIQFBhb3N2WtENvtAriqsDSsVGhNwfocxX34HYA@z>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ingo Molnar <mingo@kernel.org>, Davidlohr Bueso <dave@stgolabs.net>, Andrey Konovalov <andreyknvl@google.com>
+Message-ID: <20151231190814.DCRr9X9c8W1jCeV4TK_e472MVI8l3pBGpCdZdUX4P3o@z>
 
-This defines __smp_xxx barriers for mips,
+This defines __smp_xxx barriers for ia64,
 for use by virtualization.
 
 smp_xxx barriers are removed as they are
 defined correctly by asm-generic/barriers.h
 
-Note: the only exception is smp_mb__before_llsc which is mips-specific.
-We define both the __smp_mb__before_llsc variant (for use in
-asm/barriers.h) and smp_mb__before_llsc (for use elsewhere on this
-architecture).
+This reduces the amount of arch-specific boiler-plate code.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Acked-by: Tony Luck <tony.luck@intel.com>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/mips/include/asm/barrier.h | 26 ++++++++++++++------------
- 1 file changed, 14 insertions(+), 12 deletions(-)
+ arch/ia64/include/asm/barrier.h | 14 +++++---------
+ 1 file changed, 5 insertions(+), 9 deletions(-)
 
-diff --git a/arch/mips/include/asm/barrier.h b/arch/mips/include/asm/barrier.h
-index 3eac4b9..d296633 100644
---- a/arch/mips/include/asm/barrier.h
-+++ b/arch/mips/include/asm/barrier.h
-@@ -85,20 +85,20 @@
- #define wmb()		fast_wmb()
- #define rmb()		fast_rmb()
+diff --git a/arch/ia64/include/asm/barrier.h b/arch/ia64/include/asm/barrier.h
+index 2f93348..588f161 100644
+--- a/arch/ia64/include/asm/barrier.h
++++ b/arch/ia64/include/asm/barrier.h
+@@ -42,28 +42,24 @@
+ #define dma_rmb()	mb()
+ #define dma_wmb()	mb()
  
--#if defined(CONFIG_WEAK_ORDERING) && defined(CONFIG_SMP)
-+#if defined(CONFIG_WEAK_ORDERING)
- # ifdef CONFIG_CPU_CAVIUM_OCTEON
--#  define smp_mb()	__sync()
--#  define smp_rmb()	barrier()
--#  define smp_wmb()	__syncw()
-+#  define __smp_mb()	__sync()
-+#  define __smp_rmb()	barrier()
-+#  define __smp_wmb()	__syncw()
- # else
--#  define smp_mb()	__asm__ __volatile__("sync" : : :"memory")
--#  define smp_rmb()	__asm__ __volatile__("sync" : : :"memory")
--#  define smp_wmb()	__asm__ __volatile__("sync" : : :"memory")
-+#  define __smp_mb()	__asm__ __volatile__("sync" : : :"memory")
-+#  define __smp_rmb()	__asm__ __volatile__("sync" : : :"memory")
-+#  define __smp_wmb()	__asm__ __volatile__("sync" : : :"memory")
- # endif
- #else
--#define smp_mb()	barrier()
--#define smp_rmb()	barrier()
--#define smp_wmb()	barrier()
-+#define __smp_mb()	barrier()
-+#define __smp_rmb()	barrier()
-+#define __smp_wmb()	barrier()
- #endif
+-#ifdef CONFIG_SMP
+-# define smp_mb()	mb()
+-#else
+-# define smp_mb()	barrier()
+-#endif
++# define __smp_mb()	mb()
  
- #if defined(CONFIG_WEAK_REORDERING_BEYOND_LLSC) && defined(CONFIG_SMP)
-@@ -111,6 +111,7 @@
+-#define smp_mb__before_atomic()	barrier()
+-#define smp_mb__after_atomic()	barrier()
++#define __smp_mb__before_atomic()	barrier()
++#define __smp_mb__after_atomic()	barrier()
  
- #ifdef CONFIG_CPU_CAVIUM_OCTEON
- #define smp_mb__before_llsc() smp_wmb()
-+#define __smp_mb__before_llsc() __smp_wmb()
- /* Cause previous writes to become visible on all CPUs as soon as possible */
- #define nudge_writes() __asm__ __volatile__(".set push\n\t"		\
- 					    ".set arch=octeon\n\t"	\
-@@ -118,11 +119,12 @@
- 					    ".set pop" : : : "memory")
- #else
- #define smp_mb__before_llsc() smp_llsc_mb()
-+#define __smp_mb__before_llsc() smp_llsc_mb()
- #define nudge_writes() mb()
- #endif
+ /*
+  * IA64 GCC turns volatile stores into st.rel and volatile loads into ld.acq no
+  * need for asm trickery!
+  */
  
--#define smp_mb__before_atomic()	smp_mb__before_llsc()
--#define smp_mb__after_atomic()	smp_llsc_mb()
-+#define __smp_mb__before_atomic()	__smp_mb__before_llsc()
-+#define __smp_mb__after_atomic()	smp_llsc_mb()
+-#define smp_store_release(p, v)						\
++#define __smp_store_release(p, v)						\
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+ 	barrier();							\
+ 	WRITE_ONCE(*p, v);						\
+ } while (0)
  
- #include <asm-generic/barrier.h>
- 
+-#define smp_load_acquire(p)						\
++#define __smp_load_acquire(p)						\
+ ({									\
+ 	typeof(*p) ___p1 = READ_ONCE(*p);				\
+ 	compiletime_assert_atomic_type(*p);				\
 -- 
 MST
 
