@@ -1,51 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:39804 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753004AbbL3V7K (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 30 Dec 2015 16:59:10 -0500
-Date: Wed, 30 Dec 2015 16:59:08 -0500 (EST)
-Message-ID: <20151230.165908.1627575055770897057.davem@davemloft.net>
-Subject: Re: [PATCH 00/34] arch: barrier cleanup + __smp_xxx barriers for
- virt
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20151230224855-mutt-send-email-mst@redhat.com>
-References: <1451473761-30019-1-git-send-email-mst@redhat.com>
-	<20151230.154646.596597479469584255.davem@davemloft.net>
-	<20151230224855-mutt-send-email-mst@redhat.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([209.132.183.28]:39714 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752648AbbLaTGq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 31 Dec 2015 14:06:46 -0500
+Date: Thu, 31 Dec 2015 21:06:38 +0200
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: [PATCH v2 07/32] sparc: reuse asm-generic/barrier.h
+Message-ID: <1451572003-2440-8-git-send-email-mst@redhat.com>
+References: <1451572003-2440-1-git-send-email-mst@redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1451572003-2440-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mst@redhat.com
-Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, arnd@arndb.de, linux-arch@vger.kernel.org, andrew.cooper3@citrix.com, virtualization@lists.linux-foundation.org, stefano.stabellini@eu.citrix.com
-Message-ID: <20151230215908.pYlnEjqBziry8XHJRjUVr_21bXDmZ8Ad5Vj-wasEbVo@z>
+To: linux-kernel@vger.kernel.org
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, Ralf Baechle <ralf@linux-mips.org>, Andrey Konovalov <andreyknvl@google.com>
+Message-ID: <20151231190638.G-b6XyuV7kJ9f7N35rTmF6vQWLnCEMDzDQ2phORJZII@z>
 
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Date: Wed, 30 Dec 2015 23:36:29 +0200
+On sparc 64 bit dma_rmb, dma_wmb, smp_store_mb, smp_mb, smp_rmb,
+smp_wmb, read_barrier_depends and smp_read_barrier_depends match the
+asm-generic variants exactly. Drop the local definitions and pull in
+asm-generic/barrier.h instead.
 
-> On Wed, Dec 30, 2015 at 03:46:46PM -0500, David Miller wrote:
->> From: "Michael S. Tsirkin" <mst@redhat.com>
->> Date: Wed, 30 Dec 2015 14:58:19 +0200
->> 
->> > -. Patch 1 documents the __smp APIs, and explains why they are
->> >    useful for virt
->> 
->> If virt is doing things like interacting with descriptors that are
->> shared with a (potentially SMP) host, why don't we just annotate those
->> specific cases?
-> 
-> Using a bunch of per-arch ifdefs in virtio?
-> That's fundamentally what we have now.
+nop uses __asm__ __volatile but is otherwise identical to
+the generic version, drop that as well.
 
-I was suggesting a generic interface to get what you want.
+This is in preparation to refactoring this code area.
 
-virt_mb() or something like that.  You can name it something
-else, that's not the important part.
+Note: nop() was in processor.h and not in barrier.h as on other
+architectures. Nothing seems to depend on it being there though.
 
-> Or do you mean wrappers for __smp_XXX that explicitly
-> say they are for talking to host?
-> E.g. pv_mb() pv_rmb() etc.
-> That sounds very reasonable to me.
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/sparc/include/asm/barrier_32.h |  1 -
+ arch/sparc/include/asm/barrier_64.h | 21 ++-------------------
+ arch/sparc/include/asm/processor.h  |  3 ---
+ 3 files changed, 2 insertions(+), 23 deletions(-)
 
-Exactly!
+diff --git a/arch/sparc/include/asm/barrier_32.h b/arch/sparc/include/asm/barrier_32.h
+index ae69eda..8059130 100644
+--- a/arch/sparc/include/asm/barrier_32.h
++++ b/arch/sparc/include/asm/barrier_32.h
+@@ -1,7 +1,6 @@
+ #ifndef __SPARC_BARRIER_H
+ #define __SPARC_BARRIER_H
+ 
+-#include <asm/processor.h> /* for nop() */
+ #include <asm-generic/barrier.h>
+ 
+ #endif /* !(__SPARC_BARRIER_H) */
+diff --git a/arch/sparc/include/asm/barrier_64.h b/arch/sparc/include/asm/barrier_64.h
+index 14a9286..26c3f72 100644
+--- a/arch/sparc/include/asm/barrier_64.h
++++ b/arch/sparc/include/asm/barrier_64.h
+@@ -37,25 +37,6 @@ do {	__asm__ __volatile__("ba,pt	%%xcc, 1f\n\t" \
+ #define rmb()	__asm__ __volatile__("":::"memory")
+ #define wmb()	__asm__ __volatile__("":::"memory")
+ 
+-#define dma_rmb()	rmb()
+-#define dma_wmb()	wmb()
+-
+-#define smp_store_mb(__var, __value) \
+-	do { WRITE_ONCE(__var, __value); membar_safe("#StoreLoad"); } while(0)
+-
+-#ifdef CONFIG_SMP
+-#define smp_mb()	mb()
+-#define smp_rmb()	rmb()
+-#define smp_wmb()	wmb()
+-#else
+-#define smp_mb()	__asm__ __volatile__("":::"memory")
+-#define smp_rmb()	__asm__ __volatile__("":::"memory")
+-#define smp_wmb()	__asm__ __volatile__("":::"memory")
+-#endif
+-
+-#define read_barrier_depends()		do { } while (0)
+-#define smp_read_barrier_depends()	do { } while (0)
+-
+ #define smp_store_release(p, v)						\
+ do {									\
+ 	compiletime_assert_atomic_type(*p);				\
+@@ -74,4 +55,6 @@ do {									\
+ #define smp_mb__before_atomic()	barrier()
+ #define smp_mb__after_atomic()	barrier()
+ 
++#include <asm-generic/barrier.h>
++
+ #endif /* !(__SPARC64_BARRIER_H) */
+diff --git a/arch/sparc/include/asm/processor.h b/arch/sparc/include/asm/processor.h
+index 2fe99e6..9da9646 100644
+--- a/arch/sparc/include/asm/processor.h
++++ b/arch/sparc/include/asm/processor.h
+@@ -5,7 +5,4 @@
+ #else
+ #include <asm/processor_32.h>
+ #endif
+-
+-#define nop() 		__asm__ __volatile__ ("nop")
+-
+ #endif
+-- 
+MST
+
