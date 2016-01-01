@@ -1,34 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:46014 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751967AbbLaToH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 31 Dec 2015 14:44:07 -0500
-Date: Thu, 31 Dec 2015 14:44:03 -0500 (EST)
-Message-ID: <20151231.144403.84288151398339321.davem@davemloft.net>
-Subject: Re: [PATCH v2 24/32] sparc: define __smp_xxx
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <1451572003-2440-25-git-send-email-mst@redhat.com>
+Received: from mx1.redhat.com ([209.132.183.28]:53442 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751292AbcAAJjv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 1 Jan 2016 04:39:51 -0500
+Date: Fri, 1 Jan 2016 11:39:40 +0200
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: [PATCH v2 30/32] virtio_ring: update weak barriers to use __smp_xxx
+Message-ID: <1451572003-2440-31-git-send-email-mst@redhat.com>
 References: <1451572003-2440-1-git-send-email-mst@redhat.com>
-	<1451572003-2440-25-git-send-email-mst@redhat.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1451572003-2440-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: mst@redhat.com
-Cc: linux-kernel@vger.kernel.org, peterz@infradead.org, arnd@arndb.de, linux-arch@vger.kernel.org, andrew.cooper3@citrix.com, virtualization@lists.linux-foundation.org, stefano.stabellini@eu.citrix.com, tglx@linutronix.de, mingo@elte.hu, hpa@zytor.com, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, mingo@kernel.org, ralf@linux-mips.org, andreyknvl@google.com
-Message-ID: <20151231194403.VDWO9QPt4j_QBUZpO-pIk5OyS7_GrHRTWCgk738S82Q@z>
+To: linux-kernel@vger.kernel.org
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Alexander Duyck <alexander.duyck@gmail.com>
+Message-ID: <20160101093940.n0NTLMQ0H8VZgy3XOSJrRItDZu1brwz1tkYGj6v4w7I@z>
 
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Date: Thu, 31 Dec 2015 21:08:53 +0200
+virtio ring uses smp_wmb on SMP and wmb on !SMP,
+the reason for the later being that it might be
+talking to another kernel on the same SMP machine.
 
-> This defines __smp_xxx barriers for sparc,
-> for use by virtualization.
-> 
-> smp_xxx barriers are removed as they are
-> defined correctly by asm-generic/barriers.h
-> 
-> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
+This is exactly what __smp_XXX barriers do,
+so switch to these instead of homegrown ifdef hacks.
 
-Acked-by: David S. Miller <davem@davemloft.net>
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Alexander Duyck <alexander.duyck@gmail.com>
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+---
+ include/linux/virtio_ring.h | 25 ++++---------------------
+ 1 file changed, 4 insertions(+), 21 deletions(-)
+
+diff --git a/include/linux/virtio_ring.h b/include/linux/virtio_ring.h
+index 67e06fe..f3fa55b 100644
+--- a/include/linux/virtio_ring.h
++++ b/include/linux/virtio_ring.h
+@@ -12,7 +12,7 @@
+  * anyone care?
+  *
+  * For virtio_pci on SMP, we don't need to order with respect to MMIO
+- * accesses through relaxed memory I/O windows, so smp_mb() et al are
++ * accesses through relaxed memory I/O windows, so virt_mb() et al are
+  * sufficient.
+  *
+  * For using virtio to talk to real devices (eg. other heterogeneous
+@@ -21,11 +21,10 @@
+  * actually quite cheap.
+  */
+ 
+-#ifdef CONFIG_SMP
+ static inline void virtio_mb(bool weak_barriers)
+ {
+ 	if (weak_barriers)
+-		smp_mb();
++		virt_mb();
+ 	else
+ 		mb();
+ }
+@@ -33,7 +32,7 @@ static inline void virtio_mb(bool weak_barriers)
+ static inline void virtio_rmb(bool weak_barriers)
+ {
+ 	if (weak_barriers)
+-		smp_rmb();
++		virt_rmb();
+ 	else
+ 		rmb();
+ }
+@@ -41,26 +40,10 @@ static inline void virtio_rmb(bool weak_barriers)
+ static inline void virtio_wmb(bool weak_barriers)
+ {
+ 	if (weak_barriers)
+-		smp_wmb();
++		virt_wmb();
+ 	else
+ 		wmb();
+ }
+-#else
+-static inline void virtio_mb(bool weak_barriers)
+-{
+-	mb();
+-}
+-
+-static inline void virtio_rmb(bool weak_barriers)
+-{
+-	rmb();
+-}
+-
+-static inline void virtio_wmb(bool weak_barriers)
+-{
+-	wmb();
+-}
+-#endif
+ 
+ struct virtio_device;
+ struct virtqueue;
+-- 
+MST
