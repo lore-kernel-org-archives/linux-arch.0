@@ -1,51 +1,67 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH v2 17/32] arm: define __smp_xxx
-Date: Sat, 2 Jan 2016 11:24:38 +0000
-Message-ID: <20160102112438.GU8644@n2100.arm.linux.org.uk>
+From: "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCH v2 32/32] virtio_ring: use virt_store_mb
+Date: Sun, 3 Jan 2016 11:01:05 +0200
+Message-ID: <20160103110052-mutt-send-email-mst@redhat.com>
 References: <1451572003-2440-1-git-send-email-mst@redhat.com>
- <1451572003-2440-18-git-send-email-mst@redhat.com>
+ <1451572003-2440-33-git-send-email-mst@redhat.com>
+ <5686B622.6070600@cogentembedded.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.arm.linux.org.uk ([78.32.30.218]:35664 "EHLO
-	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750977AbcABLYr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jan 2016 06:24:47 -0500
+Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <1451572003-2440-18-git-send-email-mst@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, Tony Lindgren <tony@atomide.com>Andre
+In-Reply-To: <5686B622.6070600-M4DtvfQ/ZS1MRgGoP+s0PdBPR1lH4CV8@public.gmane.org>
+Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Sergei Shtylyov <sergei.shtylyov-M4DtvfQ/ZS1MRgGoP+s0PdBPR1lH4CV8@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Andrew Cooper <andrew.cooper3-Sxgqhf6Nn4DQT0dZR+AlfA@public.gmane.org>, virtualization-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Stefano Stabellini <stefano.stabellini-mvvWK6WmYclDPfheJLI6IQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, user-mode-linux-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, adi-buildroot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 31, 2015 at 09:07:59PM +0200, Michael S. Tsirkin wrote:
-> This defines __smp_xxx barriers for arm,
-> for use by virtualization.
+On Fri, Jan 01, 2016 at 08:23:46PM +0300, Sergei Shtylyov wrote:
+> Hello.
 > 
-> smp_xxx barriers are removed as they are
-> defined correctly by asm-generic/barriers.h
+> On 12/31/2015 10:09 PM, Michael S. Tsirkin wrote:
 > 
-> This reduces the amount of arch-specific boiler-plate code.
+> >We need a full barrier after writing out event index, using
+> >virt_store_mb there seems better than open-coding.  As usual, we need a
+> >wrapper to account for strong barriers.
+> >
+> >It's tempting to use this in vhost as well, for that, we'll
+> >need a variant of smp_store_mb that works on __user pointers.
+> >
+> >Signed-off-by: Michael S. Tsirkin <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+> >---
+> >  include/linux/virtio_ring.h  | 12 ++++++++++++
+> >  drivers/virtio/virtio_ring.c | 15 +++++++++------
+> >  2 files changed, 21 insertions(+), 6 deletions(-)
+> >
+> >diff --git a/include/linux/virtio_ring.h b/include/linux/virtio_ring.h
+> >index f3fa55b..3a74d91 100644
+> >--- a/include/linux/virtio_ring.h
+> >+++ b/include/linux/virtio_ring.h
+> >@@ -45,6 +45,18 @@ static inline void virtio_wmb(bool weak_barriers)
+> >  		wmb();
+> >  }
+> >
+> >+static inline void virtio_store_mb(bool weak_barriers,
+> >+				   __virtio16 *p, __virtio16 v)
+> >+{
+> >+	if (weak_barriers)
+> >+		virt_store_mb(*p, v);
+> >+	else
+> >+	{
 > 
-> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
+>    The kernel coding style dictates:
+> 
+> 	if (weak_barriers) {
+> 		virt_store_mb(*p, v);
+> 	} else {
+> 
+> >+		WRITE_ONCE(*p, v);
+> >+		mb();
+> >+	}
+> >+}
+> >+
+> [...]
+> 
+> MBR, Sergei
 
-In combination with patch 14, this looks like it should result in no
-change to the resulting code.
-
-Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
-
-My only concern is that it gives people an additional handle onto a
-"new" set of barriers - just because they're prefixed with __*
-unfortunately doesn't stop anyone from using it (been there with
-other arch stuff before.)
-
-I wonder whether we should consider making the smp memory barriers
-inline functions, so these __smp_xxx() variants can be undef'd
-afterwards, thereby preventing drivers getting their hands on these
-new macros?
-
--- 
-RMK's Patch system: http://www.arm.linux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+Will fix, thanks!
