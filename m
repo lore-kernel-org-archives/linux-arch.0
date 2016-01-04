@@ -1,50 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:55229 "EHLO mail.skyhub.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752912AbcADM0k (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 4 Jan 2016 07:26:40 -0500
-Date: Mon, 4 Jan 2016 13:26:20 +0100
-From: Borislav Petkov <bp@alien8.de>
-Subject: Re: [PATCH v2 14/16] x86, nvdimm, kexec: Use walk_iomem_res_desc()
- for iomem search
-Message-ID: <20160104122619.GH22941@pd.tnic>
-References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
- <1451081365-15190-14-git-send-email-toshi.kani@hpe.com>
- <20151226103804.GB21988@pd.tnic>
- <567F315B.8080005@hpe.com>
- <20151227021257.GA13560@dhcp-128-25.nay.redhat.com>
- <20151227102406.GB19398@nazgul.tnic>
- <20160104092937.GB7033@dhcp-128-65.nay.redhat.com>
+Received: from casper.infradead.org ([85.118.1.10]:53267 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753603AbcADNU4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jan 2016 08:20:56 -0500
+Date: Mon, 4 Jan 2016 14:20:42 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 06/32] s390: reuse asm-generic/barrier.h
+Message-ID: <20160104132042.GW6344@twins.programming.kicks-ass.net>
+References: <1451572003-2440-1-git-send-email-mst@redhat.com>
+ <1451572003-2440-7-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20160104092937.GB7033@dhcp-128-65.nay.redhat.com>
+In-Reply-To: <1451572003-2440-7-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Young <dyoung@redhat.com>
-Cc: Minfei Huang <mhuang@redhat.com>, Toshi Kani <toshi.kani@hpe.com>, linux-arch@vger.kernel.org, linux-nvdimm@ml01.01.org, x86@kernel.org, kexec@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, akpm@linux-foundation.org, Dan Williams <dan.j.williams@intel.com>
-Message-ID: <20160104122620.mqCcT2Cmx0sGUfPrp9AJyasYdK__8GwbAAQOUT54mEo@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, Davidlohr Bueso <dave@stgolabs.net>, Andrey Konovalov <andreyknvl@google.com>, Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <20160104132042.k9WENjd8Tz1xtz_8Gu__Qp2s0arrb1OgL_Hb1hxdISc@z>
 
-On Mon, Jan 04, 2016 at 05:29:37PM +0800, Dave Young wrote:
-> Replied to Toshi old kernel will export the "GART" region for amd cards.
-> So for old kernel and new kexec-tools we will have problem.
+On Thu, Dec 31, 2015 at 09:06:30PM +0200, Michael S. Tsirkin wrote:
+> On s390 read_barrier_depends, smp_read_barrier_depends
+> smp_store_mb(), smp_mb__before_atomic and smp_mb__after_atomic match the
+> asm-generic variants exactly. Drop the local definitions and pull in
+> asm-generic/barrier.h instead.
 > 
-> I think add the GART desc for compitibility purpose is doable, no?
+> This is in preparation to refactoring this code area.
+> 
+> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> ---
+>  arch/s390/include/asm/barrier.h | 10 ++--------
+>  1 file changed, 2 insertions(+), 8 deletions(-)
+> 
+> diff --git a/arch/s390/include/asm/barrier.h b/arch/s390/include/asm/barrier.h
+> index 7ffd0b1..c358c31 100644
+> --- a/arch/s390/include/asm/barrier.h
+> +++ b/arch/s390/include/asm/barrier.h
+> @@ -30,14 +30,6 @@
+>  #define smp_rmb()			rmb()
+>  #define smp_wmb()			wmb()
+>  
+> -#define read_barrier_depends()		do { } while (0)
+> -#define smp_read_barrier_depends()	do { } while (0)
+> -
+> -#define smp_mb__before_atomic()		smp_mb()
+> -#define smp_mb__after_atomic()		smp_mb()
 
-Just read your other mails too. If I see it correctly, there's only one
-place which has "GART":
+As per:
 
-$ git grep -e \"GART\"
-arch/x86/kernel/crash.c:235:    walk_iomem_res("GART", IORESOURCE_MEM, 0, -1,
+  lkml.kernel.org/r/20150921112252.3c2937e1@mschwide
 
-So crash.c only excludes this region but the kernel doesn't create it.
-Right?
-
-So we can kill that walk_iomem_res(), as you say. Which would be even
-nicer...
-
--- 
-Regards/Gruss,
-    Boris.
-
-ECO tip #101: Trim your mails when you reply.
+s390 should change this to barrier() instead of smp_mb() and hence
+should not use the generic versions.
