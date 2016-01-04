@@ -1,66 +1,110 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: smp_read_barrier_depends() for Blackfin
-Date: Sun, 3 Jan 2016 10:08:30 -0800
-Message-ID: <20160103180830.GA32217@linux.vnet.ibm.com>
-References: <20160103162539.GB4172@localhost>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Dave Young <dyoung@redhat.com>
+Subject: Re: [PATCH v2 14/16] x86,nvdimm,kexec: Use walk_iomem_res_desc() for
+ iomem search
+Date: Mon, 4 Jan 2016 17:25:45 +0800
+Message-ID: <20160104092545.GA7033@dhcp-128-65.nay.redhat.com>
+References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
+ <1451081365-15190-14-git-send-email-toshi.kani@hpe.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20160103162539.GB4172@localhost>
+In-Reply-To: <1451081365-15190-14-git-send-email-toshi.kani@hpe.com>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Petko Manolov <petkan@mip-labs.com>
-Cc: mingo@kernel.org, realmz6@gmail.com, adi-buildroot-devel@lists.sourceforge.net, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Toshi Kani <toshi.kani@hpe.com>
+Cc: akpm@linux-foundation.org, bp@alien8.de, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, x86@kernel.org, linux-nvdimm@ml01.01.org, kexec@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Jan 03, 2016 at 06:25:39PM +0200, Petko Manolov wrote:
->  Content preview:  Hi Paul, Ingo, It seems to me that smp_read_barrier_depends
->     (which resolves to ___raw_smp_check_barrier_asm) is overdoing it, unless
->    that particular part it is written for is a disaster in terms of cache coherency.
->     [...] 
-> 
->  Content analysis details:   (-1.0 points, 5.0 required)
-> 
->   pts rule name              description
->  ---- ---------------------- --------------------------------------------------
->  -1.0 ALL_TRUSTED            Passed through trusted hosts only via SMTP
-> X-ZLA-Header: unknown; 0
-> X-ZLA-DetailInfo: BA=6.00004041; NDR=6.00000001; ZLA=6.00000005; ZF=6.00000009; ZB=6.00000000; ZH=6.00000000; ZP=6.00000000; ZU=6.00000002; UDB=6.00287883; UTC=2016-01-03 16:24:57
-> x-cbid: 16010316-2214-0000-0000-00000F04BD9C
-> X-IBM-ISS-SpamDetectors: Score=0.415652; FLB=0; FLI=0; BY=0.280117; FL=0;
->  FP=0; FZ=0; HX=0; KW=0; PH=0; RB=0; SC=0.415652; ST=0; TS=0; UL=0; ISC=
-> X-IBM-ISS-DetailInfo:  BY=3.00004748; HX=3.00000237; KW=3.00000007;
->  PH=3.00000004; SC=3.00000129; SDB=6.00639970; UDB=6.00287883; UTC=2016-01-03
->  16:25:07
-> X-TM-AS-MML: disable
-> 
-> 	Hi Paul, Ingo,
-> 
-> It seems to me that smp_read_barrier_depends (which resolves to 
-> ___raw_smp_check_barrier_asm) is overdoing it, unless that particular part it is 
-> written for is a disaster in terms of cache coherency.
-> 
-> So far this is the only architecture that i know of (baring Alpha) which employs 
-> non-empty read_barrier_depends().  I am wondering if this is really needed or 
-> those who did the arch port got overly enthusiastic.  If it is the former then 
-> you may include another example of crazy architecture in your book. :)
+Hi, Toshi,
 
-Hello, Petko,
+On 12/25/15 at 03:09pm, Toshi Kani wrote:
+> Change to call walk_iomem_res_desc() for searching resource entries
+> with the following names:
+>  "ACPI Tables"
+>  "ACPI Non-volatile Storage"
+>  "Persistent Memory (legacy)"
+>  "Crash kernel"
+>=20
+> Note, the caller of walk_iomem_res() with "GART" is left unchanged
+> because this entry may be initialized by out-of-tree drivers, which
+> do not have 'desc' set to IORES_DESC_GART.
 
-I must defer to the architecture maintainers.  That said, there was a time
-when the blackfin maintainer were trying to make an SMP system without
-cache coherence, that is, by simply wiring two UP-only blackfin CPUs
-into a single system.  They were using cache-flush tricks to make things
-more-or-less work.  And their ___raw_smp_check_barrier_asm() does look
-to be flushing caches, so maybe that is what is happening here.  And the
-comment header for read_barrier_depends() seems to support this view.
+=46ound below commit which initialize the GART entry:
+commit 56dd669a138c40ea6cdae487f233430d12372767
+Author: Aaron Durbin <adurbin@google.com>
+Date:   Tue Sep 26 10:52:40 2006 +0200
 
-Adding the blackfin folks and the usual lists on CC.  Might get
-us something better than my half-remembered hearsay and possible
-misinterpretations of header comments.  ;-)
+    [PATCH] Insert GART region into resource map
+   =20
+    Patch inserts the GART region into the iomem resource map. The GART=
+ will then
+    be visible within /proc/iomem. It will also allow for other users
+    utilizing the GART to subreserve the region (agp or IOMMU).
+   =20
+    Signed-off-by: Aaron Durbin <adurbin@google.com>
 
-That said, cache-incoherent systems might well be a good addition to
-the book.
+But later it was reverted:
+commit 707d4eefbdb31f8e588277157056b0ce637d6c68
+Author: Bjorn Helgaas <bhelgaas@google.com>
+Date:   Tue Mar 18 14:26:12 2014 -0600
 
-							Thanx, Paul
+    Revert "[PATCH] Insert GART region into resource map"
+   =20
+    This reverts commit 56dd669a138c, which makes the GART visible in
+    /proc/iomem.  This fixes a regression: e501b3d87f00 ("agp: Support =
+64-bit
+    APBASE") exposed an existing problem with a conflict between the GA=
+RT
+    region and a PCI BAR region.
+   =20
+    The GART addresses are bus addresses, not CPU addresses, and theref=
+ore
+    should not be inserted in iomem_resource.
+   =20
+    On many machines, the GART region is addressable by the CPU as well=
+ as by
+    an AGP master, but CPU addressability is not required by the spec. =
+ On some
+    of these machines, the GART is mapped by a PCI BAR, and in that cas=
+e, the
+    PCI core automatically inserts it into iomem_resource, just as it d=
+oes for
+    all BARs.
+   =20
+    Inserting it here means we'll have a conflict if the PCI core later=
+ tries
+    to claim the GART region, so let's drop the insertion here.
+   =20
+    The conflict indirectly causes X failures, as reported by Jouni in =
+the
+    bugzilla below.  We detected the conflict even before e501b3d87f00,=
+ but
+    after it the AGP code (fix_northbridge()) uses the PCI resource (wh=
+ich is
+    zeroed because of the conflict) instead of reading the BAR again.
+   =20
+    Conflicts:
+        arch/x86_64/kernel/aperture.c
+   =20
+    Fixes: e501b3d87f00 agp: Support 64-bit APBASE
+    Link: https://bugzilla.kernel.org/show_bug.cgi?id=3D72201
+    Reported-and-tested-by: Jouni Mett=E4l=E4 <jtmettala@gmail.com>
+    Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+
+
+=46or amd64 agp, currently the region name is "aperture" instead:
+drivers/char/agp/amd64-agp.c: agp_aperture_valid()
+
+This may not be the only case, but I doubt that anyone is testing this =
+since
+long time ago kexec-tools excluding the 'GART' region. Kexec-tools and =
+kexec_file
+may need update to use "aperture" if someone can test it.
+
+I think adding an enum value for compatibility is reasonable, we do not=
+ care
+about third party drivers in mainline.
+
+Thanks
+Dave
