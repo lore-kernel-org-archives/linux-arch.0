@@ -1,85 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.arm.linux.org.uk ([78.32.30.218]:39567 "EHLO
-	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751598AbcADN7y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jan 2016 08:59:54 -0500
-Date: Mon, 4 Jan 2016 13:59:34 +0000
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH v2 17/32] arm: define __smp_xxx
-Message-ID: <20160104135934.GE19062@n2100.arm.linux.org.uk>
+Received: from bombadil.infradead.org ([198.137.202.9]:33478 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750889AbcADOJ4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jan 2016 09:09:56 -0500
+Date: Mon, 4 Jan 2016 15:09:39 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH v2 33/34] xenbus: use virt_xxx barriers
+Message-ID: <20160104140939.GC6344@twins.programming.kicks-ass.net>
 References: <1451572003-2440-1-git-send-email-mst@redhat.com>
- <1451572003-2440-18-git-send-email-mst@redhat.com>
- <20160102112438.GU8644@n2100.arm.linux.org.uk>
- <20160103110158-mutt-send-email-mst@redhat.com>
- <20160104133658.GY6344@twins.programming.kicks-ass.net>
- <20160104135420.GS6373@twins.programming.kicks-ass.net>
+ <1451572003-2440-34-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20160104135420.GS6373@twins.programming.kicks-ass.net>
+In-Reply-To: <1451572003-2440-34-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, Tony Lindgren <tony@atomide.com>, Andrey Konovalov <andreyknvl@google.com>
-Message-ID: <20160104135934.R-NT4UzqXCd-NGZSv_JuXgKLPUs89-XzsHIQEYmzRdA@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>, David Vrabel <david.vrabel@citrix.com>
+Message-ID: <20160104140939.2oFv8cJUzG5BsLc0VqrTLs_X_iXvrxaHAJAxgRS8aDI@z>
 
-On Mon, Jan 04, 2016 at 02:54:20PM +0100, Peter Zijlstra wrote:
-> On Mon, Jan 04, 2016 at 02:36:58PM +0100, Peter Zijlstra wrote:
-> > On Sun, Jan 03, 2016 at 11:12:44AM +0200, Michael S. Tsirkin wrote:
-> > > On Sat, Jan 02, 2016 at 11:24:38AM +0000, Russell King - ARM Linux wrote:
-> > 
-> > > > My only concern is that it gives people an additional handle onto a
-> > > > "new" set of barriers - just because they're prefixed with __*
-> > > > unfortunately doesn't stop anyone from using it (been there with
-> > > > other arch stuff before.)
-> > > > 
-> > > > I wonder whether we should consider making the smp memory barriers
-> > > > inline functions, so these __smp_xxx() variants can be undef'd
-> > > > afterwards, thereby preventing drivers getting their hands on these
-> > > > new macros?
-> > > 
-> > > That'd be tricky to do cleanly since asm-generic depends on
-> > > ifndef to add generic variants where needed.
-> > > 
-> > > But it would be possible to add a checkpatch test for this.
-> > 
-> > Wasn't the whole purpose of these things for 'drivers' (namely
-> > virtio/xen hypervisor interaction) to use these?
+On Thu, Dec 31, 2015 at 09:10:01PM +0200, Michael S. Tsirkin wrote:
+> drivers/xen/xenbus/xenbus_comms.c uses
+> full memory barriers to communicate with the other side.
 > 
-> Ah, I see, you add virt_*mb() stuff later on for that use case.
+> For guests compiled with CONFIG_SMP, smp_wmb and smp_mb
+> would be sufficient, so mb() and wmb() here are only needed if
+> a non-SMP guest runs on an SMP host.
 > 
-> So, assuming everybody does include asm-generic/barrier.h, you could
-> simply #undef the __smp version at the end of that, once we've generated
-> all the regular primitives from it, no?
+> Switch to virt_xxx barriers which serve this exact purpose.
+> 
+> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+> ---
+>  drivers/xen/xenbus/xenbus_comms.c | 8 ++++----
+>  1 file changed, 4 insertions(+), 4 deletions(-)
+> 
+> diff --git a/drivers/xen/xenbus/xenbus_comms.c b/drivers/xen/xenbus/xenbus_comms.c
+> index fdb0f33..ecdecce 100644
+> --- a/drivers/xen/xenbus/xenbus_comms.c
+> +++ b/drivers/xen/xenbus/xenbus_comms.c
+> @@ -123,14 +123,14 @@ int xb_write(const void *data, unsigned len)
+>  			avail = len;
+>  
+>  		/* Must write data /after/ reading the consumer index. */
+> -		mb();
+> +		virt_mb();
+>  
 
-Not so simple - that's why I mentioned using inline functions.
+So its possible to remove this barrier entirely, see the "CONTROL
+DEPENDNCIES" chunk of memory-barrier.txt.
 
-The new smp_* _macros_ are:
-
-+#define smp_mb()       __smp_mb()
-
-which means if we simply #undef __smp_mb(), smp_mb() then points at
-something which is no longer available, and we'll end up with errors
-saying that __smp_mb() doesn't exist.
-
-My suggestion was to change:
-
-#ifndef smp_mb
-#define smp_mb()	__smp_mb()
-#endif
-
-to:
-
-#ifndef smp_mb
-static inline void smp_mb(void)
-{
-	__smp_mb();
-}
-#endif
-
-which then means __smp_mb() and friends can be #undef'd afterwards.
-
--- 
-RMK's Patch system: http://www.arm.linux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+But do that in a separate patch series and only if you really really
+need the performance.
