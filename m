@@ -1,58 +1,122 @@
-From: Joe Perches <joe-6d6DIl74uiNBDgjK7y7TUQ@public.gmane.org>
-Subject: Re: [PATCH 1/3] checkpatch.pl: add missing memory barriers
-Date: Mon, 04 Jan 2016 14:15:50 -0800
-Message-ID: <1451945750.4334.111.camel@perches.com>
-References: <1451907395-15978-1-git-send-email-mst@redhat.com>
-	 <1451907395-15978-2-git-send-email-mst@redhat.com>
-	 <1451923660.4334.83.camel@perches.com>
-	 <20160104224415-mutt-send-email-mst@redhat.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH v2 10/32] metag: reuse asm-generic/barrier.h
+Date: Mon, 4 Jan 2016 23:24:04 +0000
+Message-ID: <20160104232404.GL17861@jhogan-linux.le.imgtec.org>
+References: <1451572003-2440-1-git-send-email-mst@redhat.com>
+ <1451572003-2440-11-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20160104224415-mutt-send-email-mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, "Cc : Andy Whitcroft" <apw-Z7WLFzj8eWMS+FvcfC7Uqw@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Andrew Cooper <andrew.cooper3-Sxgqhf6Nn4DQT0dZR+AlfA@public.gmane.org>, virtualization-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Stefano Stabellini <stefano.stabellini-mvvWK6WmYclDPfheJLI6IQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, user-mode-linux-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, adi-buildroot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature"; boundary="2OzUYMsT4j3Kc+NU"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailapp01.imgtec.com ([195.59.15.196]:44565 "EHLO
+	imgpgp01.kl.imgtec.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753411AbcADXYJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jan 2016 18:24:09 -0500
+Content-Disposition: inline
+In-Reply-To: <1451572003-2440-11-git-send-email-mst@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, Micha
 
-On Mon, 2016-01-04 at 22:45 +0200, Michael S. Tsirkin wrote:
-> On Mon, Jan 04, 2016 at 08:07:40AM -0800, Joe Perches wrote:
-> > On Mon, 2016-01-04 at 13:36 +0200, Michael S. Tsirkin wrote:
-> > > SMP-only barriers were missing in checkpatch.pl
-> > >=20
-> > > Refactor code slightly to make adding more variants easier.
-> > >=20
-> > > Signed-off-by: Michael S. Tsirkin <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-> > > ---
-> > > =A0scripts/checkpatch.pl | 9 ++++++++-
-> > > =A01 file changed, 8 insertions(+), 1 deletion(-)
-> > >=20
-> > > diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
-> > > index 2b3c228..0245bbe 100755
-> > > --- a/scripts/checkpatch.pl
-> > > +++ b/scripts/checkpatch.pl
-> > > @@ -5116,7 +5116,14 @@ sub process {
-> > > =A0			}
-> > > =A0		}
-> > > =A0# check for memory barriers without a comment.
-> > > -		if ($line =3D~ /\b(mb|rmb|wmb|read_barrier_depends|smp_mb|smp_=
-rmb|smp_wmb|smp_read_barrier_depends)\(/) {
-> > > +
-> > > +		my @barriers =3D ('mb', 'rmb', 'wmb', 'read_barrier_depends');
-> > > +		my @smp_barriers =3D ('smp_store_release', 'smp_load_acquire',=
- 'smp_store_mb');
-> > > +
-> > > +		@smp_barriers =3D (@smp_barriers, map {"smp_" . $_} @barriers)=
-;
-> >=20
-> > I think using map, which so far checkpatch doesn't use,
-> > makes smp_barriers harder to understand and it'd be
-> > better to enumerate them.
+--2OzUYMsT4j3Kc+NU
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+On Thu, Dec 31, 2015 at 09:07:02PM +0200, Michael S. Tsirkin wrote:
+> On metag dma_rmb, dma_wmb, smp_store_mb, read_barrier_depends,
+> smp_read_barrier_depends, smp_store_release and smp_load_acquire  match
+> the asm-generic variants exactly. Drop the local definitions and pull in
+> asm-generic/barrier.h instead.
 >=20
-> Okay - I'll rewrite using foreach.
+> This is in preparation to refactoring this code area.
+>=20
+> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+
+Looks good, and confirmed no text change (once patch 1 is applied that
+is).
+
+Acked-by: James Hogan <james.hogan@imgtec.com>
+
+Thanks
+James
+
+> ---
+>  arch/metag/include/asm/barrier.h | 25 ++-----------------------
+>  1 file changed, 2 insertions(+), 23 deletions(-)
+>=20
+> diff --git a/arch/metag/include/asm/barrier.h b/arch/metag/include/asm/ba=
+rrier.h
+> index 172b7e5..b5b778b 100644
+> --- a/arch/metag/include/asm/barrier.h
+> +++ b/arch/metag/include/asm/barrier.h
+> @@ -44,9 +44,6 @@ static inline void wr_fence(void)
+>  #define rmb()		barrier()
+>  #define wmb()		mb()
+> =20
+> -#define dma_rmb()	rmb()
+> -#define dma_wmb()	wmb()
+> -
+>  #ifndef CONFIG_SMP
+>  #define fence()		do { } while (0)
+>  #define smp_mb()        barrier()
+> @@ -81,27 +78,9 @@ static inline void fence(void)
+>  #endif
+>  #endif
+> =20
+> -#define read_barrier_depends()		do { } while (0)
+> -#define smp_read_barrier_depends()	do { } while (0)
+> -
+> -#define smp_store_mb(var, value) do { WRITE_ONCE(var, value); smp_mb(); =
+} while (0)
+> -
+> -#define smp_store_release(p, v)						\
+> -do {									\
+> -	compiletime_assert_atomic_type(*p);				\
+> -	smp_mb();							\
+> -	WRITE_ONCE(*p, v);						\
+> -} while (0)
+> -
+> -#define smp_load_acquire(p)						\
+> -({									\
+> -	typeof(*p) ___p1 =3D READ_ONCE(*p);				\
+> -	compiletime_assert_atomic_type(*p);				\
+> -	smp_mb();							\
+> -	___p1;								\
+> -})
+> -
+>  #define smp_mb__before_atomic()	barrier()
+>  #define smp_mb__after_atomic()	barrier()
+> =20
+> +#include <asm-generic/barrier.h>
+> +
+>  #endif /* _ASM_METAG_BARRIER_H */
+> --=20
+> MST
 >=20
 
-I think using the qr form (like 'our $Attribute' and
-a bunch of others) is the general style that should
-be used for checkpatch.
+--2OzUYMsT4j3Kc+NU
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQIcBAEBCAAGBQJWiv8UAAoJEGwLaZPeOHZ6hSwQAJCVQc5QdNomZOnrxJp5uv9r
+iT+zYpXRNC4k29ENp5iDq29d07OM1zooI0szDvvKi351dsFwfOXrEBIcoKJjLRcm
+VGVtFCCI0IffzBGaMa2u16xywqgCogk+uMnlOmyk2cSM6lx0BdWIb6sL4fzkocfT
+a1sTWJnh45/sQG+VQQUUFokjUM0UFCXOV+77I556Khe9tS5qgZnObEsAIk+lrY/3
+lRo2nd2wbZsybzqlQVKp3nKYbFNUpoCGT/myPpj8A3NQ/FBUOs6LtpZvD0i06CJh
+E01ASo6Cr5SvTyOAYsty+zcZvFGZPB+2i9jyv/7vGDBgdiCwLEX25gXxz9aS8GB6
+2Oa2E/5z/uCltUZyM3y3Yz/K8XwnhORh3PMpZR/b2Ze5MnguCLy2zWrcKWdZhCJ+
+UkNkLe3rcbdLSfCcK6kCSAwHoqj78IeHmBG+96vEwePwsQh7YkAKIoKSMxbx88BU
+gD/yn8y+dc7wSJGYgHM4eBw35H3o7HTB6bPRZsw8/ak1nG8ClOMtWkoLB7a+9wOA
+J5tM/aHE0ixB02QphdN8lkvqMA+U9EKmq6hBHZeiyIxNx/mCAm+6dcGv484Hh2UF
+tvsj4erVkGZa9EJ3KL49xvAJx23RTZcR+a2djcLUlzeLr32UDWh3zuVzSoNc+ZKD
+Cnc7cQMIdlTlucxbu/OU
+=IkXd
+-----END PGP SIGNATURE-----
+
+--2OzUYMsT4j3Kc+NU--
