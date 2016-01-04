@@ -1,14 +1,14 @@
 From: Stefano Stabellini <stefano.stabellini@eu.citrix.com>
-Subject: Re: [PATCH 31/34] xenbus: use __smp_XXX barriers
-Date: Mon, 4 Jan 2016 11:58:53 +0000
-Message-ID: <alpine.DEB.2.02.1601041143591.19710@kaball.uk.xensource.com>
+Subject: Re: [PATCH 32/34] xen/io: use __smp_XXX barriers
+Date: Mon, 4 Jan 2016 11:59:42 +0000
+Message-ID: <alpine.DEB.2.02.1601041159110.19710@kaball.uk.xensource.com>
 References: <1451473761-30019-1-git-send-email-mst@redhat.com>
-	<1451473761-30019-32-git-send-email-mst@redhat.com>
+	<1451473761-30019-33-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <1451473761-30019-32-git-send-email-mst@redhat.com>
+In-Reply-To: <1451473761-30019-33-git-send-email-mst@redhat.com>
 List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
 	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
 List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
@@ -23,7 +23,7 @@ Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellin
 List-Id: linux-arch.vger.kernel.org
 
 On Wed, 30 Dec 2015, Michael S. Tsirkin wrote:
-> drivers/xen/xenbus/xenbus_comms.c uses
+> include/xen/interface/io/ring.h uses
 > full memory barriers to communicate with the other side.
 > 
 > For guests compiled with CONFIG_SMP, smp_wmb and smp_mb
@@ -37,66 +37,70 @@ On Wed, 30 Dec 2015, Michael S. Tsirkin wrote:
 Reviewed-by: Stefano Stabellini <stefano.stabellini@eu.citrix.com>
 
 
-> This is straight-forward, but untested.
-> I can either merge this patchset through my tree if this is
-> acked, or defer this and merge the patchset first,
-> and xen bits through xen tree afterwards.
+>  include/xen/interface/io/ring.h | 16 ++++++++--------
+>  1 file changed, 8 insertions(+), 8 deletions(-)
 > 
-> Pls let me know.
-
-I think it can go via your tree. However you have missed a few Xen
-source files which need the same mb/__smb_mb conversions:
-
-drivers/xen/grant-table.c
-drivers/xen/evtchn.c
-drivers/xen/events/events_fifo.c
-drivers/xen/xen-scsiback.c
-drivers/xen/tmem.c
-drivers/xen/xen-pciback/pci_stub.c
-drivers/xen/xen-pciback/pciback_ops.c
-
-
->  drivers/xen/xenbus/xenbus_comms.c | 8 ++++----
->  1 file changed, 4 insertions(+), 4 deletions(-)
-> 
-> diff --git a/drivers/xen/xenbus/xenbus_comms.c b/drivers/xen/xenbus/xenbus_comms.c
-> index fdb0f33..09b17c7 100644
-> --- a/drivers/xen/xenbus/xenbus_comms.c
-> +++ b/drivers/xen/xenbus/xenbus_comms.c
-> @@ -123,14 +123,14 @@ int xb_write(const void *data, unsigned len)
->  			avail = len;
+> diff --git a/include/xen/interface/io/ring.h b/include/xen/interface/io/ring.h
+> index 7dc685b..46dfc65 100644
+> --- a/include/xen/interface/io/ring.h
+> +++ b/include/xen/interface/io/ring.h
+> @@ -208,12 +208,12 @@ struct __name##_back_ring {						\
 >  
->  		/* Must write data /after/ reading the consumer index. */
-> -		mb();
-> +		__smp_mb();
 >  
->  		memcpy(dst, data, avail);
->  		data += avail;
->  		len -= avail;
+>  #define RING_PUSH_REQUESTS(_r) do {					\
+> -    wmb(); /* back sees requests /before/ updated producer index */	\
+> +    __smp_wmb(); /* back sees requests /before/ updated producer index */	\
+>      (_r)->sring->req_prod = (_r)->req_prod_pvt;				\
+>  } while (0)
 >  
->  		/* Other side must not see new producer until data is there. */
-> -		wmb();
-> +		__smp_wmb();
->  		intf->req_prod += avail;
+>  #define RING_PUSH_RESPONSES(_r) do {					\
+> -    wmb(); /* front sees responses /before/ updated producer index */	\
+> +    __smp_wmb(); /* front sees responses /before/ updated producer index */	\
+>      (_r)->sring->rsp_prod = (_r)->rsp_prod_pvt;				\
+>  } while (0)
 >  
->  		/* Implies mb(): other side will see the updated producer. */
-> @@ -180,14 +180,14 @@ int xb_read(void *data, unsigned len)
->  			avail = len;
+> @@ -250,9 +250,9 @@ struct __name##_back_ring {						\
+>  #define RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(_r, _notify) do {		\
+>      RING_IDX __old = (_r)->sring->req_prod;				\
+>      RING_IDX __new = (_r)->req_prod_pvt;				\
+> -    wmb(); /* back sees requests /before/ updated producer index */	\
+> +    __smp_wmb(); /* back sees requests /before/ updated producer index */	\
+>      (_r)->sring->req_prod = __new;					\
+> -    mb(); /* back sees new requests /before/ we check req_event */	\
+> +    __smp_mb(); /* back sees new requests /before/ we check req_event */	\
+>      (_notify) = ((RING_IDX)(__new - (_r)->sring->req_event) <		\
+>  		 (RING_IDX)(__new - __old));				\
+>  } while (0)
+> @@ -260,9 +260,9 @@ struct __name##_back_ring {						\
+>  #define RING_PUSH_RESPONSES_AND_CHECK_NOTIFY(_r, _notify) do {		\
+>      RING_IDX __old = (_r)->sring->rsp_prod;				\
+>      RING_IDX __new = (_r)->rsp_prod_pvt;				\
+> -    wmb(); /* front sees responses /before/ updated producer index */	\
+> +    __smp_wmb(); /* front sees responses /before/ updated producer index */	\
+>      (_r)->sring->rsp_prod = __new;					\
+> -    mb(); /* front sees new responses /before/ we check rsp_event */	\
+> +    __smp_mb(); /* front sees new responses /before/ we check rsp_event */	\
+>      (_notify) = ((RING_IDX)(__new - (_r)->sring->rsp_event) <		\
+>  		 (RING_IDX)(__new - __old));				\
+>  } while (0)
+> @@ -271,7 +271,7 @@ struct __name##_back_ring {						\
+>      (_work_to_do) = RING_HAS_UNCONSUMED_REQUESTS(_r);			\
+>      if (_work_to_do) break;						\
+>      (_r)->sring->req_event = (_r)->req_cons + 1;			\
+> -    mb();								\
+> +    __smp_mb();								\
+>      (_work_to_do) = RING_HAS_UNCONSUMED_REQUESTS(_r);			\
+>  } while (0)
 >  
->  		/* Must read data /after/ reading the producer index. */
-> -		rmb();
-> +		__smp_rmb();
+> @@ -279,7 +279,7 @@ struct __name##_back_ring {						\
+>      (_work_to_do) = RING_HAS_UNCONSUMED_RESPONSES(_r);			\
+>      if (_work_to_do) break;						\
+>      (_r)->sring->rsp_event = (_r)->rsp_cons + 1;			\
+> -    mb();								\
+> +    __smp_mb();								\
+>      (_work_to_do) = RING_HAS_UNCONSUMED_RESPONSES(_r);			\
+>  } while (0)
 >  
->  		memcpy(data, src, avail);
->  		data += avail;
->  		len -= avail;
->  
->  		/* Other side must not see free space until we've copied out */
-> -		mb();
-> +		__smp_mb();
->  		intf->rsp_cons += avail;
->  
->  		pr_debug("Finished read of %i bytes (%i to go)\n", avail, len);
 > -- 
 > MST
 > 
