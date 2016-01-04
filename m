@@ -1,74 +1,69 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH v2 06/32] s390: reuse asm-generic/barrier.h
-Date: Mon, 4 Jan 2016 22:42:44 +0200
-Message-ID: <20160104224135-mutt-send-email-mst@redhat.com>
-References: <1451572003-2440-1-git-send-email-mst@redhat.com>
- <1451572003-2440-7-git-send-email-mst@redhat.com>
- <20160104132042.GW6344@twins.programming.kicks-ass.net>
- <20160104160339.25101b5d@mschwide>
+From: "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Subject: Re: [PATCH 1/3] checkpatch.pl: add missing memory barriers
+Date: Mon, 4 Jan 2016 22:45:19 +0200
+Message-ID: <20160104224415-mutt-send-email-mst@redhat.com>
+References: <1451907395-15978-1-git-send-email-mst@redhat.com>
+ <1451907395-15978-2-git-send-email-mst@redhat.com>
+ <1451923660.4334.83.camel@perches.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53057 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751862AbcADUmx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 4 Jan 2016 15:42:53 -0500
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
 Content-Disposition: inline
-In-Reply-To: <20160104160339.25101b5d@mschwide>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@kernel.o>
+In-Reply-To: <1451923660.4334.83.camel-6d6DIl74uiNBDgjK7y7TUQ@public.gmane.org>
+Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Joe Perches <joe-6d6DIl74uiNBDgjK7y7TUQ@public.gmane.org>
+Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, "Cc : Andy Whitcroft" <apw-Z7WLFzj8eWMS+FvcfC7Uqw@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Andrew Cooper <andrew.cooper3-Sxgqhf6Nn4DQT0dZR+AlfA@public.gmane.org>, virtualization-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Stefano Stabellini <stefano.stabellini-mvvWK6WmYclDPfheJLI6IQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, user-mode-linux-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, adi-buildroot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Jan 04, 2016 at 04:03:39PM +0100, Martin Schwidefsky wrote:
-> On Mon, 4 Jan 2016 14:20:42 +0100
-> Peter Zijlstra <peterz@infradead.org> wrote:
-> 
-> > On Thu, Dec 31, 2015 at 09:06:30PM +0200, Michael S. Tsirkin wrote:
-> > > On s390 read_barrier_depends, smp_read_barrier_depends
-> > > smp_store_mb(), smp_mb__before_atomic and smp_mb__after_atomic match the
-> > > asm-generic variants exactly. Drop the local definitions and pull in
-> > > asm-generic/barrier.h instead.
-> > > 
-> > > This is in preparation to refactoring this code area.
-> > > 
-> > > Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-> > > Acked-by: Arnd Bergmann <arnd@arndb.de>
-> > > ---
-> > >  arch/s390/include/asm/barrier.h | 10 ++--------
-> > >  1 file changed, 2 insertions(+), 8 deletions(-)
-> > > 
-> > > diff --git a/arch/s390/include/asm/barrier.h b/arch/s390/include/asm/barrier.h
-> > > index 7ffd0b1..c358c31 100644
-> > > --- a/arch/s390/include/asm/barrier.h
-> > > +++ b/arch/s390/include/asm/barrier.h
-> > > @@ -30,14 +30,6 @@
-> > >  #define smp_rmb()			rmb()
-> > >  #define smp_wmb()			wmb()
-> > >  
-> > > -#define read_barrier_depends()		do { } while (0)
-> > > -#define smp_read_barrier_depends()	do { } while (0)
-> > > -
-> > > -#define smp_mb__before_atomic()		smp_mb()
-> > > -#define smp_mb__after_atomic()		smp_mb()
-> > 
-> > As per:
-> > 
-> >   lkml.kernel.org/r/20150921112252.3c2937e1@mschwide
-> > 
-> > s390 should change this to barrier() instead of smp_mb() and hence
-> > should not use the generic versions.
->  
-> Yes, we wanted to simplify this. Thanks for the reminder, I'll queue
-> a patch.
+On Mon, Jan 04, 2016 at 08:07:40AM -0800, Joe Perches wrote:
+> On Mon, 2016-01-04 at 13:36 +0200, Michael S. Tsirkin wrote:
+> > SMP-only barriers were missing in checkpatch.pl
+> >=20
+> > Refactor code slightly to make adding more variants easier.
+> >=20
+> > Signed-off-by: Michael S. Tsirkin <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+> > ---
+> > =A0scripts/checkpatch.pl | 9 ++++++++-
+> > =A01 file changed, 8 insertions(+), 1 deletion(-)
+> >=20
+> > diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
+> > index 2b3c228..0245bbe 100755
+> > --- a/scripts/checkpatch.pl
+> > +++ b/scripts/checkpatch.pl
+> > @@ -5116,7 +5116,14 @@ sub process {
+> > =A0			}
+> > =A0		}
+> > =A0# check for memory barriers without a comment.
+> > -		if ($line =3D~ /\b(mb|rmb|wmb|read_barrier_depends|smp_mb|smp_rm=
+b|smp_wmb|smp_read_barrier_depends)\(/) {
+> > +
+> > +		my @barriers =3D ('mb', 'rmb', 'wmb', 'read_barrier_depends');
+> > +		my @smp_barriers =3D ('smp_store_release', 'smp_load_acquire', '=
+smp_store_mb');
+> > +
+> > +		@smp_barriers =3D (@smp_barriers, map {"smp_" . $_} @barriers);
+>=20
+> I think using map, which so far checkpatch doesn't use,
+> makes smp_barriers harder to understand and it'd be
+> better to enumerate them.
 
-Could you base on my patchset maybe, to avoid conflicts,
-and I'll merge it?
-Or if it's just replacing these 2 with barrier() I can do this
-myself easily.
+Okay - I'll rewrite using foreach.
 
-> -- 
-> blue skies,
->    Martin.
-> 
-> "Reality continues to ruin my life." - Calvin.
+> > +		my $all_barriers =3D join('|', (@barriers, @smp_barriers));
+> > +
+> > +		if ($line =3D~ /\b($all_barriers)\(/) {
+>=20
+> It would be better to use /\b$all_barriers\s*\(/
+> as there's no reason for the capture and there
+> could be a space between the function and the
+> open parenthesis.
+
+That's the way it was - space before ( will trigger other
+warnings. But sure, ok.
+
+>=20
+> > =A0			if (!ctx_has_comment($first_line, $linenr)) {
+> > =A0				WARN("MEMORY_BARRIER",
+> > =A0				=A0=A0=A0=A0=A0"memory barrier without comment\n" . $herecur=
+r);
