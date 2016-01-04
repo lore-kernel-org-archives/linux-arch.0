@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:47804 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:45924 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753479AbcADLhJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 4 Jan 2016 06:37:09 -0500
-Date: Mon, 4 Jan 2016 13:37:00 +0200
+	id S1751512AbcADLhB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 4 Jan 2016 06:37:01 -0500
+Date: Mon, 4 Jan 2016 13:36:53 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 2/3] checkpatch: check for __smp outside barrier.h
-Message-ID: <1451907395-15978-3-git-send-email-mst@redhat.com>
+Subject: [PATCH 1/3] checkpatch.pl: add missing memory barriers
+Message-ID: <1451907395-15978-2-git-send-email-mst@redhat.com>
 References: <1451907395-15978-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -16,43 +16,37 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: "Cc : Andy Whitcroft" <apw@canonical.com>, Joe Perches <joe@perches.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, Tony Lindgren <tony@atomide.com>, Andrey Konovalov <andreyknvl@google.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>
-Message-ID: <20160104113700.28Nn1ZHNS2xrTxU7Jv6fpXvygxOD2xrjNLk2_Vp3ELk@z>
+Message-ID: <20160104113653.J3sTg-aZoRA4-LwWkuWg78_Wvz3B9MYvJ4z74uhvg_Q@z>
 
-Introduction of __smp barriers cleans up a bunch of duplicate code, but
-it gives people an additional handle onto a "new" set of barriers - just
-because they're prefixed with __* unfortunately doesn't stop anyone from
-using it (as happened with other arch stuff before.)
+SMP-only barriers were missing in checkpatch.pl
 
-Add a checkpatch test so it will trigger a warning.
+Refactor code slightly to make adding more variants easier.
 
-Reported-by: Russell King <linux@arm.linux.org.uk>
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- scripts/checkpatch.pl | 11 +++++++++++
- 1 file changed, 11 insertions(+)
+ scripts/checkpatch.pl | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
 
 diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
-index 0245bbe..e3f9ad9 100755
+index 2b3c228..0245bbe 100755
 --- a/scripts/checkpatch.pl
 +++ b/scripts/checkpatch.pl
-@@ -5130,6 +5130,17 @@ sub process {
+@@ -5116,7 +5116,14 @@ sub process {
  			}
  		}
- 
-+		my @underscore_smp_barriers = map {"__" . $_} @smp_barriers;
-+		my $underscore_all_barriers = join('|', @underscore_smp_barriers);
+ # check for memory barriers without a comment.
+-		if ($line =~ /\b(mb|rmb|wmb|read_barrier_depends|smp_mb|smp_rmb|smp_wmb|smp_read_barrier_depends)\(/) {
 +
-+		if ($realfile !~ m@^include/asm-generic/@ &&
-+		    $realfile !~ m@/barrier\.h$@ &&
-+		    $line =~ m/\b($underscore_all_barriers)\(/ &&
-+		    $line !~ m/^.\s*\#\s*define\s+($underscore_all_barriers)\(/) {
-+			WARN("MEMORY_BARRIER",
-+			     "__smp memory barriers shouldn't be used outside barrier.h and asm-generic\n" . $herecurr);
-+		}
++		my @barriers = ('mb', 'rmb', 'wmb', 'read_barrier_depends');
++		my @smp_barriers = ('smp_store_release', 'smp_load_acquire', 'smp_store_mb');
 +
- # check for waitqueue_active without a comment.
- 		if ($line =~ /\bwaitqueue_active\s*\(/) {
++		@smp_barriers = (@smp_barriers, map {"smp_" . $_} @barriers);
++		my $all_barriers = join('|', (@barriers, @smp_barriers));
++
++		if ($line =~ /\b($all_barriers)\(/) {
  			if (!ctx_has_comment($first_line, $linenr)) {
+ 				WARN("MEMORY_BARRIER",
+ 				     "memory barrier without comment\n" . $herecurr);
 -- 
 MST
 
