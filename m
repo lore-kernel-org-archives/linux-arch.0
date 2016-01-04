@@ -1,48 +1,40 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH 3/3] checkpatch: add virt barriers
-Date: Mon, 4 Jan 2016 13:37:08 +0200
-Message-ID: <1451907395-15978-4-git-send-email-mst@redhat.com>
-References: <1451907395-15978-1-git-send-email-mst@redhat.com>
+From: David Vrabel <david.vrabel@citrix.com>
+Subject: Re: [Xen-devel] [PATCH v2 08/16] xen, mm: Set IORESOURCE_SYSTEM_RAM
+ to System RAM
+Date: Mon, 4 Jan 2016 11:41:31 +0000
+Message-ID: <568A5A6B.3030700@citrix.com>
+References: <1451081365-15190-1-git-send-email-toshi.kani@hpe.com>
+ <1451081365-15190-8-git-send-email-toshi.kani@hpe.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="windows-1252"
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <1451907395-15978-1-git-send-email-mst@redhat.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, Tony Lindgren <tony@atomide.com>, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, linux-xtensa@linux-xtensa.org, user-mode-linux-devel@lists.sourceforge.net, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Andrey Konovalov <andreyknvl@google.com>, adi-buildroot-devel@lists.sourceforge.net, "Cc : Andy Whitcroft" <apw@canonical.com>, Thomas Gleixner <tglx@linutronix.de>, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Andrew
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp02.citrix.com ([66.165.176.63]:49740 "EHLO
+	SMTP02.CITRIX.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751512AbcADLle (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jan 2016 06:41:34 -0500
+In-Reply-To: <1451081365-15190-8-git-send-email-toshi.kani@hpe.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Toshi Kani <toshi.kani@hpe.com>, akpm@linux-foundation.org, bp@alien8.de
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, xen-devel@lists.xenproject.org
 
-Add virt_ barriers to list of barriers to check for
-presence of a comment.
+On 25/12/15 22:09, Toshi Kani wrote:
+> Set IORESOURCE_SYSTEM_RAM to 'flags' of struct resource entries
+> with "System RAM".
+[...]
+> --- a/drivers/xen/balloon.c
+> +++ b/drivers/xen/balloon.c
+> @@ -257,7 +257,7 @@ static struct resource *additional_memory_resource(phys_addr_t size)
+>  		return NULL;
+>  
+>  	res->name = "System RAM";
+> -	res->flags = IORESOURCE_MEM | IORESOURCE_BUSY;
+> +	res->flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
+>  
+>  	ret = allocate_resource(&iomem_resource, res,
+>  				size, 0, -1,
 
-Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
----
- scripts/checkpatch.pl | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+Acked-by: David Vrabel <david.vrabel@citrix.com>
 
-diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
-index e3f9ad9..5fb6ef7 100755
---- a/scripts/checkpatch.pl
-+++ b/scripts/checkpatch.pl
-@@ -5121,7 +5121,8 @@ sub process {
- 		my @smp_barriers = ('smp_store_release', 'smp_load_acquire', 'smp_store_mb');
- 
- 		@smp_barriers = (@smp_barriers, map {"smp_" . $_} @barriers);
--		my $all_barriers = join('|', (@barriers, @smp_barriers));
-+		my @virt_barriers = map {my $l = $_; $l =~ s/smp_/virt_/; $l} @smp_barriers;
-+		my $all_barriers = join('|', (@barriers, @smp_barriers, @virt_barriers));
- 
- 		if ($line =~ /\b($all_barriers)\(/) {
- 			if (!ctx_has_comment($first_line, $linenr)) {
--- 
-MST
+David
