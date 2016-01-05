@@ -1,112 +1,164 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3428.houston.hp.com ([15.201.208.56]:53846 "EHLO
-	g4t3428.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752462AbcAESzt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2016 13:55:49 -0500
+Received: from g9t5008.houston.hp.com ([15.240.92.66]:48743 "EHLO
+	g9t5008.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751765AbcAESzn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2016 13:55:43 -0500
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v3 14/17] x86,nvdimm,kexec: Use walk_iomem_res_desc() for iomem search
-Date: Tue,  5 Jan 2016 11:54:38 -0700
-Message-ID: <1452020081-26534-14-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH v3 12/17] memremap: Change region_intersects() to take @flags and @desc
+Date: Tue,  5 Jan 2016 11:54:36 -0700
+Message-ID: <1452020081-26534-12-git-send-email-toshi.kani@hpe.com>
 In-Reply-To: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
 References: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Dave Young <dyoung@redhat.com>, Minfei Huang <mhuang@redhat.com>, x86@kernel.org, linux-nvdimm@lists.01.org, kexec@lists.infradead.org, Toshi Kani <toshi.kani@hpe.com>
-Message-ID: <20160105185438.FG4DykgyuzsS_1C4MsvHlCVc0dRuAJ8jQpVcj9ErU-U@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Toshi Kani <toshi.kani@hpe.com>
+Message-ID: <20160105185436.IhtxYxYRRSb3xBBEZ0L_rwefG7ukZ1uRceOtvVF0aQs@z>
 
-Change the callers of walk_iomem_res() with the following names
-to use walk_iomem_res(), instead.
+Change region_intersects() to identify a target with @flags
+and @desc, instead of @name with strcmp().
 
- "ACPI Tables"
- "ACPI Non-volatile Storage"
- "Persistent Memory (legacy)"
- "Crash kernel"
+Change the callers of region_intersects(), memremap() and
+devm_memremap(), to set IORESOURCE_SYSTEM_RAM to @flags and
+IORES_DESC_NONE to @desc for searching System RAM.
 
-Note, the caller of walk_iomem_res() with "GART" will be removed
-in a later patch.
+Also, export region_intersects() so that the EINJ driver can
+call this function in a later patch.
 
+Cc: Andrew Morton <akpm@linux-foundation.org>
 Cc: Borislav Petkov <bp@alien8.de>
 Cc: Dan Williams <dan.j.williams@intel.com>
-Cc: Dave Young <dyoung@redhat.com>
-Cc: Minfei Huang <mhuang@redhat.com>
-Cc: x86@kernel.org
-Cc: linux-nvdimm@lists.01.org
-Cc: kexec@lists.infradead.org
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- arch/x86/kernel/crash.c |    4 ++--
- arch/x86/kernel/pmem.c  |    4 ++--
- drivers/nvdimm/e820.c   |    2 +-
- kernel/kexec_file.c     |    8 ++++----
- 4 files changed, 9 insertions(+), 9 deletions(-)
+ include/linux/mm.h |    3 ++-
+ kernel/memremap.c  |   13 +++++++------
+ kernel/resource.c  |   26 +++++++++++++++-----------
+ 3 files changed, 24 insertions(+), 18 deletions(-)
 
-diff --git a/arch/x86/kernel/crash.c b/arch/x86/kernel/crash.c
-index 2c1910f..082373b 100644
---- a/arch/x86/kernel/crash.c
-+++ b/arch/x86/kernel/crash.c
-@@ -588,12 +588,12 @@ int crash_setup_memmap_entries(struct kimage *image, struct boot_params *params)
- 	/* Add ACPI tables */
- 	cmd.type = E820_ACPI;
- 	flags = IORESOURCE_MEM | IORESOURCE_BUSY;
--	walk_iomem_res("ACPI Tables", flags, 0, -1, &cmd,
-+	walk_iomem_res_desc(IORES_DESC_ACPI_TABLES, flags, 0, -1, &cmd,
- 		       memmap_entry_callback);
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 00bad77..82f6ca9 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -362,7 +362,8 @@ enum {
+ 	REGION_MIXED,
+ };
  
- 	/* Add ACPI Non-volatile Storage */
- 	cmd.type = E820_NVS;
--	walk_iomem_res("ACPI Non-volatile Storage", flags, 0, -1, &cmd,
-+	walk_iomem_res_desc(IORES_DESC_ACPI_NV_STORAGE, flags, 0, -1, &cmd,
- 			memmap_entry_callback);
+-int region_intersects(resource_size_t offset, size_t size, const char *type);
++int region_intersects(resource_size_t offset, size_t size, unsigned long flags,
++			unsigned long desc);
  
- 	/* Add crashk_low_res region */
-diff --git a/arch/x86/kernel/pmem.c b/arch/x86/kernel/pmem.c
-index 14415af..92f7014 100644
---- a/arch/x86/kernel/pmem.c
-+++ b/arch/x86/kernel/pmem.c
-@@ -13,11 +13,11 @@ static int found(u64 start, u64 end, void *data)
- 
- static __init int register_e820_pmem(void)
+ /* Support for virtually mapped pages */
+ struct page *vmalloc_to_page(const void *addr);
+diff --git a/kernel/memremap.c b/kernel/memremap.c
+index 7658d32..47f3436 100644
+--- a/kernel/memremap.c
++++ b/kernel/memremap.c
+@@ -44,7 +44,7 @@ static void *try_ram_remap(resource_size_t offset, size_t size)
+  * being mapped does not have i/o side effects and the __iomem
+  * annotation is not applicable.
+  *
+- * MEMREMAP_WB - matches the default mapping for "System RAM" on
++ * MEMREMAP_WB - matches the default mapping for System RAM on
+  * the architecture.  This is usually a read-allocate write-back cache.
+  * Morever, if MEMREMAP_WB is specified and the requested remap region is RAM
+  * memremap() will bypass establishing a new mapping and instead return
+@@ -53,11 +53,12 @@ static void *try_ram_remap(resource_size_t offset, size_t size)
+  * MEMREMAP_WT - establish a mapping whereby writes either bypass the
+  * cache or are written through to memory and never exist in a
+  * cache-dirty state with respect to program visibility.  Attempts to
+- * map "System RAM" with this mapping type will fail.
++ * map System RAM with this mapping type will fail.
+  */
+ void *memremap(resource_size_t offset, size_t size, unsigned long flags)
  {
--	char *pmem = "Persistent Memory (legacy)";
- 	struct platform_device *pdev;
- 	int rc;
+-	int is_ram = region_intersects(offset, size, "System RAM");
++	int is_ram = region_intersects(offset, size,
++					IORESOURCE_SYSTEM_RAM, IORES_DESC_NONE);
+ 	void *addr = NULL;
  
--	rc = walk_iomem_res(pmem, IORESOURCE_MEM, 0, -1, NULL, found);
-+	rc = walk_iomem_res_desc(IORES_DESC_PERSISTENT_MEMORY_LEGACY,
-+				 IORESOURCE_MEM, 0, -1, NULL, found);
- 	if (rc <= 0)
- 		return 0;
+ 	if (is_ram == REGION_MIXED) {
+@@ -73,7 +74,7 @@ void *memremap(resource_size_t offset, size_t size, unsigned long flags)
+ 		 * MEMREMAP_WB is special in that it can be satisifed
+ 		 * from the direct map.  Some archs depend on the
+ 		 * capability of memremap() to autodetect cases where
+-		 * the requested range is potentially in "System RAM"
++		 * the requested range is potentially in System RAM.
+ 		 */
+ 		if (is_ram == REGION_INTERSECTS)
+ 			addr = try_ram_remap(offset, size);
+@@ -85,7 +86,7 @@ void *memremap(resource_size_t offset, size_t size, unsigned long flags)
+ 	 * If we don't have a mapping yet and more request flags are
+ 	 * pending then we will be attempting to establish a new virtual
+ 	 * address mapping.  Enforce that this mapping is not aliasing
+-	 * "System RAM"
++	 * System RAM.
+ 	 */
+ 	if (!addr && is_ram == REGION_INTERSECTS && flags) {
+ 		WARN_ONCE(1, "memremap attempted on ram %pa size: %#lx\n",
+@@ -163,7 +164,7 @@ static void devm_memremap_pages_release(struct device *dev, void *res)
+ void *devm_memremap_pages(struct device *dev, struct resource *res)
+ {
+ 	int is_ram = region_intersects(res->start, resource_size(res),
+-			"System RAM");
++					IORESOURCE_SYSTEM_RAM, IORES_DESC_NONE);
+ 	struct page_map *page_map;
+ 	int error, nid;
  
-diff --git a/drivers/nvdimm/e820.c b/drivers/nvdimm/e820.c
-index b0045a5..95825b3 100644
---- a/drivers/nvdimm/e820.c
-+++ b/drivers/nvdimm/e820.c
-@@ -55,7 +55,7 @@ static int e820_pmem_probe(struct platform_device *pdev)
+diff --git a/kernel/resource.c b/kernel/resource.c
+index 1d3ea50..52e6380 100644
+--- a/kernel/resource.c
++++ b/kernel/resource.c
+@@ -496,31 +496,34 @@ EXPORT_SYMBOL_GPL(page_is_ram);
+  * region_intersects() - determine intersection of region with known resources
+  * @start: region start address
+  * @size: size of region
+- * @name: name of resource (in iomem_resource)
++ * @flags: flags of resource (in iomem_resource)
++ * @desc: descriptor of resource (in iomem_resource) or IORES_DESC_NONE
+  *
+  * Check if the specified region partially overlaps or fully eclipses a
+- * resource identified by @name.  Return REGION_DISJOINT if the region
+- * does not overlap @name, return REGION_MIXED if the region overlaps
+- * @type and another resource, and return REGION_INTERSECTS if the
+- * region overlaps @type and no other defined resource. Note, that
+- * REGION_INTERSECTS is also returned in the case when the specified
+- * region overlaps RAM and undefined memory holes.
++ * resource identified by @flags and @desc (optinal with IORES_DESC_NONE).
++ * Return REGION_DISJOINT if the region does not overlap @flags/@desc,
++ * return REGION_MIXED if the region overlaps @flags/@desc and another
++ * resource, and return REGION_INTERSECTS if the region overlaps @flags/@desc
++ * and no other defined resource. Note, that REGION_INTERSECTS is also
++ * returned in the case when the specified region overlaps RAM and undefined
++ * memory holes.
+  *
+  * region_intersect() is used by memory remapping functions to ensure
+  * the user is not remapping RAM and is a vast speed up over walking
+  * through the resource table page by page.
+  */
+-int region_intersects(resource_size_t start, size_t size, const char *name)
++int region_intersects(resource_size_t start, size_t size, unsigned long flags,
++			unsigned long desc)
+ {
+-	unsigned long flags = IORESOURCE_MEM | IORESOURCE_BUSY;
+ 	resource_size_t end = start + size - 1;
+ 	int type = 0; int other = 0;
+ 	struct resource *p;
+ 
+ 	read_lock(&resource_lock);
  	for (p = iomem_resource.child; p ; p = p->sibling) {
- 		struct nd_region_desc ndr_desc;
+-		bool is_type = strcmp(p->name, name) == 0 &&
+-				((p->flags & flags) == flags);
++		bool is_type = (((p->flags & flags) == flags) &&
++				((desc == IORES_DESC_NONE) ||
++				 (desc == p->desc)));
  
--		if (strncmp(p->name, "Persistent Memory (legacy)", 26) != 0)
-+		if (p->desc != IORES_DESC_PERSISTENT_MEMORY_LEGACY)
- 			continue;
+ 		if (start >= p->start && start <= p->end)
+ 			is_type ? type++ : other++;
+@@ -539,6 +542,7 @@ int region_intersects(resource_size_t start, size_t size, const char *name)
  
- 		memset(&ndr_desc, 0, sizeof(ndr_desc));
-diff --git a/kernel/kexec_file.c b/kernel/kexec_file.c
-index c245085..6e31cea 100644
---- a/kernel/kexec_file.c
-+++ b/kernel/kexec_file.c
-@@ -522,10 +522,10 @@ int kexec_add_buffer(struct kimage *image, char *buffer, unsigned long bufsz,
+ 	return REGION_DISJOINT;
+ }
++EXPORT_SYMBOL_GPL(region_intersects);
  
- 	/* Walk the RAM ranges and allocate a suitable range for the buffer */
- 	if (image->type == KEXEC_TYPE_CRASH)
--		ret = walk_iomem_res("Crash kernel",
--				     IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY,
--				     crashk_res.start, crashk_res.end, kbuf,
--				     locate_mem_hole_callback);
-+		ret = walk_iomem_res_desc(crashk_res.desc,
-+				IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY,
-+				crashk_res.start, crashk_res.end, kbuf,
-+				locate_mem_hole_callback);
- 	else
- 		ret = walk_system_ram_res(0, -1, kbuf,
- 					  locate_mem_hole_callback);
+ void __weak arch_remove_reservations(struct resource *avail)
+ {
