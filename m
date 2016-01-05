@@ -1,101 +1,68 @@
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v3 15/17] x86/kexec: Remove walk_iomem_res() call with GART
-Date: Tue,  5 Jan 2016 11:54:39 -0700
-Message-ID: <1452020081-26534-15-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH v3 17/17] ACPI/EINJ: Allow memory error injection to NVDIMM
+Date: Tue,  5 Jan 2016 11:54:41 -0700
+Message-ID: <1452020081-26534-17-git-send-email-toshi.kani@hpe.com>
 References: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dave Young <dyoung@redhat.com>, Minfei Huang <mhuang@redhat.com>, x86@kernel.org, kexec@lists.infradead.org, Toshi Kani <toshi.kani@hpe.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Vishal Verma <vishal.l.verma@intel.com>, linux-nvdimm@lists.01.org, linux-acpi@vger.kernel.org, Toshi Kani <toshi.kani@hpe.com>
 List-Id: linux-arch.vger.kernel.org
 
-There is no longer any driver inserting a "GART" region in the kernel
-since 'commit 707d4eefbdb3 ("Revert "[PATCH] Insert GART region into
-resource map"")' was made.
+In the case of memory error injection, einj_error_inject() checks
+if a target address is System RAM.  Change this check to allow
+injecting a memory error to NVDIMM by calling region_intersects()
+with IORES_DESC_PERSISTENT_MEMORY.  This enables memory error
+testing on both System RAM and NVDIMM.
 
-Remove the call to walk_iomem_res() with "GART", its callback function,
-and GART-specific variables set by the callback.
+In addition, page_is_ram() is replaced with region_intersects()
+with IORESOURCE_SYSTEM_RAM, so that it can verify a target address
+range with the requested size.
 
+Cc: Rafael J. Wysocki <rjw@rjwysocki.net>
 Cc: Borislav Petkov <bp@alien8.de>
-Cc: Dave Young <dyoung@redhat.com>
-Cc: Minfei Huang <mhuang@redhat.com>
-Cc: x86@kernel.org
-Cc: kexec@lists.infradead.org
-Link: http://lkml.kernel.org/r/<20160104110427.GA2965@dhcp-128-65.nay.redhat.com>
+Cc: Vishal Verma <vishal.l.verma@intel.com>
+Cc: linux-nvdimm@lists.01.org
+Cc: linux-acpi@vger.kernel.org
+Acked-by: Tony Luck <tony.luck@intel.com>
+Reviewed-by: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- arch/x86/kernel/crash.c |   37 +------------------------------------
- 1 file changed, 1 insertion(+), 36 deletions(-)
+ drivers/acpi/apei/einj.c |   15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
 
-diff --git a/arch/x86/kernel/crash.c b/arch/x86/kernel/crash.c
-index 082373b..f5069e7 100644
---- a/arch/x86/kernel/crash.c
-+++ b/arch/x86/kernel/crash.c
-@@ -56,10 +56,9 @@ struct crash_elf_data {
- 	struct kimage *image;
+diff --git a/drivers/acpi/apei/einj.c b/drivers/acpi/apei/einj.c
+index 0431883..16cae66 100644
+--- a/drivers/acpi/apei/einj.c
++++ b/drivers/acpi/apei/einj.c
+@@ -519,7 +519,7 @@ static int einj_error_inject(u32 type, u32 flags, u64 param1, u64 param2,
+ 			     u64 param3, u64 param4)
+ {
+ 	int rc;
+-	unsigned long pfn;
++	u64 base_addr, size;
+ 
+ 	/* If user manually set "flags", make sure it is legal */
+ 	if (flags && (flags &
+@@ -545,10 +545,17 @@ static int einj_error_inject(u32 type, u32 flags, u64 param1, u64 param2,
  	/*
- 	 * Total number of ram ranges we have after various adjustments for
--	 * GART, crash reserved region etc.
-+	 * crash reserved region, etc.
+ 	 * Disallow crazy address masks that give BIOS leeway to pick
+ 	 * injection address almost anywhere. Insist on page or
+-	 * better granularity and that target address is normal RAM.
++	 * better granularity and that target address is normal RAM or
++	 * NVDIMM.
  	 */
- 	unsigned int max_nr_ranges;
--	unsigned long gart_start, gart_end;
+-	pfn = PFN_DOWN(param1 & param2);
+-	if (!page_is_ram(pfn) || ((param2 & PAGE_MASK) != PAGE_MASK))
++	base_addr = param1 & param2;
++	size = ~param2 + 1;
++
++	if (((param2 & PAGE_MASK) != PAGE_MASK) ||
++	    ((region_intersects(base_addr, size, IORESOURCE_SYSTEM_RAM,
++			IORES_DESC_NONE) != REGION_INTERSECTS) &&
++	     (region_intersects(base_addr, size, IORESOURCE_MEM,
++			IORES_DESC_PERSISTENT_MEMORY) != REGION_INTERSECTS)))
+ 		return -EINVAL;
  
- 	/* Pointer to elf header */
- 	void *ehdr;
-@@ -190,17 +189,6 @@ static int get_nr_ram_ranges_callback(u64 start, u64 end, void *arg)
- 	return 0;
- }
- 
--static int get_gart_ranges_callback(u64 start, u64 end, void *arg)
--{
--	struct crash_elf_data *ced = arg;
--
--	ced->gart_start = start;
--	ced->gart_end = end;
--
--	/* Not expecting more than 1 gart aperture */
--	return 1;
--}
--
- 
- /* Gather all the required information to prepare elf headers for ram regions */
- static void fill_up_crash_elf_data(struct crash_elf_data *ced,
-@@ -215,22 +203,6 @@ static void fill_up_crash_elf_data(struct crash_elf_data *ced,
- 
- 	ced->max_nr_ranges = nr_ranges;
- 
--	/*
--	 * We don't create ELF headers for GART aperture as an attempt
--	 * to dump this memory in second kernel leads to hang/crash.
--	 * If gart aperture is present, one needs to exclude that region
--	 * and that could lead to need of extra phdr.
--	 */
--	walk_iomem_res("GART", IORESOURCE_MEM, 0, -1,
--				ced, get_gart_ranges_callback);
--
--	/*
--	 * If we have gart region, excluding that could potentially split
--	 * a memory range, resulting in extra header. Account for  that.
--	 */
--	if (ced->gart_end)
--		ced->max_nr_ranges++;
--
- 	/* Exclusion of crash region could split memory ranges */
- 	ced->max_nr_ranges++;
- 
-@@ -339,13 +311,6 @@ static int elf_header_exclude_ranges(struct crash_elf_data *ced,
- 			return ret;
- 	}
- 
--	/* Exclude GART region */
--	if (ced->gart_end) {
--		ret = exclude_mem_range(cmem, ced->gart_start, ced->gart_end);
--		if (ret)
--			return ret;
--	}
--
- 	return ret;
- }
- 
+ inject:
