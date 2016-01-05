@@ -1,135 +1,139 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t5009.houston.hp.com ([15.240.92.67]:43419 "EHLO
-	g9t5009.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751669AbcAESzZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2016 13:55:25 -0500
-From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v3 03/17] resource: Add I/O resource descriptor
-Date: Tue,  5 Jan 2016 11:54:27 -0700
-Message-ID: <1452020081-26534-3-git-send-email-toshi.kani@hpe.com>
-In-Reply-To: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
+Received: from mout.gmx.net ([212.227.15.19]:58361 "EHLO mout.gmx.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754483AbcAEU56 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 5 Jan 2016 15:57:58 -0500
+Subject: Re: [PATCH v3 09/17] drivers: Initialize resource entry to zero
 References: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
+ <1452020081-26534-9-git-send-email-toshi.kani@hpe.com>
+From: Helge Deller <deller@gmx.de>
+Message-ID: <568C2E3D.4060701@gmx.de>
+Date: Tue, 5 Jan 2016 21:57:33 +0100
+MIME-Version: 1.0
+In-Reply-To: <1452020081-26534-9-git-send-email-toshi.kani@hpe.com>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Toshi Kani <toshi.kani@hpe.com>
-Message-ID: <20160105185427.KQBx2XhMCfyfRZgmL3g2N2tSoS30NTsy37enlpr5vFE@z>
+To: Toshi Kani <toshi.kani@hpe.com>, akpm@linux-foundation.org, bp@alien8.de
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-acpi@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org
+Message-ID: <20160105205733.MywGSS7v-NPNDu1rgSMjo6BFJEhtivRDcl55ST0XAoc@z>
 
-walk_iomem_res() and region_intersects() still need to use
-strcmp() for searching a resource entry by @name in the
-iomem table.
+On 05.01.2016 19:54, Toshi Kani wrote:
+> I/O resource descriptor, 'desc' in struct resource, needs to be
+> initialized to zero by default.  Some drivers call kmalloc() to
+> allocate a resource entry, but does not initialize it to zero by
+> memset().  Change these drivers to call kzalloc(), instead.
+> 
+> Cc: linux-acpi@vger.kernel.org
+> Cc: linux-parisc@vger.kernel.org
+> Cc: linux-sh@vger.kernel.org
+> Acked-by: Simon Horman <horms+renesas@verge.net.au> # sh
+> Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
+> ---
+>  drivers/acpi/acpi_platform.c       |    2 +-
+>  drivers/parisc/eisa_enumerator.c   |    4 ++--
 
-This patch introduces I/O resource descriptor, 'desc' in
-struct resoruce, for the iomem search interfaces.  Drivers
-can assign their unique descritor to a range when they
-support the search interfaces.  Otherwise, 'desc' is set to
-IORES_DESC_NONE (0).  This avoids changing most of the drivers
-as they typically allocate resource entries statically, or
-by calling alloc_resource(), kzalloc(), or alloc_bootmem_low(),
-which set the field to zero by default.  A later patch will
-address some drivers that use kmalloc() without zero'ing
-the field.
+The parisc changes look good. For those:
+Acked-by: Helge Deller <deller@gmx.de>
 
-Also change release_mem_region_adjustable() to set 'desc'
-when its resource entry gets separated.  Other resource
-interfaces are also changed to initialize 'desc' explicitly
-although alloc_resource() sets it to 0.
 
-Link: http://lkml.kernel.org/r/<20151216181712.GJ29775@pd.tnic>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Dan Williams <dan.j.williams@intel.com>
-Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
----
- include/linux/ioport.h |   18 ++++++++++++++++++
- kernel/resource.c      |    5 +++++
- 2 files changed, 23 insertions(+)
 
-diff --git a/include/linux/ioport.h b/include/linux/ioport.h
-index 4b65d94..983bea0 100644
---- a/include/linux/ioport.h
-+++ b/include/linux/ioport.h
-@@ -20,6 +20,7 @@ struct resource {
- 	resource_size_t end;
- 	const char *name;
- 	unsigned long flags;
-+	unsigned long desc;
- 	struct resource *parent, *sibling, *child;
- };
- 
-@@ -112,6 +113,22 @@ struct resource {
- /* PCI control bits.  Shares IORESOURCE_BITS with above PCI ROM.  */
- #define IORESOURCE_PCI_FIXED		(1<<4)	/* Do not move resource */
- 
-+/*
-+ * I/O Resource Descriptors
-+ *
-+ * Descriptors are used by walk_iomem_res_desc() and region_intersects()
-+ * for searching a specific resource range in the iomem table.  Assign
-+ * a new descriptor when a resource range supports the search interfaces.
-+ * Otherwise, resource.desc must be set to IORES_DESC_NONE (0).
-+ */
-+enum {
-+	IORES_DESC_NONE				= 0,
-+	IORES_DESC_CRASH_KERNEL			= 1,
-+	IORES_DESC_ACPI_TABLES			= 2,
-+	IORES_DESC_ACPI_NV_STORAGE		= 3,
-+	IORES_DESC_PERSISTENT_MEMORY		= 4,
-+	IORES_DESC_PERSISTENT_MEMORY_LEGACY	= 5,
-+};
- 
- /* helpers to define resources */
- #define DEFINE_RES_NAMED(_start, _size, _name, _flags)			\
-@@ -120,6 +137,7 @@ struct resource {
- 		.end = (_start) + (_size) - 1,				\
- 		.name = (_name),					\
- 		.flags = (_flags),					\
-+		.desc = IORES_DESC_NONE,				\
- 	}
- 
- #define DEFINE_RES_IO_NAMED(_start, _size, _name)			\
-diff --git a/kernel/resource.c b/kernel/resource.c
-index d30a175..65eca4d 100644
---- a/kernel/resource.c
-+++ b/kernel/resource.c
-@@ -949,6 +949,7 @@ static void __init __reserve_region_with_split(struct resource *root,
- 	res->start = start;
- 	res->end = end;
- 	res->flags = IORESOURCE_BUSY;
-+	res->desc = IORES_DESC_NONE;
- 
- 	while (1) {
- 
-@@ -983,6 +984,7 @@ static void __init __reserve_region_with_split(struct resource *root,
- 				next_res->start = conflict->end + 1;
- 				next_res->end = end;
- 				next_res->flags = IORESOURCE_BUSY;
-+				next_res->desc = IORES_DESC_NONE;
- 			}
- 		} else {
- 			res->start = conflict->end + 1;
-@@ -1074,6 +1076,7 @@ struct resource * __request_region(struct resource *parent,
- 	res->end = start + n - 1;
- 	res->flags = resource_type(parent) | resource_ext_type(parent);
- 	res->flags |= IORESOURCE_BUSY | flags;
-+	res->desc = IORES_DESC_NONE;
- 
- 	write_lock(&resource_lock);
- 
-@@ -1238,6 +1241,7 @@ int release_mem_region_adjustable(struct resource *parent,
- 			new_res->start = end + 1;
- 			new_res->end = res->end;
- 			new_res->flags = res->flags;
-+			new_res->desc = res->desc;
- 			new_res->parent = res->parent;
- 			new_res->sibling = res->sibling;
- 			new_res->child = NULL;
-@@ -1413,6 +1417,7 @@ static int __init reserve_setup(char *str)
- 			res->start = io_start;
- 			res->end = io_start + io_num - 1;
- 			res->flags = IORESOURCE_BUSY;
-+			res->desc = IORES_DESC_NONE;
- 			res->child = NULL;
- 			if (request_resource(res->start >= 0x10000 ? &iomem_resource : &ioport_resource, res) == 0)
- 				reserved = x+1;
+>  drivers/rapidio/rio.c              |    8 ++++----
+>  drivers/sh/superhyway/superhyway.c |    2 +-
+>  4 files changed, 8 insertions(+), 8 deletions(-)
+> 
+> diff --git a/drivers/acpi/acpi_platform.c b/drivers/acpi/acpi_platform.c
+> index 296b7a1..b6f7fa3 100644
+> --- a/drivers/acpi/acpi_platform.c
+> +++ b/drivers/acpi/acpi_platform.c
+> @@ -62,7 +62,7 @@ struct platform_device *acpi_create_platform_device(struct acpi_device *adev)
+>  	if (count < 0) {
+>  		return NULL;
+>  	} else if (count > 0) {
+> -		resources = kmalloc(count * sizeof(struct resource),
+> +		resources = kzalloc(count * sizeof(struct resource),
+>  				    GFP_KERNEL);
+>  		if (!resources) {
+>  			dev_err(&adev->dev, "No memory for resources\n");
+> diff --git a/drivers/parisc/eisa_enumerator.c b/drivers/parisc/eisa_enumerator.c
+> index a656d9e..21905fe 100644
+> --- a/drivers/parisc/eisa_enumerator.c
+> +++ b/drivers/parisc/eisa_enumerator.c
+> @@ -91,7 +91,7 @@ static int configure_memory(const unsigned char *buf,
+>  	for (i=0;i<HPEE_MEMORY_MAX_ENT;i++) {
+>  		c = get_8(buf+len);
+>  		
+> -		if (NULL != (res = kmalloc(sizeof(struct resource), GFP_KERNEL))) {
+> +		if (NULL != (res = kzalloc(sizeof(struct resource), GFP_KERNEL))) {
+>  			int result;
+>  			
+>  			res->name = name;
+> @@ -183,7 +183,7 @@ static int configure_port(const unsigned char *buf, struct resource *io_parent,
+>  	for (i=0;i<HPEE_PORT_MAX_ENT;i++) {
+>  		c = get_8(buf+len);
+>  		
+> -		if (NULL != (res = kmalloc(sizeof(struct resource), GFP_KERNEL))) {
+> +		if (NULL != (res = kzalloc(sizeof(struct resource), GFP_KERNEL))) {
+>  			res->name = board;
+>  			res->start = get_16(buf+len+1);
+>  			res->end = get_16(buf+len+1)+(c&HPEE_PORT_SIZE_MASK)+1;
+> diff --git a/drivers/rapidio/rio.c b/drivers/rapidio/rio.c
+> index d7b87c6..e220edc 100644
+> --- a/drivers/rapidio/rio.c
+> +++ b/drivers/rapidio/rio.c
+> @@ -117,7 +117,7 @@ int rio_request_inb_mbox(struct rio_mport *mport,
+>  	if (mport->ops->open_inb_mbox == NULL)
+>  		goto out;
+>  
+> -	res = kmalloc(sizeof(struct resource), GFP_KERNEL);
+> +	res = kzalloc(sizeof(struct resource), GFP_KERNEL);
+>  
+>  	if (res) {
+>  		rio_init_mbox_res(res, mbox, mbox);
+> @@ -185,7 +185,7 @@ int rio_request_outb_mbox(struct rio_mport *mport,
+>  	if (mport->ops->open_outb_mbox == NULL)
+>  		goto out;
+>  
+> -	res = kmalloc(sizeof(struct resource), GFP_KERNEL);
+> +	res = kzalloc(sizeof(struct resource), GFP_KERNEL);
+>  
+>  	if (res) {
+>  		rio_init_mbox_res(res, mbox, mbox);
+> @@ -285,7 +285,7 @@ int rio_request_inb_dbell(struct rio_mport *mport,
+>  {
+>  	int rc = 0;
+>  
+> -	struct resource *res = kmalloc(sizeof(struct resource), GFP_KERNEL);
+> +	struct resource *res = kzalloc(sizeof(struct resource), GFP_KERNEL);
+>  
+>  	if (res) {
+>  		rio_init_dbell_res(res, start, end);
+> @@ -360,7 +360,7 @@ int rio_release_inb_dbell(struct rio_mport *mport, u16 start, u16 end)
+>  struct resource *rio_request_outb_dbell(struct rio_dev *rdev, u16 start,
+>  					u16 end)
+>  {
+> -	struct resource *res = kmalloc(sizeof(struct resource), GFP_KERNEL);
+> +	struct resource *res = kzalloc(sizeof(struct resource), GFP_KERNEL);
+>  
+>  	if (res) {
+>  		rio_init_dbell_res(res, start, end);
+> diff --git a/drivers/sh/superhyway/superhyway.c b/drivers/sh/superhyway/superhyway.c
+> index 2d9e7f3..bb1fb771 100644
+> --- a/drivers/sh/superhyway/superhyway.c
+> +++ b/drivers/sh/superhyway/superhyway.c
+> @@ -66,7 +66,7 @@ int superhyway_add_device(unsigned long base, struct superhyway_device *sdev,
+>  	superhyway_read_vcr(dev, base, &dev->vcr);
+>  
+>  	if (!dev->resource) {
+> -		dev->resource = kmalloc(sizeof(struct resource), GFP_KERNEL);
+> +		dev->resource = kzalloc(sizeof(struct resource), GFP_KERNEL);
+>  		if (!dev->resource) {
+>  			kfree(dev);
+>  			return -ENOMEM;
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-parisc" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> 
+
