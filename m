@@ -1,56 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3425.houston.hp.com ([15.201.208.53]:34506 "EHLO
-	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752090AbcAESzg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2016 13:55:36 -0500
+Received: from g9t5008.houston.hp.com ([15.240.92.66]:48736 "EHLO
+	g9t5008.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752375AbcAESzm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2016 13:55:42 -0500
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v3 08/17] xen, mm: Set IORESOURCE_SYSTEM_RAM to System RAM
-Date: Tue,  5 Jan 2016 11:54:32 -0700
-Message-ID: <1452020081-26534-8-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH v3 11/17] arm/samsung: Change s3c_pm_run_res() to use System RAM type
+Date: Tue,  5 Jan 2016 11:54:35 -0700
+Message-ID: <1452020081-26534-11-git-send-email-toshi.kani@hpe.com>
 In-Reply-To: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
 References: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, xen-devel@lists.xenproject.org, Toshi Kani <toshi.kani@hpe.com>
-Message-ID: <20160105185432.P9x_DinAc5Whf24RH0kqXmkkW4Kz1OZrr1yJB8Q9a7M@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-samsung-soc@vger.kernel.org, Toshi Kani <toshi.kani@hpe.com>
+Message-ID: <20160105185435.ZFmOoalOayqor81-p7dUyxXHXwEwOcP4E-wyIb_8hbg@z>
 
-Set IORESOURCE_SYSTEM_RAM to 'flags' of struct resource entries
-with "System RAM".
+Change s3c_pm_run_res() to check with IORESOURCE_SYSTEM_RAM,
+instead of strcmp() with "System RAM", to walk through
+System RAM ranges in the iomem table.
 
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-mm@kvack.org
-Cc: xen-devel@lists.xenproject.org
-Acked-by: David Vrabel <david.vrabel@citrix.com> # xen
+No functional change is made to the interface.
+
+Cc: linux-samsung-soc@vger.kernel.org
+Reviewed-by: Krzysztof Kozlowski <k.kozlowski@samsung.com>
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- drivers/xen/balloon.c |    2 +-
- mm/memory_hotplug.c   |    2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ arch/arm/plat-samsung/pm-check.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/xen/balloon.c b/drivers/xen/balloon.c
-index 12eab50..dc4305b 100644
---- a/drivers/xen/balloon.c
-+++ b/drivers/xen/balloon.c
-@@ -257,7 +257,7 @@ static struct resource *additional_memory_resource(phys_addr_t size)
- 		return NULL;
+diff --git a/arch/arm/plat-samsung/pm-check.c b/arch/arm/plat-samsung/pm-check.c
+index 04aff2c..70f2f69 100644
+--- a/arch/arm/plat-samsung/pm-check.c
++++ b/arch/arm/plat-samsung/pm-check.c
+@@ -53,8 +53,8 @@ static void s3c_pm_run_res(struct resource *ptr, run_fn_t fn, u32 *arg)
+ 		if (ptr->child != NULL)
+ 			s3c_pm_run_res(ptr->child, fn, arg);
  
- 	res->name = "System RAM";
--	res->flags = IORESOURCE_MEM | IORESOURCE_BUSY;
-+	res->flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
- 
- 	ret = allocate_resource(&iomem_resource, res,
- 				size, 0, -1,
-diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
-index a042a9d..0712585 100644
---- a/mm/memory_hotplug.c
-+++ b/mm/memory_hotplug.c
-@@ -136,7 +136,7 @@ static struct resource *register_memory_resource(u64 start, u64 size)
- 	res->name = "System RAM";
- 	res->start = start;
- 	res->end = start + size - 1;
--	res->flags = IORESOURCE_MEM | IORESOURCE_BUSY;
-+	res->flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
- 	if (request_resource(&iomem_resource, res) < 0) {
- 		pr_debug("System RAM resource %pR cannot be added\n", res);
- 		kfree(res);
+-		if ((ptr->flags & IORESOURCE_MEM) &&
+-		    strcmp(ptr->name, "System RAM") == 0) {
++		if ((ptr->flags & IORESOURCE_SYSTEM_RAM)
++				== IORESOURCE_SYSTEM_RAM) {
+ 			S3C_PMDBG("Found system RAM at %08lx..%08lx\n",
+ 				  (unsigned long)ptr->start,
+ 				  (unsigned long)ptr->end);
