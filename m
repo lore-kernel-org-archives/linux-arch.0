@@ -1,99 +1,106 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3426.houston.hp.com ([15.201.208.54]:56689 "EHLO
-	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752345AbcAESzk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2016 13:55:40 -0500
+Received: from g9t5009.houston.hp.com ([15.240.92.67]:43600 "EHLO
+	g9t5009.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752471AbcAESzt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2016 13:55:49 -0500
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v3 10/17] resource: Change walk_system_ram to use System RAM type
-Date: Tue,  5 Jan 2016 11:54:34 -0700
-Message-ID: <1452020081-26534-10-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH v3 15/17] x86/kexec: Remove walk_iomem_res() call with GART
+Date: Tue,  5 Jan 2016 11:54:39 -0700
+Message-ID: <1452020081-26534-15-git-send-email-toshi.kani@hpe.com>
 In-Reply-To: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
 References: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Toshi Kani <toshi.kani@hpe.com>
-Message-ID: <20160105185434.hu9O0Rv9oUVwoiHOE0mT0VWUkuhD9uYV_2h02g0DcE8@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dave Young <dyoung@redhat.com>, Minfei Huang <mhuang@redhat.com>, x86@kernel.org, kexec@lists.infradead.org, Toshi Kani <toshi.kani@hpe.com>
+Message-ID: <20160105185439.iMKeVe855SP3bWBYx8I7NivwpK32bebx6g-Tr7chSSY@z>
 
-Now that all System RAM resource entries have been initialized
-to IORESOURCE_SYSTEM_RAM type, change walk_system_ram_res() and
-walk_system_ram_range() to call find_next_iomem_res() by setting
-IORESOURCE_SYSTEM_RAM to @res.flags and NULL to @name.  With
-this change, they walk through the iomem table to find System
-RAM ranges without using strcmp().
+There is no longer any driver inserting a "GART" region in the kernel
+since 'commit 707d4eefbdb3 ("Revert "[PATCH] Insert GART region into
+resource map"")' was made.
 
-No functional change is made to the interfaces.
+Remove the call to walk_iomem_res() with "GART", its callback function,
+and GART-specific variables set by the callback.
 
-Cc: Andrew Morton <akpm@linux-foundation.org>
 Cc: Borislav Petkov <bp@alien8.de>
-Cc: Dan Williams <dan.j.williams@intel.com>
+Cc: Dave Young <dyoung@redhat.com>
+Cc: Minfei Huang <mhuang@redhat.com>
+Cc: x86@kernel.org
+Cc: kexec@lists.infradead.org
+Link: http://lkml.kernel.org/r/<20160104110427.GA2965@dhcp-128-65.nay.redhat.com>
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- kernel/resource.c |   22 +++++++++++-----------
- 1 file changed, 11 insertions(+), 11 deletions(-)
+ arch/x86/kernel/crash.c |   37 +------------------------------------
+ 1 file changed, 1 insertion(+), 36 deletions(-)
 
-diff --git a/kernel/resource.c b/kernel/resource.c
-index 65eca4d..1d3ea50 100644
---- a/kernel/resource.c
-+++ b/kernel/resource.c
-@@ -415,9 +415,9 @@ int walk_iomem_res(char *name, unsigned long flags, u64 start, u64 end,
+diff --git a/arch/x86/kernel/crash.c b/arch/x86/kernel/crash.c
+index 082373b..f5069e7 100644
+--- a/arch/x86/kernel/crash.c
++++ b/arch/x86/kernel/crash.c
+@@ -56,10 +56,9 @@ struct crash_elf_data {
+ 	struct kimage *image;
+ 	/*
+ 	 * Total number of ram ranges we have after various adjustments for
+-	 * GART, crash reserved region etc.
++	 * crash reserved region, etc.
+ 	 */
+ 	unsigned int max_nr_ranges;
+-	unsigned long gart_start, gart_end;
+ 
+ 	/* Pointer to elf header */
+ 	void *ehdr;
+@@ -190,17 +189,6 @@ static int get_nr_ram_ranges_callback(u64 start, u64 end, void *arg)
+ 	return 0;
  }
  
- /*
-- * This function calls callback against all memory range of "System RAM"
-- * which are marked as IORESOURCE_MEM and IORESOUCE_BUSY.
-- * Now, this function is only for "System RAM". This function deals with
-+ * This function calls callback against all memory range of System RAM
-+ * which are marked as IORESOURCE_SYSTEM_RAM and IORESOUCE_BUSY.
-+ * Now, this function is only for System RAM. This function deals with
-  * full ranges and not pfn. If resources are not pfn aligned, dealing
-  * with pfn can truncate ranges.
-  */
-@@ -430,10 +430,10 @@ int walk_system_ram_res(u64 start, u64 end, void *arg,
+-static int get_gart_ranges_callback(u64 start, u64 end, void *arg)
+-{
+-	struct crash_elf_data *ced = arg;
+-
+-	ced->gart_start = start;
+-	ced->gart_end = end;
+-
+-	/* Not expecting more than 1 gart aperture */
+-	return 1;
+-}
+-
  
- 	res.start = start;
- 	res.end = end;
--	res.flags = IORESOURCE_MEM | IORESOURCE_BUSY;
-+	res.flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
- 	orig_end = res.end;
- 	while ((res.start < res.end) &&
--		(!find_next_iomem_res(&res, "System RAM", true))) {
-+		(!find_next_iomem_res(&res, NULL, true))) {
- 		ret = (*func)(res.start, res.end, arg);
- 		if (ret)
- 			break;
-@@ -446,9 +446,9 @@ int walk_system_ram_res(u64 start, u64 end, void *arg,
- #if !defined(CONFIG_ARCH_HAS_WALK_MEMORY)
+ /* Gather all the required information to prepare elf headers for ram regions */
+ static void fill_up_crash_elf_data(struct crash_elf_data *ced,
+@@ -215,22 +203,6 @@ static void fill_up_crash_elf_data(struct crash_elf_data *ced,
  
- /*
-- * This function calls callback against all memory range of "System RAM"
-- * which are marked as IORESOURCE_MEM and IORESOUCE_BUSY.
-- * Now, this function is only for "System RAM".
-+ * This function calls callback against all memory range of System RAM
-+ * which are marked as IORESOURCE_SYSTEM_RAM and IORESOUCE_BUSY.
-+ * Now, this function is only for System RAM.
-  */
- int walk_system_ram_range(unsigned long start_pfn, unsigned long nr_pages,
- 		void *arg, int (*func)(unsigned long, unsigned long, void *))
-@@ -460,10 +460,10 @@ int walk_system_ram_range(unsigned long start_pfn, unsigned long nr_pages,
+ 	ced->max_nr_ranges = nr_ranges;
  
- 	res.start = (u64) start_pfn << PAGE_SHIFT;
- 	res.end = ((u64)(start_pfn + nr_pages) << PAGE_SHIFT) - 1;
--	res.flags = IORESOURCE_MEM | IORESOURCE_BUSY;
-+	res.flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
- 	orig_end = res.end;
- 	while ((res.start < res.end) &&
--		(find_next_iomem_res(&res, "System RAM", true) >= 0)) {
-+		(find_next_iomem_res(&res, NULL, true) >= 0)) {
- 		pfn = (res.start + PAGE_SIZE - 1) >> PAGE_SHIFT;
- 		end_pfn = (res.end + 1) >> PAGE_SHIFT;
- 		if (end_pfn > pfn)
-@@ -484,7 +484,7 @@ static int __is_ram(unsigned long pfn, unsigned long nr_pages, void *arg)
+-	/*
+-	 * We don't create ELF headers for GART aperture as an attempt
+-	 * to dump this memory in second kernel leads to hang/crash.
+-	 * If gart aperture is present, one needs to exclude that region
+-	 * and that could lead to need of extra phdr.
+-	 */
+-	walk_iomem_res("GART", IORESOURCE_MEM, 0, -1,
+-				ced, get_gart_ranges_callback);
+-
+-	/*
+-	 * If we have gart region, excluding that could potentially split
+-	 * a memory range, resulting in extra header. Account for  that.
+-	 */
+-	if (ced->gart_end)
+-		ced->max_nr_ranges++;
+-
+ 	/* Exclusion of crash region could split memory ranges */
+ 	ced->max_nr_ranges++;
+ 
+@@ -339,13 +311,6 @@ static int elf_header_exclude_ranges(struct crash_elf_data *ced,
+ 			return ret;
+ 	}
+ 
+-	/* Exclude GART region */
+-	if (ced->gart_end) {
+-		ret = exclude_mem_range(cmem, ced->gart_start, ced->gart_end);
+-		if (ret)
+-			return ret;
+-	}
+-
+ 	return ret;
  }
- /*
-  * This generic page_is_ram() returns true if specified address is
-- * registered as "System RAM" in iomem_resource list.
-+ * registered as System RAM in iomem_resource list.
-  */
- int __weak page_is_ram(unsigned long pfn)
- {
+ 
