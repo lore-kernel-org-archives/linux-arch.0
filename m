@@ -1,46 +1,101 @@
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v3 11/17] arm/samsung: Change s3c_pm_run_res() to use System RAM type
-Date: Tue,  5 Jan 2016 11:54:35 -0700
-Message-ID: <1452020081-26534-11-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH v3 15/17] x86/kexec: Remove walk_iomem_res() call with GART
+Date: Tue,  5 Jan 2016 11:54:39 -0700
+Message-ID: <1452020081-26534-15-git-send-email-toshi.kani@hpe.com>
 References: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
-Sender: owner-linux-mm@kvack.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-samsung-soc@vger.kernel.org, Toshi Kani <toshi.kani@hpe.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dave Young <dyoung@redhat.com>, Minfei Huang <mhuang@redhat.com>, x86@kernel.org, kexec@lists.infradead.org, Toshi Kani <toshi.kani@hpe.com>
 List-Id: linux-arch.vger.kernel.org
 
-Change s3c_pm_run_res() to check with IORESOURCE_SYSTEM_RAM,
-instead of strcmp() with "System RAM", to walk through
-System RAM ranges in the iomem table.
+There is no longer any driver inserting a "GART" region in the kernel
+since 'commit 707d4eefbdb3 ("Revert "[PATCH] Insert GART region into
+resource map"")' was made.
 
-No functional change is made to the interface.
+Remove the call to walk_iomem_res() with "GART", its callback function,
+and GART-specific variables set by the callback.
 
-Cc: linux-samsung-soc@vger.kernel.org
-Reviewed-by: Krzysztof Kozlowski <k.kozlowski@samsung.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Dave Young <dyoung@redhat.com>
+Cc: Minfei Huang <mhuang@redhat.com>
+Cc: x86@kernel.org
+Cc: kexec@lists.infradead.org
+Link: http://lkml.kernel.org/r/<20160104110427.GA2965@dhcp-128-65.nay.redhat.com>
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- arch/arm/plat-samsung/pm-check.c |    4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ arch/x86/kernel/crash.c |   37 +------------------------------------
+ 1 file changed, 1 insertion(+), 36 deletions(-)
 
-diff --git a/arch/arm/plat-samsung/pm-check.c b/arch/arm/plat-samsung/pm-check.c
-index 04aff2c..70f2f69 100644
---- a/arch/arm/plat-samsung/pm-check.c
-+++ b/arch/arm/plat-samsung/pm-check.c
-@@ -53,8 +53,8 @@ static void s3c_pm_run_res(struct resource *ptr, run_fn_t fn, u32 *arg)
- 		if (ptr->child != NULL)
- 			s3c_pm_run_res(ptr->child, fn, arg);
+diff --git a/arch/x86/kernel/crash.c b/arch/x86/kernel/crash.c
+index 082373b..f5069e7 100644
+--- a/arch/x86/kernel/crash.c
++++ b/arch/x86/kernel/crash.c
+@@ -56,10 +56,9 @@ struct crash_elf_data {
+ 	struct kimage *image;
+ 	/*
+ 	 * Total number of ram ranges we have after various adjustments for
+-	 * GART, crash reserved region etc.
++	 * crash reserved region, etc.
+ 	 */
+ 	unsigned int max_nr_ranges;
+-	unsigned long gart_start, gart_end;
  
--		if ((ptr->flags & IORESOURCE_MEM) &&
--		    strcmp(ptr->name, "System RAM") == 0) {
-+		if ((ptr->flags & IORESOURCE_SYSTEM_RAM)
-+				== IORESOURCE_SYSTEM_RAM) {
- 			S3C_PMDBG("Found system RAM at %08lx..%08lx\n",
- 				  (unsigned long)ptr->start,
- 				  (unsigned long)ptr->end);
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+ 	/* Pointer to elf header */
+ 	void *ehdr;
+@@ -190,17 +189,6 @@ static int get_nr_ram_ranges_callback(u64 start, u64 end, void *arg)
+ 	return 0;
+ }
+ 
+-static int get_gart_ranges_callback(u64 start, u64 end, void *arg)
+-{
+-	struct crash_elf_data *ced = arg;
+-
+-	ced->gart_start = start;
+-	ced->gart_end = end;
+-
+-	/* Not expecting more than 1 gart aperture */
+-	return 1;
+-}
+-
+ 
+ /* Gather all the required information to prepare elf headers for ram regions */
+ static void fill_up_crash_elf_data(struct crash_elf_data *ced,
+@@ -215,22 +203,6 @@ static void fill_up_crash_elf_data(struct crash_elf_data *ced,
+ 
+ 	ced->max_nr_ranges = nr_ranges;
+ 
+-	/*
+-	 * We don't create ELF headers for GART aperture as an attempt
+-	 * to dump this memory in second kernel leads to hang/crash.
+-	 * If gart aperture is present, one needs to exclude that region
+-	 * and that could lead to need of extra phdr.
+-	 */
+-	walk_iomem_res("GART", IORESOURCE_MEM, 0, -1,
+-				ced, get_gart_ranges_callback);
+-
+-	/*
+-	 * If we have gart region, excluding that could potentially split
+-	 * a memory range, resulting in extra header. Account for  that.
+-	 */
+-	if (ced->gart_end)
+-		ced->max_nr_ranges++;
+-
+ 	/* Exclusion of crash region could split memory ranges */
+ 	ced->max_nr_ranges++;
+ 
+@@ -339,13 +311,6 @@ static int elf_header_exclude_ranges(struct crash_elf_data *ced,
+ 			return ret;
+ 	}
+ 
+-	/* Exclude GART region */
+-	if (ced->gart_end) {
+-		ret = exclude_mem_range(cmem, ced->gart_start, ced->gart_end);
+-		if (ret)
+-			return ret;
+-	}
+-
+ 	return ret;
+ }
+ 
