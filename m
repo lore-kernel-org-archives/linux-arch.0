@@ -1,181 +1,114 @@
-From: "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH v2 15/32] powerpc: define __smp_xxx
-Date: Tue, 5 Jan 2016 18:16:48 +0200
-Message-ID: <20160105180938-mutt-send-email-mst@redhat.com>
-References: <1451572003-2440-1-git-send-email-mst@redhat.com>
- <1451572003-2440-16-git-send-email-mst@redhat.com>
- <20160105013648.GA1256@fixme-laptop.cn.ibm.com>
- <20160105085117.GA11858@redhat.com>
- <20160105095341.GA5321@fixme-laptop.cn.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20160105095341.GA5321-nNqVUaWX1rAq6Sbylg4iGasjOiXwFzmk@public.gmane.org>
-Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Andrew Cooper <andrew.cooper3-Sxgqhf6Nn4DQT0dZR+AlfA@public.gmane.org>, virtualization-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Stefano Stabellini <stefano.stabellini-mvvWK6WmYclDPfheJLI6IQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, user-mode-linux-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, adi-buildroot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Paul Mackerras <paul>
+From: Toshi Kani <toshi.kani@hpe.com>
+Subject: [PATCH v3 00/17] Enhance iomem search interfaces and support EINJ to NVDIMM
+Date: Tue,  5 Jan 2016 11:54:28 -0700
+Message-ID: <1452020068-26492-1-git-send-email-toshi.kani@hpe.com>
+Return-path: <linux-acpi-owner@vger.kernel.org>
+Sender: linux-acpi-owner@vger.kernel.org
+To: akpm@linux-foundation.org, bp@alien8.de
+Cc: torvalds@linux-foundation.org, rafael.j.wysocki@intel.com, dan.j.williams@intel.com, dyoung@redhat.com, x86@kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, kexec@lists.infradead.org, xen-devel@lists.xenproject.org, linux-samsung-soc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-nvdimm@lists.01.org, linux-acpi@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 05, 2016 at 05:53:41PM +0800, Boqun Feng wrote:
-> On Tue, Jan 05, 2016 at 10:51:17AM +0200, Michael S. Tsirkin wrote:
-> > On Tue, Jan 05, 2016 at 09:36:55AM +0800, Boqun Feng wrote:
-> > > Hi Michael,
-> > > 
-> > > On Thu, Dec 31, 2015 at 09:07:42PM +0200, Michael S. Tsirkin wrote:
-> > > > This defines __smp_xxx barriers for powerpc
-> > > > for use by virtualization.
-> > > > 
-> > > > smp_xxx barriers are removed as they are
-> > > > defined correctly by asm-generic/barriers.h
-> > 
-> > I think this is the part that was missed in review.
-> > 
-> 
-> Yes, I realized my mistake after reread the series. But smp_lwsync() is
-> not defined in asm-generic/barriers.h, right?
+This patch-set enhances the iomem table and its search interfacs, and
+then changes EINJ to support NVDIMM.
 
-It isn't because as far as I could tell it is not used
-outside arch/powerpc/include/asm/barrier.h
-smp_store_release and smp_load_acquire.
+ - Patches 1-2 add a new System RAM type, IORESOURCE_SYSTEM_RAM, and
+   make the iomem search interfaces work with resource flags with
+   modifier bits set.  IORESOURCE_SYSTEM_RAM has IORESOURCE_MEM bit set
+   for backward compatibility.
 
-And these are now gone.
+ - Patch 3 adds a new field, I/O resource descriptor, into struct resource.
+   Drivers can assign their unique descritor to a range when they support
+   the iomem search interfaces.
 
-Instead there are __smp_store_release and __smp_load_acquire
-which call __smp_lwsync.
-These are only used for virt and on SMP.
-UP variants are generic - they just call barrier().
+ - Patches 4-9 changes initializations of resource entries.  They set
+   the System RAM type to System RAM ranges, set I/O resource descriptors
+   to the regions targeted by the iomem search interfaces, and change
+   to call kzalloc() where kmalloc() is used to allocate struct resource
+   ranges.
 
+ - Patches 10-14 extend the iomem interfaces to check System RAM ranges
+   with the System RAM type and the I/O resource descriptor.
 
-> > > > This reduces the amount of arch-specific boiler-plate code.
-> > > > 
-> > > > Signed-off-by: Michael S. Tsirkin <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-> > > > Acked-by: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-> > > > ---
-> > > >  arch/powerpc/include/asm/barrier.h | 24 ++++++++----------------
-> > > >  1 file changed, 8 insertions(+), 16 deletions(-)
-> > > > 
-> > > > diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
-> > > > index 980ad0c..c0deafc 100644
-> > > > --- a/arch/powerpc/include/asm/barrier.h
-> > > > +++ b/arch/powerpc/include/asm/barrier.h
-> > > > @@ -44,19 +44,11 @@
-> > > >  #define dma_rmb()	__lwsync()
-> > > >  #define dma_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
-> > > >  
-> > > > -#ifdef CONFIG_SMP
-> > > > -#define smp_lwsync()	__lwsync()
-> > > > +#define __smp_lwsync()	__lwsync()
-> > > >  
-> > > 
-> > > so __smp_lwsync() is always mapped to lwsync, right?
-> > 
-> > Yes.
-> > 
-> > > > -#define smp_mb()	mb()
-> > > > -#define smp_rmb()	__lwsync()
-> > > > -#define smp_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
-> > > > -#else
-> > > > -#define smp_lwsync()	barrier()
-> > > > -
-> > > > -#define smp_mb()	barrier()
-> > > > -#define smp_rmb()	barrier()
-> > > > -#define smp_wmb()	barrier()
-> > > > -#endif /* CONFIG_SMP */
-> > > > +#define __smp_mb()	mb()
-> > > > +#define __smp_rmb()	__lwsync()
-> > > > +#define __smp_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
-> > > >  
-> > > >  /*
-> > > >   * This is a barrier which prevents following instructions from being
-> > > > @@ -67,18 +59,18 @@
-> > > >  #define data_barrier(x)	\
-> > > >  	asm volatile("twi 0,%0,0; isync" : : "r" (x) : "memory");
-> > > >  
-> > > > -#define smp_store_release(p, v)						\
-> > > > +#define __smp_store_release(p, v)						\
-> > > >  do {									\
-> > > >  	compiletime_assert_atomic_type(*p);				\
-> > > > -	smp_lwsync();							\
-> > > > +	__smp_lwsync();							\
-> > > 
-> > > , therefore this will emit an lwsync no matter SMP or UP.
-> > 
-> > Absolutely. But smp_store_release (without __) will not.
-> > 
-> > Please note I did test this: for ppc code before and after
-> > this patch generates exactly the same binary on SMP and UP.
-> > 
-> 
-> Yes, you're right, sorry for my mistake...
-> 
-> > 
-> > > Another thing is that smp_lwsync() may have a third user(other than
-> > > smp_load_acquire() and smp_store_release()):
-> > > 
-> > > http://article.gmane.org/gmane.linux.ports.ppc.embedded/89877
-> > > 
-> > > I'm OK to change my patch accordingly, but do we really want
-> > > smp_lwsync() get involved in this cleanup? If I understand you
-> > > correctly, this cleanup focuses on external API like smp_{r,w,}mb(),
-> > > while smp_lwsync() is internal to PPC.
-> > > 
-> > > Regards,
-> > > Boqun
-> > 
-> > I think you missed the leading ___ :)
-> > 
-> 
-> What I mean here was smp_lwsync() was originally internal to PPC, but
-> never mind ;-)
-> 
-> > smp_store_release is external and it needs __smp_lwsync as
-> > defined here.
-> > 
-> > I can duplicate some code and have smp_lwsync *not* call __smp_lwsync
-> 
-> You mean bringing smp_lwsync() back? because I haven't seen you defining
-> in asm-generic/barriers.h in previous patches and you just delete it in
-> this patch.
-> 
-> > but why do this? Still, if you prefer it this way,
-> > please let me know.
-> > 
-> 
-> I think deleting smp_lwsync() is fine, though I need to change atomic
-> variants patches on PPC because of it ;-/
-> 
-> Regards,
-> Boqun
+ - Patch 15-16 remove deprecated walk_iomem_res().
 
-Sorry, I don't understand - why do you have to do anything?
-I changed all users of smp_lwsync so they
-use __smp_lwsync on SMP and barrier() on !SMP.
+ - Patch 17 changes the EINJ driver to allow injecting a memory error
+   to NVDIMM.
 
-This is exactly the current behaviour, I also tested that
-generated code does not change at all.
+---
+v3:
+ - Remove the walk_iomem_res() call with "GART" in crash.c since it is
+   no longer needed. Then kill walk_iomem_res(). (Borislav Petkov,
+   Dave Young)
+ - Change to use crashk_res.desc at the walk_iomem_res_desc() call in
+   kexec_add_buffer(). (Minfei Huang)
 
-Is there a patch in your tree that conflicts with this?
+v2:
+ - Add 'desc' to struct resource, and add a new iomem interface to
+   search with the desc. (Borislav Petkov)
+ - Add a check to checkpatch.pl to warn on new use of walk_iomem_res().
+   (Borislav Petkov)
 
+v1:
+ - Searching for System RAM in the resource table should not require
+   strcmp(). (Borislav Petkov)
+ - Add a new System RAM type as a modifier to IORESOURCE_MEM.
+   (Linus Torvalds)
+ - NVDIMM check needs to be able to distinguish legacy and NFIT pmem
+   ranges. (Dan Williams)
 
-> > > >  	WRITE_ONCE(*p, v);						\
-> > > >  } while (0)
-> > > >  
-> > > > -#define smp_load_acquire(p)						\
-> > > > +#define __smp_load_acquire(p)						\
-> > > >  ({									\
-> > > >  	typeof(*p) ___p1 = READ_ONCE(*p);				\
-> > > >  	compiletime_assert_atomic_type(*p);				\
-> > > > -	smp_lwsync();							\
-> > > > +	__smp_lwsync();							\
-> > > >  	___p1;								\
-> > > >  })
-> > > >  
-> > > > -- 
-> > > > MST
-> > > > 
-> > > > --
-> > > > To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> > > > the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-> > > > More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> > > > Please read the FAQ at  http://www.tux.org/lkml/
+---
+Toshi Kani (17):
+ 01/17 resource: Add System RAM resource type
+ 02/17 resource: make resource flags handled properly
+ 03/17 resource: Add I/O resource descriptor
+ 04/17 x86/e820: Set System RAM type and descriptor
+ 05/17 ia64: Set System RAM type and descriptor
+ 06/17 arch: Set IORESOURCE_SYSTEM_RAM to System RAM
+ 07/17 kexec: Set IORESOURCE_SYSTEM_RAM to System RAM
+ 08/17 xen, mm: Set IORESOURCE_SYSTEM_RAM to System RAM
+ 09/17 drivers: Initialize resource entry to zero
+ 10/17 resource: Change walk_system_ram to use System RAM type
+ 11/17 arm/samsung: Change s3c_pm_run_res() to use System RAM type
+ 12/17 memremap: Change region_intersects() to take @flags and @desc
+ 13/17 resource: Add walk_iomem_res_desc()
+ 14/17 x86,nvdimm,kexec: Use walk_iomem_res_desc() for iomem search
+ 15/17 x86/kexec: Remove walk_iomem_res() call with GART
+ 16/17 resource: Kill walk_iomem_res()
+ 17/17 ACPI/EINJ: Allow memory error injection to NVDIMM
+
+---
+ arch/arm/kernel/setup.c            |  6 +--
+ arch/arm/plat-samsung/pm-check.c   |  4 +-
+ arch/arm64/kernel/setup.c          |  6 +--
+ arch/avr32/kernel/setup.c          |  6 +--
+ arch/ia64/kernel/efi.c             | 13 ++++--
+ arch/ia64/kernel/setup.c           |  6 +--
+ arch/m32r/kernel/setup.c           |  4 +-
+ arch/mips/kernel/setup.c           | 10 +++--
+ arch/parisc/mm/init.c              |  6 +--
+ arch/powerpc/mm/mem.c              |  2 +-
+ arch/s390/kernel/setup.c           |  8 ++--
+ arch/score/kernel/setup.c          |  2 +-
+ arch/sh/kernel/setup.c             |  8 ++--
+ arch/sparc/mm/init_64.c            |  8 ++--
+ arch/tile/kernel/setup.c           | 11 +++--
+ arch/unicore32/kernel/setup.c      |  6 +--
+ arch/x86/kernel/crash.c            | 41 ++-----------------
+ arch/x86/kernel/e820.c             | 38 ++++++++++++++++-
+ arch/x86/kernel/pmem.c             |  4 +-
+ arch/x86/kernel/setup.c            |  6 +--
+ drivers/acpi/acpi_platform.c       |  2 +-
+ drivers/acpi/apei/einj.c           | 15 +++++--
+ drivers/nvdimm/e820.c              |  2 +-
+ drivers/parisc/eisa_enumerator.c   |  4 +-
+ drivers/rapidio/rio.c              |  8 ++--
+ drivers/sh/superhyway/superhyway.c |  2 +-
+ drivers/xen/balloon.c              |  2 +-
+ include/linux/ioport.h             | 33 ++++++++++++++-
+ include/linux/mm.h                 |  3 +-
+ kernel/kexec_core.c                |  8 ++--
+ kernel/kexec_file.c                |  8 ++--
+ kernel/memremap.c                  | 13 +++---
+ kernel/resource.c                  | 83 ++++++++++++++++++++++----------------
+ mm/memory_hotplug.c                |  2 +-
+ 34 files changed, 225 insertions(+), 155 deletions(-)
