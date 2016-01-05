@@ -1,156 +1,46 @@
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v3 13/17] resource: Add walk_iomem_res_desc()
-Date: Tue,  5 Jan 2016 11:54:37 -0700
-Message-ID: <1452020081-26534-13-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH v3 11/17] arm/samsung: Change s3c_pm_run_res() to use System RAM type
+Date: Tue,  5 Jan 2016 11:54:35 -0700
+Message-ID: <1452020081-26534-11-git-send-email-toshi.kani@hpe.com>
 References: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Toshi Kani <toshi.kani@hpe.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-samsung-soc@vger.kernel.org, Toshi Kani <toshi.kani@hpe.com>
 List-Id: linux-arch.vger.kernel.org
 
-Add a new interface, walk_iomem_res_desc(), which walks through
-the iomem table by identifying a target with @flags and @desc.
-This interface provides the same functionality as walk_iomem_res(),
-but does not use strcmp() to @name for better efficiency.
+Change s3c_pm_run_res() to check with IORESOURCE_SYSTEM_RAM,
+instead of strcmp() with "System RAM", to walk through
+System RAM ranges in the iomem table.
 
-walk_iomem_res() is deprecated and will be removed in a later
-patch.
+No functional change is made to the interface.
 
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: Dan Williams <dan.j.williams@intel.com>
+Cc: linux-samsung-soc@vger.kernel.org
+Reviewed-by: Krzysztof Kozlowski <k.kozlowski@samsung.com>
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- include/linux/ioport.h |    3 ++
- kernel/resource.c      |   58 ++++++++++++++++++++++++++++++++++++++++++------
- 2 files changed, 54 insertions(+), 7 deletions(-)
+ arch/arm/plat-samsung/pm-check.c |    4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/ioport.h b/include/linux/ioport.h
-index 983bea0..2a4a5e8 100644
---- a/include/linux/ioport.h
-+++ b/include/linux/ioport.h
-@@ -268,6 +268,9 @@ extern int
- walk_system_ram_res(u64 start, u64 end, void *arg,
- 		    int (*func)(u64, u64, void *));
- extern int
-+walk_iomem_res_desc(unsigned long desc, unsigned long flags, u64 start, u64 end,
-+		    void *arg, int (*func)(u64, u64, void *));
-+extern int
- walk_iomem_res(char *name, unsigned long flags, u64 start, u64 end, void *arg,
- 	       int (*func)(u64, u64, void *));
+diff --git a/arch/arm/plat-samsung/pm-check.c b/arch/arm/plat-samsung/pm-check.c
+index 04aff2c..70f2f69 100644
+--- a/arch/arm/plat-samsung/pm-check.c
++++ b/arch/arm/plat-samsung/pm-check.c
+@@ -53,8 +53,8 @@ static void s3c_pm_run_res(struct resource *ptr, run_fn_t fn, u32 *arg)
+ 		if (ptr->child != NULL)
+ 			s3c_pm_run_res(ptr->child, fn, arg);
  
-diff --git a/kernel/resource.c b/kernel/resource.c
-index 52e6380..7b26f58 100644
---- a/kernel/resource.c
-+++ b/kernel/resource.c
-@@ -334,13 +334,14 @@ EXPORT_SYMBOL(release_resource);
- 
- /*
-  * Finds the lowest iomem reosurce exists with-in [res->start.res->end)
-- * the caller must specify res->start, res->end, res->flags and "name".
-- * If found, returns 0, res is overwritten, if not found, returns -1.
-+ * the caller must specify res->start, res->end, res->flags, and optionally
-+ * desc and "name".  If found, returns 0, res is overwritten, if not found,
-+ * returns -1.
-  * This walks through whole tree and not just first level children
-  * until and unless first_level_children_only is true.
-  */
--static int find_next_iomem_res(struct resource *res, char *name,
--			       bool first_level_children_only)
-+static int find_next_iomem_res(struct resource *res, unsigned long desc,
-+				char *name, bool first_level_children_only)
- {
- 	resource_size_t start, end;
- 	struct resource *p;
-@@ -360,6 +361,8 @@ static int find_next_iomem_res(struct resource *res, char *name,
- 	for (p = iomem_resource.child; p; p = next_resource(p, sibling_only)) {
- 		if ((p->flags & res->flags) != res->flags)
- 			continue;
-+		if ((desc != IORES_DESC_NONE) && (desc != p->desc))
-+			continue;
- 		if (name && strcmp(p->name, name))
- 			continue;
- 		if (p->start > end) {
-@@ -385,12 +388,53 @@ static int find_next_iomem_res(struct resource *res, char *name,
-  * Walks through iomem resources and calls func() with matching resource
-  * ranges. This walks through whole tree and not just first level children.
-  * All the memory ranges which overlap start,end and also match flags and
-+ * desc are valid candidates.
-+ *
-+ * @desc: I/O resource descriptor. Use IORES_DESC_NONE to skip this check.
-+ * @flags: I/O resource flags
-+ * @start: start addr
-+ * @end: end addr
-+ *
-+ * NOTE: For a new descriptor search, define a new IORES_DESC in
-+ * <linux/ioport.h> and set it to 'desc' of a target resource entry.
-+ */
-+int walk_iomem_res_desc(unsigned long desc, unsigned long flags, u64 start,
-+		u64 end, void *arg, int (*func)(u64, u64, void *))
-+{
-+	struct resource res;
-+	u64 orig_end;
-+	int ret = -1;
-+
-+	res.start = start;
-+	res.end = end;
-+	res.flags = flags;
-+	orig_end = res.end;
-+
-+	while ((res.start < res.end) &&
-+		(!find_next_iomem_res(&res, desc, NULL, false))) {
-+		ret = (*func)(res.start, res.end, arg);
-+		if (ret)
-+			break;
-+		res.start = res.end + 1;
-+		res.end = orig_end;
-+	}
-+
-+	return ret;
-+}
-+
-+/*
-+ * Walks through iomem resources and calls func() with matching resource
-+ * ranges. This walks through whole tree and not just first level children.
-+ * All the memory ranges which overlap start,end and also match flags and
-  * name are valid candidates.
-  *
-  * @name: name of resource
-  * @flags: resource flags
-  * @start: start addr
-  * @end: end addr
-+ *
-+ * NOTE: This function is deprecated and should not be used in new code.
-+ *       Use walk_iomem_res_desc(), instead.
-  */
- int walk_iomem_res(char *name, unsigned long flags, u64 start, u64 end,
- 		void *arg, int (*func)(u64, u64, void *))
-@@ -404,7 +448,7 @@ int walk_iomem_res(char *name, unsigned long flags, u64 start, u64 end,
- 	res.flags = flags;
- 	orig_end = res.end;
- 	while ((res.start < res.end) &&
--		(!find_next_iomem_res(&res, name, false))) {
-+		(!find_next_iomem_res(&res, IORES_DESC_NONE, name, false))) {
- 		ret = (*func)(res.start, res.end, arg);
- 		if (ret)
- 			break;
-@@ -433,7 +477,7 @@ int walk_system_ram_res(u64 start, u64 end, void *arg,
- 	res.flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
- 	orig_end = res.end;
- 	while ((res.start < res.end) &&
--		(!find_next_iomem_res(&res, NULL, true))) {
-+		(!find_next_iomem_res(&res, IORES_DESC_NONE, NULL, true))) {
- 		ret = (*func)(res.start, res.end, arg);
- 		if (ret)
- 			break;
-@@ -463,7 +507,7 @@ int walk_system_ram_range(unsigned long start_pfn, unsigned long nr_pages,
- 	res.flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
- 	orig_end = res.end;
- 	while ((res.start < res.end) &&
--		(find_next_iomem_res(&res, NULL, true) >= 0)) {
-+		(find_next_iomem_res(&res, IORES_DESC_NONE, NULL, true) >= 0)) {
- 		pfn = (res.start + PAGE_SIZE - 1) >> PAGE_SHIFT;
- 		end_pfn = (res.end + 1) >> PAGE_SHIFT;
- 		if (end_pfn > pfn)
+-		if ((ptr->flags & IORESOURCE_MEM) &&
+-		    strcmp(ptr->name, "System RAM") == 0) {
++		if ((ptr->flags & IORESOURCE_SYSTEM_RAM)
++				== IORESOURCE_SYSTEM_RAM) {
+ 			S3C_PMDBG("Found system RAM at %08lx..%08lx\n",
+ 				  (unsigned long)ptr->start,
+ 				  (unsigned long)ptr->end);
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
