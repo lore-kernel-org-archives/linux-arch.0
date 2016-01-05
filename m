@@ -1,85 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3425.houston.hp.com ([15.201.208.53]:34437 "EHLO
-	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751669AbcAESzU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2016 13:55:20 -0500
+Received: from g4t3426.houston.hp.com ([15.201.208.54]:56689 "EHLO
+	g4t3426.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752345AbcAESzk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2016 13:55:40 -0500
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v3 01/17] resource: Add System RAM resource type
-Date: Tue,  5 Jan 2016 11:54:25 -0700
-Message-ID: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH v3 10/17] resource: Change walk_system_ram to use System RAM type
+Date: Tue,  5 Jan 2016 11:54:34 -0700
+Message-ID: <1452020081-26534-10-git-send-email-toshi.kani@hpe.com>
+In-Reply-To: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
+References: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Dan Williams <dan.j.williams@intel.com>, Toshi Kani <toshi.kani@hpe.com>
-Message-ID: <20160105185425.T7XosgyrxJvPirNWQT2lUZOrWNaEhWWGGEXFGzzwX7E@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Toshi Kani <toshi.kani@hpe.com>
+Message-ID: <20160105185434.hu9O0Rv9oUVwoiHOE0mT0VWUkuhD9uYV_2h02g0DcE8@z>
 
-I/O resource type, IORESOURCE_MEM, is used for all types of
-memory-mapped ranges, ex. System RAM, System ROM, Video RAM,
-Persistent Memory, PCI Bus, PCI MMCONFIG, ACPI Tables, IOAPIC,
-reserved, and so on.  This requires walk_system_ram_range(),
-walk_system_ram_res(), and region_intersects() to use strcmp()
-against string "System RAM" to search for System RAM ranges in
-the iomem table, which is inefficient.  __ioremap_caller() and
-reserve_memtype() on x86, for instance, call walk_system_ram_range()
-for every request to check if a given range is in System RAM ranges.
+Now that all System RAM resource entries have been initialized
+to IORESOURCE_SYSTEM_RAM type, change walk_system_ram_res() and
+walk_system_ram_range() to call find_next_iomem_res() by setting
+IORESOURCE_SYSTEM_RAM to @res.flags and NULL to @name.  With
+this change, they walk through the iomem table to find System
+RAM ranges without using strcmp().
 
-However, adding a new I/O resource type for System RAM is not
-a viable option [1].  There are approx. 3800 references to
-IORESOURCE_MEM in the kernel/drivers, which make it very
-difficult to distinguish their usages between new type and
-IORESOURCE_MEM.  The I/O resource types are also used by the
-PNP subsystem.  Therefore, this patch introduces an extended
-I/O resource type, IORESOURCE_SYSTEM_RAM, which consists of
-IORESOURCE_MEM and a new modifier flag IORESOURCE_SYSRAM [2].
+No functional change is made to the interfaces.
 
-To keep the code 'if (resource_type(r) == IORESOURCE_MEM)' to
-work continuously for System RAM, resource_ext_type() is added
-for extracting extended type bits.
-
-Link[1]: http://lkml.kernel.org/r/<1449168859.9855.54.camel@hpe.com>
-Link[2]: http://lkml.kernel.org/r/<CA+55aFy4WQrWexC4u2LxX9Mw2NVoznw7p3Yh=iF4Xtf7zKWnRw@mail.gmail.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 Cc: Borislav Petkov <bp@alien8.de>
-Cc: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 Cc: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- include/linux/ioport.h |   11 +++++++++++
- 1 file changed, 11 insertions(+)
+ kernel/resource.c |   22 +++++++++++-----------
+ 1 file changed, 11 insertions(+), 11 deletions(-)
 
-diff --git a/include/linux/ioport.h b/include/linux/ioport.h
-index 24bea08..4b65d94 100644
---- a/include/linux/ioport.h
-+++ b/include/linux/ioport.h
-@@ -49,12 +49,19 @@ struct resource {
- #define IORESOURCE_WINDOW	0x00200000	/* forwarded by bridge */
- #define IORESOURCE_MUXED	0x00400000	/* Resource is software muxed */
- 
-+#define IORESOURCE_EXT_TYPE_BITS 0x01000000	/* Resource extended types */
-+#define IORESOURCE_SYSRAM	0x01000000	/* System RAM (modifier) */
-+
- #define IORESOURCE_EXCLUSIVE	0x08000000	/* Userland may not map this resource */
-+
- #define IORESOURCE_DISABLED	0x10000000
- #define IORESOURCE_UNSET	0x20000000	/* No address assigned yet */
- #define IORESOURCE_AUTO		0x40000000
- #define IORESOURCE_BUSY		0x80000000	/* Driver has marked this resource busy */
- 
-+/* I/O resource extended types */
-+#define IORESOURCE_SYSTEM_RAM		(IORESOURCE_MEM|IORESOURCE_SYSRAM)
-+
- /* PnP IRQ specific bits (IORESOURCE_BITS) */
- #define IORESOURCE_IRQ_HIGHEDGE		(1<<0)
- #define IORESOURCE_IRQ_LOWEDGE		(1<<1)
-@@ -170,6 +177,10 @@ static inline unsigned long resource_type(const struct resource *res)
- {
- 	return res->flags & IORESOURCE_TYPE_BITS;
+diff --git a/kernel/resource.c b/kernel/resource.c
+index 65eca4d..1d3ea50 100644
+--- a/kernel/resource.c
++++ b/kernel/resource.c
+@@ -415,9 +415,9 @@ int walk_iomem_res(char *name, unsigned long flags, u64 start, u64 end,
  }
-+static inline unsigned long resource_ext_type(const struct resource *res)
-+{
-+	return res->flags & IORESOURCE_EXT_TYPE_BITS;
-+}
- /* True iff r1 completely contains r2 */
- static inline bool resource_contains(struct resource *r1, struct resource *r2)
+ 
+ /*
+- * This function calls callback against all memory range of "System RAM"
+- * which are marked as IORESOURCE_MEM and IORESOUCE_BUSY.
+- * Now, this function is only for "System RAM". This function deals with
++ * This function calls callback against all memory range of System RAM
++ * which are marked as IORESOURCE_SYSTEM_RAM and IORESOUCE_BUSY.
++ * Now, this function is only for System RAM. This function deals with
+  * full ranges and not pfn. If resources are not pfn aligned, dealing
+  * with pfn can truncate ranges.
+  */
+@@ -430,10 +430,10 @@ int walk_system_ram_res(u64 start, u64 end, void *arg,
+ 
+ 	res.start = start;
+ 	res.end = end;
+-	res.flags = IORESOURCE_MEM | IORESOURCE_BUSY;
++	res.flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
+ 	orig_end = res.end;
+ 	while ((res.start < res.end) &&
+-		(!find_next_iomem_res(&res, "System RAM", true))) {
++		(!find_next_iomem_res(&res, NULL, true))) {
+ 		ret = (*func)(res.start, res.end, arg);
+ 		if (ret)
+ 			break;
+@@ -446,9 +446,9 @@ int walk_system_ram_res(u64 start, u64 end, void *arg,
+ #if !defined(CONFIG_ARCH_HAS_WALK_MEMORY)
+ 
+ /*
+- * This function calls callback against all memory range of "System RAM"
+- * which are marked as IORESOURCE_MEM and IORESOUCE_BUSY.
+- * Now, this function is only for "System RAM".
++ * This function calls callback against all memory range of System RAM
++ * which are marked as IORESOURCE_SYSTEM_RAM and IORESOUCE_BUSY.
++ * Now, this function is only for System RAM.
+  */
+ int walk_system_ram_range(unsigned long start_pfn, unsigned long nr_pages,
+ 		void *arg, int (*func)(unsigned long, unsigned long, void *))
+@@ -460,10 +460,10 @@ int walk_system_ram_range(unsigned long start_pfn, unsigned long nr_pages,
+ 
+ 	res.start = (u64) start_pfn << PAGE_SHIFT;
+ 	res.end = ((u64)(start_pfn + nr_pages) << PAGE_SHIFT) - 1;
+-	res.flags = IORESOURCE_MEM | IORESOURCE_BUSY;
++	res.flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
+ 	orig_end = res.end;
+ 	while ((res.start < res.end) &&
+-		(find_next_iomem_res(&res, "System RAM", true) >= 0)) {
++		(find_next_iomem_res(&res, NULL, true) >= 0)) {
+ 		pfn = (res.start + PAGE_SIZE - 1) >> PAGE_SHIFT;
+ 		end_pfn = (res.end + 1) >> PAGE_SHIFT;
+ 		if (end_pfn > pfn)
+@@ -484,7 +484,7 @@ static int __is_ram(unsigned long pfn, unsigned long nr_pages, void *arg)
+ }
+ /*
+  * This generic page_is_ram() returns true if specified address is
+- * registered as "System RAM" in iomem_resource list.
++ * registered as System RAM in iomem_resource list.
+  */
+ int __weak page_is_ram(unsigned long pfn)
  {
