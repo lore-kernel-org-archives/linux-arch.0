@@ -1,122 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g4t3427.houston.hp.com ([15.201.208.55]:39265 "EHLO
-	g4t3427.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752090AbcAESz2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2016 13:55:28 -0500
+Received: from g4t3425.houston.hp.com ([15.201.208.53]:34506 "EHLO
+	g4t3425.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752090AbcAESzg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2016 13:55:36 -0500
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v3 04/17] x86/e820: Set System RAM type and descriptor
-Date: Tue,  5 Jan 2016 11:54:28 -0700
-Message-ID: <1452020081-26534-4-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH v3 08/17] xen, mm: Set IORESOURCE_SYSTEM_RAM to System RAM
+Date: Tue,  5 Jan 2016 11:54:32 -0700
+Message-ID: <1452020081-26534-8-git-send-email-toshi.kani@hpe.com>
 In-Reply-To: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
 References: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, x86@kernel.org, Toshi Kani <toshi.kani@hpe.com>
-Message-ID: <20160105185428.gjrdc-uWcNu7BrpfE0Y5nLj1aFU9BImsF1fWGlkVDe4@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, xen-devel@lists.xenproject.org, Toshi Kani <toshi.kani@hpe.com>
+Message-ID: <20160105185432.P9x_DinAc5Whf24RH0kqXmkkW4Kz1OZrr1yJB8Q9a7M@z>
 
-Change e820_reserve_resources() to set 'flags' and 'desc' from
-e820 types.
+Set IORESOURCE_SYSTEM_RAM to 'flags' of struct resource entries
+with "System RAM".
 
-IORESOURCE_SYSTEM_RAM is set to 'flags' for System RAM, which
-are E820_RESERVED_KERN and E820_RAM.  IORESOURCE_SYSTEM_RAM is
-also set to "Kernel data", "Kernel code", and "Kernel bss",
-which are child nodes of System RAM.
-
-I/O resource descriptor is set to 'desc' for entries that are
-(and will be) target ranges of walk_iomem_res() and
-region_intersects().
-
-Cc: Borislav Petkov <bp@alien8.de>
-Cc: x86@kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-mm@kvack.org
+Cc: xen-devel@lists.xenproject.org
+Acked-by: David Vrabel <david.vrabel@citrix.com> # xen
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- arch/x86/kernel/e820.c  |   38 +++++++++++++++++++++++++++++++++++++-
- arch/x86/kernel/setup.c |    6 +++---
- 2 files changed, 40 insertions(+), 4 deletions(-)
+ drivers/xen/balloon.c |    2 +-
+ mm/memory_hotplug.c   |    2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
-index 569c1e4..837365f 100644
---- a/arch/x86/kernel/e820.c
-+++ b/arch/x86/kernel/e820.c
-@@ -925,6 +925,41 @@ static const char *e820_type_to_string(int e820_type)
- 	}
- }
+diff --git a/drivers/xen/balloon.c b/drivers/xen/balloon.c
+index 12eab50..dc4305b 100644
+--- a/drivers/xen/balloon.c
++++ b/drivers/xen/balloon.c
+@@ -257,7 +257,7 @@ static struct resource *additional_memory_resource(phys_addr_t size)
+ 		return NULL;
  
-+static unsigned long e820_type_to_iomem_type(int e820_type)
-+{
-+	switch (e820_type) {
-+	case E820_RESERVED_KERN:
-+	case E820_RAM:
-+		return IORESOURCE_SYSTEM_RAM;
-+	case E820_ACPI:
-+	case E820_NVS:
-+	case E820_UNUSABLE:
-+	case E820_PRAM:
-+	case E820_PMEM:
-+	default:
-+		return IORESOURCE_MEM;
-+	}
-+}
-+
-+static unsigned long e820_type_to_iores_desc(int e820_type)
-+{
-+	switch (e820_type) {
-+	case E820_ACPI:
-+		return IORES_DESC_ACPI_TABLES;
-+	case E820_NVS:
-+		return IORES_DESC_ACPI_NV_STORAGE;
-+	case E820_PMEM:
-+		return IORES_DESC_PERSISTENT_MEMORY;
-+	case E820_PRAM:
-+		return IORES_DESC_PERSISTENT_MEMORY_LEGACY;
-+	case E820_RESERVED_KERN:
-+	case E820_RAM:
-+	case E820_UNUSABLE:
-+	default:
-+		return IORES_DESC_NONE;
-+	}
-+}
-+
- static bool do_mark_busy(u32 type, struct resource *res)
- {
- 	/* this is the legacy bios/dos rom-shadow + mmio region */
-@@ -967,7 +1002,8 @@ void __init e820_reserve_resources(void)
- 		res->start = e820.map[i].addr;
- 		res->end = end;
+ 	res->name = "System RAM";
+-	res->flags = IORESOURCE_MEM | IORESOURCE_BUSY;
++	res->flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
  
--		res->flags = IORESOURCE_MEM;
-+		res->flags = e820_type_to_iomem_type(e820.map[i].type);
-+		res->desc = e820_type_to_iores_desc(e820.map[i].type);
- 
- 		/*
- 		 * don't register the region that could be conflicted with
-diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
-index d2bbe34..a492c30 100644
---- a/arch/x86/kernel/setup.c
-+++ b/arch/x86/kernel/setup.c
-@@ -152,21 +152,21 @@ static struct resource data_resource = {
- 	.name	= "Kernel data",
- 	.start	= 0,
- 	.end	= 0,
--	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
-+	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
- };
- 
- static struct resource code_resource = {
- 	.name	= "Kernel code",
- 	.start	= 0,
- 	.end	= 0,
--	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
-+	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
- };
- 
- static struct resource bss_resource = {
- 	.name	= "Kernel bss",
- 	.start	= 0,
- 	.end	= 0,
--	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
-+	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
- };
- 
- 
+ 	ret = allocate_resource(&iomem_resource, res,
+ 				size, 0, -1,
+diff --git a/mm/memory_hotplug.c b/mm/memory_hotplug.c
+index a042a9d..0712585 100644
+--- a/mm/memory_hotplug.c
++++ b/mm/memory_hotplug.c
+@@ -136,7 +136,7 @@ static struct resource *register_memory_resource(u64 start, u64 size)
+ 	res->name = "System RAM";
+ 	res->start = start;
+ 	res->end = start + size - 1;
+-	res->flags = IORESOURCE_MEM | IORESOURCE_BUSY;
++	res->flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
+ 	if (request_resource(&iomem_resource, res) < 0) {
+ 		pr_debug("System RAM resource %pR cannot be added\n", res);
+ 		kfree(res);
