@@ -1,78 +1,97 @@
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v3 07/17] kexec: Set IORESOURCE_SYSTEM_RAM to System RAM
-Date: Tue,  5 Jan 2016 11:54:31 -0700
-Message-ID: <1452020081-26534-7-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH v3 10/17] resource: Change walk_system_ram to use System RAM type
+Date: Tue,  5 Jan 2016 11:54:34 -0700
+Message-ID: <1452020081-26534-10-git-send-email-toshi.kani@hpe.com>
 References: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
 Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
 Sender: owner-linux-mm@kvack.org
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dave Young <dyoung@redhat.com>, kexec@lists.infradead.org, Toshi Kani <toshi.kani@hpe.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Toshi Kani <toshi.kani@hpe.com>
 List-Id: linux-arch.vger.kernel.org
 
-Set IORESOURCE_SYSTEM_RAM to 'flags' and IORES_DESC_CRASH_KERNEL
-to 'desc' of "Crash kernel" resource ranges, which are child
-nodes of System RAM.
+Now that all System RAM resource entries have been initialized
+to IORESOURCE_SYSTEM_RAM type, change walk_system_ram_res() and
+walk_system_ram_range() to call find_next_iomem_res() by setting
+IORESOURCE_SYSTEM_RAM to @res.flags and NULL to @name.  With
+this change, they walk through the iomem table to find System
+RAM ranges without using strcmp().
 
-Change crash_shrink_memory() to set IORESOURCE_SYSTEM_RAM for
-a System RAM range.
-
-Change kexec_add_buffer() to call walk_iomem_res() with
-IORESOURCE_SYSTEM_RAM type for "Crash kernel".
+No functional change is made to the interfaces.
 
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Dave Young <dyoung@redhat.com>
-Cc: kexec@lists.infradead.org
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: Dan Williams <dan.j.williams@intel.com>
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- kernel/kexec_core.c |    8 +++++---
- kernel/kexec_file.c |    2 +-
- 2 files changed, 6 insertions(+), 4 deletions(-)
+ kernel/resource.c |   22 +++++++++++-----------
+ 1 file changed, 11 insertions(+), 11 deletions(-)
 
-diff --git a/kernel/kexec_core.c b/kernel/kexec_core.c
-index 11b64a6..80bff05 100644
---- a/kernel/kexec_core.c
-+++ b/kernel/kexec_core.c
-@@ -66,13 +66,15 @@ struct resource crashk_res = {
- 	.name  = "Crash kernel",
- 	.start = 0,
- 	.end   = 0,
--	.flags = IORESOURCE_BUSY | IORESOURCE_MEM
-+	.flags = IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM,
-+	.desc  = IORES_DESC_CRASH_KERNEL
- };
- struct resource crashk_low_res = {
- 	.name  = "Crash kernel",
- 	.start = 0,
- 	.end   = 0,
--	.flags = IORESOURCE_BUSY | IORESOURCE_MEM
-+	.flags = IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM,
-+	.desc  = IORES_DESC_CRASH_KERNEL
- };
+diff --git a/kernel/resource.c b/kernel/resource.c
+index 65eca4d..1d3ea50 100644
+--- a/kernel/resource.c
++++ b/kernel/resource.c
+@@ -415,9 +415,9 @@ int walk_iomem_res(char *name, unsigned long flags, u64 start, u64 end,
+ }
  
- int kexec_should_crash(struct task_struct *p)
-@@ -934,7 +936,7 @@ int crash_shrink_memory(unsigned long new_size)
+ /*
+- * This function calls callback against all memory range of "System RAM"
+- * which are marked as IORESOURCE_MEM and IORESOUCE_BUSY.
+- * Now, this function is only for "System RAM". This function deals with
++ * This function calls callback against all memory range of System RAM
++ * which are marked as IORESOURCE_SYSTEM_RAM and IORESOUCE_BUSY.
++ * Now, this function is only for System RAM. This function deals with
+  * full ranges and not pfn. If resources are not pfn aligned, dealing
+  * with pfn can truncate ranges.
+  */
+@@ -430,10 +430,10 @@ int walk_system_ram_res(u64 start, u64 end, void *arg,
  
- 	ram_res->start = end;
- 	ram_res->end = crashk_res.end;
--	ram_res->flags = IORESOURCE_BUSY | IORESOURCE_MEM;
-+	ram_res->flags = IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM;
- 	ram_res->name = "System RAM";
+ 	res.start = start;
+ 	res.end = end;
+-	res.flags = IORESOURCE_MEM | IORESOURCE_BUSY;
++	res.flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
+ 	orig_end = res.end;
+ 	while ((res.start < res.end) &&
+-		(!find_next_iomem_res(&res, "System RAM", true))) {
++		(!find_next_iomem_res(&res, NULL, true))) {
+ 		ret = (*func)(res.start, res.end, arg);
+ 		if (ret)
+ 			break;
+@@ -446,9 +446,9 @@ int walk_system_ram_res(u64 start, u64 end, void *arg,
+ #if !defined(CONFIG_ARCH_HAS_WALK_MEMORY)
  
- 	crashk_res.end = end - 1;
-diff --git a/kernel/kexec_file.c b/kernel/kexec_file.c
-index b70ada0..c245085 100644
---- a/kernel/kexec_file.c
-+++ b/kernel/kexec_file.c
-@@ -523,7 +523,7 @@ int kexec_add_buffer(struct kimage *image, char *buffer, unsigned long bufsz,
- 	/* Walk the RAM ranges and allocate a suitable range for the buffer */
- 	if (image->type == KEXEC_TYPE_CRASH)
- 		ret = walk_iomem_res("Crash kernel",
--				     IORESOURCE_MEM | IORESOURCE_BUSY,
-+				     IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY,
- 				     crashk_res.start, crashk_res.end, kbuf,
- 				     locate_mem_hole_callback);
- 	else
+ /*
+- * This function calls callback against all memory range of "System RAM"
+- * which are marked as IORESOURCE_MEM and IORESOUCE_BUSY.
+- * Now, this function is only for "System RAM".
++ * This function calls callback against all memory range of System RAM
++ * which are marked as IORESOURCE_SYSTEM_RAM and IORESOUCE_BUSY.
++ * Now, this function is only for System RAM.
+  */
+ int walk_system_ram_range(unsigned long start_pfn, unsigned long nr_pages,
+ 		void *arg, int (*func)(unsigned long, unsigned long, void *))
+@@ -460,10 +460,10 @@ int walk_system_ram_range(unsigned long start_pfn, unsigned long nr_pages,
+ 
+ 	res.start = (u64) start_pfn << PAGE_SHIFT;
+ 	res.end = ((u64)(start_pfn + nr_pages) << PAGE_SHIFT) - 1;
+-	res.flags = IORESOURCE_MEM | IORESOURCE_BUSY;
++	res.flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
+ 	orig_end = res.end;
+ 	while ((res.start < res.end) &&
+-		(find_next_iomem_res(&res, "System RAM", true) >= 0)) {
++		(find_next_iomem_res(&res, NULL, true) >= 0)) {
+ 		pfn = (res.start + PAGE_SIZE - 1) >> PAGE_SHIFT;
+ 		end_pfn = (res.end + 1) >> PAGE_SHIFT;
+ 		if (end_pfn > pfn)
+@@ -484,7 +484,7 @@ static int __is_ram(unsigned long pfn, unsigned long nr_pages, void *arg)
+ }
+ /*
+  * This generic page_is_ram() returns true if specified address is
+- * registered as "System RAM" in iomem_resource list.
++ * registered as System RAM in iomem_resource list.
+  */
+ int __weak page_is_ram(unsigned long pfn)
+ {
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
