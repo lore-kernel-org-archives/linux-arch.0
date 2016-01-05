@@ -1,161 +1,122 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t5009.houston.hp.com ([15.240.92.67]:43561 "EHLO
-	g9t5009.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752423AbcAESzq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2016 13:55:46 -0500
+Received: from g4t3427.houston.hp.com ([15.201.208.55]:39265 "EHLO
+	g4t3427.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752090AbcAESz2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2016 13:55:28 -0500
 From: Toshi Kani <toshi.kani@hpe.com>
-Subject: [PATCH v3 13/17] resource: Add walk_iomem_res_desc()
-Date: Tue,  5 Jan 2016 11:54:37 -0700
-Message-ID: <1452020081-26534-13-git-send-email-toshi.kani@hpe.com>
+Subject: [PATCH v3 04/17] x86/e820: Set System RAM type and descriptor
+Date: Tue,  5 Jan 2016 11:54:28 -0700
+Message-ID: <1452020081-26534-4-git-send-email-toshi.kani@hpe.com>
 In-Reply-To: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
 References: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org, bp@alien8.de
-Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>, Toshi Kani <toshi.kani@hpe.com>
-Message-ID: <20160105185437.OxRyK6FM1L8fJfwkcjyK5RzQvwBGKcaPFT6501YrewM@z>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, x86@kernel.org, Toshi Kani <toshi.kani@hpe.com>
+Message-ID: <20160105185428.gjrdc-uWcNu7BrpfE0Y5nLj1aFU9BImsF1fWGlkVDe4@z>
 
-Add a new interface, walk_iomem_res_desc(), which walks through
-the iomem table by identifying a target with @flags and @desc.
-This interface provides the same functionality as walk_iomem_res(),
-but does not use strcmp() to @name for better efficiency.
+Change e820_reserve_resources() to set 'flags' and 'desc' from
+e820 types.
 
-walk_iomem_res() is deprecated and will be removed in a later
-patch.
+IORESOURCE_SYSTEM_RAM is set to 'flags' for System RAM, which
+are E820_RESERVED_KERN and E820_RAM.  IORESOURCE_SYSTEM_RAM is
+also set to "Kernel data", "Kernel code", and "Kernel bss",
+which are child nodes of System RAM.
 
-Cc: Andrew Morton <akpm@linux-foundation.org>
+I/O resource descriptor is set to 'desc' for entries that are
+(and will be) target ranges of walk_iomem_res() and
+region_intersects().
+
 Cc: Borislav Petkov <bp@alien8.de>
-Cc: Dan Williams <dan.j.williams@intel.com>
+Cc: x86@kernel.org
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 ---
- include/linux/ioport.h |    3 ++
- kernel/resource.c      |   58 ++++++++++++++++++++++++++++++++++++++++++------
- 2 files changed, 54 insertions(+), 7 deletions(-)
+ arch/x86/kernel/e820.c  |   38 +++++++++++++++++++++++++++++++++++++-
+ arch/x86/kernel/setup.c |    6 +++---
+ 2 files changed, 40 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/ioport.h b/include/linux/ioport.h
-index 983bea0..2a4a5e8 100644
---- a/include/linux/ioport.h
-+++ b/include/linux/ioport.h
-@@ -268,6 +268,9 @@ extern int
- walk_system_ram_res(u64 start, u64 end, void *arg,
- 		    int (*func)(u64, u64, void *));
- extern int
-+walk_iomem_res_desc(unsigned long desc, unsigned long flags, u64 start, u64 end,
-+		    void *arg, int (*func)(u64, u64, void *));
-+extern int
- walk_iomem_res(char *name, unsigned long flags, u64 start, u64 end, void *arg,
- 	       int (*func)(u64, u64, void *));
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index 569c1e4..837365f 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -925,6 +925,41 @@ static const char *e820_type_to_string(int e820_type)
+ 	}
+ }
  
-diff --git a/kernel/resource.c b/kernel/resource.c
-index 52e6380..7b26f58 100644
---- a/kernel/resource.c
-+++ b/kernel/resource.c
-@@ -334,13 +334,14 @@ EXPORT_SYMBOL(release_resource);
- 
- /*
-  * Finds the lowest iomem reosurce exists with-in [res->start.res->end)
-- * the caller must specify res->start, res->end, res->flags and "name".
-- * If found, returns 0, res is overwritten, if not found, returns -1.
-+ * the caller must specify res->start, res->end, res->flags, and optionally
-+ * desc and "name".  If found, returns 0, res is overwritten, if not found,
-+ * returns -1.
-  * This walks through whole tree and not just first level children
-  * until and unless first_level_children_only is true.
-  */
--static int find_next_iomem_res(struct resource *res, char *name,
--			       bool first_level_children_only)
-+static int find_next_iomem_res(struct resource *res, unsigned long desc,
-+				char *name, bool first_level_children_only)
- {
- 	resource_size_t start, end;
- 	struct resource *p;
-@@ -360,6 +361,8 @@ static int find_next_iomem_res(struct resource *res, char *name,
- 	for (p = iomem_resource.child; p; p = next_resource(p, sibling_only)) {
- 		if ((p->flags & res->flags) != res->flags)
- 			continue;
-+		if ((desc != IORES_DESC_NONE) && (desc != p->desc))
-+			continue;
- 		if (name && strcmp(p->name, name))
- 			continue;
- 		if (p->start > end) {
-@@ -385,12 +388,53 @@ static int find_next_iomem_res(struct resource *res, char *name,
-  * Walks through iomem resources and calls func() with matching resource
-  * ranges. This walks through whole tree and not just first level children.
-  * All the memory ranges which overlap start,end and also match flags and
-+ * desc are valid candidates.
-+ *
-+ * @desc: I/O resource descriptor. Use IORES_DESC_NONE to skip this check.
-+ * @flags: I/O resource flags
-+ * @start: start addr
-+ * @end: end addr
-+ *
-+ * NOTE: For a new descriptor search, define a new IORES_DESC in
-+ * <linux/ioport.h> and set it to 'desc' of a target resource entry.
-+ */
-+int walk_iomem_res_desc(unsigned long desc, unsigned long flags, u64 start,
-+		u64 end, void *arg, int (*func)(u64, u64, void *))
++static unsigned long e820_type_to_iomem_type(int e820_type)
 +{
-+	struct resource res;
-+	u64 orig_end;
-+	int ret = -1;
-+
-+	res.start = start;
-+	res.end = end;
-+	res.flags = flags;
-+	orig_end = res.end;
-+
-+	while ((res.start < res.end) &&
-+		(!find_next_iomem_res(&res, desc, NULL, false))) {
-+		ret = (*func)(res.start, res.end, arg);
-+		if (ret)
-+			break;
-+		res.start = res.end + 1;
-+		res.end = orig_end;
++	switch (e820_type) {
++	case E820_RESERVED_KERN:
++	case E820_RAM:
++		return IORESOURCE_SYSTEM_RAM;
++	case E820_ACPI:
++	case E820_NVS:
++	case E820_UNUSABLE:
++	case E820_PRAM:
++	case E820_PMEM:
++	default:
++		return IORESOURCE_MEM;
 +	}
-+
-+	return ret;
 +}
 +
-+/*
-+ * Walks through iomem resources and calls func() with matching resource
-+ * ranges. This walks through whole tree and not just first level children.
-+ * All the memory ranges which overlap start,end and also match flags and
-  * name are valid candidates.
-  *
-  * @name: name of resource
-  * @flags: resource flags
-  * @start: start addr
-  * @end: end addr
-+ *
-+ * NOTE: This function is deprecated and should not be used in new code.
-+ *       Use walk_iomem_res_desc(), instead.
-  */
- int walk_iomem_res(char *name, unsigned long flags, u64 start, u64 end,
- 		void *arg, int (*func)(u64, u64, void *))
-@@ -404,7 +448,7 @@ int walk_iomem_res(char *name, unsigned long flags, u64 start, u64 end,
- 	res.flags = flags;
- 	orig_end = res.end;
- 	while ((res.start < res.end) &&
--		(!find_next_iomem_res(&res, name, false))) {
-+		(!find_next_iomem_res(&res, IORES_DESC_NONE, name, false))) {
- 		ret = (*func)(res.start, res.end, arg);
- 		if (ret)
- 			break;
-@@ -433,7 +477,7 @@ int walk_system_ram_res(u64 start, u64 end, void *arg,
- 	res.flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
- 	orig_end = res.end;
- 	while ((res.start < res.end) &&
--		(!find_next_iomem_res(&res, NULL, true))) {
-+		(!find_next_iomem_res(&res, IORES_DESC_NONE, NULL, true))) {
- 		ret = (*func)(res.start, res.end, arg);
- 		if (ret)
- 			break;
-@@ -463,7 +507,7 @@ int walk_system_ram_range(unsigned long start_pfn, unsigned long nr_pages,
- 	res.flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
- 	orig_end = res.end;
- 	while ((res.start < res.end) &&
--		(find_next_iomem_res(&res, NULL, true) >= 0)) {
-+		(find_next_iomem_res(&res, IORES_DESC_NONE, NULL, true) >= 0)) {
- 		pfn = (res.start + PAGE_SIZE - 1) >> PAGE_SHIFT;
- 		end_pfn = (res.end + 1) >> PAGE_SHIFT;
- 		if (end_pfn > pfn)
++static unsigned long e820_type_to_iores_desc(int e820_type)
++{
++	switch (e820_type) {
++	case E820_ACPI:
++		return IORES_DESC_ACPI_TABLES;
++	case E820_NVS:
++		return IORES_DESC_ACPI_NV_STORAGE;
++	case E820_PMEM:
++		return IORES_DESC_PERSISTENT_MEMORY;
++	case E820_PRAM:
++		return IORES_DESC_PERSISTENT_MEMORY_LEGACY;
++	case E820_RESERVED_KERN:
++	case E820_RAM:
++	case E820_UNUSABLE:
++	default:
++		return IORES_DESC_NONE;
++	}
++}
++
+ static bool do_mark_busy(u32 type, struct resource *res)
+ {
+ 	/* this is the legacy bios/dos rom-shadow + mmio region */
+@@ -967,7 +1002,8 @@ void __init e820_reserve_resources(void)
+ 		res->start = e820.map[i].addr;
+ 		res->end = end;
+ 
+-		res->flags = IORESOURCE_MEM;
++		res->flags = e820_type_to_iomem_type(e820.map[i].type);
++		res->desc = e820_type_to_iores_desc(e820.map[i].type);
+ 
+ 		/*
+ 		 * don't register the region that could be conflicted with
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index d2bbe34..a492c30 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -152,21 +152,21 @@ static struct resource data_resource = {
+ 	.name	= "Kernel data",
+ 	.start	= 0,
+ 	.end	= 0,
+-	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
++	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
+ };
+ 
+ static struct resource code_resource = {
+ 	.name	= "Kernel code",
+ 	.start	= 0,
+ 	.end	= 0,
+-	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
++	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
+ };
+ 
+ static struct resource bss_resource = {
+ 	.name	= "Kernel bss",
+ 	.start	= 0,
+ 	.end	= 0,
+-	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
++	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
+ };
+ 
+ 
