@@ -1,35 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:11952 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752026AbcAEXMy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 5 Jan 2016 18:12:54 -0500
-Subject: Re: [PATCH v2 12/32] x86/um: reuse asm-generic/barrier.h
-References: <1451572003-2440-1-git-send-email-mst@redhat.com>
- <1451572003-2440-13-git-send-email-mst@redhat.com>
-From: Richard Weinberger <richard@nod.at>
-Message-ID: <568C4DEA.5070601@nod.at>
-Date: Wed, 6 Jan 2016 00:12:42 +0100
+Received: from v094114.home.net.pl ([79.96.170.134]:64269 "HELO
+	v094114.home.net.pl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1751663AbcAFBgY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jan 2016 20:36:24 -0500
+From: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Subject: Re: [PATCH v3 UPDATE 09/17] drivers: Initialize resource entry to zero
+Date: Wed, 06 Jan 2016 03:07:03 +0100
+Message-ID: <4132474.rE6EsOfV8R@vostro.rjw.lan>
+In-Reply-To: <1452028537-27365-1-git-send-email-toshi.kani@hpe.com>
+References: <1452028537-27365-1-git-send-email-toshi.kani@hpe.com>
 MIME-Version: 1.0
-In-Reply-To: <1451572003-2440-13-git-send-email-mst@redhat.com>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset="utf-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Jeff Dike <jdike@addtoit.com>, Ingo Molnar <mingo@redhat.com>, Borislav Petkov <bp@suse.de>, Andy Lutomirski <luto@kernel.org>, user-mode-linux-user@lists.sourceforge.net
-Message-ID: <20160105231242.wRzDEwl24zaWlAboJVmiMkQ4U5yrw9bzSR80jkRG5kw@z>
+To: Toshi Kani <toshi.kani@hpe.com>
+Cc: akpm@linux-foundation.org, bp@alien8.de, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Matt Porter <mporter@kernel.crashing.org>, Alexandre Bounine <alexandre.bounine@idt.com>, linux-acpi@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org
+Message-ID: <20160106020703.lamPHGWMX_Dv1HlO49jX6yMaNr-ayigZtdJj--8NmPE@z>
 
-Am 31.12.2015 um 20:07 schrieb Michael S. Tsirkin:
-> On x86/um CONFIG_SMP is never defined.  As a result, several macros
-> match the asm-generic variant exactly. Drop the local definitions and
-> pull in asm-generic/barrier.h instead.
+On Tuesday, January 05, 2016 02:15:37 PM Toshi Kani wrote:
+> I/O resource descriptor, 'desc' in struct resource, needs to be
+> initialized to zero by default.  Some drivers call kmalloc() to
+> allocate a resource entry, but does not initialize it to zero by
+> memset().  Change these drivers to call kzalloc(), instead.
 > 
-> This is in preparation to refactoring this code area.
-> 
-> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> Cc: Matt Porter <mporter@kernel.crashing.org>
+> Cc: Alexandre Bounine <alexandre.bounine@idt.com>
+> Cc: linux-acpi@vger.kernel.org
+> Cc: linux-parisc@vger.kernel.org
+> Cc: linux-sh@vger.kernel.org
+> Acked-by: Simon Horman <horms+renesas@verge.net.au> # sh
+> Acked-by: Helge Deller <deller@gmx.de> # parisc
+> Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 
-Acked-by: Richard Weinberger <richard@nod.at>
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
 
-Thanks,
-//richard
+for the ACPI part.
+
