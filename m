@@ -1,152 +1,138 @@
-From: "Bounine, Alexandre" <Alexandre.Bounine@idt.com>
-Subject: RE: [PATCH v3 UPDATE 09/17] drivers: Initialize resource entry to
- zero
-Date: Thu, 7 Jan 2016 13:06:37 +0000
-Message-ID: <8D983423E7EDF846BB3056827B8CC5D15CFB6756@corpmail1.na.ads.idt.com>
-References: <1452028537-27365-1-git-send-email-toshi.kani@hpe.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v5] fs: clear file privilege bits when mmap writing
+Date: Thu, 7 Jan 2016 11:36:08 -0800
+Message-ID: <CAGXu5j+Rou9+pb=7o9W45jBPeQUh+qVbOsdUp0ZB2Q-+V-PnvQ@mail.gmail.com>
+References: <20151210223314.GA14512@www.outflux.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1452028537-27365-1-git-send-email-toshi.kani@hpe.com>
-Content-Language: en-US
-Sender: owner-linux-mm@kvack.org
-To: Toshi Kani <toshi.kani@hpe.com>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "bp@alien8.de" <bp@alien8.de>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Matt Porter <mporter@kernel.crashing.org>, "linux-acpi@vger.kernel.org" <linux-acpi@vger.kernel.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-fsdevel-owner@vger.kernel.org>
+In-Reply-To: <20151210223314.GA14512@www.outflux.net>
+Sender: linux-fsdevel-owner@vger.kernel.org
+To: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Jan Kara <jack@suse.cz>, yalin wang <yalin.wang2010@gmail.com>, Willy Tarreau <w@1wt.eu>, Andrew Morton <akpm@linux-foundation.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Ack-ed.
+On Thu, Dec 10, 2015 at 2:33 PM, Kees Cook <keescook@chromium.org> wrote:
+> Normally, when a user can modify a file that has setuid or setgid bits,
+> those bits are cleared when they are not the file owner or a member
+> of the group. This is enforced when using write and truncate but not
+> when writing to a shared mmap on the file. This could allow the file
+> writer to gain privileges by changing a binary without losing the
+> setuid/setgid/caps bits.
+>
+> Changing the bits requires holding inode->i_mutex, so it cannot be done
+> during the page fault (due to mmap_sem being held during the fault). We
+> could do this during vm_mmap_pgoff, but that would need coverage in
+> mprotect as well, but to check for MAP_SHARED, we'd need to hold mmap_sem
+> again. We could clear at open() time, but it's possible things are
+> accidentally opening with O_RDWR and only reading. Better to clear on
+> close and error failures (i.e. an improvement over now, which is not
+> clearing at all).
+>
+> Instead, detect the need to clear the bits during the page fault, and
+> actually remove the bits during final fput. Since the file was open for
+> writing, it wouldn't have been possible to execute it yet.
+>
+> Signed-off-by: Kees Cook <keescook@chromium.org>
 
-Alex.
+Al, how does this look?
 
------Original Message-----
-From: Toshi Kani [mailto:toshi.kani@hpe.com]=20
-Sent: Tuesday, January 05, 2016 4:16 PM
-To: akpm@linux-foundation.org; bp@alien8.de
-Cc: linux-arch@vger.kernel.org; linux-mm@kvack.org; linux-kernel@vger.kerne=
-l.org; Matt Porter; Bounine, Alexandre; linux-acpi@vger.kernel.org; linux-p=
-arisc@vger.kernel.org; linux-sh@vger.kernel.org; Toshi Kani
-Subject: [PATCH v3 UPDATE 09/17] drivers: Initialize resource entry to zero
+-Kees
 
-I/O resource descriptor, 'desc' in struct resource, needs to be
-initialized to zero by default.  Some drivers call kmalloc() to
-allocate a resource entry, but does not initialize it to zero by
-memset().  Change these drivers to call kzalloc(), instead.
+> ---
+> v5:
+> - add to f_flags instead, viro
+> - add i_mutex during __fput, jack
+> v4:
+> - delay removal instead of still needing mmap_sem for mprotect, yalin
+> v3:
+> - move outside of mmap_sem for real now, fengguang
+> - check return code of file_remove_privs, akpm
+> v2:
+> - move to mmap from fault handler, jack
+> ---
+>  fs/file_table.c                  | 11 +++++++++++
+>  fs/open.c                        |  2 +-
+>  include/uapi/asm-generic/fcntl.h |  4 ++++
+>  mm/memory.c                      |  5 +++++
+>  4 files changed, 21 insertions(+), 1 deletion(-)
+>
+> diff --git a/fs/file_table.c b/fs/file_table.c
+> index ad17e05ebf95..4a8b0b4553e9 100644
+> --- a/fs/file_table.c
+> +++ b/fs/file_table.c
+> @@ -191,6 +191,17 @@ static void __fput(struct file *file)
+>
+>         might_sleep();
+>
+> +       /*
+> +        * XXX: While avoiding mmap_sem, we've already been written to.
+> +        * We must ignore the return value, since we can't reject the
+> +        * write.
+> +        */
+> +       if (unlikely(file->f_flags & O_REMOVEPRIV)) {
+> +               mutex_lock(&inode->i_mutex);
+> +               file_remove_privs(file);
+> +               mutex_unlock(&inode->i_mutex);
+> +       }
+> +
+>         fsnotify_close(file);
+>         /*
+>          * The function eventpoll_release() should be the first called
+> diff --git a/fs/open.c b/fs/open.c
+> index b6f1e96a7c0b..89069d16ca80 100644
+> --- a/fs/open.c
+> +++ b/fs/open.c
+> @@ -895,7 +895,7 @@ static inline int build_open_flags(int flags, umode_t mode, struct open_flags *o
+>                 op->mode = 0;
+>
+>         /* Must never be set by userspace */
+> -       flags &= ~FMODE_NONOTIFY & ~O_CLOEXEC;
+> +       flags &= ~FMODE_NONOTIFY & ~O_CLOEXEC & ~O_REMOVEPRIV;
+>
+>         /*
+>          * O_SYNC is implemented as __O_SYNC|O_DSYNC.  As many places only
+> diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
+> index e063effe0cc1..096c4b3afe6a 100644
+> --- a/include/uapi/asm-generic/fcntl.h
+> +++ b/include/uapi/asm-generic/fcntl.h
+> @@ -88,6 +88,10 @@
+>  #define __O_TMPFILE    020000000
+>  #endif
+>
+> +#ifndef O_REMOVEPRIV
+> +#define O_REMOVEPRIV   040000000
+> +#endif
+> +
+>  /* a horrid kludge trying to make sure that this will fail on old kernels */
+>  #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
+>  #define O_TMPFILE_MASK (__O_TMPFILE | O_DIRECTORY | O_CREAT)
+> diff --git a/mm/memory.c b/mm/memory.c
+> index c387430f06c3..ad4188a8f279 100644
+> --- a/mm/memory.c
+> +++ b/mm/memory.c
+> @@ -2036,6 +2036,11 @@ static inline int wp_page_reuse(struct mm_struct *mm,
+>
+>                 if (!page_mkwrite)
+>                         file_update_time(vma->vm_file);
+> +               if (unlikely((vma->vm_file->f_flags & O_REMOVEPRIV) == 0)) {
+> +                       spin_lock(&vma->vm_file->f_lock);
+> +                       vma->vm_file->f_flags |= O_REMOVEPRIV;
+> +                       spin_unlock(&vma->vm_file->f_lock);
+> +               }
+>         }
+>
+>         return VM_FAULT_WRITE;
+> --
+> 2.6.3
+>
+>
+> --
+> Kees Cook
+> Chrome OS & Brillo Security
 
-Cc: Matt Porter <mporter@kernel.crashing.org>
-Cc: Alexandre Bounine <alexandre.bounine@idt.com>
-Cc: linux-acpi@vger.kernel.org
-Cc: linux-parisc@vger.kernel.org
-Cc: linux-sh@vger.kernel.org
-Acked-by: Simon Horman <horms+renesas@verge.net.au> # sh
-Acked-by: Helge Deller <deller@gmx.de> # parisc
-Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
----
-v3 UPDATE: Add cc to RAPIDIO maintainers that was missing.
----
- drivers/acpi/acpi_platform.c       |    2 +-
- drivers/parisc/eisa_enumerator.c   |    4 ++--
- drivers/rapidio/rio.c              |    8 ++++----
- drivers/sh/superhyway/superhyway.c |    2 +-
- 4 files changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/drivers/acpi/acpi_platform.c b/drivers/acpi/acpi_platform.c
-index 296b7a1..b6f7fa3 100644
---- a/drivers/acpi/acpi_platform.c
-+++ b/drivers/acpi/acpi_platform.c
-@@ -62,7 +62,7 @@ struct platform_device *acpi_create_platform_device(struc=
-t acpi_device *adev)
- 	if (count < 0) {
- 		return NULL;
- 	} else if (count > 0) {
--		resources =3D kmalloc(count * sizeof(struct resource),
-+		resources =3D kzalloc(count * sizeof(struct resource),
- 				    GFP_KERNEL);
- 		if (!resources) {
- 			dev_err(&adev->dev, "No memory for resources\n");
-diff --git a/drivers/parisc/eisa_enumerator.c b/drivers/parisc/eisa_enumera=
-tor.c
-index a656d9e..21905fe 100644
---- a/drivers/parisc/eisa_enumerator.c
-+++ b/drivers/parisc/eisa_enumerator.c
-@@ -91,7 +91,7 @@ static int configure_memory(const unsigned char *buf,
- 	for (i=3D0;i<HPEE_MEMORY_MAX_ENT;i++) {
- 		c =3D get_8(buf+len);
- 	=09
--		if (NULL !=3D (res =3D kmalloc(sizeof(struct resource), GFP_KERNEL))) {
-+		if (NULL !=3D (res =3D kzalloc(sizeof(struct resource), GFP_KERNEL))) {
- 			int result;
- 		=09
- 			res->name =3D name;
-@@ -183,7 +183,7 @@ static int configure_port(const unsigned char *buf, str=
-uct resource *io_parent,
- 	for (i=3D0;i<HPEE_PORT_MAX_ENT;i++) {
- 		c =3D get_8(buf+len);
- 	=09
--		if (NULL !=3D (res =3D kmalloc(sizeof(struct resource), GFP_KERNEL))) {
-+		if (NULL !=3D (res =3D kzalloc(sizeof(struct resource), GFP_KERNEL))) {
- 			res->name =3D board;
- 			res->start =3D get_16(buf+len+1);
- 			res->end =3D get_16(buf+len+1)+(c&HPEE_PORT_SIZE_MASK)+1;
-diff --git a/drivers/rapidio/rio.c b/drivers/rapidio/rio.c
-index d7b87c6..e220edc 100644
---- a/drivers/rapidio/rio.c
-+++ b/drivers/rapidio/rio.c
-@@ -117,7 +117,7 @@ int rio_request_inb_mbox(struct rio_mport *mport,
- 	if (mport->ops->open_inb_mbox =3D=3D NULL)
- 		goto out;
-=20
--	res =3D kmalloc(sizeof(struct resource), GFP_KERNEL);
-+	res =3D kzalloc(sizeof(struct resource), GFP_KERNEL);
-=20
- 	if (res) {
- 		rio_init_mbox_res(res, mbox, mbox);
-@@ -185,7 +185,7 @@ int rio_request_outb_mbox(struct rio_mport *mport,
- 	if (mport->ops->open_outb_mbox =3D=3D NULL)
- 		goto out;
-=20
--	res =3D kmalloc(sizeof(struct resource), GFP_KERNEL);
-+	res =3D kzalloc(sizeof(struct resource), GFP_KERNEL);
-=20
- 	if (res) {
- 		rio_init_mbox_res(res, mbox, mbox);
-@@ -285,7 +285,7 @@ int rio_request_inb_dbell(struct rio_mport *mport,
- {
- 	int rc =3D 0;
-=20
--	struct resource *res =3D kmalloc(sizeof(struct resource), GFP_KERNEL);
-+	struct resource *res =3D kzalloc(sizeof(struct resource), GFP_KERNEL);
-=20
- 	if (res) {
- 		rio_init_dbell_res(res, start, end);
-@@ -360,7 +360,7 @@ int rio_release_inb_dbell(struct rio_mport *mport, u16 =
-start, u16 end)
- struct resource *rio_request_outb_dbell(struct rio_dev *rdev, u16 start,
- 					u16 end)
- {
--	struct resource *res =3D kmalloc(sizeof(struct resource), GFP_KERNEL);
-+	struct resource *res =3D kzalloc(sizeof(struct resource), GFP_KERNEL);
-=20
- 	if (res) {
- 		rio_init_dbell_res(res, start, end);
-diff --git a/drivers/sh/superhyway/superhyway.c b/drivers/sh/superhyway/sup=
-erhyway.c
-index 2d9e7f3..bb1fb771 100644
---- a/drivers/sh/superhyway/superhyway.c
-+++ b/drivers/sh/superhyway/superhyway.c
-@@ -66,7 +66,7 @@ int superhyway_add_device(unsigned long base, struct supe=
-rhyway_device *sdev,
- 	superhyway_read_vcr(dev, base, &dev->vcr);
-=20
- 	if (!dev->resource) {
--		dev->resource =3D kmalloc(sizeof(struct resource), GFP_KERNEL);
-+		dev->resource =3D kzalloc(sizeof(struct resource), GFP_KERNEL);
- 		if (!dev->resource) {
- 			kfree(dev);
- 			return -ENOMEM;
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+Kees Cook
+Chrome OS & Brillo Security
