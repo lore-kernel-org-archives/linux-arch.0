@@ -1,142 +1,88 @@
-From: Dave Hansen <dave@sr71.net>
-Subject: [PATCH 25/31] mm, multi-arch: pass a protection key in to calc_vm_flag_bits()
-Date: Wed, 06 Jan 2016 16:01:40 -0800
-Message-ID: <20160107000140.4C0A6A58@viggo.jf.intel.com>
-References: <20160107000104.1A105322@viggo.jf.intel.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20160107000104.1A105322@viggo.jf.intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-mm@kvack.org, x86@kernel.org, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [PATCH v2 15/32] powerpc: define __smp_xxx
+Date: Thu, 7 Jan 2016 08:43:56 +0800
+Message-ID: <20160107004356.GB14605@fixme-laptop.cn.ibm.com>
+References: <1451572003-2440-1-git-send-email-mst@redhat.com>
+ <1451572003-2440-16-git-send-email-mst@redhat.com>
+ <20160105013648.GA1256@fixme-laptop.cn.ibm.com>
+ <20160105085117.GA11858@redhat.com>
+ <20160105095341.GA5321@fixme-laptop.cn.ibm.com>
+ <20160105180938-mutt-send-email-mst@redhat.com>
+ <20160106015152.GA14605@fixme-laptop.cn.ibm.com>
+ <20160106222337-mutt-send-email-mst@redhat.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature"; boundary="/04w6evG8XlLl3ft"
+Return-path: <linux-ia64-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160106222337-mutt-send-email-mst@redhat.com>
+Sender: linux-ia64-owner@vger.kernel.org
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paul>
 List-Id: linux-arch.vger.kernel.org
 
 
-From: Dave Hansen <dave.hansen@linux.intel.com>
+--/04w6evG8XlLl3ft
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-This plumbs a protection key through calc_vm_flag_bits().  We
-could have done this in calc_vm_prot_bits(), but I did not feel
-super strongly which way to go.  It was pretty arbitrary which
-one to use.
+On Wed, Jan 06, 2016 at 10:23:51PM +0200, Michael S. Tsirkin wrote:
+[...]
+> > >=20
+> > > Sorry, I don't understand - why do you have to do anything?
+> > > I changed all users of smp_lwsync so they
+> > > use __smp_lwsync on SMP and barrier() on !SMP.
+> > >=20
+> > > This is exactly the current behaviour, I also tested that
+> > > generated code does not change at all.
+> > >=20
+> > > Is there a patch in your tree that conflicts with this?
+> > >=20
+> >=20
+> > Because in a patchset which implements atomic relaxed/acquire/release
+> > variants on PPC I use smp_lwsync(), this makes it have another user,
+> > please see this mail:
+> >=20
+> > http://article.gmane.org/gmane.linux.ports.ppc.embedded/89877
+> >=20
+> > in definition of PPC's __atomic_op_release().
+> >=20
+> >=20
+> > But I think removing smp_lwsync() is a good idea and actually I think we
+> > can go further to remove __smp_lwsync() and let __smp_load_acquire and
+> > __smp_store_release call __lwsync() directly, but that is another thing.
+> >=20
+> > Anyway, I will modify my patch.
+> >=20
+> > Regards,
+> > Boqun
+>=20
+>=20
+> Thanks!
+> Could you send an ack then please?
+>=20
 
-Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: linux-api@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
----
+Sure, if you need one from me, feel free to add my ack for this patch:
 
- b/arch/powerpc/include/asm/mman.h  |    5 +++--
- b/drivers/char/agp/frontend.c      |    2 +-
- b/drivers/staging/android/ashmem.c |    4 ++--
- b/include/linux/mman.h             |    6 +++---
- b/mm/mmap.c                        |    2 +-
- b/mm/mprotect.c                    |    2 +-
- b/mm/nommu.c                       |    2 +-
- 7 files changed, 12 insertions(+), 11 deletions(-)
+Acked-by: Boqun Feng <boqun.feng@gmail.com>
 
-diff -puN arch/powerpc/include/asm/mman.h~pkeys-70-calc_vm_prot_bits arch/powerpc/include/asm/mman.h
---- a/arch/powerpc/include/asm/mman.h~pkeys-70-calc_vm_prot_bits	2016-01-06 15:50:13.971532951 -0800
-+++ b/arch/powerpc/include/asm/mman.h	2016-01-06 15:50:13.984533537 -0800
-@@ -18,11 +18,12 @@
-  * This file is included by linux/mman.h, so we can't use cacl_vm_prot_bits()
-  * here.  How important is the optimization?
-  */
--static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot)
-+static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot,
-+		unsigned long pkey)
- {
- 	return (prot & PROT_SAO) ? VM_SAO : 0;
- }
--#define arch_calc_vm_prot_bits(prot) arch_calc_vm_prot_bits(prot)
-+#define arch_calc_vm_prot_bits(prot, pkey) arch_calc_vm_prot_bits(prot, pkey)
- 
- static inline pgprot_t arch_vm_get_page_prot(unsigned long vm_flags)
- {
-diff -puN drivers/char/agp/frontend.c~pkeys-70-calc_vm_prot_bits drivers/char/agp/frontend.c
---- a/drivers/char/agp/frontend.c~pkeys-70-calc_vm_prot_bits	2016-01-06 15:50:13.972532995 -0800
-+++ b/drivers/char/agp/frontend.c	2016-01-06 15:50:13.984533537 -0800
-@@ -156,7 +156,7 @@ static pgprot_t agp_convert_mmap_flags(i
- {
- 	unsigned long prot_bits;
- 
--	prot_bits = calc_vm_prot_bits(prot) | VM_SHARED;
-+	prot_bits = calc_vm_prot_bits(prot, 0) | VM_SHARED;
- 	return vm_get_page_prot(prot_bits);
- }
- 
-diff -puN drivers/staging/android/ashmem.c~pkeys-70-calc_vm_prot_bits drivers/staging/android/ashmem.c
---- a/drivers/staging/android/ashmem.c~pkeys-70-calc_vm_prot_bits	2016-01-06 15:50:13.974533086 -0800
-+++ b/drivers/staging/android/ashmem.c	2016-01-06 15:50:13.985533582 -0800
-@@ -372,8 +372,8 @@ static int ashmem_mmap(struct file *file
- 	}
- 
- 	/* requested protection bits must match our allowed protection mask */
--	if (unlikely((vma->vm_flags & ~calc_vm_prot_bits(asma->prot_mask)) &
--		     calc_vm_prot_bits(PROT_MASK))) {
-+	if (unlikely((vma->vm_flags & ~calc_vm_prot_bits(asma->prot_mask, 0)) &
-+		     calc_vm_prot_bits(PROT_MASK, 0))) {
- 		ret = -EPERM;
- 		goto out;
- 	}
-diff -puN include/linux/mman.h~pkeys-70-calc_vm_prot_bits include/linux/mman.h
---- a/include/linux/mman.h~pkeys-70-calc_vm_prot_bits	2016-01-06 15:50:13.976533176 -0800
-+++ b/include/linux/mman.h	2016-01-06 15:50:13.985533582 -0800
-@@ -35,7 +35,7 @@ static inline void vm_unacct_memory(long
-  */
- 
- #ifndef arch_calc_vm_prot_bits
--#define arch_calc_vm_prot_bits(prot) 0
-+#define arch_calc_vm_prot_bits(prot, pkey) 0
- #endif
- 
- #ifndef arch_vm_get_page_prot
-@@ -70,12 +70,12 @@ static inline int arch_validate_prot(uns
-  * Combine the mmap "prot" argument into "vm_flags" used internally.
-  */
- static inline unsigned long
--calc_vm_prot_bits(unsigned long prot)
-+calc_vm_prot_bits(unsigned long prot, unsigned long pkey)
- {
- 	return _calc_vm_trans(prot, PROT_READ,  VM_READ ) |
- 	       _calc_vm_trans(prot, PROT_WRITE, VM_WRITE) |
- 	       _calc_vm_trans(prot, PROT_EXEC,  VM_EXEC) |
--	       arch_calc_vm_prot_bits(prot);
-+	       arch_calc_vm_prot_bits(prot, pkey);
- }
- 
- /*
-diff -puN mm/mmap.c~pkeys-70-calc_vm_prot_bits mm/mmap.c
---- a/mm/mmap.c~pkeys-70-calc_vm_prot_bits	2016-01-06 15:50:13.977533221 -0800
-+++ b/mm/mmap.c	2016-01-06 15:50:13.986533627 -0800
-@@ -1309,7 +1309,7 @@ unsigned long do_mmap(struct file *file,
- 	 * to. we assume access permissions have been handled by the open
- 	 * of the memory object, so we don't do any here.
- 	 */
--	vm_flags |= calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags) |
-+	vm_flags |= calc_vm_prot_bits(prot, 0) | calc_vm_flag_bits(flags) |
- 			mm->def_flags | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC;
- 
- 	if (flags & MAP_LOCKED)
-diff -puN mm/mprotect.c~pkeys-70-calc_vm_prot_bits mm/mprotect.c
---- a/mm/mprotect.c~pkeys-70-calc_vm_prot_bits	2016-01-06 15:50:13.979533311 -0800
-+++ b/mm/mprotect.c	2016-01-06 15:50:13.986533627 -0800
-@@ -373,7 +373,7 @@ SYSCALL_DEFINE3(mprotect, unsigned long,
- 	if ((prot & PROT_READ) && (current->personality & READ_IMPLIES_EXEC))
- 		prot |= PROT_EXEC;
- 
--	vm_flags = calc_vm_prot_bits(prot);
-+	vm_flags = calc_vm_prot_bits(prot, 0);
- 
- 	down_write(&current->mm->mmap_sem);
- 
-diff -puN mm/nommu.c~pkeys-70-calc_vm_prot_bits mm/nommu.c
---- a/mm/nommu.c~pkeys-70-calc_vm_prot_bits	2016-01-06 15:50:13.981533401 -0800
-+++ b/mm/nommu.c	2016-01-06 15:50:13.987533672 -0800
-@@ -1090,7 +1090,7 @@ static unsigned long determine_vm_flags(
- {
- 	unsigned long vm_flags;
- 
--	vm_flags = calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags);
-+	vm_flags = calc_vm_prot_bits(prot, 0) | calc_vm_flag_bits(flags);
- 	/* vm_flags |= mm->def_flags; */
- 
- 	if (!(capabilities & NOMMU_MAP_DIRECT)) {
-_
+Regards,
+Boqun
+
+--/04w6evG8XlLl3ft
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQEcBAABCAAGBQJWjbTIAAoJEEl56MO1B/q4Xf8H/A0lM6gsUPNqUU24iHbc5O4j
+qN+FbAuVULCXdZfNW9uS+HG4Oq9VqZZc4rv5QdX6IHzcYKTYAv7+8rEMHmrxV8A/
+mMKfwU07krXlG0IRFhiMpuCzvjAfa0CgPOUHBzGJU5mdrAiM8ymtpa1ofde/uitO
+UaRheer5STPZ2kUzrA0r2hYbtWczy6X7yIxioQbXKeR88AuE8X12Me7X+zl9YoPP
+NnwnzDhEkvj7wzQVgWTyA4fwu051dOtRENtv0k6UugV2bW45SsuLQ9Co3BUh/iK+
+KF/57kaJ9BfOGYF1HAHH10GSkwTyyAsc8SGAQKg6PY/lJsHBDFluEtr98U1ssCA=
+=FLp9
+-----END PGP SIGNATURE-----
+
+--/04w6evG8XlLl3ft--
