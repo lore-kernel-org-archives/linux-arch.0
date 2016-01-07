@@ -1,93 +1,156 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f41.google.com ([209.85.220.41]:34439 "EHLO
-	mail-pa0-f41.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751906AbcAGAod (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Jan 2016 19:44:33 -0500
-Date: Thu, 7 Jan 2016 08:43:56 +0800
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [PATCH v2 15/32] powerpc: define __smp_xxx
-Message-ID: <20160107004356.GB14605@fixme-laptop.cn.ibm.com>
-References: <1451572003-2440-1-git-send-email-mst@redhat.com>
- <1451572003-2440-16-git-send-email-mst@redhat.com>
- <20160105013648.GA1256@fixme-laptop.cn.ibm.com>
- <20160105085117.GA11858@redhat.com>
- <20160105095341.GA5321@fixme-laptop.cn.ibm.com>
- <20160105180938-mutt-send-email-mst@redhat.com>
- <20160106015152.GA14605@fixme-laptop.cn.ibm.com>
- <20160106222337-mutt-send-email-mst@redhat.com>
+Received: from mx1.redhat.com ([209.132.183.28]:54200 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752697AbcAGMkf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Jan 2016 07:40:35 -0500
+Date: Thu, 7 Jan 2016 20:40:22 +0800
+From: Dave Young <dyoung@redhat.com>
+Subject: Re: [PATCH v3 16/17] resource: Kill walk_iomem_res()
+Message-ID: <20160107124022.GD2870@dhcp-128-65.nay.redhat.com>
+References: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
+ <1452020081-26534-16-git-send-email-toshi.kani@hpe.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-	protocol="application/pgp-signature"; boundary="/04w6evG8XlLl3ft"
-Content-Disposition: inline
-In-Reply-To: <20160106222337-mutt-send-email-mst@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Ingo Molnar <mingo@kernel.org>, Davidlohr Bueso <dave@stgolabs.net>, Andrey Konovalov <andreyknvl@google.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20160107004356.r9NIMGLV9dPBKn4h8P7TOeNphbZlk2KV-eIEN7nHFtU@z>
-
-
---/04w6evG8XlLl3ft
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <1452020081-26534-16-git-send-email-toshi.kani@hpe.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Toshi Kani <toshi.kani@hpe.com>
+Cc: akpm@linux-foundation.org, bp@alien8.de, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Dan Williams <dan.j.williams@intel.com>
+Message-ID: <20160107124022.FSbKCPZxArU5gmIHceAGewBLah2yoodZLoCb0oq4AY8@z>
 
-On Wed, Jan 06, 2016 at 10:23:51PM +0200, Michael S. Tsirkin wrote:
-[...]
-> > >=20
-> > > Sorry, I don't understand - why do you have to do anything?
-> > > I changed all users of smp_lwsync so they
-> > > use __smp_lwsync on SMP and barrier() on !SMP.
-> > >=20
-> > > This is exactly the current behaviour, I also tested that
-> > > generated code does not change at all.
-> > >=20
-> > > Is there a patch in your tree that conflicts with this?
-> > >=20
-> >=20
-> > Because in a patchset which implements atomic relaxed/acquire/release
-> > variants on PPC I use smp_lwsync(), this makes it have another user,
-> > please see this mail:
-> >=20
-> > http://article.gmane.org/gmane.linux.ports.ppc.embedded/89877
-> >=20
-> > in definition of PPC's __atomic_op_release().
-> >=20
-> >=20
-> > But I think removing smp_lwsync() is a good idea and actually I think we
-> > can go further to remove __smp_lwsync() and let __smp_load_acquire and
-> > __smp_store_release call __lwsync() directly, but that is another thing.
-> >=20
-> > Anyway, I will modify my patch.
-> >=20
-> > Regards,
-> > Boqun
->=20
->=20
-> Thanks!
-> Could you send an ack then please?
->=20
+On 01/05/16 at 11:54am, Toshi Kani wrote:
+> walk_iomem_res_desc() replaced walk_iomem_res(), and there is no
+> caller to walk_iomem_res() any more.
+> 
+> Kill walk_iomem_res().  Also remove @name from find_next_iomem_res()
+> as it is no longer used.
+> 
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Borislav Petkov <bp@alien8.de>
+> Cc: Dan Williams <dan.j.williams@intel.com>
+> Cc: Dave Young <dyoung@redhat.com>
+> Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
+> ---
+>  include/linux/ioport.h |    3 ---
+>  kernel/resource.c      |   49 +++++-------------------------------------------
+>  2 files changed, 5 insertions(+), 47 deletions(-)
+> 
+> diff --git a/include/linux/ioport.h b/include/linux/ioport.h
+> index 2a4a5e8..afb4559 100644
+> --- a/include/linux/ioport.h
+> +++ b/include/linux/ioport.h
+> @@ -270,9 +270,6 @@ walk_system_ram_res(u64 start, u64 end, void *arg,
+>  extern int
+>  walk_iomem_res_desc(unsigned long desc, unsigned long flags, u64 start, u64 end,
+>  		    void *arg, int (*func)(u64, u64, void *));
+> -extern int
+> -walk_iomem_res(char *name, unsigned long flags, u64 start, u64 end, void *arg,
+> -	       int (*func)(u64, u64, void *));
+>  
+>  /* True if any part of r1 overlaps r2 */
+>  static inline bool resource_overlaps(struct resource *r1, struct resource *r2)
+> diff --git a/kernel/resource.c b/kernel/resource.c
+> index 7b26f58..3ed5901 100644
+> --- a/kernel/resource.c
+> +++ b/kernel/resource.c
+> @@ -335,13 +335,12 @@ EXPORT_SYMBOL(release_resource);
+>  /*
+>   * Finds the lowest iomem reosurce exists with-in [res->start.res->end)
+>   * the caller must specify res->start, res->end, res->flags, and optionally
+> - * desc and "name".  If found, returns 0, res is overwritten, if not found,
+> - * returns -1.
+> + * desc.  If found, returns 0, res is overwritten, if not found, returns -1.
+>   * This walks through whole tree and not just first level children
+>   * until and unless first_level_children_only is true.
+>   */
+>  static int find_next_iomem_res(struct resource *res, unsigned long desc,
+> -				char *name, bool first_level_children_only)
+> +				bool first_level_children_only)
+>  {
+>  	resource_size_t start, end;
+>  	struct resource *p;
+> @@ -363,8 +362,6 @@ static int find_next_iomem_res(struct resource *res, unsigned long desc,
+>  			continue;
+>  		if ((desc != IORES_DESC_NONE) && (desc != p->desc))
+>  			continue;
+> -		if (name && strcmp(p->name, name))
+> -			continue;
+>  		if (p->start > end) {
+>  			p = NULL;
+>  			break;
+> @@ -411,7 +408,7 @@ int walk_iomem_res_desc(unsigned long desc, unsigned long flags, u64 start,
+>  	orig_end = res.end;
+>  
+>  	while ((res.start < res.end) &&
+> -		(!find_next_iomem_res(&res, desc, NULL, false))) {
+> +		(!find_next_iomem_res(&res, desc, false))) {
+>  		ret = (*func)(res.start, res.end, arg);
+>  		if (ret)
+>  			break;
+> @@ -423,42 +420,6 @@ int walk_iomem_res_desc(unsigned long desc, unsigned long flags, u64 start,
+>  }
+>  
+>  /*
+> - * Walks through iomem resources and calls func() with matching resource
+> - * ranges. This walks through whole tree and not just first level children.
+> - * All the memory ranges which overlap start,end and also match flags and
+> - * name are valid candidates.
+> - *
+> - * @name: name of resource
+> - * @flags: resource flags
+> - * @start: start addr
+> - * @end: end addr
+> - *
+> - * NOTE: This function is deprecated and should not be used in new code.
+> - *       Use walk_iomem_res_desc(), instead.
+> - */
+> -int walk_iomem_res(char *name, unsigned long flags, u64 start, u64 end,
+> -		void *arg, int (*func)(u64, u64, void *))
+> -{
+> -	struct resource res;
+> -	u64 orig_end;
+> -	int ret = -1;
+> -
+> -	res.start = start;
+> -	res.end = end;
+> -	res.flags = flags;
+> -	orig_end = res.end;
+> -	while ((res.start < res.end) &&
+> -		(!find_next_iomem_res(&res, IORES_DESC_NONE, name, false))) {
+> -		ret = (*func)(res.start, res.end, arg);
+> -		if (ret)
+> -			break;
+> -		res.start = res.end + 1;
+> -		res.end = orig_end;
+> -	}
+> -	return ret;
+> -}
+> -
+> -/*
+>   * This function calls callback against all memory range of System RAM
+>   * which are marked as IORESOURCE_SYSTEM_RAM and IORESOUCE_BUSY.
+>   * Now, this function is only for System RAM. This function deals with
+> @@ -477,7 +438,7 @@ int walk_system_ram_res(u64 start, u64 end, void *arg,
+>  	res.flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
+>  	orig_end = res.end;
+>  	while ((res.start < res.end) &&
+> -		(!find_next_iomem_res(&res, IORES_DESC_NONE, NULL, true))) {
+> +		(!find_next_iomem_res(&res, IORES_DESC_NONE, true))) {
+>  		ret = (*func)(res.start, res.end, arg);
+>  		if (ret)
+>  			break;
+> @@ -507,7 +468,7 @@ int walk_system_ram_range(unsigned long start_pfn, unsigned long nr_pages,
+>  	res.flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
+>  	orig_end = res.end;
+>  	while ((res.start < res.end) &&
+> -		(find_next_iomem_res(&res, IORES_DESC_NONE, NULL, true) >= 0)) {
+> +		(find_next_iomem_res(&res, IORES_DESC_NONE, true) >= 0)) {
+>  		pfn = (res.start + PAGE_SIZE - 1) >> PAGE_SHIFT;
+>  		end_pfn = (res.end + 1) >> PAGE_SHIFT;
+>  		if (end_pfn > pfn)
 
-Sure, if you need one from me, feel free to add my ack for this patch:
+Acked-by: Dave Young <dyoung@redhat.com>
 
-Acked-by: Boqun Feng <boqun.feng@gmail.com>
-
-Regards,
-Boqun
-
---/04w6evG8XlLl3ft
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQEcBAABCAAGBQJWjbTIAAoJEEl56MO1B/q4Xf8H/A0lM6gsUPNqUU24iHbc5O4j
-qN+FbAuVULCXdZfNW9uS+HG4Oq9VqZZc4rv5QdX6IHzcYKTYAv7+8rEMHmrxV8A/
-mMKfwU07krXlG0IRFhiMpuCzvjAfa0CgPOUHBzGJU5mdrAiM8ymtpa1ofde/uitO
-UaRheer5STPZ2kUzrA0r2hYbtWczy6X7yIxioQbXKeR88AuE8X12Me7X+zl9YoPP
-NnwnzDhEkvj7wzQVgWTyA4fwu051dOtRENtv0k6UugV2bW45SsuLQ9Co3BUh/iK+
-KF/57kaJ9BfOGYF1HAHH10GSkwTyyAsc8SGAQKg6PY/lJsHBDFluEtr98U1ssCA=
-=FLp9
------END PGP SIGNATURE-----
-
---/04w6evG8XlLl3ft--
+Thanks
+Dave
