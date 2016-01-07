@@ -1,88 +1,116 @@
-From: Boqun Feng <boqun.feng@gmail.com>
-Subject: Re: [PATCH v2 15/32] powerpc: define __smp_xxx
-Date: Thu, 7 Jan 2016 08:43:56 +0800
-Message-ID: <20160107004356.GB14605@fixme-laptop.cn.ibm.com>
-References: <1451572003-2440-1-git-send-email-mst@redhat.com>
- <1451572003-2440-16-git-send-email-mst@redhat.com>
- <20160105013648.GA1256@fixme-laptop.cn.ibm.com>
- <20160105085117.GA11858@redhat.com>
- <20160105095341.GA5321@fixme-laptop.cn.ibm.com>
- <20160105180938-mutt-send-email-mst@redhat.com>
- <20160106015152.GA14605@fixme-laptop.cn.ibm.com>
- <20160106222337-mutt-send-email-mst@redhat.com>
+From: Dave Young <dyoung@redhat.com>
+Subject: Re: [PATCH v3 15/17] x86/kexec: Remove walk_iomem_res() call with
+ GART
+Date: Thu, 7 Jan 2016 20:37:38 +0800
+Message-ID: <20160107123738.GA2870@dhcp-128-65.nay.redhat.com>
+References: <1452020081-26534-1-git-send-email-toshi.kani@hpe.com>
+ <1452020081-26534-15-git-send-email-toshi.kani@hpe.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-	protocol="application/pgp-signature"; boundary="/04w6evG8XlLl3ft"
-Return-path: <linux-ia64-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160106222337-mutt-send-email-mst@redhat.com>
-Sender: linux-ia64-owner@vger.kernel.org
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paul>
-List-Id: linux-arch.vger.kernel.org
-
-
---/04w6evG8XlLl3ft
 Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:44779 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752254AbcAGMhy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 7 Jan 2016 07:37:54 -0500
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+In-Reply-To: <1452020081-26534-15-git-send-email-toshi.kani@hpe.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Toshi Kani <toshi.kani@hpe.com>
+Cc: akpm@linux-foundation.org, bp@alien8.de, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Minfei Huang <mhuang@redhat.com>, x86@kernel.org, kexec@lists.infradead.org
 
-On Wed, Jan 06, 2016 at 10:23:51PM +0200, Michael S. Tsirkin wrote:
-[...]
-> > >=20
-> > > Sorry, I don't understand - why do you have to do anything?
-> > > I changed all users of smp_lwsync so they
-> > > use __smp_lwsync on SMP and barrier() on !SMP.
-> > >=20
-> > > This is exactly the current behaviour, I also tested that
-> > > generated code does not change at all.
-> > >=20
-> > > Is there a patch in your tree that conflicts with this?
-> > >=20
-> >=20
-> > Because in a patchset which implements atomic relaxed/acquire/release
-> > variants on PPC I use smp_lwsync(), this makes it have another user,
-> > please see this mail:
-> >=20
-> > http://article.gmane.org/gmane.linux.ports.ppc.embedded/89877
-> >=20
-> > in definition of PPC's __atomic_op_release().
-> >=20
-> >=20
-> > But I think removing smp_lwsync() is a good idea and actually I think we
-> > can go further to remove __smp_lwsync() and let __smp_load_acquire and
-> > __smp_store_release call __lwsync() directly, but that is another thing.
-> >=20
-> > Anyway, I will modify my patch.
-> >=20
-> > Regards,
-> > Boqun
->=20
->=20
-> Thanks!
-> Could you send an ack then please?
->=20
+On 01/05/16 at 11:54am, Toshi Kani wrote:
+> There is no longer any driver inserting a "GART" region in the kernel
+> since 'commit 707d4eefbdb3 ("Revert "[PATCH] Insert GART region into
+> resource map"")' was made.
+> 
+> Remove the call to walk_iomem_res() with "GART", its callback function,
+> and GART-specific variables set by the callback.
+> 
+> Cc: Borislav Petkov <bp@alien8.de>
+> Cc: Dave Young <dyoung@redhat.com>
+> Cc: Minfei Huang <mhuang@redhat.com>
+> Cc: x86@kernel.org
+> Cc: kexec@lists.infradead.org
+> Link: http://lkml.kernel.org/r/<20160104110427.GA2965@dhcp-128-65.nay.redhat.com>
+> Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
+> ---
+>  arch/x86/kernel/crash.c |   37 +------------------------------------
+>  1 file changed, 1 insertion(+), 36 deletions(-)
+> 
+> diff --git a/arch/x86/kernel/crash.c b/arch/x86/kernel/crash.c
+> index 082373b..f5069e7 100644
+> --- a/arch/x86/kernel/crash.c
+> +++ b/arch/x86/kernel/crash.c
+> @@ -56,10 +56,9 @@ struct crash_elf_data {
+>  	struct kimage *image;
+>  	/*
+>  	 * Total number of ram ranges we have after various adjustments for
+> -	 * GART, crash reserved region etc.
+> +	 * crash reserved region, etc.
+>  	 */
+>  	unsigned int max_nr_ranges;
+> -	unsigned long gart_start, gart_end;
+>  
+>  	/* Pointer to elf header */
+>  	void *ehdr;
+> @@ -190,17 +189,6 @@ static int get_nr_ram_ranges_callback(u64 start, u64 end, void *arg)
+>  	return 0;
+>  }
+>  
+> -static int get_gart_ranges_callback(u64 start, u64 end, void *arg)
+> -{
+> -	struct crash_elf_data *ced = arg;
+> -
+> -	ced->gart_start = start;
+> -	ced->gart_end = end;
+> -
+> -	/* Not expecting more than 1 gart aperture */
+> -	return 1;
+> -}
+> -
+>  
+>  /* Gather all the required information to prepare elf headers for ram regions */
+>  static void fill_up_crash_elf_data(struct crash_elf_data *ced,
+> @@ -215,22 +203,6 @@ static void fill_up_crash_elf_data(struct crash_elf_data *ced,
+>  
+>  	ced->max_nr_ranges = nr_ranges;
+>  
+> -	/*
+> -	 * We don't create ELF headers for GART aperture as an attempt
+> -	 * to dump this memory in second kernel leads to hang/crash.
+> -	 * If gart aperture is present, one needs to exclude that region
+> -	 * and that could lead to need of extra phdr.
+> -	 */
+> -	walk_iomem_res("GART", IORESOURCE_MEM, 0, -1,
+> -				ced, get_gart_ranges_callback);
+> -
+> -	/*
+> -	 * If we have gart region, excluding that could potentially split
+> -	 * a memory range, resulting in extra header. Account for  that.
+> -	 */
+> -	if (ced->gart_end)
+> -		ced->max_nr_ranges++;
+> -
+>  	/* Exclusion of crash region could split memory ranges */
+>  	ced->max_nr_ranges++;
+>  
+> @@ -339,13 +311,6 @@ static int elf_header_exclude_ranges(struct crash_elf_data *ced,
+>  			return ret;
+>  	}
+>  
+> -	/* Exclude GART region */
+> -	if (ced->gart_end) {
+> -		ret = exclude_mem_range(cmem, ced->gart_start, ced->gart_end);
+> -		if (ret)
+> -			return ret;
+> -	}
+> -
+>  	return ret;
+>  }
+>  
 
-Sure, if you need one from me, feel free to add my ack for this patch:
+Reviewed-by: Dave Young <dyoung@redhat.com>
 
-Acked-by: Boqun Feng <boqun.feng@gmail.com>
-
-Regards,
-Boqun
-
---/04w6evG8XlLl3ft
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQEcBAABCAAGBQJWjbTIAAoJEEl56MO1B/q4Xf8H/A0lM6gsUPNqUU24iHbc5O4j
-qN+FbAuVULCXdZfNW9uS+HG4Oq9VqZZc4rv5QdX6IHzcYKTYAv7+8rEMHmrxV8A/
-mMKfwU07krXlG0IRFhiMpuCzvjAfa0CgPOUHBzGJU5mdrAiM8ymtpa1ofde/uitO
-UaRheer5STPZ2kUzrA0r2hYbtWczy6X7yIxioQbXKeR88AuE8X12Me7X+zl9YoPP
-NnwnzDhEkvj7wzQVgWTyA4fwu051dOtRENtv0k6UugV2bW45SsuLQ9Co3BUh/iK+
-KF/57kaJ9BfOGYF1HAHH10GSkwTyyAsc8SGAQKg6PY/lJsHBDFluEtr98U1ssCA=
-=FLp9
------END PGP SIGNATURE-----
-
---/04w6evG8XlLl3ft--
+Thanks
+Dave
