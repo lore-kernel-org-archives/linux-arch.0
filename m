@@ -1,116 +1,216 @@
-From: "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
-Subject: Re: [PATCH v2 15/32] powerpc: define __smp_xxx
-Date: Wed, 6 Jan 2016 22:23:51 +0200
-Message-ID: <20160106222337-mutt-send-email-mst@redhat.com>
-References: <1451572003-2440-1-git-send-email-mst@redhat.com>
- <1451572003-2440-16-git-send-email-mst@redhat.com>
- <20160105013648.GA1256@fixme-laptop.cn.ibm.com>
- <20160105085117.GA11858@redhat.com>
- <20160105095341.GA5321@fixme-laptop.cn.ibm.com>
- <20160105180938-mutt-send-email-mst@redhat.com>
- <20160106015152.GA14605@fixme-laptop.cn.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <20160106015152.GA14605-nNqVUaWX1rAq6Sbylg4iGasjOiXwFzmk@public.gmane.org>
-Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Boqun Feng <boqun.feng-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Andrew Cooper <andrew.cooper3-Sxgqhf6Nn4DQT0dZR+AlfA@public.gmane.org>, virtualization-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Stefano Stabellini <stefano.stabellini-mvvWK6WmYclDPfheJLI6IQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, user-mode-linux-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, adi-buildroot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Paul Mackerras <paul>
-List-Id: linux-arch.vger.kernel.org
+From: Dave Hansen <dave@sr71.net>
+Subject: [PATCH 00/31] x86: Memory Protection Keys (v8)
+Date: Wed, 06 Jan 2016 16:01:04 -0800
+Message-ID: <20160107000104.1A105322@viggo.jf.intel.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga02.intel.com ([134.134.136.20]:45197 "EHLO mga02.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751906AbcAGABH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 6 Jan 2016 19:01:07 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: linux-mm@kvack.org, x86@kernel.org, Dave Hansen <dave@sr71.net>, linux-api@vger.kernel.org, linux-arch@vger.kernel.org, aarcange@redhat.com, akpm@linux-foundation.org, jack@suse.cz, kirill.shutemov@linux.intel.com, n-horiguchi@ah.jp.nec.com, torvalds@linux-foundation.org
 
-On Wed, Jan 06, 2016 at 09:51:52AM +0800, Boqun Feng wrote:
-> On Tue, Jan 05, 2016 at 06:16:48PM +0200, Michael S. Tsirkin wrote:
-> [snip]
-> > > > > Another thing is that smp_lwsync() may have a third user(other than
-> > > > > smp_load_acquire() and smp_store_release()):
-> > > > > 
-> > > > > http://article.gmane.org/gmane.linux.ports.ppc.embedded/89877
-> > > > > 
-> > > > > I'm OK to change my patch accordingly, but do we really want
-> > > > > smp_lwsync() get involved in this cleanup? If I understand you
-> > > > > correctly, this cleanup focuses on external API like smp_{r,w,}mb(),
-> > > > > while smp_lwsync() is internal to PPC.
-> > > > > 
-> > > > > Regards,
-> > > > > Boqun
-> > > > 
-> > > > I think you missed the leading ___ :)
-> > > > 
-> > > 
-> > > What I mean here was smp_lwsync() was originally internal to PPC, but
-> > > never mind ;-)
-> > > 
-> > > > smp_store_release is external and it needs __smp_lwsync as
-> > > > defined here.
-> > > > 
-> > > > I can duplicate some code and have smp_lwsync *not* call __smp_lwsync
-> > > 
-> > > You mean bringing smp_lwsync() back? because I haven't seen you defining
-> > > in asm-generic/barriers.h in previous patches and you just delete it in
-> > > this patch.
-> > > 
-> > > > but why do this? Still, if you prefer it this way,
-> > > > please let me know.
-> > > > 
-> > > 
-> > > I think deleting smp_lwsync() is fine, though I need to change atomic
-> > > variants patches on PPC because of it ;-/
-> > > 
-> > > Regards,
-> > > Boqun
-> > 
-> > Sorry, I don't understand - why do you have to do anything?
-> > I changed all users of smp_lwsync so they
-> > use __smp_lwsync on SMP and barrier() on !SMP.
-> > 
-> > This is exactly the current behaviour, I also tested that
-> > generated code does not change at all.
-> > 
-> > Is there a patch in your tree that conflicts with this?
-> > 
-> 
-> Because in a patchset which implements atomic relaxed/acquire/release
-> variants on PPC I use smp_lwsync(), this makes it have another user,
-> please see this mail:
-> 
-> http://article.gmane.org/gmane.linux.ports.ppc.embedded/89877
-> 
-> in definition of PPC's __atomic_op_release().
-> 
-> 
-> But I think removing smp_lwsync() is a good idea and actually I think we
-> can go further to remove __smp_lwsync() and let __smp_load_acquire and
-> __smp_store_release call __lwsync() directly, but that is another thing.
-> 
-> Anyway, I will modify my patch.
-> 
-> Regards,
-> Boqun
+Memory Protection Keys for User pages is a CPU feature which will
+first appear on Skylake Servers, but will also be supported on
+future non-server parts (there is also a QEMU implementation).  It
+provides a mechanism for enforcing page-based protections, but
+without requiring modification of the page tables when an
+application changes protection domains.
+
+This set introduces supported limited to:
+1. Allows "execute-only" memory
+2. Enables KVM to run Protection-Key-enabled guests
+
+My preference would be to merge this part by itself (presumably
+for 4.6, *not* 4.5).  This set contains the vast majority of
+of the code, with the small but tricky explicit user interface
+parts left off.  We can have a more focused review on those at
+a later time in a (much smaller) follow-on series.
+
+Changes from v7:
+ * Fixed merge issue with cpu feature bitmap definitions
+ * Fixed up some comments in get_user_pages() and smaps patches
+   (thanks Vlastimil!)
+
+Changes from v6:
+ * fix up ??'s showing up in in smaps' VmFlags field
+ * added execute-only support
+ * removed all the new syscalls from this set.  We can discuss
+   them in detail after this is merged.
+
+Changes from v5:
+
+ * make types in read_pkru() u32's, not ints
+ * rework VM_* bits to avoid using __ffsl() and clean up
+   vma_pkey()
+ * rework pte_allows_gup() to use p??_val() instead of passing
+   around p{te,md,ud}_t types.
+ * Fix up some inconsistent bool vs. int usage
+ * corrected name of ARCH_VM_PKEY_FLAGS in patch description
+ * remove NR_PKEYS... config option.  Just define it directly
+
+Changes from v4:
+
+ * Made "allow setting of XSAVE state" safe if we got preempted
+   between when we saved our FPU state and when we restore it.
+   (I would appreciate a look from Ingo on this patch).
+ * Fixed up a few things from Thomas's latest comments: splt up
+   siginfo in to x86 and generic, removed extra 'eax' variable
+   in rdpkru function, reworked vm_flags assignment, reworded
+   a comment in pte_allows_gup()
+ * Add missing DISABLED/REQUIRED_MASK14 in cpufeature.h
+ * Added comment about compile optimization in fault path
+ * Left get_user_pages_locked() alone.  Andrea thinks we need it.
+
+Changes from RFCv3:
+
+ * Added 'current' and 'foreign' variants of get_user_pages() to
+   help indicate whether protection keys should be enforced.
+   Thanks to Jerome Glisse for pointing out this issue.
+ * Added "allocation" and set/get system calls so that we can do
+   management of proection keys in the kernel.  This opens the
+   door to use of specific protection keys for kernel use in the
+   future, such as for execute-only memory.
+ * Removed the kselftest code for the moment.  It will be
+   submitted separately.
+
+Thanks Ingo and Thomas for most of these):
+Changes from RFCv2 (Thanks Ingo and Thomas for most of these):
+
+ * few minor compile warnings
+ * changed 'nopku' interaction with cpuid bits.  Now, we do not
+   clear the PKU cpuid bit, we just skip enabling it.
+ * changed __pkru_allows_write() to also check access disable bit
+ * removed the unused write_pkru()
+ * made si_pkey a u64 and added some patch description details.
+   Also made it share space in siginfo with MPX and clarified
+   comments.
+ * give some real text for the Processor Trace xsave state
+ * made vma_pkey() less ugly (and much more optimized actually)
+ * added SEGV_PKUERR to copy_siginfo_to_user()
+ * remove page table walk when filling in si_pkey, added some
+   big fat comments about it being inherently racy.
+ * added self test code
+
+This code is not runnable to anyone outside of Intel unless they
+have some special hardware or a fancy simulator.  There is a qemu
+model to emulate the feature, but it is not currently implemented
+fully enough to be usable.  If you are interested in running this
+for real, please get in touch with me.  Hardware is available to a
+very small but nonzero number of people.
+
+This set is also available here:
+
+	git://git.kernel.org/pub/scm/linux/kernel/git/daveh/x86-pkeys.git pkeys-v019
+
+=== diffstat ===
+
+Dave Hansen (31):
+      mm, gup: introduce concept of "foreign" get_user_pages()
+      x86, fpu: add placeholder for Processor Trace XSAVE state
+      x86, pkeys: Add Kconfig option
+      x86, pkeys: cpuid bit definition
+      x86, pkeys: define new CR4 bit
+      x86, pkeys: add PKRU xsave fields and data structure(s)
+      x86, pkeys: PTE bits for storing protection key
+      x86, pkeys: new page fault error code bit: PF_PK
+      x86, pkeys: store protection in high VMA flags
+      x86, pkeys: arch-specific protection bits
+      x86, pkeys: pass VMA down in to fault signal generation code
+      signals, pkeys: notify userspace about protection key faults
+      x86, pkeys: fill in pkey field in siginfo
+      x86, pkeys: add functions to fetch PKRU
+      mm: factor out VMA fault permission checking
+      x86, mm: simplify get_user_pages() PTE bit handling
+      x86, pkeys: check VMAs and PTEs for protection keys
+      mm: add gup flag to indicate "foreign" mm access
+      x86, pkeys: optimize fault handling in access_error()
+      x86, pkeys: differentiate instruction fetches
+      x86, pkeys: dump PKRU with other kernel registers
+      x86, pkeys: dump pkey from VMA in /proc/pid/smaps
+      x86, pkeys: add Kconfig prompt to existing config option
+      x86, pkeys: actually enable Memory Protection Keys in CPU
+      mm, multi-arch: pass a protection key in to calc_vm_flag_bits()
+      x86, pkeys: add arch_validate_pkey()
+      x86: separate out LDT init from context init
+      x86, fpu: allow setting of XSAVE state
+      x86, pkeys: allow kernel to modify user pkey rights register
+      x86, pkeys: create an x86 arch_calc_vm_prot_bits() for VMA flags
+      x86, pkeys: execute-only support
+
+ Documentation/kernel-parameters.txt         |   3 +
+ arch/mips/mm/gup.c                          |   3 +-
+ arch/powerpc/include/asm/mman.h             |   5 +-
+ arch/powerpc/include/asm/mmu_context.h      |  12 ++
+ arch/s390/include/asm/mmu_context.h         |  12 ++
+ arch/s390/mm/gup.c                          |   4 +-
+ arch/sh/mm/gup.c                            |   2 +-
+ arch/sparc/mm/gup.c                         |   2 +-
+ arch/unicore32/include/asm/mmu_context.h    |  12 ++
+ arch/x86/Kconfig                            |  16 ++
+ arch/x86/include/asm/cpufeature.h           |  56 +++---
+ arch/x86/include/asm/disabled-features.h    |  13 ++
+ arch/x86/include/asm/fpu/internal.h         |   2 +
+ arch/x86/include/asm/fpu/types.h            |  12 ++
+ arch/x86/include/asm/fpu/xstate.h           |   4 +-
+ arch/x86/include/asm/mmu_context.h          |  85 ++++++++-
+ arch/x86/include/asm/pgtable.h              |  38 ++++
+ arch/x86/include/asm/pgtable_types.h        |  34 +++-
+ arch/x86/include/asm/pkeys.h                |  34 ++++
+ arch/x86/include/asm/required-features.h    |   5 +
+ arch/x86/include/asm/special_insns.h        |  22 +++
+ arch/x86/include/uapi/asm/mman.h            |  22 +++
+ arch/x86/include/uapi/asm/processor-flags.h |   2 +
+ arch/x86/kernel/cpu/common.c                |  42 +++++
+ arch/x86/kernel/fpu/core.c                  |  63 +++++++
+ arch/x86/kernel/fpu/init.c                  |   3 +
+ arch/x86/kernel/fpu/xstate.c                | 185 +++++++++++++++++++-
+ arch/x86/kernel/ldt.c                       |   4 +-
+ arch/x86/kernel/process_64.c                |   2 +
+ arch/x86/kernel/setup.c                     |   9 +
+ arch/x86/mm/Makefile                        |   2 +
+ arch/x86/mm/fault.c                         | 171 +++++++++++++++---
+ arch/x86/mm/gup.c                           |  46 +++--
+ arch/x86/mm/mpx.c                           |   4 +-
+ arch/x86/mm/pkeys.c                         | 101 +++++++++++
+ drivers/char/agp/frontend.c                 |   2 +-
+ drivers/gpu/drm/amd/amdgpu/amdgpu_ttm.c     |   4 +-
+ drivers/gpu/drm/i915/i915_gem_userptr.c     |   2 +-
+ drivers/gpu/drm/radeon/radeon_ttm.c         |   4 +-
+ drivers/gpu/drm/via/via_dmablit.c           |   3 +-
+ drivers/infiniband/core/umem.c              |   2 +-
+ drivers/infiniband/core/umem_odp.c          |   8 +-
+ drivers/infiniband/hw/mthca/mthca_memfree.c |   3 +-
+ drivers/infiniband/hw/qib/qib_user_pages.c  |   3 +-
+ drivers/infiniband/hw/usnic/usnic_uiom.c    |   2 +-
+ drivers/iommu/amd_iommu_v2.c                |   8 +-
+ drivers/media/pci/ivtv/ivtv-udma.c          |   4 +-
+ drivers/media/pci/ivtv/ivtv-yuv.c           |  10 +-
+ drivers/media/v4l2-core/videobuf-dma-sg.c   |   3 +-
+ drivers/misc/sgi-gru/grufault.c             |   3 +-
+ drivers/scsi/st.c                           |   2 -
+ drivers/staging/android/ashmem.c            |   4 +-
+ drivers/video/fbdev/pvr2fb.c                |   4 +-
+ drivers/virt/fsl_hypervisor.c               |   5 +-
+ fs/exec.c                                   |   8 +-
+ fs/proc/task_mmu.c                          |  14 ++
+ include/asm-generic/mm_hooks.h              |  12 ++
+ include/linux/mm.h                          |  60 +++++--
+ include/linux/mman.h                        |   6 +-
+ include/linux/pkeys.h                       |  33 ++++
+ include/uapi/asm-generic/siginfo.h          |  17 +-
 
 
-Thanks!
-Could you send an ack then please?
-
-> > 
-> > > > > >  	WRITE_ONCE(*p, v);						\
-> > > > > >  } while (0)
-> > > > > >  
-> > > > > > -#define smp_load_acquire(p)						\
-> > > > > > +#define __smp_load_acquire(p)						\
-> > > > > >  ({									\
-> > > > > >  	typeof(*p) ___p1 = READ_ONCE(*p);				\
-> > > > > >  	compiletime_assert_atomic_type(*p);				\
-> > > > > > -	smp_lwsync();							\
-> > > > > > +	__smp_lwsync();							\
-> > > > > >  	___p1;								\
-> > > > > >  })
-> > > > > >  
-> > > > > > -- 
-> > > > > > MST
-> > > > > > 
-> > > > > > --
-> > > > > > To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> > > > > > the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-> > > > > > More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> > > > > > Please read the FAQ at  http://www.tux.org/lkml/
+Cc: linux-api@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: aarcange@redhat.com
+Cc: akpm@linux-foundation.org
+Cc: jack@suse.cz
+Cc: kirill.shutemov@linux.intel.com
+Cc: linux-api@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: n-horiguchi@ah.jp.nec.com
+Cc: x86@kernel.org
+Cc: torvalds@linux-foundation.org
