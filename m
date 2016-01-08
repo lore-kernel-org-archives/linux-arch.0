@@ -1,62 +1,137 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH 3/3] checkpatch: add virt barriers
-Date: Fri, 8 Jan 2016 12:14:48 +0200
-Message-ID: <20160108121352-mutt-send-email-mst@redhat.com>
-References: <1451907395-15978-1-git-send-email-mst@redhat.com>
-	<1451907395-15978-4-git-send-email-mst@redhat.com>
-	<1451926073.4334.90.camel@perches.com>
-	<20160104230528-mutt-send-email-mst@redhat.com>
-	<1451945497.4334.107.camel@perches.com>
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v6] fs: clear file privilege bits when mmap writing
+Date: Fri, 8 Jan 2016 15:27:27 -0800
+Message-ID: <20160108232727.GA23490@www.outflux.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f169.google.com ([209.85.192.169]:34639 "EHLO
+	mail-pf0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754368AbcAHX1a (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Jan 2016 18:27:30 -0500
+Received: by mail-pf0-f169.google.com with SMTP id q63so16428716pfb.1
+        for <linux-arch@vger.kernel.org>; Fri, 08 Jan 2016 15:27:30 -0800 (PST)
 Content-Disposition: inline
-In-Reply-To: <1451945497.4334.107.camel@perches.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Joe Perches <joe@perches.com>
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, Tony Lindgren <tony@atomide.com>, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, linux-xtensa@linux-xtensa.org, user-mode-linux-devel@lists.sourceforge.net, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Andrey Konovalov <andreyknvl@google.com>, adi-buildroot-devel@lists.sourceforge.net, "Cc : Andy Whitcroft" <apw@canonical.com>, Thomas Gleixner <tglx@linutronix.de>, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Andrew
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Andy Lutomirski <luto@amacapital.net>, Jan Kara <jack@suse.cz>, yalin wang <yalin.wang2010@gmail.com>, Willy Tarreau <w@1wt.eu>, Andrew Morton <akpm@linux-foundation.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kern, linux-mm@kvack.org
 
-On Mon, Jan 04, 2016 at 02:11:37PM -0800, Joe Perches wrote:
-> On Mon, 2016-01-04 at 23:07 +0200, Michael S. Tsirkin wrote:
-> > On Mon, Jan 04, 2016 at 08:47:53AM -0800, Joe Perches wrote:
-> > > On Mon, 2016-01-04 at 13:37 +0200, Michael S. Tsirkin wrote:
-> > > > Add virt_ barriers to list of barriers to check for
-> > > > presence of a comment.
-> > > =
+Normally, when a user can modify a file that has setuid or setgid bits,
+those bits are cleared when they are not the file owner or a member
+of the group. This is enforced when using write and truncate but not
+when writing to a shared mmap on the file. This could allow the file
+writer to gain privileges by changing a binary without losing the
+setuid/setgid/caps bits.
 
-> > > Are these virt_ barriers used anywhere?
-> > > =
+Changing the bits requires holding inode->i_mutex, so it cannot be done
+during the page fault (due to mmap_sem being held during the fault). We
+could do this during vm_mmap_pgoff, but that would need coverage in
+mprotect as well, but to check for MAP_SHARED, we'd need to hold mmap_sem
+again. We could clear at open() time, but it's possible things are
+accidentally opening with O_RDWR and only reading. Better to clear on
+close and error failures (i.e. an improvement over now, which is not
+clearing at all).
 
-> > > I see some virtio_ barrier like uses.
-> > =
+Instead, detect the need to clear the bits during the page fault, and
+actually remove the bits during final fput. Since the file was open for
+writing, it wouldn't have been possible to execute it yet (ETXTBSY).
 
-> > They will be :) They are added and used by patchset
-> > 	=A0=A0=A0=A0=A0=A0=A0=A0arch: barrier cleanup + barriers for virt
-> > =
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+v6:
+- clarify ETXTBSY situation in comments, luto
+v5:
+- add to f_flags instead, viro
+- add i_mutex during __fput, jack
+v4:
+- delay removal instead of still needing mmap_sem for mprotect, yalin
+v3:
+- move outside of mmap_sem for real now, fengguang
+- check return code of file_remove_privs, akpm
+v2:
+- move to mmap from fault handler, jack
+---
+ fs/file_table.c                  | 15 +++++++++++++++
+ fs/open.c                        |  2 +-
+ include/uapi/asm-generic/fcntl.h |  4 ++++
+ mm/memory.c                      |  5 +++++
+ 4 files changed, 25 insertions(+), 1 deletion(-)
 
-> > See
-> > http://article.gmane.org/gmane.linux.kernel.virtualization/26555
-> =
+diff --git a/fs/file_table.c b/fs/file_table.c
+index ad17e05ebf95..ca11b86613cf 100644
+--- a/fs/file_table.c
++++ b/fs/file_table.c
+@@ -191,6 +191,21 @@ static void __fput(struct file *file)
+ 
+ 	might_sleep();
+ 
++	/*
++	 * XXX: This is a delayed removal of privs (we've already been
++	 * written to), since we must avoid mmap_sem. But a race shouldn't
++	 * be possible since when open for writing, execve() will fail
++	 * with ETXTBSY (via deny_write_access()). A remaining problem
++	 * is that since we've already been written to, we must ignore the
++	 * return value of file_remove_privs(), since we can't reject the
++	 * writes of the past.
++	 */
++	if (unlikely(file->f_flags & O_REMOVEPRIV)) {
++		mutex_lock(&inode->i_mutex);
++		file_remove_privs(file);
++		mutex_unlock(&inode->i_mutex);
++	}
++
+ 	fsnotify_close(file);
+ 	/*
+ 	 * The function eventpoll_release() should be the first called
+diff --git a/fs/open.c b/fs/open.c
+index b6f1e96a7c0b..89069d16ca80 100644
+--- a/fs/open.c
++++ b/fs/open.c
+@@ -895,7 +895,7 @@ static inline int build_open_flags(int flags, umode_t mode, struct open_flags *o
+ 		op->mode = 0;
+ 
+ 	/* Must never be set by userspace */
+-	flags &= ~FMODE_NONOTIFY & ~O_CLOEXEC;
++	flags &= ~FMODE_NONOTIFY & ~O_CLOEXEC & ~O_REMOVEPRIV;
+ 
+ 	/*
+ 	 * O_SYNC is implemented as __O_SYNC|O_DSYNC.  As many places only
+diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
+index e063effe0cc1..096c4b3afe6a 100644
+--- a/include/uapi/asm-generic/fcntl.h
++++ b/include/uapi/asm-generic/fcntl.h
+@@ -88,6 +88,10 @@
+ #define __O_TMPFILE	020000000
+ #endif
+ 
++#ifndef O_REMOVEPRIV
++#define O_REMOVEPRIV	040000000
++#endif
++
+ /* a horrid kludge trying to make sure that this will fail on old kernels */
+ #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
+ #define O_TMPFILE_MASK (__O_TMPFILE | O_DIRECTORY | O_CREAT)      
+diff --git a/mm/memory.c b/mm/memory.c
+index c387430f06c3..ad4188a8f279 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -2036,6 +2036,11 @@ static inline int wp_page_reuse(struct mm_struct *mm,
+ 
+ 		if (!page_mkwrite)
+ 			file_update_time(vma->vm_file);
++		if (unlikely((vma->vm_file->f_flags & O_REMOVEPRIV) == 0)) {
++			spin_lock(&vma->vm_file->f_lock);
++			vma->vm_file->f_flags |= O_REMOVEPRIV;
++			spin_unlock(&vma->vm_file->f_lock);
++		}
+ 	}
+ 
+ 	return VM_FAULT_WRITE;
+-- 
+2.6.3
 
-> Ah, OK, thanks.
-> =
 
-> Are the virtio_ barriers going away?
-> If not, maybe those should be added too.
-
-I don't mind. I'll queue a patch like that.
-
-
--- =
-
-MST
+-- 
+Kees Cook
+Chrome OS & Brillo Security
