@@ -1,145 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f179.google.com ([209.85.213.179]:36237 "EHLO
-	mail-ig0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752580AbcAGTgJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jan 2016 14:36:09 -0500
-Received: by mail-ig0-f179.google.com with SMTP id z14so41513125igp.1
-        for <linux-arch@vger.kernel.org>; Thu, 07 Jan 2016 11:36:08 -0800 (PST)
+Received: from mx1.redhat.com ([209.132.183.28]:40808 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754497AbcAHKPB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 8 Jan 2016 05:15:01 -0500
+Date: Fri, 8 Jan 2016 12:14:48 +0200
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: Re: [PATCH 3/3] checkpatch: add virt barriers
+Message-ID: <20160108121352-mutt-send-email-mst@redhat.com>
+References: <1451907395-15978-1-git-send-email-mst@redhat.com>
+ <1451907395-15978-4-git-send-email-mst@redhat.com>
+ <1451926073.4334.90.camel@perches.com>
+ <20160104230528-mutt-send-email-mst@redhat.com>
+ <1451945497.4334.107.camel@perches.com>
 MIME-Version: 1.0
-In-Reply-To: <20151210223314.GA14512@www.outflux.net>
-References: <20151210223314.GA14512@www.outflux.net>
-Date: Thu, 7 Jan 2016 11:36:08 -0800
-Message-ID: <CAGXu5j+Rou9+pb=7o9W45jBPeQUh+qVbOsdUp0ZB2Q-+V-PnvQ@mail.gmail.com>
-Subject: Re: [PATCH v5] fs: clear file privilege bits when mmap writing
-From: Kees Cook <keescook@chromium.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <1451945497.4334.107.camel@perches.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexander Viro <viro@zeniv.linux.org.uk>
-Cc: Jan Kara <jack@suse.cz>, yalin wang <yalin.wang2010@gmail.com>, Willy Tarreau <w@1wt.eu>, Andrew Morton <akpm@linux-foundation.org>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
-Message-ID: <20160107193608.tKKRqeazov5SiWiSaLNtF3jFIZAO3BUxneP63GZxR3M@z>
+To: Joe Perches <joe@perches.com>
+Cc: linux-kernel@vger.kernel.org, "Cc : Andy Whitcroft" <apw@canonical.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, Tony Lindgren <tony@atomide.com>, Andrey Konovalov <andreyknvl@google.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>
+Message-ID: <20160108101448.Mhh4Zh87hO73J6iQxYBwqZfZBjJ_FJ93T36NwvqdX9Q@z>
 
-On Thu, Dec 10, 2015 at 2:33 PM, Kees Cook <keescook@chromium.org> wrote:
-> Normally, when a user can modify a file that has setuid or setgid bits,
-> those bits are cleared when they are not the file owner or a member
-> of the group. This is enforced when using write and truncate but not
-> when writing to a shared mmap on the file. This could allow the file
-> writer to gain privileges by changing a binary without losing the
-> setuid/setgid/caps bits.
->
-> Changing the bits requires holding inode->i_mutex, so it cannot be done
-> during the page fault (due to mmap_sem being held during the fault). We
-> could do this during vm_mmap_pgoff, but that would need coverage in
-> mprotect as well, but to check for MAP_SHARED, we'd need to hold mmap_sem
-> again. We could clear at open() time, but it's possible things are
-> accidentally opening with O_RDWR and only reading. Better to clear on
-> close and error failures (i.e. an improvement over now, which is not
-> clearing at all).
->
-> Instead, detect the need to clear the bits during the page fault, and
-> actually remove the bits during final fput. Since the file was open for
-> writing, it wouldn't have been possible to execute it yet.
->
-> Signed-off-by: Kees Cook <keescook@chromium.org>
+On Mon, Jan 04, 2016 at 02:11:37PM -0800, Joe Perches wrote:
+> On Mon, 2016-01-04 at 23:07 +0200, Michael S. Tsirkin wrote:
+> > On Mon, Jan 04, 2016 at 08:47:53AM -0800, Joe Perches wrote:
+> > > On Mon, 2016-01-04 at 13:37 +0200, Michael S. Tsirkin wrote:
+> > > > Add virt_ barriers to list of barriers to check for
+> > > > presence of a comment.
+> > > 
+> > > Are these virt_ barriers used anywhere?
+> > > 
+> > > I see some virtio_ barrier like uses.
+> > 
+> > They will be :) They are added and used by patchset
+> > 	        arch: barrier cleanup + barriers for virt
+> > 
+> > See
+> > http://article.gmane.org/gmane.linux.kernel.virtualization/26555
+> 
+> Ah, OK, thanks.
+> 
+> Are the virtio_ barriers going away?
+> If not, maybe those should be added too.
 
-Al, how does this look?
-
--Kees
-
-> ---
-> v5:
-> - add to f_flags instead, viro
-> - add i_mutex during __fput, jack
-> v4:
-> - delay removal instead of still needing mmap_sem for mprotect, yalin
-> v3:
-> - move outside of mmap_sem for real now, fengguang
-> - check return code of file_remove_privs, akpm
-> v2:
-> - move to mmap from fault handler, jack
-> ---
->  fs/file_table.c                  | 11 +++++++++++
->  fs/open.c                        |  2 +-
->  include/uapi/asm-generic/fcntl.h |  4 ++++
->  mm/memory.c                      |  5 +++++
->  4 files changed, 21 insertions(+), 1 deletion(-)
->
-> diff --git a/fs/file_table.c b/fs/file_table.c
-> index ad17e05ebf95..4a8b0b4553e9 100644
-> --- a/fs/file_table.c
-> +++ b/fs/file_table.c
-> @@ -191,6 +191,17 @@ static void __fput(struct file *file)
->
->         might_sleep();
->
-> +       /*
-> +        * XXX: While avoiding mmap_sem, we've already been written to.
-> +        * We must ignore the return value, since we can't reject the
-> +        * write.
-> +        */
-> +       if (unlikely(file->f_flags & O_REMOVEPRIV)) {
-> +               mutex_lock(&inode->i_mutex);
-> +               file_remove_privs(file);
-> +               mutex_unlock(&inode->i_mutex);
-> +       }
-> +
->         fsnotify_close(file);
->         /*
->          * The function eventpoll_release() should be the first called
-> diff --git a/fs/open.c b/fs/open.c
-> index b6f1e96a7c0b..89069d16ca80 100644
-> --- a/fs/open.c
-> +++ b/fs/open.c
-> @@ -895,7 +895,7 @@ static inline int build_open_flags(int flags, umode_t mode, struct open_flags *o
->                 op->mode = 0;
->
->         /* Must never be set by userspace */
-> -       flags &= ~FMODE_NONOTIFY & ~O_CLOEXEC;
-> +       flags &= ~FMODE_NONOTIFY & ~O_CLOEXEC & ~O_REMOVEPRIV;
->
->         /*
->          * O_SYNC is implemented as __O_SYNC|O_DSYNC.  As many places only
-> diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
-> index e063effe0cc1..096c4b3afe6a 100644
-> --- a/include/uapi/asm-generic/fcntl.h
-> +++ b/include/uapi/asm-generic/fcntl.h
-> @@ -88,6 +88,10 @@
->  #define __O_TMPFILE    020000000
->  #endif
->
-> +#ifndef O_REMOVEPRIV
-> +#define O_REMOVEPRIV   040000000
-> +#endif
-> +
->  /* a horrid kludge trying to make sure that this will fail on old kernels */
->  #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
->  #define O_TMPFILE_MASK (__O_TMPFILE | O_DIRECTORY | O_CREAT)
-> diff --git a/mm/memory.c b/mm/memory.c
-> index c387430f06c3..ad4188a8f279 100644
-> --- a/mm/memory.c
-> +++ b/mm/memory.c
-> @@ -2036,6 +2036,11 @@ static inline int wp_page_reuse(struct mm_struct *mm,
->
->                 if (!page_mkwrite)
->                         file_update_time(vma->vm_file);
-> +               if (unlikely((vma->vm_file->f_flags & O_REMOVEPRIV) == 0)) {
-> +                       spin_lock(&vma->vm_file->f_lock);
-> +                       vma->vm_file->f_flags |= O_REMOVEPRIV;
-> +                       spin_unlock(&vma->vm_file->f_lock);
-> +               }
->         }
->
->         return VM_FAULT_WRITE;
-> --
-> 2.6.3
->
->
-> --
-> Kees Cook
-> Chrome OS & Brillo Security
-
+I don't mind. I'll queue a patch like that.
 
 
 -- 
-Kees Cook
-Chrome OS & Brillo Security
+MST
