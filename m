@@ -1,35 +1,62 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v5] fs: clear file privilege bits when mmap writing
-Date: Thu, 7 Jan 2016 16:30:33 -0800
-Message-ID: <CALCETrUMOPC_--4G59DTxS70FxE-hSBPrdvzjS+2xV8ywvx_Cg@mail.gmail.com>
-References: <20151210223314.GA14512@www.outflux.net>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: Re: [PATCH 3/3] checkpatch: add virt barriers
+Date: Fri, 8 Jan 2016 12:14:48 +0200
+Message-ID: <20160108121352-mutt-send-email-mst@redhat.com>
+References: <1451907395-15978-1-git-send-email-mst@redhat.com>
+	<1451907395-15978-4-git-send-email-mst@redhat.com>
+	<1451926073.4334.90.camel@perches.com>
+	<20160104230528-mutt-send-email-mst@redhat.com>
+	<1451945497.4334.107.camel@perches.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f178.google.com ([209.85.214.178]:36067 "EHLO
-	mail-ob0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753256AbcAHAay (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 7 Jan 2016 19:30:54 -0500
-Received: by mail-ob0-f178.google.com with SMTP id ba1so341685190obb.3
-        for <linux-arch@vger.kernel.org>; Thu, 07 Jan 2016 16:30:53 -0800 (PST)
-In-Reply-To: <20151210223314.GA14512@www.outflux.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Jan Kara <jack@suse.cz>, yalin wang <yalin.wang2010@gmail.com>, Willy Tarreau <w@1wt.eu>, Andrew Morton <akpm@linux-foundation.org>, Linux FS Devel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kernel.org>
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <1451945497.4334.107.camel@perches.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Joe Perches <joe@perches.com>
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, linux-sh@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, x86@kernel.org, Tony Lindgren <tony@atomide.com>, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, linux-xtensa@linux-xtensa.org, user-mode-linux-devel@lists.sourceforge.net, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Andrey Konovalov <andreyknvl@google.com>, adi-buildroot-devel@lists.sourceforge.net, "Cc : Andy Whitcroft" <apw@canonical.com>, Thomas Gleixner <tglx@linutronix.de>, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Andrew
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Dec 10, 2015 at 2:33 PM, Kees Cook <keescook@chromium.org> wrote:
-> Instead, detect the need to clear the bits during the page fault, and
-> actually remove the bits during final fput. Since the file was open for
-> writing, it wouldn't have been possible to execute it yet.
+On Mon, Jan 04, 2016 at 02:11:37PM -0800, Joe Perches wrote:
+> On Mon, 2016-01-04 at 23:07 +0200, Michael S. Tsirkin wrote:
+> > On Mon, Jan 04, 2016 at 08:47:53AM -0800, Joe Perches wrote:
+> > > On Mon, 2016-01-04 at 13:37 +0200, Michael S. Tsirkin wrote:
+> > > > Add virt_ barriers to list of barriers to check for
+> > > > presence of a comment.
+> > > =
 
-This is cute but mysterious.  Could you add a comment?
+> > > Are these virt_ barriers used anywhere?
+> > > =
 
->
-> +       /*
-> +        * XXX: While avoiding mmap_sem, we've already been written to.
-> +        * We must ignore the return value, since we can't reject the
-> +        * write.
-> +        */
+> > > I see some virtio_ barrier like uses.
+> > =
 
-e.g. here?
+> > They will be :) They are added and used by patchset
+> > 	=A0=A0=A0=A0=A0=A0=A0=A0arch: barrier cleanup + barriers for virt
+> > =
+
+> > See
+> > http://article.gmane.org/gmane.linux.kernel.virtualization/26555
+> =
+
+> Ah, OK, thanks.
+> =
+
+> Are the virtio_ barriers going away?
+> If not, maybe those should be added too.
+
+I don't mind. I'll queue a patch like that.
+
+
+-- =
+
+MST
