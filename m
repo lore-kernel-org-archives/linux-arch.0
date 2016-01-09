@@ -1,52 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:40808 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754497AbcAHKPB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 8 Jan 2016 05:15:01 -0500
-Date: Fri, 8 Jan 2016 12:14:48 +0200
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH 3/3] checkpatch: add virt barriers
-Message-ID: <20160108121352-mutt-send-email-mst@redhat.com>
-References: <1451907395-15978-1-git-send-email-mst@redhat.com>
- <1451907395-15978-4-git-send-email-mst@redhat.com>
- <1451926073.4334.90.camel@perches.com>
- <20160104230528-mutt-send-email-mst@redhat.com>
- <1451945497.4334.107.camel@perches.com>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:47172 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752165AbcAIE2r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 8 Jan 2016 23:28:47 -0500
+Date: Sat, 9 Jan 2016 04:28:39 +0000
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH v6] fs: clear file privilege bits when mmap writing
+Message-ID: <20160109042839.GA864@ZenIV.linux.org.uk>
+References: <20160108232727.GA23490@www.outflux.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <1451945497.4334.107.camel@perches.com>
+In-Reply-To: <20160108232727.GA23490@www.outflux.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joe Perches <joe@perches.com>
-Cc: linux-kernel@vger.kernel.org, "Cc : Andy Whitcroft" <apw@canonical.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, Tony Lindgren <tony@atomide.com>, Andrey Konovalov <andreyknvl@google.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>
-Message-ID: <20160108101448.Mhh4Zh87hO73J6iQxYBwqZfZBjJ_FJ93T36NwvqdX9Q@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Andy Lutomirski <luto@amacapital.net>, Jan Kara <jack@suse.cz>, yalin wang <yalin.wang2010@gmail.com>, Willy Tarreau <w@1wt.eu>, Andrew Morton <akpm@linux-foundation.org>, linux-fsdevel@vger.kernel.org, linux-arch@vger.kernel.org, linux-api@vger.kern, linux-mm@kvack.org
+Message-ID: <20160109042839.Bq1241UPCXwkSrk2ulnuipXTKYzRYuNXa669chBX4RY@z>
 
-On Mon, Jan 04, 2016 at 02:11:37PM -0800, Joe Perches wrote:
-> On Mon, 2016-01-04 at 23:07 +0200, Michael S. Tsirkin wrote:
-> > On Mon, Jan 04, 2016 at 08:47:53AM -0800, Joe Perches wrote:
-> > > On Mon, 2016-01-04 at 13:37 +0200, Michael S. Tsirkin wrote:
-> > > > Add virt_ barriers to list of barriers to check for
-> > > > presence of a comment.
-> > > 
-> > > Are these virt_ barriers used anywhere?
-> > > 
-> > > I see some virtio_ barrier like uses.
-> > 
-> > They will be :) They are added and used by patchset
-> > 	        arch: barrier cleanup + barriers for virt
-> > 
-> > See
-> > http://article.gmane.org/gmane.linux.kernel.virtualization/26555
-> 
-> Ah, OK, thanks.
-> 
-> Are the virtio_ barriers going away?
-> If not, maybe those should be added too.
+On Fri, Jan 08, 2016 at 03:27:27PM -0800, Kees Cook wrote:
 
-I don't mind. I'll queue a patch like that.
+> diff --git a/include/uapi/asm-generic/fcntl.h b/include/uapi/asm-generic/fcntl.h
+> index e063effe0cc1..096c4b3afe6a 100644
+> --- a/include/uapi/asm-generic/fcntl.h
+> +++ b/include/uapi/asm-generic/fcntl.h
+> @@ -88,6 +88,10 @@
+>  #define __O_TMPFILE	020000000
+>  #endif
+>  
+> +#ifndef O_REMOVEPRIV
+> +#define O_REMOVEPRIV	040000000
+> +#endif
 
-
--- 
-MST
+Hmm...  Is that value always available?  AFAICS, parisc has already grabbed
+it (for __O_TMPFILE).  On sparc it's taken by __O_SYNC, on alpha - O_PATH...
+There's a reason why those definitions are not unconditional; some targets
+have ABI shared with a preexisting Unix variant on the architecture in
+question.
