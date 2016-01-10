@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:57742 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:34526 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757611AbcAJOTp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 10 Jan 2016 09:19:45 -0500
-Date: Sun, 10 Jan 2016 16:19:35 +0200
+	id S1751722AbcAJOTT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 10 Jan 2016 09:19:19 -0500
+Date: Sun, 10 Jan 2016 16:19:10 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v3 22/41] s390: define __smp_xxx
-Message-ID: <1452426622-4471-23-git-send-email-mst@redhat.com>
+Subject: [PATCH v3 19/41] ia64: define __smp_xxx
+Message-ID: <1452426622-4471-20-git-send-email-mst@redhat.com>
 References: <1452426622-4471-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,46 +15,51 @@ In-Reply-To: <1452426622-4471-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Ingo Molnar <mingo@kernel.org>, Davidlohr Bueso <dave@stgolabs.net>, Christian Borntraeger <borntraeger@de.ibm.com>
-Message-ID: <20160110141935.0eA6HEdzXowqeE2vQ8sgASrNd-rjjSyR86FC3vIhpbk@z>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ingo Molnar <mingo@kernel.org>, Davidlohr Bueso <dave@stgolabs.net>
+Message-ID: <20160110141910.Er2s0WE7vMgDtTysSfhWMNgdeWVo1t9z6tOVpyztMlE@z>
 
-This defines __smp_xxx barriers for s390,
+This defines __smp_xxx barriers for ia64,
 for use by virtualization.
 
-Some smp_xxx barriers are removed as they are
+smp_xxx barriers are removed as they are
 defined correctly by asm-generic/barriers.h
 
-Note: smp_mb, smp_rmb and smp_wmb are defined as full barriers
-unconditionally on this architecture.
+This reduces the amount of arch-specific boiler-plate code.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Acked-by: Tony Luck <tony.luck@intel.com>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
-Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
 ---
- arch/s390/include/asm/barrier.h | 15 +++++++++------
- 1 file changed, 9 insertions(+), 6 deletions(-)
+ arch/ia64/include/asm/barrier.h | 14 +++++---------
+ 1 file changed, 5 insertions(+), 9 deletions(-)
 
-diff --git a/arch/s390/include/asm/barrier.h b/arch/s390/include/asm/barrier.h
-index c358c31..fbd25b2 100644
---- a/arch/s390/include/asm/barrier.h
-+++ b/arch/s390/include/asm/barrier.h
-@@ -26,18 +26,21 @@
- #define wmb()				barrier()
- #define dma_rmb()			mb()
- #define dma_wmb()			mb()
--#define smp_mb()			mb()
--#define smp_rmb()			rmb()
--#define smp_wmb()			wmb()
--
+diff --git a/arch/ia64/include/asm/barrier.h b/arch/ia64/include/asm/barrier.h
+index 2f93348..588f161 100644
+--- a/arch/ia64/include/asm/barrier.h
++++ b/arch/ia64/include/asm/barrier.h
+@@ -42,28 +42,24 @@
+ #define dma_rmb()	mb()
+ #define dma_wmb()	mb()
+ 
+-#ifdef CONFIG_SMP
+-# define smp_mb()	mb()
+-#else
+-# define smp_mb()	barrier()
+-#endif
++# define __smp_mb()	mb()
+ 
+-#define smp_mb__before_atomic()	barrier()
+-#define smp_mb__after_atomic()	barrier()
++#define __smp_mb__before_atomic()	barrier()
++#define __smp_mb__after_atomic()	barrier()
+ 
+ /*
+  * IA64 GCC turns volatile stores into st.rel and volatile loads into ld.acq no
+  * need for asm trickery!
+  */
+ 
 -#define smp_store_release(p, v)						\
-+#define __smp_mb()			mb()
-+#define __smp_rmb()			rmb()
-+#define __smp_wmb()			wmb()
-+#define smp_mb()			__smp_mb()
-+#define smp_rmb()			__smp_rmb()
-+#define smp_wmb()			__smp_wmb()
-+
-+#define __smp_store_release(p, v)					\
++#define __smp_store_release(p, v)						\
  do {									\
  	compiletime_assert_atomic_type(*p);				\
  	barrier();							\
