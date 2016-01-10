@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:57638 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:47540 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751722AbcAJOSp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 10 Jan 2016 09:18:45 -0500
-Date: Sun, 10 Jan 2016 16:18:36 +0200
+	id S1751722AbcAJOTC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 10 Jan 2016 09:19:02 -0500
+Date: Sun, 10 Jan 2016 16:18:54 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v3 15/41] powerpc: define __smp_xxx
-Message-ID: <1452426622-4471-16-git-send-email-mst@redhat.com>
+Subject: [PATCH v3 17/41] arm: define __smp_xxx
+Message-ID: <1452426622-4471-18-git-send-email-mst@redhat.com>
 References: <1452426622-4471-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,10 +15,10 @@ In-Reply-To: <1452426622-4471-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Boqun Feng <boqun.feng@gmail.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Michael Ellerman <mpe@ellerman.id.au>, Ingo Molnar <mingo@kernel.org>, Davidlohr Bueso <dave@stgolabs.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20160110141836.JsVIcD3SPwUAJRNb7-9m0i9P-f7eMxH9HqvPNIo7N-E@z>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Russell King <rmk+kernel@arm.linux.org.uk>, Ingo Molnar <mingo@kernel.org>, Richard Woodruff <r-woodruff2@ti.com>
+Message-ID: <20160110141854.9Fdq9QTaEu00TSnlymku5_C6fDwsXVhgWFB9-zQy6nI@z>
 
-This defines __smp_xxx barriers for powerpc
+This defines __smp_xxx barriers for arm,
 for use by virtualization.
 
 smp_xxx barriers are removed as they are
@@ -28,61 +28,33 @@ This reduces the amount of arch-specific boiler-plate code.
 
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
-Acked-by: Boqun Feng <boqun.feng@gmail.com>
+Acked-by: Russell King <rmk+kernel@arm.linux.org.uk>
 ---
- arch/powerpc/include/asm/barrier.h | 24 ++++++++----------------
- 1 file changed, 8 insertions(+), 16 deletions(-)
+ arch/arm/include/asm/barrier.h | 12 +++---------
+ 1 file changed, 3 insertions(+), 9 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
-index 980ad0c..c0deafc 100644
---- a/arch/powerpc/include/asm/barrier.h
-+++ b/arch/powerpc/include/asm/barrier.h
-@@ -44,19 +44,11 @@
- #define dma_rmb()	__lwsync()
- #define dma_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
+diff --git a/arch/arm/include/asm/barrier.h b/arch/arm/include/asm/barrier.h
+index 31152e8..112cc1a 100644
+--- a/arch/arm/include/asm/barrier.h
++++ b/arch/arm/include/asm/barrier.h
+@@ -60,15 +60,9 @@ extern void arm_heavy_mb(void);
+ #define dma_wmb()	barrier()
+ #endif
  
--#ifdef CONFIG_SMP
--#define smp_lwsync()	__lwsync()
-+#define __smp_lwsync()	__lwsync()
- 
--#define smp_mb()	mb()
--#define smp_rmb()	__lwsync()
--#define smp_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
--#else
--#define smp_lwsync()	barrier()
--
+-#ifndef CONFIG_SMP
 -#define smp_mb()	barrier()
 -#define smp_rmb()	barrier()
 -#define smp_wmb()	barrier()
--#endif /* CONFIG_SMP */
-+#define __smp_mb()	mb()
-+#define __smp_rmb()	__lwsync()
-+#define __smp_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
+-#else
+-#define smp_mb()	dmb(ish)
+-#define smp_rmb()	smp_mb()
+-#define smp_wmb()	dmb(ishst)
+-#endif
++#define __smp_mb()	dmb(ish)
++#define __smp_rmb()	__smp_mb()
++#define __smp_wmb()	dmb(ishst)
  
- /*
-  * This is a barrier which prevents following instructions from being
-@@ -67,18 +59,18 @@
- #define data_barrier(x)	\
- 	asm volatile("twi 0,%0,0; isync" : : "r" (x) : "memory");
- 
--#define smp_store_release(p, v)						\
-+#define __smp_store_release(p, v)						\
- do {									\
- 	compiletime_assert_atomic_type(*p);				\
--	smp_lwsync();							\
-+	__smp_lwsync();							\
- 	WRITE_ONCE(*p, v);						\
- } while (0)
- 
--#define smp_load_acquire(p)						\
-+#define __smp_load_acquire(p)						\
- ({									\
- 	typeof(*p) ___p1 = READ_ONCE(*p);				\
- 	compiletime_assert_atomic_type(*p);				\
--	smp_lwsync();							\
-+	__smp_lwsync();							\
- 	___p1;								\
- })
+ #include <asm-generic/barrier.h>
  
 -- 
 MST
