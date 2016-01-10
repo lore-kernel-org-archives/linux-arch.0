@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:54318 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:47878 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757300AbcAJOVb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 10 Jan 2016 09:21:31 -0500
-Date: Sun, 10 Jan 2016 16:21:23 +0200
+	id S1757935AbcAJOVs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 10 Jan 2016 09:21:48 -0500
+Date: Sun, 10 Jan 2016 16:21:39 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v3 35/41] checkpatch: check for __smp outside barrier.h
-Message-ID: <1452426622-4471-36-git-send-email-mst@redhat.com>
+Subject: [PATCH v3 37/41] xenbus: use virt_xxx barriers
+Message-ID: <1452426622-4471-38-git-send-email-mst@redhat.com>
 References: <1452426622-4471-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,43 +15,62 @@ In-Reply-To: <1452426622-4471-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Andy Whitcroft <apw@canonical.com>
-Message-ID: <20160110142123.0m4JiWTC_4r0o7u-AaRHB8CSFaajqshvj74F0prKrO0@z>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, David Vrabel <david.vrabel@citrix.com>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Message-ID: <20160110142139.V_XFesBNs-2lZ9bFsxXaHGt-pucSkLx14GUwCDB5edo@z>
 
-Introduction of __smp barriers cleans up a bunch of duplicate code, but
-it gives people an additional handle onto a "new" set of barriers - just
-because they're prefixed with __* unfortunately doesn't stop anyone from
-using it (as happened with other arch stuff before.)
+drivers/xen/xenbus/xenbus_comms.c uses
+full memory barriers to communicate with the other side.
 
-Add a checkpatch test so it will trigger a warning.
+For guests compiled with CONFIG_SMP, smp_wmb and smp_mb
+would be sufficient, so mb() and wmb() here are only needed if
+a non-SMP guest runs on an SMP host.
 
-Reported-by: Russell King <linux@arm.linux.org.uk>
+Switch to virt_xxx barriers which serve this exact purpose.
+
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+Acked-by: David Vrabel <david.vrabel@citrix.com>
 ---
- scripts/checkpatch.pl | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+ drivers/xen/xenbus/xenbus_comms.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
-index 97b8b62..a96adcb 100755
---- a/scripts/checkpatch.pl
-+++ b/scripts/checkpatch.pl
-@@ -5141,6 +5141,16 @@ sub process {
- 			}
- 		}
+diff --git a/drivers/xen/xenbus/xenbus_comms.c b/drivers/xen/xenbus/xenbus_comms.c
+index fdb0f33..ecdecce 100644
+--- a/drivers/xen/xenbus/xenbus_comms.c
++++ b/drivers/xen/xenbus/xenbus_comms.c
+@@ -123,14 +123,14 @@ int xb_write(const void *data, unsigned len)
+ 			avail = len;
  
-+		my $underscore_smp_barriers = qr{__smp_($smp_barriers)}x;
-+
-+		if ($realfile !~ m@^include/asm-generic/@ &&
-+		    $realfile !~ m@/barrier\.h$@ &&
-+		    $line =~ m/\b($underscore_smp_barriers)\s*\(/ &&
-+		    $line !~ m/^.\s*\#\s*define\s+($underscore_smp_barriers)\s*\(/) {
-+			WARN("MEMORY_BARRIER",
-+			     "__smp memory barriers shouldn't be used outside barrier.h and asm-generic\n" . $herecurr);
-+		}
-+
- # check for waitqueue_active without a comment.
- 		if ($line =~ /\bwaitqueue_active\s*\(/) {
- 			if (!ctx_has_comment($first_line, $linenr)) {
+ 		/* Must write data /after/ reading the consumer index. */
+-		mb();
++		virt_mb();
+ 
+ 		memcpy(dst, data, avail);
+ 		data += avail;
+ 		len -= avail;
+ 
+ 		/* Other side must not see new producer until data is there. */
+-		wmb();
++		virt_wmb();
+ 		intf->req_prod += avail;
+ 
+ 		/* Implies mb(): other side will see the updated producer. */
+@@ -180,14 +180,14 @@ int xb_read(void *data, unsigned len)
+ 			avail = len;
+ 
+ 		/* Must read data /after/ reading the producer index. */
+-		rmb();
++		virt_rmb();
+ 
+ 		memcpy(data, src, avail);
+ 		data += avail;
+ 		len -= avail;
+ 
+ 		/* Other side must not see free space until we've copied out */
+-		mb();
++		virt_mb();
+ 		intf->rsp_cons += avail;
+ 
+ 		pr_debug("Finished read of %i bytes (%i to go)\n", avail, len);
 -- 
 MST
 
