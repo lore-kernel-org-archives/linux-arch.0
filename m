@@ -1,68 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:34268 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757215AbcAJORB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 10 Jan 2016 09:17:01 -0500
-Date: Sun, 10 Jan 2016 16:16:52 +0200
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v3 03/41] ia64: rename nop->iosapic_nop
-Message-ID: <1452426622-4471-4-git-send-email-mst@redhat.com>
-References: <1452426622-4471-1-git-send-email-mst@redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1452426622-4471-1-git-send-email-mst@redhat.com>
+Received: from smtprelay0095.hostedemail.com ([216.40.44.95]:45545 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1756405AbcAJPHM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 10 Jan 2016 10:07:12 -0500
+Message-ID: <1452438425.7773.21.camel@perches.com>
+Subject: Re: [PATCH v2 1/3] checkpatch.pl: add missing memory barriers
+From: Joe Perches <joe@perches.com>
+Date: Sun, 10 Jan 2016 07:07:05 -0800
+In-Reply-To: <1452427000-4520-2-git-send-email-mst@redhat.com>
+References: <1452427000-4520-1-git-send-email-mst@redhat.com>
+	 <1452427000-4520-2-git-send-email-mst@redhat.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Jiang Liu <jiang.liu@linux.intel.com>, Rusty Russell <rusty@rustcorp.com.au>
-Message-ID: <20160110141652.GExBKbnf2Z6OFUm8tKkf4_vaMQE2BZUxDWGFo4zvL3k@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org
+Cc: Andy Whitcroft <apw@canonical.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, Tony Lindgren <tony@atomide.com>, Andrey Konovalov <andreyknvl@google.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>
+Message-ID: <20160110150705.MMDQ1mpKOUlLvICNRVDzhkYCTIWJ0H_V5mBhx6m_ZZc@z>
 
-asm-generic/barrier.h defines a nop() macro.
-To be able to use this header on ia64, we shouldn't
-call local functions/variables nop().
+On Sun, 2016-01-10 at 13:56 +0200, Michael S. Tsirkin wrote:
+> SMP-only barriers were missing in checkpatch.pl
+> 
+> Refactor code slightly to make adding more variants easier.
+[]
+> diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
+[]
+> @@ -5116,7 +5116,25 @@ sub process {
+>  			}
+>  		}
+>  # check for memory barriers without a comment.
+> -		if ($line =~ /\b(mb|rmb|wmb|read_barrier_depends|smp_mb|smp_rmb|smp_wmb|smp_read_barrier_depends)\(/) {
+> +
+> +		my $barriers = qr{
+> +			mb|
+> +			rmb|
+> +			wmb|
+> +			read_barrier_depends
+> +		}x;
+> +		my $smp_barriers = qr{
+> +			store_release|
+> +			load_acquire|
+> +			store_mb|
+> +			($barriers)
+> +		}x;
 
-There's one instance where this breaks on ia64:
-rename the function to iosapic_nop to avoid the conflict.
+If I use a variable called $smp_barriers, I'd expect
+it to actually be the smp_barriers, not to have to
+prefix it with smp_ before using it.
 
-Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
-Acked-by: Tony Luck <tony.luck@intel.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
----
- arch/ia64/kernel/iosapic.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+		my $smp_barriers = qr{
+			smp_store_release|
+			smp_load_acquire|
+			smp_store_mb|
+			smp_read_barrier_depends
+		}x;
 
-diff --git a/arch/ia64/kernel/iosapic.c b/arch/ia64/kernel/iosapic.c
-index d2fae05..90fde5b 100644
---- a/arch/ia64/kernel/iosapic.c
-+++ b/arch/ia64/kernel/iosapic.c
-@@ -256,7 +256,7 @@ set_rte (unsigned int gsi, unsigned int irq, unsigned int dest, int mask)
- }
- 
- static void
--nop (struct irq_data *data)
-+iosapic_nop (struct irq_data *data)
- {
- 	/* do nothing... */
- }
-@@ -415,7 +415,7 @@ iosapic_unmask_level_irq (struct irq_data *data)
- #define iosapic_shutdown_level_irq	mask_irq
- #define iosapic_enable_level_irq	unmask_irq
- #define iosapic_disable_level_irq	mask_irq
--#define iosapic_ack_level_irq		nop
-+#define iosapic_ack_level_irq		iosapic_nop
- 
- static struct irq_chip irq_type_iosapic_level = {
- 	.name =			"IO-SAPIC-level",
-@@ -453,7 +453,7 @@ iosapic_ack_edge_irq (struct irq_data *data)
- }
- 
- #define iosapic_enable_edge_irq		unmask_irq
--#define iosapic_disable_edge_irq	nop
-+#define iosapic_disable_edge_irq	iosapic_nop
- 
- static struct irq_chip irq_type_iosapic_edge = {
- 	.name =			"IO-SAPIC-edge",
--- 
-MST
+or
+
+		my $smp_barriers = qr{
+			smp_(?:store_release|load_acquire|store_mb|read_barrier_depends)
+		}x;
+
+ 
+> +		my $all_barriers = qr{
+> +			$barriers|
+> +			smp_($smp_barriers)
+> +		}x;
+
+And this shouldn't have a capture group.
+
+		my $all_barriers = qr{
+			$barriers|
+			$smp_barriers
+		}x;		
+> +
+> +		if ($line =~ /\b($all_barriers)\s*\(/) {
+
+This doesn't need the capture group either (?:all_barriers)
+
+>  			if (!ctx_has_comment($first_line, $linenr))
+> {
+>  				WARN("MEMORY_BARRIER",
+>  				     "memory barrier without
+> comment\n" . $herecurr);
 
