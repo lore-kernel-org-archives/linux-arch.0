@@ -1,56 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f66.google.com ([209.85.215.66]:33746 "EHLO
-	mail-lf0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757452AbcAJWat (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Jan 2016 17:30:49 -0500
-MIME-Version: 1.0
-In-Reply-To: <20160110211051.GH17997@ZenIV.linux.org.uk>
-References: <20160108232727.GA23490@www.outflux.net>
-	<CALYGNiOUL7ewU3+5Zoi_9qofYWwF0vpqMy=A0wS=jUFZ11haCg@mail.gmail.com>
-	<20160110193044.GG17997@ZenIV.linux.org.uk>
-	<CALYGNiOxyXX2dpiPoGQUz0CDsvZtH57CO7gE2rAmTQWLigeL1w@mail.gmail.com>
-	<20160110211051.GH17997@ZenIV.linux.org.uk>
-Date: Mon, 11 Jan 2016 01:30:48 +0300
-Message-ID: <CALYGNiMRhPFZACm6cFVQjUdef6bSSwC=ZZ-=N3fEzDjDrW2_ew@mail.gmail.com>
-Subject: Re: [PATCH v6] fs: clear file privilege bits when mmap writing
-From: Konstantin Khlebnikov <koct9i@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Received: from smtprelay0031.hostedemail.com ([216.40.44.31]:52583 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1757719AbcAJWwX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 10 Jan 2016 17:52:23 -0500
+Message-ID: <1452466336.7773.46.camel@perches.com>
+Subject: Re: [PATCH v3 3/3] checkpatch: add virt barriers
+From: Joe Perches <joe@perches.com>
+Date: Sun, 10 Jan 2016 14:52:16 -0800
+In-Reply-To: <CAGRGNgXQANbKD=VA0Qx4Wp1+MpZUVV7by8RrKxF9o=qu=vUQqA@mail.gmail.com>
+References: <1452454200-8844-1-git-send-email-mst@redhat.com>
+	 <1452454200-8844-4-git-send-email-mst@redhat.com>
+	 <CAGRGNgXQANbKD=VA0Qx4Wp1+MpZUVV7by8RrKxF9o=qu=vUQqA@mail.gmail.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Jan Kara <jack@suse.cz>, yalin wang <yalin.wang2010@gmail.com>, Willy Tarreau <w@1wt.eu>, Andrew Morton <akpm@linux-foundation.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch@vger.kernel.org, Linux API <linux-api@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
-Message-ID: <20160110223048.Cqg7uhXuwamqUr35Ml0EjGx-u5u1MAva_u5bAUfUrp8@z>
+To: Julian Calaby <julian.calaby@gmail.com>, "Michael S. Tsirkin" <mst@redhat.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Andy Whitcroft <apw@canonical.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux <sparclinux@vger.kernel.org>, "Mailing List, Arm" <linux-arm-kernel@lists.infradead.org>, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, Tony Lindgren <tony@atomide.com>, Andrey Konovalov <andreyknvl@google.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>
+Message-ID: <20160110225216.oZC0zR3dRIBIN6PuJEJN009V1Tc4GA_pjxdUM89M2kI@z>
 
-On Mon, Jan 11, 2016 at 12:10 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> On Sun, Jan 10, 2016 at 10:51:52PM +0300, Konstantin Khlebnikov wrote:
->> On Sun, Jan 10, 2016 at 10:30 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
->> > On Sun, Jan 10, 2016 at 06:48:32PM +0300, Konstantin Khlebnikov wrote:
->> >> I think this should be done in mmap/mprotect. Code in sys_mmap is trivial.
->> >>
->> >> In sys_mprotect you can check file_needs_remove_privs() and VM_SHARED
->> >> under mmap_sem, then if needed grab reference to struct file from vma and
->> >> clear suid after unlocking mmap_sem.
->> >
->> > Which vma?  mprotect(2) can cover more than one mapping...  You'd have to
->> > play interesting games to collect the set of affected struct file; it
->> > _might_ be doable (e.g. by using task_work_add() to have the damn thing
->> > trigger on the way to userland), but it would require some care to avoid
->> > hitting the same file more than once - it might, after all, be mmapped
->> > in more than one process, so racing mprotect() would need to be taken
->> > into account.  Hell knows - might be doable, but I'm not sure it'll be
->> > any prettier.
->>
->> Ok, I didn't thought about that. mprotect don't have to be atomic for whole
->> range -- we could drop mmap_sem, clear suid from one file and restart it
->> for next vma and so on.
->
-> Won't be fun.  Even aside of the user-visible behaviour changes, you'll have
-> a lot of new corner cases, starting with the fact that you can't hold onto
-> vma - virtual address is the best you can do and vma you find after regaining
-> mmap_sem might start at lower address than one where you are restarting;
-> getting the splitting-related logics right will be interesting, to put it
-> mildly.
+On Mon, 2016-01-11 at 09:13 +1100, Julian Calaby wrote:
+> On Mon, Jan 11, 2016 at 6:31 AM, Michael S. Tsirkin <mst@redhat.com> wrote:
+> > Add virt_ barriers to list of barriers to check for
+> > presence of a comment.
+[]
+> > diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
+[]
+> > @@ -5133,7 +5133,8 @@ sub process {
+> >                 }x;
+> >                 my $all_barriers = qr{
+> >                         $barriers|
+> > -                       smp_(?:$smp_barrier_stems)
+> > +                       smp_(?:$smp_barrier_stems)|
+> > +                       virt_(?:$smp_barrier_stems)
+> 
+> Sorry I'm late to the party here, but would it make sense to write this as:
+> 
+> (?:smp|virt)_(?:$smp_barrier_stems)
 
-I don't see any problems here -- in this case mprotect virtually turns
-into series of
-indendent mprotect calls. Yes, we have to find vma again. Not a big deal.
+Yes.  Perhaps the name might be better as barrier_stems.
+
+Also, ideally this would be longest match first or use \b
+after the matches so that $all_barriers could work
+successfully without a following \s*\(
+
+my $all_barriers = qr{
+	(?:smp|virt)_(?:barrier_stems)|
+	$barriers)
+}x;
+
+or maybe add separate $smp_barriers and $virt_barriers
+
+<shrug>  it doesn't matter much in any case
