@@ -1,55 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:48551 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751498AbcAJT3S (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 10 Jan 2016 14:29:18 -0500
-Date: Sun, 10 Jan 2016 21:29:06 +0200
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH v2 1/3] checkpatch.pl: add missing memory barriers
-Message-ID: <20160110212531-mutt-send-email-mst@redhat.com>
-References: <1452427000-4520-1-git-send-email-mst@redhat.com>
- <1452427000-4520-2-git-send-email-mst@redhat.com>
- <1452438425.7773.21.camel@perches.com>
- <1452439051.7773.27.camel@perches.com>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:55723 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757375AbcAJTax (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Jan 2016 14:30:53 -0500
+Date: Sun, 10 Jan 2016 19:30:44 +0000
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH v6] fs: clear file privilege bits when mmap writing
+Message-ID: <20160110193044.GG17997@ZenIV.linux.org.uk>
+References: <20160108232727.GA23490@www.outflux.net>
+ <CALYGNiOUL7ewU3+5Zoi_9qofYWwF0vpqMy=A0wS=jUFZ11haCg@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1452439051.7773.27.camel@perches.com>
+In-Reply-To: <CALYGNiOUL7ewU3+5Zoi_9qofYWwF0vpqMy=A0wS=jUFZ11haCg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joe Perches <joe@perches.com>
-Cc: linux-kernel@vger.kernel.org, Andy Whitcroft <apw@canonical.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, Tony Lindgren <tony@atomide.com>, Andrey Konovalov <andreyknvl@google.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>
-Message-ID: <20160110192906.inuj38llmwNJ4ZWq4OHxilqdKlM3ig8HzLFs02WtIvY@z>
+To: Konstantin Khlebnikov <koct9i@gmail.com>
+Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Jan Kara <jack@suse.cz>, yalin wang <yalin.wang2010@gmail.com>, Willy Tarreau <w@1wt.eu>, Andrew Morton <akpm@linux-foundation.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch@vger.kernel.org, Linux API <linux-api@vger.kern>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+Message-ID: <20160110193044.6V3AcBEmag1Avsyajr_ZTKzpy7ezgAnTowwOem7Yssg@z>
 
-On Sun, Jan 10, 2016 at 07:17:31AM -0800, Joe Perches wrote:
-> On Sun, 2016-01-10 at 07:07 -0800, Joe Perches wrote:
-> > On Sun, 2016-01-10 at 13:56 +0200, Michael S. Tsirkin wrote:
-> > > SMP-only barriers were missing in checkpatch.pl
-> > > 
-> > > Refactor code slightly to make adding more variants easier.
-> > []
-> > > diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
-> []
-> > If I use a variable called $smp_barriers, I'd expect
-> > it to actually be the smp_barriers, not to have to
-> > prefix it with smp_ before using it.
-> > 
-> > 		my $smp_barriers = qr{
-> > 			smp_store_release|
-> > 			smp_load_acquire|
-> > 			smp_store_mb|
-> > 			smp_read_barrier_depends
+On Sun, Jan 10, 2016 at 06:48:32PM +0300, Konstantin Khlebnikov wrote:
+> I think this should be done in mmap/mprotect. Code in sys_mmap is trivial.
 > 
-> That's missing (?:barriers) too.
+> In sys_mprotect you can check file_needs_remove_privs() and VM_SHARED
+> under mmap_sem, then if needed grab reference to struct file from vma and
+> clear suid after unlocking mmap_sem.
 
-My version has it but need to add ?: to avoid
-a capture group.
+Which vma?  mprotect(2) can cover more than one mapping...  You'd have to
+play interesting games to collect the set of affected struct file; it
+_might_ be doable (e.g. by using task_work_add() to have the damn thing
+trigger on the way to userland), but it would require some care to avoid
+hitting the same file more than once - it might, after all, be mmapped
+in more than one process, so racing mprotect() would need to be taken
+into account.  Hell knows - might be doable, but I'm not sure it'll be
+any prettier.
 
-> btw: shouldn't this also have
-> 	smp_mb__(?:before|after)_atomic
-> ?
+->f_u.fu_rcuhead.func would need to be zeroed on struct file allocation,
+and that code would need to
+	* check ->f_u.fu_rcuhead.func; if non-NULL - sod off, nothing to do
+	* lock ->f_lock
+	* recheck (and unlock if we'd lost a race and need to sod off)
+	* get_file()
+	* task_work_add() on ->f_u.fu_rcuhead
+	* drop ->f_lock
+with task_work_add() callback removing SUID, zero ->fu.fu_rcuhead.func (under
+->f_lock) and finally fput().
 
-Good catch, included in the next version.
+In principle, that would work; the primitive would be along the lines of
+"make sure that SUID is removed before return to userland" and both mmap
+and mprotect would use it.  The primitive itself would be in fs/file_table.c,
+encapsulating the messy details in there.  All existing users of ->f_u don't
+touch it until ->f_count drops to 0, so we are OK to use it here.  It obviously
+should _not_ be used for kernel threads (task_work_add() won't do us any
+good in those, but then we are not going to do mmap or mprotect there either).
+Regular writes should *not* use that - they ought to strip SUID directly.
 
--- 
-MST
+Might be worth trying...  Any takers?
