@@ -1,12 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:57956 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:54205 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757300AbcAJOVX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 10 Jan 2016 09:21:23 -0500
-Date: Sun, 10 Jan 2016 16:21:15 +0200
+	id S1757454AbcAJOUm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 10 Jan 2016 09:20:42 -0500
+Date: Sun, 10 Jan 2016 16:20:34 +0200
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v3 34/41] checkpatch.pl: add missing memory barriers
-Message-ID: <1452426622-4471-35-git-send-email-mst@redhat.com>
+Subject: [PATCH v3 29/41] Revert "virtio_ring: Update weak barriers to use
+ dma_wmb/rmb"
+Message-ID: <1452426622-4471-30-git-send-email-mst@redhat.com>
 References: <1452426622-4471-1-git-send-email-mst@redhat.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
@@ -15,49 +16,84 @@ In-Reply-To: <1452426622-4471-1-git-send-email-mst@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Andy Whitcroft <apw@canonical.com>
-Message-ID: <20160110142115.TePpSvzxy229FBImVug6WLUOhQ48NpD7gdVWlcX45gQ@z>
+Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Alexander Duyck <alexander.duyck@gmail.com>
+Message-ID: <20160110142034.jVjWRPYGZlR0jMAsCTNQ270Y9VVryyCZdjMO2FKhlPs@z>
 
-SMP-only barriers were missing in checkpatch.pl
+This reverts commit 9e1a27ea42691429e31f158cce6fc61bc79bb2e9.
 
-Refactor code slightly to make adding more variants easier.
+While that commit optimizes !CONFIG_SMP, it mixes
+up DMA and SMP concepts, making the code hard
+to figure out.
 
+A better way to optimize this is with the new __smp_XXX
+barriers.
+
+As a first step, go back to full rmb/wmb barriers
+for !SMP.
+We switch to __smp_XXX barriers in the next patch.
+
+Cc: Peter Zijlstra <peterz@infradead.org>
+Cc: Alexander Duyck <alexander.duyck@gmail.com>
 Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
 ---
- scripts/checkpatch.pl | 20 +++++++++++++++++++-
- 1 file changed, 19 insertions(+), 1 deletion(-)
+ include/linux/virtio_ring.h | 23 +++++++++++++++++++----
+ 1 file changed, 19 insertions(+), 4 deletions(-)
 
-diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
-index 2b3c228..97b8b62 100755
---- a/scripts/checkpatch.pl
-+++ b/scripts/checkpatch.pl
-@@ -5116,7 +5116,25 @@ sub process {
- 			}
- 		}
- # check for memory barriers without a comment.
--		if ($line =~ /\b(mb|rmb|wmb|read_barrier_depends|smp_mb|smp_rmb|smp_wmb|smp_read_barrier_depends)\(/) {
+diff --git a/include/linux/virtio_ring.h b/include/linux/virtio_ring.h
+index 8e50888..67e06fe 100644
+--- a/include/linux/virtio_ring.h
++++ b/include/linux/virtio_ring.h
+@@ -21,20 +21,19 @@
+  * actually quite cheap.
+  */
+ 
++#ifdef CONFIG_SMP
+ static inline void virtio_mb(bool weak_barriers)
+ {
+-#ifdef CONFIG_SMP
+ 	if (weak_barriers)
+ 		smp_mb();
+ 	else
+-#endif
+ 		mb();
+ }
+ 
+ static inline void virtio_rmb(bool weak_barriers)
+ {
+ 	if (weak_barriers)
+-		dma_rmb();
++		smp_rmb();
+ 	else
+ 		rmb();
+ }
+@@ -42,10 +41,26 @@ static inline void virtio_rmb(bool weak_barriers)
+ static inline void virtio_wmb(bool weak_barriers)
+ {
+ 	if (weak_barriers)
+-		dma_wmb();
++		smp_wmb();
+ 	else
+ 		wmb();
+ }
++#else
++static inline void virtio_mb(bool weak_barriers)
++{
++	mb();
++}
 +
-+		my $barriers = qr{
-+			mb|
-+			rmb|
-+			wmb|
-+			read_barrier_depends
-+		}x;
-+		my $smp_barriers = qr{
-+			store_release|
-+			load_acquire|
-+			store_mb|
-+			($barriers)
-+		}x;
-+		my $all_barriers = qr{
-+			$barriers|
-+			smp_($smp_barriers)
-+		}x;
++static inline void virtio_rmb(bool weak_barriers)
++{
++	rmb();
++}
 +
-+		if ($line =~ /\b($all_barriers)\s*\(/) {
- 			if (!ctx_has_comment($first_line, $linenr)) {
- 				WARN("MEMORY_BARRIER",
- 				     "memory barrier without comment\n" . $herecurr);
++static inline void virtio_wmb(bool weak_barriers)
++{
++	wmb();
++}
++#endif
+ 
+ struct virtio_device;
+ struct virtqueue;
 -- 
 MST
 
