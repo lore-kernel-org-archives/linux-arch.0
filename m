@@ -1,52 +1,59 @@
 From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH v4 0/3] checkpatch: handling of memory barriers
-Date: Mon, 11 Jan 2016 13:00:09 +0200
-Message-ID: <1452509968-19778-1-git-send-email-mst@redhat.com>
+Subject: [PATCH v4 1/3] checkpatch.pl: add missing memory barriers
+Date: Mon, 11 Jan 2016 13:00:19 +0200
+Message-ID: <1452509968-19778-2-git-send-email-mst@redhat.com>
+References: <1452509968-19778-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-ia64-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-Sender: linux-ia64-owner@vger.kernel.org
+In-Reply-To: <1452509968-19778-1-git-send-email-mst@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
 Cc: Andy Whitcroft <apw@canonical.com>, Joe Perches <joe@perches.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, Ton
 List-Id: linux-arch.vger.kernel.org
 
-As part of memory barrier cleanup, this patchset
-extends checkpatch to make it easier to stop
-incorrect memory barrier usage.
+SMP-only barriers were missing in checkpatch.pl
 
-This replaces the checkpatch patches in my series
-	arch: barrier cleanup + barriers for virt
-and will be included in the pull request including
-the series.
+Refactor code slightly to make adding more variants easier.
 
-changes from v3:
-	rename smp_barrier_stems to barrier_stems
-	as suggested by Julian Calaby.
-	add (?: ... ) around a variable in regexp,
-	in case we change the value later so that it matters.
-changes from v2:
-	address comments by Joe Perches:
-	use (?: ... ) to avoid unnecessary capture groups
-	rename smp_barriers to smp_barrier_stems for clarity
-	add barriers before/after atomic
-Changes from v1:
-	catch optional\s* before () in barriers
-	rewrite using qr{} instead of map
+Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+---
+ scripts/checkpatch.pl | 22 +++++++++++++++++++++-
+ 1 file changed, 21 insertions(+), 1 deletion(-)
 
-Michael S. Tsirkin (3):
-  checkpatch.pl: add missing memory barriers
-  checkpatch: check for __smp outside barrier.h
-  checkpatch: add virt barriers
-
-Michael S. Tsirkin (3):
-  checkpatch.pl: add missing memory barriers
-  checkpatch: check for __smp outside barrier.h
-  checkpatch: add virt barriers
-
- scripts/checkpatch.pl | 33 ++++++++++++++++++++++++++++++++-
- 1 file changed, 32 insertions(+), 1 deletion(-)
-
+diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
+index 2b3c228..94b4e33 100755
+--- a/scripts/checkpatch.pl
++++ b/scripts/checkpatch.pl
+@@ -5116,7 +5116,27 @@ sub process {
+ 			}
+ 		}
+ # check for memory barriers without a comment.
+-		if ($line =~ /\b(mb|rmb|wmb|read_barrier_depends|smp_mb|smp_rmb|smp_wmb|smp_read_barrier_depends)\(/) {
++
++		my $barriers = qr{
++			mb|
++			rmb|
++			wmb|
++			read_barrier_depends
++		}x;
++		my $barrier_stems = qr{
++			mb__before_atomic|
++			mb__after_atomic|
++			store_release|
++			load_acquire|
++			store_mb|
++			(?:$barriers)
++		}x;
++		my $all_barriers = qr{
++			(?:$barriers)|
++			smp_(?:$barrier_stems)
++		}x;
++
++		if ($line =~ /\b(?:$all_barriers)\s*\(/) {
+ 			if (!ctx_has_comment($first_line, $linenr)) {
+ 				WARN("MEMORY_BARRIER",
+ 				     "memory barrier without comment\n" . $herecurr);
 -- 
 MST
-
