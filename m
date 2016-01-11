@@ -1,56 +1,23 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v6] fs: clear file privilege bits when mmap writing
-Date: Mon, 11 Jan 2016 11:38:32 -0800
-Message-ID: <CAGXu5jJaoZC7WL=MndBr915XhEpn9n3HOOhB-ue1xqyKFWxxzQ@mail.gmail.com>
-References: <20160108232727.GA23490@www.outflux.net>
-	<CALYGNiOUL7ewU3+5Zoi_9qofYWwF0vpqMy=A0wS=jUFZ11haCg@mail.gmail.com>
+From: Joe Perches <joe-6d6DIl74uiNBDgjK7y7TUQ@public.gmane.org>
+Subject: Re: [PATCH v4 0/3] checkpatch: handling of memory barriers
+Date: Mon, 11 Jan 2016 13:45:08 -0800
+Message-ID: <1452548708.7773.57.camel@perches.com>
+References: <1452509968-19778-1-git-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f176.google.com ([209.85.223.176]:35447 "EHLO
-	mail-io0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933284AbcAKTid (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jan 2016 14:38:33 -0500
-Received: by mail-io0-f176.google.com with SMTP id 77so328696921ioc.2
-        for <linux-arch@vger.kernel.org>; Mon, 11 Jan 2016 11:38:33 -0800 (PST)
-In-Reply-To: <CALYGNiOUL7ewU3+5Zoi_9qofYWwF0vpqMy=A0wS=jUFZ11haCg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Konstantin Khlebnikov <koct9i@gmail.com>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Jan Kara <jack@suse.cz>, yalin wang <yalin.wang2010@gmail.com>, Willy Tarreau <w@1wt.eu>, Andrew Morton <akpm@linux-foundation.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kern>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <1452509968-19778-1-git-send-email-mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: "Michael S. Tsirkin" <mst-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: Andy Whitcroft <apw-Z7WLFzj8eWMS+FvcfC7Uqw@public.gmane.org>, Peter Zijlstra <peterz-wEGCiKHe2LqWVfeAwA7xHQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Andrew Cooper <andrew.cooper3-Sxgqhf6Nn4DQT0dZR+AlfA@public.gmane.org>, virtualization-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Stefano Stabellini <stefano.stabellini-mvvWK6WmYclDPfheJLI6IQ@public.gmane.org>, Thomas Gleixner <tglx-hfZtesqFncYOwBW4kG4KsQ@public.gmane.org>, Ingo Molnar <mingo-X9Un+BFzKDI@public.gmane.org>, "H. Peter Anvin" <hpa-YMNOUZJC4hwAvxtiuMwx3w@public.gmane.org>, David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, sparclinux-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-mips-6z/3iImG2C8G8FEW9MqTrA@public.gmane.org, x86-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, user-mode-linux-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, adi-buildroot-devel-5NWGOfrQmneRv+LV9MX5uipxlwaOVQ5f@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-xtensa-PjhNF2WwrV/0Sa2dR60CXw@public.gmane.org, xen-devel-GuqFBffKawtpuQazS67q72D2FQJk+8+b@public.gmane.org, Ingo Molnar <mingo-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Tony Lindgren <tony-4v6yS6AI5VpBDgjK7y7TUQ@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, Jan 10, 2016 at 7:48 AM, Konstantin Khlebnikov <koct9i@gmail.com> wrote:
-> On Sat, Jan 9, 2016 at 2:27 AM, Kees Cook <keescook@chromium.org> wrote:
->> Normally, when a user can modify a file that has setuid or setgid bits,
->> those bits are cleared when they are not the file owner or a member
->> of the group. This is enforced when using write and truncate but not
->> when writing to a shared mmap on the file. This could allow the file
->> writer to gain privileges by changing a binary without losing the
->> setuid/setgid/caps bits.
->>
->> Changing the bits requires holding inode->i_mutex, so it cannot be done
->> during the page fault (due to mmap_sem being held during the fault). We
->> could do this during vm_mmap_pgoff, but that would need coverage in
->> mprotect as well, but to check for MAP_SHARED, we'd need to hold mmap_sem
->> again. We could clear at open() time, but it's possible things are
->> accidentally opening with O_RDWR and only reading. Better to clear on
->> close and error failures (i.e. an improvement over now, which is not
->> clearing at all).
->
-> I think this should be done in mmap/mprotect. Code in sys_mmap is trivial.
->
-> In sys_mprotect you can check file_needs_remove_privs() and VM_SHARED
-> under mmap_sem, then if needed grab reference to struct file from vma and
-> clear suid after unlocking mmap_sem.
->
-> I haven't seen previous iterations, probably this approach has known flaws.
+On Mon, 2016-01-11 at 13:00 +0200, Michael S. Tsirkin wrote:
+> As part of memory barrier cleanup, this patchset
+> extends checkpatch to make it easier to stop
+> incorrect memory barrier usage.
 
-mmap_sem is still needed in mprotect (to find and hold the vma), so
-it's not possible. I'd love to be proven wrong, but I didn't see a
-way.
+Thanks Michael.
 
--Kees
-
--- 
-Kees Cook
-Chrome OS & Brillo Security
+Acked-by: Joe Perches <joe-6d6DIl74uiNBDgjK7y7TUQ@public.gmane.org>
