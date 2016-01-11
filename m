@@ -1,30 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay0086.hostedemail.com ([216.40.44.86]:57850 "EHLO
-	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S932645AbcAKVpS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 11 Jan 2016 16:45:18 -0500
-Message-ID: <1452548708.7773.57.camel@perches.com>
-Subject: Re: [PATCH v4 0/3] checkpatch: handling of memory barriers
-From: Joe Perches <joe@perches.com>
-Date: Mon, 11 Jan 2016 13:45:08 -0800
-In-Reply-To: <1452509968-19778-1-git-send-email-mst@redhat.com>
-References: <1452509968-19778-1-git-send-email-mst@redhat.com>
-Content-Type: text/plain; charset="ISO-8859-1"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mail-lb0-f195.google.com ([209.85.217.195]:33566 "EHLO
+	mail-lb0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758076AbcAKWjc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jan 2016 17:39:32 -0500
+MIME-Version: 1.0
+In-Reply-To: <CAGXu5jJaoZC7WL=MndBr915XhEpn9n3HOOhB-ue1xqyKFWxxzQ@mail.gmail.com>
+References: <20160108232727.GA23490@www.outflux.net>
+	<CALYGNiOUL7ewU3+5Zoi_9qofYWwF0vpqMy=A0wS=jUFZ11haCg@mail.gmail.com>
+	<CAGXu5jJaoZC7WL=MndBr915XhEpn9n3HOOhB-ue1xqyKFWxxzQ@mail.gmail.com>
+Date: Tue, 12 Jan 2016 01:39:29 +0300
+Message-ID: <CALYGNiPC224w7-xeo9NOX9nrHH84o+_KXBtKWtd4TPXQyQMq2w@mail.gmail.com>
+Subject: Re: [PATCH v6] fs: clear file privilege bits when mmap writing
+From: Konstantin Khlebnikov <koct9i@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org
-Cc: Andy Whitcroft <apw@canonical.com>, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@kernel.org>, Tony Lindgren <tony@atomide.com>, Julian Calaby <julian.calaby@gmail.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>
-Message-ID: <20160111214508.lthrR73MNEKhETrEy-QF5Ur9_xF1mUnk2GtpoOdUN_8@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>, Andy Lutomirski <luto@amacapital.net>, Jan Kara <jack@suse.cz>, yalin wang <yalin.wang2010@gmail.com>, Willy Tarreau <w@1wt.eu>, Andrew Morton <akpm@linux-foundation.org>, linux-fsdevel <linux-fsdevel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Linux API <linux-api@vger.kern>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+Message-ID: <20160111223929.6iTq9ukXMRZh8hU1xSn0h4E-xp6gYMCwKzKNxPibJQI@z>
 
-On Mon, 2016-01-11 at 13:00 +0200, Michael S. Tsirkin wrote:
-> As part of memory barrier cleanup, this patchset
-> extends checkpatch to make it easier to stop
-> incorrect memory barrier usage.
+On Mon, Jan 11, 2016 at 10:38 PM, Kees Cook <keescook@chromium.org> wrote:
+> On Sun, Jan 10, 2016 at 7:48 AM, Konstantin Khlebnikov <koct9i@gmail.com> wrote:
+>> On Sat, Jan 9, 2016 at 2:27 AM, Kees Cook <keescook@chromium.org> wrote:
+>>> Normally, when a user can modify a file that has setuid or setgid bits,
+>>> those bits are cleared when they are not the file owner or a member
+>>> of the group. This is enforced when using write and truncate but not
+>>> when writing to a shared mmap on the file. This could allow the file
+>>> writer to gain privileges by changing a binary without losing the
+>>> setuid/setgid/caps bits.
+>>>
+>>> Changing the bits requires holding inode->i_mutex, so it cannot be done
+>>> during the page fault (due to mmap_sem being held during the fault). We
+>>> could do this during vm_mmap_pgoff, but that would need coverage in
+>>> mprotect as well, but to check for MAP_SHARED, we'd need to hold mmap_sem
+>>> again. We could clear at open() time, but it's possible things are
+>>> accidentally opening with O_RDWR and only reading. Better to clear on
+>>> close and error failures (i.e. an improvement over now, which is not
+>>> clearing at all).
+>>
+>> I think this should be done in mmap/mprotect. Code in sys_mmap is trivial.
+>>
+>> In sys_mprotect you can check file_needs_remove_privs() and VM_SHARED
+>> under mmap_sem, then if needed grab reference to struct file from vma and
+>> clear suid after unlocking mmap_sem.
+>>
+>> I haven't seen previous iterations, probably this approach has known flaws.
+>
+> mmap_sem is still needed in mprotect (to find and hold the vma), so
+> it's not possible. I'd love to be proven wrong, but I didn't see a
+> way.
 
-Thanks Michael.
+something like this
 
-Acked-by: Joe Perches <joe@perches.com>
+@@ -375,6 +376,7 @@ SYSCALL_DEFINE3(mprotect, unsigned long, start, size_t, len,
 
+        vm_flags = calc_vm_prot_bits(prot);
+
++restart:
+        down_write(&current->mm->mmap_sem);
+
+        vma = find_vma(current->mm, start);
+@@ -416,6 +418,21 @@ SYSCALL_DEFINE3(mprotect, unsigned long, start,
+size_t, len,
+                        goto out;
+                }
+
++               if ((newflags & VM_WRITE) && !(vma->vm_flags & VM_WRITE) &&
++                   vma->vm_file && file_needs_remove_privs(vma->vm_file)) {
++                       struct file *file = get_file(vma->vm_file);
++
++                       start = vma->vm_start;
++                       up_write(&current->mm->mmap_sem);
++                       mutex_lock(&file_inode(file)->i_mutex);
++                       error = file_remove_privs(file);
++                       mutex_unlock(&file_inode(file)->i_mutex);
++                       fput(file);
++                       if (error)
++                               return error;
++                       goto restart;
++               }
++
+
+
+>
+> -Kees
+>
+> --
+> Kees Cook
+> Chrome OS & Brillo Security
