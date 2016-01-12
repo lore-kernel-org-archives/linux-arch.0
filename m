@@ -1,34 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:27590 "EHLO
-	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758738AbcALBOU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jan 2016 20:14:20 -0500
-Message-ID: <56945366.2090504@imgtec.com>
-Date: Mon, 11 Jan 2016 17:14:14 -0800
-From: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
-MIME-Version: 1.0
+Received: from mx1.redhat.com ([209.132.183.28]:33377 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1761297AbcALInr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Jan 2016 03:43:47 -0500
+Date: Tue, 12 Jan 2016 10:43:36 +0200
+From: "Michael S. Tsirkin" <mst@redhat.com>
 Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
+Message-ID: <20160112103913-mutt-send-email-mst@redhat.com>
 References: <1452426622-4471-12-git-send-email-mst@redhat.com>
-In-Reply-To: <1452426622-4471-12-git-send-email-mst@redhat.com>
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 7bit
+ <56945366.2090504@imgtec.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <56945366.2090504@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ralf Baechle <ralf@linux-mips.org>, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20160112011414.bvuFdCb7uVXUJRb7s1j2FEp-pV56-Ouo7pLXtaC05TY@z>
+To: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
+Cc: linux-kernel@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ralf Baechle <ralf@linux-mips.org>, Ingo Molnar <mingo@kernel.org>
+Message-ID: <20160112084336.GrywMd-SCeSbr880rhNTiVmH4WLguK-gRdyMdwyJeUg@z>
 
-On 01/10/2016 06:18 AM, Michael S. Tsirkin wrote:
-> On mips dma_rmb, dma_wmb, smp_store_mb, read_barrier_depends,
-> smp_read_barrier_depends, smp_store_release and smp_load_acquire  match
-> the asm-generic variants exactly. Drop the local definitions and pull in
-> asm-generic/barrier.h instead.
->
-This statement doesn't fit MIPS barriers variations. Moreover, there is 
-a reason to extend that even more specific, at least for 
-smp_store_release and smp_load_acquire, look into
+On Mon, Jan 11, 2016 at 05:14:14PM -0800, Leonid Yegoshin wrote:
+> On 01/10/2016 06:18 AM, Michael S. Tsirkin wrote:
+> >On mips dma_rmb, dma_wmb, smp_store_mb, read_barrier_depends,
+> >smp_read_barrier_depends, smp_store_release and smp_load_acquire  match
+> >the asm-generic variants exactly. Drop the local definitions and pull in
+> >asm-generic/barrier.h instead.
+> >
+> This statement doesn't fit MIPS barriers variations. Moreover, there is a
+> reason to extend that even more specific, at least for smp_store_release and
+> smp_load_acquire, look into
+> 
+>     http://patchwork.linux-mips.org/patch/10506/
+> 
+> - Leonid.
 
-     http://patchwork.linux-mips.org/patch/10506/
+Fine, but it matches what current code is doing.  Since that
+MIPS_LIGHTWEIGHT_SYNC patch didn't go into linux-next yet, do
+you see a problem reworking it on top of this patchset?
 
-- Leonid.
-
+-- 
+MST
