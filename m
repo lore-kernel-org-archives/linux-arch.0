@@ -1,37 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [195.59.15.196] ([195.59.15.196]:43135 "EHLO
+Received: from [195.59.15.196] ([195.59.15.196]:12109 "EHLO
 	mailapp01.imgtec.com" rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org
-	with ESMTP id S1756419AbcANXEp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jan 2016 18:04:45 -0500
-Message-ID: <56982972.7050609@imgtec.com>
-Date: Thu, 14 Jan 2016 15:04:18 -0800
+	with ESMTP id S1754976AbcANXeJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jan 2016 18:34:09 -0500
+Message-ID: <56983054.4070807@imgtec.com>
+Date: Thu, 14 Jan 2016 15:33:40 -0800
 From: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
 MIME-Version: 1.0
 Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
-References: <56969F4B.7070001@imgtec.com> <20160113204844.GV6357@twins.programming.kicks-ass.net> <5696BA6E.4070508@imgtec.com> <20160114120445.GB15828@arm.com> <20160114161604.GT3818@linux.vnet.ibm.com> <5697FA0A.6040601@imgtec.com> <20160114201513.GI6357@twins.programming.kicks-ass.net> <56980933.2020801@imgtec.com> <20160114213440.GG3818@linux.vnet.ibm.com> <56981708.4000007@imgtec.com> <20160114222433.GI3818@linux.vnet.ibm.com>
-In-Reply-To: <20160114222433.GI3818@linux.vnet.ibm.com>
+References: <20160112114111.GB15737@arm.com> <569565DA.2010903@imgtec.com> <20160113104516.GE25458@arm.com> <5696CF08.8080700@imgtec.com> <20160114121449.GC15828@arm.com> <5697F6D2.60409@imgtec.com> <20160114203430.GC3818@linux.vnet.ibm.com> <56980C91.1010403@imgtec.com> <20160114212913.GF3818@linux.vnet.ibm.com> <569814F2.50801@imgtec.com> <20160114225510.GJ3818@linux.vnet.ibm.com>
+In-Reply-To: <20160114225510.GJ3818@linux.vnet.ibm.com>
 Content-Type: text/plain; charset="windows-1252"; format=flowed
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paulmck@linux.vnet.ibm.com
-Cc: Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ralf Baechle <ralf@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, ddaney.cavm@gmail.com, james.hogan@imgtec.com, Michael Ellerman <mpe@ellerman.id.au>
-Message-ID: <20160114230418.b4rFyfXGDCe7vKWQhKXP6IVVQFQU8MQsh2L8rKwYOl4@z>
+Cc: Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ralf Baechle <ralf@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, ddaney.cavm@gmail.com, james.hogan@imgtec.com, Michael Ellerman <mpe@ellerman.id.au>
+Message-ID: <20160114233340.fOjrlxv3B1TEwRJLf5yaxMnsJdSZNR1qY4r5QW0cXlo@z>
 
-On 01/14/2016 02:24 PM, Paul E. McKenney wrote:
-> Actually, the Linux kernel doesn't have an acquire barrier, just an 
-> smp_load_acquire(). Or did someone sneak one in while I wasn't looking?
-That was an exactly starting point for this discussion. This patch just 
-pulls out from MIPS files smp_load_acquire() and smp_store_release(). 
-However, I put into LMO half year ago the patch 
-http://patchwork.linux-mips.org/patch/10506/ which replaces a generic 
-smp_mb with MIPS specific smp_release/acquire in that functions. This 
-patch also fixes use of SYNCs barriers in spin_locks/atomics/bitops for 
-Imagination MIPS CPUs too - it is just absent now for any Imagination 
-MIPS CPUs!
+On 01/14/2016 02:55 PM, Paul E. McKenney wrote:
+> OK, so it looks like Will was asking not about WRC+addr+addr, but instead
+> about WRC+sync+addr.
+(He actually asked twice about this and that too but skip this)
 
-Michael later pointed me that it can be returned back with his series of 
-patches but discussion was already here.
+> I am guessing that the manual's "Older instructions which must be globally
+> performed when the SYNC instruction completes" provides the equivalent
+> of ARM/Power A-cumulativity, which can be thought of as transitivity
+> backwards in time.  This leads me to believe that your smp_mb() needs
+> to use SYNC rather than SYNC_MB, as was the subject of earlier spirited
+> discussion in this thread.
+
+Don't be fooled here by words "ordered" and "completed" - it is HW 
+design items and actually written poorly.
+Just assume that SYNC_MB is absolutely the same as SYNC for any CPU and 
+coherent device (besides performance). The difference can be in 
+non-coherent devices because SYNC actually tries to make a barrier for 
+them too. In some SoCs it is just the same because there is no need to 
+barrier a non-coherent device (device register access usually strictly 
+ordered... if there is no bridge in between).
+
+>
+> Suppose you have something like this:
+> ...
+> Does your hardware guarantee that it is not possible for all of r0,
+> r1, r2, and r3 to be equal to zero at the end of the test, assuming
+> that a, b, c, and d are all initially zero, and the four functions
+> above run concurrently?
+
+It is assumed to be so from Arch point of view. HW bugs are possible, of 
+course.
+
+> Another (more academic) case is this one, with x and y initially zero:
+>
+> ...
+> Does SYNC_MB() prohibit r1 == 1 && r2 == 0 && r3 == 1 && r4 == 0?
+
+It is assumed to be so from Arch point of view. HW bugs are possible, of 
+course.
+
+Note: I am not sure about ANY past MIPS R2 CPU because that stuff is 
+implemented some time but nobody made it in Linux kernel (it was used by 
+some vendor for non-Linux system). For that reason my patch for 
+lightweight SYNCs has an option - implement it or implement a generic 
+SYNC. It is possible that some vendor did it in different way but nobody 
+knows or test it. But as a minimum - SYNC must be implemented in 
+spinlocks/atomics/bitops, in recent P5600 it is proven that read can 
+pass write in atomics.
+
+MIPS R6 is a different story, I verified lightweight SYNCs from the 
+beginning and it also should use SYNCs.
 
 - Leonid.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
