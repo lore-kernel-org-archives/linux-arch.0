@@ -1,42 +1,64 @@
-From: David Daney <ddaney.cavm@gmail.com>
-Subject: Re: [PATCH v9 4/6] arm64, dt, thunderx: Add initial dts for Cavium
- Thunderx in 2 node topology.
-Date: Mon, 18 Jan 2016 09:49:56 -0800
-Message-ID: <569D25C4.3060806@gmail.com>
-References: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com> <1453134965-6125-5-git-send-email-gkulkarni@caviumnetworks.com>
+From: Davidlohr Bueso <dave@stgolabs.net>
+Subject: Re: virtio pull for 4.5 (was Re: [PULL] virtio: barrier rework+fixes)
+Date: Mon, 18 Jan 2016 11:07:53 -0800
+Message-ID: <20160118190753.GC27825@linux-uzut.site>
+References: <20160113182855-mutt-send-email-mst@redhat.com>
+	<20160118152028-mutt-send-email-mst@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <1453134965-6125-5-git-send-email-gkulkarni@caviumnetworks.com>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
-Cc: linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Will.Deacon@arm.com, catalin.marinas@arm.com, grant.likely@linaro.org, leif.lindholm@linaro.org, rfranz@cavium.com, ard.biesheuvel@linaro.org, msalter@redhat.com, robh+dt@kernel.org, steve.capper@linaro.org, hanjun.guo@linaro.org, al.stone@linaro.org, arnd@arndb.de, pawel.moll@arm.com, mark.rutland@arm.com, ijc+devicetree@hellion.org.uk, galak@codeaurora.org, rjw@rjwysocki.net, lenb@kernel.org, marc.zyngier@arm.com, lorenzo.pieralisi@arm.com, bhelgaas@google.com, tony.luck@intel.com, fenghua.yu@intel.com, james.hogan@imgtec.com, benh@kernel.crashing.org, tglx@linutronix.de, mingo@r
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <20160118152028-mutt-send-email-mst@redhat.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: aquini@redhat.com, kvm@vger.kernel.org, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, alexander.duyck@gmail.com, virtualization@lists.linux-foundation.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, dbueso@suse.de, richard@nod.at, bjorn.andersson@sonymobile.com, rmk+kernel@arm.linux.org.uk, paulmck@linux.vnet.ibm.com, james.hogan@imgtec.com, arnd@arndb.de, julian.calaby@gmail.com, boqun.feng@gmail.com, schwidefsky@de.ibm.com, stefanha@redhat.com, tglx@linutronix.de, tony.luck@intel.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, stable@vger.kernel.org, minchan@kernel.org, david.vrabel@citrix.com, joe@perches.com, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, davem@davemloft.net
 List-Id: linux-arch.vger.kernel.org
 
-On 01/18/2016 08:36 AM, Ganapatrao Kulkarni wrote:
-> Adding dt file for Cavium's Thunderx dual socket platform.
+On Mon, 18 Jan 2016, Michael S. Tsirkin wrote:
+
+>Hi Linus,
+>Just making sure nothing's wrong with this pull request.
+>If there's an issue, pls let me know!
+>Thanks!
 >
-> Signed-off-by: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
-> ---
->   arch/arm64/boot/dts/cavium/Makefile             |   2 +-
->   arch/arm64/boot/dts/cavium/thunder-88xx-2n.dts  |  83 +++
->   arch/arm64/boot/dts/cavium/thunder-88xx-2n.dtsi | 806 ++++++++++++++++++++++++
->   3 files changed, 890 insertions(+), 1 deletion(-)
->   create mode 100644 arch/arm64/boot/dts/cavium/thunder-88xx-2n.dts
->   create mode 100644 arch/arm64/boot/dts/cavium/thunder-88xx-2n.dtsi
->
+>On Wed, Jan 13, 2016 at 06:28:55PM +0200, Michael S. Tsirkin wrote:
+>> The following changes since commit afd2ff9b7e1b367172f18ba7f693dfb62bdcb2dc:
+>>
+>>   Linux 4.4 (2016-01-10 15:01:32 -0800)
+>>
+>> are available in the git repository at:
+>>
+>>   git://git.kernel.org/pub/scm/linux/kernel/git/mst/vhost.git tags/for_linus
+>>
+>> for you to fetch changes up to 43e361f23c49dbddf74f56ddf6cdd85c5dbff6da:
+>>
+>>   checkpatch: add virt barriers (2016-01-12 20:47:08 +0200)
+>>
+>> ----------------------------------------------------------------
+>> virtio: barrier rework+fixes
+>>
+>> This adds a new kind of barrier, and reworks virtio and xen
+>> to use it.
+>> Plus some fixes here and there.
+>>
+>> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+>>
+>> ----------------------------------------------------------------
+>>
+>> Yes I know that the patch by Davidlohr Bueso has a typo in the subject :(
+>>
+>> Davidlohr Bueso (1):
+>>       lcoking/barriers, arch: Use smp barriers in smp_store_release()
 
-These files are useless, they don't contain device nodes for anything 
-other than the UARTs.  There is no existing system that has only UARTs 
-and no other devices, so these files cannot be (and can never be) used 
-anywhere.
+fyi this arrived in Linus' tree through Ingo's pull request for -tip:
 
-Since the boot firmware in all real, and emulated, systems is supplying 
-correct DTBs, we should consider not merging these files, and removing 
-the likewise useless thunder-88xx.dts  thunder-88xx.dtsi
-
-David Daney
-
-
-[...]
+https://lkml.org/lkml/2016/1/11/319
