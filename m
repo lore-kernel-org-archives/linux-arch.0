@@ -1,70 +1,386 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e31.co.us.ibm.com ([32.97.110.149]:32925 "EHLO
-	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755489AbcARPqt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Jan 2016 10:46:49 -0500
-Received: from localhost
-	by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Mon, 18 Jan 2016 08:46:45 -0700
-Date: Mon, 18 Jan 2016 07:46:29 -0800
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
-Message-ID: <20160118154629.GB3818@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20160114204827.GE3818@linux.vnet.ibm.com>
- <20160118081929.GA30420@gondor.apana.org.au>
+Received: from mail-bn1bon0066.outbound.protection.outlook.com ([157.56.111.66]:34449
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1755773AbcARQh2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 18 Jan 2016 11:37:28 -0500
+From: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
+Subject: [PATCH v9 3/6] arm64/arm, numa, dt: adding numa dt binding implementation for arm64 platforms.
+Date: Mon, 18 Jan 2016 22:06:02 +0530
+Message-ID: <1453134965-6125-4-git-send-email-gkulkarni@caviumnetworks.com>
+In-Reply-To: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com>
+References: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160118081929.GA30420@gondor.apana.org.au>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Herbert Xu <herbert@gondor.apana.org.au>
-Cc: Leonid.Yegoshin@imgtec.com, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, mst@redhat.com, peterz@infradead.org, will.deacon@arm.com, virtualization@lists.linux-foundation.org, hpa@zytor.com, sparclinux@vger.kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux@arm.linux.org.uk, user-mode-linux-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, mpe@ellerman.id.au, x86@kernel.org, xen-devel@lists.xenproject.org, mingo@elte.hu, linux-xtensa@linux-xtensa.org, james.hogan@imgtec.com, arnd@arndb.de, stefano.stabellini@eu.citrix.com, adi-buildroot-devel@lists.sourceforge.net, ddaney.cavm@gmail.com, tglx@linutronix.de, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, andrew.cooper3@citrix.com, linux-kernel@vger.kernel.org, ralf@linux-mips.org, joe@perches.com, linuxppc-dev@lists.ozlabs.org, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20160118154629.Gkw9rDCOhD0EWyiLZ4FSfaw6eyGJ7wxMjfJkD9-ethE@z>
+To: linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Will.Deacon@arm.com, catalin.marinas@arm.com, grant.likely@linaro.org, leif.lindholm@linaro.org, rfranz@cavium.com, ard.biesheuvel@linaro.org, msalter@redhat.com, robh+dt@kernel.org, steve.capper@linaro.org, hanjun.guo@linaro.org, al.stone@linaro.org, arnd@arndb.de, pawel.moll@arm.com, mark.rutland@arm.com, ijc+devicetree@hellion.org.uk, galak@codeaurora.org, rjw@rjwysocki.net, lenb@kernel.org, marc.zyngier@arm.com, lorenzo.pieralisi@arm.com, bhelgaas@google.com, tony.luck@intel.com, fenghua.yu@intel.com, james.hogan@imgtec.com, benh@kernel.crashing.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, jonathan@jonmasters.org, rrichter@cavium.com, Prasun.Kapoor@caviumnetworks.com
+Cc: gpkulkarni@gmail.com
+Message-ID: <20160118163602.AjigGgi5dYtbTMYhkHNwpqo77rXD68yW0BpyXNo0pc4@z>
 
-On Mon, Jan 18, 2016 at 04:19:29PM +0800, Herbert Xu wrote:
-> Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
-> >
-> > You could use SYNC_ACQUIRE() to implement read_barrier_depends() and
-> > smp_read_barrier_depends(), but SYNC_RMB probably does not suffice.
-> > The reason for this is that smp_read_barrier_depends() must order the
-> > pointer load against any subsequent read or write through a dereference
-> > of that pointer.  For example:
-> > 
-> >        p = READ_ONCE(gp);
-> >        smp_rmb();
-> >        r1 = p->a; /* ordered by smp_rmb(). */
-> >        p->b = 42; /* NOT ordered by smp_rmb(), BUG!!! */
-> >        r2 = x; /* ordered by smp_rmb(), but doesn't need to be. */
-> > 
-> > In contrast:
-> > 
-> >        p = READ_ONCE(gp);
-> >        smp_read_barrier_depends();
-> >        r1 = p->a; /* ordered by smp_read_barrier_depends(). */
-> >        p->b = 42; /* ordered by smp_read_barrier_depends(). */
-> >        r2 = x; /* not ordered by smp_read_barrier_depends(), which is OK. */
-> > 
-> > Again, if your hardware maintains local ordering for address
-> > and data dependencies, you can have read_barrier_depends() and
-> > smp_read_barrier_depends() be no-ops like they are for most
-> > architectures.
-> > 
-> > Does that help?
-> 
-> This is crazy! smp_rmb started out being strictly stronger than
-> smp_read_barrier_depends, when did this stop being the case?
+Adding numa dt binding support for arm64 based platforms.
+dt node parsing for numa topology is done using device property
+numa-node-id and device node distance-map.
 
-Hello, Herbert!
+Reviewed-by: Robert Richter <rrichter@cavium.com>
+Signed-off-by: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
+---
+ arch/arm64/Kconfig            |  10 ++
+ arch/arm64/include/asm/numa.h |  10 ++
+ arch/arm64/kernel/Makefile    |   1 +
+ arch/arm64/kernel/of_numa.c   | 257 ++++++++++++++++++++++++++++++++++++++++++
+ arch/arm64/kernel/smp.c       |   2 +
+ arch/arm64/mm/numa.c          |  10 +-
+ 6 files changed, 289 insertions(+), 1 deletion(-)
+ create mode 100644 arch/arm64/kernel/of_numa.c
 
-It is true that most Linux kernel code relies only on the read-read
-properties of dependencies, but the read-write properties are useful.
-Admittedly relatively rarely, but useful.
-
-The better comparison for smp_read_barrier_depends(), especially in
-its rcu_dereference*() form, is smp_load_acquire().
-
-							Thanx, Paul
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 74f5d73..775cf4a 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -515,6 +515,16 @@ config NUMA
+ 	  local memory of the CPU and add some more
+ 	  NUMA awareness to the kernel.
+ 
++config OF_NUMA
++	bool "Device Tree NUMA support"
++	depends on NUMA
++	depends on OF
++	default y
++	help
++	  Enable Device Tree NUMA support.
++	  This enables the numa mapping of cpu, memory, io and
++	  inter node distances using dt bindings.
++
+ config NODES_SHIFT
+ 	int "Maximum NUMA Nodes (as a power of 2)"
+ 	range 1 10
+diff --git a/arch/arm64/include/asm/numa.h b/arch/arm64/include/asm/numa.h
+index f28f15b0..54deb38 100644
+--- a/arch/arm64/include/asm/numa.h
++++ b/arch/arm64/include/asm/numa.h
+@@ -37,4 +37,14 @@ void numa_store_cpu_info(unsigned int cpu);
+ static inline void numa_store_cpu_info(unsigned int cpu)		{ }
+ static inline void arm64_numa_init(void)		{ }
+ #endif	/* CONFIG_NUMA */
++
++struct device_node;
++#ifdef CONFIG_OF_NUMA
++int __init arm64_of_numa_init(void);
++void __init of_numa_set_node_info(unsigned int cpu, struct device_node *dn);
++#else
++static inline void of_numa_set_node_info(unsigned int cpu,
++		struct device_node *dn) { }
++#endif
++
+ #endif	/* __ASM_NUMA_H */
+diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+index 474691f..7987763 100644
+--- a/arch/arm64/kernel/Makefile
++++ b/arch/arm64/kernel/Makefile
+@@ -41,6 +41,7 @@ arm64-obj-$(CONFIG_EFI)			+= efi.o efi-entry.stub.o
+ arm64-obj-$(CONFIG_PCI)			+= pci.o
+ arm64-obj-$(CONFIG_ARMV8_DEPRECATED)	+= armv8_deprecated.o
+ arm64-obj-$(CONFIG_ACPI)		+= acpi.o
++arm64-obj-$(CONFIG_OF_NUMA)		+= of_numa.o
+ 
+ obj-y					+= $(arm64-obj-y) vdso/
+ obj-m					+= $(arm64-obj-m)
+diff --git a/arch/arm64/kernel/of_numa.c b/arch/arm64/kernel/of_numa.c
+new file mode 100644
+index 0000000..2f9e34b
+--- /dev/null
++++ b/arch/arm64/kernel/of_numa.c
+@@ -0,0 +1,257 @@
++/*
++ * OF NUMA Parsing support.
++ *
++ * Copyright (C) 2015 Cavium Inc.
++ * Author: Ganapatrao Kulkarni <gkulkarni@cavium.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/ctype.h>
++#include <linux/memblock.h>
++#include <linux/module.h>
++#include <linux/nodemask.h>
++#include <linux/of.h>
++#include <linux/of_fdt.h>
++
++#include <asm/smp_plat.h>
++
++/* define default numa node to 0 */
++#define DEFAULT_NODE 0
++#define OF_NUMA_PROP "numa-node-id"
++
++/* Returns nid in the range [0..MAX_NUMNODES-1],
++ * or NUMA_NO_NODE if no valid numa-node-id entry found
++ * or DEFAULT_NODE if no numa-node-id entry exists
++ */
++static int of_numa_prop_to_nid(const __be32 *of_numa_prop, int length)
++{
++	int nid;
++
++	if (!of_numa_prop)
++		return DEFAULT_NODE;
++
++	if (length != sizeof(*of_numa_prop)) {
++		pr_warn("NUMA: Invalid of_numa_prop length %d found.\n",
++				length);
++		return NUMA_NO_NODE;
++	}
++
++	nid = of_read_number(of_numa_prop, 1);
++	if (nid >= MAX_NUMNODES) {
++		pr_warn("NUMA: Invalid numa node %d found.\n", nid);
++		return NUMA_NO_NODE;
++	}
++
++	return nid;
++}
++
++/* Must hold reference to node during call */
++static int of_get_numa_nid(struct device_node *device)
++{
++	int length;
++	const __be32 *of_numa_prop;
++
++	of_numa_prop = of_get_property(device, OF_NUMA_PROP, &length);
++
++	return of_numa_prop_to_nid(of_numa_prop, length);
++}
++
++static int __init early_init_of_get_numa_nid(unsigned long node)
++{
++	int length;
++	const __be32 *of_numa_prop;
++
++	of_numa_prop = of_get_flat_dt_prop(node, OF_NUMA_PROP, &length);
++
++	return of_numa_prop_to_nid(of_numa_prop, length);
++}
++
++/* Walk the device tree upwards, looking for a numa-node-id property */
++int of_node_to_nid(struct device_node *device)
++{
++	struct device_node *parent;
++	int nid = NUMA_NO_NODE;
++
++	of_node_get(device);
++	while (device) {
++		const __be32 *of_numa_prop;
++		int length;
++
++		of_numa_prop = of_get_property(device, OF_NUMA_PROP, &length);
++		if (of_numa_prop) {
++			nid = of_numa_prop_to_nid(of_numa_prop, length);
++			break;
++		}
++
++		parent = device;
++		device = of_get_parent(parent);
++		of_node_put(parent);
++	}
++	of_node_put(device);
++
++	return nid;
++}
++
++void __init of_numa_set_node_info(unsigned int cpu, struct device_node *device)
++{
++	int nid = DEFAULT_NODE;
++
++	if (device)
++		nid = of_get_numa_nid(device);
++
++	cpu_to_node_map[cpu] = nid;
++}
++
++/*
++ * Even though we connect cpus to numa domains later in SMP
++ * init, we need to know the node ids now for all cpus.
++*/
++static int __init early_init_parse_cpu_node(unsigned long node)
++{
++	int nid;
++
++	const char *type = of_get_flat_dt_prop(node, "device_type", NULL);
++
++	/* We are scanning "cpu" nodes only */
++	if (type == NULL)
++		return 0;
++	else if (strcmp(type, "cpu") != 0)
++		return 0;
++
++	nid = early_init_of_get_numa_nid(node);
++
++	if (nid == NUMA_NO_NODE)
++		return -EINVAL;
++
++	node_set(nid, numa_nodes_parsed);
++	return 0;
++}
++
++static int __init early_init_parse_memory_node(unsigned long node)
++{
++	const __be32 *reg, *endp;
++	int length;
++	int nid;
++
++	const char *type = of_get_flat_dt_prop(node, "device_type", NULL);
++
++	/* We are scanning "memory" nodes only */
++	if (type == NULL)
++		return 0;
++	else if (strcmp(type, "memory") != 0)
++		return 0;
++
++	nid = early_init_of_get_numa_nid(node);
++
++	if (nid == NUMA_NO_NODE)
++		return -EINVAL;
++
++	reg = of_get_flat_dt_prop(node, "reg", &length);
++	endp = reg + (length / sizeof(__be32));
++
++	while ((endp - reg) >= (dt_root_addr_cells + dt_root_size_cells)) {
++		u64 base, size;
++
++		base = dt_mem_next_cell(dt_root_addr_cells, &reg);
++		size = dt_mem_next_cell(dt_root_size_cells, &reg);
++		pr_debug("NUMA-DT:  base = %llx , node = %u\n",
++				base, nid);
++
++		if (numa_add_memblk(nid, base, size) < 0)
++			return -EINVAL;
++	}
++
++	return 0;
++}
++
++static int __init early_init_parse_distance_map_v1(unsigned long node,
++		const char *uname)
++{
++
++	const __be32 *prop_dist_matrix;
++	int length = 0, i, matrix_count;
++	int nr_size_cells = OF_ROOT_NODE_SIZE_CELLS_DEFAULT;
++
++	pr_info("NUMA: parsing numa-distance-map-v1\n");
++
++	prop_dist_matrix =
++		of_get_flat_dt_prop(node, "distance-matrix", &length);
++
++	if (!length) {
++		pr_err("NUMA: failed to parse distance-matrix\n");
++		return  -ENODEV;
++	}
++
++	matrix_count = ((length / sizeof(__be32)) / (3 * nr_size_cells));
++
++	if ((matrix_count * sizeof(__be32) * 3 * nr_size_cells) !=  length) {
++		pr_warn("NUMA: invalid distance-matrix length %d\n", length);
++		return -EINVAL;
++	}
++
++	for (i = 0; i < matrix_count; i++) {
++		u32 nodea, nodeb, distance;
++
++		nodea = dt_mem_next_cell(nr_size_cells, &prop_dist_matrix);
++		nodeb = dt_mem_next_cell(nr_size_cells, &prop_dist_matrix);
++		distance = dt_mem_next_cell(nr_size_cells, &prop_dist_matrix);
++		numa_set_distance(nodea, nodeb, distance);
++		pr_debug("NUMA-DT:  distance[node%d -> node%d] = %d\n",
++				nodea, nodeb, distance);
++
++		/* Set default distance of node B->A same as A->B */
++		if (nodeb > nodea)
++			numa_set_distance(nodeb, nodea, distance);
++	}
++
++	return 0;
++}
++
++static int __init early_init_parse_distance_map(unsigned long node,
++		const char *uname)
++{
++
++	if (strcmp(uname, "distance-map") != 0)
++		return 0;
++
++	if (of_flat_dt_is_compatible(node, "numa-distance-map-v1"))
++		return early_init_parse_distance_map_v1(node, uname);
++
++	return -EINVAL;
++}
++
++/**
++ * early_init_of_scan_numa_map - parse memory node and map nid to memory range.
++ */
++int __init early_init_of_scan_numa_map(unsigned long node, const char *uname,
++				     int depth, void *data)
++{
++	int ret;
++
++	ret = early_init_parse_cpu_node(node);
++
++	if (!ret)
++		ret = early_init_parse_memory_node(node);
++
++	if (!ret)
++		ret = early_init_parse_distance_map(node, uname);
++
++	return ret;
++}
++
++/* DT node mapping is done already early_init_of_scan_memory */
++int __init arm64_of_numa_init(void)
++{
++	return of_scan_flat_dt(early_init_of_scan_numa_map, NULL);
++}
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+index d6e7d6a..a2a8c2d 100644
+--- a/arch/arm64/kernel/smp.c
++++ b/arch/arm64/kernel/smp.c
+@@ -520,6 +520,8 @@ static void __init of_parse_and_init_cpus(void)
+ 
+ 		pr_debug("cpu logical map 0x%llx\n", hwid);
+ 		cpu_logical_map(cpu_count) = hwid;
++		/* map logical cpu to node */
++		of_numa_set_node_info(cpu_count, dn);
+ next:
+ 		cpu_count++;
+ 	}
+diff --git a/arch/arm64/mm/numa.c b/arch/arm64/mm/numa.c
+index 050b083..9e8704b 100644
+--- a/arch/arm64/mm/numa.c
++++ b/arch/arm64/mm/numa.c
+@@ -383,5 +383,13 @@ static int __init dummy_numa_init(void)
+  */
+ void __init arm64_numa_init(void)
+ {
+-	numa_init(dummy_numa_init);
++	int ret = -ENODEV;
++
++#ifdef CONFIG_OF_NUMA
++	if (!numa_off)
++		ret = numa_init(arm64_of_numa_init);
++#endif
++
++	if (ret)
++		numa_init(dummy_numa_init);
+ }
+-- 
+1.8.1.4
 
