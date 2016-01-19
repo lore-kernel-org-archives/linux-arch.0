@@ -1,10 +1,10 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 7/8] lkdtm: verify that __ro_after_init works correctly
-Date: Tue, 19 Jan 2016 10:08:41 -0800
-Message-ID: <1453226922-16831-8-git-send-email-keescook@chromium.org>
+Subject: [PATCH v4 6/8] introduce post-init read-only memory
+Date: Tue, 19 Jan 2016 10:08:40 -0800
+Message-ID: <1453226922-16831-7-git-send-email-keescook@chromium.org>
 References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
 Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-2377-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+Return-path: <kernel-hardening-return-2379-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
 List-Post: <mailto:kernel-hardening@lists.openwall.com>
 List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
 List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
@@ -14,84 +14,83 @@ To: Ingo Molnar <mingo@redhat.com>
 Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-The new __ro_after_init section should be writable before init, but
-not after. Validate that it gets updated at init and can't be written
-to afterwards.
+One of the easiest ways to protect the kernel from attack is to reduce
+the internal attack surface exposed when a "write" flaw is available. By
+making as much of the kernel read-only as possible, we reduce the
+attack surface.
+
+Many things are written to only during __init, and never changed
+again. These cannot be made "const" since the compiler will do the wrong
+thing (we do actually need to write to them). Instead, move these items
+into a memory region that will be made read-only during mark_rodata_ro()
+which happens after all kernel __init code has finished.
+
+This introduces __ro_after_init as a way to mark such memory, and adds
+some documentation about the existing __read_mostly marking.
+
+Based on work by PaX Team and Brad Spengler.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- drivers/misc/lkdtm.c | 29 ++++++++++++++++++++++++++---
- 1 file changed, 26 insertions(+), 3 deletions(-)
+ arch/parisc/include/asm/cache.h   |  3 +++
+ include/asm-generic/vmlinux.lds.h |  1 +
+ include/linux/cache.h             | 14 ++++++++++++++
+ 3 files changed, 18 insertions(+)
 
-diff --git a/drivers/misc/lkdtm.c b/drivers/misc/lkdtm.c
-index 11fdadc68e53..2a6eaf1122b4 100644
---- a/drivers/misc/lkdtm.c
-+++ b/drivers/misc/lkdtm.c
-@@ -103,6 +103,7 @@ enum ctype {
- 	CT_EXEC_USERSPACE,
- 	CT_ACCESS_USERSPACE,
- 	CT_WRITE_RO,
-+	CT_WRITE_RO_AFTER_INIT,
- 	CT_WRITE_KERN,
- };
+diff --git a/arch/parisc/include/asm/cache.h b/arch/parisc/include/asm/cache.h
+index 3d0e17bcc8e9..df0f52bd18b4 100644
+--- a/arch/parisc/include/asm/cache.h
++++ b/arch/parisc/include/asm/cache.h
+@@ -22,6 +22,9 @@
  
-@@ -140,6 +141,7 @@ static char* cp_type[] = {
- 	"EXEC_USERSPACE",
- 	"ACCESS_USERSPACE",
- 	"WRITE_RO",
-+	"WRITE_RO_AFTER_INIT",
- 	"WRITE_KERN",
- };
+ #define __read_mostly __attribute__((__section__(".data..read_mostly")))
  
-@@ -162,6 +164,7 @@ static DEFINE_SPINLOCK(lock_me_up);
- static u8 data_area[EXEC_SIZE];
- 
- static const unsigned long rodata = 0xAA55AA55;
-+static unsigned long ro_after_init __ro_after_init = 0x55AA5500;
- 
- module_param(recur_count, int, 0644);
- MODULE_PARM_DESC(recur_count, " Recursion level for the stack overflow test");
-@@ -503,11 +506,28 @@ static void lkdtm_do_action(enum ctype which)
- 		break;
- 	}
- 	case CT_WRITE_RO: {
--		unsigned long *ptr;
-+		/* Explicitly cast away "const" for the test. */
-+		unsigned long *ptr = (unsigned long *)&rodata;
- 
--		ptr = (unsigned long *)&rodata;
-+		pr_info("attempting bad rodata write at %p\n", ptr);
-+		*ptr ^= 0xabcd1234;
- 
--		pr_info("attempting bad write at %p\n", ptr);
-+		break;
-+	}
-+	case CT_WRITE_RO_AFTER_INIT: {
-+		unsigned long *ptr = &ro_after_init;
++/* Read-only memory is marked before mark_rodata_ro() is called. */
++#define __ro_after_init	__read_mostly
 +
-+		/*
-+		 * Verify we were written to during init. Since an Oops
-+		 * is considered a "success", a failure is to just skip the
-+		 * real test.
-+		 */
-+		if ((*ptr & 0xAA) != 0xAA) {
-+			pr_info("%p was NOT written during init!?\n", ptr);
-+			break;
-+		}
-+
-+		pr_info("attempting bad ro_after_init write at %p\n", ptr);
- 		*ptr ^= 0xabcd1234;
+ void parisc_cache_init(void);	/* initializes cache-flushing */
+ void disable_sr_hashing_asm(int); /* low level support for above */
+ void disable_sr_hashing(void);   /* turns off space register hashing */
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index c4bd0e2c173c..772c784ba763 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -256,6 +256,7 @@
+ 	.rodata           : AT(ADDR(.rodata) - LOAD_OFFSET) {		\
+ 		VMLINUX_SYMBOL(__start_rodata) = .;			\
+ 		*(.rodata) *(.rodata.*)					\
++		*(.data..ro_after_init)	/* Read only after init */	\
+ 		*(__vermagic)		/* Kernel version magic */	\
+ 		. = ALIGN(8);						\
+ 		VMLINUX_SYMBOL(__start___tracepoints_ptrs) = .;		\
+diff --git a/include/linux/cache.h b/include/linux/cache.h
+index 17e7e82d2aa7..1be04f8c563a 100644
+--- a/include/linux/cache.h
++++ b/include/linux/cache.h
+@@ -12,10 +12,24 @@
+ #define SMP_CACHE_BYTES L1_CACHE_BYTES
+ #endif
  
- 		break;
-@@ -817,6 +837,9 @@ static int __init lkdtm_module_init(void)
- 	int n_debugfs_entries = 1; /* Assume only the direct entry */
- 	int i;
++/*
++ * __read_mostly is used to keep rarely changing variables out of frequently
++ * updated cachelines. If an architecture doesn't support it, ignore the
++ * hint.
++ */
+ #ifndef __read_mostly
+ #define __read_mostly
+ #endif
  
-+	/* Make sure we can write to __ro_after_init values during __init */
-+	ro_after_init |= 0xAA;
++/*
++ * __ro_after_init is used to mark things that are read-only after init (i.e.
++ * after mark_rodata_ro() has been called). These are effectively read-only,
++ * but may get written to during init, so can't live in .rodata (via "const").
++ */
++#ifndef __ro_after_init
++#define __ro_after_init __attribute__((__section__(".data..ro_after_init")))
++#endif
 +
- 	/* Register debugfs interface */
- 	lkdtm_debugfs_root = debugfs_create_dir("provoke-crash", NULL);
- 	if (!lkdtm_debugfs_root) {
+ #ifndef ____cacheline_aligned
+ #define ____cacheline_aligned __attribute__((__aligned__(SMP_CACHE_BYTES)))
+ #endif
 -- 
 2.6.3
