@@ -1,77 +1,89 @@
-From: Lorenzo Pieralisi <lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org>
-Subject: Re: [PATCH v9 5/6] PCI: generic: Make pci-host-generic driver numa
- aware
-Date: Tue, 19 Jan 2016 09:41:50 +0000
-Message-ID: <20160119094150.GA4991@red-moon>
-References: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com>
- <1453134965-6125-6-git-send-email-gkulkarni@caviumnetworks.com>
- <569D23AF.9050503@gmail.com>
- <CAFpQJXXESn1EA5kotVOH2oLbRUSpOLf6+MeWG1pY_GhUP+4vVQ@mail.gmail.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH] kbuild: Remove stale asm-generic wrappers
+Date: Tue, 19 Jan 2016 10:31:43 +0000
+Message-ID: <1453199503-30900-1-git-send-email-james.hogan@imgtec.com>
+References: <20160119100154.GJ30608@jhogan-linux.le.imgtec.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-Content-Disposition: inline
-In-Reply-To: <CAFpQJXXESn1EA5kotVOH2oLbRUSpOLf6+MeWG1pY_GhUP+4vVQ-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Ganapatrao Kulkarni <gpkulkarni-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: David Daney <ddaney.cavm-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Will Deacon <Will.Deacon-5wv7dgnIgG8@public.gmane.org>, Bjorn Helgaas <bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org>, Ganapatrao Kulkarni <gkulkarni-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, "devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev <linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Grant Likely <grant.likely-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Leif Lindholm <leif.lindholm-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, rfranz-YGCgFSpz5w/QT0dZR+AlfA@public.gmane.org, Ard Biesheuvel <ard.biesheuvel-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, "msalter-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org" <msalter-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Steve Capper <steve.capper-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-mips-bounce@linux-mips.org>
+In-Reply-To: <20160119100154.GJ30608@jhogan-linux.le.imgtec.org>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: Michal Marek <mmarek@suse.com>
+Cc: linux-kernel@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, James Hogan <james.hogan@imgtec.com>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 19, 2016 at 11:28:56AM +0530, Ganapatrao Kulkarni wrote:
-> On Mon, Jan 18, 2016 at 11:11 PM, David Daney <ddaney.cavm-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org> wrote:
-> > On 01/18/2016 08:36 AM, Ganapatrao Kulkarni wrote:
-> >>
-> >> update numa_node of device associated with pci bus.
-> >> moved down devm_kzalloc to allocate from node memory.
-> >>
-> >> Signed-off-by: Ganapatrao Kulkarni <gkulkarni-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>
-> >> ---
-> >>   drivers/pci/host/pci-host-generic.c | 9 ++++++---
-> >>   1 file changed, 6 insertions(+), 3 deletions(-)
-> >>
-> >> diff --git a/drivers/pci/host/pci-host-generic.c
-> >> b/drivers/pci/host/pci-host-generic.c
-> >> index 5434c90..0e1ce06 100644
-> >> --- a/drivers/pci/host/pci-host-generic.c
-> >> +++ b/drivers/pci/host/pci-host-generic.c
-> >> @@ -215,11 +215,9 @@ static int gen_pci_probe(struct platform_device
-> >> *pdev)
-> >>         const struct of_device_id *of_id;
-> >>         struct device *dev = &pdev->dev;
-> >>         struct device_node *np = dev->of_node;
-> >> -       struct gen_pci *pci = devm_kzalloc(dev, sizeof(*pci), GFP_KERNEL);
-> >> +       struct gen_pci *pci;
-> >>         struct pci_bus *bus, *child;
-> >>
-> >> -       if (!pci)
-> >> -               return -ENOMEM;
-> >>
-> >>         type = of_get_property(np, "device_type", NULL);
-> >>         if (!type || strcmp(type, "pci")) {
-> >> @@ -230,6 +228,11 @@ static int gen_pci_probe(struct platform_device
-> >> *pdev)
-> >>         of_pci_check_probe_only();
-> >>
-> >>         of_id = of_match_node(gen_pci_of_match, np);
-> >> +       set_dev_node(dev, of_node_to_nid(np));
-> >
-> >
-> > This shouldn't be done in individual platform_drivers, but instead in the
-> > device probing code.
-> >
-> > There is code that does this in drivers/of/platform.c and
-> > drivers/of/device.c  Is that not being called for the pci-host-gweneric
-> > devices?  If not, we should figure out why, and perhaps attempt to fix it
-> > rather than doing it here.
-> is it more appropriate to call of_platform_device_create ?
+When a header file is removed from generic-y (often accompanied by the
+addition of an arch specific header), the generated wrapper file will
+persist, and in some cases may still take precedence over the new arch
+header.
 
-That's already done to create the platform device by OF core when
-populating devices from DT, what David suggested is that you should
-add set_dev_node() to core OF code instead of adding it specifically
-to the PCI host generic code.
+=46or example commit f1fe2d21f4e1 ("MIPS: Add definitions for extended
+context") removed ucontext.h from generic-y in arch/mips/include/asm/,
+and added an arch/mips/include/uapi/asm/ucontext.h. The continued use o=
+f
+the wrapper when reusing a dirty build tree resulted in build failures
+in arch/mips/kernel/signal.c:
 
-Lorenzo
---
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+arch/mips/kernel/signal.c: In function =E2=80=98sc_to_extcontext=E2=80=99=
+:
+arch/mips/kernel/signal.c:142:12: error: =E2=80=98struct ucontext=E2=80=
+=99 has no member named =E2=80=98uc_extcontext=E2=80=99
+  return &uc->uc_extcontext;
+            ^
+
+=46ix by detecting wrapper headers in generated header directories that=
+ do
+not correspond to a filename in generic-y, and removing them.
+
+Reported-by: Jacek Anaszewski <j.anaszewski@samsung.com>
+Reported-by: Hauke Mehrtens <hauke@hauke-m.de>
+Reported-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Michal Marek <mmarek@suse.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Paul Burton <paul.burton@imgtec.com>
+Cc: Florian Fainelli <f.fainelli@gmail.com>
+Cc: linux-kbuild@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+---
+ scripts/Makefile.asm-generic | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/scripts/Makefile.asm-generic b/scripts/Makefile.asm-generi=
+c
+index 045e0098e962..7422f6476a8a 100644
+--- a/scripts/Makefile.asm-generic
++++ b/scripts/Makefile.asm-generic
+@@ -21,3 +21,19 @@ all: $(patsubst %, $(obj)/%, $(generic-y))
+=20
+ $(obj)/%.h:
+ 	$(call cmd,wrap)
++
++# Remove stale wrappers when the corresponding files are removed from
++# generic-y
++
++quiet_cmd_rmwrap =3D REMOVE  $(patsubst %.rm,%,$@)
++cmd_rmwrap =3D rm -f $(patsubst %.rm, %, $@)
++
++all: $(filter-out $(patsubst %, $(obj)/%.rm, $(generic-y)), \
++                  $(patsubst %, %.rm, $(wildcard $(obj)/*.h)))
++
++$(obj)/%.h.rm: FORCE
++	$(call cmd,rmwrap)
++
++.PHONY: $(PHONY)
++PHONY +=3D FORCE
++FORCE: ;
+--=20
+2.4.10
