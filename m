@@ -1,78 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:38112 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757491AbcASJkN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Jan 2016 04:40:13 -0500
-Date: Tue, 19 Jan 2016 09:41:50 +0000
-From: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Subject: Re: [PATCH v9 5/6] PCI: generic: Make pci-host-generic driver numa
- aware
-Message-ID: <20160119094150.GA4991@red-moon>
-References: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com>
- <1453134965-6125-6-git-send-email-gkulkarni@caviumnetworks.com>
- <569D23AF.9050503@gmail.com>
- <CAFpQJXXESn1EA5kotVOH2oLbRUSpOLf6+MeWG1pY_GhUP+4vVQ@mail.gmail.com>
+Received: from [195.59.15.196] ([195.59.15.196]:51427 "EHLO
+	mailapp01.imgtec.com" rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org
+	with ESMTP id S932923AbcASKcP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 05:32:15 -0500
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH] kbuild: Remove stale asm-generic wrappers
+Date: Tue, 19 Jan 2016 10:31:43 +0000
+Message-ID: <1453199503-30900-1-git-send-email-james.hogan@imgtec.com>
+In-Reply-To: <20160119100154.GJ30608@jhogan-linux.le.imgtec.org>
+References: <20160119100154.GJ30608@jhogan-linux.le.imgtec.org>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CAFpQJXXESn1EA5kotVOH2oLbRUSpOLf6+MeWG1pY_GhUP+4vVQ@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ganapatrao Kulkarni <gpkulkarni@gmail.com>
-Cc: David Daney <ddaney.cavm@gmail.com>, Will Deacon <Will.Deacon@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Grant Likely <grant.likely@linaro.org>, Leif Lindholm <leif.lindholm@linaro.org>, rfranz@cavium.com, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "msalter@redhat.com" <msalter@redhat.com>, Rob Herring <robh+dt@kernel.org>, Steve Capper <steve.capper@linaro.org>, Hanjun Guo <hanjun.guo@linaro.org>, Al Stone <al.stone@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <lenb@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, tony.luck@intel.com, fenghua.yu@intel.com, james.hogan@imgtec.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "tglx@linutronix.de" <tglx@linutronix.de>, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, Jon Masters <jonathan@jonmasters.org>, Robert Richter <rrichter@cavium.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>
-Message-ID: <20160119094150.qVpi82gUO4myF4P7fnZuWOCTN-7jqrmoPeHi0MaCrik@z>
+To: Michal Marek <mmarek@suse.com>
+Cc: linux-kernel@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, James Hogan <james.hogan@imgtec.com>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
+Message-ID: <20160119103143.CSgRXgckYx2lFCu0CHo3HByXbqTlG_jGXlT75ttRpa0@z>
 
-On Tue, Jan 19, 2016 at 11:28:56AM +0530, Ganapatrao Kulkarni wrote:
-> On Mon, Jan 18, 2016 at 11:11 PM, David Daney <ddaney.cavm@gmail.com> wrote:
-> > On 01/18/2016 08:36 AM, Ganapatrao Kulkarni wrote:
-> >>
-> >> update numa_node of device associated with pci bus.
-> >> moved down devm_kzalloc to allocate from node memory.
-> >>
-> >> Signed-off-by: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
-> >> ---
-> >>   drivers/pci/host/pci-host-generic.c | 9 ++++++---
-> >>   1 file changed, 6 insertions(+), 3 deletions(-)
-> >>
-> >> diff --git a/drivers/pci/host/pci-host-generic.c
-> >> b/drivers/pci/host/pci-host-generic.c
-> >> index 5434c90..0e1ce06 100644
-> >> --- a/drivers/pci/host/pci-host-generic.c
-> >> +++ b/drivers/pci/host/pci-host-generic.c
-> >> @@ -215,11 +215,9 @@ static int gen_pci_probe(struct platform_device
-> >> *pdev)
-> >>         const struct of_device_id *of_id;
-> >>         struct device *dev = &pdev->dev;
-> >>         struct device_node *np = dev->of_node;
-> >> -       struct gen_pci *pci = devm_kzalloc(dev, sizeof(*pci), GFP_KERNEL);
-> >> +       struct gen_pci *pci;
-> >>         struct pci_bus *bus, *child;
-> >>
-> >> -       if (!pci)
-> >> -               return -ENOMEM;
-> >>
-> >>         type = of_get_property(np, "device_type", NULL);
-> >>         if (!type || strcmp(type, "pci")) {
-> >> @@ -230,6 +228,11 @@ static int gen_pci_probe(struct platform_device
-> >> *pdev)
-> >>         of_pci_check_probe_only();
-> >>
-> >>         of_id = of_match_node(gen_pci_of_match, np);
-> >> +       set_dev_node(dev, of_node_to_nid(np));
-> >
-> >
-> > This shouldn't be done in individual platform_drivers, but instead in the
-> > device probing code.
-> >
-> > There is code that does this in drivers/of/platform.c and
-> > drivers/of/device.c  Is that not being called for the pci-host-gweneric
-> > devices?  If not, we should figure out why, and perhaps attempt to fix it
-> > rather than doing it here.
-> is it more appropriate to call of_platform_device_create ?
+When a header file is removed from generic-y (often accompanied by the
+addition of an arch specific header), the generated wrapper file will
+persist, and in some cases may still take precedence over the new arch
+header.
 
-That's already done to create the platform device by OF core when
-populating devices from DT, what David suggested is that you should
-add set_dev_node() to core OF code instead of adding it specifically
-to the PCI host generic code.
+For example commit f1fe2d21f4e1 ("MIPS: Add definitions for extended
+context") removed ucontext.h from generic-y in arch/mips/include/asm/,
+and added an arch/mips/include/uapi/asm/ucontext.h. The continued use of
+the wrapper when reusing a dirty build tree resulted in build failures
+in arch/mips/kernel/signal.c:
 
-Lorenzo
+arch/mips/kernel/signal.c: In function ‘sc_to_extcontext’:
+arch/mips/kernel/signal.c:142:12: error: ‘struct ucontext’ has no member named ‘uc_extcontext’
+  return &uc->uc_extcontext;
+            ^
+
+Fix by detecting wrapper headers in generated header directories that do
+not correspond to a filename in generic-y, and removing them.
+
+Reported-by: Jacek Anaszewski <j.anaszewski@samsung.com>
+Reported-by: Hauke Mehrtens <hauke@hauke-m.de>
+Reported-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Michal Marek <mmarek@suse.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Paul Burton <paul.burton@imgtec.com>
+Cc: Florian Fainelli <f.fainelli@gmail.com>
+Cc: linux-kbuild@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+---
+ scripts/Makefile.asm-generic | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/scripts/Makefile.asm-generic b/scripts/Makefile.asm-generic
+index 045e0098e962..7422f6476a8a 100644
+--- a/scripts/Makefile.asm-generic
++++ b/scripts/Makefile.asm-generic
+@@ -21,3 +21,19 @@ all: $(patsubst %, $(obj)/%, $(generic-y))
+ 
+ $(obj)/%.h:
+ 	$(call cmd,wrap)
++
++# Remove stale wrappers when the corresponding files are removed from
++# generic-y
++
++quiet_cmd_rmwrap = REMOVE  $(patsubst %.rm,%,$@)
++cmd_rmwrap = rm -f $(patsubst %.rm, %, $@)
++
++all: $(filter-out $(patsubst %, $(obj)/%.rm, $(generic-y)), \
++                  $(patsubst %, %.rm, $(wildcard $(obj)/*.h)))
++
++$(obj)/%.h.rm: FORCE
++	$(call cmd,rmwrap)
++
++.PHONY: $(PHONY)
++PHONY += FORCE
++FORCE: ;
+-- 
+2.4.10
+
