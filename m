@@ -1,71 +1,266 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 2/2] kbuild: Remove stale asm-generic wrappers
-Date: Tue, 19 Jan 2016 15:27:24 +0100
-Message-ID: <4206493.gjdgtfndZ8@wuerfel>
-References: <1453210670-12596-1-git-send-email-james.hogan@imgtec.com> <1667268.iM977TQnEK@wuerfel> <20160119142213.GA12679@jhogan-linux.le.imgtec.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v4 3/8] param: convert some "on"/"off" users to strtobool
+Date: Tue, 19 Jan 2016 10:08:37 -0800
+Message-ID: <1453226922-16831-4-git-send-email-keescook@chromium.org>
+References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.134]:57930 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756094AbcASO1f convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 09:27:35 -0500
-In-Reply-To: <20160119142213.GA12679@jhogan-linux.le.imgtec.org>
+Received: from mail-pa0-f54.google.com ([209.85.220.54]:33751 "EHLO
+	mail-pa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932510AbcASSIz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 13:08:55 -0500
+Received: by mail-pa0-f54.google.com with SMTP id cy9so455345437pac.0
+        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2016 10:08:55 -0800 (PST)
+In-Reply-To: <1453226922-16831-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: Michal Marek <mmarek@suse.com>, linux-kernel@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
+To: Ingo Molnar <mingo@redhat.com>
+Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
 
-On Tuesday 19 January 2016 14:22:13 James Hogan wrote:
-> On Tue, Jan 19, 2016 at 03:09:14PM +0100, Arnd Bergmann wrote:
-> > On Tuesday 19 January 2016 13:37:50 James Hogan wrote:
-> > > When a header file is removed from generic-y (often accompanied b=
-y the
-> > > addition of an arch specific header), the generated wrapper file =
-will
-> > > persist, and in some cases may still take precedence over the new=
- arch
-> > > header.
-> > >=20
-> > > For example commit f1fe2d21f4e1 ("MIPS: Add definitions for exten=
-ded
-> > > context") removed ucontext.h from generic-y in arch/mips/include/=
-asm/,
-> > > and added an arch/mips/include/uapi/asm/ucontext.h. The continued=
- use of
-> > > the wrapper when reusing a dirty build tree resulted in build fai=
-lures
-> > > in arch/mips/kernel/signal.c:
-> > >=20
-> > > arch/mips/kernel/signal.c: In function =E2=80=98sc_to_extcontext=E2=
-=80=99:
-> > > arch/mips/kernel/signal.c:142:12: error: =E2=80=98struct ucontext=
-=E2=80=99 has no member named =E2=80=98uc_extcontext=E2=80=99
-> > >   return &uc->uc_extcontext;
-> > >             ^
-> > >=20
-> > > Fix by detecting and removing wrapper headers in generated header
-> > > directories that do not correspond to a filename in generic-y, ge=
-nhdr-y,
-> > > or the newly introduced generated-y.
-> >=20
-> > Good idea.
-> >=20
-> > Acked-by: Arnd Bergmann <arnd@arndb.de>
->=20
-> Thanks Arnd
->=20
-> > Can you merge this through the mips tree, or do you need me to pick=
- it
-> > up through asm-generic?
->=20
-> I was envisaging the kbuild tree tbh, but I don't really mind how it
-> gets merged. This patch depends on patch 1, which adds generated-y to
-> x86 so we don't delete their other generated headers, but other than
-> that it doesn't really have any dependencies.
+This changes several users of manual "on"/"off" parsing to use strtobool.
 
-Ok, the kbuild tree works fine too, and I guess the x86 tree would
-also be fine if that helps avoid the dependency.
+Signed-off-by: Kees Cook <keescook@chromium.org>
+---
+ arch/powerpc/kernel/rtasd.c                  | 10 +++-------
+ arch/powerpc/platforms/pseries/hotplug-cpu.c | 11 +++--------
+ arch/s390/kernel/time.c                      |  8 ++------
+ arch/s390/kernel/topology.c                  |  8 +++-----
+ arch/x86/kernel/aperture_64.c                | 13 +++----------
+ kernel/time/hrtimer.c                        | 11 +++--------
+ kernel/time/tick-sched.c                     | 11 +++--------
+ 7 files changed, 20 insertions(+), 52 deletions(-)
 
-	Arnd
+diff --git a/arch/powerpc/kernel/rtasd.c b/arch/powerpc/kernel/rtasd.c
+index 5a2c049c1c61..984e67e91ba3 100644
+--- a/arch/powerpc/kernel/rtasd.c
++++ b/arch/powerpc/kernel/rtasd.c
+@@ -21,6 +21,7 @@
+ #include <linux/cpu.h>
+ #include <linux/workqueue.h>
+ #include <linux/slab.h>
++#include <linux/string.h>
+ 
+ #include <asm/uaccess.h>
+ #include <asm/io.h>
+@@ -49,7 +50,7 @@ static unsigned int rtas_error_log_buffer_max;
+ static unsigned int event_scan;
+ static unsigned int rtas_event_scan_rate;
+ 
+-static int full_rtas_msgs = 0;
++static bool full_rtas_msgs;
+ 
+ /* Stop logging to nvram after first fatal error */
+ static int logging_enabled; /* Until we initialize everything,
+@@ -592,11 +593,6 @@ __setup("surveillance=", surveillance_setup);
+ 
+ static int __init rtasmsgs_setup(char *str)
+ {
+-	if (strcmp(str, "on") == 0)
+-		full_rtas_msgs = 1;
+-	else if (strcmp(str, "off") == 0)
+-		full_rtas_msgs = 0;
+-
+-	return 1;
++	return strtobool(str, &full_rtas_msgs);
+ }
+ __setup("rtasmsgs=", rtasmsgs_setup);
+diff --git a/arch/powerpc/platforms/pseries/hotplug-cpu.c b/arch/powerpc/platforms/pseries/hotplug-cpu.c
+index 32274f72fe3f..bb333e9fd77a 100644
+--- a/arch/powerpc/platforms/pseries/hotplug-cpu.c
++++ b/arch/powerpc/platforms/pseries/hotplug-cpu.c
+@@ -27,6 +27,7 @@
+ #include <linux/cpu.h>
+ #include <linux/of.h>
+ #include <linux/slab.h>
++#include <linux/string.h>
+ #include <asm/prom.h>
+ #include <asm/rtas.h>
+ #include <asm/firmware.h>
+@@ -47,20 +48,14 @@ static DEFINE_PER_CPU(enum cpu_state_vals, current_state) = CPU_STATE_OFFLINE;
+ 
+ static enum cpu_state_vals default_offline_state = CPU_STATE_OFFLINE;
+ 
+-static int cede_offline_enabled __read_mostly = 1;
++static bool cede_offline_enabled __read_mostly = true;
+ 
+ /*
+  * Enable/disable cede_offline when available.
+  */
+ static int __init setup_cede_offline(char *str)
+ {
+-	if (!strcmp(str, "off"))
+-		cede_offline_enabled = 0;
+-	else if (!strcmp(str, "on"))
+-		cede_offline_enabled = 1;
+-	else
+-		return 0;
+-	return 1;
++	return strtobool(str, &cede_offline_enabled);
+ }
+ 
+ __setup("cede_offline=", setup_cede_offline);
+diff --git a/arch/s390/kernel/time.c b/arch/s390/kernel/time.c
+index 99f84ac31307..afc7fc9684ba 100644
+--- a/arch/s390/kernel/time.c
++++ b/arch/s390/kernel/time.c
+@@ -1433,7 +1433,7 @@ device_initcall(etr_init_sysfs);
+ /*
+  * Server Time Protocol (STP) code.
+  */
+-static int stp_online;
++static bool stp_online;
+ static struct stp_sstpi stp_info;
+ static void *stp_page;
+ 
+@@ -1444,11 +1444,7 @@ static struct timer_list stp_timer;
+ 
+ static int __init early_parse_stp(char *p)
+ {
+-	if (strncmp(p, "off", 3) == 0)
+-		stp_online = 0;
+-	else if (strncmp(p, "on", 2) == 0)
+-		stp_online = 1;
+-	return 0;
++	return strtobool(p, &stp_online);
+ }
+ early_param("stp", early_parse_stp);
+ 
+diff --git a/arch/s390/kernel/topology.c b/arch/s390/kernel/topology.c
+index 40b8102fdadb..10e388216307 100644
+--- a/arch/s390/kernel/topology.c
++++ b/arch/s390/kernel/topology.c
+@@ -15,6 +15,7 @@
+ #include <linux/delay.h>
+ #include <linux/init.h>
+ #include <linux/slab.h>
++#include <linux/string.h>
+ #include <linux/cpu.h>
+ #include <linux/smp.h>
+ #include <linux/mm.h>
+@@ -37,7 +38,7 @@ static void set_topology_timer(void);
+ static void topology_work_fn(struct work_struct *work);
+ static struct sysinfo_15_1_x *tl_info;
+ 
+-static int topology_enabled = 1;
++static bool topology_enabled = true;
+ static DECLARE_WORK(topology_work, topology_work_fn);
+ 
+ /*
+@@ -444,10 +445,7 @@ static const struct cpumask *cpu_book_mask(int cpu)
+ 
+ static int __init early_parse_topology(char *p)
+ {
+-	if (strncmp(p, "off", 3))
+-		return 0;
+-	topology_enabled = 0;
+-	return 0;
++	return strtobool(p, &topology_enabled);
+ }
+ early_param("topology", early_parse_topology);
+ 
+diff --git a/arch/x86/kernel/aperture_64.c b/arch/x86/kernel/aperture_64.c
+index 6e85f713641d..6608b00a516a 100644
+--- a/arch/x86/kernel/aperture_64.c
++++ b/arch/x86/kernel/aperture_64.c
+@@ -20,6 +20,7 @@
+ #include <linux/pci_ids.h>
+ #include <linux/pci.h>
+ #include <linux/bitops.h>
++#include <linux/string.h>
+ #include <linux/suspend.h>
+ #include <asm/e820.h>
+ #include <asm/io.h>
+@@ -227,19 +228,11 @@ static u32 __init search_agp_bridge(u32 *order, int *valid_agp)
+ 	return 0;
+ }
+ 
+-static int gart_fix_e820 __initdata = 1;
++static bool gart_fix_e820 __initdata = true;
+ 
+ static int __init parse_gart_mem(char *p)
+ {
+-	if (!p)
+-		return -EINVAL;
+-
+-	if (!strncmp(p, "off", 3))
+-		gart_fix_e820 = 0;
+-	else if (!strncmp(p, "on", 2))
+-		gart_fix_e820 = 1;
+-
+-	return 0;
++	return strtobool(p, &gart_fix_e820);
+ }
+ early_param("gart_fix_e820", parse_gart_mem);
+ 
+diff --git a/kernel/time/hrtimer.c b/kernel/time/hrtimer.c
+index 435b8850dd80..40d82fe4d2a5 100644
+--- a/kernel/time/hrtimer.c
++++ b/kernel/time/hrtimer.c
+@@ -39,6 +39,7 @@
+ #include <linux/syscalls.h>
+ #include <linux/kallsyms.h>
+ #include <linux/interrupt.h>
++#include <linux/string.h>
+ #include <linux/tick.h>
+ #include <linux/seq_file.h>
+ #include <linux/err.h>
+@@ -515,7 +516,7 @@ static inline ktime_t hrtimer_update_base(struct hrtimer_cpu_base *base)
+ /*
+  * High resolution timer enabled ?
+  */
+-static int hrtimer_hres_enabled __read_mostly  = 1;
++static bool hrtimer_hres_enabled __read_mostly  = true;
+ unsigned int hrtimer_resolution __read_mostly = LOW_RES_NSEC;
+ EXPORT_SYMBOL_GPL(hrtimer_resolution);
+ 
+@@ -524,13 +525,7 @@ EXPORT_SYMBOL_GPL(hrtimer_resolution);
+  */
+ static int __init setup_hrtimer_hres(char *str)
+ {
+-	if (!strcmp(str, "off"))
+-		hrtimer_hres_enabled = 0;
+-	else if (!strcmp(str, "on"))
+-		hrtimer_hres_enabled = 1;
+-	else
+-		return 0;
+-	return 1;
++	return strtobool(str, &hrtimer_hres_enabled);
+ }
+ 
+ __setup("highres=", setup_hrtimer_hres);
+diff --git a/kernel/time/tick-sched.c b/kernel/time/tick-sched.c
+index 9cc20af58c76..f5ea98490ffa 100644
+--- a/kernel/time/tick-sched.c
++++ b/kernel/time/tick-sched.c
+@@ -19,6 +19,7 @@
+ #include <linux/percpu.h>
+ #include <linux/profile.h>
+ #include <linux/sched.h>
++#include <linux/string.h>
+ #include <linux/module.h>
+ #include <linux/irq_work.h>
+ #include <linux/posix-timers.h>
+@@ -387,20 +388,14 @@ void __init tick_nohz_init(void)
+ /*
+  * NO HZ enabled ?
+  */
+-static int tick_nohz_enabled __read_mostly  = 1;
++static bool tick_nohz_enabled __read_mostly  = true;
+ unsigned long tick_nohz_active  __read_mostly;
+ /*
+  * Enable / Disable tickless mode
+  */
+ static int __init setup_tick_nohz(char *str)
+ {
+-	if (!strcmp(str, "off"))
+-		tick_nohz_enabled = 0;
+-	else if (!strcmp(str, "on"))
+-		tick_nohz_enabled = 1;
+-	else
+-		return 0;
+-	return 1;
++	return strtobool(str, &tick_nohz_enabled);
+ }
+ 
+ __setup("nohz=", setup_tick_nohz);
+-- 
+2.6.3
