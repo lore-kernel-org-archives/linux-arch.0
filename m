@@ -1,38 +1,48 @@
 From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH] Rename is_compat_task to in_compat_syscall
-Date: Tue, 19 Jan 2016 17:16:43 -0500 (EST)
-Message-ID: <20160119.171643.1125867148856105860.davem@davemloft.net>
-References: <79347eb4ec12be34098b36693bcf613eb597cbe9.1453239942.git.luto@kernel.org>
-	<20160119215535.GU17997@ZenIV.linux.org.uk>
+Subject: Re: SPARC issue
+Date: Tue, 19 Jan 2016 17:18:49 -0500 (EST)
+Message-ID: <20160119.171849.2126169792640472591.davem@davemloft.net>
+References: <CALCETrVso3Dd7qyf0FMDB7_nFK0wtX6_SrE7rcd48ZE_rOkFQw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:55908 "EHLO
+Received: from shards.monkeyblade.net ([149.20.54.216]:55924 "EHLO
 	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933070AbcASWQr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 17:16:47 -0500
-In-Reply-To: <20160119215535.GU17997@ZenIV.linux.org.uk>
+	with ESMTP id S932252AbcASWSw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 17:18:52 -0500
+In-Reply-To: <CALCETrVso3Dd7qyf0FMDB7_nFK0wtX6_SrE7rcd48ZE_rOkFQw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: viro@ZenIV.linux.org.uk
-Cc: luto@kernel.org, torvalds@linux-foundation.org, mingo@kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org
+To: luto@amacapital.net
+Cc: viro@zeniv.linux.org.uk, luto@kernel.org, torvalds@linux-foundation.org, mingo@kernel.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, keescook@chromium.org
 
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Date: Tue, 19 Jan 2016 21:55:36 +0000
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Tue, 19 Jan 2016 14:14:43 -0800
 
-> On Tue, Jan 19, 2016 at 01:47:24PM -0800, Andy Lutomirski wrote:
->> Essentially all users of is_compat_task in the kernel are trying to
->> determine whether they are executing in the context of a compat
->> syscall.  On at least x86_64 and sparc, these are not at all the
->> same question.
->> 
->> On x86_64 and sparc, therefore, is_compat_task doesn't return the
->> overall compat state of the task; it returns true if the task is
->> currently in a compat syscall.
+> On Tue, Jan 19, 2016 at 1:55 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+>> On Tue, Jan 19, 2016 at 01:47:24PM -0800, Andy Lutomirski wrote:
+>>> Essentially all users of is_compat_task in the kernel are trying to
+>>> determine whether they are executing in the context of a compat
+>>> syscall.  On at least x86_64 and sparc, these are not at all the
+>>> same question.
+>>>
+>>> On x86_64 and sparc, therefore, is_compat_task doesn't return the
+>>> overall compat state of the task; it returns true if the task is
+>>> currently in a compat syscall.
+>>
+>> The hell it does.  Andy, TIF_32BIT is *NOT* set on syscall entry; it is
+>> set by execve().  And 64bit task (with that bit clear) can bloody well
+>> issue 32bit syscalls.  Really.
 > 
-> The hell it does.  Andy, TIF_32BIT is *NOT* set on syscall entry; it is
-> set by execve().  And 64bit task (with that bit clear) can bloody well
-> issue 32bit syscalls.  Really.
+> It does on x86.  It does not on sparc.  But syscall_get_arch on sparc
+> *also* doesn't appear to work right.
+> 
+> davem, how can I check the current syscall bitness on sparc?  It's not
+> obvious to me that it's possible.
 
-Correct.
+You have to do it by context if it's important.
+
+In addition to the example Al gave, 32-bit processes can make 64-bit
+syscalls too.  GDB and other ptrace() using applications can use this
+to trace 64-bit programs from 32-bit tracer apps.
