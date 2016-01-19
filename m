@@ -1,64 +1,101 @@
-From: Davidlohr Bueso <dave@stgolabs.net>
-Subject: Re: virtio pull for 4.5 (was Re: [PULL] virtio: barrier rework+fixes)
-Date: Mon, 18 Jan 2016 11:07:53 -0800
-Message-ID: <20160118190753.GC27825@linux-uzut.site>
-References: <20160113182855-mutt-send-email-mst@redhat.com>
-	<20160118152028-mutt-send-email-mst@redhat.com>
+From: Ganapatrao Kulkarni <gpkulkarni@gmail.com>
+Subject: Re: [PATCH v9 5/6] PCI: generic: Make pci-host-generic driver numa aware
+Date: Tue, 19 Jan 2016 11:28:56 +0530
+Message-ID: <CAFpQJXXESn1EA5kotVOH2oLbRUSpOLf6+MeWG1pY_GhUP+4vVQ@mail.gmail.com>
+References: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com>
+	<1453134965-6125-6-git-send-email-gkulkarni@caviumnetworks.com>
+	<569D23AF.9050503@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <20160118152028-mutt-send-email-mst@redhat.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: aquini@redhat.com, kvm@vger.kernel.org, peterz@infradead.org, benh@kernel.crashing.org, heiko.carstens@de.ibm.com, alexander.duyck@gmail.com, virtualization@lists.linux-foundation.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux@arm.linux.org.uk, dbueso@suse.de, richard@nod.at, bjorn.andersson@sonymobile.com, rmk+kernel@arm.linux.org.uk, paulmck@linux.vnet.ibm.com, james.hogan@imgtec.com, arnd@arndb.de, julian.calaby@gmail.com, boqun.feng@gmail.com, schwidefsky@de.ibm.com, stefanha@redhat.com, tglx@linutronix.de, tony.luck@intel.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, stable@vger.kernel.org, minchan@kernel.org, david.vrabel@citrix.com, joe@perches.com, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, davem@davemloft.net
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:35714 "EHLO
+	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751109AbcASF67 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 00:58:59 -0500
+In-Reply-To: <569D23AF.9050503@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Daney <ddaney.cavm@gmail.com>, Will Deacon <Will.Deacon@arm.com>, Bjorn Helgaas <bhelgaas@google.com>
+Cc: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Grant Likely <grant.likely@linaro.org>, Leif Lindholm <leif.lindholm@linaro.org>, rfranz@cavium.com, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "msalter@redhat.com" <msalter@redhat.com>, Rob Herring <robh+dt@kernel.org>, Steve Capper <steve.capper@linaro.org>, Hanjun Guo <hanjun.guo@linaro.org>, Al Stone <al.stone@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Pawel
 
-On Mon, 18 Jan 2016, Michael S. Tsirkin wrote:
-
->Hi Linus,
->Just making sure nothing's wrong with this pull request.
->If there's an issue, pls let me know!
->Thanks!
+On Mon, Jan 18, 2016 at 11:11 PM, David Daney <ddaney.cavm@gmail.com> wrote:
+> On 01/18/2016 08:36 AM, Ganapatrao Kulkarni wrote:
+>>
+>> update numa_node of device associated with pci bus.
+>> moved down devm_kzalloc to allocate from node memory.
+>>
+>> Signed-off-by: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
+>> ---
+>>   drivers/pci/host/pci-host-generic.c | 9 ++++++---
+>>   1 file changed, 6 insertions(+), 3 deletions(-)
+>>
+>> diff --git a/drivers/pci/host/pci-host-generic.c
+>> b/drivers/pci/host/pci-host-generic.c
+>> index 5434c90..0e1ce06 100644
+>> --- a/drivers/pci/host/pci-host-generic.c
+>> +++ b/drivers/pci/host/pci-host-generic.c
+>> @@ -215,11 +215,9 @@ static int gen_pci_probe(struct platform_device
+>> *pdev)
+>>         const struct of_device_id *of_id;
+>>         struct device *dev = &pdev->dev;
+>>         struct device_node *np = dev->of_node;
+>> -       struct gen_pci *pci = devm_kzalloc(dev, sizeof(*pci), GFP_KERNEL);
+>> +       struct gen_pci *pci;
+>>         struct pci_bus *bus, *child;
+>>
+>> -       if (!pci)
+>> -               return -ENOMEM;
+>>
+>>         type = of_get_property(np, "device_type", NULL);
+>>         if (!type || strcmp(type, "pci")) {
+>> @@ -230,6 +228,11 @@ static int gen_pci_probe(struct platform_device
+>> *pdev)
+>>         of_pci_check_probe_only();
+>>
+>>         of_id = of_match_node(gen_pci_of_match, np);
+>> +       set_dev_node(dev, of_node_to_nid(np));
 >
->On Wed, Jan 13, 2016 at 06:28:55PM +0200, Michael S. Tsirkin wrote:
->> The following changes since commit afd2ff9b7e1b367172f18ba7f693dfb62bdcb2dc:
->>
->>   Linux 4.4 (2016-01-10 15:01:32 -0800)
->>
->> are available in the git repository at:
->>
->>   git://git.kernel.org/pub/scm/linux/kernel/git/mst/vhost.git tags/for_linus
->>
->> for you to fetch changes up to 43e361f23c49dbddf74f56ddf6cdd85c5dbff6da:
->>
->>   checkpatch: add virt barriers (2016-01-12 20:47:08 +0200)
->>
->> ----------------------------------------------------------------
->> virtio: barrier rework+fixes
->>
->> This adds a new kind of barrier, and reworks virtio and xen
->> to use it.
->> Plus some fixes here and there.
->>
->> Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
->>
->> ----------------------------------------------------------------
->>
->> Yes I know that the patch by Davidlohr Bueso has a typo in the subject :(
->>
->> Davidlohr Bueso (1):
->>       lcoking/barriers, arch: Use smp barriers in smp_store_release()
+>
+> This shouldn't be done in individual platform_drivers, but instead in the
+> device probing code.
+>
+> There is code that does this in drivers/of/platform.c and
+> drivers/of/device.c  Is that not being called for the pci-host-gweneric
+> devices?  If not, we should figure out why, and perhaps attempt to fix it
+> rather than doing it here.
+is it more appropriate to call of_platform_device_create ?
 
-fyi this arrived in Linus' tree through Ingo's pull request for -tip:
+--- a/drivers/pci/host/pci-host-generic.c
++++ b/drivers/pci/host/pci-host-generic.c
+@@ -24,6 +24,7 @@
+ #include <linux/of_address.h>
+ #include <linux/of_pci.h>
+ #include <linux/platform_device.h>
++#include <linux/of_platform.h>
 
-https://lkml.org/lkml/2016/1/11/319
+ struct gen_pci;
+
+@@ -466,7 +467,7 @@ static int gen_pci_probe(struct platform_device *pdev)
+        of_pci_check_probe_only();
+
+        of_id = of_match_node(gen_pci_of_match, np);
+-       set_dev_node(dev, of_node_to_nid(np));
++       of_platform_device_create(np, NULL, NULL);
+        pci = devm_kzalloc(dev, sizeof(*pci), GFP_KERNEL);
+        if (!pci)
+                return -ENOMEM;
+
+>
+>
+>
+>> +       pci = devm_kzalloc(dev, sizeof(*pci), GFP_KERNEL);
+>> +       if (!pci)
+>> +               return -ENOMEM;
+>> +
+>>         pci->cfg.ops = (struct gen_pci_cfg_bus_ops *)of_id->data;
+>>         pci->host.dev.parent = dev;
+>>         INIT_LIST_HEAD(&pci->host.windows);
+>>
+>
+thanks
+Ganapat
