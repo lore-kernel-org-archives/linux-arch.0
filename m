@@ -1,62 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [195.59.15.196] ([195.59.15.196]:62866 "EHLO
-	mailapp01.imgtec.com" rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org
-	with ESMTP id S1755313AbcASNiU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 08:38:20 -0500
-From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v2 0/2] kbuild: Remove stale asm-generic wrappers
-Date: Tue, 19 Jan 2016 13:37:48 +0000
-Message-ID: <1453210670-12596-1-git-send-email-james.hogan@imgtec.com>
+Received: from mout.kundenserver.de ([212.227.126.187]:57176 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754117AbcASOJa convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 09:09:30 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 2/2] kbuild: Remove stale asm-generic wrappers
+Date: Tue, 19 Jan 2016 15:09:14 +0100
+Message-ID: <1667268.iM977TQnEK@wuerfel>
+In-Reply-To: <1453210670-12596-3-git-send-email-james.hogan@imgtec.com>
+References: <1453210670-12596-1-git-send-email-james.hogan@imgtec.com> <1453210670-12596-3-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset="utf-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Marek <mmarek@suse.com>
-Cc: linux-kernel@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, James Hogan <james.hogan@imgtec.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Jonathan Corbet <corbet@lwn.net>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, linux-kbuild@vger.kernel.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
-Message-ID: <20160119133748.S_gZ0lF1ktgosBe-oyVec8aLyeSGMSGZNrL0rIE4i9U@z>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: Michal Marek <mmarek@suse.com>, linux-kernel@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
+Message-ID: <20160119140914.NFfDey-brSUdSHZ1la7VlBnTRq4364M1mtUEfsX91S8@z>
 
-This patchset attempts to fix kbuild to automatically remove stale
-asm-generic wrappers, i.e. when files are removed from generic-y and
-added directly into arch/*/include/uapi/asm/, but where the existing
-wrapper in arch/*/include/generated/asm/ continues to be used.
+On Tuesday 19 January 2016 13:37:50 James Hogan wrote:
+> When a header file is removed from generic-y (often accompanied by the
+> addition of an arch specific header), the generated wrapper file will
+> persist, and in some cases may still take precedence over the new arch
+> header.
+> 
+> For example commit f1fe2d21f4e1 ("MIPS: Add definitions for extended
+> context") removed ucontext.h from generic-y in arch/mips/include/asm/,
+> and added an arch/mips/include/uapi/asm/ucontext.h. The continued use of
+> the wrapper when reusing a dirty build tree resulted in build failures
+> in arch/mips/kernel/signal.c:
+> 
+> arch/mips/kernel/signal.c: In function ‘sc_to_extcontext’:
+> arch/mips/kernel/signal.c:142:12: error: ‘struct ucontext’ has no member named ‘uc_extcontext’
+>   return &uc->uc_extcontext;
+>             ^
+> 
+> Fix by detecting and removing wrapper headers in generated header
+> directories that do not correspond to a filename in generic-y, genhdr-y,
+> or the newly introduced generated-y.
 
-MIPS was recently burned by this in v4.3 (see patch 2), with continuing
-reports of build failures when people upgrade their trees, which go away
-after arch/mips/include/generated is removed (or reportedly make
-mrproper/distclean). It is particularly irritating during bisection.
+Good idea.
 
-Changes in v2:
-- New patch 1 to add tracking of generated headers that aren't generic-y
-  wrappers, via generated-y, particularly for x86 (thanks to kbuild test
-  robot).
-- Rewrite a bit, drawing inspiration from Makefile.headersinst.
-- Exclude genhdr-y and generated-y (thanks to kbuild test robot).
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-James Hogan (2):
-  kbuild, x86: Track generated headers with generated-y
-  kbuild: Remove stale asm-generic wrappers
-
- Documentation/kbuild/makefiles.txt | 14 ++++++++++++++
- arch/x86/include/asm/Kbuild        |  6 ++++++
- scripts/Makefile.asm-generic       | 17 ++++++++++++++++-
- 3 files changed, 36 insertions(+), 1 deletion(-)
-
-Cc: Michal Marek <mmarek@suse.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Jonathan Corbet <corbet@lwn.net>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Paul Burton <paul.burton@imgtec.com>
-Cc: Florian Fainelli <f.fainelli@gmail.com>
-Cc: Heinrich Schuchardt <xypron.glpk@gmx.de>
-Cc: linux-kbuild@vger.kernel.org
-Cc: x86@kernel.org
-Cc: linux-doc@vger.kernel.org
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mips@linux-mips.org
--- 
-2.4.10
-
+Can you merge this through the mips tree, or do you need me to pick it
+up through asm-generic?
