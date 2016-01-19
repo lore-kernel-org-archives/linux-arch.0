@@ -1,121 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f52.google.com ([209.85.220.52]:35563 "EHLO
+Received: from mail-pa0-f52.google.com ([209.85.220.52]:36544 "EHLO
 	mail-pa0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932624AbcASSI4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 13:08:56 -0500
-Received: by mail-pa0-f52.google.com with SMTP id ho8so194365738pac.2
-        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2016 10:08:56 -0800 (PST)
+	with ESMTP id S932734AbcASSI6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 13:08:58 -0500
+Received: by mail-pa0-f52.google.com with SMTP id yy13so362460845pab.3
+        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2016 10:08:57 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 4/8] init: create cmdline param to disable readonly
-Date: Tue, 19 Jan 2016 10:08:38 -0800
-Message-ID: <1453226922-16831-5-git-send-email-keescook@chromium.org>
+Subject: [PATCH v4 7/8] lkdtm: verify that __ro_after_init works correctly
+Date: Tue, 19 Jan 2016 10:08:41 -0800
+Message-ID: <1453226922-16831-8-git-send-email-keescook@chromium.org>
 In-Reply-To: <1453226922-16831-1-git-send-email-keescook@chromium.org>
 References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@redhat.com>
 Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20160119180838.l1RiZ2oQ9Jik1EIw6Bq9YrvbWv80DCME3E5m0FgSOgM@z>
+Message-ID: <20160119180841._sMokWvhKTVZLc2KLo8upTr4O9jT4xfvoWCGzQIab0c@z>
 
-It may be useful to debug writes to the readonly sections of memory,
-so provide a cmdline "rodata=off" to allow for this. This can be
-expanded in the future to support "log" and "write" modes, but that
-will need to be architecture-specific.
+The new __ro_after_init section should be writable before init, but
+not after. Validate that it gets updated at init and can't be written
+to afterwards.
 
-Suggested-by: H. Peter Anvin <hpa@zytor.com>
 Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- Documentation/kernel-parameters.txt |  4 ++++
- init/main.c                         | 27 +++++++++++++++++++++++----
- kernel/debug/kdb/kdb_bp.c           |  4 +---
- 3 files changed, 28 insertions(+), 7 deletions(-)
+ drivers/misc/lkdtm.c | 29 ++++++++++++++++++++++++++---
+ 1 file changed, 26 insertions(+), 3 deletions(-)
 
-diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-parameters.txt
-index 3ea869d7a31c..bf4820c53992 100644
---- a/Documentation/kernel-parameters.txt
-+++ b/Documentation/kernel-parameters.txt
-@@ -3450,6 +3450,10 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
+diff --git a/drivers/misc/lkdtm.c b/drivers/misc/lkdtm.c
+index 11fdadc68e53..2a6eaf1122b4 100644
+--- a/drivers/misc/lkdtm.c
++++ b/drivers/misc/lkdtm.c
+@@ -103,6 +103,7 @@ enum ctype {
+ 	CT_EXEC_USERSPACE,
+ 	CT_ACCESS_USERSPACE,
+ 	CT_WRITE_RO,
++	CT_WRITE_RO_AFTER_INIT,
+ 	CT_WRITE_KERN,
+ };
  
- 	ro		[KNL] Mount root device read-only on boot
+@@ -140,6 +141,7 @@ static char* cp_type[] = {
+ 	"EXEC_USERSPACE",
+ 	"ACCESS_USERSPACE",
+ 	"WRITE_RO",
++	"WRITE_RO_AFTER_INIT",
+ 	"WRITE_KERN",
+ };
  
-+	rodata=		[KNL]
-+		on	Mark read-only kernel memory as read-only (default).
-+		off	Leave read-only kernel memory writable for debugging.
-+
- 	root=		[KNL] Root filesystem
- 			See name_to_dev_t comment in init/do_mounts.c.
+@@ -162,6 +164,7 @@ static DEFINE_SPINLOCK(lock_me_up);
+ static u8 data_area[EXEC_SIZE];
  
-diff --git a/init/main.c b/init/main.c
-index c6ebefafa496..93dfb300cdfd 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -93,9 +93,6 @@ static int kernel_init(void *);
- extern void init_IRQ(void);
- extern void fork_init(void);
- extern void radix_tree_init(void);
--#ifndef CONFIG_DEBUG_RODATA
--static inline void mark_rodata_ro(void) { }
--#endif
+ static const unsigned long rodata = 0xAA55AA55;
++static unsigned long ro_after_init __ro_after_init = 0x55AA5500;
  
- /*
-  * Debug helper: via this flag we know that we are in 'early bootup code'
-@@ -929,6 +926,28 @@ static int try_to_run_init_process(const char *init_filename)
- 
- static noinline void __init kernel_init_freeable(void);
- 
-+#ifdef CONFIG_DEBUG_RODATA
-+static bool rodata_enabled = true;
-+static int __init set_debug_rodata(char *str)
-+{
-+	return strtobool(str, &rodata_enabled);
-+}
-+__setup("rodata=", set_debug_rodata);
-+
-+static void mark_readonly(void)
-+{
-+	if (rodata_enabled)
-+		mark_rodata_ro();
-+	else
-+		pr_info("Kernel memory protection disabled.\n");
-+}
-+#else
-+static inline void mark_readonly(void)
-+{
-+	pr_warn("This architecture does not have kernel memory protection.\n");
-+}
-+#endif
-+
- static int __ref kernel_init(void *unused)
- {
- 	int ret;
-@@ -937,7 +956,7 @@ static int __ref kernel_init(void *unused)
- 	/* need to finish all async __init code before freeing the memory */
- 	async_synchronize_full();
- 	free_initmem();
--	mark_rodata_ro();
-+	mark_readonly();
- 	system_state = SYSTEM_RUNNING;
- 	numa_default_policy();
- 
-diff --git a/kernel/debug/kdb/kdb_bp.c b/kernel/debug/kdb/kdb_bp.c
-index e1dbf4a2c69e..90ff129c88a2 100644
---- a/kernel/debug/kdb/kdb_bp.c
-+++ b/kernel/debug/kdb/kdb_bp.c
-@@ -153,13 +153,11 @@ static int _kdb_bp_install(struct pt_regs *regs, kdb_bp_t *bp)
- 	} else {
- 		kdb_printf("%s: failed to set breakpoint at 0x%lx\n",
- 			   __func__, bp->bp_addr);
--#ifdef CONFIG_DEBUG_RODATA
- 		if (!bp->bp_type) {
- 			kdb_printf("Software breakpoints are unavailable.\n"
--				   "  Change the kernel CONFIG_DEBUG_RODATA=n\n"
-+				   "  Boot the kernel with rodata=off\n"
- 				   "  OR use hw breaks: help bph\n");
- 		}
--#endif
- 		return 1;
+ module_param(recur_count, int, 0644);
+ MODULE_PARM_DESC(recur_count, " Recursion level for the stack overflow test");
+@@ -503,11 +506,28 @@ static void lkdtm_do_action(enum ctype which)
+ 		break;
  	}
- 	return 0;
+ 	case CT_WRITE_RO: {
+-		unsigned long *ptr;
++		/* Explicitly cast away "const" for the test. */
++		unsigned long *ptr = (unsigned long *)&rodata;
+ 
+-		ptr = (unsigned long *)&rodata;
++		pr_info("attempting bad rodata write at %p\n", ptr);
++		*ptr ^= 0xabcd1234;
+ 
+-		pr_info("attempting bad write at %p\n", ptr);
++		break;
++	}
++	case CT_WRITE_RO_AFTER_INIT: {
++		unsigned long *ptr = &ro_after_init;
++
++		/*
++		 * Verify we were written to during init. Since an Oops
++		 * is considered a "success", a failure is to just skip the
++		 * real test.
++		 */
++		if ((*ptr & 0xAA) != 0xAA) {
++			pr_info("%p was NOT written during init!?\n", ptr);
++			break;
++		}
++
++		pr_info("attempting bad ro_after_init write at %p\n", ptr);
+ 		*ptr ^= 0xabcd1234;
+ 
+ 		break;
+@@ -817,6 +837,9 @@ static int __init lkdtm_module_init(void)
+ 	int n_debugfs_entries = 1; /* Assume only the direct entry */
+ 	int i;
+ 
++	/* Make sure we can write to __ro_after_init values during __init */
++	ro_after_init |= 0xAA;
++
+ 	/* Register debugfs interface */
+ 	lkdtm_debugfs_root = debugfs_create_dir("provoke-crash", NULL);
+ 	if (!lkdtm_debugfs_root) {
 -- 
 2.6.3
 
