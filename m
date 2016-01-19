@@ -1,266 +1,102 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 3/8] param: convert some "on"/"off" users to strtobool
-Date: Tue, 19 Jan 2016 10:08:37 -0800
-Message-ID: <1453226922-16831-4-git-send-email-keescook@chromium.org>
+Subject: [PATCH v4 1/8] asm-generic: consolidate mark_rodata_ro()
+Date: Tue, 19 Jan 2016 10:08:35 -0800
+Message-ID: <1453226922-16831-2-git-send-email-keescook@chromium.org>
 References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f54.google.com ([209.85.220.54]:33751 "EHLO
-	mail-pa0-f54.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932510AbcASSIz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 13:08:55 -0500
-Received: by mail-pa0-f54.google.com with SMTP id cy9so455345437pac.0
-        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2016 10:08:55 -0800 (PST)
+Received: from mail-pa0-f53.google.com ([209.85.220.53]:33754 "EHLO
+	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932533AbcASSI4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 13:08:56 -0500
+Received: by mail-pa0-f53.google.com with SMTP id cy9so455345528pac.0
+        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2016 10:08:56 -0800 (PST)
 In-Reply-To: <1453226922-16831-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@redhat.com>
-Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
 
-This changes several users of manual "on"/"off" parsing to use strtobool.
+Instead of defining mark_rodata_ro() in each architecture, consolidate it.
 
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
 ---
- arch/powerpc/kernel/rtasd.c                  | 10 +++-------
- arch/powerpc/platforms/pseries/hotplug-cpu.c | 11 +++--------
- arch/s390/kernel/time.c                      |  8 ++------
- arch/s390/kernel/topology.c                  |  8 +++-----
- arch/x86/kernel/aperture_64.c                | 13 +++----------
- kernel/time/hrtimer.c                        | 11 +++--------
- kernel/time/tick-sched.c                     | 11 +++--------
- 7 files changed, 20 insertions(+), 52 deletions(-)
+ arch/arm/include/asm/cacheflush.h    | 1 -
+ arch/arm64/include/asm/cacheflush.h  | 4 ----
+ arch/parisc/include/asm/cacheflush.h | 4 ----
+ arch/x86/include/asm/cacheflush.h    | 1 -
+ include/linux/init.h                 | 4 ++++
+ 5 files changed, 4 insertions(+), 10 deletions(-)
 
-diff --git a/arch/powerpc/kernel/rtasd.c b/arch/powerpc/kernel/rtasd.c
-index 5a2c049c1c61..984e67e91ba3 100644
---- a/arch/powerpc/kernel/rtasd.c
-+++ b/arch/powerpc/kernel/rtasd.c
-@@ -21,6 +21,7 @@
- #include <linux/cpu.h>
- #include <linux/workqueue.h>
- #include <linux/slab.h>
-+#include <linux/string.h>
+diff --git a/arch/arm/include/asm/cacheflush.h b/arch/arm/include/asm/cacheflush.h
+index d5525bfc7e3e..9156fc303afd 100644
+--- a/arch/arm/include/asm/cacheflush.h
++++ b/arch/arm/include/asm/cacheflush.h
+@@ -491,7 +491,6 @@ static inline int set_memory_nx(unsigned long addr, int numpages) { return 0; }
+ #endif
  
- #include <asm/uaccess.h>
- #include <asm/io.h>
-@@ -49,7 +50,7 @@ static unsigned int rtas_error_log_buffer_max;
- static unsigned int event_scan;
- static unsigned int rtas_event_scan_rate;
+ #ifdef CONFIG_DEBUG_RODATA
+-void mark_rodata_ro(void);
+ void set_kernel_text_rw(void);
+ void set_kernel_text_ro(void);
+ #else
+diff --git a/arch/arm64/include/asm/cacheflush.h b/arch/arm64/include/asm/cacheflush.h
+index 7fc294c3bc5b..22dda613f9c9 100644
+--- a/arch/arm64/include/asm/cacheflush.h
++++ b/arch/arm64/include/asm/cacheflush.h
+@@ -156,8 +156,4 @@ int set_memory_rw(unsigned long addr, int numpages);
+ int set_memory_x(unsigned long addr, int numpages);
+ int set_memory_nx(unsigned long addr, int numpages);
  
--static int full_rtas_msgs = 0;
-+static bool full_rtas_msgs;
- 
- /* Stop logging to nvram after first fatal error */
- static int logging_enabled; /* Until we initialize everything,
-@@ -592,11 +593,6 @@ __setup("surveillance=", surveillance_setup);
- 
- static int __init rtasmsgs_setup(char *str)
- {
--	if (strcmp(str, "on") == 0)
--		full_rtas_msgs = 1;
--	else if (strcmp(str, "off") == 0)
--		full_rtas_msgs = 0;
+-#ifdef CONFIG_DEBUG_RODATA
+-void mark_rodata_ro(void);
+-#endif
 -
--	return 1;
-+	return strtobool(str, &full_rtas_msgs);
- }
- __setup("rtasmsgs=", rtasmsgs_setup);
-diff --git a/arch/powerpc/platforms/pseries/hotplug-cpu.c b/arch/powerpc/platforms/pseries/hotplug-cpu.c
-index 32274f72fe3f..bb333e9fd77a 100644
---- a/arch/powerpc/platforms/pseries/hotplug-cpu.c
-+++ b/arch/powerpc/platforms/pseries/hotplug-cpu.c
-@@ -27,6 +27,7 @@
- #include <linux/cpu.h>
- #include <linux/of.h>
- #include <linux/slab.h>
-+#include <linux/string.h>
- #include <asm/prom.h>
- #include <asm/rtas.h>
- #include <asm/firmware.h>
-@@ -47,20 +48,14 @@ static DEFINE_PER_CPU(enum cpu_state_vals, current_state) = CPU_STATE_OFFLINE;
- 
- static enum cpu_state_vals default_offline_state = CPU_STATE_OFFLINE;
- 
--static int cede_offline_enabled __read_mostly = 1;
-+static bool cede_offline_enabled __read_mostly = true;
- 
- /*
-  * Enable/disable cede_offline when available.
-  */
- static int __init setup_cede_offline(char *str)
- {
--	if (!strcmp(str, "off"))
--		cede_offline_enabled = 0;
--	else if (!strcmp(str, "on"))
--		cede_offline_enabled = 1;
--	else
--		return 0;
--	return 1;
-+	return strtobool(str, &cede_offline_enabled);
+ #endif
+diff --git a/arch/parisc/include/asm/cacheflush.h b/arch/parisc/include/asm/cacheflush.h
+index 845272ce9cc5..7bd69bd43a01 100644
+--- a/arch/parisc/include/asm/cacheflush.h
++++ b/arch/parisc/include/asm/cacheflush.h
+@@ -121,10 +121,6 @@ flush_anon_page(struct vm_area_struct *vma, struct page *page, unsigned long vma
+ 	}
  }
  
- __setup("cede_offline=", setup_cede_offline);
-diff --git a/arch/s390/kernel/time.c b/arch/s390/kernel/time.c
-index 99f84ac31307..afc7fc9684ba 100644
---- a/arch/s390/kernel/time.c
-+++ b/arch/s390/kernel/time.c
-@@ -1433,7 +1433,7 @@ device_initcall(etr_init_sysfs);
- /*
-  * Server Time Protocol (STP) code.
-  */
--static int stp_online;
-+static bool stp_online;
- static struct stp_sstpi stp_info;
- static void *stp_page;
- 
-@@ -1444,11 +1444,7 @@ static struct timer_list stp_timer;
- 
- static int __init early_parse_stp(char *p)
- {
--	if (strncmp(p, "off", 3) == 0)
--		stp_online = 0;
--	else if (strncmp(p, "on", 2) == 0)
--		stp_online = 1;
--	return 0;
-+	return strtobool(p, &stp_online);
- }
- early_param("stp", early_parse_stp);
- 
-diff --git a/arch/s390/kernel/topology.c b/arch/s390/kernel/topology.c
-index 40b8102fdadb..10e388216307 100644
---- a/arch/s390/kernel/topology.c
-+++ b/arch/s390/kernel/topology.c
-@@ -15,6 +15,7 @@
- #include <linux/delay.h>
- #include <linux/init.h>
- #include <linux/slab.h>
-+#include <linux/string.h>
- #include <linux/cpu.h>
- #include <linux/smp.h>
- #include <linux/mm.h>
-@@ -37,7 +38,7 @@ static void set_topology_timer(void);
- static void topology_work_fn(struct work_struct *work);
- static struct sysinfo_15_1_x *tl_info;
- 
--static int topology_enabled = 1;
-+static bool topology_enabled = true;
- static DECLARE_WORK(topology_work, topology_work_fn);
- 
- /*
-@@ -444,10 +445,7 @@ static const struct cpumask *cpu_book_mask(int cpu)
- 
- static int __init early_parse_topology(char *p)
- {
--	if (strncmp(p, "off", 3))
--		return 0;
--	topology_enabled = 0;
--	return 0;
-+	return strtobool(p, &topology_enabled);
- }
- early_param("topology", early_parse_topology);
- 
-diff --git a/arch/x86/kernel/aperture_64.c b/arch/x86/kernel/aperture_64.c
-index 6e85f713641d..6608b00a516a 100644
---- a/arch/x86/kernel/aperture_64.c
-+++ b/arch/x86/kernel/aperture_64.c
-@@ -20,6 +20,7 @@
- #include <linux/pci_ids.h>
- #include <linux/pci.h>
- #include <linux/bitops.h>
-+#include <linux/string.h>
- #include <linux/suspend.h>
- #include <asm/e820.h>
- #include <asm/io.h>
-@@ -227,19 +228,11 @@ static u32 __init search_agp_bridge(u32 *order, int *valid_agp)
- 	return 0;
- }
- 
--static int gart_fix_e820 __initdata = 1;
-+static bool gart_fix_e820 __initdata = true;
- 
- static int __init parse_gart_mem(char *p)
- {
--	if (!p)
--		return -EINVAL;
+-#ifdef CONFIG_DEBUG_RODATA
+-void mark_rodata_ro(void);
+-#endif
 -
--	if (!strncmp(p, "off", 3))
--		gart_fix_e820 = 0;
--	else if (!strncmp(p, "on", 2))
--		gart_fix_e820 = 1;
--
--	return 0;
-+	return strtobool(p, &gart_fix_e820);
- }
- early_param("gart_fix_e820", parse_gart_mem);
+ #include <asm/kmap_types.h>
  
-diff --git a/kernel/time/hrtimer.c b/kernel/time/hrtimer.c
-index 435b8850dd80..40d82fe4d2a5 100644
---- a/kernel/time/hrtimer.c
-+++ b/kernel/time/hrtimer.c
-@@ -39,6 +39,7 @@
- #include <linux/syscalls.h>
- #include <linux/kallsyms.h>
- #include <linux/interrupt.h>
-+#include <linux/string.h>
- #include <linux/tick.h>
- #include <linux/seq_file.h>
- #include <linux/err.h>
-@@ -515,7 +516,7 @@ static inline ktime_t hrtimer_update_base(struct hrtimer_cpu_base *base)
- /*
-  * High resolution timer enabled ?
-  */
--static int hrtimer_hres_enabled __read_mostly  = 1;
-+static bool hrtimer_hres_enabled __read_mostly  = true;
- unsigned int hrtimer_resolution __read_mostly = LOW_RES_NSEC;
- EXPORT_SYMBOL_GPL(hrtimer_resolution);
+ #define ARCH_HAS_KMAP
+diff --git a/arch/x86/include/asm/cacheflush.h b/arch/x86/include/asm/cacheflush.h
+index e63aa38e85fb..c8cff75c5b21 100644
+--- a/arch/x86/include/asm/cacheflush.h
++++ b/arch/x86/include/asm/cacheflush.h
+@@ -92,7 +92,6 @@ void clflush_cache_range(void *addr, unsigned int size);
+ #define mmio_flush_range(addr, size) clflush_cache_range(addr, size)
  
-@@ -524,13 +525,7 @@ EXPORT_SYMBOL_GPL(hrtimer_resolution);
-  */
- static int __init setup_hrtimer_hres(char *str)
- {
--	if (!strcmp(str, "off"))
--		hrtimer_hres_enabled = 0;
--	else if (!strcmp(str, "on"))
--		hrtimer_hres_enabled = 1;
--	else
--		return 0;
--	return 1;
-+	return strtobool(str, &hrtimer_hres_enabled);
- }
+ #ifdef CONFIG_DEBUG_RODATA
+-void mark_rodata_ro(void);
+ extern const int rodata_test_data;
+ extern int kernel_set_to_readonly;
+ void set_kernel_text_rw(void);
+diff --git a/include/linux/init.h b/include/linux/init.h
+index b449f378f995..aedb254abc37 100644
+--- a/include/linux/init.h
++++ b/include/linux/init.h
+@@ -142,6 +142,10 @@ void prepare_namespace(void);
+ void __init load_default_modules(void);
+ int __init init_rootfs(void);
  
- __setup("highres=", setup_hrtimer_hres);
-diff --git a/kernel/time/tick-sched.c b/kernel/time/tick-sched.c
-index 9cc20af58c76..f5ea98490ffa 100644
---- a/kernel/time/tick-sched.c
-+++ b/kernel/time/tick-sched.c
-@@ -19,6 +19,7 @@
- #include <linux/percpu.h>
- #include <linux/profile.h>
- #include <linux/sched.h>
-+#include <linux/string.h>
- #include <linux/module.h>
- #include <linux/irq_work.h>
- #include <linux/posix-timers.h>
-@@ -387,20 +388,14 @@ void __init tick_nohz_init(void)
- /*
-  * NO HZ enabled ?
-  */
--static int tick_nohz_enabled __read_mostly  = 1;
-+static bool tick_nohz_enabled __read_mostly  = true;
- unsigned long tick_nohz_active  __read_mostly;
- /*
-  * Enable / Disable tickless mode
-  */
- static int __init setup_tick_nohz(char *str)
- {
--	if (!strcmp(str, "off"))
--		tick_nohz_enabled = 0;
--	else if (!strcmp(str, "on"))
--		tick_nohz_enabled = 1;
--	else
--		return 0;
--	return 1;
-+	return strtobool(str, &tick_nohz_enabled);
- }
++#ifdef CONFIG_DEBUG_RODATA
++void mark_rodata_ro(void);
++#endif
++
+ extern void (*late_time_init)(void);
  
- __setup("nohz=", setup_tick_nohz);
+ extern bool initcall_debug;
 -- 
 2.6.3
