@@ -1,87 +1,48 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v2 2/2] kbuild: Remove stale asm-generic wrappers
-Date: Tue, 19 Jan 2016 14:22:13 +0000
-Message-ID: <20160119142213.GA12679@jhogan-linux.le.imgtec.org>
-References: <1453210670-12596-1-git-send-email-james.hogan@imgtec.com>
- <1453210670-12596-3-git-send-email-james.hogan@imgtec.com>
- <1667268.iM977TQnEK@wuerfel>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [linux-review:James-Hogan/kbuild-Remove-stale-asm-generic-wrappers/20160119-183642] d979f99e9cc14e2667e9b6e268db695977e4197a BUILD DONE
+Date: Tue, 19 Jan 2016 15:26:16 +0100
+Message-ID: <1534543.eobSKFEFfp@wuerfel>
+References: <569e1dbb.MgLv8OaZwklOxxtU%fengguang.wu@intel.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-	protocol="application/pgp-signature"; boundary="Qxx1br4bt0+wmkIi"
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1667268.iM977TQnEK@wuerfel>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Michal Marek <mmarek@suse.com>, linux-kernel@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mout.kundenserver.de ([212.227.17.10]:51259 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755842AbcASO0n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 09:26:43 -0500
+In-Reply-To: <569e1dbb.MgLv8OaZwklOxxtU%fengguang.wu@intel.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: kbuild test robot <fengguang.wu@intel.com>
+Cc: James Hogan <james.hogan@imgtec.com>, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Florian Fainelli <f.fainelli@gmail.com>, Paul Burton <paul.burton@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Heinrich Schuchardt <xypron.glpk@gmx.de>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.com>
 
---Qxx1br4bt0+wmkIi
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Tuesday 19 January 2016 19:27:55 kbuild test robot wrote:
+> arm                               allnoconfig
+> arm                         at91_dt_defconfig
+> arm                                  at_hdmac
+> arm                                    ep93xx
+> arm                       imx_v6_v7_defconfig
+> arm                                  iop-adma
+> arm                          marzen_defconfig
+> arm                          prima2_defconfig
+> arm                                    sa1100
+> arm                                   samsung
+> arm                                        sh
+> arm                       spear13xx_defconfig
+> 
 
-On Tue, Jan 19, 2016 at 03:09:14PM +0100, Arnd Bergmann wrote:
-> On Tuesday 19 January 2016 13:37:50 James Hogan wrote:
-> > When a header file is removed from generic-y (often accompanied by the
-> > addition of an arch specific header), the generated wrapper file will
-> > persist, and in some cases may still take precedence over the new arch
-> > header.
-> >=20
-> > For example commit f1fe2d21f4e1 ("MIPS: Add definitions for extended
-> > context") removed ucontext.h from generic-y in arch/mips/include/asm/,
-> > and added an arch/mips/include/uapi/asm/ucontext.h. The continued use of
-> > the wrapper when reusing a dirty build tree resulted in build failures
-> > in arch/mips/kernel/signal.c:
-> >=20
-> > arch/mips/kernel/signal.c: In function =E2=80=98sc_to_extcontext=E2=80=
-=99:
-> > arch/mips/kernel/signal.c:142:12: error: =E2=80=98struct ucontext=E2=80=
-=99 has no member named =E2=80=98uc_extcontext=E2=80=99
-> >   return &uc->uc_extcontext;
-> >             ^
-> >=20
-> > Fix by detecting and removing wrapper headers in generated header
-> > directories that do not correspond to a filename in generic-y, genhdr-y,
-> > or the newly introduced generated-y.
->=20
-> Good idea.
->=20
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
+Hi Fengguang,
 
-Thanks Arnd
+Sorry for hijacking this thread. I have never seen the list of arm defconfigs
+you are building before, and it seems to be a surprising selection, as a number
+of platforms (ep93xx, iop, sa1100, spear13xx) are rather obscure, but the
+configurations that I tend to use most (multi_v7_defconfig, multi_v5_defconfig,
+allmodconfig) are not included.
 
-> Can you merge this through the mips tree, or do you need me to pick it
-> up through asm-generic?
+Do you always build the same set of configurations, or is this a different
+each time?
 
-I was envisaging the kbuild tree tbh, but I don't really mind how it
-gets merged. This patch depends on patch 1, which adds generated-y to
-x86 so we don't delete their other generated headers, but other than
-that it doesn't really have any dependencies.
+Can you always include the three I mentioned?
 
-Cheers
-James
-
---Qxx1br4bt0+wmkIi
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBCAAGBQJWnkaVAAoJEGwLaZPeOHZ6LmUQAKpWgHRKouJiF5R5uD2uvVkn
-PfRiCE8HmFx4ZN6wZu5uSF8wujCGQGxUr6JTvfyC66CvHlFSgPwCwHEseoTFAvHj
-rE77AQcz3qUwz30KIfS9Hj7XaBBPgi6XC9ljQ4qghijCpLANreyLvah90pg1Tgge
-r9AX7SaSsXMX9jJj8h6zOuTKXELlDAzi6rGm/Zp+dzscdht9U5OoTruJ06HvxdLG
-+4AdpuYpAW+qHYrqhmo6vGWwgLZaps37dOHk0pRcdRXRVaaCr9LjZmywR/FAz6+3
-idr6ME2irAhSe8sMXB+A4dscHp8GFCcutyInhNFSw5JrZrifjp15sLhpbb8pgX5y
-I4N8mn9ADW/bRNcvi6Y9zPBNLbnY+kOdPNKrSsJbtW9oLhS4ZR9amYjqsfzFfWzM
-yvhr1BB7ENHca2aF9Cm2RM0W25luhYjOhMY1QMTg0Wk28dbGeKh5eMOt4MEuf4/1
-sd/b5SRgAIoSCvq9dJfIpOv6tu0WIooepA6ZtJ7N7LYSaI7PdAbjIqKG/lNUWB66
-PFzprvBh9XI/dpoUTYtWgIG7Kt6cLA8gcfwqa0ZCK+1B0kR/B2OxymaXEIig/CpL
-54F2hef8q3L8aHlP6XZ4911AT2nPhtt9s4hoUhWnJBnkWlS5C5RyiSmPzfp617tn
-iWeC12OMk1R0ZgpqL3HU
-=Lh3+
------END PGP SIGNATURE-----
-
---Qxx1br4bt0+wmkIi--
+	Arnd
