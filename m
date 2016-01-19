@@ -1,95 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [195.59.15.196] ([195.59.15.196]:40076 "EHLO
+Received: from [195.59.15.196] ([195.59.15.196]:62866 "EHLO
 	mailapp01.imgtec.com" rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org
-	with ESMTP id S1755308AbcASNiU (ORCPT
+	with ESMTP id S1755313AbcASNiU (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 08:38:20 -0500
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v2 2/2] kbuild: Remove stale asm-generic wrappers
-Date: Tue, 19 Jan 2016 13:37:50 +0000
-Message-ID: <1453210670-12596-3-git-send-email-james.hogan@imgtec.com>
-In-Reply-To: <1453210670-12596-1-git-send-email-james.hogan@imgtec.com>
-References: <1453210670-12596-1-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v2 0/2] kbuild: Remove stale asm-generic wrappers
+Date: Tue, 19 Jan 2016 13:37:48 +0000
+Message-ID: <1453210670-12596-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Michal Marek <mmarek@suse.com>
-Cc: linux-kernel@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, James Hogan <james.hogan@imgtec.com>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
-Message-ID: <20160119133750.n1gDX2XWiZcWNYeTYecvECCFbAJepiDIiMVLTszJVrk@z>
+Cc: linux-kernel@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, James Hogan <james.hogan@imgtec.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Jonathan Corbet <corbet@lwn.net>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, linux-kbuild@vger.kernel.org, x86@kernel.org, linux-doc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
+Message-ID: <20160119133748.S_gZ0lF1ktgosBe-oyVec8aLyeSGMSGZNrL0rIE4i9U@z>
 
-When a header file is removed from generic-y (often accompanied by the
-addition of an arch specific header), the generated wrapper file will
-persist, and in some cases may still take precedence over the new arch
-header.
+This patchset attempts to fix kbuild to automatically remove stale
+asm-generic wrappers, i.e. when files are removed from generic-y and
+added directly into arch/*/include/uapi/asm/, but where the existing
+wrapper in arch/*/include/generated/asm/ continues to be used.
 
-For example commit f1fe2d21f4e1 ("MIPS: Add definitions for extended
-context") removed ucontext.h from generic-y in arch/mips/include/asm/,
-and added an arch/mips/include/uapi/asm/ucontext.h. The continued use of
-the wrapper when reusing a dirty build tree resulted in build failures
-in arch/mips/kernel/signal.c:
+MIPS was recently burned by this in v4.3 (see patch 2), with continuing
+reports of build failures when people upgrade their trees, which go away
+after arch/mips/include/generated is removed (or reportedly make
+mrproper/distclean). It is particularly irritating during bisection.
 
-arch/mips/kernel/signal.c: In function ‘sc_to_extcontext’:
-arch/mips/kernel/signal.c:142:12: error: ‘struct ucontext’ has no member named ‘uc_extcontext’
-  return &uc->uc_extcontext;
-            ^
+Changes in v2:
+- New patch 1 to add tracking of generated headers that aren't generic-y
+  wrappers, via generated-y, particularly for x86 (thanks to kbuild test
+  robot).
+- Rewrite a bit, drawing inspiration from Makefile.headersinst.
+- Exclude genhdr-y and generated-y (thanks to kbuild test robot).
 
-Fix by detecting and removing wrapper headers in generated header
-directories that do not correspond to a filename in generic-y, genhdr-y,
-or the newly introduced generated-y.
+James Hogan (2):
+  kbuild, x86: Track generated headers with generated-y
+  kbuild: Remove stale asm-generic wrappers
 
-Reported-by: Jacek Anaszewski <j.anaszewski@samsung.com>
-Reported-by: Hauke Mehrtens <hauke@hauke-m.de>
-Reported-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
-Signed-off-by: James Hogan <james.hogan@imgtec.com>
+ Documentation/kbuild/makefiles.txt | 14 ++++++++++++++
+ arch/x86/include/asm/Kbuild        |  6 ++++++
+ scripts/Makefile.asm-generic       | 17 ++++++++++++++++-
+ 3 files changed, 36 insertions(+), 1 deletion(-)
+
 Cc: Michal Marek <mmarek@suse.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Jonathan Corbet <corbet@lwn.net>
 Cc: Arnd Bergmann <arnd@arndb.de>
 Cc: Ralf Baechle <ralf@linux-mips.org>
 Cc: Paul Burton <paul.burton@imgtec.com>
 Cc: Florian Fainelli <f.fainelli@gmail.com>
+Cc: Heinrich Schuchardt <xypron.glpk@gmx.de>
 Cc: linux-kbuild@vger.kernel.org
+Cc: x86@kernel.org
+Cc: linux-doc@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 Cc: linux-mips@linux-mips.org
----
-Changes in v2:
-- Rewrite a bit, drawing inspiration from Makefile.headersinst.
-- Exclude genhdr-y and generated-y (thanks to kbuild test robot).
----
- scripts/Makefile.asm-generic | 17 ++++++++++++++++-
- 1 file changed, 16 insertions(+), 1 deletion(-)
-
-diff --git a/scripts/Makefile.asm-generic b/scripts/Makefile.asm-generic
-index 045e0098e962..24c29f16f029 100644
---- a/scripts/Makefile.asm-generic
-+++ b/scripts/Makefile.asm-generic
-@@ -13,11 +13,26 @@ include scripts/Kbuild.include
- # Create output directory if not already present
- _dummy := $(shell [ -d $(obj) ] || mkdir -p $(obj))
- 
-+# Stale wrappers when the corresponding files are removed from generic-y
-+# need removing.
-+generated-y   := $(generic-y) $(genhdr-y) $(generated-y)
-+all-files     := $(patsubst %, $(obj)/%, $(generated-y))
-+old-headers   := $(wildcard $(obj)/*.h)
-+unwanted      := $(filter-out $(all-files),$(old-headers))
-+
- quiet_cmd_wrap = WRAP    $@
- cmd_wrap = echo "\#include <asm-generic/$*.h>" >$@
- 
--all: $(patsubst %, $(obj)/%, $(generic-y))
-+quiet_cmd_remove = REMOVE  $(unwanted)
-+cmd_remove = rm -f $(unwanted)
-+
-+all: $(patsubst %, $(obj)/%, $(generic-y)) FORCE
-+	$(if $(unwanted),$(call cmd,remove),)
- 	@:
- 
- $(obj)/%.h:
- 	$(call cmd,wrap)
-+
-+.PHONY: $(PHONY)
-+PHONY += FORCE
-+FORCE: ;
 -- 
 2.4.10
 
