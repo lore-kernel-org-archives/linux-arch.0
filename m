@@ -1,21 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f182.google.com ([209.85.192.182]:35877 "EHLO
-	mail-pf0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932824AbcASSJ1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 13:09:27 -0500
-Received: by mail-pf0-f182.google.com with SMTP id n128so179159947pfn.3
-        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2016 10:09:27 -0800 (PST)
+Received: from mail-pf0-f179.google.com ([209.85.192.179]:35221 "EHLO
+	mail-pf0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932579AbcASSI4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 13:08:56 -0500
+Received: by mail-pf0-f179.google.com with SMTP id 65so179161774pff.2
+        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2016 10:08:56 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 6/8] introduce post-init read-only memory
-Date: Tue, 19 Jan 2016 10:08:40 -0800
-Message-ID: <1453226922-16831-7-git-send-email-keescook@chromium.org>
-In-Reply-To: <1453226922-16831-1-git-send-email-keescook@chromium.org>
-References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
+Subject: [PATCH v4 0/8] introduce post-init read-only memory
+Date: Tue, 19 Jan 2016 10:08:34 -0800
+Message-ID: <1453226922-16831-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@redhat.com>
 Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20160119180840.KaUQBPK2m5HPhnuKjBPVq4V_tNHHIu5btEY3mmUCXd8@z>
+Message-ID: <20160119180834.Y2lLweJmUFi5L5xLsOC-07obF6Z2wSUSIZgszNzD_8M@z>
 
 One of the easiest ways to protect the kernel from attack is to reduce
 the internal attack surface exposed when a "write" flaw is available. By
@@ -28,73 +26,20 @@ thing (we do actually need to write to them). Instead, move these items
 into a memory region that will be made read-only during mark_rodata_ro()
 which happens after all kernel __init code has finished.
 
-This introduces __ro_after_init as a way to mark such memory, and adds
-some documentation about the existing __read_mostly marking.
+This introduces __ro_after_init as a way to mark such memory, and uses
+it on the x86 vDSO to kill an extant kernel exploitation method. Also
+adds a new kernel parameter to help debug future use and adds an lkdtm
+test to check the results.
 
-Based on work by PaX Team and Brad Spengler.
+-Kees
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- arch/parisc/include/asm/cache.h   |  3 +++
- include/asm-generic/vmlinux.lds.h |  1 +
- include/linux/cache.h             | 14 ++++++++++++++
- 3 files changed, 18 insertions(+)
-
-diff --git a/arch/parisc/include/asm/cache.h b/arch/parisc/include/asm/cache.h
-index 3d0e17bcc8e9..df0f52bd18b4 100644
---- a/arch/parisc/include/asm/cache.h
-+++ b/arch/parisc/include/asm/cache.h
-@@ -22,6 +22,9 @@
- 
- #define __read_mostly __attribute__((__section__(".data..read_mostly")))
- 
-+/* Read-only memory is marked before mark_rodata_ro() is called. */
-+#define __ro_after_init	__read_mostly
-+
- void parisc_cache_init(void);	/* initializes cache-flushing */
- void disable_sr_hashing_asm(int); /* low level support for above */
- void disable_sr_hashing(void);   /* turns off space register hashing */
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index c4bd0e2c173c..772c784ba763 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -256,6 +256,7 @@
- 	.rodata           : AT(ADDR(.rodata) - LOAD_OFFSET) {		\
- 		VMLINUX_SYMBOL(__start_rodata) = .;			\
- 		*(.rodata) *(.rodata.*)					\
-+		*(.data..ro_after_init)	/* Read only after init */	\
- 		*(__vermagic)		/* Kernel version magic */	\
- 		. = ALIGN(8);						\
- 		VMLINUX_SYMBOL(__start___tracepoints_ptrs) = .;		\
-diff --git a/include/linux/cache.h b/include/linux/cache.h
-index 17e7e82d2aa7..1be04f8c563a 100644
---- a/include/linux/cache.h
-+++ b/include/linux/cache.h
-@@ -12,10 +12,24 @@
- #define SMP_CACHE_BYTES L1_CACHE_BYTES
- #endif
- 
-+/*
-+ * __read_mostly is used to keep rarely changing variables out of frequently
-+ * updated cachelines. If an architecture doesn't support it, ignore the
-+ * hint.
-+ */
- #ifndef __read_mostly
- #define __read_mostly
- #endif
- 
-+/*
-+ * __ro_after_init is used to mark things that are read-only after init (i.e.
-+ * after mark_rodata_ro() has been called). These are effectively read-only,
-+ * but may get written to during init, so can't live in .rodata (via "const").
-+ */
-+#ifndef __ro_after_init
-+#define __ro_after_init __attribute__((__section__(".data..ro_after_init")))
-+#endif
-+
- #ifndef ____cacheline_aligned
- #define ____cacheline_aligned __attribute__((__aligned__(SMP_CACHE_BYTES)))
- #endif
--- 
-2.6.3
+v4:
+- rebased
+v3:
+- conslidated mark_rodata_ro()
+- make CONFIG_DEBUG_RODATA always enabled on x86, mingo
+- enhanced strtobool and potential callers to use "on"/"off"
+- use strtobool for rodata= param, gregkh
+v2:
+- renamed __read_only to __ro_after_init
 
