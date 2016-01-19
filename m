@@ -1,117 +1,73 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 4/8] init: create cmdline param to disable readonly
-Date: Tue, 19 Jan 2016 10:08:38 -0800
-Message-ID: <1453226922-16831-5-git-send-email-keescook@chromium.org>
+Subject: [PATCH v4 2/8] lib: add "on" and "off" to strtobool
+Date: Tue, 19 Jan 2016 10:08:36 -0800
+Message-ID: <1453226922-16831-3-git-send-email-keescook@chromium.org>
 References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
 Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-2375-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+Return-path: <kernel-hardening-return-2378-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
 List-Post: <mailto:kernel-hardening@lists.openwall.com>
 List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
 List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
 List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
 In-Reply-To: <1453226922-16831-1-git-send-email-keescook@chromium.org>
 To: Ingo Molnar <mingo@redhat.com>
-Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Daniel Borkmann <daniel@iogearbox.net>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-It may be useful to debug writes to the readonly sections of memory,
-so provide a cmdline "rodata=off" to allow for this. This can be
-expanded in the future to support "log" and "write" modes, but that
-will need to be architecture-specific.
+Several places in the kernel expect to use "on" and "off" for their
+boolean signifiers, so add them to strtobool.
 
-Suggested-by: H. Peter Anvin <hpa@zytor.com>
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>
+Cc: Daniel Borkmann <daniel@iogearbox.net>
 ---
- Documentation/kernel-parameters.txt |  4 ++++
- init/main.c                         | 27 +++++++++++++++++++++++----
- kernel/debug/kdb/kdb_bp.c           |  4 +---
- 3 files changed, 28 insertions(+), 7 deletions(-)
+ lib/string.c | 24 +++++++++++++++++++++---
+ 1 file changed, 21 insertions(+), 3 deletions(-)
 
-diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-parameters.txt
-index 3ea869d7a31c..bf4820c53992 100644
---- a/Documentation/kernel-parameters.txt
-+++ b/Documentation/kernel-parameters.txt
-@@ -3450,6 +3450,10 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
- 
- 	ro		[KNL] Mount root device read-only on boot
- 
-+	rodata=		[KNL]
-+		on	Mark read-only kernel memory as read-only (default).
-+		off	Leave read-only kernel memory writable for debugging.
-+
- 	root=		[KNL] Root filesystem
- 			See name_to_dev_t comment in init/do_mounts.c.
- 
-diff --git a/init/main.c b/init/main.c
-index c6ebefafa496..93dfb300cdfd 100644
---- a/init/main.c
-+++ b/init/main.c
-@@ -93,9 +93,6 @@ static int kernel_init(void *);
- extern void init_IRQ(void);
- extern void fork_init(void);
- extern void radix_tree_init(void);
--#ifndef CONFIG_DEBUG_RODATA
--static inline void mark_rodata_ro(void) { }
--#endif
- 
- /*
-  * Debug helper: via this flag we know that we are in 'early bootup code'
-@@ -929,6 +926,28 @@ static int try_to_run_init_process(const char *init_filename)
- 
- static noinline void __init kernel_init_freeable(void);
- 
-+#ifdef CONFIG_DEBUG_RODATA
-+static bool rodata_enabled = true;
-+static int __init set_debug_rodata(char *str)
-+{
-+	return strtobool(str, &rodata_enabled);
-+}
-+__setup("rodata=", set_debug_rodata);
-+
-+static void mark_readonly(void)
-+{
-+	if (rodata_enabled)
-+		mark_rodata_ro();
-+	else
-+		pr_info("Kernel memory protection disabled.\n");
-+}
-+#else
-+static inline void mark_readonly(void)
-+{
-+	pr_warn("This architecture does not have kernel memory protection.\n");
-+}
-+#endif
-+
- static int __ref kernel_init(void *unused)
+diff --git a/lib/string.c b/lib/string.c
+index 0323c0d5629a..091570708db7 100644
+--- a/lib/string.c
++++ b/lib/string.c
+@@ -635,12 +635,15 @@ EXPORT_SYMBOL(sysfs_streq);
+  * @s: input string
+  * @res: result
+  *
+- * This routine returns 0 iff the first character is one of 'Yy1Nn0'.
+- * Otherwise it will return -EINVAL.  Value pointed to by res is
+- * updated upon finding a match.
++ * This routine returns 0 iff the first character is one of 'Yy1Nn0', or
++ * [oO][NnFf] for "on" and "off". Otherwise it will return -EINVAL.  Value
++ * pointed to by res is updated upon finding a match.
+  */
+ int strtobool(const char *s, bool *res)
  {
- 	int ret;
-@@ -937,7 +956,7 @@ static int __ref kernel_init(void *unused)
- 	/* need to finish all async __init code before freeing the memory */
- 	async_synchronize_full();
- 	free_initmem();
--	mark_rodata_ro();
-+	mark_readonly();
- 	system_state = SYSTEM_RUNNING;
- 	numa_default_policy();
- 
-diff --git a/kernel/debug/kdb/kdb_bp.c b/kernel/debug/kdb/kdb_bp.c
-index e1dbf4a2c69e..90ff129c88a2 100644
---- a/kernel/debug/kdb/kdb_bp.c
-+++ b/kernel/debug/kdb/kdb_bp.c
-@@ -153,13 +153,11 @@ static int _kdb_bp_install(struct pt_regs *regs, kdb_bp_t *bp)
- 	} else {
- 		kdb_printf("%s: failed to set breakpoint at 0x%lx\n",
- 			   __func__, bp->bp_addr);
--#ifdef CONFIG_DEBUG_RODATA
- 		if (!bp->bp_type) {
- 			kdb_printf("Software breakpoints are unavailable.\n"
--				   "  Change the kernel CONFIG_DEBUG_RODATA=n\n"
-+				   "  Boot the kernel with rodata=off\n"
- 				   "  OR use hw breaks: help bph\n");
- 		}
--#endif
- 		return 1;
++	if (!s)
++		return -EINVAL;
++
+ 	switch (s[0]) {
+ 	case 'y':
+ 	case 'Y':
+@@ -652,6 +655,21 @@ int strtobool(const char *s, bool *res)
+ 	case '0':
+ 		*res = false;
+ 		break;
++	case 'o':
++	case 'O':
++		switch (s[1]) {
++		case 'n':
++		case 'N':
++			*res = true;
++			break;
++		case 'f':
++		case 'F':
++			*res = false;
++			break;
++		default:
++			return -EINVAL;
++		}
++		break;
+ 	default:
+ 		return -EINVAL;
  	}
- 	return 0;
 -- 
 2.6.3
