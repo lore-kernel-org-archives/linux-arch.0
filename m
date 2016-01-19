@@ -1,90 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:35778 "EHLO
-	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752116AbcASMcP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 07:32:15 -0500
+Received: from [195.59.15.196] ([195.59.15.196]:40076 "EHLO
+	mailapp01.imgtec.com" rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org
+	with ESMTP id S1755308AbcASNiU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 08:38:20 -0500
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH v2 2/2] kbuild: Remove stale asm-generic wrappers
+Date: Tue, 19 Jan 2016 13:37:50 +0000
+Message-ID: <1453210670-12596-3-git-send-email-james.hogan@imgtec.com>
+In-Reply-To: <1453210670-12596-1-git-send-email-james.hogan@imgtec.com>
+References: <1453210670-12596-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
-In-Reply-To: <20160119094150.GA4991@red-moon>
-References: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com>
-	<1453134965-6125-6-git-send-email-gkulkarni@caviumnetworks.com>
-	<569D23AF.9050503@gmail.com>
-	<CAFpQJXXESn1EA5kotVOH2oLbRUSpOLf6+MeWG1pY_GhUP+4vVQ@mail.gmail.com>
-	<20160119094150.GA4991@red-moon>
-Date: Tue, 19 Jan 2016 18:02:13 +0530
-Message-ID: <CAFpQJXV_5mryP5ZT5ezE7N9Csj97g7029D_9Fj_fNJ8+5n6O2w@mail.gmail.com>
-Subject: Re: [PATCH v9 5/6] PCI: generic: Make pci-host-generic driver numa aware
-From: Ganapatrao Kulkarni <gpkulkarni@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>
-Cc: David Daney <ddaney.cavm@gmail.com>, Will Deacon <Will.Deacon@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Grant Likely <grant.likely@linaro.org>, Leif Lindholm <leif.lindholm@linaro.org>, rfranz@cavium.com, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "msalter@redhat.com" <msalter@redhat.com>, Rob Herring <robh+dt@kernel.org>, Steve Capper <steve.capper@linaro.org>, Hanjun Guo <hanjun.guo@linaro.org>, Al Stone <al.stone@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <lenb@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, tony.luck@intel.com, fenghua.yu@intel.com, james.hogan@imgtec.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "tglx@linutronix.de" <tglx@linutronix.de>, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, Jon Masters <jonathan@jonmasters.org>, Robert Richter <rrichter@cavium.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>
-Message-ID: <20160119123213.a755hHyxOB_1EYPbrh0DDzzPbT0lTPlPnJwkZe7vVIM@z>
+To: Michal Marek <mmarek@suse.com>
+Cc: linux-kernel@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, James Hogan <james.hogan@imgtec.com>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
+Message-ID: <20160119133750.n1gDX2XWiZcWNYeTYecvECCFbAJepiDIiMVLTszJVrk@z>
 
-On Tue, Jan 19, 2016 at 3:11 PM, Lorenzo Pieralisi
-<lorenzo.pieralisi@arm.com> wrote:
-> On Tue, Jan 19, 2016 at 11:28:56AM +0530, Ganapatrao Kulkarni wrote:
->> On Mon, Jan 18, 2016 at 11:11 PM, David Daney <ddaney.cavm@gmail.com> wrote:
->> > On 01/18/2016 08:36 AM, Ganapatrao Kulkarni wrote:
->> >>
->> >> update numa_node of device associated with pci bus.
->> >> moved down devm_kzalloc to allocate from node memory.
->> >>
->> >> Signed-off-by: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
->> >> ---
->> >>   drivers/pci/host/pci-host-generic.c | 9 ++++++---
->> >>   1 file changed, 6 insertions(+), 3 deletions(-)
->> >>
->> >> diff --git a/drivers/pci/host/pci-host-generic.c
->> >> b/drivers/pci/host/pci-host-generic.c
->> >> index 5434c90..0e1ce06 100644
->> >> --- a/drivers/pci/host/pci-host-generic.c
->> >> +++ b/drivers/pci/host/pci-host-generic.c
->> >> @@ -215,11 +215,9 @@ static int gen_pci_probe(struct platform_device
->> >> *pdev)
->> >>         const struct of_device_id *of_id;
->> >>         struct device *dev = &pdev->dev;
->> >>         struct device_node *np = dev->of_node;
->> >> -       struct gen_pci *pci = devm_kzalloc(dev, sizeof(*pci), GFP_KERNEL);
->> >> +       struct gen_pci *pci;
->> >>         struct pci_bus *bus, *child;
->> >>
->> >> -       if (!pci)
->> >> -               return -ENOMEM;
->> >>
->> >>         type = of_get_property(np, "device_type", NULL);
->> >>         if (!type || strcmp(type, "pci")) {
->> >> @@ -230,6 +228,11 @@ static int gen_pci_probe(struct platform_device
->> >> *pdev)
->> >>         of_pci_check_probe_only();
->> >>
->> >>         of_id = of_match_node(gen_pci_of_match, np);
->> >> +       set_dev_node(dev, of_node_to_nid(np));
->> >
->> >
->> > This shouldn't be done in individual platform_drivers, but instead in the
->> > device probing code.
->> >
->> > There is code that does this in drivers/of/platform.c and
->> > drivers/of/device.c  Is that not being called for the pci-host-gweneric
->> > devices?  If not, we should figure out why, and perhaps attempt to fix it
->> > rather than doing it here.
->> is it more appropriate to call of_platform_device_create ?
->
-> That's already done to create the platform device by OF core when
-> populating devices from DT, what David suggested is that you should
-> add set_dev_node() to core OF code instead of adding it specifically
-> to the PCI host generic code.
-This patch was worked on 4.2(inherited to 4.4) to have correct
-numa_node populated on sysfs.
-however, on 4.4, OF  is fixed to set numa_node(fixed by
-56f2de81e020c537f7e35550d13840143cb765cd)
+When a header file is removed from generic-y (often accompanied by the
+addition of an arch specific header), the generated wrapper file will
+persist, and in some cases may still take precedence over the new arch
+header.
 
-This patch (patch #5) is not required and will be dropped.
-thanks for your comments.
+For example commit f1fe2d21f4e1 ("MIPS: Add definitions for extended
+context") removed ucontext.h from generic-y in arch/mips/include/asm/,
+and added an arch/mips/include/uapi/asm/ucontext.h. The continued use of
+the wrapper when reusing a dirty build tree resulted in build failures
+in arch/mips/kernel/signal.c:
 
+arch/mips/kernel/signal.c: In function ‘sc_to_extcontext’:
+arch/mips/kernel/signal.c:142:12: error: ‘struct ucontext’ has no member named ‘uc_extcontext’
+  return &uc->uc_extcontext;
+            ^
 
->
-> Lorenzo
-thanks
-Ganapat
+Fix by detecting and removing wrapper headers in generated header
+directories that do not correspond to a filename in generic-y, genhdr-y,
+or the newly introduced generated-y.
+
+Reported-by: Jacek Anaszewski <j.anaszewski@samsung.com>
+Reported-by: Hauke Mehrtens <hauke@hauke-m.de>
+Reported-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Michal Marek <mmarek@suse.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Paul Burton <paul.burton@imgtec.com>
+Cc: Florian Fainelli <f.fainelli@gmail.com>
+Cc: linux-kbuild@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mips@linux-mips.org
+---
+Changes in v2:
+- Rewrite a bit, drawing inspiration from Makefile.headersinst.
+- Exclude genhdr-y and generated-y (thanks to kbuild test robot).
+---
+ scripts/Makefile.asm-generic | 17 ++++++++++++++++-
+ 1 file changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/scripts/Makefile.asm-generic b/scripts/Makefile.asm-generic
+index 045e0098e962..24c29f16f029 100644
+--- a/scripts/Makefile.asm-generic
++++ b/scripts/Makefile.asm-generic
+@@ -13,11 +13,26 @@ include scripts/Kbuild.include
+ # Create output directory if not already present
+ _dummy := $(shell [ -d $(obj) ] || mkdir -p $(obj))
+ 
++# Stale wrappers when the corresponding files are removed from generic-y
++# need removing.
++generated-y   := $(generic-y) $(genhdr-y) $(generated-y)
++all-files     := $(patsubst %, $(obj)/%, $(generated-y))
++old-headers   := $(wildcard $(obj)/*.h)
++unwanted      := $(filter-out $(all-files),$(old-headers))
++
+ quiet_cmd_wrap = WRAP    $@
+ cmd_wrap = echo "\#include <asm-generic/$*.h>" >$@
+ 
+-all: $(patsubst %, $(obj)/%, $(generic-y))
++quiet_cmd_remove = REMOVE  $(unwanted)
++cmd_remove = rm -f $(unwanted)
++
++all: $(patsubst %, $(obj)/%, $(generic-y)) FORCE
++	$(if $(unwanted),$(call cmd,remove),)
+ 	@:
+ 
+ $(obj)/%.h:
+ 	$(call cmd,wrap)
++
++.PHONY: $(PHONY)
++PHONY += FORCE
++FORCE: ;
+-- 
+2.4.10
+
