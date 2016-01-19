@@ -1,93 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [195.59.15.196] ([195.59.15.196]:62143 "EHLO
-	imgpgp01.kl.imgtec.org" rhost-flags-FAIL-FAIL-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1750857AbcASOW1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Jan 2016 09:22:27 -0500
-Date: Tue, 19 Jan 2016 14:22:13 +0000
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v2 2/2] kbuild: Remove stale asm-generic wrappers
-Message-ID: <20160119142213.GA12679@jhogan-linux.le.imgtec.org>
-References: <1453210670-12596-1-git-send-email-james.hogan@imgtec.com>
- <1453210670-12596-3-git-send-email-james.hogan@imgtec.com>
- <1667268.iM977TQnEK@wuerfel>
-MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha256;
-	protocol="application/pgp-signature"; boundary="Qxx1br4bt0+wmkIi"
-Content-Disposition: inline
-In-Reply-To: <1667268.iM977TQnEK@wuerfel>
+Received: from mail-pf0-f170.google.com ([209.85.192.170]:36670 "EHLO
+	mail-pf0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932748AbcASSI6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 13:08:58 -0500
+Received: by mail-pf0-f170.google.com with SMTP id n128so179153889pfn.3
+        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2016 10:08:57 -0800 (PST)
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v4 8/8] x86, vdso: mark vDSO read-only after init
+Date: Tue, 19 Jan 2016 10:08:42 -0800
+Message-ID: <1453226922-16831-9-git-send-email-keescook@chromium.org>
+In-Reply-To: <1453226922-16831-1-git-send-email-keescook@chromium.org>
+References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Michal Marek <mmarek@suse.com>, linux-kernel@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, Florian Fainelli <f.fainelli@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
-Message-ID: <20160119142213.dHI2po-YDxH6SxgYqyk18OiW4-EUOnQAtFUt5ZL1z9g@z>
+To: Ingo Molnar <mingo@redhat.com>
+Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20160119180842.ZIjvLt4B1oY1Bq3DxG6kaw9M1HJAZXuN8e5qq1O5eAo@z>
 
---Qxx1br4bt0+wmkIi
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+The vDSO does not need to be writable after __init, so mark it as
+__ro_after_init. The result kills the exploit method of writing to the
+vDSO from kernel space resulting in userspace executing the modified code,
+as shown here to bypass SMEP restrictions: http://itszn.com/blog/?p=21
 
-On Tue, Jan 19, 2016 at 03:09:14PM +0100, Arnd Bergmann wrote:
-> On Tuesday 19 January 2016 13:37:50 James Hogan wrote:
-> > When a header file is removed from generic-y (often accompanied by the
-> > addition of an arch specific header), the generated wrapper file will
-> > persist, and in some cases may still take precedence over the new arch
-> > header.
-> >=20
-> > For example commit f1fe2d21f4e1 ("MIPS: Add definitions for extended
-> > context") removed ucontext.h from generic-y in arch/mips/include/asm/,
-> > and added an arch/mips/include/uapi/asm/ucontext.h. The continued use of
-> > the wrapper when reusing a dirty build tree resulted in build failures
-> > in arch/mips/kernel/signal.c:
-> >=20
-> > arch/mips/kernel/signal.c: In function =E2=80=98sc_to_extcontext=E2=80=
-=99:
-> > arch/mips/kernel/signal.c:142:12: error: =E2=80=98struct ucontext=E2=80=
-=99 has no member named =E2=80=98uc_extcontext=E2=80=99
-> >   return &uc->uc_extcontext;
-> >             ^
-> >=20
-> > Fix by detecting and removing wrapper headers in generated header
-> > directories that do not correspond to a filename in generic-y, genhdr-y,
-> > or the newly introduced generated-y.
->=20
-> Good idea.
->=20
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
+The memory map (with added vDSO address reporting) shows the vDSO moving
+into read-only memory:
 
-Thanks Arnd
+Before:
+[    0.143067] vDSO @ ffffffff82004000
+[    0.143551] vDSO @ ffffffff82006000
+---[ High Kernel Mapping ]---
+0xffffffff80000000-0xffffffff81000000      16M                         pmd
+0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
+0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
+0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
+0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
+0xffffffff81e00000-0xffffffff81e05000      20K   ro             GLB NX pte
+0xffffffff81e05000-0xffffffff82000000    2028K   ro                 NX pte
+0xffffffff82000000-0xffffffff8214f000    1340K   RW             GLB NX pte
+0xffffffff8214f000-0xffffffff82281000    1224K   RW                 NX pte
+0xffffffff82281000-0xffffffff82400000    1532K   RW             GLB NX pte
+0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
+0xffffffff83200000-0xffffffffc0000000     974M                         pmd
 
-> Can you merge this through the mips tree, or do you need me to pick it
-> up through asm-generic?
+After:
+[    0.145062] vDSO @ ffffffff81da1000
+[    0.146057] vDSO @ ffffffff81da4000
+---[ High Kernel Mapping ]---
+0xffffffff80000000-0xffffffff81000000      16M                         pmd
+0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
+0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
+0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
+0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
+0xffffffff81e00000-0xffffffff81e0b000      44K   ro             GLB NX pte
+0xffffffff81e0b000-0xffffffff82000000    2004K   ro                 NX pte
+0xffffffff82000000-0xffffffff8214c000    1328K   RW             GLB NX pte
+0xffffffff8214c000-0xffffffff8227e000    1224K   RW                 NX pte
+0xffffffff8227e000-0xffffffff82400000    1544K   RW             GLB NX pte
+0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
+0xffffffff83200000-0xffffffffc0000000     974M                         pmd
 
-I was envisaging the kbuild tree tbh, but I don't really mind how it
-gets merged. This patch depends on patch 1, which adds generated-y to
-x86 so we don't delete their other generated headers, but other than
-that it doesn't really have any dependencies.
+Based on work by PaX Team and Brad Spengler.
 
-Cheers
-James
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Acked-by: Andy Lutomirski <luto@kernel.org>
+---
+ arch/x86/entry/vdso/vdso2c.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
---Qxx1br4bt0+wmkIi
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+diff --git a/arch/x86/entry/vdso/vdso2c.h b/arch/x86/entry/vdso/vdso2c.h
+index 0224987556ce..eb93a3137ed2 100644
+--- a/arch/x86/entry/vdso/vdso2c.h
++++ b/arch/x86/entry/vdso/vdso2c.h
+@@ -140,7 +140,7 @@ static void BITSFUNC(go)(void *raw_addr, size_t raw_len,
+ 	fprintf(outfile, "#include <asm/vdso.h>\n");
+ 	fprintf(outfile, "\n");
+ 	fprintf(outfile,
+-		"static unsigned char raw_data[%lu] __page_aligned_data = {",
++		"static unsigned char raw_data[%lu] __ro_after_init __aligned(PAGE_SIZE) = {",
+ 		mapping_size);
+ 	for (j = 0; j < stripped_len; j++) {
+ 		if (j % 10 == 0)
+@@ -150,7 +150,7 @@ static void BITSFUNC(go)(void *raw_addr, size_t raw_len,
+ 	}
+ 	fprintf(outfile, "\n};\n\n");
+ 
+-	fprintf(outfile, "static struct page *pages[%lu];\n\n",
++	fprintf(outfile, "static struct page *pages[%lu] __ro_after_init;\n\n",
+ 		mapping_size / 4096);
+ 
+ 	fprintf(outfile, "const struct vdso_image %s = {\n", name);
+-- 
+2.6.3
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2
-
-iQIcBAEBCAAGBQJWnkaVAAoJEGwLaZPeOHZ6LmUQAKpWgHRKouJiF5R5uD2uvVkn
-PfRiCE8HmFx4ZN6wZu5uSF8wujCGQGxUr6JTvfyC66CvHlFSgPwCwHEseoTFAvHj
-rE77AQcz3qUwz30KIfS9Hj7XaBBPgi6XC9ljQ4qghijCpLANreyLvah90pg1Tgge
-r9AX7SaSsXMX9jJj8h6zOuTKXELlDAzi6rGm/Zp+dzscdht9U5OoTruJ06HvxdLG
-+4AdpuYpAW+qHYrqhmo6vGWwgLZaps37dOHk0pRcdRXRVaaCr9LjZmywR/FAz6+3
-idr6ME2irAhSe8sMXB+A4dscHp8GFCcutyInhNFSw5JrZrifjp15sLhpbb8pgX5y
-I4N8mn9ADW/bRNcvi6Y9zPBNLbnY+kOdPNKrSsJbtW9oLhS4ZR9amYjqsfzFfWzM
-yvhr1BB7ENHca2aF9Cm2RM0W25luhYjOhMY1QMTg0Wk28dbGeKh5eMOt4MEuf4/1
-sd/b5SRgAIoSCvq9dJfIpOv6tu0WIooepA6ZtJ7N7LYSaI7PdAbjIqKG/lNUWB66
-PFzprvBh9XI/dpoUTYtWgIG7Kt6cLA8gcfwqa0ZCK+1B0kR/B2OxymaXEIig/CpL
-54F2hef8q3L8aHlP6XZ4911AT2nPhtt9s4hoUhWnJBnkWlS5C5RyiSmPzfp617tn
-iWeC12OMk1R0ZgpqL3HU
-=Lh3+
------END PGP SIGNATURE-----
-
---Qxx1br4bt0+wmkIi--
