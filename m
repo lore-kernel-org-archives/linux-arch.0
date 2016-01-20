@@ -1,113 +1,68 @@
-From: Florian Fainelli <f.fainelli@gmail.com>
-Subject: Re: [PATCH v2 2/2] kbuild: Remove stale asm-generic wrappers
-Date: Wed, 20 Jan 2016 10:55:11 -0800
-Message-ID: <569FD80F.2000109@gmail.com>
-References: <1453210670-12596-1-git-send-email-james.hogan@imgtec.com>
- <1453210670-12596-3-git-send-email-james.hogan@imgtec.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [GIT PULL] asm-generic changes for 4.5
+Date: Thu, 21 Jan 2016 00:01:33 +0100
+Message-ID: <14539762.rT2m1Dhbyc@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f66.google.com ([209.85.218.66]:35169 "EHLO
-	mail-oi0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752687AbcATSzP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jan 2016 13:55:15 -0500
-In-Reply-To: <1453210670-12596-3-git-send-email-james.hogan@imgtec.com>
+Received: from mout.kundenserver.de ([212.227.17.10]:54302 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752240AbcATXBj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jan 2016 18:01:39 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>, Michal Marek <mmarek@suse.com>
-Cc: linux-kernel@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Paul Burton <paul.burton@imgtec.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Nicolas Pitre <nico@linaro.org>, rmk@arm.linux.org.uk, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Le 19/01/2016 05:37, James Hogan a =C3=A9crit :
-> When a header file is removed from generic-y (often accompanied by th=
-e
-> addition of an arch specific header), the generated wrapper file will
-> persist, and in some cases may still take precedence over the new arc=
-h
-> header.
->=20
-> For example commit f1fe2d21f4e1 ("MIPS: Add definitions for extended
-> context") removed ucontext.h from generic-y in arch/mips/include/asm/=
-,
-> and added an arch/mips/include/uapi/asm/ucontext.h. The continued use=
- of
-> the wrapper when reusing a dirty build tree resulted in build failure=
-s
-> in arch/mips/kernel/signal.c:
->=20
-> arch/mips/kernel/signal.c: In function =E2=80=98sc_to_extcontext=E2=80=
-=99:
-> arch/mips/kernel/signal.c:142:12: error: =E2=80=98struct ucontext=E2=80=
-=99 has no member named =E2=80=98uc_extcontext=E2=80=99
->   return &uc->uc_extcontext;
->             ^
->=20
-> Fix by detecting and removing wrapper headers in generated header
-> directories that do not correspond to a filename in generic-y, genhdr=
--y,
-> or the newly introduced generated-y.
->=20
-> Reported-by: Jacek Anaszewski <j.anaszewski@samsung.com>
-> Reported-by: Hauke Mehrtens <hauke@hauke-m.de>
-> Reported-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
-> Signed-off-by: James Hogan <james.hogan@imgtec.com>
+The following changes since commit 8005c49d9aea74d382f474ce11afbbc7d7130bec:
 
-Acked-by: Florian Fainelli <f.fainelli@gmail.com>
+  Linux 4.4-rc1 (2015-11-15 17:00:27 -0800)
 
-Thanks for looking into this James.
+are available in the git repository at:
 
-> Cc: Michal Marek <mmarek@suse.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Ralf Baechle <ralf@linux-mips.org>
-> Cc: Paul Burton <paul.burton@imgtec.com>
-> Cc: Florian Fainelli <f.fainelli@gmail.com>
-> Cc: linux-kbuild@vger.kernel.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: linux-mips@linux-mips.org
-> ---
-> Changes in v2:
-> - Rewrite a bit, drawing inspiration from Makefile.headersinst.
-> - Exclude genhdr-y and generated-y (thanks to kbuild test robot).
-> ---
->  scripts/Makefile.asm-generic | 17 ++++++++++++++++-
->  1 file changed, 16 insertions(+), 1 deletion(-)
->=20
-> diff --git a/scripts/Makefile.asm-generic b/scripts/Makefile.asm-gene=
-ric
-> index 045e0098e962..24c29f16f029 100644
-> --- a/scripts/Makefile.asm-generic
-> +++ b/scripts/Makefile.asm-generic
-> @@ -13,11 +13,26 @@ include scripts/Kbuild.include
->  # Create output directory if not already present
->  _dummy :=3D $(shell [ -d $(obj) ] || mkdir -p $(obj))
-> =20
-> +# Stale wrappers when the corresponding files are removed from gener=
-ic-y
-> +# need removing.
-> +generated-y   :=3D $(generic-y) $(genhdr-y) $(generated-y)
-> +all-files     :=3D $(patsubst %, $(obj)/%, $(generated-y))
-> +old-headers   :=3D $(wildcard $(obj)/*.h)
-> +unwanted      :=3D $(filter-out $(all-files),$(old-headers))
-> +
->  quiet_cmd_wrap =3D WRAP    $@
->  cmd_wrap =3D echo "\#include <asm-generic/$*.h>" >$@
-> =20
-> -all: $(patsubst %, $(obj)/%, $(generic-y))
-> +quiet_cmd_remove =3D REMOVE  $(unwanted)
-> +cmd_remove =3D rm -f $(unwanted)
-> +
-> +all: $(patsubst %, $(obj)/%, $(generic-y)) FORCE
-> +	$(if $(unwanted),$(call cmd,remove),)
->  	@:
-> =20
->  $(obj)/%.h:
->  	$(call cmd,wrap)
-> +
-> +.PHONY: $(PHONY)
-> +PHONY +=3D FORCE
-> +FORCE: ;
->=20
+  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic-for-linus
 
+for you to fetch changes up to 040b323b5012b5503561ec7fe15cccd6a4bcaec2:
 
---=20
-=46lorian
+  ARM: asm/div64.h: adjust to generic codde (2015-11-19 20:00:43 -0500)
+
+----------------------------------------------------------------
+asm-generic changes for 4.5
+
+The asm-generic tree this time contains one series from Nicolas Pitre
+that makes the optimized do_div() implementation from the ARM
+architecture available to all architectures. This also adds stricter
+type checking for callers of do_div, which has uncovered a number
+of bugs in existing code, and fixes up the ones we have found.
+
+----------------------------------------------------------------
+Nicolas Pitre (14):
+      nouveau/nvkm/subdev/clk/gk20a.c: fix wrong do_div() usage
+      imx/clk-pllv1: fix wrong do_div() usage
+      imx/clk-pllv2: fix wrong do_div() usage
+      tegra/clk-divider: fix wrong do_div() usage
+      ti/clkt_dpll: fix wrong do_div() usage
+      ti/fapll: fix wrong do_div() usage
+      hid-sensor-hub.c: fix wrong do_div() usage
+      drm/mgag200/mgag200_mode.c: fix wrong do_div() usage
+      mtd/sm_ftl.c: fix wrong do_div() usage
+      div64.h: optimize do_div() for power-of-two constant divisors
+      do_div(): generic optimization for constant divisor on 32-bit machines
+      __div64_const32(): abstract out the actual 128-bit cross product code
+      __div64_32(): make it overridable at compile time
+      ARM: asm/div64.h: adjust to generic codde
+
+ arch/arm/include/asm/div64.h                    | 283 ++++++++----------------
+ drivers/clk/imx/clk-pllv1.c                     |  14 +-
+ drivers/clk/imx/clk-pllv2.c                     |   9 +-
+ drivers/clk/tegra/clk-divider.c                 |   4 +-
+ drivers/clk/ti/clkt_dpll.c                      |   4 +-
+ drivers/clk/ti/fapll.c                          |   4 +-
+ drivers/gpu/drm/mgag200/mgag200_mode.c          |   2 +-
+ drivers/gpu/drm/nouveau/nvkm/subdev/clk/gk20a.c |   3 +-
+ drivers/hid/hid-sensor-hub.c                    |   3 +-
+ drivers/mtd/sm_ftl.c                            |   3 +-
+ include/asm-generic/div64.h                     | 178 ++++++++++++++-
+ lib/div64.c                                     |   6 +-
+ 12 files changed, 298 insertions(+), 215 deletions(-)
