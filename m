@@ -1,78 +1,90 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: SPARC issue
-Date: Tue, 19 Jan 2016 15:37:17 -0800
-Message-ID: <CALCETrUkm-2bUrj+XHnp_YoP8Ji_VcmE1X4JqfFb4zJOuuZjwQ@mail.gmail.com>
-References: <CALCETrVso3Dd7qyf0FMDB7_nFK0wtX6_SrE7rcd48ZE_rOkFQw@mail.gmail.com>
- <20160119.171849.2126169792640472591.davem@davemloft.net> <CALCETrXxPdoLBWFbQw179Zvq5Ba4pVb=MGALDy=8GA0oUiXN-w@mail.gmail.com>
+From: Joe Perches <joe@perches.com>
+Subject: Re: [PATCH v4 2/8] lib: add "on" and "off" to strtobool
+Date: Tue, 19 Jan 2016 18:09:38 -0800
+Message-ID: <1453255778.25071.26.camel@perches.com>
+References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
+	 <1453226922-16831-3-git-send-email-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f175.google.com ([209.85.214.175]:33413 "EHLO
-	mail-ob0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756908AbcASXhh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 18:37:37 -0500
-Received: by mail-ob0-f175.google.com with SMTP id is5so201008567obc.0
-        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2016 15:37:37 -0800 (PST)
-In-Reply-To: <CALCETrXxPdoLBWFbQw179Zvq5Ba4pVb=MGALDy=8GA0oUiXN-w@mail.gmail.com>
+Received: from smtprelay0016.hostedemail.com ([216.40.44.16]:44295 "EHLO
+	smtprelay.hostedemail.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S933337AbcATCJm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 19 Jan 2016 21:09:42 -0500
+In-Reply-To: <1453226922-16831-3-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, Andrew Lutomirski <luto@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Ingo Molnar <mingo@kernel.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Kees Cook <keescook@chromium.org>
+To: Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@redhat.com>
+Cc: Rasmus Villemoes <linux@rasmusvillemoes.dk>, Daniel Borkmann <daniel@iogearbox.net>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
 
-On Tue, Jan 19, 2016 at 3:11 PM, Andy Lutomirski <luto@amacapital.net> wrote:
-> On Tue, Jan 19, 2016 at 2:18 PM, David Miller <davem@davemloft.net> wrote:
->> From: Andy Lutomirski <luto@amacapital.net>
->> Date: Tue, 19 Jan 2016 14:14:43 -0800
->>
->>> On Tue, Jan 19, 2016 at 1:55 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
->>>> On Tue, Jan 19, 2016 at 01:47:24PM -0800, Andy Lutomirski wrote:
->>>>> Essentially all users of is_compat_task in the kernel are trying to
->>>>> determine whether they are executing in the context of a compat
->>>>> syscall.  On at least x86_64 and sparc, these are not at all the
->>>>> same question.
->>>>>
->>>>> On x86_64 and sparc, therefore, is_compat_task doesn't return the
->>>>> overall compat state of the task; it returns true if the task is
->>>>> currently in a compat syscall.
->>>>
->>>> The hell it does.  Andy, TIF_32BIT is *NOT* set on syscall entry; it is
->>>> set by execve().  And 64bit task (with that bit clear) can bloody well
->>>> issue 32bit syscalls.  Really.
->>>
->>> It does on x86.  It does not on sparc.  But syscall_get_arch on sparc
->>> *also* doesn't appear to work right.
->>>
->>> davem, how can I check the current syscall bitness on sparc?  It's not
->>> obvious to me that it's possible.
->>
->> You have to do it by context if it's important.
->>
->
-> What does "by context" mean?  This is definitely important for seccomp
-> and audit, and I think it's probably important for other users, too.
->
->> In addition to the example Al gave, 32-bit processes can make 64-bit
->> syscalls too.  GDB and other ptrace() using applications can use this
->> to trace 64-bit programs from 32-bit tracer apps.
->
-> On x86, is_compat_task returns true in 32-bit syscalls and false in
-> 64-bit syscalls.  So a 64-bit task that calls a 32-bit syscall gets
-> is_compat_task.
->
-> I think that the naming makes no sense whatsoever but that the
-> behavior is actually desirable.  If I'm a 32-bit task and I call
-> 64-bit ptrace() [1], I think I want to see the 64-bit siginfo format,
-> not the 32-bit format.  A bunch of the drivers that use is_compat_task
-> are specifically trying to distinguish compat from non-compat ioctls.
-> The SPARC is_compat_task implementation doesn't do that.
->
-> I'm trying to phase out is_compat_task entirely from non-arch code.
-> The WIP version is here:
->
-> https://git.kernel.org/cgit/linux/kernel/git/luto/linux.git/log/?h=in_compat_syscall
->
-> but it has issues on SPARC.
+On Tue, 2016-01-19 at 10:08 -0800, Kees Cook wrote:
+> Several places in the kernel expect to use "on" and "off" for their
+> boolean signifiers, so add them to strtobool.
 
-Can we use pt_regs_trap_type for this?
+Several places in the kernel use a char address like
+fs/cifs/cifs_debug.c
 
---Andy
+
+	char c;
+	...
+
+
+	if (strtobool(&c, ...))
+
+Using s[1] might cause problems for those uses.
+> diff --git a/lib/string.c b/lib/string.c
+[]
+> @@ -635,12 +635,15 @@ EXPORT_SYMBOL(sysfs_streq);
+> =A0 * @s: input string
+> =A0 * @res: result
+> =A0 *
+> - * This routine returns 0 iff the first character is one of 'Yy1Nn0'=
+=2E
+> - * Otherwise it will return -EINVAL.=A0=A0Value pointed to by res is
+> - * updated upon finding a match.
+> + * This routine returns 0 iff the first character is one of 'Yy1Nn0'=
+, or
+> + * [oO][NnFf] for "on" and "off". Otherwise it will return -EINVAL.=A0=
+=A0Value
+> + * pointed to by res is updated upon finding a match.
+> =A0 */
+> =A0int strtobool(const char *s, bool *res)
+> =A0{
+> +	if (!s)
+> +		return -EINVAL;
+> +
+> =A0	switch (s[0]) {
+> =A0	case 'y':
+> =A0	case 'Y':
+> @@ -652,6 +655,21 @@ int strtobool(const char *s, bool *res)
+> =A0	case '0':
+> =A0		*res =3D false;
+> =A0		break;
+> +	case 'o':
+> +	case 'O':
+> +		switch (s[1]) {
+> +		case 'n':
+> +		case 'N':
+> +			*res =3D true;
+> +			break;
+> +		case 'f':
+> +		case 'F':
+
+Perhaps
+		switch (tolower(s[1])) {
+is more readable
+
+> +			*res =3D false;
+> +			break;
+> +		default:
+> +			return -EINVAL;
+> +		}
+> +		break;
+
+or maybe /* fallthrough */
+
+> =A0	default:
+> =A0		return -EINVAL;
+> =A0	}
