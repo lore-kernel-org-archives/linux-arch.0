@@ -1,52 +1,39 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH] Rename is_compat_task to in_compat_syscall
-Date: Wed, 20 Jan 2016 09:58:12 +0100
-Message-ID: <20160120085812.GC3395@osiris>
-References: <79347eb4ec12be34098b36693bcf613eb597cbe9.1453239942.git.luto@kernel.org>
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH] FRV: Mark architecture orphaned
+Date: Wed, 20 Jan 2016 10:29:00 +0000
+Message-ID: <20160120102900.15824.20938.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp08.uk.ibm.com ([195.75.94.104]:42642 "EHLO
-	e06smtp08.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758276AbcATI6U (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jan 2016 03:58:20 -0500
-Received: from localhost
-	by e06smtp08.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-	Wed, 20 Jan 2016 08:58:18 -0000
-Content-Disposition: inline
-In-Reply-To: <79347eb4ec12be34098b36693bcf613eb597cbe9.1453239942.git.luto@kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:54468 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933127AbcATK3C (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 Jan 2016 05:29:02 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Ingo Molnar <mingo@kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, linux-s390@vger.kernel.org
+To: torvalds@linux-foundation.org
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Tue, Jan 19, 2016 at 01:47:24PM -0800, Andy Lutomirski wrote:
-> Essentially all users of is_compat_task in the kernel are trying to
-> determine whether they are executing in the context of a compat
-> syscall.  On at least x86_64 and sparc, these are not at all the
-> same question.
-> 
-> On x86_64 and sparc, therefore, is_compat_task doesn't return the
-> overall compat state of the task; it returns true if the task is
-> currently in a compat syscall.
-> 
-> This confusion has been the source of bugs in the past.  Rename the
-> function to make it much clearer what it does.
-> 
-> This results in some odd definitions in the s390 headers.  s390
-> maintainers, are you okay with that?  If not, I'd be happy to clean
-> it up if you let me know how you'd like me to do it.
+Mark the FRV architecture orphaned in the MAINTAINERS file.
 
-Indeed, ignoring the sparc vs x86 issue, this leads to rather odd code at
-least in s390 code, where the statement "in_compat_syscall()" doesn't make
-sense.  E.g. when handling uprobes caused traps we are not in a system
-call. The same is true when setting up a compat signal frame when returning
-e.g. from a trap to user space.
+Signed-off-by: David Howells <dhowells@redhat.com>
+---
 
-Looks like x86 has explicit test_thread_flag() invocations for such things.
-While we can change s390 to do the same, I'm not sure if this is really a
-change for the better.
+ MAINTAINERS |    3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
-I'd probably keep an s390 private variant of is_compat_task() for such
-code.
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 050d0e77a2cf..414549ceddae 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -4582,8 +4582,7 @@ F:	include/linux/f2fs_fs.h
+ F:	include/trace/events/f2fs.h
+ 
+ FUJITSU FR-V (FRV) PORT
+-M:	David Howells <dhowells@redhat.com>
+-S:	Maintained
++S:	Orphan
+ F:	arch/frv/
+ 
+ FUJITSU LAPTOP EXTRAS
