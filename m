@@ -1,98 +1,52 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v4 8/8] x86, vdso: mark vDSO read-only after init
-Date: Tue, 19 Jan 2016 18:56:38 -0800
-Message-ID: <CALCETrUZdFWrE3f+iA5o01ic271S-edMfxMH8KwDz-gvEqZAEQ@mail.gmail.com>
-References: <1453226922-16831-1-git-send-email-keescook@chromium.org> <1453226922-16831-9-git-send-email-keescook@chromium.org>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH] Rename is_compat_task to in_compat_syscall
+Date: Wed, 20 Jan 2016 09:58:12 +0100
+Message-ID: <20160120085812.GC3395@osiris>
+References: <79347eb4ec12be34098b36693bcf613eb597cbe9.1453239942.git.luto@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f182.google.com ([209.85.214.182]:35566 "EHLO
-	mail-ob0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933532AbcATC46 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 21:56:58 -0500
-Received: by mail-ob0-f182.google.com with SMTP id py5so236222188obc.2
-        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2016 18:56:58 -0800 (PST)
-In-Reply-To: <1453226922-16831-9-git-send-email-keescook@chromium.org>
+Received: from e06smtp08.uk.ibm.com ([195.75.94.104]:42642 "EHLO
+	e06smtp08.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758276AbcATI6U (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jan 2016 03:58:20 -0500
+Received: from localhost
+	by e06smtp08.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+	Wed, 20 Jan 2016 08:58:18 -0000
+Content-Disposition: inline
+In-Reply-To: <79347eb4ec12be34098b36693bcf613eb597cbe9.1453239942.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, X86 ML <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Ingo Molnar <mingo@kernel.org>, x86@kernel.org, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, linux-s390@vger.kernel.org
 
-On Tue, Jan 19, 2016 at 10:08 AM, Kees Cook <keescook@chromium.org> wrote:
-> The vDSO does not need to be writable after __init, so mark it as
-> __ro_after_init. The result kills the exploit method of writing to the
-> vDSO from kernel space resulting in userspace executing the modified code,
-> as shown here to bypass SMEP restrictions: http://itszn.com/blog/?p=21
->
-> The memory map (with added vDSO address reporting) shows the vDSO moving
-> into read-only memory:
->
-> Before:
-> [    0.143067] vDSO @ ffffffff82004000
-> [    0.143551] vDSO @ ffffffff82006000
-> ---[ High Kernel Mapping ]---
-> 0xffffffff80000000-0xffffffff81000000      16M                         pmd
-> 0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
-> 0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
-> 0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
-> 0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
-> 0xffffffff81e00000-0xffffffff81e05000      20K   ro             GLB NX pte
-> 0xffffffff81e05000-0xffffffff82000000    2028K   ro                 NX pte
-> 0xffffffff82000000-0xffffffff8214f000    1340K   RW             GLB NX pte
-> 0xffffffff8214f000-0xffffffff82281000    1224K   RW                 NX pte
-> 0xffffffff82281000-0xffffffff82400000    1532K   RW             GLB NX pte
-> 0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
-> 0xffffffff83200000-0xffffffffc0000000     974M                         pmd
->
-> After:
-> [    0.145062] vDSO @ ffffffff81da1000
-> [    0.146057] vDSO @ ffffffff81da4000
-> ---[ High Kernel Mapping ]---
-> 0xffffffff80000000-0xffffffff81000000      16M                         pmd
-> 0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
-> 0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
-> 0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
-> 0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
-> 0xffffffff81e00000-0xffffffff81e0b000      44K   ro             GLB NX pte
-> 0xffffffff81e0b000-0xffffffff82000000    2004K   ro                 NX pte
-> 0xffffffff82000000-0xffffffff8214c000    1328K   RW             GLB NX pte
-> 0xffffffff8214c000-0xffffffff8227e000    1224K   RW                 NX pte
-> 0xffffffff8227e000-0xffffffff82400000    1544K   RW             GLB NX pte
-> 0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
-> 0xffffffff83200000-0xffffffffc0000000     974M                         pmd
->
-> Based on work by PaX Team and Brad Spengler.
->
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> Acked-by: Andy Lutomirski <luto@kernel.org>
-> ---
->  arch/x86/entry/vdso/vdso2c.h | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
->
-> diff --git a/arch/x86/entry/vdso/vdso2c.h b/arch/x86/entry/vdso/vdso2c.h
-> index 0224987556ce..eb93a3137ed2 100644
-> --- a/arch/x86/entry/vdso/vdso2c.h
-> +++ b/arch/x86/entry/vdso/vdso2c.h
-> @@ -140,7 +140,7 @@ static void BITSFUNC(go)(void *raw_addr, size_t raw_len,
->         fprintf(outfile, "#include <asm/vdso.h>\n");
->         fprintf(outfile, "\n");
->         fprintf(outfile,
-> -               "static unsigned char raw_data[%lu] __page_aligned_data = {",
-> +               "static unsigned char raw_data[%lu] __ro_after_init __aligned(PAGE_SIZE) = {",
->                 mapping_size);
->         for (j = 0; j < stripped_len; j++) {
->                 if (j % 10 == 0)
-> @@ -150,7 +150,7 @@ static void BITSFUNC(go)(void *raw_addr, size_t raw_len,
->         }
->         fprintf(outfile, "\n};\n\n");
->
-> -       fprintf(outfile, "static struct page *pages[%lu];\n\n",
-> +       fprintf(outfile, "static struct page *pages[%lu] __ro_after_init;\n\n",
+On Tue, Jan 19, 2016 at 01:47:24PM -0800, Andy Lutomirski wrote:
+> Essentially all users of is_compat_task in the kernel are trying to
+> determine whether they are executing in the context of a compat
+> syscall.  On at least x86_64 and sparc, these are not at all the
+> same question.
+> 
+> On x86_64 and sparc, therefore, is_compat_task doesn't return the
+> overall compat state of the task; it returns true if the task is
+> currently in a compat syscall.
+> 
+> This confusion has been the source of bugs in the past.  Rename the
+> function to make it much clearer what it does.
+> 
+> This results in some odd definitions in the s390 headers.  s390
+> maintainers, are you okay with that?  If not, I'd be happy to clean
+> it up if you let me know how you'd like me to do it.
 
-I spoke a bit too soon.  This line of code is gone in -tip:
+Indeed, ignoring the sparc vs x86 issue, this leads to rather odd code at
+least in s390 code, where the statement "in_compat_syscall()" doesn't make
+sense.  E.g. when handling uprobes caused traps we are not in a system
+call. The same is true when setting up a compat signal frame when returning
+e.g. from a trap to user space.
 
-https://git.kernel.org/cgit/linux/kernel/git/tip/tip.git/commit/?h=x86/asm&id=05ef76b20fc4297b0d3f8a956f1c809a8a1b3f1d
+Looks like x86 has explicit test_thread_flag() invocations for such things.
+While we can change s390 to do the same, I'm not sure if this is really a
+change for the better.
 
-My ack stands for the other change in here, though.
-
---Andy
+I'd probably keep an s390 private variant of is_compat_task() for such
+code.
