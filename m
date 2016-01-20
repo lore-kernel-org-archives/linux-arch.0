@@ -1,72 +1,141 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:55130 "EHLO mail.zytor.com"
+Received: from mail.kernel.org ([198.145.29.136]:33532 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933005AbcATCwl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 19 Jan 2016 21:52:41 -0500
-Subject: Re: [PATCH v4 8/8] x86, vdso: mark vDSO read-only after init
-References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
- <1453226922-16831-9-git-send-email-keescook@chromium.org>
-From: "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <569EF642.90302@zytor.com>
-Date: Tue, 19 Jan 2016 18:51:46 -0800
+	id S932980AbcATOSO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 20 Jan 2016 09:18:14 -0500
+Date: Wed, 20 Jan 2016 08:18:06 -0600
+From: Rob Herring <robh@kernel.org>
+Subject: Re: [PATCH v9 2/6] Documentation, dt, arm64/arm: dt bindings for
+ numa.
+Message-ID: <20160120141806.GA8434@rob-hp-laptop>
+References: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com>
+ <1453134965-6125-3-git-send-email-gkulkarni@caviumnetworks.com>
 MIME-Version: 1.0
-In-Reply-To: <1453226922-16831-9-git-send-email-keescook@chromium.org>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1453134965-6125-3-git-send-email-gkulkarni@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@redhat.com>
-Cc: Andy Lutomirski <luto@amacapital.net>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20160120025146.IJAV6NJPbNzIGXdIBpbDS8-cnrVkUVD3q1A4FWs2ejY@z>
+To: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
+Cc: linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Will.Deacon@arm.com, catalin.marinas@arm.com, grant.likely@linaro.org, leif.lindholm@linaro.org, rfranz@cavium.com, ard.biesheuvel@linaro.org, msalter@redhat.com, steve.capper@linaro.org, hanjun.guo@linaro.org, al.stone@linaro.org, arnd@arndb.de, pawel.moll@arm.com, mark.rutland@arm.com, ijc+devicetree@hellion.org.uk, galak@codeaurora.org, rjw@rjwysocki.net, lenb@kernel.org, marc.zyngier@arm.com, lorenzo.pieralisi@arm.com, bhelgaas@google.com, tony.luck@intel.com, fenghua.yu@intel.com, james.hogan@imgtec.com, benh@kernel.crashing.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, jonathan@jonmasters.org, rrichter@cavium.com, Prasun.Kapoor@caviumnetworks.com, gpkulkarni@gmail.com
+Message-ID: <20160120141806.45ygqPI_mXVZgV8D_Sp-kxo0rcjKKvAI9yHzgNDXo-M@z>
 
-On 01/19/16 10:08, Kees Cook wrote:
-> The vDSO does not need to be writable after __init, so mark it as
-> __ro_after_init. The result kills the exploit method of writing to the
-> vDSO from kernel space resulting in userspace executing the modified code,
-> as shown here to bypass SMEP restrictions: http://itszn.com/blog/?p=21
+On Mon, Jan 18, 2016 at 10:06:01PM +0530, Ganapatrao Kulkarni wrote:
+> DT bindings for numa mapping of memory, cores and IOs.
 > 
-> The memory map (with added vDSO address reporting) shows the vDSO moving
-> into read-only memory:
-> 
-> Before:
-> [    0.143067] vDSO @ ffffffff82004000
-> [    0.143551] vDSO @ ffffffff82006000
-> ---[ High Kernel Mapping ]---
-> 0xffffffff80000000-0xffffffff81000000      16M                         pmd
-> 0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
-> 0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
-> 0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
-> 0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
-> 0xffffffff81e00000-0xffffffff81e05000      20K   ro             GLB NX pte
-> 0xffffffff81e05000-0xffffffff82000000    2028K   ro                 NX pte
-> 0xffffffff82000000-0xffffffff8214f000    1340K   RW             GLB NX pte
-> 0xffffffff8214f000-0xffffffff82281000    1224K   RW                 NX pte
-> 0xffffffff82281000-0xffffffff82400000    1532K   RW             GLB NX pte
-> 0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
-> 0xffffffff83200000-0xffffffffc0000000     974M                         pmd
-> 
-> After:
-> [    0.145062] vDSO @ ffffffff81da1000
-> [    0.146057] vDSO @ ffffffff81da4000
-> ---[ High Kernel Mapping ]---
-> 0xffffffff80000000-0xffffffff81000000      16M                         pmd
-> 0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
-> 0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
-> 0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
-> 0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
-> 0xffffffff81e00000-0xffffffff81e0b000      44K   ro             GLB NX pte
-> 0xffffffff81e0b000-0xffffffff82000000    2004K   ro                 NX pte
-> 0xffffffff82000000-0xffffffff8214c000    1328K   RW             GLB NX pte
-> 0xffffffff8214c000-0xffffffff8227e000    1224K   RW                 NX pte
-> 0xffffffff8227e000-0xffffffff82400000    1544K   RW             GLB NX pte
-> 0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
-> 0xffffffff83200000-0xffffffffc0000000     974M                         pmd
-> 
-> Based on work by PaX Team and Brad Spengler.
-> 
-> Signed-off-by: Kees Cook <keescook@chromium.org>
-> Acked-by: Andy Lutomirski <luto@kernel.org>
+> Reviewed-by: Robert Richter <rrichter@cavium.com>
+> Signed-off-by: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
+> ---
+>  Documentation/devicetree/bindings/arm/numa.txt | 272 +++++++++++++++++++++++++
+>  1 file changed, 272 insertions(+)
+>  create mode 100644 Documentation/devicetree/bindings/arm/numa.txt
 
-Acked-by: H. Peter Anvin <hpa@linux.intel.com>
+This is looks okay to me, but some cosmetic things on the example.
 
+> +==============================================================================
+> +4 - Example dts
+> +==============================================================================
+> +
+> +2 sockets system consists of 2 boards connected through ccn bus and
+> +each board having one socket/soc of 8 cpus, memory and pci bus.
+> +
+> +	memory@00c00000 {
 
+Drop the leading 0s on unit addresses.
+
+> +		device_type = "memory";
+> +		reg = <0x0 0x00c00000 0x0 0x80000000>;
+> +		/* node 0 */
+> +		numa-node-id = <0>;
+> +	};
+> +
+> +	memory@10000000000 {
+> +		device_type = "memory";
+> +		reg = <0x100 0x00000000 0x0 0x80000000>;
+> +		/* node 1 */
+> +		numa-node-id = <1>;
+> +	};
+> +
+> +	cpus {
+> +		#address-cells = <2>;
+> +		#size-cells = <0>;
+> +
+> +		cpu@000 {
+
+Same here (leaving one of course).
+
+> +			device_type = "cpu";
+> +			compatible =  "arm,armv8";
+> +			reg = <0x0 0x000>;
+> +			enable-method = "psci";
+> +			/* node 0 */
+> +			numa-node-id = <0>;
+> +		};
+> +		cpu@001 {
+
+and so on...
+
+> +			device_type = "cpu";
+> +			compatible =  "arm,armv8";
+> +			reg = <0x0 0x001>;
+
+Either all leading 0s or none.
+
+> +			reg = <0x0 0x008>;
+> +			enable-method = "psci";
+> +			/* node 1 */
+
+Kind of a pointless comment.
+
+Wouldn't each cluster of cpus for a given numa node be in a different 
+cpu affinity? Certainly not required by the architecture, but the common 
+case at least.
+
+> +			numa-node-id = <1>;
+> +		};
+
+[...]
+
+> +	pcie0: pcie0@0x8480,00000000 {
+
+Drop the 0x and the comma.
+
+> +		compatible = "arm,armv8";
+> +		device_type = "pci";
+> +		bus-range = <0 255>;
+> +		#size-cells = <2>;
+> +		#address-cells = <3>;
+> +		reg = <0x8480 0x00000000 0 0x10000000>;  /* Configuration space */
+> +		ranges = <0x03000000 0x8010 0x00000000 0x8010 0x00000000 0x70 0x00000000>;
+> +		/* node 0 */
+> +		numa-node-id = <0>;
+> +        };
+> +
+> +	pcie1: pcie1@0x9480,00000000 {
+
+ditto
+
+> +		compatible = "arm,armv8";
+> +		device_type = "pci";
+> +		bus-range = <0 255>;
+> +		#size-cells = <2>;
+> +		#address-cells = <3>;
+> +		reg = <0x9480 0x00000000 0 0x10000000>;  /* Configuration space */
+> +		ranges = <0x03000000 0x9010 0x00000000 0x9010 0x00000000 0x70 0x00000000>;
+> +		/* node 1 */
+> +		numa-node-id = <1>;
+> +        };
+> +
+> +	distance-map {
+> +		compatible = "numa-distance-map-v1";
+> +		distance-matrix = <0 0 10>,
+> +				  <0 1 20>,
+> +				  <1 1 10>;
+> +	};
+> -- 
+> 1.8.1.4
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe devicetree" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
