@@ -1,45 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f179.google.com ([209.85.192.179]:35221 "EHLO
-	mail-pf0-f179.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932579AbcASSI4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 19 Jan 2016 13:08:56 -0500
-Received: by mail-pf0-f179.google.com with SMTP id 65so179161774pff.2
-        for <linux-arch@vger.kernel.org>; Tue, 19 Jan 2016 10:08:56 -0800 (PST)
-From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v4 0/8] introduce post-init read-only memory
-Date: Tue, 19 Jan 2016 10:08:34 -0800
-Message-ID: <1453226922-16831-1-git-send-email-keescook@chromium.org>
+Received: from terminus.zytor.com ([198.137.202.10]:55130 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933005AbcATCwl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 19 Jan 2016 21:52:41 -0500
+Subject: Re: [PATCH v4 8/8] x86, vdso: mark vDSO read-only after init
+References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
+ <1453226922-16831-9-git-send-email-keescook@chromium.org>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <569EF642.90302@zytor.com>
+Date: Tue, 19 Jan 2016 18:51:46 -0800
+MIME-Version: 1.0
+In-Reply-To: <1453226922-16831-9-git-send-email-keescook@chromium.org>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@redhat.com>
-Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20160119180834.Y2lLweJmUFi5L5xLsOC-07obF6Z2wSUSIZgszNzD_8M@z>
+To: Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@redhat.com>
+Cc: Andy Lutomirski <luto@amacapital.net>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20160120025146.IJAV6NJPbNzIGXdIBpbDS8-cnrVkUVD3q1A4FWs2ejY@z>
 
-One of the easiest ways to protect the kernel from attack is to reduce
-the internal attack surface exposed when a "write" flaw is available. By
-making as much of the kernel read-only as possible, we reduce the
-attack surface.
+On 01/19/16 10:08, Kees Cook wrote:
+> The vDSO does not need to be writable after __init, so mark it as
+> __ro_after_init. The result kills the exploit method of writing to the
+> vDSO from kernel space resulting in userspace executing the modified code,
+> as shown here to bypass SMEP restrictions: http://itszn.com/blog/?p=21
+> 
+> The memory map (with added vDSO address reporting) shows the vDSO moving
+> into read-only memory:
+> 
+> Before:
+> [    0.143067] vDSO @ ffffffff82004000
+> [    0.143551] vDSO @ ffffffff82006000
+> ---[ High Kernel Mapping ]---
+> 0xffffffff80000000-0xffffffff81000000      16M                         pmd
+> 0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
+> 0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
+> 0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
+> 0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
+> 0xffffffff81e00000-0xffffffff81e05000      20K   ro             GLB NX pte
+> 0xffffffff81e05000-0xffffffff82000000    2028K   ro                 NX pte
+> 0xffffffff82000000-0xffffffff8214f000    1340K   RW             GLB NX pte
+> 0xffffffff8214f000-0xffffffff82281000    1224K   RW                 NX pte
+> 0xffffffff82281000-0xffffffff82400000    1532K   RW             GLB NX pte
+> 0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
+> 0xffffffff83200000-0xffffffffc0000000     974M                         pmd
+> 
+> After:
+> [    0.145062] vDSO @ ffffffff81da1000
+> [    0.146057] vDSO @ ffffffff81da4000
+> ---[ High Kernel Mapping ]---
+> 0xffffffff80000000-0xffffffff81000000      16M                         pmd
+> 0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
+> 0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
+> 0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
+> 0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
+> 0xffffffff81e00000-0xffffffff81e0b000      44K   ro             GLB NX pte
+> 0xffffffff81e0b000-0xffffffff82000000    2004K   ro                 NX pte
+> 0xffffffff82000000-0xffffffff8214c000    1328K   RW             GLB NX pte
+> 0xffffffff8214c000-0xffffffff8227e000    1224K   RW                 NX pte
+> 0xffffffff8227e000-0xffffffff82400000    1544K   RW             GLB NX pte
+> 0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
+> 0xffffffff83200000-0xffffffffc0000000     974M                         pmd
+> 
+> Based on work by PaX Team and Brad Spengler.
+> 
+> Signed-off-by: Kees Cook <keescook@chromium.org>
+> Acked-by: Andy Lutomirski <luto@kernel.org>
 
-Many things are written to only during __init, and never changed
-again. These cannot be made "const" since the compiler will do the wrong
-thing (we do actually need to write to them). Instead, move these items
-into a memory region that will be made read-only during mark_rodata_ro()
-which happens after all kernel __init code has finished.
+Acked-by: H. Peter Anvin <hpa@linux.intel.com>
 
-This introduces __ro_after_init as a way to mark such memory, and uses
-it on the x86 vDSO to kill an extant kernel exploitation method. Also
-adds a new kernel parameter to help debug future use and adds an lkdtm
-test to check the results.
-
--Kees
-
-v4:
-- rebased
-v3:
-- conslidated mark_rodata_ro()
-- make CONFIG_DEBUG_RODATA always enabled on x86, mingo
-- enhanced strtobool and potential callers to use "on"/"off"
-- use strtobool for rodata= param, gregkh
-v2:
-- renamed __read_only to __ro_after_init
 
