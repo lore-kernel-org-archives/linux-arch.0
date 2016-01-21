@@ -1,141 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:33532 "EHLO mail.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932980AbcATOSO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Jan 2016 09:18:14 -0500
-Date: Wed, 20 Jan 2016 08:18:06 -0600
-From: Rob Herring <robh@kernel.org>
-Subject: Re: [PATCH v9 2/6] Documentation, dt, arm64/arm: dt bindings for
- numa.
-Message-ID: <20160120141806.GA8434@rob-hp-laptop>
-References: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com>
- <1453134965-6125-3-git-send-email-gkulkarni@caviumnetworks.com>
+Received: from mailapp01.imgtec.com ([195.59.15.196]:42719 "EHLO
+	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752388AbcAUADq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 20 Jan 2016 19:03:46 -0500
+Date: Thu, 21 Jan 2016 00:03:42 +0000
+From: Paul Burton <paul.burton@imgtec.com>
+Subject: Re: [PATCH v2 2/2] kbuild: Remove stale asm-generic wrappers
+Message-ID: <20160121000342.GA7538@NP-P-BURTON>
+References: <1453210670-12596-1-git-send-email-james.hogan@imgtec.com>
+ <1453210670-12596-3-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
 Content-Disposition: inline
-In-Reply-To: <1453134965-6125-3-git-send-email-gkulkarni@caviumnetworks.com>
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <1453210670-12596-3-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
-Cc: linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Will.Deacon@arm.com, catalin.marinas@arm.com, grant.likely@linaro.org, leif.lindholm@linaro.org, rfranz@cavium.com, ard.biesheuvel@linaro.org, msalter@redhat.com, steve.capper@linaro.org, hanjun.guo@linaro.org, al.stone@linaro.org, arnd@arndb.de, pawel.moll@arm.com, mark.rutland@arm.com, ijc+devicetree@hellion.org.uk, galak@codeaurora.org, rjw@rjwysocki.net, lenb@kernel.org, marc.zyngier@arm.com, lorenzo.pieralisi@arm.com, bhelgaas@google.com, tony.luck@intel.com, fenghua.yu@intel.com, james.hogan@imgtec.com, benh@kernel.crashing.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, jonathan@jonmasters.org, rrichter@cavium.com, Prasun.Kapoor@caviumnetworks.com, gpkulkarni@gmail.com
-Message-ID: <20160120141806.45ygqPI_mXVZgV8D_Sp-kxo0rcjKKvAI9yHzgNDXo-M@z>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: Michal Marek <mmarek@suse.com>, linux-kernel@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, Arnd Bergmann <arnd@arndb.de>, Ralf Baechle <ralf@linux-mips.org>, Florian Fainelli <f.fainelli@gmail.com>, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org
+Message-ID: <20160121000342.Ybxd7ZymneQlId2OQbNIgeNvKu3PKiCr9vBXvSWZQqg@z>
 
-On Mon, Jan 18, 2016 at 10:06:01PM +0530, Ganapatrao Kulkarni wrote:
-> DT bindings for numa mapping of memory, cores and IOs.
+On Tue, Jan 19, 2016 at 01:37:50PM +0000, James Hogan wrote:
+> When a header file is removed from generic-y (often accompanied by the
+> addition of an arch specific header), the generated wrapper file will
+> persist, and in some cases may still take precedence over the new arch
+> header.
 > 
-> Reviewed-by: Robert Richter <rrichter@cavium.com>
-> Signed-off-by: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
+> For example commit f1fe2d21f4e1 ("MIPS: Add definitions for extended
+> context") removed ucontext.h from generic-y in arch/mips/include/asm/,
+> and added an arch/mips/include/uapi/asm/ucontext.h. The continued use of
+> the wrapper when reusing a dirty build tree resulted in build failures
+> in arch/mips/kernel/signal.c:
+> 
+> arch/mips/kernel/signal.c: In function ‘sc_to_extcontext’:
+> arch/mips/kernel/signal.c:142:12: error: ‘struct ucontext’ has no member named ‘uc_extcontext’
+>   return &uc->uc_extcontext;
+>             ^
+> 
+> Fix by detecting and removing wrapper headers in generated header
+> directories that do not correspond to a filename in generic-y, genhdr-y,
+> or the newly introduced generated-y.
+> 
+> Reported-by: Jacek Anaszewski <j.anaszewski@samsung.com>
+> Reported-by: Hauke Mehrtens <hauke@hauke-m.de>
+> Reported-by: Heinrich Schuchardt <xypron.glpk@gmx.de>
+> Signed-off-by: James Hogan <james.hogan@imgtec.com>
+> Cc: Michal Marek <mmarek@suse.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Ralf Baechle <ralf@linux-mips.org>
+> Cc: Paul Burton <paul.burton@imgtec.com>
+> Cc: Florian Fainelli <f.fainelli@gmail.com>
+> Cc: linux-kbuild@vger.kernel.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: linux-mips@linux-mips.org
 > ---
->  Documentation/devicetree/bindings/arm/numa.txt | 272 +++++++++++++++++++++++++
->  1 file changed, 272 insertions(+)
->  create mode 100644 Documentation/devicetree/bindings/arm/numa.txt
-
-This is looks okay to me, but some cosmetic things on the example.
-
-> +==============================================================================
-> +4 - Example dts
-> +==============================================================================
-> +
-> +2 sockets system consists of 2 boards connected through ccn bus and
-> +each board having one socket/soc of 8 cpus, memory and pci bus.
-> +
-> +	memory@00c00000 {
-
-Drop the leading 0s on unit addresses.
-
-> +		device_type = "memory";
-> +		reg = <0x0 0x00c00000 0x0 0x80000000>;
-> +		/* node 0 */
-> +		numa-node-id = <0>;
-> +	};
-> +
-> +	memory@10000000000 {
-> +		device_type = "memory";
-> +		reg = <0x100 0x00000000 0x0 0x80000000>;
-> +		/* node 1 */
-> +		numa-node-id = <1>;
-> +	};
-> +
-> +	cpus {
-> +		#address-cells = <2>;
-> +		#size-cells = <0>;
-> +
-> +		cpu@000 {
-
-Same here (leaving one of course).
-
-> +			device_type = "cpu";
-> +			compatible =  "arm,armv8";
-> +			reg = <0x0 0x000>;
-> +			enable-method = "psci";
-> +			/* node 0 */
-> +			numa-node-id = <0>;
-> +		};
-> +		cpu@001 {
-
-and so on...
-
-> +			device_type = "cpu";
-> +			compatible =  "arm,armv8";
-> +			reg = <0x0 0x001>;
-
-Either all leading 0s or none.
-
-> +			reg = <0x0 0x008>;
-> +			enable-method = "psci";
-> +			/* node 1 */
-
-Kind of a pointless comment.
-
-Wouldn't each cluster of cpus for a given numa node be in a different 
-cpu affinity? Certainly not required by the architecture, but the common 
-case at least.
-
-> +			numa-node-id = <1>;
-> +		};
-
-[...]
-
-> +	pcie0: pcie0@0x8480,00000000 {
-
-Drop the 0x and the comma.
-
-> +		compatible = "arm,armv8";
-> +		device_type = "pci";
-> +		bus-range = <0 255>;
-> +		#size-cells = <2>;
-> +		#address-cells = <3>;
-> +		reg = <0x8480 0x00000000 0 0x10000000>;  /* Configuration space */
-> +		ranges = <0x03000000 0x8010 0x00000000 0x8010 0x00000000 0x70 0x00000000>;
-> +		/* node 0 */
-> +		numa-node-id = <0>;
-> +        };
-> +
-> +	pcie1: pcie1@0x9480,00000000 {
-
-ditto
-
-> +		compatible = "arm,armv8";
-> +		device_type = "pci";
-> +		bus-range = <0 255>;
-> +		#size-cells = <2>;
-> +		#address-cells = <3>;
-> +		reg = <0x9480 0x00000000 0 0x10000000>;  /* Configuration space */
-> +		ranges = <0x03000000 0x9010 0x00000000 0x9010 0x00000000 0x70 0x00000000>;
-> +		/* node 1 */
-> +		numa-node-id = <1>;
-> +        };
-> +
-> +	distance-map {
-> +		compatible = "numa-distance-map-v1";
-> +		distance-matrix = <0 0 10>,
-> +				  <0 1 20>,
-> +				  <1 1 10>;
-> +	};
-> -- 
-> 1.8.1.4
+> Changes in v2:
+> - Rewrite a bit, drawing inspiration from Makefile.headersinst.
+> - Exclude genhdr-y and generated-y (thanks to kbuild test robot).
+> ---
+>  scripts/Makefile.asm-generic | 17 ++++++++++++++++-
+>  1 file changed, 16 insertions(+), 1 deletion(-)
 > 
-> --
-> To unsubscribe from this list: send the line "unsubscribe devicetree" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> diff --git a/scripts/Makefile.asm-generic b/scripts/Makefile.asm-generic
+> index 045e0098e962..24c29f16f029 100644
+> --- a/scripts/Makefile.asm-generic
+> +++ b/scripts/Makefile.asm-generic
+> @@ -13,11 +13,26 @@ include scripts/Kbuild.include
+>  # Create output directory if not already present
+>  _dummy := $(shell [ -d $(obj) ] || mkdir -p $(obj))
+>  
+> +# Stale wrappers when the corresponding files are removed from generic-y
+> +# need removing.
+> +generated-y   := $(generic-y) $(genhdr-y) $(generated-y)
+> +all-files     := $(patsubst %, $(obj)/%, $(generated-y))
+> +old-headers   := $(wildcard $(obj)/*.h)
+> +unwanted      := $(filter-out $(all-files),$(old-headers))
+
+Hi James,
+
+Thanks a bunch for fixing this!
+
+Though is it my sleepy self or are all-files & old-headers misnomers?
+That is, isn't all-files actually a list of headers to be kept, and
+old-headers actually the list of all (header) files?
+
+Thanks,
+    Paul
+
+> +
+>  quiet_cmd_wrap = WRAP    $@
+>  cmd_wrap = echo "\#include <asm-generic/$*.h>" >$@
+>  
+> -all: $(patsubst %, $(obj)/%, $(generic-y))
+> +quiet_cmd_remove = REMOVE  $(unwanted)
+> +cmd_remove = rm -f $(unwanted)
+> +
+> +all: $(patsubst %, $(obj)/%, $(generic-y)) FORCE
+> +	$(if $(unwanted),$(call cmd,remove),)
+>  	@:
+>  
+>  $(obj)/%.h:
+>  	$(call cmd,wrap)
+> +
+> +.PHONY: $(PHONY)
+> +PHONY += FORCE
+> +FORCE: ;
+> -- 
+> 2.4.10
+> 
