@@ -1,52 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:37931 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S935132AbcAUK30 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 21 Jan 2016 05:29:26 -0500
-Date: Thu, 21 Jan 2016 12:29:22 +0200
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: [PATCH] sh: fix smp_store_mb for !SMP
-Message-ID: <1453371795-32669-1-git-send-email-mst@redhat.com>
+Received: from mail-io0-f174.google.com ([209.85.223.174]:36843 "EHLO
+	mail-io0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751957AbcAUWzB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 21 Jan 2016 17:55:01 -0500
+Received: by mail-io0-f174.google.com with SMTP id g73so72116103ioe.3
+        for <linux-arch@vger.kernel.org>; Thu, 21 Jan 2016 14:55:01 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+In-Reply-To: <20160121145008.746fc62fbe3fbc685869da57@linux-foundation.org>
+References: <1453373299-28181-1-git-send-email-ard.biesheuvel@linaro.org>
+	<1453396783-21591-1-git-send-email-ard.biesheuvel@linaro.org>
+	<20160121145008.746fc62fbe3fbc685869da57@linux-foundation.org>
+Date: Thu, 21 Jan 2016 14:55:00 -0800
+Message-ID: <CAGXu5j+yNZRC99BonVwdawqQTBDQWMKu4gw9TTnA8nOU+fqSMg@mail.gmail.com>
+Subject: Re: [PATCH v3] kallsyms: add support for relative offsets in kallsyms
+ address table
+From: Kees Cook <keescook@chromium.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-sh@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, virtualization@lists.linux-foundation.org
-Message-ID: <20160121102922.xFzLTTcAsJxZ7ci_xdgPifkni83ODI1Oxm5SjJORH3g@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>, LKML <linux-kernel@vger.kernel.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Michal Marek <mmarek@suse.cz>, Rusty Russell <rusty@rustcorp.com.au>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20160121225500.ZSWegjXA0ekT5mqmADDfbfBYVRJ-_KgTx86H-G7Vcas@z>
 
-sh variant of smp_store_mb() calls xchg() on !SMP which is stronger than
-implied by both the name and the documentation.
+On Thu, Jan 21, 2016 at 2:50 PM, Andrew Morton
+<akpm@linux-foundation.org> wrote:
+> On Thu, 21 Jan 2016 18:19:43 +0100 Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
+>
+>> Similar to how relative extables are implemented, it is possible to emit
+>> the kallsyms table in such a way that it contains offsets relative to some
+>> anchor point in the kernel image rather than absolute addresses. The benefit
+>> is that such table entries are no longer subject to dynamic relocation when
+>> the build time and runtime offsets of the kernel image are different. Also,
+>> on 64-bit architectures, it essentially cuts the size of the address table
+>> in half since offsets can typically be expressed in 32 bits.
+>>
+>> Since it is useful for some architectures (like x86) to retain the ability
+>> to emit absolute values as well, this patch adds support for both, by
+>> emitting absolute addresses as positive 32-bit values, and addresses
+>> relative to the lowest encountered relative symbol as negative values, which
+>> are subtracted from the runtime address of this base symbol to produce the
+>> actual address.
+>>
+>> Support for the above is enabled by default for all architectures except
+>> IA-64, whose symbols are too far apart to capture in this manner.
+>
+> I'm not really understanding the benefits of this.  A smaller address
+> table is nice, but why is it desirable that "such table entries are no
+> longer subject to dynamic relocation when the build time and runtime
+> offsets of the kernel image are different"?
 
-commit 90a3ccb0be538a914e6a5c51ae919762261563ad ("sh: define __smp_xxx,
-fix smp_store_mb for !SMP") was supposed to fix it but
-left the bug in place.
+IIUC, this means that the relocation work done after decompression now
+doesn't have to do relocation updates for all these values, which
+means a smaller relocation table as well.
 
-Drop smp_store_mb, so that code in asm-generic/barrier.h
-will define it correctly depending on CONFIG_SMP.
+-Kees
 
-Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
----
-
-I put this in my tree as that's where the original commit
-came through, but if anyone else prefers to merge it, pls
-let me know.
-
- arch/sh/include/asm/barrier.h | 1 -
- 1 file changed, 1 deletion(-)
-
-diff --git a/arch/sh/include/asm/barrier.h b/arch/sh/include/asm/barrier.h
-index f887c64..8a84e05 100644
---- a/arch/sh/include/asm/barrier.h
-+++ b/arch/sh/include/asm/barrier.h
-@@ -33,7 +33,6 @@
- #endif
- 
- #define __smp_store_mb(var, value) do { (void)xchg(&var, value); } while (0)
--#define smp_store_mb(var, value) __smp_store_mb(var, value)
- 
- #include <asm-generic/barrier.h>
- 
 -- 
-MST
+Kees Cook
+Chrome OS & Brillo Security
