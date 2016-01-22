@@ -1,76 +1,38 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: Re: [PATCH v3] kallsyms: add support for relative offsets in kallsyms
- address table
-Date: Fri, 22 Jan 2016 09:20:41 +0100
-Message-ID: <CAKv+Gu8QvECRJ9DhEd=k-oTy=xVVFJSMaW0EOCxMMPsWsF2RMQ@mail.gmail.com>
-References: <1453373299-28181-1-git-send-email-ard.biesheuvel@linaro.org>
-	<1453396783-21591-1-git-send-email-ard.biesheuvel@linaro.org>
-	<20160121145008.746fc62fbe3fbc685869da57@linux-foundation.org>
-	<CAGXu5j+yNZRC99BonVwdawqQTBDQWMKu4gw9TTnA8nOU+fqSMg@mail.gmail.com>
-	<20160121152045.82639ae577d816198607d650@linux-foundation.org>
+From: David Brown <david.brown@linaro.org>
+Subject: Re: [PATCH v4 0/8] introduce post-init read-only
+ memory
+Date: Fri, 22 Jan 2016 10:19:54 -0700
+Message-ID: <20160122171954.GA3945@davidb.org>
+References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f177.google.com ([209.85.213.177]:35900 "EHLO
-	mail-ig0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751818AbcAVIUl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Jan 2016 03:20:41 -0500
-Received: by mail-ig0-f177.google.com with SMTP id z14so144214918igp.1
-        for <linux-arch@vger.kernel.org>; Fri, 22 Jan 2016 00:20:41 -0800 (PST)
-In-Reply-To: <20160121152045.82639ae577d816198607d650@linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Kees Cook <keescook@chromium.org>, LKML <linux-kernel@vger.kernel.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Michal Marek <mmarek@suse.cz>, Rusty Russell <rusty@rustcorp.com.au>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Return-path: <kernel-hardening-return-2426-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Content-Disposition: inline
+In-Reply-To: <1453226922-16831-1-git-send-email-keescook@chromium.org>
+To: kernel-hardening@lists.openwall.com
+Cc: Ingo Molnar <mingo@redhat.com>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>, Laura Abbott <lauraa@codeaurora.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 22 January 2016 at 00:20, Andrew Morton <akpm@linux-foundation.org> wrote:
-> On Thu, 21 Jan 2016 14:55:00 -0800 Kees Cook <keescook@chromium.org> wrote:
->
->> IIUC, this means that the relocation work done after decompression now
->> doesn't have to do relocation updates for all these values, which
->> means a smaller relocation table as well.
->
-> Makes sense, thanks.  I altered the changelog
->
-> : Similar to how relative extables are implemented, it is possible to
-> : emit the kallsyms table in such a way that it contains offsets relative
-> : to some anchor point in the kernel image rather than absolute
-> : addresses.
-> :
+On Tue, Jan 19, 2016 at 10:08:34AM -0800, Kees Cook wrote:
 
-Thanks for taking the patch, but the bit below does not make sense anymore:
+>This introduces __ro_after_init as a way to mark such memory, and uses
+>it on the x86 vDSO to kill an extant kernel exploitation method. Also
+>adds a new kernel parameter to help debug future use and adds an lkdtm
+>test to check the results.
 
-"""
-> : The benefit is that such table entries are no longer subject to dynamic
-> : relocation when the build time so the relocation work done after
-> : decompression now doesn't have to do relocation updates for all these
-> : values, which means a smaller relocation table as well.
-> :
-> : Also, the runtime offsets of the kernel image are different.  Also, on
-> : 64-bit architectures, it essentially cuts the size of the address table
-> : in half since offsets can typically be expressed in 32 bits.
-> :
-"""
+I've tested these patches on 32-bit ARM using the provoke-crashes
+test.  However, they do require CONFIG_ARM_KERNMEM_PERMS to be enabled
+as well, which does incur additional memory usage.
 
-In addition to fixing the broken grammar, would it make sense to
-mention that dynamic relocation only occurs under
-CONFIG_RELOCATABLE=y? I.e., something like
+Do we want to consider making CONFIG_ARM_KERNMEM_PERMS default y for
+security reasons, and just document that memory-constrained systems
+may want to turn it off?
 
-"""
-On 64-bit architectures, it cuts the size of the kallsyms address
-table in half, since offsets between kernel symbols can typically be
-expressed in 32 bits. This saves several hundreds of kilobytes of
-permanent .rodata on average. In addition, the kallsyms address table
-is no longer subject to dynamic relocation when CONFIG_RELOCATABLE is
-in effect, so the relocation work done after decompression now doesn't
-have to do relocation updates for all these values. This saves up to
-24 bytes (i.e., the size of a ELF64 RELA relocation table entry) per
-table entry, which easily adds up to a couple of megabytes of
-uncompressed __init data on ppc64 or arm64. Even if these relocation
-entries typically compress well, the combined size reduction of 2.8 MB
-uncompressed for a ppc64_defconfig build (of which 2.4 MB is __init
-data) results in a ~500 KB space saving in the compressed image.
-"""
+I'll test the arm64 next.
 
-Thanks,
-Ard.
+David
