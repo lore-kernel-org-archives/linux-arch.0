@@ -1,70 +1,54 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [kernel-hardening] [PATCH v4 0/8] introduce post-init read-only memory
-Date: Fri, 22 Jan 2016 11:57:05 -0800
-Message-ID: <CAGXu5j+5EB5f335RHOP+CugFC1z29cAV0pWy6zB34dQBz7W6_Q@mail.gmail.com>
-References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
-	<20160122171954.GA3945@davidb.org>
-	<56A28029.2060608@labbott.name>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v3] kallsyms: add support for relative offsets in
+ kallsyms address table
+Date: Fri, 22 Jan 2016 13:07:18 -0800
+Message-ID: <20160122130718.8313ec9aefa654f33bd17792@linux-foundation.org>
+References: <1453373299-28181-1-git-send-email-ard.biesheuvel@linaro.org>
+	<1453396783-21591-1-git-send-email-ard.biesheuvel@linaro.org>
+	<20160121145008.746fc62fbe3fbc685869da57@linux-foundation.org>
+	<CAGXu5j+yNZRC99BonVwdawqQTBDQWMKu4gw9TTnA8nOU+fqSMg@mail.gmail.com>
+	<20160121152045.82639ae577d816198607d650@linux-foundation.org>
+	<CAKv+Gu8QvECRJ9DhEd=k-oTy=xVVFJSMaW0EOCxMMPsWsF2RMQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f180.google.com ([209.85.223.180]:36608 "EHLO
-	mail-io0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751987AbcAVT5G (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Jan 2016 14:57:06 -0500
-Received: by mail-io0-f180.google.com with SMTP id g73so101168288ioe.3
-        for <linux-arch@vger.kernel.org>; Fri, 22 Jan 2016 11:57:05 -0800 (PST)
-In-Reply-To: <56A28029.2060608@labbott.name>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:47160 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753165AbcAVVHT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Jan 2016 16:07:19 -0500
+In-Reply-To: <CAKv+Gu8QvECRJ9DhEd=k-oTy=xVVFJSMaW0EOCxMMPsWsF2RMQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Laura Abbott <laura@labbott.name>
-Cc: "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: Kees Cook <keescook@chromium.org>, LKML <linux-kernel@vger.kernel.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Michal Marek <mmarek@suse.cz>, Rusty Russell <rusty@rustcorp.com.au>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
 
-On Fri, Jan 22, 2016 at 11:16 AM, Laura Abbott <laura@labbott.name> wrote:
-> On 1/22/16 9:19 AM, David Brown wrote:
->>
->> On Tue, Jan 19, 2016 at 10:08:34AM -0800, Kees Cook wrote:
->>
->>> This introduces __ro_after_init as a way to mark such memory, and uses
->>> it on the x86 vDSO to kill an extant kernel exploitation method. Also
->>> adds a new kernel parameter to help debug future use and adds an lkdtm
->>> test to check the results.
->>
->>
->> I've tested these patches on 32-bit ARM using the provoke-crashes
->> test.  However, they do require CONFIG_ARM_KERNMEM_PERMS to be enabled
->> as well, which does incur additional memory usage.
+On Fri, 22 Jan 2016 09:20:41 +0100 Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
 
-Thanks for testing!
+> > : in half since offsets can typically be expressed in 32 bits.
+> > :
+> """
+> 
+> In addition to fixing the broken grammar, would it make sense to
+> mention that dynamic relocation only occurs under
+> CONFIG_RELOCATABLE=y? I.e., something like
+> 
+> """
+> On 64-bit architectures, it cuts the size of the kallsyms address
+> table in half, since offsets between kernel symbols can typically be
+> expressed in 32 bits. This saves several hundreds of kilobytes of
+> permanent .rodata on average. In addition, the kallsyms address table
+> is no longer subject to dynamic relocation when CONFIG_RELOCATABLE is
+> in effect, so the relocation work done after decompression now doesn't
+> have to do relocation updates for all these values. This saves up to
+> 24 bytes (i.e., the size of a ELF64 RELA relocation table entry) per
+> table entry, which easily adds up to a couple of megabytes of
+> uncompressed __init data on ppc64 or arm64. Even if these relocation
+> entries typically compress well, the combined size reduction of 2.8 MB
+> uncompressed for a ppc64_defconfig build (of which 2.4 MB is __init
+> data) results in a ~500 KB space saving in the compressed image.
+> """
 
->> Do we want to consider making CONFIG_ARM_KERNMEM_PERMS default y for
->> security reasons, and just document that memory-constrained systems
->> may want to turn it off?
->>
->> I'll test the arm64 next.
->>
->> David
->
->
-> Kees had previously pushed a patch to do so but it exposed a couple of
-> underlying issues, mostly with low power paths
-> (c.f. http://article.gmane.org/gmane.linux.ports.arm.kernel/471199,
-> http://article.gmane.org/gmane.linux.kernel.mm/143489)
-> Those will need to be all fixed up before this could be made default.
+Yes, that sounds very good.  I'd buy one :)
 
-Yeah, I've got a patch waiting to reorganize CONFIG_ARM_KERNMEM_PERMS
-to look more like arm64 (and x86) and get the feature correctly under
-CONFIG_DEBUG_RODATA. I made it default=y on v7+. rmk asked me to wait
-until -rc1 before resubmitting it.
-
-http://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/commit/?h=kspp/arm-rodata&id=08bebfd2e7fb8a9f364ced74c356642d64e1f43e
-
-and a small improvement too:
-
-http://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/commit/?h=kspp/arm-rodata&id=8e16f005ce0d4069aee5502379cff845b4c6f950
-
--Kees
-
--- 
-Kees Cook
-Chrome OS & Brillo Security
+Can you please send along a complete new changelog sometime?
