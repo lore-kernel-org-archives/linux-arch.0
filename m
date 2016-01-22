@@ -1,105 +1,45 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v4 2/8] lib: add "on" and "off" to strtobool
-Date: Fri, 22 Jan 2016 15:29:45 -0800
-Message-ID: <CAGXu5jLXuz529eyE9o0u88+iBzUqbB_Mh3Jbp43EZNgJDnWu2Q@mail.gmail.com>
-References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
-	<1453226922-16831-3-git-send-email-keescook@chromium.org>
-	<1453255778.25071.26.camel@perches.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v3] kallsyms: add support for relative offsets in
+ kallsyms address table
+Date: Fri, 22 Jan 2016 15:34:28 -0800
+Message-ID: <20160122153428.8422f42877c7707dbcba0259@linux-foundation.org>
+References: <1453373299-28181-1-git-send-email-ard.biesheuvel@linaro.org>
+	<1453396783-21591-1-git-send-email-ard.biesheuvel@linaro.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f180.google.com ([209.85.223.180]:33009 "EHLO
-	mail-io0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752942AbcAVX3q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Jan 2016 18:29:46 -0500
-Received: by mail-io0-f180.google.com with SMTP id q21so103822684iod.0
-        for <linux-arch@vger.kernel.org>; Fri, 22 Jan 2016 15:29:45 -0800 (PST)
-In-Reply-To: <1453255778.25071.26.camel@perches.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Joe Perches <joe@perches.com>
-Cc: Ingo Molnar <mingo@redhat.com>, Rasmus Villemoes <linux@rasmusvillemoes.dk>, Daniel Borkmann <daniel@iogearbox.net>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1453396783-21591-1-git-send-email-ard.biesheuvel@linaro.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, keescook@chromium.org, mingo@kernel.org, hpa@zytor.com, heiko.carstens@de.ibm.com, benh@kernel.crashing.org, mpe@ellerman.id.au, mmarek@suse.cz, rusty@rustcorp.com.au, arnd@arndb.de, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 19, 2016 at 6:09 PM, Joe Perches <joe@perches.com> wrote:
-> On Tue, 2016-01-19 at 10:08 -0800, Kees Cook wrote:
->> Several places in the kernel expect to use "on" and "off" for their
->> boolean signifiers, so add them to strtobool.
->
-> Several places in the kernel use a char address like
-> fs/cifs/cifs_debug.c
->
->
->         char c;
->         ...
->
->
->         if (strtobool(&c, ...))
->
-> Using s[1] might cause problems for those uses.
+On Thu, 21 Jan 2016 18:19:43 +0100 Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
 
-Oh ew. Thanks for noticing that.
+> Similar to how relative extables are implemented, it is possible to emit
+> the kallsyms table in such a way that it contains offsets relative to some
+> anchor point in the kernel image rather than absolute addresses. The benefit
+> is that such table entries are no longer subject to dynamic relocation when
+> the build time and runtime offsets of the kernel image are different. Also,
+> on 64-bit architectures, it essentially cuts the size of the address table
+> in half since offsets can typically be expressed in 32 bits.
+> 
+> Since it is useful for some architectures (like x86) to retain the ability
+> to emit absolute values as well, this patch adds support for both, by
+> emitting absolute addresses as positive 32-bit values, and addresses
+> relative to the lowest encountered relative symbol as negative values, which
+> are subtracted from the runtime address of this base symbol to produce the
+> actual address.
+> 
+> Support for the above is enabled by default for all architectures except
+> IA-64, whose symbols are too far apart to capture in this manner.
 
->> diff --git a/lib/string.c b/lib/string.c
-> []
->> @@ -635,12 +635,15 @@ EXPORT_SYMBOL(sysfs_streq);
->>   * @s: input string
->>   * @res: result
->>   *
->> - * This routine returns 0 iff the first character is one of 'Yy1Nn0'.
->> - * Otherwise it will return -EINVAL.  Value pointed to by res is
->> - * updated upon finding a match.
->> + * This routine returns 0 iff the first character is one of 'Yy1Nn0', or
->> + * [oO][NnFf] for "on" and "off". Otherwise it will return -EINVAL.  Value
->> + * pointed to by res is updated upon finding a match.
->>   */
->>  int strtobool(const char *s, bool *res)
->>  {
->> +     if (!s)
->> +             return -EINVAL;
->> +
->>       switch (s[0]) {
->>       case 'y':
->>       case 'Y':
->> @@ -652,6 +655,21 @@ int strtobool(const char *s, bool *res)
->>       case '0':
->>               *res = false;
->>               break;
->> +     case 'o':
->> +     case 'O':
->> +             switch (s[1]) {
->> +             case 'n':
->> +             case 'N':
->> +                     *res = true;
->> +                     break;
->> +             case 'f':
->> +             case 'F':
->
-> Perhaps
->                 switch (tolower(s[1])) {
-> is more readable
+scripts/kallsyms.c: In function 'record_relative_base':
+scripts/kallsyms.c:744: error: 'ULLONG_MAX' undeclared (first use in this function)
+scripts/kallsyms.c:744: error: (Each undeclared identifier is reported only once
+scripts/kallsyms.c:744: error: for each function it appears in.)
 
-I opted to let the compiler deal with optimizing this, and I left the
-switch statement as close to original as possible.
-
--Kees
-
->
->> +                     *res = false;
->> +                     break;
->> +             default:
->> +                     return -EINVAL;
->> +             }
->> +             break;
->
-> or maybe /* fallthrough */
->
->>       default:
->>               return -EINVAL;
->>       }
->
-
-
-
--- 
-Kees Cook
-Chrome OS & Brillo Security
+That's with (ancient) glibc-headers-2.5-3.  It appears that limits.h's
+ULLONG_MAX requires "#ifdef __USE_ISOC99".  I'm not sure what's the
+correct way of turning this on.
