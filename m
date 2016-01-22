@@ -1,52 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f49.google.com ([209.85.220.49]:36605 "EHLO
-	mail-pa0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753905AbcAVTRC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Jan 2016 14:17:02 -0500
-Received: by mail-pa0-f49.google.com with SMTP id yy13so45903567pab.3
-        for <linux-arch@vger.kernel.org>; Fri, 22 Jan 2016 11:17:01 -0800 (PST)
-Subject: Re: [kernel-hardening] [PATCH v4 0/8] introduce post-init read-only
- memory
-References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
- <20160122171954.GA3945@davidb.org>
-From: Laura Abbott <laura@labbott.name>
-Message-ID: <56A28029.2060608@labbott.name>
-Date: Fri, 22 Jan 2016 11:16:57 -0800
+Received: from mail-ig0-f172.google.com ([209.85.213.172]:33126 "EHLO
+	mail-ig0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754521AbcAVVyp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 22 Jan 2016 16:54:45 -0500
+Received: by mail-ig0-f172.google.com with SMTP id z14so656243igp.0
+        for <linux-arch@vger.kernel.org>; Fri, 22 Jan 2016 13:54:45 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <20160122171954.GA3945@davidb.org>
-Content-Type: text/plain; charset=windows-1252; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20160122130718.8313ec9aefa654f33bd17792@linux-foundation.org>
+References: <1453373299-28181-1-git-send-email-ard.biesheuvel@linaro.org>
+	<1453396783-21591-1-git-send-email-ard.biesheuvel@linaro.org>
+	<20160121145008.746fc62fbe3fbc685869da57@linux-foundation.org>
+	<CAGXu5j+yNZRC99BonVwdawqQTBDQWMKu4gw9TTnA8nOU+fqSMg@mail.gmail.com>
+	<20160121152045.82639ae577d816198607d650@linux-foundation.org>
+	<CAKv+Gu8QvECRJ9DhEd=k-oTy=xVVFJSMaW0EOCxMMPsWsF2RMQ@mail.gmail.com>
+	<20160122130718.8313ec9aefa654f33bd17792@linux-foundation.org>
+Date: Fri, 22 Jan 2016 22:54:44 +0100
+Message-ID: <CAKv+Gu9rgeWYgJ_0Rpx1DmvWP90O8r=MBN4YH4xZyn3r4wrUdg@mail.gmail.com>
+Subject: Re: [PATCH v3] kallsyms: add support for relative offsets in kallsyms
+ address table
+From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: kernel-hardening@lists.openwall.com
-Cc: Ingo Molnar <mingo@redhat.com>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20160122191657.1eNGkNHUfawXgO9eNZotki1mrsPJrPxz4bXwvadgR_I@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Kees Cook <keescook@chromium.org>, LKML <linux-kernel@vger.kernel.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "x86@kernel.org" <x86@kernel.org>, Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, Michael Ellerman <mpe@ellerman.id.au>, Michal Marek <mmarek@suse.cz>, Rusty Russell <rusty@rustcorp.com.au>, Arnd Bergmann <arnd@arndb.de>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20160122215444.9z8-IA2p1zfvkpMVaNZaA6k4GvzP5zaf7CPUERen3SA@z>
 
-On 1/22/16 9:19 AM, David Brown wrote:
-> On Tue, Jan 19, 2016 at 10:08:34AM -0800, Kees Cook wrote:
+On 22 January 2016 at 22:07, Andrew Morton <akpm@linux-foundation.org> wrote:
+> On Fri, 22 Jan 2016 09:20:41 +0100 Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
 >
->> This introduces __ro_after_init as a way to mark such memory, and uses
->> it on the x86 vDSO to kill an extant kernel exploitation method. Also
->> adds a new kernel parameter to help debug future use and adds an lkdtm
->> test to check the results.
+>> > : in half since offsets can typically be expressed in 32 bits.
+>> > :
+>> """
+>>
+>> In addition to fixing the broken grammar, would it make sense to
+>> mention that dynamic relocation only occurs under
+>> CONFIG_RELOCATABLE=y? I.e., something like
+>>
+>> """
+>> On 64-bit architectures, it cuts the size of the kallsyms address
+>> table in half, since offsets between kernel symbols can typically be
+>> expressed in 32 bits. This saves several hundreds of kilobytes of
+>> permanent .rodata on average. In addition, the kallsyms address table
+>> is no longer subject to dynamic relocation when CONFIG_RELOCATABLE is
+>> in effect, so the relocation work done after decompression now doesn't
+>> have to do relocation updates for all these values. This saves up to
+>> 24 bytes (i.e., the size of a ELF64 RELA relocation table entry) per
+>> table entry, which easily adds up to a couple of megabytes of
+>> uncompressed __init data on ppc64 or arm64. Even if these relocation
+>> entries typically compress well, the combined size reduction of 2.8 MB
+>> uncompressed for a ppc64_defconfig build (of which 2.4 MB is __init
+>> data) results in a ~500 KB space saving in the compressed image.
+>> """
 >
-> I've tested these patches on 32-bit ARM using the provoke-crashes
-> test.  However, they do require CONFIG_ARM_KERNMEM_PERMS to be enabled
-> as well, which does incur additional memory usage.
+> Yes, that sounds very good.  I'd buy one :)
 >
-> Do we want to consider making CONFIG_ARM_KERNMEM_PERMS default y for
-> security reasons, and just document that memory-constrained systems
-> may want to turn it off?
->
-> I'll test the arm64 next.
->
-> David
 
-Kees had previously pushed a patch to do so but it exposed a couple of
-underlying issues, mostly with low power paths
-(c.f. http://article.gmane.org/gmane.linux.ports.arm.kernel/471199,
-http://article.gmane.org/gmane.linux.kernel.mm/143489)
-Those will need to be all fixed up before this could be made default.
+Did I tell you about the extended warranty?
+
+> Can you please send along a complete new changelog sometime?
+
+Sure:
+
+"""
+kallsyms: add support for relative offsets in kallsyms address table
+
+Similar to how relative extables are implemented, it is possible to emit
+the kallsyms table in such a way that it contains offsets relative to some
+anchor point in the kernel image rather than absolute addresses.
+
+On 64-bit architectures, it cuts the size of the kallsyms address table in
+half, since offsets between kernel symbols can typically be expressed in 32
+bits. This saves several hundreds of kilobytes of permanent .rodata on
+average. In addition, the kallsyms address table is no longer subject to
+dynamic relocation when CONFIG_RELOCATABLE is in effect, so the relocation
+work done after decompression now doesn't have to do relocation updates for
+all these values. This saves up to 24 bytes (i.e., the size of a ELF64 RELA
+relocation table entry) per value, which easily adds up to a couple of
+megabytes of uncompressed __init data on ppc64 or arm64. Even if these
+relocation entries typically compress well, the combined size reduction of
+2.8 MB uncompressed for a ppc64_defconfig build (of which 2.4 MB is __init
+data) results in a ~500 KB space saving in the compressed image.
+
+Since it is useful for some architectures (like x86) to retain the ability
+to emit absolute values as well, this patch adds support for both, by
+emitting absolute addresses as positive 32-bit values, and addresses
+relative to the lowest encountered relative symbol as negative values,
+which are subtracted from the runtime address of this base symbol to
+produce the actual address.
+
+Support for the above is enabled by default for all architectures except
+IA-64, whose symbols are too far apart to capture in this manner.
+
+Acked-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+Tested-by: Michael Ellerman <mpe@ellerman.id.au> # powerpc
+Tested-by: Kees Cook <keescook@chromium.org> # x86_64
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+"""
 
 Thanks,
-Laura
+Ard.
