@@ -1,59 +1,68 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [kernel-hardening] [PATCH v4 0/8] introduce post-init read-only memory
-Date: Sat, 23 Jan 2016 10:49:15 +0100
-Message-ID: <CAMuHMdW46hT9usJ-UxAnSKqzTdHfV+VKzU-L9O2NkSegTfbn9Q@mail.gmail.com>
-References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
-	<20160122171954.GA3945@davidb.org>
-	<56A28029.2060608@labbott.name>
-	<CAGXu5j+5EB5f335RHOP+CugFC1z29cAV0pWy6zB34dQBz7W6_Q@mail.gmail.com>
+From: Balbir Singh <bsingharora@gmail.com>
+Subject: Re: [PATCH v3] kallsyms: add support for relative offsets in
+ kallsyms address table
+Date: Sun, 24 Jan 2016 00:21:34 +1100
+Message-ID: <20160124002134.192eb470@cotter.ozlabs.ibm.com>
+References: <1453373299-28181-1-git-send-email-ard.biesheuvel@linaro.org>
+	<1453396783-21591-1-git-send-email-ard.biesheuvel@linaro.org>
+	<20160121145008.746fc62fbe3fbc685869da57@linux-foundation.org>
+	<CAGXu5j+yNZRC99BonVwdawqQTBDQWMKu4gw9TTnA8nOU+fqSMg@mail.gmail.com>
+	<20160121152045.82639ae577d816198607d650@linux-foundation.org>
+	<CAKv+Gu8QvECRJ9DhEd=k-oTy=xVVFJSMaW0EOCxMMPsWsF2RMQ@mail.gmail.com>
+	<20160122130718.8313ec9aefa654f33bd17792@linux-foundation.org>
+	<CAKv+Gu9rgeWYgJ_0Rpx1DmvWP90O8r=MBN4YH4xZyn3r4wrUdg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f194.google.com ([209.85.213.194]:35156 "EHLO
-	mail-ig0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752184AbcAWJtQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 23 Jan 2016 04:49:16 -0500
-In-Reply-To: <CAGXu5j+5EB5f335RHOP+CugFC1z29cAV0pWy6zB34dQBz7W6_Q@mail.gmail.com>
+Received: from mail-pa0-f45.google.com ([209.85.220.45]:33974 "EHLO
+	mail-pa0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751949AbcAWNVz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 23 Jan 2016 08:21:55 -0500
+In-Reply-To: <CAKv+Gu9rgeWYgJ_0Rpx1DmvWP90O8r=MBN4YH4xZyn3r4wrUdg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Laura Abbott <laura@labbott.name>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Michal Marek <mmarek@suse.cz>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Rusty Russell <rusty@rustcorp.com.au>, Kees Cook <keescook@chromium.org>, Arnd Bergmann <arnd@arndb.de>, "x86@kernel.org" <x86@kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, LKML <linux-kernel@vger.kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, linux-arch <linux-arch@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, Ingo Molnar <mingo@kernel.org>
 
-Hi Kees,
+On Fri, 22 Jan 2016 22:54:44 +0100
+Ard Biesheuvel <ard.biesheuvel@linaro.org> wrote:
 
-On Fri, Jan 22, 2016 at 8:57 PM, Kees Cook <keescook@chromium.org> wrote:
-> On Fri, Jan 22, 2016 at 11:16 AM, Laura Abbott <laura@labbott.name> wrote:
->> Kees had previously pushed a patch to do so but it exposed a couple of
->> underlying issues, mostly with low power paths
->> (c.f. http://article.gmane.org/gmane.linux.ports.arm.kernel/471199,
->> http://article.gmane.org/gmane.linux.kernel.mm/143489)
->> Those will need to be all fixed up before this could be made default.
+> 
+> """
+> kallsyms: add support for relative offsets in kallsyms address table
+> 
+> Similar to how relative extables are implemented, it is possible to emit
+> the kallsyms table in such a way that it contains offsets relative to some
+> anchor point in the kernel image rather than absolute addresses.
+> 
+> On 64-bit architectures, it cuts the size of the kallsyms address table in
+> half, since offsets between kernel symbols can typically be expressed in 32
+> bits. This saves several hundreds of kilobytes of permanent .rodata on
+> average. In addition, the kallsyms address table is no longer subject to
+> dynamic relocation when CONFIG_RELOCATABLE is in effect, so the relocation
+> work done after decompression now doesn't have to do relocation updates for
+> all these values. This saves up to 24 bytes (i.e., the size of a ELF64 RELA
+> relocation table entry) per value, which easily adds up to a couple of
+> megabytes of uncompressed __init data on ppc64 or arm64. Even if these
+> relocation entries typically compress well, the combined size reduction of
+> 2.8 MB uncompressed for a ppc64_defconfig build (of which 2.4 MB is __init
+> data) results in a ~500 KB space saving in the compressed image.
+> 
+> Since it is useful for some architectures (like x86) to retain the ability
+> to emit absolute values as well, this patch adds support for both, by
+> emitting absolute addresses as positive 32-bit values, and addresses
+> relative to the lowest encountered relative symbol as negative values,
+> which are subtracted from the runtime address of this base symbol to
+> produce the actual address.
+> 
+> Support for the above is enabled by default for all architectures except
+> IA-64, whose symbols are too far apart to capture in this manner.
 
-I'm working on fixing that...
+snip
 
-BTW, making the sections read-only is done quite late in the kernel startup
-process, which means it doesn't trigger for the writes to the text segment in
-secondary CPU bringup, but only for suspend/resume.
+I still don't get the 2GB limitaiton, because of the 32 bit address
+does it imply that modules load with -2GB to +2GB of the kernel base
+address of the kallsyms address table?
 
-> Yeah, I've got a patch waiting to reorganize CONFIG_ARM_KERNMEM_PERMS
-> to look more like arm64 (and x86) and get the feature correctly under
-> CONFIG_DEBUG_RODATA. I made it default=y on v7+. rmk asked me to wait
-> until -rc1 before resubmitting it.
->
-> http://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/commit/?h=kspp/arm-rodata&id=08bebfd2e7fb8a9f364ced74c356642d64e1f43e
-
-One other concern is indeed memory usage ("ALIGN(1<<SECTION_SHIFT)"?).
-Enabling CONFIG_ARM_KERNMEM_PERMS and CONFIG_DEBUG_RODATA in my test kernel
-configs make the kernel too big to boot (overwritten DTB?) for 3 out of 4 arm
-shmobile targets...
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Balbir Singh.
