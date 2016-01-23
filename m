@@ -1,32 +1,59 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v3] kallsyms: add support for relative offsets in
- kallsyms address table
-Date: Fri, 22 Jan 2016 15:43:58 -0800
-Message-ID: <20160122154358.e6491d6a963747b449731eb9@linux-foundation.org>
-References: <1453373299-28181-1-git-send-email-ard.biesheuvel@linaro.org>
-	<1453396783-21591-1-git-send-email-ard.biesheuvel@linaro.org>
-	<20160122153428.8422f42877c7707dbcba0259@linux-foundation.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [kernel-hardening] [PATCH v4 0/8] introduce post-init read-only memory
+Date: Sat, 23 Jan 2016 10:49:15 +0100
+Message-ID: <CAMuHMdW46hT9usJ-UxAnSKqzTdHfV+VKzU-L9O2NkSegTfbn9Q@mail.gmail.com>
+References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
+	<20160122171954.GA3945@davidb.org>
+	<56A28029.2060608@labbott.name>
+	<CAGXu5j+5EB5f335RHOP+CugFC1z29cAV0pWy6zB34dQBz7W6_Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20160122153428.8422f42877c7707dbcba0259@linux-foundation.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ard Biesheuvel <ard.biesheuvel@linaro.org>, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, keescook@chromium.org, mingo@kernel.org, hpa@zytor.com, heiko.carstens@de.ibm.com, benh@kernel.crashing.org, mpe@ellerman.id.au, mmarek@suse.cz, rusty@rustcorp.com.au, arnd@arndb.de, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ig0-f194.google.com ([209.85.213.194]:35156 "EHLO
+	mail-ig0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752184AbcAWJtQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 23 Jan 2016 04:49:16 -0500
+In-Reply-To: <CAGXu5j+5EB5f335RHOP+CugFC1z29cAV0pWy6zB34dQBz7W6_Q@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Kees Cook <keescook@chromium.org>
+Cc: Laura Abbott <laura@labbott.name>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On Fri, 22 Jan 2016 15:34:28 -0800 Andrew Morton <akpm@linux-foundation.org> wrote:
+Hi Kees,
 
-> > Support for the above is enabled by default for all architectures except
-> > IA-64, whose symbols are too far apart to capture in this manner.
-> 
-> scripts/kallsyms.c: In function 'record_relative_base':
-> scripts/kallsyms.c:744: error: 'ULLONG_MAX' undeclared (first use in this function)
-> scripts/kallsyms.c:744: error: (Each undeclared identifier is reported only once
-> scripts/kallsyms.c:744: error: for each function it appears in.)
-> 
-> That's with (ancient) glibc-headers-2.5-3.  It appears that limits.h's
-> ULLONG_MAX requires "#ifdef __USE_ISOC99".  I'm not sure what's the
-> correct way of turning this on.
+On Fri, Jan 22, 2016 at 8:57 PM, Kees Cook <keescook@chromium.org> wrote:
+> On Fri, Jan 22, 2016 at 11:16 AM, Laura Abbott <laura@labbott.name> wrote:
+>> Kees had previously pushed a patch to do so but it exposed a couple of
+>> underlying issues, mostly with low power paths
+>> (c.f. http://article.gmane.org/gmane.linux.ports.arm.kernel/471199,
+>> http://article.gmane.org/gmane.linux.kernel.mm/143489)
+>> Those will need to be all fixed up before this could be made default.
 
-Actually, how about we replace it with -1ULL and get on with life.
+I'm working on fixing that...
+
+BTW, making the sections read-only is done quite late in the kernel startup
+process, which means it doesn't trigger for the writes to the text segment in
+secondary CPU bringup, but only for suspend/resume.
+
+> Yeah, I've got a patch waiting to reorganize CONFIG_ARM_KERNMEM_PERMS
+> to look more like arm64 (and x86) and get the feature correctly under
+> CONFIG_DEBUG_RODATA. I made it default=y on v7+. rmk asked me to wait
+> until -rc1 before resubmitting it.
+>
+> http://git.kernel.org/cgit/linux/kernel/git/kees/linux.git/commit/?h=kspp/arm-rodata&id=08bebfd2e7fb8a9f364ced74c356642d64e1f43e
+
+One other concern is indeed memory usage ("ALIGN(1<<SECTION_SHIFT)"?).
+Enabling CONFIG_ARM_KERNMEM_PERMS and CONFIG_DEBUG_RODATA in my test kernel
+configs make the kernel too big to boot (overwritten DTB?) for 3 out of 4 arm
+shmobile targets...
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
