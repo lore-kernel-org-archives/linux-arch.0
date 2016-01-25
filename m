@@ -1,49 +1,99 @@
-From: Paul Bolle <pebolle@tiscali.nl>
-Subject: Re: [PATCH v2] mm/debug_pagealloc: Ask users for default setting of
- debug_pagealloc
-Date: Mon, 25 Jan 2016 16:03:24 +0100
-Message-ID: <1453734204.17181.15.camel@tiscali.nl>
-References: <1453720528-103788-1-git-send-email-borntraeger@de.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH] mtd: only use __xipram annotation when XIP_KERNEL is set
+Date: Mon, 25 Jan 2016 16:41:50 +0100
+Message-ID: <1453736525-1959191-2-git-send-email-arnd@arndb.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lb2-smtp-cloud6.xs4all.net ([194.109.24.28]:59489 "EHLO
-	lb2-smtp-cloud6.xs4all.net" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756257AbcAYPD3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Jan 2016 10:03:29 -0500
-In-Reply-To: <1453720528-103788-1-git-send-email-borntraeger@de.ibm.com>
+Received: from mout.kundenserver.de ([212.227.126.131]:58481 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754225AbcAYPnc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jan 2016 10:43:32 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: peterz@infradead.org, heiko.carstens@de.ibm.com, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Joonsoo Kim <iamjoonsoo.kim@lge.com>, linux-kernel@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, David Woodhouse <dwmw2@infradead.org>, Brian Norris <computersforpeace@gmail.com>
+Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mtd@lists.infradead.org
 
-On ma, 2016-01-25 at 12:15 +0100, Christian Borntraeger wrote:
-> --- a/mm/Kconfig.debug
-> +++ b/mm/Kconfig.debug
+When XIP_KERNEL is enabled, some functions are defined in the .data
+ELF section because we require them to be in RAM whenever we communicate
+with the flash chip. However this causes problems when FTRACE is
+enabled and gcc emits calls to __gnu_mcount_nc in the function
+prolog:
 
-> +config DEBUG_PAGEALLOC_ENABLE_DEFAULT
-> +	bool "Enable debug page memory allocations by default?"
-> +        default off
+drivers/built-in.o: In function `cfi_chip_setup':
+:(.data+0x272fc): relocation truncated to fit: R_ARM_CALL against symbol `__gnu_mcount_nc' defined in .text section in arch/arm/kernel/built-in.o
+drivers/built-in.o: In function `cfi_probe_chip':
+:(.data+0x27de8): relocation truncated to fit: R_ARM_CALL against symbol `__gnu_mcount_nc' defined in .text section in arch/arm/kernel/built-in.o
+/tmp/ccY172rP.s: Assembler messages:
+/tmp/ccY172rP.s:70: Warning: ignoring changed section attributes for .data
+/tmp/ccY172rP.s: Error: 1 warning, treating warnings as errors
+make[5]: *** [drivers/mtd/chips/cfi_probe.o] Error 1
+/tmp/ccK4rjeO.s: Assembler messages:
+/tmp/ccK4rjeO.s:421: Warning: ignoring changed section attributes for .data
+/tmp/ccK4rjeO.s: Error: 1 warning, treating warnings as errors
+make[5]: *** [drivers/mtd/chips/cfi_util.o] Error 1
+/tmp/ccUvhCYR.s: Assembler messages:
+/tmp/ccUvhCYR.s:1895: Warning: ignoring changed section attributes for .data
+/tmp/ccUvhCYR.s: Error: 1 warning, treating warnings as errors
 
-Nit: you apparently meant
-	default n
+Specifically, this does not work because the .data section is not
+marked executable, which leads LD to not generate trampolines for
+long calls.
 
-Note that "default off" should also evaluate to "n", which probably
-explains why you didn't notice. And "n" is the default anyhow.
+This moves the __xipram functions into their own .xiptext section instead.
+The section is still placed next to .data and located in RAM but is marked
+executable, which avoids the build errors.
 
-So I'm guessing you might as well drop this line.
+Also, we only need to place the XIP functions into a separate section
+if both CONFIG_XIP_KERNEL and CONFIG_MTD_XIP are set: When only MTD_XIP
+is used, the whole kernel is still in RAM and we do not need to worry
+about pulling out the rug under it. When only XIP_KERNEL but not MTD_XIP
+is set, the kernel is in some form of ROM, but we never write to it.
 
-> +        depends on DEBUG_PAGEALLOC
-> +        ---help---
-> +	  Enable debug page memory allocations by default? This value
-> +	  can be overridden by debug_pagealloc=off|on.
-> +
-> +	  If unsure say no.
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ include/asm-generic/vmlinux.lds.h |  1 +
+ include/linux/mtd/xip.h           | 10 ++++++----
+ 2 files changed, 7 insertions(+), 4 deletions(-)
 
-(Really trivial: you start indentation both with spaces and with tabs.
-Start with tabs, please.)
-
-
-Paul Bolle
+diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+index c4bd0e2c173c..73a2c72e4252 100644
+--- a/include/asm-generic/vmlinux.lds.h
++++ b/include/asm-generic/vmlinux.lds.h
+@@ -199,6 +199,7 @@
+ 
+ /* .data section */
+ #define DATA_DATA							\
++	*(.xiptext)							\
+ 	*(.data)							\
+ 	*(.ref.data)							\
+ 	*(.data..shared_aligned) /* percpu related */			\
+diff --git a/include/linux/mtd/xip.h b/include/linux/mtd/xip.h
+index abed4dec5c2f..e373690cce0a 100644
+--- a/include/linux/mtd/xip.h
++++ b/include/linux/mtd/xip.h
+@@ -30,7 +30,9 @@
+  * obviously not be running from flash.  The __xipram is therefore marking
+  * those functions so they get relocated to ram.
+  */
+-#define __xipram noinline __attribute__ ((__section__ (".data")))
++#ifdef CONFIG_XIP_KERNEL
++#define __xipram noinline __attribute__ ((__section__ (".xiptext")))
++#endif
+ 
+ /*
+  * Each architecture has to provide the following macros.  They must access
+@@ -90,10 +92,10 @@
+ #define xip_cpu_idle()  do { } while (0)
+ #endif
+ 
+-#else
++#endif /* CONFIG_MTD_XIP */
+ 
++#ifndef __xipram
+ #define __xipram
+-
+-#endif /* CONFIG_MTD_XIP */
++#endif
+ 
+ #endif /* __LINUX_MTD_XIP_H__ */
+-- 
+2.7.0
