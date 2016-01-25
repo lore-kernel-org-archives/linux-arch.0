@@ -1,48 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g9t1613g.houston.hp.com ([15.240.0.71]:50529 "EHLO
-	g9t1613g.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758246AbcAYVfX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jan 2016 16:35:23 -0500
-Message-ID: <1453757661.834.99.camel@hpe.com>
+Received: from mail.skyhub.de ([78.46.96.112]:43834 "EHLO mail.skyhub.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932393AbcAYVuA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Jan 2016 16:50:00 -0500
+Date: Mon, 25 Jan 2016 22:49:56 +0100
+From: Borislav Petkov <bp@alien8.de>
 Subject: Re: [PATCH v3 00/17] Enhance iomem search interfaces and support
  EINJ to NVDIMM
-From: Toshi Kani <toshi.kani@hpe.com>
-Date: Mon, 25 Jan 2016 14:34:21 -0700
-In-Reply-To: <20160125191804.GE14030@pd.tnic>
+Message-ID: <20160125214956.GD4322@pd.tnic>
 References: <1452020068-26492-1-git-send-email-toshi.kani@hpe.com>
-	 <20160125191804.GE14030@pd.tnic>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+ <20160125191804.GE14030@pd.tnic>
+ <1453757661.834.99.camel@hpe.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <1453757661.834.99.camel@hpe.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
+To: Toshi Kani <toshi.kani@hpe.com>
 Cc: akpm@linux-foundation.org, torvalds@linux-foundation.org, rafael.j.wysocki@intel.com, dan.j.williams@intel.com, dyoung@redhat.com, x86@kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, kexec@lists.infradead.org, xen-devel@lists.xenproject.org, linux-samsung-soc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-nvdimm@lists.01.org, linux-acpi@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20160125213421.tXI61ncT1451o3Yy8FOZDC3d9O4i_JIu8Q2Mf2wa35g@z>
+Message-ID: <20160125214956.aTfJx0dd1WBAU21oGH8Ci31cuz4nzYZZa6Z2DWumE90@z>
 
-On Mon, 2016-01-25 at 20:18 +0100, Borislav Petkov wrote:
-> On Tue, Jan 05, 2016 at 11:54:28AM -0700, Toshi Kani wrote:
-> > This patch-set enhances the iomem table and its search interfacs, and
-> > then changes EINJ to support NVDIMM.
-> > 
- :
-> 
-> Ok, all applied ontop of 4.5-rc1.
-> 
-> You could take a look if everything's still fine and I haven't botched
-> anything:
-> 
-> http://git.kernel.org/cgit/linux/kernel/git/bp/bp.git/log/?h=tip-mm
-
-I verified the patches and tested the kernel in the tree.  All look good.
-
-> I'll let the build bot chew on it and then test it here and send it out
-> again to everyone on CC so that people don't act surprised.
-
-Sounds great.
-
-> Thanks for this cleanup, code looks much better now!
+On Mon, Jan 25, 2016 at 02:34:21PM -0700, Toshi Kani wrote:
+> I verified the patches and tested the kernel in the tree. All look
+> good.
 
 Thanks!
--Toshi
 
+-- 
+Regards/Gruss,
+    Boris.
+
+ECO tip #101: Trim your mails when you reply.
