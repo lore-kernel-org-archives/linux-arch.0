@@ -1,110 +1,377 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
-Date: Mon, 25 Jan 2016 16:42:43 +0000
-Message-ID: <20160125164242.GF22927@arm.com>
-References: <20160114121449.GC15828@arm.com> <5697F6D2.60409@imgtec.com>
-	<20160114203430.GC3818@linux.vnet.ibm.com>
-	<56980C91.1010403@imgtec.com>
-	<20160114212913.GF3818@linux.vnet.ibm.com>
-	<20160115085554.GF3421@worktop> <20160115091348.GA27936@worktop>
-	<20160115174612.GV3818@linux.vnet.ibm.com>
-	<20160115212714.GM3421@worktop>
-	<20160115215853.GC3818@linux.vnet.ibm.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: [PATCH 1/5] all: s390: move wrapper infrastructure to generic headers
+Date: Mon, 25 Jan 2016 19:57:23 +0300
+Message-ID: <1453741047-5498-2-git-send-email-ynorov@caviumnetworks.com>
+References: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <20160115215853.GC3818@linux.vnet.ibm.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, user-mode-linux-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, linux-xtensa@linux-xtensa.org, james.hogan@imgtec.com, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, adi-buildroot-devel@lists.sourceforge.net, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, ddaney.cavm@gmail.com, Thomas Gleixner <tglx@linutronix.de>, linux-metag@vger.kernel.
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: arnd@arndb.de, catalin.marinas@arm.com, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Prasun.Kapoor@caviumnetworks.com, pinskia@gmail.com, agraf@suse.de, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, Nathan_Lynch@mentor.com, klimov.linux@gmail.com, Yury Norov <ynorov@caviumnetworks.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 15, 2016 at 01:58:53PM -0800, Paul E. McKenney wrote:
-> On Fri, Jan 15, 2016 at 10:27:14PM +0100, Peter Zijlstra wrote:
-> > On Fri, Jan 15, 2016 at 09:46:12AM -0800, Paul E. McKenney wrote:
-> > > On Fri, Jan 15, 2016 at 10:13:48AM +0100, Peter Zijlstra wrote:
-> > 
-> > > > And the stuff we're confused about is how best to express the difference
-> > > > and guarantees of these two forms of transitivity and how exactly they
-> > > > interact.
-> > > 
-> > > Hoping my memory-barrier.txt patch helps here...
-> > 
-> > Yes, that seems a good start. But yesterday you raised the 'fun' point
-> > of two globally ordered sequences connected by a single local link.
-> 
-> The conclusion that I am slowly coming to is that litmus tests should
-> not be thought of as linear chains, but rather as cycles.  If you think
-> of it as a cycle, then it doesn't matter where the local link is, just
-> how many of them and how they are connected.
+__SC_COMPAT_CAST for s390 is too specific due to 31-bit pointer length, so it's
+moved to arch/s390/include/asm/compat.h. Generic declaration assumes that long,
+unsigned long and pointer types are all 32-bit length.
 
-Do you have some examples of this? I'm struggling to make it work in my
-mind, or are you talking specifically in the context of the kernel
-memory model?
+linux/syscalls_structs.h header is introduced, because from now (see next patch)
+structure types listed there are needed for both normal and compat mode.
 
-> But I will admit that there are some rather strange litmus tests that
-> challenge this cycle-centric view, for example, the one shown below.
-> It turns out that herd and ppcmem disagree on the outcome.  (The Power
-> architects side with ppcmem.)
-> 
-> > And I think I'm still confused on LWSYNC (in the smp_wmb case) when one
-> > of the stores looses a conflict, and if that scenario matters. If it
-> > does, we should inspect the same case for other barriers.
-> 
-> Indeed.  I am still working on how these should be described.  My
-> current thought is to be quite conservative on what ordering is
-> actually respected, however, the current task is formalizing how
-> RCU plays with the rest of the memory model.
-> 
-> 							Thanx, Paul
-> 
-> ------------------------------------------------------------------------
-> 
-> PPC Overlapping Group-B sets version 4
-> ""
-> (* When the Group-B sets from two different barriers involve instructions in
->    the same thread, within that thread one set must contain the other.
-> 
-> 	P0	P1	P2
-> 	Rx=1	Wy=1	Wz=2
-> 	dep.	lwsync	lwsync
-> 	Ry=0	Wz=1	Wx=1
-> 	Rz=1
-> 
-> 	assert(!(z=2))
-> 
->    Forbidden by ppcmem, allowed by herd.
-> *)
-> {
-> 0:r1=x; 0:r2=y; 0:r3=z;
-> 1:r1=x; 1:r2=y; 1:r3=z; 1:r4=1;
-> 2:r1=x; 2:r2=y; 2:r3=z; 2:r4=1; 2:r5=2;
-> }
->  P0		| P1		| P2		;
->  lwz r6,0(r1)	| stw r4,0(r2)	| stw r5,0(r3)	;
->  xor r7,r6,r6	| lwsync	| lwsync	;
->  lwzx r7,r7,r2	| stw r4,0(r3)	| stw r4,0(r1)	;
->  lwz r8,0(r3)	|		|		;
-> 
-> exists
-> (z=2 /\ 0:r6=1 /\ 0:r7=0 /\ 0:r8=1)
+cond_syscall_wrapped now defined two symbols: sys_foo() and compat_sys_foo(), if
+compat wrappers are enabled.
 
-That really hurts. Assuming that the "assert(!(z=2))" is actually there
-to constrain the coherence order of z to be {0->1->2}, then I think that
-this test is forbidden on arm using dmb instead of lwsync. That said, I
-also don't think the Rz=1 in P0 changes anything.
+Here __SC_WRAP() macro is introduced as well. s390 doesn't need it as it uses
+asm-generated syscall table. But architectures that generate that tables with
+C code (ARM64/ILP32) should redefine it as '#define __SC_WRAP(name) compat_##name'.
 
-The double negatives don't help here! (it is forbidden to guarantee that
-z is not always 2).
+Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+---
+ arch/s390/include/asm/compat.h    | 17 +++++++++--
+ arch/s390/kernel/compat_wrapper.c | 51 -------------------------------
+ include/linux/compat.h            | 63 +++++++++++++++++++++++++++++++++++++++
+ include/linux/syscalls.h          | 57 +----------------------------------
+ include/linux/syscalls_structs.h  | 60 +++++++++++++++++++++++++++++++++++++
+ include/uapi/asm-generic/unistd.h |  4 +++
+ kernel/sys_ni.c                   |  8 +++++
+ 7 files changed, 151 insertions(+), 109 deletions(-)
+ create mode 100644 include/linux/syscalls_structs.h
 
-Will
+diff --git a/arch/s390/include/asm/compat.h b/arch/s390/include/asm/compat.h
+index d350ed9..46cb4be 100644
+--- a/arch/s390/include/asm/compat.h
++++ b/arch/s390/include/asm/compat.h
+@@ -7,13 +7,26 @@
+ #include <linux/sched.h>
+ #include <linux/thread_info.h>
+ 
+-#define __TYPE_IS_PTR(t) (!__builtin_types_compatible_p(typeof(0?(t)0:0ULL), u64))
+-
+ #define __SC_DELOUSE(t,v) ({ \
+ 	BUILD_BUG_ON(sizeof(t) > 4 && !__TYPE_IS_PTR(t)); \
+ 	(t)(__TYPE_IS_PTR(t) ? ((v) & 0x7fffffff) : (v)); \
+ })
+ 
++#define __SC_COMPAT_CAST(t, a)						\
++({									\
++	long __ReS = a;							\
++									\
++	BUILD_BUG_ON((sizeof(t) > 4) && !__TYPE_IS_L(t) &&		\
++		     !__TYPE_IS_UL(t) && !__TYPE_IS_PTR(t));		\
++	if (__TYPE_IS_L(t))						\
++		__ReS = (s32)a;						\
++	if (__TYPE_IS_UL(t))						\
++		__ReS = (u32)a;						\
++	if (__TYPE_IS_PTR(t))						\
++		__ReS = a & 0x7fffffff;					\
++	(t)__ReS;							\
++})
++
+ #define PSW32_MASK_PER		0x40000000UL
+ #define PSW32_MASK_DAT		0x04000000UL
+ #define PSW32_MASK_IO		0x02000000UL
+diff --git a/arch/s390/kernel/compat_wrapper.c b/arch/s390/kernel/compat_wrapper.c
+index fac4eed..527f75d 100644
+--- a/arch/s390/kernel/compat_wrapper.c
++++ b/arch/s390/kernel/compat_wrapper.c
+@@ -8,57 +8,6 @@
+ #include <linux/compat.h>
+ #include "entry.h"
+ 
+-#define COMPAT_SYSCALL_WRAP1(name, ...) \
+-	COMPAT_SYSCALL_WRAPx(1, _##name, __VA_ARGS__)
+-#define COMPAT_SYSCALL_WRAP2(name, ...) \
+-	COMPAT_SYSCALL_WRAPx(2, _##name, __VA_ARGS__)
+-#define COMPAT_SYSCALL_WRAP3(name, ...) \
+-	COMPAT_SYSCALL_WRAPx(3, _##name, __VA_ARGS__)
+-#define COMPAT_SYSCALL_WRAP4(name, ...) \
+-	COMPAT_SYSCALL_WRAPx(4, _##name, __VA_ARGS__)
+-#define COMPAT_SYSCALL_WRAP5(name, ...) \
+-	COMPAT_SYSCALL_WRAPx(5, _##name, __VA_ARGS__)
+-#define COMPAT_SYSCALL_WRAP6(name, ...) \
+-	COMPAT_SYSCALL_WRAPx(6, _##name, __VA_ARGS__)
+-
+-#define __SC_COMPAT_TYPE(t, a) \
+-	__typeof(__builtin_choose_expr(sizeof(t) > 4, 0L, (t)0)) a
+-
+-#define __SC_COMPAT_CAST(t, a)						\
+-({									\
+-	long __ReS = a;							\
+-									\
+-	BUILD_BUG_ON((sizeof(t) > 4) && !__TYPE_IS_L(t) &&		\
+-		     !__TYPE_IS_UL(t) && !__TYPE_IS_PTR(t));		\
+-	if (__TYPE_IS_L(t))						\
+-		__ReS = (s32)a;						\
+-	if (__TYPE_IS_UL(t))						\
+-		__ReS = (u32)a;						\
+-	if (__TYPE_IS_PTR(t))						\
+-		__ReS = a & 0x7fffffff;					\
+-	(t)__ReS;							\
+-})
+-
+-/*
+- * The COMPAT_SYSCALL_WRAP macro generates system call wrappers to be used by
+- * compat tasks. These wrappers will only be used for system calls where only
+- * the system call arguments need sign or zero extension or zeroing of the upper
+- * 33 bits of pointers.
+- * Note: since the wrapper function will afterwards call a system call which
+- * again performs zero and sign extension for all system call arguments with
+- * a size of less than eight bytes, these compat wrappers only touch those
+- * system call arguments with a size of eight bytes ((unsigned) long and
+- * pointers). Zero and sign extension for e.g. int parameters will be done by
+- * the regular system call wrappers.
+- */
+-#define COMPAT_SYSCALL_WRAPx(x, name, ...)					\
+-asmlinkage long sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));			\
+-asmlinkage long notrace compat_sys##name(__MAP(x,__SC_COMPAT_TYPE,__VA_ARGS__));\
+-asmlinkage long notrace compat_sys##name(__MAP(x,__SC_COMPAT_TYPE,__VA_ARGS__))	\
+-{										\
+-	return sys##name(__MAP(x,__SC_COMPAT_CAST,__VA_ARGS__));		\
+-}
+-
+ COMPAT_SYSCALL_WRAP2(creat, const char __user *, pathname, umode_t, mode);
+ COMPAT_SYSCALL_WRAP2(link, const char __user *, oldname, const char __user *, newname);
+ COMPAT_SYSCALL_WRAP1(unlink, const char __user *, pathname);
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index a76c917..1a761ea 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -718,4 +718,67 @@ asmlinkage long compat_sys_fanotify_mark(int, unsigned int, __u32, __u32,
+ #define is_compat_task() (0)
+ 
+ #endif /* CONFIG_COMPAT */
++
++#ifdef CONFIG_COMPAT_WRAPPER
++
++#ifndef __TYPE_IS_PTR
++#define __TYPE_IS_PTR(t) (!__builtin_types_compatible_p(typeof(0?(t)0:0ULL), u64))
++#endif
++
++#ifndef __SC_COMPAT_TYPE
++#define __SC_COMPAT_TYPE(t, a) \
++	__typeof(__builtin_choose_expr(sizeof(t) > 4, 0L, (t)0)) a
++#endif
++
++#ifndef __SC_COMPAT_CAST
++#define __SC_COMPAT_CAST(t, a) ({					\
++	BUILD_BUG_ON((sizeof(t) > 4) && !__TYPE_IS_L(t) &&		\
++		     !__TYPE_IS_UL(t) && !__TYPE_IS_PTR(t));		\
++	((t) ((t)(-1) < 0 ? (s64)(s32)(a) : (u64)(u32)(a)));		\
++})
++#endif
++
++#ifndef SYSCALL_DEFINE_WRAPx
++/*
++ * The SYSCALL_DEFINE_WRAP macro generates system call wrappers to be used by
++ * compat tasks. These wrappers will only be used for system calls where only
++ * the system call arguments need sign or zero extension or zeroing of upper
++ * bits of pointers.
++ * Note: since the wrapper function will afterwards call a system call which
++ * again performs zero and sign extension for all system call arguments with
++ * a size of less than eight bytes, these compat wrappers only touch those
++ * system call arguments with a size of eight bytes ((unsigned) long and
++ * pointers). Zero and sign extension for e.g. int parameters will be done by
++ * the regular system call wrappers.
++ */
++#define SYSCALL_DEFINE_WRAPx(x, name, ...)						\
++asmlinkage long sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));				\
++asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))			\
++		__attribute__((alias(__stringify(compat_SyS##name))));			\
++asmlinkage long compat_SyS##name(__MAP(x,__SC_COMPAT_TYPE,__VA_ARGS__));		\
++asmlinkage long compat_SyS##name(__MAP(x,__SC_COMPAT_TYPE,__VA_ARGS__))			\
++{											\
++	return sys##name(__MAP(x,__SC_COMPAT_CAST,__VA_ARGS__));			\
++}											\
++SYSCALL_DEFINEx(x, name, __VA_ARGS__)
++#endif
++
++#define SYSCALL_DEFINE_WRAP1(name, ...) SYSCALL_DEFINE_WRAPx(1, _##name, __VA_ARGS__)
++#define SYSCALL_DEFINE_WRAP2(name, ...) SYSCALL_DEFINE_WRAPx(2, _##name, __VA_ARGS__)
++#define SYSCALL_DEFINE_WRAP3(name, ...) SYSCALL_DEFINE_WRAPx(3, _##name, __VA_ARGS__)
++#define SYSCALL_DEFINE_WRAP4(name, ...) SYSCALL_DEFINE_WRAPx(4, _##name, __VA_ARGS__)
++#define SYSCALL_DEFINE_WRAP5(name, ...) SYSCALL_DEFINE_WRAPx(5, _##name, __VA_ARGS__)
++#define SYSCALL_DEFINE_WRAP6(name, ...) SYSCALL_DEFINE_WRAPx(6, _##name, __VA_ARGS__)
++
++#else
++
++#define SYSCALL_DEFINE_WRAP1	SYSCALL_DEFINE1
++#define SYSCALL_DEFINE_WRAP2    SYSCALL_DEFINE2
++#define SYSCALL_DEFINE_WRAP3    SYSCALL_DEFINE3
++#define SYSCALL_DEFINE_WRAP4    SYSCALL_DEFINE4
++#define SYSCALL_DEFINE_WRAP5    SYSCALL_DEFINE5
++#define SYSCALL_DEFINE_WRAP6    SYSCALL_DEFINE6
++
++#endif /* CONFIG_COMPAT_WRAPPER */
++
+ #endif /* _LINUX_COMPAT_H */
+diff --git a/include/linux/syscalls.h b/include/linux/syscalls.h
+index c2b66a2..1942cf4 100644
+--- a/include/linux/syscalls.h
++++ b/include/linux/syscalls.h
+@@ -11,62 +11,7 @@
+ #ifndef _LINUX_SYSCALLS_H
+ #define _LINUX_SYSCALLS_H
+ 
+-struct epoll_event;
+-struct iattr;
+-struct inode;
+-struct iocb;
+-struct io_event;
+-struct iovec;
+-struct itimerspec;
+-struct itimerval;
+-struct kexec_segment;
+-struct linux_dirent;
+-struct linux_dirent64;
+-struct list_head;
+-struct mmap_arg_struct;
+-struct msgbuf;
+-struct user_msghdr;
+-struct mmsghdr;
+-struct msqid_ds;
+-struct new_utsname;
+-struct nfsctl_arg;
+-struct __old_kernel_stat;
+-struct oldold_utsname;
+-struct old_utsname;
+-struct pollfd;
+-struct rlimit;
+-struct rlimit64;
+-struct rusage;
+-struct sched_param;
+-struct sched_attr;
+-struct sel_arg_struct;
+-struct semaphore;
+-struct sembuf;
+-struct shmid_ds;
+-struct sockaddr;
+-struct stat;
+-struct stat64;
+-struct statfs;
+-struct statfs64;
+-struct __sysctl_args;
+-struct sysinfo;
+-struct timespec;
+-struct timeval;
+-struct timex;
+-struct timezone;
+-struct tms;
+-struct utimbuf;
+-struct mq_attr;
+-struct compat_stat;
+-struct compat_timeval;
+-struct robust_list_head;
+-struct getcpu_cache;
+-struct old_linux_dirent;
+-struct perf_event_attr;
+-struct file_handle;
+-struct sigaltstack;
+-union bpf_attr;
+-
++#include <linux/syscalls_structs.h>
+ #include <linux/types.h>
+ #include <linux/aio_abi.h>
+ #include <linux/capability.h>
+diff --git a/include/linux/syscalls_structs.h b/include/linux/syscalls_structs.h
+new file mode 100644
+index 0000000..a920cbc
+--- /dev/null
++++ b/include/linux/syscalls_structs.h
+@@ -0,0 +1,60 @@
++#ifndef _LINUX_SYSCALL_STRUCTS_H
++#define _LINUX_SYSCALL_STRUCTS_H
++
++struct epoll_event;
++struct iattr;
++struct inode;
++struct iocb;
++struct io_event;
++struct iovec;
++struct itimerspec;
++struct itimerval;
++struct kexec_segment;
++struct linux_dirent;
++struct linux_dirent64;
++struct list_head;
++struct mmap_arg_struct;
++struct msgbuf;
++struct user_msghdr;
++struct mmsghdr;
++struct msqid_ds;
++struct new_utsname;
++struct nfsctl_arg;
++struct __old_kernel_stat;
++struct oldold_utsname;
++struct old_utsname;
++struct pollfd;
++struct rlimit;
++struct rlimit64;
++struct rusage;
++struct sched_param;
++struct sched_attr;
++struct sel_arg_struct;
++struct semaphore;
++struct sembuf;
++struct shmid_ds;
++struct sockaddr;
++struct stat;
++struct stat64;
++struct statfs;
++struct statfs64;
++struct __sysctl_args;
++struct sysinfo;
++struct timespec;
++struct timeval;
++struct timex;
++struct timezone;
++struct tms;
++struct utimbuf;
++struct mq_attr;
++struct compat_stat;
++struct compat_timeval;
++struct robust_list_head;
++struct getcpu_cache;
++struct old_linux_dirent;
++struct perf_event_attr;
++struct file_handle;
++struct sigaltstack;
++union bpf_attr;
++
++#endif /* _LINUX_SYSCALL_STRUCTS_H */
+diff --git a/include/uapi/asm-generic/unistd.h b/include/uapi/asm-generic/unistd.h
+index 1324b02..a8380ad 100644
+--- a/include/uapi/asm-generic/unistd.h
++++ b/include/uapi/asm-generic/unistd.h
+@@ -29,6 +29,10 @@
+ #define __SC_COMP_3264(_nr, _32, _64, _comp) __SC_3264(_nr, _32, _64)
+ #endif
+ 
++#ifndef __SC_WRAP
++#define __SC_WRAP __SYSCALL
++#endif
++
+ #define __NR_io_setup 0
+ __SC_COMP(__NR_io_setup, sys_io_setup, compat_sys_io_setup)
+ #define __NR_io_destroy 1
+diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
+index 0623787..8c99a45 100644
+--- a/kernel/sys_ni.c
++++ b/kernel/sys_ni.c
+@@ -16,6 +16,14 @@ asmlinkage long sys_ni_syscall(void)
+ 	return -ENOSYS;
+ }
+ 
++#ifdef CONFIG_COMPAT_WRAPPER
++#define cond_syscall_wrapped(name)	\
++	cond_syscall(name);		\
++	cond_syscall(compat_##name);
++#else
++#define cond_syscall_wrapped	cond_syscall
++#endif
++
+ cond_syscall(sys_quotactl);
+ cond_syscall(sys32_quotactl);
+ cond_syscall(sys_acct);
+-- 
+2.5.0
