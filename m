@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:49769 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:50078 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932756AbcAYWYo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Jan 2016 17:24:44 -0500
+	id S932984AbcAYWZA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Jan 2016 17:25:00 -0500
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v2 01/16] compat: Add in_compat_syscall to ask whether we're in a compat syscall
-Date: Mon, 25 Jan 2016 14:24:15 -0800
-Message-ID: <4cd121066a85fe57356569e3bae28fe9d7098806.1453759363.git.luto@kernel.org>
+Subject: [PATCH v2 16/16] x86/compat: Remove is_compat_task
+Date: Mon, 25 Jan 2016 14:24:30 -0800
+Message-ID: <c48a8336218fcd6e27a386d89afef155458f1551.1453759363.git.luto@kernel.org>
 In-Reply-To: <cover.1453759363.git.luto@kernel.org>
 References: <cover.1453759363.git.luto@kernel.org>
 In-Reply-To: <cover.1453759363.git.luto@kernel.org>
@@ -15,51 +15,64 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, linux-arch <linux-arch@vger.kernel.org>, David Miller <davem@davemloft.net>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Chris Metcalf <cmetcalf@ezchip.com>, linux-parisc@vger.kernel.org, linux-mips@linux-mips.org, sparclinux@vger.kernel.org
-Message-ID: <20160125222415.J7arhbVRlpQNOOLecxGCAVmEtnET0VGaZXWGBJkIqA8@z>
+Message-ID: <20160125222430.yLo8CoqRo9-VA31SWZqlP0YHzt_ph-o-cS4zUt-vQD0@z>
 
-A lot of code currently abuses is_compat_task to determine this.
+x86's is_compat_task always checked the current syscall type, not
+the task type.  It has no non-arch users any more, so just remove it
+to avoid confusion.
+
+On x86, nothing should really be checking the task ABI.  There are
+legitimate users for the syscall ABI and for the mm ABI.
 
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- include/linux/compat.h | 15 +++++++++++++++
- 1 file changed, 15 insertions(+)
+ arch/x86/include/asm/compat.h | 3 ++-
+ arch/x86/include/asm/ftrace.h | 2 +-
+ arch/x86/kernel/process_64.c  | 2 +-
+ 3 files changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index a76c9172b2eb..f911bcec618f 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -5,6 +5,8 @@
-  * syscall compatibility layer.
-  */
+diff --git a/arch/x86/include/asm/compat.h b/arch/x86/include/asm/compat.h
+index acdee09228b3..ebb102e1bbc7 100644
+--- a/arch/x86/include/asm/compat.h
++++ b/arch/x86/include/asm/compat.h
+@@ -316,9 +316,10 @@ static inline bool is_x32_task(void)
+ 	return false;
+ }
  
-+#include <linux/types.h>
-+
- #ifdef CONFIG_COMPAT
+-static inline bool is_compat_task(void)
++static inline bool in_compat_syscall(void)
+ {
+ 	return is_ia32_task() || is_x32_task();
+ }
++#define in_compat_syscall in_compat_syscall	/* override the generic impl */
  
- #include <linux/stat.h>
-@@ -713,9 +715,22 @@ asmlinkage long compat_sys_sched_rr_get_interval(compat_pid_t pid,
- 
- asmlinkage long compat_sys_fanotify_mark(int, unsigned int, __u32, __u32,
- 					    int, const char __user *);
-+
-+/*
-+ * For most but not all architectures, "am I in a compat syscall?" and
-+ * "am I a compat task?" are the same question.  For architectures on which
-+ * they aren't the same question, arch code can override in_compat_syscall.
-+ */
-+
-+#ifndef in_compat_syscall
-+static inline bool in_compat_syscall(void) { return is_compat_task(); }
-+#endif
-+
- #else
- 
- #define is_compat_task() (0)
-+static inline bool in_compat_syscall(void) { return false; }
- 
- #endif /* CONFIG_COMPAT */
-+
- #endif /* _LINUX_COMPAT_H */
+ #endif /* _ASM_X86_COMPAT_H */
+diff --git a/arch/x86/include/asm/ftrace.h b/arch/x86/include/asm/ftrace.h
+index 24938852db30..21b66dbf3601 100644
+--- a/arch/x86/include/asm/ftrace.h
++++ b/arch/x86/include/asm/ftrace.h
+@@ -58,7 +58,7 @@ int ftrace_int3_handler(struct pt_regs *regs);
+ #define ARCH_TRACE_IGNORE_COMPAT_SYSCALLS 1
+ static inline bool arch_trace_is_compat_syscall(struct pt_regs *regs)
+ {
+-	if (is_compat_task())
++	if (in_compat_syscall())
+ 		return true;
+ 	return false;
+ }
+diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
+index b9d99e0f82c4..71a18a22ae2f 100644
+--- a/arch/x86/kernel/process_64.c
++++ b/arch/x86/kernel/process_64.c
+@@ -476,7 +476,7 @@ void set_personality_ia32(bool x32)
+ 		if (current->mm)
+ 			current->mm->context.ia32_compat = TIF_X32;
+ 		current->personality &= ~READ_IMPLIES_EXEC;
+-		/* is_compat_task() uses the presence of the x32
++		/* in_compat_syscall() uses the presence of the x32
+ 		   syscall bit flag to determine compat status */
+ 		current_thread_info()->status &= ~TS_COMPAT;
+ 	} else {
 -- 
 2.5.0
 
