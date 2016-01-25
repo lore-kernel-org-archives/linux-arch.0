@@ -1,99 +1,110 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [PATCH] mtd: only use __xipram annotation when XIP_KERNEL is set
-Date: Mon, 25 Jan 2016 16:41:50 +0100
-Message-ID: <1453736525-1959191-2-git-send-email-arnd@arndb.de>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mout.kundenserver.de ([212.227.126.131]:58481 "EHLO
-	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754225AbcAYPnc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jan 2016 10:43:32 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, David Woodhouse <dwmw2@infradead.org>, Brian Norris <computersforpeace@gmail.com>
-Cc: linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mtd@lists.infradead.org
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
+Date: Mon, 25 Jan 2016 16:42:43 +0000
+Message-ID: <20160125164242.GF22927@arm.com>
+References: <20160114121449.GC15828@arm.com> <5697F6D2.60409@imgtec.com>
+	<20160114203430.GC3818@linux.vnet.ibm.com>
+	<56980C91.1010403@imgtec.com>
+	<20160114212913.GF3818@linux.vnet.ibm.com>
+	<20160115085554.GF3421@worktop> <20160115091348.GA27936@worktop>
+	<20160115174612.GV3818@linux.vnet.ibm.com>
+	<20160115212714.GM3421@worktop>
+	<20160115215853.GC3818@linux.vnet.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <20160115215853.GC3818@linux.vnet.ibm.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, user-mode-linux-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, linux-xtensa@linux-xtensa.org, james.hogan@imgtec.com, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, adi-buildroot-devel@lists.sourceforge.net, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, ddaney.cavm@gmail.com, Thomas Gleixner <tglx@linutronix.de>, linux-metag@vger.kernel.
+List-Id: linux-arch.vger.kernel.org
 
-When XIP_KERNEL is enabled, some functions are defined in the .data
-ELF section because we require them to be in RAM whenever we communicate
-with the flash chip. However this causes problems when FTRACE is
-enabled and gcc emits calls to __gnu_mcount_nc in the function
-prolog:
+On Fri, Jan 15, 2016 at 01:58:53PM -0800, Paul E. McKenney wrote:
+> On Fri, Jan 15, 2016 at 10:27:14PM +0100, Peter Zijlstra wrote:
+> > On Fri, Jan 15, 2016 at 09:46:12AM -0800, Paul E. McKenney wrote:
+> > > On Fri, Jan 15, 2016 at 10:13:48AM +0100, Peter Zijlstra wrote:
+> > 
+> > > > And the stuff we're confused about is how best to express the difference
+> > > > and guarantees of these two forms of transitivity and how exactly they
+> > > > interact.
+> > > 
+> > > Hoping my memory-barrier.txt patch helps here...
+> > 
+> > Yes, that seems a good start. But yesterday you raised the 'fun' point
+> > of two globally ordered sequences connected by a single local link.
+> 
+> The conclusion that I am slowly coming to is that litmus tests should
+> not be thought of as linear chains, but rather as cycles.  If you think
+> of it as a cycle, then it doesn't matter where the local link is, just
+> how many of them and how they are connected.
 
-drivers/built-in.o: In function `cfi_chip_setup':
-:(.data+0x272fc): relocation truncated to fit: R_ARM_CALL against symbol `__gnu_mcount_nc' defined in .text section in arch/arm/kernel/built-in.o
-drivers/built-in.o: In function `cfi_probe_chip':
-:(.data+0x27de8): relocation truncated to fit: R_ARM_CALL against symbol `__gnu_mcount_nc' defined in .text section in arch/arm/kernel/built-in.o
-/tmp/ccY172rP.s: Assembler messages:
-/tmp/ccY172rP.s:70: Warning: ignoring changed section attributes for .data
-/tmp/ccY172rP.s: Error: 1 warning, treating warnings as errors
-make[5]: *** [drivers/mtd/chips/cfi_probe.o] Error 1
-/tmp/ccK4rjeO.s: Assembler messages:
-/tmp/ccK4rjeO.s:421: Warning: ignoring changed section attributes for .data
-/tmp/ccK4rjeO.s: Error: 1 warning, treating warnings as errors
-make[5]: *** [drivers/mtd/chips/cfi_util.o] Error 1
-/tmp/ccUvhCYR.s: Assembler messages:
-/tmp/ccUvhCYR.s:1895: Warning: ignoring changed section attributes for .data
-/tmp/ccUvhCYR.s: Error: 1 warning, treating warnings as errors
+Do you have some examples of this? I'm struggling to make it work in my
+mind, or are you talking specifically in the context of the kernel
+memory model?
 
-Specifically, this does not work because the .data section is not
-marked executable, which leads LD to not generate trampolines for
-long calls.
+> But I will admit that there are some rather strange litmus tests that
+> challenge this cycle-centric view, for example, the one shown below.
+> It turns out that herd and ppcmem disagree on the outcome.  (The Power
+> architects side with ppcmem.)
+> 
+> > And I think I'm still confused on LWSYNC (in the smp_wmb case) when one
+> > of the stores looses a conflict, and if that scenario matters. If it
+> > does, we should inspect the same case for other barriers.
+> 
+> Indeed.  I am still working on how these should be described.  My
+> current thought is to be quite conservative on what ordering is
+> actually respected, however, the current task is formalizing how
+> RCU plays with the rest of the memory model.
+> 
+> 							Thanx, Paul
+> 
+> ------------------------------------------------------------------------
+> 
+> PPC Overlapping Group-B sets version 4
+> ""
+> (* When the Group-B sets from two different barriers involve instructions in
+>    the same thread, within that thread one set must contain the other.
+> 
+> 	P0	P1	P2
+> 	Rx=1	Wy=1	Wz=2
+> 	dep.	lwsync	lwsync
+> 	Ry=0	Wz=1	Wx=1
+> 	Rz=1
+> 
+> 	assert(!(z=2))
+> 
+>    Forbidden by ppcmem, allowed by herd.
+> *)
+> {
+> 0:r1=x; 0:r2=y; 0:r3=z;
+> 1:r1=x; 1:r2=y; 1:r3=z; 1:r4=1;
+> 2:r1=x; 2:r2=y; 2:r3=z; 2:r4=1; 2:r5=2;
+> }
+>  P0		| P1		| P2		;
+>  lwz r6,0(r1)	| stw r4,0(r2)	| stw r5,0(r3)	;
+>  xor r7,r6,r6	| lwsync	| lwsync	;
+>  lwzx r7,r7,r2	| stw r4,0(r3)	| stw r4,0(r1)	;
+>  lwz r8,0(r3)	|		|		;
+> 
+> exists
+> (z=2 /\ 0:r6=1 /\ 0:r7=0 /\ 0:r8=1)
 
-This moves the __xipram functions into their own .xiptext section instead.
-The section is still placed next to .data and located in RAM but is marked
-executable, which avoids the build errors.
+That really hurts. Assuming that the "assert(!(z=2))" is actually there
+to constrain the coherence order of z to be {0->1->2}, then I think that
+this test is forbidden on arm using dmb instead of lwsync. That said, I
+also don't think the Rz=1 in P0 changes anything.
 
-Also, we only need to place the XIP functions into a separate section
-if both CONFIG_XIP_KERNEL and CONFIG_MTD_XIP are set: When only MTD_XIP
-is used, the whole kernel is still in RAM and we do not need to worry
-about pulling out the rug under it. When only XIP_KERNEL but not MTD_XIP
-is set, the kernel is in some form of ROM, but we never write to it.
+The double negatives don't help here! (it is forbidden to guarantee that
+z is not always 2).
 
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
----
- include/asm-generic/vmlinux.lds.h |  1 +
- include/linux/mtd/xip.h           | 10 ++++++----
- 2 files changed, 7 insertions(+), 4 deletions(-)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index c4bd0e2c173c..73a2c72e4252 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -199,6 +199,7 @@
- 
- /* .data section */
- #define DATA_DATA							\
-+	*(.xiptext)							\
- 	*(.data)							\
- 	*(.ref.data)							\
- 	*(.data..shared_aligned) /* percpu related */			\
-diff --git a/include/linux/mtd/xip.h b/include/linux/mtd/xip.h
-index abed4dec5c2f..e373690cce0a 100644
---- a/include/linux/mtd/xip.h
-+++ b/include/linux/mtd/xip.h
-@@ -30,7 +30,9 @@
-  * obviously not be running from flash.  The __xipram is therefore marking
-  * those functions so they get relocated to ram.
-  */
--#define __xipram noinline __attribute__ ((__section__ (".data")))
-+#ifdef CONFIG_XIP_KERNEL
-+#define __xipram noinline __attribute__ ((__section__ (".xiptext")))
-+#endif
- 
- /*
-  * Each architecture has to provide the following macros.  They must access
-@@ -90,10 +92,10 @@
- #define xip_cpu_idle()  do { } while (0)
- #endif
- 
--#else
-+#endif /* CONFIG_MTD_XIP */
- 
-+#ifndef __xipram
- #define __xipram
--
--#endif /* CONFIG_MTD_XIP */
-+#endif
- 
- #endif /* __LINUX_MTD_XIP_H__ */
--- 
-2.7.0
+Will
