@@ -1,46 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:49863 "EHLO mail.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932773AbcAYWYs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Jan 2016 17:24:48 -0500
-From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v2 05/16] ptrace: in PEEK_SIGINFO, check syscall bitness, not task bitness
-Date: Mon, 25 Jan 2016 14:24:19 -0800
-Message-ID: <d1f58b0983fc85bf2440fdb86b186d9f214e03f7.1453759363.git.luto@kernel.org>
-In-Reply-To: <cover.1453759363.git.luto@kernel.org>
+Received: from shards.monkeyblade.net ([149.20.54.216]:52360 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932257AbcAYWvK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jan 2016 17:51:10 -0500
+Date: Mon, 25 Jan 2016 14:51:08 -0800 (PST)
+Message-ID: <20160125.145108.1332641183366177944.davem@davemloft.net>
+Subject: Re: [PATCH v2 02/16] sparc/compat: Provide an accurate
+ in_compat_syscall implementation
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <e520030f750b29d14486aa1e99c271a0fa18f19e.1453759363.git.luto@kernel.org>
 References: <cover.1453759363.git.luto@kernel.org>
-In-Reply-To: <cover.1453759363.git.luto@kernel.org>
-References: <cover.1453759363.git.luto@kernel.org>
+	<cover.1453759363.git.luto@kernel.org>
+	<e520030f750b29d14486aa1e99c271a0fa18f19e.1453759363.git.luto@kernel.org>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, linux-arch <linux-arch@vger.kernel.org>, David Miller <davem@davemloft.net>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Chris Metcalf <cmetcalf@ezchip.com>, linux-parisc@vger.kernel.org, linux-mips@linux-mips.org, sparclinux@vger.kernel.org
-Message-ID: <20160125222419.mWsEryTqi4SSIsO01mx0nRZCwWyj91EBjtnVg_PdEXg@z>
+To: luto@kernel.org
+Cc: akpm@linux-foundation.org, viro@zeniv.linux.org.uk, torvalds@linux-foundation.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, cmetcalf@ezchip.com, linux-parisc@vger.kernel.org, linux-mips@linux-mips.org, sparclinux@vger.kernel.org
+Message-ID: <20160125225108.RfVKGzUSCqmpeMGDCvprCHRI23fWwdDsNYBC6pt51LE@z>
 
-Users of the 32-bit ptrace() ABI expect the full 32-bit ABI.
-siginfo translation should check ptrace() ABI, not caller task ABI.
+From: Andy Lutomirski <luto@kernel.org>
+Date: Mon, 25 Jan 2016 14:24:16 -0800
 
-This is an ABI change on SPARC.  Let's hope that no one relied on
-the old buggy ABI.
+> On sparc64 compat-enabled kernels, any task can make 32-bit and
+> 64-bit syscalls.  is_compat_task returns true in 32-bit tasks, which
+> does not necessarily imply that the current syscall is 32-bit.
+> 
+> Provide an in_compat_syscall implementation that checks whether the
+> current syscall is compat.
+> 
+> As far as I know, sparc is the only architecture on which
+> is_compat_task checks the compat status of the task and on which the
+> compat status of a syscall can differ from the compat status of the
+> task.  On x86, is_compat_task checks the syscall type, not the task
+> type.
+> 
+> Signed-off-by: Andy Lutomirski <luto@kernel.org>
 
-Signed-off-by: Andy Lutomirski <luto@kernel.org>
----
- kernel/ptrace.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index 2341efe7fe02..c79b91d09e35 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -681,7 +681,7 @@ static int ptrace_peek_siginfo(struct task_struct *child,
- 			break;
- 
- #ifdef CONFIG_COMPAT
--		if (unlikely(is_compat_task())) {
-+		if (unlikely(in_compat_syscall())) {
- 			compat_siginfo_t __user *uinfo = compat_ptr(data);
- 
- 			if (copy_siginfo_to_user32(uinfo, &info) ||
--- 
-2.5.0
-
+Acked-by: David S. Miller <davem@davemloft.net>
