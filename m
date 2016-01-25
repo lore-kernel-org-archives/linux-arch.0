@@ -1,87 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:49759 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:49863 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932666AbcAYWYo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Jan 2016 17:24:44 -0500
+	id S932821AbcAYWYx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Jan 2016 17:24:53 -0500
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v2 00/16] compat: Introduce and use in_compat_syscall
-Date: Mon, 25 Jan 2016 14:24:14 -0800
-Message-ID: <cover.1453759363.git.luto@kernel.org>
+Subject: [PATCH v2 10/16] net/xfrm_user: Use in_compat_syscall to deny compat syscalls
+Date: Mon, 25 Jan 2016 14:24:24 -0800
+Message-ID: <ba8cd4d5f06bead4294ac3ff26e2b76d10536d83.1453759363.git.luto@kernel.org>
+In-Reply-To: <cover.1453759363.git.luto@kernel.org>
+References: <cover.1453759363.git.luto@kernel.org>
+In-Reply-To: <cover.1453759363.git.luto@kernel.org>
+References: <cover.1453759363.git.luto@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, linux-arch <linux-arch@vger.kernel.org>, David Miller <davem@davemloft.net>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Chris Metcalf <cmetcalf@ezchip.com>, linux-parisc@vger.kernel.org, linux-mips@linux-mips.org, sparclinux@vger.kernel.org
-Message-ID: <20160125222414.Wq2fAIjbZrq5FI9rRRBm8n1Yc8S6Q5i-VV-P8XWL4vU@z>
+Message-ID: <20160125222424.lVl1hYJX_WMs_86QYLkdn-xwkFEQZtSEBLlyIsbz-qk@z>
 
-Linux distinguishes compat syscalls from normal syscalls in two ways.
-First, compat syscalls use separate entry points.  This is entirely
-sensible.  Second, code paths that are common to compat and non-compat
-syscalls can query is_compat_task() to check whether they are being
-called from a compat syscall or not.
+The code wants to prevent compat code from receiving messages.  Use
+in_compat_syscall for this.
 
-The latter is problematic.  Two architectures explicitly allow tasks
-to issue syscalls for which the task bitness and the syscall bitness
-don't match.  On x86, is_compat_task returns true if the current
-syscall is a compat syscall, which is a different condition from being
-a compat task.  This oddity is confusing.  On SPARC, is_compat_task
-does what it sounds like, which means that user programs can cause
-is_compat_task to fail to match the syscall entry used.  That could
-expose bugs.
+Signed-off-by: Andy Lutomirski <luto@kernel.org>
+---
+ net/xfrm/xfrm_user.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-This series introduces in_compat_syscall() as a new way to query the
-syscall type.  On SPARC, it really does check the syscall bitness.
-Later patches change all of the non arch-specific is_compat_task
-callers to use in_compat_syscall.  The last patch removes
-is_compat_task on x86, which will prevent this confusion from
-recurring.
-
-I've cc'd the maintainers of all archs that support compat.  If your
-arch makes it possible for a malicious user process to invoke a compat
-syscall in a nominally 64-bit task or vice versa and your arch is not
-x86 or SPARC, please tell me.
-
-Davem, can you check whether I handled SPARC correctly?
-
-Andy Lutomirski (16):
-  compat: Add in_compat_syscall to ask whether we're in a compat syscall
-  sparc/compat: Provide an accurate in_compat_syscall implementation
-  sparc/syscall: Fix syscall_get_arch
-  seccomp: Check in_compat_syscall, not is_compat_task, in strict mode
-  ptrace: in PEEK_SIGINFO, check syscall bitness, not task bitness
-  auditsc: For seccomp events, log syscall compat state using
-    in_compat_syscall
-  staging/lustre: Switch from is_compat_task to in_compat_syscall
-  ext4: In ext4_dir_llseek, check syscall bitness directly
-  net/sctp: Use in_compat_syscall for sctp_getsockopt_connectx3
-  net/xfrm_user: Use in_compat_syscall to deny compat syscalls
-  firewire: Use in_compat_syscall to check ioctl compatness
-  efivars: Use in_compat_syscall to check for compat callers
-  amdkfd: Use in_compat_syscall to check open() caller type
-  input: Redefine INPUT_COMPAT_TEST as in_compat_syscall()
-  uhid: Check write() bitness using in_compat_syscall
-  x86/compat: Remove is_compat_task
-
- arch/sparc/include/asm/compat.h                      |  6 ++++++
- arch/sparc/include/asm/syscall.h                     |  9 ++++++++-
- arch/x86/include/asm/compat.h                        |  3 ++-
- arch/x86/include/asm/ftrace.h                        |  2 +-
- arch/x86/kernel/process_64.c                         |  2 +-
- drivers/firewire/core-cdev.c                         |  4 ++--
- drivers/firmware/efi/efivars.c                       |  2 +-
- drivers/gpu/drm/amd/amdkfd/kfd_chardev.c             |  2 +-
- drivers/gpu/drm/amd/amdkfd/kfd_process.c             |  2 +-
- drivers/hid/uhid.c                                   |  2 +-
- drivers/input/input-compat.h                         | 12 +-----------
- drivers/staging/lustre/lustre/llite/llite_internal.h |  2 +-
- fs/ext4/dir.c                                        |  2 +-
- include/linux/compat.h                               | 15 +++++++++++++++
- kernel/auditsc.c                                     |  4 ++--
- kernel/ptrace.c                                      |  2 +-
- kernel/seccomp.c                                     |  4 ++--
- net/sctp/socket.c                                    |  2 +-
- net/xfrm/xfrm_user.c                                 |  2 +-
- 19 files changed, 49 insertions(+), 30 deletions(-)
-
+diff --git a/net/xfrm/xfrm_user.c b/net/xfrm/xfrm_user.c
+index 805681a7d356..2cc7af858c6f 100644
+--- a/net/xfrm/xfrm_user.c
++++ b/net/xfrm/xfrm_user.c
+@@ -2449,7 +2449,7 @@ static int xfrm_user_rcv_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
+ 	int type, err;
+ 
+ #ifdef CONFIG_COMPAT
+-	if (is_compat_task())
++	if (in_compat_syscall())
+ 		return -ENOTSUPP;
+ #endif
+ 
 -- 
 2.5.0
 
