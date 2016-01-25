@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:49814 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:49898 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932764AbcAYWYp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Jan 2016 17:24:45 -0500
+	id S932666AbcAYWYy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Jan 2016 17:24:54 -0500
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v2 03/16] sparc/syscall: Fix syscall_get_arch
-Date: Mon, 25 Jan 2016 14:24:17 -0800
-Message-ID: <dc060687116306416e656e25c6a02611bf6e894e.1453759363.git.luto@kernel.org>
+Subject: [PATCH v2 11/16] firewire: Use in_compat_syscall to check ioctl compatness
+Date: Mon, 25 Jan 2016 14:24:25 -0800
+Message-ID: <35556b0fffab7a629e9a4e1115480ee5bfb5263a.1453759363.git.luto@kernel.org>
 In-Reply-To: <cover.1453759363.git.luto@kernel.org>
 References: <cover.1453759363.git.luto@kernel.org>
 In-Reply-To: <cover.1453759363.git.luto@kernel.org>
@@ -15,46 +15,39 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, linux-arch <linux-arch@vger.kernel.org>, David Miller <davem@davemloft.net>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Chris Metcalf <cmetcalf@ezchip.com>, linux-parisc@vger.kernel.org, linux-mips@linux-mips.org, sparclinux@vger.kernel.org
-Message-ID: <20160125222417.1Rv8zQpvvlf_0HkRIEuM_8edrUQm--GHQTakgBF0whE@z>
+Message-ID: <20160125222425.2hFFwVDrHUmwNNH6IDNqKyRsbFPlEJho-yTpyI21q58@z>
 
-Sparc's syscall_get_arch was buggy: it returned the task arch, not the
-syscall arch.  This could confuse seccomp and audit.
-
-I don't think this is as bad for seccomp as it looks: sparc's
-32-bit and 64-bit syscalls are numbered the same.
+Firewire was using is_compat_task to check whether it was in a
+compat ioctl or a non-compat ioctl.  Use is_compat_syscall instead
+so it works properly on all architectures.
 
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/sparc/include/asm/syscall.h | 9 ++++++++-
- 1 file changed, 8 insertions(+), 1 deletion(-)
+ drivers/firewire/core-cdev.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/sparc/include/asm/syscall.h b/arch/sparc/include/asm/syscall.h
-index 49f71fd5b56e..1757cd6c521b 100644
---- a/arch/sparc/include/asm/syscall.h
-+++ b/arch/sparc/include/asm/syscall.h
-@@ -3,6 +3,7 @@
- 
- #include <uapi/linux/audit.h>
- #include <linux/kernel.h>
-+#include <linux/compat.h>
- #include <linux/sched.h>
- #include <asm/ptrace.h>
- #include <asm/thread_info.h>
-@@ -128,7 +129,13 @@ static inline void syscall_set_arguments(struct task_struct *task,
- 
- static inline int syscall_get_arch(void)
+diff --git a/drivers/firewire/core-cdev.c b/drivers/firewire/core-cdev.c
+index 36a7c2d89a01..aee149bdf4c0 100644
+--- a/drivers/firewire/core-cdev.c
++++ b/drivers/firewire/core-cdev.c
+@@ -221,7 +221,7 @@ struct inbound_phy_packet_event {
+ #ifdef CONFIG_COMPAT
+ static void __user *u64_to_uptr(u64 value)
  {
--	return is_32bit_task() ? AUDIT_ARCH_SPARC : AUDIT_ARCH_SPARC64;
-+#if defined(CONFIG_SPARC64) && defined(CONFIG_COMPAT)
-+	return in_compat_syscall() ? AUDIT_ARCH_SPARC : AUDIT_ARCH_SPARC64;
-+#elif defined(CONFIG_SPARC64)
-+	return AUDIT_ARCH_SPARC64;
-+#else
-+	return AUDIT_ARCH_SPARC;
-+#endif
- }
+-	if (is_compat_task())
++	if (in_compat_syscall())
+ 		return compat_ptr(value);
+ 	else
+ 		return (void __user *)(unsigned long)value;
+@@ -229,7 +229,7 @@ static void __user *u64_to_uptr(u64 value)
  
- #endif /* __ASM_SPARC_SYSCALL_H */
+ static u64 uptr_to_u64(void __user *ptr)
+ {
+-	if (is_compat_task())
++	if (in_compat_syscall())
+ 		return ptr_to_compat(ptr);
+ 	else
+ 		return (u64)(unsigned long)ptr;
 -- 
 2.5.0
 
