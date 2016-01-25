@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:50078 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:50047 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932984AbcAYWZA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Jan 2016 17:25:00 -0500
+	id S932758AbcAYWY6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Jan 2016 17:24:58 -0500
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v2 16/16] x86/compat: Remove is_compat_task
-Date: Mon, 25 Jan 2016 14:24:30 -0800
-Message-ID: <c48a8336218fcd6e27a386d89afef155458f1551.1453759363.git.luto@kernel.org>
+Subject: [PATCH v2 14/16] input: Redefine INPUT_COMPAT_TEST as in_compat_syscall()
+Date: Mon, 25 Jan 2016 14:24:28 -0800
+Message-ID: <64480084bc652d5fa91bf5cd4be979e2f1e4cf11.1453759363.git.luto@kernel.org>
 In-Reply-To: <cover.1453759363.git.luto@kernel.org>
 References: <cover.1453759363.git.luto@kernel.org>
 In-Reply-To: <cover.1453759363.git.luto@kernel.org>
@@ -15,64 +15,41 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, linux-arch <linux-arch@vger.kernel.org>, David Miller <davem@davemloft.net>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Chris Metcalf <cmetcalf@ezchip.com>, linux-parisc@vger.kernel.org, linux-mips@linux-mips.org, sparclinux@vger.kernel.org
-Message-ID: <20160125222430.yLo8CoqRo9-VA31SWZqlP0YHzt_ph-o-cS4zUt-vQD0@z>
+Message-ID: <20160125222428.3agabEwEzXbSjGKGfN31UikSM6Aj2ADHJWxAdkjxc9w@z>
 
-x86's is_compat_task always checked the current syscall type, not
-the task type.  It has no non-arch users any more, so just remove it
-to avoid confusion.
-
-On x86, nothing should really be checking the task ABI.  There are
-legitimate users for the syscall ABI and for the mm ABI.
+The input compat code should work like all other compat code: for
+32-bit syscalls, use the 32-bit ABI and for 64-bit syscalls, use the
+64-bit ABI.  We have a helper for that (in_compat_syscall()): just
+use it.
 
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- arch/x86/include/asm/compat.h | 3 ++-
- arch/x86/include/asm/ftrace.h | 2 +-
- arch/x86/kernel/process_64.c  | 2 +-
- 3 files changed, 4 insertions(+), 3 deletions(-)
+ drivers/input/input-compat.h | 12 +-----------
+ 1 file changed, 1 insertion(+), 11 deletions(-)
 
-diff --git a/arch/x86/include/asm/compat.h b/arch/x86/include/asm/compat.h
-index acdee09228b3..ebb102e1bbc7 100644
---- a/arch/x86/include/asm/compat.h
-+++ b/arch/x86/include/asm/compat.h
-@@ -316,9 +316,10 @@ static inline bool is_x32_task(void)
- 	return false;
- }
+diff --git a/drivers/input/input-compat.h b/drivers/input/input-compat.h
+index 148f66fe3205..0f25878d5fa2 100644
+--- a/drivers/input/input-compat.h
++++ b/drivers/input/input-compat.h
+@@ -17,17 +17,7 @@
  
--static inline bool is_compat_task(void)
-+static inline bool in_compat_syscall(void)
- {
- 	return is_ia32_task() || is_x32_task();
- }
-+#define in_compat_syscall in_compat_syscall	/* override the generic impl */
+ #ifdef CONFIG_COMPAT
  
- #endif /* _ASM_X86_COMPAT_H */
-diff --git a/arch/x86/include/asm/ftrace.h b/arch/x86/include/asm/ftrace.h
-index 24938852db30..21b66dbf3601 100644
---- a/arch/x86/include/asm/ftrace.h
-+++ b/arch/x86/include/asm/ftrace.h
-@@ -58,7 +58,7 @@ int ftrace_int3_handler(struct pt_regs *regs);
- #define ARCH_TRACE_IGNORE_COMPAT_SYSCALLS 1
- static inline bool arch_trace_is_compat_syscall(struct pt_regs *regs)
- {
--	if (is_compat_task())
-+	if (in_compat_syscall())
- 		return true;
- 	return false;
- }
-diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
-index b9d99e0f82c4..71a18a22ae2f 100644
---- a/arch/x86/kernel/process_64.c
-+++ b/arch/x86/kernel/process_64.c
-@@ -476,7 +476,7 @@ void set_personality_ia32(bool x32)
- 		if (current->mm)
- 			current->mm->context.ia32_compat = TIF_X32;
- 		current->personality &= ~READ_IMPLIES_EXEC;
--		/* is_compat_task() uses the presence of the x32
-+		/* in_compat_syscall() uses the presence of the x32
- 		   syscall bit flag to determine compat status */
- 		current_thread_info()->status &= ~TS_COMPAT;
- 	} else {
+-/* Note to the author of this code: did it ever occur to
+-   you why the ifdefs are needed? Think about it again. -AK */
+-#if defined(CONFIG_X86_64) || defined(CONFIG_TILE)
+-#  define INPUT_COMPAT_TEST is_compat_task()
+-#elif defined(CONFIG_S390)
+-#  define INPUT_COMPAT_TEST test_thread_flag(TIF_31BIT)
+-#elif defined(CONFIG_MIPS)
+-#  define INPUT_COMPAT_TEST test_thread_flag(TIF_32BIT_ADDR)
+-#else
+-#  define INPUT_COMPAT_TEST test_thread_flag(TIF_32BIT)
+-#endif
++#define INPUT_COMPAT_TEST in_compat_syscall()
+ 
+ struct input_event_compat {
+ 	struct compat_timeval time;
 -- 
 2.5.0
 
