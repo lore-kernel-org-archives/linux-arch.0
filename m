@@ -1,106 +1,45 @@
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCH v3] mm/debug_pagealloc: Ask users for default setting of debug_pagealloc
-Date: Mon, 25 Jan 2016 20:50:46 +0100
-Message-ID: <1453751446-97135-1-git-send-email-borntraeger@de.ibm.com>
+From: Toshi Kani <toshi.kani@hpe.com>
+Subject: Re: [PATCH v3 00/17] Enhance iomem search interfaces and support
+ EINJ to NVDIMM
+Date: Mon, 25 Jan 2016 14:34:21 -0700
+Message-ID: <1453757661.834.99.camel@hpe.com>
+References: <1452020068-26492-1-git-send-email-toshi.kani@hpe.com>
+	 <20160125191804.GE14030@pd.tnic>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20160125191804.GE14030@pd.tnic>
 Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org
-Cc: peterz@infradead.org, heiko.carstens@de.ibm.com, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Dave Jones <davej@codemonkey.org.uk>, Christian Borntraeger <borntraeger@de.ibm.com>, Joonsoo Kim <iamjoonsoo.kim@lge.com>
+To: Borislav Petkov <bp@alien8.de>
+Cc: akpm@linux-foundation.org, torvalds@linux-foundation.org, rafael.j.wysocki@intel.com, dan.j.williams@intel.com, dyoung@redhat.com, x86@kernel.org, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-sh@vger.kernel.org, kexec@lists.infradead.org, xen-devel@lists.xenproject.org, linux-samsung-soc@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, linux-nvdimm@lists.01.org, linux-acpi@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-since commit 031bc5743f158 ("mm/debug-pagealloc: make debug-pagealloc
-boottime configurable") CONFIG_DEBUG_PAGEALLOC is by default not
-adding any page debugging.
+On Mon, 2016-01-25 at 20:18 +0100, Borislav Petkov wrote:
+> On Tue, Jan 05, 2016 at 11:54:28AM -0700, Toshi Kani wrote:
+> > This patch-set enhances the iomem table and its search interfacs, and
+> > then changes EINJ to support NVDIMM.
+> > 
+ :
+> 
+> Ok, all applied ontop of 4.5-rc1.
+> 
+> You could take a look if everything's still fine and I haven't botched
+> anything:
+> 
+> http://git.kernel.org/cgit/linux/kernel/git/bp/bp.git/log/?h=tip-mm
 
-This resulted in several unnoticed bugs, e.g.
+I verified the patches and tested the kernel in the tree.  All look good.
 
-https://lkml.kernel.org/g/<569F5E29.3090107@de.ibm.com>
-or
-https://lkml.kernel.org/g/<56A20F30.4050705@de.ibm.com>
+> I'll let the build bot chew on it and then test it here and send it out
+> again to everyone on CC so that people don't act surprised.
 
-as this behaviour change was not even documented in Kconfig.
+Sounds great.
 
-Let's provide a new Kconfig symbol that allows to change the default
-back to enabled, e.g. for debug kernels. This also makes the change
-obvious to kernel packagers.
+> Thanks for this cleanup, code looks much better now!
 
-Let's also change the Kconfig description for CONFIG_DEBUG_PAGEALLOC,
-to indicate that there are two stages of overhead.
-
-Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
----
-v2 -> v3: tab/whitespace, off->n (Paul Bolle)
-	remove "If unsure say no."
-v1 -> v2: change Kconfig help to indicate, that CONFIG_DEBUG_PAGEALLOC
-	is not for free, even if disabled
-
- mm/Kconfig.debug | 18 ++++++++++++++++--
- mm/page_alloc.c  |  6 +++++-
- 2 files changed, 21 insertions(+), 3 deletions(-)
-
-diff --git a/mm/Kconfig.debug b/mm/Kconfig.debug
-index 957d3da..a0c136a 100644
---- a/mm/Kconfig.debug
-+++ b/mm/Kconfig.debug
-@@ -16,8 +16,8 @@ config DEBUG_PAGEALLOC
- 	select PAGE_POISONING if !ARCH_SUPPORTS_DEBUG_PAGEALLOC
- 	---help---
- 	  Unmap pages from the kernel linear mapping after free_pages().
--	  This results in a large slowdown, but helps to find certain types
--	  of memory corruption.
-+	  Depending on runtime enablement, this results in a small or large
-+	  slowdown, but helps to find certain types of memory corruption.
- 
- 	  For architectures which don't enable ARCH_SUPPORTS_DEBUG_PAGEALLOC,
- 	  fill the pages with poison patterns after free_pages() and verify
-@@ -26,5 +26,19 @@ config DEBUG_PAGEALLOC
- 	  that would result in incorrect warnings of memory corruption after
- 	  a resume because free pages are not saved to the suspend image.
- 
-+	  By default this option will have a small overhead, e.g. by not
-+	  allowing the kernel mapping to be backed by large pages on some
-+	  architectures. Even bigger overhead comes when the debugging is
-+	  enabled by DEBUG_PAGEALLOC_ENABLE_DEFAULT or the debug_pagealloc
-+	  command line parameter.
-+
-+config DEBUG_PAGEALLOC_ENABLE_DEFAULT
-+	bool "Enable debug page memory allocations by default?"
-+	default n
-+	depends on DEBUG_PAGEALLOC
-+	---help---
-+	  Enable debug page memory allocations by default? This value
-+	  can be overridden by debug_pagealloc=off|on.
-+
- config PAGE_POISONING
- 	bool
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 9d666df..933def7 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -479,7 +479,8 @@ void prep_compound_page(struct page *page, unsigned int order)
- 
- #ifdef CONFIG_DEBUG_PAGEALLOC
- unsigned int _debug_guardpage_minorder;
--bool _debug_pagealloc_enabled __read_mostly;
-+bool _debug_pagealloc_enabled __read_mostly
-+			= IS_ENABLED(CONFIG_DEBUG_PAGEALLOC_ENABLE_DEFAULT);
- bool _debug_guardpage_enabled __read_mostly;
- 
- static int __init early_debug_pagealloc(char *buf)
-@@ -490,6 +491,9 @@ static int __init early_debug_pagealloc(char *buf)
- 	if (strcmp(buf, "on") == 0)
- 		_debug_pagealloc_enabled = true;
- 
-+	if (strcmp(buf, "off") == 0)
-+		_debug_pagealloc_enabled = false;
-+
- 	return 0;
- }
- early_param("debug_pagealloc", early_debug_pagealloc);
--- 
-2.3.0
+Thanks!
+-Toshi
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
