@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:49930 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:49898 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932807AbcAYWYv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Jan 2016 17:24:51 -0500
+	id S932785AbcAYWYt (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Jan 2016 17:24:49 -0500
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v2 08/16] ext4: In ext4_dir_llseek, check syscall bitness directly
-Date: Mon, 25 Jan 2016 14:24:22 -0800
-Message-ID: <8946a5499b6b9f2837fed067885b595ea52aafdf.1453759363.git.luto@kernel.org>
+Subject: [PATCH v2 06/16] auditsc: For seccomp events, log syscall compat state using in_compat_syscall
+Date: Mon, 25 Jan 2016 14:24:20 -0800
+Message-ID: <2c5ac9f83ad077d1f66c9e6469eb73274703f6d1.1453759363.git.luto@kernel.org>
 In-Reply-To: <cover.1453759363.git.luto@kernel.org>
 References: <cover.1453759363.git.luto@kernel.org>
 In-Reply-To: <cover.1453759363.git.luto@kernel.org>
@@ -15,30 +15,32 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, linux-arch <linux-arch@vger.kernel.org>, David Miller <davem@davemloft.net>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Chris Metcalf <cmetcalf@ezchip.com>, linux-parisc@vger.kernel.org, linux-mips@linux-mips.org, sparclinux@vger.kernel.org
-Message-ID: <20160125222422.dJWuM-kCe0ZDUzQHj-PaDaZSxVzQ8zkezhCQGMuwBfY@z>
+Message-ID: <20160125222420.SHHObm-Lm4elkx3tQdZe0nRaZCNxZ_cdhIHufETrBDQ@z>
 
-ext4 treats directory offsets differently for 32-bit and 64-bit
-callers.  Check the caller type using in_compat_syscall, not
-is_compat_task.  This changes behavior on SPARC slightly.
+Except on SPARC, this is what the code always did.  SPARC compat
+seccomp was buggy, although the impact of the bug was limited
+because SPARC 32-bit and 64-bit syscall numbers are the same.
 
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- fs/ext4/dir.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ kernel/auditsc.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ext4/dir.c b/fs/ext4/dir.c
-index 1d1bca74f844..6395456edea6 100644
---- a/fs/ext4/dir.c
-+++ b/fs/ext4/dir.c
-@@ -276,7 +276,7 @@ errout:
- static inline int is_32bit_api(void)
- {
- #ifdef CONFIG_COMPAT
--	return is_compat_task();
-+	return in_compat_syscall();
- #else
- 	return (BITS_PER_LONG == 32);
- #endif
+diff --git a/kernel/auditsc.c b/kernel/auditsc.c
+index 195ffaee50b9..7d0e3cf8abe1 100644
+--- a/kernel/auditsc.c
++++ b/kernel/auditsc.c
+@@ -2412,8 +2412,8 @@ void __audit_seccomp(unsigned long syscall, long signr, int code)
+ 		return;
+ 	audit_log_task(ab);
+ 	audit_log_format(ab, " sig=%ld arch=%x syscall=%ld compat=%d ip=0x%lx code=0x%x",
+-			 signr, syscall_get_arch(), syscall, is_compat_task(),
+-			 KSTK_EIP(current), code);
++			 signr, syscall_get_arch(), syscall,
++			 in_compat_syscall(), KSTK_EIP(current), code);
+ 	audit_log_end(ab);
+ }
+ 
 -- 
 2.5.0
 
