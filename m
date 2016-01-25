@@ -1,107 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1on0075.outbound.protection.outlook.com ([157.56.110.75]:19008
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+Received: from mail-by2on0075.outbound.protection.outlook.com ([207.46.100.75]:32544
+	"EHLO na01-by2-obe.outbound.protection.outlook.com"
 	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1757627AbcAYRNx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Jan 2016 12:13:53 -0500
+	id S1757627AbcAYRON (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Jan 2016 12:14:13 -0500
 From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: [PATCH 0/5] all: s390: make compat wrappers the generic solution
-Date: Mon, 25 Jan 2016 19:57:22 +0300
-Message-ID: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
+Subject: [PATCH 4/5] all: wrap getdents64 syscall
+Date: Mon, 25 Jan 2016 19:57:26 +0300
+Message-ID: <1453741047-5498-5-git-send-email-ynorov@caviumnetworks.com>
+In-Reply-To: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
+References: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: arnd@arndb.de, catalin.marinas@arm.com, heiko.carstens@de.ibm.com, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Prasun.Kapoor@caviumnetworks.com, pinskia@gmail.com, agraf@suse.de, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, Nathan_Lynch@mentor.com, klimov.linux@gmail.com, Yury Norov <ynorov@caviumnetworks.com>
-Message-ID: <20160125165722.psg5KELBnA9uHZV_x6jiQ2iEC1_6e8fQsIqelSkE_sA@z>
+Message-ID: <20160125165726.5NGD_t9aXumfSZ-RW6Cn8e-bR76BZnwjSv2wtjEW96A@z>
 
-The problem that makes us use wrappers is that some compat
-architectures allows user code to access top halves of registers.
-This is not a problem for syscalls that are already handled by compat
-code, or for that who has types of the same size in kernel and
-userspace. In case of s390 and lp64/ilp32 the problem is in pointer
-types, long, unsigned long. 
+This system call may be handled by compat handler if
+__ARCH_WANT_COMPAT_SYS_GETDENTS64 is defined. So we
+should declare wrapper otherwise only.
 
-S390 folks already have the solution for it. In this patchset,
-it is turned to be general, as arm64/ilp32 needs it too.
+Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+---
+ fs/readdir.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-This patchset is created as the part of the work of enabling arm64
-with ILP32 user mode. See details here:
-http://thread.gmane.org/gmane.linux.kernel/2126946
-
-Build-tested on s390.
-
-Yury Norov (5):
-  all: s390: move wrapper infrastructure to generic headers
-  all: declare new wrappers
-  all: s390: redefine wrappers in generic code
-  all: non-obvious wrappers
-  introduce COMPAT_WRAPPER option and enable it for S390
-
- arch/Kconfig                      |   4 +
- arch/s390/Kconfig                 |   1 +
- arch/s390/include/asm/compat.h    |  17 ++-
- arch/s390/kernel/Makefile         |   2 +-
- arch/s390/kernel/compat_wrapper.c | 179 ------------------------
- arch/s390/kernel/entry.h          |   2 +
- arch/s390/pci/pci_mmio.c          |   5 +-
- drivers/char/random.c             |   3 +-
- fs/aio.c                          |   4 +-
- fs/buffer.c                       |   3 +-
- fs/dcache.c                       |   3 +-
- fs/eventpoll.c                    |   4 +-
- fs/exec.c                         |   2 +-
- fs/fhandle.c                      |   3 +-
- fs/filesystems.c                  |   3 +-
- fs/namei.c                        |  29 ++--
- fs/namespace.c                    |   7 +-
- fs/notify/inotify/inotify_user.c  |   3 +-
- fs/open.c                         |  20 +--
- fs/pipe.c                         |   5 +-
- fs/quota/quota.c                  |   3 +-
- fs/read_write.c                   |   2 +-
- fs/readdir.c                      |   6 +
- fs/select.c                       |   3 +-
- fs/splice.c                       |   4 +-
- fs/stat.c                         |   5 +-
- fs/xattr.c                        |  25 ++--
- include/linux/compat.h            | 280 ++++++++++++++++++++++++++++++++++++++
- include/linux/syscalls.h          |  57 +-------
- include/linux/syscalls_structs.h  |  60 ++++++++
- include/uapi/asm-generic/unistd.h | 224 +++++++++++++++---------------
- ipc/mqueue.c                      |   3 +-
- kernel/acct.c                     |   3 +-
- kernel/bpf/syscall.c              |   3 +-
- kernel/capability.c               |   5 +-
- kernel/events/core.c              |   2 +-
- kernel/fork.c                     |  12 +-
- kernel/groups.c                   |   5 +-
- kernel/kcmp.c                     |   3 +-
- kernel/module.c                   |   7 +-
- kernel/printk/printk.c            |   3 +-
- kernel/reboot.c                   |   3 +-
- kernel/sched/core.c               |  11 +-
- kernel/seccomp.c                  |   2 +-
- kernel/signal.c                   |   6 +-
- kernel/sys.c                      |  16 +--
- kernel/sys_ni.c                   | 104 +++++++-------
- mm/madvise.c                      |   3 +-
- mm/mincore.c                      |   3 +-
- mm/mlock.c                        |   7 +-
- mm/mmap.c                         |   7 +-
- mm/mprotect.c                     |   3 +-
- mm/mremap.c                       |   3 +-
- mm/msync.c                        |   3 +-
- mm/nommu.c                        |   7 +-
- mm/shmem.c                        |   3 +-
- mm/swapfile.c                     |   5 +-
- net/socket.c                      |  14 +-
- security/keys/keyctl.c            |   5 +-
- 59 files changed, 699 insertions(+), 520 deletions(-)
- delete mode 100644 arch/s390/kernel/compat_wrapper.c
- create mode 100644 include/linux/syscalls_structs.h
-
+diff --git a/fs/readdir.c b/fs/readdir.c
+index ced6791..d34cc49 100644
+--- a/fs/readdir.c
++++ b/fs/readdir.c
+@@ -17,6 +17,7 @@
+ #include <linux/dirent.h>
+ #include <linux/security.h>
+ #include <linux/syscalls.h>
++#include <linux/compat.h>
+ #include <linux/unistd.h>
+ 
+ #include <asm/uaccess.h>
+@@ -274,8 +275,13 @@ efault:
+ 	return -EFAULT;
+ }
+ 
++#ifndef __ARCH_WANT_COMPAT_SYS_GETDENTS64
++SYSCALL_DEFINE_WRAP3(getdents64, unsigned int, fd,
++		struct linux_dirent64 __user *, dirent, unsigned int, count)
++#else
+ SYSCALL_DEFINE3(getdents64, unsigned int, fd,
+ 		struct linux_dirent64 __user *, dirent, unsigned int, count)
++#endif
+ {
+ 	struct fd f;
+ 	struct linux_dirent64 __user * lastdirent;
 -- 
 2.5.0
 
