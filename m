@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:50028 "EHLO mail.kernel.org"
+Received: from mail.kernel.org ([198.145.29.136]:49814 "EHLO mail.kernel.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932926AbcAYWY4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 25 Jan 2016 17:24:56 -0500
+	id S932764AbcAYWYp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 25 Jan 2016 17:24:45 -0500
 From: Andy Lutomirski <luto@kernel.org>
-Subject: [PATCH v2 13/16] amdkfd: Use in_compat_syscall to check open() caller type
-Date: Mon, 25 Jan 2016 14:24:27 -0800
-Message-ID: <f9ae00f060781de8174c371b3c1918ff429572f4.1453759363.git.luto@kernel.org>
+Subject: [PATCH v2 03/16] sparc/syscall: Fix syscall_get_arch
+Date: Mon, 25 Jan 2016 14:24:17 -0800
+Message-ID: <dc060687116306416e656e25c6a02611bf6e894e.1453759363.git.luto@kernel.org>
 In-Reply-To: <cover.1453759363.git.luto@kernel.org>
 References: <cover.1453759363.git.luto@kernel.org>
 In-Reply-To: <cover.1453759363.git.luto@kernel.org>
@@ -15,48 +15,46 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
 Cc: Andy Lutomirski <luto@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, linux-arch <linux-arch@vger.kernel.org>, David Miller <davem@davemloft.net>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Chris Metcalf <cmetcalf@ezchip.com>, linux-parisc@vger.kernel.org, linux-mips@linux-mips.org, sparclinux@vger.kernel.org
-Message-ID: <20160125222427.Rv3UEgYZbzPRZKDV-lf7Zq1Ww1wuEdBiLJbwObK3taI@z>
+Message-ID: <20160125222417.1Rv8zQpvvlf_0HkRIEuM_8edrUQm--GHQTakgBF0whE@z>
 
-amdkfd wants to know syscall type, not task type.  Check directly.
+Sparc's syscall_get_arch was buggy: it returned the task arch, not the
+syscall arch.  This could confuse seccomp and audit.
 
-Unfortunately, amdkfd is making nasty assumptions that a process'
-bitness is a well-defined constant thing.  This isn't the case on
-x86.  I don't know how much this matters, but this patch has no
-effect on generated code on x86, so amdkfd is equally broken with
-and without this patch.
+I don't think this is as bad for seccomp as it looks: sparc's
+32-bit and 64-bit syscalls are numbered the same.
 
 Signed-off-by: Andy Lutomirski <luto@kernel.org>
 ---
- drivers/gpu/drm/amd/amdkfd/kfd_chardev.c | 2 +-
- drivers/gpu/drm/amd/amdkfd/kfd_process.c | 2 +-
- 2 files changed, 2 insertions(+), 2 deletions(-)
+ arch/sparc/include/asm/syscall.h | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
 
-diff --git a/drivers/gpu/drm/amd/amdkfd/kfd_chardev.c b/drivers/gpu/drm/amd/amdkfd/kfd_chardev.c
-index d2b49c026cf6..07ac724e3ec9 100644
---- a/drivers/gpu/drm/amd/amdkfd/kfd_chardev.c
-+++ b/drivers/gpu/drm/amd/amdkfd/kfd_chardev.c
-@@ -107,7 +107,7 @@ static int kfd_open(struct inode *inode, struct file *filep)
- 	if (iminor(inode) != 0)
- 		return -ENODEV;
+diff --git a/arch/sparc/include/asm/syscall.h b/arch/sparc/include/asm/syscall.h
+index 49f71fd5b56e..1757cd6c521b 100644
+--- a/arch/sparc/include/asm/syscall.h
++++ b/arch/sparc/include/asm/syscall.h
+@@ -3,6 +3,7 @@
  
--	is_32bit_user_mode = is_compat_task();
-+	is_32bit_user_mode = in_compat_syscall();
+ #include <uapi/linux/audit.h>
+ #include <linux/kernel.h>
++#include <linux/compat.h>
+ #include <linux/sched.h>
+ #include <asm/ptrace.h>
+ #include <asm/thread_info.h>
+@@ -128,7 +129,13 @@ static inline void syscall_set_arguments(struct task_struct *task,
  
- 	if (is_32bit_user_mode == true) {
- 		dev_warn(kfd_device,
-diff --git a/drivers/gpu/drm/amd/amdkfd/kfd_process.c b/drivers/gpu/drm/amd/amdkfd/kfd_process.c
-index 9be007081b72..fd1a90a0f435 100644
---- a/drivers/gpu/drm/amd/amdkfd/kfd_process.c
-+++ b/drivers/gpu/drm/amd/amdkfd/kfd_process.c
-@@ -311,7 +311,7 @@ static struct kfd_process *create_process(const struct task_struct *thread)
- 		goto err_process_pqm_init;
+ static inline int syscall_get_arch(void)
+ {
+-	return is_32bit_task() ? AUDIT_ARCH_SPARC : AUDIT_ARCH_SPARC64;
++#if defined(CONFIG_SPARC64) && defined(CONFIG_COMPAT)
++	return in_compat_syscall() ? AUDIT_ARCH_SPARC : AUDIT_ARCH_SPARC64;
++#elif defined(CONFIG_SPARC64)
++	return AUDIT_ARCH_SPARC64;
++#else
++	return AUDIT_ARCH_SPARC;
++#endif
+ }
  
- 	/* init process apertures*/
--	process->is_32bit_user_mode = is_compat_task();
-+	process->is_32bit_user_mode = in_compat_syscall();
- 	if (kfd_init_apertures(process) != 0)
- 		goto err_init_apretures;
- 
+ #endif /* __ASM_SPARC_SYSCALL_H */
 -- 
 2.5.0
 
