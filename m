@@ -1,61 +1,98 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH/RFC 3/3] s390: query dynamic DEBUG_PAGEALLOC setting
-Date: Tue, 26 Jan 2016 19:19:03 +0100
-Message-ID: <20160126181903.GB4671@osiris>
-References: <1453799905-10941-1-git-send-email-borntraeger@de.ibm.com>
- <1453799905-10941-4-git-send-email-borntraeger@de.ibm.com>
+From: Bjorn Helgaas <helgaas@kernel.org>
+Subject: Re: [PATCH v9 1/6] arm64, numa: adding numa support for arm64
+ platforms.
+Date: Tue, 26 Jan 2016 12:52:38 -0600
+Message-ID: <20160126185238.GB17600@localhost>
+References: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com>
+ <1453134965-6125-2-git-send-email-gkulkarni@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-sh-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1453799905-10941-4-git-send-email-borntraeger@de.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org
+In-Reply-To: <1453134965-6125-2-git-send-email-gkulkarni@caviumnetworks.com>
+Sender: linux-sh-owner@vger.kernel.org
+To: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
+Cc: linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Will.Deacon@arm.com, catalin.marinas@arm.com, grant.likely@linaro.org, leif.lindholm@linaro.org, rfranz@cavium.com, ard.biesheuvel@linaro.org, msalter@redhat.com, robh+dt@kernel.org, steve.capper@linaro.org, hanjun.guo@linaro.org, al.stone@linaro.org, arnd@arndb.de, pawel.moll@arm.com, mark.rutland@arm.com, ijc+devicetree@hellion.org.uk, galak@codeaurora.org, rjw@rjwysocki.net, lenb@kernel.org, marc.zyngier@arm.com, lorenzo.pieralisi@arm.com, bhelgaas@google.com, tony.luck@intel.com, fenghua.yu@intel.com, james.hogan@imgtec.com, benh@kernel.crashing.org, tglx@linutronix.de, mingo@r
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 26, 2016 at 10:18:25AM +0100, Christian Borntraeger wrote:
-> We can use debug_pagealloc_enabled() to check if we can map
-> the identity mapping with 1MB/2GB pages as well as to print
-> the current setting in dump_stack.
-> 
-> Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
-> ---
->  arch/s390/kernel/dumpstack.c |  4 +++-
->  arch/s390/mm/vmem.c          | 10 ++++------
->  2 files changed, 7 insertions(+), 7 deletions(-)
-> 
-> diff --git a/arch/s390/kernel/dumpstack.c b/arch/s390/kernel/dumpstack.c
-> index dc8e204..a1c0530 100644
-> --- a/arch/s390/kernel/dumpstack.c
-> +++ b/arch/s390/kernel/dumpstack.c
-> @@ -11,6 +11,7 @@
->  #include <linux/export.h>
->  #include <linux/kdebug.h>
->  #include <linux/ptrace.h>
-> +#include <linux/mm.h>
->  #include <linux/module.h>
->  #include <linux/sched.h>
->  #include <asm/processor.h>
-> @@ -186,7 +187,8 @@ void die(struct pt_regs *regs, const char *str)
->  	printk("SMP ");
->  #endif
->  #ifdef CONFIG_DEBUG_PAGEALLOC
-> -	printk("DEBUG_PAGEALLOC");
-> +	printk("DEBUG_PAGEALLOC(%s)",
-> +		debug_pagealloc_enabled() ? "enabled" : "disabled");
->  #endif
+On Mon, Jan 18, 2016 at 10:06:00PM +0530, Ganapatrao Kulkarni wrote:
+> Adding numa support for arm64 based platforms.
+> This patch adds by default the dummy numa node and
+> maps all memory and cpus to node 0.
+> using this patch, numa can be simulated on single node arm64 platforms.
 
-I'd prefer if you change this to
+> diff --git a/arch/arm64/include/asm/mmzone.h b/arch/arm64/include/asm/mmzone.h
+> new file mode 100644
+> index 0000000..2cd804d
+> --- /dev/null
+> +++ b/arch/arm64/include/asm/mmzone.h
+> @@ -0,0 +1,18 @@
+> +#ifndef __ASM_MMZONE_H
+> +#define __ASM_MMZONE_H
+> +
+> +#ifdef CONFIG_NUMA
+> +
+> +#include <linux/mmdebug.h>
+> +#include <linux/types.h>
+> +
+> +#include <asm/smp.h>
+> +#include <asm/numa.h>
 
-	if (debug_pagealloc_enabled())
-		printk("DEBUG_PAGEALLOC");
+Are all these #includes really necessary?  s390 looks very similar and
+doesn't need the #includes.
 
-That way we can get rid of yet another ifdef. Having
-"DEBUG_PAGEALLOC(disabled)" doesn't seem to be very helpful.
+> +extern struct pglist_data *node_data[];
+> +
+> +#define NODE_DATA(nid)		(node_data[(nid)])
+> +
+> +#endif /* CONFIG_NUMA */
+> +
+> +#endif /* __ASM_MMZONE_H */
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> diff --git a/arch/arm64/include/asm/numa.h b/arch/arm64/include/asm/numa.h
+> new file mode 100644
+> index 0000000..f28f15b0
+> --- /dev/null
+> +++ b/arch/arm64/include/asm/numa.h
+> @@ -0,0 +1,40 @@
+> +#ifndef __ASM_NUMA_H
+> +#define __ASM_NUMA_H
+> +
+> +#include <linux/nodemask.h>
+> +#include <asm/topology.h>
+> +
+> +#ifdef CONFIG_NUMA
+> +
+> +/* currently, arm64 implements flat NUMA topology */
+> +#define parent_node(node)	(node)
+> +
+> +extern int __node_distance(int from, int to);
+
+Below you add some extern function declarations without the "extern"
+keyword.  I don't know what the convention is for arm64 (I omit the
+"extern" for PCI), but it seems like you should at least be
+consistent.
+
+> +#define node_distance(a, b) __node_distance(a, b)
+> +
+> +extern int cpu_to_node_map[NR_CPUS];
+> +extern nodemask_t numa_nodes_parsed __initdata;
+> +
+> +/* Mappings between node number and cpus on that node. */
+> +extern cpumask_var_t node_to_cpumask_map[MAX_NUMNODES];
+> +extern void numa_clear_node(unsigned int cpu);
+> +#ifdef CONFIG_DEBUG_PER_CPU_MAPS
+> +extern const struct cpumask *cpumask_of_node(int node);
+> +#else
+> +/* Returns a pointer to the cpumask of CPUs on Node 'node'. */
+> +static inline const struct cpumask *cpumask_of_node(int node)
+> +{
+> +	return node_to_cpumask_map[node];
+> +}
+> +#endif
+> +
+> +void __init arm64_numa_init(void);
+> +int __init numa_add_memblk(int nodeid, u64 start, u64 end);
+> +void __init numa_set_distance(int from, int to, int distance);
+> +void __init numa_reset_distance(void);
+> +void numa_store_cpu_info(unsigned int cpu);
