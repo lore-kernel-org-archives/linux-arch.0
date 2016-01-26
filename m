@@ -1,92 +1,122 @@
-From: Fengguang Wu <fengguang.wu@intel.com>
-Subject: Re:
- [linux-review:James-Hogan/kbuild-Remove-stale-asm-generic-wrappers/20160119-183642]
- d979f99e9cc14e2667e9b6e268db695977e4197a BUILD DONE
-Date: Tue, 26 Jan 2016 13:35:04 +0800
-Message-ID: <20160126053504.GA22301@wfg-t540p.sh.intel.com>
-References: <569e1dbb.MgLv8OaZwklOxxtU%fengguang.wu@intel.com>
- <1534543.eobSKFEFfp@wuerfel>
- <20160126053050.GB20385@wfg-t540p.sh.intel.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
+Date: Mon, 25 Jan 2016 22:03:22 -0800
+Message-ID: <20160126060322.GJ4503@linux.vnet.ibm.com>
+References: <5697F6D2.60409@imgtec.com>
+	<20160114203430.GC3818@linux.vnet.ibm.com>
+	<56980C91.1010403@imgtec.com>
+	<20160114212913.GF3818@linux.vnet.ibm.com>
+	<20160115085554.GF3421@worktop> <20160115091348.GA27936@worktop>
+	<20160115174612.GV3818@linux.vnet.ibm.com>
+	<20160115212714.GM3421@worktop>
+	<20160115215853.GC3818@linux.vnet.ibm.com>
+	<20160125164242.GF22927@arm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
 Content-Disposition: inline
-In-Reply-To: <20160126053050.GB20385@wfg-t540p.sh.intel.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: James Hogan <james.hogan@imgtec.com>, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Florian Fainelli <f.fainelli@gmail.com>, Paul Burton <paul.burton@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Heinrich Schuchardt <xypron.glpk@gmx.de>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.com>
+In-Reply-To: <20160125164242.GF22927@arm.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, user-mode-linux-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, linux-xtensa@linux-xtensa.org, james.hogan@imgtec.com, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, adi-buildroot-devel@lists.sourceforge.net, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, ddaney.cavm@gmail.com, Thomas Gleixner <tglx@linutronix.de>, linux-metag@vger.kernel.
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 26, 2016 at 01:30:50PM +0800, Fengguang Wu wrote:
-> Hi Arnd,
-> 
-> Sorry for the delay! I lost access to my email account for some week.
-> 
-> On Tue, Jan 19, 2016 at 03:26:16PM +0100, Arnd Bergmann wrote:
-> > On Tuesday 19 January 2016 19:27:55 kbuild test robot wrote:
-> > > arm                               allnoconfig
-> > > arm                         at91_dt_defconfig
-> > > arm                                  at_hdmac
-> > > arm                                    ep93xx
-> > > arm                       imx_v6_v7_defconfig
-> > > arm                                  iop-adma
-> > > arm                          marzen_defconfig
-> > > arm                          prima2_defconfig
-> > > arm                                    sa1100
-> > > arm                                   samsung
-> > > arm                                        sh
-> > > arm                       spear13xx_defconfig
+On Mon, Jan 25, 2016 at 04:42:43PM +0000, Will Deacon wrote:
+> On Fri, Jan 15, 2016 at 01:58:53PM -0800, Paul E. McKenney wrote:
+> > On Fri, Jan 15, 2016 at 10:27:14PM +0100, Peter Zijlstra wrote:
+> > > On Fri, Jan 15, 2016 at 09:46:12AM -0800, Paul E. McKenney wrote:
+> > > > On Fri, Jan 15, 2016 at 10:13:48AM +0100, Peter Zijlstra wrote:
 > > > 
+> > > > > And the stuff we're confused about is how best to express the difference
+> > > > > and guarantees of these two forms of transitivity and how exactly they
+> > > > > interact.
+> > > > 
+> > > > Hoping my memory-barrier.txt patch helps here...
+> > > 
+> > > Yes, that seems a good start. But yesterday you raised the 'fun' point
+> > > of two globally ordered sequences connected by a single local link.
 > > 
-> > Hi Fengguang,
+> > The conclusion that I am slowly coming to is that litmus tests should
+> > not be thought of as linear chains, but rather as cycles.  If you think
+> > of it as a cycle, then it doesn't matter where the local link is, just
+> > how many of them and how they are connected.
+> 
+> Do you have some examples of this? I'm struggling to make it work in my
+> mind, or are you talking specifically in the context of the kernel
+> memory model?
+
+Now that you mention it, maybe it would be best to keep the transitive
+and non-transitive separate for the time being anyway.  Just because it
+might be possible to deal with does not necessarily mean that we should
+be encouraging it.  ;-)
+
+> > But I will admit that there are some rather strange litmus tests that
+> > challenge this cycle-centric view, for example, the one shown below.
+> > It turns out that herd and ppcmem disagree on the outcome.  (The Power
+> > architects side with ppcmem.)
 > > 
-> > Sorry for hijacking this thread. I have never seen the list of arm defconfigs
-> > you are building before, and it seems to be a surprising selection, as a number
-> > of platforms (ep93xx, iop, sa1100, spear13xx) are rather obscure, but the
-> > configurations that I tend to use most (multi_v7_defconfig, multi_v5_defconfig,
-> > allmodconfig) are not included.
+> > > And I think I'm still confused on LWSYNC (in the smp_wmb case) when one
+> > > of the stores looses a conflict, and if that scenario matters. If it
+> > > does, we should inspect the same case for other barriers.
 > > 
-> > Do you always build the same set of configurations, or is this a different
-> > each time?
+> > Indeed.  I am still working on how these should be described.  My
+> > current thought is to be quite conservative on what ordering is
+> > actually respected, however, the current task is formalizing how
+> > RCU plays with the rest of the memory model.
+> > 
+> > 							Thanx, Paul
+> > 
+> > ------------------------------------------------------------------------
+> > 
+> > PPC Overlapping Group-B sets version 4
+> > ""
+> > (* When the Group-B sets from two different barriers involve instructions in
+> >    the same thread, within that thread one set must contain the other.
+> > 
+> > 	P0	P1	P2
+> > 	Rx=1	Wy=1	Wz=2
+> > 	dep.	lwsync	lwsync
+> > 	Ry=0	Wz=1	Wx=1
+> > 	Rz=1
+> > 
+> > 	assert(!(z=2))
+> > 
+> >    Forbidden by ppcmem, allowed by herd.
+> > *)
+> > {
+> > 0:r1=x; 0:r2=y; 0:r3=z;
+> > 1:r1=x; 1:r2=y; 1:r3=z; 1:r4=1;
+> > 2:r1=x; 2:r2=y; 2:r3=z; 2:r4=1; 2:r5=2;
+> > }
+> >  P0		| P1		| P2		;
+> >  lwz r6,0(r1)	| stw r4,0(r2)	| stw r5,0(r3)	;
+> >  xor r7,r6,r6	| lwsync	| lwsync	;
+> >  lwzx r7,r7,r2	| stw r4,0(r3)	| stw r4,0(r1)	;
+> >  lwz r8,0(r3)	|		|		;
+> > 
+> > exists
+> > (z=2 /\ 0:r6=1 /\ 0:r7=0 /\ 0:r8=1)
 > 
-> There are a fixed set of config files for fast build tests (which I
-> selected randomly, feel free to ask me to change the list to more
-> reasonable ones):
-> 
-> 	arm-allnoconfig
-> 	arm-at91_dt_defconfig
-> 	arm-at_hdmac
-> 	arm-ep93xx
-> 	arm-imx_v6_v7_defconfig
-> 	arm-iop-adma
-> 	arm-marzen_defconfig
-> 	arm-prima2_defconfig
-> 	arm-sa1100
-> 	arm-samsung
-> 	arm-sh
-> 	arm-spear13xx_defconfig
+> That really hurts. Assuming that the "assert(!(z=2))" is actually there
+> to constrain the coherence order of z to be {0->1->2}, then I think that
+> this test is forbidden on arm using dmb instead of lwsync. That said, I
+> also don't think the Rz=1 in P0 changes anything.
 
-And there is another set of best effort configs whose priority is
-in-between the above list and the arch/*/configs/* ones.
+What about the smp_wmb() variant of dmb that orders only stores?
 
-	arm-arm5
-	arm-arm67
-	arm-mmp
-	arm-omap2plus_defconfig
-	arm-s3c2410_defconfig
-	arm-tegra_defconfig
+> The double negatives don't help here! (it is forbidden to guarantee that
+> z is not always 2).
 
-Thanks,
-Fengguang
+Yes, this is a weird one, and I don't know of any use of it.
 
-> The more configs included in arch/*/configs will be tested in a more
-> slow pace. So not included in this email does not mean they are not
-> tested -- they are likely not quick enough to catch this notification
-> email.
-> 
-> > Can you always include the three I mentioned?
-> 
-> Sure.
-> 
-> Thanks,
-> Fengguang
+							Thanx, Paul
