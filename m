@@ -1,56 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:56759 "EHLO
-	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755833AbcAZG37 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2016 01:29:59 -0500
-Date: Tue, 26 Jan 2016 07:29:51 +0100
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH v2 02/16] sparc/compat: Provide an accurate
- in_compat_syscall implementation
-Message-ID: <20160126062951.GA17107@ravnborg.org>
-References: <cover.1453759363.git.luto@kernel.org>
- <e520030f750b29d14486aa1e99c271a0fa18f19e.1453759363.git.luto@kernel.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <e520030f750b29d14486aa1e99c271a0fa18f19e.1453759363.git.luto@kernel.org>
+Received: from e06smtp09.uk.ibm.com ([195.75.94.105]:44899 "EHLO
+	e06smtp09.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933146AbcAZJSG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2016 04:18:06 -0500
+Received: from localhost
+	by e06smtp09.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
+	Tue, 26 Jan 2016 09:18:04 -0000
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: [PATCH/RFC 3/3] s390: query dynamic DEBUG_PAGEALLOC setting
+Date: Tue, 26 Jan 2016 10:18:25 +0100
+Message-ID: <1453799905-10941-4-git-send-email-borntraeger@de.ibm.com>
+In-Reply-To: <1453799905-10941-1-git-send-email-borntraeger@de.ibm.com>
+References: <1453799905-10941-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, x86@kernel.org, linux-arch <linux-arch@vger.kernel.org>, David Miller <davem@davemloft.net>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Chris Metcalf <cmetcalf@ezchip.com>, linux-parisc@vger.kernel.org, linux-mips@linux-mips.org, sparclinux@vger.kernel.org
-Message-ID: <20160126062951.XhLnsGJS5BqLEc8wccL5qIyisM74WnHMUUCyWC1B7R8@z>
+To: linux-kernel@vger.kernel.org
+Cc: akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, Christian Borntraeger <borntraeger@de.ibm.com>
+Message-ID: <20160126091825.c1cjBJktGgU7QWoOpINuFVDjMOulrF2kfaQnKQCnDJk@z>
 
-On Mon, Jan 25, 2016 at 02:24:16PM -0800, Andy Lutomirski wrote:
-> On sparc64 compat-enabled kernels, any task can make 32-bit and
-> 64-bit syscalls.  is_compat_task returns true in 32-bit tasks, which
-> does not necessarily imply that the current syscall is 32-bit.
-> 
-> Provide an in_compat_syscall implementation that checks whether the
-> current syscall is compat.
-> 
-> As far as I know, sparc is the only architecture on which
-> is_compat_task checks the compat status of the task and on which the
-> compat status of a syscall can differ from the compat status of the
-> task.  On x86, is_compat_task checks the syscall type, not the task
-> type.
-> 
-> Signed-off-by: Andy Lutomirski <luto@kernel.org>
-> ---
->  arch/sparc/include/asm/compat.h | 6 ++++++
->  1 file changed, 6 insertions(+)
-> 
-> diff --git a/arch/sparc/include/asm/compat.h b/arch/sparc/include/asm/compat.h
-> index 830502fe62b4..5467404857fc 100644
-> --- a/arch/sparc/include/asm/compat.h
-> +++ b/arch/sparc/include/asm/compat.h
-> @@ -307,4 +307,10 @@ static inline int is_compat_task(void)
->  	return test_thread_flag(TIF_32BIT);
->  }
->  
-> +static inline bool in_compat_syscall(void)
-> +{
-> +	return pt_regs_trap_type(current_pt_regs()) == 0x110;
-Could you please add a comment about where 0x110 comes from.
-I at least failed to track this down.
+We can use debug_pagealloc_enabled() to check if we can map
+the identity mapping with 1MB/2GB pages as well as to print
+the current setting in dump_stack.
 
-	Sam
+Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+---
+ arch/s390/kernel/dumpstack.c |  4 +++-
+ arch/s390/mm/vmem.c          | 10 ++++------
+ 2 files changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/arch/s390/kernel/dumpstack.c b/arch/s390/kernel/dumpstack.c
+index dc8e204..a1c0530 100644
+--- a/arch/s390/kernel/dumpstack.c
++++ b/arch/s390/kernel/dumpstack.c
+@@ -11,6 +11,7 @@
+ #include <linux/export.h>
+ #include <linux/kdebug.h>
+ #include <linux/ptrace.h>
++#include <linux/mm.h>
+ #include <linux/module.h>
+ #include <linux/sched.h>
+ #include <asm/processor.h>
+@@ -186,7 +187,8 @@ void die(struct pt_regs *regs, const char *str)
+ 	printk("SMP ");
+ #endif
+ #ifdef CONFIG_DEBUG_PAGEALLOC
+-	printk("DEBUG_PAGEALLOC");
++	printk("DEBUG_PAGEALLOC(%s)",
++		debug_pagealloc_enabled() ? "enabled" : "disabled");
+ #endif
+ 	printk("\n");
+ 	notify_die(DIE_OOPS, str, regs, 0, regs->int_code & 0xffff, SIGSEGV);
+diff --git a/arch/s390/mm/vmem.c b/arch/s390/mm/vmem.c
+index ef7d6c8..d27fccba 100644
+--- a/arch/s390/mm/vmem.c
++++ b/arch/s390/mm/vmem.c
+@@ -94,16 +94,15 @@ static int vmem_add_mem(unsigned long start, unsigned long size, int ro)
+ 			pgd_populate(&init_mm, pg_dir, pu_dir);
+ 		}
+ 		pu_dir = pud_offset(pg_dir, address);
+-#ifndef CONFIG_DEBUG_PAGEALLOC
+ 		if (MACHINE_HAS_EDAT2 && pud_none(*pu_dir) && address &&
+-		    !(address & ~PUD_MASK) && (address + PUD_SIZE <= end)) {
++		    !(address & ~PUD_MASK) && (address + PUD_SIZE <= end) &&
++		     !debug_pagealloc_enabled()) {
+ 			pud_val(*pu_dir) = __pa(address) |
+ 				_REGION_ENTRY_TYPE_R3 | _REGION3_ENTRY_LARGE |
+ 				(ro ? _REGION_ENTRY_PROTECT : 0);
+ 			address += PUD_SIZE;
+ 			continue;
+ 		}
+-#endif
+ 		if (pud_none(*pu_dir)) {
+ 			pm_dir = vmem_pmd_alloc();
+ 			if (!pm_dir)
+@@ -111,9 +110,9 @@ static int vmem_add_mem(unsigned long start, unsigned long size, int ro)
+ 			pud_populate(&init_mm, pu_dir, pm_dir);
+ 		}
+ 		pm_dir = pmd_offset(pu_dir, address);
+-#ifndef CONFIG_DEBUG_PAGEALLOC
+ 		if (MACHINE_HAS_EDAT1 && pmd_none(*pm_dir) && address &&
+-		    !(address & ~PMD_MASK) && (address + PMD_SIZE <= end)) {
++		    !(address & ~PMD_MASK) && (address + PMD_SIZE <= end) &&
++		    !debug_pagealloc_enabled()) {
+ 			pmd_val(*pm_dir) = __pa(address) |
+ 				_SEGMENT_ENTRY | _SEGMENT_ENTRY_LARGE |
+ 				_SEGMENT_ENTRY_YOUNG |
+@@ -121,7 +120,6 @@ static int vmem_add_mem(unsigned long start, unsigned long size, int ro)
+ 			address += PMD_SIZE;
+ 			continue;
+ 		}
+-#endif
+ 		if (pmd_none(*pm_dir)) {
+ 			pt_dir = vmem_pte_alloc(address);
+ 			if (!pt_dir)
+-- 
+2.3.0
+
