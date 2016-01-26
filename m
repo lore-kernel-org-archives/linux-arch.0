@@ -1,180 +1,136 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:41620 "EHLO mail.skyhub.de"
+Received: from mail.skyhub.de ([78.46.96.112]:41598 "EHLO mail.skyhub.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752044AbcAZU5p (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 26 Jan 2016 15:57:45 -0500
+	id S1751904AbcAZU5m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 26 Jan 2016 15:57:42 -0500
 From: Borislav Petkov <bp@alien8.de>
-Subject: [PATCH 13/17] resource: Add walk_iomem_res_desc()
-Date: Tue, 26 Jan 2016 21:57:29 +0100
-Message-ID: <1453841853-11383-14-git-send-email-bp@alien8.de>
+Subject: [PATCH 09/17] drivers: Initialize resource entry to zero
+Date: Tue, 26 Jan 2016 21:57:25 +0100
+Message-ID: <1453841853-11383-10-git-send-email-bp@alien8.de>
 In-Reply-To: <1453841853-11383-1-git-send-email-bp@alien8.de>
 References: <1453841853-11383-1-git-send-email-bp@alien8.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Hanjun Guo <hanjun.guo@linaro.org>, Jakub Sitnicki <jsitnicki@gmail.com>, Jiang Liu <jiang.liu@linux.intel.com>, linux-arch@vger.kernel.org, linux-mm <linux-mm@kvack.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
-Message-ID: <20160126205729.F3vwr_1gWw0DGTauDdK3j5aciBjUkJfGIJOmTGHybW8@z>
+Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-parisc@vger.kernel.org, linux-renesas-soc@vger.kernel.org, linux-sh@vger.kernel.org
+Message-ID: <20160126205725.BXC_G7AQiF_3WeDX4Re5WV1UEQMiH3gVMIZA78NBl2Y@z>
 
 From: Toshi Kani <toshi.kani@hpe.com>
 
-Add a new interface, walk_iomem_res_desc(), which walks through the
-iomem table by identifying a target with @flags and @desc. This
-interface provides the same functionality as walk_iomem_res(), but does
-not use strcmp() to @name for better efficiency.
-
-walk_iomem_res() is deprecated and will be removed in a later patch.
+I/O resource descriptor, 'desc' in struct resource, needs to be
+initialized to zero by default.  Some drivers call kmalloc() to
+allocate a resource entry, but do not initialize it to zero by
+memset().  Change these drivers to call kzalloc(), instead.
 
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
-Requested-by: Borislav Petkov <bp@suse.de>
+Acked-by: Alexandre Bounine <alexandre.bounine@idt.com>
+Acked-by: Helge Deller <deller@gmx.de>
+Acked-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+Acked-by: Simon Horman <horms+renesas@verge.net.au>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Dan Williams <dan.j.williams@intel.com>
-Cc: Hanjun Guo <hanjun.guo@linaro.org>
-Cc: Jakub Sitnicki <jsitnicki@gmail.com>
-Cc: Jiang Liu <jiang.liu@linux.intel.com>
+Cc: linux-acpi@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 Cc: linux-mm <linux-mm@kvack.org>
-Cc: "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
-Link: http://lkml.kernel.org/r/1452020081-26534-13-git-send-email-toshi.kani@hpe.com
-[ Boris: fixup comments. ]
+Cc: linux-parisc@vger.kernel.org
+Cc: linux-renesas-soc@vger.kernel.org
+Cc: linux-sh@vger.kernel.org
+Link: http://lkml.kernel.org/r/1452020081-26534-9-git-send-email-toshi.kani@hpe.com
 Signed-off-by: Borislav Petkov <bp@suse.de>
 ---
- include/linux/ioport.h |  3 +++
- kernel/resource.c      | 66 ++++++++++++++++++++++++++++++++++++++++++--------
- 2 files changed, 59 insertions(+), 10 deletions(-)
+ drivers/acpi/acpi_platform.c       | 2 +-
+ drivers/parisc/eisa_enumerator.c   | 4 ++--
+ drivers/rapidio/rio.c              | 8 ++++----
+ drivers/sh/superhyway/superhyway.c | 2 +-
+ 4 files changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/include/linux/ioport.h b/include/linux/ioport.h
-index 983bea05d69c..2a4a5e839965 100644
---- a/include/linux/ioport.h
-+++ b/include/linux/ioport.h
-@@ -268,6 +268,9 @@ extern int
- walk_system_ram_res(u64 start, u64 end, void *arg,
- 		    int (*func)(u64, u64, void *));
- extern int
-+walk_iomem_res_desc(unsigned long desc, unsigned long flags, u64 start, u64 end,
-+		    void *arg, int (*func)(u64, u64, void *));
-+extern int
- walk_iomem_res(char *name, unsigned long flags, u64 start, u64 end, void *arg,
- 	       int (*func)(u64, u64, void *));
+diff --git a/drivers/acpi/acpi_platform.c b/drivers/acpi/acpi_platform.c
+index 296b7a14893a..b6f7fa3a1d40 100644
+--- a/drivers/acpi/acpi_platform.c
++++ b/drivers/acpi/acpi_platform.c
+@@ -62,7 +62,7 @@ struct platform_device *acpi_create_platform_device(struct acpi_device *adev)
+ 	if (count < 0) {
+ 		return NULL;
+ 	} else if (count > 0) {
+-		resources = kmalloc(count * sizeof(struct resource),
++		resources = kzalloc(count * sizeof(struct resource),
+ 				    GFP_KERNEL);
+ 		if (!resources) {
+ 			dev_err(&adev->dev, "No memory for resources\n");
+diff --git a/drivers/parisc/eisa_enumerator.c b/drivers/parisc/eisa_enumerator.c
+index a656d9e83343..21905fef2cbf 100644
+--- a/drivers/parisc/eisa_enumerator.c
++++ b/drivers/parisc/eisa_enumerator.c
+@@ -91,7 +91,7 @@ static int configure_memory(const unsigned char *buf,
+ 	for (i=0;i<HPEE_MEMORY_MAX_ENT;i++) {
+ 		c = get_8(buf+len);
+ 		
+-		if (NULL != (res = kmalloc(sizeof(struct resource), GFP_KERNEL))) {
++		if (NULL != (res = kzalloc(sizeof(struct resource), GFP_KERNEL))) {
+ 			int result;
+ 			
+ 			res->name = name;
+@@ -183,7 +183,7 @@ static int configure_port(const unsigned char *buf, struct resource *io_parent,
+ 	for (i=0;i<HPEE_PORT_MAX_ENT;i++) {
+ 		c = get_8(buf+len);
+ 		
+-		if (NULL != (res = kmalloc(sizeof(struct resource), GFP_KERNEL))) {
++		if (NULL != (res = kzalloc(sizeof(struct resource), GFP_KERNEL))) {
+ 			res->name = board;
+ 			res->start = get_16(buf+len+1);
+ 			res->end = get_16(buf+len+1)+(c&HPEE_PORT_SIZE_MASK)+1;
+diff --git a/drivers/rapidio/rio.c b/drivers/rapidio/rio.c
+index d7b87c64b7cd..e220edc85c68 100644
+--- a/drivers/rapidio/rio.c
++++ b/drivers/rapidio/rio.c
+@@ -117,7 +117,7 @@ int rio_request_inb_mbox(struct rio_mport *mport,
+ 	if (mport->ops->open_inb_mbox == NULL)
+ 		goto out;
  
-diff --git a/kernel/resource.c b/kernel/resource.c
-index 0041cedc47d6..37ed2fcb8246 100644
---- a/kernel/resource.c
-+++ b/kernel/resource.c
-@@ -333,14 +333,15 @@ int release_resource(struct resource *old)
- EXPORT_SYMBOL(release_resource);
+-	res = kmalloc(sizeof(struct resource), GFP_KERNEL);
++	res = kzalloc(sizeof(struct resource), GFP_KERNEL);
  
- /*
-- * Finds the lowest iomem reosurce exists with-in [res->start.res->end)
-- * the caller must specify res->start, res->end, res->flags and "name".
-- * If found, returns 0, res is overwritten, if not found, returns -1.
-- * This walks through whole tree and not just first level children
-- * until and unless first_level_children_only is true.
-+ * Finds the lowest iomem resource existing within [res->start.res->end).
-+ * The caller must specify res->start, res->end, res->flags, and optionally
-+ * desc and "name".  If found, returns 0, res is overwritten, if not found,
-+ * returns -1.
-+ * This function walks the whole tree and not just first level children until
-+ * and unless first_level_children_only is true.
-  */
--static int find_next_iomem_res(struct resource *res, char *name,
--			       bool first_level_children_only)
-+static int find_next_iomem_res(struct resource *res, unsigned long desc,
-+			       char *name, bool first_level_children_only)
+ 	if (res) {
+ 		rio_init_mbox_res(res, mbox, mbox);
+@@ -185,7 +185,7 @@ int rio_request_outb_mbox(struct rio_mport *mport,
+ 	if (mport->ops->open_outb_mbox == NULL)
+ 		goto out;
+ 
+-	res = kmalloc(sizeof(struct resource), GFP_KERNEL);
++	res = kzalloc(sizeof(struct resource), GFP_KERNEL);
+ 
+ 	if (res) {
+ 		rio_init_mbox_res(res, mbox, mbox);
+@@ -285,7 +285,7 @@ int rio_request_inb_dbell(struct rio_mport *mport,
  {
- 	resource_size_t start, end;
- 	struct resource *p;
-@@ -360,6 +361,8 @@ static int find_next_iomem_res(struct resource *res, char *name,
- 	for (p = iomem_resource.child; p; p = next_resource(p, sibling_only)) {
- 		if ((p->flags & res->flags) != res->flags)
- 			continue;
-+		if ((desc != IORES_DESC_NONE) && (desc != p->desc))
-+			continue;
- 		if (name && strcmp(p->name, name))
- 			continue;
- 		if (p->start > end) {
-@@ -385,12 +388,55 @@ static int find_next_iomem_res(struct resource *res, char *name,
-  * Walks through iomem resources and calls func() with matching resource
-  * ranges. This walks through whole tree and not just first level children.
-  * All the memory ranges which overlap start,end and also match flags and
-+ * desc are valid candidates.
-+ *
-+ * @desc: I/O resource descriptor. Use IORES_DESC_NONE to skip @desc check.
-+ * @flags: I/O resource flags
-+ * @start: start addr
-+ * @end: end addr
-+ *
-+ * NOTE: For a new descriptor search, define a new IORES_DESC in
-+ * <linux/ioport.h> and set it in 'desc' of a target resource entry.
-+ */
-+int walk_iomem_res_desc(unsigned long desc, unsigned long flags, u64 start,
-+		u64 end, void *arg, int (*func)(u64, u64, void *))
-+{
-+	struct resource res;
-+	u64 orig_end;
-+	int ret = -1;
-+
-+	res.start = start;
-+	res.end = end;
-+	res.flags = flags;
-+	orig_end = res.end;
-+
-+	while ((res.start < res.end) &&
-+		(!find_next_iomem_res(&res, desc, NULL, false))) {
-+
-+		ret = (*func)(res.start, res.end, arg);
-+		if (ret)
-+			break;
-+
-+		res.start = res.end + 1;
-+		res.end = orig_end;
-+	}
-+
-+	return ret;
-+}
-+
-+/*
-+ * Walks through iomem resources and calls @func with matching resource
-+ * ranges. This walks the whole tree and not just first level children.
-+ * All the memory ranges which overlap start,end and also match flags and
-  * name are valid candidates.
-  *
-  * @name: name of resource
-  * @flags: resource flags
-  * @start: start addr
-  * @end: end addr
-+ *
-+ * NOTE: This function is deprecated and should not be used in new code.
-+ * Use walk_iomem_res_desc(), instead.
-  */
- int walk_iomem_res(char *name, unsigned long flags, u64 start, u64 end,
- 		void *arg, int (*func)(u64, u64, void *))
-@@ -404,7 +450,7 @@ int walk_iomem_res(char *name, unsigned long flags, u64 start, u64 end,
- 	res.flags = flags;
- 	orig_end = res.end;
- 	while ((res.start < res.end) &&
--		(!find_next_iomem_res(&res, name, false))) {
-+		(!find_next_iomem_res(&res, IORES_DESC_NONE, name, false))) {
- 		ret = (*func)(res.start, res.end, arg);
- 		if (ret)
- 			break;
-@@ -433,7 +479,7 @@ int walk_system_ram_res(u64 start, u64 end, void *arg,
- 	res.flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
- 	orig_end = res.end;
- 	while ((res.start < res.end) &&
--		(!find_next_iomem_res(&res, NULL, true))) {
-+		(!find_next_iomem_res(&res, IORES_DESC_NONE, NULL, true))) {
- 		ret = (*func)(res.start, res.end, arg);
- 		if (ret)
- 			break;
-@@ -463,7 +509,7 @@ int walk_system_ram_range(unsigned long start_pfn, unsigned long nr_pages,
- 	res.flags = IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY;
- 	orig_end = res.end;
- 	while ((res.start < res.end) &&
--		(find_next_iomem_res(&res, NULL, true) >= 0)) {
-+		(find_next_iomem_res(&res, IORES_DESC_NONE, NULL, true) >= 0)) {
- 		pfn = (res.start + PAGE_SIZE - 1) >> PAGE_SHIFT;
- 		end_pfn = (res.end + 1) >> PAGE_SHIFT;
- 		if (end_pfn > pfn)
+ 	int rc = 0;
+ 
+-	struct resource *res = kmalloc(sizeof(struct resource), GFP_KERNEL);
++	struct resource *res = kzalloc(sizeof(struct resource), GFP_KERNEL);
+ 
+ 	if (res) {
+ 		rio_init_dbell_res(res, start, end);
+@@ -360,7 +360,7 @@ int rio_release_inb_dbell(struct rio_mport *mport, u16 start, u16 end)
+ struct resource *rio_request_outb_dbell(struct rio_dev *rdev, u16 start,
+ 					u16 end)
+ {
+-	struct resource *res = kmalloc(sizeof(struct resource), GFP_KERNEL);
++	struct resource *res = kzalloc(sizeof(struct resource), GFP_KERNEL);
+ 
+ 	if (res) {
+ 		rio_init_dbell_res(res, start, end);
+diff --git a/drivers/sh/superhyway/superhyway.c b/drivers/sh/superhyway/superhyway.c
+index 2d9e7f3d5611..bb1fb7712134 100644
+--- a/drivers/sh/superhyway/superhyway.c
++++ b/drivers/sh/superhyway/superhyway.c
+@@ -66,7 +66,7 @@ int superhyway_add_device(unsigned long base, struct superhyway_device *sdev,
+ 	superhyway_read_vcr(dev, base, &dev->vcr);
+ 
+ 	if (!dev->resource) {
+-		dev->resource = kmalloc(sizeof(struct resource), GFP_KERNEL);
++		dev->resource = kzalloc(sizeof(struct resource), GFP_KERNEL);
+ 		if (!dev->resource) {
+ 			kfree(dev);
+ 			return -ENOMEM;
 -- 
 2.3.5
 
