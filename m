@@ -1,48 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:35910 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932586AbcAZSEc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2016 13:04:32 -0500
-Date: Tue, 26 Jan 2016 10:04:28 -0800 (PST)
-Message-ID: <20160126.100428.940114886943875601.davem@davemloft.net>
-Subject: Re: [PATCH v2 02/16] sparc/compat: Provide an accurate
- in_compat_syscall implementation
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20160126174441.GA18873@ravnborg.org>
-References: <20160126062951.GA17107@ravnborg.org>
-	<20160125.225100.1932707129794761764.davem@davemloft.net>
-	<20160126174441.GA18873@ravnborg.org>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from e06smtp07.uk.ibm.com ([195.75.94.103]:56645 "EHLO
+	e06smtp07.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965759AbcAZSTO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2016 13:19:14 -0500
+Received: from localhost
+	by e06smtp07.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+	Tue, 26 Jan 2016 18:19:13 -0000
+Date: Tue, 26 Jan 2016 19:19:03 +0100
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH/RFC 3/3] s390: query dynamic DEBUG_PAGEALLOC setting
+Message-ID: <20160126181903.GB4671@osiris>
+References: <1453799905-10941-1-git-send-email-borntraeger@de.ibm.com>
+ <1453799905-10941-4-git-send-email-borntraeger@de.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1453799905-10941-4-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: sam@ravnborg.org
-Cc: luto@kernel.org, akpm@linux-foundation.org, viro@zeniv.linux.org.uk, torvalds@linux-foundation.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, cmetcalf@ezchip.com, linux-parisc@vger.kernel.org, linux-mips@linux-mips.org, sparclinux@vger.kernel.org
-Message-ID: <20160126180428.2Xa8B4ZSw8oMTT1cJ5ZBYbytr68wRfzNczaZ2gXWyVY@z>
+To: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org
+Message-ID: <20160126181903.POvrUjkdBX-zMLh6Hf35wac1qzQACwbf15s2SXURnf8@z>
 
-From: Sam Ravnborg <sam@ravnborg.org>
-Date: Tue, 26 Jan 2016 18:44:41 +0100
+On Tue, Jan 26, 2016 at 10:18:25AM +0100, Christian Borntraeger wrote:
+> We can use debug_pagealloc_enabled() to check if we can map
+> the identity mapping with 1MB/2GB pages as well as to print
+> the current setting in dump_stack.
+> 
+> Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+> ---
+>  arch/s390/kernel/dumpstack.c |  4 +++-
+>  arch/s390/mm/vmem.c          | 10 ++++------
+>  2 files changed, 7 insertions(+), 7 deletions(-)
+> 
+> diff --git a/arch/s390/kernel/dumpstack.c b/arch/s390/kernel/dumpstack.c
+> index dc8e204..a1c0530 100644
+> --- a/arch/s390/kernel/dumpstack.c
+> +++ b/arch/s390/kernel/dumpstack.c
+> @@ -11,6 +11,7 @@
+>  #include <linux/export.h>
+>  #include <linux/kdebug.h>
+>  #include <linux/ptrace.h>
+> +#include <linux/mm.h>
+>  #include <linux/module.h>
+>  #include <linux/sched.h>
+>  #include <asm/processor.h>
+> @@ -186,7 +187,8 @@ void die(struct pt_regs *regs, const char *str)
+>  	printk("SMP ");
+>  #endif
+>  #ifdef CONFIG_DEBUG_PAGEALLOC
+> -	printk("DEBUG_PAGEALLOC");
+> +	printk("DEBUG_PAGEALLOC(%s)",
+> +		debug_pagealloc_enabled() ? "enabled" : "disabled");
+>  #endif
 
-> On Mon, Jan 25, 2016 at 10:51:00PM -0800, David Miller wrote:
->> From: Sam Ravnborg <sam@ravnborg.org>
->> Date: Tue, 26 Jan 2016 07:29:51 +0100
->> 
->> > Could you please add a comment about where 0x110 comes from.
->> > I at least failed to track this down.
->> 
->> Frankly I'm fine with this.  Someone who understands sparc64 can look
->> at the trap table around entry 0x110 and see:
->> 
->> tl0_resv10e:	BTRAP(0x10e) BTRAP(0x10f)
->> tl0_linux32:	LINUX_32BIT_SYSCALL_TRAP
->> tl0_oldlinux64:	LINUX_64BIT_SYSCALL_TRAP
-> 
-> If one realise to look in the trap table in the first place - yes.
-> 
-> Adding a short:
-> 
-> /* Check if this is LINUX_32BIT_SYSCALL_TRAP */
-> Would make wonders to readability.
+I'd prefer if you change this to
 
-Fair enough.
+	if (debug_pagealloc_enabled())
+		printk("DEBUG_PAGEALLOC");
+
+That way we can get rid of yet another ifdef. Having
+"DEBUG_PAGEALLOC(disabled)" doesn't seem to be very helpful.
+
