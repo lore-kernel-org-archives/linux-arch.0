@@ -1,82 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:41553 "EHLO mail.skyhub.de"
+Received: from mail.skyhub.de ([78.46.96.112]:41617 "EHLO mail.skyhub.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751694AbcAZU5j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 26 Jan 2016 15:57:39 -0500
+	id S1752042AbcAZU5o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 26 Jan 2016 15:57:44 -0500
 From: Borislav Petkov <bp@alien8.de>
-Subject: [PATCH 02/17] resource: Handle resource flags properly
-Date: Tue, 26 Jan 2016 21:57:18 +0100
-Message-ID: <1453841853-11383-3-git-send-email-bp@alien8.de>
+Subject: [PATCH 17/17] ACPI/EINJ: Allow memory error injection to NVDIMM
+Date: Tue, 26 Jan 2016 21:57:33 +0100
+Message-ID: <1453841853-11383-18-git-send-email-bp@alien8.de>
 In-Reply-To: <1453841853-11383-1-git-send-email-bp@alien8.de>
 References: <1453841853-11383-1-git-send-email-bp@alien8.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Ingo Molnar <mingo@redhat.com>, Jakub Sitnicki <jsitnicki@gmail.com>, Jiang Liu <jiang.liu@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-mm <linux-mm@kvack.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Vinod Koul <vinod.koul@intel.com>
-Message-ID: <20160126205718.R1EiEeaXvmioHje08t-EP8o0DgvyypUgjYw8rFAJYVQ@z>
+Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Jarkko Nikula <jarkko.nikula@linux.intel.com>, Len Brown <lenb@kernel.org>, linux-acpi@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm <linux-mm@kvack.org>, linux-nvdimm@lists.01.org, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Vishal Verma <vishal.l.verma@intel.com>
+Message-ID: <20160126205733.mhe9_7choLk3is961J3WL218bYCvGHiKpdcTznrfNFo@z>
 
 From: Toshi Kani <toshi.kani@hpe.com>
 
-I/O resource flags consist of I/O resource types and modifier bits.
-Therefore, checking an I/O resource type in 'flags' must be performed
-with a bitwise operation.
+In the case of memory error injection, einj_error_inject() checks if
+a target address is System RAM. Change this check to allow injecting
+a memory error into NVDIMM memory by calling region_intersects() with
+IORES_DESC_PERSISTENT_MEMORY. This enables memory error testing on both
+System RAM and NVDIMM.
 
-Fix find_next_iomem_res() and region_intersects() that simply compare
-'flags' against a given value.
+In addition, page_is_ram() is replaced with region_intersects() with
+IORESOURCE_SYSTEM_RAM, so that it can verify a target address range with
+the requested size.
 
-Also change __request_region() to set 'res->flags' from resource_type()
-and resource_ext_type() of the parent, so that children nodes will
-inherit the extended I/O resource type.
-
+Reviewed-by: Dan Williams <dan.j.williams@intel.com>
+Acked-by: Tony Luck <tony.luck@intel.com>
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Dan Williams <dan.j.williams@intel.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Jakub Sitnicki <jsitnicki@gmail.com>
-Cc: Jiang Liu <jiang.liu@linux.intel.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Jarkko Nikula <jarkko.nikula@linux.intel.com>
+Cc: Len Brown <lenb@kernel.org>
+Cc: linux-acpi@vger.kernel.org
 Cc: linux-arch@vger.kernel.org
 Cc: linux-mm <linux-mm@kvack.org>
-Cc: "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
-Cc: Vinod Koul <vinod.koul@intel.com>
-Link: http://lkml.kernel.org/r/1452020081-26534-2-git-send-email-toshi.kani@hpe.com
+Cc: linux-nvdimm@lists.01.org
+Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+Cc: Vishal Verma <vishal.l.verma@intel.com>
+Link: http://lkml.kernel.org/r/1452020081-26534-17-git-send-email-toshi.kani@hpe.com
 Signed-off-by: Borislav Petkov <bp@suse.de>
 ---
- kernel/resource.c | 7 ++++---
- 1 file changed, 4 insertions(+), 3 deletions(-)
+ drivers/acpi/apei/einj.c | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
 
-diff --git a/kernel/resource.c b/kernel/resource.c
-index 09c0597840b0..96afc8027487 100644
---- a/kernel/resource.c
-+++ b/kernel/resource.c
-@@ -358,7 +358,7 @@ static int find_next_iomem_res(struct resource *res, char *name,
- 	read_lock(&resource_lock);
+diff --git a/drivers/acpi/apei/einj.c b/drivers/acpi/apei/einj.c
+index 0431883653be..559c1173de1c 100644
+--- a/drivers/acpi/apei/einj.c
++++ b/drivers/acpi/apei/einj.c
+@@ -519,7 +519,7 @@ static int einj_error_inject(u32 type, u32 flags, u64 param1, u64 param2,
+ 			     u64 param3, u64 param4)
+ {
+ 	int rc;
+-	unsigned long pfn;
++	u64 base_addr, size;
  
- 	for (p = iomem_resource.child; p; p = next_resource(p, sibling_only)) {
--		if (p->flags != res->flags)
-+		if ((p->flags & res->flags) != res->flags)
- 			continue;
- 		if (name && strcmp(p->name, name))
- 			continue;
-@@ -519,7 +519,8 @@ int region_intersects(resource_size_t start, size_t size, const char *name)
+ 	/* If user manually set "flags", make sure it is legal */
+ 	if (flags && (flags &
+@@ -545,10 +545,17 @@ static int einj_error_inject(u32 type, u32 flags, u64 param1, u64 param2,
+ 	/*
+ 	 * Disallow crazy address masks that give BIOS leeway to pick
+ 	 * injection address almost anywhere. Insist on page or
+-	 * better granularity and that target address is normal RAM.
++	 * better granularity and that target address is normal RAM or
++	 * NVDIMM.
+ 	 */
+-	pfn = PFN_DOWN(param1 & param2);
+-	if (!page_is_ram(pfn) || ((param2 & PAGE_MASK) != PAGE_MASK))
++	base_addr = param1 & param2;
++	size = ~param2 + 1;
++
++	if (((param2 & PAGE_MASK) != PAGE_MASK) ||
++	    ((region_intersects(base_addr, size, IORESOURCE_SYSTEM_RAM, IORES_DESC_NONE)
++				!= REGION_INTERSECTS) &&
++	     (region_intersects(base_addr, size, IORESOURCE_MEM, IORES_DESC_PERSISTENT_MEMORY)
++				!= REGION_INTERSECTS)))
+ 		return -EINVAL;
  
- 	read_lock(&resource_lock);
- 	for (p = iomem_resource.child; p ; p = p->sibling) {
--		bool is_type = strcmp(p->name, name) == 0 && p->flags == flags;
-+		bool is_type = strcmp(p->name, name) == 0 &&
-+				((p->flags & flags) == flags);
- 
- 		if (start >= p->start && start <= p->end)
- 			is_type ? type++ : other++;
-@@ -1071,7 +1072,7 @@ struct resource * __request_region(struct resource *parent,
- 	res->name = name;
- 	res->start = start;
- 	res->end = start + n - 1;
--	res->flags = resource_type(parent);
-+	res->flags = resource_type(parent) | resource_ext_type(parent);
- 	res->flags |= IORESOURCE_BUSY | flags;
- 
- 	write_lock(&resource_lock);
+ inject:
 -- 
 2.3.5
 
