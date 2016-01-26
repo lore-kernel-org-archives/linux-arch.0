@@ -1,73 +1,99 @@
-From: Bjorn Helgaas <helgaas@kernel.org>
-Subject: Re: [PATCH v9 5/6] PCI: generic: Make pci-host-generic driver numa
- aware
-Date: Tue, 26 Jan 2016 14:52:56 -0600
-Message-ID: <20160126205256.GA26268@localhost>
-References: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com>
- <1453134965-6125-6-git-send-email-gkulkarni@caviumnetworks.com>
- <20160126205005.GD17600@localhost>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-ia64-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160126205005.GD17600@localhost>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
-Cc: linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Will.Deacon@arm.com, catalin.marinas@arm.com, grant.likely@linaro.org, leif.lindholm@linaro.org, rfranz@cavium.com, ard.biesheuvel@linaro.org, msalter@redhat.com, robh+dt@kernel.org, steve.capper@linaro.org, hanjun.guo@linaro.org, al.stone@linaro.org, arnd@arndb.de, pawel.moll@arm.com, mark.rutland@arm.com, ijc+devicetree@hellion.org.uk, galak@codeaurora.org, rjw@rjwysocki.net, lenb@kernel.org, marc.zyngier@arm.com, lorenzo.pieralisi@arm.com, bhelgaas@google.com, tony.luck@intel.com, fenghua.yu@intel.com, james.hogan@imgtec.com, benh@kernel.crashing.org, tglx@linutronix.de, mingo@r
-List-Id: linux-arch.vger.kernel.org
+From: Borislav Petkov <bp@alien8.de>
+Subject: [PATCH 01/17] resource: Add System RAM resource type
+Date: Tue, 26 Jan 2016 21:57:17 +0100
+Message-ID: <1453841853-11383-2-git-send-email-bp@alien8.de>
+References: <1453841853-11383-1-git-send-email-bp@alien8.de>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.skyhub.de ([78.46.96.112]:41545 "EHLO mail.skyhub.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751693AbcAZU5i (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 26 Jan 2016 15:57:38 -0500
+In-Reply-To: <1453841853-11383-1-git-send-email-bp@alien8.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Hanjun Guo <hanjun.guo@linaro.org>, Jakub Sitnicki <jsitnicki@gmail.com>, Jiang Liu <jiang.liu@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-mm <linux-mm@kvack.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
 
-On Tue, Jan 26, 2016 at 02:50:05PM -0600, Bjorn Helgaas wrote:
-> On Mon, Jan 18, 2016 at 10:06:04PM +0530, Ganapatrao Kulkarni wrote:
-> > update numa_node of device associated with pci bus.
-> > moved down devm_kzalloc to allocate from node memory.
-> > 
-> > Signed-off-by: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
-> > ---
-> >  drivers/pci/host/pci-host-generic.c | 9 ++++++---
-> >  1 file changed, 6 insertions(+), 3 deletions(-)
-> > 
-> > diff --git a/drivers/pci/host/pci-host-generic.c b/drivers/pci/host/pci-host-generic.c
-> > index 5434c90..0e1ce06 100644
-> > --- a/drivers/pci/host/pci-host-generic.c
-> > +++ b/drivers/pci/host/pci-host-generic.c
-> > @@ -215,11 +215,9 @@ static int gen_pci_probe(struct platform_device *pdev)
-> >  	const struct of_device_id *of_id;
-> >  	struct device *dev = &pdev->dev;
-> >  	struct device_node *np = dev->of_node;
-> > -	struct gen_pci *pci = devm_kzalloc(dev, sizeof(*pci), GFP_KERNEL);
-> > +	struct gen_pci *pci;
-> >  	struct pci_bus *bus, *child;
-> >  
-> > -	if (!pci)
-> > -		return -ENOMEM;
-> >  
-> >  	type = of_get_property(np, "device_type", NULL);
-> >  	if (!type || strcmp(type, "pci")) {
-> > @@ -230,6 +228,11 @@ static int gen_pci_probe(struct platform_device *pdev)
-> >  	of_pci_check_probe_only();
-> >  
-> >  	of_id = of_match_node(gen_pci_of_match, np);
-> > +	set_dev_node(dev, of_node_to_nid(np));
-> 
-> I like the idea of this patch, but why do we need to call
-> set_dev_node() here in driver code?  Shouldn't that be done by the
-> OF/platform device infrastructure so that all drivers for platform devices
-> get this benefit?
+From: Toshi Kani <toshi.kani@hpe.com>
 
-Sorry, I'm just a day late and a dollar short.  I see David and Lorenzo
-have already responded about this.
+The IORESOURCE_MEM I/O resource type is used for all types of
+memory-mapped ranges, ex. System RAM, System ROM, Video RAM, Persistent
+Memory, PCI Bus, PCI MMCONFIG, ACPI Tables, IOAPIC, reserved, and so
+on.
 
-> > +	pci = devm_kzalloc(dev, sizeof(*pci), GFP_KERNEL);
-> > +	if (!pci)
-> > +		return -ENOMEM;
-> > +
-> >  	pci->cfg.ops = (struct gen_pci_cfg_bus_ops *)of_id->data;
-> >  	pci->host.dev.parent = dev;
-> >  	INIT_LIST_HEAD(&pci->host.windows);
-> > -- 
-> > 1.8.1.4
-> > 
-> > --
-> > To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> > the body of a message to majordomo@vger.kernel.org
-> > More majordomo info at  http://vger.kernel.org/majordomo-info.html
+This requires walk_system_ram_range(), walk_system_ram_res(), and
+region_intersects() to use strcmp() against string "System RAM" to
+search for System RAM ranges in the iomem table, which is inefficient.
+__ioremap_caller() and reserve_memtype() on x86, for instance, call
+walk_system_ram_range() for every request to check if a given range is
+in System RAM ranges.
+
+However, adding a new I/O resource type for System RAM is not a viable
+option, see [1]. There are approx. 3800 references to IORESOURCE_MEM in
+the kernel/drivers, which makes it very difficult to distinguish their
+usages between new type and IORESOURCE_MEM.
+
+The I/O resource types are also used by the PNP subsystem. Therefore,
+introduce an extended I/O resource type, IORESOURCE_SYSTEM_RAM, which
+consists of IORESOURCE_MEM and a new modifier flag IORESOURCE_SYSRAM,
+see [2].
+
+To keep the code 'if (resource_type(r) == IORESOURCE_MEM)' still working
+for System RAM, resource_ext_type() is added for extracting extended
+type bits.
+
+Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Dan Williams <dan.j.williams@intel.com>
+Cc: Hanjun Guo <hanjun.guo@linaro.org>
+Cc: Jakub Sitnicki <jsitnicki@gmail.com>
+Cc: Jiang Liu <jiang.liu@linux.intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org
+Cc: linux-mm <linux-mm@kvack.org>
+Cc: "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
+Link: http://lkml.kernel.org/r/1452020081-26534-1-git-send-email-toshi.kani@hpe.com
+Link[1]: http://lkml.kernel.org/r/1449168859.9855.54.camel@hpe.com
+Link[2]: http://lkml.kernel.org/r/CA+55aFy4WQrWexC4u2LxX9Mw2NVoznw7p3Yh=iF4Xtf7zKWnRw@mail.gmail.com
+Signed-off-by: Borislav Petkov <bp@suse.de>
+---
+ include/linux/ioport.h | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/include/linux/ioport.h b/include/linux/ioport.h
+index 24bea087e7af..4b65d944717f 100644
+--- a/include/linux/ioport.h
++++ b/include/linux/ioport.h
+@@ -49,12 +49,19 @@ struct resource {
+ #define IORESOURCE_WINDOW	0x00200000	/* forwarded by bridge */
+ #define IORESOURCE_MUXED	0x00400000	/* Resource is software muxed */
+ 
++#define IORESOURCE_EXT_TYPE_BITS 0x01000000	/* Resource extended types */
++#define IORESOURCE_SYSRAM	0x01000000	/* System RAM (modifier) */
++
+ #define IORESOURCE_EXCLUSIVE	0x08000000	/* Userland may not map this resource */
++
+ #define IORESOURCE_DISABLED	0x10000000
+ #define IORESOURCE_UNSET	0x20000000	/* No address assigned yet */
+ #define IORESOURCE_AUTO		0x40000000
+ #define IORESOURCE_BUSY		0x80000000	/* Driver has marked this resource busy */
+ 
++/* I/O resource extended types */
++#define IORESOURCE_SYSTEM_RAM		(IORESOURCE_MEM|IORESOURCE_SYSRAM)
++
+ /* PnP IRQ specific bits (IORESOURCE_BITS) */
+ #define IORESOURCE_IRQ_HIGHEDGE		(1<<0)
+ #define IORESOURCE_IRQ_LOWEDGE		(1<<1)
+@@ -170,6 +177,10 @@ static inline unsigned long resource_type(const struct resource *res)
+ {
+ 	return res->flags & IORESOURCE_TYPE_BITS;
+ }
++static inline unsigned long resource_ext_type(const struct resource *res)
++{
++	return res->flags & IORESOURCE_EXT_TYPE_BITS;
++}
+ /* True iff r1 completely contains r2 */
+ static inline bool resource_contains(struct resource *r1, struct resource *r2)
+ {
+-- 
+2.3.5
