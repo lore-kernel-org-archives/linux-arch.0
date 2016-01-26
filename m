@@ -1,132 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:41577 "EHLO mail.skyhub.de"
+Received: from mail.skyhub.de ([78.46.96.112]:41591 "EHLO mail.skyhub.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751807AbcAZU5l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1751685AbcAZU5l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Tue, 26 Jan 2016 15:57:41 -0500
 From: Borislav Petkov <bp@alien8.de>
-Subject: [PATCH 05/17] ia64: Set System RAM type and descriptor
-Date: Tue, 26 Jan 2016 21:57:21 +0100
-Message-ID: <1453841853-11383-6-git-send-email-bp@alien8.de>
+Subject: [PATCH 07/17] kexec: Set IORESOURCE_SYSTEM_RAM for System RAM
+Date: Tue, 26 Jan 2016 21:57:23 +0100
+Message-ID: <1453841853-11383-8-git-send-email-bp@alien8.de>
 In-Reply-To: <1453841853-11383-1-git-send-email-bp@alien8.de>
 References: <1453841853-11383-1-git-send-email-bp@alien8.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Fenghua Yu <fenghua.yu@intel.com>, linux-arch@vger.kernel.org, linux-efi <linux-efi@vger.kernel.org>, linux-ia64@vger.kernel.org, linux-mm <linux-mm@kvack.org>, "Luis R. Rodriguez" <mcgrof@suse.com>, Matt Fleming <matt@codeblueprint.co.uk>, Rusty Russell <rusty@rustcorp.com.au>
-Message-ID: <20160126205721.TlXq3aWojqE758T4wt7AgV4OqVcKLAk_yfj0xwS2cIg@z>
+Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Baoquan He <bhe@redhat.com>, Dave Young <dyoung@redhat.com>, HATAYAMA Daisuke <d.hatayama@jp.fujitsu.com>, kexec@lists.infradead.org, linux-arch@vger.kernel.org, linux-mm <linux-mm@kvack.org>, Minfei Huang <mnfhuang@gmail.com>, Vivek Goyal <vgoyal@redhat.com>
+Message-ID: <20160126205723.4t5griN_IV2miM14SKne2IIyTuXb-G2ky_jGIRE625s@z>
 
 From: Toshi Kani <toshi.kani@hpe.com>
 
-Change efi_initialize_iomem_resources() to set 'flags' and 'desc' for
-EFI memory types. IORESOURCE_SYSRAM, a modifier bit, is set for System
-RAM as IORESOURCE_MEM is already set. IORESOURCE_SYSTEM_RAM is defined
-as (IORESOURCE_MEM|IORESOURCE_SYSRAM). I/O resource descriptor is set
-for "ACPI Non-volatile Storage" and "Persistent Memory".
+Set proper ioresource flags and types for crash kernel reservation
+areas.
 
-Also set IORESOURCE_SYSTEM_RAM for "Kernel code", "Kernel data", and
-"Kernel bss".
-
+Reviewed-by: Dave Young <dyoung@redhat.com>
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
-Acked-by: Tony Luck <tony.luck@intel.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: Baoquan He <bhe@redhat.com>
+Cc: Dave Young <dyoung@redhat.com>
+Cc: HATAYAMA Daisuke <d.hatayama@jp.fujitsu.com>
+Cc: kexec@lists.infradead.org
 Cc: linux-arch@vger.kernel.org
-Cc: linux-efi <linux-efi@vger.kernel.org>
-Cc: linux-ia64@vger.kernel.org
 Cc: linux-mm <linux-mm@kvack.org>
-Cc: "Luis R. Rodriguez" <mcgrof@suse.com>
-Cc: Matt Fleming <matt@codeblueprint.co.uk>
-Cc: Rusty Russell <rusty@rustcorp.com.au>
-Link: http://lkml.kernel.org/r/1452020081-26534-5-git-send-email-toshi.kani@hpe.com
+Cc: Minfei Huang <mnfhuang@gmail.com>
+Cc: Vivek Goyal <vgoyal@redhat.com>
+Link: http://lkml.kernel.org/r/1452020081-26534-7-git-send-email-toshi.kani@hpe.com
 Signed-off-by: Borislav Petkov <bp@suse.de>
 ---
- arch/ia64/kernel/efi.c   | 13 ++++++++++---
- arch/ia64/kernel/setup.c |  6 +++---
- 2 files changed, 13 insertions(+), 6 deletions(-)
+ kernel/kexec_core.c | 8 +++++---
+ kernel/kexec_file.c | 2 +-
+ 2 files changed, 6 insertions(+), 4 deletions(-)
 
-diff --git a/arch/ia64/kernel/efi.c b/arch/ia64/kernel/efi.c
-index caae3f4e4341..300dac3702f1 100644
---- a/arch/ia64/kernel/efi.c
-+++ b/arch/ia64/kernel/efi.c
-@@ -1178,7 +1178,7 @@ efi_initialize_iomem_resources(struct resource *code_resource,
- 	efi_memory_desc_t *md;
- 	u64 efi_desc_size;
- 	char *name;
--	unsigned long flags;
-+	unsigned long flags, desc;
- 
- 	efi_map_start = __va(ia64_boot_param->efi_memmap);
- 	efi_map_end   = efi_map_start + ia64_boot_param->efi_memmap_size;
-@@ -1193,6 +1193,8 @@ efi_initialize_iomem_resources(struct resource *code_resource,
- 			continue;
- 
- 		flags = IORESOURCE_MEM | IORESOURCE_BUSY;
-+		desc = IORES_DESC_NONE;
-+
- 		switch (md->type) {
- 
- 			case EFI_MEMORY_MAPPED_IO:
-@@ -1207,14 +1209,17 @@ efi_initialize_iomem_resources(struct resource *code_resource,
- 				if (md->attribute & EFI_MEMORY_WP) {
- 					name = "System ROM";
- 					flags |= IORESOURCE_READONLY;
--				} else if (md->attribute == EFI_MEMORY_UC)
-+				} else if (md->attribute == EFI_MEMORY_UC) {
- 					name = "Uncached RAM";
--				else
-+				} else {
- 					name = "System RAM";
-+					flags |= IORESOURCE_SYSRAM;
-+				}
- 				break;
- 
- 			case EFI_ACPI_MEMORY_NVS:
- 				name = "ACPI Non-volatile Storage";
-+				desc = IORES_DESC_ACPI_NV_STORAGE;
- 				break;
- 
- 			case EFI_UNUSABLE_MEMORY:
-@@ -1224,6 +1229,7 @@ efi_initialize_iomem_resources(struct resource *code_resource,
- 
- 			case EFI_PERSISTENT_MEMORY:
- 				name = "Persistent Memory";
-+				desc = IORES_DESC_PERSISTENT_MEMORY;
- 				break;
- 
- 			case EFI_RESERVED_TYPE:
-@@ -1246,6 +1252,7 @@ efi_initialize_iomem_resources(struct resource *code_resource,
- 		res->start = md->phys_addr;
- 		res->end = md->phys_addr + efi_md_size(md) - 1;
- 		res->flags = flags;
-+		res->desc = desc;
- 
- 		if (insert_resource(&iomem_resource, res) < 0)
- 			kfree(res);
-diff --git a/arch/ia64/kernel/setup.c b/arch/ia64/kernel/setup.c
-index 4f118b0d3091..2029a38a72ae 100644
---- a/arch/ia64/kernel/setup.c
-+++ b/arch/ia64/kernel/setup.c
-@@ -80,17 +80,17 @@ unsigned long vga_console_membase;
- 
- static struct resource data_resource = {
- 	.name	= "Kernel data",
--	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
-+	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
+diff --git a/kernel/kexec_core.c b/kernel/kexec_core.c
+index 8dc659144869..8d34308ea449 100644
+--- a/kernel/kexec_core.c
++++ b/kernel/kexec_core.c
+@@ -66,13 +66,15 @@ struct resource crashk_res = {
+ 	.name  = "Crash kernel",
+ 	.start = 0,
+ 	.end   = 0,
+-	.flags = IORESOURCE_BUSY | IORESOURCE_MEM
++	.flags = IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM,
++	.desc  = IORES_DESC_CRASH_KERNEL
+ };
+ struct resource crashk_low_res = {
+ 	.name  = "Crash kernel",
+ 	.start = 0,
+ 	.end   = 0,
+-	.flags = IORESOURCE_BUSY | IORESOURCE_MEM
++	.flags = IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM,
++	.desc  = IORES_DESC_CRASH_KERNEL
  };
  
- static struct resource code_resource = {
- 	.name	= "Kernel code",
--	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
-+	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
- };
+ int kexec_should_crash(struct task_struct *p)
+@@ -959,7 +961,7 @@ int crash_shrink_memory(unsigned long new_size)
  
- static struct resource bss_resource = {
- 	.name	= "Kernel bss",
--	.flags	= IORESOURCE_BUSY | IORESOURCE_MEM
-+	.flags	= IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM
- };
+ 	ram_res->start = end;
+ 	ram_res->end = crashk_res.end;
+-	ram_res->flags = IORESOURCE_BUSY | IORESOURCE_MEM;
++	ram_res->flags = IORESOURCE_BUSY | IORESOURCE_SYSTEM_RAM;
+ 	ram_res->name = "System RAM";
  
- unsigned long ia64_max_cacheline_size;
+ 	crashk_res.end = end - 1;
+diff --git a/kernel/kexec_file.c b/kernel/kexec_file.c
+index 007b791f676d..2bfcdc064116 100644
+--- a/kernel/kexec_file.c
++++ b/kernel/kexec_file.c
+@@ -525,7 +525,7 @@ int kexec_add_buffer(struct kimage *image, char *buffer, unsigned long bufsz,
+ 	/* Walk the RAM ranges and allocate a suitable range for the buffer */
+ 	if (image->type == KEXEC_TYPE_CRASH)
+ 		ret = walk_iomem_res("Crash kernel",
+-				     IORESOURCE_MEM | IORESOURCE_BUSY,
++				     IORESOURCE_SYSTEM_RAM | IORESOURCE_BUSY,
+ 				     crashk_res.start, crashk_res.end, kbuf,
+ 				     locate_mem_hole_callback);
+ 	else
 -- 
 2.3.5
 
