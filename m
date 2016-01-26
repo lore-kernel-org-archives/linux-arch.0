@@ -1,147 +1,63 @@
-From: Ganapatrao Kulkarni <gpkulkarni-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH v9 2/6] Documentation, dt, arm64/arm: dt bindings for numa.
-Date: Tue, 26 Jan 2016 22:46:10 +0530
-Message-ID: <CAFpQJXXtrZk19XBM=BTGZMgtNy-xppoG7NZ_nDAv=Nt5P62e6g@mail.gmail.com>
-References: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com>
-	<1453134965-6125-3-git-send-email-gkulkarni@caviumnetworks.com>
-	<20160120141806.GA8434@rob-hp-laptop>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
+Date: Tue, 26 Jan 2016 18:22:27 +0100
+Message-ID: <20160126172227.GG6357@twins.programming.kicks-ass.net>
+References: <20160114204827.GE3818@linux.vnet.ibm.com>
+	<20160118081929.GA30420@gondor.apana.org.au>
+	<20160118154629.GB3818@linux.vnet.ibm.com>
+	<20160126165207.GB6029@fixme-laptop.cn.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20160120141806.GA8434@rob-hp-laptop>
-Sender: devicetree-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Rob Herring <robh-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>
-Cc: Ganapatrao Kulkarni <gkulkarni-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, "devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev <linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Will Deacon <Will.Deacon-5wv7dgnIgG8@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Grant Likely <grant.likely-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Leif Lindholm <leif.lindholm-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, rfranz-YGCgFSpz5w/QT0dZR+AlfA@public.gmane.org, Ard Biesheuvel <ard.biesheuvel-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, "msalter-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org" <msalter-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Steve Capper <steve.capper-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Hanjun Guo <hanjun.guo-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Al Stone <al.stone-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Pawel
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <20160126165207.GB6029@fixme-laptop.cn.ibm.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Boqun Feng <boqun.feng@gmail.com>
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, mst@redhat.com, will.deacon@arm.com, virtualization@lists.linux-foundation.org, hpa@zytor.com, sparclinux@vger.kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux@arm.linux.org.uk, Herbert Xu <herbert@gondor.apana.org.au>, linux-sh@vger.kernel.org, mpe@ellerman.id.au, x86@kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, xen-devel@lists.xenproject.org, mingo@elte.hu, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-xtensa@linux-xtensa.org, james.hogan@imgtec.com, user-mode-linux-devel@lists.sourceforge.net, stefano.stabellini@eu.citrix.com, adi-buildroot-devel@lists.sourceforge.net, Leonid.Yegoshin@imgtec.com, ddaney.cavm@gmail.com, tglx@linutronix.de, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, andrew.cooper3@citrix.com, linux-kernel@v
 List-Id: linux-arch.vger.kernel.org
 
-Hi Rob, Mark,
+On Wed, Jan 27, 2016 at 12:52:07AM +0800, Boqun Feng wrote:
+> I recall that last time you and Linus came into a conclusion that even
+> on Alpha, a barrier for read->write with data dependency is unnecessary:
+> 
+> http://article.gmane.org/gmane.linux.kernel/2077661
+> 
+> And in an earlier mail of that thread, Linus made his point that
+> smp_read_barrier_depends() should only be used to order read->read.
+> 
+> So right now, are we going to extend the semantics of
+> smp_read_barrier_depends()? Can we just make smp_read_barrier_depends()
+> still only work for read->read, and assume all the architectures won't
+> reorder read->write with data dependency, so that the code above having
+> a smp_rmb() also works?
 
+That discussions was about control dependencies. So writes that _depend_
+on a prior read having an explicit value.
 
-On Wed, Jan 20, 2016 at 7:48 PM, Rob Herring <robh-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org> wrote:
-> On Mon, Jan 18, 2016 at 10:06:01PM +0530, Ganapatrao Kulkarni wrote:
->> DT bindings for numa mapping of memory, cores and IOs.
->>
->> Reviewed-by: Robert Richter <rrichter-YGCgFSpz5w/QT0dZR+AlfA@public.gmane.org>
->> Signed-off-by: Ganapatrao Kulkarni <gkulkarni-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>
->> ---
->>  Documentation/devicetree/bindings/arm/numa.txt | 272 +++++++++++++++++++++++++
->>  1 file changed, 272 insertions(+)
->>  create mode 100644 Documentation/devicetree/bindings/arm/numa.txt
->
-> This is looks okay to me, but some cosmetic things on the example.
-can i have your Ack please?
->
->> +==============================================================================
->> +4 - Example dts
->> +==============================================================================
->> +
->> +2 sockets system consists of 2 boards connected through ccn bus and
->> +each board having one socket/soc of 8 cpus, memory and pci bus.
->> +
->> +     memory@00c00000 {
->
-> Drop the leading 0s on unit addresses.
-i will correct these in next version.
->
->> +             device_type = "memory";
->> +             reg = <0x0 0x00c00000 0x0 0x80000000>;
->> +             /* node 0 */
->> +             numa-node-id = <0>;
->> +     };
->> +
->> +     memory@10000000000 {
->> +             device_type = "memory";
->> +             reg = <0x100 0x00000000 0x0 0x80000000>;
->> +             /* node 1 */
->> +             numa-node-id = <1>;
->> +     };
->> +
->> +     cpus {
->> +             #address-cells = <2>;
->> +             #size-cells = <0>;
->> +
->> +             cpu@000 {
->
-> Same here (leaving one of course).
->
->> +                     device_type = "cpu";
->> +                     compatible =  "arm,armv8";
->> +                     reg = <0x0 0x000>;
->> +                     enable-method = "psci";
->> +                     /* node 0 */
->> +                     numa-node-id = <0>;
->> +             };
->> +             cpu@001 {
->
-> and so on...
->
->> +                     device_type = "cpu";
->> +                     compatible =  "arm,armv8";
->> +                     reg = <0x0 0x001>;
->
-> Either all leading 0s or none.
->
->> +                     reg = <0x0 0x008>;
->> +                     enable-method = "psci";
->> +                     /* node 1 */
->
-> Kind of a pointless comment.
->
-> Wouldn't each cluster of cpus for a given numa node be in a different
-> cpu affinity? Certainly not required by the architecture, but the common
-> case at least.
->
->> +                     numa-node-id = <1>;
->> +             };
->
-> [...]
->
->> +     pcie0: pcie0@0x8480,00000000 {
->
-> Drop the 0x and the comma.
->
->> +             compatible = "arm,armv8";
->> +             device_type = "pci";
->> +             bus-range = <0 255>;
->> +             #size-cells = <2>;
->> +             #address-cells = <3>;
->> +             reg = <0x8480 0x00000000 0 0x10000000>;  /* Configuration space */
->> +             ranges = <0x03000000 0x8010 0x00000000 0x8010 0x00000000 0x70 0x00000000>;
->> +             /* node 0 */
->> +             numa-node-id = <0>;
->> +        };
->> +
->> +     pcie1: pcie1@0x9480,00000000 {
->
-> ditto
->
->> +             compatible = "arm,armv8";
->> +             device_type = "pci";
->> +             bus-range = <0 255>;
->> +             #size-cells = <2>;
->> +             #address-cells = <3>;
->> +             reg = <0x9480 0x00000000 0 0x10000000>;  /* Configuration space */
->> +             ranges = <0x03000000 0x9010 0x00000000 0x9010 0x00000000 0x70 0x00000000>;
->> +             /* node 1 */
->> +             numa-node-id = <1>;
->> +        };
->> +
->> +     distance-map {
->> +             compatible = "numa-distance-map-v1";
->> +             distance-matrix = <0 0 10>,
->> +                               <0 1 20>,
->> +                               <1 1 10>;
->> +     };
->> --
->> 1.8.1.4
-thanks
-Ganapat
->>
->> --
->> To unsubscribe from this list: send the line "unsubscribe devicetree" in
->> the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
->> More majordomo info at  http://vger.kernel.org/majordomo-info.html
---
-To unsubscribe from this list: send the line "unsubscribe devicetree" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+So something like:
+
+	struct foo *x = READ_ONCE(*ptr);
+	smp_read_barrier_depends()
+	if (x->val == 5)
+		x->bar = 5;
+
+In that case, the load of x->val must be complete and its value
+determined _before_ the store to x->bar can happen.
+
+This is distinct from:
+
+	struct foo *x = READ_ONCE(*ptr);
+	smp_read_barrier_depends();
+	x->bar = 5;
+
+And its the second case where smp_read_barrier_depends() read->write
+order matters.
