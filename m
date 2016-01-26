@@ -1,65 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp07.uk.ibm.com ([195.75.94.103]:56645 "EHLO
-	e06smtp07.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965759AbcAZSTO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2016 13:19:14 -0500
-Received: from localhost
-	by e06smtp07.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-	Tue, 26 Jan 2016 18:19:13 -0000
-Date: Tue, 26 Jan 2016 19:19:03 +0100
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH/RFC 3/3] s390: query dynamic DEBUG_PAGEALLOC setting
-Message-ID: <20160126181903.GB4671@osiris>
-References: <1453799905-10941-1-git-send-email-borntraeger@de.ibm.com>
- <1453799905-10941-4-git-send-email-borntraeger@de.ibm.com>
+Received: from mail.kernel.org ([198.145.29.136]:41728 "EHLO mail.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751825AbcAZSwm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 26 Jan 2016 13:52:42 -0500
+Date: Tue, 26 Jan 2016 12:52:38 -0600
+From: Bjorn Helgaas <helgaas@kernel.org>
+Subject: Re: [PATCH v9 1/6] arm64, numa: adding numa support for arm64
+ platforms.
+Message-ID: <20160126185238.GB17600@localhost>
+References: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com>
+ <1453134965-6125-2-git-send-email-gkulkarni@caviumnetworks.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1453799905-10941-4-git-send-email-borntraeger@de.ibm.com>
+In-Reply-To: <1453134965-6125-2-git-send-email-gkulkarni@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org
-Message-ID: <20160126181903.POvrUjkdBX-zMLh6Hf35wac1qzQACwbf15s2SXURnf8@z>
+To: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
+Cc: linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Will.Deacon@arm.com, catalin.marinas@arm.com, grant.likely@linaro.org, leif.lindholm@linaro.org, rfranz@cavium.com, ard.biesheuvel@linaro.org, msalter@redhat.com, robh+dt@kernel.org, steve.capper@linaro.org, hanjun.guo@linaro.org, al.stone@linaro.org, arnd@arndb.de, pawel.moll@arm.com, mark.rutland@arm.com, ijc+devicetree@hellion.org.uk, galak@codeaurora.org, rjw@rjwysocki.net, lenb@kernel.org, marc.zyngier@arm.com, lorenzo.pieralisi@arm.com, bhelgaas@google.com, tony.luck@intel.com, fenghua.yu@intel.com, james.hogan@imgtec.com, benh@kernel.crashing.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, jonathan@jonmasters.org, rrichter@cavium.com, Prasun.Kapoor@caviumnetworks.com, gpkulkarni@gmail.com
+Message-ID: <20160126185238.dPeiLcSc2b6yM6VmGsZHah_oI0HneqOTY-LirwlLGPE@z>
 
-On Tue, Jan 26, 2016 at 10:18:25AM +0100, Christian Borntraeger wrote:
-> We can use debug_pagealloc_enabled() to check if we can map
-> the identity mapping with 1MB/2GB pages as well as to print
-> the current setting in dump_stack.
-> 
-> Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
-> ---
->  arch/s390/kernel/dumpstack.c |  4 +++-
->  arch/s390/mm/vmem.c          | 10 ++++------
->  2 files changed, 7 insertions(+), 7 deletions(-)
-> 
-> diff --git a/arch/s390/kernel/dumpstack.c b/arch/s390/kernel/dumpstack.c
-> index dc8e204..a1c0530 100644
-> --- a/arch/s390/kernel/dumpstack.c
-> +++ b/arch/s390/kernel/dumpstack.c
-> @@ -11,6 +11,7 @@
->  #include <linux/export.h>
->  #include <linux/kdebug.h>
->  #include <linux/ptrace.h>
-> +#include <linux/mm.h>
->  #include <linux/module.h>
->  #include <linux/sched.h>
->  #include <asm/processor.h>
-> @@ -186,7 +187,8 @@ void die(struct pt_regs *regs, const char *str)
->  	printk("SMP ");
->  #endif
->  #ifdef CONFIG_DEBUG_PAGEALLOC
-> -	printk("DEBUG_PAGEALLOC");
-> +	printk("DEBUG_PAGEALLOC(%s)",
-> +		debug_pagealloc_enabled() ? "enabled" : "disabled");
->  #endif
+On Mon, Jan 18, 2016 at 10:06:00PM +0530, Ganapatrao Kulkarni wrote:
+> Adding numa support for arm64 based platforms.
+> This patch adds by default the dummy numa node and
+> maps all memory and cpus to node 0.
+> using this patch, numa can be simulated on single node arm64 platforms.
 
-I'd prefer if you change this to
+> diff --git a/arch/arm64/include/asm/mmzone.h b/arch/arm64/include/asm/mmzone.h
+> new file mode 100644
+> index 0000000..2cd804d
+> --- /dev/null
+> +++ b/arch/arm64/include/asm/mmzone.h
+> @@ -0,0 +1,18 @@
+> +#ifndef __ASM_MMZONE_H
+> +#define __ASM_MMZONE_H
+> +
+> +#ifdef CONFIG_NUMA
+> +
+> +#include <linux/mmdebug.h>
+> +#include <linux/types.h>
+> +
+> +#include <asm/smp.h>
+> +#include <asm/numa.h>
 
-	if (debug_pagealloc_enabled())
-		printk("DEBUG_PAGEALLOC");
+Are all these #includes really necessary?  s390 looks very similar and
+doesn't need the #includes.
 
-That way we can get rid of yet another ifdef. Having
-"DEBUG_PAGEALLOC(disabled)" doesn't seem to be very helpful.
+> +extern struct pglist_data *node_data[];
+> +
+> +#define NODE_DATA(nid)		(node_data[(nid)])
+> +
+> +#endif /* CONFIG_NUMA */
+> +
+> +#endif /* __ASM_MMZONE_H */
 
+> diff --git a/arch/arm64/include/asm/numa.h b/arch/arm64/include/asm/numa.h
+> new file mode 100644
+> index 0000000..f28f15b0
+> --- /dev/null
+> +++ b/arch/arm64/include/asm/numa.h
+> @@ -0,0 +1,40 @@
+> +#ifndef __ASM_NUMA_H
+> +#define __ASM_NUMA_H
+> +
+> +#include <linux/nodemask.h>
+> +#include <asm/topology.h>
+> +
+> +#ifdef CONFIG_NUMA
+> +
+> +/* currently, arm64 implements flat NUMA topology */
+> +#define parent_node(node)	(node)
+> +
+> +extern int __node_distance(int from, int to);
+
+Below you add some extern function declarations without the "extern"
+keyword.  I don't know what the convention is for arm64 (I omit the
+"extern" for PCI), but it seems like you should at least be
+consistent.
+
+> +#define node_distance(a, b) __node_distance(a, b)
+> +
+> +extern int cpu_to_node_map[NR_CPUS];
+> +extern nodemask_t numa_nodes_parsed __initdata;
+> +
+> +/* Mappings between node number and cpus on that node. */
+> +extern cpumask_var_t node_to_cpumask_map[MAX_NUMNODES];
+> +extern void numa_clear_node(unsigned int cpu);
+> +#ifdef CONFIG_DEBUG_PER_CPU_MAPS
+> +extern const struct cpumask *cpumask_of_node(int node);
+> +#else
+> +/* Returns a pointer to the cpumask of CPUs on Node 'node'. */
+> +static inline const struct cpumask *cpumask_of_node(int node)
+> +{
+> +	return node_to_cpumask_map[node];
+> +}
+> +#endif
+> +
+> +void __init arm64_numa_init(void);
+> +int __init numa_add_memblk(int nodeid, u64 start, u64 end);
+> +void __init numa_set_distance(int from, int to, int distance);
+> +void __init numa_reset_distance(void);
+> +void numa_store_cpu_info(unsigned int cpu);
