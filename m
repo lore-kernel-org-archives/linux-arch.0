@@ -1,59 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:51171 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S966830AbcAZRXP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2016 12:23:15 -0500
-Date: Tue, 26 Jan 2016 18:22:27 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
-Message-ID: <20160126172227.GG6357@twins.programming.kicks-ass.net>
-References: <20160114204827.GE3818@linux.vnet.ibm.com>
- <20160118081929.GA30420@gondor.apana.org.au>
- <20160118154629.GB3818@linux.vnet.ibm.com>
- <20160126165207.GB6029@fixme-laptop.cn.ibm.com>
+Received: from asavdk4.altibox.net ([109.247.116.15]:37362 "EHLO
+	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932586AbcAZRos (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2016 12:44:48 -0500
+Date: Tue, 26 Jan 2016 18:44:41 +0100
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH v2 02/16] sparc/compat: Provide an accurate
+ in_compat_syscall implementation
+Message-ID: <20160126174441.GA18873@ravnborg.org>
+References: <cover.1453759363.git.luto@kernel.org>
+ <e520030f750b29d14486aa1e99c271a0fa18f19e.1453759363.git.luto@kernel.org>
+ <20160126062951.GA17107@ravnborg.org>
+ <20160125.225100.1932707129794761764.davem@davemloft.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20160126165207.GB6029@fixme-laptop.cn.ibm.com>
+In-Reply-To: <20160125.225100.1932707129794761764.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Boqun Feng <boqun.feng@gmail.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Herbert Xu <herbert@gondor.apana.org.au>, Leonid.Yegoshin@imgtec.com, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, mst@redhat.com, will.deacon@arm.com, virtualization@lists.linux-foundation.org, hpa@zytor.com, sparclinux@vger.kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux@arm.linux.org.uk, user-mode-linux-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, mpe@ellerman.id.au, x86@kernel.org, xen-devel@lists.xenproject.org, mingo@elte.hu, linux-xtensa@linux-xtensa.org, james.hogan@imgtec.com, arnd@arndb.de, stefano.stabellini@eu.citrix.com, adi-buildroot-devel@lists.sourceforge.net, ddaney.cavm@gmail.com, tglx@linutronix.de, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, andrew.cooper3@citrix.com, linux-kernel@vger.kernel.org, ralf@linux-mips.org, joe@perches.com, linuxppc-dev@lists.ozlabs.org, davem@davemloft.net, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20160126172227.5BJZk01obAhdaGIxNk2n-OW4gl3Vu7UJjHFw0Q0Zq78@z>
+To: David Miller <davem@davemloft.net>
+Cc: luto@kernel.org, akpm@linux-foundation.org, viro@zeniv.linux.org.uk, torvalds@linux-foundation.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, cmetcalf@ezchip.com, linux-parisc@vger.kernel.org, linux-mips@linux-mips.org, sparclinux@vger.kernel.org
+Message-ID: <20160126174441.W-RO1VLOMxy9Xsiwu2YabkhV6w7ndI2Z1v9GJeEnNbo@z>
 
-On Wed, Jan 27, 2016 at 12:52:07AM +0800, Boqun Feng wrote:
-> I recall that last time you and Linus came into a conclusion that even
-> on Alpha, a barrier for read->write with data dependency is unnecessary:
+On Mon, Jan 25, 2016 at 10:51:00PM -0800, David Miller wrote:
+> From: Sam Ravnborg <sam@ravnborg.org>
+> Date: Tue, 26 Jan 2016 07:29:51 +0100
 > 
-> http://article.gmane.org/gmane.linux.kernel/2077661
+> > Could you please add a comment about where 0x110 comes from.
+> > I at least failed to track this down.
 > 
-> And in an earlier mail of that thread, Linus made his point that
-> smp_read_barrier_depends() should only be used to order read->read.
+> Frankly I'm fine with this.  Someone who understands sparc64 can look
+> at the trap table around entry 0x110 and see:
 > 
-> So right now, are we going to extend the semantics of
-> smp_read_barrier_depends()? Can we just make smp_read_barrier_depends()
-> still only work for read->read, and assume all the architectures won't
-> reorder read->write with data dependency, so that the code above having
-> a smp_rmb() also works?
+> tl0_resv10e:	BTRAP(0x10e) BTRAP(0x10f)
+> tl0_linux32:	LINUX_32BIT_SYSCALL_TRAP
+> tl0_oldlinux64:	LINUX_64BIT_SYSCALL_TRAP
 
-That discussions was about control dependencies. So writes that _depend_
-on a prior read having an explicit value.
+If one realise to look in the trap table in the first place - yes.
 
-So something like:
+Adding a short:
 
-	struct foo *x = READ_ONCE(*ptr);
-	smp_read_barrier_depends()
-	if (x->val == 5)
-		x->bar = 5;
+/* Check if this is LINUX_32BIT_SYSCALL_TRAP */
+Would make wonders to readability.
 
-In that case, the load of x->val must be complete and its value
-determined _before_ the store to x->bar can happen.
-
-This is distinct from:
-
-	struct foo *x = READ_ONCE(*ptr);
-	smp_read_barrier_depends();
-	x->bar = 5;
-
-And its the second case where smp_read_barrier_depends() read->write
-order matters.
+	Sam
