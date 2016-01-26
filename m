@@ -1,42 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:52360 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932257AbcAYWvK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 25 Jan 2016 17:51:10 -0500
-Date: Mon, 25 Jan 2016 14:51:08 -0800 (PST)
-Message-ID: <20160125.145108.1332641183366177944.davem@davemloft.net>
-Subject: Re: [PATCH v2 02/16] sparc/compat: Provide an accurate
- in_compat_syscall implementation
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <e520030f750b29d14486aa1e99c271a0fa18f19e.1453759363.git.luto@kernel.org>
-References: <cover.1453759363.git.luto@kernel.org>
-	<cover.1453759363.git.luto@kernel.org>
-	<e520030f750b29d14486aa1e99c271a0fa18f19e.1453759363.git.luto@kernel.org>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from mga01.intel.com ([192.55.52.88]:40500 "EHLO mga01.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750740AbcAZFbn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 26 Jan 2016 00:31:43 -0500
+Date: Tue, 26 Jan 2016 13:30:50 +0800
+From: Fengguang Wu <fengguang.wu@intel.com>
+Subject: Re:
+ [linux-review:James-Hogan/kbuild-Remove-stale-asm-generic-wrappers/20160119-183642]
+ d979f99e9cc14e2667e9b6e268db695977e4197a BUILD DONE
+Message-ID: <20160126053050.GB20385@wfg-t540p.sh.intel.com>
+References: <569e1dbb.MgLv8OaZwklOxxtU%fengguang.wu@intel.com>
+ <1534543.eobSKFEFfp@wuerfel>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1534543.eobSKFEFfp@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: luto@kernel.org
-Cc: akpm@linux-foundation.org, viro@zeniv.linux.org.uk, torvalds@linux-foundation.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, cmetcalf@ezchip.com, linux-parisc@vger.kernel.org, linux-mips@linux-mips.org, sparclinux@vger.kernel.org
-Message-ID: <20160125225108.RfVKGzUSCqmpeMGDCvprCHRI23fWwdDsNYBC6pt51LE@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: James Hogan <james.hogan@imgtec.com>, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Florian Fainelli <f.fainelli@gmail.com>, Paul Burton <paul.burton@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Heinrich Schuchardt <xypron.glpk@gmx.de>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.com>
+Message-ID: <20160126053050.BlPxq4zxcPSRlj_lhdgv2WimGPIqdYnPCzQqiZuh7MM@z>
 
-From: Andy Lutomirski <luto@kernel.org>
-Date: Mon, 25 Jan 2016 14:24:16 -0800
+Hi Arnd,
 
-> On sparc64 compat-enabled kernels, any task can make 32-bit and
-> 64-bit syscalls.  is_compat_task returns true in 32-bit tasks, which
-> does not necessarily imply that the current syscall is 32-bit.
-> 
-> Provide an in_compat_syscall implementation that checks whether the
-> current syscall is compat.
-> 
-> As far as I know, sparc is the only architecture on which
-> is_compat_task checks the compat status of the task and on which the
-> compat status of a syscall can differ from the compat status of the
-> task.  On x86, is_compat_task checks the syscall type, not the task
-> type.
-> 
-> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+Sorry for the delay! I lost access to my email account for some week.
 
-Acked-by: David S. Miller <davem@davemloft.net>
+On Tue, Jan 19, 2016 at 03:26:16PM +0100, Arnd Bergmann wrote:
+> On Tuesday 19 January 2016 19:27:55 kbuild test robot wrote:
+> > arm                               allnoconfig
+> > arm                         at91_dt_defconfig
+> > arm                                  at_hdmac
+> > arm                                    ep93xx
+> > arm                       imx_v6_v7_defconfig
+> > arm                                  iop-adma
+> > arm                          marzen_defconfig
+> > arm                          prima2_defconfig
+> > arm                                    sa1100
+> > arm                                   samsung
+> > arm                                        sh
+> > arm                       spear13xx_defconfig
+> > 
+> 
+> Hi Fengguang,
+> 
+> Sorry for hijacking this thread. I have never seen the list of arm defconfigs
+> you are building before, and it seems to be a surprising selection, as a number
+> of platforms (ep93xx, iop, sa1100, spear13xx) are rather obscure, but the
+> configurations that I tend to use most (multi_v7_defconfig, multi_v5_defconfig,
+> allmodconfig) are not included.
+> 
+> Do you always build the same set of configurations, or is this a different
+> each time?
+
+There are a fixed set of config files for fast build tests (which I
+selected randomly, feel free to ask me to change the list to more
+reasonable ones):
+
+	arm-allnoconfig
+	arm-at91_dt_defconfig
+	arm-at_hdmac
+	arm-ep93xx
+	arm-imx_v6_v7_defconfig
+	arm-iop-adma
+	arm-marzen_defconfig
+	arm-prima2_defconfig
+	arm-sa1100
+	arm-samsung
+	arm-sh
+	arm-spear13xx_defconfig
+
+The more configs included in arch/*/configs will be tested in a more
+slow pace. So not included in this email does not mean they are not
+tested -- they are likely not quick enough to catch this notification
+email.
+
+> Can you always include the three I mentioned?
+
+Sure.
+
+Thanks,
+Fengguang
