@@ -1,71 +1,53 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
-Date: Tue, 26 Jan 2016 14:33:40 -0800
-Message-ID: <CA+55aFwxTJd+uibcxtZD3tGnj_n=LMwyAa0s8qyx_OF0OMWQkA@mail.gmail.com>
-References: <20160114204827.GE3818@linux.vnet.ibm.com>
-	<20160118081929.GA30420@gondor.apana.org.au>
-	<20160118154629.GB3818@linux.vnet.ibm.com>
-	<20160126165207.GB6029@fixme-laptop.cn.ibm.com>
-	<20160126172227.GG6357@twins.programming.kicks-ass.net>
-	<CA+55aFzcC6C8imPs5vk4yH1Y2YHjnAdFM9HCkVs04COxuDQH6w@mail.gmail.com>
-	<20160126201037.GU4503@linux.vnet.ibm.com>
-	<CA+55aFxjb+2rs2wVHtiSCcOzgMrE8H=yDeNcjyujPQudDCtLgw@mail.gmail.com>
+From: David Rientjes <rientjes@google.com>
+Subject: Re: [PATCH/RFC 1/3] mm: provide debug_pagealloc_enabled() without
+ CONFIG_DEBUG_PAGEALLOC
+Date: Tue, 26 Jan 2016 15:23:26 -0800 (PST)
+Message-ID: <alpine.DEB.2.10.1601261521560.25141@chino.kir.corp.google.com>
+References: <1453799905-10941-1-git-send-email-borntraeger@de.ibm.com> <1453799905-10941-2-git-send-email-borntraeger@de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <CA+55aFxjb+2rs2wVHtiSCcOzgMrE8H=yDeNcjyujPQudDCtLgw@mail.gmail.com>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Paul McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Herbert Xu <herbert@gondor.apana.org.au>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, linux-mips <linux-mips@linux-mips.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "Michael S. Tsirkin" <mst@redhat.com>, Will Deacon <will.deacon@arm.com>, virtualization <virtualization@lists.linux-foundation.org>, Peter Anvin <hpa@zytor.com>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, the arch/x86 maintainers <x86@kernel.org>, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, linux-xtensa@li
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f53.google.com ([209.85.220.53]:35900 "EHLO
+	mail-pa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751307AbcAZXX2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2016 18:23:28 -0500
+Received: by mail-pa0-f53.google.com with SMTP id yy13so104862614pab.3
+        for <linux-arch@vger.kernel.org>; Tue, 26 Jan 2016 15:23:28 -0800 (PST)
+In-Reply-To: <1453799905-10941-2-git-send-email-borntraeger@de.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org
 
-On Tue, Jan 26, 2016 at 2:15 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->
-> You might as well just write it as
->
->     struct foo x = READ_ONCE(*ptr);
->     x->bar = 5;
->
-> because that "smp_read_barrier_depends()" does NOTHING wrt the second write.
+On Tue, 26 Jan 2016, Christian Borntraeger wrote:
 
-Just to clarify: on alpha it adds a memory barrier, but that memory
-barrier is useless.
+> We can provide debug_pagealloc_enabled() also if CONFIG_DEBUG_PAGEALLOC
+> is not set. It will return false in that case.
+> 
+> Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+> ---
+>  include/linux/mm.h | 4 ++++
+>  1 file changed, 4 insertions(+)
+> 
+> diff --git a/include/linux/mm.h b/include/linux/mm.h
+> index 7783073..fbc5354 100644
+> --- a/include/linux/mm.h
+> +++ b/include/linux/mm.h
+> @@ -2148,6 +2148,10 @@ kernel_map_pages(struct page *page, int numpages, int enable)
+>  extern bool kernel_page_present(struct page *page);
+>  #endif /* CONFIG_HIBERNATION */
+>  #else
+> +static inline bool debug_pagealloc_enabled(void)
+> +{
+> +	return false;
+> +}
+>  static inline void
+>  kernel_map_pages(struct page *page, int numpages, int enable) {}
+>  #ifdef CONFIG_HIBERNATION
 
-On non-alpha, it is a no-op, and obviously does nothing simply because
-it generates no code.
+Since the patchset needs to be refreshed based on Heiko and Thomas's 
+comments, please add some /* CONFIG_DEBUG_PAGEALLOC */ annotation to the 
+#else and #endif lines so this block is easier to read.  After that, feel 
+free to add
 
-So if anybody believes that the "smp_read_barrier_depends()" does
-something, they are *wrong*.
-
-And if anybody sends out an email with that smp_read_barrier_depends()
-in an example, they are actively just confusing other people, which is
-even worse than just being wrong. Which is why I jumped in.
-
-So stop perpetuating the myth that smp_read_barrier_depends() does
-something here. It does not. It's a bug, and it has become this "mind
-virus" for some people that seem to believe that it does something.
-
-I had to remove this crap once from the kernel already, see commit
-105ff3cbf225 ("atomic: remove all traces of READ_ONCE_CTRL() and
-atomic*_read_ctrl()").
-
-I don't want to ever see that broken construct again. And I want to
-make sure that everybody is educated about how broken it was. I'm
-extremely unhappy that it came up again.
-
-If it turns out that some architecture does actually need a barrier
-between a read and a dependent write, then that will mean that
-
- (a) we'll have to make up a _new_ barrier, because
-"smp_read_barrier_depends()" is not that barrier. We'll presumably
-then have to make that new barrier part of "rcu_derefence()" and
-friends.
-
- (b) we will have found an architecture with even worse memory
-ordering semantics than alpha, and we'll have to stop castigating
-alpha for being the worst memory ordering ever.
-
-but I sincerely hope that we'll never find that kind of broken architecture.
-
-               Linus
+	Acked-by: David Rientjes <rientjes@google.com>
