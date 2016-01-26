@@ -1,110 +1,72 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
-Date: Tue, 26 Jan 2016 15:29:21 -0800
-Message-ID: <20160126232921.GY4503@linux.vnet.ibm.com>
-References: <20160114204827.GE3818@linux.vnet.ibm.com>
-	<20160118081929.GA30420@gondor.apana.org.au>
-	<20160118154629.GB3818@linux.vnet.ibm.com>
-	<20160126165207.GB6029@fixme-laptop.cn.ibm.com>
-	<20160126172227.GG6357@twins.programming.kicks-ass.net>
-	<CA+55aFzcC6C8imPs5vk4yH1Y2YHjnAdFM9HCkVs04COxuDQH6w@mail.gmail.com>
-	<20160126201037.GU4503@linux.vnet.ibm.com>
-	<CA+55aFxjb+2rs2wVHtiSCcOzgMrE8H=yDeNcjyujPQudDCtLgw@mail.gmail.com>
-	<CA+55aFwxTJd+uibcxtZD3tGnj_n=LMwyAa0s8qyx_OF0OMWQkA@mail.gmail.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: David Rientjes <rientjes@google.com>
+Subject: Re: [PATCH/RFC 3/3] s390: query dynamic DEBUG_PAGEALLOC setting
+Date: Tue, 26 Jan 2016 15:29:38 -0800 (PST)
+Message-ID: <alpine.DEB.2.10.1601261525580.25141@chino.kir.corp.google.com>
+References: <1453799905-10941-1-git-send-email-borntraeger@de.ibm.com> <1453799905-10941-4-git-send-email-borntraeger@de.ibm.com> <20160126181903.GB4671@osiris>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <CA+55aFwxTJd+uibcxtZD3tGnj_n=LMwyAa0s8qyx_OF0OMWQkA@mail.gmail.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-mips <linux-mips@linux-mips.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "Michael S. Tsirkin" <mst@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, virtualization <virtualization@lists.linux-foundation.org>, Peter Anvin <hpa@zytor.com>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Herbert Xu <herbert@gondor.apana.org.au>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, the arch/x86 maintainers <x86@kernel.org>, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, linux-xtensa@linux-xtensa.org, James Hogan <james.hogan@imgtec.com>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, Stefano Stabellini <stefano.sta>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20160126181903.GB4671@osiris>
+Sender: owner-linux-mm@kvack.org
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Christian Borntraeger <borntraeger@de.ibm.com>, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 26, 2016 at 02:33:40PM -0800, Linus Torvalds wrote:
-> On Tue, Jan 26, 2016 at 2:15 PM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
-> >
-> > You might as well just write it as
-> >
-> >     struct foo x = READ_ONCE(*ptr);
-> >     x->bar = 5;
-> >
-> > because that "smp_read_barrier_depends()" does NOTHING wrt the second write.
+On Tue, 26 Jan 2016, Heiko Carstens wrote:
+
+> On Tue, Jan 26, 2016 at 10:18:25AM +0100, Christian Borntraeger wrote:
+> > We can use debug_pagealloc_enabled() to check if we can map
+> > the identity mapping with 1MB/2GB pages as well as to print
+> > the current setting in dump_stack.
+> > 
+> > Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+> > ---
+> >  arch/s390/kernel/dumpstack.c |  4 +++-
+> >  arch/s390/mm/vmem.c          | 10 ++++------
+> >  2 files changed, 7 insertions(+), 7 deletions(-)
+> > 
+> > diff --git a/arch/s390/kernel/dumpstack.c b/arch/s390/kernel/dumpstack.c
+> > index dc8e204..a1c0530 100644
+> > --- a/arch/s390/kernel/dumpstack.c
+> > +++ b/arch/s390/kernel/dumpstack.c
+> > @@ -11,6 +11,7 @@
+> >  #include <linux/export.h>
+> >  #include <linux/kdebug.h>
+> >  #include <linux/ptrace.h>
+> > +#include <linux/mm.h>
+> >  #include <linux/module.h>
+> >  #include <linux/sched.h>
+> >  #include <asm/processor.h>
+> > @@ -186,7 +187,8 @@ void die(struct pt_regs *regs, const char *str)
+> >  	printk("SMP ");
+> >  #endif
+> >  #ifdef CONFIG_DEBUG_PAGEALLOC
+> > -	printk("DEBUG_PAGEALLOC");
+> > +	printk("DEBUG_PAGEALLOC(%s)",
+> > +		debug_pagealloc_enabled() ? "enabled" : "disabled");
+> >  #endif
 > 
-> Just to clarify: on alpha it adds a memory barrier, but that memory
-> barrier is useless.
-
-No trailing data-dependent read, so agreed, no smp_read_barrier_depends()
-needed.  That said, I believe that we should encourage rcu_dereference*()
-or lockless_dereference() instead of READ_ONCE() for documentation
-reasons, though.
-
-> On non-alpha, it is a no-op, and obviously does nothing simply because
-> it generates no code.
+> I'd prefer if you change this to
 > 
-> So if anybody believes that the "smp_read_barrier_depends()" does
-> something, they are *wrong*.
-
-The other problem with smp_read_barrier_depends() is that it is often
-a pain figuring out which prior load it is supposed to apply to.
-Hence my preference for rcu_dereference*() and lockless_dereference().
-
-> And if anybody sends out an email with that smp_read_barrier_depends()
-> in an example, they are actively just confusing other people, which is
-> even worse than just being wrong. Which is why I jumped in.
+> 	if (debug_pagealloc_enabled())
+> 		printk("DEBUG_PAGEALLOC");
 > 
-> So stop perpetuating the myth that smp_read_barrier_depends() does
-> something here. It does not. It's a bug, and it has become this "mind
-> virus" for some people that seem to believe that it does something.
-
-It looks like I should add words to memory-barriers.txt de-emphasizing
-smp_read_barrier_depends().  I will take a look at that.
-
-> I had to remove this crap once from the kernel already, see commit
-> 105ff3cbf225 ("atomic: remove all traces of READ_ONCE_CTRL() and
-> atomic*_read_ctrl()").
+> That way we can get rid of yet another ifdef. Having
+> "DEBUG_PAGEALLOC(disabled)" doesn't seem to be very helpful.
 > 
-> I don't want to ever see that broken construct again. And I want to
-> make sure that everybody is educated about how broken it was. I'm
-> extremely unhappy that it came up again.
 
-Well, if it makes you feel better, that was control dependencies and this
-was data dependencies.  So it was not -exactly- the same.  ;-)
+I'd agree if CONFIG_DEBUG_PAGEALLOC only did anything when 
+debug_pagealloc_enabled() is true, but that doesn't seem to be the case.  
+When CONFIG_DEBUG_SLAB is enabled, for instance, CONFIG_DEBUG_PAGEALLOC 
+also enables stackinfo storing and poisoning and it's not guarded by 
+debug_pagealloc_enabled().
 
-(Sorry, couldn't resist...)
+It seems like CONFIG_DEBUG_PAGEALLOC enables debugging functionality 
+outside the scope of the debug_pagealloc=on kernel parameter, so 
+DEBUG_PAGEALLOC(disabled) actually does mean something.
 
-> If it turns out that some architecture does actually need a barrier
-> between a read and a dependent write, then that will mean that
-> 
->  (a) we'll have to make up a _new_ barrier, because
-> "smp_read_barrier_depends()" is not that barrier. We'll presumably
-> then have to make that new barrier part of "rcu_derefence()" and
-> friends.
-
-Agreed.  We can worry about whether or not we replace the current
-smp_read_barrier_depends() with that new barrier when and if such
-hardware appears.
-
->  (b) we will have found an architecture with even worse memory
-> ordering semantics than alpha, and we'll have to stop castigating
-> alpha for being the worst memory ordering ever.
-
-;-) ;-) ;-)
-
-> but I sincerely hope that we'll never find that kind of broken architecture.
-
-Apparently at least some hardware vendors are reading memory-barriers.txt,
-so perhaps the odds of that kind of breakage have reduced.
-
-								Thanx, Paul
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
