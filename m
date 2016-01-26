@@ -1,72 +1,141 @@
-From: David Rientjes <rientjes@google.com>
-Subject: Re: [PATCH/RFC 3/3] s390: query dynamic DEBUG_PAGEALLOC setting
-Date: Tue, 26 Jan 2016 15:29:38 -0800 (PST)
-Message-ID: <alpine.DEB.2.10.1601261525580.25141@chino.kir.corp.google.com>
-References: <1453799905-10941-1-git-send-email-borntraeger@de.ibm.com> <1453799905-10941-4-git-send-email-borntraeger@de.ibm.com> <20160126181903.GB4671@osiris>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
+Date: Tue, 26 Jan 2016 15:37:33 -0800
+Message-ID: <20160126233733.GZ4503@linux.vnet.ibm.com>
+References: <56980C91.1010403@imgtec.com>
+	<20160114212913.GF3818@linux.vnet.ibm.com>
+	<569814F2.50801@imgtec.com>
+	<20160114225510.GJ3818@linux.vnet.ibm.com>
+	<20160115102431.GB2131@arm.com>
+	<20160115175401.GW3818@linux.vnet.ibm.com>
+	<20160115192845.GA12510@linux.vnet.ibm.com>
+	<20160125144133.GB22927@arm.com>
+	<20160126010646.GH4503@linux.vnet.ibm.com>
+	<20160126121010.GD21553@arm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20160126181903.GB4671@osiris>
-Sender: owner-linux-mm@kvack.org
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Christian Borntraeger <borntraeger@de.ibm.com>, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <20160126121010.GD21553@arm.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, user-mode-linux-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, linux-xtensa@linux-xtensa.org, james.hogan@imgtec.com, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, adi-buildroot-devel@lists.sourceforge.net, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, ddaney.cavm@gmail.com, Thomas Gleixner <tglx@linutronix.de>, linux-metag@vger.kernel.
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 26 Jan 2016, Heiko Carstens wrote:
-
-> On Tue, Jan 26, 2016 at 10:18:25AM +0100, Christian Borntraeger wrote:
-> > We can use debug_pagealloc_enabled() to check if we can map
-> > the identity mapping with 1MB/2GB pages as well as to print
-> > the current setting in dump_stack.
+On Tue, Jan 26, 2016 at 12:10:10PM +0000, Will Deacon wrote:
+> On Mon, Jan 25, 2016 at 05:06:46PM -0800, Paul E. McKenney wrote:
+> > On Mon, Jan 25, 2016 at 02:41:34PM +0000, Will Deacon wrote:
+> > > On Fri, Jan 15, 2016 at 11:28:45AM -0800, Paul E. McKenney wrote:
+> > > > On Fri, Jan 15, 2016 at 09:54:01AM -0800, Paul E. McKenney wrote:
+> > > > > On Fri, Jan 15, 2016 at 10:24:32AM +0000, Will Deacon wrote:
+> > > > > > See my earlier reply [1] (but also, your WRC Linux example looks more
+> > > > > > like a variant on WWC and I couldn't really follow it).
+> > > > > 
+> > > > > I will revisit my WRC Linux example.  And yes, creating litmus tests
+> > > > > that use non-fake dependencies is still a bit of an undertaking.  :-/
+> > > > > I am sure that it will seem more natural with time and experience...
+> > > > 
+> > > > Hmmm...  You are quite right, I did do WWC.  I need to change cpu2()'s
+> > > > last access from a store to a load to get WRC.  Plus the levels of
+> > > > indirection definitely didn't match up, did they?
+> > > 
+> > > Nope, it was pretty baffling!
 > > 
-> > Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
-> > ---
-> >  arch/s390/kernel/dumpstack.c |  4 +++-
-> >  arch/s390/mm/vmem.c          | 10 ++++------
-> >  2 files changed, 7 insertions(+), 7 deletions(-)
+> > "It is a service that I provide."  ;-)
 > > 
-> > diff --git a/arch/s390/kernel/dumpstack.c b/arch/s390/kernel/dumpstack.c
-> > index dc8e204..a1c0530 100644
-> > --- a/arch/s390/kernel/dumpstack.c
-> > +++ b/arch/s390/kernel/dumpstack.c
-> > @@ -11,6 +11,7 @@
-> >  #include <linux/export.h>
-> >  #include <linux/kdebug.h>
-> >  #include <linux/ptrace.h>
-> > +#include <linux/mm.h>
-> >  #include <linux/module.h>
-> >  #include <linux/sched.h>
-> >  #include <asm/processor.h>
-> > @@ -186,7 +187,8 @@ void die(struct pt_regs *regs, const char *str)
-> >  	printk("SMP ");
-> >  #endif
-> >  #ifdef CONFIG_DEBUG_PAGEALLOC
-> > -	printk("DEBUG_PAGEALLOC");
-> > +	printk("DEBUG_PAGEALLOC(%s)",
-> > +		debug_pagealloc_enabled() ? "enabled" : "disabled");
-> >  #endif
+> > > > 	struct foo {
+> > > > 		struct foo *next;
+> > > > 	};
+> > > > 	struct foo a;
+> > > > 	struct foo b;
+> > > > 	struct foo c = { &a };
+> > > > 	struct foo d = { &b };
+> > > > 	struct foo x = { &c };
+> > > > 	struct foo y = { &d };
+> > > > 	struct foo *r1, *r2, *r3;
+> > > > 
+> > > > 	void cpu0(void)
+> > > > 	{
+> > > > 		WRITE_ONCE(x.next, &y);
+> > > > 	}
+> > > > 
+> > > > 	void cpu1(void)
+> > > > 	{
+> > > > 		r1 = lockless_dereference(x.next);
+> > > > 		WRITE_ONCE(r1->next, &x);
+> > > > 	}
+> > > > 
+> > > > 	void cpu2(void)
+> > > > 	{
+> > > > 		r2 = lockless_dereference(y.next);
+> > > > 		r3 = READ_ONCE(r2->next);
+> > > > 	}
+> > > > 
+> > > > In this case, it is legal to end the run with:
+> > > > 
+> > > > 	r1 == &y && r2 == &x && r3 == &c
+> > > > 
+> > > > Please see below for a ppcmem litmus test.
+> > > > 
+> > > > So, did I get it right this time?  ;-)
+> > > 
+> > > The code above looks correct to me (in that it matches WRC+addrs),
+> > > but your litmus test:
+> > > 
+> > > > PPC WRCnf+addrs
+> > > > ""
+> > > > {
+> > > > 0:r2=x; 0:r3=y;
+> > > > 1:r2=x; 1:r3=y;
+> > > > 2:r2=x; 2:r3=y;
+> > > > c=a; d=b; x=c; y=d;
+> > > > }
+> > > >  P0           | P1            | P2            ;
+> > > >  stw r3,0(r2) | lwz r8,0(r2)  | lwz r8,0(r3)  ;
+> > > >               | stw r2,0(r3)  | lwz r9,0(r8)  ;
+> > > > exists
+> > > > (1:r8=y /\ 2:r8=x /\ 2:r9=c)
+> > > 
+> > > Seems to be missing the address dependency on P1.
+> > 
+> > You are quite correct!  How about the following?
 > 
-> I'd prefer if you change this to
+> I think that's it!
 > 
-> 	if (debug_pagealloc_enabled())
-> 		printk("DEBUG_PAGEALLOC");
+> > As before, both herd and ppcmem say that the cycle is allowed, as
+> > expected, given non-transitive ordering.  To prohibit the cycle, P1
+> > needs a suitable memory-barrier instruction.
+> > 
+> > ------------------------------------------------------------------------
+> > 
+> > PPC WRCnf+addrs
+> > ""
+> > {
+> > 0:r2=x; 0:r3=y;
+> > 1:r2=x; 1:r3=y;
+> > 2:r2=x; 2:r3=y;
+> > c=a; d=b; x=c; y=d;
+> > }
+> >  P0           | P1            | P2            ;
+> >  stw r3,0(r2) | lwz r8,0(r2)  | lwz r8,0(r3)  ;
+> >               | stw r2,0(r8)  | lwz r9,0(r8)  ;
+> > exists
+> > (1:r8=y /\ 2:r8=x /\ 2:r9=c)
 > 
-> That way we can get rid of yet another ifdef. Having
-> "DEBUG_PAGEALLOC(disabled)" doesn't seem to be very helpful.
-> 
+> Agreed.
 
-I'd agree if CONFIG_DEBUG_PAGEALLOC only did anything when 
-debug_pagealloc_enabled() is true, but that doesn't seem to be the case.  
-When CONFIG_DEBUG_SLAB is enabled, for instance, CONFIG_DEBUG_PAGEALLOC 
-also enables stackinfo storing and poisoning and it's not guarded by 
-debug_pagealloc_enabled().
+OK, thank you!  Would you agree that it would be good to replace the
+current xor-based fake-dependency litmus tests with tests having real
+dependencies?
 
-It seems like CONFIG_DEBUG_PAGEALLOC enables debugging functionality 
-outside the scope of the debug_pagealloc=on kernel parameter, so 
-DEBUG_PAGEALLOC(disabled) actually does mean something.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+							Thanx, Paul
