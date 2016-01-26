@@ -1,71 +1,107 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [linux-review:James-Hogan/kbuild-Remove-stale-asm-generic-wrappers/20160119-183642] d979f99e9cc14e2667e9b6e268db695977e4197a BUILD DONE
-Date: Tue, 26 Jan 2016 17:27:46 +0100
-Message-ID: <3724678.Yr2Z2lv3F9@wuerfel>
-References: <569e1dbb.MgLv8OaZwklOxxtU%fengguang.wu@intel.com> <20160126053050.GB20385@wfg-t540p.sh.intel.com> <20160126053504.GA22301@wfg-t540p.sh.intel.com>
+From: Boqun Feng <boqun.feng@gmail.com>
+Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
+Date: Wed, 27 Jan 2016 00:52:07 +0800
+Message-ID: <20160126165207.GB6029@fixme-laptop.cn.ibm.com>
+References: <20160114204827.GE3818@linux.vnet.ibm.com>
+ <20160118081929.GA30420@gondor.apana.org.au>
+ <20160118154629.GB3818@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20160126053504.GA22301@wfg-t540p.sh.intel.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Fengguang Wu <fengguang.wu@intel.com>
-Cc: James Hogan <james.hogan@imgtec.com>, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Florian Fainelli <f.fainelli@gmail.com>, Paul Burton <paul.burton@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Heinrich Schuchardt <xypron.glpk@gmx.de>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.com>
+Content-Type: multipart/signed; micalg=pgp-sha256;
+	protocol="application/pgp-signature"; boundary="LyciRD1jyfeSSjG0"
+Return-path: <linux-ia64-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160118154629.GB3818@linux.vnet.ibm.com>
+Sender: linux-ia64-owner@vger.kernel.org
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Herbert Xu <herbert@gondor.apana.org.au>, Leonid.Yegoshin@imgtec.com, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, mst@redhat.com, peterz@infradead.org, will.deacon@arm.com, virtualization@lists.linux-foundation.org, hpa@zytor.com, sparclinux@vger.kernel.org, mingo@kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, linux@arm.linux.org.uk, user-mode-linux-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, mpe@ellerman.id.au, x86@kernel.org, xen-devel@lists.xenproject.org, mingo@elte.hu, linux-xtensa@linux-xtensa.org, james.hogan@imgtec.com, arnd@arndb.de, stefano.stabellini@eu.citrix.com, adi-buildroot-devel@lists.sourceforge.net, ddaney.cavm@gmail.com, tglx@linutronix.de, linux-metag@vger.kernel.org, linux-arm-kernel@lists.infradead.org, andrew.cooper3@citrix.com, linux-kernel@vger.kernel.org, ralf@linux-mips.org, joe@perches.com, linuxp
 List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 26 January 2016 13:35:04 Fengguang Wu wrote:
-> > There are a fixed set of config files for fast build tests (which I
-> > selected randomly, feel free to ask me to change the list to more
-> > reasonable ones):
-> > 
-> >       arm-allnoconfig
-> >       arm-at91_dt_defconfig
-> >       arm-at_hdmac
-> >       arm-ep93xx
-> >       arm-imx_v6_v7_defconfig
-> >       arm-iop-adma
-> >       arm-marzen_defconfig
-> >       arm-prima2_defconfig
-> >       arm-sa1100
-> >       arm-samsung
-> >       arm-sh
-> >       arm-spear13xx_defconfig
-> 
-> And there is another set of best effort configs whose priority is
-> in-between the above list and the arch/*/configs/* ones.
-> 
->         arm-arm5
->         arm-arm67
->         arm-mmp
->         arm-omap2plus_defconfig
->         arm-s3c2410_defconfig
->         arm-tegra_defconfig
-> 
 
-I think we want at least one ARMv7-M NOMMU target in the list,
-I'd pick efm32_defconfig as it has the least overlap with the
-drivers in the other configs.
+--LyciRD1jyfeSSjG0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-I don't know what arm-sh is, but I assume it's a superset of
-marzen, so you can probably drop marzen or move it down to the
-low-prio set. Similarly, the at_hdmac is likely a subset of
-at91_dt_defconfig and could be dropped.
+Hi Paul,
 
-prima2, ep93xx and spear13xx, mmp and s3c2410 are all
-slow-moving platforms, I would not expect to see much
-results from running those compared to the more active
-platforms.
+On Mon, Jan 18, 2016 at 07:46:29AM -0800, Paul E. McKenney wrote:
+> On Mon, Jan 18, 2016 at 04:19:29PM +0800, Herbert Xu wrote:
+> > Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
+> > >
+> > > You could use SYNC_ACQUIRE() to implement read_barrier_depends() and
+> > > smp_read_barrier_depends(), but SYNC_RMB probably does not suffice.
+> > > The reason for this is that smp_read_barrier_depends() must order the
+> > > pointer load against any subsequent read or write through a dereferen=
+ce
+> > > of that pointer.  For example:
+> > >=20
+> > >        p =3D READ_ONCE(gp);
+> > >        smp_rmb();
+> > >        r1 =3D p->a; /* ordered by smp_rmb(). */
+> > >        p->b =3D 42; /* NOT ordered by smp_rmb(), BUG!!! */
+> > >        r2 =3D x; /* ordered by smp_rmb(), but doesn't need to be. */
+> > >=20
+> > > In contrast:
+> > >=20
+> > >        p =3D READ_ONCE(gp);
+> > >        smp_read_barrier_depends();
+> > >        r1 =3D p->a; /* ordered by smp_read_barrier_depends(). */
+> > >        p->b =3D 42; /* ordered by smp_read_barrier_depends(). */
+> > >        r2 =3D x; /* not ordered by smp_read_barrier_depends(), which =
+is OK. */
+> > >=20
+> > > Again, if your hardware maintains local ordering for address
+> > > and data dependencies, you can have read_barrier_depends() and
+> > > smp_read_barrier_depends() be no-ops like they are for most
+> > > architectures.
+> > >=20
+> > > Does that help?
+> >=20
+> > This is crazy! smp_rmb started out being strictly stronger than
+> > smp_read_barrier_depends, when did this stop being the case?
+>=20
+> Hello, Herbert!
+>=20
+> It is true that most Linux kernel code relies only on the read-read
+> properties of dependencies, but the read-write properties are useful.
+> Admittedly relatively rarely, but useful.
+>=20
+> The better comparison for smp_read_barrier_depends(), especially in
+> its rcu_dereference*() form, is smp_load_acquire().
+>=20
 
-The platforms with the most changes these days are omap2plus,
-sunxi, shmobile, and exynos (samsung), followed by some
-that are widely used but not changed as much including
-tegra, imx_v6_v7, mvebu_v7, and qcom (previously msm).
+Confused..
 
-iop and sa1100 are rather old and won't change much, but it
-can be good to keep them in there because they are for older
-CPU architectures and behave a little different from the
-modern ones. It might be better to replace iop with ixp4xx,
-as this one is the only big-endian defconfig build we have,
-and that sometimes catches build-time bugs.
+I recall that last time you and Linus came into a conclusion that even
+on Alpha, a barrier for read->write with data dependency is unnecessary:
 
-	Arnd
+http://article.gmane.org/gmane.linux.kernel/2077661
+
+And in an earlier mail of that thread, Linus made his point that
+smp_read_barrier_depends() should only be used to order read->read.
+
+So right now, are we going to extend the semantics of
+smp_read_barrier_depends()? Can we just make smp_read_barrier_depends()
+still only work for read->read, and assume all the architectures won't
+reorder read->write with data dependency, so that the code above having
+a smp_rmb() also works?
+
+Regards,
+Boqun
+
+--LyciRD1jyfeSSjG0
+Content-Type: application/pgp-signature; name="signature.asc"
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2
+
+iQEcBAABCAAGBQJWp6QvAAoJEEl56MO1B/q4pKoIAJPOsJ2T06GUg0wVhH82BU2R
+ZlkpggDwyKR/oUt7FdAj9Kzxq1ZMBfqOdIzwH81kpg0h4Z5fBOvAx3FXdBUb0rqS
+jkpd0eqRH0Ur1dPo3Mp9TvD3yPS51obs5HnpOE/E9WAMQcx7nDgjuqNHxSIJj1yG
+9qc/WDqt7WgQZaNoD9/3Y+JAtM0YfukMVfxTI7OoJdnZCKDa0jO3YExgC2SJVAEF
+0iB28yCN9OM2VSBNGdAnaQErCEL/GEi1Dzh6eI2UYPYfxBOL1EMMi9z97/00f7aS
+ZRJFahwgFqy/hJNbT7v3VWcBoYdj5vJxwjHZmR6seJsmo24GfJV9huS9tS8606w=
+=xJxv
+-----END PGP SIGNATURE-----
+
+--LyciRD1jyfeSSjG0--
