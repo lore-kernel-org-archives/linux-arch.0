@@ -1,46 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:37362 "EHLO
-	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932586AbcAZRos (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2016 12:44:48 -0500
-Date: Tue, 26 Jan 2016 18:44:41 +0100
-From: Sam Ravnborg <sam@ravnborg.org>
+Received: from mail-lb0-f171.google.com ([209.85.217.171]:34405 "EHLO
+	mail-lb0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S967209AbcAZRsu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2016 12:48:50 -0500
+Received: by mail-lb0-f171.google.com with SMTP id cl12so96332606lbc.1
+        for <linux-arch@vger.kernel.org>; Tue, 26 Jan 2016 09:48:49 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <20160126174441.GA18873@ravnborg.org>
+References: <cover.1453759363.git.luto@kernel.org> <e520030f750b29d14486aa1e99c271a0fa18f19e.1453759363.git.luto@kernel.org>
+ <20160126062951.GA17107@ravnborg.org> <20160125.225100.1932707129794761764.davem@davemloft.net>
+ <20160126174441.GA18873@ravnborg.org>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Tue, 26 Jan 2016 09:48:29 -0800
+Message-ID: <CALCETrVaOC2=CC0bDoc-g2o+wjwaFfj+LAB7umrRMCHYwsk+Bg@mail.gmail.com>
 Subject: Re: [PATCH v2 02/16] sparc/compat: Provide an accurate
  in_compat_syscall implementation
-Message-ID: <20160126174441.GA18873@ravnborg.org>
-References: <cover.1453759363.git.luto@kernel.org>
- <e520030f750b29d14486aa1e99c271a0fa18f19e.1453759363.git.luto@kernel.org>
- <20160126062951.GA17107@ravnborg.org>
- <20160125.225100.1932707129794761764.davem@davemloft.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160125.225100.1932707129794761764.davem@davemloft.net>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: luto@kernel.org, akpm@linux-foundation.org, viro@zeniv.linux.org.uk, torvalds@linux-foundation.org, x86@kernel.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, cmetcalf@ezchip.com, linux-parisc@vger.kernel.org, linux-mips@linux-mips.org, sparclinux@vger.kernel.org
-Message-ID: <20160126174441.W-RO1VLOMxy9Xsiwu2YabkhV6w7ndI2Z1v9GJeEnNbo@z>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: David Miller <davem@davemloft.net>, Andrew Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Chris Metcalf <cmetcalf@ezchip.com>, linux-parisc@vger.kernel.org, Linux MIPS Mailing List <linux-mips@linux-mips.org>, sparclinux@vger.kernel.org
+Message-ID: <20160126174829.CQ5cyX_SyTlvnT5lV5mfm82KnrFzT_G5tn5lgy-jP24@z>
 
-On Mon, Jan 25, 2016 at 10:51:00PM -0800, David Miller wrote:
-> From: Sam Ravnborg <sam@ravnborg.org>
-> Date: Tue, 26 Jan 2016 07:29:51 +0100
-> 
-> > Could you please add a comment about where 0x110 comes from.
-> > I at least failed to track this down.
-> 
-> Frankly I'm fine with this.  Someone who understands sparc64 can look
-> at the trap table around entry 0x110 and see:
-> 
-> tl0_resv10e:	BTRAP(0x10e) BTRAP(0x10f)
-> tl0_linux32:	LINUX_32BIT_SYSCALL_TRAP
-> tl0_oldlinux64:	LINUX_64BIT_SYSCALL_TRAP
+On Tue, Jan 26, 2016 at 9:44 AM, Sam Ravnborg <sam@ravnborg.org> wrote:
+> On Mon, Jan 25, 2016 at 10:51:00PM -0800, David Miller wrote:
+>> From: Sam Ravnborg <sam@ravnborg.org>
+>> Date: Tue, 26 Jan 2016 07:29:51 +0100
+>>
+>> > Could you please add a comment about where 0x110 comes from.
+>> > I at least failed to track this down.
+>>
+>> Frankly I'm fine with this.  Someone who understands sparc64 can look
+>> at the trap table around entry 0x110 and see:
+>>
+>> tl0_resv10e:  BTRAP(0x10e) BTRAP(0x10f)
+>> tl0_linux32:  LINUX_32BIT_SYSCALL_TRAP
+>> tl0_oldlinux64:       LINUX_64BIT_SYSCALL_TRAP
+>
+> If one realise to look in the trap table in the first place - yes.
+>
+> Adding a short:
+>
+> /* Check if this is LINUX_32BIT_SYSCALL_TRAP */
+> Would make wonders to readability.
 
-If one realise to look in the trap table in the first place - yes.
+I'll add a comment in v2.
 
-Adding a short:
-
-/* Check if this is LINUX_32BIT_SYSCALL_TRAP */
-Would make wonders to readability.
-
-	Sam
+--Andy
+-- 
+Andy Lutomirski
+AMA Capital Management, LLC
