@@ -1,57 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.skyhub.de ([78.46.96.112]:41601 "EHLO mail.skyhub.de"
+Received: from mail.skyhub.de ([78.46.96.112]:41553 "EHLO mail.skyhub.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751947AbcAZU5m (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 26 Jan 2016 15:57:42 -0500
+	id S1751694AbcAZU5j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 26 Jan 2016 15:57:39 -0500
 From: Borislav Petkov <bp@alien8.de>
-Subject: [PATCH 11/17] arm/samsung: Change s3c_pm_run_res() to use System RAM type
-Date: Tue, 26 Jan 2016 21:57:27 +0100
-Message-ID: <1453841853-11383-12-git-send-email-bp@alien8.de>
+Subject: [PATCH 02/17] resource: Handle resource flags properly
+Date: Tue, 26 Jan 2016 21:57:18 +0100
+Message-ID: <1453841853-11383-3-git-send-email-bp@alien8.de>
 In-Reply-To: <1453841853-11383-1-git-send-email-bp@alien8.de>
 References: <1453841853-11383-1-git-send-email-bp@alien8.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Kukjin Kim <kgene@kernel.org>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-mm <linux-mm@kvack.org>, linux-samsung-soc@vger.kernel.org
-Message-ID: <20160126205727.9wfNl-ajAfYxAME-Xn1k5Lw4weR7N6aj7dKPkXtIrxk@z>
+Cc: LKML <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Dan Williams <dan.j.williams@intel.com>, Ingo Molnar <mingo@redhat.com>, Jakub Sitnicki <jsitnicki@gmail.com>, Jiang Liu <jiang.liu@linux.intel.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-mm <linux-mm@kvack.org>, "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>, Vinod Koul <vinod.koul@intel.com>
+Message-ID: <20160126205718.R1EiEeaXvmioHje08t-EP8o0DgvyypUgjYw8rFAJYVQ@z>
 
 From: Toshi Kani <toshi.kani@hpe.com>
 
-Change s3c_pm_run_res() to check with IORESOURCE_SYSTEM_RAM, instead of
-strcmp() with "System RAM", to walk through System RAM ranges in the
-iomem table.
+I/O resource flags consist of I/O resource types and modifier bits.
+Therefore, checking an I/O resource type in 'flags' must be performed
+with a bitwise operation.
 
-No functional change is made to the interface.
+Fix find_next_iomem_res() and region_intersects() that simply compare
+'flags' against a given value.
 
-Reviewed-by: Krzysztof Kozlowski <k.kozlowski@samsung.com>
+Also change __request_region() to set 'res->flags' from resource_type()
+and resource_ext_type() of the parent, so that children nodes will
+inherit the extended I/O resource type.
+
 Signed-off-by: Toshi Kani <toshi.kani@hpe.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Kukjin Kim <kgene@kernel.org>
+Cc: Dan Williams <dan.j.williams@intel.com>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Jakub Sitnicki <jsitnicki@gmail.com>
+Cc: Jiang Liu <jiang.liu@linux.intel.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
 Cc: linux-arch@vger.kernel.org
-Cc: linux-arm-kernel@lists.infradead.org
 Cc: linux-mm <linux-mm@kvack.org>
-Cc: linux-samsung-soc@vger.kernel.org
-Link: http://lkml.kernel.org/r/1452020081-26534-11-git-send-email-toshi.kani@hpe.com
+Cc: "Rafael J. Wysocki" <rafael.j.wysocki@intel.com>
+Cc: Vinod Koul <vinod.koul@intel.com>
+Link: http://lkml.kernel.org/r/1452020081-26534-2-git-send-email-toshi.kani@hpe.com
 Signed-off-by: Borislav Petkov <bp@suse.de>
 ---
- arch/arm/plat-samsung/pm-check.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ kernel/resource.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/arch/arm/plat-samsung/pm-check.c b/arch/arm/plat-samsung/pm-check.c
-index 04aff2c31b46..70f2f699bed3 100644
---- a/arch/arm/plat-samsung/pm-check.c
-+++ b/arch/arm/plat-samsung/pm-check.c
-@@ -53,8 +53,8 @@ static void s3c_pm_run_res(struct resource *ptr, run_fn_t fn, u32 *arg)
- 		if (ptr->child != NULL)
- 			s3c_pm_run_res(ptr->child, fn, arg);
+diff --git a/kernel/resource.c b/kernel/resource.c
+index 09c0597840b0..96afc8027487 100644
+--- a/kernel/resource.c
++++ b/kernel/resource.c
+@@ -358,7 +358,7 @@ static int find_next_iomem_res(struct resource *res, char *name,
+ 	read_lock(&resource_lock);
  
--		if ((ptr->flags & IORESOURCE_MEM) &&
--		    strcmp(ptr->name, "System RAM") == 0) {
-+		if ((ptr->flags & IORESOURCE_SYSTEM_RAM)
-+				== IORESOURCE_SYSTEM_RAM) {
- 			S3C_PMDBG("Found system RAM at %08lx..%08lx\n",
- 				  (unsigned long)ptr->start,
- 				  (unsigned long)ptr->end);
+ 	for (p = iomem_resource.child; p; p = next_resource(p, sibling_only)) {
+-		if (p->flags != res->flags)
++		if ((p->flags & res->flags) != res->flags)
+ 			continue;
+ 		if (name && strcmp(p->name, name))
+ 			continue;
+@@ -519,7 +519,8 @@ int region_intersects(resource_size_t start, size_t size, const char *name)
+ 
+ 	read_lock(&resource_lock);
+ 	for (p = iomem_resource.child; p ; p = p->sibling) {
+-		bool is_type = strcmp(p->name, name) == 0 && p->flags == flags;
++		bool is_type = strcmp(p->name, name) == 0 &&
++				((p->flags & flags) == flags);
+ 
+ 		if (start >= p->start && start <= p->end)
+ 			is_type ? type++ : other++;
+@@ -1071,7 +1072,7 @@ struct resource * __request_region(struct resource *parent,
+ 	res->name = name;
+ 	res->start = start;
+ 	res->end = start + n - 1;
+-	res->flags = resource_type(parent);
++	res->flags = resource_type(parent) | resource_ext_type(parent);
+ 	res->flags |= IORESOURCE_BUSY | flags;
+ 
+ 	write_lock(&resource_lock);
 -- 
 2.3.5
 
