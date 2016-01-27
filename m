@@ -1,191 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f172.google.com ([209.85.213.172]:37560 "EHLO
-	mail-ig0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934640AbcA1AOU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2016 19:14:20 -0500
-Received: by mail-ig0-f172.google.com with SMTP id h5so1604390igh.0
-        for <linux-arch@vger.kernel.org>; Wed, 27 Jan 2016 16:14:20 -0800 (PST)
+Received: from e34.co.us.ibm.com ([32.97.110.152]:45904 "EHLO
+	e34.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965561AbcA1Aks (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2016 19:40:48 -0500
+Received: from localhost
+	by e34.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Wed, 27 Jan 2016 17:40:48 -0700
+Date: Wed, 27 Jan 2016 15:35:04 -0800
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH] documentation: Add disclaimer
+Message-ID: <20160127233504.GP4503@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
+References: <20160114120445.GB15828@arm.com>
+ <56980145.5030901@imgtec.com>
+ <20160114204827.GE3818@linux.vnet.ibm.com>
+ <56981212.7050301@imgtec.com>
+ <20160114222046.GH3818@linux.vnet.ibm.com>
+ <20160126102402.GE6357@twins.programming.kicks-ass.net>
+ <20160126103200.GI6375@twins.programming.kicks-ass.net>
+ <20160126110053.GA21553@arm.com>
+ <20160126201143.GV4503@linux.vnet.ibm.com>
+ <15882.1453906627@warthog.procyon.org.uk>
 MIME-Version: 1.0
-In-Reply-To: <20160128000906.GA42530@davidb.org>
-References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
-	<1453226922-16831-4-git-send-email-keescook@chromium.org>
-	<20160127211105.GA41450@davidb.org>
-	<CAGXu5j+DLRoVE88a9++jVfEkN90HDiAaDAMnT2TrKqtMZ_yOww@mail.gmail.com>
-	<20160128000906.GA42530@davidb.org>
-Date: Wed, 27 Jan 2016 16:14:19 -0800
-Message-ID: <CAGXu5jLj0mvUUSmXoBzuJkRWYP0C7ybb9S4gVp5PUjhYyWP16Q@mail.gmail.com>
-Subject: Re: [PATCH] arm64: make CONFIG_DEBUG_RODATA non-optional
-From: Kees Cook <keescook@chromium.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <15882.1453906627@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Brown <david.brown@linaro.org>
-Cc: "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, yalin wang <yalin.wang2010@gmail.com>, Zi Shen Lim <zlim.lnx@gmail.com>, Yang Shi <yang.shi@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Laura Abbott <lauraa@codeaurora.org>, "Suzuki K. Poulose" <suzuki.poulose@arm.com>, Steve Capper <steve.capper@linaro.org>, Jeremy Linton <jeremy.linton@arm.com>, Mark Salter <msalter@redhat.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20160128001419.zKg51k0Dpq40npOrngl-UBAZrd7cLFBUDs2LF6hDNCg@z>
+To: David Howells <dhowells@redhat.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ralf Baechle <ralf@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, ddaney.cavm@gmail.com, james.hogan@imgtec.com, Michael Ellerman <mpe@ellerman.id.au>
+Message-ID: <20160127233504.mDl5_x1D4q4YEBRhXm8rIYgncESfxY4YXLst4BrdX4A@z>
 
-On Wed, Jan 27, 2016 at 4:09 PM, David Brown <david.brown@linaro.org> wrote:
-> From 2efef8aa0f8f7f6277ffebe4ea6744fc93d54644 Mon Sep 17 00:00:00 2001
-> From: David Brown <david.brown@linaro.org>
-> Date: Wed, 27 Jan 2016 13:58:44 -0800
->
-> This removes the CONFIG_DEBUG_RODATA option and makes it always
-> enabled.
->
-> Signed-off-by: David Brown <david.brown@linaro.org>
+On Wed, Jan 27, 2016 at 02:57:07PM +0000, David Howells wrote:
+> Peter Zijlstra <peterz@infradead.org> wrote:
+> 
+> > +==========
+> > +DISCLAIMER
+> > +==========
+> > +
+> > +This document is not a specification; it is intentionally (for the sake of
+> > +brevity) and unintentionally (due to being human) incomplete. This document is
+> > +meant as a guide to using the various memory barriers provided by Linux, but
+> > +in case of any doubt (and there are many) please ask.
+> > +
+> > +I repeat, this document is not a specification of what Linux expects from
+> > +hardware.
+> 
+> The purpose of this document is twofold:
+> 
+>  (1) to specify the minimum functionality that one can rely on for any
+>      particular barrier, and
+> 
+>  (2) to provide a guide as to how to use the barriers that are available.
+> 
+> Note that an architecture can provide more than the minimum requirement for
+> any particular barrier, but if the barrier provides less than that, it is
+> incorrect.
+> 
+> Note also that it is possible that a barrier may be a no-op for an
+> architecture because the way that arch works renders an explicit barrier
+> unnecessary in that case.
+> 
+> > +
+> 
+> Can you bung an extra blank line in here if you have to redo this at all?
+> 
+> > +========
+> > +CONTENTS
+> > +========
+> >  
+> >   (*) Abstract memory access model.
 
-I'm all for this!
+Good point!  Would you be willing to add a Signed-off-by so I
+can take the combined change, assuming Peter and Will are good
+with it?
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
+							Thanx, Paul
 
--Kees
-
-> ---
-> v1: This is in the same spirit as the x86 patch, removing allowing
-> this option to be config selected.  The associated patch series adds a
-> runtime option for the same thing.  However, it does affect the way
-> some things are mapped, and could possibly result in either increased
-> memory usage, or a performance hit (due to TLB misses from 4K pages).
->
-> I've tested this on a Hikey 96board (hi6220-hikey.dtb), both with and
-> without 'rodata=off' on the command line.
->
-> arch/arm64/Kconfig              |  3 +++
-> arch/arm64/Kconfig.debug        | 10 ----------
-> arch/arm64/kernel/insn.c        |  2 +-
-> arch/arm64/kernel/vmlinux.lds.S |  5 +----
-> arch/arm64/mm/mmu.c             | 12 ------------
-> 5 files changed, 5 insertions(+), 27 deletions(-)
->
-> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> index 8cc6228..ffa617a 100644
-> --- a/arch/arm64/Kconfig
-> +++ b/arch/arm64/Kconfig
-> @@ -201,6 +201,9 @@ config KERNEL_MODE_NEON
-> config FIX_EARLYCON_MEM
->         def_bool y
->
-> +config DEBUG_RODATA
-> +       def_bool y
-> +
-> config PGTABLE_LEVELS
->         int
->         default 2 if ARM64_16K_PAGES && ARM64_VA_BITS_36
-> diff --git a/arch/arm64/Kconfig.debug b/arch/arm64/Kconfig.debug
-> index e13c4bf..db994ec 100644
-> --- a/arch/arm64/Kconfig.debug
-> +++ b/arch/arm64/Kconfig.debug
-> @@ -48,16 +48,6 @@ config DEBUG_SET_MODULE_RONX
->           against certain classes of kernel exploits.
->           If in doubt, say "N".
->
-> -config DEBUG_RODATA
-> -       bool "Make kernel text and rodata read-only"
-> -       help
-> -         If this is set, kernel text and rodata will be made read-only.
-> This
-> -         is to help catch accidental or malicious attempts to change the
-> -         kernel's executable code. Additionally splits rodata from kernel
-> -         text so it can be made explicitly non-executable.
-> -
-> -          If in doubt, say Y
-> -
-> config DEBUG_ALIGN_RODATA
->         depends on DEBUG_RODATA && ARM64_4K_PAGES
->         bool "Align linker sections up to SECTION_SIZE"
-> diff --git a/arch/arm64/kernel/insn.c b/arch/arm64/kernel/insn.c
-> index 7371455..a04bdef 100644
-> --- a/arch/arm64/kernel/insn.c
-> +++ b/arch/arm64/kernel/insn.c
-> @@ -95,7 +95,7 @@ static void __kprobes *patch_map(void *addr, int fixmap)
->
->         if (module && IS_ENABLED(CONFIG_DEBUG_SET_MODULE_RONX))
->                 page = vmalloc_to_page(addr);
-> -       else if (!module && IS_ENABLED(CONFIG_DEBUG_RODATA))
-> +       else if (!module)
->                 page = virt_to_page(addr);
->         else
->                 return addr;
-> diff --git a/arch/arm64/kernel/vmlinux.lds.S
-> b/arch/arm64/kernel/vmlinux.lds.S
-> index e3928f5..f80903c 100644
-> --- a/arch/arm64/kernel/vmlinux.lds.S
-> +++ b/arch/arm64/kernel/vmlinux.lds.S
-> @@ -65,12 +65,9 @@ PECOFF_FILE_ALIGNMENT = 0x200;
-> #if defined(CONFIG_DEBUG_ALIGN_RODATA)
-> #define ALIGN_DEBUG_RO                  . = ALIGN(1<<SECTION_SHIFT);
-> #define ALIGN_DEBUG_RO_MIN(min)         ALIGN_DEBUG_RO
-> -#elif defined(CONFIG_DEBUG_RODATA)
-> +#else
-> #define ALIGN_DEBUG_RO                  . = ALIGN(1<<PAGE_SHIFT);
-> #define ALIGN_DEBUG_RO_MIN(min)         ALIGN_DEBUG_RO
-> -#else
-> -#define ALIGN_DEBUG_RO
-> -#define ALIGN_DEBUG_RO_MIN(min)                . = ALIGN(min);
-> #endif
->
-> SECTIONS
-> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-> index 58faeaa..3b411b7 100644
-> --- a/arch/arm64/mm/mmu.c
-> +++ b/arch/arm64/mm/mmu.c
-> @@ -313,7 +313,6 @@ static void create_mapping_late(phys_addr_t phys,
-> unsigned long virt,
->                                 phys, virt, size, prot, late_alloc);
-> }
->
-> -#ifdef CONFIG_DEBUG_RODATA
-> static void __init __map_memblock(phys_addr_t start, phys_addr_t end)
-> {
->         /*
-> @@ -347,13 +346,6 @@ static void __init __map_memblock(phys_addr_t start,
-> phys_addr_t end)
->         }
->
-> }
-> -#else
-> -static void __init __map_memblock(phys_addr_t start, phys_addr_t end)
-> -{
-> -       create_mapping(start, __phys_to_virt(start), end - start,
-> -                       PAGE_KERNEL_EXEC);
-> -}
-> -#endif
->
-> static void __init map_mem(void)
-> {
-> @@ -410,7 +402,6 @@ static void __init map_mem(void)
->
-> static void __init fixup_executable(void)
-> {
-> -#ifdef CONFIG_DEBUG_RODATA
->         /* now that we are actually fully mapped, make the start/end more
-> fine grained */
->         if (!IS_ALIGNED((unsigned long)_stext, SWAPPER_BLOCK_SIZE)) {
->                 unsigned long aligned_start = round_down(__pa(_stext),
-> @@ -428,10 +419,8 @@ static void __init fixup_executable(void)
->                                 aligned_end - __pa(__init_end),
->                                 PAGE_KERNEL);
->         }
-> -#endif
-> }
->
-> -#ifdef CONFIG_DEBUG_RODATA
-> void mark_rodata_ro(void)
-> {
->         create_mapping_late(__pa(_stext), (unsigned long)_stext,
-> @@ -439,7 +428,6 @@ void mark_rodata_ro(void)
->                                 PAGE_KERNEL_ROX);
->
-> }
-> -#endif
->
-> void fixup_init(void)
-> {
-> --
-> 2.7.0
->
-
-
-
--- 
-Kees Cook
-Chrome OS & Brillo Security
