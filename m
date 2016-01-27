@@ -1,78 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp15.uk.ibm.com ([195.75.94.111]:60844 "EHLO
-	e06smtp15.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753580AbcA0H7R (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2016 02:59:17 -0500
-Received: from localhost
-	by e06smtp15.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Wed, 27 Jan 2016 07:59:15 -0000
-Subject: Re: [PATCH/RFC 3/3] s390: query dynamic DEBUG_PAGEALLOC setting
-References: <1453799905-10941-1-git-send-email-borntraeger@de.ibm.com>
- <1453799905-10941-4-git-send-email-borntraeger@de.ibm.com>
- <20160126181903.GB4671@osiris>
- <alpine.DEB.2.10.1601261525580.25141@chino.kir.corp.google.com>
- <20160127001918.GA7089@js1304-P5Q-DELUXE>
- <alpine.DEB.2.10.1601261633520.6121@chino.kir.corp.google.com>
- <20160127005920.GB7089@js1304-P5Q-DELUXE>
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Message-ID: <56A878CF.7090507@de.ibm.com>
-Date: Wed, 27 Jan 2016 08:59:11 +0100
+Received: from bombadil.infradead.org ([198.137.202.9]:43951 "EHLO
+	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752170AbcA0IgO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2016 03:36:14 -0500
+Date: Wed, 27 Jan 2016 09:35:46 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [PATCH] documentation: Add disclaimer
+Message-ID: <20160127083546.GJ6357@twins.programming.kicks-ass.net>
+References: <5696BA6E.4070508@imgtec.com>
+ <20160114120445.GB15828@arm.com>
+ <56980145.5030901@imgtec.com>
+ <20160114204827.GE3818@linux.vnet.ibm.com>
+ <56981212.7050301@imgtec.com>
+ <20160114222046.GH3818@linux.vnet.ibm.com>
+ <20160126102402.GE6357@twins.programming.kicks-ass.net>
+ <20160126103200.GI6375@twins.programming.kicks-ass.net>
+ <20160126110053.GA21553@arm.com>
+ <20160126201143.GV4503@linux.vnet.ibm.com>
 MIME-Version: 1.0
-In-Reply-To: <20160127005920.GB7089@js1304-P5Q-DELUXE>
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160126201143.GV4503@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Joonsoo Kim <iamjoonsoo.kim@lge.com>, David Rientjes <rientjes@google.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org
-Message-ID: <20160127075911.9TwxdZlsAvWQe5WHWr0pTItey2OAYyZvT58lsW3dNf4@z>
+To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Cc: Will Deacon <will.deacon@arm.com>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ralf Baechle <ralf@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, ddaney.cavm@gmail.com, james.hogan@imgtec.com, Michael Ellerman <mpe@ellerman.id.au>
+Message-ID: <20160127083546.bF7zAh1JQWanrOu1yCdXBCCJCvn_vvrY9SQWUz7Fh00@z>
 
-On 01/27/2016 01:59 AM, Joonsoo Kim wrote:
-> On Tue, Jan 26, 2016 at 04:36:11PM -0800, David Rientjes wrote:
->> On Wed, 27 Jan 2016, Joonsoo Kim wrote:
->>
->>>> I'd agree if CONFIG_DEBUG_PAGEALLOC only did anything when 
->>>> debug_pagealloc_enabled() is true, but that doesn't seem to be the case.  
->>>> When CONFIG_DEBUG_SLAB is enabled, for instance, CONFIG_DEBUG_PAGEALLOC 
->>>> also enables stackinfo storing and poisoning and it's not guarded by 
->>>> debug_pagealloc_enabled().
->>>>
->>>> It seems like CONFIG_DEBUG_PAGEALLOC enables debugging functionality 
->>>> outside the scope of the debug_pagealloc=on kernel parameter, so 
->>>> DEBUG_PAGEALLOC(disabled) actually does mean something.
->>>
->>> Hello, David.
->>>
->>> I tried to fix CONFIG_DEBUG_SLAB case on 04/16 of following patchset.
->>>
->>> http://thread.gmane.org/gmane.linux.kernel.mm/144527
->>>
->>> I found that there are more sites to fix but not so many.
->>> We can do it.
->>>
->>
->> For the slab case, sure, this can be fixed, but there is other code that 
->> uses CONFIG_DEBUG_PAGEALLOC to suggest debugging is always enabled and is 
->> indifferent to debug_pagealloc_enabled().  I find this in powerpc and 
->> sparc arch code as well as generic vmalloc code.  
-> 
-> Yes, I also found it.
-> 
->>
->> If we can convert existing users that only check for 
->> CONFIG_DEBUG_PAGEALLOC to rather check for debug_pagealloc_enabled() and 
->> agree that it is only enabled for debug_pagealloc=on, then this would seem 
->> fine.  However, I think we should at least consult with those users before 
->> removing an artifact from the kernel log that could be useful in debugging 
->> why a particular BUG() happened.
-> 
-> Yes, at least, non-architecture dependent code (vmalloc, SLAB, SLUB) should
-> be changed first. If Christian doesn't mind, I will try to fix above 3
-> things.
+On Tue, Jan 26, 2016 at 12:11:43PM -0800, Paul E. McKenney wrote:
+> So Peter, would you like to update your patch to include yourself
+> and Will as authors?
 
-Ok. So I will change this as Heiko and Thomas suggested for s390 and x86 and 
-resend these 3 patches. Feel free to work on the other areas.
+Sure, here goes.
 
-Christian
+---
+Subject: documentation: Add disclaimer
 
+It appears people are reading this document as a requirements list for
+building hardware. This is not the intent of this document. Nor is it
+particularly suited for this purpose.
+
+The primary purpose of this document is our collective attempt to define
+a set of primitives that (hopefully) allow us to write correct code on
+the myriad of SMP platforms Linux supports.
+
+Its a definite work in progress as our understanding of these platforms,
+and memory ordering in general, progresses.
+
+Nor does being mentioned in this document mean we think its a
+particularly good idea; the data dependency barrier required by Alpha
+being a prime example. Yes we have it, no you're insane to require it
+when building new hardware.
+
+Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+---
+ Documentation/memory-barriers.txt | 18 +++++++++++++++++-
+ 1 file changed, 17 insertions(+), 1 deletion(-)
+
+diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
+index a61be39c7b51..98626125f484 100644
+--- a/Documentation/memory-barriers.txt
++++ b/Documentation/memory-barriers.txt
+@@ -4,8 +4,24 @@
+ 
+ By: David Howells <dhowells@redhat.com>
+     Paul E. McKenney <paulmck@linux.vnet.ibm.com>
++    Will Deacon <will.deacon@arm.com>
++    Peter Zijlstra <peterz@infradead.org>
+ 
+-Contents:
++==========
++DISCLAIMER
++==========
++
++This document is not a specification; it is intentionally (for the sake of
++brevity) and unintentionally (due to being human) incomplete. This document is
++meant as a guide to using the various memory barriers provided by Linux, but
++in case of any doubt (and there are many) please ask.
++
++I repeat, this document is not a specification of what Linux expects from
++hardware.
++
++========
++CONTENTS
++========
+ 
+  (*) Abstract memory access model.
+ 
