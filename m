@@ -1,80 +1,78 @@
-From: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
-Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
-Date: Wed, 27 Jan 2016 16:58:39 -0800
-Message-ID: <56A967BF.70200@imgtec.com>
-References: <20160113104516.GE25458@arm.com> <5696CF08.8080700@imgtec.com>
-	<20160114121449.GC15828@arm.com> <5697F6D2.60409@imgtec.com>
-	<20160114203430.GC3818@linux.vnet.ibm.com>
-	<56980C91.1010403@imgtec.com>
-	<20160114212913.GF3818@linux.vnet.ibm.com>
-	<569814F2.50801@imgtec.com>
-	<20160114225510.GJ3818@linux.vnet.ibm.com>
-	<56983054.4070807@imgtec.com>
-	<20160115004753.GN3818@linux.vnet.ibm.com>
-	<56984642.3090106@imgtec.com>
-	<alpine.DEB.2.00.1601271116520.5958@tp.orcam.me.uk>
+From: David Rientjes <rientjes@google.com>
+Subject: Re: [PATCH v3 2/3] x86: query dynamic DEBUG_PAGEALLOC setting
+Date: Wed, 27 Jan 2016 14:17:05 -0800 (PST)
+Message-ID: <alpine.DEB.2.10.1601271414180.23510@chino.kir.corp.google.com>
+References: <1453889401-43496-1-git-send-email-borntraeger@de.ibm.com> <1453889401-43496-3-git-send-email-borntraeger@de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-In-Reply-To: <alpine.DEB.2.00.1601271116520.5958@tp.orcam.me.uk>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: "Maciej W. Rozycki" <macro@imgtec.com>
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, virtualization@lists.linux-foundation.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, user-mode-linux-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, paulmck@linux.vnet.ibm.com, linux-xtensa@linux-xtensa.org, james.hogan@imgtec.com, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, adi-buildroot-devel@lists.sourceforge.net, ddaney.cavm@gmail.com, Thomas Gleixner <tglx@linutronix.de>, linux-me
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1453889401-43496-3-git-send-email-borntraeger@de.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, davem@davemloft.net, Joonsoo Kim <iamjoonsoo.kim@lge.com>, davej@codemonkey.org.uk
 List-Id: linux-arch.vger.kernel.org
 
-On 01/27/2016 03:26 AM, Maciej W. Rozycki wrote:
-> On Fri, 15 Jan 2016, Leonid Yegoshin wrote:
->
->>> So you need to build a different kernel for some types of MIPS systems?
->>> Or do you do boot-time rewriting, like a number of other arches do?
->> I don't know. I would like to have responses. Ralf asked Maciej about old
->> systems and that came nowhere. Even rewrite - don't know what to do with that:
->> no lightweight SYNC or no SYNC at all - yes, it is still possible that SYNC on
->> some systems can be too heavy or even harmful, nobody tested that.
->   I don't recall being asked; mind that I might not get to messages I have
-> not been cc-ed in a timely manner and I may miss some altogether.  With
-> the amount of mailing list traffic that passes by me my scanner may fail
-> to trigger.  Sorry if this causes anybody trouble, but such is life.
->
->   Coincidentally, I have just posted some notes on SYNC in a different
-> thread, see <http://lkml.iu.edu/hypermail/linux/kernel/1601.3/03080.html>.
-> There's a reference to an older message of mine there too.  I hope this
-> answers your questions.
->
->    Maciej
-In http://patchwork.linux-mips.org/patch/10505/the very last mesg 
-exchange is:
+On Wed, 27 Jan 2016, Christian Borntraeger wrote:
 
-Maciej,
+> We can use debug_pagealloc_enabled() to check if we can map
+> the identity mapping with 2MB pages. We can also add the state
+> into the dump_stack output.
+> 
+> The patch does not touch the code for the 1GB pages, which ignored
+> CONFIG_DEBUG_PAGEALLOC. Do we need to fence this as well?
+> 
+> Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+> Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+> ---
+>  arch/x86/kernel/dumpstack.c |  5 ++---
+>  arch/x86/mm/init.c          |  7 ++++---
+>  arch/x86/mm/pageattr.c      | 14 ++++----------
+>  3 files changed, 10 insertions(+), 16 deletions(-)
+> 
+> diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
+> index 9c30acf..32e5699 100644
+> --- a/arch/x86/kernel/dumpstack.c
+> +++ b/arch/x86/kernel/dumpstack.c
+> @@ -265,9 +265,8 @@ int __die(const char *str, struct pt_regs *regs, long err)
+>  #ifdef CONFIG_SMP
+>  	printk("SMP ");
+>  #endif
+> -#ifdef CONFIG_DEBUG_PAGEALLOC
+> -	printk("DEBUG_PAGEALLOC ");
+> -#endif
+> +	if (debug_pagealloc_enabled())
+> +		printk("DEBUG_PAGEALLOC ");
+>  #ifdef CONFIG_KASAN
+>  	printk("KASAN");
+>  #endif
+> diff --git a/arch/x86/mm/init.c b/arch/x86/mm/init.c
+> index 493f541..39823fd 100644
+> --- a/arch/x86/mm/init.c
+> +++ b/arch/x86/mm/init.c
+> @@ -150,13 +150,14 @@ static int page_size_mask;
+>  
+>  static void __init probe_page_size_mask(void)
+>  {
+> -#if !defined(CONFIG_DEBUG_PAGEALLOC) && !defined(CONFIG_KMEMCHECK)
+> +#if !defined(CONFIG_KMEMCHECK)
+>  	/*
+> -	 * For CONFIG_DEBUG_PAGEALLOC, identity mapping will use small pages.
+> +	 * For CONFIG_KMEMCHECK or pagealloc debugging, identity mapping will
+> +	 * use small pages.
+>  	 * This will simplify cpa(), which otherwise needs to support splitting
+>  	 * large pages into small in interrupt context, etc.
+>  	 */
+> -	if (cpu_has_pse)
+> +	if (cpu_has_pse && !debug_pagealloc_enabled())
+>  		page_size_mask |= 1 << PG_LEVEL_2M;
+>  #endif
+>  
 
-do you have an R4000 / R4600 / R5000 / R7000 / SiByte system at hand to
-test this?
-...
-   Ralf
+I would have thought free_init_pages() would be modified to use 
+debug_pagealloc_enabled() as well?
 
-Maciej W. Rozycki- June 5, 2015, 9:18 p.m.
-
-On Fri, 5 Jun 2015, Ralf Baechle wrote:
-
-> do you have an R4000 / R4600 / R5000 / R7000 / SiByte system at hand to
-> test this?
-
-  I should be able to check R4400 (that is virtually the same as R4000)
-next week or so.  As to SiByte -- not before next month I'm afraid.  I
-don't have access to any of the other processors you named.  You may
-want to find a better person if you want to accept this change soon.
-
-   Maciej
-
-... and that stops forever...
-
-- Leonid.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
