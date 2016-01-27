@@ -1,54 +1,67 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
-Date: Tue, 26 Jan 2016 16:57:30 -0800
-Message-ID: <20160127005730.GE4503@linux.vnet.ibm.com>
-References: <20160118081929.GA30420@gondor.apana.org.au>
-	<20160118154629.GB3818@linux.vnet.ibm.com>
-	<20160126165207.GB6029@fixme-laptop.cn.ibm.com>
-	<20160126172227.GG6357@twins.programming.kicks-ass.net>
-	<CA+55aFzcC6C8imPs5vk4yH1Y2YHjnAdFM9HCkVs04COxuDQH6w@mail.gmail.com>
-	<20160126201037.GU4503@linux.vnet.ibm.com>
-	<CA+55aFxjb+2rs2wVHtiSCcOzgMrE8H=yDeNcjyujPQudDCtLgw@mail.gmail.com>
-	<CA+55aFwxTJd+uibcxtZD3tGnj_n=LMwyAa0s8qyx_OF0OMWQkA@mail.gmail.com>
-	<20160126232921.GY4503@linux.vnet.ibm.com>
-	<CA+55aFyD94yaA1QzXgfeO18T-czY3TVUi5n6r-9jOUObDeR-zQ@mail.gmail.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Joonsoo Kim <iamjoonsoo.kim@lge.com>
+Subject: Re: [PATCH/RFC 3/3] s390: query dynamic DEBUG_PAGEALLOC setting
+Date: Wed, 27 Jan 2016 09:59:21 +0900
+Message-ID: <20160127005920.GB7089@js1304-P5Q-DELUXE>
+References: <1453799905-10941-1-git-send-email-borntraeger@de.ibm.com>
+ <1453799905-10941-4-git-send-email-borntraeger@de.ibm.com>
+ <20160126181903.GB4671@osiris>
+ <alpine.DEB.2.10.1601261525580.25141@chino.kir.corp.google.com>
+ <20160127001918.GA7089@js1304-P5Q-DELUXE>
+ <alpine.DEB.2.10.1601261633520.6121@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from LGEAMRELO11.lge.com ([156.147.23.51]:44367 "EHLO
+	lgeamrelo11.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751927AbcA0A7X (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2016 19:59:23 -0500
 Content-Disposition: inline
-In-Reply-To: <CA+55aFyD94yaA1QzXgfeO18T-czY3TVUi5n6r-9jOUObDeR-zQ@mail.gmail.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-mips <linux-mips@linux-mips.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "Michael S. Tsirkin" <mst@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, virtualization <virtualization@lists.linux-foundation.org>, Peter Anvin <hpa@zytor.com>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Herbert Xu <herbert@gondor.apana.org.au>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, the arch/x86 maintainers <x86@kernel.org>, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, linux-xtensa@linux-xtensa.org, James Hogan <james.hogan@imgtec.com>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, Stefano Stabellini <stefano.sta>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <alpine.DEB.2.10.1601261633520.6121@chino.kir.corp.google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Rientjes <rientjes@google.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org
 
-On Tue, Jan 26, 2016 at 03:45:23PM -0800, Linus Torvalds wrote:
-> On Tue, Jan 26, 2016 at 3:29 PM, Paul E. McKenney
-> <paulmck@linux.vnet.ibm.com> wrote:
-> >
-> > No trailing data-dependent read, so agreed, no smp_read_barrier_depends()
-> > needed.  That said, I believe that we should encourage rcu_dereference*()
-> > or lockless_dereference() instead of READ_ONCE() for documentation
-> > reasons, though.
+On Tue, Jan 26, 2016 at 04:36:11PM -0800, David Rientjes wrote:
+> On Wed, 27 Jan 2016, Joonsoo Kim wrote:
 > 
-> I agree that that is likely the right thing to do in pretty much all situations.
+> > > I'd agree if CONFIG_DEBUG_PAGEALLOC only did anything when 
+> > > debug_pagealloc_enabled() is true, but that doesn't seem to be the case.  
+> > > When CONFIG_DEBUG_SLAB is enabled, for instance, CONFIG_DEBUG_PAGEALLOC 
+> > > also enables stackinfo storing and poisoning and it's not guarded by 
+> > > debug_pagealloc_enabled().
+> > > 
+> > > It seems like CONFIG_DEBUG_PAGEALLOC enables debugging functionality 
+> > > outside the scope of the debug_pagealloc=on kernel parameter, so 
+> > > DEBUG_PAGEALLOC(disabled) actually does mean something.
+> > 
+> > Hello, David.
+> > 
+> > I tried to fix CONFIG_DEBUG_SLAB case on 04/16 of following patchset.
+> > 
+> > http://thread.gmane.org/gmane.linux.kernel.mm/144527
+> > 
+> > I found that there are more sites to fix but not so many.
+> > We can do it.
+> > 
 > 
-> In theory, there might be performance situations where we'd want to
-> actively avoid the smp_read_barrier_depends() inherent in those, but
-> considering that it's only a performance issue on alpha, and we
-> probably have all of two or three people using Linux on alpha, it's a
-> pretty theoretical performance worry.
+> For the slab case, sure, this can be fixed, but there is other code that 
+> uses CONFIG_DEBUG_PAGEALLOC to suggest debugging is always enabled and is 
+> indifferent to debug_pagealloc_enabled().  I find this in powerpc and 
+> sparc arch code as well as generic vmalloc code.  
 
-Agreed!
+Yes, I also found it.
 
-							Thanx, Paul
+> 
+> If we can convert existing users that only check for 
+> CONFIG_DEBUG_PAGEALLOC to rather check for debug_pagealloc_enabled() and 
+> agree that it is only enabled for debug_pagealloc=on, then this would seem 
+> fine.  However, I think we should at least consult with those users before 
+> removing an artifact from the kernel log that could be useful in debugging 
+> why a particular BUG() happened.
+
+Yes, at least, non-architecture dependent code (vmalloc, SLAB, SLUB) should
+be changed first. If Christian doesn't mind, I will try to fix above 3
+things.
+
+Thanks.
