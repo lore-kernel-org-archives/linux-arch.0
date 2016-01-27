@@ -1,109 +1,66 @@
-From: David Rientjes via Linuxppc-dev <linuxppc-dev@lists.ozlabs.org>
-Subject: (unknown)
-Date: Thu, 28 Jan 2016 09:22:17 +1100 (AEDT)
-Message-ID: <mailman.767.1453933115.12304.linuxppc-dev@lists.ozlabs.org>
-References: <1453889401-43496-1-git-send-email-borntraeger@de.ibm.com>
- <1453889401-43496-4-git-send-email-borntraeger@de.ibm.com>
-Reply-To: David Rientjes <rientjes@google.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [PATCH v3] barriers: introduce smp_mb__release_acquire and
+ update documentation
+Date: Wed, 27 Jan 2016 15:00:11 -0800
+Message-ID: <20160127230011.GK4503@linux.vnet.ibm.com>
+References: <1453918924-27606-1-git-send-email-will.deacon@arm.com>
+ <20160127182551.GX6357@twins.programming.kicks-ass.net>
+ <20160127183923.GD25545@arm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="===============7973320260964271912=="
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <1453889401-43496-4-git-send-email-borntraeger@de.ibm.com>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev/>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: "Linuxppc-dev"
- <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, davej@codemonkey.org.uk, x86@kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Joonsoo Kim <iamjoonsoo.kim@lge.com>, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, davem@davemloft.net
-List-Id: linux-arch.vger.kernel.org
-
---===============7973320260964271912==
-Content-Type: message/rfc822
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e35.co.us.ibm.com ([32.97.110.153]:48612 "EHLO
+	e35.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S964971AbcA0XAf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2016 18:00:35 -0500
+Received: from localhost
+	by e35.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Wed, 27 Jan 2016 16:00:34 -0700
 Content-Disposition: inline
+In-Reply-To: <20160127183923.GD25545@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>
 
-Return-Path: <rientjes@google.com>
-X-Original-To: linuxppc-dev@lists.ozlabs.org
-Delivered-To: linuxppc-dev@lists.ozlabs.org
-Received: from mail-pa0-x236.google.com (mail-pa0-x236.google.com [IPv6:2607:f8b0:400e:c03::236])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
-	(No client certificate requested)
-	by lists.ozlabs.org (Postfix) with ESMTPS id 150141A1A0E
-	for <linuxppc-dev@lists.ozlabs.org>; Thu, 28 Jan 2016 09:18:33 +1100 (AEDT)
-Authentication-Results: lists.ozlabs.org;
-	dkim=pass (2048-bit key; unprotected) header.d=google.com header.i=@google.com header.b=hPk0dCJH;
-	dkim-atps=neutral
-Received: by mail-pa0-x236.google.com with SMTP id uo6so11673284pac.1
-        for <linuxppc-dev@lists.ozlabs.org>; Wed, 27 Jan 2016 14:18:32 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20120113;
-        h=date:from:to:cc:subject:in-reply-to:message-id:references
-         :user-agent:mime-version:content-type;
-        bh=coCzZSx0uD9RYqGgKzXG8lohQh/Jpq0jGOAYuF1Ygp0=;
-        b=hPk0dCJHs1z+BRxM3K4lwNV3rBnoMgDxvNfXROR/BYbQdN3FQmMk0XlMFS4xAiLsz0
-         WruGBwJWgexQbIhbqK2p83g3m7JyMpinKXluh+qKRGaPzF03RlCmoBtDRHTKrU9So4Lo
-         PBDxgFDpaDslHf6gK0apTVbAAF9JVOPAB5uu7CcJQCyV6DGe09L6qBzgXzkq7pdAqxdt
-         PF5HCi4RIw8ccz3p0yuf4oBi+bVYWR3zEWx6MrGS3aAzecxxICb364IrQY7LFYsDxPG3
-         P9qN1NZ/aFcOamO0iOdIBlmN0fcOC4HBOQ7FE3N+RLVz9JPl02Rj53GwrlWfDz9b+jX4
-         WigA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20130820;
-        h=x-gm-message-state:date:from:to:cc:subject:in-reply-to:message-id
-         :references:user-agent:mime-version:content-type;
-        bh=coCzZSx0uD9RYqGgKzXG8lohQh/Jpq0jGOAYuF1Ygp0=;
-        b=k8dF5NzidAy0JBjY/3dVwkmzPD6I3i2NhnmmsMU6HqeAvrgxObg6Mklsi887QUWoe8
-         J4NdvElR0mZLCpuEI1jkRMOnjdoTr9VbUhSQQsJrEBV1CT7TFpmtPLQjbpEKase1gDtT
-         z3L8WQJwYMgChzAu68g0V95SvTTgWXf+7vPL3jKnn9+mejrjQTzwkaos9t4nAMI+Otuq
-         nL3pTyrNziAEdR4wsoEhexSnPsK+LffUFAA+6I66zGD5bYQleqWtutjWwvB4Dr3wkHuu
-         fjGdew2JmkdIrtKp6Nk3RNcECfqNF8ToOezovh5dKDDKozAST3z3ej8a99Zp8OtqqHAD
-         IQWA==
-X-Gm-Message-State: AG10YOS8dGMc4dY2U2IXFYLrMxq0MXyr77XBsexH6VxfEL5g2o5siC04OvulRUTVuHBY0L/K
-X-Received: by 10.67.3.134 with SMTP id bw6mr8779507pad.154.1453933110949;
-        Wed, 27 Jan 2016 14:18:30 -0800 (PST)
-Received: from [2620:0:1008:1200:77:27bb:147d:6cc2] ([2620:0:1008:1200:77:27bb:147d:6cc2])
-        by smtp.gmail.com with ESMTPSA id 20sm11315786pfa.5.2016.01.27.14.18.30
-        (version=TLS1 cipher=ECDHE-RSA-AES128-SHA bits=128/128);
-        Wed, 27 Jan 2016 14:18:30 -0800 (PST)
-Date: Wed, 27 Jan 2016 14:18:29 -0800 (PST)
-From: David Rientjes <rientjes@google.com>
-X-X-Sender: rientjes@chino.kir.corp.google.com
-To: Christian Borntraeger <borntraeger@de.ibm.com>
-cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org,
-    linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org,
-    x86@kernel.org, linuxppc-dev@lists.ozlabs.org, davem@davemloft.net,
-    Joonsoo Kim <iamjoonsoo.kim@lge.com>, davej@codemonkey.org.uk
-Subject: Re: [PATCH v3 3/3] s390: query dynamic DEBUG_PAGEALLOC setting
-In-Reply-To: <1453889401-43496-4-git-send-email-borntraeger@de.ibm.com>
-Message-ID: <alpine.DEB.2.10.1601271418190.23510@chino.kir.corp.google.com>
-References: <1453889401-43496-1-git-send-email-borntraeger@de.ibm.com> <1453889401-43496-4-git-send-email-borntraeger@de.ibm.com>
-User-Agent: Alpine 2.10 (DEB 1266 2009-07-14)
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-
-On Wed, 27 Jan 2016, Christian Borntraeger wrote:
-
-> We can use debug_pagealloc_enabled() to check if we can map
-> the identity mapping with 1MB/2GB pages as well as to print
-> the current setting in dump_stack.
+On Wed, Jan 27, 2016 at 06:39:23PM +0000, Will Deacon wrote:
+> On Wed, Jan 27, 2016 at 07:25:51PM +0100, Peter Zijlstra wrote:
+> > On Wed, Jan 27, 2016 at 06:22:04PM +0000, Will Deacon wrote:
+> > > As much as we'd like to live in a world where RELEASE -> ACQUIRE is
+> > > always cheaply ordered and can be used to construct UNLOCK -> LOCK
+> > > definitions with similar guarantees, the grim reality is that this isn't
+> > > even possible on x86 (thanks to Paul for bringing us crashing down to
+> > > Earth).
+> > > 
+> > > This patch handles the issue by introducing a new barrier macro,
+> > > smp_mb__after_release_acquire, that can be placed after an ACQUIRE that
+> > > either reads from a RELEASE or is in program-order after a RELEASE. The
+> > > barrier upgrades the RELEASE-ACQUIRE pair to a full memory barrier,
+> > > implying global transitivity. At the moment, it doesn't have any users,
+> > > so its existence serves mainly as a documentation aid and a potential
+> > > stepping stone to the reintroduction of smp_mb__after_unlock_lock() used
+> > > by RCU.
+> > > 
+> > > Documentation/memory-barriers.txt is updated to describe more clearly
+> > > the ACQUIRE and RELEASE ordering in this area and to show some examples
+> > > of the new barrier in action.
+> > 
+> > So the obvious question is: do we have a use-case?
 > 
-> Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
-> Reviewed-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+> We have a use-case for smp_mb__after_unlock_lock, so I think we should
+> either strengthen our locking guarantees so that smp_mb__after_unlock_lock
+> isn't needed or introduce smp_mb__after_release_acquire to close the gap.
+> As it stands, we've got an inconsistency (despite it being hidden inside
+> RCU).
+> 
+> The main advantage of this patch is a documentation aid, in my opinion
+> (hell, we talk about smp_mb__after_unlock_lock already when reasoning
+> about this stuff).
 
-Acked-by: David Rientjes <rientjes@google.com>
+But wasn't there an x86 potential use case that required placing the
+strengthening macro after the release and before the acquire?  Or is
+this a case of old age striking again?
 
---===============7973320260964271912==
-Content-Type: text/plain; charset="utf-8"
-MIME-Version: 1.0
-Content-Transfer-Encoding: base64
-Content-Disposition: inline
-
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX18KTGludXhwcGMt
-ZGV2IG1haWxpbmcgbGlzdApMaW51eHBwYy1kZXZAbGlzdHMub3psYWJzLm9yZwpodHRwczovL2xp
-c3RzLm96bGFicy5vcmcvbGlzdGluZm8vbGludXhwcGMtZGV2
-
---===============7973320260964271912==--
+							Thanx, Paul
