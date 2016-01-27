@@ -1,51 +1,46 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
-Date: Wed, 27 Jan 2016 09:39:05 +0100
-Message-ID: <20160127083905.GK6357@twins.programming.kicks-ass.net>
-References: <20160114212913.GF3818@linux.vnet.ibm.com>
- <20160115085554.GF3421@worktop>
- <20160115091348.GA27936@worktop>
- <20160115174612.GV3818@linux.vnet.ibm.com>
- <20160115212714.GM3421@worktop>
- <20160115215853.GC3818@linux.vnet.ibm.com>
- <20160125164242.GF22927@arm.com>
- <20160126060322.GJ4503@linux.vnet.ibm.com>
- <20160126101927.GD6357@twins.programming.kicks-ass.net>
- <20160126201339.GW4503@linux.vnet.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:46412 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753027AbcA0Ijd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2016 03:39:33 -0500
-Content-Disposition: inline
-In-Reply-To: <20160126201339.GW4503@linux.vnet.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Will Deacon <will.deacon@arm.com>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.ne
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: [PATCH v2 0/3] Optimize CONFIG_DEBUG_PAGEALLOC
+Date: Wed, 27 Jan 2016 09:50:15 +0100
+Message-ID: <1453884618-33852-1-git-send-email-borntraeger@de.ibm.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, davem@davemloft.net, Joonsoo Kim <iamjoonsoo.kim@lge.com>, davej@codemonkey.org.uk, Christian Borntraeger <borntraeger@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Jan 26, 2016 at 12:13:39PM -0800, Paul E. McKenney wrote:
-> On Tue, Jan 26, 2016 at 11:19:27AM +0100, Peter Zijlstra wrote:
+As CONFIG_DEBUG_PAGEALLOC can be enabled/disabled via kernel
+parameters we can optimize some cases by checking the enablement
+state.
 
-> > So isn't smp_mb__after_unlock_lock() exactly such a scenario? And would
-> > not someone trying to implement RCsc locks using locally transitive
-> > RELEASE/ACQUIRE operations need exactly this stuff?
-> > 
-> > That is, I am afraid we need to cover the mix of local and global
-> > transitive operations at least in overview.
-> 
-> True, but we haven't gotten to locking yet.
+I have done s390 and x86 as examples.
+s390 should be ok, I tested several combinations, x86 seems to
+work as well, but I have some concerns about the 1GB pages.
+The previous code did not bother at all with CONFIG_DEBUG_PAGEALLOC
+and I do not fully understand why.
 
-The mythical smp_mb__after_release_acquire() then ;-)
+Power can probably do the same, Michael/Ben?
+I am not sure about sparc. Sparc seems to allocate the TSB buffer
+really early. David?
 
-(and yes, I know you're going to say we don't have that)
 
-> That said, I would argue
-> that smp_mb__after_unlock_lock() upgrades locks to transitive, and
-> thus would not be an exception to the "no combining transitive and
-> non-transitive steps in cycles" rule.
+V1->V2:
+- replace DEBUG_PAGEALLOC(disabled/enabled) with DEBUG_PAGEALLOC
+  dump_stack for s390/x86
+- add /* CONFIG_DEBUG_PAGEALLOC */ to else and endif
 
-But But But ;-) It does that exactly by combining. I suspect this is
-(partly) the source of your SC chains with one PC link example.
+
+Christian Borntraeger (3):
+  mm: provide debug_pagealloc_enabled() without CONFIG_DEBUG_PAGEALLOC
+  x86: query dynamic DEBUG_PAGEALLOC setting
+  s390: query dynamic DEBUG_PAGEALLOC setting
+
+ arch/s390/kernel/dumpstack.c |  8 ++++----
+ arch/s390/mm/vmem.c          | 10 ++++------
+ arch/x86/kernel/dumpstack.c  |  5 ++---
+ arch/x86/mm/init.c           |  7 ++++---
+ arch/x86/mm/pageattr.c       | 14 ++++----------
+ include/linux/mm.h           |  9 +++++++--
+ 6 files changed, 25 insertions(+), 28 deletions(-)
+
+-- 
+2.3.0
