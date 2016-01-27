@@ -1,40 +1,86 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
-Date: Tue, 26 Jan 2016 15:45:23 -0800
-Message-ID: <CA+55aFyD94yaA1QzXgfeO18T-czY3TVUi5n6r-9jOUObDeR-zQ@mail.gmail.com>
-References: <20160114204827.GE3818@linux.vnet.ibm.com>
-	<20160118081929.GA30420@gondor.apana.org.au>
-	<20160118154629.GB3818@linux.vnet.ibm.com>
-	<20160126165207.GB6029@fixme-laptop.cn.ibm.com>
-	<20160126172227.GG6357@twins.programming.kicks-ass.net>
-	<CA+55aFzcC6C8imPs5vk4yH1Y2YHjnAdFM9HCkVs04COxuDQH6w@mail.gmail.com>
-	<20160126201037.GU4503@linux.vnet.ibm.com>
-	<CA+55aFxjb+2rs2wVHtiSCcOzgMrE8H=yDeNcjyujPQudDCtLgw@mail.gmail.com>
-	<CA+55aFwxTJd+uibcxtZD3tGnj_n=LMwyAa0s8qyx_OF0OMWQkA@mail.gmail.com>
-	<20160126232921.GY4503@linux.vnet.ibm.com>
+From: Joonsoo Kim <iamjoonsoo.kim@lge.com>
+Subject: Re: [PATCH/RFC 3/3] s390: query dynamic DEBUG_PAGEALLOC setting
+Date: Wed, 27 Jan 2016 09:19:18 +0900
+Message-ID: <20160127001918.GA7089@js1304-P5Q-DELUXE>
+References: <1453799905-10941-1-git-send-email-borntraeger@de.ibm.com>
+ <1453799905-10941-4-git-send-email-borntraeger@de.ibm.com>
+ <20160126181903.GB4671@osiris>
+ <alpine.DEB.2.10.1601261525580.25141@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20160126232921.GY4503@linux.vnet.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Paul McKenney <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Boqun Feng <boqun.feng@gmail.com>, Herbert Xu <herbert@gondor.apana.org.au>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, linux-mips <linux-mips@linux-mips.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "Michael S. Tsirkin" <mst@redhat.com>, Will Deacon <will.deacon@arm.com>, virtualization <virtualization@lists.linux-foundation.org>, Peter Anvin <hpa@zytor.com>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, linux-s390 <linux-s390@vger.kernel.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, uml-devel <user-mode-linux-devel@lists.sourceforge.net>, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, the arch/x86 maintainers <x86@kernel.org>, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, linux-xtensa@li
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from LGEAMRELO13.lge.com ([156.147.23.53]:34725 "EHLO
+	lgeamrelo13.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751295AbcA0ATT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jan 2016 19:19:19 -0500
+Content-Disposition: inline
+In-Reply-To: <alpine.DEB.2.10.1601261525580.25141@chino.kir.corp.google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Rientjes <rientjes@google.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>, Christian Borntraeger <borntraeger@de.ibm.com>, linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org
 
-On Tue, Jan 26, 2016 at 3:29 PM, Paul E. McKenney
-<paulmck@linux.vnet.ibm.com> wrote:
->
-> No trailing data-dependent read, so agreed, no smp_read_barrier_depends()
-> needed.  That said, I believe that we should encourage rcu_dereference*()
-> or lockless_dereference() instead of READ_ONCE() for documentation
-> reasons, though.
+On Tue, Jan 26, 2016 at 03:29:38PM -0800, David Rientjes wrote:
+> On Tue, 26 Jan 2016, Heiko Carstens wrote:
+> 
+> > On Tue, Jan 26, 2016 at 10:18:25AM +0100, Christian Borntraeger wrote:
+> > > We can use debug_pagealloc_enabled() to check if we can map
+> > > the identity mapping with 1MB/2GB pages as well as to print
+> > > the current setting in dump_stack.
+> > > 
+> > > Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+> > > ---
+> > >  arch/s390/kernel/dumpstack.c |  4 +++-
+> > >  arch/s390/mm/vmem.c          | 10 ++++------
+> > >  2 files changed, 7 insertions(+), 7 deletions(-)
+> > > 
+> > > diff --git a/arch/s390/kernel/dumpstack.c b/arch/s390/kernel/dumpstack.c
+> > > index dc8e204..a1c0530 100644
+> > > --- a/arch/s390/kernel/dumpstack.c
+> > > +++ b/arch/s390/kernel/dumpstack.c
+> > > @@ -11,6 +11,7 @@
+> > >  #include <linux/export.h>
+> > >  #include <linux/kdebug.h>
+> > >  #include <linux/ptrace.h>
+> > > +#include <linux/mm.h>
+> > >  #include <linux/module.h>
+> > >  #include <linux/sched.h>
+> > >  #include <asm/processor.h>
+> > > @@ -186,7 +187,8 @@ void die(struct pt_regs *regs, const char *str)
+> > >  	printk("SMP ");
+> > >  #endif
+> > >  #ifdef CONFIG_DEBUG_PAGEALLOC
+> > > -	printk("DEBUG_PAGEALLOC");
+> > > +	printk("DEBUG_PAGEALLOC(%s)",
+> > > +		debug_pagealloc_enabled() ? "enabled" : "disabled");
+> > >  #endif
+> > 
+> > I'd prefer if you change this to
+> > 
+> > 	if (debug_pagealloc_enabled())
+> > 		printk("DEBUG_PAGEALLOC");
+> > 
+> > That way we can get rid of yet another ifdef. Having
+> > "DEBUG_PAGEALLOC(disabled)" doesn't seem to be very helpful.
+> > 
+> 
+> I'd agree if CONFIG_DEBUG_PAGEALLOC only did anything when 
+> debug_pagealloc_enabled() is true, but that doesn't seem to be the case.  
+> When CONFIG_DEBUG_SLAB is enabled, for instance, CONFIG_DEBUG_PAGEALLOC 
+> also enables stackinfo storing and poisoning and it's not guarded by 
+> debug_pagealloc_enabled().
+> 
+> It seems like CONFIG_DEBUG_PAGEALLOC enables debugging functionality 
+> outside the scope of the debug_pagealloc=on kernel parameter, so 
+> DEBUG_PAGEALLOC(disabled) actually does mean something.
 
-I agree that that is likely the right thing to do in pretty much all situations.
+Hello, David.
 
-In theory, there might be performance situations where we'd want to
-actively avoid the smp_read_barrier_depends() inherent in those, but
-considering that it's only a performance issue on alpha, and we
-probably have all of two or three people using Linux on alpha, it's a
-pretty theoretical performance worry.
+I tried to fix CONFIG_DEBUG_SLAB case on 04/16 of following patchset.
 
-                  Linus
+http://thread.gmane.org/gmane.linux.kernel.mm/144527
+
+I found that there are more sites to fix but not so many.
+We can do it.
+
+Thanks.
