@@ -1,62 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:37325 "EHLO mx1.redhat.com"
+Received: from foss.arm.com ([217.140.101.70]:54788 "EHLO foss.arm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932555AbcA0O5S convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2016 09:57:18 -0500
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20160127083546.GJ6357@twins.programming.kicks-ass.net>
-References: <20160127083546.GJ6357@twins.programming.kicks-ass.net> <5696BA6E.4070508@imgtec.com> <20160114120445.GB15828@arm.com> <56980145.5030901@imgtec.com> <20160114204827.GE3818@linux.vnet.ibm.com> <56981212.7050301@imgtec.com> <20160114222046.GH3818@linux.vnet.ibm.com> <20160126102402.GE6357@twins.programming.kicks-ass.net> <20160126103200.GI6375@twins.programming.kicks-ass.net> <20160126110053.GA21553@arm.com> <20160126201143.GV4503@linux.vnet.ibm.com>
-Subject: Re: [PATCH] documentation: Add disclaimer
+	id S935036AbcA0Sj0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Jan 2016 13:39:26 -0500
+Date: Wed, 27 Jan 2016 18:39:23 +0000
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v3] barriers: introduce smp_mb__release_acquire and
+ update documentation
+Message-ID: <20160127183923.GD25545@arm.com>
+References: <1453918924-27606-1-git-send-email-will.deacon@arm.com>
+ <20160127182551.GX6357@twins.programming.kicks-ass.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-ID: <15881.1453906627.1@warthog.procyon.org.uk>
-Content-Transfer-Encoding: 8BIT
-Date: Wed, 27 Jan 2016 14:57:07 +0000
-Message-ID: <15882.1453906627@warthog.procyon.org.uk>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160127182551.GX6357@twins.programming.kicks-ass.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: dhowells@redhat.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ralf Baechle <ralf@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, ddaney.cavm@gmail.com, james.hogan@imgtec.com, Michael Ellerman <mpe@ellerman.id.au>
-Message-ID: <20160127145707.COviL0RwL46FlInmVWefB0ys1tU2WfPoDfstVz0FY1I@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20160127183923.5Mv6BK6q48Zh_FiAUzi15HnVgNcphNC5D8zqbUUx_EQ@z>
 
-Peter Zijlstra <peterz@infradead.org> wrote:
+On Wed, Jan 27, 2016 at 07:25:51PM +0100, Peter Zijlstra wrote:
+> On Wed, Jan 27, 2016 at 06:22:04PM +0000, Will Deacon wrote:
+> > As much as we'd like to live in a world where RELEASE -> ACQUIRE is
+> > always cheaply ordered and can be used to construct UNLOCK -> LOCK
+> > definitions with similar guarantees, the grim reality is that this isn't
+> > even possible on x86 (thanks to Paul for bringing us crashing down to
+> > Earth).
+> > 
+> > This patch handles the issue by introducing a new barrier macro,
+> > smp_mb__after_release_acquire, that can be placed after an ACQUIRE that
+> > either reads from a RELEASE or is in program-order after a RELEASE. The
+> > barrier upgrades the RELEASE-ACQUIRE pair to a full memory barrier,
+> > implying global transitivity. At the moment, it doesn't have any users,
+> > so its existence serves mainly as a documentation aid and a potential
+> > stepping stone to the reintroduction of smp_mb__after_unlock_lock() used
+> > by RCU.
+> > 
+> > Documentation/memory-barriers.txt is updated to describe more clearly
+> > the ACQUIRE and RELEASE ordering in this area and to show some examples
+> > of the new barrier in action.
+> 
+> So the obvious question is: do we have a use-case?
 
-> +==========
-> +DISCLAIMER
-> +==========
-> +
-> +This document is not a specification; it is intentionally (for the sake of
-> +brevity) and unintentionally (due to being human) incomplete. This document is
-> +meant as a guide to using the various memory barriers provided by Linux, but
-> +in case of any doubt (and there are many) please ask.
-> +
-> +I repeat, this document is not a specification of what Linux expects from
-> +hardware.
+We have a use-case for smp_mb__after_unlock_lock, so I think we should
+either strengthen our locking guarantees so that smp_mb__after_unlock_lock
+isn't needed or introduce smp_mb__after_release_acquire to close the gap.
+As it stands, we've got an inconsistency (despite it being hidden inside
+RCU).
 
-The purpose of this document is twofold:
+The main advantage of this patch is a documentation aid, in my opinion
+(hell, we talk about smp_mb__after_unlock_lock already when reasoning
+about this stuff).
 
- (1) to specify the minimum functionality that one can rely on for any
-     particular barrier, and
-
- (2) to provide a guide as to how to use the barriers that are available.
-
-Note that an architecture can provide more than the minimum requirement for
-any particular barrier, but if the barrier provides less than that, it is
-incorrect.
-
-Note also that it is possible that a barrier may be a no-op for an
-architecture because the way that arch works renders an explicit barrier
-unnecessary in that case.
-
-> +
-
-Can you bung an extra blank line in here if you have to redo this at all?
-
-> +========
-> +CONTENTS
-> +========
->  
->   (*) Abstract memory access model.
->  
-
-David
+Will
