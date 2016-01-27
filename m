@@ -1,78 +1,71 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: [PATCH] documentation: Add disclaimer
-Date: Wed, 27 Jan 2016 15:35:04 -0800
-Message-ID: <20160127233504.GP4503@linux.vnet.ibm.com>
-References: <20160114120445.GB15828@arm.com> <56980145.5030901@imgtec.com>
-	<20160114204827.GE3818@linux.vnet.ibm.com>
-	<56981212.7050301@imgtec.com>
-	<20160114222046.GH3818@linux.vnet.ibm.com>
-	<20160126102402.GE6357@twins.programming.kicks-ass.net>
-	<20160126103200.GI6375@twins.programming.kicks-ass.net>
-	<20160126110053.GA21553@arm.com>
-	<20160126201143.GV4503@linux.vnet.ibm.com>
-	<15882.1453906627@warthog.procyon.org.uk>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: Dmitry Torokhov <dmitry.torokhov@gmail.com>
+Subject: Re: [PATCH v2 14/16] input: Redefine INPUT_COMPAT_TEST as
+ in_compat_syscall()
+Date: Wed, 27 Jan 2016 13:06:10 -0800
+Message-ID: <20160127210610.GB28687@dtor-ws>
+References: <cover.1453759363.git.luto@kernel.org>
+ <64480084bc652d5fa91bf5cd4be979e2f1e4cf11.1453759363.git.luto@kernel.org>
+ <CAKdAkRQm6ADz5aCYAFxXcoGZ2zNFwTUXjMzZdNj-D2-YrYQtrg@mail.gmail.com>
+ <CALCETrUUNM1Qoqna1e7qmEqNUwo99PJe9fSuXG4fzPdSBLfPuA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f170.google.com ([209.85.192.170]:34044 "EHLO
+	mail-pf0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S966209AbcA0VGR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2016 16:06:17 -0500
 Content-Disposition: inline
-In-Reply-To: <15882.1453906627@warthog.procyon.org.uk>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: David Howells <dhowells@redhat.com>
-Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, virtualization@lists.linux-foundation.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, user-mode-linux-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, linux-xtensa@linux-xtensa.org, james.hogan@imgtec.com, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, adi-buildroot-devel@lists.sourceforge.net, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, ddaney.cavm@gmail.com, Thomas Gleixner <tglx@linutr>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <CALCETrUUNM1Qoqna1e7qmEqNUwo99PJe9fSuXG4fzPdSBLfPuA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andy Lutomirski <luto@amacapital.net>
+Cc: Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, David Miller <davem@davemloft.net>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Chris Metcalf <cmetcalf@ezchip.com>, linux-parisc@vger.kernel.org, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, sparclinux@vger.kernel.org
 
-On Wed, Jan 27, 2016 at 02:57:07PM +0000, David Howells wrote:
-> Peter Zijlstra <peterz@infradead.org> wrote:
+On Wed, Jan 27, 2016 at 12:29:14PM -0800, Andy Lutomirski wrote:
+> On Wed, Jan 27, 2016 at 11:17 AM, Dmitry Torokhov
+> <dmitry.torokhov@gmail.com> wrote:
+> > Hi Andy,
+> >
+> > On Mon, Jan 25, 2016 at 2:24 PM, Andy Lutomirski <luto@kernel.org> wrote:
+> >> The input compat code should work like all other compat code: for
+> >> 32-bit syscalls, use the 32-bit ABI and for 64-bit syscalls, use the
+> >> 64-bit ABI.  We have a helper for that (in_compat_syscall()): just
+> >> use it.
+> >>
+> >> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+> >> ---
+> >>  drivers/input/input-compat.h | 12 +-----------
+> >>  1 file changed, 1 insertion(+), 11 deletions(-)
+> >>
+> >> diff --git a/drivers/input/input-compat.h b/drivers/input/input-compat.h
+> >> index 148f66fe3205..0f25878d5fa2 100644
+> >> --- a/drivers/input/input-compat.h
+> >> +++ b/drivers/input/input-compat.h
+> >> @@ -17,17 +17,7 @@
+> >>
+> >>  #ifdef CONFIG_COMPAT
+> >>
+> >> -/* Note to the author of this code: did it ever occur to
+> >> -   you why the ifdefs are needed? Think about it again. -AK */
+> >> -#if defined(CONFIG_X86_64) || defined(CONFIG_TILE)
+> >> -#  define INPUT_COMPAT_TEST is_compat_task()
+> >> -#elif defined(CONFIG_S390)
+> >> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_31BIT)
+> >> -#elif defined(CONFIG_MIPS)
+> >> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_32BIT_ADDR)
+> >> -#else
+> >> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_32BIT)
+> >> -#endif
+> >> +#define INPUT_COMPAT_TEST in_compat_syscall()
+> >>
+> >
+> >
+> > If we now have function that works on all arches I'd prefer if we used
+> > it directly instead of continuing using INPUT_COMPAT_TEST.
 > 
-> > +==========
-> > +DISCLAIMER
-> > +==========
-> > +
-> > +This document is not a specification; it is intentionally (for the sake of
-> > +brevity) and unintentionally (due to being human) incomplete. This document is
-> > +meant as a guide to using the various memory barriers provided by Linux, but
-> > +in case of any doubt (and there are many) please ask.
-> > +
-> > +I repeat, this document is not a specification of what Linux expects from
-> > +hardware.
-> 
-> The purpose of this document is twofold:
-> 
->  (1) to specify the minimum functionality that one can rely on for any
->      particular barrier, and
-> 
->  (2) to provide a guide as to how to use the barriers that are available.
-> 
-> Note that an architecture can provide more than the minimum requirement for
-> any particular barrier, but if the barrier provides less than that, it is
-> incorrect.
-> 
-> Note also that it is possible that a barrier may be a no-op for an
-> architecture because the way that arch works renders an explicit barrier
-> unnecessary in that case.
-> 
-> > +
-> 
-> Can you bung an extra blank line in here if you have to redo this at all?
-> 
-> > +========
-> > +CONTENTS
-> > +========
-> >  
-> >   (*) Abstract memory access model.
+> I'll write a followup patch for that if you don't beat me to it.
 
-Good point!  Would you be willing to add a Signed-off-by so I
-can take the combined change, assuming Peter and Will are good
-with it?
+I promise I wont ;)
 
-							Thanx, Paul
+-- 
+Dmitry
