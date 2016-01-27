@@ -1,51 +1,66 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v3] barriers: introduce smp_mb__release_acquire and
- update documentation
-Date: Wed, 27 Jan 2016 18:39:23 +0000
-Message-ID: <20160127183923.GD25545@arm.com>
-References: <1453918924-27606-1-git-send-email-will.deacon@arm.com>
- <20160127182551.GX6357@twins.programming.kicks-ass.net>
+From: Dmitry Torokhov <dmitry.torokhov@gmail.com>
+Subject: Re: [PATCH v2 14/16] input: Redefine INPUT_COMPAT_TEST as in_compat_syscall()
+Date: Wed, 27 Jan 2016 11:17:05 -0800
+Message-ID: <CAKdAkRQm6ADz5aCYAFxXcoGZ2zNFwTUXjMzZdNj-D2-YrYQtrg@mail.gmail.com>
+References: <cover.1453759363.git.luto@kernel.org>
+        <64480084bc652d5fa91bf5cd4be979e2f1e4cf11.1453759363.git.luto@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160127182551.GX6357@twins.programming.kicks-ass.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-mips-bounce@linux-mips.org>
+In-Reply-To: <64480084bc652d5fa91bf5cd4be979e2f1e4cf11.1453759363.git.luto@kernel.org>
+Sender: linux-mips-bounce@linux-mips.org
+Errors-to: linux-mips-bounce@linux-mips.org
+List-help: <mailto:ecartis@linux-mips.org?Subject=help>
+List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
+List-software: Ecartis version 1.0.0
+List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
+List-owner: <mailto:ralf@linux-mips.org>
+List-post: <mailto:linux-mips@linux-mips.org>
+List-archive: <http://www.linux-mips.org/archives/linux-mips/>
+To: Andy Lutomirski <luto@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, David Miller <davem@davemloft.net>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Chris Metcalf <cmetcalf@ezchip.com>, linux-parisc@vger.kernel.org, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, sparclinux@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 27, 2016 at 07:25:51PM +0100, Peter Zijlstra wrote:
-> On Wed, Jan 27, 2016 at 06:22:04PM +0000, Will Deacon wrote:
-> > As much as we'd like to live in a world where RELEASE -> ACQUIRE is
-> > always cheaply ordered and can be used to construct UNLOCK -> LOCK
-> > definitions with similar guarantees, the grim reality is that this isn't
-> > even possible on x86 (thanks to Paul for bringing us crashing down to
-> > Earth).
-> > 
-> > This patch handles the issue by introducing a new barrier macro,
-> > smp_mb__after_release_acquire, that can be placed after an ACQUIRE that
-> > either reads from a RELEASE or is in program-order after a RELEASE. The
-> > barrier upgrades the RELEASE-ACQUIRE pair to a full memory barrier,
-> > implying global transitivity. At the moment, it doesn't have any users,
-> > so its existence serves mainly as a documentation aid and a potential
-> > stepping stone to the reintroduction of smp_mb__after_unlock_lock() used
-> > by RCU.
-> > 
-> > Documentation/memory-barriers.txt is updated to describe more clearly
-> > the ACQUIRE and RELEASE ordering in this area and to show some examples
-> > of the new barrier in action.
-> 
-> So the obvious question is: do we have a use-case?
+Hi Andy,
 
-We have a use-case for smp_mb__after_unlock_lock, so I think we should
-either strengthen our locking guarantees so that smp_mb__after_unlock_lock
-isn't needed or introduce smp_mb__after_release_acquire to close the gap.
-As it stands, we've got an inconsistency (despite it being hidden inside
-RCU).
+On Mon, Jan 25, 2016 at 2:24 PM, Andy Lutomirski <luto@kernel.org> wrote:
+> The input compat code should work like all other compat code: for
+> 32-bit syscalls, use the 32-bit ABI and for 64-bit syscalls, use the
+> 64-bit ABI.  We have a helper for that (in_compat_syscall()): just
+> use it.
+>
+> Signed-off-by: Andy Lutomirski <luto@kernel.org>
+> ---
+>  drivers/input/input-compat.h | 12 +-----------
+>  1 file changed, 1 insertion(+), 11 deletions(-)
+>
+> diff --git a/drivers/input/input-compat.h b/drivers/input/input-compat.h
+> index 148f66fe3205..0f25878d5fa2 100644
+> --- a/drivers/input/input-compat.h
+> +++ b/drivers/input/input-compat.h
+> @@ -17,17 +17,7 @@
+>
+>  #ifdef CONFIG_COMPAT
+>
+> -/* Note to the author of this code: did it ever occur to
+> -   you why the ifdefs are needed? Think about it again. -AK */
+> -#if defined(CONFIG_X86_64) || defined(CONFIG_TILE)
+> -#  define INPUT_COMPAT_TEST is_compat_task()
+> -#elif defined(CONFIG_S390)
+> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_31BIT)
+> -#elif defined(CONFIG_MIPS)
+> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_32BIT_ADDR)
+> -#else
+> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_32BIT)
+> -#endif
+> +#define INPUT_COMPAT_TEST in_compat_syscall()
+>
 
-The main advantage of this patch is a documentation aid, in my opinion
-(hell, we talk about smp_mb__after_unlock_lock already when reasoning
-about this stuff).
 
-Will
+If we now have function that works on all arches I'd prefer if we used
+it directly instead of continuing using INPUT_COMPAT_TEST.
+
+Thanks.
+
+-- 
+Dmitry
