@@ -1,63 +1,28 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [linux-review:James-Hogan/kbuild-Remove-stale-asm-generic-wrappers/20160119-183642] d979f99e9cc14e2667e9b6e268db695977e4197a BUILD DONE
-Date: Wed, 27 Jan 2016 10:11:47 +0100
-Message-ID: <1947556.38OyJnvGS5@wuerfel>
-References: <569e1dbb.MgLv8OaZwklOxxtU%fengguang.wu@intel.com> <3724678.Yr2Z2lv3F9@wuerfel> <20160127083745.GA9933@wfg-t540p.sh.intel.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH v2 1/3] mm: provide debug_pagealloc_enabled() without
+ CONFIG_DEBUG_PAGEALLOC
+Date: Wed, 27 Jan 2016 10:15:35 +0100 (CET)
+Message-ID: <alpine.DEB.2.11.1601271015220.3886@nanos>
+References: <1453884618-33852-1-git-send-email-borntraeger@de.ibm.com> <1453884618-33852-2-git-send-email-borntraeger@de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20160127083745.GA9933@wfg-t540p.sh.intel.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Fengguang Wu <fengguang.wu@intel.com>
-Cc: James Hogan <james.hogan@imgtec.com>, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Florian Fainelli <f.fainelli@gmail.com>, Paul Burton <paul.burton@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Heinrich Schuchardt <xypron.glpk@gmx.de>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.linutronix.de ([62.245.132.108]:41553 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753474AbcA0JQr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2016 04:16:47 -0500
+In-Reply-To: <1453884618-33852-2-git-send-email-borntraeger@de.ibm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, davem@davemloft.net, Joonsoo Kim <iamjoonsoo.kim@lge.com>, davej@codemonkey.org.uk
 
-On Wednesday 27 January 2016 16:37:45 Fengguang Wu wrote:
-> 
-> Thank you for the tips! I've updated the lists accordingly.
-> 
-> 1st priority
-> ============
-> 
-> arm-allmodconfig
-> arm-allnoconfig
-> arm-at91_dt_defconfig
-> arm-efm32_defconfig
-> arm-exynos_defconfig
-> arm-multi_v7_defconfig
-> arm-multi_v8_defconfig
-> arm-shmobile_defconfig
-> arm-sunxi_defconfig
-> 
-> 2nd priority
-> ============
-> 
-> arm-arm5
-> arm-arm67
-> arm-imx_v6_v7_defconfig
-> arm-ixp4xx_defconfig
-> arm-mvebu_v7_defconfig
-> arm-omap2plus_defconfig
-> arm-sa1100
-> arm-samsung
-> arm-sh
-> arm-tegra_defconfig
-> 
-> 3nd priority
-> ============
-> 
-> arch/*/configs/*
+On Wed, 27 Jan 2016, Christian Borntraeger wrote:
 
-Looks good, I'm just unsure about "multi_v8_defconfig", this does not
-exist. Do you mean multi_v5_defconfig?
+> We can provide debug_pagealloc_enabled() also if CONFIG_DEBUG_PAGEALLOC
+> is not set. It will return false in that case.
+> 
+> Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+> Acked-by: David Rientjes <rientjes@google.com>
 
-I also wonder if you include 'randconfig' builds for some architectures.
-I have patches for all remaining errors and warnings that I see with
-ARM randconfig builds today. Not all of them are merged yet, but I could
-probably come up with a file to be used as input to KCONFIG_ALLCONFIG
-to eliminate the known-broken configurations, if you are interested.
-
-Thanks!
-
-	Arnd
+Acked-by: Thomas Gleixner <tglx@linutronix.de>
