@@ -1,54 +1,63 @@
-From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCH v2 1/3] mm: provide debug_pagealloc_enabled() without CONFIG_DEBUG_PAGEALLOC
-Date: Wed, 27 Jan 2016 09:50:16 +0100
-Message-ID: <1453884618-33852-2-git-send-email-borntraeger@de.ibm.com>
-References: <1453884618-33852-1-git-send-email-borntraeger@de.ibm.com>
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1453884618-33852-1-git-send-email-borntraeger@de.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: linux-kernel@vger.kernel.org
-Cc: akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, davem@davemloft.net, Joonsoo Kim <iamjoonsoo.kim@lge.com>, davej@codemonkey.org.uk, Christian Borntraeger <borntraeger@de.ibm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [linux-review:James-Hogan/kbuild-Remove-stale-asm-generic-wrappers/20160119-183642] d979f99e9cc14e2667e9b6e268db695977e4197a BUILD DONE
+Date: Wed, 27 Jan 2016 10:11:47 +0100
+Message-ID: <1947556.38OyJnvGS5@wuerfel>
+References: <569e1dbb.MgLv8OaZwklOxxtU%fengguang.wu@intel.com> <3724678.Yr2Z2lv3F9@wuerfel> <20160127083745.GA9933@wfg-t540p.sh.intel.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20160127083745.GA9933@wfg-t540p.sh.intel.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Fengguang Wu <fengguang.wu@intel.com>
+Cc: James Hogan <james.hogan@imgtec.com>, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Florian Fainelli <f.fainelli@gmail.com>, Paul Burton <paul.burton@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Heinrich Schuchardt <xypron.glpk@gmx.de>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.com>
 List-Id: linux-arch.vger.kernel.org
 
-We can provide debug_pagealloc_enabled() also if CONFIG_DEBUG_PAGEALLOC
-is not set. It will return false in that case.
+On Wednesday 27 January 2016 16:37:45 Fengguang Wu wrote:
+> 
+> Thank you for the tips! I've updated the lists accordingly.
+> 
+> 1st priority
+> ============
+> 
+> arm-allmodconfig
+> arm-allnoconfig
+> arm-at91_dt_defconfig
+> arm-efm32_defconfig
+> arm-exynos_defconfig
+> arm-multi_v7_defconfig
+> arm-multi_v8_defconfig
+> arm-shmobile_defconfig
+> arm-sunxi_defconfig
+> 
+> 2nd priority
+> ============
+> 
+> arm-arm5
+> arm-arm67
+> arm-imx_v6_v7_defconfig
+> arm-ixp4xx_defconfig
+> arm-mvebu_v7_defconfig
+> arm-omap2plus_defconfig
+> arm-sa1100
+> arm-samsung
+> arm-sh
+> arm-tegra_defconfig
+> 
+> 3nd priority
+> ============
+> 
+> arch/*/configs/*
 
-Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
-Acked-by: David Rientjes <rientjes@google.com>
----
- include/linux/mm.h | 9 +++++++--
- 1 file changed, 7 insertions(+), 2 deletions(-)
+Looks good, I'm just unsure about "multi_v8_defconfig", this does not
+exist. Do you mean multi_v5_defconfig?
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 7783073..56cab4e 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2147,13 +2147,18 @@ kernel_map_pages(struct page *page, int numpages, int enable)
- #ifdef CONFIG_HIBERNATION
- extern bool kernel_page_present(struct page *page);
- #endif /* CONFIG_HIBERNATION */
--#else
-+#else  /* CONFIG_DEBUG_PAGEALLOC */
-+static inline bool debug_pagealloc_enabled(void)
-+{
-+	return false;
-+}
-+
- static inline void
- kernel_map_pages(struct page *page, int numpages, int enable) {}
- #ifdef CONFIG_HIBERNATION
- static inline bool kernel_page_present(struct page *page) { return true; }
- #endif /* CONFIG_HIBERNATION */
--#endif
-+#endif /* CONFIG_DEBUG_PAGEALLOC */
- 
- #ifdef __HAVE_ARCH_GATE_AREA
- extern struct vm_area_struct *get_gate_vma(struct mm_struct *mm);
--- 
-2.3.0
+I also wonder if you include 'randconfig' builds for some architectures.
+I have patches for all remaining errors and warnings that I see with
+ARM randconfig builds today. Not all of them are merged yet, but I could
+probably come up with a file to be used as input to KCONFIG_ALLCONFIG
+to eliminate the known-broken configurations, if you are interested.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Thanks!
+
+	Arnd
