@@ -1,59 +1,87 @@
-From: Andy Lutomirski <luto@amacapital.net>
-Subject: Re: [PATCH v2 14/16] input: Redefine INPUT_COMPAT_TEST as in_compat_syscall()
-Date: Wed, 27 Jan 2016 12:29:14 -0800
-Message-ID: <CALCETrUUNM1Qoqna1e7qmEqNUwo99PJe9fSuXG4fzPdSBLfPuA@mail.gmail.com>
-References: <cover.1453759363.git.luto@kernel.org> <64480084bc652d5fa91bf5cd4be979e2f1e4cf11.1453759363.git.luto@kernel.org>
- <CAKdAkRQm6ADz5aCYAFxXcoGZ2zNFwTUXjMzZdNj-D2-YrYQtrg@mail.gmail.com>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
+Date: Wed, 27 Jan 2016 15:32:10 -0800
+Message-ID: <20160127233210.GO4503@linux.vnet.ibm.com>
+References: <20160115085554.GF3421@worktop> <20160115091348.GA27936@worktop>
+	<20160115174612.GV3818@linux.vnet.ibm.com>
+	<20160115212714.GM3421@worktop>
+	<20160115215853.GC3818@linux.vnet.ibm.com>
+	<20160125164242.GF22927@arm.com>
+	<20160126060322.GJ4503@linux.vnet.ibm.com>
+	<20160126121608.GE21553@arm.com>
+	<20160126195820.GS4503@linux.vnet.ibm.com>
+	<20160127102546.GD2390@arm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <sparclinux-owner@vger.kernel.org>
-In-Reply-To: <CAKdAkRQm6ADz5aCYAFxXcoGZ2zNFwTUXjMzZdNj-D2-YrYQtrg@mail.gmail.com>
-Sender: sparclinux-owner@vger.kernel.org
-To: Dmitry Torokhov <dmitry.torokhov@gmail.com>
-Cc: Andy Lutomirski <luto@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, David Miller <davem@davemloft.net>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Chris Metcalf <cmetcalf@ezchip.com>, linux-parisc@vger.kernel.org, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, sparclinux@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <20160127102546.GD2390@arm.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>, Peter Zijlstra <peterz@infradead.org>, virtualization@lists.linux-foundation.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, user-mode-linux-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, linux-xtensa@linux-xtensa.org, james.hogan@imgtec.com, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, adi-buildroot-devel@lists.sourceforge.net, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, ddaney.cavm@gmail.com, Thomas Gleixner <tglx@linutronix.de>, linux-metag@vger.kernel.
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 27, 2016 at 11:17 AM, Dmitry Torokhov
-<dmitry.torokhov@gmail.com> wrote:
-> Hi Andy,
->
-> On Mon, Jan 25, 2016 at 2:24 PM, Andy Lutomirski <luto@kernel.org> wrote:
->> The input compat code should work like all other compat code: for
->> 32-bit syscalls, use the 32-bit ABI and for 64-bit syscalls, use the
->> 64-bit ABI.  We have a helper for that (in_compat_syscall()): just
->> use it.
->>
->> Signed-off-by: Andy Lutomirski <luto@kernel.org>
->> ---
->>  drivers/input/input-compat.h | 12 +-----------
->>  1 file changed, 1 insertion(+), 11 deletions(-)
->>
->> diff --git a/drivers/input/input-compat.h b/drivers/input/input-compat.h
->> index 148f66fe3205..0f25878d5fa2 100644
->> --- a/drivers/input/input-compat.h
->> +++ b/drivers/input/input-compat.h
->> @@ -17,17 +17,7 @@
->>
->>  #ifdef CONFIG_COMPAT
->>
->> -/* Note to the author of this code: did it ever occur to
->> -   you why the ifdefs are needed? Think about it again. -AK */
->> -#if defined(CONFIG_X86_64) || defined(CONFIG_TILE)
->> -#  define INPUT_COMPAT_TEST is_compat_task()
->> -#elif defined(CONFIG_S390)
->> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_31BIT)
->> -#elif defined(CONFIG_MIPS)
->> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_32BIT_ADDR)
->> -#else
->> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_32BIT)
->> -#endif
->> +#define INPUT_COMPAT_TEST in_compat_syscall()
->>
->
->
-> If we now have function that works on all arches I'd prefer if we used
-> it directly instead of continuing using INPUT_COMPAT_TEST.
+On Wed, Jan 27, 2016 at 10:25:46AM +0000, Will Deacon wrote:
+> On Tue, Jan 26, 2016 at 11:58:20AM -0800, Paul E. McKenney wrote:
+> > On Tue, Jan 26, 2016 at 12:16:09PM +0000, Will Deacon wrote:
+> > > On Mon, Jan 25, 2016 at 10:03:22PM -0800, Paul E. McKenney wrote:
+> > > > On Mon, Jan 25, 2016 at 04:42:43PM +0000, Will Deacon wrote:
+> > > > > On Fri, Jan 15, 2016 at 01:58:53PM -0800, Paul E. McKenney wrote:
+> > > > > > PPC Overlapping Group-B sets version 4
+> > > > > > ""
+> > > > > > (* When the Group-B sets from two different barriers involve instructions in
+> > > > > >    the same thread, within that thread one set must contain the other.
+> > > > > > 
+> > > > > > 	P0	P1	P2
+> > > > > > 	Rx=1	Wy=1	Wz=2
+> > > > > > 	dep.	lwsync	lwsync
+> > > > > > 	Ry=0	Wz=1	Wx=1
+> > > > > > 	Rz=1
+> > > > > > 
+> > > > > > 	assert(!(z=2))
+> > > > > > 
+> > > > > >    Forbidden by ppcmem, allowed by herd.
+> > > > > > *)
+> > > > > > {
+> > > > > > 0:r1=x; 0:r2=y; 0:r3=z;
+> > > > > > 1:r1=x; 1:r2=y; 1:r3=z; 1:r4=1;
+> > > > > > 2:r1=x; 2:r2=y; 2:r3=z; 2:r4=1; 2:r5=2;
+> > > > > > }
+> > > > > >  P0		| P1		| P2		;
+> > > > > >  lwz r6,0(r1)	| stw r4,0(r2)	| stw r5,0(r3)	;
+> > > > > >  xor r7,r6,r6	| lwsync	| lwsync	;
+> > > > > >  lwzx r7,r7,r2	| stw r4,0(r3)	| stw r4,0(r1)	;
+> > > > > >  lwz r8,0(r3)	|		|		;
+> > > > > > 
+> > > > > > exists
+> > > > > > (z=2 /\ 0:r6=1 /\ 0:r7=0 /\ 0:r8=1)
+> > > > > 
+> > > > > That really hurts. Assuming that the "assert(!(z=2))" is actually there
+> > > > > to constrain the coherence order of z to be {0->1->2}, then I think that
+> > > > > this test is forbidden on arm using dmb instead of lwsync. That said, I
+> > > > > also don't think the Rz=1 in P0 changes anything.
+> > > > 
+> > > > What about the smp_wmb() variant of dmb that orders only stores?
+> > > 
+> > > Tricky, but I think it still works out if the coherence order of z is as
+> > > I described above. The line of reasoning is weird though -- I ended up
+> > > considering the two cases where P0 reads z before and after it reads x
+> > > and what that means for the read of y.
+> > 
+> > By "works out" you mean that ARM prohibits the outcome?
+> 
+> Yes, that's my understanding.
 
-I'll write a followup patch for that if you don't beat me to it.
+Very good, we have agreement between the two architectures, then.  ;-)
 
---Andy
+							Thanx, Paul
