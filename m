@@ -1,58 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp10.uk.ibm.com ([195.75.94.106]:41000 "EHLO
-	e06smtp10.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754022AbcA0IuC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2016 03:50:02 -0500
+Received: from e06smtp16.uk.ibm.com ([195.75.94.112]:50452 "EHLO
+	e06smtp16.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753966AbcA0IuF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2016 03:50:05 -0500
 Received: from localhost
-	by e06smtp10.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e06smtp16.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <borntraeger@de.ibm.com>;
-	Wed, 27 Jan 2016 08:50:00 -0000
+	Wed, 27 Jan 2016 08:50:04 -0000
 From: Christian Borntraeger <borntraeger@de.ibm.com>
-Subject: [PATCH v2 1/3] mm: provide debug_pagealloc_enabled() without CONFIG_DEBUG_PAGEALLOC
-Date: Wed, 27 Jan 2016 09:50:16 +0100
-Message-ID: <1453884618-33852-2-git-send-email-borntraeger@de.ibm.com>
+Subject: [PATCH v2 2/3] x86: query dynamic DEBUG_PAGEALLOC setting
+Date: Wed, 27 Jan 2016 09:50:17 +0100
+Message-ID: <1453884618-33852-3-git-send-email-borntraeger@de.ibm.com>
 In-Reply-To: <1453884618-33852-1-git-send-email-borntraeger@de.ibm.com>
 References: <1453884618-33852-1-git-send-email-borntraeger@de.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, davem@davemloft.net, Joonsoo Kim <iamjoonsoo.kim@lge.com>, davej@codemonkey.org.uk, Christian Borntraeger <borntraeger@de.ibm.com>
-Message-ID: <20160127085016.ATqDqru9BrY9bXK0hSCrH0ytQZ6mv5VNaknn71po7LI@z>
+Message-ID: <20160127085017.D30mgNpuq5rUQe0GpgI3UKVjg_oUqOUHc4-XhTdOiqw@z>
 
-We can provide debug_pagealloc_enabled() also if CONFIG_DEBUG_PAGEALLOC
-is not set. It will return false in that case.
+We can use debug_pagealloc_enabled() to check if we can map
+the identity mapping with 2MB pages. We can also add the state
+into the dump_stack output.
+
+The patch does not touch the code for the 1GB pages, which ignored
+CONFIG_DEBUG_PAGEALLOC. Do we need to fence this as well?
 
 Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
-Acked-by: David Rientjes <rientjes@google.com>
 ---
- include/linux/mm.h | 9 +++++++--
- 1 file changed, 7 insertions(+), 2 deletions(-)
+ arch/x86/kernel/dumpstack.c |  5 ++---
+ arch/x86/mm/init.c          |  7 ++++---
+ arch/x86/mm/pageattr.c      | 14 ++++----------
+ 3 files changed, 10 insertions(+), 16 deletions(-)
 
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index 7783073..56cab4e 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -2147,13 +2147,18 @@ kernel_map_pages(struct page *page, int numpages, int enable)
- #ifdef CONFIG_HIBERNATION
- extern bool kernel_page_present(struct page *page);
- #endif /* CONFIG_HIBERNATION */
--#else
-+#else  /* CONFIG_DEBUG_PAGEALLOC */
-+static inline bool debug_pagealloc_enabled(void)
-+{
-+	return false;
-+}
-+
- static inline void
- kernel_map_pages(struct page *page, int numpages, int enable) {}
- #ifdef CONFIG_HIBERNATION
- static inline bool kernel_page_present(struct page *page) { return true; }
- #endif /* CONFIG_HIBERNATION */
+diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
+index 9c30acf..32e5699 100644
+--- a/arch/x86/kernel/dumpstack.c
++++ b/arch/x86/kernel/dumpstack.c
+@@ -265,9 +265,8 @@ int __die(const char *str, struct pt_regs *regs, long err)
+ #ifdef CONFIG_SMP
+ 	printk("SMP ");
+ #endif
+-#ifdef CONFIG_DEBUG_PAGEALLOC
+-	printk("DEBUG_PAGEALLOC ");
 -#endif
-+#endif /* CONFIG_DEBUG_PAGEALLOC */
++	if (debug_pagealloc_enabled())
++		printk("DEBUG_PAGEALLOC ");
+ #ifdef CONFIG_KASAN
+ 	printk("KASAN");
+ #endif
+diff --git a/arch/x86/mm/init.c b/arch/x86/mm/init.c
+index 493f541..39823fd 100644
+--- a/arch/x86/mm/init.c
++++ b/arch/x86/mm/init.c
+@@ -150,13 +150,14 @@ static int page_size_mask;
  
- #ifdef __HAVE_ARCH_GATE_AREA
- extern struct vm_area_struct *get_gate_vma(struct mm_struct *mm);
+ static void __init probe_page_size_mask(void)
+ {
+-#if !defined(CONFIG_DEBUG_PAGEALLOC) && !defined(CONFIG_KMEMCHECK)
++#if !defined(CONFIG_KMEMCHECK)
+ 	/*
+-	 * For CONFIG_DEBUG_PAGEALLOC, identity mapping will use small pages.
++	 * For CONFIG_KMEMCHECK or pagealloc debugging, identity mapping will
++	 * use small pages.
+ 	 * This will simplify cpa(), which otherwise needs to support splitting
+ 	 * large pages into small in interrupt context, etc.
+ 	 */
+-	if (cpu_has_pse)
++	if (cpu_has_pse && !debug_pagealloc_enabled())
+ 		page_size_mask |= 1 << PG_LEVEL_2M;
+ #endif
+ 
+diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+index a3137a4..a49c8fd 100644
+--- a/arch/x86/mm/pageattr.c
++++ b/arch/x86/mm/pageattr.c
+@@ -103,12 +103,6 @@ static inline unsigned long highmap_end_pfn(void)
+ 
+ #endif
+ 
+-#ifdef CONFIG_DEBUG_PAGEALLOC
+-# define debug_pagealloc 1
+-#else
+-# define debug_pagealloc 0
+-#endif
+-
+ static inline int
+ within(unsigned long addr, unsigned long start, unsigned long end)
+ {
+@@ -703,10 +697,10 @@ static int split_large_page(struct cpa_data *cpa, pte_t *kpte,
+ {
+ 	struct page *base;
+ 
+-	if (!debug_pagealloc)
++	if (!debug_pagealloc_enabled())
+ 		spin_unlock(&cpa_lock);
+ 	base = alloc_pages(GFP_KERNEL | __GFP_NOTRACK, 0);
+-	if (!debug_pagealloc)
++	if (!debug_pagealloc_enabled())
+ 		spin_lock(&cpa_lock);
+ 	if (!base)
+ 		return -ENOMEM;
+@@ -1326,10 +1320,10 @@ static int __change_page_attr_set_clr(struct cpa_data *cpa, int checkalias)
+ 		if (cpa->flags & (CPA_ARRAY | CPA_PAGES_ARRAY))
+ 			cpa->numpages = 1;
+ 
+-		if (!debug_pagealloc)
++		if (!debug_pagealloc_enabled())
+ 			spin_lock(&cpa_lock);
+ 		ret = __change_page_attr(cpa, checkalias);
+-		if (!debug_pagealloc)
++		if (!debug_pagealloc_enabled())
+ 			spin_unlock(&cpa_lock);
+ 		if (ret)
+ 			return ret;
 -- 
 2.3.0
 
