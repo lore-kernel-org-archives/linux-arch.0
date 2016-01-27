@@ -1,53 +1,62 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [linux-review:James-Hogan/kbuild-Remove-stale-asm-generic-wrappers/20160119-183642] d979f99e9cc14e2667e9b6e268db695977e4197a BUILD DONE
-Date: Wed, 27 Jan 2016 10:44:01 +0100
-Message-ID: <3596300.IYfzmako0c@wuerfel>
-References: <569e1dbb.MgLv8OaZwklOxxtU%fengguang.wu@intel.com> <1947556.38OyJnvGS5@wuerfel> <20160127093018.GA21190@wfg-t540p.sh.intel.com>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH v2 3/3] s390: query dynamic DEBUG_PAGEALLOC setting
+Date: Wed, 27 Jan 2016 10:55:43 +0100
+Message-ID: <20160127095543.GB4439@osiris>
+References: <1453884618-33852-1-git-send-email-borntraeger@de.ibm.com>
+ <1453884618-33852-4-git-send-email-borntraeger@de.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20160127093018.GA21190@wfg-t540p.sh.intel.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Fengguang Wu <fengguang.wu@intel.com>
-Cc: James Hogan <james.hogan@imgtec.com>, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Florian Fainelli <f.fainelli@gmail.com>, Paul Burton <paul.burton@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Heinrich Schuchardt <xypron.glpk@gmx.de>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.com>, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1453884618-33852-4-git-send-email-borntraeger@de.ibm.com>
+Sender: owner-linux-mm@kvack.org
+To: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: linux-kernel@vger.kernel.org, akpm@linux-foundation.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, davem@davemloft.net, Joonsoo Kim <iamjoonsoo.kim@lge.com>, davej@codemonkey.org.uk
 List-Id: linux-arch.vger.kernel.org
 
-On Wednesday 27 January 2016 17:30:18 Fengguang Wu wrote:
-
-> > Looks good, I'm just unsure about "multi_v8_defconfig", this does not
-> > exist. Do you mean multi_v5_defconfig?
-
-> Ah yes, multi_v8_defconfig does not exist actually.
-
-Ok, can you include multi_v5_defconfig than?
-
-I see you have one named "arm-arm5", which may be the same.
-
-> > I also wonder if you include 'randconfig' builds for some architectures.
-> > I have patches for all remaining errors and warnings that I see with
-> > ARM randconfig builds today. Not all of them are merged yet, but I could
-> > probably come up with a file to be used as input to KCONFIG_ALLCONFIG
-> > to eliminate the known-broken configurations, if you are interested.
+On Wed, Jan 27, 2016 at 09:50:18AM +0100, Christian Borntraeger wrote:
+> We can use debug_pagealloc_enabled() to check if we can map
+> the identity mapping with 1MB/2GB pages as well as to print
+> the current setting in dump_stack.
 > 
-> If the are mostly ready for upstream, it may be easier to wait until
-> upstream randconfig works just fine for ARM.
+> Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+> ---
+>  arch/s390/kernel/dumpstack.c |  8 ++++----
+>  arch/s390/mm/vmem.c          | 10 ++++------
+>  2 files changed, 8 insertions(+), 10 deletions(-)
+> 
+> diff --git a/arch/s390/kernel/dumpstack.c b/arch/s390/kernel/dumpstack.c
+> index dc8e204..3f352e9 100644
+> --- a/arch/s390/kernel/dumpstack.c
+> +++ b/arch/s390/kernel/dumpstack.c
+> @@ -11,6 +11,7 @@
+>  #include <linux/export.h>
+>  #include <linux/kdebug.h>
+>  #include <linux/ptrace.h>
+> +#include <linux/mm.h>
+>  #include <linux/module.h>
+>  #include <linux/sched.h>
+>  #include <asm/processor.h>
+> @@ -184,10 +185,9 @@ void die(struct pt_regs *regs, const char *str)
+>  #endif
+>  #ifdef CONFIG_SMP
+>  	printk("SMP ");
+> -#endif
+> -#ifdef CONFIG_DEBUG_PAGEALLOC
+> -	printk("DEBUG_PAGEALLOC");
+> -#endif
+> +#endif	
+> +if (debug_pagealloc_enabled())
+> +		printk("DEBUG_PAGEALLOC");
+>  	printk("\n");
 
-I have around 130 patches for warnings that I'm submitting at the moment, but
-there are a couple of really tricky ones that I don't currently have
-a good plan for:
+Indentation is broken ("if").
+Besides that
 
-- in some configurations, you end up without any boards selected, hitting
-  an #error in the final link
-- ARMv3 support in gcc is rather broken and causes internal compiler errors
-  among other things
-- the old ELF format (OABI) doesn't work in some cases
-- GCOV_PROFILE_ALL causes problems that need to be debugged
-- XIP_KERNEL sometimes causes kallsyms to fail
-- not all platforms implement the complete clk API, if they don't
-  use CONFIG_COMMON_CLK (I have patch for that we can probably merge)
-- CONFIG_PHYS_OFFSET needs to be entered manually to be a number
-  in 'make config'
-- same for DEBUG_LL
+Reviewed-by: Heiko Carstens <heiko.carstens@de.ibm.com>
 
-	Arnd
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
