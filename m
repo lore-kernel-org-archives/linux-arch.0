@@ -1,89 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bombadil.infradead.org ([198.137.202.9]:43951 "EHLO
-	bombadil.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752170AbcA0IgO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2016 03:36:14 -0500
-Date: Wed, 27 Jan 2016 09:35:46 +0100
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: [PATCH] documentation: Add disclaimer
-Message-ID: <20160127083546.GJ6357@twins.programming.kicks-ass.net>
-References: <5696BA6E.4070508@imgtec.com>
- <20160114120445.GB15828@arm.com>
- <56980145.5030901@imgtec.com>
- <20160114204827.GE3818@linux.vnet.ibm.com>
- <56981212.7050301@imgtec.com>
- <20160114222046.GH3818@linux.vnet.ibm.com>
- <20160126102402.GE6357@twins.programming.kicks-ass.net>
- <20160126103200.GI6375@twins.programming.kicks-ass.net>
- <20160126110053.GA21553@arm.com>
- <20160126201143.GV4503@linux.vnet.ibm.com>
+Received: from mga11.intel.com ([192.55.52.93]:45887 "EHLO mga11.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751660AbcA0Ihu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Jan 2016 03:37:50 -0500
+Date: Wed, 27 Jan 2016 16:37:45 +0800
+From: Fengguang Wu <fengguang.wu@intel.com>
+Subject: Re:
+ [linux-review:James-Hogan/kbuild-Remove-stale-asm-generic-wrappers/20160119-183642]
+ d979f99e9cc14e2667e9b6e268db695977e4197a BUILD DONE
+Message-ID: <20160127083745.GA9933@wfg-t540p.sh.intel.com>
+References: <569e1dbb.MgLv8OaZwklOxxtU%fengguang.wu@intel.com>
+ <20160126053050.GB20385@wfg-t540p.sh.intel.com>
+ <20160126053504.GA22301@wfg-t540p.sh.intel.com>
+ <3724678.Yr2Z2lv3F9@wuerfel>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20160126201143.GV4503@linux.vnet.ibm.com>
+In-Reply-To: <3724678.Yr2Z2lv3F9@wuerfel>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Will Deacon <will.deacon@arm.com>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ralf Baechle <ralf@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, ddaney.cavm@gmail.com, james.hogan@imgtec.com, Michael Ellerman <mpe@ellerman.id.au>
-Message-ID: <20160127083546.bF7zAh1JQWanrOu1yCdXBCCJCvn_vvrY9SQWUz7Fh00@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: James Hogan <james.hogan@imgtec.com>, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Florian Fainelli <f.fainelli@gmail.com>, Paul Burton <paul.burton@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Heinrich Schuchardt <xypron.glpk@gmx.de>, linux-kernel@vger.kernel.org, Michal Marek <mmarek@suse.com>
+Message-ID: <20160127083745.sQ4cY1gpxCD-DUhnph4gZhIW_zC4UR-B0lJuDsCX54U@z>
 
-On Tue, Jan 26, 2016 at 12:11:43PM -0800, Paul E. McKenney wrote:
-> So Peter, would you like to update your patch to include yourself
-> and Will as authors?
+Hi Arnd,
 
-Sure, here goes.
+Thank you for the tips! I've updated the lists accordingly.
 
----
-Subject: documentation: Add disclaimer
+1st priority
+============
 
-It appears people are reading this document as a requirements list for
-building hardware. This is not the intent of this document. Nor is it
-particularly suited for this purpose.
+arm-allmodconfig
+arm-allnoconfig
+arm-at91_dt_defconfig
+arm-efm32_defconfig
+arm-exynos_defconfig
+arm-multi_v7_defconfig
+arm-multi_v8_defconfig
+arm-shmobile_defconfig
+arm-sunxi_defconfig
 
-The primary purpose of this document is our collective attempt to define
-a set of primitives that (hopefully) allow us to write correct code on
-the myriad of SMP platforms Linux supports.
+2nd priority
+============
 
-Its a definite work in progress as our understanding of these platforms,
-and memory ordering in general, progresses.
+arm-arm5
+arm-arm67
+arm-imx_v6_v7_defconfig
+arm-ixp4xx_defconfig
+arm-mvebu_v7_defconfig
+arm-omap2plus_defconfig
+arm-sa1100
+arm-samsung
+arm-sh
+arm-tegra_defconfig
 
-Nor does being mentioned in this document mean we think its a
-particularly good idea; the data dependency barrier required by Alpha
-being a prime example. Yes we have it, no you're insane to require it
-when building new hardware.
+3nd priority
+============
 
-Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
----
- Documentation/memory-barriers.txt | 18 +++++++++++++++++-
- 1 file changed, 17 insertions(+), 1 deletion(-)
+arch/*/configs/*
 
-diff --git a/Documentation/memory-barriers.txt b/Documentation/memory-barriers.txt
-index a61be39c7b51..98626125f484 100644
---- a/Documentation/memory-barriers.txt
-+++ b/Documentation/memory-barriers.txt
-@@ -4,8 +4,24 @@
- 
- By: David Howells <dhowells@redhat.com>
-     Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-+    Will Deacon <will.deacon@arm.com>
-+    Peter Zijlstra <peterz@infradead.org>
- 
--Contents:
-+==========
-+DISCLAIMER
-+==========
-+
-+This document is not a specification; it is intentionally (for the sake of
-+brevity) and unintentionally (due to being human) incomplete. This document is
-+meant as a guide to using the various memory barriers provided by Linux, but
-+in case of any doubt (and there are many) please ask.
-+
-+I repeat, this document is not a specification of what Linux expects from
-+hardware.
-+
-+========
-+CONTENTS
-+========
- 
-  (*) Abstract memory access model.
- 
+Thanks,
+Fengguang
+
+On Tue, Jan 26, 2016 at 05:27:46PM +0100, Arnd Bergmann wrote:
+> On Tuesday 26 January 2016 13:35:04 Fengguang Wu wrote:
+> > > There are a fixed set of config files for fast build tests (which I
+> > > selected randomly, feel free to ask me to change the list to more
+> > > reasonable ones):
+> > > 
+> > >       arm-allnoconfig
+> > >       arm-at91_dt_defconfig
+> > >       arm-at_hdmac
+> > >       arm-ep93xx
+> > >       arm-imx_v6_v7_defconfig
+> > >       arm-iop-adma
+> > >       arm-marzen_defconfig
+> > >       arm-prima2_defconfig
+> > >       arm-sa1100
+> > >       arm-samsung
+> > >       arm-sh
+> > >       arm-spear13xx_defconfig
+> > 
+> > And there is another set of best effort configs whose priority is
+> > in-between the above list and the arch/*/configs/* ones.
+> > 
+> >         arm-arm5
+> >         arm-arm67
+> >         arm-mmp
+> >         arm-omap2plus_defconfig
+> >         arm-s3c2410_defconfig
+> >         arm-tegra_defconfig
+> > 
+> 
+> I think we want at least one ARMv7-M NOMMU target in the list,
+> I'd pick efm32_defconfig as it has the least overlap with the
+> drivers in the other configs.
+> 
+> I don't know what arm-sh is, but I assume it's a superset of
+> marzen, so you can probably drop marzen or move it down to the
+> low-prio set. Similarly, the at_hdmac is likely a subset of
+> at91_dt_defconfig and could be dropped.
+> 
+> prima2, ep93xx and spear13xx, mmp and s3c2410 are all
+> slow-moving platforms, I would not expect to see much
+> results from running those compared to the more active
+> platforms.
+> 
+> The platforms with the most changes these days are omap2plus,
+> sunxi, shmobile, and exynos (samsung), followed by some
+> that are widely used but not changed as much including
+> tegra, imx_v6_v7, mvebu_v7, and qcom (previously msm).
+> 
+> iop and sa1100 are rather old and won't change much, but it
+> can be good to keep them in there because they are for older
+> CPU architectures and behave a little different from the
+> modern ones. It might be better to replace iop with ixp4xx,
+> as this one is the only big-endian defconfig build we have,
+> and that sometimes catches build-time bugs.
+> 
+> 	Arnd
