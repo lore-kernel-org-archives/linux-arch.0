@@ -1,57 +1,62 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH] documentation: Add disclaimer
-Date: Wed, 27 Jan 2016 14:57:07 +0000
-Message-ID: <15882.1453906627@warthog.procyon.org.uk>
-References: <20160127083546.GJ6357@twins.programming.kicks-ass.net> <5696BA6E.4070508@imgtec.com> <20160114120445.GB15828@arm.com> <56980145.5030901@imgtec.com> <20160114204827.GE3818@linux.vnet.ibm.com> <56981212.7050301@imgtec.com> <20160114222046.GH3818@linux.vnet.ibm.com> <20160126102402.GE6357@twins.programming.kicks-ass.net> <20160126103200.GI6375@twins.programming.kicks-ass.net> <20160126110053.GA21553@arm.com> <20160126201143.GV4503@linux.vnet.ibm.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: LATENCYTOP not building on ia64
+Date: Wed, 27 Jan 2016 15:00:31 +0000
+Message-ID: <20160127150031.GI2390@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <sparclinux-owner@vger.kernel.org>
-In-Reply-To: <20160127083546.GJ6357@twins.programming.kicks-ass.net>
-Content-ID: <15881.1453906627.1@warthog.procyon.org.uk>
-Sender: sparclinux-owner@vger.kernel.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: dhowells@redhat.com, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Will Deacon <will.deacon@arm.com>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linu
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from foss.arm.com ([217.140.101.70]:53079 "EHLO foss.arm.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932555AbcA0PAk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 27 Jan 2016 10:00:40 -0500
+Content-Disposition: inline
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
+Cc: heiko.carstens@de.ibm.com, akpm@linux-foundation.org, viro@zeniv.linux.org.uk, tglx@linutronix.de, tony.luck@intel.com
 
-Peter Zijlstra <peterz@infradead.org> wrote:
+Hi all,
 
-> +==========
-> +DISCLAIMER
-> +==========
-> +
-> +This document is not a specification; it is intentionally (for the sake of
-> +brevity) and unintentionally (due to being human) incomplete. This document is
-> +meant as a guide to using the various memory barriers provided by Linux, but
-> +in case of any doubt (and there are many) please ask.
-> +
-> +I repeat, this document is not a specification of what Linux expects from
-> +hardware.
+After da48d094ce5d ("Kconfig: remove HAVE_LATENCYTOP_SUPPORT"),
+CONFIG_LATENCYTOP can be selected on all architectures. Unfortunately,
+viro reported that this breaks the build for ia64:
 
-The purpose of this document is twofold:
+  arch/ia64/kernel/entry.S: Assembler messages:
+  arch/ia64/kernel/entry.S:621: Error: Operand 2 of `adds' should be a 14-bit integer (-8192-8191)
+  arch/ia64/kernel/entry.S:728: Error: Operand 2 of `adds' should be a 14-bit integer (-8192-8191)
+  arch/ia64/kernel/entry.S:859: Error: Operand 2 of `adds' should be a 14-bit integer (-8192-8191)
+  make[1]: *** [arch/ia64/kernel/entry.o] Error 1
 
- (1) to specify the minimum functionality that one can rely on for any
-     particular barrier, and
+This is because the task_struct is over 8K thanks to the latency_record
+array, which means that the 14-bit immediate offset expected by the adds
+instruction to grab hold of the thread info flags is now out-of-range on
+ia64. I had a quick go at fixing it in entry.S, but I ended up with
+worse code due to the need to perform the offset calculation as a
+separate step (which introduces a hazard).
 
- (2) to provide a guide as to how to use the barriers that are available.
+We could simply revert da48d094ce5d to make the problem disappear, but
+I'd be interested to know whether or not this is an ia64-specific problem
+and therefore whether LATENCYTOP should be opt-out as opposed to opt-in
+for a given architecture.
 
-Note that an architecture can provide more than the minimum requirement for
-any particular barrier, but if the barrier provides less than that, it is
-incorrect.
+Prior to da48d094ce5d, arc, arm, metag, microblaze, parisc, powerpc,
+s390, sh, sparc, unicore32 and x86 all selected HAVE_LATENCYTOP_SUPPORT
+so assumedly they don't run into problems. arm64 also works ok with the
+option enabled.
 
-Note also that it is possible that a barrier may be a no-op for an
-architecture because the way that arch works renders an explicit barrier
-unnecessary in that case.
+Will
 
-> +
+--->8
 
-Can you bung an extra blank line in here if you have to redo this at all?
-
-> +========
-> +CONTENTS
-> +========
->  
->   (*) Abstract memory access model.
->  
-
-David
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index ecb9e75614bf..9c66339e3879 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -1600,6 +1600,7 @@ config LATENCYTOP
+ 	depends on DEBUG_KERNEL
+ 	depends on STACKTRACE_SUPPORT
+ 	depends on PROC_FS
++	depends on !IA64
+ 	select FRAME_POINTER if !MIPS && !PPC && !S390 && !MICROBLAZE && !ARM_UNWIND && !ARC
+ 	select KALLSYMS
+ 	select KALLSYMS_ALL
