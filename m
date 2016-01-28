@@ -1,49 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f66.google.com ([74.125.82.66]:35041 "EHLO
-	mail-wm0-f66.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755479AbcA1RMU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jan 2016 12:12:20 -0500
+Received: from pandora.arm.linux.org.uk ([78.32.30.218]:42485 "EHLO
+	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752484AbcA1Rmx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jan 2016 12:42:53 -0500
+Date: Thu, 28 Jan 2016 17:42:41 +0000
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re:
+ [linux-review:James-Hogan/kbuild-Remove-stale-asm-generic-wrappers/20160119-183642]
+ d979f99e9cc14e2667e9b6e268db695977e4197a BUILD DONE
+Message-ID: <20160128174241.GN10826@n2100.arm.linux.org.uk>
+References: <569e1dbb.MgLv8OaZwklOxxtU%fengguang.wu@intel.com>
+ <1947556.38OyJnvGS5@wuerfel>
+ <20160127093018.GA21190@wfg-t540p.sh.intel.com>
+ <3596300.IYfzmako0c@wuerfel>
+ <20160128031435.GA25625@wfg-t540p.sh.intel.com>
 MIME-Version: 1.0
-In-Reply-To: <20160128143925.GC775@arm.com>
-References: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com>
-	<1453134965-6125-4-git-send-email-gkulkarni@caviumnetworks.com>
-	<20160126203603.GC17600@localhost>
-	<20160128143925.GC775@arm.com>
-Date: Thu, 28 Jan 2016 22:42:17 +0530
-Message-ID: <CAFpQJXVhEVw7vSq233wfkOGkTanf-msO+PEcWJ2OVAFUhn7n+w@mail.gmail.com>
-Subject: Re: [PATCH v9 3/6] arm64/arm, numa, dt: adding numa dt binding
- implementation for arm64 platforms.
-From: Ganapatrao Kulkarni <gpkulkarni@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160128031435.GA25625@wfg-t540p.sh.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Bjorn Helgaas <helgaas@kernel.org>, Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Grant Likely <grant.likely@linaro.org>, Leif Lindholm <leif.lindholm@linaro.org>, rfranz@cavium.com, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "msalter@redhat.com" <msalter@redhat.com>, Rob Herring <robh+dt@kernel.org>, Steve Capper <steve.capper@linaro.org>, Hanjun Guo <hanjun.guo@linaro.org>, Al Stone <al.stone@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Pawel Moll <pawel.moll@arm.com>, Mark Rutland <mark.rutland@arm.com>, Ian Campbell <ijc+devicetree@hellion.org.uk>, Kumar Gala <galak@codeaurora.org>, "Rafael J. Wysocki" <rjw@rjwysocki.net>, Len Brown <lenb@kernel.org>, Marc Zyngier <marc.zyngier@arm.com>, Lorenzo Pieralisi <lorenzo.pieralisi@arm.com>, Bjorn Helgaas <bhelgaas@google.com>, tony.luck@intel.com, fenghua.yu@intel.com, james.hogan@imgtec.com, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "tglx@linutronix.de" <tglx@linutronix.de>, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, Jon Masters <jonathan@jonmasters.org>, Robert Richter <rrichter@cavium.com>, Prasun Kapoor <Prasun.Kapoor@caviumnetworks.com>
-Message-ID: <20160128171217.WhSs_3mLkDOP684CLHs2OaTceUq6NHko_9jsfzuQles@z>
+To: Fengguang Wu <fengguang.wu@intel.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, James Hogan <james.hogan@imgtec.com>, Paul Burton <paul.burton@imgtec.com>, linux-kbuild@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, Florian Fainelli <f.fainelli@gmail.com>, Michal Marek <mmarek@suse.com>, linux-arm-kernel@lists.infradead.org
+Message-ID: <20160128174241.QTDpsA-GSYUo2Fv_T_G0T2OX0Z63c5OI20ivwyUGMgs@z>
 
-Hi Will,
+On Thu, Jan 28, 2016 at 11:14:35AM +0800, Fengguang Wu wrote:
+> On Wed, Jan 27, 2016 at 10:44:01AM +0100, Arnd Bergmann wrote:
+> > - CONFIG_PHYS_OFFSET needs to be entered manually to be a number
+> >   in 'make config'
+> 
+> That's a problem for auto tests.
 
+I'm really against the idea of providing some kind of "default" to it.
+Not providing a default means that people _have_ to do some research
+for their particular system in order to provide a value, and they're
+more likely to get the right value.  Providing a default will lead to
+the assumption that the value is okay, and then we'll end up with
+people complaining that their kernel doesn't boot, and is totally
+silent.
 
-On Thu, Jan 28, 2016 at 8:09 PM, Will Deacon <will.deacon@arm.com> wrote:
-> On Tue, Jan 26, 2016 at 02:36:04PM -0600, Bjorn Helgaas wrote:
->> Subject is "arm64/arm, numa, dt: adding ..."  What is the significance
->> of the "arm" part?  The other patches only mention "arm64".
->>
->> General comment: the code below has little, if anything, that is
->> actually arm64-specific.  Maybe this is the first DT-based NUMA
->> platform?  I don't see other similar code for other arches, so maybe
->> it's too early to try to generalize it, but we should try to avoid
->> adding duplicates of this code if/when other arches do show up.
->
-> Having it in the core code would allow us to share it with arch/arm/
-> fairly straightforwardly.
-This binding can be used for arm too.
-however at this moment it is the need of arm64 platforms.
-can we please keep this to arm64 as it's too early to try to
-generalize it(as Bjorn suggested)
-I prefer to keep it as it is, otherwise ok.
-Please suggest.
->
-> Will
-thanks
-Ganapat
+The only default I'd accept is one based on the rest of the config -
+in other words, re-introducing all the physical address of RAM that
+we used to have in the mach/memory.h files...
+
+There's other ways around these kinds of things, the Kconfig system
+does allow a Kconfig fragment which can be used to pre-set some
+configuration options to particular values - and so which can be used
+to set CONFIG_PHYS_OFFSET prior to an allrandconfig or similar.
+
+-- 
+RMK's Patch system: http://www.arm.linux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
