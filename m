@@ -1,78 +1,162 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [kernel-hardening] [PATCH v4 3/8] param: convert some "on"/"off"
- users to strtobool
-Date: Wed, 27 Jan 2016 13:19:19 -0800
-Message-ID: <CAGXu5j+DLRoVE88a9++jVfEkN90HDiAaDAMnT2TrKqtMZ_yOww@mail.gmail.com>
-References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
-	<1453226922-16831-4-git-send-email-keescook@chromium.org>
-	<20160127211105.GA41450@davidb.org>
+From: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
+Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
+Date: Wed, 27 Jan 2016 16:48:45 -0800
+Message-ID: <56A9656D.3080707@imgtec.com>
+References: <20160113104516.GE25458@arm.com> <5696CF08.8080700@imgtec.com>
+	<20160114121449.GC15828@arm.com> <5697F6D2.60409@imgtec.com>
+	<20160114203430.GC3818@linux.vnet.ibm.com>
+	<56980C91.1010403@imgtec.com>
+	<20160114212913.GF3818@linux.vnet.ibm.com>
+	<569814F2.50801@imgtec.com>
+	<20160114225510.GJ3818@linux.vnet.ibm.com>
+	<56983054.4070807@imgtec.com>
+	<20160115004753.GN3818@linux.vnet.ibm.com>
+	<56984642.3090106@imgtec.com>
+	<alpine.DEB.2.00.1601271116520.5958@tp.orcam.me.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f180.google.com ([209.85.213.180]:33008 "EHLO
-	mail-ig0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S967994AbcA0VTU convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 27 Jan 2016 16:19:20 -0500
-Received: by mail-ig0-f180.google.com with SMTP id z14so90636657igp.0
-        for <linux-arch@vger.kernel.org>; Wed, 27 Jan 2016 13:19:19 -0800 (PST)
-In-Reply-To: <20160127211105.GA41450@davidb.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Brown <david.brown@linaro.org>
-Cc: "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Content-Type: multipart/mixed; boundary="===============9087233927382373719=="
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <alpine.DEB.2.00.1601271116520.5958@tp.orcam.me.uk>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: "Maciej W. Rozycki" <macro@imgtec.com>
+Cc: linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, "Michael S. Tsirkin" <mst@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, virtualization@lists.linux-foundation.org, "H. Peter Anvin" <hpa@zytor.com>, sparclinux@vger.kernel.org, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, user-mode-linux-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, Michael Ellerman <mpe@ellerman.id.au>, x86@kernel.org, xen-devel@lists.xenproject.org, Ingo Molnar <mingo@elte.hu>, paulmck@linux.vnet.ibm.com, linux-xtensa@linux-xtensa.org, james.hogan@imgtec.com, Arnd Bergmann <arnd@arndb.de>, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, adi-buildroot-devel@lists.sourceforge.net, ddaney.cavm@gmail.com, Thomas Gleixner <tglx@linutronix.de>, linux-me
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jan 27, 2016 at 1:11 PM, David Brown <david.brown@linaro.org> w=
-rote:
-> On Tue, Jan 19, 2016 at 10:08:37AM -0800, Kees Cook wrote:
->
->> diff --git a/kernel/time/tick-sched.c b/kernel/time/tick-sched.c
->> index 9cc20af58c76..f5ea98490ffa 100644
->> --- a/kernel/time/tick-sched.c
->> +++ b/kernel/time/tick-sched.c
->> @@ -387,20 +388,14 @@ void __init tick_nohz_init(void)
->> /*
->>  * NO HZ enabled ?
->>  */
->> -static int tick_nohz_enabled __read_mostly  =3D 1;
->> +static bool tick_nohz_enabled __read_mostly  =3D true;
->> unsigned long tick_nohz_active  __read_mostly;
->> /*
->>  * Enable / Disable tickless mode
->>  */
->
->
-> Just discovered this conflicts with a recent patch with
-> CONFIG_NO_HZ_COMMON:
->
->         commit 46373a15f65fe862f31c19a484acdf551f2b442f
->         Author: Jean Delvare <jdelvare@suse.de>
->         Date:   Mon Jan 11 17:40:31 2016 +0100
->
->             time: nohz: Expose tick_nohz_enabled
->
-> kernel/time/tick-sched.c:390:6: error: conflicting types for
-> =E2=80=98tick_nohz_enabled=E2=80=99
->         bool tick_nohz_enabled __read_mostly =3D true;
->              ^
-> In file included from kernel/time/tick-internal.h:5:0,
->                 from kernel/time/tick-sched.c:30:
-> include/linux/tick.h:101:12: note: previous declaration of
-> =E2=80=98tick_nohz_enabled=E2=80=99 was here
->         extern int tick_nohz_enabled;
->                    ^
+--===============9087233927382373719==
+Content-Type: multipart/alternative;
+	boundary="------------070307010207020903010305"
 
-Thanks! Yeah, I noticed this too when rebasing recently.
+--------------070307010207020903010305
+Content-Type: text/plain; charset="windows-1252"; format=flowed
+Content-Transfer-Encoding: 7bit
 
-> Fixing the compilation error, it compiles and boots on arm64, however
-> it isn't detecting the write (with the lkdtm test).  I'll continue
-> looking into what's preventing this.
+On 01/27/2016 03:26 AM, Maciej W. Rozycki wrote:
+> On Fri, 15 Jan 2016, Leonid Yegoshin wrote:
+>
+>>> So you need to build a different kernel for some types of MIPS systems?
+>>> Or do you do boot-time rewriting, like a number of other arches do?
+>> I don't know. I would like to have responses. Ralf asked Maciej about old
+>> systems and that came nowhere. Even rewrite - don't know what to do with that:
+>> no lightweight SYNC or no SYNC at all - yes, it is still possible that SYNC on
+>> some systems can be too heavy or even harmful, nobody tested that.
+>   I don't recall being asked;
+In http://patchwork.linux-mips.org/patch/10505/ the very last mesg 
+exchange is:
 
-I'm going to hope it's something easy like CONFIG_DEBUG_RODATA not bein=
-g set. :)
+Maciej,
 
--Kees
+do you have an R4000 / R4600 / R5000 / R7000 / SiByte system at hand to
+test this?
+...
+   Ralf
 
---=20
-Kees Cook
-Chrome OS & Brillo Security
+Maciej W. Rozycki 
+<http://patchwork.linux-mips.org/project/linux-mips/list/?submitter=79> 
+- June 5, 2015, 9:18 p.m.
+
+On Fri, 5 Jun 2015, Ralf Baechle wrote:
+
+> do you have an R4000 / R4600 / R5000 / R7000 / SiByte system at hand to
+> test this?
+
+  I should be able to check R4400 (that is virtually the same as R4000)
+next week or so.  As to SiByte -- not before next month I'm afraid.  I
+don't have access to any of the other processors you named.  You may
+want to find a better person if you want to accept this change soon.
+
+   Maciej
+
+... and that stops forever...
+
+- Leonid.
+
+--------------070307010207020903010305
+Content-Type: text/html; charset="windows-1252"
+Content-Transfer-Encoding: 7bit
+
+<html>
+  <head>
+    <meta content="text/html; charset=windows-1252"
+      http-equiv="Content-Type">
+  </head>
+  <body bgcolor="#FFFFFF" text="#000000">
+    <div class="moz-cite-prefix">On 01/27/2016 03:26 AM, Maciej W.
+      Rozycki wrote:<br>
+    </div>
+    <blockquote
+      cite="mid:alpine.DEB.2.00.1601271116520.5958@tp.orcam.me.uk"
+      type="cite">
+      <pre wrap="">On Fri, 15 Jan 2016, Leonid Yegoshin wrote:
+
+</pre>
+      <blockquote type="cite">
+        <blockquote type="cite">
+          <pre wrap="">So you need to build a different kernel for some types of MIPS systems?
+Or do you do boot-time rewriting, like a number of other arches do?
+</pre>
+        </blockquote>
+        <pre wrap="">
+I don't know. I would like to have responses. Ralf asked Maciej about old
+systems and that came nowhere. Even rewrite - don't know what to do with that:
+no lightweight SYNC or no SYNC at all - yes, it is still possible that SYNC on
+some systems can be too heavy or even harmful, nobody tested that.
+</pre>
+      </blockquote>
+      <pre wrap="">
+ I don't recall being asked; 
+</pre>
+    </blockquote>
+    In <a class="moz-txt-link-freetext" href="http://patchwork.linux-mips.org/patch/10505/">http://patchwork.linux-mips.org/patch/10505/</a> the very last mesg
+    exchange is:<br>
+    <br>
+    <pre class="content">Maciej,
+
+do you have an R4000 / R4600 / R5000 / R7000 / SiByte system at hand to
+test this?
+...
+  Ralf
+</pre>
+    <div class="comment">
+      <div class="meta"><a
+href="http://patchwork.linux-mips.org/project/linux-mips/list/?submitter=79">Maciej
+          W. Rozycki</a> - June 5, 2015, 9:18 p.m.</div>
+      <pre class="content">On Fri, 5 Jun 2015, Ralf Baechle wrote:
+<span class="quote">
+&gt; do you have an R4000 / R4600 / R5000 / R7000 / SiByte system at hand to</span>
+<span class="quote">&gt; test this?</span>
+
+ I should be able to check R4400 (that is virtually the same as R4000) 
+next week or so.  As to SiByte -- not before next month I'm afraid.  I 
+don't have access to any of the other processors you named.  You may 
+want to find a better person if you want to accept this change soon.
+
+  Maciej
+</pre>
+    </div>
+    ... and that stops forever...<br>
+    <br>
+    - Leonid.<br>
+  </body>
+</html>
+
+--------------070307010207020903010305--
+
+--===============9087233927382373719==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+_______________________________________________
+Virtualization mailing list
+Virtualization@lists.linux-foundation.org
+https://lists.linuxfoundation.org/mailman/listinfo/virtualization
+--===============9087233927382373719==--
