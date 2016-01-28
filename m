@@ -1,202 +1,103 @@
-From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: Re: [PATCH] arm64: make CONFIG_DEBUG_RODATA non-optional
-Date: Thu, 28 Jan 2016 09:20:39 +0100
-Message-ID: <CAKv+Gu9+yTLPxqKVkKm=iPjZ4m1B06obdf1j7mAKk09GETMpmw@mail.gmail.com>
-References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
-	<1453226922-16831-4-git-send-email-keescook@chromium.org>
-	<20160127211105.GA41450@davidb.org>
-	<CAGXu5j+DLRoVE88a9++jVfEkN90HDiAaDAMnT2TrKqtMZ_yOww@mail.gmail.com>
-	<20160128000906.GA42530@davidb.org>
-	<CAGXu5jLj0mvUUSmXoBzuJkRWYP0C7ybb9S4gVp5PUjhYyWP16Q@mail.gmail.com>
+From: Christian Borntraeger <borntraeger@de.ibm.com>
+Subject: Re: [PATCH v3 2/3] x86: query dynamic DEBUG_PAGEALLOC setting
+Date: Thu, 28 Jan 2016 10:48:01 +0100
+Message-ID: <56A9E3D1.3090001@de.ibm.com>
+References: <1453889401-43496-1-git-send-email-borntraeger@de.ibm.com>
+ <1453889401-43496-3-git-send-email-borntraeger@de.ibm.com>
+ <alpine.DEB.2.10.1601271414180.23510@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f174.google.com ([209.85.223.174]:35928 "EHLO
-	mail-io0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933742AbcA1IUn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jan 2016 03:20:43 -0500
-Received: by mail-io0-f174.google.com with SMTP id g73so47609696ioe.3
-        for <linux-arch@vger.kernel.org>; Thu, 28 Jan 2016 00:20:40 -0800 (PST)
-In-Reply-To: <CAGXu5jLj0mvUUSmXoBzuJkRWYP0C7ybb9S4gVp5PUjhYyWP16Q@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: David Brown <david.brown@linaro.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, yalin wang <yalin.wang2010@gmail.com>, Zi Shen Lim <zlim.lnx@gmail.com>, Yang Shi <yang.shi@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Laura Abbott <lauraa@codeaurora.org>, "Suzuki K. Poulose" <suzuki.p>
+Content-Type: text/plain; charset=windows-1252
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <alpine.DEB.2.10.1601271414180.23510@chino.kir.corp.google.com>
+Sender: owner-linux-mm@kvack.org
+To: David Rientjes <rientjes@google.com>
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, davem@davemloft.net, Joonsoo Kim <iamjoonsoo.kim@lge.com>, davej@codemonkey.org.uk
+List-Id: linux-arch.vger.kernel.org
 
-On 28 January 2016 at 01:14, Kees Cook <keescook@chromium.org> wrote:
-> On Wed, Jan 27, 2016 at 4:09 PM, David Brown <david.brown@linaro.org> wrote:
->> From 2efef8aa0f8f7f6277ffebe4ea6744fc93d54644 Mon Sep 17 00:00:00 2001
->> From: David Brown <david.brown@linaro.org>
->> Date: Wed, 27 Jan 2016 13:58:44 -0800
+On 01/27/2016 11:17 PM, David Rientjes wrote:
+> On Wed, 27 Jan 2016, Christian Borntraeger wrote:
+> 
+>> We can use debug_pagealloc_enabled() to check if we can map
+>> the identity mapping with 2MB pages. We can also add the state
+>> into the dump_stack output.
 >>
->> This removes the CONFIG_DEBUG_RODATA option and makes it always
->> enabled.
+>> The patch does not touch the code for the 1GB pages, which ignored
+>> CONFIG_DEBUG_PAGEALLOC. Do we need to fence this as well?
 >>
->> Signed-off-by: David Brown <david.brown@linaro.org>
->
-> I'm all for this!
->
-
-I agree that this is probably a good idea, but please note that Mark
-Rutland's pagetable rework patches targeted for v4.6 make significant
-changes in this area, so you're probably better off building on top of
-those.
-
--- 
-Ard.
-
-
-> Reviewed-by: Kees Cook <keescook@chromium.org>
->
-> -Kees
->
+>> Signed-off-by: Christian Borntraeger <borntraeger@de.ibm.com>
+>> Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
 >> ---
->> v1: This is in the same spirit as the x86 patch, removing allowing
->> this option to be config selected.  The associated patch series adds a
->> runtime option for the same thing.  However, it does affect the way
->> some things are mapped, and could possibly result in either increased
->> memory usage, or a performance hit (due to TLB misses from 4K pages).
+>>  arch/x86/kernel/dumpstack.c |  5 ++---
+>>  arch/x86/mm/init.c          |  7 ++++---
+>>  arch/x86/mm/pageattr.c      | 14 ++++----------
+>>  3 files changed, 10 insertions(+), 16 deletions(-)
 >>
->> I've tested this on a Hikey 96board (hi6220-hikey.dtb), both with and
->> without 'rodata=off' on the command line.
->>
->> arch/arm64/Kconfig              |  3 +++
->> arch/arm64/Kconfig.debug        | 10 ----------
->> arch/arm64/kernel/insn.c        |  2 +-
->> arch/arm64/kernel/vmlinux.lds.S |  5 +----
->> arch/arm64/mm/mmu.c             | 12 ------------
->> 5 files changed, 5 insertions(+), 27 deletions(-)
->>
->> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
->> index 8cc6228..ffa617a 100644
->> --- a/arch/arm64/Kconfig
->> +++ b/arch/arm64/Kconfig
->> @@ -201,6 +201,9 @@ config KERNEL_MODE_NEON
->> config FIX_EARLYCON_MEM
->>         def_bool y
->>
->> +config DEBUG_RODATA
->> +       def_bool y
->> +
->> config PGTABLE_LEVELS
->>         int
->>         default 2 if ARM64_16K_PAGES && ARM64_VA_BITS_36
->> diff --git a/arch/arm64/Kconfig.debug b/arch/arm64/Kconfig.debug
->> index e13c4bf..db994ec 100644
->> --- a/arch/arm64/Kconfig.debug
->> +++ b/arch/arm64/Kconfig.debug
->> @@ -48,16 +48,6 @@ config DEBUG_SET_MODULE_RONX
->>           against certain classes of kernel exploits.
->>           If in doubt, say "N".
->>
->> -config DEBUG_RODATA
->> -       bool "Make kernel text and rodata read-only"
->> -       help
->> -         If this is set, kernel text and rodata will be made read-only.
->> This
->> -         is to help catch accidental or malicious attempts to change the
->> -         kernel's executable code. Additionally splits rodata from kernel
->> -         text so it can be made explicitly non-executable.
->> -
->> -          If in doubt, say Y
->> -
->> config DEBUG_ALIGN_RODATA
->>         depends on DEBUG_RODATA && ARM64_4K_PAGES
->>         bool "Align linker sections up to SECTION_SIZE"
->> diff --git a/arch/arm64/kernel/insn.c b/arch/arm64/kernel/insn.c
->> index 7371455..a04bdef 100644
->> --- a/arch/arm64/kernel/insn.c
->> +++ b/arch/arm64/kernel/insn.c
->> @@ -95,7 +95,7 @@ static void __kprobes *patch_map(void *addr, int fixmap)
->>
->>         if (module && IS_ENABLED(CONFIG_DEBUG_SET_MODULE_RONX))
->>                 page = vmalloc_to_page(addr);
->> -       else if (!module && IS_ENABLED(CONFIG_DEBUG_RODATA))
->> +       else if (!module)
->>                 page = virt_to_page(addr);
->>         else
->>                 return addr;
->> diff --git a/arch/arm64/kernel/vmlinux.lds.S
->> b/arch/arm64/kernel/vmlinux.lds.S
->> index e3928f5..f80903c 100644
->> --- a/arch/arm64/kernel/vmlinux.lds.S
->> +++ b/arch/arm64/kernel/vmlinux.lds.S
->> @@ -65,12 +65,9 @@ PECOFF_FILE_ALIGNMENT = 0x200;
->> #if defined(CONFIG_DEBUG_ALIGN_RODATA)
->> #define ALIGN_DEBUG_RO                  . = ALIGN(1<<SECTION_SHIFT);
->> #define ALIGN_DEBUG_RO_MIN(min)         ALIGN_DEBUG_RO
->> -#elif defined(CONFIG_DEBUG_RODATA)
->> +#else
->> #define ALIGN_DEBUG_RO                  . = ALIGN(1<<PAGE_SHIFT);
->> #define ALIGN_DEBUG_RO_MIN(min)         ALIGN_DEBUG_RO
->> -#else
->> -#define ALIGN_DEBUG_RO
->> -#define ALIGN_DEBUG_RO_MIN(min)                . = ALIGN(min);
->> #endif
->>
->> SECTIONS
->> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
->> index 58faeaa..3b411b7 100644
->> --- a/arch/arm64/mm/mmu.c
->> +++ b/arch/arm64/mm/mmu.c
->> @@ -313,7 +313,6 @@ static void create_mapping_late(phys_addr_t phys,
->> unsigned long virt,
->>                                 phys, virt, size, prot, late_alloc);
->> }
->>
->> -#ifdef CONFIG_DEBUG_RODATA
->> static void __init __map_memblock(phys_addr_t start, phys_addr_t end)
->> {
->>         /*
->> @@ -347,13 +346,6 @@ static void __init __map_memblock(phys_addr_t start,
->> phys_addr_t end)
->>         }
->>
->> }
->> -#else
->> -static void __init __map_memblock(phys_addr_t start, phys_addr_t end)
->> -{
->> -       create_mapping(start, __phys_to_virt(start), end - start,
->> -                       PAGE_KERNEL_EXEC);
->> -}
+>> diff --git a/arch/x86/kernel/dumpstack.c b/arch/x86/kernel/dumpstack.c
+>> index 9c30acf..32e5699 100644
+>> --- a/arch/x86/kernel/dumpstack.c
+>> +++ b/arch/x86/kernel/dumpstack.c
+>> @@ -265,9 +265,8 @@ int __die(const char *str, struct pt_regs *regs, long err)
+>>  #ifdef CONFIG_SMP
+>>  	printk("SMP ");
+>>  #endif
+>> -#ifdef CONFIG_DEBUG_PAGEALLOC
+>> -	printk("DEBUG_PAGEALLOC ");
 >> -#endif
->>
->> static void __init map_mem(void)
->> {
->> @@ -410,7 +402,6 @@ static void __init map_mem(void)
->>
->> static void __init fixup_executable(void)
->> {
->> -#ifdef CONFIG_DEBUG_RODATA
->>         /* now that we are actually fully mapped, make the start/end more
->> fine grained */
->>         if (!IS_ALIGNED((unsigned long)_stext, SWAPPER_BLOCK_SIZE)) {
->>                 unsigned long aligned_start = round_down(__pa(_stext),
->> @@ -428,10 +419,8 @@ static void __init fixup_executable(void)
->>                                 aligned_end - __pa(__init_end),
->>                                 PAGE_KERNEL);
->>         }
->> -#endif
->> }
->>
->> -#ifdef CONFIG_DEBUG_RODATA
->> void mark_rodata_ro(void)
->> {
->>         create_mapping_late(__pa(_stext), (unsigned long)_stext,
->> @@ -439,7 +428,6 @@ void mark_rodata_ro(void)
->>                                 PAGE_KERNEL_ROX);
->>
->> }
->> -#endif
->>
->> void fixup_init(void)
->> {
->> --
->> 2.7.0
->>
->
->
->
-> --
-> Kees Cook
-> Chrome OS & Brillo Security
+>> +	if (debug_pagealloc_enabled())
+>> +		printk("DEBUG_PAGEALLOC ");
+>>  #ifdef CONFIG_KASAN
+>>  	printk("KASAN");
+>>  #endif
+>> diff --git a/arch/x86/mm/init.c b/arch/x86/mm/init.c
+>> index 493f541..39823fd 100644
+>> --- a/arch/x86/mm/init.c
+>> +++ b/arch/x86/mm/init.c
+>> @@ -150,13 +150,14 @@ static int page_size_mask;
+>>  
+>>  static void __init probe_page_size_mask(void)
+>>  {
+>> -#if !defined(CONFIG_DEBUG_PAGEALLOC) && !defined(CONFIG_KMEMCHECK)
+>> +#if !defined(CONFIG_KMEMCHECK)
+>>  	/*
+>> -	 * For CONFIG_DEBUG_PAGEALLOC, identity mapping will use small pages.
+>> +	 * For CONFIG_KMEMCHECK or pagealloc debugging, identity mapping will
+>> +	 * use small pages.
+>>  	 * This will simplify cpa(), which otherwise needs to support splitting
+>>  	 * large pages into small in interrupt context, etc.
+>>  	 */
+>> -	if (cpu_has_pse)
+>> +	if (cpu_has_pse && !debug_pagealloc_enabled())
+>>  		page_size_mask |= 1 << PG_LEVEL_2M;
+>>  #endif
+>>  
+> 
+> I would have thought free_init_pages() would be modified to use 
+> debug_pagealloc_enabled() as well?
+
+
+Indeed, I only touched the identity mapping and dump stack.
+The question is do we really want to change free_init_pages as well?
+The unmapping during runtime causes significant overhead, but the
+unmapping after init imposes almost no runtime overhead. Of course,
+things get fishy now as what is enabled and what not.
+
+Kconfig after my patch "mm/debug_pagealloc: Ask users for default setting of debug_pagealloc"
+(in mm) now states
+----snip----
+By default this option will have a small overhead, e.g. by not
+allowing the kernel mapping to be backed by large pages on some
+architectures. Even bigger overhead comes when the debugging is
+enabled by DEBUG_PAGEALLOC_ENABLE_DEFAULT or the debug_pagealloc
+command line parameter.
+----snip----
+
+So I am tempted to NOT change free_init_pages, but the x86 maintainers
+can certainly decide differently. Ingo, Thomas, H. Peter, please advise.
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
