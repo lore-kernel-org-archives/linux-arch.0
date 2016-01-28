@@ -1,36 +1,46 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [linux-review:James-Hogan/kbuild-Remove-stale-asm-generic-wrappers/20160119-183642]
- d979f99e9cc14e2667e9b6e268db695977e4197a BUILD DONE
-Date: Thu, 28 Jan 2016 19:00:30 +0100
-Message-ID: <CAMuHMdWCwP8Hkn+tGEoG-FxUnjAq8uExcPhmXASh_ErU8DDN2w@mail.gmail.com>
-References: <569e1dbb.MgLv8OaZwklOxxtU%fengguang.wu@intel.com>
-	<1947556.38OyJnvGS5@wuerfel>
-	<20160127093018.GA21190@wfg-t540p.sh.intel.com>
-	<3596300.IYfzmako0c@wuerfel>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v9 3/6] arm64/arm, numa, dt: adding numa dt binding
+ implementation for arm64 platforms.
+Date: Thu, 28 Jan 2016 18:08:24 +0000
+Message-ID: <20160128180824.GP775@arm.com>
+References: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com>
+ <1453134965-6125-4-git-send-email-gkulkarni@caviumnetworks.com>
+ <20160126203603.GC17600@localhost>
+ <20160128143925.GC775@arm.com>
+ <CAFpQJXVhEVw7vSq233wfkOGkTanf-msO+PEcWJ2OVAFUhn7n+w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <3596300.IYfzmako0c@wuerfel>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Fengguang Wu <fengguang.wu@intel.com>, James Hogan <james.hogan@imgtec.com>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Florian Fainelli <f.fainelli@gmail.com>, Paul Burton <paul.burton@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Heinrich Schuchardt <xypron.glpk@gmx.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Marek <mmarek@suse.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-ia64-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CAFpQJXVhEVw7vSq233wfkOGkTanf-msO+PEcWJ2OVAFUhn7n+w@mail.gmail.com>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Ganapatrao Kulkarni <gpkulkarni@gmail.com>
+Cc: Bjorn Helgaas <helgaas@kernel.org>, Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Grant Likely <grant.likely@linaro.org>, Leif Lindholm <leif.lindholm@linaro.org>, rfranz@cavium.com, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "msalter@redhat.com" <msalter@redhat.com>, Rob Herring <robh+dt@kernel.org>, Steve Capper <steve.capper@linaro.org>, Hanjun Guo <hanjun.guo@linaro.org>, Al Stone <al.stone@linaro.org>Ar
 List-Id: linux-arch.vger.kernel.org
 
-Hi Arnd,
+On Thu, Jan 28, 2016 at 10:42:17PM +0530, Ganapatrao Kulkarni wrote:
+> On Thu, Jan 28, 2016 at 8:09 PM, Will Deacon <will.deacon@arm.com> wrote:
+> > On Tue, Jan 26, 2016 at 02:36:04PM -0600, Bjorn Helgaas wrote:
+> >> Subject is "arm64/arm, numa, dt: adding ..."  What is the significance
+> >> of the "arm" part?  The other patches only mention "arm64".
+> >>
+> >> General comment: the code below has little, if anything, that is
+> >> actually arm64-specific.  Maybe this is the first DT-based NUMA
+> >> platform?  I don't see other similar code for other arches, so maybe
+> >> it's too early to try to generalize it, but we should try to avoid
+> >> adding duplicates of this code if/when other arches do show up.
+> >
+> > Having it in the core code would allow us to share it with arch/arm/
+> > fairly straightforwardly.
+> This binding can be used for arm too.
+> however at this moment it is the need of arm64 platforms.
+> can we please keep this to arm64 as it's too early to try to
+> generalize it(as Bjorn suggested)
+> I prefer to keep it as it is, otherwise ok.
+> Please suggest.
 
-On Wed, Jan 27, 2016 at 10:44 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> - in some configurations, you end up without any boards selected, hitting
->   an #error in the final link
+My suggestions time and time again on the NUMA patches from you have
+consistently been around consolidation of existing code, or moving things
+that aren't architecture-specific out of the architecture code.
 
-FWIW, I have a similar problem with m68k+MMU=y randconfig...
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Will
