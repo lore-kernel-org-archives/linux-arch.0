@@ -1,68 +1,106 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v3] barriers: introduce smp_mb__release_acquire and
- update documentation
-Date: Thu, 28 Jan 2016 15:35:00 +0000
-Message-ID: <20160128153500.GJ775@arm.com>
-References: <1453918924-27606-1-git-send-email-will.deacon@arm.com>
- <20160127182551.GX6357@twins.programming.kicks-ass.net>
- <20160127183923.GD25545@arm.com>
- <20160127230011.GK4503@linux.vnet.ibm.com>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 1/5] all: s390: move wrapper infrastructure to generic
+ headers
+Date: Thu, 28 Jan 2016 19:31:09 +0300
+Message-ID: <20160128163109.GA8529@yury-N73SV>
+References: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
+ <1453741047-5498-2-git-send-email-ynorov@caviumnetworks.com>
+ <20160128121618.GB5418@osiris>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:32881 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S966489AbcA1PfD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 28 Jan 2016 10:35:03 -0500
+Received: from mail-bn1bon0076.outbound.protection.outlook.com ([157.56.111.76]:59472
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1752787AbcA1Qbj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 28 Jan 2016 11:31:39 -0500
 Content-Disposition: inline
-In-Reply-To: <20160127230011.GK4503@linux.vnet.ibm.com>
+In-Reply-To: <20160128121618.GB5418@osiris>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Boqun Feng <boqun.feng@gmail.com>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: arnd@arndb.de, catalin.marinas@arm.com, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Prasun.Kapoor@caviumnetworks.com, pinskia@gmail.com, agraf@suse.de, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, Nathan_Lynch@mentor.com, klimov.linux@gmail.com
 
-On Wed, Jan 27, 2016 at 03:00:11PM -0800, Paul E. McKenney wrote:
-> On Wed, Jan 27, 2016 at 06:39:23PM +0000, Will Deacon wrote:
-> > On Wed, Jan 27, 2016 at 07:25:51PM +0100, Peter Zijlstra wrote:
-> > > On Wed, Jan 27, 2016 at 06:22:04PM +0000, Will Deacon wrote:
-> > > > As much as we'd like to live in a world where RELEASE -> ACQUIRE is
-> > > > always cheaply ordered and can be used to construct UNLOCK -> LOCK
-> > > > definitions with similar guarantees, the grim reality is that this isn't
-> > > > even possible on x86 (thanks to Paul for bringing us crashing down to
-> > > > Earth).
-> > > > 
-> > > > This patch handles the issue by introducing a new barrier macro,
-> > > > smp_mb__after_release_acquire, that can be placed after an ACQUIRE that
-> > > > either reads from a RELEASE or is in program-order after a RELEASE. The
-> > > > barrier upgrades the RELEASE-ACQUIRE pair to a full memory barrier,
-> > > > implying global transitivity. At the moment, it doesn't have any users,
-> > > > so its existence serves mainly as a documentation aid and a potential
-> > > > stepping stone to the reintroduction of smp_mb__after_unlock_lock() used
-> > > > by RCU.
-> > > > 
-> > > > Documentation/memory-barriers.txt is updated to describe more clearly
-> > > > the ACQUIRE and RELEASE ordering in this area and to show some examples
-> > > > of the new barrier in action.
-> > > 
-> > > So the obvious question is: do we have a use-case?
-> > 
-> > We have a use-case for smp_mb__after_unlock_lock, so I think we should
-> > either strengthen our locking guarantees so that smp_mb__after_unlock_lock
-> > isn't needed or introduce smp_mb__after_release_acquire to close the gap.
-> > As it stands, we've got an inconsistency (despite it being hidden inside
-> > RCU).
-> > 
-> > The main advantage of this patch is a documentation aid, in my opinion
-> > (hell, we talk about smp_mb__after_unlock_lock already when reasoning
-> > about this stuff).
+On Thu, Jan 28, 2016 at 01:16:18PM +0100, Heiko Carstens wrote:
+> Hello Yury,
 > 
-> But wasn't there an x86 potential use case that required placing the
-> strengthening macro after the release and before the acquire?  Or is
-> this a case of old age striking again?
+> On Mon, Jan 25, 2016 at 07:57:23PM +0300, Yury Norov wrote:
+> > __SC_COMPAT_CAST for s390 is too specific due to 31-bit pointer length, so it's
+> > moved to arch/s390/include/asm/compat.h. Generic declaration assumes that long,
+> > unsigned long and pointer types are all 32-bit length.
+> > 
+> > linux/syscalls_structs.h header is introduced, because from now (see next patch)
+> > structure types listed there are needed for both normal and compat mode.
+> > 
+> > cond_syscall_wrapped now defined two symbols: sys_foo() and compat_sys_foo(), if
+> > compat wrappers are enabled.
+> > 
+> > Here __SC_WRAP() macro is introduced as well. s390 doesn't need it as it uses
+> > asm-generated syscall table. But architectures that generate that tables with
+> > C code (ARM64/ILP32) should redefine it as '#define __SC_WRAP(name) compat_##name'.
+> > 
+> > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+> 
+> ...
+> 
 
-The proposal here doesn't order the release/acquire operations with each
-other -- it just says that they combine with smp_mb__after_release_acquire()
-to make a full barrier, so I don't think it should matter for the
-intra-thread case, which is the one that x86 cares out iiuc.
+Hi Heiko,
 
-Will
+> How about if you rename SYSCALL_DEFINE_WRAP to SYSCALL_COMPAT_DEFINE which
+> has the semantics that no dedicated compat system call exists (aka system
+> call is compat safe).
+> 
+> Then convert all existing SYSCALL_DEFINE'd system calls for which no compat
+> variant exists to SYSCALL_COMPAT_DEFINE.
+> 
+> This would allow to specify "compat_sys_<syscallname>" in the compat system
+> call table for _all_ system calls.
+> 
+
+We can modify SYSCALL_DEFINEx macro to declare weak "compat_sys_<syscallname>"
+symbol for each syscall. So if strong compat symbol will be declared
+somwere else, it will owerride the weak one. Being under COMPAT_WRAPPER
+config, it will not affect someone else except s390 and aarch64/ilp32.
+The downside of this approach is that we'll have to move wrapper
+machinery to 'include/linux/syscalls.h', thought under wrapper config.
+
+> No need to look up if a compat variant (or wrapper) exists or
+> sys_<syscallname> should be used instead. Also no possibility for security
+> bugs that could creep in because SYSCALL_DEFINE has been used instead of
+> SYSCALL_DEFINE_WRAP.
+
+If we'll choose to stay with current approach, we'll definitely need
+to update documentation.
+
+> 
+> Ideally the implementation would only generate an alias if no sign/zero
+> extension is necessary.
+> 
+> Trivially this would be true for system calls without arguments like e.g.
+> sys_fork() which would get a compat_sys_fork alias without any further
+> code.
+> 
+> I'm not sure how difficult it is to implement the same logic for system
+> calls that have parameters. That is: either generate a
+> compat_sys_<syscallname> wrapper function, or if the SYSCALL_COMPAT_DEFINE
+> macro figures out that no zero sign extension is required, only an alias
+> without any additional code.
+> 
+> I think in the long term something like this is much easier to maintain.
+> 
+> Does that make sense?
+
+For me, the most important adwantage of this approach is that we don't
+need the list of 'magic' system calls anymore. It's even more
+important if we'll face a requirement to support ABI that differs from
+both natural and ilp32 ABIs. New __SC_COMPAT_CAST will do all the job
+for us.
+
+The downsides are that we'll have unneeded wrappers for some syscalls,
+if linker will not clear them, and wasting of space if we'll find no
+way how to explain compiler to generate simple alias when it's
+enough... 
+
+I'll play with it and write you what I'll come to.
+
+Yury.
