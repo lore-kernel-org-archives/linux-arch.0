@@ -1,56 +1,24 @@
-From: Ganapatrao Kulkarni <gpkulkarni@gmail.com>
-Subject: Re: [PATCH v9 3/6] arm64/arm, numa, dt: adding numa dt binding
- implementation for arm64 platforms.
-Date: Fri, 29 Jan 2016 00:18:34 +0530
-Message-ID: <CAFpQJXWm4n3S70C9rU2Xip-n4xGEsEE=K3ptdDyzxjQMz9kX8A@mail.gmail.com>
-References: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com>
-	<1453134965-6125-4-git-send-email-gkulkarni@caviumnetworks.com>
-	<20160126203603.GC17600@localhost>
-	<20160128143925.GC775@arm.com>
-	<CAFpQJXVhEVw7vSq233wfkOGkTanf-msO+PEcWJ2OVAFUhn7n+w@mail.gmail.com>
-	<20160128180824.GP775@arm.com>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH] documentation: Add disclaimer
+Date: Thu, 28 Jan 2016 20:02:14 +0000
+Message-ID: <17497.1454011334@warthog.procyon.org.uk>
+References: <20160127233504.GP4503@linux.vnet.ibm.com> <20160114120445.GB15828@arm.com> <56980145.5030901@imgtec.com> <20160114204827.GE3818@linux.vnet.ibm.com> <56981212.7050301@imgtec.com> <20160114222046.GH3818@linux.vnet.ibm.com> <20160126102402.GE6357@twins.programming.kicks-ass.net> <20160126103200.GI6375@twins.programming.kicks-ass.net> <20160126110053.GA21553@arm.com> <20160126201143.GV4503@linux.vnet.ibm.com> <15882.1453906627@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f67.google.com ([74.125.82.67]:32869 "EHLO
-	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934853AbcA1Ssh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jan 2016 13:48:37 -0500
-In-Reply-To: <20160128180824.GP775@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>, Rob Herring <robh+dt@kernel.org>, Mark Rutland <mark.rutland@arm.com>
-Cc: Bjorn Helgaas <helgaas@kernel.org>, Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, Grant Likely <grant.likely@linaro.org>, Leif Lindholm <leif.lindholm@linaro.org>, rfranz@cavium.com, Ard Biesheuvel <ard.biesheuvel@linaro.org>, "msalter@redhat.com" <msalter@redhat.com>, Steve Capper <steve.capper@linaro.org>, Hanjun Guo <hanjun.guo@linaro.org>, Al Stone <al.stone@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Pawel
+Content-Type: text/plain; charset="us-ascii"
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <20160127233504.GP4503@linux.vnet.ibm.com>
+Content-ID: <17496.1454011334.1@warthog.procyon.org.uk>
+Sender: linux-ia64-owner@vger.kernel.org
+To: paulmck@linux.vnet.ibm.com
+Cc: dhowells@redhat.com, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lis
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jan 28, 2016 at 11:38 PM, Will Deacon <will.deacon@arm.com> wrote:
-> On Thu, Jan 28, 2016 at 10:42:17PM +0530, Ganapatrao Kulkarni wrote:
->> On Thu, Jan 28, 2016 at 8:09 PM, Will Deacon <will.deacon@arm.com> wrote:
->> > On Tue, Jan 26, 2016 at 02:36:04PM -0600, Bjorn Helgaas wrote:
->> >> Subject is "arm64/arm, numa, dt: adding ..."  What is the significance
->> >> of the "arm" part?  The other patches only mention "arm64".
->> >>
->> >> General comment: the code below has little, if anything, that is
->> >> actually arm64-specific.  Maybe this is the first DT-based NUMA
->> >> platform?  I don't see other similar code for other arches, so maybe
->> >> it's too early to try to generalize it, but we should try to avoid
->> >> adding duplicates of this code if/when other arches do show up.
->> >
->> > Having it in the core code would allow us to share it with arch/arm/
->> > fairly straightforwardly.
->> This binding can be used for arm too.
->> however at this moment it is the need of arm64 platforms.
->> can we please keep this to arm64 as it's too early to try to
->> generalize it(as Bjorn suggested)
->> I prefer to keep it as it is, otherwise ok.
->> Please suggest.
->
-> My suggestions time and time again on the NUMA patches from you have
-> consistently been around consolidation of existing code, or moving things
-> that aren't architecture-specific out of the architecture code.
+Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
 
-thanks, i shall move this out to drivers/of
->
-> Will
+> Good point!  Would you be willing to add a Signed-off-by so I
+> can take the combined change, assuming Peter and Will are good
+> with it?
 
-thanks
-Ganapat
+Sure!
+
+David
