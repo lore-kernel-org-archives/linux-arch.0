@@ -1,24 +1,75 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH] documentation: Add disclaimer
-Date: Thu, 28 Jan 2016 20:02:14 +0000
-Message-ID: <17497.1454011334@warthog.procyon.org.uk>
-References: <20160127233504.GP4503@linux.vnet.ibm.com> <20160114120445.GB15828@arm.com> <56980145.5030901@imgtec.com> <20160114204827.GE3818@linux.vnet.ibm.com> <56981212.7050301@imgtec.com> <20160114222046.GH3818@linux.vnet.ibm.com> <20160126102402.GE6357@twins.programming.kicks-ass.net> <20160126103200.GI6375@twins.programming.kicks-ass.net> <20160126110053.GA21553@arm.com> <20160126201143.GV4503@linux.vnet.ibm.com> <15882.1453906627@warthog.procyon.org.uk>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 27/31] Add debugger entry points for M68K
+Date: Thu, 28 Jan 2016 21:40:03 +0100
+Message-ID: <CAMuHMdWQ9Ja+yDS6DRqQ7D-tHYRgAr-VXw-ERxpJw-Gi9dPjoA@mail.gmail.com>
+References: <1454010458-29525-1-git-send-email-jeffmerkey@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-ia64-owner@vger.kernel.org>
-In-Reply-To: <20160127233504.GP4503@linux.vnet.ibm.com>
-Content-ID: <17496.1454011334.1@warthog.procyon.org.uk>
-Sender: linux-ia64-owner@vger.kernel.org
-To: paulmck@linux.vnet.ibm.com
-Cc: dhowells@redhat.com, Peter Zijlstra <peterz@infradead.org>, Will Deacon <will.deacon@arm.com>, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lis
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <1454010458-29525-1-git-send-email-jeffmerkey@gmail.com>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Jeffrey Merkey <jeffmerkey@gmail.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux.mdb@gmail.com, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Paul E. McKenney <paulmck@linux.vnet.ibm.com> wrote:
+Hi Jeffrey,
 
-> Good point!  Would you be willing to add a Signed-off-by so I
-> can take the combined change, assuming Peter and Will are good
-> with it?
+CC linux-arch
 
-Sure!
+On Thu, Jan 28, 2016 at 8:47 PM, Jeffrey Merkey <jeffmerkey@gmail.com> wrote:
+> This patch series adds an export which can be set by system debuggers to
+> direct the hard lockup and soft lockup detector to trigger a breakpoint
+> exception and enter a debugger if one is active.  It is assumed that if
+> someone sets this variable, then an breakpoint handler of some sort will
+> be actively loaded or registered via the notify die handler chain.
+>
+> This addition is extremely useful for debugging hard and soft lockups
+> real time and quickly from a console debugger.
 
-David
+As there's no cover letter, I'm giving my (mostly general) comments in a
+reply to this patch.
+
+> Signed-off-by: Jeffrey Merkey <jeffmerkey@gmail.com>
+> ---
+>  arch/m68k/include/asm/kdebug.h | 4 ++++
+>  1 file changed, 4 insertions(+)
+>  create mode 100644 arch/m68k/include/asm/kdebug.h
+>
+> diff --git a/arch/m68k/include/asm/kdebug.h b/arch/m68k/include/asm/kdebug.h
+> new file mode 100644
+> index 0000000..5d09de1
+> --- /dev/null
+> +++ b/arch/m68k/include/asm/kdebug.h
+> @@ -0,0 +1,4 @@
+> +
+> +static inline void arch_breakpoint(void)
+> +{
+> +}
+
+No include guards in the newly added header files?
+
+This new file will conflict with arch/m68k/include/asm/Kbuild, which has:
+
+    generic-y += kdebug.h
+
+What about putting the dummy arch_breakpoint() in include/asm-generic/kdebug.h
+instead, like
+
+    #ifndef arch_breakpoint
+    static inline void arch_breakpoint(void)
+    {
+    }
+    #endif
+
+Architectures providing their own version have to #define arch_breakpoint.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
