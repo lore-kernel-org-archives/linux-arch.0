@@ -1,201 +1,150 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:59352 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932841AbcA1LGv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 28 Jan 2016 06:06:51 -0500
-Date: Thu, 28 Jan 2016 11:06:22 +0000
-From: Mark Rutland <mark.rutland@arm.com>
-Subject: Re: [PATCH] arm64: make CONFIG_DEBUG_RODATA non-optional
-Message-ID: <20160128110622.GF17123@leverpostej>
-References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
- <1453226922-16831-4-git-send-email-keescook@chromium.org>
- <20160127211105.GA41450@davidb.org>
- <CAGXu5j+DLRoVE88a9++jVfEkN90HDiAaDAMnT2TrKqtMZ_yOww@mail.gmail.com>
- <20160128000906.GA42530@davidb.org>
+Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:34714 "EHLO
+	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965390AbcA1MQ1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jan 2016 07:16:27 -0500
+Received: from localhost
+	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+	Thu, 28 Jan 2016 12:16:25 -0000
+Date: Thu, 28 Jan 2016 13:16:18 +0100
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH 1/5] all: s390: move wrapper infrastructure to generic
+ headers
+Message-ID: <20160128121618.GB5418@osiris>
+References: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
+ <1453741047-5498-2-git-send-email-ynorov@caviumnetworks.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20160128000906.GA42530@davidb.org>
+In-Reply-To: <1453741047-5498-2-git-send-email-ynorov@caviumnetworks.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Brown <david.brown@linaro.org>
-Cc: Kees Cook <keescook@chromium.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, yalin wang <yalin.wang2010@gmail.com>, Zi Shen Lim <zlim.lnx@gmail.com>, Yang Shi <yang.shi@linaro.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Laura Abbott <lauraa@codeaurora.org>, "Suzuki K. Poulose" <suzuki.poulose@arm.com>, Steve Capper <steve.capper@linaro.org>, Jeremy Linton <jeremy.linton@arm.com>, Mark Salter <msalter@redhat.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20160128110622.tamvFIdUWhlB4a9Kqxazl7OZiBNTrRwxNWqxa6GWg0M@z>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: arnd@arndb.de, catalin.marinas@arm.com, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Prasun.Kapoor@caviumnetworks.com, pinskia@gmail.com, agraf@suse.de, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, Nathan_Lynch@mentor.com, klimov.linux@gmail.com
+Message-ID: <20160128121618.LnRQdSRHhOQ5OgLaYW6gY_PDWR1MV8M_-mTfzOPtkbs@z>
 
-Hi,
+Hello Yury,
 
-On Wed, Jan 27, 2016 at 05:09:06PM -0700, David Brown wrote:
-> From 2efef8aa0f8f7f6277ffebe4ea6744fc93d54644 Mon Sep 17 00:00:00 2001
-> From: David Brown <david.brown@linaro.org>
-> Date: Wed, 27 Jan 2016 13:58:44 -0800
+On Mon, Jan 25, 2016 at 07:57:23PM +0300, Yury Norov wrote:
+> __SC_COMPAT_CAST for s390 is too specific due to 31-bit pointer length, so it's
+> moved to arch/s390/include/asm/compat.h. Generic declaration assumes that long,
+> unsigned long and pointer types are all 32-bit length.
 > 
-> This removes the CONFIG_DEBUG_RODATA option and makes it always
-> enabled.
+> linux/syscalls_structs.h header is introduced, because from now (see next patch)
+> structure types listed there are needed for both normal and compat mode.
 > 
-> Signed-off-by: David Brown <david.brown@linaro.org>
-
-As Ard notes, my pagetable rework series [1] changes this code quite
-significantly, and this will need to be rebased atop of that (and
-possibly Ard's kASLR changes [2]).
-
-I certainly want to always have the kernel text RO. I was waiting for
-those two series to settle first.
-
-> ---
-> v1: This is in the same spirit as the x86 patch, removing allowing
-> this option to be config selected.  The associated patch series adds a
-> runtime option for the same thing.  However, it does affect the way
-> some things are mapped, and could possibly result in either increased
-> memory usage, or a performance hit (due to TLB misses from 4K pages).
-
-With my series [1] the text/rodata "chunk" of the kernel is always
-mapped with page-granular boundaries (using sections internally).
-Previously we always carved out the init area, so the kernel mapping was
-always split.
-
-Atop of my series this change should not increase memory usage or TLB
-pressure given that it should only change the permissions.
-
-One thing I would like to do is to avoid the need for fixup_executable
-entirely, by mapping the kernel text RO from the outset. However, that
-requires rework of the alternatives patching (to use a temporary RW
-alias), and I haven't had the time to look into that yet.
-
-Thanks,
-Mark.
-
-[1] http://lists.infradead.org/pipermail/linux-arm-kernel/2016-January/397095.html
-[2] http://lists.infradead.org/pipermail/linux-arm-kernel/2016-January/402066.html
-
-> I've tested this on a Hikey 96board (hi6220-hikey.dtb), both with and
-> without 'rodata=off' on the command line.
+> cond_syscall_wrapped now defined two symbols: sys_foo() and compat_sys_foo(), if
+> compat wrappers are enabled.
 > 
-> arch/arm64/Kconfig              |  3 +++
-> arch/arm64/Kconfig.debug        | 10 ----------
-> arch/arm64/kernel/insn.c        |  2 +-
-> arch/arm64/kernel/vmlinux.lds.S |  5 +----
-> arch/arm64/mm/mmu.c             | 12 ------------
-> 5 files changed, 5 insertions(+), 27 deletions(-)
+> Here __SC_WRAP() macro is introduced as well. s390 doesn't need it as it uses
+> asm-generated syscall table. But architectures that generate that tables with
+> C code (ARM64/ILP32) should redefine it as '#define __SC_WRAP(name) compat_##name'.
 > 
-> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> index 8cc6228..ffa617a 100644
-> --- a/arch/arm64/Kconfig
-> +++ b/arch/arm64/Kconfig
-> @@ -201,6 +201,9 @@ config KERNEL_MODE_NEON
-> config FIX_EARLYCON_MEM
-> 	def_bool y
-> 
-> +config DEBUG_RODATA
-> +	def_bool y
+> Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
+
+...
+
+> diff --git a/include/linux/compat.h b/include/linux/compat.h
+> index a76c917..1a761ea 100644
+> --- a/include/linux/compat.h
+> +++ b/include/linux/compat.h
+> @@ -718,4 +718,67 @@ asmlinkage long compat_sys_fanotify_mark(int, unsigned int, __u32, __u32,
+>  #define is_compat_task() (0)
+>  
+>  #endif /* CONFIG_COMPAT */
 > +
-> config PGTABLE_LEVELS
-> 	int
-> 	default 2 if ARM64_16K_PAGES && ARM64_VA_BITS_36
-> diff --git a/arch/arm64/Kconfig.debug b/arch/arm64/Kconfig.debug
-> index e13c4bf..db994ec 100644
-> --- a/arch/arm64/Kconfig.debug
-> +++ b/arch/arm64/Kconfig.debug
-> @@ -48,16 +48,6 @@ config DEBUG_SET_MODULE_RONX
->           against certain classes of kernel exploits.
->           If in doubt, say "N".
-> 
-> -config DEBUG_RODATA
-> -	bool "Make kernel text and rodata read-only"
-> -	help
-> -	  If this is set, kernel text and rodata will be made read-only. This
-> -	  is to help catch accidental or malicious attempts to change the
-> -	  kernel's executable code. Additionally splits rodata from kernel
-> -	  text so it can be made explicitly non-executable.
-> -
-> -          If in doubt, say Y
-> -
-> config DEBUG_ALIGN_RODATA
-> 	depends on DEBUG_RODATA && ARM64_4K_PAGES
-> 	bool "Align linker sections up to SECTION_SIZE"
-> diff --git a/arch/arm64/kernel/insn.c b/arch/arm64/kernel/insn.c
-> index 7371455..a04bdef 100644
-> --- a/arch/arm64/kernel/insn.c
-> +++ b/arch/arm64/kernel/insn.c
-> @@ -95,7 +95,7 @@ static void __kprobes *patch_map(void *addr, int fixmap)
-> 
-> 	if (module && IS_ENABLED(CONFIG_DEBUG_SET_MODULE_RONX))
-> 		page = vmalloc_to_page(addr);
-> -	else if (!module && IS_ENABLED(CONFIG_DEBUG_RODATA))
-> +	else if (!module)
-> 		page = virt_to_page(addr);
-> 	else
-> 		return addr;
-> diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-> index e3928f5..f80903c 100644
-> --- a/arch/arm64/kernel/vmlinux.lds.S
-> +++ b/arch/arm64/kernel/vmlinux.lds.S
-> @@ -65,12 +65,9 @@ PECOFF_FILE_ALIGNMENT = 0x200;
-> #if defined(CONFIG_DEBUG_ALIGN_RODATA)
-> #define ALIGN_DEBUG_RO			. = ALIGN(1<<SECTION_SHIFT);
-> #define ALIGN_DEBUG_RO_MIN(min)		ALIGN_DEBUG_RO
-> -#elif defined(CONFIG_DEBUG_RODATA)
+> +#ifdef CONFIG_COMPAT_WRAPPER
+> +
+> +#ifndef __TYPE_IS_PTR
+> +#define __TYPE_IS_PTR(t) (!__builtin_types_compatible_p(typeof(0?(t)0:0ULL), u64))
+> +#endif
+> +
+> +#ifndef __SC_COMPAT_TYPE
+> +#define __SC_COMPAT_TYPE(t, a) \
+> +	__typeof(__builtin_choose_expr(sizeof(t) > 4, 0L, (t)0)) a
+> +#endif
+> +
+> +#ifndef __SC_COMPAT_CAST
+> +#define __SC_COMPAT_CAST(t, a) ({					\
+> +	BUILD_BUG_ON((sizeof(t) > 4) && !__TYPE_IS_L(t) &&		\
+> +		     !__TYPE_IS_UL(t) && !__TYPE_IS_PTR(t));		\
+> +	((t) ((t)(-1) < 0 ? (s64)(s32)(a) : (u64)(u32)(a)));		\
+> +})
+> +#endif
+> +
+> +#ifndef SYSCALL_DEFINE_WRAPx
+> +/*
+> + * The SYSCALL_DEFINE_WRAP macro generates system call wrappers to be used by
+> + * compat tasks. These wrappers will only be used for system calls where only
+> + * the system call arguments need sign or zero extension or zeroing of upper
+> + * bits of pointers.
+> + * Note: since the wrapper function will afterwards call a system call which
+> + * again performs zero and sign extension for all system call arguments with
+> + * a size of less than eight bytes, these compat wrappers only touch those
+> + * system call arguments with a size of eight bytes ((unsigned) long and
+> + * pointers). Zero and sign extension for e.g. int parameters will be done by
+> + * the regular system call wrappers.
+> + */
+> +#define SYSCALL_DEFINE_WRAPx(x, name, ...)						\
+> +asmlinkage long sys##name(__MAP(x,__SC_DECL,__VA_ARGS__));				\
+> +asmlinkage long compat_sys##name(__MAP(x,__SC_DECL,__VA_ARGS__))			\
+> +		__attribute__((alias(__stringify(compat_SyS##name))));			\
+> +asmlinkage long compat_SyS##name(__MAP(x,__SC_COMPAT_TYPE,__VA_ARGS__));		\
+> +asmlinkage long compat_SyS##name(__MAP(x,__SC_COMPAT_TYPE,__VA_ARGS__))			\
+> +{											\
+> +	return sys##name(__MAP(x,__SC_COMPAT_CAST,__VA_ARGS__));			\
+> +}											\
+> +SYSCALL_DEFINEx(x, name, __VA_ARGS__)
+> +#endif
+> +
+> +#define SYSCALL_DEFINE_WRAP1(name, ...) SYSCALL_DEFINE_WRAPx(1, _##name, __VA_ARGS__)
+> +#define SYSCALL_DEFINE_WRAP2(name, ...) SYSCALL_DEFINE_WRAPx(2, _##name, __VA_ARGS__)
+> +#define SYSCALL_DEFINE_WRAP3(name, ...) SYSCALL_DEFINE_WRAPx(3, _##name, __VA_ARGS__)
+> +#define SYSCALL_DEFINE_WRAP4(name, ...) SYSCALL_DEFINE_WRAPx(4, _##name, __VA_ARGS__)
+> +#define SYSCALL_DEFINE_WRAP5(name, ...) SYSCALL_DEFINE_WRAPx(5, _##name, __VA_ARGS__)
+> +#define SYSCALL_DEFINE_WRAP6(name, ...) SYSCALL_DEFINE_WRAPx(6, _##name, __VA_ARGS__)
+> +
 > +#else
-> #define ALIGN_DEBUG_RO			. = ALIGN(1<<PAGE_SHIFT);
-> #define ALIGN_DEBUG_RO_MIN(min)		ALIGN_DEBUG_RO
-> -#else
-> -#define ALIGN_DEBUG_RO
-> -#define ALIGN_DEBUG_RO_MIN(min)		. = ALIGN(min);
-> #endif
-> 
-> SECTIONS
-> diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
-> index 58faeaa..3b411b7 100644
-> --- a/arch/arm64/mm/mmu.c
-> +++ b/arch/arm64/mm/mmu.c
-> @@ -313,7 +313,6 @@ static void create_mapping_late(phys_addr_t phys, unsigned long virt,
-> 				phys, virt, size, prot, late_alloc);
-> }
-> 
-> -#ifdef CONFIG_DEBUG_RODATA
-> static void __init __map_memblock(phys_addr_t start, phys_addr_t end)
-> {
-> 	/*
-> @@ -347,13 +346,6 @@ static void __init __map_memblock(phys_addr_t start, phys_addr_t end)
-> 	}
-> 
-> }
-> -#else
-> -static void __init __map_memblock(phys_addr_t start, phys_addr_t end)
-> -{
-> -	create_mapping(start, __phys_to_virt(start), end - start,
-> -			PAGE_KERNEL_EXEC);
-> -}
-> -#endif
-> 
-> static void __init map_mem(void)
-> {
-> @@ -410,7 +402,6 @@ static void __init map_mem(void)
-> 
-> static void __init fixup_executable(void)
-> {
-> -#ifdef CONFIG_DEBUG_RODATA
-> 	/* now that we are actually fully mapped, make the start/end more fine grained */
-> 	if (!IS_ALIGNED((unsigned long)_stext, SWAPPER_BLOCK_SIZE)) {
-> 		unsigned long aligned_start = round_down(__pa(_stext),
-> @@ -428,10 +419,8 @@ static void __init fixup_executable(void)
-> 				aligned_end - __pa(__init_end),
-> 				PAGE_KERNEL);
-> 	}
-> -#endif
-> }
-> 
-> -#ifdef CONFIG_DEBUG_RODATA
-> void mark_rodata_ro(void)
-> {
-> 	create_mapping_late(__pa(_stext), (unsigned long)_stext,
-> @@ -439,7 +428,6 @@ void mark_rodata_ro(void)
-> 				PAGE_KERNEL_ROX);
-> 
-> }
-> -#endif
-> 
-> void fixup_init(void)
-> {
-> -- 
-> 2.7.0
-> 
+> +
+> +#define SYSCALL_DEFINE_WRAP1	SYSCALL_DEFINE1
+> +#define SYSCALL_DEFINE_WRAP2    SYSCALL_DEFINE2
+> +#define SYSCALL_DEFINE_WRAP3    SYSCALL_DEFINE3
+> +#define SYSCALL_DEFINE_WRAP4    SYSCALL_DEFINE4
+> +#define SYSCALL_DEFINE_WRAP5    SYSCALL_DEFINE5
+> +#define SYSCALL_DEFINE_WRAP6    SYSCALL_DEFINE6
+> +
+> +#endif /* CONFIG_COMPAT_WRAPPER */
+
+How about if you rename SYSCALL_DEFINE_WRAP to SYSCALL_COMPAT_DEFINE which
+has the semantics that no dedicated compat system call exists (aka system
+call is compat safe).
+
+Then convert all existing SYSCALL_DEFINE'd system calls for which no compat
+variant exists to SYSCALL_COMPAT_DEFINE.
+
+This would allow to specify "compat_sys_<syscallname>" in the compat system
+call table for _all_ system calls.
+
+No need to look up if a compat variant (or wrapper) exists or
+sys_<syscallname> should be used instead. Also no possibility for security
+bugs that could creep in because SYSCALL_DEFINE has been used instead of
+SYSCALL_DEFINE_WRAP.
+
+Ideally the implementation would only generate an alias if no sign/zero
+extension is necessary.
+
+Trivially this would be true for system calls without arguments like e.g.
+sys_fork() which would get a compat_sys_fork alias without any further
+code.
+
+I'm not sure how difficult it is to implement the same logic for system
+calls that have parameters. That is: either generate a
+compat_sys_<syscallname> wrapper function, or if the SYSCALL_COMPAT_DEFINE
+macro figures out that no zero sign extension is required, only an alias
+without any additional code.
+
+I think in the long term something like this is much easier to maintain.
+
+Does that make sense?
+
