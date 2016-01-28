@@ -1,106 +1,44 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 1/5] all: s390: move wrapper infrastructure to generic
- headers
-Date: Thu, 28 Jan 2016 19:31:09 +0300
-Message-ID: <20160128163109.GA8529@yury-N73SV>
-References: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
- <1453741047-5498-2-git-send-email-ynorov@caviumnetworks.com>
- <20160128121618.GB5418@osiris>
+From: Ganapatrao Kulkarni <gpkulkarni-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH v9 3/6] arm64/arm, numa, dt: adding numa dt binding
+ implementation for arm64 platforms.
+Date: Thu, 28 Jan 2016 22:42:17 +0530
+Message-ID: <CAFpQJXVhEVw7vSq233wfkOGkTanf-msO+PEcWJ2OVAFUhn7n+w@mail.gmail.com>
+References: <1453134965-6125-1-git-send-email-gkulkarni@caviumnetworks.com>
+	<1453134965-6125-4-git-send-email-gkulkarni@caviumnetworks.com>
+	<20160126203603.GC17600@localhost>
+	<20160128143925.GC775@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bon0076.outbound.protection.outlook.com ([157.56.111.76]:59472
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1752787AbcA1Qbj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 28 Jan 2016 11:31:39 -0500
-Content-Disposition: inline
-In-Reply-To: <20160128121618.GB5418@osiris>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: arnd@arndb.de, catalin.marinas@arm.com, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linux-arch@vger.kernel.org, Prasun.Kapoor@caviumnetworks.com, pinskia@gmail.com, agraf@suse.de, broonie@kernel.org, joseph@codesourcery.com, christoph.muellner@theobroma-systems.com, Nathan_Lynch@mentor.com, klimov.linux@gmail.com
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20160128143925.GC775-5wv7dgnIgG8@public.gmane.org>
+Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org>
+Cc: Bjorn Helgaas <helgaas-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Ganapatrao Kulkarni <gkulkarni-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, "devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev <linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Grant Likely <grant.likely-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Leif Lindholm <leif.lindholm-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, rfranz-YGCgFSpz5w/QT0dZR+AlfA@public.gmane.org, Ard Biesheuvel <ard.biesheuvel-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, "msalter-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org" <msalter-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>, Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Steve Capper <steve.capper-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Hanjun Guo <hanjun.guo-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Al Stone <al.stone-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>Ar
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jan 28, 2016 at 01:16:18PM +0100, Heiko Carstens wrote:
-> Hello Yury,
-> 
-> On Mon, Jan 25, 2016 at 07:57:23PM +0300, Yury Norov wrote:
-> > __SC_COMPAT_CAST for s390 is too specific due to 31-bit pointer length, so it's
-> > moved to arch/s390/include/asm/compat.h. Generic declaration assumes that long,
-> > unsigned long and pointer types are all 32-bit length.
-> > 
-> > linux/syscalls_structs.h header is introduced, because from now (see next patch)
-> > structure types listed there are needed for both normal and compat mode.
-> > 
-> > cond_syscall_wrapped now defined two symbols: sys_foo() and compat_sys_foo(), if
-> > compat wrappers are enabled.
-> > 
-> > Here __SC_WRAP() macro is introduced as well. s390 doesn't need it as it uses
-> > asm-generated syscall table. But architectures that generate that tables with
-> > C code (ARM64/ILP32) should redefine it as '#define __SC_WRAP(name) compat_##name'.
-> > 
-> > Signed-off-by: Yury Norov <ynorov@caviumnetworks.com>
-> 
-> ...
-> 
+Hi Will,
 
-Hi Heiko,
 
-> How about if you rename SYSCALL_DEFINE_WRAP to SYSCALL_COMPAT_DEFINE which
-> has the semantics that no dedicated compat system call exists (aka system
-> call is compat safe).
-> 
-> Then convert all existing SYSCALL_DEFINE'd system calls for which no compat
-> variant exists to SYSCALL_COMPAT_DEFINE.
-> 
-> This would allow to specify "compat_sys_<syscallname>" in the compat system
-> call table for _all_ system calls.
-> 
-
-We can modify SYSCALL_DEFINEx macro to declare weak "compat_sys_<syscallname>"
-symbol for each syscall. So if strong compat symbol will be declared
-somwere else, it will owerride the weak one. Being under COMPAT_WRAPPER
-config, it will not affect someone else except s390 and aarch64/ilp32.
-The downside of this approach is that we'll have to move wrapper
-machinery to 'include/linux/syscalls.h', thought under wrapper config.
-
-> No need to look up if a compat variant (or wrapper) exists or
-> sys_<syscallname> should be used instead. Also no possibility for security
-> bugs that could creep in because SYSCALL_DEFINE has been used instead of
-> SYSCALL_DEFINE_WRAP.
-
-If we'll choose to stay with current approach, we'll definitely need
-to update documentation.
-
-> 
-> Ideally the implementation would only generate an alias if no sign/zero
-> extension is necessary.
-> 
-> Trivially this would be true for system calls without arguments like e.g.
-> sys_fork() which would get a compat_sys_fork alias without any further
-> code.
-> 
-> I'm not sure how difficult it is to implement the same logic for system
-> calls that have parameters. That is: either generate a
-> compat_sys_<syscallname> wrapper function, or if the SYSCALL_COMPAT_DEFINE
-> macro figures out that no zero sign extension is required, only an alias
-> without any additional code.
-> 
-> I think in the long term something like this is much easier to maintain.
-> 
-> Does that make sense?
-
-For me, the most important adwantage of this approach is that we don't
-need the list of 'magic' system calls anymore. It's even more
-important if we'll face a requirement to support ABI that differs from
-both natural and ilp32 ABIs. New __SC_COMPAT_CAST will do all the job
-for us.
-
-The downsides are that we'll have unneeded wrappers for some syscalls,
-if linker will not clear them, and wasting of space if we'll find no
-way how to explain compiler to generate simple alias when it's
-enough... 
-
-I'll play with it and write you what I'll come to.
-
-Yury.
+On Thu, Jan 28, 2016 at 8:09 PM, Will Deacon <will.deacon-5wv7dgnIgG8@public.gmane.org> wrote:
+> On Tue, Jan 26, 2016 at 02:36:04PM -0600, Bjorn Helgaas wrote:
+>> Subject is "arm64/arm, numa, dt: adding ..."  What is the significance
+>> of the "arm" part?  The other patches only mention "arm64".
+>>
+>> General comment: the code below has little, if anything, that is
+>> actually arm64-specific.  Maybe this is the first DT-based NUMA
+>> platform?  I don't see other similar code for other arches, so maybe
+>> it's too early to try to generalize it, but we should try to avoid
+>> adding duplicates of this code if/when other arches do show up.
+>
+> Having it in the core code would allow us to share it with arch/arm/
+> fairly straightforwardly.
+This binding can be used for arm too.
+however at this moment it is the need of arm64 platforms.
+can we please keep this to arm64 as it's too early to try to
+generalize it(as Bjorn suggested)
+I prefer to keep it as it is, otherwise ok.
+Please suggest.
+>
+> Will
+thanks
+Ganapat
