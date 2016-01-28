@@ -1,49 +1,36 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re:
- [linux-review:James-Hogan/kbuild-Remove-stale-asm-generic-wrappers/20160119-183642]
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [linux-review:James-Hogan/kbuild-Remove-stale-asm-generic-wrappers/20160119-183642]
  d979f99e9cc14e2667e9b6e268db695977e4197a BUILD DONE
-Date: Thu, 28 Jan 2016 17:42:41 +0000
-Message-ID: <20160128174241.GN10826@n2100.arm.linux.org.uk>
+Date: Thu, 28 Jan 2016 19:00:30 +0100
+Message-ID: <CAMuHMdWCwP8Hkn+tGEoG-FxUnjAq8uExcPhmXASh_ErU8DDN2w@mail.gmail.com>
 References: <569e1dbb.MgLv8OaZwklOxxtU%fengguang.wu@intel.com>
- <1947556.38OyJnvGS5@wuerfel>
- <20160127093018.GA21190@wfg-t540p.sh.intel.com>
- <3596300.IYfzmako0c@wuerfel>
- <20160128031435.GA25625@wfg-t540p.sh.intel.com>
+	<1947556.38OyJnvGS5@wuerfel>
+	<20160127093018.GA21190@wfg-t540p.sh.intel.com>
+	<3596300.IYfzmako0c@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160128031435.GA25625@wfg-t540p.sh.intel.com>
+In-Reply-To: <3596300.IYfzmako0c@wuerfel>
 Sender: linux-kbuild-owner@vger.kernel.org
-To: Fengguang Wu <fengguang.wu@intel.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, James Hogan <james.hogan@imgtec.com>, Paul Burton <paul.burton@imgtec.com>, linux-kbuild@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, Florian Fainelli <f.fainelli@gmail.com>, Michal Marek <mmarek@suse.com>, linux-arm-kernel@lists.infradead.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Fengguang Wu <fengguang.wu@intel.com>, James Hogan <james.hogan@imgtec.com>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Florian Fainelli <f.fainelli@gmail.com>, Paul Burton <paul.burton@imgtec.com>, Ralf Baechle <ralf@linux-mips.org>, Heinrich Schuchardt <xypron.glpk@gmx.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Michal Marek <mmarek@suse.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jan 28, 2016 at 11:14:35AM +0800, Fengguang Wu wrote:
-> On Wed, Jan 27, 2016 at 10:44:01AM +0100, Arnd Bergmann wrote:
-> > - CONFIG_PHYS_OFFSET needs to be entered manually to be a number
-> >   in 'make config'
-> 
-> That's a problem for auto tests.
+Hi Arnd,
 
-I'm really against the idea of providing some kind of "default" to it.
-Not providing a default means that people _have_ to do some research
-for their particular system in order to provide a value, and they're
-more likely to get the right value.  Providing a default will lead to
-the assumption that the value is okay, and then we'll end up with
-people complaining that their kernel doesn't boot, and is totally
-silent.
+On Wed, Jan 27, 2016 at 10:44 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> - in some configurations, you end up without any boards selected, hitting
+>   an #error in the final link
 
-The only default I'd accept is one based on the rest of the config -
-in other words, re-introducing all the physical address of RAM that
-we used to have in the mach/memory.h files...
+FWIW, I have a similar problem with m68k+MMU=y randconfig...
 
-There's other ways around these kinds of things, the Kconfig system
-does allow a Kconfig fragment which can be used to pre-set some
-configuration options to particular values - and so which can be used
-to set CONFIG_PHYS_OFFSET prior to an allrandconfig or similar.
+Gr{oetje,eeting}s,
 
--- 
-RMK's Patch system: http://www.arm.linux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
