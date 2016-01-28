@@ -1,66 +1,168 @@
-From: Dmitry Torokhov <dmitry.torokhov@gmail.com>
-Subject: Re: [PATCH v2 14/16] input: Redefine INPUT_COMPAT_TEST as in_compat_syscall()
-Date: Wed, 27 Jan 2016 11:17:05 -0800
-Message-ID: <CAKdAkRQm6ADz5aCYAFxXcoGZ2zNFwTUXjMzZdNj-D2-YrYQtrg@mail.gmail.com>
-References: <cover.1453759363.git.luto@kernel.org>
-        <64480084bc652d5fa91bf5cd4be979e2f1e4cf11.1453759363.git.luto@kernel.org>
+From: David Brown <david.brown@linaro.org>
+Subject: [PATCH] arm64: make CONFIG_DEBUG_RODATA non-optional
+Date: Wed, 27 Jan 2016 17:09:06 -0700
+Message-ID: <20160128000906.GA42530@davidb.org>
+References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
+ <1453226922-16831-4-git-send-email-keescook@chromium.org>
+ <20160127211105.GA41450@davidb.org>
+ <CAGXu5j+DLRoVE88a9++jVfEkN90HDiAaDAMnT2TrKqtMZ_yOww@mail.gmail.com>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <64480084bc652d5fa91bf5cd4be979e2f1e4cf11.1453759363.git.luto@kernel.org>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-List-help: <mailto:ecartis@linux-mips.org?Subject=help>
-List-unsubscribe: <mailto:ecartis@linux-mips.org?subject=unsubscribe%20linux-mips>
-List-software: Ecartis version 1.0.0
-List-subscribe: <mailto:ecartis@linux-mips.org?subject=subscribe%20linux-mips>
-List-owner: <mailto:ralf@linux-mips.org>
-List-post: <mailto:linux-mips@linux-mips.org>
-List-archive: <http://www.linux-mips.org/archives/linux-mips/>
-To: Andy Lutomirski <luto@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Al Viro <viro@zeniv.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, X86 ML <x86@kernel.org>, linux-arch <linux-arch@vger.kernel.org>, David Miller <davem@davemloft.net>, "linux-s390@vger.kernel.org" <linux-s390@vger.kernel.org>, Chris Metcalf <cmetcalf@ezchip.com>, linux-parisc@vger.kernel.org, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, sparclinux@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Return-path: <kernel-hardening-return-2547-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+Content-Disposition: inline
+In-Reply-To: <CAGXu5j+DLRoVE88a9++jVfEkN90HDiAaDAMnT2TrKqtMZ_yOww@mail.gmail.com>
+To: Kees Cook <keescook@chromium.org>
+Cc: "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, Marc Zyngier <marc.zyngier@arm.com>, yalin wang <yalin.wang2010@gmail.com>, Zi Shen Lim <zlim.lnx@gmail.com>, Yang Shi <yang.shi@linaro.org>, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Laura Abbott <lauraa@codeaurora.org>, "Suzuki K. Poulose" <suzuki>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Andy,
+From 2efef8aa0f8f7f6277ffebe4ea6744fc93d54644 Mon Sep 17 00:00:00 2001
+From: David Brown <david.brown@linaro.org>
+Date: Wed, 27 Jan 2016 13:58:44 -0800
 
-On Mon, Jan 25, 2016 at 2:24 PM, Andy Lutomirski <luto@kernel.org> wrote:
-> The input compat code should work like all other compat code: for
-> 32-bit syscalls, use the 32-bit ABI and for 64-bit syscalls, use the
-> 64-bit ABI.  We have a helper for that (in_compat_syscall()): just
-> use it.
->
-> Signed-off-by: Andy Lutomirski <luto@kernel.org>
-> ---
->  drivers/input/input-compat.h | 12 +-----------
->  1 file changed, 1 insertion(+), 11 deletions(-)
->
-> diff --git a/drivers/input/input-compat.h b/drivers/input/input-compat.h
-> index 148f66fe3205..0f25878d5fa2 100644
-> --- a/drivers/input/input-compat.h
-> +++ b/drivers/input/input-compat.h
-> @@ -17,17 +17,7 @@
->
->  #ifdef CONFIG_COMPAT
->
-> -/* Note to the author of this code: did it ever occur to
-> -   you why the ifdefs are needed? Think about it again. -AK */
-> -#if defined(CONFIG_X86_64) || defined(CONFIG_TILE)
-> -#  define INPUT_COMPAT_TEST is_compat_task()
-> -#elif defined(CONFIG_S390)
-> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_31BIT)
-> -#elif defined(CONFIG_MIPS)
-> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_32BIT_ADDR)
-> -#else
-> -#  define INPUT_COMPAT_TEST test_thread_flag(TIF_32BIT)
-> -#endif
-> +#define INPUT_COMPAT_TEST in_compat_syscall()
->
+This removes the CONFIG_DEBUG_RODATA option and makes it always
+enabled.
 
+Signed-off-by: David Brown <david.brown@linaro.org>
+---
+v1: This is in the same spirit as the x86 patch, removing allowing
+this option to be config selected.  The associated patch series adds a
+runtime option for the same thing.  However, it does affect the way
+some things are mapped, and could possibly result in either increased
+memory usage, or a performance hit (due to TLB misses from 4K pages).
 
-If we now have function that works on all arches I'd prefer if we used
-it directly instead of continuing using INPUT_COMPAT_TEST.
+I've tested this on a Hikey 96board (hi6220-hikey.dtb), both with and
+without 'rodata=off' on the command line.
 
-Thanks.
+ arch/arm64/Kconfig              |  3 +++
+ arch/arm64/Kconfig.debug        | 10 ----------
+ arch/arm64/kernel/insn.c        |  2 +-
+ arch/arm64/kernel/vmlinux.lds.S |  5 +----
+ arch/arm64/mm/mmu.c             | 12 ------------
+ 5 files changed, 5 insertions(+), 27 deletions(-)
 
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 8cc6228..ffa617a 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -201,6 +201,9 @@ config KERNEL_MODE_NEON
+ config FIX_EARLYCON_MEM
+ 	def_bool y
+ 
++config DEBUG_RODATA
++	def_bool y
++
+ config PGTABLE_LEVELS
+ 	int
+ 	default 2 if ARM64_16K_PAGES && ARM64_VA_BITS_36
+diff --git a/arch/arm64/Kconfig.debug b/arch/arm64/Kconfig.debug
+index e13c4bf..db994ec 100644
+--- a/arch/arm64/Kconfig.debug
++++ b/arch/arm64/Kconfig.debug
+@@ -48,16 +48,6 @@ config DEBUG_SET_MODULE_RONX
+           against certain classes of kernel exploits.
+           If in doubt, say "N".
+ 
+-config DEBUG_RODATA
+-	bool "Make kernel text and rodata read-only"
+-	help
+-	  If this is set, kernel text and rodata will be made read-only. This
+-	  is to help catch accidental or malicious attempts to change the
+-	  kernel's executable code. Additionally splits rodata from kernel
+-	  text so it can be made explicitly non-executable.
+-
+-          If in doubt, say Y
+-
+ config DEBUG_ALIGN_RODATA
+ 	depends on DEBUG_RODATA && ARM64_4K_PAGES
+ 	bool "Align linker sections up to SECTION_SIZE"
+diff --git a/arch/arm64/kernel/insn.c b/arch/arm64/kernel/insn.c
+index 7371455..a04bdef 100644
+--- a/arch/arm64/kernel/insn.c
++++ b/arch/arm64/kernel/insn.c
+@@ -95,7 +95,7 @@ static void __kprobes *patch_map(void *addr, int fixmap)
+ 
+ 	if (module && IS_ENABLED(CONFIG_DEBUG_SET_MODULE_RONX))
+ 		page = vmalloc_to_page(addr);
+-	else if (!module && IS_ENABLED(CONFIG_DEBUG_RODATA))
++	else if (!module)
+ 		page = virt_to_page(addr);
+ 	else
+ 		return addr;
+diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
+index e3928f5..f80903c 100644
+--- a/arch/arm64/kernel/vmlinux.lds.S
++++ b/arch/arm64/kernel/vmlinux.lds.S
+@@ -65,12 +65,9 @@ PECOFF_FILE_ALIGNMENT = 0x200;
+ #if defined(CONFIG_DEBUG_ALIGN_RODATA)
+ #define ALIGN_DEBUG_RO			. = ALIGN(1<<SECTION_SHIFT);
+ #define ALIGN_DEBUG_RO_MIN(min)		ALIGN_DEBUG_RO
+-#elif defined(CONFIG_DEBUG_RODATA)
++#else
+ #define ALIGN_DEBUG_RO			. = ALIGN(1<<PAGE_SHIFT);
+ #define ALIGN_DEBUG_RO_MIN(min)		ALIGN_DEBUG_RO
+-#else
+-#define ALIGN_DEBUG_RO
+-#define ALIGN_DEBUG_RO_MIN(min)		. = ALIGN(min);
+ #endif
+ 
+ SECTIONS
+diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+index 58faeaa..3b411b7 100644
+--- a/arch/arm64/mm/mmu.c
++++ b/arch/arm64/mm/mmu.c
+@@ -313,7 +313,6 @@ static void create_mapping_late(phys_addr_t phys, unsigned long virt,
+ 				phys, virt, size, prot, late_alloc);
+ }
+ 
+-#ifdef CONFIG_DEBUG_RODATA
+ static void __init __map_memblock(phys_addr_t start, phys_addr_t end)
+ {
+ 	/*
+@@ -347,13 +346,6 @@ static void __init __map_memblock(phys_addr_t start, phys_addr_t end)
+ 	}
+ 
+ }
+-#else
+-static void __init __map_memblock(phys_addr_t start, phys_addr_t end)
+-{
+-	create_mapping(start, __phys_to_virt(start), end - start,
+-			PAGE_KERNEL_EXEC);
+-}
+-#endif
+ 
+ static void __init map_mem(void)
+ {
+@@ -410,7 +402,6 @@ static void __init map_mem(void)
+ 
+ static void __init fixup_executable(void)
+ {
+-#ifdef CONFIG_DEBUG_RODATA
+ 	/* now that we are actually fully mapped, make the start/end more fine grained */
+ 	if (!IS_ALIGNED((unsigned long)_stext, SWAPPER_BLOCK_SIZE)) {
+ 		unsigned long aligned_start = round_down(__pa(_stext),
+@@ -428,10 +419,8 @@ static void __init fixup_executable(void)
+ 				aligned_end - __pa(__init_end),
+ 				PAGE_KERNEL);
+ 	}
+-#endif
+ }
+ 
+-#ifdef CONFIG_DEBUG_RODATA
+ void mark_rodata_ro(void)
+ {
+ 	create_mapping_late(__pa(_stext), (unsigned long)_stext,
+@@ -439,7 +428,6 @@ void mark_rodata_ro(void)
+ 				PAGE_KERNEL_ROX);
+ 
+ }
+-#endif
+ 
+ void fixup_init(void)
+ {
 -- 
-Dmitry
+2.7.0
