@@ -1,287 +1,364 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:17966 "EHLO mga11.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756738AbcA2SRI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 29 Jan 2016 13:17:08 -0500
-Subject: [PATCH 18/31] mm: do not enforce PKEY permissions on "foreign" mm access
-From: Dave Hansen <dave@sr71.net>
-Date: Fri, 29 Jan 2016 10:17:07 -0800
-References: <20160129181642.98E7D468@viggo.jf.intel.com>
-In-Reply-To: <20160129181642.98E7D468@viggo.jf.intel.com>
-Message-ID: <20160129181707.6684005B@viggo.jf.intel.com>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:49604 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752433AbcA2TRq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jan 2016 14:17:46 -0500
+Date: Fri, 29 Jan 2016 19:17:44 +0000
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [RFC][PATCHSET] allowing exports in *.S
+Message-ID: <20160129191744.GB17997@ZenIV.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-mm@kvack.org, x86@kernel.org, torvalds@linux-foundation.org, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com, linux-arch@vger.kernel.org
-Message-ID: <20160129181707.gaxUkBTm0yDhq-xMW-FxWNB4efQUt-52-6-oRGZG-UU@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20160129191744.NeBc9yLZy8vu9rlrZR6cDY-Wm49D6p0P_dnDIKIFwak@z>
 
+	The policy wrt exports right now is "put it next to the definition
+of object being exported, unless it's in assembler".  The reasons for having
+an export near the definition are obvious - it's easier to keep things
+in sync that way, the fact that function can be called by modules is
+obvious without grepping through the entire tree, etc.
 
-From: Dave Hansen <dave.hansen@linux.intel.com>
+	The major exception is for things defined in assembler - exports
+of those are kept in arch/*/*/*ksyms*.c.  The reason is that EXPORT_SYMBOL
+and friends can't be used from assembler; all the reasons to keep them
+with definitions still apply, but we simply can't do that.
 
-We try to enforce protection keys in software the same way that we
-do in hardware.  (See long example below).
+	Another unpleasant issue is that lib-y objects need to be careful
+about their exports - it *is* done in quite a few places, but it's only
+legitimate as long as any .config either doesn't include any modules
+using a symbol in question _or_ has built-in users of something from the
+same object.  For something like ctype.c the latter is a safe bet, but
+something more subtle can suddenly get into trouble years later when
+such a config becomes possible - the lack of built-in users ends up with
+linker not picking the object at all, which leads to missing export.
+As the result, we have things like "here's a long series of lib-y,
+with that object in the middle going into obj-y" with no indication of the
+reasons why *and* nothing to guarantee that we won't need the same treatment
+for other objects there.
 
-But, we only want to do this when accessing our *own* process's
-memory.  If GDB set PKRU[6].AD=1 (disable access to PKEY 6), then
-tried to PTRACE_POKE a target process which just happened to have
-some mprotect_pkey(pkey=6) memory, we do *not* want to deny the
-debugger access to that memory.  PKRU is fundamentally a
-thread-local structure and we do not want to enforce it on access
-to _another_ thread's data.
+	It is connected to the former, since quite a few *.S that contain
+exported functions happen to be in lib-y.
 
-This gets especially tricky when we have workqueues or other
-delayed-work mechanisms that might run in a random process's context.
-We can check that we only enforce pkeys when operating on our *own* mm,
-but delayed work gets performed when a random user context is active.
-We might end up with a situation where a delayed-work gup fails when
-running randomly under its "own" task but succeeds when running under
-another process.  We want to avoid that.
+	This series (available in vfs.git#work.asm-exports) introduces
+a new header (asm/export.h), to be included from *.S and defining variants
+of EXPORT_SYMBOL and EXPORT_SYMBOL_GPL usable there.  It also allows
+safe exports from lib-* - any object that contains an export after it's
+been compiled gets automatically pulled into vmlinux.
 
-To avoid that, we use the new GUP flag: FOLL_FOREIGN and add a
-fault flag: FAULT_FLAG_FOREIGN.  They indicate that we are
-walking an mm which is not guranteed to be the same as
-current->mm and should not be subject to protection key
-enforcement.
+	The only real restriction left is that if you have a weak symbol,
+exporting it from the same object file will forcibly peek _that_ definition,
+even if the symbol itself is overridden by another alternative at link time.
 
-Thanks to Jerome Glisse for pointing out this scenario.
+The first patch allows to export safely from lib-*, the second one adds
+asm-generic/export.h, usable as-is for almost all architectures.  The only
+exceptions are 64bit x86, which wants unusually strong alignment for
+struct kernel_symbol and m68k, which wants only 16bit alignements for pointers
+(and for struct kernel_symbol as well).  Such an architecture can add
+asm/export.h that defines a couple of macros (KSYM_ALIGN and KCRC_ALIGN)
+and includes <asm-generic/export.h>.  Normally you only need to add
+generic-y += export.h to asm/Kbuild; of course, if you don't put any exports
+into asm files, you don't need to do anything at all.
 
-*** Why do we enforce protection keys in software?? ***
+The rest of that series is mostly proof-of-concept "let's take exports on
+<architecture> to the matching definitions" for a bunch of architectures;
+it's more of a demonstration that it can be done - any given architecture
+might prefer to add convenience macros, etc.  This is just adding includes
+of asm/export.h and moves EXPORT_SYMBOL/EXPORT_SYMBOL_GPL to *.S.  Usually
+it ends up with arch/*/*/*ksym*.c gone.
 
-Imagine that we disabled access to the memory pointer to by 'buf'.
-The, we implemented sys_write() like this:
+A bunch of detritus had been found and removed in process - e.g. exports of
+static inline, functions that had lost both in-tree callers and export, but
+forgotten and left behind, etc.  I'm fairly sure that more junk like that
+is out there; that's one of the reasons why exports really ought to be near
+the definitions...
 
-	sys_read(fd, buf, len...)
-	{
-		struct page *page = follow_page(buf);
-		void *buf_mapped = kmap(page);
-		memcpy(buf_mapped, fd_data, len);
-		...
-	}
+Of course, we don't have to move all exports at once (or move them at all);
+it's not a flagday conversion.  The whole series so far can be picked at
+git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git work.asm-exports;
+I'll post individual patches in followups.
 
-This writes to 'buf' via a *kernel* mapping, without a protection
-key.  While this implementation does the same thing:
+Please, review and comment.
 
-	sys_read(fd, buf, len...)
-	{
-		copy_to_user(buf, fd_data, len);
-		...
-	}
+Shortlog:
+Al Viro (12):
+      [kbuild] handle exports in lib-y objects reliably
+      EXPORT_SYMBOL() for asm
+      x86: move exports to actual definitions
+      alpha: move exports to actual definitions
+      m68k: move exports to definitions
+      s390: move exports to definitions
+      arm: move exports to definitions
+      ppc: move exports to definitions
+      sparc: move exports to definitions
+      ia64: move exports to definitions
+      [sparc] unify 32bit and 64bit string.h
+      sparc32: debride memcpy.S a bit
 
-but would hit a protection key fault because the userspace 'buf'
-mapping has a protection key set.
-
-To provide consistency, and to make key-protected memory work
-as much like mprotect()ed memory as possible, we try to enforce
-the same protections as the hardware would when the *kernel* walks
-the page tables (and other mm structures).
-
-Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
-Cc: linux-arch@vger.kernel.org
----
-
- b/arch/powerpc/include/asm/mmu_context.h   |    3 ++-
- b/arch/s390/include/asm/mmu_context.h      |    3 ++-
- b/arch/unicore32/include/asm/mmu_context.h |    3 ++-
- b/arch/x86/include/asm/mmu_context.h       |    5 +++--
- b/drivers/iommu/amd_iommu_v2.c             |    1 +
- b/include/asm-generic/mm_hooks.h           |    3 ++-
- b/include/linux/mm.h                       |    1 +
- b/mm/gup.c                                 |   15 ++++++++++-----
- b/mm/ksm.c                                 |   10 ++++++++--
- b/mm/memory.c                              |    3 ++-
- 10 files changed, 33 insertions(+), 14 deletions(-)
-
-diff -puN arch/powerpc/include/asm/mmu_context.h~pkeys-14-gup-fault-foreign-flag arch/powerpc/include/asm/mmu_context.h
---- a/arch/powerpc/include/asm/mmu_context.h~pkeys-14-gup-fault-foreign-flag	2016-01-28 15:52:24.341586443 -0800
-+++ b/arch/powerpc/include/asm/mmu_context.h	2016-01-28 15:52:24.358587222 -0800
-@@ -148,7 +148,8 @@ static inline void arch_bprm_mm_init(str
- {
- }
- 
--static inline bool arch_vma_access_permitted(struct vm_area_struct *vma, bool write)
-+static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
-+		bool write, bool foreign)
- {
- 	/* by default, allow everything */
- 	return true;
-diff -puN arch/s390/include/asm/mmu_context.h~pkeys-14-gup-fault-foreign-flag arch/s390/include/asm/mmu_context.h
---- a/arch/s390/include/asm/mmu_context.h~pkeys-14-gup-fault-foreign-flag	2016-01-28 15:52:24.342586488 -0800
-+++ b/arch/s390/include/asm/mmu_context.h	2016-01-28 15:52:24.358587222 -0800
-@@ -130,7 +130,8 @@ static inline void arch_bprm_mm_init(str
- {
- }
- 
--static inline bool arch_vma_access_permitted(struct vm_area_struct *vma, bool write)
-+static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
-+		bool write, bool foreign)
- {
- 	/* by default, allow everything */
- 	return true;
-diff -puN arch/unicore32/include/asm/mmu_context.h~pkeys-14-gup-fault-foreign-flag arch/unicore32/include/asm/mmu_context.h
---- a/arch/unicore32/include/asm/mmu_context.h~pkeys-14-gup-fault-foreign-flag	2016-01-28 15:52:24.344586580 -0800
-+++ b/arch/unicore32/include/asm/mmu_context.h	2016-01-28 15:52:24.358587222 -0800
-@@ -97,7 +97,8 @@ static inline void arch_bprm_mm_init(str
- {
- }
- 
--static inline bool arch_vma_access_permitted(struct vm_area_struct *vma, bool write)
-+static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
-+		bool write, bool foreign)
- {
- 	/* by default, allow everything */
- 	return true;
-diff -puN arch/x86/include/asm/mmu_context.h~pkeys-14-gup-fault-foreign-flag arch/x86/include/asm/mmu_context.h
---- a/arch/x86/include/asm/mmu_context.h~pkeys-14-gup-fault-foreign-flag	2016-01-28 15:52:24.345586626 -0800
-+++ b/arch/x86/include/asm/mmu_context.h	2016-01-28 15:52:24.359587268 -0800
-@@ -322,10 +322,11 @@ static inline bool vma_is_foreign(struct
- 	return false;
- }
- 
--static inline bool arch_vma_access_permitted(struct vm_area_struct *vma, bool write)
-+static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
-+		bool write, bool foreign)
- {
- 	/* allow access if the VMA is not one from this process */
--	if (vma_is_foreign(vma))
-+	if (foreign || vma_is_foreign(vma))
- 		return true;
- 	return __pkru_allows_pkey(vma_pkey(vma), write);
- }
-diff -puN drivers/iommu/amd_iommu_v2.c~pkeys-14-gup-fault-foreign-flag drivers/iommu/amd_iommu_v2.c
---- a/drivers/iommu/amd_iommu_v2.c~pkeys-14-gup-fault-foreign-flag	2016-01-28 15:52:24.347586718 -0800
-+++ b/drivers/iommu/amd_iommu_v2.c	2016-01-28 15:52:24.359587268 -0800
-@@ -526,6 +526,7 @@ static void do_fault(struct work_struct
- 		flags |= FAULT_FLAG_USER;
- 	if (fault->flags & PPR_FAULT_WRITE)
- 		flags |= FAULT_FLAG_WRITE;
-+	flags |= FAULT_FLAG_FOREIGN;
- 
- 	down_read(&mm->mmap_sem);
- 	vma = find_extend_vma(mm, address);
-diff -puN include/asm-generic/mm_hooks.h~pkeys-14-gup-fault-foreign-flag include/asm-generic/mm_hooks.h
---- a/include/asm-generic/mm_hooks.h~pkeys-14-gup-fault-foreign-flag	2016-01-28 15:52:24.348586763 -0800
-+++ b/include/asm-generic/mm_hooks.h	2016-01-28 15:52:24.360587314 -0800
-@@ -26,7 +26,8 @@ static inline void arch_bprm_mm_init(str
- {
- }
- 
--static inline bool arch_vma_access_permitted(struct vm_area_struct *vma, bool write)
-+static inline bool arch_vma_access_permitted(struct vm_area_struct *vma,
-+		bool write, bool foreign)
- {
- 	/* by default, allow everything */
- 	return true;
-diff -puN include/linux/mm.h~pkeys-14-gup-fault-foreign-flag include/linux/mm.h
---- a/include/linux/mm.h~pkeys-14-gup-fault-foreign-flag	2016-01-28 15:52:24.350586855 -0800
-+++ b/include/linux/mm.h	2016-01-28 15:52:24.360587314 -0800
-@@ -249,6 +249,7 @@ extern pgprot_t protection_map[16];
- #define FAULT_FLAG_KILLABLE	0x10	/* The fault task is in SIGKILL killable region */
- #define FAULT_FLAG_TRIED	0x20	/* Second try */
- #define FAULT_FLAG_USER		0x40	/* The fault originated in userspace */
-+#define FAULT_FLAG_FOREIGN	0x80	/* faulting for non current tsk/mm */
- 
- /*
-  * vm_fault is filled by the the pagefault handler and passed to the vma's
-diff -puN mm/gup.c~pkeys-14-gup-fault-foreign-flag mm/gup.c
---- a/mm/gup.c~pkeys-14-gup-fault-foreign-flag	2016-01-28 15:52:24.351586901 -0800
-+++ b/mm/gup.c	2016-01-28 15:52:24.361587360 -0800
-@@ -364,6 +364,8 @@ static int faultin_page(struct task_stru
- 		return -ENOENT;
- 	if (*flags & FOLL_WRITE)
- 		fault_flags |= FAULT_FLAG_WRITE;
-+	if (*flags & FOLL_FOREIGN)
-+		fault_flags |= FAULT_FLAG_FOREIGN;
- 	if (nonblocking)
- 		fault_flags |= FAULT_FLAG_ALLOW_RETRY;
- 	if (*flags & FOLL_NOWAIT)
-@@ -414,11 +416,13 @@ static int faultin_page(struct task_stru
- static int check_vma_flags(struct vm_area_struct *vma, unsigned long gup_flags)
- {
- 	vm_flags_t vm_flags = vma->vm_flags;
-+	int write = (gup_flags & FOLL_WRITE);
-+	int foreign = (gup_flags & FOLL_FOREIGN);
- 
- 	if (vm_flags & (VM_IO | VM_PFNMAP))
- 		return -EFAULT;
- 
--	if (gup_flags & FOLL_WRITE) {
-+	if (write) {
- 		if (!(vm_flags & VM_WRITE)) {
- 			if (!(gup_flags & FOLL_FORCE))
- 				return -EFAULT;
-@@ -446,7 +450,7 @@ static int check_vma_flags(struct vm_are
- 		if (!(vm_flags & VM_MAYREAD))
- 			return -EFAULT;
- 	}
--	if (!arch_vma_access_permitted(vma, (gup_flags & FOLL_WRITE)))
-+	if (!arch_vma_access_permitted(vma, write, foreign))
- 		return -EFAULT;
- 	return 0;
- }
-@@ -616,7 +620,8 @@ EXPORT_SYMBOL(__get_user_pages);
- 
- bool vma_permits_fault(struct vm_area_struct *vma, unsigned int fault_flags)
- {
--	bool write = !!(fault_flags & FAULT_FLAG_WRITE);
-+	bool write   = !!(fault_flags & FAULT_FLAG_WRITE);
-+	bool foreign = !!(fault_flags & FAULT_FLAG_FOREIGN);
- 	vm_flags_t vm_flags = write ? VM_WRITE : VM_READ;
- 
- 	if (!(vm_flags & vma->vm_flags))
-@@ -624,9 +629,9 @@ bool vma_permits_fault(struct vm_area_st
- 
- 	/*
- 	 * The architecture might have a hardware protection
--	 * mechanism other than read/write that can deny access
-+	 * mechanism other than read/write that can deny access.
- 	 */
--	if (!arch_vma_access_permitted(vma, write))
-+	if (!arch_vma_access_permitted(vma, write, foreign))
- 		return false;
- 
- 	return true;
-diff -puN mm/ksm.c~pkeys-14-gup-fault-foreign-flag mm/ksm.c
---- a/mm/ksm.c~pkeys-14-gup-fault-foreign-flag	2016-01-28 15:52:24.353586993 -0800
-+++ b/mm/ksm.c	2016-01-28 15:52:24.362587405 -0800
-@@ -359,6 +359,10 @@ static inline bool ksm_test_exit(struct
-  * in case the application has unmapped and remapped mm,addr meanwhile.
-  * Could a ksm page appear anywhere else?  Actually yes, in a VM_PFNMAP
-  * mmap of /dev/mem or /dev/kmem, where we would not want to touch it.
-+ *
-+ * FAULT_FLAG/FOLL_FOREIGN are because we do this outside the context
-+ * of the process that owns 'vma'.  We also do not want to enforce
-+ * protection keys here anyway.
-  */
- static int break_ksm(struct vm_area_struct *vma, unsigned long addr)
- {
-@@ -367,12 +371,14 @@ static int break_ksm(struct vm_area_stru
- 
- 	do {
- 		cond_resched();
--		page = follow_page(vma, addr, FOLL_GET | FOLL_MIGRATION);
-+		page = follow_page(vma, addr,
-+				FOLL_GET | FOLL_MIGRATION | FOLL_FOREIGN);
- 		if (IS_ERR_OR_NULL(page))
- 			break;
- 		if (PageKsm(page))
- 			ret = handle_mm_fault(vma->vm_mm, vma, addr,
--							FAULT_FLAG_WRITE);
-+							FAULT_FLAG_WRITE |
-+							FAULT_FLAG_FOREIGN);
- 		else
- 			ret = VM_FAULT_WRITE;
- 		put_page(page);
-diff -puN mm/memory.c~pkeys-14-gup-fault-foreign-flag mm/memory.c
---- a/mm/memory.c~pkeys-14-gup-fault-foreign-flag	2016-01-28 15:52:24.355587084 -0800
-+++ b/mm/memory.c	2016-01-28 15:52:24.363587451 -0800
-@@ -3358,7 +3358,8 @@ static int __handle_mm_fault(struct mm_s
- 	pmd_t *pmd;
- 	pte_t *pte;
- 
--	if (!arch_vma_access_permitted(vma, flags & FAULT_FLAG_WRITE))
-+	if (!arch_vma_access_permitted(vma, flags & FAULT_FLAG_WRITE,
-+					    flags & FAULT_FLAG_FOREIGN))
- 		return VM_FAULT_SIGSEGV;
- 
- 	if (unlikely(is_vm_hugetlb_page(vma)))
-_
+Diffstat:
+ arch/alpha/include/asm/Kbuild         |   1 +
+ arch/alpha/kernel/Makefile            |   2 +-
+ arch/alpha/kernel/alpha_ksyms.c       | 102 -------------------
+ arch/alpha/kernel/machvec_impl.h      |   6 +-
+ arch/alpha/kernel/setup.c             |   1 +
+ arch/alpha/lib/callback_srm.S         |   5 +
+ arch/alpha/lib/checksum.c             |   3 +
+ arch/alpha/lib/clear_page.S           |   3 +-
+ arch/alpha/lib/clear_user.S           |   2 +
+ arch/alpha/lib/copy_page.S            |   3 +-
+ arch/alpha/lib/copy_user.S            |   3 +
+ arch/alpha/lib/csum_ipv6_magic.S      |   2 +
+ arch/alpha/lib/csum_partial_copy.c    |   2 +
+ arch/alpha/lib/dec_and_lock.c         |   2 +
+ arch/alpha/lib/divide.S               |   3 +
+ arch/alpha/lib/ev6-clear_page.S       |   3 +-
+ arch/alpha/lib/ev6-clear_user.S       |   3 +-
+ arch/alpha/lib/ev6-copy_page.S        |   3 +-
+ arch/alpha/lib/ev6-copy_user.S        |   3 +-
+ arch/alpha/lib/ev6-csum_ipv6_magic.S  |   2 +
+ arch/alpha/lib/ev6-divide.S           |   3 +
+ arch/alpha/lib/ev6-memchr.S           |   3 +-
+ arch/alpha/lib/ev6-memcpy.S           |   3 +-
+ arch/alpha/lib/ev6-memset.S           |   7 +-
+ arch/alpha/lib/ev67-strcat.S          |   3 +-
+ arch/alpha/lib/ev67-strchr.S          |   3 +-
+ arch/alpha/lib/ev67-strlen.S          |   3 +-
+ arch/alpha/lib/ev67-strncat.S         |   3 +-
+ arch/alpha/lib/ev67-strrchr.S         |   3 +-
+ arch/alpha/lib/fpreg.c                |   7 ++
+ arch/alpha/lib/memchr.S               |   3 +-
+ arch/alpha/lib/memcpy.c               |   5 +-
+ arch/alpha/lib/memmove.S              |   3 +-
+ arch/alpha/lib/memset.S               |   7 +-
+ arch/alpha/lib/strcat.S               |   2 +
+ arch/alpha/lib/strchr.S               |   3 +-
+ arch/alpha/lib/strcpy.S               |   3 +-
+ arch/alpha/lib/strlen.S               |   3 +-
+ arch/alpha/lib/strncat.S              |   3 +-
+ arch/alpha/lib/strncpy.S              |   3 +-
+ arch/alpha/lib/strrchr.S              |   3 +-
+ arch/arm/include/asm/Kbuild           |   1 +
+ arch/arm/kernel/Makefile              |   2 +-
+ arch/arm/kernel/armksyms.c            | 183 ----------------------------------
+ arch/arm/kernel/entry-ftrace.S        |   3 +
+ arch/arm/kernel/head.S                |   3 +
+ arch/arm/kernel/smccc-call.S          |   3 +
+ arch/arm/lib/ashldi3.S                |   3 +
+ arch/arm/lib/ashrdi3.S                |   3 +
+ arch/arm/lib/bitops.h                 |   5 +
+ arch/arm/lib/bswapsdi2.S              |   3 +
+ arch/arm/lib/clear_user.S             |   4 +
+ arch/arm/lib/copy_from_user.S         |   2 +
+ arch/arm/lib/copy_page.S              |   2 +
+ arch/arm/lib/copy_to_user.S           |   4 +
+ arch/arm/lib/csumipv6.S               |   3 +-
+ arch/arm/lib/csumpartial.S            |   2 +
+ arch/arm/lib/csumpartialcopy.S        |   1 +
+ arch/arm/lib/csumpartialcopygeneric.S |   2 +
+ arch/arm/lib/csumpartialcopyuser.S    |   1 +
+ arch/arm/lib/delay.c                  |   2 +
+ arch/arm/lib/div64.S                  |   2 +
+ arch/arm/lib/findbit.S                |   9 ++
+ arch/arm/lib/getuser.S                |   9 ++
+ arch/arm/lib/io-readsb.S              |   2 +
+ arch/arm/lib/io-readsl.S              |   2 +
+ arch/arm/lib/io-readsw-armv3.S        |   3 +-
+ arch/arm/lib/io-readsw-armv4.S        |   2 +
+ arch/arm/lib/io-writesb.S             |   2 +
+ arch/arm/lib/io-writesl.S             |   2 +
+ arch/arm/lib/io-writesw-armv3.S       |   2 +
+ arch/arm/lib/io-writesw-armv4.S       |   2 +
+ arch/arm/lib/lib1funcs.S              |   9 ++
+ arch/arm/lib/lshrdi3.S                |   3 +
+ arch/arm/lib/memchr.S                 |   2 +
+ arch/arm/lib/memcpy.S                 |   3 +
+ arch/arm/lib/memmove.S                |   2 +
+ arch/arm/lib/memset.S                 |   3 +
+ arch/arm/lib/memzero.S                |   2 +
+ arch/arm/lib/muldi3.S                 |   3 +
+ arch/arm/lib/putuser.S                |   5 +
+ arch/arm/lib/strchr.S                 |   2 +
+ arch/arm/lib/strrchr.S                |   2 +
+ arch/arm/lib/uaccess_with_memcpy.c    |   3 +
+ arch/arm/lib/ucmpdi2.S                |   3 +
+ arch/arm/mach-imx/Makefile            |   1 -
+ arch/arm/mach-imx/ssi-fiq-ksym.c      |  20 ----
+ arch/arm/mach-imx/ssi-fiq.S           |   7 +-
+ arch/ia64/include/asm/Kbuild          |   1 +
+ arch/ia64/kernel/entry.S              |   3 +
+ arch/ia64/kernel/esi_stub.S           |   2 +
+ arch/ia64/kernel/head.S               |   3 +
+ arch/ia64/kernel/ia64_ksyms.c         |  94 +----------------
+ arch/ia64/kernel/ivt.S                |   2 +
+ arch/ia64/kernel/pal.S                |   7 ++
+ arch/ia64/kernel/setup.c              |   4 +
+ arch/ia64/lib/clear_page.S            |   2 +
+ arch/ia64/lib/clear_user.S            |   2 +
+ arch/ia64/lib/copy_page.S             |   2 +
+ arch/ia64/lib/copy_page_mck.S         |   2 +
+ arch/ia64/lib/copy_user.S             |   2 +
+ arch/ia64/lib/flush.S                 |   2 +
+ arch/ia64/lib/idiv32.S                |   2 +
+ arch/ia64/lib/idiv64.S                |   2 +
+ arch/ia64/lib/ip_fast_csum.S          |   3 +
+ arch/ia64/lib/memcpy.S                |   2 +
+ arch/ia64/lib/memcpy_mck.S            |   3 +
+ arch/ia64/lib/memset.S                |   2 +
+ arch/ia64/lib/strlen.S                |   2 +
+ arch/ia64/lib/strlen_user.S           |   2 +
+ arch/ia64/lib/strncpy_from_user.S     |   2 +
+ arch/ia64/lib/strnlen_user.S          |   2 +
+ arch/ia64/lib/xor.S                   |   5 +
+ arch/m68k/include/asm/export.h        |   3 +
+ arch/m68k/kernel/Makefile             |   2 +-
+ arch/m68k/kernel/m68k_ksyms.c         |  32 ------
+ arch/m68k/lib/ashldi3.c               |   4 +
+ arch/m68k/lib/ashrdi3.c               |   4 +
+ arch/m68k/lib/divsi3.S                |   3 +
+ arch/m68k/lib/lshrdi3.c               |   4 +
+ arch/m68k/lib/modsi3.S                |   3 +
+ arch/m68k/lib/muldi3.c                |   4 +
+ arch/m68k/lib/mulsi3.S                |   4 +-
+ arch/m68k/lib/udivsi3.S               |   4 +-
+ arch/m68k/lib/umodsi3.S               |   4 +-
+ arch/powerpc/include/asm/Kbuild       |   1 +
+ arch/powerpc/kernel/Makefile          |   4 -
+ arch/powerpc/kernel/entry_32.S        |   2 +
+ arch/powerpc/kernel/entry_64.S        |   3 +
+ arch/powerpc/kernel/epapr_hcalls.S    |   2 +
+ arch/powerpc/kernel/fpu.S             |   3 +
+ arch/powerpc/kernel/head_32.S         |   5 +
+ arch/powerpc/kernel/head_40x.S        |   2 +
+ arch/powerpc/kernel/head_44x.S        |   2 +
+ arch/powerpc/kernel/head_64.S         |   2 +
+ arch/powerpc/kernel/head_8xx.S        |   2 +
+ arch/powerpc/kernel/head_fsl_booke.S  |   2 +
+ arch/powerpc/kernel/misc.S            |   2 +
+ arch/powerpc/kernel/misc_32.S         |  12 +++
+ arch/powerpc/kernel/misc_64.S         |   4 +
+ arch/powerpc/kernel/pci-common.c      |   1 +
+ arch/powerpc/kernel/pci_32.c          |   2 +
+ arch/powerpc/kernel/ppc_ksyms.c       |  39 --------
+ arch/powerpc/kernel/ppc_ksyms_32.c    |  61 ------------
+ arch/powerpc/kernel/setup_32.c        |   6 ++
+ arch/powerpc/kernel/time.c            |   1 +
+ arch/powerpc/kernel/vector.S          |   4 +
+ arch/powerpc/lib/Makefile             |   2 +-
+ arch/powerpc/lib/checksum_32.S        |   4 +
+ arch/powerpc/lib/checksum_64.S        |   4 +
+ arch/powerpc/lib/copy_32.S            |   5 +
+ arch/powerpc/lib/copypage_64.S        |   2 +
+ arch/powerpc/lib/copyuser_64.S        |   2 +
+ arch/powerpc/lib/hweight_64.S         |   5 +
+ arch/powerpc/lib/mem_64.S             |   3 +
+ arch/powerpc/lib/memcmp_64.S          |   2 +
+ arch/powerpc/lib/memcpy_64.S          |   2 +
+ arch/powerpc/lib/ppc_ksyms.c          |  35 -------
+ arch/powerpc/lib/string.S             |  10 ++
+ arch/powerpc/lib/string_64.S          |   2 +
+ arch/powerpc/mm/hash_low_32.S         |   3 +
+ arch/powerpc/sysdev/dcr-low.S         |   3 +
+ arch/s390/include/asm/Kbuild          |   1 +
+ arch/s390/kernel/Makefile             |   2 +-
+ arch/s390/kernel/entry.S              |   6 ++
+ arch/s390/kernel/mcount.S             |   3 +
+ arch/s390/kernel/s390_ksyms.c         |  15 ---
+ arch/s390/lib/mem.S                   |   3 +
+ arch/sparc/include/asm/Kbuild         |   1 +
+ arch/sparc/include/asm/string.h       |  34 +++++++
+ arch/sparc/include/asm/string_32.h    |  56 -----------
+ arch/sparc/include/asm/string_64.h    |  44 --------
+ arch/sparc/kernel/Makefile            |   2 +-
+ arch/sparc/kernel/entry.S             |   3 +
+ arch/sparc/kernel/head_32.S           |   3 +
+ arch/sparc/kernel/head_64.S           |   7 +-
+ arch/sparc/kernel/helpers.S           |   2 +
+ arch/sparc/kernel/hvcalls.S           |   4 +
+ arch/sparc/kernel/sparc_ksyms.c       |  12 +++
+ arch/sparc/kernel/sparc_ksyms_32.c    |  31 ------
+ arch/sparc/kernel/sparc_ksyms_64.c    |  52 ----------
+ arch/sparc/lib/Makefile               |   1 -
+ arch/sparc/lib/U1memcpy.S             |   2 +
+ arch/sparc/lib/VISsave.S              |   2 +
+ arch/sparc/lib/ashldi3.S              |   2 +
+ arch/sparc/lib/ashrdi3.S              |   2 +
+ arch/sparc/lib/atomic_64.S            |  10 +-
+ arch/sparc/lib/bitops.S               |   7 ++
+ arch/sparc/lib/blockops.S             |   3 +
+ arch/sparc/lib/bzero.S                |   4 +
+ arch/sparc/lib/checksum_32.S          |   3 +
+ arch/sparc/lib/checksum_64.S          |   2 +
+ arch/sparc/lib/clear_page.S           |   3 +
+ arch/sparc/lib/copy_in_user.S         |   2 +
+ arch/sparc/lib/copy_page.S            |   2 +
+ arch/sparc/lib/copy_user.S            |   2 +
+ arch/sparc/lib/csum_copy.S            |   3 +
+ arch/sparc/lib/divdi3.S               |   2 +
+ arch/sparc/lib/ffs.S                  |   3 +
+ arch/sparc/lib/hweight.S              |   5 +
+ arch/sparc/lib/ipcsum.S               |   2 +
+ arch/sparc/lib/ksyms.c                | 165 ------------------------------
+ arch/sparc/lib/locks.S                |   5 +
+ arch/sparc/lib/lshrdi3.S              |   2 +
+ arch/sparc/lib/mcount.S               |   2 +
+ arch/sparc/lib/memcmp.S               |   2 +
+ arch/sparc/lib/memcpy.S               |  86 +---------------
+ arch/sparc/lib/memmove.S              |   2 +
+ arch/sparc/lib/memscan_32.S           |   4 +
+ arch/sparc/lib/memscan_64.S           |   4 +
+ arch/sparc/lib/memset.S               |   3 +
+ arch/sparc/lib/muldi3.S               |   2 +
+ arch/sparc/lib/strlen.S               |   2 +
+ arch/sparc/lib/strncmp_32.S           |   2 +
+ arch/sparc/lib/strncmp_64.S           |   2 +
+ arch/sparc/lib/xor.S                  |   9 ++
+ arch/x86/entry/entry_32.S             |   2 +
+ arch/x86/entry/entry_64.S             |   2 +
+ arch/x86/entry/thunk_32.S             |   3 +
+ arch/x86/entry/thunk_64.S             |   3 +
+ arch/x86/include/asm/export.h         |   4 +
+ arch/x86/kernel/Makefile              |   4 +-
+ arch/x86/kernel/head_32.S             |   2 +
+ arch/x86/kernel/head_64.S             |   3 +
+ arch/x86/kernel/i386_ksyms_32.c       |  44 --------
+ arch/x86/kernel/mcount_64.S           |   2 +
+ arch/x86/kernel/x8664_ksyms_64.c      |  79 ---------------
+ arch/x86/lib/checksum_32.S            |   3 +
+ arch/x86/lib/clear_page_64.S          |   2 +
+ arch/x86/lib/cmpxchg8b_emu.S          |   2 +
+ arch/x86/lib/copy_page_64.S           |   2 +
+ arch/x86/lib/copy_user_64.S           |   8 ++
+ arch/x86/lib/csum-partial_64.c        |   1 +
+ arch/x86/lib/getuser.S                |   5 +
+ arch/x86/lib/memcpy_64.S              |   3 +
+ arch/x86/lib/memmove_64.S             |   3 +
+ arch/x86/lib/memset_64.S              |   3 +
+ arch/x86/lib/putuser.S                |   5 +
+ arch/x86/lib/strstr_32.c              |   3 +-
+ arch/x86/um/Makefile                  |   2 +-
+ arch/x86/um/checksum_32.S             |   2 +
+ arch/x86/um/ksyms.c                   |  13 ---
+ include/asm-generic/export.h          |  61 ++++++++++++
+ scripts/Makefile.build                |  20 ++++
+ 244 files changed, 759 insertions(+), 1203 deletions(-)
+ delete mode 100644 arch/alpha/kernel/alpha_ksyms.c
+ delete mode 100644 arch/arm/kernel/armksyms.c
+ delete mode 100644 arch/arm/mach-imx/ssi-fiq-ksym.c
+ create mode 100644 arch/m68k/include/asm/export.h
+ delete mode 100644 arch/m68k/kernel/m68k_ksyms.c
+ delete mode 100644 arch/powerpc/kernel/ppc_ksyms.c
+ delete mode 100644 arch/powerpc/kernel/ppc_ksyms_32.c
+ delete mode 100644 arch/powerpc/lib/ppc_ksyms.c
+ delete mode 100644 arch/s390/kernel/s390_ksyms.c
+ create mode 100644 arch/sparc/kernel/sparc_ksyms.c
+ delete mode 100644 arch/sparc/kernel/sparc_ksyms_32.c
+ delete mode 100644 arch/sparc/kernel/sparc_ksyms_64.c
+ delete mode 100644 arch/sparc/lib/ksyms.c
+ create mode 100644 arch/x86/include/asm/export.h
+ delete mode 100644 arch/x86/kernel/i386_ksyms_32.c
+ delete mode 100644 arch/x86/kernel/x8664_ksyms_64.c
+ delete mode 100644 arch/x86/um/ksyms.c
+ create mode 100644 include/asm-generic/export.h
