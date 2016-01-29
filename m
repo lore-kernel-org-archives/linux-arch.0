@@ -1,7 +1,7 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 06/12] s390: move exports to definitions
-Date: Fri, 29 Jan 2016 19:18:28 +0000
-Message-ID: <1454095114-4128-6-git-send-email-viro@ZenIV.linux.org.uk>
+Subject: [PATCH 05/12] m68k: move exports to definitions
+Date: Fri, 29 Jan 2016 19:18:27 +0000
+Message-ID: <1454095114-4128-5-git-send-email-viro@ZenIV.linux.org.uk>
 References: <20160129191744.GB17997@ZenIV.linux.org.uk>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20160129191744.GB17997@ZenIV.linux.org.uk>
@@ -12,139 +12,255 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
+the rest of architectures should just use generic-y += export.h in
+asm/Kbuild
+
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/s390/include/asm/Kbuild  |  1 +
- arch/s390/kernel/Makefile     |  2 +-
- arch/s390/kernel/entry.S      |  6 ++++++
- arch/s390/kernel/mcount.S     |  3 +++
- arch/s390/kernel/s390_ksyms.c | 15 ---------------
- arch/s390/lib/mem.S           |  3 +++
- 6 files changed, 14 insertions(+), 16 deletions(-)
- delete mode 100644 arch/s390/kernel/s390_ksyms.c
+ arch/m68k/include/asm/export.h |  3 +++
+ arch/m68k/kernel/Makefile      |  2 +-
+ arch/m68k/kernel/m68k_ksyms.c  | 32 --------------------------------
+ arch/m68k/lib/ashldi3.c        |  4 ++++
+ arch/m68k/lib/ashrdi3.c        |  4 ++++
+ arch/m68k/lib/divsi3.S         |  3 +++
+ arch/m68k/lib/lshrdi3.c        |  4 ++++
+ arch/m68k/lib/modsi3.S         |  3 +++
+ arch/m68k/lib/muldi3.c         |  4 ++++
+ arch/m68k/lib/mulsi3.S         |  4 ++--
+ arch/m68k/lib/udivsi3.S        |  4 ++--
+ arch/m68k/lib/umodsi3.S        |  4 ++--
+ 12 files changed, 32 insertions(+), 39 deletions(-)
+ create mode 100644 arch/m68k/include/asm/export.h
+ delete mode 100644 arch/m68k/kernel/m68k_ksyms.c
 
-diff --git a/arch/s390/include/asm/Kbuild b/arch/s390/include/asm/Kbuild
-index 9043d2e1..20f196b8 100644
---- a/arch/s390/include/asm/Kbuild
-+++ b/arch/s390/include/asm/Kbuild
-@@ -1,6 +1,7 @@
+diff --git a/arch/m68k/include/asm/export.h b/arch/m68k/include/asm/export.h
+new file mode 100644
+index 0000000..0af20f4
+--- /dev/null
++++ b/arch/m68k/include/asm/export.h
+@@ -0,0 +1,3 @@
++#define KSYM_ALIGN 2
++#define KCRC_ALIGN 2
++#include <asm-generic/export.h>
+diff --git a/arch/m68k/kernel/Makefile b/arch/m68k/kernel/Makefile
+index e47778f..3600500 100644
+--- a/arch/m68k/kernel/Makefile
++++ b/arch/m68k/kernel/Makefile
+@@ -13,7 +13,7 @@ extra-$(CONFIG_SUN3X)	:= head.o
+ extra-$(CONFIG_SUN3)	:= sun3-head.o
+ extra-y			+= vmlinux.lds
  
+-obj-y	:= entry.o irq.o m68k_ksyms.o module.o process.o ptrace.o
++obj-y	:= entry.o irq.o module.o process.o ptrace.o
+ obj-y	+= setup.o signal.o sys_m68k.o syscalltable.o time.o traps.o
  
- generic-y += clkdev.h
-+generic-y += export.h
- generic-y += irq_work.h
- generic-y += mcs_spinlock.h
- generic-y += mm-arch-hooks.h
-diff --git a/arch/s390/kernel/Makefile b/arch/s390/kernel/Makefile
-index 2f5586a..32bbf01 100644
---- a/arch/s390/kernel/Makefile
-+++ b/arch/s390/kernel/Makefile
-@@ -50,7 +50,7 @@ obj-y	+= entry.o reipl.o relocate_kernel.o
- 
- extra-y				+= head.o head64.o vmlinux.lds
- 
--obj-$(CONFIG_MODULES)		+= s390_ksyms.o module.o
-+obj-$(CONFIG_MODULES)		+= module.o
- obj-$(CONFIG_SMP)		+= smp.o
- obj-$(CONFIG_SCHED_TOPOLOGY)	+= topology.o
- obj-$(CONFIG_HIBERNATION)	+= suspend.o swsusp.o
-diff --git a/arch/s390/kernel/entry.S b/arch/s390/kernel/entry.S
-index cd5a191..ca5bf0e 100644
---- a/arch/s390/kernel/entry.S
-+++ b/arch/s390/kernel/entry.S
-@@ -23,6 +23,7 @@
- #include <asm/vx-insn.h>
- #include <asm/setup.h>
- #include <asm/nmi.h>
-+#include <asm/export.h>
- 
- __PT_R0      =	__PT_GPRS
- __PT_R1      =	__PT_GPRS + 8
-@@ -249,6 +250,8 @@ sie_exit:
- 
- 	EX_TABLE(.Lrewind_pad,.Lsie_fault)
- 	EX_TABLE(sie_exit,.Lsie_fault)
-+EXPORT_SYMBOL(sie64a)
-+EXPORT_SYMBOL(sie_exit)
- #endif
- 
- /*
-@@ -815,6 +818,9 @@ ENTRY(save_fpu_regs)
- 	oi	__LC_CPU_FLAGS+7,_CIF_FPU
- 	br	%r14
- .Lsave_fpu_regs_end:
-+#if IS_ENABLED(CONFIG_KVM)
-+EXPORT_SYMBOL(save_fpu_regs)
-+#endif
- 
- /*
-  * Load floating-point controls and floating-point or vector registers.
-diff --git a/arch/s390/kernel/mcount.S b/arch/s390/kernel/mcount.S
-index e499370..9a17e44 100644
---- a/arch/s390/kernel/mcount.S
-+++ b/arch/s390/kernel/mcount.S
-@@ -9,6 +9,7 @@
- #include <asm/asm-offsets.h>
- #include <asm/ftrace.h>
- #include <asm/ptrace.h>
-+#include <asm/export.h>
- 
- 	.section .kprobes.text, "ax"
- 
-@@ -23,6 +24,8 @@ ENTRY(ftrace_stub)
- ENTRY(_mcount)
- 	br	%r14
- 
-+EXPORT_SYMBOL(_mcount)
-+
- ENTRY(ftrace_caller)
- 	.globl	ftrace_regs_caller
- 	.set	ftrace_regs_caller,ftrace_caller
-diff --git a/arch/s390/kernel/s390_ksyms.c b/arch/s390/kernel/s390_ksyms.c
+ obj-$(CONFIG_MMU_MOTOROLA) += ints.o vectors.o
+diff --git a/arch/m68k/kernel/m68k_ksyms.c b/arch/m68k/kernel/m68k_ksyms.c
 deleted file mode 100644
-index e67453b..0000000
---- a/arch/s390/kernel/s390_ksyms.c
+index 774c1bd..0000000
+--- a/arch/m68k/kernel/m68k_ksyms.c
 +++ /dev/null
-@@ -1,15 +0,0 @@
+@@ -1,32 +0,0 @@
 -#include <linux/module.h>
--#include <linux/kvm_host.h>
--#include <asm/fpu/api.h>
--#include <asm/ftrace.h>
 -
--#ifdef CONFIG_FUNCTION_TRACER
--EXPORT_SYMBOL(_mcount);
+-asmlinkage long long __ashldi3 (long long, int);
+-asmlinkage long long __ashrdi3 (long long, int);
+-asmlinkage long long __lshrdi3 (long long, int);
+-asmlinkage long long __muldi3 (long long, long long);
+-
+-/* The following are special because they're not called
+-   explicitly (the C compiler generates them).  Fortunately,
+-   their interface isn't gonna change any time soon now, so
+-   it's OK to leave it out of version control.  */
+-EXPORT_SYMBOL(__ashldi3);
+-EXPORT_SYMBOL(__ashrdi3);
+-EXPORT_SYMBOL(__lshrdi3);
+-EXPORT_SYMBOL(__muldi3);
+-
+-#if defined(CONFIG_CPU_HAS_NO_MULDIV64)
+-/*
+- * Simpler 68k and ColdFire parts also need a few other gcc functions.
+- */
+-extern long long __divsi3(long long, long long);
+-extern long long __modsi3(long long, long long);
+-extern long long __mulsi3(long long, long long);
+-extern long long __udivsi3(long long, long long);
+-extern long long __umodsi3(long long, long long);
+-
+-EXPORT_SYMBOL(__divsi3);
+-EXPORT_SYMBOL(__modsi3);
+-EXPORT_SYMBOL(__mulsi3);
+-EXPORT_SYMBOL(__udivsi3);
+-EXPORT_SYMBOL(__umodsi3);
 -#endif
--#if IS_ENABLED(CONFIG_KVM)
--EXPORT_SYMBOL(sie64a);
--EXPORT_SYMBOL(sie_exit);
--EXPORT_SYMBOL(save_fpu_regs);
--#endif
--EXPORT_SYMBOL(memcpy);
--EXPORT_SYMBOL(memset);
-diff --git a/arch/s390/lib/mem.S b/arch/s390/lib/mem.S
-index c6d553e..be9fa65 100644
---- a/arch/s390/lib/mem.S
-+++ b/arch/s390/lib/mem.S
-@@ -5,6 +5,7 @@
-  */
+diff --git a/arch/m68k/lib/ashldi3.c b/arch/m68k/lib/ashldi3.c
+index 37234c2..8dffd36 100644
+--- a/arch/m68k/lib/ashldi3.c
++++ b/arch/m68k/lib/ashldi3.c
+@@ -13,6 +13,9 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details. */
  
- #include <linux/linkage.h>
++#include <linux/compiler.h>
++#include <linux/export.h>
++
+ #define BITS_PER_UNIT 8
+ 
+ typedef		 int SItype	__attribute__ ((mode (SI)));
+@@ -55,3 +58,4 @@ __ashldi3 (DItype u, word_type b)
+ 
+   return w.ll;
+ }
++EXPORT_SYMBOL(__ashldi3);
+diff --git a/arch/m68k/lib/ashrdi3.c b/arch/m68k/lib/ashrdi3.c
+index 1d59345..e6565a3 100644
+--- a/arch/m68k/lib/ashrdi3.c
++++ b/arch/m68k/lib/ashrdi3.c
+@@ -13,6 +13,9 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details. */
+ 
++#include <linux/compiler.h>
++#include <linux/export.h>
++
+ #define BITS_PER_UNIT 8
+ 
+ typedef		 int SItype	__attribute__ ((mode (SI)));
+@@ -56,3 +59,4 @@ __ashrdi3 (DItype u, word_type b)
+ 
+   return w.ll;
+ }
++EXPORT_SYMBOL(__ashrdi3);
+diff --git a/arch/m68k/lib/divsi3.S b/arch/m68k/lib/divsi3.S
+index 2c0ec85..3a2143f 100644
+--- a/arch/m68k/lib/divsi3.S
++++ b/arch/m68k/lib/divsi3.S
+@@ -33,6 +33,8 @@ General Public License for more details. */
+    D. V. Henkel-Wallace (gumby@cygnus.com) Fete Bastille, 1992
+ */
+ 
 +#include <asm/export.h>
++
+ /* These are predefined by new versions of GNU cpp.  */
  
- /*
-  * memset implementation
-@@ -60,6 +61,7 @@ ENTRY(memset)
- 	xc	0(1,%r1),0(%r1)
- .Lmemset_mvc:
- 	mvc	1(1,%r1),0(%r1)
-+EXPORT_SYMBOL(memset)
+ #ifndef __USER_LABEL_PREFIX__
+@@ -118,3 +120,4 @@ L2:	movel	d1, sp@-
+ L3:	movel	sp@+, d2
+ 	rts
  
- /*
-  * memcpy implementation
-@@ -86,3 +88,4 @@ ENTRY(memcpy)
- 	j	.Lmemcpy_rest
- .Lmemcpy_mvc:
- 	mvc	0(1,%r1),0(%r3)
-+EXPORT_SYMBOL(memcpy)
++	EXPORT_SYMBOL(__divsi3)
+diff --git a/arch/m68k/lib/lshrdi3.c b/arch/m68k/lib/lshrdi3.c
+index 49e1ec8..0397797 100644
+--- a/arch/m68k/lib/lshrdi3.c
++++ b/arch/m68k/lib/lshrdi3.c
+@@ -13,6 +13,9 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details. */
+ 
++#include <linux/compiler.h>
++#include <linux/export.h>
++
+ #define BITS_PER_UNIT 8
+ 
+ typedef		 int SItype	__attribute__ ((mode (SI)));
+@@ -55,3 +58,4 @@ __lshrdi3 (DItype u, word_type b)
+ 
+   return w.ll;
+ }
++EXPORT_SYMBOL(__lshrdi3);
+diff --git a/arch/m68k/lib/modsi3.S b/arch/m68k/lib/modsi3.S
+index 1d9e0ef..1c96764 100644
+--- a/arch/m68k/lib/modsi3.S
++++ b/arch/m68k/lib/modsi3.S
+@@ -33,6 +33,8 @@ General Public License for more details. */
+    D. V. Henkel-Wallace (gumby@cygnus.com) Fete Bastille, 1992
+ */
+ 
++#include <asm/export.h>
++
+ /* These are predefined by new versions of GNU cpp.  */
+ 
+ #ifndef __USER_LABEL_PREFIX__
+@@ -106,3 +108,4 @@ SYM (__modsi3):
+ 	movel	d1, d0
+ 	rts
+ 
++	EXPORT_SYMBOL(__modsi3)
+diff --git a/arch/m68k/lib/muldi3.c b/arch/m68k/lib/muldi3.c
+index 9006d15..6459af5 100644
+--- a/arch/m68k/lib/muldi3.c
++++ b/arch/m68k/lib/muldi3.c
+@@ -14,6 +14,9 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details. */
+ 
++#include <linux/compiler.h>
++#include <linux/export.h>
++
+ #ifdef CONFIG_CPU_HAS_NO_MULDIV64
+ 
+ #define SI_TYPE_SIZE 32
+@@ -90,3 +93,4 @@ __muldi3 (DItype u, DItype v)
+ 
+   return w.ll;
+ }
++EXPORT_SYMBOL(__muldi3);
+diff --git a/arch/m68k/lib/mulsi3.S b/arch/m68k/lib/mulsi3.S
+index c39ad4e..855675e 100644
+--- a/arch/m68k/lib/mulsi3.S
++++ b/arch/m68k/lib/mulsi3.S
+@@ -32,7 +32,7 @@ General Public License for more details. */
+    Some of this code comes from MINIX, via the folks at ericsson.
+    D. V. Henkel-Wallace (gumby@cygnus.com) Fete Bastille, 1992
+ */
+-
++#include <asm/export.h>
+ /* These are predefined by new versions of GNU cpp.  */
+ 
+ #ifndef __USER_LABEL_PREFIX__
+@@ -102,4 +102,4 @@ SYM (__mulsi3):
+ 	addl	d1, d0
+ 
+ 	rts
+-
++	EXPORT_SYMBOL(__mulsi3)
+diff --git a/arch/m68k/lib/udivsi3.S b/arch/m68k/lib/udivsi3.S
+index 35a5446..78440ae 100644
+--- a/arch/m68k/lib/udivsi3.S
++++ b/arch/m68k/lib/udivsi3.S
+@@ -32,7 +32,7 @@ General Public License for more details. */
+    Some of this code comes from MINIX, via the folks at ericsson.
+    D. V. Henkel-Wallace (gumby@cygnus.com) Fete Bastille, 1992
+ */
+-
++#include <asm/export.h>
+ /* These are predefined by new versions of GNU cpp.  */
+ 
+ #ifndef __USER_LABEL_PREFIX__
+@@ -154,4 +154,4 @@ L2:	subql	IMM (1),d4
+ 	unlk	a6		| and return
+ 	rts
+ #endif /* __mcf5200__ || __mcoldfire__ */
+-
++	EXPORT_SYMBOL(__udivsi3)
+diff --git a/arch/m68k/lib/umodsi3.S b/arch/m68k/lib/umodsi3.S
+index 099da51..b6fd11f 100644
+--- a/arch/m68k/lib/umodsi3.S
++++ b/arch/m68k/lib/umodsi3.S
+@@ -32,7 +32,7 @@ General Public License for more details. */
+    Some of this code comes from MINIX, via the folks at ericsson.
+    D. V. Henkel-Wallace (gumby@cygnus.com) Fete Bastille, 1992
+ */
+-
++#include <asm/export.h>
+ /* These are predefined by new versions of GNU cpp.  */
+ 
+ #ifndef __USER_LABEL_PREFIX__
+@@ -105,4 +105,4 @@ SYM (__umodsi3):
+ 	subl	d0, d1		/* d1 = a - (a/b)*b */
+ 	movel	d1, d0
+ 	rts
+-
++	EXPORT_SYMBOL(__umodsi3)
 -- 
 2.1.4
