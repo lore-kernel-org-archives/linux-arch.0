@@ -1,7 +1,7 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 03/12] x86: move exports to actual definitions
-Date: Fri, 29 Jan 2016 19:18:25 +0000
-Message-ID: <1454095114-4128-3-git-send-email-viro@ZenIV.linux.org.uk>
+Subject: [PATCH 04/12] alpha: move exports to actual definitions
+Date: Fri, 29 Jan 2016 19:18:26 +0000
+Message-ID: <1454095114-4128-4-git-send-email-viro@ZenIV.linux.org.uk>
 References: <20160129191744.GB17997@ZenIV.linux.org.uk>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20160129191744.GB17997@ZenIV.linux.org.uk>
@@ -14,708 +14,945 @@ From: Al Viro <viro@zeniv.linux.org.uk>
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/x86/entry/entry_32.S        |  2 +
- arch/x86/entry/entry_64.S        |  2 +
- arch/x86/entry/thunk_32.S        |  3 ++
- arch/x86/entry/thunk_64.S        |  3 ++
- arch/x86/include/asm/export.h    |  4 ++
- arch/x86/kernel/Makefile         |  4 +-
- arch/x86/kernel/head_32.S        |  2 +
- arch/x86/kernel/head_64.S        |  3 ++
- arch/x86/kernel/i386_ksyms_32.c  | 44 ----------------------
- arch/x86/kernel/mcount_64.S      |  2 +
- arch/x86/kernel/x8664_ksyms_64.c | 79 ----------------------------------------
- arch/x86/lib/checksum_32.S       |  3 ++
- arch/x86/lib/clear_page_64.S     |  2 +
- arch/x86/lib/cmpxchg8b_emu.S     |  2 +
- arch/x86/lib/copy_page_64.S      |  2 +
- arch/x86/lib/copy_user_64.S      |  8 ++++
- arch/x86/lib/csum-partial_64.c   |  1 +
- arch/x86/lib/getuser.S           |  5 +++
- arch/x86/lib/memcpy_64.S         |  3 ++
- arch/x86/lib/memmove_64.S        |  3 ++
- arch/x86/lib/memset_64.S         |  3 ++
- arch/x86/lib/putuser.S           |  5 +++
- arch/x86/lib/strstr_32.c         |  3 +-
- arch/x86/um/Makefile             |  2 +-
- arch/x86/um/checksum_32.S        |  2 +
- arch/x86/um/ksyms.c              | 13 -------
- 26 files changed, 64 insertions(+), 141 deletions(-)
- create mode 100644 arch/x86/include/asm/export.h
- delete mode 100644 arch/x86/kernel/i386_ksyms_32.c
- delete mode 100644 arch/x86/kernel/x8664_ksyms_64.c
- delete mode 100644 arch/x86/um/ksyms.c
+ arch/alpha/include/asm/Kbuild        |   1 +
+ arch/alpha/kernel/Makefile           |   2 +-
+ arch/alpha/kernel/alpha_ksyms.c      | 102 -----------------------------------
+ arch/alpha/kernel/machvec_impl.h     |   6 ++-
+ arch/alpha/kernel/setup.c            |   1 +
+ arch/alpha/lib/callback_srm.S        |   5 ++
+ arch/alpha/lib/checksum.c            |   3 ++
+ arch/alpha/lib/clear_page.S          |   3 +-
+ arch/alpha/lib/clear_user.S          |   2 +
+ arch/alpha/lib/copy_page.S           |   3 +-
+ arch/alpha/lib/copy_user.S           |   3 ++
+ arch/alpha/lib/csum_ipv6_magic.S     |   2 +
+ arch/alpha/lib/csum_partial_copy.c   |   2 +
+ arch/alpha/lib/dec_and_lock.c        |   2 +
+ arch/alpha/lib/divide.S              |   3 ++
+ arch/alpha/lib/ev6-clear_page.S      |   3 +-
+ arch/alpha/lib/ev6-clear_user.S      |   3 +-
+ arch/alpha/lib/ev6-copy_page.S       |   3 +-
+ arch/alpha/lib/ev6-copy_user.S       |   3 +-
+ arch/alpha/lib/ev6-csum_ipv6_magic.S |   2 +
+ arch/alpha/lib/ev6-divide.S          |   3 ++
+ arch/alpha/lib/ev6-memchr.S          |   3 +-
+ arch/alpha/lib/ev6-memcpy.S          |   3 +-
+ arch/alpha/lib/ev6-memset.S          |   7 ++-
+ arch/alpha/lib/ev67-strcat.S         |   3 +-
+ arch/alpha/lib/ev67-strchr.S         |   3 +-
+ arch/alpha/lib/ev67-strlen.S         |   3 +-
+ arch/alpha/lib/ev67-strncat.S        |   3 +-
+ arch/alpha/lib/ev67-strrchr.S        |   3 +-
+ arch/alpha/lib/fpreg.c               |   7 +++
+ arch/alpha/lib/memchr.S              |   3 +-
+ arch/alpha/lib/memcpy.c              |   5 +-
+ arch/alpha/lib/memmove.S             |   3 +-
+ arch/alpha/lib/memset.S              |   7 ++-
+ arch/alpha/lib/strcat.S              |   2 +
+ arch/alpha/lib/strchr.S              |   3 +-
+ arch/alpha/lib/strcpy.S              |   3 +-
+ arch/alpha/lib/strlen.S              |   3 +-
+ arch/alpha/lib/strncat.S             |   3 +-
+ arch/alpha/lib/strncpy.S             |   3 +-
+ arch/alpha/lib/strrchr.S             |   3 +-
+ 41 files changed, 99 insertions(+), 131 deletions(-)
+ delete mode 100644 arch/alpha/kernel/alpha_ksyms.c
 
-diff --git a/arch/x86/entry/entry_32.S b/arch/x86/entry/entry_32.S
-index 77d8c51..90087bf 100644
---- a/arch/x86/entry/entry_32.S
-+++ b/arch/x86/entry/entry_32.S
-@@ -44,6 +44,7 @@
- #include <asm/alternative-asm.h>
- #include <asm/asm.h>
- #include <asm/smap.h>
-+#include <asm/export.h>
+diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
+index ffd9cf5..bf8475c 100644
+--- a/arch/alpha/include/asm/Kbuild
++++ b/arch/alpha/include/asm/Kbuild
+@@ -3,6 +3,7 @@
+ generic-y += clkdev.h
+ generic-y += cputime.h
+ generic-y += exec.h
++generic-y += export.h
+ generic-y += irq_work.h
+ generic-y += mcs_spinlock.h
+ generic-y += mm-arch-hooks.h
+diff --git a/arch/alpha/kernel/Makefile b/arch/alpha/kernel/Makefile
+index 3ecac01..8ce13d7 100644
+--- a/arch/alpha/kernel/Makefile
++++ b/arch/alpha/kernel/Makefile
+@@ -8,7 +8,7 @@ ccflags-y	:= -Wno-sign-compare
  
- 	.section .entry.text, "ax"
+ obj-y    := entry.o traps.o process.o osf_sys.o irq.o \
+ 	    irq_alpha.o signal.o setup.o ptrace.o time.o \
+-	    alpha_ksyms.o systbls.o err_common.o io.o
++	    systbls.o err_common.o io.o
  
-@@ -865,6 +866,7 @@ trace:
- 	jmp	ftrace_stub
- END(mcount)
- #endif /* CONFIG_DYNAMIC_FTRACE */
-+EXPORT_SYMBOL(mcount)
- #endif /* CONFIG_FUNCTION_TRACER */
- 
- #ifdef CONFIG_FUNCTION_GRAPH_TRACER
-diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
-index 9d34d3c..772f3a2 100644
---- a/arch/x86/entry/entry_64.S
-+++ b/arch/x86/entry/entry_64.S
-@@ -35,6 +35,7 @@
- #include <asm/asm.h>
- #include <asm/smap.h>
- #include <asm/pgtable_types.h>
-+#include <asm/export.h>
- #include <linux/err.h>
- 
- /* Avoid __ASSEMBLER__'ifying <linux/audit.h> just for this.  */
-@@ -854,6 +855,7 @@ gs_change:
- 	popfq
- 	ret
- END(native_load_gs_index)
-+EXPORT_SYMBOL(native_load_gs_index)
- 
- 	_ASM_EXTABLE(gs_change, bad_gs)
- 	.section .fixup, "ax"
-diff --git a/arch/x86/entry/thunk_32.S b/arch/x86/entry/thunk_32.S
-index e5a1711..fee6bc7 100644
---- a/arch/x86/entry/thunk_32.S
-+++ b/arch/x86/entry/thunk_32.S
-@@ -6,6 +6,7 @@
-  */
- 	#include <linux/linkage.h>
- 	#include <asm/asm.h>
-+	#include <asm/export.h>
- 
- 	/* put return address in eax (arg1) */
- 	.macro THUNK name, func, put_ret_addr_in_eax=0
-@@ -36,5 +37,7 @@
- #ifdef CONFIG_PREEMPT
- 	THUNK ___preempt_schedule, preempt_schedule
- 	THUNK ___preempt_schedule_notrace, preempt_schedule_notrace
-+	EXPORT_SYMBOL(___preempt_schedule)
-+	EXPORT_SYMBOL(___preempt_schedule_notrace)
- #endif
- 
-diff --git a/arch/x86/entry/thunk_64.S b/arch/x86/entry/thunk_64.S
-index efb2b93..6fb1f3c 100644
---- a/arch/x86/entry/thunk_64.S
-+++ b/arch/x86/entry/thunk_64.S
-@@ -8,6 +8,7 @@
- #include <linux/linkage.h>
- #include "calling.h"
- #include <asm/asm.h>
-+#include <asm/export.h>
- 
- 	/* rdi:	arg1 ... normal C conventions. rax is saved/restored. */
- 	.macro THUNK name, func, put_ret_addr_in_rdi=0
-@@ -47,6 +48,8 @@
- #ifdef CONFIG_PREEMPT
- 	THUNK ___preempt_schedule, preempt_schedule
- 	THUNK ___preempt_schedule_notrace, preempt_schedule_notrace
-+	EXPORT_SYMBOL(___preempt_schedule)
-+	EXPORT_SYMBOL(___preempt_schedule_notrace)
- #endif
- 
- #if defined(CONFIG_TRACE_IRQFLAGS) \
-diff --git a/arch/x86/include/asm/export.h b/arch/x86/include/asm/export.h
-new file mode 100644
-index 0000000..138de56
---- /dev/null
-+++ b/arch/x86/include/asm/export.h
-@@ -0,0 +1,4 @@
-+#ifdef CONFIG_64BIT
-+#define KSYM_ALIGN 16
-+#endif
-+#include <asm-generic/export.h>
-diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
-index b1b78ff..c707445 100644
---- a/arch/x86/kernel/Makefile
-+++ b/arch/x86/kernel/Makefile
-@@ -30,9 +30,7 @@ obj-$(CONFIG_MODIFY_LDT_SYSCALL)	+= ldt.o
- obj-y			+= setup.o x86_init.o i8259.o irqinit.o jump_label.o
- obj-$(CONFIG_IRQ_WORK)  += irq_work.o
- obj-y			+= probe_roms.o
--obj-$(CONFIG_X86_32)	+= i386_ksyms_32.o
--obj-$(CONFIG_X86_64)	+= sys_x86_64.o x8664_ksyms_64.o
--obj-$(CONFIG_X86_64)	+= mcount_64.o
-+obj-$(CONFIG_X86_64)	+= sys_x86_64.o mcount_64.o
- obj-$(CONFIG_X86_ESPFIX64)	+= espfix_64.o
- obj-$(CONFIG_SYSFS)	+= ksysfs.o
- obj-y			+= bootflag.o e820.o
-diff --git a/arch/x86/kernel/head_32.S b/arch/x86/kernel/head_32.S
-index 6bc9ae2..0034632 100644
---- a/arch/x86/kernel/head_32.S
-+++ b/arch/x86/kernel/head_32.S
-@@ -23,6 +23,7 @@
- #include <asm/percpu.h>
- #include <asm/nops.h>
- #include <asm/bootparam.h>
-+#include <asm/export.h>
- 
- /* Physical address */
- #define pa(X) ((X) - __PAGE_OFFSET)
-@@ -678,6 +679,7 @@ ENTRY(empty_zero_page)
- 	.fill 4096,1,0
- ENTRY(swapper_pg_dir)
- 	.fill 1024,4,0
-+EXPORT_SYMBOL(empty_zero_page)
- 
- /*
-  * This starts the data section.
-diff --git a/arch/x86/kernel/head_64.S b/arch/x86/kernel/head_64.S
-index ffdc0e8..33a4ad9 100644
---- a/arch/x86/kernel/head_64.S
-+++ b/arch/x86/kernel/head_64.S
-@@ -20,6 +20,7 @@
- #include <asm/processor-flags.h>
- #include <asm/percpu.h>
- #include <asm/nops.h>
-+#include <asm/export.h>
- 
- #ifdef CONFIG_PARAVIRT
- #include <asm/asm-offsets.h>
-@@ -523,10 +524,12 @@ early_gdt_descr_base:
- ENTRY(phys_base)
- 	/* This must match the first entry in level2_kernel_pgt */
- 	.quad   0x0000000000000000
-+EXPORT_SYMBOL(phys_base)
- 
- #include "../../x86/xen/xen-head.S"
- 	
- 	__PAGE_ALIGNED_BSS
- NEXT_PAGE(empty_zero_page)
- 	.skip PAGE_SIZE
-+EXPORT_SYMBOL(empty_zero_page)
- 
-diff --git a/arch/x86/kernel/i386_ksyms_32.c b/arch/x86/kernel/i386_ksyms_32.c
+ obj-$(CONFIG_VGA_HOSE)	+= console.o
+ obj-$(CONFIG_SMP)	+= smp.o
+diff --git a/arch/alpha/kernel/alpha_ksyms.c b/arch/alpha/kernel/alpha_ksyms.c
 deleted file mode 100644
-index 64341aa..0000000
---- a/arch/x86/kernel/i386_ksyms_32.c
+index f4c7ab6..0000000
+--- a/arch/alpha/kernel/alpha_ksyms.c
 +++ /dev/null
-@@ -1,44 +0,0 @@
--#include <linux/module.h>
--
--#include <asm/checksum.h>
--#include <asm/pgtable.h>
--#include <asm/desc.h>
--#include <asm/ftrace.h>
--
--#ifdef CONFIG_FUNCTION_TRACER
--/* mcount is defined in assembly */
--EXPORT_SYMBOL(mcount);
--#endif
--
+@@ -1,102 +0,0 @@
 -/*
-- * Note, this is a prototype to get at the symbol for
-- * the export, but dont use it from C code, it is used
-- * by assembly code and is not using C calling convention!
+- * linux/arch/alpha/kernel/alpha_ksyms.c
+- *
+- * Export the alpha-specific functions that are needed for loadable
+- * modules.
 - */
--#ifndef CONFIG_X86_CMPXCHG64
--extern void cmpxchg8b_emu(void);
--EXPORT_SYMBOL(cmpxchg8b_emu);
--#endif
--
--/* Networking helper routines. */
--EXPORT_SYMBOL(csum_partial_copy_generic);
--
--EXPORT_SYMBOL(__get_user_1);
--EXPORT_SYMBOL(__get_user_2);
--EXPORT_SYMBOL(__get_user_4);
--EXPORT_SYMBOL(__get_user_8);
--
--EXPORT_SYMBOL(__put_user_1);
--EXPORT_SYMBOL(__put_user_2);
--EXPORT_SYMBOL(__put_user_4);
--EXPORT_SYMBOL(__put_user_8);
--
--EXPORT_SYMBOL(strstr);
--
--EXPORT_SYMBOL(csum_partial);
--EXPORT_SYMBOL(empty_zero_page);
--
--#ifdef CONFIG_PREEMPT
--EXPORT_SYMBOL(___preempt_schedule);
--EXPORT_SYMBOL(___preempt_schedule_notrace);
--#endif
-diff --git a/arch/x86/kernel/mcount_64.S b/arch/x86/kernel/mcount_64.S
-index 87e1762..02c2864 100644
---- a/arch/x86/kernel/mcount_64.S
-+++ b/arch/x86/kernel/mcount_64.S
-@@ -7,6 +7,7 @@
- #include <linux/linkage.h>
- #include <asm/ptrace.h>
- #include <asm/ftrace.h>
-+#include <asm/export.h>
- 
- 
- 	.code64
-@@ -291,6 +292,7 @@ trace:
- 	jmp fgraph_trace
- END(function_hook)
- #endif /* CONFIG_DYNAMIC_FTRACE */
-+EXPORT_SYMBOL(function_hook)
- #endif /* CONFIG_FUNCTION_TRACER */
- 
- #ifdef CONFIG_FUNCTION_GRAPH_TRACER
-diff --git a/arch/x86/kernel/x8664_ksyms_64.c b/arch/x86/kernel/x8664_ksyms_64.c
-deleted file mode 100644
-index a0695be..0000000
---- a/arch/x86/kernel/x8664_ksyms_64.c
-+++ /dev/null
-@@ -1,79 +0,0 @@
--/* Exports for assembly files.
--   All C exports should go in the respective C files. */
 -
 -#include <linux/module.h>
--#include <linux/smp.h>
--
--#include <net/checksum.h>
--
--#include <asm/processor.h>
--#include <asm/pgtable.h>
+-#include <asm/console.h>
 -#include <asm/uaccess.h>
--#include <asm/desc.h>
--#include <asm/ftrace.h>
+-#include <asm/checksum.h>
+-#include <asm/fpu.h>
+-#include <asm/machvec.h>
 -
--#ifdef CONFIG_FUNCTION_TRACER
--/* mcount and __fentry__ are defined in assembly */
--#ifdef CC_USING_FENTRY
--EXPORT_SYMBOL(__fentry__);
--#else
--EXPORT_SYMBOL(mcount);
--#endif
--#endif
+-#include <linux/syscalls.h>
 -
--EXPORT_SYMBOL(__get_user_1);
--EXPORT_SYMBOL(__get_user_2);
--EXPORT_SYMBOL(__get_user_4);
--EXPORT_SYMBOL(__get_user_8);
--EXPORT_SYMBOL(__put_user_1);
--EXPORT_SYMBOL(__put_user_2);
--EXPORT_SYMBOL(__put_user_4);
--EXPORT_SYMBOL(__put_user_8);
+-/* these are C runtime functions with special calling conventions: */
+-extern void __divl (void);
+-extern void __reml (void);
+-extern void __divq (void);
+-extern void __remq (void);
+-extern void __divlu (void);
+-extern void __remlu (void);
+-extern void __divqu (void);
+-extern void __remqu (void);
 -
--EXPORT_SYMBOL(copy_user_generic_string);
--EXPORT_SYMBOL(copy_user_generic_unrolled);
--EXPORT_SYMBOL(copy_user_enhanced_fast_string);
--EXPORT_SYMBOL(__copy_user_nocache);
--EXPORT_SYMBOL(_copy_from_user);
--EXPORT_SYMBOL(_copy_to_user);
+-EXPORT_SYMBOL(alpha_mv);
+-EXPORT_SYMBOL(callback_getenv);
+-EXPORT_SYMBOL(callback_setenv);
+-EXPORT_SYMBOL(callback_save_env);
 -
+-/* platform dependent support */
+-EXPORT_SYMBOL(strcat);
+-EXPORT_SYMBOL(strcpy);
+-EXPORT_SYMBOL(strlen);
+-EXPORT_SYMBOL(strncpy);
+-EXPORT_SYMBOL(strncat);
+-EXPORT_SYMBOL(strchr);
+-EXPORT_SYMBOL(strrchr);
+-EXPORT_SYMBOL(memmove);
+-EXPORT_SYMBOL(__memcpy);
+-EXPORT_SYMBOL(__memset);
+-EXPORT_SYMBOL(___memset);
+-EXPORT_SYMBOL(__memsetw);
+-EXPORT_SYMBOL(__constant_c_memset);
 -EXPORT_SYMBOL(copy_page);
 -EXPORT_SYMBOL(clear_page);
 -
--EXPORT_SYMBOL(csum_partial);
+-EXPORT_SYMBOL(alpha_read_fp_reg);
+-EXPORT_SYMBOL(alpha_read_fp_reg_s);
+-EXPORT_SYMBOL(alpha_write_fp_reg);
+-EXPORT_SYMBOL(alpha_write_fp_reg_s);
+-
+-/* Networking helper routines. */
+-EXPORT_SYMBOL(csum_tcpudp_magic);
+-EXPORT_SYMBOL(ip_compute_csum);
+-EXPORT_SYMBOL(ip_fast_csum);
+-EXPORT_SYMBOL(csum_partial_copy_nocheck);
+-EXPORT_SYMBOL(csum_partial_copy_from_user);
+-EXPORT_SYMBOL(csum_ipv6_magic);
+-
+-#ifdef CONFIG_MATHEMU_MODULE
+-extern long (*alpha_fp_emul_imprecise)(struct pt_regs *, unsigned long);
+-extern long (*alpha_fp_emul) (unsigned long pc);
+-EXPORT_SYMBOL(alpha_fp_emul_imprecise);
+-EXPORT_SYMBOL(alpha_fp_emul);
+-#endif
 -
 -/*
-- * Export string functions. We normally rely on gcc builtin for most of these,
-- * but gcc sometimes decides not to inline them.
+- * The following are specially called from the uaccess assembly stubs.
 - */
--#undef memcpy
--#undef memset
--#undef memmove
+-EXPORT_SYMBOL(__copy_user);
+-EXPORT_SYMBOL(__do_clear_user);
 -
--extern void *__memset(void *, int, __kernel_size_t);
--extern void *__memcpy(void *, const void *, __kernel_size_t);
--extern void *__memmove(void *, const void *, __kernel_size_t);
--extern void *memset(void *, int, __kernel_size_t);
--extern void *memcpy(void *, const void *, __kernel_size_t);
--extern void *memmove(void *, const void *, __kernel_size_t);
+-/* 
+- * SMP-specific symbols.
+- */
 -
--EXPORT_SYMBOL(__memset);
--EXPORT_SYMBOL(__memcpy);
--EXPORT_SYMBOL(__memmove);
+-#ifdef CONFIG_SMP
+-EXPORT_SYMBOL(_atomic_dec_and_lock);
+-#endif /* CONFIG_SMP */
 -
--EXPORT_SYMBOL(memset);
+-/*
+- * The following are special because they're not called
+- * explicitly (the C compiler or assembler generates them in
+- * response to division operations).  Fortunately, their
+- * interface isn't gonna change any time soon now, so it's OK
+- * to leave it out of version control.
+- */
+-# undef memcpy
+-# undef memset
+-EXPORT_SYMBOL(__divl);
+-EXPORT_SYMBOL(__divlu);
+-EXPORT_SYMBOL(__divq);
+-EXPORT_SYMBOL(__divqu);
+-EXPORT_SYMBOL(__reml);
+-EXPORT_SYMBOL(__remlu);
+-EXPORT_SYMBOL(__remq);
+-EXPORT_SYMBOL(__remqu);
 -EXPORT_SYMBOL(memcpy);
--EXPORT_SYMBOL(memmove);
--
--#ifndef CONFIG_DEBUG_VIRTUAL
--EXPORT_SYMBOL(phys_base);
--#endif
--EXPORT_SYMBOL(empty_zero_page);
--#ifndef CONFIG_PARAVIRT
--EXPORT_SYMBOL(native_load_gs_index);
--#endif
--
--#ifdef CONFIG_PREEMPT
--EXPORT_SYMBOL(___preempt_schedule);
--EXPORT_SYMBOL(___preempt_schedule_notrace);
--#endif
-diff --git a/arch/x86/lib/checksum_32.S b/arch/x86/lib/checksum_32.S
-index c1e6232..4d34bb5 100644
---- a/arch/x86/lib/checksum_32.S
-+++ b/arch/x86/lib/checksum_32.S
-@@ -28,6 +28,7 @@
- #include <linux/linkage.h>
- #include <asm/errno.h>
- #include <asm/asm.h>
-+#include <asm/export.h>
- 				
- /*
-  * computes a partial checksum, e.g. for TCP/UDP fragments
-@@ -251,6 +252,7 @@ ENTRY(csum_partial)
- ENDPROC(csum_partial)
- 				
+-EXPORT_SYMBOL(memset);
+-EXPORT_SYMBOL(memchr);
+diff --git a/arch/alpha/kernel/machvec_impl.h b/arch/alpha/kernel/machvec_impl.h
+index f54bdf6..8c65160 100644
+--- a/arch/alpha/kernel/machvec_impl.h
++++ b/arch/alpha/kernel/machvec_impl.h
+@@ -144,9 +144,11 @@
+    else beforehand.  Fine.  We'll do it ourselves.  */
+ #if 0
+ #define ALIAS_MV(system) \
+-  struct alpha_machine_vector alpha_mv __attribute__((alias(#system "_mv")));
++  struct alpha_machine_vector alpha_mv __attribute__((alias(#system "_mv"))); \
++  EXPORT_SYMBOL(alpha_mv);
+ #else
+ #define ALIAS_MV(system) \
+-  asm(".global alpha_mv\nalpha_mv = " #system "_mv");
++  asm(".global alpha_mv\nalpha_mv = " #system "_mv"); \
++  EXPORT_SYMBOL(alpha_mv);
  #endif
-+EXPORT_SYMBOL(csum_partial)
+ #endif /* GENERIC */
+diff --git a/arch/alpha/kernel/setup.c b/arch/alpha/kernel/setup.c
+index b20af76..4811e54 100644
+--- a/arch/alpha/kernel/setup.c
++++ b/arch/alpha/kernel/setup.c
+@@ -115,6 +115,7 @@ unsigned long alpha_agpgart_size = DEFAULT_AGP_APER_SIZE;
  
- /*
- unsigned int csum_partial_copy_generic (const char *src, char *dst,
-@@ -490,3 +492,4 @@ ENDPROC(csum_partial_copy_generic)
- #undef ROUND1		
- 		
+ #ifdef CONFIG_ALPHA_GENERIC
+ struct alpha_machine_vector alpha_mv;
++EXPORT_SYMBOL(alpha_mv);
  #endif
-+EXPORT_SYMBOL(csum_partial_copy_generic)
-diff --git a/arch/x86/lib/clear_page_64.S b/arch/x86/lib/clear_page_64.S
-index a2fe51b..192a26b 100644
---- a/arch/x86/lib/clear_page_64.S
-+++ b/arch/x86/lib/clear_page_64.S
-@@ -1,6 +1,7 @@
- #include <linux/linkage.h>
- #include <asm/cpufeature.h>
- #include <asm/alternative-asm.h>
-+#include <asm/export.h>
  
- /*
-  * Most CPUs support enhanced REP MOVSB/STOSB instructions. It is
-@@ -23,6 +24,7 @@ ENTRY(clear_page)
- 	rep stosq
- 	ret
- ENDPROC(clear_page)
-+EXPORT_SYMBOL(clear_page)
- 
- ENTRY(clear_page_orig)
- 
-diff --git a/arch/x86/lib/cmpxchg8b_emu.S b/arch/x86/lib/cmpxchg8b_emu.S
-index ad53497..03a186f 100644
---- a/arch/x86/lib/cmpxchg8b_emu.S
-+++ b/arch/x86/lib/cmpxchg8b_emu.S
-@@ -7,6 +7,7 @@
+ #ifndef alpha_using_srm
+diff --git a/arch/alpha/lib/callback_srm.S b/arch/alpha/lib/callback_srm.S
+index 8804bec..6093add 100644
+--- a/arch/alpha/lib/callback_srm.S
++++ b/arch/alpha/lib/callback_srm.S
+@@ -3,6 +3,7 @@
   */
  
- #include <linux/linkage.h>
+ #include <asm/console.h>
 +#include <asm/export.h>
  
  .text
- 
-@@ -48,3 +49,4 @@ ENTRY(cmpxchg8b_emu)
- 	ret
- 
- ENDPROC(cmpxchg8b_emu)
-+EXPORT_SYMBOL(cmpxchg8b_emu)
-diff --git a/arch/x86/lib/copy_page_64.S b/arch/x86/lib/copy_page_64.S
-index 009f982..d704dde 100644
---- a/arch/x86/lib/copy_page_64.S
-+++ b/arch/x86/lib/copy_page_64.S
-@@ -3,6 +3,7 @@
- #include <linux/linkage.h>
- #include <asm/cpufeature.h>
- #include <asm/alternative-asm.h>
-+#include <asm/export.h>
- 
- /*
-  * Some CPUs run faster using the string copy instructions (sane microcode).
-@@ -17,6 +18,7 @@ ENTRY(copy_page)
- 	rep	movsq
- 	ret
- ENDPROC(copy_page)
-+EXPORT_SYMBOL(copy_page)
- 
- ENTRY(copy_page_regs)
- 	subq	$2*8,	%rsp
-diff --git a/arch/x86/lib/copy_user_64.S b/arch/x86/lib/copy_user_64.S
-index 982ce34..264c951 100644
---- a/arch/x86/lib/copy_user_64.S
-+++ b/arch/x86/lib/copy_user_64.S
-@@ -14,6 +14,7 @@
- #include <asm/alternative-asm.h>
- #include <asm/asm.h>
- #include <asm/smap.h>
-+#include <asm/export.h>
- 
- /* Standard copy_to_user with segment limit checking */
- ENTRY(_copy_to_user)
-@@ -29,6 +30,7 @@ ENTRY(_copy_to_user)
- 		      "jmp copy_user_enhanced_fast_string",	\
- 		      X86_FEATURE_ERMS
- ENDPROC(_copy_to_user)
-+EXPORT_SYMBOL(_copy_to_user)
- 
- /* Standard copy_from_user with segment limit checking */
- ENTRY(_copy_from_user)
-@@ -44,6 +46,8 @@ ENTRY(_copy_from_user)
- 		      "jmp copy_user_enhanced_fast_string",	\
- 		      X86_FEATURE_ERMS
- ENDPROC(_copy_from_user)
-+EXPORT_SYMBOL(_copy_from_user)
+ #define HWRPB_CRB_OFFSET 0xc0
+@@ -92,6 +93,10 @@ CALLBACK(reset_env, CCB_RESET_ENV, 4)
+ CALLBACK(save_env, CCB_SAVE_ENV, 1)
+ CALLBACK(pswitch, CCB_PSWITCH, 3)
+ CALLBACK(bios_emul, CCB_BIOS_EMUL, 5)
 +
- 
- 	.section .fixup,"ax"
- 	/* must zero dest */
-@@ -155,6 +159,7 @@ ENTRY(copy_user_generic_unrolled)
- 	_ASM_EXTABLE(21b,50b)
- 	_ASM_EXTABLE(22b,50b)
- ENDPROC(copy_user_generic_unrolled)
-+EXPORT_SYMBOL(copy_user_generic_unrolled)
- 
- /* Some CPUs run faster using the string copy instructions.
-  * This is also a lot simpler. Use them when possible.
-@@ -200,6 +205,7 @@ ENTRY(copy_user_generic_string)
- 	_ASM_EXTABLE(1b,11b)
- 	_ASM_EXTABLE(3b,12b)
- ENDPROC(copy_user_generic_string)
-+EXPORT_SYMBOL(copy_user_generic_string)
- 
- /*
-  * Some CPUs are adding enhanced REP MOVSB/STOSB instructions.
-@@ -229,6 +235,7 @@ ENTRY(copy_user_enhanced_fast_string)
- 
- 	_ASM_EXTABLE(1b,12b)
- ENDPROC(copy_user_enhanced_fast_string)
-+EXPORT_SYMBOL(copy_user_enhanced_fast_string)
- 
- /*
-  * copy_user_nocache - Uncached memory copy with exception handling
-@@ -319,3 +326,4 @@ ENTRY(__copy_user_nocache)
- 	_ASM_EXTABLE(21b,50b)
- 	_ASM_EXTABLE(22b,50b)
- ENDPROC(__copy_user_nocache)
-+EXPORT_SYMBOL(__copy_user_nocache)
-diff --git a/arch/x86/lib/csum-partial_64.c b/arch/x86/lib/csum-partial_64.c
-index 9845371..f6ffcaa 100644
---- a/arch/x86/lib/csum-partial_64.c
-+++ b/arch/x86/lib/csum-partial_64.c
-@@ -135,6 +135,7 @@ __wsum csum_partial(const void *buff, int len, __wsum sum)
- 	return (__force __wsum)add32_with_carry(do_csum(buff, len),
- 						(__force u32)sum);
++EXPORT_SYMBOL(callback_getenv)
++EXPORT_SYMBOL(callback_setenv)
++EXPORT_SYMBOL(callback_save_env)
+ 	
+ .data
+ __alpha_using_srm:		# For use by bootpheader
+diff --git a/arch/alpha/lib/checksum.c b/arch/alpha/lib/checksum.c
+index 199f6ef..65197c3 100644
+--- a/arch/alpha/lib/checksum.c
++++ b/arch/alpha/lib/checksum.c
+@@ -50,6 +50,7 @@ __sum16 csum_tcpudp_magic(__be32 saddr, __be32 daddr,
+ 		(__force u64)saddr + (__force u64)daddr +
+ 		(__force u64)sum + ((len + proto) << 8));
  }
-+EXPORT_SYMBOL(csum_partial);
++EXPORT_SYMBOL(csum_tcpudp_magic);
+ 
+ __wsum csum_tcpudp_nofold(__be32 saddr, __be32 daddr,
+ 				   unsigned short len,
+@@ -148,6 +149,7 @@ __sum16 ip_fast_csum(const void *iph, unsigned int ihl)
+ {
+ 	return (__force __sum16)~do_csum(iph,ihl*4);
+ }
++EXPORT_SYMBOL(ip_fast_csum);
  
  /*
-  * this routine is used for miscellaneous IP-like checksums, mainly
-diff --git a/arch/x86/lib/getuser.S b/arch/x86/lib/getuser.S
-index 46668cd..6fcdb2b 100644
---- a/arch/x86/lib/getuser.S
-+++ b/arch/x86/lib/getuser.S
-@@ -32,6 +32,7 @@
- #include <asm/thread_info.h>
- #include <asm/asm.h>
- #include <asm/smap.h>
+  * computes the checksum of a memory block at buff, length len,
+@@ -182,3 +184,4 @@ __sum16 ip_compute_csum(const void *buff, int len)
+ {
+ 	return (__force __sum16)~from64to16(do_csum(buff,len));
+ }
++EXPORT_SYMBOL(ip_compute_csum);
+diff --git a/arch/alpha/lib/clear_page.S b/arch/alpha/lib/clear_page.S
+index a221ae2..263d739 100644
+--- a/arch/alpha/lib/clear_page.S
++++ b/arch/alpha/lib/clear_page.S
+@@ -3,7 +3,7 @@
+  *
+  * Zero an entire page.
+  */
+-
++#include <asm/export.h>
+ 	.text
+ 	.align 4
+ 	.global clear_page
+@@ -37,3 +37,4 @@ clear_page:
+ 	nop
+ 
+ 	.end clear_page
++	EXPORT_SYMBOL(clear_page)
+diff --git a/arch/alpha/lib/clear_user.S b/arch/alpha/lib/clear_user.S
+index 8860316..bf5b931 100644
+--- a/arch/alpha/lib/clear_user.S
++++ b/arch/alpha/lib/clear_user.S
+@@ -24,6 +24,7 @@
+  * Clobbers:
+  *	$1,$2,$3,$4,$5,$6
+  */
++#include <asm/export.h>
+ 
+ /* Allow an exception for an insn; exit if we get one.  */
+ #define EX(x,y...)			\
+@@ -111,3 +112,4 @@ $exception:
+ 	ret	$31, ($28), 1	# .. e1 :
+ 
+ 	.end __do_clear_user
++	EXPORT_SYMBOL(__do_clear_user)
+diff --git a/arch/alpha/lib/copy_page.S b/arch/alpha/lib/copy_page.S
+index 9f3b974..2ee0bd0 100644
+--- a/arch/alpha/lib/copy_page.S
++++ b/arch/alpha/lib/copy_page.S
+@@ -3,7 +3,7 @@
+  *
+  * Copy an entire page.
+  */
+-
++#include <asm/export.h>
+ 	.text
+ 	.align 4
+ 	.global copy_page
+@@ -47,3 +47,4 @@ copy_page:
+ 	nop
+ 
+ 	.end copy_page
++	EXPORT_SYMBOL(copy_page)
+diff --git a/arch/alpha/lib/copy_user.S b/arch/alpha/lib/copy_user.S
+index 6f3fab9..2238068 100644
+--- a/arch/alpha/lib/copy_user.S
++++ b/arch/alpha/lib/copy_user.S
+@@ -26,6 +26,8 @@
+  *	$1,$2,$3,$4,$5,$6,$7
+  */
+ 
++#include <asm/export.h>
++
+ /* Allow an exception for an insn; exit if we get one.  */
+ #define EXI(x,y...)			\
+ 	99: x,##y;			\
+@@ -143,3 +145,4 @@ $101:
+ 	ret $31,($28),1
+ 
+ 	.end __copy_user
++EXPORT_SYMBOL(__copy_user)
+diff --git a/arch/alpha/lib/csum_ipv6_magic.S b/arch/alpha/lib/csum_ipv6_magic.S
+index 2c2acb9..e74b4544 100644
+--- a/arch/alpha/lib/csum_ipv6_magic.S
++++ b/arch/alpha/lib/csum_ipv6_magic.S
+@@ -12,6 +12,7 @@
+  * added by Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+  */
+ 
++#include <asm/export.h>
+ 	.globl csum_ipv6_magic
+ 	.align 4
+ 	.ent csum_ipv6_magic
+@@ -113,3 +114,4 @@ csum_ipv6_magic:
+ 	ret			# .. e1 :
+ 
+ 	.end csum_ipv6_magic
++	EXPORT_SYMBOL(csum_ipv6_magic)
+diff --git a/arch/alpha/lib/csum_partial_copy.c b/arch/alpha/lib/csum_partial_copy.c
+index 5675dca..b4ff3b6 100644
+--- a/arch/alpha/lib/csum_partial_copy.c
++++ b/arch/alpha/lib/csum_partial_copy.c
+@@ -374,6 +374,7 @@ csum_partial_copy_from_user(const void __user *src, void *dst, int len,
+ 	}
+ 	return (__force __wsum)checksum;
+ }
++EXPORT_SYMBOL(csum_partial_copy_from_user);
+ 
+ __wsum
+ csum_partial_copy_nocheck(const void *src, void *dst, int len, __wsum sum)
+@@ -386,3 +387,4 @@ csum_partial_copy_nocheck(const void *src, void *dst, int len, __wsum sum)
+ 	set_fs(oldfs);
+ 	return checksum;
+ }
++EXPORT_SYMBOL(csum_partial_copy_nocheck);
+diff --git a/arch/alpha/lib/dec_and_lock.c b/arch/alpha/lib/dec_and_lock.c
+index f9f5fe8..4221b40 100644
+--- a/arch/alpha/lib/dec_and_lock.c
++++ b/arch/alpha/lib/dec_and_lock.c
+@@ -7,6 +7,7 @@
+ 
+ #include <linux/spinlock.h>
+ #include <linux/atomic.h>
++#include <linux/export.h>
+ 
+   asm (".text					\n\
+ 	.global _atomic_dec_and_lock		\n\
+@@ -39,3 +40,4 @@ static int __used atomic_dec_and_lock_1(atomic_t *atomic, spinlock_t *lock)
+ 	spin_unlock(lock);
+ 	return 0;
+ }
++EXPORT_SYMBOL(_atomic_dec_and_lock);
+diff --git a/arch/alpha/lib/divide.S b/arch/alpha/lib/divide.S
+index 2d1a048..1e33bd1 100644
+--- a/arch/alpha/lib/divide.S
++++ b/arch/alpha/lib/divide.S
+@@ -45,6 +45,7 @@
+  *	$28 - compare status
+  */
+ 
++#include <asm/export.h>
+ #define halt .long 0
+ 
+ /*
+@@ -151,6 +152,7 @@ ufunction:
+ 	addq	$30,STACK,$30
+ 	ret	$31,($23),1
+ 	.end	ufunction
++EXPORT_SYMBOL(ufunction)
+ 
+ /*
+  * Uhh.. Ugly signed division. I'd rather not have it at all, but
+@@ -193,3 +195,4 @@ sfunction:
+ 	addq	$30,STACK,$30
+ 	ret	$31,($23),1
+ 	.end	sfunction
++EXPORT_SYMBOL(sfunction)
+diff --git a/arch/alpha/lib/ev6-clear_page.S b/arch/alpha/lib/ev6-clear_page.S
+index adf4f7b..abe99e6 100644
+--- a/arch/alpha/lib/ev6-clear_page.S
++++ b/arch/alpha/lib/ev6-clear_page.S
+@@ -3,7 +3,7 @@
+  *
+  * Zero an entire page.
+  */
+-
++#include <asm/export.h>
+         .text
+         .align 4
+         .global clear_page
+@@ -52,3 +52,4 @@ clear_page:
+ 	nop
+ 
+ 	.end clear_page
++	EXPORT_SYMBOL(clear_page)
+diff --git a/arch/alpha/lib/ev6-clear_user.S b/arch/alpha/lib/ev6-clear_user.S
+index 4f42a16..05bef6b 100644
+--- a/arch/alpha/lib/ev6-clear_user.S
++++ b/arch/alpha/lib/ev6-clear_user.S
+@@ -43,6 +43,7 @@
+  *	want to leave a hole (and we also want to avoid repeating lots of work)
+  */
+ 
++#include <asm/export.h>
+ /* Allow an exception for an insn; exit if we get one.  */
+ #define EX(x,y...)			\
+ 	99: x,##y;			\
+@@ -222,4 +223,4 @@ $exception:			# Destination for exception recovery(?)
+ 	nop			# .. E  .. ..	:
+ 	ret	$31, ($28), 1	# L0 .. .. ..	: L U L U
+ 	.end __do_clear_user
+-
++	EXPORT_SYMBOL(__do_clear_user)
+diff --git a/arch/alpha/lib/ev6-copy_page.S b/arch/alpha/lib/ev6-copy_page.S
+index b789db1..7793506 100644
+--- a/arch/alpha/lib/ev6-copy_page.S
++++ b/arch/alpha/lib/ev6-copy_page.S
+@@ -56,7 +56,7 @@
+    destination pages are in the dcache, but it is my guess that this is
+    less important than the dcache miss case.  */
+ 
+-
++#include <asm/export.h>
+ 	.text
+ 	.align 4
+ 	.global copy_page
+@@ -201,3 +201,4 @@ copy_page:
+ 	nop
+ 
+ 	.end copy_page
++	EXPORT_SYMBOL(copy_page)
+diff --git a/arch/alpha/lib/ev6-copy_user.S b/arch/alpha/lib/ev6-copy_user.S
+index db42ffe..debcc3b 100644
+--- a/arch/alpha/lib/ev6-copy_user.S
++++ b/arch/alpha/lib/ev6-copy_user.S
+@@ -37,6 +37,7 @@
+  *	L	- lower subcluster; L0 - subcluster L0; L1 - subcluster L1
+  */
+ 
++#include <asm/export.h>
+ /* Allow an exception for an insn; exit if we get one.  */
+ #define EXI(x,y...)			\
+ 	99: x,##y;			\
+@@ -256,4 +257,4 @@ $101:
+ 	ret $31,($28),1		# L0
+ 
+ 	.end __copy_user
+-
++	EXPORT_SYMBOL(__copy_user)
+diff --git a/arch/alpha/lib/ev6-csum_ipv6_magic.S b/arch/alpha/lib/ev6-csum_ipv6_magic.S
+index fc0bc39..de62627 100644
+--- a/arch/alpha/lib/ev6-csum_ipv6_magic.S
++++ b/arch/alpha/lib/ev6-csum_ipv6_magic.S
+@@ -52,6 +52,7 @@
+  * may cause additional delay in rare cases (load-load replay traps).
+  */
+ 
++#include <asm/export.h>
+ 	.globl csum_ipv6_magic
+ 	.align 4
+ 	.ent csum_ipv6_magic
+@@ -148,3 +149,4 @@ csum_ipv6_magic:
+ 	ret			# L0 : L U L U
+ 
+ 	.end csum_ipv6_magic
++	EXPORT_SYMBOL(csum_ipv6_magic)
+diff --git a/arch/alpha/lib/ev6-divide.S b/arch/alpha/lib/ev6-divide.S
+index 2a82b9b..d18dc0e 100644
+--- a/arch/alpha/lib/ev6-divide.S
++++ b/arch/alpha/lib/ev6-divide.S
+@@ -55,6 +55,7 @@
+  * Try not to change the actual algorithm if possible for consistency.
+  */
+ 
++#include <asm/export.h>
+ #define halt .long 0
+ 
+ /*
+@@ -205,6 +206,7 @@ ufunction:
+ 	addq	$30,STACK,$30		# E :
+ 	ret	$31,($23),1		# L0 : L U U L
+ 	.end	ufunction
++EXPORT_SYMBOL(ufunction)
+ 
+ /*
+  * Uhh.. Ugly signed division. I'd rather not have it at all, but
+@@ -257,3 +259,4 @@ sfunction:
+ 	addq	$30,STACK,$30		# E :
+ 	ret	$31,($23),1		# L0 : L U U L
+ 	.end	sfunction
++EXPORT_SYMBOL(sfunction)
+diff --git a/arch/alpha/lib/ev6-memchr.S b/arch/alpha/lib/ev6-memchr.S
+index 1a5f71b..419adc5 100644
+--- a/arch/alpha/lib/ev6-memchr.S
++++ b/arch/alpha/lib/ev6-memchr.S
+@@ -27,7 +27,7 @@
+  *	L	- lower subcluster; L0 - subcluster L0; L1 - subcluster L1
+  * Try not to change the actual algorithm if possible for consistency.
+  */
+-
++#include <asm/export.h>
+         .set noreorder
+         .set noat
+ 
+@@ -189,3 +189,4 @@ $not_found:
+ 	ret			# L0 :
+ 
+         .end memchr
++	EXPORT_SYMBOL(memchr)
+diff --git a/arch/alpha/lib/ev6-memcpy.S b/arch/alpha/lib/ev6-memcpy.S
+index 52b37b0..b19798b 100644
+--- a/arch/alpha/lib/ev6-memcpy.S
++++ b/arch/alpha/lib/ev6-memcpy.S
+@@ -19,7 +19,7 @@
+  * Temp usage notes:
+  *	$1,$2,		- scratch
+  */
+-
++#include <asm/export.h>
+ 	.set noreorder
+ 	.set noat
+ 
+@@ -242,6 +242,7 @@ $nomoredata:
+ 	nop				# E :
+ 
+ 	.end memcpy
++	EXPORT_SYMBOL(memcpy)
+ 
+ /* For backwards module compatibility.  */
+ __memcpy = memcpy
+diff --git a/arch/alpha/lib/ev6-memset.S b/arch/alpha/lib/ev6-memset.S
+index 356bb2f..fed21c6 100644
+--- a/arch/alpha/lib/ev6-memset.S
++++ b/arch/alpha/lib/ev6-memset.S
+@@ -26,7 +26,7 @@
+  * as fixes will need to be made in multiple places.  The performance gain
+  * is worth it.
+  */
+-
++#include <asm/export.h>
+ 	.set noat
+ 	.set noreorder
+ .text
+@@ -229,6 +229,7 @@ end_b:
+ 	nop
+ 	ret $31,($26),1		# L0 :
+ 	.end ___memset
++	EXPORT_SYMBOL(___memset)
+ 
+ 	/*
+ 	 * This is the original body of code, prior to replication and
+@@ -406,6 +407,7 @@ end:
+ 	nop
+ 	ret $31,($26),1		# L0 :
+ 	.end __constant_c_memset
++	EXPORT_SYMBOL(__constant_c_memset)
+ 
+ 	/*
+ 	 * This is a replicant of the __constant_c_memset code, rescheduled
+@@ -594,6 +596,9 @@ end_w:
+ 	ret $31,($26),1		# L0 :
+ 
+ 	.end __memsetw
++	EXPORT_SYMBOL(__memsetw)
+ 
+ memset = ___memset
+ __memset = ___memset
++	EXPORT_SYMBOL(memset)
++	EXPORT_SYMBOL(__memset)
+diff --git a/arch/alpha/lib/ev67-strcat.S b/arch/alpha/lib/ev67-strcat.S
+index c426fe3..b69f604 100644
+--- a/arch/alpha/lib/ev67-strcat.S
++++ b/arch/alpha/lib/ev67-strcat.S
+@@ -19,7 +19,7 @@
+  * string once.
+  */
+ 
+-
++#include <asm/export.h>
+ 	.text
+ 
+ 	.align 4
+@@ -52,3 +52,4 @@ $found:	cttz	$2, $3		# U0 :
+ 	br	__stxcpy	# L0 :
+ 
+ 	.end strcat
++	EXPORT_SYMBOL(strcat)
+diff --git a/arch/alpha/lib/ev67-strchr.S b/arch/alpha/lib/ev67-strchr.S
+index fbb7b4f..ea8f2f3 100644
+--- a/arch/alpha/lib/ev67-strchr.S
++++ b/arch/alpha/lib/ev67-strchr.S
+@@ -15,7 +15,7 @@
+  *	L	- lower subcluster; L0 - subcluster L0; L1 - subcluster L1
+  * Try not to change the actual algorithm if possible for consistency.
+  */
+-
++#include <asm/export.h>
+ #include <asm/regdef.h>
+ 
+ 	.set noreorder
+@@ -86,3 +86,4 @@ $found:	negq    t0, t1		# E : clear all but least set bit
+ 	ret			# L0 :
+ 
+ 	.end strchr
++	EXPORT_SYMBOL(strchr)
+diff --git a/arch/alpha/lib/ev67-strlen.S b/arch/alpha/lib/ev67-strlen.S
+index 5039280..736fd41 100644
+--- a/arch/alpha/lib/ev67-strlen.S
++++ b/arch/alpha/lib/ev67-strlen.S
+@@ -17,7 +17,7 @@
+  *	U	- upper subcluster; U0 - subcluster U0; U1 - subcluster U1
+  *	L	- lower subcluster; L0 - subcluster L0; L1 - subcluster L1
+  */
+-
++#include <asm/export.h>
+ 	.set noreorder
+ 	.set noat
+ 
+@@ -47,3 +47,4 @@ $found:
+ 	ret	$31, ($26)	# L0 :
+ 
+ 	.end	strlen
++	EXPORT_SYMBOL(strlen)
+diff --git a/arch/alpha/lib/ev67-strncat.S b/arch/alpha/lib/ev67-strncat.S
+index 4ae716c..cd35cba 100644
+--- a/arch/alpha/lib/ev67-strncat.S
++++ b/arch/alpha/lib/ev67-strncat.S
+@@ -20,7 +20,7 @@
+  * Try not to change the actual algorithm if possible for consistency.
+  */
+ 
+-
++#include <asm/export.h>
+ 	.text
+ 
+ 	.align 4
+@@ -92,3 +92,4 @@ $zerocount:
+ 	ret			# L0 :
+ 
+ 	.end strncat
++	EXPORT_SYMBOL(strncat)
+diff --git a/arch/alpha/lib/ev67-strrchr.S b/arch/alpha/lib/ev67-strrchr.S
+index dd0d8c6..747455f 100644
+--- a/arch/alpha/lib/ev67-strrchr.S
++++ b/arch/alpha/lib/ev67-strrchr.S
+@@ -18,7 +18,7 @@
+  *	L	- lower subcluster; L0 - subcluster L0; L1 - subcluster L1
+  */
+ 
+-
++#include <asm/export.h>
+ #include <asm/regdef.h>
+ 
+ 	.set noreorder
+@@ -107,3 +107,4 @@ $eos:
+ 	nop
+ 
+ 	.end strrchr
++	EXPORT_SYMBOL(strrchr)
+diff --git a/arch/alpha/lib/fpreg.c b/arch/alpha/lib/fpreg.c
+index 05017ba..4aa6dbf 100644
+--- a/arch/alpha/lib/fpreg.c
++++ b/arch/alpha/lib/fpreg.c
+@@ -4,6 +4,9 @@
+  * (C) Copyright 1998 Linus Torvalds
+  */
+ 
++#include <linux/compiler.h>
++#include <linux/export.h>
++
+ #if defined(CONFIG_ALPHA_EV6) || defined(CONFIG_ALPHA_EV67)
+ #define STT(reg,val)  asm volatile ("ftoit $f"#reg",%0" : "=r"(val));
+ #else
+@@ -52,6 +55,7 @@ alpha_read_fp_reg (unsigned long reg)
+ 	}
+ 	return val;
+ }
++EXPORT_SYMBOL(alpha_read_fp_reg);
+ 
+ #if defined(CONFIG_ALPHA_EV6) || defined(CONFIG_ALPHA_EV67)
+ #define LDT(reg,val)  asm volatile ("itoft %0,$f"#reg : : "r"(val));
+@@ -97,6 +101,7 @@ alpha_write_fp_reg (unsigned long reg, unsigned long val)
+ 	      case 31: LDT(31, val); break;
+ 	}
+ }
++EXPORT_SYMBOL(alpha_write_fp_reg);
+ 
+ #if defined(CONFIG_ALPHA_EV6) || defined(CONFIG_ALPHA_EV67)
+ #define STS(reg,val)  asm volatile ("ftois $f"#reg",%0" : "=r"(val));
+@@ -146,6 +151,7 @@ alpha_read_fp_reg_s (unsigned long reg)
+ 	}
+ 	return val;
+ }
++EXPORT_SYMBOL(alpha_read_fp_reg_s);
+ 
+ #if defined(CONFIG_ALPHA_EV6) || defined(CONFIG_ALPHA_EV67)
+ #define LDS(reg,val)  asm volatile ("itofs %0,$f"#reg : : "r"(val));
+@@ -191,3 +197,4 @@ alpha_write_fp_reg_s (unsigned long reg, unsigned long val)
+ 	      case 31: LDS(31, val); break;
+ 	}
+ }
++EXPORT_SYMBOL(alpha_write_fp_reg_s);
+diff --git a/arch/alpha/lib/memchr.S b/arch/alpha/lib/memchr.S
+index 14427ee..c13d3ec 100644
+--- a/arch/alpha/lib/memchr.S
++++ b/arch/alpha/lib/memchr.S
+@@ -31,7 +31,7 @@ For correctness consider that:
+       - only minimum number of quadwords may be accessed
+       - the third argument is an unsigned long
+ */
+-
++#include <asm/export.h>
+         .set noreorder
+         .set noat
+ 
+@@ -162,3 +162,4 @@ $not_found:
+ 	ret			# .. e1 :
+ 
+         .end memchr
++	EXPORT_SYMBOL(memchr)
+diff --git a/arch/alpha/lib/memcpy.c b/arch/alpha/lib/memcpy.c
+index 64083fc..57d9291 100644
+--- a/arch/alpha/lib/memcpy.c
++++ b/arch/alpha/lib/memcpy.c
+@@ -16,6 +16,7 @@
+  */
+ 
+ #include <linux/types.h>
++#include <linux/export.h>
+ 
+ /*
+  * This should be done in one go with ldq_u*2/mask/stq_u. Do it
+@@ -158,6 +159,4 @@ void * memcpy(void * dest, const void *src, size_t n)
+ 	__memcpy_unaligned_up ((unsigned long) dest, (unsigned long) src, n);
+ 	return dest;
+ }
+-
+-/* For backward modules compatibility, define __memcpy.  */
+-asm("__memcpy = memcpy; .globl __memcpy");
++EXPORT_SYMBOL(memcpy);
+diff --git a/arch/alpha/lib/memmove.S b/arch/alpha/lib/memmove.S
+index eb3b6e0..6872c85 100644
+--- a/arch/alpha/lib/memmove.S
++++ b/arch/alpha/lib/memmove.S
+@@ -6,7 +6,7 @@
+  * This is hand-massaged output from the original memcpy.c.  We defer to
+  * memcpy whenever possible; the backwards copy loops are not unrolled.
+  */
+-        
++#include <asm/export.h>        
+ 	.set noat
+ 	.set noreorder
+ 	.text
+@@ -179,3 +179,4 @@ $egress:
+ 	nop
+ 
+ 	.end memmove
++	EXPORT_SYMBOL(memmove)
+diff --git a/arch/alpha/lib/memset.S b/arch/alpha/lib/memset.S
+index 76ccc6d..89a26f5 100644
+--- a/arch/alpha/lib/memset.S
++++ b/arch/alpha/lib/memset.S
+@@ -13,7 +13,7 @@
+  * The scheduling comments are according to the EV5 documentation (and done by 
+  * hand, so they might well be incorrect, please do tell me about it..)
+  */
+-
++#include <asm/export.h>
+ 	.set noat
+ 	.set noreorder
+ .text
+@@ -106,6 +106,8 @@ within_one_quad:
+ end:
+ 	ret $31,($26),1		/* E1 */
+ 	.end ___memset
++EXPORT_SYMBOL(___memset)
++EXPORT_SYMBOL(__constant_c_memset)
+ 
+ 	.align 5
+ 	.ent __memsetw
+@@ -122,6 +124,9 @@ __memsetw:
+ 	br __constant_c_memset	/* .. E1 */
+ 
+ 	.end __memsetw
++EXPORT_SYMBOL(__memsetw)
+ 
+ memset = ___memset
+ __memset = ___memset
++	EXPORT_SYMBOL(memset)
++	EXPORT_SYMBOL(__memset)
+diff --git a/arch/alpha/lib/strcat.S b/arch/alpha/lib/strcat.S
+index 393f503..249837b 100644
+--- a/arch/alpha/lib/strcat.S
++++ b/arch/alpha/lib/strcat.S
+@@ -4,6 +4,7 @@
+  *
+  * Append a null-terminated string from SRC to DST.
+  */
 +#include <asm/export.h>
  
  	.text
- ENTRY(__get_user_1)
-@@ -44,6 +45,7 @@ ENTRY(__get_user_1)
- 	ASM_CLAC
- 	ret
- ENDPROC(__get_user_1)
-+EXPORT_SYMBOL(__get_user_1)
  
- ENTRY(__get_user_2)
- 	add $1,%_ASM_AX
-@@ -57,6 +59,7 @@ ENTRY(__get_user_2)
- 	ASM_CLAC
- 	ret
- ENDPROC(__get_user_2)
-+EXPORT_SYMBOL(__get_user_2)
+@@ -50,3 +51,4 @@ $found:	negq    $2, $3		# clear all but least set bit
+ 	br	__stxcpy
  
- ENTRY(__get_user_4)
- 	add $3,%_ASM_AX
-@@ -70,6 +73,7 @@ ENTRY(__get_user_4)
- 	ASM_CLAC
- 	ret
- ENDPROC(__get_user_4)
-+EXPORT_SYMBOL(__get_user_4)
- 
- ENTRY(__get_user_8)
- #ifdef CONFIG_X86_64
-@@ -97,6 +101,7 @@ ENTRY(__get_user_8)
- 	ret
- #endif
- ENDPROC(__get_user_8)
-+EXPORT_SYMBOL(__get_user_8)
- 
- 
- bad_get_user:
-diff --git a/arch/x86/lib/memcpy_64.S b/arch/x86/lib/memcpy_64.S
-index 16698bb..320812c 100644
---- a/arch/x86/lib/memcpy_64.S
-+++ b/arch/x86/lib/memcpy_64.S
-@@ -3,6 +3,7 @@
- #include <linux/linkage.h>
- #include <asm/cpufeature.h>
- #include <asm/alternative-asm.h>
-+#include <asm/export.h>
- 
- /*
-  * We build a jump to memcpy_orig by default which gets NOPped out on
-@@ -39,6 +40,8 @@ ENTRY(memcpy)
- 	ret
- ENDPROC(memcpy)
- ENDPROC(__memcpy)
-+EXPORT_SYMBOL(memcpy)
-+EXPORT_SYMBOL(__memcpy)
- 
- /*
-  * memcpy_erms() - enhanced fast string memcpy. This is faster and
-diff --git a/arch/x86/lib/memmove_64.S b/arch/x86/lib/memmove_64.S
-index ca2afdd..8ee6b25 100644
---- a/arch/x86/lib/memmove_64.S
-+++ b/arch/x86/lib/memmove_64.S
-@@ -8,6 +8,7 @@
- #include <linux/linkage.h>
- #include <asm/cpufeature.h>
- #include <asm/alternative-asm.h>
-+#include <asm/export.h>
- 
- #undef memmove
- 
-@@ -207,3 +208,5 @@ ENTRY(__memmove)
- 	retq
- ENDPROC(__memmove)
- ENDPROC(memmove)
-+EXPORT_SYMBOL(__memmove)
-+EXPORT_SYMBOL(memmove)
-diff --git a/arch/x86/lib/memset_64.S b/arch/x86/lib/memset_64.S
-index 2661fad..8f43a22 100644
---- a/arch/x86/lib/memset_64.S
-+++ b/arch/x86/lib/memset_64.S
-@@ -3,6 +3,7 @@
- #include <linux/linkage.h>
- #include <asm/cpufeature.h>
- #include <asm/alternative-asm.h>
-+#include <asm/export.h>
- 
- .weak memset
- 
-@@ -43,6 +44,8 @@ ENTRY(__memset)
- 	ret
- ENDPROC(memset)
- ENDPROC(__memset)
-+EXPORT_SYMBOL(memset)
-+EXPORT_SYMBOL(__memset)
- 
- /*
-  * ISO C memset - set a memory block to a byte value. This function uses
-diff --git a/arch/x86/lib/putuser.S b/arch/x86/lib/putuser.S
-index e0817a1..eb94317 100644
---- a/arch/x86/lib/putuser.S
-+++ b/arch/x86/lib/putuser.S
-@@ -15,6 +15,7 @@
- #include <asm/errno.h>
- #include <asm/asm.h>
- #include <asm/smap.h>
-+#include <asm/export.h>
- 
- 
- /*
-@@ -43,6 +44,7 @@ ENTRY(__put_user_1)
- 	xor %eax,%eax
- 	EXIT
- ENDPROC(__put_user_1)
-+EXPORT_SYMBOL(__put_user_1)
- 
- ENTRY(__put_user_2)
- 	ENTER
-@@ -55,6 +57,7 @@ ENTRY(__put_user_2)
- 	xor %eax,%eax
- 	EXIT
- ENDPROC(__put_user_2)
-+EXPORT_SYMBOL(__put_user_2)
- 
- ENTRY(__put_user_4)
- 	ENTER
-@@ -67,6 +70,7 @@ ENTRY(__put_user_4)
- 	xor %eax,%eax
- 	EXIT
- ENDPROC(__put_user_4)
-+EXPORT_SYMBOL(__put_user_4)
- 
- ENTRY(__put_user_8)
- 	ENTER
-@@ -82,6 +86,7 @@ ENTRY(__put_user_8)
- 	xor %eax,%eax
- 	EXIT
- ENDPROC(__put_user_8)
-+EXPORT_SYMBOL(__put_user_8)
- 
- bad_put_user:
- 	movl $-EFAULT,%eax
-diff --git a/arch/x86/lib/strstr_32.c b/arch/x86/lib/strstr_32.c
-index 8e2d55f..a03b1c7 100644
---- a/arch/x86/lib/strstr_32.c
-+++ b/arch/x86/lib/strstr_32.c
-@@ -1,4 +1,5 @@
- #include <linux/string.h>
-+#include <linux/export.h>
- 
- char *strstr(const char *cs, const char *ct)
- {
-@@ -28,4 +29,4 @@ __asm__ __volatile__(
- 	: "dx", "di");
- return __res;
- }
+ 	.end strcat
++EXPORT_SYMBOL(strcat);
+diff --git a/arch/alpha/lib/strchr.S b/arch/alpha/lib/strchr.S
+index 011a175..7412a17 100644
+--- a/arch/alpha/lib/strchr.S
++++ b/arch/alpha/lib/strchr.S
+@@ -5,7 +5,7 @@
+  * Return the address of a given character within a null-terminated
+  * string, or null if it is not found.
+  */
 -
-+EXPORT_SYMBOL(strstr);
-diff --git a/arch/x86/um/Makefile b/arch/x86/um/Makefile
-index 3ee2bb6..e7e7055 100644
---- a/arch/x86/um/Makefile
-+++ b/arch/x86/um/Makefile
-@@ -8,7 +8,7 @@ else
- 	BITS := 64
- endif
- 
--obj-y = bug.o bugs_$(BITS).o delay.o fault.o ksyms.o ldt.o \
-+obj-y = bug.o bugs_$(BITS).o delay.o fault.o ldt.o \
- 	ptrace_$(BITS).o ptrace_user.o setjmp_$(BITS).o signal.o \
- 	stub_$(BITS).o stub_segv.o \
- 	sys_call_table_$(BITS).o sysrq_$(BITS).o tls_$(BITS).o \
-diff --git a/arch/x86/um/checksum_32.S b/arch/x86/um/checksum_32.S
-index fa4b8b9..b9933eb 100644
---- a/arch/x86/um/checksum_32.S
-+++ b/arch/x86/um/checksum_32.S
-@@ -27,6 +27,7 @@
- 
- #include <asm/errno.h>
- #include <asm/asm.h>
 +#include <asm/export.h>
- 				
- /*
-  * computes a partial checksum, e.g. for TCP/UDP fragments
-@@ -214,3 +215,4 @@ csum_partial:
- 	ret
- 				
- #endif
-+	EXPORT_SYMBOL(csum_partial)
-diff --git a/arch/x86/um/ksyms.c b/arch/x86/um/ksyms.c
-deleted file mode 100644
-index 2e8f43e..0000000
---- a/arch/x86/um/ksyms.c
-+++ /dev/null
-@@ -1,13 +0,0 @@
--#include <linux/module.h>
--#include <asm/string.h>
--#include <asm/checksum.h>
+ #include <asm/regdef.h>
+ 
+ 	.set noreorder
+@@ -68,3 +68,4 @@ $retnull:
+ 	ret			# .. e1 :
+ 
+ 	.end strchr
++	EXPORT_SYMBOL(strchr)
+diff --git a/arch/alpha/lib/strcpy.S b/arch/alpha/lib/strcpy.S
+index e0728e4..98deae1 100644
+--- a/arch/alpha/lib/strcpy.S
++++ b/arch/alpha/lib/strcpy.S
+@@ -5,7 +5,7 @@
+  * Copy a null-terminated string from SRC to DST.  Return a pointer
+  * to the null-terminator in the source.
+  */
 -
--#ifndef CONFIG_X86_32
--/*XXX: we need them because they would be exported by x86_64 */
--#if (__GNUC__ == 4 && __GNUC_MINOR__ >= 3) || __GNUC__ > 4
--EXPORT_SYMBOL(memcpy);
--#else
--EXPORT_SYMBOL(__memcpy);
--#endif
--#endif
--EXPORT_SYMBOL(csum_partial);
++#include <asm/export.h>
+ 	.text
+ 
+ 	.align 3
+@@ -21,3 +21,4 @@ strcpy:
+ 	br	__stxcpy	# do the copy
+ 
+ 	.end strcpy
++	EXPORT_SYMBOL(strcpy)
+diff --git a/arch/alpha/lib/strlen.S b/arch/alpha/lib/strlen.S
+index fe63353..79c416f 100644
+--- a/arch/alpha/lib/strlen.S
++++ b/arch/alpha/lib/strlen.S
+@@ -11,7 +11,7 @@
+  *	  do this instead of the 9 instructions that
+  *	  binary search needs).
+  */
+-
++#include <asm/export.h>
+ 	.set noreorder
+ 	.set noat
+ 
+@@ -55,3 +55,4 @@ done:	subq	$0, $16, $0
+ 	ret	$31, ($26)
+ 
+ 	.end	strlen
++	EXPORT_SYMBOL(strlen)
+diff --git a/arch/alpha/lib/strncat.S b/arch/alpha/lib/strncat.S
+index a827816..6c29ea6 100644
+--- a/arch/alpha/lib/strncat.S
++++ b/arch/alpha/lib/strncat.S
+@@ -9,7 +9,7 @@
+  * past count, whereas libc may write to count+1.  This follows the generic
+  * implementation in lib/string.c and is, IMHO, more sensible.
+  */
+-
++#include <asm/export.h>
+ 	.text
+ 
+ 	.align 3
+@@ -82,3 +82,4 @@ $zerocount:
+ 	ret
+ 
+ 	.end strncat
++	EXPORT_SYMBOL(strncat)
+diff --git a/arch/alpha/lib/strncpy.S b/arch/alpha/lib/strncpy.S
+index a46f7f3..e102cf1 100644
+--- a/arch/alpha/lib/strncpy.S
++++ b/arch/alpha/lib/strncpy.S
+@@ -10,7 +10,7 @@
+  * version has cropped that bit o' nastiness as well as assuming that
+  * __stxncpy is in range of a branch.
+  */
+-
++#include <asm/export.h>
+ 	.set noat
+ 	.set noreorder
+ 
+@@ -79,3 +79,4 @@ $zerolen:
+ 	ret
+ 
+ 	.end	strncpy
++	EXPORT_SYMBOL(strncpy)
+diff --git a/arch/alpha/lib/strrchr.S b/arch/alpha/lib/strrchr.S
+index 1970dc0..4bc6cb4 100644
+--- a/arch/alpha/lib/strrchr.S
++++ b/arch/alpha/lib/strrchr.S
+@@ -5,7 +5,7 @@
+  * Return the address of the last occurrence of a given character
+  * within a null-terminated string, or null if it is not found.
+  */
+-
++#include <asm/export.h>
+ #include <asm/regdef.h>
+ 
+ 	.set noreorder
+@@ -85,3 +85,4 @@ $retnull:
+ 	ret			# .. e1 :
+ 
+ 	.end strrchr
++	EXPORT_SYMBOL(strrchr)
 -- 
 2.1.4
