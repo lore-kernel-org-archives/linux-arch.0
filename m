@@ -1,77 +1,48 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [linux-review:James-Hogan/kbuild-Remove-stale-asm-generic-wrappers/20160119-183642]
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re:
+ [linux-review:James-Hogan/kbuild-Remove-stale-asm-generic-wrappers/20160119-183642]
  d979f99e9cc14e2667e9b6e268db695977e4197a BUILD DONE
-Date: Fri, 29 Jan 2016 22:24:31 +0100
-Message-ID: <CAMuHMdW1_of2Dw29=8VdhD0hstgvTh-CfATdLAiu5ZrwRRP77Q@mail.gmail.com>
+Date: Fri, 29 Jan 2016 21:46:22 +0000
+Message-ID: <20160129214622.GS10826@n2100.arm.linux.org.uk>
 References: <569e1dbb.MgLv8OaZwklOxxtU%fengguang.wu@intel.com>
-	<7619136.niuXthzi6R@wuerfel>
-	<CAMuHMdX33SQe8n7SRda0TjQV05yP1zbuw129Jqjknt8=CY=LjA@mail.gmail.com>
-	<19656457.qoKNGRmV4Q@wuerfel>
+ <20160128031435.GA25625@wfg-t540p.sh.intel.com>
+ <20160128174241.GN10826@n2100.arm.linux.org.uk>
+ <7619136.niuXthzi6R@wuerfel>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <19656457.qoKNGRmV4Q@wuerfel>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from pandora.arm.linux.org.uk ([78.32.30.218]:45533 "EHLO
+	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756920AbcA2Vqk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jan 2016 16:46:40 -0500
+Content-Disposition: inline
+In-Reply-To: <7619136.niuXthzi6R@wuerfel>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Fengguang Wu <fengguang.wu@intel.com>, Linux-Arch <linux-arch@vger.kernel.org>, Linux MIPS Mailing List <linux-mips@linux-mips.org>, James Hogan <james.hogan@imgtec.com>, Paul Burton <paul.burton@imgtec.com>, linux-kbuild <linux-kbuild@vger.kernel.org>, Heinrich Schuchardt <xypron.glpk@gmx.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ralf Baechle <ralf@linux-mips.org>, Florian Fainelli <f.fainelli@gmail.com>, Michal Marek <mmarek@suse.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: Fengguang Wu <fengguang.wu@intel.com>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, James Hogan <james.hogan@imgtec.com>, Paul Burton <paul.burton@imgtec.com>, linux-kbuild@vger.kernel.org, Heinrich Schuchardt <xypron.glpk@gmx.de>, linux-kernel@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, Florian Fainelli <f.fainelli@gmail.com>, Michal Marek <mmarek@suse.com>, linux-arm-kernel@lists.infradead.org
 
-Hi Arnd,
+On Fri, Jan 29, 2016 at 12:07:21AM +0100, Arnd Bergmann wrote:
+> This doesn't sound too hard. I've picked the defaults out of the
+> git history in the patch below. The only tricky part was davinci,
+> which has two different addresses and requires a little rework
+> to avoid circular dependencies.
 
-On Fri, Jan 29, 2016 at 9:44 PM, Arnd Bergmann <arnd@arndb.de> wrote:
->
-> diff --git a/arch/arm/Kconfig.debug b/arch/arm/Kconfig.debug
-> index c6b6175d0203..6cc09cf8618f 100644
-> --- a/arch/arm/Kconfig.debug
-> +++ b/arch/arm/Kconfig.debug
-> @@ -1526,6 +1526,7 @@ config DEBUG_UART_PHYS
->         default 0xfffb9800 if DEBUG_OMAP1UART3 || DEBUG_OMAP7XXUART3
->         default 0xfffe8600 if DEBUG_BCM63XX_UART
->         default 0xfffff700 if ARCH_IOP33X
-> +       default 0xdeadbeef if DEBUG_LL_UART_8250 || DEBUG_LL_UART_PL01X || DEBUG_LL_UART_EFM32
->         depends on ARCH_EP93XX || \
->                 DEBUG_LL_UART_8250 || DEBUG_LL_UART_PL01X || \
->                 DEBUG_LL_UART_EFM32 || \
-> @@ -1628,6 +1629,7 @@ config DEBUG_UART_VIRT
->         default 0xff003000 if DEBUG_U300_UART
->         default 0xffd01000 if DEBUG_HIP01_UART
->         default DEBUG_UART_PHYS if !MMU
-> +       default 0xdeadbeef if DEBUG_LL_UART_8250 || DEBUG_LL_UART_PL01X || DEBUG_LL_UART_EFM32
->         depends on DEBUG_LL_UART_8250 || DEBUG_LL_UART_PL01X || \
->                 DEBUG_UART_8250 || DEBUG_UART_PL01X || DEBUG_MESON_UARTAO || \
->                 DEBUG_NETX_UART || \
-> diff --git a/arch/arm/include/debug/8250.S b/arch/arm/include/debug/8250.S
-> index 7f7446f6f806..1191b1458586 100644
-> --- a/arch/arm/include/debug/8250.S
-> +++ b/arch/arm/include/debug/8250.S
-> @@ -9,6 +9,9 @@
->   */
->  #include <linux/serial_reg.h>
->
-> +#if CONFIG_DEBUG_UART_PHYS == 0xdeadbeef || CONFIG_DEBUG_UART_VIRT < 0xe0000000
+I think there's a much better way to solve this.
 
-Any special reason for 0xe0000000 vs ...
+How about we have an architecture-defined way to provide all*config
+with a set of settings to be used with Kconfig to define these
+integer settings, rather than papering over the problem making up
+random addresses (like you're doing for the debug stuff.)  Eg,
+a default architecture-provided setting for KCONFIG_ALLCONFIG
+that defines things such as the physical offset and the debug
+addresses to be used for all*config targets?
 
-> --- a/arch/arm/include/debug/efm32.S
-> +++ b/arch/arm/include/debug/efm32.S
-> @@ -6,6 +6,9 @@
->   * it under the terms of the GNU General Public License version 2 as
->   * published by the Free Software Foundation.
->   */
-> +#if CONFIG_DEBUG_UART_PHYS == 0xdeadbeef || CONFIG_DEBUG_UART_VIRT < 0xf0000000
+Surely that's better than hacking around with the Kconfig files
+trying to frig something into working, which can potentially confuse
+people.
 
-0xf0000000?
-
-> --- a/arch/arm/include/debug/pl01x.S
-> +++ b/arch/arm/include/debug/pl01x.S
-> @@ -10,6 +10,9 @@
->   * published by the Free Software Foundation.
->   *
->  */
-> +#if CONFIG_DEBUG_UART_PHYS == 0xdeadbeef || CONFIG_DEBUG_UART_VIRT < 0xf0000000
-
-Likewise.
-
-Gr{oetje,eeting}s,
-
-                        Geert
+-- 
+RMK's Patch system: http://www.arm.linux.org.uk/developer/patches/
+FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
+according to speedtest.net.
