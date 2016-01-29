@@ -1,80 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f194.google.com ([209.85.213.194]:34472 "EHLO
-	mail-ig0-f194.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1161082AbcA1UkE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jan 2016 15:40:04 -0500
+Received: from mailapp01.imgtec.com ([195.59.15.196]:54108 "EHLO
+	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752959AbcA2NjE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jan 2016 08:39:04 -0500
+Date: Fri, 29 Jan 2016 13:38:59 +0000
+From: "Maciej W. Rozycki" <macro@imgtec.com>
+Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
+In-Reply-To: <56A9656D.3080707@imgtec.com>
+Message-ID: <alpine.DEB.2.00.1601291333130.5958@tp.orcam.me.uk>
+References: <20160113104516.GE25458@arm.com> <5696CF08.8080700@imgtec.com> <20160114121449.GC15828@arm.com> <5697F6D2.60409@imgtec.com> <20160114203430.GC3818@linux.vnet.ibm.com> <56980C91.1010403@imgtec.com> <20160114212913.GF3818@linux.vnet.ibm.com>
+ <569814F2.50801@imgtec.com> <20160114225510.GJ3818@linux.vnet.ibm.com> <56983054.4070807@imgtec.com> <20160115004753.GN3818@linux.vnet.ibm.com> <56984642.3090106@imgtec.com> <alpine.DEB.2.00.1601271116520.5958@tp.orcam.me.uk> <56A9656D.3080707@imgtec.com>
 MIME-Version: 1.0
-In-Reply-To: <1454010458-29525-1-git-send-email-jeffmerkey@gmail.com>
-References: <1454010458-29525-1-git-send-email-jeffmerkey@gmail.com>
-Date: Thu, 28 Jan 2016 21:40:03 +0100
-Message-ID: <CAMuHMdWQ9Ja+yDS6DRqQ7D-tHYRgAr-VXw-ERxpJw-Gi9dPjoA@mail.gmail.com>
-Subject: Re: [PATCH 27/31] Add debugger entry points for M68K
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="US-ASCII"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jeffrey Merkey <jeffmerkey@gmail.com>
-Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux.mdb@gmail.com, linux-m68k <linux-m68k@lists.linux-m68k.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20160128204003.xU-zLN3TxWU9-rve8lmVZP6XCpkheMn4Z4GHQOOTWQs@z>
+To: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
+Cc: paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ralf Baechle <ralf@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, ddaney.cavm@gmail.com, james.hogan@imgtec.com, Michael Ellerman <mpe@ellerman.id.au>
+Message-ID: <20160129133859.TnRKzOg1cqcLQXv7vzL4AFZZOSAKgichdYeZ1ew52Zo@z>
 
-Hi Jeffrey,
+On Thu, 28 Jan 2016, Leonid Yegoshin wrote:
 
-CC linux-arch
+> In http://patchwork.linux-mips.org/patch/10505/ the very last mesg exchange
+> is:
+[...]
+> ... and that stops forever...
 
-On Thu, Jan 28, 2016 at 8:47 PM, Jeffrey Merkey <jeffmerkey@gmail.com> wrote:
-> This patch series adds an export which can be set by system debuggers to
-> direct the hard lockup and soft lockup detector to trigger a breakpoint
-> exception and enter a debugger if one is active.  It is assumed that if
-> someone sets this variable, then an breakpoint handler of some sort will
-> be actively loaded or registered via the notify die handler chain.
->
-> This addition is extremely useful for debugging hard and soft lockups
-> real time and quickly from a console debugger.
+ Thanks for the reminder -- last June was very hectic, I travelled a lot 
+and I lost the discussion from my radar.  Apologies for that.  I replied 
+in that thread now with my results.  I hope this helps.
 
-As there's no cover letter, I'm giving my (mostly general) comments in a
-reply to this patch.
-
-> Signed-off-by: Jeffrey Merkey <jeffmerkey@gmail.com>
-> ---
->  arch/m68k/include/asm/kdebug.h | 4 ++++
->  1 file changed, 4 insertions(+)
->  create mode 100644 arch/m68k/include/asm/kdebug.h
->
-> diff --git a/arch/m68k/include/asm/kdebug.h b/arch/m68k/include/asm/kdebug.h
-> new file mode 100644
-> index 0000000..5d09de1
-> --- /dev/null
-> +++ b/arch/m68k/include/asm/kdebug.h
-> @@ -0,0 +1,4 @@
-> +
-> +static inline void arch_breakpoint(void)
-> +{
-> +}
-
-No include guards in the newly added header files?
-
-This new file will conflict with arch/m68k/include/asm/Kbuild, which has:
-
-    generic-y += kdebug.h
-
-What about putting the dummy arch_breakpoint() in include/asm-generic/kdebug.h
-instead, like
-
-    #ifndef arch_breakpoint
-    static inline void arch_breakpoint(void)
-    {
-    }
-    #endif
-
-Architectures providing their own version have to #define arch_breakpoint.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+  Maciej
