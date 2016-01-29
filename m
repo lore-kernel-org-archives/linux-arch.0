@@ -1,32 +1,147 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailapp01.imgtec.com ([195.59.15.196]:54108 "EHLO
-	mailapp01.imgtec.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752959AbcA2NjE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jan 2016 08:39:04 -0500
-Date: Fri, 29 Jan 2016 13:38:59 +0000
-From: "Maciej W. Rozycki" <macro@imgtec.com>
-Subject: Re: [v3,11/41] mips: reuse asm-generic/barrier.h
-In-Reply-To: <56A9656D.3080707@imgtec.com>
-Message-ID: <alpine.DEB.2.00.1601291333130.5958@tp.orcam.me.uk>
-References: <20160113104516.GE25458@arm.com> <5696CF08.8080700@imgtec.com> <20160114121449.GC15828@arm.com> <5697F6D2.60409@imgtec.com> <20160114203430.GC3818@linux.vnet.ibm.com> <56980C91.1010403@imgtec.com> <20160114212913.GF3818@linux.vnet.ibm.com>
- <569814F2.50801@imgtec.com> <20160114225510.GJ3818@linux.vnet.ibm.com> <56983054.4070807@imgtec.com> <20160115004753.GN3818@linux.vnet.ibm.com> <56984642.3090106@imgtec.com> <alpine.DEB.2.00.1601271116520.5958@tp.orcam.me.uk> <56A9656D.3080707@imgtec.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="US-ASCII"
+Received: from mga04.intel.com ([192.55.52.120]:35413 "EHLO mga04.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933013AbcA2SRT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 29 Jan 2016 13:17:19 -0500
+Subject: [PATCH 25/31] mm, multi-arch: pass a protection key in to calc_vm_flag_bits()
+From: Dave Hansen <dave@sr71.net>
+Date: Fri, 29 Jan 2016 10:17:18 -0800
+References: <20160129181642.98E7D468@viggo.jf.intel.com>
+In-Reply-To: <20160129181642.98E7D468@viggo.jf.intel.com>
+Message-ID: <20160129181718.3A3D9E79@viggo.jf.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>
-Cc: paulmck@linux.vnet.ibm.com, Will Deacon <will.deacon@arm.com>, Peter Zijlstra <peterz@infradead.org>, "Michael S. Tsirkin" <mst@redhat.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Andrew Cooper <andrew.cooper3@citrix.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, virtualization@lists.linux-foundation.org, Stefano Stabellini <stefano.stabellini@eu.citrix.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "H. Peter Anvin" <hpa@zytor.com>, Joe Perches <joe@perches.com>, David Miller <davem@davemloft.net>, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, sparclinux@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, x86@kernel.org, user-mode-linux-devel@lists.sourceforge.net, adi-buildroot-devel@lists.sourceforge.net, linux-sh@vger.kernel.org, linux-xtensa@linux-xtensa.org, xen-devel@lists.xenproject.org, Ralf Baechle <ralf@linux-mips.org>, Ingo Molnar <mingo@kernel.org>, ddaney.cavm@gmail.com, james.hogan@imgtec.com, Michael Ellerman <mpe@ellerman.id.au>
-Message-ID: <20160129133859.TnRKzOg1cqcLQXv7vzL4AFZZOSAKgichdYeZ1ew52Zo@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-mm@kvack.org, x86@kernel.org, torvalds@linux-foundation.org, Dave Hansen <dave@sr71.net>, dave.hansen@linux.intel.com, linux-api@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20160129181718.qBeSHYQqI_rb1Uj2KusigR8D1BisDhit9bvxNGAr-aY@z>
 
-On Thu, 28 Jan 2016, Leonid Yegoshin wrote:
 
-> In http://patchwork.linux-mips.org/patch/10505/ the very last mesg exchange
-> is:
-[...]
-> ... and that stops forever...
+From: Dave Hansen <dave.hansen@linux.intel.com>
 
- Thanks for the reminder -- last June was very hectic, I travelled a lot 
-and I lost the discussion from my radar.  Apologies for that.  I replied 
-in that thread now with my results.  I hope this helps.
+This plumbs a protection key through calc_vm_flag_bits().  We
+could have done this in calc_vm_prot_bits(), but I did not feel
+super strongly which way to go.  It was pretty arbitrary which
+one to use.
 
-  Maciej
+Signed-off-by: Dave Hansen <dave.hansen@linux.intel.com>
+Cc: linux-api@vger.kernel.org
+Cc: linux-arch@vger.kernel.org
+---
+
+ b/arch/powerpc/include/asm/mman.h  |    5 +++--
+ b/drivers/char/agp/frontend.c      |    2 +-
+ b/drivers/staging/android/ashmem.c |    4 ++--
+ b/include/linux/mman.h             |    6 +++---
+ b/mm/mmap.c                        |    2 +-
+ b/mm/mprotect.c                    |    2 +-
+ b/mm/nommu.c                       |    2 +-
+ 7 files changed, 12 insertions(+), 11 deletions(-)
+
+diff -puN arch/powerpc/include/asm/mman.h~pkeys-70-calc_vm_prot_bits arch/powerpc/include/asm/mman.h
+--- a/arch/powerpc/include/asm/mman.h~pkeys-70-calc_vm_prot_bits	2016-01-28 15:52:27.723741498 -0800
++++ b/arch/powerpc/include/asm/mman.h	2016-01-28 15:52:27.736742094 -0800
+@@ -18,11 +18,12 @@
+  * This file is included by linux/mman.h, so we can't use cacl_vm_prot_bits()
+  * here.  How important is the optimization?
+  */
+-static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot)
++static inline unsigned long arch_calc_vm_prot_bits(unsigned long prot,
++		unsigned long pkey)
+ {
+ 	return (prot & PROT_SAO) ? VM_SAO : 0;
+ }
+-#define arch_calc_vm_prot_bits(prot) arch_calc_vm_prot_bits(prot)
++#define arch_calc_vm_prot_bits(prot, pkey) arch_calc_vm_prot_bits(prot, pkey)
+ 
+ static inline pgprot_t arch_vm_get_page_prot(unsigned long vm_flags)
+ {
+diff -puN drivers/char/agp/frontend.c~pkeys-70-calc_vm_prot_bits drivers/char/agp/frontend.c
+--- a/drivers/char/agp/frontend.c~pkeys-70-calc_vm_prot_bits	2016-01-28 15:52:27.725741589 -0800
++++ b/drivers/char/agp/frontend.c	2016-01-28 15:52:27.737742140 -0800
+@@ -156,7 +156,7 @@ static pgprot_t agp_convert_mmap_flags(i
+ {
+ 	unsigned long prot_bits;
+ 
+-	prot_bits = calc_vm_prot_bits(prot) | VM_SHARED;
++	prot_bits = calc_vm_prot_bits(prot, 0) | VM_SHARED;
+ 	return vm_get_page_prot(prot_bits);
+ }
+ 
+diff -puN drivers/staging/android/ashmem.c~pkeys-70-calc_vm_prot_bits drivers/staging/android/ashmem.c
+--- a/drivers/staging/android/ashmem.c~pkeys-70-calc_vm_prot_bits	2016-01-28 15:52:27.726741635 -0800
++++ b/drivers/staging/android/ashmem.c	2016-01-28 15:52:27.737742140 -0800
+@@ -372,8 +372,8 @@ static int ashmem_mmap(struct file *file
+ 	}
+ 
+ 	/* requested protection bits must match our allowed protection mask */
+-	if (unlikely((vma->vm_flags & ~calc_vm_prot_bits(asma->prot_mask)) &
+-		     calc_vm_prot_bits(PROT_MASK))) {
++	if (unlikely((vma->vm_flags & ~calc_vm_prot_bits(asma->prot_mask, 0)) &
++		     calc_vm_prot_bits(PROT_MASK, 0))) {
+ 		ret = -EPERM;
+ 		goto out;
+ 	}
+diff -puN include/linux/mman.h~pkeys-70-calc_vm_prot_bits include/linux/mman.h
+--- a/include/linux/mman.h~pkeys-70-calc_vm_prot_bits	2016-01-28 15:52:27.728741727 -0800
++++ b/include/linux/mman.h	2016-01-28 15:52:27.738742186 -0800
+@@ -35,7 +35,7 @@ static inline void vm_unacct_memory(long
+  */
+ 
+ #ifndef arch_calc_vm_prot_bits
+-#define arch_calc_vm_prot_bits(prot) 0
++#define arch_calc_vm_prot_bits(prot, pkey) 0
+ #endif
+ 
+ #ifndef arch_vm_get_page_prot
+@@ -70,12 +70,12 @@ static inline int arch_validate_prot(uns
+  * Combine the mmap "prot" argument into "vm_flags" used internally.
+  */
+ static inline unsigned long
+-calc_vm_prot_bits(unsigned long prot)
++calc_vm_prot_bits(unsigned long prot, unsigned long pkey)
+ {
+ 	return _calc_vm_trans(prot, PROT_READ,  VM_READ ) |
+ 	       _calc_vm_trans(prot, PROT_WRITE, VM_WRITE) |
+ 	       _calc_vm_trans(prot, PROT_EXEC,  VM_EXEC) |
+-	       arch_calc_vm_prot_bits(prot);
++	       arch_calc_vm_prot_bits(prot, pkey);
+ }
+ 
+ /*
+diff -puN mm/mmap.c~pkeys-70-calc_vm_prot_bits mm/mmap.c
+--- a/mm/mmap.c~pkeys-70-calc_vm_prot_bits	2016-01-28 15:52:27.730741819 -0800
++++ b/mm/mmap.c	2016-01-28 15:52:27.739742231 -0800
+@@ -1303,7 +1303,7 @@ unsigned long do_mmap(struct file *file,
+ 	 * to. we assume access permissions have been handled by the open
+ 	 * of the memory object, so we don't do any here.
+ 	 */
+-	vm_flags |= calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags) |
++	vm_flags |= calc_vm_prot_bits(prot, 0) | calc_vm_flag_bits(flags) |
+ 			mm->def_flags | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC;
+ 
+ 	if (flags & MAP_LOCKED)
+diff -puN mm/mprotect.c~pkeys-70-calc_vm_prot_bits mm/mprotect.c
+--- a/mm/mprotect.c~pkeys-70-calc_vm_prot_bits	2016-01-28 15:52:27.731741865 -0800
++++ b/mm/mprotect.c	2016-01-28 15:52:27.739742231 -0800
+@@ -378,7 +378,7 @@ SYSCALL_DEFINE3(mprotect, unsigned long,
+ 	if ((prot & PROT_READ) && (current->personality & READ_IMPLIES_EXEC))
+ 		prot |= PROT_EXEC;
+ 
+-	vm_flags = calc_vm_prot_bits(prot);
++	vm_flags = calc_vm_prot_bits(prot, 0);
+ 
+ 	down_write(&current->mm->mmap_sem);
+ 
+diff -puN mm/nommu.c~pkeys-70-calc_vm_prot_bits mm/nommu.c
+--- a/mm/nommu.c~pkeys-70-calc_vm_prot_bits	2016-01-28 15:52:27.733741956 -0800
++++ b/mm/nommu.c	2016-01-28 15:52:27.740742277 -0800
+@@ -1090,7 +1090,7 @@ static unsigned long determine_vm_flags(
+ {
+ 	unsigned long vm_flags;
+ 
+-	vm_flags = calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags);
++	vm_flags = calc_vm_prot_bits(prot, 0) | calc_vm_flag_bits(flags);
+ 	/* vm_flags |= mm->def_flags; */
+ 
+ 	if (!(capabilities & NOMMU_MAP_DIRECT)) {
+_
