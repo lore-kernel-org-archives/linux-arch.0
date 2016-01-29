@@ -1,1363 +1,1313 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH 09/12] sparc: move exports to definitions
-Date: Fri, 29 Jan 2016 19:18:31 +0000
-Message-ID: <1454095114-4128-9-git-send-email-viro@ZenIV.linux.org.uk>
+Subject: [PATCH 07/12] arm: move exports to definitions
+Date: Fri, 29 Jan 2016 19:18:29 +0000
+Message-ID: <1454095114-4128-7-git-send-email-viro@ZenIV.linux.org.uk>
 References: <20160129191744.GB17997@ZenIV.linux.org.uk>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:49618 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756682AbcA2TSh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jan 2016 14:18:37 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20160129191744.GB17997@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/sparc/include/asm/Kbuild      |   1 +
- arch/sparc/kernel/Makefile         |   2 +-
- arch/sparc/kernel/entry.S          |   3 +
- arch/sparc/kernel/head_32.S        |   3 +
- arch/sparc/kernel/head_64.S        |   7 +-
- arch/sparc/kernel/helpers.S        |   2 +
- arch/sparc/kernel/hvcalls.S        |   4 +
- arch/sparc/kernel/sparc_ksyms.c    |  12 +++
- arch/sparc/kernel/sparc_ksyms_32.c |  31 -------
- arch/sparc/kernel/sparc_ksyms_64.c |  52 ------------
- arch/sparc/lib/Makefile            |   1 -
- arch/sparc/lib/U1memcpy.S          |   2 +
- arch/sparc/lib/VISsave.S           |   2 +
- arch/sparc/lib/ashldi3.S           |   2 +
- arch/sparc/lib/ashrdi3.S           |   2 +
- arch/sparc/lib/atomic_64.S         |  10 ++-
- arch/sparc/lib/bitops.S            |   7 ++
- arch/sparc/lib/blockops.S          |   3 +
- arch/sparc/lib/bzero.S             |   4 +
- arch/sparc/lib/checksum_32.S       |   3 +
- arch/sparc/lib/checksum_64.S       |   2 +
- arch/sparc/lib/clear_page.S        |   3 +
- arch/sparc/lib/copy_in_user.S      |   2 +
- arch/sparc/lib/copy_page.S         |   2 +
- arch/sparc/lib/copy_user.S         |   2 +
- arch/sparc/lib/csum_copy.S         |   3 +
- arch/sparc/lib/divdi3.S            |   2 +
- arch/sparc/lib/ffs.S               |   3 +
- arch/sparc/lib/hweight.S           |   5 ++
- arch/sparc/lib/ipcsum.S            |   2 +
- arch/sparc/lib/ksyms.c             | 165 -------------------------------------
- arch/sparc/lib/locks.S             |   5 ++
- arch/sparc/lib/lshrdi3.S           |   2 +
- arch/sparc/lib/mcount.S            |   2 +
- arch/sparc/lib/memcmp.S            |   2 +
- arch/sparc/lib/memcpy.S            |   4 +
- arch/sparc/lib/memmove.S           |   2 +
- arch/sparc/lib/memscan_32.S        |   4 +
- arch/sparc/lib/memscan_64.S        |   4 +
- arch/sparc/lib/memset.S            |   3 +
- arch/sparc/lib/muldi3.S            |   2 +
- arch/sparc/lib/strlen.S            |   2 +
- arch/sparc/lib/strncmp_32.S        |   2 +
- arch/sparc/lib/strncmp_64.S        |   2 +
- arch/sparc/lib/xor.S               |   9 ++
- 45 files changed, 136 insertions(+), 253 deletions(-)
- create mode 100644 arch/sparc/kernel/sparc_ksyms.c
- delete mode 100644 arch/sparc/kernel/sparc_ksyms_32.c
- delete mode 100644 arch/sparc/kernel/sparc_ksyms_64.c
- delete mode 100644 arch/sparc/lib/ksyms.c
+ arch/arm/include/asm/Kbuild           |   1 +
+ arch/arm/kernel/Makefile              |   2 +-
+ arch/arm/kernel/armksyms.c            | 183 ----------------------------------
+ arch/arm/kernel/entry-ftrace.S        |   3 +
+ arch/arm/kernel/head.S                |   3 +
+ arch/arm/kernel/smccc-call.S          |   3 +
+ arch/arm/lib/ashldi3.S                |   3 +
+ arch/arm/lib/ashrdi3.S                |   3 +
+ arch/arm/lib/bitops.h                 |   5 +
+ arch/arm/lib/bswapsdi2.S              |   3 +
+ arch/arm/lib/clear_user.S             |   4 +
+ arch/arm/lib/copy_from_user.S         |   2 +
+ arch/arm/lib/copy_page.S              |   2 +
+ arch/arm/lib/copy_to_user.S           |   4 +
+ arch/arm/lib/csumipv6.S               |   3 +-
+ arch/arm/lib/csumpartial.S            |   2 +
+ arch/arm/lib/csumpartialcopy.S        |   1 +
+ arch/arm/lib/csumpartialcopygeneric.S |   2 +
+ arch/arm/lib/csumpartialcopyuser.S    |   1 +
+ arch/arm/lib/delay.c                  |   2 +
+ arch/arm/lib/div64.S                  |   2 +
+ arch/arm/lib/findbit.S                |   9 ++
+ arch/arm/lib/getuser.S                |   9 ++
+ arch/arm/lib/io-readsb.S              |   2 +
+ arch/arm/lib/io-readsl.S              |   2 +
+ arch/arm/lib/io-readsw-armv3.S        |   3 +-
+ arch/arm/lib/io-readsw-armv4.S        |   2 +
+ arch/arm/lib/io-writesb.S             |   2 +
+ arch/arm/lib/io-writesl.S             |   2 +
+ arch/arm/lib/io-writesw-armv3.S       |   2 +
+ arch/arm/lib/io-writesw-armv4.S       |   2 +
+ arch/arm/lib/lib1funcs.S              |   9 ++
+ arch/arm/lib/lshrdi3.S                |   3 +
+ arch/arm/lib/memchr.S                 |   2 +
+ arch/arm/lib/memcpy.S                 |   3 +
+ arch/arm/lib/memmove.S                |   2 +
+ arch/arm/lib/memset.S                 |   3 +
+ arch/arm/lib/memzero.S                |   2 +
+ arch/arm/lib/muldi3.S                 |   3 +
+ arch/arm/lib/putuser.S                |   5 +
+ arch/arm/lib/strchr.S                 |   2 +
+ arch/arm/lib/strrchr.S                |   2 +
+ arch/arm/lib/uaccess_with_memcpy.c    |   3 +
+ arch/arm/lib/ucmpdi2.S                |   3 +
+ arch/arm/mach-imx/Makefile            |   1 -
+ arch/arm/mach-imx/ssi-fiq-ksym.c      |  20 ----
+ arch/arm/mach-imx/ssi-fiq.S           |   7 +-
+ 47 files changed, 131 insertions(+), 208 deletions(-)
+ delete mode 100644 arch/arm/kernel/armksyms.c
+ delete mode 100644 arch/arm/mach-imx/ssi-fiq-ksym.c
 
-diff --git a/arch/sparc/include/asm/Kbuild b/arch/sparc/include/asm/Kbuild
-index e9286188..17aa6b5 100644
---- a/arch/sparc/include/asm/Kbuild
-+++ b/arch/sparc/include/asm/Kbuild
-@@ -6,6 +6,7 @@ generic-y += cputime.h
- generic-y += div64.h
+diff --git a/arch/arm/include/asm/Kbuild b/arch/arm/include/asm/Kbuild
+index 16da638..f4b6dd5 100644
+--- a/arch/arm/include/asm/Kbuild
++++ b/arch/arm/include/asm/Kbuild
+@@ -7,6 +7,7 @@ generic-y += early_ioremap.h
  generic-y += emergency-restart.h
+ generic-y += errno.h
  generic-y += exec.h
 +generic-y += export.h
+ generic-y += ioctl.h
+ generic-y += ipcbuf.h
  generic-y += irq_regs.h
- generic-y += irq_work.h
- generic-y += linkage.h
-diff --git a/arch/sparc/kernel/Makefile b/arch/sparc/kernel/Makefile
-index 7cf9c6e..2430127 100644
---- a/arch/sparc/kernel/Makefile
-+++ b/arch/sparc/kernel/Makefile
-@@ -85,7 +85,7 @@ obj-y                     += auxio_$(BITS).o
- obj-$(CONFIG_SUN_PM)      += apc.o pmc.o
- 
- obj-$(CONFIG_MODULES)     += module.o
--obj-$(CONFIG_MODULES)     += sparc_ksyms_$(BITS).o
-+obj-$(CONFIG_MODULES)     += sparc_ksyms.o
- obj-$(CONFIG_SPARC_LED)   += led.o
- obj-$(CONFIG_KGDB)        += kgdb_$(BITS).o
- 
-diff --git a/arch/sparc/kernel/entry.S b/arch/sparc/kernel/entry.S
-index 33c02b1..c201b2b 100644
---- a/arch/sparc/kernel/entry.S
-+++ b/arch/sparc/kernel/entry.S
-@@ -29,6 +29,7 @@
- #include <asm/unistd.h>
- 
- #include <asm/asmmacro.h>
-+#include <asm/export.h>
- 
- #define curptr      g6
- 
-@@ -1190,6 +1191,8 @@ delay_continue:
- 	
- 	ret
- 	restore
-+EXPORT_SYMBOL(__udelay)
-+EXPORT_SYMBOL(__ndelay)
- 
- 	/* Handle a software breakpoint */
- 	/* We have to inform parent that child has stopped */
-diff --git a/arch/sparc/kernel/head_32.S b/arch/sparc/kernel/head_32.S
-index 3d92c0a..7bb317b 100644
---- a/arch/sparc/kernel/head_32.S
-+++ b/arch/sparc/kernel/head_32.S
-@@ -24,6 +24,7 @@
- #include <asm/thread_info.h>	/* TI_UWINMASK */
- #include <asm/errno.h>
- #include <asm/pgtsrmmu.h>	/* SRMMU_PGDIR_SHIFT */
-+#include <asm/export.h>
- 
- 	.data
- /* The following are used with the prom_vector node-ops to figure out
-@@ -60,6 +61,7 @@ sun4e_notsup:
-  */
- 	.globl empty_zero_page
- empty_zero_page:	.skip PAGE_SIZE
-+EXPORT_SYMBOL(empty_zero_page)
- 
- 	.global root_flags
- 	.global ram_flags
-@@ -813,3 +815,4 @@ lvl14_save:
- __ret_efault:
-         ret
-          restore %g0, -EFAULT, %o0
-+EXPORT_SYMBOL(__ret_efault)
-diff --git a/arch/sparc/kernel/head_64.S b/arch/sparc/kernel/head_64.S
-index f2d30ca..aae4ae0 100644
---- a/arch/sparc/kernel/head_64.S
-+++ b/arch/sparc/kernel/head_64.S
-@@ -32,7 +32,8 @@
- #include <asm/estate.h>
- #include <asm/sfafsr.h>
- #include <asm/unistd.h>
--	
-+#include <asm/export.h>
-+
- /* This section from from _start to sparc64_boot_end should fit into
-  * 0x0000000000404000 to 0x0000000000408000.
-  */
-@@ -143,6 +144,7 @@ prom_cpu_compatible:
- 	.skip	64
- prom_root_node:
- 	.word	0
-+EXPORT_SYMBOL(prom_root_node)
- prom_mmu_ihandle_cache:
- 	.word	0
- prom_boot_mapped_pc:
-@@ -158,6 +160,7 @@ is_sun4v:
- 	.word	0
- sun4v_chip_type:
- 	.word	SUN4V_CHIP_INVALID
-+EXPORT_SYMBOL(sun4v_chip_type)
- 1:
- 	rd	%pc, %l0
- 
-@@ -928,6 +931,7 @@ swapper_4m_tsb:
- 	.globl	prom_tba, tlb_type
- prom_tba:	.xword	0
- tlb_type:	.word	0	/* Must NOT end up in BSS */
-+EXPORT_SYMBOL(tlb_type)
- 	.section	".fixup",#alloc,#execinstr
- 
- 	.globl	__ret_efault, __retl_efault, __ret_one, __retl_one
-@@ -935,6 +939,7 @@ ENTRY(__ret_efault)
- 	ret
- 	 restore %g0, -EFAULT, %o0
- ENDPROC(__ret_efault)
-+EXPORT_SYMBOL(__ret_efault)
- 
- ENTRY(__retl_efault)
- 	retl
-diff --git a/arch/sparc/kernel/helpers.S b/arch/sparc/kernel/helpers.S
-index 314dd0c..e4e5b83 100644
---- a/arch/sparc/kernel/helpers.S
-+++ b/arch/sparc/kernel/helpers.S
-@@ -15,6 +15,7 @@ __flushw_user:
- 2:	retl
- 	 nop
- 	.size	__flushw_user,.-__flushw_user
-+EXPORT_SYMBOL(__flushw_user)
- 
- 	/* Flush %fp and %i7 to the stack for all register
- 	 * windows active inside of the cpu.  This allows
-@@ -61,3 +62,4 @@ real_hard_smp_processor_id:
- 	.size		hard_smp_processor_id,.-hard_smp_processor_id
- #endif
- 	.size		real_hard_smp_processor_id,.-real_hard_smp_processor_id
-+EXPORT_SYMBOL_GPL(real_hard_smp_processor_id)
-diff --git a/arch/sparc/kernel/hvcalls.S b/arch/sparc/kernel/hvcalls.S
-index afbaba5..64b1c2f 100644
---- a/arch/sparc/kernel/hvcalls.S
-+++ b/arch/sparc/kernel/hvcalls.S
-@@ -775,6 +775,7 @@ ENTRY(sun4v_niagara_getperf)
- 	retl
- 	 nop
- ENDPROC(sun4v_niagara_getperf)
-+EXPORT_SYMBOL(sun4v_niagara_getperf)
- 
- ENTRY(sun4v_niagara_setperf)
- 	mov	HV_FAST_SET_PERFREG, %o5
-@@ -782,6 +783,7 @@ ENTRY(sun4v_niagara_setperf)
- 	retl
- 	 nop
- ENDPROC(sun4v_niagara_setperf)
-+EXPORT_SYMBOL(sun4v_niagara_setperf)
- 
- ENTRY(sun4v_niagara2_getperf)
- 	mov	%o0, %o4
-@@ -791,6 +793,7 @@ ENTRY(sun4v_niagara2_getperf)
- 	retl
- 	 nop
- ENDPROC(sun4v_niagara2_getperf)
-+EXPORT_SYMBOL(sun4v_niagara2_getperf)
- 
- ENTRY(sun4v_niagara2_setperf)
- 	mov	HV_FAST_N2_SET_PERFREG, %o5
-@@ -798,6 +801,7 @@ ENTRY(sun4v_niagara2_setperf)
- 	retl
- 	 nop
- ENDPROC(sun4v_niagara2_setperf)
-+EXPORT_SYMBOL(sun4v_niagara2_setperf)
- 
- ENTRY(sun4v_reboot_data_set)
- 	mov	HV_FAST_REBOOT_DATA_SET, %o5
-diff --git a/arch/sparc/kernel/sparc_ksyms.c b/arch/sparc/kernel/sparc_ksyms.c
-new file mode 100644
-index 0000000..09aa69e
---- /dev/null
-+++ b/arch/sparc/kernel/sparc_ksyms.c
-@@ -0,0 +1,12 @@
-+/*
-+ * arch/sparc/kernel/ksyms.c: Sparc specific ksyms support.
-+ *
-+ * Copyright (C) 1996 David S. Miller (davem@caip.rutgers.edu)
-+ * Copyright (C) 1996 Eddie C. Dost (ecd@skynet.be)
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/export.h>
-+
-+/* This is needed only for drivers/sbus/char/openprom.c */
-+EXPORT_SYMBOL(saved_command_line);
-diff --git a/arch/sparc/kernel/sparc_ksyms_32.c b/arch/sparc/kernel/sparc_ksyms_32.c
+diff --git a/arch/arm/kernel/Makefile b/arch/arm/kernel/Makefile
+index 2c5f160..69b0c57 100644
+--- a/arch/arm/kernel/Makefile
++++ b/arch/arm/kernel/Makefile
+@@ -33,7 +33,7 @@ endif
+ obj-$(CONFIG_CPU_IDLE)		+= cpuidle.o
+ obj-$(CONFIG_ISA_DMA_API)	+= dma.o
+ obj-$(CONFIG_FIQ)		+= fiq.o fiqasm.o
+-obj-$(CONFIG_MODULES)		+= armksyms.o module.o
++obj-$(CONFIG_MODULES)		+= module.o
+ obj-$(CONFIG_ARM_MODULE_PLTS)	+= module-plts.o
+ obj-$(CONFIG_ISA_DMA)		+= dma-isa.o
+ obj-$(CONFIG_PCI)		+= bios32.o isa.o
+diff --git a/arch/arm/kernel/armksyms.c b/arch/arm/kernel/armksyms.c
 deleted file mode 100644
-index bf4ccb1..0000000
---- a/arch/sparc/kernel/sparc_ksyms_32.c
+index 7e45f69..0000000
+--- a/arch/arm/kernel/armksyms.c
 +++ /dev/null
-@@ -1,31 +0,0 @@
+@@ -1,183 +0,0 @@
 -/*
-- * arch/sparc/kernel/ksyms.c: Sparc specific ksyms support.
+- *  linux/arch/arm/kernel/armksyms.c
 - *
-- * Copyright (C) 1996 David S. Miller (davem@caip.rutgers.edu)
-- * Copyright (C) 1996 Eddie C. Dost (ecd@skynet.be)
-- */
--
--#include <linux/module.h>
--
--#include <asm/pgtable.h>
--#include <asm/uaccess.h>
--#include <asm/delay.h>
--#include <asm/head.h>
--#include <asm/dma.h>
--
--struct poll {
--	int fd;
--	short events;
--	short revents;
--};
--
--/* from entry.S */
--EXPORT_SYMBOL(__udelay);
--EXPORT_SYMBOL(__ndelay);
--
--/* from head_32.S */
--EXPORT_SYMBOL(__ret_efault);
--EXPORT_SYMBOL(empty_zero_page);
--
--/* Exporting a symbol from /init/main.c */
--EXPORT_SYMBOL(saved_command_line);
-diff --git a/arch/sparc/kernel/sparc_ksyms_64.c b/arch/sparc/kernel/sparc_ksyms_64.c
-deleted file mode 100644
-index a92d5d2..0000000
---- a/arch/sparc/kernel/sparc_ksyms_64.c
-+++ /dev/null
-@@ -1,52 +0,0 @@
--/* arch/sparc64/kernel/sparc64_ksyms.c: Sparc64 specific ksyms support.
+- *  Copyright (C) 2000 Russell King
 - *
-- * Copyright (C) 1996, 2007 David S. Miller (davem@davemloft.net)
-- * Copyright (C) 1996 Eddie C. Dost (ecd@skynet.be)
-- * Copyright (C) 1999 Jakub Jelinek (jj@ultra.linux.cz)
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 as
+- * published by the Free Software Foundation.
 - */
--
 -#include <linux/export.h>
--#include <linux/pci.h>
--#include <linux/bitops.h>
--
--#include <asm/cpudata.h>
--#include <asm/uaccess.h>
--#include <asm/spitfire.h>
--#include <asm/oplib.h>
--#include <asm/hypervisor.h>
--#include <asm/cacheflush.h>
--
--struct poll {
--	int fd;
--	short events;
--	short revents;
--};
--
--/* from helpers.S */
--EXPORT_SYMBOL(__flushw_user);
--EXPORT_SYMBOL_GPL(real_hard_smp_processor_id);
--
--/* from head_64.S */
--EXPORT_SYMBOL(__ret_efault);
--EXPORT_SYMBOL(tlb_type);
--EXPORT_SYMBOL(sun4v_chip_type);
--EXPORT_SYMBOL(prom_root_node);
--
--/* from hvcalls.S */
--EXPORT_SYMBOL(sun4v_niagara_getperf);
--EXPORT_SYMBOL(sun4v_niagara_setperf);
--EXPORT_SYMBOL(sun4v_niagara2_getperf);
--EXPORT_SYMBOL(sun4v_niagara2_setperf);
--
--/* from hweight.S */
--EXPORT_SYMBOL(__arch_hweight8);
--EXPORT_SYMBOL(__arch_hweight16);
--EXPORT_SYMBOL(__arch_hweight32);
--EXPORT_SYMBOL(__arch_hweight64);
--
--/* from ffs_ffz.S */
--EXPORT_SYMBOL(ffs);
--EXPORT_SYMBOL(__ffs);
--
--/* Exporting a symbol from /init/main.c */
--EXPORT_SYMBOL(saved_command_line);
-diff --git a/arch/sparc/lib/Makefile b/arch/sparc/lib/Makefile
-index 3269b02..885f00e 100644
---- a/arch/sparc/lib/Makefile
-+++ b/arch/sparc/lib/Makefile
-@@ -43,5 +43,4 @@ lib-$(CONFIG_SPARC64) += mcount.o ipcsum.o xor.o hweight.o ffs.o
- 
- obj-$(CONFIG_SPARC64) += iomap.o
- obj-$(CONFIG_SPARC32) += atomic32.o ucmpdi2.o
--obj-y                 += ksyms.o
- obj-$(CONFIG_SPARC64) += PeeCeeI.o
-diff --git a/arch/sparc/lib/U1memcpy.S b/arch/sparc/lib/U1memcpy.S
-index 3e6209e..97e1b21 100644
---- a/arch/sparc/lib/U1memcpy.S
-+++ b/arch/sparc/lib/U1memcpy.S
-@@ -7,6 +7,7 @@
- #ifdef __KERNEL__
- #include <asm/visasm.h>
- #include <asm/asi.h>
-+#include <asm/export.h>
- #define GLOBAL_SPARE	g7
- #else
- #define GLOBAL_SPARE	g5
-@@ -567,3 +568,4 @@ FUNC_NAME:		/* %o0=dst, %o1=src, %o2=len */
- 	 mov		EX_RETVAL(%o4), %o0
- 
- 	.size		FUNC_NAME, .-FUNC_NAME
-+EXPORT_SYMBOL(FUNC_NAME)
-diff --git a/arch/sparc/lib/VISsave.S b/arch/sparc/lib/VISsave.S
-index 62c2647b..1c7b6a3 100644
---- a/arch/sparc/lib/VISsave.S
-+++ b/arch/sparc/lib/VISsave.S
-@@ -13,6 +13,7 @@
- #include <asm/ptrace.h>
- #include <asm/visasm.h>
- #include <asm/thread_info.h>
-+#include <asm/export.h>
- 
- 	/* On entry: %o5=current FPRS value, %g7 is callers address */
- 	/* May clobber %o5, %g1, %g2, %g3, %g7, %icc, %xcc */
-@@ -79,3 +80,4 @@ vis1:	ldub		[%g6 + TI_FPSAVED], %g3
- 80:	jmpl		%g7 + %g0, %g0
- 	 nop
- ENDPROC(VISenter)
-+EXPORT_SYMBOL(VISenter)
-diff --git a/arch/sparc/lib/ashldi3.S b/arch/sparc/lib/ashldi3.S
-index 86f60de..c8b1cf7 100644
---- a/arch/sparc/lib/ashldi3.S
-+++ b/arch/sparc/lib/ashldi3.S
-@@ -6,6 +6,7 @@
-  */
- 
- #include <linux/linkage.h>
-+#include <asm/export.h>
- 
- 	.text
- ENTRY(__ashldi3)
-@@ -33,3 +34,4 @@ ENTRY(__ashldi3)
- 	retl
- 	 nop
- ENDPROC(__ashldi3)
-+EXPORT_SYMBOL(__ashldi3)
-diff --git a/arch/sparc/lib/ashrdi3.S b/arch/sparc/lib/ashrdi3.S
-index 6eb8ba2..4310256 100644
---- a/arch/sparc/lib/ashrdi3.S
-+++ b/arch/sparc/lib/ashrdi3.S
-@@ -6,6 +6,7 @@
-  */
- 
- #include <linux/linkage.h>
-+#include <asm/export.h>
- 
- 	.text
- ENTRY(__ashrdi3)
-@@ -35,3 +36,4 @@ ENTRY(__ashrdi3)
- 	jmpl	%o7 + 8, %g0
- 	 nop
- ENDPROC(__ashrdi3)
-+EXPORT_SYMBOL(__ashrdi3)
-diff --git a/arch/sparc/lib/atomic_64.S b/arch/sparc/lib/atomic_64.S
-index d6b0363..52c927c 100644
---- a/arch/sparc/lib/atomic_64.S
-+++ b/arch/sparc/lib/atomic_64.S
-@@ -6,6 +6,7 @@
- #include <linux/linkage.h>
- #include <asm/asi.h>
- #include <asm/backoff.h>
-+#include <asm/export.h>
- 
- 	.text
- 
-@@ -28,6 +29,7 @@ ENTRY(atomic_##op) /* %o0 = increment, %o1 = atomic_ptr */		\
- 	 nop;								\
- 2:	BACKOFF_SPIN(%o2, %o3, 1b);					\
- ENDPROC(atomic_##op);							\
-+EXPORT_SYMBOL(atomic_##op);						\
- 
- #define ATOMIC_OP_RETURN(op)						\
- ENTRY(atomic_##op##_return) /* %o0 = increment, %o1 = atomic_ptr */	\
-@@ -41,7 +43,8 @@ ENTRY(atomic_##op##_return) /* %o0 = increment, %o1 = atomic_ptr */	\
- 	retl;								\
- 	 sra	%g1, 0, %o0;						\
- 2:	BACKOFF_SPIN(%o2, %o3, 1b);					\
--ENDPROC(atomic_##op##_return);
-+ENDPROC(atomic_##op##_return);						\
-+EXPORT_SYMBOL(atomic_##op##_return);					\
- 
- #define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
- 
-@@ -68,6 +71,7 @@ ENTRY(atomic64_##op) /* %o0 = increment, %o1 = atomic_ptr */		\
- 	 nop;								\
- 2:	BACKOFF_SPIN(%o2, %o3, 1b);					\
- ENDPROC(atomic64_##op);							\
-+EXPORT_SYMBOL(atomic64_##op);						\
- 
- #define ATOMIC64_OP_RETURN(op)						\
- ENTRY(atomic64_##op##_return) /* %o0 = increment, %o1 = atomic_ptr */	\
-@@ -81,7 +85,8 @@ ENTRY(atomic64_##op##_return) /* %o0 = increment, %o1 = atomic_ptr */	\
- 	retl;								\
- 	 op	%g1, %o0, %o0;						\
- 2:	BACKOFF_SPIN(%o2, %o3, 1b);					\
--ENDPROC(atomic64_##op##_return);
-+ENDPROC(atomic64_##op##_return);					\
-+EXPORT_SYMBOL(atomic64_##op##_return);
- 
- #define ATOMIC64_OPS(op) ATOMIC64_OP(op) ATOMIC64_OP_RETURN(op)
- 
-@@ -108,3 +113,4 @@ ENTRY(atomic64_dec_if_positive) /* %o0 = atomic_ptr */
- 	 sub	%g1, 1, %o0
- 2:	BACKOFF_SPIN(%o2, %o3, 1b)
- ENDPROC(atomic64_dec_if_positive)
-+EXPORT_SYMBOL(atomic64_dec_if_positive)
-diff --git a/arch/sparc/lib/bitops.S b/arch/sparc/lib/bitops.S
-index 36f72cc..7031bf1 100644
---- a/arch/sparc/lib/bitops.S
-+++ b/arch/sparc/lib/bitops.S
-@@ -6,6 +6,7 @@
- #include <linux/linkage.h>
- #include <asm/asi.h>
- #include <asm/backoff.h>
-+#include <asm/export.h>
- 
- 	.text
- 
-@@ -29,6 +30,7 @@ ENTRY(test_and_set_bit)	/* %o0=nr, %o1=addr */
- 	 nop
- 2:	BACKOFF_SPIN(%o3, %o4, 1b)
- ENDPROC(test_and_set_bit)
-+EXPORT_SYMBOL(test_and_set_bit)
- 
- ENTRY(test_and_clear_bit) /* %o0=nr, %o1=addr */
- 	BACKOFF_SETUP(%o3)
-@@ -50,6 +52,7 @@ ENTRY(test_and_clear_bit) /* %o0=nr, %o1=addr */
- 	 nop
- 2:	BACKOFF_SPIN(%o3, %o4, 1b)
- ENDPROC(test_and_clear_bit)
-+EXPORT_SYMBOL(test_and_clear_bit)
- 
- ENTRY(test_and_change_bit) /* %o0=nr, %o1=addr */
- 	BACKOFF_SETUP(%o3)
-@@ -71,6 +74,7 @@ ENTRY(test_and_change_bit) /* %o0=nr, %o1=addr */
- 	 nop
- 2:	BACKOFF_SPIN(%o3, %o4, 1b)
- ENDPROC(test_and_change_bit)
-+EXPORT_SYMBOL(test_and_change_bit)
- 
- ENTRY(set_bit) /* %o0=nr, %o1=addr */
- 	BACKOFF_SETUP(%o3)
-@@ -90,6 +94,7 @@ ENTRY(set_bit) /* %o0=nr, %o1=addr */
- 	 nop
- 2:	BACKOFF_SPIN(%o3, %o4, 1b)
- ENDPROC(set_bit)
-+EXPORT_SYMBOL(set_bit)
- 
- ENTRY(clear_bit) /* %o0=nr, %o1=addr */
- 	BACKOFF_SETUP(%o3)
-@@ -109,6 +114,7 @@ ENTRY(clear_bit) /* %o0=nr, %o1=addr */
- 	 nop
- 2:	BACKOFF_SPIN(%o3, %o4, 1b)
- ENDPROC(clear_bit)
-+EXPORT_SYMBOL(clear_bit)
- 
- ENTRY(change_bit) /* %o0=nr, %o1=addr */
- 	BACKOFF_SETUP(%o3)
-@@ -128,3 +134,4 @@ ENTRY(change_bit) /* %o0=nr, %o1=addr */
- 	 nop
- 2:	BACKOFF_SPIN(%o3, %o4, 1b)
- ENDPROC(change_bit)
-+EXPORT_SYMBOL(change_bit)
-diff --git a/arch/sparc/lib/blockops.S b/arch/sparc/lib/blockops.S
-index 3c77101..1f2692d5 100644
---- a/arch/sparc/lib/blockops.S
-+++ b/arch/sparc/lib/blockops.S
-@@ -6,6 +6,7 @@
- 
- #include <linux/linkage.h>
- #include <asm/page.h>
-+#include <asm/export.h>
- 
- 	/* Zero out 64 bytes of memory at (buf + offset).
- 	 * Assumes %g1 contains zero.
-@@ -64,6 +65,7 @@ ENTRY(bzero_1page)
- 	retl
- 	 nop
- ENDPROC(bzero_1page)
-+EXPORT_SYMBOL(bzero_1page)
- 
- ENTRY(__copy_1page)
- /* NOTE: If you change the number of insns of this routine, please check
-@@ -87,3 +89,4 @@ ENTRY(__copy_1page)
- 	retl
- 	 nop
- ENDPROC(__copy_1page)
-+EXPORT_SYMBOL(__copy_1page)
-diff --git a/arch/sparc/lib/bzero.S b/arch/sparc/lib/bzero.S
-index 8c05811..3bb1914 100644
---- a/arch/sparc/lib/bzero.S
-+++ b/arch/sparc/lib/bzero.S
-@@ -5,6 +5,7 @@
-  */
- 
- #include <linux/linkage.h>
-+#include <asm/export.h>
- 
- 	.text
- 
-@@ -78,6 +79,8 @@ __bzero_done:
- 	 mov		%o3, %o0
- ENDPROC(__bzero)
- ENDPROC(memset)
-+EXPORT_SYMBOL(__bzero)
-+EXPORT_SYMBOL(memset)
- 
- #define EX_ST(x,y)		\
- 98:	x,y;			\
-@@ -143,3 +146,4 @@ __clear_user_done:
- 	retl
- 	 clr		%o0
- ENDPROC(__clear_user)
-+EXPORT_SYMBOL(__clear_user)
-diff --git a/arch/sparc/lib/checksum_32.S b/arch/sparc/lib/checksum_32.S
-index 0084c33..c9d8b62 100644
---- a/arch/sparc/lib/checksum_32.S
-+++ b/arch/sparc/lib/checksum_32.S
-@@ -14,6 +14,7 @@
-  */
- 
- #include <asm/errno.h>
-+#include <asm/export.h>
- 
- #define CSUM_BIGCHUNK(buf, offset, sum, t0, t1, t2, t3, t4, t5)	\
- 	ldd	[buf + offset + 0x00], t0;			\
-@@ -104,6 +105,7 @@ csum_partial_fix_alignment:
- 	 * buffer of size 0x20.  Follow the code path for that case.
- 	 */
- 	.globl	csum_partial
-+	EXPORT_SYMBOL(csum_partial)
- csum_partial:			/* %o0=buf, %o1=len, %o2=sum */
- 	andcc	%o0, 0x7, %g0				! alignment problems?
- 	bne	csum_partial_fix_alignment		! yep, handle it
-@@ -335,6 +337,7 @@ cc_dword_align:
- 	 */
- 	.align	8
- 	.globl	__csum_partial_copy_sparc_generic
-+	EXPORT_SYMBOL(__csum_partial_copy_sparc_generic)
- __csum_partial_copy_sparc_generic:
- 					/* %o0=src, %o1=dest, %g1=len, %g7=sum */
- 	xor	%o0, %o1, %o4		! get changing bits
-diff --git a/arch/sparc/lib/checksum_64.S b/arch/sparc/lib/checksum_64.S
-index 1d230f6..f673217 100644
---- a/arch/sparc/lib/checksum_64.S
-+++ b/arch/sparc/lib/checksum_64.S
-@@ -13,6 +13,7 @@
-  *	BSD4.4 portable checksum routine
-  */
- 
-+#include <asm/export.h>
- 	.text
- 
- csum_partial_fix_alignment:
-@@ -37,6 +38,7 @@ csum_partial_fix_alignment:
- 
- 	.align		32
- 	.globl		csum_partial
-+	EXPORT_SYMBOL(csum_partial)
- csum_partial:		/* %o0=buff, %o1=len, %o2=sum */
- 	prefetch	[%o0 + 0x000], #n_reads
- 	clr		%o4
-diff --git a/arch/sparc/lib/clear_page.S b/arch/sparc/lib/clear_page.S
-index 46272df..f30d6b7 100644
---- a/arch/sparc/lib/clear_page.S
-+++ b/arch/sparc/lib/clear_page.S
-@@ -10,6 +10,7 @@
- #include <asm/pgtable.h>
- #include <asm/spitfire.h>
- #include <asm/head.h>
-+#include <asm/export.h>
- 
- 	/* What we used to do was lock a TLB entry into a specific
- 	 * TLB slot, clear the page with interrupts disabled, then
-@@ -26,6 +27,7 @@
- 	.text
- 
- 	.globl		_clear_page
-+	EXPORT_SYMBOL(_clear_page)
- _clear_page:		/* %o0=dest */
- 	ba,pt		%xcc, clear_page_common
- 	 clr		%o4
-@@ -35,6 +37,7 @@ _clear_page:		/* %o0=dest */
- 	 */
- 	.align		32
- 	.globl		clear_user_page
-+	EXPORT_SYMBOL(clear_user_page)
- clear_user_page:	/* %o0=dest, %o1=vaddr */
- 	lduw		[%g6 + TI_PRE_COUNT], %o2
- 	sethi		%hi(PAGE_OFFSET), %g2
-diff --git a/arch/sparc/lib/copy_in_user.S b/arch/sparc/lib/copy_in_user.S
-index 302c0e6..482de09 100644
---- a/arch/sparc/lib/copy_in_user.S
-+++ b/arch/sparc/lib/copy_in_user.S
-@@ -5,6 +5,7 @@
- 
- #include <linux/linkage.h>
- #include <asm/asi.h>
-+#include <asm/export.h>
- 
- #define XCC xcc
- 
-@@ -90,3 +91,4 @@ ENTRY(___copy_in_user)	/* %o0=dst, %o1=src, %o2=len */
- 	retl
- 	 clr		%o0
- ENDPROC(___copy_in_user)
-+EXPORT_SYMBOL(___copy_in_user)
-diff --git a/arch/sparc/lib/copy_page.S b/arch/sparc/lib/copy_page.S
-index dd16c61..7197b72 100644
---- a/arch/sparc/lib/copy_page.S
-+++ b/arch/sparc/lib/copy_page.S
-@@ -10,6 +10,7 @@
- #include <asm/pgtable.h>
- #include <asm/spitfire.h>
- #include <asm/head.h>
-+#include <asm/export.h>
- 
- 	/* What we used to do was lock a TLB entry into a specific
- 	 * TLB slot, clear the page with interrupts disabled, then
-@@ -44,6 +45,7 @@
- 	.align		32
- 	.globl		copy_user_page
- 	.type		copy_user_page,#function
-+	EXPORT_SYMBOL(copy_user_page)
- copy_user_page:		/* %o0=dest, %o1=src, %o2=vaddr */
- 	lduw		[%g6 + TI_PRE_COUNT], %o4
- 	sethi		%hi(PAGE_OFFSET), %g2
-diff --git a/arch/sparc/lib/copy_user.S b/arch/sparc/lib/copy_user.S
-index ef095b6..cea644d 100644
---- a/arch/sparc/lib/copy_user.S
-+++ b/arch/sparc/lib/copy_user.S
-@@ -15,6 +15,7 @@
- #include <asm/asmmacro.h>
- #include <asm/page.h>
- #include <asm/thread_info.h>
-+#include <asm/export.h>
- 
- /* Work around cpp -rob */
- #define ALLOC #alloc
-@@ -119,6 +120,7 @@
- __copy_user_begin:
- 
- 	.globl	__copy_user
-+	EXPORT_SYMBOL(__copy_user)
- dword_align:
- 	andcc	%o1, 1, %g0
- 	be	4f
-diff --git a/arch/sparc/lib/csum_copy.S b/arch/sparc/lib/csum_copy.S
-index e566c77..0ecbafc 100644
---- a/arch/sparc/lib/csum_copy.S
-+++ b/arch/sparc/lib/csum_copy.S
-@@ -3,6 +3,8 @@
-  * Copyright (C) 2005 David S. Miller <davem@davemloft.net>
-  */
- 
-+#include <asm/export.h>
-+
- #ifdef __KERNEL__
- #define GLOBAL_SPARE	%g7
- #else
-@@ -63,6 +65,7 @@
- 	 add		%o5, %o4, %o4
- 
- 	.globl		FUNC_NAME
-+	EXPORT_SYMBOL(FUNC_NAME)
- FUNC_NAME:		/* %o0=src, %o1=dst, %o2=len, %o3=sum */
- 	LOAD(prefetch, %o0 + 0x000, #n_reads)
- 	xor		%o0, %o1, %g1
-diff --git a/arch/sparc/lib/divdi3.S b/arch/sparc/lib/divdi3.S
-index 9614b48..a2b5a97 100644
---- a/arch/sparc/lib/divdi3.S
-+++ b/arch/sparc/lib/divdi3.S
-@@ -17,6 +17,7 @@ along with GNU CC; see the file COPYING.  If not, write to
- the Free Software Foundation, 59 Temple Place - Suite 330,
- Boston, MA 02111-1307, USA.  */
- 
-+#include <asm/export.h>
- 	.text
- 	.align 4
- 	.globl __divdi3
-@@ -279,3 +280,4 @@ __divdi3:
- .LL81:
- 	ret
- 	restore
-+EXPORT_SYMBOL(__divdi3)
-diff --git a/arch/sparc/lib/ffs.S b/arch/sparc/lib/ffs.S
-index b39389f..23aab14 100644
---- a/arch/sparc/lib/ffs.S
-+++ b/arch/sparc/lib/ffs.S
-@@ -1,4 +1,5 @@
- #include <linux/linkage.h>
-+#include <asm/export.h>
- 
- 	.register	%g2,#scratch
- 
-@@ -65,6 +66,8 @@ ENTRY(__ffs)
- 	 add	%o2, %g1, %o0
- ENDPROC(ffs)
- ENDPROC(__ffs)
-+EXPORT_SYMBOL(__ffs)
-+EXPORT_SYMBOL(ffs)
- 
- 	.section	.popc_6insn_patch, "ax"
- 	.word		ffs
-diff --git a/arch/sparc/lib/hweight.S b/arch/sparc/lib/hweight.S
-index 95414e0..f9985f1 100644
---- a/arch/sparc/lib/hweight.S
-+++ b/arch/sparc/lib/hweight.S
-@@ -1,4 +1,5 @@
- #include <linux/linkage.h>
-+#include <asm/export.h>
- 
- 	.text
- 	.align	32
-@@ -7,6 +8,7 @@ ENTRY(__arch_hweight8)
- 	 nop
- 	nop
- ENDPROC(__arch_hweight8)
-+EXPORT_SYMBOL(__arch_hweight8)
- 	.section	.popc_3insn_patch, "ax"
- 	.word		__arch_hweight8
- 	sllx		%o0, 64-8, %g1
-@@ -19,6 +21,7 @@ ENTRY(__arch_hweight16)
- 	 nop
- 	nop
- ENDPROC(__arch_hweight16)
-+EXPORT_SYMBOL(__arch_hweight16)
- 	.section	.popc_3insn_patch, "ax"
- 	.word		__arch_hweight16
- 	sllx		%o0, 64-16, %g1
-@@ -31,6 +34,7 @@ ENTRY(__arch_hweight32)
- 	 nop
- 	nop
- ENDPROC(__arch_hweight32)
-+EXPORT_SYMBOL(__arch_hweight32)
- 	.section	.popc_3insn_patch, "ax"
- 	.word		__arch_hweight32
- 	sllx		%o0, 64-32, %g1
-@@ -43,6 +47,7 @@ ENTRY(__arch_hweight64)
- 	 nop
- 	nop
- ENDPROC(__arch_hweight64)
-+EXPORT_SYMBOL(__arch_hweight64)
- 	.section	.popc_3insn_patch, "ax"
- 	.word		__arch_hweight64
- 	retl
-diff --git a/arch/sparc/lib/ipcsum.S b/arch/sparc/lib/ipcsum.S
-index 4742d59..5d61648 100644
---- a/arch/sparc/lib/ipcsum.S
-+++ b/arch/sparc/lib/ipcsum.S
-@@ -1,4 +1,5 @@
- #include <linux/linkage.h>
-+#include <asm/export.h>
- 
- 	.text
- ENTRY(ip_fast_csum) /* %o0 = iph, %o1 = ihl */
-@@ -31,3 +32,4 @@ ENTRY(ip_fast_csum) /* %o0 = iph, %o1 = ihl */
- 	retl
- 	 and	%o2, %o1, %o0
- ENDPROC(ip_fast_csum)
-+EXPORT_SYMBOL(ip_fast_csum)
-diff --git a/arch/sparc/lib/ksyms.c b/arch/sparc/lib/ksyms.c
-deleted file mode 100644
-index 8eb454c..0000000
---- a/arch/sparc/lib/ksyms.c
-+++ /dev/null
-@@ -1,165 +0,0 @@
--/*
-- * Export of symbols defined in assembler
-- */
--
--/* Tell string.h we don't want memcpy etc. as cpp defines */
--#define EXPORT_SYMTAB_STROPS
--
--#include <linux/module.h>
+-#include <linux/sched.h>
 -#include <linux/string.h>
--#include <linux/types.h>
+-#include <linux/cryptohash.h>
+-#include <linux/delay.h>
+-#include <linux/in6.h>
+-#include <linux/syscalls.h>
+-#include <linux/uaccess.h>
+-#include <linux/io.h>
+-#include <linux/arm-smccc.h>
 -
 -#include <asm/checksum.h>
--#include <asm/uaccess.h>
 -#include <asm/ftrace.h>
 -
--/* string functions */
--EXPORT_SYMBOL(strlen);
--EXPORT_SYMBOL(strncmp);
+-/*
+- * libgcc functions - functions that are used internally by the
+- * compiler...  (prototypes are not correct though, but that
+- * doesn't really matter since they're not versioned).
+- */
+-extern void __ashldi3(void);
+-extern void __ashrdi3(void);
+-extern void __divsi3(void);
+-extern void __lshrdi3(void);
+-extern void __modsi3(void);
+-extern void __muldi3(void);
+-extern void __ucmpdi2(void);
+-extern void __udivsi3(void);
+-extern void __umodsi3(void);
+-extern void __do_div64(void);
+-extern void __bswapsi2(void);
+-extern void __bswapdi2(void);
 -
--/* mem* functions */
--extern void *__memscan_zero(void *, size_t);
--extern void *__memscan_generic(void *, int, size_t);
--extern void *__bzero(void *, size_t);
+-extern void __aeabi_idiv(void);
+-extern void __aeabi_idivmod(void);
+-extern void __aeabi_lasr(void);
+-extern void __aeabi_llsl(void);
+-extern void __aeabi_llsr(void);
+-extern void __aeabi_lmul(void);
+-extern void __aeabi_uidiv(void);
+-extern void __aeabi_uidivmod(void);
+-extern void __aeabi_ulcmp(void);
 -
--EXPORT_SYMBOL(memscan);
--EXPORT_SYMBOL(__memscan_zero);
--EXPORT_SYMBOL(__memscan_generic);
--EXPORT_SYMBOL(memcmp);
--EXPORT_SYMBOL(memcpy);
--EXPORT_SYMBOL(memset);
--EXPORT_SYMBOL(memmove);
--EXPORT_SYMBOL(__bzero);
+-extern void fpundefinstr(void);
 -
--/* Networking helper routines. */
+-void mmioset(void *, unsigned int, size_t);
+-void mmiocpy(void *, const void *, size_t);
+-
+-	/* platform dependent support */
+-EXPORT_SYMBOL(arm_delay_ops);
+-
+-	/* networking */
 -EXPORT_SYMBOL(csum_partial);
--
--#ifdef CONFIG_MCOUNT
--EXPORT_SYMBOL(_mcount);
--#endif
--
--/*
-- * sparc
-- */
--#ifdef CONFIG_SPARC32
--extern int __ashrdi3(int, int);
--extern int __ashldi3(int, int);
--extern int __lshrdi3(int, int);
--extern int __muldi3(int, int);
--extern int __divdi3(int, int);
--
--extern void (*__copy_1page)(void *, const void *);
--extern void (*bzero_1page)(void *);
--
--extern void ___rw_read_enter(void);
--extern void ___rw_read_try(void);
--extern void ___rw_read_exit(void);
--extern void ___rw_write_enter(void);
--
--/* Networking helper routines. */
--EXPORT_SYMBOL(__csum_partial_copy_sparc_generic);
--
--/* Special internal versions of library functions. */
--EXPORT_SYMBOL(__copy_1page);
--EXPORT_SYMBOL(__memmove);
--EXPORT_SYMBOL(bzero_1page);
--
--/* Moving data to/from/in userspace. */
--EXPORT_SYMBOL(__copy_user);
--
--/* Used by asm/spinlock.h */
--#ifdef CONFIG_SMP
--EXPORT_SYMBOL(___rw_read_enter);
--EXPORT_SYMBOL(___rw_read_try);
--EXPORT_SYMBOL(___rw_read_exit);
--EXPORT_SYMBOL(___rw_write_enter);
--#endif
--
--EXPORT_SYMBOL(__ashrdi3);
--EXPORT_SYMBOL(__ashldi3);
--EXPORT_SYMBOL(__lshrdi3);
--EXPORT_SYMBOL(__muldi3);
--EXPORT_SYMBOL(__divdi3);
--#endif
--
--/*
-- * sparc64
-- */
--#ifdef CONFIG_SPARC64
--/* Networking helper routines. */
+-EXPORT_SYMBOL(csum_partial_copy_from_user);
 -EXPORT_SYMBOL(csum_partial_copy_nocheck);
--EXPORT_SYMBOL(__csum_partial_copy_from_user);
--EXPORT_SYMBOL(__csum_partial_copy_to_user);
--EXPORT_SYMBOL(ip_fast_csum);
+-EXPORT_SYMBOL(__csum_ipv6_magic);
 -
--/* Moving data to/from/in userspace. */
--EXPORT_SYMBOL(___copy_to_user);
--EXPORT_SYMBOL(___copy_from_user);
--EXPORT_SYMBOL(___copy_in_user);
--EXPORT_SYMBOL(__clear_user);
--
--/* Atomic counter implementation. */
--#define ATOMIC_OP(op)							\
--EXPORT_SYMBOL(atomic_##op);						\
--EXPORT_SYMBOL(atomic64_##op);
--
--#define ATOMIC_OP_RETURN(op)						\
--EXPORT_SYMBOL(atomic_##op##_return);					\
--EXPORT_SYMBOL(atomic64_##op##_return);
--
--#define ATOMIC_OPS(op) ATOMIC_OP(op) ATOMIC_OP_RETURN(op)
--
--ATOMIC_OPS(add)
--ATOMIC_OPS(sub)
--ATOMIC_OP(and)
--ATOMIC_OP(or)
--ATOMIC_OP(xor)
--
--#undef ATOMIC_OPS
--#undef ATOMIC_OP_RETURN
--#undef ATOMIC_OP
--
--EXPORT_SYMBOL(atomic64_dec_if_positive);
--
--/* Atomic bit operations. */
--EXPORT_SYMBOL(test_and_set_bit);
--EXPORT_SYMBOL(test_and_clear_bit);
--EXPORT_SYMBOL(test_and_change_bit);
--EXPORT_SYMBOL(set_bit);
--EXPORT_SYMBOL(clear_bit);
--EXPORT_SYMBOL(change_bit);
--
--/* Special internal versions of library functions. */
--EXPORT_SYMBOL(_clear_page);
--EXPORT_SYMBOL(clear_user_page);
--EXPORT_SYMBOL(copy_user_page);
--
--/* RAID code needs this */
--void VISenter(void);
--EXPORT_SYMBOL(VISenter);
--
--extern void xor_vis_2(unsigned long, unsigned long *, unsigned long *);
--extern void xor_vis_3(unsigned long, unsigned long *, unsigned long *,
--		unsigned long *);
--extern void xor_vis_4(unsigned long, unsigned long *, unsigned long *,
--		unsigned long *, unsigned long *);
--extern void xor_vis_5(unsigned long, unsigned long *, unsigned long *,
--		unsigned long *, unsigned long *, unsigned long *);
--EXPORT_SYMBOL(xor_vis_2);
--EXPORT_SYMBOL(xor_vis_3);
--EXPORT_SYMBOL(xor_vis_4);
--EXPORT_SYMBOL(xor_vis_5);
--
--extern void xor_niagara_2(unsigned long, unsigned long *, unsigned long *);
--extern void xor_niagara_3(unsigned long, unsigned long *, unsigned long *,
--		unsigned long *);
--extern void xor_niagara_4(unsigned long, unsigned long *, unsigned long *,
--		unsigned long *, unsigned long *);
--extern void xor_niagara_5(unsigned long, unsigned long *, unsigned long *,
--		unsigned long *, unsigned long *, unsigned long *);
--
--EXPORT_SYMBOL(xor_niagara_2);
--EXPORT_SYMBOL(xor_niagara_3);
--EXPORT_SYMBOL(xor_niagara_4);
--EXPORT_SYMBOL(xor_niagara_5);
+-	/* io */
+-#ifndef __raw_readsb
+-EXPORT_SYMBOL(__raw_readsb);
 -#endif
-diff --git a/arch/sparc/lib/locks.S b/arch/sparc/lib/locks.S
-index 64f53f2..f38c4e5 100644
---- a/arch/sparc/lib/locks.S
-+++ b/arch/sparc/lib/locks.S
+-#ifndef __raw_readsw
+-EXPORT_SYMBOL(__raw_readsw);
+-#endif
+-#ifndef __raw_readsl
+-EXPORT_SYMBOL(__raw_readsl);
+-#endif
+-#ifndef __raw_writesb
+-EXPORT_SYMBOL(__raw_writesb);
+-#endif
+-#ifndef __raw_writesw
+-EXPORT_SYMBOL(__raw_writesw);
+-#endif
+-#ifndef __raw_writesl
+-EXPORT_SYMBOL(__raw_writesl);
+-#endif
+-
+-	/* string / mem functions */
+-EXPORT_SYMBOL(strchr);
+-EXPORT_SYMBOL(strrchr);
+-EXPORT_SYMBOL(memset);
+-EXPORT_SYMBOL(memcpy);
+-EXPORT_SYMBOL(memmove);
+-EXPORT_SYMBOL(memchr);
+-EXPORT_SYMBOL(__memzero);
+-
+-EXPORT_SYMBOL(mmioset);
+-EXPORT_SYMBOL(mmiocpy);
+-
+-#ifdef CONFIG_MMU
+-EXPORT_SYMBOL(copy_page);
+-
+-EXPORT_SYMBOL(arm_copy_from_user);
+-EXPORT_SYMBOL(arm_copy_to_user);
+-EXPORT_SYMBOL(arm_clear_user);
+-
+-EXPORT_SYMBOL(__get_user_1);
+-EXPORT_SYMBOL(__get_user_2);
+-EXPORT_SYMBOL(__get_user_4);
+-EXPORT_SYMBOL(__get_user_8);
+-
+-#ifdef __ARMEB__
+-EXPORT_SYMBOL(__get_user_64t_1);
+-EXPORT_SYMBOL(__get_user_64t_2);
+-EXPORT_SYMBOL(__get_user_64t_4);
+-EXPORT_SYMBOL(__get_user_32t_8);
+-#endif
+-
+-EXPORT_SYMBOL(__put_user_1);
+-EXPORT_SYMBOL(__put_user_2);
+-EXPORT_SYMBOL(__put_user_4);
+-EXPORT_SYMBOL(__put_user_8);
+-#endif
+-
+-	/* gcc lib functions */
+-EXPORT_SYMBOL(__ashldi3);
+-EXPORT_SYMBOL(__ashrdi3);
+-EXPORT_SYMBOL(__divsi3);
+-EXPORT_SYMBOL(__lshrdi3);
+-EXPORT_SYMBOL(__modsi3);
+-EXPORT_SYMBOL(__muldi3);
+-EXPORT_SYMBOL(__ucmpdi2);
+-EXPORT_SYMBOL(__udivsi3);
+-EXPORT_SYMBOL(__umodsi3);
+-EXPORT_SYMBOL(__do_div64);
+-EXPORT_SYMBOL(__bswapsi2);
+-EXPORT_SYMBOL(__bswapdi2);
+-
+-#ifdef CONFIG_AEABI
+-EXPORT_SYMBOL(__aeabi_idiv);
+-EXPORT_SYMBOL(__aeabi_idivmod);
+-EXPORT_SYMBOL(__aeabi_lasr);
+-EXPORT_SYMBOL(__aeabi_llsl);
+-EXPORT_SYMBOL(__aeabi_llsr);
+-EXPORT_SYMBOL(__aeabi_lmul);
+-EXPORT_SYMBOL(__aeabi_uidiv);
+-EXPORT_SYMBOL(__aeabi_uidivmod);
+-EXPORT_SYMBOL(__aeabi_ulcmp);
+-#endif
+-
+-	/* bitops */
+-EXPORT_SYMBOL(_set_bit);
+-EXPORT_SYMBOL(_test_and_set_bit);
+-EXPORT_SYMBOL(_clear_bit);
+-EXPORT_SYMBOL(_test_and_clear_bit);
+-EXPORT_SYMBOL(_change_bit);
+-EXPORT_SYMBOL(_test_and_change_bit);
+-EXPORT_SYMBOL(_find_first_zero_bit_le);
+-EXPORT_SYMBOL(_find_next_zero_bit_le);
+-EXPORT_SYMBOL(_find_first_bit_le);
+-EXPORT_SYMBOL(_find_next_bit_le);
+-
+-#ifdef __ARMEB__
+-EXPORT_SYMBOL(_find_first_zero_bit_be);
+-EXPORT_SYMBOL(_find_next_zero_bit_be);
+-EXPORT_SYMBOL(_find_first_bit_be);
+-EXPORT_SYMBOL(_find_next_bit_be);
+-#endif
+-
+-#ifdef CONFIG_FUNCTION_TRACER
+-#ifdef CONFIG_OLD_MCOUNT
+-EXPORT_SYMBOL(mcount);
+-#endif
+-EXPORT_SYMBOL(__gnu_mcount_nc);
+-#endif
+-
+-#ifdef CONFIG_ARM_PATCH_PHYS_VIRT
+-EXPORT_SYMBOL(__pv_phys_pfn_offset);
+-EXPORT_SYMBOL(__pv_offset);
+-#endif
+-
+-#ifdef CONFIG_HAVE_ARM_SMCCC
+-EXPORT_SYMBOL(arm_smccc_smc);
+-EXPORT_SYMBOL(arm_smccc_hvc);
+-#endif
+diff --git a/arch/arm/kernel/entry-ftrace.S b/arch/arm/kernel/entry-ftrace.S
+index c73c403..b629d3f 100644
+--- a/arch/arm/kernel/entry-ftrace.S
++++ b/arch/arm/kernel/entry-ftrace.S
+@@ -7,6 +7,7 @@
+ #include <asm/assembler.h>
+ #include <asm/ftrace.h>
+ #include <asm/unwind.h>
++#include <asm/export.h>
+ 
+ #include "entry-header.S"
+ 
+@@ -153,6 +154,7 @@ ENTRY(mcount)
+ 	__mcount _old
+ #endif
+ ENDPROC(mcount)
++EXPORT_SYMBOL(mcount)
+ 
+ #ifdef CONFIG_DYNAMIC_FTRACE
+ ENTRY(ftrace_caller_old)
+@@ -205,6 +207,7 @@ UNWIND(.fnstart)
+ #endif
+ UNWIND(.fnend)
+ ENDPROC(__gnu_mcount_nc)
++EXPORT_SYMBOL(__gnu_mcount_nc)
+ 
+ #ifdef CONFIG_DYNAMIC_FTRACE
+ ENTRY(ftrace_caller)
+diff --git a/arch/arm/kernel/head.S b/arch/arm/kernel/head.S
+index 04286fd..f41cee4 100644
+--- a/arch/arm/kernel/head.S
++++ b/arch/arm/kernel/head.S
+@@ -22,6 +22,7 @@
+ #include <asm/memory.h>
+ #include <asm/thread_info.h>
+ #include <asm/pgtable.h>
++#include <asm/export.h>
+ 
+ #if defined(CONFIG_DEBUG_LL) && !defined(CONFIG_DEBUG_SEMIHOSTING)
+ #include CONFIG_DEBUG_LL_INCLUDE
+@@ -727,6 +728,8 @@ __pv_phys_pfn_offset:
+ __pv_offset:
+ 	.quad	0
+ 	.size	__pv_offset, . -__pv_offset
++EXPORT_SYMBOL(__pv_phys_pfn_offset)
++EXPORT_SYMBOL(__pv_offset)
+ #endif
+ 
+ #include "head-common.S"
+diff --git a/arch/arm/kernel/smccc-call.S b/arch/arm/kernel/smccc-call.S
+index 2e48b67..37669e7 100644
+--- a/arch/arm/kernel/smccc-call.S
++++ b/arch/arm/kernel/smccc-call.S
+@@ -16,6 +16,7 @@
+ #include <asm/opcodes-sec.h>
+ #include <asm/opcodes-virt.h>
+ #include <asm/unwind.h>
++#include <asm/export.h>
+ 
+ 	/*
+ 	 * Wrap c macros in asm macros to delay expansion until after the
+@@ -51,6 +52,7 @@ UNWIND(	.fnend)
+ ENTRY(arm_smccc_smc)
+ 	SMCCC SMCCC_SMC
+ ENDPROC(arm_smccc_smc)
++EXPORT_SYMBOL(arm_smccc_smc)
+ 
+ /*
+  * void smccc_hvc(unsigned long a0, unsigned long a1, unsigned long a2,
+@@ -60,3 +62,4 @@ ENDPROC(arm_smccc_smc)
+ ENTRY(arm_smccc_hvc)
+ 	SMCCC SMCCC_HVC
+ ENDPROC(arm_smccc_hvc)
++EXPORT_SYMBOL(arm_smccc_hvc)
+diff --git a/arch/arm/lib/ashldi3.S b/arch/arm/lib/ashldi3.S
+index b05e958..a7e7de8 100644
+--- a/arch/arm/lib/ashldi3.S
++++ b/arch/arm/lib/ashldi3.S
+@@ -28,6 +28,7 @@ Boston, MA 02110-1301, USA.  */
+ 
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ #ifdef __ARMEB__
+ #define al r1
+@@ -52,3 +53,5 @@ ENTRY(__aeabi_llsl)
+ 
+ ENDPROC(__ashldi3)
+ ENDPROC(__aeabi_llsl)
++EXPORT_SYMBOL(__ashldi3)
++EXPORT_SYMBOL(__aeabi_llsl)
+diff --git a/arch/arm/lib/ashrdi3.S b/arch/arm/lib/ashrdi3.S
+index 275d7d2..490336e 100644
+--- a/arch/arm/lib/ashrdi3.S
++++ b/arch/arm/lib/ashrdi3.S
+@@ -28,6 +28,7 @@ Boston, MA 02110-1301, USA.  */
+ 
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ #ifdef __ARMEB__
+ #define al r1
+@@ -52,3 +53,5 @@ ENTRY(__aeabi_lasr)
+ 
+ ENDPROC(__ashrdi3)
+ ENDPROC(__aeabi_lasr)
++EXPORT_SYMBOL(__ashrdi3)
++EXPORT_SYMBOL(__aeabi_lasr)
+diff --git a/arch/arm/lib/bitops.h b/arch/arm/lib/bitops.h
+index 7d807cf..df06638 100644
+--- a/arch/arm/lib/bitops.h
++++ b/arch/arm/lib/bitops.h
+@@ -1,5 +1,6 @@
+ #include <asm/assembler.h>
+ #include <asm/unwind.h>
++#include <asm/export.h>
+ 
+ #if __LINUX_ARM_ARCH__ >= 6
+ 	.macro	bitop, name, instr
+@@ -25,6 +26,7 @@ UNWIND(	.fnstart	)
+ 	bx	lr
+ UNWIND(	.fnend		)
+ ENDPROC(\name		)
++EXPORT_SYMBOL(\name	)
+ 	.endm
+ 
+ 	.macro	testop, name, instr, store
+@@ -55,6 +57,7 @@ UNWIND(	.fnstart	)
+ 2:	bx	lr
+ UNWIND(	.fnend		)
+ ENDPROC(\name		)
++EXPORT_SYMBOL(\name	)
+ 	.endm
+ #else
+ 	.macro	bitop, name, instr
+@@ -74,6 +77,7 @@ UNWIND(	.fnstart	)
+ 	ret	lr
+ UNWIND(	.fnend		)
+ ENDPROC(\name		)
++EXPORT_SYMBOL(\name	)
+ 	.endm
+ 
+ /**
+@@ -102,5 +106,6 @@ UNWIND(	.fnstart	)
+ 	ret	lr
+ UNWIND(	.fnend		)
+ ENDPROC(\name		)
++EXPORT_SYMBOL(\name	)
+ 	.endm
+ #endif
+diff --git a/arch/arm/lib/bswapsdi2.S b/arch/arm/lib/bswapsdi2.S
+index 07cda73..f05f782 100644
+--- a/arch/arm/lib/bswapsdi2.S
++++ b/arch/arm/lib/bswapsdi2.S
+@@ -1,5 +1,6 @@
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ #if __LINUX_ARM_ARCH__ >= 6
+ ENTRY(__bswapsi2)
+@@ -35,3 +36,5 @@ ENTRY(__bswapdi2)
+ 	ret lr
+ ENDPROC(__bswapdi2)
+ #endif
++EXPORT_SYMBOL(__bswapsi2)
++EXPORT_SYMBOL(__bswapdi2)
+diff --git a/arch/arm/lib/clear_user.S b/arch/arm/lib/clear_user.S
+index e936352..b566154 100644
+--- a/arch/arm/lib/clear_user.S
++++ b/arch/arm/lib/clear_user.S
 @@ -10,6 +10,7 @@
- #include <asm/psr.h>
- #include <asm/smp.h>
- #include <asm/spinlock.h>
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
+ #include <asm/unwind.h>
 +#include <asm/export.h>
  
- 	.text
- 	.align	4
-@@ -48,6 +49,7 @@ ___rw_write_enter_spin_on_wlock:
- 	 ld	[%g1], %g2
+ 		.text
  
- 	.globl	___rw_read_enter
-+EXPORT_SYMBOL(___rw_read_enter)
- ___rw_read_enter:
- 	orcc	%g2, 0x0, %g0
- 	bne,a	___rw_read_enter_spin_on_wlock
-@@ -59,6 +61,7 @@ ___rw_read_enter:
- 	 mov	%g4, %o7
+@@ -50,6 +51,9 @@ USER(		strnebt	r2, [r0])
+ UNWIND(.fnend)
+ ENDPROC(arm_clear_user)
+ ENDPROC(__clear_user_std)
++#ifndef CONFIG_UACCESS_WITH_MEMCPY
++EXPORT_SYMBOL(arm_clear_user)
++#endif
  
- 	.globl	___rw_read_exit
-+EXPORT_SYMBOL(___rw_read_exit)
- ___rw_read_exit:
- 	orcc	%g2, 0x0, %g0
- 	bne,a	___rw_read_exit_spin_on_wlock
-@@ -70,6 +73,7 @@ ___rw_read_exit:
- 	 mov	%g4, %o7
- 
- 	.globl	___rw_read_try
-+EXPORT_SYMBOL(___rw_read_try)
- ___rw_read_try:
- 	orcc	%g2, 0x0, %g0
- 	bne	___rw_read_try_spin_on_wlock
-@@ -81,6 +85,7 @@ ___rw_read_try:
- 	 mov	%g4, %o7
- 
- 	.globl	___rw_write_enter
-+EXPORT_SYMBOL(___rw_write_enter)
- ___rw_write_enter:
- 	orcc	%g2, 0x0, %g0
- 	bne	___rw_write_enter_spin_on_wlock
-diff --git a/arch/sparc/lib/lshrdi3.S b/arch/sparc/lib/lshrdi3.S
-index 60ebc7c..c9b9373 100644
---- a/arch/sparc/lib/lshrdi3.S
-+++ b/arch/sparc/lib/lshrdi3.S
-@@ -1,4 +1,5 @@
+ 		.pushsection .text.fixup,"ax"
+ 		.align	0
+diff --git a/arch/arm/lib/copy_from_user.S b/arch/arm/lib/copy_from_user.S
+index 1512beb..f549c57 100644
+--- a/arch/arm/lib/copy_from_user.S
++++ b/arch/arm/lib/copy_from_user.S
+@@ -13,6 +13,7 @@
  #include <linux/linkage.h>
-+#include <asm/export.h>
- 
- ENTRY(__lshrdi3)
- 	cmp	%o2, 0
-@@ -25,3 +26,4 @@ ENTRY(__lshrdi3)
- 	retl 
- 	 nop 
- ENDPROC(__lshrdi3)
-+EXPORT_SYMBOL(__lshrdi3)
-diff --git a/arch/sparc/lib/mcount.S b/arch/sparc/lib/mcount.S
-index 0b0ed4d..194f383 100644
---- a/arch/sparc/lib/mcount.S
-+++ b/arch/sparc/lib/mcount.S
-@@ -6,6 +6,7 @@
-  */
- 
- #include <linux/linkage.h>
+ #include <asm/assembler.h>
+ #include <asm/unwind.h>
 +#include <asm/export.h>
  
  /*
-  * This is the main variant and is called by C code.  GCC's -pg option
-@@ -16,6 +17,7 @@
- 	.align		32
- 	.globl		_mcount
- 	.type		_mcount,#function
-+	EXPORT_SYMBOL(_mcount)
- 	.globl		mcount
- 	.type		mcount,#function
- _mcount:
-diff --git a/arch/sparc/lib/memcmp.S b/arch/sparc/lib/memcmp.S
-index efa106c..cee7f30 100644
---- a/arch/sparc/lib/memcmp.S
-+++ b/arch/sparc/lib/memcmp.S
-@@ -6,6 +6,7 @@
+  * Prototype:
+@@ -94,6 +95,7 @@ ENTRY(arm_copy_from_user)
+ #include "copy_template.S"
  
+ ENDPROC(arm_copy_from_user)
++EXPORT_SYMBOL(arm_copy_from_user)
+ 
+ 	.pushsection .fixup,"ax"
+ 	.align 0
+diff --git a/arch/arm/lib/copy_page.S b/arch/arm/lib/copy_page.S
+index 6ee2f67..d97851d 100644
+--- a/arch/arm/lib/copy_page.S
++++ b/arch/arm/lib/copy_page.S
+@@ -13,6 +13,7 @@
+ #include <asm/assembler.h>
+ #include <asm/asm-offsets.h>
+ #include <asm/cache.h>
++#include <asm/export.h>
+ 
+ #define COPY_COUNT (PAGE_SZ / (2 * L1_CACHE_BYTES) PLD( -1 ))
+ 
+@@ -45,3 +46,4 @@ ENTRY(copy_page)
+ 	PLD(	beq	2b			)
+ 		ldmfd	sp!, {r4, pc}			@	3
+ ENDPROC(copy_page)
++EXPORT_SYMBOL(copy_page)
+diff --git a/arch/arm/lib/copy_to_user.S b/arch/arm/lib/copy_to_user.S
+index caf5019..592c179 100644
+--- a/arch/arm/lib/copy_to_user.S
++++ b/arch/arm/lib/copy_to_user.S
+@@ -13,6 +13,7 @@
  #include <linux/linkage.h>
- #include <asm/asm.h>
+ #include <asm/assembler.h>
+ #include <asm/unwind.h>
 +#include <asm/export.h>
  
- 	.text
- ENTRY(memcmp)
-@@ -25,3 +26,4 @@ ENTRY(memcmp)
- 2:	retl
- 	 mov	0, %o0
- ENDPROC(memcmp)
-+EXPORT_SYMBOL(memcmp)
-diff --git a/arch/sparc/lib/memcpy.S b/arch/sparc/lib/memcpy.S
-index 4d8c497..1dc8ec5 100644
---- a/arch/sparc/lib/memcpy.S
-+++ b/arch/sparc/lib/memcpy.S
-@@ -7,6 +7,7 @@
-  * Copyright (C) 1996 Jakub Jelinek (jj@sunsite.mff.cuni.cz)
-  */
+ /*
+  * Prototype:
+@@ -99,6 +100,9 @@ WEAK(arm_copy_to_user)
  
-+#include <asm/export.h>
- #define FUNC(x) 		\
- 	.globl	x;		\
- 	.type	x,@function;	\
-@@ -143,8 +144,10 @@ x:
- #ifdef __KERNEL__
- FUNC(amemmove)
- FUNC(__memmove)
-+EXPORT_SYMBOL(__memmove)
- #endif
- FUNC(memmove)
-+EXPORT_SYMBOL(memmove)
- 	cmp		%o0, %o1
- 	mov		%o0, %g7
- 	bleu		9f
-@@ -202,6 +205,7 @@ FUNC(memmove)
- 	 add		%o0, 2, %o0
+ ENDPROC(arm_copy_to_user)
+ ENDPROC(__copy_to_user_std)
++#ifndef CONFIG_UACCESS_WITH_MEMCPY
++EXPORT_SYMBOL(arm_copy_to_user)
++#endif
  
- FUNC(memcpy)	/* %o0=dst %o1=src %o2=len */
-+EXPORT_SYMBOL(memcpy)
- 
- 	sub		%o0, %o1, %o4
- 	mov		%o0, %g7
-diff --git a/arch/sparc/lib/memmove.S b/arch/sparc/lib/memmove.S
-index 857ad4f..012cdb6 100644
---- a/arch/sparc/lib/memmove.S
-+++ b/arch/sparc/lib/memmove.S
-@@ -5,6 +5,7 @@
-  */
- 
- #include <linux/linkage.h>
-+#include <asm/export.h>
- 
- 	.text
- ENTRY(memmove) /* o0=dst o1=src o2=len */
-@@ -57,3 +58,4 @@ ENTRY(memmove) /* o0=dst o1=src o2=len */
- 	 stb		%g7, [%o0 - 0x1]
- 	ba,a,pt		%xcc, 99b
- ENDPROC(memmove)
-+EXPORT_SYMBOL(memmove)
-diff --git a/arch/sparc/lib/memscan_32.S b/arch/sparc/lib/memscan_32.S
-index 4ff1657..51ce690 100644
---- a/arch/sparc/lib/memscan_32.S
-+++ b/arch/sparc/lib/memscan_32.S
-@@ -4,6 +4,8 @@
-  * Copyright (C) 1996 David S. Miller (davem@caip.rutgers.edu)
-  */
- 
-+#include <asm/export.h>
-+
- /* In essence, this is just a fancy strlen. */
- 
- #define LO_MAGIC 0x01010101
-@@ -13,6 +15,8 @@
- 	.align	4
- 	.globl	__memscan_zero, __memscan_generic
- 	.globl	memscan
-+EXPORT_SYMBOL(__memscan_zero)
-+EXPORT_SYMBOL(__memscan_generic)
- __memscan_zero:
- 	/* %o0 = addr, %o1 = size */
- 	cmp	%o1, 0
-diff --git a/arch/sparc/lib/memscan_64.S b/arch/sparc/lib/memscan_64.S
-index 5686dfa..daa96f4 100644
---- a/arch/sparc/lib/memscan_64.S
-+++ b/arch/sparc/lib/memscan_64.S
-@@ -5,6 +5,8 @@
-  * Copyright (C) 1998 David S. Miller (davem@redhat.com)
-  */
- 
-+	#include <asm/export.h>
-+
- #define HI_MAGIC	0x8080808080808080
- #define LO_MAGIC	0x0101010101010101
- #define ASI_PL		0x88
-@@ -13,6 +15,8 @@
- 	.align	32
- 	.globl		__memscan_zero, __memscan_generic
- 	.globl		memscan
-+	EXPORT_SYMBOL(__memscan_zero)
-+	EXPORT_SYMBOL(__memscan_generic)
- 
- __memscan_zero:
- 	/* %o0 = bufp, %o1 = size */
-diff --git a/arch/sparc/lib/memset.S b/arch/sparc/lib/memset.S
-index f75e690..bb539b4 100644
---- a/arch/sparc/lib/memset.S
-+++ b/arch/sparc/lib/memset.S
+ 	.pushsection .text.fixup,"ax"
+ 	.align 0
+diff --git a/arch/arm/lib/csumipv6.S b/arch/arm/lib/csumipv6.S
+index 3ac6ef0..68603b5 100644
+--- a/arch/arm/lib/csumipv6.S
++++ b/arch/arm/lib/csumipv6.S
 @@ -9,6 +9,7 @@
   */
- 
- #include <asm/ptrace.h>
-+#include <asm/export.h>
- 
- /* Work around cpp -rob */
- #define ALLOC #alloc
-@@ -63,6 +64,8 @@ __bzero_begin:
- 
- 	.globl	__bzero
- 	.globl	memset
-+	EXPORT_SYMBOL(__bzero)
-+	EXPORT_SYMBOL(memset)
- 	.globl	__memset_start, __memset_end
- __memset_start:
- memset:
-diff --git a/arch/sparc/lib/muldi3.S b/arch/sparc/lib/muldi3.S
-index 9794939..17a0f49 100644
---- a/arch/sparc/lib/muldi3.S
-+++ b/arch/sparc/lib/muldi3.S
-@@ -17,6 +17,7 @@ along with GNU CC; see the file COPYING.  If not, write to
- the Free Software Foundation, 59 Temple Place - Suite 330,
- Boston, MA 02111-1307, USA.  */
- 
-+#include <asm/export.h>
- 	.text
- 	.align 4
- 	.globl __muldi3
-@@ -74,3 +75,4 @@ __muldi3:
- 	add  %l2, %l0, %i0
- 	ret 
- 	restore  %g0, %l3, %o1
-+EXPORT_SYMBOL(__muldi3)
-diff --git a/arch/sparc/lib/strlen.S b/arch/sparc/lib/strlen.S
-index 536f835..ca0e7077e 100644
---- a/arch/sparc/lib/strlen.S
-+++ b/arch/sparc/lib/strlen.S
-@@ -7,6 +7,7 @@
- 
  #include <linux/linkage.h>
- #include <asm/asm.h>
+ #include <asm/assembler.h>
 +#include <asm/export.h>
  
- #define LO_MAGIC 0x01010101
- #define HI_MAGIC 0x80808080
-@@ -78,3 +79,4 @@ ENTRY(strlen)
- 	retl
- 	 mov	2, %o0
- ENDPROC(strlen)
-+EXPORT_SYMBOL(strlen)
-diff --git a/arch/sparc/lib/strncmp_32.S b/arch/sparc/lib/strncmp_32.S
-index c0d1b56..e3fe014 100644
---- a/arch/sparc/lib/strncmp_32.S
-+++ b/arch/sparc/lib/strncmp_32.S
-@@ -4,6 +4,7 @@
+ 		.text
+ 
+@@ -30,4 +31,4 @@ ENTRY(__csum_ipv6_magic)
+ 		adcs	r0, r0, #0
+ 		ldmfd	sp!, {pc}
+ ENDPROC(__csum_ipv6_magic)
+-
++EXPORT_SYMBOL(__csum_ipv6_magic)
+diff --git a/arch/arm/lib/csumpartial.S b/arch/arm/lib/csumpartial.S
+index 984e0f2..830b20e 100644
+--- a/arch/arm/lib/csumpartial.S
++++ b/arch/arm/lib/csumpartial.S
+@@ -9,6 +9,7 @@
   */
- 
  #include <linux/linkage.h>
+ #include <asm/assembler.h>
 +#include <asm/export.h>
  
- 	.text
- ENTRY(strncmp)
-@@ -116,3 +117,4 @@ ENTRY(strncmp)
- 	retl
- 	 sub	%o3, %o0, %o0
- ENDPROC(strncmp)
-+EXPORT_SYMBOL(strncmp)
-diff --git a/arch/sparc/lib/strncmp_64.S b/arch/sparc/lib/strncmp_64.S
-index 0656627..efb5f88 100644
---- a/arch/sparc/lib/strncmp_64.S
-+++ b/arch/sparc/lib/strncmp_64.S
-@@ -6,6 +6,7 @@
+ 		.text
  
- #include <linux/linkage.h>
- #include <asm/asi.h>
-+#include <asm/export.h>
+@@ -140,3 +141,4 @@ ENTRY(csum_partial)
+ 		bne	4b
+ 		b	.Lless4
+ ENDPROC(csum_partial)
++EXPORT_SYMBOL(csum_partial)
+diff --git a/arch/arm/lib/csumpartialcopy.S b/arch/arm/lib/csumpartialcopy.S
+index d03fc71..9c3383f 100644
+--- a/arch/arm/lib/csumpartialcopy.S
++++ b/arch/arm/lib/csumpartialcopy.S
+@@ -49,5 +49,6 @@
  
- 	.text
- ENTRY(strncmp)
-@@ -28,3 +29,4 @@ ENTRY(strncmp)
- 	retl
- 	 clr	%o0
- ENDPROC(strncmp)
-+EXPORT_SYMBOL(strncmp)
-diff --git a/arch/sparc/lib/xor.S b/arch/sparc/lib/xor.S
-index 2c05641..45a49cb 100644
---- a/arch/sparc/lib/xor.S
-+++ b/arch/sparc/lib/xor.S
-@@ -13,6 +13,7 @@
- #include <asm/asi.h>
- #include <asm/dcu.h>
- #include <asm/spitfire.h>
+ #define FN_ENTRY	ENTRY(csum_partial_copy_nocheck)
+ #define FN_EXIT		ENDPROC(csum_partial_copy_nocheck)
++#define FN_EXPORT	EXPORT_SYMBOL(csum_partial_copy_nocheck)
+ 
+ #include "csumpartialcopygeneric.S"
+diff --git a/arch/arm/lib/csumpartialcopygeneric.S b/arch/arm/lib/csumpartialcopygeneric.S
+index 10b4590..8b94d20 100644
+--- a/arch/arm/lib/csumpartialcopygeneric.S
++++ b/arch/arm/lib/csumpartialcopygeneric.S
+@@ -8,6 +8,7 @@
+  * published by the Free Software Foundation.
+  */
+ #include <asm/assembler.h>
 +#include <asm/export.h>
  
  /*
-  *	Requirements:
-@@ -90,6 +91,7 @@ ENTRY(xor_vis_2)
- 	retl
- 	  wr	%g0, 0, %fprs
- ENDPROC(xor_vis_2)
-+EXPORT_SYMBOL(xor_vis_2)
+  * unsigned int
+@@ -331,3 +332,4 @@ FN_ENTRY
+ 		mov	r5, r4, get_byte_1
+ 		b	.Lexit
+ FN_EXIT
++FN_EXPORT
+diff --git a/arch/arm/lib/csumpartialcopyuser.S b/arch/arm/lib/csumpartialcopyuser.S
+index 1712f13..5d495ed 100644
+--- a/arch/arm/lib/csumpartialcopyuser.S
++++ b/arch/arm/lib/csumpartialcopyuser.S
+@@ -73,6 +73,7 @@
  
- ENTRY(xor_vis_3)
- 	rd	%fprs, %o5
-@@ -156,6 +158,7 @@ ENTRY(xor_vis_3)
- 	retl
- 	 wr	%g0, 0, %fprs
- ENDPROC(xor_vis_3)
-+EXPORT_SYMBOL(xor_vis_3)
+ #define FN_ENTRY	ENTRY(csum_partial_copy_from_user)
+ #define FN_EXIT		ENDPROC(csum_partial_copy_from_user)
++#define FN_EXPORT	EXPORT_SYMBOL(csum_partial_copy_from_user)
  
- ENTRY(xor_vis_4)
- 	rd	%fprs, %o5
-@@ -241,6 +244,7 @@ ENTRY(xor_vis_4)
- 	retl
- 	 wr	%g0, 0, %fprs
- ENDPROC(xor_vis_4)
-+EXPORT_SYMBOL(xor_vis_4)
+ #include "csumpartialcopygeneric.S"
  
- ENTRY(xor_vis_5)
- 	save	%sp, -192, %sp
-@@ -347,6 +351,7 @@ ENTRY(xor_vis_5)
- 	ret
- 	 restore
- ENDPROC(xor_vis_5)
-+EXPORT_SYMBOL(xor_vis_5)
+diff --git a/arch/arm/lib/delay.c b/arch/arm/lib/delay.c
+index 8044591..e60ce15 100644
+--- a/arch/arm/lib/delay.c
++++ b/arch/arm/lib/delay.c
+@@ -24,6 +24,7 @@
+ #include <linux/init.h>
+ #include <linux/kernel.h>
+ #include <linux/module.h>
++#include <linux/export.h>
+ #include <linux/timex.h>
  
- 	/* Niagara versions. */
- ENTRY(xor_niagara_2) /* %o0=bytes, %o1=dest, %o2=src */
-@@ -393,6 +398,7 @@ ENTRY(xor_niagara_2) /* %o0=bytes, %o1=dest, %o2=src */
- 	ret
- 	 restore
- ENDPROC(xor_niagara_2)
-+EXPORT_SYMBOL(xor_niagara_2)
+ /*
+@@ -34,6 +35,7 @@ struct arm_delay_ops arm_delay_ops = {
+ 	.const_udelay	= __loop_const_udelay,
+ 	.udelay		= __loop_udelay,
+ };
++EXPORT_SYMBOL(arm_delay_ops);
  
- ENTRY(xor_niagara_3) /* %o0=bytes, %o1=dest, %o2=src1, %o3=src2 */
- 	save		%sp, -192, %sp
-@@ -454,6 +460,7 @@ ENTRY(xor_niagara_3) /* %o0=bytes, %o1=dest, %o2=src1, %o3=src2 */
- 	ret
- 	 restore
- ENDPROC(xor_niagara_3)
-+EXPORT_SYMBOL(xor_niagara_3)
+ static const struct delay_timer *delay_timer;
+ static bool delay_calibrated;
+diff --git a/arch/arm/lib/div64.S b/arch/arm/lib/div64.S
+index a9eafe4..0c9e1c18 100644
+--- a/arch/arm/lib/div64.S
++++ b/arch/arm/lib/div64.S
+@@ -15,6 +15,7 @@
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
+ #include <asm/unwind.h>
++#include <asm/export.h>
  
- ENTRY(xor_niagara_4) /* %o0=bytes, %o1=dest, %o2=src1, %o3=src2, %o4=src3 */
- 	save		%sp, -192, %sp
-@@ -536,6 +543,7 @@ ENTRY(xor_niagara_4) /* %o0=bytes, %o1=dest, %o2=src1, %o3=src2, %o4=src3 */
- 	ret
- 	 restore
- ENDPROC(xor_niagara_4)
-+EXPORT_SYMBOL(xor_niagara_4)
+ #ifdef __ARMEB__
+ #define xh r0
+@@ -210,3 +211,4 @@ Ldiv0_64:
  
- ENTRY(xor_niagara_5) /* %o0=bytes, %o1=dest, %o2=src1, %o3=src2, %o4=src3, %o5=src4 */
- 	save		%sp, -192, %sp
-@@ -634,3 +642,4 @@ ENTRY(xor_niagara_5) /* %o0=bytes, %o1=dest, %o2=src1, %o3=src2, %o4=src3, %o5=s
- 	ret
- 	 restore
- ENDPROC(xor_niagara_5)
-+EXPORT_SYMBOL(xor_niagara_5)
+ UNWIND(.fnend)
+ ENDPROC(__do_div64)
++EXPORT_SYMBOL(__do_div64)
+diff --git a/arch/arm/lib/findbit.S b/arch/arm/lib/findbit.S
+index 7848780..26302b8 100644
+--- a/arch/arm/lib/findbit.S
++++ b/arch/arm/lib/findbit.S
+@@ -15,6 +15,7 @@
+  */
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+                 .text
+ 
+ /*
+@@ -37,6 +38,7 @@ ENTRY(_find_first_zero_bit_le)
+ 3:		mov	r0, r1			@ no free bits
+ 		ret	lr
+ ENDPROC(_find_first_zero_bit_le)
++EXPORT_SYMBOL(_find_first_zero_bit_le)
+ 
+ /*
+  * Purpose  : Find next 'zero' bit
+@@ -57,6 +59,7 @@ ENTRY(_find_next_zero_bit_le)
+ 		add	r2, r2, #1		@ align bit pointer
+ 		b	2b			@ loop for next bit
+ ENDPROC(_find_next_zero_bit_le)
++EXPORT_SYMBOL(_find_next_zero_bit_le)
+ 
+ /*
+  * Purpose  : Find a 'one' bit
+@@ -78,6 +81,7 @@ ENTRY(_find_first_bit_le)
+ 3:		mov	r0, r1			@ no free bits
+ 		ret	lr
+ ENDPROC(_find_first_bit_le)
++EXPORT_SYMBOL(_find_first_bit_le)
+ 
+ /*
+  * Purpose  : Find next 'one' bit
+@@ -97,6 +101,7 @@ ENTRY(_find_next_bit_le)
+ 		add	r2, r2, #1		@ align bit pointer
+ 		b	2b			@ loop for next bit
+ ENDPROC(_find_next_bit_le)
++EXPORT_SYMBOL(_find_next_bit_le)
+ 
+ #ifdef __ARMEB__
+ 
+@@ -116,6 +121,7 @@ ENTRY(_find_first_zero_bit_be)
+ 3:		mov	r0, r1			@ no free bits
+ 		ret	lr
+ ENDPROC(_find_first_zero_bit_be)
++EXPORT_SYMBOL(_find_first_zero_bit_be)
+ 
+ ENTRY(_find_next_zero_bit_be)
+ 		teq	r1, #0
+@@ -133,6 +139,7 @@ ENTRY(_find_next_zero_bit_be)
+ 		add	r2, r2, #1		@ align bit pointer
+ 		b	2b			@ loop for next bit
+ ENDPROC(_find_next_zero_bit_be)
++EXPORT_SYMBOL(_find_next_zero_bit_be)
+ 
+ ENTRY(_find_first_bit_be)
+ 		teq	r1, #0
+@@ -150,6 +157,7 @@ ENTRY(_find_first_bit_be)
+ 3:		mov	r0, r1			@ no free bits
+ 		ret	lr
+ ENDPROC(_find_first_bit_be)
++EXPORT_SYMBOL(_find_first_bit_be)
+ 
+ ENTRY(_find_next_bit_be)
+ 		teq	r1, #0
+@@ -166,6 +174,7 @@ ENTRY(_find_next_bit_be)
+ 		add	r2, r2, #1		@ align bit pointer
+ 		b	2b			@ loop for next bit
+ ENDPROC(_find_next_bit_be)
++EXPORT_SYMBOL(_find_next_bit_be)
+ 
+ #endif
+ 
+diff --git a/arch/arm/lib/getuser.S b/arch/arm/lib/getuser.S
+index 8ecfd15..9d09a38 100644
+--- a/arch/arm/lib/getuser.S
++++ b/arch/arm/lib/getuser.S
+@@ -31,6 +31,7 @@
+ #include <asm/assembler.h>
+ #include <asm/errno.h>
+ #include <asm/domain.h>
++#include <asm/export.h>
+ 
+ ENTRY(__get_user_1)
+ 	check_uaccess r0, 1, r1, r2, __get_user_bad
+@@ -38,6 +39,7 @@ ENTRY(__get_user_1)
+ 	mov	r0, #0
+ 	ret	lr
+ ENDPROC(__get_user_1)
++EXPORT_SYMBOL(__get_user_1)
+ 
+ ENTRY(__get_user_2)
+ 	check_uaccess r0, 2, r1, r2, __get_user_bad
+@@ -58,6 +60,7 @@ rb	.req	r0
+ 	mov	r0, #0
+ 	ret	lr
+ ENDPROC(__get_user_2)
++EXPORT_SYMBOL(__get_user_2)
+ 
+ ENTRY(__get_user_4)
+ 	check_uaccess r0, 4, r1, r2, __get_user_bad
+@@ -65,6 +68,7 @@ ENTRY(__get_user_4)
+ 	mov	r0, #0
+ 	ret	lr
+ ENDPROC(__get_user_4)
++EXPORT_SYMBOL(__get_user_4)
+ 
+ ENTRY(__get_user_8)
+ 	check_uaccess r0, 8, r1, r2, __get_user_bad
+@@ -78,6 +82,7 @@ ENTRY(__get_user_8)
+ 	mov	r0, #0
+ 	ret	lr
+ ENDPROC(__get_user_8)
++EXPORT_SYMBOL(__get_user_8)
+ 
+ #ifdef __ARMEB__
+ ENTRY(__get_user_32t_8)
+@@ -91,6 +96,7 @@ ENTRY(__get_user_32t_8)
+ 	mov	r0, #0
+ 	ret	lr
+ ENDPROC(__get_user_32t_8)
++EXPORT_SYMBOL(__get_user_32t_8)
+ 
+ ENTRY(__get_user_64t_1)
+ 	check_uaccess r0, 1, r1, r2, __get_user_bad8
+@@ -98,6 +104,7 @@ ENTRY(__get_user_64t_1)
+ 	mov	r0, #0
+ 	ret	lr
+ ENDPROC(__get_user_64t_1)
++EXPORT_SYMBOL(__get_user_64t_1)
+ 
+ ENTRY(__get_user_64t_2)
+ 	check_uaccess r0, 2, r1, r2, __get_user_bad8
+@@ -114,6 +121,7 @@ rb	.req	r0
+ 	mov	r0, #0
+ 	ret	lr
+ ENDPROC(__get_user_64t_2)
++EXPORT_SYMBOL(__get_user_64t_2)
+ 
+ ENTRY(__get_user_64t_4)
+ 	check_uaccess r0, 4, r1, r2, __get_user_bad8
+@@ -121,6 +129,7 @@ ENTRY(__get_user_64t_4)
+ 	mov	r0, #0
+ 	ret	lr
+ ENDPROC(__get_user_64t_4)
++EXPORT_SYMBOL(__get_user_64t_4)
+ #endif
+ 
+ __get_user_bad8:
+diff --git a/arch/arm/lib/io-readsb.S b/arch/arm/lib/io-readsb.S
+index c31b2f3..3dff7a3 100644
+--- a/arch/arm/lib/io-readsb.S
++++ b/arch/arm/lib/io-readsb.S
+@@ -9,6 +9,7 @@
+  */
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ .Linsb_align:	rsb	ip, ip, #4
+ 		cmp	ip, r2
+@@ -121,3 +122,4 @@ ENTRY(__raw_readsb)
+ 
+ 		ldmfd	sp!, {r4 - r6, pc}
+ ENDPROC(__raw_readsb)
++EXPORT_SYMBOL(__raw_readsb)
+diff --git a/arch/arm/lib/io-readsl.S b/arch/arm/lib/io-readsl.S
+index 2ed86fa..bfd3968 100644
+--- a/arch/arm/lib/io-readsl.S
++++ b/arch/arm/lib/io-readsl.S
+@@ -9,6 +9,7 @@
+  */
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ ENTRY(__raw_readsl)
+ 		teq	r2, #0		@ do we have to check for the zero len?
+@@ -77,3 +78,4 @@ ENTRY(__raw_readsl)
+ 		strb	r3, [r1, #0]
+ 		ret	lr
+ ENDPROC(__raw_readsl)
++EXPORT_SYMBOL(__raw_readsl)
+diff --git a/arch/arm/lib/io-readsw-armv3.S b/arch/arm/lib/io-readsw-armv3.S
+index 413da99..b3af3db 100644
+--- a/arch/arm/lib/io-readsw-armv3.S
++++ b/arch/arm/lib/io-readsw-armv3.S
+@@ -9,6 +9,7 @@
+  */
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ .Linsw_bad_alignment:
+ 		adr	r0, .Linsw_bad_align_msg
+@@ -103,4 +104,4 @@ ENTRY(__raw_readsw)
+ 
+ 		ldmfd	sp!, {r4, r5, r6, pc}
+ 
+-
++EXPORT_SYMBOL(__raw_readsw)
+diff --git a/arch/arm/lib/io-readsw-armv4.S b/arch/arm/lib/io-readsw-armv4.S
+index d9a45e9..3c7a7a4 100644
+--- a/arch/arm/lib/io-readsw-armv4.S
++++ b/arch/arm/lib/io-readsw-armv4.S
+@@ -9,6 +9,7 @@
+  */
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ 		.macro	pack, rd, hw1, hw2
+ #ifndef __ARMEB__
+@@ -129,3 +130,4 @@ ENTRY(__raw_readsw)
+ 		strneb	ip, [r1]
+ 		ldmfd	sp!, {r4, pc}
+ ENDPROC(__raw_readsw)
++EXPORT_SYMBOL(__raw_readsw)
+diff --git a/arch/arm/lib/io-writesb.S b/arch/arm/lib/io-writesb.S
+index a46bbc9..fa36335 100644
+--- a/arch/arm/lib/io-writesb.S
++++ b/arch/arm/lib/io-writesb.S
+@@ -9,6 +9,7 @@
+  */
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ 		.macro	outword, rd
+ #ifndef __ARMEB__
+@@ -92,3 +93,4 @@ ENTRY(__raw_writesb)
+ 
+ 		ldmfd	sp!, {r4, r5, pc}
+ ENDPROC(__raw_writesb)
++EXPORT_SYMBOL(__raw_writesb)
+diff --git a/arch/arm/lib/io-writesl.S b/arch/arm/lib/io-writesl.S
+index 4ea2435..98ed6ae 100644
+--- a/arch/arm/lib/io-writesl.S
++++ b/arch/arm/lib/io-writesl.S
+@@ -9,6 +9,7 @@
+  */
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ ENTRY(__raw_writesl)
+ 		teq	r2, #0		@ do we have to check for the zero len?
+@@ -65,3 +66,4 @@ ENTRY(__raw_writesl)
+ 		bne	6b
+ 		ret	lr
+ ENDPROC(__raw_writesl)
++EXPORT_SYMBOL(__raw_writesl)
+diff --git a/arch/arm/lib/io-writesw-armv3.S b/arch/arm/lib/io-writesw-armv3.S
+index 121789e..577184c 100644
+--- a/arch/arm/lib/io-writesw-armv3.S
++++ b/arch/arm/lib/io-writesw-armv3.S
+@@ -9,6 +9,7 @@
+  */
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ .Loutsw_bad_alignment:
+ 		adr	r0, .Loutsw_bad_align_msg
+@@ -124,3 +125,4 @@ ENTRY(__raw_writesw)
+ 		strne	ip, [r0]
+ 
+ 		ldmfd	sp!, {r4, r5, r6, pc}
++EXPORT_SYMBOL(__raw_writesw)
+diff --git a/arch/arm/lib/io-writesw-armv4.S b/arch/arm/lib/io-writesw-armv4.S
+index 269f90c..e335f48 100644
+--- a/arch/arm/lib/io-writesw-armv4.S
++++ b/arch/arm/lib/io-writesw-armv4.S
+@@ -9,6 +9,7 @@
+  */
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ 		.macro	outword, rd
+ #ifndef __ARMEB__
+@@ -98,3 +99,4 @@ ENTRY(__raw_writesw)
+ 		strneh	ip, [r0]
+ 		ret	lr
+ ENDPROC(__raw_writesw)
++EXPORT_SYMBOL(__raw_writesw)
+diff --git a/arch/arm/lib/lib1funcs.S b/arch/arm/lib/lib1funcs.S
+index 9397b2e..f541bc0 100644
+--- a/arch/arm/lib/lib1funcs.S
++++ b/arch/arm/lib/lib1funcs.S
+@@ -36,6 +36,7 @@ Boston, MA 02111-1307, USA.  */
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
+ #include <asm/unwind.h>
++#include <asm/export.h>
+ 
+ .macro ARM_DIV_BODY dividend, divisor, result, curbit
+ 
+@@ -238,6 +239,8 @@ UNWIND(.fnstart)
+ UNWIND(.fnend)
+ ENDPROC(__udivsi3)
+ ENDPROC(__aeabi_uidiv)
++EXPORT_SYMBOL(__udivsi3)
++EXPORT_SYMBOL(__aeabi_uidiv)
+ 
+ ENTRY(__umodsi3)
+ UNWIND(.fnstart)
+@@ -256,6 +259,7 @@ UNWIND(.fnstart)
+ 
+ UNWIND(.fnend)
+ ENDPROC(__umodsi3)
++EXPORT_SYMBOL(__umodsi3)
+ 
+ #ifdef CONFIG_ARM_PATCH_IDIV
+ 	.align 3
+@@ -303,6 +307,8 @@ UNWIND(.fnstart)
+ UNWIND(.fnend)
+ ENDPROC(__divsi3)
+ ENDPROC(__aeabi_idiv)
++EXPORT_SYMBOL(__divsi3)
++EXPORT_SYMBOL(__aeabi_idiv)
+ 
+ ENTRY(__modsi3)
+ UNWIND(.fnstart)
+@@ -327,6 +333,7 @@ UNWIND(.fnstart)
+ 
+ UNWIND(.fnend)
+ ENDPROC(__modsi3)
++EXPORT_SYMBOL(__modsi3)
+ 
+ #ifdef CONFIG_AEABI
+ 
+@@ -343,6 +350,7 @@ UNWIND(.save {r0, r1, ip, lr}	)
+ 
+ UNWIND(.fnend)
+ ENDPROC(__aeabi_uidivmod)
++EXPORT_SYMBOL(__aeabi_uidivmod)
+ 
+ ENTRY(__aeabi_idivmod)
+ UNWIND(.fnstart)
+@@ -356,6 +364,7 @@ UNWIND(.save {r0, r1, ip, lr}	)
+ 
+ UNWIND(.fnend)
+ ENDPROC(__aeabi_idivmod)
++EXPORT_SYMBOL(__aeabi_idivmod)
+ 
+ #endif
+ 
+diff --git a/arch/arm/lib/lshrdi3.S b/arch/arm/lib/lshrdi3.S
+index 922dcd8..e408339 100644
+--- a/arch/arm/lib/lshrdi3.S
++++ b/arch/arm/lib/lshrdi3.S
+@@ -28,6 +28,7 @@ Boston, MA 02110-1301, USA.  */
+ 
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ #ifdef __ARMEB__
+ #define al r1
+@@ -52,3 +53,5 @@ ENTRY(__aeabi_llsr)
+ 
+ ENDPROC(__lshrdi3)
+ ENDPROC(__aeabi_llsr)
++EXPORT_SYMBOL(__lshrdi3)
++EXPORT_SYMBOL(__aeabi_llsr)
+diff --git a/arch/arm/lib/memchr.S b/arch/arm/lib/memchr.S
+index 74a5bed..44182bf 100644
+--- a/arch/arm/lib/memchr.S
++++ b/arch/arm/lib/memchr.S
+@@ -11,6 +11,7 @@
+  */
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ 	.text
+ 	.align	5
+@@ -24,3 +25,4 @@ ENTRY(memchr)
+ 2:	movne	r0, #0
+ 	ret	lr
+ ENDPROC(memchr)
++EXPORT_SYMBOL(memchr)
+diff --git a/arch/arm/lib/memcpy.S b/arch/arm/lib/memcpy.S
+index 64111bd..1be5b6d 100644
+--- a/arch/arm/lib/memcpy.S
++++ b/arch/arm/lib/memcpy.S
+@@ -13,6 +13,7 @@
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
+ #include <asm/unwind.h>
++#include <asm/export.h>
+ 
+ #define LDR1W_SHIFT	0
+ #define STR1W_SHIFT	0
+@@ -68,3 +69,5 @@ ENTRY(memcpy)
+ 
+ ENDPROC(memcpy)
+ ENDPROC(mmiocpy)
++EXPORT_SYMBOL(memcpy)
++EXPORT_SYMBOL(mmiocpy)
+diff --git a/arch/arm/lib/memmove.S b/arch/arm/lib/memmove.S
+index 69a9d47..71dcc54 100644
+--- a/arch/arm/lib/memmove.S
++++ b/arch/arm/lib/memmove.S
+@@ -13,6 +13,7 @@
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
+ #include <asm/unwind.h>
++#include <asm/export.h>
+ 
+ 		.text
+ 
+@@ -225,3 +226,4 @@ ENTRY(memmove)
+ 18:		backward_copy_shift	push=24	pull=8
+ 
+ ENDPROC(memmove)
++EXPORT_SYMBOL(memmove)
+diff --git a/arch/arm/lib/memset.S b/arch/arm/lib/memset.S
+index 3c65e3b..7b72044 100644
+--- a/arch/arm/lib/memset.S
++++ b/arch/arm/lib/memset.S
+@@ -12,6 +12,7 @@
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
+ #include <asm/unwind.h>
++#include <asm/export.h>
+ 
+ 	.text
+ 	.align	5
+@@ -135,3 +136,5 @@ UNWIND( .fnstart            )
+ UNWIND( .fnend   )
+ ENDPROC(memset)
+ ENDPROC(mmioset)
++EXPORT_SYMBOL(memset)
++EXPORT_SYMBOL(mmioset)
+diff --git a/arch/arm/lib/memzero.S b/arch/arm/lib/memzero.S
+index 0eded95..6dec26e 100644
+--- a/arch/arm/lib/memzero.S
++++ b/arch/arm/lib/memzero.S
+@@ -10,6 +10,7 @@
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
+ #include <asm/unwind.h>
++#include <asm/export.h>
+ 
+ 	.text
+ 	.align	5
+@@ -135,3 +136,4 @@ UNWIND(	.fnstart			)
+ 	ret	lr			@ 1
+ UNWIND(	.fnend				)
+ ENDPROC(__memzero)
++EXPORT_SYMBOL(__memzero)
+diff --git a/arch/arm/lib/muldi3.S b/arch/arm/lib/muldi3.S
+index 2043059..b8f1238 100644
+--- a/arch/arm/lib/muldi3.S
++++ b/arch/arm/lib/muldi3.S
+@@ -12,6 +12,7 @@
+ 
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ #ifdef __ARMEB__
+ #define xh r0
+@@ -46,3 +47,5 @@ ENTRY(__aeabi_lmul)
+ 
+ ENDPROC(__muldi3)
+ ENDPROC(__aeabi_lmul)
++EXPORT_SYMBOL(__muldi3)
++EXPORT_SYMBOL(__aeabi_lmul)
+diff --git a/arch/arm/lib/putuser.S b/arch/arm/lib/putuser.S
+index 38d660d..11de126 100644
+--- a/arch/arm/lib/putuser.S
++++ b/arch/arm/lib/putuser.S
+@@ -31,6 +31,7 @@
+ #include <asm/assembler.h>
+ #include <asm/errno.h>
+ #include <asm/domain.h>
++#include <asm/export.h>
+ 
+ ENTRY(__put_user_1)
+ 	check_uaccess r0, 1, r1, ip, __put_user_bad
+@@ -38,6 +39,7 @@ ENTRY(__put_user_1)
+ 	mov	r0, #0
+ 	ret	lr
+ ENDPROC(__put_user_1)
++EXPORT_SYMBOL(__put_user_1)
+ 
+ ENTRY(__put_user_2)
+ 	check_uaccess r0, 2, r1, ip, __put_user_bad
+@@ -62,6 +64,7 @@ ENTRY(__put_user_2)
+ 	mov	r0, #0
+ 	ret	lr
+ ENDPROC(__put_user_2)
++EXPORT_SYMBOL(__put_user_2)
+ 
+ ENTRY(__put_user_4)
+ 	check_uaccess r0, 4, r1, ip, __put_user_bad
+@@ -69,6 +72,7 @@ ENTRY(__put_user_4)
+ 	mov	r0, #0
+ 	ret	lr
+ ENDPROC(__put_user_4)
++EXPORT_SYMBOL(__put_user_4)
+ 
+ ENTRY(__put_user_8)
+ 	check_uaccess r0, 8, r1, ip, __put_user_bad
+@@ -82,6 +86,7 @@ ENTRY(__put_user_8)
+ 	mov	r0, #0
+ 	ret	lr
+ ENDPROC(__put_user_8)
++EXPORT_SYMBOL(__put_user_8)
+ 
+ __put_user_bad:
+ 	mov	r0, #-EFAULT
+diff --git a/arch/arm/lib/strchr.S b/arch/arm/lib/strchr.S
+index 013d64c..7301f6e 100644
+--- a/arch/arm/lib/strchr.S
++++ b/arch/arm/lib/strchr.S
+@@ -11,6 +11,7 @@
+  */
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ 		.text
+ 		.align	5
+@@ -25,3 +26,4 @@ ENTRY(strchr)
+ 		subeq	r0, r0, #1
+ 		ret	lr
+ ENDPROC(strchr)
++EXPORT_SYMBOL(strchr)
+diff --git a/arch/arm/lib/strrchr.S b/arch/arm/lib/strrchr.S
+index 3cec1c7..aaf9fd9 100644
+--- a/arch/arm/lib/strrchr.S
++++ b/arch/arm/lib/strrchr.S
+@@ -11,6 +11,7 @@
+  */
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ 		.text
+ 		.align	5
+@@ -24,3 +25,4 @@ ENTRY(strrchr)
+ 		mov	r0, r3
+ 		ret	lr
+ ENDPROC(strrchr)
++EXPORT_SYMBOL(strrchr)
+diff --git a/arch/arm/lib/uaccess_with_memcpy.c b/arch/arm/lib/uaccess_with_memcpy.c
+index 6bd1089..1626e3a 100644
+--- a/arch/arm/lib/uaccess_with_memcpy.c
++++ b/arch/arm/lib/uaccess_with_memcpy.c
+@@ -19,6 +19,7 @@
+ #include <linux/gfp.h>
+ #include <linux/highmem.h>
+ #include <linux/hugetlb.h>
++#include <linux/export.h>
+ #include <asm/current.h>
+ #include <asm/page.h>
+ 
+@@ -156,6 +157,7 @@ arm_copy_to_user(void __user *to, const void *from, unsigned long n)
+ 	}
+ 	return n;
+ }
++EXPORT_SYMBOL(arm_copy_to_user);
+ 	
+ static unsigned long noinline
+ __clear_user_memset(void __user *addr, unsigned long n)
+@@ -213,6 +215,7 @@ unsigned long arm_clear_user(void __user *addr, unsigned long n)
+ 	}
+ 	return n;
+ }
++EXPORT_SYMBOL(arm_clear_user);
+ 
+ #if 0
+ 
+diff --git a/arch/arm/lib/ucmpdi2.S b/arch/arm/lib/ucmpdi2.S
+index ad4a630..127a91a 100644
+--- a/arch/arm/lib/ucmpdi2.S
++++ b/arch/arm/lib/ucmpdi2.S
+@@ -12,6 +12,7 @@
+ 
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ #ifdef __ARMEB__
+ #define xh r0
+@@ -35,6 +36,7 @@ ENTRY(__ucmpdi2)
+ 	ret	lr
+ 
+ ENDPROC(__ucmpdi2)
++EXPORT_SYMBOL(__ucmpdi2)
+ 
+ #ifdef CONFIG_AEABI
+ 
+@@ -48,6 +50,7 @@ ENTRY(__aeabi_ulcmp)
+ 	ret	lr
+ 
+ ENDPROC(__aeabi_ulcmp)
++EXPORT_SYMBOL(__aeabi_ulcmp)
+ 
+ #endif
+ 
+diff --git a/arch/arm/mach-imx/Makefile b/arch/arm/mach-imx/Makefile
+index fb689d8..c4e3317 100644
+--- a/arch/arm/mach-imx/Makefile
++++ b/arch/arm/mach-imx/Makefile
+@@ -32,7 +32,6 @@ endif
+ 
+ ifdef CONFIG_SND_IMX_SOC
+ obj-y += ssi-fiq.o
+-obj-y += ssi-fiq-ksym.o
+ endif
+ 
+ # i.MX1 based machines
+diff --git a/arch/arm/mach-imx/ssi-fiq-ksym.c b/arch/arm/mach-imx/ssi-fiq-ksym.c
+deleted file mode 100644
+index 792090f..0000000
+--- a/arch/arm/mach-imx/ssi-fiq-ksym.c
++++ /dev/null
+@@ -1,20 +0,0 @@
+-/*
+- * Exported ksyms for the SSI FIQ handler
+- *
+- * Copyright (C) 2009, Sascha Hauer <s.hauer@pengutronix.de>
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 as
+- * published by the Free Software Foundation.
+- */
+-
+-#include <linux/module.h>
+-
+-#include <linux/platform_data/asoc-imx-ssi.h>
+-
+-EXPORT_SYMBOL(imx_ssi_fiq_tx_buffer);
+-EXPORT_SYMBOL(imx_ssi_fiq_rx_buffer);
+-EXPORT_SYMBOL(imx_ssi_fiq_start);
+-EXPORT_SYMBOL(imx_ssi_fiq_end);
+-EXPORT_SYMBOL(imx_ssi_fiq_base);
+-
+diff --git a/arch/arm/mach-imx/ssi-fiq.S b/arch/arm/mach-imx/ssi-fiq.S
+index a8b93c5..fd7917f 100644
+--- a/arch/arm/mach-imx/ssi-fiq.S
++++ b/arch/arm/mach-imx/ssi-fiq.S
+@@ -8,6 +8,7 @@
+ 
+ #include <linux/linkage.h>
+ #include <asm/assembler.h>
++#include <asm/export.h>
+ 
+ /*
+  * r8  = bit 0-15: tx offset, bit 16-31: tx buffer size
+@@ -144,4 +145,8 @@ imx_ssi_fiq_tx_buffer:
+ 		.word 0x0
+ .L_imx_ssi_fiq_end:
+ imx_ssi_fiq_end:
+-
++EXPORT_SYMBOL(imx_ssi_fiq_tx_buffer)
++EXPORT_SYMBOL(imx_ssi_fiq_rx_buffer)
++EXPORT_SYMBOL(imx_ssi_fiq_start)
++EXPORT_SYMBOL(imx_ssi_fiq_end)
++EXPORT_SYMBOL(imx_ssi_fiq_base)
 -- 
 2.1.4
