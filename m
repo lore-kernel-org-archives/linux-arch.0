@@ -1,15 +1,11 @@
 From: Jeffrey Merkey <jeffmerkey@gmail.com>
-Subject: [PATCH v2 2/4] Add WARN_XX() debugging options
-Date: Mon,  1 Feb 2016 13:45:20 -0700
-Message-ID: <1454359520-23133-1-git-send-email-jeffmerkey@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oi0-f67.google.com ([209.85.218.67]:35738 "EHLO
-	mail-oi0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753092AbcBAUpX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Feb 2016 15:45:23 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH v3 2/4] Add WARN_XX() debugging options
+Date: Mon,  1 Feb 2016 15:28:01 -0700
+Message-ID: <1454365681-14949-1-git-send-email-jeffmerkey@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 This patch series adds config options which can be set during compile to
 direct the compiler to output a breakpoint instruction anywhere a BUG()
