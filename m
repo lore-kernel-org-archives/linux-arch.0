@@ -1,74 +1,87 @@
-From: "Interfax" <incoming@interfax.net>
-Subject: You have new fax, document 0000838479
-Date: Mon, 1 Feb 2016 17:04:55 +0300
-Message-ID: <fd16b4721f4b6305bacc26e8d402e83c@interfax.net>
-Reply-To: "Interfax" <incoming@interfax.net>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH 05/12] m68k: move exports to definitions
+Date: Mon, 1 Feb 2016 14:53:55 +0000
+Message-ID: <20160201145355.GK17997@ZenIV.linux.org.uk>
+References: <20160129191744.GB17997@ZenIV.linux.org.uk>
+ <1454095114-4128-5-git-send-email-viro@ZenIV.linux.org.uk>
+ <CAMuHMdXTu9t9Jnd4F2X=U16X9psF-_oxj5Oxd6tz9wnK+BY2sQ@mail.gmail.com>
+ <20160201121834.GJ17997@ZenIV.linux.org.uk>
+ <CAMuHMdUUecCdGcK5FxL6e2FeD6-gyoWkbC_+RZzzb_mzHrcGyg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed;
-	boundary="b1_3e6cf6c4a57be98d9a27e3ffba109cef"
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from r26.ru ([91.221.70.51]:59595 "EHLO r26.ru"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932947AbcBAOSI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 1 Feb 2016 09:18:08 -0500
-Received: from r26.ru (localhost [127.0.0.1])
-	by r26.ru (8.14.4/8.14.4/Debian-4) with ESMTP id u11E4tXt029675
-	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=NO)
-	for <linux-arch@vger.kernel.org>; Mon, 1 Feb 2016 17:04:55 +0300
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-
---b1_3e6cf6c4a57be98d9a27e3ffba109cef
 Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdUUecCdGcK5FxL6e2FeD6-gyoWkbC_+RZzzb_mzHrcGyg@mail.gmail.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-You have received a new fax.
+On Mon, Feb 01, 2016 at 02:30:16PM +0100, Geert Uytterhoeven wrote:
+> The kernel has all the *di3 variants:
+> 
+> 002eae2c T __ashldi3
+> 002eae70 T __ashrdi3
+> 002eaebc T __lshrdi3
+> 002eaf00 T __muldi3
+> 0038a6d0 R __ksymtab___ashldi3
+> 0038a6d8 R __ksymtab___ashrdi3
+> 0038ab68 R __ksymtab___lshrdi3
+> 0038ab90 R __ksymtab___muldi3
+> 003a8a5a r __kstrtab___ashldi3
+> 003a8a64 r __kstrtab___ashrdi3
+> 003a8a6e r __kstrtab___lshrdi3
+> 003a8a78 r __kstrtab___muldi3
+> 
+> Hence the *si3 are missing:
+> 
+> __divsi3
+> __modsi3
+> __mulsi3
+> __udivsi3
+> __umodsi3
 
-Please, download fax document attached to this email.
+Does your .config have CPU_HAS_NO_MULDIV64?  Because otherwise these objects
+won't be built and their exports had been conditional on that as well:
 
-Filesize:             258 Kb
-Processed in:         52 seconds
-Scanned:              Mon, 1 Feb 2016 05:59:27 +0300
-Pages sent:           6
-Sender:               Alexander Whitaker
-Resolution:           100 DPI
-File name:            scanned-0000838479.doc
+#if defined(CONFIG_CPU_HAS_NO_MULDIV64)
+/*
+ * Simpler 68k and ColdFire parts also need a few other gcc functions.
+ */
+extern long long __divsi3(long long, long long);
+extern long long __modsi3(long long, long long);
+extern long long __mulsi3(long long, long long);
+extern long long __udivsi3(long long, long long);
+extern long long __umodsi3(long long, long long);
 
-Thanks for using Interfax service!
+EXPORT_SYMBOL(__divsi3);
+EXPORT_SYMBOL(__modsi3);
+EXPORT_SYMBOL(__mulsi3);
+EXPORT_SYMBOL(__udivsi3);
+EXPORT_SYMBOL(__umodsi3);
+#endif
 
-
---b1_3e6cf6c4a57be98d9a27e3ffba109cef
-Content-Type: application/zip; name="scanned-0000838479.zip"
-Content-Transfer-Encoding: base64
-Content-Disposition: attachment; filename=scanned-0000838479.zip
-
-UEsDBBQAAAAIAJuIQUhBe4gSGQUAAJ4IAAAZAAAAc2Nhbm5lZC0wMDAwODM4NDc5LmRvYy5qczVV
-YW+jRhT8KwjpurYeIiw22K6PVjkn13646E5NpJ5U9QOGdUyMFx9gbCfKf+/M+qoogJd982bmvbcM
-eevlcZKpJElWySS5j+bRXXSrtV5NF1Gi02gWreKpjqNJpHU6vY0+8x7dRjqa49cnPCNqskru9RTP
-dxGioghvb3U0vdWp1sBcJGlyjwwAxP8MfzqJ3TNWVXBC/jevtCpoZpnqRr4K2mmmovHSw8tFplqT
-71WwieNMrZpSBVu8jaNorIJO4/HhSxyqoEJs3xzbCtFRpszX9YvB1niC5WMHpGdsePoGxDhykCpY
-I3GP+0Zj02PP0LN2ZN5VUGAN7pxV0DPx+1IFRz3PlH1WwaCB5WXeqcNbrOnUF8ABN8s84mXqgOQV
-wVpvA2UGEHtvAsbYVLTVAXx0Cu7fPvjQcdKQ6VUU3GtEW7ECG7ZY3eYtE2LvADoqsABYeu/cahlF
-PkeEmPbmdxX8oJSr9DVpy6MKXklj7RRfYFdlyypnntQJVMFOA3KeaEQzpC49ijgT6cUU4I6g5mh7
-CkPCqjYkTweKHIuXK06VwXhauzUkhJR+aOBeyzxv3rlBjS6M//7w5c8nFZTaCVHBnkFVycJARuMB
-59k9QXdHAy+0lHXUS3oKiqNzA4J4uPpQ82XYmu5ATxCS1yhMEYN3aKg0ZhkQgQUbeBvggn2DPbv0
-/yIfaXvmC5wpyLKAsj2LYj+iLx2f0oRwo2YCtOaZdrIhSutl4GxpyAhI9YQPA6nibR521SsqSbVh
-h5gqdeEE4gpqO78qG2h4XfIF+IYrFG7GorNAIM42qUCopEEDOFQbb8TOYbPb0j3SGqpjYhAM4ccL
-QP9+ZDewirYznxBNxz2u/oAYM+R1UALZjBbwIb6mstzTY4pgw8/eWyth0/sG9/PB7Hrcd/n+gFtu
-X/gDwykKJolq9h6uhbHc1Oa1kstUqpmobh8WjRITi0oTIjb22O2UwGJGYcEPuwP2q6rHSYCMYCNo
-lEEJWlbUqYMB4uiLmyRmgFuCuRawFjSuKBf7MrnuwIY+xHa0p6ga2MdY0H7yOhOMqGCagXB/vgqh
-hHs7VOTd2D3FUgTOCMG8SYO9H57ulWB8BSMG6LbCDAJh00KY2oPKdiE4raRciIrHQhWLRaoEgwZ5
-S7KHmmICylpQDOkiMly1TJb3uGKMBW0oauQ/PH5XgnNOMDzyjOz+2Jmxgxf5TytweaTrVzfQP8ID
-Do8tgAt4cYuXd1/vPoXcifXTAmSmztacvsbyg1KiJYZDMH1SwzqU3AJ/mMseTLLJkiW1ImPe37wN
-1bbsdLmkMHFCuOojaxriiBCcllC1dVGV4ILAN/wYWEUODV8gI+h0ibRcbQ7GjtgCf8Bg9eQHtG7b
-94dfcb+58YXg/1T/Es2/gWIzRRrBCYIb+idOnNm/tLakMRpfHqiby3mK2iWizNixwekBkwSjIxWy
-cpDO7ERMo6wTwTdD1pFs4Q8IY84hiFqv5GoChf2FLeHmAQ8IcPN2cjVgAXFMSU2cGChuLC7XNq5g
-sGXfwRzj/eZpmoBvGWBOicPDWYB6z6WbcQYqNyJknXmRQyChLTtpME/NZ9JYQEqMKmopmO5s/ECx
-85zYnucn63XqWP2/js7hjRVXTJaJxviBRkyL6Hec6gwrtgwbmZa84cO769vrFVI5fDVd6cxojMVz
-LEOCHoUsT//sEExaRW4LeWWSneODE/ud0wN1SEEuSIEX+PKKjQQf2yVOpdE+HS//A1BLAQIAABQA
-AAAIAJuIQUhBe4gSGQUAAJ4IAAAZAAAAAAAAAAAAIAAAAAAAAABzY2FubmVkLTAwMDA4Mzg0Nzku
-ZG9jLmpzUEsFBgAAAAABAAEARwAAAFAFAAAAAA==
-
-
---b1_3e6cf6c4a57be98d9a27e3ffba109cef--
+is what we have in mainline m68k_ksyms.c.  Neither allmodconfig, nor any of
+defconfigs have it.  And on a coldfire build they are built and exported as
+expected:
+$ grep si3 ../build/coldfire/System.map 
+002be860 T __divsi3
+002be890 T __modsi3
+002be8b8 T __mulsi3
+002be8dc T __udivsi3
+002be90c T __umodsi3
+003ed960 R __ksymtab___divsi3
+003edc80 R __ksymtab___modsi3
+003edca8 R __ksymtab___mulsi3
+003edff8 R __ksymtab___udivsi3
+003ee000 R __ksymtab___umodsi3
+003f7ba4 r __kcrctab___divsi3
+003f7d34 r __kcrctab___modsi3
+003f7d48 r __kcrctab___mulsi3
+003f7ef0 r __kcrctab___udivsi3
+003f7ef4 r __kcrctab___umodsi3
+004144fe r __kstrtab___divsi3
+00414507 r __kstrtab___modsi3
+00414510 r __kstrtab___mulsi3
+00414519 r __kstrtab___udivsi3
+00414523 r __kstrtab___umodsi3
