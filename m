@@ -1,87 +1,59 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 05/12] m68k: move exports to definitions
-Date: Mon, 1 Feb 2016 16:32:02 +0100
-Message-ID: <CAMuHMdUsi3DuBTMjocYGd_nDcxR6ueCZ9s880kZYapG6XdGScg@mail.gmail.com>
-References: <20160129191744.GB17997@ZenIV.linux.org.uk>
-	<1454095114-4128-5-git-send-email-viro@ZenIV.linux.org.uk>
-	<CAMuHMdXTu9t9Jnd4F2X=U16X9psF-_oxj5Oxd6tz9wnK+BY2sQ@mail.gmail.com>
-	<20160201121834.GJ17997@ZenIV.linux.org.uk>
-	<CAMuHMdUUecCdGcK5FxL6e2FeD6-gyoWkbC_+RZzzb_mzHrcGyg@mail.gmail.com>
-	<20160201145355.GK17997@ZenIV.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20160201145355.GK17997@ZenIV.linux.org.uk>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Linux-Arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+From: Jeffrey Merkey <jeffmerkey@gmail.com>
+Subject: [PATCH 2/4] Add WARN_XX() debugging options
+Date: Mon,  1 Feb 2016 13:01:37 -0700
+Message-ID: <1454356897-12378-1-git-send-email-jeffmerkey@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Al,
+This patch series adds config options which can be set during compile to
+direct the compiler to output a breakpoint instruction anywhere a BUG()
+or WARN() macro has been placed in the kernel to trigger the system to
+enter a debugger if a bug is detected by the system.  Use of this
+compile time option also allows conditional breakpoints to be set in the
+kernel with these currently used macros.
 
-On Mon, Feb 1, 2016 at 3:53 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> On Mon, Feb 01, 2016 at 02:30:16PM +0100, Geert Uytterhoeven wrote:
->> The kernel has all the *di3 variants:
->>
->> 002eae2c T __ashldi3
->> 002eae70 T __ashrdi3
->> 002eaebc T __lshrdi3
->> 002eaf00 T __muldi3
->> 0038a6d0 R __ksymtab___ashldi3
->> 0038a6d8 R __ksymtab___ashrdi3
->> 0038ab68 R __ksymtab___lshrdi3
->> 0038ab90 R __ksymtab___muldi3
->> 003a8a5a r __kstrtab___ashldi3
->> 003a8a64 r __kstrtab___ashrdi3
->> 003a8a6e r __kstrtab___lshrdi3
->> 003a8a78 r __kstrtab___muldi3
->>
->> Hence the *si3 are missing:
->>
->> __divsi3
->> __modsi3
->> __mulsi3
->> __udivsi3
->> __umodsi3
->
-> Does your .config have CPU_HAS_NO_MULDIV64?  Because otherwise these objects
-> won't be built and their exports had been conditional on that as well:
->
-> #if defined(CONFIG_CPU_HAS_NO_MULDIV64)
-> /*
->  * Simpler 68k and ColdFire parts also need a few other gcc functions.
->  */
-> extern long long __divsi3(long long, long long);
-> extern long long __modsi3(long long, long long);
-> extern long long __mulsi3(long long, long long);
-> extern long long __udivsi3(long long, long long);
-> extern long long __umodsi3(long long, long long);
->
-> EXPORT_SYMBOL(__divsi3);
-> EXPORT_SYMBOL(__modsi3);
-> EXPORT_SYMBOL(__mulsi3);
-> EXPORT_SYMBOL(__udivsi3);
-> EXPORT_SYMBOL(__umodsi3);
-> #endif
+This addition is extremely useful for debugging hard and soft lockups
+real time and quickly from a console debugger, and other areas of the
+kernel.
 
-Oh, I hadn't actually noticed that dependency.
-No, CPU_HAS_NO_MULDIV64 is not set, as I handle the parts with MMU only.
+Signed-off-by: Jeffrey Merkey <jeffmerkey@gmail.com>
+---
+ include/asm-generic/bug.h | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
 
-> is what we have in mainline m68k_ksyms.c.  Neither allmodconfig, nor any of
-> defconfigs have it.  And on a coldfire build they are built and exported as
-> expected:
-
-[...]
-
-Then I assume everything is OK. Thanks!
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index 630dd23..ed86cd2 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -90,14 +90,26 @@ extern void warn_slowpath_null(const char *file, const int line);
+ })
+ #endif
+ 
++#ifdef CONFIG_DEBUG_WARN
+ #ifndef WARN
+-#define WARN(condition, format...) ({						\
++#define WARN(condition, format...) ({					\
+ 	int __ret_warn_on = !!(condition);				\
+ 	if (unlikely(__ret_warn_on))					\
+ 		__WARN_printf(format);					\
++	BUG();								\
+ 	unlikely(__ret_warn_on);					\
+ })
+ #endif
++#else
++#ifndef WARN
++#define WARN(condition, format...) ({					\
++	int __ret_warn_on = !!(condition);				\
++	if (unlikely(__ret_warn_on))					\
++		__WARN_printf(format);					\
++	unlikely(__ret_warn_on);					\
++})
++#endif
++#endif
+ 
+ #define WARN_TAINT(condition, taint, format...) ({			\
+ 	int __ret_warn_on = !!(condition);				\
+-- 
+1.8.3.1
