@@ -1,77 +1,138 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH 1/5] all: s390: move wrapper infrastructure to generic
- headers
-Date: Tue, 2 Feb 2016 08:39:13 +0100
-Message-ID: <20160202073913.GB3990@osiris>
-References: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
- <1453741047-5498-2-git-send-email-ynorov@caviumnetworks.com>
- <20160128121618.GB5418@osiris>
- <20160128163109.GA8529@yury-N73SV>
- <20160201114251.GB973@yury-N73SV>
+From: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
+Subject: [PATCH v10 0/8] arm64, numa: Add numa support for arm64 platforms
+Date: Tue, 2 Feb 2016 15:39:15 +0530
+Message-ID: <1454407763-1017-1-git-send-email-gkulkarni@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160201114251.GB973@yury-N73SV>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, catalin.marinas@arm.com, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-bn1bon0093.outbound.protection.outlook.com ([157.56.111.93]:34720
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1754073AbcBBKKU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 2 Feb 2016 05:10:20 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Will.Deacon@arm.com, catalin.marinas@arm.com, robh+dt@kernel.org, mark.rutland@arm.com, grant.likely@linaro.org, leif.lindholm@linaro.org, rfranz@cavium.com, ard.biesheuvel@linaro.org, msalter@redhat.com, steve.capper@linaro.org, hanjun.guo@linaro.org, al.stone@linaro.org, arnd@arndb.de, pawel.moll@arm.com, ijc+devicetree@hellion.org.uk, galak@codeaurora.org, rjw@rjwysocki.net, lenb@kernel.org, marc.zyngier@arm.com, lorenzo.pieralisi@arm.com, bhelgaas@google.com, tony.luck@intel.com, fenghua.yu@intel.com, james.hog
+Cc: gpkulkarni@gmail.com
 
-On Mon, Feb 01, 2016 at 02:42:51PM +0300, Yury Norov wrote:
-> Hi Heiko,
-> 
-> I tried this idea, and I don't like what happened.
->  - Wrappers around safe syscalls does exist. We can remove it by
->    overcomplicating __SC_COMPAT_CAST, but I don't like it.
->  - We still need to declare numerous list of new compat syscalls.
->    And it becomes even bigger, as we need to declare all compat
->    syscall versions not declared in include/linux/compat.h already.
->    (Currently - only for unsafe syscalls.)
->  - 'Weak' trick doesn't work for the whole kernel, so we'd figure out
->    some new prefix for wrapped syscalls. Or declare all non-compat
->    syscalls explicitly with SYSCALL_COMPAT_DEFINE. So the list of
->    replacements grow. And for me, it's harder to explain why we are
->    wrapping safe syscalls. Or we introduce another bunch of useless
->    wrappers (with new prefix), and have to handle it in non-compat code.
->  - With all listed above, we move all wrapper logic to non-compat
->    'include/linux/syscalls.h' header. Which is not a good idea, if it
->    doesn't benefit us much in return.
-> 
-> > > No need to look up if a compat variant (or wrapper) exists or
-> > > sys_<syscallname> should be used instead. Also no possibility for security
-> > > bugs that could creep in because SYSCALL_DEFINE has been used instead of
-> > > SYSCALL_DEFINE_WRAP.
-> 
-> I thought again about it. With current version, it's very easy to
-> define whether we have wrapper or not - just by macro we use. Once
-> reviewed, this list is hardly to be changed frequently. If someone is
-> introducing new syscall, it will attract much attention, so security
-> risk is minimal.
-> 
-> Maybe I missed some elegant implementation, and if so  I'll be happy
-> if someone'll point me out. But with what I see, I'd vote for what we
-> have now. (Plus description in docs, plus renaming new macro.)
+v10:
+	- Incorporated review comments from Rob Herring.
+	- Moved numa binding and implementation to devicetree core.
+	- Added cleanup patch to remove redundant NODE_DATA macro from asm header files
+	- Include numa balancing support for arm64 patch in this series.
+	- Fix tile build issue reported by the kbuild robot(patch 7)
 
-Well, I'd like to have some proof by the compiler or linker that nothing
-went wrong. Which seems hard if only selected system call defines will be
-converted to the new defines.
+v9:	- Added cleanup patch to reuse and avoid redefinition of cpumask_of_pcibus
+	  as suggested from Will Deacon and Bjorn Helgaas.
+	- Including patch to Make pci-host-generic driver numa aware.
+	- Incorporated comment from Shannon Zhao.
 
-How can you tell that nothing has been forgotten?
+v8:
+	- Incorporated review comments of Mark Rutland and Will Deacon.
+	- Added pci helper function and macro for numa.
 
-Also, what happens if the prototype of a system call get's changed shortly
-after it was merged. We might miss such changes and have bugs.
+v7:
+	- managing numa memory mapping using memblock.
+	- Incorporated review comments of Mark Rutland.
 
-Therefore, and to get to a solution, I think we should stick with your
-first idea, which only moves the compat_wrapper.c file.
+v6:
+	- defined and implemented the numa dt binding using
+	node property proximity and device node distance-map.
+	- renamed dt_numa to of_numa
 
-Before doing that I think you should actually revert this patch: my commit
-7681df456f97 ("s390/compat: remove superfluous compat wrappers") probably
-wasn't a very bright idea :)
+v5:
+        - created base verion of numa.c which creates dummy numa without using dt
+          on single socket platforms. Then added patches for dt support.
+        - Incorporated review comments from Hanjun Guo.
 
-This again allows me to use only compat system calls in s390's system call
-table (execpt for system calls without parameters, but that can be easily
-fixed).
+v4:
+done changes as per Arnd review comments.
 
-What I still don't like is that you need to add all the protoypes. Why are
-the system call tables actually written in C and not in asm?
+v3:
+Added changes to support numa on arm64 based platforms.
+Tested these patches on cavium's multinode(2 node topology) platform.
+In this patchset, defined and implemented dt bindings for numa mapping
+for core and memory using device node property arm,associativity.
+
+v2:
+Defined and implemented numa map for memory, cores to node and
+proximity distance matrix of nodes.
+
+v1:
+Initial patchset to support numa on arm64 platforms.
+
+Note:
+        1. This patchset is tested for numa with dt on
+           thunderx single socket and dual socket boards.
+        2. Numa DT booting needs the dt memory nodes, which are deleted in current efi-stub,
+        hence to try numa with dt, you need to rebase with ard's patchset.
+        http://git.linaro.org/people/ard.biesheuvel/linux-arm.git/shortlog/refs/heads/arm64-uefi-early-fdt-handling
+	3. PATCH[7,8] are not tested for other architectures.
+
+Ganapatrao Kulkarni (8):
+  arm64, numa: adding numa support for arm64 platforms.
+  Documentation, dt, numa: dt bindings for numa.
+  dt, numa: adding numa dt binding implementation.
+  arm64, numa : Enable numa dt for arm64 platforms.
+  arm64, dt, thunderx: Add initial dts for Cavium Thunderx in 2 node
+    topology.
+  arm64, mm, numa: Adding numa balancing support for arm64.
+  topology, cleanup: Avoid redefinition of cpumask_of_pcibus in asm
+    header files.
+  numa, mm, cleanup: remove redundant NODE_DATA macro from asm header
+    files.
+
+ Documentation/devicetree/bindings/numa.txt      | 272 ++++++++
+ arch/arm64/Kconfig                              |  26 +
+ arch/arm64/boot/dts/cavium/Makefile             |   2 +-
+ arch/arm64/boot/dts/cavium/thunder-88xx-2n.dts  |  83 +++
+ arch/arm64/boot/dts/cavium/thunder-88xx-2n.dtsi | 806 ++++++++++++++++++++++++
+ arch/arm64/include/asm/mmzone.h                 |  10 +
+ arch/arm64/include/asm/numa.h                   |  45 ++
+ arch/arm64/include/asm/pgtable.h                |  18 +
+ arch/arm64/include/asm/topology.h               |   7 +
+ arch/arm64/kernel/pci.c                         |  10 +
+ arch/arm64/kernel/setup.c                       |   4 +
+ arch/arm64/kernel/smp.c                         |   4 +
+ arch/arm64/mm/Makefile                          |   1 +
+ arch/arm64/mm/init.c                            |  34 +-
+ arch/arm64/mm/mmu.c                             |   1 +
+ arch/arm64/mm/numa.c                            | 404 ++++++++++++
+ arch/ia64/include/asm/topology.h                |   4 -
+ arch/m32r/include/asm/mmzone.h                  |   4 +-
+ arch/metag/include/asm/mmzone.h                 |   4 +-
+ arch/metag/include/asm/topology.h               |   3 -
+ arch/powerpc/include/asm/mmzone.h               |   8 +-
+ arch/powerpc/include/asm/topology.h             |   4 -
+ arch/s390/include/asm/mmzone.h                  |   6 +-
+ arch/s390/include/asm/pci.h                     |   2 +-
+ arch/s390/include/asm/topology.h                |   1 +
+ arch/sh/include/asm/mmzone.h                    |   4 +-
+ arch/sh/include/asm/topology.h                  |   3 -
+ arch/sparc/include/asm/mmzone.h                 |   6 +-
+ arch/tile/include/asm/pci.h                     |   2 -
+ arch/tile/include/asm/topology.h                |   3 +
+ arch/x86/include/asm/mmzone.h                   |   3 +-
+ arch/x86/include/asm/mmzone_32.h                |   5 -
+ arch/x86/include/asm/mmzone_64.h                |  17 -
+ arch/x86/include/asm/pci.h                      |   2 +-
+ arch/x86/include/asm/topology.h                 |   1 +
+ drivers/of/Kconfig                              |  11 +
+ drivers/of/Makefile                             |   1 +
+ drivers/of/of_numa.c                            | 207 ++++++
+ include/asm-generic/mmzone.h                    |  24 +
+ include/asm-generic/topology.h                  |   4 +-
+ include/linux/of.h                              |   4 +
+ 41 files changed, 1986 insertions(+), 74 deletions(-)
+ create mode 100644 Documentation/devicetree/bindings/numa.txt
+ create mode 100644 arch/arm64/boot/dts/cavium/thunder-88xx-2n.dts
+ create mode 100644 arch/arm64/boot/dts/cavium/thunder-88xx-2n.dtsi
+ create mode 100644 arch/arm64/include/asm/mmzone.h
+ create mode 100644 arch/arm64/include/asm/numa.h
+ create mode 100644 arch/arm64/mm/numa.c
+ delete mode 100644 arch/x86/include/asm/mmzone_64.h
+ create mode 100644 drivers/of/of_numa.c
+ create mode 100644 include/asm-generic/mmzone.h
+
+-- 
+1.8.1.4
