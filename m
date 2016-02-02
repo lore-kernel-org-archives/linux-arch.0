@@ -1,100 +1,143 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bn1bon0090.outbound.protection.outlook.com ([157.56.111.90]:4840
-	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S1754466AbcBBNA1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 2 Feb 2016 08:00:27 -0500
-Date: Tue, 2 Feb 2016 12:26:42 +0100
-From: Robert Richter <robert.richter@caviumnetworks.com>
-Subject: Re: [PATCH v10 0/8] arm64, numa: Add numa support for arm64 platforms
-Message-ID: <20160202112642.GE24726@rric.localdomain>
-References: <1454407763-1017-1-git-send-email-gkulkarni@caviumnetworks.com>
+Received: from mail.kernel.org ([198.145.29.136]:58089 "EHLO mail.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933248AbcBBTxe (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 2 Feb 2016 14:53:34 -0500
+Subject: [PATCH 2/2] gpio: Remove unused asm/gpio.h files
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Tue, 02 Feb 2016 13:53:30 -0600
+Message-ID: <20160202195330.10827.68542.stgit@bhelgaas-glaptop2.roam.corp.google.com>
+In-Reply-To: <20160202194831.10827.63244.stgit@bhelgaas-glaptop2.roam.corp.google.com>
+References: <20160202194831.10827.63244.stgit@bhelgaas-glaptop2.roam.corp.google.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Disposition: inline
-In-Reply-To: <1454407763-1017-1-git-send-email-gkulkarni@caviumnetworks.com>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
-Cc: linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Will.Deacon@arm.com, catalin.marinas@arm.com, robh+dt@kernel.org, mark.rutland@arm.com, grant.likely@linaro.org, leif.lindholm@linaro.org, rfranz@cavium.com, ard.biesheuvel@linaro.org, msalter@redhat.com, steve.capper@linaro.org, hanjun.guo@linaro.org, al.stone@linaro.org, arnd@arndb.de, pawel.moll@arm.com, ijc+devicetree@hellion.org.uk, galak@codeaurora.org, rjw@rjwysocki.net, lenb@kernel.org, marc.zyngier@arm.com, lorenzo.pieralisi@arm.com, bhelgaas@google.com, tony.luck@intel.com, fenghua.yu@intel.com, james.hogan@imgtec.com, benh@kernel.crashing.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, jonathan@jonmasters.org, Prasun.Kapoor@caviumnetworks.com, gpkulkarni@gmail.com
-Message-ID: <20160202112642.gYYv9wlAtgj9VnPxAcC2IvKupxQ08IOudSjSyf3qemg@z>
+To: Alexandre Courbot <gnurou@gmail.com>, Linus Walleij <linus.walleij@linaro.org>
+Cc: linux-arch@vger.kernel.org, linux-gpio@vger.kernel.org, Mark Brown <broonie@kernel.org>, linux-kernel@vger.kernel.org
+Message-ID: <20160202195330.SZgpw2_k0bjklH-fqklZAgChU3YwiX7JmxJnE-6ziNM@z>
 
-On 02.02.16 15:39:15, Ganapatrao Kulkarni wrote:
+asm/gpio.h is included only by linux/gpio.h, and then only when the arch
+selects ARCH_HAVE_CUSTOM_GPIO_H.  Only the following arches select it: arm
+avr32 blackfin m68k (COLDFIRE only) sh unicore32.
 
-> Ganapatrao Kulkarni (8):
->   arm64, numa: adding numa support for arm64 platforms.
->   Documentation, dt, numa: dt bindings for numa.
->   dt, numa: adding numa dt binding implementation.
->   arm64, numa : Enable numa dt for arm64 platforms.
->   arm64, dt, thunderx: Add initial dts for Cavium Thunderx in 2 node
->     topology.
->   arm64, mm, numa: Adding numa balancing support for arm64.
->   topology, cleanup: Avoid redefinition of cpumask_of_pcibus in asm
->     header files.
->   numa, mm, cleanup: remove redundant NODE_DATA macro from asm header
->     files.
+Remove the unused asm/gpio.h files for the arches that do not select
+ARCH_HAVE_CUSTOM_GPIO_H.
 
-I have tested the whole series on single and dual node systems for
-devicetree and acpi (with Hanjun's acpi numa v3 patches ported on
-top).
+This is a follow-on to 7563bbf89d06 ("gpiolib/arches: Centralise
+bolierplate asm/gpio.h").
 
-Tested-by: Robert Richter <rrichter@cavium.com>
+Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+---
+ arch/alpha/include/asm/gpio.h      |    4 ----
+ arch/ia64/include/asm/gpio.h       |    4 ----
+ arch/metag/include/asm/gpio.h      |    4 ----
+ arch/microblaze/include/asm/gpio.h |    4 ----
+ arch/openrisc/include/asm/gpio.h   |    4 ----
+ arch/powerpc/include/asm/gpio.h    |    4 ----
+ arch/sparc/include/asm/gpio.h      |    4 ----
+ arch/x86/include/asm/gpio.h        |    4 ----
+ arch/xtensa/include/asm/gpio.h     |    4 ----
+ 9 files changed, 36 deletions(-)
+ delete mode 100644 arch/alpha/include/asm/gpio.h
+ delete mode 100644 arch/ia64/include/asm/gpio.h
+ delete mode 100644 arch/metag/include/asm/gpio.h
+ delete mode 100644 arch/microblaze/include/asm/gpio.h
+ delete mode 100644 arch/openrisc/include/asm/gpio.h
+ delete mode 100644 arch/powerpc/include/asm/gpio.h
+ delete mode 100644 arch/sparc/include/asm/gpio.h
+ delete mode 100644 arch/x86/include/asm/gpio.h
+ delete mode 100644 arch/xtensa/include/asm/gpio.h
 
--Robert
+diff --git a/arch/alpha/include/asm/gpio.h b/arch/alpha/include/asm/gpio.h
+deleted file mode 100644
+index b3799d8..0000000
+--- a/arch/alpha/include/asm/gpio.h
++++ /dev/null
+@@ -1,4 +0,0 @@
+-#ifndef __LINUX_GPIO_H
+-#warning Include linux/gpio.h instead of asm/gpio.h
+-#include <linux/gpio.h>
+-#endif
+diff --git a/arch/ia64/include/asm/gpio.h b/arch/ia64/include/asm/gpio.h
+deleted file mode 100644
+index b3799d8..0000000
+--- a/arch/ia64/include/asm/gpio.h
++++ /dev/null
+@@ -1,4 +0,0 @@
+-#ifndef __LINUX_GPIO_H
+-#warning Include linux/gpio.h instead of asm/gpio.h
+-#include <linux/gpio.h>
+-#endif
+diff --git a/arch/metag/include/asm/gpio.h b/arch/metag/include/asm/gpio.h
+deleted file mode 100644
+index b3799d8..0000000
+--- a/arch/metag/include/asm/gpio.h
++++ /dev/null
+@@ -1,4 +0,0 @@
+-#ifndef __LINUX_GPIO_H
+-#warning Include linux/gpio.h instead of asm/gpio.h
+-#include <linux/gpio.h>
+-#endif
+diff --git a/arch/microblaze/include/asm/gpio.h b/arch/microblaze/include/asm/gpio.h
+deleted file mode 100644
+index b3799d8..0000000
+--- a/arch/microblaze/include/asm/gpio.h
++++ /dev/null
+@@ -1,4 +0,0 @@
+-#ifndef __LINUX_GPIO_H
+-#warning Include linux/gpio.h instead of asm/gpio.h
+-#include <linux/gpio.h>
+-#endif
+diff --git a/arch/openrisc/include/asm/gpio.h b/arch/openrisc/include/asm/gpio.h
+deleted file mode 100644
+index b3799d8..0000000
+--- a/arch/openrisc/include/asm/gpio.h
++++ /dev/null
+@@ -1,4 +0,0 @@
+-#ifndef __LINUX_GPIO_H
+-#warning Include linux/gpio.h instead of asm/gpio.h
+-#include <linux/gpio.h>
+-#endif
+diff --git a/arch/powerpc/include/asm/gpio.h b/arch/powerpc/include/asm/gpio.h
+deleted file mode 100644
+index b3799d8..0000000
+--- a/arch/powerpc/include/asm/gpio.h
++++ /dev/null
+@@ -1,4 +0,0 @@
+-#ifndef __LINUX_GPIO_H
+-#warning Include linux/gpio.h instead of asm/gpio.h
+-#include <linux/gpio.h>
+-#endif
+diff --git a/arch/sparc/include/asm/gpio.h b/arch/sparc/include/asm/gpio.h
+deleted file mode 100644
+index b3799d8..0000000
+--- a/arch/sparc/include/asm/gpio.h
++++ /dev/null
+@@ -1,4 +0,0 @@
+-#ifndef __LINUX_GPIO_H
+-#warning Include linux/gpio.h instead of asm/gpio.h
+-#include <linux/gpio.h>
+-#endif
+diff --git a/arch/x86/include/asm/gpio.h b/arch/x86/include/asm/gpio.h
+deleted file mode 100644
+index b3799d8..0000000
+--- a/arch/x86/include/asm/gpio.h
++++ /dev/null
+@@ -1,4 +0,0 @@
+-#ifndef __LINUX_GPIO_H
+-#warning Include linux/gpio.h instead of asm/gpio.h
+-#include <linux/gpio.h>
+-#endif
+diff --git a/arch/xtensa/include/asm/gpio.h b/arch/xtensa/include/asm/gpio.h
+deleted file mode 100644
+index b3799d8..0000000
+--- a/arch/xtensa/include/asm/gpio.h
++++ /dev/null
+@@ -1,4 +0,0 @@
+-#ifndef __LINUX_GPIO_H
+-#warning Include linux/gpio.h instead of asm/gpio.h
+-#include <linux/gpio.h>
+-#endif
 
-> 
->  Documentation/devicetree/bindings/numa.txt      | 272 ++++++++
->  arch/arm64/Kconfig                              |  26 +
->  arch/arm64/boot/dts/cavium/Makefile             |   2 +-
->  arch/arm64/boot/dts/cavium/thunder-88xx-2n.dts  |  83 +++
->  arch/arm64/boot/dts/cavium/thunder-88xx-2n.dtsi | 806 ++++++++++++++++++++++++
->  arch/arm64/include/asm/mmzone.h                 |  10 +
->  arch/arm64/include/asm/numa.h                   |  45 ++
->  arch/arm64/include/asm/pgtable.h                |  18 +
->  arch/arm64/include/asm/topology.h               |   7 +
->  arch/arm64/kernel/pci.c                         |  10 +
->  arch/arm64/kernel/setup.c                       |   4 +
->  arch/arm64/kernel/smp.c                         |   4 +
->  arch/arm64/mm/Makefile                          |   1 +
->  arch/arm64/mm/init.c                            |  34 +-
->  arch/arm64/mm/mmu.c                             |   1 +
->  arch/arm64/mm/numa.c                            | 404 ++++++++++++
->  arch/ia64/include/asm/topology.h                |   4 -
->  arch/m32r/include/asm/mmzone.h                  |   4 +-
->  arch/metag/include/asm/mmzone.h                 |   4 +-
->  arch/metag/include/asm/topology.h               |   3 -
->  arch/powerpc/include/asm/mmzone.h               |   8 +-
->  arch/powerpc/include/asm/topology.h             |   4 -
->  arch/s390/include/asm/mmzone.h                  |   6 +-
->  arch/s390/include/asm/pci.h                     |   2 +-
->  arch/s390/include/asm/topology.h                |   1 +
->  arch/sh/include/asm/mmzone.h                    |   4 +-
->  arch/sh/include/asm/topology.h                  |   3 -
->  arch/sparc/include/asm/mmzone.h                 |   6 +-
->  arch/tile/include/asm/pci.h                     |   2 -
->  arch/tile/include/asm/topology.h                |   3 +
->  arch/x86/include/asm/mmzone.h                   |   3 +-
->  arch/x86/include/asm/mmzone_32.h                |   5 -
->  arch/x86/include/asm/mmzone_64.h                |  17 -
->  arch/x86/include/asm/pci.h                      |   2 +-
->  arch/x86/include/asm/topology.h                 |   1 +
->  drivers/of/Kconfig                              |  11 +
->  drivers/of/Makefile                             |   1 +
->  drivers/of/of_numa.c                            | 207 ++++++
->  include/asm-generic/mmzone.h                    |  24 +
->  include/asm-generic/topology.h                  |   4 +-
->  include/linux/of.h                              |   4 +
->  41 files changed, 1986 insertions(+), 74 deletions(-)
->  create mode 100644 Documentation/devicetree/bindings/numa.txt
->  create mode 100644 arch/arm64/boot/dts/cavium/thunder-88xx-2n.dts
->  create mode 100644 arch/arm64/boot/dts/cavium/thunder-88xx-2n.dtsi
->  create mode 100644 arch/arm64/include/asm/mmzone.h
->  create mode 100644 arch/arm64/include/asm/numa.h
->  create mode 100644 arch/arm64/mm/numa.c
->  delete mode 100644 arch/x86/include/asm/mmzone_64.h
->  create mode 100644 drivers/of/of_numa.c
->  create mode 100644 include/asm-generic/mmzone.h
-> 
-> -- 
-> 1.8.1.4
-> 
