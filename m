@@ -1,66 +1,77 @@
-From: Jeffrey Merkey <jeffmerkey@gmail.com>
-Subject: [PATCH v4 2/4] Add WARN_XX() debugging options
-Date: Mon,  1 Feb 2016 16:35:50 -0700
-Message-ID: <1454369752-20706-2-git-send-email-jeffmerkey@gmail.com>
-References: <1454369752-20706-1-git-send-email-jeffmerkey@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f195.google.com ([209.85.214.195]:35221 "EHLO
-	mail-ob0-f195.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750989AbcBAXf6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Feb 2016 18:35:58 -0500
-In-Reply-To: <1454369752-20706-1-git-send-email-jeffmerkey@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, linux-arch@vger.kernel.org
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH 1/5] all: s390: move wrapper infrastructure to generic
+ headers
+Date: Tue, 2 Feb 2016 08:39:13 +0100
+Message-ID: <20160202073913.GB3990@osiris>
+References: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
+ <1453741047-5498-2-git-send-email-ynorov@caviumnetworks.com>
+ <20160128121618.GB5418@osiris>
+ <20160128163109.GA8529@yury-N73SV>
+ <20160201114251.GB973@yury-N73SV>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160201114251.GB973@yury-N73SV>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, catalin.marinas@arm.com, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
+List-Id: linux-arch.vger.kernel.org
 
-This patch series adds config options which can be set during compile to
-direct the compiler to output a breakpoint instruction anywhere a BUG()
-or WARN() macro has been placed in the kernel to trigger the system to
-enter a debugger if a bug is detected by the system.  Use of this
-compile time option also allows conditional breakpoints to be set in the
-kernel with these currently used macros.
+On Mon, Feb 01, 2016 at 02:42:51PM +0300, Yury Norov wrote:
+> Hi Heiko,
+> 
+> I tried this idea, and I don't like what happened.
+>  - Wrappers around safe syscalls does exist. We can remove it by
+>    overcomplicating __SC_COMPAT_CAST, but I don't like it.
+>  - We still need to declare numerous list of new compat syscalls.
+>    And it becomes even bigger, as we need to declare all compat
+>    syscall versions not declared in include/linux/compat.h already.
+>    (Currently - only for unsafe syscalls.)
+>  - 'Weak' trick doesn't work for the whole kernel, so we'd figure out
+>    some new prefix for wrapped syscalls. Or declare all non-compat
+>    syscalls explicitly with SYSCALL_COMPAT_DEFINE. So the list of
+>    replacements grow. And for me, it's harder to explain why we are
+>    wrapping safe syscalls. Or we introduce another bunch of useless
+>    wrappers (with new prefix), and have to handle it in non-compat code.
+>  - With all listed above, we move all wrapper logic to non-compat
+>    'include/linux/syscalls.h' header. Which is not a good idea, if it
+>    doesn't benefit us much in return.
+> 
+> > > No need to look up if a compat variant (or wrapper) exists or
+> > > sys_<syscallname> should be used instead. Also no possibility for security
+> > > bugs that could creep in because SYSCALL_DEFINE has been used instead of
+> > > SYSCALL_DEFINE_WRAP.
+> 
+> I thought again about it. With current version, it's very easy to
+> define whether we have wrapper or not - just by macro we use. Once
+> reviewed, this list is hardly to be changed frequently. If someone is
+> introducing new syscall, it will attract much attention, so security
+> risk is minimal.
+> 
+> Maybe I missed some elegant implementation, and if so  I'll be happy
+> if someone'll point me out. But with what I see, I'd vote for what we
+> have now. (Plus description in docs, plus renaming new macro.)
 
-This addition is extremely useful for debugging hard and soft lockups
-real time and quickly from a console debugger, and other areas of the
-kernel.
+Well, I'd like to have some proof by the compiler or linker that nothing
+went wrong. Which seems hard if only selected system call defines will be
+converted to the new defines.
 
-Signed-off-by: Jeffrey Merkey <jeffmerkey@gmail.com>
----
- include/asm-generic/bug.h | 14 +++++++++++++-
- 1 file changed, 13 insertions(+), 1 deletion(-)
+How can you tell that nothing has been forgotten?
 
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index 630dd23..ed86cd2 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -90,14 +90,26 @@ extern void warn_slowpath_null(const char *file, const int line);
- })
- #endif
- 
-+#ifdef CONFIG_DEBUG_WARN
- #ifndef WARN
--#define WARN(condition, format...) ({						\
-+#define WARN(condition, format...) ({					\
- 	int __ret_warn_on = !!(condition);				\
- 	if (unlikely(__ret_warn_on))					\
- 		__WARN_printf(format);					\
-+	BUG();								\
- 	unlikely(__ret_warn_on);					\
- })
- #endif
-+#else
-+#ifndef WARN
-+#define WARN(condition, format...) ({					\
-+	int __ret_warn_on = !!(condition);				\
-+	if (unlikely(__ret_warn_on))					\
-+		__WARN_printf(format);					\
-+	unlikely(__ret_warn_on);					\
-+})
-+#endif
-+#endif
- 
- #define WARN_TAINT(condition, taint, format...) ({			\
- 	int __ret_warn_on = !!(condition);				\
--- 
-1.8.3.1
+Also, what happens if the prototype of a system call get's changed shortly
+after it was merged. We might miss such changes and have bugs.
+
+Therefore, and to get to a solution, I think we should stick with your
+first idea, which only moves the compat_wrapper.c file.
+
+Before doing that I think you should actually revert this patch: my commit
+7681df456f97 ("s390/compat: remove superfluous compat wrappers") probably
+wasn't a very bright idea :)
+
+This again allows me to use only compat system calls in s390's system call
+table (execpt for system calls without parameters, but that can be easily
+fixed).
+
+What I still don't like is that you need to add all the protoypes. Why are
+the system call tables actually written in C and not in asm?
