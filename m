@@ -1,66 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp13.uk.ibm.com ([195.75.94.109]:58527 "EHLO
-	e06smtp13.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752939AbcBBTyo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2016 14:54:44 -0500
-Received: from localhost
-	by e06smtp13.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-	Tue, 2 Feb 2016 19:54:42 -0000
-Date: Tue, 2 Feb 2016 20:54:34 +0100
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH 1/5] all: s390: move wrapper infrastructure to generic
- headers
-Message-ID: <20160202195434.GA3397@osiris>
-References: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
- <1453741047-5498-2-git-send-email-ynorov@caviumnetworks.com>
- <20160128121618.GB5418@osiris>
- <20160128163109.GA8529@yury-N73SV>
- <20160201114251.GB973@yury-N73SV>
- <20160202073913.GB3990@osiris>
- <20160202154331.GA3003@yury-N73SV>
- <20160202160826.GF3990@osiris>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160202160826.GF3990@osiris>
+Received: from mail-wm0-f65.google.com ([74.125.82.65]:35796 "EHLO
+	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933553AbcBBUTv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2016 15:19:51 -0500
+From: Michal Hocko <mhocko@kernel.org>
+Subject: [RFC 08/12] sparc, rwsem: provide __down_write_killable
+Date: Tue,  2 Feb 2016 21:19:25 +0100
+Message-ID: <1454444369-2146-9-git-send-email-mhocko@kernel.org>
+In-Reply-To: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
+References: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, catalin.marinas@arm.com, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
-Message-ID: <20160202195434.F-fmZFQz3IVOuvxpdl7bO4UqiZ-xUDzYL1kPduA4HyI@z>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>
+Message-ID: <20160202201925.AfujgtWoNLN4mDEyGWVy9nC9SHCfackVe8BNFI0Qneg@z>
 
-Hi Yury,
+From: Michal Hocko <mhocko@suse.com>
 
-On Tue, Feb 02, 2016 at 05:08:26PM +0100, Heiko Carstens wrote:
-> See e.g. 485d52768685 ("sys_personality: change sys_personality() to accept
-> "unsigned int" instead of u_long") would have been a candidate which could
-> silently break architectures which need compat wrappers.
+which is uses the same fast path as __down_write except it falls back to
+rwsem_down_write_failed_killable slow path and return -EINTR if killed.
 
-Ok, this example is of course wrong. But now I can claim that also somebody
-who should know better makes these mistakes.. :)
+Signed-off-by: Michal Hocko <mhocko@suse.com>
+---
+ arch/sparc/include/asm/rwsem.h | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
 
-> > I don't know much about s390 specifics. Maybe because of that I do not
-> > understand completely your worries. I'm OK with both 1st and 2nd
-> > version, but I'd choose 2nd one because it allows inlines, and we
-> > don't need the compat_wrapper.c.
-> 
-> It would be only nicer if we can guarentee correctness all the time. That
-> being said I'm about to revert my own commit :)
-> 
-> So if you want to go without compat_wrapper.c then we should have a
-> solution which will do the right thing all the time without that a system
-> call author has to know about the sign and zero extension issue some
-> architectures face. It _will_ go wrong.
-
-So I think I can summarize my point to: if you can enforce correctness, why
-shouldn't you do it if the performance impact is only a single instruction.
-
-However I'll try to write an addon patch to your patch series. Maybe we can
-still get rid of compat_wrapper.c in a way which makes both of us happy.
-Also.. the idea with the alias names for compat wrappers does seem to have
-the disadvantage that it will pollute /proc/kallsyms for example.
-
-Anyway, I'm not sure if I will be able to come up with something this week
-though.
+diff --git a/arch/sparc/include/asm/rwsem.h b/arch/sparc/include/asm/rwsem.h
+index e5a0d575bc7f..c1e9e32e8b63 100644
+--- a/arch/sparc/include/asm/rwsem.h
++++ b/arch/sparc/include/asm/rwsem.h
+@@ -55,6 +55,19 @@ static inline void __down_write(struct rw_semaphore *sem)
+ 		rwsem_down_write_failed(sem);
+ }
+ 
++static inline int __down_write_killable(struct rw_semaphore *sem)
++{
++	long tmp;
++
++	tmp = atomic64_add_return(RWSEM_ACTIVE_WRITE_BIAS,
++				  (atomic64_t *)(&sem->count));
++	if (unlikely(tmp != RWSEM_ACTIVE_WRITE_BIAS))
++		if (IS_ERR(rwsem_down_write_failed_killable(sem)))
++			return -EINTR;
++
++	return 0;
++}
++
+ static inline int __down_write_trylock(struct rw_semaphore *sem)
+ {
+ 	long tmp;
+-- 
+2.7.0
 
