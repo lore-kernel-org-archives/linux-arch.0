@@ -1,181 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f47.google.com ([74.125.82.47]:33762 "EHLO
-	mail-wm0-f47.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933311AbcBBUTm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2016 15:19:42 -0500
-From: Michal Hocko <mhocko@kernel.org>
-Subject: [RFC 02/12] locking, rwsem: drop explicit memory barriers
-Date: Tue,  2 Feb 2016 21:19:19 +0100
-Message-ID: <1454444369-2146-3-git-send-email-mhocko@kernel.org>
-In-Reply-To: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
-References: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
+Received: from mail-bn1on0081.outbound.protection.outlook.com ([157.56.110.81]:56384
+	"EHLO na01-bn1-obe.outbound.protection.outlook.com"
+	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
+	id S932426AbcBBUmQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 2 Feb 2016 15:42:16 -0500
+Date: Tue, 2 Feb 2016 23:41:56 +0300
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 1/5] all: s390: move wrapper infrastructure to generic
+ headers
+Message-ID: <20160202204156.GA27290@yury-N73SV>
+References: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
+ <1453741047-5498-2-git-send-email-ynorov@caviumnetworks.com>
+ <20160128121618.GB5418@osiris>
+ <20160128163109.GA8529@yury-N73SV>
+ <20160201114251.GB973@yury-N73SV>
+ <20160202073913.GB3990@osiris>
+ <20160202154331.GA3003@yury-N73SV>
+ <20160202160826.GF3990@osiris>
+ <20160202195434.GA3397@osiris>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Disposition: inline
+In-Reply-To: <20160202195434.GA3397@osiris>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>
-Message-ID: <20160202201919.Uq6wPHcIN_Vq4GdfrHxIi5pm9mUjsHDYT-gyQzDh1YU@z>
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, catalin.marinas@arm.com, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
+Message-ID: <20160202204156.UBO-uMPF-QGzCJhj0G6MEkwQfqLpqv61W_2ktGS5WZQ@z>
 
-From: Michal Hocko <mhocko@suse.com>
+On Tue, Feb 02, 2016 at 08:54:34PM +0100, Heiko Carstens wrote:
+> Hi Yury,
+> 
+> On Tue, Feb 02, 2016 at 05:08:26PM +0100, Heiko Carstens wrote:
+> > See e.g. 485d52768685 ("sys_personality: change sys_personality() to accept
+> > "unsigned int" instead of u_long") would have been a candidate which could
+> > silently break architectures which need compat wrappers.
+> 
+> Ok, this example is of course wrong. But now I can claim that also somebody
+> who should know better makes these mistakes.. :)
+> 
 
-sh and xtensa seem to be the only architectures which use explicit
-memory barriers for rw_semaphore operations even though they are not
-really needed because there is the full memory barrier is always implied
-by atomic_{inc,dec,add,sub}_return resp. cmpxchg. Remove them.
+Yep, this is a bad example. :) Moreover, this patch is coming from year 2010,
+and it shows how stable the syscall ABI is.
 
-Signed-off-by: Michal Hocko <mhocko@suse.com>
----
- arch/sh/include/asm/rwsem.h     | 14 ++------------
- arch/xtensa/include/asm/rwsem.h | 14 ++------------
- 2 files changed, 4 insertions(+), 24 deletions(-)
+> > > I don't know much about s390 specifics. Maybe because of that I do not
+> > > understand completely your worries. I'm OK with both 1st and 2nd
+> > > version, but I'd choose 2nd one because it allows inlines, and we
+> > > don't need the compat_wrapper.c.
+> > 
+> > It would be only nicer if we can guarentee correctness all the time. That
+> > being said I'm about to revert my own commit :)
+> > 
+> > So if you want to go without compat_wrapper.c then we should have a
+> > solution which will do the right thing all the time without that a system
+> > call author has to know about the sign and zero extension issue some
+> > architectures face. It _will_ go wrong.
+> 
+> So I think I can summarize my point to: if you can enforce correctness, why
+> shouldn't you do it if the performance impact is only a single instruction.
 
-diff --git a/arch/sh/include/asm/rwsem.h b/arch/sh/include/asm/rwsem.h
-index a5104bebd1eb..f6c951c7a875 100644
---- a/arch/sh/include/asm/rwsem.h
-+++ b/arch/sh/include/asm/rwsem.h
-@@ -24,9 +24,7 @@
-  */
- static inline void __down_read(struct rw_semaphore *sem)
- {
--	if (atomic_inc_return((atomic_t *)(&sem->count)) > 0)
--		smp_wmb();
--	else
-+	if (atomic_inc_return((atomic_t *)(&sem->count)) <= 0)
- 		rwsem_down_read_failed(sem);
- }
- 
-@@ -37,7 +35,6 @@ static inline int __down_read_trylock(struct rw_semaphore *sem)
- 	while ((tmp = sem->count) >= 0) {
- 		if (tmp == cmpxchg(&sem->count, tmp,
- 				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
--			smp_wmb();
- 			return 1;
- 		}
- 	}
-@@ -53,9 +50,7 @@ static inline void __down_write(struct rw_semaphore *sem)
- 
- 	tmp = atomic_add_return(RWSEM_ACTIVE_WRITE_BIAS,
- 				(atomic_t *)(&sem->count));
--	if (tmp == RWSEM_ACTIVE_WRITE_BIAS)
--		smp_wmb();
--	else
-+	if (tmp != RWSEM_ACTIVE_WRITE_BIAS)
- 		rwsem_down_write_failed(sem);
- }
- 
-@@ -65,7 +60,6 @@ static inline int __down_write_trylock(struct rw_semaphore *sem)
- 
- 	tmp = cmpxchg(&sem->count, RWSEM_UNLOCKED_VALUE,
- 		      RWSEM_ACTIVE_WRITE_BIAS);
--	smp_wmb();
- 	return tmp == RWSEM_UNLOCKED_VALUE;
- }
- 
-@@ -76,7 +70,6 @@ static inline void __up_read(struct rw_semaphore *sem)
- {
- 	int tmp;
- 
--	smp_wmb();
- 	tmp = atomic_dec_return((atomic_t *)(&sem->count));
- 	if (tmp < -1 && (tmp & RWSEM_ACTIVE_MASK) == 0)
- 		rwsem_wake(sem);
-@@ -87,7 +80,6 @@ static inline void __up_read(struct rw_semaphore *sem)
-  */
- static inline void __up_write(struct rw_semaphore *sem)
- {
--	smp_wmb();
- 	if (atomic_sub_return(RWSEM_ACTIVE_WRITE_BIAS,
- 			      (atomic_t *)(&sem->count)) < 0)
- 		rwsem_wake(sem);
-@@ -108,7 +100,6 @@ static inline void __downgrade_write(struct rw_semaphore *sem)
- {
- 	int tmp;
- 
--	smp_wmb();
- 	tmp = atomic_add_return(-RWSEM_WAITING_BIAS, (atomic_t *)(&sem->count));
- 	if (tmp < 0)
- 		rwsem_downgrade_wake(sem);
-@@ -119,7 +110,6 @@ static inline void __downgrade_write(struct rw_semaphore *sem)
-  */
- static inline int rwsem_atomic_update(int delta, struct rw_semaphore *sem)
- {
--	smp_mb();
- 	return atomic_add_return(delta, (atomic_t *)(&sem->count));
- }
- 
-diff --git a/arch/xtensa/include/asm/rwsem.h b/arch/xtensa/include/asm/rwsem.h
-index 249619e7e7f2..593483f6e1ff 100644
---- a/arch/xtensa/include/asm/rwsem.h
-+++ b/arch/xtensa/include/asm/rwsem.h
-@@ -29,9 +29,7 @@
-  */
- static inline void __down_read(struct rw_semaphore *sem)
- {
--	if (atomic_add_return(1,(atomic_t *)(&sem->count)) > 0)
--		smp_wmb();
--	else
-+	if (atomic_add_return(1,(atomic_t *)(&sem->count)) <= 0)
- 		rwsem_down_read_failed(sem);
- }
- 
-@@ -42,7 +40,6 @@ static inline int __down_read_trylock(struct rw_semaphore *sem)
- 	while ((tmp = sem->count) >= 0) {
- 		if (tmp == cmpxchg(&sem->count, tmp,
- 				   tmp + RWSEM_ACTIVE_READ_BIAS)) {
--			smp_wmb();
- 			return 1;
- 		}
- 	}
-@@ -58,9 +55,7 @@ static inline void __down_write(struct rw_semaphore *sem)
- 
- 	tmp = atomic_add_return(RWSEM_ACTIVE_WRITE_BIAS,
- 				(atomic_t *)(&sem->count));
--	if (tmp == RWSEM_ACTIVE_WRITE_BIAS)
--		smp_wmb();
--	else
-+	if (tmp != RWSEM_ACTIVE_WRITE_BIAS)
- 		rwsem_down_write_failed(sem);
- }
- 
-@@ -70,7 +65,6 @@ static inline int __down_write_trylock(struct rw_semaphore *sem)
- 
- 	tmp = cmpxchg(&sem->count, RWSEM_UNLOCKED_VALUE,
- 		      RWSEM_ACTIVE_WRITE_BIAS);
--	smp_wmb();
- 	return tmp == RWSEM_UNLOCKED_VALUE;
- }
- 
-@@ -81,7 +75,6 @@ static inline void __up_read(struct rw_semaphore *sem)
- {
- 	int tmp;
- 
--	smp_wmb();
- 	tmp = atomic_sub_return(1,(atomic_t *)(&sem->count));
- 	if (tmp < -1 && (tmp & RWSEM_ACTIVE_MASK) == 0)
- 		rwsem_wake(sem);
-@@ -92,7 +85,6 @@ static inline void __up_read(struct rw_semaphore *sem)
-  */
- static inline void __up_write(struct rw_semaphore *sem)
- {
--	smp_wmb();
- 	if (atomic_sub_return(RWSEM_ACTIVE_WRITE_BIAS,
- 			      (atomic_t *)(&sem->count)) < 0)
- 		rwsem_wake(sem);
-@@ -113,7 +105,6 @@ static inline void __downgrade_write(struct rw_semaphore *sem)
- {
- 	int tmp;
- 
--	smp_wmb();
- 	tmp = atomic_add_return(-RWSEM_WAITING_BIAS, (atomic_t *)(&sem->count));
- 	if (tmp < 0)
- 		rwsem_downgrade_wake(sem);
-@@ -124,7 +115,6 @@ static inline void __downgrade_write(struct rw_semaphore *sem)
-  */
- static inline int rwsem_atomic_update(int delta, struct rw_semaphore *sem)
- {
--	smp_mb();
- 	return atomic_add_return(delta, (atomic_t *)(&sem->count));
- }
- 
--- 
-2.7.0
+For aarch64 it's 5 instructions. But what's more important (if ever),
+another wrapper takes another i-cache line...
+        <compat_SyS_ftruncate>:
+        stp     x29, x30, [sp,#-16]!
+        mov     x29, sp
+        bl      d40 <do_sys_ftruncate.constprop.3>
+        ldp     x29, x30, [sp],#16
+        ret
 
+> 
+> However I'll try to write an addon patch to your patch series. Maybe we can
+> still get rid of compat_wrapper.c in a way which makes both of us happy.
+> Also.. the idea with the alias names for compat wrappers does seem to have
+> the disadvantage that it will pollute /proc/kallsyms for example.
+> 
+> Anyway, I'm not sure if I will be able to come up with something this week
+> though.
+
+Great, I'm looking forward...
+
+My point is. Syscall ABI is so stable and so important that too much
+people are involved in development and testing of it. So automatic
+checks are almost useless, as all bugs will be found during
+development and review. I think, community is able to pay enough
+attention to review a couple of such patches per decade.
+But I'm OK with some automatic checker, if it will be :
+ - not too complicated, as complex code makes bugs by itself;
+ - not too expensive;
+ - not too ugly (my one is definitely ugly).
