@@ -1,84 +1,60 @@
-From: Yury Norov <ynorov@caviumnetworks.com>
-Subject: Re: [PATCH 1/5] all: s390: move wrapper infrastructure to generic
- headers
-Date: Tue, 2 Feb 2016 23:41:56 +0300
-Message-ID: <20160202204156.GA27290@yury-N73SV>
-References: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
- <1453741047-5498-2-git-send-email-ynorov@caviumnetworks.com>
- <20160128121618.GB5418@osiris>
- <20160128163109.GA8529@yury-N73SV>
- <20160201114251.GB973@yury-N73SV>
- <20160202073913.GB3990@osiris>
- <20160202154331.GA3003@yury-N73SV>
- <20160202160826.GF3990@osiris>
- <20160202195434.GA3397@osiris>
+From: David Rientjes <rientjes@google.com>
+Subject: Re: [PATCH v3 2/3] x86: query dynamic DEBUG_PAGEALLOC setting
+Date: Tue, 2 Feb 2016 13:51:34 -0800 (PST)
+Message-ID: <alpine.DEB.2.10.1602021351290.4977@chino.kir.corp.google.com>
+References: <1453889401-43496-1-git-send-email-borntraeger@de.ibm.com> <1453889401-43496-3-git-send-email-borntraeger@de.ibm.com> <alpine.DEB.2.10.1601271414180.23510@chino.kir.corp.google.com> <56A9E3D1.3090001@de.ibm.com>
+ <alpine.DEB.2.10.1601281500160.31035@chino.kir.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20160202195434.GA3397@osiris>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, catalin.marinas@arm.com, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <alpine.DEB.2.10.1601281500160.31035@chino.kir.corp.google.com>
+Sender: owner-linux-mm@kvack.org
+To: Christian Borntraeger <borntraeger@de.ibm.com>
+Cc: akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, x86@kernel.org, linuxppc-dev@lists.ozlabs.org, davem@davemloft.net, Joonsoo Kim <iamjoonsoo.kim@lge.com>, davej@codemonkey.org.uk
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 02, 2016 at 08:54:34PM +0100, Heiko Carstens wrote:
-> Hi Yury,
-> 
-> On Tue, Feb 02, 2016 at 05:08:26PM +0100, Heiko Carstens wrote:
-> > See e.g. 485d52768685 ("sys_personality: change sys_personality() to accept
-> > "unsigned int" instead of u_long") would have been a candidate which could
-> > silently break architectures which need compat wrappers.
-> 
-> Ok, this example is of course wrong. But now I can claim that also somebody
-> who should know better makes these mistakes.. :)
-> 
+On Thu, 28 Jan 2016, David Rientjes wrote:
 
-Yep, this is a bad example. :) Moreover, this patch is coming from year 2010,
-and it shows how stable the syscall ABI is.
-
-> > > I don't know much about s390 specifics. Maybe because of that I do not
-> > > understand completely your worries. I'm OK with both 1st and 2nd
-> > > version, but I'd choose 2nd one because it allows inlines, and we
-> > > don't need the compat_wrapper.c.
+> On Thu, 28 Jan 2016, Christian Borntraeger wrote:
+> 
+> > Indeed, I only touched the identity mapping and dump stack.
+> > The question is do we really want to change free_init_pages as well?
+> > The unmapping during runtime causes significant overhead, but the
+> > unmapping after init imposes almost no runtime overhead. Of course,
+> > things get fishy now as what is enabled and what not.
 > > 
-> > It would be only nicer if we can guarentee correctness all the time. That
-> > being said I'm about to revert my own commit :)
+> > Kconfig after my patch "mm/debug_pagealloc: Ask users for default setting of debug_pagealloc"
+> > (in mm) now states
+> > ----snip----
+> > By default this option will have a small overhead, e.g. by not
+> > allowing the kernel mapping to be backed by large pages on some
+> > architectures. Even bigger overhead comes when the debugging is
+> > enabled by DEBUG_PAGEALLOC_ENABLE_DEFAULT or the debug_pagealloc
+> > command line parameter.
+> > ----snip----
 > > 
-> > So if you want to go without compat_wrapper.c then we should have a
-> > solution which will do the right thing all the time without that a system
-> > call author has to know about the sign and zero extension issue some
-> > architectures face. It _will_ go wrong.
+> > So I am tempted to NOT change free_init_pages, but the x86 maintainers
+> > can certainly decide differently. Ingo, Thomas, H. Peter, please advise.
+> > 
 > 
-> So I think I can summarize my point to: if you can enforce correctness, why
-> shouldn't you do it if the performance impact is only a single instruction.
-
-For aarch64 it's 5 instructions. But what's more important (if ever),
-another wrapper takes another i-cache line...
-        <compat_SyS_ftruncate>:
-        stp     x29, x30, [sp,#-16]!
-        mov     x29, sp
-        bl      d40 <do_sys_ftruncate.constprop.3>
-        ldp     x29, x30, [sp],#16
-        ret
-
+> I'm sorry, but I thought the discussion of the previous version of the 
+> patchset led to deciding that all CONFIG_DEBUG_PAGEALLOC behavior would be 
+> controlled by being enabled on the commandline and checked with 
+> debug_pagealloc_enabled().
 > 
-> However I'll try to write an addon patch to your patch series. Maybe we can
-> still get rid of compat_wrapper.c in a way which makes both of us happy.
-> Also.. the idea with the alias names for compat wrappers does seem to have
-> the disadvantage that it will pollute /proc/kallsyms for example.
+> I don't think we should have a CONFIG_DEBUG_PAGEALLOC that does some stuff 
+> and then a commandline parameter or CONFIG_DEBUG_PAGEALLOC_ENABLE_DEFAULT 
+> to enable more stuff.  It should either be all enabled by the commandline 
+> (or config option) or split into a separate entity.  
+> CONFIG_DEBUG_PAGEALLOC_LIGHT and CONFIG_DEBUG_PAGEALLOC would be fine, but 
+> the current state is very confusing about what is being done and what 
+> isn't.
 > 
-> Anyway, I'm not sure if I will be able to come up with something this week
-> though.
 
-Great, I'm looking forward...
+Ping?
 
-My point is. Syscall ABI is so stable and so important that too much
-people are involved in development and testing of it. So automatic
-checks are almost useless, as all bugs will be found during
-development and review. I think, community is able to pay enough
-attention to review a couple of such patches per decade.
-But I'm OK with some automatic checker, if it will be :
- - not too complicated, as complex code makes bugs by itself;
- - not too expensive;
- - not too ugly (my one is definitely ugly).
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
