@@ -1,92 +1,82 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH 1/5] all: s390: move wrapper infrastructure to generic
- headers
-Date: Tue, 2 Feb 2016 17:08:26 +0100
-Message-ID: <20160202160826.GF3990@osiris>
-References: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
- <1453741047-5498-2-git-send-email-ynorov@caviumnetworks.com>
- <20160128121618.GB5418@osiris>
- <20160128163109.GA8529@yury-N73SV>
- <20160201114251.GB973@yury-N73SV>
- <20160202073913.GB3990@osiris>
- <20160202154331.GA3003@yury-N73SV>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: [PATCH 0/2] GPIO: Clean up asm/gpio.h
+Date: Tue, 02 Feb 2016 13:53:15 -0600
+Message-ID: <20160202194831.10827.63244.stgit@bhelgaas-glaptop2.roam.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp07.uk.ibm.com ([195.75.94.103]:50918 "EHLO
-	e06smtp07.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755272AbcBBQIr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2016 11:08:47 -0500
-Received: from localhost
-	by e06smtp07.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-	Tue, 2 Feb 2016 16:08:45 -0000
-Content-Disposition: inline
-In-Reply-To: <20160202154331.GA3003@yury-N73SV>
+Received: from mail.kernel.org ([198.145.29.136]:58031 "EHLO mail.kernel.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756968AbcBBTxT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 2 Feb 2016 14:53:19 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yury Norov <ynorov@caviumnetworks.com>
-Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, catalin.marinas@arm.com, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
+To: Alexandre Courbot <gnurou@gmail.com>, Linus Walleij <linus.walleij@linaro.org>
+Cc: linux-arch@vger.kernel.org, linux-gpio@vger.kernel.org, Mark Brown <broonie@kernel.org>, linux-kernel@vger.kernel.org
 
-On Tue, Feb 02, 2016 at 06:43:31PM +0300, Yury Norov wrote:
-> > Well, I'd like to have some proof by the compiler or linker that nothing
-> > went wrong. Which seems hard if only selected system call defines will be
-> > converted to the new defines.
-> > 
-> > How can you tell that nothing has been forgotten?
-> > 
-> > Also, what happens if the prototype of a system call get's changed shortly
-> > after it was merged. We might miss such changes and have bugs.
-> > 
-> 
-> As for now, there's no such proof, and everything is OK. Syscall ABI
-> is extremely conservative, and Greg KH, and other people spent a lot
-> of efforts to keep it that way. This is the only reason for me to not
-> worry much about it. Modification of syscall ABI is virtually
-> impossible now, because it breaks binary compatibility. Even addition
-> of new syscall is very difficult procedure.
-> (Documentation/adding-syscalls.txt begins with section "System Call
-> Alternatives".)
+Many arches supply an asm/gpio.h that contains only this:
 
-Well... during the years a lot of system calls have been added. And we've
-also seen last-minute changes or reverts. So I don't share your optimistic
-view here :)
+  #warning Include linux/gpio.h instead of asm/gpio.h
+  #include <linux/gpio.h>
 
-See e.g. 485d52768685 ("sys_personality: change sys_personality() to accept
-"unsigned int" instead of u_long") would have been a candidate which could
-silently break architectures which need compat wrappers.
+These two patches change all the places that include asm/gpio.h
+so they include linux/gpio.h instead, and then remove the asm/gpio.h
+files.
 
-> We can invent some protection, but it will cost us in complexity and/or
-> runtime delays. Because syscall ABI is so stable, I think it's OK to
-> review wrappers carefully once, and they will be fine for long time.
+There are several arches that supply asm/gpio.h with useful
+arch-specific content; I didn't touch those.
 
-Here I don't agree with you. These interfaces are so important that I'd
-like to have a waterproof method that these don't break.  If this involves
-a couple of superfluous instructions then that's what I'm willing to pay
-for it.
+I assume Mark was heading this direction with 7563bbf89d06
+("gpiolib/arches: Centralise bolierplate asm/gpio.h").
 
-> > Before doing that I think you should actually revert this patch: my commit
-> > 7681df456f97 ("s390/compat: remove superfluous compat wrappers") probably
-> > wasn't a very bright idea :)
-> This patch is OK for me. pid_t, uid_t, gid_t, unsigned and signed int
-> types are all 32-bit both on LP64 and ILP32. Normally, compiler should
-> care about top halves... Did I miss something?
+---
 
-The patch was correct when writing it, but e.g. a patch like named above
-would introduce a possible bug which would go in unnoticed.
-The only thing we save is a _single_ unconditional branch here. I'd say
-that's well worth it if you get a (hopefully) always bug free sign and zero
-extension infrastructure in return.
+Bjorn Helgaas (2):
+      gpio: Include linux/gpio.h instead of asm/gpio.h
+      gpio: Remove unused asm/gpio.h files
 
-> I don't know much about s390 specifics. Maybe because of that I do not
-> understand completely your worries. I'm OK with both 1st and 2nd
-> version, but I'd choose 2nd one because it allows inlines, and we
-> don't need the compat_wrapper.c.
 
-It would be only nicer if we can guarentee correctness all the time. That
-being said I'm about to revert my own commit :)
-
-So if you want to go without compat_wrapper.c then we should have a
-solution which will do the right thing all the time without that a system
-call author has to know about the sign and zero extension issue some
-architectures face. It _will_ go wrong.
+ arch/alpha/include/asm/gpio.h                   |    4 ----
+ arch/avr32/boards/merisc/setup.c                |    1 -
+ arch/avr32/mach-at32ap/pio.c                    |    2 +-
+ arch/blackfin/kernel/debug-mmrs.c               |    2 +-
+ arch/blackfin/mach-bf538/boards/ezkit.c         |    2 +-
+ arch/blackfin/mach-bf538/ext-gpio.c             |    2 +-
+ arch/blackfin/mach-bf548/boards/cm_bf548.c      |    2 +-
+ arch/blackfin/mach-bf548/boards/ezkit.c         |    2 +-
+ arch/blackfin/mach-bf609/boards/ezkit.c         |    2 +-
+ arch/blackfin/mach-common/ints-priority.c       |    2 +-
+ arch/blackfin/mach-common/pm.c                  |    2 +-
+ arch/ia64/include/asm/gpio.h                    |    4 ----
+ arch/metag/include/asm/gpio.h                   |    4 ----
+ arch/microblaze/include/asm/gpio.h              |    4 ----
+ arch/openrisc/include/asm/gpio.h                |    4 ----
+ arch/powerpc/include/asm/gpio.h                 |    4 ----
+ arch/sh/include/mach-common/mach/magicpanelr2.h |    2 +-
+ arch/sparc/include/asm/gpio.h                   |    4 ----
+ arch/x86/include/asm/gpio.h                     |    4 ----
+ arch/xtensa/include/asm/gpio.h                  |    4 ----
+ drivers/ata/pata_at91.c                         |    3 +--
+ drivers/ata/pata_bf54x.c                        |    2 +-
+ drivers/gpio/gpio-mpc5200.c                     |    1 -
+ drivers/mfd/menelaus.c                          |    2 +-
+ drivers/mtd/onenand/omap2.c                     |    2 +-
+ drivers/pcmcia/bfin_cf_pcmcia.c                 |    2 +-
+ drivers/pcmcia/pxa2xx_vpac270.c                 |    1 -
+ drivers/usb/gadget/udc/atmel_usba_udc.c         |    2 --
+ drivers/usb/host/ohci-at91.c                    |    2 --
+ drivers/video/fbdev/atmel_lcdfb.c               |    2 --
+ drivers/video/fbdev/omap/lcd_h3.c               |    2 +-
+ drivers/video/fbdev/omap/lcd_osk.c              |    3 +--
+ drivers/video/fbdev/omap/lcd_palmtt.c           |    2 +-
+ 33 files changed, 18 insertions(+), 65 deletions(-)
+ delete mode 100644 arch/alpha/include/asm/gpio.h
+ delete mode 100644 arch/ia64/include/asm/gpio.h
+ delete mode 100644 arch/metag/include/asm/gpio.h
+ delete mode 100644 arch/microblaze/include/asm/gpio.h
+ delete mode 100644 arch/openrisc/include/asm/gpio.h
+ delete mode 100644 arch/powerpc/include/asm/gpio.h
+ delete mode 100644 arch/sparc/include/asm/gpio.h
+ delete mode 100644 arch/x86/include/asm/gpio.h
+ delete mode 100644 arch/xtensa/include/asm/gpio.h
