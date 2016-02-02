@@ -1,99 +1,243 @@
-From: Ganapatrao Kulkarni <gkulkarni-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>
-Subject: [PATCH v10 4/8] arm64, numa : Enable numa dt for arm64 platforms.
-Date: Tue, 2 Feb 2016 15:39:19 +0530
-Message-ID: <1454407763-1017-5-git-send-email-gkulkarni@caviumnetworks.com>
+From: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
+Subject: [PATCH v10 8/8] numa, mm, cleanup: remove redundant NODE_DATA macro from asm header files.
+Date: Tue, 2 Feb 2016 15:39:23 +0530
+Message-ID: <1454407763-1017-9-git-send-email-gkulkarni@caviumnetworks.com>
 References: <1454407763-1017-1-git-send-email-gkulkarni@caviumnetworks.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <1454407763-1017-1-git-send-email-gkulkarni-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>
-Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Will.Deacon-5wv7dgnIgG8@public.gmane.org, catalin.marinas-5wv7dgnIgG8@public.gmane.org, robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, mark.rutland-5wv7dgnIgG8@public.gmane.org, grant.likely-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, leif.lindholm-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, rfranz-YGCgFSpz5w/QT0dZR+AlfA@public.gmane.org, ard.biesheuvel-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, msalter-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org, steve.capper-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, hanjun.guo-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, al.stone-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, pawel.moll-5wv7dgnIgG8@public.gmane.org, ijc+devicetree-KcIKpvwj1kUDXYZnReoRVg@public.gmane.org, galak-sgV2jX0FEOL9JmXXK+q4OQ@public.gmane.org, rjw-LthD3rsA81gm4RdzfppkhA@public.gmane.org, lenb-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org, marc.zyngier-5wv7dgnIgG8@public.gmane.org, lorenzo.pieralisi-5wv7dgnIgG8@public.gmane.org, bhelgaas-hpIqsD4AKlfQT0dZR+AlfA@public.gmane.org, tony.luck-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, fenghua.yu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, james.hog
-Cc: gpkulkarni-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org
+Return-path: <linux-sh-owner@vger.kernel.org>
+In-Reply-To: <1454407763-1017-1-git-send-email-gkulkarni@caviumnetworks.com>
+Sender: linux-sh-owner@vger.kernel.org
+To: linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Will.Deacon@arm.com, catalin.marinas@arm.com, robh+dt@kernel.org, mark.rutland@arm.com, grant.likely@linaro.org, leif.lindholm@linaro.org, rfranz@cavium.com, ard.biesheuvel@linaro.org, msalter@redhat.com, steve.capper@linaro.org, hanjun.guo@linaro.org, al.stone@linaro.org, arnd@arndb.de, pawel.moll@arm.com, ijc+devicetree@hellion.org.uk, galak@codeaurora.org, rjw@rjwysocki.net, lenb@kernel.org, marc.zyngier@arm.com, lorenzo.pieralisi@arm.com, bhelgaas@google.com, tony.luck@intel.com, fenghua.yu@intel.com, james.hog
+Cc: gpkulkarni@gmail.com
 List-Id: linux-arch.vger.kernel.org
 
-Adding numa dt binding support for arm64 based platforms.
+NODE_DATA is defined across multiple asm header files.
+Moving generic definition to asm-generic/mmzone.h to
+remove redundant definitions.
 
-Reviewed-by: Robert Richter <rrichter-YGCgFSpz5w/QT0dZR+AlfA@public.gmane.org>
-Signed-off-by: Ganapatrao Kulkarni <gkulkarni-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>
+Reviewed-by: Robert Richter <rrichter@cavium.com>
+Signed-off-by: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
 ---
- arch/arm64/include/asm/numa.h |  2 ++
- arch/arm64/kernel/smp.c       |  2 ++
- arch/arm64/mm/numa.c          | 17 +++++++++++++++++
- 3 files changed, 21 insertions(+)
+ arch/arm64/include/asm/mmzone.h   |  4 +---
+ arch/m32r/include/asm/mmzone.h    |  4 +---
+ arch/metag/include/asm/mmzone.h   |  4 +---
+ arch/powerpc/include/asm/mmzone.h |  8 ++------
+ arch/s390/include/asm/mmzone.h    |  6 +-----
+ arch/sh/include/asm/mmzone.h      |  4 +---
+ arch/sparc/include/asm/mmzone.h   |  6 ++----
+ arch/x86/include/asm/mmzone.h     |  3 +--
+ arch/x86/include/asm/mmzone_32.h  |  5 -----
+ arch/x86/include/asm/mmzone_64.h  | 17 -----------------
+ include/asm-generic/mmzone.h      | 24 ++++++++++++++++++++++++
+ 11 files changed, 34 insertions(+), 51 deletions(-)
+ delete mode 100644 arch/x86/include/asm/mmzone_64.h
+ create mode 100644 include/asm-generic/mmzone.h
 
-diff --git a/arch/arm64/include/asm/numa.h b/arch/arm64/include/asm/numa.h
-index 574267f..e9b4f29 100644
---- a/arch/arm64/include/asm/numa.h
-+++ b/arch/arm64/include/asm/numa.h
-@@ -31,12 +31,14 @@ void __init arm64_numa_init(void);
- int __init numa_add_memblk(int nodeid, u64 start, u64 end);
- void __init numa_set_distance(int from, int to, int distance);
- void __init numa_free_distance(void);
-+void __init early_map_cpu_to_node(unsigned int cpu, int nid);
- void numa_store_cpu_info(unsigned int cpu);
+diff --git a/arch/arm64/include/asm/mmzone.h b/arch/arm64/include/asm/mmzone.h
+index a0de9e6..611a1cf 100644
+--- a/arch/arm64/include/asm/mmzone.h
++++ b/arch/arm64/include/asm/mmzone.h
+@@ -4,9 +4,7 @@
+ #ifdef CONFIG_NUMA
  
- #else	/* CONFIG_NUMA */
+ #include <asm/numa.h>
+-
+-extern struct pglist_data *node_data[];
+-#define NODE_DATA(nid)		(node_data[(nid)])
++#include  <asm-generic/mmzone.h>
  
- static inline void numa_store_cpu_info(unsigned int cpu) { }
- static inline void arm64_numa_init(void) { }
-+static inline void early_map_cpu_to_node(unsigned int cpu, int nid) { }
+ #endif /* CONFIG_NUMA */
+ #endif /* __ASM_MMZONE_H */
+diff --git a/arch/m32r/include/asm/mmzone.h b/arch/m32r/include/asm/mmzone.h
+index 115ced3..e3d66a0 100644
+--- a/arch/m32r/include/asm/mmzone.h
++++ b/arch/m32r/include/asm/mmzone.h
+@@ -7,12 +7,10 @@
+ #define _ASM_MMZONE_H_
  
- #endif	/* CONFIG_NUMA */
+ #include <asm/smp.h>
++#include  <asm-generic/mmzone.h>
  
-diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
-index d6e7d6a..46c45c8 100644
---- a/arch/arm64/kernel/smp.c
-+++ b/arch/arm64/kernel/smp.c
-@@ -520,6 +520,8 @@ static void __init of_parse_and_init_cpus(void)
+ #ifdef CONFIG_DISCONTIGMEM
  
- 		pr_debug("cpu logical map 0x%llx\n", hwid);
- 		cpu_logical_map(cpu_count) = hwid;
-+
-+		early_map_cpu_to_node(cpu_count, of_node_to_nid(dn));
- next:
- 		cpu_count++;
- 	}
-diff --git a/arch/arm64/mm/numa.c b/arch/arm64/mm/numa.c
-index 60f19a2..7aad5d4 100644
---- a/arch/arm64/mm/numa.c
-+++ b/arch/arm64/mm/numa.c
-@@ -20,6 +20,7 @@
- #include <linux/bootmem.h>
- #include <linux/memblock.h>
- #include <linux/module.h>
-+#include <linux/of.h>
+-extern struct pglist_data *node_data[];
+-#define NODE_DATA(nid)		(node_data[nid])
+-
+ #define node_localnr(pfn, nid)	((pfn) - NODE_DATA(nid)->node_start_pfn)
  
- struct pglist_data *node_data[MAX_NUMNODES] __read_mostly;
- EXPORT_SYMBOL(node_data);
-@@ -122,6 +123,15 @@ void numa_store_cpu_info(unsigned int cpu)
- 	map_cpu_to_node(cpu, numa_off ? 0 : cpu_to_node_map[cpu]);
- }
+ #define pmd_page(pmd)		(pfn_to_page(pmd_val(pmd) >> PAGE_SHIFT))
+diff --git a/arch/metag/include/asm/mmzone.h b/arch/metag/include/asm/mmzone.h
+index 9c88a9c..b1e95b3 100644
+--- a/arch/metag/include/asm/mmzone.h
++++ b/arch/metag/include/asm/mmzone.h
+@@ -3,9 +3,7 @@
  
-+void __init early_map_cpu_to_node(unsigned int cpu, int nid)
-+{
-+	/* fallback to node 0 */
-+	if (nid < 0 || nid >= MAX_NUMNODES)
-+		nid = 0;
-+
-+	cpu_to_node_map[cpu] = nid;
-+}
-+
- /**
-  * numa_add_memblk - Set node id to memblk
-  * @nid: NUMA node ID of the new memblk
-@@ -383,5 +393,12 @@ static int __init dummy_numa_init(void)
-  */
- void __init arm64_numa_init(void)
+ #ifdef CONFIG_NEED_MULTIPLE_NODES
+ #include <linux/numa.h>
+-
+-extern struct pglist_data *node_data[];
+-#define NODE_DATA(nid)		(node_data[nid])
++#include  <asm-generic/mmzone.h>
+ 
+ static inline int pfn_to_nid(unsigned long pfn)
  {
-+	if (!numa_off) {
-+#ifdef CONFIG_OF_NUMA
-+		if (!numa_init(of_numa_init))
-+			return;
-+#endif
-+	}
+diff --git a/arch/powerpc/include/asm/mmzone.h b/arch/powerpc/include/asm/mmzone.h
+index 7b58917..da0c5ba 100644
+--- a/arch/powerpc/include/asm/mmzone.h
++++ b/arch/powerpc/include/asm/mmzone.h
+@@ -19,12 +19,6 @@
+ 
+ #ifdef CONFIG_NEED_MULTIPLE_NODES
+ 
+-extern struct pglist_data *node_data[];
+-/*
+- * Return a pointer to the node data for node n.
+- */
+-#define NODE_DATA(nid)		(node_data[nid])
+-
+ /*
+  * Following are specific to this numa platform.
+  */
+@@ -42,5 +36,7 @@ u64 memory_hotplug_max(void);
+ #define memory_hotplug_max() memblock_end_of_DRAM()
+ #endif /* CONFIG_NEED_MULTIPLE_NODES */
+ 
++#include  <asm-generic/mmzone.h>
 +
- 	numa_init(dummy_numa_init);
- }
+ #endif /* __KERNEL__ */
+ #endif /* _ASM_MMZONE_H_ */
+diff --git a/arch/s390/include/asm/mmzone.h b/arch/s390/include/asm/mmzone.h
+index a9e834e..91f1fcc 100644
+--- a/arch/s390/include/asm/mmzone.h
++++ b/arch/s390/include/asm/mmzone.h
+@@ -7,10 +7,6 @@
+ #ifndef _ASM_S390_MMZONE_H
+ #define _ASM_S390_MMZONE_H
+ 
+-#ifdef CONFIG_NUMA
++#include  <asm-generic/mmzone.h>
+ 
+-extern struct pglist_data *node_data[];
+-#define NODE_DATA(nid) (node_data[nid])
+-
+-#endif /* CONFIG_NUMA */
+ #endif /* _ASM_S390_MMZONE_H */
+diff --git a/arch/sh/include/asm/mmzone.h b/arch/sh/include/asm/mmzone.h
+index 15a8496..c070d00 100644
+--- a/arch/sh/include/asm/mmzone.h
++++ b/arch/sh/include/asm/mmzone.h
+@@ -5,9 +5,7 @@
+ 
+ #ifdef CONFIG_NEED_MULTIPLE_NODES
+ #include <linux/numa.h>
+-
+-extern struct pglist_data *node_data[];
+-#define NODE_DATA(nid)		(node_data[nid])
++#include  <asm-generic/mmzone.h>
+ 
+ static inline int pfn_to_nid(unsigned long pfn)
+ {
+diff --git a/arch/sparc/include/asm/mmzone.h b/arch/sparc/include/asm/mmzone.h
+index 99d9b9f..ef1365b 100644
+--- a/arch/sparc/include/asm/mmzone.h
++++ b/arch/sparc/include/asm/mmzone.h
+@@ -5,13 +5,11 @@
+ 
+ #include <linux/cpumask.h>
+ 
+-extern struct pglist_data *node_data[];
+-
+-#define NODE_DATA(nid)		(node_data[nid])
+-
+ extern int numa_cpu_lookup_table[];
+ extern cpumask_t numa_cpumask_lookup_table[];
+ 
+ #endif /* CONFIG_NEED_MULTIPLE_NODES */
+ 
++#include  <asm-generic/mmzone.h>
++
+ #endif /* _SPARC64_MMZONE_H */
+diff --git a/arch/x86/include/asm/mmzone.h b/arch/x86/include/asm/mmzone.h
+index d497bc4..5a52815 100644
+--- a/arch/x86/include/asm/mmzone.h
++++ b/arch/x86/include/asm/mmzone.h
+@@ -1,5 +1,4 @@
+ #ifdef CONFIG_X86_32
+ # include <asm/mmzone_32.h>
+-#else
+-# include <asm/mmzone_64.h>
+ #endif
++#include  <asm-generic/mmzone.h>
+diff --git a/arch/x86/include/asm/mmzone_32.h b/arch/x86/include/asm/mmzone_32.h
+index 1ec990b..09f7cfb 100644
+--- a/arch/x86/include/asm/mmzone_32.h
++++ b/arch/x86/include/asm/mmzone_32.h
+@@ -8,11 +8,6 @@
+ 
+ #include <asm/smp.h>
+ 
+-#ifdef CONFIG_NUMA
+-extern struct pglist_data *node_data[];
+-#define NODE_DATA(nid)	(node_data[nid])
+-#endif /* CONFIG_NUMA */
+-
+ #ifdef CONFIG_DISCONTIGMEM
+ 
+ /*
+diff --git a/arch/x86/include/asm/mmzone_64.h b/arch/x86/include/asm/mmzone_64.h
+deleted file mode 100644
+index 129d9aa..0000000
+--- a/arch/x86/include/asm/mmzone_64.h
++++ /dev/null
+@@ -1,17 +0,0 @@
+-/* K8 NUMA support */
+-/* Copyright 2002,2003 by Andi Kleen, SuSE Labs */
+-/* 2.5 Version loosely based on the NUMAQ Code by Pat Gaughen. */
+-#ifndef _ASM_X86_MMZONE_64_H
+-#define _ASM_X86_MMZONE_64_H
+-
+-#ifdef CONFIG_NUMA
+-
+-#include <linux/mmdebug.h>
+-#include <asm/smp.h>
+-
+-extern struct pglist_data *node_data[];
+-
+-#define NODE_DATA(nid)		(node_data[nid])
+-
+-#endif
+-#endif /* _ASM_X86_MMZONE_64_H */
+diff --git a/include/asm-generic/mmzone.h b/include/asm-generic/mmzone.h
+new file mode 100644
+index 0000000..ec0fc4c
+--- /dev/null
++++ b/include/asm-generic/mmzone.h
+@@ -0,0 +1,24 @@
++/*
++ * linux/include/asm-generic/mmzone.h
++ *
++ * Author: Ganapatrao Kulkarni <gkulkarni@cavium.com>
++ * Copyright (C) 2016 Cavium Inc.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ */
++
++#ifndef _ASM_GENERIC_MMZONE_H
++#define _ASM_GENERIC_MMZONE_H
++
++#if defined(CONFIG_NUMA) || defined(CONFIG_NEED_MULTIPLE_NODES)
++
++#ifndef NODE_DATA
++extern struct pglist_data *node_data[];
++#define NODE_DATA(nid)          (node_data[(nid)])
++#endif
++
++#endif
++#endif /* _ASM_GENERIC_MMZONE_H */
 -- 
 1.8.1.4
+
