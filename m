@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f65.google.com ([74.125.82.65]:35796 "EHLO
-	mail-wm0-f65.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933553AbcBBUTv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2016 15:19:51 -0500
+Received: from mail-wm0-f68.google.com ([74.125.82.68]:36850 "EHLO
+	mail-wm0-f68.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933528AbcBBUTs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2016 15:19:48 -0500
 From: Michal Hocko <mhocko@kernel.org>
-Subject: [RFC 08/12] sparc, rwsem: provide __down_write_killable
-Date: Tue,  2 Feb 2016 21:19:25 +0100
-Message-ID: <1454444369-2146-9-git-send-email-mhocko@kernel.org>
+Subject: [RFC 07/12] sh, rwsem: provide __down_write_killable
+Date: Tue,  2 Feb 2016 21:19:24 +0100
+Message-ID: <1454444369-2146-8-git-send-email-mhocko@kernel.org>
 In-Reply-To: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
 References: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
 Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>
-Message-ID: <20160202201925.AfujgtWoNLN4mDEyGWVy9nC9SHCfackVe8BNFI0Qneg@z>
+Message-ID: <20160202201924.S-pw1BLwLYPcEtlIQlYL4ij4gK23Kys-WHqdKZvdnl4@z>
 
 From: Michal Hocko <mhocko@suse.com>
 
@@ -22,24 +22,24 @@ rwsem_down_write_failed_killable slow path and return -EINTR if killed.
 
 Signed-off-by: Michal Hocko <mhocko@suse.com>
 ---
- arch/sparc/include/asm/rwsem.h | 13 +++++++++++++
+ arch/sh/include/asm/rwsem.h | 13 +++++++++++++
  1 file changed, 13 insertions(+)
 
-diff --git a/arch/sparc/include/asm/rwsem.h b/arch/sparc/include/asm/rwsem.h
-index e5a0d575bc7f..c1e9e32e8b63 100644
---- a/arch/sparc/include/asm/rwsem.h
-+++ b/arch/sparc/include/asm/rwsem.h
-@@ -55,6 +55,19 @@ static inline void __down_write(struct rw_semaphore *sem)
+diff --git a/arch/sh/include/asm/rwsem.h b/arch/sh/include/asm/rwsem.h
+index f6c951c7a875..8a457b83d2a5 100644
+--- a/arch/sh/include/asm/rwsem.h
++++ b/arch/sh/include/asm/rwsem.h
+@@ -54,6 +54,19 @@ static inline void __down_write(struct rw_semaphore *sem)
  		rwsem_down_write_failed(sem);
  }
  
 +static inline int __down_write_killable(struct rw_semaphore *sem)
 +{
-+	long tmp;
++	int tmp;
 +
-+	tmp = atomic64_add_return(RWSEM_ACTIVE_WRITE_BIAS,
-+				  (atomic64_t *)(&sem->count));
-+	if (unlikely(tmp != RWSEM_ACTIVE_WRITE_BIAS))
++	tmp = atomic_add_return(RWSEM_ACTIVE_WRITE_BIAS,
++				(atomic_t *)(&sem->count));
++	if (tmp != RWSEM_ACTIVE_WRITE_BIAS)
 +		if (IS_ERR(rwsem_down_write_failed_killable(sem)))
 +			return -EINTR;
 +
@@ -48,7 +48,7 @@ index e5a0d575bc7f..c1e9e32e8b63 100644
 +
  static inline int __down_write_trylock(struct rw_semaphore *sem)
  {
- 	long tmp;
+ 	int tmp;
 -- 
 2.7.0
 
