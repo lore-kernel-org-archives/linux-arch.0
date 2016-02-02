@@ -1,59 +1,84 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: [RFC 0/12] introduce down_write_killable for rw_semaphore
-Date: Tue,  2 Feb 2016 21:19:17 +0100
-Message-ID: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
+From: Yury Norov <ynorov@caviumnetworks.com>
+Subject: Re: [PATCH 1/5] all: s390: move wrapper infrastructure to generic
+ headers
+Date: Tue, 2 Feb 2016 23:41:56 +0300
+Message-ID: <20160202204156.GA27290@yury-N73SV>
+References: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
+ <1453741047-5498-2-git-send-email-ynorov@caviumnetworks.com>
+ <20160128121618.GB5418@osiris>
+ <20160128163109.GA8529@yury-N73SV>
+ <20160201114251.GB973@yury-N73SV>
+ <20160202073913.GB3990@osiris>
+ <20160202154331.GA3003@yury-N73SV>
+ <20160202160826.GF3990@osiris>
+ <20160202195434.GA3397@osiris>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160202195434.GA3397@osiris>
 Sender: linux-kernel-owner@vger.kernel.org
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+To: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, catalin.marinas@arm.com, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
-the following patchset implements a killable variant of write lock for
-rw_semaphore. My usecase is to turn as many mmap_sem write users to use
-a killable variant which will be helpful for the oom_reaper [1] to
-asynchronously tear down the oom victim address space which requires
-mmap_sem for read. This will reduce a likelihood of OOM livelocks caused
-by oom victim being stuck on a lock or other resource which prevents it
-to reach its exit path and release the memory. I haven't implemented
-the killable variant of the read lock because I do not have any usecase
-for this API.
+On Tue, Feb 02, 2016 at 08:54:34PM +0100, Heiko Carstens wrote:
+> Hi Yury,
+> 
+> On Tue, Feb 02, 2016 at 05:08:26PM +0100, Heiko Carstens wrote:
+> > See e.g. 485d52768685 ("sys_personality: change sys_personality() to accept
+> > "unsigned int" instead of u_long") would have been a candidate which could
+> > silently break architectures which need compat wrappers.
+> 
+> Ok, this example is of course wrong. But now I can claim that also somebody
+> who should know better makes these mistakes.. :)
+> 
 
-The patchset is organized as follows.
-- Patch 1 is a trivial cleanup
-- Patch 2, I belive, shouldn't introduce any functional changes as per
-  Documentation/memory-barriers.txt.
-- Patch 3 is the preparatory work and necessary infrastructure for
-  down_write_killable. It implements generic __down_write_killable
-  and prepares the write lock slow path to bail out earlier when told so
-- Patch 4-9 are implementing arch specific __down_write_killable. One
-  patch per architecture. I haven't even tried to compile test anything but
-  sparch which uses CONFIG_RWSEM_GENERIC_SPINLOCK in allnoconfig.
-  Those shold be mostly trivial.
-- One exception is x86 which replaces the current implementation of
-  __down_write with the generic one to make easier to read and get rid
-  of one level of indirection to the slow path. More on that in patch 10.
-  I do not have any problems to drop patch 10 and rework 11 to the current
-  inline asm but I think the easier code would be better.
-- finally patch 11 implements down_write_killable and ties everything
-  together. I am not really an expert on lockdep so I hope I got it right.
+Yep, this is a bad example. :) Moreover, this patch is coming from year 2010,
+and it shows how stable the syscall ABI is.
 
-Many of arch specific patches are basically same and I can squash them
-into one patch if this is preferred but I thought that one patch per
-arch is preferable.
+> > > I don't know much about s390 specifics. Maybe because of that I do not
+> > > understand completely your worries. I'm OK with both 1st and 2nd
+> > > version, but I'd choose 2nd one because it allows inlines, and we
+> > > don't need the compat_wrapper.c.
+> > 
+> > It would be only nicer if we can guarentee correctness all the time. That
+> > being said I'm about to revert my own commit :)
+> > 
+> > So if you want to go without compat_wrapper.c then we should have a
+> > solution which will do the right thing all the time without that a system
+> > call author has to know about the sign and zero extension issue some
+> > architectures face. It _will_ go wrong.
+> 
+> So I think I can summarize my point to: if you can enforce correctness, why
+> shouldn't you do it if the performance impact is only a single instruction.
 
-My patch to change mmap_sem write users to killable form is not part
-of the series because it is not finished yet but I guess it is not
-really necessary for the RFC. The API is used in the same way as
-mutex_lock_killable.
+For aarch64 it's 5 instructions. But what's more important (if ever),
+another wrapper takes another i-cache line...
+        <compat_SyS_ftruncate>:
+        stp     x29, x30, [sp,#-16]!
+        mov     x29, sp
+        bl      d40 <do_sys_ftruncate.constprop.3>
+        ldp     x29, x30, [sp],#16
+        ret
 
-I have tested on x86 with OOM situations with high mmap_sem contention
-(basically many parallel page faults racing with many parallel mmap/munmap
-tight loops) so the waiters for the write locks are routinely interrupted
-by SIGKILL.
+> 
+> However I'll try to write an addon patch to your patch series. Maybe we can
+> still get rid of compat_wrapper.c in a way which makes both of us happy.
+> Also.. the idea with the alias names for compat wrappers does seem to have
+> the disadvantage that it will pollute /proc/kallsyms for example.
+> 
+> Anyway, I'm not sure if I will be able to come up with something this week
+> though.
 
-Patches should apply cleanly on both Linus and next tree.
+Great, I'm looking forward...
 
-Any feedback is highly appreciated.
----
-[1] http://lkml.kernel.org/r/1452094975-551-1-git-send-email-mhocko@kernel.org
+My point is. Syscall ABI is so stable and so important that too much
+people are involved in development and testing of it. So automatic
+checks are almost useless, as all bugs will be found during
+development and review. I think, community is able to pay enough
+attention to review a couple of such patches per decade.
+But I'm OK with some automatic checker, if it will be :
+ - not too complicated, as complex code makes bugs by itself;
+ - not too expensive;
+ - not too ugly (my one is definitely ugly).
