@@ -1,69 +1,149 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from asavdk4.altibox.net ([109.247.116.15]:58498 "EHLO
-	asavdk4.altibox.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S964815AbcBCQkO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Feb 2016 11:40:14 -0500
-Date: Wed, 3 Feb 2016 17:39:46 +0100
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH] [RFC] ARM: modify pgd_t definition for
- TRANSPARENT_HUGEPAGE_PUD
-Message-ID: <20160203163946.GA20360@ravnborg.org>
-References: <1773775.QWf7OyDGPh@wuerfel>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1773775.QWf7OyDGPh@wuerfel>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:43431 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751394AbcBCVUq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Feb 2016 16:20:46 -0500
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [PATCH v2 02/13] EXPORT_SYMBOL() for asm
+Date: Wed,  3 Feb 2016 21:20:34 +0000
+Message-ID: <1454534445-16759-2-git-send-email-viro@ZenIV.linux.org.uk>
+In-Reply-To: <20160203211953.GT17997@ZenIV.linux.org.uk>
+References: <20160203211953.GT17997@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Russell King <rmk@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Matthew Wilcox <willy@linux.intel.com>, Jan Kara <jack@suse.cz>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Ross Zwisler <ross.zwisler@linux.intel.com>, Dan Williams <dan.j.williams@intel.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20160203163946.4LWu-N4WbuppyGqbbldOh8dWnUvJDkI_BStCAaMoDPQ@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20160203212034.V49fM1NctwP3Is6W9bZ6E-gJ8ArNvs6diiCPhqO3J3I@z>
 
-On Wed, Feb 03, 2016 at 02:21:48PM +0100, Arnd Bergmann wrote:
-> I ran into build errors on ARM after Willy's newly added generic
-> TRANSPARENT_HUGEPAGE_PUD support. We don't support this feature
-> on ARM at all, but the patch causes a build error anyway:
-> 
-> In file included from ../kernel/memremap.c:17:0:
-> ../include/linux/pfn_t.h:108:7: error: 'pud_mkdevmap' declared as function returning an array
->  pud_t pud_mkdevmap(pud_t pud);
-> 
-> We don't use a PUD on ARM, so pud_t is defined as pmd_t, which
-> in turn is defined as
-> 
-> typedef unsigned long pgd_t[2];
-> 
-> on NOMMU and on 2-level MMU configurations. There is an (unused)
-> other definition using a struct around the array, which happens to
-> work fine here.
-> 
-> There is a comment in the file about the fact the other version
-> is "easier on the compiler", and I've traced that version back
-> to linux-2.1.80 when ARM support was first merged back in 1998.
-> 
-> It's probably a safe assumption that this is no longer necessary:
-> The same logic existed in asm-i386 at the time but was removed
-> a year later in 2.3.23pre3. The STRICT_MM_TYPECHECKS logic
-> also ended up getting copied into these files:
-> 
-> arch/alpha/include/asm/page.h
-> arch/arc/include/asm/page.h
-> arch/arm/include/asm/pgtable-3level-types.h
-> arch/arm64/include/asm/pgtable-types.h
-> arch/ia64/include/asm/page.h
-> arch/parisc/include/asm/page.h
-> arch/powerpc/include/asm/page.h
-> arch/sparc/include/asm/page_32.h
-> arch/sparc/include/asm/page_64.h
+From: Al Viro <viro@zeniv.linux.org.uk>
 
-For the sparc32 case we use the simpler variants.
-According to the comment this is due to limitation in
-the way we pass arguments in the sparc32 ABI.
-But I have not tried to compare a kernel for sparc32 with
-and without the use of structs.
+Add asm-usable variants of EXPORT_SYMBOL/EXPORT_SYMBOL_GPL.  This
+commit just adds the default implementation; most of the architectures
+can simply add export.h to asm/Kbuild and start using <asm/export.h>
+from assembler.  The rest needs to have their <asm/export.h> define
+everal macros and then explicitly include <asm-generic/export.h>
 
-For sparc64 we use the stricter types (structs).
-I did not check other architectures - but just wanted to
-tell that the right choice may be architecture dependent.
+One area where the things might diverge from default is the alignment;
+normally it's 8 bytes on 64bit targets and 4 on 32bit ones, both for
+unsigned long and for struct kernel_symbol.  Unfortunately, amd64 and
+m68k are unusual - m68k aligns to 2 bytes (for both) and amd64 aligns
+struct kernel_symbol to 16 bytes.  For those we'll need asm/export.h to
+override the constants used by generic version - KSYM_ALIGN and KCRC_ALIGN
+for kernel_symbol and unsigned long resp.  And no, __alignof__ would not
+do the trick - on amd64 __alignof__ of struct kernel_symbol is 8, not 16.
 
-	Sam
+More serious source of unpleasantness is treatment of function
+descriptors on architectures that have those.  Things like ppc64,
+parisc, ia64, etc.  need more than the address of the first insn to
+call an arbitrary function.  As the result, their representation of
+pointers to functions is not the typical "address of the entry point" -
+it's an address of a small static structure containing all the required
+information (including the entry point, of course).  Sadly, the asm-side
+conventions differ in what the function name refers to - entry point or
+the function descriptor.  On ppc64 we do the latter;
+	bar: .quad foo
+is what void (*bar)(void) = foo; turns into and the rare places where
+we need to explicitly work with the label of entry point are dealt with
+as DOTSYM(foo).  For our purposes it's ideal - generic macros are usable.
+However, parisc would have foo and P%foo used for label of entry point
+and address of the function descriptor and
+	bar: .long P%foo
+woudl be used instead.	ia64 goes similar to parisc in that respect,
+except that there it's @fptr(foo) rather than P%foo.  Such architectures
+need to define KSYM_FUNC that would turn a function name into whatever
+is needed to refer to function descriptor.
+
+What's more, on such architectures we need to know whether we are exporting
+a function or an object - in assembler we have to tell that explicitly, to
+decide whether we want EXPORT_SYMBOL(foo) produce e.g.
+	__ksymtab_foo: .quad foo
+or
+	__ksymtab_foo: .quad @fptr(foo)
+
+For that reason we introduce EXPORT_DATA_SYMBOL{,_GPL}(), to be used for
+exports of data objects.  On normal architectures it's the same thing
+as EXPORT_SYMBOL{,_GPL}(), but on parisc-like ones they differ and the
+right one needs to be used.  Most of the exports are functions, so we
+keep EXPORT_SYMBOL for those...
+
+Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+---
+ include/asm-generic/export.h | 66 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 66 insertions(+)
+ create mode 100644 include/asm-generic/export.h
+
+diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
+new file mode 100644
+index 0000000..ba86909
+--- /dev/null
++++ b/include/asm-generic/export.h
+@@ -0,0 +1,66 @@
++#ifndef __ASM_GENERIC_EXPORT_H
++#define __ASM_GENERIC_EXPORT_H
++
++#ifndef KSYM_FUNC
++#define KSYM_FUNC(x) x
++#endif
++#ifdef CONFIG_64BIT
++#define __put .quad
++#ifndef KSYM_ALIGN
++#define KSYM_ALIGN 8
++#endif
++#ifndef KCRC_ALIGN
++#define KCRC_ALIGN 8
++#endif
++#else
++#define __put .long
++#ifndef KSYM_ALIGN
++#define KSYM_ALIGN 4
++#endif
++#ifndef KCRC_ALIGN
++#define KCRC_ALIGN 4
++#endif
++#endif
++
++#ifdef CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
++#define KSYM(name) _##name
++#else
++#define KSYM(name) name
++#endif
++
++/*
++ * note on .section use: @progbits vs %progbits nastiness doesn't matter,
++ * since we immediately emit into those sections anyway.
++ */
++.macro __EXPORT_SYMBOL name,val,sec
++#ifdef CONFIG_MODULES
++	.globl __ksymtab_\name
++	.section ___ksymtab\sec+\name,"a"
++	.balign KSYM_ALIGN
++KSYM(__ksymtab_\name):
++	__put \val, KSYM(__kstrtab_\name)
++	.previous
++	.section __ksymtab_strings,"a"
++KSYM(__kstrtab_\name):
++#ifdef CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
++	.asciz "_\name"
++#else
++	.asciz "\name"
++#endif
++	.previous
++#ifdef CONFIG_MODVERSIONS
++	.section ___kcrctab\sec+\name,"a"
++	.balign KCRC_ALIGN
++KSYM(__kcrctab_\name):
++	__put KSYM(__crc_\name)
++	.weak	KSYM(__crc_\name)
++	.previous
++#endif
++#endif
++.endm
++#undef __put
++#define EXPORT_SYMBOL(name) __EXPORT_SYMBOL name,KSYM_FUNC(KSYM(name))
++#define EXPORT_SYMBOL_GPL(name) __EXPORT_SYMBOL name,KSYM_FUNC(KSYM(name)),_gpl
++#define EXPORT_DATA_SYMBOL(name) __EXPORT_SYMBOL name,KSYM(name)
++#define EXPORT_DATA_SYMBOL_GPL(name) __EXPORT_SYMBOL name,KSYM(name),_gpl
++#endif
+-- 
+2.1.4
+
