@@ -1,119 +1,121 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH v2 01/13] [kbuild] handle exports in lib-y objects reliably
-Date: Wed,  3 Feb 2016 21:20:33 +0000
-Message-ID: <1454534445-16759-1-git-send-email-viro@ZenIV.linux.org.uk>
+Subject: [PATCH v2 12/13] sparc32: debride memcpy.S a bit
+Date: Wed,  3 Feb 2016 21:20:44 +0000
+Message-ID: <1454534445-16759-12-git-send-email-viro@ZenIV.linux.org.uk>
 References: <20160203211953.GT17997@ZenIV.linux.org.uk>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:43441 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755565AbcBCVUt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Feb 2016 16:20:49 -0500
 In-Reply-To: <20160203211953.GT17997@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
-Collect the symbols exported by anything that goes into lib.a and
-add an empty object (lib-exports.o) with explicit undefs for each
-of those to obj-y.
+unreachable code, unused macros...
 
-That allows to relax the rules regarding the use of exports in
-lib-* objects - right now an object with export can be in lib-*
-only if we are guaranteed that there always will be users in
-built-in parts of the tree, otherwise it needs to be in obj-*.
-As the result, we have an unholy mix of lib- and obj- in lib/Makefile
-and (especially) in arch/*/lib/Makefile.  Moreover, a change in
-generic part of the kernel can lead to mysteriously missing exports
-on some configs.  With this change we don't have to worry about
-that anymore.
-
-One side effect is that built-in.o now pulls everything with exports
-from the corresponding lib.a (if such exists).  That's exactly what
-we want for linking vmlinux and fortunately it's almost the only thing
-built-in.o is used in.  arch/ia64/hp/sim/boot/bootloader is the only
-exception and it's easy to get rid of now - just turn everything in
-arch/ia64/lib into lib-* and don't bother with arch/ia64/lib/built-in.o
-anymore.
-
+Acked-by: David S. Miller <davem@davemloft.net>
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/ia64/hp/sim/boot/Makefile |  2 +-
- arch/ia64/lib/Makefile         |  8 +++-----
- scripts/Makefile.build         | 20 ++++++++++++++++++++
- 3 files changed, 24 insertions(+), 6 deletions(-)
+ arch/sparc/lib/memcpy.S | 79 -------------------------------------------------
+ 1 file changed, 79 deletions(-)
 
-diff --git a/arch/ia64/hp/sim/boot/Makefile b/arch/ia64/hp/sim/boot/Makefile
-index 2e805e0..df6e996 100644
---- a/arch/ia64/hp/sim/boot/Makefile
-+++ b/arch/ia64/hp/sim/boot/Makefile
-@@ -33,5 +33,5 @@ $(obj)/vmlinux.bin: vmlinux FORCE
- LDFLAGS_bootloader = -static -T
+diff --git a/arch/sparc/lib/memcpy.S b/arch/sparc/lib/memcpy.S
+index d3626cd..8913fea 100644
+--- a/arch/sparc/lib/memcpy.S
++++ b/arch/sparc/lib/memcpy.S
+@@ -59,88 +59,9 @@ x:
+ 	stb	%t0, [%dst - (offset) - 0x02]; \
+ 	stb	%t1, [%dst - (offset) - 0x01];
  
- $(obj)/bootloader: $(src)/bootloader.lds $(obj)/bootloader.o $(obj)/boot_head.o $(obj)/fw-emu.o \
--                   lib/lib.a arch/ia64/lib/built-in.o arch/ia64/lib/lib.a FORCE
-+                   lib/lib.a arch/ia64/lib/lib.a FORCE
- 	$(call if_changed,ld)
-diff --git a/arch/ia64/lib/Makefile b/arch/ia64/lib/Makefile
-index 98771e2..1f3d387 100644
---- a/arch/ia64/lib/Makefile
-+++ b/arch/ia64/lib/Makefile
-@@ -2,17 +2,15 @@
- # Makefile for ia64-specific library routines..
- #
- 
--obj-y := io.o
+-/* Both these macros have to start with exactly the same insn */
+-#define RMOVE_BIGCHUNK(src, dst, offset, t0, t1, t2, t3, t4, t5, t6, t7) \
+-	ldd	[%src - (offset) - 0x20], %t0; \
+-	ldd	[%src - (offset) - 0x18], %t2; \
+-	ldd	[%src - (offset) - 0x10], %t4; \
+-	ldd	[%src - (offset) - 0x08], %t6; \
+-	st	%t0, [%dst - (offset) - 0x20]; \
+-	st	%t1, [%dst - (offset) - 0x1c]; \
+-	st	%t2, [%dst - (offset) - 0x18]; \
+-	st	%t3, [%dst - (offset) - 0x14]; \
+-	st	%t4, [%dst - (offset) - 0x10]; \
+-	st	%t5, [%dst - (offset) - 0x0c]; \
+-	st	%t6, [%dst - (offset) - 0x08]; \
+-	st	%t7, [%dst - (offset) - 0x04];
 -
--lib-y := __divsi3.o __udivsi3.o __modsi3.o __umodsi3.o			\
-+lib-y := io.o __divsi3.o __udivsi3.o __modsi3.o __umodsi3.o		\
- 	__divdi3.o __udivdi3.o __moddi3.o __umoddi3.o			\
- 	checksum.o clear_page.o csum_partial_copy.o			\
- 	clear_user.o strncpy_from_user.o strlen_user.o strnlen_user.o	\
- 	flush.o ip_fast_csum.o do_csum.o				\
- 	memset.o strlen.o xor.o
+-#define RMOVE_BIGALIGNCHUNK(src, dst, offset, t0, t1, t2, t3, t4, t5, t6, t7) \
+-	ldd	[%src - (offset) - 0x20], %t0; \
+-	ldd	[%src - (offset) - 0x18], %t2; \
+-	ldd	[%src - (offset) - 0x10], %t4; \
+-	ldd	[%src - (offset) - 0x08], %t6; \
+-	std	%t0, [%dst - (offset) - 0x20]; \
+-	std	%t2, [%dst - (offset) - 0x18]; \
+-	std	%t4, [%dst - (offset) - 0x10]; \
+-	std	%t6, [%dst - (offset) - 0x08];
+-
+-#define RMOVE_LASTCHUNK(src, dst, offset, t0, t1, t2, t3) \
+-	ldd	[%src + (offset) + 0x00], %t0; \
+-	ldd	[%src + (offset) + 0x08], %t2; \
+-	st	%t0, [%dst + (offset) + 0x00]; \
+-	st	%t1, [%dst + (offset) + 0x04]; \
+-	st	%t2, [%dst + (offset) + 0x08]; \
+-	st	%t3, [%dst + (offset) + 0x0c];
+-
+-#define RMOVE_SHORTCHUNK(src, dst, offset, t0, t1) \
+-	ldub	[%src + (offset) + 0x00], %t0; \
+-	ldub	[%src + (offset) + 0x01], %t1; \
+-	stb	%t0, [%dst + (offset) + 0x00]; \
+-	stb	%t1, [%dst + (offset) + 0x01];
+-
+-#define SMOVE_CHUNK(src, dst, offset, t0, t1, t2, t3, t4, t5, t6, prev, shil, shir, offset2) \
+-	ldd	[%src + (offset) + 0x00], %t0; \
+-	ldd	[%src + (offset) + 0x08], %t2; \
+-	srl	%t0, shir, %t5; \
+-	srl	%t1, shir, %t6; \
+-	sll	%t0, shil, %t0; \
+-	or	%t5, %prev, %t5; \
+-	sll	%t1, shil, %prev; \
+-	or	%t6, %t0, %t0; \
+-	srl	%t2, shir, %t1; \
+-	srl	%t3, shir, %t6; \
+-	sll	%t2, shil, %t2; \
+-	or	%t1, %prev, %t1; \
+-	std	%t4, [%dst + (offset) + (offset2) - 0x04]; \
+-	std	%t0, [%dst + (offset) + (offset2) + 0x04]; \
+-	sll	%t3, shil, %prev; \
+-	or	%t6, %t2, %t4;
+-
+-#define SMOVE_ALIGNCHUNK(src, dst, offset, t0, t1, t2, t3, t4, t5, t6, prev, shil, shir, offset2) \
+-	ldd	[%src + (offset) + 0x00], %t0; \
+-	ldd	[%src + (offset) + 0x08], %t2; \
+-	srl	%t0, shir, %t4;	\
+-	srl	%t1, shir, %t5;	\
+-	sll	%t0, shil, %t6;	\
+-	or	%t4, %prev, %t0; \
+-	sll	%t1, shil, %prev; \
+-	or	%t5, %t6, %t1; \
+-	srl	%t2, shir, %t4;	\
+-	srl	%t3, shir, %t5;	\
+-	sll	%t2, shil, %t6; \
+-	or	%t4, %prev, %t2; \
+-	sll	%t3, shil, %prev; \
+-	or	%t5, %t6, %t3; \
+-	std	%t0, [%dst + (offset) + (offset2) + 0x00]; \
+-	std	%t2, [%dst + (offset) + (offset2) + 0x08];
+-
+ 	.text
+ 	.align	4
  
--obj-$(CONFIG_ITANIUM)	+= copy_page.o copy_user.o memcpy.o
--obj-$(CONFIG_MCKINLEY)	+= copy_page_mck.o memcpy_mck.o
-+lib-$(CONFIG_ITANIUM)	+= copy_page.o copy_user.o memcpy.o
-+lib-$(CONFIG_MCKINLEY)	+= copy_page_mck.o memcpy_mck.o
- lib-$(CONFIG_PERFMON)	+= carta_random.o
- 
- AFLAGS___divdi3.o	=
-diff --git a/scripts/Makefile.build b/scripts/Makefile.build
-index 2c47f9c..d041013 100644
---- a/scripts/Makefile.build
-+++ b/scripts/Makefile.build
-@@ -81,6 +81,7 @@ endif
- 
- ifneq ($(strip $(lib-y) $(lib-m) $(lib-)),)
- lib-target := $(obj)/lib.a
-+obj-y += $(obj)/lib-ksyms.o
- endif
- 
- ifneq ($(strip $(obj-y) $(obj-m) $(obj-) $(subdir-m) $(lib-target)),)
-@@ -363,6 +364,25 @@ $(lib-target): $(lib-y) FORCE
- 	$(call if_changed,link_l_target)
- 
- targets += $(lib-target)
-+
-+dummy-object = $(obj)/__lib_exports.o
-+ksyms-lds = $(obj)/lib-ksyms.lds
-+ifdef CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
-+ref_prefix = EXTERN(_
-+else
-+ref_prefix = EXTERN(
-+endif
-+
-+quiet_cmd_export_list = EXPORTS $@
-+cmd_export_list = $(OBJDUMP) -h $< | \
-+	sed -ne '/___ksymtab/{s/.*+/$(ref_prefix)/;s/ .*/)/;p}' >$(ksyms-lds);\
-+	rm -f $(dummy-object);\
-+	$(AR) rcs$(KBUILD_ARFLAGS) $(dummy-object);\
-+	$(LD) $(ld_flags) -r -o $@ -T $(ksyms-lds) $(dummy-object);\
-+	rm $(dummy-object) $(ksyms-lds)
-+
-+$(obj)/lib-ksyms.o: $(lib-target) FORCE
-+	$(call if_changed,export_list)
- endif
- 
- #
+-0:
+-	retl
+-	 nop		! Only bcopy returns here and it retuns void...
+-
+ FUNC(memmove)
+ EXPORT_SYMBOL(memmove)
+ 	cmp		%o0, %o1
 -- 
 2.1.4
