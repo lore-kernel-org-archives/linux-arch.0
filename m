@@ -1,144 +1,119 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH v2 02/13] EXPORT_SYMBOL() for asm
-Date: Wed,  3 Feb 2016 21:20:34 +0000
-Message-ID: <1454534445-16759-2-git-send-email-viro@ZenIV.linux.org.uk>
+Subject: [PATCH v2 01/13] [kbuild] handle exports in lib-y objects reliably
+Date: Wed,  3 Feb 2016 21:20:33 +0000
+Message-ID: <1454534445-16759-1-git-send-email-viro@ZenIV.linux.org.uk>
 References: <20160203211953.GT17997@ZenIV.linux.org.uk>
-Return-path: <linux-kbuild-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20160203211953.GT17997@ZenIV.linux.org.uk>
-Sender: linux-kbuild-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
-Add asm-usable variants of EXPORT_SYMBOL/EXPORT_SYMBOL_GPL.  This
-commit just adds the default implementation; most of the architectures
-can simply add export.h to asm/Kbuild and start using <asm/export.h>
-from assembler.  The rest needs to have their <asm/export.h> define
-everal macros and then explicitly include <asm-generic/export.h>
+Collect the symbols exported by anything that goes into lib.a and
+add an empty object (lib-exports.o) with explicit undefs for each
+of those to obj-y.
 
-One area where the things might diverge from default is the alignment;
-normally it's 8 bytes on 64bit targets and 4 on 32bit ones, both for
-unsigned long and for struct kernel_symbol.  Unfortunately, amd64 and
-m68k are unusual - m68k aligns to 2 bytes (for both) and amd64 aligns
-struct kernel_symbol to 16 bytes.  For those we'll need asm/export.h to
-override the constants used by generic version - KSYM_ALIGN and KCRC_ALIGN
-for kernel_symbol and unsigned long resp.  And no, __alignof__ would not
-do the trick - on amd64 __alignof__ of struct kernel_symbol is 8, not 16.
+That allows to relax the rules regarding the use of exports in
+lib-* objects - right now an object with export can be in lib-*
+only if we are guaranteed that there always will be users in
+built-in parts of the tree, otherwise it needs to be in obj-*.
+As the result, we have an unholy mix of lib- and obj- in lib/Makefile
+and (especially) in arch/*/lib/Makefile.  Moreover, a change in
+generic part of the kernel can lead to mysteriously missing exports
+on some configs.  With this change we don't have to worry about
+that anymore.
 
-More serious source of unpleasantness is treatment of function
-descriptors on architectures that have those.  Things like ppc64,
-parisc, ia64, etc.  need more than the address of the first insn to
-call an arbitrary function.  As the result, their representation of
-pointers to functions is not the typical "address of the entry point" -
-it's an address of a small static structure containing all the required
-information (including the entry point, of course).  Sadly, the asm-side
-conventions differ in what the function name refers to - entry point or
-the function descriptor.  On ppc64 we do the latter;
-	bar: .quad foo
-is what void (*bar)(void) = foo; turns into and the rare places where
-we need to explicitly work with the label of entry point are dealt with
-as DOTSYM(foo).  For our purposes it's ideal - generic macros are usable.
-However, parisc would have foo and P%foo used for label of entry point
-and address of the function descriptor and
-	bar: .long P%foo
-woudl be used instead.	ia64 goes similar to parisc in that respect,
-except that there it's @fptr(foo) rather than P%foo.  Such architectures
-need to define KSYM_FUNC that would turn a function name into whatever
-is needed to refer to function descriptor.
-
-What's more, on such architectures we need to know whether we are exporting
-a function or an object - in assembler we have to tell that explicitly, to
-decide whether we want EXPORT_SYMBOL(foo) produce e.g.
-	__ksymtab_foo: .quad foo
-or
-	__ksymtab_foo: .quad @fptr(foo)
-
-For that reason we introduce EXPORT_DATA_SYMBOL{,_GPL}(), to be used for
-exports of data objects.  On normal architectures it's the same thing
-as EXPORT_SYMBOL{,_GPL}(), but on parisc-like ones they differ and the
-right one needs to be used.  Most of the exports are functions, so we
-keep EXPORT_SYMBOL for those...
+One side effect is that built-in.o now pulls everything with exports
+from the corresponding lib.a (if such exists).  That's exactly what
+we want for linking vmlinux and fortunately it's almost the only thing
+built-in.o is used in.  arch/ia64/hp/sim/boot/bootloader is the only
+exception and it's easy to get rid of now - just turn everything in
+arch/ia64/lib into lib-* and don't bother with arch/ia64/lib/built-in.o
+anymore.
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- include/asm-generic/export.h | 66 ++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 66 insertions(+)
- create mode 100644 include/asm-generic/export.h
+ arch/ia64/hp/sim/boot/Makefile |  2 +-
+ arch/ia64/lib/Makefile         |  8 +++-----
+ scripts/Makefile.build         | 20 ++++++++++++++++++++
+ 3 files changed, 24 insertions(+), 6 deletions(-)
 
-diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
-new file mode 100644
-index 0000000..ba86909
---- /dev/null
-+++ b/include/asm-generic/export.h
-@@ -0,0 +1,66 @@
-+#ifndef __ASM_GENERIC_EXPORT_H
-+#define __ASM_GENERIC_EXPORT_H
+diff --git a/arch/ia64/hp/sim/boot/Makefile b/arch/ia64/hp/sim/boot/Makefile
+index 2e805e0..df6e996 100644
+--- a/arch/ia64/hp/sim/boot/Makefile
++++ b/arch/ia64/hp/sim/boot/Makefile
+@@ -33,5 +33,5 @@ $(obj)/vmlinux.bin: vmlinux FORCE
+ LDFLAGS_bootloader = -static -T
+ 
+ $(obj)/bootloader: $(src)/bootloader.lds $(obj)/bootloader.o $(obj)/boot_head.o $(obj)/fw-emu.o \
+-                   lib/lib.a arch/ia64/lib/built-in.o arch/ia64/lib/lib.a FORCE
++                   lib/lib.a arch/ia64/lib/lib.a FORCE
+ 	$(call if_changed,ld)
+diff --git a/arch/ia64/lib/Makefile b/arch/ia64/lib/Makefile
+index 98771e2..1f3d387 100644
+--- a/arch/ia64/lib/Makefile
++++ b/arch/ia64/lib/Makefile
+@@ -2,17 +2,15 @@
+ # Makefile for ia64-specific library routines..
+ #
+ 
+-obj-y := io.o
+-
+-lib-y := __divsi3.o __udivsi3.o __modsi3.o __umodsi3.o			\
++lib-y := io.o __divsi3.o __udivsi3.o __modsi3.o __umodsi3.o		\
+ 	__divdi3.o __udivdi3.o __moddi3.o __umoddi3.o			\
+ 	checksum.o clear_page.o csum_partial_copy.o			\
+ 	clear_user.o strncpy_from_user.o strlen_user.o strnlen_user.o	\
+ 	flush.o ip_fast_csum.o do_csum.o				\
+ 	memset.o strlen.o xor.o
+ 
+-obj-$(CONFIG_ITANIUM)	+= copy_page.o copy_user.o memcpy.o
+-obj-$(CONFIG_MCKINLEY)	+= copy_page_mck.o memcpy_mck.o
++lib-$(CONFIG_ITANIUM)	+= copy_page.o copy_user.o memcpy.o
++lib-$(CONFIG_MCKINLEY)	+= copy_page_mck.o memcpy_mck.o
+ lib-$(CONFIG_PERFMON)	+= carta_random.o
+ 
+ AFLAGS___divdi3.o	=
+diff --git a/scripts/Makefile.build b/scripts/Makefile.build
+index 2c47f9c..d041013 100644
+--- a/scripts/Makefile.build
++++ b/scripts/Makefile.build
+@@ -81,6 +81,7 @@ endif
+ 
+ ifneq ($(strip $(lib-y) $(lib-m) $(lib-)),)
+ lib-target := $(obj)/lib.a
++obj-y += $(obj)/lib-ksyms.o
+ endif
+ 
+ ifneq ($(strip $(obj-y) $(obj-m) $(obj-) $(subdir-m) $(lib-target)),)
+@@ -363,6 +364,25 @@ $(lib-target): $(lib-y) FORCE
+ 	$(call if_changed,link_l_target)
+ 
+ targets += $(lib-target)
 +
-+#ifndef KSYM_FUNC
-+#define KSYM_FUNC(x) x
-+#endif
-+#ifdef CONFIG_64BIT
-+#define __put .quad
-+#ifndef KSYM_ALIGN
-+#define KSYM_ALIGN 8
-+#endif
-+#ifndef KCRC_ALIGN
-+#define KCRC_ALIGN 8
-+#endif
-+#else
-+#define __put .long
-+#ifndef KSYM_ALIGN
-+#define KSYM_ALIGN 4
-+#endif
-+#ifndef KCRC_ALIGN
-+#define KCRC_ALIGN 4
-+#endif
-+#endif
++dummy-object = $(obj)/__lib_exports.o
++ksyms-lds = $(obj)/lib-ksyms.lds
++ifdef CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
++ref_prefix = EXTERN(_
++else
++ref_prefix = EXTERN(
++endif
 +
-+#ifdef CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
-+#define KSYM(name) _##name
-+#else
-+#define KSYM(name) name
-+#endif
++quiet_cmd_export_list = EXPORTS $@
++cmd_export_list = $(OBJDUMP) -h $< | \
++	sed -ne '/___ksymtab/{s/.*+/$(ref_prefix)/;s/ .*/)/;p}' >$(ksyms-lds);\
++	rm -f $(dummy-object);\
++	$(AR) rcs$(KBUILD_ARFLAGS) $(dummy-object);\
++	$(LD) $(ld_flags) -r -o $@ -T $(ksyms-lds) $(dummy-object);\
++	rm $(dummy-object) $(ksyms-lds)
 +
-+/*
-+ * note on .section use: @progbits vs %progbits nastiness doesn't matter,
-+ * since we immediately emit into those sections anyway.
-+ */
-+.macro __EXPORT_SYMBOL name,val,sec
-+#ifdef CONFIG_MODULES
-+	.globl __ksymtab_\name
-+	.section ___ksymtab\sec+\name,"a"
-+	.balign KSYM_ALIGN
-+KSYM(__ksymtab_\name):
-+	__put \val, KSYM(__kstrtab_\name)
-+	.previous
-+	.section __ksymtab_strings,"a"
-+KSYM(__kstrtab_\name):
-+#ifdef CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
-+	.asciz "_\name"
-+#else
-+	.asciz "\name"
-+#endif
-+	.previous
-+#ifdef CONFIG_MODVERSIONS
-+	.section ___kcrctab\sec+\name,"a"
-+	.balign KCRC_ALIGN
-+KSYM(__kcrctab_\name):
-+	__put KSYM(__crc_\name)
-+	.weak	KSYM(__crc_\name)
-+	.previous
-+#endif
-+#endif
-+.endm
-+#undef __put
-+#define EXPORT_SYMBOL(name) __EXPORT_SYMBOL name,KSYM_FUNC(KSYM(name))
-+#define EXPORT_SYMBOL_GPL(name) __EXPORT_SYMBOL name,KSYM_FUNC(KSYM(name)),_gpl
-+#define EXPORT_DATA_SYMBOL(name) __EXPORT_SYMBOL name,KSYM(name)
-+#define EXPORT_DATA_SYMBOL_GPL(name) __EXPORT_SYMBOL name,KSYM(name),_gpl
-+#endif
++$(obj)/lib-ksyms.o: $(lib-target) FORCE
++	$(call if_changed,export_list)
+ endif
+ 
+ #
 -- 
 2.1.4
-
