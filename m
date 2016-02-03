@@ -1,308 +1,56 @@
-From: Rob Herring <robh@kernel.org>
-Subject: Re: [PATCH v10 3/8] dt, numa: adding numa dt binding implementation.
-Date: Tue, 2 Feb 2016 17:34:17 -0600
-Message-ID: <20160202233417.GA4739@rob-hp-laptop>
-References: <1454407763-1017-1-git-send-email-gkulkarni@caviumnetworks.com>
- <1454407763-1017-4-git-send-email-gkulkarni@caviumnetworks.com>
+From: Alexandre Courbot <gnurou@gmail.com>
+Subject: Re: [PATCH 1/2] gpio: Include linux/gpio.h instead of asm/gpio.h
+Date: Wed, 3 Feb 2016 09:02:24 +0900
+Message-ID: <CAAVeFu+O9GTPsyDP=dhi2Sg3uZTZOKUH7PK2vOfKTDGvKN8Ppg@mail.gmail.com>
+References: <20160202194831.10827.63244.stgit@bhelgaas-glaptop2.roam.corp.google.com>
+ <20160202195323.10827.26654.stgit@bhelgaas-glaptop2.roam.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-pci-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1454407763-1017-4-git-send-email-gkulkarni@caviumnetworks.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
-Cc: linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Will.Deacon@arm.com, catalin.marinas@arm.com, mark.rutland@arm.com, grant.likely@linaro.org, leif.lindholm@linaro.org, rfranz@cavium.com, ard.biesheuvel@linaro.org, msalter@redhat.com, steve.capper@linaro.org, hanjun.guo@linaro.org, al.stone@linaro.org, arnd@arndb.de, pawel.moll@arm.com, ijc+devicetree@hellion.org.uk, galak@codeaurora.org, rjw@rjwysocki.net, lenb@kernel.org, marc.zyngier@arm.com, lorenzo.pieralisi@arm.com, bhelgaas@google.com, tony.luck@intel.com, fenghua.yu@intel.com, james.hogan@imgtec.com, benh@kernel.crashing.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-io0-f173.google.com ([209.85.223.173]:33856 "EHLO
+	mail-io0-f173.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751011AbcBCACo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Feb 2016 19:02:44 -0500
+In-Reply-To: <20160202195323.10827.26654.stgit@bhelgaas-glaptop2.roam.corp.google.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Linus Walleij <linus.walleij@linaro.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Mark Brown <broonie@kernel.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>
 
-On Tue, Feb 02, 2016 at 03:39:18PM +0530, Ganapatrao Kulkarni wrote:
-> dt node parsing for numa topology is done using device property
-> numa-node-id and device node distance-map.
-> 
-> Reviewed-by: Robert Richter <rrichter@cavium.com>
-> Signed-off-by: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
-> ---
->  drivers/of/Kconfig   |  11 +++
->  drivers/of/Makefile  |   1 +
->  drivers/of/of_numa.c | 207 +++++++++++++++++++++++++++++++++++++++++++++++++++
->  include/linux/of.h   |   4 +
->  4 files changed, 223 insertions(+)
->  create mode 100644 drivers/of/of_numa.c
-> 
-> diff --git a/drivers/of/Kconfig b/drivers/of/Kconfig
-> index e2a4841..8f9cc3a 100644
-> --- a/drivers/of/Kconfig
-> +++ b/drivers/of/Kconfig
-> @@ -112,4 +112,15 @@ config OF_OVERLAY
->  	  While this option is selected automatically when needed, you can
->  	  enable it manually to improve device tree unit test coverage.
->  
-> +config OF_NUMA
-> +	bool "Device Tree NUMA support"
+On Wed, Feb 3, 2016 at 4:53 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+> Most arches have an asm/gpio.h that merely includes linux/gpio.h.  The
+> others select ARCH_HAVE_CUSTOM_GPIO_H, and when that's selected,
+> linux/gpio.h includes asm/gpio.h.
 
-Does this need to be user visible?
+Looks correct if that's really what happens, GPIO includes can be tricky...
 
-> +	depends on NUMA
-> +	depends on OF
-> +	depends on ARM64
+>  arch/avr32/boards/merisc/setup.c                |    1 -
+>  arch/avr32/mach-at32ap/pio.c                    |    2 +-
+>  arch/blackfin/kernel/debug-mmrs.c               |    2 +-
+>  arch/blackfin/mach-bf538/boards/ezkit.c         |    2 +-
+>  arch/blackfin/mach-bf538/ext-gpio.c             |    2 +-
+>  arch/blackfin/mach-bf548/boards/cm_bf548.c      |    2 +-
+>  arch/blackfin/mach-bf548/boards/ezkit.c         |    2 +-
+>  arch/blackfin/mach-bf609/boards/ezkit.c         |    2 +-
+>  arch/blackfin/mach-common/ints-priority.c       |    2 +-
+>  arch/blackfin/mach-common/pm.c                  |    2 +-
+>  arch/sh/include/mach-common/mach/magicpanelr2.h |    2 +-
+>  drivers/ata/pata_at91.c                         |    3 +--
+>  drivers/ata/pata_bf54x.c                        |    2 +-
+>  drivers/gpio/gpio-mpc5200.c                     |    1 -
+>  drivers/mfd/menelaus.c                          |    2 +-
+>  drivers/mtd/onenand/omap2.c                     |    2 +-
+>  drivers/pcmcia/bfin_cf_pcmcia.c                 |    2 +-
+>  drivers/pcmcia/pxa2xx_vpac270.c                 |    1 -
+>  drivers/usb/gadget/udc/atmel_usba_udc.c         |    2 --
+>  drivers/usb/host/ohci-at91.c                    |    2 --
+>  drivers/video/fbdev/atmel_lcdfb.c               |    2 --
+>  drivers/video/fbdev/omap/lcd_h3.c               |    2 +-
+>  drivers/video/fbdev/omap/lcd_osk.c              |    3 +--
+>  drivers/video/fbdev/omap/lcd_palmtt.c           |    2 +-
 
-drop this (and make sure it compiles on other arches). It will fail 
-because you also have a dependency on FDT.
+Driver code should most definitely never include asm/gpio.h directly.
 
-> +	default y
-> +	help
-> +	  Enable Device Tree NUMA support.
-> +	  This enables the numa mapping of cpu, memory, io and
-> +	  inter node distances using dt bindings.
-> +
->  endif # OF
-> diff --git a/drivers/of/Makefile b/drivers/of/Makefile
-> index 156c072..bee3fa9 100644
-> --- a/drivers/of/Makefile
-> +++ b/drivers/of/Makefile
-> @@ -14,5 +14,6 @@ obj-$(CONFIG_OF_MTD)	+= of_mtd.o
->  obj-$(CONFIG_OF_RESERVED_MEM) += of_reserved_mem.o
->  obj-$(CONFIG_OF_RESOLVE)  += resolver.o
->  obj-$(CONFIG_OF_OVERLAY) += overlay.o
-> +obj-$(CONFIG_OF_NUMA) += of_numa.o
->  
->  obj-$(CONFIG_OF_UNITTEST) += unittest-data/
-> diff --git a/drivers/of/of_numa.c b/drivers/of/of_numa.c
-> new file mode 100644
-> index 0000000..1142cdb
-> --- /dev/null
-> +++ b/drivers/of/of_numa.c
-> @@ -0,0 +1,207 @@
-> +/*
-> + * OF NUMA Parsing support.
-> + *
-> + * Copyright (C) 2015 Cavium Inc.
-> + * Author: Ganapatrao Kulkarni <gkulkarni@cavium.com>
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-> + */
-> +
-> +#include <linux/of.h>
-> +#include <linux/of_fdt.h>
+I may be overlooking some intricate detail, but the simplification is welcome.
 
-Surely you need some numa related includes.
-
-> +
-> +/* define default numa node to 0 */
-> +#define DEFAULT_NODE 0
-> +
-> +/* Returns nid in the range [0..MAX_NUMNODES-1],
-> + * or NUMA_NO_NODE if no valid numa-node-id entry found
-> + * or DEFAULT_NODE if no numa-node-id entry exists
-> + */
-> +static int of_numa_prop_to_nid(const __be32 *of_numa_prop, int length)
-> +{
-> +	int nid;
-> +
-> +	if (!of_numa_prop)
-> +		return DEFAULT_NODE;
-> +
-> +	if (length != sizeof(*of_numa_prop)) {
-> +		pr_warn("NUMA: Invalid of_numa_prop length %d found.\n",
-> +				length);
-> +		return NUMA_NO_NODE;
-> +	}
-> +
-> +	nid = of_read_number(of_numa_prop, 1);
-> +	if (nid >= MAX_NUMNODES) {
-> +		pr_warn("NUMA: Invalid numa node %d found.\n", nid);
-> +		return NUMA_NO_NODE;
-> +	}
-> +
-> +	return nid;
-> +}
-> +
-> +static int __init early_init_of_node_to_nid(unsigned long node)
-> +{
-> +	int length;
-> +	const __be32 *of_numa_prop;
-> +
-> +	of_numa_prop = of_get_flat_dt_prop(node, "numa-node-id", &length);
-> +
-> +	return of_numa_prop_to_nid(of_numa_prop, length);
-> +}
-> +
-> +/*
-> + * Even though we connect cpus to numa domains later in SMP
-> + * init, we need to know the node ids now for all cpus.
-> +*/
-> +static int __init early_init_parse_cpu_node(unsigned long node)
-> +{
-> +	int nid;
-> +	const char *type = of_get_flat_dt_prop(node, "device_type", NULL);
-> +
-> +	if (type == NULL)
-> +		return 0;
-> +
-> +	if (strcmp(type, "cpu") != 0)
-> +		return 0;
-> +
-> +	nid = early_init_of_node_to_nid(node);
-> +	if (nid == NUMA_NO_NODE)
-> +		return -EINVAL;
-> +
-> +	node_set(nid, numa_nodes_parsed);
-> +	return 0;
-> +}
-> +
-> +static int __init early_init_parse_memory_node(unsigned long node)
-> +{
-> +	const __be32 *reg, *endp;
-> +	int length;
-> +	int nid;
-> +	const char *type = of_get_flat_dt_prop(node, "device_type", NULL);
-> +
-> +	if (type == NULL)
-> +		return 0;
-> +
-> +	if (strcmp(type, "memory") != 0)
-> +		return 0;
-> +
-> +	nid = early_init_of_node_to_nid(node);
-> +	if (nid == NUMA_NO_NODE)
-> +		return -EINVAL;
-> +
-> +	reg = of_get_flat_dt_prop(node, "reg", &length);
-> +	endp = reg + (length / sizeof(__be32));
-> +
-> +	while ((endp - reg) >= (dt_root_addr_cells + dt_root_size_cells)) {
-> +		u64 base, size;
-> +
-> +		base = dt_mem_next_cell(dt_root_addr_cells, &reg);
-> +		size = dt_mem_next_cell(dt_root_size_cells, &reg);
-> +		pr_debug("NUMA:  base = %llx , node = %u\n",
-> +				base, nid);
-> +
-
-We already have code to parse memory nodes. Can the NUMA part be 
-combined somehow.
-
-> +		if (numa_add_memblk(nid, base, size) < 0)
-> +			return -EINVAL;
-> +	}
-> +
-> +	return 0;
-> +}
-> +
-> +static int __init early_init_parse_distance_map_v1(unsigned long node,
-> +		const char *uname)
-> +{
-> +	const __be32 *prop_dist_matrix;
-> +	int length = 0, i, matrix_count;
-> +	int nr_size_cells = OF_ROOT_NODE_SIZE_CELLS_DEFAULT;
-> +
-> +	pr_info("NUMA: parsing numa-distance-map-v1\n");
-> +
-> +	prop_dist_matrix =
-> +		of_get_flat_dt_prop(node, "distance-matrix", &length);
-> +
-> +	if (!length) {
-> +		pr_err("NUMA: failed to parse distance-matrix\n");
-> +		return -ENODEV;
-> +	}
-> +
-> +	matrix_count = ((length / sizeof(__be32)) / (3 * nr_size_cells));
-> +
-> +	if ((matrix_count * sizeof(__be32) * 3 * nr_size_cells) !=  length) {
-> +		pr_warn("NUMA: invalid distance-matrix length %d\n", length);
-> +		return -EINVAL;
-> +	}
-> +
-> +	for (i = 0; i < matrix_count; i++) {
-> +		u32 nodea, nodeb, distance;
-> +
-> +		nodea = dt_mem_next_cell(nr_size_cells, &prop_dist_matrix);
-> +		nodeb = dt_mem_next_cell(nr_size_cells, &prop_dist_matrix);
-> +		distance = dt_mem_next_cell(nr_size_cells, &prop_dist_matrix);
-> +		numa_set_distance(nodea, nodeb, distance);
-> +		pr_debug("NUMA:  distance[node%d -> node%d] = %d\n",
-> +				nodea, nodeb, distance);
-> +
-> +		/* Set default distance of node B->A same as A->B */
-> +		if (nodeb > nodea)
-> +			numa_set_distance(nodeb, nodea, distance);
-> +	}
-> +
-> +	return 0;
-> +}
-> +
-> +static int __init early_init_parse_distance_map(unsigned long node,
-> +		const char *uname)
-> +{
-> +	if (strcmp(uname, "distance-map") != 0)
-> +		return 0;
-> +
-> +	if (of_flat_dt_is_compatible(node, "numa-distance-map-v1"))
-> +		return early_init_parse_distance_map_v1(node, uname);
-> +
-> +	pr_err("NUMA: invalid distance-map device node\n");
-> +	return -EINVAL;
-> +}
-> +
-> +static int __init early_init_of_scan_numa_map(unsigned long node, const char *uname,
-> +				     int depth, void *data)
-> +{
-> +	int ret;
-> +
-> +	ret = early_init_parse_cpu_node(node);
-> +	if (ret)
-> +		return ret;
-> +
-> +	ret = early_init_parse_memory_node(node);
-> +	if (ret)
-> +		return ret;
-> +
-> +	return early_init_parse_distance_map(node, uname);
-> +}
-> +
-> +int of_node_to_nid(struct device_node *device)
-> +{
-> +	const __be32 *of_numa_prop;
-> +	int length;
-> +
-> +	of_numa_prop = of_get_property(device, "numa-node-id", &length);
-> +	if (of_numa_prop)
-> +		return of_numa_prop_to_nid(of_numa_prop, length);
-> +
-> +	return NUMA_NO_NODE;
-> +}
-> +
-> +/* DT node mapping is done already early_init_of_scan_memory */
-> +int __init of_numa_init(void)
-> +{
-> +	return of_scan_flat_dt(early_init_of_scan_numa_map, NULL);
-> +}
-> diff --git a/include/linux/of.h b/include/linux/of.h
-> index dd10626..23e5bad 100644
-> --- a/include/linux/of.h
-> +++ b/include/linux/of.h
-> @@ -685,6 +685,10 @@ static inline int of_node_to_nid(struct device_node *device)
->  }
->  #endif
->  
-> +#ifdef CONFIG_OF_NUMA
-> +extern int __init of_numa_init(void);
-> +#endif
-
-You don't need an ifdef here unless you need an empty function.
-
-Can this be called internally by the DT code when it does the all 
-the other flat scanning instead of adding another call from arch code to 
-DT code. Ideally, the arch code would call DT code once and it would do 
-all the parsing it needs to.
-
-Rob
+Acked-by: Alexandre Courbot <acourbot@nvidia.com>
