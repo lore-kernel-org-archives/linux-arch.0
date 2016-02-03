@@ -1,313 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.kernel.org ([198.145.29.136]:43797 "EHLO mail.kernel.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753738AbcBBXe0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 2 Feb 2016 18:34:26 -0500
-Date: Tue, 2 Feb 2016 17:34:17 -0600
-From: Rob Herring <robh@kernel.org>
-Subject: Re: [PATCH v10 3/8] dt, numa: adding numa dt binding implementation.
-Message-ID: <20160202233417.GA4739@rob-hp-laptop>
-References: <1454407763-1017-1-git-send-email-gkulkarni@caviumnetworks.com>
- <1454407763-1017-4-git-send-email-gkulkarni@caviumnetworks.com>
+Received: from mail-wm0-f67.google.com ([74.125.82.67]:36446 "EHLO
+	mail-wm0-f67.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755852AbcBCIKV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Feb 2016 03:10:21 -0500
+Date: Wed, 3 Feb 2016 09:10:16 +0100
+From: Ingo Molnar <mingo@kernel.org>
+Subject: Re: [RFC 10/12] x86, rwsem: simplify __down_write
+Message-ID: <20160203081016.GD32652@gmail.com>
+References: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
+ <1454444369-2146-11-git-send-email-mhocko@kernel.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1454407763-1017-4-git-send-email-gkulkarni@caviumnetworks.com>
+In-Reply-To: <1454444369-2146-11-git-send-email-mhocko@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
-Cc: linux-arm-kernel@lists.infradead.org, devicetree@vger.kernel.org, linux-kernel@vger.kernel.org, linux-pci@vger.kernel.org, linux-ia64@vger.kernel.org, linux-metag@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Will.Deacon@arm.com, catalin.marinas@arm.com, mark.rutland@arm.com, grant.likely@linaro.org, leif.lindholm@linaro.org, rfranz@cavium.com, ard.biesheuvel@linaro.org, msalter@redhat.com, steve.capper@linaro.org, hanjun.guo@linaro.org, al.stone@linaro.org, arnd@arndb.de, pawel.moll@arm.com, ijc+devicetree@hellion.org.uk, galak@codeaurora.org, rjw@rjwysocki.net, lenb@kernel.org, marc.zyngier@arm.com, lorenzo.pieralisi@arm.com, bhelgaas@google.com, tony.luck@intel.com, fenghua.yu@intel.com, james.hogan@imgtec.com, benh@kernel.crashing.org, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, x86@kernel.org, jonathan@jonmasters.org, rrichter@cavium.com, Prasun.Kapoor@caviumnetworks.com, gpkulkarni@gmail.com
-Message-ID: <20160202233417.Adk2i2FW79j6O6Wzmw8FMNOLSTjScKihxeWFx5dk8c0@z>
+To: Michal Hocko <mhocko@kernel.org>
+Cc: LKML <linux-kernel@vger.kernel.org>, Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Michal Hocko <mhocko@suse.com>, Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@us.ibm.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+Message-ID: <20160203081016.nFVY7EkrMfFUkQgePddgRnRdwLDt43pAgLAABNLoHZ8@z>
 
-On Tue, Feb 02, 2016 at 03:39:18PM +0530, Ganapatrao Kulkarni wrote:
-> dt node parsing for numa topology is done using device property
-> numa-node-id and device node distance-map.
+
+* Michal Hocko <mhocko@kernel.org> wrote:
+
+> From: Michal Hocko <mhocko@suse.com>
 > 
-> Reviewed-by: Robert Richter <rrichter@cavium.com>
-> Signed-off-by: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
+> x86 implementation of __down_write is using inline asm to optimize the
+> code flow. This however requires that it has go over an additional hop
+> for the slow path call_rwsem_down_write_failed which has to
+> save_common_regs/restore_common_regs to preserve the calling convention.
+> This, however doesn't add much because the fast path only saves one
+> register push/pop (rdx) when compared to the generic implementation:
+> 
+> Before:
+> 0000000000000019 <down_write>:
+>   19:   e8 00 00 00 00          callq  1e <down_write+0x5>
+>   1e:   55                      push   %rbp
+>   1f:   48 ba 01 00 00 00 ff    movabs $0xffffffff00000001,%rdx
+>   26:   ff ff ff
+>   29:   48 89 f8                mov    %rdi,%rax
+>   2c:   48 89 e5                mov    %rsp,%rbp
+>   2f:   f0 48 0f c1 10          lock xadd %rdx,(%rax)
+>   34:   85 d2                   test   %edx,%edx
+>   36:   74 05                   je     3d <down_write+0x24>
+>   38:   e8 00 00 00 00          callq  3d <down_write+0x24>
+>   3d:   65 48 8b 04 25 00 00    mov    %gs:0x0,%rax
+>   44:   00 00
+>   46:   5d                      pop    %rbp
+>   47:   48 89 47 38             mov    %rax,0x38(%rdi)
+>   4b:   c3                      retq
+> 
+> After:
+> 0000000000000019 <down_write>:
+>   19:   e8 00 00 00 00          callq  1e <down_write+0x5>
+>   1e:   55                      push   %rbp
+>   1f:   48 b8 01 00 00 00 ff    movabs $0xffffffff00000001,%rax
+>   26:   ff ff ff
+>   29:   48 89 e5                mov    %rsp,%rbp
+>   2c:   53                      push   %rbx
+>   2d:   48 89 fb                mov    %rdi,%rbx
+>   30:   f0 48 0f c1 07          lock xadd %rax,(%rdi)
+>   35:   48 85 c0                test   %rax,%rax
+>   38:   74 05                   je     3f <down_write+0x26>
+>   3a:   e8 00 00 00 00          callq  3f <down_write+0x26>
+>   3f:   65 48 8b 04 25 00 00    mov    %gs:0x0,%rax
+>   46:   00 00
+>   48:   48 89 43 38             mov    %rax,0x38(%rbx)
+>   4c:   5b                      pop    %rbx
+>   4d:   5d                      pop    %rbp
+>   4e:   c3                      retq
+
+I'm not convinced about the removal of this optimization at all.
+
+> This doesn't seem to justify the code obfuscation and complexity. Use
+> the generic implementation instead.
+> 
+> Signed-off-by: Michal Hocko <mhocko@suse.com>
 > ---
->  drivers/of/Kconfig   |  11 +++
->  drivers/of/Makefile  |   1 +
->  drivers/of/of_numa.c | 207 +++++++++++++++++++++++++++++++++++++++++++++++++++
->  include/linux/of.h   |   4 +
->  4 files changed, 223 insertions(+)
->  create mode 100644 drivers/of/of_numa.c
-> 
-> diff --git a/drivers/of/Kconfig b/drivers/of/Kconfig
-> index e2a4841..8f9cc3a 100644
-> --- a/drivers/of/Kconfig
-> +++ b/drivers/of/Kconfig
-> @@ -112,4 +112,15 @@ config OF_OVERLAY
->  	  While this option is selected automatically when needed, you can
->  	  enable it manually to improve device tree unit test coverage.
->  
-> +config OF_NUMA
-> +	bool "Device Tree NUMA support"
+>  arch/x86/include/asm/rwsem.h | 17 +++++------------
+>  arch/x86/lib/rwsem.S         |  9 ---------
+>  2 files changed, 5 insertions(+), 21 deletions(-)
 
-Does this need to be user visible?
+Turn the argument around, would we be willing to save two instructions off the 
+fast path of a commonly used locking construct, with such a simple optimization:
 
-> +	depends on NUMA
-> +	depends on OF
-> +	depends on ARM64
+>  arch/x86/include/asm/rwsem.h | 17 ++++++++++++-----
+>  arch/x86/lib/rwsem.S         |  9 +++++++++
+>  2 files changed, 21 insertions(+), 5 deletions(-)
 
-drop this (and make sure it compiles on other arches). It will fail 
-because you also have a dependency on FDT.
+?
 
-> +	default y
-> +	help
-> +	  Enable Device Tree NUMA support.
-> +	  This enables the numa mapping of cpu, memory, io and
-> +	  inter node distances using dt bindings.
-> +
->  endif # OF
-> diff --git a/drivers/of/Makefile b/drivers/of/Makefile
-> index 156c072..bee3fa9 100644
-> --- a/drivers/of/Makefile
-> +++ b/drivers/of/Makefile
-> @@ -14,5 +14,6 @@ obj-$(CONFIG_OF_MTD)	+= of_mtd.o
->  obj-$(CONFIG_OF_RESERVED_MEM) += of_reserved_mem.o
->  obj-$(CONFIG_OF_RESOLVE)  += resolver.o
->  obj-$(CONFIG_OF_OVERLAY) += overlay.o
-> +obj-$(CONFIG_OF_NUMA) += of_numa.o
->  
->  obj-$(CONFIG_OF_UNITTEST) += unittest-data/
-> diff --git a/drivers/of/of_numa.c b/drivers/of/of_numa.c
-> new file mode 100644
-> index 0000000..1142cdb
-> --- /dev/null
-> +++ b/drivers/of/of_numa.c
-> @@ -0,0 +1,207 @@
-> +/*
-> + * OF NUMA Parsing support.
-> + *
-> + * Copyright (C) 2015 Cavium Inc.
-> + * Author: Ganapatrao Kulkarni <gkulkarni@cavium.com>
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-> + */
-> +
-> +#include <linux/of.h>
-> +#include <linux/of_fdt.h>
+Yes!
 
-Surely you need some numa related includes.
+So, if you want to remove the assembly code - can we achieve that without hurting 
+the generated fast path, using the compiler?
 
-> +
-> +/* define default numa node to 0 */
-> +#define DEFAULT_NODE 0
-> +
-> +/* Returns nid in the range [0..MAX_NUMNODES-1],
-> + * or NUMA_NO_NODE if no valid numa-node-id entry found
-> + * or DEFAULT_NODE if no numa-node-id entry exists
-> + */
-> +static int of_numa_prop_to_nid(const __be32 *of_numa_prop, int length)
-> +{
-> +	int nid;
-> +
-> +	if (!of_numa_prop)
-> +		return DEFAULT_NODE;
-> +
-> +	if (length != sizeof(*of_numa_prop)) {
-> +		pr_warn("NUMA: Invalid of_numa_prop length %d found.\n",
-> +				length);
-> +		return NUMA_NO_NODE;
-> +	}
-> +
-> +	nid = of_read_number(of_numa_prop, 1);
-> +	if (nid >= MAX_NUMNODES) {
-> +		pr_warn("NUMA: Invalid numa node %d found.\n", nid);
-> +		return NUMA_NO_NODE;
-> +	}
-> +
-> +	return nid;
-> +}
-> +
-> +static int __init early_init_of_node_to_nid(unsigned long node)
-> +{
-> +	int length;
-> +	const __be32 *of_numa_prop;
-> +
-> +	of_numa_prop = of_get_flat_dt_prop(node, "numa-node-id", &length);
-> +
-> +	return of_numa_prop_to_nid(of_numa_prop, length);
-> +}
-> +
-> +/*
-> + * Even though we connect cpus to numa domains later in SMP
-> + * init, we need to know the node ids now for all cpus.
-> +*/
-> +static int __init early_init_parse_cpu_node(unsigned long node)
-> +{
-> +	int nid;
-> +	const char *type = of_get_flat_dt_prop(node, "device_type", NULL);
-> +
-> +	if (type == NULL)
-> +		return 0;
-> +
-> +	if (strcmp(type, "cpu") != 0)
-> +		return 0;
-> +
-> +	nid = early_init_of_node_to_nid(node);
-> +	if (nid == NUMA_NO_NODE)
-> +		return -EINVAL;
-> +
-> +	node_set(nid, numa_nodes_parsed);
-> +	return 0;
-> +}
-> +
-> +static int __init early_init_parse_memory_node(unsigned long node)
-> +{
-> +	const __be32 *reg, *endp;
-> +	int length;
-> +	int nid;
-> +	const char *type = of_get_flat_dt_prop(node, "device_type", NULL);
-> +
-> +	if (type == NULL)
-> +		return 0;
-> +
-> +	if (strcmp(type, "memory") != 0)
-> +		return 0;
-> +
-> +	nid = early_init_of_node_to_nid(node);
-> +	if (nid == NUMA_NO_NODE)
-> +		return -EINVAL;
-> +
-> +	reg = of_get_flat_dt_prop(node, "reg", &length);
-> +	endp = reg + (length / sizeof(__be32));
-> +
-> +	while ((endp - reg) >= (dt_root_addr_cells + dt_root_size_cells)) {
-> +		u64 base, size;
-> +
-> +		base = dt_mem_next_cell(dt_root_addr_cells, &reg);
-> +		size = dt_mem_next_cell(dt_root_size_cells, &reg);
-> +		pr_debug("NUMA:  base = %llx , node = %u\n",
-> +				base, nid);
-> +
+Thanks,
 
-We already have code to parse memory nodes. Can the NUMA part be 
-combined somehow.
-
-> +		if (numa_add_memblk(nid, base, size) < 0)
-> +			return -EINVAL;
-> +	}
-> +
-> +	return 0;
-> +}
-> +
-> +static int __init early_init_parse_distance_map_v1(unsigned long node,
-> +		const char *uname)
-> +{
-> +	const __be32 *prop_dist_matrix;
-> +	int length = 0, i, matrix_count;
-> +	int nr_size_cells = OF_ROOT_NODE_SIZE_CELLS_DEFAULT;
-> +
-> +	pr_info("NUMA: parsing numa-distance-map-v1\n");
-> +
-> +	prop_dist_matrix =
-> +		of_get_flat_dt_prop(node, "distance-matrix", &length);
-> +
-> +	if (!length) {
-> +		pr_err("NUMA: failed to parse distance-matrix\n");
-> +		return -ENODEV;
-> +	}
-> +
-> +	matrix_count = ((length / sizeof(__be32)) / (3 * nr_size_cells));
-> +
-> +	if ((matrix_count * sizeof(__be32) * 3 * nr_size_cells) !=  length) {
-> +		pr_warn("NUMA: invalid distance-matrix length %d\n", length);
-> +		return -EINVAL;
-> +	}
-> +
-> +	for (i = 0; i < matrix_count; i++) {
-> +		u32 nodea, nodeb, distance;
-> +
-> +		nodea = dt_mem_next_cell(nr_size_cells, &prop_dist_matrix);
-> +		nodeb = dt_mem_next_cell(nr_size_cells, &prop_dist_matrix);
-> +		distance = dt_mem_next_cell(nr_size_cells, &prop_dist_matrix);
-> +		numa_set_distance(nodea, nodeb, distance);
-> +		pr_debug("NUMA:  distance[node%d -> node%d] = %d\n",
-> +				nodea, nodeb, distance);
-> +
-> +		/* Set default distance of node B->A same as A->B */
-> +		if (nodeb > nodea)
-> +			numa_set_distance(nodeb, nodea, distance);
-> +	}
-> +
-> +	return 0;
-> +}
-> +
-> +static int __init early_init_parse_distance_map(unsigned long node,
-> +		const char *uname)
-> +{
-> +	if (strcmp(uname, "distance-map") != 0)
-> +		return 0;
-> +
-> +	if (of_flat_dt_is_compatible(node, "numa-distance-map-v1"))
-> +		return early_init_parse_distance_map_v1(node, uname);
-> +
-> +	pr_err("NUMA: invalid distance-map device node\n");
-> +	return -EINVAL;
-> +}
-> +
-> +static int __init early_init_of_scan_numa_map(unsigned long node, const char *uname,
-> +				     int depth, void *data)
-> +{
-> +	int ret;
-> +
-> +	ret = early_init_parse_cpu_node(node);
-> +	if (ret)
-> +		return ret;
-> +
-> +	ret = early_init_parse_memory_node(node);
-> +	if (ret)
-> +		return ret;
-> +
-> +	return early_init_parse_distance_map(node, uname);
-> +}
-> +
-> +int of_node_to_nid(struct device_node *device)
-> +{
-> +	const __be32 *of_numa_prop;
-> +	int length;
-> +
-> +	of_numa_prop = of_get_property(device, "numa-node-id", &length);
-> +	if (of_numa_prop)
-> +		return of_numa_prop_to_nid(of_numa_prop, length);
-> +
-> +	return NUMA_NO_NODE;
-> +}
-> +
-> +/* DT node mapping is done already early_init_of_scan_memory */
-> +int __init of_numa_init(void)
-> +{
-> +	return of_scan_flat_dt(early_init_of_scan_numa_map, NULL);
-> +}
-> diff --git a/include/linux/of.h b/include/linux/of.h
-> index dd10626..23e5bad 100644
-> --- a/include/linux/of.h
-> +++ b/include/linux/of.h
-> @@ -685,6 +685,10 @@ static inline int of_node_to_nid(struct device_node *device)
->  }
->  #endif
->  
-> +#ifdef CONFIG_OF_NUMA
-> +extern int __init of_numa_init(void);
-> +#endif
-
-You don't need an ifdef here unless you need an empty function.
-
-Can this be called internally by the DT code when it does the all 
-the other flat scanning instead of adding another call from arch code to 
-DT code. Ideally, the arch code would call DT code once and it would do 
-all the parsing it needs to.
-
-Rob
+	Ingo
