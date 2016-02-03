@@ -1,125 +1,214 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:43430 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:43440 "EHLO
 	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751075AbcBCVUq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Feb 2016 16:20:46 -0500
+	with ESMTP id S1755560AbcBCVUt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Feb 2016 16:20:49 -0500
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH v2 01/13] [kbuild] handle exports in lib-y objects reliably
-Date: Wed,  3 Feb 2016 21:20:33 +0000
-Message-ID: <1454534445-16759-1-git-send-email-viro@ZenIV.linux.org.uk>
+Subject: [PATCH v2 11/13] [sparc] unify 32bit and 64bit string.h
+Date: Wed,  3 Feb 2016 21:20:43 +0000
+Message-ID: <1454534445-16759-11-git-send-email-viro@ZenIV.linux.org.uk>
 In-Reply-To: <20160203211953.GT17997@ZenIV.linux.org.uk>
 References: <20160203211953.GT17997@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20160203212033.K73ThhRpXmMbM7iazfbkKMTmLtbilaQT6KgpMuz4epk@z>
+Message-ID: <20160203212043.lN95Okcp98mogMrgjAf6XmiOAjpZ3W5hdOmyC488o6o@z>
 
 From: Al Viro <viro@zeniv.linux.org.uk>
 
-Collect the symbols exported by anything that goes into lib.a and
-add an empty object (lib-exports.o) with explicit undefs for each
-of those to obj-y.
-
-That allows to relax the rules regarding the use of exports in
-lib-* objects - right now an object with export can be in lib-*
-only if we are guaranteed that there always will be users in
-built-in parts of the tree, otherwise it needs to be in obj-*.
-As the result, we have an unholy mix of lib- and obj- in lib/Makefile
-and (especially) in arch/*/lib/Makefile.  Moreover, a change in
-generic part of the kernel can lead to mysteriously missing exports
-on some configs.  With this change we don't have to worry about
-that anymore.
-
-One side effect is that built-in.o now pulls everything with exports
-from the corresponding lib.a (if such exists).  That's exactly what
-we want for linking vmlinux and fortunately it's almost the only thing
-built-in.o is used in.  arch/ia64/hp/sim/boot/bootloader is the only
-exception and it's easy to get rid of now - just turn everything in
-arch/ia64/lib into lib-* and don't bother with arch/ia64/lib/built-in.o
-anymore.
-
+Acked-by: David S. Miller <davem@davemloft.net>
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/ia64/hp/sim/boot/Makefile |  2 +-
- arch/ia64/lib/Makefile         |  8 +++-----
- scripts/Makefile.build         | 20 ++++++++++++++++++++
- 3 files changed, 24 insertions(+), 6 deletions(-)
+ arch/sparc/include/asm/string.h    | 34 +++++++++++++++++++++++
+ arch/sparc/include/asm/string_32.h | 56 --------------------------------------
+ arch/sparc/include/asm/string_64.h | 44 ------------------------------
+ arch/sparc/lib/memcpy.S            |  5 ----
+ 4 files changed, 34 insertions(+), 105 deletions(-)
 
-diff --git a/arch/ia64/hp/sim/boot/Makefile b/arch/ia64/hp/sim/boot/Makefile
-index 2e805e0..df6e996 100644
---- a/arch/ia64/hp/sim/boot/Makefile
-+++ b/arch/ia64/hp/sim/boot/Makefile
-@@ -33,5 +33,5 @@ $(obj)/vmlinux.bin: vmlinux FORCE
- LDFLAGS_bootloader = -static -T
+diff --git a/arch/sparc/include/asm/string.h b/arch/sparc/include/asm/string.h
+index 98b72a0..86f34be 100644
+--- a/arch/sparc/include/asm/string.h
++++ b/arch/sparc/include/asm/string.h
+@@ -5,4 +5,38 @@
+ #else
+ #include <asm/string_32.h>
+ #endif
++
++/* First the mem*() things. */
++#define __HAVE_ARCH_MEMMOVE
++void *memmove(void *, const void *, __kernel_size_t);
++
++#define __HAVE_ARCH_MEMCPY
++#define memcpy(t, f, n) __builtin_memcpy(t, f, n)
++
++#define __HAVE_ARCH_MEMSET
++#define memset(s, c, count) __builtin_memset(s, c, count)
++
++#define __HAVE_ARCH_MEMSCAN
++
++#define memscan(__arg0, __char, __arg2)						\
++({										\
++	void *__memscan_zero(void *, size_t);					\
++	void *__memscan_generic(void *, int, size_t);				\
++	void *__retval, *__addr = (__arg0);					\
++	size_t __size = (__arg2);						\
++										\
++	if(__builtin_constant_p(__char) && !(__char))				\
++		__retval = __memscan_zero(__addr, __size);			\
++	else									\
++		__retval = __memscan_generic(__addr, (__char), __size);		\
++										\
++	__retval;								\
++})
++
++#define __HAVE_ARCH_MEMCMP
++int memcmp(const void *,const void *,__kernel_size_t);
++
++#define __HAVE_ARCH_STRNCMP
++int strncmp(const char *, const char *, __kernel_size_t);
++
+ #endif
+diff --git a/arch/sparc/include/asm/string_32.h b/arch/sparc/include/asm/string_32.h
+index 69974e92..6494124 100644
+--- a/arch/sparc/include/asm/string_32.h
++++ b/arch/sparc/include/asm/string_32.h
+@@ -11,60 +11,4 @@
  
- $(obj)/bootloader: $(src)/bootloader.lds $(obj)/bootloader.o $(obj)/boot_head.o $(obj)/fw-emu.o \
--                   lib/lib.a arch/ia64/lib/built-in.o arch/ia64/lib/lib.a FORCE
-+                   lib/lib.a arch/ia64/lib/lib.a FORCE
- 	$(call if_changed,ld)
-diff --git a/arch/ia64/lib/Makefile b/arch/ia64/lib/Makefile
-index 98771e2..1f3d387 100644
---- a/arch/ia64/lib/Makefile
-+++ b/arch/ia64/lib/Makefile
-@@ -2,17 +2,15 @@
- # Makefile for ia64-specific library routines..
- #
+ #include <asm/page.h>
  
--obj-y := io.o
+-/* Really, userland/ksyms should not see any of this stuff. */
 -
--lib-y := __divsi3.o __udivsi3.o __modsi3.o __umodsi3.o			\
-+lib-y := io.o __divsi3.o __udivsi3.o __modsi3.o __umodsi3.o		\
- 	__divdi3.o __udivdi3.o __moddi3.o __umoddi3.o			\
- 	checksum.o clear_page.o csum_partial_copy.o			\
- 	clear_user.o strncpy_from_user.o strlen_user.o strnlen_user.o	\
- 	flush.o ip_fast_csum.o do_csum.o				\
- 	memset.o strlen.o xor.o
+-#ifdef __KERNEL__
+-
+-void __memmove(void *,const void *,__kernel_size_t);
+-
+-#ifndef EXPORT_SYMTAB_STROPS
+-
+-/* First the mem*() things. */
+-#define __HAVE_ARCH_MEMMOVE
+-#undef memmove
+-#define memmove(_to, _from, _n) \
+-({ \
+-	void *_t = (_to); \
+-	__memmove(_t, (_from), (_n)); \
+-	_t; \
+-})
+-
+-#define __HAVE_ARCH_MEMCPY
+-#define memcpy(t, f, n) __builtin_memcpy(t, f, n)
+-
+-#define __HAVE_ARCH_MEMSET
+-#define memset(s, c, count) __builtin_memset(s, c, count)
+-
+-#define __HAVE_ARCH_MEMSCAN
+-
+-#undef memscan
+-#define memscan(__arg0, __char, __arg2)						\
+-({										\
+-	void *__memscan_zero(void *, size_t);					\
+-	void *__memscan_generic(void *, int, size_t);				\
+-	void *__retval, *__addr = (__arg0);					\
+-	size_t __size = (__arg2);						\
+-										\
+-	if(__builtin_constant_p(__char) && !(__char))				\
+-		__retval = __memscan_zero(__addr, __size);			\
+-	else									\
+-		__retval = __memscan_generic(__addr, (__char), __size);		\
+-										\
+-	__retval;								\
+-})
+-
+-#define __HAVE_ARCH_MEMCMP
+-int memcmp(const void *,const void *,__kernel_size_t);
+-
+-/* Now the str*() stuff... */
+-#define __HAVE_ARCH_STRLEN
+-__kernel_size_t strlen(const char *);
+-
+-#define __HAVE_ARCH_STRNCMP
+-int strncmp(const char *, const char *, __kernel_size_t);
+-
+-#endif /* !EXPORT_SYMTAB_STROPS */
+-
+-#endif /* __KERNEL__ */
+-
+ #endif /* !(__SPARC_STRING_H__) */
+diff --git a/arch/sparc/include/asm/string_64.h b/arch/sparc/include/asm/string_64.h
+index 5936b8f..6b9ccb3 100644
+--- a/arch/sparc/include/asm/string_64.h
++++ b/arch/sparc/include/asm/string_64.h
+@@ -9,54 +9,10 @@
+ #ifndef __SPARC64_STRING_H__
+ #define __SPARC64_STRING_H__
  
--obj-$(CONFIG_ITANIUM)	+= copy_page.o copy_user.o memcpy.o
--obj-$(CONFIG_MCKINLEY)	+= copy_page_mck.o memcpy_mck.o
-+lib-$(CONFIG_ITANIUM)	+= copy_page.o copy_user.o memcpy.o
-+lib-$(CONFIG_MCKINLEY)	+= copy_page_mck.o memcpy_mck.o
- lib-$(CONFIG_PERFMON)	+= carta_random.o
+-/* Really, userland/ksyms should not see any of this stuff. */
+-
+-#ifdef __KERNEL__
+-
+ #include <asm/asi.h>
  
- AFLAGS___divdi3.o	=
-diff --git a/scripts/Makefile.build b/scripts/Makefile.build
-index 2c47f9c..d041013 100644
---- a/scripts/Makefile.build
-+++ b/scripts/Makefile.build
-@@ -81,6 +81,7 @@ endif
+-#ifndef EXPORT_SYMTAB_STROPS
+-
+-/* First the mem*() things. */
+-#define __HAVE_ARCH_MEMMOVE
+-void *memmove(void *, const void *, __kernel_size_t);
+-
+-#define __HAVE_ARCH_MEMCPY
+-#define memcpy(t, f, n) __builtin_memcpy(t, f, n)
+-
+-#define __HAVE_ARCH_MEMSET
+-#define memset(s, c, count) __builtin_memset(s, c, count)
+-
+-#define __HAVE_ARCH_MEMSCAN
+-
+-#undef memscan
+-#define memscan(__arg0, __char, __arg2)					\
+-({									\
+-	void *__memscan_zero(void *, size_t);				\
+-	void *__memscan_generic(void *, int, size_t);			\
+-	void *__retval, *__addr = (__arg0);				\
+-	size_t __size = (__arg2);					\
+-									\
+-	if(__builtin_constant_p(__char) && !(__char))			\
+-		__retval = __memscan_zero(__addr, __size);		\
+-	else								\
+-		__retval = __memscan_generic(__addr, (__char), __size);	\
+-									\
+-	__retval;							\
+-})
+-
+-#define __HAVE_ARCH_MEMCMP
+-int memcmp(const void *,const void *,__kernel_size_t);
+-
+ /* Now the str*() stuff... */
+ #define __HAVE_ARCH_STRLEN
+ __kernel_size_t strlen(const char *);
  
- ifneq ($(strip $(lib-y) $(lib-m) $(lib-)),)
- lib-target := $(obj)/lib.a
-+obj-y += $(obj)/lib-ksyms.o
- endif
+-#define __HAVE_ARCH_STRNCMP
+-int strncmp(const char *, const char *, __kernel_size_t);
+-
+-#endif /* !EXPORT_SYMTAB_STROPS */
+-
+-#endif /* __KERNEL__ */
+-
+ #endif /* !(__SPARC64_STRING_H__) */
+diff --git a/arch/sparc/lib/memcpy.S b/arch/sparc/lib/memcpy.S
+index 1dc8ec5..d3626cd 100644
+--- a/arch/sparc/lib/memcpy.S
++++ b/arch/sparc/lib/memcpy.S
+@@ -141,11 +141,6 @@ x:
+ 	retl
+ 	 nop		! Only bcopy returns here and it retuns void...
  
- ifneq ($(strip $(obj-y) $(obj-m) $(obj-) $(subdir-m) $(lib-target)),)
-@@ -363,6 +364,25 @@ $(lib-target): $(lib-y) FORCE
- 	$(call if_changed,link_l_target)
- 
- targets += $(lib-target)
-+
-+dummy-object = $(obj)/__lib_exports.o
-+ksyms-lds = $(obj)/lib-ksyms.lds
-+ifdef CONFIG_HAVE_UNDERSCORE_SYMBOL_PREFIX
-+ref_prefix = EXTERN(_
-+else
-+ref_prefix = EXTERN(
-+endif
-+
-+quiet_cmd_export_list = EXPORTS $@
-+cmd_export_list = $(OBJDUMP) -h $< | \
-+	sed -ne '/___ksymtab/{s/.*+/$(ref_prefix)/;s/ .*/)/;p}' >$(ksyms-lds);\
-+	rm -f $(dummy-object);\
-+	$(AR) rcs$(KBUILD_ARFLAGS) $(dummy-object);\
-+	$(LD) $(ld_flags) -r -o $@ -T $(ksyms-lds) $(dummy-object);\
-+	rm $(dummy-object) $(ksyms-lds)
-+
-+$(obj)/lib-ksyms.o: $(lib-target) FORCE
-+	$(call if_changed,export_list)
- endif
- 
- #
+-#ifdef __KERNEL__
+-FUNC(amemmove)
+-FUNC(__memmove)
+-EXPORT_SYMBOL(__memmove)
+-#endif
+ FUNC(memmove)
+ EXPORT_SYMBOL(memmove)
+ 	cmp		%o0, %o1
 -- 
 2.1.4
 
