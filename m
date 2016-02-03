@@ -1,119 +1,206 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [PATCH v2 12/13] sparc32: debride memcpy.S a bit
-Date: Wed,  3 Feb 2016 21:20:44 +0000
-Message-ID: <1454534445-16759-12-git-send-email-viro@ZenIV.linux.org.uk>
+Subject: [PATCH v2 11/13] [sparc] unify 32bit and 64bit string.h
+Date: Wed,  3 Feb 2016 21:20:43 +0000
+Message-ID: <1454534445-16759-11-git-send-email-viro@ZenIV.linux.org.uk>
 References: <20160203211953.GT17997@ZenIV.linux.org.uk>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:43441 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755565AbcBCVUt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Feb 2016 16:20:49 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20160203211953.GT17997@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org
 Cc: linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
 From: Al Viro <viro@zeniv.linux.org.uk>
-
-unreachable code, unused macros...
 
 Acked-by: David S. Miller <davem@davemloft.net>
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/sparc/lib/memcpy.S | 79 -------------------------------------------------
- 1 file changed, 79 deletions(-)
+ arch/sparc/include/asm/string.h    | 34 +++++++++++++++++++++++
+ arch/sparc/include/asm/string_32.h | 56 --------------------------------------
+ arch/sparc/include/asm/string_64.h | 44 ------------------------------
+ arch/sparc/lib/memcpy.S            |  5 ----
+ 4 files changed, 34 insertions(+), 105 deletions(-)
 
+diff --git a/arch/sparc/include/asm/string.h b/arch/sparc/include/asm/string.h
+index 98b72a0..86f34be 100644
+--- a/arch/sparc/include/asm/string.h
++++ b/arch/sparc/include/asm/string.h
+@@ -5,4 +5,38 @@
+ #else
+ #include <asm/string_32.h>
+ #endif
++
++/* First the mem*() things. */
++#define __HAVE_ARCH_MEMMOVE
++void *memmove(void *, const void *, __kernel_size_t);
++
++#define __HAVE_ARCH_MEMCPY
++#define memcpy(t, f, n) __builtin_memcpy(t, f, n)
++
++#define __HAVE_ARCH_MEMSET
++#define memset(s, c, count) __builtin_memset(s, c, count)
++
++#define __HAVE_ARCH_MEMSCAN
++
++#define memscan(__arg0, __char, __arg2)						\
++({										\
++	void *__memscan_zero(void *, size_t);					\
++	void *__memscan_generic(void *, int, size_t);				\
++	void *__retval, *__addr = (__arg0);					\
++	size_t __size = (__arg2);						\
++										\
++	if(__builtin_constant_p(__char) && !(__char))				\
++		__retval = __memscan_zero(__addr, __size);			\
++	else									\
++		__retval = __memscan_generic(__addr, (__char), __size);		\
++										\
++	__retval;								\
++})
++
++#define __HAVE_ARCH_MEMCMP
++int memcmp(const void *,const void *,__kernel_size_t);
++
++#define __HAVE_ARCH_STRNCMP
++int strncmp(const char *, const char *, __kernel_size_t);
++
+ #endif
+diff --git a/arch/sparc/include/asm/string_32.h b/arch/sparc/include/asm/string_32.h
+index 69974e92..6494124 100644
+--- a/arch/sparc/include/asm/string_32.h
++++ b/arch/sparc/include/asm/string_32.h
+@@ -11,60 +11,4 @@
+ 
+ #include <asm/page.h>
+ 
+-/* Really, userland/ksyms should not see any of this stuff. */
+-
+-#ifdef __KERNEL__
+-
+-void __memmove(void *,const void *,__kernel_size_t);
+-
+-#ifndef EXPORT_SYMTAB_STROPS
+-
+-/* First the mem*() things. */
+-#define __HAVE_ARCH_MEMMOVE
+-#undef memmove
+-#define memmove(_to, _from, _n) \
+-({ \
+-	void *_t = (_to); \
+-	__memmove(_t, (_from), (_n)); \
+-	_t; \
+-})
+-
+-#define __HAVE_ARCH_MEMCPY
+-#define memcpy(t, f, n) __builtin_memcpy(t, f, n)
+-
+-#define __HAVE_ARCH_MEMSET
+-#define memset(s, c, count) __builtin_memset(s, c, count)
+-
+-#define __HAVE_ARCH_MEMSCAN
+-
+-#undef memscan
+-#define memscan(__arg0, __char, __arg2)						\
+-({										\
+-	void *__memscan_zero(void *, size_t);					\
+-	void *__memscan_generic(void *, int, size_t);				\
+-	void *__retval, *__addr = (__arg0);					\
+-	size_t __size = (__arg2);						\
+-										\
+-	if(__builtin_constant_p(__char) && !(__char))				\
+-		__retval = __memscan_zero(__addr, __size);			\
+-	else									\
+-		__retval = __memscan_generic(__addr, (__char), __size);		\
+-										\
+-	__retval;								\
+-})
+-
+-#define __HAVE_ARCH_MEMCMP
+-int memcmp(const void *,const void *,__kernel_size_t);
+-
+-/* Now the str*() stuff... */
+-#define __HAVE_ARCH_STRLEN
+-__kernel_size_t strlen(const char *);
+-
+-#define __HAVE_ARCH_STRNCMP
+-int strncmp(const char *, const char *, __kernel_size_t);
+-
+-#endif /* !EXPORT_SYMTAB_STROPS */
+-
+-#endif /* __KERNEL__ */
+-
+ #endif /* !(__SPARC_STRING_H__) */
+diff --git a/arch/sparc/include/asm/string_64.h b/arch/sparc/include/asm/string_64.h
+index 5936b8f..6b9ccb3 100644
+--- a/arch/sparc/include/asm/string_64.h
++++ b/arch/sparc/include/asm/string_64.h
+@@ -9,54 +9,10 @@
+ #ifndef __SPARC64_STRING_H__
+ #define __SPARC64_STRING_H__
+ 
+-/* Really, userland/ksyms should not see any of this stuff. */
+-
+-#ifdef __KERNEL__
+-
+ #include <asm/asi.h>
+ 
+-#ifndef EXPORT_SYMTAB_STROPS
+-
+-/* First the mem*() things. */
+-#define __HAVE_ARCH_MEMMOVE
+-void *memmove(void *, const void *, __kernel_size_t);
+-
+-#define __HAVE_ARCH_MEMCPY
+-#define memcpy(t, f, n) __builtin_memcpy(t, f, n)
+-
+-#define __HAVE_ARCH_MEMSET
+-#define memset(s, c, count) __builtin_memset(s, c, count)
+-
+-#define __HAVE_ARCH_MEMSCAN
+-
+-#undef memscan
+-#define memscan(__arg0, __char, __arg2)					\
+-({									\
+-	void *__memscan_zero(void *, size_t);				\
+-	void *__memscan_generic(void *, int, size_t);			\
+-	void *__retval, *__addr = (__arg0);				\
+-	size_t __size = (__arg2);					\
+-									\
+-	if(__builtin_constant_p(__char) && !(__char))			\
+-		__retval = __memscan_zero(__addr, __size);		\
+-	else								\
+-		__retval = __memscan_generic(__addr, (__char), __size);	\
+-									\
+-	__retval;							\
+-})
+-
+-#define __HAVE_ARCH_MEMCMP
+-int memcmp(const void *,const void *,__kernel_size_t);
+-
+ /* Now the str*() stuff... */
+ #define __HAVE_ARCH_STRLEN
+ __kernel_size_t strlen(const char *);
+ 
+-#define __HAVE_ARCH_STRNCMP
+-int strncmp(const char *, const char *, __kernel_size_t);
+-
+-#endif /* !EXPORT_SYMTAB_STROPS */
+-
+-#endif /* __KERNEL__ */
+-
+ #endif /* !(__SPARC64_STRING_H__) */
 diff --git a/arch/sparc/lib/memcpy.S b/arch/sparc/lib/memcpy.S
-index d3626cd..8913fea 100644
+index 1dc8ec5..d3626cd 100644
 --- a/arch/sparc/lib/memcpy.S
 +++ b/arch/sparc/lib/memcpy.S
-@@ -59,88 +59,9 @@ x:
- 	stb	%t0, [%dst - (offset) - 0x02]; \
- 	stb	%t1, [%dst - (offset) - 0x01];
+@@ -141,11 +141,6 @@ x:
+ 	retl
+ 	 nop		! Only bcopy returns here and it retuns void...
  
--/* Both these macros have to start with exactly the same insn */
--#define RMOVE_BIGCHUNK(src, dst, offset, t0, t1, t2, t3, t4, t5, t6, t7) \
--	ldd	[%src - (offset) - 0x20], %t0; \
--	ldd	[%src - (offset) - 0x18], %t2; \
--	ldd	[%src - (offset) - 0x10], %t4; \
--	ldd	[%src - (offset) - 0x08], %t6; \
--	st	%t0, [%dst - (offset) - 0x20]; \
--	st	%t1, [%dst - (offset) - 0x1c]; \
--	st	%t2, [%dst - (offset) - 0x18]; \
--	st	%t3, [%dst - (offset) - 0x14]; \
--	st	%t4, [%dst - (offset) - 0x10]; \
--	st	%t5, [%dst - (offset) - 0x0c]; \
--	st	%t6, [%dst - (offset) - 0x08]; \
--	st	%t7, [%dst - (offset) - 0x04];
--
--#define RMOVE_BIGALIGNCHUNK(src, dst, offset, t0, t1, t2, t3, t4, t5, t6, t7) \
--	ldd	[%src - (offset) - 0x20], %t0; \
--	ldd	[%src - (offset) - 0x18], %t2; \
--	ldd	[%src - (offset) - 0x10], %t4; \
--	ldd	[%src - (offset) - 0x08], %t6; \
--	std	%t0, [%dst - (offset) - 0x20]; \
--	std	%t2, [%dst - (offset) - 0x18]; \
--	std	%t4, [%dst - (offset) - 0x10]; \
--	std	%t6, [%dst - (offset) - 0x08];
--
--#define RMOVE_LASTCHUNK(src, dst, offset, t0, t1, t2, t3) \
--	ldd	[%src + (offset) + 0x00], %t0; \
--	ldd	[%src + (offset) + 0x08], %t2; \
--	st	%t0, [%dst + (offset) + 0x00]; \
--	st	%t1, [%dst + (offset) + 0x04]; \
--	st	%t2, [%dst + (offset) + 0x08]; \
--	st	%t3, [%dst + (offset) + 0x0c];
--
--#define RMOVE_SHORTCHUNK(src, dst, offset, t0, t1) \
--	ldub	[%src + (offset) + 0x00], %t0; \
--	ldub	[%src + (offset) + 0x01], %t1; \
--	stb	%t0, [%dst + (offset) + 0x00]; \
--	stb	%t1, [%dst + (offset) + 0x01];
--
--#define SMOVE_CHUNK(src, dst, offset, t0, t1, t2, t3, t4, t5, t6, prev, shil, shir, offset2) \
--	ldd	[%src + (offset) + 0x00], %t0; \
--	ldd	[%src + (offset) + 0x08], %t2; \
--	srl	%t0, shir, %t5; \
--	srl	%t1, shir, %t6; \
--	sll	%t0, shil, %t0; \
--	or	%t5, %prev, %t5; \
--	sll	%t1, shil, %prev; \
--	or	%t6, %t0, %t0; \
--	srl	%t2, shir, %t1; \
--	srl	%t3, shir, %t6; \
--	sll	%t2, shil, %t2; \
--	or	%t1, %prev, %t1; \
--	std	%t4, [%dst + (offset) + (offset2) - 0x04]; \
--	std	%t0, [%dst + (offset) + (offset2) + 0x04]; \
--	sll	%t3, shil, %prev; \
--	or	%t6, %t2, %t4;
--
--#define SMOVE_ALIGNCHUNK(src, dst, offset, t0, t1, t2, t3, t4, t5, t6, prev, shil, shir, offset2) \
--	ldd	[%src + (offset) + 0x00], %t0; \
--	ldd	[%src + (offset) + 0x08], %t2; \
--	srl	%t0, shir, %t4;	\
--	srl	%t1, shir, %t5;	\
--	sll	%t0, shil, %t6;	\
--	or	%t4, %prev, %t0; \
--	sll	%t1, shil, %prev; \
--	or	%t5, %t6, %t1; \
--	srl	%t2, shir, %t4;	\
--	srl	%t3, shir, %t5;	\
--	sll	%t2, shil, %t6; \
--	or	%t4, %prev, %t2; \
--	sll	%t3, shil, %prev; \
--	or	%t5, %t6, %t3; \
--	std	%t0, [%dst + (offset) + (offset2) + 0x00]; \
--	std	%t2, [%dst + (offset) + (offset2) + 0x08];
--
- 	.text
- 	.align	4
- 
--0:
--	retl
--	 nop		! Only bcopy returns here and it retuns void...
--
+-#ifdef __KERNEL__
+-FUNC(amemmove)
+-FUNC(__memmove)
+-EXPORT_SYMBOL(__memmove)
+-#endif
  FUNC(memmove)
  EXPORT_SYMBOL(memmove)
  	cmp		%o0, %o1
