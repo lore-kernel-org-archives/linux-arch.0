@@ -1,36 +1,36 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH v2 01/13] [kbuild] handle exports in lib-y objects
- reliably
-Date: Fri, 5 Feb 2016 00:18:07 +0000
-Message-ID: <20160205001807.GV17997@ZenIV.linux.org.uk>
-References: <20160203211953.GT17997@ZenIV.linux.org.uk>
- <1454534445-16759-1-git-send-email-viro@ZenIV.linux.org.uk>
- <56B3D1B7.4080305@suse.cz>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH 0/2] GPIO: Clean up asm/gpio.h
+Date: Fri, 5 Feb 2016 14:43:20 +0100
+Message-ID: <CACRpkdY-8+vhsCsQGL7YUOgoXA=+_6c=69ZB=aowQgNun8bXqw@mail.gmail.com>
+References: <20160202194831.10827.63244.stgit@bhelgaas-glaptop2.roam.corp.google.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:57305 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752562AbcBEASJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Feb 2016 19:18:09 -0500
-Content-Disposition: inline
-In-Reply-To: <56B3D1B7.4080305@suse.cz>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Michal Marek <mmarek@suse.cz>
-Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-gpio-owner@vger.kernel.org>
+In-Reply-To: <20160202194831.10827.63244.stgit@bhelgaas-glaptop2.roam.corp.google.com>
+Sender: linux-gpio-owner@vger.kernel.org
+To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: Alexandre Courbot <gnurou@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Mark Brown <broonie@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Feb 04, 2016 at 11:33:27PM +0100, Michal Marek wrote:
-> Acked-by: Michal Marek <mmarek@suse.cz>
-> 
-> Sorry for the delay.
-> > +dummy-object = $(obj)/__lib_exports.o
-> > +ksyms-lds = $(obj)/lib-ksyms.lds
-> 
-> Just a really minor nitpick (no need to resend just because of it): We
-> typically use dotfiles for temporary stuff, e.g.
-> 
-> dummy-object = $(obj)/.lib_exports.o
-> ksyms-lds = $(dot-target).lds
+On Tue, Feb 2, 2016 at 8:53 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
 
-Folded and pushed...
+> Many arches supply an asm/gpio.h that contains only this:
+>
+>   #warning Include linux/gpio.h instead of asm/gpio.h
+>   #include <linux/gpio.h>
+>
+> These two patches change all the places that include asm/gpio.h
+> so they include linux/gpio.h instead, and then remove the asm/gpio.h
+> files.
+>
+> There are several arches that supply asm/gpio.h with useful
+> arch-specific content; I didn't touch those.
+>
+> I assume Mark was heading this direction with 7563bbf89d06
+> ("gpiolib/arches: Centralise bolierplate asm/gpio.h").
+
+Sweet, if I can get the arch maintainers ACK on this I can
+merge it into the GPIO tree, Arnd?
+
+Yours,
+Linus Walleij
