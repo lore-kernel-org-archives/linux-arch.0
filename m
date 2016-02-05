@@ -1,84 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx2.suse.de ([195.135.220.15]:54255 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752570AbcBDWda (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 4 Feb 2016 17:33:30 -0500
-Subject: Re: [PATCH v2 01/13] [kbuild] handle exports in lib-y objects
- reliably
-References: <20160203211953.GT17997@ZenIV.linux.org.uk>
- <1454534445-16759-1-git-send-email-viro@ZenIV.linux.org.uk>
-From: Michal Marek <mmarek@suse.cz>
-Message-ID: <56B3D1B7.4080305@suse.cz>
-Date: Thu, 4 Feb 2016 23:33:27 +0100
+Received: from mail-ob0-f181.google.com ([209.85.214.181]:36421 "EHLO
+	mail-ob0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752096AbcBENnU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Feb 2016 08:43:20 -0500
+Received: by mail-ob0-f181.google.com with SMTP id ba1so88904411obb.3
+        for <linux-arch@vger.kernel.org>; Fri, 05 Feb 2016 05:43:20 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <1454534445-16759-1-git-send-email-viro@ZenIV.linux.org.uk>
-Content-Type: text/plain; charset=iso-8859-2
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20160202194831.10827.63244.stgit@bhelgaas-glaptop2.roam.corp.google.com>
+References: <20160202194831.10827.63244.stgit@bhelgaas-glaptop2.roam.corp.google.com>
+Date: Fri, 5 Feb 2016 14:43:20 +0100
+Message-ID: <CACRpkdY-8+vhsCsQGL7YUOgoXA=+_6c=69ZB=aowQgNun8bXqw@mail.gmail.com>
+Subject: Re: [PATCH 0/2] GPIO: Clean up asm/gpio.h
+From: Linus Walleij <linus.walleij@linaro.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20160204223327.3bGgbjB0a0hny-JR5sgOxnOf0M7sRpvFIr_n0qL9frE@z>
+To: Bjorn Helgaas <bhelgaas@google.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: Alexandre Courbot <gnurou@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Mark Brown <broonie@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20160205134320.IKuY0QC_krHb_1JPUuhScsDBxUbOHs4CQdydkkp23gY@z>
 
-Dne 3.2.2016 v 22:20 Al Viro napsal(a):
-> From: Al Viro <viro@zeniv.linux.org.uk>
-> 
-> Collect the symbols exported by anything that goes into lib.a and
-> add an empty object (lib-exports.o) with explicit undefs for each
-> of those to obj-y.
-> 
-> That allows to relax the rules regarding the use of exports in
-> lib-* objects - right now an object with export can be in lib-*
-> only if we are guaranteed that there always will be users in
-> built-in parts of the tree, otherwise it needs to be in obj-*.
-> As the result, we have an unholy mix of lib- and obj- in lib/Makefile
-> and (especially) in arch/*/lib/Makefile.  Moreover, a change in
-> generic part of the kernel can lead to mysteriously missing exports
-> on some configs.  With this change we don't have to worry about
-> that anymore.
-> 
-> One side effect is that built-in.o now pulls everything with exports
-> from the corresponding lib.a (if such exists).  That's exactly what
-> we want for linking vmlinux and fortunately it's almost the only thing
-> built-in.o is used in.  arch/ia64/hp/sim/boot/bootloader is the only
-> exception and it's easy to get rid of now - just turn everything in
-> arch/ia64/lib into lib-* and don't bother with arch/ia64/lib/built-in.o
-> anymore.
-> 
-> Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
-> ---
->  arch/ia64/hp/sim/boot/Makefile |  2 +-
->  arch/ia64/lib/Makefile         |  8 +++-----
->  scripts/Makefile.build         | 20 ++++++++++++++++++++
->  3 files changed, 24 insertions(+), 6 deletions(-)
+On Tue, Feb 2, 2016 at 8:53 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
 
-Acked-by: Michal Marek <mmarek@suse.cz>
+> Many arches supply an asm/gpio.h that contains only this:
+>
+>   #warning Include linux/gpio.h instead of asm/gpio.h
+>   #include <linux/gpio.h>
+>
+> These two patches change all the places that include asm/gpio.h
+> so they include linux/gpio.h instead, and then remove the asm/gpio.h
+> files.
+>
+> There are several arches that supply asm/gpio.h with useful
+> arch-specific content; I didn't touch those.
+>
+> I assume Mark was heading this direction with 7563bbf89d06
+> ("gpiolib/arches: Centralise bolierplate asm/gpio.h").
 
-Sorry for the delay.
+Sweet, if I can get the arch maintainers ACK on this I can
+merge it into the GPIO tree, Arnd?
 
-
-> --- a/scripts/Makefile.build
-> +++ b/scripts/Makefile.build
-> @@ -81,6 +81,7 @@ endif
->  
->  ifneq ($(strip $(lib-y) $(lib-m) $(lib-)),)
->  lib-target := $(obj)/lib.a
-> +obj-y += $(obj)/lib-ksyms.o
->  endif
->  
->  ifneq ($(strip $(obj-y) $(obj-m) $(obj-) $(subdir-m) $(lib-target)),)
-> @@ -363,6 +364,25 @@ $(lib-target): $(lib-y) FORCE
->  	$(call if_changed,link_l_target)
->  
->  targets += $(lib-target)
-> +
-> +dummy-object = $(obj)/__lib_exports.o
-> +ksyms-lds = $(obj)/lib-ksyms.lds
-
-Just a really minor nitpick (no need to resend just because of it): We
-typically use dotfiles for temporary stuff, e.g.
-
-dummy-object = $(obj)/.lib_exports.o
-ksyms-lds = $(dot-target).lds
-
-Michal
+Yours,
+Linus Walleij
