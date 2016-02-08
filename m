@@ -1,67 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wm0-f44.google.com ([74.125.82.44]:36849 "EHLO
-	mail-wm0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756222AbcBHR55 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Feb 2016 12:57:57 -0500
-Received: by mail-wm0-f44.google.com with SMTP id p63so125371705wmp.1
-        for <linux-arch@vger.kernel.org>; Mon, 08 Feb 2016 09:57:57 -0800 (PST)
+Received: from mail-wm0-f45.google.com ([74.125.82.45]:38163 "EHLO
+	mail-wm0-f45.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755836AbcBHR57 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Feb 2016 12:57:59 -0500
+Received: by mail-wm0-f45.google.com with SMTP id p63so126884515wmp.1
+        for <linux-arch@vger.kernel.org>; Mon, 08 Feb 2016 09:57:59 -0800 (PST)
 From: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Subject: [PATCH v5 0/3] kallsyms base relative series
-Date: Mon,  8 Feb 2016 18:57:45 +0100
-Message-ID: <1454954268-3225-1-git-send-email-ard.biesheuvel@linaro.org>
+Subject: [PATCH v5 1/3] x86: kallsyms: disable absolute percpu symbols on !SMP
+Date: Mon,  8 Feb 2016 18:57:46 +0100
+Message-ID: <1454954268-3225-2-git-send-email-ard.biesheuvel@linaro.org>
+In-Reply-To: <1454954268-3225-1-git-send-email-ard.biesheuvel@linaro.org>
+References: <1454954268-3225-1-git-send-email-ard.biesheuvel@linaro.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-s390@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, x86@kernel.org, keescook@chromium.org, akpm@linux-foundation.org, mingo@kernel.org, hpa@zytor.com, heiko.carstens@de.ibm.com, benh@kernel.crashing.org, mpe@ellerman.id.au, mmarek@suse.cz, rusty@rustcorp.com.au, arnd@arndb.de, linux-arch@vger.kernel.org, linux@roeck-us.net
 Cc: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Message-ID: <20160208175745.IeeO6R9ISv_jIZG6mLWyit0z9o0Gh16A10g6ESlXjWc@z>
+Message-ID: <20160208175746.RGN_Do9o8DT30IU9ClKgzWhSkx6XZw3wrCGZyfrJPyU@z>
 
-This is v5 of my kallsyms base relative series, which addresses some issues
-reported on 32-bit architectures (ARM and Blackfin) and Tile-GX (64-bit)
+scripts/kallsyms.c has a special --absolute-percpu command line
+option which deals with the zero based per cpu offsets that are
+used when building for SMP on x86_64. This means that the option
+should only be passed in that case, so add a Kconfig symbol with
+the correct predicate, and use that instead.
+
+Tested-by: Guenter Roeck <linux@roeck-us.net>
+Reviewed-by: Kees Cook <keescook@chromium.org>
+Tested-by: Kees Cook <keescook@chromium.org>
+Acked-by: Rusty Russell <rusty@rustcorp.com.au>
+Signed-off-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+---
+ init/Kconfig            | 4 ++++
+ scripts/link-vmlinux.sh | 2 +-
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/init/Kconfig b/init/Kconfig
+index 22320804fbaf..b17824a875fa 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1420,6 +1420,10 @@ config KALLSYMS_ALL
  
-Changes since v4:
-- use a Kconfig symbol KALLSYMS_ABSOLUTE_PERCPU and set its default
-  as appropriate rather than testing for X86_64 and SMP directly in
-  scripts/link-vmlinux.sh (#1)
-- only split the 32-bit kallsyms symbol address space into 2 GB for absolute
-  symbols and 2 GB for relative symbols if --absolute-percpu is in effect;
-  this should fix all reported issues on 32-bit architectures (including the
-  pathological cases involving XIP_KERNEL and VMSPLIT_1G on ARM), since absolute
-  per-cpu symbols are only used on SMP x86_64 anyway (#3)
-- disable the base relative kallsyms feature for 64-bit Tile: as it turns out,
-  this architecture cannot support it due to the way its symbols are laid out.
-- remove the relative base check against kernel_start_addr; this is no longer
-  needed now that we have 4 GB of symbol address space (#3)
-
-Patch #2 is unchanged between v4 and v5
-
---- v4 blurb ---
-Patch #1 fixes the scripts/kallsyms invocation to only pass the x86_64
-specific --absolute-percpu option if CONFIG_SMP is also set.
-
-Patch #2 reworks the absolute percpu code to only emit those percpu symbols
-as absolute, and not symbols that have been classified as 'A' (absolute) by
-the linker, since that does not mean quite the same thing.
-
-Patch #3 is the original kallsyms base relative patch, with some
-modifications:
-- folded the s/ULLONG_MAX/-1ULL? change made by Andrew
-- ensured that the kallsyms_relative_base value itself is relocated as
-  required.
-- dropped all of the acks and other tags, as they have become outdated with
-  the recent changes to this patch.
-
-Ard Biesheuvel (3):
-  x86: kallsyms: disable absolute percpu symbols on !SMP
-  kallsyms: don't overload absolute symbol type for percpu symbols
-  kallsyms: add support for relative offsets in kallsyms address table
-
- init/Kconfig            |  22 +++++
- kernel/kallsyms.c       |  42 ++++++--
- scripts/kallsyms.c      | 103 +++++++++++++++++---
- scripts/link-vmlinux.sh |   6 +-
- scripts/namespace.pl    |   2 +
- 5 files changed, 153 insertions(+), 22 deletions(-)
-
+ 	   Say N unless you really need all symbols.
+ 
++config KALLSYMS_ABSOLUTE_PERCPU
++	bool
++	default X86_64 && SMP
++
+ config PRINTK
+ 	default y
+ 	bool "Enable support for printk" if EXPERT
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index ba6c34ea5429..7a08bf9a9576 100755
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -86,7 +86,7 @@ kallsyms()
+ 		kallsymopt="${kallsymopt} --page-offset=$CONFIG_PAGE_OFFSET"
+ 	fi
+ 
+-	if [ -n "${CONFIG_X86_64}" ]; then
++	if [ -n "${CONFIG_KALLSYMS_ABSOLUTE_PERCPU}" ]; then
+ 		kallsymopt="${kallsymopt} --absolute-percpu"
+ 	fi
+ 
 -- 
 2.5.0
 
