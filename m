@@ -1,104 +1,32 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH 2/3] signal: Move generic copy_siginfo() to signal.h
-Date: Mon, 8 Feb 2016 18:43:50 +0000
-Message-ID: <1454957031-20138-3-git-send-email-james.hogan@imgtec.com>
-References: <1454957031-20138-1-git-send-email-james.hogan@imgtec.com>
+From: Sudip Mukherjee <sudipm.mukherjee@gmail.com>
+Subject: Re: linux-next: Tree for Feb 9
+Date: Tue, 9 Feb 2016 13:04:28 +0530
+Message-ID: <20160209073428.GA24863@sudip-pc>
+References: <20160209164104.4ecaa0ce@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1454957031-20138-1-git-send-email-james.hogan@imgtec.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: linux-kernel@vger.kernel.org, Christopher Ferris <cferris@google.com>, James Hogan <james.hogan@imgtec.com>, Arnd Bergmann <arnd@arndb.de>, Petr Malat <oss@malat.biz>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, linux-ia64@vger.kernel.org, stable@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-next-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20160209164104.4ecaa0ce@canb.auug.org.au>
+Sender: linux-next-owner@vger.kernel.org
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Rutland <mark.rutland@arm.com>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Jeremy Linton <jeremy.linton@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-The generic copy_siginfo() is currently defined in
-asm-generic/siginfo.h, after including uapi/asm-generic/siginfo.h which
-defines the generic struct siginfo. However this makes it awkward for an
-architecture to use it if it has to define its own struct siginfo (e.g.
-MIPS and potentially IA64), since it means that asm-generic/siginfo.h
-can only be included after defining the arch-specific siginfo, which may
-be problematic if the arch-specific definition needs definitions from
-uapi/asm-generic/siginfo.h.
+On Tue, Feb 09, 2016 at 04:41:04PM +1100, Stephen Rothwell wrote:
+> Hi all,
+> 
+> Changes since 20160208:
 
-It is possible to work around this by first including
-uapi/asm-generic/siginfo.h to get the constants before defining the
-arch-specific siginfo, and include asm-generic/siginfo.h after. However
-uapi headers can't be included by other uapi headers, so that first
-include has to be in an ifdef __kernel__, with the non __kernel__ case
-including the non-UAPI header instead.
+tilepro, tilegx, mips defconfig build fails with the error:
+../include/asm-generic/fixmap.h: In function '__set_fixmap_offset':
+../include/asm-generic/fixmap.h:77:2: error: implicit declaration of
+function '__set_fixmap' [-Werror=implicit-function-declaration]
 
-Instead of that mess, move the generic copy_siginfo() definition into
-linux/signal.h, which allows an arch-specific uapi/asm/siginfo.h to
-include asm-generic/siginfo.h and define the arch-specific siginfo, and
-for the generic copy_siginfo() to see that arch-specific definition.
+caused by:
+commit ac4c0ac73485 ("asm-generic: make __set_fixmap_offset a static inline")
 
-Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: Petr Malat <oss@malat.biz>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-arch@vger.kernel.org
-Cc: linux-mips@linux-mips.org
-Cc: linux-ia64@vger.kernel.org
-Cc: <stable@vger.kernel.org> # 4.0-
----
- include/asm-generic/siginfo.h | 15 ---------------
- include/linux/signal.h        | 15 +++++++++++++++
- 2 files changed, 15 insertions(+), 15 deletions(-)
+Reverting the commit fixes the issue.
 
-diff --git a/include/asm-generic/siginfo.h b/include/asm-generic/siginfo.h
-index 3d1a3af5cf59..a2508a8f9a9c 100644
---- a/include/asm-generic/siginfo.h
-+++ b/include/asm-generic/siginfo.h
-@@ -17,21 +17,6 @@
- struct siginfo;
- void do_schedule_next_timer(struct siginfo *info);
- 
--#ifndef HAVE_ARCH_COPY_SIGINFO
--
--#include <linux/string.h>
--
--static inline void copy_siginfo(struct siginfo *to, struct siginfo *from)
--{
--	if (from->si_code < 0)
--		memcpy(to, from, sizeof(*to));
--	else
--		/* _sigchld is currently the largest know union member */
--		memcpy(to, from, __ARCH_SI_PREAMBLE_SIZE + sizeof(from->_sifields._sigchld));
--}
--
--#endif
--
- extern int copy_siginfo_to_user(struct siginfo __user *to, const struct siginfo *from);
- 
- #endif
-diff --git a/include/linux/signal.h b/include/linux/signal.h
-index 92557bbce7e7..d80259afb9e5 100644
---- a/include/linux/signal.h
-+++ b/include/linux/signal.h
-@@ -28,6 +28,21 @@ struct sigpending {
- 	sigset_t signal;
- };
- 
-+#ifndef HAVE_ARCH_COPY_SIGINFO
-+
-+#include <linux/string.h>
-+
-+static inline void copy_siginfo(struct siginfo *to, struct siginfo *from)
-+{
-+	if (from->si_code < 0)
-+		memcpy(to, from, sizeof(*to));
-+	else
-+		/* _sigchld is currently the largest know union member */
-+		memcpy(to, from, __ARCH_SI_PREAMBLE_SIZE + sizeof(from->_sifields._sigchld));
-+}
-+
-+#endif
-+
- /*
-  * Define some primitives to manipulate sigset_t.
-  */
--- 
-2.4.10
+regards
+sudip
