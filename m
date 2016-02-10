@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-3.sys.kth.se ([130.237.48.192]:33512 "EHLO
+Received: from smtp-3.sys.kth.se ([130.237.48.192]:33533 "EHLO
 	smtp-3.sys.kth.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752598AbcBJBFV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Feb 2016 20:05:21 -0500
+	with ESMTP id S1754764AbcBJBFj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Feb 2016 20:05:39 -0500
 From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
 	<niklas.soderlund+renesas@ragnatech.se>
-Subject: [PATCH v3 8/8] ARM: dts: r8a7791: add iommus to dmac0 and dmac1
-Date: Wed, 10 Feb 2016 01:57:58 +0100
-Message-ID: <1455065878-11906-9-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+Subject: [PATCH v3 7/8] ARM: dts: r8a7790: add iommus to dmac0 and dmac1
+Date: Wed, 10 Feb 2016 01:57:57 +0100
+Message-ID: <1455065878-11906-8-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 In-Reply-To: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 MIME-Version: 1.0
@@ -17,18 +17,18 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
 Cc: robin.murphy@arm.com, vinod.koul@intel.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
-Message-ID: <20160210005758.bvxoHqquJYnwZzSud-55MBwaF4i4hyqayPO-nKt7uQU@z>
+Message-ID: <20160210005757.qm5njwIS-LsW_-w02S3X1qPaqTn1e-SMv0LWfiFvm9E@z>
 
 Signed-off-by: Niklas Söderlund <niklas.soderlund+renesas@ragnatech.se>
 ---
- arch/arm/boot/dts/r8a7791.dtsi | 30 ++++++++++++++++++++++++++++++
+ arch/arm/boot/dts/r8a7790.dtsi | 30 ++++++++++++++++++++++++++++++
  1 file changed, 30 insertions(+)
 
-diff --git a/arch/arm/boot/dts/r8a7791.dtsi b/arch/arm/boot/dts/r8a7791.dtsi
-index 2a369dd..6dff061 100644
---- a/arch/arm/boot/dts/r8a7791.dtsi
-+++ b/arch/arm/boot/dts/r8a7791.dtsi
-@@ -283,6 +283,21 @@
+diff --git a/arch/arm/boot/dts/r8a7790.dtsi b/arch/arm/boot/dts/r8a7790.dtsi
+index 7dfd393..048bbf8 100644
+--- a/arch/arm/boot/dts/r8a7790.dtsi
++++ b/arch/arm/boot/dts/r8a7790.dtsi
+@@ -294,6 +294,21 @@
  		power-domains = <&cpg_clocks>;
  		#dma-cells = <1>;
  		dma-channels = <15>;
@@ -50,7 +50,7 @@ index 2a369dd..6dff061 100644
  	};
  
  	dmac1: dma-controller@e6720000 {
-@@ -314,6 +329,21 @@
+@@ -325,6 +340,21 @@
  		power-domains = <&cpg_clocks>;
  		#dma-cells = <1>;
  		dma-channels = <15>;
