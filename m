@@ -1,77 +1,33 @@
-From: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
-Subject: Re: [PATCH v3 6/8] dmaengine: rcar-dmac: add iommu support for slave
-	transfers
-Date: Wed, 10 Feb 2016 10:49:31 +0000
-Message-ID: <56BB15BB.30806@arm.com>
+From: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
+Subject: Re: [PATCH v3 2/8] dma-mapping: add {map,unmap}_resource to
+ dma_map_ops
+Date: Wed, 10 Feb 2016 15:11:03 +0300
+Message-ID: <56BB28D7.1090608@cogentembedded.com>
 References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-	<1455065878-11906-7-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+ <1455065878-11906-3-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"; Format="flowed"
-Content-Transfer-Encoding: base64
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <1455065878-11906-7-git-send-email-niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: =?UTF-8?Q?Niklas_S=c3=b6derlund?= <niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>, linux-renesas-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, geert+renesas-gXvu3+zWzMSzQB+pC5nmwQ@public.gmane.org, vinod.koul-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org, dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org
+Content-Type: text/plain; charset=utf-8;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1455065878-11906-3-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+Sender: linux-kernel-owner@vger.kernel.org
+To: =?UTF-8?Q?Niklas_S=c3=b6derlund?= <niklas.soderlund+renesas@ragnatech.se>, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: robin.murphy@arm.com, vinod.koul@intel.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-T24gMTAvMDIvMTYgMDA6NTcsIE5pa2xhcyBTw7ZkZXJsdW5kIHdyb3RlOgo+IEVuYWJsZSBzbGF2
-ZSB0cmFuc2ZlcnMgdG8gZGV2aWNlcyBiZWhpbmQgSVBNTVU6cyBieSBtYXBwaW5nIHRoZSBzbGF2
-ZQo+IGFkZHJlc3NlcyB1c2luZyB0aGUgZG1hLW1hcHBpbmcgQVBJLgo+Cj4gU2lnbmVkLW9mZi1i
-eTogTmlrbGFzIFPDtmRlcmx1bmQgPG5pa2xhcy5zb2Rlcmx1bmQrcmVuZXNhc0ByYWduYXRlY2gu
-c2U+Cj4gLS0tCj4gICBkcml2ZXJzL2RtYS9zaC9yY2FyLWRtYWMuYyB8IDU3ICsrKysrKysrKysr
-KysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKy0tLS0KPiAgIDEgZmlsZSBjaGFuZ2VkLCA1
-MiBpbnNlcnRpb25zKCspLCA1IGRlbGV0aW9ucygtKQo+Cj4gZGlmZiAtLWdpdCBhL2RyaXZlcnMv
-ZG1hL3NoL3JjYXItZG1hYy5jIGIvZHJpdmVycy9kbWEvc2gvcmNhci1kbWFjLmMKPiBpbmRleCA3
-NDM4NzNjLi4yNjg0MDdjIDEwMDY0NAo+IC0tLSBhL2RyaXZlcnMvZG1hL3NoL3JjYXItZG1hYy5j
-Cj4gKysrIGIvZHJpdmVycy9kbWEvc2gvcmNhci1kbWFjLmMKPiBAQCAtMTEwNiwyMSArMTEwNiw2
-OCBAQCByY2FyX2RtYWNfcHJlcF9kbWFfY3ljbGljKHN0cnVjdCBkbWFfY2hhbiAqY2hhbiwgZG1h
-X2FkZHJfdCBidWZfYWRkciwKPiAgIAlyZXR1cm4gZGVzYzsKPiAgIH0KPgo+ICtzdGF0aWMgaW50
-IHJjYXJfZG1hY19zZXRfc2xhdmVfYWRkcihzdHJ1Y3QgZG1hX2NoYW4gKmNoYW4sCj4gKwkJCQkg
-ICAgIHN0cnVjdCByY2FyX2RtYWNfY2hhbl9zbGF2ZSAqc2xhdmUsCj4gKwkJCQkgICAgIHBoeXNf
-YWRkcl90IGFkZHIsIHNpemVfdCBzaXplKQo+ICt7Cj4gKwlzdHJ1Y3QgZG1hX2F0dHJzIGF0dHJz
-Owo+ICsJZW51bSBkbWFfZGF0YV9kaXJlY3Rpb24gZGlyOwo+ICsKPiArCWluaXRfZG1hX2F0dHJz
-KCZhdHRycyk7Cj4gKwlkbWFfc2V0X2F0dHIoRE1BX0FUVFJfTk9fS0VSTkVMX01BUFBJTkcsICZh
-dHRycyk7Cj4gKwlkbWFfc2V0X2F0dHIoRE1BX0FUVFJfU0tJUF9DUFVfU1lOQywgJmF0dHJzKTsK
-Ck5vdyB0aGF0IHdlIGhhdmUgYSB3YXkgdG8gZGVhbCB3aXRoIE1NSU8gYWRkcmVzc2VzIHByb3Bl
-cmx5LCB3ZSBkb24ndCAKbmVlZCB0aGVzZSBhbnkgbW9yZS4KClJvYmluLgoKPiArCj4gKwkvKgo+
-ICsJICogV2UgY2FuJ3Qga25vdyB0aGUgZGlyZWN0aW9uIGF0IHRoaXMgdGltZSwgc2VlIGRvY3Vt
-ZW50YXRpb24gZm9yCj4gKwkgKiAnZGlyZWN0aW9uJyBpbiBzdHJ1Y3QgZG1hX3NsYXZlX2NvbmZp
-Zy4KPiArCSAqLwo+ICsJZGlyID0gRE1BX0JJRElSRUNUSU9OQUw7Cj4gKwo+ICsJaWYgKHNsYXZl
-LT54ZmVyX3NpemUpIHsKPiArCQlkbWFfdW5tYXBfcmVzb3VyY2UoY2hhbi0+ZGV2aWNlLT5kZXYs
-IHNsYXZlLT5zbGF2ZV9hZGRyLAo+ICsJCQkJc2xhdmUtPnhmZXJfc2l6ZSwgZGlyLCAmYXR0cnMp
-Owo+ICsJCXNsYXZlLT5zbGF2ZV9hZGRyID0gMDsKPiArCQlzbGF2ZS0+eGZlcl9zaXplID0gMDsK
-PiArCX0KPiArCj4gKwlpZiAoc2l6ZSkgewo+ICsJCXNsYXZlLT5zbGF2ZV9hZGRyID0gZG1hX21h
-cF9yZXNvdXJjZShjaGFuLT5kZXZpY2UtPmRldiwgYWRkciwKPiArCQkJCXNpemUsIGRpciwgJmF0
-dHJzKTsKPiArCj4gKwkJaWYgKGRtYV9tYXBwaW5nX2Vycm9yKGNoYW4tPmRldmljZS0+ZGV2LCBz
-bGF2ZS0+c2xhdmVfYWRkcikpIHsKPiArCQkJc3RydWN0IHJjYXJfZG1hY19jaGFuICpyY2hhbiA9
-IHRvX3JjYXJfZG1hY19jaGFuKGNoYW4pOwo+ICsKPiArCQkJZGV2X2VycihjaGFuLT5kZXZpY2Ut
-PmRldiwKPiArCQkJCQkiY2hhbiV1OiBmYWlsZWQgdG8gbWFwICV6eEAlcGFwIiwKPiArCQkJCQly
-Y2hhbi0+aW5kZXgsIHNpemUsICZhZGRyKTsKPiArCQkJcmV0dXJuIC1FSU87Cj4gKwkJfQo+ICsK
-PiArCQlzbGF2ZS0+eGZlcl9zaXplID0gc2l6ZTsKPiArCX0KPiArCj4gKwlyZXR1cm4gMDsKPiAr
-fQo+ICsKPiAgIHN0YXRpYyBpbnQgcmNhcl9kbWFjX2RldmljZV9jb25maWcoc3RydWN0IGRtYV9j
-aGFuICpjaGFuLAo+ICAgCQkJCSAgIHN0cnVjdCBkbWFfc2xhdmVfY29uZmlnICpjZmcpCj4gICB7
-Cj4gICAJc3RydWN0IHJjYXJfZG1hY19jaGFuICpyY2hhbiA9IHRvX3JjYXJfZG1hY19jaGFuKGNo
-YW4pOwo+ICsJaW50IHJldDsKPgo+ICAgCS8qCj4gICAJICogV2UgY291bGQgbG9jayB0aGlzLCBi
-dXQgeW91IHNob3VsZG4ndCBiZSBjb25maWd1cmluZyB0aGUKPiAgIAkgKiBjaGFubmVsLCB3aGls
-ZSB1c2luZyBpdC4uLgo+ICAgCSAqLwo+IC0JcmNoYW4tPnNyYy5zbGF2ZV9hZGRyID0gY2ZnLT5z
-cmNfYWRkcjsKPiAtCXJjaGFuLT5kc3Quc2xhdmVfYWRkciA9IGNmZy0+ZHN0X2FkZHI7Cj4gLQly
-Y2hhbi0+c3JjLnhmZXJfc2l6ZSA9IGNmZy0+c3JjX2FkZHJfd2lkdGg7Cj4gLQlyY2hhbi0+ZHN0
-LnhmZXJfc2l6ZSA9IGNmZy0+ZHN0X2FkZHJfd2lkdGg7Cj4KPiAtCXJldHVybiAwOwo+ICsJcmV0
-ID0gcmNhcl9kbWFjX3NldF9zbGF2ZV9hZGRyKGNoYW4sICZyY2hhbi0+c3JjLCBjZmctPnNyY19h
-ZGRyLAo+ICsJCQljZmctPnNyY19hZGRyX3dpZHRoKTsKPiArCWlmIChyZXQpCj4gKwkJcmV0dXJu
-IHJldDsKPiArCj4gKwlyZXQgPSByY2FyX2RtYWNfc2V0X3NsYXZlX2FkZHIoY2hhbiwgJnJjaGFu
-LT5kc3QsIGNmZy0+ZHN0X2FkZHIsCj4gKwkJCWNmZy0+ZHN0X2FkZHJfd2lkdGgpOwo+ICsJcmV0
-dXJuIHJldDsKPiAgIH0KPgo+ICAgc3RhdGljIGludCByY2FyX2RtYWNfY2hhbl90ZXJtaW5hdGVf
-YWxsKHN0cnVjdCBkbWFfY2hhbiAqY2hhbikKPgoKX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fX19fX19fX19fX19fX18KaW9tbXUgbWFpbGluZyBsaXN0CmlvbW11QGxpc3RzLmxpbnV4
-LWZvdW5kYXRpb24ub3JnCmh0dHBzOi8vbGlzdHMubGludXhmb3VuZGF0aW9uLm9yZy9tYWlsbWFu
-L2xpc3RpbmZvL2lvbW11
+Hello.
+
+On 2/10/2016 3:57 AM, Niklas S=C3=B6derlund wrote:
+
+> Add methods to handle mapping of device resources from a physical
+> address. This is needed for example to map be able to map MMIO FIFO
+                                          ^^^ not needed
+
+> registers to a IOMMU.
+>
+> Signed-off-by: Niklas S=C3=B6derlund <niklas.soderlund+renesas@ragnat=
+ech.se>
+[...]
+
+MBR, Sergei
