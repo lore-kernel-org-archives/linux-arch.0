@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-3.sys.kth.se ([130.237.48.192]:33532 "EHLO
+Received: from smtp-3.sys.kth.se ([130.237.48.192]:33531 "EHLO
 	smtp-3.sys.kth.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754793AbcBJBFi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Feb 2016 20:05:38 -0500
+	with ESMTP id S1754897AbcBJBFj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Feb 2016 20:05:39 -0500
 From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
 	<niklas.soderlund+renesas@ragnatech.se>
-Subject: [PATCH v3 6/8] dmaengine: rcar-dmac: add iommu support for slave transfers
-Date: Wed, 10 Feb 2016 01:57:56 +0100
-Message-ID: <1455065878-11906-7-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+Subject: [PATCH v3 4/8] arm: dma-mapping: add {map,unmap}_resource for iommu ops
+Date: Wed, 10 Feb 2016 01:57:54 +0100
+Message-ID: <1455065878-11906-5-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 In-Reply-To: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 MIME-Version: 1.0
@@ -17,94 +17,105 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
 Cc: robin.murphy@arm.com, vinod.koul@intel.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
-Message-ID: <20160210005756.u3rL2ZQDXH8vAl7ycVrVfrxoq8zU13LX2gKGzXY6df4@z>
+Message-ID: <20160210005754.gle6P1p7ou7zbCaXgkf8E3SkSJJlZS0tc8_sLlF_u5U@z>
 
-Enable slave transfers to devices behind IPMMU:s by mapping the slave
-addresses using the dma-mapping API.
+Add methods to map/unmap device resources addresses for dma_map_ops that
+are IOMMU aware. This is needed to map a device MMIO register from a
+physical address.
 
 Signed-off-by: Niklas Söderlund <niklas.soderlund+renesas@ragnatech.se>
 ---
- drivers/dma/sh/rcar-dmac.c | 57 ++++++++++++++++++++++++++++++++++++++++++----
- 1 file changed, 52 insertions(+), 5 deletions(-)
+ arch/arm/mm/dma-mapping.c | 63 +++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 63 insertions(+)
 
-diff --git a/drivers/dma/sh/rcar-dmac.c b/drivers/dma/sh/rcar-dmac.c
-index 743873c..268407c 100644
---- a/drivers/dma/sh/rcar-dmac.c
-+++ b/drivers/dma/sh/rcar-dmac.c
-@@ -1106,21 +1106,68 @@ rcar_dmac_prep_dma_cyclic(struct dma_chan *chan, dma_addr_t buf_addr,
- 	return desc;
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index 0eca381..ae2b175 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -1814,6 +1814,63 @@ static void arm_iommu_unmap_page(struct device *dev, dma_addr_t handle,
+ 	__free_iova(mapping, iova, len);
  }
  
-+static int rcar_dmac_set_slave_addr(struct dma_chan *chan,
-+				     struct rcar_dmac_chan_slave *slave,
-+				     phys_addr_t addr, size_t size)
++/**
++ * arm_iommu_map_resource - map a device resource for DMA
++ * @dev: valid struct device pointer
++ * @phys_addr: physical address of resource
++ * @size: size of resource to map
++ * @dir: DMA transfer direction
++ */
++static dma_addr_t arm_iommu_map_resource(struct device *dev,
++		phys_addr_t phys_addr, size_t size,
++		enum dma_data_direction dir, struct dma_attrs *attrs)
 +{
-+	struct dma_attrs attrs;
-+	enum dma_data_direction dir;
++	struct dma_iommu_mapping *mapping = to_dma_iommu_mapping(dev);
++	dma_addr_t dma_addr;
++	int ret, prot;
++	phys_addr_t addr = phys_addr & PAGE_MASK;
++	int offset = phys_addr & ~PAGE_MASK;
++	int len = PAGE_ALIGN(size + offset);
 +
-+	init_dma_attrs(&attrs);
-+	dma_set_attr(DMA_ATTR_NO_KERNEL_MAPPING, &attrs);
-+	dma_set_attr(DMA_ATTR_SKIP_CPU_SYNC, &attrs);
++	dma_addr = __alloc_iova(mapping, size);
++	if (dma_addr == DMA_ERROR_CODE)
++		return dma_addr;
 +
-+	/*
-+	 * We can't know the direction at this time, see documentation for
-+	 * 'direction' in struct dma_slave_config.
-+	 */
-+	dir = DMA_BIDIRECTIONAL;
++	prot = __dma_direction_to_prot(dir) | IOMMU_MMIO;
 +
-+	if (slave->xfer_size) {
-+		dma_unmap_resource(chan->device->dev, slave->slave_addr,
-+				slave->xfer_size, dir, &attrs);
-+		slave->slave_addr = 0;
-+		slave->xfer_size = 0;
-+	}
++	ret = iommu_map(mapping->domain, dma_addr, addr, len, prot);
++	if (ret < 0)
++		goto fail;
 +
-+	if (size) {
-+		slave->slave_addr = dma_map_resource(chan->device->dev, addr,
-+				size, dir, &attrs);
-+
-+		if (dma_mapping_error(chan->device->dev, slave->slave_addr)) {
-+			struct rcar_dmac_chan *rchan = to_rcar_dmac_chan(chan);
-+
-+			dev_err(chan->device->dev,
-+					"chan%u: failed to map %zx@%pap",
-+					rchan->index, size, &addr);
-+			return -EIO;
-+		}
-+
-+		slave->xfer_size = size;
-+	}
-+
-+	return 0;
++	return dma_addr + offset;
++fail:
++	__free_iova(mapping, dma_addr, size);
++	return DMA_ERROR_CODE;
 +}
 +
- static int rcar_dmac_device_config(struct dma_chan *chan,
- 				   struct dma_slave_config *cfg)
- {
- 	struct rcar_dmac_chan *rchan = to_rcar_dmac_chan(chan);
-+	int ret;
- 
- 	/*
- 	 * We could lock this, but you shouldn't be configuring the
- 	 * channel, while using it...
- 	 */
--	rchan->src.slave_addr = cfg->src_addr;
--	rchan->dst.slave_addr = cfg->dst_addr;
--	rchan->src.xfer_size = cfg->src_addr_width;
--	rchan->dst.xfer_size = cfg->dst_addr_width;
- 
--	return 0;
-+	ret = rcar_dmac_set_slave_addr(chan, &rchan->src, cfg->src_addr,
-+			cfg->src_addr_width);
-+	if (ret)
-+		return ret;
++/**
++ * arm_iommu_unmap_resource - unmap a device DMA resource
++ * @dev: valid struct device pointer
++ * @dma_handle: DMA address to resource
++ * @size: size of resource to map
++ * @dir: DMA transfer direction
++ */
++static void arm_iommu_unmap_resource(struct device *dev, dma_addr_t dma_handle,
++		size_t size, enum dma_data_direction dir,
++		struct dma_attrs *attrs)
++{
++	struct dma_iommu_mapping *mapping = to_dma_iommu_mapping(dev);
++	dma_addr_t iova = dma_handle & PAGE_MASK;
++	int offset = dma_handle & ~PAGE_MASK;
++	int len = PAGE_ALIGN(size + offset);
 +
-+	ret = rcar_dmac_set_slave_addr(chan, &rchan->dst, cfg->dst_addr,
-+			cfg->dst_addr_width);
-+	return ret;
- }
++	if (!iova)
++		return;
++
++	iommu_unmap(mapping->domain, iova, len);
++	__free_iova(mapping, iova, len);
++}
++
+ static void arm_iommu_sync_single_for_cpu(struct device *dev,
+ 		dma_addr_t handle, size_t size, enum dma_data_direction dir)
+ {
+@@ -1858,6 +1915,9 @@ struct dma_map_ops iommu_ops = {
+ 	.sync_sg_for_cpu	= arm_iommu_sync_sg_for_cpu,
+ 	.sync_sg_for_device	= arm_iommu_sync_sg_for_device,
  
- static int rcar_dmac_chan_terminate_all(struct dma_chan *chan)
++	.map_resource		= arm_iommu_map_resource,
++	.unmap_resource		= arm_iommu_unmap_resource,
++
+ 	.set_dma_mask		= arm_dma_set_mask,
+ };
+ 
+@@ -1873,6 +1933,9 @@ struct dma_map_ops iommu_coherent_ops = {
+ 	.map_sg		= arm_coherent_iommu_map_sg,
+ 	.unmap_sg	= arm_coherent_iommu_unmap_sg,
+ 
++	.map_resource	= arm_iommu_map_resource,
++	.unmap_resource	= arm_iommu_unmap_resource,
++
+ 	.set_dma_mask	= arm_dma_set_mask,
+ };
+ 
 -- 
 2.7.1
 
