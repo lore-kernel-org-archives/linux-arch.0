@@ -1,84 +1,73 @@
 From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
 	<niklas.soderlund+renesas@ragnatech.se>
-Subject: [PATCH v3 0/8] dmaengine: rcar-dmac: add iommu support for slave transfers
-Date: Wed, 10 Feb 2016 01:57:50 +0100
-Message-ID: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+Subject: [PATCH v3 8/8] ARM: dts: r8a7791: add iommus to dmac0 and dmac1
+Date: Wed, 10 Feb 2016 01:57:58 +0100
+Message-ID: <1455065878-11906-9-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-renesas-soc-owner@vger.kernel.org>
+In-Reply-To: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Sender: linux-renesas-soc-owner@vger.kernel.org
 To: linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
 Cc: robin.murphy@arm.com, vinod.koul@intel.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
 List-Id: linux-arch.vger.kernel.org
 
-Hi,
+Signed-off-by: Niklas S=C3=B6derlund <niklas.soderlund+renesas@ragnatec=
+h.se>
+---
+ arch/arm/boot/dts/r8a7791.dtsi | 30 ++++++++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
 
-This series add iommu support to rcar-dmac. It's tested on koelsch with
-CONFIG_IPMMU_VMSA and by enabling the ipmmu_ds node in r8a7791.dtsi. I
-verified operation by interacting with /dev/mmcblk1  which is a device
-behind the iommu.
-
-The series depends on out of tree patch '[PATCH] dmaengine: use
-phys_addr_t for slave configuration' which currently is under review.
-
-* Changes since v2
-- Drop patch to add dma_{map,unmap}_page_attrs.
-- Add dma_{map,unmap}_resource to handle the mapping without involving =
-a
-  'struct page'. Thanks Laurent and Robin for pointing this out.
-- Use size instead of address to keep track of if a mapping exist or no=
-t
-  since addr =3D=3D 0 is valid. Thanks Laurent.
-- Pick up patch from Robin with Laurents ack (hope it's OK for me to
-  attach the ack?) to add IOMMU_MMIO.
-- Fix bug in rcar_dmac_device_config where the error check where
-  inverted.
-- Use DMA_BIDIRECTIONAL in rcar_dmac_device_config since we at that
-  point can't be sure what direction the mapping is going to be used.
-
-* Changes since v1
-- Add and use a dma_{map,unmap}_page_attrs to be able to map the page
-  using attributes DMA_ATTR_NO_KERNEL_MAPPING and
-  DMA_ATTR_SKIP_CPU_SYNC. Thanks Laurent.
-- Drop check if dmac is part of a iommu group or not, let the DMA
-  mapping api handle it.
-- Move slave configuration data around in rcar-dmac to avoid code
-  duplication.
-- Fix build issue reported by 'kbuild test robot' regarding phys_to_pag=
-e
-  not availability on some configurations.
-- Add DT information for r8a7791.
-
-* Changes since RFC
-- Switch to use the dma-mapping api instead of using the iommu_map()
-  directly. Turns out the dma-mapper is much smarter then me...
-- Dropped the patch to expose domain->ops->pgsize_bitmap from within th=
-e
-  iommu api.
-- Dropped the patch showing how I tested the RFC.
-
-Niklas S=C3=B6derlund (7):
-  dma-mapping: add {map,unmap}_resource to dma_map_ops
-  dma-mapping: add dma_{map,unmap}_resource
-  arm: dma-mapping: add {map,unmap}_resource for iommu ops
-  dmaengine: rcar-dmac: group slave configuration
-  dmaengine: rcar-dmac: add iommu support for slave transfers
-  ARM: dts: r8a7790: add iommus to dmac0 and dmac1
-  ARM: dts: r8a7791: add iommus to dmac0 and dmac1
-
-Robin Murphy (1):
-  iommu: Add MMIO mapping type
-
- arch/arm/boot/dts/r8a7790.dtsi | 30 +++++++++++++++
- arch/arm/boot/dts/r8a7791.dtsi | 30 +++++++++++++++
- arch/arm/mm/dma-mapping.c      | 63 +++++++++++++++++++++++++++++++
- drivers/dma/sh/rcar-dmac.c     | 86 +++++++++++++++++++++++++++++++++-=
---------
- drivers/iommu/io-pgtable-arm.c |  4 +-
- include/linux/dma-mapping.h    | 33 ++++++++++++++++
- include/linux/iommu.h          |  1 +
- 7 files changed, 229 insertions(+), 18 deletions(-)
-
---
+diff --git a/arch/arm/boot/dts/r8a7791.dtsi b/arch/arm/boot/dts/r8a7791=
+=2Edtsi
+index 2a369dd..6dff061 100644
+--- a/arch/arm/boot/dts/r8a7791.dtsi
++++ b/arch/arm/boot/dts/r8a7791.dtsi
+@@ -283,6 +283,21 @@
+ 		power-domains =3D <&cpg_clocks>;
+ 		#dma-cells =3D <1>;
+ 		dma-channels =3D <15>;
++		iommus =3D <&ipmmu_ds 0>,
++			 <&ipmmu_ds 1>,
++			 <&ipmmu_ds 2>,
++			 <&ipmmu_ds 3>,
++			 <&ipmmu_ds 4>,
++			 <&ipmmu_ds 5>,
++			 <&ipmmu_ds 6>,
++			 <&ipmmu_ds 7>,
++			 <&ipmmu_ds 8>,
++			 <&ipmmu_ds 9>,
++			 <&ipmmu_ds 10>,
++			 <&ipmmu_ds 11>,
++			 <&ipmmu_ds 12>,
++			 <&ipmmu_ds 13>,
++			 <&ipmmu_ds 14>;
+ 	};
+=20
+ 	dmac1: dma-controller@e6720000 {
+@@ -314,6 +329,21 @@
+ 		power-domains =3D <&cpg_clocks>;
+ 		#dma-cells =3D <1>;
+ 		dma-channels =3D <15>;
++		iommus =3D <&ipmmu_ds 15>,
++			 <&ipmmu_ds 16>,
++			 <&ipmmu_ds 17>,
++			 <&ipmmu_ds 18>,
++			 <&ipmmu_ds 19>,
++			 <&ipmmu_ds 20>,
++			 <&ipmmu_ds 21>,
++			 <&ipmmu_ds 22>,
++			 <&ipmmu_ds 23>,
++			 <&ipmmu_ds 24>,
++			 <&ipmmu_ds 25>,
++			 <&ipmmu_ds 26>,
++			 <&ipmmu_ds 27>,
++			 <&ipmmu_ds 28>,
++			 <&ipmmu_ds 29>;
+ 	};
+=20
+ 	audma0: dma-controller@ec700000 {
+--=20
 2.7.1
