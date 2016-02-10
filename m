@@ -1,30 +1,60 @@
-From: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Subject: =?utf-8?Q?=D0=9A=D0=BB=D0=B8=D0=B5=D0=BD=D1=82=D1=81=D0?=
-	=?utf-8?Q?=BA=D0=B8=D0=B5_=D0=B1=D0=B0=D0=B7=D1=8B!_=D0?=
-	=?utf-8?Q?=A2=D0=B5=D0=BB=5CViber=5CWhatsapp=3A+791393935?=
-	=?utf-8?Q?06__Skype=3Aprodawez389__Email=3Amnoskova760=40?=
-	=?utf-8?Q?gmail=2Ecom_=D0=A3=D0=B7=D0=BD=D0=B0=D0=B9=D1?=
-	=?utf-8?Q?=82=D0=B5_=D0=BF=D0=BE=D0=B4=D1=80=D0=BE=D0=B1?=
-	=?utf-8?Q?=D0=BD=D0=B5=D0=B5!!!?=
-Date: Wed, 10 Feb 2016 15:50:08 +0600
-Message-ID: <F50EBA6201D5FA39E5E0A916E2C5FCC0@vger.kernel.org>
-Reply-To: "linux-arch@vger.kernel.org" <mnoskova760@gmail.com>
+From: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
+Subject: Re: [PATCH v3 3/8] dma-mapping: add dma_{map,unmap}_resource
+Date: Wed, 10 Feb 2016 10:25:07 +0000
+Message-ID: <56BB1003.8020409@arm.com>
+References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+	<1455065878-11906-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from static-181-143-229-122.une.net.co ([181.143.229.122]:39898 "EHLO
-	ServProxy.localdomain" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1757479AbcBJKT2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Feb 2016 05:19:28 -0500
-Received: from 181.143.229.122 (localhost.localdomain [127.0.0.1])
-	by ServProxy.localdomain (Postfix) with SMTP id ACF001E3C34
-	for <linux-arch@vger.kernel.org>; Wed, 10 Feb 2016 12:47:39 -0500 (COT)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="utf-8"; Format="flowed"
+Content-Transfer-Encoding: base64
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <1455065878-11906-4-git-send-email-niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: =?UTF-8?Q?Niklas_S=c3=b6derlund?= <niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>, linux-renesas-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, geert+renesas-gXvu3+zWzMSzQB+pC5nmwQ@public.gmane.org, vinod.koul-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org, dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-=D0=9A=D0=BB=D0=B8=D0=B5=D0=BD=D1=82=D1=81=D0=BA=D0=B8=D0=B5 =D0=B1=D0=B0=
-=D0=B7=D1=8B! =D0=A2=D0=B5=D0=BB\Viber\Whatsapp:+79139393506  Skype:pro=
-dawez389  Email:mnoskova760@gmail.com =D0=A3=D0=B7=D0=BD=D0=B0=D0=B9=D1=
-=82=D0=B5 =D0=BF=D0=BE=D0=B4=D1=80=D0=BE=D0=B1=D0=BD=D0=B5=D0=B5!!!
+SGkgTmlrbGFzLAoKVGhhbmtzIGZvciBkb2luZyB0aGlzLCBpdCBsb29rcyBnb29kLiBKdXN0IGEg
+Y291cGxlIG9mIG1pbm9yIGNvbW1lbnRzIG9uIAp0aGlzIGFuZCB0aGUgbmV4dCBwYXRjaC4uLgoK
+T24gMTAvMDIvMTYgMDA6NTcsIE5pa2xhcyBTw7ZkZXJsdW5kIHdyb3RlOgo+IE1hcC9Vbm1hcCBh
+IGRldmljZSByZXNvdXJjZSBmcm9tIGEgcGh5c2ljYWwgYWRkcmVzcy4gSWYgbm8gZG1hX21hcF9v
+cHMKPiBtZXRob2QgaXMgYXZhaWxhYmxlIHRoZSBvcGVyYXRpb24gaXMgYSBuby1vcC4KPgo+IFNp
+Z25lZC1vZmYtYnk6IE5pa2xhcyBTw7ZkZXJsdW5kIDxuaWtsYXMuc29kZXJsdW5kK3JlbmVzYXNA
+cmFnbmF0ZWNoLnNlPgo+IC0tLQo+ICAgaW5jbHVkZS9saW51eC9kbWEtbWFwcGluZy5oIHwgMjcg
+KysrKysrKysrKysrKysrKysrKysrKysrKysrCj4gICAxIGZpbGUgY2hhbmdlZCwgMjcgaW5zZXJ0
+aW9ucygrKQo+Cj4gZGlmZiAtLWdpdCBhL2luY2x1ZGUvbGludXgvZG1hLW1hcHBpbmcuaCBiL2lu
+Y2x1ZGUvbGludXgvZG1hLW1hcHBpbmcuaAo+IGluZGV4IGUzYWJhNGUuLjIxYmY5ODYgMTAwNjQ0
+Cj4gLS0tIGEvaW5jbHVkZS9saW51eC9kbWEtbWFwcGluZy5oCj4gKysrIGIvaW5jbHVkZS9saW51
+eC9kbWEtbWFwcGluZy5oCj4gQEAgLTIxNiw2ICsyMTYsMzMgQEAgc3RhdGljIGlubGluZSB2b2lk
+IGRtYV91bm1hcF9wYWdlKHN0cnVjdCBkZXZpY2UgKmRldiwgZG1hX2FkZHJfdCBhZGRyLAo+ICAg
+CWRlYnVnX2RtYV91bm1hcF9wYWdlKGRldiwgYWRkciwgc2l6ZSwgZGlyLCBmYWxzZSk7Cj4gICB9
+Cj4KPiArc3RhdGljIGlubGluZSBkbWFfYWRkcl90IGRtYV9tYXBfcmVzb3VyY2Uoc3RydWN0IGRl
+dmljZSAqZGV2LAo+ICsJCQkJCSAgcGh5c19hZGRyX3QgcGh5c19hZGRyLAo+ICsJCQkJCSAgc2l6
+ZV90IHNpemUsCj4gKwkJCQkJICBlbnVtIGRtYV9kYXRhX2RpcmVjdGlvbiBkaXIsCj4gKwkJCQkJ
+ICBzdHJ1Y3QgZG1hX2F0dHJzICphdHRycykKPiArewo+ICsJc3RydWN0IGRtYV9tYXBfb3BzICpv
+cHMgPSBnZXRfZG1hX29wcyhkZXYpOwo+ICsKPiArCUJVR19PTighdmFsaWRfZG1hX2RpcmVjdGlv
+bihkaXIpKTsKCkkgdGhpbmsgaXQgd291bGQgYmUgd29ydGggYWxzbyBoYXZpbmcgdGhlIHNhbWUg
+aW52ZXJzZSBwZm5fdmFsaWQoKSBjaGVjayAKYXMgaW9yZW1hcCgpIGhlcmUsIHRvIG1ha2Ugc3Vy
+ZSB0aGlzIGlzIHNpbWlsYXJseSBoYXJkIHRvIG1pc3VzZS4KClJvYmluLgoKPiArCWlmIChvcHMt
+Pm1hcF9yZXNvdXJjZSkKPiArCQlyZXR1cm4gb3BzLT5tYXBfcmVzb3VyY2UoZGV2LCBwaHlzX2Fk
+ZHIsIHNpemUsIGRpciwgYXR0cnMpOwo+ICsKPiArCXJldHVybiBwaHlzX2FkZHI7Cj4gK30KPiAr
+Cj4gK3N0YXRpYyBpbmxpbmUgdm9pZCBkbWFfdW5tYXBfcmVzb3VyY2Uoc3RydWN0IGRldmljZSAq
+ZGV2LCBkbWFfYWRkcl90IGFkZHIsCj4gKwkJCQkgICAgICBzaXplX3Qgc2l6ZSwgZW51bSBkbWFf
+ZGF0YV9kaXJlY3Rpb24gZGlyLAo+ICsJCQkJICAgICAgc3RydWN0IGRtYV9hdHRycyAqYXR0cnMp
+Cj4gK3sKPiArCXN0cnVjdCBkbWFfbWFwX29wcyAqb3BzID0gZ2V0X2RtYV9vcHMoZGV2KTsKPiAr
+Cj4gKwlCVUdfT04oIXZhbGlkX2RtYV9kaXJlY3Rpb24oZGlyKSk7Cj4gKwlpZiAob3BzLT51bm1h
+cF9yZXNvdXJjZSkKPiArCQlvcHMtPnVubWFwX3Jlc291cmNlKGRldiwgYWRkciwgc2l6ZSwgZGly
+LCBhdHRycyk7Cj4gKwo+ICt9Cj4gKwo+ICAgc3RhdGljIGlubGluZSB2b2lkIGRtYV9zeW5jX3Np
+bmdsZV9mb3JfY3B1KHN0cnVjdCBkZXZpY2UgKmRldiwgZG1hX2FkZHJfdCBhZGRyLAo+ICAgCQkJ
+CQkgICBzaXplX3Qgc2l6ZSwKPiAgIAkJCQkJICAgZW51bSBkbWFfZGF0YV9kaXJlY3Rpb24gZGly
+KQo+CgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwppb21t
+dSBtYWlsaW5nIGxpc3QKaW9tbXVAbGlzdHMubGludXgtZm91bmRhdGlvbi5vcmcKaHR0cHM6Ly9s
+aXN0cy5saW51eGZvdW5kYXRpb24ub3JnL21haWxtYW4vbGlzdGluZm8vaW9tbXU=
