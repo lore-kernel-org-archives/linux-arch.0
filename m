@@ -1,62 +1,125 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-3.sys.kth.se ([130.237.48.192]:33521 "EHLO
+Received: from smtp-3.sys.kth.se ([130.237.48.192]:33523 "EHLO
 	smtp-3.sys.kth.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753398AbcBJBFV (ORCPT
+	with ESMTP id S1753955AbcBJBFV (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Feb 2016 20:05:21 -0500
 From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
 	<niklas.soderlund+renesas@ragnatech.se>
-Subject: [PATCH v3 1/8] iommu: Add MMIO mapping type
-Date: Wed, 10 Feb 2016 01:57:51 +0100
-Message-ID: <1455065878-11906-2-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+Subject: [PATCH v3 5/8] dmaengine: rcar-dmac: group slave configuration
+Date: Wed, 10 Feb 2016 01:57:55 +0100
+Message-ID: <1455065878-11906-6-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 In-Reply-To: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
-Cc: robin.murphy@arm.com, vinod.koul@intel.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org
-Message-ID: <20160210005751.EF7yixzCjxcg_wOygUhQEKlQDe-T9Xvk7EswjtLTrq0@z>
+Cc: robin.murphy@arm.com, vinod.koul@intel.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
+Message-ID: <20160210005755.LtvVpICB7Y4IYqazNwA82v8ULA_cKejMgEFi1Fl_dFI@z>
 
-From: Robin Murphy <robin.murphy@arm.com>
+Group slave address and transfer size in own structs for source and
+destination. This is in preparation for hooking up the dma-mapping API
+to the slave addresses.
 
-On some platforms, MMIO regions might need slightly different treatment
-compared to mapping regular memory; add the notion of MMIO mappings to
-the IOMMU API's memory type flags, so that callers can let the IOMMU
-drivers know to do the right thing.
-
-Signed-off-by: Robin Murphy <robin.murphy@arm.com>
-Acked-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Signed-off-by: Niklas Söderlund <niklas.soderlund+renesas@ragnatech.se>
 ---
- drivers/iommu/io-pgtable-arm.c | 4 +++-
- include/linux/iommu.h          | 1 +
- 2 files changed, 4 insertions(+), 1 deletion(-)
+ drivers/dma/sh/rcar-dmac.c | 37 +++++++++++++++++++++----------------
+ 1 file changed, 21 insertions(+), 16 deletions(-)
 
-diff --git a/drivers/iommu/io-pgtable-arm.c b/drivers/iommu/io-pgtable-arm.c
-index 381ca5a..3ff4f87 100644
---- a/drivers/iommu/io-pgtable-arm.c
-+++ b/drivers/iommu/io-pgtable-arm.c
-@@ -364,7 +364,9 @@ static arm_lpae_iopte arm_lpae_prot_to_pte(struct arm_lpae_io_pgtable *data,
- 			pte |= ARM_LPAE_PTE_HAP_READ;
- 		if (prot & IOMMU_WRITE)
- 			pte |= ARM_LPAE_PTE_HAP_WRITE;
--		if (prot & IOMMU_CACHE)
-+		if (prot & IOMMU_MMIO)
-+			pte |= ARM_LPAE_PTE_MEMATTR_DEV;
-+		else if (prot & IOMMU_CACHE)
- 			pte |= ARM_LPAE_PTE_MEMATTR_OIWB;
- 		else
- 			pte |= ARM_LPAE_PTE_MEMATTR_NC;
-diff --git a/include/linux/iommu.h b/include/linux/iommu.h
-index a5c539f..34b6432 100644
---- a/include/linux/iommu.h
-+++ b/include/linux/iommu.h
-@@ -30,6 +30,7 @@
- #define IOMMU_WRITE	(1 << 1)
- #define IOMMU_CACHE	(1 << 2) /* DMA cache coherency */
- #define IOMMU_NOEXEC	(1 << 3)
-+#define IOMMU_MMIO	(1 << 4) /* e.g. things like MSI doorbells */
+diff --git a/drivers/dma/sh/rcar-dmac.c b/drivers/dma/sh/rcar-dmac.c
+index 7820d07..743873c 100644
+--- a/drivers/dma/sh/rcar-dmac.c
++++ b/drivers/dma/sh/rcar-dmac.c
+@@ -118,14 +118,21 @@ struct rcar_dmac_desc_page {
+ 	sizeof(struct rcar_dmac_xfer_chunk))
  
- struct iommu_ops;
- struct iommu_group;
+ /*
++ * @slave_addr: slave memory address
++ * @xfer_size: size (in bytes) of hardware transfers
++ */
++struct rcar_dmac_chan_slave {
++	dma_addr_t slave_addr;
++	unsigned int xfer_size;
++};
++
++/*
+  * struct rcar_dmac_chan - R-Car Gen2 DMA Controller Channel
+  * @chan: base DMA channel object
+  * @iomem: channel I/O memory base
+  * @index: index of this channel in the controller
+- * @src_xfer_size: size (in bytes) of hardware transfers on the source side
+- * @dst_xfer_size: size (in bytes) of hardware transfers on the destination side
+- * @src_slave_addr: slave source memory address
+- * @dst_slave_addr: slave destination memory address
++ * @src: slave memory address and size on the source side
++ * @dst: slave memory address and size on the destination side
+  * @mid_rid: hardware MID/RID for the DMA client using this channel
+  * @lock: protects the channel CHCR register and the desc members
+  * @desc.free: list of free descriptors
+@@ -142,10 +149,8 @@ struct rcar_dmac_chan {
+ 	void __iomem *iomem;
+ 	unsigned int index;
+ 
+-	unsigned int src_xfer_size;
+-	unsigned int dst_xfer_size;
+-	dma_addr_t src_slave_addr;
+-	dma_addr_t dst_slave_addr;
++	struct rcar_dmac_chan_slave src;
++	struct rcar_dmac_chan_slave dst;
+ 	int mid_rid;
+ 
+ 	spinlock_t lock;
+@@ -793,13 +798,13 @@ static void rcar_dmac_chan_configure_desc(struct rcar_dmac_chan *chan,
+ 	case DMA_DEV_TO_MEM:
+ 		chcr = RCAR_DMACHCR_DM_INC | RCAR_DMACHCR_SM_FIXED
+ 		     | RCAR_DMACHCR_RS_DMARS;
+-		xfer_size = chan->src_xfer_size;
++		xfer_size = chan->src.xfer_size;
+ 		break;
+ 
+ 	case DMA_MEM_TO_DEV:
+ 		chcr = RCAR_DMACHCR_DM_FIXED | RCAR_DMACHCR_SM_INC
+ 		     | RCAR_DMACHCR_RS_DMARS;
+-		xfer_size = chan->dst_xfer_size;
++		xfer_size = chan->dst.xfer_size;
+ 		break;
+ 
+ 	case DMA_MEM_TO_MEM:
+@@ -1038,7 +1043,7 @@ rcar_dmac_prep_slave_sg(struct dma_chan *chan, struct scatterlist *sgl,
+ 	}
+ 
+ 	dev_addr = dir == DMA_DEV_TO_MEM
+-		 ? rchan->src_slave_addr : rchan->dst_slave_addr;
++		 ? rchan->src.slave_addr : rchan->dst.slave_addr;
+ 	return rcar_dmac_chan_prep_sg(rchan, sgl, sg_len, dev_addr,
+ 				      dir, flags, false);
+ }
+@@ -1093,7 +1098,7 @@ rcar_dmac_prep_dma_cyclic(struct dma_chan *chan, dma_addr_t buf_addr,
+ 	}
+ 
+ 	dev_addr = dir == DMA_DEV_TO_MEM
+-		 ? rchan->src_slave_addr : rchan->dst_slave_addr;
++		 ? rchan->src.slave_addr : rchan->dst.slave_addr;
+ 	desc = rcar_dmac_chan_prep_sg(rchan, sgl, sg_len, dev_addr,
+ 				      dir, flags, true);
+ 
+@@ -1110,10 +1115,10 @@ static int rcar_dmac_device_config(struct dma_chan *chan,
+ 	 * We could lock this, but you shouldn't be configuring the
+ 	 * channel, while using it...
+ 	 */
+-	rchan->src_slave_addr = cfg->src_addr;
+-	rchan->dst_slave_addr = cfg->dst_addr;
+-	rchan->src_xfer_size = cfg->src_addr_width;
+-	rchan->dst_xfer_size = cfg->dst_addr_width;
++	rchan->src.slave_addr = cfg->src_addr;
++	rchan->dst.slave_addr = cfg->dst_addr;
++	rchan->src.xfer_size = cfg->src_addr_width;
++	rchan->dst.xfer_size = cfg->dst_addr_width;
+ 
+ 	return 0;
+ }
 -- 
 2.7.1
 
