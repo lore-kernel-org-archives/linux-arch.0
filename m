@@ -1,43 +1,28 @@
-From: "Niklas =?iso-8859-1?Q?S=F6derlund?=" <niklas.soderlund@ragnatech.se>
-Subject: Re: [PATCH v3 7/8] ARM: dts: r8a7790: add iommus to dmac0 and dmac1
-Date: Thu, 11 Feb 2016 01:50:52 +0100
-Message-ID: <20160211005052.GD19813@bigcity.dyn.berto.se>
-References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <1455065878-11906-8-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <20160210175559.GD17671@verge.net.au>
+From: fu.zhongjun@execs.com
+Subject: Good day
+Date: Wed, 10 Feb 2016 17:33:40 +0100
+Message-ID: <TRU-DC2G5aYY61LEdyt00009985__49520.5616848127$1455162659$gmane$org@TRU-DC2.utu-trust.com>
+Reply-To: fuzhong348@gmail.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:34627 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750849AbcBKAuz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Feb 2016 19:50:55 -0500
-Received: by mail-lb0-f174.google.com with SMTP id cw1so19922847lbb.1
-        for <linux-arch@vger.kernel.org>; Wed, 10 Feb 2016 16:50:54 -0800 (PST)
-Content-Disposition: inline
-In-Reply-To: <20160210175559.GD17671@verge.net.au>
+Received: from 71-95-209-123.static.mtpk.ca.charter.com ([71.95.209.123]:22398
+	"HELO TRU-DC2.utu-trust.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with SMTP id S1750801AbcBKDuJ convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 10 Feb 2016 22:50:09 -0500
+Content-Description: Mail message body
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Simon Horman <horms@verge.net.au>
-Cc: linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, linux-arch@vger.kernel.org, arnd@arndb.de, geert+renesas@glider.be, vinod.koul@intel.com, linus.walleij@linaro.org, laurent.pinchart@ideasonboard.com, dan.j.williams@intel.com, robin.murphy@arm.com
+To: Recipients <fu.zhongjun@execs.com>
 
-Hi Simon,
+Good day,
 
-* Simon Horman <horms@verge.net.au> [2016-02-10 18:55:59 +0100]:
+I need a foreign partner for a proposed mutual business, which refers to the transfer of a large sum of money to an account abroad, as the beneficiary of the funds. Everything about this operation, will be legally done without any bridge financial authority, both in my country and yours.I wil indulge you exercise the utmost discretion in all matters concerning this issue. If you are interested, please reply back through my private email address written down, I'll give you more information about myself with the financial institution I represented and the actual amounts involved about the project so I receive your positive response.
 
-> Hi Niklas,
->
-> I am deferring accepting this and the similar patch for the r8a7791 pending
-> acceptance of the driver changes earlier in this series. Please let me know
-> if you prefer a different course of action.
+Private E-mail: fu.zhong@fuzhongjun.net
 
-That sounds good, thanks.
+Friendly greeting,
 
->
-> I notice that the devel branch of there renesas tree there are
-> dmac nodes for the r8a7793, r8a7794 and r8a7795. Is this change,
-> also suitable for those SoCs? If so, do you plan to update them?
-> If not I'll add it to my todo list.
-
-I planed to update all effected SoCs once the dependencies for this
-series where accepted. But if you want to keep track of this I'm happy.
+Executive director.
