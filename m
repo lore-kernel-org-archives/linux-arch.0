@@ -1,18 +1,18 @@
 From: Nicolas Pitre <nico@fluxnic.net>
-Subject: Re: [PATCH v2 07/13] arm: move exports to definitions
-Date: Wed, 10 Feb 2016 16:56:07 -0500 (EST)
-Message-ID: <alpine.LFD.2.20.1602101636250.17825@knanqh.ubzr>
+Subject: Re: [PATCH v2 02/13] EXPORT_SYMBOL() for asm
+Date: Wed, 10 Feb 2016 17:15:07 -0500 (EST)
+Message-ID: <alpine.LFD.2.20.1602101659470.17825@knanqh.ubzr>
 References: <20160203211953.GT17997@ZenIV.linux.org.uk>
- <1454534445-16759-7-git-send-email-viro@ZenIV.linux.org.uk>
+ <1454534445-16759-2-git-send-email-viro@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; CHARSET=US-ASCII
 Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relais.videotron.ca ([24.201.245.36]:37463 "EHLO
+Received: from relais.videotron.ca ([24.201.245.36]:24910 "EHLO
 	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751621AbcBJWLQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Feb 2016 17:11:16 -0500
-In-reply-to: <1454534445-16759-7-git-send-email-viro@ZenIV.linux.org.uk>
+	with ESMTP id S1750816AbcBJWPJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Feb 2016 17:15:09 -0500
+In-reply-to: <1454534445-16759-2-git-send-email-viro@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Al Viro <viro@ZenIV.linux.org.uk>
@@ -22,165 +22,46 @@ On Wed, 3 Feb 2016, Al Viro wrote:
 
 > From: Al Viro <viro@zeniv.linux.org.uk>
 > 
-> Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+> Add asm-usable variants of EXPORT_SYMBOL/EXPORT_SYMBOL_GPL.  This
+> commit just adds the default implementation; most of the architectures
+> can simply add export.h to asm/Kbuild and start using <asm/export.h>
+> from assembler.  The rest needs to have their <asm/export.h> define
+> everal macros and then explicitly include <asm-generic/export.h>
+[...]
 
-The following construct is incompatible with my autoksyms series:
+FYI, here's the needed changes to make it work with my autoksyms series. 
+This is the asm/export.h version of http://lkml.org/lkml/2016/2/10/5.
 
-> diff --git a/arch/arm/lib/bitops.h b/arch/arm/lib/bitops.h
-> index 7d807cf..df06638 100644
-> --- a/arch/arm/lib/bitops.h
-> +++ b/arch/arm/lib/bitops.h
-> @@ -1,5 +1,6 @@
->  #include <asm/assembler.h>
->  #include <asm/unwind.h>
-> +#include <asm/export.h>
->  
->  #if __LINUX_ARM_ARCH__ >= 6
->  	.macro	bitop, name, instr
-> @@ -25,6 +26,7 @@ UNWIND(	.fnstart	)
->  	bx	lr
->  UNWIND(	.fnend		)
->  ENDPROC(\name		)
-> +EXPORT_SYMBOL(\name	)
->  	.endm
-
-Here \name is an assembler macro argument and it is not subject to 
-preprocessor substitutions.  And the assembler doesn't see preprocessor 
-macros either.
-
-So I'd suggest folding the following patch to let the preprocessor see 
-the actual symbol name. It doesn't make the source code as compact but 
-it works with my series.
-
-diff --git a/arch/arm/lib/bitops.h b/arch/arm/lib/bitops.h
-index df06638b32..7d807cfd8e 100644
---- a/arch/arm/lib/bitops.h
-+++ b/arch/arm/lib/bitops.h
-@@ -1,6 +1,5 @@
- #include <asm/assembler.h>
- #include <asm/unwind.h>
--#include <asm/export.h>
- 
- #if __LINUX_ARM_ARCH__ >= 6
- 	.macro	bitop, name, instr
-@@ -26,7 +25,6 @@ UNWIND(	.fnstart	)
- 	bx	lr
- UNWIND(	.fnend		)
- ENDPROC(\name		)
--EXPORT_SYMBOL(\name	)
- 	.endm
- 
- 	.macro	testop, name, instr, store
-@@ -57,7 +55,6 @@ UNWIND(	.fnstart	)
- 2:	bx	lr
- UNWIND(	.fnend		)
- ENDPROC(\name		)
--EXPORT_SYMBOL(\name	)
- 	.endm
- #else
- 	.macro	bitop, name, instr
-@@ -77,7 +74,6 @@ UNWIND(	.fnstart	)
- 	ret	lr
- UNWIND(	.fnend		)
- ENDPROC(\name		)
--EXPORT_SYMBOL(\name	)
- 	.endm
- 
- /**
-@@ -106,6 +102,5 @@ UNWIND(	.fnstart	)
- 	ret	lr
- UNWIND(	.fnend		)
- ENDPROC(\name		)
--EXPORT_SYMBOL(\name	)
- 	.endm
+diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
+index 03b51ac4cc..b450da9d68 100644
+--- a/include/asm-generic/export.h
++++ b/include/asm-generic/export.h
+@@ -59,8 +59,24 @@ KSYM(__kcrctab_\name):
  #endif
-diff --git a/arch/arm/lib/changebit.S b/arch/arm/lib/changebit.S
-index f402786217..1cfdb138d2 100644
---- a/arch/arm/lib/changebit.S
-+++ b/arch/arm/lib/changebit.S
-@@ -9,7 +9,10 @@
-  */
- #include <linux/linkage.h>
- #include <asm/assembler.h>
-+#include <asm/export.h>
- #include "bitops.h"
-                 .text
- 
- bitop	_change_bit, eor
+ .endm
+ #undef __put
+-#define EXPORT_SYMBOL(name) __EXPORT_SYMBOL name,KSYM_FUNC(KSYM(name))
+-#define EXPORT_SYMBOL_GPL(name) __EXPORT_SYMBOL name,KSYM_FUNC(KSYM(name)),_gpl
+-#define EXPORT_DATA_SYMBOL(name) __EXPORT_SYMBOL name,KSYM(name)
+-#define EXPORT_DATA_SYMBOL_GPL(name) __EXPORT_SYMBOL name,KSYM(name),_gpl
 +
-+EXPORT_SYMBOL(_change_bit)
-diff --git a/arch/arm/lib/clearbit.S b/arch/arm/lib/clearbit.S
-index f6b75fb64d..e901ca5af0 100644
---- a/arch/arm/lib/clearbit.S
-+++ b/arch/arm/lib/clearbit.S
-@@ -9,7 +9,10 @@
-  */
- #include <linux/linkage.h>
- #include <asm/assembler.h>
-+#include <asm/export.h>
- #include "bitops.h"
-                 .text
- 
- bitop	_clear_bit, bic
++#ifdef CONFIG_TRIM_UNUSED_KSYMS
++#include <linux/kconfig.h>
++#include <generated/autoksyms.h>
++#define ___EXPORT_SYMBOL(name, val, sec) \
++	__cond_export_sym(name, val, sec, config_enabled(__KSYM_##name))
++#define __cond_export_sym(name, val, sec, conf) \
++	___cond_export_sym(name, val, sec, conf)
++#define ___cond_export_sym(name, val, sec, enabled) \
++	__cond_export_sym_##enabled(name, val, sec)
++#define __cond_export_sym_1(name, val, sec) __EXPORT_SYMBOL name, val, sec
++#define __cond_export_sym_0(name, val, sec) /* nothing */
++#else
++#define ___EXPORT_SYMBOL(name, val, sec) __EXPORT_SYMBOL name, val, sec
++#endif
 +
-+EXPORT_SYMBOL(_clear_bit)
-diff --git a/arch/arm/lib/setbit.S b/arch/arm/lib/setbit.S
-index 618fedae4b..3c8b11240f 100644
---- a/arch/arm/lib/setbit.S
-+++ b/arch/arm/lib/setbit.S
-@@ -9,7 +9,10 @@
-  */
- #include <linux/linkage.h>
- #include <asm/assembler.h>
-+#include <asm/export.h>
- #include "bitops.h"
- 		.text
- 
- bitop	_set_bit, orr
-+
-+EXPORT_SYMBOL(_set_bit)
-diff --git a/arch/arm/lib/testchangebit.S b/arch/arm/lib/testchangebit.S
-index 4becdc3a59..e3d19b87fb 100644
---- a/arch/arm/lib/testchangebit.S
-+++ b/arch/arm/lib/testchangebit.S
-@@ -9,7 +9,10 @@
-  */
- #include <linux/linkage.h>
- #include <asm/assembler.h>
-+#include <asm/export.h>
- #include "bitops.h"
-                 .text
- 
- testop	_test_and_change_bit, eor, str
-+
-+EXPORT_SYMBOL(_test_and_change_bit)
-diff --git a/arch/arm/lib/testclearbit.S b/arch/arm/lib/testclearbit.S
-index 918841dcce..d247e6f70f 100644
---- a/arch/arm/lib/testclearbit.S
-+++ b/arch/arm/lib/testclearbit.S
-@@ -9,7 +9,10 @@
-  */
- #include <linux/linkage.h>
- #include <asm/assembler.h>
-+#include <asm/export.h>
- #include "bitops.h"
-                 .text
- 
- testop	_test_and_clear_bit, bicne, strne
-+
-+EXPORT_SYMBOL(_test_and_clear_bit)
-diff --git a/arch/arm/lib/testsetbit.S b/arch/arm/lib/testsetbit.S
-index 8d1b2fe9e4..76800ff601 100644
---- a/arch/arm/lib/testsetbit.S
-+++ b/arch/arm/lib/testsetbit.S
-@@ -9,7 +9,10 @@
-  */
- #include <linux/linkage.h>
- #include <asm/assembler.h>
-+#include <asm/export.h>
- #include "bitops.h"
-                 .text
- 
- testop	_test_and_set_bit, orreq, streq
-+
-+EXPORT_SYMBOL(_test_and_set_bit)
++#define EXPORT_SYMBOL(name) ___EXPORT_SYMBOL(name,KSYM_FUNC(KSYM(name)),())
++#define EXPORT_SYMBOL_GPL(name) ___EXPORT_SYMBOL(name,KSYM_FUNC(KSYM(name)),_gpl)
++#define EXPORT_DATA_SYMBOL(name) ___EXPORT_SYMBOL(name,KSYM(name),())
++#define EXPORT_DATA_SYMBOL_GPL(name) ___EXPORT_SYMBOL(name,KSYM(name),_gpl)
+ #endif
