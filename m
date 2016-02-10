@@ -1,79 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:42047 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932388AbcBIR1V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 9 Feb 2016 12:27:21 -0500
-Date: Tue, 9 Feb 2016 17:27:16 +0000
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH] asm-generic: Fix build when __set_fixmap is absent
-Message-ID: <20160209172716.GJ16122@e104818-lin.cambridge.arm.com>
-References: <20160209143554.GA9332@leverpostej>
- <201602100053.LjML6D6b%fengguang.wu@intel.com>
- <20160209163333.GA22110@leverpostej>
- <20160209165234.GI16122@e104818-lin.cambridge.arm.com>
- <20160209172125.GA4348@leverpostej>
+Received: from smtp-3.sys.kth.se ([130.237.48.192]:33512 "EHLO
+	smtp-3.sys.kth.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752598AbcBJBFV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Feb 2016 20:05:21 -0500
+From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
+	<niklas.soderlund+renesas@ragnatech.se>
+Subject: [PATCH v3 8/8] ARM: dts: r8a7791: add iommus to dmac0 and dmac1
+Date: Wed, 10 Feb 2016 01:57:58 +0100
+Message-ID: <1455065878-11906-9-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+In-Reply-To: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20160209172125.GA4348@leverpostej>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Rutland <mark.rutland@arm.com>
-Cc: kbuild test robot <lkp@intel.com>, kbuild-all@01.org, Geert Uytterhoeven <geert@linux-m68k.org>, Arnd Bergmann <arnd@arndb.de>, Sudip Mukherjee <sudipm.mukherjee@gmail.com>, Stephen Rothwell <sfr@canb.auug.org.au>, Linux-Next <linux-next@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Jeremy Linton <jeremy.linton@arm.com>, Linux-Arch <linux-arch@vger.kernel.org>, Laura Abbott <labbott@fedoraproject.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>
-Message-ID: <20160209172716.b11mKUkTo44tXWlRymoKd-P4IDnYybm79rzbDcONjZg@z>
+To: linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: robin.murphy@arm.com, vinod.koul@intel.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
+Message-ID: <20160210005758.bvxoHqquJYnwZzSud-55MBwaF4i4hyqayPO-nKt7uQU@z>
 
-On Tue, Feb 09, 2016 at 05:21:26PM +0000, Mark Rutland wrote:
-> From 6d283603d18071690dc138e4a0591a445a1d1e30 Mon Sep 17 00:00:00 2001
-> From: Mark Rutland <mark.rutland@arm.com>
-> Date: Tue, 9 Feb 2016 17:08:26 +0000
-> Subject: [PATCH] asm-generic: make __set_fixmap_offset a macro again
-> 
-> Turning __set_fixmap_offset into a static inline breaks the build for
-> several architectures. Fixing this properly requires updates to a number
-> of architectures to make them agree on the prototype of __set_fixmap.
-> 
-> For the timebeing, restore __set_fixmap_offset to its prior state as a
-> macro function, reverting commit ac4c0ac73485867c ("asm-generic: make
-> __set_fixmap_offset a static inline"). To avoid the original issue with
-> namespace clashes, 'addr' is prefixed with a liberal sprinking of
-> underscores.
-> 
-> Signed-off-by: Mark Rutland <mark.rutland@arm.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
-> ---
->  include/asm-generic/fixmap.h | 14 +++++++-------
->  1 file changed, 7 insertions(+), 7 deletions(-)
-> 
-> diff --git a/include/asm-generic/fixmap.h b/include/asm-generic/fixmap.h
-> index f9c27b6..827e4d3 100644
-> --- a/include/asm-generic/fixmap.h
-> +++ b/include/asm-generic/fixmap.h
-> @@ -70,13 +70,13 @@ static inline unsigned long virt_to_fix(const unsigned long vaddr)
->  #endif
->  
->  /* Return a pointer with offset calculated */
-> -static inline unsigned long __set_fixmap_offset(enum fixed_addresses idx,
-> -						phys_addr_t phys,
-> -						pgprot_t flags)
-> -{
-> -	__set_fixmap(idx, phys, flags);
-> -	return fix_to_virt(idx) + (phys & (PAGE_SIZE - 1));
-> -}
-> +#define __set_fixmap_offset(idx, phys, flags)				\
-> +({									\
-> +	unsigned long ________addr;					\
-> +	__set_fixmap(idx, phys, flags);					\
-> +	________addr = fix_to_virt(idx) + ((phys) & (PAGE_SIZE - 1));	\
-> +	________addr;							\
-> +})
->  
->  #define set_fixmap_offset(idx, phys) \
->  	__set_fixmap_offset(idx, phys, FIXMAP_PAGE_NORMAL)
-> -- 
-> 1.9.1
+Signed-off-by: Niklas Söderlund <niklas.soderlund+renesas@ragnatech.se>
+---
+ arch/arm/boot/dts/r8a7791.dtsi | 30 ++++++++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
 
-It looks fine to me.
-
+diff --git a/arch/arm/boot/dts/r8a7791.dtsi b/arch/arm/boot/dts/r8a7791.dtsi
+index 2a369dd..6dff061 100644
+--- a/arch/arm/boot/dts/r8a7791.dtsi
++++ b/arch/arm/boot/dts/r8a7791.dtsi
+@@ -283,6 +283,21 @@
+ 		power-domains = <&cpg_clocks>;
+ 		#dma-cells = <1>;
+ 		dma-channels = <15>;
++		iommus = <&ipmmu_ds 0>,
++			 <&ipmmu_ds 1>,
++			 <&ipmmu_ds 2>,
++			 <&ipmmu_ds 3>,
++			 <&ipmmu_ds 4>,
++			 <&ipmmu_ds 5>,
++			 <&ipmmu_ds 6>,
++			 <&ipmmu_ds 7>,
++			 <&ipmmu_ds 8>,
++			 <&ipmmu_ds 9>,
++			 <&ipmmu_ds 10>,
++			 <&ipmmu_ds 11>,
++			 <&ipmmu_ds 12>,
++			 <&ipmmu_ds 13>,
++			 <&ipmmu_ds 14>;
+ 	};
+ 
+ 	dmac1: dma-controller@e6720000 {
+@@ -314,6 +329,21 @@
+ 		power-domains = <&cpg_clocks>;
+ 		#dma-cells = <1>;
+ 		dma-channels = <15>;
++		iommus = <&ipmmu_ds 15>,
++			 <&ipmmu_ds 16>,
++			 <&ipmmu_ds 17>,
++			 <&ipmmu_ds 18>,
++			 <&ipmmu_ds 19>,
++			 <&ipmmu_ds 20>,
++			 <&ipmmu_ds 21>,
++			 <&ipmmu_ds 22>,
++			 <&ipmmu_ds 23>,
++			 <&ipmmu_ds 24>,
++			 <&ipmmu_ds 25>,
++			 <&ipmmu_ds 26>,
++			 <&ipmmu_ds 27>,
++			 <&ipmmu_ds 28>,
++			 <&ipmmu_ds 29>;
+ 	};
+ 
+ 	audma0: dma-controller@ec700000 {
 -- 
-Catalin
+2.7.1
+
