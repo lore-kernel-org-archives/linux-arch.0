@@ -1,142 +1,102 @@
-From: Laurent Pinchart <laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org>
-Subject: Re: [PATCH v3 6/8] dmaengine: rcar-dmac: add iommu support for slave
-	transfers
-Date: Thu, 11 Feb 2016 02:33:30 +0200
-Message-ID: <7836168.xWoq7RJUyE@avalon>
-References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-	<1455065878-11906-7-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+From: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Subject: Re: [PATCH v3 7/8] ARM: dts: r8a7790: add iommus to dmac0 and dmac1
+Date: Thu, 11 Feb 2016 02:41:28 +0200
+Message-ID: <1704813.5Ff44u3Kaz@avalon>
+References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se> <1455065878-11906-8-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="iso-8859-1"
-Content-Transfer-Encoding: quoted-printable
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <1455065878-11906-7-git-send-email-niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Niklas =?ISO-8859-1?Q?S=F6derlund?= <niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, geert+renesas-gXvu3+zWzMSzQB+pC5nmwQ@public.gmane.org, vinod.koul-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-renesas-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from galahad.ideasonboard.com ([185.26.127.97]:51471 "EHLO
+	galahad.ideasonboard.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750749AbcBKAlE convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Feb 2016 19:41:04 -0500
+In-Reply-To: <1455065878-11906-8-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Niklas =?ISO-8859-1?Q?S=F6derlund?= <niklas.soderlund+renesas@ragnatech.se>
+Cc: linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, robin.murphy@arm.com, vinod.koul@intel.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org
 
 Hi Niklas,
 
 Thank you for the patch.
 
-On Wednesday 10 February 2016 01:57:56 Niklas S=F6derlund wrote:
-> Enable slave transfers to devices behind IPMMU:s by mapping the slave
-> addresses using the dma-mapping API.
-> =
+On Wednesday 10 February 2016 01:57:57 Niklas S=F6derlund wrote:
 
-> Signed-off-by: Niklas S=F6derlund <niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
+No commit message ? I'd at least mention that as a side effect of this =
+patch=20
+channel 0 and 15 are disabled, reducing the effective number of channel=
+s to 14=20
+per DMAC.
+
+> Signed-off-by: Niklas S=F6derlund <niklas.soderlund+renesas@ragnatech=
+=2Ese>
+
+Acked-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+
+Same comment and ack for patch 8/8.
+
+Note that we should still try to find a way to selectively enable the I=
+OMMU in=20
+a per-device fashion, as system integrators might want it to be disable=
+d for=20
+some devices. There's no urgency though.
+
 > ---
->  drivers/dma/sh/rcar-dmac.c | 57 +++++++++++++++++++++++++++++++++++++++-=
----
->  1 file changed, 52 insertions(+), 5 deletions(-)
-> =
+>  arch/arm/boot/dts/r8a7790.dtsi | 30 ++++++++++++++++++++++++++++++
+>  1 file changed, 30 insertions(+)
+>=20
+> diff --git a/arch/arm/boot/dts/r8a7790.dtsi b/arch/arm/boot/dts/r8a77=
+90.dtsi
+> index 7dfd393..048bbf8 100644
+> --- a/arch/arm/boot/dts/r8a7790.dtsi
+> +++ b/arch/arm/boot/dts/r8a7790.dtsi
+> @@ -294,6 +294,21 @@
+>  		power-domains =3D <&cpg_clocks>;
+>  		#dma-cells =3D <1>;
+>  		dma-channels =3D <15>;
+> +		iommus =3D <&ipmmu_ds 0>,
+> +			 <&ipmmu_ds 1>,
+> +			 <&ipmmu_ds 2>,
+> +			 <&ipmmu_ds 3>,
+> +			 <&ipmmu_ds 4>,
+> +			 <&ipmmu_ds 5>,
+> +			 <&ipmmu_ds 6>,
+> +			 <&ipmmu_ds 7>,
+> +			 <&ipmmu_ds 8>,
+> +			 <&ipmmu_ds 9>,
+> +			 <&ipmmu_ds 10>,
+> +			 <&ipmmu_ds 11>,
+> +			 <&ipmmu_ds 12>,
+> +			 <&ipmmu_ds 13>,
+> +			 <&ipmmu_ds 14>;
+>  	};
+>=20
+>  	dmac1: dma-controller@e6720000 {
+> @@ -325,6 +340,21 @@
+>  		power-domains =3D <&cpg_clocks>;
+>  		#dma-cells =3D <1>;
+>  		dma-channels =3D <15>;
+> +		iommus =3D <&ipmmu_ds 15>,
+> +			 <&ipmmu_ds 16>,
+> +			 <&ipmmu_ds 17>,
+> +			 <&ipmmu_ds 18>,
+> +			 <&ipmmu_ds 19>,
+> +			 <&ipmmu_ds 20>,
+> +			 <&ipmmu_ds 21>,
+> +			 <&ipmmu_ds 22>,
+> +			 <&ipmmu_ds 23>,
+> +			 <&ipmmu_ds 24>,
+> +			 <&ipmmu_ds 25>,
+> +			 <&ipmmu_ds 26>,
+> +			 <&ipmmu_ds 27>,
+> +			 <&ipmmu_ds 28>,
+> +			 <&ipmmu_ds 29>;
+>  	};
+>=20
+>  	audma0: dma-controller@ec700000 {
 
-> diff --git a/drivers/dma/sh/rcar-dmac.c b/drivers/dma/sh/rcar-dmac.c
-> index 743873c..268407c 100644
-> --- a/drivers/dma/sh/rcar-dmac.c
-> +++ b/drivers/dma/sh/rcar-dmac.c
-> @@ -1106,21 +1106,68 @@ rcar_dmac_prep_dma_cyclic(struct dma_chan *chan,
-> dma_addr_t buf_addr, return desc;
->  }
-> =
-
-> +static int rcar_dmac_set_slave_addr(struct dma_chan *chan,
-> +				     struct rcar_dmac_chan_slave *slave,
-> +				     phys_addr_t addr, size_t size)
-> +{
-> +	struct dma_attrs attrs;
-> +	enum dma_data_direction dir;
-> +
-> +	init_dma_attrs(&attrs);
-> +	dma_set_attr(DMA_ATTR_NO_KERNEL_MAPPING, &attrs);
-> +	dma_set_attr(DMA_ATTR_SKIP_CPU_SYNC, &attrs);
-> +
-> +	/*
-> +	 * We can't know the direction at this time, see documentation for
-> +	 * 'direction' in struct dma_slave_config.
-> +	 */
-> +	dir =3D DMA_BIDIRECTIONAL;
-> +
-> +	if (slave->xfer_size) {
-> +		dma_unmap_resource(chan->device->dev, slave->slave_addr,
-> +				slave->xfer_size, dir, &attrs);
-
-Nitpicking, you can align slave with chan on the previous line.
-
-> +		slave->slave_addr =3D 0;
-> +		slave->xfer_size =3D 0;
-> +	}
-> +
-> +	if (size) {
-> +		slave->slave_addr =3D dma_map_resource(chan->device->dev, addr,
-> +				size, dir, &attrs);
-> +
-> +		if (dma_mapping_error(chan->device->dev, slave->slave_addr)) {
-> +			struct rcar_dmac_chan *rchan =3D to_rcar_dmac_chan(chan);
-> +
-> +			dev_err(chan->device->dev,
-> +					"chan%u: failed to map %zx@%pap",
-> +					rchan->index, size, &addr);
-
-Indentation looks weird to me.
-
-> +			return -EIO;
-> +		}
-> +
-> +		slave->xfer_size =3D size;
-> +	}
-> +
-> +	return 0;
-> +}
-> +
->  static int rcar_dmac_device_config(struct dma_chan *chan,
->  				   struct dma_slave_config *cfg)
->  {
->  	struct rcar_dmac_chan *rchan =3D to_rcar_dmac_chan(chan);
-> +	int ret;
-> =
-
->  	/*
->  	 * We could lock this, but you shouldn't be configuring the
->  	 * channel, while using it...
->  	 */
-> -	rchan->src.slave_addr =3D cfg->src_addr;
-> -	rchan->dst.slave_addr =3D cfg->dst_addr;
-> -	rchan->src.xfer_size =3D cfg->src_addr_width;
-> -	rchan->dst.xfer_size =3D cfg->dst_addr_width;
-> =
-
-> -	return 0;
-> +	ret =3D rcar_dmac_set_slave_addr(chan, &rchan->src, cfg->src_addr,
-> +			cfg->src_addr_width);
-> +	if (ret)
-> +		return ret;
-> +
-> +	ret =3D rcar_dmac_set_slave_addr(chan, &rchan->dst, cfg->dst_addr,
-> +			cfg->dst_addr_width);
-
-You could align cfg with chan on the previous line (twice).
-
-With this fixed and the attributes removed as explained by Robin,
-
-Reviewed-by: Laurent Pinchart <laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org>
-
-> +	return ret;
->  }
-> =
-
->  static int rcar_dmac_chan_terminate_all(struct dma_chan *chan)
-
--- =
-
+--=20
 Regards,
 
 Laurent Pinchart
