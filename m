@@ -1,67 +1,90 @@
-From: Nicolas Pitre <nico@fluxnic.net>
-Subject: Re: [PATCH v2 02/13] EXPORT_SYMBOL() for asm
-Date: Wed, 10 Feb 2016 17:15:07 -0500 (EST)
-Message-ID: <alpine.LFD.2.20.1602101659470.17825@knanqh.ubzr>
-References: <20160203211953.GT17997@ZenIV.linux.org.uk>
- <1454534445-16759-2-git-send-email-viro@ZenIV.linux.org.uk>
+From: Laurent Pinchart <laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org>
+Subject: Re: [PATCH v3 1/8] iommu: Add MMIO mapping type
+Date: Thu, 11 Feb 2016 02:02:11 +0200
+Message-ID: <13740597.5lZXKsEG19@avalon>
+References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+	<1455065878-11906-2-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Mime-Version: 1.0
-Content-Type: text/plain; CHARSET=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relais.videotron.ca ([24.201.245.36]:24910 "EHLO
-	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750816AbcBJWPJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Feb 2016 17:15:09 -0500
-In-reply-to: <1454534445-16759-2-git-send-email-viro@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <1455065878-11906-2-git-send-email-niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Niklas =?ISO-8859-1?Q?S=F6derlund?= <niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, geert+renesas-gXvu3+zWzMSzQB+pC5nmwQ@public.gmane.org, vinod.koul-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-renesas-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 3 Feb 2016, Al Viro wrote:
+Hi Niklas,
 
-> From: Al Viro <viro@zeniv.linux.org.uk>
-> 
-> Add asm-usable variants of EXPORT_SYMBOL/EXPORT_SYMBOL_GPL.  This
-> commit just adds the default implementation; most of the architectures
-> can simply add export.h to asm/Kbuild and start using <asm/export.h>
-> from assembler.  The rest needs to have their <asm/export.h> define
-> everal macros and then explicitly include <asm-generic/export.h>
-[...]
+Thank you for the patch.
 
-FYI, here's the needed changes to make it work with my autoksyms series. 
-This is the asm/export.h version of http://lkml.org/lkml/2016/2/10/5.
+On Wednesday 10 February 2016 01:57:51 Niklas S=F6derlund wrote:
+> From: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
+> =
 
-diff --git a/include/asm-generic/export.h b/include/asm-generic/export.h
-index 03b51ac4cc..b450da9d68 100644
---- a/include/asm-generic/export.h
-+++ b/include/asm-generic/export.h
-@@ -59,8 +59,24 @@ KSYM(__kcrctab_\name):
- #endif
- .endm
- #undef __put
--#define EXPORT_SYMBOL(name) __EXPORT_SYMBOL name,KSYM_FUNC(KSYM(name))
--#define EXPORT_SYMBOL_GPL(name) __EXPORT_SYMBOL name,KSYM_FUNC(KSYM(name)),_gpl
--#define EXPORT_DATA_SYMBOL(name) __EXPORT_SYMBOL name,KSYM(name)
--#define EXPORT_DATA_SYMBOL_GPL(name) __EXPORT_SYMBOL name,KSYM(name),_gpl
-+
-+#ifdef CONFIG_TRIM_UNUSED_KSYMS
-+#include <linux/kconfig.h>
-+#include <generated/autoksyms.h>
-+#define ___EXPORT_SYMBOL(name, val, sec) \
-+	__cond_export_sym(name, val, sec, config_enabled(__KSYM_##name))
-+#define __cond_export_sym(name, val, sec, conf) \
-+	___cond_export_sym(name, val, sec, conf)
-+#define ___cond_export_sym(name, val, sec, enabled) \
-+	__cond_export_sym_##enabled(name, val, sec)
-+#define __cond_export_sym_1(name, val, sec) __EXPORT_SYMBOL name, val, sec
-+#define __cond_export_sym_0(name, val, sec) /* nothing */
-+#else
-+#define ___EXPORT_SYMBOL(name, val, sec) __EXPORT_SYMBOL name, val, sec
-+#endif
-+
-+#define EXPORT_SYMBOL(name) ___EXPORT_SYMBOL(name,KSYM_FUNC(KSYM(name)),())
-+#define EXPORT_SYMBOL_GPL(name) ___EXPORT_SYMBOL(name,KSYM_FUNC(KSYM(name)),_gpl)
-+#define EXPORT_DATA_SYMBOL(name) ___EXPORT_SYMBOL(name,KSYM(name),())
-+#define EXPORT_DATA_SYMBOL_GPL(name) ___EXPORT_SYMBOL(name,KSYM(name),_gpl)
- #endif
+> On some platforms, MMIO regions might need slightly different treatment
+> compared to mapping regular memory; add the notion of MMIO mappings to
+> the IOMMU API's memory type flags, so that callers can let the IOMMU
+> drivers know to do the right thing.
+> =
+
+> Signed-off-by: Robin Murphy <robin.murphy-5wv7dgnIgG8@public.gmane.org>
+> Acked-by: Laurent Pinchart <laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org>
+
+Answering the question from the cover letter, yes, it's totally fine to pic=
+k =
+
+the ack, that's actually expected.
+
+> ---
+>  drivers/iommu/io-pgtable-arm.c | 4 +++-
+>  include/linux/iommu.h          | 1 +
+
+You might be asked to split this patch in two.
+
+>  2 files changed, 4 insertions(+), 1 deletion(-)
+> =
+
+> diff --git a/drivers/iommu/io-pgtable-arm.c b/drivers/iommu/io-pgtable-ar=
+m.c
+> index 381ca5a..3ff4f87 100644
+> --- a/drivers/iommu/io-pgtable-arm.c
+> +++ b/drivers/iommu/io-pgtable-arm.c
+> @@ -364,7 +364,9 @@ static arm_lpae_iopte arm_lpae_prot_to_pte(struct
+> arm_lpae_io_pgtable *data, pte |=3D ARM_LPAE_PTE_HAP_READ;
+>  		if (prot & IOMMU_WRITE)
+>  			pte |=3D ARM_LPAE_PTE_HAP_WRITE;
+> -		if (prot & IOMMU_CACHE)
+> +		if (prot & IOMMU_MMIO)
+> +			pte |=3D ARM_LPAE_PTE_MEMATTR_DEV;
+> +		else if (prot & IOMMU_CACHE)
+>  			pte |=3D ARM_LPAE_PTE_MEMATTR_OIWB;
+>  		else
+>  			pte |=3D ARM_LPAE_PTE_MEMATTR_NC;
+> diff --git a/include/linux/iommu.h b/include/linux/iommu.h
+> index a5c539f..34b6432 100644
+> --- a/include/linux/iommu.h
+> +++ b/include/linux/iommu.h
+> @@ -30,6 +30,7 @@
+>  #define IOMMU_WRITE	(1 << 1)
+>  #define IOMMU_CACHE	(1 << 2) /* DMA cache coherency */
+>  #define IOMMU_NOEXEC	(1 << 3)
+> +#define IOMMU_MMIO	(1 << 4) /* e.g. things like MSI doorbells */
+> =
+
+>  struct iommu_ops;
+>  struct iommu_group;
+
+-- =
+
+Regards,
+
+Laurent Pinchart
