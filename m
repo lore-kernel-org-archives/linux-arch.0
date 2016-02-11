@@ -1,39 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lf0-f51.google.com ([209.85.215.51]:35878 "EHLO
-	mail-lf0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757648AbcBJMLH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Feb 2016 07:11:07 -0500
-Received: by mail-lf0-f51.google.com with SMTP id 78so10307737lfy.3
-        for <linux-arch@vger.kernel.org>; Wed, 10 Feb 2016 04:11:06 -0800 (PST)
-Subject: Re: [PATCH v3 2/8] dma-mapping: add {map,unmap}_resource to
- dma_map_ops
-References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <1455065878-11906-3-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-From: Sergei Shtylyov <sergei.shtylyov@cogentembedded.com>
-Message-ID: <56BB28D7.1090608@cogentembedded.com>
-Date: Wed, 10 Feb 2016 15:11:03 +0300
+Received: from galahad.ideasonboard.com ([185.26.127.97]:51413 "EHLO
+	galahad.ideasonboard.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750728AbcBKABs convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Feb 2016 19:01:48 -0500
+From: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+Subject: Re: [PATCH v3 1/8] iommu: Add MMIO mapping type
+Date: Thu, 11 Feb 2016 02:02:11 +0200
+Message-ID: <13740597.5lZXKsEG19@avalon>
+In-Reply-To: <1455065878-11906-2-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se> <1455065878-11906-2-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 MIME-Version: 1.0
-In-Reply-To: <1455065878-11906-3-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-Content-Type: text/plain; charset=utf-8; format=flowed
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset="iso-8859-1"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: =?UTF-8?Q?Niklas_S=c3=b6derlund?= <niklas.soderlund+renesas@ragnatech.se>, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
-Cc: robin.murphy@arm.com, vinod.koul@intel.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org
-Message-ID: <20160210121103.O9zJFGzhzbfMS846Sk3vaXlQxgm3g6-Gk9_hAwVSN7I@z>
+To: Niklas =?ISO-8859-1?Q?S=F6derlund?= <niklas.soderlund+renesas@ragnatech.se>
+Cc: linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, robin.murphy@arm.com, vinod.koul@intel.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org
+Message-ID: <20160211000211.Bxh-2fCLSxLzwuW9CWQOZuyzw-LLkSst6LdNRxXspxw@z>
 
-Hello.
+Hi Niklas,
 
-On 2/10/2016 3:57 AM, Niklas Söderlund wrote:
+Thank you for the patch.
 
-> Add methods to handle mapping of device resources from a physical
-> address. This is needed for example to map be able to map MMIO FIFO
-                                          ^^^ not needed
+On Wednesday 10 February 2016 01:57:51 Niklas S�derlund wrote:
+> From: Robin Murphy <robin.murphy@arm.com>
+> 
+> On some platforms, MMIO regions might need slightly different treatment
+> compared to mapping regular memory; add the notion of MMIO mappings to
+> the IOMMU API's memory type flags, so that callers can let the IOMMU
+> drivers know to do the right thing.
+> 
+> Signed-off-by: Robin Murphy <robin.murphy@arm.com>
+> Acked-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
 
-> registers to a IOMMU.
->
-> Signed-off-by: Niklas Söderlund <niklas.soderlund+renesas@ragnatech.se>
-[...]
+Answering the question from the cover letter, yes, it's totally fine to pick 
+the ack, that's actually expected.
 
-MBR, Sergei
+> ---
+>  drivers/iommu/io-pgtable-arm.c | 4 +++-
+>  include/linux/iommu.h          | 1 +
+
+You might be asked to split this patch in two.
+
+>  2 files changed, 4 insertions(+), 1 deletion(-)
+> 
+> diff --git a/drivers/iommu/io-pgtable-arm.c b/drivers/iommu/io-pgtable-arm.c
+> index 381ca5a..3ff4f87 100644
+> --- a/drivers/iommu/io-pgtable-arm.c
+> +++ b/drivers/iommu/io-pgtable-arm.c
+> @@ -364,7 +364,9 @@ static arm_lpae_iopte arm_lpae_prot_to_pte(struct
+> arm_lpae_io_pgtable *data, pte |= ARM_LPAE_PTE_HAP_READ;
+>  		if (prot & IOMMU_WRITE)
+>  			pte |= ARM_LPAE_PTE_HAP_WRITE;
+> -		if (prot & IOMMU_CACHE)
+> +		if (prot & IOMMU_MMIO)
+> +			pte |= ARM_LPAE_PTE_MEMATTR_DEV;
+> +		else if (prot & IOMMU_CACHE)
+>  			pte |= ARM_LPAE_PTE_MEMATTR_OIWB;
+>  		else
+>  			pte |= ARM_LPAE_PTE_MEMATTR_NC;
+> diff --git a/include/linux/iommu.h b/include/linux/iommu.h
+> index a5c539f..34b6432 100644
+> --- a/include/linux/iommu.h
+> +++ b/include/linux/iommu.h
+> @@ -30,6 +30,7 @@
+>  #define IOMMU_WRITE	(1 << 1)
+>  #define IOMMU_CACHE	(1 << 2) /* DMA cache coherency */
+>  #define IOMMU_NOEXEC	(1 << 3)
+> +#define IOMMU_MMIO	(1 << 4) /* e.g. things like MSI doorbells */
+> 
+>  struct iommu_ops;
+>  struct iommu_group;
+
+-- 
+Regards,
+
+Laurent Pinchart
 
