@@ -1,13 +1,13 @@
 From: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-Subject: Re: [PATCH v3 4/8] arm: dma-mapping: add {map,unmap}_resource for iommu ops
-Date: Thu, 11 Feb 2016 02:12:13 +0200
-Message-ID: <3988595.8dtuaVHoSu@avalon>
-References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se> <1455065878-11906-5-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+Subject: Re: [PATCH v3 5/8] dmaengine: rcar-dmac: group slave configuration
+Date: Thu, 11 Feb 2016 02:14:35 +0200
+Message-ID: <2394364.dCGqmLNa8V@avalon>
+References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se> <1455065878-11906-6-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=iso-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-renesas-soc-owner@vger.kernel.org>
-In-Reply-To: <1455065878-11906-5-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+In-Reply-To: <1455065878-11906-6-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Sender: linux-renesas-soc-owner@vger.kernel.org
 To: Niklas =?ISO-8859-1?Q?S=F6derlund?= <niklas.soderlund+renesas@ragnatech.se>
 Cc: linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, robin.murphy@arm.com, vinod.koul@intel.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org
@@ -17,11 +17,11 @@ Hi Niklas,
 
 Thank you for the patch.
 
-On Wednesday 10 February 2016 01:57:54 Niklas S=F6derlund wrote:
-> Add methods to map/unmap device resources addresses for dma_map_ops t=
-hat
-> are IOMMU aware. This is needed to map a device MMIO register from a
-> physical address.
+On Wednesday 10 February 2016 01:57:55 Niklas S=F6derlund wrote:
+> Group slave address and transfer size in own structs for source and
+> destination. This is in preparation for hooking up the dma-mapping AP=
+I
+> to the slave addresses.
 >=20
 > Signed-off-by: Niklas S=F6derlund <niklas.soderlund+renesas@ragnatech=
 =2Ese>
@@ -29,98 +29,111 @@ hat
 Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
 
 > ---
->  arch/arm/mm/dma-mapping.c | 63 +++++++++++++++++++++++++++++++++++++=
-+++++++
->  1 file changed, 63 insertions(+)
+>  drivers/dma/sh/rcar-dmac.c | 37 +++++++++++++++++++++---------------=
+-
+>  1 file changed, 21 insertions(+), 16 deletions(-)
 >=20
-> diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-> index 0eca381..ae2b175 100644
-> --- a/arch/arm/mm/dma-mapping.c
-> +++ b/arch/arm/mm/dma-mapping.c
-> @@ -1814,6 +1814,63 @@ static void arm_iommu_unmap_page(struct device=
- *dev,
-> dma_addr_t handle, __free_iova(mapping, iova, len);
+> diff --git a/drivers/dma/sh/rcar-dmac.c b/drivers/dma/sh/rcar-dmac.c
+> index 7820d07..743873c 100644
+> --- a/drivers/dma/sh/rcar-dmac.c
+> +++ b/drivers/dma/sh/rcar-dmac.c
+> @@ -118,14 +118,21 @@ struct rcar_dmac_desc_page {
+>  	sizeof(struct rcar_dmac_xfer_chunk))
+>=20
+>  /*
+> + * @slave_addr: slave memory address
+> + * @xfer_size: size (in bytes) of hardware transfers
+> + */
+> +struct rcar_dmac_chan_slave {
+> +	dma_addr_t slave_addr;
+> +	unsigned int xfer_size;
+> +};
+> +
+> +/*
+>   * struct rcar_dmac_chan - R-Car Gen2 DMA Controller Channel
+>   * @chan: base DMA channel object
+>   * @iomem: channel I/O memory base
+>   * @index: index of this channel in the controller
+> - * @src_xfer_size: size (in bytes) of hardware transfers on the sour=
+ce side
+> - * @dst_xfer_size: size (in bytes) of hardware transfers on the
+> destination side - * @src_slave_addr: slave source memory address
+> - * @dst_slave_addr: slave destination memory address
+> + * @src: slave memory address and size on the source side
+> + * @dst: slave memory address and size on the destination side
+>   * @mid_rid: hardware MID/RID for the DMA client using this channel
+>   * @lock: protects the channel CHCR register and the desc members
+>   * @desc.free: list of free descriptors
+> @@ -142,10 +149,8 @@ struct rcar_dmac_chan {
+>  	void __iomem *iomem;
+>  	unsigned int index;
+>=20
+> -	unsigned int src_xfer_size;
+> -	unsigned int dst_xfer_size;
+> -	dma_addr_t src_slave_addr;
+> -	dma_addr_t dst_slave_addr;
+> +	struct rcar_dmac_chan_slave src;
+> +	struct rcar_dmac_chan_slave dst;
+>  	int mid_rid;
+>=20
+>  	spinlock_t lock;
+> @@ -793,13 +798,13 @@ static void rcar_dmac_chan_configure_desc(struc=
+t
+> rcar_dmac_chan *chan, case DMA_DEV_TO_MEM:
+>  		chcr =3D RCAR_DMACHCR_DM_INC | RCAR_DMACHCR_SM_FIXED
+>=20
+>  		     | RCAR_DMACHCR_RS_DMARS;
+>=20
+> -		xfer_size =3D chan->src_xfer_size;
+> +		xfer_size =3D chan->src.xfer_size;
+>  		break;
+>=20
+>  	case DMA_MEM_TO_DEV:
+>  		chcr =3D RCAR_DMACHCR_DM_FIXED | RCAR_DMACHCR_SM_INC
+>=20
+>  		     | RCAR_DMACHCR_RS_DMARS;
+>=20
+> -		xfer_size =3D chan->dst_xfer_size;
+> +		xfer_size =3D chan->dst.xfer_size;
+>  		break;
+>=20
+>  	case DMA_MEM_TO_MEM:
+> @@ -1038,7 +1043,7 @@ rcar_dmac_prep_slave_sg(struct dma_chan *chan, =
+struct
+> scatterlist *sgl, }
+>=20
+>  	dev_addr =3D dir =3D=3D DMA_DEV_TO_MEM
+> -		 ? rchan->src_slave_addr : rchan->dst_slave_addr;
+> +		 ? rchan->src.slave_addr : rchan->dst.slave_addr;
+>  	return rcar_dmac_chan_prep_sg(rchan, sgl, sg_len, dev_addr,
+>  				      dir, flags, false);
 >  }
+> @@ -1093,7 +1098,7 @@ rcar_dmac_prep_dma_cyclic(struct dma_chan *chan=
+,
+> dma_addr_t buf_addr, }
 >=20
-> +/**
-> + * arm_iommu_map_resource - map a device resource for DMA
-> + * @dev: valid struct device pointer
-> + * @phys_addr: physical address of resource
-> + * @size: size of resource to map
-> + * @dir: DMA transfer direction
-> + */
-> +static dma_addr_t arm_iommu_map_resource(struct device *dev,
-> +		phys_addr_t phys_addr, size_t size,
-> +		enum dma_data_direction dir, struct dma_attrs *attrs)
-> +{
-> +	struct dma_iommu_mapping *mapping =3D to_dma_iommu_mapping(dev);
-> +	dma_addr_t dma_addr;
-> +	int ret, prot;
-> +	phys_addr_t addr =3D phys_addr & PAGE_MASK;
-> +	int offset =3D phys_addr & ~PAGE_MASK;
-> +	int len =3D PAGE_ALIGN(size + offset);
-> +
-> +	dma_addr =3D __alloc_iova(mapping, size);
-> +	if (dma_addr =3D=3D DMA_ERROR_CODE)
-> +		return dma_addr;
-> +
-> +	prot =3D __dma_direction_to_prot(dir) | IOMMU_MMIO;
-> +
-> +	ret =3D iommu_map(mapping->domain, dma_addr, addr, len, prot);
-> +	if (ret < 0)
-> +		goto fail;
-> +
-> +	return dma_addr + offset;
-> +fail:
-> +	__free_iova(mapping, dma_addr, size);
-> +	return DMA_ERROR_CODE;
-> +}
-> +
-> +/**
-> + * arm_iommu_unmap_resource - unmap a device DMA resource
-> + * @dev: valid struct device pointer
-> + * @dma_handle: DMA address to resource
-> + * @size: size of resource to map
-> + * @dir: DMA transfer direction
-> + */
-> +static void arm_iommu_unmap_resource(struct device *dev, dma_addr_t
-> dma_handle, +		size_t size, enum dma_data_direction dir,
-> +		struct dma_attrs *attrs)
-> +{
-> +	struct dma_iommu_mapping *mapping =3D to_dma_iommu_mapping(dev);
-> +	dma_addr_t iova =3D dma_handle & PAGE_MASK;
-> +	int offset =3D dma_handle & ~PAGE_MASK;
-> +	int len =3D PAGE_ALIGN(size + offset);
-> +
-> +	if (!iova)
-> +		return;
-> +
-> +	iommu_unmap(mapping->domain, iova, len);
-> +	__free_iova(mapping, iova, len);
-> +}
-> +
->  static void arm_iommu_sync_single_for_cpu(struct device *dev,
->  		dma_addr_t handle, size_t size, enum dma_data_direction dir)
->  {
-> @@ -1858,6 +1915,9 @@ struct dma_map_ops iommu_ops =3D {
->  	.sync_sg_for_cpu	=3D arm_iommu_sync_sg_for_cpu,
->  	.sync_sg_for_device	=3D arm_iommu_sync_sg_for_device,
+>  	dev_addr =3D dir =3D=3D DMA_DEV_TO_MEM
+> -		 ? rchan->src_slave_addr : rchan->dst_slave_addr;
+> +		 ? rchan->src.slave_addr : rchan->dst.slave_addr;
+>  	desc =3D rcar_dmac_chan_prep_sg(rchan, sgl, sg_len, dev_addr,
+>  				      dir, flags, true);
 >=20
-> +	.map_resource		=3D arm_iommu_map_resource,
-> +	.unmap_resource		=3D arm_iommu_unmap_resource,
-> +
->  	.set_dma_mask		=3D arm_dma_set_mask,
->  };
+> @@ -1110,10 +1115,10 @@ static int rcar_dmac_device_config(struct dma=
+_chan
+> *chan, * We could lock this, but you shouldn't be configuring the
+>  	 * channel, while using it...
+>  	 */
+> -	rchan->src_slave_addr =3D cfg->src_addr;
+> -	rchan->dst_slave_addr =3D cfg->dst_addr;
+> -	rchan->src_xfer_size =3D cfg->src_addr_width;
+> -	rchan->dst_xfer_size =3D cfg->dst_addr_width;
+> +	rchan->src.slave_addr =3D cfg->src_addr;
+> +	rchan->dst.slave_addr =3D cfg->dst_addr;
+> +	rchan->src.xfer_size =3D cfg->src_addr_width;
+> +	rchan->dst.xfer_size =3D cfg->dst_addr_width;
 >=20
-> @@ -1873,6 +1933,9 @@ struct dma_map_ops iommu_coherent_ops =3D {
->  	.map_sg		=3D arm_coherent_iommu_map_sg,
->  	.unmap_sg	=3D arm_coherent_iommu_unmap_sg,
->=20
-> +	.map_resource	=3D arm_iommu_map_resource,
-> +	.unmap_resource	=3D arm_iommu_unmap_resource,
-> +
->  	.set_dma_mask	=3D arm_dma_set_mask,
->  };
+>  	return 0;
+>  }
 
 --=20
 Regards,
