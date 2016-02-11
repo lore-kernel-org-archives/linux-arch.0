@@ -1,78 +1,27 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH 1/2] mm,thp: refactor generic deposit/withdraw routines
- for wider usage
-Date: Thu, 11 Feb 2016 17:59:34 +0530
-Message-ID: <56BC7EAE.7070206@synopsys.com>
-References: <1455182907-15445-1-git-send-email-vgupta@synopsys.com>
- <1455182907-15445-2-git-send-email-vgupta@synopsys.com>
- <20160211112223.0acc8237@mschwide> <56BC682D.6070808@synopsys.com>
- <20160211122023.6d719513@mschwide>
+From: Rob Herring <robh+dt@kernel.org>
+Subject: Re: [PATCH v10 3/8] dt, numa: adding numa dt binding implementation.
+Date: Thu, 11 Feb 2016 08:50:41 -0600
+Message-ID: <CAL_JsqK5HV9yzBE+ANnTw26eVR7Dy+B8OkwQ-7WF8KDa86Fd9g@mail.gmail.com>
+References: <1454407763-1017-1-git-send-email-gkulkarni@caviumnetworks.com> <1454407763-1017-4-git-send-email-gkulkarni@caviumnetworks.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="windows-1252"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20160211122023.6d719513@mschwide>
-Sender: owner-linux-mm@kvack.org
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "David S. Miller" <davem@davemloft.net>, Alex Thorlton <athorlton@sgi.com>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Andrea Arcangeli <aarcange@redhat.com>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-sh-owner@vger.kernel.org>
+In-Reply-To: <1454407763-1017-4-git-send-email-gkulkarni@caviumnetworks.com>
+Sender: linux-sh-owner@vger.kernel.org
+To: Ganapatrao Kulkarni <gkulkarni@caviumnetworks.com>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree@vger.kernel.org" <devicetree@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-pci@vger.kernel.org" <linux-pci@vger.kernel.org>, linux-ia64@vger.kernel.org, linux-metag <linux-metag@vger.kernel.org>, linuxppc-dev <linuxppc-dev@lists.ozlabs.org>, linux-s390@vger.kernel.org, SH-Linux <linux-sh@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Catalin Marinas <catalin.marinas@arm.com>, Mark Rutland <mark.rutland@arm.com>, Grant Likely <grant.likely@linaro.org>, Leif Lindholm <leif.lindholm@linaro.org>, rfranz@cavium.com, Ard Biesheuvel <ard.biesheuvel@linaro.org>, Mark Salter <msalter@redhat.com>, Steve Capper <steve.capper@linaro.org>, Hanjun Guo <hanjun.guo@linaro.org>, Al
 List-Id: linux-arch.vger.kernel.org
 
-On Thursday 11 February 2016 04:50 PM, Martin Schwidefsky wrote:
-> On Thu, 11 Feb 2016 16:23:33 +0530
-> Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
-> 
->> On Thursday 11 February 2016 03:52 PM, Martin Schwidefsky wrote:
->>> On Thu, 11 Feb 2016 14:58:26 +0530
->>> Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
->>>
->>>> Generic pgtable_trans_huge_deposit()/pgtable_trans_huge_withdraw()
->>>> assume pgtable_t to be struct page * which is not true for all arches.
->>>> Thus arc, s390, sparch end up with their own copies despite no special
->>>> hardware requirements (unlike powerpc).
->>>
->>> s390 does have a special hardware requirement. pgtable_t is an address
->>> for a 2K block of memory. It is *not* equivalent to a struct page *
->>> which refers to a 4K block of memory. That has been the whole point
->>> to introduce pgtable_t.
->>
->> Actually my reference to hardware requirement was more like powerpc style save a
->> hash value some where etc.
->>
->> Now pgtable_t need not be struct page * even if the actual sizes are same - e.g.
->> in ARC port I kept pgtable_t as pte_t * simply to avoid a few page_address() calls
->> in mm code (you could argue that is was a micro-optimization, anyways..)
->>
->> So given I know nothing about s390 MMU internals, I still think you can switch to
->> the update generic version despite 2K vs. 4K. Agree ?
-> 
-> No, we can not. For s390 a page table is aligned on a 2K boundary and is
-> only half the size of a page (except for KVM but that is another story).
-> For s390 a pgtable_t is a pointer to the memory location with the 256 ptes
-> and not a struct page *.
-> 
-> The cast "struct page *new = (struct page*)pgtable;" in your first patch
-> is already broken, "new" points to the memory of the page table and
-> the list_head operations will clobber that memory.
+On Tue, Feb 2, 2016 at 4:09 AM, Ganapatrao Kulkarni
+<gkulkarni@caviumnetworks.com> wrote:
+> dt node parsing for numa topology is done using device property
+> numa-node-id and device node distance-map.
 
-The current s390 code does something similar using a different struct cast. It is
-still writing in pgtable_t - although at a different location.
+How is it that powerpc doesn't need flat DT parsing for NUMA? Both
+arches are memblock based and the binding is similar IIRC, so you
+should be able to find a way to do this with the unflattened tree.
+Ideally, there should be some common code shared as well.
 
-> You try to fix it up
-> with the memset to zero in pgtable_trans_huge_withdraw but that does not
-> correct the pte entries for s390 as an invalid page-table entry is *not*
-> all zeros.
+Do you have a git tree with this series?
 
-Right so that is the problem - just trying to understand.
-
-> In short, please let s390 keep its own copy of deposit/withdraw.
-
-You got it - I'm out of the way :-)
-
-Thx,
--Vineet
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Rob
