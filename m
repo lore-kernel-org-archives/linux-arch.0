@@ -1,112 +1,55 @@
-From: Robin Murphy <robin.murphy@arm.com>
-Subject: Re: [PATCH v3 1/8] iommu: Add MMIO mapping type
-Date: Thu, 11 Feb 2016 15:57:26 +0000
-Message-ID: <56BCAF66.8010206@arm.com>
-References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <1455065878-11906-2-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <13740597.5lZXKsEG19@avalon>
+From: Ganapatrao Kulkarni <gpkulkarni-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH v10 3/8] dt, numa: adding numa dt binding implementation.
+Date: Thu, 11 Feb 2016 21:28:01 +0530
+Message-ID: <CAFpQJXU+fon8DY--qhyZV=JDv9omqs=c9eSX34g1J2w2uudNKA@mail.gmail.com>
+References: <1454407763-1017-1-git-send-email-gkulkarni@caviumnetworks.com>
+	<1454407763-1017-4-git-send-email-gkulkarni@caviumnetworks.com>
+	<CAL_JsqK5HV9yzBE+ANnTw26eVR7Dy+B8OkwQ-7WF8KDa86Fd9g@mail.gmail.com>
+	<20160211153255.GR24726@rric.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from foss.arm.com ([217.140.101.70]:55634 "EHLO foss.arm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750889AbcBKP5a (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 11 Feb 2016 10:57:30 -0500
-In-Reply-To: <13740597.5lZXKsEG19@avalon>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Laurent Pinchart <laurent.pinchart@ideasonboard.com>, =?UTF-8?Q?Niklas_S=c3=b6derlund?= <niklas.soderlund+renesas@ragnatech.se>
-Cc: linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, vinod.koul@intel.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+In-Reply-To: <20160211153255.GR24726-vWBEXY7mpu582hYKe6nXyg@public.gmane.org>
+Sender: linux-metag-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Robert Richter <robert.richter-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>
+Cc: Rob Herring <robh+dt-DgEjT+Ai2ygdnm+yROfE0A@public.gmane.org>, Ganapatrao Kulkarni <gkulkarni-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, "devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <devicetree-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-pci-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linux-ia64-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-metag <linux-metag-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, linuxppc-dev <linuxppc-dev-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>, linux-s390-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, SH-Linux <linux-sh-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, "linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org" <linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Will Deacon <Will.Deacon-5wv7dgnIgG8@public.gmane.org>, Catalin Marinas <catalin.marinas-5wv7dgnIgG8@public.gmane.org>, Mark Rutland <mark.rutland-5wv7dgnIgG8@public.gmane.org>, Grant Likely <grant.likely-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Leif Lindholm <leif.lindholm-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, rfranz-YGCgFSpz5w/QT0dZR+AlfA@public.gmane.org, Ard Biesheuvel <ard.biesheuvel-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Mark Salter <msalter-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 11/02/16 00:02, Laurent Pinchart wrote:
-> Hi Niklas,
->
-> Thank you for the patch.
->
-> On Wednesday 10 February 2016 01:57:51 Niklas S=F6derlund wrote:
->> From: Robin Murphy <robin.murphy@arm.com>
+Hi Rob,
+
+On Thu, Feb 11, 2016 at 9:02 PM, Robert Richter
+<robert.richter-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org> wrote:
+> On 11.02.16 08:50:41, Rob Herring wrote:
+>> On Tue, Feb 2, 2016 at 4:09 AM, Ganapatrao Kulkarni
+>> <gkulkarni-M3mlKVOIwJVv6pq1l3V1OdBPR1lH4CV8@public.gmane.org> wrote:
+>> > dt node parsing for numa topology is done using device property
+>> > numa-node-id and device node distance-map.
 >>
->> On some platforms, MMIO regions might need slightly different treatm=
-ent
->> compared to mapping regular memory; add the notion of MMIO mappings =
-to
->> the IOMMU API's memory type flags, so that callers can let the IOMMU
->> drivers know to do the right thing.
+>> How is it that powerpc doesn't need flat DT parsing for NUMA? Both
+>> arches are memblock based and the binding is similar IIRC, so you
+>> should be able to find a way to do this with the unflattened tree.
+>> Ideally, there should be some common code shared as well.
+
+powerpc has implemented numa binding using property named
+"ibm,associativity", we too started adding using the same binding[
+refer version V6]
+however had discussion/review with Mark R about mapping and we could not map to
+some of the topology like mesh and ring topology.
+
+So we have defined and implemented this new binding which is simple
+and scalable.
+This binding is very much aligned to ACPI NUMA specification.
+
 >>
->> Signed-off-by: Robin Murphy <robin.murphy@arm.com>
->> Acked-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
+>> Do you have a git tree with this series?
 >
-> Answering the question from the cover letter, yes, it's totally fine =
-to pick
-> the ack, that's actually expected.
+> I have pushed it here for you:
 >
->> ---
->>   drivers/iommu/io-pgtable-arm.c | 4 +++-
->>   include/linux/iommu.h          | 1 +
+>  https://git.kernel.org/cgit/linux/kernel/git/rric/linux.git/log/?h=thunder/numa-v10
+
+thanks Robert.
 >
-> You might be asked to split this patch in two.
+> -Robert
 
-Worse than that, you might also be asked to fix it up when the silly=20
-author remembers that he did this on a stage-2-only ARM SMMU, and the=20
-attributes for the stage 1 tables that the IPMMU uses are in a differen=
-t=20
-code path:
-
---->8---
-diff --git a/drivers/iommu/io-pgtable-arm.c b/drivers/iommu/io-pgtable-=
-arm.c
-index 5b5c299..7622c6e 100644
---- a/drivers/iommu/io-pgtable-arm.c
-+++ b/drivers/iommu/io-pgtable-arm.c
-@@ -354,7 +354,10 @@ static arm_lpae_iopte arm_lpae_prot_to_pte(struct=20
-arm_lpae_io_pgtable *data,
-                 if (!(prot & IOMMU_WRITE) && (prot & IOMMU_READ))
-                         pte |=3D ARM_LPAE_PTE_AP_RDONLY;
-
--               if (prot & IOMMU_CACHE)
-+               if (prot & IOMMU_MMIO)
-+                       pte |=3D (ARM_LPAE_MAIR_ATTR_IDX_DEV
-+                               << ARM_LPAE_PTE_ATTRINDX_SHIFT);
-+               else if (prot & IOMMU_CACHE)
-                         pte |=3D (ARM_LPAE_MAIR_ATTR_IDX_CACHE
-                                 << ARM_LPAE_PTE_ATTRINDX_SHIFT);
-         } else {
---->8---
-
-Sorry for the bother,
-Robin.
-
->>   2 files changed, 4 insertions(+), 1 deletion(-)
->>
->> diff --git a/drivers/iommu/io-pgtable-arm.c b/drivers/iommu/io-pgtab=
-le-arm.c
->> index 381ca5a..3ff4f87 100644
->> --- a/drivers/iommu/io-pgtable-arm.c
->> +++ b/drivers/iommu/io-pgtable-arm.c
->> @@ -364,7 +364,9 @@ static arm_lpae_iopte arm_lpae_prot_to_pte(struc=
-t
->> arm_lpae_io_pgtable *data, pte |=3D ARM_LPAE_PTE_HAP_READ;
->>   		if (prot & IOMMU_WRITE)
->>   			pte |=3D ARM_LPAE_PTE_HAP_WRITE;
->> -		if (prot & IOMMU_CACHE)
->> +		if (prot & IOMMU_MMIO)
->> +			pte |=3D ARM_LPAE_PTE_MEMATTR_DEV;
->> +		else if (prot & IOMMU_CACHE)
->>   			pte |=3D ARM_LPAE_PTE_MEMATTR_OIWB;
->>   		else
->>   			pte |=3D ARM_LPAE_PTE_MEMATTR_NC;
->> diff --git a/include/linux/iommu.h b/include/linux/iommu.h
->> index a5c539f..34b6432 100644
->> --- a/include/linux/iommu.h
->> +++ b/include/linux/iommu.h
->> @@ -30,6 +30,7 @@
->>   #define IOMMU_WRITE	(1 << 1)
->>   #define IOMMU_CACHE	(1 << 2) /* DMA cache coherency */
->>   #define IOMMU_NOEXEC	(1 << 3)
->> +#define IOMMU_MMIO	(1 << 4) /* e.g. things like MSI doorbells */
->>
->>   struct iommu_ops;
->>   struct iommu_group;
->
+thanks
+Ganapat
