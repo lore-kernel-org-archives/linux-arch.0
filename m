@@ -1,119 +1,44 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 1/2] mm,thp: refactor generic deposit/withdraw routines for wider usage
-Date: Thu, 11 Feb 2016 14:58:26 +0530
-Message-ID: <1455182907-15445-2-git-send-email-vgupta@synopsys.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCH 1/2] mm,thp: refactor generic deposit/withdraw routines
+ for wider usage
+Date: Thu, 11 Feb 2016 11:22:23 +0100
+Message-ID: <20160211112223.0acc8237@mschwide>
 References: <1455182907-15445-1-git-send-email-vgupta@synopsys.com>
+	<1455182907-15445-2-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1455182907-15445-1-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1455182907-15445-2-git-send-email-vgupta@synopsys.com>
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "David S. Miller" <davem@davemloft.net>, Alex Thorlton <athorlton@sgi.com>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Andrea Arcangeli <aarcange@redhat.com>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "David S. Miller" <davem@davemloft.net>, Alex Thorlton <athorlton@sgi.com>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Andrea Arcangeli <aarcange@redhat.com>
 List-Id: linux-arch.vger.kernel.org
 
-Generic pgtable_trans_huge_deposit()/pgtable_trans_huge_withdraw()
-assume pgtable_t to be struct page * which is not true for all arches.
-Thus arc, s390, sparch end up with their own copies despite no special
-hardware requirements (unlike powerpc).
+On Thu, 11 Feb 2016 14:58:26 +0530
+Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
 
-It seems massaging the code a bit can make it reusbale.
+> Generic pgtable_trans_huge_deposit()/pgtable_trans_huge_withdraw()
+> assume pgtable_t to be struct page * which is not true for all arches.
+> Thus arc, s390, sparch end up with their own copies despite no special
+> hardware requirements (unlike powerpc).
 
- - Use explicit casts to (struct page *). For existing users, this
-   should be semantically no-op for existing users
+s390 does have a special hardware requirement. pgtable_t is an address
+for a 2K block of memory. It is *not* equivalent to a struct page *
+which refers to a 4K block of memory. That has been the whole point
+to introduce pgtable_t.
 
- - The only addition is zero'ing out of page->lru which for arc leaves
-   a stray entry in pgtable_t cause mm spew when such pgtable is freed.
+> It seems massaging the code a bit can make it reusbale.
 
-  | huge_memory: BUG: failure at
-  | ../mm/huge_memory.c:1858/__split_huge_page_map()!
-  | CPU: 0 PID: 901 Comm: bw_mem Not tainted 4.4.0-00015-g0569c1459cfa-dirty
-  |
-  | Stack Trace:
-  |  arc_unwind_core.constprop.1+0x94/0x104
-  |  split_huge_page_to_list+0x5c0/0x920
-  |  __split_huge_page_pmd+0xc8/0x1b4
-  |  vma_adjust_trans_huge+0x104/0x1c8
-  |  vma_adjust+0xf8/0x6d8
-  |  __split_vma.isra.40+0xf8/0x174
-  |  do_munmap+0x360/0x428
-  |  SyS_munmap+0x28/0x44
+Imho the new code for asm-generic looks fine, as long as the override
+with __HAVE_ARCH_PGTABLE_DEPOSIT/__HAVE_ARCH_PGTABLE_WITHDRAW continues
+to work I do not mind.
 
-Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-Cc: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
-Cc: Andrea Arcangeli <aarcange@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: David S. Miller <davem@davemloft.net>
-Cc: Alex Thorlton <athorlton@sgi.com>
-Cc: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: linux-snps-arc@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org
-Cc: linux-mm@kvack.org
-Cc: linux-arch@vger.kernel.org
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- mm/pgtable-generic.c | 27 +++++++++++++++++----------
- 1 file changed, 17 insertions(+), 10 deletions(-)
-
-diff --git a/mm/pgtable-generic.c b/mm/pgtable-generic.c
-index 75664ed7e3ab..c9f2f6f8c7bb 100644
---- a/mm/pgtable-generic.c
-+++ b/mm/pgtable-generic.c
-@@ -155,13 +155,17 @@ void pmdp_splitting_flush(struct vm_area_struct *vma, unsigned long address,
- void pgtable_trans_huge_deposit(struct mm_struct *mm, pmd_t *pmdp,
- 				pgtable_t pgtable)
- {
-+	struct page *new = (struct page *)pgtable;
-+	struct page *head;
-+
- 	assert_spin_locked(pmd_lockptr(mm, pmdp));
- 
- 	/* FIFO */
--	if (!pmd_huge_pte(mm, pmdp))
--		INIT_LIST_HEAD(&pgtable->lru);
-+	head = (struct page *)pmd_huge_pte(mm, pmdp);
-+	if (!head)
-+		INIT_LIST_HEAD(&new->lru);
- 	else
--		list_add(&pgtable->lru, &pmd_huge_pte(mm, pmdp)->lru);
-+		list_add(&new->lru, &head->lru);
- 	pmd_huge_pte(mm, pmdp) = pgtable;
- }
- #endif
-@@ -170,20 +174,23 @@ void pgtable_trans_huge_deposit(struct mm_struct *mm, pmd_t *pmdp,
- /* no "address" argument so destroys page coloring of some arch */
- pgtable_t pgtable_trans_huge_withdraw(struct mm_struct *mm, pmd_t *pmdp)
- {
--	pgtable_t pgtable;
-+	struct page *page;
- 
- 	assert_spin_locked(pmd_lockptr(mm, pmdp));
- 
-+	page = (struct page *)pmd_huge_pte(mm, pmdp);
-+
- 	/* FIFO */
--	pgtable = pmd_huge_pte(mm, pmdp);
--	if (list_empty(&pgtable->lru))
-+	if (list_empty(&page->lru))
- 		pmd_huge_pte(mm, pmdp) = NULL;
- 	else {
--		pmd_huge_pte(mm, pmdp) = list_entry(pgtable->lru.next,
--					      struct page, lru);
--		list_del(&pgtable->lru);
-+		pmd_huge_pte(mm, pmdp) = (pgtable_t) list_entry(page->lru.next,
-+							struct page, lru);
-+		list_del(&page->lru);
- 	}
--	return pgtable;
-+
-+	memset(&page->lru, 0, sizeof(page->lru));
-+	return (pgtable_t)page;
- }
- #endif
- 
 -- 
-2.5.0
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
