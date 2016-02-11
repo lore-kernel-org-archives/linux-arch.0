@@ -1,28 +1,39 @@
-From: fu.zhongjun@execs.com
-Subject: Good day
-Date: Wed, 10 Feb 2016 17:33:40 +0100
-Message-ID: <TRU-DC2G5aYY61LEdyt00009985__49520.5616848127$1455162659$gmane$org@TRU-DC2.utu-trust.com>
-Reply-To: fuzhong348@gmail.com
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [PATCH 0/2] Enable s390/arc/sparc to use generic thp deposit/withdraw
+Date: Thu, 11 Feb 2016 14:58:25 +0530
+Message-ID: <1455182907-15445-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 71-95-209-123.static.mtpk.ca.charter.com ([71.95.209.123]:22398
-	"HELO TRU-DC2.utu-trust.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with SMTP id S1750801AbcBKDuJ convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 10 Feb 2016 22:50:09 -0500
-Content-Description: Mail message body
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <fu.zhongjun@execs.com>
+Content-Type: text/plain
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>, "David S. Miller" <davem@davemloft.net>, Alex Thorlton <athorlton@sgi.com>, Gerald Schaefer <gerald.schaefer@de.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-snps-arc@lists.infradead.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+List-Id: linux-arch.vger.kernel.org
 
-Good day,
+Hi,
 
-I need a foreign partner for a proposed mutual business, which refers to the transfer of a large sum of money to an account abroad, as the beneficiary of the funds. Everything about this operation, will be legally done without any bridge financial authority, both in my country and yours.I wil indulge you exercise the utmost discretion in all matters concerning this issue. If you are interested, please reply back through my private email address written down, I'll give you more information about myself with the financial institution I represented and the actual amounts involved about the project so I receive your positive response.
+This came out my debugging THP on ARC. The generic deposit/withdraw routines
+can be easily adapted to work with pgtable_t != struct page *.
 
-Private E-mail: fu.zhong@fuzhongjun.net
+Build/Run tested on ARC only.
 
-Friendly greeting,
+Thx,
+-Vineet
 
-Executive director.
+Vineet Gupta (2):
+  mm,thp: refactor generic deposit/withdraw routines for wider usage
+  ARC: mm: THP: use generic THP deposit/withdraw
+
+ arch/arc/include/asm/hugepage.h |  8 --------
+ arch/arc/mm/tlb.c               | 37 -------------------------------------
+ mm/pgtable-generic.c            | 27 +++++++++++++++++----------
+ 3 files changed, 17 insertions(+), 55 deletions(-)
+
+-- 
+2.5.0
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
