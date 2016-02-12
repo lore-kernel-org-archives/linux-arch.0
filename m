@@ -1,19 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from condef007-v.nifty.com ([210.131.4.244]:46467 "EHLO
-	condef007-v.nifty.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751913AbcBLJhM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Feb 2016 04:37:12 -0500
-Received: from conuserg009-v.nifty.com ([10.16.229.196])by condef007-v.nifty.com with ESMTP id u1C9ST8P006700
-	for <linux-arch@vger.kernel.org>; Fri, 12 Feb 2016 18:28:38 +0900
+Received: from conuserg009.nifty.com ([202.248.44.35]:42458 "EHLO
+	conuserg009-v.nifty.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1752201AbcBLKgo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Feb 2016 05:36:44 -0500
 From: Masahiro Yamada <yamada.masahiro@socionext.com>
-Subject: [PATCH] earlycon: rework common framework for earlycon declarations
-Date: Fri, 12 Feb 2016 18:28:16 +0900
-Message-ID: <1455269296-5009-1-git-send-email-yamada.masahiro@socionext.com>
+Subject: [PATCH v2] serial: earlycon: rework common framework for earlycon declarations
+Date: Fri, 12 Feb 2016 19:36:34 +0900
+Message-ID: <1455273394-27350-1-git-send-email-yamada.masahiro@socionext.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-serial@vger.kernel.org
 Cc: devicetree@vger.kernel.org, Rob Herring <robh@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Peter Hurley <peter@hurleysoftware.com>, Greg KH <gregkh@linuxfoundation.org>, linux-arm-kernel@lists.infradead.org, Masahiro Yamada <yamada.masahiro@socionext.com>, linux-arch@vger.kernel.org, Jiri Slaby <jslaby@suse.com>, linux-kernel@vger.kernel.org, Grant Likely <grant.likely@linaro.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>
-Message-ID: <20160212092816.JzK9a9MMNqhn-Mm-UsTGkFecrY8PNnHGYD0SQO1NQGQ@z>
+Message-ID: <20160212103634.P346KY6jLYyQRDaHCPCPrhIdVdd8jIx2h5Ic3N9p3-c@z>
 
 Commit 71f50c6d9a22 ("of: drop symbols declared by _OF_DECLARE() from
 modules") fixed the link error introduced by commit b8d20e06eaad
@@ -32,14 +30,14 @@ _OF_DECLARE().  My motivations are:
 
  - Delete struct earlycon_id.  This struct is re-inventing the wheel;
    the fields "name", "compatible", "setup" can be implemented in
-   struct of_device_id as other framework do.
+   struct of_device_id as other frameworks do.
 
 The difference between OF_EARLYCON_DECLARE() and other users of
 _OF_DECLARE is that OF_EARLYCON_DECLARE() needs to fill the "name"
 field of struct of_device_id.  To make it easier, a new macro
-_OF_DECLARE_WITH_NAME() has been added.  It fills the name field
-with the given argument.  On the other hand, _OF_DECLARE() sets the
-"name" field to a null string; this is the same behavior as before.
+_OF_DECLARE_WITH_NAME() has been added.  It fills the "name" field
+with the given argument.  On the other hand, _OF_DECLARE() sets it
+to a null string; this is the same behavior as before.
 
 Fixes: 2eaa790989e0 ("earlycon: Use common framework for earlycon declarations")
 Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
@@ -48,8 +46,13 @@ Signed-off-by: Masahiro Yamada <yamada.masahiro@socionext.com>
 I confirmed this patch can apply onto "next-20160212" tag of linux-next.
 
 In order to apply it onto the "tty-next" branch of TTY subsytem,
-Grag will have to pull v4.5-rc3 in.
+Greg will have to pull v4.5-rc3 in.
 
+
+Changes in v2:
+  Minor updates of git-log
+   - fix a typo framework/frameworks/).
+   - s/Grag/Greg/   (Sorry!)
 
  drivers/of/fdt.c                  |  7 ++-----
  drivers/tty/serial/earlycon.c     | 19 +++++++++++++------
