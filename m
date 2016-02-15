@@ -1,61 +1,93 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH RFC] Introduce atomic and per-cpu add-max and sub-min
- operations
-Date: Mon, 15 Feb 2016 15:14:07 +0100
-Message-ID: <20160215141407.GE6357@twins.programming.kicks-ass.net>
-References: <145544094056.28219.12239469516497703482.stgit@zurg>
- <20160215105028.GB1748@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20160215105028.GB1748@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Christoph Lameter <cl@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, paulmck@linux.vnet.ibm.com
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH 4/4] ARM: remove asm/gpio.h
+Date: Mon, 15 Feb 2016 16:46:31 +0100
+Message-ID: <1455551208-2825510-5-git-send-email-arnd@arndb.de>
+References: <20160202194831.10827.63244.stgit@bhelgaas-glaptop2.roam.corp.google.com>
+ <1455551208-2825510-1-git-send-email-arnd@arndb.de>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1455551208-2825510-1-git-send-email-arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Linus Walleij <linus.walleij@linaro.org>, Russell King <linux@arm.linux.org.uk>
+Cc: linux-arm-kernel@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, Russell King <rmk+kernel@arm.linux.org.uk>, Bjorn Helgaas <bhelgaas@google.com>, Alexandre Courbot <gnurou@gmail.com>, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Mon, Feb 15, 2016 at 10:50:29AM +0000, Will Deacon wrote:
-> Adding Peter and Paul,
-> 
-> On Sun, Feb 14, 2016 at 12:09:00PM +0300, Konstantin Khlebnikov wrote:
-> > bool atomic_add_max(atomic_t *var, int add, int max);
-> > bool atomic_sub_min(atomic_t *var, int sub, int min);
-> 
-> What are the memory-ordering requirements for these? Do you also want
-> relaxed/acquire/release versions for the use-cases you outline?
-> 
-> One observation is that you provide no ordering guarantees if the
-> comparison fails, which is fine if that's what you want, but we should
-> probably write that down like we do for cmpxchg.
-> 
-> > bool this_cpu_add_max(var, add, max);
-> > bool this_cpu_sub_min(var, sub, min);
-> > 
-> > They add/subtract only if result will be not bigger than max/lower that min.
-> > Returns true if operation was done and false otherwise.
-> > 
-> > Inside they check that (add <= max - var) and (sub <= var - min). Signed
-> > operations work if all possible values fits into range which length fits
-> > into non-negative range of that type: 0..INT_MAX, INT_MIN+1..0, -1000..1000.
-> > Unsigned operations work if value always in valid range: min <= var <= max.
-> > Char and short automatically casts to int, they never overflows.
-> > 
-> > Patch adds the same for atomic_long_t, atomic64_t, local_t, local64_t.
-> > And unsigned variants: atomic_u32_add_max atomic_u32_sub_min for atomic_t,
-> > atomic_u64_add_max atomic_u64_sub_min for atomic64_t.
-> > 
-> > Patch comes with test which hopefully covers all possible cornercases,
-> > see CONFIG_ATOMIC64_SELFTEST and CONFIG_PERCPU_TEST.
-> > 
-> > All this allows to build any kind of counter in several lines:
-> 
-> Do you have another patch converting people over to these new atomics?
+The ARM version of asm/gpio.h basically just contains the same definitions
+as the gpiolib version, with the exception of ARCH_NR_GPIOS.
 
-The Changelog completely lacks a why. Why do we want this?
+This adds the option for overriding the constant through Kconfig to
+the architecture-independent header, and removes the ARM version at
+the same time.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+This patch depends on a series done by Bjorn Helgaas, and the patch
+removing irq_to_gpio().
+
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ arch/arm/Kconfig            |  1 -
+ arch/arm/include/asm/gpio.h | 25 -------------------------
+ include/asm-generic/gpio.h  |  4 ++++
+ 3 files changed, 4 insertions(+), 26 deletions(-)
+ delete mode 100644 arch/arm/include/asm/gpio.h
+
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 0366ad63e2ed..27aefbe43eea 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -5,7 +5,6 @@ config ARM
+ 	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
+-	select ARCH_HAVE_CUSTOM_GPIO_H
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_SUPPORTS_ATOMIC_RMW
+diff --git a/arch/arm/include/asm/gpio.h b/arch/arm/include/asm/gpio.h
+deleted file mode 100644
+index 504dcddebfcc..000000000000
+--- a/arch/arm/include/asm/gpio.h
++++ /dev/null
+@@ -1,25 +0,0 @@
+-#ifndef _ARCH_ARM_GPIO_H
+-#define _ARCH_ARM_GPIO_H
+-
+-#if CONFIG_ARCH_NR_GPIO > 0
+-#define ARCH_NR_GPIOS CONFIG_ARCH_NR_GPIO
+-#endif
+-
+-/* Note: this may rely upon the value of ARCH_NR_GPIOS set in mach/gpio.h */
+-#include <asm-generic/gpio.h>
+-
+-/* The trivial gpiolib dispatchers */
+-#define gpio_get_value  __gpio_get_value
+-#define gpio_set_value  __gpio_set_value
+-#define gpio_cansleep   __gpio_cansleep
+-
+-/*
+- * Provide a default gpio_to_irq() which should satisfy every case.
+- * However, some platforms want to do this differently, so allow them
+- * to override it.
+- */
+-#ifndef gpio_to_irq
+-#define gpio_to_irq	__gpio_to_irq
+-#endif
+-
+-#endif /* _ARCH_ARM_GPIO_H */
+diff --git a/include/asm-generic/gpio.h b/include/asm-generic/gpio.h
+index 40ec1433f05d..2d04b321db13 100644
+--- a/include/asm-generic/gpio.h
++++ b/include/asm-generic/gpio.h
+@@ -26,8 +26,12 @@
+  */
+ 
+ #ifndef ARCH_NR_GPIOS
++#ifdef CONFIG_ARCH_NR_GPIO
++#define ARCH_NR_GPIOS CONFIG_ARCH_NR_GPIO
++#else
+ #define ARCH_NR_GPIOS		512
+ #endif
++#endif
+ 
+ /*
+  * "valid" GPIO numbers are nonnegative and may be passed to
+-- 
+2.7.0
