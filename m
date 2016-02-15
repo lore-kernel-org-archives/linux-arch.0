@@ -1,70 +1,130 @@
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH 4/4] ARM: remove asm/gpio.h
-Date: Mon, 15 Feb 2016 16:03:06 +0000
-Message-ID: <20160215160305.GG10826@n2100.arm.linux.org.uk>
-References: <20160202194831.10827.63244.stgit@bhelgaas-glaptop2.roam.corp.google.com>
- <1455551208-2825510-1-git-send-email-arnd@arndb.de>
- <1455551208-2825510-5-git-send-email-arnd@arndb.de>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Writes, smp_wmb(), and transitivity?
+Date: Mon, 15 Feb 2016 09:58:25 -0800
+Message-ID: <20160215175825.GA15878@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from pandora.arm.linux.org.uk ([78.32.30.218]:53399 "EHLO
-	pandora.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751103AbcBOQDW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Feb 2016 11:03:22 -0500
+Received: from e36.co.us.ibm.com ([32.97.110.154]:51683 "EHLO
+	e36.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751217AbcBOR6Z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Feb 2016 12:58:25 -0500
+Received: from localhost
+	by e36.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Mon, 15 Feb 2016 10:58:24 -0700
 Content-Disposition: inline
-In-Reply-To: <1455551208-2825510-5-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Linus Walleij <linus.walleij@linaro.org>, linux-arm-kernel@lists.infradead.org, Bjorn Helgaas <bhelgaas@google.com>, Alexandre Courbot <gnurou@gmail.com>, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: will.deacon@arm.com, Andy.Glew@imgtec.com, Leonid.Yegoshin@imgtec.com, peterz@infradead.org, linux-arch@vger.kernel.org, arnd@arndb.de, davem@davemloft.net, linux-arm-kernel@lists.infradead.org, linux-metag@vger.kernel.org, linux-mips@linux-mips.org, linux-xtensa@linux-xtensa.org, linuxppc-dev@lists.ozlabs.org
+Cc: graham.whaley@gmail.com, torvalds@linux-foundation.org, hpa@zytor.com, mingo@kernel.org
 
-On Mon, Feb 15, 2016 at 04:46:31PM +0100, Arnd Bergmann wrote:
-> -#if CONFIG_ARCH_NR_GPIO > 0
-> -#define ARCH_NR_GPIOS CONFIG_ARCH_NR_GPIO
-> -#endif
-...
-> diff --git a/include/asm-generic/gpio.h b/include/asm-generic/gpio.h
-> index 40ec1433f05d..2d04b321db13 100644
-> --- a/include/asm-generic/gpio.h
-> +++ b/include/asm-generic/gpio.h
-> @@ -26,8 +26,12 @@
->   */
->  
->  #ifndef ARCH_NR_GPIOS
-> +#ifdef CONFIG_ARCH_NR_GPIO
-> +#define ARCH_NR_GPIOS CONFIG_ARCH_NR_GPIO
-> +#else
->  #define ARCH_NR_GPIOS		512
->  #endif
-> +#endif
+Hello!
 
-This really isn't the same thing, especially when you look at:
+Some architectures provide local transitivity for a chain of threads doing
+writes separated by smp_wmb(), as exemplified by the litmus tests below.
+The pattern is that each thread writes to a its own variable, does an
+smp_wmb(), then writes a different value to the next thread's variable.
 
-config ARCH_NR_GPIO
-        int
-        default 1024 if ARCH_BRCMSTB || ARCH_SHMOBILE || ARCH_TEGRA || \
-                ARCH_ZYNQ
-        default 512 if ARCH_EXYNOS || ARCH_KEYSTONE || SOC_OMAP5 || \
-                SOC_DRA7XX || ARCH_S3C24XX || ARCH_S3C64XX || ARCH_S5PV210
-        default 416 if ARCH_SUNXI
-        default 392 if ARCH_U8500
-        default 352 if ARCH_VT8500
-        default 288 if ARCH_ROCKCHIP
-        default 264 if MACH_H4700
-        default 0
+I don't know of a use of this, but if everyone supports it, it might
+be good to mandate it.  Status quo is that smp_wmb() is non-transitive,
+so it currently isn't supported.
 
-This has the effect of causing anything not mentioned above to end up
-with ARCH_NR_GPIOS set to zero.
+Anyone know of any architectures that do -not- support this?
 
-You really should _not_ be making these kinds of functional changes
-when moving code around.  Separate the two changes: either first move
-the code, and have a separate patch to make the functional changes, or
-make the functional changes first, and then move the code around.
+Assuming all architectures -do- support this, any arguments -against-
+officially supporting it in Linux?
 
-I'd have thought you would've known this by now...
+							Thanx, Paul
 
--- 
-RMK's Patch system: http://www.arm.linux.org.uk/developer/patches/
-FTTC broadband for 0.8mile line: currently at 9.6Mbps down 400kbps up
-according to speedtest.net.
+------------------------------------------------------------------------
+
+Two threads:
+
+	int a, b;
+
+	void thread0(void)
+	{
+		WRITE_ONCE(a, 1);
+		smp_wmb();
+		WRITE_ONCE(b, 2);
+	}
+
+	void thread1(void)
+	{
+		WRITE_ONCE(b, 1);
+		smp_wmb();
+		WRITE_ONCE(a, 2);
+	}
+
+	/* After all threads have completed and the dust has settled... */
+
+	BUG_ON(a == 1 && b == 1);
+
+Three threads:
+
+	int a, b, c;
+
+	void thread0(void)
+	{
+		WRITE_ONCE(a, 1);
+		smp_wmb();
+		WRITE_ONCE(b, 2);
+	}
+
+	void thread1(void)
+	{
+		WRITE_ONCE(b, 1);
+		smp_wmb();
+		WRITE_ONCE(c, 2);
+	}
+
+	void thread2(void)
+	{
+		WRITE_ONCE(c, 1);
+		smp_wmb();
+		WRITE_ONCE(a, 2);
+	}
+
+	/* After all threads have completed and the dust has settled... */
+
+	BUG_ON(a == 1 && b == 1 && c == 1);
+
+Four threads:
+
+	int a, b, c, d;
+
+	void thread0(void)
+	{
+		WRITE_ONCE(a, 1);
+		smp_wmb();
+		WRITE_ONCE(b, 2);
+	}
+
+	void thread1(void)
+	{
+		WRITE_ONCE(b, 1);
+		smp_wmb();
+		WRITE_ONCE(c, 2);
+	}
+
+	void thread2(void)
+	{
+		WRITE_ONCE(c, 1);
+		smp_wmb();
+		WRITE_ONCE(d, 2);
+	}
+
+	void thread3(void)
+	{
+		WRITE_ONCE(d, 1);
+		smp_wmb();
+		WRITE_ONCE(a, 2);
+	}
+
+	/* After all threads have completed and the dust has settled... */
+
+	BUG_ON(a == 1 && b == 1 && c == 1 && d == 1);
+
+And so on...
