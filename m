@@ -1,43 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f180.google.com ([209.85.214.180]:35544 "EHLO
-	mail-ob0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751303AbcBONfv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Feb 2016 08:35:51 -0500
-Received: by mail-ob0-f180.google.com with SMTP id xk3so211264004obc.2
-        for <linux-arch@vger.kernel.org>; Mon, 15 Feb 2016 05:35:51 -0800 (PST)
+Received: from [198.137.202.9] ([198.137.202.9]:48556 "EHLO
+	bombadil.infradead.org" rhost-flags-FAIL-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1751714AbcBOOP0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 15 Feb 2016 09:15:26 -0500
+Date: Mon, 15 Feb 2016 15:14:07 +0100
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH RFC] Introduce atomic and per-cpu add-max and sub-min
+ operations
+Message-ID: <20160215141407.GE6357@twins.programming.kicks-ass.net>
+References: <145544094056.28219.12239469516497703482.stgit@zurg>
+ <20160215105028.GB1748@arm.com>
 MIME-Version: 1.0
-In-Reply-To: <20160202195323.10827.26654.stgit@bhelgaas-glaptop2.roam.corp.google.com>
-References: <20160202194831.10827.63244.stgit@bhelgaas-glaptop2.roam.corp.google.com>
-	<20160202195323.10827.26654.stgit@bhelgaas-glaptop2.roam.corp.google.com>
-Date: Mon, 15 Feb 2016 14:35:51 +0100
-Message-ID: <CACRpkdYYtvTa91WW10oNs9KkqMfPCJhpZLcW5ksfyxG6F1cO7w@mail.gmail.com>
-Subject: Re: [PATCH 1/2] gpio: Include linux/gpio.h instead of asm/gpio.h
-From: Linus Walleij <linus.walleij@linaro.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160215105028.GB1748@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Alexandre Courbot <gnurou@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-gpio@vger.kernel.org" <linux-gpio@vger.kernel.org>, Mark Brown <broonie@kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20160215133551.wVD73pO20HJMBSId5iwxP1NmLvNBvdMFyHIpMy3Xjjc@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Konstantin Khlebnikov <koct9i@gmail.com>, linux-arch@vger.kernel.org, Christoph Lameter <cl@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Tejun Heo <tj@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, paulmck@linux.vnet.ibm.com
+Message-ID: <20160215141407.Od-ynJ1jhYv30ZNq0sRdY_Q_Rco4i5up7ROJbmPk_oE@z>
 
-On Tue, Feb 2, 2016 at 8:53 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+On Mon, Feb 15, 2016 at 10:50:29AM +0000, Will Deacon wrote:
+> Adding Peter and Paul,
+> 
+> On Sun, Feb 14, 2016 at 12:09:00PM +0300, Konstantin Khlebnikov wrote:
+> > bool atomic_add_max(atomic_t *var, int add, int max);
+> > bool atomic_sub_min(atomic_t *var, int sub, int min);
+> 
+> What are the memory-ordering requirements for these? Do you also want
+> relaxed/acquire/release versions for the use-cases you outline?
+> 
+> One observation is that you provide no ordering guarantees if the
+> comparison fails, which is fine if that's what you want, but we should
+> probably write that down like we do for cmpxchg.
+> 
+> > bool this_cpu_add_max(var, add, max);
+> > bool this_cpu_sub_min(var, sub, min);
+> > 
+> > They add/subtract only if result will be not bigger than max/lower that min.
+> > Returns true if operation was done and false otherwise.
+> > 
+> > Inside they check that (add <= max - var) and (sub <= var - min). Signed
+> > operations work if all possible values fits into range which length fits
+> > into non-negative range of that type: 0..INT_MAX, INT_MIN+1..0, -1000..1000.
+> > Unsigned operations work if value always in valid range: min <= var <= max.
+> > Char and short automatically casts to int, they never overflows.
+> > 
+> > Patch adds the same for atomic_long_t, atomic64_t, local_t, local64_t.
+> > And unsigned variants: atomic_u32_add_max atomic_u32_sub_min for atomic_t,
+> > atomic_u64_add_max atomic_u64_sub_min for atomic64_t.
+> > 
+> > Patch comes with test which hopefully covers all possible cornercases,
+> > see CONFIG_ATOMIC64_SELFTEST and CONFIG_PERCPU_TEST.
+> > 
+> > All this allows to build any kind of counter in several lines:
+> 
+> Do you have another patch converting people over to these new atomics?
 
-> Most arches have an asm/gpio.h that merely includes linux/gpio.h.  The
-> others select ARCH_HAVE_CUSTOM_GPIO_H, and when that's selected,
-> linux/gpio.h includes asm/gpio.h.
->
-> Therefore, code should include linux/gpio.h instead of including asm/gpio.h
-> directly.
->
-> Remove includes of asm/gpio.h, adding an include of linux/gpio.h when
-> necessary.
->
-> This is a follow-on to 7563bbf89d06 ("gpiolib/arches: Centralise
-> bolierplate asm/gpio.h").
->
-> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
-
-Patch applied after getting Arnds ACK over IRC.
-
-Yours,
-Linus Walleij
+The Changelog completely lacks a why. Why do we want this?
