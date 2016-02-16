@@ -1,55 +1,79 @@
-From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
-	<niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
-Subject: [PATCH v4 8/8] ARM: dts: r8a7791: add iommus to dmac0 and dmac1
-Date: Tue, 16 Feb 2016 21:39:44 +0100
-Message-ID: <1455655184-14478-9-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-References: <1455655184-14478-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+From: David Brown <david.brown@linaro.org>
+Subject: [PATCH] ARM: vdso: Mark vDSO code as read-only
+Date: Tue, 16 Feb 2016 14:36:59 -0700
+Message-ID: <20160216213659.GA47194@davidb.org>
+References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <1455655184-14478-1-git-send-email-niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: vinod.koul-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linux-renesas-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>, geert+renesas-gXvu3+zWzMSzQB+pC5nmwQ@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org, dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-io0-f180.google.com ([209.85.223.180]:35214 "EHLO
+	mail-io0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756118AbcBPVhD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Feb 2016 16:37:03 -0500
+Received: by mail-io0-f180.google.com with SMTP id g203so704405iof.2
+        for <linux-arch@vger.kernel.org>; Tue, 16 Feb 2016 13:37:02 -0800 (PST)
+Content-Disposition: inline
+In-Reply-To: <1453226922-16831-1-git-send-email-keescook@chromium.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King <linux@arm.linux.org.uk>
+Cc: linux-arm-kernel@lists.infradead.org, kernel-hardening@lists.openwall.com, Ingo Molnar <mingo@redhat.com>, Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
 
-QSB1bmNvbmZpcm1lZCBoYXJkd2FyZSBidWcgcHJldmVudHMgY2hhbm5lbCAwIGFuZCAxNSB0byBi
-ZSB1c2VkIGJ5IHRoZQpETUFDIHRvZ2V0aGVyIHdpdGggdGhlIElQTU1VLiBUaGUgRE1BQyBkcml2
-ZXIgd2lsbCBkaXNhYmxlIHRoZSBjaGFubmVscwpyZWR1Y2luZyB0aGUgZWZmZWN0aXZlIG51bWJl
-ciBvZiBjaGFubmVscyB0byAxNCBwZXIgRE1BQy4KClNpZ25lZC1vZmYtYnk6IE5pa2xhcyBTw7Zk
-ZXJsdW5kIDxuaWtsYXMuc29kZXJsdW5kK3JlbmVzYXNAcmFnbmF0ZWNoLnNlPgpBY2tlZC1ieTog
-TGF1cmVudCBQaW5jaGFydCA8bGF1cmVudC5waW5jaGFydEBpZGVhc29uYm9hcmQuY29tPgotLS0K
-IGFyY2gvYXJtL2Jvb3QvZHRzL3I4YTc3OTEuZHRzaSB8IDMwICsrKysrKysrKysrKysrKysrKysr
-KysrKysrKysrKwogMSBmaWxlIGNoYW5nZWQsIDMwIGluc2VydGlvbnMoKykKCmRpZmYgLS1naXQg
-YS9hcmNoL2FybS9ib290L2R0cy9yOGE3NzkxLmR0c2kgYi9hcmNoL2FybS9ib290L2R0cy9yOGE3
-NzkxLmR0c2kKaW5kZXggMmEzNjlkZC4uNmRmZjA2MSAxMDA2NDQKLS0tIGEvYXJjaC9hcm0vYm9v
-dC9kdHMvcjhhNzc5MS5kdHNpCisrKyBiL2FyY2gvYXJtL2Jvb3QvZHRzL3I4YTc3OTEuZHRzaQpA
-QCAtMjgzLDYgKzI4MywyMSBAQAogCQlwb3dlci1kb21haW5zID0gPCZjcGdfY2xvY2tzPjsKIAkJ
-I2RtYS1jZWxscyA9IDwxPjsKIAkJZG1hLWNoYW5uZWxzID0gPDE1PjsKKwkJaW9tbXVzID0gPCZp
-cG1tdV9kcyAwPiwKKwkJCSA8JmlwbW11X2RzIDE+LAorCQkJIDwmaXBtbXVfZHMgMj4sCisJCQkg
-PCZpcG1tdV9kcyAzPiwKKwkJCSA8JmlwbW11X2RzIDQ+LAorCQkJIDwmaXBtbXVfZHMgNT4sCisJ
-CQkgPCZpcG1tdV9kcyA2PiwKKwkJCSA8JmlwbW11X2RzIDc+LAorCQkJIDwmaXBtbXVfZHMgOD4s
-CisJCQkgPCZpcG1tdV9kcyA5PiwKKwkJCSA8JmlwbW11X2RzIDEwPiwKKwkJCSA8JmlwbW11X2Rz
-IDExPiwKKwkJCSA8JmlwbW11X2RzIDEyPiwKKwkJCSA8JmlwbW11X2RzIDEzPiwKKwkJCSA8Jmlw
-bW11X2RzIDE0PjsKIAl9OwogCiAJZG1hYzE6IGRtYS1jb250cm9sbGVyQGU2NzIwMDAwIHsKQEAg
-LTMxNCw2ICszMjksMjEgQEAKIAkJcG93ZXItZG9tYWlucyA9IDwmY3BnX2Nsb2Nrcz47CiAJCSNk
-bWEtY2VsbHMgPSA8MT47CiAJCWRtYS1jaGFubmVscyA9IDwxNT47CisJCWlvbW11cyA9IDwmaXBt
-bXVfZHMgMTU+LAorCQkJIDwmaXBtbXVfZHMgMTY+LAorCQkJIDwmaXBtbXVfZHMgMTc+LAorCQkJ
-IDwmaXBtbXVfZHMgMTg+LAorCQkJIDwmaXBtbXVfZHMgMTk+LAorCQkJIDwmaXBtbXVfZHMgMjA+
-LAorCQkJIDwmaXBtbXVfZHMgMjE+LAorCQkJIDwmaXBtbXVfZHMgMjI+LAorCQkJIDwmaXBtbXVf
-ZHMgMjM+LAorCQkJIDwmaXBtbXVfZHMgMjQ+LAorCQkJIDwmaXBtbXVfZHMgMjU+LAorCQkJIDwm
-aXBtbXVfZHMgMjY+LAorCQkJIDwmaXBtbXVfZHMgMjc+LAorCQkJIDwmaXBtbXVfZHMgMjg+LAor
-CQkJIDwmaXBtbXVfZHMgMjk+OwogCX07CiAKIAlhdWRtYTA6IGRtYS1jb250cm9sbGVyQGVjNzAw
-MDAwIHsKLS0gCjIuNy4xCgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19f
-X19fX19fXwppb21tdSBtYWlsaW5nIGxpc3QKaW9tbXVAbGlzdHMubGludXgtZm91bmRhdGlvbi5v
-cmcKaHR0cHM6Ly9saXN0cy5saW51eGZvdW5kYXRpb24ub3JnL21haWxtYW4vbGlzdGluZm8vaW9t
-bXU=
+Although the arm vDSO is cleanly separated by code/data with the code
+being read-only in userspace mappings, the code page is still writable
+from the kernel.  There have been exploits (such as
+http://itszn.com/blog/?p=21) that take advantage of this on x86 to go
+from a bad kernel write to full root.
+
+Prevent this specific exploit on arm by putting the vDSO code page in
+post-init read-only memory as well.
+
+Before:
+vdso: 1 text pages at base 80927000
+root@Vexpress:/ cat /sys/kernel/debug/kernel_page_tables
+---[ Modules ]---
+---[ Kernel Mapping ]---
+0x80000000-0x80100000           1M     RW NX SHD
+0x80100000-0x80600000           5M     ro x  SHD
+0x80600000-0x80800000           2M     ro NX SHD
+0x80800000-0xbe000000         984M     RW NX SHD
+
+After:
+vdso: 1 text pages at base 8072b000
+root@Vexpress:/ cat /sys/kernel/debug/kernel_page_tables
+---[ Modules ]---
+---[ Kernel Mapping ]---
+0x80000000-0x80100000           1M     RW NX SHD
+0x80100000-0x80600000           5M     ro x  SHD
+0x80600000-0x80800000           2M     ro NX SHD
+0x80800000-0xbe000000         984M     RW NX SHD
+
+Inspired by https://lkml.org/lkml/2016/1/19/494 based on work by the
+PaX Team, Brad Spengler, and Kees Cook.
+
+Signed-off-by: David Brown <david.brown@linaro.org>
+---
+This patch depends on Kees Cook's series
+https://lkml.org/lkml/2016/1/19/497 which adds the ro_after_init
+section.
+
+ arch/arm/vdso/vdso.S | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/arch/arm/vdso/vdso.S b/arch/arm/vdso/vdso.S
+index b2b97e3..a62a7b6 100644
+--- a/arch/arm/vdso/vdso.S
++++ b/arch/arm/vdso/vdso.S
+@@ -23,9 +23,8 @@
+ #include <linux/const.h>
+ #include <asm/page.h>
+ 
+-	__PAGE_ALIGNED_DATA
+-
+ 	.globl vdso_start, vdso_end
++	.section .data..ro_after_init
+ 	.balign PAGE_SIZE
+ vdso_start:
+ 	.incbin "arch/arm/vdso/vdso.so"
+-- 
+2.7.1
