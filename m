@@ -1,76 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e33.co.us.ibm.com ([32.97.110.151]:46160 "EHLO
-	e33.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755688AbcBPTgw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Feb 2016 14:36:52 -0500
-Received: from localhost
-	by e33.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Tue, 16 Feb 2016 12:36:52 -0700
-Date: Tue, 16 Feb 2016 11:36:44 -0800
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Re: Writes, smp_wmb(), and transitivity?
-Message-ID: <20160216193644.GV6719@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
-References: <20160215175825.GA15878@linux.vnet.ibm.com>
- <CA+55aFxaQEvDrzecmZUQ5QfKzU4ei6E-+NpsW5hYp3ouaLP98g@mail.gmail.com>
+Received: from smtp-3.sys.kth.se ([130.237.48.192]:58044 "EHLO
+	smtp-3.sys.kth.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932079AbcBPUkN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Feb 2016 15:40:13 -0500
+From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
+	<niklas.soderlund+renesas@ragnatech.se>
+Subject: [PATCH v4 3/8] dma-mapping: add dma_{map,unmap}_resource
+Date: Tue, 16 Feb 2016 21:39:39 +0100
+Message-ID: <1455655184-14478-4-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+In-Reply-To: <1455655184-14478-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+References: <1455655184-14478-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CA+55aFxaQEvDrzecmZUQ5QfKzU4ei6E-+NpsW5hYp3ouaLP98g@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Will Deacon <will.deacon@arm.com>, Andy.Glew@imgtec.com, Leonid Yegoshin <Leonid.Yegoshin@imgtec.com>, Peter Zijlstra <peterz@infradead.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, David Miller <davem@davemloft.net>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-metag@vger.kernel.org, linux-mips <linux-mips@linux-mips.org>, linux-xtensa@linux-xtensa.org, ppc-dev <linuxppc-dev@lists.ozlabs.org>, graham.whaley@gmail.com, Peter Anvin <hpa@zytor.com>, Ingo Molnar <mingo@kernel.org>
-Message-ID: <20160216193644.INunXSLdhVfm70IjB4VqgxAwQ9E3R-_zpUrVBAh2ISM@z>
+To: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: robin.murphy@arm.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
+Message-ID: <20160216203939.hs7CLYTJ-Wu-sNLrW_rQYQMTSBW4-KB532BRUOOHmYE@z>
 
-On Tue, Feb 16, 2016 at 10:59:08AM -0800, Linus Torvalds wrote:
-> On Mon, Feb 15, 2016 at 9:58 AM, Paul E. McKenney
-> <paulmck@linux.vnet.ibm.com> wrote:
-> >
-> > Two threads:
-> >
-> >         int a, b;
-> >
-> >         void thread0(void)
-> >         {
-> >                 WRITE_ONCE(a, 1);
-> >                 smp_wmb();
-> >                 WRITE_ONCE(b, 2);
-> >         }
-> >
-> >         void thread1(void)
-> >         {
-> >                 WRITE_ONCE(b, 1);
-> >                 smp_wmb();
-> >                 WRITE_ONCE(a, 2);
-> >         }
-> >
-> >         /* After all threads have completed and the dust has settled... */
-> >
-> >         BUG_ON(a == 1 && b == 1);
-> 
-> So the more I look at that kind of litmus test, the less I think that
-> we should care, because I can't come up with a scenario in where that
-> kind of test makes sense. without even a possibility of any causal
-> relationship between the two, I can't say why we'd ever care about the
-> ordering of the (independent) writes to the individual variables.
-> 
-> If somebody can make up a causal chain, things differ. But as long as
-> all the CPU's are just doing locally ordered writes, I don't think we
-> need to care about a global store ordering.
+Map/Unmap a device resource from a physical address. If no dma_map_ops
+method is available the operation is a no-op.
 
-Works for me!  (Yes, I can artificially generate a use case for this
-thing, but all the ones I have come up with have some better and more
-sane way to get the job done.  So I completely agree with your not caring
-about it.)
+Signed-off-by: Niklas Söderlund <niklas.soderlund+renesas@ragnatech.se>
+---
+ include/linux/dma-mapping.h | 32 ++++++++++++++++++++++++++++++++
+ 1 file changed, 32 insertions(+)
 
-So for transitivity, we focus on causal chains, where one task writes
-to some variable that the next task reads.
-
-In addition, if all threads use full memory barriers throughout, as in
-smp_mb(), then full ordering is of course provided regardless of the
-pattern of reads and writes.
-
-							Thanx, Paul
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index e3aba4e..cc305d1 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -216,6 +216,38 @@ static inline void dma_unmap_page(struct device *dev, dma_addr_t addr,
+ 	debug_dma_unmap_page(dev, addr, size, dir, false);
+ }
+ 
++static inline dma_addr_t dma_map_resource(struct device *dev,
++					  phys_addr_t phys_addr,
++					  size_t size,
++					  enum dma_data_direction dir,
++					  struct dma_attrs *attrs)
++{
++	struct dma_map_ops *ops = get_dma_ops(dev);
++	unsigned long pfn = __phys_to_pfn(phys_addr);
++
++	BUG_ON(!valid_dma_direction(dir));
++
++	/* Don't allow RAM to be mapped */
++	BUG_ON(pfn_valid(pfn));
++
++	if (ops->map_resource)
++		return ops->map_resource(dev, phys_addr, size, dir, attrs);
++
++	return phys_addr;
++}
++
++static inline void dma_unmap_resource(struct device *dev, dma_addr_t addr,
++				      size_t size, enum dma_data_direction dir,
++				      struct dma_attrs *attrs)
++{
++	struct dma_map_ops *ops = get_dma_ops(dev);
++
++	BUG_ON(!valid_dma_direction(dir));
++	if (ops->unmap_resource)
++		ops->unmap_resource(dev, addr, size, dir, attrs);
++
++}
++
+ static inline void dma_sync_single_for_cpu(struct device *dev, dma_addr_t addr,
+ 					   size_t size,
+ 					   enum dma_data_direction dir)
+-- 
+2.7.1
 
