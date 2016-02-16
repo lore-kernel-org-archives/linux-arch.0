@@ -1,79 +1,84 @@
 From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
-	<niklas.soderlund+renesas@ragnatech.se>
-Subject: [PATCH v4 1/8] iommu: Add MMIO mapping type
-Date: Tue, 16 Feb 2016 21:39:37 +0100
-Message-ID: <1455655184-14478-2-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-References: <1455655184-14478-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+	<niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>
+Subject: [PATCH v4 0/8] dmaengine: rcar-dmac: add iommu support for slave
+	transfers
+Date: Tue, 16 Feb 2016 21:39:36 +0100
+Message-ID: <1455655184-14478-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-3.sys.kth.se ([130.237.48.192]:58017 "EHLO
-	smtp-3.sys.kth.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755380AbcBPUkM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Feb 2016 15:40:12 -0500
-In-Reply-To: <1455655184-14478-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
-Cc: robin.murphy@arm.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: vinod.koul-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, linux-renesas-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, dmaengine-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas-1zkq55x86MTxsAP9Fp7wbw@public.gmane.org>, geert+renesas-gXvu3+zWzMSzQB+pC5nmwQ@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, linus.walleij-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org, laurent.pinchart-ryLnwIuWjnjg/C1BVhZhaw@public.gmane.org, dan.j.williams-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-=46rom: Robin Murphy <robin.murphy@arm.com>
-
-On some platforms, MMIO regions might need slightly different treatment
-compared to mapping regular memory; add the notion of MMIO mappings to
-the IOMMU API's memory type flags, so that callers can let the IOMMU
-drivers know to do the right thing.
-
-Signed-off-by: Robin Murphy <robin.murphy@arm.com>
-Signed-off-by: Niklas S=C3=B6derlund <niklas.soderlund+renesas@ragnatec=
-h.se>
----
- drivers/iommu/io-pgtable-arm.c | 9 +++++++--
- include/linux/iommu.h          | 1 +
- 2 files changed, 8 insertions(+), 2 deletions(-)
-
-diff --git a/drivers/iommu/io-pgtable-arm.c b/drivers/iommu/io-pgtable-=
-arm.c
-index 381ca5a..9c19989 100644
---- a/drivers/iommu/io-pgtable-arm.c
-+++ b/drivers/iommu/io-pgtable-arm.c
-@@ -355,7 +355,10 @@ static arm_lpae_iopte arm_lpae_prot_to_pte(struct =
-arm_lpae_io_pgtable *data,
- 		if (!(prot & IOMMU_WRITE) && (prot & IOMMU_READ))
- 			pte |=3D ARM_LPAE_PTE_AP_RDONLY;
-=20
--		if (prot & IOMMU_CACHE)
-+		if (prot & IOMMU_MMIO)
-+			pte |=3D (ARM_LPAE_MAIR_ATTR_IDX_DEV
-+				<< ARM_LPAE_PTE_ATTRINDX_SHIFT);
-+		else if (prot & IOMMU_CACHE)
- 			pte |=3D (ARM_LPAE_MAIR_ATTR_IDX_CACHE
- 				<< ARM_LPAE_PTE_ATTRINDX_SHIFT);
- 	} else {
-@@ -364,7 +367,9 @@ static arm_lpae_iopte arm_lpae_prot_to_pte(struct a=
-rm_lpae_io_pgtable *data,
- 			pte |=3D ARM_LPAE_PTE_HAP_READ;
- 		if (prot & IOMMU_WRITE)
- 			pte |=3D ARM_LPAE_PTE_HAP_WRITE;
--		if (prot & IOMMU_CACHE)
-+		if (prot & IOMMU_MMIO)
-+			pte |=3D ARM_LPAE_PTE_MEMATTR_DEV;
-+		else if (prot & IOMMU_CACHE)
- 			pte |=3D ARM_LPAE_PTE_MEMATTR_OIWB;
- 		else
- 			pte |=3D ARM_LPAE_PTE_MEMATTR_NC;
-diff --git a/include/linux/iommu.h b/include/linux/iommu.h
-index a5c539f..34b6432 100644
---- a/include/linux/iommu.h
-+++ b/include/linux/iommu.h
-@@ -30,6 +30,7 @@
- #define IOMMU_WRITE	(1 << 1)
- #define IOMMU_CACHE	(1 << 2) /* DMA cache coherency */
- #define IOMMU_NOEXEC	(1 << 3)
-+#define IOMMU_MMIO	(1 << 4) /* e.g. things like MSI doorbells */
-=20
- struct iommu_ops;
- struct iommu_group;
---=20
-2.7.1
+SGksCgpUaGlzIHNlcmllcyBhZGQgaW9tbXUgc3VwcG9ydCB0byByY2FyLWRtYWMuIEl0J3MgdGVz
+dGVkIG9uIEtvZWxzY2ggd2l0aApDT05GSUdfSVBNTVVfVk1TQSBhbmQgYnkgZW5hYmxpbmcgdGhl
+IGlwbW11X2RzIG5vZGUgaW4gcjhhNzc5MS5kdHNpLiBJIHZlcmlmaWVkCm9wZXJhdGlvbiBieSBp
+bnRlcmFjdGluZyB3aXRoIC9kZXYvbW1jYmxrMSAgd2hpY2ggaXMgYSBkZXZpY2UgYmVoaW5kIHRo
+ZSBpb21tdS4KClRoZSBzZXJpZXMgZGVwZW5kcyBvbiBvdXQgb2YgdHJlZSBwYXRjaCAnW1BBVENI
+XSBkbWFlbmdpbmU6IHVzZSBwaHlzX2FkZHJfdCBmb3IKc2xhdmUgY29uZmlndXJhdGlvbicgd2hp
+Y2ggVmlub2Qgbm93IGhhdmUgbW92ZWQgZm9yd2FyZCB3aGl0LCB0aGFua3MhCgoqIENoYW5nZXMg
+c2luY2UgdjMKLSBGb2xkZWQgaW4gYSBmaXggZnJvbSBSb2JpbiB0byBoaXMgcGF0Y2guCi0gQWRk
+ZWQgYSBjaGVjayB0byBtYWtlIHN1cmUgZG1hX21hcF9yZXNvdXJjZSBjYW4gbm90IGJlIHVzZWQg
+dG8gbWFwIFJBTSBhcwogIHBvaW50ZWQgb3V0IGJ5IFJvYmluLiBJIHVzZSBCVUdfT04gdG8gZW5m
+b3JjZSB0aGlzLiBJdCBtaWdodCBub3QgYmUgdGhlIGJlc3QKICBtZXRob2QgYnV0IEkgc2F3IG5v
+IG90aGVyIGdvb2Qgd2F5IHNpbmNlIERNQV9FUlJPUl9DT0RFIG1pZ2h0IG5vdCBiZSBkZWZpbmVk
+CiAgb24gYWxsIHBsYXRmb3Jtcy4KLSBBZGRlZCBjb21tZW50IGFib3V0IHRoYXQgRFRTIGNoYW5n
+ZXMgd2lsbCBkaXNhYmxlIDIgRE1BIGNoYW5uZWxzIGR1ZSB0byBhIEhXCiAgKD8pIGJ1dCBpbiB0
+aGUgRE1BQy4KLSBEcm9wcGVkIHRoZSB1c2Ugb2YgZG1hX2F0dHJzLCBubyBsb25nZXIgbmVlZGVk
+LgotIENvbGxlY3RlZCBBY2tlZC1ieSBhbmQgUmV2aWV3ZWQtYnkgZnJvbSBMYXVyZW50LgotIFZh
+cmlvdXMgaW5kZW50YXRpb24gZml4IHVwcy4KCiogQ2hhbmdlcyBzaW5jZSB2MgotIERyb3AgcGF0
+Y2ggdG8gYWRkIGRtYV97bWFwLHVubWFwfV9wYWdlX2F0dHJzLgotIEFkZCBkbWFfe21hcCx1bm1h
+cH1fcmVzb3VyY2UgdG8gaGFuZGxlIHRoZSBtYXBwaW5nIHdpdGhvdXQgaW52b2x2aW5nIGEKICAn
+c3RydWN0IHBhZ2UnLiBUaGFua3MgTGF1cmVudCBhbmQgUm9iaW4gZm9yIHBvaW50aW5nIHRoaXMg
+b3V0LgotIFVzZSBzaXplIGluc3RlYWQgb2YgYWRkcmVzcyB0byBrZWVwIHRyYWNrIG9mIGlmIGEg
+bWFwcGluZyBleGlzdCBvciBub3QKICBzaW5jZSBhZGRyID09IDAgaXMgdmFsaWQuIFRoYW5rcyBM
+YXVyZW50LgotIFBpY2sgdXAgcGF0Y2ggZnJvbSBSb2JpbiB3aXRoIExhdXJlbnRzIGFjayAoaG9w
+ZSBpdCdzIE9LIGZvciBtZSB0bwogIGF0dGFjaCB0aGUgYWNrPykgdG8gYWRkIElPTU1VX01NSU8u
+Ci0gRml4IGJ1ZyBpbiByY2FyX2RtYWNfZGV2aWNlX2NvbmZpZyB3aGVyZSB0aGUgZXJyb3IgY2hl
+Y2sgd2hlcmUKICBpbnZlcnRlZC4KLSBVc2UgRE1BX0JJRElSRUNUSU9OQUwgaW4gcmNhcl9kbWFj
+X2RldmljZV9jb25maWcgc2luY2Ugd2UgYXQgdGhhdAogIHBvaW50IGNhbid0IGJlIHN1cmUgd2hh
+dCBkaXJlY3Rpb24gdGhlIG1hcHBpbmcgaXMgZ29pbmcgdG8gYmUgdXNlZC4KCiogQ2hhbmdlcyBz
+aW5jZSB2MQotIEFkZCBhbmQgdXNlIGEgZG1hX3ttYXAsdW5tYXB9X3BhZ2VfYXR0cnMgdG8gYmUg
+YWJsZSB0byBtYXAgdGhlIHBhZ2UKICB1c2luZyBhdHRyaWJ1dGVzIERNQV9BVFRSX05PX0tFUk5F
+TF9NQVBQSU5HIGFuZAogIERNQV9BVFRSX1NLSVBfQ1BVX1NZTkMuIFRoYW5rcyBMYXVyZW50Lgot
+IERyb3AgY2hlY2sgaWYgZG1hYyBpcyBwYXJ0IG9mIGEgaW9tbXUgZ3JvdXAgb3Igbm90LCBsZXQg
+dGhlIERNQQogIG1hcHBpbmcgYXBpIGhhbmRsZSBpdC4KLSBNb3ZlIHNsYXZlIGNvbmZpZ3VyYXRp
+b24gZGF0YSBhcm91bmQgaW4gcmNhci1kbWFjIHRvIGF2b2lkIGNvZGUKICBkdXBsaWNhdGlvbi4K
+LSBGaXggYnVpbGQgaXNzdWUgcmVwb3J0ZWQgYnkgJ2tidWlsZCB0ZXN0IHJvYm90JyByZWdhcmRp
+bmcgcGh5c190b19wYWdlCiAgbm90IGF2YWlsYWJpbGl0eSBvbiBzb21lIGNvbmZpZ3VyYXRpb25z
+LgotIEFkZCBEVCBpbmZvcm1hdGlvbiBmb3IgcjhhNzc5MS4KCiogQ2hhbmdlcyBzaW5jZSBSRkMK
+LSBTd2l0Y2ggdG8gdXNlIHRoZSBkbWEtbWFwcGluZyBhcGkgaW5zdGVhZCBvZiB1c2luZyB0aGUg
+aW9tbXVfbWFwKCkKICBkaXJlY3RseS4gVHVybnMgb3V0IHRoZSBkbWEtbWFwcGVyIGlzIG11Y2gg
+c21hcnRlciB0aGVuIG1lLi4uCi0gRHJvcHBlZCB0aGUgcGF0Y2ggdG8gZXhwb3NlIGRvbWFpbi0+
+b3BzLT5wZ3NpemVfYml0bWFwIGZyb20gd2l0aGluIHRoZQogIGlvbW11IGFwaS4KLSBEcm9wcGVk
+IHRoZSBwYXRjaCBzaG93aW5nIGhvdyBJIHRlc3RlZCB0aGUgUkZDLgoKCk5pa2xhcyBTw7ZkZXJs
+dW5kICg3KToKICBkbWEtbWFwcGluZzogYWRkIHttYXAsdW5tYXB9X3Jlc291cmNlIHRvIGRtYV9t
+YXBfb3BzCiAgZG1hLW1hcHBpbmc6IGFkZCBkbWFfe21hcCx1bm1hcH1fcmVzb3VyY2UKICBhcm06
+IGRtYS1tYXBwaW5nOiBhZGQge21hcCx1bm1hcH1fcmVzb3VyY2UgZm9yIGlvbW11IG9wcwogIGRt
+YWVuZ2luZTogcmNhci1kbWFjOiBncm91cCBzbGF2ZSBjb25maWd1cmF0aW9uCiAgZG1hZW5naW5l
+OiByY2FyLWRtYWM6IGFkZCBpb21tdSBzdXBwb3J0IGZvciBzbGF2ZSB0cmFuc2ZlcnMKICBBUk06
+IGR0czogcjhhNzc5MDogYWRkIGlvbW11cyB0byBkbWFjMCBhbmQgZG1hYzEKICBBUk06IGR0czog
+cjhhNzc5MTogYWRkIGlvbW11cyB0byBkbWFjMCBhbmQgZG1hYzEKClJvYmluIE11cnBoeSAoMSk6
+CiAgaW9tbXU6IEFkZCBNTUlPIG1hcHBpbmcgdHlwZQoKIGFyY2gvYXJtL2Jvb3QvZHRzL3I4YTc3
+OTAuZHRzaSB8IDMwICsrKysrKysrKysrKysrKysKIGFyY2gvYXJtL2Jvb3QvZHRzL3I4YTc3OTEu
+ZHRzaSB8IDMwICsrKysrKysrKysrKysrKysKIGFyY2gvYXJtL21tL2RtYS1tYXBwaW5nLmMgICAg
+ICB8IDYzICsrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrCiBkcml2ZXJzL2RtYS9zaC9y
+Y2FyLWRtYWMuYyAgICAgfCA4MSArKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKystLS0t
+LS0tLS0KIGRyaXZlcnMvaW9tbXUvaW8tcGd0YWJsZS1hcm0uYyB8ICA5ICsrKy0tCiBpbmNsdWRl
+L2xpbnV4L2RtYS1tYXBwaW5nLmggICAgfCAzOCArKysrKysrKysrKysrKysrKysrKwogaW5jbHVk
+ZS9saW51eC9pb21tdS5oICAgICAgICAgIHwgIDEgKwogNyBmaWxlcyBjaGFuZ2VkLCAyMzMgaW5z
+ZXJ0aW9ucygrKSwgMTkgZGVsZXRpb25zKC0pCgotLQoyLjcuMQoKX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fX19fX19fX19fX18KaW9tbXUgbWFpbGluZyBsaXN0CmlvbW11QGxp
+c3RzLmxpbnV4LWZvdW5kYXRpb24ub3JnCmh0dHBzOi8vbGlzdHMubGludXhmb3VuZGF0aW9uLm9y
+Zy9tYWlsbWFuL2xpc3RpbmZvL2lvbW11
