@@ -1,139 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f180.google.com ([209.85.217.180]:32967 "EHLO
-	mail-lb0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932406AbcBPNa6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Feb 2016 08:30:58 -0500
-Received: by mail-lb0-f180.google.com with SMTP id x4so95939914lbm.0
-        for <linux-arch@vger.kernel.org>; Tue, 16 Feb 2016 05:30:57 -0800 (PST)
-Date: Tue, 16 Feb 2016 14:30:55 +0100
-From: Niklas =?iso-8859-1?Q?S=F6derlund?=
-	<niklas.soderlund@ragnatech.se>
-Subject: Re: [PATCH v3 1/8] iommu: Add MMIO mapping type
-Message-ID: <20160216133055.GB26710@bigcity.dyn.berto.se>
-References: <1455065878-11906-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <1455065878-11906-2-git-send-email-niklas.soderlund+renesas@ragnatech.se>
- <13740597.5lZXKsEG19@avalon>
- <56BCAF66.8010206@arm.com>
- <20160216120626.GA26710@bigcity.dyn.berto.se>
- <56C3197C.8090903@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <56C3197C.8090903@arm.com>
+Received: from mout.kundenserver.de ([212.227.126.135]:64216 "EHLO
+	mout.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932791AbcBPPmA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Feb 2016 10:42:00 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: [PATCH v2 5/5] gpio: allow setting ARCH_NR_GPIOS from Kconfig
+Date: Tue, 16 Feb 2016 16:40:38 +0100
+Message-ID: <1455637261-2920972-5-git-send-email-arnd@arndb.de>
+In-Reply-To: <1455637261-2920972-1-git-send-email-arnd@arndb.de>
+References: <455637086-2794174-1-git-send-email-arnd@arndb.de>
+ <1455637261-2920972-1-git-send-email-arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Robin Murphy <robin.murphy@arm.com>
-Cc: Laurent Pinchart <laurent.pinchart@ideasonboard.com>, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org, vinod.koul@intel.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org
-Message-ID: <20160216133055._Xnv9RISmNxsYmyKbE9BmwBUsluy4Oamf5gnZBPcbgU@z>
+To: Linus Walleij <linus.walleij@linaro.org>
+Cc: linux-arm-kernel@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>, Russell King <rmk+kernel@arm.linux.org.uk>, Bjorn Helgaas <bhelgaas@google.com>, Alexandre Courbot <gnurou@gmail.com>, linux-gpio@vger.kernel.org, linux-kernel@vger.kernel.org, Lars-Peter Clausen <lars@metafoo.de>, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org, linux-arch@vger.kernel.org
+Message-ID: <20160216154038.gCA5DLLD9E19Ms2dJbuOL-HffBJNZynJfGMm7wCvIhg@z>
 
-* Robin Murphy <robin.murphy@arm.com> [2016-02-16 12:43:40 +0000]:
+The ARM version of asm/gpio.h basically just contains the same definitions
+as the gpiolib version, with the exception of ARCH_NR_GPIOS.
 
-> On 16/02/16 12:06, Niklas Söderlund wrote:
-> >Hi Robin,
-> >
-> >Thanks for your update patch I will include it in my next version. But
-> >I'm sorry I do not understand, is your modification an addition or a
-> >substitution to your original patch?
->
-> Apologies for being confusing - that was a diff on top of the existing
-> patch, to be folded in. My original patch was only handling IOMMU_MMIO for
-> stage 2 PTEs, so we also need the extra code to handle the different way of
-> setting the appropriate memory type in stage 1 PTEs.
+This adds the option for overriding the constant through Kconfig to
+the architecture-independent header, so we can remove the ARM specific
+file later.
 
-That's what I though but wanted to be clear, thanks for clarifying. I
-will fold the diff into your patch and keep your SoB line and send it
-out with my series, hope that's a OK way for me to handle it.
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+---
+ include/asm-generic/gpio.h | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-Once more thanks for your patch and feedback.
+diff --git a/include/asm-generic/gpio.h b/include/asm-generic/gpio.h
+index 40ec1433f05d..8ca627dcea11 100644
+--- a/include/asm-generic/gpio.h
++++ b/include/asm-generic/gpio.h
+@@ -26,8 +26,12 @@
+  */
+ 
+ #ifndef ARCH_NR_GPIOS
++#if defined(CONFIG_ARCH_NR_GPIO) && CONFIG_ARCH_NR_GPIO > 0
++#define ARCH_NR_GPIOS CONFIG_ARCH_NR_GPIO
++#else
+ #define ARCH_NR_GPIOS		512
+ #endif
++#endif
+ 
+ /*
+  * "valid" GPIO numbers are nonnegative and may be passed to
+-- 
+2.7.0
 
->
-> Robin.
->
-> >* Robin Murphy <robin.murphy@arm.com> [2016-02-11 15:57:26 +0000]:
-> >
-> >>On 11/02/16 00:02, Laurent Pinchart wrote:
-> >>>Hi Niklas,
-> >>>
-> >>>Thank you for the patch.
-> >>>
-> >>>On Wednesday 10 February 2016 01:57:51 Niklas Söderlund wrote:
-> >>>>From: Robin Murphy <robin.murphy@arm.com>
-> >>>>
-> >>>>On some platforms, MMIO regions might need slightly different treatment
-> >>>>compared to mapping regular memory; add the notion of MMIO mappings to
-> >>>>the IOMMU API's memory type flags, so that callers can let the IOMMU
-> >>>>drivers know to do the right thing.
-> >>>>
-> >>>>Signed-off-by: Robin Murphy <robin.murphy@arm.com>
-> >>>>Acked-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
-> >>>
-> >>>Answering the question from the cover letter, yes, it's totally fine to pick
-> >>>the ack, that's actually expected.
-> >>>
-> >>>>---
-> >>>>  drivers/iommu/io-pgtable-arm.c | 4 +++-
-> >>>>  include/linux/iommu.h          | 1 +
-> >>>
-> >>>You might be asked to split this patch in two.
-> >>
-> >>Worse than that, you might also be asked to fix it up when the silly author
-> >>remembers that he did this on a stage-2-only ARM SMMU, and the attributes
-> >>for the stage 1 tables that the IPMMU uses are in a different code path:
-> >>
-> >>--->8---
-> >>diff --git a/drivers/iommu/io-pgtable-arm.c b/drivers/iommu/io-pgtable-arm.c
-> >>index 5b5c299..7622c6e 100644
-> >>--- a/drivers/iommu/io-pgtable-arm.c
-> >>+++ b/drivers/iommu/io-pgtable-arm.c
-> >>@@ -354,7 +354,10 @@ static arm_lpae_iopte arm_lpae_prot_to_pte(struct
-> >>arm_lpae_io_pgtable *data,
-> >>                 if (!(prot & IOMMU_WRITE) && (prot & IOMMU_READ))
-> >>                         pte |= ARM_LPAE_PTE_AP_RDONLY;
-> >>
-> >>-               if (prot & IOMMU_CACHE)
-> >>+               if (prot & IOMMU_MMIO)
-> >>+                       pte |= (ARM_LPAE_MAIR_ATTR_IDX_DEV
-> >>+                               << ARM_LPAE_PTE_ATTRINDX_SHIFT);
-> >>+               else if (prot & IOMMU_CACHE)
-> >>                         pte |= (ARM_LPAE_MAIR_ATTR_IDX_CACHE
-> >>                                 << ARM_LPAE_PTE_ATTRINDX_SHIFT);
-> >>         } else {
-> >>--->8---
-> >>
-> >>Sorry for the bother,
-> >>Robin.
-> >>
-> >>>>  2 files changed, 4 insertions(+), 1 deletion(-)
-> >>>>
-> >>>>diff --git a/drivers/iommu/io-pgtable-arm.c b/drivers/iommu/io-pgtable-arm.c
-> >>>>index 381ca5a..3ff4f87 100644
-> >>>>--- a/drivers/iommu/io-pgtable-arm.c
-> >>>>+++ b/drivers/iommu/io-pgtable-arm.c
-> >>>>@@ -364,7 +364,9 @@ static arm_lpae_iopte arm_lpae_prot_to_pte(struct
-> >>>>arm_lpae_io_pgtable *data, pte |= ARM_LPAE_PTE_HAP_READ;
-> >>>>  		if (prot & IOMMU_WRITE)
-> >>>>  			pte |= ARM_LPAE_PTE_HAP_WRITE;
-> >>>>-		if (prot & IOMMU_CACHE)
-> >>>>+		if (prot & IOMMU_MMIO)
-> >>>>+			pte |= ARM_LPAE_PTE_MEMATTR_DEV;
-> >>>>+		else if (prot & IOMMU_CACHE)
-> >>>>  			pte |= ARM_LPAE_PTE_MEMATTR_OIWB;
-> >>>>  		else
-> >>>>  			pte |= ARM_LPAE_PTE_MEMATTR_NC;
-> >>>>diff --git a/include/linux/iommu.h b/include/linux/iommu.h
-> >>>>index a5c539f..34b6432 100644
-> >>>>--- a/include/linux/iommu.h
-> >>>>+++ b/include/linux/iommu.h
-> >>>>@@ -30,6 +30,7 @@
-> >>>>  #define IOMMU_WRITE	(1 << 1)
-> >>>>  #define IOMMU_CACHE	(1 << 2) /* DMA cache coherency */
-> >>>>  #define IOMMU_NOEXEC	(1 << 3)
-> >>>>+#define IOMMU_MMIO	(1 << 4) /* e.g. things like MSI doorbells */
-> >>>>
-> >>>>  struct iommu_ops;
-> >>>>  struct iommu_group;
-> >>>
-> >>
-> >
->
