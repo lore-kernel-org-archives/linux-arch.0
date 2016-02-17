@@ -1,119 +1,102 @@
-From: Michal Hocko <mhocko@kernel.org>
-Subject: [RFC 11/12 v1] x86, rwsem: provide __down_write_killable
-Date: Wed, 17 Feb 2016 17:41:56 +0100
-Message-ID: <20160217164156.GU29196@dhcp22.suse.cz>
-References: <1454444369-2146-1-git-send-email-mhocko@kernel.org>
- <1454444369-2146-12-git-send-email-mhocko@kernel.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-ia64-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <1454444369-2146-12-git-send-email-mhocko@kernel.org>
-Sender: linux-ia64-owner@vger.kernel.org
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: Peter Zijlstra <peterz@infradead.org>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, "David S. Miller" <davem@davemloft.net>, Tony Luck <tony.luck@intel.com>, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, x86@kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, linux-s390@vger.kernel.org, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Kees Cook <keescook@chromium.org>
+Subject: [PATCH v5 1/7] asm-generic: consolidate mark_rodata_ro()
+Date: Wed, 17 Feb 2016 14:41:12 -0800
+Message-ID: <1455748879-21872-2-git-send-email-keescook@chromium.org>
+References: <1455748879-21872-1-git-send-email-keescook@chromium.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pf0-f171.google.com ([209.85.192.171]:34163 "EHLO
+	mail-pf0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1424018AbcBQWlY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Feb 2016 17:41:24 -0500
+Received: by mail-pf0-f171.google.com with SMTP id x65so18997464pfb.1
+        for <linux-arch@vger.kernel.org>; Wed, 17 Feb 2016 14:41:24 -0800 (PST)
+In-Reply-To: <1455748879-21872-1-git-send-email-keescook@chromium.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, David Brown <david.brown@linaro.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
 
-OK, so I have dropped patch 10 and reworked the x86 part to use the same
-asm as __down_write uses. Does this look any better?
+Instead of defining mark_rodata_ro() in each architecture, consolidate it.
 
-I am not an expert in inline asm so the way I am doing it might be not
-optimal but at least the gerenated code looks sane (no changes for the
-regular __down_write).
+Signed-off-by: Kees Cook <keescook@chromium.org>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>
+Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
 ---
-From d9a24cd6d6eb48602b11df56ecc3ea4e223ac18d Mon Sep 17 00:00:00 2001
-From: Michal Hocko <mhocko@suse.com>
-Date: Mon, 1 Feb 2016 18:21:51 +0100
-Subject: [PATCH] x86, rwsem: provide __down_write_killable
+ arch/arm/include/asm/cacheflush.h    | 1 -
+ arch/arm64/include/asm/cacheflush.h  | 4 ----
+ arch/parisc/include/asm/cacheflush.h | 4 ----
+ arch/x86/include/asm/cacheflush.h    | 1 -
+ include/linux/init.h                 | 4 ++++
+ 5 files changed, 4 insertions(+), 10 deletions(-)
 
-which uses the same fast path as __down_write except it falls back to
-call_rwsem_down_write_failed_killable slow path and return -EINTR if
-killed. To prevent from code duplication extract the skeleton of
-__down_write into a helper macro which just takes the semaphore
-and the slow path function to be called.
-
-Signed-off-by: Michal Hocko <mhocko@suse.com>
----
- arch/x86/include/asm/rwsem.h | 41 ++++++++++++++++++++++++++++-------------
- arch/x86/lib/rwsem.S         |  8 ++++++++
- 2 files changed, 36 insertions(+), 13 deletions(-)
-
-diff --git a/arch/x86/include/asm/rwsem.h b/arch/x86/include/asm/rwsem.h
-index d79a218675bc..4c3d90dbe89a 100644
---- a/arch/x86/include/asm/rwsem.h
-+++ b/arch/x86/include/asm/rwsem.h
-@@ -99,21 +99,36 @@ static inline int __down_read_trylock(struct rw_semaphore *sem)
- /*
-  * lock for writing
-  */
-+#define ____down_write(sem, slow_path)			\
-+({							\
-+	long tmp;					\
-+	struct rw_semaphore* ret = sem;			\
-+	asm volatile("# beginning down_write\n\t"	\
-+		     LOCK_PREFIX "  xadd      %1,(%2)\n\t"	\
-+		     /* adds 0xffff0001, returns the old value */ \
-+		     "  test " __ASM_SEL(%w1,%k1) "," __ASM_SEL(%w1,%k1) "\n\t" \
-+		     /* was the active mask 0 before? */\
-+		     "  jz        1f\n"			\
-+		     "  call " slow_path "\n"		\
-+		     "1:\n"				\
-+		     "# ending down_write"		\
-+		     : "+m" (sem->count), "=d" (tmp), "+a" (ret)	\
-+		     : "a" (sem), "1" (RWSEM_ACTIVE_WRITE_BIAS) \
-+		     : "memory", "cc");			\
-+	ret;						\
-+})
-+
- static inline void __down_write(struct rw_semaphore *sem)
- {
--	long tmp;
--	asm volatile("# beginning down_write\n\t"
--		     LOCK_PREFIX "  xadd      %1,(%2)\n\t"
--		     /* adds 0xffff0001, returns the old value */
--		     "  test " __ASM_SEL(%w1,%k1) "," __ASM_SEL(%w1,%k1) "\n\t"
--		     /* was the active mask 0 before? */
--		     "  jz        1f\n"
--		     "  call call_rwsem_down_write_failed\n"
--		     "1:\n"
--		     "# ending down_write"
--		     : "+m" (sem->count), "=d" (tmp)
--		     : "a" (sem), "1" (RWSEM_ACTIVE_WRITE_BIAS)
--		     : "memory", "cc");
-+	____down_write(sem, "call_rwsem_down_write_failed");
-+}
-+
-+static inline int __down_write_killable(struct rw_semaphore *sem)
-+{
-+	if (IS_ERR(____down_write(sem, "call_rwsem_down_write_failed_killable")))
-+		return -EINTR;
-+
-+	return 0;
+diff --git a/arch/arm/include/asm/cacheflush.h b/arch/arm/include/asm/cacheflush.h
+index d5525bfc7e3e..9156fc303afd 100644
+--- a/arch/arm/include/asm/cacheflush.h
++++ b/arch/arm/include/asm/cacheflush.h
+@@ -491,7 +491,6 @@ static inline int set_memory_nx(unsigned long addr, int numpages) { return 0; }
+ #endif
+ 
+ #ifdef CONFIG_DEBUG_RODATA
+-void mark_rodata_ro(void);
+ void set_kernel_text_rw(void);
+ void set_kernel_text_ro(void);
+ #else
+diff --git a/arch/arm64/include/asm/cacheflush.h b/arch/arm64/include/asm/cacheflush.h
+index 7fc294c3bc5b..22dda613f9c9 100644
+--- a/arch/arm64/include/asm/cacheflush.h
++++ b/arch/arm64/include/asm/cacheflush.h
+@@ -156,8 +156,4 @@ int set_memory_rw(unsigned long addr, int numpages);
+ int set_memory_x(unsigned long addr, int numpages);
+ int set_memory_nx(unsigned long addr, int numpages);
+ 
+-#ifdef CONFIG_DEBUG_RODATA
+-void mark_rodata_ro(void);
+-#endif
+-
+ #endif
+diff --git a/arch/parisc/include/asm/cacheflush.h b/arch/parisc/include/asm/cacheflush.h
+index 845272ce9cc5..7bd69bd43a01 100644
+--- a/arch/parisc/include/asm/cacheflush.h
++++ b/arch/parisc/include/asm/cacheflush.h
+@@ -121,10 +121,6 @@ flush_anon_page(struct vm_area_struct *vma, struct page *page, unsigned long vma
+ 	}
  }
  
- /*
-diff --git a/arch/x86/lib/rwsem.S b/arch/x86/lib/rwsem.S
-index 40027db99140..d1a1397e1fb3 100644
---- a/arch/x86/lib/rwsem.S
-+++ b/arch/x86/lib/rwsem.S
-@@ -101,6 +101,14 @@ ENTRY(call_rwsem_down_write_failed)
- 	ret
- ENDPROC(call_rwsem_down_write_failed)
+-#ifdef CONFIG_DEBUG_RODATA
+-void mark_rodata_ro(void);
+-#endif
+-
+ #include <asm/kmap_types.h>
  
-+ENTRY(call_rwsem_down_write_failed_killable)
-+	save_common_regs
-+	movq %rax,%rdi
-+	call rwsem_down_write_failed_killable
-+	restore_common_regs
-+	ret
-+ENDPROC(call_rwsem_down_write_failed_killable)
+ #define ARCH_HAS_KMAP
+diff --git a/arch/x86/include/asm/cacheflush.h b/arch/x86/include/asm/cacheflush.h
+index e63aa38e85fb..c8cff75c5b21 100644
+--- a/arch/x86/include/asm/cacheflush.h
++++ b/arch/x86/include/asm/cacheflush.h
+@@ -92,7 +92,6 @@ void clflush_cache_range(void *addr, unsigned int size);
+ #define mmio_flush_range(addr, size) clflush_cache_range(addr, size)
+ 
+ #ifdef CONFIG_DEBUG_RODATA
+-void mark_rodata_ro(void);
+ extern const int rodata_test_data;
+ extern int kernel_set_to_readonly;
+ void set_kernel_text_rw(void);
+diff --git a/include/linux/init.h b/include/linux/init.h
+index b449f378f995..aedb254abc37 100644
+--- a/include/linux/init.h
++++ b/include/linux/init.h
+@@ -142,6 +142,10 @@ void prepare_namespace(void);
+ void __init load_default_modules(void);
+ int __init init_rootfs(void);
+ 
++#ifdef CONFIG_DEBUG_RODATA
++void mark_rodata_ro(void);
++#endif
 +
- ENTRY(call_rwsem_wake)
- 	/* do nothing if still outstanding active readers */
- 	__ASM_HALF_SIZE(dec) %__ASM_HALF_REG(dx)
+ extern void (*late_time_init)(void);
+ 
+ extern bool initcall_debug;
 -- 
-2.7.0
-
--- 
-Michal Hocko
-SUSE Labs
+2.6.3
