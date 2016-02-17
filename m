@@ -1,73 +1,53 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 7/7] ARM: vdso: Mark vDSO code as read-only
-Date: Wed, 17 Feb 2016 14:41:18 -0800
-Message-ID: <1455748879-21872-8-git-send-email-keescook@chromium.org>
-References: <1455748879-21872-1-git-send-email-keescook@chromium.org>
-Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-2661-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <1455748879-21872-1-git-send-email-keescook@chromium.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, David Brown <david.brown@linaro.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Subject: Re: [PATCH] ARM: vdso: Mark vDSO code as read-only
+Date: Wed, 17 Feb 2016 15:00:52 -0800
+Message-ID: <CAGXu5jK22LfvLdMfWz_vbQsJ3bbjSdJrYAp=5yWzD4yRNTTGFQ@mail.gmail.com>
+References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
+	<20160216213659.GA47194@davidb.org>
+	<CAGXu5j+H63jhcDpHpXK5aWvgUBz=5vB0FK_zRoc+wZEk32B2fg@mail.gmail.com>
+	<20160217052010.GA49233@davidb.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-io0-f169.google.com ([209.85.223.169]:33484 "EHLO
+	mail-io0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965386AbcBQXAx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Feb 2016 18:00:53 -0500
+Received: by mail-io0-f169.google.com with SMTP id z135so54745574iof.0
+        for <linux-arch@vger.kernel.org>; Wed, 17 Feb 2016 15:00:53 -0800 (PST)
+In-Reply-To: <20160217052010.GA49233@davidb.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Brown <david.brown@linaro.org>
+Cc: Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-From: David Brown <david.brown@linaro.org>
+On Tue, Feb 16, 2016 at 9:20 PM, David Brown <david.brown@linaro.org> wrote:
+> On Tue, Feb 16, 2016 at 01:52:33PM -0800, Kees Cook wrote:
+>>
+>> On Tue, Feb 16, 2016 at 1:36 PM, David Brown <david.brown@linaro.org>
+>> wrote:
+>>>
+>>> Although the arm vDSO is cleanly separated by code/data with the code
+>>> being read-only in userspace mappings, the code page is still writable
+>>> from the kernel.  There have been exploits (such as
+>>> http://itszn.com/blog/?p=21) that take advantage of this on x86 to go
+>>> from a bad kernel write to full root.
+>>>
+>>> Prevent this specific exploit on arm by putting the vDSO code page in
+>>> post-init read-only memory as well.
+>>
+>>
+>> Is the vdso dynamically built at init time like on x86, or can this
+>> just use .rodata directly?
+>
+>
+> On ARM, it is patched during init.  Arm64's is just plain read-only.
 
-Although the arm vDSO is cleanly separated by code/data with the code
-being read-only in userspace mappings, the code page is still writable
-from the kernel.  There have been exploits (such as
-http://itszn.com/blog/?p=21) that take advantage of this on x86 to go
-from a bad kernel write to full root.
+Okay, great. I've added this to my postinit-readonly series (which I
+just refreshed and sent out again...)
 
-Prevent this specific exploit on arm by putting the vDSO code page in
-post-init read-only memory as well.
+-Kees
 
-Before:
-vdso: 1 text pages at base 80927000
-root@Vexpress:/ cat /sys/kernel/debug/kernel_page_tables
----[ Modules ]---
----[ Kernel Mapping ]---
-0x80000000-0x80100000           1M     RW NX SHD
-0x80100000-0x80600000           5M     ro x  SHD
-0x80600000-0x80800000           2M     ro NX SHD
-0x80800000-0xbe000000         984M     RW NX SHD
-
-After:
-vdso: 1 text pages at base 8072b000
-root@Vexpress:/ cat /sys/kernel/debug/kernel_page_tables
----[ Modules ]---
----[ Kernel Mapping ]---
-0x80000000-0x80100000           1M     RW NX SHD
-0x80100000-0x80600000           5M     ro x  SHD
-0x80600000-0x80800000           2M     ro NX SHD
-0x80800000-0xbe000000         984M     RW NX SHD
-
-Inspired by https://lkml.org/lkml/2016/1/19/494 based on work by the
-PaX Team, Brad Spengler, and Kees Cook.
-
-Signed-off-by: David Brown <david.brown@linaro.org>
-Acked-by: Kees Cook <keescook@chromium.org>
----
- arch/arm/vdso/vdso.S | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
-
-diff --git a/arch/arm/vdso/vdso.S b/arch/arm/vdso/vdso.S
-index b2b97e3e7bab..a62a7b64f49c 100644
---- a/arch/arm/vdso/vdso.S
-+++ b/arch/arm/vdso/vdso.S
-@@ -23,9 +23,8 @@
- #include <linux/const.h>
- #include <asm/page.h>
- 
--	__PAGE_ALIGNED_DATA
--
- 	.globl vdso_start, vdso_end
-+	.section .data..ro_after_init
- 	.balign PAGE_SIZE
- vdso_start:
- 	.incbin "arch/arm/vdso/vdso.so"
 -- 
-2.6.3
+Kees Cook
+Chrome OS & Brillo Security
