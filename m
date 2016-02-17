@@ -1,93 +1,79 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH] ARM: vdso: Mark vDSO code as read-only
-Date: Tue, 16 Feb 2016 13:52:33 -0800
-Message-ID: <CAGXu5j+H63jhcDpHpXK5aWvgUBz=5vB0FK_zRoc+wZEk32B2fg@mail.gmail.com>
-References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
-	<20160216213659.GA47194@davidb.org>
+From: Peter Hurley <peter@hurleysoftware.com>
+Subject: Re: [PATCH v2] serial: earlycon: rework common framework for earlycon
+ declarations
+Date: Tue, 16 Feb 2016 17:31:48 -0800
+Message-ID: <56C3CD84.9000504@hurleysoftware.com>
+References: <1455273394-27350-1-git-send-email-yamada.masahiro@socionext.com>
+ <56BDF799.1030505@hurleysoftware.com>
+ <CAK7LNAS_vietwRRFnH3YhbWSzjRFP4U6rjftYek1KQ3ips2ZSQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f182.google.com ([209.85.223.182]:36132 "EHLO
-	mail-io0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751375AbcBPVwe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Feb 2016 16:52:34 -0500
-Received: by mail-io0-f182.google.com with SMTP id l127so1425434iof.3
-        for <linux-arch@vger.kernel.org>; Tue, 16 Feb 2016 13:52:33 -0800 (PST)
-In-Reply-To: <20160216213659.GA47194@davidb.org>
+Received: from mail-pa0-f48.google.com ([209.85.220.48]:34292 "EHLO
+	mail-pa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S964921AbcBQBbw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Feb 2016 20:31:52 -0500
+Received: by mail-pa0-f48.google.com with SMTP id fy10so1515695pac.1
+        for <linux-arch@vger.kernel.org>; Tue, 16 Feb 2016 17:31:51 -0800 (PST)
+In-Reply-To: <CAK7LNAS_vietwRRFnH3YhbWSzjRFP4U6rjftYek1KQ3ips2ZSQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Brown <david.brown@linaro.org>
-Cc: Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: Masahiro Yamada <yamada.masahiro@socionext.com>
+Cc: linux-serial@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, devicetree@vger.kernel.org, Rob Herring <robh@kernel.org>, Greg KH <gregkh@linuxfoundation.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-arch@vger.kernel.org, Jiri Slaby <jslaby@suse.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@linaro.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>
 
-On Tue, Feb 16, 2016 at 1:36 PM, David Brown <david.brown@linaro.org> wrote:
-> Although the arm vDSO is cleanly separated by code/data with the code
-> being read-only in userspace mappings, the code page is still writable
-> from the kernel.  There have been exploits (such as
-> http://itszn.com/blog/?p=21) that take advantage of this on x86 to go
-> from a bad kernel write to full root.
->
-> Prevent this specific exploit on arm by putting the vDSO code page in
-> post-init read-only memory as well.
+On 02/12/2016 08:30 AM, Masahiro Yamada wrote:
+> Hi Peter,
+> 
+> 
+> 2016-02-13 0:17 GMT+09:00 Peter Hurley <peter@hurleysoftware.com>:
+>> On 02/12/2016 02:36 AM, Masahiro Yamada wrote:
+>>> Commit 71f50c6d9a22 ("of: drop symbols declared by _OF_DECLARE() from
+>>> modules") fixed the link error introduced by commit b8d20e06eaad
+>>> ("serial: 8250_uniphier: add earlycon support").
+>>>
+>>> After commit 2eaa790989e0 ("earlycon: Use common framework for
+>>> earlycon declarations") was applied, the link error came back
+>>> because the commit reworked OF_EARLYCON_DECLARE() to not use
+>>> _OF_DECLARE().
+>>
+>> What link error are you getting?
+> 
+> The combination of CONFIG_SERIAL_8250_CONSOLE=y
+> and CONFIG_SERIAL_8250_UNIPHIER=m causes a link error.
+> 
+> 
+> 
+>>
+>>> This commit reworks OF_EARLYCON_DECLARE() again based on
+>>> _OF_DECLARE().  My motivations are:
+>>>
+>>>  - Fix the link error in a generic way (without patching
+>>>    drivers/tty/serial/8250/8250_uniphier.c)
+>>>
+>>>  - Delete struct earlycon_id.  This struct is re-inventing the wheel;
+>>>    the fields "name", "compatible", "setup" can be implemented in
+>>>    struct of_device_id as other frameworks do.
+>>
+>> This patch basically reverts the common framework.
+>> What happens when not building with OF? Does it still declare the
+>> earlycon table?
+> 
+> Ah, I missed this.  (sigh)
+> 
+> Earlycon must still work without OF.
+> My way only works with OF.
+> 
+> I really screwed up.  Sorry.
 
-Is the vdso dynamically built at init time like on x86, or can this
-just use .rodata directly?
+Hi Masahiro,
 
--Kees
+No big deal.
 
->
-> Before:
-> vdso: 1 text pages at base 80927000
-> root@Vexpress:/ cat /sys/kernel/debug/kernel_page_tables
-> ---[ Modules ]---
-> ---[ Kernel Mapping ]---
-> 0x80000000-0x80100000           1M     RW NX SHD
-> 0x80100000-0x80600000           5M     ro x  SHD
-> 0x80600000-0x80800000           2M     ro NX SHD
-> 0x80800000-0xbe000000         984M     RW NX SHD
->
-> After:
-> vdso: 1 text pages at base 8072b000
-> root@Vexpress:/ cat /sys/kernel/debug/kernel_page_tables
-> ---[ Modules ]---
-> ---[ Kernel Mapping ]---
-> 0x80000000-0x80100000           1M     RW NX SHD
-> 0x80100000-0x80600000           5M     ro x  SHD
-> 0x80600000-0x80800000           2M     ro NX SHD
-> 0x80800000-0xbe000000         984M     RW NX SHD
->
-> Inspired by https://lkml.org/lkml/2016/1/19/494 based on work by the
-> PaX Team, Brad Spengler, and Kees Cook.
->
-> Signed-off-by: David Brown <david.brown@linaro.org>
-> ---
-> This patch depends on Kees Cook's series
-> https://lkml.org/lkml/2016/1/19/497 which adds the ro_after_init
-> section.
->
-> arch/arm/vdso/vdso.S | 3 +--
-> 1 file changed, 1 insertion(+), 2 deletions(-)
->
-> diff --git a/arch/arm/vdso/vdso.S b/arch/arm/vdso/vdso.S
-> index b2b97e3..a62a7b6 100644
-> --- a/arch/arm/vdso/vdso.S
-> +++ b/arch/arm/vdso/vdso.S
-> @@ -23,9 +23,8 @@
-> #include <linux/const.h>
-> #include <asm/page.h>
->
-> -       __PAGE_ALIGNED_DATA
-> -
->         .globl vdso_start, vdso_end
-> +       .section .data..ro_after_init
->         .balign PAGE_SIZE
-> vdso_start:
->         .incbin "arch/arm/vdso/vdso.so"
-> --
-> 2.7.1
->
+We need to come up with a better way to enable earlycon builds and
+opt-in by driver than the current method. Breaking builds with earlycon
+support has happened several times in the last couple of years so
+it's not just you.
 
-
-
--- 
-Kees Cook
-Chrome OS & Brillo Security
+Regards,
+Peter Hurley
