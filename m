@@ -1,79 +1,40 @@
-From: Peter Hurley <peter@hurleysoftware.com>
-Subject: Re: [PATCH v2] serial: earlycon: rework common framework for earlycon
- declarations
-Date: Tue, 16 Feb 2016 17:31:48 -0800
-Message-ID: <56C3CD84.9000504@hurleysoftware.com>
-References: <1455273394-27350-1-git-send-email-yamada.masahiro@socionext.com>
- <56BDF799.1030505@hurleysoftware.com>
- <CAK7LNAS_vietwRRFnH3YhbWSzjRFP4U6rjftYek1KQ3ips2ZSQ@mail.gmail.com>
+From: David Brown <david.brown@linaro.org>
+Subject: Re: [PATCH] ARM: vdso: Mark vDSO code as read-only
+Date: Tue, 16 Feb 2016 22:20:10 -0700
+Message-ID: <20160217052010.GA49233@davidb.org>
+References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
+ <20160216213659.GA47194@davidb.org>
+ <CAGXu5j+H63jhcDpHpXK5aWvgUBz=5vB0FK_zRoc+wZEk32B2fg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii; format=flowed
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f48.google.com ([209.85.220.48]:34292 "EHLO
-	mail-pa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S964921AbcBQBbw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Feb 2016 20:31:52 -0500
-Received: by mail-pa0-f48.google.com with SMTP id fy10so1515695pac.1
-        for <linux-arch@vger.kernel.org>; Tue, 16 Feb 2016 17:31:51 -0800 (PST)
-In-Reply-To: <CAK7LNAS_vietwRRFnH3YhbWSzjRFP4U6rjftYek1KQ3ips2ZSQ@mail.gmail.com>
+Received: from mail-io0-f169.google.com ([209.85.223.169]:35610 "EHLO
+	mail-io0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751583AbcBQFUO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Feb 2016 00:20:14 -0500
+Received: by mail-io0-f169.google.com with SMTP id g203so24133380iof.2
+        for <linux-arch@vger.kernel.org>; Tue, 16 Feb 2016 21:20:13 -0800 (PST)
+Content-Disposition: inline
+In-Reply-To: <CAGXu5j+H63jhcDpHpXK5aWvgUBz=5vB0FK_zRoc+wZEk32B2fg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Masahiro Yamada <yamada.masahiro@socionext.com>
-Cc: linux-serial@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, devicetree@vger.kernel.org, Rob Herring <robh@kernel.org>, Greg KH <gregkh@linuxfoundation.org>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-arch@vger.kernel.org, Jiri Slaby <jslaby@suse.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@linaro.org>, Rob Herring <robh+dt@kernel.org>, Frank Rowand <frowand.list@gmail.com>
+To: Kees Cook <keescook@chromium.org>
+Cc: Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-On 02/12/2016 08:30 AM, Masahiro Yamada wrote:
-> Hi Peter,
-> 
-> 
-> 2016-02-13 0:17 GMT+09:00 Peter Hurley <peter@hurleysoftware.com>:
->> On 02/12/2016 02:36 AM, Masahiro Yamada wrote:
->>> Commit 71f50c6d9a22 ("of: drop symbols declared by _OF_DECLARE() from
->>> modules") fixed the link error introduced by commit b8d20e06eaad
->>> ("serial: 8250_uniphier: add earlycon support").
->>>
->>> After commit 2eaa790989e0 ("earlycon: Use common framework for
->>> earlycon declarations") was applied, the link error came back
->>> because the commit reworked OF_EARLYCON_DECLARE() to not use
->>> _OF_DECLARE().
+On Tue, Feb 16, 2016 at 01:52:33PM -0800, Kees Cook wrote:
+>On Tue, Feb 16, 2016 at 1:36 PM, David Brown <david.brown@linaro.org> wrote:
+>> Although the arm vDSO is cleanly separated by code/data with the code
+>> being read-only in userspace mappings, the code page is still writable
+>> from the kernel.  There have been exploits (such as
+>> http://itszn.com/blog/?p=21) that take advantage of this on x86 to go
+>> from a bad kernel write to full root.
 >>
->> What link error are you getting?
-> 
-> The combination of CONFIG_SERIAL_8250_CONSOLE=y
-> and CONFIG_SERIAL_8250_UNIPHIER=m causes a link error.
-> 
-> 
-> 
->>
->>> This commit reworks OF_EARLYCON_DECLARE() again based on
->>> _OF_DECLARE().  My motivations are:
->>>
->>>  - Fix the link error in a generic way (without patching
->>>    drivers/tty/serial/8250/8250_uniphier.c)
->>>
->>>  - Delete struct earlycon_id.  This struct is re-inventing the wheel;
->>>    the fields "name", "compatible", "setup" can be implemented in
->>>    struct of_device_id as other frameworks do.
->>
->> This patch basically reverts the common framework.
->> What happens when not building with OF? Does it still declare the
->> earlycon table?
-> 
-> Ah, I missed this.  (sigh)
-> 
-> Earlycon must still work without OF.
-> My way only works with OF.
-> 
-> I really screwed up.  Sorry.
+>> Prevent this specific exploit on arm by putting the vDSO code page in
+>> post-init read-only memory as well.
+>
+>Is the vdso dynamically built at init time like on x86, or can this
+>just use .rodata directly?
 
-Hi Masahiro,
+On ARM, it is patched during init.  Arm64's is just plain read-only.
 
-No big deal.
-
-We need to come up with a better way to enable earlycon builds and
-opt-in by driver than the current method. Breaking builds with earlycon
-support has happened several times in the last couple of years so
-it's not just you.
-
-Regards,
-Peter Hurley
+David
