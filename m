@@ -1,102 +1,113 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 1/7] asm-generic: consolidate mark_rodata_ro()
-Date: Wed, 17 Feb 2016 14:41:12 -0800
-Message-ID: <1455748879-21872-2-git-send-email-keescook@chromium.org>
+Subject: [PATCH v5 2/7] init: create cmdline param to disable readonly
+Date: Wed, 17 Feb 2016 14:41:13 -0800
+Message-ID: <1455748879-21872-3-git-send-email-keescook@chromium.org>
 References: <1455748879-21872-1-git-send-email-keescook@chromium.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f171.google.com ([209.85.192.171]:34163 "EHLO
-	mail-pf0-f171.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1424018AbcBQWlY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Feb 2016 17:41:24 -0500
-Received: by mail-pf0-f171.google.com with SMTP id x65so18997464pfb.1
-        for <linux-arch@vger.kernel.org>; Wed, 17 Feb 2016 14:41:24 -0800 (PST)
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1455748879-21872-1-git-send-email-keescook@chromium.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Ingo Molnar <mingo@kernel.org>
-Cc: Kees Cook <keescook@chromium.org>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <will.deacon@arm.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, David Brown <david.brown@linaro.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
+Cc: Kees Cook <keescook@chromium.org>, David Brown <david.brown@linaro.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Instead of defining mark_rodata_ro() in each architecture, consolidate it.
+It may be useful to debug writes to the readonly sections of memory,
+so provide a cmdline "rodata=off" to allow for this. This can be
+expanded in the future to support "log" and "write" modes, but that
+will need to be architecture-specific.
 
+Suggested-by: H. Peter Anvin <hpa@zytor.com>
 Signed-off-by: Kees Cook <keescook@chromium.org>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
 ---
- arch/arm/include/asm/cacheflush.h    | 1 -
- arch/arm64/include/asm/cacheflush.h  | 4 ----
- arch/parisc/include/asm/cacheflush.h | 4 ----
- arch/x86/include/asm/cacheflush.h    | 1 -
- include/linux/init.h                 | 4 ++++
- 5 files changed, 4 insertions(+), 10 deletions(-)
+ Documentation/kernel-parameters.txt |  4 ++++
+ init/main.c                         | 27 +++++++++++++++++++++++----
+ kernel/debug/kdb/kdb_bp.c           |  4 +---
+ 3 files changed, 28 insertions(+), 7 deletions(-)
 
-diff --git a/arch/arm/include/asm/cacheflush.h b/arch/arm/include/asm/cacheflush.h
-index d5525bfc7e3e..9156fc303afd 100644
---- a/arch/arm/include/asm/cacheflush.h
-+++ b/arch/arm/include/asm/cacheflush.h
-@@ -491,7 +491,6 @@ static inline int set_memory_nx(unsigned long addr, int numpages) { return 0; }
- #endif
+diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-parameters.txt
+index e3a9b5863424..3fcbd7a80b27 100644
+--- a/Documentation/kernel-parameters.txt
++++ b/Documentation/kernel-parameters.txt
+@@ -3554,6 +3554,10 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
  
- #ifdef CONFIG_DEBUG_RODATA
--void mark_rodata_ro(void);
- void set_kernel_text_rw(void);
- void set_kernel_text_ro(void);
- #else
-diff --git a/arch/arm64/include/asm/cacheflush.h b/arch/arm64/include/asm/cacheflush.h
-index 7fc294c3bc5b..22dda613f9c9 100644
---- a/arch/arm64/include/asm/cacheflush.h
-+++ b/arch/arm64/include/asm/cacheflush.h
-@@ -156,8 +156,4 @@ int set_memory_rw(unsigned long addr, int numpages);
- int set_memory_x(unsigned long addr, int numpages);
- int set_memory_nx(unsigned long addr, int numpages);
+ 	ro		[KNL] Mount root device read-only on boot
  
--#ifdef CONFIG_DEBUG_RODATA
--void mark_rodata_ro(void);
++	rodata=		[KNL]
++		on	Mark read-only kernel memory as read-only (default).
++		off	Leave read-only kernel memory writable for debugging.
++
+ 	root=		[KNL] Root filesystem
+ 			See name_to_dev_t comment in init/do_mounts.c.
+ 
+diff --git a/init/main.c b/init/main.c
+index 5db3a3ab493f..bbc8214a0129 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -93,9 +93,6 @@ static int kernel_init(void *);
+ extern void init_IRQ(void);
+ extern void fork_init(void);
+ extern void radix_tree_init(void);
+-#ifndef CONFIG_DEBUG_RODATA
+-static inline void mark_rodata_ro(void) { }
 -#endif
--
- #endif
-diff --git a/arch/parisc/include/asm/cacheflush.h b/arch/parisc/include/asm/cacheflush.h
-index 845272ce9cc5..7bd69bd43a01 100644
---- a/arch/parisc/include/asm/cacheflush.h
-+++ b/arch/parisc/include/asm/cacheflush.h
-@@ -121,10 +121,6 @@ flush_anon_page(struct vm_area_struct *vma, struct page *page, unsigned long vma
- 	}
- }
  
--#ifdef CONFIG_DEBUG_RODATA
--void mark_rodata_ro(void);
--#endif
--
- #include <asm/kmap_types.h>
+ /*
+  * Debug helper: via this flag we know that we are in 'early bootup code'
+@@ -923,6 +920,28 @@ static int try_to_run_init_process(const char *init_filename)
  
- #define ARCH_HAS_KMAP
-diff --git a/arch/x86/include/asm/cacheflush.h b/arch/x86/include/asm/cacheflush.h
-index e63aa38e85fb..c8cff75c5b21 100644
---- a/arch/x86/include/asm/cacheflush.h
-+++ b/arch/x86/include/asm/cacheflush.h
-@@ -92,7 +92,6 @@ void clflush_cache_range(void *addr, unsigned int size);
- #define mmio_flush_range(addr, size) clflush_cache_range(addr, size)
- 
- #ifdef CONFIG_DEBUG_RODATA
--void mark_rodata_ro(void);
- extern const int rodata_test_data;
- extern int kernel_set_to_readonly;
- void set_kernel_text_rw(void);
-diff --git a/include/linux/init.h b/include/linux/init.h
-index b449f378f995..aedb254abc37 100644
---- a/include/linux/init.h
-+++ b/include/linux/init.h
-@@ -142,6 +142,10 @@ void prepare_namespace(void);
- void __init load_default_modules(void);
- int __init init_rootfs(void);
+ static noinline void __init kernel_init_freeable(void);
  
 +#ifdef CONFIG_DEBUG_RODATA
-+void mark_rodata_ro(void);
++static bool rodata_enabled = true;
++static int __init set_debug_rodata(char *str)
++{
++	return strtobool(str, &rodata_enabled);
++}
++__setup("rodata=", set_debug_rodata);
++
++static void mark_readonly(void)
++{
++	if (rodata_enabled)
++		mark_rodata_ro();
++	else
++		pr_info("Kernel memory protection disabled.\n");
++}
++#else
++static inline void mark_readonly(void)
++{
++	pr_warn("This architecture does not have kernel memory protection.\n");
++}
 +#endif
 +
- extern void (*late_time_init)(void);
+ static int __ref kernel_init(void *unused)
+ {
+ 	int ret;
+@@ -931,7 +950,7 @@ static int __ref kernel_init(void *unused)
+ 	/* need to finish all async __init code before freeing the memory */
+ 	async_synchronize_full();
+ 	free_initmem();
+-	mark_rodata_ro();
++	mark_readonly();
+ 	system_state = SYSTEM_RUNNING;
+ 	numa_default_policy();
  
- extern bool initcall_debug;
+diff --git a/kernel/debug/kdb/kdb_bp.c b/kernel/debug/kdb/kdb_bp.c
+index e1dbf4a2c69e..90ff129c88a2 100644
+--- a/kernel/debug/kdb/kdb_bp.c
++++ b/kernel/debug/kdb/kdb_bp.c
+@@ -153,13 +153,11 @@ static int _kdb_bp_install(struct pt_regs *regs, kdb_bp_t *bp)
+ 	} else {
+ 		kdb_printf("%s: failed to set breakpoint at 0x%lx\n",
+ 			   __func__, bp->bp_addr);
+-#ifdef CONFIG_DEBUG_RODATA
+ 		if (!bp->bp_type) {
+ 			kdb_printf("Software breakpoints are unavailable.\n"
+-				   "  Change the kernel CONFIG_DEBUG_RODATA=n\n"
++				   "  Boot the kernel with rodata=off\n"
+ 				   "  OR use hw breaks: help bph\n");
+ 		}
+-#endif
+ 		return 1;
+ 	}
+ 	return 0;
 -- 
 2.6.3
