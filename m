@@ -1,40 +1,49 @@
-From: David Brown <david.brown@linaro.org>
-Subject: Re: [PATCH] ARM: vdso: Mark vDSO code as read-only
-Date: Tue, 16 Feb 2016 22:20:10 -0700
-Message-ID: <20160217052010.GA49233@davidb.org>
-References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
- <20160216213659.GA47194@davidb.org>
- <CAGXu5j+H63jhcDpHpXK5aWvgUBz=5vB0FK_zRoc+wZEk32B2fg@mail.gmail.com>
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH 1/5] all: s390: move wrapper infrastructure to generic
+ headers
+Date: Wed, 17 Feb 2016 09:22:10 +0100
+Message-ID: <20160217082210.GA4175@osiris>
+References: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
+ <1453741047-5498-2-git-send-email-ynorov@caviumnetworks.com>
+ <20160128121618.GB5418@osiris>
+ <20160128163109.GA8529@yury-N73SV>
+ <20160201114251.GB973@yury-N73SV>
+ <20160202073913.GB3990@osiris>
+ <20160202154331.GA3003@yury-N73SV>
+ <20160202160826.GF3990@osiris>
+ <20160202195434.GA3397@osiris>
+ <20160202204156.GA27290@yury-N73SV>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii; format=flowed
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-io0-f169.google.com ([209.85.223.169]:35610 "EHLO
-	mail-io0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751583AbcBQFUO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Feb 2016 00:20:14 -0500
-Received: by mail-io0-f169.google.com with SMTP id g203so24133380iof.2
-        for <linux-arch@vger.kernel.org>; Tue, 16 Feb 2016 21:20:13 -0800 (PST)
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <CAGXu5j+H63jhcDpHpXK5aWvgUBz=5vB0FK_zRoc+wZEk32B2fg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+In-Reply-To: <20160202204156.GA27290@yury-N73SV>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, catalin.marinas@arm.com, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 16, 2016 at 01:52:33PM -0800, Kees Cook wrote:
->On Tue, Feb 16, 2016 at 1:36 PM, David Brown <david.brown@linaro.org> wrote:
->> Although the arm vDSO is cleanly separated by code/data with the code
->> being read-only in userspace mappings, the code page is still writable
->> from the kernel.  There have been exploits (such as
->> http://itszn.com/blog/?p=21) that take advantage of this on x86 to go
->> from a bad kernel write to full root.
->>
->> Prevent this specific exploit on arm by putting the vDSO code page in
->> post-init read-only memory as well.
->
->Is the vdso dynamically built at init time like on x86, or can this
->just use .rodata directly?
+On Tue, Feb 02, 2016 at 11:41:56PM +0300, Yury Norov wrote:
+> > However I'll try to write an addon patch to your patch series. Maybe we can
+> > still get rid of compat_wrapper.c in a way which makes both of us happy.
+> > Also.. the idea with the alias names for compat wrappers does seem to have
+> > the disadvantage that it will pollute /proc/kallsyms for example.
+> > 
+> > Anyway, I'm not sure if I will be able to come up with something this week
+> > though.
+> 
+> Great, I'm looking forward...
 
-On ARM, it is patched during init.  Arm64's is just plain read-only.
+Hi Yuri,
 
-David
+after playing around with this a bit I couldn't come up with a solution
+that I'm happy with, unfortunately.
+
+So in order to make some progress here I'd vote that we simply move the
+existing compat_wrapper.c from arch/s390 to common code like you did in
+your first approach and leave the existing SYSCALL macros alone.
+
+That will have hardly any effect to anybody else and your problem is
+solved while s390 still works.
+
+Does that make sense?
