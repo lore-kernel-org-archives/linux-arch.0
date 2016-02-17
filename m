@@ -1,97 +1,46 @@
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 5/7] lkdtm: verify that __ro_after_init works correctly
-Date: Wed, 17 Feb 2016 14:41:16 -0800
-Message-ID: <1455748879-21872-6-git-send-email-keescook@chromium.org>
-References: <1455748879-21872-1-git-send-email-keescook@chromium.org>
-Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-2659-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <1455748879-21872-1-git-send-email-keescook@chromium.org>
+Subject: [PATCH v5 0/7] introduce post-init read-only memory
+Date: Wed, 17 Feb 2016 14:41:11 -0800
+Message-ID: <1455748879-21872-1-git-send-email-keescook@chromium.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pa0-f48.google.com ([209.85.220.48]:33113 "EHLO
+	mail-pa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1423956AbcBQWlx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Feb 2016 17:41:53 -0500
+Received: by mail-pa0-f48.google.com with SMTP id fl4so18733964pad.0
+        for <linux-arch@vger.kernel.org>; Wed, 17 Feb 2016 14:41:53 -0800 (PST)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
 Cc: Kees Cook <keescook@chromium.org>, David Brown <david.brown@linaro.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
 
-The new __ro_after_init section should be writable before init, but
-not after. Validate that it gets updated at init and can't be written
-to afterwards.
+One of the easiest ways to protect the kernel from attack is to reduce
+the internal attack surface exposed when a "write" flaw is available. By
+making as much of the kernel read-only as possible, we reduce the
+attack surface.
 
-Signed-off-by: Kees Cook <keescook@chromium.org>
----
- drivers/misc/lkdtm.c | 29 ++++++++++++++++++++++++++---
- 1 file changed, 26 insertions(+), 3 deletions(-)
+Many things are written to only during __init, and never changed
+again. These cannot be made "const" since the compiler will do the wrong
+thing (we do actually need to write to them). Instead, move these items
+into a memory region that will be made read-only during mark_rodata_ro()
+which happens after all kernel __init code has finished.
 
-diff --git a/drivers/misc/lkdtm.c b/drivers/misc/lkdtm.c
-index 5c1351b19029..a77799d227ee 100644
---- a/drivers/misc/lkdtm.c
-+++ b/drivers/misc/lkdtm.c
-@@ -103,6 +103,7 @@ enum ctype {
- 	CT_EXEC_USERSPACE,
- 	CT_ACCESS_USERSPACE,
- 	CT_WRITE_RO,
-+	CT_WRITE_RO_AFTER_INIT,
- 	CT_WRITE_KERN,
- };
- 
-@@ -140,6 +141,7 @@ static char* cp_type[] = {
- 	"EXEC_USERSPACE",
- 	"ACCESS_USERSPACE",
- 	"WRITE_RO",
-+	"WRITE_RO_AFTER_INIT",
- 	"WRITE_KERN",
- };
- 
-@@ -162,6 +164,7 @@ static DEFINE_SPINLOCK(lock_me_up);
- static u8 data_area[EXEC_SIZE];
- 
- static const unsigned long rodata = 0xAA55AA55;
-+static unsigned long ro_after_init __ro_after_init = 0x55AA5500;
- 
- module_param(recur_count, int, 0644);
- MODULE_PARM_DESC(recur_count, " Recursion level for the stack overflow test");
-@@ -503,11 +506,28 @@ static void lkdtm_do_action(enum ctype which)
- 		break;
- 	}
- 	case CT_WRITE_RO: {
--		unsigned long *ptr;
-+		/* Explicitly cast away "const" for the test. */
-+		unsigned long *ptr = (unsigned long *)&rodata;
- 
--		ptr = (unsigned long *)&rodata;
-+		pr_info("attempting bad rodata write at %p\n", ptr);
-+		*ptr ^= 0xabcd1234;
- 
--		pr_info("attempting bad write at %p\n", ptr);
-+		break;
-+	}
-+	case CT_WRITE_RO_AFTER_INIT: {
-+		unsigned long *ptr = &ro_after_init;
-+
-+		/*
-+		 * Verify we were written to during init. Since an Oops
-+		 * is considered a "success", a failure is to just skip the
-+		 * real test.
-+		 */
-+		if ((*ptr & 0xAA) != 0xAA) {
-+			pr_info("%p was NOT written during init!?\n", ptr);
-+			break;
-+		}
-+
-+		pr_info("attempting bad ro_after_init write at %p\n", ptr);
- 		*ptr ^= 0xabcd1234;
- 
- 		break;
-@@ -817,6 +837,9 @@ static int __init lkdtm_module_init(void)
- 	int n_debugfs_entries = 1; /* Assume only the direct entry */
- 	int i;
- 
-+	/* Make sure we can write to __ro_after_init values during __init */
-+	ro_after_init |= 0xAA;
-+
- 	/* Register debugfs interface */
- 	lkdtm_debugfs_root = debugfs_create_dir("provoke-crash", NULL);
- 	if (!lkdtm_debugfs_root) {
--- 
-2.6.3
+This introduces __ro_after_init as a way to mark such memory, and uses it
+on the x86 and arm vDSO to kill an extant kernel exploitation method. Also
+adds a new kernel parameter to help debug future use and adds an lkdtm
+test to check the results.
+
+-Kees
+
+v5:
+- rebased on linux-next (strtobool in -next, x86 vdso merge fixup)
+- added ARM vDSO patch, david.brown
+v4:
+- adjust documentation for strtobool, andy.shevchenko
+v3:
+- conslidated mark_rodata_ro()
+- make CONFIG_DEBUG_RODATA always enabled on x86, mingo
+- enhanced strtobool and potential callers to use "on"/"off"
+- use strtobool for rodata= param, gregkh
+v2:
+- renamed __read_only to __ro_after_init
