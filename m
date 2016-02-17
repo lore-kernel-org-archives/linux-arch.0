@@ -1,122 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-3.sys.kth.se ([130.237.48.192]:58053 "EHLO
-	smtp-3.sys.kth.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932175AbcBPUkO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Feb 2016 15:40:14 -0500
-From: =?UTF-8?q?Niklas=20S=C3=B6derlund?=
-	<niklas.soderlund+renesas@ragnatech.se>
-Subject: [PATCH v4 4/8] arm: dma-mapping: add {map,unmap}_resource for iommu ops
-Date: Tue, 16 Feb 2016 21:39:40 +0100
-Message-ID: <1455655184-14478-5-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-In-Reply-To: <1455655184-14478-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
-References: <1455655184-14478-1-git-send-email-niklas.soderlund+renesas@ragnatech.se>
+Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:58007 "EHLO
+	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756766AbcBQIWR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Feb 2016 03:22:17 -0500
+Received: from localhost
+	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
+	Wed, 17 Feb 2016 08:22:16 -0000
+Date: Wed, 17 Feb 2016 09:22:10 +0100
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: Re: [PATCH 1/5] all: s390: move wrapper infrastructure to generic
+ headers
+Message-ID: <20160217082210.GA4175@osiris>
+References: <1453741047-5498-1-git-send-email-ynorov@caviumnetworks.com>
+ <1453741047-5498-2-git-send-email-ynorov@caviumnetworks.com>
+ <20160128121618.GB5418@osiris>
+ <20160128163109.GA8529@yury-N73SV>
+ <20160201114251.GB973@yury-N73SV>
+ <20160202073913.GB3990@osiris>
+ <20160202154331.GA3003@yury-N73SV>
+ <20160202160826.GF3990@osiris>
+ <20160202195434.GA3397@osiris>
+ <20160202204156.GA27290@yury-N73SV>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20160202204156.GA27290@yury-N73SV>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: vinod.koul@intel.com, linux-renesas-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, dmaengine@vger.kernel.org, iommu@lists.linux-foundation.org
-Cc: robin.murphy@arm.com, laurent.pinchart@ideasonboard.com, geert+renesas@glider.be, linus.walleij@linaro.org, dan.j.williams@intel.com, arnd@arndb.de, linux-arch@vger.kernel.org, =?UTF-8?q?Niklas=20S=C3=B6derlund?= <niklas.soderlund+renesas@ragnatech.se>
-Message-ID: <20160216203940.DRCURoyKOm5RUXOlz1DBozdl9kqosdTRu2Q9nQdX4uM@z>
+To: Yury Norov <ynorov@caviumnetworks.com>
+Cc: linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, arnd@arndb.de, pinskia@gmail.com, Prasun.Kapoor@caviumnetworks.com, catalin.marinas@arm.com, Nathan_Lynch@mentor.com, linux-kernel@vger.kernel.org, agraf@suse.de, klimov.linux@gmail.com, broonie@kernel.org, joseph@codesourcery.com, schwidefsky@de.ibm.com, linux-arm-kernel@lists.infradead.org, christoph.muellner@theobroma-systems.com
+Message-ID: <20160217082210.PsFqgIoU7GtA530ZAzUe8OGkyiU_Mjm0OyTbtLl1oR4@z>
 
-Add methods to map/unmap device resources addresses for dma_map_ops that
-are IOMMU aware. This is needed to map a device MMIO register from a
-physical address.
+On Tue, Feb 02, 2016 at 11:41:56PM +0300, Yury Norov wrote:
+> > However I'll try to write an addon patch to your patch series. Maybe we can
+> > still get rid of compat_wrapper.c in a way which makes both of us happy.
+> > Also.. the idea with the alias names for compat wrappers does seem to have
+> > the disadvantage that it will pollute /proc/kallsyms for example.
+> > 
+> > Anyway, I'm not sure if I will be able to come up with something this week
+> > though.
+> 
+> Great, I'm looking forward...
 
-Signed-off-by: Niklas Söderlund <niklas.soderlund+renesas@ragnatech.se>
-Reviewed-by: Laurent Pinchart <laurent.pinchart@ideasonboard.com>
----
- arch/arm/mm/dma-mapping.c | 63 +++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 63 insertions(+)
+Hi Yuri,
 
-diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index 0eca381..ae2b175 100644
---- a/arch/arm/mm/dma-mapping.c
-+++ b/arch/arm/mm/dma-mapping.c
-@@ -1814,6 +1814,63 @@ static void arm_iommu_unmap_page(struct device *dev, dma_addr_t handle,
- 	__free_iova(mapping, iova, len);
- }
- 
-+/**
-+ * arm_iommu_map_resource - map a device resource for DMA
-+ * @dev: valid struct device pointer
-+ * @phys_addr: physical address of resource
-+ * @size: size of resource to map
-+ * @dir: DMA transfer direction
-+ */
-+static dma_addr_t arm_iommu_map_resource(struct device *dev,
-+		phys_addr_t phys_addr, size_t size,
-+		enum dma_data_direction dir, struct dma_attrs *attrs)
-+{
-+	struct dma_iommu_mapping *mapping = to_dma_iommu_mapping(dev);
-+	dma_addr_t dma_addr;
-+	int ret, prot;
-+	phys_addr_t addr = phys_addr & PAGE_MASK;
-+	int offset = phys_addr & ~PAGE_MASK;
-+	int len = PAGE_ALIGN(size + offset);
-+
-+	dma_addr = __alloc_iova(mapping, size);
-+	if (dma_addr == DMA_ERROR_CODE)
-+		return dma_addr;
-+
-+	prot = __dma_direction_to_prot(dir) | IOMMU_MMIO;
-+
-+	ret = iommu_map(mapping->domain, dma_addr, addr, len, prot);
-+	if (ret < 0)
-+		goto fail;
-+
-+	return dma_addr + offset;
-+fail:
-+	__free_iova(mapping, dma_addr, size);
-+	return DMA_ERROR_CODE;
-+}
-+
-+/**
-+ * arm_iommu_unmap_resource - unmap a device DMA resource
-+ * @dev: valid struct device pointer
-+ * @dma_handle: DMA address to resource
-+ * @size: size of resource to map
-+ * @dir: DMA transfer direction
-+ */
-+static void arm_iommu_unmap_resource(struct device *dev, dma_addr_t dma_handle,
-+		size_t size, enum dma_data_direction dir,
-+		struct dma_attrs *attrs)
-+{
-+	struct dma_iommu_mapping *mapping = to_dma_iommu_mapping(dev);
-+	dma_addr_t iova = dma_handle & PAGE_MASK;
-+	int offset = dma_handle & ~PAGE_MASK;
-+	int len = PAGE_ALIGN(size + offset);
-+
-+	if (!iova)
-+		return;
-+
-+	iommu_unmap(mapping->domain, iova, len);
-+	__free_iova(mapping, iova, len);
-+}
-+
- static void arm_iommu_sync_single_for_cpu(struct device *dev,
- 		dma_addr_t handle, size_t size, enum dma_data_direction dir)
- {
-@@ -1858,6 +1915,9 @@ struct dma_map_ops iommu_ops = {
- 	.sync_sg_for_cpu	= arm_iommu_sync_sg_for_cpu,
- 	.sync_sg_for_device	= arm_iommu_sync_sg_for_device,
- 
-+	.map_resource		= arm_iommu_map_resource,
-+	.unmap_resource		= arm_iommu_unmap_resource,
-+
- 	.set_dma_mask		= arm_dma_set_mask,
- };
- 
-@@ -1873,6 +1933,9 @@ struct dma_map_ops iommu_coherent_ops = {
- 	.map_sg		= arm_coherent_iommu_map_sg,
- 	.unmap_sg	= arm_coherent_iommu_unmap_sg,
- 
-+	.map_resource	= arm_iommu_map_resource,
-+	.unmap_resource	= arm_iommu_unmap_resource,
-+
- 	.set_dma_mask	= arm_dma_set_mask,
- };
- 
--- 
-2.7.1
+after playing around with this a bit I couldn't come up with a solution
+that I'm happy with, unfortunately.
+
+So in order to make some progress here I'd vote that we simply move the
+existing compat_wrapper.c from arch/s390 to common code like you did in
+your first approach and leave the existing SYSCALL macros alone.
+
+That will have hardly any effect to anybody else and your problem is
+solved while s390 still works.
+
+Does that make sense?
 
