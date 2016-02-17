@@ -1,351 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pf0-f180.google.com ([209.85.192.180]:34168 "EHLO
-	mail-pf0-f180.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1424069AbcBQWlZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Feb 2016 17:41:25 -0500
-Received: by mail-pf0-f180.google.com with SMTP id x65so18997622pfb.1
-        for <linux-arch@vger.kernel.org>; Wed, 17 Feb 2016 14:41:24 -0800 (PST)
+Received: from mail-pf0-f175.google.com ([209.85.192.175]:35182 "EHLO
+	mail-pf0-f175.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1424092AbcBQWl0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Feb 2016 17:41:26 -0500
+Received: by mail-pf0-f175.google.com with SMTP id c10so19598572pfc.2
+        for <linux-arch@vger.kernel.org>; Wed, 17 Feb 2016 14:41:25 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 3/7] x86: make CONFIG_DEBUG_RODATA non-optional
-Date: Wed, 17 Feb 2016 14:41:14 -0800
-Message-ID: <1455748879-21872-4-git-send-email-keescook@chromium.org>
+Subject: [PATCH v5 6/7] x86, vdso: mark vDSO read-only after init
+Date: Wed, 17 Feb 2016 14:41:17 -0800
+Message-ID: <1455748879-21872-7-git-send-email-keescook@chromium.org>
 In-Reply-To: <1455748879-21872-1-git-send-email-keescook@chromium.org>
 References: <1455748879-21872-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
 Cc: Kees Cook <keescook@chromium.org>, David Brown <david.brown@linaro.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20160217224114.vbZDpTBj3_8DRfI846oMtxg5cHugl7KqGyr9LaCLALk@z>
+Message-ID: <20160217224117.44JoQgYOSYnlBV3_Nvsz8jbNlvnDaXupjlgQPljquWo@z>
 
-This removes the CONFIG_DEBUG_RODATA option and makes it always enabled.
+The vDSO does not need to be writable after __init, so mark it as
+__ro_after_init. The result kills the exploit method of writing to the
+vDSO from kernel space resulting in userspace executing the modified code,
+as shown here to bypass SMEP restrictions: http://itszn.com/blog/?p=21
 
-Suggested-by: Ingo Molnar <mingo@kernel.org>
+The memory map (with added vDSO address reporting) shows the vDSO moving
+into read-only memory:
+
+Before:
+[    0.143067] vDSO @ ffffffff82004000
+[    0.143551] vDSO @ ffffffff82006000
+---[ High Kernel Mapping ]---
+0xffffffff80000000-0xffffffff81000000      16M                         pmd
+0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
+0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
+0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
+0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
+0xffffffff81e00000-0xffffffff81e05000      20K   ro             GLB NX pte
+0xffffffff81e05000-0xffffffff82000000    2028K   ro                 NX pte
+0xffffffff82000000-0xffffffff8214f000    1340K   RW             GLB NX pte
+0xffffffff8214f000-0xffffffff82281000    1224K   RW                 NX pte
+0xffffffff82281000-0xffffffff82400000    1532K   RW             GLB NX pte
+0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
+0xffffffff83200000-0xffffffffc0000000     974M                         pmd
+
+After:
+[    0.145062] vDSO @ ffffffff81da1000
+[    0.146057] vDSO @ ffffffff81da4000
+---[ High Kernel Mapping ]---
+0xffffffff80000000-0xffffffff81000000      16M                         pmd
+0xffffffff81000000-0xffffffff81800000       8M   ro     PSE     GLB x  pmd
+0xffffffff81800000-0xffffffff819f3000    1996K   ro             GLB x  pte
+0xffffffff819f3000-0xffffffff81a00000      52K   ro                 NX pte
+0xffffffff81a00000-0xffffffff81e00000       4M   ro     PSE     GLB NX pmd
+0xffffffff81e00000-0xffffffff81e0b000      44K   ro             GLB NX pte
+0xffffffff81e0b000-0xffffffff82000000    2004K   ro                 NX pte
+0xffffffff82000000-0xffffffff8214c000    1328K   RW             GLB NX pte
+0xffffffff8214c000-0xffffffff8227e000    1224K   RW                 NX pte
+0xffffffff8227e000-0xffffffff82400000    1544K   RW             GLB NX pte
+0xffffffff82400000-0xffffffff83200000      14M   RW     PSE     GLB NX pmd
+0xffffffff83200000-0xffffffffc0000000     974M                         pmd
+
+Based on work by PaX Team and Brad Spengler.
+
 Signed-off-by: Kees Cook <keescook@chromium.org>
+Acked-by: Andy Lutomirski <luto@kernel.org>
+Acked-by: H. Peter Anvin <hpa@linux.intel.com>
 ---
- arch/x86/Kconfig                  |  3 +++
- arch/x86/Kconfig.debug            | 18 +++---------------
- arch/x86/include/asm/cacheflush.h |  5 -----
- arch/x86/include/asm/kvm_para.h   |  7 -------
- arch/x86/include/asm/sections.h   |  2 +-
- arch/x86/kernel/ftrace.c          |  6 +++---
- arch/x86/kernel/kgdb.c            |  8 ++------
- arch/x86/kernel/test_nx.c         |  2 --
- arch/x86/kernel/test_rodata.c     |  2 +-
- arch/x86/kernel/vmlinux.lds.S     | 25 +++++++++++--------------
- arch/x86/mm/init_32.c             |  3 ---
- arch/x86/mm/init_64.c             |  3 ---
- arch/x86/mm/pageattr.c            |  2 +-
- 13 files changed, 25 insertions(+), 61 deletions(-)
+ arch/x86/entry/vdso/vdso2c.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index e8f82cc760f7..f1146060d78c 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -305,6 +305,9 @@ config ARCH_SUPPORTS_UPROBES
- config FIX_EARLYCON_MEM
- 	def_bool y
- 
-+config DEBUG_RODATA
-+	def_bool y
-+
- config PGTABLE_LEVELS
- 	int
- 	default 4 if X86_64
-diff --git a/arch/x86/Kconfig.debug b/arch/x86/Kconfig.debug
-index 68a2d1f0a683..67eec55093a5 100644
---- a/arch/x86/Kconfig.debug
-+++ b/arch/x86/Kconfig.debug
-@@ -74,28 +74,16 @@ config EFI_PGT_DUMP
- 	  issues with the mapping of the EFI runtime regions into that
- 	  table.
- 
--config DEBUG_RODATA
--	bool "Write protect kernel read-only data structures"
--	default y
--	depends on DEBUG_KERNEL
--	---help---
--	  Mark the kernel read-only data as write-protected in the pagetables,
--	  in order to catch accidental (and incorrect) writes to such const
--	  data. This is recommended so that we can catch kernel bugs sooner.
--	  If in doubt, say "Y".
--
- config DEBUG_RODATA_TEST
--	bool "Testcase for the DEBUG_RODATA feature"
--	depends on DEBUG_RODATA
-+	bool "Testcase for the marking rodata read-only"
- 	default y
- 	---help---
--	  This option enables a testcase for the DEBUG_RODATA
--	  feature as well as for the change_page_attr() infrastructure.
-+	  This option enables a testcase for the setting rodata read-only
-+	  as well as for the change_page_attr() infrastructure.
- 	  If in doubt, say "N"
- 
- config DEBUG_WX
- 	bool "Warn on W+X mappings at boot"
--	depends on DEBUG_RODATA
- 	select X86_PTDUMP_CORE
- 	---help---
- 	  Generate a warning if any W+X mappings are found at boot.
-diff --git a/arch/x86/include/asm/cacheflush.h b/arch/x86/include/asm/cacheflush.h
-index c8cff75c5b21..61518cf79437 100644
---- a/arch/x86/include/asm/cacheflush.h
-+++ b/arch/x86/include/asm/cacheflush.h
-@@ -91,15 +91,10 @@ void clflush_cache_range(void *addr, unsigned int size);
- 
- #define mmio_flush_range(addr, size) clflush_cache_range(addr, size)
- 
--#ifdef CONFIG_DEBUG_RODATA
- extern const int rodata_test_data;
- extern int kernel_set_to_readonly;
- void set_kernel_text_rw(void);
- void set_kernel_text_ro(void);
--#else
--static inline void set_kernel_text_rw(void) { }
--static inline void set_kernel_text_ro(void) { }
--#endif
- 
- #ifdef CONFIG_DEBUG_RODATA_TEST
- int rodata_test(void);
-diff --git a/arch/x86/include/asm/kvm_para.h b/arch/x86/include/asm/kvm_para.h
-index c1adf33fdd0d..bc62e7cbf1b1 100644
---- a/arch/x86/include/asm/kvm_para.h
-+++ b/arch/x86/include/asm/kvm_para.h
-@@ -17,15 +17,8 @@ static inline bool kvm_check_and_clear_guest_paused(void)
- }
- #endif /* CONFIG_KVM_GUEST */
- 
--#ifdef CONFIG_DEBUG_RODATA
- #define KVM_HYPERCALL \
-         ALTERNATIVE(".byte 0x0f,0x01,0xc1", ".byte 0x0f,0x01,0xd9", X86_FEATURE_VMMCALL)
--#else
--/* On AMD processors, vmcall will generate a trap that we will
-- * then rewrite to the appropriate instruction.
-- */
--#define KVM_HYPERCALL ".byte 0x0f,0x01,0xc1"
--#endif
- 
- /* For KVM hypercalls, a three-byte sequence of either the vmcall or the vmmcall
-  * instruction.  The hypervisor may replace it with something else but only the
-diff --git a/arch/x86/include/asm/sections.h b/arch/x86/include/asm/sections.h
-index 0a5242428659..13b6cdd0af57 100644
---- a/arch/x86/include/asm/sections.h
-+++ b/arch/x86/include/asm/sections.h
-@@ -7,7 +7,7 @@
- extern char __brk_base[], __brk_limit[];
- extern struct exception_table_entry __stop___ex_table[];
- 
--#if defined(CONFIG_X86_64) && defined(CONFIG_DEBUG_RODATA)
-+#if defined(CONFIG_X86_64)
- extern char __end_rodata_hpage_align[];
- #endif
- 
-diff --git a/arch/x86/kernel/ftrace.c b/arch/x86/kernel/ftrace.c
-index 29408d6d6626..05c9e3f5b6d7 100644
---- a/arch/x86/kernel/ftrace.c
-+++ b/arch/x86/kernel/ftrace.c
-@@ -81,9 +81,9 @@ within(unsigned long addr, unsigned long start, unsigned long end)
- static unsigned long text_ip_addr(unsigned long ip)
- {
- 	/*
--	 * On x86_64, kernel text mappings are mapped read-only with
--	 * CONFIG_DEBUG_RODATA. So we use the kernel identity mapping instead
--	 * of the kernel text mapping to modify the kernel text.
-+	 * On x86_64, kernel text mappings are mapped read-only, so we use
-+	 * the kernel identity mapping instead of the kernel text mapping
-+	 * to modify the kernel text.
- 	 *
- 	 * For 32bit kernels, these mappings are same and we can use
- 	 * kernel identity mapping to modify code.
-diff --git a/arch/x86/kernel/kgdb.c b/arch/x86/kernel/kgdb.c
-index 44256a62702b..ed15cd486d06 100644
---- a/arch/x86/kernel/kgdb.c
-+++ b/arch/x86/kernel/kgdb.c
-@@ -750,9 +750,7 @@ void kgdb_arch_set_pc(struct pt_regs *regs, unsigned long ip)
- int kgdb_arch_set_breakpoint(struct kgdb_bkpt *bpt)
- {
- 	int err;
--#ifdef CONFIG_DEBUG_RODATA
- 	char opc[BREAK_INSTR_SIZE];
--#endif /* CONFIG_DEBUG_RODATA */
- 
- 	bpt->type = BP_BREAKPOINT;
- 	err = probe_kernel_read(bpt->saved_instr, (char *)bpt->bpt_addr,
-@@ -761,7 +759,6 @@ int kgdb_arch_set_breakpoint(struct kgdb_bkpt *bpt)
- 		return err;
- 	err = probe_kernel_write((char *)bpt->bpt_addr,
- 				 arch_kgdb_ops.gdb_bpt_instr, BREAK_INSTR_SIZE);
--#ifdef CONFIG_DEBUG_RODATA
- 	if (!err)
- 		return err;
- 	/*
-@@ -778,13 +775,12 @@ int kgdb_arch_set_breakpoint(struct kgdb_bkpt *bpt)
- 	if (memcmp(opc, arch_kgdb_ops.gdb_bpt_instr, BREAK_INSTR_SIZE))
- 		return -EINVAL;
- 	bpt->type = BP_POKE_BREAKPOINT;
--#endif /* CONFIG_DEBUG_RODATA */
-+
- 	return err;
- }
- 
- int kgdb_arch_remove_breakpoint(struct kgdb_bkpt *bpt)
- {
--#ifdef CONFIG_DEBUG_RODATA
- 	int err;
- 	char opc[BREAK_INSTR_SIZE];
- 
-@@ -801,8 +797,8 @@ int kgdb_arch_remove_breakpoint(struct kgdb_bkpt *bpt)
- 	if (err || memcmp(opc, bpt->saved_instr, BREAK_INSTR_SIZE))
- 		goto knl_write;
- 	return err;
-+
- knl_write:
--#endif /* CONFIG_DEBUG_RODATA */
- 	return probe_kernel_write((char *)bpt->bpt_addr,
- 				  (char *)bpt->saved_instr, BREAK_INSTR_SIZE);
- }
-diff --git a/arch/x86/kernel/test_nx.c b/arch/x86/kernel/test_nx.c
-index 3f92ce07e525..27538f183c3b 100644
---- a/arch/x86/kernel/test_nx.c
-+++ b/arch/x86/kernel/test_nx.c
-@@ -142,7 +142,6 @@ static int test_NX(void)
- 	 * by the error message
- 	 */
- 
--#ifdef CONFIG_DEBUG_RODATA
- 	/* Test 3: Check if the .rodata section is executable */
- 	if (rodata_test_data != 0xC3) {
- 		printk(KERN_ERR "test_nx: .rodata marker has invalid value\n");
-@@ -151,7 +150,6 @@ static int test_NX(void)
- 		printk(KERN_ERR "test_nx: .rodata section is executable\n");
- 		ret = -ENODEV;
- 	}
--#endif
- 
- #if 0
- 	/* Test 4: Check if the .data section of a module is executable */
-diff --git a/arch/x86/kernel/test_rodata.c b/arch/x86/kernel/test_rodata.c
-index 5ecbfe5099da..cb4a01b41e27 100644
---- a/arch/x86/kernel/test_rodata.c
-+++ b/arch/x86/kernel/test_rodata.c
-@@ -76,5 +76,5 @@ int rodata_test(void)
- }
- 
- MODULE_LICENSE("GPL");
--MODULE_DESCRIPTION("Testcase for the DEBUG_RODATA infrastructure");
-+MODULE_DESCRIPTION("Testcase for marking rodata as read-only");
- MODULE_AUTHOR("Arjan van de Ven <arjan@linux.intel.com>");
-diff --git a/arch/x86/kernel/vmlinux.lds.S b/arch/x86/kernel/vmlinux.lds.S
-index 04afe9b7e52a..afdfcc5d93bd 100644
---- a/arch/x86/kernel/vmlinux.lds.S
-+++ b/arch/x86/kernel/vmlinux.lds.S
-@@ -41,29 +41,28 @@ ENTRY(phys_startup_64)
- jiffies_64 = jiffies;
- #endif
- 
--#if defined(CONFIG_X86_64) && defined(CONFIG_DEBUG_RODATA)
-+#if defined(CONFIG_X86_64)
- /*
-- * On 64-bit, align RODATA to 2MB so that even with CONFIG_DEBUG_RODATA
-- * we retain large page mappings for boundaries spanning kernel text, rodata
-- * and data sections.
-+ * On 64-bit, align RODATA to 2MB so we retain large page mappings for
-+ * boundaries spanning kernel text, rodata and data sections.
-  *
-  * However, kernel identity mappings will have different RWX permissions
-  * to the pages mapping to text and to the pages padding (which are freed) the
-  * text section. Hence kernel identity mappings will be broken to smaller
-  * pages. For 64-bit, kernel text and kernel identity mappings are different,
-- * so we can enable protection checks that come with CONFIG_DEBUG_RODATA,
-- * as well as retain 2MB large page mappings for kernel text.
-+ * so we can enable protection checks as well as retain 2MB large page
-+ * mappings for kernel text.
-  */
--#define X64_ALIGN_DEBUG_RODATA_BEGIN	. = ALIGN(HPAGE_SIZE);
-+#define X64_ALIGN_RODATA_BEGIN	. = ALIGN(HPAGE_SIZE);
- 
--#define X64_ALIGN_DEBUG_RODATA_END				\
-+#define X64_ALIGN_RODATA_END					\
- 		. = ALIGN(HPAGE_SIZE);				\
- 		__end_rodata_hpage_align = .;
- 
- #else
- 
--#define X64_ALIGN_DEBUG_RODATA_BEGIN
--#define X64_ALIGN_DEBUG_RODATA_END
-+#define X64_ALIGN_RODATA_BEGIN
-+#define X64_ALIGN_RODATA_END
- 
- #endif
- 
-@@ -112,13 +111,11 @@ SECTIONS
- 
- 	EXCEPTION_TABLE(16) :text = 0x9090
- 
--#if defined(CONFIG_DEBUG_RODATA)
- 	/* .text should occupy whole number of pages */
- 	. = ALIGN(PAGE_SIZE);
--#endif
--	X64_ALIGN_DEBUG_RODATA_BEGIN
-+	X64_ALIGN_RODATA_BEGIN
- 	RO_DATA(PAGE_SIZE)
--	X64_ALIGN_DEBUG_RODATA_END
-+	X64_ALIGN_RODATA_END
- 
- 	/* Data */
- 	.data : AT(ADDR(.data) - LOAD_OFFSET) {
-diff --git a/arch/x86/mm/init_32.c b/arch/x86/mm/init_32.c
-index a4bb1c7ab65e..bd7a9b9e2e14 100644
---- a/arch/x86/mm/init_32.c
-+++ b/arch/x86/mm/init_32.c
-@@ -868,7 +868,6 @@ static noinline int do_test_wp_bit(void)
- 	return flag;
- }
- 
--#ifdef CONFIG_DEBUG_RODATA
- const int rodata_test_data = 0xC3;
- EXPORT_SYMBOL_GPL(rodata_test_data);
- 
-@@ -957,5 +956,3 @@ void mark_rodata_ro(void)
- 	if (__supported_pte_mask & _PAGE_NX)
- 		debug_checkwx();
- }
--#endif
--
-diff --git a/arch/x86/mm/init_64.c b/arch/x86/mm/init_64.c
-index 9686535edfb5..214afda97911 100644
---- a/arch/x86/mm/init_64.c
-+++ b/arch/x86/mm/init_64.c
-@@ -1075,7 +1075,6 @@ void __init mem_init(void)
- 	mem_init_print_info(NULL);
- }
- 
--#ifdef CONFIG_DEBUG_RODATA
- const int rodata_test_data = 0xC3;
- EXPORT_SYMBOL_GPL(rodata_test_data);
- 
-@@ -1167,8 +1166,6 @@ void mark_rodata_ro(void)
- 	debug_checkwx();
- }
- 
--#endif
--
- int kern_addr_valid(unsigned long addr)
- {
- 	unsigned long above = ((long)addr) >> __VIRTUAL_MASK_SHIFT;
-diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
-index f6b206fb6403..926f804d7e7e 100644
---- a/arch/x86/mm/pageattr.c
-+++ b/arch/x86/mm/pageattr.c
-@@ -277,7 +277,7 @@ static inline pgprot_t static_protections(pgprot_t prot, unsigned long address,
- 		   __pa_symbol(__end_rodata) >> PAGE_SHIFT))
- 		pgprot_val(forbidden) |= _PAGE_RW;
- 
--#if defined(CONFIG_X86_64) && defined(CONFIG_DEBUG_RODATA)
-+#if defined(CONFIG_X86_64)
- 	/*
- 	 * Once the kernel maps the text as RO (kernel_set_to_readonly is set),
- 	 * kernel text mappings for the large page aligned text, rodata sections
+diff --git a/arch/x86/entry/vdso/vdso2c.h b/arch/x86/entry/vdso/vdso2c.h
+index abe961c7c71c..63a03bb91497 100644
+--- a/arch/x86/entry/vdso/vdso2c.h
++++ b/arch/x86/entry/vdso/vdso2c.h
+@@ -140,7 +140,7 @@ static void BITSFUNC(go)(void *raw_addr, size_t raw_len,
+ 	fprintf(outfile, "#include <asm/vdso.h>\n");
+ 	fprintf(outfile, "\n");
+ 	fprintf(outfile,
+-		"static unsigned char raw_data[%lu] __page_aligned_data = {",
++		"static unsigned char raw_data[%lu] __ro_after_init __aligned(PAGE_SIZE) = {",
+ 		mapping_size);
+ 	for (j = 0; j < stripped_len; j++) {
+ 		if (j % 10 == 0)
 -- 
 2.6.3
 
