@@ -1,77 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pa0-f46.google.com ([209.85.220.46]:32912 "EHLO
-	mail-pa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1424116AbcBQWl0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Feb 2016 17:41:26 -0500
-Received: by mail-pa0-f46.google.com with SMTP id fl4so18728620pad.0
-        for <linux-arch@vger.kernel.org>; Wed, 17 Feb 2016 14:41:26 -0800 (PST)
+Received: from mail-pf0-f182.google.com ([209.85.192.182]:35971 "EHLO
+	mail-pf0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1424072AbcBQWlZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Feb 2016 17:41:25 -0500
+Received: by mail-pf0-f182.google.com with SMTP id e127so18989129pfe.3
+        for <linux-arch@vger.kernel.org>; Wed, 17 Feb 2016 14:41:25 -0800 (PST)
 From: Kees Cook <keescook@chromium.org>
-Subject: [PATCH v5 7/7] ARM: vdso: Mark vDSO code as read-only
-Date: Wed, 17 Feb 2016 14:41:18 -0800
-Message-ID: <1455748879-21872-8-git-send-email-keescook@chromium.org>
+Subject: [PATCH v5 5/7] lkdtm: verify that __ro_after_init works correctly
+Date: Wed, 17 Feb 2016 14:41:16 -0800
+Message-ID: <1455748879-21872-6-git-send-email-keescook@chromium.org>
 In-Reply-To: <1455748879-21872-1-git-send-email-keescook@chromium.org>
 References: <1455748879-21872-1-git-send-email-keescook@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>
 Cc: Kees Cook <keescook@chromium.org>, David Brown <david.brown@linaro.org>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, kernel-hardening@lists.openwall.com, linux-kernel@vger.kernel.org, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20160217224118.WWEEHYpq5EdTIjMuv7GeBoE7DGqSSlwxWvZRfZMaCek@z>
+Message-ID: <20160217224116.zGUtuCMB9tkbn4Y_anqZRORi3e5nfFt9jMq0Cam4rkc@z>
 
-From: David Brown <david.brown@linaro.org>
+The new __ro_after_init section should be writable before init, but
+not after. Validate that it gets updated at init and can't be written
+to afterwards.
 
-Although the arm vDSO is cleanly separated by code/data with the code
-being read-only in userspace mappings, the code page is still writable
-from the kernel.  There have been exploits (such as
-http://itszn.com/blog/?p=21) that take advantage of this on x86 to go
-from a bad kernel write to full root.
-
-Prevent this specific exploit on arm by putting the vDSO code page in
-post-init read-only memory as well.
-
-Before:
-vdso: 1 text pages at base 80927000
-root@Vexpress:/ cat /sys/kernel/debug/kernel_page_tables
----[ Modules ]---
----[ Kernel Mapping ]---
-0x80000000-0x80100000           1M     RW NX SHD
-0x80100000-0x80600000           5M     ro x  SHD
-0x80600000-0x80800000           2M     ro NX SHD
-0x80800000-0xbe000000         984M     RW NX SHD
-
-After:
-vdso: 1 text pages at base 8072b000
-root@Vexpress:/ cat /sys/kernel/debug/kernel_page_tables
----[ Modules ]---
----[ Kernel Mapping ]---
-0x80000000-0x80100000           1M     RW NX SHD
-0x80100000-0x80600000           5M     ro x  SHD
-0x80600000-0x80800000           2M     ro NX SHD
-0x80800000-0xbe000000         984M     RW NX SHD
-
-Inspired by https://lkml.org/lkml/2016/1/19/494 based on work by the
-PaX Team, Brad Spengler, and Kees Cook.
-
-Signed-off-by: David Brown <david.brown@linaro.org>
-Acked-by: Kees Cook <keescook@chromium.org>
+Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/arm/vdso/vdso.S | 3 +--
- 1 file changed, 1 insertion(+), 2 deletions(-)
+ drivers/misc/lkdtm.c | 29 ++++++++++++++++++++++++++---
+ 1 file changed, 26 insertions(+), 3 deletions(-)
 
-diff --git a/arch/arm/vdso/vdso.S b/arch/arm/vdso/vdso.S
-index b2b97e3e7bab..a62a7b64f49c 100644
---- a/arch/arm/vdso/vdso.S
-+++ b/arch/arm/vdso/vdso.S
-@@ -23,9 +23,8 @@
- #include <linux/const.h>
- #include <asm/page.h>
+diff --git a/drivers/misc/lkdtm.c b/drivers/misc/lkdtm.c
+index 5c1351b19029..a77799d227ee 100644
+--- a/drivers/misc/lkdtm.c
++++ b/drivers/misc/lkdtm.c
+@@ -103,6 +103,7 @@ enum ctype {
+ 	CT_EXEC_USERSPACE,
+ 	CT_ACCESS_USERSPACE,
+ 	CT_WRITE_RO,
++	CT_WRITE_RO_AFTER_INIT,
+ 	CT_WRITE_KERN,
+ };
  
--	__PAGE_ALIGNED_DATA
--
- 	.globl vdso_start, vdso_end
-+	.section .data..ro_after_init
- 	.balign PAGE_SIZE
- vdso_start:
- 	.incbin "arch/arm/vdso/vdso.so"
+@@ -140,6 +141,7 @@ static char* cp_type[] = {
+ 	"EXEC_USERSPACE",
+ 	"ACCESS_USERSPACE",
+ 	"WRITE_RO",
++	"WRITE_RO_AFTER_INIT",
+ 	"WRITE_KERN",
+ };
+ 
+@@ -162,6 +164,7 @@ static DEFINE_SPINLOCK(lock_me_up);
+ static u8 data_area[EXEC_SIZE];
+ 
+ static const unsigned long rodata = 0xAA55AA55;
++static unsigned long ro_after_init __ro_after_init = 0x55AA5500;
+ 
+ module_param(recur_count, int, 0644);
+ MODULE_PARM_DESC(recur_count, " Recursion level for the stack overflow test");
+@@ -503,11 +506,28 @@ static void lkdtm_do_action(enum ctype which)
+ 		break;
+ 	}
+ 	case CT_WRITE_RO: {
+-		unsigned long *ptr;
++		/* Explicitly cast away "const" for the test. */
++		unsigned long *ptr = (unsigned long *)&rodata;
+ 
+-		ptr = (unsigned long *)&rodata;
++		pr_info("attempting bad rodata write at %p\n", ptr);
++		*ptr ^= 0xabcd1234;
+ 
+-		pr_info("attempting bad write at %p\n", ptr);
++		break;
++	}
++	case CT_WRITE_RO_AFTER_INIT: {
++		unsigned long *ptr = &ro_after_init;
++
++		/*
++		 * Verify we were written to during init. Since an Oops
++		 * is considered a "success", a failure is to just skip the
++		 * real test.
++		 */
++		if ((*ptr & 0xAA) != 0xAA) {
++			pr_info("%p was NOT written during init!?\n", ptr);
++			break;
++		}
++
++		pr_info("attempting bad ro_after_init write at %p\n", ptr);
+ 		*ptr ^= 0xabcd1234;
+ 
+ 		break;
+@@ -817,6 +837,9 @@ static int __init lkdtm_module_init(void)
+ 	int n_debugfs_entries = 1; /* Assume only the direct entry */
+ 	int i;
+ 
++	/* Make sure we can write to __ro_after_init values during __init */
++	ro_after_init |= 0xAA;
++
+ 	/* Register debugfs interface */
+ 	lkdtm_debugfs_root = debugfs_create_dir("provoke-crash", NULL);
+ 	if (!lkdtm_debugfs_root) {
 -- 
 2.6.3
 
