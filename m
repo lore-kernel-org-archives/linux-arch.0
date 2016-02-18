@@ -1,93 +1,35 @@
-From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Subject: Proposal for new memory_order_consume definition
-Date: Wed, 17 Feb 2016 17:10:33 -0800
-Message-ID: <20160218011033.GA1505@linux.vnet.ibm.com>
-Reply-To: paulmck@linux.vnet.ibm.com
+From: "PaX Team" <pageexec@freemail.hu>
+Subject: Re: [PATCH] ARM: vdso: Mark vDSO code as read-only
+Date: Thu, 18 Feb 2016 11:46:42 +0100
+Message-ID: <56C5A112.25195.35DDEA@pageexec.freemail.hu>
+References: <1453226922-16831-1-git-send-email-keescook@chromium.org>, <20160217234306.GA59532@davidb.org>, <CAGXu5jJmpq_2mmTLD0VbnY1SBF5b5Rr04HKWfD1LEaGxnztFdQ@mail.gmail.com>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e38.co.us.ibm.com ([32.97.110.159]:54113 "EHLO
-	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752000AbcBRBKz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Feb 2016 20:10:55 -0500
-Received: from localhost
-	by e38.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
-	Wed, 17 Feb 2016 18:10:55 -0700
-Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: parallel@lists.isocpp.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, gcc@gcc.gnu.org, llvm-dev@lists.llvm.org
-Cc: Peter.Sewell@cl.cam.ac.uk, torvalds@linux-foundation.org, Mark.Batty@cl.cam.ac.uk, peterz@infradead.org, will.deacon@arm.com, Ramana.Radhakrishnan@arm.com, dhowells@redhat.com, akpm@linux-foundation.org, mingo@kernel.org, michaelw@ca.ibm.com, boehm@acm.org, Jens.Maurer@gmx.net, luc.maranget@inria.fr, j.alglave@ucl.ac.uk
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <kernel-hardening-return-2675-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-reply-to: <CAGXu5jJmpq_2mmTLD0VbnY1SBF5b5Rr04HKWfD1LEaGxnztFdQ@mail.gmail.com>
+Content-description: Mail message body
+To: David Brown <david.brown@linaro.org>, Kees Cook <keescook@chromium.org>
+Cc: Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Emese Revfy <re.emese@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Hello!
+On 17 Feb 2016 at 15:48, Kees Cook wrote:
 
-A proposal (quaintly identified as P0190R0) for a new memory_order_consume
-definition may be found here:
+> On Wed, Feb 17, 2016 at 3:43 PM, David Brown <david.brown@linaro.org> wrote:
 
-	http://www2.rdrop.com/users/paulmck/submission/consume.2016.02.10b.pdf
+> > Is there a possible future consideration to perhaps make .rodata read
+> > only much earlier?
+> 
+> Yeah, this will likely be a future improvement. Some architectures
+> already mark .rodata before the mark_rodata_ro() call. Once we start
+> to have more use of postinit-readonly, I suspect we'll see more
+> clarification of when those things happen.
 
-As requested at the October C++ Standards Committee meeting, this
-is a follow-on to P0098R1 that picks one alternative and describes
-it in detail.  This approach focuses on existing practice, with the
-goal of supporting existing code with existing compilers.  In the last
-clang/LLVM patch I saw for basic support of this change, you could count
-the changed lines and still have lots of fingers and toes left over.
-Those who have been following this story will recognize that this is
-a very happy contrast to work that would be required to implement the
-definition in the current standard.
-
-I expect that P0190R0 will be discussed at the upcoming C++ Standards
-Committee meeting taking place the week of February 29th.  Points of
-discussion are likely to include:
-
-o	May memory_order_consume dependency ordering be used in
-	unannotated code?  I believe that this must be the case,
-	especially given that this is our experience base.  P0190R0
-	therefore recommends this approach.
-
-o	If memory_order_consume dependency ordering can be used in
-	unannotated code, must implementations support annotation?
-	I believe that annotation support should be required, at the very
-	least for formal verification, which can be quite difficult to
-	carry out on unannotated code.  In addition, it seems likely
-	that annotations can enable much better diagnostics.  P0190R0
-	therefore recommends this approach.
-
-o	If implementations must support annotation, what form should that
-	annotation take?  P0190R0 recommends the [[carries_dependency]]
-	attribute, but I am not picky as long as it can be (1) applied
-	to all relevant pointer-like objects and (2) used in C as well
-	as C++.  ;-)
-
-o	If memory_order_consume dependency ordering can be used in
-	unannotated code, how best to define the situations where
-	the compiler can determine the exact value of the pointer in
-	question?  (In current defacto implementations, this can
-	defeat dependency ordering.  Interestingly enough, this case
-	is not present in the Linux kernel, but still needs to be
-	defined.)
-
-	Options include:
-	
-	o	Provide new intrinsics that carry out the
-		comparisons, but guarantee to preserve dependencies,
-		as recommended by P0190R0 (std::pointer_cmp_eq_dep(),
-		std::pointer_cmp_ne_dep(), std::pointer_cmp_gt_dep(),
-		std::pointer_cmp_ge_dep(), std::pointer_cmp_lt_dep(),
-		and std::pointer_cmp_le_dep()).
-
-	o	State that -any- comparison involving an unannotated
-		pointer loses the dependency.
-
-o	How is the common idiom of marking pointers by setting low-order
-	bits to be supported when those pointers carry dependencies?
-	At the moment, I believe that setting bits in pointers results in
-	undefined behavior even without dependency ordering, so P0190R0
-	kicks this particular can down the road.  One option that
-	has been suggested is to provide intrinsics for this purpose.
-	(Sorry, but I forget who suggested this.)
-
-Thoughts?
-
-							Thanx, Paul
+FYI, PaX had enforced early rodata on i386 during the 2.4 series (i.e.,
+decade+ ago) but i abandoned it for 2.6 due to the maintenance burden
+coupled with its low benefit...
