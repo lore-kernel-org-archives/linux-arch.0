@@ -1,82 +1,93 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH] ARM: vdso: Mark vDSO code as read-only
-Date: Wed, 17 Feb 2016 15:48:21 -0800
-Message-ID: <CAGXu5jJmpq_2mmTLD0VbnY1SBF5b5Rr04HKWfD1LEaGxnztFdQ@mail.gmail.com>
-References: <1453226922-16831-1-git-send-email-keescook@chromium.org>
-	<20160216213659.GA47194@davidb.org>
-	<CAGXu5j+H63jhcDpHpXK5aWvgUBz=5vB0FK_zRoc+wZEk32B2fg@mail.gmail.com>
-	<20160217052010.GA49233@davidb.org>
-	<CAGXu5jK22LfvLdMfWz_vbQsJ3bbjSdJrYAp=5yWzD4yRNTTGFQ@mail.gmail.com>
-	<20160217234306.GA59532@davidb.org>
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Proposal for new memory_order_consume definition
+Date: Wed, 17 Feb 2016 17:10:33 -0800
+Message-ID: <20160218011033.GA1505@linux.vnet.ibm.com>
+Reply-To: paulmck@linux.vnet.ibm.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ig0-f176.google.com ([209.85.213.176]:38030 "EHLO
-	mail-ig0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965220AbcBQXsW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Feb 2016 18:48:22 -0500
-Received: by mail-ig0-f176.google.com with SMTP id y8so1075704igp.1
-        for <linux-arch@vger.kernel.org>; Wed, 17 Feb 2016 15:48:21 -0800 (PST)
-In-Reply-To: <20160217234306.GA59532@davidb.org>
+Received: from e38.co.us.ibm.com ([32.97.110.159]:54113 "EHLO
+	e38.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752000AbcBRBKz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Feb 2016 20:10:55 -0500
+Received: from localhost
+	by e38.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <paulmck@linux.vnet.ibm.com>;
+	Wed, 17 Feb 2016 18:10:55 -0700
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Brown <david.brown@linaro.org>
-Cc: Russell King <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "kernel-hardening@lists.openwall.com" <kernel-hardening@lists.openwall.com>, Ingo Molnar <mingo@redhat.com>, Andy Lutomirski <luto@amacapital.net>, "H. Peter Anvin" <hpa@zytor.com>, Michael Ellerman <mpe@ellerman.id.au>, Mathias Krause <minipli@googlemail.com>, Thomas Gleixner <tglx@linutronix.de>, "x86@kernel.org" <x86@kernel.org>, Arnd Bergmann <arnd@arndb.de>, PaX Team <pageexec@freemail.hu>, Emese Revfy <re.emese@gmail.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+To: parallel@lists.isocpp.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, gcc@gcc.gnu.org, llvm-dev@lists.llvm.org
+Cc: Peter.Sewell@cl.cam.ac.uk, torvalds@linux-foundation.org, Mark.Batty@cl.cam.ac.uk, peterz@infradead.org, will.deacon@arm.com, Ramana.Radhakrishnan@arm.com, dhowells@redhat.com, akpm@linux-foundation.org, mingo@kernel.org, michaelw@ca.ibm.com, boehm@acm.org, Jens.Maurer@gmx.net, luc.maranget@inria.fr, j.alglave@ucl.ac.uk
 
-On Wed, Feb 17, 2016 at 3:43 PM, David Brown <david.brown@linaro.org> wrote:
-> On Wed, Feb 17, 2016 at 03:00:52PM -0800, Kees Cook wrote:
->>
->> On Tue, Feb 16, 2016 at 9:20 PM, David Brown <david.brown@linaro.org>
->> wrote:
->>>
->>> On Tue, Feb 16, 2016 at 01:52:33PM -0800, Kees Cook wrote:
->>>>
->>>>
->>>> On Tue, Feb 16, 2016 at 1:36 PM, David Brown <david.brown@linaro.org>
->>>> wrote:
->>>>>
->>>>>
->>>>> Although the arm vDSO is cleanly separated by code/data with the code
->>>>> being read-only in userspace mappings, the code page is still writable
->>>>> from the kernel.  There have been exploits (such as
->>>>> http://itszn.com/blog/?p=21) that take advantage of this on x86 to go
->>>>> from a bad kernel write to full root.
->>>>>
->>>>> Prevent this specific exploit on arm by putting the vDSO code page in
->>>>> post-init read-only memory as well.
->>>>
->>>>
->>>>
->>>> Is the vdso dynamically built at init time like on x86, or can this
->>>> just use .rodata directly?
->>>
->>>
->>>
->>> On ARM, it is patched during init.  Arm64's is just plain read-only.
->>
->>
->> Okay, great. I've added this to my postinit-readonly series (which I
->> just refreshed and sent out again...)
->
->
-> However, this distinction between .rodata and .data..ro_after_init is
-> kind of fuzzy, anyway, since they both get made actually read-only at
-> the same time (post init).  The patch actually does work fine with the
-> vDSO page in .rodata, since the patching happens during init.
+Hello!
 
-Yeah, in the ARM case, that's true. I think we should probably keep it
-marked "correctly" though.
+A proposal (quaintly identified as P0190R0) for a new memory_order_consume
+definition may be found here:
 
-> Is there a possible future consideration to perhaps make .rodata read
-> only much earlier?
+	http://www2.rdrop.com/users/paulmck/submission/consume.2016.02.10b.pdf
 
-Yeah, this will likely be a future improvement. Some architectures
-already mark .rodata before the mark_rodata_ro() call. Once we start
-to have more use of postinit-readonly, I suspect we'll see more
-clarification of when those things happen.
+As requested at the October C++ Standards Committee meeting, this
+is a follow-on to P0098R1 that picks one alternative and describes
+it in detail.  This approach focuses on existing practice, with the
+goal of supporting existing code with existing compilers.  In the last
+clang/LLVM patch I saw for basic support of this change, you could count
+the changed lines and still have lots of fingers and toes left over.
+Those who have been following this story will recognize that this is
+a very happy contrast to work that would be required to implement the
+definition in the current standard.
 
--Kees
+I expect that P0190R0 will be discussed at the upcoming C++ Standards
+Committee meeting taking place the week of February 29th.  Points of
+discussion are likely to include:
 
--- 
-Kees Cook
-Chrome OS & Brillo Security
+o	May memory_order_consume dependency ordering be used in
+	unannotated code?  I believe that this must be the case,
+	especially given that this is our experience base.  P0190R0
+	therefore recommends this approach.
+
+o	If memory_order_consume dependency ordering can be used in
+	unannotated code, must implementations support annotation?
+	I believe that annotation support should be required, at the very
+	least for formal verification, which can be quite difficult to
+	carry out on unannotated code.  In addition, it seems likely
+	that annotations can enable much better diagnostics.  P0190R0
+	therefore recommends this approach.
+
+o	If implementations must support annotation, what form should that
+	annotation take?  P0190R0 recommends the [[carries_dependency]]
+	attribute, but I am not picky as long as it can be (1) applied
+	to all relevant pointer-like objects and (2) used in C as well
+	as C++.  ;-)
+
+o	If memory_order_consume dependency ordering can be used in
+	unannotated code, how best to define the situations where
+	the compiler can determine the exact value of the pointer in
+	question?  (In current defacto implementations, this can
+	defeat dependency ordering.  Interestingly enough, this case
+	is not present in the Linux kernel, but still needs to be
+	defined.)
+
+	Options include:
+	
+	o	Provide new intrinsics that carry out the
+		comparisons, but guarantee to preserve dependencies,
+		as recommended by P0190R0 (std::pointer_cmp_eq_dep(),
+		std::pointer_cmp_ne_dep(), std::pointer_cmp_gt_dep(),
+		std::pointer_cmp_ge_dep(), std::pointer_cmp_lt_dep(),
+		and std::pointer_cmp_le_dep()).
+
+	o	State that -any- comparison involving an unannotated
+		pointer loses the dependency.
+
+o	How is the common idiom of marking pointers by setting low-order
+	bits to be supported when those pointers carry dependencies?
+	At the moment, I believe that setting bits in pointers results in
+	undefined behavior even without dependency ordering, so P0190R0
+	kicks this particular can down the road.  One option that
+	has been suggested is to provide intrinsics for this purpose.
+	(Sorry, but I forget who suggested this.)
+
+Thoughts?
+
+							Thanx, Paul
